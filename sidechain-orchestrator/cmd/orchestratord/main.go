@@ -20,12 +20,20 @@ import (
 	rpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/orchestrator/v1/orchestratorv1connect"
 	bitassetsrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/bitassets/v1/bitassetsv1connect"
 	bitnamesrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/bitnames/v1/bitnamesv1connect"
+	coinshiftrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/coinshift/v1/coinshiftv1connect"
+	photonrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/photon/v1/photonv1connect"
 	thunderrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/thunder/v1/thunderv1connect"
+	truthcoinrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/truthcoin/v1/truthcoinv1connect"
 	walletrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1/walletmanagerv1connect"
+	zsiderpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/zside/v1/zsidev1connect"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain"
 	bitassetssvc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/bitassets"
 	bitnamessvc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/bitnames"
+	coinshiftsvc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/coinshift"
+	photonsvc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/photon"
 	thundersvc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/thunder"
+	truthcoinsvc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/truthcoin"
+	zsidesvc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/zside"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/wallet"
 )
 
@@ -199,6 +207,26 @@ func run(cctx *cli.Context) error {
 		case "bitassets":
 			h := bitassetssvc.NewHandler(proxy)
 			path, handler := bitassetsrpc.NewBitAssetsServiceHandler(h, connect.WithInterceptors())
+			mux.Handle(path, handler)
+			log.Info().Str("sidechain", name).Int("port", cfg.Port).Msg("registered sidechain RPC service")
+		case "photon":
+			h := photonsvc.NewHandler(proxy)
+			path, handler := photonrpc.NewPhotonServiceHandler(h, connect.WithInterceptors())
+			mux.Handle(path, handler)
+			log.Info().Str("sidechain", name).Int("port", cfg.Port).Msg("registered sidechain RPC service")
+		case "truthcoin":
+			h := truthcoinsvc.NewHandler(proxy)
+			path, handler := truthcoinrpc.NewTruthcoinServiceHandler(h, connect.WithInterceptors())
+			mux.Handle(path, handler)
+			log.Info().Str("sidechain", name).Int("port", cfg.Port).Msg("registered sidechain RPC service")
+		case "coinshift":
+			h := coinshiftsvc.NewHandler(proxy)
+			path, handler := coinshiftrpc.NewCoinShiftServiceHandler(h, connect.WithInterceptors())
+			mux.Handle(path, handler)
+			log.Info().Str("sidechain", name).Int("port", cfg.Port).Msg("registered sidechain RPC service")
+		case "zside":
+			h := zsidesvc.NewHandler(proxy)
+			path, handler := zsiderpc.NewZSideServiceHandler(h, connect.WithInterceptors())
 			mux.Handle(path, handler)
 			log.Info().Str("sidechain", name).Int("port", cfg.Port).Msg("registered sidechain RPC service")
 		}

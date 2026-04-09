@@ -1,10 +1,16 @@
-import 'package:dart_coin_rpc/dart_coin_rpc.dart';
-import 'package:dio/dio.dart';
+import 'dart:convert';
+
+import 'package:connectrpc/http2.dart';
+import 'package:connectrpc/protobuf.dart';
+import 'package:connectrpc/protocol/connect.dart' as connect;
+import 'package:fixnum/fixnum.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:sail_ui/bitcoin.dart';
 import 'package:sail_ui/classes/rpc_connection.dart';
 import 'package:sail_ui/config/binaries.dart';
+import 'package:sail_ui/gen/truthcoin/v1/truthcoin.connect.client.dart';
+import 'package:sail_ui/gen/truthcoin/v1/truthcoin.pb.dart' as pb;
 import 'package:sail_ui/rpcs/rpc_sidechain.dart';
 import 'package:sail_ui/rpcs/thunder_utxo.dart';
 import 'package:sail_ui/widgets/components/core_transaction.dart';
@@ -238,67 +244,48 @@ class TruthcoinLive extends TruthcoinRPC {
   @override
   final log = GetIt.I.get<Logger>();
 
-  RPCClient _client() {
-    final client = RPCClient(
-      host: '127.0.0.1',
-      port: binary.port,
-      username: 'N/A',
-      password: 'N/A',
-      useSSL: false,
-    );
-
-    client.dioClient = Dio();
-    return client;
-  }
+  late TruthcoinServiceClient _client;
 
   TruthcoinLive() : super(binaryType: BinaryType.truthcoin, restartOnFailure: false) {
-    startConnectionTimer();
+    final transport = connect.Transport(
+      baseUrl: 'http://localhost:30400',
+      codec: const ProtoCodec(),
+      httpClient: createHttpClient(),
+    );
+    _client = TruthcoinServiceClient(transport);
   }
 
   @override
-  Future<List<String>> binaryArgs() async {
-    return binary.extraBootArgs;
-  }
+  Future<List<String>> binaryArgs() async => [];
 
   @override
-  Future<int> ping() async {
-    return await getBlockCount();
-  }
+  Future<int> ping() async => await getBlockCount();
 
   @override
-  List<String> startupErrors() {
-    return [];
-  }
+  List<String> startupErrors() => [];
 
   @override
   Future<(double, double)> balance() async {
-    final response = await _client().call('bitcoin_balance') as Map<String, dynamic>;
-    final totalSats = response['total_sats'] as int;
-    final availableSats = response['available_sats'] as int;
-
-    // Convert from sats to BTC
-    final confirmed = satoshiToBTC(availableSats);
-    final unconfirmed = satoshiToBTC(totalSats - availableSats);
-
+    final resp = await _client.getBalance(pb.GetBalanceRequest());
+    final confirmed = satoshiToBTC(resp.availableSats.toInt());
+    final unconfirmed = satoshiToBTC((resp.totalSats - resp.availableSats).toInt());
     return (confirmed, unconfirmed);
   }
 
   @override
   Future<int> getBlockCount() async {
-    return await _client().call('getblockcount') as int;
+    final resp = await _client.getBlockCount(pb.GetBlockCountRequest());
+    return resp.count.toInt();
   }
 
   @override
   Future<void> stopRPC() async {
-    await _client().call('stop');
+    await _client.stop(pb.StopRequest());
   }
 
   @override
   Future<BlockchainInfo> getBlockchainInfo() async {
-    final blocks = await _client().call('getblockcount') as int;
-
-    // There's no endpoint to get headers for truthcoin, so we get the height
-    // from the public explorer service, assuming it is fully synced
+    final blocks = await getBlockCount();
     final explorerHeaders = await fetchExplorerHeaders();
     final headers = explorerHeaders ?? blocks;
     final bestBlockHash = await getBestSidechainBlockHash();
@@ -321,230 +308,200 @@ class TruthcoinLive extends TruthcoinRPC {
   }
 
   @override
-  List<String> getMethods() {
-    return truthcoinRPCMethods;
-  }
+  List<String> getMethods() => truthcoinRPCMethods;
 
   @override
   Future<dynamic> callRAW(String method, [dynamic params]) async {
-    return await _client().call(method, params).catchError((err) {
-      log.t('rpc: $method threw exception: $err');
-      throw err;
-    });
+    final paramsJson = params != null ? jsonEncode(params) : '';
+    final resp = await _client.callRaw(pb.CallRawRequest(method: method, paramsJson: paramsJson));
+    if (resp.resultJson.isEmpty) return null;
+    return jsonDecode(resp.resultJson);
   }
 
   @override
   Future<String> getDepositAddress() async {
-    final response = await _client().call('get_new_address') as String;
-    return formatDepositAddress(response, chain.slot);
+    final resp = await _client.getNewAddress(pb.GetNewAddressRequest());
+    return formatDepositAddress(resp.address, chain.slot);
   }
 
   @override
   Future<String> getSideAddress() async {
-    final response = await _client().call('get_new_address');
-    return response as String;
+    final resp = await _client.getNewAddress(pb.GetNewAddressRequest());
+    return resp.address;
   }
 
   @override
-  Future<List<CoreTransaction>> listTransactions() async {
-    return [];
+  Future<List<CoreTransaction>> listTransactions() async => [];
+
+  @override
+  Future<String> withdraw(String address, int amountSats, int sidechainFeeSats, int mainchainFeeSats) async {
+    final resp = await _client.withdraw(
+      pb.WithdrawRequest(
+        address: address,
+        amountSats: Int64(amountSats),
+        sideFeeSats: Int64(sidechainFeeSats),
+        mainFeeSats: Int64(mainchainFeeSats),
+      ),
+    );
+    return resp.txid;
   }
 
   @override
-  Future<String> withdraw(
-    String address,
-    int amountSats,
-    int sidechainFeeSats,
-    int mainchainFeeSats,
-  ) async {
-    final response = await _client().call('withdraw', [
-      address,
-      amountSats,
-      sidechainFeeSats,
-      mainchainFeeSats,
-    ]);
-    return response as String;
-  }
+  Future<double> sideEstimateFee() async => 0.00001;
 
   @override
-  Future<double> sideEstimateFee() async {
-    // Truthcoin has fixed fees for now
-    return 0.00001;
+  Future<String> sideSend(String address, double amount, bool subtractFeeFromAmount) async {
+    final resp = await _client.transfer(
+      pb.TransferRequest(
+        address: address,
+        amountSats: Int64(btcToSatoshi(amount).toInt()),
+        feeSats: Int64(btcToSatoshi(0.00001).toInt()),
+      ),
+    );
+    return resp.txid;
   }
 
-  @override
-  Future<String> sideSend(
-    String address,
-    double amount,
-    bool subtractFeeFromAmount,
-  ) async {
-    final response = await _client().call('transfer', [
-      address,
-      btcToSatoshi(amount).toInt(),
-      btcToSatoshi(0.00001).toInt(),
-    ]);
-    return response as String;
-  }
-
-  /// Get total sidechain wealth in BTC
   @override
   Future<double> getSidechainWealth() async {
-    final wealthSats = await _client().call('sidechain_wealth_sats') as int;
-    return satoshiToBTC(wealthSats);
+    final resp = await _client.getSidechainWealth(pb.GetSidechainWealthRequest());
+    return satoshiToBTC(resp.sats.toInt());
   }
 
-  /// Create a deposit transaction
   @override
-  Future<String> createDeposit(
-    String address,
-    double amount,
-    double fee,
-  ) async {
-    final response = await _client().call('create_deposit', [
-      address,
-      btcToSatoshi(amount),
-      btcToSatoshi(fee),
-    ]);
-    return response as String;
+  Future<String> createDeposit(String address, double amount, double fee) async {
+    final resp = await _client.createDeposit(
+      pb.CreateDepositRequest(
+        address: address,
+        valueSats: Int64(btcToSatoshi(amount).toInt()),
+        feeSats: Int64(btcToSatoshi(fee).toInt()),
+      ),
+    );
+    return resp.txid;
   }
 
-  /// Get pending withdrawal bundle
   @override
   Future<PendingWithdrawalBundle?> getPendingWithdrawalBundle() async {
-    final response = await _client().call('pending_withdrawal_bundle');
-
-    return PendingWithdrawalBundle.fromMap(response);
+    final resp = await _client.getPendingWithdrawalBundle(pb.GetPendingWithdrawalBundleRequest());
+    if (resp.bundleJson.isEmpty) return null;
+    return PendingWithdrawalBundle.fromMap(jsonDecode(resp.bundleJson));
   }
 
-  /// Connect to a peer
   @override
   Future<void> connectPeer(String peerAddress) async {
-    await _client().call('connect_peer', peerAddress);
+    await _client.connectPeer(pb.ConnectPeerRequest(address: peerAddress));
   }
 
-  /// List connected peers
   @override
   Future<List<Map<String, dynamic>>> listPeers() async {
-    final response = await _client().call('list_peers') as List<dynamic>;
-    return response.cast<Map<String, dynamic>>();
+    final resp = await _client.listPeers(pb.ListPeersRequest());
+    if (resp.peersJson.isEmpty) return [];
+    return (jsonDecode(resp.peersJson) as List<dynamic>).cast<Map<String, dynamic>>();
   }
 
-  /// Mine a block with optional coinbase value
   @override
   Future<BmmResult> mine(int feeSats) async {
-    final response = await _client().call('mine', feeSats);
-    return BmmResult.fromMap(response);
+    final resp = await _client.mine(pb.MineRequest(feeSats: Int64(feeSats)));
+    return BmmResult.fromMap(jsonDecode(resp.bmmResultJson));
   }
 
-  /// Get block by hash
   @override
   Future<Map<String, dynamic>?> getBlock(String hash) async {
-    final response = await _client().call('get_block', hash);
-    return response as Map<String, dynamic>?;
+    final resp = await _client.getBlock(pb.GetBlockRequest(hash: hash));
+    if (resp.blockJson.isEmpty) return null;
+    return jsonDecode(resp.blockJson) as Map<String, dynamic>;
   }
 
-  /// Get best mainchain block hash
   @override
   Future<String?> getBestMainchainBlockHash() async {
-    final response = await _client().call('get_best_mainchain_block_hash');
-    return response as String?;
+    final resp = await _client.getBestMainchainBlockHash(pb.GetBestMainchainBlockHashRequest());
+    return resp.hash.isEmpty ? null : resp.hash;
   }
 
-  /// Get best sidechain block hash
   @override
   Future<String?> getBestSidechainBlockHash() async {
-    final response = await _client().call('get_best_sidechain_block_hash');
-    return response as String?;
+    final resp = await _client.getBestSidechainBlockHash(pb.GetBestSidechainBlockHashRequest());
+    return resp.hash.isEmpty ? null : resp.hash;
   }
 
-  /// Get BMM inclusions
   @override
   Future<String> getBMMInclusions(String blockHash) async {
-    final response = await _client().call('get_bmm_inclusions', blockHash);
-    return response as String;
+    final resp = await _client.getBmmInclusions(pb.GetBmmInclusionsRequest(blockHash: blockHash));
+    return resp.inclusions;
   }
 
-  /// List wallet UTXOs
   @override
   Future<List<SidechainUTXO>> listUTXOs() async {
-    final response = await _client().call('get_wallet_utxos') as List<dynamic>;
-    return SidechainUTXO.fromJsonList(response);
+    final resp = await _client.getWalletUtxos(pb.GetWalletUtxosRequest());
+    if (resp.utxosJson.isEmpty) return [];
+    return SidechainUTXO.fromJsonList(jsonDecode(resp.utxosJson) as List<dynamic>);
   }
 
-  /// List all UTXOs (not just wallet UTXOs)
   @override
   Future<List<SidechainUTXO>> listAllUTXOs() async {
-    final response = await _client().call('list_utxos') as List<dynamic>;
-    return SidechainUTXO.fromJsonList(response);
+    final resp = await _client.listUtxos(pb.ListUtxosRequest());
+    if (resp.utxosJson.isEmpty) return [];
+    return SidechainUTXO.fromJsonList(jsonDecode(resp.utxosJson) as List<dynamic>);
   }
 
-  /// Remove transaction from mempool
   @override
   Future<void> removeFromMempool(String txid) async {
-    await _client().call('remove_from_mempool', txid);
+    await _client.removeFromMempool(pb.RemoveFromMempoolRequest(txid: txid));
   }
 
-  /// Get latest failed withdrawal bundle height
   @override
   Future<int?> getLatestFailedWithdrawalBundleHeight() async {
-    final response = await _client().call(
-      'latest_failed_withdrawal_bundle_height',
-    );
-    return response as int?;
+    final resp = await _client.getLatestFailedWithdrawalBundleHeight(pb.GetLatestFailedWithdrawalBundleHeightRequest());
+    return resp.height == 0 ? null : resp.height.toInt();
   }
 
-  /// Generate new mnemonic
   @override
   Future<String> generateMnemonic() async {
-    final response = await _client().call('generate_mnemonic');
-    return response as String;
+    final resp = await _client.generateMnemonic(pb.GenerateMnemonicRequest());
+    return resp.mnemonic;
   }
 
-  /// Set seed from mnemonic
   @override
   Future<void> setSeedFromMnemonic(String mnemonic) async {
-    await _client().call('set_seed_from_mnemonic', mnemonic);
+    await _client.setSeedFromMnemonic(pb.SetSeedFromMnemonicRequest(mnemonic: mnemonic));
   }
 
-  /// Refresh wallet
   @override
   Future<void> refreshWallet() async {
-    await _client().call('refresh_wallet');
+    await _client.refreshWallet(pb.RefreshWalletRequest());
   }
 
-  /// Get transaction by txid
   @override
   Future<Map<String, dynamic>?> getTransaction(String txid) async {
-    final response = await _client().call('get_transaction', txid);
-    return response as Map<String, dynamic>?;
+    final resp = await _client.getTransaction(pb.GetTransactionRequest(txid: txid));
+    if (resp.transactionJson.isEmpty) return null;
+    return jsonDecode(resp.transactionJson) as Map<String, dynamic>;
   }
 
-  /// Get transaction info
   @override
   Future<Map<String, dynamic>?> getTransactionInfo(String txid) async {
-    final response = await _client().call('get_transaction_info', txid);
-    return response as Map<String, dynamic>?;
+    final resp = await _client.getTransactionInfo(pb.GetTransactionInfoRequest(txid: txid));
+    if (resp.transactionInfoJson.isEmpty) return null;
+    return jsonDecode(resp.transactionInfoJson) as Map<String, dynamic>;
   }
 
-  /// Get wallet addresses
   @override
   Future<List<String>> getWalletAddresses() async {
-    final response = await _client().call('get_wallet_addresses') as List<dynamic>;
-    return response.cast<String>();
+    final resp = await _client.getWalletAddresses(pb.GetWalletAddressesRequest());
+    return resp.addresses.toList();
   }
 
-  /// Get owned UTXOs (confirmed)
   @override
   Future<List<SidechainUTXO>> myUtxos() async {
-    final response = await _client().call('my_utxos') as List<dynamic>;
-    return SidechainUTXO.fromJsonList(response);
+    final resp = await _client.myUtxos(pb.MyUtxosRequest());
+    if (resp.utxosJson.isEmpty) return [];
+    return SidechainUTXO.fromJsonList(jsonDecode(resp.utxosJson) as List<dynamic>);
   }
 
-  /// Get owned UTXOs (unconfirmed)
   @override
   Future<List<SidechainUTXO>> myUnconfirmedUtxos() async {
-    final response = await _client().call('my_unconfirmed_utxos') as List<dynamic>;
-    return SidechainUTXO.fromJsonList(response);
+    final resp = await _client.myUnconfirmedUtxos(pb.MyUnconfirmedUtxosRequest());
+    if (resp.utxosJson.isEmpty) return [];
+    return SidechainUTXO.fromJsonList(jsonDecode(resp.utxosJson) as List<dynamic>);
   }
 
   // Prediction Markets
@@ -554,12 +511,12 @@ class TruthcoinLive extends TruthcoinRPC {
     int? numOutcomes,
     String? dimensions,
   }) async {
-    final response = await _client().call('calculate_initial_liquidity', [
-      beta,
-      numOutcomes,
-      dimensions,
-    ]);
-    return response as Map<String, dynamic>;
+    final resp = await _client.calculateInitialLiquidity(pb.CalculateInitialLiquidityRequest(
+      beta: beta,
+      numOutcomes: numOutcomes,
+      dimensions: dimensions,
+    ));
+    return jsonDecode(resp.resultJson) as Map<String, dynamic>;
   }
 
   @override
@@ -575,31 +532,33 @@ class TruthcoinLive extends TruthcoinRPC {
     List<String>? categoryTxids,
     List<String>? residualNames,
   }) async {
-    final response = await _client().call('market_create', [
-      title,
-      description,
-      dimensions,
-      feeSats,
-      beta,
-      initialLiquidity,
-      tradingFee,
-      tags,
-      categoryTxids,
-      residualNames,
-    ]);
-    return response as String;
+    final resp = await _client.marketCreate(pb.MarketCreateRequest(
+      title: title,
+      description: description,
+      dimensions: dimensions,
+      feeSats: Int64(feeSats),
+      beta: beta,
+      initialLiquidity: initialLiquidity != null ? Int64(initialLiquidity) : null,
+      tradingFee: tradingFee,
+      tags: tags ?? [],
+      categoryTxids: categoryTxids ?? [],
+      residualNames: residualNames ?? [],
+    ));
+    return resp.txid;
   }
 
   @override
   Future<List<Map<String, dynamic>>> marketList() async {
-    final response = await _client().call('market_list') as List<dynamic>;
-    return response.cast<Map<String, dynamic>>();
+    final resp = await _client.marketList(pb.MarketListRequest());
+    if (resp.marketsJson.isEmpty) return [];
+    return (jsonDecode(resp.marketsJson) as List<dynamic>).cast<Map<String, dynamic>>();
   }
 
   @override
   Future<Map<String, dynamic>?> marketGet(String marketId) async {
-    final response = await _client().call('market_get', marketId);
-    return response as Map<String, dynamic>?;
+    final resp = await _client.marketGet(pb.MarketGetRequest(marketId: marketId));
+    if (resp.marketJson.isEmpty) return null;
+    return jsonDecode(resp.marketJson) as Map<String, dynamic>;
   }
 
   @override
@@ -611,15 +570,15 @@ class TruthcoinLive extends TruthcoinRPC {
     int? feeSats,
     int? maxCost,
   }) async {
-    final response = await _client().call('market_buy', [
-      marketId,
-      outcomeIndex,
-      sharesAmount,
-      dryRun,
-      feeSats,
-      maxCost,
-    ]);
-    return response as Map<String, dynamic>;
+    final resp = await _client.marketBuy(pb.MarketBuyRequest(
+      marketId: marketId,
+      outcomeIndex: outcomeIndex,
+      sharesAmount: sharesAmount,
+      dryRun: dryRun,
+      feeSats: feeSats != null ? Int64(feeSats) : null,
+      maxCost: maxCost != null ? Int64(maxCost) : null,
+    ));
+    return jsonDecode(resp.resultJson) as Map<String, dynamic>;
   }
 
   @override
@@ -632,16 +591,16 @@ class TruthcoinLive extends TruthcoinRPC {
     int? feeSats,
     int? minProceeds,
   }) async {
-    final response = await _client().call('market_sell', [
-      marketId,
-      outcomeIndex,
-      sharesAmount,
-      sellerAddress,
-      dryRun,
-      feeSats,
-      minProceeds,
-    ]);
-    return response as Map<String, dynamic>;
+    final resp = await _client.marketSell(pb.MarketSellRequest(
+      marketId: marketId,
+      outcomeIndex: outcomeIndex,
+      sharesAmount: Int64(sharesAmount),
+      sellerAddress: sellerAddress,
+      dryRun: dryRun,
+      feeSats: feeSats != null ? Int64(feeSats) : null,
+      minProceeds: minProceeds != null ? Int64(minProceeds) : null,
+    ));
+    return jsonDecode(resp.resultJson) as Map<String, dynamic>;
   }
 
   @override
@@ -649,33 +608,35 @@ class TruthcoinLive extends TruthcoinRPC {
     String? address,
     String? marketId,
   }) async {
-    final response = await _client().call('market_positions', [
-      address,
-      marketId,
-    ]);
-    return response as Map<String, dynamic>;
+    final resp = await _client.marketPositions(pb.MarketPositionsRequest(
+      address: address,
+      marketId: marketId,
+    ));
+    return jsonDecode(resp.positionsJson) as Map<String, dynamic>;
   }
 
   // Slots
   @override
   Future<Map<String, dynamic>> slotStatus() async {
-    final response = await _client().call('slot_status');
-    return response as Map<String, dynamic>;
+    final resp = await _client.slotStatus(pb.SlotStatusRequest());
+    return jsonDecode(resp.statusJson) as Map<String, dynamic>;
   }
 
   @override
-  Future<List<Map<String, dynamic>>> slotList({
-    int? period,
-    String? status,
-  }) async {
-    final response = await _client().call('slot_list', [period, status]) as List<dynamic>;
-    return response.cast<Map<String, dynamic>>();
+  Future<List<Map<String, dynamic>>> slotList({int? period, String? status}) async {
+    final resp = await _client.slotList(pb.SlotListRequest(
+      period: period,
+      status: status,
+    ));
+    if (resp.slotsJson.isEmpty) return [];
+    return (jsonDecode(resp.slotsJson) as List<dynamic>).cast<Map<String, dynamic>>();
   }
 
   @override
   Future<Map<String, dynamic>?> slotGet(String slotId) async {
-    final response = await _client().call('slot_get', slotId);
-    return response as Map<String, dynamic>?;
+    final resp = await _client.slotGet(pb.SlotGetRequest(slotId: slotId));
+    if (resp.slotJson.isEmpty) return null;
+    return jsonDecode(resp.slotJson) as Map<String, dynamic>;
   }
 
   @override
@@ -689,17 +650,17 @@ class TruthcoinLive extends TruthcoinRPC {
     int? min,
     int? max,
   }) async {
-    final response = await _client().call('slot_claim', [
-      feeSats,
-      periodIndex,
-      slotIndex,
-      question,
-      isStandard,
-      isScaled,
-      min,
-      max,
-    ]);
-    return response as String;
+    final resp = await _client.slotClaim(pb.SlotClaimRequest(
+      feeSats: Int64(feeSats),
+      periodIndex: periodIndex,
+      slotIndex: slotIndex,
+      question: question,
+      isStandard: isStandard,
+      isScaled: isScaled,
+      min: min,
+      max: max,
+    ));
+    return resp.txid;
   }
 
   @override
@@ -708,37 +669,36 @@ class TruthcoinLive extends TruthcoinRPC {
     required bool isStandard,
     required int feeSats,
   }) async {
-    final response = await _client().call('slot_claim_category', [
-      slots,
-      isStandard,
-      feeSats,
-    ]);
-    return response as String;
+    final resp = await _client.slotClaimCategory(pb.SlotClaimCategoryRequest(
+      slotsJson: jsonEncode(slots),
+      isStandard: isStandard,
+      feeSats: Int64(feeSats),
+    ));
+    return resp.txid;
   }
 
   // Voting
   @override
-  Future<String> voteRegister({
-    required int feeSats,
-    int? reputationBondSats,
-  }) async {
-    final response = await _client().call('vote_register', [
-      feeSats,
-      reputationBondSats,
-    ]);
-    return response as String;
+  Future<String> voteRegister({required int feeSats, int? reputationBondSats}) async {
+    final resp = await _client.voteRegister(pb.VoteRegisterRequest(
+      feeSats: Int64(feeSats),
+      reputationBondSats: reputationBondSats != null ? Int64(reputationBondSats) : null,
+    ));
+    return resp.txid;
   }
 
   @override
   Future<Map<String, dynamic>?> voteVoter(String address) async {
-    final response = await _client().call('vote_voter', address);
-    return response as Map<String, dynamic>?;
+    final resp = await _client.voteVoter(pb.VoteVoterRequest(address: address));
+    if (resp.voterJson.isEmpty) return null;
+    return jsonDecode(resp.voterJson) as Map<String, dynamic>;
   }
 
   @override
   Future<List<Map<String, dynamic>>> voteVoters() async {
-    final response = await _client().call('vote_voters') as List<dynamic>;
-    return response.cast<Map<String, dynamic>>();
+    final resp = await _client.voteVoters(pb.VoteVotersRequest());
+    if (resp.votersJson.isEmpty) return [];
+    return (jsonDecode(resp.votersJson) as List<dynamic>).cast<Map<String, dynamic>>();
   }
 
   @override
@@ -746,8 +706,11 @@ class TruthcoinLive extends TruthcoinRPC {
     required List<Map<String, dynamic>> votes,
     required int feeSats,
   }) async {
-    final response = await _client().call('vote_submit', [votes, feeSats]);
-    return response as String;
+    final resp = await _client.voteSubmit(pb.VoteSubmitRequest(
+      votesJson: jsonEncode(votes),
+      feeSats: Int64(feeSats),
+    ));
+    return resp.txid;
   }
 
   @override
@@ -756,14 +719,20 @@ class TruthcoinLive extends TruthcoinRPC {
     String? decisionId,
     int? periodId,
   }) async {
-    final response = await _client().call('vote_list', [voter, decisionId, periodId]) as List<dynamic>;
-    return response.cast<Map<String, dynamic>>();
+    final resp = await _client.voteList(pb.VoteListRequest(
+      voter: voter,
+      decisionId: decisionId,
+      periodId: periodId,
+    ));
+    if (resp.votesJson.isEmpty) return [];
+    return (jsonDecode(resp.votesJson) as List<dynamic>).cast<Map<String, dynamic>>();
   }
 
   @override
   Future<Map<String, dynamic>?> votePeriod({int? periodId}) async {
-    final response = await _client().call('vote_period', periodId);
-    return response as Map<String, dynamic>?;
+    final resp = await _client.votePeriod(pb.VotePeriodRequest(periodId: periodId));
+    if (resp.periodJson.isEmpty) return null;
+    return jsonDecode(resp.periodJson) as Map<String, dynamic>;
   }
 
   // Votecoin
@@ -774,19 +743,19 @@ class TruthcoinLive extends TruthcoinRPC {
     required int feeSats,
     String? memo,
   }) async {
-    final response = await _client().call('votecoin_transfer', [
-      dest,
-      amount,
-      feeSats,
-      memo,
-    ]);
-    return response as String;
+    final resp = await _client.votecoinTransfer(pb.VotecoinTransferRequest(
+      dest: dest,
+      amount: Int64(amount),
+      feeSats: Int64(feeSats),
+      memo: memo,
+    ));
+    return resp.txid;
   }
 
   @override
   Future<int> votecoinBalance(String address) async {
-    final response = await _client().call('votecoin_balance', address);
-    return response as int;
+    final resp = await _client.votecoinBalance(pb.VotecoinBalanceRequest(address: address));
+    return resp.balance.toInt();
   }
 
   @override
@@ -796,74 +765,62 @@ class TruthcoinLive extends TruthcoinRPC {
     required int feeSats,
     String? memo,
   }) async {
-    final response = await _client().call('transfer_votecoin', [
-      dest,
-      amount,
-      feeSats,
-      memo,
-    ]);
-    return response as String;
+    final resp = await _client.transferVotecoin(pb.TransferVotecoinRequest(
+      dest: dest,
+      amount: Int64(amount),
+      feeSats: Int64(feeSats),
+      memo: memo,
+    ));
+    return resp.txid;
   }
 
   // Crypto utilities
   @override
   Future<String> getNewEncryptionKey() async {
-    final response = await _client().call('get_new_encryption_key');
-    return response as String;
+    final resp = await _client.getNewEncryptionKey(pb.GetNewEncryptionKeyRequest());
+    return resp.key;
   }
 
   @override
   Future<String> getNewVerifyingKey() async {
-    final response = await _client().call('get_new_verifying_key');
-    return response as String;
+    final resp = await _client.getNewVerifyingKey(pb.GetNewVerifyingKeyRequest());
+    return resp.key;
   }
 
   @override
-  Future<String> encryptMsg({
-    required String msg,
-    required String encryptionPubkey,
-  }) async {
-    final response = await _client().call('encrypt_msg', [
-      encryptionPubkey,
-      msg,
-    ]);
-    return response as String;
+  Future<String> encryptMsg({required String msg, required String encryptionPubkey}) async {
+    final resp = await _client.encryptMsg(pb.EncryptMsgRequest(
+      msg: msg,
+      encryptionPubkey: encryptionPubkey,
+    ));
+    return resp.ciphertext;
   }
 
   @override
-  Future<String> decryptMsg({
-    required String ciphertext,
-    required String encryptionPubkey,
-  }) async {
-    final response = await _client().call('decrypt_msg', [
-      encryptionPubkey,
-      ciphertext,
-    ]);
-    return response as String;
+  Future<String> decryptMsg({required String ciphertext, required String encryptionPubkey}) async {
+    final resp = await _client.decryptMsg(pb.DecryptMsgRequest(
+      ciphertext: ciphertext,
+      encryptionPubkey: encryptionPubkey,
+    ));
+    return resp.plaintext;
   }
 
   @override
-  Future<String> signArbitraryMsg({
-    required String msg,
-    required String verifyingKey,
-  }) async {
-    final response = await _client().call('sign_arbitrary_msg', [
-      msg,
-      verifyingKey,
-    ]);
-    return response as String;
+  Future<String> signArbitraryMsg({required String msg, required String verifyingKey}) async {
+    final resp = await _client.signArbitraryMsg(pb.SignArbitraryMsgRequest(
+      msg: msg,
+      verifyingKey: verifyingKey,
+    ));
+    return resp.signature;
   }
 
   @override
-  Future<Map<String, dynamic>> signArbitraryMsgAsAddr({
-    required String address,
-    required String msg,
-  }) async {
-    final response = await _client().call('sign_arbitrary_msg_as_addr', [
-      msg,
-      address,
-    ]);
-    return response as Map<String, dynamic>;
+  Future<Map<String, dynamic>> signArbitraryMsgAsAddr({required String address, required String msg}) async {
+    final resp = await _client.signArbitraryMsgAsAddr(pb.SignArbitraryMsgAsAddrRequest(
+      msg: msg,
+      address: address,
+    ));
+    return {'verifying_key': resp.verifyingKey, 'signature': resp.signature};
   }
 
   @override
@@ -873,13 +830,13 @@ class TruthcoinLive extends TruthcoinRPC {
     required String verifyingKey,
     required String dst,
   }) async {
-    final response = await _client().call('verify_signature', [
-      msg,
-      signature,
-      verifyingKey,
-      dst,
-    ]);
-    return response as bool;
+    final resp = await _client.verifySignature(pb.VerifySignatureRequest(
+      msg: msg,
+      signature: signature,
+      verifyingKey: verifyingKey,
+      dst: dst,
+    ));
+    return resp.valid;
   }
 }
 

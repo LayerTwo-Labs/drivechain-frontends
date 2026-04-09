@@ -1,0 +1,778 @@
+syntax = "proto3";
+
+package truthcoin.v1;
+
+service TruthcoinService {
+  // Get wallet balance (total and available).
+  rpc GetBalance(GetBalanceRequest) returns (GetBalanceResponse);
+
+  // Get current block count.
+  rpc GetBlockCount(GetBlockCountRequest) returns (GetBlockCountResponse);
+
+  // Stop the truthcoin node.
+  rpc Stop(StopRequest) returns (StopResponse);
+
+  // Get a new address from the wallet.
+  rpc GetNewAddress(GetNewAddressRequest) returns (GetNewAddressResponse);
+
+  // Withdraw to mainchain.
+  rpc Withdraw(WithdrawRequest) returns (WithdrawResponse);
+
+  // Transfer within sidechain.
+  rpc Transfer(TransferRequest) returns (TransferResponse);
+
+  // Get total sidechain wealth in sats.
+  rpc GetSidechainWealth(GetSidechainWealthRequest) returns (GetSidechainWealthResponse);
+
+  // Create a deposit transaction.
+  rpc CreateDeposit(CreateDepositRequest) returns (CreateDepositResponse);
+
+  // Get pending withdrawal bundle.
+  rpc GetPendingWithdrawalBundle(GetPendingWithdrawalBundleRequest) returns (GetPendingWithdrawalBundleResponse);
+
+  // Connect to a peer.
+  rpc ConnectPeer(ConnectPeerRequest) returns (ConnectPeerResponse);
+
+  // List connected peers.
+  rpc ListPeers(ListPeersRequest) returns (ListPeersResponse);
+
+  // Mine a block.
+  rpc Mine(MineRequest) returns (MineResponse);
+
+  // Get block by hash.
+  rpc GetBlock(GetBlockRequest) returns (GetBlockResponse);
+
+  // Get best mainchain block hash.
+  rpc GetBestMainchainBlockHash(GetBestMainchainBlockHashRequest) returns (GetBestMainchainBlockHashResponse);
+
+  // Get best sidechain block hash.
+  rpc GetBestSidechainBlockHash(GetBestSidechainBlockHashRequest) returns (GetBestSidechainBlockHashResponse);
+
+  // Get BMM inclusions for a block.
+  rpc GetBmmInclusions(GetBmmInclusionsRequest) returns (GetBmmInclusionsResponse);
+
+  // Get wallet UTXOs.
+  rpc GetWalletUtxos(GetWalletUtxosRequest) returns (GetWalletUtxosResponse);
+
+  // List all UTXOs.
+  rpc ListUtxos(ListUtxosRequest) returns (ListUtxosResponse);
+
+  // Remove transaction from mempool.
+  rpc RemoveFromMempool(RemoveFromMempoolRequest) returns (RemoveFromMempoolResponse);
+
+  // Get latest failed withdrawal bundle height.
+  rpc GetLatestFailedWithdrawalBundleHeight(GetLatestFailedWithdrawalBundleHeightRequest) returns (GetLatestFailedWithdrawalBundleHeightResponse);
+
+  // Generate a new mnemonic.
+  rpc GenerateMnemonic(GenerateMnemonicRequest) returns (GenerateMnemonicResponse);
+
+  // Set seed from mnemonic.
+  rpc SetSeedFromMnemonic(SetSeedFromMnemonicRequest) returns (SetSeedFromMnemonicResponse);
+
+  // Raw JSON-RPC passthrough for debug console.
+  rpc CallRaw(CallRawRequest) returns (CallRawResponse);
+
+  // --- Truthcoin-specific methods ---
+
+  // Refresh wallet state.
+  rpc RefreshWallet(RefreshWalletRequest) returns (RefreshWalletResponse);
+
+  // Get transaction by txid.
+  rpc GetTransaction(GetTransactionRequest) returns (GetTransactionResponse);
+
+  // Get transaction info.
+  rpc GetTransactionInfo(GetTransactionInfoRequest) returns (GetTransactionInfoResponse);
+
+  // Get wallet addresses.
+  rpc GetWalletAddresses(GetWalletAddressesRequest) returns (GetWalletAddressesResponse);
+
+  // Get owned UTXOs (confirmed).
+  rpc MyUtxos(MyUtxosRequest) returns (MyUtxosResponse);
+
+  // Get owned UTXOs (unconfirmed).
+  rpc MyUnconfirmedUtxos(MyUnconfirmedUtxosRequest) returns (MyUnconfirmedUtxosResponse);
+
+  // --- Prediction Markets ---
+
+  // Calculate initial liquidity required for market creation.
+  rpc CalculateInitialLiquidity(CalculateInitialLiquidityRequest) returns (CalculateInitialLiquidityResponse);
+
+  // Create a new prediction market.
+  rpc MarketCreate(MarketCreateRequest) returns (MarketCreateResponse);
+
+  // List all markets.
+  rpc MarketList(MarketListRequest) returns (MarketListResponse);
+
+  // Get a specific market.
+  rpc MarketGet(MarketGetRequest) returns (MarketGetResponse);
+
+  // Buy shares in a market.
+  rpc MarketBuy(MarketBuyRequest) returns (MarketBuyResponse);
+
+  // Sell shares in a market.
+  rpc MarketSell(MarketSellRequest) returns (MarketSellResponse);
+
+  // Get positions in a market.
+  rpc MarketPositions(MarketPositionsRequest) returns (MarketPositionsResponse);
+
+  // --- Slots ---
+
+  // Get slot system status and configuration.
+  rpc SlotStatus(SlotStatusRequest) returns (SlotStatusResponse);
+
+  // List slots with optional filtering.
+  rpc SlotList(SlotListRequest) returns (SlotListResponse);
+
+  // Get a specific slot by ID.
+  rpc SlotGet(SlotGetRequest) returns (SlotGetResponse);
+
+  // Claim a decision slot.
+  rpc SlotClaim(SlotClaimRequest) returns (SlotClaimResponse);
+
+  // Claim multiple slots as a category.
+  rpc SlotClaimCategory(SlotClaimCategoryRequest) returns (SlotClaimCategoryResponse);
+
+  // --- Voting ---
+
+  // Register as a voter.
+  rpc VoteRegister(VoteRegisterRequest) returns (VoteRegisterResponse);
+
+  // Get voter info.
+  rpc VoteVoter(VoteVoterRequest) returns (VoteVoterResponse);
+
+  // List all voters.
+  rpc VoteVoters(VoteVotersRequest) returns (VoteVotersResponse);
+
+  // Submit votes (batch).
+  rpc VoteSubmit(VoteSubmitRequest) returns (VoteSubmitResponse);
+
+  // List votes with optional filters.
+  rpc VoteList(VoteListRequest) returns (VoteListResponse);
+
+  // Get voting period information.
+  rpc VotePeriod(VotePeriodRequest) returns (VotePeriodResponse);
+
+  // --- Votecoin ---
+
+  // Transfer votecoins.
+  rpc VotecoinTransfer(VotecoinTransferRequest) returns (VotecoinTransferResponse);
+
+  // Get votecoin balance for an address.
+  rpc VotecoinBalance(VotecoinBalanceRequest) returns (VotecoinBalanceResponse);
+
+  // Transfer votecoin (alternative method).
+  rpc TransferVotecoin(TransferVotecoinRequest) returns (TransferVotecoinResponse);
+
+  // --- Crypto utilities ---
+
+  // Get a new encryption key.
+  rpc GetNewEncryptionKey(GetNewEncryptionKeyRequest) returns (GetNewEncryptionKeyResponse);
+
+  // Get a new verifying key.
+  rpc GetNewVerifyingKey(GetNewVerifyingKeyRequest) returns (GetNewVerifyingKeyResponse);
+
+  // Encrypt a message.
+  rpc EncryptMsg(EncryptMsgRequest) returns (EncryptMsgResponse);
+
+  // Decrypt a message.
+  rpc DecryptMsg(DecryptMsgRequest) returns (DecryptMsgResponse);
+
+  // Sign an arbitrary message with verifying key.
+  rpc SignArbitraryMsg(SignArbitraryMsgRequest) returns (SignArbitraryMsgResponse);
+
+  // Sign an arbitrary message as address.
+  rpc SignArbitraryMsgAsAddr(SignArbitraryMsgAsAddrRequest) returns (SignArbitraryMsgAsAddrResponse);
+
+  // Verify a signature.
+  rpc VerifySignature(VerifySignatureRequest) returns (VerifySignatureResponse);
+}
+
+// GetBalance
+
+message GetBalanceRequest {}
+
+message GetBalanceResponse {
+  int64 total_sats = 1;
+  int64 available_sats = 2;
+}
+
+// GetBlockCount
+
+message GetBlockCountRequest {}
+
+message GetBlockCountResponse {
+  int64 count = 1;
+}
+
+// Stop
+
+message StopRequest {}
+
+message StopResponse {}
+
+// GetNewAddress
+
+message GetNewAddressRequest {}
+
+message GetNewAddressResponse {
+  string address = 1;
+}
+
+// Withdraw
+
+message WithdrawRequest {
+  string address = 1;
+  int64 amount_sats = 2;
+  int64 side_fee_sats = 3;
+  int64 main_fee_sats = 4;
+}
+
+message WithdrawResponse {
+  string txid = 1;
+}
+
+// Transfer
+
+message TransferRequest {
+  string address = 1;
+  int64 amount_sats = 2;
+  int64 fee_sats = 3;
+}
+
+message TransferResponse {
+  string txid = 1;
+}
+
+// GetSidechainWealth
+
+message GetSidechainWealthRequest {}
+
+message GetSidechainWealthResponse {
+  int64 sats = 1;
+}
+
+// CreateDeposit
+
+message CreateDepositRequest {
+  string address = 1;
+  int64 value_sats = 2;
+  int64 fee_sats = 3;
+}
+
+message CreateDepositResponse {
+  string txid = 1;
+}
+
+// GetPendingWithdrawalBundle
+
+message GetPendingWithdrawalBundleRequest {}
+
+message GetPendingWithdrawalBundleResponse {
+  // JSON string of the bundle, empty if none.
+  string bundle_json = 1;
+}
+
+// ConnectPeer
+
+message ConnectPeerRequest {
+  string address = 1;
+}
+
+message ConnectPeerResponse {}
+
+// ListPeers
+
+message ListPeersRequest {}
+
+message ListPeersResponse {
+  string peers_json = 1;
+}
+
+// Mine
+
+message MineRequest {
+  int64 fee_sats = 1;
+}
+
+message MineResponse {
+  string bmm_result_json = 1;
+}
+
+// GetBlock
+
+message GetBlockRequest {
+  string hash = 1;
+}
+
+message GetBlockResponse {
+  string block_json = 1;
+}
+
+// GetBestMainchainBlockHash
+
+message GetBestMainchainBlockHashRequest {}
+
+message GetBestMainchainBlockHashResponse {
+  string hash = 1;
+}
+
+// GetBestSidechainBlockHash
+
+message GetBestSidechainBlockHashRequest {}
+
+message GetBestSidechainBlockHashResponse {
+  string hash = 1;
+}
+
+// GetBmmInclusions
+
+message GetBmmInclusionsRequest {
+  string block_hash = 1;
+}
+
+message GetBmmInclusionsResponse {
+  string inclusions = 1;
+}
+
+// GetWalletUtxos
+
+message GetWalletUtxosRequest {}
+
+message GetWalletUtxosResponse {
+  string utxos_json = 1;
+}
+
+// ListUtxos
+
+message ListUtxosRequest {}
+
+message ListUtxosResponse {
+  string utxos_json = 1;
+}
+
+// RemoveFromMempool
+
+message RemoveFromMempoolRequest {
+  string txid = 1;
+}
+
+message RemoveFromMempoolResponse {}
+
+// GetLatestFailedWithdrawalBundleHeight
+
+message GetLatestFailedWithdrawalBundleHeightRequest {}
+
+message GetLatestFailedWithdrawalBundleHeightResponse {
+  // 0 means no failed bundle.
+  int64 height = 1;
+}
+
+// GenerateMnemonic
+
+message GenerateMnemonicRequest {}
+
+message GenerateMnemonicResponse {
+  string mnemonic = 1;
+}
+
+// SetSeedFromMnemonic
+
+message SetSeedFromMnemonicRequest {
+  string mnemonic = 1;
+}
+
+message SetSeedFromMnemonicResponse {}
+
+// CallRaw
+
+message CallRawRequest {
+  string method = 1;
+  string params_json = 2;
+}
+
+message CallRawResponse {
+  string result_json = 1;
+}
+
+// --- Truthcoin-specific messages ---
+
+// RefreshWallet
+
+message RefreshWalletRequest {}
+
+message RefreshWalletResponse {}
+
+// GetTransaction
+
+message GetTransactionRequest {
+  string txid = 1;
+}
+
+message GetTransactionResponse {
+  string transaction_json = 1;
+}
+
+// GetTransactionInfo
+
+message GetTransactionInfoRequest {
+  string txid = 1;
+}
+
+message GetTransactionInfoResponse {
+  string transaction_info_json = 1;
+}
+
+// GetWalletAddresses
+
+message GetWalletAddressesRequest {}
+
+message GetWalletAddressesResponse {
+  repeated string addresses = 1;
+}
+
+// MyUtxos
+
+message MyUtxosRequest {}
+
+message MyUtxosResponse {
+  string utxos_json = 1;
+}
+
+// MyUnconfirmedUtxos
+
+message MyUnconfirmedUtxosRequest {}
+
+message MyUnconfirmedUtxosResponse {
+  string utxos_json = 1;
+}
+
+// --- Prediction Markets messages ---
+
+// CalculateInitialLiquidity
+
+message CalculateInitialLiquidityRequest {
+  double beta = 1;
+  optional int32 num_outcomes = 2;
+  optional string dimensions = 3;
+}
+
+message CalculateInitialLiquidityResponse {
+  string result_json = 1;
+}
+
+// MarketCreate
+
+message MarketCreateRequest {
+  string title = 1;
+  string description = 2;
+  string dimensions = 3;
+  int64 fee_sats = 4;
+  optional double beta = 5;
+  optional int64 initial_liquidity = 6;
+  optional double trading_fee = 7;
+  repeated string tags = 8;
+  repeated string category_txids = 9;
+  repeated string residual_names = 10;
+}
+
+message MarketCreateResponse {
+  string txid = 1;
+}
+
+// MarketList
+
+message MarketListRequest {}
+
+message MarketListResponse {
+  string markets_json = 1;
+}
+
+// MarketGet
+
+message MarketGetRequest {
+  string market_id = 1;
+}
+
+message MarketGetResponse {
+  string market_json = 1;
+}
+
+// MarketBuy
+
+message MarketBuyRequest {
+  string market_id = 1;
+  int32 outcome_index = 2;
+  double shares_amount = 3;
+  optional bool dry_run = 4;
+  optional int64 fee_sats = 5;
+  optional int64 max_cost = 6;
+}
+
+message MarketBuyResponse {
+  string result_json = 1;
+}
+
+// MarketSell
+
+message MarketSellRequest {
+  string market_id = 1;
+  int32 outcome_index = 2;
+  int64 shares_amount = 3;
+  string seller_address = 4;
+  optional bool dry_run = 5;
+  optional int64 fee_sats = 6;
+  optional int64 min_proceeds = 7;
+}
+
+message MarketSellResponse {
+  string result_json = 1;
+}
+
+// MarketPositions
+
+message MarketPositionsRequest {
+  optional string address = 1;
+  optional string market_id = 2;
+}
+
+message MarketPositionsResponse {
+  string positions_json = 1;
+}
+
+// --- Slots messages ---
+
+// SlotStatus
+
+message SlotStatusRequest {}
+
+message SlotStatusResponse {
+  string status_json = 1;
+}
+
+// SlotList
+
+message SlotListRequest {
+  optional int32 period = 1;
+  optional string status = 2;
+}
+
+message SlotListResponse {
+  string slots_json = 1;
+}
+
+// SlotGet
+
+message SlotGetRequest {
+  string slot_id = 1;
+}
+
+message SlotGetResponse {
+  string slot_json = 1;
+}
+
+// SlotClaim
+
+message SlotClaimRequest {
+  int64 fee_sats = 1;
+  int32 period_index = 2;
+  int32 slot_index = 3;
+  string question = 4;
+  bool is_standard = 5;
+  optional bool is_scaled = 6;
+  optional int32 min = 7;
+  optional int32 max = 8;
+}
+
+message SlotClaimResponse {
+  string txid = 1;
+}
+
+// SlotClaimCategory
+
+message SlotClaimCategoryRequest {
+  string slots_json = 1;
+  bool is_standard = 2;
+  int64 fee_sats = 3;
+}
+
+message SlotClaimCategoryResponse {
+  string txid = 1;
+}
+
+// --- Voting messages ---
+
+// VoteRegister
+
+message VoteRegisterRequest {
+  int64 fee_sats = 1;
+  optional int64 reputation_bond_sats = 2;
+}
+
+message VoteRegisterResponse {
+  string txid = 1;
+}
+
+// VoteVoter
+
+message VoteVoterRequest {
+  string address = 1;
+}
+
+message VoteVoterResponse {
+  string voter_json = 1;
+}
+
+// VoteVoters
+
+message VoteVotersRequest {}
+
+message VoteVotersResponse {
+  string voters_json = 1;
+}
+
+// VoteSubmit
+
+message VoteSubmitRequest {
+  string votes_json = 1;
+  int64 fee_sats = 2;
+}
+
+message VoteSubmitResponse {
+  string txid = 1;
+}
+
+// VoteList
+
+message VoteListRequest {
+  optional string voter = 1;
+  optional string decision_id = 2;
+  optional int32 period_id = 3;
+}
+
+message VoteListResponse {
+  string votes_json = 1;
+}
+
+// VotePeriod
+
+message VotePeriodRequest {
+  optional int32 period_id = 1;
+}
+
+message VotePeriodResponse {
+  string period_json = 1;
+}
+
+// --- Votecoin messages ---
+
+// VotecoinTransfer
+
+message VotecoinTransferRequest {
+  string dest = 1;
+  int64 amount = 2;
+  int64 fee_sats = 3;
+  optional string memo = 4;
+}
+
+message VotecoinTransferResponse {
+  string txid = 1;
+}
+
+// VotecoinBalance
+
+message VotecoinBalanceRequest {
+  string address = 1;
+}
+
+message VotecoinBalanceResponse {
+  int64 balance = 1;
+}
+
+// TransferVotecoin
+
+message TransferVotecoinRequest {
+  string dest = 1;
+  int64 amount = 2;
+  int64 fee_sats = 3;
+  optional string memo = 4;
+}
+
+message TransferVotecoinResponse {
+  string txid = 1;
+}
+
+// --- Crypto utility messages ---
+
+// GetNewEncryptionKey
+
+message GetNewEncryptionKeyRequest {}
+
+message GetNewEncryptionKeyResponse {
+  string key = 1;
+}
+
+// GetNewVerifyingKey
+
+message GetNewVerifyingKeyRequest {}
+
+message GetNewVerifyingKeyResponse {
+  string key = 1;
+}
+
+// EncryptMsg
+
+message EncryptMsgRequest {
+  string msg = 1;
+  string encryption_pubkey = 2;
+}
+
+message EncryptMsgResponse {
+  string ciphertext = 1;
+}
+
+// DecryptMsg
+
+message DecryptMsgRequest {
+  string ciphertext = 1;
+  string encryption_pubkey = 2;
+}
+
+message DecryptMsgResponse {
+  string plaintext = 1;
+}
+
+// SignArbitraryMsg
+
+message SignArbitraryMsgRequest {
+  string msg = 1;
+  string verifying_key = 2;
+}
+
+message SignArbitraryMsgResponse {
+  string signature = 1;
+}
+
+// SignArbitraryMsgAsAddr
+
+message SignArbitraryMsgAsAddrRequest {
+  string msg = 1;
+  string address = 2;
+}
+
+message SignArbitraryMsgAsAddrResponse {
+  string verifying_key = 1;
+  string signature = 2;
+}
+
+// VerifySignature
+
+message VerifySignatureRequest {
+  string msg = 1;
+  string signature = 2;
+  string verifying_key = 3;
+  string dst = 4;
+}
+
+message VerifySignatureResponse {
+  bool valid = 1;
+}
