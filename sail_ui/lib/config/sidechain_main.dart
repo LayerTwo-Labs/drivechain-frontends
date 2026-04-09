@@ -37,6 +37,7 @@ Future<void> initSidechainDependencies({
   final bitwindowDir = Directory(
     path.join(applicationDir.parent.path, 'bitwindow'),
   );
+  await bitwindowDir.create(recursive: true);
   final bitwindowStore = await KeyValueStore.create(dir: bitwindowDir);
   final bitwindowClientSettings = BitwindowClientSettings(
     store: bitwindowStore,
@@ -44,6 +45,12 @@ Future<void> initSidechainDependencies({
   );
   GetIt.I.registerLazySingleton<BitwindowClientSettings>(
     () => bitwindowClientSettings,
+  );
+
+  final settingsProvider = await SettingsProvider.create();
+  GetIt.I.registerLazySingleton<SettingsProvider>(() => settingsProvider);
+  GetIt.I.registerLazySingleton<FormatterProvider>(
+    () => FormatterProvider(settingsProvider),
   );
 
   // Register WalletReaderProvider pointing to bitwindow directory
@@ -57,12 +64,6 @@ Future<void> initSidechainDependencies({
   );
   GetIt.I.registerLazySingleton<WalletWriterProvider>(() => walletWriter);
   await walletWriter.init();
-
-  final settingsProvider = await SettingsProvider.create();
-  GetIt.I.registerLazySingleton<SettingsProvider>(() => settingsProvider);
-  GetIt.I.registerLazySingleton<FormatterProvider>(
-    () => FormatterProvider(settingsProvider),
-  );
 
   // Initialize BitcoinConfProvider eagerly to load config before UI renders
   final bitcoinConfProvider = await BitcoinConfProvider.create(router);
@@ -115,7 +116,7 @@ Future<void> initSidechainDependencies({
   final sidechainConnection = createSidechainConnection(binary);
   GetIt.I.registerSingleton<SidechainRPC>(sidechainConnection);
 
-  // Boot binaries (skip if a backend server like thunderd manages them).
+  // Boot binaries (skip if a backend server like orchestratord manages them).
   // When the backend manages binaries, state flows through
   // BackendStateProvider.startWatching() → watchBinaries stream → RPCConnection.
   if (!backendManagesBinaries) {
@@ -253,7 +254,7 @@ Future<void> copyBinariesFromAssets(Logger log, Directory appDir) async {
 List<Binary> get allBinaries => [
   ...coreBinaries,
   ...sidechainBinaries,
-  resolveFromConfig(BinaryType.thunderd, () => Thunderd()),
+  resolveFromConfig(BinaryType.orchestratord, () => Orchestratord()),
   resolveFromConfig(BinaryType.zSided, () => ZSided()),
 ];
 

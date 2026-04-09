@@ -169,6 +169,7 @@ var startCommand = &cli.Command{
 			needed = []string{name}
 		}
 
+		autoDownload := cctx.Bool("auto-download") || os.Getenv("ORCHESTRATOR_AUTO_DOWNLOAD") != ""
 		for _, bin := range needed {
 			resp, err := client.GetBinaryStatus(cctx.Context, connect.NewRequest(&pb.GetBinaryStatusRequest{
 				Name: bin,
@@ -185,11 +186,16 @@ var startCommand = &cli.Command{
 			if displayName == "" {
 				displayName = s.Name
 			}
-			fmt.Printf("%s is not downloaded. download now? [Y/n] ", displayName)
 
-			if !confirmYes() {
-				return fmt.Errorf("cannot start %s without %s", name, bin)
+			if autoDownload {
+				fmt.Printf("%s is not downloaded. Downloading now...\n", displayName)
+			} else {
+				fmt.Printf("%s is not downloaded. download now? [Y/n] ", displayName)
+				if !confirmYes() {
+					return fmt.Errorf("cannot start %s without %s", name, bin)
+				}
 			}
+
 			if err := runDownload(cctx.Context, client, bin, false); err != nil {
 				return err
 			}

@@ -39,7 +39,7 @@ class BinaryProvider extends ChangeNotifier {
   }
 
   BitwindowRPC? _bitwindowRPC;
-  ThunderdRPC? _thunderdRPC;
+  OrchestratordRPC? _orchestratordRPC;
   ThunderRPC? _thunderRPC;
   TruthcoinRPC? _truthcoinRPC;
   PhotonRPC? _photonRPC;
@@ -56,12 +56,12 @@ class BinaryProvider extends ChangeNotifier {
     return _bitwindowRPC;
   }
 
-  ThunderdRPC? get thunderdRPC {
-    if (_thunderdRPC == null && GetIt.I.isRegistered<ThunderdRPC>()) {
-      _thunderdRPC = GetIt.I.get<ThunderdRPC>();
-      _thunderdRPC!.addListener(notifyListeners);
+  OrchestratordRPC? get orchestratordRPC {
+    if (_orchestratordRPC == null && GetIt.I.isRegistered<OrchestratordRPC>()) {
+      _orchestratordRPC = GetIt.I.get<OrchestratordRPC>();
+      _orchestratordRPC!.addListener(notifyListeners);
     }
-    return _thunderdRPC;
+    return _orchestratordRPC;
   }
 
   ThunderRPC? get thunderRPC {
@@ -133,7 +133,7 @@ class BinaryProvider extends ChangeNotifier {
   bool get mainchainConnected => mainchainRPC?.connected ?? false;
   bool get enforcerConnected => enforcerRPC?.connected ?? false;
   bool get bitwindowConnected => bitwindowRPC?.connected ?? false;
-  bool get thunderdConnected => thunderdRPC?.connected ?? false;
+  bool get orchestratordConnected => orchestratordRPC?.connected ?? false;
   bool get thunderConnected => thunderRPC?.connected ?? false;
   bool get truthcoinConnected => truthcoinRPC?.connected ?? false;
   bool get photonConnected => photonRPC?.connected ?? false;
@@ -145,7 +145,7 @@ class BinaryProvider extends ChangeNotifier {
   bool get mainchainInitializing => mainchainRPC?.initializingBinary ?? false;
   bool get enforcerInitializing => enforcerRPC?.initializingBinary ?? false;
   bool get bitwindowInitializing => bitwindowRPC?.initializingBinary ?? false;
-  bool get thunderdInitializing => thunderdRPC?.initializingBinary ?? false;
+  bool get orchestratordInitializing => orchestratordRPC?.initializingBinary ?? false;
   bool get thunderInitializing => thunderRPC?.initializingBinary ?? false;
   bool get truthcoinInitializing => truthcoinRPC?.initializingBinary ?? false;
   bool get photonInitializing => photonRPC?.initializingBinary ?? false;
@@ -157,7 +157,7 @@ class BinaryProvider extends ChangeNotifier {
   bool get mainchainStopping => mainchainRPC?.stoppingBinary ?? false;
   bool get enforcerStopping => enforcerRPC?.stoppingBinary ?? false;
   bool get bitwindowStopping => bitwindowRPC?.stoppingBinary ?? false;
-  bool get thunderdStopping => thunderdRPC?.stoppingBinary ?? false;
+  bool get orchestratordStopping => orchestratordRPC?.stoppingBinary ?? false;
   bool get thunderStopping => thunderRPC?.stoppingBinary ?? false;
   bool get truthcoinStopping => truthcoinRPC?.stoppingBinary ?? false;
   bool get photonStopping => photonRPC?.stoppingBinary ?? false;
@@ -181,7 +181,7 @@ class BinaryProvider extends ChangeNotifier {
   String? get mainchainError => mainchainRPC?.connectionError;
   String? get enforcerError => enforcerRPC?.connectionError;
   String? get bitwindowError => bitwindowRPC?.connectionError;
-  String? get thunderdError => thunderdRPC?.connectionError;
+  String? get orchestratordError => orchestratordRPC?.connectionError;
   String? get thunderError => thunderRPC?.connectionError;
   String? get truthcoinError => truthcoinRPC?.connectionError;
   String? get photonError => photonRPC?.connectionError;
@@ -194,7 +194,7 @@ class BinaryProvider extends ChangeNotifier {
   String? get mainchainStartupError => mainchainRPC?.startupError;
   String? get enforcerStartupError => enforcerRPC?.startupError;
   String? get bitwindowStartupError => bitwindowRPC?.startupError;
-  String? get thunderStartupError => thunderdRPC?.startupError;
+  String? get thunderStartupError => orchestratordRPC?.startupError;
   String? get thunderSidechainStartupError => thunderRPC?.startupError;
   String? get truthcoinStartupError => truthcoinRPC?.startupError;
   String? get photonStartupError => photonRPC?.startupError;
@@ -385,7 +385,7 @@ class BinaryProvider extends ChangeNotifier {
       var b when b is BitcoinCore => mainchainRPC,
       var b when b is Enforcer => enforcerRPC,
       var b when b is BitWindow => bitwindowRPC,
-      var b when b is Thunderd => thunderdRPC,
+      var b when b is Orchestratord => orchestratordRPC,
       var b when b is Thunder => thunderRPC,
       var b when b is Truthcoin => truthcoinRPC,
       var b when b is Photon => photonRPC,
@@ -550,8 +550,8 @@ class BinaryProvider extends ChangeNotifier {
           await enforcerRPC?.stop();
         case BitWindow():
           await bitwindowRPC?.bitwindowd.stop(skipDownstream: skipDownstream);
-        case Thunderd():
-          await thunderdRPC?.stop();
+        case Orchestratord():
+          await orchestratordRPC?.stop();
         case Thunder():
           await thunderRPC?.stop();
         case Truthcoin():
@@ -593,8 +593,14 @@ class BinaryProvider extends ChangeNotifier {
       );
     }
 
-    // Step 3: If we have a PID, wait for it to die
+    // Step 3: If we have a PID, nudge the process itself when RPC shutdown
+    // is not enough to terminate the wrapper daemon.
     if (pidToWaitFor != null) {
+      if (binary case Orchestratord()) {
+        log.i('Sending SIGTERM to ${binary.name} PID $pidToWaitFor');
+        Process.killPid(pidToWaitFor, ProcessSignal.sigterm);
+      }
+
       final died = await _processManager.waitForPidDeath(pidToWaitFor, timeout);
 
       if (died) {
@@ -649,8 +655,8 @@ class BinaryProvider extends ChangeNotifier {
         enforcerRPC?.markDisconnected();
       case BitWindow():
         bitwindowRPC?.markDisconnected();
-      case Thunderd():
-        thunderdRPC?.markDisconnected();
+      case Orchestratord():
+        orchestratordRPC?.markDisconnected();
       case Thunder():
         thunderRPC?.markDisconnected();
       case Truthcoin():
@@ -712,7 +718,7 @@ class BinaryProvider extends ChangeNotifier {
       var b when b is BitcoinCore => mainchainConnected,
       var b when b is Enforcer => enforcerConnected,
       var b when b is BitWindow => bitwindowConnected,
-      var b when b is Thunderd => thunderdConnected,
+      var b when b is Orchestratord => orchestratordConnected,
       var b when b is Thunder => thunderConnected,
       var b when b is Truthcoin => truthcoinConnected,
       var b when b is Photon => photonConnected,
@@ -731,7 +737,7 @@ class BinaryProvider extends ChangeNotifier {
       var b when b is BitcoinCore => mainchainInitializing,
       var b when b is Enforcer => enforcerInitializing,
       var b when b is BitWindow => bitwindowInitializing,
-      var b when b is Thunderd => thunderdInitializing,
+      var b when b is Orchestratord => orchestratordInitializing,
       var b when b is Thunder => thunderInitializing,
       var b when b is Truthcoin => truthcoinInitializing,
       var b when b is Photon => photonInitializing,
@@ -750,7 +756,7 @@ class BinaryProvider extends ChangeNotifier {
       var b when b is BitcoinCore => mainchainError,
       var b when b is Enforcer => enforcerError,
       var b when b is BitWindow => bitwindowError,
-      var b when b is Thunderd => thunderdError,
+      var b when b is Orchestratord => orchestratordError,
       var b when b is Thunder => thunderError,
       var b when b is Truthcoin => truthcoinError,
       var b when b is Photon => photonError,
@@ -772,7 +778,7 @@ class BinaryProvider extends ChangeNotifier {
       var b when b is BitcoinCore => mainchainStopping,
       var b when b is Enforcer => enforcerStopping,
       var b when b is BitWindow => bitwindowStopping,
-      var b when b is Thunderd => thunderdStopping,
+      var b when b is Orchestratord => orchestratordStopping,
       var b when b is Thunder => thunderStopping,
       var b when b is Truthcoin => truthcoinStopping,
       var b when b is Photon => photonStopping,
@@ -800,7 +806,7 @@ class BinaryProvider extends ChangeNotifier {
       mainchainRPC?.restartOnInitialFailure = true;
       enforcerRPC?.restartOnInitialFailure = true;
       bitwindowRPC?.restartOnInitialFailure = true;
-      thunderdRPC?.restartOnInitialFailure = true;
+      orchestratordRPC?.restartOnInitialFailure = true;
       thunderRPC?.restartOnInitialFailure = true;
       truthcoinRPC?.restartOnInitialFailure = true;
       photonRPC?.restartOnInitialFailure = true;
@@ -1102,7 +1108,7 @@ class BinaryProvider extends ChangeNotifier {
     mainchainRPC?.removeListener(notifyListeners);
     enforcerRPC?.removeListener(notifyListeners);
     bitwindowRPC?.removeListener(notifyListeners);
-    thunderdRPC?.removeListener(notifyListeners);
+    orchestratordRPC?.removeListener(notifyListeners);
     thunderRPC?.removeListener(notifyListeners);
     truthcoinRPC?.removeListener(notifyListeners);
     photonRPC?.removeListener(notifyListeners);
@@ -1176,7 +1182,7 @@ Future<List<Binary>> loadBinaryCreationTimestamp(
 Directory binDir(String appDir) => Directory(path.join(appDir, 'assets', 'bin'));
 
 /// Backend-mode BinaryProvider that delegates lifecycle operations to the
-/// Go orchestrator daemon (thunderd/zsided) via gRPC.
+/// Go orchestrator daemon (orchestratord/zsided) via gRPC.
 ///
 /// State flows ONE WAY: backend streams → local state → UI.
 ///
@@ -1201,7 +1207,7 @@ class BackendBinaryProvider extends BinaryProvider {
   Future<void> start(Binary binary) async {
     final name = _orchestratorName(binary);
     if (name == null) {
-      // Fall back to frontend for daemon binaries (Thunderd/ZSided)
+      // Fall back to frontend for daemon binaries (Orchestratord/ZSided)
       return super.start(binary);
     }
 
@@ -1220,14 +1226,14 @@ class BackendBinaryProvider extends BinaryProvider {
         )) {
           log.i('${progress.stage}: ${progress.message}');
           if (progress.error.isNotEmpty) {
-            log.e('startup error: ${progress.error}');
-            break;
+            throw StateError(progress.error);
           }
           if (progress.done) break;
         }
       }
     } catch (e) {
-      log.e('BackendBinaryProvider: backend unreachable for start: $e');
+      log.e('BackendBinaryProvider: failed to start $name: $e');
+      rethrow;
     }
   }
 
@@ -1246,6 +1252,7 @@ class BackendBinaryProvider extends BinaryProvider {
       await _orchestrator.stopBinary(name);
     } catch (e) {
       log.e('BackendBinaryProvider: failed to stop $name: $e');
+      rethrow;
     }
   }
 
@@ -1278,10 +1285,7 @@ class BackendBinaryProvider extends BinaryProvider {
         notifyListeners();
 
         if (progress.error.isNotEmpty) {
-          log.e(
-            'BackendBinaryProvider: download error for $name: ${progress.error}',
-          );
-          break;
+          throw StateError(progress.error);
         }
         if (progress.done) break;
       }
@@ -1305,7 +1309,8 @@ class BackendBinaryProvider extends BinaryProvider {
         );
       });
       notifyListeners();
-      log.e('BackendBinaryProvider: backend unreachable for download: $e');
+      log.e('BackendBinaryProvider: failed to download $name: $e');
+      rethrow;
     }
   }
 

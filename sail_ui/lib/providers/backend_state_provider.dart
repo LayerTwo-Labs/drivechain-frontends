@@ -162,44 +162,67 @@ class BackendStateProvider extends ChangeNotifier {
   /// watchBinaries → _syncConnectionState, not set here.
   Future<void> trackStartup(Stream<StartWithDepsResponse> stream) async {
     startupComplete = false;
+    StartWithDepsResponse? lastProgress;
     notifyListeners();
 
-    await for (final progress in stream) {
-      startupProgress = BackendStartupProgress(
-        stage: progress.stage,
-        message: progress.message,
-        done: progress.done,
-        error: progress.error.isNotEmpty ? progress.error : null,
-        bytesDownloaded: progress.bytesDownloaded.toInt(),
-        totalBytes: progress.totalBytes.toInt(),
-      );
+    try {
+      await for (final progress in stream) {
+        final previousDownloadingBinary = startupProgress?.isDownloading == true
+            ? startupProgress?.downloadingBinary
+            : null;
 
-      // Sync stage to the relevant RPCConnection's startup message
-      _syncStageToRpc(progress.stage, progress.message);
-
-      // Pipe download progress into BinaryProvider so existing progress bars update
-      if (startupProgress!.isDownloading && startupProgress!.totalBytes > 0) {
-        _updateDownloadProgress(
-          startupProgress!.downloadingBinary!,
-          startupProgress!.bytesDownloaded,
-          startupProgress!.totalBytes,
-          startupProgress!.message,
+        lastProgress = progress;
+        startupProgress = BackendStartupProgress(
+          stage: progress.stage,
+          message: progress.message,
+          done: progress.done,
+          error: progress.error.isNotEmpty ? progress.error : null,
+          bytesDownloaded: progress.bytesDownloaded.toInt(),
+          totalBytes: progress.totalBytes.toInt(),
         );
+
+        if (previousDownloadingBinary != null && previousDownloadingBinary != startupProgress!.downloadingBinary) {
+          _clearDownloadProgress(previousDownloadingBinary);
+        }
+
+        // Sync stage to the relevant RPCConnection's startup message
+        _syncStageToRpc(progress.stage, progress.message);
+
+        // Pipe download progress into BinaryProvider so existing progress bars update
+        if (startupProgress!.isDownloading && startupProgress!.totalBytes > 0) {
+          _updateDownloadProgress(
+            startupProgress!.downloadingBinary!,
+            startupProgress!.bytesDownloaded,
+            startupProgress!.totalBytes,
+            startupProgress!.message,
+          );
+        }
+
+        notifyListeners();
+
+        if (progress.error.isNotEmpty) {
+          _log.e('BackendStateProvider: startup error: ${progress.error}');
+          throw StateError(progress.error);
+        }
+
+        if (progress.done) {
+          startupComplete = true;
+          return;
+        }
       }
 
+      throw StateError(
+        'Backend startup stream ended before completion'
+        '${lastProgress == null ? '' : ' (last stage: ${lastProgress.stage})'}',
+      );
+    } finally {
+      final downloadingBinary = startupProgress?.isDownloading == true ? startupProgress?.downloadingBinary : null;
+      if (downloadingBinary != null) {
+        _clearDownloadProgress(downloadingBinary);
+      }
+      startupProgress = null;
       notifyListeners();
-
-      if (progress.error.isNotEmpty) {
-        _log.e('BackendStateProvider: startup error: ${progress.error}');
-        break;
-      }
-
-      if (progress.done) break;
     }
-
-    startupComplete = true;
-    startupProgress = null;
-    notifyListeners();
   }
 
   /// Sync the current startup stage message to the relevant RPCConnection
@@ -244,6 +267,21 @@ class BackendStateProvider extends ChangeNotifier {
     binaryProvider.notifyListeners();
   }
 
+  void _clearDownloadProgress(String binaryName) {
+    if (!GetIt.I.isRegistered<BinaryProvider>()) return;
+    final binaryProvider = GetIt.I.get<BinaryProvider>();
+
+    final type = _binaryTypeFromName(binaryName);
+    if (type == null) return;
+
+    binaryProvider.updateBinary(type, (b) {
+      return b.copyWith(
+        downloadInfo: const DownloadInfo(progress: 0.0, isDownloading: false),
+      );
+    });
+    binaryProvider.notifyListeners();
+  }
+
   BinaryType? _binaryTypeFromName(String name) {
     switch (name) {
       case 'bitcoind':
@@ -255,6 +293,7 @@ class BackendStateProvider extends ChangeNotifier {
       case 'zside':
         return BinaryType.zSide;
       case 'bitwindow':
+      case 'bitwindowd':
         return BinaryType.bitWindow;
       case 'bitnames':
         return BinaryType.bitnames;
