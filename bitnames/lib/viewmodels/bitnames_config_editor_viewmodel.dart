@@ -1,12 +1,12 @@
 import 'package:bitnames/models/bitnames_config.dart';
-import 'package:bitnames/providers/bitnames_conf_provider.dart';
 import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
+import 'package:sail_ui/sail_ui.dart';
 
 class BitnamesConfigEditorViewModel extends ChangeNotifier {
   final Logger log = GetIt.I.get<Logger>();
-  final BitnamesConfProvider confProvider = GetIt.I.get<BitnamesConfProvider>();
+  final GenericSidechainConfProvider confProvider = GetIt.I.get<GenericSidechainConfProvider>();
 
   BitnamesConfig? originalConfig;
   BitnamesConfig? workingConfig;

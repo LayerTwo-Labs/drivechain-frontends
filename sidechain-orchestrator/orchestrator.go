@@ -56,11 +56,11 @@ type StartupProgress struct {
 
 // ShutdownProgress reports progress during ShutdownAll.
 type ShutdownProgress struct {
-	TotalCount    int
+	TotalCount     int
 	CompletedCount int
-	CurrentBinary string
-	Done          bool
-	Error         error
+	CurrentBinary  string
+	Done           bool
+	Error          error
 }
 
 // StartOpts configures a StartWithDeps call.
@@ -78,10 +78,11 @@ type Orchestrator struct {
 	Network      string
 	BitwindowDir string
 
-	BitcoinConf  *config.BitcoinConfManager
-	EnforcerConf *config.EnforcerConfManager
-	WalletSvc    *wallet.Service // for seed injection into sidechain/enforcer args
-	WalletEngine *WalletEngine  // manages wallet→Core mapping, sync, backend routing
+	BitcoinConf    *config.BitcoinConfManager
+	EnforcerConf   *config.EnforcerConfManager
+	SidechainConfs map[string]*config.SidechainConfManager
+	WalletSvc      *wallet.Service // for seed injection into sidechain/enforcer args
+	WalletEngine   *WalletEngine   // manages wallet→Core mapping, sync, backend routing
 
 	configs    map[string]BinaryConfig
 	download   *DownloadManager
@@ -93,11 +94,15 @@ type Orchestrator struct {
 	monitors   map[string]*ConnectionMonitor
 	monitorsMu sync.Mutex
 
+	// StateChanged is signaled whenever any binary's connection state changes.
+	// WatchBinaries selects on this to push updates immediately.
+	StateChanged chan struct{}
+
 	mu sync.RWMutex
 
-	cachedBTCPrice    float64
-	cachedPriceTime   time.Time
-	priceMu           sync.Mutex
+	cachedBTCPrice  float64
+	cachedPriceTime time.Time
+	priceMu         sync.Mutex
 }
 
 // New creates a new Orchestrator.
@@ -108,12 +113,30 @@ func New(dataDir, network, bitwindowDir string, configs []BinaryConfig, log zero
 		DataDir:      dataDir,
 		Network:      network,
 		BitwindowDir: bitwindowDir,
+		StateChanged: make(chan struct{}, 1),
 		configs:      lo.SliceToMap(configs, func(c BinaryConfig) (string, BinaryConfig) { return c.Name, c }),
 		download:     NewDownloadManager(dataDir, ConfigFilePath(bitwindowDir), log),
 		process:      NewProcessManager(dataDir, pidMgr, log),
 		pidManager:   pidMgr,
 		monitors:     make(map[string]*ConnectionMonitor),
 		log:          log.With().Str("component", "orchestrator").Logger(),
+	}
+
+	// Wire process exit events to ConnectionMonitor state.
+	// When a process crashes, its stderr error message becomes the monitor's
+	// connectionError so the UI can display it.
+	orch.process.OnExit = func(info ProcessExitInfo) {
+		orch.monitorsMu.Lock()
+		mon, ok := orch.monitors[info.Name]
+		orch.monitorsMu.Unlock()
+
+		if !ok {
+			return
+		}
+
+		if info.ExitCode != 0 && info.ErrMsg != "" {
+			mon.SetConnectionError(info.ErrMsg)
+		}
 	}
 
 	// Initialize config managers for auto-building args
@@ -140,6 +163,18 @@ func New(dataDir, network, bitwindowDir string, configs []BinaryConfig, log zero
 		} else {
 			orch.EnforcerConf = enforcerConf
 		}
+
+		// Initialize sidechain conf managers for all known sidechains
+		scConfs := make(map[string]*config.SidechainConfManager)
+		for key, spec := range config.KnownSidechainSpecs {
+			scm, err := config.NewSidechainConfManager(spec, bitcoinConf, log)
+			if err != nil {
+				log.Warn().Err(err).Str("sidechain", key).Msg("failed to initialize sidechain config manager")
+				continue
+			}
+			scConfs[key] = scm
+		}
+		orch.SidechainConfs = scConfs
 	}
 
 	return orch
@@ -156,6 +191,12 @@ func (o *Orchestrator) getOrCreateMonitor(name string, checker HealthChecker, st
 	}
 
 	mon := NewConnectionMonitor(name, checker, startupPatterns, o.log)
+	mon.SetOnChange(func() {
+		select {
+		case o.StateChanged <- struct{}{}:
+		default:
+		}
+	})
 	o.monitors[name] = mon
 	return mon
 }
@@ -536,10 +577,11 @@ func (o *Orchestrator) StartWithDeps(ctx context.Context, target string, opts St
 				ch <- StartupProgress{Error: fmt.Errorf("start bitcoind: %w", err)}
 				return
 			}
+			coreProc := o.process.Get("bitcoind")
 
 			// Wait for the connection timer to detect bitcoind is healthy
 			ch <- StartupProgress{Stage: "waiting-bitcoind", Message: "waiting for Bitcoin Core to accept connections..."}
-			if err := coreMon.WaitForConnected(ctx); err != nil {
+			if err := waitForConnectedOrExit(ctx, coreMon, coreProc); err != nil {
 				ch <- StartupProgress{Error: fmt.Errorf("wait for bitcoind: %w", err)}
 				return
 			}
@@ -602,9 +644,10 @@ func (o *Orchestrator) StartWithDeps(ctx context.Context, target string, opts St
 					ch <- StartupProgress{Error: fmt.Errorf("start enforcer: %w", err)}
 					return
 				}
+				enforcerProc := o.process.Get("enforcer")
 
 				ch <- StartupProgress{Stage: "waiting-enforcer", Message: "waiting for enforcer to accept connections..."}
-				if err := enforcerMon.WaitForConnected(ctx); err != nil {
+				if err := waitForConnectedOrExit(ctx, enforcerMon, enforcerProc); err != nil {
 					ch <- StartupProgress{Error: fmt.Errorf("wait for enforcer: %w", err)}
 					return
 				}
@@ -619,6 +662,27 @@ func (o *Orchestrator) StartWithDeps(ctx context.Context, target string, opts St
 }
 
 func (o *Orchestrator) startTargetOnly(ctx context.Context, config BinaryConfig, opts StartOpts, ch chan<- StartupProgress) {
+	targetChecker := NewHealthChecker(config)
+	targetMon := o.getOrCreateMonitor(config.Name, targetChecker, nil)
+
+	// Keep the target monitor alive even if the frontend asked us to start
+	// the chain before the target RPC is reachable.
+	targetMon.StartConnectionTimer(ctx)
+
+	if targetMon.Connected() {
+		o.log.Info().Str("binary", config.Name).Msg("target already running, not booting")
+		ch <- StartupProgress{Stage: "waiting-" + config.Name, Message: fmt.Sprintf("%s already running", config.DisplayName)}
+
+		if !o.process.IsRunning(config.Name) {
+			pid := o.discoverPid(config)
+			o.process.AdoptProcess(config, pid)
+			o.log.Info().Str("binary", config.Name).Int("pid", pid).Msg("adopted externally-running target process")
+		}
+
+		ch <- StartupProgress{Stage: "done", Message: fmt.Sprintf("%s started", config.DisplayName), Done: true}
+		return
+	}
+
 	ch <- StartupProgress{Stage: "downloading-" + config.Name, Message: fmt.Sprintf("downloading %s...", config.DisplayName)}
 
 	downloadCh, err := o.download.Download(ctx, config, o.Network, false)
@@ -632,13 +696,71 @@ func (o *Orchestrator) startTargetOnly(ctx context.Context, config BinaryConfig,
 	}
 
 	ch <- StartupProgress{Stage: "starting-" + config.Name, Message: fmt.Sprintf("starting %s...", config.DisplayName)}
+	o.log.Info().Str("binary", config.Name).Strs("args", opts.TargetArgs).Msg("starting target binary")
 
-	if _, err := o.process.Start(ctx, config, opts.TargetArgs, opts.TargetEnv); err != nil {
+	targetArgs := append([]string{}, opts.TargetArgs...)
+	targetEnv := map[string]string{}
+	for k, v := range opts.TargetEnv {
+		targetEnv[k] = v
+	}
+
+	targetMon.StartRestartTimer(ctx,
+		func(restartCtx context.Context) error {
+			_, err := o.process.Start(restartCtx, config, targetArgs, targetEnv)
+			return err
+		},
+		func() (int, bool) {
+			proc := o.process.Get(config.Name)
+			if proc == nil {
+				return 0, false
+			}
+			select {
+			case <-proc.ExitCh():
+				return proc.ExitCode(), true
+			default:
+				return 0, false
+			}
+		},
+	)
+
+	if _, err := o.process.Start(ctx, config, targetArgs, targetEnv); err != nil {
 		ch <- StartupProgress{Error: fmt.Errorf("start %s: %w", config.Name, err)}
+		return
+	}
+	targetProc := o.process.Get(config.Name)
+
+	ch <- StartupProgress{Stage: "waiting-" + config.Name, Message: fmt.Sprintf("waiting for %s to accept connections...", config.DisplayName)}
+	if err := waitForConnectedOrExit(ctx, targetMon, targetProc); err != nil {
+		ch <- StartupProgress{Error: fmt.Errorf("wait for %s: %w", config.Name, err)}
 		return
 	}
 
 	ch <- StartupProgress{Stage: "done", Message: fmt.Sprintf("%s started", config.DisplayName), Done: true}
+}
+
+func waitForConnectedOrExit(ctx context.Context, mon *ConnectionMonitor, proc *ManagedProcess) error {
+	if proc == nil {
+		return mon.WaitForConnected(ctx)
+	}
+
+	for {
+		if mon.Connected() {
+			return nil
+		}
+
+		select {
+		case <-ctx.Done():
+			return fmt.Errorf("wait for %s: %w", mon.Name, ctx.Err())
+		case <-proc.ExitCh():
+			exitCode := proc.ExitCode()
+			exitErr := proc.ExitErr()
+			if exitErr != "" {
+				return fmt.Errorf("%s exited with code %d: %s", mon.Name, exitCode, exitErr)
+			}
+			return fmt.Errorf("%s exited with code %d", mon.Name, exitCode)
+		case <-time.After(100 * time.Millisecond):
+		}
+	}
 }
 
 // forwardDownload forwards DownloadProgress events to the StartupProgress channel,
@@ -699,9 +821,9 @@ func (o *Orchestrator) ShutdownAll(ctx context.Context, force bool) (<-chan Shut
 			}
 
 			ch <- ShutdownProgress{
-				TotalCount:    total,
+				TotalCount:     total,
 				CompletedCount: completed,
-				CurrentBinary: name,
+				CurrentBinary:  name,
 			}
 
 			if err := o.process.Stop(ctx, name, force); err != nil {
@@ -719,9 +841,9 @@ func (o *Orchestrator) ShutdownAll(ctx context.Context, force bool) (<-chan Shut
 		}
 
 		ch <- ShutdownProgress{
-			TotalCount:    total,
+			TotalCount:     total,
 			CompletedCount: completed,
-			Done:          true,
+			Done:           true,
 		}
 	}()
 
@@ -805,18 +927,18 @@ func (o *Orchestrator) GetBTCPrice() (float64, time.Time, error) {
 
 // MainchainBlockchainInfo holds the result of bitcoind's getblockchaininfo.
 type MainchainBlockchainInfo struct {
-	Chain                 string  `json:"chain"`
-	Blocks                int     `json:"blocks"`
-	Headers               int     `json:"headers"`
-	BestBlockHash         string  `json:"bestblockhash"`
-	Difficulty            float64 `json:"difficulty"`
-	Time                  int64   `json:"time"`
-	MedianTime            int64   `json:"mediantime"`
-	VerificationProgress  float64 `json:"verificationprogress"`
-	InitialBlockDownload  bool    `json:"initialblockdownload"`
-	ChainWork             string  `json:"chainwork"`
-	SizeOnDisk            int64   `json:"size_on_disk"`
-	Pruned                bool    `json:"pruned"`
+	Chain                string  `json:"chain"`
+	Blocks               int     `json:"blocks"`
+	Headers              int     `json:"headers"`
+	BestBlockHash        string  `json:"bestblockhash"`
+	Difficulty           float64 `json:"difficulty"`
+	Time                 int64   `json:"time"`
+	MedianTime           int64   `json:"mediantime"`
+	VerificationProgress float64 `json:"verificationprogress"`
+	InitialBlockDownload bool    `json:"initialblockdownload"`
+	ChainWork            string  `json:"chainwork"`
+	SizeOnDisk           int64   `json:"size_on_disk"`
+	Pruned               bool    `json:"pruned"`
 }
 
 // EnforcerBlockchainInfo holds minimal chain tip info from the enforcer.
@@ -918,7 +1040,6 @@ func (o *Orchestrator) CoreStatusClient() (*CoreStatusClient, error) {
 
 	return NewCoreStatusClient("localhost", port, user, password), nil
 }
-
 
 // CreateCoreWallet creates a Bitcoin Core wallet from a seed via BIP84 descriptor import.
 // Ported from bitwindow/server/engines/wallet_engine.go.

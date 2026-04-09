@@ -1,11 +1,16 @@
 import 'package:get_it/get_it.dart';
+import 'package:sail_ui/env.dart';
 import 'package:sail_ui/sail_ui.dart';
 
 /// Provider for BitAssets configuration settings.
 class BitassetsConfProvider extends GenericSidechainConfProvider {
   BitassetsConfProvider._create();
 
-  static Future<BitassetsConfProvider> create() async {
+  static Future<GenericSidechainConfProvider> create() async {
+    if (Environment.backendManagesBinaries) {
+      final source = BitassetsConfProvider._create();
+      return BackendSidechainConfProvider.fromProvider(source, sidechainName: 'bitassets');
+    }
     final instance = BitassetsConfProvider._create();
     await instance.initialize();
     return instance;

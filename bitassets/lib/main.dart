@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:ui';
 
 import 'package:auto_updater/auto_updater.dart';
 import 'package:bitassets/config/runtime_args.dart';
@@ -17,9 +18,13 @@ import 'package:desktop_multi_window/desktop_multi_window.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
+import 'package:sail_ui/config/backend_sidechain_runtime.dart';
 import 'package:sail_ui/config/fonts.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:window_manager/window_manager.dart';
+
+bool _signalShutdownInProgress = false;
+AppLifecycleListener? _appLifecycleListener;
 
 void main(List<String> args) async {
   await withWindowsFileRetry(() async {
@@ -74,25 +79,33 @@ Future<(Directory, File, Logger)> init(String arguments) async {
   final router = AppRouter();
   GetIt.I.registerLazySingleton<AppRouter>(() => router);
 
-  SidechainRPC createSidechainConnection(Binary binary) {
-    final bitassets = BitAssetsLive();
-    GetIt.I.registerSingleton<BitAssetsRPC>(bitassets);
-
-    return bitassets;
-  }
+  late BitAssetsLive bitassetsRPC;
 
   await initSidechainDependencies(
     sidechainType: BinaryType.bitassets,
-    createSidechainConnection: createSidechainConnection,
+    createSidechainConnection: (_) {
+      bitassetsRPC = BitAssetsLive();
+      GetIt.I.registerSingleton<BitAssetsRPC>(bitassetsRPC);
+      return bitassetsRPC;
+    },
     applicationDir: applicationDir,
     log: log,
     router: router,
     currentVersion: AppVersion.version,
+    additionalBinaries: () => [Orchestratord()],
+    backendManagesBinaries: true,
+  );
+
+  // Register shared orchestrator runtime and start the managed backend.
+  unawaited(
+    initBackendManagedSidechainRuntime(
+      log: log,
+      binary: BinaryType.bitassets,
+    ),
   );
 
   // Initialize BitassetsConfProvider (must be after BitcoinConfProvider)
   final bitassetsConfProvider = await BitassetsConfProvider.create();
-  GetIt.I.registerLazySingleton<BitassetsConfProvider>(() => bitassetsConfProvider);
   GetIt.I.registerLazySingleton<GenericSidechainConfProvider>(() => bitassetsConfProvider);
 
   GetIt.I.registerLazySingleton<BitAssetsProvider>(
@@ -120,6 +133,15 @@ Future<(Directory, File, Logger)> init(String arguments) async {
   GetIt.I.registerLazySingleton<HomepageProvider>(() => bitassetsHomepageProvider);
 
   return (applicationDir, logFile, log);
+}
+
+void bootBinaries(Logger log) {
+  unawaited(
+    bootBackendManagedSidechain(
+      log: log,
+      binary: BinaryType.bitassets,
+    ),
+  );
 }
 
 Future<void> runMultiWindow(String argumentsStr, Logger log, Directory applicationDir, File logFile) async {
@@ -157,9 +179,6 @@ Future<void> runMultiWindow(String argumentsStr, Logger log, Directory applicati
 }
 
 Future<void> runMainWindow(Logger log, Directory applicationDir, File logFile) async {
-  log.i('starting bitassets');
-  final bitassets = GetIt.I.get<BitAssetsRPC>();
-
   await windowManager.ensureInitialized();
   const windowOptions = WindowOptions(
     minimumSize: Size(400, 400),
@@ -179,8 +198,13 @@ Future<void> runMainWindow(Logger log, Directory applicationDir, File logFile) a
   final windowProvider = await WindowProvider.newInstance(logFile, applicationDir, isMainWindow: true);
   GetIt.I.registerLazySingleton<WindowProvider>(() => windowProvider);
 
+  _installSignalShutdownHandlers(log);
+  _installAppExitHandler(log);
+
   await initAutoUpdater(log);
 
+  log.i('starting bitassets');
+  final bitassets = GetIt.I.get<BitAssetsRPC>();
   final router = GetIt.I.get<AppRouter>();
   runApp(
     SailApp(
@@ -244,12 +268,55 @@ Future<File> getLogFile(Directory datadir) async {
   return logFile;
 }
 
-void bootBinaries(Logger log) async {
-  final BinaryProvider binaryProvider = GetIt.I.get<BinaryProvider>();
-  final bitassets = binaryProvider.binaries.firstWhere((b) => b.type == BinaryType.bitassets);
+void _installSignalShutdownHandlers(Logger log) {
+  if (Platform.isWindows) {
+    return;
+  }
 
-  await binaryProvider.startWithEnforcer(
-    bitassets,
+  Future<void> handleSignal(ProcessSignal signal) async {
+    if (_signalShutdownInProgress) {
+      return;
+    }
+
+    _signalShutdownInProgress = true;
+    log.w('received ${signal.toString()}, shutting down BitAssets runtime');
+
+    try {
+      if (GetIt.I.isRegistered<BinaryProvider>()) {
+        await GetIt.I.get<BinaryProvider>().onShutdown();
+      }
+    } catch (error, stackTrace) {
+      log.e('signal shutdown failed: $error\n$stackTrace');
+    } finally {
+      exit(0);
+    }
+  }
+
+  ProcessSignal.sigint.watch().listen(handleSignal);
+  ProcessSignal.sigterm.watch().listen(handleSignal);
+}
+
+void _installAppExitHandler(Logger log) {
+  _appLifecycleListener?.dispose();
+  _appLifecycleListener = AppLifecycleListener(
+    onExitRequested: () async {
+      if (_signalShutdownInProgress) {
+        return AppExitResponse.exit;
+      }
+
+      _signalShutdownInProgress = true;
+      log.w('received app exit request, shutting down BitAssets runtime');
+
+      try {
+        if (GetIt.I.isRegistered<BinaryProvider>()) {
+          await GetIt.I.get<BinaryProvider>().onShutdown();
+        }
+      } catch (error, stackTrace) {
+        log.e('app exit shutdown failed: $error\n$stackTrace');
+      }
+
+      return AppExitResponse.exit;
+    },
   );
 }
 

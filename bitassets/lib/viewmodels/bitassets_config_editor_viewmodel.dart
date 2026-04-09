@@ -1,12 +1,12 @@
 import 'package:bitassets/models/bitassets_config.dart';
-import 'package:bitassets/providers/bitassets_conf_provider.dart';
 import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
+import 'package:sail_ui/sail_ui.dart';
 
 class BitassetsConfigEditorViewModel extends ChangeNotifier {
   final Logger log = GetIt.I.get<Logger>();
-  final BitassetsConfProvider confProvider = GetIt.I.get<BitassetsConfProvider>();
+  final GenericSidechainConfProvider confProvider = GetIt.I.get<GenericSidechainConfProvider>();
 
   BitassetsConfig? originalConfig;
   BitassetsConfig? workingConfig;

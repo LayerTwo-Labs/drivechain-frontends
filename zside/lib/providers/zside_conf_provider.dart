@@ -1,18 +1,17 @@
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/env.dart';
 import 'package:sail_ui/sail_ui.dart';
-import 'package:zside/providers/backend_zside_conf_provider.dart';
 
 /// Provider for ZSide configuration settings.
-/// In backend mode, uses BackendZSideConfProvider (RPC-backed).
+/// In backend mode, uses BackendSidechainConfProvider (RPC-backed).
 /// In frontend mode, uses the file-based implementation directly.
 class ZSideConfProvider extends GenericSidechainConfProvider {
   ZSideConfProvider._create();
-  ZSideConfProvider.protected();
 
-  static Future<ZSideConfProvider> create() async {
+  static Future<GenericSidechainConfProvider> create() async {
     if (Environment.backendManagesBinaries) {
-      return BackendZSideConfProvider.create();
+      final source = ZSideConfProvider._create();
+      return BackendSidechainConfProvider.fromProvider(source, sidechainName: 'zside');
     }
     final instance = ZSideConfProvider._create();
     await instance.initialize();

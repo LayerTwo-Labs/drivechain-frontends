@@ -1,5 +1,4 @@
 import 'package:auto_route/auto_route.dart';
-import 'package:bitassets/providers/bitassets_conf_provider.dart';
 import 'package:bitassets/viewmodels/bitassets_config_editor_viewmodel.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
@@ -451,7 +450,7 @@ class _CliPreview extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = SailTheme.of(context);
-    final confProvider = GetIt.I.get<BitassetsConfProvider>();
+    final confProvider = GetIt.I.get<GenericSidechainConfProvider>();
     final cliArgs = confProvider.getCliArgs();
 
     return Container(

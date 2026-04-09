@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:ui';
 
 import 'package:auto_updater/auto_updater.dart';
 import 'package:collection/collection.dart';
@@ -9,6 +10,7 @@ import 'package:desktop_multi_window/desktop_multi_window.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
+import 'package:sail_ui/config/backend_sidechain_runtime.dart';
 import 'package:sail_ui/config/fonts.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:thunder/config/runtime_args.dart';
@@ -16,6 +18,9 @@ import 'package:thunder/providers/thunder_conf_provider.dart';
 import 'package:thunder/providers/thunder_homepage_provider.dart';
 import 'package:thunder/routing/router.dart';
 import 'package:window_manager/window_manager.dart';
+
+bool _signalShutdownInProgress = false;
+AppLifecycleListener? _appLifecycleListener;
 
 void main(List<String> args) async {
   await withWindowsFileRetry(() async {
@@ -70,37 +75,33 @@ Future<(Directory, File, Logger)> init(String arguments) async {
   final router = AppRouter();
   GetIt.I.registerLazySingleton<AppRouter>(() => router);
 
-  late ThunderdLive thunderdRPC;
+  late ThunderLive thunderRPC;
 
   await initSidechainDependencies(
     sidechainType: BinaryType.thunder,
     createSidechainConnection: (_) {
-      thunderdRPC = ThunderdLive();
-      GetIt.I.registerSingleton<ThunderdRPC>(thunderdRPC);
-      return thunderdRPC;
+      thunderRPC = ThunderLive();
+      GetIt.I.registerSingleton<ThunderRPC>(thunderRPC);
+      return thunderRPC;
     },
     applicationDir: applicationDir,
     log: log,
     router: router,
     currentVersion: AppVersion.version,
-    additionalBinaries: () => [Thunderd()],
+    additionalBinaries: () => [Orchestratord()],
     backendManagesBinaries: true,
   );
 
-  // Register OrchestratorRPC for communicating with thunderd
-  final orchestrator = OrchestratorRPC(host: 'localhost', port: 30302);
-  GetIt.I.registerSingleton<OrchestratorRPC>(orchestrator);
-
-  // Register BackendStateProvider for streaming binary status
-  final backendState = BackendStateProvider(orchestrator);
-  GetIt.I.registerSingleton<BackendStateProvider>(backendState);
-
-  // Start thunderd (Go backend), which orchestrates all binary lifecycle
-  bootBinaries(log);
+  // Register shared orchestrator runtime and start the managed backend.
+  unawaited(
+    initBackendManagedSidechainRuntime(
+      log: log,
+      binary: BinaryType.thunder,
+    ),
+  );
 
   // Initialize ThunderConfProvider (must be after BitcoinConfProvider)
   final thunderConfProvider = await ThunderConfProvider.create();
-  GetIt.I.registerLazySingleton<ThunderConfProvider>(() => thunderConfProvider);
   GetIt.I.registerLazySingleton<GenericSidechainConfProvider>(() => thunderConfProvider);
 
   // Register homepage provider
@@ -124,7 +125,7 @@ Future<void> runMultiWindow(
     child: SailText.primary15('no window type provided, the programmers messed up'),
   );
 
-  final thunder = GetIt.I.get<ThunderdRPC>();
+  final thunder = GetIt.I.get<ThunderRPC>();
 
   switch (arguments['window_type']) {
     case SubWindowTypes.debugId:
@@ -153,6 +154,15 @@ Future<void> runMultiWindow(
   );
 }
 
+void bootBinaries(Logger log) {
+  unawaited(
+    bootBackendManagedSidechain(
+      log: log,
+      binary: BinaryType.orchestratord,
+    ),
+  );
+}
+
 Future<void> runMainWindow(Logger log, Directory applicationDir, File logFile) async {
   await windowManager.ensureInitialized();
   const windowOptions = WindowOptions(
@@ -173,10 +183,13 @@ Future<void> runMainWindow(Logger log, Directory applicationDir, File logFile) a
   final windowProvider = await WindowProvider.newInstance(logFile, applicationDir, isMainWindow: true);
   GetIt.I.registerLazySingleton<WindowProvider>(() => windowProvider);
 
+  _installSignalShutdownHandlers(log);
+  _installAppExitHandler(log);
+
   await initAutoUpdater(log);
 
   log.i('starting thunder');
-  final thunder = GetIt.I.get<ThunderdRPC>();
+  final thunder = GetIt.I.get<ThunderRPC>();
   final router = GetIt.I.get<AppRouter>();
 
   runApp(
@@ -196,7 +209,7 @@ Future<void> runMainWindow(Logger log, Directory applicationDir, File logFile) a
 
 class _ThunderAppContent extends StatelessWidget {
   final AppRouter router;
-  final ThunderdRPC thunder;
+  final ThunderRPC thunder;
 
   const _ThunderAppContent({
     required this.router,
@@ -241,78 +254,56 @@ Future<File> getLogFile(Directory datadir) async {
   return logFile;
 }
 
-void bootBinaries(Logger log) async {
-  try {
-    final binaryProvider = GetIt.I.get<BinaryProvider>();
+void _installSignalShutdownHandlers(Logger log) {
+  if (Platform.isWindows) {
+    return;
+  }
 
-    // Start thunderd via BinaryProvider
-    final thunderd = binaryProvider.binaries.firstWhere((b) => b is Thunderd);
-    log.i('bootBinaries: starting thunderd');
-    await binaryProvider.start(thunderd);
-    log.i('bootBinaries: thunderd started');
-
-    // Wait for thunderd to be ready before calling startWithDeps
-    final orchestrator = GetIt.I.get<OrchestratorRPC>();
-    for (var i = 0; i < 30; i++) {
-      try {
-        await orchestrator.listBinaries();
-        log.i('bootBinaries: thunderd is ready');
-        break;
-      } catch (_) {
-        if (i == 29) {
-          log.e('bootBinaries: thunderd did not become ready after 15s');
-          return;
-        }
-        await Future.delayed(const Duration(milliseconds: 500));
-      }
+  Future<void> handleSignal(ProcessSignal signal) async {
+    if (_signalShutdownInProgress) {
+      return;
     }
 
-    // Start watching binary status stream
-    final backendState = GetIt.I.get<BackendStateProvider>();
-    backendState.startWatching();
+    _signalShutdownInProgress = true;
+    log.w('received ${signal.toString()}, shutting down Thunder runtime');
 
-    // Stream logs from orchestrator-managed binaries into LogProvider
-    _streamBinaryLogs(orchestrator, 'thunder', BinaryType.thunder);
-    _streamBinaryLogs(orchestrator, 'bitcoind', BinaryType.bitcoinCore);
-    _streamBinaryLogs(orchestrator, 'enforcer', BinaryType.enforcer);
-
-    // Use thunderd's gRPC to start the dependency chain.
-    // BackendStateProvider tracks progress and updates download bars in the UI.
-    log.i('bootBinaries: calling startWithDeps');
-    await backendState.trackStartup(
-      orchestrator.startWithDeps('thunder', targetArgs: ['--headless']),
-    );
-    log.i('bootBinaries: startWithDeps completed');
-  } catch (e, st) {
-    log.e('bootBinaries failed: $e\n$st');
+    try {
+      if (GetIt.I.isRegistered<BinaryProvider>()) {
+        await GetIt.I.get<BinaryProvider>().onShutdown();
+      }
+    } catch (error, stackTrace) {
+      log.e('signal shutdown failed: $error\n$stackTrace');
+    } finally {
+      exit(0);
+    }
   }
+
+  ProcessSignal.sigint.watch().listen(handleSignal);
+  ProcessSignal.sigterm.watch().listen(handleSignal);
 }
 
-void _streamBinaryLogs(OrchestratorRPC orchestrator, String binaryName, BinaryType binaryType) {
-  final logProvider = GetIt.I.get<LogProvider>();
-  final log = GetIt.I.get<Logger>();
+void _installAppExitHandler(Logger log) {
+  _appLifecycleListener?.dispose();
+  _appLifecycleListener = AppLifecycleListener(
+    onExitRequested: () async {
+      if (_signalShutdownInProgress) {
+        return AppExitResponse.exit;
+      }
 
-  orchestrator
-      .streamLogs(binaryName, tail: 100)
-      .listen(
-        (response) {
-          logProvider.addLog(
-            FullProcessLogEntry(
-              timestamp: DateTime.fromMillisecondsSinceEpoch(response.timestampUnix.toInt() * 1000),
-              message: response.line,
-              isStderr: response.stream == 'stderr',
-              binaryType: binaryType,
-            ),
-          );
+      _signalShutdownInProgress = true;
+      log.w('received app exit request, shutting down Thunder runtime');
 
-          log.i('[$binaryName] ${response.line}');
-        },
-        onError: (e) {
-          Future.delayed(const Duration(seconds: 5), () {
-            _streamBinaryLogs(orchestrator, binaryName, binaryType);
-          });
-        },
-      );
+      try {
+        if (GetIt.I.isRegistered<BinaryProvider>()) {
+          await GetIt.I.get<BinaryProvider>().onShutdown();
+        }
+      } catch (error, stackTrace) {
+        log.e('app exit shutdown failed: $error\n$stackTrace');
+      }
+
+      return AppExitResponse.exit;
+    },
+  );
 }
 
 Future<void> initAutoUpdater(Logger log) async {

@@ -89,20 +89,20 @@ Future<(Directory, File, Logger)> init(String arguments) async {
   final router = AppRouter();
   GetIt.I.registerLazySingleton<AppRouter>(() => router);
 
-  late ZSidedLive zsidedRPC;
+  late ZSideLive zsideRPC;
 
   await initSidechainDependencies(
     sidechainType: BinaryType.zSide,
     createSidechainConnection: (_) {
-      zsidedRPC = ZSidedLive();
-      GetIt.I.registerSingleton<ZSidedRPC>(zsidedRPC);
-      return zsidedRPC;
+      zsideRPC = ZSideLive();
+      GetIt.I.registerSingleton<ZSideRPC>(zsideRPC);
+      return zsideRPC;
     },
     applicationDir: applicationDir,
     log: log,
     router: router,
     currentVersion: AppVersion.version,
-    additionalBinaries: () => [ZSided()],
+    additionalBinaries: () => [Orchestratord()],
     backendManagesBinaries: true,
   );
 
@@ -119,7 +119,6 @@ Future<(Directory, File, Logger)> init(String arguments) async {
 
   // Initialize ZSideConfProvider (must be after BitcoinConfProvider)
   final zsideConfProvider = await ZSideConfProvider.create();
-  GetIt.I.registerLazySingleton<ZSideConfProvider>(() => zsideConfProvider);
   GetIt.I.registerLazySingleton<GenericSidechainConfProvider>(() => zsideConfProvider);
 
   GetIt.I.registerLazySingleton<ZSideProvider>(
@@ -153,7 +152,7 @@ Future<void> runMultiWindow(
     child: SailText.primary15('no window type provided, the programmers messed up'),
   );
 
-  final zside = GetIt.I.get<ZSidedRPC>();
+  final zside = GetIt.I.get<ZSideRPC>();
 
   switch (arguments['window_type']) {
     case SubWindowTypes.debugId:
@@ -205,7 +204,7 @@ Future<void> runMainWindow(Logger log, Directory applicationDir, File logFile) a
   await initAutoUpdater(log);
 
   log.i('starting zside');
-  final zside = GetIt.I.get<ZSidedRPC>();
+  final zside = GetIt.I.get<ZSideRPC>();
   final router = GetIt.I.get<AppRouter>();
 
   runApp(
@@ -225,7 +224,7 @@ Future<void> runMainWindow(Logger log, Directory applicationDir, File logFile) a
 
 class _ZSideAppContent extends StatelessWidget {
   final AppRouter router;
-  final ZSidedRPC zside;
+  final ZSideRPC zside;
 
   const _ZSideAppContent({
     required this.router,
