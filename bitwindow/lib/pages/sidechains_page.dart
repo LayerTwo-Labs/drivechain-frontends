@@ -1568,7 +1568,7 @@ class _DepositModalState extends State<DepositModal> {
     if (sidechain == null) return null;
 
     // Get the RPC for this sidechain type
-    // Thunder goes through thunderd, so no direct SidechainRPC available here
+    // Thunder goes through orchestratord, so no direct SidechainRPC available here
     final rpc = switch (sidechain) {
       Truthcoin() => binaryProvider.truthcoinRPC,
       Photon() => binaryProvider.photonRPC,
@@ -1576,6 +1576,7 @@ class _DepositModalState extends State<DepositModal> {
       BitAssets() => binaryProvider.bitassetsRPC,
       ZSide() => binaryProvider.zsideRPC,
       CoinShift() => binaryProvider.coinshiftRPC,
+      Thunder() => binaryProvider.thunderRPC,
       _ => null,
     };
 

@@ -169,7 +169,7 @@ var jsonKeyToName = map[string]string{
 	"bitwindow":   "bitwindowd",
 	"enforcer":    "enforcer",
 	"grpcurl":     "grpcurl",
-	"thunderd":    "thunderd",
+	"orchestratord":    "orchestratord",
 	"zsided":      "zsided",
 	"thunder":     "thunder",
 	"bitnames":    "bitnames",

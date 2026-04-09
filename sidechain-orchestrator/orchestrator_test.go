@@ -6,11 +6,13 @@ import (
 	"bytes"
 	"compress/gzip"
 	"context"
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"runtime"
 	"testing"
+	"time"
 
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
@@ -156,4 +158,35 @@ func TestOrderForShutdown(t *testing.T) {
 
 func TestOrderForShutdown_Empty(t *testing.T) {
 	assert.Empty(t, orderForShutdown(nil))
+}
+
+func TestWaitForConnectedOrExit_ReturnsProcessExit(t *testing.T) {
+	pm, dir := newTestProcessManager(t)
+	symlinkSystemBinary(t, dir, "sh")
+
+	checker := &mockChecker{}
+	mon := NewConnectionMonitor("late-exit", checker, nil, testLogger(t))
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	mon.StartConnectionTimer(ctx)
+
+	_, err := pm.Start(ctx, BinaryConfig{
+		Name:       "late-exit",
+		BinaryName: "sh",
+	}, []string{"-c", "sleep 1; exit 1"}, nil)
+	require.NoError(t, err)
+
+	proc := pm.Get("late-exit")
+	require.NotNil(t, proc)
+
+	err = waitForConnectedOrExit(ctx, mon, proc)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "late-exit exited with code 1")
+
+	select {
+	case <-proc.ExitCh():
+	case <-time.After(3 * time.Second):
+		require.Fail(t, fmt.Sprintf("process did not exit: %v", err))
+	}
 }

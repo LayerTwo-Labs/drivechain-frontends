@@ -4,7 +4,6 @@ on:
   pull_request:
     paths:
       - "bitwindow/server/**"
-      - "thunder/server/**"
       - "sidechain-orchestrator/**"
       - "faucet/server/**"
       - "sail_ui/assets/chains_config.json"
@@ -36,7 +35,6 @@ jobs:
       matrix:
         module:
           - bitwindow/server
-          - thunder/server
           - sidechain-orchestrator
           - faucet/server
         include:

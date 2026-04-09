@@ -210,7 +210,7 @@ func (d *DownloadManager) downloadFile(ctx context.Context, url, savePath string
 
 	total := resp.ContentLength
 	var downloaded int64
-	var lastPermille int64 = -1 // tracks 0.1% increments (0-1000)
+	var lastPermille int64 = -1                // tracks 0.1% increments (0-1000)
 	const unknownChunkSize int64 = 1024 * 1024 // report every ~1MB when total unknown
 	var lastUnknownReport int64
 
@@ -432,7 +432,11 @@ func (d *DownloadManager) moveExtractedBinaries(tmpDir, destDir, binaryName stri
 		}
 
 		cleanName := StripPlatformSuffix(name)
-		destPath := filepath.Join(destDir, cleanName)
+		destName := cleanName
+		if normalizeBinaryName(cleanName) == normalizeBinaryName(binaryName) {
+			destName = binaryName
+		}
+		destPath := filepath.Join(destDir, destName)
 
 		if err := moveFile(path, destPath); err != nil {
 			d.log.Warn().Err(err).Str("file", name).Msg("move extracted file")
@@ -444,7 +448,7 @@ func (d *DownloadManager) moveExtractedBinaries(tmpDir, destDir, binaryName stri
 		}
 
 		moved++
-		d.log.Debug().Str("file", cleanName).Msg("extracted")
+		d.log.Debug().Str("file", destName).Msg("extracted")
 		return nil
 	})
 	if err != nil {
@@ -459,6 +463,13 @@ func (d *DownloadManager) moveExtractedBinaries(tmpDir, destDir, binaryName stri
 }
 
 // moveFile moves a file from src to dest, handling cross-device moves.
+func normalizeBinaryName(name string) string {
+	name = strings.ToLower(name)
+	name = strings.ReplaceAll(name, "-", "")
+	name = strings.ReplaceAll(name, "_", "")
+	return name
+}
+
 func moveFile(src, dest string) error {
 	if err := os.Rename(src, dest); err == nil {
 		return nil

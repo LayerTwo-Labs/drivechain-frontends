@@ -2118,8 +2118,8 @@ String _binaryTypeName(BinaryType type) {
       return 'Truthcoin';
     case BinaryType.coinShift:
       return 'CoinShift';
-    case BinaryType.thunderd:
-      return 'Thunderd';
+    case BinaryType.orchestratord:
+      return 'Orchestratord';
     case BinaryType.zSided:
       return 'ZSided';
   }
@@ -2159,7 +2159,7 @@ class MockBinaryProvider extends BinaryProvider {
   bool get bitwindowConnected => true;
 
   @override
-  bool get thunderdConnected => false;
+  bool get orchestratordConnected => false;
 
   @override
   bool get bitnamesConnected => false;
@@ -2189,7 +2189,7 @@ class MockBinaryProvider extends BinaryProvider {
   bool get bitwindowInitializing => false;
 
   @override
-  bool get thunderdInitializing => false;
+  bool get orchestratordInitializing => false;
 
   @override
   bool get bitnamesInitializing => false;
@@ -2219,7 +2219,7 @@ class MockBinaryProvider extends BinaryProvider {
   bool get bitwindowStopping => false;
 
   @override
-  bool get thunderdStopping => false;
+  bool get orchestratordStopping => false;
 
   @override
   bool get bitnamesStopping => false;
@@ -2249,7 +2249,7 @@ class MockBinaryProvider extends BinaryProvider {
   String? get bitwindowError => null;
 
   @override
-  String? get thunderdError => null;
+  String? get orchestratordError => null;
 
   @override
   String? get bitnamesError => null;
