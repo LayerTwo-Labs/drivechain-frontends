@@ -10,6 +10,7 @@ abstract final class WalletManagerService {
   /// Fully-qualified name of the WalletManagerService service.
   static const name = 'walletmanager.v1.WalletManagerService';
 
+  /// Wallet lifecycle
   static const getWalletStatus = connect.Spec(
     '/$name/GetWalletStatus',
     connect.StreamType.unary,
@@ -99,5 +100,92 @@ abstract final class WalletManagerService {
     connect.StreamType.unary,
     walletmanagerv1walletmanager.CreateWatchOnlyWalletRequest.new,
     walletmanagerv1walletmanager.CreateWatchOnlyWalletResponse.new,
+  );
+
+  /// Core wallet management
+  static const createBitcoinCoreWallet = connect.Spec(
+    '/$name/CreateBitcoinCoreWallet',
+    connect.StreamType.unary,
+    walletmanagerv1walletmanager.CreateBitcoinCoreWalletRequest.new,
+    walletmanagerv1walletmanager.CreateBitcoinCoreWalletResponse.new,
+  );
+
+  static const ensureCoreWallets = connect.Spec(
+    '/$name/EnsureCoreWallets',
+    connect.StreamType.unary,
+    walletmanagerv1walletmanager.EnsureCoreWalletsRequest.new,
+    walletmanagerv1walletmanager.EnsureCoreWalletsResponse.new,
+  );
+
+  /// Bitcoin operations (proxied through Core RPC)
+  static const getBalance = connect.Spec(
+    '/$name/GetBalance',
+    connect.StreamType.unary,
+    walletmanagerv1walletmanager.GetBalanceRequest.new,
+    walletmanagerv1walletmanager.GetBalanceResponse.new,
+  );
+
+  static const getNewAddress = connect.Spec(
+    '/$name/GetNewAddress',
+    connect.StreamType.unary,
+    walletmanagerv1walletmanager.GetNewAddressRequest.new,
+    walletmanagerv1walletmanager.GetNewAddressResponse.new,
+  );
+
+  static const sendTransaction = connect.Spec(
+    '/$name/SendTransaction',
+    connect.StreamType.unary,
+    walletmanagerv1walletmanager.SendTransactionRequest.new,
+    walletmanagerv1walletmanager.SendTransactionResponse.new,
+  );
+
+  static const listTransactions = connect.Spec(
+    '/$name/ListTransactions',
+    connect.StreamType.unary,
+    walletmanagerv1walletmanager.ListTransactionsRequest.new,
+    walletmanagerv1walletmanager.ListTransactionsResponse.new,
+  );
+
+  static const listUnspent = connect.Spec(
+    '/$name/ListUnspent',
+    connect.StreamType.unary,
+    walletmanagerv1walletmanager.ListUnspentRequest.new,
+    walletmanagerv1walletmanager.ListUnspentResponse.new,
+  );
+
+  static const listReceiveAddresses = connect.Spec(
+    '/$name/ListReceiveAddresses',
+    connect.StreamType.unary,
+    walletmanagerv1walletmanager.ListReceiveAddressesRequest.new,
+    walletmanagerv1walletmanager.ListReceiveAddressesResponse.new,
+  );
+
+  static const getTransactionDetails = connect.Spec(
+    '/$name/GetTransactionDetails',
+    connect.StreamType.unary,
+    walletmanagerv1walletmanager.GetTransactionDetailsRequest.new,
+    walletmanagerv1walletmanager.GetTransactionDetailsResponse.new,
+  );
+
+  static const bumpFee = connect.Spec(
+    '/$name/BumpFee',
+    connect.StreamType.unary,
+    walletmanagerv1walletmanager.BumpFeeRequest.new,
+    walletmanagerv1walletmanager.BumpFeeResponse.new,
+  );
+
+  static const deriveAddresses = connect.Spec(
+    '/$name/DeriveAddresses',
+    connect.StreamType.unary,
+    walletmanagerv1walletmanager.DeriveAddressesRequest.new,
+    walletmanagerv1walletmanager.DeriveAddressesResponse.new,
+  );
+
+  /// Seed access for cheque engine
+  static const getWalletSeed = connect.Spec(
+    '/$name/GetWalletSeed',
+    connect.StreamType.unary,
+    walletmanagerv1walletmanager.GetWalletSeedRequest.new,
+    walletmanagerv1walletmanager.GetWalletSeedResponse.new,
   );
 }

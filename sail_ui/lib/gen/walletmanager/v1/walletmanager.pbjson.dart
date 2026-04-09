@@ -331,6 +331,411 @@ final $typed_data.Uint8List createWatchOnlyWalletResponseDescriptor = $convert.b
     'Ch1DcmVhdGVXYXRjaE9ubHlXYWxsZXRSZXNwb25zZRIbCgl3YWxsZXRfaWQYASABKAlSCHdhbG'
     'xldElk');
 
+@$core.Deprecated('Use createBitcoinCoreWalletRequestDescriptor instead')
+const CreateBitcoinCoreWalletRequest$json = {
+  '1': 'CreateBitcoinCoreWalletRequest',
+  '2': [
+    {'1': 'wallet_id', '3': 1, '4': 1, '5': 9, '10': 'walletId'},
+  ],
+};
+
+/// Descriptor for `CreateBitcoinCoreWalletRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List createBitcoinCoreWalletRequestDescriptor = $convert.base64Decode(
+    'Ch5DcmVhdGVCaXRjb2luQ29yZVdhbGxldFJlcXVlc3QSGwoJd2FsbGV0X2lkGAEgASgJUgh3YW'
+    'xsZXRJZA==');
+
+@$core.Deprecated('Use createBitcoinCoreWalletResponseDescriptor instead')
+const CreateBitcoinCoreWalletResponse$json = {
+  '1': 'CreateBitcoinCoreWalletResponse',
+  '2': [
+    {'1': 'core_wallet_name', '3': 1, '4': 1, '5': 9, '10': 'coreWalletName'},
+  ],
+};
+
+/// Descriptor for `CreateBitcoinCoreWalletResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List createBitcoinCoreWalletResponseDescriptor = $convert.base64Decode(
+    'Ch9DcmVhdGVCaXRjb2luQ29yZVdhbGxldFJlc3BvbnNlEigKEGNvcmVfd2FsbGV0X25hbWUYAS'
+    'ABKAlSDmNvcmVXYWxsZXROYW1l');
+
+@$core.Deprecated('Use ensureCoreWalletsRequestDescriptor instead')
+const EnsureCoreWalletsRequest$json = {
+  '1': 'EnsureCoreWalletsRequest',
+};
+
+/// Descriptor for `EnsureCoreWalletsRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List ensureCoreWalletsRequestDescriptor = $convert.base64Decode(
+    'ChhFbnN1cmVDb3JlV2FsbGV0c1JlcXVlc3Q=');
+
+@$core.Deprecated('Use ensureCoreWalletsResponseDescriptor instead')
+const EnsureCoreWalletsResponse$json = {
+  '1': 'EnsureCoreWalletsResponse',
+  '2': [
+    {'1': 'synced_count', '3': 1, '4': 1, '5': 5, '10': 'syncedCount'},
+  ],
+};
+
+/// Descriptor for `EnsureCoreWalletsResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List ensureCoreWalletsResponseDescriptor = $convert.base64Decode(
+    'ChlFbnN1cmVDb3JlV2FsbGV0c1Jlc3BvbnNlEiEKDHN5bmNlZF9jb3VudBgBIAEoBVILc3luY2'
+    'VkQ291bnQ=');
+
+@$core.Deprecated('Use getBalanceRequestDescriptor instead')
+const GetBalanceRequest$json = {
+  '1': 'GetBalanceRequest',
+  '2': [
+    {'1': 'wallet_id', '3': 1, '4': 1, '5': 9, '10': 'walletId'},
+  ],
+};
+
+/// Descriptor for `GetBalanceRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List getBalanceRequestDescriptor = $convert.base64Decode(
+    'ChFHZXRCYWxhbmNlUmVxdWVzdBIbCgl3YWxsZXRfaWQYASABKAlSCHdhbGxldElk');
+
+@$core.Deprecated('Use getBalanceResponseDescriptor instead')
+const GetBalanceResponse$json = {
+  '1': 'GetBalanceResponse',
+  '2': [
+    {'1': 'confirmed_sats', '3': 1, '4': 1, '5': 1, '10': 'confirmedSats'},
+    {'1': 'unconfirmed_sats', '3': 2, '4': 1, '5': 1, '10': 'unconfirmedSats'},
+  ],
+};
+
+/// Descriptor for `GetBalanceResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List getBalanceResponseDescriptor = $convert.base64Decode(
+    'ChJHZXRCYWxhbmNlUmVzcG9uc2USJQoOY29uZmlybWVkX3NhdHMYASABKAFSDWNvbmZpcm1lZF'
+    'NhdHMSKQoQdW5jb25maXJtZWRfc2F0cxgCIAEoAVIPdW5jb25maXJtZWRTYXRz');
+
+@$core.Deprecated('Use getNewAddressRequestDescriptor instead')
+const GetNewAddressRequest$json = {
+  '1': 'GetNewAddressRequest',
+  '2': [
+    {'1': 'wallet_id', '3': 1, '4': 1, '5': 9, '10': 'walletId'},
+  ],
+};
+
+/// Descriptor for `GetNewAddressRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List getNewAddressRequestDescriptor = $convert.base64Decode(
+    'ChRHZXROZXdBZGRyZXNzUmVxdWVzdBIbCgl3YWxsZXRfaWQYASABKAlSCHdhbGxldElk');
+
+@$core.Deprecated('Use getNewAddressResponseDescriptor instead')
+const GetNewAddressResponse$json = {
+  '1': 'GetNewAddressResponse',
+  '2': [
+    {'1': 'address', '3': 1, '4': 1, '5': 9, '10': 'address'},
+    {'1': 'index', '3': 2, '4': 1, '5': 5, '10': 'index'},
+  ],
+};
+
+/// Descriptor for `GetNewAddressResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List getNewAddressResponseDescriptor = $convert.base64Decode(
+    'ChVHZXROZXdBZGRyZXNzUmVzcG9uc2USGAoHYWRkcmVzcxgBIAEoCVIHYWRkcmVzcxIUCgVpbm'
+    'RleBgCIAEoBVIFaW5kZXg=');
+
+@$core.Deprecated('Use sendTransactionRequestDescriptor instead')
+const SendTransactionRequest$json = {
+  '1': 'SendTransactionRequest',
+  '2': [
+    {'1': 'wallet_id', '3': 1, '4': 1, '5': 9, '10': 'walletId'},
+    {'1': 'destinations', '3': 2, '4': 3, '5': 11, '6': '.walletmanager.v1.SendTransactionRequest.DestinationsEntry', '10': 'destinations'},
+    {'1': 'fee_rate_sat_per_vbyte', '3': 3, '4': 1, '5': 3, '10': 'feeRateSatPerVbyte'},
+    {'1': 'subtract_fee_from_amount', '3': 4, '4': 1, '5': 8, '10': 'subtractFeeFromAmount'},
+    {'1': 'op_return_hex', '3': 5, '4': 1, '5': 9, '10': 'opReturnHex'},
+  ],
+  '3': [SendTransactionRequest_DestinationsEntry$json],
+};
+
+@$core.Deprecated('Use sendTransactionRequestDescriptor instead')
+const SendTransactionRequest_DestinationsEntry$json = {
+  '1': 'DestinationsEntry',
+  '2': [
+    {'1': 'key', '3': 1, '4': 1, '5': 9, '10': 'key'},
+    {'1': 'value', '3': 2, '4': 1, '5': 3, '10': 'value'},
+  ],
+  '7': {'7': true},
+};
+
+/// Descriptor for `SendTransactionRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List sendTransactionRequestDescriptor = $convert.base64Decode(
+    'ChZTZW5kVHJhbnNhY3Rpb25SZXF1ZXN0EhsKCXdhbGxldF9pZBgBIAEoCVIId2FsbGV0SWQSXg'
+    'oMZGVzdGluYXRpb25zGAIgAygLMjoud2FsbGV0bWFuYWdlci52MS5TZW5kVHJhbnNhY3Rpb25S'
+    'ZXF1ZXN0LkRlc3RpbmF0aW9uc0VudHJ5UgxkZXN0aW5hdGlvbnMSMgoWZmVlX3JhdGVfc2F0X3'
+    'Blcl92Ynl0ZRgDIAEoA1ISZmVlUmF0ZVNhdFBlclZieXRlEjcKGHN1YnRyYWN0X2ZlZV9mcm9t'
+    'X2Ftb3VudBgEIAEoCFIVc3VidHJhY3RGZWVGcm9tQW1vdW50EiIKDW9wX3JldHVybl9oZXgYBS'
+    'ABKAlSC29wUmV0dXJuSGV4Gj8KEURlc3RpbmF0aW9uc0VudHJ5EhAKA2tleRgBIAEoCVIDa2V5'
+    'EhQKBXZhbHVlGAIgASgDUgV2YWx1ZToCOAE=');
+
+@$core.Deprecated('Use sendTransactionResponseDescriptor instead')
+const SendTransactionResponse$json = {
+  '1': 'SendTransactionResponse',
+  '2': [
+    {'1': 'txid', '3': 1, '4': 1, '5': 9, '10': 'txid'},
+  ],
+};
+
+/// Descriptor for `SendTransactionResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List sendTransactionResponseDescriptor = $convert.base64Decode(
+    'ChdTZW5kVHJhbnNhY3Rpb25SZXNwb25zZRISCgR0eGlkGAEgASgJUgR0eGlk');
+
+@$core.Deprecated('Use listTransactionsRequestDescriptor instead')
+const ListTransactionsRequest$json = {
+  '1': 'ListTransactionsRequest',
+  '2': [
+    {'1': 'wallet_id', '3': 1, '4': 1, '5': 9, '10': 'walletId'},
+    {'1': 'count', '3': 2, '4': 1, '5': 5, '10': 'count'},
+  ],
+};
+
+/// Descriptor for `ListTransactionsRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List listTransactionsRequestDescriptor = $convert.base64Decode(
+    'ChdMaXN0VHJhbnNhY3Rpb25zUmVxdWVzdBIbCgl3YWxsZXRfaWQYASABKAlSCHdhbGxldElkEh'
+    'QKBWNvdW50GAIgASgFUgVjb3VudA==');
+
+@$core.Deprecated('Use transactionEntryDescriptor instead')
+const TransactionEntry$json = {
+  '1': 'TransactionEntry',
+  '2': [
+    {'1': 'txid', '3': 1, '4': 1, '5': 9, '10': 'txid'},
+    {'1': 'vout', '3': 2, '4': 1, '5': 5, '10': 'vout'},
+    {'1': 'address', '3': 3, '4': 1, '5': 9, '10': 'address'},
+    {'1': 'category', '3': 4, '4': 1, '5': 9, '10': 'category'},
+    {'1': 'amount', '3': 5, '4': 1, '5': 1, '10': 'amount'},
+    {'1': 'amount_sats', '3': 6, '4': 1, '5': 3, '10': 'amountSats'},
+    {'1': 'confirmations', '3': 7, '4': 1, '5': 5, '10': 'confirmations'},
+    {'1': 'block_time', '3': 8, '4': 1, '5': 3, '10': 'blockTime'},
+    {'1': 'time', '3': 9, '4': 1, '5': 3, '10': 'time'},
+    {'1': 'label', '3': 10, '4': 1, '5': 9, '10': 'label'},
+    {'1': 'fee', '3': 11, '4': 1, '5': 1, '10': 'fee'},
+    {'1': 'replaced_by_txid', '3': 12, '4': 1, '5': 8, '10': 'replacedByTxid'},
+    {'1': 'wallet_id', '3': 13, '4': 1, '5': 9, '10': 'walletId'},
+  ],
+};
+
+/// Descriptor for `TransactionEntry`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List transactionEntryDescriptor = $convert.base64Decode(
+    'ChBUcmFuc2FjdGlvbkVudHJ5EhIKBHR4aWQYASABKAlSBHR4aWQSEgoEdm91dBgCIAEoBVIEdm'
+    '91dBIYCgdhZGRyZXNzGAMgASgJUgdhZGRyZXNzEhoKCGNhdGVnb3J5GAQgASgJUghjYXRlZ29y'
+    'eRIWCgZhbW91bnQYBSABKAFSBmFtb3VudBIfCgthbW91bnRfc2F0cxgGIAEoA1IKYW1vdW50U2'
+    'F0cxIkCg1jb25maXJtYXRpb25zGAcgASgFUg1jb25maXJtYXRpb25zEh0KCmJsb2NrX3RpbWUY'
+    'CCABKANSCWJsb2NrVGltZRISCgR0aW1lGAkgASgDUgR0aW1lEhQKBWxhYmVsGAogASgJUgVsYW'
+    'JlbBIQCgNmZWUYCyABKAFSA2ZlZRIoChByZXBsYWNlZF9ieV90eGlkGAwgASgIUg5yZXBsYWNl'
+    'ZEJ5VHhpZBIbCgl3YWxsZXRfaWQYDSABKAlSCHdhbGxldElk');
+
+@$core.Deprecated('Use listTransactionsResponseDescriptor instead')
+const ListTransactionsResponse$json = {
+  '1': 'ListTransactionsResponse',
+  '2': [
+    {'1': 'transactions', '3': 1, '4': 3, '5': 11, '6': '.walletmanager.v1.TransactionEntry', '10': 'transactions'},
+  ],
+};
+
+/// Descriptor for `ListTransactionsResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List listTransactionsResponseDescriptor = $convert.base64Decode(
+    'ChhMaXN0VHJhbnNhY3Rpb25zUmVzcG9uc2USRgoMdHJhbnNhY3Rpb25zGAEgAygLMiIud2FsbG'
+    'V0bWFuYWdlci52MS5UcmFuc2FjdGlvbkVudHJ5Ugx0cmFuc2FjdGlvbnM=');
+
+@$core.Deprecated('Use listUnspentRequestDescriptor instead')
+const ListUnspentRequest$json = {
+  '1': 'ListUnspentRequest',
+  '2': [
+    {'1': 'wallet_id', '3': 1, '4': 1, '5': 9, '10': 'walletId'},
+  ],
+};
+
+/// Descriptor for `ListUnspentRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List listUnspentRequestDescriptor = $convert.base64Decode(
+    'ChJMaXN0VW5zcGVudFJlcXVlc3QSGwoJd2FsbGV0X2lkGAEgASgJUgh3YWxsZXRJZA==');
+
+@$core.Deprecated('Use unspentOutputDescriptor instead')
+const UnspentOutput$json = {
+  '1': 'UnspentOutput',
+  '2': [
+    {'1': 'txid', '3': 1, '4': 1, '5': 9, '10': 'txid'},
+    {'1': 'vout', '3': 2, '4': 1, '5': 5, '10': 'vout'},
+    {'1': 'address', '3': 3, '4': 1, '5': 9, '10': 'address'},
+    {'1': 'amount', '3': 4, '4': 1, '5': 1, '10': 'amount'},
+    {'1': 'amount_sats', '3': 5, '4': 1, '5': 3, '10': 'amountSats'},
+    {'1': 'confirmations', '3': 6, '4': 1, '5': 5, '10': 'confirmations'},
+    {'1': 'label', '3': 7, '4': 1, '5': 9, '10': 'label'},
+    {'1': 'spendable', '3': 8, '4': 1, '5': 8, '10': 'spendable'},
+    {'1': 'solvable', '3': 9, '4': 1, '5': 8, '10': 'solvable'},
+    {'1': 'wallet_id', '3': 10, '4': 1, '5': 9, '10': 'walletId'},
+  ],
+};
+
+/// Descriptor for `UnspentOutput`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List unspentOutputDescriptor = $convert.base64Decode(
+    'Cg1VbnNwZW50T3V0cHV0EhIKBHR4aWQYASABKAlSBHR4aWQSEgoEdm91dBgCIAEoBVIEdm91dB'
+    'IYCgdhZGRyZXNzGAMgASgJUgdhZGRyZXNzEhYKBmFtb3VudBgEIAEoAVIGYW1vdW50Eh8KC2Ft'
+    'b3VudF9zYXRzGAUgASgDUgphbW91bnRTYXRzEiQKDWNvbmZpcm1hdGlvbnMYBiABKAVSDWNvbm'
+    'Zpcm1hdGlvbnMSFAoFbGFiZWwYByABKAlSBWxhYmVsEhwKCXNwZW5kYWJsZRgIIAEoCFIJc3Bl'
+    'bmRhYmxlEhoKCHNvbHZhYmxlGAkgASgIUghzb2x2YWJsZRIbCgl3YWxsZXRfaWQYCiABKAlSCH'
+    'dhbGxldElk');
+
+@$core.Deprecated('Use listUnspentResponseDescriptor instead')
+const ListUnspentResponse$json = {
+  '1': 'ListUnspentResponse',
+  '2': [
+    {'1': 'utxos', '3': 1, '4': 3, '5': 11, '6': '.walletmanager.v1.UnspentOutput', '10': 'utxos'},
+  ],
+};
+
+/// Descriptor for `ListUnspentResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List listUnspentResponseDescriptor = $convert.base64Decode(
+    'ChNMaXN0VW5zcGVudFJlc3BvbnNlEjUKBXV0eG9zGAEgAygLMh8ud2FsbGV0bWFuYWdlci52MS'
+    '5VbnNwZW50T3V0cHV0UgV1dHhvcw==');
+
+@$core.Deprecated('Use listReceiveAddressesRequestDescriptor instead')
+const ListReceiveAddressesRequest$json = {
+  '1': 'ListReceiveAddressesRequest',
+  '2': [
+    {'1': 'wallet_id', '3': 1, '4': 1, '5': 9, '10': 'walletId'},
+  ],
+};
+
+/// Descriptor for `ListReceiveAddressesRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List listReceiveAddressesRequestDescriptor = $convert.base64Decode(
+    'ChtMaXN0UmVjZWl2ZUFkZHJlc3Nlc1JlcXVlc3QSGwoJd2FsbGV0X2lkGAEgASgJUgh3YWxsZX'
+    'RJZA==');
+
+@$core.Deprecated('Use receiveAddressDescriptor instead')
+const ReceiveAddress$json = {
+  '1': 'ReceiveAddress',
+  '2': [
+    {'1': 'address', '3': 1, '4': 1, '5': 9, '10': 'address'},
+    {'1': 'amount', '3': 2, '4': 1, '5': 1, '10': 'amount'},
+    {'1': 'amount_sats', '3': 3, '4': 1, '5': 3, '10': 'amountSats'},
+    {'1': 'label', '3': 4, '4': 1, '5': 9, '10': 'label'},
+    {'1': 'tx_count', '3': 5, '4': 1, '5': 5, '10': 'txCount'},
+  ],
+};
+
+/// Descriptor for `ReceiveAddress`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List receiveAddressDescriptor = $convert.base64Decode(
+    'Cg5SZWNlaXZlQWRkcmVzcxIYCgdhZGRyZXNzGAEgASgJUgdhZGRyZXNzEhYKBmFtb3VudBgCIA'
+    'EoAVIGYW1vdW50Eh8KC2Ftb3VudF9zYXRzGAMgASgDUgphbW91bnRTYXRzEhQKBWxhYmVsGAQg'
+    'ASgJUgVsYWJlbBIZCgh0eF9jb3VudBgFIAEoBVIHdHhDb3VudA==');
+
+@$core.Deprecated('Use listReceiveAddressesResponseDescriptor instead')
+const ListReceiveAddressesResponse$json = {
+  '1': 'ListReceiveAddressesResponse',
+  '2': [
+    {'1': 'addresses', '3': 1, '4': 3, '5': 11, '6': '.walletmanager.v1.ReceiveAddress', '10': 'addresses'},
+  ],
+};
+
+/// Descriptor for `ListReceiveAddressesResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List listReceiveAddressesResponseDescriptor = $convert.base64Decode(
+    'ChxMaXN0UmVjZWl2ZUFkZHJlc3Nlc1Jlc3BvbnNlEj4KCWFkZHJlc3NlcxgBIAMoCzIgLndhbG'
+    'xldG1hbmFnZXIudjEuUmVjZWl2ZUFkZHJlc3NSCWFkZHJlc3Nlcw==');
+
+@$core.Deprecated('Use getTransactionDetailsRequestDescriptor instead')
+const GetTransactionDetailsRequest$json = {
+  '1': 'GetTransactionDetailsRequest',
+  '2': [
+    {'1': 'wallet_id', '3': 1, '4': 1, '5': 9, '10': 'walletId'},
+    {'1': 'txid', '3': 2, '4': 1, '5': 9, '10': 'txid'},
+  ],
+};
+
+/// Descriptor for `GetTransactionDetailsRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List getTransactionDetailsRequestDescriptor = $convert.base64Decode(
+    'ChxHZXRUcmFuc2FjdGlvbkRldGFpbHNSZXF1ZXN0EhsKCXdhbGxldF9pZBgBIAEoCVIId2FsbG'
+    'V0SWQSEgoEdHhpZBgCIAEoCVIEdHhpZA==');
+
+@$core.Deprecated('Use getTransactionDetailsResponseDescriptor instead')
+const GetTransactionDetailsResponse$json = {
+  '1': 'GetTransactionDetailsResponse',
+  '2': [
+    {'1': 'transaction', '3': 1, '4': 1, '5': 11, '6': '.walletmanager.v1.TransactionEntry', '10': 'transaction'},
+    {'1': 'raw_hex', '3': 2, '4': 1, '5': 9, '10': 'rawHex'},
+  ],
+};
+
+/// Descriptor for `GetTransactionDetailsResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List getTransactionDetailsResponseDescriptor = $convert.base64Decode(
+    'Ch1HZXRUcmFuc2FjdGlvbkRldGFpbHNSZXNwb25zZRJECgt0cmFuc2FjdGlvbhgBIAEoCzIiLn'
+    'dhbGxldG1hbmFnZXIudjEuVHJhbnNhY3Rpb25FbnRyeVILdHJhbnNhY3Rpb24SFwoHcmF3X2hl'
+    'eBgCIAEoCVIGcmF3SGV4');
+
+@$core.Deprecated('Use bumpFeeRequestDescriptor instead')
+const BumpFeeRequest$json = {
+  '1': 'BumpFeeRequest',
+  '2': [
+    {'1': 'wallet_id', '3': 1, '4': 1, '5': 9, '10': 'walletId'},
+    {'1': 'txid', '3': 2, '4': 1, '5': 9, '10': 'txid'},
+    {'1': 'new_fee_rate', '3': 3, '4': 1, '5': 3, '10': 'newFeeRate'},
+  ],
+};
+
+/// Descriptor for `BumpFeeRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List bumpFeeRequestDescriptor = $convert.base64Decode(
+    'Cg5CdW1wRmVlUmVxdWVzdBIbCgl3YWxsZXRfaWQYASABKAlSCHdhbGxldElkEhIKBHR4aWQYAi'
+    'ABKAlSBHR4aWQSIAoMbmV3X2ZlZV9yYXRlGAMgASgDUgpuZXdGZWVSYXRl');
+
+@$core.Deprecated('Use bumpFeeResponseDescriptor instead')
+const BumpFeeResponse$json = {
+  '1': 'BumpFeeResponse',
+  '2': [
+    {'1': 'new_txid', '3': 1, '4': 1, '5': 9, '10': 'newTxid'},
+  ],
+};
+
+/// Descriptor for `BumpFeeResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List bumpFeeResponseDescriptor = $convert.base64Decode(
+    'Cg9CdW1wRmVlUmVzcG9uc2USGQoIbmV3X3R4aWQYASABKAlSB25ld1R4aWQ=');
+
+@$core.Deprecated('Use deriveAddressesRequestDescriptor instead')
+const DeriveAddressesRequest$json = {
+  '1': 'DeriveAddressesRequest',
+  '2': [
+    {'1': 'wallet_id', '3': 1, '4': 1, '5': 9, '10': 'walletId'},
+    {'1': 'start_index', '3': 2, '4': 1, '5': 5, '10': 'startIndex'},
+    {'1': 'count', '3': 3, '4': 1, '5': 5, '10': 'count'},
+  ],
+};
+
+/// Descriptor for `DeriveAddressesRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List deriveAddressesRequestDescriptor = $convert.base64Decode(
+    'ChZEZXJpdmVBZGRyZXNzZXNSZXF1ZXN0EhsKCXdhbGxldF9pZBgBIAEoCVIId2FsbGV0SWQSHw'
+    'oLc3RhcnRfaW5kZXgYAiABKAVSCnN0YXJ0SW5kZXgSFAoFY291bnQYAyABKAVSBWNvdW50');
+
+@$core.Deprecated('Use deriveAddressesResponseDescriptor instead')
+const DeriveAddressesResponse$json = {
+  '1': 'DeriveAddressesResponse',
+  '2': [
+    {'1': 'addresses', '3': 1, '4': 3, '5': 9, '10': 'addresses'},
+  ],
+};
+
+/// Descriptor for `DeriveAddressesResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List deriveAddressesResponseDescriptor = $convert.base64Decode(
+    'ChdEZXJpdmVBZGRyZXNzZXNSZXNwb25zZRIcCglhZGRyZXNzZXMYASADKAlSCWFkZHJlc3Nlcw'
+    '==');
+
+@$core.Deprecated('Use getWalletSeedRequestDescriptor instead')
+const GetWalletSeedRequest$json = {
+  '1': 'GetWalletSeedRequest',
+  '2': [
+    {'1': 'wallet_id', '3': 1, '4': 1, '5': 9, '10': 'walletId'},
+  ],
+};
+
+/// Descriptor for `GetWalletSeedRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List getWalletSeedRequestDescriptor = $convert.base64Decode(
+    'ChRHZXRXYWxsZXRTZWVkUmVxdWVzdBIbCgl3YWxsZXRfaWQYASABKAlSCHdhbGxldElk');
+
+@$core.Deprecated('Use getWalletSeedResponseDescriptor instead')
+const GetWalletSeedResponse$json = {
+  '1': 'GetWalletSeedResponse',
+  '2': [
+    {'1': 'seed_hex', '3': 1, '4': 1, '5': 9, '10': 'seedHex'},
+  ],
+};
+
+/// Descriptor for `GetWalletSeedResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List getWalletSeedResponseDescriptor = $convert.base64Decode(
+    'ChVHZXRXYWxsZXRTZWVkUmVzcG9uc2USGQoIc2VlZF9oZXgYASABKAlSB3NlZWRIZXg=');
+
 const $core.Map<$core.String, $core.dynamic> WalletManagerServiceBase$json = {
   '1': 'WalletManagerService',
   '2': [
@@ -347,6 +752,18 @@ const $core.Map<$core.String, $core.dynamic> WalletManagerServiceBase$json = {
     {'1': 'DeleteWallet', '2': '.walletmanager.v1.DeleteWalletRequest', '3': '.walletmanager.v1.DeleteWalletResponse'},
     {'1': 'DeleteAllWallets', '2': '.walletmanager.v1.DeleteAllWalletsRequest', '3': '.walletmanager.v1.DeleteAllWalletsResponse'},
     {'1': 'CreateWatchOnlyWallet', '2': '.walletmanager.v1.CreateWatchOnlyWalletRequest', '3': '.walletmanager.v1.CreateWatchOnlyWalletResponse'},
+    {'1': 'CreateBitcoinCoreWallet', '2': '.walletmanager.v1.CreateBitcoinCoreWalletRequest', '3': '.walletmanager.v1.CreateBitcoinCoreWalletResponse'},
+    {'1': 'EnsureCoreWallets', '2': '.walletmanager.v1.EnsureCoreWalletsRequest', '3': '.walletmanager.v1.EnsureCoreWalletsResponse'},
+    {'1': 'GetBalance', '2': '.walletmanager.v1.GetBalanceRequest', '3': '.walletmanager.v1.GetBalanceResponse'},
+    {'1': 'GetNewAddress', '2': '.walletmanager.v1.GetNewAddressRequest', '3': '.walletmanager.v1.GetNewAddressResponse'},
+    {'1': 'SendTransaction', '2': '.walletmanager.v1.SendTransactionRequest', '3': '.walletmanager.v1.SendTransactionResponse'},
+    {'1': 'ListTransactions', '2': '.walletmanager.v1.ListTransactionsRequest', '3': '.walletmanager.v1.ListTransactionsResponse'},
+    {'1': 'ListUnspent', '2': '.walletmanager.v1.ListUnspentRequest', '3': '.walletmanager.v1.ListUnspentResponse'},
+    {'1': 'ListReceiveAddresses', '2': '.walletmanager.v1.ListReceiveAddressesRequest', '3': '.walletmanager.v1.ListReceiveAddressesResponse'},
+    {'1': 'GetTransactionDetails', '2': '.walletmanager.v1.GetTransactionDetailsRequest', '3': '.walletmanager.v1.GetTransactionDetailsResponse'},
+    {'1': 'BumpFee', '2': '.walletmanager.v1.BumpFeeRequest', '3': '.walletmanager.v1.BumpFeeResponse'},
+    {'1': 'DeriveAddresses', '2': '.walletmanager.v1.DeriveAddressesRequest', '3': '.walletmanager.v1.DeriveAddressesResponse'},
+    {'1': 'GetWalletSeed', '2': '.walletmanager.v1.GetWalletSeedRequest', '3': '.walletmanager.v1.GetWalletSeedResponse'},
   ],
 };
 
@@ -379,6 +796,34 @@ const $core.Map<$core.String, $core.Map<$core.String, $core.dynamic>> WalletMana
   '.walletmanager.v1.DeleteAllWalletsResponse': DeleteAllWalletsResponse$json,
   '.walletmanager.v1.CreateWatchOnlyWalletRequest': CreateWatchOnlyWalletRequest$json,
   '.walletmanager.v1.CreateWatchOnlyWalletResponse': CreateWatchOnlyWalletResponse$json,
+  '.walletmanager.v1.CreateBitcoinCoreWalletRequest': CreateBitcoinCoreWalletRequest$json,
+  '.walletmanager.v1.CreateBitcoinCoreWalletResponse': CreateBitcoinCoreWalletResponse$json,
+  '.walletmanager.v1.EnsureCoreWalletsRequest': EnsureCoreWalletsRequest$json,
+  '.walletmanager.v1.EnsureCoreWalletsResponse': EnsureCoreWalletsResponse$json,
+  '.walletmanager.v1.GetBalanceRequest': GetBalanceRequest$json,
+  '.walletmanager.v1.GetBalanceResponse': GetBalanceResponse$json,
+  '.walletmanager.v1.GetNewAddressRequest': GetNewAddressRequest$json,
+  '.walletmanager.v1.GetNewAddressResponse': GetNewAddressResponse$json,
+  '.walletmanager.v1.SendTransactionRequest': SendTransactionRequest$json,
+  '.walletmanager.v1.SendTransactionRequest.DestinationsEntry': SendTransactionRequest_DestinationsEntry$json,
+  '.walletmanager.v1.SendTransactionResponse': SendTransactionResponse$json,
+  '.walletmanager.v1.ListTransactionsRequest': ListTransactionsRequest$json,
+  '.walletmanager.v1.ListTransactionsResponse': ListTransactionsResponse$json,
+  '.walletmanager.v1.TransactionEntry': TransactionEntry$json,
+  '.walletmanager.v1.ListUnspentRequest': ListUnspentRequest$json,
+  '.walletmanager.v1.ListUnspentResponse': ListUnspentResponse$json,
+  '.walletmanager.v1.UnspentOutput': UnspentOutput$json,
+  '.walletmanager.v1.ListReceiveAddressesRequest': ListReceiveAddressesRequest$json,
+  '.walletmanager.v1.ListReceiveAddressesResponse': ListReceiveAddressesResponse$json,
+  '.walletmanager.v1.ReceiveAddress': ReceiveAddress$json,
+  '.walletmanager.v1.GetTransactionDetailsRequest': GetTransactionDetailsRequest$json,
+  '.walletmanager.v1.GetTransactionDetailsResponse': GetTransactionDetailsResponse$json,
+  '.walletmanager.v1.BumpFeeRequest': BumpFeeRequest$json,
+  '.walletmanager.v1.BumpFeeResponse': BumpFeeResponse$json,
+  '.walletmanager.v1.DeriveAddressesRequest': DeriveAddressesRequest$json,
+  '.walletmanager.v1.DeriveAddressesResponse': DeriveAddressesResponse$json,
+  '.walletmanager.v1.GetWalletSeedRequest': GetWalletSeedRequest$json,
+  '.walletmanager.v1.GetWalletSeedResponse': GetWalletSeedResponse$json,
 };
 
 /// Descriptor for `WalletManagerService`. Decode as a `google.protobuf.ServiceDescriptorProto`.
@@ -407,5 +852,27 @@ final $typed_data.Uint8List walletManagerServiceDescriptor = $convert.base64Deco
     'xsV2FsbGV0c1JlcXVlc3QaKi53YWxsZXRtYW5hZ2VyLnYxLkRlbGV0ZUFsbFdhbGxldHNSZXNw'
     'b25zZRJ4ChVDcmVhdGVXYXRjaE9ubHlXYWxsZXQSLi53YWxsZXRtYW5hZ2VyLnYxLkNyZWF0ZV'
     'dhdGNoT25seVdhbGxldFJlcXVlc3QaLy53YWxsZXRtYW5hZ2VyLnYxLkNyZWF0ZVdhdGNoT25s'
-    'eVdhbGxldFJlc3BvbnNl');
+    'eVdhbGxldFJlc3BvbnNlEn4KF0NyZWF0ZUJpdGNvaW5Db3JlV2FsbGV0EjAud2FsbGV0bWFuYW'
+    'dlci52MS5DcmVhdGVCaXRjb2luQ29yZVdhbGxldFJlcXVlc3QaMS53YWxsZXRtYW5hZ2VyLnYx'
+    'LkNyZWF0ZUJpdGNvaW5Db3JlV2FsbGV0UmVzcG9uc2USbAoRRW5zdXJlQ29yZVdhbGxldHMSKi'
+    '53YWxsZXRtYW5hZ2VyLnYxLkVuc3VyZUNvcmVXYWxsZXRzUmVxdWVzdBorLndhbGxldG1hbmFn'
+    'ZXIudjEuRW5zdXJlQ29yZVdhbGxldHNSZXNwb25zZRJXCgpHZXRCYWxhbmNlEiMud2FsbGV0bW'
+    'FuYWdlci52MS5HZXRCYWxhbmNlUmVxdWVzdBokLndhbGxldG1hbmFnZXIudjEuR2V0QmFsYW5j'
+    'ZVJlc3BvbnNlEmAKDUdldE5ld0FkZHJlc3MSJi53YWxsZXRtYW5hZ2VyLnYxLkdldE5ld0FkZH'
+    'Jlc3NSZXF1ZXN0Gicud2FsbGV0bWFuYWdlci52MS5HZXROZXdBZGRyZXNzUmVzcG9uc2USZgoP'
+    'U2VuZFRyYW5zYWN0aW9uEigud2FsbGV0bWFuYWdlci52MS5TZW5kVHJhbnNhY3Rpb25SZXF1ZX'
+    'N0Gikud2FsbGV0bWFuYWdlci52MS5TZW5kVHJhbnNhY3Rpb25SZXNwb25zZRJpChBMaXN0VHJh'
+    'bnNhY3Rpb25zEikud2FsbGV0bWFuYWdlci52MS5MaXN0VHJhbnNhY3Rpb25zUmVxdWVzdBoqLn'
+    'dhbGxldG1hbmFnZXIudjEuTGlzdFRyYW5zYWN0aW9uc1Jlc3BvbnNlEloKC0xpc3RVbnNwZW50'
+    'EiQud2FsbGV0bWFuYWdlci52MS5MaXN0VW5zcGVudFJlcXVlc3QaJS53YWxsZXRtYW5hZ2VyLn'
+    'YxLkxpc3RVbnNwZW50UmVzcG9uc2USdQoUTGlzdFJlY2VpdmVBZGRyZXNzZXMSLS53YWxsZXRt'
+    'YW5hZ2VyLnYxLkxpc3RSZWNlaXZlQWRkcmVzc2VzUmVxdWVzdBouLndhbGxldG1hbmFnZXIudj'
+    'EuTGlzdFJlY2VpdmVBZGRyZXNzZXNSZXNwb25zZRJ4ChVHZXRUcmFuc2FjdGlvbkRldGFpbHMS'
+    'Li53YWxsZXRtYW5hZ2VyLnYxLkdldFRyYW5zYWN0aW9uRGV0YWlsc1JlcXVlc3QaLy53YWxsZX'
+    'RtYW5hZ2VyLnYxLkdldFRyYW5zYWN0aW9uRGV0YWlsc1Jlc3BvbnNlEk4KB0J1bXBGZWUSIC53'
+    'YWxsZXRtYW5hZ2VyLnYxLkJ1bXBGZWVSZXF1ZXN0GiEud2FsbGV0bWFuYWdlci52MS5CdW1wRm'
+    'VlUmVzcG9uc2USZgoPRGVyaXZlQWRkcmVzc2VzEigud2FsbGV0bWFuYWdlci52MS5EZXJpdmVB'
+    'ZGRyZXNzZXNSZXF1ZXN0Gikud2FsbGV0bWFuYWdlci52MS5EZXJpdmVBZGRyZXNzZXNSZXNwb2'
+    '5zZRJgCg1HZXRXYWxsZXRTZWVkEiYud2FsbGV0bWFuYWdlci52MS5HZXRXYWxsZXRTZWVkUmVx'
+    'dWVzdBonLndhbGxldG1hbmFnZXIudjEuR2V0V2FsbGV0U2VlZFJlc3BvbnNl');
 

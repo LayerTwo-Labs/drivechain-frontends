@@ -8,6 +8,7 @@ import "walletmanager.pb.dart" as walletmanagerv1walletmanager;
 import "walletmanager.connect.spec.dart" as specs;
 
 extension type WalletManagerServiceClient (connect.Transport _transport) {
+  /// Wallet lifecycle
   Future<walletmanagerv1walletmanager.GetWalletStatusResponse> getWalletStatus(
     walletmanagerv1walletmanager.GetWalletStatusRequest input, {
     connect.Headers? headers,
@@ -221,6 +222,213 @@ extension type WalletManagerServiceClient (connect.Transport _transport) {
   }) {
     return connect.Client(_transport).unary(
       specs.WalletManagerService.createWatchOnlyWallet,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
+  /// Core wallet management
+  Future<walletmanagerv1walletmanager.CreateBitcoinCoreWalletResponse> createBitcoinCoreWallet(
+    walletmanagerv1walletmanager.CreateBitcoinCoreWalletRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.WalletManagerService.createBitcoinCoreWallet,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
+  Future<walletmanagerv1walletmanager.EnsureCoreWalletsResponse> ensureCoreWallets(
+    walletmanagerv1walletmanager.EnsureCoreWalletsRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.WalletManagerService.ensureCoreWallets,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
+  /// Bitcoin operations (proxied through Core RPC)
+  Future<walletmanagerv1walletmanager.GetBalanceResponse> getBalance(
+    walletmanagerv1walletmanager.GetBalanceRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.WalletManagerService.getBalance,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
+  Future<walletmanagerv1walletmanager.GetNewAddressResponse> getNewAddress(
+    walletmanagerv1walletmanager.GetNewAddressRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.WalletManagerService.getNewAddress,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
+  Future<walletmanagerv1walletmanager.SendTransactionResponse> sendTransaction(
+    walletmanagerv1walletmanager.SendTransactionRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.WalletManagerService.sendTransaction,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
+  Future<walletmanagerv1walletmanager.ListTransactionsResponse> listTransactions(
+    walletmanagerv1walletmanager.ListTransactionsRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.WalletManagerService.listTransactions,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
+  Future<walletmanagerv1walletmanager.ListUnspentResponse> listUnspent(
+    walletmanagerv1walletmanager.ListUnspentRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.WalletManagerService.listUnspent,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
+  Future<walletmanagerv1walletmanager.ListReceiveAddressesResponse> listReceiveAddresses(
+    walletmanagerv1walletmanager.ListReceiveAddressesRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.WalletManagerService.listReceiveAddresses,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
+  Future<walletmanagerv1walletmanager.GetTransactionDetailsResponse> getTransactionDetails(
+    walletmanagerv1walletmanager.GetTransactionDetailsRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.WalletManagerService.getTransactionDetails,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
+  Future<walletmanagerv1walletmanager.BumpFeeResponse> bumpFee(
+    walletmanagerv1walletmanager.BumpFeeRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.WalletManagerService.bumpFee,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
+  Future<walletmanagerv1walletmanager.DeriveAddressesResponse> deriveAddresses(
+    walletmanagerv1walletmanager.DeriveAddressesRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.WalletManagerService.deriveAddresses,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
+  /// Seed access for cheque engine
+  Future<walletmanagerv1walletmanager.GetWalletSeedResponse> getWalletSeed(
+    walletmanagerv1walletmanager.GetWalletSeedRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.WalletManagerService.getWalletSeed,
       input,
       signal: signal,
       headers: headers,
