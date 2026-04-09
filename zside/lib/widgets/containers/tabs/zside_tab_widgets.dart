@@ -74,7 +74,7 @@ class ShieldUTXOAction extends StatelessWidget {
 
 class ShieldUTXOActionViewModel extends BaseViewModel {
   final log = Logger(level: Level.debug);
-  ZSidedRPC get _rpc => GetIt.I.get<ZSidedRPC>();
+  ZSideRPC get _rpc => GetIt.I.get<ZSideRPC>();
   BalanceProvider get _balanceProvider => GetIt.I.get<BalanceProvider>();
   ZSideProvider get _zsideProvider => GetIt.I.get<ZSideProvider>();
   AppRouter get _router => GetIt.I.get<AppRouter>();
@@ -241,7 +241,7 @@ class DeshieldUTXOActionViewModel extends BaseViewModel {
   BalanceProvider get _balanceProvider => GetIt.I.get<BalanceProvider>();
   ZSideProvider get _zsideProvider => GetIt.I.get<ZSideProvider>();
   AppRouter get _router => GetIt.I.get<AppRouter>();
-  ZSidedRPC get _rpc => GetIt.I.get<ZSidedRPC>();
+  ZSideRPC get _rpc => GetIt.I.get<ZSideRPC>();
 
   final bitcoinAmountController = TextEditingController();
   String get totalBitcoinAmount {
@@ -408,7 +408,7 @@ class CastSingleUTXOActionViewModel extends BaseViewModel {
   BalanceProvider get _balanceProvider => GetIt.I.get<BalanceProvider>();
   ZSideProvider get _zsideProvider => GetIt.I.get<ZSideProvider>();
   AppRouter get _router => GetIt.I.get<AppRouter>();
-  ZSidedRPC get _rpc => GetIt.I.get<ZSidedRPC>();
+  ZSideRPC get _rpc => GetIt.I.get<ZSideRPC>();
 
   List<PendingDeshield>? get includedInBills => _castProvider.findBillsForAmount(utxo);
   double get castableAmount => includedInBills!.fold(0, (sum, bill) => sum + bill.amount);
@@ -573,7 +573,7 @@ class MeltActionViewModel extends BaseViewModel {
   final log = Logger(level: Level.debug);
   BalanceProvider get _balanceProvider => GetIt.I.get<BalanceProvider>();
   AppRouter get _router => GetIt.I.get<AppRouter>();
-  ZSidedRPC get _rpc => GetIt.I.get<ZSidedRPC>();
+  ZSideRPC get _rpc => GetIt.I.get<ZSideRPC>();
   ZSideProvider get _zsideProvider => GetIt.I.get<ZSideProvider>();
   CastProvider get _castProvider => GetIt.I.get<CastProvider>();
 
@@ -720,7 +720,7 @@ class MeltSingleUTXOActionViewModel extends BaseViewModel {
   BalanceProvider get _balanceProvider => GetIt.I.get<BalanceProvider>();
   ZSideProvider get _zsideProvider => GetIt.I.get<ZSideProvider>();
   AppRouter get _router => GetIt.I.get<AppRouter>();
-  ZSidedRPC get _rpc => GetIt.I.get<ZSidedRPC>();
+  ZSideRPC get _rpc => GetIt.I.get<ZSideRPC>();
 
   final UnshieldedUTXO utxo;
 
@@ -846,7 +846,7 @@ class CastActionViewModel extends BaseViewModel {
   CastProvider get _castProvider => GetIt.I.get<CastProvider>();
   BalanceProvider get _balanceProvider => GetIt.I.get<BalanceProvider>();
   AppRouter get _router => GetIt.I.get<AppRouter>();
-  ZSidedRPC get _rpc => GetIt.I.get<ZSidedRPC>();
+  ZSideRPC get _rpc => GetIt.I.get<ZSideRPC>();
   ZSideProvider get _zsideProvider => GetIt.I.get<ZSideProvider>();
 
   String get ticker => _rpc.chain.ticker;
@@ -1168,7 +1168,7 @@ class ConsolidateTransparentAction extends StatelessWidget {
 
 class ConsolidateTransparentViewModel extends BaseViewModel {
   final log = Logger(level: Level.debug);
-  ZSidedRPC get _rpc => GetIt.I.get<ZSidedRPC>();
+  ZSideRPC get _rpc => GetIt.I.get<ZSideRPC>();
   ZSideProvider get _zsideProvider => GetIt.I.get<ZSideProvider>();
   BalanceProvider get _balanceProvider => GetIt.I.get<BalanceProvider>();
   AppRouter get _router => GetIt.I.get<AppRouter>();
@@ -1288,7 +1288,7 @@ class ConsolidateShieldedAction extends StatelessWidget {
 
 class ConsolidateShieldedViewModel extends BaseViewModel {
   final log = Logger(level: Level.debug);
-  ZSidedRPC get _rpc => GetIt.I.get<ZSidedRPC>();
+  ZSideRPC get _rpc => GetIt.I.get<ZSideRPC>();
   ZSideProvider get _zsideProvider => GetIt.I.get<ZSideProvider>();
   BalanceProvider get _balanceProvider => GetIt.I.get<BalanceProvider>();
   AppRouter get _router => GetIt.I.get<AppRouter>();

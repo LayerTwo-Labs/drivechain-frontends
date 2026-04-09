@@ -72,7 +72,7 @@ class SendOnSidechainAction extends StatelessWidget {
 
 class SendOnSidechainViewModel extends BaseViewModel {
   final log = Logger(level: Level.debug);
-  ZSidedRPC get _rpc => GetIt.I.get<ZSidedRPC>();
+  ZSideRPC get _rpc => GetIt.I.get<ZSideRPC>();
 
   BalanceProvider get _balanceProvider => GetIt.I.get<BalanceProvider>();
   TransactionsProvider get _transactionsProvider => GetIt.I.get<TransactionsProvider>();
@@ -264,7 +264,7 @@ class ReceiveAction extends StatelessWidget {
 }
 
 class ReceiveViewModel extends BaseViewModel {
-  ZSidedRPC get _rpc => GetIt.I.get<ZSidedRPC>();
+  ZSideRPC get _rpc => GetIt.I.get<ZSideRPC>();
   final log = Logger(level: Level.debug);
 
   String? sidechainAddress;
