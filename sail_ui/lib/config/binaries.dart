@@ -25,7 +25,7 @@ enum BinaryType {
   photon,
   coinShift,
   grpcurl,
-  thunderd,
+  orchestratord,
   zSided,
 }
 
@@ -42,7 +42,7 @@ extension BinaryTypeExtension on BinaryType {
     BinaryType.photon => Photon(),
     BinaryType.coinShift => CoinShift(),
     BinaryType.grpcurl => GRPCurl(),
-    BinaryType.thunderd => Thunderd(),
+    BinaryType.orchestratord => Orchestratord(),
     BinaryType.zSided => ZSided(),
   };
 }
@@ -229,7 +229,7 @@ abstract class Binary {
         await _deleteFilesInDir(dir, ['coinshift-cli']);
 
       case BinaryType.grpcurl:
-      case BinaryType.thunderd:
+      case BinaryType.orchestratord:
       case BinaryType.zSided:
         break;
     }
@@ -392,7 +392,7 @@ abstract class Binary {
         ]);
 
       case BinaryType.grpcurl:
-      case BinaryType.thunderd:
+      case BinaryType.orchestratord:
       case BinaryType.zSided:
         return [];
     }
@@ -493,7 +493,7 @@ abstract class Binary {
         return paths;
 
       case BinaryType.grpcurl:
-      case BinaryType.thunderd:
+      case BinaryType.orchestratord:
       case BinaryType.zSided:
         return [];
     }
@@ -538,7 +538,7 @@ abstract class Binary {
         );
 
       case BinaryType.grpcurl:
-      case BinaryType.thunderd:
+      case BinaryType.orchestratord:
       case BinaryType.zSided:
         return [];
     }
@@ -610,7 +610,7 @@ abstract class Binary {
         paths.addAll(await _getExistingFilesInDir(datadirNetwork(), ['logs']));
 
       case BinaryType.grpcurl:
-      case BinaryType.thunderd:
+      case BinaryType.orchestratord:
       case BinaryType.zSided:
         break;
     }
@@ -692,7 +692,7 @@ abstract class Binary {
         paths.addAll(await _getExistingFilesInDir(dir, ['coinshift-cli']));
 
       case BinaryType.grpcurl:
-      case BinaryType.thunderd:
+      case BinaryType.orchestratord:
       case BinaryType.zSided:
         break;
     }
@@ -1179,12 +1179,12 @@ class BitWindow extends Binary {
   }
 }
 
-class Thunderd extends Binary {
-  Thunderd({
-    super.name = 'Thunderd',
+class Orchestratord extends Binary {
+  Orchestratord({
+    super.name = 'Orchestratord',
     super.version = 'latest',
-    super.description = 'Thunder sidechain orchestrator daemon',
-    super.repoUrl = 'https://github.com/LayerTwo-Labs/drivechain-frontends/thunder/server',
+    super.description = 'Sidechain orchestrator daemon',
+    super.repoUrl = 'https://github.com/LayerTwo-Labs/drivechain-frontends/orchestrator',
     DirectoryConfig? directories,
     MetadataConfig? metadata,
     int? port,
@@ -1196,21 +1196,21 @@ class Thunderd extends Binary {
              directories ??
              DirectoryConfig(
                binary: allNetworks({
-                 OS.linux: 'thunder',
-                 OS.macos: 'thunder',
-                 OS.windows: 'thunder',
+                 OS.linux: 'orchestratord',
+                 OS.macos: 'orchestratord',
+                 OS.windows: 'orchestratord',
                }),
                flutterFrontend: {
-                 OS.linux: 'thunder',
-                 OS.macos: 'thunder',
-                 OS.windows: 'thunder',
+                 OS.linux: 'orchestratord',
+                 OS.macos: 'orchestratord',
+                 OS.windows: 'orchestratord',
                },
              ),
          metadata:
              metadata ??
              MetadataConfig(
                downloadConfig: DownloadConfig(
-                 binary: 'thunderd',
+                 binary: 'orchestratord',
                  baseUrls: allNetworksUrl(''),
                  files: allNetworks({
                    OS.linux: '',
@@ -1223,17 +1223,17 @@ class Thunderd extends Binary {
                binaryPath: null,
                updateable: false,
              ),
-         port: port ?? 30302,
+         port: port ?? 30400,
        );
 
   @override
-  BinaryType get type => BinaryType.thunderd;
+  BinaryType get type => BinaryType.orchestratord;
 
   @override
   Color get color => SailColorScheme.orange;
 
   @override
-  Thunderd copyWith({
+  Orchestratord copyWith({
     String? version,
     String? description,
     String? repoUrl,
@@ -1244,7 +1244,7 @@ class Thunderd extends Binary {
     int? chainLayer,
     DownloadInfo? downloadInfo,
   }) {
-    return Thunderd(
+    return Orchestratord(
       name: name,
       version: version ?? this.version,
       description: description ?? this.description,
@@ -1704,7 +1704,7 @@ extension BinaryPaths on Binary {
       BinaryType.bitcoinCore ||
       BinaryType.enforcer ||
       BinaryType.grpcurl ||
-      BinaryType.thunderd ||
+      BinaryType.orchestratord ||
       BinaryType.zSided => null,
     };
   }
@@ -1747,7 +1747,7 @@ extension BinaryPaths on Binary {
       BinaryType.photon ||
       BinaryType.coinShift => _findLatestDirVersionedLog(),
       BinaryType.enforcer => _findLatestEnforcerLog(),
-      BinaryType.grpcurl || BinaryType.thunderd || BinaryType.zSided => '',
+      BinaryType.grpcurl || BinaryType.orchestratord || BinaryType.zSided => '',
     };
   }
 
@@ -1949,7 +1949,7 @@ extension BinaryPaths on Binary {
         return rootDir();
 
       case BinaryType.grpcurl:
-      case BinaryType.thunderd:
+      case BinaryType.orchestratord:
       case BinaryType.zSided:
         return rootDir();
     }
@@ -1979,7 +1979,7 @@ extension BinaryPaths on Binary {
       case BinaryType.photon:
       case BinaryType.coinShift:
       case BinaryType.grpcurl:
-      case BinaryType.thunderd:
+      case BinaryType.orchestratord:
       case BinaryType.zSided:
         return baseDir;
     }
@@ -2599,7 +2599,7 @@ BinaryType _binaryTypeFromJsonKey(String key) {
     'bitwindow' => BinaryType.bitWindow,
     'enforcer' => BinaryType.enforcer,
     'grpcurl' => BinaryType.grpcurl,
-    'thunderd' => BinaryType.thunderd,
+    'orchestratord' => BinaryType.orchestratord,
     'zsided' => BinaryType.zSided,
     'thunder' => BinaryType.thunder,
     'bitnames' => BinaryType.bitnames,
@@ -2618,7 +2618,7 @@ String binaryTypeToJsonKey(BinaryType type) {
     BinaryType.bitWindow => 'bitwindow',
     BinaryType.enforcer => 'enforcer',
     BinaryType.grpcurl => 'grpcurl',
-    BinaryType.thunderd => 'thunderd',
+    BinaryType.orchestratord => 'orchestratord',
     BinaryType.zSided => 'zsided',
     BinaryType.thunder => 'thunder',
     BinaryType.bitnames => 'bitnames',
@@ -2706,7 +2706,7 @@ Binary binaryFromJson(String key, Map<String, dynamic> json) {
       port: port,
       chainLayer: chainLayer,
     ),
-    BinaryType.thunderd => Thunderd(
+    BinaryType.orchestratord => Orchestratord(
       name: name,
       version: version,
       description: description,
