@@ -58,7 +58,7 @@ class BackendBitcoinConfProvider extends BitcoinConfProvider {
 
   void _initClient() {
     final transport = connect.Transport(
-      baseUrl: 'http://localhost:30302',
+      baseUrl: 'http://localhost:30400',
       codec: const ProtoCodec(),
       httpClient: createHttpClient(),
     );
