@@ -1,0 +1,632 @@
+syntax = "proto3";
+
+package bitassets.v1;
+
+service BitAssetsService {
+  // Get wallet balance (total and available).
+  rpc GetBalance(GetBalanceRequest) returns (GetBalanceResponse);
+
+  // Get current block count.
+  rpc GetBlockCount(GetBlockCountRequest) returns (GetBlockCountResponse);
+
+  // Stop the bitassets node.
+  rpc Stop(StopRequest) returns (StopResponse);
+
+  // Get a new address from the wallet.
+  rpc GetNewAddress(GetNewAddressRequest) returns (GetNewAddressResponse);
+
+  // Withdraw to mainchain.
+  rpc Withdraw(WithdrawRequest) returns (WithdrawResponse);
+
+  // Transfer within sidechain.
+  rpc Transfer(TransferRequest) returns (TransferResponse);
+
+  // Get total sidechain wealth in sats.
+  rpc GetSidechainWealth(GetSidechainWealthRequest) returns (GetSidechainWealthResponse);
+
+  // Create a deposit transaction.
+  rpc CreateDeposit(CreateDepositRequest) returns (CreateDepositResponse);
+
+  // Get pending withdrawal bundle.
+  rpc GetPendingWithdrawalBundle(GetPendingWithdrawalBundleRequest) returns (GetPendingWithdrawalBundleResponse);
+
+  // Connect to a peer.
+  rpc ConnectPeer(ConnectPeerRequest) returns (ConnectPeerResponse);
+
+  // Forget a peer.
+  rpc ForgetPeer(ForgetPeerRequest) returns (ForgetPeerResponse);
+
+  // List connected peers.
+  rpc ListPeers(ListPeersRequest) returns (ListPeersResponse);
+
+  // Mine a block.
+  rpc Mine(MineRequest) returns (MineResponse);
+
+  // Get block by hash.
+  rpc GetBlock(GetBlockRequest) returns (GetBlockResponse);
+
+  // Get best mainchain block hash.
+  rpc GetBestMainchainBlockHash(GetBestMainchainBlockHashRequest) returns (GetBestMainchainBlockHashResponse);
+
+  // Get best sidechain block hash.
+  rpc GetBestSidechainBlockHash(GetBestSidechainBlockHashRequest) returns (GetBestSidechainBlockHashResponse);
+
+  // Get BMM inclusions for a block.
+  rpc GetBmmInclusions(GetBmmInclusionsRequest) returns (GetBmmInclusionsResponse);
+
+  // Get wallet UTXOs.
+  rpc GetWalletUtxos(GetWalletUtxosRequest) returns (GetWalletUtxosResponse);
+
+  // List all UTXOs.
+  rpc ListUtxos(ListUtxosRequest) returns (ListUtxosResponse);
+
+  // Remove transaction from mempool.
+  rpc RemoveFromMempool(RemoveFromMempoolRequest) returns (RemoveFromMempoolResponse);
+
+  // Get latest failed withdrawal bundle height.
+  rpc GetLatestFailedWithdrawalBundleHeight(GetLatestFailedWithdrawalBundleHeightRequest) returns (GetLatestFailedWithdrawalBundleHeightResponse);
+
+  // Generate a new mnemonic.
+  rpc GenerateMnemonic(GenerateMnemonicRequest) returns (GenerateMnemonicResponse);
+
+  // Set seed from mnemonic.
+  rpc SetSeedFromMnemonic(SetSeedFromMnemonicRequest) returns (SetSeedFromMnemonicResponse);
+
+  // Raw JSON-RPC passthrough for debug console.
+  rpc CallRaw(CallRawRequest) returns (CallRawResponse);
+
+  // --- BitAssets-specific methods ---
+
+  // Get BitAsset data by asset ID.
+  rpc GetBitAssetData(GetBitAssetDataRequest) returns (GetBitAssetDataResponse);
+
+  // List all BitAssets.
+  rpc ListBitAssets(ListBitAssetsRequest) returns (ListBitAssetsResponse);
+
+  // Register a BitAsset.
+  rpc RegisterBitAsset(RegisterBitAssetRequest) returns (RegisterBitAssetResponse);
+
+  // Reserve a BitAsset.
+  rpc ReserveBitAsset(ReserveBitAssetRequest) returns (ReserveBitAssetResponse);
+
+  // Transfer a BitAsset token.
+  rpc TransferBitAsset(TransferBitAssetRequest) returns (TransferBitAssetResponse);
+
+  // Get a new encryption key.
+  rpc GetNewEncryptionKey(GetNewEncryptionKeyRequest) returns (GetNewEncryptionKeyResponse);
+
+  // Get a new verifying key.
+  rpc GetNewVerifyingKey(GetNewVerifyingKeyRequest) returns (GetNewVerifyingKeyResponse);
+
+  // Decrypt a message.
+  rpc DecryptMsg(DecryptMsgRequest) returns (DecryptMsgResponse);
+
+  // Encrypt a message.
+  rpc EncryptMsg(EncryptMsgRequest) returns (EncryptMsgResponse);
+
+  // Sign an arbitrary message with the specified verifying key.
+  rpc SignArbitraryMsg(SignArbitraryMsgRequest) returns (SignArbitraryMsgResponse);
+
+  // Sign an arbitrary message as a specific address.
+  rpc SignArbitraryMsgAsAddr(SignArbitraryMsgAsAddrRequest) returns (SignArbitraryMsgAsAddrResponse);
+
+  // Verify a signature.
+  rpc VerifySignature(VerifySignatureRequest) returns (VerifySignatureResponse);
+
+  // Get wallet addresses.
+  rpc GetWalletAddresses(GetWalletAddressesRequest) returns (GetWalletAddressesResponse);
+
+  // List unconfirmed owned UTXOs.
+  rpc MyUnconfirmedUtxos(MyUnconfirmedUtxosRequest) returns (MyUnconfirmedUtxosResponse);
+
+  // Get OpenAPI schema.
+  rpc OpenapiSchema(OpenapiSchemaRequest) returns (OpenapiSchemaResponse);
+
+  // --- AMM methods ---
+
+  // Burn an AMM position.
+  rpc AmmBurn(AmmBurnRequest) returns (AmmBurnResponse);
+
+  // Mint an AMM position.
+  rpc AmmMint(AmmMintRequest) returns (AmmMintResponse);
+
+  // AMM swap.
+  rpc AmmSwap(AmmSwapRequest) returns (AmmSwapResponse);
+
+  // Get the state of the specified AMM pool.
+  rpc GetAmmPoolState(GetAmmPoolStateRequest) returns (GetAmmPoolStateResponse);
+
+  // Get the current price for the specified pair.
+  rpc GetAmmPrice(GetAmmPriceRequest) returns (GetAmmPriceResponse);
+
+  // --- Dutch Auction methods ---
+
+  // Bid on a dutch auction.
+  rpc DutchAuctionBid(DutchAuctionBidRequest) returns (DutchAuctionBidResponse);
+
+  // Collect from a dutch auction.
+  rpc DutchAuctionCollect(DutchAuctionCollectRequest) returns (DutchAuctionCollectResponse);
+
+  // Create a dutch auction.
+  rpc DutchAuctionCreate(DutchAuctionCreateRequest) returns (DutchAuctionCreateResponse);
+
+  // List all dutch auctions.
+  rpc DutchAuctions(DutchAuctionsRequest) returns (DutchAuctionsResponse);
+}
+
+// GetBalance
+
+message GetBalanceRequest {}
+
+message GetBalanceResponse {
+  int64 total_sats = 1;
+  int64 available_sats = 2;
+}
+
+// GetBlockCount
+
+message GetBlockCountRequest {}
+
+message GetBlockCountResponse {
+  int64 count = 1;
+}
+
+// Stop
+
+message StopRequest {}
+
+message StopResponse {}
+
+// GetNewAddress
+
+message GetNewAddressRequest {}
+
+message GetNewAddressResponse {
+  string address = 1;
+}
+
+// Withdraw
+
+message WithdrawRequest {
+  string address = 1;
+  int64 amount_sats = 2;
+  int64 side_fee_sats = 3;
+  int64 main_fee_sats = 4;
+}
+
+message WithdrawResponse {
+  string txid = 1;
+}
+
+// Transfer
+
+message TransferRequest {
+  string address = 1;
+  int64 amount_sats = 2;
+  int64 fee_sats = 3;
+  optional string memo = 4;
+}
+
+message TransferResponse {
+  string txid = 1;
+}
+
+// GetSidechainWealth
+
+message GetSidechainWealthRequest {}
+
+message GetSidechainWealthResponse {
+  int64 sats = 1;
+}
+
+// CreateDeposit
+
+message CreateDepositRequest {
+  string address = 1;
+  int64 value_sats = 2;
+  int64 fee_sats = 3;
+}
+
+message CreateDepositResponse {
+  string txid = 1;
+}
+
+// GetPendingWithdrawalBundle
+
+message GetPendingWithdrawalBundleRequest {}
+
+message GetPendingWithdrawalBundleResponse {
+  // JSON string of the bundle, empty if none.
+  string bundle_json = 1;
+}
+
+// ConnectPeer
+
+message ConnectPeerRequest {
+  string address = 1;
+}
+
+message ConnectPeerResponse {}
+
+// ForgetPeer
+
+message ForgetPeerRequest {
+  string address = 1;
+}
+
+message ForgetPeerResponse {}
+
+// ListPeers
+
+message ListPeersRequest {}
+
+message ListPeersResponse {
+  string peers_json = 1;
+}
+
+// Mine
+
+message MineRequest {
+  int64 fee_sats = 1;
+}
+
+message MineResponse {
+  string bmm_result_json = 1;
+}
+
+// GetBlock
+
+message GetBlockRequest {
+  string hash = 1;
+}
+
+message GetBlockResponse {
+  string block_json = 1;
+}
+
+// GetBestMainchainBlockHash
+
+message GetBestMainchainBlockHashRequest {}
+
+message GetBestMainchainBlockHashResponse {
+  string hash = 1;
+}
+
+// GetBestSidechainBlockHash
+
+message GetBestSidechainBlockHashRequest {}
+
+message GetBestSidechainBlockHashResponse {
+  string hash = 1;
+}
+
+// GetBmmInclusions
+
+message GetBmmInclusionsRequest {
+  string block_hash = 1;
+}
+
+message GetBmmInclusionsResponse {
+  string inclusions = 1;
+}
+
+// GetWalletUtxos
+
+message GetWalletUtxosRequest {}
+
+message GetWalletUtxosResponse {
+  string utxos_json = 1;
+}
+
+// ListUtxos
+
+message ListUtxosRequest {}
+
+message ListUtxosResponse {
+  string utxos_json = 1;
+}
+
+// RemoveFromMempool
+
+message RemoveFromMempoolRequest {
+  string txid = 1;
+}
+
+message RemoveFromMempoolResponse {}
+
+// GetLatestFailedWithdrawalBundleHeight
+
+message GetLatestFailedWithdrawalBundleHeightRequest {}
+
+message GetLatestFailedWithdrawalBundleHeightResponse {
+  // 0 means no failed bundle.
+  int64 height = 1;
+}
+
+// GenerateMnemonic
+
+message GenerateMnemonicRequest {}
+
+message GenerateMnemonicResponse {
+  string mnemonic = 1;
+}
+
+// SetSeedFromMnemonic
+
+message SetSeedFromMnemonicRequest {
+  string mnemonic = 1;
+}
+
+message SetSeedFromMnemonicResponse {}
+
+// CallRaw
+
+message CallRawRequest {
+  string method = 1;
+  string params_json = 2;
+}
+
+message CallRawResponse {
+  string result_json = 1;
+}
+
+// --- BitAssets-specific messages ---
+
+// GetBitAssetData
+
+message GetBitAssetDataRequest {
+  string asset_id = 1;
+}
+
+message GetBitAssetDataResponse {
+  string data_json = 1;
+}
+
+// ListBitAssets
+
+message ListBitAssetsRequest {}
+
+message ListBitAssetsResponse {
+  string bitassets_json = 1;
+}
+
+// RegisterBitAsset
+
+message RegisterBitAssetRequest {
+  string plaintext_name = 1;
+  int64 initial_supply = 2;
+  string data_json = 3;
+}
+
+message RegisterBitAssetResponse {
+  string txid = 1;
+}
+
+// ReserveBitAsset
+
+message ReserveBitAssetRequest {
+  string name = 1;
+}
+
+message ReserveBitAssetResponse {
+  string txid = 1;
+}
+
+// TransferBitAsset
+
+message TransferBitAssetRequest {
+  string asset_id = 1;
+  string dest = 2;
+  int64 amount = 3;
+  int64 fee_sats = 4;
+}
+
+message TransferBitAssetResponse {
+  string txid = 1;
+}
+
+// GetNewEncryptionKey
+
+message GetNewEncryptionKeyRequest {}
+
+message GetNewEncryptionKeyResponse {
+  string key = 1;
+}
+
+// GetNewVerifyingKey
+
+message GetNewVerifyingKeyRequest {}
+
+message GetNewVerifyingKeyResponse {
+  string key = 1;
+}
+
+// DecryptMsg
+
+message DecryptMsgRequest {
+  string ciphertext = 1;
+  string encryption_pubkey = 2;
+}
+
+message DecryptMsgResponse {
+  string plaintext = 1;
+}
+
+// EncryptMsg
+
+message EncryptMsgRequest {
+  string msg = 1;
+  string encryption_pubkey = 2;
+}
+
+message EncryptMsgResponse {
+  string ciphertext = 1;
+}
+
+// SignArbitraryMsg
+
+message SignArbitraryMsgRequest {
+  string msg = 1;
+  string verifying_key = 2;
+}
+
+message SignArbitraryMsgResponse {
+  string signature = 1;
+}
+
+// SignArbitraryMsgAsAddr
+
+message SignArbitraryMsgAsAddrRequest {
+  string msg = 1;
+  string address = 2;
+}
+
+message SignArbitraryMsgAsAddrResponse {
+  string verifying_key = 1;
+  string signature = 2;
+}
+
+// VerifySignature
+
+message VerifySignatureRequest {
+  string msg = 1;
+  string signature = 2;
+  string verifying_key = 3;
+}
+
+message VerifySignatureResponse {
+  bool valid = 1;
+}
+
+// GetWalletAddresses
+
+message GetWalletAddressesRequest {}
+
+message GetWalletAddressesResponse {
+  repeated string addresses = 1;
+}
+
+// MyUnconfirmedUtxos
+
+message MyUnconfirmedUtxosRequest {}
+
+message MyUnconfirmedUtxosResponse {
+  string utxos_json = 1;
+}
+
+// OpenapiSchema
+
+message OpenapiSchemaRequest {}
+
+message OpenapiSchemaResponse {
+  string schema_json = 1;
+}
+
+// --- AMM messages ---
+
+// AmmBurn
+
+message AmmBurnRequest {
+  string asset0 = 1;
+  string asset1 = 2;
+  int64 lp_token_amount = 3;
+}
+
+message AmmBurnResponse {
+  string txid = 1;
+}
+
+// AmmMint
+
+message AmmMintRequest {
+  string asset0 = 1;
+  string asset1 = 2;
+  int64 amount0 = 3;
+  int64 amount1 = 4;
+}
+
+message AmmMintResponse {
+  string txid = 1;
+}
+
+// AmmSwap
+
+message AmmSwapRequest {
+  string asset_spend = 1;
+  string asset_receive = 2;
+  int64 amount_spend = 3;
+}
+
+message AmmSwapResponse {
+  int64 amount_receive = 1;
+}
+
+// GetAmmPoolState
+
+message GetAmmPoolStateRequest {
+  string asset0 = 1;
+  string asset1 = 2;
+}
+
+message GetAmmPoolStateResponse {
+  string pool_state_json = 1;
+}
+
+// GetAmmPrice
+
+message GetAmmPriceRequest {
+  string base = 1;
+  string quote = 2;
+}
+
+message GetAmmPriceResponse {
+  string price_json = 1;
+}
+
+// --- Dutch Auction messages ---
+
+// DutchAuctionBid
+
+message DutchAuctionBidRequest {
+  string dutch_auction_id = 1;
+  int64 bid_size = 2;
+}
+
+message DutchAuctionBidResponse {
+  int64 base_amount = 1;
+}
+
+// DutchAuctionCollect
+
+message DutchAuctionCollectRequest {
+  string dutch_auction_id = 1;
+}
+
+message DutchAuctionCollectResponse {
+  int64 base_amount = 1;
+  int64 quote_amount = 2;
+}
+
+// DutchAuctionCreate
+
+message DutchAuctionCreateRequest {
+  int64 start_block = 1;
+  int64 duration = 2;
+  string base_asset = 3;
+  int64 base_amount = 4;
+  string quote_asset = 5;
+  int64 initial_price = 6;
+  int64 final_price = 7;
+}
+
+message DutchAuctionCreateResponse {
+  string txid = 1;
+}
+
+// DutchAuctions
+
+message DutchAuctionsRequest {}
+
+message DutchAuctionsResponse {
+  string auctions_json = 1;
+}
