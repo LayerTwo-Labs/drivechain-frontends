@@ -90,16 +90,16 @@ jobs:
             "$cli_binary" openapi-schema 2>/dev/null > "/tmp/${sidechain}_raw.json"
             # Use python to extract valid JSON from the mixed output
             python3 -c "
-            import sys
-            with open('/tmp/${sidechain}_raw.json', 'r') as f:
-                content = f.read()
-            start = content.find('{')
-            if start >= 0:
-                with open('/tmp/${sidechain}_schema.json', 'w') as f:
-                    f.write(content[start:])
-            else:
-                print('No JSON found in output')
-                sys.exit(1)
+import sys
+with open('/tmp/${sidechain}_raw.json', 'r') as f:
+    content = f.read()
+start = content.find('{')
+if start >= 0:
+    with open('/tmp/${sidechain}_schema.json', 'w') as f:
+        f.write(content[start:])
+else:
+    print('No JSON found in output')
+    sys.exit(1)
             "
             
             # Debug: show file size and first few bytes
