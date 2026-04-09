@@ -13,7 +13,11 @@ lint: format fix analyze
 gen-version:
     cd ../ && bash scripts/generate-version.sh bitassets
 
-run:
+download:
+    bash scripts/download-binaries.sh
+    flutter pub get
+
+run: download
     #!/usr/bin/env bash
     case "$(uname -s)" in
         Darwin*)  flutter run -d macos;;    # macOS
