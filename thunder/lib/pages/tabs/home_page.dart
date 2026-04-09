@@ -48,7 +48,7 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> with WidgetsBindingObserver, WindowListener {
   NotificationProvider get _notificationProvider => GetIt.I.get<NotificationProvider>();
   BitcoinConfProvider get _confProvider => GetIt.I.get<BitcoinConfProvider>();
-  ThunderdRPC get thunderRPC => GetIt.I.get<ThunderdRPC>();
+  ThunderRPC get thunderRPC => GetIt.I.get<ThunderRPC>();
 
   final ValueNotifier<List<Widget>> notificationsNotifier = ValueNotifier([]);
   bool _shutdownInProgress = false;
@@ -625,7 +625,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver, Window
 class HomePageViewModel extends BaseViewModel {
   final log = Logger(level: Level.debug);
   BalanceProvider get _balanceProvider => GetIt.I.get<BalanceProvider>();
-  ThunderdRPC get _rpc => GetIt.I.get<ThunderdRPC>();
+  ThunderRPC get _rpc => GetIt.I.get<ThunderRPC>();
 
   double get balance => _balanceProvider.balance;
   double get pendingBalance => _balanceProvider.pendingBalance;

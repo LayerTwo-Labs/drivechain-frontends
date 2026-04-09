@@ -5,7 +5,6 @@ import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:sail_ui/bitcoin.dart';
 import 'package:sail_ui/rpcs/zside_rpc.dart';
-import 'package:sail_ui/rpcs/zsided_rpc.dart';
 import 'package:zside/providers/zside_provider.dart';
 
 const lowestCastValueSats = 1;
@@ -95,7 +94,7 @@ class PendingDeshield {
 
 class CastProvider extends ChangeNotifier {
   ZSideProvider get _zsideProvider => GetIt.I.get<ZSideProvider>();
-  ZSidedRPC get _rpc => GetIt.I.get<ZSidedRPC>();
+  ZSideRPC get _rpc => GetIt.I.get<ZSideRPC>();
   Logger get log => GetIt.I.get<Logger>();
   double get castFee => _zsideProvider.sideFee * _rpc.numUTXOsPerCast;
 

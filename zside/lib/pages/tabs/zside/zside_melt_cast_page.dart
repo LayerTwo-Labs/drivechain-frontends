@@ -292,7 +292,7 @@ class ZSideMeltCastViewModel extends BaseViewModel {
   ZSideProvider get _zsideProvider => GetIt.I.get<ZSideProvider>();
   CastProvider get _castProvider => GetIt.I.get<CastProvider>();
   BalanceProvider get _balanceProvider => GetIt.I.get<BalanceProvider>();
-  ZSidedRPC get _rpc => GetIt.I.get<ZSidedRPC>();
+  ZSideRPC get _rpc => GetIt.I.get<ZSideRPC>();
   AppRouter get router => GetIt.I.get<AppRouter>();
 
   Binary get chain => _rpc.chain;
@@ -865,7 +865,7 @@ class _UTXOsTableState extends State<UTXOsTable> {
 
   @override
   Widget build(BuildContext context) {
-    final container = GetIt.I.get<ZSidedRPC>();
+    final container = GetIt.I.get<ZSideRPC>();
     final formatter = GetIt.I<FormatterProvider>();
 
     return ListenableBuilder(
@@ -988,7 +988,7 @@ class _UTXOsTableState extends State<UTXOsTable> {
 
   void _showUTXODetails(BuildContext context, dynamic utxo) {
     final formatter = GetIt.I<FormatterProvider>();
-    final container = GetIt.I.get<ZSidedRPC>();
+    final container = GetIt.I.get<ZSideRPC>();
     showDialog(
       context: context,
       builder: (context) => Dialog(
@@ -1039,7 +1039,7 @@ class PendingMeltView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final container = GetIt.I.get<ZSidedRPC>();
+    final container = GetIt.I.get<ZSideRPC>();
     final formatter = GetIt.I<FormatterProvider>();
 
     return Dialog(

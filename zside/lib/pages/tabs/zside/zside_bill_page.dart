@@ -135,7 +135,7 @@ class ZSideBillPage extends StatelessWidget {
 class ZSideBillTabViewModel extends BaseViewModel {
   final log = Logger(level: Level.debug);
   CastProvider get _castProvider => GetIt.I.get<CastProvider>();
-  ZSidedRPC get _rpc => GetIt.I.get<ZSidedRPC>();
+  ZSideRPC get _rpc => GetIt.I.get<ZSideRPC>();
 
   List<PendingCastBill> get pendingBills => _castProvider.futureCasts.toList().sublist(1);
 

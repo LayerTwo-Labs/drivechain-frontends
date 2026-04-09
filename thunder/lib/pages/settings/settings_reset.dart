@@ -177,8 +177,8 @@ class _SettingsResetState extends State<SettingsReset> {
     if (confirmed == true) {
       bootBinaries(log);
 
-      final thunderRPC = GetIt.I.get<ThunderdRPC>();
-      while (!thunderRPC.connected) {
+      final orchRPC = GetIt.I.get<OrchestratordRPC>();
+      while (!orchRPC.connected) {
         await Future.delayed(const Duration(seconds: 1));
       }
     }
