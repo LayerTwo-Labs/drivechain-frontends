@@ -115,6 +115,13 @@ func (p *ManagedProcess) RecentLogs(n int) []LogEntry {
 	return result
 }
 
+// ProcessExitInfo is passed to the onExit callback when a process dies.
+type ProcessExitInfo struct {
+	Name     string
+	ExitCode int
+	ErrMsg   string // stderr-based error message, empty if clean exit
+}
+
 // ProcessManager handles spawning, monitoring, and killing processes.
 type ProcessManager struct {
 	dataDir    string
@@ -123,6 +130,10 @@ type ProcessManager struct {
 
 	mu        sync.Mutex
 	processes map[string]*ManagedProcess // keyed by config name
+
+	// OnExit is called when a process exits. The orchestrator uses this to
+	// pipe exit errors into ConnectionMonitor.connectionError for the UI.
+	OnExit func(ProcessExitInfo)
 }
 
 func NewProcessManager(dataDir string, pidManager *PidFileManager, log zerolog.Logger) *ProcessManager {
@@ -197,43 +208,79 @@ func (pm *ProcessManager) Start(_ context.Context, config BinaryConfig, args []s
 		pm.log.Warn().Err(err).Str("binary", config.Name).Msg("write PID file")
 	}
 
+	// Add startup marker
+	proc.addLog(LogEntry{
+		Timestamp: time.Now(),
+		Stream:    "marker",
+		Line:      fmt.Sprintf("=== %s started (pid %d) ===", config.Name, cmd.Process.Pid),
+	})
+
+	// Stderr buffer: keep last 100 lines for error extraction on crash
+	var stderrMu sync.Mutex
+	var stderrBuffer []string
+
 	// Capture stdout
+	stdoutDone := make(chan struct{})
 	go func() {
+		defer close(stdoutDone)
 		scanner := bufio.NewScanner(stdout)
 		scanner.Buffer(make([]byte, 1024*1024), 1024*1024)
 		for scanner.Scan() {
-			line := scanner.Text()
+			line := stripANSI(scanner.Text())
 			if isSpam(line) {
 				continue
 			}
 			proc.addLog(LogEntry{
 				Timestamp: time.Now(),
 				Stream:    "stdout",
-				Line:      stripANSI(line),
+				Line:      line,
 			})
 		}
 	}()
 
 	// Capture stderr
+	stderrDone := make(chan struct{})
 	go func() {
+		defer close(stderrDone)
 		scanner := bufio.NewScanner(stderr)
 		scanner.Buffer(make([]byte, 1024*1024), 1024*1024)
 		for scanner.Scan() {
-			line := scanner.Text()
+			line := stripANSI(scanner.Text())
 			if isSpam(line) {
 				continue
 			}
 			proc.addLog(LogEntry{
 				Timestamp: time.Now(),
 				Stream:    "stderr",
-				Line:      stripANSI(line),
+				Line:      line,
 			})
+			// Buffer stderr for error extraction
+			stderrMu.Lock()
+			stderrBuffer = append(stderrBuffer, line)
+			if len(stderrBuffer) > 100 {
+				stderrBuffer = stderrBuffer[len(stderrBuffer)-100:]
+			}
+			stderrMu.Unlock()
 		}
 	}()
 
 	// Wait for exit in background
 	go func() {
 		err := cmd.Wait()
+
+		// Wait for stdout/stderr to drain (like Dart's Future.wait with 2s timeout)
+		drainTimeout := time.After(2 * time.Second)
+		select {
+		case <-stdoutDone:
+		case <-drainTimeout:
+			pm.log.Warn().Str("binary", config.Name).Msg("timed out waiting for stdout to drain")
+		}
+		select {
+		case <-stderrDone:
+		case <-drainTimeout:
+			pm.log.Warn().Str("binary", config.Name).Msg("timed out waiting for stderr to drain")
+		}
+
 		proc.mu.Lock()
 		if err != nil {
 			proc.exitErr = err.Error()
@@ -241,7 +288,55 @@ func (pm *ProcessManager) Start(_ context.Context, config BinaryConfig, args []s
 		if cmd.ProcessState != nil {
 			proc.exitCode = cmd.ProcessState.ExitCode()
 		}
+		exitCode := proc.exitCode
 		proc.mu.Unlock()
+
+		// Build error message from stderr, falling back to last stdout lines.
+		// Many binaries (enforcer, sidechains) log errors to stdout via structured
+		// loggers, so stderr may be empty even on crash.
+		var errMsg string
+		if exitCode != 0 {
+			stderrMu.Lock()
+			if len(stderrBuffer) > 0 {
+				errMsg = strings.Join(stderrBuffer, "\n")
+			}
+			stderrMu.Unlock()
+
+			// Fallback: use last few log lines if stderr was empty.
+			// Look for ERROR/WARN/fatal lines first, then fall back to last line.
+			if errMsg == "" {
+				recentLogs := proc.RecentLogs(50)
+				var errorLines []string
+				var lastLine string
+				for _, l := range recentLogs {
+					lastLine = l.Line
+					lower := strings.ToLower(l.Line)
+					if strings.Contains(lower, "error") || strings.Contains(lower, "fatal") || strings.Contains(lower, "panic") {
+						errorLines = append(errorLines, l.Line)
+					}
+				}
+				if len(errorLines) > 0 {
+					// Take last 5 error lines max
+					if len(errorLines) > 5 {
+						errorLines = errorLines[len(errorLines)-5:]
+					}
+					errMsg = strings.Join(errorLines, "\n")
+				} else if lastLine != "" {
+					errMsg = lastLine
+				}
+			}
+
+			if errMsg == "" {
+				errMsg = fmt.Sprintf("process exited with code %d", exitCode)
+			}
+		}
+
+		// Add exit marker (like Dart's addExitMarker)
+		proc.addLog(LogEntry{
+			Timestamp: time.Now(),
+			Stream:    "marker",
+			Line:      fmt.Sprintf("=== %s exited (code %d) ===", config.Name, exitCode),
+		})
 
 		close(proc.exitCh)
 
@@ -254,8 +349,17 @@ func (pm *ProcessManager) Start(_ context.Context, config BinaryConfig, args []s
 		pm.log.Info().
 			Str("binary", config.Name).
 			Int("pid", proc.Pid).
-			Int("exit_code", proc.exitCode).
+			Int("exit_code", exitCode).
 			Msg("process exited")
+
+		// Notify the orchestrator so it can update ConnectionMonitor
+		if pm.OnExit != nil {
+			pm.OnExit(ProcessExitInfo{
+				Name:     config.Name,
+				ExitCode: exitCode,
+				ErrMsg:   errMsg,
+			})
+		}
 	}()
 
 	pm.log.Info().

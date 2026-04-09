@@ -82,28 +82,58 @@ func (h *Handler) StopBinary(ctx context.Context, req *connect.Request[pb.StopBi
 }
 
 func (h *Handler) WatchBinaries(ctx context.Context, req *connect.Request[pb.WatchBinariesRequest], stream *connect.ServerStream[pb.WatchBinariesResponse]) error {
-	ticker := time.NewTicker(2 * time.Second)
-	defer ticker.Stop()
+	// Send initial state immediately
+	if err := h.sendBinaryStatuses(stream); err != nil {
+		return err
+	}
+
+	// Debounce timer: batch rapid state changes into one send
+	debounce := time.NewTimer(0)
+	if !debounce.Stop() {
+		<-debounce.C
+	}
+	pending := false
+
+	// Fallback ticker: ensure state is sent at least every 5 seconds
+	// even if no state changes are detected
+	fallback := time.NewTicker(5 * time.Second)
+	defer fallback.Stop()
 
 	for {
-		statuses := h.orch.ListAll()
-		pbStatuses := make([]*pb.BinaryStatusMsg, len(statuses))
-		for i, s := range statuses {
-			pbStatuses[i] = statusToProto(s)
-		}
-
-		if err := stream.Send(&pb.WatchBinariesResponse{
-			Binaries: pbStatuses,
-		}); err != nil {
-			return err
-		}
-
 		select {
 		case <-ctx.Done():
 			return ctx.Err()
-		case <-ticker.C:
+
+		case <-h.orch.StateChanged:
+			// State changed — start debounce if not already pending
+			if !pending {
+				debounce.Reset(50 * time.Millisecond)
+				pending = true
+			}
+
+		case <-debounce.C:
+			pending = false
+			if err := h.sendBinaryStatuses(stream); err != nil {
+				return err
+			}
+
+		case <-fallback.C:
+			if err := h.sendBinaryStatuses(stream); err != nil {
+				return err
+			}
 		}
 	}
+}
+
+func (h *Handler) sendBinaryStatuses(stream *connect.ServerStream[pb.WatchBinariesResponse]) error {
+	statuses := h.orch.ListAll()
+	pbStatuses := make([]*pb.BinaryStatusMsg, len(statuses))
+	for i, s := range statuses {
+		pbStatuses[i] = statusToProto(s)
+	}
+	return stream.Send(&pb.WatchBinariesResponse{
+		Binaries: pbStatuses,
+	})
 }
 
 func (h *Handler) StreamLogs(ctx context.Context, req *connect.Request[pb.StreamLogsRequest], stream *connect.ServerStream[pb.StreamLogsResponse]) error {
