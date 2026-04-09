@@ -32,6 +32,12 @@ class BinaryStatusMsg extends $pb.GeneratedMessage {
     $core.bool? stopping,
     $core.bool? initializing,
     $core.bool? connectModeOnly,
+    $core.bool? downloadable,
+    $core.String? description,
+    $core.bool? downloaded,
+    $core.bool? portInUse,
+    $core.String? version,
+    $core.String? repoUrl,
   }) {
     final $result = create();
     if (name != null) {
@@ -79,6 +85,24 @@ class BinaryStatusMsg extends $pb.GeneratedMessage {
     if (connectModeOnly != null) {
       $result.connectModeOnly = connectModeOnly;
     }
+    if (downloadable != null) {
+      $result.downloadable = downloadable;
+    }
+    if (description != null) {
+      $result.description = description;
+    }
+    if (downloaded != null) {
+      $result.downloaded = downloaded;
+    }
+    if (portInUse != null) {
+      $result.portInUse = portInUse;
+    }
+    if (version != null) {
+      $result.version = version;
+    }
+    if (repoUrl != null) {
+      $result.repoUrl = repoUrl;
+    }
     return $result;
   }
   BinaryStatusMsg._() : super();
@@ -101,6 +125,12 @@ class BinaryStatusMsg extends $pb.GeneratedMessage {
     ..aOB(13, _omitFieldNames ? '' : 'stopping')
     ..aOB(14, _omitFieldNames ? '' : 'initializing')
     ..aOB(15, _omitFieldNames ? '' : 'connectModeOnly')
+    ..aOB(16, _omitFieldNames ? '' : 'downloadable')
+    ..aOS(17, _omitFieldNames ? '' : 'description')
+    ..aOB(18, _omitFieldNames ? '' : 'downloaded')
+    ..aOB(19, _omitFieldNames ? '' : 'portInUse')
+    ..aOS(20, _omitFieldNames ? '' : 'version')
+    ..aOS(21, _omitFieldNames ? '' : 'repoUrl')
     ..hasRequiredFields = false
   ;
 
@@ -259,6 +289,60 @@ class BinaryStatusMsg extends $pb.GeneratedMessage {
   $core.bool hasConnectModeOnly() => $_has(14);
   @$pb.TagNumber(15)
   void clearConnectModeOnly() => clearField(15);
+
+  @$pb.TagNumber(16)
+  $core.bool get downloadable => $_getBF(15);
+  @$pb.TagNumber(16)
+  set downloadable($core.bool v) { $_setBool(15, v); }
+  @$pb.TagNumber(16)
+  $core.bool hasDownloadable() => $_has(15);
+  @$pb.TagNumber(16)
+  void clearDownloadable() => clearField(16);
+
+  @$pb.TagNumber(17)
+  $core.String get description => $_getSZ(16);
+  @$pb.TagNumber(17)
+  set description($core.String v) { $_setString(16, v); }
+  @$pb.TagNumber(17)
+  $core.bool hasDescription() => $_has(16);
+  @$pb.TagNumber(17)
+  void clearDescription() => clearField(17);
+
+  @$pb.TagNumber(18)
+  $core.bool get downloaded => $_getBF(17);
+  @$pb.TagNumber(18)
+  set downloaded($core.bool v) { $_setBool(17, v); }
+  @$pb.TagNumber(18)
+  $core.bool hasDownloaded() => $_has(17);
+  @$pb.TagNumber(18)
+  void clearDownloaded() => clearField(18);
+
+  @$pb.TagNumber(19)
+  $core.bool get portInUse => $_getBF(18);
+  @$pb.TagNumber(19)
+  set portInUse($core.bool v) { $_setBool(18, v); }
+  @$pb.TagNumber(19)
+  $core.bool hasPortInUse() => $_has(18);
+  @$pb.TagNumber(19)
+  void clearPortInUse() => clearField(19);
+
+  @$pb.TagNumber(20)
+  $core.String get version => $_getSZ(19);
+  @$pb.TagNumber(20)
+  set version($core.String v) { $_setString(19, v); }
+  @$pb.TagNumber(20)
+  $core.bool hasVersion() => $_has(19);
+  @$pb.TagNumber(20)
+  void clearVersion() => clearField(20);
+
+  @$pb.TagNumber(21)
+  $core.String get repoUrl => $_getSZ(20);
+  @$pb.TagNumber(21)
+  set repoUrl($core.String v) { $_setString(20, v); }
+  @$pb.TagNumber(21)
+  $core.bool hasRepoUrl() => $_has(20);
+  @$pb.TagNumber(21)
+  void clearRepoUrl() => clearField(21);
 }
 
 class ListBinariesRequest extends $pb.GeneratedMessage {

@@ -32,6 +32,12 @@ const BinaryStatusMsg$json = {
     {'1': 'stopping', '3': 13, '4': 1, '5': 8, '10': 'stopping'},
     {'1': 'initializing', '3': 14, '4': 1, '5': 8, '10': 'initializing'},
     {'1': 'connect_mode_only', '3': 15, '4': 1, '5': 8, '10': 'connectModeOnly'},
+    {'1': 'downloadable', '3': 16, '4': 1, '5': 8, '10': 'downloadable'},
+    {'1': 'description', '3': 17, '4': 1, '5': 9, '10': 'description'},
+    {'1': 'downloaded', '3': 18, '4': 1, '5': 8, '10': 'downloaded'},
+    {'1': 'port_in_use', '3': 19, '4': 1, '5': 8, '10': 'portInUse'},
+    {'1': 'version', '3': 20, '4': 1, '5': 9, '10': 'version'},
+    {'1': 'repo_url', '3': 21, '4': 1, '5': 9, '10': 'repoUrl'},
   ],
 };
 
@@ -45,7 +51,10 @@ final $typed_data.Uint8List binaryStatusMsgDescriptor = $convert.base64Decode(
     'Nvbm5lY3RlZBIjCg1zdGFydHVwX2Vycm9yGAsgASgJUgxzdGFydHVwRXJyb3ISKQoQY29ubmVj'
     'dGlvbl9lcnJvchgMIAEoCVIPY29ubmVjdGlvbkVycm9yEhoKCHN0b3BwaW5nGA0gASgIUghzdG'
     '9wcGluZxIiCgxpbml0aWFsaXppbmcYDiABKAhSDGluaXRpYWxpemluZxIqChFjb25uZWN0X21v'
-    'ZGVfb25seRgPIAEoCFIPY29ubmVjdE1vZGVPbmx5');
+    'ZGVfb25seRgPIAEoCFIPY29ubmVjdE1vZGVPbmx5EiIKDGRvd25sb2FkYWJsZRgQIAEoCFIMZG'
+    '93bmxvYWRhYmxlEiAKC2Rlc2NyaXB0aW9uGBEgASgJUgtkZXNjcmlwdGlvbhIeCgpkb3dubG9h'
+    'ZGVkGBIgASgIUgpkb3dubG9hZGVkEh4KC3BvcnRfaW5fdXNlGBMgASgIUglwb3J0SW5Vc2USGA'
+    'oHdmVyc2lvbhgUIAEoCVIHdmVyc2lvbhIZCghyZXBvX3VybBgVIAEoCVIHcmVwb1VybA==');
 
 @$core.Deprecated('Use listBinariesRequestDescriptor instead')
 const ListBinariesRequest$json = {
