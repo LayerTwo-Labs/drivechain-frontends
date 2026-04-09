@@ -8,7 +8,7 @@ import "zside.pb.dart" as zsidev1zside;
 import "zside.connect.spec.dart" as specs;
 
 extension type ZSideServiceClient (connect.Transport _transport) {
-  /// Get wallet balance (total and available, with shielded/transparent breakdown).
+  /// Get wallet balance (total and available, both transparent and shielded).
   Future<zsidev1zside.GetBalanceResponse> getBalance(
     zsidev1zside.GetBalanceRequest input, {
     connect.Headers? headers,
@@ -18,24 +18,6 @@ extension type ZSideServiceClient (connect.Transport _transport) {
   }) {
     return connect.Client(_transport).unary(
       specs.ZSideService.getBalance,
-      input,
-      signal: signal,
-      headers: headers,
-      onHeader: onHeader,
-      onTrailer: onTrailer,
-    );
-  }
-
-  /// Get detailed balance breakdown by pool type.
-  Future<zsidev1zside.GetBalanceBreakdownResponse> getBalanceBreakdown(
-    zsidev1zside.GetBalanceBreakdownRequest input, {
-    connect.Headers? headers,
-    connect.AbortSignal? signal,
-    Function(connect.Headers)? onHeader,
-    Function(connect.Headers)? onTrailer,
-  }) {
-    return connect.Client(_transport).unary(
-      specs.ZSideService.getBalanceBreakdown,
       input,
       signal: signal,
       headers: headers,
@@ -80,78 +62,6 @@ extension type ZSideServiceClient (connect.Transport _transport) {
     );
   }
 
-  /// Get a new transparent address from the wallet.
-  Future<zsidev1zside.GetNewTransparentAddressResponse> getNewTransparentAddress(
-    zsidev1zside.GetNewTransparentAddressRequest input, {
-    connect.Headers? headers,
-    connect.AbortSignal? signal,
-    Function(connect.Headers)? onHeader,
-    Function(connect.Headers)? onTrailer,
-  }) {
-    return connect.Client(_transport).unary(
-      specs.ZSideService.getNewTransparentAddress,
-      input,
-      signal: signal,
-      headers: headers,
-      onHeader: onHeader,
-      onTrailer: onTrailer,
-    );
-  }
-
-  /// Get a new shielded address from the wallet.
-  Future<zsidev1zside.GetNewShieldedAddressResponse> getNewShieldedAddress(
-    zsidev1zside.GetNewShieldedAddressRequest input, {
-    connect.Headers? headers,
-    connect.AbortSignal? signal,
-    Function(connect.Headers)? onHeader,
-    Function(connect.Headers)? onTrailer,
-  }) {
-    return connect.Client(_transport).unary(
-      specs.ZSideService.getNewShieldedAddress,
-      input,
-      signal: signal,
-      headers: headers,
-      onHeader: onHeader,
-      onTrailer: onTrailer,
-    );
-  }
-
-  /// Get all shielded wallet addresses.
-  Future<zsidev1zside.GetShieldedWalletAddressesResponse> getShieldedWalletAddresses(
-    zsidev1zside.GetShieldedWalletAddressesRequest input, {
-    connect.Headers? headers,
-    connect.AbortSignal? signal,
-    Function(connect.Headers)? onHeader,
-    Function(connect.Headers)? onTrailer,
-  }) {
-    return connect.Client(_transport).unary(
-      specs.ZSideService.getShieldedWalletAddresses,
-      input,
-      signal: signal,
-      headers: headers,
-      onHeader: onHeader,
-      onTrailer: onTrailer,
-    );
-  }
-
-  /// Get all transparent wallet addresses.
-  Future<zsidev1zside.GetTransparentWalletAddressesResponse> getTransparentWalletAddresses(
-    zsidev1zside.GetTransparentWalletAddressesRequest input, {
-    connect.Headers? headers,
-    connect.AbortSignal? signal,
-    Function(connect.Headers)? onHeader,
-    Function(connect.Headers)? onTrailer,
-  }) {
-    return connect.Client(_transport).unary(
-      specs.ZSideService.getTransparentWalletAddresses,
-      input,
-      signal: signal,
-      headers: headers,
-      onHeader: onHeader,
-      onTrailer: onTrailer,
-    );
-  }
-
   /// Withdraw to mainchain.
   Future<zsidev1zside.WithdrawResponse> withdraw(
     zsidev1zside.WithdrawRequest input, {
@@ -171,69 +81,15 @@ extension type ZSideServiceClient (connect.Transport _transport) {
   }
 
   /// Transfer within sidechain (transparent).
-  Future<zsidev1zside.TransparentTransferResponse> transparentTransfer(
-    zsidev1zside.TransparentTransferRequest input, {
+  Future<zsidev1zside.TransferResponse> transfer(
+    zsidev1zside.TransferRequest input, {
     connect.Headers? headers,
     connect.AbortSignal? signal,
     Function(connect.Headers)? onHeader,
     Function(connect.Headers)? onTrailer,
   }) {
     return connect.Client(_transport).unary(
-      specs.ZSideService.transparentTransfer,
-      input,
-      signal: signal,
-      headers: headers,
-      onHeader: onHeader,
-      onTrailer: onTrailer,
-    );
-  }
-
-  /// Transfer within sidechain (shielded).
-  Future<zsidev1zside.ShieldedTransferResponse> shieldedTransfer(
-    zsidev1zside.ShieldedTransferRequest input, {
-    connect.Headers? headers,
-    connect.AbortSignal? signal,
-    Function(connect.Headers)? onHeader,
-    Function(connect.Headers)? onTrailer,
-  }) {
-    return connect.Client(_transport).unary(
-      specs.ZSideService.shieldedTransfer,
-      input,
-      signal: signal,
-      headers: headers,
-      onHeader: onHeader,
-      onTrailer: onTrailer,
-    );
-  }
-
-  /// Shield transparent funds.
-  Future<zsidev1zside.ShieldResponse> shield(
-    zsidev1zside.ShieldRequest input, {
-    connect.Headers? headers,
-    connect.AbortSignal? signal,
-    Function(connect.Headers)? onHeader,
-    Function(connect.Headers)? onTrailer,
-  }) {
-    return connect.Client(_transport).unary(
-      specs.ZSideService.shield,
-      input,
-      signal: signal,
-      headers: headers,
-      onHeader: onHeader,
-      onTrailer: onTrailer,
-    );
-  }
-
-  /// Unshield shielded funds.
-  Future<zsidev1zside.UnshieldResponse> unshield(
-    zsidev1zside.UnshieldRequest input, {
-    connect.Headers? headers,
-    connect.AbortSignal? signal,
-    Function(connect.Headers)? onHeader,
-    Function(connect.Headers)? onTrailer,
-  }) {
-    return connect.Client(_transport).unary(
-      specs.ZSideService.unshield,
+      specs.ZSideService.transfer,
       input,
       signal: signal,
       headers: headers,
@@ -540,6 +396,150 @@ extension type ZSideServiceClient (connect.Transport _transport) {
   }) {
     return connect.Client(_transport).unary(
       specs.ZSideService.callRaw,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
+  /// Get a new shielded address.
+  Future<zsidev1zside.GetNewShieldedAddressResponse> getNewShieldedAddress(
+    zsidev1zside.GetNewShieldedAddressRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.ZSideService.getNewShieldedAddress,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
+  /// Get a new transparent address.
+  Future<zsidev1zside.GetNewTransparentAddressResponse> getNewTransparentAddress(
+    zsidev1zside.GetNewTransparentAddressRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.ZSideService.getNewTransparentAddress,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
+  /// Get shielded wallet addresses.
+  Future<zsidev1zside.GetShieldedWalletAddressesResponse> getShieldedWalletAddresses(
+    zsidev1zside.GetShieldedWalletAddressesRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.ZSideService.getShieldedWalletAddresses,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
+  /// Get transparent wallet addresses.
+  Future<zsidev1zside.GetTransparentWalletAddressesResponse> getTransparentWalletAddresses(
+    zsidev1zside.GetTransparentWalletAddressesRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.ZSideService.getTransparentWalletAddresses,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
+  /// Shield transparent funds to shielded pool.
+  Future<zsidev1zside.ShieldResponse> shield(
+    zsidev1zside.ShieldRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.ZSideService.shield,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
+  /// Unshield (deshield) shielded funds to transparent pool.
+  Future<zsidev1zside.UnshieldResponse> unshield(
+    zsidev1zside.UnshieldRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.ZSideService.unshield,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
+  /// Send a shielded transfer.
+  Future<zsidev1zside.ShieldedTransferResponse> shieldedTransfer(
+    zsidev1zside.ShieldedTransferRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.ZSideService.shieldedTransfer,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
+  /// Send a transparent transfer.
+  Future<zsidev1zside.TransparentTransferResponse> transparentTransfer(
+    zsidev1zside.TransparentTransferRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.ZSideService.transparentTransfer,
       input,
       signal: signal,
       headers: headers,

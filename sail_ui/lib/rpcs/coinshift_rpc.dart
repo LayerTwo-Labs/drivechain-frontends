@@ -1,10 +1,16 @@
-import 'package:dart_coin_rpc/dart_coin_rpc.dart';
-import 'package:dio/dio.dart';
+import 'dart:convert';
+
+import 'package:connectrpc/http2.dart';
+import 'package:connectrpc/protobuf.dart';
+import 'package:connectrpc/protocol/connect.dart' as connect;
+import 'package:fixnum/fixnum.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:sail_ui/bitcoin.dart' as bitcoin;
 import 'package:sail_ui/classes/rpc_connection.dart';
 import 'package:sail_ui/config/binaries.dart';
+import 'package:sail_ui/gen/coinshift/v1/coinshift.connect.client.dart';
+import 'package:sail_ui/gen/coinshift/v1/coinshift.pb.dart' as pb;
 import 'package:sail_ui/rpcs/rpc_sidechain.dart';
 import 'package:sail_ui/rpcs/thunder_utxo.dart';
 import 'package:sail_ui/widgets/components/core_transaction.dart';
@@ -98,67 +104,48 @@ class CoinShiftLive extends CoinShiftRPC {
   @override
   final log = GetIt.I.get<Logger>();
 
-  RPCClient _client() {
-    final client = RPCClient(
-      host: '127.0.0.1',
-      port: binary.port,
-      username: 'N/A',
-      password: 'N/A',
-      useSSL: false,
-    );
-
-    client.dioClient = Dio();
-    return client;
-  }
+  late CoinShiftServiceClient _client;
 
   CoinShiftLive() : super(binaryType: BinaryType.coinShift, restartOnFailure: false) {
-    startConnectionTimer();
+    final transport = connect.Transport(
+      baseUrl: 'http://localhost:30400',
+      codec: const ProtoCodec(),
+      httpClient: createHttpClient(),
+    );
+    _client = CoinShiftServiceClient(transport);
   }
 
   @override
-  Future<List<String>> binaryArgs() async {
-    return binary.extraBootArgs;
-  }
+  Future<List<String>> binaryArgs() async => [];
 
   @override
-  Future<int> ping() async {
-    return await getBlockCount();
-  }
+  Future<int> ping() async => await getBlockCount();
 
   @override
-  List<String> startupErrors() {
-    return [];
-  }
+  List<String> startupErrors() => [];
 
   @override
   Future<(double, double)> balance() async {
-    final response = await _client().call('balance') as Map<String, dynamic>;
-    final totalSats = response['total_sats'] as int;
-    final availableSats = response['available_sats'] as int;
-
-    // Convert from sats to BTC
-    final confirmed = bitcoin.satoshiToBTC(availableSats);
-    final unconfirmed = bitcoin.satoshiToBTC(totalSats - availableSats);
-
+    final resp = await _client.getBalance(pb.GetBalanceRequest());
+    final confirmed = bitcoin.satoshiToBTC(resp.availableSats.toInt());
+    final unconfirmed = bitcoin.satoshiToBTC((resp.totalSats - resp.availableSats).toInt());
     return (confirmed, unconfirmed);
   }
 
   @override
   Future<int> getBlockCount() async {
-    return await _client().call('getblockcount') as int;
+    final resp = await _client.getBlockCount(pb.GetBlockCountRequest());
+    return resp.count.toInt();
   }
 
   @override
   Future<void> stopRPC() async {
-    await _client().call('stop');
+    await _client.stop(pb.StopRequest());
   }
 
   @override
   Future<BlockchainInfo> getBlockchainInfo() async {
-    final blocks = await _client().call('getblockcount') as int;
-
-    // There's no endpoint to get headers for coinshift, so we get the height
-    // from the public explorer service, assuming it is fully synced
+    final blocks = await getBlockCount();
     final explorerHeaders = await fetchExplorerHeaders();
     final headers = explorerHeaders ?? blocks;
     final bestBlockHash = await getBestSidechainBlockHash();
@@ -181,220 +168,192 @@ class CoinShiftLive extends CoinShiftRPC {
   }
 
   @override
-  List<String> getMethods() {
-    return coinShiftRPCMethods;
-  }
+  List<String> getMethods() => coinShiftRPCMethods;
 
   @override
   Future<dynamic> callRAW(String method, [List<dynamic>? params]) async {
-    return await _client().call(method, params).catchError((err) {
-      log.t('rpc: $method threw exception: $err');
-      throw err;
-    });
+    final paramsJson = params != null ? jsonEncode(params) : '';
+    final resp = await _client.callRaw(pb.CallRawRequest(method: method, paramsJson: paramsJson));
+    if (resp.resultJson.isEmpty) return null;
+    return jsonDecode(resp.resultJson);
   }
 
   @override
   Future<String> getDepositAddress() async {
-    final response = await _client().call('get_new_address') as String;
-    return bitcoin.formatDepositAddress(response, chain.slot);
+    final resp = await _client.getNewAddress(pb.GetNewAddressRequest());
+    return bitcoin.formatDepositAddress(resp.address, chain.slot);
   }
 
   @override
   Future<String> getSideAddress() async {
-    final response = await _client().call('get_new_address');
-    return response as String;
+    final resp = await _client.getNewAddress(pb.GetNewAddressRequest());
+    return resp.address;
   }
 
   @override
-  Future<List<CoreTransaction>> listTransactions() async {
-    return [];
+  Future<List<CoreTransaction>> listTransactions() async => [];
+
+  @override
+  Future<String> withdraw(String address, int amountSats, int sidechainFeeSats, int mainchainFeeSats) async {
+    final resp = await _client.withdraw(
+      pb.WithdrawRequest(
+        address: address,
+        amountSats: Int64(amountSats),
+        sideFeeSats: Int64(sidechainFeeSats),
+        mainFeeSats: Int64(mainchainFeeSats),
+      ),
+    );
+    return resp.txid;
   }
 
   @override
-  Future<String> withdraw(
-    String address,
-    int amountSats,
-    int sidechainFeeSats,
-    int mainchainFeeSats,
-  ) async {
-    final response = await _client().call('withdraw', [
-      address,
-      amountSats,
-      sidechainFeeSats,
-      mainchainFeeSats,
-    ]);
-    return response as String;
-  }
+  Future<double> sideEstimateFee() async => 0.00001;
 
   @override
-  Future<double> sideEstimateFee() async {
-    // CoinShift has fixed fees for now
-    return 0.00001;
+  Future<String> sideSend(String address, double amount, bool subtractFeeFromAmount) async {
+    final resp = await _client.transfer(
+      pb.TransferRequest(
+        address: address,
+        amountSats: Int64(bitcoin.btcToSatoshi(amount).toInt()),
+        feeSats: Int64(bitcoin.btcToSatoshi(0.00001).toInt()),
+      ),
+    );
+    return resp.txid;
   }
 
-  @override
-  Future<String> sideSend(
-    String address,
-    double amount,
-    bool subtractFeeFromAmount,
-  ) async {
-    final response = await _client().call('transfer', [
-      address,
-      bitcoin.btcToSatoshi(amount).toInt(),
-      bitcoin.btcToSatoshi(0.00001).toInt(),
-    ]);
-    return response as String;
-  }
-
-  /// Get total sidechain wealth in BTC
   @override
   Future<double> getSidechainWealth() async {
-    final wealthSats = await _client().call('sidechain_wealth_sats') as int;
-    return bitcoin.satoshiToBTC(wealthSats);
+    final resp = await _client.getSidechainWealth(pb.GetSidechainWealthRequest());
+    return bitcoin.satoshiToBTC(resp.sats.toInt());
   }
 
-  /// Create a deposit transaction
   @override
-  Future<String> createDeposit(
-    String address,
-    double amount,
-    double fee,
-  ) async {
-    final response = await _client().call('create_deposit', [
-      address,
-      bitcoin.btcToSatoshi(amount).toInt(),
-      bitcoin.btcToSatoshi(fee).toInt(),
-    ]);
-    return response as String;
+  Future<String> createDeposit(String address, double amount, double fee) async {
+    final resp = await _client.createDeposit(
+      pb.CreateDepositRequest(
+        address: address,
+        valueSats: Int64(bitcoin.btcToSatoshi(amount).toInt()),
+        feeSats: Int64(bitcoin.btcToSatoshi(fee).toInt()),
+      ),
+    );
+    return resp.txid;
   }
 
-  /// Get pending withdrawal bundle
   @override
   Future<PendingWithdrawalBundle?> getPendingWithdrawalBundle() async {
-    final response = await _client().call('pending_withdrawal_bundle');
-    return PendingWithdrawalBundle.fromMap(response);
+    final resp = await _client.getPendingWithdrawalBundle(pb.GetPendingWithdrawalBundleRequest());
+    if (resp.bundleJson.isEmpty) return null;
+    return PendingWithdrawalBundle.fromMap(jsonDecode(resp.bundleJson));
   }
 
-  /// Connect to a peer
   @override
   Future<void> connectPeer(String peerAddress) async {
-    await _client().call('connect_peer', peerAddress);
+    await _client.connectPeer(pb.ConnectPeerRequest(address: peerAddress));
   }
 
-  /// Forget a peer (remove from known_peers DB)
   @override
   Future<void> forgetPeer(String peerAddress) async {
-    await _client().call('forget_peer', peerAddress);
+    await _client.forgetPeer(pb.ForgetPeerRequest(address: peerAddress));
   }
 
-  /// List connected peers
   @override
   Future<List<Map<String, dynamic>>> listPeers() async {
-    final response = await _client().call('list_peers') as List<dynamic>;
-    return response.cast<Map<String, dynamic>>();
+    final resp = await _client.listPeers(pb.ListPeersRequest());
+    if (resp.peersJson.isEmpty) return [];
+    return (jsonDecode(resp.peersJson) as List<dynamic>).cast<Map<String, dynamic>>();
   }
 
-  /// Mine a block with optional coinbase value
   @override
   Future<BmmResult> mine(int feeSats) async {
-    final response = await _client().call('mine', [feeSats]);
-    return BmmResult.fromMap(response);
+    final resp = await _client.mine(pb.MineRequest(feeSats: Int64(feeSats)));
+    return BmmResult.fromMap(jsonDecode(resp.bmmResultJson));
   }
 
-  /// Get block by hash
   @override
   Future<Map<String, dynamic>?> getBlock(String hash) async {
-    final response = await _client().call('get_block', hash);
-    return response as Map<String, dynamic>?;
+    final resp = await _client.getBlock(pb.GetBlockRequest(hash: hash));
+    if (resp.blockJson.isEmpty) return null;
+    return jsonDecode(resp.blockJson) as Map<String, dynamic>;
   }
 
-  /// Get best mainchain block hash
   @override
   Future<String?> getBestMainchainBlockHash() async {
-    final response = await _client().call('get_best_mainchain_block_hash');
-    return response as String?;
+    final resp = await _client.getBestMainchainBlockHash(pb.GetBestMainchainBlockHashRequest());
+    return resp.hash.isEmpty ? null : resp.hash;
   }
 
-  /// Get best sidechain block hash
   @override
   Future<String?> getBestSidechainBlockHash() async {
-    final response = await _client().call('get_best_sidechain_block_hash');
-    return response as String?;
+    final resp = await _client.getBestSidechainBlockHash(pb.GetBestSidechainBlockHashRequest());
+    return resp.hash.isEmpty ? null : resp.hash;
   }
 
-  /// Get BMM inclusions
   @override
   Future<String> getBMMInclusions(String blockHash) async {
-    final response = await _client().call('get_bmm_inclusions', blockHash);
-    return response as String;
+    final resp = await _client.getBmmInclusions(pb.GetBmmInclusionsRequest(blockHash: blockHash));
+    return resp.inclusions;
   }
 
-  /// List wallet UTXOs
   @override
   Future<List<SidechainUTXO>> listUTXOs() async {
-    final response = await _client().call('get_wallet_utxos') as List<dynamic>;
-    return SidechainUTXO.fromJsonList(response);
+    final resp = await _client.getWalletUtxos(pb.GetWalletUtxosRequest());
+    if (resp.utxosJson.isEmpty) return [];
+    return SidechainUTXO.fromJsonList(jsonDecode(resp.utxosJson) as List<dynamic>);
   }
 
-  /// List all UTXOs (not just wallet UTXOs)
   @override
   Future<List<SidechainUTXO>> listAllUTXOs() async {
-    final response = await _client().call('list_utxos') as List<dynamic>;
-    return SidechainUTXO.fromJsonList(response);
+    final resp = await _client.listUtxos(pb.ListUtxosRequest());
+    if (resp.utxosJson.isEmpty) return [];
+    return SidechainUTXO.fromJsonList(jsonDecode(resp.utxosJson) as List<dynamic>);
   }
 
-  /// Remove transaction from mempool
   @override
   Future<void> removeFromMempool(String txid) async {
-    await _client().call('remove_from_mempool', txid);
+    await _client.removeFromMempool(pb.RemoveFromMempoolRequest(txid: txid));
   }
 
-  /// Get latest failed withdrawal bundle height
   @override
   Future<int?> getLatestFailedWithdrawalBundleHeight() async {
-    final response = await _client().call(
-      'latest_failed_withdrawal_bundle_height',
-    );
-    return response as int?;
+    final resp = await _client.getLatestFailedWithdrawalBundleHeight(pb.GetLatestFailedWithdrawalBundleHeightRequest());
+    return resp.height == 0 ? null : resp.height.toInt();
   }
 
-  /// Generate new mnemonic
   @override
   Future<String> generateMnemonic() async {
-    final response = await _client().call('generate_mnemonic');
-    return response as String;
+    final resp = await _client.generateMnemonic(pb.GenerateMnemonicRequest());
+    return resp.mnemonic;
   }
 
-  /// Set seed from mnemonic
   @override
   Future<void> setSeedFromMnemonic(String mnemonic) async {
-    await _client().call('set_seed_from_mnemonic', mnemonic);
+    await _client.setSeedFromMnemonic(pb.SetSeedFromMnemonicRequest(mnemonic: mnemonic));
   }
 
-  /// Get wallet addresses
   @override
   Future<List<String>> getWalletAddresses() async {
-    final response = await _client().call('get_wallet_addresses') as List<dynamic>;
-    return response.cast<String>();
+    final resp = await _client.getWalletAddresses(pb.GetWalletAddressesRequest());
+    return resp.addresses.toList();
   }
 
-  /// Format deposit address
   @override
   Future<String> formatDepositAddress(String address) async {
-    final response = await _client().call('format_deposit_address', address);
-    return response as String;
+    // Use callRAW for methods not in the proto service
+    final resp = await _client.callRaw(pb.CallRawRequest(
+      method: 'format_deposit_address',
+      paramsJson: jsonEncode(address),
+    ));
+    return jsonDecode(resp.resultJson) as String;
   }
 
-  /// Get OpenAPI schema
   @override
   Future<Map<String, dynamic>> getOpenAPISchema() async {
-    final response = await _client().call('openapi_schema');
-    return response as Map<String, dynamic>;
+    final resp = await _client.openapiSchema(pb.OpenapiSchemaRequest());
+    return jsonDecode(resp.schemaJson) as Map<String, dynamic>;
   }
 
   // Swap methods
 
-  /// Create a swap (L2 → L1)
   @override
   Future<CoinShiftSwapCreateResult> createSwap({
     required int l2AmountSats,
@@ -405,69 +364,69 @@ class CoinShiftLive extends CoinShiftRPC {
     int? requiredConfirmations,
     required int feeSats,
   }) async {
-    final response = await _client().call('create_swap', [
-      l2AmountSats,
-      l1AmountSats,
-      l1RecipientAddress,
-      parentChain,
-      l2Recipient,
-      requiredConfirmations,
-      feeSats,
-    ]);
-    return CoinShiftSwapCreateResult.fromMap(response as Map<String, dynamic>);
+    final resp = await _client.createSwap(pb.CreateSwapRequest(
+      l2AmountSats: Int64(l2AmountSats),
+      l1AmountSats: Int64(l1AmountSats),
+      l1RecipientAddress: l1RecipientAddress,
+      parentChain: parentChain,
+      l2Recipient: l2Recipient,
+      requiredConfirmations: requiredConfirmations,
+      feeSats: Int64(feeSats),
+    ));
+    return CoinShiftSwapCreateResult(swapId: resp.swapId, txid: resp.txid);
   }
 
-  /// Claim a swap (after L1 transaction has required confirmations)
   @override
   Future<String> claimSwap(String swapId, {String? l2ClaimerAddress}) async {
-    final response = await _client().call('claim_swap', [
-      swapId,
-      l2ClaimerAddress,
-    ]);
-    return response as String;
+    final resp = await _client.claimSwap(pb.ClaimSwapRequest(
+      swapId: swapId,
+      l2ClaimerAddress: l2ClaimerAddress,
+    ));
+    return resp.txid;
   }
 
-  /// Get swap status
   @override
   Future<CoinShiftSwap?> getSwapStatus(String swapId) async {
-    final response = await _client().call('get_swap_status', [swapId]);
-    if (response == null) return null;
-    return CoinShiftSwap.fromMap(response as Map<String, dynamic>);
+    final resp = await _client.getSwapStatus(pb.GetSwapStatusRequest(swapId: swapId));
+    if (resp.swapJson.isEmpty) return null;
+    return CoinShiftSwap.fromMap(jsonDecode(resp.swapJson) as Map<String, dynamic>);
   }
 
-  /// List all swaps
   @override
   Future<List<CoinShiftSwap>> listSwaps() async {
-    final response = await _client().call('list_swaps') as List<dynamic>;
-    return response.map((e) => CoinShiftSwap.fromMap(e as Map<String, dynamic>)).toList();
+    final resp = await _client.listSwaps(pb.ListSwapsRequest());
+    if (resp.swapsJson.isEmpty) return [];
+    return (jsonDecode(resp.swapsJson) as List<dynamic>)
+        .map((e) => CoinShiftSwap.fromMap(e as Map<String, dynamic>))
+        .toList();
   }
 
-  /// List swaps for a specific recipient
   @override
   Future<List<CoinShiftSwap>> listSwapsByRecipient(String recipient) async {
-    final response = await _client().call('list_swaps_by_recipient', recipient) as List<dynamic>;
-    return response.map((e) => CoinShiftSwap.fromMap(e as Map<String, dynamic>)).toList();
+    final resp = await _client.listSwapsByRecipient(pb.ListSwapsByRecipientRequest(recipient: recipient));
+    if (resp.swapsJson.isEmpty) return [];
+    return (jsonDecode(resp.swapsJson) as List<dynamic>)
+        .map((e) => CoinShiftSwap.fromMap(e as Map<String, dynamic>))
+        .toList();
   }
 
-  /// Update swap L1 transaction ID
   @override
   Future<void> updateSwapL1Txid({
     required String swapId,
     required String l1TxidHex,
     required int confirmations,
   }) async {
-    await _client().call('update_swap_l1_txid', [
-      swapId,
-      l1TxidHex,
-      confirmations,
-    ]);
+    await _client.updateSwapL1Txid(pb.UpdateSwapL1TxidRequest(
+      swapId: swapId,
+      l1TxidHex: l1TxidHex,
+      confirmations: confirmations,
+    ));
   }
 
-  /// Reconstruct all swaps from blockchain
   @override
   Future<int> reconstructSwaps() async {
-    final response = await _client().call('reconstruct_swaps');
-    return response as int;
+    final resp = await _client.reconstructSwaps(pb.ReconstructSwapsRequest());
+    return resp.count.toInt();
   }
 }
 

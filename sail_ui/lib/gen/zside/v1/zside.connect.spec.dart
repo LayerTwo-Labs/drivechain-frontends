@@ -10,20 +10,12 @@ abstract final class ZSideService {
   /// Fully-qualified name of the ZSideService service.
   static const name = 'zside.v1.ZSideService';
 
-  /// Get wallet balance (total and available, with shielded/transparent breakdown).
+  /// Get wallet balance (total and available, both transparent and shielded).
   static const getBalance = connect.Spec(
     '/$name/GetBalance',
     connect.StreamType.unary,
     zsidev1zside.GetBalanceRequest.new,
     zsidev1zside.GetBalanceResponse.new,
-  );
-
-  /// Get detailed balance breakdown by pool type.
-  static const getBalanceBreakdown = connect.Spec(
-    '/$name/GetBalanceBreakdown',
-    connect.StreamType.unary,
-    zsidev1zside.GetBalanceBreakdownRequest.new,
-    zsidev1zside.GetBalanceBreakdownResponse.new,
   );
 
   /// Get current block count.
@@ -42,38 +34,6 @@ abstract final class ZSideService {
     zsidev1zside.StopResponse.new,
   );
 
-  /// Get a new transparent address from the wallet.
-  static const getNewTransparentAddress = connect.Spec(
-    '/$name/GetNewTransparentAddress',
-    connect.StreamType.unary,
-    zsidev1zside.GetNewTransparentAddressRequest.new,
-    zsidev1zside.GetNewTransparentAddressResponse.new,
-  );
-
-  /// Get a new shielded address from the wallet.
-  static const getNewShieldedAddress = connect.Spec(
-    '/$name/GetNewShieldedAddress',
-    connect.StreamType.unary,
-    zsidev1zside.GetNewShieldedAddressRequest.new,
-    zsidev1zside.GetNewShieldedAddressResponse.new,
-  );
-
-  /// Get all shielded wallet addresses.
-  static const getShieldedWalletAddresses = connect.Spec(
-    '/$name/GetShieldedWalletAddresses',
-    connect.StreamType.unary,
-    zsidev1zside.GetShieldedWalletAddressesRequest.new,
-    zsidev1zside.GetShieldedWalletAddressesResponse.new,
-  );
-
-  /// Get all transparent wallet addresses.
-  static const getTransparentWalletAddresses = connect.Spec(
-    '/$name/GetTransparentWalletAddresses',
-    connect.StreamType.unary,
-    zsidev1zside.GetTransparentWalletAddressesRequest.new,
-    zsidev1zside.GetTransparentWalletAddressesResponse.new,
-  );
-
   /// Withdraw to mainchain.
   static const withdraw = connect.Spec(
     '/$name/Withdraw',
@@ -83,35 +43,11 @@ abstract final class ZSideService {
   );
 
   /// Transfer within sidechain (transparent).
-  static const transparentTransfer = connect.Spec(
-    '/$name/TransparentTransfer',
+  static const transfer = connect.Spec(
+    '/$name/Transfer',
     connect.StreamType.unary,
-    zsidev1zside.TransparentTransferRequest.new,
-    zsidev1zside.TransparentTransferResponse.new,
-  );
-
-  /// Transfer within sidechain (shielded).
-  static const shieldedTransfer = connect.Spec(
-    '/$name/ShieldedTransfer',
-    connect.StreamType.unary,
-    zsidev1zside.ShieldedTransferRequest.new,
-    zsidev1zside.ShieldedTransferResponse.new,
-  );
-
-  /// Shield transparent funds.
-  static const shield = connect.Spec(
-    '/$name/Shield',
-    connect.StreamType.unary,
-    zsidev1zside.ShieldRequest.new,
-    zsidev1zside.ShieldResponse.new,
-  );
-
-  /// Unshield shielded funds.
-  static const unshield = connect.Spec(
-    '/$name/Unshield',
-    connect.StreamType.unary,
-    zsidev1zside.UnshieldRequest.new,
-    zsidev1zside.UnshieldResponse.new,
+    zsidev1zside.TransferRequest.new,
+    zsidev1zside.TransferResponse.new,
   );
 
   /// Get total sidechain wealth in sats.
@@ -248,5 +184,69 @@ abstract final class ZSideService {
     connect.StreamType.unary,
     zsidev1zside.CallRawRequest.new,
     zsidev1zside.CallRawResponse.new,
+  );
+
+  /// Get a new shielded address.
+  static const getNewShieldedAddress = connect.Spec(
+    '/$name/GetNewShieldedAddress',
+    connect.StreamType.unary,
+    zsidev1zside.GetNewShieldedAddressRequest.new,
+    zsidev1zside.GetNewShieldedAddressResponse.new,
+  );
+
+  /// Get a new transparent address.
+  static const getNewTransparentAddress = connect.Spec(
+    '/$name/GetNewTransparentAddress',
+    connect.StreamType.unary,
+    zsidev1zside.GetNewTransparentAddressRequest.new,
+    zsidev1zside.GetNewTransparentAddressResponse.new,
+  );
+
+  /// Get shielded wallet addresses.
+  static const getShieldedWalletAddresses = connect.Spec(
+    '/$name/GetShieldedWalletAddresses',
+    connect.StreamType.unary,
+    zsidev1zside.GetShieldedWalletAddressesRequest.new,
+    zsidev1zside.GetShieldedWalletAddressesResponse.new,
+  );
+
+  /// Get transparent wallet addresses.
+  static const getTransparentWalletAddresses = connect.Spec(
+    '/$name/GetTransparentWalletAddresses',
+    connect.StreamType.unary,
+    zsidev1zside.GetTransparentWalletAddressesRequest.new,
+    zsidev1zside.GetTransparentWalletAddressesResponse.new,
+  );
+
+  /// Shield transparent funds to shielded pool.
+  static const shield = connect.Spec(
+    '/$name/Shield',
+    connect.StreamType.unary,
+    zsidev1zside.ShieldRequest.new,
+    zsidev1zside.ShieldResponse.new,
+  );
+
+  /// Unshield (deshield) shielded funds to transparent pool.
+  static const unshield = connect.Spec(
+    '/$name/Unshield',
+    connect.StreamType.unary,
+    zsidev1zside.UnshieldRequest.new,
+    zsidev1zside.UnshieldResponse.new,
+  );
+
+  /// Send a shielded transfer.
+  static const shieldedTransfer = connect.Spec(
+    '/$name/ShieldedTransfer',
+    connect.StreamType.unary,
+    zsidev1zside.ShieldedTransferRequest.new,
+    zsidev1zside.ShieldedTransferResponse.new,
+  );
+
+  /// Send a transparent transfer.
+  static const transparentTransfer = connect.Spec(
+    '/$name/TransparentTransfer',
+    connect.StreamType.unary,
+    zsidev1zside.TransparentTransferRequest.new,
+    zsidev1zside.TransparentTransferResponse.new,
   );
 }
