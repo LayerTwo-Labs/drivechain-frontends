@@ -1125,4 +1125,3 @@ class BitAssetsUTXO extends SidechainUTXO {
     output: json['output'] as Map<String, dynamic>,
   );
 }
-

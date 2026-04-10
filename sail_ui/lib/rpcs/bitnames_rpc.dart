@@ -239,11 +239,13 @@ class BitnamesLive extends BitnamesRPC {
 
   @override
   Future<String> sideSend(String address, double amount, bool subtractFeeFromAmount) async {
-    final resp = await _client.transfer(pb.TransferRequest(
-      address: address,
-      amountSats: Int64(btcToSatoshi(amount).toInt()),
-      feeSats: Int64(btcToSatoshi(0.00001).toInt()),
-    ));
+    final resp = await _client.transfer(
+      pb.TransferRequest(
+        address: address,
+        amountSats: Int64(btcToSatoshi(amount).toInt()),
+        feeSats: Int64(btcToSatoshi(0.00001).toInt()),
+      ),
+    );
     return resp.txid;
   }
 
@@ -330,10 +332,12 @@ class BitnamesLive extends BitnamesRPC {
   @override
   Future<String> registerBitName(String plainName, BitNameData? data) async {
     final dataJson = data != null ? jsonEncode(data.toJson()) : '';
-    final resp = await _client.registerBitName(pb.RegisterBitNameRequest(
-      plainName: plainName,
-      dataJson: dataJson,
-    ));
+    final resp = await _client.registerBitName(
+      pb.RegisterBitNameRequest(
+        plainName: plainName,
+        dataJson: dataJson,
+      ),
+    );
     return resp.txid;
   }
 
@@ -419,11 +423,13 @@ class BitnamesLive extends BitnamesRPC {
     required int feeSats,
     required int valueSats,
   }) async {
-    final resp = await _client.createDeposit(pb.CreateDepositRequest(
-      address: address,
-      valueSats: Int64(valueSats),
-      feeSats: Int64(feeSats),
-    ));
+    final resp = await _client.createDeposit(
+      pb.CreateDepositRequest(
+        address: address,
+        valueSats: Int64(valueSats),
+        feeSats: Int64(feeSats),
+      ),
+    );
     return resp.txid;
   }
 
@@ -432,10 +438,12 @@ class BitnamesLive extends BitnamesRPC {
     required String ciphertext,
     required String encryptionPubkey,
   }) async {
-    final resp = await _client.decryptMsg(pb.DecryptMsgRequest(
-      ciphertext: ciphertext,
-      encryptionPubkey: encryptionPubkey,
-    ));
+    final resp = await _client.decryptMsg(
+      pb.DecryptMsgRequest(
+        ciphertext: ciphertext,
+        encryptionPubkey: encryptionPubkey,
+      ),
+    );
     // The backend returns raw hex; convert to string
     final bytes = hex.decode(resp.plaintext);
     final decoded = utf8.decode(bytes);
@@ -447,10 +455,12 @@ class BitnamesLive extends BitnamesRPC {
     required String msg,
     required String encryptionPubkey,
   }) async {
-    final resp = await _client.encryptMsg(pb.EncryptMsgRequest(
-      msg: msg,
-      encryptionPubkey: encryptionPubkey,
-    ));
+    final resp = await _client.encryptMsg(
+      pb.EncryptMsgRequest(
+        msg: msg,
+        encryptionPubkey: encryptionPubkey,
+      ),
+    );
     return resp.ciphertext;
   }
 
@@ -478,10 +488,12 @@ class BitnamesLive extends BitnamesRPC {
     required String msg,
     required String verifyingKey,
   }) async {
-    final resp = await _client.signArbitraryMsg(pb.SignArbitraryMsgRequest(
-      msg: msg,
-      verifyingKey: verifyingKey,
-    ));
+    final resp = await _client.signArbitraryMsg(
+      pb.SignArbitraryMsgRequest(
+        msg: msg,
+        verifyingKey: verifyingKey,
+      ),
+    );
     return resp.signature;
   }
 
@@ -490,10 +502,12 @@ class BitnamesLive extends BitnamesRPC {
     required String msg,
     required String address,
   }) async {
-    final resp = await _client.signArbitraryMsgAsAddr(pb.SignArbitraryMsgAsAddrRequest(
-      msg: msg,
-      address: address,
-    ));
+    final resp = await _client.signArbitraryMsgAsAddr(
+      pb.SignArbitraryMsgAsAddrRequest(
+        msg: msg,
+        address: address,
+      ),
+    );
     return {
       'verifying_key': resp.verifyingKey,
       'signature': resp.signature,
@@ -555,12 +569,14 @@ class BitnamesLive extends BitnamesRPC {
     required int fee,
     String? memo,
   }) async {
-    final resp = await _client.transfer(pb.TransferRequest(
-      address: dest,
-      amountSats: Int64(value),
-      feeSats: Int64(fee),
-      memo: memo,
-    ));
+    final resp = await _client.transfer(
+      pb.TransferRequest(
+        address: dest,
+        amountSats: Int64(value),
+        feeSats: Int64(fee),
+        memo: memo,
+      ),
+    );
     return resp.txid;
   }
 
@@ -571,12 +587,14 @@ class BitnamesLive extends BitnamesRPC {
     int sidechainFeeSats,
     int mainchainFeeSats,
   ) async {
-    final resp = await _client.withdraw(pb.WithdrawRequest(
-      address: mainchainAddress,
-      amountSats: Int64(amountSats),
-      sideFeeSats: Int64(sidechainFeeSats),
-      mainFeeSats: Int64(mainchainFeeSats),
-    ));
+    final resp = await _client.withdraw(
+      pb.WithdrawRequest(
+        address: mainchainAddress,
+        amountSats: Int64(amountSats),
+        sideFeeSats: Int64(sidechainFeeSats),
+        mainFeeSats: Int64(mainchainFeeSats),
+      ),
+    );
     return resp.txid;
   }
 
@@ -727,4 +745,3 @@ class BitnameDetails {
     paymailFeeSats: json['paymail_fee_sats'] as int?,
   );
 }
-

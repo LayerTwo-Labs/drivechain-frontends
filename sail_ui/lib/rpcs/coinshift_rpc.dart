@@ -339,10 +339,12 @@ class CoinShiftLive extends CoinShiftRPC {
   @override
   Future<String> formatDepositAddress(String address) async {
     // Use callRAW for methods not in the proto service
-    final resp = await _client.callRaw(pb.CallRawRequest(
-      method: 'format_deposit_address',
-      paramsJson: jsonEncode(address),
-    ));
+    final resp = await _client.callRaw(
+      pb.CallRawRequest(
+        method: 'format_deposit_address',
+        paramsJson: jsonEncode(address),
+      ),
+    );
     return jsonDecode(resp.resultJson) as String;
   }
 
@@ -364,24 +366,28 @@ class CoinShiftLive extends CoinShiftRPC {
     int? requiredConfirmations,
     required int feeSats,
   }) async {
-    final resp = await _client.createSwap(pb.CreateSwapRequest(
-      l2AmountSats: Int64(l2AmountSats),
-      l1AmountSats: Int64(l1AmountSats),
-      l1RecipientAddress: l1RecipientAddress,
-      parentChain: parentChain,
-      l2Recipient: l2Recipient,
-      requiredConfirmations: requiredConfirmations,
-      feeSats: Int64(feeSats),
-    ));
+    final resp = await _client.createSwap(
+      pb.CreateSwapRequest(
+        l2AmountSats: Int64(l2AmountSats),
+        l1AmountSats: Int64(l1AmountSats),
+        l1RecipientAddress: l1RecipientAddress,
+        parentChain: parentChain,
+        l2Recipient: l2Recipient,
+        requiredConfirmations: requiredConfirmations,
+        feeSats: Int64(feeSats),
+      ),
+    );
     return CoinShiftSwapCreateResult(swapId: resp.swapId, txid: resp.txid);
   }
 
   @override
   Future<String> claimSwap(String swapId, {String? l2ClaimerAddress}) async {
-    final resp = await _client.claimSwap(pb.ClaimSwapRequest(
-      swapId: swapId,
-      l2ClaimerAddress: l2ClaimerAddress,
-    ));
+    final resp = await _client.claimSwap(
+      pb.ClaimSwapRequest(
+        swapId: swapId,
+        l2ClaimerAddress: l2ClaimerAddress,
+      ),
+    );
     return resp.txid;
   }
 
@@ -416,11 +422,13 @@ class CoinShiftLive extends CoinShiftRPC {
     required String l1TxidHex,
     required int confirmations,
   }) async {
-    await _client.updateSwapL1Txid(pb.UpdateSwapL1TxidRequest(
-      swapId: swapId,
-      l1TxidHex: l1TxidHex,
-      confirmations: confirmations,
-    ));
+    await _client.updateSwapL1Txid(
+      pb.UpdateSwapL1TxidRequest(
+        swapId: swapId,
+        l1TxidHex: l1TxidHex,
+        confirmations: confirmations,
+      ),
+    );
   }
 
   @override
