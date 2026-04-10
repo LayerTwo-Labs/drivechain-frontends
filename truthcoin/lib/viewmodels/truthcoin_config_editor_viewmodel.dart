@@ -2,11 +2,11 @@ import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:truthcoin/models/truthcoin_config.dart';
-import 'package:truthcoin/providers/truthcoin_conf_provider.dart';
+import 'package:sail_ui/sail_ui.dart';
 
 class TruthcoinConfigEditorViewModel extends ChangeNotifier {
   final Logger log = GetIt.I.get<Logger>();
-  final TruthcoinConfProvider confProvider = GetIt.I.get<TruthcoinConfProvider>();
+  final GenericSidechainConfProvider confProvider = GetIt.I.get<GenericSidechainConfProvider>();
 
   TruthcoinConfig? originalConfig;
   TruthcoinConfig? workingConfig;

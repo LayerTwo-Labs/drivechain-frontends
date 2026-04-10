@@ -9,6 +9,7 @@ import 'package:desktop_multi_window/desktop_multi_window.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
+import 'package:sail_ui/config/backend_sidechain_runtime.dart';
 import 'package:sail_ui/config/fonts.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:photon/config/runtime_args.dart';
@@ -84,11 +85,20 @@ Future<(Directory, File, Logger)> init(String arguments) async {
     log: log,
     router: router,
     currentVersion: AppVersion.version,
+    additionalBinaries: () => [Orchestratord()],
+    backendManagesBinaries: true,
+  );
+
+  // Register shared orchestrator runtime and start the managed backend.
+  unawaited(
+    initBackendManagedSidechainRuntime(
+      log: log,
+      binary: BinaryType.photon,
+    ),
   );
 
   // Initialize PhotonConfProvider (must be after BitcoinConfProvider)
   final photonConfProvider = await PhotonConfProvider.create();
-  GetIt.I.registerLazySingleton<PhotonConfProvider>(() => photonConfProvider);
   GetIt.I.registerLazySingleton<GenericSidechainConfProvider>(() => photonConfProvider);
 
   // Register homepage provider
@@ -229,12 +239,12 @@ Future<File> getLogFile(Directory datadir) async {
   return logFile;
 }
 
-void bootBinaries(Logger log) async {
-  final BinaryProvider binaryProvider = GetIt.I.get<BinaryProvider>();
-  final photon = binaryProvider.binaries.firstWhere((b) => b.type == BinaryType.photon);
-
-  await binaryProvider.startWithEnforcer(
-    photon,
+void bootBinaries(Logger log) {
+  unawaited(
+    bootBackendManagedSidechain(
+      log: log,
+      binary: BinaryType.orchestratord,
+    ),
   );
 }
 

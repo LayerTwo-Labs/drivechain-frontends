@@ -9,6 +9,7 @@ import 'package:desktop_multi_window/desktop_multi_window.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
+import 'package:sail_ui/config/backend_sidechain_runtime.dart';
 import 'package:sail_ui/config/fonts.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:truthcoin/config/runtime_args.dart';
@@ -86,11 +87,20 @@ Future<(Directory, File, Logger)> init(String arguments) async {
     log: log,
     router: router,
     currentVersion: AppVersion.version,
+    additionalBinaries: () => [Orchestratord()],
+    backendManagesBinaries: true,
+  );
+
+  // Register shared orchestrator runtime and start the managed backend.
+  unawaited(
+    initBackendManagedSidechainRuntime(
+      log: log,
+      binary: BinaryType.truthcoin,
+    ),
   );
 
   // Initialize TruthcoinConfProvider (must be after BitcoinConfProvider)
   final truthcoinConfProvider = await TruthcoinConfProvider.create();
-  GetIt.I.registerLazySingleton<TruthcoinConfProvider>(() => truthcoinConfProvider);
   GetIt.I.registerLazySingleton<GenericSidechainConfProvider>(() => truthcoinConfProvider);
 
   // Register homepage provider
@@ -239,12 +249,12 @@ Future<File> getLogFile(Directory datadir) async {
   return logFile;
 }
 
-void bootBinaries(Logger log) async {
-  final BinaryProvider binaryProvider = GetIt.I.get<BinaryProvider>();
-  final truthcoin = binaryProvider.binaries.firstWhere((b) => b.type == BinaryType.truthcoin);
-
-  await binaryProvider.startWithEnforcer(
-    truthcoin,
+void bootBinaries(Logger log) {
+  unawaited(
+    bootBackendManagedSidechain(
+      log: log,
+      binary: BinaryType.orchestratord,
+    ),
   );
 }
 
