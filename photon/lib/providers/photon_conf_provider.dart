@@ -1,11 +1,18 @@
 import 'package:get_it/get_it.dart';
+import 'package:sail_ui/env.dart';
 import 'package:sail_ui/sail_ui.dart';
 
 /// Provider for Photon configuration settings.
+/// In backend mode, uses BackendSidechainConfProvider (RPC-backed).
+/// In frontend mode, uses the file-based implementation directly.
 class PhotonConfProvider extends GenericSidechainConfProvider {
   PhotonConfProvider._create();
 
-  static Future<PhotonConfProvider> create() async {
+  static Future<GenericSidechainConfProvider> create() async {
+    if (Environment.backendManagesBinaries) {
+      final source = PhotonConfProvider._create();
+      return BackendSidechainConfProvider.fromProvider(source, sidechainName: 'photon');
+    }
     final instance = PhotonConfProvider._create();
     await instance.initialize();
     return instance;

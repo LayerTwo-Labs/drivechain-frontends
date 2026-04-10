@@ -2,11 +2,11 @@ import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:coinshift/models/coinshift_config.dart';
-import 'package:coinshift/providers/coinshift_conf_provider.dart';
+import 'package:sail_ui/sail_ui.dart';
 
 class CoinShiftConfigEditorViewModel extends ChangeNotifier {
   final Logger log = GetIt.I.get<Logger>();
-  final CoinShiftConfProvider confProvider = GetIt.I.get<CoinShiftConfProvider>();
+  final GenericSidechainConfProvider confProvider = GetIt.I.get<GenericSidechainConfProvider>();
 
   CoinShiftConfig? originalConfig;
   CoinShiftConfig? workingConfig;

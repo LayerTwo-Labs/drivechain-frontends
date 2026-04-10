@@ -16,7 +16,11 @@ gen-version:
 gen:
     dart run build_runner build --delete-conflicting-outputs
 
-run:
+download:
+    bash scripts/download-binaries.sh
+    flutter pub get
+
+run: download
     #!/usr/bin/env bash
     case "$(uname -s)" in
         Darwin*)  flutter run -d macos;;    # macOS
