@@ -352,39 +352,47 @@ class ZSideLive extends ZSideRPC {
 
   @override
   Future<String> shield(UnshieldedUTXO utxo, double amount) async {
-    final resp = await _client.shield(pb.ShieldRequest(
-      amountSats: Int64(utxo.amount.toInt()),
-      feeSats: Int64(zsideFee.toInt()),
-    ));
+    final resp = await _client.shield(
+      pb.ShieldRequest(
+        amountSats: Int64(utxo.amount.toInt()),
+        feeSats: Int64(zsideFee.toInt()),
+      ),
+    );
     return resp.txid;
   }
 
   @override
   Future<String> sendShielded(String dest, double valueSats, double feeSats) async {
-    final resp = await _client.shieldedTransfer(pb.ShieldedTransferRequest(
-      address: dest,
-      amountSats: Int64(valueSats.toInt()),
-      feeSats: Int64(feeSats.toInt()),
-    ));
+    final resp = await _client.shieldedTransfer(
+      pb.ShieldedTransferRequest(
+        address: dest,
+        amountSats: Int64(valueSats.toInt()),
+        feeSats: Int64(feeSats.toInt()),
+      ),
+    );
     return resp.txid;
   }
 
   @override
   Future<String> sendTransparent(String dest, double valueSats, double feeSats) async {
-    final resp = await _client.transparentTransfer(pb.TransparentTransferRequest(
-      address: dest,
-      amountSats: Int64(valueSats.toInt()),
-      feeSats: Int64(feeSats.toInt()),
-    ));
+    final resp = await _client.transparentTransfer(
+      pb.TransparentTransferRequest(
+        address: dest,
+        amountSats: Int64(valueSats.toInt()),
+        feeSats: Int64(feeSats.toInt()),
+      ),
+    );
     return resp.txid;
   }
 
   @override
   Future<String> deshield(ShieldedUTXO utxo, double amount) async {
-    final resp = await _client.unshield(pb.UnshieldRequest(
-      amountSats: Int64(utxo.amount.toInt()),
-      feeSats: Int64(zsideFee.toInt()),
-    ));
+    final resp = await _client.unshield(
+      pb.UnshieldRequest(
+        amountSats: Int64(utxo.amount.toInt()),
+        feeSats: Int64(zsideFee.toInt()),
+      ),
+    );
     return resp.txid;
   }
 

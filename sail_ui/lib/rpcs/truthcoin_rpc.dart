@@ -511,11 +511,13 @@ class TruthcoinLive extends TruthcoinRPC {
     int? numOutcomes,
     String? dimensions,
   }) async {
-    final resp = await _client.calculateInitialLiquidity(pb.CalculateInitialLiquidityRequest(
-      beta: beta,
-      numOutcomes: numOutcomes,
-      dimensions: dimensions,
-    ));
+    final resp = await _client.calculateInitialLiquidity(
+      pb.CalculateInitialLiquidityRequest(
+        beta: beta,
+        numOutcomes: numOutcomes,
+        dimensions: dimensions,
+      ),
+    );
     return jsonDecode(resp.resultJson) as Map<String, dynamic>;
   }
 
@@ -532,18 +534,20 @@ class TruthcoinLive extends TruthcoinRPC {
     List<String>? categoryTxids,
     List<String>? residualNames,
   }) async {
-    final resp = await _client.marketCreate(pb.MarketCreateRequest(
-      title: title,
-      description: description,
-      dimensions: dimensions,
-      feeSats: Int64(feeSats),
-      beta: beta,
-      initialLiquidity: initialLiquidity != null ? Int64(initialLiquidity) : null,
-      tradingFee: tradingFee,
-      tags: tags ?? [],
-      categoryTxids: categoryTxids ?? [],
-      residualNames: residualNames ?? [],
-    ));
+    final resp = await _client.marketCreate(
+      pb.MarketCreateRequest(
+        title: title,
+        description: description,
+        dimensions: dimensions,
+        feeSats: Int64(feeSats),
+        beta: beta,
+        initialLiquidity: initialLiquidity != null ? Int64(initialLiquidity) : null,
+        tradingFee: tradingFee,
+        tags: tags ?? [],
+        categoryTxids: categoryTxids ?? [],
+        residualNames: residualNames ?? [],
+      ),
+    );
     return resp.txid;
   }
 
@@ -570,14 +574,16 @@ class TruthcoinLive extends TruthcoinRPC {
     int? feeSats,
     int? maxCost,
   }) async {
-    final resp = await _client.marketBuy(pb.MarketBuyRequest(
-      marketId: marketId,
-      outcomeIndex: outcomeIndex,
-      sharesAmount: sharesAmount,
-      dryRun: dryRun,
-      feeSats: feeSats != null ? Int64(feeSats) : null,
-      maxCost: maxCost != null ? Int64(maxCost) : null,
-    ));
+    final resp = await _client.marketBuy(
+      pb.MarketBuyRequest(
+        marketId: marketId,
+        outcomeIndex: outcomeIndex,
+        sharesAmount: sharesAmount,
+        dryRun: dryRun,
+        feeSats: feeSats != null ? Int64(feeSats) : null,
+        maxCost: maxCost != null ? Int64(maxCost) : null,
+      ),
+    );
     return jsonDecode(resp.resultJson) as Map<String, dynamic>;
   }
 
@@ -591,15 +597,17 @@ class TruthcoinLive extends TruthcoinRPC {
     int? feeSats,
     int? minProceeds,
   }) async {
-    final resp = await _client.marketSell(pb.MarketSellRequest(
-      marketId: marketId,
-      outcomeIndex: outcomeIndex,
-      sharesAmount: Int64(sharesAmount),
-      sellerAddress: sellerAddress,
-      dryRun: dryRun,
-      feeSats: feeSats != null ? Int64(feeSats) : null,
-      minProceeds: minProceeds != null ? Int64(minProceeds) : null,
-    ));
+    final resp = await _client.marketSell(
+      pb.MarketSellRequest(
+        marketId: marketId,
+        outcomeIndex: outcomeIndex,
+        sharesAmount: Int64(sharesAmount),
+        sellerAddress: sellerAddress,
+        dryRun: dryRun,
+        feeSats: feeSats != null ? Int64(feeSats) : null,
+        minProceeds: minProceeds != null ? Int64(minProceeds) : null,
+      ),
+    );
     return jsonDecode(resp.resultJson) as Map<String, dynamic>;
   }
 
@@ -608,10 +616,12 @@ class TruthcoinLive extends TruthcoinRPC {
     String? address,
     String? marketId,
   }) async {
-    final resp = await _client.marketPositions(pb.MarketPositionsRequest(
-      address: address,
-      marketId: marketId,
-    ));
+    final resp = await _client.marketPositions(
+      pb.MarketPositionsRequest(
+        address: address,
+        marketId: marketId,
+      ),
+    );
     return jsonDecode(resp.positionsJson) as Map<String, dynamic>;
   }
 
@@ -624,10 +634,12 @@ class TruthcoinLive extends TruthcoinRPC {
 
   @override
   Future<List<Map<String, dynamic>>> slotList({int? period, String? status}) async {
-    final resp = await _client.slotList(pb.SlotListRequest(
-      period: period,
-      status: status,
-    ));
+    final resp = await _client.slotList(
+      pb.SlotListRequest(
+        period: period,
+        status: status,
+      ),
+    );
     if (resp.slotsJson.isEmpty) return [];
     return (jsonDecode(resp.slotsJson) as List<dynamic>).cast<Map<String, dynamic>>();
   }
@@ -650,16 +662,18 @@ class TruthcoinLive extends TruthcoinRPC {
     int? min,
     int? max,
   }) async {
-    final resp = await _client.slotClaim(pb.SlotClaimRequest(
-      feeSats: Int64(feeSats),
-      periodIndex: periodIndex,
-      slotIndex: slotIndex,
-      question: question,
-      isStandard: isStandard,
-      isScaled: isScaled,
-      min: min,
-      max: max,
-    ));
+    final resp = await _client.slotClaim(
+      pb.SlotClaimRequest(
+        feeSats: Int64(feeSats),
+        periodIndex: periodIndex,
+        slotIndex: slotIndex,
+        question: question,
+        isStandard: isStandard,
+        isScaled: isScaled,
+        min: min,
+        max: max,
+      ),
+    );
     return resp.txid;
   }
 
@@ -669,21 +683,25 @@ class TruthcoinLive extends TruthcoinRPC {
     required bool isStandard,
     required int feeSats,
   }) async {
-    final resp = await _client.slotClaimCategory(pb.SlotClaimCategoryRequest(
-      slotsJson: jsonEncode(slots),
-      isStandard: isStandard,
-      feeSats: Int64(feeSats),
-    ));
+    final resp = await _client.slotClaimCategory(
+      pb.SlotClaimCategoryRequest(
+        slotsJson: jsonEncode(slots),
+        isStandard: isStandard,
+        feeSats: Int64(feeSats),
+      ),
+    );
     return resp.txid;
   }
 
   // Voting
   @override
   Future<String> voteRegister({required int feeSats, int? reputationBondSats}) async {
-    final resp = await _client.voteRegister(pb.VoteRegisterRequest(
-      feeSats: Int64(feeSats),
-      reputationBondSats: reputationBondSats != null ? Int64(reputationBondSats) : null,
-    ));
+    final resp = await _client.voteRegister(
+      pb.VoteRegisterRequest(
+        feeSats: Int64(feeSats),
+        reputationBondSats: reputationBondSats != null ? Int64(reputationBondSats) : null,
+      ),
+    );
     return resp.txid;
   }
 
@@ -706,10 +724,12 @@ class TruthcoinLive extends TruthcoinRPC {
     required List<Map<String, dynamic>> votes,
     required int feeSats,
   }) async {
-    final resp = await _client.voteSubmit(pb.VoteSubmitRequest(
-      votesJson: jsonEncode(votes),
-      feeSats: Int64(feeSats),
-    ));
+    final resp = await _client.voteSubmit(
+      pb.VoteSubmitRequest(
+        votesJson: jsonEncode(votes),
+        feeSats: Int64(feeSats),
+      ),
+    );
     return resp.txid;
   }
 
@@ -719,11 +739,13 @@ class TruthcoinLive extends TruthcoinRPC {
     String? decisionId,
     int? periodId,
   }) async {
-    final resp = await _client.voteList(pb.VoteListRequest(
-      voter: voter,
-      decisionId: decisionId,
-      periodId: periodId,
-    ));
+    final resp = await _client.voteList(
+      pb.VoteListRequest(
+        voter: voter,
+        decisionId: decisionId,
+        periodId: periodId,
+      ),
+    );
     if (resp.votesJson.isEmpty) return [];
     return (jsonDecode(resp.votesJson) as List<dynamic>).cast<Map<String, dynamic>>();
   }
@@ -743,12 +765,14 @@ class TruthcoinLive extends TruthcoinRPC {
     required int feeSats,
     String? memo,
   }) async {
-    final resp = await _client.votecoinTransfer(pb.VotecoinTransferRequest(
-      dest: dest,
-      amount: Int64(amount),
-      feeSats: Int64(feeSats),
-      memo: memo,
-    ));
+    final resp = await _client.votecoinTransfer(
+      pb.VotecoinTransferRequest(
+        dest: dest,
+        amount: Int64(amount),
+        feeSats: Int64(feeSats),
+        memo: memo,
+      ),
+    );
     return resp.txid;
   }
 
@@ -765,12 +789,14 @@ class TruthcoinLive extends TruthcoinRPC {
     required int feeSats,
     String? memo,
   }) async {
-    final resp = await _client.transferVotecoin(pb.TransferVotecoinRequest(
-      dest: dest,
-      amount: Int64(amount),
-      feeSats: Int64(feeSats),
-      memo: memo,
-    ));
+    final resp = await _client.transferVotecoin(
+      pb.TransferVotecoinRequest(
+        dest: dest,
+        amount: Int64(amount),
+        feeSats: Int64(feeSats),
+        memo: memo,
+      ),
+    );
     return resp.txid;
   }
 
@@ -789,37 +815,45 @@ class TruthcoinLive extends TruthcoinRPC {
 
   @override
   Future<String> encryptMsg({required String msg, required String encryptionPubkey}) async {
-    final resp = await _client.encryptMsg(pb.EncryptMsgRequest(
-      msg: msg,
-      encryptionPubkey: encryptionPubkey,
-    ));
+    final resp = await _client.encryptMsg(
+      pb.EncryptMsgRequest(
+        msg: msg,
+        encryptionPubkey: encryptionPubkey,
+      ),
+    );
     return resp.ciphertext;
   }
 
   @override
   Future<String> decryptMsg({required String ciphertext, required String encryptionPubkey}) async {
-    final resp = await _client.decryptMsg(pb.DecryptMsgRequest(
-      ciphertext: ciphertext,
-      encryptionPubkey: encryptionPubkey,
-    ));
+    final resp = await _client.decryptMsg(
+      pb.DecryptMsgRequest(
+        ciphertext: ciphertext,
+        encryptionPubkey: encryptionPubkey,
+      ),
+    );
     return resp.plaintext;
   }
 
   @override
   Future<String> signArbitraryMsg({required String msg, required String verifyingKey}) async {
-    final resp = await _client.signArbitraryMsg(pb.SignArbitraryMsgRequest(
-      msg: msg,
-      verifyingKey: verifyingKey,
-    ));
+    final resp = await _client.signArbitraryMsg(
+      pb.SignArbitraryMsgRequest(
+        msg: msg,
+        verifyingKey: verifyingKey,
+      ),
+    );
     return resp.signature;
   }
 
   @override
   Future<Map<String, dynamic>> signArbitraryMsgAsAddr({required String address, required String msg}) async {
-    final resp = await _client.signArbitraryMsgAsAddr(pb.SignArbitraryMsgAsAddrRequest(
-      msg: msg,
-      address: address,
-    ));
+    final resp = await _client.signArbitraryMsgAsAddr(
+      pb.SignArbitraryMsgAsAddrRequest(
+        msg: msg,
+        address: address,
+      ),
+    );
     return {'verifying_key': resp.verifyingKey, 'signature': resp.signature};
   }
 
@@ -830,12 +864,14 @@ class TruthcoinLive extends TruthcoinRPC {
     required String verifyingKey,
     required String dst,
   }) async {
-    final resp = await _client.verifySignature(pb.VerifySignatureRequest(
-      msg: msg,
-      signature: signature,
-      verifyingKey: verifyingKey,
-      dst: dst,
-    ));
+    final resp = await _client.verifySignature(
+      pb.VerifySignatureRequest(
+        msg: msg,
+        signature: signature,
+        verifyingKey: verifyingKey,
+        dst: dst,
+      ),
+    );
     return resp.valid;
   }
 }
