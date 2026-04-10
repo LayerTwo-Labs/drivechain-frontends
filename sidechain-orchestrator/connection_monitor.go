@@ -89,6 +89,17 @@ type ConnectionMonitor struct {
 	// onChange is called whenever connection state changes. The orchestrator
 	// uses this to notify watchBinaries subscribers immediately.
 	onChange func()
+
+	// startupLogs holds recent startup progress messages (like "Loading block index...")
+	// that match the binary's startup_log_patterns. Streamed to the UI via watchBinaries.
+	// Dart: Binary.startupLogs (binaries.dart)
+	startupLogs []StartupLogLine
+}
+
+// StartupLogLine is a timestamped startup progress message.
+type StartupLogLine struct {
+	Timestamp time.Time
+	Message   string
 }
 
 // Bitcoin Core startup messages that indicate "still booting, not an error".
@@ -130,6 +141,27 @@ func NewConnectionMonitor(name string, checker HealthChecker, startupPatterns []
 		startupPatterns: startupPatterns,
 		log:             log.With().Str("monitor", name).Logger(),
 	}
+}
+
+// AddStartupLog appends a startup progress message. Keeps the last 20.
+// Dart: Binary.addStartupLog
+func (m *ConnectionMonitor) AddStartupLog(ts time.Time, msg string) {
+	m.mu.Lock()
+	m.startupLogs = append(m.startupLogs, StartupLogLine{Timestamp: ts, Message: msg})
+	if len(m.startupLogs) > 20 {
+		m.startupLogs = m.startupLogs[len(m.startupLogs)-20:]
+	}
+	m.mu.Unlock()
+	m.notifyChange()
+}
+
+// StartupLogs returns a copy of the recent startup progress messages.
+func (m *ConnectionMonitor) StartupLogs() []StartupLogLine {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	out := make([]StartupLogLine, len(m.startupLogs))
+	copy(out, m.startupLogs)
+	return out
 }
 
 // SetConnectionError sets the connection error from an external source (e.g. process crash).
@@ -210,6 +242,27 @@ func (m *ConnectionMonitor) ConnectModeOnly() bool {
 
 // extractStartupError checks if an error message is a -28 warmup error.
 // Dart: RPCConnection.extractStartupError (rpc_connection.dart L398-415)
+// isTransientConnectError reports whether the error is a generic connection
+// failure that should not overwrite the previous error state.
+// Dart: rpc_connection.dart L148-157
+func isTransientConnectError(errMsg string) bool {
+	patterns := []string{
+		"Connection refused",
+		"connection refused",
+		"SocketException",
+		"computer refused the network",
+		"Unknown Error",
+		"could not connect at",
+		"forcefully terminated",
+	}
+	for _, p := range patterns {
+		if strings.Contains(errMsg, p) {
+			return true
+		}
+	}
+	return false
+}
+
 func extractStartupError(errMsg string) string {
 	if !strings.Contains(errMsg, "-28") {
 		return ""
@@ -285,20 +338,25 @@ func (m *ConnectionMonitor) testConnection(ctx context.Context) {
 		if !m.hasCrashError {
 			errMsg := err.Error()
 
-			// Dart L178-185: classify error as startup warmup vs real connection error
-			if extracted := extractStartupError(errMsg); extracted != "" {
-				m.startupError = extracted
-			} else {
-				matched := false
-				for _, pattern := range m.startupPatterns {
-					if strings.Contains(errMsg, pattern) {
-						m.startupError = errMsg
-						matched = true
-						break
+			// Dart L148-157: filter noisy transient errors.
+			// Don't show generic "Connection refused" repeatedly, or when stopping.
+			// Keep the previous error state instead.
+			if !m.stoppingBinary && !isTransientConnectError(errMsg) {
+				// Dart L178-185: classify error as startup warmup vs real connection error
+				if extracted := extractStartupError(errMsg); extracted != "" {
+					m.startupError = extracted
+				} else {
+					matched := false
+					for _, pattern := range m.startupPatterns {
+						if strings.Contains(errMsg, pattern) {
+							m.startupError = errMsg
+							matched = true
+							break
+						}
 					}
-				}
-				if !matched {
-					m.connectionError = errMsg
+					if !matched {
+						m.connectionError = errMsg
+					}
 				}
 			}
 		}
@@ -421,6 +479,13 @@ func (m *ConnectionMonitor) checkAndRestart(ctx context.Context) {
 		return
 	}
 
+	// Dart L270-273: we're not connected yet, but in a startup phase!
+	// Don't retry then — binary is booting, not crashed.
+	if m.startupError != "" {
+		m.mu.Unlock()
+		return
+	}
+
 	// Dart L262-264: too many restarts, give up
 	if m.restartCount > 10 {
 		m.mu.Unlock()
@@ -528,6 +593,9 @@ func (m *ConnectionMonitor) MarkStopped() {
 	m.connected = false
 	m.stoppingBinary = false
 	m.connectionError = ""
+	m.startupError = ""
+	m.hasCrashError = false
+	m.startupLogs = nil
 	m.mu.Unlock()
 
 	m.notifyChange()
@@ -544,6 +612,8 @@ func (m *ConnectionMonitor) MarkDisconnected() {
 	m.stoppingBinary = false
 	m.connectModeOnly = true // keep timer running, only look for new connections
 	m.connectionError = ""
+	m.startupError = ""
+	m.hasCrashError = false
 	// Dart L394: cancel restart timer
 	if m.restartStop != nil && !m.restartDone {
 		close(m.restartStop)

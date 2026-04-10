@@ -65,6 +65,12 @@ message BinaryStatusMsg {
   bool port_in_use = 19;       // port is reachable but not managed by orchestrator
   string version = 20;         // configured version string
   string repo_url = 21;        // source code repository URL
+  repeated StartupLogEntryMsg startup_logs = 22; // recent startup progress messages
+}
+
+message StartupLogEntryMsg {
+  int64 timestamp_unix = 1;
+  string message = 2;
 }
 
 // ListBinaries

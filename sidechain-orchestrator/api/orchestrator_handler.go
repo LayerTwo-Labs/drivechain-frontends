@@ -291,6 +291,14 @@ func (h *Handler) GetMainchainBalance(ctx context.Context, req *connect.Request[
 }
 
 func statusToProto(s orchestrator.BinaryStatus) *pb.BinaryStatusMsg {
+	startupLogs := make([]*pb.StartupLogEntryMsg, len(s.StartupLogs))
+	for i, l := range s.StartupLogs {
+		startupLogs[i] = &pb.StartupLogEntryMsg{
+			TimestampUnix: l.Timestamp.Unix(),
+			Message:       l.Message,
+		}
+	}
+
 	return &pb.BinaryStatusMsg{
 		Name:            s.Name,
 		DisplayName:     s.DisplayName,
@@ -313,5 +321,6 @@ func statusToProto(s orchestrator.BinaryStatus) *pb.BinaryStatusMsg {
 		PortInUse:       s.PortInUse,
 		Version:         s.Version,
 		RepoUrl:         s.RepoURL,
+		StartupLogs:     startupLogs,
 	}
 }
