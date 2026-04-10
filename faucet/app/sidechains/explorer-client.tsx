@@ -4,11 +4,10 @@ import * as pb from "@bufbuild/protobuf";
 import type { Timestamp } from "@bufbuild/protobuf/wkt";
 import { createClient } from "@connectrpc/connect";
 import { SiGithub } from "@icons-pack/react-simple-icons";
-import { format, formatDistanceToNow } from "date-fns";
+import { formatDistanceToNow } from "date-fns";
 import { Check, Copy } from "lucide-react";
 import { useCallback, useState } from "react";
 import { Console } from "@/components/console";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   type ChainTip,
@@ -32,90 +31,67 @@ export function ExplorerClient({ initialData }: ExplorerClientProps) {
     initialData ? pb.fromJson(GetChainTipsResponseSchema, initialData) : null
   );
 
-  const [loading, setLoading] = useState(false);
-  const [nextRefresh, setNextRefresh] = useState(30);
-
-  const fetchData = async () => {
-    setLoading(true);
+  useInterval(async () => {
     try {
       const api = createClient(ExplorerService, clientTransport);
       const response = await api.getChainTips({});
       setData(response);
     } catch (err) {
       console.error("Failed to fetch chain tips", err);
-    } finally {
-      setLoading(false);
-      setNextRefresh(30);
     }
-  };
-
-  useInterval(
-    () =>
-      setNextRefresh((prev) => {
-        if (prev <= 1) {
-          fetchData();
-          return 30;
-        }
-        return prev - 1;
-      }),
-    1000
-  );
+  }, 10_000);
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex items-center gap-4">
-        <Button onClick={fetchData} loading={loading}>
-          Refresh Now
-        </Button>
-        <span className="text-sm text-muted-foreground italic">
-          {nextRefresh > 0 ? `Auto-refreshing in ${nextRefresh} seconds` : "Refreshing..."}
-        </span>
-      </div>
-
-      {data?.mainchain?.timestamp && <BlockTime timestamp={data.mainchain.timestamp} />}
-
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
         <BlockCard
           title="Mainchain"
           subtitle="Most recent block on the mainchain"
           block={data?.mainchain}
           explorerUrl={blockExplorerBlockUrl}
+          staleThresholdMs={20 * 60 * 1000}
         />
         <BlockCard
           title="Thunder"
           subtitle="Most recent block on the Thunder sidechain (L2-S9)"
           block={data?.thunder}
           repoUrl="https://github.com/LayerTwo-Labs/thunder-rust"
+          mainchainTimestamp={data?.mainchain?.timestamp}
         />
         <BlockCard
           title="BitAssets"
           subtitle="Most recent block on the BitAssets sidechain (L2-S4)"
           block={data?.bitassets}
           repoUrl="https://github.com/LayerTwo-Labs/plain-bitassets"
+          mainchainTimestamp={data?.mainchain?.timestamp}
         />
         <BlockCard
           title="BitNames"
           subtitle="Most recent block on the BitNames sidechain (L2-S2)"
           block={data?.bitnames}
           repoUrl="https://github.com/LayerTwo-Labs/plain-bitnames"
+          mainchainTimestamp={data?.mainchain?.timestamp}
         />
         <BlockCard
           title="Zside"
           subtitle="Most recent block on the Zside sidechain (L2-S98)"
           block={data?.zside}
           repoUrl="https://github.com/iwakura-rein/thunder-orchard"
+          mainchainTimestamp={data?.mainchain?.timestamp}
         />
         <BlockCard
           title="CoinShift"
           subtitle="Most recent block on the CoinShift sidechain (L2-S255)"
           block={data?.coinshift}
           repoUrl="https://github.com/LayerTwo-Labs/coinshift-rs"
+          mainchainTimestamp={data?.mainchain?.timestamp}
         />
         <BlockCard
           title="Photon"
           subtitle="Most recent block on the Photon sidechain (L2-S99)"
           block={data?.photon}
           repoUrl="https://github.com/LayerTwo-Labs/photon"
+          mainchainTimestamp={data?.mainchain?.timestamp}
         />
       </div>
 
@@ -182,19 +158,72 @@ function MempoolIcon({ className }: { className?: string }) {
   );
 }
 
+type ChainStatus = "synced" | "behind" | "unreachable";
+
+function getChainStatus(
+  block?: ChainTip,
+  mainchainTimestamp?: Timestamp,
+  staleThresholdMs?: number
+): ChainStatus {
+  if (!block?.height) return "unreachable";
+  if (staleThresholdMs && block.timestamp) {
+    const blockTimeMs = Number(block.timestamp.seconds) * 1000;
+    return Date.now() - blockTimeMs > staleThresholdMs ? "behind" : "synced";
+  }
+  if (!mainchainTimestamp || !block.timestamp) return "synced";
+  return Number(block.timestamp.seconds) >= Number(mainchainTimestamp.seconds)
+    ? "synced"
+    : "behind";
+}
+
+function StatusDot({ status, isMainchain }: { status: ChainStatus; isMainchain?: boolean }) {
+  const labels = isMainchain
+    ? {
+        synced: "Blocks arriving at expected intervals",
+        behind: "Longer than usual since last block",
+        unreachable: "Unable to connect",
+      }
+    : {
+        synced: "In sync with mainchain",
+        behind: "Behind mainchain",
+        unreachable: "Unable to connect",
+      };
+  const colors = {
+    synced: "bg-emerald-400/80",
+    behind: "bg-amber-400",
+    unreachable: "bg-red-400",
+  };
+  const color = colors[status];
+  const label = labels[status];
+  return (
+    <span className="relative group/dot shrink-0 flex items-center justify-center h-4 w-4">
+      <span className={`inline-block h-1.5 w-1.5 rounded-full ${color}`} />
+      <span className="absolute left-full top-1/2 -translate-y-1/2 ml-1 px-2 py-0.5 text-[11px] leading-tight rounded bg-foreground text-background whitespace-nowrap opacity-0 group-hover/dot:opacity-100 transition-opacity duration-150 pointer-events-none">
+        {label}
+      </span>
+    </span>
+  );
+}
+
 function BlockCard({
   title,
   subtitle,
   block,
   repoUrl,
   explorerUrl,
+  mainchainTimestamp,
+  staleThresholdMs,
 }: {
   title: string;
   subtitle: string;
   block?: ChainTip;
   repoUrl?: string;
   explorerUrl?: (hash: string) => string;
+  mainchainTimestamp?: Timestamp;
+  staleThresholdMs?: number;
 }) {
+  const status = getChainStatus(block, mainchainTimestamp, staleThresholdMs);
+
   const icons = (
     <>
       {repoUrl && (
@@ -210,11 +239,12 @@ function BlockCard({
     </>
   );
 
-  if (!block?.height) {
+  if (status === "unreachable") {
     return (
       <Card>
         <CardHeader>
           <CardTitle className="text-base flex items-center gap-2">
+            <StatusDot status={status} isMainchain={!!staleThresholdMs} />
             {title}
             {icons}
           </CardTitle>
@@ -231,30 +261,28 @@ function BlockCard({
     <Card>
       <CardHeader>
         <CardTitle className="text-base flex items-center gap-2">
+          <StatusDot status={status} isMainchain={!!staleThresholdMs} />
           {title}
           {icons}
         </CardTitle>
         <CardDescription className="text-xs">{subtitle}</CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-1">
-        <div className="text-sm">Height: {block.height.toString()}</div>
-        <CopyHash hash={block.hash} />
+        <div className="text-sm">Height: {block?.height.toString()}</div>
+        <CopyHash hash={block?.hash ?? ""} />
+        {staleThresholdMs && block?.timestamp && (
+          <div className="text-sm">
+            Last block: {formatDistanceToNow(timestampToDate(block.timestamp), { addSuffix: true })}
+          </div>
+        )}
+        {!staleThresholdMs && status === "behind" && block?.timestamp && (
+          <div className="text-xs text-amber-600 dark:text-amber-400">
+            Mainchain sync:{" "}
+            {formatDistanceToNow(timestampToDate(block.timestamp), { addSuffix: true })}
+          </div>
+        )}
       </CardContent>
     </Card>
-  );
-}
-
-function BlockTime({ timestamp }: { timestamp: Timestamp }) {
-  // biome-ignore lint/suspicious/noExplicitAny: timestamp seconds may be string from serialized initial data
-  const blockTime = timestampToDate(timestamp as any);
-
-  return (
-    <div className="flex items-baseline gap-3 text-sm text-muted-foreground">
-      <span>Last block: {format(blockTime, "yyyy-MM-dd HH:mm:ss")}</span>
-      <span className="font-bold text-orange-500">
-        {formatDistanceToNow(blockTime, { addSuffix: true })}
-      </span>
-    </div>
   );
 }
 
