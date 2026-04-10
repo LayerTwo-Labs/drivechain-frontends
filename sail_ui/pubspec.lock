@@ -390,10 +390,10 @@ packages:
     dependency: "direct main"
     description:
       name: file_picker
-      sha256: d974b6ba2606371ac71dd94254beefb6fa81185bde0b59bdc1df09885da85fde
+      sha256: f13a03000d942e476bc1ff0a736d2e9de711d2f89a95cd4c1d88f861c3348387
       url: "https://pub.dev"
     source: hosted
-    version: "10.3.8"
+    version: "11.0.2"
   fixnum:
     dependency: "direct main"
     description:
@@ -1280,4 +1280,4 @@ packages:
     version: "0.0.6"
 sdks:
   dart: "3.11.4"
-  flutter: "3.41.6"
+  flutter: ">=3.41.6"
