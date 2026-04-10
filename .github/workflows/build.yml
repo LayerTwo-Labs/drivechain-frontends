@@ -7,6 +7,7 @@ on:
       - "scripts/**"
       - "sail_ui/**"
       - "drivechain_lints/**"
+      - "sidechain-orchestrator/**"
       - "bitwindow/**"
       - "thunder/**"
       - "truthcoin/**"
@@ -42,48 +43,56 @@ jobs:
               - 'scripts/**'
               - 'thunder/**'
               - 'sail_ui/**'
+              - 'sidechain-orchestrator/**'
               - 'drivechain_lints/**'
               - '.github/workflows/**'
             truthcoin:
               - 'scripts/**'
               - 'truthcoin/**'
               - 'sail_ui/**'
+              - 'sidechain-orchestrator/**'
               - 'drivechain_lints/**'
               - '.github/workflows/**'
             photon:
               - 'scripts/**'
               - 'photon/**'
               - 'sail_ui/**'
+              - 'sidechain-orchestrator/**'
               - 'drivechain_lints/**'
               - '.github/workflows/**'
             bitnames:
               - 'scripts/**'
               - 'bitnames/**'
               - 'sail_ui/**'
+              - 'sidechain-orchestrator/**'
               - 'drivechain_lints/**'
               - '.github/workflows/**'
             bitassets:
               - 'scripts/**'
               - 'bitassets/**'
               - 'sail_ui/**'
+              - 'sidechain-orchestrator/**'
               - 'drivechain_lints/**'
               - '.github/workflows/**'
             zside:
               - 'scripts/**'
               - 'zside/**'
               - 'sail_ui/**'
+              - 'sidechain-orchestrator/**'
               - 'drivechain_lints/**'
               - '.github/workflows/**'
             coinshift:
               - 'scripts/**'
               - 'coinshift/**'
               - 'sail_ui/**'
+              - 'sidechain-orchestrator/**'
               - 'drivechain_lints/**'
               - '.github/workflows/**'
             bitwindow:
               - 'scripts/**'
               - 'bitwindow/**'
               - 'sail_ui/**'
+              - 'sidechain-orchestrator/**'
               - 'drivechain_lints/**'
               - '.github/workflows/**'
 
