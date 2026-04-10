@@ -122,6 +122,15 @@ type ProcessExitInfo struct {
 	ErrMsg   string // stderr-based error message, empty if clean exit
 }
 
+// StartupLogEntry is passed to the OnStartupLog callback when a process line
+// matches one of the binary's startup_log_patterns. Used by the UI to show
+// a timeline of startup progress messages.
+type StartupLogEntry struct {
+	Name      string
+	Timestamp time.Time
+	Message   string
+}
+
 // ProcessManager handles spawning, monitoring, and killing processes.
 type ProcessManager struct {
 	dataDir    string
@@ -134,6 +143,12 @@ type ProcessManager struct {
 	// OnExit is called when a process exits. The orchestrator uses this to
 	// pipe exit errors into ConnectionMonitor.connectionError for the UI.
 	OnExit func(ProcessExitInfo)
+
+	// OnStartupLog is called when a process line matches one of the binary's
+	// startup_log_patterns. The orchestrator pushes these to the UI so users
+	// see a timeline of startup progress messages.
+	// Dart: ProcessManager._captureStartupLog (process_manager.dart L380-395)
+	OnStartupLog func(StartupLogEntry)
 }
 
 func NewProcessManager(dataDir string, pidManager *PidFileManager, log zerolog.Logger) *ProcessManager {
@@ -215,9 +230,31 @@ func (pm *ProcessManager) Start(_ context.Context, config BinaryConfig, args []s
 		Line:      fmt.Sprintf("=== %s started (pid %d) ===", config.Name, cmd.Process.Pid),
 	})
 
+	// Compile startup log patterns once for pattern-matching process output.
+	// Dart: ProcessManager._captureStartupLog (process_manager.dart L380-395)
+	startupLogPatterns := compileStartupPatterns(config.StartupLogPatterns, pm.log)
+
 	// Stderr buffer: keep last 100 lines for error extraction on crash
 	var stderrMu sync.Mutex
 	var stderrBuffer []string
+
+	// captureStartupLog checks if a line matches any startup pattern and
+	// forwards it to the OnStartupLog callback for UI display.
+	captureStartupLog := func(line string) {
+		if len(startupLogPatterns) == 0 || pm.OnStartupLog == nil {
+			return
+		}
+		for _, re := range startupLogPatterns {
+			if re.MatchString(line) {
+				pm.OnStartupLog(StartupLogEntry{
+					Name:      config.Name,
+					Timestamp: extractLogTimestamp(line),
+					Message:   cleanLogMessage(line),
+				})
+				return
+			}
+		}
+	}
 
 	// Capture stdout
 	stdoutDone := make(chan struct{})
@@ -235,6 +272,7 @@ func (pm *ProcessManager) Start(_ context.Context, config BinaryConfig, args []s
 				Stream:    "stdout",
 				Line:      line,
 			})
+			captureStartupLog(line)
 		}
 	}()
 
@@ -254,6 +292,7 @@ func (pm *ProcessManager) Start(_ context.Context, config BinaryConfig, args []s
 				Stream:    "stderr",
 				Line:      line,
 			})
+			captureStartupLog(line)
 			// Buffer stderr for error extraction
 			stderrMu.Lock()
 			stderrBuffer = append(stderrBuffer, line)
@@ -536,6 +575,44 @@ var ansiPattern = regexp.MustCompile(`\x1b\[[0-9;]*[a-zA-Z]`)
 
 func stripANSI(s string) string {
 	return ansiPattern.ReplaceAllString(s, "")
+}
+
+// compileStartupPatterns compiles the startup_log_patterns from chains_config.json.
+// Invalid patterns are logged and skipped.
+func compileStartupPatterns(patterns []string, log zerolog.Logger) []*regexp.Regexp {
+	compiled := make([]*regexp.Regexp, 0, len(patterns))
+	for _, p := range patterns {
+		re, err := regexp.Compile(p)
+		if err != nil {
+			log.Warn().Err(err).Str("pattern", p).Msg("invalid startup log pattern")
+			continue
+		}
+		compiled = append(compiled, re)
+	}
+	return compiled
+}
+
+// extractLogTimestamp extracts a timestamp from common log formats, falling
+// back to time.Now() if none is found.
+// Dart: ProcessManager._extractTimestamp (process_manager.dart L397-409)
+var timestampPattern = regexp.MustCompile(`(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z)`)
+
+func extractLogTimestamp(line string) time.Time {
+	if match := timestampPattern.FindString(line); match != "" {
+		if t, err := time.Parse(time.RFC3339, match); err == nil {
+			return t
+		}
+	}
+	return time.Now()
+}
+
+// cleanLogMessage strips timestamp prefix and ANSI codes from a log line.
+// Dart: ProcessManager._cleanMessage (process_manager.dart L411-419)
+var timestampPrefixPattern = regexp.MustCompile(`^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z\s*`)
+
+func cleanLogMessage(line string) string {
+	cleaned := timestampPrefixPattern.ReplaceAllString(line, "")
+	return strings.TrimSpace(stripANSI(cleaned))
 }
 
 // PidFileManager handles PID file read/write/validate operations.

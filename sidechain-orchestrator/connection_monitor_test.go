@@ -20,7 +20,10 @@ func (m *mockChecker) Check(_ context.Context) error {
 	if m.healthy.Load() {
 		return nil
 	}
-	return fmt.Errorf("connection refused")
+	// Use a non-transient error so tests exercise the error classification
+	// logic. "Connection refused" is filtered as transient (see
+	// isTransientConnectError) to avoid UI noise.
+	return fmt.Errorf("mock health check failed")
 }
 
 func newTestMonitor(t *testing.T, checker HealthChecker, patterns []string) *ConnectionMonitor {
@@ -49,7 +52,7 @@ func TestConnectionMonitor_TestConnection_Unhealthy(t *testing.T) {
 	mon.testConnection(context.Background())
 
 	assert.False(t, mon.Connected())
-	assert.Contains(t, mon.ConnectionError(), "connection refused")
+	assert.Contains(t, mon.ConnectionError(), "mock health check failed")
 }
 
 func TestConnectionMonitor_TestConnection_TransitionConnectedToDisconnected(t *testing.T) {
@@ -545,10 +548,11 @@ func TestConnectionMonitor_StartupError_FlowsCorrectly(t *testing.T) {
 	warmupChecker := &warmupChecker{stage: 0}
 	mon := NewConnectionMonitor("bitcoind", warmupChecker, bitcoindStartupPatterns, testLogger(t))
 
-	// First check: connection refused (not started yet)
+	// First check: connection refused is filtered as transient.
+	// connectionError stays empty to avoid UI noise during startup.
 	mon.testConnection(context.Background())
 	assert.False(t, mon.Connected())
-	assert.Contains(t, mon.ConnectionError(), "connection refused")
+	assert.Empty(t, mon.ConnectionError())
 	assert.Empty(t, mon.StartupError())
 
 	// Second check: -28 warmup (bitcoind is booting)

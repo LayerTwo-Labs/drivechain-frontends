@@ -42,6 +42,7 @@ type BinaryStatus struct {
 	PortInUse       bool   // port is reachable (something is listening)
 	Version         string // configured version string
 	RepoURL         string // source code repository URL
+	StartupLogs     []StartupLogLine
 }
 
 // StartupProgress reports progress during StartWithDeps.
@@ -137,6 +138,20 @@ func New(dataDir, network, bitwindowDir string, configs []BinaryConfig, log zero
 		if info.ExitCode != 0 && info.ErrMsg != "" {
 			mon.SetConnectionError(info.ErrMsg)
 		}
+	}
+
+	// Wire startup log capture: when a process prints a line matching
+	// startup_log_patterns, push it into the monitor's startup logs.
+	// Dart: ProcessManager._captureStartupLog + Binary.addStartupLog
+	orch.process.OnStartupLog = func(entry StartupLogEntry) {
+		orch.monitorsMu.Lock()
+		mon, ok := orch.monitors[entry.Name]
+		orch.monitorsMu.Unlock()
+
+		if !ok {
+			return
+		}
+		mon.AddStartupLog(entry.Timestamp, entry.Message)
 	}
 
 	// Initialize config managers for auto-building args
@@ -359,6 +374,7 @@ func (o *Orchestrator) Status(name string) BinaryStatus {
 		status.Stopping = mon.StoppingBinary()
 		status.Initializing = mon.InitializingBinary()
 		status.ConnectModeOnly = mon.ConnectModeOnly()
+		status.StartupLogs = mon.StartupLogs()
 	}
 	o.monitorsMu.Unlock()
 
