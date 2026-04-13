@@ -9,7 +9,7 @@ import 'package:bitwindow/dialogs/change_password_dialog.dart';
 import 'package:bitwindow/dialogs/encrypt_wallet_dialog.dart';
 import 'package:bitwindow/env.dart';
 import 'package:bitwindow/gen/version.dart';
-import 'package:bitwindow/main.dart' show bootBinaries;
+import 'package:bitwindow/main.dart' show rebootBitwindowBackend;
 import 'package:bitwindow/pages/settings/settings_about.dart';
 import 'package:bitwindow/pages/settings/settings_advanced.dart';
 import 'package:bitwindow/pages/settings/settings_appearance.dart';
@@ -1157,7 +1157,7 @@ class _RestoreProgressDialogState extends State<RestoreProgressDialog> {
 
       // 9. Restart binaries
       _updateStatus('Restarting binaries');
-      await bootBinaries(log);
+      await rebootBitwindowBackend(log);
 
       // 10. Complete
       _updateStatus('Restore complete');
@@ -1491,8 +1491,8 @@ class _ResetSettingsContentState extends State<_ResetSettingsContent> {
                     if (dialogContext.mounted) {
                       Navigator.of(dialogContext).pop(); // Close progress dialog
                     }
-                    // Boot binaries. It will await wallet creation, where we route after the user closes this dialog
-                    unawaited(bootBinaries(log));
+                    // Restart backend. It will await wallet creation, where we route after the user closes this dialog
+                    unawaited(rebootBitwindowBackend(log));
                   },
                 ),
               );
@@ -1555,8 +1555,8 @@ class _ResetSettingsContentState extends State<_ResetSettingsContent> {
       await binary.deleteFiles(await binary.getBlockchainDataPaths());
     }
 
-    // finally, boot the binaries
-    unawaited(bootBinaries(GetIt.I.get<Logger>()));
+    // finally, restart the backend
+    unawaited(rebootBitwindowBackend(GetIt.I.get<Logger>()));
   }
 }
 
@@ -2404,8 +2404,8 @@ Future<void> _resetEverything(BuildContext context) async {
 
   // Wait for dialog to fully dispose before replacing entire route stack
   await Future.delayed(const Duration(milliseconds: 100));
-  // Boot binaries after reset. This will await wallet creation
-  unawaited(bootBinaries(log));
+  // Restart backend after reset. This will await wallet creation
+  unawaited(rebootBitwindowBackend(log));
   // Navigate to wallet creation page (like fresh install)
   await router.replaceAll([SailCreateWalletRoute(homeRoute: const RootRoute())]);
 }

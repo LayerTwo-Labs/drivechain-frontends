@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 
-import 'package:bitwindow/main.dart' show bootBinaries;
+import 'package:bitwindow/main.dart' show rebootBitwindowBackend;
 import 'package:bitwindow/pages/root_page.dart' show setRootPageNavigatingAway;
 import 'package:bitwindow/routing/router.dart';
 import 'package:flutter/material.dart';
@@ -229,7 +229,7 @@ class _SettingsResetState extends State<SettingsReset> {
         GetIt.I.get<WalletReaderProvider>().clearState();
       }
 
-      unawaited(bootBinaries(log));
+      unawaited(rebootBitwindowBackend(log));
 
       final router = GetIt.I.get<AppRouter>();
       final needsWalletCreation = _deleteWalletFiles || _obliterateEverything;

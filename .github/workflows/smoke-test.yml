@@ -90,6 +90,6 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: smoke-test-failure-logs
+          if-no-files-found: ignore
           path: |
             bitwindow/build/
-            ~/.flutter/logs/
