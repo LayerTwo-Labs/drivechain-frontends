@@ -86,7 +86,6 @@ Future<(Directory, File, Logger)> init(String arguments) async {
     router: router,
     currentVersion: AppVersion.version,
     additionalBinaries: () => [Orchestratord()],
-    backendManagesBinaries: true,
   );
 
   // Register shared orchestrator runtime and start the managed backend.

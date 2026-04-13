@@ -264,21 +264,11 @@ class BinaryProvider extends ChangeNotifier {
       pidFileManager: pidFileManager,
     );
 
-    if (Environment.backendManagesBinaries) {
-      return BackendBinaryProvider._create(
-        appDir: appDir,
-        downloadManager: downloadManager,
-        processManager: processManager,
-      );
-    }
-
-    final provider = BinaryProvider._create(
+    return BackendBinaryProvider._create(
       appDir: appDir,
       downloadManager: downloadManager,
       processManager: processManager,
     );
-
-    return provider;
   }
 
   Future<void> _init() async {

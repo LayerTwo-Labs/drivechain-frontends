@@ -23,6 +23,14 @@ class Environment {
     'BITWINDOWD_PORT',
     int.fromEnvironment('BITWINDOWD_PORT', defaultValue: 30301),
   );
+  static const orchestratorHost = Variable(
+    'ORCHESTRATOR_HOST',
+    String.fromEnvironment('ORCHESTRATOR_HOST', defaultValue: '127.0.0.1'),
+  );
+  static const orchestratorPort = Variable(
+    'ORCHESTRATOR_PORT',
+    int.fromEnvironment('ORCHESTRATOR_PORT', defaultValue: 30400),
+  );
   static const network = Variable(
     'BITWINDOW_NETWORK',
     String.fromEnvironment('BITWINDOW_NETWORK', defaultValue: 'signet'),

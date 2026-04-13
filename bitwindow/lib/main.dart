@@ -683,7 +683,7 @@ class _ErrorCatcher extends StatelessWidget {
 Future<void> bootBinaries(Logger log) async {
   log.i('STARTUP: Booting binaries');
 
-  final BinaryProvider binaryProvider = GetIt.I.get<BinaryProvider>();
+  final binaryProvider = GetIt.I.get<BinaryProvider>();
   final bitwindow = binaryProvider.binaries.firstWhere((b) => b is BitWindow);
 
   // Download grpcurl in background (needed for enforcer-cli in console)
@@ -698,26 +698,38 @@ Future<void> bootBinaries(Logger log) async {
     }
   }());
 
-  final mainchainRPC = GetIt.I.get<MainchainRPC>();
-  final enforcerRPC = GetIt.I.get<EnforcerRPC>();
+  // Start bitwindowd — it manages orchestratord, which manages all other
+  // binaries (bitcoind, enforcer, sidechains).
+  log.i('STARTUP: starting bitwindowd');
+  await binaryProvider.start(bitwindow);
 
-  await mainchainRPC.testConnection();
-  await enforcerRPC.testConnection();
-
-  if (!mainchainRPC.connected) {
-    log.i('MainchainRPC not connected, adding --gui-booted-mainchain boot arg');
-    bitwindow.addBootArg('--gui-booted-mainchain');
-  }
-  if (!enforcerRPC.connected) {
-    log.i('EnforcerRPC not connected, adding --gui-booted-enforcer boot arg');
-    bitwindow.addBootArg('--gui-booted-enforcer');
-  }
-
-  await binaryProvider.startWithEnforcer(
-    bitwindow,
-    // bitwindow can start without the enforcer
-    bootExtraBinaryImmediately: true,
+  // Connect to orchestratord (managed by bitwindowd) for binary state.
+  final orchestrator = OrchestratorRPC(
+    host: Environment.orchestratorHost.value,
+    port: Environment.orchestratorPort.value,
   );
+  GetIt.I.registerSingleton<OrchestratorRPC>(orchestrator);
+
+  final backendState = BackendStateProvider(orchestrator);
+  GetIt.I.registerSingleton<BackendStateProvider>(backendState);
+
+  // Wait for orchestratord to become ready (bitwindowd starts it).
+  log.i('STARTUP: waiting for orchestratord readiness');
+  for (var i = 0; i < 30; i++) {
+    try {
+      await orchestrator.listBinaries();
+      log.i('STARTUP: orchestratord is ready');
+      break;
+    } catch (_) {
+      if (i == 29) {
+        log.e('STARTUP: orchestratord did not become ready after 15s');
+      }
+      await Future.delayed(const Duration(milliseconds: 500));
+    }
+  }
+
+  // Stream binary status to the frontend.
+  backendState.startWatching();
 }
 
 Future<void> setupSignalHandlers(Logger log) async {

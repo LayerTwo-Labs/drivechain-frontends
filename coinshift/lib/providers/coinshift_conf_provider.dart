@@ -1,5 +1,4 @@
 import 'package:get_it/get_it.dart';
-import 'package:sail_ui/env.dart';
 import 'package:sail_ui/sail_ui.dart';
 
 /// Provider for CoinShift configuration settings.
@@ -9,13 +8,8 @@ class CoinShiftConfProvider extends GenericSidechainConfProvider {
   CoinShiftConfProvider._create();
 
   static Future<GenericSidechainConfProvider> create() async {
-    if (Environment.backendManagesBinaries) {
-      final source = CoinShiftConfProvider._create();
-      return BackendSidechainConfProvider.fromProvider(source, sidechainName: 'coinshift');
-    }
-    final instance = CoinShiftConfProvider._create();
-    await instance.initialize();
-    return instance;
+    final source = CoinShiftConfProvider._create();
+    return BackendSidechainConfProvider.fromProvider(source, sidechainName: 'coinshift');
   }
 
   @override

@@ -1,7 +1,6 @@
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
-import 'package:sail_ui/env.dart';
 import 'package:sail_ui/sail_ui.dart';
 
 /// Abstract wallet reader provider interface.
@@ -44,9 +43,6 @@ abstract class WalletReaderProvider extends ChangeNotifier {
   void clearState();
 
   static WalletReaderProvider create(Directory bitwindowAppDir) {
-    if (Environment.backendManagesBinaries) {
-      return BackendWalletReaderProvider(bitwindowAppDir);
-    }
-    return FrontendWalletReaderProvider(bitwindowAppDir);
+    return BackendWalletReaderProvider(bitwindowAppDir);
   }
 }

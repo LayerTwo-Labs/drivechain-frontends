@@ -24,7 +24,6 @@ import 'package:sail_ui/gen/notification/v1/notification.connect.client.dart';
 import 'package:sail_ui/gen/notification/v1/notification.pb.dart';
 import 'package:sail_ui/gen/wallet/v1/wallet.connect.client.dart';
 import 'package:sail_ui/gen/wallet/v1/wallet.pb.dart';
-import 'package:sail_ui/env.dart';
 import 'package:sail_ui/sail_ui.dart';
 
 /// API to the drivechain server.
@@ -99,13 +98,7 @@ class BitwindowRPCLive extends BitwindowRPC {
     bitdrive = _BitDriveAPILive(BitDriveServiceClient(transport));
     utils = _UtilsAPILive(UtilsServiceClient(transport));
 
-    // In backend mode, Go ConnectionMonitor is the source of truth.
-    if (Environment.backendManagesBinaries) {
-      return;
-    }
-    // must test connection before moving on, in case it is already running!
-    await startConnectionTimer();
-    startHealthStream();
+    // Go ConnectionMonitor is the source of truth for connection state.
   }
 
   @override

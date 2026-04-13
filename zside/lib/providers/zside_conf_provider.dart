@@ -1,5 +1,4 @@
 import 'package:get_it/get_it.dart';
-import 'package:sail_ui/env.dart';
 import 'package:sail_ui/sail_ui.dart';
 
 /// Provider for ZSide configuration settings.
@@ -9,13 +8,8 @@ class ZSideConfProvider extends GenericSidechainConfProvider {
   ZSideConfProvider._create();
 
   static Future<GenericSidechainConfProvider> create() async {
-    if (Environment.backendManagesBinaries) {
-      final source = ZSideConfProvider._create();
-      return BackendSidechainConfProvider.fromProvider(source, sidechainName: 'zside');
-    }
-    final instance = ZSideConfProvider._create();
-    await instance.initialize();
-    return instance;
+    final source = ZSideConfProvider._create();
+    return BackendSidechainConfProvider.fromProvider(source, sidechainName: 'zside');
   }
 
   @override

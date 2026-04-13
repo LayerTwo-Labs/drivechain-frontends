@@ -1,5 +1,4 @@
 import 'package:get_it/get_it.dart';
-import 'package:sail_ui/env.dart';
 import 'package:sail_ui/sail_ui.dart';
 
 /// Provider for Truthcoin configuration settings.
@@ -9,13 +8,8 @@ class TruthcoinConfProvider extends GenericSidechainConfProvider {
   TruthcoinConfProvider._create();
 
   static Future<GenericSidechainConfProvider> create() async {
-    if (Environment.backendManagesBinaries) {
-      final source = TruthcoinConfProvider._create();
-      return BackendSidechainConfProvider.fromProvider(source, sidechainName: 'truthcoin');
-    }
-    final instance = TruthcoinConfProvider._create();
-    await instance.initialize();
-    return instance;
+    final source = TruthcoinConfProvider._create();
+    return BackendSidechainConfProvider.fromProvider(source, sidechainName: 'truthcoin');
   }
 
   @override

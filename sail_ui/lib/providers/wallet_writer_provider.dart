@@ -1,7 +1,6 @@
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
-import 'package:sail_ui/env.dart';
 import 'package:sail_ui/sail_ui.dart';
 
 /// Abstract wallet writer provider interface.
@@ -52,9 +51,6 @@ abstract class WalletWriterProvider extends ChangeNotifier {
   Future<void> restartEnforcer();
 
   static WalletWriterProvider create({required Directory bitwindowAppDir}) {
-    if (Environment.backendManagesBinaries) {
-      return BackendWalletWriterProvider(bitwindowAppDir: bitwindowAppDir);
-    }
-    return FrontendWalletWriterProvider(bitwindowAppDir: bitwindowAppDir);
+    return BackendWalletWriterProvider(bitwindowAppDir: bitwindowAppDir);
   }
 }
