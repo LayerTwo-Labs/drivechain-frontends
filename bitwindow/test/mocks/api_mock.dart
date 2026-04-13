@@ -181,6 +181,29 @@ class MockBitwindowdAPI implements BitwindowAPI {
   Future<void> resumeDenial(Int64 id) {
     return Future.value();
   }
+
+  @override
+  Stream<StartManagedBinaryResponse> startManagedBinary(String name) {
+    return const Stream.empty();
+  }
+
+  @override
+  Future<void> stopManagedBinary(String name, {bool force = false}) {
+    return Future.value();
+  }
+
+  @override
+  Stream<DownloadManagedBinaryResponse> downloadManagedBinary(
+    String name, {
+    bool force = false,
+  }) {
+    return const Stream.empty();
+  }
+
+  @override
+  Stream<ShutdownManagedBinariesResponse> shutdownManagedBinaries({bool force = false}) {
+    return const Stream.empty();
+  }
 }
 
 class MockWalletAPI implements WalletAPI {
