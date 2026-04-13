@@ -2,18 +2,22 @@ import 'dart:async';
 
 import 'package:bitwindow/providers/blockchain_provider.dart';
 import 'package:collection/collection.dart';
+import 'package:fixnum/fixnum.dart';
 import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/env.dart';
+import 'package:sail_ui/gen/google/protobuf/timestamp.pb.dart';
 import 'package:sail_ui/gen/wallet/v1/wallet.pb.dart';
 import 'package:sail_ui/providers/balance_provider.dart';
 import 'package:sail_ui/providers/wallet_reader_provider.dart';
 import 'package:sail_ui/rpcs/bitwindow_api.dart';
+import 'package:sail_ui/rpcs/orchestrator_wallet_rpc.dart';
 
 // because the class extends ChangeNotifier, any subscribers
 // to this class will be notified of changes to new transactions
 class TransactionProvider extends ChangeNotifier {
   BitwindowRPC get bitwindowd => GetIt.I.get<BitwindowRPC>();
+  OrchestratorWalletRPC get orchestratorWallet => GetIt.I.get<OrchestratorWalletRPC>();
   BalanceProvider get balanceProvider => GetIt.I.get<BalanceProvider>();
   BlockchainProvider get blockchainProvider => GetIt.I.get<BlockchainProvider>();
   WalletReaderProvider get _walletReader => GetIt.I.get<WalletReaderProvider>();
@@ -76,25 +80,43 @@ class TransactionProvider extends ChangeNotifier {
         update<List<WalletTransaction>>(
           walletTransactions,
           () async {
-            final fetchedTransactions = await bitwindowd.wallet.listTransactions(walletId);
+            final fetchedTransactions = await orchestratorWallet.listTransactions(
+              walletId: walletId,
+            );
+            final transactions = fetchedTransactions.transactions
+                .map(
+                  (tx) => WalletTransaction(
+                    txid: tx.txid,
+                    feeSats: Int64((tx.fee.abs() * 100000000).round()),
+                    receivedSatoshi: tx.amountSats > Int64.ZERO ? tx.amountSats : Int64.ZERO,
+                    sentSatoshi: tx.amountSats < Int64.ZERO ? -tx.amountSats : Int64.ZERO,
+                    address: tx.address,
+                    addressLabel: tx.label,
+                    note: '',
+                    confirmationTime: Confirmation(
+                      height: tx.confirmations,
+                      timestamp: Timestamp(seconds: tx.blockTime),
+                    ),
+                  ),
+                )
+                .toList();
             // Sort by confirmation time, newest first
-            fetchedTransactions.sort((a, b) {
+            transactions.sort((a, b) {
               final aTime = a.confirmationTime.timestamp.seconds;
               final bTime = b.confirmationTime.timestamp.seconds;
-              // If timestamps are equal, use txid as secondary sort
               if (aTime == bTime) {
                 return b.txid.compareTo(a.txid);
               }
-              return bTime.compareTo(aTime); // Newest first
+              return bTime.compareTo(aTime);
             });
-            return fetchedTransactions;
+            return transactions;
           },
           (v) => walletTransactions = v,
           equals: const DeepCollectionEquality().equals,
         ),
         update<String>(
           address,
-          () => bitwindowd.wallet.getNewAddress(walletId),
+          () async => (await orchestratorWallet.getNewAddress(walletId)).address,
           (v) => address = v,
           // Always update - backend handles finding unused address
           equals: (a, b) => false,
@@ -102,18 +124,28 @@ class TransactionProvider extends ChangeNotifier {
         update<List<UnspentOutput>>(
           utxos,
           () async {
-            final fetchedUtxos = await bitwindowd.wallet.listUnspent(walletId);
-            // Sort by date received, newest first
-            fetchedUtxos.sort((a, b) {
+            final fetchedUtxos = await orchestratorWallet.listUnspent(walletId);
+            final utxos = fetchedUtxos.utxos
+                .map(
+                  (utxo) => UnspentOutput(
+                    output: '${utxo.txid}:${utxo.vout}',
+                    address: utxo.address,
+                    label: utxo.label,
+                    valueSats: utxo.amountSats,
+                    isChange: false,
+                    receivedAt: Timestamp(),
+                  ),
+                )
+                .toList();
+            utxos.sort((a, b) {
               final aTime = a.receivedAt.seconds;
               final bTime = b.receivedAt.seconds;
-              // If timestamps are equal, use output as secondary sort
               if (aTime == bTime) {
                 return b.output.compareTo(a.output);
               }
-              return bTime.compareTo(aTime); // Newest first
+              return bTime.compareTo(aTime);
             });
-            return fetchedUtxos;
+            return utxos;
           },
           (v) => utxos = v,
           equals: const DeepCollectionEquality().equals,
@@ -121,13 +153,22 @@ class TransactionProvider extends ChangeNotifier {
         update<List<ReceiveAddress>>(
           receiveAddresses,
           () async {
-            final fetchedAddresses = await bitwindowd.wallet.listReceiveAddresses(walletId);
-            // Sort by creation time if available, or by address alphabetically
-            fetchedAddresses.sort((a, b) {
-              // Assuming addresses have some timestamp or index, otherwise sort alphabetically
+            final fetchedAddresses = await orchestratorWallet.listReceiveAddresses(walletId);
+            final addresses = fetchedAddresses.addresses
+                .map(
+                  (address) => ReceiveAddress(
+                    address: address.address,
+                    label: address.label,
+                    currentBalanceSat: address.amountSats,
+                    isChange: false,
+                    lastUsedAt: Timestamp(),
+                  ),
+                )
+                .toList();
+            addresses.sort((a, b) {
               return a.address.compareTo(b.address);
             });
-            return fetchedAddresses;
+            return addresses;
           },
           (v) => receiveAddresses = v,
           equals: const DeepCollectionEquality().equals,

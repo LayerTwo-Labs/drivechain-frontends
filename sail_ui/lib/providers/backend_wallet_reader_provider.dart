@@ -1,22 +1,17 @@
 import 'dart:async';
 import 'dart:io';
 
-import 'package:connectrpc/http2.dart';
-import 'package:connectrpc/protobuf.dart';
-import 'package:connectrpc/protocol/connect.dart' as connect;
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:sail_ui/env.dart';
-import 'package:sail_ui/gen/walletmanager/v1/walletmanager.connect.client.dart';
-import 'package:sail_ui/gen/walletmanager/v1/walletmanager.pb.dart' as wmpb;
+import 'package:sail_ui/rpcs/orchestrator_wallet_rpc.dart';
 import 'package:sail_ui/sail_ui.dart';
-// wmpb prefix used for proto types that conflict with Dart model names
 
 /// RPC-backed wallet reader. Calls WalletManagerService on thunderd.
 /// No file access — all wallet operations go through the backend.
 class BackendWalletReaderProvider extends WalletReaderProvider {
   final Logger _logger = GetIt.I.get<Logger>();
-  late WalletManagerServiceClient _client;
+  late OrchestratorWalletRPC _client;
   @override
   final Directory bitwindowAppDir;
   Timer? _pollTimer;
@@ -58,12 +53,7 @@ class BackendWalletReaderProvider extends WalletReaderProvider {
   }
 
   void _initClient() {
-    final transport = connect.Transport(
-      baseUrl: 'http://localhost:30400',
-      codec: const ProtoCodec(),
-      httpClient: createHttpClient(),
-    );
-    _client = WalletManagerServiceClient(transport);
+    _client = GetIt.I.get<OrchestratorWalletRPC>();
   }
 
   void _startPolling() {
@@ -84,10 +74,8 @@ class BackendWalletReaderProvider extends WalletReaderProvider {
 
   Future<void> _loadFromBackend() async {
     try {
-      final statusResp = await _client.getWalletStatus(
-        wmpb.GetWalletStatusRequest(),
-      );
-      final listResp = await _client.listWallets(wmpb.ListWalletsRequest());
+      final statusResp = await _client.getWalletStatus();
+      final listResp = await _client.listWallets();
 
       activeWalletId = statusResp.activeWalletId.isEmpty ? null : statusResp.activeWalletId;
 
@@ -151,7 +139,7 @@ class BackendWalletReaderProvider extends WalletReaderProvider {
   @override
   Future<bool> hasWallet() async {
     try {
-      final resp = await _client.getWalletStatus(wmpb.GetWalletStatusRequest());
+      final resp = await _client.getWalletStatus();
       return resp.hasWallet;
     } catch (e) {
       return false;
@@ -161,7 +149,7 @@ class BackendWalletReaderProvider extends WalletReaderProvider {
   @override
   Future<bool> isWalletEncrypted() async {
     try {
-      final resp = await _client.getWalletStatus(wmpb.GetWalletStatusRequest());
+      final resp = await _client.getWalletStatus();
       return resp.encrypted;
     } catch (e) {
       return false;
@@ -171,7 +159,7 @@ class BackendWalletReaderProvider extends WalletReaderProvider {
   @override
   Future<bool> unlockWallet(String password) async {
     try {
-      await _client.unlockWallet(wmpb.UnlockWalletRequest(password: password));
+      await _client.unlockWallet(password);
       unlockedPassword = password;
       await _loadFromBackend();
       notifyListeners();
@@ -185,7 +173,7 @@ class BackendWalletReaderProvider extends WalletReaderProvider {
   @override
   Future<void> lockWallet() async {
     try {
-      await _client.lockWallet(wmpb.LockWalletRequest());
+      await _client.lockWallet();
       wallets = [];
       unlockedPassword = null;
       notifyListeners();
@@ -197,9 +185,7 @@ class BackendWalletReaderProvider extends WalletReaderProvider {
   @override
   Future<void> encryptWallet(String password) async {
     try {
-      await _client.encryptWallet(
-        wmpb.EncryptWalletRequest(password: password),
-      );
+      await _client.encryptWallet(password);
       unlockedPassword = password;
       await _loadFromBackend();
     } catch (e) {
@@ -211,12 +197,7 @@ class BackendWalletReaderProvider extends WalletReaderProvider {
   @override
   Future<void> changePassword(String oldPassword, String newPassword) async {
     try {
-      await _client.changePassword(
-        wmpb.ChangePasswordRequest(
-          oldPassword: oldPassword,
-          newPassword: newPassword,
-        ),
-      );
+      await _client.changePassword(oldPassword, newPassword);
       unlockedPassword = newPassword;
     } catch (e) {
       _logger.e('BackendWalletReaderProvider: change password failed: $e');
@@ -227,9 +208,7 @@ class BackendWalletReaderProvider extends WalletReaderProvider {
   @override
   Future<void> removeEncryption(String password) async {
     try {
-      await _client.removeEncryption(
-        wmpb.RemoveEncryptionRequest(password: password),
-      );
+      await _client.removeEncryption(password);
       unlockedPassword = null;
       await _loadFromBackend();
     } catch (e) {
@@ -247,7 +226,7 @@ class BackendWalletReaderProvider extends WalletReaderProvider {
   @override
   Future<void> switchWallet(String walletId) async {
     try {
-      await _client.switchWallet(wmpb.SwitchWalletRequest(walletId: walletId));
+      await _client.switchWallet(walletId);
       activeWalletId = walletId;
       notifyListeners();
     } catch (e) {
@@ -259,7 +238,7 @@ class BackendWalletReaderProvider extends WalletReaderProvider {
   @override
   Future<void> removeWalletFromList(String walletId) async {
     try {
-      await _client.deleteWallet(wmpb.DeleteWalletRequest(walletId: walletId));
+      await _client.deleteWallet(walletId);
       await _loadFromBackend();
     } catch (e) {
       _logger.e('BackendWalletReaderProvider: delete wallet failed: $e');
@@ -275,11 +254,9 @@ class BackendWalletReaderProvider extends WalletReaderProvider {
   ) async {
     try {
       await _client.updateWalletMetadata(
-        wmpb.UpdateWalletMetadataRequest(
-          walletId: walletId,
-          name: name,
-          gradientJson: gradient.toJsonString(),
-        ),
+        walletId: walletId,
+        name: name,
+        gradientJson: gradient.toJsonString(),
       );
       await _loadFromBackend();
     } catch (e) {

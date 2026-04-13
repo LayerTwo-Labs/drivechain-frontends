@@ -1,18 +1,14 @@
 import 'dart:io';
 
-import 'package:connectrpc/http2.dart';
-import 'package:connectrpc/protobuf.dart';
-import 'package:connectrpc/protocol/connect.dart' as connect;
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
-import 'package:sail_ui/gen/walletmanager/v1/walletmanager.connect.client.dart';
-import 'package:sail_ui/gen/walletmanager/v1/walletmanager.pb.dart' as wmpb;
+import 'package:sail_ui/rpcs/orchestrator_wallet_rpc.dart';
 import 'package:sail_ui/sail_ui.dart';
 
 /// RPC-backed wallet writer. Calls WalletManagerService on thunderd.
 class BackendWalletWriterProvider extends WalletWriterProvider {
   final Logger _logger = GetIt.I.get<Logger>();
-  late WalletManagerServiceClient _client;
+  late OrchestratorWalletRPC _client;
   @override
   final Directory bitwindowAppDir;
 
@@ -21,12 +17,7 @@ class BackendWalletWriterProvider extends WalletWriterProvider {
   }
 
   void _initClient() {
-    final transport = connect.Transport(
-      baseUrl: 'http://localhost:30400',
-      codec: const ProtoCodec(),
-      httpClient: createHttpClient(),
-    );
-    _client = WalletManagerServiceClient(transport);
+    _client = GetIt.I.get<OrchestratorWalletRPC>();
   }
 
   WalletReaderProvider get _walletReader => GetIt.I.get<WalletReaderProvider>();
@@ -60,11 +51,9 @@ class BackendWalletWriterProvider extends WalletWriterProvider {
   }) async {
     try {
       final resp = await _client.generateWallet(
-        wmpb.GenerateWalletRequest(
-          name: name,
-          customMnemonic: customMnemonic ?? '',
-          passphrase: passphrase ?? '',
-        ),
+        name: name,
+        customMnemonic: customMnemonic,
+        passphrase: passphrase,
       );
 
       _logger.i(
@@ -102,11 +91,9 @@ class BackendWalletWriterProvider extends WalletWriterProvider {
   }) async {
     try {
       final resp = await _client.createWatchOnlyWallet(
-        wmpb.CreateWatchOnlyWalletRequest(
-          name: name,
-          xpubOrDescriptor: xpubOrDescriptor,
-          gradientJson: gradient.toJsonString(),
-        ),
+        name: name,
+        xpubOrDescriptor: xpubOrDescriptor,
+        gradientJson: gradient.toJsonString(),
       );
 
       _logger.i(
@@ -178,7 +165,7 @@ class BackendWalletWriterProvider extends WalletWriterProvider {
   }) async {
     try {
       onStatusUpdate?.call('Deleting wallets via backend');
-      await _client.deleteAllWallets(wmpb.DeleteAllWalletsRequest());
+      await _client.deleteAllWallets();
       _walletReader.clearState();
       onStatusUpdate?.call('Reset complete');
 
@@ -199,11 +186,9 @@ class BackendWalletWriterProvider extends WalletWriterProvider {
   ) async {
     try {
       await _client.updateWalletMetadata(
-        wmpb.UpdateWalletMetadataRequest(
-          walletId: walletId,
-          name: name,
-          gradientJson: gradient.toJsonString(),
-        ),
+        walletId: walletId,
+        name: name,
+        gradientJson: gradient.toJsonString(),
       );
       await _walletReader.init();
     } catch (e) {

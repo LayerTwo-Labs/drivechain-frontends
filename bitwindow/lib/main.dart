@@ -43,6 +43,7 @@ import 'package:intl/intl_standalone.dart';
 import 'package:logger/logger.dart';
 import 'package:sail_ui/config/fonts.dart';
 import 'package:sail_ui/providers/price_provider.dart';
+import 'package:sail_ui/rpcs/orchestrator_wallet_rpc.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:window_manager/window_manager.dart';
 
@@ -163,11 +164,17 @@ Future<(Directory, File, Logger)> init(String arguments) async {
   GetIt.I.registerSingleton<BinaryProvider>(binaryProvider);
   GetIt.I.registerSingleton<MainchainRPC>(MainchainRPCLive.create());
   GetIt.I.registerSingleton<EnforcerRPC>(EnforcerLive());
+  // Shared system boundary for runtime and wallet flows used across apps.
   final orchestrator = OrchestratorRPC(
     host: 'localhost',
     port: 30400,
   );
   GetIt.I.registerSingleton<OrchestratorRPC>(orchestrator);
+  final orchestratorWallet = OrchestratorWalletRPC(
+    host: 'localhost',
+    port: 30400,
+  );
+  GetIt.I.registerSingleton<OrchestratorWalletRPC>(orchestratorWallet);
   final backendStateProvider = BackendStateProvider(orchestrator);
   GetIt.I.registerSingleton<BackendStateProvider>(backendStateProvider);
   backendStateProvider.startWatching();
