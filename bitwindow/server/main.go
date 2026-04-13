@@ -524,6 +524,10 @@ func isNoisyStartupMessage(msg string) bool {
 }
 
 func ensureBackendRuntime(ctx context.Context, conf config.Config) error {
+	// Bound the startup so we don't hang forever if orchestrator stalls.
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Minute)
+	defer cancel()
+
 	client := orchrpc.NewOrchestratorServiceClient(
 		http.DefaultClient,
 		conf.OrchestratorAddr,

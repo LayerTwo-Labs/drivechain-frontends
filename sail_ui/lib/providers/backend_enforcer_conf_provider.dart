@@ -10,7 +10,7 @@ import 'package:sail_ui/sail_ui.dart';
 
 /// RPC-backed implementation of EnforcerConfProvider.
 /// Used by Thunder where the Go backend manages enforcer config files.
-/// All reads/writes go through EnforcerConfService on thunderd.
+/// All reads/writes go through EnforcerConfService on orchestrator.
 class BackendEnforcerConfProvider extends EnforcerConfProvider {
   final Logger log = GetIt.I.get<Logger>();
   late EnforcerConfServiceClient _client;

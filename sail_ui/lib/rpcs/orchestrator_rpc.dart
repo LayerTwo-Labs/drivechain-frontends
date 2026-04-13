@@ -4,7 +4,7 @@ import 'package:connectrpc/protocol/connect.dart' as connect;
 import 'package:sail_ui/gen/orchestrator/v1/orchestrator.connect.client.dart';
 import 'package:sail_ui/gen/orchestrator/v1/orchestrator.pb.dart';
 
-/// RPC client for the orchestrator daemon (thunderd).
+/// RPC client for the orchestrator daemon.
 /// Wraps the generated OrchestratorServiceClient for binary management.
 class OrchestratorRPC {
   late OrchestratorServiceClient _client;
