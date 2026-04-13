@@ -709,6 +709,14 @@ Future<void> bootBitwindowBackend(Logger log) async {
   await binaryProvider.start(bitwindow);
 }
 
+Future<void> rebootBitwindowBackend(Logger log) async {
+  final binaryProvider = GetIt.I.get<BinaryProvider>();
+
+  await binaryProvider.stop(BitWindow());
+  await Future.delayed(const Duration(seconds: 1));
+  await bootBitwindowBackend(log);
+}
+
 Future<void> setupSignalHandlers(Logger log) async {
   // SIGINT and SIGTERM are not properly supported on Windows
   if (Platform.isWindows) {

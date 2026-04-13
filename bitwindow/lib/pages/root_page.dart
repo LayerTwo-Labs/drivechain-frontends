@@ -186,7 +186,7 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
         category: 'Your Wallet',
         onSelected: () => GetIt.I.get<AppRouter>().push(
           RestoreWalletRoute(
-            bootBinaries: (log) async => bootBinaries(log),
+            bootBinaries: (log) async => rebootBitwindowBackend(log),
             binariesToStop: [BitcoinCore(), Enforcer(), BitWindow()],
           ),
         ),
@@ -679,7 +679,7 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
                       onSelected: () async {
                         await GetIt.I.get<AppRouter>().push(
                           RestoreWalletRoute(
-                            bootBinaries: (log) async => bootBinaries(log),
+                            bootBinaries: (log) async => rebootBitwindowBackend(log),
                             binariesToStop: [BitcoinCore(), Enforcer(), BitWindow()],
                           ),
                         );
