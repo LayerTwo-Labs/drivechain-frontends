@@ -18,6 +18,34 @@ abstract final class BitwindowdService {
     googleprotobufempty.Empty.new,
   );
 
+  static const startManagedBinary = connect.Spec(
+    '/$name/StartManagedBinary',
+    connect.StreamType.server,
+    bitwindowdv1bitwindowd.StartManagedBinaryRequest.new,
+    bitwindowdv1bitwindowd.StartManagedBinaryResponse.new,
+  );
+
+  static const stopManagedBinary = connect.Spec(
+    '/$name/StopManagedBinary',
+    connect.StreamType.unary,
+    bitwindowdv1bitwindowd.StopManagedBinaryRequest.new,
+    googleprotobufempty.Empty.new,
+  );
+
+  static const downloadManagedBinary = connect.Spec(
+    '/$name/DownloadManagedBinary',
+    connect.StreamType.server,
+    bitwindowdv1bitwindowd.DownloadManagedBinaryRequest.new,
+    bitwindowdv1bitwindowd.DownloadManagedBinaryResponse.new,
+  );
+
+  static const shutdownManagedBinaries = connect.Spec(
+    '/$name/ShutdownManagedBinaries',
+    connect.StreamType.server,
+    bitwindowdv1bitwindowd.ShutdownManagedBinariesRequest.new,
+    bitwindowdv1bitwindowd.ShutdownManagedBinariesResponse.new,
+  );
+
   static const mineBlocks = connect.Spec(
     '/$name/MineBlocks',
     connect.StreamType.server,

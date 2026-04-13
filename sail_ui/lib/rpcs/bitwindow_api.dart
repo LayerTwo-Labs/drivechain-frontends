@@ -485,6 +485,13 @@ class BitwindowRPCLive extends BitwindowRPC {
 
 abstract class BitwindowAPI {
   Future<void> stop({bool skipDownstream = false});
+  Stream<StartManagedBinaryResponse> startManagedBinary(String name);
+  Future<void> stopManagedBinary(String name, {bool force = false});
+  Stream<DownloadManagedBinaryResponse> downloadManagedBinary(
+    String name, {
+    bool force = false,
+  });
+  Stream<ShutdownManagedBinariesResponse> shutdownManagedBinaries({bool force = false});
 
   // CPU mining
   Stream<MineBlocksResponse> mineBlocks();
@@ -536,6 +543,35 @@ class _BitwindowAPILive implements BitwindowAPI {
   Future<void> stop({bool skipDownstream = false}) async {
     await _client.stop(
       BitwindowdServiceStopRequest(skipDownstream: skipDownstream),
+    );
+  }
+
+  @override
+  Stream<StartManagedBinaryResponse> startManagedBinary(String name) {
+    return _client.startManagedBinary(StartManagedBinaryRequest(name: name));
+  }
+
+  @override
+  Future<void> stopManagedBinary(String name, {bool force = false}) async {
+    await _client.stopManagedBinary(
+      StopManagedBinaryRequest(name: name, force: force),
+    );
+  }
+
+  @override
+  Stream<DownloadManagedBinaryResponse> downloadManagedBinary(
+    String name, {
+    bool force = false,
+  }) {
+    return _client.downloadManagedBinary(
+      DownloadManagedBinaryRequest(name: name, force: force),
+    );
+  }
+
+  @override
+  Stream<ShutdownManagedBinariesResponse> shutdownManagedBinaries({bool force = false}) {
+    return _client.shutdownManagedBinaries(
+      ShutdownManagedBinariesRequest(force: force),
     );
   }
 

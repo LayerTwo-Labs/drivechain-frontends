@@ -2758,6 +2758,7 @@ class CheckChequeFundingResponse extends $pb.GeneratedMessage {
     $fixnum.Int64? actualAmountSats,
     $core.Iterable<$core.String>? fundedTxids,
     $0.Timestamp? fundedAt,
+    $core.int? minConfirmations,
   }) {
     final $result = create();
     if (funded != null) {
@@ -2772,6 +2773,9 @@ class CheckChequeFundingResponse extends $pb.GeneratedMessage {
     if (fundedAt != null) {
       $result.fundedAt = fundedAt;
     }
+    if (minConfirmations != null) {
+      $result.minConfirmations = minConfirmations;
+    }
     return $result;
   }
   CheckChequeFundingResponse._() : super();
@@ -2783,6 +2787,7 @@ class CheckChequeFundingResponse extends $pb.GeneratedMessage {
     ..a<$fixnum.Int64>(2, _omitFieldNames ? '' : 'actualAmountSats', $pb.PbFieldType.OU6, defaultOrMaker: $fixnum.Int64.ZERO)
     ..pPS(3, _omitFieldNames ? '' : 'fundedTxids')
     ..aOM<$0.Timestamp>(4, _omitFieldNames ? '' : 'fundedAt', subBuilder: $0.Timestamp.create)
+    ..a<$core.int>(5, _omitFieldNames ? '' : 'minConfirmations', $pb.PbFieldType.OU3)
     ..hasRequiredFields = false
   ;
 
@@ -2838,6 +2843,15 @@ class CheckChequeFundingResponse extends $pb.GeneratedMessage {
   void clearFundedAt() => clearField(4);
   @$pb.TagNumber(4)
   $0.Timestamp ensureFundedAt() => $_ensure(3);
+
+  @$pb.TagNumber(5)
+  $core.int get minConfirmations => $_getIZ(4);
+  @$pb.TagNumber(5)
+  set minConfirmations($core.int v) { $_setUnsignedInt32(4, v); }
+  @$pb.TagNumber(5)
+  $core.bool hasMinConfirmations() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearMinConfirmations() => clearField(5);
 }
 
 class SweepChequeRequest extends $pb.GeneratedMessage {

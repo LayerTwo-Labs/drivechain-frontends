@@ -72,6 +72,566 @@ class BitwindowdServiceStopRequest extends $pb.GeneratedMessage {
   void clearSkipDownstream() => clearField(1);
 }
 
+class StartManagedBinaryRequest extends $pb.GeneratedMessage {
+  factory StartManagedBinaryRequest({
+    $core.String? name,
+  }) {
+    final $result = create();
+    if (name != null) {
+      $result.name = name;
+    }
+    return $result;
+  }
+  StartManagedBinaryRequest._() : super();
+  factory StartManagedBinaryRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory StartManagedBinaryRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'StartManagedBinaryRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'bitwindowd.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'name')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  StartManagedBinaryRequest clone() => StartManagedBinaryRequest()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  StartManagedBinaryRequest copyWith(void Function(StartManagedBinaryRequest) updates) => super.copyWith((message) => updates(message as StartManagedBinaryRequest)) as StartManagedBinaryRequest;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static StartManagedBinaryRequest create() => StartManagedBinaryRequest._();
+  StartManagedBinaryRequest createEmptyInstance() => create();
+  static $pb.PbList<StartManagedBinaryRequest> createRepeated() => $pb.PbList<StartManagedBinaryRequest>();
+  @$core.pragma('dart2js:noInline')
+  static StartManagedBinaryRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<StartManagedBinaryRequest>(create);
+  static StartManagedBinaryRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get name => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set name($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasName() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearName() => clearField(1);
+}
+
+class StartManagedBinaryResponse extends $pb.GeneratedMessage {
+  factory StartManagedBinaryResponse({
+    $core.String? stage,
+    $core.String? message,
+    $core.bool? done,
+    $core.String? error,
+    $fixnum.Int64? bytesDownloaded,
+    $fixnum.Int64? totalBytes,
+  }) {
+    final $result = create();
+    if (stage != null) {
+      $result.stage = stage;
+    }
+    if (message != null) {
+      $result.message = message;
+    }
+    if (done != null) {
+      $result.done = done;
+    }
+    if (error != null) {
+      $result.error = error;
+    }
+    if (bytesDownloaded != null) {
+      $result.bytesDownloaded = bytesDownloaded;
+    }
+    if (totalBytes != null) {
+      $result.totalBytes = totalBytes;
+    }
+    return $result;
+  }
+  StartManagedBinaryResponse._() : super();
+  factory StartManagedBinaryResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory StartManagedBinaryResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'StartManagedBinaryResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'bitwindowd.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'stage')
+    ..aOS(2, _omitFieldNames ? '' : 'message')
+    ..aOB(3, _omitFieldNames ? '' : 'done')
+    ..aOS(4, _omitFieldNames ? '' : 'error')
+    ..aInt64(5, _omitFieldNames ? '' : 'bytesDownloaded')
+    ..aInt64(6, _omitFieldNames ? '' : 'totalBytes')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  StartManagedBinaryResponse clone() => StartManagedBinaryResponse()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  StartManagedBinaryResponse copyWith(void Function(StartManagedBinaryResponse) updates) => super.copyWith((message) => updates(message as StartManagedBinaryResponse)) as StartManagedBinaryResponse;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static StartManagedBinaryResponse create() => StartManagedBinaryResponse._();
+  StartManagedBinaryResponse createEmptyInstance() => create();
+  static $pb.PbList<StartManagedBinaryResponse> createRepeated() => $pb.PbList<StartManagedBinaryResponse>();
+  @$core.pragma('dart2js:noInline')
+  static StartManagedBinaryResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<StartManagedBinaryResponse>(create);
+  static StartManagedBinaryResponse? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get stage => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set stage($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasStage() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearStage() => clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.String get message => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set message($core.String v) { $_setString(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasMessage() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearMessage() => clearField(2);
+
+  @$pb.TagNumber(3)
+  $core.bool get done => $_getBF(2);
+  @$pb.TagNumber(3)
+  set done($core.bool v) { $_setBool(2, v); }
+  @$pb.TagNumber(3)
+  $core.bool hasDone() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearDone() => clearField(3);
+
+  @$pb.TagNumber(4)
+  $core.String get error => $_getSZ(3);
+  @$pb.TagNumber(4)
+  set error($core.String v) { $_setString(3, v); }
+  @$pb.TagNumber(4)
+  $core.bool hasError() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearError() => clearField(4);
+
+  @$pb.TagNumber(5)
+  $fixnum.Int64 get bytesDownloaded => $_getI64(4);
+  @$pb.TagNumber(5)
+  set bytesDownloaded($fixnum.Int64 v) { $_setInt64(4, v); }
+  @$pb.TagNumber(5)
+  $core.bool hasBytesDownloaded() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearBytesDownloaded() => clearField(5);
+
+  @$pb.TagNumber(6)
+  $fixnum.Int64 get totalBytes => $_getI64(5);
+  @$pb.TagNumber(6)
+  set totalBytes($fixnum.Int64 v) { $_setInt64(5, v); }
+  @$pb.TagNumber(6)
+  $core.bool hasTotalBytes() => $_has(5);
+  @$pb.TagNumber(6)
+  void clearTotalBytes() => clearField(6);
+}
+
+class StopManagedBinaryRequest extends $pb.GeneratedMessage {
+  factory StopManagedBinaryRequest({
+    $core.String? name,
+    $core.bool? force,
+  }) {
+    final $result = create();
+    if (name != null) {
+      $result.name = name;
+    }
+    if (force != null) {
+      $result.force = force;
+    }
+    return $result;
+  }
+  StopManagedBinaryRequest._() : super();
+  factory StopManagedBinaryRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory StopManagedBinaryRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'StopManagedBinaryRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'bitwindowd.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'name')
+    ..aOB(2, _omitFieldNames ? '' : 'force')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  StopManagedBinaryRequest clone() => StopManagedBinaryRequest()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  StopManagedBinaryRequest copyWith(void Function(StopManagedBinaryRequest) updates) => super.copyWith((message) => updates(message as StopManagedBinaryRequest)) as StopManagedBinaryRequest;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static StopManagedBinaryRequest create() => StopManagedBinaryRequest._();
+  StopManagedBinaryRequest createEmptyInstance() => create();
+  static $pb.PbList<StopManagedBinaryRequest> createRepeated() => $pb.PbList<StopManagedBinaryRequest>();
+  @$core.pragma('dart2js:noInline')
+  static StopManagedBinaryRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<StopManagedBinaryRequest>(create);
+  static StopManagedBinaryRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get name => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set name($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasName() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearName() => clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.bool get force => $_getBF(1);
+  @$pb.TagNumber(2)
+  set force($core.bool v) { $_setBool(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasForce() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearForce() => clearField(2);
+}
+
+class DownloadManagedBinaryRequest extends $pb.GeneratedMessage {
+  factory DownloadManagedBinaryRequest({
+    $core.String? name,
+    $core.bool? force,
+  }) {
+    final $result = create();
+    if (name != null) {
+      $result.name = name;
+    }
+    if (force != null) {
+      $result.force = force;
+    }
+    return $result;
+  }
+  DownloadManagedBinaryRequest._() : super();
+  factory DownloadManagedBinaryRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory DownloadManagedBinaryRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'DownloadManagedBinaryRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'bitwindowd.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'name')
+    ..aOB(2, _omitFieldNames ? '' : 'force')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  DownloadManagedBinaryRequest clone() => DownloadManagedBinaryRequest()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  DownloadManagedBinaryRequest copyWith(void Function(DownloadManagedBinaryRequest) updates) => super.copyWith((message) => updates(message as DownloadManagedBinaryRequest)) as DownloadManagedBinaryRequest;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static DownloadManagedBinaryRequest create() => DownloadManagedBinaryRequest._();
+  DownloadManagedBinaryRequest createEmptyInstance() => create();
+  static $pb.PbList<DownloadManagedBinaryRequest> createRepeated() => $pb.PbList<DownloadManagedBinaryRequest>();
+  @$core.pragma('dart2js:noInline')
+  static DownloadManagedBinaryRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<DownloadManagedBinaryRequest>(create);
+  static DownloadManagedBinaryRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get name => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set name($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasName() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearName() => clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.bool get force => $_getBF(1);
+  @$pb.TagNumber(2)
+  set force($core.bool v) { $_setBool(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasForce() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearForce() => clearField(2);
+}
+
+class DownloadManagedBinaryResponse extends $pb.GeneratedMessage {
+  factory DownloadManagedBinaryResponse({
+    $fixnum.Int64? bytesDownloaded,
+    $fixnum.Int64? totalBytes,
+    $core.String? message,
+    $core.bool? done,
+    $core.String? error,
+  }) {
+    final $result = create();
+    if (bytesDownloaded != null) {
+      $result.bytesDownloaded = bytesDownloaded;
+    }
+    if (totalBytes != null) {
+      $result.totalBytes = totalBytes;
+    }
+    if (message != null) {
+      $result.message = message;
+    }
+    if (done != null) {
+      $result.done = done;
+    }
+    if (error != null) {
+      $result.error = error;
+    }
+    return $result;
+  }
+  DownloadManagedBinaryResponse._() : super();
+  factory DownloadManagedBinaryResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory DownloadManagedBinaryResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'DownloadManagedBinaryResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'bitwindowd.v1'), createEmptyInstance: create)
+    ..aInt64(1, _omitFieldNames ? '' : 'bytesDownloaded')
+    ..aInt64(2, _omitFieldNames ? '' : 'totalBytes')
+    ..aOS(3, _omitFieldNames ? '' : 'message')
+    ..aOB(4, _omitFieldNames ? '' : 'done')
+    ..aOS(5, _omitFieldNames ? '' : 'error')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  DownloadManagedBinaryResponse clone() => DownloadManagedBinaryResponse()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  DownloadManagedBinaryResponse copyWith(void Function(DownloadManagedBinaryResponse) updates) => super.copyWith((message) => updates(message as DownloadManagedBinaryResponse)) as DownloadManagedBinaryResponse;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static DownloadManagedBinaryResponse create() => DownloadManagedBinaryResponse._();
+  DownloadManagedBinaryResponse createEmptyInstance() => create();
+  static $pb.PbList<DownloadManagedBinaryResponse> createRepeated() => $pb.PbList<DownloadManagedBinaryResponse>();
+  @$core.pragma('dart2js:noInline')
+  static DownloadManagedBinaryResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<DownloadManagedBinaryResponse>(create);
+  static DownloadManagedBinaryResponse? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $fixnum.Int64 get bytesDownloaded => $_getI64(0);
+  @$pb.TagNumber(1)
+  set bytesDownloaded($fixnum.Int64 v) { $_setInt64(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasBytesDownloaded() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearBytesDownloaded() => clearField(1);
+
+  @$pb.TagNumber(2)
+  $fixnum.Int64 get totalBytes => $_getI64(1);
+  @$pb.TagNumber(2)
+  set totalBytes($fixnum.Int64 v) { $_setInt64(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasTotalBytes() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearTotalBytes() => clearField(2);
+
+  @$pb.TagNumber(3)
+  $core.String get message => $_getSZ(2);
+  @$pb.TagNumber(3)
+  set message($core.String v) { $_setString(2, v); }
+  @$pb.TagNumber(3)
+  $core.bool hasMessage() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearMessage() => clearField(3);
+
+  @$pb.TagNumber(4)
+  $core.bool get done => $_getBF(3);
+  @$pb.TagNumber(4)
+  set done($core.bool v) { $_setBool(3, v); }
+  @$pb.TagNumber(4)
+  $core.bool hasDone() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearDone() => clearField(4);
+
+  @$pb.TagNumber(5)
+  $core.String get error => $_getSZ(4);
+  @$pb.TagNumber(5)
+  set error($core.String v) { $_setString(4, v); }
+  @$pb.TagNumber(5)
+  $core.bool hasError() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearError() => clearField(5);
+}
+
+class ShutdownManagedBinariesRequest extends $pb.GeneratedMessage {
+  factory ShutdownManagedBinariesRequest({
+    $core.bool? force,
+  }) {
+    final $result = create();
+    if (force != null) {
+      $result.force = force;
+    }
+    return $result;
+  }
+  ShutdownManagedBinariesRequest._() : super();
+  factory ShutdownManagedBinariesRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory ShutdownManagedBinariesRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ShutdownManagedBinariesRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'bitwindowd.v1'), createEmptyInstance: create)
+    ..aOB(1, _omitFieldNames ? '' : 'force')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  ShutdownManagedBinariesRequest clone() => ShutdownManagedBinariesRequest()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  ShutdownManagedBinariesRequest copyWith(void Function(ShutdownManagedBinariesRequest) updates) => super.copyWith((message) => updates(message as ShutdownManagedBinariesRequest)) as ShutdownManagedBinariesRequest;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ShutdownManagedBinariesRequest create() => ShutdownManagedBinariesRequest._();
+  ShutdownManagedBinariesRequest createEmptyInstance() => create();
+  static $pb.PbList<ShutdownManagedBinariesRequest> createRepeated() => $pb.PbList<ShutdownManagedBinariesRequest>();
+  @$core.pragma('dart2js:noInline')
+  static ShutdownManagedBinariesRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<ShutdownManagedBinariesRequest>(create);
+  static ShutdownManagedBinariesRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.bool get force => $_getBF(0);
+  @$pb.TagNumber(1)
+  set force($core.bool v) { $_setBool(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasForce() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearForce() => clearField(1);
+}
+
+class ShutdownManagedBinariesResponse extends $pb.GeneratedMessage {
+  factory ShutdownManagedBinariesResponse({
+    $core.int? totalCount,
+    $core.int? completedCount,
+    $core.String? currentBinary,
+    $core.bool? done,
+    $core.String? error,
+  }) {
+    final $result = create();
+    if (totalCount != null) {
+      $result.totalCount = totalCount;
+    }
+    if (completedCount != null) {
+      $result.completedCount = completedCount;
+    }
+    if (currentBinary != null) {
+      $result.currentBinary = currentBinary;
+    }
+    if (done != null) {
+      $result.done = done;
+    }
+    if (error != null) {
+      $result.error = error;
+    }
+    return $result;
+  }
+  ShutdownManagedBinariesResponse._() : super();
+  factory ShutdownManagedBinariesResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory ShutdownManagedBinariesResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ShutdownManagedBinariesResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'bitwindowd.v1'), createEmptyInstance: create)
+    ..a<$core.int>(1, _omitFieldNames ? '' : 'totalCount', $pb.PbFieldType.O3)
+    ..a<$core.int>(2, _omitFieldNames ? '' : 'completedCount', $pb.PbFieldType.O3)
+    ..aOS(3, _omitFieldNames ? '' : 'currentBinary')
+    ..aOB(4, _omitFieldNames ? '' : 'done')
+    ..aOS(5, _omitFieldNames ? '' : 'error')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  ShutdownManagedBinariesResponse clone() => ShutdownManagedBinariesResponse()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  ShutdownManagedBinariesResponse copyWith(void Function(ShutdownManagedBinariesResponse) updates) => super.copyWith((message) => updates(message as ShutdownManagedBinariesResponse)) as ShutdownManagedBinariesResponse;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ShutdownManagedBinariesResponse create() => ShutdownManagedBinariesResponse._();
+  ShutdownManagedBinariesResponse createEmptyInstance() => create();
+  static $pb.PbList<ShutdownManagedBinariesResponse> createRepeated() => $pb.PbList<ShutdownManagedBinariesResponse>();
+  @$core.pragma('dart2js:noInline')
+  static ShutdownManagedBinariesResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<ShutdownManagedBinariesResponse>(create);
+  static ShutdownManagedBinariesResponse? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.int get totalCount => $_getIZ(0);
+  @$pb.TagNumber(1)
+  set totalCount($core.int v) { $_setSignedInt32(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasTotalCount() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearTotalCount() => clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.int get completedCount => $_getIZ(1);
+  @$pb.TagNumber(2)
+  set completedCount($core.int v) { $_setSignedInt32(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasCompletedCount() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearCompletedCount() => clearField(2);
+
+  @$pb.TagNumber(3)
+  $core.String get currentBinary => $_getSZ(2);
+  @$pb.TagNumber(3)
+  set currentBinary($core.String v) { $_setString(2, v); }
+  @$pb.TagNumber(3)
+  $core.bool hasCurrentBinary() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearCurrentBinary() => clearField(3);
+
+  @$pb.TagNumber(4)
+  $core.bool get done => $_getBF(3);
+  @$pb.TagNumber(4)
+  set done($core.bool v) { $_setBool(3, v); }
+  @$pb.TagNumber(4)
+  $core.bool hasDone() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearDone() => clearField(4);
+
+  @$pb.TagNumber(5)
+  $core.String get error => $_getSZ(4);
+  @$pb.TagNumber(5)
+  set error($core.String v) { $_setString(4, v); }
+  @$pb.TagNumber(5)
+  $core.bool hasError() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearError() => clearField(5);
+}
+
 class CreateDenialRequest extends $pb.GeneratedMessage {
   factory CreateDenialRequest({
     $core.String? txid,
@@ -2483,6 +3043,18 @@ class BitwindowdServiceApi {
 
   $async.Future<$1.Empty> stop($pb.ClientContext? ctx, BitwindowdServiceStopRequest request) =>
     _client.invoke<$1.Empty>(ctx, 'BitwindowdService', 'Stop', request, $1.Empty())
+  ;
+  $async.Future<StartManagedBinaryResponse> startManagedBinary($pb.ClientContext? ctx, StartManagedBinaryRequest request) =>
+    _client.invoke<StartManagedBinaryResponse>(ctx, 'BitwindowdService', 'StartManagedBinary', request, StartManagedBinaryResponse())
+  ;
+  $async.Future<$1.Empty> stopManagedBinary($pb.ClientContext? ctx, StopManagedBinaryRequest request) =>
+    _client.invoke<$1.Empty>(ctx, 'BitwindowdService', 'StopManagedBinary', request, $1.Empty())
+  ;
+  $async.Future<DownloadManagedBinaryResponse> downloadManagedBinary($pb.ClientContext? ctx, DownloadManagedBinaryRequest request) =>
+    _client.invoke<DownloadManagedBinaryResponse>(ctx, 'BitwindowdService', 'DownloadManagedBinary', request, DownloadManagedBinaryResponse())
+  ;
+  $async.Future<ShutdownManagedBinariesResponse> shutdownManagedBinaries($pb.ClientContext? ctx, ShutdownManagedBinariesRequest request) =>
+    _client.invoke<ShutdownManagedBinariesResponse>(ctx, 'BitwindowdService', 'ShutdownManagedBinaries', request, ShutdownManagedBinariesResponse())
   ;
   $async.Future<MineBlocksResponse> mineBlocks($pb.ClientContext? ctx, $1.Empty request) =>
     _client.invoke<MineBlocksResponse>(ctx, 'BitwindowdService', 'MineBlocks', request, MineBlocksResponse())

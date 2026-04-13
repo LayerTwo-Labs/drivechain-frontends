@@ -5,6 +5,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"net/http"
 	"os/exec"
 	"slices"
 	"strconv"
@@ -31,6 +32,8 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/samber/lo"
 	"github.com/sourcegraph/conc/pool"
+	orchpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/orchestrator/v1"
+	orchrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/orchestrator/v1/orchestratorv1connect"
 	"google.golang.org/protobuf/types/known/emptypb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
@@ -71,6 +74,156 @@ type Server struct {
 	bandwidthTracker *bandwidth.Tracker
 
 	config config.Config
+}
+
+func (s *Server) orchestratorClient() (orchrpc.OrchestratorServiceClient, error) {
+	if s.config.OrchestratorAddr == "" {
+		return nil, connect.NewError(connect.CodeUnavailable, fmt.Errorf("orchestrator address is not configured"))
+	}
+
+	return orchrpc.NewOrchestratorServiceClient(
+		http.DefaultClient,
+		s.config.OrchestratorAddr,
+		connect.WithGRPC(),
+	), nil
+}
+
+func (s *Server) StartManagedBinary(
+	ctx context.Context,
+	req *connect.Request[pb.StartManagedBinaryRequest],
+	stream *connect.ServerStream[pb.StartManagedBinaryResponse],
+) error {
+	client, err := s.orchestratorClient()
+	if err != nil {
+		return err
+	}
+
+	orchStream, err := client.StartWithDeps(ctx, connect.NewRequest(&orchpb.StartWithDepsRequest{
+		Target: req.Msg.Name,
+		TargetArgs: []string{"--headless"},
+	}))
+	if err != nil {
+		return connect.NewError(connect.CodeInternal, fmt.Errorf("start managed binary %s: %w", req.Msg.Name, err))
+	}
+
+	for orchStream.Receive() {
+		msg := orchStream.Msg()
+		if err := stream.Send(&pb.StartManagedBinaryResponse{
+			Stage:           msg.GetStage(),
+			Message:         msg.GetMessage(),
+			Done:            msg.GetDone(),
+			Error:           msg.GetError(),
+			BytesDownloaded: msg.GetBytesDownloaded(),
+			TotalBytes:      msg.GetTotalBytes(),
+		}); err != nil {
+			return err
+		}
+		if msg.GetDone() || msg.GetError() != "" {
+			break
+		}
+	}
+
+	if err := orchStream.Err(); err != nil {
+		return connect.NewError(connect.CodeInternal, fmt.Errorf("read startup stream for %s: %w", req.Msg.Name, err))
+	}
+
+	return nil
+}
+
+func (s *Server) StopManagedBinary(ctx context.Context, req *connect.Request[pb.StopManagedBinaryRequest]) (*connect.Response[emptypb.Empty], error) {
+	client, err := s.orchestratorClient()
+	if err != nil {
+		return nil, err
+	}
+
+	_, err = client.StopBinary(ctx, connect.NewRequest(&orchpb.StopBinaryRequest{
+		Name:  req.Msg.Name,
+		Force: req.Msg.Force,
+	}))
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("stop managed binary %s: %w", req.Msg.Name, err))
+	}
+
+	return connect.NewResponse(&emptypb.Empty{}), nil
+}
+
+func (s *Server) DownloadManagedBinary(
+	ctx context.Context,
+	req *connect.Request[pb.DownloadManagedBinaryRequest],
+	stream *connect.ServerStream[pb.DownloadManagedBinaryResponse],
+) error {
+	client, err := s.orchestratorClient()
+	if err != nil {
+		return err
+	}
+
+	orchStream, err := client.DownloadBinary(ctx, connect.NewRequest(&orchpb.DownloadBinaryRequest{
+		Name:  req.Msg.Name,
+		Force: req.Msg.Force,
+	}))
+	if err != nil {
+		return connect.NewError(connect.CodeInternal, fmt.Errorf("download managed binary %s: %w", req.Msg.Name, err))
+	}
+
+	for orchStream.Receive() {
+		msg := orchStream.Msg()
+		if err := stream.Send(&pb.DownloadManagedBinaryResponse{
+			BytesDownloaded: msg.GetBytesDownloaded(),
+			TotalBytes:      msg.GetTotalBytes(),
+			Message:         msg.GetMessage(),
+			Done:            msg.GetDone(),
+			Error:           msg.GetError(),
+		}); err != nil {
+			return err
+		}
+		if msg.GetDone() || msg.GetError() != "" {
+			break
+		}
+	}
+
+	if err := orchStream.Err(); err != nil {
+		return connect.NewError(connect.CodeInternal, fmt.Errorf("read download stream for %s: %w", req.Msg.Name, err))
+	}
+
+	return nil
+}
+
+func (s *Server) ShutdownManagedBinaries(
+	ctx context.Context,
+	req *connect.Request[pb.ShutdownManagedBinariesRequest],
+	stream *connect.ServerStream[pb.ShutdownManagedBinariesResponse],
+) error {
+	client, err := s.orchestratorClient()
+	if err != nil {
+		return err
+	}
+
+	orchStream, err := client.ShutdownAll(ctx, connect.NewRequest(&orchpb.ShutdownAllRequest{Force: req.Msg.Force}))
+	if err != nil {
+		return connect.NewError(connect.CodeInternal, fmt.Errorf("shutdown managed binaries: %w", err))
+	}
+
+	for orchStream.Receive() {
+		msg := orchStream.Msg()
+		if err := stream.Send(&pb.ShutdownManagedBinariesResponse{
+			TotalCount:      msg.GetTotalCount(),
+			CompletedCount:  msg.GetCompletedCount(),
+			CurrentBinary:   msg.GetCurrentBinary(),
+			Done:            msg.GetDone(),
+			Error:           msg.GetError(),
+		}); err != nil {
+			return err
+		}
+		if msg.GetDone() || msg.GetError() != "" {
+			break
+		}
+	}
+
+	if err := orchStream.Err(); err != nil {
+		return connect.NewError(connect.CodeInternal, fmt.Errorf("read shutdown stream: %w", err))
+	}
+
+	return nil
 }
 
 // Stop implements drivechainv1connect.DrivechainServiceHandler.
