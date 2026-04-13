@@ -1228,7 +1228,7 @@ class BackendBinaryProvider extends BinaryProvider {
         }
       }
     } catch (e) {
-      log.e('BackendBinaryProvider: failed to start $name: $e');
+      log.e('BackendBinaryProvider: backend unreachable for start: $e');
       rethrow;
     }
   }
@@ -1305,7 +1305,7 @@ class BackendBinaryProvider extends BinaryProvider {
         );
       });
       notifyListeners();
-      log.e('BackendBinaryProvider: failed to download $name: $e');
+      log.e('BackendBinaryProvider: backend unreachable for download: $e');
       rethrow;
     }
   }
@@ -1324,6 +1324,7 @@ class BackendBinaryProvider extends BinaryProvider {
       }
     } catch (e) {
       log.e('BackendBinaryProvider: shutdown error: $e');
+      rethrow;
     }
 
     // Also stop the daemon itself via frontend mechanism
