@@ -24,6 +24,8 @@ import (
 	cryptorpc "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/cusf/crypto/v1/cryptov1connect"
 	rpc "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/cusf/mainchain/v1/mainchainv1connect"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/version"
+	orchpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/orchestrator/v1"
+	orchrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/orchestrator/v1/orchestratorv1connect"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/bitassets"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/bitnames"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/coinshift"
@@ -197,6 +199,10 @@ func realMain(ctx context.Context, cancelCtx context.CancelFunc) error {
 	)
 	if err != nil {
 		return err
+	}
+
+	if err := ensureBackendRuntime(ctx, conf); err != nil {
+		return fmt.Errorf("ensure backend runtime: %w", err)
 	}
 
 	// Start the cheque engine
@@ -515,6 +521,38 @@ func isNoisyStartupMessage(msg string) bool {
 	}
 
 	return false
+}
+
+func ensureBackendRuntime(ctx context.Context, conf config.Config) error {
+	client := orchrpc.NewOrchestratorServiceClient(
+		http.DefaultClient,
+		conf.OrchestratorAddr,
+		connect.WithGRPC(),
+	)
+
+	stream, err := client.StartWithDeps(ctx, connect.NewRequest(&orchpb.StartWithDepsRequest{
+		Target: "enforcer",
+	}))
+	if err != nil {
+		return fmt.Errorf("start runtime via orchestrator: %w", err)
+	}
+
+	for stream.Receive() {
+		msg := stream.Msg()
+		log := zerolog.Ctx(ctx)
+		if msg.GetError() != "" {
+			return fmt.Errorf("orchestrator startup %s: %s", msg.GetStage(), msg.GetError())
+		}
+		log.Info().Str("stage", msg.GetStage()).Str("message", msg.GetMessage()).Bool("done", msg.GetDone()).Msg("backend runtime startup")
+		if msg.GetDone() {
+			break
+		}
+	}
+	if err := stream.Err(); err != nil {
+		return fmt.Errorf("read orchestrator startup stream: %w", err)
+	}
+
+	return nil
 }
 
 func getChainParams(network config.Network) *chaincfg.Params {

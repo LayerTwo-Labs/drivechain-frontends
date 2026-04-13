@@ -7,11 +7,17 @@ import 'package:sail_ui/classes/rpc_connection.dart';
 import 'package:sail_ui/config/binaries.dart';
 import 'package:sail_ui/gen/orchestrator/v1/orchestrator.pb.dart';
 import 'package:sail_ui/providers/binaries/binary_provider.dart';
+import 'package:sail_ui/rpcs/bitassets_rpc.dart';
+import 'package:sail_ui/rpcs/bitnames_rpc.dart';
 import 'package:sail_ui/rpcs/bitwindow_api.dart';
+import 'package:sail_ui/rpcs/coinshift_rpc.dart';
 import 'package:sail_ui/rpcs/enforcer_rpc.dart';
 import 'package:sail_ui/rpcs/mainchain_rpc.dart';
 import 'package:sail_ui/rpcs/orchestrator_rpc.dart';
-import 'package:sail_ui/rpcs/rpc_sidechain.dart';
+import 'package:sail_ui/rpcs/photon_rpc.dart';
+import 'package:sail_ui/rpcs/thunder_rpc.dart';
+import 'package:sail_ui/rpcs/truthcoin_rpc.dart';
+import 'package:sail_ui/rpcs/zside_rpc.dart';
 
 /// Tracks startup progress from the backend's startWithDeps stream.
 class BackendStartupProgress {
@@ -145,13 +151,13 @@ class BackendStateProvider extends ChangeNotifier {
       'bitcoind' => GetIt.I.isRegistered<MainchainRPC>() ? GetIt.I.get<MainchainRPC>() : null,
       'enforcer' => GetIt.I.isRegistered<EnforcerRPC>() ? GetIt.I.get<EnforcerRPC>() : null,
       'bitwindowd' => GetIt.I.isRegistered<BitwindowRPC>() ? GetIt.I.get<BitwindowRPC>() : null,
-      'thunder' ||
-      'zside' ||
-      'bitnames' ||
-      'bitassets' ||
-      'truthcoin' ||
-      'photon' ||
-      'coinshift' => GetIt.I.isRegistered<SidechainRPC>() ? GetIt.I.get<SidechainRPC>() : null,
+      'thunder' => GetIt.I.isRegistered<ThunderRPC>() ? GetIt.I.get<ThunderRPC>() : null,
+      'zside' => GetIt.I.isRegistered<ZSideRPC>() ? GetIt.I.get<ZSideRPC>() : null,
+      'bitnames' => GetIt.I.isRegistered<BitnamesRPC>() ? GetIt.I.get<BitnamesRPC>() : null,
+      'bitassets' => GetIt.I.isRegistered<BitAssetsRPC>() ? GetIt.I.get<BitAssetsRPC>() : null,
+      'truthcoin' => GetIt.I.isRegistered<TruthcoinRPC>() ? GetIt.I.get<TruthcoinRPC>() : null,
+      'photon' => GetIt.I.isRegistered<PhotonRPC>() ? GetIt.I.get<PhotonRPC>() : null,
+      'coinshift' => GetIt.I.isRegistered<CoinShiftRPC>() ? GetIt.I.get<CoinShiftRPC>() : null,
       _ => null,
     };
   }
