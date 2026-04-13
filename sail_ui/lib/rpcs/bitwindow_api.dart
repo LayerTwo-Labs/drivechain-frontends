@@ -8,6 +8,7 @@ import 'package:get_it/get_it.dart';
 import 'package:http/http.dart' as http;
 import 'package:logger/logger.dart';
 import 'package:sail_ui/gen/bitcoin/bitcoind/v1alpha/bitcoin.connect.client.dart';
+import 'package:sail_ui/rpcs/orchestrator_wallet_rpc.dart';
 import 'package:sail_ui/gen/bitdrive/v1/bitdrive.pb.dart' as bitdrivepb;
 import 'package:sail_ui/gen/utils/v1/utils.pb.dart' as utilspb;
 import 'package:sail_ui/gen/bitcoin/bitcoind/v1alpha/bitcoin.pb.dart'
@@ -150,10 +151,12 @@ class BitwindowRPCLive extends BitwindowRPC {
       final walletReader = GetIt.I.get<WalletReaderProvider>();
       final walletId = walletReader.activeWalletId;
       if (walletId == null) throw Exception('No active wallet');
-      final balanceSat = await wallet.getBalance(walletId);
+      // Route through orchestrator — balance is a shared wallet primitive
+      final orchestratorWallet = GetIt.I.get<OrchestratorWalletRPC>();
+      final resp = await orchestratorWallet.getBalance(walletId);
       return (
-        satoshiToBTC(balanceSat.confirmedSatoshi.toInt()),
-        satoshiToBTC(balanceSat.pendingSatoshi.toInt()),
+        satoshiToBTC(resp.confirmedSats.round()),
+        satoshiToBTC(resp.unconfirmedSats.round()),
       );
     });
   }

@@ -300,6 +300,10 @@ class _ReceiveAddressesTableState extends State<ReceiveAddressesTable> {
   }
 }
 
+/// Orchestrator migration status: COMPLETE
+/// - getNewAddress: via TransactionProvider (orchestrator)
+/// - listReceiveAddresses: via TransactionProvider (orchestrator)
+/// - Address book labels: STAYS on bitwindowd — BW-only SQLite
 class ReceivePageViewModel extends BaseViewModel {
   final AddressBookProvider _addressBookProvider = GetIt.I<AddressBookProvider>();
   final BitwindowRPC _bitwindowRPC = GetIt.I<BitwindowRPC>();

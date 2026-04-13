@@ -329,6 +329,12 @@ class PayFromAndFeeCard extends ViewModelWidget<SendPageViewModel> {
   }
 }
 
+/// Orchestrator migration status:
+/// - Balance/UTXOs/transactions: routed via providers (already on orchestrator)
+/// - sendTransaction: STAYS on bitwindowd — needs fixedFeeSats + requiredInputs
+///   (orchestrator only has feeRateSatPerVbyte, no coin control inputs)
+/// - setCoinSelectionStrategy: STAYS on bitwindowd — BW-only coin selection prefs
+/// - estimateSmartFee: STAYS on bitwindowd — bitcoind API, not wallet primitive
 class SendPageViewModel extends BaseViewModel {
   Logger get log => GetIt.I<Logger>();
 
