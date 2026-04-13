@@ -233,12 +233,17 @@ func (m *EnforcerConfManager) SyncFromBitcoinConf() error {
 	m.Config.SetSetting("node-rpc-addr", expected["node-rpc-addr"])
 	m.Config.SetSetting("node-zmq-addr-sequence", expected["node-zmq-addr-sequence"])
 
-	// Sync esplora URL based on current network
-	esploraURL := EsploraURLForNetwork(m.bitcoinConf.Network)
-	if esploraURL != "" {
-		m.Config.SetSetting("wallet-esplora-url", esploraURL)
+	// Sync esplora URL based on current network, but preserve an explicit empty
+	// override so callers can intentionally disable the wallet esplora client.
+	if value, ok := m.Config.Settings["wallet-esplora-url"]; ok && value == "" {
+		// Keep explicit empty override.
 	} else {
-		m.Config.RemoveSetting("wallet-esplora-url")
+		esploraURL := EsploraURLForNetwork(m.bitcoinConf.Network)
+		if esploraURL != "" {
+			m.Config.SetSetting("wallet-esplora-url", esploraURL)
+		} else {
+			m.Config.RemoveSetting("wallet-esplora-url")
+		}
 	}
 
 	return m.SaveConfig()

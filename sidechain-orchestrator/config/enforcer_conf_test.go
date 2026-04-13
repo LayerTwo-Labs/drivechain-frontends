@@ -201,7 +201,15 @@ func TestSyncFromBitcoinConfSetsEsplora(t *testing.T) {
 		t.Errorf("esplora = %q", m.Config.GetSetting("wallet-esplora-url"))
 	}
 
+	// Explicit empty override should survive sync.
+	m.Config.SetSetting("wallet-esplora-url", "")
+	require.NoError(t, m.SyncFromBitcoinConf())
+	if got := m.Config.GetSetting("wallet-esplora-url"); got != "" {
+		t.Errorf("esplora override = %q, want empty", got)
+	}
+
 	// Testnet should have no esplora URL (removed)
+	m.Config.RemoveSetting("wallet-esplora-url")
 	m.bitcoinConf.Network = NetworkTestnet
 	require.NoError(t, m.SyncFromBitcoinConf())
 	if m.Config.HasSetting("wallet-esplora-url") {
