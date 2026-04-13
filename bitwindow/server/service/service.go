@@ -55,6 +55,11 @@ func (s *Service[T]) Get(ctx context.Context) (T, error) {
 
 // Connect attempts to connect to the service, retrying every 500ms for 3 seconds
 func (s *Service[T]) Connect(ctx context.Context) (T, error) {
+	if s.connector == nil {
+		s.setConnected(ctx, false)
+		var zero T
+		return zero, connect.NewError(connect.CodeUnavailable, fmt.Errorf("%s has no connector configured", s.name))
+	}
 	client, err := s.connector(ctx)
 	if err != nil {
 		s.setConnected(ctx, false)
