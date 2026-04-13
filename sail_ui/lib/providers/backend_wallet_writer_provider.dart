@@ -5,7 +5,7 @@ import 'package:logger/logger.dart';
 import 'package:sail_ui/rpcs/orchestrator_wallet_rpc.dart';
 import 'package:sail_ui/sail_ui.dart';
 
-/// RPC-backed wallet writer. Calls WalletManagerService on thunderd.
+/// RPC-backed wallet writer. Calls WalletManagerService on orchestrator.
 class BackendWalletWriterProvider extends WalletWriterProvider {
   final Logger _logger = GetIt.I.get<Logger>();
   late OrchestratorWalletRPC _client;

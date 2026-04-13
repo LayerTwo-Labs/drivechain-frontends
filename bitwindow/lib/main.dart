@@ -166,13 +166,13 @@ Future<(Directory, File, Logger)> init(String arguments) async {
   GetIt.I.registerSingleton<EnforcerRPC>(EnforcerLive());
   // Shared system boundary for runtime and wallet flows used across apps.
   final orchestrator = OrchestratorRPC(
-    host: 'localhost',
-    port: 30400,
+    host: Environment.orchestratorHost.value,
+    port: Environment.orchestratorPort.value,
   );
   GetIt.I.registerSingleton<OrchestratorRPC>(orchestrator);
   final orchestratorWallet = OrchestratorWalletRPC(
-    host: 'localhost',
-    port: 30400,
+    host: Environment.orchestratorHost.value,
+    port: Environment.orchestratorPort.value,
   );
   GetIt.I.registerSingleton<OrchestratorWalletRPC>(orchestratorWallet);
   final backendStateProvider = BackendStateProvider(orchestrator);

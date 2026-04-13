@@ -497,20 +497,6 @@ func stopCmdProcess(t *testing.T, cmd *exec.Cmd) {
 	}
 }
 
-func waitForTCPDown(t *testing.T, addr string, timeout time.Duration) {
-	t.Helper()
-	deadline := time.Now().Add(timeout)
-	for time.Now().Before(deadline) {
-		conn, err := net.DialTimeout("tcp", addr, 250*time.Millisecond)
-		if err != nil {
-			return
-		}
-		_ = conn.Close()
-		time.Sleep(250 * time.Millisecond)
-	}
-	t.Fatalf("timed out waiting for %s to stop accepting TCP connections", addr)
-}
-
 func isExpectedExit(err error) bool {
 	if err == nil {
 		return true
