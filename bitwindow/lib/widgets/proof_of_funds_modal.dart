@@ -12,6 +12,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
+import 'package:sail_ui/rpcs/orchestrator_wallet_rpc.dart';
 import 'package:sail_ui/sail_ui.dart' hide BitcoinNetwork;
 import 'package:stacked/stacked.dart';
 
@@ -729,11 +730,14 @@ class SecureUint8List {
   void operator []=(int index, int value) => _data[index] = value;
 }
 
+/// Orchestrator migration status: COMPLETE
+/// - listUnspent: via orchestratorWallet (orchestrator)
+/// - HD wallet signing: client-side, no RPC dependency
 class ProofOfFundsViewModel extends BaseViewModel {
   final Logger log = GetIt.I.get<Logger>();
   final EnforcerRPC enforcer = GetIt.I.get<EnforcerRPC>();
   final BitwindowRPC bitwindowd = GetIt.I.get<BitwindowRPC>();
-  final WalletAPI wallet = GetIt.I.get<BitwindowRPC>().wallet;
+  OrchestratorWalletRPC get orchestratorWallet => GetIt.I.get<OrchestratorWalletRPC>();
   final MainchainRPC mainchain = GetIt.I.get<MainchainRPC>();
   final HDWalletProvider hdWallet = GetIt.I.get<HDWalletProvider>();
   WalletReaderProvider get _walletReader => GetIt.I<WalletReaderProvider>();
@@ -765,19 +769,16 @@ class ProofOfFundsViewModel extends BaseViewModel {
     final walletId = _walletReader.activeWalletId;
     if (walletId == null) throw Exception('No active wallet');
 
-    final unspents = await bitwindowd.wallet.listUnspent(walletId);
-    log.i('Retrieved ${unspents.length} UTXOs from wallet');
+    final response = await orchestratorWallet.listUnspent(walletId);
+    final unspents = response.utxos;
+    log.i('Retrieved ${unspents.length} UTXOs from orchestrator wallet');
 
     final filteredUtxos = unspents.where((utxo) => utxo.address.isNotEmpty).map((utxo) {
-      final parts = utxo.output.split(':');
-      final txid = parts[0];
-      final vout = int.parse(parts[1]);
-
       return UTXO(
-        txid: txid,
-        vout: vout,
+        txid: utxo.txid,
+        vout: utxo.vout,
         address: utxo.address,
-        amount: satoshiToBTC(utxo.valueSats.toInt()),
+        amount: satoshiToBTC(utxo.amountSats.toInt()),
       );
     }).toList();
 

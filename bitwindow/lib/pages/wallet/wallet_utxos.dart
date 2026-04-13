@@ -6,6 +6,7 @@ import 'package:bitwindow/providers/coin_selection_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/gen/wallet/v1/wallet.pb.dart';
+import 'package:sail_ui/rpcs/orchestrator_wallet_rpc.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:stacked/stacked.dart';
 
@@ -496,6 +497,13 @@ class _UTXOTableState extends State<UTXOTable> {
   }
 }
 
+/// Orchestrator migration status:
+/// - UTXOs list: routed via TransactionProvider (already on orchestrator)
+/// - setUTXOMetadata (freeze/label): STAYS on bitwindowd — BW-only coin control
+/// - getUTXODistribution: STAYS on bitwindowd — BW-only chart aggregation
+/// - Consolidation getNewAddress: MOVED to orchestrator
+/// - Consolidation sendTransaction: STAYS on bitwindowd — needs requiredInputs
+///   for specifying which UTXOs to consolidate (orchestrator has no coin control)
 class LatestUTXOsViewModel extends BaseViewModel with ChangeTrackingMixin {
   final TransactionProvider _txProvider = GetIt.I<TransactionProvider>();
   final EnforcerRPC _enforcerRPC = GetIt.I<EnforcerRPC>();
@@ -563,6 +571,7 @@ class _ConsolidateDialog extends StatefulWidget {
 
 class _ConsolidateDialogState extends State<_ConsolidateDialog> {
   BitwindowRPC get _rpc => GetIt.I<BitwindowRPC>();
+  OrchestratorWalletRPC get _orchestratorWallet => GetIt.I<OrchestratorWalletRPC>();
   TransactionProvider get _txProvider => GetIt.I<TransactionProvider>();
   FormatterProvider get _formatter => GetIt.I<FormatterProvider>();
 
@@ -621,8 +630,9 @@ class _ConsolidateDialogState extends State<_ConsolidateDialog> {
     setState(() => _isLoading = true);
 
     try {
-      // Get a new address for the consolidated output
-      final newAddress = await _rpc.wallet.getNewAddress(widget.walletId);
+      // Get a new address via orchestrator — shared wallet primitive
+      final resp = await _orchestratorWallet.getNewAddress(widget.walletId);
+      final newAddress = resp.address;
 
       // Build list of required inputs
       final requiredInputs = _selectedOutpoints.map((op) => UnspentOutput(output: op)).toList();

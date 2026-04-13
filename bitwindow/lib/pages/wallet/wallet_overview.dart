@@ -369,6 +369,16 @@ class _TransactionTableState extends State<TransactionTable> {
   }
 }
 
+/// Orchestrator migration status:
+/// - Balance: routed via BalanceProvider (now on orchestrator)
+/// - Transactions: routed via TransactionProvider (already on orchestrator)
+/// - getStats: STAYS on bitwindowd — BW-only aggregate stats from SQLite
+/// - bumpFee: STAYS on bitwindowd — orchestrator BumpFeeResponse lacks
+///   originalFee/newFee fields needed for the UI snackbar
+/// - saveNote: STAYS on bitwindowd — transaction notes live in BW SQLite,
+///   no bulk note retrieval API exists yet
+/// Known gap: notes set via bitwindowd are not enriched back into
+/// orchestrator-sourced transactions (TransactionProvider maps note: '')
 class OverviewViewModel extends BaseViewModel with ChangeTrackingMixin {
   final TransactionProvider _txProvider = GetIt.I<TransactionProvider>();
   final BitwindowRPC _bitwindowRPC = GetIt.I<BitwindowRPC>();
