@@ -11,6 +11,54 @@ env:
   GO_VERSION: "1.25"
 
 jobs:
+  bitwindow-backend-smoke:
+    name: bitwindow backend smoke
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.draft == false
+    timeout-minutes: 20
+    env:
+      BITWINDOW_TEST_LOG_DIR: ${{ runner.temp }}/bitwindow-backend-smoke-logs
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Cache Go modules
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/go/pkg/mod
+            ~/.cache/go-build
+          key: go-${{ env.GO_VERSION }}-${{ runner.os }}-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            go-${{ env.GO_VERSION }}-${{ runner.os }}-
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+
+      - name: Install SQLite
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y sqlite3 libsqlite3-dev
+
+      - name: Cache managed binaries
+        uses: actions/cache@v4
+        with:
+          path: ~/.local/share/bitwindow/assets/bin
+          key: managed-binaries-${{ runner.os }}-${{ hashFiles('sidechain-orchestrator/chains_config.json', 'sidechain-orchestrator/config/chains_config.json') }}
+
+      - name: Run bitwindow backend smoke test
+        working-directory: bitwindow/server
+        run: go test -v -tags integration -run TestBackendRuntimeOwnershipSmoke -timeout 12m ./integrationtest/
+
+      - name: Upload backend smoke logs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: bitwindow-backend-smoke-logs
+          path: ${{ runner.temp }}/bitwindow-backend-smoke-logs
+          if-no-files-found: ignore
+
   integration:
     name: integration (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
