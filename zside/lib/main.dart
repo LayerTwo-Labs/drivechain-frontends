@@ -103,7 +103,6 @@ Future<(Directory, File, Logger)> init(String arguments) async {
     router: router,
     currentVersion: AppVersion.version,
     additionalBinaries: () => [Orchestratord()],
-    backendManagesBinaries: true,
   );
 
   // Register OrchestratorRPC for communicating with zsided

@@ -7,7 +7,6 @@ import 'package:flutter/services.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:path/path.dart' as path;
-import 'package:sail_ui/env.dart';
 import 'package:sail_ui/pages/router.dart';
 import 'package:sail_ui/providers/price_provider.dart';
 import 'package:sail_ui/sail_ui.dart';
@@ -22,9 +21,7 @@ Future<void> initSidechainDependencies({
   required RootStackRouter router,
   required String currentVersion,
   List<Binary> Function() additionalBinaries = _noAdditionalBinaries,
-  bool backendManagesBinaries = false,
 }) async {
-  Environment.backendManagesBinaries = backendManagesBinaries;
 
   GetIt.I.registerLazySingleton<NotificationProvider>(
     () => NotificationProvider(),
@@ -116,12 +113,8 @@ Future<void> initSidechainDependencies({
   final sidechainConnection = createSidechainConnection(binary);
   GetIt.I.registerSingleton<SidechainRPC>(sidechainConnection);
 
-  // Boot binaries (skip if a backend server like orchestratord manages them).
-  // When the backend manages binaries, state flows through
-  // BackendStateProvider.startWatching() → watchBinaries stream → RPCConnection.
-  if (!backendManagesBinaries) {
-    bootBinaries(log, binary);
-  }
+  // Binary lifecycle is managed by the backend (e.g. orchestratord).
+  // State flows through BackendStateProvider.startWatching() → watchBinaries stream → RPCConnection.
 
   GetIt.I.registerLazySingleton<BMMProvider>(() => BMMProvider());
   GetIt.I.registerLazySingleton<AppRouter>(() => AppRouter());
@@ -169,23 +162,6 @@ Future<File> getLogFile(Directory appDir) async {
   return logFile;
 }
 
-void bootBinaries(Logger log, Binary sidechain) async {
-  final BinaryProvider binaryProvider = GetIt.I.get<BinaryProvider>();
-
-  // Download grpcurl in background (needed for enforcer-cli in console)
-  final grpcurl = binaryProvider.binaries.firstWhere((b) => b is GRPCurl);
-  unawaited(() async {
-    try {
-      log.i('Downloading grpcurl in background');
-      await binaryProvider.download(grpcurl, shouldUpdate: true);
-      log.i('grpcurl download complete');
-    } catch (e) {
-      log.w('Failed to download grpcurl: $e');
-    }
-  }());
-
-  await binaryProvider.startWithEnforcer(sidechain);
-}
 
 List<Binary> _noAdditionalBinaries() => [];
 

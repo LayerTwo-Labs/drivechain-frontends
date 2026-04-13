@@ -1,6 +1,5 @@
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
-import 'package:sail_ui/env.dart';
 import 'package:sail_ui/sail_ui.dart';
 
 /// Abstract Bitcoin Core configuration provider.
@@ -28,9 +27,6 @@ abstract class BitcoinConfProvider extends ChangeNotifier {
   Future<void> writeConfig(String content);
 
   static Future<BitcoinConfProvider> create(RootStackRouter router) async {
-    if (Environment.backendManagesBinaries) {
-      return BackendBitcoinConfProvider.create(router);
-    }
-    return FrontendBitcoinConfProvider.create(router);
+    return BackendBitcoinConfProvider.create(router);
   }
 }
