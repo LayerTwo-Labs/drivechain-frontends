@@ -163,6 +163,14 @@ Future<(Directory, File, Logger)> init(String arguments) async {
   GetIt.I.registerSingleton<BinaryProvider>(binaryProvider);
   GetIt.I.registerSingleton<MainchainRPC>(MainchainRPCLive.create());
   GetIt.I.registerSingleton<EnforcerRPC>(EnforcerLive());
+  final orchestrator = OrchestratorRPC(
+    host: 'localhost',
+    port: 30400,
+  );
+  GetIt.I.registerSingleton<OrchestratorRPC>(orchestrator);
+  final backendStateProvider = BackendStateProvider(orchestrator);
+  GetIt.I.registerSingleton<BackendStateProvider>(backendStateProvider);
+  backendStateProvider.startWatching();
 
   final bitwindow = BitwindowRPCLive(
     host: Environment.bitwindowdHost.value,
@@ -264,7 +272,7 @@ Future<void> runMainWindow(Logger log, Directory applicationDir, File logFile) a
   // check for updates on boot and every hour therafter
   await initAutoUpdater(log);
 
-  unawaited(bootBinaries(log));
+  unawaited(bootBitwindowBackend(log));
 
   return runApp(BitwindowApp(log: log));
 }
@@ -680,8 +688,8 @@ class _ErrorCatcher extends StatelessWidget {
   }
 }
 
-Future<void> bootBinaries(Logger log) async {
-  log.i('STARTUP: Booting binaries');
+Future<void> bootBitwindowBackend(Logger log) async {
+  log.i('STARTUP: Booting BitWindow backend');
 
   final binaryProvider = GetIt.I.get<BinaryProvider>();
   final bitwindow = binaryProvider.binaries.firstWhere((b) => b is BitWindow);
@@ -698,38 +706,7 @@ Future<void> bootBinaries(Logger log) async {
     }
   }());
 
-  // Start bitwindowd — it manages orchestratord, which manages all other
-  // binaries (bitcoind, enforcer, sidechains).
-  log.i('STARTUP: starting bitwindowd');
   await binaryProvider.start(bitwindow);
-
-  // Connect to orchestratord (managed by bitwindowd) for binary state.
-  final orchestrator = OrchestratorRPC(
-    host: Environment.orchestratorHost.value,
-    port: Environment.orchestratorPort.value,
-  );
-  GetIt.I.registerSingleton<OrchestratorRPC>(orchestrator);
-
-  final backendState = BackendStateProvider(orchestrator);
-  GetIt.I.registerSingleton<BackendStateProvider>(backendState);
-
-  // Wait for orchestratord to become ready (bitwindowd starts it).
-  log.i('STARTUP: waiting for orchestratord readiness');
-  for (var i = 0; i < 30; i++) {
-    try {
-      await orchestrator.listBinaries();
-      log.i('STARTUP: orchestratord is ready');
-      break;
-    } catch (_) {
-      if (i == 29) {
-        log.e('STARTUP: orchestratord did not become ready after 15s');
-      }
-      await Future.delayed(const Duration(milliseconds: 500));
-    }
-  }
-
-  // Stream binary status to the frontend.
-  backendState.startWatching();
 }
 
 Future<void> setupSignalHandlers(Logger log) async {
