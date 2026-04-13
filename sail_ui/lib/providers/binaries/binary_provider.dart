@@ -1207,16 +1207,18 @@ class BackendBinaryProvider extends BinaryProvider {
       final backendState = _backendState;
       if (backendState != null) {
         await backendState.trackStartup(
-          _bitwindow.bitwindowd.startManagedBinary(name).map(
-            (progress) => StartWithDepsResponse(
-              stage: progress.stage,
-              message: progress.message,
-              done: progress.done,
-              error: progress.error,
-              bytesDownloaded: progress.bytesDownloaded,
-              totalBytes: progress.totalBytes,
-            ),
-          ),
+          _bitwindow.bitwindowd
+              .startManagedBinary(name)
+              .map(
+                (progress) => StartWithDepsResponse(
+                  stage: progress.stage,
+                  message: progress.message,
+                  done: progress.done,
+                  error: progress.error,
+                  bytesDownloaded: progress.bytesDownloaded,
+                  totalBytes: progress.totalBytes,
+                ),
+              ),
         );
       } else {
         await for (final progress in _bitwindow.bitwindowd.startManagedBinary(name)) {

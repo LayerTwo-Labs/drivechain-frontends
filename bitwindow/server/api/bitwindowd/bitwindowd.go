@@ -26,14 +26,14 @@ import (
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/transactions"
 	service "github.com/LayerTwo-Labs/sidesail/bitwindow/server/service"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/utils/bandwidth"
+	orchpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/orchestrator/v1"
+	orchrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/orchestrator/v1/orchestratorv1connect"
 	corepb "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha"
 	corerpc "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha/bitcoindv1alphaconnect"
 	"github.com/btcsuite/btcd/btcutil"
 	"github.com/rs/zerolog"
 	"github.com/samber/lo"
 	"github.com/sourcegraph/conc/pool"
-	orchpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/orchestrator/v1"
-	orchrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/orchestrator/v1/orchestratorv1connect"
 	"google.golang.org/protobuf/types/known/emptypb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
@@ -99,7 +99,7 @@ func (s *Server) StartManagedBinary(
 	}
 
 	orchStream, err := client.StartWithDeps(ctx, connect.NewRequest(&orchpb.StartWithDepsRequest{
-		Target: req.Msg.Name,
+		Target:     req.Msg.Name,
 		TargetArgs: []string{"--headless"},
 	}))
 	if err != nil {
@@ -206,11 +206,11 @@ func (s *Server) ShutdownManagedBinaries(
 	for orchStream.Receive() {
 		msg := orchStream.Msg()
 		if err := stream.Send(&pb.ShutdownManagedBinariesResponse{
-			TotalCount:      msg.GetTotalCount(),
-			CompletedCount:  msg.GetCompletedCount(),
-			CurrentBinary:   msg.GetCurrentBinary(),
-			Done:            msg.GetDone(),
-			Error:           msg.GetError(),
+			TotalCount:     msg.GetTotalCount(),
+			CompletedCount: msg.GetCompletedCount(),
+			CurrentBinary:  msg.GetCurrentBinary(),
+			Done:           msg.GetDone(),
+			Error:          msg.GetError(),
 		}); err != nil {
 			return err
 		}
