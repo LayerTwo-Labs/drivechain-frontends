@@ -26,6 +26,74 @@ extension type BitwindowdServiceClient (connect.Transport _transport) {
     );
   }
 
+  Stream<bitwindowdv1bitwindowd.StartManagedBinaryResponse> startManagedBinary(
+    bitwindowdv1bitwindowd.StartManagedBinaryRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).server(
+      specs.BitwindowdService.startManagedBinary,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
+  Future<googleprotobufempty.Empty> stopManagedBinary(
+    bitwindowdv1bitwindowd.StopManagedBinaryRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.BitwindowdService.stopManagedBinary,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
+  Stream<bitwindowdv1bitwindowd.DownloadManagedBinaryResponse> downloadManagedBinary(
+    bitwindowdv1bitwindowd.DownloadManagedBinaryRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).server(
+      specs.BitwindowdService.downloadManagedBinary,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
+  Stream<bitwindowdv1bitwindowd.ShutdownManagedBinariesResponse> shutdownManagedBinaries(
+    bitwindowdv1bitwindowd.ShutdownManagedBinariesRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).server(
+      specs.BitwindowdService.shutdownManagedBinaries,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
   Stream<bitwindowdv1bitwindowd.MineBlocksResponse> mineBlocks(
     googleprotobufempty.Empty input, {
     connect.Headers? headers,

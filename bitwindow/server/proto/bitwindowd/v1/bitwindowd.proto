@@ -8,6 +8,11 @@ import "google/protobuf/timestamp.proto";
 service BitwindowdService {
   rpc Stop(BitwindowdServiceStopRequest) returns (google.protobuf.Empty);
 
+  rpc StartManagedBinary(StartManagedBinaryRequest) returns (stream StartManagedBinaryResponse);
+  rpc StopManagedBinary(StopManagedBinaryRequest) returns (google.protobuf.Empty);
+  rpc DownloadManagedBinary(DownloadManagedBinaryRequest) returns (stream DownloadManagedBinaryResponse);
+  rpc ShutdownManagedBinaries(ShutdownManagedBinariesRequest) returns (stream ShutdownManagedBinariesResponse);
+
   rpc MineBlocks(google.protobuf.Empty) returns (stream MineBlocksResponse);
 
   // Deniability operations
@@ -43,6 +48,49 @@ service BitwindowdService {
 message BitwindowdServiceStopRequest {
   // If true, only stop bitwindow itself without stopping downstream services (enforcer, bitcoind)
   bool skip_downstream = 1;
+}
+
+message StartManagedBinaryRequest {
+  string name = 1;
+}
+
+message StartManagedBinaryResponse {
+  string stage = 1;
+  string message = 2;
+  bool done = 3;
+  string error = 4;
+  int64 bytes_downloaded = 5;
+  int64 total_bytes = 6;
+}
+
+message StopManagedBinaryRequest {
+  string name = 1;
+  bool force = 2;
+}
+
+message DownloadManagedBinaryRequest {
+  string name = 1;
+  bool force = 2;
+}
+
+message DownloadManagedBinaryResponse {
+  int64 bytes_downloaded = 1;
+  int64 total_bytes = 2;
+  string message = 3;
+  bool done = 4;
+  string error = 5;
+}
+
+message ShutdownManagedBinariesRequest {
+  bool force = 1;
+}
+
+message ShutdownManagedBinariesResponse {
+  int32 total_count = 1;
+  int32 completed_count = 2;
+  string current_binary = 3;
+  bool done = 4;
+  string error = 5;
 }
 
 message CreateDenialRequest {

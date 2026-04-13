@@ -638,6 +638,7 @@ const CheckChequeFundingResponse$json = {
     {'1': 'actual_amount_sats', '3': 2, '4': 1, '5': 4, '10': 'actualAmountSats'},
     {'1': 'funded_txids', '3': 3, '4': 3, '5': 9, '10': 'fundedTxids'},
     {'1': 'funded_at', '3': 4, '4': 1, '5': 11, '6': '.google.protobuf.Timestamp', '9': 0, '10': 'fundedAt', '17': true},
+    {'1': 'min_confirmations', '3': 5, '4': 1, '5': 13, '10': 'minConfirmations'},
   ],
   '8': [
     {'1': '_funded_at'},
@@ -649,7 +650,8 @@ final $typed_data.Uint8List checkChequeFundingResponseDescriptor = $convert.base
     'ChpDaGVja0NoZXF1ZUZ1bmRpbmdSZXNwb25zZRIWCgZmdW5kZWQYASABKAhSBmZ1bmRlZBIsCh'
     'JhY3R1YWxfYW1vdW50X3NhdHMYAiABKARSEGFjdHVhbEFtb3VudFNhdHMSIQoMZnVuZGVkX3R4'
     'aWRzGAMgAygJUgtmdW5kZWRUeGlkcxI8CglmdW5kZWRfYXQYBCABKAsyGi5nb29nbGUucHJvdG'
-    '9idWYuVGltZXN0YW1wSABSCGZ1bmRlZEF0iAEBQgwKCl9mdW5kZWRfYXQ=');
+    '9idWYuVGltZXN0YW1wSABSCGZ1bmRlZEF0iAEBEisKEW1pbl9jb25maXJtYXRpb25zGAUgASgN'
+    'UhBtaW5Db25maXJtYXRpb25zQgwKCl9mdW5kZWRfYXQ=');
 
 @$core.Deprecated('Use sweepChequeRequestDescriptor instead')
 const SweepChequeRequest$json = {

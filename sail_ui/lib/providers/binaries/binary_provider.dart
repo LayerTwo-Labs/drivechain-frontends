@@ -1186,7 +1186,7 @@ class BackendBinaryProvider extends BinaryProvider {
     required super.processManager,
   }) : super._create();
 
-  OrchestratorRPC get _orchestrator => GetIt.I.get<OrchestratorRPC>();
+  BitwindowRPC get _bitwindow => GetIt.I.get<BitwindowRPC>();
 
   BackendStateProvider? get _backendState =>
       GetIt.I.isRegistered<BackendStateProvider>() ? GetIt.I.get<BackendStateProvider>() : null;
@@ -1207,13 +1207,19 @@ class BackendBinaryProvider extends BinaryProvider {
       final backendState = _backendState;
       if (backendState != null) {
         await backendState.trackStartup(
-          _orchestrator.startWithDeps(name, targetArgs: ['--headless']),
+          _bitwindow.bitwindowd.startManagedBinary(name).map(
+            (progress) => StartWithDepsResponse(
+              stage: progress.stage,
+              message: progress.message,
+              done: progress.done,
+              error: progress.error,
+              bytesDownloaded: progress.bytesDownloaded,
+              totalBytes: progress.totalBytes,
+            ),
+          ),
         );
       } else {
-        await for (final progress in _orchestrator.startWithDeps(
-          name,
-          targetArgs: ['--headless'],
-        )) {
+        await for (final progress in _bitwindow.bitwindowd.startManagedBinary(name)) {
           log.i('${progress.stage}: ${progress.message}');
           if (progress.error.isNotEmpty) {
             throw StateError(progress.error);
@@ -1239,7 +1245,7 @@ class BackendBinaryProvider extends BinaryProvider {
     log.i('BackendBinaryProvider: stopping $name via orchestrator');
 
     try {
-      await _orchestrator.stopBinary(name);
+      await _bitwindow.bitwindowd.stopManagedBinary(name);
     } catch (e) {
       log.e('BackendBinaryProvider: failed to stop $name: $e');
       rethrow;
@@ -1258,7 +1264,7 @@ class BackendBinaryProvider extends BinaryProvider {
     log.i('BackendBinaryProvider: downloading $name via orchestrator');
 
     try {
-      await for (final progress in _orchestrator.downloadBinary(
+      await for (final progress in _bitwindow.bitwindowd.downloadManagedBinary(
         name,
         force: shouldUpdate,
       )) {
@@ -1310,7 +1316,7 @@ class BackendBinaryProvider extends BinaryProvider {
     log.i('BackendBinaryProvider: shutting down all via orchestrator');
 
     try {
-      await for (final progress in _orchestrator.shutdownAll()) {
+      await for (final progress in _bitwindow.bitwindowd.shutdownManagedBinaries()) {
         if (progress.currentBinary.isNotEmpty) {
           log.i('BackendBinaryProvider: stopping ${progress.currentBinary}');
         }
