@@ -12,7 +12,7 @@ import 'package:sail_ui/gen/bitassets/v1/bitassets.pb.dart' as pb;
 import 'package:sail_ui/sail_ui.dart';
 
 abstract class BitAssetsRPC extends SidechainRPC {
-  BitAssetsRPC({required super.binaryType, required super.restartOnFailure});
+  BitAssetsRPC({required super.binaryType});
 
   /// Get balance in sats
   Future<BalanceResponse> getBalance();
@@ -89,7 +89,6 @@ abstract class BitAssetsRPC extends SidechainRPC {
   Future<Map<String, dynamic>> openapiSchema();
 
   /// Stop the node
-  @override
   Future<void> stop();
 
   /// Transfer funds to the specified address
@@ -232,7 +231,7 @@ class BitAssetsLive extends BitAssetsRPC {
 
   late BitAssetsServiceClient _client;
 
-  BitAssetsLive() : super(binaryType: BinaryType.bitassets, restartOnFailure: false) {
+  BitAssetsLive() : super(binaryType: BinaryType.bitassets) {
     final transport = connect.Transport(
       baseUrl: 'http://localhost:30400',
       codec: const ProtoCodec(),
@@ -243,12 +242,6 @@ class BitAssetsLive extends BitAssetsRPC {
 
   @override
   Future<List<String>> binaryArgs() async => [];
-
-  @override
-  Future<int> ping() async => await getBlockCount();
-
-  @override
-  List<String> startupErrors() => [];
 
   @override
   Future<(double, double)> balance() async {

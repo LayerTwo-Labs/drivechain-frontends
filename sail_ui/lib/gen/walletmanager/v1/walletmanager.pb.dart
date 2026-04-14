@@ -15,6 +15,8 @@ import 'dart:core' as $core;
 import 'package:fixnum/fixnum.dart' as $fixnum;
 import 'package:protobuf/protobuf.dart' as $pb;
 
+import '../../google/protobuf/empty.pb.dart' as $12;
+
 class GetWalletStatusRequest extends $pb.GeneratedMessage {
   factory GetWalletStatusRequest() => create();
   GetWalletStatusRequest._() : super();
@@ -1780,6 +1782,8 @@ class SendTransactionRequest extends $pb.GeneratedMessage {
     $fixnum.Int64? feeRateSatPerVbyte,
     $core.bool? subtractFeeFromAmount,
     $core.String? opReturnHex,
+    $fixnum.Int64? fixedFeeSats,
+    $core.Iterable<UnspentOutput>? requiredInputs,
   }) {
     final $result = create();
     if (walletId != null) {
@@ -1797,6 +1801,12 @@ class SendTransactionRequest extends $pb.GeneratedMessage {
     if (opReturnHex != null) {
       $result.opReturnHex = opReturnHex;
     }
+    if (fixedFeeSats != null) {
+      $result.fixedFeeSats = fixedFeeSats;
+    }
+    if (requiredInputs != null) {
+      $result.requiredInputs.addAll(requiredInputs);
+    }
     return $result;
   }
   SendTransactionRequest._() : super();
@@ -1809,6 +1819,8 @@ class SendTransactionRequest extends $pb.GeneratedMessage {
     ..aInt64(3, _omitFieldNames ? '' : 'feeRateSatPerVbyte')
     ..aOB(4, _omitFieldNames ? '' : 'subtractFeeFromAmount')
     ..aOS(5, _omitFieldNames ? '' : 'opReturnHex')
+    ..aInt64(6, _omitFieldNames ? '' : 'fixedFeeSats')
+    ..pc<UnspentOutput>(7, _omitFieldNames ? '' : 'requiredInputs', $pb.PbFieldType.PM, subBuilder: UnspentOutput.create)
     ..hasRequiredFields = false
   ;
 
@@ -1863,7 +1875,7 @@ class SendTransactionRequest extends $pb.GeneratedMessage {
   @$pb.TagNumber(4)
   void clearSubtractFeeFromAmount() => clearField(4);
 
-  /// For enforcer wallet: raw OP_RETURN hex
+  /// Raw OP_RETURN payload hex.
   @$pb.TagNumber(5)
   $core.String get opReturnHex => $_getSZ(4);
   @$pb.TagNumber(5)
@@ -1872,6 +1884,20 @@ class SendTransactionRequest extends $pb.GeneratedMessage {
   $core.bool hasOpReturnHex() => $_has(4);
   @$pb.TagNumber(5)
   void clearOpReturnHex() => clearField(5);
+
+  /// Exact fee in sats when caller wants deterministic fee selection.
+  @$pb.TagNumber(6)
+  $fixnum.Int64 get fixedFeeSats => $_getI64(5);
+  @$pb.TagNumber(6)
+  set fixedFeeSats($fixnum.Int64 v) { $_setInt64(5, v); }
+  @$pb.TagNumber(6)
+  $core.bool hasFixedFeeSats() => $_has(5);
+  @$pb.TagNumber(6)
+  void clearFixedFeeSats() => clearField(6);
+
+  /// Explicit wallet inputs to spend.
+  @$pb.TagNumber(7)
+  $core.List<UnspentOutput> get requiredInputs => $_getList(6);
 }
 
 class SendTransactionResponse extends $pb.GeneratedMessage {
@@ -2788,6 +2814,20 @@ class GetTransactionDetailsResponse extends $pb.GeneratedMessage {
   factory GetTransactionDetailsResponse({
     TransactionEntry? transaction,
     $core.String? rawHex,
+    $core.String? blockhash,
+    $core.int? confirmations,
+    $fixnum.Int64? blockTime,
+    $core.int? version,
+    $core.int? locktime,
+    $core.int? sizeBytes,
+    $core.int? vsizeVbytes,
+    $core.int? weightWu,
+    $fixnum.Int64? feeSats,
+    $core.double? feeRateSatVb,
+    $core.Iterable<TransactionInput>? inputs,
+    $fixnum.Int64? totalInputSats,
+    $core.Iterable<TransactionOutput>? outputs,
+    $fixnum.Int64? totalOutputSats,
   }) {
     final $result = create();
     if (transaction != null) {
@@ -2795,6 +2835,48 @@ class GetTransactionDetailsResponse extends $pb.GeneratedMessage {
     }
     if (rawHex != null) {
       $result.rawHex = rawHex;
+    }
+    if (blockhash != null) {
+      $result.blockhash = blockhash;
+    }
+    if (confirmations != null) {
+      $result.confirmations = confirmations;
+    }
+    if (blockTime != null) {
+      $result.blockTime = blockTime;
+    }
+    if (version != null) {
+      $result.version = version;
+    }
+    if (locktime != null) {
+      $result.locktime = locktime;
+    }
+    if (sizeBytes != null) {
+      $result.sizeBytes = sizeBytes;
+    }
+    if (vsizeVbytes != null) {
+      $result.vsizeVbytes = vsizeVbytes;
+    }
+    if (weightWu != null) {
+      $result.weightWu = weightWu;
+    }
+    if (feeSats != null) {
+      $result.feeSats = feeSats;
+    }
+    if (feeRateSatVb != null) {
+      $result.feeRateSatVb = feeRateSatVb;
+    }
+    if (inputs != null) {
+      $result.inputs.addAll(inputs);
+    }
+    if (totalInputSats != null) {
+      $result.totalInputSats = totalInputSats;
+    }
+    if (outputs != null) {
+      $result.outputs.addAll(outputs);
+    }
+    if (totalOutputSats != null) {
+      $result.totalOutputSats = totalOutputSats;
     }
     return $result;
   }
@@ -2805,6 +2887,20 @@ class GetTransactionDetailsResponse extends $pb.GeneratedMessage {
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'GetTransactionDetailsResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'walletmanager.v1'), createEmptyInstance: create)
     ..aOM<TransactionEntry>(1, _omitFieldNames ? '' : 'transaction', subBuilder: TransactionEntry.create)
     ..aOS(2, _omitFieldNames ? '' : 'rawHex')
+    ..aOS(3, _omitFieldNames ? '' : 'blockhash')
+    ..a<$core.int>(4, _omitFieldNames ? '' : 'confirmations', $pb.PbFieldType.O3)
+    ..aInt64(5, _omitFieldNames ? '' : 'blockTime')
+    ..a<$core.int>(6, _omitFieldNames ? '' : 'version', $pb.PbFieldType.O3)
+    ..a<$core.int>(7, _omitFieldNames ? '' : 'locktime', $pb.PbFieldType.O3)
+    ..a<$core.int>(8, _omitFieldNames ? '' : 'sizeBytes', $pb.PbFieldType.O3)
+    ..a<$core.int>(9, _omitFieldNames ? '' : 'vsizeVbytes', $pb.PbFieldType.O3)
+    ..a<$core.int>(10, _omitFieldNames ? '' : 'weightWu', $pb.PbFieldType.O3)
+    ..aInt64(11, _omitFieldNames ? '' : 'feeSats')
+    ..a<$core.double>(12, _omitFieldNames ? '' : 'feeRateSatVb', $pb.PbFieldType.OD)
+    ..pc<TransactionInput>(13, _omitFieldNames ? '' : 'inputs', $pb.PbFieldType.PM, subBuilder: TransactionInput.create)
+    ..aInt64(14, _omitFieldNames ? '' : 'totalInputSats')
+    ..pc<TransactionOutput>(15, _omitFieldNames ? '' : 'outputs', $pb.PbFieldType.PM, subBuilder: TransactionOutput.create)
+    ..aInt64(16, _omitFieldNames ? '' : 'totalOutputSats')
     ..hasRequiredFields = false
   ;
 
@@ -2848,6 +2944,410 @@ class GetTransactionDetailsResponse extends $pb.GeneratedMessage {
   $core.bool hasRawHex() => $_has(1);
   @$pb.TagNumber(2)
   void clearRawHex() => clearField(2);
+
+  @$pb.TagNumber(3)
+  $core.String get blockhash => $_getSZ(2);
+  @$pb.TagNumber(3)
+  set blockhash($core.String v) { $_setString(2, v); }
+  @$pb.TagNumber(3)
+  $core.bool hasBlockhash() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearBlockhash() => clearField(3);
+
+  @$pb.TagNumber(4)
+  $core.int get confirmations => $_getIZ(3);
+  @$pb.TagNumber(4)
+  set confirmations($core.int v) { $_setSignedInt32(3, v); }
+  @$pb.TagNumber(4)
+  $core.bool hasConfirmations() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearConfirmations() => clearField(4);
+
+  @$pb.TagNumber(5)
+  $fixnum.Int64 get blockTime => $_getI64(4);
+  @$pb.TagNumber(5)
+  set blockTime($fixnum.Int64 v) { $_setInt64(4, v); }
+  @$pb.TagNumber(5)
+  $core.bool hasBlockTime() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearBlockTime() => clearField(5);
+
+  @$pb.TagNumber(6)
+  $core.int get version => $_getIZ(5);
+  @$pb.TagNumber(6)
+  set version($core.int v) { $_setSignedInt32(5, v); }
+  @$pb.TagNumber(6)
+  $core.bool hasVersion() => $_has(5);
+  @$pb.TagNumber(6)
+  void clearVersion() => clearField(6);
+
+  @$pb.TagNumber(7)
+  $core.int get locktime => $_getIZ(6);
+  @$pb.TagNumber(7)
+  set locktime($core.int v) { $_setSignedInt32(6, v); }
+  @$pb.TagNumber(7)
+  $core.bool hasLocktime() => $_has(6);
+  @$pb.TagNumber(7)
+  void clearLocktime() => clearField(7);
+
+  @$pb.TagNumber(8)
+  $core.int get sizeBytes => $_getIZ(7);
+  @$pb.TagNumber(8)
+  set sizeBytes($core.int v) { $_setSignedInt32(7, v); }
+  @$pb.TagNumber(8)
+  $core.bool hasSizeBytes() => $_has(7);
+  @$pb.TagNumber(8)
+  void clearSizeBytes() => clearField(8);
+
+  @$pb.TagNumber(9)
+  $core.int get vsizeVbytes => $_getIZ(8);
+  @$pb.TagNumber(9)
+  set vsizeVbytes($core.int v) { $_setSignedInt32(8, v); }
+  @$pb.TagNumber(9)
+  $core.bool hasVsizeVbytes() => $_has(8);
+  @$pb.TagNumber(9)
+  void clearVsizeVbytes() => clearField(9);
+
+  @$pb.TagNumber(10)
+  $core.int get weightWu => $_getIZ(9);
+  @$pb.TagNumber(10)
+  set weightWu($core.int v) { $_setSignedInt32(9, v); }
+  @$pb.TagNumber(10)
+  $core.bool hasWeightWu() => $_has(9);
+  @$pb.TagNumber(10)
+  void clearWeightWu() => clearField(10);
+
+  @$pb.TagNumber(11)
+  $fixnum.Int64 get feeSats => $_getI64(10);
+  @$pb.TagNumber(11)
+  set feeSats($fixnum.Int64 v) { $_setInt64(10, v); }
+  @$pb.TagNumber(11)
+  $core.bool hasFeeSats() => $_has(10);
+  @$pb.TagNumber(11)
+  void clearFeeSats() => clearField(11);
+
+  @$pb.TagNumber(12)
+  $core.double get feeRateSatVb => $_getN(11);
+  @$pb.TagNumber(12)
+  set feeRateSatVb($core.double v) { $_setDouble(11, v); }
+  @$pb.TagNumber(12)
+  $core.bool hasFeeRateSatVb() => $_has(11);
+  @$pb.TagNumber(12)
+  void clearFeeRateSatVb() => clearField(12);
+
+  @$pb.TagNumber(13)
+  $core.List<TransactionInput> get inputs => $_getList(12);
+
+  @$pb.TagNumber(14)
+  $fixnum.Int64 get totalInputSats => $_getI64(13);
+  @$pb.TagNumber(14)
+  set totalInputSats($fixnum.Int64 v) { $_setInt64(13, v); }
+  @$pb.TagNumber(14)
+  $core.bool hasTotalInputSats() => $_has(13);
+  @$pb.TagNumber(14)
+  void clearTotalInputSats() => clearField(14);
+
+  @$pb.TagNumber(15)
+  $core.List<TransactionOutput> get outputs => $_getList(14);
+
+  @$pb.TagNumber(16)
+  $fixnum.Int64 get totalOutputSats => $_getI64(15);
+  @$pb.TagNumber(16)
+  set totalOutputSats($fixnum.Int64 v) { $_setInt64(15, v); }
+  @$pb.TagNumber(16)
+  $core.bool hasTotalOutputSats() => $_has(15);
+  @$pb.TagNumber(16)
+  void clearTotalOutputSats() => clearField(16);
+}
+
+class TransactionInput extends $pb.GeneratedMessage {
+  factory TransactionInput({
+    $core.int? index,
+    $core.String? prevTxid,
+    $core.int? prevVout,
+    $core.String? address,
+    $fixnum.Int64? valueSats,
+    $core.String? scriptSigAsm,
+    $core.String? scriptSigHex,
+    $core.Iterable<$core.String>? witness,
+    $fixnum.Int64? sequence,
+    $core.bool? isCoinbase,
+  }) {
+    final $result = create();
+    if (index != null) {
+      $result.index = index;
+    }
+    if (prevTxid != null) {
+      $result.prevTxid = prevTxid;
+    }
+    if (prevVout != null) {
+      $result.prevVout = prevVout;
+    }
+    if (address != null) {
+      $result.address = address;
+    }
+    if (valueSats != null) {
+      $result.valueSats = valueSats;
+    }
+    if (scriptSigAsm != null) {
+      $result.scriptSigAsm = scriptSigAsm;
+    }
+    if (scriptSigHex != null) {
+      $result.scriptSigHex = scriptSigHex;
+    }
+    if (witness != null) {
+      $result.witness.addAll(witness);
+    }
+    if (sequence != null) {
+      $result.sequence = sequence;
+    }
+    if (isCoinbase != null) {
+      $result.isCoinbase = isCoinbase;
+    }
+    return $result;
+  }
+  TransactionInput._() : super();
+  factory TransactionInput.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory TransactionInput.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'TransactionInput', package: const $pb.PackageName(_omitMessageNames ? '' : 'walletmanager.v1'), createEmptyInstance: create)
+    ..a<$core.int>(1, _omitFieldNames ? '' : 'index', $pb.PbFieldType.O3)
+    ..aOS(2, _omitFieldNames ? '' : 'prevTxid')
+    ..a<$core.int>(3, _omitFieldNames ? '' : 'prevVout', $pb.PbFieldType.O3)
+    ..aOS(4, _omitFieldNames ? '' : 'address')
+    ..aInt64(5, _omitFieldNames ? '' : 'valueSats')
+    ..aOS(6, _omitFieldNames ? '' : 'scriptSigAsm')
+    ..aOS(7, _omitFieldNames ? '' : 'scriptSigHex')
+    ..pPS(8, _omitFieldNames ? '' : 'witness')
+    ..aInt64(9, _omitFieldNames ? '' : 'sequence')
+    ..aOB(10, _omitFieldNames ? '' : 'isCoinbase')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  TransactionInput clone() => TransactionInput()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  TransactionInput copyWith(void Function(TransactionInput) updates) => super.copyWith((message) => updates(message as TransactionInput)) as TransactionInput;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static TransactionInput create() => TransactionInput._();
+  TransactionInput createEmptyInstance() => create();
+  static $pb.PbList<TransactionInput> createRepeated() => $pb.PbList<TransactionInput>();
+  @$core.pragma('dart2js:noInline')
+  static TransactionInput getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<TransactionInput>(create);
+  static TransactionInput? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.int get index => $_getIZ(0);
+  @$pb.TagNumber(1)
+  set index($core.int v) { $_setSignedInt32(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasIndex() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearIndex() => clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.String get prevTxid => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set prevTxid($core.String v) { $_setString(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasPrevTxid() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearPrevTxid() => clearField(2);
+
+  @$pb.TagNumber(3)
+  $core.int get prevVout => $_getIZ(2);
+  @$pb.TagNumber(3)
+  set prevVout($core.int v) { $_setSignedInt32(2, v); }
+  @$pb.TagNumber(3)
+  $core.bool hasPrevVout() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearPrevVout() => clearField(3);
+
+  @$pb.TagNumber(4)
+  $core.String get address => $_getSZ(3);
+  @$pb.TagNumber(4)
+  set address($core.String v) { $_setString(3, v); }
+  @$pb.TagNumber(4)
+  $core.bool hasAddress() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearAddress() => clearField(4);
+
+  @$pb.TagNumber(5)
+  $fixnum.Int64 get valueSats => $_getI64(4);
+  @$pb.TagNumber(5)
+  set valueSats($fixnum.Int64 v) { $_setInt64(4, v); }
+  @$pb.TagNumber(5)
+  $core.bool hasValueSats() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearValueSats() => clearField(5);
+
+  @$pb.TagNumber(6)
+  $core.String get scriptSigAsm => $_getSZ(5);
+  @$pb.TagNumber(6)
+  set scriptSigAsm($core.String v) { $_setString(5, v); }
+  @$pb.TagNumber(6)
+  $core.bool hasScriptSigAsm() => $_has(5);
+  @$pb.TagNumber(6)
+  void clearScriptSigAsm() => clearField(6);
+
+  @$pb.TagNumber(7)
+  $core.String get scriptSigHex => $_getSZ(6);
+  @$pb.TagNumber(7)
+  set scriptSigHex($core.String v) { $_setString(6, v); }
+  @$pb.TagNumber(7)
+  $core.bool hasScriptSigHex() => $_has(6);
+  @$pb.TagNumber(7)
+  void clearScriptSigHex() => clearField(7);
+
+  @$pb.TagNumber(8)
+  $core.List<$core.String> get witness => $_getList(7);
+
+  @$pb.TagNumber(9)
+  $fixnum.Int64 get sequence => $_getI64(8);
+  @$pb.TagNumber(9)
+  set sequence($fixnum.Int64 v) { $_setInt64(8, v); }
+  @$pb.TagNumber(9)
+  $core.bool hasSequence() => $_has(8);
+  @$pb.TagNumber(9)
+  void clearSequence() => clearField(9);
+
+  @$pb.TagNumber(10)
+  $core.bool get isCoinbase => $_getBF(9);
+  @$pb.TagNumber(10)
+  set isCoinbase($core.bool v) { $_setBool(9, v); }
+  @$pb.TagNumber(10)
+  $core.bool hasIsCoinbase() => $_has(9);
+  @$pb.TagNumber(10)
+  void clearIsCoinbase() => clearField(10);
+}
+
+class TransactionOutput extends $pb.GeneratedMessage {
+  factory TransactionOutput({
+    $core.int? index,
+    $fixnum.Int64? valueSats,
+    $core.String? address,
+    $core.String? scriptType,
+    $core.String? scriptPubkeyAsm,
+    $core.String? scriptPubkeyHex,
+  }) {
+    final $result = create();
+    if (index != null) {
+      $result.index = index;
+    }
+    if (valueSats != null) {
+      $result.valueSats = valueSats;
+    }
+    if (address != null) {
+      $result.address = address;
+    }
+    if (scriptType != null) {
+      $result.scriptType = scriptType;
+    }
+    if (scriptPubkeyAsm != null) {
+      $result.scriptPubkeyAsm = scriptPubkeyAsm;
+    }
+    if (scriptPubkeyHex != null) {
+      $result.scriptPubkeyHex = scriptPubkeyHex;
+    }
+    return $result;
+  }
+  TransactionOutput._() : super();
+  factory TransactionOutput.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory TransactionOutput.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'TransactionOutput', package: const $pb.PackageName(_omitMessageNames ? '' : 'walletmanager.v1'), createEmptyInstance: create)
+    ..a<$core.int>(1, _omitFieldNames ? '' : 'index', $pb.PbFieldType.O3)
+    ..aInt64(2, _omitFieldNames ? '' : 'valueSats')
+    ..aOS(3, _omitFieldNames ? '' : 'address')
+    ..aOS(4, _omitFieldNames ? '' : 'scriptType')
+    ..aOS(5, _omitFieldNames ? '' : 'scriptPubkeyAsm')
+    ..aOS(6, _omitFieldNames ? '' : 'scriptPubkeyHex')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  TransactionOutput clone() => TransactionOutput()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  TransactionOutput copyWith(void Function(TransactionOutput) updates) => super.copyWith((message) => updates(message as TransactionOutput)) as TransactionOutput;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static TransactionOutput create() => TransactionOutput._();
+  TransactionOutput createEmptyInstance() => create();
+  static $pb.PbList<TransactionOutput> createRepeated() => $pb.PbList<TransactionOutput>();
+  @$core.pragma('dart2js:noInline')
+  static TransactionOutput getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<TransactionOutput>(create);
+  static TransactionOutput? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.int get index => $_getIZ(0);
+  @$pb.TagNumber(1)
+  set index($core.int v) { $_setSignedInt32(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasIndex() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearIndex() => clearField(1);
+
+  @$pb.TagNumber(2)
+  $fixnum.Int64 get valueSats => $_getI64(1);
+  @$pb.TagNumber(2)
+  set valueSats($fixnum.Int64 v) { $_setInt64(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasValueSats() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearValueSats() => clearField(2);
+
+  @$pb.TagNumber(3)
+  $core.String get address => $_getSZ(2);
+  @$pb.TagNumber(3)
+  set address($core.String v) { $_setString(2, v); }
+  @$pb.TagNumber(3)
+  $core.bool hasAddress() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearAddress() => clearField(3);
+
+  @$pb.TagNumber(4)
+  $core.String get scriptType => $_getSZ(3);
+  @$pb.TagNumber(4)
+  set scriptType($core.String v) { $_setString(3, v); }
+  @$pb.TagNumber(4)
+  $core.bool hasScriptType() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearScriptType() => clearField(4);
+
+  @$pb.TagNumber(5)
+  $core.String get scriptPubkeyAsm => $_getSZ(4);
+  @$pb.TagNumber(5)
+  set scriptPubkeyAsm($core.String v) { $_setString(4, v); }
+  @$pb.TagNumber(5)
+  $core.bool hasScriptPubkeyAsm() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearScriptPubkeyAsm() => clearField(5);
+
+  @$pb.TagNumber(6)
+  $core.String get scriptPubkeyHex => $_getSZ(5);
+  @$pb.TagNumber(6)
+  set scriptPubkeyHex($core.String v) { $_setString(5, v); }
+  @$pb.TagNumber(6)
+  $core.bool hasScriptPubkeyHex() => $_has(5);
+  @$pb.TagNumber(6)
+  void clearScriptPubkeyHex() => clearField(6);
 }
 
 class BumpFeeRequest extends $pb.GeneratedMessage {
@@ -3200,6 +3700,137 @@ class GetWalletSeedResponse extends $pb.GeneratedMessage {
   void clearSeedHex() => clearField(1);
 }
 
+class WatchWalletDataResponse extends $pb.GeneratedMessage {
+  factory WatchWalletDataResponse({
+    $core.bool? hasWallet,
+    $core.bool? encrypted,
+    $core.bool? unlocked,
+    $core.String? activeWalletId,
+    $core.Iterable<WalletMetadata>? wallets,
+    $core.double? confirmedSats,
+    $core.double? unconfirmedSats,
+  }) {
+    final $result = create();
+    if (hasWallet != null) {
+      $result.hasWallet = hasWallet;
+    }
+    if (encrypted != null) {
+      $result.encrypted = encrypted;
+    }
+    if (unlocked != null) {
+      $result.unlocked = unlocked;
+    }
+    if (activeWalletId != null) {
+      $result.activeWalletId = activeWalletId;
+    }
+    if (wallets != null) {
+      $result.wallets.addAll(wallets);
+    }
+    if (confirmedSats != null) {
+      $result.confirmedSats = confirmedSats;
+    }
+    if (unconfirmedSats != null) {
+      $result.unconfirmedSats = unconfirmedSats;
+    }
+    return $result;
+  }
+  WatchWalletDataResponse._() : super();
+  factory WatchWalletDataResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory WatchWalletDataResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'WatchWalletDataResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'walletmanager.v1'), createEmptyInstance: create)
+    ..aOB(1, _omitFieldNames ? '' : 'hasWallet')
+    ..aOB(2, _omitFieldNames ? '' : 'encrypted')
+    ..aOB(3, _omitFieldNames ? '' : 'unlocked')
+    ..aOS(4, _omitFieldNames ? '' : 'activeWalletId')
+    ..pc<WalletMetadata>(5, _omitFieldNames ? '' : 'wallets', $pb.PbFieldType.PM, subBuilder: WalletMetadata.create)
+    ..a<$core.double>(6, _omitFieldNames ? '' : 'confirmedSats', $pb.PbFieldType.OD)
+    ..a<$core.double>(7, _omitFieldNames ? '' : 'unconfirmedSats', $pb.PbFieldType.OD)
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  WatchWalletDataResponse clone() => WatchWalletDataResponse()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  WatchWalletDataResponse copyWith(void Function(WatchWalletDataResponse) updates) => super.copyWith((message) => updates(message as WatchWalletDataResponse)) as WatchWalletDataResponse;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static WatchWalletDataResponse create() => WatchWalletDataResponse._();
+  WatchWalletDataResponse createEmptyInstance() => create();
+  static $pb.PbList<WatchWalletDataResponse> createRepeated() => $pb.PbList<WatchWalletDataResponse>();
+  @$core.pragma('dart2js:noInline')
+  static WatchWalletDataResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<WatchWalletDataResponse>(create);
+  static WatchWalletDataResponse? _defaultInstance;
+
+  /// Wallet status
+  @$pb.TagNumber(1)
+  $core.bool get hasWallet => $_getBF(0);
+  @$pb.TagNumber(1)
+  set hasWallet($core.bool v) { $_setBool(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasHasWallet() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearHasWallet() => clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.bool get encrypted => $_getBF(1);
+  @$pb.TagNumber(2)
+  set encrypted($core.bool v) { $_setBool(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasEncrypted() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearEncrypted() => clearField(2);
+
+  @$pb.TagNumber(3)
+  $core.bool get unlocked => $_getBF(2);
+  @$pb.TagNumber(3)
+  set unlocked($core.bool v) { $_setBool(2, v); }
+  @$pb.TagNumber(3)
+  $core.bool hasUnlocked() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearUnlocked() => clearField(3);
+
+  @$pb.TagNumber(4)
+  $core.String get activeWalletId => $_getSZ(3);
+  @$pb.TagNumber(4)
+  set activeWalletId($core.String v) { $_setString(3, v); }
+  @$pb.TagNumber(4)
+  $core.bool hasActiveWalletId() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearActiveWalletId() => clearField(4);
+
+  /// All wallets
+  @$pb.TagNumber(5)
+  $core.List<WalletMetadata> get wallets => $_getList(4);
+
+  /// Active wallet balance (zero if no active wallet)
+  @$pb.TagNumber(6)
+  $core.double get confirmedSats => $_getN(5);
+  @$pb.TagNumber(6)
+  set confirmedSats($core.double v) { $_setDouble(5, v); }
+  @$pb.TagNumber(6)
+  $core.bool hasConfirmedSats() => $_has(5);
+  @$pb.TagNumber(6)
+  void clearConfirmedSats() => clearField(6);
+
+  @$pb.TagNumber(7)
+  $core.double get unconfirmedSats => $_getN(6);
+  @$pb.TagNumber(7)
+  set unconfirmedSats($core.double v) { $_setDouble(6, v); }
+  @$pb.TagNumber(7)
+  $core.bool hasUnconfirmedSats() => $_has(6);
+  @$pb.TagNumber(7)
+  void clearUnconfirmedSats() => clearField(7);
+}
+
 class WalletManagerServiceApi {
   $pb.RpcClient _client;
   WalletManagerServiceApi(this._client);
@@ -3278,6 +3909,9 @@ class WalletManagerServiceApi {
   ;
   $async.Future<GetWalletSeedResponse> getWalletSeed($pb.ClientContext? ctx, GetWalletSeedRequest request) =>
     _client.invoke<GetWalletSeedResponse>(ctx, 'WalletManagerService', 'GetWalletSeed', request, GetWalletSeedResponse())
+  ;
+  $async.Future<WatchWalletDataResponse> watchWalletData($pb.ClientContext? ctx, $12.Empty request) =>
+    _client.invoke<WatchWalletDataResponse>(ctx, 'WalletManagerService', 'WatchWalletData', request, WatchWalletDataResponse())
   ;
 }
 

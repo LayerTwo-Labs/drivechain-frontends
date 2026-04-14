@@ -45,7 +45,7 @@ type BinaryStatus struct {
 	StartupLogs     []StartupLogLine
 }
 
-// StartupProgress reports progress during StartWithDeps.
+// StartupProgress reports progress during StartWithL1.
 type StartupProgress struct {
 	Stage           string // e.g. "downloading-bitcoind", "starting-bitcoind", "waiting-ibd"
 	Message         string
@@ -64,7 +64,7 @@ type ShutdownProgress struct {
 	Error          error
 }
 
-// StartOpts configures a StartWithDeps call.
+// StartOpts configures a StartWithL1 call.
 type StartOpts struct {
 	TargetArgs   []string
 	TargetEnv    map[string]string
@@ -419,9 +419,9 @@ func (o *Orchestrator) RecentLogs(name string, n int) ([]LogEntry, error) {
 	return proc.RecentLogs(n), nil
 }
 
-// StartWithDeps starts a binary along with its dependency chain:
+// StartWithL1 starts a binary along with its dependency chain:
 // Bitcoin Core -> wait for wallet/IBD -> Enforcer -> target binary.
-func (o *Orchestrator) StartWithDeps(ctx context.Context, target string, opts StartOpts) (<-chan StartupProgress, error) {
+func (o *Orchestrator) StartWithL1(ctx context.Context, target string, opts StartOpts) (<-chan StartupProgress, error) {
 	config, err := o.getConfig(target)
 	if err != nil {
 		return nil, err
@@ -448,27 +448,6 @@ func (o *Orchestrator) StartWithDeps(ctx context.Context, target string, opts St
 		if len(opts.EnforcerArgs) == 0 && o.EnforcerConf != nil {
 			opts.EnforcerArgs = o.EnforcerConf.GetCliArgs()
 			o.log.Info().Strs("enforcer_args", opts.EnforcerArgs).Msg("auto-built enforcer args from config")
-		}
-
-		// Dart enforcer_rpc.dart L66-69: inject L1 seed for enforcer
-		// Dart: always tries, no HasWallet/IsUnlocked guard — fails gracefully
-		if o.WalletSvc != nil {
-			// Dart L66: strip old --wallet-seed-file args before adding new
-			filtered := make([]string, 0, len(opts.EnforcerArgs))
-			for _, arg := range opts.EnforcerArgs {
-				if !strings.HasPrefix(arg, "--wallet-seed-file") {
-					filtered = append(filtered, arg)
-				}
-			}
-			opts.EnforcerArgs = filtered
-
-			l1Path, err := o.WalletSvc.WriteL1Starter()
-			if err != nil {
-				o.log.Warn().Err(err).Msg("failed to write L1 starter, continuing without")
-			} else {
-				opts.EnforcerArgs = append(opts.EnforcerArgs, fmt.Sprintf("--wallet-seed-file=%s", l1Path))
-				o.log.Info().Str("path", l1Path).Msg("injected L1 starter for enforcer")
-			}
 		}
 
 		// Dart binary_provider.dart L314-326: inject sidechain seed for chainLayer==2 targets
@@ -603,78 +582,122 @@ func (o *Orchestrator) StartWithDeps(ctx context.Context, target string, opts St
 			}
 		}
 
-		// === Enforcer: same initBinary pattern ===
-		if config.ChainLayer == 2 {
-			enforcerCfg := o.configs["enforcer"]
-			enforcerChecker := NewHealthChecker(enforcerCfg)
-			enforcerMon := o.getOrCreateMonitor("enforcer", enforcerChecker, enforcerStartupPatterns)
-
-			// Dart L208: await startConnectionTimer()
-			enforcerMon.StartConnectionTimer(ctx)
-
-			// Dart L209-213: if (connected) → skip
-			if enforcerMon.Connected() {
-				o.log.Info().Str("binary", "enforcer").Msg("already running, not booting")
-				ch <- StartupProgress{Stage: "waiting-enforcer", Message: "BIP300301 enforcer already running"}
-
-				if !o.process.IsRunning("enforcer") {
-					pid := o.discoverPid(enforcerCfg)
-					o.process.AdoptProcess(enforcerCfg, pid)
-					o.log.Info().Str("binary", "enforcer").Int("pid", pid).Msg("adopted externally-running process")
-				}
-			} else {
-				// Dart L216-217: only start restart timer if this process starts the binary!
-				enfOpts := opts
-				enforcerMon.StartRestartTimer(ctx,
-					func(restartCtx context.Context) error {
-						_, err := o.process.Start(restartCtx, o.configs["enforcer"], enfOpts.EnforcerArgs, nil)
-						return err
-					},
-					func() (int, bool) {
-						proc := o.process.Get("enforcer")
-						if proc == nil {
-							return 0, false
-						}
-						select {
-						case <-proc.ExitCh():
-							return proc.ExitCode(), true
-						default:
-							return 0, false
-						}
-					},
-				)
-
-				ch <- StartupProgress{Stage: "starting-enforcer", Message: "starting BIP300301 enforcer..."}
-
-				downloadCh, err := o.download.Download(ctx, o.configs["enforcer"], o.Network, false)
-				if err != nil {
-					ch <- StartupProgress{Error: fmt.Errorf("download enforcer: %w", err)}
-					return
-				}
-				if err := forwardDownload(downloadCh, ch, "downloading-enforcer"); err != nil {
-					ch <- StartupProgress{Error: fmt.Errorf("download enforcer: %w", err)}
-					return
-				}
-
-				if _, err := o.process.Start(ctx, o.configs["enforcer"], opts.EnforcerArgs, nil); err != nil {
-					ch <- StartupProgress{Error: fmt.Errorf("start enforcer: %w", err)}
-					return
-				}
-				enforcerProc := o.process.Get("enforcer")
-
-				ch <- StartupProgress{Stage: "waiting-enforcer", Message: "waiting for enforcer to accept connections..."}
-				if err := waitForConnectedOrExit(ctx, enforcerMon, enforcerProc); err != nil {
-					ch <- StartupProgress{Error: fmt.Errorf("wait for enforcer: %w", err)}
-					return
-				}
-			}
+		// Wait for wallet + IBD, then start enforcer.
+		if !opts.Immediate {
+			o.startEnforcerWhenReady(ctx, opts)
 		}
 
-		// Start the target binary
+		// Start the target after enforcer is ready.
 		o.startTargetOnly(ctx, config, opts, ch)
 	}()
 
 	return ch, nil
+}
+
+// startEnforcerWhenReady waits for wallet + IBD completion, then starts the enforcer.
+func (o *Orchestrator) startEnforcerWhenReady(ctx context.Context, opts StartOpts) {
+	// 1. Wait for wallet to exist — enforcer needs the L1 seed.
+	if o.WalletSvc != nil && !o.WalletSvc.HasWallet() {
+		o.log.Info().Msg("waiting for wallet before starting enforcer")
+		for !o.WalletSvc.HasWallet() {
+			select {
+			case <-ctx.Done():
+				return
+			case <-o.WalletSvc.StateChanged:
+			}
+		}
+		o.log.Info().Msg("wallet created")
+	}
+
+	// 2. Wait for IBD to complete — enforcer needs a fully synced chain.
+	client, err := o.CoreStatusClient()
+	if err == nil {
+		o.log.Info().Msg("waiting for IBD to complete before starting enforcer")
+		for {
+			complete, err := client.IsIBDComplete(ctx)
+			if err == nil && complete {
+				break
+			}
+			select {
+			case <-ctx.Done():
+				return
+			case <-time.After(5 * time.Second):
+			}
+		}
+		o.log.Info().Msg("IBD complete, proceeding with enforcer")
+	}
+
+	// 3. Inject L1 seed
+	if o.WalletSvc != nil {
+		filtered := make([]string, 0, len(opts.EnforcerArgs))
+		for _, arg := range opts.EnforcerArgs {
+			if !strings.HasPrefix(arg, "--wallet-seed-file") {
+				filtered = append(filtered, arg)
+			}
+		}
+		opts.EnforcerArgs = filtered
+
+		l1Path, err := o.WalletSvc.WriteL1Starter()
+		if err != nil {
+			o.log.Warn().Err(err).Msg("failed to write L1 starter, continuing without")
+		} else {
+			opts.EnforcerArgs = append(opts.EnforcerArgs, fmt.Sprintf("--wallet-seed-file=%s", l1Path))
+			o.log.Info().Str("path", l1Path).Msg("injected L1 starter for enforcer")
+		}
+	}
+
+	enforcerCfg := o.configs["enforcer"]
+	enforcerChecker := NewHealthChecker(enforcerCfg)
+	enforcerMon := o.getOrCreateMonitor("enforcer", enforcerChecker, enforcerStartupPatterns)
+	enforcerMon.StartConnectionTimer(ctx)
+
+	if enforcerMon.Connected() {
+		o.log.Info().Msg("enforcer already running")
+		if !o.process.IsRunning("enforcer") {
+			pid := o.discoverPid(enforcerCfg)
+			o.process.AdoptProcess(enforcerCfg, pid)
+		}
+		return
+	}
+
+	enfOpts := opts
+	enforcerMon.StartRestartTimer(ctx,
+		func(restartCtx context.Context) error {
+			_, err := o.process.Start(restartCtx, o.configs["enforcer"], enfOpts.EnforcerArgs, nil)
+			return err
+		},
+		func() (int, bool) {
+			proc := o.process.Get("enforcer")
+			if proc == nil {
+				return 0, false
+			}
+			select {
+			case <-proc.ExitCh():
+				return proc.ExitCode(), true
+			default:
+				return 0, false
+			}
+		},
+	)
+
+	downloadCh, err := o.download.Download(ctx, enforcerCfg, o.Network, false)
+	if err != nil {
+		o.log.Error().Err(err).Msg("failed to download enforcer")
+		return
+	}
+	for progress := range downloadCh {
+		if progress.Error != nil {
+			o.log.Error().Err(progress.Error).Msg("enforcer download error")
+			return
+		}
+	}
+
+	if _, err := o.process.Start(ctx, enforcerCfg, opts.EnforcerArgs, nil); err != nil {
+		o.log.Error().Err(err).Msg("failed to start enforcer")
+		return
+	}
+
+	o.log.Info().Msg("enforcer started")
 }
 
 func (o *Orchestrator) startTargetOnly(ctx context.Context, config BinaryConfig, opts StartOpts, ch chan<- StartupProgress) {
@@ -708,6 +731,18 @@ func (o *Orchestrator) startTargetOnly(ctx context.Context, config BinaryConfig,
 	}
 	if err := forwardDownload(downloadCh, ch, "downloading-"+config.Name); err != nil {
 		ch <- StartupProgress{Error: fmt.Errorf("download %s: %w", config.Name, err)}
+		return
+	}
+
+	// If already running (e.g. enforcer started as a dep), just wait for connection.
+	if o.process.IsRunning(config.Name) {
+		o.log.Info().Str("binary", config.Name).Msg("process already running, waiting for connection")
+		ch <- StartupProgress{Stage: "waiting-" + config.Name, Message: fmt.Sprintf("waiting for %s...", config.DisplayName)}
+		if err := waitForConnectedOrExit(ctx, targetMon, o.process.Get(config.Name)); err != nil {
+			ch <- StartupProgress{Error: fmt.Errorf("wait for %s: %w", config.Name, err)}
+			return
+		}
+		ch <- StartupProgress{Stage: "done", Message: fmt.Sprintf("%s started", config.DisplayName), Done: true}
 		return
 	}
 

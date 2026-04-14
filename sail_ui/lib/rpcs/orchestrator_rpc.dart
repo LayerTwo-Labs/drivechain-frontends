@@ -3,11 +3,13 @@ import 'package:connectrpc/protobuf.dart';
 import 'package:connectrpc/protocol/connect.dart' as connect;
 import 'package:sail_ui/gen/orchestrator/v1/orchestrator.connect.client.dart';
 import 'package:sail_ui/gen/orchestrator/v1/orchestrator.pb.dart';
+import 'package:sail_ui/rpcs/orchestrator_wallet_rpc.dart';
 
 /// RPC client for the orchestrator daemon.
 /// Wraps the generated OrchestratorServiceClient for binary management.
 class OrchestratorRPC {
   late OrchestratorServiceClient _client;
+  late final OrchestratorWalletRPC wallet;
 
   OrchestratorRPC({required String host, required int port}) {
     final transport = connect.Transport(
@@ -16,6 +18,7 @@ class OrchestratorRPC {
       httpClient: createHttpClient(),
     );
     _client = OrchestratorServiceClient(transport);
+    wallet = OrchestratorWalletRPC.fromTransport(transport);
   }
 
   Future<ListBinariesResponse> listBinaries() {
@@ -61,7 +64,7 @@ class OrchestratorRPC {
     return _client.streamLogs(StreamLogsRequest(name: name, tail: tail));
   }
 
-  Stream<StartWithDepsResponse> startWithDeps(
+  Stream<StartWithL1Response> startWithL1(
     String target, {
     List<String>? targetArgs,
     Map<String, String>? targetEnv,
@@ -69,8 +72,8 @@ class OrchestratorRPC {
     List<String>? enforcerArgs,
     bool immediate = false,
   }) {
-    return _client.startWithDeps(
-      StartWithDepsRequest(
+    return _client.startWithL1(
+      StartWithL1Request(
         target: target,
         targetArgs: targetArgs ?? [],
         targetEnv: targetEnv ?? {},

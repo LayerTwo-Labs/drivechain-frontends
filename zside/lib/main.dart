@@ -276,7 +276,7 @@ void bootBinaries(Logger log) async {
     final zsided = binaryProvider.binaries.firstWhere((b) => b is ZSided);
     await binaryProvider.start(zsided);
 
-    // Wait for zsided to be ready before calling startWithDeps
+    // Wait for zsided to be ready before calling StartWithL1
     final orchestrator = GetIt.I.get<OrchestratorRPC>();
     for (var i = 0; i < 30; i++) {
       try {
@@ -298,11 +298,11 @@ void bootBinaries(Logger log) async {
 
     // Use zsided's gRPC to start the dependency chain.
     // BackendStateProvider tracks progress and updates download bars in the UI.
-    log.i('bootBinaries: calling startWithDeps');
+    log.i('bootBinaries: calling StartWithL1');
     await backendState.trackStartup(
-      orchestrator.startWithDeps('zside', targetArgs: ['--headless']),
+      orchestrator.startWithL1('zside', targetArgs: ['--headless']),
     );
-    log.i('bootBinaries: startWithDeps completed');
+    log.i('bootBinaries: StartWithL1 completed');
   } catch (e, st) {
     log.e('bootBinaries failed: $e\n$st');
   }

@@ -1,4 +1,3 @@
-2026-04-05T14:46:01.828376Z  INFO coinshift_app_cli_lib: cli/lib.rs:526: request ID: 24a862d23a0c4249a9ff4be636a707a1
 {
   "openapi": "3.1.0",
   "info": {
@@ -192,7 +191,7 @@
     },
     "create_swap": {
       "post": {
-        "description": "Create a swap (L2 → L1)\nIf l2_recipient is None, creates an open swap (anyone can fill it)",
+        "description": "Create a swap (L2 \u2192 L1)\nIf l2_recipient is None, creates an open swap (anyone can fill it)",
         "operationId": "create_swap",
         "requestBody": {
           "content": {

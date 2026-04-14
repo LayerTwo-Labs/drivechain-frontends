@@ -51,7 +51,7 @@ final zsideRPCMethods = [
 ];
 
 abstract class ZSideRPC extends SidechainRPC {
-  ZSideRPC({required super.binaryType, required super.restartOnFailure});
+  ZSideRPC({required super.binaryType});
 
   Future<double> getSidechainWealth();
   Future<String> createDeposit(String address, double amount, double fee);
@@ -92,7 +92,7 @@ class ZSideLive extends ZSideRPC {
 
   late ZSideServiceClient _client;
 
-  ZSideLive() : super(binaryType: BinaryType.zSide, restartOnFailure: false) {
+  ZSideLive() : super(binaryType: BinaryType.zSide) {
     final transport = connect.Transport(
       baseUrl: 'http://localhost:30400',
       codec: const ProtoCodec(),
@@ -105,16 +105,10 @@ class ZSideLive extends ZSideRPC {
   Future<List<String>> binaryArgs() async => [];
 
   @override
-  Future<int> ping() async => await getBlockCount();
-
-  @override
   Future<int> getBlockCount() async {
     final resp = await _client.getBlockCount(pb.GetBlockCountRequest());
     return resp.count.toInt();
   }
-
-  @override
-  List<String> startupErrors() => [];
 
   @override
   Future<(double, double)> balance() async {

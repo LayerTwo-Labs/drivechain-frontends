@@ -458,7 +458,7 @@ func TestProcessManager_ExitChAndExitCode(t *testing.T) {
 	assert.Equal(t, 42, proc.ExitCode())
 }
 
-// --- StartWithDeps stream tests ---
+// --- StartWithL1 stream tests ---
 
 // collectProgress drains a StartupProgress channel and returns all messages.
 func collectProgress(ch <-chan StartupProgress) []StartupProgress { //nolint:unused // kept for future tests
@@ -469,7 +469,7 @@ func collectProgress(ch <-chan StartupProgress) []StartupProgress { //nolint:unu
 	return results
 }
 
-func TestStartWithDeps_AlreadyRunning_AdoptsAndSkips(t *testing.T) {
+func TestStartWithL1_AlreadyRunning_AdoptsAndSkips(t *testing.T) {
 	// Scenario: bitcoind and enforcer already running when thunderd starts.
 	// Should adopt them, not try to start duplicates.
 	o := newTestOrchestrator(t)
@@ -486,7 +486,7 @@ func TestStartWithDeps_AlreadyRunning_AdoptsAndSkips(t *testing.T) {
 	assert.True(t, o.process.IsAdopted("enforcer"))
 }
 
-func TestStartWithDeps_ShutdownSkipsAdopted(t *testing.T) {
+func TestStartWithL1_ShutdownSkipsAdopted(t *testing.T) {
 	// Scenario: adopted processes should not be killed during shutdown.
 	o := newTestOrchestrator(t)
 
@@ -512,7 +512,7 @@ func TestStartWithDeps_ShutdownSkipsAdopted(t *testing.T) {
 	assert.True(t, progress[len(progress)-1].Done)
 }
 
-func TestStartWithDeps_ShutdownAdopted_MonitorEntersConnectMode(t *testing.T) {
+func TestStartWithL1_ShutdownAdopted_MonitorEntersConnectMode(t *testing.T) {
 	// Scenario: after shutting down adopted processes, monitors should enter
 	// connectModeOnly to detect if they come back externally.
 	o := newTestOrchestrator(t)

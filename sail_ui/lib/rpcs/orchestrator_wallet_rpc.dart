@@ -1,7 +1,9 @@
-import 'package:connectrpc/http2.dart';
-import 'package:connectrpc/protobuf.dart';
+import 'dart:convert';
+
 import 'package:connectrpc/protocol/connect.dart' as connect;
 import 'package:fixnum/fixnum.dart';
+import 'package:sail_ui/gen/wallet/v1/wallet.pb.dart' as bwpb;
+import 'package:sail_ui/gen/google/protobuf/empty.pb.dart' as emptypb;
 import 'package:sail_ui/gen/walletmanager/v1/walletmanager.connect.client.dart';
 import 'package:sail_ui/gen/walletmanager/v1/walletmanager.pb.dart' as wmpb;
 
@@ -14,12 +16,8 @@ class OrchestratorWalletRPC {
 
   static const _defaultTransactionCount = 100;
 
-  OrchestratorWalletRPC({required String host, required int port}) {
-    final transport = connect.Transport(
-      baseUrl: 'http://$host:$port',
-      codec: const ProtoCodec(),
-      httpClient: createHttpClient(),
-    );
+  /// Create from a shared transport (used by OrchestratorRPC).
+  OrchestratorWalletRPC.fromTransport(connect.Transport transport) {
     _client = WalletManagerServiceClient(transport);
   }
 
@@ -127,16 +125,24 @@ class OrchestratorWalletRPC {
     required String walletId,
     required Map<String, int> destinations,
     int? feeRateSatPerVbyte,
+    int? fixedFeeSats,
     bool subtractFeeFromAmount = false,
+    String? opReturnMessage,
     String? opReturnHex,
+    List<bwpb.UnspentOutput>? requiredInputs,
   }) {
+    final resolvedOpReturnHex =
+        opReturnHex ?? (opReturnMessage == null ? null : _bytesToHex(utf8.encode(opReturnMessage)));
+
     return _client.sendTransaction(
       wmpb.SendTransactionRequest(
         walletId: walletId,
         destinations: destinations.map((key, value) => MapEntry(key, Int64(value))),
         feeRateSatPerVbyte: Int64(feeRateSatPerVbyte ?? 0),
         subtractFeeFromAmount: subtractFeeFromAmount,
-        opReturnHex: opReturnHex ?? '',
+        opReturnHex: resolvedOpReturnHex ?? '',
+        fixedFeeSats: Int64(fixedFeeSats ?? 0),
+        requiredInputs: requiredInputs?.map(_mapRequiredInput).toList() ?? [],
       ),
     );
   }
@@ -160,12 +166,31 @@ class OrchestratorWalletRPC {
     );
   }
 
-  Future<wmpb.GetTransactionDetailsResponse> getTransactionDetails({
+  Future<bwpb.GetTransactionDetailsResponse> getTransactionDetails({
     required String walletId,
     required String txid,
-  }) {
-    return _client.getTransactionDetails(
+  }) async {
+    final response = await _client.getTransactionDetails(
       wmpb.GetTransactionDetailsRequest(walletId: walletId, txid: txid),
+    );
+
+    return bwpb.GetTransactionDetailsResponse(
+      txid: response.transaction.txid,
+      blockhash: response.blockhash,
+      confirmations: response.confirmations,
+      blockTime: response.blockTime,
+      version: response.version,
+      locktime: response.locktime,
+      sizeBytes: response.sizeBytes,
+      vsizeVbytes: response.vsizeVbytes,
+      weightWu: response.weightWu,
+      feeSats: Int64(response.feeSats.toInt()),
+      feeRateSatVb: response.feeRateSatVb,
+      inputs: response.inputs.map(_mapTransactionInput).toList(),
+      totalInputSats: Int64(response.totalInputSats.toInt()),
+      outputs: response.outputs.map(_mapTransactionOutput).toList(),
+      totalOutputSats: Int64(response.totalOutputSats.toInt()),
+      hex: response.rawHex,
     );
   }
 
@@ -180,6 +205,69 @@ class OrchestratorWalletRPC {
         txid: txid,
         newFeeRate: Int64(newFeeRate ?? 0),
       ),
+    );
+  }
+
+  Stream<wmpb.WatchWalletDataResponse> watchWalletData() {
+    return _client.watchWalletData(emptypb.Empty());
+  }
+
+  String _bytesToHex(List<int> bytes) {
+    final buffer = StringBuffer();
+    for (final byte in bytes) {
+      buffer.write(byte.toRadixString(16).padLeft(2, '0'));
+    }
+    return buffer.toString();
+  }
+
+  wmpb.UnspentOutput _mapRequiredInput(bwpb.UnspentOutput utxo) {
+    final (txid, vout) = _parseOutpoint(utxo.output);
+    return wmpb.UnspentOutput(
+      txid: txid,
+      vout: vout,
+      address: utxo.address,
+      amountSats: Int64(utxo.valueSats.toInt()),
+      label: utxo.label,
+    );
+  }
+
+  (String, int) _parseOutpoint(String outpoint) {
+    final parts = outpoint.split(':');
+    if (parts.length != 2) {
+      throw ArgumentError('invalid outpoint: $outpoint');
+    }
+
+    final vout = int.tryParse(parts[1]);
+    if (vout == null) {
+      throw ArgumentError('invalid outpoint vout: $outpoint');
+    }
+
+    return (parts[0], vout);
+  }
+
+  bwpb.TransactionInput _mapTransactionInput(wmpb.TransactionInput input) {
+    return bwpb.TransactionInput(
+      index: input.index,
+      prevTxid: input.prevTxid,
+      prevVout: input.prevVout,
+      address: input.address,
+      valueSats: Int64(input.valueSats.toInt()),
+      scriptSigAsm: input.scriptSigAsm,
+      scriptSigHex: input.scriptSigHex,
+      witness: input.witness,
+      sequence: Int64(input.sequence.toInt()),
+      isCoinbase: input.isCoinbase,
+    );
+  }
+
+  bwpb.TransactionOutput _mapTransactionOutput(wmpb.TransactionOutput output) {
+    return bwpb.TransactionOutput(
+      index: output.index,
+      valueSats: Int64(output.valueSats.toInt()),
+      address: output.address,
+      scriptType: output.scriptType,
+      scriptPubkeyAsm: output.scriptPubkeyAsm,
+      scriptPubkeyHex: output.scriptPubkeyHex,
     );
   }
 }

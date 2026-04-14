@@ -98,7 +98,7 @@ func (s *Server) StartManagedBinary(
 		return err
 	}
 
-	orchStream, err := client.StartWithDeps(ctx, connect.NewRequest(&orchpb.StartWithDepsRequest{
+	orchStream, err := client.StartWithL1(ctx, connect.NewRequest(&orchpb.StartWithL1Request{
 		Target:     req.Msg.Name,
 		TargetArgs: []string{"--headless"},
 	}))

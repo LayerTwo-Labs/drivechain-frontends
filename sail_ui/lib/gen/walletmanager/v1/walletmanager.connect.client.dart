@@ -6,6 +6,7 @@
 import "package:connectrpc/connect.dart" as connect;
 import "walletmanager.pb.dart" as walletmanagerv1walletmanager;
 import "walletmanager.connect.spec.dart" as specs;
+import "../../google/protobuf/empty.pb.dart" as googleprotobufempty;
 
 extension type WalletManagerServiceClient (connect.Transport _transport) {
   /// Wallet lifecycle
@@ -429,6 +430,25 @@ extension type WalletManagerServiceClient (connect.Transport _transport) {
   }) {
     return connect.Client(_transport).unary(
       specs.WalletManagerService.getWalletSeed,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
+  /// Stream wallet state changes. Sends the full wallet state immediately,
+  /// then again whenever wallets or balance change.
+  Stream<walletmanagerv1walletmanager.WatchWalletDataResponse> watchWalletData(
+    googleprotobufempty.Empty input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).server(
+      specs.WalletManagerService.watchWalletData,
       input,
       signal: signal,
       headers: headers,

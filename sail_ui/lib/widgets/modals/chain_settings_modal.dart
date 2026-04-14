@@ -410,7 +410,7 @@ class ChainSettingsViewModel extends BaseViewModel {
       Navigator.of(context).pop();
       await _binaryProvider.download(_binary, shouldUpdate: true);
 
-      bool wasRunning = _binaryProvider.isRunning(_binary);
+      bool wasRunning = _binaryProvider.isConnected(_binary);
       if (wasRunning) {
         // 2. Stop the binary
         await _binaryProvider.stop(_binary);

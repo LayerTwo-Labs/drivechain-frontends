@@ -17,7 +17,7 @@ import 'package:sail_ui/widgets/components/core_transaction.dart';
 
 /// API to the truthcoin server.
 abstract class TruthcoinRPC extends SidechainRPC {
-  TruthcoinRPC({required super.binaryType, required super.restartOnFailure});
+  TruthcoinRPC({required super.binaryType});
 
   /// Get total sidechain wealth in BTC
   Future<double> getSidechainWealth();
@@ -246,7 +246,7 @@ class TruthcoinLive extends TruthcoinRPC {
 
   late TruthcoinServiceClient _client;
 
-  TruthcoinLive() : super(binaryType: BinaryType.truthcoin, restartOnFailure: false) {
+  TruthcoinLive() : super(binaryType: BinaryType.truthcoin) {
     final transport = connect.Transport(
       baseUrl: 'http://localhost:30400',
       codec: const ProtoCodec(),
@@ -257,12 +257,6 @@ class TruthcoinLive extends TruthcoinRPC {
 
   @override
   Future<List<String>> binaryArgs() async => [];
-
-  @override
-  Future<int> ping() async => await getBlockCount();
-
-  @override
-  List<String> startupErrors() => [];
 
   @override
   Future<(double, double)> balance() async {

@@ -28,7 +28,7 @@ abstract class OrchestratorServiceBase extends $pb.GeneratedService {
   $async.Future<$5.StopBinaryResponse> stopBinary($pb.ServerContext ctx, $5.StopBinaryRequest request);
   $async.Future<$5.WatchBinariesResponse> watchBinaries($pb.ServerContext ctx, $5.WatchBinariesRequest request);
   $async.Future<$5.StreamLogsResponse> streamLogs($pb.ServerContext ctx, $5.StreamLogsRequest request);
-  $async.Future<$5.StartWithDepsResponse> startWithDeps($pb.ServerContext ctx, $5.StartWithDepsRequest request);
+  $async.Future<$5.StartWithL1Response> startWithL1($pb.ServerContext ctx, $5.StartWithL1Request request);
   $async.Future<$5.ShutdownAllResponse> shutdownAll($pb.ServerContext ctx, $5.ShutdownAllRequest request);
   $async.Future<$5.GetBTCPriceResponse> getBTCPrice($pb.ServerContext ctx, $5.GetBTCPriceRequest request);
   $async.Future<$5.GetMainchainBlockchainInfoResponse> getMainchainBlockchainInfo($pb.ServerContext ctx, $5.GetMainchainBlockchainInfoRequest request);
@@ -44,7 +44,7 @@ abstract class OrchestratorServiceBase extends $pb.GeneratedService {
       case 'StopBinary': return $5.StopBinaryRequest();
       case 'WatchBinaries': return $5.WatchBinariesRequest();
       case 'StreamLogs': return $5.StreamLogsRequest();
-      case 'StartWithDeps': return $5.StartWithDepsRequest();
+      case 'StartWithL1': return $5.StartWithL1Request();
       case 'ShutdownAll': return $5.ShutdownAllRequest();
       case 'GetBTCPrice': return $5.GetBTCPriceRequest();
       case 'GetMainchainBlockchainInfo': return $5.GetMainchainBlockchainInfoRequest();
@@ -63,7 +63,7 @@ abstract class OrchestratorServiceBase extends $pb.GeneratedService {
       case 'StopBinary': return this.stopBinary(ctx, request as $5.StopBinaryRequest);
       case 'WatchBinaries': return this.watchBinaries(ctx, request as $5.WatchBinariesRequest);
       case 'StreamLogs': return this.streamLogs(ctx, request as $5.StreamLogsRequest);
-      case 'StartWithDeps': return this.startWithDeps(ctx, request as $5.StartWithDepsRequest);
+      case 'StartWithL1': return this.startWithL1(ctx, request as $5.StartWithL1Request);
       case 'ShutdownAll': return this.shutdownAll(ctx, request as $5.ShutdownAllRequest);
       case 'GetBTCPrice': return this.getBTCPrice(ctx, request as $5.GetBTCPriceRequest);
       case 'GetMainchainBlockchainInfo': return this.getMainchainBlockchainInfo(ctx, request as $5.GetMainchainBlockchainInfoRequest);

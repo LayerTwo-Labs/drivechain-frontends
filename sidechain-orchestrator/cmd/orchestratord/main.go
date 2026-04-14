@@ -255,7 +255,7 @@ func run(cctx *cli.Context) error {
 	for _, name := range binariesToBoot {
 		go func(target string) {
 			log.Info().Str("binary", target).Msg("auto-booting sidechain with deps")
-			ch, err := orch.StartWithDeps(ctx, target, orchestrator.StartOpts{
+			ch, err := orch.StartWithL1(ctx, target, orchestrator.StartOpts{
 				TargetArgs: []string{"--headless"},
 			})
 			if err != nil {

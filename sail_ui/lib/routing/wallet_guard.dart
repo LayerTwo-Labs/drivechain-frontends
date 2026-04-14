@@ -18,12 +18,9 @@ class WalletGuard extends AutoRouteGuard {
   void onNavigation(NavigationResolver resolver, StackRouter router) async {
     final walletReader = GetIt.I.get<WalletReaderProvider>();
 
-    // Check if wallet file exists
-    final walletFile = walletReader.getWalletFile();
-    final walletExists = await walletFile.exists();
+    final walletExists = await walletReader.hasWallet();
 
     if (walletExists) {
-      // Wallet exists, allow navigation
       resolver.next(true);
       return;
     }
@@ -31,8 +28,8 @@ class WalletGuard extends AutoRouteGuard {
     // No wallet - redirect to wallet creation
     await router.push(createWalletRoute());
 
-    // After wallet creation, check if wallet now exists
-    final walletNowExists = await walletFile.exists();
+    // After wallet creation, check again
+    final walletNowExists = await walletReader.hasWallet();
     resolver.next(walletNowExists);
   }
 }

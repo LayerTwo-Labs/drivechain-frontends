@@ -70,5 +70,22 @@ class SystemEvent_Type extends $pb.ProtobufEnum {
   const SystemEvent_Type._($core.int v, $core.String n) : super(v, n);
 }
 
+class SidechainWithdrawalEvent_Type extends $pb.ProtobufEnum {
+  static const SidechainWithdrawalEvent_Type TYPE_UNSPECIFIED = SidechainWithdrawalEvent_Type._(0, _omitEnumNames ? '' : 'TYPE_UNSPECIFIED');
+  static const SidechainWithdrawalEvent_Type TYPE_DETECTED = SidechainWithdrawalEvent_Type._(1, _omitEnumNames ? '' : 'TYPE_DETECTED');
+  static const SidechainWithdrawalEvent_Type TYPE_CONFIRMED = SidechainWithdrawalEvent_Type._(2, _omitEnumNames ? '' : 'TYPE_CONFIRMED');
+
+  static const $core.List<SidechainWithdrawalEvent_Type> values = <SidechainWithdrawalEvent_Type> [
+    TYPE_UNSPECIFIED,
+    TYPE_DETECTED,
+    TYPE_CONFIRMED,
+  ];
+
+  static final $core.Map<$core.int, SidechainWithdrawalEvent_Type> _byValue = $pb.ProtobufEnum.initByValue(values);
+  static SidechainWithdrawalEvent_Type? valueOf($core.int value) => _byValue[value];
+
+  const SidechainWithdrawalEvent_Type._($core.int v, $core.String n) : super(v, n);
+}
+
 
 const _omitEnumNames = $core.bool.fromEnvironment('protobuf.omit_enum_names');

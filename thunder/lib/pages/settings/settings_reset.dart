@@ -177,9 +177,15 @@ class _SettingsResetState extends State<SettingsReset> {
     if (confirmed == true) {
       bootBinaries(log);
 
-      final orchRPC = GetIt.I.get<OrchestratordRPC>();
-      while (!orchRPC.connected) {
-        await Future.delayed(const Duration(seconds: 1));
+      // Wait for orchestrator to become ready
+      final orchestrator = GetIt.I.get<OrchestratorRPC>();
+      for (var i = 0; i < 30; i++) {
+        try {
+          await orchestrator.listBinaries();
+          break;
+        } catch (_) {
+          await Future.delayed(const Duration(milliseconds: 500));
+        }
       }
     }
   }

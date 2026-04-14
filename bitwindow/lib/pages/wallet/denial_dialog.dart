@@ -5,6 +5,7 @@ import 'package:bitwindow/providers/transactions_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/gen/wallet/v1/wallet.pb.dart';
+import 'package:sail_ui/rpcs/orchestrator_wallet_rpc.dart';
 import 'package:sail_ui/sail_ui.dart' hide DetailRow;
 
 class DenialDialog extends StatefulWidget {
@@ -47,6 +48,7 @@ class DenialDialog extends StatefulWidget {
 
 class _DenialDialogState extends State<DenialDialog> {
   final BitwindowRPC api = GetIt.I.get<BitwindowRPC>();
+  final OrchestratorWalletRPC orchestratorWallet = GetIt.I.get<OrchestratorRPC>().wallet;
   final TransactionProvider transactionProvider = GetIt.I.get<TransactionProvider>();
   final SettingsProvider settingsProvider = GetIt.I.get<SettingsProvider>();
 
@@ -410,6 +412,7 @@ class ConsolidateDialog extends StatefulWidget {
 
 class _ConsolidateDialogState extends State<ConsolidateDialog> {
   final BitwindowRPC api = GetIt.I.get<BitwindowRPC>();
+  OrchestratorWalletRPC get orchestratorWallet => GetIt.I.get<OrchestratorRPC>().wallet;
   final TransactionProvider transactionProvider = GetIt.I.get<TransactionProvider>();
   final WalletReaderProvider walletReader = GetIt.I.get<WalletReaderProvider>();
 
@@ -441,15 +444,15 @@ class _ConsolidateDialogState extends State<ConsolidateDialog> {
       if (walletId == null) throw Exception('No active wallet');
 
       // Get a new address to consolidate to
-      final address = await api.wallet.getNewAddress(walletId);
+      final address = (await orchestratorWallet.getNewAddress(walletId)).address;
 
       // Send all to the new address, using fixed fee and requiring our UTXOs
-      final resultTxid = await api.wallet.sendTransaction(
-        walletId,
-        {address: sendAmount},
+      final resultTxid = (await orchestratorWallet.sendTransaction(
+        walletId: walletId,
+        destinations: {address: sendAmount},
         fixedFeeSats: fixedFeeSats,
         requiredInputs: widget.utxos,
-      );
+      )).txid;
 
       setState(() {
         txid = resultTxid;

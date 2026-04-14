@@ -2,1271 +2,133 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:auto_route/auto_route.dart';
-import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:path/path.dart' as path;
-import 'package:sail_ui/env.dart';
 import 'package:sail_ui/pages/router.gr.dart';
 import 'package:sail_ui/sail_ui.dart';
-import 'package:synchronized/synchronized.dart';
 
-/// Manages downloads, installations and running of binaries
+/// Manages binaries via the Go orchestrator daemon.
+///
+/// Orchestrator-managed binaries (bitcoind, enforcer, sidechains) are
+/// delegated to the orchestrator via OrchestratorRPC.
+///
+/// Daemon binaries (orchestratord) are spawned directly via ProcessManager
+/// since the orchestrator can't manage itself.
 class BinaryProvider extends ChangeNotifier {
   final log = Logger(level: Level.info);
   final Directory appDir;
 
-  final settings = GetIt.I.get<SettingsProvider>();
+  List<Binary> binaries;
 
-  MainchainRPC? _mainchainRPC;
-  EnforcerRPC? _enforcerRPC;
-
-  MainchainRPC? get mainchainRPC {
-    if (_mainchainRPC == null && GetIt.I.isRegistered<MainchainRPC>()) {
-      _mainchainRPC = GetIt.I.get<MainchainRPC>();
-      _mainchainRPC!.addListener(notifyListeners);
-    }
-    return _mainchainRPC;
-  }
-
-  EnforcerRPC? get enforcerRPC {
-    if (_enforcerRPC == null && GetIt.I.isRegistered<EnforcerRPC>()) {
-      _enforcerRPC = GetIt.I.get<EnforcerRPC>();
-      _enforcerRPC!.addListener(notifyListeners);
-    }
-    return _enforcerRPC;
-  }
-
-  BitwindowRPC? _bitwindowRPC;
-  OrchestratordRPC? _orchestratordRPC;
-  ThunderRPC? _thunderRPC;
-  TruthcoinRPC? _truthcoinRPC;
-  PhotonRPC? _photonRPC;
-  BitnamesRPC? _bitnamesRPC;
-  BitAssetsRPC? _bitassetsRPC;
-  ZSideRPC? _zsideRPC;
-  CoinShiftRPC? _coinshiftRPC;
-
-  BitwindowRPC? get bitwindowRPC {
-    if (_bitwindowRPC == null && GetIt.I.isRegistered<BitwindowRPC>()) {
-      _bitwindowRPC = GetIt.I.get<BitwindowRPC>();
-      _bitwindowRPC!.addListener(notifyListeners);
-    }
-    return _bitwindowRPC;
-  }
-
-  OrchestratordRPC? get orchestratordRPC {
-    if (_orchestratordRPC == null && GetIt.I.isRegistered<OrchestratordRPC>()) {
-      _orchestratordRPC = GetIt.I.get<OrchestratordRPC>();
-      _orchestratordRPC!.addListener(notifyListeners);
-    }
-    return _orchestratordRPC;
-  }
-
-  ThunderRPC? get thunderRPC {
-    if (_thunderRPC == null && GetIt.I.isRegistered<ThunderRPC>()) {
-      _thunderRPC = GetIt.I.get<ThunderRPC>();
-      _thunderRPC!.addListener(notifyListeners);
-    }
-    return _thunderRPC;
-  }
-
-  TruthcoinRPC? get truthcoinRPC {
-    if (_truthcoinRPC == null && GetIt.I.isRegistered<TruthcoinRPC>()) {
-      _truthcoinRPC = GetIt.I.get<TruthcoinRPC>();
-      _truthcoinRPC!.addListener(notifyListeners);
-    }
-    return _truthcoinRPC;
-  }
-
-  PhotonRPC? get photonRPC {
-    if (_photonRPC == null && GetIt.I.isRegistered<PhotonRPC>()) {
-      _photonRPC = GetIt.I.get<PhotonRPC>();
-      _photonRPC!.addListener(notifyListeners);
-    }
-    return _photonRPC;
-  }
-
-  BitnamesRPC? get bitnamesRPC {
-    if (_bitnamesRPC == null && GetIt.I.isRegistered<BitnamesRPC>()) {
-      _bitnamesRPC = GetIt.I.get<BitnamesRPC>();
-      _bitnamesRPC!.addListener(notifyListeners);
-    }
-    return _bitnamesRPC;
-  }
-
-  BitAssetsRPC? get bitassetsRPC {
-    if (_bitassetsRPC == null && GetIt.I.isRegistered<BitAssetsRPC>()) {
-      _bitassetsRPC = GetIt.I.get<BitAssetsRPC>();
-      _bitassetsRPC!.addListener(notifyListeners);
-    }
-    return _bitassetsRPC;
-  }
-
-  ZSideRPC? get zsideRPC {
-    if (_zsideRPC == null && GetIt.I.isRegistered<ZSideRPC>()) {
-      _zsideRPC = GetIt.I.get<ZSideRPC>();
-      _zsideRPC!.addListener(notifyListeners);
-    }
-    return _zsideRPC;
-  }
-
-  CoinShiftRPC? get coinshiftRPC {
-    if (_coinshiftRPC == null && GetIt.I.isRegistered<CoinShiftRPC>()) {
-      _coinshiftRPC = GetIt.I.get<CoinShiftRPC>();
-      _coinshiftRPC!.addListener(notifyListeners);
-    }
-    return _coinshiftRPC;
-  }
-
-  late final DownloadManager _downloadManager;
+  /// Manages daemon processes spawned directly by Flutter.
   late final ProcessManager _processManager;
 
-  StreamSubscription<FileSystemEvent>? _dirWatcher;
-  Timer? _releaseCheckTimer;
-
-  // Per-binary locks to ensure sequential processing
-  final Map<BinaryType, Lock> _updateLocks = {};
-
-  // Connection status getters
-  bool get mainchainConnected => mainchainRPC?.connected ?? false;
-  bool get enforcerConnected => enforcerRPC?.connected ?? false;
-  bool get bitwindowConnected => bitwindowRPC?.connected ?? false;
-  bool get orchestratordConnected => orchestratordRPC?.connected ?? false;
-  bool get thunderConnected => thunderRPC?.connected ?? false;
-  bool get truthcoinConnected => truthcoinRPC?.connected ?? false;
-  bool get photonConnected => photonRPC?.connected ?? false;
-  bool get bitnamesConnected => bitnamesRPC?.connected ?? false;
-  bool get bitassetsConnected => bitassetsRPC?.connected ?? false;
-  bool get zsideConnected => zsideRPC?.connected ?? false;
-  bool get coinshiftConnected => coinshiftRPC?.connected ?? false;
-
-  bool get mainchainInitializing => mainchainRPC?.initializingBinary ?? false;
-  bool get enforcerInitializing => enforcerRPC?.initializingBinary ?? false;
-  bool get bitwindowInitializing => bitwindowRPC?.initializingBinary ?? false;
-  bool get orchestratordInitializing => orchestratordRPC?.initializingBinary ?? false;
-  bool get thunderInitializing => thunderRPC?.initializingBinary ?? false;
-  bool get truthcoinInitializing => truthcoinRPC?.initializingBinary ?? false;
-  bool get photonInitializing => photonRPC?.initializingBinary ?? false;
-  bool get bitnamesInitializing => bitnamesRPC?.initializingBinary ?? false;
-  bool get bitassetsInitializing => bitassetsRPC?.initializingBinary ?? false;
-  bool get zsideInitializing => zsideRPC?.initializingBinary ?? false;
-  bool get coinshiftInitializing => coinshiftRPC?.initializingBinary ?? false;
-
-  bool get mainchainStopping => mainchainRPC?.stoppingBinary ?? false;
-  bool get enforcerStopping => enforcerRPC?.stoppingBinary ?? false;
-  bool get bitwindowStopping => bitwindowRPC?.stoppingBinary ?? false;
-  bool get orchestratordStopping => orchestratordRPC?.stoppingBinary ?? false;
-  bool get thunderStopping => thunderRPC?.stoppingBinary ?? false;
-  bool get truthcoinStopping => truthcoinRPC?.stoppingBinary ?? false;
-  bool get photonStopping => photonRPC?.stoppingBinary ?? false;
-  bool get bitnamesStopping => bitnamesRPC?.stoppingBinary ?? false;
-  bool get bitassetsStopping => bitassetsRPC?.stoppingBinary ?? false;
-  bool get zsideStopping => zsideRPC?.stoppingBinary ?? false;
-  bool get coinshiftStopping => coinshiftRPC?.stoppingBinary ?? false;
-
-  DownloadInfo get mainchainDownloadState => _downloadManager.getProgress(BinaryType.bitcoinCore);
-  DownloadInfo get enforcerDownloadState => _downloadManager.getProgress(BinaryType.enforcer);
-  DownloadInfo get bitwindowDownloadState => _downloadManager.getProgress(BinaryType.bitWindow);
-  DownloadInfo get thunderDownloadState => _downloadManager.getProgress(BinaryType.thunder);
-  DownloadInfo get truthcoinDownloadState => _downloadManager.getProgress(BinaryType.truthcoin);
-  DownloadInfo get photonDownloadState => _downloadManager.getProgress(BinaryType.photon);
-  DownloadInfo get bitnamesDownloadState => _downloadManager.getProgress(BinaryType.bitnames);
-  DownloadInfo get bitassetsDownloadState => _downloadManager.getProgress(BinaryType.bitassets);
-  DownloadInfo get coinshiftDownloadState => _downloadManager.getProgress(BinaryType.coinShift);
-  DownloadInfo get zsideDownloadState => _downloadManager.getProgress(BinaryType.zSide);
-
-  // Only show errors for explicitly launched binaries
-  String? get mainchainError => mainchainRPC?.connectionError;
-  String? get enforcerError => enforcerRPC?.connectionError;
-  String? get bitwindowError => bitwindowRPC?.connectionError;
-  String? get orchestratordError => orchestratordRPC?.connectionError;
-  String? get thunderError => thunderRPC?.connectionError;
-  String? get truthcoinError => truthcoinRPC?.connectionError;
-  String? get photonError => photonRPC?.connectionError;
-  String? get bitnamesError => bitnamesRPC?.connectionError;
-  String? get bitassetsError => bitassetsRPC?.connectionError;
-  String? get zsideError => zsideRPC?.connectionError;
-  String? get coinshiftError => coinshiftRPC?.connectionError;
-
-  // Only show errors for explicitly launched binaries
-  String? get mainchainStartupError => mainchainRPC?.startupError;
-  String? get enforcerStartupError => enforcerRPC?.startupError;
-  String? get bitwindowStartupError => bitwindowRPC?.startupError;
-  String? get thunderStartupError => orchestratordRPC?.startupError;
-  String? get thunderSidechainStartupError => thunderRPC?.startupError;
-  String? get truthcoinStartupError => truthcoinRPC?.startupError;
-  String? get photonStartupError => photonRPC?.startupError;
-  String? get bitnamesStartupError => bitnamesRPC?.startupError;
-  String? get bitassetsStartupError => bitassetsRPC?.startupError;
-  String? get zsideStartupError => zsideRPC?.startupError;
-  String? get coinshiftStartupError => coinshiftRPC?.startupError;
-
-  // let the download manager handle all binary stuff. Only it does updates!
-  List<Binary> get binaries => _downloadManager.binaries;
-  ExitTuple? exited(Binary binary) => _processManager.exited(binary);
-  Stream<String>? stderr(Binary binary) => _processManager.stderr(binary);
-
-  // Track starter usage for L2 chains
-  final Map<String, bool> _useStarter = {};
-  void setUseStarter(Binary binary, bool value) {
-    _useStarter[binary.name] = value;
-    notifyListeners();
-  }
-
-  // Private constructor
-  BinaryProvider._create({
+  BinaryProvider._({
     required this.appDir,
-    required DownloadManager downloadManager,
+    required this.binaries,
     required ProcessManager processManager,
-  }) : _downloadManager = downloadManager,
-       _processManager = processManager {
-    // RPC clients will be lazily initialized when first accessed
-
-    // Forward process manager notifications to BinaryProvider listeners
+  }) : _processManager = processManager {
     _processManager.addListener(notifyListeners);
-
-    // Forward download manager notifications to BinaryProvider listeners
-    _downloadManager.addListener(notifyListeners);
-
-    // Optional RPCs will be lazily initialized when first accessed
-
-    _init();
   }
 
-  // Test constructor (visible for mocking)
-  @visibleForTesting
-  BinaryProvider.test({
-    required this.appDir,
-    required DownloadManager downloadManager,
-    required ProcessManager processManager,
-  }) : _downloadManager = downloadManager,
-       _processManager = processManager {
-    // Skip GetIt registration for tests
-  }
-
-  // Async factory — returns BackendBinaryProvider in backend mode
   static Future<BinaryProvider> create({
     required Directory appDir,
     required List<Binary> initialBinaries,
   }) async {
-    final downloadManager = await DownloadManager.create(
-      appDir: appDir,
-      initialBinaries: initialBinaries,
-    );
-
-    // Create PID file manager for tracking spawned processes across restarts
+    final binaries = await loadBinaryCreationTimestamp(initialBinaries, appDir);
     final pidDir = Directory(path.join(appDir.path, 'pids'));
-    final pidFileManager = PidFileManager(pidDir: pidDir);
     final processManager = ProcessManager(
       appDir: appDir,
-      pidFileManager: pidFileManager,
+      pidFileManager: PidFileManager(pidDir: pidDir),
     );
-
-    return BackendBinaryProvider._create(
+    final provider = BinaryProvider._(
       appDir: appDir,
-      downloadManager: downloadManager,
+      binaries: binaries,
       processManager: processManager,
     );
+
+    // Adopt any processes from a previous session via PID files.
+    await provider._adoptOrphanedProcesses();
+
+    return provider;
   }
 
-  Future<void> _init() async {
-    if (Environment.isInTest) {
-      return;
-    }
-
-    // Listen to chains config file changes for reactive updates
-    if (GetIt.I.isRegistered<ChainsConfigProvider>()) {
-      GetIt.I.get<ChainsConfigProvider>().addListener(_onChainsConfigChanged);
-    }
-
-    // Set up periodic release date checks
-    _releaseCheckTimer = Timer.periodic(
-      const Duration(minutes: 1),
-      (_) => _checkReleaseDates(),
-    );
-
-    try {
-      _setupDirectoryWatcher();
-    } catch (e) {
-      log.e('could not set up directory watcher: $e');
-    }
-
-    // Check PID files and adopt any processes we started in a previous session
-    await Future.wait(
-      binaries.map((binary) async {
-        final pid = await _processManager.pidFileManager.readPidFile(binary);
-        if (pid != null && await _processManager.pidFileManager.validatePid(pid, binary)) {
-          log.i('Adopting ${binary.name} (PID $pid) from previous session');
-          _processManager.runningProcesses[binary.name] = SailProcess(
-            binary: binary,
-            pid: pid,
-            cleanup: () async {},
-            adopted: true,
-          );
-        }
-      }),
-    );
-  }
-
-  /// Called when the chains_config.json file changes.
-  /// Rebuilds binaries from the new config while preserving runtime state.
-  void _onChainsConfigChanged() {
-    if (!GetIt.I.isRegistered<ChainsConfigProvider>()) return;
-
-    final configProvider = GetIt.I.get<ChainsConfigProvider>();
-    final newBinaries = configProvider.buildBinaries();
-
-    for (final newBinary in newBinaries) {
-      _downloadManager.updateBinary(newBinary.type, (currentBinary) {
-        // Merge: take new static config, preserve runtime state
-        final merged = newBinary.copyWith(
-          metadata: newBinary.metadata.copyWith(
-            remoteTimestamp: currentBinary.metadata.remoteTimestamp,
-            downloadedTimestamp: currentBinary.metadata.downloadedTimestamp,
-            binaryPath: currentBinary.metadata.binaryPath,
-            updateable: currentBinary.metadata.updateable,
-          ),
-          downloadInfo: currentBinary.downloadInfo,
-        );
-        // Preserve runtime startup logs
-        merged.startupLogs = currentBinary.startupLogs;
-        // Merge boot args: keep runtime-added args not in new config
-        for (final arg in currentBinary.extraBootArgs) {
-          if (!merged.extraBootArgs.contains(arg)) {
-            merged.extraBootArgs = [...merged.extraBootArgs, arg];
-          }
-        }
-        return merged;
-      });
-    }
-  }
-
-  // Start a binary, and set starter seeds (if set)
-  Future<void> start(Binary binary) async {
-    await _downloadManager.downloadIfMissing(binary);
-
-    if (binary.chainLayer == 2) {
-      binary = binary as Sidechain;
-      log.i('booting sidechain ${binary.name}');
-
-      // Ensure wallet is loaded and sidechain mnemonic exists (generates if missing)
-      final walletReader = GetIt.I.get<WalletReaderProvider>();
-      final walletWriter = GetIt.I.get<WalletWriterProvider>();
-      await walletWriter.getSidechainStarter(binary.slot);
-      final mnemonicPath = (await walletReader.writeSidechainStarter(
-        binary.slot,
-      )).path;
-      log.i('mnemonic path: $mnemonicPath');
-
-      log.i('adding boot arg: --mnemonic-seed-phrase-path=$mnemonicPath');
-      binary.addBootArg('--mnemonic-seed-phrase-path=$mnemonicPath');
-      _downloadManager.updateBinary(binary.type, (currentBinary) {
-        // Don't replace the entire binary! Just update the boot args
-        // The currentBinary has the correct metadata from downloads/watcher
-        final updated = currentBinary as Sidechain;
-        updated.extraBootArgs = binary.extraBootArgs;
-        return updated;
-      });
-    }
-
-    var rpcConnection = switch (binary) {
-      var b when b is BitcoinCore => mainchainRPC,
-      var b when b is Enforcer => enforcerRPC,
-      var b when b is BitWindow => bitwindowRPC,
-      var b when b is Orchestratord => orchestratordRPC,
-      var b when b is Thunder => thunderRPC,
-      var b when b is Truthcoin => truthcoinRPC,
-      var b when b is Photon => photonRPC,
-      var b when b is BitNames => bitnamesRPC,
-      var b when b is BitAssets => bitassetsRPC,
-      var b when b is ZSide => zsideRPC,
-      var b when b is CoinShift => coinshiftRPC,
-      _ => null,
-    };
-
-    if (rpcConnection == null) {
-      throw Exception('no RPC connection found for ${binary.name}');
-    }
-
-    await rpcConnection.initBinary((binary, args, cleanup, environment) async {
-      return await _startProcess(
-        binary,
-        args,
-        cleanup,
-        environment: environment,
-      );
-    });
-  }
-
-  // startProcess attempts to boot the binary passed, and waits until
-  // it is successfully booted and connected. If it can't connect,
-  // it returns an error message explaining why.
-  Future<String?> _startProcess(
-    Binary binary,
-    List<String> args,
-    Future<void> Function() cleanup, {
-    // Environment variables passed to the process, e.g RUST_BACKTRACE: 1
-    Map<String, String> environment = const {},
-  }) async {
-    String? error;
-
-    try {
-      await _processManager.start(
-        binary,
-        args,
-        cleanup,
-        environment: environment,
-      );
-
-      final startTime = DateTime.now();
-
-      try {
-        await Future.any([
-          // Happy case: able to connect. we start a poller at the
-          // beginning of this function that sets the connected variable
-          // we return here
-          waitForBoolToBeTrue(() async {
-            return isConnected(binary);
-          }),
-
-          // A sad case: Binary is running, but not working for some reason
-          waitForBoolToBeTrue(() async {
-            return isInitializing(binary) && connectionError(binary) != null;
-          }),
-
-          // Not so happy case: process exited
-          // Throw an error, which causes the error message to be shown
-          // in the daemon status chip
-          waitForBoolToBeTrue(() async {
-            final res = exited(binary);
-            if (res != null && res.message != '') {
-              log.i('process exited with message: ${res.message}');
-              error = res.message;
-            }
-            return res != null;
-          }),
-
-          // Dynamic timeout: keeps waiting as long as the process is alive
-          Future.doWhile(() async {
-            await Future.delayed(const Duration(milliseconds: 500));
-
-            // If binary has recent log activity, always keep waiting
-            if (binary.hasRecentStartupLogActivity) {
-              return true; // Keep waiting
-            }
-
-            // If the process is still running, keep waiting indefinitely
-            // The process-exit case above will handle dead processes
-            if (isRunning(binary)) {
-              return true; // Keep waiting
-            }
-
-            // Process is not running and no recent logs - give up
-            final elapsed = DateTime.now().difference(startTime);
-            throw "'$binary' connection timed out after ${elapsed.inSeconds}s (process not running)";
-          }),
-        ]);
-
-        log.i('init binaries: $binary connected');
-      } catch (err) {
-        log.e('init binaries: could not connect to $binary', error: err);
-
-        // Check one last time we're not running. If not, dig deep in logs to find a nice
-        // error to return
-
-        // We've quit! Assuming there's error logs, somewhere.
-        if (!isRunning(binary) && connectionError(binary) == null) {
-          final logs = _processManager.stderrLogs(binary);
-          log.e('$binary exited before we could connect, dumping logs');
-          for (var line in logs ?? []) {
-            log.e('$binary: $line');
-          }
-
-          var lastLine = (logs != null && logs.isNotEmpty)
-              ? _stripFromString(logs.last, ': ')
-              : 'process exited with no error output';
-          error = lastLine;
-
-          // Check if this is a Bitcoin Core reindex error by searching through ALL logs
-          if (binary is BitcoinCore && logs != null) {
-            final needsReindex = logs.any(
-              (line) => line.contains('Please restart with -reindex'),
-            );
-            if (needsReindex) {
-              log.w(
-                'Bitcoin Core needs reindex, adding -reindex flag for next boot attempt',
-              );
-
-              // Add -reindex flag for the next boot attempt
-              final updatedBinary = binary.copyWith();
-              updatedBinary.addBootArg('-reindex');
-
-              // Update the binary in download manager
-              _downloadManager.updateBinary(
-                binary.type,
-                (currentBinary) => updatedBinary,
-              );
-            }
-          }
-        } else {
-          error ??= err.toString();
-        }
-      }
-
-      return error;
-    } catch (err) {
-      log.e(
-        'init binaries: could not start ${binary.connectionString}',
-        error: err,
-      );
-      return 'could not boot binary: ${binary.connectionString}: $err';
-    } finally {
-      notifyListeners();
-    }
-  }
-
-  // Stops the binary you pass. First gracefully,
-  // then forcefully.
-  // If skipDownstream is true, bitwindow won't stop downstream services (enforcer, bitcoind).
-  Future<void> stop(Binary binary, {bool skipDownstream = false}) async {
-    // Step 1: Call RPC stop()
-    try {
-      switch (binary) {
-        case BitcoinCore():
-          await mainchainRPC?.stop();
-        case Enforcer():
-          await enforcerRPC?.stop();
-        case BitWindow():
-          await bitwindowRPC?.bitwindowd.stop(skipDownstream: skipDownstream);
-        case Orchestratord():
-          await orchestratordRPC?.stop();
-        case Thunder():
-          await thunderRPC?.stop();
-        case Truthcoin():
-          await truthcoinRPC?.stop();
-        case Photon():
-          await photonRPC?.stop();
-        case BitNames():
-          await bitnamesRPC?.stop();
-        case BitAssets():
-          await bitassetsRPC?.stop();
-        case ZSide():
-          await zsideRPC?.stop();
-        case CoinShift():
-          await coinshiftRPC?.stop();
-      }
-    } catch (e) {
-      log.e('could not stop ${binary.name}: $e');
-    }
-
-    // Step 2: Determine the PID to wait for and timeout duration
-    int? pidToWaitFor;
-    Duration timeout;
-
-    // Always try process manager first
-    final process = _processManager.runningProcesses[binary.name];
-    pidToWaitFor = process?.pid;
-
-    if (binary.type == BinaryType.bitcoinCore) {
-      // For Bitcoin Core, fallback to PID tracker if process manager doesn't have it
-      pidToWaitFor ??= _processManager.pidFileManager.bitcoinCorePid;
-      timeout = const Duration(seconds: 30);
-      log.i(
-        'Waiting for Bitcoin Core PID ${pidToWaitFor ?? "unknown"} to exit (30s timeout)',
-      );
-    } else {
-      timeout = const Duration(seconds: 10);
-      log.i(
-        'Waiting for ${binary.name} PID ${pidToWaitFor ?? "unknown"} to exit (10s timeout)',
-      );
-    }
-
-    // Step 3: If we have a PID, nudge the process itself when RPC shutdown
-    // is not enough to terminate the wrapper daemon.
-    if (pidToWaitFor != null) {
-      if (binary case Orchestratord()) {
-        log.i('Sending SIGTERM to ${binary.name} PID $pidToWaitFor');
-        Process.killPid(pidToWaitFor, ProcessSignal.sigterm);
-      }
-
-      final died = await _processManager.waitForPidDeath(pidToWaitFor, timeout);
-
-      if (died) {
-        log.i('${binary.name} shut down gracefully');
-        _markRpcDisconnected(binary);
-        return;
-      }
-
-      // Still alive after timeout, force kill it
-      log.w(
-        '${binary.name} PID $pidToWaitFor still alive after ${timeout.inSeconds}s, force killing',
-      );
-      await _processManager.killPid(pidToWaitFor);
-      // wait for 2 seconds to just... give it some time
-      await Future.delayed(const Duration(seconds: 3));
-      _markRpcDisconnected(binary);
-      return;
-    }
-
-    // Step 4: No PID available, check if process already exited
-    if (exited(binary) != null) {
-      log.i('${binary.name} already exited');
-      _markRpcDisconnected(binary);
-      return;
-    }
-
-    // Step 5: No PID but process still running - wait for exit handler
-    log.i('No PID found for ${binary.name}, waiting up to 5s for exit');
-    final startTime = DateTime.now();
-    while (DateTime.now().difference(startTime) < const Duration(seconds: 5)) {
-      if (exited(binary) != null) {
-        log.i('${binary.name} shutdown confirmed');
-        _markRpcDisconnected(binary);
-        return;
-      }
-      await Future.delayed(const Duration(milliseconds: 100));
-    }
-
-    // Final Step: Still not exited, force kill via process manager
-    log.w('${binary.name} did not exit within 5s, force killing');
-    await _processManager.kill(binary);
-    _markRpcDisconnected(binary);
-  }
-
-  /// Marks the RPC connection for a binary as disconnected.
-  /// Called after the binary process has stopped to update connection state.
-  void _markRpcDisconnected(Binary binary) {
-    switch (binary) {
-      case BitcoinCore():
-        mainchainRPC?.markDisconnected();
-      case Enforcer():
-        enforcerRPC?.markDisconnected();
-      case BitWindow():
-        bitwindowRPC?.markDisconnected();
-      case Orchestratord():
-        orchestratordRPC?.markDisconnected();
-      case Thunder():
-        thunderRPC?.markDisconnected();
-      case Truthcoin():
-        truthcoinRPC?.markDisconnected();
-      case Photon():
-        photonRPC?.markDisconnected();
-      case BitNames():
-        bitnamesRPC?.markDisconnected();
-      case BitAssets():
-        bitassetsRPC?.markDisconnected();
-      case ZSide():
-        zsideRPC?.markDisconnected();
-      case CoinShift():
-        coinshiftRPC?.markDisconnected();
-    }
-  }
-
-  /// Add a startup log entry for a binary and notify listeners.
-  /// Used by backends that manage binaries externally (e.g. Go orchestrator).
-  void addStartupLogForBinary(BinaryType type, String message) {
-    for (final binary in binaries) {
-      if (binary.type == type) {
-        binary.addStartupLog(DateTime.now(), message);
-        break;
-      }
-    }
-    notifyListeners();
-  }
-
-  /// Download a binary using the DownloadProvider
-  Future<void> download(Binary binary, {bool shouldUpdate = false}) async {
-    await _downloadManager.downloadIfMissing(
-      binary,
-      shouldUpdate: shouldUpdate,
-    );
-  }
-
-  /// Get download progress for a binary
-  DownloadInfo downloadProgress(BinaryType type) {
-    return _downloadManager.getProgress(type);
-  }
-
-  /// Update a binary using a transformer function
-  void updateBinary(BinaryType type, Binary Function(Binary) updater) {
-    _downloadManager.updateBinary(type, updater);
-  }
-
-  List<Binary> get runningBinaries => _processManager.runningProcesses.values.map((process) => process.binary).toList();
-
-  /// Get the PID for a running binary, or null if not running
-  int? getPidForBinary(Binary binary) => _processManager.runningProcesses[binary.name]?.pid;
-
-  /// Check if a running binary was adopted from a previous session
-  bool isAdopted(Binary binary) => _processManager.runningProcesses[binary.name]?.adopted ?? false;
-
-  // Returns true if the app currently has a succesful connection to the binary
-  bool isConnected(Binary binary) {
-    return switch (binary) {
-      var b when b is BitcoinCore => mainchainConnected,
-      var b when b is Enforcer => enforcerConnected,
-      var b when b is BitWindow => bitwindowConnected,
-      var b when b is Orchestratord => orchestratordConnected,
-      var b when b is Thunder => thunderConnected,
-      var b when b is Truthcoin => truthcoinConnected,
-      var b when b is Photon => photonConnected,
-      var b when b is BitNames => bitnamesConnected,
-      var b when b is BitAssets => bitassetsConnected,
-      var b when b is ZSide => zsideConnected,
-      var b when b is CoinShift => coinshiftConnected,
-      _ => false,
-    };
-  }
-
-  // Returns true if the app is currently trying to initialize the binary
-  // but has not yet connected
-  bool isInitializing(Binary binary) {
-    return switch (binary) {
-      var b when b is BitcoinCore => mainchainInitializing,
-      var b when b is Enforcer => enforcerInitializing,
-      var b when b is BitWindow => bitwindowInitializing,
-      var b when b is Orchestratord => orchestratordInitializing,
-      var b when b is Thunder => thunderInitializing,
-      var b when b is Truthcoin => truthcoinInitializing,
-      var b when b is Photon => photonInitializing,
-      var b when b is BitNames => bitnamesInitializing,
-      var b when b is BitAssets => bitassetsInitializing,
-      var b when b is ZSide => zsideInitializing,
-      var b when b is CoinShift => coinshiftInitializing,
-      _ => false,
-    };
-  }
-
-  // Returns true if the binary has encountered a connection error
-  // but has not yet connected
-  String? connectionError(Binary binary) {
-    return switch (binary) {
-      var b when b is BitcoinCore => mainchainError,
-      var b when b is Enforcer => enforcerError,
-      var b when b is BitWindow => bitwindowError,
-      var b when b is Orchestratord => orchestratordError,
-      var b when b is Thunder => thunderError,
-      var b when b is Truthcoin => truthcoinError,
-      var b when b is Photon => photonError,
-      var b when b is BitNames => bitnamesError,
-      var b when b is BitAssets => bitassetsError,
-      var b when b is ZSide => zsideError,
-      var b when b is CoinShift => coinshiftError,
-      _ => null,
-    };
-  }
-
-  // Return true if the binary is currently running (tracked by us)
-  bool isRunning(Binary binary) {
-    return _processManager.isRunning(binary);
-  }
-
-  bool isStopping(Binary binary) {
-    return switch (binary) {
-      var b when b is BitcoinCore => mainchainStopping,
-      var b when b is Enforcer => enforcerStopping,
-      var b when b is BitWindow => bitwindowStopping,
-      var b when b is Orchestratord => orchestratordStopping,
-      var b when b is Thunder => thunderStopping,
-      var b when b is Truthcoin => truthcoinStopping,
-      var b when b is Photon => photonStopping,
-      var b when b is BitNames => bitnamesStopping,
-      var b when b is BitAssets => bitassetsStopping,
-      var b when b is ZSide => zsideStopping,
-      var b when b is CoinShift => coinshiftStopping,
-      _ => false,
-    };
-  }
-
-  Future<void> startWithEnforcer(
-    Binary binaryToBoot, {
-    bool bootExtraBinaryImmediately = false,
-    bool bootCoreWithoutAwait = false,
-    bool bootEnforcerWithoutAwait = false,
-    bool restartOnInitialFailure = false,
-  }) async {
-    final log = GetIt.I.get<Logger>();
-    final startTime = DateTime.now();
-    int getElapsed() => DateTime.now().difference(startTime).inMilliseconds;
-
-    // Set restart policy on all RPCs before starting
-    if (restartOnInitialFailure) {
-      mainchainRPC?.restartOnInitialFailure = true;
-      enforcerRPC?.restartOnInitialFailure = true;
-      bitwindowRPC?.restartOnInitialFailure = true;
-      orchestratordRPC?.restartOnInitialFailure = true;
-      thunderRPC?.restartOnInitialFailure = true;
-      truthcoinRPC?.restartOnInitialFailure = true;
-      photonRPC?.restartOnInitialFailure = true;
-      bitnamesRPC?.restartOnInitialFailure = true;
-      bitassetsRPC?.restartOnInitialFailure = true;
-      zsideRPC?.restartOnInitialFailure = true;
-      coinshiftRPC?.restartOnInitialFailure = true;
-    }
-
-    log.i('[T+0ms] STARTUP: Booting L1 binaries + ${binaryToBoot.name}');
-
-    log.i(
-      '[T+${getElapsed()}ms] STARTUP: Ensuring all binaries are downloaded',
-    );
-
-    // Ensure we have all required binaries
-    final bitcoinCore = binaries.whereType<BitcoinCore>().first;
-    final enforcer = binaries.whereType<Enforcer>().first;
-
-    // Wait for datadir to be configured before starting Core (mainnet/forknet only)
-    final confProvider = GetIt.I.get<BitcoinConfProvider>();
-    final network = confProvider.network;
-    if (network == BitcoinNetwork.BITCOIN_NETWORK_MAINNET || network == BitcoinNetwork.BITCOIN_NETWORK_FORKNET) {
-      while (true) {
-        final dataDir = confProvider.detectedDataDir;
-        if (dataDir != null && dataDir.isNotEmpty) {
-          log.i(
-            '[T+${getElapsed()}ms] STARTUP: Datadir configured for ${network.name}: $dataDir',
-          );
-          break;
-        }
-        log.i(
-          '[T+${getElapsed()}ms] STARTUP: Waiting for datadir to be configured for ${network.name}',
-        );
-        await Future.delayed(const Duration(seconds: 1));
-      }
-    }
-
-    if (bootExtraBinaryImmediately) {
-      log.i('[T+${getElapsed()}ms] STARTUP: Starting ${binaryToBoot.name}');
-      unawaited(start(binaryToBoot));
-    }
-
-    if (bootCoreWithoutAwait) {
-      unawaited(start(bitcoinCore));
-    } else {
-      await start(bitcoinCore);
-    }
-    log.i('[T+${getElapsed()}ms] STARTUP: Started bitcoin core...');
-
-    // Wait for wallet to be unlocked before starting enforcer
-    // This ensures L1 starter file is written before enforcer starts
-    // isWalletUnlocked is true for both unencrypted wallets and unlocked encrypted wallets
-    final walletReader = GetIt.I.get<WalletReaderProvider>();
-    while (!walletReader.isWalletUnlocked) {
-      log.i('[T+${getElapsed()}ms] STARTUP: Waiting for wallet to be unlocked');
-      await Future.delayed(const Duration(seconds: 1));
-    }
-    log.i(
-      '[T+${getElapsed()}ms] STARTUP: Wallet is unlocked, proceeding with enforcer start',
-    );
-
-    // Wait for IBD to complete before starting enforcer
-    // The enforcer needs a fully synced chain to function properly
-    if (mainchainRPC != null) {
-      log.i(
-        '[T+${getElapsed()}ms] STARTUP: Waiting for IBD to complete before starting enforcer',
-      );
-      await mainchainRPC!.waitForIBD();
-      log.i('[T+${getElapsed()}ms] STARTUP: IBD complete, starting enforcer');
-    }
-
-    if (bootEnforcerWithoutAwait) {
-      unawaited(start(enforcer));
-    } else {
-      await start(enforcer);
-    }
-    log.i('[T+${getElapsed()}ms] STARTUP: Started enforcer');
-
-    if (!bootExtraBinaryImmediately) {
-      await start(binaryToBoot);
-      log.i('[T+${getElapsed()}ms] STARTUP: Started ${binaryToBoot.name}');
-    }
-
-    log.i('[T+${getElapsed()}ms] STARTUP: All binaries started successfully');
-  }
-
-  Future<bool> onShutdown({ShutdownOptions? shutdownOptions}) async {
-    try {
-      // Get list of running binaries
-      final runningBinaries = _processManager.runningProcesses.values.map((process) => process.binary).toList();
-
-      final showShutdownPage = shutdownOptions != null && shutdownOptions.showShutdownPage;
-      final forceKill = shutdownOptions?.forceKill ?? false;
-
-      StreamController<ShutdownProgress>? progressController;
-      if (showShutdownPage) {
-        progressController = StreamController<ShutdownProgress>();
-
-        // don't show the shutting down page if it's already shown!
-        if (shutdownOptions.router.current.name != ShutDownRoute.name) {
-          // Show shutdown page with running binaries
-          unawaited(
-            shutdownOptions.router.push(
-              ShutDownRoute(
-                binaries: runningBinaries,
-                shutdownStream: progressController.stream,
-                onComplete: shutdownOptions.onComplete,
-              ),
-            ),
-          );
-        }
-      }
-
-      // Stop binaries sequentially and report progress
-      int completedCount = 0;
-      final totalCount = _processManager.runningProcesses.length;
-
-      // Create a snapshot to avoid concurrent modification during iteration
-      // Sort so Bitcoin Core is stopped first, then Enforcer, then everything else
-      final processesToStop = _processManager.runningProcesses.values.toList()
-        ..sort((a, b) {
-          // Bitcoin Core should be first
-          if (a.binary is BitcoinCore) return -1;
-          if (b.binary is BitcoinCore) return 1;
-          // Enforcer should be second
-          if (a.binary is Enforcer) return -1;
-          if (b.binary is Enforcer) return 1;
-          // Everything else in arbitrary order
-          return 0;
-        });
-
-      if (forceKill) {
-        // Force-kill mode: immediately kill all processes without graceful shutdown
-        // Animate progress over 1 second for UX feedback
-        log.i('Force-killing all ${processesToStop.length} processes...');
-
-        final startTime = DateTime.now();
-        const animationDuration = Duration(seconds: 1);
-
-        // Kill all processes immediately
-        for (final process in processesToStop) {
-          log.i(
-            'Force-killing ${process.binary.name} (PID: ${process.pid})...',
-          );
-          await _processManager.killPid(process.pid);
-        }
-
-        // Animate progress smoothly over 1 second
-        final progressTimer = Timer.periodic(const Duration(milliseconds: 16), (
-          timer,
-        ) {
-          final elapsed = DateTime.now().difference(startTime);
-          final progress = (elapsed.inMilliseconds / animationDuration.inMilliseconds).clamp(
-            0.0,
-            1.0,
-          );
-          final animatedCompletedCount = (progress * totalCount).round();
-
-          progressController?.add(
-            ShutdownProgress(
-              totalCount: totalCount,
-              completedCount: animatedCompletedCount,
-              currentBinary: null,
-              isForceKill: true,
-            ),
-          );
-
-          if (progress >= 1.0) {
-            timer.cancel();
-          }
-        });
-
-        // Wait for animation to complete
-        await Future.delayed(animationDuration);
-        progressTimer.cancel();
-
-        completedCount = totalCount;
-      } else {
-        // Graceful shutdown mode
-        for (final process in processesToStop) {
-          log.i('Stopping ${process.binary.name}...');
-          progressController?.add(
-            ShutdownProgress(
-              totalCount: totalCount,
-              completedCount: completedCount,
-              currentBinary: process.binary.name,
-            ),
-          );
-
-          await stop(process.binary);
-          completedCount++;
-
-          log.i('${process.binary.name} stopped ($completedCount/$totalCount)');
-        }
-      }
-
-      // Close the stream to signal completion
-      progressController?.add(
-        ShutdownProgress(
-          totalCount: totalCount,
-          completedCount: completedCount,
-          currentBinary: null,
-          isForceKill: forceKill,
-        ),
-      );
-      await progressController?.close();
-
-      if (!showShutdownPage) {
-        // the shutdown doesnt call it, then we must!
-        shutdownOptions?.onComplete();
-      }
-    } catch (error) {
-      // do nothing, we just always need to return true
-      log.e('error shutting down: $error');
-    }
-
-    return true;
-  }
-
-  void listenDownloadManager(VoidCallback listener) {
-    _downloadManager.addListener(listener);
-  }
-
-  void removeDownloadManagerListener(VoidCallback listener) {
-    _downloadManager.removeListener(listener);
-  }
-
-  void _setupDirectoryWatcher() {
-    // Watch the assets directory for changes
-    _dirWatcher = binDir(appDir.path).watch(recursive: true).listen((event) {
-      // Find which binary changed
-      final changedBinary = allBinaries.firstWhereOrNull(
-        (binary) => path.basename(event.path).toLowerCase().contains(binary.binary.toLowerCase()),
-      );
-
-      // The event is not related to a binary, ignore it
-      if (changedBinary == null) {
-        return;
-      }
-
-      log.d(
-        'File system event for ${changedBinary.name}: ${event.type} (${event.path})',
-      );
-
-      // Get or create lock for this binary
-      final lock = _updateLocks.putIfAbsent(changedBinary.type, () => Lock());
-
-      // Use synchronized to ensure only one update runs at a time. This also ensures
-      // rapid updates always ends with the latest metadata.
-      lock.synchronized(() async {
-        try {
-          log.d('Processing metadata update for ${changedBinary.name}');
-
-          // Only reload metadata for the binary that changed
-          final updatedBinary = await changedBinary.updateMetadata(appDir);
-
-          _downloadManager.updateBinary(
-            updatedBinary.type,
-            (currentBinary) => currentBinary.copyWith(metadata: updatedBinary.metadata),
-          );
-
-          log.d('Successfully updated metadata for ${changedBinary.name}');
-        } catch (e) {
-          log.e(
-            'Failed to update metadata for ${changedBinary.name}',
-            error: e,
-          );
-        }
-      });
-    });
-  }
-
-  Future<void> _checkReleaseDates() async {
-    for (var i = 0; i < binaries.length; i++) {
-      try {
-        final binary = binaries[i];
-        final updatedBinary = await binary.updateMetadata(appDir);
-
-        // Only update and mark as changed if the binary actually differs
-        if (updatedBinary.metadata != binary.metadata) {
-          _downloadManager.updateBinary(
-            binary.type,
-            (currentBinary) => currentBinary.copyWith(metadata: updatedBinary.metadata),
-          );
-        }
-      } catch (e) {
-        log.e('Error checking release date: $e');
-      }
-    }
-  }
-
-  @override
-  void dispose() {
-    _releaseCheckTimer?.cancel();
-    _processManager.pidFileManager.dispose();
-    _dirWatcher?.cancel();
-    _downloadManager.removeListener(notifyListeners);
-    mainchainRPC?.removeListener(notifyListeners);
-    enforcerRPC?.removeListener(notifyListeners);
-    bitwindowRPC?.removeListener(notifyListeners);
-    orchestratordRPC?.removeListener(notifyListeners);
-    thunderRPC?.removeListener(notifyListeners);
-    truthcoinRPC?.removeListener(notifyListeners);
-    photonRPC?.removeListener(notifyListeners);
-    bitnamesRPC?.removeListener(notifyListeners);
-    bitassetsRPC?.removeListener(notifyListeners);
-    zsideRPC?.removeListener(notifyListeners);
-    coinshiftRPC?.removeListener(notifyListeners);
-    _downloadManager.dispose();
-    super.dispose();
-  }
-}
-
-class ShutdownOptions {
-  final RootStackRouter router;
-  final VoidCallback onComplete;
-  final bool showShutdownPage;
-  final bool forceKill;
-
-  const ShutdownOptions({
-    required this.router,
-    required this.onComplete,
-    required this.showShutdownPage,
-    this.forceKill = false,
+  @visibleForTesting
+  BinaryProvider.test({
+    required this.appDir,
+    required this.binaries,
   });
-}
 
-Future<void> waitForBoolToBeTrue(
-  Future<bool> Function() boolGetter, {
-  Duration pollInterval = const Duration(milliseconds: 100),
-}) async {
-  bool result = await boolGetter();
-  if (!result) {
-    await Future.delayed(pollInterval);
-    await waitForBoolToBeTrue(boolGetter, pollInterval: pollInterval);
-  }
-}
-
-String _stripFromString(String input, String whatToStrip) {
-  int startIndex = 0, endIndex = input.length;
-
-  for (int i = 0; i <= input.length; i++) {
-    if (i == input.length) {
-      return '';
-    }
-    if (!whatToStrip.contains(input[i])) {
-      startIndex = i;
-      break;
-    }
-  }
-
-  for (int i = input.length - 1; i >= 0; i--) {
-    if (!whatToStrip.contains(input[i])) {
-      endIndex = i;
-      break;
-    }
-  }
-
-  return input.substring(startIndex, endIndex + 1);
-}
-
-Future<List<Binary>> loadBinaryCreationTimestamp(
-  List<Binary> binaries,
-  Directory appDir,
-) async {
-  // Update metadata for all binaries in parallel
-  return await Future.wait(
-    binaries.map((binary) => binary.updateMetadata(appDir)),
-  );
-}
-
-Directory binDir(String appDir) => Directory(path.join(appDir, 'assets', 'bin'));
-
-/// Backend-mode BinaryProvider that delegates lifecycle operations to the
-/// Go orchestrator daemon (orchestratord/zsided) via gRPC.
-///
-/// State flows ONE WAY: backend streams → local state → UI.
-///
-/// Inherits all state getters (connection, download, error) from BinaryProvider
-/// since those read from RPCConnections which are synced by BackendStateProvider.
-/// Only overrides lifecycle methods: start, stop, download, shutdown.
-class BackendBinaryProvider extends BinaryProvider {
-  BackendBinaryProvider._create({
-    required super.appDir,
-    required super.downloadManager,
-    required super.processManager,
-  }) : super._create();
-
-  BitwindowRPC get _bitwindow => GetIt.I.get<BitwindowRPC>();
+  OrchestratorRPC get _orchestrator => GetIt.I.get<OrchestratorRPC>();
 
   BackendStateProvider? get _backendState =>
       GetIt.I.isRegistered<BackendStateProvider>() ? GetIt.I.get<BackendStateProvider>() : null;
 
-  /// Start a binary via the backend orchestrator.
-  /// Delegates to startWithDeps which handles download + dependency chain.
-  @override
+  // =========================================================================
+  // Lifecycle operations
+  // =========================================================================
+
+  /// Start a binary. Daemon binaries (Orchestratord) are spawned directly;
+  /// everything else is delegated to the orchestrator.
   Future<void> start(Binary binary) async {
-    final name = _orchestratorName(binary);
-    if (name == null) {
-      // Fall back to frontend for daemon binaries (Orchestratord/ZSided)
-      return super.start(binary);
+    if (_isDaemonBinary(binary)) {
+      await _startDaemonBinary(binary);
+      return;
     }
 
-    log.i('BackendBinaryProvider: starting $name via orchestrator');
+    final name = _orchestratorName(binary);
+    if (name == null) {
+      log.e('BinaryProvider: unknown binary ${binary.name}');
+      return;
+    }
 
-    try {
-      final backendState = _backendState;
-      if (backendState != null) {
-        await backendState.trackStartup(
-          _bitwindow.bitwindowd
-              .startManagedBinary(name)
-              .map(
-                (progress) => StartWithDepsResponse(
-                  stage: progress.stage,
-                  message: progress.message,
-                  done: progress.done,
-                  error: progress.error,
-                  bytesDownloaded: progress.bytesDownloaded,
-                  totalBytes: progress.totalBytes,
-                ),
-              ),
-        );
-      } else {
-        await for (final progress in _bitwindow.bitwindowd.startManagedBinary(name)) {
-          log.i('${progress.stage}: ${progress.message}');
-          if (progress.error.isNotEmpty) {
-            throw StateError(progress.error);
-          }
-          if (progress.done) break;
+    log.i('BinaryProvider: starting $name via orchestrator');
+
+    final backendState = _backendState;
+    if (backendState != null) {
+      await backendState.trackStartup(
+        _orchestrator.startWithL1(name),
+      );
+    } else {
+      await for (final progress in _orchestrator.startWithL1(name)) {
+        log.i('${progress.stage}: ${progress.message}');
+        if (progress.error.isNotEmpty) {
+          throw StateError(progress.error);
         }
+        if (progress.done) break;
       }
-    } catch (e) {
-      log.e('BackendBinaryProvider: backend unreachable for start: $e');
-      rethrow;
     }
   }
 
-  /// Stop a binary via the backend orchestrator.
-  /// State flows back through watchBinaries → BackendStateProvider → UI.
-  @override
   Future<void> stop(Binary binary, {bool skipDownstream = false}) async {
+    if (_isDaemonBinary(binary)) {
+      await _stopDaemonBinary(binary);
+      return;
+    }
+
     final name = _orchestratorName(binary);
     if (name == null) {
-      return super.stop(binary, skipDownstream: skipDownstream);
+      log.e('BinaryProvider: unknown binary ${binary.name}');
+      return;
     }
 
-    log.i('BackendBinaryProvider: stopping $name via orchestrator');
-
-    try {
-      await _bitwindow.bitwindowd.stopManagedBinary(name);
-    } catch (e) {
-      log.e('BackendBinaryProvider: failed to stop $name: $e');
-      rethrow;
-    }
+    log.i('BinaryProvider: stopping $name via orchestrator');
+    await _orchestrator.stopBinary(name);
   }
 
-  /// Download a binary via the backend orchestrator.
-  /// Falls back to Flutter-side download if the backend is unreachable.
-  @override
   Future<void> download(Binary binary, {bool shouldUpdate = false}) async {
     final name = _orchestratorName(binary);
     if (name == null) {
-      return super.download(binary, shouldUpdate: shouldUpdate);
+      log.i('BinaryProvider: skipping download for ${binary.name} (not orchestrator-managed)');
+      return;
     }
 
-    log.i('BackendBinaryProvider: downloading $name via orchestrator');
+    log.i('BinaryProvider: downloading $name via orchestrator');
 
     try {
-      await for (final progress in _bitwindow.bitwindowd.downloadManagedBinary(
+      await for (final progress in _orchestrator.downloadBinary(
         name,
         force: shouldUpdate,
       )) {
@@ -1288,15 +150,16 @@ class BackendBinaryProvider extends BinaryProvider {
         if (progress.done) break;
       }
 
-      // Clear download state when stream ends (matches Flutter download_manager.dart pattern)
+      // Refresh metadata so the "update available" flag clears.
+      final updated = await binary.updateMetadata(appDir);
       updateBinary(binary.type, (b) {
         return b.copyWith(
+          metadata: updated.metadata,
           downloadInfo: const DownloadInfo(progress: 0.0, isDownloading: false),
         );
       });
       notifyListeners();
     } catch (e) {
-      // Clear download state on error too
       updateBinary(binary.type, (b) {
         return b.copyWith(
           downloadInfo: DownloadInfo(
@@ -1307,33 +170,239 @@ class BackendBinaryProvider extends BinaryProvider {
         );
       });
       notifyListeners();
-      log.e('BackendBinaryProvider: backend unreachable for download: $e');
       rethrow;
     }
   }
 
-  /// Shutdown all binaries via the backend orchestrator.
-  @override
   Future<bool> onShutdown({ShutdownOptions? shutdownOptions}) async {
-    log.i('BackendBinaryProvider: shutting down all via orchestrator');
+    log.i('BinaryProvider: shutting down all via orchestrator');
+    _shuttingDown = true;
+
+    final showShutdownPage = shutdownOptions?.showShutdownPage ?? false;
+    final forceKill = shutdownOptions?.forceKill ?? false;
+
+    StreamController<ShutdownProgress>? progressController;
+    if (showShutdownPage) {
+      progressController = StreamController<ShutdownProgress>.broadcast();
+    }
 
     try {
-      await for (final progress in _bitwindow.bitwindowd.shutdownManagedBinaries()) {
-        if (progress.currentBinary.isNotEmpty) {
-          log.i('BackendBinaryProvider: stopping ${progress.currentBinary}');
+      if (showShutdownPage && shutdownOptions != null) {
+        if (shutdownOptions.router.current.name != ShutDownRoute.name) {
+          unawaited(
+            shutdownOptions.router.push(
+              ShutDownRoute(
+                binaries: binaries,
+                shutdownStream: progressController!.stream,
+                onComplete: shutdownOptions.onComplete,
+              ),
+            ),
+          );
+        }
+      }
+
+      await for (final progress in _orchestrator.shutdownAll(force: forceKill)) {
+        progressController?.add(
+          ShutdownProgress(
+            totalCount: progress.totalCount,
+            completedCount: progress.completedCount,
+            currentBinary: progress.currentBinary.isNotEmpty ? progress.currentBinary : null,
+            isForceKill: forceKill,
+          ),
+        );
+
+        if (progress.error.isNotEmpty) {
+          log.e('BinaryProvider: shutdown error: ${progress.error}');
         }
         if (progress.done) break;
       }
-    } catch (e) {
-      log.e('BackendBinaryProvider: shutdown error: $e');
-      rethrow;
+
+      await progressController?.close();
+
+      // Stop any daemon binaries spawned directly by Flutter (e.g. orchestratord)
+      await _processManager.stopAll();
+
+      if (!showShutdownPage) {
+        shutdownOptions?.onComplete();
+      }
+    } catch (error) {
+      log.e('error shutting down: $error');
     }
 
-    // Also stop the daemon itself via frontend mechanism
-    return super.onShutdown(shutdownOptions: shutdownOptions);
+    return true;
   }
 
-  /// Map Binary type to orchestrator binary name.
+  // =========================================================================
+  // Daemon binary lifecycle — spawned directly via ProcessManager
+  // =========================================================================
+
+  bool _shuttingDown = false;
+
+  /// Returns true for binaries that Flutter must spawn directly because
+  /// the orchestrator can't manage itself.
+  /// Adopt processes from a previous session by reading PID files.
+  /// If a PID file exists and the process is still alive, register it
+  /// in ProcessManager so we can track and stop it properly.
+  Future<void> _adoptOrphanedProcesses() async {
+    await Future.wait(
+      binaries.map((binary) async {
+        final pid = await _processManager.pidFileManager.readPidFile(binary);
+        if (pid != null && await _processManager.pidFileManager.validatePid(pid, binary)) {
+          log.i('Adopting ${binary.name} (PID $pid) from previous session');
+          _processManager.runningProcesses[binary.name] = SailProcess(
+            binary: binary,
+            pid: pid,
+            cleanup: () async {},
+            adopted: true,
+          );
+        }
+      }),
+    );
+  }
+
+  /// Daemon binaries are spawned directly by Flutter.
+  /// BitWindow embeds the orchestrator — Flutter just starts bitwindowd,
+  /// and bitwindowd manages orchestratord + everything else internally.
+  bool _isDaemonBinary(Binary binary) => binary is BitWindow;
+
+  /// Start a daemon binary by spawning it via ProcessManager.
+  /// Watches for exit and auto-restarts unless we're shutting down.
+  Future<void> _startDaemonBinary(Binary binary) async {
+    if (_processManager.isRunning(binary)) {
+      log.i('BinaryProvider: ${binary.name} already running');
+      return;
+    }
+
+    // Get proper args from the RPC (e.g. BitwindowRPC.binaryArgs() assembles
+    // bitcoincore config flags). Fall back to extraBootArgs if no RPC.
+    final rpc = _rpcFor(binary);
+    final args = rpc != null ? await rpc.binaryArgs() : binary.extraBootArgs;
+
+    log.i('BinaryProvider: starting daemon ${binary.name} with args: $args');
+    await _processManager.start(binary, args, () async {});
+
+    // Sync RPCConnection state — daemon is running.
+    _syncDaemonConnectionState(binary, running: true);
+    notifyListeners();
+
+    _watchDaemonExit(binary);
+  }
+
+  /// Watch for daemon exit and auto-restart unless shutting down.
+  void _watchDaemonExit(Binary binary) {
+    final process = _processManager.runningProcesses[binary.name];
+    if (process == null) return;
+
+    _processManager.addListener(() {
+      if (_shuttingDown) return;
+      if (!_processManager.isRunning(binary)) {
+        _syncDaemonConnectionState(binary, running: false);
+        log.w('${binary.name} exited unexpectedly, restarting in 2s');
+        Future.delayed(const Duration(seconds: 2), () {
+          if (!_shuttingDown && !_processManager.isRunning(binary)) {
+            _startDaemonBinary(binary);
+          }
+        });
+      }
+    });
+  }
+
+  /// Sync RPCConnection.connected for daemon binaries based on process state.
+  void _syncDaemonConnectionState(Binary binary, {required bool running}) {
+    final rpc = _rpcFor(binary);
+    if (rpc == null) {
+      log.w('_syncDaemonConnectionState: no RPC for ${binary.name}');
+      return;
+    }
+    log.i('_syncDaemonConnectionState: ${binary.name} connected=$running');
+    rpc.connected = running;
+    rpc.initializingBinary = false;
+    rpc.connectionError = null;
+    rpc.markStateChanged();
+  }
+
+  /// Stop a daemon binary via ProcessManager.
+  Future<void> _stopDaemonBinary(Binary binary) async {
+    await _processManager.kill(binary);
+    notifyListeners();
+  }
+
+  // =========================================================================
+  // State queries — read from RPCConnections (synced by BackendStateProvider)
+  // =========================================================================
+
+  bool isConnected(Binary binary) {
+    if (_isDaemonBinary(binary)) {
+      return _processManager.isRunning(binary);
+    }
+    return _rpcFor(binary)?.connected ?? false;
+  }
+
+  bool isInitializing(Binary binary) {
+    return _rpcFor(binary)?.initializingBinary ?? false;
+  }
+
+  bool isStopping(Binary binary) {
+    return _rpcFor(binary)?.stoppingBinary ?? false;
+  }
+
+  String? connectionError(Binary binary) {
+    return _rpcFor(binary)?.connectionError;
+  }
+
+  /// Download progress for a binary type.
+  DownloadInfo downloadProgress(BinaryType type) {
+    final binary = binaries.where((b) => b.type == type).firstOrNull;
+    return binary?.downloadInfo ?? const DownloadInfo(progress: 0.0, isDownloading: false);
+  }
+
+  // =========================================================================
+  // State mutation — called by BackendStateProvider to sync download/log state
+  // =========================================================================
+
+  void updateBinary(BinaryType type, Binary Function(Binary) updater) {
+    for (int i = 0; i < binaries.length; i++) {
+      if (binaries[i].type == type) {
+        binaries[i] = updater(binaries[i]);
+        break;
+      }
+    }
+  }
+
+  void addStartupLogForBinary(BinaryType type, String message) {
+    for (final binary in binaries) {
+      if (binary.type == type) {
+        binary.addStartupLog(DateTime.now(), message);
+        break;
+      }
+    }
+    notifyListeners();
+  }
+
+  // =========================================================================
+  // Helpers
+  // =========================================================================
+
+  RPCConnection? _rpcFor(Binary binary) {
+    return switch (binary) {
+      var b when b is BitcoinCore => _getRegistered<MainchainRPC>(),
+      var b when b is Enforcer => _getRegistered<EnforcerRPC>(),
+      var b when b is BitWindow => _getRegistered<BitwindowRPC>(),
+      var b when b is Thunder => _getRegistered<ThunderRPC>(),
+      var b when b is Truthcoin => _getRegistered<TruthcoinRPC>(),
+      var b when b is Photon => _getRegistered<PhotonRPC>(),
+      var b when b is BitNames => _getRegistered<BitnamesRPC>(),
+      var b when b is BitAssets => _getRegistered<BitAssetsRPC>(),
+      var b when b is ZSide => _getRegistered<ZSideRPC>(),
+      var b when b is CoinShift => _getRegistered<CoinShiftRPC>(),
+      _ => null,
+    };
+  }
+
+  T? _getRegistered<T extends Object>() {
+    return GetIt.I.isRegistered<T>() ? GetIt.I.get<T>() : null;
+  }
+
   String? _orchestratorName(Binary binary) {
     return switch (binary) {
       BitcoinCore() => 'bitcoind',
@@ -1350,3 +419,32 @@ class BackendBinaryProvider extends BinaryProvider {
     };
   }
 }
+
+// ============================================================================
+// Supporting types
+// ============================================================================
+
+class ShutdownOptions {
+  final RootStackRouter router;
+  final VoidCallback onComplete;
+  final bool showShutdownPage;
+  final bool forceKill;
+
+  const ShutdownOptions({
+    required this.router,
+    required this.onComplete,
+    required this.showShutdownPage,
+    this.forceKill = false,
+  });
+}
+
+Future<List<Binary>> loadBinaryCreationTimestamp(
+  List<Binary> binaries,
+  Directory appDir,
+) async {
+  return await Future.wait(
+    binaries.map((binary) => binary.updateMetadata(appDir)),
+  );
+}
+
+Directory binDir(String appDir) => Directory(path.join(appDir, 'assets', 'bin'));

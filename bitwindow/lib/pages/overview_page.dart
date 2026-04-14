@@ -15,6 +15,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/providers/price_provider.dart';
+import 'package:sail_ui/rpcs/orchestrator_wallet_rpc.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:stacked/stacked.dart';
 
@@ -1215,7 +1216,7 @@ class NewGraffitiView extends StatelessWidget {
 
 class NewGraffitiViewModel extends BaseViewModel {
   final TextEditingController messageController = TextEditingController();
-  final BitwindowRPC _api = GetIt.I<BitwindowRPC>();
+  final OrchestratorWalletRPC _orchestratorWallet = GetIt.I<OrchestratorRPC>().wallet;
   WalletReaderProvider get _walletReader => GetIt.I<WalletReaderProvider>();
 
   NewGraffitiViewModel() {
@@ -1231,12 +1232,12 @@ class NewGraffitiViewModel extends BaseViewModel {
       final walletId = _walletReader.activeWalletId;
       if (walletId == null) throw Exception('No active wallet');
 
-      final address = await _api.wallet.getNewAddress(walletId);
-      final _ = await _api.wallet.sendTransaction(
-        walletId,
-        {address: 10000}, // 0.0001 BTC
+      final address = (await _orchestratorWallet.getNewAddress(walletId)).address;
+      await _orchestratorWallet.sendTransaction(
+        walletId: walletId,
+        destinations: {address: 10000}, // 0.0001 BTC
         opReturnMessage: messageController.text,
-        feeSatPerVbyte: 1,
+        feeRateSatPerVbyte: 1,
       );
 
       if (!context.mounted) return;

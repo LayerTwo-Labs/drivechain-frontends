@@ -3,6 +3,7 @@ import 'package:bitwindow/providers/mining_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get_it/get_it.dart';
+import 'package:sail_ui/rpcs/orchestrator_wallet_rpc.dart';
 import 'package:sail_ui/sail_ui.dart';
 
 @RoutePage()
@@ -15,7 +16,7 @@ class CpuMiningPage extends StatefulWidget {
 
 class _CpuMiningPageState extends State<CpuMiningPage> {
   WalletReaderProvider get _walletReader => GetIt.I.get<WalletReaderProvider>();
-  BitwindowRPC get _bitwindowRPC => GetIt.I.get<BitwindowRPC>();
+  OrchestratorWalletRPC get _orchestratorWallet => GetIt.I.get<OrchestratorRPC>().wallet;
   MiningProvider get _miningProvider => GetIt.I.get<MiningProvider>();
 
   final _threadCountController = TextEditingController(text: '1');
@@ -50,9 +51,9 @@ class _CpuMiningPageState extends State<CpuMiningPage> {
     try {
       final walletId = _walletReader.activeWalletId;
       if (walletId != null) {
-        final address = await _bitwindowRPC.wallet.getNewAddress(walletId);
+        final address = await _orchestratorWallet.getNewAddress(walletId);
         setState(() {
-          _coinbaseAddress = address;
+          _coinbaseAddress = address.address;
           _isLoadingAddress = false;
         });
       }

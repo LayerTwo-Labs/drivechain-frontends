@@ -135,15 +135,15 @@ extension type OrchestratorServiceClient (connect.Transport _transport) {
   }
 
   /// Start a binary with its full dependency chain (Core -> Enforcer -> target).
-  Stream<orchestratorv1orchestrator.StartWithDepsResponse> startWithDeps(
-    orchestratorv1orchestrator.StartWithDepsRequest input, {
+  Stream<orchestratorv1orchestrator.StartWithL1Response> startWithL1(
+    orchestratorv1orchestrator.StartWithL1Request input, {
     connect.Headers? headers,
     connect.AbortSignal? signal,
     Function(connect.Headers)? onHeader,
     Function(connect.Headers)? onTrailer,
   }) {
     return connect.Client(_transport).server(
-      specs.OrchestratorService.startWithDeps,
+      specs.OrchestratorService.startWithL1,
       input,
       signal: signal,
       headers: headers,

@@ -537,35 +537,39 @@ class ProcessesTab extends StatelessWidget {
     return ListenableBuilder(
       listenable: binaryProvider,
       builder: (context, _) {
-        final processes = binaryProvider.runningBinaries;
+        final allBinaries = binaryProvider.binaries;
 
         return SailCard(
-          title: 'Running Processes',
-          subtitle: 'Processes managed by this application',
+          title: 'Binaries',
+          subtitle: 'Managed by orchestrator',
           child: SailTable(
             backgroundColor: theme.colors.backgroundSecondary,
-            getRowId: (index) => processes[index].name,
+            getRowId: (index) => allBinaries[index].name,
             headerBuilder: (context) => [
               const SailTableHeaderCell(name: 'Name'),
-              const SailTableHeaderCell(name: 'PID'),
               const SailTableHeaderCell(name: 'Type'),
               const SailTableHeaderCell(name: 'Port'),
-              const SailTableHeaderCell(name: 'Adopted'),
+              const SailTableHeaderCell(name: 'Status'),
             ],
             rowBuilder: (context, row, selected) {
-              final binary = processes[row];
-              final pid = binaryProvider.getPidForBinary(binary);
-              final adopted = binaryProvider.isAdopted(binary);
+              final binary = allBinaries[row];
+              final connected = binaryProvider.isConnected(binary);
+              final initializing = binaryProvider.isInitializing(binary);
+
+              final status = connected
+                  ? 'Connected'
+                  : initializing
+                  ? 'Initializing'
+                  : 'Disconnected';
 
               return [
                 SailTableCell(value: binary.name),
-                SailTableCell(value: pid?.toString() ?? '-'),
                 SailTableCell(value: binary.type.name),
                 SailTableCell(value: binary.port.toString()),
-                SailTableCell(value: adopted ? 'Yes' : 'No'),
+                SailTableCell(value: status),
               ];
             },
-            rowCount: processes.length,
+            rowCount: allBinaries.length,
             emptyPlaceholder: 'No processes running',
           ),
         );

@@ -5,6 +5,7 @@
 
 import "package:connectrpc/connect.dart" as connect;
 import "walletmanager.pb.dart" as walletmanagerv1walletmanager;
+import "../../google/protobuf/empty.pb.dart" as googleprotobufempty;
 
 abstract final class WalletManagerService {
   /// Fully-qualified name of the WalletManagerService service.
@@ -187,5 +188,14 @@ abstract final class WalletManagerService {
     connect.StreamType.unary,
     walletmanagerv1walletmanager.GetWalletSeedRequest.new,
     walletmanagerv1walletmanager.GetWalletSeedResponse.new,
+  );
+
+  /// Stream wallet state changes. Sends the full wallet state immediately,
+  /// then again whenever wallets or balance change.
+  static const watchWalletData = connect.Spec(
+    '/$name/WatchWalletData',
+    connect.StreamType.server,
+    googleprotobufempty.Empty.new,
+    walletmanagerv1walletmanager.WatchWalletDataResponse.new,
   );
 }

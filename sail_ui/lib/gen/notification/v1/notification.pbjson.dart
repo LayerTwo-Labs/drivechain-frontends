@@ -24,6 +24,7 @@ const WatchResponse$json = {
     {'1': 'transaction', '3': 2, '4': 1, '5': 11, '6': '.notification.v1.TransactionEvent', '9': 0, '10': 'transaction'},
     {'1': 'timestamp_event', '3': 3, '4': 1, '5': 11, '6': '.notification.v1.TimestampEvent', '9': 0, '10': 'timestampEvent'},
     {'1': 'system', '3': 4, '4': 1, '5': 11, '6': '.notification.v1.SystemEvent', '9': 0, '10': 'system'},
+    {'1': 'sidechain_withdrawal', '3': 5, '4': 1, '5': 11, '6': '.notification.v1.SidechainWithdrawalEvent', '9': 0, '10': 'sidechainWithdrawal'},
   ],
   '8': [
     {'1': 'event'},
@@ -36,8 +37,9 @@ final $typed_data.Uint8List watchResponseDescriptor = $convert.base64Decode(
     '1lc3RhbXBSCXRpbWVzdGFtcBJFCgt0cmFuc2FjdGlvbhgCIAEoCzIhLm5vdGlmaWNhdGlvbi52'
     'MS5UcmFuc2FjdGlvbkV2ZW50SABSC3RyYW5zYWN0aW9uEkoKD3RpbWVzdGFtcF9ldmVudBgDIA'
     'EoCzIfLm5vdGlmaWNhdGlvbi52MS5UaW1lc3RhbXBFdmVudEgAUg50aW1lc3RhbXBFdmVudBI2'
-    'CgZzeXN0ZW0YBCABKAsyHC5ub3RpZmljYXRpb24udjEuU3lzdGVtRXZlbnRIAFIGc3lzdGVtQg'
-    'cKBWV2ZW50');
+    'CgZzeXN0ZW0YBCABKAsyHC5ub3RpZmljYXRpb24udjEuU3lzdGVtRXZlbnRIAFIGc3lzdGVtEl'
+    '4KFHNpZGVjaGFpbl93aXRoZHJhd2FsGAUgASgLMikubm90aWZpY2F0aW9uLnYxLlNpZGVjaGFp'
+    'bldpdGhkcmF3YWxFdmVudEgAUhNzaWRlY2hhaW5XaXRoZHJhd2FsQgcKBWV2ZW50');
 
 @$core.Deprecated('Use transactionEventDescriptor instead')
 const TransactionEvent$json = {
@@ -134,6 +136,44 @@ final $typed_data.Uint8List systemEventDescriptor = $convert.base64Decode(
     'lDRV9ESVNDT05ORUNURUQQAhIXChNUWVBFX1NZTkNfQ09NUExFVEVEEAMSFAoQVFlQRV9CTE9D'
     'S19GT1VORBAE');
 
+@$core.Deprecated('Use sidechainWithdrawalEventDescriptor instead')
+const SidechainWithdrawalEvent$json = {
+  '1': 'SidechainWithdrawalEvent',
+  '2': [
+    {'1': 'type', '3': 1, '4': 1, '5': 14, '6': '.notification.v1.SidechainWithdrawalEvent.Type', '10': 'type'},
+    {'1': 'txid', '3': 2, '4': 1, '5': 9, '10': 'txid'},
+    {'1': 'sidechain', '3': 3, '4': 1, '5': 9, '10': 'sidechain'},
+    {'1': 'amount', '3': 4, '4': 1, '5': 3, '10': 'amount'},
+    {'1': 'destination', '3': 5, '4': 1, '5': 9, '10': 'destination'},
+    {'1': 'detected_at', '3': 6, '4': 1, '5': 11, '6': '.google.protobuf.Timestamp', '10': 'detectedAt'},
+    {'1': 'block_hash', '3': 7, '4': 1, '5': 9, '9': 0, '10': 'blockHash', '17': true},
+  ],
+  '4': [SidechainWithdrawalEvent_Type$json],
+  '8': [
+    {'1': '_block_hash'},
+  ],
+};
+
+@$core.Deprecated('Use sidechainWithdrawalEventDescriptor instead')
+const SidechainWithdrawalEvent_Type$json = {
+  '1': 'Type',
+  '2': [
+    {'1': 'TYPE_UNSPECIFIED', '2': 0},
+    {'1': 'TYPE_DETECTED', '2': 1},
+    {'1': 'TYPE_CONFIRMED', '2': 2},
+  ],
+};
+
+/// Descriptor for `SidechainWithdrawalEvent`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List sidechainWithdrawalEventDescriptor = $convert.base64Decode(
+    'ChhTaWRlY2hhaW5XaXRoZHJhd2FsRXZlbnQSQgoEdHlwZRgBIAEoDjIuLm5vdGlmaWNhdGlvbi'
+    '52MS5TaWRlY2hhaW5XaXRoZHJhd2FsRXZlbnQuVHlwZVIEdHlwZRISCgR0eGlkGAIgASgJUgR0'
+    'eGlkEhwKCXNpZGVjaGFpbhgDIAEoCVIJc2lkZWNoYWluEhYKBmFtb3VudBgEIAEoA1IGYW1vdW'
+    '50EiAKC2Rlc3RpbmF0aW9uGAUgASgJUgtkZXN0aW5hdGlvbhI7CgtkZXRlY3RlZF9hdBgGIAEo'
+    'CzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXBSCmRldGVjdGVkQXQSIgoKYmxvY2tfaGFzaB'
+    'gHIAEoCUgAUglibG9ja0hhc2iIAQEiQwoEVHlwZRIUChBUWVBFX1VOU1BFQ0lGSUVEEAASEQoN'
+    'VFlQRV9ERVRFQ1RFRBABEhIKDlRZUEVfQ09ORklSTUVEEAJCDQoLX2Jsb2NrX2hhc2g=');
+
 const $core.Map<$core.String, $core.dynamic> NotificationServiceBase$json = {
   '1': 'NotificationService',
   '2': [
@@ -149,6 +189,7 @@ const $core.Map<$core.String, $core.Map<$core.String, $core.dynamic>> Notificati
   '.notification.v1.TransactionEvent': TransactionEvent$json,
   '.notification.v1.TimestampEvent': TimestampEvent$json,
   '.notification.v1.SystemEvent': SystemEvent$json,
+  '.notification.v1.SidechainWithdrawalEvent': SidechainWithdrawalEvent$json,
 };
 
 /// Descriptor for `NotificationService`. Decode as a `google.protobuf.ServiceDescriptorProto`.

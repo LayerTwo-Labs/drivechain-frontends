@@ -7,6 +7,7 @@ import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 import 'package:qr_flutter/qr_flutter.dart';
+import 'package:sail_ui/rpcs/orchestrator_wallet_rpc.dart';
 import 'package:sail_ui/sail_ui.dart';
 
 /// Paper Check Dialog - Create funded Bitcoin checks with redemption keys
@@ -29,7 +30,7 @@ class _PaperCheckDialogState extends State<PaperCheckDialog> {
   String? _error;
   String? _txid;
 
-  BitwindowRPC get _bitwindowRPC => GetIt.I.get<BitwindowRPC>();
+  OrchestratorWalletRPC get _orchestratorWallet => GetIt.I.get<OrchestratorRPC>().wallet;
   TransactionProvider get _transactionsProvider => GetIt.I.get<TransactionProvider>();
   WalletReaderProvider get _walletReader => GetIt.I<WalletReaderProvider>();
 
@@ -106,7 +107,10 @@ class _PaperCheckDialogState extends State<PaperCheckDialog> {
         _keypair!.publicAddress: satoshis,
       };
 
-      final txid = await _bitwindowRPC.wallet.sendTransaction(walletId, destinations);
+      final txid = (await _orchestratorWallet.sendTransaction(
+        walletId: walletId,
+        destinations: destinations,
+      )).txid;
 
       setState(() {
         _txid = txid;

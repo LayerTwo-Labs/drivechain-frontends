@@ -89,18 +89,7 @@ jobs:
             # Extract just the JSON by finding the opening { and matching closing }
             "$cli_binary" openapi-schema 2>/dev/null > "/tmp/${sidechain}_raw.json"
             # Use python to extract valid JSON from the mixed output
-            python3 -c "
-import sys
-with open('/tmp/${sidechain}_raw.json', 'r') as f:
-    content = f.read()
-start = content.find('{')
-if start >= 0:
-    with open('/tmp/${sidechain}_schema.json', 'w') as f:
-        f.write(content[start:])
-else:
-    print('No JSON found in output')
-    sys.exit(1)
-            "
+            python3 -c "import sys; raw=open(sys.argv[1]).read(); start=raw.find('{'); sys.exit('No JSON found in output') if start<0 else open(sys.argv[2],'w').write(raw[start:])" "/tmp/${sidechain}_raw.json" "/tmp/${sidechain}_schema.json"
             
             # Debug: show file size and first few bytes
             echo "Schema file size: $(wc -c < "/tmp/${sidechain}_schema.json") bytes"

@@ -15,6 +15,8 @@ import (
 	"sync"
 	"time"
 
+	"os/exec"
+
 	"connectrpc.com/connect"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/api"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/config"
@@ -108,6 +110,57 @@ func realMain(ctx context.Context, cancelCtx context.CancelFunc) error {
 	}
 	defer database.SafeDefer(ctx, db.Close)
 
+	// Start orchestratord as a subprocess — it manages bitcoind, enforcer, and sidechains.
+	orchCmd, err := startOrchestratord(ctx, conf)
+	if err != nil {
+		log.Warn().Err(err).Msg("failed to start orchestratord (may already be running)")
+	} else {
+		defer func() {
+			if orchCmd.Process != nil {
+				log.Info().Int("pid", orchCmd.Process.Pid).Msg("stopping orchestratord")
+				_ = orchCmd.Process.Signal(os.Interrupt)
+				_ = orchCmd.Wait()
+			}
+		}()
+	}
+
+	// Tell orchestratord to start the L1 stack (bitcoind → wallet → IBD → enforcer).
+	// This runs in the background — bitwindowd doesn't need to wait for it.
+	go func() {
+		orchClient := orchrpc.NewOrchestratorServiceClient(
+			http.DefaultClient,
+			conf.OrchestratorAddr,
+			connect.WithGRPC(),
+		)
+
+		// Wait for orchestratord to be ready.
+		for i := 0; i < 30; i++ {
+			_, err := orchClient.ListBinaries(ctx, connect.NewRequest(&orchpb.ListBinariesRequest{}))
+			if err == nil {
+				break
+			}
+			time.Sleep(500 * time.Millisecond)
+		}
+
+		log.Info().Msg("kicking off L1 stack via orchestrator")
+		stream, err := orchClient.StartWithL1(ctx, connect.NewRequest(&orchpb.StartWithL1Request{
+			Target: "enforcer",
+		}))
+		if err != nil {
+			log.Warn().Err(err).Msg("failed to start L1 stack (non-fatal)")
+			return
+		}
+		for stream.Receive() {
+			msg := stream.Msg()
+			if msg.GetError() != "" {
+				log.Warn().Str("stage", msg.GetStage()).Str("error", msg.GetError()).Msg("L1 startup issue (non-fatal)")
+			}
+			if msg.GetDone() {
+				break
+			}
+		}
+	}()
+
 	bitcoindConnector := func(ctx context.Context) (corerpc.BitcoinServiceClient, error) {
 		bitcoind, err := startCoreProxy(ctx, conf)
 		return bitcoind, err
@@ -199,10 +252,6 @@ func realMain(ctx context.Context, cancelCtx context.CancelFunc) error {
 	)
 	if err != nil {
 		return err
-	}
-
-	if err := ensureBackendRuntime(ctx, conf); err != nil {
-		return fmt.Errorf("ensure backend runtime: %w", err)
 	}
 
 	// Start the cheque engine
@@ -523,40 +572,57 @@ func isNoisyStartupMessage(msg string) bool {
 	return false
 }
 
-func ensureBackendRuntime(ctx context.Context, conf config.Config) error {
-	// Bound the startup so we don't hang forever if orchestrator stalls.
-	ctx, cancel := context.WithTimeout(ctx, 5*time.Minute)
-	defer cancel()
+// startOrchestratord starts the orchestrator daemon as a subprocess.
+// If orchestratord is already running (e.g. from a previous session), it adopts
+// the existing instance instead of spawning a new one.
+func startOrchestratord(ctx context.Context, conf config.Config) (*exec.Cmd, error) {
+	log := zerolog.Ctx(ctx)
 
-	client := orchrpc.NewOrchestratorServiceClient(
+	// Check if orchestratord is already running by trying to connect.
+	orchClient := orchrpc.NewOrchestratorServiceClient(
 		http.DefaultClient,
 		conf.OrchestratorAddr,
 		connect.WithGRPC(),
 	)
+	_, err := orchClient.ListBinaries(ctx, connect.NewRequest(&orchpb.ListBinariesRequest{}))
+	if err == nil {
+		log.Info().Msg("orchestratord already running, adopting existing instance")
+		return nil, nil
+	}
 
-	stream, err := client.StartWithDeps(ctx, connect.NewRequest(&orchpb.StartWithDepsRequest{
-		Target: "enforcer",
-	}))
+	// Find the orchestratord binary next to our own binary.
+	selfPath, err := os.Executable()
 	if err != nil {
-		return fmt.Errorf("start runtime via orchestrator: %w", err)
+		return nil, fmt.Errorf("find self path: %w", err)
+	}
+	orchPath := filepath.Join(filepath.Dir(selfPath), "orchestratord")
+	if _, err := os.Stat(orchPath); err != nil {
+		return nil, fmt.Errorf("orchestratord not found at %s: %w", orchPath, err)
 	}
 
-	for stream.Receive() {
-		msg := stream.Msg()
-		log := zerolog.Ctx(ctx)
-		if msg.GetError() != "" {
-			return fmt.Errorf("orchestrator startup %s: %s", msg.GetStage(), msg.GetError())
-		}
-		log.Info().Str("stage", msg.GetStage()).Str("message", msg.GetMessage()).Bool("done", msg.GetDone()).Msg("backend runtime startup")
-		if msg.GetDone() {
-			break
-		}
-	}
-	if err := stream.Err(); err != nil {
-		return fmt.Errorf("read orchestrator startup stream: %w", err)
+	// Build args from our config.
+	// bitwindow-dir is the parent of the network-specific datadir —
+	// wallet.json lives there, not under the network subdirectory.
+	bitwindowDir := filepath.Dir(conf.Datadir)
+	args := []string{
+		"--network", string(conf.BitcoinCoreNetwork),
+		"--datadir", bitwindowDir,
+		"--bitwindow-dir", bitwindowDir,
 	}
 
-	return nil
+	log.Info().Str("path", orchPath).Strs("args", args).Msg("starting orchestratord")
+
+	cmd := exec.CommandContext(ctx, orchPath, args...)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+
+	if err := cmd.Start(); err != nil {
+		return nil, fmt.Errorf("start orchestratord: %w", err)
+	}
+
+	log.Info().Int("pid", cmd.Process.Pid).Msg("orchestratord started")
+
+	return cmd, nil
 }
 
 func getChainParams(network config.Network) *chaincfg.Params {

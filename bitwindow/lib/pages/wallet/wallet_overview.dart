@@ -12,6 +12,7 @@ import 'package:intl/intl.dart';
 import 'package:logger/logger.dart';
 import 'package:sail_ui/gen/google/protobuf/timestamp.pb.dart';
 import 'package:sail_ui/gen/wallet/v1/wallet.pb.dart';
+import 'package:sail_ui/rpcs/orchestrator_wallet_rpc.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:stacked/stacked.dart';
 
@@ -373,8 +374,7 @@ class _TransactionTableState extends State<TransactionTable> {
 /// - Balance: routed via BalanceProvider (now on orchestrator)
 /// - Transactions: routed via TransactionProvider (already on orchestrator)
 /// - getStats: STAYS on bitwindowd — BW-only aggregate stats from SQLite
-/// - bumpFee: STAYS on bitwindowd — orchestrator BumpFeeResponse lacks
-///   originalFee/newFee fields needed for the UI snackbar
+/// - bumpFee: routed via orchestrator
 /// - saveNote: STAYS on bitwindowd — transaction notes live in BW SQLite,
 ///   no bulk note retrieval API exists yet
 /// Known gap: notes set via bitwindowd are not enriched back into
@@ -382,6 +382,7 @@ class _TransactionTableState extends State<TransactionTable> {
 class OverviewViewModel extends BaseViewModel with ChangeTrackingMixin {
   final TransactionProvider _txProvider = GetIt.I<TransactionProvider>();
   final BitwindowRPC _bitwindowRPC = GetIt.I<BitwindowRPC>();
+  final OrchestratorWalletRPC _orchestratorWallet = GetIt.I<OrchestratorRPC>().wallet;
   final EnforcerRPC _enforcerRPC = GetIt.I<EnforcerRPC>();
   final BalanceProvider _balanceProvider = GetIt.I<BalanceProvider>();
   WalletReaderProvider get _walletReader => GetIt.I<WalletReaderProvider>();
@@ -598,15 +599,18 @@ class OverviewViewModel extends BaseViewModel with ChangeTrackingMixin {
     final log = GetIt.I<Logger>();
 
     try {
-      // Use Bitcoin Core's bumpfee with automatic fee estimation
-      final result = await _bitwindowRPC.wallet.bumpFee(tx.txid);
+      final walletId = _walletReader.activeWalletId;
+      if (walletId == null) throw Exception('No active wallet');
 
-      log.i('RBF transaction broadcast: ${result.txid} (replaced ${tx.txid})');
+      final result = await _orchestratorWallet.bumpFee(
+        walletId: walletId,
+        txid: tx.txid,
+      );
+
+      log.i('RBF transaction broadcast: ${result.newTxid} (replaced ${tx.txid})');
 
       if (context.mounted) {
-        final oldFeeBTC = result.originalFee.toStringAsFixed(8);
-        final newFeeBTC = result.newFee.toStringAsFixed(8);
-        showSnackBar(context, 'Fee bumped! $oldFeeBTC -> $newFeeBTC BTC');
+        showSnackBar(context, 'Fee bumped! New txid: ${result.newTxid}');
       }
     } catch (e) {
       log.e('Failed to bump fee: $e');

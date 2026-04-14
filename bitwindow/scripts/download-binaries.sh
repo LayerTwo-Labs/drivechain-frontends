@@ -32,4 +32,18 @@ fi
 
 echo "bitwindowd has been built and moved to $assets_dir"
 
+# Build orchestratord
+cd $original_cwd/../sidechain-orchestrator
+echo "Building orchestratord"
+
+if [[ "$OSTYPE" == "darwin"* ]]; then
+    GOARCH=amd64 go build -o "$assets_dir/orchestratord" ./cmd/orchestratord
+elif [[ "$OSTYPE" == "msys" || "$OSTYPE" == "win32" ]]; then
+    go build -o "$assets_dir/orchestratord.exe" ./cmd/orchestratord
+else
+    go build -o "$assets_dir/orchestratord" ./cmd/orchestratord
+fi
+
+echo "orchestratord has been built and moved to $assets_dir"
+
 cd $original_cwd

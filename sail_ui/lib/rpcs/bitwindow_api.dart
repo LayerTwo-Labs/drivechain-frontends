@@ -8,7 +8,6 @@ import 'package:get_it/get_it.dart';
 import 'package:http/http.dart' as http;
 import 'package:logger/logger.dart';
 import 'package:sail_ui/gen/bitcoin/bitcoind/v1alpha/bitcoin.connect.client.dart';
-import 'package:sail_ui/rpcs/orchestrator_wallet_rpc.dart';
 import 'package:sail_ui/gen/bitdrive/v1/bitdrive.pb.dart' as bitdrivepb;
 import 'package:sail_ui/gen/utils/v1/utils.pb.dart' as utilspb;
 import 'package:sail_ui/gen/bitcoin/bitcoind/v1alpha/bitcoin.pb.dart'
@@ -29,7 +28,7 @@ import 'package:sail_ui/sail_ui.dart';
 
 /// API to the drivechain server.
 abstract class BitwindowRPC extends RPCConnection {
-  BitwindowRPC({required super.binaryType, required super.restartOnFailure});
+  BitwindowRPC({required super.binaryType});
 
   BitwindowAPI get bitwindowd;
   WalletAPI get wallet;
@@ -37,13 +36,9 @@ abstract class BitwindowRPC extends RPCConnection {
   DrivechainAPI get drivechain;
   MiscAPI get misc;
   M4API get m4;
-  HealthAPI get health;
   NotificationAPI get notifications;
   BitDriveAPI get bitdrive;
   UtilsAPI get utils;
-
-  /// Stream of health check updates
-  Stream<CheckResponse> get healthStream;
 
   /// Stream of notification events
   Stream<WatchResponse> get notificationStream;
@@ -66,16 +61,13 @@ class BitwindowRPCLive extends BitwindowRPC {
   @override
   late M4API m4;
   @override
-  late HealthAPI health;
-  @override
   late NotificationAPI notifications;
   @override
   late BitDriveAPI bitdrive;
   @override
   late UtilsAPI utils;
 
-  BitwindowRPCLive({required String host, required int port})
-    : super(binaryType: BinaryType.bitWindow, restartOnFailure: true) {
+  BitwindowRPCLive({required String host, required int port}) : super(binaryType: BinaryType.bitWindow) {
     _initializeConnection(host: host, port: port);
   }
 
@@ -94,7 +86,6 @@ class BitwindowRPCLive extends BitwindowRPC {
     drivechain = _DrivechainAPILive(DrivechainServiceClient(transport));
     misc = _MiscAPILive(MiscServiceClient(transport));
     m4 = _M4APILive(M4ServiceClient(transport));
-    health = _HealthAPILive(HealthServiceClient(transport));
     notifications = _NotificationAPILive(NotificationServiceClient(transport));
     bitdrive = _BitDriveAPILive(BitDriveServiceClient(transport));
     utils = _UtilsAPILive(UtilsServiceClient(transport));
@@ -124,35 +115,13 @@ class BitwindowRPCLive extends BitwindowRPC {
   }
 
   @override
-  Future<int> ping() async {
-    return await _withRecreate(() async {
-      final healthResponse = await health.check();
-      // Check if any service is serving
-      final hasServingService = healthResponse.serviceStatuses.any(
-        (status) => status.status == CheckResponse_Status.STATUS_SERVING,
-      );
-
-      if (hasServingService) {
-        return healthResponse.serviceStatuses.length;
-      } else {
-        throw Exception('No services are currently serving');
-      }
-    });
-  }
-
-  @override
-  List<String> startupErrors() {
-    return [];
-  }
-
-  @override
   Future<(double, double)> balance() async {
     return await _withRecreate(() async {
       final walletReader = GetIt.I.get<WalletReaderProvider>();
       final walletId = walletReader.activeWalletId;
       if (walletId == null) throw Exception('No active wallet');
       // Route through orchestrator — balance is a shared wallet primitive
-      final orchestratorWallet = GetIt.I.get<OrchestratorWalletRPC>();
+      final orchestratorWallet = GetIt.I.get<OrchestratorRPC>().wallet;
       final resp = await orchestratorWallet.getBalance(walletId);
       return (
         satoshiToBTC(resp.confirmedSats.round()),
@@ -270,20 +239,10 @@ class BitwindowRPCLive extends BitwindowRPC {
     ];
   }
 
-  // Store the previous response for comparison
-  CheckResponse? _previousHealthResponse;
-
   // Keep track of the current stream subscription
-  StreamSubscription<CheckResponse>? _healthStreamSubscription;
   StreamSubscription<WatchResponse>? _notificationStreamSubscription;
 
-  // Stream controller to broadcast health updates
-  final StreamController<CheckResponse> _healthStreamController = StreamController<CheckResponse>.broadcast();
   final StreamController<WatchResponse> _notificationStreamController = StreamController<WatchResponse>.broadcast();
-
-  /// Stream of health check updates
-  @override
-  Stream<CheckResponse> get healthStream => _healthStreamController.stream;
 
   /// Stream of notification events
   @override
@@ -292,86 +251,11 @@ class BitwindowRPCLive extends BitwindowRPC {
   @override
   void onConnectionStateChanged(bool isConnected) {
     if (isConnected) {
-      log.i(
-        'Connection state changed to true, starting health and notification streams',
-      );
-      startHealthStream();
+      log.i('Connection state changed to true, starting notification stream');
       startNotificationStream();
     } else {
-      log.i(
-        'Connection state changed to false, stopping health and notification streams',
-      );
-      _healthStreamSubscription?.cancel();
+      log.i('Connection state changed to false, stopping notification stream');
       _notificationStreamSubscription?.cancel();
-      _previousHealthResponse = null;
-    }
-  }
-
-  void startHealthStream() {
-    // Cancel any existing subscription first
-    _healthStreamSubscription?.cancel();
-
-    // Don't start if we're stopping
-    if (stoppingBinary) return;
-
-    try {
-      _healthStreamSubscription =
-          health.watch().listen(
-            (response) {
-              // Broadcast to health stream listeners
-              _healthStreamController.add(response);
-
-              // Only notify if the health status has changed
-              if (_previousHealthResponse == null) {
-                _previousHealthResponse = response;
-                notifyListeners();
-              } else if (!_areHealthResponsesEqual(
-                _previousHealthResponse!,
-                response,
-              )) {
-                _previousHealthResponse = response;
-                notifyListeners();
-              }
-            },
-            onError: (error) {
-              log.e('Health stream error: $error');
-              if (error is Exception) {
-                log.e('Error details: ${error.toString()}');
-              }
-              // Reset previous response on error since state is uncertain
-              _previousHealthResponse = null;
-              notifyListeners();
-
-              // If we're still connected and not stopping, try to restart the stream after a delay
-              if (connected && !stoppingBinary) {
-                log.i(
-                  'Health stream dropped, but still connected, restarting health stream in 5 seconds...',
-                );
-                Future.delayed(const Duration(seconds: 5), () {
-                  if (connected && !stoppingBinary) {
-                    startHealthStream();
-                  }
-                });
-              }
-            },
-            cancelOnError: false,
-          )..onDone(() {
-            log.i('Health stream completed');
-            // If we're still connected and not stopping, restart the stream
-            if (connected && !stoppingBinary) {
-              log.i(
-                'Stream completed but still connected, restarting health stream in 5 seconds...',
-              );
-              Future.delayed(const Duration(seconds: 5), () {
-                if (connected && !stoppingBinary) {
-                  startHealthStream();
-                }
-              });
-            }
-          });
-    } catch (e) {
-      log.e('Failed to start health stream: $e');
-      // Connection is probably dead, don't crash - just log it
     }
   }
 
@@ -430,33 +314,9 @@ class BitwindowRPCLive extends BitwindowRPC {
 
   @override
   void dispose() {
-    _healthStreamSubscription?.cancel();
     _notificationStreamSubscription?.cancel();
-    _healthStreamController.close();
     _notificationStreamController.close();
     super.dispose();
-  }
-
-  bool _areHealthResponsesEqual(CheckResponse previous, CheckResponse current) {
-    if (previous.serviceStatuses.length != current.serviceStatuses.length) {
-      return false;
-    }
-
-    final prevMap = {
-      for (var status in previous.serviceStatuses) status.serviceName: status.status,
-    };
-
-    for (var status in current.serviceStatuses) {
-      final prevStatus = prevMap[status.serviceName];
-      if (prevStatus != status.status) {
-        log.i(
-          '${status.serviceName} health status changed from ${prevStatus?.name.split('STATUS_').last} to ${status.status.name.split('STATUS_').last}',
-        );
-        return false;
-      }
-    }
-
-    return true;
   }
 
   void _recreateConnection() {
@@ -2019,40 +1879,6 @@ class _M4APILive implements M4API {
       return response;
     } catch (e) {
       final error = 'could not generate M4 bytes: ${extractConnectException(e)}';
-      throw BitcoindException(error);
-    }
-  }
-}
-
-abstract class HealthAPI {
-  Future<CheckResponse> check();
-  Stream<CheckResponse> watch();
-}
-
-class _HealthAPILive implements HealthAPI {
-  final HealthServiceClient _client;
-  Logger get log => GetIt.I.get<Logger>();
-
-  _HealthAPILive(this._client);
-
-  @override
-  Future<CheckResponse> check() async {
-    try {
-      final response = await _client.check(Empty());
-      return response;
-    } catch (e) {
-      final error = 'could not check health: ${extractConnectException(e)}';
-      throw BitcoindException(error);
-    }
-  }
-
-  @override
-  Stream<CheckResponse> watch() {
-    try {
-      final response = _client.watch(Empty());
-      return response;
-    } catch (e) {
-      final error = 'could not watch health: ${extractConnectException(e)}';
       throw BitcoindException(error);
     }
   }

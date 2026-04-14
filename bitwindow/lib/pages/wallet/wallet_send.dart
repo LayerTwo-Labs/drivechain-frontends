@@ -15,6 +15,7 @@ import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:sail_ui/gen/wallet/v1/wallet.pb.dart' as pb;
 import 'package:sail_ui/gen/wallet/v1/wallet.pbserver.dart' hide CoinSelectionStrategy;
+import 'package:sail_ui/rpcs/orchestrator_wallet_rpc.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:stacked/stacked.dart';
 
@@ -331,8 +332,7 @@ class PayFromAndFeeCard extends ViewModelWidget<SendPageViewModel> {
 
 /// Orchestrator migration status:
 /// - Balance/UTXOs/transactions: routed via providers (already on orchestrator)
-/// - sendTransaction: STAYS on bitwindowd — needs fixedFeeSats + requiredInputs
-///   (orchestrator only has feeRateSatPerVbyte, no coin control inputs)
+/// - sendTransaction: routed via orchestrator shared wallet RPC
 /// - setCoinSelectionStrategy: STAYS on bitwindowd — BW-only coin selection prefs
 /// - estimateSmartFee: STAYS on bitwindowd — bitcoind API, not wallet primitive
 class SendPageViewModel extends BaseViewModel {
@@ -344,6 +344,7 @@ class SendPageViewModel extends BaseViewModel {
   AddressBookProvider get addressBookProvider => GetIt.I<AddressBookProvider>();
   CoinSelectionProvider get coinSelectionProvider => GetIt.I<CoinSelectionProvider>();
   BitwindowRPC get bitwindowd => GetIt.I<BitwindowRPC>();
+  OrchestratorWalletRPC get _orchestratorWallet => GetIt.I<OrchestratorRPC>().wallet;
   SettingsProvider get settingsProvider => GetIt.I<SettingsProvider>();
   WalletReaderProvider get _walletReader => GetIt.I<WalletReaderProvider>();
 
@@ -569,12 +570,12 @@ class SendPageViewModel extends BaseViewModel {
         destinations[address] = (destinations[address] ?? 0) + satoshis;
       }
 
-      final txid = await bitwindowd.wallet.sendTransaction(
-        walletId,
-        destinations,
+      final txid = (await _orchestratorWallet.sendTransaction(
+        walletId: walletId,
+        destinations: destinations,
         fixedFeeSats: feeSats,
         requiredInputs: selectedUtxos,
-      );
+      )).txid;
       await clearAll();
       log.d('Sent transaction: txid=$txid');
       if (context.mounted) {
