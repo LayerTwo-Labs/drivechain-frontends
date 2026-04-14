@@ -6,7 +6,6 @@ import 'package:sail_ui/config/binaries.dart';
 import 'package:sail_ui/providers/backend_state_provider.dart';
 import 'package:sail_ui/providers/binaries/binary_provider.dart';
 import 'package:sail_ui/providers/log_provider.dart';
-import 'package:sail_ui/rpcs/orchestratord_rpc.dart';
 import 'package:sail_ui/rpcs/orchestrator_rpc.dart';
 
 Future<void> initBackendManagedSidechainRuntime({
@@ -19,10 +18,6 @@ Future<void> initBackendManagedSidechainRuntime({
     GetIt.I.registerSingleton<OrchestratorRPC>(
       OrchestratorRPC(host: host, port: port),
     );
-  }
-
-  if (!GetIt.I.isRegistered<OrchestratordRPC>()) {
-    GetIt.I.registerSingleton<OrchestratordRPC>(OrchestratordLive());
   }
 
   if (!GetIt.I.isRegistered<BackendStateProvider>()) {

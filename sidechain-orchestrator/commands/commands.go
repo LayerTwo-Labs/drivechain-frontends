@@ -203,7 +203,7 @@ var startCommand = &cli.Command{
 		}
 
 		if withDeps {
-			stream, err := client.StartWithDeps(cctx.Context, connect.NewRequest(&pb.StartWithDepsRequest{
+			stream, err := client.StartWithL1(cctx.Context, connect.NewRequest(&pb.StartWithL1Request{
 				Target:     name,
 				TargetArgs: cctx.StringSlice("args"),
 			}))

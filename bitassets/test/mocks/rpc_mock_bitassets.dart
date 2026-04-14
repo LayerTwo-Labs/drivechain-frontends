@@ -4,7 +4,6 @@ class MockBitAssetsRPC extends BitAssetsRPC {
   MockBitAssetsRPC()
     : super(
         binaryType: BinaryType.bitassets,
-        restartOnFailure: false,
       );
 
   @override
@@ -26,6 +25,9 @@ class MockBitAssetsRPC extends BitAssetsRPC {
   Future<(double, double)> balance() {
     return Future.value((1.12345678, 2.24680));
   }
+
+  @override
+  Future<void> stop() async {}
 
   @override
   Future<List<String>> binaryArgs() {
@@ -275,11 +277,6 @@ class MockBitAssetsRPC extends BitAssetsRPC {
   }
 
   @override
-  Future<int> ping() {
-    return Future.value(123);
-  }
-
-  @override
   Future<String> registerBitAsset(String assetId, BitAssetRequest? data) {
     return Future.value('mocked');
   }
@@ -312,11 +309,6 @@ class MockBitAssetsRPC extends BitAssetsRPC {
   @override
   Future<Map<String, String>> signArbitraryMsgAsAddr({required String msg, required String address}) {
     return Future.value({'mocked': 'mocked'});
-  }
-
-  @override
-  List<String> startupErrors() {
-    return [];
   }
 
   @override

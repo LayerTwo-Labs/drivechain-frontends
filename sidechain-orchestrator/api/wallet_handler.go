@@ -3,11 +3,14 @@ package api
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"math"
+	"sort"
 	"time"
 
 	"connectrpc.com/connect"
+	"google.golang.org/protobuf/types/known/emptypb"
 
 	pb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1"
 	rpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1/walletmanagerv1connect"
@@ -256,6 +259,24 @@ func (h *WalletHandler) SendTransaction(ctx context.Context, req *connect.Reques
 		return nil, connect.NewError(connect.CodeFailedPrecondition, err)
 	}
 
+	if len(req.Msg.Destinations) == 0 {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("must provide at least one destination"))
+	}
+
+	if req.Msg.FeeRateSatPerVbyte > 0 && req.Msg.FixedFeeSats > 0 {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("cannot provide both fee rate and fixed fee"))
+	}
+
+	const dustLimitSats int64 = 546
+	for address, sats := range req.Msg.Destinations {
+		if sats < dustLimitSats {
+			return nil, connect.NewError(
+				connect.CodeInvalidArgument,
+				fmt.Errorf("amount to %s is below dust limit (%d sats)", address, dustLimitSats),
+			)
+		}
+	}
+
 	walletID, err := h.engine.ResolveWalletID(req.Msg.WalletId)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInvalidArgument, err)
@@ -264,6 +285,22 @@ func (h *WalletHandler) SendTransaction(ctx context.Context, req *connect.Reques
 	coreName, err := h.engine.GetCoreWalletName(ctx, walletID)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+
+	needsAdvancedSend := req.Msg.OpReturnHex != "" ||
+		req.Msg.FeeRateSatPerVbyte > 0 ||
+		req.Msg.FixedFeeSats > 0 ||
+		len(req.Msg.RequiredInputs) > 0
+
+	if needsAdvancedSend {
+		txid, err := h.sendAdvancedTransaction(ctx, coreName, req.Msg)
+		if err != nil {
+			return nil, connect.NewError(connect.CodeInternal, err)
+		}
+
+		return connect.NewResponse(&pb.SendTransactionResponse{
+			Txid: txid,
+		}), nil
 	}
 
 	// Convert sats to BTC for sendmany
@@ -289,6 +326,160 @@ func (h *WalletHandler) SendTransaction(ctx context.Context, req *connect.Reques
 	return connect.NewResponse(&pb.SendTransactionResponse{
 		Txid: txid,
 	}), nil
+}
+
+func (h *WalletHandler) sendAdvancedTransaction(
+	ctx context.Context,
+	coreName string,
+	req *pb.SendTransactionRequest,
+) (string, error) {
+	outputs, totalDestinationSats := buildRawOutputs(req)
+	inputs := make([]wallet.CoreRawInput, 0, len(req.RequiredInputs))
+	selectedInputAmountSats := int64(0)
+
+	for _, input := range req.RequiredInputs {
+		inputs = append(inputs, wallet.CoreRawInput{
+			TxID: input.Txid,
+			Vout: int(input.Vout),
+		})
+		selectedInputAmountSats += input.AmountSats
+	}
+
+	if req.FixedFeeSats > 0 {
+		var err error
+		if len(inputs) == 0 {
+			inputs, selectedInputAmountSats, err = h.selectInputsForFixedFee(
+				ctx,
+				coreName,
+				totalDestinationSats+req.FixedFeeSats,
+			)
+			if err != nil {
+				return "", err
+			}
+		}
+
+		changeSats := selectedInputAmountSats - totalDestinationSats - req.FixedFeeSats
+		if changeSats < 0 {
+			return "", fmt.Errorf(
+				"insufficient selected inputs: need %d sats, have %d sats",
+				totalDestinationSats+req.FixedFeeSats,
+				selectedInputAmountSats,
+			)
+		}
+
+		if changeSats >= 546 {
+			changeAddress, err := h.engine.CoreRPC().GetRawChangeAddress(ctx, coreName)
+			if err != nil {
+				return "", fmt.Errorf("get raw change address: %w", err)
+			}
+			outputs = append(outputs, map[string]interface{}{changeAddress: satsToBtc(changeSats)})
+		}
+
+		rawHex, err := h.engine.CoreRPC().CreateRawTransaction(ctx, inputs, outputs)
+		if err != nil {
+			return "", fmt.Errorf("create raw transaction: %w", err)
+		}
+
+		return h.signAndBroadcastRawTransaction(ctx, coreName, rawHex)
+	}
+
+	rawHex, err := h.engine.CoreRPC().CreateRawTransaction(ctx, inputs, outputs)
+	if err != nil {
+		return "", fmt.Errorf("create raw transaction: %w", err)
+	}
+
+	fundOptions := map[string]interface{}{}
+	if len(inputs) > 0 {
+		fundOptions["add_inputs"] = false
+	}
+	if req.FeeRateSatPerVbyte > 0 {
+		fundOptions["fee_rate"] = req.FeeRateSatPerVbyte
+	}
+	if req.SubtractFeeFromAmount && len(req.Destinations) > 0 {
+		subtractFeeFromOutputs := make([]int, 0, len(req.Destinations))
+		for i := 0; i < len(req.Destinations); i++ {
+			subtractFeeFromOutputs = append(subtractFeeFromOutputs, i)
+		}
+		fundOptions["subtractFeeFromOutputs"] = subtractFeeFromOutputs
+	}
+
+	funded, err := h.engine.CoreRPC().FundRawTransaction(ctx, coreName, rawHex, fundOptions)
+	if err != nil {
+		return "", fmt.Errorf("fund raw transaction: %w", err)
+	}
+
+	return h.signAndBroadcastRawTransaction(ctx, coreName, funded.Hex)
+}
+
+func (h *WalletHandler) selectInputsForFixedFee(
+	ctx context.Context,
+	coreName string,
+	requiredSats int64,
+) ([]wallet.CoreRawInput, int64, error) {
+	utxos, err := h.engine.CoreRPC().ListUnspent(ctx, coreName)
+	if err != nil {
+		return nil, 0, fmt.Errorf("list unspent: %w", err)
+	}
+
+	sort.Slice(utxos, func(i, j int) bool {
+		return utxos[i].Amount > utxos[j].Amount
+	})
+
+	selected := make([]wallet.CoreRawInput, 0)
+	totalSats := int64(0)
+	for _, utxo := range utxos {
+		if !utxo.Spendable {
+			continue
+		}
+
+		selected = append(selected, wallet.CoreRawInput{
+			TxID: utxo.TxID,
+			Vout: utxo.Vout,
+		})
+		totalSats += int64(math.Round(utxo.Amount * 1e8))
+		if totalSats >= requiredSats {
+			break
+		}
+	}
+
+	if totalSats < requiredSats {
+		return nil, 0, fmt.Errorf("insufficient funds: need %d sats, have %d sats", requiredSats, totalSats)
+	}
+
+	return selected, totalSats, nil
+}
+
+func buildRawOutputs(req *pb.SendTransactionRequest) ([]map[string]interface{}, int64) {
+	outputs := make([]map[string]interface{}, 0, len(req.Destinations)+1)
+	totalDestinationSats := int64(0)
+	for address, sats := range req.Destinations {
+		outputs = append(outputs, map[string]interface{}{address: satsToBtc(sats)})
+		totalDestinationSats += sats
+	}
+	if req.OpReturnHex != "" {
+		outputs = append(outputs, map[string]interface{}{"data": req.OpReturnHex})
+	}
+	return outputs, totalDestinationSats
+}
+
+func (h *WalletHandler) signAndBroadcastRawTransaction(
+	ctx context.Context,
+	coreName, rawHex string,
+) (string, error) {
+	signed, err := h.engine.CoreRPC().SignRawTransactionWithWallet(ctx, coreName, rawHex)
+	if err != nil {
+		return "", fmt.Errorf("sign raw transaction: %w", err)
+	}
+	if !signed.Complete {
+		return "", errors.New("transaction signing incomplete")
+	}
+
+	txid, err := h.engine.CoreRPC().SendRawTransaction(ctx, signed.Hex)
+	if err != nil {
+		return "", fmt.Errorf("broadcast raw transaction: %w", err)
+	}
+
+	return txid, nil
 }
 
 func (h *WalletHandler) ListTransactions(ctx context.Context, req *connect.Request[pb.ListTransactionsRequest]) (*connect.Response[pb.ListTransactionsResponse], error) {
@@ -449,6 +640,65 @@ func (h *WalletHandler) GetTransactionDetails(ctx context.Context, req *connect.
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("decode gettransaction: %w", err))
 	}
 
+	rawTx, err := h.engine.CoreRPC().GetRawTransaction(ctx, req.Msg.Txid)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("getrawtransaction: %w", err))
+	}
+
+	inputs := make([]*pb.TransactionInput, 0, len(rawTx.Vin))
+	totalInputSats := int64(0)
+	for i, vin := range rawTx.Vin {
+		input := &pb.TransactionInput{
+			Index:      int32(i),
+			PrevTxid:   vin.TxID,
+			PrevVout:   int32(vin.Vout),
+			Witness:    vin.Witness,
+			Sequence:   vin.Sequence,
+			IsCoinbase: vin.Coinbase != "",
+		}
+		if vin.ScriptSig != nil {
+			input.ScriptSigAsm = vin.ScriptSig.Asm
+			input.ScriptSigHex = vin.ScriptSig.Hex
+		}
+
+		if !input.IsCoinbase && vin.TxID != "" {
+			prevTx, err := h.engine.CoreRPC().GetRawTransaction(ctx, vin.TxID)
+			if err == nil && vin.Vout >= 0 && vin.Vout < len(prevTx.Vout) {
+				prevOut := prevTx.Vout[vin.Vout]
+				input.ValueSats = int64(math.Round(prevOut.Value * 1e8))
+				input.Address = prevOut.ScriptPubKey.Address
+				totalInputSats += input.ValueSats
+			}
+		}
+
+		inputs = append(inputs, input)
+	}
+
+	outputs := make([]*pb.TransactionOutput, 0, len(rawTx.Vout))
+	totalOutputSats := int64(0)
+	for i, vout := range rawTx.Vout {
+		valueSats := int64(math.Round(vout.Value * 1e8))
+		totalOutputSats += valueSats
+		outputs = append(outputs, &pb.TransactionOutput{
+			Index:           int32(i),
+			ValueSats:       valueSats,
+			Address:         vout.ScriptPubKey.Address,
+			ScriptType:      vout.ScriptPubKey.Type,
+			ScriptPubkeyAsm: vout.ScriptPubKey.Asm,
+			ScriptPubkeyHex: vout.ScriptPubKey.Hex,
+		})
+	}
+
+	feeSats := totalInputSats - totalOutputSats
+	if feeSats < 0 {
+		feeSats = 0
+	}
+
+	feeRateSatVb := 0.0
+	if rawTx.Vsize > 0 {
+		feeRateSatVb = float64(feeSats) / float64(rawTx.Vsize)
+	}
+
 	return connect.NewResponse(&pb.GetTransactionDetailsResponse{
 		Transaction: &pb.TransactionEntry{
 			Txid:          tx.TxID,
@@ -460,7 +710,21 @@ func (h *WalletHandler) GetTransactionDetails(ctx context.Context, req *connect.
 			Time:          tx.Time,
 			WalletId:      walletID,
 		},
-		RawHex: tx.Hex,
+		RawHex:          tx.Hex,
+		Blockhash:       rawTx.Blockhash,
+		Confirmations:   rawTx.Confirmations,
+		BlockTime:       rawTx.BlockTime,
+		Version:         rawTx.Version,
+		Locktime:        rawTx.Locktime,
+		SizeBytes:       rawTx.Size,
+		VsizeVbytes:     rawTx.Vsize,
+		WeightWu:        rawTx.Weight,
+		FeeSats:         feeSats,
+		FeeRateSatVb:    feeRateSatVb,
+		Inputs:          inputs,
+		TotalInputSats:  totalInputSats,
+		Outputs:         outputs,
+		TotalOutputSats: totalOutputSats,
 	}), nil
 }
 
@@ -562,6 +826,88 @@ func (h *WalletHandler) GetWalletSeed(ctx context.Context, req *connect.Request[
 	}
 
 	return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("wallet %s not found", walletID))
+}
+
+// ============================================================================
+// Watch Wallet Data (server-streaming)
+// ============================================================================
+
+func (h *WalletHandler) WatchWalletData(ctx context.Context, req *connect.Request[emptypb.Empty], stream *connect.ServerStream[pb.WatchWalletDataResponse]) error {
+	// Send initial state immediately.
+	if err := h.sendWalletData(ctx, stream); err != nil {
+		return err
+	}
+
+	// Debounce rapid state changes into one send.
+	debounce := time.NewTimer(0)
+	if !debounce.Stop() {
+		<-debounce.C
+	}
+	pending := false
+
+	// Fallback ticker: ensure state is sent at least every 5 seconds
+	// even if no state changes are detected (e.g. balance changes from
+	// new blocks come from Core, not from wallet.Service mutations).
+	fallback := time.NewTicker(5 * time.Second)
+	defer fallback.Stop()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+
+		case <-h.svc.StateChanged:
+			if !pending {
+				debounce.Reset(50 * time.Millisecond)
+				pending = true
+			}
+
+		case <-debounce.C:
+			pending = false
+			if err := h.sendWalletData(ctx, stream); err != nil {
+				return err
+			}
+
+		case <-fallback.C:
+			if err := h.sendWalletData(ctx, stream); err != nil {
+				return err
+			}
+		}
+	}
+}
+
+func (h *WalletHandler) sendWalletData(ctx context.Context, stream *connect.ServerStream[pb.WatchWalletDataResponse]) error {
+	wallets := h.svc.ListWallets()
+	pbWallets := make([]*pb.WalletMetadata, len(wallets))
+	for i, w := range wallets {
+		var gradientJSON string
+		if w.Gradient != nil {
+			gradientJSON = string(w.Gradient)
+		}
+		pbWallets[i] = &pb.WalletMetadata{
+			Id:           w.ID,
+			Name:         w.Name,
+			WalletType:   w.WalletType,
+			GradientJson: gradientJSON,
+			CreatedAt:    w.CreatedAt.Format(time.RFC3339),
+		}
+	}
+
+	activeID := h.svc.ActiveWalletID()
+
+	// Balance is fetched separately via GetBalance RPC when Core wallets are loaded.
+	// WatchWalletData only streams wallet metadata — no Core dependency.
+	var confirmedSats, unconfirmedSats float64
+
+	return stream.Send(&pb.WatchWalletDataResponse{
+		HasWallet:       h.svc.HasWallet(),
+		Encrypted:       h.svc.IsEncrypted(),
+		Unlocked:        h.svc.IsUnlocked(),
+		ActiveWalletId:  activeID,
+		Wallets:         pbWallets,
+		ConfirmedSats:   confirmedSats,
+		UnconfirmedSats: unconfirmedSats,
+	})
 }
 
 // ============================================================================

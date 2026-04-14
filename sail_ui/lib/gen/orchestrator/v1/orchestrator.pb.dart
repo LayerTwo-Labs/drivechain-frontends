@@ -38,6 +38,7 @@ class BinaryStatusMsg extends $pb.GeneratedMessage {
     $core.bool? portInUse,
     $core.String? version,
     $core.String? repoUrl,
+    $core.Iterable<StartupLogEntryMsg>? startupLogs,
   }) {
     final $result = create();
     if (name != null) {
@@ -103,6 +104,9 @@ class BinaryStatusMsg extends $pb.GeneratedMessage {
     if (repoUrl != null) {
       $result.repoUrl = repoUrl;
     }
+    if (startupLogs != null) {
+      $result.startupLogs.addAll(startupLogs);
+    }
     return $result;
   }
   BinaryStatusMsg._() : super();
@@ -131,6 +135,7 @@ class BinaryStatusMsg extends $pb.GeneratedMessage {
     ..aOB(19, _omitFieldNames ? '' : 'portInUse')
     ..aOS(20, _omitFieldNames ? '' : 'version')
     ..aOS(21, _omitFieldNames ? '' : 'repoUrl')
+    ..pc<StartupLogEntryMsg>(22, _omitFieldNames ? '' : 'startupLogs', $pb.PbFieldType.PM, subBuilder: StartupLogEntryMsg.create)
     ..hasRequiredFields = false
   ;
 
@@ -343,6 +348,73 @@ class BinaryStatusMsg extends $pb.GeneratedMessage {
   $core.bool hasRepoUrl() => $_has(20);
   @$pb.TagNumber(21)
   void clearRepoUrl() => clearField(21);
+
+  @$pb.TagNumber(22)
+  $core.List<StartupLogEntryMsg> get startupLogs => $_getList(21);
+}
+
+class StartupLogEntryMsg extends $pb.GeneratedMessage {
+  factory StartupLogEntryMsg({
+    $fixnum.Int64? timestampUnix,
+    $core.String? message,
+  }) {
+    final $result = create();
+    if (timestampUnix != null) {
+      $result.timestampUnix = timestampUnix;
+    }
+    if (message != null) {
+      $result.message = message;
+    }
+    return $result;
+  }
+  StartupLogEntryMsg._() : super();
+  factory StartupLogEntryMsg.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory StartupLogEntryMsg.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'StartupLogEntryMsg', package: const $pb.PackageName(_omitMessageNames ? '' : 'orchestrator.v1'), createEmptyInstance: create)
+    ..aInt64(1, _omitFieldNames ? '' : 'timestampUnix')
+    ..aOS(2, _omitFieldNames ? '' : 'message')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  StartupLogEntryMsg clone() => StartupLogEntryMsg()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  StartupLogEntryMsg copyWith(void Function(StartupLogEntryMsg) updates) => super.copyWith((message) => updates(message as StartupLogEntryMsg)) as StartupLogEntryMsg;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static StartupLogEntryMsg create() => StartupLogEntryMsg._();
+  StartupLogEntryMsg createEmptyInstance() => create();
+  static $pb.PbList<StartupLogEntryMsg> createRepeated() => $pb.PbList<StartupLogEntryMsg>();
+  @$core.pragma('dart2js:noInline')
+  static StartupLogEntryMsg getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<StartupLogEntryMsg>(create);
+  static StartupLogEntryMsg? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $fixnum.Int64 get timestampUnix => $_getI64(0);
+  @$pb.TagNumber(1)
+  set timestampUnix($fixnum.Int64 v) { $_setInt64(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasTimestampUnix() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearTimestampUnix() => clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.String get message => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set message($core.String v) { $_setString(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasMessage() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearMessage() => clearField(2);
 }
 
 class ListBinariesRequest extends $pb.GeneratedMessage {
@@ -1123,8 +1195,8 @@ class StreamLogsResponse extends $pb.GeneratedMessage {
   void clearTimestampUnix() => clearField(3);
 }
 
-class StartWithDepsRequest extends $pb.GeneratedMessage {
-  factory StartWithDepsRequest({
+class StartWithL1Request extends $pb.GeneratedMessage {
+  factory StartWithL1Request({
     $core.String? target,
     $core.Iterable<$core.String>? targetArgs,
     $core.Map<$core.String, $core.String>? targetEnv,
@@ -1153,14 +1225,14 @@ class StartWithDepsRequest extends $pb.GeneratedMessage {
     }
     return $result;
   }
-  StartWithDepsRequest._() : super();
-  factory StartWithDepsRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory StartWithDepsRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+  StartWithL1Request._() : super();
+  factory StartWithL1Request.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory StartWithL1Request.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
 
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'StartWithDepsRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'orchestrator.v1'), createEmptyInstance: create)
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'StartWithL1Request', package: const $pb.PackageName(_omitMessageNames ? '' : 'orchestrator.v1'), createEmptyInstance: create)
     ..aOS(1, _omitFieldNames ? '' : 'target')
     ..pPS(2, _omitFieldNames ? '' : 'targetArgs')
-    ..m<$core.String, $core.String>(3, _omitFieldNames ? '' : 'targetEnv', entryClassName: 'StartWithDepsRequest.TargetEnvEntry', keyFieldType: $pb.PbFieldType.OS, valueFieldType: $pb.PbFieldType.OS, packageName: const $pb.PackageName('orchestrator.v1'))
+    ..m<$core.String, $core.String>(3, _omitFieldNames ? '' : 'targetEnv', entryClassName: 'StartWithL1Request.TargetEnvEntry', keyFieldType: $pb.PbFieldType.OS, valueFieldType: $pb.PbFieldType.OS, packageName: const $pb.PackageName('orchestrator.v1'))
     ..pPS(4, _omitFieldNames ? '' : 'coreArgs')
     ..pPS(5, _omitFieldNames ? '' : 'enforcerArgs')
     ..aOB(6, _omitFieldNames ? '' : 'immediate')
@@ -1171,22 +1243,22 @@ class StartWithDepsRequest extends $pb.GeneratedMessage {
   'Using this can add significant overhead to your binary. '
   'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
   'Will be removed in next major version')
-  StartWithDepsRequest clone() => StartWithDepsRequest()..mergeFromMessage(this);
+  StartWithL1Request clone() => StartWithL1Request()..mergeFromMessage(this);
   @$core.Deprecated(
   'Using this can add significant overhead to your binary. '
   'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
   'Will be removed in next major version')
-  StartWithDepsRequest copyWith(void Function(StartWithDepsRequest) updates) => super.copyWith((message) => updates(message as StartWithDepsRequest)) as StartWithDepsRequest;
+  StartWithL1Request copyWith(void Function(StartWithL1Request) updates) => super.copyWith((message) => updates(message as StartWithL1Request)) as StartWithL1Request;
 
   $pb.BuilderInfo get info_ => _i;
 
   @$core.pragma('dart2js:noInline')
-  static StartWithDepsRequest create() => StartWithDepsRequest._();
-  StartWithDepsRequest createEmptyInstance() => create();
-  static $pb.PbList<StartWithDepsRequest> createRepeated() => $pb.PbList<StartWithDepsRequest>();
+  static StartWithL1Request create() => StartWithL1Request._();
+  StartWithL1Request createEmptyInstance() => create();
+  static $pb.PbList<StartWithL1Request> createRepeated() => $pb.PbList<StartWithL1Request>();
   @$core.pragma('dart2js:noInline')
-  static StartWithDepsRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<StartWithDepsRequest>(create);
-  static StartWithDepsRequest? _defaultInstance;
+  static StartWithL1Request getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<StartWithL1Request>(create);
+  static StartWithL1Request? _defaultInstance;
 
   @$pb.TagNumber(1)
   $core.String get target => $_getSZ(0);
@@ -1219,8 +1291,8 @@ class StartWithDepsRequest extends $pb.GeneratedMessage {
   void clearImmediate() => clearField(6);
 }
 
-class StartWithDepsResponse extends $pb.GeneratedMessage {
-  factory StartWithDepsResponse({
+class StartWithL1Response extends $pb.GeneratedMessage {
+  factory StartWithL1Response({
     $core.String? stage,
     $core.String? message,
     $core.bool? done,
@@ -1249,11 +1321,11 @@ class StartWithDepsResponse extends $pb.GeneratedMessage {
     }
     return $result;
   }
-  StartWithDepsResponse._() : super();
-  factory StartWithDepsResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory StartWithDepsResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+  StartWithL1Response._() : super();
+  factory StartWithL1Response.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory StartWithL1Response.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
 
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'StartWithDepsResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'orchestrator.v1'), createEmptyInstance: create)
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'StartWithL1Response', package: const $pb.PackageName(_omitMessageNames ? '' : 'orchestrator.v1'), createEmptyInstance: create)
     ..aOS(1, _omitFieldNames ? '' : 'stage')
     ..aOS(2, _omitFieldNames ? '' : 'message')
     ..aOB(3, _omitFieldNames ? '' : 'done')
@@ -1267,22 +1339,22 @@ class StartWithDepsResponse extends $pb.GeneratedMessage {
   'Using this can add significant overhead to your binary. '
   'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
   'Will be removed in next major version')
-  StartWithDepsResponse clone() => StartWithDepsResponse()..mergeFromMessage(this);
+  StartWithL1Response clone() => StartWithL1Response()..mergeFromMessage(this);
   @$core.Deprecated(
   'Using this can add significant overhead to your binary. '
   'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
   'Will be removed in next major version')
-  StartWithDepsResponse copyWith(void Function(StartWithDepsResponse) updates) => super.copyWith((message) => updates(message as StartWithDepsResponse)) as StartWithDepsResponse;
+  StartWithL1Response copyWith(void Function(StartWithL1Response) updates) => super.copyWith((message) => updates(message as StartWithL1Response)) as StartWithL1Response;
 
   $pb.BuilderInfo get info_ => _i;
 
   @$core.pragma('dart2js:noInline')
-  static StartWithDepsResponse create() => StartWithDepsResponse._();
-  StartWithDepsResponse createEmptyInstance() => create();
-  static $pb.PbList<StartWithDepsResponse> createRepeated() => $pb.PbList<StartWithDepsResponse>();
+  static StartWithL1Response create() => StartWithL1Response._();
+  StartWithL1Response createEmptyInstance() => create();
+  static $pb.PbList<StartWithL1Response> createRepeated() => $pb.PbList<StartWithL1Response>();
   @$core.pragma('dart2js:noInline')
-  static StartWithDepsResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<StartWithDepsResponse>(create);
-  static StartWithDepsResponse? _defaultInstance;
+  static StartWithL1Response getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<StartWithL1Response>(create);
+  static StartWithL1Response? _defaultInstance;
 
   @$pb.TagNumber(1)
   $core.String get stage => $_getSZ(0);
@@ -2058,8 +2130,8 @@ class OrchestratorServiceApi {
   $async.Future<StreamLogsResponse> streamLogs($pb.ClientContext? ctx, StreamLogsRequest request) =>
     _client.invoke<StreamLogsResponse>(ctx, 'OrchestratorService', 'StreamLogs', request, StreamLogsResponse())
   ;
-  $async.Future<StartWithDepsResponse> startWithDeps($pb.ClientContext? ctx, StartWithDepsRequest request) =>
-    _client.invoke<StartWithDepsResponse>(ctx, 'OrchestratorService', 'StartWithDeps', request, StartWithDepsResponse())
+  $async.Future<StartWithL1Response> startWithL1($pb.ClientContext? ctx, StartWithL1Request request) =>
+    _client.invoke<StartWithL1Response>(ctx, 'OrchestratorService', 'StartWithL1', request, StartWithL1Response())
   ;
   $async.Future<ShutdownAllResponse> shutdownAll($pb.ClientContext? ctx, ShutdownAllRequest request) =>
     _client.invoke<ShutdownAllResponse>(ctx, 'OrchestratorService', 'ShutdownAll', request, ShutdownAllResponse())

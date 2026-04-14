@@ -20,7 +20,7 @@ import 'package:sail_ui/widgets/components/core_transaction.dart';
 
 /// API to the bitnames server.
 abstract class BitnamesRPC extends SidechainRPC {
-  BitnamesRPC({required super.binaryType, required super.restartOnFailure});
+  BitnamesRPC({required super.binaryType});
 
   /// Get balance in sats
   Future<BalanceResponse> getBalance();
@@ -145,7 +145,7 @@ class BitnamesLive extends BitnamesRPC {
 
   late BitnamesServiceClient _client;
 
-  BitnamesLive() : super(binaryType: BinaryType.bitnames, restartOnFailure: false) {
+  BitnamesLive() : super(binaryType: BinaryType.bitnames) {
     final transport = connect.Transport(
       baseUrl: 'http://localhost:30400',
       codec: const ProtoCodec(),
@@ -156,12 +156,6 @@ class BitnamesLive extends BitnamesRPC {
 
   @override
   Future<List<String>> binaryArgs() async => [];
-
-  @override
-  Future<int> ping() async => await getBlockCount();
-
-  @override
-  List<String> startupErrors() => [];
 
   @override
   Future<(double, double)> balance() async {
@@ -557,7 +551,6 @@ class BitnamesLive extends BitnamesRPC {
     return jsonDecode(resp.schemaJson) as Map<String, dynamic>;
   }
 
-  @override
   Future<void> stop() async {
     await _client.stop(pb.StopRequest());
   }

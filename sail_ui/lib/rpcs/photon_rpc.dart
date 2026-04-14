@@ -17,7 +17,7 @@ import 'package:sail_ui/widgets/components/core_transaction.dart';
 
 /// API to the photon server.
 abstract class PhotonRPC extends SidechainRPC {
-  PhotonRPC({required super.binaryType, required super.restartOnFailure});
+  PhotonRPC({required super.binaryType});
 
   /// Get total sidechain wealth in BTC
   Future<double> getSidechainWealth();
@@ -65,7 +65,7 @@ class PhotonLive extends PhotonRPC {
 
   late PhotonServiceClient _client;
 
-  PhotonLive() : super(binaryType: BinaryType.photon, restartOnFailure: false) {
+  PhotonLive() : super(binaryType: BinaryType.photon) {
     final transport = connect.Transport(
       baseUrl: 'http://localhost:30400',
       codec: const ProtoCodec(),
@@ -76,12 +76,6 @@ class PhotonLive extends PhotonRPC {
 
   @override
   Future<List<String>> binaryArgs() async => [];
-
-  @override
-  Future<int> ping() async => await getBlockCount();
-
-  @override
-  List<String> startupErrors() => [];
 
   @override
   Future<(double, double)> balance() async {

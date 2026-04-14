@@ -14,6 +14,7 @@ import 'package:flutter/services.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:path/path.dart' as path;
+import 'package:sail_ui/rpcs/orchestrator_wallet_rpc.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:stacked/stacked.dart';
 
@@ -430,7 +431,7 @@ class CreateMultisigModal extends StatelessWidget {
 class CreateMultisigModalViewModel extends BaseViewModel {
   Logger get log => GetIt.I.get<Logger>();
   final HDWalletProvider _hdWallet = GetIt.I.get<HDWalletProvider>();
-  final BitwindowRPC _api = GetIt.I.get<BitwindowRPC>();
+  final OrchestratorWalletRPC _orchestratorWallet = GetIt.I.get<OrchestratorRPC>().wallet;
   WalletReaderProvider get _walletReader => GetIt.I<WalletReaderProvider>();
 
   final Set<int> _sessionUsedAccountIndices = <int>{};
@@ -984,12 +985,12 @@ class CreateMultisigModalViewModel extends BaseViewModel {
       final walletId = _walletReader.activeWalletId;
       if (walletId == null) throw Exception('No active wallet');
 
-      final address = await _api.wallet.getNewAddress(walletId);
-      final txid = await _api.wallet.sendTransaction(
-        walletId,
-        {address: 10000},
+      final address = (await _orchestratorWallet.getNewAddress(walletId)).address;
+      final txid = (await _orchestratorWallet.sendTransaction(
+        walletId: walletId,
+        destinations: {address: 10000},
         opReturnMessage: opReturnData,
-      );
+      )).txid;
 
       return txid;
     } catch (e) {

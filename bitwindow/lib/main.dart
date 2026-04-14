@@ -43,7 +43,6 @@ import 'package:intl/intl_standalone.dart';
 import 'package:logger/logger.dart';
 import 'package:sail_ui/config/fonts.dart';
 import 'package:sail_ui/providers/price_provider.dart';
-import 'package:sail_ui/rpcs/orchestrator_wallet_rpc.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:window_manager/window_manager.dart';
 
@@ -170,14 +169,8 @@ Future<(Directory, File, Logger)> init(String arguments) async {
     port: Environment.orchestratorPort.value,
   );
   GetIt.I.registerSingleton<OrchestratorRPC>(orchestrator);
-  final orchestratorWallet = OrchestratorWalletRPC(
-    host: Environment.orchestratorHost.value,
-    port: Environment.orchestratorPort.value,
-  );
-  GetIt.I.registerSingleton<OrchestratorWalletRPC>(orchestratorWallet);
   final backendStateProvider = BackendStateProvider(orchestrator);
   GetIt.I.registerSingleton<BackendStateProvider>(backendStateProvider);
-  backendStateProvider.startWatching();
 
   final bitwindow = BitwindowRPCLive(
     host: Environment.bitwindowdHost.value,
@@ -194,11 +187,11 @@ Future<(Directory, File, Logger)> init(String arguments) async {
   GetIt.I.registerSingleton<PhotonRPC>(PhotonLive());
   GetIt.I.registerSingleton<TruthcoinRPC>(TruthcoinLive());
 
-  final walletReader = WalletReaderProvider.create(applicationDir);
+  final walletReader = WalletReaderProvider(applicationDir);
   GetIt.I.registerLazySingleton<WalletReaderProvider>(() => walletReader);
   await walletReader.init();
 
-  final walletWriter = WalletWriterProvider.create(bitwindowAppDir: applicationDir);
+  final walletWriter = WalletWriterProvider(bitwindowAppDir: applicationDir);
   GetIt.I.registerLazySingleton<WalletWriterProvider>(() => walletWriter);
   await walletWriter.init();
 
@@ -279,9 +272,18 @@ Future<void> runMainWindow(Logger log, Directory applicationDir, File logFile) a
   // check for updates on boot and every hour therafter
   await initAutoUpdater(log);
 
-  unawaited(bootBitwindowBackend(log));
+  final backendReady = ValueNotifier<bool>(false);
+  unawaited(() async {
+    try {
+      await bootBitwindowBackend(log);
+    } catch (e) {
+      log.e('bootBitwindowBackend failed: $e');
+    }
+    // Show the app even if boot failed — providers will reconnect
+    backendReady.value = true;
+  }());
 
-  return runApp(BitwindowApp(log: log));
+  return runApp(BitwindowApp(log: log, backendReady: backendReady));
 }
 
 void runMultiWindow(String argumentsStr, Logger log, Directory applicationDir, File logFile) async {
@@ -402,10 +404,12 @@ Future<File> getLogFile() async {
 
 class BitwindowApp extends StatefulWidget {
   final Logger log;
+  final ValueNotifier<bool> backendReady;
 
   const BitwindowApp({
     super.key,
     required this.log,
+    required this.backendReady,
   });
 
   @override
@@ -447,7 +451,15 @@ class _BitwindowAppState extends State<BitwindowApp> {
       log: widget.log,
       dense: true,
       builder: (context) {
-        return _BitwindowAppContent(router: router);
+        return ValueListenableBuilder<bool>(
+          valueListenable: widget.backendReady,
+          builder: (context, ready, _) {
+            if (!ready) {
+              return const _SplashScreen();
+            }
+            return _BitwindowAppContent(router: router);
+          },
+        );
       },
       accentColor: accentColor,
     );
@@ -478,6 +490,59 @@ class _BitwindowAppContent extends StatelessWidget {
           child: child ?? const SizedBox.shrink(),
         );
       },
+    );
+  }
+}
+
+class _SplashScreen extends StatelessWidget {
+  const _SplashScreen();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = SailTheme.of(context);
+
+    return MaterialApp(
+      debugShowCheckedModeBanner: false,
+      theme: ThemeData(scaffoldBackgroundColor: theme.colors.background),
+      home: QtPage(
+        child: Stack(
+          children: [
+            Center(
+              child: SailSVG.fromAsset(
+                SailSVGAsset.layerTwoLabsLogo,
+                height: 71,
+              ),
+            ),
+            Positioned(
+              bottom: 50,
+              left: 0,
+              right: 0,
+              child: Center(
+                child: SailColumn(
+                  spacing: 10,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    SailText.primary10(
+                      'Starting BitWindow...',
+                      color: theme.colors.inactiveNavText,
+                    ),
+                    const SizedBox(
+                      width: 200,
+                      child: ProgressBar(
+                        current: 0,
+                        goal: 1,
+                        hideProgressInside: true,
+                        small: true,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -699,6 +764,8 @@ Future<void> bootBitwindowBackend(Logger log) async {
   log.i('STARTUP: Booting BitWindow backend');
 
   final binaryProvider = GetIt.I.get<BinaryProvider>();
+  final orchestrator = GetIt.I.get<OrchestratorRPC>();
+  final backendState = GetIt.I.get<BackendStateProvider>();
   final bitwindow = binaryProvider.binaries.firstWhere((b) => b is BitWindow);
 
   // Download grpcurl in background (needed for enforcer-cli in console)
@@ -713,7 +780,57 @@ Future<void> bootBitwindowBackend(Logger log) async {
     }
   }());
 
+  // 1. Start bitwindowd — it manages orchestratord internally,
+  //    which in turn manages bitcoind, enforcer, and sidechains.
+  log.i('STARTUP: starting bitwindowd');
   await binaryProvider.start(bitwindow);
+
+  // 2. Wait for orchestratord (managed by bitwindowd) to become ready.
+  log.i('STARTUP: waiting for orchestratord readiness');
+  for (var i = 0; i < 30; i++) {
+    try {
+      await orchestrator.listBinaries();
+      log.i('STARTUP: orchestratord is ready');
+      break;
+    } catch (_) {
+      if (i == 29) {
+        log.e('STARTUP: orchestratord did not become ready after 15s');
+      }
+      await Future.delayed(const Duration(milliseconds: 500));
+    }
+  }
+
+  // 3. Stream binary logs and start watching state.
+  _streamBinaryLogs(orchestrator, 'bitcoind', BinaryType.bitcoinCore, log);
+  _streamBinaryLogs(orchestrator, 'enforcer', BinaryType.enforcer, log);
+  _streamBinaryLogs(orchestrator, 'bitwindow', BinaryType.bitWindow, log);
+
+  log.i('STARTUP: starting backend state watch');
+  backendState.startWatching();
+}
+
+void _streamBinaryLogs(OrchestratorRPC orchestrator, String binaryName, BinaryType binaryType, Logger log) {
+  final logProvider = GetIt.I.get<LogProvider>();
+
+  orchestrator
+      .streamLogs(binaryName, tail: 100)
+      .listen(
+        (response) {
+          logProvider.addLog(
+            FullProcessLogEntry(
+              timestamp: DateTime.fromMillisecondsSinceEpoch(response.timestampUnix.toInt() * 1000),
+              message: response.line,
+              isStderr: response.stream == 'stderr',
+              binaryType: binaryType,
+            ),
+          );
+        },
+        onError: (e) {
+          Future.delayed(const Duration(seconds: 5), () {
+            _streamBinaryLogs(orchestrator, binaryName, binaryType, log);
+          });
+        },
+      );
 }
 
 Future<void> rebootBitwindowBackend(Logger log) async {

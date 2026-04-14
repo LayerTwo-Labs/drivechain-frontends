@@ -17,7 +17,7 @@ import 'package:sail_ui/widgets/components/core_transaction.dart';
 
 /// API to the thunder server.
 abstract class ThunderRPC extends SidechainRPC {
-  ThunderRPC({required super.binaryType, required super.restartOnFailure});
+  ThunderRPC({required super.binaryType});
 
   /// Get total sidechain wealth in BTC
   Future<double> getSidechainWealth();
@@ -59,7 +59,7 @@ class ThunderLive extends ThunderRPC {
 
   late ThunderServiceClient _client;
 
-  ThunderLive() : super(binaryType: BinaryType.thunder, restartOnFailure: false) {
+  ThunderLive() : super(binaryType: BinaryType.thunder) {
     final transport = connect.Transport(
       baseUrl: 'http://localhost:30400',
       codec: const ProtoCodec(),
@@ -70,12 +70,6 @@ class ThunderLive extends ThunderRPC {
 
   @override
   Future<List<String>> binaryArgs() async => [];
-
-  @override
-  Future<int> ping() async => await getBlockCount();
-
-  @override
-  List<String> startupErrors() => [];
 
   @override
   Future<(double, double)> balance() async {

@@ -4,7 +4,6 @@ class MockSidechainRPC extends SidechainRPC {
   MockSidechainRPC()
     : super(
         binaryType: BinaryType.bitassets,
-        restartOnFailure: false,
       );
 
   @override
@@ -51,18 +50,8 @@ class MockSidechainRPC extends SidechainRPC {
   }
 
   @override
-  Future<int> ping() async {
-    return await getBlockCount();
-  }
-
-  @override
   Future<int> getBlockCount() async {
     return 1;
-  }
-
-  @override
-  List<String> startupErrors() {
-    return [];
   }
 
   @override

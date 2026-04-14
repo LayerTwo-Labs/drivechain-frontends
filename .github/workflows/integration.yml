@@ -16,9 +16,6 @@ jobs:
     runs-on: ubuntu-latest
     if: github.event.pull_request.draft == false
     timeout-minutes: 20
-    env:
-      BITWINDOW_TEST_LOG_DIR: ${{ runner.temp }}/bitwindow-backend-smoke-logs
-
     steps:
       - uses: actions/checkout@v4
 
@@ -45,11 +42,13 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.local/share/bitwindow/assets/bin
-          key: managed-binaries-${{ runner.os }}-${{ hashFiles('sidechain-orchestrator/chains_config.json', 'sidechain-orchestrator/config/chains_config.json') }}
+          key: managed-binaries-v2-${{ runner.os }}-${{ hashFiles('sidechain-orchestrator/chains_config.json', 'sidechain-orchestrator/config/chains_config.json') }}
 
       - name: Run bitwindow backend smoke test
         working-directory: bitwindow/server
         run: go test -v -tags integration -run TestBackendRuntimeOwnershipSmoke -timeout 12m ./integrationtest/
+        env:
+          BITWINDOW_TEST_LOG_DIR: ${{ runner.temp }}/bitwindow-backend-smoke-logs
 
       - name: Upload backend smoke logs
         if: failure()

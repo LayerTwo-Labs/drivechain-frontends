@@ -180,8 +180,8 @@ func (h *Handler) StreamLogs(ctx context.Context, req *connect.Request[pb.Stream
 	}
 }
 
-func (h *Handler) StartWithDeps(ctx context.Context, req *connect.Request[pb.StartWithDepsRequest], stream *connect.ServerStream[pb.StartWithDepsResponse]) error {
-	ch, err := h.orch.StartWithDeps(ctx, req.Msg.Target, orchestrator.StartOpts{
+func (h *Handler) StartWithL1(ctx context.Context, req *connect.Request[pb.StartWithL1Request], stream *connect.ServerStream[pb.StartWithL1Response]) error {
+	ch, err := h.orch.StartWithL1(ctx, req.Msg.Target, orchestrator.StartOpts{
 		TargetArgs:   req.Msg.TargetArgs,
 		TargetEnv:    req.Msg.TargetEnv,
 		CoreArgs:     req.Msg.CoreArgs,
@@ -193,7 +193,7 @@ func (h *Handler) StartWithDeps(ctx context.Context, req *connect.Request[pb.Sta
 	}
 
 	for p := range ch {
-		msg := &pb.StartWithDepsResponse{
+		msg := &pb.StartWithL1Response{
 			Stage:           p.Stage,
 			Message:         p.Message,
 			Done:            p.Done,

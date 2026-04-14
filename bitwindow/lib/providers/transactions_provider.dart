@@ -11,13 +11,14 @@ import 'package:sail_ui/gen/wallet/v1/wallet.pb.dart';
 import 'package:sail_ui/providers/balance_provider.dart';
 import 'package:sail_ui/providers/wallet_reader_provider.dart';
 import 'package:sail_ui/rpcs/bitwindow_api.dart';
+import 'package:sail_ui/rpcs/orchestrator_rpc.dart';
 import 'package:sail_ui/rpcs/orchestrator_wallet_rpc.dart';
 
 // because the class extends ChangeNotifier, any subscribers
 // to this class will be notified of changes to new transactions
 class TransactionProvider extends ChangeNotifier {
   BitwindowRPC get bitwindowd => GetIt.I.get<BitwindowRPC>();
-  OrchestratorWalletRPC get orchestratorWallet => GetIt.I.get<OrchestratorWalletRPC>();
+  OrchestratorWalletRPC get orchestratorWallet => GetIt.I.get<OrchestratorRPC>().wallet;
   BalanceProvider get balanceProvider => GetIt.I.get<BalanceProvider>();
   BlockchainProvider get blockchainProvider => GetIt.I.get<BlockchainProvider>();
   WalletReaderProvider get _walletReader => GetIt.I.get<WalletReaderProvider>();

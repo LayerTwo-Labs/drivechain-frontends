@@ -26,7 +26,7 @@ func NewCoreRPCClient(host string, port int, user, password string) *CoreRPCClie
 	if runtime.GOOS == "windows" {
 		timeout = 60 * time.Second
 	}
-	
+
 	return &CoreRPCClient{
 		baseURL:  fmt.Sprintf("http://%s:%d", host, port),
 		user:     user,
@@ -311,12 +311,147 @@ func (c *CoreRPCClient) ListUnspent(ctx context.Context, walletName string) ([]C
 	return utxos, nil
 }
 
+type CoreRawInput struct {
+	TxID string `json:"txid"`
+	Vout int    `json:"vout"`
+}
+
+type FundRawTransactionResult struct {
+	Hex       string  `json:"hex"`
+	Fee       float64 `json:"fee"`
+	ChangePos int     `json:"changepos"`
+}
+
+type SignRawTransactionResult struct {
+	Hex      string `json:"hex"`
+	Complete bool   `json:"complete"`
+}
+
+type CoreRawTransaction struct {
+	TxID          string `json:"txid"`
+	Hash          string `json:"hash"`
+	Hex           string `json:"hex"`
+	Size          int32  `json:"size"`
+	Vsize         int32  `json:"vsize"`
+	Weight        int32  `json:"weight"`
+	Version       int32  `json:"version"`
+	Locktime      int32  `json:"locktime"`
+	Blockhash     string `json:"blockhash,omitempty"`
+	Confirmations int32  `json:"confirmations"`
+	BlockTime     int64  `json:"blocktime,omitempty"`
+	Time          int64  `json:"time,omitempty"`
+	Vin           []struct {
+		TxID      string `json:"txid,omitempty"`
+		Vout      int    `json:"vout,omitempty"`
+		Coinbase  string `json:"coinbase,omitempty"`
+		ScriptSig *struct {
+			Asm string `json:"asm"`
+			Hex string `json:"hex"`
+		} `json:"scriptSig,omitempty"`
+		Witness  []string `json:"txinwitness,omitempty"`
+		Sequence int64    `json:"sequence"`
+	} `json:"vin"`
+	Vout []struct {
+		Value        float64 `json:"value"`
+		N            int     `json:"n"`
+		ScriptPubKey struct {
+			Asm     string `json:"asm"`
+			Hex     string `json:"hex"`
+			Type    string `json:"type"`
+			Address string `json:"address,omitempty"`
+		} `json:"scriptPubKey"`
+	} `json:"vout"`
+}
+
+func (c *CoreRPCClient) CreateRawTransaction(
+	ctx context.Context,
+	inputs []CoreRawInput,
+	outputs []map[string]interface{},
+) (string, error) {
+	result, err := c.call(ctx, "", "createrawtransaction", inputs, outputs)
+	if err != nil {
+		return "", err
+	}
+	var hex string
+	if err := json.Unmarshal(result, &hex); err != nil {
+		return "", fmt.Errorf("decode createrawtransaction: %w", err)
+	}
+	return hex, nil
+}
+
+func (c *CoreRPCClient) FundRawTransaction(
+	ctx context.Context,
+	walletName, hexString string,
+	options map[string]interface{},
+) (*FundRawTransactionResult, error) {
+	result, err := c.call(ctx, walletName, "fundrawtransaction", hexString, options)
+	if err != nil {
+		return nil, err
+	}
+	var resp FundRawTransactionResult
+	if err := json.Unmarshal(result, &resp); err != nil {
+		return nil, fmt.Errorf("decode fundrawtransaction: %w", err)
+	}
+	return &resp, nil
+}
+
+func (c *CoreRPCClient) SignRawTransactionWithWallet(
+	ctx context.Context,
+	walletName, hexString string,
+) (*SignRawTransactionResult, error) {
+	result, err := c.call(ctx, walletName, "signrawtransactionwithwallet", hexString)
+	if err != nil {
+		return nil, err
+	}
+	var resp SignRawTransactionResult
+	if err := json.Unmarshal(result, &resp); err != nil {
+		return nil, fmt.Errorf("decode signrawtransactionwithwallet: %w", err)
+	}
+	return &resp, nil
+}
+
+func (c *CoreRPCClient) SendRawTransaction(ctx context.Context, hexString string) (string, error) {
+	result, err := c.call(ctx, "", "sendrawtransaction", hexString)
+	if err != nil {
+		return "", err
+	}
+	var txid string
+	if err := json.Unmarshal(result, &txid); err != nil {
+		return "", fmt.Errorf("decode sendrawtransaction: %w", err)
+	}
+	return txid, nil
+}
+
+func (c *CoreRPCClient) GetRawChangeAddress(ctx context.Context, walletName string) (string, error) {
+	result, err := c.call(ctx, walletName, "getrawchangeaddress", "bech32")
+	if err != nil {
+		return "", err
+	}
+	var address string
+	if err := json.Unmarshal(result, &address); err != nil {
+		return "", fmt.Errorf("decode getrawchangeaddress: %w", err)
+	}
+	return address, nil
+}
+
+func (c *CoreRPCClient) GetRawTransaction(ctx context.Context, txid string) (*CoreRawTransaction, error) {
+	result, err := c.call(ctx, "", "getrawtransaction", txid, 2)
+	if err != nil {
+		return nil, err
+	}
+	var tx CoreRawTransaction
+	if err := json.Unmarshal(result, &tx); err != nil {
+		return nil, fmt.Errorf("decode getrawtransaction: %w", err)
+	}
+	return &tx, nil
+}
+
 // CoreReceivedByAddress represents a result from listreceivedbyaddress.
 type CoreReceivedByAddress struct {
-	Address       string  `json:"address"`
-	Amount        float64 `json:"amount"`
-	Confirmations int     `json:"confirmations"`
-	Label         string  `json:"label"`
+	Address       string   `json:"address"`
+	Amount        float64  `json:"amount"`
+	Confirmations int      `json:"confirmations"`
+	Label         string   `json:"label"`
 	TxIDs         []string `json:"txids"`
 }
 

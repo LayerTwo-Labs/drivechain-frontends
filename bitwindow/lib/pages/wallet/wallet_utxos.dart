@@ -502,8 +502,7 @@ class _UTXOTableState extends State<UTXOTable> {
 /// - setUTXOMetadata (freeze/label): STAYS on bitwindowd — BW-only coin control
 /// - getUTXODistribution: STAYS on bitwindowd — BW-only chart aggregation
 /// - Consolidation getNewAddress: MOVED to orchestrator
-/// - Consolidation sendTransaction: STAYS on bitwindowd — needs requiredInputs
-///   for specifying which UTXOs to consolidate (orchestrator has no coin control)
+/// - Consolidation sendTransaction: MOVED to orchestrator shared wallet RPC
 class LatestUTXOsViewModel extends BaseViewModel with ChangeTrackingMixin {
   final TransactionProvider _txProvider = GetIt.I<TransactionProvider>();
   final EnforcerRPC _enforcerRPC = GetIt.I<EnforcerRPC>();
@@ -570,8 +569,7 @@ class _ConsolidateDialog extends StatefulWidget {
 }
 
 class _ConsolidateDialogState extends State<_ConsolidateDialog> {
-  BitwindowRPC get _rpc => GetIt.I<BitwindowRPC>();
-  OrchestratorWalletRPC get _orchestratorWallet => GetIt.I<OrchestratorWalletRPC>();
+  OrchestratorWalletRPC get _orchestratorWallet => GetIt.I<OrchestratorRPC>().wallet;
   TransactionProvider get _txProvider => GetIt.I<TransactionProvider>();
   FormatterProvider get _formatter => GetIt.I<FormatterProvider>();
 
@@ -638,10 +636,10 @@ class _ConsolidateDialogState extends State<_ConsolidateDialog> {
       final requiredInputs = _selectedOutpoints.map((op) => UnspentOutput(output: op)).toList();
 
       // Send transaction - fee will be deducted from total
-      await _rpc.wallet.sendTransaction(
-        widget.walletId,
-        {newAddress: _totalSelectedSats},
-        feeSatPerVbyte: 1, // Low fee rate for consolidation
+      await _orchestratorWallet.sendTransaction(
+        walletId: widget.walletId,
+        destinations: {newAddress: _totalSelectedSats},
+        feeRateSatPerVbyte: 1, // Low fee rate for consolidation
         requiredInputs: requiredInputs,
       );
 

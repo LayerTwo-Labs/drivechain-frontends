@@ -5,7 +5,6 @@ import 'package:sail_ui/gen/bitcoin/bitcoind/v1alpha/bitcoin.pb.dart'
 import 'package:sail_ui/gen/bitdrive/v1/bitdrive.pb.dart';
 import 'package:sail_ui/gen/bitwindowd/v1/bitwindowd.pb.dart';
 import 'package:sail_ui/gen/drivechain/v1/drivechain.pb.dart';
-import 'package:sail_ui/gen/health/v1/health.pb.dart';
 import 'package:sail_ui/gen/m4/v1/m4.pb.dart' as m4pb;
 import 'package:sail_ui/gen/misc/v1/misc.pb.dart';
 import 'package:sail_ui/gen/notification/v1/notification.pb.dart';
@@ -29,31 +28,16 @@ class MockAPI extends BitwindowRPC {
   @override
   final MiscAPI misc = MockMiscAPI();
   @override
-  final HealthAPI health = MockHealthAPI();
-  @override
   final M4API m4 = MockM4API();
   @override
   final NotificationAPI notifications = MockNotificationAPI();
-  @override
-  Stream<CheckResponse> get healthStream => Stream.periodic(const Duration(seconds: 1)).map((_) => CheckResponse());
 
   MockAPI({
     required super.binaryType,
-    required super.restartOnFailure,
   });
 
   @override
   Future<List<String>> binaryArgs() async {
-    return [];
-  }
-
-  @override
-  Future<int> ping() async {
-    return 1;
-  }
-
-  @override
-  List<String> startupErrors() {
     return [];
   }
 
@@ -576,18 +560,6 @@ class MockMiscAPI implements MiscAPI {
   @override
   Future<VerifyTimestampResponse> verifyTimestamp(List<int> fileData, String filename) async {
     return VerifyTimestampResponse();
-  }
-}
-
-class MockHealthAPI implements HealthAPI {
-  @override
-  Future<CheckResponse> check() async {
-    return CheckResponse();
-  }
-
-  @override
-  Stream<CheckResponse> watch() {
-    return Stream.periodic(const Duration(seconds: 1)).map((_) => CheckResponse());
   }
 }
 

@@ -2,6 +2,8 @@ syntax = "proto3";
 
 package walletmanager.v1;
 
+import "google/protobuf/empty.proto";
+
 service WalletManagerService {
   // Wallet lifecycle
   rpc GetWalletStatus(GetWalletStatusRequest) returns (GetWalletStatusResponse);
@@ -35,6 +37,10 @@ service WalletManagerService {
 
   // Seed access for cheque engine
   rpc GetWalletSeed(GetWalletSeedRequest) returns (GetWalletSeedResponse);
+
+  // Stream wallet state changes. Sends the full wallet state immediately,
+  // then again whenever wallets or balance change.
+  rpc WatchWalletData(google.protobuf.Empty) returns (stream WatchWalletDataResponse);
 }
 
 // ============================================================================
@@ -205,8 +211,12 @@ message SendTransactionRequest {
   map<string, int64> destinations = 2;  // address -> satoshis
   int64 fee_rate_sat_per_vbyte = 3;     // 0 = use default
   bool subtract_fee_from_amount = 4;
-  // For enforcer wallet: raw OP_RETURN hex
+  // Raw OP_RETURN payload hex.
   string op_return_hex = 5;
+  // Exact fee in sats when caller wants deterministic fee selection.
+  int64 fixed_fee_sats = 6;
+  // Explicit wallet inputs to spend.
+  repeated UnspentOutput required_inputs = 7;
 }
 
 message SendTransactionResponse {
@@ -283,6 +293,42 @@ message GetTransactionDetailsRequest {
 message GetTransactionDetailsResponse {
   TransactionEntry transaction = 1;
   string raw_hex = 2;
+  string blockhash = 3;
+  int32 confirmations = 4;
+  int64 block_time = 5;
+  int32 version = 6;
+  int32 locktime = 7;
+  int32 size_bytes = 8;
+  int32 vsize_vbytes = 9;
+  int32 weight_wu = 10;
+  int64 fee_sats = 11;
+  double fee_rate_sat_vb = 12;
+  repeated TransactionInput inputs = 13;
+  int64 total_input_sats = 14;
+  repeated TransactionOutput outputs = 15;
+  int64 total_output_sats = 16;
+}
+
+message TransactionInput {
+  int32 index = 1;
+  string prev_txid = 2;
+  int32 prev_vout = 3;
+  string address = 4;
+  int64 value_sats = 5;
+  string script_sig_asm = 6;
+  string script_sig_hex = 7;
+  repeated string witness = 8;
+  int64 sequence = 9;
+  bool is_coinbase = 10;
+}
+
+message TransactionOutput {
+  int32 index = 1;
+  int64 value_sats = 2;
+  string address = 3;
+  string script_type = 4;
+  string script_pubkey_asm = 5;
+  string script_pubkey_hex = 6;
 }
 
 message BumpFeeRequest {
@@ -315,4 +361,23 @@ message GetWalletSeedRequest {
 
 message GetWalletSeedResponse {
   string seed_hex = 1;
+}
+
+// ============================================================================
+// Watch Wallet Data
+// ============================================================================
+
+message WatchWalletDataResponse {
+  // Wallet status
+  bool has_wallet = 1;
+  bool encrypted = 2;
+  bool unlocked = 3;
+  string active_wallet_id = 4;
+
+  // All wallets
+  repeated WalletMetadata wallets = 5;
+
+  // Active wallet balance (zero if no active wallet)
+  double confirmed_sats = 6;
+  double unconfirmed_sats = 7;
 }

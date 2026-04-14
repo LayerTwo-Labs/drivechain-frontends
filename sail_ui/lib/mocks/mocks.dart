@@ -14,7 +14,6 @@ class MockMainchainRPC extends MainchainRPC {
           BitcoinNetwork.BITCOIN_NETWORK_SIGNET,
         ),
         binaryType: BinaryType.bitcoinCore,
-        restartOnFailure: false,
       );
 
   bool _connected = false;
@@ -95,16 +94,6 @@ class MockMainchainRPC extends MainchainRPC {
   }
 
   @override
-  Future<int> ping() {
-    return Future.value(0);
-  }
-
-  @override
-  List<String> startupErrors() {
-    return [];
-  }
-
-  @override
   Future<void> waitForHeaderSync() async {
     return;
   }
@@ -161,7 +150,7 @@ class MockMainchainRPC extends MainchainRPC {
 }
 
 class MockEnforcerRPC extends EnforcerRPC {
-  MockEnforcerRPC() : super(binaryType: BinaryType.enforcer, restartOnFailure: true);
+  MockEnforcerRPC() : super(binaryType: BinaryType.enforcer);
 
   bool _connected = false;
   bool _initializing = false;
@@ -211,16 +200,6 @@ class MockEnforcerRPC extends EnforcerRPC {
   }
 
   @override
-  Future<int> ping() {
-    return Future.value(0);
-  }
-
-  @override
-  List<String> startupErrors() {
-    return [];
-  }
-
-  @override
   ValidatorServiceClient get validator => throw UnimplementedError();
 
   @override
@@ -258,7 +237,7 @@ class MockEnforcerRPC extends EnforcerRPC {
 }
 
 class MockBitwindowRPC extends BitwindowRPC {
-  MockBitwindowRPC() : super(binaryType: BinaryType.bitWindow, restartOnFailure: true);
+  MockBitwindowRPC() : super(binaryType: BinaryType.bitWindow);
 
   bool _connected = false;
   bool _initializing = false;
@@ -278,15 +257,11 @@ class MockBitwindowRPC extends BitwindowRPC {
   @override
   M4API get m4 => throw UnimplementedError();
   @override
-  HealthAPI get health => throw UnimplementedError();
-  @override
   NotificationAPI get notifications => throw UnimplementedError();
   @override
   BitDriveAPI get bitdrive => throw UnimplementedError();
   @override
   UtilsAPI get utils => throw UnimplementedError();
-  @override
-  Stream<CheckResponse> get healthStream => Stream.periodic(const Duration(seconds: 1)).map((_) => CheckResponse());
   @override
   Stream<WatchResponse> get notificationStream =>
       Stream.periodic(const Duration(seconds: 1)).map((_) => WatchResponse());
@@ -334,16 +309,6 @@ class MockBitwindowRPC extends BitwindowRPC {
   }
 
   @override
-  Future<int> ping() {
-    return Future.value(0);
-  }
-
-  @override
-  List<String> startupErrors() {
-    return [];
-  }
-
-  @override
   Future<BlockchainInfo> getBlockchainInfo() {
     throw UnimplementedError();
   }
@@ -360,7 +325,7 @@ class MockBitwindowRPC extends BitwindowRPC {
 }
 
 class MockThunderRPC extends ThunderRPC {
-  MockThunderRPC() : super(binaryType: BinaryType.thunder, restartOnFailure: true);
+  MockThunderRPC() : super(binaryType: BinaryType.thunder);
 
   bool _connected = false;
   bool _initializing = false;
@@ -410,18 +375,8 @@ class MockThunderRPC extends ThunderRPC {
   }
 
   @override
-  Future<int> ping() async {
-    return await getBlockCount();
-  }
-
-  @override
   Future<int> getBlockCount() {
     return Future.value(0);
-  }
-
-  @override
-  List<String> startupErrors() {
-    return [];
   }
 
   @override
@@ -560,7 +515,7 @@ class MockThunderRPC extends ThunderRPC {
 }
 
 class MockTruthcoinRPC extends TruthcoinRPC {
-  MockTruthcoinRPC() : super(binaryType: BinaryType.truthcoin, restartOnFailure: true);
+  MockTruthcoinRPC() : super(binaryType: BinaryType.truthcoin);
 
   bool _connected = false;
   bool _initializing = false;
@@ -610,18 +565,8 @@ class MockTruthcoinRPC extends TruthcoinRPC {
   }
 
   @override
-  Future<int> ping() async {
-    return await getBlockCount();
-  }
-
-  @override
   Future<int> getBlockCount() {
     return Future.value(0);
-  }
-
-  @override
-  List<String> startupErrors() {
-    return [];
   }
 
   @override
@@ -1015,7 +960,7 @@ class MockTruthcoinRPC extends TruthcoinRPC {
 }
 
 class MockPhotonRPC extends PhotonRPC {
-  MockPhotonRPC() : super(binaryType: BinaryType.photon, restartOnFailure: true);
+  MockPhotonRPC() : super(binaryType: BinaryType.photon);
 
   bool _connected = false;
   bool _initializing = false;
@@ -1065,18 +1010,8 @@ class MockPhotonRPC extends PhotonRPC {
   }
 
   @override
-  Future<int> ping() async {
-    return await getBlockCount();
-  }
-
-  @override
   Future<int> getBlockCount() {
     return Future.value(0);
-  }
-
-  @override
-  List<String> startupErrors() {
-    return [];
   }
 
   @override
@@ -1225,7 +1160,7 @@ class MockPhotonRPC extends PhotonRPC {
 }
 
 class MockBitnamesRPC extends BitnamesRPC {
-  MockBitnamesRPC() : super(binaryType: BinaryType.bitnames, restartOnFailure: true);
+  MockBitnamesRPC() : super(binaryType: BinaryType.bitnames);
 
   bool _connected = false;
   bool _initializing = false;
@@ -1272,16 +1207,6 @@ class MockBitnamesRPC extends BitnamesRPC {
   @override
   Future<List<String>> binaryArgs() {
     return Future.value([]);
-  }
-
-  @override
-  Future<int> ping() {
-    return Future.value(0);
-  }
-
-  @override
-  List<String> startupErrors() {
-    return [];
   }
 
   @override
@@ -1550,7 +1475,7 @@ class MockBitnamesRPC extends BitnamesRPC {
 }
 
 class MockCoinShiftRPC extends CoinShiftRPC {
-  MockCoinShiftRPC() : super(binaryType: BinaryType.coinShift, restartOnFailure: true);
+  MockCoinShiftRPC() : super(binaryType: BinaryType.coinShift);
 
   bool _connected = false;
   bool _initializing = false;
@@ -1600,18 +1525,8 @@ class MockCoinShiftRPC extends CoinShiftRPC {
   }
 
   @override
-  Future<int> ping() async {
-    return await getBlockCount();
-  }
-
-  @override
   Future<int> getBlockCount() {
     return Future.value(0);
-  }
-
-  @override
-  List<String> startupErrors() {
-    return [];
   }
 
   @override
@@ -2130,183 +2045,17 @@ class MockBinaryProvider extends BinaryProvider {
     // ignore: invalid_use_of_visible_for_testing_member
     : super.test(
         appDir: Directory('/tmp'),
-        downloadManager: MockDownloadManager(),
-        processManager: MockProcessManager(),
+        binaries: [
+          MockBinary(type: BinaryType.bitWindow),
+          MockBinary(type: BinaryType.zSide),
+          MockBinary(type: BinaryType.thunder),
+          MockBinary(type: BinaryType.truthcoin),
+          MockBinary(type: BinaryType.photon),
+          MockBinary(type: BinaryType.bitnames),
+          MockBinary(type: BinaryType.bitassets),
+          MockBinary(type: BinaryType.coinShift),
+        ],
       );
-
-  @override
-  List<Binary> get binaries => [
-    MockBinary(type: BinaryType.bitWindow),
-    MockBinary(type: BinaryType.zSide),
-    MockBinary(type: BinaryType.thunder),
-    MockBinary(type: BinaryType.truthcoin),
-    MockBinary(type: BinaryType.photon),
-    MockBinary(type: BinaryType.bitnames),
-    MockBinary(type: BinaryType.bitassets),
-    MockBinary(type: BinaryType.coinShift),
-  ];
-
-  @override
-  Directory get appDir => Directory('/tmp');
-
-  @override
-  bool get mainchainConnected => true;
-
-  @override
-  bool get enforcerConnected => true;
-
-  @override
-  bool get bitwindowConnected => true;
-
-  @override
-  bool get orchestratordConnected => false;
-
-  @override
-  bool get bitnamesConnected => false;
-
-  @override
-  bool get bitassetsConnected => false;
-
-  @override
-  bool get zsideConnected => false;
-
-  @override
-  bool get truthcoinConnected => false;
-
-  @override
-  bool get photonConnected => false;
-
-  @override
-  bool get coinshiftConnected => false;
-
-  @override
-  bool get mainchainInitializing => false;
-
-  @override
-  bool get enforcerInitializing => false;
-
-  @override
-  bool get bitwindowInitializing => false;
-
-  @override
-  bool get orchestratordInitializing => false;
-
-  @override
-  bool get bitnamesInitializing => false;
-
-  @override
-  bool get bitassetsInitializing => false;
-
-  @override
-  bool get zsideInitializing => false;
-
-  @override
-  bool get truthcoinInitializing => false;
-
-  @override
-  bool get photonInitializing => false;
-
-  @override
-  bool get coinshiftInitializing => false;
-
-  @override
-  bool get mainchainStopping => false;
-
-  @override
-  bool get enforcerStopping => false;
-
-  @override
-  bool get bitwindowStopping => false;
-
-  @override
-  bool get orchestratordStopping => false;
-
-  @override
-  bool get bitnamesStopping => false;
-
-  @override
-  bool get bitassetsStopping => false;
-
-  @override
-  bool get zsideStopping => false;
-
-  @override
-  bool get truthcoinStopping => false;
-
-  @override
-  bool get photonStopping => false;
-
-  @override
-  bool get coinshiftStopping => false;
-
-  @override
-  String? get mainchainError => null;
-
-  @override
-  String? get enforcerError => null;
-
-  @override
-  String? get bitwindowError => null;
-
-  @override
-  String? get orchestratordError => null;
-
-  @override
-  String? get bitnamesError => null;
-
-  @override
-  String? get bitassetsError => null;
-
-  @override
-  String? get zsideError => null;
-
-  @override
-  String? get truthcoinError => null;
-
-  @override
-  String? get photonError => null;
-
-  @override
-  String? get coinshiftError => null;
-
-  @override
-  String? get mainchainStartupError => null;
-
-  @override
-  String? get enforcerStartupError => null;
-
-  @override
-  String? get bitwindowStartupError => null;
-
-  @override
-  String? get thunderStartupError => null;
-
-  @override
-  String? get bitnamesStartupError => null;
-
-  @override
-  String? get bitassetsStartupError => null;
-
-  @override
-  String? get zsideStartupError => null;
-
-  @override
-  String? get truthcoinStartupError => null;
-
-  @override
-  String? get photonStartupError => null;
-
-  @override
-  String? get coinshiftStartupError => null;
-
-  @override
-  ExitTuple? exited(Binary binary) => null;
-
-  @override
-  Stream<String> stderr(Binary binary) => const Stream.empty();
-
-  @override
-  void setUseStarter(Binary binary, bool value) {}
 
   @override
   void addListener(listener) {}
@@ -2319,18 +2068,4 @@ class MockBinaryProvider extends BinaryProvider {
 
   @override
   bool get hasListeners => false;
-}
-
-class MockDownloadManager extends DownloadManager {
-  MockDownloadManager()
-    // ignore: invalid_use_of_visible_for_testing_member
-    : super.test(appDir: Directory('/tmp'), binaries: [MockBinary()]);
-}
-
-class MockProcessManager extends ProcessManager {
-  MockProcessManager()
-    : super(
-        appDir: Directory('/tmp'),
-        pidFileManager: PidFileManager(pidDir: Directory('/tmp/pids')),
-      );
 }

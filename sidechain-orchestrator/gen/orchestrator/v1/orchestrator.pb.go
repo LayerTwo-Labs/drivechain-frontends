@@ -965,7 +965,7 @@ func (x *StreamLogsResponse) GetTimestampUnix() int64 {
 	return 0
 }
 
-type StartWithDepsRequest struct {
+type StartWithL1Request struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Target        string                 `protobuf:"bytes,1,opt,name=target,proto3" json:"target,omitempty"`
 	TargetArgs    []string               `protobuf:"bytes,2,rep,name=target_args,json=targetArgs,proto3" json:"target_args,omitempty"`
@@ -977,20 +977,20 @@ type StartWithDepsRequest struct {
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *StartWithDepsRequest) Reset() {
-	*x = StartWithDepsRequest{}
+func (x *StartWithL1Request) Reset() {
+	*x = StartWithL1Request{}
 	mi := &file_orchestrator_v1_orchestrator_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *StartWithDepsRequest) String() string {
+func (x *StartWithL1Request) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*StartWithDepsRequest) ProtoMessage() {}
+func (*StartWithL1Request) ProtoMessage() {}
 
-func (x *StartWithDepsRequest) ProtoReflect() protoreflect.Message {
+func (x *StartWithL1Request) ProtoReflect() protoreflect.Message {
 	mi := &file_orchestrator_v1_orchestrator_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -1002,54 +1002,54 @@ func (x *StartWithDepsRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use StartWithDepsRequest.ProtoReflect.Descriptor instead.
-func (*StartWithDepsRequest) Descriptor() ([]byte, []int) {
+// Deprecated: Use StartWithL1Request.ProtoReflect.Descriptor instead.
+func (*StartWithL1Request) Descriptor() ([]byte, []int) {
 	return file_orchestrator_v1_orchestrator_proto_rawDescGZIP(), []int{16}
 }
 
-func (x *StartWithDepsRequest) GetTarget() string {
+func (x *StartWithL1Request) GetTarget() string {
 	if x != nil {
 		return x.Target
 	}
 	return ""
 }
 
-func (x *StartWithDepsRequest) GetTargetArgs() []string {
+func (x *StartWithL1Request) GetTargetArgs() []string {
 	if x != nil {
 		return x.TargetArgs
 	}
 	return nil
 }
 
-func (x *StartWithDepsRequest) GetTargetEnv() map[string]string {
+func (x *StartWithL1Request) GetTargetEnv() map[string]string {
 	if x != nil {
 		return x.TargetEnv
 	}
 	return nil
 }
 
-func (x *StartWithDepsRequest) GetCoreArgs() []string {
+func (x *StartWithL1Request) GetCoreArgs() []string {
 	if x != nil {
 		return x.CoreArgs
 	}
 	return nil
 }
 
-func (x *StartWithDepsRequest) GetEnforcerArgs() []string {
+func (x *StartWithL1Request) GetEnforcerArgs() []string {
 	if x != nil {
 		return x.EnforcerArgs
 	}
 	return nil
 }
 
-func (x *StartWithDepsRequest) GetImmediate() bool {
+func (x *StartWithL1Request) GetImmediate() bool {
 	if x != nil {
 		return x.Immediate
 	}
 	return false
 }
 
-type StartWithDepsResponse struct {
+type StartWithL1Response struct {
 	state           protoimpl.MessageState `protogen:"open.v1"`
 	Stage           string                 `protobuf:"bytes,1,opt,name=stage,proto3" json:"stage,omitempty"`
 	Message         string                 `protobuf:"bytes,2,opt,name=message,proto3" json:"message,omitempty"`
@@ -1061,20 +1061,20 @@ type StartWithDepsResponse struct {
 	sizeCache       protoimpl.SizeCache
 }
 
-func (x *StartWithDepsResponse) Reset() {
-	*x = StartWithDepsResponse{}
+func (x *StartWithL1Response) Reset() {
+	*x = StartWithL1Response{}
 	mi := &file_orchestrator_v1_orchestrator_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *StartWithDepsResponse) String() string {
+func (x *StartWithL1Response) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*StartWithDepsResponse) ProtoMessage() {}
+func (*StartWithL1Response) ProtoMessage() {}
 
-func (x *StartWithDepsResponse) ProtoReflect() protoreflect.Message {
+func (x *StartWithL1Response) ProtoReflect() protoreflect.Message {
 	mi := &file_orchestrator_v1_orchestrator_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -1086,47 +1086,47 @@ func (x *StartWithDepsResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use StartWithDepsResponse.ProtoReflect.Descriptor instead.
-func (*StartWithDepsResponse) Descriptor() ([]byte, []int) {
+// Deprecated: Use StartWithL1Response.ProtoReflect.Descriptor instead.
+func (*StartWithL1Response) Descriptor() ([]byte, []int) {
 	return file_orchestrator_v1_orchestrator_proto_rawDescGZIP(), []int{17}
 }
 
-func (x *StartWithDepsResponse) GetStage() string {
+func (x *StartWithL1Response) GetStage() string {
 	if x != nil {
 		return x.Stage
 	}
 	return ""
 }
 
-func (x *StartWithDepsResponse) GetMessage() string {
+func (x *StartWithL1Response) GetMessage() string {
 	if x != nil {
 		return x.Message
 	}
 	return ""
 }
 
-func (x *StartWithDepsResponse) GetDone() bool {
+func (x *StartWithL1Response) GetDone() bool {
 	if x != nil {
 		return x.Done
 	}
 	return false
 }
 
-func (x *StartWithDepsResponse) GetError() string {
+func (x *StartWithL1Response) GetError() string {
 	if x != nil {
 		return x.Error
 	}
 	return ""
 }
 
-func (x *StartWithDepsResponse) GetBytesDownloaded() int64 {
+func (x *StartWithL1Response) GetBytesDownloaded() int64 {
 	if x != nil {
 		return x.BytesDownloaded
 	}
 	return 0
 }
 
-func (x *StartWithDepsResponse) GetTotalBytes() int64 {
+func (x *StartWithL1Response) GetTotalBytes() int64 {
 	if x != nil {
 		return x.TotalBytes
 	}
@@ -1768,20 +1768,20 @@ const file_orchestrator_v1_orchestrator_proto_rawDesc = "" +
 	"\x12StreamLogsResponse\x12\x16\n" +
 	"\x06stream\x18\x01 \x01(\tR\x06stream\x12\x12\n" +
 	"\x04line\x18\x02 \x01(\tR\x04line\x12%\n" +
-	"\x0etimestamp_unix\x18\x03 \x01(\x03R\rtimestampUnix\"\xc2\x02\n" +
-	"\x14StartWithDepsRequest\x12\x16\n" +
+	"\x0etimestamp_unix\x18\x03 \x01(\x03R\rtimestampUnix\"\xbe\x02\n" +
+	"\x12StartWithL1Request\x12\x16\n" +
 	"\x06target\x18\x01 \x01(\tR\x06target\x12\x1f\n" +
 	"\vtarget_args\x18\x02 \x03(\tR\n" +
-	"targetArgs\x12S\n" +
+	"targetArgs\x12Q\n" +
 	"\n" +
-	"target_env\x18\x03 \x03(\v24.orchestrator.v1.StartWithDepsRequest.TargetEnvEntryR\ttargetEnv\x12\x1b\n" +
+	"target_env\x18\x03 \x03(\v22.orchestrator.v1.StartWithL1Request.TargetEnvEntryR\ttargetEnv\x12\x1b\n" +
 	"\tcore_args\x18\x04 \x03(\tR\bcoreArgs\x12#\n" +
 	"\renforcer_args\x18\x05 \x03(\tR\fenforcerArgs\x12\x1c\n" +
 	"\timmediate\x18\x06 \x01(\bR\timmediate\x1a<\n" +
 	"\x0eTargetEnvEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xbd\x01\n" +
-	"\x15StartWithDepsResponse\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xbb\x01\n" +
+	"\x13StartWithL1Response\x12\x14\n" +
 	"\x05stage\x18\x01 \x01(\tR\x05stage\x12\x18\n" +
 	"\amessage\x18\x02 \x01(\tR\amessage\x12\x12\n" +
 	"\x04done\x18\x03 \x01(\bR\x04done\x12\x14\n" +
@@ -1830,7 +1830,7 @@ const file_orchestrator_v1_orchestrator_proto_rawDesc = "" +
 	"\x1aGetMainchainBalanceRequest\"]\n" +
 	"\x1bGetMainchainBalanceResponse\x12\x1c\n" +
 	"\tconfirmed\x18\x01 \x01(\x01R\tconfirmed\x12 \n" +
-	"\vunconfirmed\x18\x02 \x01(\x01R\vunconfirmed2\xc0\n" +
+	"\vunconfirmed\x18\x02 \x01(\x01R\vunconfirmed2\xba\n" +
 	"\n" +
 	"\x13OrchestratorService\x12[\n" +
 	"\fListBinaries\x12$.orchestrator.v1.ListBinariesRequest\x1a%.orchestrator.v1.ListBinariesResponse\x12d\n" +
@@ -1841,8 +1841,8 @@ const file_orchestrator_v1_orchestrator_proto_rawDesc = "" +
 	"StopBinary\x12\".orchestrator.v1.StopBinaryRequest\x1a#.orchestrator.v1.StopBinaryResponse\x12`\n" +
 	"\rWatchBinaries\x12%.orchestrator.v1.WatchBinariesRequest\x1a&.orchestrator.v1.WatchBinariesResponse0\x01\x12W\n" +
 	"\n" +
-	"StreamLogs\x12\".orchestrator.v1.StreamLogsRequest\x1a#.orchestrator.v1.StreamLogsResponse0\x01\x12`\n" +
-	"\rStartWithDeps\x12%.orchestrator.v1.StartWithDepsRequest\x1a&.orchestrator.v1.StartWithDepsResponse0\x01\x12Z\n" +
+	"StreamLogs\x12\".orchestrator.v1.StreamLogsRequest\x1a#.orchestrator.v1.StreamLogsResponse0\x01\x12Z\n" +
+	"\vStartWithL1\x12#.orchestrator.v1.StartWithL1Request\x1a$.orchestrator.v1.StartWithL1Response0\x01\x12Z\n" +
 	"\vShutdownAll\x12#.orchestrator.v1.ShutdownAllRequest\x1a$.orchestrator.v1.ShutdownAllResponse0\x01\x12X\n" +
 	"\vGetBTCPrice\x12#.orchestrator.v1.GetBTCPriceRequest\x1a$.orchestrator.v1.GetBTCPriceResponse\x12\x85\x01\n" +
 	"\x1aGetMainchainBlockchainInfo\x122.orchestrator.v1.GetMainchainBlockchainInfoRequest\x1a3.orchestrator.v1.GetMainchainBlockchainInfoResponse\x12\x82\x01\n" +
@@ -1880,8 +1880,8 @@ var file_orchestrator_v1_orchestrator_proto_goTypes = []any{
 	(*WatchBinariesResponse)(nil),              // 13: orchestrator.v1.WatchBinariesResponse
 	(*StreamLogsRequest)(nil),                  // 14: orchestrator.v1.StreamLogsRequest
 	(*StreamLogsResponse)(nil),                 // 15: orchestrator.v1.StreamLogsResponse
-	(*StartWithDepsRequest)(nil),               // 16: orchestrator.v1.StartWithDepsRequest
-	(*StartWithDepsResponse)(nil),              // 17: orchestrator.v1.StartWithDepsResponse
+	(*StartWithL1Request)(nil),                 // 16: orchestrator.v1.StartWithL1Request
+	(*StartWithL1Response)(nil),                // 17: orchestrator.v1.StartWithL1Response
 	(*ShutdownAllRequest)(nil),                 // 18: orchestrator.v1.ShutdownAllRequest
 	(*ShutdownAllResponse)(nil),                // 19: orchestrator.v1.ShutdownAllResponse
 	(*GetBTCPriceRequest)(nil),                 // 20: orchestrator.v1.GetBTCPriceRequest
@@ -1893,7 +1893,7 @@ var file_orchestrator_v1_orchestrator_proto_goTypes = []any{
 	(*GetMainchainBalanceRequest)(nil),         // 26: orchestrator.v1.GetMainchainBalanceRequest
 	(*GetMainchainBalanceResponse)(nil),        // 27: orchestrator.v1.GetMainchainBalanceResponse
 	nil,                                        // 28: orchestrator.v1.StartBinaryRequest.EnvEntry
-	nil,                                        // 29: orchestrator.v1.StartWithDepsRequest.TargetEnvEntry
+	nil,                                        // 29: orchestrator.v1.StartWithL1Request.TargetEnvEntry
 }
 var file_orchestrator_v1_orchestrator_proto_depIdxs = []int32{
 	1,  // 0: orchestrator.v1.BinaryStatusMsg.startup_logs:type_name -> orchestrator.v1.StartupLogEntryMsg
@@ -1901,7 +1901,7 @@ var file_orchestrator_v1_orchestrator_proto_depIdxs = []int32{
 	0,  // 2: orchestrator.v1.GetBinaryStatusResponse.status:type_name -> orchestrator.v1.BinaryStatusMsg
 	28, // 3: orchestrator.v1.StartBinaryRequest.env:type_name -> orchestrator.v1.StartBinaryRequest.EnvEntry
 	0,  // 4: orchestrator.v1.WatchBinariesResponse.binaries:type_name -> orchestrator.v1.BinaryStatusMsg
-	29, // 5: orchestrator.v1.StartWithDepsRequest.target_env:type_name -> orchestrator.v1.StartWithDepsRequest.TargetEnvEntry
+	29, // 5: orchestrator.v1.StartWithL1Request.target_env:type_name -> orchestrator.v1.StartWithL1Request.TargetEnvEntry
 	2,  // 6: orchestrator.v1.OrchestratorService.ListBinaries:input_type -> orchestrator.v1.ListBinariesRequest
 	4,  // 7: orchestrator.v1.OrchestratorService.GetBinaryStatus:input_type -> orchestrator.v1.GetBinaryStatusRequest
 	6,  // 8: orchestrator.v1.OrchestratorService.DownloadBinary:input_type -> orchestrator.v1.DownloadBinaryRequest
@@ -1909,7 +1909,7 @@ var file_orchestrator_v1_orchestrator_proto_depIdxs = []int32{
 	10, // 10: orchestrator.v1.OrchestratorService.StopBinary:input_type -> orchestrator.v1.StopBinaryRequest
 	12, // 11: orchestrator.v1.OrchestratorService.WatchBinaries:input_type -> orchestrator.v1.WatchBinariesRequest
 	14, // 12: orchestrator.v1.OrchestratorService.StreamLogs:input_type -> orchestrator.v1.StreamLogsRequest
-	16, // 13: orchestrator.v1.OrchestratorService.StartWithDeps:input_type -> orchestrator.v1.StartWithDepsRequest
+	16, // 13: orchestrator.v1.OrchestratorService.StartWithL1:input_type -> orchestrator.v1.StartWithL1Request
 	18, // 14: orchestrator.v1.OrchestratorService.ShutdownAll:input_type -> orchestrator.v1.ShutdownAllRequest
 	20, // 15: orchestrator.v1.OrchestratorService.GetBTCPrice:input_type -> orchestrator.v1.GetBTCPriceRequest
 	22, // 16: orchestrator.v1.OrchestratorService.GetMainchainBlockchainInfo:input_type -> orchestrator.v1.GetMainchainBlockchainInfoRequest
@@ -1922,7 +1922,7 @@ var file_orchestrator_v1_orchestrator_proto_depIdxs = []int32{
 	11, // 23: orchestrator.v1.OrchestratorService.StopBinary:output_type -> orchestrator.v1.StopBinaryResponse
 	13, // 24: orchestrator.v1.OrchestratorService.WatchBinaries:output_type -> orchestrator.v1.WatchBinariesResponse
 	15, // 25: orchestrator.v1.OrchestratorService.StreamLogs:output_type -> orchestrator.v1.StreamLogsResponse
-	17, // 26: orchestrator.v1.OrchestratorService.StartWithDeps:output_type -> orchestrator.v1.StartWithDepsResponse
+	17, // 26: orchestrator.v1.OrchestratorService.StartWithL1:output_type -> orchestrator.v1.StartWithL1Response
 	19, // 27: orchestrator.v1.OrchestratorService.ShutdownAll:output_type -> orchestrator.v1.ShutdownAllResponse
 	21, // 28: orchestrator.v1.OrchestratorService.GetBTCPrice:output_type -> orchestrator.v1.GetBTCPriceResponse
 	23, // 29: orchestrator.v1.OrchestratorService.GetMainchainBlockchainInfo:output_type -> orchestrator.v1.GetMainchainBlockchainInfoResponse

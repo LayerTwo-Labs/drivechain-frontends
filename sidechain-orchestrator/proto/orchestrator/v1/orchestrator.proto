@@ -25,7 +25,7 @@ service OrchestratorService {
   rpc StreamLogs(StreamLogsRequest) returns (stream StreamLogsResponse);
 
   // Start a binary with its full dependency chain (Core -> Enforcer -> target).
-  rpc StartWithDeps(StartWithDepsRequest) returns (stream StartWithDepsResponse);
+  rpc StartWithL1(StartWithL1Request) returns (stream StartWithL1Response);
 
   // Shutdown all running binaries.
   rpc ShutdownAll(ShutdownAllRequest) returns (stream ShutdownAllResponse);
@@ -148,9 +148,9 @@ message StreamLogsResponse {
   int64 timestamp_unix = 3;
 }
 
-// StartWithDeps
+// StartWithL1
 
-message StartWithDepsRequest {
+message StartWithL1Request {
   string target = 1;
   repeated string target_args = 2;
   map<string, string> target_env = 3;
@@ -159,7 +159,7 @@ message StartWithDepsRequest {
   bool immediate = 6;
 }
 
-message StartWithDepsResponse {
+message StartWithL1Response {
   string stage = 1;
   string message = 2;
   bool done = 3;

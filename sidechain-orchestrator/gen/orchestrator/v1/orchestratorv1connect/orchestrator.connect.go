@@ -54,9 +54,9 @@ const (
 	// OrchestratorServiceStreamLogsProcedure is the fully-qualified name of the OrchestratorService's
 	// StreamLogs RPC.
 	OrchestratorServiceStreamLogsProcedure = "/orchestrator.v1.OrchestratorService/StreamLogs"
-	// OrchestratorServiceStartWithDepsProcedure is the fully-qualified name of the
-	// OrchestratorService's StartWithDeps RPC.
-	OrchestratorServiceStartWithDepsProcedure = "/orchestrator.v1.OrchestratorService/StartWithDeps"
+	// OrchestratorServiceStartWithL1Procedure is the fully-qualified name of the OrchestratorService's
+	// StartWithL1 RPC.
+	OrchestratorServiceStartWithL1Procedure = "/orchestrator.v1.OrchestratorService/StartWithL1"
 	// OrchestratorServiceShutdownAllProcedure is the fully-qualified name of the OrchestratorService's
 	// ShutdownAll RPC.
 	OrchestratorServiceShutdownAllProcedure = "/orchestrator.v1.OrchestratorService/ShutdownAll"
@@ -91,7 +91,7 @@ type OrchestratorServiceClient interface {
 	// Stream stdout/stderr from a binary.
 	StreamLogs(context.Context, *connect.Request[v1.StreamLogsRequest]) (*connect.ServerStreamForClient[v1.StreamLogsResponse], error)
 	// Start a binary with its full dependency chain (Core -> Enforcer -> target).
-	StartWithDeps(context.Context, *connect.Request[v1.StartWithDepsRequest]) (*connect.ServerStreamForClient[v1.StartWithDepsResponse], error)
+	StartWithL1(context.Context, *connect.Request[v1.StartWithL1Request]) (*connect.ServerStreamForClient[v1.StartWithL1Response], error)
 	// Shutdown all running binaries.
 	ShutdownAll(context.Context, *connect.Request[v1.ShutdownAllRequest]) (*connect.ServerStreamForClient[v1.ShutdownAllResponse], error)
 	// Get the current BTC/USD exchange rate.
@@ -157,10 +157,10 @@ func NewOrchestratorServiceClient(httpClient connect.HTTPClient, baseURL string,
 			connect.WithSchema(orchestratorServiceMethods.ByName("StreamLogs")),
 			connect.WithClientOptions(opts...),
 		),
-		startWithDeps: connect.NewClient[v1.StartWithDepsRequest, v1.StartWithDepsResponse](
+		startWithL1: connect.NewClient[v1.StartWithL1Request, v1.StartWithL1Response](
 			httpClient,
-			baseURL+OrchestratorServiceStartWithDepsProcedure,
-			connect.WithSchema(orchestratorServiceMethods.ByName("StartWithDeps")),
+			baseURL+OrchestratorServiceStartWithL1Procedure,
+			connect.WithSchema(orchestratorServiceMethods.ByName("StartWithL1")),
 			connect.WithClientOptions(opts...),
 		),
 		shutdownAll: connect.NewClient[v1.ShutdownAllRequest, v1.ShutdownAllResponse](
@@ -205,7 +205,7 @@ type orchestratorServiceClient struct {
 	stopBinary                 *connect.Client[v1.StopBinaryRequest, v1.StopBinaryResponse]
 	watchBinaries              *connect.Client[v1.WatchBinariesRequest, v1.WatchBinariesResponse]
 	streamLogs                 *connect.Client[v1.StreamLogsRequest, v1.StreamLogsResponse]
-	startWithDeps              *connect.Client[v1.StartWithDepsRequest, v1.StartWithDepsResponse]
+	startWithL1                *connect.Client[v1.StartWithL1Request, v1.StartWithL1Response]
 	shutdownAll                *connect.Client[v1.ShutdownAllRequest, v1.ShutdownAllResponse]
 	getBTCPrice                *connect.Client[v1.GetBTCPriceRequest, v1.GetBTCPriceResponse]
 	getMainchainBlockchainInfo *connect.Client[v1.GetMainchainBlockchainInfoRequest, v1.GetMainchainBlockchainInfoResponse]
@@ -248,9 +248,9 @@ func (c *orchestratorServiceClient) StreamLogs(ctx context.Context, req *connect
 	return c.streamLogs.CallServerStream(ctx, req)
 }
 
-// StartWithDeps calls orchestrator.v1.OrchestratorService.StartWithDeps.
-func (c *orchestratorServiceClient) StartWithDeps(ctx context.Context, req *connect.Request[v1.StartWithDepsRequest]) (*connect.ServerStreamForClient[v1.StartWithDepsResponse], error) {
-	return c.startWithDeps.CallServerStream(ctx, req)
+// StartWithL1 calls orchestrator.v1.OrchestratorService.StartWithL1.
+func (c *orchestratorServiceClient) StartWithL1(ctx context.Context, req *connect.Request[v1.StartWithL1Request]) (*connect.ServerStreamForClient[v1.StartWithL1Response], error) {
+	return c.startWithL1.CallServerStream(ctx, req)
 }
 
 // ShutdownAll calls orchestrator.v1.OrchestratorService.ShutdownAll.
@@ -296,7 +296,7 @@ type OrchestratorServiceHandler interface {
 	// Stream stdout/stderr from a binary.
 	StreamLogs(context.Context, *connect.Request[v1.StreamLogsRequest], *connect.ServerStream[v1.StreamLogsResponse]) error
 	// Start a binary with its full dependency chain (Core -> Enforcer -> target).
-	StartWithDeps(context.Context, *connect.Request[v1.StartWithDepsRequest], *connect.ServerStream[v1.StartWithDepsResponse]) error
+	StartWithL1(context.Context, *connect.Request[v1.StartWithL1Request], *connect.ServerStream[v1.StartWithL1Response]) error
 	// Shutdown all running binaries.
 	ShutdownAll(context.Context, *connect.Request[v1.ShutdownAllRequest], *connect.ServerStream[v1.ShutdownAllResponse]) error
 	// Get the current BTC/USD exchange rate.
@@ -358,10 +358,10 @@ func NewOrchestratorServiceHandler(svc OrchestratorServiceHandler, opts ...conne
 		connect.WithSchema(orchestratorServiceMethods.ByName("StreamLogs")),
 		connect.WithHandlerOptions(opts...),
 	)
-	orchestratorServiceStartWithDepsHandler := connect.NewServerStreamHandler(
-		OrchestratorServiceStartWithDepsProcedure,
-		svc.StartWithDeps,
-		connect.WithSchema(orchestratorServiceMethods.ByName("StartWithDeps")),
+	orchestratorServiceStartWithL1Handler := connect.NewServerStreamHandler(
+		OrchestratorServiceStartWithL1Procedure,
+		svc.StartWithL1,
+		connect.WithSchema(orchestratorServiceMethods.ByName("StartWithL1")),
 		connect.WithHandlerOptions(opts...),
 	)
 	orchestratorServiceShutdownAllHandler := connect.NewServerStreamHandler(
@@ -410,8 +410,8 @@ func NewOrchestratorServiceHandler(svc OrchestratorServiceHandler, opts ...conne
 			orchestratorServiceWatchBinariesHandler.ServeHTTP(w, r)
 		case OrchestratorServiceStreamLogsProcedure:
 			orchestratorServiceStreamLogsHandler.ServeHTTP(w, r)
-		case OrchestratorServiceStartWithDepsProcedure:
-			orchestratorServiceStartWithDepsHandler.ServeHTTP(w, r)
+		case OrchestratorServiceStartWithL1Procedure:
+			orchestratorServiceStartWithL1Handler.ServeHTTP(w, r)
 		case OrchestratorServiceShutdownAllProcedure:
 			orchestratorServiceShutdownAllHandler.ServeHTTP(w, r)
 		case OrchestratorServiceGetBTCPriceProcedure:
@@ -459,8 +459,8 @@ func (UnimplementedOrchestratorServiceHandler) StreamLogs(context.Context, *conn
 	return connect.NewError(connect.CodeUnimplemented, errors.New("orchestrator.v1.OrchestratorService.StreamLogs is not implemented"))
 }
 
-func (UnimplementedOrchestratorServiceHandler) StartWithDeps(context.Context, *connect.Request[v1.StartWithDepsRequest], *connect.ServerStream[v1.StartWithDepsResponse]) error {
-	return connect.NewError(connect.CodeUnimplemented, errors.New("orchestrator.v1.OrchestratorService.StartWithDeps is not implemented"))
+func (UnimplementedOrchestratorServiceHandler) StartWithL1(context.Context, *connect.Request[v1.StartWithL1Request], *connect.ServerStream[v1.StartWithL1Response]) error {
+	return connect.NewError(connect.CodeUnimplemented, errors.New("orchestrator.v1.OrchestratorService.StartWithL1 is not implemented"))
 }
 
 func (UnimplementedOrchestratorServiceHandler) ShutdownAll(context.Context, *connect.Request[v1.ShutdownAllRequest], *connect.ServerStream[v1.ShutdownAllResponse]) error {

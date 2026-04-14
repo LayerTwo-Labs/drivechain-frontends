@@ -9,7 +9,6 @@ import 'package:sail_ui/gen/orchestrator/v1/orchestrator.pb.dart';
 import 'package:sail_ui/providers/binaries/binary_provider.dart';
 import 'package:sail_ui/rpcs/bitassets_rpc.dart';
 import 'package:sail_ui/rpcs/bitnames_rpc.dart';
-import 'package:sail_ui/rpcs/bitwindow_api.dart';
 import 'package:sail_ui/rpcs/coinshift_rpc.dart';
 import 'package:sail_ui/rpcs/enforcer_rpc.dart';
 import 'package:sail_ui/rpcs/mainchain_rpc.dart';
@@ -19,7 +18,7 @@ import 'package:sail_ui/rpcs/thunder_rpc.dart';
 import 'package:sail_ui/rpcs/truthcoin_rpc.dart';
 import 'package:sail_ui/rpcs/zside_rpc.dart';
 
-/// Tracks startup progress from the backend's startWithDeps stream.
+/// Tracks startup progress from the backend's StartWithL1 stream.
 class BackendStartupProgress {
   final String stage;
   final String message;
@@ -46,7 +45,7 @@ class BackendStartupProgress {
 ///
 /// Listens to:
 /// - `watchBinaries()` stream for live binary status
-/// - `startWithDeps` progress for startup stages and download progress
+/// - `StartWithL1` progress for startup stages and download progress
 ///
 /// Updates `BinaryProvider`'s download info so existing UI progress bars work.
 class BackendStateProvider extends ChangeNotifier {
@@ -79,10 +78,6 @@ class BackendStateProvider extends ChangeNotifier {
         for (final status in response.binaries) {
           binaries[status.name] = status;
 
-          // Sync connection state from Go backend to Flutter RPCConnections.
-          // This is the bridge between Go's ConnectionMonitor and Flutter's
-          // RPCConnection (rpc_connection.dart) so the UI shows proper
-          // connected/startup/error states without Flutter doing its own pings.
           final rpc = _syncConnectionState(status);
           if (rpc != null) changedRpcs.add(rpc);
         }
@@ -95,14 +90,14 @@ class BackendStateProvider extends ChangeNotifier {
       onError: (error) {
         _log.w('BackendStateProvider: watchBinaries error: $error');
 
-        // Backend is gone — mark everything as disconnected.
+        // Backend is gone — mark all orchestrator-managed binaries as disconnected.
         for (final status in binaries.values) {
           final rpc = _rpcForBinaryName(status.name);
           if (rpc != null) {
             rpc.connected = false;
             rpc.initializingBinary = false;
             rpc.stoppingBinary = false;
-            rpc.notifyListeners();
+            rpc.markStateChanged();
           }
         }
         binaries.clear();
@@ -150,7 +145,7 @@ class BackendStateProvider extends ChangeNotifier {
     return switch (name) {
       'bitcoind' => GetIt.I.isRegistered<MainchainRPC>() ? GetIt.I.get<MainchainRPC>() : null,
       'enforcer' => GetIt.I.isRegistered<EnforcerRPC>() ? GetIt.I.get<EnforcerRPC>() : null,
-      'bitwindowd' => GetIt.I.isRegistered<BitwindowRPC>() ? GetIt.I.get<BitwindowRPC>() : null,
+      // bitwindowd state is managed by BinaryProvider (daemon binary), not the orchestrator stream.
       'thunder' => GetIt.I.isRegistered<ThunderRPC>() ? GetIt.I.get<ThunderRPC>() : null,
       'zside' => GetIt.I.isRegistered<ZSideRPC>() ? GetIt.I.get<ZSideRPC>() : null,
       'bitnames' => GetIt.I.isRegistered<BitnamesRPC>() ? GetIt.I.get<BitnamesRPC>() : null,
@@ -162,13 +157,13 @@ class BackendStateProvider extends ChangeNotifier {
     };
   }
 
-  /// Track startup progress from a startWithDeps stream.
+  /// Track startup progress from a StartWithL1 stream.
   /// Updates download progress on BinaryProvider so existing progress bars work.
   /// Connection state (initializingBinary, connected, etc.) is synced via
   /// watchBinaries → _syncConnectionState, not set here.
-  Future<void> trackStartup(Stream<StartWithDepsResponse> stream) async {
+  Future<void> trackStartup(Stream<StartWithL1Response> stream) async {
     startupComplete = false;
-    StartWithDepsResponse? lastProgress;
+    StartWithL1Response? lastProgress;
     notifyListeners();
 
     try {

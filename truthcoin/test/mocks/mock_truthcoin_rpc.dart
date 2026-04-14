@@ -3,7 +3,7 @@ import 'package:sail_ui/sail_ui.dart';
 /// A controllable mock for TruthcoinRPC that allows tests to configure
 /// specific responses for market and voting operations.
 class TestTruthcoinRPC extends TruthcoinRPC {
-  TestTruthcoinRPC() : super(binaryType: BinaryType.truthcoin, restartOnFailure: false);
+  TestTruthcoinRPC() : super(binaryType: BinaryType.truthcoin);
 
   // Connection state
   bool _connected = true;
@@ -69,13 +69,7 @@ class TestTruthcoinRPC extends TruthcoinRPC {
   Future<List<String>> binaryArgs() async => [];
 
   @override
-  Future<int> ping() async => 100;
-
-  @override
   Future<int> getBlockCount() async => 100;
-
-  @override
-  List<String> startupErrors() => [];
 
   @override
   Future<BlockchainInfo> getBlockchainInfo() async {

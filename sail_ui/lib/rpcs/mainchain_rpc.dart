@@ -15,7 +15,6 @@ abstract class MainchainRPC extends RPCConnection {
   MainchainRPC({
     required this.conf,
     required super.binaryType,
-    required super.restartOnFailure,
   });
 
   final chain = BitcoinCore();
@@ -67,13 +66,11 @@ class MainchainRPCLive extends MainchainRPC {
     : super(
         conf: readMainchainConf(),
         binaryType: BinaryType.bitcoinCore,
-        restartOnFailure: false,
       ) {
     if (Environment.isInTest) {
       return;
     }
     pollIBDStatus();
-    startConnectionTimer();
   }
 
   void pollIBDStatus() {
@@ -113,6 +110,43 @@ class MainchainRPCLive extends MainchainRPC {
         // probably just cant connect, and is in bootup-phase, which is okay
       }
     });
+  }
+
+  // cleanArgs makes sure to NOT add any cli-args that are already set in the conf file
+  // any duplicates are removed
+  List<String> _cleanArgs(
+    CoreConnectionSettings settings,
+    List<String> extraArgs,
+  ) {
+    final baseArgs = bitcoinCoreBinaryArgs(settings);
+    log.d('Deduplicating args - base args: $baseArgs');
+
+    // Filter out any extra args that exist in base args and come from config
+    final filteredExtraArgs = extraArgs.where((arg) {
+      final paramName = arg.split('=')[0].replaceAll(RegExp(r'^-+'), '');
+      return !settings.isFromConfigFile(paramName);
+    }).toList();
+
+    log.d('Extra args after filtering config duplicates: $filteredExtraArgs');
+
+    // Create a map to store args by their parameter name (without the leading dash)
+    final argMap = <String, String>{};
+
+    // Process all args and keep only the last occurrence of each parameter
+    for (final arg in [...baseArgs, ...filteredExtraArgs]) {
+      String paramName;
+      if (arg.contains('=')) {
+        paramName = arg.split('=')[0].replaceAll(RegExp(r'^-+'), '');
+      } else {
+        paramName = arg.replaceAll(RegExp(r'^-+'), '');
+      }
+      argMap[paramName] = arg;
+    }
+
+    final args = argMap.values.toList();
+    log.d('Args after deduplication: $args');
+
+    return args;
   }
 
   @override
@@ -182,7 +216,7 @@ class MainchainRPCLive extends MainchainRPC {
 
     log.i('Using $confFile with network args: $networkArgs');
 
-    final finalArgs = cleanArgs(conf, [
+    final finalArgs = _cleanArgs(conf, [
       ...networkArgs,
       ...coreBinary.extraBootArgs,
     ]);
@@ -238,37 +272,6 @@ class MainchainRPCLive extends MainchainRPC {
   @override
   Future<void> stopRPC() async {
     await _client().call('stop');
-  }
-
-  @override
-  Future<int> ping() async {
-    final blockHeight = await _client().call('getblockcount') as int;
-    return blockHeight;
-  }
-
-  @override
-  List<String> startupErrors() {
-    return [
-      'Loading block index',
-      'Opening LevelDB',
-      'Rewinding blocks',
-      'Verifying blocks',
-      'Loading block database',
-      'Switching active chainstate',
-      'Checking all blk files are present',
-      'Pruning blockstore',
-      'Loading block filter index',
-      'Loading wallet',
-      'Verifying wallet',
-      'Rescanning',
-      'Loading P2P addresses',
-      'Loading banlist',
-      'Starting network threads',
-      'HTTP: starting',
-      'Creating work queue',
-      'RPC warming up',
-      'Done loading',
-    ];
   }
 
   @override

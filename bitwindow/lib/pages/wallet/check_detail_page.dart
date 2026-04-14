@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:qr_flutter/qr_flutter.dart';
+import 'package:sail_ui/rpcs/orchestrator_wallet_rpc.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:sail_ui/gen/wallet/v1/wallet.pb.dart';
 import 'package:stacked/stacked.dart';
@@ -14,6 +15,7 @@ class CheckDetailViewModel extends BaseViewModel {
   Logger get log => GetIt.I.get<Logger>();
   final CheckProvider _checkProvider = GetIt.I.get<CheckProvider>();
   final TransactionProvider _transactionProvider = GetIt.I.get<TransactionProvider>();
+  final OrchestratorWalletRPC _orchestratorWallet = GetIt.I.get<OrchestratorRPC>().wallet;
   WalletReaderProvider get _walletReader => GetIt.I<WalletReaderProvider>();
   final int checkId;
 
@@ -70,19 +72,17 @@ class CheckDetailViewModel extends BaseViewModel {
   Future<void> fundWithWallet(BuildContext context) async {
     if (_check == null) return;
 
-    final bitwindowRPC = GetIt.I.get<BitwindowRPC>();
-
     try {
       final walletId = _walletReader.activeWalletId;
       if (walletId == null) throw Exception('No active wallet');
 
       final amountSats = _check!.expectedAmountSats.toInt();
 
-      final txid = await bitwindowRPC.wallet.sendTransaction(
-        walletId,
-        {_check!.address: amountSats},
-        feeSatPerVbyte: 10,
-      );
+      final txid = (await _orchestratorWallet.sendTransaction(
+        walletId: walletId,
+        destinations: {_check!.address: amountSats},
+        feeRateSatPerVbyte: 10,
+      )).txid;
 
       if (!context.mounted) return;
 

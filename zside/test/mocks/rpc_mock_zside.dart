@@ -4,7 +4,6 @@ class MockZSideRPC extends ZSideRPC {
   MockZSideRPC()
     : super(
         binaryType: BinaryType.zSide,
-        restartOnFailure: false,
       );
 
   @override
@@ -102,16 +101,6 @@ class MockZSideRPC extends ZSideRPC {
   @override
   Future<String> getNewShieldedAddress() async {
     return 'regtestsapling13gh808131h6x3fd9legOargk0q03ugkkjrhptermv7gnz62kc7u20cp5rtxmize219crk5veq6q';
-  }
-
-  @override
-  Future<int> ping() async {
-    return 100;
-  }
-
-  @override
-  List<String> startupErrors() {
-    return [];
   }
 
   @override

@@ -707,7 +707,7 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
     _sidechainProvider.fetch();
 
     _binaryProvider.addListener(_onChange);
-    _binaryProvider.listenDownloadManager(notifyListeners);
+    _binaryProvider.addListener(notifyListeners);
   }
 
   bool get loading => _enforcerRPC.initializingBinary;
@@ -750,16 +750,16 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
 
     // Check if binary is running
     final rpc = switch (sidechain) {
-      var b when b is BitcoinCore => _binaryProvider.mainchainRPC,
-      var b when b is Enforcer => _binaryProvider.enforcerRPC,
-      var b when b is BitWindow => _binaryProvider.bitwindowRPC,
-      var b when b is Thunder => _binaryProvider.thunderRPC,
-      var b when b is BitNames => _binaryProvider.bitnamesRPC,
-      var b when b is BitAssets => _binaryProvider.bitassetsRPC,
-      var b when b is ZSide => _binaryProvider.zsideRPC,
-      var b when b is Truthcoin => _binaryProvider.truthcoinRPC,
-      var b when b is Photon => _binaryProvider.photonRPC,
-      var b when b is CoinShift => _binaryProvider.coinshiftRPC,
+      var b when b is BitcoinCore => GetIt.I.isRegistered<MainchainRPC>() ? GetIt.I.get<MainchainRPC>() : null,
+      var b when b is Enforcer => GetIt.I.isRegistered<EnforcerRPC>() ? GetIt.I.get<EnforcerRPC>() : null,
+      var b when b is BitWindow => GetIt.I.isRegistered<BitwindowRPC>() ? GetIt.I.get<BitwindowRPC>() : null,
+      var b when b is Thunder => GetIt.I.isRegistered<ThunderRPC>() ? GetIt.I.get<ThunderRPC>() : null,
+      var b when b is BitNames => GetIt.I.isRegistered<BitnamesRPC>() ? GetIt.I.get<BitnamesRPC>() : null,
+      var b when b is BitAssets => GetIt.I.isRegistered<BitAssetsRPC>() ? GetIt.I.get<BitAssetsRPC>() : null,
+      var b when b is ZSide => GetIt.I.isRegistered<ZSideRPC>() ? GetIt.I.get<ZSideRPC>() : null,
+      var b when b is Truthcoin => GetIt.I.isRegistered<TruthcoinRPC>() ? GetIt.I.get<TruthcoinRPC>() : null,
+      var b when b is Photon => GetIt.I.isRegistered<PhotonRPC>() ? GetIt.I.get<PhotonRPC>() : null,
+      var b when b is CoinShift => GetIt.I.isRegistered<CoinShiftRPC>() ? GetIt.I.get<CoinShiftRPC>() : null,
       _ => null,
     };
 
@@ -787,13 +787,16 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
     }
 
     return switch (sidechain) {
-      var b when b is Thunder => _binaryProvider.thunderConnected,
-      var b when b is BitNames => _binaryProvider.bitnamesConnected,
-      var b when b is BitAssets => _binaryProvider.bitassetsConnected,
-      var b when b is ZSide => _binaryProvider.zsideConnected,
-      var b when b is Truthcoin => _binaryProvider.truthcoinConnected,
-      var b when b is Photon => _binaryProvider.photonConnected,
-      var b when b is CoinShift => _binaryProvider.coinshiftConnected,
+      var b when b is Thunder => (GetIt.I.isRegistered<ThunderRPC>() ? GetIt.I.get<ThunderRPC>().connected : false),
+      var b when b is BitNames => (GetIt.I.isRegistered<BitnamesRPC>() ? GetIt.I.get<BitnamesRPC>().connected : false),
+      var b when b is BitAssets =>
+        (GetIt.I.isRegistered<BitAssetsRPC>() ? GetIt.I.get<BitAssetsRPC>().connected : false),
+      var b when b is ZSide => (GetIt.I.isRegistered<ZSideRPC>() ? GetIt.I.get<ZSideRPC>().connected : false),
+      var b when b is Truthcoin =>
+        (GetIt.I.isRegistered<TruthcoinRPC>() ? GetIt.I.get<TruthcoinRPC>().connected : false),
+      var b when b is Photon => (GetIt.I.isRegistered<PhotonRPC>() ? GetIt.I.get<PhotonRPC>().connected : false),
+      var b when b is CoinShift =>
+        (GetIt.I.isRegistered<CoinShiftRPC>() ? GetIt.I.get<CoinShiftRPC>().connected : false),
       _ => false,
     };
   }
@@ -820,7 +823,6 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
     final isInitializing = _binaryProvider.isInitializing(sidechain);
     final stopping = _binaryProvider.isStopping(sidechain);
     final downloading = _binaryProvider.downloadProgress(sidechain.type).isDownloading;
-    final isProcessRunning = _binaryProvider.isRunning(sidechain);
 
     if (downloading) {
       final downloadInfo = _binaryProvider.downloadProgress(sidechain.type);
@@ -869,16 +871,6 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
         onPressed: null,
         insideTable: true,
         loading: true,
-      );
-    }
-
-    if (isProcessRunning) {
-      return SailButton(
-        key: ValueKey('kill_slot_${sidechain.slot}_${sidechain.name}'),
-        label: 'Kill',
-        variant: ButtonVariant.outline,
-        onPressed: () async => _binaryProvider.stop(sidechain),
-        insideTable: true,
       );
     }
 
@@ -946,10 +938,9 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
     final downloading = _binaryProvider.downloadProgress(sidechain.type).isDownloading;
     final error = _binaryProvider.connectionError(sidechain);
     final startupErr = rpc.startupError;
-    final isProcessRunning = _binaryProvider.isRunning(sidechain);
 
     // Don't show icon if binary is not active at all
-    if (!isRunning && !isInitializing && !downloading && !isProcessRunning && error == null) {
+    if (!isRunning && !isInitializing && !downloading && error == null) {
       return null;
     }
 
@@ -1241,7 +1232,6 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
       states['${key}_connected'] = _binaryProvider.isConnected(binary);
       states['${key}_initializing'] = _binaryProvider.isInitializing(binary);
       states['${key}_stopping'] = _binaryProvider.isStopping(binary);
-      states['${key}_running'] = _binaryProvider.isRunning(binary);
       states['${key}_downloading'] = _binaryProvider.downloadProgress(binary.type).isDownloading;
       states['${key}_error'] = _binaryProvider.connectionError(binary);
       states['${key}_downloaded'] = binary.isDownloaded;
@@ -1570,13 +1560,13 @@ class _DepositModalState extends State<DepositModal> {
     // Get the RPC for this sidechain type
     // Thunder goes through orchestratord, so no direct SidechainRPC available here
     final rpc = switch (sidechain) {
-      Truthcoin() => binaryProvider.truthcoinRPC,
-      Photon() => binaryProvider.photonRPC,
-      BitNames() => binaryProvider.bitnamesRPC,
-      BitAssets() => binaryProvider.bitassetsRPC,
-      ZSide() => binaryProvider.zsideRPC,
-      CoinShift() => binaryProvider.coinshiftRPC,
-      Thunder() => binaryProvider.thunderRPC,
+      Truthcoin() => GetIt.I.isRegistered<TruthcoinRPC>() ? GetIt.I.get<TruthcoinRPC>() : null,
+      Photon() => GetIt.I.isRegistered<PhotonRPC>() ? GetIt.I.get<PhotonRPC>() : null,
+      BitNames() => GetIt.I.isRegistered<BitnamesRPC>() ? GetIt.I.get<BitnamesRPC>() : null,
+      BitAssets() => GetIt.I.isRegistered<BitAssetsRPC>() ? GetIt.I.get<BitAssetsRPC>() : null,
+      ZSide() => GetIt.I.isRegistered<ZSideRPC>() ? GetIt.I.get<ZSideRPC>() : null,
+      CoinShift() => GetIt.I.isRegistered<CoinShiftRPC>() ? GetIt.I.get<CoinShiftRPC>() : null,
+      Thunder() => GetIt.I.isRegistered<ThunderRPC>() ? GetIt.I.get<ThunderRPC>() : null,
       _ => null,
     };
 

@@ -22,7 +22,6 @@ Future<void> initSidechainDependencies({
   required String currentVersion,
   List<Binary> Function() additionalBinaries = _noAdditionalBinaries,
 }) async {
-
   GetIt.I.registerLazySingleton<NotificationProvider>(
     () => NotificationProvider(),
   );
@@ -51,12 +50,12 @@ Future<void> initSidechainDependencies({
   );
 
   // Register WalletReaderProvider pointing to bitwindow directory
-  final walletReader = WalletReaderProvider.create(bitwindowDir);
+  final walletReader = WalletReaderProvider(bitwindowDir);
   GetIt.I.registerLazySingleton<WalletReaderProvider>(() => walletReader);
   await walletReader.init();
 
   // Register WalletWriterProvider (same code as BitWindow) for chain-agnostic wallet creation
-  final walletWriter = WalletWriterProvider.create(
+  final walletWriter = WalletWriterProvider(
     bitwindowAppDir: bitwindowDir,
   );
   GetIt.I.registerLazySingleton<WalletWriterProvider>(() => walletWriter);
@@ -162,7 +161,6 @@ Future<File> getLogFile(Directory appDir) async {
   return logFile;
 }
 
-
 List<Binary> _noAdditionalBinaries() => [];
 
 List<Binary> _initialBinaries(
@@ -238,6 +236,7 @@ List<Binary> get coreBinaries => [
   resolveFromConfig(BinaryType.bitcoinCore, () => BitcoinCore()),
   resolveFromConfig(BinaryType.enforcer, () => Enforcer()),
   resolveFromConfig(BinaryType.bitWindow, () => BitWindow()),
+  resolveFromConfig(BinaryType.orchestratord, () => Orchestratord()),
 ];
 
 List<Binary> get sidechainBinaries => [

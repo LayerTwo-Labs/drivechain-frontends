@@ -103,7 +103,6 @@ Future<void> registerTestDependencies() async {
     GetIt.I.registerLazySingleton<BitwindowRPC>(
       () => MockAPI(
         binaryType: BinaryType.bitWindow,
-        restartOnFailure: true,
       ),
     );
   }
@@ -113,7 +112,6 @@ Future<void> registerTestDependencies() async {
       connections: [
         MockAPI(
           binaryType: BinaryType.bitWindow,
-          restartOnFailure: true,
         ),
       ],
     );

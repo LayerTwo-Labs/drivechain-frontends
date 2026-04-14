@@ -12,7 +12,7 @@ import 'package:sail_ui/sail_ui.dart';
 
 /// API to the enforcer server
 abstract class EnforcerRPC extends RPCConnection {
-  EnforcerRPC({required super.binaryType, required super.restartOnFailure});
+  EnforcerRPC({required super.binaryType});
 
   ValidatorServiceClient get validator;
   WalletServiceClient get wallet;
@@ -32,7 +32,7 @@ class EnforcerLive extends EnforcerRPC {
   late WalletServiceClient wallet;
   late grpc.Transport _grpcTransport;
 
-  EnforcerLive() : super(binaryType: BinaryType.enforcer, restartOnFailure: true) {
+  EnforcerLive() : super(binaryType: BinaryType.enforcer) {
     _initializeConnection();
   }
 
@@ -131,24 +131,6 @@ class EnforcerLive extends EnforcerRPC {
     args.add('--enable-mempool');
 
     return args;
-  }
-
-  @override
-  Map<String, String> get environment {
-    return {'RUST_BACKTRACE': '1'};
-  }
-
-  @override
-  Future<int> ping() async {
-    return await _withRecreate(() async {
-      final res = await validator.getChainTip(GetChainTipRequest());
-      return res.blockHeaderInfo.height;
-    });
-  }
-
-  @override
-  List<String> startupErrors() {
-    return ['Validator is not synced'];
   }
 
   @override

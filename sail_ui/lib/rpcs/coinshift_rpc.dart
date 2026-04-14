@@ -17,7 +17,7 @@ import 'package:sail_ui/widgets/components/core_transaction.dart';
 
 /// API to the CoinShift server.
 abstract class CoinShiftRPC extends SidechainRPC {
-  CoinShiftRPC({required super.binaryType, required super.restartOnFailure});
+  CoinShiftRPC({required super.binaryType});
 
   /// Get total sidechain wealth in BTC
   Future<double> getSidechainWealth();
@@ -106,7 +106,7 @@ class CoinShiftLive extends CoinShiftRPC {
 
   late CoinShiftServiceClient _client;
 
-  CoinShiftLive() : super(binaryType: BinaryType.coinShift, restartOnFailure: false) {
+  CoinShiftLive() : super(binaryType: BinaryType.coinShift) {
     final transport = connect.Transport(
       baseUrl: 'http://localhost:30400',
       codec: const ProtoCodec(),
@@ -117,12 +117,6 @@ class CoinShiftLive extends CoinShiftRPC {
 
   @override
   Future<List<String>> binaryArgs() async => [];
-
-  @override
-  Future<int> ping() async => await getBlockCount();
-
-  @override
-  List<String> startupErrors() => [];
 
   @override
   Future<(double, double)> balance() async {

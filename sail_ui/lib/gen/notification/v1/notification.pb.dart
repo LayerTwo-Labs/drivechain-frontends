@@ -25,6 +25,7 @@ enum WatchResponse_Event {
   transaction, 
   timestampEvent, 
   system, 
+  sidechainWithdrawal, 
   notSet
 }
 
@@ -34,6 +35,7 @@ class WatchResponse extends $pb.GeneratedMessage {
     TransactionEvent? transaction,
     TimestampEvent? timestampEvent,
     SystemEvent? system,
+    SidechainWithdrawalEvent? sidechainWithdrawal,
   }) {
     final $result = create();
     if (timestamp != null) {
@@ -48,6 +50,9 @@ class WatchResponse extends $pb.GeneratedMessage {
     if (system != null) {
       $result.system = system;
     }
+    if (sidechainWithdrawal != null) {
+      $result.sidechainWithdrawal = sidechainWithdrawal;
+    }
     return $result;
   }
   WatchResponse._() : super();
@@ -58,14 +63,16 @@ class WatchResponse extends $pb.GeneratedMessage {
     2 : WatchResponse_Event.transaction,
     3 : WatchResponse_Event.timestampEvent,
     4 : WatchResponse_Event.system,
+    5 : WatchResponse_Event.sidechainWithdrawal,
     0 : WatchResponse_Event.notSet
   };
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'WatchResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'notification.v1'), createEmptyInstance: create)
-    ..oo(0, [2, 3, 4])
+    ..oo(0, [2, 3, 4, 5])
     ..aOM<$0.Timestamp>(1, _omitFieldNames ? '' : 'timestamp', subBuilder: $0.Timestamp.create)
     ..aOM<TransactionEvent>(2, _omitFieldNames ? '' : 'transaction', subBuilder: TransactionEvent.create)
     ..aOM<TimestampEvent>(3, _omitFieldNames ? '' : 'timestampEvent', subBuilder: TimestampEvent.create)
     ..aOM<SystemEvent>(4, _omitFieldNames ? '' : 'system', subBuilder: SystemEvent.create)
+    ..aOM<SidechainWithdrawalEvent>(5, _omitFieldNames ? '' : 'sidechainWithdrawal', subBuilder: SidechainWithdrawalEvent.create)
     ..hasRequiredFields = false
   ;
 
@@ -136,6 +143,17 @@ class WatchResponse extends $pb.GeneratedMessage {
   void clearSystem() => clearField(4);
   @$pb.TagNumber(4)
   SystemEvent ensureSystem() => $_ensure(3);
+
+  @$pb.TagNumber(5)
+  SidechainWithdrawalEvent get sidechainWithdrawal => $_getN(4);
+  @$pb.TagNumber(5)
+  set sidechainWithdrawal(SidechainWithdrawalEvent v) { setField(5, v); }
+  @$pb.TagNumber(5)
+  $core.bool hasSidechainWithdrawal() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearSidechainWithdrawal() => clearField(5);
+  @$pb.TagNumber(5)
+  SidechainWithdrawalEvent ensureSidechainWithdrawal() => $_ensure(4);
 }
 
 class TransactionEvent extends $pb.GeneratedMessage {
@@ -398,6 +416,142 @@ class SystemEvent extends $pb.GeneratedMessage {
   $core.bool hasMessage() => $_has(1);
   @$pb.TagNumber(2)
   void clearMessage() => clearField(2);
+}
+
+class SidechainWithdrawalEvent extends $pb.GeneratedMessage {
+  factory SidechainWithdrawalEvent({
+    SidechainWithdrawalEvent_Type? type,
+    $core.String? txid,
+    $core.String? sidechain,
+    $fixnum.Int64? amount,
+    $core.String? destination,
+    $0.Timestamp? detectedAt,
+    $core.String? blockHash,
+  }) {
+    final $result = create();
+    if (type != null) {
+      $result.type = type;
+    }
+    if (txid != null) {
+      $result.txid = txid;
+    }
+    if (sidechain != null) {
+      $result.sidechain = sidechain;
+    }
+    if (amount != null) {
+      $result.amount = amount;
+    }
+    if (destination != null) {
+      $result.destination = destination;
+    }
+    if (detectedAt != null) {
+      $result.detectedAt = detectedAt;
+    }
+    if (blockHash != null) {
+      $result.blockHash = blockHash;
+    }
+    return $result;
+  }
+  SidechainWithdrawalEvent._() : super();
+  factory SidechainWithdrawalEvent.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory SidechainWithdrawalEvent.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'SidechainWithdrawalEvent', package: const $pb.PackageName(_omitMessageNames ? '' : 'notification.v1'), createEmptyInstance: create)
+    ..e<SidechainWithdrawalEvent_Type>(1, _omitFieldNames ? '' : 'type', $pb.PbFieldType.OE, defaultOrMaker: SidechainWithdrawalEvent_Type.TYPE_UNSPECIFIED, valueOf: SidechainWithdrawalEvent_Type.valueOf, enumValues: SidechainWithdrawalEvent_Type.values)
+    ..aOS(2, _omitFieldNames ? '' : 'txid')
+    ..aOS(3, _omitFieldNames ? '' : 'sidechain')
+    ..aInt64(4, _omitFieldNames ? '' : 'amount')
+    ..aOS(5, _omitFieldNames ? '' : 'destination')
+    ..aOM<$0.Timestamp>(6, _omitFieldNames ? '' : 'detectedAt', subBuilder: $0.Timestamp.create)
+    ..aOS(7, _omitFieldNames ? '' : 'blockHash')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  SidechainWithdrawalEvent clone() => SidechainWithdrawalEvent()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  SidechainWithdrawalEvent copyWith(void Function(SidechainWithdrawalEvent) updates) => super.copyWith((message) => updates(message as SidechainWithdrawalEvent)) as SidechainWithdrawalEvent;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static SidechainWithdrawalEvent create() => SidechainWithdrawalEvent._();
+  SidechainWithdrawalEvent createEmptyInstance() => create();
+  static $pb.PbList<SidechainWithdrawalEvent> createRepeated() => $pb.PbList<SidechainWithdrawalEvent>();
+  @$core.pragma('dart2js:noInline')
+  static SidechainWithdrawalEvent getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<SidechainWithdrawalEvent>(create);
+  static SidechainWithdrawalEvent? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  SidechainWithdrawalEvent_Type get type => $_getN(0);
+  @$pb.TagNumber(1)
+  set type(SidechainWithdrawalEvent_Type v) { setField(1, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasType() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearType() => clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.String get txid => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set txid($core.String v) { $_setString(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasTxid() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearTxid() => clearField(2);
+
+  @$pb.TagNumber(3)
+  $core.String get sidechain => $_getSZ(2);
+  @$pb.TagNumber(3)
+  set sidechain($core.String v) { $_setString(2, v); }
+  @$pb.TagNumber(3)
+  $core.bool hasSidechain() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearSidechain() => clearField(3);
+
+  @$pb.TagNumber(4)
+  $fixnum.Int64 get amount => $_getI64(3);
+  @$pb.TagNumber(4)
+  set amount($fixnum.Int64 v) { $_setInt64(3, v); }
+  @$pb.TagNumber(4)
+  $core.bool hasAmount() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearAmount() => clearField(4);
+
+  @$pb.TagNumber(5)
+  $core.String get destination => $_getSZ(4);
+  @$pb.TagNumber(5)
+  set destination($core.String v) { $_setString(4, v); }
+  @$pb.TagNumber(5)
+  $core.bool hasDestination() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearDestination() => clearField(5);
+
+  @$pb.TagNumber(6)
+  $0.Timestamp get detectedAt => $_getN(5);
+  @$pb.TagNumber(6)
+  set detectedAt($0.Timestamp v) { setField(6, v); }
+  @$pb.TagNumber(6)
+  $core.bool hasDetectedAt() => $_has(5);
+  @$pb.TagNumber(6)
+  void clearDetectedAt() => clearField(6);
+  @$pb.TagNumber(6)
+  $0.Timestamp ensureDetectedAt() => $_ensure(5);
+
+  @$pb.TagNumber(7)
+  $core.String get blockHash => $_getSZ(6);
+  @$pb.TagNumber(7)
+  set blockHash($core.String v) { $_setString(6, v); }
+  @$pb.TagNumber(7)
+  $core.bool hasBlockHash() => $_has(6);
+  @$pb.TagNumber(7)
+  void clearBlockHash() => clearField(7);
 }
 
 class NotificationServiceApi {

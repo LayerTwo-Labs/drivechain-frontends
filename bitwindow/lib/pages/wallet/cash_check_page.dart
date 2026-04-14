@@ -2,6 +2,7 @@ import 'package:auto_route/auto_route.dart';
 import 'package:bitwindow/routing/router.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
+import 'package:sail_ui/rpcs/orchestrator_wallet_rpc.dart';
 import 'package:sail_ui/sail_ui.dart';
 
 @RoutePage()
@@ -14,6 +15,7 @@ class CashCheckPage extends StatefulWidget {
 
 class _CashCheckPageState extends State<CashCheckPage> {
   final BitwindowRPC _bitwindowRPC = GetIt.I.get<BitwindowRPC>();
+  final OrchestratorWalletRPC _orchestratorWallet = GetIt.I.get<OrchestratorRPC>().wallet;
   final WalletReaderProvider _walletReader = GetIt.I.get<WalletReaderProvider>();
   final TextEditingController _wifController = TextEditingController();
   bool _isCashing = false;
@@ -94,7 +96,7 @@ class _CashCheckPageState extends State<CashCheckPage> {
       final walletId = _walletReader.activeWalletId;
       if (walletId == null) throw Exception('No active wallet');
 
-      final destinationAddress = await _bitwindowRPC.wallet.getNewAddress(walletId);
+      final destinationAddress = (await _orchestratorWallet.getNewAddress(walletId)).address;
 
       final result = await _bitwindowRPC.wallet.sweepCheque(
         walletId,

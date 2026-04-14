@@ -9,6 +9,7 @@ import (
 	context "context"
 	errors "errors"
 	v1 "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1"
+	emptypb "google.golang.org/protobuf/types/known/emptypb"
 	http "net/http"
 	strings "strings"
 )
@@ -108,6 +109,9 @@ const (
 	// WalletManagerServiceGetWalletSeedProcedure is the fully-qualified name of the
 	// WalletManagerService's GetWalletSeed RPC.
 	WalletManagerServiceGetWalletSeedProcedure = "/walletmanager.v1.WalletManagerService/GetWalletSeed"
+	// WalletManagerServiceWatchWalletDataProcedure is the fully-qualified name of the
+	// WalletManagerService's WatchWalletData RPC.
+	WalletManagerServiceWatchWalletDataProcedure = "/walletmanager.v1.WalletManagerService/WatchWalletData"
 )
 
 // WalletManagerServiceClient is a client for the walletmanager.v1.WalletManagerService service.
@@ -141,6 +145,9 @@ type WalletManagerServiceClient interface {
 	DeriveAddresses(context.Context, *connect.Request[v1.DeriveAddressesRequest]) (*connect.Response[v1.DeriveAddressesResponse], error)
 	// Seed access for cheque engine
 	GetWalletSeed(context.Context, *connect.Request[v1.GetWalletSeedRequest]) (*connect.Response[v1.GetWalletSeedResponse], error)
+	// Stream wallet state changes. Sends the full wallet state immediately,
+	// then again whenever wallets or balance change.
+	WatchWalletData(context.Context, *connect.Request[emptypb.Empty]) (*connect.ServerStreamForClient[v1.WatchWalletDataResponse], error)
 }
 
 // NewWalletManagerServiceClient constructs a client for the walletmanager.v1.WalletManagerService
@@ -304,6 +311,12 @@ func NewWalletManagerServiceClient(httpClient connect.HTTPClient, baseURL string
 			connect.WithSchema(walletManagerServiceMethods.ByName("GetWalletSeed")),
 			connect.WithClientOptions(opts...),
 		),
+		watchWalletData: connect.NewClient[emptypb.Empty, v1.WatchWalletDataResponse](
+			httpClient,
+			baseURL+WalletManagerServiceWatchWalletDataProcedure,
+			connect.WithSchema(walletManagerServiceMethods.ByName("WatchWalletData")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -334,6 +347,7 @@ type walletManagerServiceClient struct {
 	bumpFee                 *connect.Client[v1.BumpFeeRequest, v1.BumpFeeResponse]
 	deriveAddresses         *connect.Client[v1.DeriveAddressesRequest, v1.DeriveAddressesResponse]
 	getWalletSeed           *connect.Client[v1.GetWalletSeedRequest, v1.GetWalletSeedResponse]
+	watchWalletData         *connect.Client[emptypb.Empty, v1.WatchWalletDataResponse]
 }
 
 // GetWalletStatus calls walletmanager.v1.WalletManagerService.GetWalletStatus.
@@ -461,6 +475,11 @@ func (c *walletManagerServiceClient) GetWalletSeed(ctx context.Context, req *con
 	return c.getWalletSeed.CallUnary(ctx, req)
 }
 
+// WatchWalletData calls walletmanager.v1.WalletManagerService.WatchWalletData.
+func (c *walletManagerServiceClient) WatchWalletData(ctx context.Context, req *connect.Request[emptypb.Empty]) (*connect.ServerStreamForClient[v1.WatchWalletDataResponse], error) {
+	return c.watchWalletData.CallServerStream(ctx, req)
+}
+
 // WalletManagerServiceHandler is an implementation of the walletmanager.v1.WalletManagerService
 // service.
 type WalletManagerServiceHandler interface {
@@ -493,6 +512,9 @@ type WalletManagerServiceHandler interface {
 	DeriveAddresses(context.Context, *connect.Request[v1.DeriveAddressesRequest]) (*connect.Response[v1.DeriveAddressesResponse], error)
 	// Seed access for cheque engine
 	GetWalletSeed(context.Context, *connect.Request[v1.GetWalletSeedRequest]) (*connect.Response[v1.GetWalletSeedResponse], error)
+	// Stream wallet state changes. Sends the full wallet state immediately,
+	// then again whenever wallets or balance change.
+	WatchWalletData(context.Context, *connect.Request[emptypb.Empty], *connect.ServerStream[v1.WatchWalletDataResponse]) error
 }
 
 // NewWalletManagerServiceHandler builds an HTTP handler from the service implementation. It returns
@@ -652,6 +674,12 @@ func NewWalletManagerServiceHandler(svc WalletManagerServiceHandler, opts ...con
 		connect.WithSchema(walletManagerServiceMethods.ByName("GetWalletSeed")),
 		connect.WithHandlerOptions(opts...),
 	)
+	walletManagerServiceWatchWalletDataHandler := connect.NewServerStreamHandler(
+		WalletManagerServiceWatchWalletDataProcedure,
+		svc.WatchWalletData,
+		connect.WithSchema(walletManagerServiceMethods.ByName("WatchWalletData")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/walletmanager.v1.WalletManagerService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case WalletManagerServiceGetWalletStatusProcedure:
@@ -704,6 +732,8 @@ func NewWalletManagerServiceHandler(svc WalletManagerServiceHandler, opts ...con
 			walletManagerServiceDeriveAddressesHandler.ServeHTTP(w, r)
 		case WalletManagerServiceGetWalletSeedProcedure:
 			walletManagerServiceGetWalletSeedHandler.ServeHTTP(w, r)
+		case WalletManagerServiceWatchWalletDataProcedure:
+			walletManagerServiceWatchWalletDataHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -811,4 +841,8 @@ func (UnimplementedWalletManagerServiceHandler) DeriveAddresses(context.Context,
 
 func (UnimplementedWalletManagerServiceHandler) GetWalletSeed(context.Context, *connect.Request[v1.GetWalletSeedRequest]) (*connect.Response[v1.GetWalletSeedResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("walletmanager.v1.WalletManagerService.GetWalletSeed is not implemented"))
+}
+
+func (UnimplementedWalletManagerServiceHandler) WatchWalletData(context.Context, *connect.Request[emptypb.Empty], *connect.ServerStream[v1.WatchWalletDataResponse]) error {
+	return connect.NewError(connect.CodeUnimplemented, errors.New("walletmanager.v1.WalletManagerService.WatchWalletData is not implemented"))
 }

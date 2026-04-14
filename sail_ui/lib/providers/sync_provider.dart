@@ -104,7 +104,7 @@ class SyncProvider extends ChangeNotifier {
 
   // opts into the provider also notifying of download progress
   void listenDownloads() {
-    binaryProvider.listenDownloadManager(_checkDownloadProgress);
+    binaryProvider.addListener(_checkDownloadProgress);
   }
 
   void _startAllTimers() {
@@ -399,7 +399,7 @@ class SyncProvider extends ChangeNotifier {
     _mainchainTimer?.cancel();
     _enforcerTimer?.cancel();
     _additionalTimer?.cancel();
-    binaryProvider.removeDownloadManagerListener(_checkDownloadProgress);
+    binaryProvider.removeListener(_checkDownloadProgress);
     super.dispose();
   }
 }

@@ -38,6 +38,7 @@ const BinaryStatusMsg$json = {
     {'1': 'port_in_use', '3': 19, '4': 1, '5': 8, '10': 'portInUse'},
     {'1': 'version', '3': 20, '4': 1, '5': 9, '10': 'version'},
     {'1': 'repo_url', '3': 21, '4': 1, '5': 9, '10': 'repoUrl'},
+    {'1': 'startup_logs', '3': 22, '4': 3, '5': 11, '6': '.orchestrator.v1.StartupLogEntryMsg', '10': 'startupLogs'},
   ],
 };
 
@@ -54,7 +55,23 @@ final $typed_data.Uint8List binaryStatusMsgDescriptor = $convert.base64Decode(
     'ZGVfb25seRgPIAEoCFIPY29ubmVjdE1vZGVPbmx5EiIKDGRvd25sb2FkYWJsZRgQIAEoCFIMZG'
     '93bmxvYWRhYmxlEiAKC2Rlc2NyaXB0aW9uGBEgASgJUgtkZXNjcmlwdGlvbhIeCgpkb3dubG9h'
     'ZGVkGBIgASgIUgpkb3dubG9hZGVkEh4KC3BvcnRfaW5fdXNlGBMgASgIUglwb3J0SW5Vc2USGA'
-    'oHdmVyc2lvbhgUIAEoCVIHdmVyc2lvbhIZCghyZXBvX3VybBgVIAEoCVIHcmVwb1VybA==');
+    'oHdmVyc2lvbhgUIAEoCVIHdmVyc2lvbhIZCghyZXBvX3VybBgVIAEoCVIHcmVwb1VybBJGCgxz'
+    'dGFydHVwX2xvZ3MYFiADKAsyIy5vcmNoZXN0cmF0b3IudjEuU3RhcnR1cExvZ0VudHJ5TXNnUg'
+    'tzdGFydHVwTG9ncw==');
+
+@$core.Deprecated('Use startupLogEntryMsgDescriptor instead')
+const StartupLogEntryMsg$json = {
+  '1': 'StartupLogEntryMsg',
+  '2': [
+    {'1': 'timestamp_unix', '3': 1, '4': 1, '5': 3, '10': 'timestampUnix'},
+    {'1': 'message', '3': 2, '4': 1, '5': 9, '10': 'message'},
+  ],
+};
+
+/// Descriptor for `StartupLogEntryMsg`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List startupLogEntryMsgDescriptor = $convert.base64Decode(
+    'ChJTdGFydHVwTG9nRW50cnlNc2cSJQoOdGltZXN0YW1wX3VuaXgYASABKANSDXRpbWVzdGFtcF'
+    'VuaXgSGAoHbWVzc2FnZRgCIAEoCVIHbWVzc2FnZQ==');
 
 @$core.Deprecated('Use listBinariesRequestDescriptor instead')
 const ListBinariesRequest$json = {
@@ -250,22 +267,22 @@ final $typed_data.Uint8List streamLogsResponseDescriptor = $convert.base64Decode
     'ChJTdHJlYW1Mb2dzUmVzcG9uc2USFgoGc3RyZWFtGAEgASgJUgZzdHJlYW0SEgoEbGluZRgCIA'
     'EoCVIEbGluZRIlCg50aW1lc3RhbXBfdW5peBgDIAEoA1INdGltZXN0YW1wVW5peA==');
 
-@$core.Deprecated('Use startWithDepsRequestDescriptor instead')
-const StartWithDepsRequest$json = {
-  '1': 'StartWithDepsRequest',
+@$core.Deprecated('Use startWithL1RequestDescriptor instead')
+const StartWithL1Request$json = {
+  '1': 'StartWithL1Request',
   '2': [
     {'1': 'target', '3': 1, '4': 1, '5': 9, '10': 'target'},
     {'1': 'target_args', '3': 2, '4': 3, '5': 9, '10': 'targetArgs'},
-    {'1': 'target_env', '3': 3, '4': 3, '5': 11, '6': '.orchestrator.v1.StartWithDepsRequest.TargetEnvEntry', '10': 'targetEnv'},
+    {'1': 'target_env', '3': 3, '4': 3, '5': 11, '6': '.orchestrator.v1.StartWithL1Request.TargetEnvEntry', '10': 'targetEnv'},
     {'1': 'core_args', '3': 4, '4': 3, '5': 9, '10': 'coreArgs'},
     {'1': 'enforcer_args', '3': 5, '4': 3, '5': 9, '10': 'enforcerArgs'},
     {'1': 'immediate', '3': 6, '4': 1, '5': 8, '10': 'immediate'},
   ],
-  '3': [StartWithDepsRequest_TargetEnvEntry$json],
+  '3': [StartWithL1Request_TargetEnvEntry$json],
 };
 
-@$core.Deprecated('Use startWithDepsRequestDescriptor instead')
-const StartWithDepsRequest_TargetEnvEntry$json = {
+@$core.Deprecated('Use startWithL1RequestDescriptor instead')
+const StartWithL1Request_TargetEnvEntry$json = {
   '1': 'TargetEnvEntry',
   '2': [
     {'1': 'key', '3': 1, '4': 1, '5': 9, '10': 'key'},
@@ -274,18 +291,18 @@ const StartWithDepsRequest_TargetEnvEntry$json = {
   '7': {'7': true},
 };
 
-/// Descriptor for `StartWithDepsRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List startWithDepsRequestDescriptor = $convert.base64Decode(
-    'ChRTdGFydFdpdGhEZXBzUmVxdWVzdBIWCgZ0YXJnZXQYASABKAlSBnRhcmdldBIfCgt0YXJnZX'
-    'RfYXJncxgCIAMoCVIKdGFyZ2V0QXJncxJTCgp0YXJnZXRfZW52GAMgAygLMjQub3JjaGVzdHJh'
-    'dG9yLnYxLlN0YXJ0V2l0aERlcHNSZXF1ZXN0LlRhcmdldEVudkVudHJ5Ugl0YXJnZXRFbnYSGw'
-    'oJY29yZV9hcmdzGAQgAygJUghjb3JlQXJncxIjCg1lbmZvcmNlcl9hcmdzGAUgAygJUgxlbmZv'
-    'cmNlckFyZ3MSHAoJaW1tZWRpYXRlGAYgASgIUglpbW1lZGlhdGUaPAoOVGFyZ2V0RW52RW50cn'
-    'kSEAoDa2V5GAEgASgJUgNrZXkSFAoFdmFsdWUYAiABKAlSBXZhbHVlOgI4AQ==');
+/// Descriptor for `StartWithL1Request`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List startWithL1RequestDescriptor = $convert.base64Decode(
+    'ChJTdGFydFdpdGhMMVJlcXVlc3QSFgoGdGFyZ2V0GAEgASgJUgZ0YXJnZXQSHwoLdGFyZ2V0X2'
+    'FyZ3MYAiADKAlSCnRhcmdldEFyZ3MSUQoKdGFyZ2V0X2VudhgDIAMoCzIyLm9yY2hlc3RyYXRv'
+    'ci52MS5TdGFydFdpdGhMMVJlcXVlc3QuVGFyZ2V0RW52RW50cnlSCXRhcmdldEVudhIbCgljb3'
+    'JlX2FyZ3MYBCADKAlSCGNvcmVBcmdzEiMKDWVuZm9yY2VyX2FyZ3MYBSADKAlSDGVuZm9yY2Vy'
+    'QXJncxIcCglpbW1lZGlhdGUYBiABKAhSCWltbWVkaWF0ZRo8Cg5UYXJnZXRFbnZFbnRyeRIQCg'
+    'NrZXkYASABKAlSA2tleRIUCgV2YWx1ZRgCIAEoCVIFdmFsdWU6AjgB');
 
-@$core.Deprecated('Use startWithDepsResponseDescriptor instead')
-const StartWithDepsResponse$json = {
-  '1': 'StartWithDepsResponse',
+@$core.Deprecated('Use startWithL1ResponseDescriptor instead')
+const StartWithL1Response$json = {
+  '1': 'StartWithL1Response',
   '2': [
     {'1': 'stage', '3': 1, '4': 1, '5': 9, '10': 'stage'},
     {'1': 'message', '3': 2, '4': 1, '5': 9, '10': 'message'},
@@ -296,12 +313,12 @@ const StartWithDepsResponse$json = {
   ],
 };
 
-/// Descriptor for `StartWithDepsResponse`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List startWithDepsResponseDescriptor = $convert.base64Decode(
-    'ChVTdGFydFdpdGhEZXBzUmVzcG9uc2USFAoFc3RhZ2UYASABKAlSBXN0YWdlEhgKB21lc3NhZ2'
-    'UYAiABKAlSB21lc3NhZ2USEgoEZG9uZRgDIAEoCFIEZG9uZRIUCgVlcnJvchgEIAEoCVIFZXJy'
-    'b3ISKQoQYnl0ZXNfZG93bmxvYWRlZBgFIAEoA1IPYnl0ZXNEb3dubG9hZGVkEh8KC3RvdGFsX2'
-    'J5dGVzGAYgASgDUgp0b3RhbEJ5dGVz');
+/// Descriptor for `StartWithL1Response`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List startWithL1ResponseDescriptor = $convert.base64Decode(
+    'ChNTdGFydFdpdGhMMVJlc3BvbnNlEhQKBXN0YWdlGAEgASgJUgVzdGFnZRIYCgdtZXNzYWdlGA'
+    'IgASgJUgdtZXNzYWdlEhIKBGRvbmUYAyABKAhSBGRvbmUSFAoFZXJyb3IYBCABKAlSBWVycm9y'
+    'EikKEGJ5dGVzX2Rvd25sb2FkZWQYBSABKANSD2J5dGVzRG93bmxvYWRlZBIfCgt0b3RhbF9ieX'
+    'RlcxgGIAEoA1IKdG90YWxCeXRlcw==');
 
 @$core.Deprecated('Use shutdownAllRequestDescriptor instead')
 const ShutdownAllRequest$json = {
@@ -453,7 +470,7 @@ const $core.Map<$core.String, $core.dynamic> OrchestratorServiceBase$json = {
     {'1': 'StopBinary', '2': '.orchestrator.v1.StopBinaryRequest', '3': '.orchestrator.v1.StopBinaryResponse'},
     {'1': 'WatchBinaries', '2': '.orchestrator.v1.WatchBinariesRequest', '3': '.orchestrator.v1.WatchBinariesResponse', '6': true},
     {'1': 'StreamLogs', '2': '.orchestrator.v1.StreamLogsRequest', '3': '.orchestrator.v1.StreamLogsResponse', '6': true},
-    {'1': 'StartWithDeps', '2': '.orchestrator.v1.StartWithDepsRequest', '3': '.orchestrator.v1.StartWithDepsResponse', '6': true},
+    {'1': 'StartWithL1', '2': '.orchestrator.v1.StartWithL1Request', '3': '.orchestrator.v1.StartWithL1Response', '6': true},
     {'1': 'ShutdownAll', '2': '.orchestrator.v1.ShutdownAllRequest', '3': '.orchestrator.v1.ShutdownAllResponse', '6': true},
     {'1': 'GetBTCPrice', '2': '.orchestrator.v1.GetBTCPriceRequest', '3': '.orchestrator.v1.GetBTCPriceResponse'},
     {'1': 'GetMainchainBlockchainInfo', '2': '.orchestrator.v1.GetMainchainBlockchainInfoRequest', '3': '.orchestrator.v1.GetMainchainBlockchainInfoResponse'},
@@ -467,6 +484,7 @@ const $core.Map<$core.String, $core.Map<$core.String, $core.dynamic>> Orchestrat
   '.orchestrator.v1.ListBinariesRequest': ListBinariesRequest$json,
   '.orchestrator.v1.ListBinariesResponse': ListBinariesResponse$json,
   '.orchestrator.v1.BinaryStatusMsg': BinaryStatusMsg$json,
+  '.orchestrator.v1.StartupLogEntryMsg': StartupLogEntryMsg$json,
   '.orchestrator.v1.GetBinaryStatusRequest': GetBinaryStatusRequest$json,
   '.orchestrator.v1.GetBinaryStatusResponse': GetBinaryStatusResponse$json,
   '.orchestrator.v1.DownloadBinaryRequest': DownloadBinaryRequest$json,
@@ -480,9 +498,9 @@ const $core.Map<$core.String, $core.Map<$core.String, $core.dynamic>> Orchestrat
   '.orchestrator.v1.WatchBinariesResponse': WatchBinariesResponse$json,
   '.orchestrator.v1.StreamLogsRequest': StreamLogsRequest$json,
   '.orchestrator.v1.StreamLogsResponse': StreamLogsResponse$json,
-  '.orchestrator.v1.StartWithDepsRequest': StartWithDepsRequest$json,
-  '.orchestrator.v1.StartWithDepsRequest.TargetEnvEntry': StartWithDepsRequest_TargetEnvEntry$json,
-  '.orchestrator.v1.StartWithDepsResponse': StartWithDepsResponse$json,
+  '.orchestrator.v1.StartWithL1Request': StartWithL1Request$json,
+  '.orchestrator.v1.StartWithL1Request.TargetEnvEntry': StartWithL1Request_TargetEnvEntry$json,
+  '.orchestrator.v1.StartWithL1Response': StartWithL1Response$json,
   '.orchestrator.v1.ShutdownAllRequest': ShutdownAllRequest$json,
   '.orchestrator.v1.ShutdownAllResponse': ShutdownAllResponse$json,
   '.orchestrator.v1.GetBTCPriceRequest': GetBTCPriceRequest$json,
@@ -509,17 +527,17 @@ final $typed_data.Uint8List orchestratorServiceDescriptor = $convert.base64Decod
     'F0Y2hCaW5hcmllcxIlLm9yY2hlc3RyYXRvci52MS5XYXRjaEJpbmFyaWVzUmVxdWVzdBomLm9y'
     'Y2hlc3RyYXRvci52MS5XYXRjaEJpbmFyaWVzUmVzcG9uc2UwARJXCgpTdHJlYW1Mb2dzEiIub3'
     'JjaGVzdHJhdG9yLnYxLlN0cmVhbUxvZ3NSZXF1ZXN0GiMub3JjaGVzdHJhdG9yLnYxLlN0cmVh'
-    'bUxvZ3NSZXNwb25zZTABEmAKDVN0YXJ0V2l0aERlcHMSJS5vcmNoZXN0cmF0b3IudjEuU3Rhcn'
-    'RXaXRoRGVwc1JlcXVlc3QaJi5vcmNoZXN0cmF0b3IudjEuU3RhcnRXaXRoRGVwc1Jlc3BvbnNl'
-    'MAESWgoLU2h1dGRvd25BbGwSIy5vcmNoZXN0cmF0b3IudjEuU2h1dGRvd25BbGxSZXF1ZXN0Gi'
-    'Qub3JjaGVzdHJhdG9yLnYxLlNodXRkb3duQWxsUmVzcG9uc2UwARJYCgtHZXRCVENQcmljZRIj'
-    'Lm9yY2hlc3RyYXRvci52MS5HZXRCVENQcmljZVJlcXVlc3QaJC5vcmNoZXN0cmF0b3IudjEuR2'
-    'V0QlRDUHJpY2VSZXNwb25zZRKFAQoaR2V0TWFpbmNoYWluQmxvY2tjaGFpbkluZm8SMi5vcmNo'
-    'ZXN0cmF0b3IudjEuR2V0TWFpbmNoYWluQmxvY2tjaGFpbkluZm9SZXF1ZXN0GjMub3JjaGVzdH'
-    'JhdG9yLnYxLkdldE1haW5jaGFpbkJsb2NrY2hhaW5JbmZvUmVzcG9uc2USggEKGUdldEVuZm9y'
-    'Y2VyQmxvY2tjaGFpbkluZm8SMS5vcmNoZXN0cmF0b3IudjEuR2V0RW5mb3JjZXJCbG9ja2NoYW'
-    'luSW5mb1JlcXVlc3QaMi5vcmNoZXN0cmF0b3IudjEuR2V0RW5mb3JjZXJCbG9ja2NoYWluSW5m'
-    'b1Jlc3BvbnNlEnAKE0dldE1haW5jaGFpbkJhbGFuY2USKy5vcmNoZXN0cmF0b3IudjEuR2V0TW'
-    'FpbmNoYWluQmFsYW5jZVJlcXVlc3QaLC5vcmNoZXN0cmF0b3IudjEuR2V0TWFpbmNoYWluQmFs'
-    'YW5jZVJlc3BvbnNl');
+    'bUxvZ3NSZXNwb25zZTABEloKC1N0YXJ0V2l0aEwxEiMub3JjaGVzdHJhdG9yLnYxLlN0YXJ0V2'
+    'l0aEwxUmVxdWVzdBokLm9yY2hlc3RyYXRvci52MS5TdGFydFdpdGhMMVJlc3BvbnNlMAESWgoL'
+    'U2h1dGRvd25BbGwSIy5vcmNoZXN0cmF0b3IudjEuU2h1dGRvd25BbGxSZXF1ZXN0GiQub3JjaG'
+    'VzdHJhdG9yLnYxLlNodXRkb3duQWxsUmVzcG9uc2UwARJYCgtHZXRCVENQcmljZRIjLm9yY2hl'
+    'c3RyYXRvci52MS5HZXRCVENQcmljZVJlcXVlc3QaJC5vcmNoZXN0cmF0b3IudjEuR2V0QlRDUH'
+    'JpY2VSZXNwb25zZRKFAQoaR2V0TWFpbmNoYWluQmxvY2tjaGFpbkluZm8SMi5vcmNoZXN0cmF0'
+    'b3IudjEuR2V0TWFpbmNoYWluQmxvY2tjaGFpbkluZm9SZXF1ZXN0GjMub3JjaGVzdHJhdG9yLn'
+    'YxLkdldE1haW5jaGFpbkJsb2NrY2hhaW5JbmZvUmVzcG9uc2USggEKGUdldEVuZm9yY2VyQmxv'
+    'Y2tjaGFpbkluZm8SMS5vcmNoZXN0cmF0b3IudjEuR2V0RW5mb3JjZXJCbG9ja2NoYWluSW5mb1'
+    'JlcXVlc3QaMi5vcmNoZXN0cmF0b3IudjEuR2V0RW5mb3JjZXJCbG9ja2NoYWluSW5mb1Jlc3Bv'
+    'bnNlEnAKE0dldE1haW5jaGFpbkJhbGFuY2USKy5vcmNoZXN0cmF0b3IudjEuR2V0TWFpbmNoYW'
+    'luQmFsYW5jZVJlcXVlc3QaLC5vcmNoZXN0cmF0b3IudjEuR2V0TWFpbmNoYWluQmFsYW5jZVJl'
+    'c3BvbnNl');
 

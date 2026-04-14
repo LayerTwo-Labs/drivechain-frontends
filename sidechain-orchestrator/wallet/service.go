@@ -50,6 +50,11 @@ type Service struct {
 	watcher   *fsnotify.Watcher
 	done      chan struct{}
 	closeOnce sync.Once
+
+	// StateChanged is signaled whenever wallet state changes (wallet created,
+	// deleted, switched, encrypted, etc.). WatchWalletData selects on this
+	// to push updates immediately.
+	StateChanged chan struct{}
 }
 
 // NewService creates a new wallet service.
@@ -58,6 +63,7 @@ func NewService(bitwindowDir string, log zerolog.Logger) *Service {
 		bitwindowDir: bitwindowDir,
 		log:          log.With().Str("component", "wallet").Logger(),
 		done:         make(chan struct{}),
+		StateChanged: make(chan struct{}, 1),
 	}
 }
 
@@ -1183,7 +1189,20 @@ func (s *Service) saveWalletFile() error {
 	}
 
 	s.log.Debug().Str("path", s.walletFilePath()).Int("data_len", len(data)).Msg("saving wallet file")
-	return atomicWrite(s.walletFilePath(), []byte(data))
+	if err := atomicWrite(s.walletFilePath(), []byte(data)); err != nil {
+		return err
+	}
+	s.notifyChanged()
+	return nil
+}
+
+// notifyChanged signals StateChanged (non-blocking) so stream watchers
+// can push updated state to clients.
+func (s *Service) notifyChanged() {
+	select {
+	case s.StateChanged <- struct{}{}:
+	default:
+	}
 }
 
 func (s *Service) startWatcher() {
@@ -1225,6 +1244,7 @@ func (s *Service) startWatcher() {
 					s.log.Warn().Err(err).Msg("watcher: reload wallet failed")
 				} else {
 					s.log.Debug().Msg("watcher: wallet reloaded")
+					s.notifyChanged()
 				}
 				s.mu.Unlock()
 			case err, ok := <-w.Errors:

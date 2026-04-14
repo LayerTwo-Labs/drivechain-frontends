@@ -11,7 +11,7 @@ import 'package:sail_ui/widgets/components/core_transaction.dart';
 
 /// RPC connection for all sidechain nodes
 abstract class SidechainRPC extends RPCConnection {
-  SidechainRPC({required super.binaryType, required super.restartOnFailure});
+  SidechainRPC({required super.binaryType});
 
   Sidechain get chain => Sidechain.fromBinary(binary);
 

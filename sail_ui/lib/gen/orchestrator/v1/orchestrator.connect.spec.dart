@@ -67,11 +67,11 @@ abstract final class OrchestratorService {
   );
 
   /// Start a binary with its full dependency chain (Core -> Enforcer -> target).
-  static const startWithDeps = connect.Spec(
-    '/$name/StartWithDeps',
+  static const startWithL1 = connect.Spec(
+    '/$name/StartWithL1',
     connect.StreamType.server,
-    orchestratorv1orchestrator.StartWithDepsRequest.new,
-    orchestratorv1orchestrator.StartWithDepsResponse.new,
+    orchestratorv1orchestrator.StartWithL1Request.new,
+    orchestratorv1orchestrator.StartWithL1Response.new,
   );
 
   /// Shutdown all running binaries.
