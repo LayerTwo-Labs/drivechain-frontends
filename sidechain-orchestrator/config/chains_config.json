@@ -51,9 +51,9 @@
         "files": {
           "default": {
             "base_url": "https://releases.drivechain.info/",
-            "linux": "L1-bitcoin-patched-latest-x86_64-unknown-linux-gnu.zip",
-            "macos": "L1-bitcoin-patched-latest-x86_64-apple-darwin.zip",
-            "windows": "L1-bitcoin-patched-latest-x86_64-w64-msvc.zip"
+            "linux": "L1-bitcoin-patched-v30.2-x86_64-unknown-linux-gnu.zip",
+            "macos": "L1-bitcoin-patched-v30.2-x86_64-apple-darwin.zip",
+            "windows": "L1-bitcoin-patched-v30.2-x86_64-w64-msvc.zip"
           },
           "forknet": {
             "base_url": "https://releases.drivechain.info/",
