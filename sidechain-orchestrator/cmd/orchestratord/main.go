@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"connectrpc.com/connect"
 	"github.com/rs/zerolog"
@@ -17,10 +18,11 @@ import (
 
 	orchestrator "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/api"
-	rpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/orchestrator/v1/orchestratorv1connect"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config"
 	bitassetsrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/bitassets/v1/bitassetsv1connect"
 	bitnamesrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/bitnames/v1/bitnamesv1connect"
 	coinshiftrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/coinshift/v1/coinshiftv1connect"
+	rpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/orchestrator/v1/orchestratorv1connect"
 	photonrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/photon/v1/photonv1connect"
 	thunderrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/thunder/v1/thunderv1connect"
 	truthcoinrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/truthcoin/v1/truthcoinv1connect"
@@ -130,6 +132,38 @@ func run(cctx *cli.Context) error {
 
 	// Initialize wallet service
 	walletSvc := wallet.NewService(bitwindowDir, log)
+	walletSvc.OnStopAllBinaries = func() error {
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
+
+		ch, err := orch.ShutdownAll(shutdownCtx, false)
+		if err != nil {
+			return err
+		}
+
+		for progress := range ch {
+			if progress.Error != nil {
+				return progress.Error
+			}
+		}
+
+		return nil
+	}
+	walletSvc.GetBinaryWalletPaths = func() []string {
+		paths := []string{}
+		network := config.Network(network)
+		for _, cfg := range orch.Configs() {
+			dirConfig, ok := config.DirConfigByName(cfg.Name)
+			if !ok {
+				continue
+			}
+			paths = append(paths, dirConfig.GetWalletPaths(dirConfig.RootDirNetwork(network), network, log)...)
+		}
+		return paths
+	}
+	if orch.BitcoinConf != nil {
+		walletSvc.CoreDataDir = config.BitcoinCoreDirs.RootDirNetwork(orch.BitcoinConf.Network)
+	}
 	if err := walletSvc.Init(); err != nil {
 		log.Warn().Err(err).Msg("wallet service init")
 	}

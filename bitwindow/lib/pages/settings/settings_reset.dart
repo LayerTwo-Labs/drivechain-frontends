@@ -216,6 +216,9 @@ class _SettingsResetState extends State<SettingsReset> {
           binaryProvider: binaryProvider,
           deleteNodeSoftware: _deleteNodeSoftware,
           log: log,
+          preDeleteAction: _deleteWalletFiles || _obliterateEverything
+              ? () => GetIt.I.get<WalletWriterProvider>().deleteAllWallets()
+              : null,
         ),
       ),
     );

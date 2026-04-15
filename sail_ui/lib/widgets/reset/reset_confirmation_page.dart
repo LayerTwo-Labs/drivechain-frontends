@@ -12,6 +12,7 @@ class ResetConfirmationPage extends StatefulWidget {
   final BinaryProvider binaryProvider;
   final bool deleteNodeSoftware;
   final Logger log;
+  final Future<void> Function()? preDeleteAction;
 
   const ResetConfirmationPage({
     super.key,
@@ -21,6 +22,7 @@ class ResetConfirmationPage extends StatefulWidget {
     required this.binaryProvider,
     required this.deleteNodeSoftware,
     required this.log,
+    this.preDeleteAction,
   });
 
   @override
@@ -88,6 +90,10 @@ class _ResetConfirmationPageState extends State<ResetConfirmationPage> {
       _isDeleting = true;
       _stoppingBinaries = true;
     });
+
+    if (widget.preDeleteAction != null) {
+      await widget.preDeleteAction!();
+    }
 
     // Stop binaries first
     await Future.wait(
