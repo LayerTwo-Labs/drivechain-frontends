@@ -34,6 +34,7 @@ abstract class OrchestratorServiceBase extends $pb.GeneratedService {
   $async.Future<$5.GetMainchainBlockchainInfoResponse> getMainchainBlockchainInfo($pb.ServerContext ctx, $5.GetMainchainBlockchainInfoRequest request);
   $async.Future<$5.GetEnforcerBlockchainInfoResponse> getEnforcerBlockchainInfo($pb.ServerContext ctx, $5.GetEnforcerBlockchainInfoRequest request);
   $async.Future<$5.GetMainchainBalanceResponse> getMainchainBalance($pb.ServerContext ctx, $5.GetMainchainBalanceRequest request);
+  $async.Future<$5.ResetDataResponse> resetData($pb.ServerContext ctx, $5.ResetDataRequest request);
 
   $pb.GeneratedMessage createRequest($core.String methodName) {
     switch (methodName) {
@@ -50,6 +51,7 @@ abstract class OrchestratorServiceBase extends $pb.GeneratedService {
       case 'GetMainchainBlockchainInfo': return $5.GetMainchainBlockchainInfoRequest();
       case 'GetEnforcerBlockchainInfo': return $5.GetEnforcerBlockchainInfoRequest();
       case 'GetMainchainBalance': return $5.GetMainchainBalanceRequest();
+      case 'ResetData': return $5.ResetDataRequest();
       default: throw $core.ArgumentError('Unknown method: $methodName');
     }
   }
@@ -69,6 +71,7 @@ abstract class OrchestratorServiceBase extends $pb.GeneratedService {
       case 'GetMainchainBlockchainInfo': return this.getMainchainBlockchainInfo(ctx, request as $5.GetMainchainBlockchainInfoRequest);
       case 'GetEnforcerBlockchainInfo': return this.getEnforcerBlockchainInfo(ctx, request as $5.GetEnforcerBlockchainInfoRequest);
       case 'GetMainchainBalance': return this.getMainchainBalance(ctx, request as $5.GetMainchainBalanceRequest);
+      case 'ResetData': return this.resetData(ctx, request as $5.ResetDataRequest);
       default: throw $core.ArgumentError('Unknown method: $methodName');
     }
   }

@@ -241,4 +241,22 @@ extension type OrchestratorServiceClient (connect.Transport _transport) {
       onTrailer: onTrailer,
     );
   }
+
+  /// Reset/delete data categories. Stops affected binaries, deletes data, returns results.
+  Future<orchestratorv1orchestrator.ResetDataResponse> resetData(
+    orchestratorv1orchestrator.ResetDataRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.OrchestratorService.resetData,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
 }

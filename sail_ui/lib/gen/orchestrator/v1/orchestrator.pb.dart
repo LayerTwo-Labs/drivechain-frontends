@@ -2105,6 +2105,224 @@ class GetMainchainBalanceResponse extends $pb.GeneratedMessage {
   void clearUnconfirmed() => clearField(2);
 }
 
+class ResetDataRequest extends $pb.GeneratedMessage {
+  factory ResetDataRequest({
+    $core.bool? deleteBlockchainData,
+    $core.bool? deleteNodeSoftware,
+    $core.bool? deleteLogs,
+    $core.bool? deleteSettings,
+    $core.bool? deleteWalletFiles,
+    $core.bool? alsoResetSidechains,
+  }) {
+    final $result = create();
+    if (deleteBlockchainData != null) {
+      $result.deleteBlockchainData = deleteBlockchainData;
+    }
+    if (deleteNodeSoftware != null) {
+      $result.deleteNodeSoftware = deleteNodeSoftware;
+    }
+    if (deleteLogs != null) {
+      $result.deleteLogs = deleteLogs;
+    }
+    if (deleteSettings != null) {
+      $result.deleteSettings = deleteSettings;
+    }
+    if (deleteWalletFiles != null) {
+      $result.deleteWalletFiles = deleteWalletFiles;
+    }
+    if (alsoResetSidechains != null) {
+      $result.alsoResetSidechains = alsoResetSidechains;
+    }
+    return $result;
+  }
+  ResetDataRequest._() : super();
+  factory ResetDataRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory ResetDataRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ResetDataRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'orchestrator.v1'), createEmptyInstance: create)
+    ..aOB(1, _omitFieldNames ? '' : 'deleteBlockchainData')
+    ..aOB(2, _omitFieldNames ? '' : 'deleteNodeSoftware')
+    ..aOB(3, _omitFieldNames ? '' : 'deleteLogs')
+    ..aOB(4, _omitFieldNames ? '' : 'deleteSettings')
+    ..aOB(5, _omitFieldNames ? '' : 'deleteWalletFiles')
+    ..aOB(6, _omitFieldNames ? '' : 'alsoResetSidechains')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated('Use deepCopy instead')
+  ResetDataRequest clone() => ResetDataRequest()..mergeFromMessage(this);
+  @$core.Deprecated('Use rebuild instead')
+  ResetDataRequest copyWith(void Function(ResetDataRequest) updates) => super.copyWith((message) => updates(message as ResetDataRequest)) as ResetDataRequest;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ResetDataRequest create() => ResetDataRequest._();
+  ResetDataRequest createEmptyInstance() => create();
+  static $pb.PbList<ResetDataRequest> createRepeated() => $pb.PbList<ResetDataRequest>();
+  @$core.pragma('dart2js:noInline')
+  static ResetDataRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<ResetDataRequest>(create);
+  static ResetDataRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.bool get deleteBlockchainData => $_getBF(0);
+  @$pb.TagNumber(1)
+  set deleteBlockchainData($core.bool v) { $_setBool(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasDeleteBlockchainData() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearDeleteBlockchainData() => clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.bool get deleteNodeSoftware => $_getBF(1);
+  @$pb.TagNumber(2)
+  set deleteNodeSoftware($core.bool v) { $_setBool(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasDeleteNodeSoftware() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearDeleteNodeSoftware() => clearField(2);
+
+  @$pb.TagNumber(3)
+  $core.bool get deleteLogs => $_getBF(2);
+  @$pb.TagNumber(3)
+  set deleteLogs($core.bool v) { $_setBool(2, v); }
+  @$pb.TagNumber(3)
+  $core.bool hasDeleteLogs() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearDeleteLogs() => clearField(3);
+
+  @$pb.TagNumber(4)
+  $core.bool get deleteSettings => $_getBF(3);
+  @$pb.TagNumber(4)
+  set deleteSettings($core.bool v) { $_setBool(3, v); }
+  @$pb.TagNumber(4)
+  $core.bool hasDeleteSettings() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearDeleteSettings() => clearField(4);
+
+  @$pb.TagNumber(5)
+  $core.bool get deleteWalletFiles => $_getBF(4);
+  @$pb.TagNumber(5)
+  set deleteWalletFiles($core.bool v) { $_setBool(4, v); }
+  @$pb.TagNumber(5)
+  $core.bool hasDeleteWalletFiles() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearDeleteWalletFiles() => clearField(5);
+
+  @$pb.TagNumber(6)
+  $core.bool get alsoResetSidechains => $_getBF(5);
+  @$pb.TagNumber(6)
+  set alsoResetSidechains($core.bool v) { $_setBool(5, v); }
+  @$pb.TagNumber(6)
+  $core.bool hasAlsoResetSidechains() => $_has(5);
+  @$pb.TagNumber(6)
+  void clearAlsoResetSidechains() => clearField(6);
+}
+
+class ResetDataResponse extends $pb.GeneratedMessage {
+  factory ResetDataResponse({
+    $core.Iterable<ResetDeletedItem>? deletedItems,
+    $core.Iterable<ResetDeletedItem>? failedItems,
+  }) {
+    final $result = create();
+    if (deletedItems != null) {
+      $result.deletedItems.addAll(deletedItems);
+    }
+    if (failedItems != null) {
+      $result.failedItems.addAll(failedItems);
+    }
+    return $result;
+  }
+  ResetDataResponse._() : super();
+  factory ResetDataResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory ResetDataResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ResetDataResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'orchestrator.v1'), createEmptyInstance: create)
+    ..pc<ResetDeletedItem>(1, _omitFieldNames ? '' : 'deletedItems', $pb.PbFieldType.PM, subBuilder: ResetDeletedItem.create)
+    ..pc<ResetDeletedItem>(2, _omitFieldNames ? '' : 'failedItems', $pb.PbFieldType.PM, subBuilder: ResetDeletedItem.create)
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated('Use deepCopy instead')
+  ResetDataResponse clone() => ResetDataResponse()..mergeFromMessage(this);
+  @$core.Deprecated('Use rebuild instead')
+  ResetDataResponse copyWith(void Function(ResetDataResponse) updates) => super.copyWith((message) => updates(message as ResetDataResponse)) as ResetDataResponse;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ResetDataResponse create() => ResetDataResponse._();
+  ResetDataResponse createEmptyInstance() => create();
+  static $pb.PbList<ResetDataResponse> createRepeated() => $pb.PbList<ResetDataResponse>();
+  @$core.pragma('dart2js:noInline')
+  static ResetDataResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<ResetDataResponse>(create);
+  static ResetDataResponse? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.List<ResetDeletedItem> get deletedItems => $_getList(0);
+
+  @$pb.TagNumber(2)
+  $core.List<ResetDeletedItem> get failedItems => $_getList(1);
+}
+
+class ResetDeletedItem extends $pb.GeneratedMessage {
+  factory ResetDeletedItem({
+    $core.String? path,
+    $core.String? error,
+  }) {
+    final $result = create();
+    if (path != null) {
+      $result.path = path;
+    }
+    if (error != null) {
+      $result.error = error;
+    }
+    return $result;
+  }
+  ResetDeletedItem._() : super();
+  factory ResetDeletedItem.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory ResetDeletedItem.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ResetDeletedItem', package: const $pb.PackageName(_omitMessageNames ? '' : 'orchestrator.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'path')
+    ..aOS(2, _omitFieldNames ? '' : 'error')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated('Use deepCopy instead')
+  ResetDeletedItem clone() => ResetDeletedItem()..mergeFromMessage(this);
+  @$core.Deprecated('Use rebuild instead')
+  ResetDeletedItem copyWith(void Function(ResetDeletedItem) updates) => super.copyWith((message) => updates(message as ResetDeletedItem)) as ResetDeletedItem;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ResetDeletedItem create() => ResetDeletedItem._();
+  ResetDeletedItem createEmptyInstance() => create();
+  static $pb.PbList<ResetDeletedItem> createRepeated() => $pb.PbList<ResetDeletedItem>();
+  @$core.pragma('dart2js:noInline')
+  static ResetDeletedItem getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<ResetDeletedItem>(create);
+  static ResetDeletedItem? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get path => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set path($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasPath() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearPath() => clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.String get error => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set error($core.String v) { $_setString(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasError() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearError() => clearField(2);
+}
+
 class OrchestratorServiceApi {
   $pb.RpcClient _client;
   OrchestratorServiceApi(this._client);
@@ -2147,6 +2365,9 @@ class OrchestratorServiceApi {
   ;
   $async.Future<GetMainchainBalanceResponse> getMainchainBalance($pb.ClientContext? ctx, GetMainchainBalanceRequest request) =>
     _client.invoke<GetMainchainBalanceResponse>(ctx, 'OrchestratorService', 'GetMainchainBalance', request, GetMainchainBalanceResponse())
+  ;
+  $async.Future<ResetDataResponse> resetData($pb.ClientContext? ctx, ResetDataRequest request) =>
+    _client.invoke<ResetDataResponse>(ctx, 'OrchestratorService', 'ResetData', request, ResetDataResponse())
   ;
 }
 

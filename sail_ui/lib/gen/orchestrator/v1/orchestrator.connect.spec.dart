@@ -113,4 +113,12 @@ abstract final class OrchestratorService {
     orchestratorv1orchestrator.GetMainchainBalanceRequest.new,
     orchestratorv1orchestrator.GetMainchainBalanceResponse.new,
   );
+
+  /// Reset/delete data categories.
+  static const resetData = connect.Spec(
+    '/$name/ResetData',
+    connect.StreamType.unary,
+    orchestratorv1orchestrator.ResetDataRequest.new,
+    orchestratorv1orchestrator.ResetDataResponse.new,
+  );
 }
