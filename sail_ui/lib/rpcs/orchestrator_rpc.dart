@@ -108,7 +108,7 @@ class OrchestratorRPC {
     return _client.getMainchainBalance(GetMainchainBalanceRequest());
   }
 
-  Future<ResetDataResponse> resetData({
+  Future<PreviewResetDataResponse> previewResetData({
     bool deleteBlockchainData = false,
     bool deleteNodeSoftware = false,
     bool deleteLogs = false,
@@ -116,7 +116,25 @@ class OrchestratorRPC {
     bool deleteWalletFiles = false,
     bool alsoResetSidechains = false,
   }) {
-    return _client.resetData(ResetDataRequest(
+    return _client.previewResetData(PreviewResetDataRequest(
+      deleteBlockchainData: deleteBlockchainData,
+      deleteNodeSoftware: deleteNodeSoftware,
+      deleteLogs: deleteLogs,
+      deleteSettings: deleteSettings,
+      deleteWalletFiles: deleteWalletFiles,
+      alsoResetSidechains: alsoResetSidechains,
+    ));
+  }
+
+  Stream<StreamResetDataResponse> streamResetData({
+    bool deleteBlockchainData = false,
+    bool deleteNodeSoftware = false,
+    bool deleteLogs = false,
+    bool deleteSettings = false,
+    bool deleteWalletFiles = false,
+    bool alsoResetSidechains = false,
+  }) {
+    return _client.streamResetData(StreamResetDataRequest(
       deleteBlockchainData: deleteBlockchainData,
       deleteNodeSoftware: deleteNodeSoftware,
       deleteLogs: deleteLogs,

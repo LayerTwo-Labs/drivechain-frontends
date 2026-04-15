@@ -19,25 +19,48 @@ type ResetCategory struct {
 	AlsoResetSidechains  bool
 }
 
-// ResetResult holds the outcome of a ResetData operation.
-type ResetResult struct {
-	DeletedItems []ResetItem
-	FailedItems  []ResetItem
+// ResetFileInfo describes a single file/directory that would be affected by a reset.
+type ResetFileInfo struct {
+	Path        string
+	Category    string
+	SizeBytes   int64
+	IsDirectory bool
 }
 
-// ResetItem is a single file/directory that was targeted for deletion.
-type ResetItem struct {
-	Path  string
-	Error string
+// ResetEvent is emitted for each file deletion during a streaming reset.
+type ResetEvent struct {
+	Path         string
+	Category     string
+	Success      bool
+	Error        string
+	Done         bool
+	DeletedCount int
+	FailedCount  int
 }
 
-// ResetData stops affected binaries, then deletes data according to the requested
-// categories. Fails hard: any deletion error is recorded and returned (no best-effort
-// swallowing). Returns the list of successfully deleted and failed items.
-func (o *Orchestrator) ResetData(ctx context.Context, cat ResetCategory) (*ResetResult, error) {
+// categoryLabel maps category flags to human-readable labels.
+func categoryLabel(cat string) string {
+	switch cat {
+	case "blockchain_data":
+		return "blockchain_data"
+	case "node_software":
+		return "node_software"
+	case "logs":
+		return "logs"
+	case "settings":
+		return "settings"
+	case "wallet":
+		return "wallet"
+	default:
+		return cat
+	}
+}
+
+// collectPaths gathers all paths per category for the given reset categories.
+func (o *Orchestrator) collectPaths(cat ResetCategory) map[string][]string {
 	network := config.Network(o.Network)
+	result := make(map[string][]string)
 
-	// Determine which binaries are in scope.
 	var targets []config.BinaryDirConfig
 	for _, cfg := range o.Configs() {
 		dirCfg, ok := config.DirConfigByName(cfg.Name)
@@ -50,6 +73,78 @@ func (o *Orchestrator) ResetData(ctx context.Context, cat ResetCategory) (*Reset
 		targets = append(targets, dirCfg)
 	}
 
+	binDir := BinDir(o.BitwindowDir)
+
+	for _, dc := range targets {
+		networkDir := dc.RootDirNetwork(network)
+
+		if cat.DeleteBlockchainData {
+			result["blockchain_data"] = append(result["blockchain_data"],
+				dc.GetBlockchainDataPaths(networkDir, network, o.log)...)
+		}
+		if cat.DeleteNodeSoftware {
+			result["node_software"] = append(result["node_software"],
+				dc.GetBinaryPaths(binDir, o.log)...)
+		}
+		if cat.DeleteLogs {
+			result["logs"] = append(result["logs"],
+				dc.GetLogPaths(networkDir, o.log)...)
+		}
+		if cat.DeleteSettings {
+			result["settings"] = append(result["settings"],
+				dc.GetSettingsPaths(networkDir, network, o.log)...)
+		}
+		if cat.DeleteWalletFiles {
+			result["wallet"] = append(result["wallet"],
+				dc.GetWalletPaths(networkDir, network, o.log)...)
+		}
+	}
+
+	// Deduplicate within each category.
+	for cat, paths := range result {
+		seen := make(map[string]bool, len(paths))
+		var unique []string
+		for _, p := range paths {
+			if !seen[p] {
+				seen[p] = true
+				unique = append(unique, p)
+			}
+		}
+		result[cat] = unique
+	}
+
+	return result
+}
+
+// PreviewResetData returns the list of files/directories that would be deleted
+// for the given categories, without performing any deletions.
+func (o *Orchestrator) PreviewResetData(cat ResetCategory) ([]ResetFileInfo, error) {
+	pathsByCategory := o.collectPaths(cat)
+
+	var files []ResetFileInfo
+	for category, paths := range pathsByCategory {
+		for _, p := range paths {
+			info := ResetFileInfo{
+				Path:     p,
+				Category: category,
+			}
+			if fi, err := os.Stat(p); err == nil {
+				info.IsDirectory = fi.IsDir()
+				if !fi.IsDir() {
+					info.SizeBytes = fi.Size()
+				}
+			}
+			files = append(files, info)
+		}
+	}
+
+	return files, nil
+}
+
+// StreamResetData stops affected binaries, then deletes data file-by-file,
+// sending each deletion event to the returned channel. The final event has
+// Done=true with summary counts.
+func (o *Orchestrator) StreamResetData(ctx context.Context, cat ResetCategory) (<-chan ResetEvent, error) {
 	// Stop all managed binaries before touching anything on disk.
 	shutdownCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
@@ -68,10 +163,7 @@ func (o *Orchestrator) ResetData(ctx context.Context, cat ResetCategory) (*Reset
 	time.Sleep(2 * time.Second)
 
 	// Wallet deletion via WalletSvc (must happen while Core is down).
-	// We pass nil for onStatusUpdate and beforeBoot since the orchestrator
-	// already handled shutdown above.
 	if cat.DeleteWalletFiles && o.WalletSvc != nil {
-		// Temporarily disable the stop-all callback since we already stopped.
 		origStop := o.WalletSvc.OnStopAllBinaries
 		o.WalletSvc.OnStopAllBinaries = nil
 		err := o.WalletSvc.DeleteAllWallets(nil, nil)
@@ -81,62 +173,63 @@ func (o *Orchestrator) ResetData(ctx context.Context, cat ResetCategory) (*Reset
 		}
 	}
 
-	// Collect all paths per category.
-	var paths []string
-	binDir := BinDir(o.BitwindowDir)
+	pathsByCategory := o.collectPaths(cat)
 
-	for _, dc := range targets {
-		networkDir := dc.RootDirNetwork(network)
-
-		if cat.DeleteBlockchainData {
-			paths = append(paths, dc.GetBlockchainDataPaths(networkDir, network, o.log)...)
+	// Flatten to ordered list for deletion.
+	type pathEntry struct {
+		path     string
+		category string
+	}
+	var entries []pathEntry
+	seen := make(map[string]bool)
+	for category, paths := range pathsByCategory {
+		for _, p := range paths {
+			if !seen[p] {
+				seen[p] = true
+				entries = append(entries, pathEntry{path: p, category: category})
+			}
 		}
+	}
+
+	events := make(chan ResetEvent, len(entries)+1)
+
+	go func() {
+		defer close(events)
+
+		deleted := 0
+		failed := 0
+
+		for _, entry := range entries {
+			evt := ResetEvent{
+				Path:     entry.path,
+				Category: entry.category,
+			}
+
+			if err := os.RemoveAll(entry.path); err != nil && !os.IsNotExist(err) {
+				evt.Success = false
+				evt.Error = err.Error()
+				failed++
+			} else {
+				evt.Success = true
+				deleted++
+			}
+
+			evt.DeletedCount = deleted
+			evt.FailedCount = failed
+			events <- evt
+		}
+
+		// Final summary event.
+		events <- ResetEvent{
+			Done:         true,
+			DeletedCount: deleted,
+			FailedCount:  failed,
+		}
+
 		if cat.DeleteNodeSoftware {
-			paths = append(paths, dc.GetBinaryPaths(binDir, o.log)...)
+			o.log.Info().Msg("node software deleted; frontend should trigger re-download")
 		}
-		if cat.DeleteLogs {
-			paths = append(paths, dc.GetLogPaths(networkDir, o.log)...)
-		}
-		if cat.DeleteSettings {
-			paths = append(paths, dc.GetSettingsPaths(networkDir, network, o.log)...)
-		}
-		if cat.DeleteWalletFiles {
-			paths = append(paths, dc.GetWalletPaths(networkDir, network, o.log)...)
-		}
-	}
+	}()
 
-	// Deduplicate.
-	seen := make(map[string]bool, len(paths))
-	var unique []string
-	for _, p := range paths {
-		if !seen[p] {
-			seen[p] = true
-			unique = append(unique, p)
-		}
-	}
-
-	result := &ResetResult{}
-
-	for _, p := range unique {
-		if err := os.RemoveAll(p); err != nil && !os.IsNotExist(err) {
-			result.FailedItems = append(result.FailedItems, ResetItem{
-				Path:  p,
-				Error: err.Error(),
-			})
-		} else {
-			result.DeletedItems = append(result.DeletedItems, ResetItem{Path: p})
-		}
-	}
-
-	// If node software was deleted, re-copy bundled binaries from assets.
-	if cat.DeleteNodeSoftware {
-		// Re-download will be handled by the frontend reboot flow.
-		o.log.Info().Msg("node software deleted; frontend should trigger re-download")
-	}
-
-	if len(result.FailedItems) > 0 {
-		return result, fmt.Errorf("failed to delete %d items", len(result.FailedItems))
-	}
-
-	return result, nil
+	return events, nil
 }

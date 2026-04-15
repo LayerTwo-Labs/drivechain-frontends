@@ -195,7 +195,7 @@ class _SettingsResetState extends State<SettingsReset> {
   }
 }
 
-/// Confirmation page that shows categories and executes the reset via orchestrator RPC.
+/// Confirmation page that previews files via orchestrator, then streams deletion.
 class _ResetConfirmationPage extends StatefulWidget {
   final bool deleteBlockchainData;
   final bool deleteNodeSoftware;
@@ -221,30 +221,54 @@ class _ResetConfirmationPageState extends State<_ResetConfirmationPage> {
   Logger get log => GetIt.I.get<Logger>();
   OrchestratorRPC get orchestrator => GetIt.I.get<OrchestratorRPC>();
 
+  // Preview state
+  bool _isLoadingPreview = true;
+  String? _previewError;
+  List<ResetFileInfo> _previewFiles = [];
+
+  // Deletion state
   bool _isResetting = false;
   bool _resetComplete = false;
   String? _errorMessage;
-  ResetDataResponse? _result;
+  final List<StreamResetDataResponse> _deletionEvents = [];
+  int _deletedCount = 0;
+  int _failedCount = 0;
 
-  List<String> get _selectedCategories {
-    final categories = <String>[];
-    if (widget.deleteNodeSoftware) categories.add('Node Software & Binaries');
-    if (widget.deleteBlockchainData) categories.add('Blockchain Data');
-    if (widget.deleteLogs) categories.add('Log Files');
-    if (widget.deleteSettings) categories.add('Settings & Configuration');
-    if (widget.deleteWalletFiles) categories.add('Wallet Files');
-    if (widget.alsoResetSidechains) categories.add('Sidechain Data');
-    return categories;
+  /// Group preview files by category for display.
+  Map<String, List<ResetFileInfo>> get _filesByCategory {
+    final map = <String, List<ResetFileInfo>>{};
+    for (final f in _previewFiles) {
+      map.putIfAbsent(f.category, () => []).add(f);
+    }
+    return map;
   }
 
-  Future<void> _startReset() async {
-    setState(() {
-      _isResetting = true;
-      _errorMessage = null;
-    });
+  String _categoryDisplayName(String category) {
+    switch (category) {
+      case 'blockchain_data':
+        return 'Blockchain Data';
+      case 'node_software':
+        return 'Node Software & Binaries';
+      case 'logs':
+        return 'Log Files';
+      case 'settings':
+        return 'Settings & Configuration';
+      case 'wallet':
+        return 'Wallet Files';
+      default:
+        return category;
+    }
+  }
 
+  @override
+  void initState() {
+    super.initState();
+    _loadPreview();
+  }
+
+  Future<void> _loadPreview() async {
     try {
-      final response = await orchestrator.resetData(
+      final response = await orchestrator.previewResetData(
         deleteBlockchainData: widget.deleteBlockchainData,
         deleteNodeSoftware: widget.deleteNodeSoftware,
         deleteLogs: widget.deleteLogs,
@@ -255,11 +279,62 @@ class _ResetConfirmationPageState extends State<_ResetConfirmationPage> {
 
       if (mounted) {
         setState(() {
-          _result = response;
+          _previewFiles = response.files;
+          _isLoadingPreview = false;
+        });
+      }
+    } catch (e) {
+      log.e('Preview failed: $e');
+      if (mounted) {
+        setState(() {
+          _previewError = e.toString();
+          _isLoadingPreview = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _startReset() async {
+    setState(() {
+      _isResetting = true;
+      _errorMessage = null;
+    });
+
+    try {
+      final stream = orchestrator.streamResetData(
+        deleteBlockchainData: widget.deleteBlockchainData,
+        deleteNodeSoftware: widget.deleteNodeSoftware,
+        deleteLogs: widget.deleteLogs,
+        deleteSettings: widget.deleteSettings,
+        deleteWalletFiles: widget.deleteWalletFiles,
+        alsoResetSidechains: widget.alsoResetSidechains,
+      );
+
+      await for (final event in stream) {
+        if (!mounted) break;
+
+        if (event.done) {
+          setState(() {
+            _deletedCount = event.deletedCount;
+            _failedCount = event.failedCount;
+            _resetComplete = true;
+            if (event.failedCount > 0) {
+              _errorMessage = '${event.failedCount} items failed to delete';
+            }
+          });
+        } else {
+          setState(() {
+            _deletionEvents.add(event);
+            _deletedCount = event.deletedCount;
+            _failedCount = event.failedCount;
+          });
+        }
+      }
+
+      // Stream ended without a done event — mark complete.
+      if (mounted && !_resetComplete) {
+        setState(() {
           _resetComplete = true;
-          if (response.failedItems.isNotEmpty) {
-            _errorMessage = '${response.failedItems.length} items failed to delete';
-          }
         });
       }
     } catch (e) {
@@ -330,13 +405,17 @@ class _ResetConfirmationPageState extends State<_ResetConfirmationPage> {
                                   height: 32,
                                 ),
                               SailText.primary24(
-                                _resetComplete ? 'Reset Complete' : 'Confirm Reset',
+                                _resetComplete
+                                    ? 'Reset Complete'
+                                    : _isResetting
+                                        ? 'Resetting...'
+                                        : 'Confirm Reset',
                                 bold: true,
                               ),
                             ],
                           ),
                           const SizedBox(height: 16),
-                          if (_isResetting && !_resetComplete)
+                          if (_isLoadingPreview)
                             SailRow(
                               mainAxisAlignment: MainAxisAlignment.center,
                               spacing: SailStyleValues.padding08,
@@ -349,17 +428,40 @@ class _ResetConfirmationPageState extends State<_ResetConfirmationPage> {
                                     color: theme.colors.primary,
                                   ),
                                 ),
-                                SailText.secondary13('Stopping binaries and deleting data...'),
+                                SailText.secondary13('Loading preview...'),
                               ],
                             )
-                          else if (_resetComplete && _result != null)
+                          else if (_previewError != null)
                             SailText.secondary13(
-                              'Deleted ${_result!.deletedItems.length} items'
-                              '${_result!.failedItems.isNotEmpty ? ', ${_result!.failedItems.length} failed' : ''}',
+                              'Failed to load preview: $_previewError',
+                              color: theme.colors.error,
+                            )
+                          else if (_isResetting && !_resetComplete)
+                            SailRow(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              spacing: SailStyleValues.padding08,
+                              children: [
+                                SizedBox(
+                                  width: 16,
+                                  height: 16,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: theme.colors.primary,
+                                  ),
+                                ),
+                                SailText.secondary13(
+                                  'Deleting... $_deletedCount deleted, $_failedCount failed',
+                                ),
+                              ],
+                            )
+                          else if (_resetComplete)
+                            SailText.secondary13(
+                              'Deleted $_deletedCount items'
+                              '${_failedCount > 0 ? ', $_failedCount failed' : ''}',
                             )
                           else
                             SailText.secondary13(
-                              'The following categories will be reset:',
+                              'The following ${_previewFiles.length} files/directories will be deleted:',
                             ),
                           if (_errorMessage != null) ...[
                             const SizedBox(height: 8),
@@ -376,9 +478,11 @@ class _ResetConfirmationPageState extends State<_ResetConfirmationPage> {
                             ),
                             child: Padding(
                               padding: const EdgeInsets.all(SailStyleValues.padding12),
-                              child: _resetComplete && _result != null
-                                  ? _buildResultList(theme)
-                                  : _buildCategoryList(theme),
+                              child: _resetComplete
+                                  ? _buildDeletionResultList(theme)
+                                  : _isResetting
+                                      ? _buildDeletionProgressList(theme)
+                                      : _buildPreviewList(theme),
                             ),
                           ),
                         ],
@@ -389,14 +493,14 @@ class _ResetConfirmationPageState extends State<_ResetConfirmationPage> {
               ),
               BottomActionBar(
                 children: [
-                  if (!_isResetting) ...[
+                  if (!_isResetting && !_isLoadingPreview && _previewError == null) ...[
                     SailButton(
                       label: 'Cancel',
                       onPressed: () async => Navigator.of(context).pop(false),
                     ),
                     const SizedBox(width: SailStyleValues.padding12),
                     SailButton(
-                      label: 'Reset ${_selectedCategories.length} categories',
+                      label: 'Reset ${_filesByCategory.length} categories',
                       variant: ButtonVariant.destructive,
                       onPressed: () async => await _startReset(),
                     ),
@@ -405,6 +509,11 @@ class _ResetConfirmationPageState extends State<_ResetConfirmationPage> {
                       label: 'Continue',
                       variant: ButtonVariant.primary,
                       onPressed: () async => _handleBack(),
+                    )
+                  else if (_previewError != null)
+                    SailButton(
+                      label: 'Back',
+                      onPressed: () async => Navigator.of(context).pop(false),
                     ),
                 ],
               ),
@@ -415,70 +524,116 @@ class _ResetConfirmationPageState extends State<_ResetConfirmationPage> {
     );
   }
 
-  Widget _buildCategoryList(SailThemeData theme) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: _selectedCategories
-          .map(
-            (cat) => Padding(
-              padding: const EdgeInsets.symmetric(vertical: 4),
-              child: SailRow(
-                spacing: SailStyleValues.padding08,
-                children: [
-                  Icon(Icons.delete_outline, size: 16, color: theme.colors.error),
-                  SailText.secondary13(cat),
-                ],
-              ),
-            ),
-          )
-          .toList(),
-    );
-  }
+  /// Preview: show files grouped by category.
+  Widget _buildPreviewList(SailThemeData theme) {
+    if (_previewFiles.isEmpty) {
+      return SailText.secondary13('No files found to delete.');
+    }
 
-  Widget _buildResultList(SailThemeData theme) {
-    final items = <Widget>[];
+    final categories = _filesByCategory;
+    final widgets = <Widget>[];
 
-    for (final item in _result!.deletedItems) {
-      items.add(
+    for (final entry in categories.entries) {
+      widgets.add(
         Padding(
-          padding: const EdgeInsets.symmetric(vertical: 2),
+          padding: const EdgeInsets.only(top: 8, bottom: 4),
           child: SailRow(
             spacing: SailStyleValues.padding08,
             children: [
-              Icon(Icons.check_circle, size: 16, color: theme.colors.success),
-              Expanded(
-                child: SailText.secondary12(item.path, monospace: true),
+              Icon(Icons.delete_outline, size: 16, color: theme.colors.error),
+              SailText.secondary13(
+                '${_categoryDisplayName(entry.key)} (${entry.value.length} items)',
+                bold: true,
               ),
             ],
           ),
         ),
       );
+
+      for (final file in entry.value) {
+        widgets.add(
+          Padding(
+            padding: const EdgeInsets.only(left: 24, top: 2, bottom: 2),
+            child: SailText.secondary12(
+              file.path,
+              monospace: true,
+            ),
+          ),
+        );
+      }
     }
 
-    for (final item in _result!.failedItems) {
-      items.add(
-        Padding(
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: widgets,
+    );
+  }
+
+  /// During deletion: show live stream of events.
+  Widget _buildDeletionProgressList(SailThemeData theme) {
+    if (_deletionEvents.isEmpty) {
+      return SailText.secondary13('Stopping binaries...');
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: _deletionEvents.map((evt) {
+        final isSuccess = evt.success;
+        return Padding(
           padding: const EdgeInsets.symmetric(vertical: 2),
           child: SailRow(
             spacing: SailStyleValues.padding08,
             children: [
-              Icon(Icons.error, size: 16, color: theme.colors.error),
+              Icon(
+                isSuccess ? Icons.check_circle : Icons.error,
+                size: 16,
+                color: isSuccess ? theme.colors.success : theme.colors.error,
+              ),
               Expanded(
                 child: SailText.secondary12(
-                  '${item.path}: ${item.error}',
+                  isSuccess ? evt.path : '${evt.path}: ${evt.error}',
                   monospace: true,
-                  color: theme.colors.error,
+                  color: isSuccess ? null : theme.colors.error,
                 ),
               ),
             ],
           ),
-        ),
-      );
+        );
+      }).toList(),
+    );
+  }
+
+  /// After deletion: show final results.
+  Widget _buildDeletionResultList(SailThemeData theme) {
+    if (_deletionEvents.isEmpty) {
+      return SailText.secondary13('No items were deleted.');
     }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
-      children: items,
+      children: _deletionEvents.map((evt) {
+        final isSuccess = evt.success;
+        return Padding(
+          padding: const EdgeInsets.symmetric(vertical: 2),
+          child: SailRow(
+            spacing: SailStyleValues.padding08,
+            children: [
+              Icon(
+                isSuccess ? Icons.check_circle : Icons.error,
+                size: 16,
+                color: isSuccess ? theme.colors.success : theme.colors.error,
+              ),
+              Expanded(
+                child: SailText.secondary12(
+                  isSuccess ? evt.path : '${evt.path}: ${evt.error}',
+                  monospace: true,
+                  color: isSuccess ? null : theme.colors.error,
+                ),
+              ),
+            ],
+          ),
+        );
+      }).toList(),
     );
   }
 }

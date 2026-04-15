@@ -114,11 +114,19 @@ abstract final class OrchestratorService {
     orchestratorv1orchestrator.GetMainchainBalanceResponse.new,
   );
 
-  /// Reset/delete data categories.
-  static const resetData = connect.Spec(
-    '/$name/ResetData',
+  /// Preview what would be deleted for the given reset categories (no side effects).
+  static const previewResetData = connect.Spec(
+    '/$name/PreviewResetData',
     connect.StreamType.unary,
-    orchestratorv1orchestrator.ResetDataRequest.new,
-    orchestratorv1orchestrator.ResetDataResponse.new,
+    orchestratorv1orchestrator.PreviewResetDataRequest.new,
+    orchestratorv1orchestrator.PreviewResetDataResponse.new,
+  );
+
+  /// Reset/delete data categories. Stops affected binaries, streams each deletion event.
+  static const streamResetData = connect.Spec(
+    '/$name/StreamResetData',
+    connect.StreamType.server,
+    orchestratorv1orchestrator.StreamResetDataRequest.new,
+    orchestratorv1orchestrator.StreamResetDataResponse.new,
   );
 }
