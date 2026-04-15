@@ -1025,9 +1025,9 @@ class BitcoinCore extends Binary {
                  binary: 'bitcoind',
                  files: {
                    ...allNetworks({
-                     OS.linux: 'L1-bitcoin-patched-latest-x86_64-unknown-linux-gnu.zip',
-                     OS.macos: 'L1-bitcoin-patched-latest-x86_64-apple-darwin.zip',
-                     OS.windows: 'L1-bitcoin-patched-latest-x86_64-w64-msvc.zip',
+                     OS.linux: 'L1-bitcoin-patched-v30.2-x86_64-unknown-linux-gnu.zip',
+                     OS.macos: 'L1-bitcoin-patched-v30.2-x86_64-apple-darwin.zip',
+                     OS.windows: 'L1-bitcoin-patched-v30.2-x86_64-w64-msvc.zip',
                    }),
                    BitcoinNetwork.BITCOIN_NETWORK_FORKNET: {
                      OS.linux: 'L1-bitcoin-patched-forknet-x86_64-unknown-linux-gnu.zip',
