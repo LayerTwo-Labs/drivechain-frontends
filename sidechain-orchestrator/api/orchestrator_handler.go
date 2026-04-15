@@ -290,6 +290,39 @@ func (h *Handler) GetMainchainBalance(ctx context.Context, req *connect.Request[
 	}), nil
 }
 
+func (h *Handler) ResetData(ctx context.Context, req *connect.Request[pb.ResetDataRequest]) (*connect.Response[pb.ResetDataResponse], error) {
+	result, err := h.orch.ResetData(ctx, orchestrator.ResetCategory{
+		DeleteBlockchainData: req.Msg.DeleteBlockchainData,
+		DeleteNodeSoftware:   req.Msg.DeleteNodeSoftware,
+		DeleteLogs:           req.Msg.DeleteLogs,
+		DeleteSettings:       req.Msg.DeleteSettings,
+		DeleteWalletFiles:    req.Msg.DeleteWalletFiles,
+		AlsoResetSidechains:  req.Msg.AlsoResetSidechains,
+	})
+	if result == nil && err != nil {
+		return nil, err
+	}
+
+	resp := &pb.ResetDataResponse{}
+	for _, item := range result.DeletedItems {
+		resp.DeletedItems = append(resp.DeletedItems, &pb.ResetDeletedItem{
+			Path: item.Path,
+		})
+	}
+	for _, item := range result.FailedItems {
+		resp.FailedItems = append(resp.FailedItems, &pb.ResetDeletedItem{
+			Path:  item.Path,
+			Error: item.Error,
+		})
+	}
+
+	if err != nil {
+		// Return partial results with the error attached.
+		return connect.NewResponse(resp), err
+	}
+	return connect.NewResponse(resp), nil
+}
+
 func statusToProto(s orchestrator.BinaryStatus) *pb.BinaryStatusMsg {
 	startupLogs := make([]*pb.StartupLogEntryMsg, len(s.StartupLogs))
 	for i, l := range s.StartupLogs {

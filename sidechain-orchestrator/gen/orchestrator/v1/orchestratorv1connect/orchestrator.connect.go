@@ -72,6 +72,9 @@ const (
 	// OrchestratorServiceGetMainchainBalanceProcedure is the fully-qualified name of the
 	// OrchestratorService's GetMainchainBalance RPC.
 	OrchestratorServiceGetMainchainBalanceProcedure = "/orchestrator.v1.OrchestratorService/GetMainchainBalance"
+	// OrchestratorServiceResetDataProcedure is the fully-qualified name of the OrchestratorService's
+	// ResetData RPC.
+	OrchestratorServiceResetDataProcedure = "/orchestrator.v1.OrchestratorService/ResetData"
 )
 
 // OrchestratorServiceClient is a client for the orchestrator.v1.OrchestratorService service.
@@ -102,6 +105,8 @@ type OrchestratorServiceClient interface {
 	GetEnforcerBlockchainInfo(context.Context, *connect.Request[v1.GetEnforcerBlockchainInfoRequest]) (*connect.Response[v1.GetEnforcerBlockchainInfoResponse], error)
 	// Get wallet balance from Bitcoin Core (proxied via orchestrator).
 	GetMainchainBalance(context.Context, *connect.Request[v1.GetMainchainBalanceRequest]) (*connect.Response[v1.GetMainchainBalanceResponse], error)
+	// Reset/delete data categories.
+	ResetData(context.Context, *connect.Request[v1.ResetDataRequest]) (*connect.Response[v1.ResetDataResponse], error)
 }
 
 // NewOrchestratorServiceClient constructs a client for the orchestrator.v1.OrchestratorService
@@ -193,6 +198,12 @@ func NewOrchestratorServiceClient(httpClient connect.HTTPClient, baseURL string,
 			connect.WithSchema(orchestratorServiceMethods.ByName("GetMainchainBalance")),
 			connect.WithClientOptions(opts...),
 		),
+		resetData: connect.NewClient[v1.ResetDataRequest, v1.ResetDataResponse](
+			httpClient,
+			baseURL+OrchestratorServiceResetDataProcedure,
+			connect.WithSchema(orchestratorServiceMethods.ByName("ResetData")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -211,6 +222,7 @@ type orchestratorServiceClient struct {
 	getMainchainBlockchainInfo *connect.Client[v1.GetMainchainBlockchainInfoRequest, v1.GetMainchainBlockchainInfoResponse]
 	getEnforcerBlockchainInfo  *connect.Client[v1.GetEnforcerBlockchainInfoRequest, v1.GetEnforcerBlockchainInfoResponse]
 	getMainchainBalance        *connect.Client[v1.GetMainchainBalanceRequest, v1.GetMainchainBalanceResponse]
+	resetData                  *connect.Client[v1.ResetDataRequest, v1.ResetDataResponse]
 }
 
 // ListBinaries calls orchestrator.v1.OrchestratorService.ListBinaries.
@@ -278,6 +290,11 @@ func (c *orchestratorServiceClient) GetMainchainBalance(ctx context.Context, req
 	return c.getMainchainBalance.CallUnary(ctx, req)
 }
 
+// ResetData calls orchestrator.v1.OrchestratorService.ResetData.
+func (c *orchestratorServiceClient) ResetData(ctx context.Context, req *connect.Request[v1.ResetDataRequest]) (*connect.Response[v1.ResetDataResponse], error) {
+	return c.resetData.CallUnary(ctx, req)
+}
+
 // OrchestratorServiceHandler is an implementation of the orchestrator.v1.OrchestratorService
 // service.
 type OrchestratorServiceHandler interface {
@@ -307,6 +324,8 @@ type OrchestratorServiceHandler interface {
 	GetEnforcerBlockchainInfo(context.Context, *connect.Request[v1.GetEnforcerBlockchainInfoRequest]) (*connect.Response[v1.GetEnforcerBlockchainInfoResponse], error)
 	// Get wallet balance from Bitcoin Core (proxied via orchestrator).
 	GetMainchainBalance(context.Context, *connect.Request[v1.GetMainchainBalanceRequest]) (*connect.Response[v1.GetMainchainBalanceResponse], error)
+	// Reset/delete data categories.
+	ResetData(context.Context, *connect.Request[v1.ResetDataRequest]) (*connect.Response[v1.ResetDataResponse], error)
 }
 
 // NewOrchestratorServiceHandler builds an HTTP handler from the service implementation. It returns
@@ -394,6 +413,12 @@ func NewOrchestratorServiceHandler(svc OrchestratorServiceHandler, opts ...conne
 		connect.WithSchema(orchestratorServiceMethods.ByName("GetMainchainBalance")),
 		connect.WithHandlerOptions(opts...),
 	)
+	orchestatorServiceResetDataHandler := connect.NewUnaryHandler(
+		OrchestratorServiceResetDataProcedure,
+		svc.ResetData,
+		connect.WithSchema(orchestratorServiceMethods.ByName("ResetData")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/orchestrator.v1.OrchestratorService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case OrchestratorServiceListBinariesProcedure:
@@ -422,6 +447,8 @@ func NewOrchestratorServiceHandler(svc OrchestratorServiceHandler, opts ...conne
 			orchestratorServiceGetEnforcerBlockchainInfoHandler.ServeHTTP(w, r)
 		case OrchestratorServiceGetMainchainBalanceProcedure:
 			orchestratorServiceGetMainchainBalanceHandler.ServeHTTP(w, r)
+		case OrchestratorServiceResetDataProcedure:
+			orchestatorServiceResetDataHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -481,4 +508,8 @@ func (UnimplementedOrchestratorServiceHandler) GetEnforcerBlockchainInfo(context
 
 func (UnimplementedOrchestratorServiceHandler) GetMainchainBalance(context.Context, *connect.Request[v1.GetMainchainBalanceRequest]) (*connect.Response[v1.GetMainchainBalanceResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("orchestrator.v1.OrchestratorService.GetMainchainBalance is not implemented"))
+}
+
+func (UnimplementedOrchestratorServiceHandler) ResetData(context.Context, *connect.Request[v1.ResetDataRequest]) (*connect.Response[v1.ResetDataResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("orchestrator.v1.OrchestratorService.ResetData is not implemented"))
 }

@@ -41,6 +41,9 @@ service OrchestratorService {
 
   // Get wallet balance from Bitcoin Core (proxied via orchestrator).
   rpc GetMainchainBalance(GetMainchainBalanceRequest) returns (GetMainchainBalanceResponse);
+
+  // Reset/delete data categories. Stops affected binaries, deletes data, returns results.
+  rpc ResetData(ResetDataRequest) returns (ResetDataResponse);
 }
 
 message BinaryStatusMsg {
@@ -227,4 +230,25 @@ message GetMainchainBalanceRequest {}
 message GetMainchainBalanceResponse {
   double confirmed = 1;
   double unconfirmed = 2;
+}
+
+// ResetData
+
+message ResetDataRequest {
+  bool delete_blockchain_data = 1;
+  bool delete_node_software = 2;
+  bool delete_logs = 3;
+  bool delete_settings = 4;
+  bool delete_wallet_files = 5;
+  bool also_reset_sidechains = 6;
+}
+
+message ResetDataResponse {
+  repeated ResetDeletedItem deleted_items = 1;
+  repeated ResetDeletedItem failed_items = 2;
+}
+
+message ResetDeletedItem {
+  string path = 1;
+  string error = 2;
 }

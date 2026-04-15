@@ -422,6 +422,35 @@ func (b BinaryDirConfig) GetAllDatadirPaths(networkDir string) []string {
 	return paths
 }
 
+// GetLogPaths returns log file paths for a binary (for deletion).
+// Dart: getLogPaths (L579-627)
+func (b BinaryDirConfig) GetLogPaths(networkDir string, log zerolog.Logger) []string {
+	var paths []string
+
+	switch b.BinaryName {
+	case "bitcoind":
+		paths = append(paths, GetExistingFilesInDir(networkDir, []string{"debug.log"}, log)...)
+
+	case "bip300301-enforcer":
+		paths = append(paths, GetExistingFilesInDir(networkDir, []string{"bip300301_enforcer.log", "logs"}, log)...)
+
+	case "bitwindowd":
+		paths = append(paths, GetExistingFilesInDir(networkDir, []string{"server.log"}, log)...)
+		rootDir := BitWindowDirs.RootDir()
+		paths = append(paths, GetExistingFilesInDir(rootDir, []string{"debug.log"}, log)...)
+
+	case "thunder", "plain_bitnames", "plain_bitassets", "thunder-orchard", "truthcoin", "photon", "coinshift":
+		paths = append(paths, GetExistingFilesInDir(networkDir, []string{"logs"}, log)...)
+	}
+
+	// Also include Flutter frontend debug.log
+	if dir := b.FlutterFrontendPath(); dir != "" {
+		paths = append(paths, GetExistingFilesInDir(dir, []string{"debug.log"}, log)...)
+	}
+
+	return paths
+}
+
 // ---------------------------------------------------------------------------
 // Log file resolution (Dart: logPath, _findLatestEnforcerLog, _findLatestDirVersionedLog)
 // ---------------------------------------------------------------------------
