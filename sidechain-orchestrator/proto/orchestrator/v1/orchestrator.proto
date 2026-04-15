@@ -42,8 +42,11 @@ service OrchestratorService {
   // Get wallet balance from Bitcoin Core (proxied via orchestrator).
   rpc GetMainchainBalance(GetMainchainBalanceRequest) returns (GetMainchainBalanceResponse);
 
-  // Reset/delete data categories. Stops affected binaries, deletes data, returns results.
-  rpc ResetData(ResetDataRequest) returns (ResetDataResponse);
+  // Preview what would be deleted for the given reset categories (no side effects).
+  rpc PreviewResetData(PreviewResetDataRequest) returns (PreviewResetDataResponse);
+
+  // Reset/delete data categories. Stops affected binaries, streams each deletion event.
+  rpc StreamResetData(StreamResetDataRequest) returns (stream StreamResetDataResponse);
 }
 
 message BinaryStatusMsg {
@@ -232,9 +235,9 @@ message GetMainchainBalanceResponse {
   double unconfirmed = 2;
 }
 
-// ResetData
+// PreviewResetData
 
-message ResetDataRequest {
+message PreviewResetDataRequest {
   bool delete_blockchain_data = 1;
   bool delete_node_software = 2;
   bool delete_logs = 3;
@@ -243,12 +246,34 @@ message ResetDataRequest {
   bool also_reset_sidechains = 6;
 }
 
-message ResetDataResponse {
-  repeated ResetDeletedItem deleted_items = 1;
-  repeated ResetDeletedItem failed_items = 2;
+message PreviewResetDataResponse {
+  repeated ResetFileInfo files = 1;
 }
 
-message ResetDeletedItem {
+message ResetFileInfo {
   string path = 1;
-  string error = 2;
+  string category = 2; // e.g. "blockchain_data", "node_software", "logs", "settings", "wallet"
+  int64 size_bytes = 3;
+  bool is_directory = 4;
+}
+
+// StreamResetData
+
+message StreamResetDataRequest {
+  bool delete_blockchain_data = 1;
+  bool delete_node_software = 2;
+  bool delete_logs = 3;
+  bool delete_settings = 4;
+  bool delete_wallet_files = 5;
+  bool also_reset_sidechains = 6;
+}
+
+message StreamResetDataResponse {
+  string path = 1;
+  string category = 2;
+  bool success = 3;
+  string error = 4;
+  bool done = 5; // true on final message
+  int32 deleted_count = 6;
+  int32 failed_count = 7;
 }

@@ -1693,7 +1693,7 @@ func (x *GetMainchainBalanceResponse) GetUnconfirmed() float64 {
 	return 0
 }
 
-type ResetDataRequest struct {
+type PreviewResetDataRequest struct {
 	state                protoimpl.MessageState `protogen:"open.v1"`
 	DeleteBlockchainData bool                   `protobuf:"varint,1,opt,name=delete_blockchain_data,json=deleteBlockchainData,proto3" json:"delete_blockchain_data,omitempty"`
 	DeleteNodeSoftware   bool                   `protobuf:"varint,2,opt,name=delete_node_software,json=deleteNodeSoftware,proto3" json:"delete_node_software,omitempty"`
@@ -1705,20 +1705,20 @@ type ResetDataRequest struct {
 	sizeCache            protoimpl.SizeCache
 }
 
-func (x *ResetDataRequest) Reset() {
-	*x = ResetDataRequest{}
+func (x *PreviewResetDataRequest) Reset() {
+	*x = PreviewResetDataRequest{}
 	mi := &file_orchestrator_v1_orchestrator_proto_msgTypes[28]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *ResetDataRequest) String() string {
+func (x *PreviewResetDataRequest) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*ResetDataRequest) ProtoMessage() {}
+func (*PreviewResetDataRequest) ProtoMessage() {}
 
-func (x *ResetDataRequest) ProtoReflect() protoreflect.Message {
+func (x *PreviewResetDataRequest) ProtoReflect() protoreflect.Message {
 	mi := &file_orchestrator_v1_orchestrator_proto_msgTypes[28]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -1730,75 +1730,74 @@ func (x *ResetDataRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use ResetDataRequest.ProtoReflect.Descriptor instead.
-func (*ResetDataRequest) Descriptor() ([]byte, []int) {
+// Deprecated: Use PreviewResetDataRequest.ProtoReflect.Descriptor instead.
+func (*PreviewResetDataRequest) Descriptor() ([]byte, []int) {
 	return file_orchestrator_v1_orchestrator_proto_rawDescGZIP(), []int{28}
 }
 
-func (x *ResetDataRequest) GetDeleteBlockchainData() bool {
+func (x *PreviewResetDataRequest) GetDeleteBlockchainData() bool {
 	if x != nil {
 		return x.DeleteBlockchainData
 	}
 	return false
 }
 
-func (x *ResetDataRequest) GetDeleteNodeSoftware() bool {
+func (x *PreviewResetDataRequest) GetDeleteNodeSoftware() bool {
 	if x != nil {
 		return x.DeleteNodeSoftware
 	}
 	return false
 }
 
-func (x *ResetDataRequest) GetDeleteLogs() bool {
+func (x *PreviewResetDataRequest) GetDeleteLogs() bool {
 	if x != nil {
 		return x.DeleteLogs
 	}
 	return false
 }
 
-func (x *ResetDataRequest) GetDeleteSettings() bool {
+func (x *PreviewResetDataRequest) GetDeleteSettings() bool {
 	if x != nil {
 		return x.DeleteSettings
 	}
 	return false
 }
 
-func (x *ResetDataRequest) GetDeleteWalletFiles() bool {
+func (x *PreviewResetDataRequest) GetDeleteWalletFiles() bool {
 	if x != nil {
 		return x.DeleteWalletFiles
 	}
 	return false
 }
 
-func (x *ResetDataRequest) GetAlsoResetSidechains() bool {
+func (x *PreviewResetDataRequest) GetAlsoResetSidechains() bool {
 	if x != nil {
 		return x.AlsoResetSidechains
 	}
 	return false
 }
 
-type ResetDataResponse struct {
+type PreviewResetDataResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	DeletedItems  []*ResetDeletedItem    `protobuf:"bytes,1,rep,name=deleted_items,json=deletedItems,proto3" json:"deleted_items,omitempty"`
-	FailedItems   []*ResetDeletedItem    `protobuf:"bytes,2,rep,name=failed_items,json=failedItems,proto3" json:"failed_items,omitempty"`
+	Files         []*ResetFileInfo       `protobuf:"bytes,1,rep,name=files,proto3" json:"files,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *ResetDataResponse) Reset() {
-	*x = ResetDataResponse{}
+func (x *PreviewResetDataResponse) Reset() {
+	*x = PreviewResetDataResponse{}
 	mi := &file_orchestrator_v1_orchestrator_proto_msgTypes[29]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *ResetDataResponse) String() string {
+func (x *PreviewResetDataResponse) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*ResetDataResponse) ProtoMessage() {}
+func (*PreviewResetDataResponse) ProtoMessage() {}
 
-func (x *ResetDataResponse) ProtoReflect() protoreflect.Message {
+func (x *PreviewResetDataResponse) ProtoReflect() protoreflect.Message {
 	mi := &file_orchestrator_v1_orchestrator_proto_msgTypes[29]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -1810,47 +1809,42 @@ func (x *ResetDataResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use ResetDataResponse.ProtoReflect.Descriptor instead.
-func (*ResetDataResponse) Descriptor() ([]byte, []int) {
+// Deprecated: Use PreviewResetDataResponse.ProtoReflect.Descriptor instead.
+func (*PreviewResetDataResponse) Descriptor() ([]byte, []int) {
 	return file_orchestrator_v1_orchestrator_proto_rawDescGZIP(), []int{29}
 }
 
-func (x *ResetDataResponse) GetDeletedItems() []*ResetDeletedItem {
+func (x *PreviewResetDataResponse) GetFiles() []*ResetFileInfo {
 	if x != nil {
-		return x.DeletedItems
+		return x.Files
 	}
 	return nil
 }
 
-func (x *ResetDataResponse) GetFailedItems() []*ResetDeletedItem {
-	if x != nil {
-		return x.FailedItems
-	}
-	return nil
-}
-
-type ResetDeletedItem struct {
+type ResetFileInfo struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Path          string                 `protobuf:"bytes,1,opt,name=path,proto3" json:"path,omitempty"`
-	Error         string                 `protobuf:"bytes,2,opt,name=error,proto3" json:"error,omitempty"`
+	Category      string                 `protobuf:"bytes,2,opt,name=category,proto3" json:"category,omitempty"` // e.g. "blockchain_data", "node_software", "logs", "settings", "wallet"
+	SizeBytes     int64                  `protobuf:"varint,3,opt,name=size_bytes,json=sizeBytes,proto3" json:"size_bytes,omitempty"`
+	IsDirectory   bool                   `protobuf:"varint,4,opt,name=is_directory,json=isDirectory,proto3" json:"is_directory,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *ResetDeletedItem) Reset() {
-	*x = ResetDeletedItem{}
+func (x *ResetFileInfo) Reset() {
+	*x = ResetFileInfo{}
 	mi := &file_orchestrator_v1_orchestrator_proto_msgTypes[30]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *ResetDeletedItem) String() string {
+func (x *ResetFileInfo) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*ResetDeletedItem) ProtoMessage() {}
+func (*ResetFileInfo) ProtoMessage() {}
 
-func (x *ResetDeletedItem) ProtoReflect() protoreflect.Message {
+func (x *ResetFileInfo) ProtoReflect() protoreflect.Message {
 	mi := &file_orchestrator_v1_orchestrator_proto_msgTypes[30]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -1862,23 +1856,213 @@ func (x *ResetDeletedItem) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use ResetDeletedItem.ProtoReflect.Descriptor instead.
-func (*ResetDeletedItem) Descriptor() ([]byte, []int) {
+// Deprecated: Use ResetFileInfo.ProtoReflect.Descriptor instead.
+func (*ResetFileInfo) Descriptor() ([]byte, []int) {
 	return file_orchestrator_v1_orchestrator_proto_rawDescGZIP(), []int{30}
 }
 
-func (x *ResetDeletedItem) GetPath() string {
+func (x *ResetFileInfo) GetPath() string {
 	if x != nil {
 		return x.Path
 	}
 	return ""
 }
 
-func (x *ResetDeletedItem) GetError() string {
+func (x *ResetFileInfo) GetCategory() string {
+	if x != nil {
+		return x.Category
+	}
+	return ""
+}
+
+func (x *ResetFileInfo) GetSizeBytes() int64 {
+	if x != nil {
+		return x.SizeBytes
+	}
+	return 0
+}
+
+func (x *ResetFileInfo) GetIsDirectory() bool {
+	if x != nil {
+		return x.IsDirectory
+	}
+	return false
+}
+
+type StreamResetDataRequest struct {
+	state                protoimpl.MessageState `protogen:"open.v1"`
+	DeleteBlockchainData bool                   `protobuf:"varint,1,opt,name=delete_blockchain_data,json=deleteBlockchainData,proto3" json:"delete_blockchain_data,omitempty"`
+	DeleteNodeSoftware   bool                   `protobuf:"varint,2,opt,name=delete_node_software,json=deleteNodeSoftware,proto3" json:"delete_node_software,omitempty"`
+	DeleteLogs           bool                   `protobuf:"varint,3,opt,name=delete_logs,json=deleteLogs,proto3" json:"delete_logs,omitempty"`
+	DeleteSettings       bool                   `protobuf:"varint,4,opt,name=delete_settings,json=deleteSettings,proto3" json:"delete_settings,omitempty"`
+	DeleteWalletFiles    bool                   `protobuf:"varint,5,opt,name=delete_wallet_files,json=deleteWalletFiles,proto3" json:"delete_wallet_files,omitempty"`
+	AlsoResetSidechains  bool                   `protobuf:"varint,6,opt,name=also_reset_sidechains,json=alsoResetSidechains,proto3" json:"also_reset_sidechains,omitempty"`
+	unknownFields        protoimpl.UnknownFields
+	sizeCache            protoimpl.SizeCache
+}
+
+func (x *StreamResetDataRequest) Reset() {
+	*x = StreamResetDataRequest{}
+	mi := &file_orchestrator_v1_orchestrator_proto_msgTypes[31]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *StreamResetDataRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*StreamResetDataRequest) ProtoMessage() {}
+
+func (x *StreamResetDataRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_orchestrator_v1_orchestrator_proto_msgTypes[31]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use StreamResetDataRequest.ProtoReflect.Descriptor instead.
+func (*StreamResetDataRequest) Descriptor() ([]byte, []int) {
+	return file_orchestrator_v1_orchestrator_proto_rawDescGZIP(), []int{31}
+}
+
+func (x *StreamResetDataRequest) GetDeleteBlockchainData() bool {
+	if x != nil {
+		return x.DeleteBlockchainData
+	}
+	return false
+}
+
+func (x *StreamResetDataRequest) GetDeleteNodeSoftware() bool {
+	if x != nil {
+		return x.DeleteNodeSoftware
+	}
+	return false
+}
+
+func (x *StreamResetDataRequest) GetDeleteLogs() bool {
+	if x != nil {
+		return x.DeleteLogs
+	}
+	return false
+}
+
+func (x *StreamResetDataRequest) GetDeleteSettings() bool {
+	if x != nil {
+		return x.DeleteSettings
+	}
+	return false
+}
+
+func (x *StreamResetDataRequest) GetDeleteWalletFiles() bool {
+	if x != nil {
+		return x.DeleteWalletFiles
+	}
+	return false
+}
+
+func (x *StreamResetDataRequest) GetAlsoResetSidechains() bool {
+	if x != nil {
+		return x.AlsoResetSidechains
+	}
+	return false
+}
+
+type StreamResetDataResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Path          string                 `protobuf:"bytes,1,opt,name=path,proto3" json:"path,omitempty"`
+	Category      string                 `protobuf:"bytes,2,opt,name=category,proto3" json:"category,omitempty"`
+	Success       bool                   `protobuf:"varint,3,opt,name=success,proto3" json:"success,omitempty"`
+	Error         string                 `protobuf:"bytes,4,opt,name=error,proto3" json:"error,omitempty"`
+	Done          bool                   `protobuf:"varint,5,opt,name=done,proto3" json:"done,omitempty"` // true on final message
+	DeletedCount  int32                  `protobuf:"varint,6,opt,name=deleted_count,json=deletedCount,proto3" json:"deleted_count,omitempty"`
+	FailedCount   int32                  `protobuf:"varint,7,opt,name=failed_count,json=failedCount,proto3" json:"failed_count,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *StreamResetDataResponse) Reset() {
+	*x = StreamResetDataResponse{}
+	mi := &file_orchestrator_v1_orchestrator_proto_msgTypes[32]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *StreamResetDataResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*StreamResetDataResponse) ProtoMessage() {}
+
+func (x *StreamResetDataResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_orchestrator_v1_orchestrator_proto_msgTypes[32]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use StreamResetDataResponse.ProtoReflect.Descriptor instead.
+func (*StreamResetDataResponse) Descriptor() ([]byte, []int) {
+	return file_orchestrator_v1_orchestrator_proto_rawDescGZIP(), []int{32}
+}
+
+func (x *StreamResetDataResponse) GetPath() string {
+	if x != nil {
+		return x.Path
+	}
+	return ""
+}
+
+func (x *StreamResetDataResponse) GetCategory() string {
+	if x != nil {
+		return x.Category
+	}
+	return ""
+}
+
+func (x *StreamResetDataResponse) GetSuccess() bool {
+	if x != nil {
+		return x.Success
+	}
+	return false
+}
+
+func (x *StreamResetDataResponse) GetError() string {
 	if x != nil {
 		return x.Error
 	}
 	return ""
+}
+
+func (x *StreamResetDataResponse) GetDone() bool {
+	if x != nil {
+		return x.Done
+	}
+	return false
+}
+
+func (x *StreamResetDataResponse) GetDeletedCount() int32 {
+	if x != nil {
+		return x.DeletedCount
+	}
+	return 0
+}
+
+func (x *StreamResetDataResponse) GetFailedCount() int32 {
+	if x != nil {
+		return x.FailedCount
+	}
+	return 0
 }
 
 var File_orchestrator_v1_orchestrator_proto protoreflect.FileDescriptor
@@ -2018,21 +2202,39 @@ const file_orchestrator_v1_orchestrator_proto_rawDesc = "" +
 	"\x1aGetMainchainBalanceRequest\"]\n" +
 	"\x1bGetMainchainBalanceResponse\x12\x1c\n" +
 	"\tconfirmed\x18\x01 \x01(\x01R\tconfirmed\x12 \n" +
-	"\vunconfirmed\x18\x02 \x01(\x01R\vunconfirmed\"\xa8\x02\n" +
-	"\x10ResetDataRequest\x124\n" +
+	"\vunconfirmed\x18\x02 \x01(\x01R\vunconfirmed\"\xaf\x02\n" +
+	"\x17PreviewResetDataRequest\x124\n" +
 	"\x16delete_blockchain_data\x18\x01 \x01(\bR\x14deleteBlockchainData\x120\n" +
 	"\x14delete_node_software\x18\x02 \x01(\bR\x12deleteNodeSoftware\x12\x1f\n" +
 	"\vdelete_logs\x18\x03 \x01(\bR\n" +
 	"deleteLogs\x12'\n" +
 	"\x0fdelete_settings\x18\x04 \x01(\bR\x0edeleteSettings\x12.\n" +
 	"\x13delete_wallet_files\x18\x05 \x01(\bR\x11deleteWalletFiles\x122\n" +
-	"\x15also_reset_sidechains\x18\x06 \x01(\bR\x13alsoResetSidechains\"\xa1\x01\n" +
-	"\x11ResetDataResponse\x12F\n" +
-	"\rdeleted_items\x18\x01 \x03(\v2!.orchestrator.v1.ResetDeletedItemR\fdeletedItems\x12D\n" +
-	"\ffailed_items\x18\x02 \x03(\v2!.orchestrator.v1.ResetDeletedItemR\vfailedItems\"<\n" +
-	"\x10ResetDeletedItem\x12\x12\n" +
-	"\x04path\x18\x01 \x01(\tR\x04path\x12\x14\n" +
-	"\x05error\x18\x02 \x01(\tR\x05error2\x8e\v\n" +
+	"\x15also_reset_sidechains\x18\x06 \x01(\bR\x13alsoResetSidechains\"P\n" +
+	"\x18PreviewResetDataResponse\x124\n" +
+	"\x05files\x18\x01 \x03(\v2\x1e.orchestrator.v1.ResetFileInfoR\x05files\"\x81\x01\n" +
+	"\rResetFileInfo\x12\x12\n" +
+	"\x04path\x18\x01 \x01(\tR\x04path\x12\x1a\n" +
+	"\bcategory\x18\x02 \x01(\tR\bcategory\x12\x1d\n" +
+	"\n" +
+	"size_bytes\x18\x03 \x01(\x03R\tsizeBytes\x12!\n" +
+	"\fis_directory\x18\x04 \x01(\bR\visDirectory\"\xae\x02\n" +
+	"\x16StreamResetDataRequest\x124\n" +
+	"\x16delete_blockchain_data\x18\x01 \x01(\bR\x14deleteBlockchainData\x120\n" +
+	"\x14delete_node_software\x18\x02 \x01(\bR\x12deleteNodeSoftware\x12\x1f\n" +
+	"\vdelete_logs\x18\x03 \x01(\bR\n" +
+	"deleteLogs\x12'\n" +
+	"\x0fdelete_settings\x18\x04 \x01(\bR\x0edeleteSettings\x12.\n" +
+	"\x13delete_wallet_files\x18\x05 \x01(\bR\x11deleteWalletFiles\x122\n" +
+	"\x15also_reset_sidechains\x18\x06 \x01(\bR\x13alsoResetSidechains\"\xd5\x01\n" +
+	"\x17StreamResetDataResponse\x12\x12\n" +
+	"\x04path\x18\x01 \x01(\tR\x04path\x12\x1a\n" +
+	"\bcategory\x18\x02 \x01(\tR\bcategory\x12\x18\n" +
+	"\asuccess\x18\x03 \x01(\bR\asuccess\x12\x14\n" +
+	"\x05error\x18\x04 \x01(\tR\x05error\x12\x12\n" +
+	"\x04done\x18\x05 \x01(\bR\x04done\x12#\n" +
+	"\rdeleted_count\x18\x06 \x01(\x05R\fdeletedCount\x12!\n" +
+	"\ffailed_count\x18\a \x01(\x05R\vfailedCount2\x8b\f\n" +
 	"\x13OrchestratorService\x12[\n" +
 	"\fListBinaries\x12$.orchestrator.v1.ListBinariesRequest\x1a%.orchestrator.v1.ListBinariesResponse\x12d\n" +
 	"\x0fGetBinaryStatus\x12'.orchestrator.v1.GetBinaryStatusRequest\x1a(.orchestrator.v1.GetBinaryStatusResponse\x12c\n" +
@@ -2048,8 +2250,10 @@ const file_orchestrator_v1_orchestrator_proto_rawDesc = "" +
 	"\vGetBTCPrice\x12#.orchestrator.v1.GetBTCPriceRequest\x1a$.orchestrator.v1.GetBTCPriceResponse\x12\x85\x01\n" +
 	"\x1aGetMainchainBlockchainInfo\x122.orchestrator.v1.GetMainchainBlockchainInfoRequest\x1a3.orchestrator.v1.GetMainchainBlockchainInfoResponse\x12\x82\x01\n" +
 	"\x19GetEnforcerBlockchainInfo\x121.orchestrator.v1.GetEnforcerBlockchainInfoRequest\x1a2.orchestrator.v1.GetEnforcerBlockchainInfoResponse\x12p\n" +
-	"\x13GetMainchainBalance\x12+.orchestrator.v1.GetMainchainBalanceRequest\x1a,.orchestrator.v1.GetMainchainBalanceResponse\x12R\n" +
-	"\tResetData\x12!.orchestrator.v1.ResetDataRequest\x1a\".orchestrator.v1.ResetDataResponseb\x06proto3"
+	"\x13GetMainchainBalance\x12+.orchestrator.v1.GetMainchainBalanceRequest\x1a,.orchestrator.v1.GetMainchainBalanceResponse\x12g\n" +
+	"\x10PreviewResetData\x12(.orchestrator.v1.PreviewResetDataRequest\x1a).orchestrator.v1.PreviewResetDataResponse\x12f\n" +
+	"\x0fStreamResetData\x12'.orchestrator.v1.StreamResetDataRequest\x1a(.orchestrator.v1.StreamResetDataResponse0\x01B\xe2\x01\n" +
+	"\x13com.orchestrator.v1B\x11OrchestratorProtoP\x01Z[github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/orchestrator/v1;orchestratorv1\xa2\x02\x03OXX\xaa\x02\x0fOrchestrator.V1\xca\x02\x0fOrchestrator\\V1\xe2\x02\x1bOrchestrator\\V1\\GPBMetadata\xea\x02\x10Orchestrator::V1b\x06proto3"
 
 var (
 	file_orchestrator_v1_orchestrator_proto_rawDescOnce sync.Once
@@ -2063,7 +2267,7 @@ func file_orchestrator_v1_orchestrator_proto_rawDescGZIP() []byte {
 	return file_orchestrator_v1_orchestrator_proto_rawDescData
 }
 
-var file_orchestrator_v1_orchestrator_proto_msgTypes = make([]protoimpl.MessageInfo, 33)
+var file_orchestrator_v1_orchestrator_proto_msgTypes = make([]protoimpl.MessageInfo, 35)
 var file_orchestrator_v1_orchestrator_proto_goTypes = []any{
 	(*BinaryStatusMsg)(nil),                    // 0: orchestrator.v1.BinaryStatusMsg
 	(*StartupLogEntryMsg)(nil),                 // 1: orchestrator.v1.StartupLogEntryMsg
@@ -2093,35 +2297,37 @@ var file_orchestrator_v1_orchestrator_proto_goTypes = []any{
 	(*GetEnforcerBlockchainInfoResponse)(nil),  // 25: orchestrator.v1.GetEnforcerBlockchainInfoResponse
 	(*GetMainchainBalanceRequest)(nil),         // 26: orchestrator.v1.GetMainchainBalanceRequest
 	(*GetMainchainBalanceResponse)(nil),        // 27: orchestrator.v1.GetMainchainBalanceResponse
-	(*ResetDataRequest)(nil),                   // 28: orchestrator.v1.ResetDataRequest
-	(*ResetDataResponse)(nil),                  // 29: orchestrator.v1.ResetDataResponse
-	(*ResetDeletedItem)(nil),                   // 30: orchestrator.v1.ResetDeletedItem
-	nil,                                        // 31: orchestrator.v1.StartBinaryRequest.EnvEntry
-	nil,                                        // 32: orchestrator.v1.StartWithL1Request.TargetEnvEntry
+	(*PreviewResetDataRequest)(nil),            // 28: orchestrator.v1.PreviewResetDataRequest
+	(*PreviewResetDataResponse)(nil),           // 29: orchestrator.v1.PreviewResetDataResponse
+	(*ResetFileInfo)(nil),                      // 30: orchestrator.v1.ResetFileInfo
+	(*StreamResetDataRequest)(nil),             // 31: orchestrator.v1.StreamResetDataRequest
+	(*StreamResetDataResponse)(nil),            // 32: orchestrator.v1.StreamResetDataResponse
+	nil,                                        // 33: orchestrator.v1.StartBinaryRequest.EnvEntry
+	nil,                                        // 34: orchestrator.v1.StartWithL1Request.TargetEnvEntry
 }
 var file_orchestrator_v1_orchestrator_proto_depIdxs = []int32{
 	1,  // 0: orchestrator.v1.BinaryStatusMsg.startup_logs:type_name -> orchestrator.v1.StartupLogEntryMsg
 	0,  // 1: orchestrator.v1.ListBinariesResponse.binaries:type_name -> orchestrator.v1.BinaryStatusMsg
 	0,  // 2: orchestrator.v1.GetBinaryStatusResponse.status:type_name -> orchestrator.v1.BinaryStatusMsg
-	31, // 3: orchestrator.v1.StartBinaryRequest.env:type_name -> orchestrator.v1.StartBinaryRequest.EnvEntry
+	33, // 3: orchestrator.v1.StartBinaryRequest.env:type_name -> orchestrator.v1.StartBinaryRequest.EnvEntry
 	0,  // 4: orchestrator.v1.WatchBinariesResponse.binaries:type_name -> orchestrator.v1.BinaryStatusMsg
-	32, // 5: orchestrator.v1.StartWithL1Request.target_env:type_name -> orchestrator.v1.StartWithL1Request.TargetEnvEntry
-	30, // 6: orchestrator.v1.ResetDataResponse.deleted_items:type_name -> orchestrator.v1.ResetDeletedItem
-	30, // 7: orchestrator.v1.ResetDataResponse.failed_items:type_name -> orchestrator.v1.ResetDeletedItem
-	2,  // 8: orchestrator.v1.OrchestratorService.ListBinaries:input_type -> orchestrator.v1.ListBinariesRequest
-	4,  // 9: orchestrator.v1.OrchestratorService.GetBinaryStatus:input_type -> orchestrator.v1.GetBinaryStatusRequest
-	6,  // 10: orchestrator.v1.OrchestratorService.DownloadBinary:input_type -> orchestrator.v1.DownloadBinaryRequest
-	8,  // 11: orchestrator.v1.OrchestratorService.StartBinary:input_type -> orchestrator.v1.StartBinaryRequest
-	10, // 12: orchestrator.v1.OrchestratorService.StopBinary:input_type -> orchestrator.v1.StopBinaryRequest
-	12, // 13: orchestrator.v1.OrchestratorService.WatchBinaries:input_type -> orchestrator.v1.WatchBinariesRequest
-	14, // 14: orchestrator.v1.OrchestratorService.StreamLogs:input_type -> orchestrator.v1.StreamLogsRequest
-	16, // 15: orchestrator.v1.OrchestratorService.StartWithL1:input_type -> orchestrator.v1.StartWithL1Request
-	18, // 16: orchestrator.v1.OrchestratorService.ShutdownAll:input_type -> orchestrator.v1.ShutdownAllRequest
-	20, // 17: orchestrator.v1.OrchestratorService.GetBTCPrice:input_type -> orchestrator.v1.GetBTCPriceRequest
-	22, // 18: orchestrator.v1.OrchestratorService.GetMainchainBlockchainInfo:input_type -> orchestrator.v1.GetMainchainBlockchainInfoRequest
-	24, // 19: orchestrator.v1.OrchestratorService.GetEnforcerBlockchainInfo:input_type -> orchestrator.v1.GetEnforcerBlockchainInfoRequest
-	26, // 20: orchestrator.v1.OrchestratorService.GetMainchainBalance:input_type -> orchestrator.v1.GetMainchainBalanceRequest
-	28, // 21: orchestrator.v1.OrchestratorService.ResetData:input_type -> orchestrator.v1.ResetDataRequest
+	34, // 5: orchestrator.v1.StartWithL1Request.target_env:type_name -> orchestrator.v1.StartWithL1Request.TargetEnvEntry
+	30, // 6: orchestrator.v1.PreviewResetDataResponse.files:type_name -> orchestrator.v1.ResetFileInfo
+	2,  // 7: orchestrator.v1.OrchestratorService.ListBinaries:input_type -> orchestrator.v1.ListBinariesRequest
+	4,  // 8: orchestrator.v1.OrchestratorService.GetBinaryStatus:input_type -> orchestrator.v1.GetBinaryStatusRequest
+	6,  // 9: orchestrator.v1.OrchestratorService.DownloadBinary:input_type -> orchestrator.v1.DownloadBinaryRequest
+	8,  // 10: orchestrator.v1.OrchestratorService.StartBinary:input_type -> orchestrator.v1.StartBinaryRequest
+	10, // 11: orchestrator.v1.OrchestratorService.StopBinary:input_type -> orchestrator.v1.StopBinaryRequest
+	12, // 12: orchestrator.v1.OrchestratorService.WatchBinaries:input_type -> orchestrator.v1.WatchBinariesRequest
+	14, // 13: orchestrator.v1.OrchestratorService.StreamLogs:input_type -> orchestrator.v1.StreamLogsRequest
+	16, // 14: orchestrator.v1.OrchestratorService.StartWithL1:input_type -> orchestrator.v1.StartWithL1Request
+	18, // 15: orchestrator.v1.OrchestratorService.ShutdownAll:input_type -> orchestrator.v1.ShutdownAllRequest
+	20, // 16: orchestrator.v1.OrchestratorService.GetBTCPrice:input_type -> orchestrator.v1.GetBTCPriceRequest
+	22, // 17: orchestrator.v1.OrchestratorService.GetMainchainBlockchainInfo:input_type -> orchestrator.v1.GetMainchainBlockchainInfoRequest
+	24, // 18: orchestrator.v1.OrchestratorService.GetEnforcerBlockchainInfo:input_type -> orchestrator.v1.GetEnforcerBlockchainInfoRequest
+	26, // 19: orchestrator.v1.OrchestratorService.GetMainchainBalance:input_type -> orchestrator.v1.GetMainchainBalanceRequest
+	28, // 20: orchestrator.v1.OrchestratorService.PreviewResetData:input_type -> orchestrator.v1.PreviewResetDataRequest
+	31, // 21: orchestrator.v1.OrchestratorService.StreamResetData:input_type -> orchestrator.v1.StreamResetDataRequest
 	3,  // 22: orchestrator.v1.OrchestratorService.ListBinaries:output_type -> orchestrator.v1.ListBinariesResponse
 	5,  // 23: orchestrator.v1.OrchestratorService.GetBinaryStatus:output_type -> orchestrator.v1.GetBinaryStatusResponse
 	7,  // 24: orchestrator.v1.OrchestratorService.DownloadBinary:output_type -> orchestrator.v1.DownloadBinaryResponse
@@ -2135,12 +2341,13 @@ var file_orchestrator_v1_orchestrator_proto_depIdxs = []int32{
 	23, // 32: orchestrator.v1.OrchestratorService.GetMainchainBlockchainInfo:output_type -> orchestrator.v1.GetMainchainBlockchainInfoResponse
 	25, // 33: orchestrator.v1.OrchestratorService.GetEnforcerBlockchainInfo:output_type -> orchestrator.v1.GetEnforcerBlockchainInfoResponse
 	27, // 34: orchestrator.v1.OrchestratorService.GetMainchainBalance:output_type -> orchestrator.v1.GetMainchainBalanceResponse
-	29, // 35: orchestrator.v1.OrchestratorService.ResetData:output_type -> orchestrator.v1.ResetDataResponse
-	22, // [22:36] is the sub-list for method output_type
-	8,  // [8:22] is the sub-list for method input_type
-	8,  // [8:8] is the sub-list for extension type_name
-	8,  // [8:8] is the sub-list for extension extendee
-	0,  // [0:8] is the sub-list for field type_name
+	29, // 35: orchestrator.v1.OrchestratorService.PreviewResetData:output_type -> orchestrator.v1.PreviewResetDataResponse
+	32, // 36: orchestrator.v1.OrchestratorService.StreamResetData:output_type -> orchestrator.v1.StreamResetDataResponse
+	22, // [22:37] is the sub-list for method output_type
+	7,  // [7:22] is the sub-list for method input_type
+	7,  // [7:7] is the sub-list for extension type_name
+	7,  // [7:7] is the sub-list for extension extendee
+	0,  // [0:7] is the sub-list for field type_name
 }
 
 func init() { file_orchestrator_v1_orchestrator_proto_init() }
@@ -2154,7 +2361,7 @@ func file_orchestrator_v1_orchestrator_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_orchestrator_v1_orchestrator_proto_rawDesc), len(file_orchestrator_v1_orchestrator_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   33,
+			NumMessages:   35,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

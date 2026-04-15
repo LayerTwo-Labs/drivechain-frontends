@@ -290,8 +290,8 @@ func (h *Handler) GetMainchainBalance(ctx context.Context, req *connect.Request[
 	}), nil
 }
 
-func (h *Handler) ResetData(ctx context.Context, req *connect.Request[pb.ResetDataRequest]) (*connect.Response[pb.ResetDataResponse], error) {
-	result, err := h.orch.ResetData(ctx, orchestrator.ResetCategory{
+func (h *Handler) PreviewResetData(ctx context.Context, req *connect.Request[pb.PreviewResetDataRequest]) (*connect.Response[pb.PreviewResetDataResponse], error) {
+	files, err := h.orch.PreviewResetData(orchestrator.ResetCategory{
 		DeleteBlockchainData: req.Msg.DeleteBlockchainData,
 		DeleteNodeSoftware:   req.Msg.DeleteNodeSoftware,
 		DeleteLogs:           req.Msg.DeleteLogs,
@@ -299,28 +299,51 @@ func (h *Handler) ResetData(ctx context.Context, req *connect.Request[pb.ResetDa
 		DeleteWalletFiles:    req.Msg.DeleteWalletFiles,
 		AlsoResetSidechains:  req.Msg.AlsoResetSidechains,
 	})
-	if result == nil && err != nil {
+	if err != nil {
 		return nil, err
 	}
 
-	resp := &pb.ResetDataResponse{}
-	for _, item := range result.DeletedItems {
-		resp.DeletedItems = append(resp.DeletedItems, &pb.ResetDeletedItem{
-			Path: item.Path,
+	resp := &pb.PreviewResetDataResponse{}
+	for _, f := range files {
+		resp.Files = append(resp.Files, &pb.ResetFileInfo{
+			Path:        f.Path,
+			Category:    f.Category,
+			SizeBytes:   f.SizeBytes,
+			IsDirectory: f.IsDirectory,
 		})
-	}
-	for _, item := range result.FailedItems {
-		resp.FailedItems = append(resp.FailedItems, &pb.ResetDeletedItem{
-			Path:  item.Path,
-			Error: item.Error,
-		})
-	}
-
-	if err != nil {
-		// Return partial results with the error attached.
-		return connect.NewResponse(resp), err
 	}
 	return connect.NewResponse(resp), nil
+}
+
+func (h *Handler) StreamResetData(ctx context.Context, req *connect.Request[pb.StreamResetDataRequest], stream *connect.ServerStream[pb.StreamResetDataResponse]) error {
+	ch, err := h.orch.StreamResetData(ctx, orchestrator.ResetCategory{
+		DeleteBlockchainData: req.Msg.DeleteBlockchainData,
+		DeleteNodeSoftware:   req.Msg.DeleteNodeSoftware,
+		DeleteLogs:           req.Msg.DeleteLogs,
+		DeleteSettings:       req.Msg.DeleteSettings,
+		DeleteWalletFiles:    req.Msg.DeleteWalletFiles,
+		AlsoResetSidechains:  req.Msg.AlsoResetSidechains,
+	})
+	if err != nil {
+		return err
+	}
+
+	for evt := range ch {
+		msg := &pb.StreamResetDataResponse{
+			Path:         evt.Path,
+			Category:     evt.Category,
+			Success:      evt.Success,
+			Error:        evt.Error,
+			Done:         evt.Done,
+			DeletedCount: int32(evt.DeletedCount),
+			FailedCount:  int32(evt.FailedCount),
+		}
+		if err := stream.Send(msg); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func statusToProto(s orchestrator.BinaryStatus) *pb.BinaryStatusMsg {
