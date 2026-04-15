@@ -473,7 +473,7 @@ class _BackupWalletDialogState extends State<BackupWalletDialog> {
       final timestamp = DateFormat('yyyy-MM-dd_HH-mm-ss').format(DateTime.now());
       final defaultFileName = 'bitwindow-backup-$timestamp.zip';
 
-      final result = await FilePicker.platform.saveFile(
+      final result = await FilePicker.saveFile(
         dialogTitle: 'Save Wallet Backup',
         fileName: defaultFileName,
         type: FileType.custom,
@@ -918,7 +918,7 @@ class _RestoreWalletDialogState extends State<RestoreWalletDialog> {
 
   Future<void> _selectBackupFile() async {
     try {
-      final result = await FilePicker.platform.pickFiles(
+      final result = await FilePicker.pickFiles(
         dialogTitle: 'Select Wallet Backup',
         type: FileType.custom,
         allowedExtensions: ['zip', 'json'],
@@ -1565,7 +1565,7 @@ class _DataDirSelectionDialogState extends State<DataDirSelectionDialog> {
     });
 
     try {
-      final result = await FilePicker.platform.getDirectoryPath();
+      final result = await FilePicker.getDirectoryPath();
       if (result != null) {
         // Writability is validated server-side when the datadir is persisted.
         setState(() {

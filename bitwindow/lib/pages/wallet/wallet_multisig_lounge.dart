@@ -1729,7 +1729,7 @@ class MultisigLoungeViewModel extends BaseViewModel {
       final fileName =
           'psbt_${isSigned ? 'signed' : 'unsigned'}_${transaction.id.substring(0, 4)}_${timestamp}_$keyOwner.json';
 
-      final result = await FilePicker.platform.saveFile(
+      final result = await FilePicker.saveFile(
         dialogTitle: 'Save PSBT Export',
         fileName: fileName,
         type: FileType.custom,

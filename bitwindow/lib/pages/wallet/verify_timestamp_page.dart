@@ -20,7 +20,7 @@ class VerifyTimestampViewModel extends BaseViewModel {
 
   Future<void> pickAndVerifyFile() async {
     try {
-      final result = await FilePicker.platform.pickFiles(
+      final result = await FilePicker.pickFiles(
         type: FileType.any,
         allowMultiple: false,
       );

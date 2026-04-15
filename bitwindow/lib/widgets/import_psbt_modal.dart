@@ -49,7 +49,7 @@ class _ImportPSBTModalState extends State<ImportPSBTModal> {
         _modalError = null;
       });
 
-      final result = await FilePicker.platform.pickFiles(
+      final result = await FilePicker.pickFiles(
         type: FileType.custom,
         allowedExtensions: ['json'],
         dialogTitle: 'Select PSBT Export File',

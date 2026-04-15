@@ -566,7 +566,7 @@ class OverviewViewModel extends BaseViewModel with ChangeTrackingMixin {
 
       final defaultFileName = 'bitwindow-transactions-${DateFormat('yyyy-MM-dd').format(DateTime.now())}.csv';
 
-      final result = await FilePicker.platform.saveFile(
+      final result = await FilePicker.saveFile(
         dialogTitle: 'Export Transactions to CSV',
         fileName: defaultFileName,
         type: FileType.custom,

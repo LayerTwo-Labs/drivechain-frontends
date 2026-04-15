@@ -34,7 +34,7 @@ class _DataDirSetupPageState extends State<DataDirSetupPage> {
     });
 
     try {
-      final result = await FilePicker.platform.getDirectoryPath();
+      final result = await FilePicker.getDirectoryPath();
 
       if (result != null) {
         // Validate directory is writable
