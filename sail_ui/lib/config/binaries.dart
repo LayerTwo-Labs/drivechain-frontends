@@ -1019,16 +1019,15 @@ class BitcoinCore extends Binary {
                downloadConfig: DownloadConfig(
                  baseUrls: {
                    ...allNetworksUrl(
-                     'https://bitcoincore.org/bin/bitcoin-core-30.2/',
+                     'https://releases.drivechain.info/',
                    ),
-                   BitcoinNetwork.BITCOIN_NETWORK_FORKNET: 'https://releases.drivechain.info/',
                  },
                  binary: 'bitcoind',
                  files: {
                    ...allNetworks({
-                     OS.linux: 'bitcoin-30.2-x86_64-linux-gnu.tar.gz',
-                     OS.macos: 'bitcoin-30.2-x86_64-apple-darwin.tar.gz',
-                     OS.windows: 'bitcoin-30.2-win64.zip',
+                     OS.linux: 'L1-bitcoin-patched-latest-x86_64-unknown-linux-gnu.zip',
+                     OS.macos: 'L1-bitcoin-patched-latest-x86_64-apple-darwin.zip',
+                     OS.windows: 'L1-bitcoin-patched-latest-x86_64-w64-msvc.zip',
                    }),
                    BitcoinNetwork.BITCOIN_NETWORK_FORKNET: {
                      OS.linux: 'L1-bitcoin-patched-forknet-x86_64-unknown-linux-gnu.zip',
