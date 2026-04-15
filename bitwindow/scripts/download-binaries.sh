@@ -46,4 +46,17 @@ fi
 
 echo "orchestratord has been built and moved to $assets_dir"
 
+# Build orchestratorctl
+echo "Building orchestratorctl"
+
+if [[ "$OSTYPE" == "darwin"* ]]; then
+    GOARCH=amd64 go build -o "$assets_dir/orchestratorctl" ./cmd/orchestratorctl
+elif [[ "$OSTYPE" == "msys" || "$OSTYPE" == "win32" ]]; then
+    go build -o "$assets_dir/orchestratorctl.exe" ./cmd/orchestratorctl
+else
+    go build -o "$assets_dir/orchestratorctl" ./cmd/orchestratorctl
+fi
+
+echo "orchestratorctl has been built and moved to $assets_dir"
+
 cd $original_cwd

@@ -140,6 +140,7 @@ class _IntegratedConsoleViewState extends State<IntegratedConsoleView> {
       'CoinShift': 'coinshift-cli',
       'ZSide': 'zside-cli',
       'GRPCurl': 'grpcurl',
+      'Orchestratord': 'orchestratorctl',
     };
 
     for (final binary in allBinaries) {
@@ -217,6 +218,7 @@ class _IntegratedConsoleViewState extends State<IntegratedConsoleView> {
       'bitnames-cli': 'Bitnames sidechain',
       'bitassets-cli': 'BitAssets sidechain',
       'zside-cli': 'ZSide sidechain',
+      'orchestratorctl': 'Orchestrator management',
     };
 
     terminal.write(
