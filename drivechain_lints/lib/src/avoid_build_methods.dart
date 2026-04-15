@@ -59,7 +59,8 @@ class AvoidBuildMethods extends DartLintRule {
 
       // Only flag if inside a State or StatelessWidget class
       // This excludes ViewModels, providers, etc.
-      final isViewClass = superclassName == 'State' || superclassName == 'StatelessWidget';
+      final isViewClass =
+          superclassName == 'State' || superclassName == 'StatelessWidget';
 
       if (isViewClass) {
         reporter.atNode(node, _code);

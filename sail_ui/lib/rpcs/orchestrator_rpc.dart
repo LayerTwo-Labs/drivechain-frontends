@@ -116,14 +116,16 @@ class OrchestratorRPC {
     bool deleteWalletFiles = false,
     bool alsoResetSidechains = false,
   }) {
-    return _client.previewResetData(PreviewResetDataRequest(
-      deleteBlockchainData: deleteBlockchainData,
-      deleteNodeSoftware: deleteNodeSoftware,
-      deleteLogs: deleteLogs,
-      deleteSettings: deleteSettings,
-      deleteWalletFiles: deleteWalletFiles,
-      alsoResetSidechains: alsoResetSidechains,
-    ));
+    return _client.previewResetData(
+      PreviewResetDataRequest(
+        deleteBlockchainData: deleteBlockchainData,
+        deleteNodeSoftware: deleteNodeSoftware,
+        deleteLogs: deleteLogs,
+        deleteSettings: deleteSettings,
+        deleteWalletFiles: deleteWalletFiles,
+        alsoResetSidechains: alsoResetSidechains,
+      ),
+    );
   }
 
   Stream<StreamResetDataResponse> streamResetData({
@@ -134,13 +136,15 @@ class OrchestratorRPC {
     bool deleteWalletFiles = false,
     bool alsoResetSidechains = false,
   }) {
-    return _client.streamResetData(StreamResetDataRequest(
-      deleteBlockchainData: deleteBlockchainData,
-      deleteNodeSoftware: deleteNodeSoftware,
-      deleteLogs: deleteLogs,
-      deleteSettings: deleteSettings,
-      deleteWalletFiles: deleteWalletFiles,
-      alsoResetSidechains: alsoResetSidechains,
-    ));
+    return _client.streamResetData(
+      StreamResetDataRequest(
+        deleteBlockchainData: deleteBlockchainData,
+        deleteNodeSoftware: deleteNodeSoftware,
+        deleteLogs: deleteLogs,
+        deleteSettings: deleteSettings,
+        deleteWalletFiles: deleteWalletFiles,
+        alsoResetSidechains: alsoResetSidechains,
+      ),
+    );
   }
 }
