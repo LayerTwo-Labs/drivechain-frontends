@@ -316,7 +316,7 @@ class _BackupWalletPageState extends State<BackupWalletPage> {
       ).format(DateTime.now());
       final defaultFileName = '${widget.appName.toLowerCase()}-backup-$timestamp.zip';
 
-      final result = await FilePicker.platform.saveFile(
+      final result = await FilePicker.saveFile(
         dialogTitle: 'Save Wallet Backup',
         fileName: defaultFileName,
         type: FileType.custom,
@@ -615,7 +615,7 @@ class _RestoreWalletPageState extends State<RestoreWalletPage> {
 
   Future<void> _selectBackupFile() async {
     try {
-      final result = await FilePicker.platform.pickFiles(
+      final result = await FilePicker.pickFiles(
         dialogTitle: 'Select Wallet Backup',
         type: FileType.custom,
         allowedExtensions: ['zip', 'json'],

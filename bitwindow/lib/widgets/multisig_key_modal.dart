@@ -286,7 +286,7 @@ class MultisigKeyModalViewModel extends BaseViewModel {
     final filename = '$keyName.conf';
 
     try {
-      final result = await FilePicker.platform.saveFile(
+      final result = await FilePicker.saveFile(
         dialogTitle: 'Save Multisig Key Configuration',
         fileName: filename,
         type: FileType.custom,

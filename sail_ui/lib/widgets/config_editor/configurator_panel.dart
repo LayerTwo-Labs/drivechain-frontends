@@ -660,11 +660,11 @@ class _FileInputState extends State<_FileInput> {
       String? result;
 
       if (widget.option.inputType == ConfigInputType.directory) {
-        result = await FilePicker.platform.getDirectoryPath(
+        result = await FilePicker.getDirectoryPath(
           initialDirectory: _controller.text.isNotEmpty ? _controller.text : null,
         );
       } else {
-        final fileResult = await FilePicker.platform.pickFiles(
+        final fileResult = await FilePicker.pickFiles(
           initialDirectory: _controller.text.isNotEmpty ? path.dirname(_controller.text) : null,
           type: FileType.any,
         );

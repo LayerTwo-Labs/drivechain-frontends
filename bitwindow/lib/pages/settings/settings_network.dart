@@ -62,7 +62,7 @@ class _SettingsNetworkState extends State<SettingsNetwork> {
     });
 
     try {
-      final result = await FilePicker.platform.getDirectoryPath(
+      final result = await FilePicker.getDirectoryPath(
         initialDirectory: _confProvider.detectedDataDir,
       );
       if (result != null) {
@@ -240,7 +240,7 @@ class _DataDirSelectionDialogState extends State<DataDirSelectionDialog> {
     });
 
     try {
-      final result = await FilePicker.platform.getDirectoryPath();
+      final result = await FilePicker.getDirectoryPath();
       if (result != null) {
         setState(() {
           selectedPath = result;

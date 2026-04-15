@@ -661,7 +661,7 @@ class CreateMultisigModalViewModel extends BaseViewModel {
 
   Future<void> importKeyFromFile(BuildContext context) async {
     try {
-      final result = await FilePicker.platform.pickFiles(
+      final result = await FilePicker.pickFiles(
         type: FileType.custom,
         allowedExtensions: ['json', 'conf'],
         dialogTitle: 'Select Key File to Import',
