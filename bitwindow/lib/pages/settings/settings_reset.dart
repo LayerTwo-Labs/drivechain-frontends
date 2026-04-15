@@ -408,8 +408,8 @@ class _ResetConfirmationPageState extends State<_ResetConfirmationPage> {
                                 _resetComplete
                                     ? 'Reset Complete'
                                     : _isResetting
-                                        ? 'Resetting...'
-                                        : 'Confirm Reset',
+                                    ? 'Resetting...'
+                                    : 'Confirm Reset',
                                 bold: true,
                               ),
                             ],
@@ -481,8 +481,8 @@ class _ResetConfirmationPageState extends State<_ResetConfirmationPage> {
                               child: _resetComplete
                                   ? _buildDeletionResultList(theme)
                                   : _isResetting
-                                      ? _buildDeletionProgressList(theme)
-                                      : _buildPreviewList(theme),
+                                  ? _buildDeletionProgressList(theme)
+                                  : _buildPreviewList(theme),
                             ),
                           ),
                         ],

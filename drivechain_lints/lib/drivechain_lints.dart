@@ -8,6 +8,6 @@ PluginBase createPlugin() => _DrivechainLints();
 class _DrivechainLints extends PluginBase {
   @override
   List<LintRule> getLintRules(CustomLintConfigs configs) => [
-        AvoidBuildMethods(),
-      ];
+    AvoidBuildMethods(),
+  ];
 }
