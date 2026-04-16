@@ -1566,31 +1566,12 @@ class _DataDirSelectionDialogState extends State<DataDirSelectionDialog> {
     });
 
     try {
-      // Get the default Bitcoin Core datadir to use as initial directory
-      final defaultDir = BitcoinCore().datadir();
-
-      final result = await FilePicker.platform.getDirectoryPath(
-        initialDirectory: defaultDir,
-      );
+      final result = await FilePicker.platform.getDirectoryPath();
       if (result != null) {
-        // Validate that the directory is writable
-        final testFile = File(path.join(result, '.bitwindow_test'));
-        try {
-          await testFile.writeAsString('test');
-          await testFile.delete();
-          setState(() {
-            selectedPath = result;
-          });
-        } catch (e) {
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('Selected directory is not writable: $e'),
-                backgroundColor: SailTheme.of(context).colors.error,
-              ),
-            );
-          }
-        }
+        // Writability is validated server-side when the datadir is persisted.
+        setState(() {
+          selectedPath = result;
+        });
       }
     } catch (e) {
       if (mounted) {
