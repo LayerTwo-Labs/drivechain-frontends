@@ -424,3 +424,10 @@ func (s *Server) WipeData(ctx context.Context, req *connect.Request[emptypb.Empt
 
 	return connect.NewResponse(&emptypb.Empty{}), nil
 }
+
+// GetBitdriveDir implements bitdrivev1connect.BitDriveServiceHandler.
+func (s *Server) GetBitdriveDir(ctx context.Context, req *connect.Request[emptypb.Empty]) (*connect.Response[bitdrivev1.GetBitdriveDirResponse], error) {
+	return connect.NewResponse(&bitdrivev1.GetBitdriveDirResponse{
+		Path: s.bitdriveEngine.GetDir(),
+	}), nil
+}

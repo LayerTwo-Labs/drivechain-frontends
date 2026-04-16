@@ -938,6 +938,50 @@ func (x *StoreMultisigDataResponse) GetTxid() string {
 	return ""
 }
 
+type GetBitdriveDirResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Path          string                 `protobuf:"bytes,1,opt,name=path,proto3" json:"path,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetBitdriveDirResponse) Reset() {
+	*x = GetBitdriveDirResponse{}
+	mi := &file_bitdrive_v1_bitdrive_proto_msgTypes[15]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetBitdriveDirResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetBitdriveDirResponse) ProtoMessage() {}
+
+func (x *GetBitdriveDirResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_bitdrive_v1_bitdrive_proto_msgTypes[15]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetBitdriveDirResponse.ProtoReflect.Descriptor instead.
+func (*GetBitdriveDirResponse) Descriptor() ([]byte, []int) {
+	return file_bitdrive_v1_bitdrive_proto_rawDescGZIP(), []int{15}
+}
+
+func (x *GetBitdriveDirResponse) GetPath() string {
+	if x != nil {
+		return x.Path
+	}
+	return ""
+}
+
 var File_bitdrive_v1_bitdrive_proto protoreflect.FileDescriptor
 
 const file_bitdrive_v1_bitdrive_proto_rawDesc = "" +
@@ -1002,7 +1046,9 @@ const file_bitdrive_v1_bitdrive_proto_rawDesc = "" +
 	"\aencrypt\x18\x02 \x01(\bR\aencrypt\x12)\n" +
 	"\x11fee_sat_per_vbyte\x18\x03 \x01(\x04R\x0efeeSatPerVbyte\"/\n" +
 	"\x19StoreMultisigDataResponse\x12\x12\n" +
-	"\x04txid\x18\x01 \x01(\tR\x04txid2\xd2\x05\n" +
+	"\x04txid\x18\x01 \x01(\tR\x04txid\",\n" +
+	"\x16GetBitdriveDirResponse\x12\x12\n" +
+	"\x04path\x18\x01 \x01(\tR\x04path2\xa1\x06\n" +
 	"\x0fBitDriveService\x12J\n" +
 	"\tStoreFile\x12\x1d.bitdrive.v1.StoreFileRequest\x1a\x1e.bitdrive.v1.StoreFileResponse\x12\\\n" +
 	"\x0fRetrieveContent\x12#.bitdrive.v1.RetrieveContentRequest\x1a$.bitdrive.v1.RetrieveContentResponse\x12I\n" +
@@ -1013,7 +1059,8 @@ const file_bitdrive_v1_bitdrive_proto_rawDesc = "" +
 	"\n" +
 	"DeleteFile\x12\x1e.bitdrive.v1.DeleteFileRequest\x1a\x16.google.protobuf.Empty\x12b\n" +
 	"\x11StoreMultisigData\x12%.bitdrive.v1.StoreMultisigDataRequest\x1a&.bitdrive.v1.StoreMultisigDataResponse\x12:\n" +
-	"\bWipeData\x12\x16.google.protobuf.Empty\x1a\x16.google.protobuf.EmptyB\xbc\x01\n" +
+	"\bWipeData\x12\x16.google.protobuf.Empty\x1a\x16.google.protobuf.Empty\x12M\n" +
+	"\x0eGetBitdriveDir\x12\x16.google.protobuf.Empty\x1a#.bitdrive.v1.GetBitdriveDirResponseB\xbc\x01\n" +
 	"\x0fcom.bitdrive.v1B\rBitdriveProtoP\x01ZMgithub.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/bitdrive/v1;bitdrivev1\xa2\x02\x03BXX\xaa\x02\vBitdrive.V1\xca\x02\vBitdrive\\V1\xe2\x02\x17Bitdrive\\V1\\GPBMetadata\xea\x02\fBitdrive::V1b\x06proto3"
 
 var (
@@ -1028,7 +1075,7 @@ func file_bitdrive_v1_bitdrive_proto_rawDescGZIP() []byte {
 	return file_bitdrive_v1_bitdrive_proto_rawDescData
 }
 
-var file_bitdrive_v1_bitdrive_proto_msgTypes = make([]protoimpl.MessageInfo, 15)
+var file_bitdrive_v1_bitdrive_proto_msgTypes = make([]protoimpl.MessageInfo, 16)
 var file_bitdrive_v1_bitdrive_proto_goTypes = []any{
 	(*BitDriveMetadata)(nil),             // 0: bitdrive.v1.BitDriveMetadata
 	(*StoreFileRequest)(nil),             // 1: bitdrive.v1.StoreFileRequest
@@ -1045,34 +1092,37 @@ var file_bitdrive_v1_bitdrive_proto_goTypes = []any{
 	(*DeleteFileRequest)(nil),            // 12: bitdrive.v1.DeleteFileRequest
 	(*StoreMultisigDataRequest)(nil),     // 13: bitdrive.v1.StoreMultisigDataRequest
 	(*StoreMultisigDataResponse)(nil),    // 14: bitdrive.v1.StoreMultisigDataResponse
-	(*timestamppb.Timestamp)(nil),        // 15: google.protobuf.Timestamp
-	(*emptypb.Empty)(nil),                // 16: google.protobuf.Empty
+	(*GetBitdriveDirResponse)(nil),       // 15: bitdrive.v1.GetBitdriveDirResponse
+	(*timestamppb.Timestamp)(nil),        // 16: google.protobuf.Timestamp
+	(*emptypb.Empty)(nil),                // 17: google.protobuf.Empty
 }
 var file_bitdrive_v1_bitdrive_proto_depIdxs = []int32{
 	6,  // 0: bitdrive.v1.ScanForFilesResponse.pending_files:type_name -> bitdrive.v1.PendingFile
-	15, // 1: bitdrive.v1.BitDriveFile.created_at:type_name -> google.protobuf.Timestamp
+	16, // 1: bitdrive.v1.BitDriveFile.created_at:type_name -> google.protobuf.Timestamp
 	8,  // 2: bitdrive.v1.ListFilesResponse.files:type_name -> bitdrive.v1.BitDriveFile
 	8,  // 3: bitdrive.v1.GetFileResponse.file:type_name -> bitdrive.v1.BitDriveFile
 	1,  // 4: bitdrive.v1.BitDriveService.StoreFile:input_type -> bitdrive.v1.StoreFileRequest
 	3,  // 5: bitdrive.v1.BitDriveService.RetrieveContent:input_type -> bitdrive.v1.RetrieveContentRequest
-	16, // 6: bitdrive.v1.BitDriveService.ScanForFiles:input_type -> google.protobuf.Empty
-	16, // 7: bitdrive.v1.BitDriveService.DownloadPendingFiles:input_type -> google.protobuf.Empty
-	16, // 8: bitdrive.v1.BitDriveService.ListFiles:input_type -> google.protobuf.Empty
+	17, // 6: bitdrive.v1.BitDriveService.ScanForFiles:input_type -> google.protobuf.Empty
+	17, // 7: bitdrive.v1.BitDriveService.DownloadPendingFiles:input_type -> google.protobuf.Empty
+	17, // 8: bitdrive.v1.BitDriveService.ListFiles:input_type -> google.protobuf.Empty
 	10, // 9: bitdrive.v1.BitDriveService.GetFile:input_type -> bitdrive.v1.GetFileRequest
 	12, // 10: bitdrive.v1.BitDriveService.DeleteFile:input_type -> bitdrive.v1.DeleteFileRequest
 	13, // 11: bitdrive.v1.BitDriveService.StoreMultisigData:input_type -> bitdrive.v1.StoreMultisigDataRequest
-	16, // 12: bitdrive.v1.BitDriveService.WipeData:input_type -> google.protobuf.Empty
-	2,  // 13: bitdrive.v1.BitDriveService.StoreFile:output_type -> bitdrive.v1.StoreFileResponse
-	4,  // 14: bitdrive.v1.BitDriveService.RetrieveContent:output_type -> bitdrive.v1.RetrieveContentResponse
-	5,  // 15: bitdrive.v1.BitDriveService.ScanForFiles:output_type -> bitdrive.v1.ScanForFilesResponse
-	7,  // 16: bitdrive.v1.BitDriveService.DownloadPendingFiles:output_type -> bitdrive.v1.DownloadPendingFilesResponse
-	9,  // 17: bitdrive.v1.BitDriveService.ListFiles:output_type -> bitdrive.v1.ListFilesResponse
-	11, // 18: bitdrive.v1.BitDriveService.GetFile:output_type -> bitdrive.v1.GetFileResponse
-	16, // 19: bitdrive.v1.BitDriveService.DeleteFile:output_type -> google.protobuf.Empty
-	14, // 20: bitdrive.v1.BitDriveService.StoreMultisigData:output_type -> bitdrive.v1.StoreMultisigDataResponse
-	16, // 21: bitdrive.v1.BitDriveService.WipeData:output_type -> google.protobuf.Empty
-	13, // [13:22] is the sub-list for method output_type
-	4,  // [4:13] is the sub-list for method input_type
+	17, // 12: bitdrive.v1.BitDriveService.WipeData:input_type -> google.protobuf.Empty
+	17, // 13: bitdrive.v1.BitDriveService.GetBitdriveDir:input_type -> google.protobuf.Empty
+	2,  // 14: bitdrive.v1.BitDriveService.StoreFile:output_type -> bitdrive.v1.StoreFileResponse
+	4,  // 15: bitdrive.v1.BitDriveService.RetrieveContent:output_type -> bitdrive.v1.RetrieveContentResponse
+	5,  // 16: bitdrive.v1.BitDriveService.ScanForFiles:output_type -> bitdrive.v1.ScanForFilesResponse
+	7,  // 17: bitdrive.v1.BitDriveService.DownloadPendingFiles:output_type -> bitdrive.v1.DownloadPendingFilesResponse
+	9,  // 18: bitdrive.v1.BitDriveService.ListFiles:output_type -> bitdrive.v1.ListFilesResponse
+	11, // 19: bitdrive.v1.BitDriveService.GetFile:output_type -> bitdrive.v1.GetFileResponse
+	17, // 20: bitdrive.v1.BitDriveService.DeleteFile:output_type -> google.protobuf.Empty
+	14, // 21: bitdrive.v1.BitDriveService.StoreMultisigData:output_type -> bitdrive.v1.StoreMultisigDataResponse
+	17, // 22: bitdrive.v1.BitDriveService.WipeData:output_type -> google.protobuf.Empty
+	15, // 23: bitdrive.v1.BitDriveService.GetBitdriveDir:output_type -> bitdrive.v1.GetBitdriveDirResponse
+	14, // [14:24] is the sub-list for method output_type
+	4,  // [4:14] is the sub-list for method input_type
 	4,  // [4:4] is the sub-list for extension type_name
 	4,  // [4:4] is the sub-list for extension extendee
 	0,  // [0:4] is the sub-list for field type_name
@@ -1089,7 +1139,7 @@ func file_bitdrive_v1_bitdrive_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_bitdrive_v1_bitdrive_proto_rawDesc), len(file_bitdrive_v1_bitdrive_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   15,
+			NumMessages:   16,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

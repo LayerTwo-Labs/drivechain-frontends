@@ -360,6 +360,19 @@ class MockWalletAPI implements WalletAPI {
   }) {
     return Future.value(SelectCoinsResponse());
   }
+
+  @override
+  Future<CreateBackupResponse> createBackup() {
+    return Future.value(CreateBackupResponse());
+  }
+
+  @override
+  Future<void> restoreBackup(List<int> backupData, String filename) async {}
+
+  @override
+  Future<ValidateBackupResponse> validateBackup(List<int> backupData, String filename) {
+    return Future.value(ValidateBackupResponse(valid: true));
+  }
 }
 
 class MockBitcoindAPI implements BitcoindAPI {
@@ -653,6 +666,11 @@ class MockBitDriveAPI implements BitDriveAPI {
   @override
   Future<void> wipeData() {
     return Future.value();
+  }
+
+  @override
+  Future<String> getBitdriveDir() {
+    return Future.value('/tmp/mock-bitdrive');
   }
 }
 

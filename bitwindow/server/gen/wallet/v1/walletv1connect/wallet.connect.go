@@ -121,6 +121,15 @@ const (
 	// WalletServiceSelectCoinsProcedure is the fully-qualified name of the WalletService's SelectCoins
 	// RPC.
 	WalletServiceSelectCoinsProcedure = "/wallet.v1.WalletService/SelectCoins"
+	// WalletServiceCreateBackupProcedure is the fully-qualified name of the WalletService's
+	// CreateBackup RPC.
+	WalletServiceCreateBackupProcedure = "/wallet.v1.WalletService/CreateBackup"
+	// WalletServiceRestoreBackupProcedure is the fully-qualified name of the WalletService's
+	// RestoreBackup RPC.
+	WalletServiceRestoreBackupProcedure = "/wallet.v1.WalletService/RestoreBackup"
+	// WalletServiceValidateBackupProcedure is the fully-qualified name of the WalletService's
+	// ValidateBackup RPC.
+	WalletServiceValidateBackupProcedure = "/wallet.v1.WalletService/ValidateBackup"
 )
 
 // WalletServiceClient is a client for the wallet.v1.WalletService service.
@@ -165,6 +174,10 @@ type WalletServiceClient interface {
 	BumpFee(context.Context, *connect.Request[v1.BumpFeeRequest]) (*connect.Response[v1.BumpFeeResponse], error)
 	// Coin Selection - Select UTXOs for a transaction
 	SelectCoins(context.Context, *connect.Request[v1.SelectCoinsRequest]) (*connect.Response[v1.SelectCoinsResponse], error)
+	// Backup / Restore
+	CreateBackup(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.CreateBackupResponse], error)
+	RestoreBackup(context.Context, *connect.Request[v1.RestoreBackupRequest]) (*connect.Response[emptypb.Empty], error)
+	ValidateBackup(context.Context, *connect.Request[v1.ValidateBackupRequest]) (*connect.Response[v1.ValidateBackupResponse], error)
 }
 
 // NewWalletServiceClient constructs a client for the wallet.v1.WalletService service. By default,
@@ -358,6 +371,24 @@ func NewWalletServiceClient(httpClient connect.HTTPClient, baseURL string, opts 
 			connect.WithSchema(walletServiceMethods.ByName("SelectCoins")),
 			connect.WithClientOptions(opts...),
 		),
+		createBackup: connect.NewClient[emptypb.Empty, v1.CreateBackupResponse](
+			httpClient,
+			baseURL+WalletServiceCreateBackupProcedure,
+			connect.WithSchema(walletServiceMethods.ByName("CreateBackup")),
+			connect.WithClientOptions(opts...),
+		),
+		restoreBackup: connect.NewClient[v1.RestoreBackupRequest, emptypb.Empty](
+			httpClient,
+			baseURL+WalletServiceRestoreBackupProcedure,
+			connect.WithSchema(walletServiceMethods.ByName("RestoreBackup")),
+			connect.WithClientOptions(opts...),
+		),
+		validateBackup: connect.NewClient[v1.ValidateBackupRequest, v1.ValidateBackupResponse](
+			httpClient,
+			baseURL+WalletServiceValidateBackupProcedure,
+			connect.WithSchema(walletServiceMethods.ByName("ValidateBackup")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -393,6 +424,9 @@ type walletServiceClient struct {
 	getUTXODistribution      *connect.Client[v1.GetUTXODistributionRequest, v1.GetUTXODistributionResponse]
 	bumpFee                  *connect.Client[v1.BumpFeeRequest, v1.BumpFeeResponse]
 	selectCoins              *connect.Client[v1.SelectCoinsRequest, v1.SelectCoinsResponse]
+	createBackup             *connect.Client[emptypb.Empty, v1.CreateBackupResponse]
+	restoreBackup            *connect.Client[v1.RestoreBackupRequest, emptypb.Empty]
+	validateBackup           *connect.Client[v1.ValidateBackupRequest, v1.ValidateBackupResponse]
 }
 
 // CreateBitcoinCoreWallet calls wallet.v1.WalletService.CreateBitcoinCoreWallet.
@@ -545,6 +579,21 @@ func (c *walletServiceClient) SelectCoins(ctx context.Context, req *connect.Requ
 	return c.selectCoins.CallUnary(ctx, req)
 }
 
+// CreateBackup calls wallet.v1.WalletService.CreateBackup.
+func (c *walletServiceClient) CreateBackup(ctx context.Context, req *connect.Request[emptypb.Empty]) (*connect.Response[v1.CreateBackupResponse], error) {
+	return c.createBackup.CallUnary(ctx, req)
+}
+
+// RestoreBackup calls wallet.v1.WalletService.RestoreBackup.
+func (c *walletServiceClient) RestoreBackup(ctx context.Context, req *connect.Request[v1.RestoreBackupRequest]) (*connect.Response[emptypb.Empty], error) {
+	return c.restoreBackup.CallUnary(ctx, req)
+}
+
+// ValidateBackup calls wallet.v1.WalletService.ValidateBackup.
+func (c *walletServiceClient) ValidateBackup(ctx context.Context, req *connect.Request[v1.ValidateBackupRequest]) (*connect.Response[v1.ValidateBackupResponse], error) {
+	return c.validateBackup.CallUnary(ctx, req)
+}
+
 // WalletServiceHandler is an implementation of the wallet.v1.WalletService service.
 type WalletServiceHandler interface {
 	CreateBitcoinCoreWallet(context.Context, *connect.Request[v1.CreateBitcoinCoreWalletRequest]) (*connect.Response[v1.CreateBitcoinCoreWalletResponse], error)
@@ -587,6 +636,10 @@ type WalletServiceHandler interface {
 	BumpFee(context.Context, *connect.Request[v1.BumpFeeRequest]) (*connect.Response[v1.BumpFeeResponse], error)
 	// Coin Selection - Select UTXOs for a transaction
 	SelectCoins(context.Context, *connect.Request[v1.SelectCoinsRequest]) (*connect.Response[v1.SelectCoinsResponse], error)
+	// Backup / Restore
+	CreateBackup(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.CreateBackupResponse], error)
+	RestoreBackup(context.Context, *connect.Request[v1.RestoreBackupRequest]) (*connect.Response[emptypb.Empty], error)
+	ValidateBackup(context.Context, *connect.Request[v1.ValidateBackupRequest]) (*connect.Response[v1.ValidateBackupResponse], error)
 }
 
 // NewWalletServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -776,6 +829,24 @@ func NewWalletServiceHandler(svc WalletServiceHandler, opts ...connect.HandlerOp
 		connect.WithSchema(walletServiceMethods.ByName("SelectCoins")),
 		connect.WithHandlerOptions(opts...),
 	)
+	walletServiceCreateBackupHandler := connect.NewUnaryHandler(
+		WalletServiceCreateBackupProcedure,
+		svc.CreateBackup,
+		connect.WithSchema(walletServiceMethods.ByName("CreateBackup")),
+		connect.WithHandlerOptions(opts...),
+	)
+	walletServiceRestoreBackupHandler := connect.NewUnaryHandler(
+		WalletServiceRestoreBackupProcedure,
+		svc.RestoreBackup,
+		connect.WithSchema(walletServiceMethods.ByName("RestoreBackup")),
+		connect.WithHandlerOptions(opts...),
+	)
+	walletServiceValidateBackupHandler := connect.NewUnaryHandler(
+		WalletServiceValidateBackupProcedure,
+		svc.ValidateBackup,
+		connect.WithSchema(walletServiceMethods.ByName("ValidateBackup")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/wallet.v1.WalletService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case WalletServiceCreateBitcoinCoreWalletProcedure:
@@ -838,6 +909,12 @@ func NewWalletServiceHandler(svc WalletServiceHandler, opts ...connect.HandlerOp
 			walletServiceBumpFeeHandler.ServeHTTP(w, r)
 		case WalletServiceSelectCoinsProcedure:
 			walletServiceSelectCoinsHandler.ServeHTTP(w, r)
+		case WalletServiceCreateBackupProcedure:
+			walletServiceCreateBackupHandler.ServeHTTP(w, r)
+		case WalletServiceRestoreBackupProcedure:
+			walletServiceRestoreBackupHandler.ServeHTTP(w, r)
+		case WalletServiceValidateBackupProcedure:
+			walletServiceValidateBackupHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -965,4 +1042,16 @@ func (UnimplementedWalletServiceHandler) BumpFee(context.Context, *connect.Reque
 
 func (UnimplementedWalletServiceHandler) SelectCoins(context.Context, *connect.Request[v1.SelectCoinsRequest]) (*connect.Response[v1.SelectCoinsResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("wallet.v1.WalletService.SelectCoins is not implemented"))
+}
+
+func (UnimplementedWalletServiceHandler) CreateBackup(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.CreateBackupResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("wallet.v1.WalletService.CreateBackup is not implemented"))
+}
+
+func (UnimplementedWalletServiceHandler) RestoreBackup(context.Context, *connect.Request[v1.RestoreBackupRequest]) (*connect.Response[emptypb.Empty], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("wallet.v1.WalletService.RestoreBackup is not implemented"))
+}
+
+func (UnimplementedWalletServiceHandler) ValidateBackup(context.Context, *connect.Request[v1.ValidateBackupRequest]) (*connect.Response[v1.ValidateBackupResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("wallet.v1.WalletService.ValidateBackup is not implemented"))
 }

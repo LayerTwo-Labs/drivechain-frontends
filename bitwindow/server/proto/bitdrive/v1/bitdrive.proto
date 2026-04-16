@@ -32,6 +32,9 @@ service BitDriveService {
 
   // Wipe all local BitDrive data
   rpc WipeData(google.protobuf.Empty) returns (google.protobuf.Empty);
+
+  // Get the BitDrive data directory path
+  rpc GetBitdriveDir(google.protobuf.Empty) returns (GetBitdriveDirResponse);
 }
 
 // File metadata stored in OP_RETURN (9 bytes total)
@@ -151,4 +154,8 @@ message StoreMultisigDataRequest {
 
 message StoreMultisigDataResponse {
   string txid = 1;
+}
+
+message GetBitdriveDirResponse {
+  string path = 1;
 }
