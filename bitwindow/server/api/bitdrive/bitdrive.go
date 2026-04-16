@@ -431,3 +431,11 @@ func (s *Server) GetBitdriveDir(ctx context.Context, req *connect.Request[emptyp
 		Path: s.bitdriveEngine.GetDir(),
 	}), nil
 }
+
+// OpenBitdriveDir implements bitdrivev1connect.BitDriveServiceHandler.
+func (s *Server) OpenBitdriveDir(ctx context.Context, req *connect.Request[emptypb.Empty]) (*connect.Response[emptypb.Empty], error) {
+	if err := s.bitdriveEngine.OpenDir(ctx); err != nil {
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("open bitdrive dir: %w", err))
+	}
+	return connect.NewResponse(&emptypb.Empty{}), nil
+}

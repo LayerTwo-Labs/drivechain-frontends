@@ -35,6 +35,9 @@ service BitDriveService {
 
   // Get the BitDrive data directory path
   rpc GetBitdriveDir(google.protobuf.Empty) returns (GetBitdriveDirResponse);
+
+  // Open the BitDrive data directory in the OS file manager
+  rpc OpenBitdriveDir(google.protobuf.Empty) returns (google.protobuf.Empty);
 }
 
 // File metadata stored in OP_RETURN (9 bytes total)

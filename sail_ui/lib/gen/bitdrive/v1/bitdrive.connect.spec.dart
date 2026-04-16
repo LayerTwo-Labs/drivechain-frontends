@@ -90,4 +90,12 @@ abstract final class BitDriveService {
     googleprotobufempty.Empty.new,
     bitdrivev1bitdrive.GetBitdriveDirResponse.new,
   );
+
+  /// Open the BitDrive data directory in the OS file manager
+  static const openBitdriveDir = connect.Spec(
+    '/$name/OpenBitdriveDir',
+    connect.StreamType.unary,
+    googleprotobufempty.Empty.new,
+    googleprotobufempty.Empty.new,
+  );
 }

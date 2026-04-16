@@ -1,24 +1,20 @@
-// This is a generated file - do not edit.
 //
-// Generated from bitdrive/v1/bitdrive.proto.
-
-// @dart = 3.3
+//  Generated code. Do not modify.
+//  source: bitdrive/v1/bitdrive.proto
+//
+// @dart = 2.12
 
 // ignore_for_file: annotate_overrides, camel_case_types, comment_references
-// ignore_for_file: constant_identifier_names
-// ignore_for_file: curly_braces_in_flow_control_structures
-// ignore_for_file: deprecated_member_use_from_same_package, library_prefixes
-// ignore_for_file: non_constant_identifier_names, prefer_relative_imports
-// ignore_for_file: unused_import
+// ignore_for_file: constant_identifier_names, library_prefixes
+// ignore_for_file: non_constant_identifier_names, prefer_final_fields
+// ignore_for_file: unnecessary_import, unnecessary_this, unused_import
 
 import 'dart:convert' as $convert;
 import 'dart:core' as $core;
 import 'dart:typed_data' as $typed_data;
 
-import 'package:protobuf/well_known_types/google/protobuf/empty.pbjson.dart'
-    as $1;
-import 'package:protobuf/well_known_types/google/protobuf/timestamp.pbjson.dart'
-    as $0;
+import '../../google/protobuf/empty.pbjson.dart' as $1;
+import '../../google/protobuf/timestamp.pbjson.dart' as $0;
 
 @$core.Deprecated('Use bitDriveMetadataDescriptor instead')
 const BitDriveMetadata$json = {
@@ -78,9 +74,8 @@ const RetrieveContentRequest$json = {
 };
 
 /// Descriptor for `RetrieveContentRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List retrieveContentRequestDescriptor =
-    $convert.base64Decode(
-        'ChZSZXRyaWV2ZUNvbnRlbnRSZXF1ZXN0EhIKBHR4aWQYASABKAlSBHR4aWQ=');
+final $typed_data.Uint8List retrieveContentRequestDescriptor = $convert.base64Decode(
+    'ChZSZXRyaWV2ZUNvbnRlbnRSZXF1ZXN0EhIKBHR4aWQYASABKAlSBHR4aWQ=');
 
 @$core.Deprecated('Use retrieveContentResponseDescriptor instead')
 const RetrieveContentResponse$json = {
@@ -103,14 +98,7 @@ final $typed_data.Uint8List retrieveContentResponseDescriptor = $convert.base64D
 const ScanForFilesResponse$json = {
   '1': 'ScanForFilesResponse',
   '2': [
-    {
-      '1': 'pending_files',
-      '3': 1,
-      '4': 3,
-      '5': 11,
-      '6': '.bitdrive.v1.PendingFile',
-      '10': 'pendingFiles'
-    },
+    {'1': 'pending_files', '3': 1, '4': 3, '5': 11, '6': '.bitdrive.v1.PendingFile', '10': 'pendingFiles'},
     {'1': 'total_scanned', '3': 2, '4': 1, '5': 13, '10': 'totalScanned'},
   ],
 };
@@ -149,10 +137,9 @@ const DownloadPendingFilesResponse$json = {
 };
 
 /// Descriptor for `DownloadPendingFilesResponse`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List downloadPendingFilesResponseDescriptor =
-    $convert.base64Decode(
-        'ChxEb3dubG9hZFBlbmRpbmdGaWxlc1Jlc3BvbnNlEikKEGRvd25sb2FkZWRfY291bnQYASABKA'
-        '1SD2Rvd25sb2FkZWRDb3VudBIhCgxmYWlsZWRfY291bnQYAiABKA1SC2ZhaWxlZENvdW50');
+final $typed_data.Uint8List downloadPendingFilesResponseDescriptor = $convert.base64Decode(
+    'ChxEb3dubG9hZFBlbmRpbmdGaWxlc1Jlc3BvbnNlEikKEGRvd25sb2FkZWRfY291bnQYASABKA'
+    '1SD2Rvd25sb2FkZWRDb3VudBIhCgxmYWlsZWRfY291bnQYAiABKA1SC2ZhaWxlZENvdW50');
 
 @$core.Deprecated('Use bitDriveFileDescriptor instead')
 const BitDriveFile$json = {
@@ -165,14 +152,7 @@ const BitDriveFile$json = {
     {'1': 'encrypted', '3': 5, '4': 1, '5': 8, '10': 'encrypted'},
     {'1': 'txid', '3': 6, '4': 1, '5': 9, '10': 'txid'},
     {'1': 'timestamp', '3': 7, '4': 1, '5': 13, '10': 'timestamp'},
-    {
-      '1': 'created_at',
-      '3': 8,
-      '4': 1,
-      '5': 11,
-      '6': '.google.protobuf.Timestamp',
-      '10': 'createdAt'
-    },
+    {'1': 'created_at', '3': 8, '4': 1, '5': 11, '6': '.google.protobuf.Timestamp', '10': 'createdAt'},
   ],
 };
 
@@ -188,14 +168,7 @@ final $typed_data.Uint8List bitDriveFileDescriptor = $convert.base64Decode(
 const ListFilesResponse$json = {
   '1': 'ListFilesResponse',
   '2': [
-    {
-      '1': 'files',
-      '3': 1,
-      '4': 3,
-      '5': 11,
-      '6': '.bitdrive.v1.BitDriveFile',
-      '10': 'files'
-    },
+    {'1': 'files', '3': 1, '4': 3, '5': 11, '6': '.bitdrive.v1.BitDriveFile', '10': 'files'},
   ],
 };
 
@@ -221,14 +194,7 @@ final $typed_data.Uint8List getFileRequestDescriptor = $convert.base64Decode(
 const GetFileResponse$json = {
   '1': 'GetFileResponse',
   '2': [
-    {
-      '1': 'file',
-      '3': 1,
-      '4': 1,
-      '5': 11,
-      '6': '.bitdrive.v1.BitDriveFile',
-      '10': 'file'
-    },
+    {'1': 'file', '3': 1, '4': 1, '5': 11, '6': '.bitdrive.v1.BitDriveFile', '10': 'file'},
     {'1': 'content', '3': 2, '4': 1, '5': 12, '10': 'content'},
   ],
 };
@@ -247,8 +213,8 @@ const DeleteFileRequest$json = {
 };
 
 /// Descriptor for `DeleteFileRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List deleteFileRequestDescriptor =
-    $convert.base64Decode('ChFEZWxldGVGaWxlUmVxdWVzdBIOCgJpZBgBIAEoA1ICaWQ=');
+final $typed_data.Uint8List deleteFileRequestDescriptor = $convert.base64Decode(
+    'ChFEZWxldGVGaWxlUmVxdWVzdBIOCgJpZBgBIAEoA1ICaWQ=');
 
 @$core.Deprecated('Use storeMultisigDataRequestDescriptor instead')
 const StoreMultisigDataRequest$json = {
@@ -275,9 +241,8 @@ const StoreMultisigDataResponse$json = {
 };
 
 /// Descriptor for `StoreMultisigDataResponse`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List storeMultisigDataResponseDescriptor =
-    $convert.base64Decode(
-        'ChlTdG9yZU11bHRpc2lnRGF0YVJlc3BvbnNlEhIKBHR4aWQYASABKAlSBHR4aWQ=');
+final $typed_data.Uint8List storeMultisigDataResponseDescriptor = $convert.base64Decode(
+    'ChlTdG9yZU11bHRpc2lnRGF0YVJlc3BvbnNlEhIKBHR4aWQYASABKAlSBHR4aWQ=');
 
 @$core.Deprecated('Use getBitdriveDirResponseDescriptor instead')
 const GetBitdriveDirResponse$json = {
@@ -288,69 +253,28 @@ const GetBitdriveDirResponse$json = {
 };
 
 /// Descriptor for `GetBitdriveDirResponse`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List getBitdriveDirResponseDescriptor =
-    $convert.base64Decode(
-        'ChZHZXRCaXRkcml2ZURpclJlc3BvbnNlEhIKBHBhdGgYASABKAlSBHBhdGg=');
+final $typed_data.Uint8List getBitdriveDirResponseDescriptor = $convert.base64Decode(
+    'ChZHZXRCaXRkcml2ZURpclJlc3BvbnNlEhIKBHBhdGgYASABKAlSBHBhdGg=');
 
 const $core.Map<$core.String, $core.dynamic> BitDriveServiceBase$json = {
   '1': 'BitDriveService',
   '2': [
-    {
-      '1': 'StoreFile',
-      '2': '.bitdrive.v1.StoreFileRequest',
-      '3': '.bitdrive.v1.StoreFileResponse'
-    },
-    {
-      '1': 'RetrieveContent',
-      '2': '.bitdrive.v1.RetrieveContentRequest',
-      '3': '.bitdrive.v1.RetrieveContentResponse'
-    },
-    {
-      '1': 'ScanForFiles',
-      '2': '.google.protobuf.Empty',
-      '3': '.bitdrive.v1.ScanForFilesResponse'
-    },
-    {
-      '1': 'DownloadPendingFiles',
-      '2': '.google.protobuf.Empty',
-      '3': '.bitdrive.v1.DownloadPendingFilesResponse'
-    },
-    {
-      '1': 'ListFiles',
-      '2': '.google.protobuf.Empty',
-      '3': '.bitdrive.v1.ListFilesResponse'
-    },
-    {
-      '1': 'GetFile',
-      '2': '.bitdrive.v1.GetFileRequest',
-      '3': '.bitdrive.v1.GetFileResponse'
-    },
-    {
-      '1': 'DeleteFile',
-      '2': '.bitdrive.v1.DeleteFileRequest',
-      '3': '.google.protobuf.Empty'
-    },
-    {
-      '1': 'StoreMultisigData',
-      '2': '.bitdrive.v1.StoreMultisigDataRequest',
-      '3': '.bitdrive.v1.StoreMultisigDataResponse'
-    },
-    {
-      '1': 'WipeData',
-      '2': '.google.protobuf.Empty',
-      '3': '.google.protobuf.Empty'
-    },
-    {
-      '1': 'GetBitdriveDir',
-      '2': '.google.protobuf.Empty',
-      '3': '.bitdrive.v1.GetBitdriveDirResponse'
-    },
+    {'1': 'StoreFile', '2': '.bitdrive.v1.StoreFileRequest', '3': '.bitdrive.v1.StoreFileResponse'},
+    {'1': 'RetrieveContent', '2': '.bitdrive.v1.RetrieveContentRequest', '3': '.bitdrive.v1.RetrieveContentResponse'},
+    {'1': 'ScanForFiles', '2': '.google.protobuf.Empty', '3': '.bitdrive.v1.ScanForFilesResponse'},
+    {'1': 'DownloadPendingFiles', '2': '.google.protobuf.Empty', '3': '.bitdrive.v1.DownloadPendingFilesResponse'},
+    {'1': 'ListFiles', '2': '.google.protobuf.Empty', '3': '.bitdrive.v1.ListFilesResponse'},
+    {'1': 'GetFile', '2': '.bitdrive.v1.GetFileRequest', '3': '.bitdrive.v1.GetFileResponse'},
+    {'1': 'DeleteFile', '2': '.bitdrive.v1.DeleteFileRequest', '3': '.google.protobuf.Empty'},
+    {'1': 'StoreMultisigData', '2': '.bitdrive.v1.StoreMultisigDataRequest', '3': '.bitdrive.v1.StoreMultisigDataResponse'},
+    {'1': 'WipeData', '2': '.google.protobuf.Empty', '3': '.google.protobuf.Empty'},
+    {'1': 'GetBitdriveDir', '2': '.google.protobuf.Empty', '3': '.bitdrive.v1.GetBitdriveDirResponse'},
+    {'1': 'OpenBitdriveDir', '2': '.google.protobuf.Empty', '3': '.google.protobuf.Empty'},
   ],
 };
 
 @$core.Deprecated('Use bitDriveServiceDescriptor instead')
-const $core.Map<$core.String, $core.Map<$core.String, $core.dynamic>>
-    BitDriveServiceBase$messageJson = {
+const $core.Map<$core.String, $core.Map<$core.String, $core.dynamic>> BitDriveServiceBase$messageJson = {
   '.bitdrive.v1.StoreFileRequest': StoreFileRequest$json,
   '.bitdrive.v1.StoreFileResponse': StoreFileResponse$json,
   '.bitdrive.v1.RetrieveContentRequest': RetrieveContentRequest$json,
@@ -358,8 +282,7 @@ const $core.Map<$core.String, $core.Map<$core.String, $core.dynamic>>
   '.google.protobuf.Empty': $1.Empty$json,
   '.bitdrive.v1.ScanForFilesResponse': ScanForFilesResponse$json,
   '.bitdrive.v1.PendingFile': PendingFile$json,
-  '.bitdrive.v1.DownloadPendingFilesResponse':
-      DownloadPendingFilesResponse$json,
+  '.bitdrive.v1.DownloadPendingFilesResponse': DownloadPendingFilesResponse$json,
   '.bitdrive.v1.ListFilesResponse': ListFilesResponse$json,
   '.bitdrive.v1.BitDriveFile': BitDriveFile$json,
   '.google.protobuf.Timestamp': $0.Timestamp$json,
@@ -387,4 +310,6 @@ final $typed_data.Uint8List bitDriveServiceDescriptor = $convert.base64Decode(
     'dEYXRhUmVxdWVzdBomLmJpdGRyaXZlLnYxLlN0b3JlTXVsdGlzaWdEYXRhUmVzcG9uc2USOgoI'
     'V2lwZURhdGESFi5nb29nbGUucHJvdG9idWYuRW1wdHkaFi5nb29nbGUucHJvdG9idWYuRW1wdH'
     'kSTQoOR2V0Qml0ZHJpdmVEaXISFi5nb29nbGUucHJvdG9idWYuRW1wdHkaIy5iaXRkcml2ZS52'
-    'MS5HZXRCaXRkcml2ZURpclJlc3BvbnNl');
+    'MS5HZXRCaXRkcml2ZURpclJlc3BvbnNlEkEKD09wZW5CaXRkcml2ZURpchIWLmdvb2dsZS5wcm'
+    '90b2J1Zi5FbXB0eRoWLmdvb2dsZS5wcm90b2J1Zi5FbXB0eQ==');
+

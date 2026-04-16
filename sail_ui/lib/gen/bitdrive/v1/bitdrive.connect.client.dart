@@ -188,4 +188,22 @@ extension type BitDriveServiceClient (connect.Transport _transport) {
       onTrailer: onTrailer,
     );
   }
+
+  /// Open the BitDrive data directory in the OS file manager
+  Future<googleprotobufempty.Empty> openBitdriveDir(
+    googleprotobufempty.Empty input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.BitDriveService.openBitdriveDir,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
 }

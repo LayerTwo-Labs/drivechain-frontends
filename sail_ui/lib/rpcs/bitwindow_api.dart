@@ -1999,6 +1999,8 @@ abstract class BitDriveAPI {
   Future<void> wipeData();
 
   Future<String> getBitdriveDir();
+
+  Future<void> openBitdriveDir();
 }
 
 class _BitDriveAPILive implements BitDriveAPI {
@@ -2137,6 +2139,16 @@ class _BitDriveAPILive implements BitDriveAPI {
       return response.path;
     } catch (e) {
       final error = 'could not get bitdrive dir: ${extractConnectException(e)}';
+      throw BitDriveException(error);
+    }
+  }
+
+  @override
+  Future<void> openBitdriveDir() async {
+    try {
+      await _client.openBitdriveDir(Empty());
+    } catch (e) {
+      final error = 'could not open bitdrive dir: ${extractConnectException(e)}';
       throw BitDriveException(error);
     }
   }
