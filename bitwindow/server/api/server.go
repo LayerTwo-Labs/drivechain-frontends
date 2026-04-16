@@ -22,6 +22,7 @@ import (
 	api_health "github.com/LayerTwo-Labs/sidesail/bitwindow/server/api/health"
 	api_m4 "github.com/LayerTwo-Labs/sidesail/bitwindow/server/api/m4"
 	api_misc "github.com/LayerTwo-Labs/sidesail/bitwindow/server/api/misc"
+	api_multisig "github.com/LayerTwo-Labs/sidesail/bitwindow/server/api/multisig"
 	api_notification "github.com/LayerTwo-Labs/sidesail/bitwindow/server/api/notification"
 	api_sidechain "github.com/LayerTwo-Labs/sidesail/bitwindow/server/api/sidechain"
 	api_utils "github.com/LayerTwo-Labs/sidesail/bitwindow/server/api/utils"
@@ -37,6 +38,7 @@ import (
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/health/v1/healthv1connect"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/m4/v1/m4v1connect"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/misc/v1/miscv1connect"
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/multisig/v1/multisigv1connect"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/notification/v1/notificationv1connect"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/sidechain/v1/sidechainv1connect"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/utils/v1/utilsv1connect"
@@ -283,6 +285,9 @@ func New(
 	Register(srv, sidechainv1connect.NewSidechainServiceHandler, sidechainv1connect.SidechainServiceHandler(api_sidechain.New(
 		sidechainMonitorEngine,
 	)))
+	multisigServer := api_multisig.New(svcs.Database)
+	Register(srv, multisigv1connect.NewMultisigServiceHandler, multisigv1connect.MultisigServiceHandler(multisigServer))
+
 	Register(srv, fast_withdrawalv1connect.NewFastWithdrawalServiceHandler, fast_withdrawalv1connect.FastWithdrawalServiceHandler(api_fast_withdrawal.New(
 		thunderSvc,
 		bitnamesSvc,
