@@ -260,7 +260,7 @@ class ImportTxidModalViewModel extends BaseViewModel {
       loadingStatus = 'Saving multisig group...';
       notifyListeners();
 
-      await _saveMultisigToLocalFile(multisigData);
+      await _saveImportedGroup(multisigData);
 
       try {
         loadingStatus = 'Setting up watch wallet...';
@@ -366,7 +366,7 @@ class ImportTxidModalViewModel extends BaseViewModel {
     return walletKeyCount;
   }
 
-  Future<void> _saveMultisigToLocalFile(Map<String, dynamic> multisigData) async {
+  Future<void> _saveImportedGroup(Map<String, dynamic> multisigData) async {
     final importedGroup = MultisigGroup.fromJson(multisigData);
 
     final existingGroups = await MultisigStorage.loadGroups();
@@ -384,6 +384,6 @@ class ImportTxidModalViewModel extends BaseViewModel {
     }
 
     await MultisigStorage.saveGroups(updatedGroups);
-    _logger.d('Successfully saved group using atomic MultisigStorage operation');
+    _logger.d('Successfully saved imported group via RPC');
   }
 }

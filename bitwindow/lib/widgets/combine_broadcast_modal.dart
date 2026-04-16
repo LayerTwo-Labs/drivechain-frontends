@@ -180,7 +180,7 @@ class _CombineBroadcastModalState extends State<CombineBroadcastModal> {
         reason: 'Transaction broadcast',
       );
 
-      await TransactionStorage.cleanupPSBTFromMultisigFile(tx.id);
+      await TransactionStorage.cleanupPSBTFromGroup(tx.id);
 
       widget.onSuccess();
 

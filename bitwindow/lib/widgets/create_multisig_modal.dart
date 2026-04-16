@@ -1,7 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:bitwindow/env.dart';
 import 'package:bitwindow/models/multisig_group.dart';
 import 'package:bitwindow/providers/hd_wallet_provider.dart';
 import 'package:bitwindow/providers/multisig_provider.dart';
@@ -13,7 +12,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
-import 'package:path/path.dart' as path;
 import 'package:sail_ui/rpcs/orchestrator_wallet_rpc.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:stacked/stacked.dart';
@@ -690,8 +688,6 @@ class CreateMultisigModalViewModel extends BaseViewModel {
 
       _lastKeyWasGenerated = false;
 
-      await _copyKeyToImportedKeys(file.path!, keyData);
-
       modalError = null;
       notifyListeners();
 
@@ -727,21 +723,6 @@ class CreateMultisigModalViewModel extends BaseViewModel {
       }
       throw Exception('Failed to load key file: $e');
     }
-  }
-
-  Future<void> _copyKeyToImportedKeys(String sourceFilePath, Map<String, dynamic> keyData) async {
-    final appDir = await Environment.datadir();
-    final importedKeysDir = Directory(path.join(appDir.path, 'bitdrive', 'multisig', 'imported_keys'));
-
-    await importedKeysDir.create(recursive: true);
-
-    final originalFileName = path.basename(sourceFilePath);
-    final timestamp = DateTime.now().millisecondsSinceEpoch;
-    final newFileName = '${path.basenameWithoutExtension(originalFileName)}_imported_$timestamp.conf';
-    final destinationPath = path.join(importedKeysDir.path, newFileName);
-
-    final destinationFile = File(destinationPath);
-    await destinationFile.writeAsString(jsonEncode(keyData));
   }
 
   Future<void> saveKey() async {

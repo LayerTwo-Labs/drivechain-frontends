@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:bip39_mnemonic/bip39_mnemonic.dart';
 import 'package:bs58/bs58.dart';
 import 'package:sail_ui/sail_ui.dart';
@@ -13,8 +11,6 @@ import 'package:pointycastle/digests/sha256.dart';
 
 class HDWalletProvider extends ChangeNotifier {
   Logger get log => GetIt.I.get<Logger>();
-
-  final Directory appDir;
 
   String? _seedHex;
   String? _masterKey;
@@ -32,7 +28,7 @@ class HDWalletProvider extends ChangeNotifier {
   String? get mnemonic => _mnemonic;
   String get bip47PaymentCode => _bip47PaymentCode;
 
-  HDWalletProvider(this.appDir);
+  HDWalletProvider();
 
   Future<void> init() async {
     if (_initialized) return;
