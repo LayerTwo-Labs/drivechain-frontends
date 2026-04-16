@@ -114,11 +114,18 @@ class BitDriveProvider extends ChangeNotifier {
     try {
       log.i('BitDrive: Starting file restoration via RPC...');
       final response = await bitwindowd.bitdrive.downloadPendingFiles();
-      log.i('BitDrive: Restored ${response.downloadedCount} files (${response.failedCount} failed)');
+      if (response.failedCount > 0) {
+        throw Exception(
+          'BitDrive: Restoration partially failed: '
+          '${response.downloadedCount} downloaded, ${response.failedCount} failed',
+        );
+      }
+      log.i('BitDrive: Restored ${response.downloadedCount} files');
     } catch (e) {
       log.e('BitDrive: Restoration error: $e');
       error = e.toString();
       notifyListeners();
+      rethrow;
     } finally {
       _isRestoring = false;
     }
