@@ -1,12 +1,9 @@
 import 'dart:async';
-import 'dart:io';
 
-import 'package:bitwindow/env.dart';
 import 'package:bitwindow/providers/blockchain_provider.dart';
 import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
-import 'package:path/path.dart' as path;
 import 'package:sail_ui/sail_ui.dart';
 
 class BitDriveProvider extends ChangeNotifier {
@@ -40,7 +37,6 @@ class BitDriveProvider extends ChangeNotifier {
   String? mimeType;
   bool shouldEncrypt = true;
   int fee = 1;
-  String? _bitdriveDir;
 
   BitDriveProvider() {
     blockchainProvider.addListener(_onSyncStatusChanged);
@@ -93,13 +89,6 @@ class BitDriveProvider extends ChangeNotifier {
 
   Future<void> init() async {
     try {
-      final appDir = await Environment.datadir();
-      _bitdriveDir = path.join(appDir.path, 'bitdrive');
-      final dir = Directory(_bitdriveDir!);
-      if (!await dir.exists()) {
-        await dir.create(recursive: true);
-      }
-
       if (blockchainProvider.syncProvider.mainchainSyncInfo == null) {
         return;
       }
@@ -270,13 +259,9 @@ class BitDriveProvider extends ChangeNotifier {
     }
   }
 
-  Future<void> wipeData(Directory appDir) async {
+  Future<void> wipeData() async {
     try {
       await bitwindowd.bitdrive.wipeData();
-      final bitdriveDir = Directory(path.join(appDir.path, 'bitdrive'));
-      if (await bitdriveDir.exists()) {
-        await bitdriveDir.delete(recursive: true);
-      }
     } catch (e) {
       log.e('BitDrive: Wipe data error: $e');
       error = e.toString();
