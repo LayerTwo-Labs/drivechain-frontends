@@ -156,7 +156,6 @@ jobs:
       run:
         shell: bash
     strategy:
-      fail-fast: true  # Stop all builds if one fails
       matrix: ${{ fromJson(needs.matrix-prep.outputs.matrix) }}
     steps:
       - uses: actions/checkout@v4
