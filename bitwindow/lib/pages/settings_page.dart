@@ -732,9 +732,9 @@ class _RestoreProgressDialogState extends State<RestoreProgressDialog> {
       if (widget.autoBackupPath != null) 'Backing up current wallet',
       'Validating backup file',
       'Stopping binaries',
-      'Waiting for processes to stop',
-      'Deleting old wallet files',
       'Restoring wallet files',
+      'Stopping binaries',
+      'Waiting for processes to stop',
       'Recreating sidechain starter files',
       'Verifying restored wallet',
       'Restarting binaries',
@@ -780,7 +780,16 @@ class _RestoreProgressDialogState extends State<RestoreProgressDialog> {
         throw Exception(validation.errorMessage);
       }
 
-      // 3. Stop binaries
+      // 3. Restore via backend RPC BEFORE stopping binaries.
+      // The RPC server must be running for this call to succeed.
+      _updateStatus('Restoring wallet files');
+      await bitwindowd.wallet.restoreBackup(
+        validation.backupData!,
+        validation.filename!,
+      );
+      log.i('Wallet restore completed via RPC');
+
+      // 4. Stop binaries so they pick up the new wallet on restart
       _updateStatus('Stopping binaries');
       final binaryProvider = GetIt.I.get<BinaryProvider>();
       final binariesToStop = [BitcoinCore(), Enforcer(), BitWindow()];
@@ -788,24 +797,15 @@ class _RestoreProgressDialogState extends State<RestoreProgressDialog> {
         await binaryProvider.stop(binary);
       }
 
-      // 4. Wait for shutdown
+      // 5. Wait for shutdown
       _updateStatus('Waiting for processes to stop');
       await Future.delayed(const Duration(seconds: 5));
 
-      // 5+6. Restore via backend RPC (handles old file deletion + restore + DB import)
-      _updateStatus('Restoring wallet files');
-      await bitwindowd.wallet.restoreBackup(
-        validation.backupData!,
-        validation.filename!,
-      );
-
-      // 7. Recreate sidechain starter files (placeholder for future functionality)
+      // 6. Recreate sidechain starter files (placeholder for future functionality)
       _updateStatus('Recreating sidechain starter files');
 
-      // 8. Verify restored wallet (lightweight check)
+      // 7. Verify restored wallet (lightweight check)
       _updateStatus('Verifying restored wallet');
-      // The backend already validated and wrote the wallet; just confirm
-      log.i('Wallet restore completed via RPC');
 
       // 9. Restart binaries
       _updateStatus('Restarting binaries');

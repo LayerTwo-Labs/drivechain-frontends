@@ -726,7 +726,7 @@ class _WalletAPILive implements WalletAPI {
     try {
       final request = SendTransactionRequest(
         walletId: walletId,
-        destinations: destinations.map((k, v) => MapEntry(k, Int64(v))),
+        destinations: destinations.map((k, v) => MapEntry(k, Int64(v))).entries,
         feeSatPerVbyte: feeSatPerVbyte != null ? Int64(feeSatPerVbyte) : null,
         fixedFeeSats: fixedFeeSats != null ? Int64(fixedFeeSats) : null,
         opReturnMessage: opReturnMessage,

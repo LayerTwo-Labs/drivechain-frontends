@@ -237,7 +237,7 @@ func TestSaveAndGetTransaction(t *testing.T) {
 	tx := multisig.Transaction{
 		ID:            "tx-1",
 		GroupID:       g.ID,
-		InitialPSBT:  "psbt-data",
+		InitialPSBT:   "psbt-data",
 		Status:        1,
 		Type:          2,
 		Created:       1700000500,
@@ -378,7 +378,7 @@ func TestSaveTransactionAtomic(t *testing.T) {
 	tx := multisig.Transaction{
 		ID:            "tx-1",
 		GroupID:       g.ID,
-		InitialPSBT:  "psbt-data",
+		InitialPSBT:   "psbt-data",
 		Status:        1,
 		Type:          2,
 		Created:       1700000500,

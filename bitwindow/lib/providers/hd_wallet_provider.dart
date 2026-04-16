@@ -428,14 +428,10 @@ class HDWalletProvider extends ChangeNotifier {
   }
 
   Future<int> getNextAccountIndex([Set<int>? additionalUsedIndices]) async {
-    try {
-      final api = GetIt.I.get<BitwindowRPC>().multisig;
-      return await api.getNextAccountIndex(
-        additionalUsedIndices: additionalUsedIndices?.toList(),
-      );
-    } catch (e) {
-      return 8000;
-    }
+    final api = GetIt.I.get<BitwindowRPC>().multisig;
+    return await api.getNextAccountIndex(
+      additionalUsedIndices: additionalUsedIndices?.toList(),
+    );
   }
 
   Future<Map<String, String>> deriveKeyInfo(String mnemonic, String path) async {

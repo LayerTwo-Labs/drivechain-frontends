@@ -735,11 +735,11 @@ func (s *Store) GetNextAccountIndex(ctx context.Context, additionalUsed []int) (
 // associated keys, PSBTs, addresses, UTXOs, and transaction links in a single
 // database transaction.
 type SaveGroupAtomicParams struct {
-	Group   Group
-	Keys    []Key
-	KeyPSBTs []KeyPSBT // KeyID is ignored; matched by xpub after key insert
-	Addresses []Address
-	UtxoDetails []UtxoDetail
+	Group          Group
+	Keys           []Key
+	KeyPSBTs       []KeyPSBT // KeyID is ignored; matched by xpub after key insert
+	Addresses      []Address
+	UtxoDetails    []UtxoDetail
 	TransactionIDs []string
 	// XpubToPSBTs maps xpub -> list of KeyPSBT (KeyID filled after insert).
 	XpubToPSBTs map[string][]KeyPSBT
