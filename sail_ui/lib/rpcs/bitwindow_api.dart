@@ -9,6 +9,8 @@ import 'package:http/http.dart' as http;
 import 'package:logger/logger.dart';
 import 'package:sail_ui/gen/bitcoin/bitcoind/v1alpha/bitcoin.connect.client.dart';
 import 'package:sail_ui/gen/bitdrive/v1/bitdrive.pb.dart' as bitdrivepb;
+import 'package:sail_ui/gen/multisig/v1/multisig.pb.dart' as multisigpb;
+import 'package:sail_ui/gen/multisig/v1/multisig.connect.client.dart';
 import 'package:sail_ui/gen/utils/v1/utils.pb.dart' as utilspb;
 import 'package:sail_ui/gen/bitcoin/bitcoind/v1alpha/bitcoin.pb.dart'
     hide
@@ -38,6 +40,7 @@ abstract class BitwindowRPC extends RPCConnection {
   M4API get m4;
   NotificationAPI get notifications;
   BitDriveAPI get bitdrive;
+  MultisigAPI get multisig;
   UtilsAPI get utils;
 
   /// Stream of notification events
@@ -65,6 +68,8 @@ class BitwindowRPCLive extends BitwindowRPC {
   @override
   late BitDriveAPI bitdrive;
   @override
+  late MultisigAPI multisig;
+  @override
   late UtilsAPI utils;
 
   BitwindowRPCLive({required String host, required int port}) : super(binaryType: BinaryType.bitWindow) {
@@ -88,6 +93,7 @@ class BitwindowRPCLive extends BitwindowRPC {
     m4 = _M4APILive(M4ServiceClient(transport));
     notifications = _NotificationAPILive(NotificationServiceClient(transport));
     bitdrive = _BitDriveAPILive(BitDriveServiceClient(transport));
+    multisig = _MultisigAPILive(MultisigServiceClient(transport));
     utils = _UtilsAPILive(UtilsServiceClient(transport));
 
     // Go ConnectionMonitor is the source of truth for connection state.
@@ -228,6 +234,16 @@ class BitwindowRPCLive extends BitwindowRPC {
       'bitdrive.v1.BitDriveService/DeleteFile',
       'bitdrive.v1.BitDriveService/StoreMultisigData',
       'bitdrive.v1.BitDriveService/WipeData',
+      'multisig.v1.MultisigService/ListGroups',
+      'multisig.v1.MultisigService/SaveGroup',
+      'multisig.v1.MultisigService/DeleteGroup',
+      'multisig.v1.MultisigService/ListTransactions',
+      'multisig.v1.MultisigService/GetTransaction',
+      'multisig.v1.MultisigService/GetTransactionByTxid',
+      'multisig.v1.MultisigService/SaveTransaction',
+      'multisig.v1.MultisigService/ListSoloKeys',
+      'multisig.v1.MultisigService/AddSoloKey',
+      'multisig.v1.MultisigService/GetNextAccountIndex',
       'utils.v1.UtilsService/ParseBitcoinURI',
       'utils.v1.UtilsService/ValidateBitcoinURI',
       'utils.v1.UtilsService/DecodeBase58Check',
@@ -2071,6 +2087,143 @@ class BitDriveException implements Exception {
   BitDriveException(this.message);
   @override
   String toString() => 'BitDriveException: $message';
+}
+
+// ─── MultisigAPI ──────────────────────────────────────────────────
+
+abstract class MultisigAPI {
+  Future<List<multisigpb.MultisigGroup>> listGroups();
+  Future<multisigpb.MultisigGroup> saveGroup(multisigpb.MultisigGroup group);
+  Future<void> deleteGroup(String groupId);
+  Future<List<multisigpb.MultisigTransaction>> listTransactions({String? groupId});
+  Future<multisigpb.MultisigTransaction> getTransaction(String transactionId);
+  Future<multisigpb.MultisigTransaction> getTransactionByTxid(String txid);
+  Future<multisigpb.MultisigTransaction> saveTransaction(multisigpb.MultisigTransaction transaction);
+  Future<List<multisigpb.SoloKey>> listSoloKeys();
+  Future<void> addSoloKey(multisigpb.SoloKey key);
+  Future<int> getNextAccountIndex({List<int>? additionalUsedIndices});
+}
+
+class _MultisigAPILive implements MultisigAPI {
+  final MultisigServiceClient _client;
+  Logger get log => GetIt.I.get<Logger>();
+
+  _MultisigAPILive(this._client);
+
+  @override
+  Future<List<multisigpb.MultisigGroup>> listGroups() async {
+    try {
+      final response = await _client.listGroups(Empty());
+      return response.groups;
+    } catch (e) {
+      throw MultisigException('could not list groups: ${extractConnectException(e)}');
+    }
+  }
+
+  @override
+  Future<multisigpb.MultisigGroup> saveGroup(multisigpb.MultisigGroup group) async {
+    try {
+      final response = await _client.saveGroup(multisigpb.SaveGroupRequest(group: group));
+      return response.group;
+    } catch (e) {
+      throw MultisigException('could not save group: ${extractConnectException(e)}');
+    }
+  }
+
+  @override
+  Future<void> deleteGroup(String groupId) async {
+    try {
+      await _client.deleteGroup(multisigpb.DeleteGroupRequest(groupId: groupId));
+    } catch (e) {
+      throw MultisigException('could not delete group: ${extractConnectException(e)}');
+    }
+  }
+
+  @override
+  Future<List<multisigpb.MultisigTransaction>> listTransactions({String? groupId}) async {
+    try {
+      final response = await _client.listTransactions(
+        multisigpb.ListTransactionsRequest(groupId: groupId ?? ''),
+      );
+      return response.transactions;
+    } catch (e) {
+      throw MultisigException('could not list transactions: ${extractConnectException(e)}');
+    }
+  }
+
+  @override
+  Future<multisigpb.MultisigTransaction> getTransaction(String transactionId) async {
+    try {
+      return await _client.getTransaction(
+        multisigpb.GetTransactionRequest(transactionId: transactionId),
+      );
+    } catch (e) {
+      throw MultisigException('could not get transaction: ${extractConnectException(e)}');
+    }
+  }
+
+  @override
+  Future<multisigpb.MultisigTransaction> getTransactionByTxid(String txid) async {
+    try {
+      return await _client.getTransactionByTxid(
+        multisigpb.GetTransactionByTxidRequest(txid: txid),
+      );
+    } catch (e) {
+      throw MultisigException('could not get transaction by txid: ${extractConnectException(e)}');
+    }
+  }
+
+  @override
+  Future<multisigpb.MultisigTransaction> saveTransaction(multisigpb.MultisigTransaction transaction) async {
+    try {
+      final response = await _client.saveTransaction(
+        multisigpb.SaveTransactionRequest(transaction: transaction),
+      );
+      return response.transaction;
+    } catch (e) {
+      throw MultisigException('could not save transaction: ${extractConnectException(e)}');
+    }
+  }
+
+  @override
+  Future<List<multisigpb.SoloKey>> listSoloKeys() async {
+    try {
+      final response = await _client.listSoloKeys(Empty());
+      return response.keys;
+    } catch (e) {
+      throw MultisigException('could not list solo keys: ${extractConnectException(e)}');
+    }
+  }
+
+  @override
+  Future<void> addSoloKey(multisigpb.SoloKey key) async {
+    try {
+      await _client.addSoloKey(multisigpb.AddSoloKeyRequest(key: key));
+    } catch (e) {
+      throw MultisigException('could not add solo key: ${extractConnectException(e)}');
+    }
+  }
+
+  @override
+  Future<int> getNextAccountIndex({List<int>? additionalUsedIndices}) async {
+    try {
+      final response = await _client.getNextAccountIndex(
+        multisigpb.GetNextAccountIndexRequest(
+          additionalUsedIndices: additionalUsedIndices,
+        ),
+      );
+      return response.nextIndex;
+    } catch (e) {
+      throw MultisigException('could not get next account index: ${extractConnectException(e)}');
+    }
+  }
+}
+
+class MultisigException implements Exception {
+  final String message;
+  MultisigException(this.message);
+  @override
+  String toString() => 'MultisigException: $message';
 }
 
 abstract class UtilsAPI {
