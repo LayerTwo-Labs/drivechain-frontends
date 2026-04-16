@@ -1,9 +1,7 @@
 import 'dart:async';
-import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:path/path.dart' as path;
 import 'package:sail_ui/widgets/modals/article_info_modal.dart';
 
 extension StringExtension on String {
@@ -105,28 +103,6 @@ class ContentProvider extends ChangeNotifier {
       default:
         return '';
     }
-  }
-
-  Future<List<Article>> loadArticles() async {
-    final directory = Directory('assets/articles');
-    final List<Article> articles = [];
-
-    await for (final file in directory.list()) {
-      if (file.path.endsWith('.mdx')) {
-        final content = await File(file.path).readAsString();
-        final article = parseArticle(content, path.basename(file.path));
-        if (article != null) {
-          articles.add(article);
-        }
-      }
-    }
-
-    return articles;
-  }
-
-  Future<List<Article>> loadArticlesFromDir(Directory dir) async {
-    final articles = await loadArticles();
-    return articles.where((article) => article.filename.startsWith('${path.basename(dir.path)}/')).toList();
   }
 
   Article? parseArticle(String content, String filename) {

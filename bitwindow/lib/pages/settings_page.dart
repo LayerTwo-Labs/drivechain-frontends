@@ -676,11 +676,10 @@ Future<BackupValidationResult> validateBackup({
   }
 }
 
-// Check if current wallet exists by trying to validate an empty backup
-// (the wallet.json file check is implicit in the backup flow)
-Future<bool> hasCurrentWallet(WalletWriterProvider walletProvider) async {
-  final walletJsonFile = File(path.join(walletProvider.bitwindowAppDir.path, 'wallet.json'));
-  return await walletJsonFile.exists();
+// Check if current wallet exists via backend RPC.
+Future<bool> hasCurrentWallet() async {
+  final walletReader = GetIt.I.get<WalletReaderProvider>();
+  return await walletReader.hasWallet();
 }
 
 // Restore progress step
@@ -948,7 +947,7 @@ class _RestoreWalletDialogState extends State<RestoreWalletDialog> {
 
     try {
       // Check if current wallet exists
-      final hasCurrent = await hasCurrentWallet(walletProvider);
+      final hasCurrent = await hasCurrentWallet();
 
       String? autoBackupPath;
       if (hasCurrent) {
