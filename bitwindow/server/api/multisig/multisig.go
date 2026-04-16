@@ -81,11 +81,7 @@ func (s *Server) SaveGroup(
 		NextChangeIndex:   int(pg.NextChangeIndex),
 	}
 
-	if err := s.store.SaveGroup(ctx, g); err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("save group: %w", err))
-	}
-
-	// Save keys
+	// Build keys
 	var keys []multisig.Key
 	for i, k := range pg.Keys {
 		keys = append(keys, multisig.Key{
@@ -99,43 +95,21 @@ func (s *Server) SaveGroup(
 			SortOrder:      i,
 		})
 	}
-	if err := s.store.ReplaceKeysForGroup(ctx, pg.Id, keys); err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("replace keys: %w", err))
-	}
 
-	// Save key PSBTs
-	// First we need to get the newly inserted key IDs
-	dbKeys, err := s.store.ListKeysForGroup(ctx, pg.Id)
-	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("list keys: %w", err))
-	}
-
-	// Build a map from xpub to DB key ID
-	xpubToKeyID := make(map[string]int64)
-	for _, k := range dbKeys {
-		xpubToKeyID[k.Xpub] = k.ID
-	}
-
-	// Save key PSBTs from proto keys
+	// Build key PSBTs indexed by xpub (key ID resolved inside atomic op)
+	xpubToPSBTs := make(map[string][]multisig.KeyPSBT)
 	for _, k := range pg.Keys {
-		dbKeyID, ok := xpubToKeyID[k.Xpub]
-		if !ok {
-			continue
-		}
 		for txID, activePSBT := range k.ActivePsbts {
 			initialPSBT := k.InitialPsbts[txID]
-			if err := s.store.SaveKeyPSBT(ctx, multisig.KeyPSBT{
-				KeyID:         dbKeyID,
+			xpubToPSBTs[k.Xpub] = append(xpubToPSBTs[k.Xpub], multisig.KeyPSBT{
 				TransactionID: txID,
 				ActivePSBT:    activePSBT,
 				InitialPSBT:   initialPSBT,
-			}); err != nil {
-				return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("save key psbt: %w", err))
-			}
+			})
 		}
 	}
 
-	// Save addresses
+	// Build addresses
 	var addrs []multisig.Address
 	for _, a := range pg.ReceiveAddresses {
 		addrs = append(addrs, multisig.Address{
@@ -155,11 +129,8 @@ func (s *Server) SaveGroup(
 			Used:     a.Used,
 		})
 	}
-	if err := s.store.ReplaceAddresses(ctx, pg.Id, addrs); err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("replace addresses: %w", err))
-	}
 
-	// Save UTXO details
+	// Build UTXO details
 	var utxos []multisig.UtxoDetail
 	for _, u := range pg.UtxoDetails {
 		utxos = append(utxos, multisig.UtxoDetail{
@@ -175,13 +146,17 @@ func (s *Server) SaveGroup(
 			Safe:          u.Safe,
 		})
 	}
-	if err := s.store.ReplaceUtxoDetails(ctx, pg.Id, utxos); err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("replace utxos: %w", err))
-	}
 
-	// Save transaction IDs
-	if err := s.store.ReplaceGroupTransactionIDs(ctx, pg.Id, pg.TransactionIds); err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("replace tx ids: %w", err))
+	// Persist everything atomically
+	if err := s.store.SaveGroupAtomic(ctx, multisig.SaveGroupAtomicParams{
+		Group:          g,
+		Keys:           keys,
+		XpubToPSBTs:    xpubToPSBTs,
+		Addresses:      addrs,
+		UtxoDetails:    utxos,
+		TransactionIDs: pg.TransactionIds,
+	}); err != nil {
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("save group atomic: %w", err))
 	}
 
 	// Re-read the saved group
@@ -299,11 +274,7 @@ func (s *Server) SaveTransaction(
 		t.BroadcastTime = &bt
 	}
 
-	if err := s.store.SaveTransaction(ctx, t); err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("save transaction: %w", err))
-	}
-
-	// Save key PSBTs
+	// Build key PSBTs
 	var psbts []multisig.TxKeyPSBT
 	for _, kp := range pt.KeyPsbts {
 		var signedAt *int64
@@ -319,11 +290,8 @@ func (s *Server) SaveTransaction(
 			SignedAt:      signedAt,
 		})
 	}
-	if err := s.store.ReplaceTxKeyPSBTs(ctx, pt.Id, psbts); err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("replace key psbts: %w", err))
-	}
 
-	// Save inputs
+	// Build inputs
 	var inputs []multisig.TxInput
 	for _, inp := range pt.Inputs {
 		inputs = append(inputs, multisig.TxInput{
@@ -335,8 +303,14 @@ func (s *Server) SaveTransaction(
 			Confirmations: int(inp.Confirmations),
 		})
 	}
-	if err := s.store.ReplaceTxInputs(ctx, pt.Id, inputs); err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("replace inputs: %w", err))
+
+	// Persist everything atomically
+	if err := s.store.SaveTransactionAtomic(ctx, multisig.SaveTransactionAtomicParams{
+		Transaction: t,
+		KeyPSBTs:    psbts,
+		Inputs:      inputs,
+	}); err != nil {
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("save transaction atomic: %w", err))
 	}
 
 	// Re-read
