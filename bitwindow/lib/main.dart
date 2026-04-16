@@ -222,7 +222,7 @@ Future<(Directory, File, Logger)> init(String arguments) async {
   GetIt.I.registerSingleton<AddressBookProvider>(AddressBookProvider());
   GetIt.I.registerSingleton<CoinSelectionProvider>(CoinSelectionProvider());
   GetIt.I.registerSingleton<MiningProvider>(MiningProvider());
-  GetIt.I.registerSingleton<HDWalletProvider>(HDWalletProvider(applicationDir));
+  GetIt.I.registerSingleton<HDWalletProvider>(HDWalletProvider());
   GetIt.I.registerSingleton<BitDriveProvider>(BitDriveProvider());
   // Eager initialization so it can listen for wallet unlock events
   final checkProvider = CheckProvider();

@@ -727,9 +727,6 @@ class TransactionStorage {
 
   static MultisigTransactionNotifier get notifier => _notifier;
 
-  /// Kept for API compat; returns empty string since there is no file.
-  static Future<String> getTransactionFilePath() async => '';
-
   static Future<MultisigTransaction?> getTransaction(String transactionId) async {
     try {
       final pb = await _api.getTransaction(transactionId);
@@ -805,11 +802,11 @@ class TransactionStorage {
     await saveTransaction(updatedTransaction);
 
     if (isOwnedKey == true) {
-      await _storePSBTInMultisigFile(transactionId, keyId, transaction.initialPSBT, signedPSBT);
+      await _storePSBTInGroup(transactionId, keyId, transaction.initialPSBT, signedPSBT);
     }
   }
 
-  static Future<void> _storePSBTInMultisigFile(
+  static Future<void> _storePSBTInGroup(
     String transactionId,
     String keyId,
     String initialPSBT,
@@ -853,7 +850,7 @@ class TransactionStorage {
     }
   }
 
-  static Future<void> cleanupPSBTFromMultisigFile(String transactionId) async {
+  static Future<void> cleanupPSBTFromGroup(String transactionId) async {
     try {
       final groups = await MultisigStorage.loadGroups();
       bool groupUpdated = false;
@@ -1349,9 +1346,6 @@ class MultisigStorage {
     }
   }
 
-  /// Kept for API compat; returns empty string since there is no file.
-  static Future<String> getMultisigFilePath() async => '';
-
   static Future<List<Map<String, dynamic>>> loadSoloKeys() async {
     try {
       final pbKeys = await _api.listSoloKeys();
@@ -1756,18 +1750,4 @@ class MultisigStorage {
       transactionIds: g.transactionIds,
     );
   }
-}
-
-/// Replaced by RPC-based polling; retained as no-op for API compatibility.
-class MultisigFileWatcher extends ChangeNotifier {
-  static final MultisigFileWatcher _instance = MultisigFileWatcher._internal();
-  factory MultisigFileWatcher() => _instance;
-  MultisigFileWatcher._internal();
-
-  bool _isWatching = false;
-  bool get isWatching => _isWatching;
-
-  /// No-op: file watching is no longer needed with RPC-backed storage.
-  void startWatching() => _isWatching = true;
-  void stopWatching() => _isWatching = false;
 }
