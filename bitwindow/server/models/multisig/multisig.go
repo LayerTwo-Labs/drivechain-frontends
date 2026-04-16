@@ -42,7 +42,7 @@ type KeyPSBT struct {
 	KeyID         int64
 	TransactionID string
 	ActivePSBT    string
-	InitialPSBT  string
+	InitialPSBT   string
 }
 
 type Address struct {
@@ -69,8 +69,8 @@ type UtxoDetail struct {
 type Transaction struct {
 	ID                 string
 	GroupID            string
-	InitialPSBT       string
-	CombinedPSBT      string
+	InitialPSBT        string
+	CombinedPSBT       string
 	FinalHex           string
 	Txid               string
 	Status             int // maps to proto enum
@@ -89,7 +89,7 @@ type TxKeyPSBT struct {
 	KeyID         string
 	PSBT          string
 	IsSigned      bool
-	SignedAt       *int64
+	SignedAt      *int64
 }
 
 type TxInput struct {
@@ -636,6 +636,9 @@ func (s *Store) GetNextAccountIndex(ctx context.Context, additionalUsed []int) (
 			maxIndex = idx
 		}
 	}
+	if err := rows.Err(); err != nil {
+		return 8000, err
+	}
 
 	// Check solo keys
 	soloRows, err := s.db.QueryContext(ctx, `SELECT derivation_path FROM multisig_solo_keys`)
@@ -653,6 +656,9 @@ func (s *Store) GetNextAccountIndex(ctx context.Context, additionalUsed []int) (
 		if idx > maxIndex {
 			maxIndex = idx
 		}
+	}
+	if err := soloRows.Err(); err != nil {
+		return maxIndex + 1, err
 	}
 
 	for _, idx := range additionalUsed {
@@ -840,8 +846,8 @@ func (s *Store) ImportTransactionsFromJSON(ctx context.Context, data []byte) err
 		t := Transaction{
 			ID:            getString(tj, "id"),
 			GroupID:       getString(tj, "groupId"),
-			InitialPSBT:  getString(tj, "initialPSBT"),
-			CombinedPSBT: getString(tj, "combinedPSBT"),
+			InitialPSBT:   getString(tj, "initialPSBT"),
+			CombinedPSBT:  getString(tj, "combinedPSBT"),
 			FinalHex:      getString(tj, "finalHex"),
 			Txid:          getString(tj, "txid"),
 			Status:        status,

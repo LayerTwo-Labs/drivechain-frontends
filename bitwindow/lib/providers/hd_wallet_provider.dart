@@ -1,8 +1,6 @@
-import 'dart:convert';
 import 'dart:io';
 
 import 'package:bip39_mnemonic/bip39_mnemonic.dart';
-import 'package:bitwindow/env.dart';
 import 'package:bs58/bs58.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:convert/convert.dart';
@@ -10,7 +8,6 @@ import 'package:dart_bip32_bip44/dart_bip32_bip44.dart';
 import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
-import 'package:path/path.dart' as path;
 import 'package:pointycastle/digests/ripemd160.dart';
 import 'package:pointycastle/digests/sha256.dart';
 
@@ -436,66 +433,10 @@ class HDWalletProvider extends ChangeNotifier {
 
   Future<int> getNextAccountIndex([Set<int>? additionalUsedIndices]) async {
     try {
-      final appDir = await Environment.datadir();
-      final bitdriveDir = path.join(appDir.path, 'bitdrive');
-      final file = File(path.join(bitdriveDir, 'multisig', 'multisig.json'));
-
-      int maxAccountIndex = 7999;
-
-      if (await file.exists()) {
-        final content = await file.readAsString();
-        final jsonData = json.decode(content) as Map<String, dynamic>;
-
-        final groups = jsonData['groups'] as List<dynamic>? ?? [];
-
-        for (final jsonGroup in groups) {
-          final List<dynamic> keys = jsonGroup['keys'] ?? [];
-
-          for (final keyData in keys) {
-            final isWallet = keyData['is_wallet'] == true;
-            final derivationPath = keyData['path'] as String?;
-
-            if (isWallet && derivationPath != null) {
-              final match = RegExp(r"m/84'/[01]'/(\d+)'").firstMatch(derivationPath);
-              if (match != null) {
-                final accountIndex = int.parse(match.group(1)!);
-                if (accountIndex > maxAccountIndex) {
-                  maxAccountIndex = accountIndex;
-                }
-              }
-            }
-          }
-        }
-
-        final soloKeys = jsonData['solo_keys'] as List<dynamic>? ?? [];
-
-        for (final keyData in soloKeys) {
-          final derivationPath = keyData['path'] as String?;
-          final expectedXpub = keyData['xpub'] as String?;
-
-          if (derivationPath != null && expectedXpub != null) {
-            final match = RegExp(r"m/84'/[01]'/(\d+)'").firstMatch(derivationPath);
-            if (match != null) {
-              final accountIndex = int.parse(match.group(1)!);
-
-              if (accountIndex > maxAccountIndex) {
-                maxAccountIndex = accountIndex;
-              }
-            }
-          }
-        }
-      }
-
-      if (additionalUsedIndices != null) {
-        for (final index in additionalUsedIndices) {
-          if (index > maxAccountIndex) {
-            maxAccountIndex = index;
-          }
-        }
-      }
-
-      final nextIndex = maxAccountIndex + 1;
-      return nextIndex;
+      final api = GetIt.I.get<BitwindowRPC>().multisig;
+      return await api.getNextAccountIndex(
+        additionalUsedIndices: additionalUsedIndices?.toList(),
+      );
     } catch (e) {
       return 8000;
     }

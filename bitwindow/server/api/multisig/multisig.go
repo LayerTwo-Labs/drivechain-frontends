@@ -128,7 +128,7 @@ func (s *Server) SaveGroup(
 				KeyID:         dbKeyID,
 				TransactionID: txID,
 				ActivePSBT:    activePSBT,
-				InitialPSBT:  initialPSBT,
+				InitialPSBT:   initialPSBT,
 			}); err != nil {
 				return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("save key psbt: %w", err))
 			}
@@ -278,8 +278,8 @@ func (s *Server) SaveTransaction(
 	t := multisig.Transaction{
 		ID:                 pt.Id,
 		GroupID:            pt.GroupId,
-		InitialPSBT:       pt.InitialPsbt,
-		CombinedPSBT:      pt.CombinedPsbt,
+		InitialPSBT:        pt.InitialPsbt,
+		CombinedPSBT:       pt.CombinedPsbt,
 		FinalHex:           pt.FinalHex,
 		Txid:               pt.Txid,
 		Status:             int(pt.Status),
@@ -423,20 +423,20 @@ func (s *Server) GetNextAccountIndex(
 
 func (s *Server) groupToProto(ctx context.Context, g multisig.Group) (*pb.MultisigGroup, error) {
 	pg := &pb.MultisigGroup{
-		Id:               g.ID,
-		Name:             g.Name,
-		N:                int32(g.N),
-		M:                int32(g.M),
-		Created:          g.Created,
-		Txid:             g.Txid,
-		BaseDescriptor:   g.Descriptor,
+		Id:                g.ID,
+		Name:              g.Name,
+		N:                 int32(g.N),
+		M:                 int32(g.M),
+		Created:           g.Created,
+		Txid:              g.Txid,
+		BaseDescriptor:    g.Descriptor,
 		DescriptorReceive: g.DescriptorReceive,
-		DescriptorChange: g.DescriptorChange,
-		WatchWalletName:  g.WatchWalletName,
-		Balance:          g.Balance,
-		Utxos:            int32(g.Utxos),
-		NextReceiveIndex: int32(g.NextReceiveIndex),
-		NextChangeIndex:  int32(g.NextChangeIndex),
+		DescriptorChange:  g.DescriptorChange,
+		WatchWalletName:   g.WatchWalletName,
+		Balance:           g.Balance,
+		Utxos:             int32(g.Utxos),
+		NextReceiveIndex:  int32(g.NextReceiveIndex),
+		NextChangeIndex:   int32(g.NextChangeIndex),
 	}
 
 	// Load keys
@@ -532,8 +532,8 @@ func (s *Server) txToProto(ctx context.Context, t multisig.Transaction) (*pb.Mul
 	pt := &pb.MultisigTransaction{
 		Id:                 t.ID,
 		GroupId:            t.GroupID,
-		InitialPsbt:       t.InitialPSBT,
-		CombinedPsbt:      t.CombinedPSBT,
+		InitialPsbt:        t.InitialPSBT,
+		CombinedPsbt:       t.CombinedPSBT,
 		FinalHex:           t.FinalHex,
 		Txid:               t.Txid,
 		Status:             pb.TxStatus(t.Status),
