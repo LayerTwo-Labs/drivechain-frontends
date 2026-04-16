@@ -1048,7 +1048,7 @@ const file_bitdrive_v1_bitdrive_proto_rawDesc = "" +
 	"\x19StoreMultisigDataResponse\x12\x12\n" +
 	"\x04txid\x18\x01 \x01(\tR\x04txid\",\n" +
 	"\x16GetBitdriveDirResponse\x12\x12\n" +
-	"\x04path\x18\x01 \x01(\tR\x04path2\xa1\x06\n" +
+	"\x04path\x18\x01 \x01(\tR\x04path2\xe4\x06\n" +
 	"\x0fBitDriveService\x12J\n" +
 	"\tStoreFile\x12\x1d.bitdrive.v1.StoreFileRequest\x1a\x1e.bitdrive.v1.StoreFileResponse\x12\\\n" +
 	"\x0fRetrieveContent\x12#.bitdrive.v1.RetrieveContentRequest\x1a$.bitdrive.v1.RetrieveContentResponse\x12I\n" +
@@ -1060,7 +1060,8 @@ const file_bitdrive_v1_bitdrive_proto_rawDesc = "" +
 	"DeleteFile\x12\x1e.bitdrive.v1.DeleteFileRequest\x1a\x16.google.protobuf.Empty\x12b\n" +
 	"\x11StoreMultisigData\x12%.bitdrive.v1.StoreMultisigDataRequest\x1a&.bitdrive.v1.StoreMultisigDataResponse\x12:\n" +
 	"\bWipeData\x12\x16.google.protobuf.Empty\x1a\x16.google.protobuf.Empty\x12M\n" +
-	"\x0eGetBitdriveDir\x12\x16.google.protobuf.Empty\x1a#.bitdrive.v1.GetBitdriveDirResponseB\xbc\x01\n" +
+	"\x0eGetBitdriveDir\x12\x16.google.protobuf.Empty\x1a#.bitdrive.v1.GetBitdriveDirResponse\x12A\n" +
+	"\x0fOpenBitdriveDir\x12\x16.google.protobuf.Empty\x1a\x16.google.protobuf.EmptyB\xbc\x01\n" +
 	"\x0fcom.bitdrive.v1B\rBitdriveProtoP\x01ZMgithub.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/bitdrive/v1;bitdrivev1\xa2\x02\x03BXX\xaa\x02\vBitdrive.V1\xca\x02\vBitdrive\\V1\xe2\x02\x17Bitdrive\\V1\\GPBMetadata\xea\x02\fBitdrive::V1b\x06proto3"
 
 var (
@@ -1111,18 +1112,20 @@ var file_bitdrive_v1_bitdrive_proto_depIdxs = []int32{
 	13, // 11: bitdrive.v1.BitDriveService.StoreMultisigData:input_type -> bitdrive.v1.StoreMultisigDataRequest
 	17, // 12: bitdrive.v1.BitDriveService.WipeData:input_type -> google.protobuf.Empty
 	17, // 13: bitdrive.v1.BitDriveService.GetBitdriveDir:input_type -> google.protobuf.Empty
-	2,  // 14: bitdrive.v1.BitDriveService.StoreFile:output_type -> bitdrive.v1.StoreFileResponse
-	4,  // 15: bitdrive.v1.BitDriveService.RetrieveContent:output_type -> bitdrive.v1.RetrieveContentResponse
-	5,  // 16: bitdrive.v1.BitDriveService.ScanForFiles:output_type -> bitdrive.v1.ScanForFilesResponse
-	7,  // 17: bitdrive.v1.BitDriveService.DownloadPendingFiles:output_type -> bitdrive.v1.DownloadPendingFilesResponse
-	9,  // 18: bitdrive.v1.BitDriveService.ListFiles:output_type -> bitdrive.v1.ListFilesResponse
-	11, // 19: bitdrive.v1.BitDriveService.GetFile:output_type -> bitdrive.v1.GetFileResponse
-	17, // 20: bitdrive.v1.BitDriveService.DeleteFile:output_type -> google.protobuf.Empty
-	14, // 21: bitdrive.v1.BitDriveService.StoreMultisigData:output_type -> bitdrive.v1.StoreMultisigDataResponse
-	17, // 22: bitdrive.v1.BitDriveService.WipeData:output_type -> google.protobuf.Empty
-	15, // 23: bitdrive.v1.BitDriveService.GetBitdriveDir:output_type -> bitdrive.v1.GetBitdriveDirResponse
-	14, // [14:24] is the sub-list for method output_type
-	4,  // [4:14] is the sub-list for method input_type
+	17, // 14: bitdrive.v1.BitDriveService.OpenBitdriveDir:input_type -> google.protobuf.Empty
+	2,  // 15: bitdrive.v1.BitDriveService.StoreFile:output_type -> bitdrive.v1.StoreFileResponse
+	4,  // 16: bitdrive.v1.BitDriveService.RetrieveContent:output_type -> bitdrive.v1.RetrieveContentResponse
+	5,  // 17: bitdrive.v1.BitDriveService.ScanForFiles:output_type -> bitdrive.v1.ScanForFilesResponse
+	7,  // 18: bitdrive.v1.BitDriveService.DownloadPendingFiles:output_type -> bitdrive.v1.DownloadPendingFilesResponse
+	9,  // 19: bitdrive.v1.BitDriveService.ListFiles:output_type -> bitdrive.v1.ListFilesResponse
+	11, // 20: bitdrive.v1.BitDriveService.GetFile:output_type -> bitdrive.v1.GetFileResponse
+	17, // 21: bitdrive.v1.BitDriveService.DeleteFile:output_type -> google.protobuf.Empty
+	14, // 22: bitdrive.v1.BitDriveService.StoreMultisigData:output_type -> bitdrive.v1.StoreMultisigDataResponse
+	17, // 23: bitdrive.v1.BitDriveService.WipeData:output_type -> google.protobuf.Empty
+	15, // 24: bitdrive.v1.BitDriveService.GetBitdriveDir:output_type -> bitdrive.v1.GetBitdriveDirResponse
+	17, // 25: bitdrive.v1.BitDriveService.OpenBitdriveDir:output_type -> google.protobuf.Empty
+	15, // [15:26] is the sub-list for method output_type
+	4,  // [4:15] is the sub-list for method input_type
 	4,  // [4:4] is the sub-list for extension type_name
 	4,  // [4:4] is the sub-list for extension extendee
 	0,  // [0:4] is the sub-list for field type_name

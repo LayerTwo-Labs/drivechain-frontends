@@ -417,19 +417,7 @@ class BitDriveViewModel extends BaseViewModel {
   Future<void> openBitdriveDir() async {
     if (_bitdriveDir == null) return;
     try {
-      final dir = Directory(_bitdriveDir!);
-      if (!await dir.exists()) {
-        await dir.create(recursive: true);
-      }
-
-      if (Platform.isMacOS) {
-        await Process.run('open', [_bitdriveDir!]);
-      } else if (Platform.isLinux) {
-        await Process.run('xdg-open', [_bitdriveDir!]);
-      } else if (Platform.isWindows) {
-        final windowsPath = _bitdriveDir!.replaceAll('/', '\\');
-        await Process.run('explorer', [windowsPath]);
-      }
+      await bitwindowd.bitdrive.openBitdriveDir();
     } catch (e) {
       log.e('Error opening BitDrive directory: $e');
     }

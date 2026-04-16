@@ -672,6 +672,11 @@ class MockBitDriveAPI implements BitDriveAPI {
   Future<String> getBitdriveDir() {
     return Future.value('/tmp/mock-bitdrive');
   }
+
+  @override
+  Future<void> openBitdriveDir() {
+    return Future.value();
+  }
 }
 
 class MockUtilsAPI implements UtilsAPI {

@@ -63,6 +63,9 @@ const (
 	// BitDriveServiceGetBitdriveDirProcedure is the fully-qualified name of the BitDriveService's
 	// GetBitdriveDir RPC.
 	BitDriveServiceGetBitdriveDirProcedure = "/bitdrive.v1.BitDriveService/GetBitdriveDir"
+	// BitDriveServiceOpenBitdriveDirProcedure is the fully-qualified name of the BitDriveService's
+	// OpenBitdriveDir RPC.
+	BitDriveServiceOpenBitdriveDirProcedure = "/bitdrive.v1.BitDriveService/OpenBitdriveDir"
 )
 
 // BitDriveServiceClient is a client for the bitdrive.v1.BitDriveService service.
@@ -87,6 +90,8 @@ type BitDriveServiceClient interface {
 	WipeData(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[emptypb.Empty], error)
 	// Get the BitDrive data directory path
 	GetBitdriveDir(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.GetBitdriveDirResponse], error)
+	// Open the BitDrive data directory in the OS file manager
+	OpenBitdriveDir(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[emptypb.Empty], error)
 }
 
 // NewBitDriveServiceClient constructs a client for the bitdrive.v1.BitDriveService service. By
@@ -160,6 +165,12 @@ func NewBitDriveServiceClient(httpClient connect.HTTPClient, baseURL string, opt
 			connect.WithSchema(bitDriveServiceMethods.ByName("GetBitdriveDir")),
 			connect.WithClientOptions(opts...),
 		),
+		openBitdriveDir: connect.NewClient[emptypb.Empty, emptypb.Empty](
+			httpClient,
+			baseURL+BitDriveServiceOpenBitdriveDirProcedure,
+			connect.WithSchema(bitDriveServiceMethods.ByName("OpenBitdriveDir")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -175,6 +186,7 @@ type bitDriveServiceClient struct {
 	storeMultisigData    *connect.Client[v1.StoreMultisigDataRequest, v1.StoreMultisigDataResponse]
 	wipeData             *connect.Client[emptypb.Empty, emptypb.Empty]
 	getBitdriveDir       *connect.Client[emptypb.Empty, v1.GetBitdriveDirResponse]
+	openBitdriveDir      *connect.Client[emptypb.Empty, emptypb.Empty]
 }
 
 // StoreFile calls bitdrive.v1.BitDriveService.StoreFile.
@@ -227,6 +239,11 @@ func (c *bitDriveServiceClient) GetBitdriveDir(ctx context.Context, req *connect
 	return c.getBitdriveDir.CallUnary(ctx, req)
 }
 
+// OpenBitdriveDir calls bitdrive.v1.BitDriveService.OpenBitdriveDir.
+func (c *bitDriveServiceClient) OpenBitdriveDir(ctx context.Context, req *connect.Request[emptypb.Empty]) (*connect.Response[emptypb.Empty], error) {
+	return c.openBitdriveDir.CallUnary(ctx, req)
+}
+
 // BitDriveServiceHandler is an implementation of the bitdrive.v1.BitDriveService service.
 type BitDriveServiceHandler interface {
 	// Store file/content to blockchain with optional encryption
@@ -249,6 +266,8 @@ type BitDriveServiceHandler interface {
 	WipeData(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[emptypb.Empty], error)
 	// Get the BitDrive data directory path
 	GetBitdriveDir(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.GetBitdriveDirResponse], error)
+	// Open the BitDrive data directory in the OS file manager
+	OpenBitdriveDir(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[emptypb.Empty], error)
 }
 
 // NewBitDriveServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -318,6 +337,12 @@ func NewBitDriveServiceHandler(svc BitDriveServiceHandler, opts ...connect.Handl
 		connect.WithSchema(bitDriveServiceMethods.ByName("GetBitdriveDir")),
 		connect.WithHandlerOptions(opts...),
 	)
+	bitDriveServiceOpenBitdriveDirHandler := connect.NewUnaryHandler(
+		BitDriveServiceOpenBitdriveDirProcedure,
+		svc.OpenBitdriveDir,
+		connect.WithSchema(bitDriveServiceMethods.ByName("OpenBitdriveDir")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/bitdrive.v1.BitDriveService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case BitDriveServiceStoreFileProcedure:
@@ -340,6 +365,8 @@ func NewBitDriveServiceHandler(svc BitDriveServiceHandler, opts ...connect.Handl
 			bitDriveServiceWipeDataHandler.ServeHTTP(w, r)
 		case BitDriveServiceGetBitdriveDirProcedure:
 			bitDriveServiceGetBitdriveDirHandler.ServeHTTP(w, r)
+		case BitDriveServiceOpenBitdriveDirProcedure:
+			bitDriveServiceOpenBitdriveDirHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -387,4 +414,8 @@ func (UnimplementedBitDriveServiceHandler) WipeData(context.Context, *connect.Re
 
 func (UnimplementedBitDriveServiceHandler) GetBitdriveDir(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.GetBitdriveDirResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("bitdrive.v1.BitDriveService.GetBitdriveDir is not implemented"))
+}
+
+func (UnimplementedBitDriveServiceHandler) OpenBitdriveDir(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[emptypb.Empty], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("bitdrive.v1.BitDriveService.OpenBitdriveDir is not implemented"))
 }
