@@ -118,6 +118,13 @@ func NewStore(db *sql.DB) *Store {
 	return &Store{db: db}
 }
 
+// execer abstracts *sql.DB and *sql.Tx for shared query helpers.
+type execer interface {
+	ExecContext(ctx context.Context, query string, args ...interface{}) (sql.Result, error)
+	QueryContext(ctx context.Context, query string, args ...interface{}) (*sql.Rows, error)
+	QueryRowContext(ctx context.Context, query string, args ...interface{}) *sql.Row
+}
+
 // ─── Groups ────────────────────────────────────────────────────────
 
 func (s *Store) ListGroups(ctx context.Context) ([]Group, error) {
@@ -145,7 +152,11 @@ func (s *Store) ListGroups(ctx context.Context) ([]Group, error) {
 }
 
 func (s *Store) SaveGroup(ctx context.Context, g Group) error {
-	_, err := s.db.ExecContext(ctx, `
+	return saveGroupOn(ctx, s.db, g)
+}
+
+func saveGroupOn(ctx context.Context, e execer, g Group) error {
+	_, err := e.ExecContext(ctx, `
 		INSERT INTO multisig_groups (id, name, n, m, created, txid, descriptor, descriptor_receive,
 		    descriptor_change, watch_wallet_name, balance, utxos, next_receive_index, next_change_index)
 		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -169,7 +180,11 @@ func (s *Store) DeleteGroup(ctx context.Context, id string) error {
 // ─── Keys ──────────────────────────────────────────────────────────
 
 func (s *Store) ListKeysForGroup(ctx context.Context, groupID string) ([]Key, error) {
-	rows, err := s.db.QueryContext(ctx, `
+	return listKeysForGroupOn(ctx, s.db, groupID)
+}
+
+func listKeysForGroupOn(ctx context.Context, e execer, groupID string) ([]Key, error) {
+	rows, err := e.QueryContext(ctx, `
 		SELECT id, group_id, owner, xpub, derivation_path, COALESCE(fingerprint,''),
 		       COALESCE(origin_path,''), is_wallet, sort_order
 		FROM multisig_keys WHERE group_id = ? ORDER BY sort_order ASC`, groupID)
@@ -197,12 +212,19 @@ func (s *Store) ReplaceKeysForGroup(ctx context.Context, groupID string, keys []
 	}
 	defer tx.Rollback() //nolint:errcheck
 
-	if _, err := tx.ExecContext(ctx, `DELETE FROM multisig_keys WHERE group_id = ?`, groupID); err != nil {
+	if err := replaceKeysForGroupOn(ctx, tx, groupID, keys); err != nil {
+		return err
+	}
+	return tx.Commit()
+}
+
+func replaceKeysForGroupOn(ctx context.Context, e execer, groupID string, keys []Key) error {
+	if _, err := e.ExecContext(ctx, `DELETE FROM multisig_keys WHERE group_id = ?`, groupID); err != nil {
 		return err
 	}
 
 	for i, k := range keys {
-		_, err := tx.ExecContext(ctx, `
+		_, err := e.ExecContext(ctx, `
 			INSERT INTO multisig_keys (group_id, owner, xpub, derivation_path, fingerprint, origin_path, is_wallet, sort_order)
 			VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
 			groupID, k.Owner, k.Xpub, k.DerivationPath, nullStr(k.Fingerprint), nullStr(k.OriginPath), k.IsWallet, i)
@@ -210,8 +232,7 @@ func (s *Store) ReplaceKeysForGroup(ctx context.Context, groupID string, keys []
 			return err
 		}
 	}
-
-	return tx.Commit()
+	return nil
 }
 
 // ─── Key PSBTs ─────────────────────────────────────────────────────
@@ -239,7 +260,11 @@ func (s *Store) ListKeyPSBTs(ctx context.Context, groupID string) ([]KeyPSBT, er
 }
 
 func (s *Store) SaveKeyPSBT(ctx context.Context, kp KeyPSBT) error {
-	_, err := s.db.ExecContext(ctx, `
+	return saveKeyPSBTOn(ctx, s.db, kp)
+}
+
+func saveKeyPSBTOn(ctx context.Context, e execer, kp KeyPSBT) error {
+	_, err := e.ExecContext(ctx, `
 		INSERT INTO multisig_key_psbts (key_id, transaction_id, active_psbt, initial_psbt)
 		VALUES (?, ?, ?, ?)
 		ON CONFLICT(key_id, transaction_id) DO UPDATE SET
@@ -282,19 +307,25 @@ func (s *Store) ReplaceAddresses(ctx context.Context, groupID string, addrs []Ad
 	}
 	defer tx.Rollback() //nolint:errcheck
 
-	if _, err := tx.ExecContext(ctx, `DELETE FROM multisig_addresses WHERE group_id = ?`, groupID); err != nil {
+	if err := replaceAddressesOn(ctx, tx, groupID, addrs); err != nil {
+		return err
+	}
+	return tx.Commit()
+}
+
+func replaceAddressesOn(ctx context.Context, e execer, groupID string, addrs []Address) error {
+	if _, err := e.ExecContext(ctx, `DELETE FROM multisig_addresses WHERE group_id = ?`, groupID); err != nil {
 		return err
 	}
 
 	for _, a := range addrs {
-		if _, err := tx.ExecContext(ctx, `
+		if _, err := e.ExecContext(ctx, `
 			INSERT INTO multisig_addresses (group_id, addr_type, addr_index, address, used)
 			VALUES (?, ?, ?, ?, ?)`, groupID, a.AddrType, a.Index, a.Addr, a.Used); err != nil {
 			return err
 		}
 	}
-
-	return tx.Commit()
+	return nil
 }
 
 // ─── UTXO details ──────────────────────────────────────────────────
@@ -328,20 +359,26 @@ func (s *Store) ReplaceUtxoDetails(ctx context.Context, groupID string, utxos []
 	}
 	defer tx.Rollback() //nolint:errcheck
 
-	if _, err := tx.ExecContext(ctx, `DELETE FROM multisig_utxo_details WHERE group_id = ?`, groupID); err != nil {
+	if err := replaceUtxoDetailsOn(ctx, tx, groupID, utxos); err != nil {
+		return err
+	}
+	return tx.Commit()
+}
+
+func replaceUtxoDetailsOn(ctx context.Context, e execer, groupID string, utxos []UtxoDetail) error {
+	if _, err := e.ExecContext(ctx, `DELETE FROM multisig_utxo_details WHERE group_id = ?`, groupID); err != nil {
 		return err
 	}
 
 	for _, u := range utxos {
-		if _, err := tx.ExecContext(ctx, `
+		if _, err := e.ExecContext(ctx, `
 			INSERT INTO multisig_utxo_details (group_id, txid, vout, address, amount, confirmations, script_pub_key, spendable, solvable, safe)
 			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 			groupID, u.Txid, u.Vout, u.Address, u.Amount, u.Confirmations, u.ScriptPubKey, u.Spendable, u.Solvable, u.Safe); err != nil {
 			return err
 		}
 	}
-
-	return tx.Commit()
+	return nil
 }
 
 // ─── Group ↔ Transaction links ─────────────────────────────────────
@@ -371,17 +408,23 @@ func (s *Store) ReplaceGroupTransactionIDs(ctx context.Context, groupID string, 
 	}
 	defer tx.Rollback() //nolint:errcheck
 
-	if _, err := tx.ExecContext(ctx, `DELETE FROM multisig_group_transactions WHERE group_id = ?`, groupID); err != nil {
+	if err := replaceGroupTransactionIDsOn(ctx, tx, groupID, txIDs); err != nil {
+		return err
+	}
+	return tx.Commit()
+}
+
+func replaceGroupTransactionIDsOn(ctx context.Context, e execer, groupID string, txIDs []string) error {
+	if _, err := e.ExecContext(ctx, `DELETE FROM multisig_group_transactions WHERE group_id = ?`, groupID); err != nil {
 		return err
 	}
 
 	for _, txID := range txIDs {
-		if _, err := tx.ExecContext(ctx, `INSERT INTO multisig_group_transactions (group_id, transaction_id) VALUES (?, ?)`, groupID, txID); err != nil {
+		if _, err := e.ExecContext(ctx, `INSERT INTO multisig_group_transactions (group_id, transaction_id) VALUES (?, ?)`, groupID, txID); err != nil {
 			return err
 		}
 	}
-
-	return tx.Commit()
+	return nil
 }
 
 // ─── Transactions ──────────────────────────────────────────────────
@@ -469,11 +512,15 @@ func (s *Store) GetTransactionByTxid(ctx context.Context, txid string) (*Transac
 }
 
 func (s *Store) SaveTransaction(ctx context.Context, t Transaction) error {
+	return saveTransactionOn(ctx, s.db, t)
+}
+
+func saveTransactionOn(ctx context.Context, e execer, t Transaction) error {
 	var bt interface{}
 	if t.BroadcastTime != nil {
 		bt = *t.BroadcastTime
 	}
-	_, err := s.db.ExecContext(ctx, `
+	_, err := e.ExecContext(ctx, `
 		INSERT INTO multisig_transactions (id, group_id, initial_psbt, combined_psbt, final_hex,
 		    txid, status, type, created, broadcast_time, amount, destination, fee, confirmations, required_signatures)
 		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -522,7 +569,14 @@ func (s *Store) ReplaceTxKeyPSBTs(ctx context.Context, transactionID string, psb
 	}
 	defer tx.Rollback() //nolint:errcheck
 
-	if _, err := tx.ExecContext(ctx, `DELETE FROM multisig_tx_key_psbts WHERE transaction_id = ?`, transactionID); err != nil {
+	if err := replaceTxKeyPSBTsOn(ctx, tx, transactionID, psbts); err != nil {
+		return err
+	}
+	return tx.Commit()
+}
+
+func replaceTxKeyPSBTsOn(ctx context.Context, e execer, transactionID string, psbts []TxKeyPSBT) error {
+	if _, err := e.ExecContext(ctx, `DELETE FROM multisig_tx_key_psbts WHERE transaction_id = ?`, transactionID); err != nil {
 		return err
 	}
 
@@ -531,14 +585,13 @@ func (s *Store) ReplaceTxKeyPSBTs(ctx context.Context, transactionID string, psb
 		if p.SignedAt != nil {
 			sa = *p.SignedAt
 		}
-		if _, err := tx.ExecContext(ctx, `
+		if _, err := e.ExecContext(ctx, `
 			INSERT INTO multisig_tx_key_psbts (transaction_id, key_id, psbt, is_signed, signed_at)
 			VALUES (?, ?, ?, ?, ?)`, transactionID, p.KeyID, nullStr(p.PSBT), p.IsSigned, sa); err != nil {
 			return err
 		}
 	}
-
-	return tx.Commit()
+	return nil
 }
 
 // ─── Transaction Inputs ────────────────────────────────────────────
@@ -570,19 +623,25 @@ func (s *Store) ReplaceTxInputs(ctx context.Context, transactionID string, input
 	}
 	defer tx.Rollback() //nolint:errcheck
 
-	if _, err := tx.ExecContext(ctx, `DELETE FROM multisig_tx_inputs WHERE transaction_id = ?`, transactionID); err != nil {
+	if err := replaceTxInputsOn(ctx, tx, transactionID, inputs); err != nil {
+		return err
+	}
+	return tx.Commit()
+}
+
+func replaceTxInputsOn(ctx context.Context, e execer, transactionID string, inputs []TxInput) error {
+	if _, err := e.ExecContext(ctx, `DELETE FROM multisig_tx_inputs WHERE transaction_id = ?`, transactionID); err != nil {
 		return err
 	}
 
 	for _, inp := range inputs {
-		if _, err := tx.ExecContext(ctx, `
+		if _, err := e.ExecContext(ctx, `
 			INSERT INTO multisig_tx_inputs (transaction_id, txid, vout, address, amount, confirmations)
 			VALUES (?, ?, ?, ?, ?, ?)`, transactionID, inp.Txid, inp.Vout, inp.Address, inp.Amount, inp.Confirmations); err != nil {
 			return err
 		}
 	}
-
-	return tx.Commit()
+	return nil
 }
 
 // ─── Solo Keys ─────────────────────────────────────────────────────
@@ -668,6 +727,109 @@ func (s *Store) GetNextAccountIndex(ctx context.Context, additionalUsed []int) (
 	}
 
 	return maxIndex + 1, nil
+}
+
+// ─── Atomic composite operations ──────────────────────────────────
+
+// SaveGroupAtomicParams contains all the data needed to save a group and its
+// associated keys, PSBTs, addresses, UTXOs, and transaction links in a single
+// database transaction.
+type SaveGroupAtomicParams struct {
+	Group   Group
+	Keys    []Key
+	KeyPSBTs []KeyPSBT // KeyID is ignored; matched by xpub after key insert
+	Addresses []Address
+	UtxoDetails []UtxoDetail
+	TransactionIDs []string
+	// XpubToPSBTs maps xpub -> list of KeyPSBT (KeyID filled after insert).
+	XpubToPSBTs map[string][]KeyPSBT
+}
+
+// SaveGroupAtomic persists the group and all related child data in a single
+// database transaction. If any step fails the entire operation is rolled back.
+func (s *Store) SaveGroupAtomic(ctx context.Context, p SaveGroupAtomicParams) error {
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("begin tx: %w", err)
+	}
+	defer tx.Rollback() //nolint:errcheck
+
+	if err := saveGroupOn(ctx, tx, p.Group); err != nil {
+		return fmt.Errorf("save group: %w", err)
+	}
+
+	if err := replaceKeysForGroupOn(ctx, tx, p.Group.ID, p.Keys); err != nil {
+		return fmt.Errorf("replace keys: %w", err)
+	}
+
+	// Resolve xpub → DB key ID for PSBTs.
+	if len(p.XpubToPSBTs) > 0 {
+		dbKeys, err := listKeysForGroupOn(ctx, tx, p.Group.ID)
+		if err != nil {
+			return fmt.Errorf("list keys: %w", err)
+		}
+		xpubToID := make(map[string]int64, len(dbKeys))
+		for _, k := range dbKeys {
+			xpubToID[k.Xpub] = k.ID
+		}
+		for xpub, psbts := range p.XpubToPSBTs {
+			keyID, ok := xpubToID[xpub]
+			if !ok {
+				continue
+			}
+			for _, kp := range psbts {
+				kp.KeyID = keyID
+				if err := saveKeyPSBTOn(ctx, tx, kp); err != nil {
+					return fmt.Errorf("save key psbt: %w", err)
+				}
+			}
+		}
+	}
+
+	if err := replaceAddressesOn(ctx, tx, p.Group.ID, p.Addresses); err != nil {
+		return fmt.Errorf("replace addresses: %w", err)
+	}
+
+	if err := replaceUtxoDetailsOn(ctx, tx, p.Group.ID, p.UtxoDetails); err != nil {
+		return fmt.Errorf("replace utxos: %w", err)
+	}
+
+	if err := replaceGroupTransactionIDsOn(ctx, tx, p.Group.ID, p.TransactionIDs); err != nil {
+		return fmt.Errorf("replace tx ids: %w", err)
+	}
+
+	return tx.Commit()
+}
+
+// SaveTransactionAtomicParams contains all data for an atomic transaction save.
+type SaveTransactionAtomicParams struct {
+	Transaction Transaction
+	KeyPSBTs    []TxKeyPSBT
+	Inputs      []TxInput
+}
+
+// SaveTransactionAtomic persists a transaction and its key PSBTs and inputs in
+// a single database transaction.
+func (s *Store) SaveTransactionAtomic(ctx context.Context, p SaveTransactionAtomicParams) error {
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("begin tx: %w", err)
+	}
+	defer tx.Rollback() //nolint:errcheck
+
+	if err := saveTransactionOn(ctx, tx, p.Transaction); err != nil {
+		return fmt.Errorf("save transaction: %w", err)
+	}
+
+	if err := replaceTxKeyPSBTsOn(ctx, tx, p.Transaction.ID, p.KeyPSBTs); err != nil {
+		return fmt.Errorf("replace key psbts: %w", err)
+	}
+
+	if err := replaceTxInputsOn(ctx, tx, p.Transaction.ID, p.Inputs); err != nil {
+		return fmt.Errorf("replace inputs: %w", err)
+	}
+
+	return tx.Commit()
 }
 
 // ─── Migration helper ──────────────────────────────────────────────
