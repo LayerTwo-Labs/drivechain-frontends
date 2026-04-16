@@ -560,24 +560,9 @@ class CreateMultisigModalViewModel extends BaseViewModel {
 
   Future<bool> _isNameAlreadyUsed(String name) async {
     try {
-      final appDir = await Environment.datadir();
-      final bitdriveDir = path.join(appDir.path, 'bitdrive');
-      final jsonFile = File(path.join(bitdriveDir, 'multisig', 'multisig.json'));
-
-      if (!await jsonFile.exists()) {
-        return false;
-      }
-
-      final content = await jsonFile.readAsString();
-      if (content.trim().isEmpty) {
-        return false;
-      }
-
-      final jsonData = json.decode(content) as Map<String, dynamic>;
-
-      final existingGroups = jsonData['groups'] as List<dynamic>? ?? [];
-      return existingGroups.any(
-        (group) => (group['name'] as String?)?.toLowerCase() == name.toLowerCase(),
+      final groups = await MultisigStorage.loadGroups();
+      return groups.any(
+        (group) => group.name.toLowerCase() == name.toLowerCase(),
       );
     } catch (e) {
       return false;
@@ -910,7 +895,9 @@ class CreateMultisigModalViewModel extends BaseViewModel {
         multisigData['txid'] = txid;
       }
 
-      await _saveToLocalFile(multisigData);
+      // Persist the group via backend RPC
+      final group = MultisigGroup.fromJson(multisigData);
+      await MultisigStorage.saveGroups([group]);
 
       if (context.mounted) {
         Navigator.of(context).pop(true); // Return true to indicate success
@@ -921,41 +908,6 @@ class CreateMultisigModalViewModel extends BaseViewModel {
     } finally {
       setBusy(false);
       notifyListeners();
-    }
-  }
-
-  Future<void> _saveToLocalFile(Map<String, dynamic> multisigData) async {
-    try {
-      final appDir = await Environment.datadir();
-      final bitdriveDir = path.join(appDir.path, 'bitdrive');
-      final dir = Directory(bitdriveDir);
-
-      if (!await dir.exists()) {
-        await dir.create(recursive: true);
-      }
-
-      final multisigDir = Directory(path.join(bitdriveDir, 'multisig'));
-      if (!await multisigDir.exists()) {
-        await multisigDir.create(recursive: true);
-      }
-      final file = File(path.join(bitdriveDir, 'multisig', 'multisig.json'));
-
-      Map<String, dynamic> jsonData = {
-        'groups': [],
-        'solo_keys': [],
-      };
-
-      if (await file.exists()) {
-        final content = await file.readAsString();
-        jsonData = json.decode(content) as Map<String, dynamic>;
-      }
-
-      final groups = jsonData['groups'] as List<dynamic>;
-      groups.add(multisigData);
-
-      await file.writeAsString(json.encode(jsonData));
-    } catch (e) {
-      throw Exception('Failed to save to local file: $e');
     }
   }
 
@@ -1305,7 +1257,9 @@ class ImportMultisigModalViewModel extends BaseViewModel {
         'txid': txidController.text.trim(), // Include the TXID from import
       };
 
-      await _saveToLocalFile(updatedGroup);
+      // Persist via backend RPC
+      final group = MultisigGroup.fromJson(updatedGroup);
+      await MultisigStorage.saveGroups([group]);
 
       if (context.mounted) {
         Navigator.of(context).pop(true);
@@ -1315,50 +1269,6 @@ class ImportMultisigModalViewModel extends BaseViewModel {
     } finally {
       setBusy(false);
       notifyListeners();
-    }
-  }
-
-  Future<void> _saveToLocalFile(Map<String, dynamic> multisigData) async {
-    try {
-      final appDir = await Environment.datadir();
-      final bitdriveDir = path.join(appDir.path, 'bitdrive');
-      final dir = Directory(bitdriveDir);
-
-      if (!await dir.exists()) {
-        await dir.create(recursive: true);
-      }
-
-      final multisigDir = Directory(path.join(bitdriveDir, 'multisig'));
-      if (!await multisigDir.exists()) {
-        await multisigDir.create(recursive: true);
-      }
-      final file = File(path.join(bitdriveDir, 'multisig', 'multisig.json'));
-
-      Map<String, dynamic> jsonData = {
-        'groups': [],
-        'solo_keys': [],
-      };
-
-      if (await file.exists()) {
-        final content = await file.readAsString();
-        if (content.trim().isNotEmpty) {
-          jsonData = json.decode(content) as Map<String, dynamic>;
-        }
-      }
-
-      final groups = jsonData['groups'] as List<dynamic>;
-      final groupId = multisigData['id'] as String;
-      final existingIndex = groups.indexWhere((group) => group['id'] == groupId);
-
-      if (existingIndex != -1) {
-        groups[existingIndex] = multisigData;
-      } else {
-        groups.add(multisigData);
-      }
-
-      await file.writeAsString(json.encode(jsonData));
-    } catch (e) {
-      throw Exception('Failed to save to local file: $e');
     }
   }
 
