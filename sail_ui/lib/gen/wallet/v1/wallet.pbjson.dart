@@ -1,21 +1,26 @@
+// This is a generated file - do not edit.
 //
-//  Generated code. Do not modify.
-//  source: wallet/v1/wallet.proto
-//
-// @dart = 2.12
+// Generated from wallet/v1/wallet.proto.
+
+// @dart = 3.3
 
 // ignore_for_file: annotate_overrides, camel_case_types, comment_references
-// ignore_for_file: constant_identifier_names, library_prefixes
-// ignore_for_file: non_constant_identifier_names, prefer_final_fields
-// ignore_for_file: unnecessary_import, unnecessary_this, unused_import
+// ignore_for_file: constant_identifier_names
+// ignore_for_file: curly_braces_in_flow_control_structures
+// ignore_for_file: deprecated_member_use_from_same_package, library_prefixes
+// ignore_for_file: non_constant_identifier_names, prefer_relative_imports
+// ignore_for_file: unused_import
 
 import 'dart:convert' as $convert;
 import 'dart:core' as $core;
 import 'dart:typed_data' as $typed_data;
 
-import '../../bitwindowd/v1/bitwindowd.pbjson.dart' as $3;
-import '../../google/protobuf/empty.pbjson.dart' as $1;
-import '../../google/protobuf/timestamp.pbjson.dart' as $0;
+import 'package:protobuf/well_known_types/google/protobuf/empty.pbjson.dart'
+    as $2;
+import 'package:protobuf/well_known_types/google/protobuf/timestamp.pbjson.dart'
+    as $0;
+
+import '../../bitwindowd/v1/bitwindowd.pbjson.dart' as $1;
 
 @$core.Deprecated('Use coinSelectionStrategyDescriptor instead')
 const CoinSelectionStrategy$json = {
@@ -56,8 +61,9 @@ const GetNewAddressRequest$json = {
 };
 
 /// Descriptor for `GetNewAddressRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List getNewAddressRequestDescriptor = $convert.base64Decode(
-    'ChRHZXROZXdBZGRyZXNzUmVxdWVzdBIbCgl3YWxsZXRfaWQYASABKAlSCHdhbGxldElk');
+final $typed_data.Uint8List getNewAddressRequestDescriptor =
+    $convert.base64Decode(
+        'ChRHZXROZXdBZGRyZXNzUmVxdWVzdBIbCgl3YWxsZXRfaWQYASABKAlSCHdhbGxldElk');
 
 @$core.Deprecated('Use getNewAddressResponseDescriptor instead')
 const GetNewAddressResponse$json = {
@@ -82,8 +88,9 @@ const ListTransactionsRequest$json = {
 };
 
 /// Descriptor for `ListTransactionsRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List listTransactionsRequestDescriptor = $convert.base64Decode(
-    'ChdMaXN0VHJhbnNhY3Rpb25zUmVxdWVzdBIbCgl3YWxsZXRfaWQYASABKAlSCHdhbGxldElk');
+final $typed_data.Uint8List listTransactionsRequestDescriptor =
+    $convert.base64Decode(
+        'ChdMaXN0VHJhbnNhY3Rpb25zUmVxdWVzdBIbCgl3YWxsZXRfaWQYASABKAlSCHdhbGxldElk');
 
 @$core.Deprecated('Use listUnspentRequestDescriptor instead')
 const ListUnspentRequest$json = {
@@ -94,8 +101,9 @@ const ListUnspentRequest$json = {
 };
 
 /// Descriptor for `ListUnspentRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List listUnspentRequestDescriptor = $convert.base64Decode(
-    'ChJMaXN0VW5zcGVudFJlcXVlc3QSGwoJd2FsbGV0X2lkGAEgASgJUgh3YWxsZXRJZA==');
+final $typed_data.Uint8List listUnspentRequestDescriptor =
+    $convert.base64Decode(
+        'ChJMaXN0VW5zcGVudFJlcXVlc3QSGwoJd2FsbGV0X2lkGAEgASgJUgh3YWxsZXRJZA==');
 
 @$core.Deprecated('Use listReceiveAddressesRequestDescriptor instead')
 const ListReceiveAddressesRequest$json = {
@@ -106,9 +114,10 @@ const ListReceiveAddressesRequest$json = {
 };
 
 /// Descriptor for `ListReceiveAddressesRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List listReceiveAddressesRequestDescriptor = $convert.base64Decode(
-    'ChtMaXN0UmVjZWl2ZUFkZHJlc3Nlc1JlcXVlc3QSGwoJd2FsbGV0X2lkGAEgASgJUgh3YWxsZX'
-    'RJZA==');
+final $typed_data.Uint8List listReceiveAddressesRequestDescriptor =
+    $convert.base64Decode(
+        'ChtMaXN0UmVjZWl2ZUFkZHJlc3Nlc1JlcXVlc3QSGwoJd2FsbGV0X2lkGAEgASgJUgh3YWxsZX'
+        'RJZA==');
 
 @$core.Deprecated('Use getStatsRequestDescriptor instead')
 const GetStatsRequest$json = {
@@ -127,12 +136,26 @@ const SendTransactionRequest$json = {
   '1': 'SendTransactionRequest',
   '2': [
     {'1': 'wallet_id', '3': 1, '4': 1, '5': 9, '10': 'walletId'},
-    {'1': 'destinations', '3': 2, '4': 3, '5': 11, '6': '.wallet.v1.SendTransactionRequest.DestinationsEntry', '10': 'destinations'},
+    {
+      '1': 'destinations',
+      '3': 2,
+      '4': 3,
+      '5': 11,
+      '6': '.wallet.v1.SendTransactionRequest.DestinationsEntry',
+      '10': 'destinations'
+    },
     {'1': 'fee_sat_per_vbyte', '3': 3, '4': 1, '5': 4, '10': 'feeSatPerVbyte'},
     {'1': 'fixed_fee_sats', '3': 4, '4': 1, '5': 4, '10': 'fixedFeeSats'},
     {'1': 'op_return_message', '3': 5, '4': 1, '5': 9, '10': 'opReturnMessage'},
     {'1': 'label', '3': 6, '4': 1, '5': 9, '10': 'label'},
-    {'1': 'required_inputs', '3': 7, '4': 3, '5': 11, '6': '.wallet.v1.UnspentOutput', '10': 'requiredInputs'},
+    {
+      '1': 'required_inputs',
+      '3': 7,
+      '4': 3,
+      '5': 11,
+      '6': '.wallet.v1.UnspentOutput',
+      '10': 'requiredInputs'
+    },
   ],
   '3': [SendTransactionRequest_DestinationsEntry$json],
 };
@@ -167,14 +190,21 @@ const SendTransactionResponse$json = {
 };
 
 /// Descriptor for `SendTransactionResponse`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List sendTransactionResponseDescriptor = $convert.base64Decode(
-    'ChdTZW5kVHJhbnNhY3Rpb25SZXNwb25zZRISCgR0eGlkGAEgASgJUgR0eGlk');
+final $typed_data.Uint8List sendTransactionResponseDescriptor =
+    $convert.base64Decode(
+        'ChdTZW5kVHJhbnNhY3Rpb25SZXNwb25zZRISCgR0eGlkGAEgASgJUgR0eGlk');
 
 @$core.Deprecated('Use getBalanceResponseDescriptor instead')
 const GetBalanceResponse$json = {
   '1': 'GetBalanceResponse',
   '2': [
-    {'1': 'confirmed_satoshi', '3': 1, '4': 1, '5': 4, '10': 'confirmedSatoshi'},
+    {
+      '1': 'confirmed_satoshi',
+      '3': 1,
+      '4': 1,
+      '5': 4,
+      '10': 'confirmedSatoshi'
+    },
     {'1': 'pending_satoshi', '3': 2, '4': 1, '5': 4, '10': 'pendingSatoshi'},
   ],
 };
@@ -188,14 +218,22 @@ final $typed_data.Uint8List getBalanceResponseDescriptor = $convert.base64Decode
 const ListTransactionsResponse$json = {
   '1': 'ListTransactionsResponse',
   '2': [
-    {'1': 'transactions', '3': 1, '4': 3, '5': 11, '6': '.wallet.v1.WalletTransaction', '10': 'transactions'},
+    {
+      '1': 'transactions',
+      '3': 1,
+      '4': 3,
+      '5': 11,
+      '6': '.wallet.v1.WalletTransaction',
+      '10': 'transactions'
+    },
   ],
 };
 
 /// Descriptor for `ListTransactionsResponse`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List listTransactionsResponseDescriptor = $convert.base64Decode(
-    'ChhMaXN0VHJhbnNhY3Rpb25zUmVzcG9uc2USQAoMdHJhbnNhY3Rpb25zGAEgAygLMhwud2FsbG'
-    'V0LnYxLldhbGxldFRyYW5zYWN0aW9uUgx0cmFuc2FjdGlvbnM=');
+final $typed_data.Uint8List listTransactionsResponseDescriptor =
+    $convert.base64Decode(
+        'ChhMaXN0VHJhbnNhY3Rpb25zUmVzcG9uc2USQAoMdHJhbnNhY3Rpb25zGAEgAygLMhwud2FsbG'
+        'V0LnYxLldhbGxldFRyYW5zYWN0aW9uUgx0cmFuc2FjdGlvbnM=');
 
 @$core.Deprecated('Use unspentOutputDescriptor instead')
 const UnspentOutput$json = {
@@ -206,8 +244,24 @@ const UnspentOutput$json = {
     {'1': 'label', '3': 3, '4': 1, '5': 9, '10': 'label'},
     {'1': 'value_sats', '3': 4, '4': 1, '5': 4, '10': 'valueSats'},
     {'1': 'is_change', '3': 5, '4': 1, '5': 8, '10': 'isChange'},
-    {'1': 'received_at', '3': 6, '4': 1, '5': 11, '6': '.google.protobuf.Timestamp', '10': 'receivedAt'},
-    {'1': 'denial_info', '3': 7, '4': 1, '5': 11, '6': '.bitwindowd.v1.DenialInfo', '9': 0, '10': 'denialInfo', '17': true},
+    {
+      '1': 'received_at',
+      '3': 6,
+      '4': 1,
+      '5': 11,
+      '6': '.google.protobuf.Timestamp',
+      '10': 'receivedAt'
+    },
+    {
+      '1': 'denial_info',
+      '3': 7,
+      '4': 1,
+      '5': 11,
+      '6': '.bitwindowd.v1.DenialInfo',
+      '9': 0,
+      '10': 'denialInfo',
+      '17': true
+    },
   ],
   '8': [
     {'1': '_denial_info'},
@@ -227,7 +281,14 @@ final $typed_data.Uint8List unspentOutputDescriptor = $convert.base64Decode(
 const ListUnspentResponse$json = {
   '1': 'ListUnspentResponse',
   '2': [
-    {'1': 'utxos', '3': 1, '4': 3, '5': 11, '6': '.wallet.v1.UnspentOutput', '10': 'utxos'},
+    {
+      '1': 'utxos',
+      '3': 1,
+      '4': 3,
+      '5': 11,
+      '6': '.wallet.v1.UnspentOutput',
+      '10': 'utxos'
+    },
   ],
 };
 
@@ -240,14 +301,22 @@ final $typed_data.Uint8List listUnspentResponseDescriptor = $convert.base64Decod
 const ListReceiveAddressesResponse$json = {
   '1': 'ListReceiveAddressesResponse',
   '2': [
-    {'1': 'addresses', '3': 1, '4': 3, '5': 11, '6': '.wallet.v1.ReceiveAddress', '10': 'addresses'},
+    {
+      '1': 'addresses',
+      '3': 1,
+      '4': 3,
+      '5': 11,
+      '6': '.wallet.v1.ReceiveAddress',
+      '10': 'addresses'
+    },
   ],
 };
 
 /// Descriptor for `ListReceiveAddressesResponse`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List listReceiveAddressesResponseDescriptor = $convert.base64Decode(
-    'ChxMaXN0UmVjZWl2ZUFkZHJlc3Nlc1Jlc3BvbnNlEjcKCWFkZHJlc3NlcxgBIAMoCzIZLndhbG'
-    'xldC52MS5SZWNlaXZlQWRkcmVzc1IJYWRkcmVzc2Vz');
+final $typed_data.Uint8List listReceiveAddressesResponseDescriptor =
+    $convert.base64Decode(
+        'ChxMaXN0UmVjZWl2ZUFkZHJlc3Nlc1Jlc3BvbnNlEjcKCWFkZHJlc3NlcxgBIAMoCzIZLndhbG'
+        'xldC52MS5SZWNlaXZlQWRkcmVzc1IJYWRkcmVzc2Vz');
 
 @$core.Deprecated('Use receiveAddressDescriptor instead')
 const ReceiveAddress$json = {
@@ -255,9 +324,22 @@ const ReceiveAddress$json = {
   '2': [
     {'1': 'address', '3': 1, '4': 1, '5': 9, '10': 'address'},
     {'1': 'label', '3': 2, '4': 1, '5': 9, '10': 'label'},
-    {'1': 'current_balance_sat', '3': 3, '4': 1, '5': 4, '10': 'currentBalanceSat'},
+    {
+      '1': 'current_balance_sat',
+      '3': 3,
+      '4': 1,
+      '5': 4,
+      '10': 'currentBalanceSat'
+    },
     {'1': 'is_change', '3': 4, '4': 1, '5': 8, '10': 'isChange'},
-    {'1': 'last_used_at', '3': 5, '4': 1, '5': 11, '6': '.google.protobuf.Timestamp', '10': 'lastUsedAt'},
+    {
+      '1': 'last_used_at',
+      '3': 5,
+      '4': 1,
+      '5': 11,
+      '6': '.google.protobuf.Timestamp',
+      '10': 'lastUsedAt'
+    },
   ],
 };
 
@@ -273,7 +355,14 @@ const Confirmation$json = {
   '1': 'Confirmation',
   '2': [
     {'1': 'height', '3': 1, '4': 1, '5': 13, '10': 'height'},
-    {'1': 'timestamp', '3': 2, '4': 1, '5': 11, '6': '.google.protobuf.Timestamp', '10': 'timestamp'},
+    {
+      '1': 'timestamp',
+      '3': 2,
+      '4': 1,
+      '5': 11,
+      '6': '.google.protobuf.Timestamp',
+      '10': 'timestamp'
+    },
   ],
 };
 
@@ -293,7 +382,14 @@ const WalletTransaction$json = {
     {'1': 'address', '3': 5, '4': 1, '5': 9, '10': 'address'},
     {'1': 'address_label', '3': 6, '4': 1, '5': 9, '10': 'addressLabel'},
     {'1': 'note', '3': 7, '4': 1, '5': 9, '10': 'note'},
-    {'1': 'confirmation_time', '3': 8, '4': 1, '5': 11, '6': '.wallet.v1.Confirmation', '10': 'confirmationTime'},
+    {
+      '1': 'confirmation_time',
+      '3': 8,
+      '4': 1,
+      '5': 11,
+      '6': '.wallet.v1.Confirmation',
+      '10': 'confirmationTime'
+    },
   ],
 };
 
@@ -316,15 +412,23 @@ const ListSidechainDepositsRequest$json = {
 };
 
 /// Descriptor for `ListSidechainDepositsRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List listSidechainDepositsRequestDescriptor = $convert.base64Decode(
-    'ChxMaXN0U2lkZWNoYWluRGVwb3NpdHNSZXF1ZXN0EhsKCXdhbGxldF9pZBgBIAEoCVIId2FsbG'
-    'V0SWQSEgoEc2xvdBgCIAEoBVIEc2xvdA==');
+final $typed_data.Uint8List listSidechainDepositsRequestDescriptor =
+    $convert.base64Decode(
+        'ChxMaXN0U2lkZWNoYWluRGVwb3NpdHNSZXF1ZXN0EhsKCXdhbGxldF9pZBgBIAEoCVIId2FsbG'
+        'V0SWQSEgoEc2xvdBgCIAEoBVIEc2xvdA==');
 
 @$core.Deprecated('Use listSidechainDepositsResponseDescriptor instead')
 const ListSidechainDepositsResponse$json = {
   '1': 'ListSidechainDepositsResponse',
   '2': [
-    {'1': 'deposits', '3': 1, '4': 3, '5': 11, '6': '.wallet.v1.ListSidechainDepositsResponse.SidechainDeposit', '10': 'deposits'},
+    {
+      '1': 'deposits',
+      '3': 1,
+      '4': 3,
+      '5': 11,
+      '6': '.wallet.v1.ListSidechainDepositsResponse.SidechainDeposit',
+      '10': 'deposits'
+    },
   ],
   '3': [ListSidechainDepositsResponse_SidechainDeposit$json],
 };
@@ -361,10 +465,11 @@ const CreateSidechainDepositRequest$json = {
 };
 
 /// Descriptor for `CreateSidechainDepositRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List createSidechainDepositRequestDescriptor = $convert.base64Decode(
-    'Ch1DcmVhdGVTaWRlY2hhaW5EZXBvc2l0UmVxdWVzdBIbCgl3YWxsZXRfaWQYASABKAlSCHdhbG'
-    'xldElkEhIKBHNsb3QYAiABKANSBHNsb3QSIAoLZGVzdGluYXRpb24YAyABKAlSC2Rlc3RpbmF0'
-    'aW9uEhYKBmFtb3VudBgEIAEoAVIGYW1vdW50EhAKA2ZlZRgFIAEoAVIDZmVl');
+final $typed_data.Uint8List createSidechainDepositRequestDescriptor =
+    $convert.base64Decode(
+        'Ch1DcmVhdGVTaWRlY2hhaW5EZXBvc2l0UmVxdWVzdBIbCgl3YWxsZXRfaWQYASABKAlSCHdhbG'
+        'xldElkEhIKBHNsb3QYAiABKANSBHNsb3QSIAoLZGVzdGluYXRpb24YAyABKAlSC2Rlc3RpbmF0'
+        'aW9uEhYKBmFtb3VudBgEIAEoAVIGYW1vdW50EhAKA2ZlZRgFIAEoAVIDZmVl');
 
 @$core.Deprecated('Use createSidechainDepositResponseDescriptor instead')
 const CreateSidechainDepositResponse$json = {
@@ -375,8 +480,9 @@ const CreateSidechainDepositResponse$json = {
 };
 
 /// Descriptor for `CreateSidechainDepositResponse`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List createSidechainDepositResponseDescriptor = $convert.base64Decode(
-    'Ch5DcmVhdGVTaWRlY2hhaW5EZXBvc2l0UmVzcG9uc2USEgoEdHhpZBgBIAEoCVIEdHhpZA==');
+final $typed_data.Uint8List createSidechainDepositResponseDescriptor =
+    $convert.base64Decode(
+        'Ch5DcmVhdGVTaWRlY2hhaW5EZXBvc2l0UmVzcG9uc2USEgoEdHhpZBgBIAEoCVIEdHhpZA==');
 
 @$core.Deprecated('Use signMessageRequestDescriptor instead')
 const SignMessageRequest$json = {
@@ -401,8 +507,9 @@ const SignMessageResponse$json = {
 };
 
 /// Descriptor for `SignMessageResponse`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List signMessageResponseDescriptor = $convert.base64Decode(
-    'ChNTaWduTWVzc2FnZVJlc3BvbnNlEhwKCXNpZ25hdHVyZRgBIAEoCVIJc2lnbmF0dXJl');
+final $typed_data.Uint8List signMessageResponseDescriptor =
+    $convert.base64Decode(
+        'ChNTaWduTWVzc2FnZVJlc3BvbnNlEhwKCXNpZ25hdHVyZRgBIAEoCVIJc2lnbmF0dXJl');
 
 @$core.Deprecated('Use verifyMessageRequestDescriptor instead')
 const VerifyMessageRequest$json = {
@@ -430,19 +537,50 @@ const VerifyMessageResponse$json = {
 };
 
 /// Descriptor for `VerifyMessageResponse`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List verifyMessageResponseDescriptor = $convert.base64Decode(
-    'ChVWZXJpZnlNZXNzYWdlUmVzcG9uc2USFAoFdmFsaWQYASABKAhSBXZhbGlk');
+final $typed_data.Uint8List verifyMessageResponseDescriptor =
+    $convert.base64Decode(
+        'ChVWZXJpZnlNZXNzYWdlUmVzcG9uc2USFAoFdmFsaWQYASABKAhSBXZhbGlk');
 
 @$core.Deprecated('Use getStatsResponseDescriptor instead')
 const GetStatsResponse$json = {
   '1': 'GetStatsResponse',
   '2': [
     {'1': 'utxos_current', '3': 1, '4': 1, '5': 4, '10': 'utxosCurrent'},
-    {'1': 'utxos_unique_addresses', '3': 2, '4': 1, '5': 4, '10': 'utxosUniqueAddresses'},
-    {'1': 'sidechain_deposit_volume', '3': 3, '4': 1, '5': 3, '10': 'sidechainDepositVolume'},
-    {'1': 'sidechain_deposit_volume_last_30_days', '3': 4, '4': 1, '5': 3, '10': 'sidechainDepositVolumeLast30Days'},
-    {'1': 'transaction_count_total', '3': 5, '4': 1, '5': 3, '10': 'transactionCountTotal'},
-    {'1': 'transaction_count_since_month', '3': 6, '4': 1, '5': 3, '10': 'transactionCountSinceMonth'},
+    {
+      '1': 'utxos_unique_addresses',
+      '3': 2,
+      '4': 1,
+      '5': 4,
+      '10': 'utxosUniqueAddresses'
+    },
+    {
+      '1': 'sidechain_deposit_volume',
+      '3': 3,
+      '4': 1,
+      '5': 3,
+      '10': 'sidechainDepositVolume'
+    },
+    {
+      '1': 'sidechain_deposit_volume_last_30_days',
+      '3': 4,
+      '4': 1,
+      '5': 3,
+      '10': 'sidechainDepositVolumeLast30Days'
+    },
+    {
+      '1': 'transaction_count_total',
+      '3': 5,
+      '4': 1,
+      '5': 3,
+      '10': 'transactionCountTotal'
+    },
+    {
+      '1': 'transaction_count_since_month',
+      '3': 6,
+      '4': 1,
+      '5': 3,
+      '10': 'transactionCountSinceMonth'
+    },
   ],
 };
 
@@ -465,15 +603,22 @@ const UnlockWalletRequest$json = {
 };
 
 /// Descriptor for `UnlockWalletRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List unlockWalletRequestDescriptor = $convert.base64Decode(
-    'ChNVbmxvY2tXYWxsZXRSZXF1ZXN0EhoKCHBhc3N3b3JkGAEgASgJUghwYXNzd29yZA==');
+final $typed_data.Uint8List unlockWalletRequestDescriptor =
+    $convert.base64Decode(
+        'ChNVbmxvY2tXYWxsZXRSZXF1ZXN0EhoKCHBhc3N3b3JkGAEgASgJUghwYXNzd29yZA==');
 
 @$core.Deprecated('Use createChequeRequestDescriptor instead')
 const CreateChequeRequest$json = {
   '1': 'CreateChequeRequest',
   '2': [
     {'1': 'wallet_id', '3': 1, '4': 1, '5': 9, '10': 'walletId'},
-    {'1': 'expected_amount_sats', '3': 2, '4': 1, '5': 4, '10': 'expectedAmountSats'},
+    {
+      '1': 'expected_amount_sats',
+      '3': 2,
+      '4': 1,
+      '5': 4,
+      '10': 'expectedAmountSats'
+    },
   ],
 };
 
@@ -515,7 +660,14 @@ final $typed_data.Uint8List getChequeRequestDescriptor = $convert.base64Decode(
 const GetChequeResponse$json = {
   '1': 'GetChequeResponse',
   '2': [
-    {'1': 'cheque', '3': 1, '4': 1, '5': 11, '6': '.wallet.v1.Cheque', '10': 'cheque'},
+    {
+      '1': 'cheque',
+      '3': 1,
+      '4': 1,
+      '5': 11,
+      '6': '.wallet.v1.Cheque',
+      '10': 'cheque'
+    },
   ],
 };
 
@@ -534,9 +686,10 @@ const GetChequePrivateKeyRequest$json = {
 };
 
 /// Descriptor for `GetChequePrivateKeyRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List getChequePrivateKeyRequestDescriptor = $convert.base64Decode(
-    'ChpHZXRDaGVxdWVQcml2YXRlS2V5UmVxdWVzdBIbCgl3YWxsZXRfaWQYASABKAlSCHdhbGxldE'
-    'lkEg4KAmlkGAIgASgDUgJpZA==');
+final $typed_data.Uint8List getChequePrivateKeyRequestDescriptor =
+    $convert.base64Decode(
+        'ChpHZXRDaGVxdWVQcml2YXRlS2V5UmVxdWVzdBIbCgl3YWxsZXRfaWQYASABKAlSCHdhbGxldE'
+        'lkEg4KAmlkGAIgASgDUgJpZA==');
 
 @$core.Deprecated('Use getChequePrivateKeyResponseDescriptor instead')
 const GetChequePrivateKeyResponse$json = {
@@ -547,9 +700,10 @@ const GetChequePrivateKeyResponse$json = {
 };
 
 /// Descriptor for `GetChequePrivateKeyResponse`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List getChequePrivateKeyResponseDescriptor = $convert.base64Decode(
-    'ChtHZXRDaGVxdWVQcml2YXRlS2V5UmVzcG9uc2USJgoPcHJpdmF0ZV9rZXlfd2lmGAEgASgJUg'
-    '1wcml2YXRlS2V5V2lm');
+final $typed_data.Uint8List getChequePrivateKeyResponseDescriptor =
+    $convert.base64Decode(
+        'ChtHZXRDaGVxdWVQcml2YXRlS2V5UmVzcG9uc2USJgoPcHJpdmF0ZV9rZXlfd2lmGAEgASgJUg'
+        '1wcml2YXRlS2V5V2lm');
 
 @$core.Deprecated('Use chequeDescriptor instead')
 const Cheque$json = {
@@ -558,15 +712,70 @@ const Cheque$json = {
     {'1': 'id', '3': 1, '4': 1, '5': 3, '10': 'id'},
     {'1': 'derivation_index', '3': 2, '4': 1, '5': 13, '10': 'derivationIndex'},
     {'1': 'address', '3': 3, '4': 1, '5': 9, '10': 'address'},
-    {'1': 'expected_amount_sats', '3': 4, '4': 1, '5': 4, '10': 'expectedAmountSats'},
+    {
+      '1': 'expected_amount_sats',
+      '3': 4,
+      '4': 1,
+      '5': 4,
+      '10': 'expectedAmountSats'
+    },
     {'1': 'funded', '3': 5, '4': 1, '5': 8, '10': 'funded'},
     {'1': 'funded_txids', '3': 6, '4': 3, '5': 9, '10': 'fundedTxids'},
-    {'1': 'actual_amount_sats', '3': 7, '4': 1, '5': 4, '9': 0, '10': 'actualAmountSats', '17': true},
-    {'1': 'created_at', '3': 8, '4': 1, '5': 11, '6': '.google.protobuf.Timestamp', '10': 'createdAt'},
-    {'1': 'funded_at', '3': 9, '4': 1, '5': 11, '6': '.google.protobuf.Timestamp', '9': 1, '10': 'fundedAt', '17': true},
-    {'1': 'private_key_wif', '3': 10, '4': 1, '5': 9, '9': 2, '10': 'privateKeyWif', '17': true},
-    {'1': 'swept_txid', '3': 11, '4': 1, '5': 9, '9': 3, '10': 'sweptTxid', '17': true},
-    {'1': 'swept_at', '3': 12, '4': 1, '5': 11, '6': '.google.protobuf.Timestamp', '9': 4, '10': 'sweptAt', '17': true},
+    {
+      '1': 'actual_amount_sats',
+      '3': 7,
+      '4': 1,
+      '5': 4,
+      '9': 0,
+      '10': 'actualAmountSats',
+      '17': true
+    },
+    {
+      '1': 'created_at',
+      '3': 8,
+      '4': 1,
+      '5': 11,
+      '6': '.google.protobuf.Timestamp',
+      '10': 'createdAt'
+    },
+    {
+      '1': 'funded_at',
+      '3': 9,
+      '4': 1,
+      '5': 11,
+      '6': '.google.protobuf.Timestamp',
+      '9': 1,
+      '10': 'fundedAt',
+      '17': true
+    },
+    {
+      '1': 'private_key_wif',
+      '3': 10,
+      '4': 1,
+      '5': 9,
+      '9': 2,
+      '10': 'privateKeyWif',
+      '17': true
+    },
+    {
+      '1': 'swept_txid',
+      '3': 11,
+      '4': 1,
+      '5': 9,
+      '9': 3,
+      '10': 'sweptTxid',
+      '17': true
+    },
+    {
+      '1': 'swept_at',
+      '3': 12,
+      '4': 1,
+      '5': 11,
+      '6': '.google.protobuf.Timestamp',
+      '9': 4,
+      '10': 'sweptAt',
+      '17': true
+    },
   ],
   '8': [
     {'1': '_actual_amount_sats'},
@@ -600,14 +809,22 @@ const ListChequesRequest$json = {
 };
 
 /// Descriptor for `ListChequesRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List listChequesRequestDescriptor = $convert.base64Decode(
-    'ChJMaXN0Q2hlcXVlc1JlcXVlc3QSGwoJd2FsbGV0X2lkGAEgASgJUgh3YWxsZXRJZA==');
+final $typed_data.Uint8List listChequesRequestDescriptor =
+    $convert.base64Decode(
+        'ChJMaXN0Q2hlcXVlc1JlcXVlc3QSGwoJd2FsbGV0X2lkGAEgASgJUgh3YWxsZXRJZA==');
 
 @$core.Deprecated('Use listChequesResponseDescriptor instead')
 const ListChequesResponse$json = {
   '1': 'ListChequesResponse',
   '2': [
-    {'1': 'cheques', '3': 1, '4': 3, '5': 11, '6': '.wallet.v1.Cheque', '10': 'cheques'},
+    {
+      '1': 'cheques',
+      '3': 1,
+      '4': 3,
+      '5': 11,
+      '6': '.wallet.v1.Cheque',
+      '10': 'cheques'
+    },
   ],
 };
 
@@ -626,19 +843,41 @@ const CheckChequeFundingRequest$json = {
 };
 
 /// Descriptor for `CheckChequeFundingRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List checkChequeFundingRequestDescriptor = $convert.base64Decode(
-    'ChlDaGVja0NoZXF1ZUZ1bmRpbmdSZXF1ZXN0EhsKCXdhbGxldF9pZBgBIAEoCVIId2FsbGV0SW'
-    'QSDgoCaWQYAiABKANSAmlk');
+final $typed_data.Uint8List checkChequeFundingRequestDescriptor =
+    $convert.base64Decode(
+        'ChlDaGVja0NoZXF1ZUZ1bmRpbmdSZXF1ZXN0EhsKCXdhbGxldF9pZBgBIAEoCVIId2FsbGV0SW'
+        'QSDgoCaWQYAiABKANSAmlk');
 
 @$core.Deprecated('Use checkChequeFundingResponseDescriptor instead')
 const CheckChequeFundingResponse$json = {
   '1': 'CheckChequeFundingResponse',
   '2': [
     {'1': 'funded', '3': 1, '4': 1, '5': 8, '10': 'funded'},
-    {'1': 'actual_amount_sats', '3': 2, '4': 1, '5': 4, '10': 'actualAmountSats'},
+    {
+      '1': 'actual_amount_sats',
+      '3': 2,
+      '4': 1,
+      '5': 4,
+      '10': 'actualAmountSats'
+    },
     {'1': 'funded_txids', '3': 3, '4': 3, '5': 9, '10': 'fundedTxids'},
-    {'1': 'funded_at', '3': 4, '4': 1, '5': 11, '6': '.google.protobuf.Timestamp', '9': 0, '10': 'fundedAt', '17': true},
-    {'1': 'min_confirmations', '3': 5, '4': 1, '5': 13, '10': 'minConfirmations'},
+    {
+      '1': 'funded_at',
+      '3': 4,
+      '4': 1,
+      '5': 11,
+      '6': '.google.protobuf.Timestamp',
+      '9': 0,
+      '10': 'fundedAt',
+      '17': true
+    },
+    {
+      '1': 'min_confirmations',
+      '3': 5,
+      '4': 1,
+      '5': 13,
+      '10': 'minConfirmations'
+    },
   ],
   '8': [
     {'1': '_funded_at'},
@@ -659,7 +898,13 @@ const SweepChequeRequest$json = {
   '2': [
     {'1': 'wallet_id', '3': 1, '4': 1, '5': 9, '10': 'walletId'},
     {'1': 'private_key_wif', '3': 2, '4': 1, '5': 9, '10': 'privateKeyWif'},
-    {'1': 'destination_address', '3': 3, '4': 1, '5': 9, '10': 'destinationAddress'},
+    {
+      '1': 'destination_address',
+      '3': 3,
+      '4': 1,
+      '5': 9,
+      '10': 'destinationAddress'
+    },
     {'1': 'fee_sat_per_vbyte', '3': 4, '4': 1, '5': 4, '10': 'feeSatPerVbyte'},
   ],
 };
@@ -709,9 +954,10 @@ const CreateBitcoinCoreWalletRequest$json = {
 };
 
 /// Descriptor for `CreateBitcoinCoreWalletRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List createBitcoinCoreWalletRequestDescriptor = $convert.base64Decode(
-    'Ch5DcmVhdGVCaXRjb2luQ29yZVdhbGxldFJlcXVlc3QSGQoIc2VlZF9oZXgYASABKAlSB3NlZW'
-    'RIZXgSEgoEbmFtZRgCIAEoCVIEbmFtZQ==');
+final $typed_data.Uint8List createBitcoinCoreWalletRequestDescriptor =
+    $convert.base64Decode(
+        'Ch5DcmVhdGVCaXRjb2luQ29yZVdhbGxldFJlcXVlc3QSGQoIc2VlZF9oZXgYASABKAlSB3NlZW'
+        'RIZXgSEgoEbmFtZRgCIAEoCVIEbmFtZQ==');
 
 @$core.Deprecated('Use createBitcoinCoreWalletResponseDescriptor instead')
 const CreateBitcoinCoreWalletResponse$json = {
@@ -724,10 +970,11 @@ const CreateBitcoinCoreWalletResponse$json = {
 };
 
 /// Descriptor for `CreateBitcoinCoreWalletResponse`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List createBitcoinCoreWalletResponseDescriptor = $convert.base64Decode(
-    'Ch9DcmVhdGVCaXRjb2luQ29yZVdhbGxldFJlc3BvbnNlEhsKCXdhbGxldF9pZBgBIAEoCVIId2'
-    'FsbGV0SWQSKAoQY29yZV93YWxsZXRfbmFtZRgCIAEoCVIOY29yZVdhbGxldE5hbWUSIwoNZmly'
-    'c3RfYWRkcmVzcxgDIAEoCVIMZmlyc3RBZGRyZXNz');
+final $typed_data.Uint8List createBitcoinCoreWalletResponseDescriptor =
+    $convert.base64Decode(
+        'Ch9DcmVhdGVCaXRjb2luQ29yZVdhbGxldFJlc3BvbnNlEhsKCXdhbGxldF9pZBgBIAEoCVIId2'
+        'FsbGV0SWQSKAoQY29yZV93YWxsZXRfbmFtZRgCIAEoCVIOY29yZVdhbGxldE5hbWUSIwoNZmly'
+        'c3RfYWRkcmVzcxgDIAEoCVIMZmlyc3RBZGRyZXNz');
 
 @$core.Deprecated('Use uTXOMetadataDescriptor instead')
 const UTXOMetadata$json = {
@@ -749,7 +996,15 @@ const SetUTXOMetadataRequest$json = {
   '1': 'SetUTXOMetadataRequest',
   '2': [
     {'1': 'outpoint', '3': 1, '4': 1, '5': 9, '10': 'outpoint'},
-    {'1': 'is_frozen', '3': 2, '4': 1, '5': 8, '9': 0, '10': 'isFrozen', '17': true},
+    {
+      '1': 'is_frozen',
+      '3': 2,
+      '4': 1,
+      '5': 8,
+      '9': 0,
+      '10': 'isFrozen',
+      '17': true
+    },
     {'1': 'label', '3': 3, '4': 1, '5': 9, '9': 1, '10': 'label', '17': true},
   ],
   '8': [
@@ -773,14 +1028,22 @@ const GetUTXOMetadataRequest$json = {
 };
 
 /// Descriptor for `GetUTXOMetadataRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List getUTXOMetadataRequestDescriptor = $convert.base64Decode(
-    'ChZHZXRVVFhPTWV0YWRhdGFSZXF1ZXN0EhwKCW91dHBvaW50cxgBIAMoCVIJb3V0cG9pbnRz');
+final $typed_data.Uint8List getUTXOMetadataRequestDescriptor =
+    $convert.base64Decode(
+        'ChZHZXRVVFhPTWV0YWRhdGFSZXF1ZXN0EhwKCW91dHBvaW50cxgBIAMoCVIJb3V0cG9pbnRz');
 
 @$core.Deprecated('Use getUTXOMetadataResponseDescriptor instead')
 const GetUTXOMetadataResponse$json = {
   '1': 'GetUTXOMetadataResponse',
   '2': [
-    {'1': 'metadata', '3': 1, '4': 3, '5': 11, '6': '.wallet.v1.GetUTXOMetadataResponse.MetadataEntry', '10': 'metadata'},
+    {
+      '1': 'metadata',
+      '3': 1,
+      '4': 3,
+      '5': 11,
+      '6': '.wallet.v1.GetUTXOMetadataResponse.MetadataEntry',
+      '10': 'metadata'
+    },
   ],
   '3': [GetUTXOMetadataResponse_MetadataEntry$json],
 };
@@ -790,7 +1053,14 @@ const GetUTXOMetadataResponse_MetadataEntry$json = {
   '1': 'MetadataEntry',
   '2': [
     {'1': 'key', '3': 1, '4': 1, '5': 9, '10': 'key'},
-    {'1': 'value', '3': 2, '4': 1, '5': 11, '6': '.wallet.v1.UTXOMetadata', '10': 'value'},
+    {
+      '1': 'value',
+      '3': 2,
+      '4': 1,
+      '5': 11,
+      '6': '.wallet.v1.UTXOMetadata',
+      '10': 'value'
+    },
   ],
   '7': {'7': true},
 };
@@ -806,27 +1076,43 @@ final $typed_data.Uint8List getUTXOMetadataResponseDescriptor = $convert.base64D
 const SetCoinSelectionStrategyRequest$json = {
   '1': 'SetCoinSelectionStrategyRequest',
   '2': [
-    {'1': 'strategy', '3': 1, '4': 1, '5': 14, '6': '.wallet.v1.CoinSelectionStrategy', '10': 'strategy'},
+    {
+      '1': 'strategy',
+      '3': 1,
+      '4': 1,
+      '5': 14,
+      '6': '.wallet.v1.CoinSelectionStrategy',
+      '10': 'strategy'
+    },
   ],
 };
 
 /// Descriptor for `SetCoinSelectionStrategyRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List setCoinSelectionStrategyRequestDescriptor = $convert.base64Decode(
-    'Ch9TZXRDb2luU2VsZWN0aW9uU3RyYXRlZ3lSZXF1ZXN0EjwKCHN0cmF0ZWd5GAEgASgOMiAud2'
-    'FsbGV0LnYxLkNvaW5TZWxlY3Rpb25TdHJhdGVneVIIc3RyYXRlZ3k=');
+final $typed_data.Uint8List setCoinSelectionStrategyRequestDescriptor =
+    $convert.base64Decode(
+        'Ch9TZXRDb2luU2VsZWN0aW9uU3RyYXRlZ3lSZXF1ZXN0EjwKCHN0cmF0ZWd5GAEgASgOMiAud2'
+        'FsbGV0LnYxLkNvaW5TZWxlY3Rpb25TdHJhdGVneVIIc3RyYXRlZ3k=');
 
 @$core.Deprecated('Use getCoinSelectionStrategyResponseDescriptor instead')
 const GetCoinSelectionStrategyResponse$json = {
   '1': 'GetCoinSelectionStrategyResponse',
   '2': [
-    {'1': 'strategy', '3': 1, '4': 1, '5': 14, '6': '.wallet.v1.CoinSelectionStrategy', '10': 'strategy'},
+    {
+      '1': 'strategy',
+      '3': 1,
+      '4': 1,
+      '5': 14,
+      '6': '.wallet.v1.CoinSelectionStrategy',
+      '10': 'strategy'
+    },
   ],
 };
 
 /// Descriptor for `GetCoinSelectionStrategyResponse`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List getCoinSelectionStrategyResponseDescriptor = $convert.base64Decode(
-    'CiBHZXRDb2luU2VsZWN0aW9uU3RyYXRlZ3lSZXNwb25zZRI8CghzdHJhdGVneRgBIAEoDjIgLn'
-    'dhbGxldC52MS5Db2luU2VsZWN0aW9uU3RyYXRlZ3lSCHN0cmF0ZWd5');
+final $typed_data.Uint8List getCoinSelectionStrategyResponseDescriptor =
+    $convert.base64Decode(
+        'CiBHZXRDb2luU2VsZWN0aW9uU3RyYXRlZ3lSZXNwb25zZRI8CghzdHJhdGVneRgBIAEoDjIgLn'
+        'dhbGxldC52MS5Db2luU2VsZWN0aW9uU3RyYXRlZ3lSCHN0cmF0ZWd5');
 
 @$core.Deprecated('Use getTransactionDetailsRequestDescriptor instead')
 const GetTransactionDetailsRequest$json = {
@@ -837,8 +1123,9 @@ const GetTransactionDetailsRequest$json = {
 };
 
 /// Descriptor for `GetTransactionDetailsRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List getTransactionDetailsRequestDescriptor = $convert.base64Decode(
-    'ChxHZXRUcmFuc2FjdGlvbkRldGFpbHNSZXF1ZXN0EhIKBHR4aWQYASABKAlSBHR4aWQ=');
+final $typed_data.Uint8List getTransactionDetailsRequestDescriptor =
+    $convert.base64Decode(
+        'ChxHZXRUcmFuc2FjdGlvbkRldGFpbHNSZXF1ZXN0EhIKBHR4aWQYASABKAlSBHR4aWQ=');
 
 @$core.Deprecated('Use getTransactionDetailsResponseDescriptor instead')
 const GetTransactionDetailsResponse$json = {
@@ -855,10 +1142,30 @@ const GetTransactionDetailsResponse$json = {
     {'1': 'weight_wu', '3': 9, '4': 1, '5': 5, '10': 'weightWu'},
     {'1': 'fee_sats', '3': 10, '4': 1, '5': 3, '10': 'feeSats'},
     {'1': 'fee_rate_sat_vb', '3': 11, '4': 1, '5': 1, '10': 'feeRateSatVb'},
-    {'1': 'inputs', '3': 12, '4': 3, '5': 11, '6': '.wallet.v1.TransactionInput', '10': 'inputs'},
+    {
+      '1': 'inputs',
+      '3': 12,
+      '4': 3,
+      '5': 11,
+      '6': '.wallet.v1.TransactionInput',
+      '10': 'inputs'
+    },
     {'1': 'total_input_sats', '3': 13, '4': 1, '5': 3, '10': 'totalInputSats'},
-    {'1': 'outputs', '3': 14, '4': 3, '5': 11, '6': '.wallet.v1.TransactionOutput', '10': 'outputs'},
-    {'1': 'total_output_sats', '3': 15, '4': 1, '5': 3, '10': 'totalOutputSats'},
+    {
+      '1': 'outputs',
+      '3': 14,
+      '4': 3,
+      '5': 11,
+      '6': '.wallet.v1.TransactionOutput',
+      '10': 'outputs'
+    },
+    {
+      '1': 'total_output_sats',
+      '3': 15,
+      '4': 1,
+      '5': 3,
+      '10': 'totalOutputSats'
+    },
     {'1': 'hex', '3': 16, '4': 1, '5': 9, '10': 'hex'},
   ],
 };
@@ -933,22 +1240,31 @@ const GetUTXODistributionRequest$json = {
 };
 
 /// Descriptor for `GetUTXODistributionRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List getUTXODistributionRequestDescriptor = $convert.base64Decode(
-    'ChpHZXRVVFhPRGlzdHJpYnV0aW9uUmVxdWVzdBIbCgl3YWxsZXRfaWQYASABKAlSCHdhbGxldE'
-    'lkEh8KC21heF9idWNrZXRzGAIgASgFUgptYXhCdWNrZXRz');
+final $typed_data.Uint8List getUTXODistributionRequestDescriptor =
+    $convert.base64Decode(
+        'ChpHZXRVVFhPRGlzdHJpYnV0aW9uUmVxdWVzdBIbCgl3YWxsZXRfaWQYASABKAlSCHdhbGxldE'
+        'lkEh8KC21heF9idWNrZXRzGAIgASgFUgptYXhCdWNrZXRz');
 
 @$core.Deprecated('Use getUTXODistributionResponseDescriptor instead')
 const GetUTXODistributionResponse$json = {
   '1': 'GetUTXODistributionResponse',
   '2': [
-    {'1': 'buckets', '3': 1, '4': 3, '5': 11, '6': '.wallet.v1.UTXOBucket', '10': 'buckets'},
+    {
+      '1': 'buckets',
+      '3': 1,
+      '4': 3,
+      '5': 11,
+      '6': '.wallet.v1.UTXOBucket',
+      '10': 'buckets'
+    },
   ],
 };
 
 /// Descriptor for `GetUTXODistributionResponse`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List getUTXODistributionResponseDescriptor = $convert.base64Decode(
-    'ChtHZXRVVFhPRGlzdHJpYnV0aW9uUmVzcG9uc2USLwoHYnVja2V0cxgBIAMoCzIVLndhbGxldC'
-    '52MS5VVFhPQnVja2V0UgdidWNrZXRz');
+final $typed_data.Uint8List getUTXODistributionResponseDescriptor =
+    $convert.base64Decode(
+        'ChtHZXRVVFhPRGlzdHJpYnV0aW9uUmVzcG9uc2USLwoHYnVja2V0cxgBIAMoCzIVLndhbGxldC'
+        '52MS5VVFhPQnVja2V0UgdidWNrZXRz');
 
 @$core.Deprecated('Use uTXOBucketDescriptor instead')
 const UTXOBucket$json = {
@@ -976,8 +1292,8 @@ const BumpFeeRequest$json = {
 };
 
 /// Descriptor for `BumpFeeRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List bumpFeeRequestDescriptor = $convert.base64Decode(
-    'Cg5CdW1wRmVlUmVxdWVzdBISCgR0eGlkGAEgASgJUgR0eGlk');
+final $typed_data.Uint8List bumpFeeRequestDescriptor =
+    $convert.base64Decode('Cg5CdW1wRmVlUmVxdWVzdBISCgR0eGlkGAEgASgJUgR0eGlk');
 
 @$core.Deprecated('Use bumpFeeResponseDescriptor instead')
 const BumpFeeResponse$json = {
@@ -1000,11 +1316,30 @@ const SelectCoinsRequest$json = {
   '2': [
     {'1': 'wallet_id', '3': 1, '4': 1, '5': 9, '10': 'walletId'},
     {'1': 'target_sats', '3': 2, '4': 1, '5': 3, '10': 'targetSats'},
-    {'1': 'fee_sats_per_vbyte', '3': 3, '4': 1, '5': 3, '10': 'feeSatsPerVbyte'},
+    {
+      '1': 'fee_sats_per_vbyte',
+      '3': 3,
+      '4': 1,
+      '5': 3,
+      '10': 'feeSatsPerVbyte'
+    },
     {'1': 'num_outputs', '3': 4, '4': 1, '5': 5, '10': 'numOutputs'},
-    {'1': 'strategy', '3': 5, '4': 1, '5': 14, '6': '.wallet.v1.CoinSelectionStrategy', '10': 'strategy'},
+    {
+      '1': 'strategy',
+      '3': 5,
+      '4': 1,
+      '5': 14,
+      '6': '.wallet.v1.CoinSelectionStrategy',
+      '10': 'strategy'
+    },
     {'1': 'frozen_outpoints', '3': 6, '4': 3, '5': 9, '10': 'frozenOutpoints'},
-    {'1': 'required_outpoints', '3': 7, '4': 3, '5': 9, '10': 'requiredOutpoints'},
+    {
+      '1': 'required_outpoints',
+      '3': 7,
+      '4': 3,
+      '5': 9,
+      '10': 'requiredOutpoints'
+    },
   ],
 };
 
@@ -1021,7 +1356,14 @@ final $typed_data.Uint8List selectCoinsRequestDescriptor = $convert.base64Decode
 const SelectCoinsResponse$json = {
   '1': 'SelectCoinsResponse',
   '2': [
-    {'1': 'selected_utxos', '3': 1, '4': 3, '5': 11, '6': '.wallet.v1.UnspentOutput', '10': 'selectedUtxos'},
+    {
+      '1': 'selected_utxos',
+      '3': 1,
+      '4': 3,
+      '5': 11,
+      '6': '.wallet.v1.UnspentOutput',
+      '10': 'selectedUtxos'
+    },
     {'1': 'total_input_sats', '3': 2, '4': 1, '5': 3, '10': 'totalInputSats'},
     {'1': 'fee_sats', '3': 3, '4': 1, '5': 3, '10': 'feeSats'},
     {'1': 'change_sats', '3': 4, '4': 1, '5': 3, '10': 'changeSats'},
@@ -1035,52 +1377,258 @@ final $typed_data.Uint8List selectCoinsResponseDescriptor = $convert.base64Decod
     'A1IOdG90YWxJbnB1dFNhdHMSGQoIZmVlX3NhdHMYAyABKANSB2ZlZVNhdHMSHwoLY2hhbmdlX3'
     'NhdHMYBCABKANSCmNoYW5nZVNhdHM=');
 
+@$core.Deprecated('Use createBackupResponseDescriptor instead')
+const CreateBackupResponse$json = {
+  '1': 'CreateBackupResponse',
+  '2': [
+    {'1': 'backup_data', '3': 1, '4': 1, '5': 12, '10': 'backupData'},
+    {
+      '1': 'suggested_filename',
+      '3': 2,
+      '4': 1,
+      '5': 9,
+      '10': 'suggestedFilename'
+    },
+  ],
+};
+
+/// Descriptor for `CreateBackupResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List createBackupResponseDescriptor = $convert.base64Decode(
+    'ChRDcmVhdGVCYWNrdXBSZXNwb25zZRIfCgtiYWNrdXBfZGF0YRgBIAEoDFIKYmFja3VwRGF0YR'
+    'ItChJzdWdnZXN0ZWRfZmlsZW5hbWUYAiABKAlSEXN1Z2dlc3RlZEZpbGVuYW1l');
+
+@$core.Deprecated('Use restoreBackupRequestDescriptor instead')
+const RestoreBackupRequest$json = {
+  '1': 'RestoreBackupRequest',
+  '2': [
+    {'1': 'backup_data', '3': 1, '4': 1, '5': 12, '10': 'backupData'},
+    {'1': 'filename', '3': 2, '4': 1, '5': 9, '10': 'filename'},
+  ],
+};
+
+/// Descriptor for `RestoreBackupRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List restoreBackupRequestDescriptor = $convert.base64Decode(
+    'ChRSZXN0b3JlQmFja3VwUmVxdWVzdBIfCgtiYWNrdXBfZGF0YRgBIAEoDFIKYmFja3VwRGF0YR'
+    'IaCghmaWxlbmFtZRgCIAEoCVIIZmlsZW5hbWU=');
+
+@$core.Deprecated('Use validateBackupRequestDescriptor instead')
+const ValidateBackupRequest$json = {
+  '1': 'ValidateBackupRequest',
+  '2': [
+    {'1': 'backup_data', '3': 1, '4': 1, '5': 12, '10': 'backupData'},
+    {'1': 'filename', '3': 2, '4': 1, '5': 9, '10': 'filename'},
+  ],
+};
+
+/// Descriptor for `ValidateBackupRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List validateBackupRequestDescriptor = $convert.base64Decode(
+    'ChVWYWxpZGF0ZUJhY2t1cFJlcXVlc3QSHwoLYmFja3VwX2RhdGEYASABKAxSCmJhY2t1cERhdG'
+    'ESGgoIZmlsZW5hbWUYAiABKAlSCGZpbGVuYW1l');
+
+@$core.Deprecated('Use validateBackupResponseDescriptor instead')
+const ValidateBackupResponse$json = {
+  '1': 'ValidateBackupResponse',
+  '2': [
+    {'1': 'valid', '3': 1, '4': 1, '5': 8, '10': 'valid'},
+    {'1': 'error_message', '3': 2, '4': 1, '5': 9, '10': 'errorMessage'},
+    {'1': 'has_wallet', '3': 3, '4': 1, '5': 8, '10': 'hasWallet'},
+    {'1': 'has_multisig', '3': 4, '4': 1, '5': 8, '10': 'hasMultisig'},
+    {'1': 'has_transactions', '3': 5, '4': 1, '5': 8, '10': 'hasTransactions'},
+  ],
+};
+
+/// Descriptor for `ValidateBackupResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List validateBackupResponseDescriptor = $convert.base64Decode(
+    'ChZWYWxpZGF0ZUJhY2t1cFJlc3BvbnNlEhQKBXZhbGlkGAEgASgIUgV2YWxpZBIjCg1lcnJvcl'
+    '9tZXNzYWdlGAIgASgJUgxlcnJvck1lc3NhZ2USHQoKaGFzX3dhbGxldBgDIAEoCFIJaGFzV2Fs'
+    'bGV0EiEKDGhhc19tdWx0aXNpZxgEIAEoCFILaGFzTXVsdGlzaWcSKQoQaGFzX3RyYW5zYWN0aW'
+    '9ucxgFIAEoCFIPaGFzVHJhbnNhY3Rpb25z');
+
 const $core.Map<$core.String, $core.dynamic> WalletServiceBase$json = {
   '1': 'WalletService',
   '2': [
-    {'1': 'CreateBitcoinCoreWallet', '2': '.wallet.v1.CreateBitcoinCoreWalletRequest', '3': '.wallet.v1.CreateBitcoinCoreWalletResponse'},
-    {'1': 'SendTransaction', '2': '.wallet.v1.SendTransactionRequest', '3': '.wallet.v1.SendTransactionResponse'},
-    {'1': 'GetBalance', '2': '.wallet.v1.GetBalanceRequest', '3': '.wallet.v1.GetBalanceResponse'},
-    {'1': 'GetNewAddress', '2': '.wallet.v1.GetNewAddressRequest', '3': '.wallet.v1.GetNewAddressResponse'},
-    {'1': 'ListTransactions', '2': '.wallet.v1.ListTransactionsRequest', '3': '.wallet.v1.ListTransactionsResponse'},
-    {'1': 'ListUnspent', '2': '.wallet.v1.ListUnspentRequest', '3': '.wallet.v1.ListUnspentResponse'},
-    {'1': 'ListReceiveAddresses', '2': '.wallet.v1.ListReceiveAddressesRequest', '3': '.wallet.v1.ListReceiveAddressesResponse'},
-    {'1': 'ListSidechainDeposits', '2': '.wallet.v1.ListSidechainDepositsRequest', '3': '.wallet.v1.ListSidechainDepositsResponse'},
-    {'1': 'CreateSidechainDeposit', '2': '.wallet.v1.CreateSidechainDepositRequest', '3': '.wallet.v1.CreateSidechainDepositResponse'},
-    {'1': 'SignMessage', '2': '.wallet.v1.SignMessageRequest', '3': '.wallet.v1.SignMessageResponse'},
-    {'1': 'VerifyMessage', '2': '.wallet.v1.VerifyMessageRequest', '3': '.wallet.v1.VerifyMessageResponse'},
-    {'1': 'GetStats', '2': '.wallet.v1.GetStatsRequest', '3': '.wallet.v1.GetStatsResponse'},
-    {'1': 'UnlockWallet', '2': '.wallet.v1.UnlockWalletRequest', '3': '.google.protobuf.Empty'},
-    {'1': 'LockWallet', '2': '.google.protobuf.Empty', '3': '.google.protobuf.Empty'},
-    {'1': 'IsWalletUnlocked', '2': '.google.protobuf.Empty', '3': '.google.protobuf.Empty'},
-    {'1': 'CreateCheque', '2': '.wallet.v1.CreateChequeRequest', '3': '.wallet.v1.CreateChequeResponse'},
-    {'1': 'GetCheque', '2': '.wallet.v1.GetChequeRequest', '3': '.wallet.v1.GetChequeResponse'},
-    {'1': 'GetChequePrivateKey', '2': '.wallet.v1.GetChequePrivateKeyRequest', '3': '.wallet.v1.GetChequePrivateKeyResponse'},
-    {'1': 'ListCheques', '2': '.wallet.v1.ListChequesRequest', '3': '.wallet.v1.ListChequesResponse'},
-    {'1': 'CheckChequeFunding', '2': '.wallet.v1.CheckChequeFundingRequest', '3': '.wallet.v1.CheckChequeFundingResponse'},
-    {'1': 'SweepCheque', '2': '.wallet.v1.SweepChequeRequest', '3': '.wallet.v1.SweepChequeResponse'},
-    {'1': 'DeleteCheque', '2': '.wallet.v1.DeleteChequeRequest', '3': '.google.protobuf.Empty'},
-    {'1': 'SetUTXOMetadata', '2': '.wallet.v1.SetUTXOMetadataRequest', '3': '.google.protobuf.Empty'},
-    {'1': 'GetUTXOMetadata', '2': '.wallet.v1.GetUTXOMetadataRequest', '3': '.wallet.v1.GetUTXOMetadataResponse'},
-    {'1': 'SetCoinSelectionStrategy', '2': '.wallet.v1.SetCoinSelectionStrategyRequest', '3': '.google.protobuf.Empty'},
-    {'1': 'GetCoinSelectionStrategy', '2': '.google.protobuf.Empty', '3': '.wallet.v1.GetCoinSelectionStrategyResponse'},
-    {'1': 'GetTransactionDetails', '2': '.wallet.v1.GetTransactionDetailsRequest', '3': '.wallet.v1.GetTransactionDetailsResponse'},
-    {'1': 'GetUTXODistribution', '2': '.wallet.v1.GetUTXODistributionRequest', '3': '.wallet.v1.GetUTXODistributionResponse'},
-    {'1': 'BumpFee', '2': '.wallet.v1.BumpFeeRequest', '3': '.wallet.v1.BumpFeeResponse'},
-    {'1': 'SelectCoins', '2': '.wallet.v1.SelectCoinsRequest', '3': '.wallet.v1.SelectCoinsResponse'},
+    {
+      '1': 'CreateBitcoinCoreWallet',
+      '2': '.wallet.v1.CreateBitcoinCoreWalletRequest',
+      '3': '.wallet.v1.CreateBitcoinCoreWalletResponse'
+    },
+    {
+      '1': 'SendTransaction',
+      '2': '.wallet.v1.SendTransactionRequest',
+      '3': '.wallet.v1.SendTransactionResponse'
+    },
+    {
+      '1': 'GetBalance',
+      '2': '.wallet.v1.GetBalanceRequest',
+      '3': '.wallet.v1.GetBalanceResponse'
+    },
+    {
+      '1': 'GetNewAddress',
+      '2': '.wallet.v1.GetNewAddressRequest',
+      '3': '.wallet.v1.GetNewAddressResponse'
+    },
+    {
+      '1': 'ListTransactions',
+      '2': '.wallet.v1.ListTransactionsRequest',
+      '3': '.wallet.v1.ListTransactionsResponse'
+    },
+    {
+      '1': 'ListUnspent',
+      '2': '.wallet.v1.ListUnspentRequest',
+      '3': '.wallet.v1.ListUnspentResponse'
+    },
+    {
+      '1': 'ListReceiveAddresses',
+      '2': '.wallet.v1.ListReceiveAddressesRequest',
+      '3': '.wallet.v1.ListReceiveAddressesResponse'
+    },
+    {
+      '1': 'ListSidechainDeposits',
+      '2': '.wallet.v1.ListSidechainDepositsRequest',
+      '3': '.wallet.v1.ListSidechainDepositsResponse'
+    },
+    {
+      '1': 'CreateSidechainDeposit',
+      '2': '.wallet.v1.CreateSidechainDepositRequest',
+      '3': '.wallet.v1.CreateSidechainDepositResponse'
+    },
+    {
+      '1': 'SignMessage',
+      '2': '.wallet.v1.SignMessageRequest',
+      '3': '.wallet.v1.SignMessageResponse'
+    },
+    {
+      '1': 'VerifyMessage',
+      '2': '.wallet.v1.VerifyMessageRequest',
+      '3': '.wallet.v1.VerifyMessageResponse'
+    },
+    {
+      '1': 'GetStats',
+      '2': '.wallet.v1.GetStatsRequest',
+      '3': '.wallet.v1.GetStatsResponse'
+    },
+    {
+      '1': 'UnlockWallet',
+      '2': '.wallet.v1.UnlockWalletRequest',
+      '3': '.google.protobuf.Empty'
+    },
+    {
+      '1': 'LockWallet',
+      '2': '.google.protobuf.Empty',
+      '3': '.google.protobuf.Empty'
+    },
+    {
+      '1': 'IsWalletUnlocked',
+      '2': '.google.protobuf.Empty',
+      '3': '.google.protobuf.Empty'
+    },
+    {
+      '1': 'CreateCheque',
+      '2': '.wallet.v1.CreateChequeRequest',
+      '3': '.wallet.v1.CreateChequeResponse'
+    },
+    {
+      '1': 'GetCheque',
+      '2': '.wallet.v1.GetChequeRequest',
+      '3': '.wallet.v1.GetChequeResponse'
+    },
+    {
+      '1': 'GetChequePrivateKey',
+      '2': '.wallet.v1.GetChequePrivateKeyRequest',
+      '3': '.wallet.v1.GetChequePrivateKeyResponse'
+    },
+    {
+      '1': 'ListCheques',
+      '2': '.wallet.v1.ListChequesRequest',
+      '3': '.wallet.v1.ListChequesResponse'
+    },
+    {
+      '1': 'CheckChequeFunding',
+      '2': '.wallet.v1.CheckChequeFundingRequest',
+      '3': '.wallet.v1.CheckChequeFundingResponse'
+    },
+    {
+      '1': 'SweepCheque',
+      '2': '.wallet.v1.SweepChequeRequest',
+      '3': '.wallet.v1.SweepChequeResponse'
+    },
+    {
+      '1': 'DeleteCheque',
+      '2': '.wallet.v1.DeleteChequeRequest',
+      '3': '.google.protobuf.Empty'
+    },
+    {
+      '1': 'SetUTXOMetadata',
+      '2': '.wallet.v1.SetUTXOMetadataRequest',
+      '3': '.google.protobuf.Empty'
+    },
+    {
+      '1': 'GetUTXOMetadata',
+      '2': '.wallet.v1.GetUTXOMetadataRequest',
+      '3': '.wallet.v1.GetUTXOMetadataResponse'
+    },
+    {
+      '1': 'SetCoinSelectionStrategy',
+      '2': '.wallet.v1.SetCoinSelectionStrategyRequest',
+      '3': '.google.protobuf.Empty'
+    },
+    {
+      '1': 'GetCoinSelectionStrategy',
+      '2': '.google.protobuf.Empty',
+      '3': '.wallet.v1.GetCoinSelectionStrategyResponse'
+    },
+    {
+      '1': 'GetTransactionDetails',
+      '2': '.wallet.v1.GetTransactionDetailsRequest',
+      '3': '.wallet.v1.GetTransactionDetailsResponse'
+    },
+    {
+      '1': 'GetUTXODistribution',
+      '2': '.wallet.v1.GetUTXODistributionRequest',
+      '3': '.wallet.v1.GetUTXODistributionResponse'
+    },
+    {
+      '1': 'BumpFee',
+      '2': '.wallet.v1.BumpFeeRequest',
+      '3': '.wallet.v1.BumpFeeResponse'
+    },
+    {
+      '1': 'SelectCoins',
+      '2': '.wallet.v1.SelectCoinsRequest',
+      '3': '.wallet.v1.SelectCoinsResponse'
+    },
+    {
+      '1': 'CreateBackup',
+      '2': '.google.protobuf.Empty',
+      '3': '.wallet.v1.CreateBackupResponse'
+    },
+    {
+      '1': 'RestoreBackup',
+      '2': '.wallet.v1.RestoreBackupRequest',
+      '3': '.google.protobuf.Empty'
+    },
+    {
+      '1': 'ValidateBackup',
+      '2': '.wallet.v1.ValidateBackupRequest',
+      '3': '.wallet.v1.ValidateBackupResponse'
+    },
   ],
 };
 
 @$core.Deprecated('Use walletServiceDescriptor instead')
-const $core.Map<$core.String, $core.Map<$core.String, $core.dynamic>> WalletServiceBase$messageJson = {
-  '.wallet.v1.CreateBitcoinCoreWalletRequest': CreateBitcoinCoreWalletRequest$json,
-  '.wallet.v1.CreateBitcoinCoreWalletResponse': CreateBitcoinCoreWalletResponse$json,
+const $core.Map<$core.String, $core.Map<$core.String, $core.dynamic>>
+    WalletServiceBase$messageJson = {
+  '.wallet.v1.CreateBitcoinCoreWalletRequest':
+      CreateBitcoinCoreWalletRequest$json,
+  '.wallet.v1.CreateBitcoinCoreWalletResponse':
+      CreateBitcoinCoreWalletResponse$json,
   '.wallet.v1.SendTransactionRequest': SendTransactionRequest$json,
-  '.wallet.v1.SendTransactionRequest.DestinationsEntry': SendTransactionRequest_DestinationsEntry$json,
+  '.wallet.v1.SendTransactionRequest.DestinationsEntry':
+      SendTransactionRequest_DestinationsEntry$json,
   '.wallet.v1.UnspentOutput': UnspentOutput$json,
   '.google.protobuf.Timestamp': $0.Timestamp$json,
-  '.bitwindowd.v1.DenialInfo': $3.DenialInfo$json,
-  '.bitwindowd.v1.ExecutedDenial': $3.ExecutedDenial$json,
+  '.bitwindowd.v1.DenialInfo': $1.DenialInfo$json,
+  '.bitwindowd.v1.ExecutedDenial': $1.ExecutedDenial$json,
   '.wallet.v1.SendTransactionResponse': SendTransactionResponse$json,
   '.wallet.v1.GetBalanceRequest': GetBalanceRequest$json,
   '.wallet.v1.GetBalanceResponse': GetBalanceResponse$json,
@@ -1096,10 +1644,14 @@ const $core.Map<$core.String, $core.Map<$core.String, $core.dynamic>> WalletServ
   '.wallet.v1.ListReceiveAddressesResponse': ListReceiveAddressesResponse$json,
   '.wallet.v1.ReceiveAddress': ReceiveAddress$json,
   '.wallet.v1.ListSidechainDepositsRequest': ListSidechainDepositsRequest$json,
-  '.wallet.v1.ListSidechainDepositsResponse': ListSidechainDepositsResponse$json,
-  '.wallet.v1.ListSidechainDepositsResponse.SidechainDeposit': ListSidechainDepositsResponse_SidechainDeposit$json,
-  '.wallet.v1.CreateSidechainDepositRequest': CreateSidechainDepositRequest$json,
-  '.wallet.v1.CreateSidechainDepositResponse': CreateSidechainDepositResponse$json,
+  '.wallet.v1.ListSidechainDepositsResponse':
+      ListSidechainDepositsResponse$json,
+  '.wallet.v1.ListSidechainDepositsResponse.SidechainDeposit':
+      ListSidechainDepositsResponse_SidechainDeposit$json,
+  '.wallet.v1.CreateSidechainDepositRequest':
+      CreateSidechainDepositRequest$json,
+  '.wallet.v1.CreateSidechainDepositResponse':
+      CreateSidechainDepositResponse$json,
   '.wallet.v1.SignMessageRequest': SignMessageRequest$json,
   '.wallet.v1.SignMessageResponse': SignMessageResponse$json,
   '.wallet.v1.VerifyMessageRequest': VerifyMessageRequest$json,
@@ -1107,7 +1659,7 @@ const $core.Map<$core.String, $core.Map<$core.String, $core.dynamic>> WalletServ
   '.wallet.v1.GetStatsRequest': GetStatsRequest$json,
   '.wallet.v1.GetStatsResponse': GetStatsResponse$json,
   '.wallet.v1.UnlockWalletRequest': UnlockWalletRequest$json,
-  '.google.protobuf.Empty': $1.Empty$json,
+  '.google.protobuf.Empty': $2.Empty$json,
   '.wallet.v1.CreateChequeRequest': CreateChequeRequest$json,
   '.wallet.v1.CreateChequeResponse': CreateChequeResponse$json,
   '.wallet.v1.GetChequeRequest': GetChequeRequest$json,
@@ -1125,12 +1677,16 @@ const $core.Map<$core.String, $core.Map<$core.String, $core.dynamic>> WalletServ
   '.wallet.v1.SetUTXOMetadataRequest': SetUTXOMetadataRequest$json,
   '.wallet.v1.GetUTXOMetadataRequest': GetUTXOMetadataRequest$json,
   '.wallet.v1.GetUTXOMetadataResponse': GetUTXOMetadataResponse$json,
-  '.wallet.v1.GetUTXOMetadataResponse.MetadataEntry': GetUTXOMetadataResponse_MetadataEntry$json,
+  '.wallet.v1.GetUTXOMetadataResponse.MetadataEntry':
+      GetUTXOMetadataResponse_MetadataEntry$json,
   '.wallet.v1.UTXOMetadata': UTXOMetadata$json,
-  '.wallet.v1.SetCoinSelectionStrategyRequest': SetCoinSelectionStrategyRequest$json,
-  '.wallet.v1.GetCoinSelectionStrategyResponse': GetCoinSelectionStrategyResponse$json,
+  '.wallet.v1.SetCoinSelectionStrategyRequest':
+      SetCoinSelectionStrategyRequest$json,
+  '.wallet.v1.GetCoinSelectionStrategyResponse':
+      GetCoinSelectionStrategyResponse$json,
   '.wallet.v1.GetTransactionDetailsRequest': GetTransactionDetailsRequest$json,
-  '.wallet.v1.GetTransactionDetailsResponse': GetTransactionDetailsResponse$json,
+  '.wallet.v1.GetTransactionDetailsResponse':
+      GetTransactionDetailsResponse$json,
   '.wallet.v1.TransactionInput': TransactionInput$json,
   '.wallet.v1.TransactionOutput': TransactionOutput$json,
   '.wallet.v1.GetUTXODistributionRequest': GetUTXODistributionRequest$json,
@@ -1140,6 +1696,10 @@ const $core.Map<$core.String, $core.Map<$core.String, $core.dynamic>> WalletServ
   '.wallet.v1.BumpFeeResponse': BumpFeeResponse$json,
   '.wallet.v1.SelectCoinsRequest': SelectCoinsRequest$json,
   '.wallet.v1.SelectCoinsResponse': SelectCoinsResponse$json,
+  '.wallet.v1.CreateBackupResponse': CreateBackupResponse$json,
+  '.wallet.v1.RestoreBackupRequest': RestoreBackupRequest$json,
+  '.wallet.v1.ValidateBackupRequest': ValidateBackupRequest$json,
+  '.wallet.v1.ValidateBackupResponse': ValidateBackupResponse$json,
 };
 
 /// Descriptor for `WalletService`. Decode as a `google.protobuf.ServiceDescriptorProto`.
@@ -1190,5 +1750,9 @@ final $typed_data.Uint8List walletServiceDescriptor = $convert.base64Decode(
     'xldC52MS5HZXRVVFhPRGlzdHJpYnV0aW9uUmVxdWVzdBomLndhbGxldC52MS5HZXRVVFhPRGlz'
     'dHJpYnV0aW9uUmVzcG9uc2USQAoHQnVtcEZlZRIZLndhbGxldC52MS5CdW1wRmVlUmVxdWVzdB'
     'oaLndhbGxldC52MS5CdW1wRmVlUmVzcG9uc2USTAoLU2VsZWN0Q29pbnMSHS53YWxsZXQudjEu'
-    'U2VsZWN0Q29pbnNSZXF1ZXN0Gh4ud2FsbGV0LnYxLlNlbGVjdENvaW5zUmVzcG9uc2U=');
-
+    'U2VsZWN0Q29pbnNSZXF1ZXN0Gh4ud2FsbGV0LnYxLlNlbGVjdENvaW5zUmVzcG9uc2USRwoMQ3'
+    'JlYXRlQmFja3VwEhYuZ29vZ2xlLnByb3RvYnVmLkVtcHR5Gh8ud2FsbGV0LnYxLkNyZWF0ZUJh'
+    'Y2t1cFJlc3BvbnNlEkgKDVJlc3RvcmVCYWNrdXASHy53YWxsZXQudjEuUmVzdG9yZUJhY2t1cF'
+    'JlcXVlc3QaFi5nb29nbGUucHJvdG9idWYuRW1wdHkSVQoOVmFsaWRhdGVCYWNrdXASIC53YWxs'
+    'ZXQudjEuVmFsaWRhdGVCYWNrdXBSZXF1ZXN0GiEud2FsbGV0LnYxLlZhbGlkYXRlQmFja3VwUm'
+    'VzcG9uc2U=');

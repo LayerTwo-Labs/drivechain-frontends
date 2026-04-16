@@ -693,6 +693,11 @@ abstract class WalletAPI {
     List<String> frozenOutpoints = const [],
     List<String> requiredOutpoints = const [],
   });
+
+  // Backup / Restore
+  Future<CreateBackupResponse> createBackup();
+  Future<void> restoreBackup(List<int> backupData, String filename);
+  Future<ValidateBackupResponse> validateBackup(List<int> backupData, String filename);
 }
 
 class SweepChequeResult {
@@ -1138,6 +1143,48 @@ class _WalletAPILive implements WalletAPI {
           strategy: strategy,
           frozenOutpoints: frozenOutpoints,
           requiredOutpoints: requiredOutpoints,
+        ),
+      );
+      return response;
+    } catch (e) {
+      final error = extractConnectException(e);
+      throw WalletException(error);
+    }
+  }
+
+  @override
+  Future<CreateBackupResponse> createBackup() async {
+    try {
+      final response = await _client.createBackup(Empty());
+      return response;
+    } catch (e) {
+      final error = extractConnectException(e);
+      throw WalletException(error);
+    }
+  }
+
+  @override
+  Future<void> restoreBackup(List<int> backupData, String filename) async {
+    try {
+      await _client.restoreBackup(
+        RestoreBackupRequest(
+          backupData: backupData,
+          filename: filename,
+        ),
+      );
+    } catch (e) {
+      final error = extractConnectException(e);
+      throw WalletException(error);
+    }
+  }
+
+  @override
+  Future<ValidateBackupResponse> validateBackup(List<int> backupData, String filename) async {
+    try {
+      final response = await _client.validateBackup(
+        ValidateBackupRequest(
+          backupData: backupData,
+          filename: filename,
         ),
       );
       return response;
@@ -1950,6 +1997,8 @@ abstract class BitDriveAPI {
   });
 
   Future<void> wipeData();
+
+  Future<String> getBitdriveDir();
 }
 
 class _BitDriveAPILive implements BitDriveAPI {
@@ -2077,6 +2126,17 @@ class _BitDriveAPILive implements BitDriveAPI {
       await _client.wipeData(Empty());
     } catch (e) {
       final error = 'could not wipe data: ${extractConnectException(e)}';
+      throw BitDriveException(error);
+    }
+  }
+
+  @override
+  Future<String> getBitdriveDir() async {
+    try {
+      final response = await _client.getBitdriveDir(Empty());
+      return response.path;
+    } catch (e) {
+      final error = 'could not get bitdrive dir: ${extractConnectException(e)}';
       throw BitDriveException(error);
     }
   }

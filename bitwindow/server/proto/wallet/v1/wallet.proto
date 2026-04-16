@@ -58,6 +58,11 @@ service WalletService {
 
   // Coin Selection - Select UTXOs for a transaction
   rpc SelectCoins(SelectCoinsRequest) returns (SelectCoinsResponse);
+
+  // Backup / Restore
+  rpc CreateBackup(google.protobuf.Empty) returns (CreateBackupResponse);
+  rpc RestoreBackup(RestoreBackupRequest) returns (google.protobuf.Empty);
+  rpc ValidateBackup(ValidateBackupRequest) returns (ValidateBackupResponse);
 }
 
 message GetBalanceRequest {
@@ -483,4 +488,35 @@ message SelectCoinsResponse {
   int64 total_input_sats = 2;
   int64 fee_sats = 3;
   int64 change_sats = 4;
+}
+
+// Backup / Restore messages
+message CreateBackupResponse {
+  // ZIP archive bytes containing wallet.json, multisig data, transactions
+  bytes backup_data = 1;
+  // Suggested filename
+  string suggested_filename = 2;
+}
+
+message RestoreBackupRequest {
+  // ZIP or JSON backup file bytes
+  bytes backup_data = 1;
+  // Original filename (used to detect .json vs .zip)
+  string filename = 2;
+}
+
+message ValidateBackupRequest {
+  // ZIP or JSON backup file bytes
+  bytes backup_data = 1;
+  // Original filename (used to detect .json vs .zip)
+  string filename = 2;
+}
+
+message ValidateBackupResponse {
+  bool valid = 1;
+  string error_message = 2;
+  // What the backup contains
+  bool has_wallet = 3;
+  bool has_multisig = 4;
+  bool has_transactions = 5;
 }

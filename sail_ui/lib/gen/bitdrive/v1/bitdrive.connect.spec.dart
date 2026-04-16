@@ -82,4 +82,12 @@ abstract final class BitDriveService {
     googleprotobufempty.Empty.new,
     googleprotobufempty.Empty.new,
   );
+
+  /// Get the BitDrive data directory path
+  static const getBitdriveDir = connect.Spec(
+    '/$name/GetBitdriveDir',
+    connect.StreamType.unary,
+    googleprotobufempty.Empty.new,
+    bitdrivev1bitdrive.GetBitdriveDirResponse.new,
+  );
 }

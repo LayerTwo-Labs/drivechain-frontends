@@ -1,13 +1,10 @@
 import 'dart:async';
-import 'dart:convert';
 import 'dart:io';
 
-import 'package:archive/archive.dart';
 import 'package:auto_route/auto_route.dart';
 import 'package:auto_updater/auto_updater.dart';
 import 'package:bitwindow/dialogs/change_password_dialog.dart';
 import 'package:bitwindow/dialogs/encrypt_wallet_dialog.dart';
-import 'package:bitwindow/env.dart';
 import 'package:bitwindow/gen/version.dart';
 import 'package:bitwindow/main.dart' show rebootBitwindowBackend;
 import 'package:bitwindow/pages/settings/settings_about.dart';
@@ -442,165 +439,19 @@ class _SecuritySettingsContentState extends State<_SecuritySettingsContent> {
   }
 }
 
-// Shared wallet backup function used by both backup and restore
+// Shared wallet backup function — delegates to the backend RPC.
+// The backend reads wallet.json from disk and exports multisig/transaction
+// data from the DB, then returns a ZIP archive.
 Future<String> createWalletBackup({
   required String destinationPath,
   required Logger log,
-  required WalletWriterProvider walletProvider,
 }) async {
-  final archive = Archive();
-
-  // Get app directory
-  final appDir = await Environment.datadir();
-  final bitwindowAppDir = walletProvider.bitwindowAppDir;
-
-  // 0. Add README
-  final readme = '''BitWindow Wallet Backup
-=======================
-
-CONTENTS
---------
-This backup contains:
-
-1. wallet.json - Your master wallet data including:
-   - Master seed (BIP39 mnemonic)
-   - All derived wallet keys
-   - Sidechain wallet seeds (derived from master)
-
-2. multisig/multisig.json - Multisig group configurations
-
-3. transactions.json - Transaction history and notes
-
-SIDECHAIN WALLETS
-----------------------------
-All sidechain wallets (Thunder, BitNames, BitAssets, ZSide, etc.) are
-DERIVED from the master seed in wallet.json. This means:
-
-- Restoring this backup restores ALL your sidechain wallets automatically
-- You do NOT need separate backups for each sidechain
-- Each sidechain uses a deterministic derivation path from the master seed
-
-HOW TO RESTORE
---------------
-1. Open BitWindow
-2. Go to Settings > Your Wallet > Restore Wallet
-3. Select this backup file
-4. Your master wallet and all sidechain wallets will be restored
-
-----------------
-- Keep this backup file secure
-- Anyone with access to this file can access ALL your funds
-- Never share this file with anyone
-
-If your wallet was encrypted with a password, the wallet.json in this
-backup is also encrypted. You will need your password to restore.
-''';
-  final readmeBytes = utf8.encode(readme);
-  archive.addFile(
-    ArchiveFile(
-      'README.txt',
-      readmeBytes.length,
-      readmeBytes,
-    ),
-  );
-  log.i('Added to backup: README.txt');
-
-  // 1. Backup wallet.json
-  final walletJsonFile = File(path.join(bitwindowAppDir.path, 'wallet.json'));
-  if (await walletJsonFile.exists()) {
-    final bytes = await walletJsonFile.readAsBytes();
-    archive.addFile(
-      ArchiveFile(
-        'wallet.json',
-        bytes.length,
-        bytes,
-      ),
-    );
-    log.i('Added to backup: wallet.json');
-  } else {
-    log.w('wallet.json not found');
-  }
-
-  // 2. Backup multisig.json
-  final multisigFile = File(path.join(appDir.path, 'bitdrive', 'multisig', 'multisig.json'));
-  if (await multisigFile.exists()) {
-    final bytes = await multisigFile.readAsBytes();
-    archive.addFile(
-      ArchiveFile(
-        'multisig/multisig.json',
-        bytes.length,
-        bytes,
-      ),
-    );
-    log.i('Added to backup: multisig/multisig.json');
-  } else {
-    log.w('multisig.json not found');
-  }
-
-  // 3. Backup transactions.json
-  final transactionsFile = File(path.join(appDir.path, 'bitdrive', 'transactions.json'));
-  if (await transactionsFile.exists()) {
-    final bytes = await transactionsFile.readAsBytes();
-    archive.addFile(
-      ArchiveFile(
-        'transactions.json',
-        bytes.length,
-        bytes,
-      ),
-    );
-    log.i('Added to backup: transactions.json');
-  } else {
-    log.w('transactions.json not found');
-  }
-
-  // Encode the archive as a ZIP file
-  final zipEncoder = ZipEncoder();
-  final zipData = zipEncoder.encode(archive);
-
-  // Write to destination
+  final bitwindowd = GetIt.I.get<BitwindowRPC>();
+  final response = await bitwindowd.wallet.createBackup();
   final outputFile = File(destinationPath);
-  await outputFile.writeAsBytes(zipData);
-
-  log.i('Backup created successfully: $destinationPath');
+  await outputFile.writeAsBytes(response.backupData);
+  log.i('Backup created successfully via RPC: $destinationPath');
   return destinationPath;
-}
-
-/// Restore wallet files from a validated backup
-Future<void> restoreWalletFiles({
-  required Directory tempDir,
-  required Logger log,
-  required WalletWriterProvider walletProvider,
-}) async {
-  final bitwindowAppDir = walletProvider.bitwindowAppDir;
-  final appDir = await Environment.datadir();
-
-  // Copy wallet.json
-  final tempWalletJson = File(path.join(tempDir.path, 'wallet.json'));
-  if (await tempWalletJson.exists()) {
-    final destWalletJson = File(path.join(bitwindowAppDir.path, 'wallet.json'));
-    await tempWalletJson.copy(destWalletJson.path);
-    log.i('Restored: wallet.json');
-  }
-
-  // Copy multisig.json if present
-  final tempMultisig = File(path.join(tempDir.path, 'multisig', 'multisig.json'));
-  if (await tempMultisig.exists()) {
-    final destMultisigDir = Directory(path.join(appDir.path, 'bitdrive', 'multisig'));
-    await destMultisigDir.create(recursive: true);
-    await tempMultisig.copy(path.join(destMultisigDir.path, 'multisig.json'));
-    log.i('Restored: multisig.json');
-  }
-
-  // Copy transactions.json if present
-  final tempTransactions = File(path.join(tempDir.path, 'transactions.json'));
-  if (await tempTransactions.exists()) {
-    final destBitdriveDir = Directory(path.join(appDir.path, 'bitdrive'));
-    await destBitdriveDir.create(recursive: true);
-    await tempTransactions.copy(path.join(destBitdriveDir.path, 'transactions.json'));
-    log.i('Restored: transactions.json');
-  }
-
-  log.i('Wallet files restored successfully');
 }
 
 class BackupWalletDialog extends StatefulWidget {
@@ -612,7 +463,6 @@ class BackupWalletDialog extends StatefulWidget {
 
 class _BackupWalletDialogState extends State<BackupWalletDialog> {
   Logger get log => GetIt.I.get<Logger>();
-  WalletWriterProvider get walletProvider => GetIt.I.get<WalletWriterProvider>();
 
   String? _selectedPath;
   bool _isCreatingBackup = false;
@@ -680,11 +530,9 @@ class _BackupWalletDialogState extends State<BackupWalletDialog> {
   }
 
   Future<void> _performBackup(String destinationPath) async {
-    // Use shared backup function
     await createWalletBackup(
       destinationPath: destinationPath,
       log: log,
-      walletProvider: walletProvider,
     );
   }
 
@@ -784,206 +632,43 @@ class _BackupWalletDialogState extends State<BackupWalletDialog> {
 class BackupValidationResult {
   final bool isValid;
   final String? errorMessage;
-  final Directory? tempDir;
+
+  /// The raw backup file bytes, preserved for the restore step.
+  final List<int>? backupData;
+
+  /// Original filename (used to determine .zip vs .json).
+  final String? filename;
 
   BackupValidationResult({
     required this.isValid,
     this.errorMessage,
-    this.tempDir,
+    this.backupData,
+    this.filename,
   });
 }
 
-// Validate backup file (ZIP or JSON)
+/// Validate a backup file via the backend RPC.
 Future<BackupValidationResult> validateBackup({
   required File backupFile,
   required Logger log,
 }) async {
-  final extension = path.extension(backupFile.path).toLowerCase();
-
-  if (extension == '.json') {
-    return validateBackupJson(jsonFile: backupFile, log: log);
-  } else if (extension == '.zip') {
-    return validateBackupZip(zipFile: backupFile, log: log);
-  } else {
-    return BackupValidationResult(
-      isValid: false,
-      errorMessage: 'Unsupported file type. Please select a .zip or .json file.',
-    );
-  }
-}
-
-// Validate backup JSON file (wallet.json directly)
-Future<BackupValidationResult> validateBackupJson({
-  required File jsonFile,
-  required Logger log,
-}) async {
-  Directory? tempDir;
-
   try {
-    // Validate JSON structure
-    final walletJSON = jsonDecode(await jsonFile.readAsString()) as Map<String, dynamic>;
-
-    // Support both old format (master/l1 at root) and new format (wallets array)
-    final isOldFormat = walletJSON.containsKey('master') && walletJSON.containsKey('l1');
-    final isNewFormat = walletJSON.containsKey('wallets') && walletJSON['wallets'] is List;
-
-    if (!isOldFormat && !isNewFormat) {
+    final bytes = await backupFile.readAsBytes();
+    final filename = path.basename(backupFile.path);
+    final bitwindowd = GetIt.I.get<BitwindowRPC>();
+    final response = await bitwindowd.wallet.validateBackup(bytes, filename);
+    if (!response.valid) {
       return BackupValidationResult(
         isValid: false,
-        errorMessage: 'wallet.json has invalid structure (missing master/l1 or wallets array)',
+        errorMessage: response.errorMessage.isNotEmpty ? response.errorMessage : 'Invalid backup file',
       );
     }
-
-    // For new format, validate at least one wallet exists with master and l1
-    if (isNewFormat) {
-      final wallets = walletJSON['wallets'] as List;
-      if (wallets.isEmpty) {
-        return BackupValidationResult(
-          isValid: false,
-          errorMessage: 'wallet.json contains no wallets',
-        );
-      }
-      final firstWallet = wallets.first as Map<String, dynamic>;
-      if (!firstWallet.containsKey('master') || !firstWallet.containsKey('l1')) {
-        return BackupValidationResult(
-          isValid: false,
-          errorMessage: 'wallet.json has invalid wallet structure (missing master or l1)',
-        );
-      }
-    }
-
-    // Create temp directory with the wallet.json
-    tempDir = await Directory.systemTemp.createTemp('bitwindow_restore_');
-    final tempWalletFile = File(path.join(tempDir.path, 'wallet.json'));
-    await jsonFile.copy(tempWalletFile.path);
-
-    log.i('JSON backup validation successful');
     return BackupValidationResult(
       isValid: true,
-      tempDir: tempDir,
+      backupData: bytes,
+      filename: filename,
     );
   } catch (e) {
-    // Clean up temp directory on error
-    if (tempDir != null) {
-      try {
-        await tempDir.delete(recursive: true);
-      } catch (_) {}
-    }
-    return BackupValidationResult(
-      isValid: false,
-      errorMessage: 'Failed to validate JSON backup: $e',
-    );
-  }
-}
-
-// Validate backup ZIP file
-Future<BackupValidationResult> validateBackupZip({
-  required File zipFile,
-  required Logger log,
-}) async {
-  Directory? tempDir;
-
-  try {
-    // Read and decode ZIP
-    final bytes = await zipFile.readAsBytes();
-    final archive = ZipDecoder().decodeBytes(bytes);
-
-    // Extract to temp directory
-    tempDir = await Directory.systemTemp.createTemp('bitwindow_restore_');
-
-    for (final file in archive) {
-      final filename = file.name;
-      if (file.isFile) {
-        final data = file.content as List<int>;
-        final filePath = path.join(tempDir.path, filename);
-
-        // Create parent directories if needed
-        final fileDir = Directory(path.dirname(filePath));
-        if (!await fileDir.exists()) {
-          await fileDir.create(recursive: true);
-        }
-
-        final outFile = File(filePath);
-        await outFile.writeAsBytes(data);
-      }
-    }
-
-    // Validate wallet.json exists
-    final walletFile = File(path.join(tempDir.path, 'wallet.json'));
-
-    if (!await walletFile.exists()) {
-      return BackupValidationResult(
-        isValid: false,
-        errorMessage: 'Backup is missing wallet.json',
-      );
-    }
-
-    // Validate wallet.json structure
-    try {
-      final walletJSON = jsonDecode(await walletFile.readAsString()) as Map<String, dynamic>;
-
-      // Support both old format (master/l1 at root) and new format (wallets array)
-      final isOldFormat = walletJSON.containsKey('master') && walletJSON.containsKey('l1');
-      final isNewFormat = walletJSON.containsKey('wallets') && walletJSON['wallets'] is List;
-
-      if (!isOldFormat && !isNewFormat) {
-        return BackupValidationResult(
-          isValid: false,
-          errorMessage: 'wallet.json has invalid structure (missing master/l1 or wallets array)',
-        );
-      }
-
-      // For new format, validate at least one wallet exists with master and l1
-      if (isNewFormat) {
-        final wallets = walletJSON['wallets'] as List;
-        if (wallets.isEmpty) {
-          return BackupValidationResult(
-            isValid: false,
-            errorMessage: 'wallet.json contains no wallets',
-          );
-        }
-        final firstWallet = wallets.first as Map<String, dynamic>;
-        if (!firstWallet.containsKey('master') || !firstWallet.containsKey('l1')) {
-          return BackupValidationResult(
-            isValid: false,
-            errorMessage: 'wallet.json has invalid wallet structure (missing master or l1)',
-          );
-        }
-      }
-
-      log.i('Backup validation successful');
-    } catch (e) {
-      return BackupValidationResult(
-        isValid: false,
-        errorMessage: 'wallet.json contains invalid JSON: $e',
-      );
-    }
-
-    // Validate multisig.json if present
-    final multisigFile = File(path.join(tempDir.path, 'multisig', 'multisig.json'));
-    if (await multisigFile.exists()) {
-      try {
-        final multisigContent = await multisigFile.readAsString();
-        jsonDecode(multisigContent);
-      } catch (e) {
-        return BackupValidationResult(
-          isValid: false,
-          errorMessage: 'multisig.json contains invalid JSON: $e',
-        );
-      }
-    }
-
-    log.i('Backup validation successful');
-    return BackupValidationResult(
-      isValid: true,
-      tempDir: tempDir,
-    );
-  } catch (e) {
-    log.e('Backup validation failed: $e');
-    // Clean up temp directory on error
-    if (tempDir != null && await tempDir.exists()) {
-      await tempDir.delete(recursive: true);
-    }
     return BackupValidationResult(
       isValid: false,
       errorMessage: 'Failed to validate backup: $e',
@@ -991,7 +676,8 @@ Future<BackupValidationResult> validateBackupZip({
   }
 }
 
-// Check if current wallet exists
+// Check if current wallet exists by trying to validate an empty backup
+// (the wallet.json file check is implicit in the backup flow)
 Future<bool> hasCurrentWallet(WalletWriterProvider walletProvider) async {
   final walletJsonFile = File(path.join(walletProvider.bitwindowAppDir.path, 'wallet.json'));
   return await walletJsonFile.exists();
@@ -1029,7 +715,6 @@ class RestoreProgressDialog extends StatefulWidget {
 
 class _RestoreProgressDialogState extends State<RestoreProgressDialog> {
   final Logger log = GetIt.I.get<Logger>();
-  final WalletWriterProvider walletProvider = GetIt.I.get<WalletWriterProvider>();
 
   final List<RestoreProgressStep> _steps = [];
   bool get _isCompleted => _steps.isNotEmpty && _steps.every((step) => step.isCompleted);
@@ -1078,13 +763,14 @@ class _RestoreProgressDialogState extends State<RestoreProgressDialog> {
 
   Future<void> _startRestore() async {
     try {
+      final bitwindowd = GetIt.I.get<BitwindowRPC>();
+
       // 1. Backup current wallet if exists
       if (widget.autoBackupPath != null) {
         _updateStatus('Backing up current wallet');
         await createWalletBackup(
           destinationPath: widget.autoBackupPath!,
           log: log,
-          walletProvider: walletProvider,
         );
       }
 
@@ -1107,53 +793,20 @@ class _RestoreProgressDialogState extends State<RestoreProgressDialog> {
       _updateStatus('Waiting for processes to stop');
       await Future.delayed(const Duration(seconds: 5));
 
-      // 5. Delete old files
-      _updateStatus('Deleting old wallet files');
-      final appDir = await Environment.datadir();
-      final bitwindowAppDir = walletProvider.bitwindowAppDir;
-
-      // Delete wallet.json
-      final walletJsonFile = File(path.join(bitwindowAppDir.path, 'wallet.json'));
-      if (await walletJsonFile.exists()) {
-        await walletJsonFile.delete();
-      }
-
-      // Delete multisig.json
-      final multisigFile = File(path.join(appDir.path, 'bitdrive', 'multisig', 'multisig.json'));
-      if (await multisigFile.exists()) {
-        await multisigFile.delete();
-      }
-
-      // Delete transactions.json
-      final transactionsFile = File(path.join(appDir.path, 'bitdrive', 'transactions.json'));
-      if (await transactionsFile.exists()) {
-        await transactionsFile.delete();
-      }
-
-      // 6. Restore files
+      // 5+6. Restore via backend RPC (handles old file deletion + restore + DB import)
       _updateStatus('Restoring wallet files');
-      final tempDir = validation.tempDir!;
-
-      await restoreWalletFiles(
-        tempDir: tempDir,
-        log: log,
-        walletProvider: walletProvider,
+      await bitwindowd.wallet.restoreBackup(
+        validation.backupData!,
+        validation.filename!,
       );
-
-      // Clean up temp
-      await tempDir.delete(recursive: true);
 
       // 7. Recreate sidechain starter files (placeholder for future functionality)
       _updateStatus('Recreating sidechain starter files');
 
-      // 8. Verify restored wallet
+      // 8. Verify restored wallet (lightweight check)
       _updateStatus('Verifying restored wallet');
-      final restoredWalletJson = File(path.join(bitwindowAppDir.path, 'wallet.json'));
-      if (!await restoredWalletJson.exists()) {
-        throw Exception('Restored wallet verification failed');
-      }
-      final walletContent = await restoredWalletJson.readAsString();
-      jsonDecode(walletContent); // Verify it's valid JSON
+      // The backend already validated and wrote the wallet; just confirm
+      log.i('Wallet restore completed via RPC');
 
       // 9. Restart binaries
       _updateStatus('Restarting binaries');

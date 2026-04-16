@@ -1,6 +1,5 @@
 import 'dart:io';
 
-import 'package:bitwindow/env.dart';
 import 'package:bitwindow/providers/bitdrive_provider.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
@@ -8,7 +7,6 @@ import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:intl/intl.dart';
 import 'package:logger/logger.dart';
-import 'package:path/path.dart' as path;
 import 'package:sail_ui/gen/bitdrive/v1/bitdrive.pb.dart' as bitdrivepb;
 import 'package:sail_ui/sail_ui.dart';
 import 'package:stacked/stacked.dart';
@@ -345,6 +343,8 @@ class BitDriveViewModel extends BaseViewModel {
   bool get isDownloading => provider.isDownloading;
   int get pendingDownloadsCount => provider.pendingDownloadsCount;
 
+  BitwindowRPC get bitwindowd => GetIt.I.get<BitwindowRPC>();
+
   BitDriveViewModel() {
     provider.addListener(_onProviderChanged);
     textController.addListener(() => onTextChanged(textController.text));
@@ -389,9 +389,11 @@ class BitDriveViewModel extends BaseViewModel {
   }
 
   Future<void> _initBitdriveDir() async {
-    final appDir = await Environment.datadir();
-    final network = GetIt.I.get<BitcoinConfProvider>().network;
-    _bitdriveDir = path.join(appDir.path, network.toReadableNet(), 'bitdrive');
+    try {
+      _bitdriveDir = await bitwindowd.bitdrive.getBitdriveDir();
+    } catch (e) {
+      log.e('Error getting bitdrive dir from backend: $e');
+    }
     await _loadDownloadedFiles();
     notifyListeners();
   }
