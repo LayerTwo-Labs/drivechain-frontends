@@ -153,7 +153,7 @@ const MultisigGroup$json = {
     {'1': 'keys', '3': 5, '4': 3, '5': 11, '6': '.multisig.v1.MultisigKey', '10': 'keys'},
     {'1': 'created', '3': 6, '4': 1, '5': 3, '10': 'created'},
     {'1': 'txid', '3': 7, '4': 1, '5': 9, '10': 'txid'},
-    {'1': 'descriptor', '3': 8, '4': 1, '5': 9, '10': 'descriptor'},
+    {'1': 'base_descriptor', '3': 8, '4': 1, '5': 9, '10': 'baseDescriptor'},
     {'1': 'descriptor_receive', '3': 9, '4': 1, '5': 9, '10': 'descriptorReceive'},
     {'1': 'descriptor_change', '3': 10, '4': 1, '5': 9, '10': 'descriptorChange'},
     {'1': 'watch_wallet_name', '3': 11, '4': 1, '5': 9, '10': 'watchWalletName'},
@@ -173,16 +173,17 @@ final $typed_data.Uint8List multisigGroupDescriptor = $convert.base64Decode(
     'Cg1NdWx0aXNpZ0dyb3VwEg4KAmlkGAEgASgJUgJpZBISCgRuYW1lGAIgASgJUgRuYW1lEgwKAW'
     '4YAyABKAVSAW4SDAoBbRgEIAEoBVIBbRIsCgRrZXlzGAUgAygLMhgubXVsdGlzaWcudjEuTXVs'
     'dGlzaWdLZXlSBGtleXMSGAoHY3JlYXRlZBgGIAEoA1IHY3JlYXRlZBISCgR0eGlkGAcgASgJUg'
-    'R0eGlkEh4KCmRlc2NyaXB0b3IYCCABKAlSCmRlc2NyaXB0b3ISLQoSZGVzY3JpcHRvcl9yZWNl'
-    'aXZlGAkgASgJUhFkZXNjcmlwdG9yUmVjZWl2ZRIrChFkZXNjcmlwdG9yX2NoYW5nZRgKIAEoCV'
-    'IQZGVzY3JpcHRvckNoYW5nZRIqChF3YXRjaF93YWxsZXRfbmFtZRgLIAEoCVIPd2F0Y2hXYWxs'
-    'ZXROYW1lEkUKEXJlY2VpdmVfYWRkcmVzc2VzGAwgAygLMhgubXVsdGlzaWcudjEuQWRkcmVzc0'
-    'luZm9SEHJlY2VpdmVBZGRyZXNzZXMSQwoQY2hhbmdlX2FkZHJlc3NlcxgNIAMoCzIYLm11bHRp'
-    'c2lnLnYxLkFkZHJlc3NJbmZvUg9jaGFuZ2VBZGRyZXNzZXMSOgoMdXR4b19kZXRhaWxzGA4gAy'
-    'gLMhcubXVsdGlzaWcudjEuVXR4b0RldGFpbFILdXR4b0RldGFpbHMSGAoHYmFsYW5jZRgPIAEo'
-    'AVIHYmFsYW5jZRIUCgV1dHhvcxgQIAEoBVIFdXR4b3MSLAoSbmV4dF9yZWNlaXZlX2luZGV4GB'
-    'EgASgFUhBuZXh0UmVjZWl2ZUluZGV4EioKEW5leHRfY2hhbmdlX2luZGV4GBIgASgFUg9uZXh0'
-    'Q2hhbmdlSW5kZXgSJwoPdHJhbnNhY3Rpb25faWRzGBMgAygJUg50cmFuc2FjdGlvbklkcw==');
+    'R0eGlkEicKD2Jhc2VfZGVzY3JpcHRvchgIIAEoCVIOYmFzZURlc2NyaXB0b3ISLQoSZGVzY3Jp'
+    'cHRvcl9yZWNlaXZlGAkgASgJUhFkZXNjcmlwdG9yUmVjZWl2ZRIrChFkZXNjcmlwdG9yX2NoYW'
+    '5nZRgKIAEoCVIQZGVzY3JpcHRvckNoYW5nZRIqChF3YXRjaF93YWxsZXRfbmFtZRgLIAEoCVIP'
+    'd2F0Y2hXYWxsZXROYW1lEkUKEXJlY2VpdmVfYWRkcmVzc2VzGAwgAygLMhgubXVsdGlzaWcudj'
+    'EuQWRkcmVzc0luZm9SEHJlY2VpdmVBZGRyZXNzZXMSQwoQY2hhbmdlX2FkZHJlc3NlcxgNIAMo'
+    'CzIYLm11bHRpc2lnLnYxLkFkZHJlc3NJbmZvUg9jaGFuZ2VBZGRyZXNzZXMSOgoMdXR4b19kZX'
+    'RhaWxzGA4gAygLMhcubXVsdGlzaWcudjEuVXR4b0RldGFpbFILdXR4b0RldGFpbHMSGAoHYmFs'
+    'YW5jZRgPIAEoAVIHYmFsYW5jZRIUCgV1dHhvcxgQIAEoBVIFdXR4b3MSLAoSbmV4dF9yZWNlaX'
+    'ZlX2luZGV4GBEgASgFUhBuZXh0UmVjZWl2ZUluZGV4EioKEW5leHRfY2hhbmdlX2luZGV4GBIg'
+    'ASgFUg9uZXh0Q2hhbmdlSW5kZXgSJwoPdHJhbnNhY3Rpb25faWRzGBMgAygJUg50cmFuc2FjdG'
+    'lvbklkcw==');
 
 @$core.Deprecated('Use listGroupsResponseDescriptor instead')
 const ListGroupsResponse$json = {

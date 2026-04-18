@@ -123,11 +123,20 @@ class BitwindowRPCLive extends BitwindowRPC {
   @override
   Future<(double, double)> balance() async {
     return await _withRecreate(() async {
-      final walletReader = GetIt.I.get<WalletReaderProvider>();
-      final walletId = walletReader.activeWalletId;
-      if (walletId == null) throw Exception('No active wallet');
-      // Route through orchestrator — balance is a shared wallet primitive
+      // Route through orchestrator — balance is a shared wallet primitive.
+      // Prefer the cached activeWalletId from the wallet-data stream, but
+      // fall back to a direct getWalletStatus() call so balance still
+      // loads even if the stream hasn't delivered data yet.
       final orchestratorWallet = GetIt.I.get<OrchestratorRPC>().wallet;
+      final walletReader = GetIt.I.get<WalletReaderProvider>();
+      var walletId = walletReader.activeWalletId;
+      if (walletId == null) {
+        final status = await orchestratorWallet.getWalletStatus();
+        if (!status.hasWallet || status.activeWalletId.isEmpty) {
+          throw Exception('No active wallet');
+        }
+        walletId = status.activeWalletId;
+      }
       final resp = await orchestratorWallet.getBalance(walletId);
       return (
         satoshiToBTC(resp.confirmedSats.round()),
@@ -726,7 +735,7 @@ class _WalletAPILive implements WalletAPI {
     try {
       final request = SendTransactionRequest(
         walletId: walletId,
-        destinations: destinations.map((k, v) => MapEntry(k, Int64(v))).entries,
+        destinations: destinations.map((k, v) => MapEntry(k, Int64(v))),
         feeSatPerVbyte: feeSatPerVbyte != null ? Int64(feeSatPerVbyte) : null,
         fixedFeeSats: fixedFeeSats != null ? Int64(fixedFeeSats) : null,
         opReturnMessage: opReturnMessage,

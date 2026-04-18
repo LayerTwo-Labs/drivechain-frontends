@@ -56,6 +56,7 @@ class WalletReaderProvider extends ChangeNotifier {
     _reconnectTimer?.cancel();
 
     try {
+      _logger.i('WalletReaderProvider: subscribing to watchWalletData');
       final stream = _client.watchWalletData();
       _watchSub = stream.listen(
         _onData,
@@ -83,7 +84,15 @@ class WalletReaderProvider extends ChangeNotifier {
   }
 
   void _onData(dynamic resp) {
-    activeWalletId = resp.activeWalletId.isEmpty ? null : resp.activeWalletId;
+    final previousActiveId = activeWalletId;
+    final newActiveId = resp.activeWalletId.isEmpty ? null : resp.activeWalletId as String;
+    if (previousActiveId != newActiveId) {
+      _logger.i(
+        'WalletReaderProvider: activeWalletId $previousActiveId -> $newActiveId '
+        '(wallets=${resp.wallets.length})',
+      );
+    }
+    activeWalletId = newActiveId;
 
     wallets = resp.wallets.map<WalletData>((protoWallet) {
       WalletGradient gradient = WalletGradient.fromWalletId(protoWallet.id);

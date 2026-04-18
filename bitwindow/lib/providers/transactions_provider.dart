@@ -5,6 +5,7 @@ import 'package:collection/collection.dart';
 import 'package:fixnum/fixnum.dart';
 import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
+import 'package:logger/logger.dart';
 import 'package:sail_ui/env.dart';
 import 'package:sail_ui/gen/google/protobuf/timestamp.pb.dart';
 import 'package:sail_ui/gen/wallet/v1/wallet.pb.dart';
@@ -17,6 +18,7 @@ import 'package:sail_ui/rpcs/orchestrator_wallet_rpc.dart';
 // because the class extends ChangeNotifier, any subscribers
 // to this class will be notified of changes to new transactions
 class TransactionProvider extends ChangeNotifier {
+  final Logger _log = GetIt.I.get<Logger>();
   BitwindowRPC get bitwindowd => GetIt.I.get<BitwindowRPC>();
   OrchestratorWalletRPC get orchestratorWallet => GetIt.I.get<OrchestratorRPC>().wallet;
   BalanceProvider get balanceProvider => GetIt.I.get<BalanceProvider>();
@@ -73,8 +75,17 @@ class TransactionProvider extends ChangeNotifier {
     error = null;
 
     try {
-      final walletId = _walletReader.activeWalletId;
-      if (walletId == null) throw Exception('No active wallet');
+      // Prefer the streamed activeWalletId, but self-heal against a slow/broken
+      // WatchWalletData stream by asking the backend directly.
+      var walletId = _walletReader.activeWalletId;
+      if (walletId == null) {
+        final status = await orchestratorWallet.getWalletStatus();
+        if (!status.hasWallet || status.activeWalletId.isEmpty) {
+          throw Exception('No active wallet');
+        }
+        walletId = status.activeWalletId;
+        _log.i('TransactionProvider: recovered activeWalletId=$walletId via getWalletStatus');
+      }
 
       // Run all updates in parallel
       final results = await Future.wait([
@@ -184,6 +195,7 @@ class TransactionProvider extends ChangeNotifier {
       }
     } catch (e) {
       if (e.toString() != error) {
+        _log.w('TransactionProvider: fetch failed: $e');
         error = e.toString();
         notifyListeners();
       }
