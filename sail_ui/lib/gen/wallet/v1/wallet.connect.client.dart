@@ -529,7 +529,7 @@ extension type WalletServiceClient (connect.Transport _transport) {
     );
   }
 
-  /// Create a backup of wallet and multisig data
+  /// Backup / Restore
   Future<walletv1wallet.CreateBackupResponse> createBackup(
     googleprotobufempty.Empty input, {
     connect.Headers? headers,
@@ -547,7 +547,6 @@ extension type WalletServiceClient (connect.Transport _transport) {
     );
   }
 
-  /// Restore wallet from a backup file
   Future<googleprotobufempty.Empty> restoreBackup(
     walletv1wallet.RestoreBackupRequest input, {
     connect.Headers? headers,
@@ -565,7 +564,6 @@ extension type WalletServiceClient (connect.Transport _transport) {
     );
   }
 
-  /// Validate a backup file
   Future<walletv1wallet.ValidateBackupResponse> validateBackup(
     walletv1wallet.ValidateBackupRequest input, {
     connect.Headers? headers,

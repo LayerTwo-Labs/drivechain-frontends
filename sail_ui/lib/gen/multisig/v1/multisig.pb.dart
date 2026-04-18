@@ -408,7 +408,7 @@ class MultisigGroup extends $pb.GeneratedMessage {
     $core.Iterable<MultisigKey>? keys,
     $fixnum.Int64? created,
     $core.String? txid,
-    $core.String? descriptor,
+    $core.String? baseDescriptor,
     $core.String? descriptorReceive,
     $core.String? descriptorChange,
     $core.String? watchWalletName,
@@ -443,8 +443,8 @@ class MultisigGroup extends $pb.GeneratedMessage {
     if (txid != null) {
       $result.txid = txid;
     }
-    if (descriptor != null) {
-      $result.descriptor = descriptor;
+    if (baseDescriptor != null) {
+      $result.baseDescriptor = baseDescriptor;
     }
     if (descriptorReceive != null) {
       $result.descriptorReceive = descriptorReceive;
@@ -493,7 +493,7 @@ class MultisigGroup extends $pb.GeneratedMessage {
     ..pc<MultisigKey>(5, _omitFieldNames ? '' : 'keys', $pb.PbFieldType.PM, subBuilder: MultisigKey.create)
     ..aInt64(6, _omitFieldNames ? '' : 'created')
     ..aOS(7, _omitFieldNames ? '' : 'txid')
-    ..aOS(8, _omitFieldNames ? '' : 'descriptor')
+    ..aOS(8, _omitFieldNames ? '' : 'baseDescriptor')
     ..aOS(9, _omitFieldNames ? '' : 'descriptorReceive')
     ..aOS(10, _omitFieldNames ? '' : 'descriptorChange')
     ..aOS(11, _omitFieldNames ? '' : 'watchWalletName')
@@ -587,13 +587,13 @@ class MultisigGroup extends $pb.GeneratedMessage {
   void clearTxid() => clearField(7);
 
   @$pb.TagNumber(8)
-  $core.String get descriptor => $_getSZ(7);
+  $core.String get baseDescriptor => $_getSZ(7);
   @$pb.TagNumber(8)
-  set descriptor($core.String v) { $_setString(7, v); }
+  set baseDescriptor($core.String v) { $_setString(7, v); }
   @$pb.TagNumber(8)
-  $core.bool hasDescriptor() => $_has(7);
+  $core.bool hasBaseDescriptor() => $_has(7);
   @$pb.TagNumber(8)
-  void clearDescriptor() => clearField(8);
+  void clearBaseDescriptor() => clearField(8);
 
   @$pb.TagNumber(9)
   $core.String get descriptorReceive => $_getSZ(8);

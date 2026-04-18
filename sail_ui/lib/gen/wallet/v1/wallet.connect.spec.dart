@@ -231,7 +231,7 @@ abstract final class WalletService {
     walletv1wallet.SelectCoinsResponse.new,
   );
 
-  /// Create a backup of wallet and multisig data
+  /// Backup / Restore
   static const createBackup = connect.Spec(
     '/$name/CreateBackup',
     connect.StreamType.unary,
@@ -239,7 +239,6 @@ abstract final class WalletService {
     walletv1wallet.CreateBackupResponse.new,
   );
 
-  /// Restore wallet from a backup file
   static const restoreBackup = connect.Spec(
     '/$name/RestoreBackup',
     connect.StreamType.unary,
@@ -247,7 +246,6 @@ abstract final class WalletService {
     googleprotobufempty.Empty.new,
   );
 
-  /// Validate a backup file
   static const validateBackup = connect.Spec(
     '/$name/ValidateBackup',
     connect.StreamType.unary,
