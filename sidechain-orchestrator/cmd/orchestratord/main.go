@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"crypto/tls"
 	"fmt"
 	"net"
 	"net/http"
@@ -22,6 +23,7 @@ import (
 	bitassetsrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/bitassets/v1/bitassetsv1connect"
 	bitnamesrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/bitnames/v1/bitnamesv1connect"
 	coinshiftrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/coinshift/v1/coinshiftv1connect"
+	enforcerrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1/mainchainv1connect"
 	rpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/orchestrator/v1/orchestratorv1connect"
 	photonrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/photon/v1/photonv1connect"
 	thunderrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/thunder/v1/thunderv1connect"
@@ -200,6 +202,23 @@ func run(cctx *cli.Context) error {
 		walletHandler.SetEngine(walletEngine)
 
 		log.Info().Int("rpc_port", port).Msg("wallet engine initialized with Core RPC")
+	}
+
+	// Lazy enforcer wallet client — used for enforcer-type wallets.
+	if enforcerCfg, ok := orch.Configs()["enforcer"]; ok {
+		enforcerURL := fmt.Sprintf("http://127.0.0.1:%d", enforcerCfg.Port)
+		httpClient := &http.Client{
+			Transport: &http2.Transport{
+				AllowHTTP: true,
+				DialTLSContext: func(ctx context.Context, network, addr string, _ *tls.Config) (net.Conn, error) {
+					var d net.Dialer
+					return d.DialContext(ctx, network, addr)
+				},
+			},
+		}
+		enforcerClient := enforcerrpc.NewWalletServiceClient(httpClient, enforcerURL, connect.WithGRPC())
+		walletHandler.SetEnforcerWallet(enforcerClient)
+		log.Info().Int("enforcer_port", enforcerCfg.Port).Msg("enforcer wallet client registered")
 	}
 
 	walletPath, walletH := walletrpc.NewWalletManagerServiceHandler(walletHandler, connect.WithInterceptors())

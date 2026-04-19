@@ -11,7 +11,11 @@ import (
 
 	"connectrpc.com/connect"
 	"google.golang.org/protobuf/types/known/emptypb"
+	"google.golang.org/protobuf/types/known/wrapperspb"
 
+	commonv1 "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/common/v1"
+	enforcerpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1"
+	enforcerrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1/mainchainv1connect"
 	pb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1"
 	rpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1/walletmanagerv1connect"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/wallet"
@@ -19,10 +23,13 @@ import (
 
 var _ rpc.WalletManagerServiceHandler = new(WalletHandler)
 
+const walletTypeEnforcer = "enforcer"
+
 // WalletHandler implements the WalletManagerService gRPC handler.
 type WalletHandler struct {
-	svc    *wallet.Service
-	engine *wallet.WalletEngine // nil until Core RPC is configured
+	svc            *wallet.Service
+	engine         *wallet.WalletEngine               // nil until Core RPC is configured
+	enforcerWallet enforcerrpc.WalletServiceClient    // nil until enforcer is configured
 }
 
 func NewWalletHandler(svc *wallet.Service) *WalletHandler {
@@ -32,6 +39,35 @@ func NewWalletHandler(svc *wallet.Service) *WalletHandler {
 // SetEngine sets the wallet engine (called after Core RPC config is available).
 func (h *WalletHandler) SetEngine(engine *wallet.WalletEngine) {
 	h.engine = engine
+}
+
+// SetEnforcerWallet sets the enforcer wallet client used for enforcer-type wallets.
+func (h *WalletHandler) SetEnforcerWallet(client enforcerrpc.WalletServiceClient) {
+	h.enforcerWallet = client
+}
+
+// walletTypeFor returns the wallet type ("enforcer", "bitcoinCore", "watchOnly")
+// for a given wallet ID, resolving empty IDs to the active wallet.
+func (h *WalletHandler) walletTypeFor(walletID string) (string, string, error) {
+	if walletID == "" {
+		walletID = h.svc.ActiveWalletID()
+		if walletID == "" {
+			return "", "", fmt.Errorf("no active wallet")
+		}
+	}
+	for _, w := range h.svc.GetAllWallets() {
+		if w.ID == walletID {
+			return walletID, w.WalletType, nil
+		}
+	}
+	return "", "", fmt.Errorf("wallet %s not found", walletID)
+}
+
+func (h *WalletHandler) requireEnforcerWallet() error {
+	if h.enforcerWallet == nil {
+		return fmt.Errorf("enforcer wallet not connected")
+	}
+	return nil
 }
 
 // ============================================================================
@@ -199,13 +235,27 @@ func (h *WalletHandler) EnsureCoreWallets(ctx context.Context, req *connect.Requ
 // ============================================================================
 
 func (h *WalletHandler) GetBalance(ctx context.Context, req *connect.Request[pb.GetBalanceRequest]) (*connect.Response[pb.GetBalanceResponse], error) {
-	if err := h.requireEngine(); err != nil {
-		return nil, connect.NewError(connect.CodeFailedPrecondition, err)
-	}
-
-	walletID, err := h.engine.ResolveWalletID(req.Msg.WalletId)
+	walletID, wType, err := h.walletTypeFor(req.Msg.WalletId)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+	}
+
+	if wType == walletTypeEnforcer {
+		if err := h.requireEnforcerWallet(); err != nil {
+			return nil, connect.NewError(connect.CodeFailedPrecondition, err)
+		}
+		resp, err := h.enforcerWallet.GetBalance(ctx, connect.NewRequest(&enforcerpb.GetBalanceRequest{}))
+		if err != nil {
+			return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("enforcer/wallet: get balance: %w", err))
+		}
+		return connect.NewResponse(&pb.GetBalanceResponse{
+			ConfirmedSats:   float64(resp.Msg.ConfirmedSats),
+			UnconfirmedSats: float64(resp.Msg.PendingSats),
+		}), nil
+	}
+
+	if err := h.requireEngine(); err != nil {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, err)
 	}
 
 	coreName, err := h.engine.GetCoreWalletName(ctx, walletID)
@@ -230,13 +280,26 @@ func (h *WalletHandler) GetBalance(ctx context.Context, req *connect.Request[pb.
 }
 
 func (h *WalletHandler) GetNewAddress(ctx context.Context, req *connect.Request[pb.GetNewAddressRequest]) (*connect.Response[pb.GetNewAddressResponse], error) {
-	if err := h.requireEngine(); err != nil {
-		return nil, connect.NewError(connect.CodeFailedPrecondition, err)
-	}
-
-	walletID, err := h.engine.ResolveWalletID(req.Msg.WalletId)
+	walletID, wType, err := h.walletTypeFor(req.Msg.WalletId)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+	}
+
+	if wType == walletTypeEnforcer {
+		if err := h.requireEnforcerWallet(); err != nil {
+			return nil, connect.NewError(connect.CodeFailedPrecondition, err)
+		}
+		resp, err := h.enforcerWallet.CreateNewAddress(ctx, connect.NewRequest(&enforcerpb.CreateNewAddressRequest{}))
+		if err != nil {
+			return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("enforcer/wallet: create new address: %w", err))
+		}
+		return connect.NewResponse(&pb.GetNewAddressResponse{
+			Address: resp.Msg.Address,
+		}), nil
+	}
+
+	if err := h.requireEngine(); err != nil {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, err)
 	}
 
 	coreName, err := h.engine.GetCoreWalletName(ctx, walletID)
@@ -255,10 +318,6 @@ func (h *WalletHandler) GetNewAddress(ctx context.Context, req *connect.Request[
 }
 
 func (h *WalletHandler) SendTransaction(ctx context.Context, req *connect.Request[pb.SendTransactionRequest]) (*connect.Response[pb.SendTransactionResponse], error) {
-	if err := h.requireEngine(); err != nil {
-		return nil, connect.NewError(connect.CodeFailedPrecondition, err)
-	}
-
 	if len(req.Msg.Destinations) == 0 {
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("must provide at least one destination"))
 	}
@@ -277,9 +336,68 @@ func (h *WalletHandler) SendTransaction(ctx context.Context, req *connect.Reques
 		}
 	}
 
-	walletID, err := h.engine.ResolveWalletID(req.Msg.WalletId)
+	walletID, wType, err := h.walletTypeFor(req.Msg.WalletId)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+	}
+
+	if wType == walletTypeEnforcer {
+		if err := h.requireEnforcerWallet(); err != nil {
+			return nil, connect.NewError(connect.CodeFailedPrecondition, err)
+		}
+
+		var feeRate *enforcerpb.SendTransactionRequest_FeeRate
+		if req.Msg.FeeRateSatPerVbyte > 0 {
+			feeRate = &enforcerpb.SendTransactionRequest_FeeRate{
+				Fee: &enforcerpb.SendTransactionRequest_FeeRate_SatPerVbyte{SatPerVbyte: uint64(req.Msg.FeeRateSatPerVbyte)},
+			}
+		}
+		if req.Msg.FixedFeeSats > 0 {
+			feeRate = &enforcerpb.SendTransactionRequest_FeeRate{
+				Fee: &enforcerpb.SendTransactionRequest_FeeRate_Sats{Sats: uint64(req.Msg.FixedFeeSats)},
+			}
+		}
+
+		var opReturn *commonv1.Hex
+		if req.Msg.OpReturnHex != "" {
+			opReturn = &commonv1.Hex{
+				Hex: &wrapperspb.StringValue{Value: req.Msg.OpReturnHex},
+			}
+		}
+
+		destinations := make(map[string]uint64, len(req.Msg.Destinations))
+		for addr, sats := range req.Msg.Destinations {
+			destinations[addr] = uint64(sats)
+		}
+
+		requiredUtxos := make([]*enforcerpb.SendTransactionRequest_RequiredUtxo, 0, len(req.Msg.RequiredInputs))
+		for _, u := range req.Msg.RequiredInputs {
+			if u.Txid == "" {
+				continue
+			}
+			requiredUtxos = append(requiredUtxos, &enforcerpb.SendTransactionRequest_RequiredUtxo{
+				Txid: &commonv1.ReverseHex{Hex: &wrapperspb.StringValue{Value: u.Txid}},
+				Vout: uint32(u.Vout),
+			})
+		}
+
+		resp, err := h.enforcerWallet.SendTransaction(ctx, connect.NewRequest(&enforcerpb.SendTransactionRequest{
+			Destinations:    destinations,
+			FeeRate:         feeRate,
+			OpReturnMessage: opReturn,
+			RequiredUtxos:   requiredUtxos,
+		}))
+		if err != nil {
+			return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("enforcer/wallet: send transaction: %w", err))
+		}
+
+		return connect.NewResponse(&pb.SendTransactionResponse{
+			Txid: resp.Msg.Txid.GetHex().GetValue(),
+		}), nil
+	}
+
+	if err := h.requireEngine(); err != nil {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, err)
 	}
 
 	coreName, err := h.engine.GetCoreWalletName(ctx, walletID)
@@ -483,13 +601,48 @@ func (h *WalletHandler) signAndBroadcastRawTransaction(
 }
 
 func (h *WalletHandler) ListTransactions(ctx context.Context, req *connect.Request[pb.ListTransactionsRequest]) (*connect.Response[pb.ListTransactionsResponse], error) {
-	if err := h.requireEngine(); err != nil {
-		return nil, connect.NewError(connect.CodeFailedPrecondition, err)
-	}
-
-	walletID, err := h.engine.ResolveWalletID(req.Msg.WalletId)
+	walletID, wType, err := h.walletTypeFor(req.Msg.WalletId)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+	}
+
+	if wType == walletTypeEnforcer {
+		if err := h.requireEnforcerWallet(); err != nil {
+			return nil, connect.NewError(connect.CodeFailedPrecondition, err)
+		}
+		resp, err := h.enforcerWallet.ListTransactions(ctx, connect.NewRequest(&enforcerpb.ListTransactionsRequest{}))
+		if err != nil {
+			return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("enforcer/wallet: list transactions: %w", err))
+		}
+		pbTxs := make([]*pb.TransactionEntry, 0, len(resp.Msg.Transactions))
+		for _, tx := range resp.Msg.Transactions {
+			amountSats := int64(tx.ReceivedSats) - int64(tx.SentSats)
+			var confirmations int32
+			var blockTime int64
+			if tx.ConfirmationInfo != nil {
+				confirmations = int32(tx.ConfirmationInfo.Height)
+				if tx.ConfirmationInfo.Timestamp != nil {
+					blockTime = tx.ConfirmationInfo.Timestamp.Seconds
+				}
+			}
+			pbTxs = append(pbTxs, &pb.TransactionEntry{
+				Txid:          tx.Txid.GetHex().GetValue(),
+				Amount:        satsToBtc(amountSats),
+				AmountSats:    amountSats,
+				Fee:           satsToBtc(int64(tx.FeeSats)),
+				Confirmations: confirmations,
+				BlockTime:     blockTime,
+				Time:          blockTime,
+				WalletId:      walletID,
+			})
+		}
+		return connect.NewResponse(&pb.ListTransactionsResponse{
+			Transactions: pbTxs,
+		}), nil
+	}
+
+	if err := h.requireEngine(); err != nil {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, err)
 	}
 
 	coreName, err := h.engine.GetCoreWalletName(ctx, walletID)
@@ -531,13 +684,44 @@ func (h *WalletHandler) ListTransactions(ctx context.Context, req *connect.Reque
 }
 
 func (h *WalletHandler) ListUnspent(ctx context.Context, req *connect.Request[pb.ListUnspentRequest]) (*connect.Response[pb.ListUnspentResponse], error) {
-	if err := h.requireEngine(); err != nil {
-		return nil, connect.NewError(connect.CodeFailedPrecondition, err)
-	}
-
-	walletID, err := h.engine.ResolveWalletID(req.Msg.WalletId)
+	walletID, wType, err := h.walletTypeFor(req.Msg.WalletId)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+	}
+
+	if wType == walletTypeEnforcer {
+		if err := h.requireEnforcerWallet(); err != nil {
+			return nil, connect.NewError(connect.CodeFailedPrecondition, err)
+		}
+		resp, err := h.enforcerWallet.ListUnspentOutputs(ctx, connect.NewRequest(&enforcerpb.ListUnspentOutputsRequest{}))
+		if err != nil {
+			return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("enforcer/wallet: list unspent: %w", err))
+		}
+		pbUTXOs := make([]*pb.UnspentOutput, 0, len(resp.Msg.Outputs))
+		for _, u := range resp.Msg.Outputs {
+			confirmations := int32(0)
+			if u.IsConfirmed {
+				confirmations = 1
+			}
+			pbUTXOs = append(pbUTXOs, &pb.UnspentOutput{
+				Txid:          u.Txid.GetHex().GetValue(),
+				Vout:          int32(u.Vout),
+				Address:       u.Address.GetValue(),
+				Amount:        satsToBtc(int64(u.ValueSats)),
+				AmountSats:    int64(u.ValueSats),
+				Confirmations: confirmations,
+				Spendable:     true,
+				Solvable:      true,
+				WalletId:      walletID,
+			})
+		}
+		return connect.NewResponse(&pb.ListUnspentResponse{
+			Utxos: pbUTXOs,
+		}), nil
+	}
+
+	if err := h.requireEngine(); err != nil {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, err)
 	}
 
 	coreName, err := h.engine.GetCoreWalletName(ctx, walletID)
@@ -572,13 +756,53 @@ func (h *WalletHandler) ListUnspent(ctx context.Context, req *connect.Request[pb
 }
 
 func (h *WalletHandler) ListReceiveAddresses(ctx context.Context, req *connect.Request[pb.ListReceiveAddressesRequest]) (*connect.Response[pb.ListReceiveAddressesResponse], error) {
-	if err := h.requireEngine(); err != nil {
-		return nil, connect.NewError(connect.CodeFailedPrecondition, err)
-	}
-
-	walletID, err := h.engine.ResolveWalletID(req.Msg.WalletId)
+	walletID, wType, err := h.walletTypeFor(req.Msg.WalletId)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+	}
+
+	if wType == walletTypeEnforcer {
+		if err := h.requireEnforcerWallet(); err != nil {
+			return nil, connect.NewError(connect.CodeFailedPrecondition, err)
+		}
+		utxosResp, err := h.enforcerWallet.ListUnspentOutputs(ctx, connect.NewRequest(&enforcerpb.ListUnspentOutputsRequest{}))
+		if err != nil {
+			return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("enforcer/wallet: list unspent outputs: %w", err))
+		}
+		addressMap := make(map[string]*pb.ReceiveAddress)
+		for _, utxo := range utxosResp.Msg.Outputs {
+			addr := utxo.Address.GetValue()
+			entry, ok := addressMap[addr]
+			if !ok {
+				entry = &pb.ReceiveAddress{Address: addr}
+				addressMap[addr] = entry
+			}
+			entry.AmountSats += int64(utxo.ValueSats)
+		}
+		addrResp, err := h.enforcerWallet.CreateNewAddress(ctx, connect.NewRequest(&enforcerpb.CreateNewAddressRequest{}))
+		if err != nil {
+			return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("enforcer/wallet: create new address: %w", err))
+		}
+		if _, ok := addressMap[addrResp.Msg.Address]; !ok {
+			addressMap[addrResp.Msg.Address] = &pb.ReceiveAddress{Address: addrResp.Msg.Address}
+		}
+
+		addresses := make([]*pb.ReceiveAddress, 0, len(addressMap))
+		for _, entry := range addressMap {
+			entry.Amount = satsToBtc(entry.AmountSats)
+			addresses = append(addresses, entry)
+		}
+		sort.Slice(addresses, func(i, j int) bool {
+			return addresses[i].Address < addresses[j].Address
+		})
+		_ = walletID
+		return connect.NewResponse(&pb.ListReceiveAddressesResponse{
+			Addresses: addresses,
+		}), nil
+	}
+
+	if err := h.requireEngine(); err != nil {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, err)
 	}
 
 	coreName, err := h.engine.GetCoreWalletName(ctx, walletID)
