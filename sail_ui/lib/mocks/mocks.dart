@@ -261,6 +261,8 @@ class MockBitwindowRPC extends BitwindowRPC {
   @override
   BitDriveAPI get bitdrive => throw UnimplementedError();
   @override
+  MultisigAPI get multisig => throw UnimplementedError();
+  @override
   UtilsAPI get utils => throw UnimplementedError();
   @override
   Stream<WatchResponse> get notificationStream =>

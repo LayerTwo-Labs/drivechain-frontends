@@ -15,27 +15,27 @@ import 'dart:core' as $core;
 
 import 'package:protobuf/protobuf.dart' as $pb;
 
-import 'sidechain.pb.dart' as $10;
+import 'sidechain.pb.dart' as $11;
 import 'sidechain.pbjson.dart';
 
 export 'sidechain.pb.dart';
 
 abstract class SidechainServiceBase extends $pb.GeneratedService {
-  $async.Future<$10.GetDetectedWithdrawalsResponse> getDetectedWithdrawals($pb.ServerContext ctx, $10.GetDetectedWithdrawalsRequest request);
-  $async.Future<$10.GetWithdrawalByTxidResponse> getWithdrawalByTxid($pb.ServerContext ctx, $10.GetWithdrawalByTxidRequest request);
+  $async.Future<$11.GetDetectedWithdrawalsResponse> getDetectedWithdrawals($pb.ServerContext ctx, $11.GetDetectedWithdrawalsRequest request);
+  $async.Future<$11.GetWithdrawalByTxidResponse> getWithdrawalByTxid($pb.ServerContext ctx, $11.GetWithdrawalByTxidRequest request);
 
   $pb.GeneratedMessage createRequest($core.String methodName) {
     switch (methodName) {
-      case 'GetDetectedWithdrawals': return $10.GetDetectedWithdrawalsRequest();
-      case 'GetWithdrawalByTxid': return $10.GetWithdrawalByTxidRequest();
+      case 'GetDetectedWithdrawals': return $11.GetDetectedWithdrawalsRequest();
+      case 'GetWithdrawalByTxid': return $11.GetWithdrawalByTxidRequest();
       default: throw $core.ArgumentError('Unknown method: $methodName');
     }
   }
 
   $async.Future<$pb.GeneratedMessage> handleCall($pb.ServerContext ctx, $core.String methodName, $pb.GeneratedMessage request) {
     switch (methodName) {
-      case 'GetDetectedWithdrawals': return this.getDetectedWithdrawals(ctx, request as $10.GetDetectedWithdrawalsRequest);
-      case 'GetWithdrawalByTxid': return this.getWithdrawalByTxid(ctx, request as $10.GetWithdrawalByTxidRequest);
+      case 'GetDetectedWithdrawals': return this.getDetectedWithdrawals(ctx, request as $11.GetDetectedWithdrawalsRequest);
+      case 'GetWithdrawalByTxid': return this.getWithdrawalByTxid(ctx, request as $11.GetWithdrawalByTxidRequest);
       default: throw $core.ArgumentError('Unknown method: $methodName');
     }
   }

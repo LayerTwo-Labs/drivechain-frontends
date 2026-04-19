@@ -4697,6 +4697,312 @@ class SelectCoinsResponse extends $pb.GeneratedMessage {
   void clearChangeSats() => clearField(4);
 }
 
+/// Backup / Restore messages
+class CreateBackupResponse extends $pb.GeneratedMessage {
+  factory CreateBackupResponse({
+    $core.List<$core.int>? backupData,
+    $core.String? suggestedFilename,
+  }) {
+    final $result = create();
+    if (backupData != null) {
+      $result.backupData = backupData;
+    }
+    if (suggestedFilename != null) {
+      $result.suggestedFilename = suggestedFilename;
+    }
+    return $result;
+  }
+  CreateBackupResponse._() : super();
+  factory CreateBackupResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory CreateBackupResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'CreateBackupResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'wallet.v1'), createEmptyInstance: create)
+    ..a<$core.List<$core.int>>(1, _omitFieldNames ? '' : 'backupData', $pb.PbFieldType.OY)
+    ..aOS(2, _omitFieldNames ? '' : 'suggestedFilename')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  CreateBackupResponse clone() => CreateBackupResponse()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  CreateBackupResponse copyWith(void Function(CreateBackupResponse) updates) => super.copyWith((message) => updates(message as CreateBackupResponse)) as CreateBackupResponse;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static CreateBackupResponse create() => CreateBackupResponse._();
+  CreateBackupResponse createEmptyInstance() => create();
+  static $pb.PbList<CreateBackupResponse> createRepeated() => $pb.PbList<CreateBackupResponse>();
+  @$core.pragma('dart2js:noInline')
+  static CreateBackupResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<CreateBackupResponse>(create);
+  static CreateBackupResponse? _defaultInstance;
+
+  /// ZIP archive bytes containing wallet.json, multisig data, transactions
+  @$pb.TagNumber(1)
+  $core.List<$core.int> get backupData => $_getN(0);
+  @$pb.TagNumber(1)
+  set backupData($core.List<$core.int> v) { $_setBytes(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasBackupData() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearBackupData() => clearField(1);
+
+  /// Suggested filename
+  @$pb.TagNumber(2)
+  $core.String get suggestedFilename => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set suggestedFilename($core.String v) { $_setString(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasSuggestedFilename() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearSuggestedFilename() => clearField(2);
+}
+
+class RestoreBackupRequest extends $pb.GeneratedMessage {
+  factory RestoreBackupRequest({
+    $core.List<$core.int>? backupData,
+    $core.String? filename,
+  }) {
+    final $result = create();
+    if (backupData != null) {
+      $result.backupData = backupData;
+    }
+    if (filename != null) {
+      $result.filename = filename;
+    }
+    return $result;
+  }
+  RestoreBackupRequest._() : super();
+  factory RestoreBackupRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory RestoreBackupRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'RestoreBackupRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'wallet.v1'), createEmptyInstance: create)
+    ..a<$core.List<$core.int>>(1, _omitFieldNames ? '' : 'backupData', $pb.PbFieldType.OY)
+    ..aOS(2, _omitFieldNames ? '' : 'filename')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  RestoreBackupRequest clone() => RestoreBackupRequest()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  RestoreBackupRequest copyWith(void Function(RestoreBackupRequest) updates) => super.copyWith((message) => updates(message as RestoreBackupRequest)) as RestoreBackupRequest;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static RestoreBackupRequest create() => RestoreBackupRequest._();
+  RestoreBackupRequest createEmptyInstance() => create();
+  static $pb.PbList<RestoreBackupRequest> createRepeated() => $pb.PbList<RestoreBackupRequest>();
+  @$core.pragma('dart2js:noInline')
+  static RestoreBackupRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<RestoreBackupRequest>(create);
+  static RestoreBackupRequest? _defaultInstance;
+
+  /// ZIP or JSON backup file bytes
+  @$pb.TagNumber(1)
+  $core.List<$core.int> get backupData => $_getN(0);
+  @$pb.TagNumber(1)
+  set backupData($core.List<$core.int> v) { $_setBytes(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasBackupData() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearBackupData() => clearField(1);
+
+  /// Original filename (used to detect .json vs .zip)
+  @$pb.TagNumber(2)
+  $core.String get filename => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set filename($core.String v) { $_setString(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasFilename() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearFilename() => clearField(2);
+}
+
+class ValidateBackupRequest extends $pb.GeneratedMessage {
+  factory ValidateBackupRequest({
+    $core.List<$core.int>? backupData,
+    $core.String? filename,
+  }) {
+    final $result = create();
+    if (backupData != null) {
+      $result.backupData = backupData;
+    }
+    if (filename != null) {
+      $result.filename = filename;
+    }
+    return $result;
+  }
+  ValidateBackupRequest._() : super();
+  factory ValidateBackupRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory ValidateBackupRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ValidateBackupRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'wallet.v1'), createEmptyInstance: create)
+    ..a<$core.List<$core.int>>(1, _omitFieldNames ? '' : 'backupData', $pb.PbFieldType.OY)
+    ..aOS(2, _omitFieldNames ? '' : 'filename')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  ValidateBackupRequest clone() => ValidateBackupRequest()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  ValidateBackupRequest copyWith(void Function(ValidateBackupRequest) updates) => super.copyWith((message) => updates(message as ValidateBackupRequest)) as ValidateBackupRequest;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ValidateBackupRequest create() => ValidateBackupRequest._();
+  ValidateBackupRequest createEmptyInstance() => create();
+  static $pb.PbList<ValidateBackupRequest> createRepeated() => $pb.PbList<ValidateBackupRequest>();
+  @$core.pragma('dart2js:noInline')
+  static ValidateBackupRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<ValidateBackupRequest>(create);
+  static ValidateBackupRequest? _defaultInstance;
+
+  /// ZIP or JSON backup file bytes
+  @$pb.TagNumber(1)
+  $core.List<$core.int> get backupData => $_getN(0);
+  @$pb.TagNumber(1)
+  set backupData($core.List<$core.int> v) { $_setBytes(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasBackupData() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearBackupData() => clearField(1);
+
+  /// Original filename (used to detect .json vs .zip)
+  @$pb.TagNumber(2)
+  $core.String get filename => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set filename($core.String v) { $_setString(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasFilename() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearFilename() => clearField(2);
+}
+
+class ValidateBackupResponse extends $pb.GeneratedMessage {
+  factory ValidateBackupResponse({
+    $core.bool? valid,
+    $core.String? errorMessage,
+    $core.bool? hasWallet,
+    $core.bool? hasMultisig,
+    $core.bool? hasTransactions,
+  }) {
+    final $result = create();
+    if (valid != null) {
+      $result.valid = valid;
+    }
+    if (errorMessage != null) {
+      $result.errorMessage = errorMessage;
+    }
+    if (hasWallet != null) {
+      $result.hasWallet = hasWallet;
+    }
+    if (hasMultisig != null) {
+      $result.hasMultisig = hasMultisig;
+    }
+    if (hasTransactions != null) {
+      $result.hasTransactions = hasTransactions;
+    }
+    return $result;
+  }
+  ValidateBackupResponse._() : super();
+  factory ValidateBackupResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory ValidateBackupResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ValidateBackupResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'wallet.v1'), createEmptyInstance: create)
+    ..aOB(1, _omitFieldNames ? '' : 'valid')
+    ..aOS(2, _omitFieldNames ? '' : 'errorMessage')
+    ..aOB(3, _omitFieldNames ? '' : 'hasWallet')
+    ..aOB(4, _omitFieldNames ? '' : 'hasMultisig')
+    ..aOB(5, _omitFieldNames ? '' : 'hasTransactions')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  ValidateBackupResponse clone() => ValidateBackupResponse()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  ValidateBackupResponse copyWith(void Function(ValidateBackupResponse) updates) => super.copyWith((message) => updates(message as ValidateBackupResponse)) as ValidateBackupResponse;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ValidateBackupResponse create() => ValidateBackupResponse._();
+  ValidateBackupResponse createEmptyInstance() => create();
+  static $pb.PbList<ValidateBackupResponse> createRepeated() => $pb.PbList<ValidateBackupResponse>();
+  @$core.pragma('dart2js:noInline')
+  static ValidateBackupResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<ValidateBackupResponse>(create);
+  static ValidateBackupResponse? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.bool get valid => $_getBF(0);
+  @$pb.TagNumber(1)
+  set valid($core.bool v) { $_setBool(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasValid() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearValid() => clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.String get errorMessage => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set errorMessage($core.String v) { $_setString(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasErrorMessage() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearErrorMessage() => clearField(2);
+
+  /// What the backup contains
+  @$pb.TagNumber(3)
+  $core.bool get hasWallet => $_getBF(2);
+  @$pb.TagNumber(3)
+  set hasWallet($core.bool v) { $_setBool(2, v); }
+  @$pb.TagNumber(3)
+  $core.bool hasHasWallet() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearHasWallet() => clearField(3);
+
+  @$pb.TagNumber(4)
+  $core.bool get hasMultisig => $_getBF(3);
+  @$pb.TagNumber(4)
+  set hasMultisig($core.bool v) { $_setBool(3, v); }
+  @$pb.TagNumber(4)
+  $core.bool hasHasMultisig() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearHasMultisig() => clearField(4);
+
+  @$pb.TagNumber(5)
+  $core.bool get hasTransactions => $_getBF(4);
+  @$pb.TagNumber(5)
+  set hasTransactions($core.bool v) { $_setBool(4, v); }
+  @$pb.TagNumber(5)
+  $core.bool hasHasTransactions() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearHasTransactions() => clearField(5);
+}
+
 class WalletServiceApi {
   $pb.RpcClient _client;
   WalletServiceApi(this._client);
@@ -4790,6 +5096,15 @@ class WalletServiceApi {
   ;
   $async.Future<SelectCoinsResponse> selectCoins($pb.ClientContext? ctx, SelectCoinsRequest request) =>
     _client.invoke<SelectCoinsResponse>(ctx, 'WalletService', 'SelectCoins', request, SelectCoinsResponse())
+  ;
+  $async.Future<CreateBackupResponse> createBackup($pb.ClientContext? ctx, $1.Empty request) =>
+    _client.invoke<CreateBackupResponse>(ctx, 'WalletService', 'CreateBackup', request, CreateBackupResponse())
+  ;
+  $async.Future<$1.Empty> restoreBackup($pb.ClientContext? ctx, RestoreBackupRequest request) =>
+    _client.invoke<$1.Empty>(ctx, 'WalletService', 'RestoreBackup', request, $1.Empty())
+  ;
+  $async.Future<ValidateBackupResponse> validateBackup($pb.ClientContext? ctx, ValidateBackupRequest request) =>
+    _client.invoke<ValidateBackupResponse>(ctx, 'WalletService', 'ValidateBackup', request, ValidateBackupResponse())
   ;
 }
 

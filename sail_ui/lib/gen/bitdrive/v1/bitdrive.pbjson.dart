@@ -244,6 +244,18 @@ const StoreMultisigDataResponse$json = {
 final $typed_data.Uint8List storeMultisigDataResponseDescriptor = $convert.base64Decode(
     'ChlTdG9yZU11bHRpc2lnRGF0YVJlc3BvbnNlEhIKBHR4aWQYASABKAlSBHR4aWQ=');
 
+@$core.Deprecated('Use getBitdriveDirResponseDescriptor instead')
+const GetBitdriveDirResponse$json = {
+  '1': 'GetBitdriveDirResponse',
+  '2': [
+    {'1': 'path', '3': 1, '4': 1, '5': 9, '10': 'path'},
+  ],
+};
+
+/// Descriptor for `GetBitdriveDirResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List getBitdriveDirResponseDescriptor = $convert.base64Decode(
+    'ChZHZXRCaXRkcml2ZURpclJlc3BvbnNlEhIKBHBhdGgYASABKAlSBHBhdGg=');
+
 const $core.Map<$core.String, $core.dynamic> BitDriveServiceBase$json = {
   '1': 'BitDriveService',
   '2': [
@@ -256,6 +268,8 @@ const $core.Map<$core.String, $core.dynamic> BitDriveServiceBase$json = {
     {'1': 'DeleteFile', '2': '.bitdrive.v1.DeleteFileRequest', '3': '.google.protobuf.Empty'},
     {'1': 'StoreMultisigData', '2': '.bitdrive.v1.StoreMultisigDataRequest', '3': '.bitdrive.v1.StoreMultisigDataResponse'},
     {'1': 'WipeData', '2': '.google.protobuf.Empty', '3': '.google.protobuf.Empty'},
+    {'1': 'GetBitdriveDir', '2': '.google.protobuf.Empty', '3': '.bitdrive.v1.GetBitdriveDirResponse'},
+    {'1': 'OpenBitdriveDir', '2': '.google.protobuf.Empty', '3': '.google.protobuf.Empty'},
   ],
 };
 
@@ -277,6 +291,7 @@ const $core.Map<$core.String, $core.Map<$core.String, $core.dynamic>> BitDriveSe
   '.bitdrive.v1.DeleteFileRequest': DeleteFileRequest$json,
   '.bitdrive.v1.StoreMultisigDataRequest': StoreMultisigDataRequest$json,
   '.bitdrive.v1.StoreMultisigDataResponse': StoreMultisigDataResponse$json,
+  '.bitdrive.v1.GetBitdriveDirResponse': GetBitdriveDirResponse$json,
 };
 
 /// Descriptor for `BitDriveService`. Decode as a `google.protobuf.ServiceDescriptorProto`.
@@ -294,5 +309,7 @@ final $typed_data.Uint8List bitDriveServiceDescriptor = $convert.base64Decode(
     'Zi5FbXB0eRJiChFTdG9yZU11bHRpc2lnRGF0YRIlLmJpdGRyaXZlLnYxLlN0b3JlTXVsdGlzaW'
     'dEYXRhUmVxdWVzdBomLmJpdGRyaXZlLnYxLlN0b3JlTXVsdGlzaWdEYXRhUmVzcG9uc2USOgoI'
     'V2lwZURhdGESFi5nb29nbGUucHJvdG9idWYuRW1wdHkaFi5nb29nbGUucHJvdG9idWYuRW1wdH'
-    'k=');
+    'kSTQoOR2V0Qml0ZHJpdmVEaXISFi5nb29nbGUucHJvdG9idWYuRW1wdHkaIy5iaXRkcml2ZS52'
+    'MS5HZXRCaXRkcml2ZURpclJlc3BvbnNlEkEKD09wZW5CaXRkcml2ZURpchIWLmdvb2dsZS5wcm'
+    '90b2J1Zi5FbXB0eRoWLmdvb2dsZS5wcm90b2J1Zi5FbXB0eQ==');
 

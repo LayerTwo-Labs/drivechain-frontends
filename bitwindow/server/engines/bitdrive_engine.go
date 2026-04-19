@@ -12,7 +12,9 @@ import (
 	"encoding/hex"
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"time"
 
@@ -598,6 +600,42 @@ func IsBitDriveTransaction(opReturnMessage string) bool {
 // GetDir returns the BitDrive directory path
 func (e *BitDriveEngine) GetDir() string {
 	return e.bitdriveDir
+}
+
+// OpenDir opens the BitDrive directory in the OS file manager.
+func (e *BitDriveEngine) OpenDir(ctx context.Context) error {
+	dir := e.bitdriveDir
+
+	// Ensure the directory exists before trying to open it.
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		return fmt.Errorf("ensure bitdrive dir: %w", err)
+	}
+
+	var cmd string
+	var args []string
+
+	switch runtime.GOOS {
+	case "darwin":
+		cmd = "open"
+		args = []string{dir}
+	case "windows":
+		cmd = "explorer"
+		args = []string{strings.ReplaceAll(dir, "/", "\\")}
+	default: // linux / freebsd / etc.
+		cmd = "xdg-open"
+		args = []string{dir}
+	}
+
+	zerolog.Ctx(ctx).Info().
+		Str("cmd", cmd).
+		Strs("args", args).
+		Msg("opening bitdrive directory")
+
+	if err := exec.CommandContext(ctx, cmd, args...).Start(); err != nil {
+		return fmt.Errorf("open directory: %w", err)
+	}
+
+	return nil
 }
 
 // EncodeMultisigData encodes multisig group data with optional encryption

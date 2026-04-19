@@ -1035,6 +1035,67 @@ final $typed_data.Uint8List selectCoinsResponseDescriptor = $convert.base64Decod
     'A1IOdG90YWxJbnB1dFNhdHMSGQoIZmVlX3NhdHMYAyABKANSB2ZlZVNhdHMSHwoLY2hhbmdlX3'
     'NhdHMYBCABKANSCmNoYW5nZVNhdHM=');
 
+@$core.Deprecated('Use createBackupResponseDescriptor instead')
+const CreateBackupResponse$json = {
+  '1': 'CreateBackupResponse',
+  '2': [
+    {'1': 'backup_data', '3': 1, '4': 1, '5': 12, '10': 'backupData'},
+    {'1': 'suggested_filename', '3': 2, '4': 1, '5': 9, '10': 'suggestedFilename'},
+  ],
+};
+
+/// Descriptor for `CreateBackupResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List createBackupResponseDescriptor = $convert.base64Decode(
+    'ChRDcmVhdGVCYWNrdXBSZXNwb25zZRIfCgtiYWNrdXBfZGF0YRgBIAEoDFIKYmFja3VwRGF0YR'
+    'ItChJzdWdnZXN0ZWRfZmlsZW5hbWUYAiABKAlSEXN1Z2dlc3RlZEZpbGVuYW1l');
+
+@$core.Deprecated('Use restoreBackupRequestDescriptor instead')
+const RestoreBackupRequest$json = {
+  '1': 'RestoreBackupRequest',
+  '2': [
+    {'1': 'backup_data', '3': 1, '4': 1, '5': 12, '10': 'backupData'},
+    {'1': 'filename', '3': 2, '4': 1, '5': 9, '10': 'filename'},
+  ],
+};
+
+/// Descriptor for `RestoreBackupRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List restoreBackupRequestDescriptor = $convert.base64Decode(
+    'ChRSZXN0b3JlQmFja3VwUmVxdWVzdBIfCgtiYWNrdXBfZGF0YRgBIAEoDFIKYmFja3VwRGF0YR'
+    'IaCghmaWxlbmFtZRgCIAEoCVIIZmlsZW5hbWU=');
+
+@$core.Deprecated('Use validateBackupRequestDescriptor instead')
+const ValidateBackupRequest$json = {
+  '1': 'ValidateBackupRequest',
+  '2': [
+    {'1': 'backup_data', '3': 1, '4': 1, '5': 12, '10': 'backupData'},
+    {'1': 'filename', '3': 2, '4': 1, '5': 9, '10': 'filename'},
+  ],
+};
+
+/// Descriptor for `ValidateBackupRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List validateBackupRequestDescriptor = $convert.base64Decode(
+    'ChVWYWxpZGF0ZUJhY2t1cFJlcXVlc3QSHwoLYmFja3VwX2RhdGEYASABKAxSCmJhY2t1cERhdG'
+    'ESGgoIZmlsZW5hbWUYAiABKAlSCGZpbGVuYW1l');
+
+@$core.Deprecated('Use validateBackupResponseDescriptor instead')
+const ValidateBackupResponse$json = {
+  '1': 'ValidateBackupResponse',
+  '2': [
+    {'1': 'valid', '3': 1, '4': 1, '5': 8, '10': 'valid'},
+    {'1': 'error_message', '3': 2, '4': 1, '5': 9, '10': 'errorMessage'},
+    {'1': 'has_wallet', '3': 3, '4': 1, '5': 8, '10': 'hasWallet'},
+    {'1': 'has_multisig', '3': 4, '4': 1, '5': 8, '10': 'hasMultisig'},
+    {'1': 'has_transactions', '3': 5, '4': 1, '5': 8, '10': 'hasTransactions'},
+  ],
+};
+
+/// Descriptor for `ValidateBackupResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List validateBackupResponseDescriptor = $convert.base64Decode(
+    'ChZWYWxpZGF0ZUJhY2t1cFJlc3BvbnNlEhQKBXZhbGlkGAEgASgIUgV2YWxpZBIjCg1lcnJvcl'
+    '9tZXNzYWdlGAIgASgJUgxlcnJvck1lc3NhZ2USHQoKaGFzX3dhbGxldBgDIAEoCFIJaGFzV2Fs'
+    'bGV0EiEKDGhhc19tdWx0aXNpZxgEIAEoCFILaGFzTXVsdGlzaWcSKQoQaGFzX3RyYW5zYWN0aW'
+    '9ucxgFIAEoCFIPaGFzVHJhbnNhY3Rpb25z');
+
 const $core.Map<$core.String, $core.dynamic> WalletServiceBase$json = {
   '1': 'WalletService',
   '2': [
@@ -1068,6 +1129,9 @@ const $core.Map<$core.String, $core.dynamic> WalletServiceBase$json = {
     {'1': 'GetUTXODistribution', '2': '.wallet.v1.GetUTXODistributionRequest', '3': '.wallet.v1.GetUTXODistributionResponse'},
     {'1': 'BumpFee', '2': '.wallet.v1.BumpFeeRequest', '3': '.wallet.v1.BumpFeeResponse'},
     {'1': 'SelectCoins', '2': '.wallet.v1.SelectCoinsRequest', '3': '.wallet.v1.SelectCoinsResponse'},
+    {'1': 'CreateBackup', '2': '.google.protobuf.Empty', '3': '.wallet.v1.CreateBackupResponse'},
+    {'1': 'RestoreBackup', '2': '.wallet.v1.RestoreBackupRequest', '3': '.google.protobuf.Empty'},
+    {'1': 'ValidateBackup', '2': '.wallet.v1.ValidateBackupRequest', '3': '.wallet.v1.ValidateBackupResponse'},
   ],
 };
 
@@ -1140,6 +1204,10 @@ const $core.Map<$core.String, $core.Map<$core.String, $core.dynamic>> WalletServ
   '.wallet.v1.BumpFeeResponse': BumpFeeResponse$json,
   '.wallet.v1.SelectCoinsRequest': SelectCoinsRequest$json,
   '.wallet.v1.SelectCoinsResponse': SelectCoinsResponse$json,
+  '.wallet.v1.CreateBackupResponse': CreateBackupResponse$json,
+  '.wallet.v1.RestoreBackupRequest': RestoreBackupRequest$json,
+  '.wallet.v1.ValidateBackupRequest': ValidateBackupRequest$json,
+  '.wallet.v1.ValidateBackupResponse': ValidateBackupResponse$json,
 };
 
 /// Descriptor for `WalletService`. Decode as a `google.protobuf.ServiceDescriptorProto`.
@@ -1190,5 +1258,10 @@ final $typed_data.Uint8List walletServiceDescriptor = $convert.base64Decode(
     'xldC52MS5HZXRVVFhPRGlzdHJpYnV0aW9uUmVxdWVzdBomLndhbGxldC52MS5HZXRVVFhPRGlz'
     'dHJpYnV0aW9uUmVzcG9uc2USQAoHQnVtcEZlZRIZLndhbGxldC52MS5CdW1wRmVlUmVxdWVzdB'
     'oaLndhbGxldC52MS5CdW1wRmVlUmVzcG9uc2USTAoLU2VsZWN0Q29pbnMSHS53YWxsZXQudjEu'
-    'U2VsZWN0Q29pbnNSZXF1ZXN0Gh4ud2FsbGV0LnYxLlNlbGVjdENvaW5zUmVzcG9uc2U=');
+    'U2VsZWN0Q29pbnNSZXF1ZXN0Gh4ud2FsbGV0LnYxLlNlbGVjdENvaW5zUmVzcG9uc2USRwoMQ3'
+    'JlYXRlQmFja3VwEhYuZ29vZ2xlLnByb3RvYnVmLkVtcHR5Gh8ud2FsbGV0LnYxLkNyZWF0ZUJh'
+    'Y2t1cFJlc3BvbnNlEkgKDVJlc3RvcmVCYWNrdXASHy53YWxsZXQudjEuUmVzdG9yZUJhY2t1cF'
+    'JlcXVlc3QaFi5nb29nbGUucHJvdG9idWYuRW1wdHkSVQoOVmFsaWRhdGVCYWNrdXASIC53YWxs'
+    'ZXQudjEuVmFsaWRhdGVCYWNrdXBSZXF1ZXN0GiEud2FsbGV0LnYxLlZhbGlkYXRlQmFja3VwUm'
+    'VzcG9uc2U=');
 

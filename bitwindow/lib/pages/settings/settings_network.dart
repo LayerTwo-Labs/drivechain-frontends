@@ -1,10 +1,7 @@
-import 'dart:io';
-
 import 'package:bitwindow/routing/router.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
-import 'package:path/path.dart' as path;
 import 'package:sail_ui/pages/router.gr.dart';
 import 'package:sail_ui/sail_ui.dart';
 
@@ -65,27 +62,12 @@ class _SettingsNetworkState extends State<SettingsNetwork> {
     });
 
     try {
-      final defaultDir = BitcoinCore().datadir();
-
       final result = await FilePicker.platform.getDirectoryPath(
-        initialDirectory: defaultDir,
+        initialDirectory: _confProvider.detectedDataDir,
       );
       if (result != null) {
-        final testFile = File(path.join(result, '.bitwindow_test'));
-        try {
-          await testFile.writeAsString('test');
-          await testFile.delete();
-          await _confProvider.updateDataDir(result);
-        } catch (e) {
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('Selected directory is not writable: $e'),
-                backgroundColor: SailTheme.of(context).colors.error,
-              ),
-            );
-          }
-        }
+        // Backend validates writability via the RPC.
+        await _confProvider.updateDataDir(result);
       }
     } catch (e) {
       if (mounted) {
@@ -258,29 +240,11 @@ class _DataDirSelectionDialogState extends State<DataDirSelectionDialog> {
     });
 
     try {
-      final defaultDir = BitcoinCore().datadir();
-
-      final result = await FilePicker.platform.getDirectoryPath(
-        initialDirectory: defaultDir,
-      );
+      final result = await FilePicker.platform.getDirectoryPath();
       if (result != null) {
-        final testFile = File(path.join(result, '.bitwindow_test'));
-        try {
-          await testFile.writeAsString('test');
-          await testFile.delete();
-          setState(() {
-            selectedPath = result;
-          });
-        } catch (e) {
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('Selected directory is not writable: $e'),
-                backgroundColor: SailTheme.of(context).colors.error,
-              ),
-            );
-          }
-        }
+        setState(() {
+          selectedPath = result;
+        });
       }
     } catch (e) {
       if (mounted) {

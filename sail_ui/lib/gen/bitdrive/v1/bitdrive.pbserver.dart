@@ -31,6 +31,8 @@ abstract class BitDriveServiceBase extends $pb.GeneratedService {
   $async.Future<$1.Empty> deleteFile($pb.ServerContext ctx, $2.DeleteFileRequest request);
   $async.Future<$2.StoreMultisigDataResponse> storeMultisigData($pb.ServerContext ctx, $2.StoreMultisigDataRequest request);
   $async.Future<$1.Empty> wipeData($pb.ServerContext ctx, $1.Empty request);
+  $async.Future<$2.GetBitdriveDirResponse> getBitdriveDir($pb.ServerContext ctx, $1.Empty request);
+  $async.Future<$1.Empty> openBitdriveDir($pb.ServerContext ctx, $1.Empty request);
 
   $pb.GeneratedMessage createRequest($core.String methodName) {
     switch (methodName) {
@@ -43,6 +45,8 @@ abstract class BitDriveServiceBase extends $pb.GeneratedService {
       case 'DeleteFile': return $2.DeleteFileRequest();
       case 'StoreMultisigData': return $2.StoreMultisigDataRequest();
       case 'WipeData': return $1.Empty();
+      case 'GetBitdriveDir': return $1.Empty();
+      case 'OpenBitdriveDir': return $1.Empty();
       default: throw $core.ArgumentError('Unknown method: $methodName');
     }
   }
@@ -58,6 +62,8 @@ abstract class BitDriveServiceBase extends $pb.GeneratedService {
       case 'DeleteFile': return this.deleteFile(ctx, request as $2.DeleteFileRequest);
       case 'StoreMultisigData': return this.storeMultisigData(ctx, request as $2.StoreMultisigDataRequest);
       case 'WipeData': return this.wipeData(ctx, request as $1.Empty);
+      case 'GetBitdriveDir': return this.getBitdriveDir(ctx, request as $1.Empty);
+      case 'OpenBitdriveDir': return this.openBitdriveDir(ctx, request as $1.Empty);
       default: throw $core.ArgumentError('Unknown method: $methodName');
     }
   }

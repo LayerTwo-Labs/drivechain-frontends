@@ -3,6 +3,8 @@ package api
 import (
 	"context"
 	"fmt"
+	"os"
+	"path/filepath"
 	"strings"
 
 	"connectrpc.com/connect"
@@ -95,15 +97,34 @@ func (h *BitcoinConfHandler) SetBitcoinConfigDataDir(ctx context.Context, req *c
 		return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("bitcoin config manager not initialized"))
 	}
 
+	dataDir := strings.TrimSpace(req.Msg.DataDir)
+
+	// Validate writability when setting (not clearing) a datadir.
+	if dataDir != "" {
+		if err := validateDirWritable(dataDir); err != nil {
+			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("directory not writable: %w", err))
+		}
+	}
+
 	// Use the manager's UpdateDataDir which handles cross-network [main] section saves
 	var forNetwork config.Network
 	if req.Msg.Network != "" {
 		forNetwork = config.NetworkFromString(req.Msg.Network)
 	}
 
-	if err := h.conf.UpdateDataDir(req.Msg.DataDir, forNetwork); err != nil {
+	if err := h.conf.UpdateDataDir(dataDir, forNetwork); err != nil {
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("update datadir: %w", err))
 	}
 
 	return connect.NewResponse(&pb.SetBitcoinConfigDataDirResponse{}), nil
+}
+
+// validateDirWritable creates and removes a probe file to confirm the
+// directory exists and is writable by the current process.
+func validateDirWritable(dir string) error {
+	probe := filepath.Join(dir, ".bitwindow_test")
+	if err := os.WriteFile(probe, []byte("test"), 0o644); err != nil {
+		return err
+	}
+	return os.Remove(probe)
 }

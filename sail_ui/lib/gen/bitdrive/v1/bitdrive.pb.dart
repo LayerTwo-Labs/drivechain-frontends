@@ -1183,6 +1183,56 @@ class StoreMultisigDataResponse extends $pb.GeneratedMessage {
   void clearTxid() => clearField(1);
 }
 
+class GetBitdriveDirResponse extends $pb.GeneratedMessage {
+  factory GetBitdriveDirResponse({
+    $core.String? path,
+  }) {
+    final $result = create();
+    if (path != null) {
+      $result.path = path;
+    }
+    return $result;
+  }
+  GetBitdriveDirResponse._() : super();
+  factory GetBitdriveDirResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory GetBitdriveDirResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'GetBitdriveDirResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'bitdrive.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'path')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  GetBitdriveDirResponse clone() => GetBitdriveDirResponse()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  GetBitdriveDirResponse copyWith(void Function(GetBitdriveDirResponse) updates) => super.copyWith((message) => updates(message as GetBitdriveDirResponse)) as GetBitdriveDirResponse;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static GetBitdriveDirResponse create() => GetBitdriveDirResponse._();
+  GetBitdriveDirResponse createEmptyInstance() => create();
+  static $pb.PbList<GetBitdriveDirResponse> createRepeated() => $pb.PbList<GetBitdriveDirResponse>();
+  @$core.pragma('dart2js:noInline')
+  static GetBitdriveDirResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<GetBitdriveDirResponse>(create);
+  static GetBitdriveDirResponse? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get path => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set path($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasPath() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearPath() => clearField(1);
+}
+
 class BitDriveServiceApi {
   $pb.RpcClient _client;
   BitDriveServiceApi(this._client);
@@ -1213,6 +1263,12 @@ class BitDriveServiceApi {
   ;
   $async.Future<$1.Empty> wipeData($pb.ClientContext? ctx, $1.Empty request) =>
     _client.invoke<$1.Empty>(ctx, 'BitDriveService', 'WipeData', request, $1.Empty())
+  ;
+  $async.Future<GetBitdriveDirResponse> getBitdriveDir($pb.ClientContext? ctx, $1.Empty request) =>
+    _client.invoke<GetBitdriveDirResponse>(ctx, 'BitDriveService', 'GetBitdriveDir', request, GetBitdriveDirResponse())
+  ;
+  $async.Future<$1.Empty> openBitdriveDir($pb.ClientContext? ctx, $1.Empty request) =>
+    _client.invoke<$1.Empty>(ctx, 'BitDriveService', 'OpenBitdriveDir', request, $1.Empty())
   ;
 }
 

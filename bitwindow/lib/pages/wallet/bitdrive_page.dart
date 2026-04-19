@@ -1,6 +1,5 @@
 import 'dart:io';
 
-import 'package:bitwindow/env.dart';
 import 'package:bitwindow/providers/bitdrive_provider.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
@@ -8,7 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:intl/intl.dart';
 import 'package:logger/logger.dart';
-import 'package:path/path.dart' as path;
+import 'package:sail_ui/gen/bitdrive/v1/bitdrive.pb.dart' as bitdrivepb;
 import 'package:sail_ui/sail_ui.dart';
 import 'package:stacked/stacked.dart';
 
@@ -282,7 +281,7 @@ class _MyFilesTab extends StatelessWidget {
               : SizedBox(
                   height: 300,
                   child: SailTable(
-                    getRowId: (index) => model.downloadedFiles[index].path,
+                    getRowId: (index) => model.downloadedFiles[index].txid,
                     headerBuilder: (context) => [
                       const SailTableHeaderCell(name: 'Date', alignment: Alignment.centerLeft),
                       const SailTableHeaderCell(name: 'Name', alignment: Alignment.centerLeft),
@@ -290,17 +289,20 @@ class _MyFilesTab extends StatelessWidget {
                     ],
                     rowBuilder: (context, row, selected) {
                       final file = model.downloadedFiles[row];
+                      final date = file.hasCreatedAt()
+                          ? file.createdAt.toDateTime()
+                          : DateTime.fromMillisecondsSinceEpoch(file.timestamp * 1000);
                       return [
                         SailTableCell(
-                          value: DateFormat('MMM d, yyyy').format(file.date),
+                          value: DateFormat('MMM d, yyyy').format(date),
                           alignment: Alignment.centerLeft,
                         ),
                         SailTableCell(
-                          value: file.name,
+                          value: file.filename,
                           alignment: Alignment.centerLeft,
                         ),
                         SailTableCell(
-                          value: _formatFileSize(file.size),
+                          value: _formatFileSize(file.sizeBytes.toInt()),
                           alignment: Alignment.centerLeft,
                         ),
                       ];
@@ -322,20 +324,6 @@ class _MyFilesTab extends StatelessWidget {
   }
 }
 
-class BitDriveFile {
-  final String name;
-  final String path;
-  final DateTime date;
-  final int size;
-
-  BitDriveFile({
-    required this.name,
-    required this.path,
-    required this.date,
-    required this.size,
-  });
-}
-
 class BitDriveViewModel extends BaseViewModel {
   final BitDriveProvider provider = GetIt.I.get<BitDriveProvider>();
   final TextEditingController textController = TextEditingController();
@@ -349,11 +337,13 @@ class BitDriveViewModel extends BaseViewModel {
   String? get bitdriveDir => _bitdriveDir;
 
   bool showAdvancedSettings = false;
-  List<BitDriveFile> downloadedFiles = [];
+  List<bitdrivepb.BitDriveFile> downloadedFiles = [];
 
   bool get isScanning => provider.isScanning;
   bool get isDownloading => provider.isDownloading;
   int get pendingDownloadsCount => provider.pendingDownloadsCount;
+
+  BitwindowRPC get bitwindowd => GetIt.I.get<BitwindowRPC>();
 
   BitDriveViewModel() {
     provider.addListener(_onProviderChanged);
@@ -399,39 +389,24 @@ class BitDriveViewModel extends BaseViewModel {
   }
 
   Future<void> _initBitdriveDir() async {
-    final appDir = await Environment.datadir();
-    final network = GetIt.I.get<BitcoinConfProvider>().network;
-    _bitdriveDir = path.join(appDir.path, network.toReadableNet(), 'bitdrive');
+    try {
+      _bitdriveDir = await bitwindowd.bitdrive.getBitdriveDir();
+    } catch (e) {
+      log.e('Error getting bitdrive dir from backend: $e');
+    }
     await _loadDownloadedFiles();
     notifyListeners();
   }
 
   Future<void> _loadDownloadedFiles() async {
-    if (_bitdriveDir == null) return;
-
     try {
-      final dir = Directory(_bitdriveDir!);
-      if (!await dir.exists()) {
-        downloadedFiles = [];
-        return;
-      }
-
-      final files = <BitDriveFile>[];
-      await for (final entity in dir.list()) {
-        if (entity is File) {
-          final stat = await entity.stat();
-          files.add(
-            BitDriveFile(
-              name: path.basename(entity.path),
-              path: entity.path,
-              date: stat.modified,
-              size: stat.size,
-            ),
-          );
-        }
-      }
-
-      files.sort((a, b) => b.date.compareTo(a.date));
+      final files = await provider.listFiles();
+      // Sort by createdAt descending (newest first)
+      files.sort((a, b) {
+        final aTime = a.hasCreatedAt() ? a.createdAt.toDateTime() : DateTime.fromMillisecondsSinceEpoch(0);
+        final bTime = b.hasCreatedAt() ? b.createdAt.toDateTime() : DateTime.fromMillisecondsSinceEpoch(0);
+        return bTime.compareTo(aTime);
+      });
       downloadedFiles = files;
       notifyListeners();
     } catch (e) {
@@ -442,19 +417,7 @@ class BitDriveViewModel extends BaseViewModel {
   Future<void> openBitdriveDir() async {
     if (_bitdriveDir == null) return;
     try {
-      final dir = Directory(_bitdriveDir!);
-      if (!await dir.exists()) {
-        await dir.create(recursive: true);
-      }
-
-      if (Platform.isMacOS) {
-        await Process.run('open', [_bitdriveDir!]);
-      } else if (Platform.isLinux) {
-        await Process.run('xdg-open', [_bitdriveDir!]);
-      } else if (Platform.isWindows) {
-        final windowsPath = _bitdriveDir!.replaceAll('/', '\\');
-        await Process.run('explorer', [windowsPath]);
-      }
+      await bitwindowd.bitdrive.openBitdriveDir();
     } catch (e) {
       log.e('Error opening BitDrive directory: $e');
     }

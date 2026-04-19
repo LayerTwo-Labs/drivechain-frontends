@@ -1,38 +1,23 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:io';
 
-import 'package:crypto/crypto.dart';
-
-import 'package:bitwindow/env.dart';
 import 'package:bitwindow/models/multisig_group.dart';
 import 'package:bitwindow/models/multisig_transaction.dart';
 import 'package:bitwindow/providers/hd_wallet_provider.dart';
 import 'package:bitwindow/widgets/create_multisig_modal.dart';
 import 'package:dio/dio.dart';
+import 'package:fixnum/fixnum.dart';
 import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
+import 'package:sail_ui/gen/google/protobuf/timestamp.pb.dart' as tspb;
 import 'package:logger/logger.dart';
-import 'package:path/path.dart' as path;
+import 'package:sail_ui/gen/multisig/v1/multisig.pb.dart' as multisigpb;
 import 'package:sail_ui/sail_ui.dart';
 
+/// Retained for API compatibility. No-op now that storage is backend-owned.
 class FileOperationLock {
-  static final Map<String, Completer<void>> _locks = {};
-
   static Future<T> withLock<T>(String lockKey, Future<T> Function() operation) async {
-    while (_locks.containsKey(lockKey)) {
-      await _locks[lockKey]!.future;
-    }
-
-    final completer = Completer<void>();
-    _locks[lockKey] = completer;
-
-    try {
-      return await operation();
-    } finally {
-      _locks.remove(lockKey);
-      completer.complete();
-    }
+    return await operation();
   }
 }
 
@@ -716,97 +701,50 @@ class MultisigRPCSigner {
 }
 
 class TransactionStorage {
-  static const String _fileName = 'transactions.json';
   static final _notifier = MultisigTransactionNotifier();
-
-  static Future<String> _getTransactionsFilePath() async {
-    final appDir = await Environment.datadir();
-    final bitdriveDir = Directory(path.join(appDir.path, 'bitdrive'));
-
-    if (!await bitdriveDir.exists()) {
-      await bitdriveDir.create(recursive: true);
-    }
-
-    return path.join(bitdriveDir.path, _fileName);
-  }
+  static MultisigAPI get _api => GetIt.I.get<BitwindowRPC>().multisig;
 
   static Future<List<MultisigTransaction>> loadTransactions() async {
-    return await FileOperationLock.withLock('transactions.json', () async {
-      try {
-        final filePath = await _getTransactionsFilePath();
-        final file = File(filePath);
-
-        if (!await file.exists()) {
-          return [];
-        }
-
-        final content = await file.readAsString();
-        if (content.trim().isEmpty) {
-          return [];
-        }
-
-        final jsonList = json.decode(content) as List<dynamic>;
-        return jsonList.map((txJson) => MultisigTransaction.fromJson(txJson as Map<String, dynamic>)).toList();
-      } catch (e) {
-        throw Exception('Failed to load transactions: $e');
-      }
-    });
+    try {
+      final pbTxns = await _api.listTransactions();
+      return pbTxns.map(_protoToTransaction).toList();
+    } catch (e) {
+      throw Exception('Failed to load transactions: $e');
+    }
   }
 
   static Future<void> saveTransactions(List<MultisigTransaction> transactions) async {
-    return await FileOperationLock.withLock('transactions.json', () async {
-      try {
-        final filePath = await _getTransactionsFilePath();
-        final file = File(filePath);
-
-        final jsonList = transactions.map((tx) => tx.toJson()).toList();
-        final content = json.encode(jsonList);
-
-        await file.writeAsString(content);
-
-        _notifier.notifyTransactionChange();
-      } catch (e) {
-        throw Exception('Failed to save transactions: $e');
-      }
-    });
+    for (final tx in transactions) {
+      await saveTransaction(tx);
+    }
+    _notifier.notifyTransactionChange();
   }
 
   static Future<void> saveTransaction(MultisigTransaction transaction) async {
-    final transactions = await loadTransactions();
-
-    final existingIndex = transactions.indexWhere((tx) => tx.id == transaction.id);
-
-    if (existingIndex != -1) {
-      transactions[existingIndex] = transaction;
-    } else {
-      transactions.add(transaction);
-    }
-
-    await saveTransactions(transactions);
+    await _api.saveTransaction(_transactionToProto(transaction));
+    _notifier.notifyTransactionChange();
   }
 
   static MultisigTransactionNotifier get notifier => _notifier;
 
-  static Future<String> getTransactionFilePath() => _getTransactionsFilePath();
-
   static Future<MultisigTransaction?> getTransaction(String transactionId) async {
-    final transactions = await loadTransactions();
     try {
-      return transactions.firstWhere((tx) => tx.id == transactionId);
+      final pb = await _api.getTransaction(transactionId);
+      return _protoToTransaction(pb);
     } catch (e) {
       return null;
     }
   }
 
   static Future<List<MultisigTransaction>> getTransactionsForGroup(String groupId) async {
-    final transactions = await loadTransactions();
-    return transactions.where((tx) => tx.groupId == groupId).toList();
+    final pbTxns = await _api.listTransactions(groupId: groupId);
+    return pbTxns.map(_protoToTransaction).toList();
   }
 
   static Future<MultisigTransaction?> getTransactionByTxid(String txid) async {
-    final transactions = await loadTransactions();
     try {
-      return transactions.firstWhere((tx) => tx.txid == txid);
+      final pb = await _api.getTransactionByTxid(txid);
+      return _protoToTransaction(pb);
     } catch (e) {
       return null;
     }
@@ -864,11 +802,11 @@ class TransactionStorage {
     await saveTransaction(updatedTransaction);
 
     if (isOwnedKey == true) {
-      await _storePSBTInMultisigFile(transactionId, keyId, transaction.initialPSBT, signedPSBT);
+      await _storePSBTInGroup(transactionId, keyId, transaction.initialPSBT, signedPSBT);
     }
   }
 
-  static Future<void> _storePSBTInMultisigFile(
+  static Future<void> _storePSBTInGroup(
     String transactionId,
     String keyId,
     String initialPSBT,
@@ -912,7 +850,7 @@ class TransactionStorage {
     }
   }
 
-  static Future<void> cleanupPSBTFromMultisigFile(String transactionId) async {
+  static Future<void> cleanupPSBTFromGroup(String transactionId) async {
     try {
       final groups = await MultisigStorage.loadGroups();
       bool groupUpdated = false;
@@ -999,6 +937,133 @@ class TransactionStorage {
     );
 
     await saveTransaction(updatedTransaction);
+  }
+
+  // ─── Proto ↔ Model converters ─────────────────────────────────────
+
+  static MultisigTransaction _protoToTransaction(multisigpb.MultisigTransaction pb) {
+    return MultisigTransaction(
+      id: pb.id,
+      groupId: pb.groupId,
+      initialPSBT: pb.initialPsbt,
+      keyPSBTs: pb.keyPsbts
+          .map(
+            (kp) => KeyPSBTStatus(
+              keyId: kp.keyId,
+              psbt: kp.psbt.isEmpty ? null : kp.psbt,
+              isSigned: kp.isSigned,
+              signedAt: kp.hasSignedAt() ? kp.signedAt.toDateTime() : null,
+            ),
+          )
+          .toList(),
+      combinedPSBT: pb.combinedPsbt.isEmpty ? null : pb.combinedPsbt,
+      finalHex: pb.finalHex.isEmpty ? null : pb.finalHex,
+      txid: pb.txid.isEmpty ? null : pb.txid,
+      status: _protoStatusToTxStatus(pb.status),
+      type: pb.type == multisigpb.TxType.TX_TYPE_WITHDRAWAL ? TxType.withdrawal : TxType.deposit,
+      created: pb.hasCreated() ? pb.created.toDateTime() : DateTime.now(),
+      broadcastTime: pb.hasBroadcastTime() ? pb.broadcastTime.toDateTime() : null,
+      amount: pb.amount,
+      destination: pb.destination,
+      fee: pb.fee,
+      inputs: pb.inputs
+          .map(
+            (inp) => UtxoInfo(
+              txid: inp.txid,
+              vout: inp.vout,
+              address: inp.address,
+              amount: inp.amount,
+              confirmations: inp.confirmations,
+            ),
+          )
+          .toList(),
+      confirmations: pb.confirmations,
+    );
+  }
+
+  static multisigpb.MultisigTransaction _transactionToProto(MultisigTransaction tx) {
+    return multisigpb.MultisigTransaction(
+      id: tx.id,
+      groupId: tx.groupId,
+      initialPsbt: tx.initialPSBT,
+      keyPsbts: tx.keyPSBTs
+          .map(
+            (kp) => multisigpb.KeyPSBTStatus(
+              keyId: kp.keyId,
+              psbt: kp.psbt ?? '',
+              isSigned: kp.isSigned,
+              signedAt: kp.signedAt != null ? tspb.Timestamp.fromDateTime(kp.signedAt!) : null,
+            ),
+          )
+          .toList(),
+      combinedPsbt: tx.combinedPSBT ?? '',
+      finalHex: tx.finalHex ?? '',
+      txid: tx.txid ?? '',
+      status: _txStatusToProto(tx.status),
+      type: tx.type == TxType.withdrawal ? multisigpb.TxType.TX_TYPE_WITHDRAWAL : multisigpb.TxType.TX_TYPE_DEPOSIT,
+      created: tspb.Timestamp.fromDateTime(tx.created),
+      broadcastTime: tx.broadcastTime != null ? tspb.Timestamp.fromDateTime(tx.broadcastTime!) : null,
+      amount: tx.amount,
+      destination: tx.destination,
+      fee: tx.fee,
+      inputs: tx.inputs
+          .map(
+            (inp) => multisigpb.UtxoDetail(
+              txid: inp.txid,
+              vout: inp.vout,
+              address: inp.address,
+              amount: inp.amount,
+              confirmations: inp.confirmations,
+            ),
+          )
+          .toList(),
+      confirmations: tx.confirmations,
+      requiredSignatures: tx.requiredSignatures,
+    );
+  }
+
+  static TxStatus _protoStatusToTxStatus(multisigpb.TxStatus s) {
+    switch (s) {
+      case multisigpb.TxStatus.TX_STATUS_NEEDS_SIGNATURES:
+        return TxStatus.needsSignatures;
+      case multisigpb.TxStatus.TX_STATUS_AWAITING_SIGNED_PSBTS:
+        return TxStatus.awaitingSignedPSBTs;
+      case multisigpb.TxStatus.TX_STATUS_READY_TO_COMBINE:
+        return TxStatus.readyToCombine;
+      case multisigpb.TxStatus.TX_STATUS_READY_FOR_BROADCAST:
+        return TxStatus.readyForBroadcast;
+      case multisigpb.TxStatus.TX_STATUS_BROADCASTED:
+        return TxStatus.broadcasted;
+      case multisigpb.TxStatus.TX_STATUS_CONFIRMED:
+        return TxStatus.confirmed;
+      case multisigpb.TxStatus.TX_STATUS_COMPLETED:
+        return TxStatus.completed;
+      case multisigpb.TxStatus.TX_STATUS_VOIDED:
+        return TxStatus.voided;
+      default:
+        return TxStatus.needsSignatures;
+    }
+  }
+
+  static multisigpb.TxStatus _txStatusToProto(TxStatus s) {
+    switch (s) {
+      case TxStatus.needsSignatures:
+        return multisigpb.TxStatus.TX_STATUS_NEEDS_SIGNATURES;
+      case TxStatus.awaitingSignedPSBTs:
+        return multisigpb.TxStatus.TX_STATUS_AWAITING_SIGNED_PSBTS;
+      case TxStatus.readyToCombine:
+        return multisigpb.TxStatus.TX_STATUS_READY_TO_COMBINE;
+      case TxStatus.readyForBroadcast:
+        return multisigpb.TxStatus.TX_STATUS_READY_FOR_BROADCAST;
+      case TxStatus.broadcasted:
+        return multisigpb.TxStatus.TX_STATUS_BROADCASTED;
+      case TxStatus.confirmed:
+        return multisigpb.TxStatus.TX_STATUS_CONFIRMED;
+      case TxStatus.completed:
+        return multisigpb.TxStatus.TX_STATUS_COMPLETED;
+      case TxStatus.voided:
+        return multisigpb.TxStatus.TX_STATUS_VOIDED;
+    }
   }
 }
 
@@ -1250,68 +1315,21 @@ class WalletRPCManager {
 }
 
 class MultisigStorage {
-  static const String _fileName = 'multisig.json';
-
-  static Future<String> _getGroupsFilePath() async {
-    final appDir = await Environment.datadir();
-    final multisigDir = Directory(path.join(appDir.path, 'bitdrive', 'multisig'));
-    await multisigDir.create(recursive: true);
-    return path.join(multisigDir.path, _fileName);
-  }
+  static MultisigAPI get _api => GetIt.I.get<BitwindowRPC>().multisig;
 
   static Future<List<MultisigGroup>> loadGroups() async {
-    return await FileOperationLock.withLock('multisig.json', () async {
-      try {
-        final filePath = await _getGroupsFilePath();
-        final file = File(filePath);
-
-        if (!await file.exists()) {
-          return [];
-        }
-
-        final content = await file.readAsString();
-        final jsonData = json.decode(content) as Map<String, dynamic>;
-
-        final groupsList = jsonData['groups'] as List<dynamic>? ?? [];
-        return groupsList.map((json) => MultisigGroup.fromJson(json as Map<String, dynamic>)).toList();
-      } catch (e) {
-        throw Exception('Failed to load groups: $e');
-      }
-    });
+    try {
+      final pbGroups = await _api.listGroups();
+      return pbGroups.map(_protoToGroup).toList();
+    } catch (e) {
+      throw Exception('Failed to load groups: $e');
+    }
   }
 
   static Future<void> saveGroups(List<MultisigGroup> groups) async {
-    return await FileOperationLock.withLock('multisig.json', () async {
-      final filePath = await _getGroupsFilePath();
-      final file = File(filePath);
-
-      await file.parent.create(recursive: true);
-
-      // Preserve existing solo_keys if file exists and is valid
-      final soloKeys = await _loadExistingSoloKeys(file);
-
-      final jsonData = {
-        'groups': groups.map((group) => group.toJson()).toList(),
-        'solo_keys': soloKeys,
-      };
-
-      final content = json.encode(jsonData);
-      await file.writeAsString(content);
-    });
-  }
-
-  static Future<List<Map<String, dynamic>>> _loadExistingSoloKeys(File file) async {
-    if (!await file.exists()) return [];
-
-    final existingContent = await file.readAsString();
-    if (existingContent.trim().isEmpty) return [];
-
-    final existingData = json.decode(existingContent);
-    if (existingData is Map<String, dynamic> && existingData['solo_keys'] is List) {
-      return List<Map<String, dynamic>>.from(existingData['solo_keys']);
+    for (final group in groups) {
+      await _api.saveGroup(_groupToProto(group));
     }
-
-    return [];
   }
 
   static Future<void> updateGroupBalance(String groupId, double balance, int utxoCount) async {
@@ -1320,48 +1338,28 @@ class MultisigStorage {
 
     if (groupIndex != -1) {
       final group = groups[groupIndex];
-      final updatedGroup = MultisigGroup(
-        id: group.id,
-        name: group.name,
-        n: group.n,
-        m: group.m,
-        keys: group.keys,
-        created: group.created,
-        descriptorReceive: group.descriptorReceive,
-        descriptorChange: group.descriptorChange,
-        watchWalletName: group.watchWalletName,
-        txid: group.txid,
-        addresses: group.addresses,
-        nextReceiveIndex: group.nextReceiveIndex,
+      final updatedGroup = group.copyWith(
         balance: balance,
         utxos: utxoCount,
-        utxoDetails: group.utxoDetails,
       );
-
-      groups[groupIndex] = updatedGroup;
-      await saveGroups(groups);
+      await _api.saveGroup(_groupToProto(updatedGroup));
     }
   }
 
-  static Future<String> getMultisigFilePath() => _getGroupsFilePath();
-
   static Future<List<Map<String, dynamic>>> loadSoloKeys() async {
     try {
-      final filePath = await _getGroupsFilePath();
-      final file = File(filePath);
-
-      if (!await file.exists()) {
-        return [];
-      }
-
-      final content = await file.readAsString();
-      final jsonData = json.decode(content);
-
-      if (jsonData is Map<String, dynamic> && jsonData['solo_keys'] is List) {
-        return List<Map<String, dynamic>>.from(jsonData['solo_keys']);
-      }
-
-      return [];
+      final pbKeys = await _api.listSoloKeys();
+      return pbKeys
+          .map(
+            (k) => {
+              'xpub': k.xpub,
+              'path': k.derivationPath,
+              'fingerprint': k.fingerprint,
+              'origin_path': k.originPath,
+              'owner': k.owner,
+            },
+          )
+          .toList();
     } catch (e) {
       return [];
     }
@@ -1369,27 +1367,15 @@ class MultisigStorage {
 
   static Future<void> addSoloKey(Map<String, dynamic> keyData) async {
     try {
-      final soloKeys = await loadSoloKeys();
-
-      final existingIndex = soloKeys.indexWhere((key) => key['xpub'] == keyData['xpub']);
-
-      if (existingIndex == -1) {
-        soloKeys.add(keyData);
-
-        final groups = await loadGroups();
-        final filePath = await _getGroupsFilePath();
-        final file = File(filePath);
-
-        await file.parent.create(recursive: true);
-
-        final jsonData = {
-          'groups': groups.map((group) => group.toJson()).toList(),
-          'solo_keys': soloKeys,
-        };
-
-        final content = json.encode(jsonData);
-        await file.writeAsString(content);
-      }
+      await _api.addSoloKey(
+        multisigpb.SoloKey(
+          xpub: keyData['xpub'] as String? ?? '',
+          derivationPath: keyData['path'] as String? ?? '',
+          fingerprint: keyData['fingerprint'] as String? ?? '',
+          originPath: keyData['origin_path'] as String? ?? '',
+          owner: keyData['owner'] as String? ?? '',
+        ),
+      );
     } catch (e) {
       throw Exception('Failed to add solo key: $e');
     }
@@ -1626,76 +1612,142 @@ class MultisigStorage {
       throw Exception('Failed to create multisig wallet: $e');
     }
   }
-}
 
-class MultisigFileWatcher extends ChangeNotifier {
-  static final MultisigFileWatcher _instance = MultisigFileWatcher._internal();
-  factory MultisigFileWatcher() => _instance;
-  MultisigFileWatcher._internal();
+  // ─── Proto ↔ Model converters ─────────────────────────────────────
 
-  Timer? _watchTimer;
-  String? _lastGroupsHash;
-  String? _lastTransactionsHash;
-  bool _isWatching = false;
-
-  bool get isWatching => _isWatching;
-
-  void startWatching() {
-    if (_isWatching) return;
-
-    _isWatching = true;
-    _watchTimer = Timer.periodic(const Duration(seconds: 1), (_) async {
-      if (await _filesChanged()) {
-        notifyListeners();
-      }
-    });
+  static MultisigGroup _protoToGroup(multisigpb.MultisigGroup pb) {
+    return MultisigGroup(
+      id: pb.id,
+      name: pb.name,
+      n: pb.n,
+      m: pb.m,
+      keys: pb.keys
+          .map(
+            (k) => MultisigKey(
+              owner: k.owner,
+              xpub: k.xpub,
+              derivationPath: k.derivationPath,
+              fingerprint: k.fingerprint.isEmpty ? null : k.fingerprint,
+              originPath: k.originPath.isEmpty ? null : k.originPath,
+              isWallet: k.isWallet,
+              activePSBTs: k.activePsbts.isNotEmpty ? Map<String, String>.from(k.activePsbts) : null,
+              initialPSBTs: k.initialPsbts.isNotEmpty ? Map<String, String>.from(k.initialPsbts) : null,
+            ),
+          )
+          .toList(),
+      created: pb.created.toInt(),
+      txid: pb.txid.isEmpty ? null : pb.txid,
+      descriptor: pb.baseDescriptor.isEmpty ? null : pb.baseDescriptor,
+      descriptorReceive: pb.descriptorReceive.isEmpty ? null : pb.descriptorReceive,
+      descriptorChange: pb.descriptorChange.isEmpty ? null : pb.descriptorChange,
+      watchWalletName: pb.watchWalletName.isEmpty ? null : pb.watchWalletName,
+      addresses: {
+        'receive': pb.receiveAddresses
+            .map(
+              (a) => AddressInfo(
+                index: a.index,
+                address: a.address,
+                used: a.used,
+              ),
+            )
+            .toList(),
+        'change': pb.changeAddresses
+            .map(
+              (a) => AddressInfo(
+                index: a.index,
+                address: a.address,
+                used: a.used,
+              ),
+            )
+            .toList(),
+      },
+      utxoDetails: pb.utxoDetails
+          .map(
+            (u) => UtxoInfo(
+              txid: u.txid,
+              vout: u.vout,
+              address: u.address,
+              amount: u.amount,
+              confirmations: u.confirmations,
+              scriptPubKey: u.scriptPubKey.isEmpty ? null : u.scriptPubKey,
+              spendable: u.spendable,
+              solvable: u.solvable,
+              safe: u.safe,
+            ),
+          )
+          .toList(),
+      balance: pb.balance,
+      utxos: pb.utxos,
+      nextReceiveIndex: pb.nextReceiveIndex,
+      nextChangeIndex: pb.nextChangeIndex,
+      transactionIds: pb.transactionIds.toList(),
+    );
   }
 
-  void stopWatching() {
-    _isWatching = false;
-    _watchTimer?.cancel();
-    _watchTimer = null;
-  }
-
-  Future<bool> _filesChanged() async {
-    try {
-      final groupsPath = await MultisigStorage.getMultisigFilePath();
-      final transactionsPath = await TransactionStorage.getTransactionFilePath();
-
-      final currentGroupsHash = await _getFileHash(groupsPath);
-      final currentTransactionsHash = await _getFileHash(transactionsPath);
-
-      final groupsChanged = _lastGroupsHash != currentGroupsHash;
-      final transactionsChanged = _lastTransactionsHash != currentTransactionsHash;
-
-      if (groupsChanged || transactionsChanged) {
-        _lastGroupsHash = currentGroupsHash;
-        _lastTransactionsHash = currentTransactionsHash;
-        return true;
-      }
-
-      return false;
-    } catch (e) {
-      return true; // Assume changed on error
-    }
-  }
-
-  Future<String?> _getFileHash(String filePath) async {
-    try {
-      final file = File(filePath);
-      if (!await file.exists()) return null;
-
-      final contents = await file.readAsBytes();
-      final digest = sha256.convert(contents);
-      return digest.toString();
-    } catch (e) {
-      return null;
-    }
-  }
-
-  @override
-  void dispose() {
-    stopWatching();
-    super.dispose();
+  static multisigpb.MultisigGroup _groupToProto(MultisigGroup g) {
+    return multisigpb.MultisigGroup(
+      id: g.id,
+      name: g.name,
+      n: g.n,
+      m: g.m,
+      keys: g.keys
+          .map(
+            (k) => multisigpb.MultisigKey(
+              owner: k.owner,
+              xpub: k.xpub,
+              derivationPath: k.derivationPath,
+              fingerprint: k.fingerprint ?? '',
+              originPath: k.originPath ?? '',
+              isWallet: k.isWallet,
+              activePsbts: k.activePSBTs ?? {},
+              initialPsbts: k.initialPSBTs ?? {},
+            ),
+          )
+          .toList(),
+      created: Int64(g.created),
+      txid: g.txid ?? '',
+      baseDescriptor: g.descriptor ?? '',
+      descriptorReceive: g.descriptorReceive ?? '',
+      descriptorChange: g.descriptorChange ?? '',
+      watchWalletName: g.watchWalletName ?? '',
+      receiveAddresses: (g.addresses['receive'] ?? [])
+          .map(
+            (a) => multisigpb.AddressInfo(
+              index: a.index,
+              address: a.address,
+              used: a.used,
+            ),
+          )
+          .toList(),
+      changeAddresses: (g.addresses['change'] ?? [])
+          .map(
+            (a) => multisigpb.AddressInfo(
+              index: a.index,
+              address: a.address,
+              used: a.used,
+            ),
+          )
+          .toList(),
+      utxoDetails: g.utxoDetails
+          .map(
+            (u) => multisigpb.UtxoDetail(
+              txid: u.txid,
+              vout: u.vout,
+              address: u.address,
+              amount: u.amount,
+              confirmations: u.confirmations,
+              scriptPubKey: u.scriptPubKey ?? '',
+              spendable: u.spendable,
+              solvable: u.solvable,
+              safe: u.safe,
+            ),
+          )
+          .toList(),
+      balance: g.balance,
+      utxos: g.utxos,
+      nextReceiveIndex: g.nextReceiveIndex,
+      nextChangeIndex: g.nextChangeIndex,
+      transactionIds: g.transactionIds,
+    );
   }
 }

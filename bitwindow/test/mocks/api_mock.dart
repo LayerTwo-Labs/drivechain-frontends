@@ -3,6 +3,7 @@ import 'package:sail_ui/classes/rpc_connection.dart';
 import 'package:sail_ui/gen/bitcoin/bitcoind/v1alpha/bitcoin.pb.dart'
     hide UnspentOutput, BumpFeeRequest, BumpFeeResponse;
 import 'package:sail_ui/gen/bitdrive/v1/bitdrive.pb.dart';
+import 'package:sail_ui/gen/multisig/v1/multisig.pb.dart' as multisigpb;
 import 'package:sail_ui/gen/bitwindowd/v1/bitwindowd.pb.dart';
 import 'package:sail_ui/gen/drivechain/v1/drivechain.pb.dart';
 import 'package:sail_ui/gen/m4/v1/m4.pb.dart' as m4pb;
@@ -15,6 +16,8 @@ import 'package:sail_ui/rpcs/bitwindow_api.dart';
 class MockAPI extends BitwindowRPC {
   @override
   final BitDriveAPI bitdrive = MockBitDriveAPI();
+  @override
+  final MultisigAPI multisig = MockMultisigAPI();
   @override
   final UtilsAPI utils = MockUtilsAPI();
   @override
@@ -357,6 +360,19 @@ class MockWalletAPI implements WalletAPI {
   }) {
     return Future.value(SelectCoinsResponse());
   }
+
+  @override
+  Future<CreateBackupResponse> createBackup() {
+    return Future.value(CreateBackupResponse());
+  }
+
+  @override
+  Future<void> restoreBackup(List<int> backupData, String filename) async {}
+
+  @override
+  Future<ValidateBackupResponse> validateBackup(List<int> backupData, String filename) {
+    return Future.value(ValidateBackupResponse(valid: true));
+  }
 }
 
 class MockBitcoindAPI implements BitcoindAPI {
@@ -651,6 +667,16 @@ class MockBitDriveAPI implements BitDriveAPI {
   Future<void> wipeData() {
     return Future.value();
   }
+
+  @override
+  Future<String> getBitdriveDir() {
+    return Future.value('/tmp/mock-bitdrive');
+  }
+
+  @override
+  Future<void> openBitdriveDir() {
+    return Future.value();
+  }
 }
 
 class MockUtilsAPI implements UtilsAPI {
@@ -692,5 +718,57 @@ class MockUtilsAPI implements UtilsAPI {
   @override
   Future<WIFToAddressResponse> wifToAddress(String wif) {
     return Future.value(WIFToAddressResponse());
+  }
+}
+
+class MockMultisigAPI implements MultisigAPI {
+  @override
+  Future<List<multisigpb.MultisigGroup>> listGroups() {
+    return Future.value([]);
+  }
+
+  @override
+  Future<multisigpb.MultisigGroup> saveGroup(multisigpb.MultisigGroup group) {
+    return Future.value(group);
+  }
+
+  @override
+  Future<void> deleteGroup(String groupId) {
+    return Future.value();
+  }
+
+  @override
+  Future<List<multisigpb.MultisigTransaction>> listTransactions({String? groupId}) {
+    return Future.value([]);
+  }
+
+  @override
+  Future<multisigpb.MultisigTransaction> getTransaction(String transactionId) {
+    return Future.value(multisigpb.MultisigTransaction());
+  }
+
+  @override
+  Future<multisigpb.MultisigTransaction> getTransactionByTxid(String txid) {
+    return Future.value(multisigpb.MultisigTransaction());
+  }
+
+  @override
+  Future<multisigpb.MultisigTransaction> saveTransaction(multisigpb.MultisigTransaction transaction) {
+    return Future.value(transaction);
+  }
+
+  @override
+  Future<List<multisigpb.SoloKey>> listSoloKeys() {
+    return Future.value([]);
+  }
+
+  @override
+  Future<void> addSoloKey(multisigpb.SoloKey key) {
+    return Future.value();
+  }
+
+  @override
+  Future<int> getNextAccountIndex({List<int>? additionalUsedIndices}) {
+    return Future.value(8000);
   }
 }

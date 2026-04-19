@@ -9,162 +9,44 @@ import 'package:get_it/get_it.dart';
 import 'package:intl/intl.dart';
 import 'package:logger/logger.dart';
 import 'package:path/path.dart' as path;
-import 'package:path_provider/path_provider.dart';
 import 'package:sail_ui/sail_ui.dart';
 
-/// Get the application data directory
-Future<Directory> _getAppDataDir() async {
-  return await getApplicationSupportDirectory();
-}
-
-/// Create a wallet backup zip file
+/// Create a wallet backup zip file via backend RPC.
+/// The backend reads wallet.json from disk and exports multisig/transaction
+/// data from the DB, then returns a ZIP archive.
 Future<String> createWalletBackup({
   required String destinationPath,
   required Logger log,
   required WalletWriterProvider walletProvider,
 }) async {
-  final archive = Archive();
-
-  // Get app directory
-  final appDir = await _getAppDataDir();
-  final bitwindowAppDir = walletProvider.bitwindowAppDir;
-
-  // 0. Add README
-  final readme =
-      '''BitWindow Wallet Backup
-=======================
-
-Created: ${DateTime.now().toIso8601String()}
-
-CONTENTS
---------
-This backup contains:
-
-1. wallet.json - Your master wallet data including:
-   - Master seed (BIP39 mnemonic)
-   - All derived wallet keys
-   - Sidechain wallet seeds (derived from master)
-
-2. multisig/multisig.json - Multisig group configurations
-
-3. transactions.json - Transaction history and notes
-
-IMPORTANT: SIDECHAIN WALLETS
-----------------------------
-All sidechain wallets (Thunder, BitNames, BitAssets, ZSide, etc.) are
-DERIVED from the master seed in wallet.json. This means:
-
-- Restoring this backup restores ALL your sidechain wallets automatically
-- You do NOT need separate backups for each sidechain
-- Each sidechain uses a deterministic derivation path from the master seed
-
-HOW TO RESTORE
---------------
-1. Open BitWindow (or any sidechain app)
-2. Go to Your Wallet menu > Restore Wallet
-3. Select this backup file
-4. Your master wallet and all sidechain wallets will be restored
-
-SECURITY WARNING
-----------------
-- Keep this backup file secure and encrypted
-- Anyone with access to this file can access ALL your funds
-- Store in multiple secure locations
-- Never share this file with anyone
-
-If your wallet was encrypted with a password, the wallet.json in this
-backup is also encrypted. You will need your password to restore.
-''';
-  final readmeBytes = utf8.encode(readme);
-  archive.addFile(ArchiveFile('README.txt', readmeBytes.length, readmeBytes));
-  log.i('Added to backup: README.txt');
-
-  // 1. Backup wallet.json
-  final walletJsonFile = File(path.join(bitwindowAppDir.path, 'wallet.json'));
-  if (await walletJsonFile.exists()) {
-    final bytes = await walletJsonFile.readAsBytes();
-    archive.addFile(ArchiveFile('wallet.json', bytes.length, bytes));
-    log.i('Added to backup: wallet.json');
-  } else {
-    log.w('wallet.json not found');
-  }
-
-  // 2. Backup multisig.json
-  final multisigFile = File(
-    path.join(appDir.path, 'bitdrive', 'multisig', 'multisig.json'),
-  );
-  if (await multisigFile.exists()) {
-    final bytes = await multisigFile.readAsBytes();
-    archive.addFile(ArchiveFile('multisig/multisig.json', bytes.length, bytes));
-    log.i('Added to backup: multisig/multisig.json');
-  } else {
-    log.w('multisig.json not found');
-  }
-
-  // 3. Backup transactions.json
-  final transactionsFile = File(
-    path.join(appDir.path, 'bitdrive', 'transactions.json'),
-  );
-  if (await transactionsFile.exists()) {
-    final bytes = await transactionsFile.readAsBytes();
-    archive.addFile(ArchiveFile('transactions.json', bytes.length, bytes));
-    log.i('Added to backup: transactions.json');
-  } else {
-    log.w('transactions.json not found');
-  }
-
-  // Encode the archive as a ZIP file
-  final zipEncoder = ZipEncoder();
-  final zipData = zipEncoder.encode(archive);
-
-  // Write to destination
+  final walletApi = GetIt.I.get<BitwindowRPC>().wallet;
+  final response = await walletApi.createBackup();
   final outputFile = File(destinationPath);
-  await outputFile.writeAsBytes(zipData);
-
-  log.i('Backup created successfully: $destinationPath');
+  await outputFile.writeAsBytes(response.backupData);
+  log.i('Backup created successfully via RPC: $destinationPath');
   return destinationPath;
 }
 
-/// Restore wallet files from a validated backup
+/// Restore wallet files from a validated backup.
+///
+/// DEPRECATED: Use WalletAPI.restoreBackup() RPC instead, which handles
+/// wallet.json restoration and imports multisig/transaction data into the DB.
+@Deprecated('Use WalletAPI.restoreBackup() RPC instead')
 Future<void> restoreWalletFiles({
   required Directory tempDir,
   required Logger log,
   required WalletWriterProvider walletProvider,
 }) async {
   final bitwindowAppDir = walletProvider.bitwindowAppDir;
-  final appDir = await _getAppDataDir();
 
-  // Copy wallet.json
+  // wallet.json is mandatory — fail hard if missing
   final tempWalletJson = File(path.join(tempDir.path, 'wallet.json'));
-  if (await tempWalletJson.exists()) {
-    final destWalletJson = File(path.join(bitwindowAppDir.path, 'wallet.json'));
-    await tempWalletJson.copy(destWalletJson.path);
-    log.i('Restored: wallet.json');
+  if (!await tempWalletJson.exists()) {
+    throw Exception('Restore failed: wallet.json is missing from backup');
   }
-
-  // Copy multisig.json if present
-  final tempMultisig = File(
-    path.join(tempDir.path, 'multisig', 'multisig.json'),
-  );
-  if (await tempMultisig.exists()) {
-    final destMultisigDir = Directory(
-      path.join(appDir.path, 'bitdrive', 'multisig'),
-    );
-    await destMultisigDir.create(recursive: true);
-    await tempMultisig.copy(path.join(destMultisigDir.path, 'multisig.json'));
-    log.i('Restored: multisig.json');
-  }
-
-  // Copy transactions.json if present
-  final tempTransactions = File(path.join(tempDir.path, 'transactions.json'));
-  if (await tempTransactions.exists()) {
-    final destBitdriveDir = Directory(path.join(appDir.path, 'bitdrive'));
-    await destBitdriveDir.create(recursive: true);
-    await tempTransactions.copy(
-      path.join(destBitdriveDir.path, 'transactions.json'),
-    );
-    log.i('Restored: transactions.json');
-  }
+  final destWalletJson = File(path.join(bitwindowAppDir.path, 'wallet.json'));
+  await tempWalletJson.copy(destWalletJson.path);
+  log.i('Restored: wallet.json');
 
   log.i('Wallet files restored successfully');
 }
@@ -756,10 +638,9 @@ class _RestoreWalletPageState extends State<RestoreWalletPage> {
     final stepNames = [
       if (hasAutoBackup) 'Backing up current wallet',
       'Validating backup file',
+      'Restoring wallet files',
       'Stopping binaries',
       'Waiting for processes to stop',
-      'Deleting old wallet files',
-      'Restoring wallet files',
       'Recreating sidechain starter files',
       'Verifying restored wallet',
       'Restarting binaries',
@@ -829,82 +710,39 @@ class _RestoreWalletPageState extends State<RestoreWalletPage> {
 
       // 2. Validate backup
       _updateStatus('Validating backup file');
-      final validation = await validateBackup(
-        backupFile: _selectedFile!,
-        log: log,
-      );
-      if (!validation.isValid) {
-        throw Exception(validation.errorMessage);
+      final backupBytes = await _selectedFile!.readAsBytes();
+      final filename = path.basename(_selectedFile!.path);
+      final walletApi = GetIt.I.get<BitwindowRPC>().wallet;
+      final validateResponse = await walletApi.validateBackup(backupBytes, filename);
+      if (!validateResponse.valid) {
+        final msg = validateResponse.errorMessage.isNotEmpty ? validateResponse.errorMessage : 'Invalid backup file';
+        throw Exception(msg);
       }
 
-      // 3. Stop binaries
+      // 3. Restore via backend RPC BEFORE stopping binaries.
+      // The RPC server must be running for this call to succeed.
+      _updateStatus('Restoring wallet files');
+      await walletApi.restoreBackup(backupBytes, filename);
+      log.i('Wallet restore completed via RPC');
+
+      // 4. Stop binaries so they pick up the new wallet on restart
       _updateStatus('Stopping binaries');
       final binaryProvider = GetIt.I.get<BinaryProvider>();
       for (final binary in widget.binariesToStop) {
         await binaryProvider.stop(binary);
       }
 
-      // 4. Wait for shutdown
+      // 5. Wait for shutdown
       _updateStatus('Waiting for processes to stop');
       await Future.delayed(const Duration(seconds: 5));
 
-      // 5. Delete old files
-      _updateStatus('Deleting old wallet files');
-      final appDir = await _getAppDataDir();
-      final bitwindowAppDir = walletProvider.bitwindowAppDir;
-
-      // Delete wallet.json
-      final walletJsonFile = File(
-        path.join(bitwindowAppDir.path, 'wallet.json'),
-      );
-      if (await walletJsonFile.exists()) {
-        await walletJsonFile.delete();
-      }
-
-      // Delete multisig.json
-      final multisigFile = File(
-        path.join(appDir.path, 'bitdrive', 'multisig', 'multisig.json'),
-      );
-      if (await multisigFile.exists()) {
-        await multisigFile.delete();
-      }
-
-      // Delete transactions.json
-      final transactionsFile = File(
-        path.join(appDir.path, 'bitdrive', 'transactions.json'),
-      );
-      if (await transactionsFile.exists()) {
-        await transactionsFile.delete();
-      }
-
-      // 6. Restore files
-      _updateStatus('Restoring wallet files');
-      final tempDir = validation.tempDir!;
-
-      await restoreWalletFiles(
-        tempDir: tempDir,
-        log: log,
-        walletProvider: walletProvider,
-      );
-
-      // Clean up temp
-      await tempDir.delete(recursive: true);
-
-      // 7. Recreate sidechain starter files
+      // 6. Recreate sidechain starter files
       _updateStatus('Recreating sidechain starter files');
 
-      // 8. Verify restored wallet
+      // 7. Verify restored wallet
       _updateStatus('Verifying restored wallet');
-      final restoredWalletJson = File(
-        path.join(bitwindowAppDir.path, 'wallet.json'),
-      );
-      if (!await restoredWalletJson.exists()) {
-        throw Exception('Restored wallet verification failed');
-      }
-      final walletContent = await restoredWalletJson.readAsString();
-      jsonDecode(walletContent); // Verify it's valid JSON
 
-      // 9. Restart binaries
+      // 8. Restart binaries
       _updateStatus('Restarting binaries');
       await widget.bootBinaries(log);
 

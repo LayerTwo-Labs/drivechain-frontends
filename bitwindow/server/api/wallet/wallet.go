@@ -68,6 +68,7 @@ func New(
 		crypto:       crypto,
 		chequeEngine: chequeEngine,
 		walletEngine: walletEngine,
+		backupEngine: engines.NewBackupEngine(database, walletDir),
 		walletDir:    walletDir,
 	}
 
@@ -93,6 +94,7 @@ type Server struct {
 	crypto       *service.Service[cryptorpc.CryptoServiceClient]
 	chequeEngine *engines.ChequeEngine
 	walletEngine *engines.WalletEngine
+	backupEngine *engines.BackupEngine
 	walletDir    string
 }
 
@@ -2931,5 +2933,59 @@ func (s *Server) SelectCoins(ctx context.Context, c *connect.Request[pb.SelectCo
 		TotalInputSats: result.TotalInputSats,
 		FeeSats:        result.FeeSats,
 		ChangeSats:     result.ChangeSats,
+	}), nil
+}
+
+// CreateBackup implements walletv1connect.WalletServiceHandler.
+func (s *Server) CreateBackup(ctx context.Context, _ *connect.Request[emptypb.Empty]) (*connect.Response[pb.CreateBackupResponse], error) {
+	data, filename, err := s.backupEngine.CreateBackup(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("create backup: %w", err)
+	}
+
+	return connect.NewResponse(&pb.CreateBackupResponse{
+		BackupData:        data,
+		SuggestedFilename: filename,
+	}), nil
+}
+
+// RestoreBackup implements walletv1connect.WalletServiceHandler.
+func (s *Server) RestoreBackup(ctx context.Context, c *connect.Request[pb.RestoreBackupRequest]) (*connect.Response[emptypb.Empty], error) {
+	if len(c.Msg.BackupData) == 0 {
+		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("backup_data is required"))
+	}
+	if c.Msg.Filename == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("filename is required"))
+	}
+
+	if err := s.backupEngine.RestoreBackup(ctx, c.Msg.BackupData, c.Msg.Filename); err != nil {
+		return nil, fmt.Errorf("restore backup: %w", err)
+	}
+
+	return connect.NewResponse(&emptypb.Empty{}), nil
+}
+
+// ValidateBackup implements walletv1connect.WalletServiceHandler.
+func (s *Server) ValidateBackup(ctx context.Context, c *connect.Request[pb.ValidateBackupRequest]) (*connect.Response[pb.ValidateBackupResponse], error) {
+	if len(c.Msg.BackupData) == 0 {
+		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("backup_data is required"))
+	}
+	if c.Msg.Filename == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("filename is required"))
+	}
+
+	contents, err := s.backupEngine.ValidateBackup(ctx, c.Msg.BackupData, c.Msg.Filename)
+	if err != nil {
+		return connect.NewResponse(&pb.ValidateBackupResponse{
+			Valid:        false,
+			ErrorMessage: err.Error(),
+		}), nil
+	}
+
+	return connect.NewResponse(&pb.ValidateBackupResponse{
+		Valid:           true,
+		HasWallet:       contents.HasWallet,
+		HasMultisig:     contents.HasMultisig,
+		HasTransactions: contents.HasTransactions,
 	}), nil
 }

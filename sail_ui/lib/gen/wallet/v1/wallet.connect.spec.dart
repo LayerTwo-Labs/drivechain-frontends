@@ -230,4 +230,26 @@ abstract final class WalletService {
     walletv1wallet.SelectCoinsRequest.new,
     walletv1wallet.SelectCoinsResponse.new,
   );
+
+  /// Backup / Restore
+  static const createBackup = connect.Spec(
+    '/$name/CreateBackup',
+    connect.StreamType.unary,
+    googleprotobufempty.Empty.new,
+    walletv1wallet.CreateBackupResponse.new,
+  );
+
+  static const restoreBackup = connect.Spec(
+    '/$name/RestoreBackup',
+    connect.StreamType.unary,
+    walletv1wallet.RestoreBackupRequest.new,
+    googleprotobufempty.Empty.new,
+  );
+
+  static const validateBackup = connect.Spec(
+    '/$name/ValidateBackup',
+    connect.StreamType.unary,
+    walletv1wallet.ValidateBackupRequest.new,
+    walletv1wallet.ValidateBackupResponse.new,
+  );
 }
