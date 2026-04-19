@@ -77,15 +77,16 @@ class TransactionProvider extends ChangeNotifier {
     try {
       // Prefer the streamed activeWalletId, but self-heal against a slow/broken
       // WatchWalletData stream by asking the backend directly.
-      var walletId = _walletReader.activeWalletId;
-      if (walletId == null) {
+      String? activeId = _walletReader.activeWalletId;
+      if (activeId == null) {
         final status = await orchestratorWallet.getWalletStatus();
         if (!status.hasWallet || status.activeWalletId.isEmpty) {
           throw Exception('No active wallet');
         }
-        walletId = status.activeWalletId;
-        _log.i('TransactionProvider: recovered activeWalletId=$walletId via getWalletStatus');
+        activeId = status.activeWalletId;
+        _log.i('TransactionProvider: recovered activeWalletId=$activeId via getWalletStatus');
       }
+      final String walletId = activeId;
 
       // Run all updates in parallel
       final results = await Future.wait([
