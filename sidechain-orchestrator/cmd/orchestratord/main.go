@@ -286,7 +286,9 @@ func run(cctx *cli.Context) error {
 	}
 
 	srv := &http.Server{
-		Handler: h2c.NewHandler(mux, &http2.Server{}),
+		Handler: h2c.NewHandler(mux, &http2.Server{
+			ReadIdleTimeout: 30 * time.Second,
+		}),
 	}
 
 	// Bind listener first so we know the port is ours before logging.

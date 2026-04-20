@@ -166,7 +166,11 @@ class _SailConfigureHomePageState extends State<SailConfigureHomePage> {
                                                       widgetInfo?.name ?? 'Unknown Widget',
                                                     ),
                                                     SailText.secondary12(
-                                                      widgetInfo?.size == WidgetSize.full ? 'Full Width' : 'Half Width',
+                                                      widgetInfo?.size == WidgetSize.full
+                                                          ? 'Full Width'
+                                                          : widgetInfo?.size == WidgetSize.bar
+                                                          ? 'Bar'
+                                                          : 'Half Width',
                                                     ),
                                                   ],
                                                 ),
@@ -326,11 +330,17 @@ class _SailConfigureHomePageState extends State<SailConfigureHomePage> {
                                 decoration: BoxDecoration(
                                   color: widget.size == WidgetSize.full
                                       ? Colors.blue.withValues(alpha: 0.1)
+                                      : widget.size == WidgetSize.bar
+                                      ? Colors.purple.withValues(alpha: 0.1)
                                       : Colors.green.withValues(alpha: 0.1),
                                   borderRadius: SailStyleValues.borderRadius,
                                 ),
                                 child: SailText.secondary12(
-                                  widget.size == WidgetSize.full ? 'Full Width' : 'Half Width',
+                                  widget.size == WidgetSize.full
+                                      ? 'Full Width'
+                                      : widget.size == WidgetSize.bar
+                                      ? 'Bar'
+                                      : 'Half Width',
                                 ),
                               ),
                             ],

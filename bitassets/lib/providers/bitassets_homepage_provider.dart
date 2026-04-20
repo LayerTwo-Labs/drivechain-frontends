@@ -35,6 +35,7 @@ class BitAssetsHomepageConfiguration {
   static HomepageConfiguration get defaultConfiguration {
     return HomepageConfiguration(
       widgets: [
+        HomepageWidgetConfig(widgetId: 'quote_bar'),
         HomepageWidgetConfig(widgetId: 'balance_card'),
         HomepageWidgetConfig(widgetId: 'receive_card'),
         HomepageWidgetConfig(widgetId: 'send_card'),

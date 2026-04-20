@@ -11,6 +11,14 @@ import 'package:zside/providers/transactions_provider.dart';
 
 class ZSideWidgetCatalog {
   static final Map<String, HomepageWidgetInfo> _widgets = {
+    'quote_bar': HomepageWidgetInfo(
+      id: 'quote_bar',
+      name: 'Quotes',
+      description: 'Rotating Bitcoin and liberty quotes',
+      size: WidgetSize.bar,
+      icon: SailSVGAsset.quote,
+      builder: (_) => const QuoteBar(),
+    ),
     'balance_card': HomepageWidgetInfo(
       id: 'balance_card',
       name: 'Balance Card',
