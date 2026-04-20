@@ -274,6 +274,7 @@ export 'widgets/modals/article_info_modal.dart';
 export 'widgets/modals/chain_settings_modal.dart';
 export 'widgets/modals/shutdown_modal.dart';
 export 'widgets/nav/bottom_nav.dart';
+export 'widgets/nav/persistent_status_bar.dart';
 export 'widgets/nav/side_nav.dart';
 export 'widgets/nav/top_nav.dart';
 export 'widgets/optional_builder.dart';
