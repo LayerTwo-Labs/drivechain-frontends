@@ -96,6 +96,7 @@ Future<(Directory, File, Logger)> init(String arguments) async {
     initBackendManagedSidechainRuntime(
       log: log,
       binary: BinaryType.thunder,
+      appRpc: thunderRPC,
     ),
   );
 
@@ -158,6 +159,7 @@ void bootBinaries(Logger log) {
     bootBackendManagedSidechain(
       log: log,
       binary: BinaryType.orchestratord,
+      appRpc: GetIt.I.isRegistered<ThunderRPC>() ? GetIt.I.get<ThunderRPC>() : null,
     ),
   );
 }

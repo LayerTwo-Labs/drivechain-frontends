@@ -271,12 +271,27 @@ Future<File> getLogFile(Directory datadir) async {
 void bootBinaries(Logger log) async {
   try {
     final binaryProvider = GetIt.I.get<BinaryProvider>();
+    // Seed the DaemonConnectionCard's "Initializing..." spinner + startup log
+    // before ZSided has a chance to come up. Without this the card sits on
+    // "Not connected" until BackendStateProvider.startWatching() begins
+    // receiving WatchBinaries updates from the orchestrator.
+    final zsideRpc = GetIt.I.isRegistered<ZSideRPC>() ? GetIt.I.get<ZSideRPC>() : null;
+    if (zsideRpc != null) {
+      zsideRpc.initializingBinary = true;
+      zsideRpc.connectionError = null;
+      zsideRpc.markStateChanged();
+    }
+    binaryProvider.addStartupLogForBinary(BinaryType.zSide, 'Starting zsided...');
+    binaryProvider.addStartupLogForBinary(BinaryType.zSided, 'Starting zsided...');
 
     // Start zsided via BinaryProvider (it's bundled, not downloaded)
     final zsided = binaryProvider.binaries.firstWhere((b) => b is ZSided);
     await binaryProvider.start(zsided);
 
     // Wait for zsided to be ready before calling StartWithL1
+    log.i('bootBinaries: waiting for zsided readiness');
+    binaryProvider.addStartupLogForBinary(BinaryType.zSide, 'Waiting for zsided...');
+    binaryProvider.addStartupLogForBinary(BinaryType.zSided, 'Waiting for zsided...');
     final orchestrator = GetIt.I.get<OrchestratorRPC>();
     for (var i = 0; i < 30; i++) {
       try {
@@ -292,7 +307,8 @@ void bootBinaries(Logger log) async {
       }
     }
 
-    // Start watching binary status stream
+    // Start watching binary status stream — this owns clearing
+    // initializingBinary once the orchestrator reports status.
     final backendState = GetIt.I.get<BackendStateProvider>();
     backendState.startWatching();
 

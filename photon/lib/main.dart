@@ -93,6 +93,7 @@ Future<(Directory, File, Logger)> init(String arguments) async {
     initBackendManagedSidechainRuntime(
       log: log,
       binary: BinaryType.photon,
+      appRpc: GetIt.I.isRegistered<PhotonRPC>() ? GetIt.I.get<PhotonRPC>() : null,
     ),
   );
 
@@ -243,6 +244,7 @@ void bootBinaries(Logger log) {
     bootBackendManagedSidechain(
       log: log,
       binary: BinaryType.orchestratord,
+      appRpc: GetIt.I.isRegistered<PhotonRPC>() ? GetIt.I.get<PhotonRPC>() : null,
     ),
   );
 }

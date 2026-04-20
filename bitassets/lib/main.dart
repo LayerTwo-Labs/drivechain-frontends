@@ -100,6 +100,7 @@ Future<(Directory, File, Logger)> init(String arguments) async {
     initBackendManagedSidechainRuntime(
       log: log,
       binary: BinaryType.bitassets,
+      appRpc: bitassetsRPC,
     ),
   );
 
@@ -139,6 +140,7 @@ void bootBinaries(Logger log) {
     bootBackendManagedSidechain(
       log: log,
       binary: BinaryType.bitassets,
+      appRpc: GetIt.I.isRegistered<BitAssetsRPC>() ? GetIt.I.get<BitAssetsRPC>() : null,
     ),
   );
 }
