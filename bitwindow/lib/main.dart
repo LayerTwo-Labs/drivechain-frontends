@@ -794,11 +794,31 @@ Future<void> bootBitwindowBackend(Logger log) async {
   await binaryProvider.start(bitwindow);
 
   // 2. Wait for orchestratord (managed by bitwindowd) to become ready.
+  //    _startDaemonBinary cleared bitwindow's initializingBinary when the
+  //    process came up, but we're not actually "ready" until orchestratord
+  //    is serving gRPC — re-assert the flag and push a startup log so
+  //    DaemonConnectionCard keeps the spinner + status message during the
+  //    wait rather than flashing "Not connected".
   log.i('STARTUP: waiting for orchestratord readiness');
+  final bitwindowRpc = GetIt.I.isRegistered<BitwindowRPC>() ? GetIt.I.get<BitwindowRPC>() : null;
+  if (bitwindowRpc != null) {
+    bitwindowRpc.initializingBinary = true;
+    bitwindowRpc.connectionError = null;
+    bitwindowRpc.markStateChanged();
+  }
+  binaryProvider.addStartupLogForBinary(BinaryType.orchestratord, 'Waiting for orchestratord...');
+  binaryProvider.addStartupLogForBinary(BinaryType.bitWindow, 'Waiting for orchestratord...');
+
+  var orchestratorReady = false;
   for (var i = 0; i < 30; i++) {
     try {
       await orchestrator.listBinaries();
       log.i('STARTUP: orchestratord is ready');
+      orchestratorReady = true;
+      if (bitwindowRpc != null) {
+        bitwindowRpc.initializingBinary = false;
+        bitwindowRpc.markStateChanged();
+      }
       break;
     } catch (_) {
       if (i == 29) {
@@ -806,6 +826,11 @@ Future<void> bootBitwindowBackend(Logger log) async {
       }
       await Future.delayed(const Duration(milliseconds: 500));
     }
+  }
+  // If the wait exhausted without success, leave initializingBinary alone —
+  // let the error state surface naturally via backendState.startWatching().
+  if (!orchestratorReady) {
+    log.w('STARTUP: proceeding without orchestratord readiness confirmation');
   }
 
   // 3. Stream binary logs and start watching state.

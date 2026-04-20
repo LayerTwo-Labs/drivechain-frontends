@@ -273,9 +273,20 @@ class BinaryProvider extends ChangeNotifier {
       return;
     }
 
+    // Flip initializing + seed a startup log so the DaemonConnectionCard
+    // shows the "Initializing..." spinner + message during the spawn.
+    // Without this the card stays on "Not connected" until
+    // _syncDaemonConnectionState fires after the process is up.
+    final rpc = _rpcFor(binary);
+    if (rpc != null) {
+      rpc.initializingBinary = true;
+      rpc.connectionError = null;
+      rpc.markStateChanged();
+    }
+    addStartupLogForBinary(binary.type, 'Starting ${binary.name}...');
+
     // Get proper args from the RPC (e.g. BitwindowRPC.binaryArgs() assembles
     // bitcoincore config flags). Fall back to extraBootArgs if no RPC.
-    final rpc = _rpcFor(binary);
     final args = rpc != null ? await rpc.binaryArgs() : binary.extraBootArgs;
 
     log.i('BinaryProvider: starting daemon ${binary.name} with args: $args');
