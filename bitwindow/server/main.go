@@ -111,10 +111,12 @@ func realMain(ctx context.Context, cancelCtx context.CancelFunc) error {
 	defer database.SafeDefer(ctx, db.Close)
 
 	// Start orchestratord as a subprocess — it manages bitcoind, enforcer, and sidechains.
+	// If orchestratord is already running, startOrchestratord returns (nil, nil) and we
+	// deliberately leave it as an orphan on exit rather than shutting it down.
 	orchCmd, err := startOrchestratord(ctx, conf)
 	if err != nil {
 		log.Warn().Err(err).Msg("failed to start orchestratord (may already be running)")
-	} else {
+	} else if orchCmd != nil {
 		defer func() {
 			if orchCmd.Process != nil {
 				log.Info().Int("pid", orchCmd.Process.Pid).Msg("stopping orchestratord")
