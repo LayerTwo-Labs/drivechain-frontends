@@ -35,6 +35,7 @@ class ZSideHomepageConfiguration {
   static HomepageConfiguration get defaultConfiguration {
     return HomepageConfiguration(
       widgets: [
+        HomepageWidgetConfig(widgetId: 'quote_bar'),
         HomepageWidgetConfig(widgetId: 'balance_card'),
         HomepageWidgetConfig(widgetId: 'transparent_receive_card'),
         HomepageWidgetConfig(widgetId: 'shielded_receive_card'),

@@ -100,7 +100,11 @@ class HomepageBuilder extends StatelessWidget {
                         SailText.secondary12(widgetInfo.name),
                         const Spacer(),
                         SailText.secondary12(
-                          widgetInfo.size == WidgetSize.full ? 'Full Width' : 'Half Width',
+                          widgetInfo.size == WidgetSize.full
+                              ? 'Full Width'
+                              : widgetInfo.size == WidgetSize.bar
+                              ? 'Bar'
+                              : 'Half Width',
                         ),
                       ],
                     ),
@@ -111,7 +115,7 @@ class HomepageBuilder extends StatelessWidget {
             );
           }
 
-          if (widgetInfo.size == WidgetSize.full) {
+          if (widgetInfo.size == WidgetSize.full || widgetInfo.size == WidgetSize.bar) {
             // Flush any pending half-width widgets
             if (halfWidthBuffer.isNotEmpty) {
               if (halfWidthBuffer.length == 1) {

@@ -1,6 +1,6 @@
 import 'dart:convert';
 
-enum WidgetSize { full, half }
+enum WidgetSize { full, half, bar }
 
 class HomepageWidgetConfig {
   final String widgetId;

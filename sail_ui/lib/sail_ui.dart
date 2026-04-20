@@ -283,6 +283,7 @@ export 'widgets/spacing.dart';
 export 'widgets/static/static_field.dart';
 export 'widgets/homepage/homepage_widget_info.dart';
 export 'widgets/homepage/homepage_builder.dart';
+export 'widgets/homepage/quote_bar.dart';
 export 'widgets/wallet_blob_avatar.dart';
 export 'widgets/wallet_dropdown.dart';
 export 'widgets/select_background_dialog.dart';
