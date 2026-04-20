@@ -95,6 +95,7 @@ Future<(Directory, File, Logger)> init(String arguments) async {
     initBackendManagedSidechainRuntime(
       log: log,
       binary: BinaryType.coinShift,
+      appRpc: GetIt.I.isRegistered<CoinShiftRPC>() ? GetIt.I.get<CoinShiftRPC>() : null,
     ),
   );
 
@@ -253,6 +254,7 @@ void bootBinaries(Logger log) {
     bootBackendManagedSidechain(
       log: log,
       binary: BinaryType.orchestratord,
+      appRpc: GetIt.I.isRegistered<CoinShiftRPC>() ? GetIt.I.get<CoinShiftRPC>() : null,
     ),
   );
 }
