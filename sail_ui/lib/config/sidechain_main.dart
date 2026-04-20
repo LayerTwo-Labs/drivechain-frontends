@@ -214,6 +214,14 @@ Future<void> copyBinariesFromAssets(Logger log, Directory appDir) async {
         ),
       );
 
+      // Ensure the copied binary is executable. bitwindowd spawns
+      // orchestratord via Go's exec.Command which does NOT chmod, so without
+      // this orchestratord fails with "permission denied" on fresh installs.
+      if (!Platform.isWindows) {
+        await Process.run('chmod', ['+x', file.path]);
+        log.d('chmoded ${file.path}');
+      }
+
       log.d('Successfully wrote binary: ${binary.name}');
     } catch (e) {
       log.w('Failed to copy binary ${binary.name}: $e');
