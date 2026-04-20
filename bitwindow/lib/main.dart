@@ -486,8 +486,16 @@ class _BitwindowAppContent extends StatelessWidget {
         scaffoldBackgroundColor: theme.colors.background,
       ),
       builder: (context, child) {
+        // PersistentStatusBar collapses to SizedBox.shrink when orch +
+        // bitwindowd are healthy (or still booting), so this wrap adds no
+        // layout cost on normal routes. When either daemon fails terminally
+        // it renders a 36px red banner — visible on pre-auth screens where
+        // root_page's richer BottomNav isn't mounted.
         return _ErrorBoundary(
-          child: child ?? const SizedBox.shrink(),
+          child: Scaffold(
+            body: child ?? const SizedBox.shrink(),
+            bottomNavigationBar: const PersistentStatusBar(),
+          ),
         );
       },
     );
