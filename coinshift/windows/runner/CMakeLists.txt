@@ -38,3 +38,14 @@ target_include_directories(${BINARY_NAME} PRIVATE "${CMAKE_SOURCE_DIR}")
 
 # Run the Flutter tool portions of the build. This must not be removed.
 add_dependencies(${BINARY_NAME} flutter_assemble)
+
+# Bundle the MSVC runtime DLLs next to the executable so end users don't
+# need the VC++ Redistributable installed.
+set(CMAKE_INSTALL_SYSTEM_RUNTIME_LIBS_SKIP TRUE)
+include(InstallRequiredSystemLibraries)
+foreach(_dll ${CMAKE_INSTALL_SYSTEM_RUNTIME_LIBS})
+  if(EXISTS "${_dll}")
+    add_custom_command(TARGET ${BINARY_NAME} POST_BUILD
+      COMMAND ${CMAKE_COMMAND} -E copy_if_different "${_dll}" "$<TARGET_FILE_DIR:${BINARY_NAME}>")
+  endif()
+endforeach()
