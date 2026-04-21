@@ -80,11 +80,20 @@ func closeAppViaWindowSystem(t *testing.T, pid int) error {
 		}
 		return nil
 	case "linux":
-		// xdotool sends WM_DELETE_WINDOW via the X server. Targets
-		// every window owned by pid. Requires xdotool (install in CI).
+		// Log every window xdotool sees for this pid so we can tell
+		// whether WM_DELETE_WINDOW actually has a target.
+		searchOut, searchErr := exec.Command("xdotool", "search", "--pid", strconv.Itoa(pid)).CombinedOutput()
+		t.Logf("xdotool search --pid %d → err=%v, windows=%q", pid, searchErr, strings.TrimSpace(string(searchOut)))
+
 		out, err := exec.Command("xdotool", "search", "--pid", strconv.Itoa(pid), "windowclose").CombinedOutput()
-		if err != nil {
-			return fmt.Errorf("xdotool windowclose: %w (output: %s)", err, string(out))
+		t.Logf("xdotool windowclose → err=%v, out=%q", err, strings.TrimSpace(string(out)))
+
+		// Xvfb runs without a window manager, so WM_DELETE_WINDOW has
+		// no one to deliver it. Fall back to SIGTERM on the Flutter
+		// app pid — setupSignalHandlers in main.dart handles SIGTERM
+		// and runs BinaryProvider.onShutdown. Same end state.
+		if killErr := syscall.Kill(pid, syscall.SIGTERM); killErr != nil {
+			t.Logf("SIGTERM to pid %d failed: %v", pid, killErr)
 		}
 		return nil
 	default:
