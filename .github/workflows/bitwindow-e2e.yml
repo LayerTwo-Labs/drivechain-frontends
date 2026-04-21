@@ -101,6 +101,7 @@ jobs:
         run: go test -tags e2e -v -timeout 15m -run TestJustRunBootsDaemons ./...
         env:
           BITWINDOW_TEST_LOG_DIR: ${{ runner.temp }}/e2e-logs/boot
+          FLUTTER_RUN_ARGS: ${{ runner.os == 'Windows' && '-v' || '' }}
 
       - name: Issue 2 — shutdown test
         id: shutdown
@@ -109,6 +110,7 @@ jobs:
         run: go test -tags e2e -v -timeout 15m -run TestJustRunShutsDownDaemons ./...
         env:
           BITWINDOW_TEST_LOG_DIR: ${{ runner.temp }}/e2e-logs/shutdown
+          FLUTTER_RUN_ARGS: ${{ runner.os == 'Windows' && '-v' || '' }}
 
       - name: Issue 3 — restart test
         id: restart
@@ -117,6 +119,7 @@ jobs:
         run: go test -tags e2e -v -timeout 25m -run TestJustRunRestart ./...
         env:
           BITWINDOW_TEST_LOG_DIR: ${{ runner.temp }}/e2e-logs/restart
+          FLUTTER_RUN_ARGS: ${{ runner.os == 'Windows' && '-v' || '' }}
 
       - name: Issue 2b — window-close shutdown test
         id: window_close
@@ -125,6 +128,7 @@ jobs:
         run: go test -tags e2e -v -timeout 15m -run TestWindowCloseShutsDownDaemons ./...
         env:
           BITWINDOW_TEST_LOG_DIR: ${{ runner.temp }}/e2e-logs/window-close
+          FLUTTER_RUN_ARGS: ${{ runner.os == 'Windows' && '-v' || '' }}
 
       - name: Upload diagnostic logs
         if: failure()
