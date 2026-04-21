@@ -1,0 +1,135 @@
+name: BitWindow E2E
+
+# Drives `just run` on Linux, macOS, and Windows and asserts that
+# bitwindowd + orchestratord boot, run, shut down, and survive a restart.
+# Each test maps to one user-reported issue; they run independently so
+# a single platform regression lights up one clear signal.
+
+on:
+  pull_request:
+    paths:
+      - "bitwindow/**"
+      - "sail_ui/**"
+      - "sidechain-orchestrator/**"
+      - "scripts/**"
+      - ".github/workflows/bitwindow-e2e.yml"
+  workflow_dispatch:
+
+env:
+  FLUTTER_VERSION: "3.41.6"
+  GO_VERSION: "1.25"
+
+jobs:
+  e2e:
+    name: e2e (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    if: github.event.pull_request.draft == false
+    timeout-minutes: 75
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Cache Flutter SDK
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.flutter
+            ~/.pub-cache
+          key: flutter-e2e-${{ env.FLUTTER_VERSION }}-${{ runner.os }}
+          restore-keys: flutter-e2e-${{ env.FLUTTER_VERSION }}-
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+
+      - name: Cache Go modules (Unix)
+        if: runner.os != 'Windows'
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/go/pkg/mod
+            ~/.cache/go-build
+          key: go-e2e-${{ env.GO_VERSION }}-${{ runner.os }}-${{ hashFiles('**/go.sum') }}
+          restore-keys: go-e2e-${{ env.GO_VERSION }}-${{ runner.os }}-
+
+      - name: Cache Go modules (Windows)
+        if: runner.os == 'Windows'
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~\AppData\Local\go-build
+            ~\go\pkg\mod
+          key: go-e2e-${{ env.GO_VERSION }}-${{ runner.os }}-${{ hashFiles('**/go.sum') }}
+          restore-keys: go-e2e-${{ env.GO_VERSION }}-${{ runner.os }}-
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+
+      - name: Install just
+        uses: extractions/setup-just@v3
+
+      - name: Install Linux dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev \
+            sqlite3 libsqlite3-dev xvfb xdotool
+
+      - name: Install Rosetta (macOS)
+        if: runner.os == 'macOS'
+        run: softwareupdate --install-rosetta --agree-to-license
+
+      - name: Start Xvfb (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          Xvfb :99 -screen 0 1280x1024x24 > /dev/null 2>&1 &
+          echo "DISPLAY=:99" >> "$GITHUB_ENV"
+
+      # --- Tests, one per user-reported issue. Each runs independently so
+      # --- a single platform regression is a single clear signal.
+
+      - name: Issue 1 — boot test
+        id: boot
+        working-directory: bitwindow/e2e
+        run: go test -tags e2e -v -timeout 15m -run TestJustRunBootsDaemons ./...
+        env:
+          BITWINDOW_TEST_LOG_DIR: ${{ runner.temp }}/e2e-logs/boot
+
+      - name: Issue 2 — shutdown test
+        id: shutdown
+        if: always() && steps.boot.conclusion == 'success'
+        working-directory: bitwindow/e2e
+        run: go test -tags e2e -v -timeout 15m -run TestJustRunShutsDownDaemons ./...
+        env:
+          BITWINDOW_TEST_LOG_DIR: ${{ runner.temp }}/e2e-logs/shutdown
+
+      - name: Issue 3 — restart test
+        id: restart
+        if: always() && steps.shutdown.conclusion == 'success'
+        working-directory: bitwindow/e2e
+        run: go test -tags e2e -v -timeout 25m -run TestJustRunRestart ./...
+        env:
+          BITWINDOW_TEST_LOG_DIR: ${{ runner.temp }}/e2e-logs/restart
+
+      - name: Issue 2b — window-close shutdown test
+        id: window_close
+        if: always() && steps.boot.conclusion == 'success'
+        working-directory: bitwindow/e2e
+        run: go test -tags e2e -v -timeout 15m -run TestWindowCloseShutsDownDaemons ./...
+        env:
+          BITWINDOW_TEST_LOG_DIR: ${{ runner.temp }}/e2e-logs/window-close
+
+      - name: Upload diagnostic logs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-logs-${{ matrix.os }}
+          path: ${{ runner.temp }}/e2e-logs
+          if-no-files-found: ignore

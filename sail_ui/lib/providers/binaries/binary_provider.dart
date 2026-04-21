@@ -291,11 +291,6 @@ class BinaryProvider extends ChangeNotifier {
 
     log.i('BinaryProvider: starting daemon ${binary.name} with args: $args');
     await _processManager.start(binary, args, () async {
-      // Graceful shutdown: bitwindowd's main registers
-      // signal.NotifyContext(ctx, os.Interrupt), and its deferred cleanup
-      // stops orchestratord when ctx is cancelled. So SIGINT lets bitwindowd
-      // tear down orchestratord properly instead of being force-killed and
-      // leaving an orphan.
       final process = _processManager.runningProcesses[binary.name];
       if (process == null) return;
       try {
@@ -309,7 +304,6 @@ class BinaryProvider extends ChangeNotifier {
         if (!await _processManager.isPidAlive(process.pid)) return;
         await Future.delayed(const Duration(milliseconds: 100));
       }
-      // Fall through: ProcessManager._shutdownSingle force-kills if still alive.
     });
 
     // Sync RPCConnection state — daemon is running.
