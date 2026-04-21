@@ -1,4 +1,6 @@
-#include <filesystem> 
+#include <filesystem>
+#include <csignal>
+#include <unistd.h>
 using namespace std;
 using namespace std::filesystem;
 #include "my_application.h"
@@ -11,6 +13,17 @@ using namespace std::filesystem;
 #include "flutter/generated_plugin_registrant.h"
 
 #include "desktop_multi_window/desktop_multi_window_plugin.h"
+
+// Route GTK delete-event (X / Alt+F4) to SIGINT so setupSignalHandlers in
+// main.dart runs BinaryProvider.onShutdown — same trick as the macOS
+// AppDelegate. Without this, window-close leaves bitwindowd orphaned.
+static gboolean on_window_delete_event(GtkWidget* /*w*/, GdkEvent* /*e*/, gpointer /*d*/) {
+  static gboolean terminating = FALSE;
+  if (terminating) return FALSE;
+  terminating = TRUE;
+  kill(getpid(), SIGINT);
+  return TRUE;
+}
 
 struct _MyApplication {
   GtkApplication parent_instance;
@@ -74,6 +87,8 @@ static void my_application_activate(GApplication* application) {
   });
 
   gtk_widget_grab_focus(GTK_WIDGET(view));
+
+  g_signal_connect(window, "delete-event", G_CALLBACK(on_window_delete_event), NULL);
 }
 
 // Implements GApplication::local_command_line.
