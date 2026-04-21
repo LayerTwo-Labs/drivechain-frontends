@@ -290,21 +290,30 @@ class ProcessManager extends ChangeNotifier {
     log.i('attempting nice shutdown for pid=${process.pid}');
 
     try {
-      // first try being nice
       await process.cleanup();
       log.d(
-        'nice shutdown successful for pid=${process.pid} binary=${process.binary.name}',
+        'nice shutdown callback completed for pid=${process.pid} binary=${process.binary.name}',
       );
     } catch (error) {
-      // if being nice didnt work, be mean
-      await killPid(process.pid);
-      log.e('nice shutdown failed, force killing pid=${process.pid}: $error');
-    } finally {
-      runningProcesses.remove(process.binary.name);
-      await pidFileManager.deletePidFile(process.binary);
-
-      notifyListeners();
+      log.w(
+        'nice shutdown callback threw for pid=${process.pid} binary=${process.binary.name}: $error',
+      );
     }
+
+    // cleanup() is a hook — returning normally does not prove the process
+    // exited. If the pid is still alive, force-kill it. Without this check
+    // an empty cleanup callback looked like a successful shutdown and
+    // bitwindowd was left orphaned when the Flutter app closed.
+    if (await isPidAlive(process.pid)) {
+      log.i(
+        'pid=${process.pid} binary=${process.binary.name} still alive after cleanup, force-killing',
+      );
+      await killPid(process.pid);
+    }
+
+    runningProcesses.remove(process.binary.name);
+    await pidFileManager.deletePidFile(process.binary);
+    notifyListeners();
   }
 
   /// Check if a PID is still alive
