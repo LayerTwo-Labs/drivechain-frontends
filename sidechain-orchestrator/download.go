@@ -126,10 +126,12 @@ func (d *DownloadManager) Download(ctx context.Context, config BinaryConfig, net
 
 		ch <- DownloadProgress{Message: "extracting..."}
 
-		if err := d.extractBinary(savePath, config, d.dataDir, network); err != nil {
+		hasCLI, err := d.extractBinary(savePath, config, d.dataDir, network)
+		if err != nil {
 			ch <- DownloadProgress{Error: fmt.Errorf("extract: %w", err)}
 			return
 		}
+		d.log.Info().Bool("has_cli", hasCLI).Str("binary", config.BinaryName).Msg("extraction complete")
 
 		binPath := BinaryPath(d.dataDir, config.BinaryName)
 		ch <- DownloadProgress{Message: binPath, Done: true}
@@ -257,7 +259,9 @@ func (d *DownloadManager) downloadFile(ctx context.Context, url, savePath string
 }
 
 // extractBinary extracts a downloaded archive to the bin directory.
-func (d *DownloadManager) extractBinary(archivePath string, config BinaryConfig, dataDir, network string) error {
+// Returns hasCLI=true iff a companion CLI binary (name contains "-cli") was
+// extracted alongside the main binary. Raw binaries never have a CLI.
+func (d *DownloadManager) extractBinary(archivePath string, config BinaryConfig, dataDir, network string) (bool, error) {
 	destDir := BinDir(dataDir)
 
 	// Apply extract subfolder for the current network + OS (matches Dart behavior)
@@ -283,16 +287,16 @@ func (d *DownloadManager) extractBinary(archivePath string, config BinaryConfig,
 }
 
 // extractZip extracts a zip archive, flattening single-directory archives.
-func (d *DownloadManager) extractZip(archivePath, destDir, binaryName string) error {
+func (d *DownloadManager) extractZip(archivePath, destDir, binaryName string) (bool, error) {
 	r, err := zip.OpenReader(archivePath)
 	if err != nil {
-		return fmt.Errorf("open zip: %w", err)
+		return false, fmt.Errorf("open zip: %w", err)
 	}
 	defer r.Close() //nolint:errcheck // cleanup
 
 	tmpDir, err := os.MkdirTemp("", "orchestrator-extract-*")
 	if err != nil {
-		return fmt.Errorf("create temp dir: %w", err)
+		return false, fmt.Errorf("create temp dir: %w", err)
 	}
 	defer os.RemoveAll(tmpDir) //nolint:errcheck // cleanup
 
@@ -303,11 +307,11 @@ func (d *DownloadManager) extractZip(archivePath, destDir, binaryName string) er
 
 		destPath := filepath.Join(tmpDir, f.Name)
 		if err := os.MkdirAll(filepath.Dir(destPath), 0o755); err != nil {
-			return fmt.Errorf("create dir: %w", err)
+			return false, fmt.Errorf("create dir: %w", err)
 		}
 
 		if err := extractZipFile(f, destPath); err != nil {
-			return err
+			return false, err
 		}
 	}
 
@@ -335,22 +339,22 @@ func extractZipFile(f *zip.File, dest string) error {
 }
 
 // extractTarGz extracts a tar.gz archive.
-func (d *DownloadManager) extractTarGz(archivePath, destDir, binaryName string) error {
+func (d *DownloadManager) extractTarGz(archivePath, destDir, binaryName string) (bool, error) {
 	f, err := os.Open(archivePath)
 	if err != nil {
-		return fmt.Errorf("open archive: %w", err)
+		return false, fmt.Errorf("open archive: %w", err)
 	}
 	defer f.Close() //nolint:errcheck // cleanup
 
 	gz, err := gzip.NewReader(f)
 	if err != nil {
-		return fmt.Errorf("gzip reader: %w", err)
+		return false, fmt.Errorf("gzip reader: %w", err)
 	}
 	defer gz.Close() //nolint:errcheck // cleanup
 
 	tmpDir, err := os.MkdirTemp("", "orchestrator-extract-*")
 	if err != nil {
-		return fmt.Errorf("create temp dir: %w", err)
+		return false, fmt.Errorf("create temp dir: %w", err)
 	}
 	defer os.RemoveAll(tmpDir) //nolint:errcheck // cleanup
 
@@ -361,7 +365,7 @@ func (d *DownloadManager) extractTarGz(archivePath, destDir, binaryName string) 
 			break
 		}
 		if err != nil {
-			return fmt.Errorf("read tar: %w", err)
+			return false, fmt.Errorf("read tar: %w", err)
 		}
 
 		if header.Typeflag != tar.TypeReg {
@@ -377,12 +381,12 @@ func (d *DownloadManager) extractTarGz(archivePath, destDir, binaryName string) 
 		destPath := filepath.Join(tmpDir, base)
 		outFile, err := os.Create(destPath)
 		if err != nil {
-			return fmt.Errorf("create %s: %w", destPath, err)
+			return false, fmt.Errorf("create %s: %w", destPath, err)
 		}
 
 		if _, err := io.Copy(outFile, tr); err != nil {
 			_ = outFile.Close()
-			return fmt.Errorf("extract %s: %w", header.Name, err)
+			return false, fmt.Errorf("extract %s: %w", header.Name, err)
 		}
 		_ = outFile.Close()
 	}
@@ -391,32 +395,37 @@ func (d *DownloadManager) extractTarGz(archivePath, destDir, binaryName string) 
 }
 
 // processRawBinary copies a raw binary to the destination directory.
-func (d *DownloadManager) processRawBinary(srcPath, destDir, binaryName string) error {
+// A raw binary never carries a CLI companion, so hasCLI is always false.
+func (d *DownloadManager) processRawBinary(srcPath, destDir, binaryName string) (bool, error) {
 	destPath := filepath.Join(destDir, binaryName)
 
 	src, err := os.Open(srcPath)
 	if err != nil {
-		return fmt.Errorf("open source: %w", err)
+		return false, fmt.Errorf("open source: %w", err)
 	}
 	defer src.Close() //nolint:errcheck // cleanup
 
 	dst, err := os.Create(destPath)
 	if err != nil {
-		return fmt.Errorf("create dest: %w", err)
+		return false, fmt.Errorf("create dest: %w", err)
 	}
 	defer dst.Close() //nolint:errcheck // cleanup
 
 	if _, err := io.Copy(dst, src); err != nil {
-		return fmt.Errorf("copy: %w", err)
+		return false, fmt.Errorf("copy: %w", err)
 	}
 
-	return chmod(destPath)
+	return false, chmod(destPath)
 }
 
 // moveExtractedBinaries moves files from a temp extraction dir to the bin dir,
-// applying rename logic and chmod.
-func (d *DownloadManager) moveExtractedBinaries(tmpDir, destDir, binaryName string) error {
+// applying rename logic and chmod. Returns hasCLI=true iff any extracted file's
+// post-strip name contains "-cli", which is how we distinguish archives that
+// ship a CLI companion (thunder, bitnames, bitassets, etc.) from single-binary
+// payloads (like truthcoin on some platforms).
+func (d *DownloadManager) moveExtractedBinaries(tmpDir, destDir, binaryName string) (bool, error) {
 	moved := 0
+	hasCLI := false
 
 	// Walk recursively to find all files, flatten them into destDir
 	err := filepath.WalkDir(tmpDir, func(path string, entry os.DirEntry, err error) error {
@@ -438,6 +447,10 @@ func (d *DownloadManager) moveExtractedBinaries(tmpDir, destDir, binaryName stri
 		}
 		destPath := filepath.Join(destDir, destName)
 
+		if strings.Contains(strings.ToLower(strings.TrimSuffix(destName, ".exe")), "-cli") {
+			hasCLI = true
+		}
+
 		if err := moveFile(path, destPath); err != nil {
 			d.log.Warn().Err(err).Str("file", name).Msg("move extracted file")
 			return nil
@@ -452,14 +465,14 @@ func (d *DownloadManager) moveExtractedBinaries(tmpDir, destDir, binaryName stri
 		return nil
 	})
 	if err != nil {
-		return fmt.Errorf("walk extracted dir: %w", err)
+		return false, fmt.Errorf("walk extracted dir: %w", err)
 	}
 
 	if moved == 0 {
-		return fmt.Errorf("no files extracted for %s", binaryName)
+		return false, fmt.Errorf("no files extracted for %s", binaryName)
 	}
 
-	return nil
+	return hasCLI, nil
 }
 
 // moveFile moves a file from src to dest, handling cross-device moves.

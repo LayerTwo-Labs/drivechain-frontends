@@ -22,11 +22,50 @@ func TestExtractZip(t *testing.T) {
 		"test-binary-0.1.0-x86_64-unknown-linux-gnu": []byte("hello"),
 	})
 
-	require.NoError(t, dm.extractZip(zipPath, BinDir(dir), "test-binary"))
+	hasCLI, err := dm.extractZip(zipPath, BinDir(dir), "test-binary")
+	require.NoError(t, err)
+	assert.False(t, hasCLI)
 
 	got, err := os.ReadFile(filepath.Join(BinDir(dir), "test-binary"))
 	require.NoError(t, err)
 	assert.Equal(t, "hello", string(got))
+}
+
+func TestExtractZip_DetectsCLI(t *testing.T) {
+	dm, dir := newTestDownloadManager(t)
+
+	zipPath := filepath.Join(dir, "thunder-bundle.zip")
+	makeZipFile(t, zipPath, map[string][]byte{
+		"release/thunder-latest-x86_64-apple-darwin":     []byte("main"),
+		"release/thunder-cli-latest-x86_64-apple-darwin": []byte("cli"),
+	})
+
+	hasCLI, err := dm.extractZip(zipPath, BinDir(dir), "thunder")
+	require.NoError(t, err)
+	assert.True(t, hasCLI)
+
+	_, err = os.Stat(filepath.Join(BinDir(dir), "thunder"))
+	require.NoError(t, err)
+	_, err = os.Stat(filepath.Join(BinDir(dir), "thunder-cli"))
+	require.NoError(t, err)
+}
+
+func TestExtractZip_RawBinaryNoCliCase(t *testing.T) {
+	dm, dir := newTestDownloadManager(t)
+
+	zipPath := filepath.Join(dir, "truthcoin-bundle.zip")
+	makeZipFile(t, zipPath, map[string][]byte{
+		"truthcoin-latest-x86_64-apple-darwin": []byte("main"),
+	})
+
+	hasCLI, err := dm.extractZip(zipPath, BinDir(dir), "truthcoin")
+	require.NoError(t, err)
+	assert.False(t, hasCLI)
+
+	_, err = os.Stat(filepath.Join(BinDir(dir), "truthcoin"))
+	require.NoError(t, err)
+	_, err = os.Stat(filepath.Join(BinDir(dir), "truthcoin-cli"))
+	assert.True(t, os.IsNotExist(err))
 }
 
 func TestExtractTarGz(t *testing.T) {
@@ -38,7 +77,9 @@ func TestExtractTarGz(t *testing.T) {
 		"grpcurl_1.9.1_linux_x86_64/LICENSE":  []byte("MIT"),
 	})
 
-	require.NoError(t, dm.extractTarGz(archivePath, BinDir(dir), "grpcurl"))
+	hasCLI, err := dm.extractTarGz(archivePath, BinDir(dir), "grpcurl")
+	require.NoError(t, err)
+	assert.False(t, hasCLI)
 
 	got, err := os.ReadFile(filepath.Join(BinDir(dir), "grpcurl"))
 	require.NoError(t, err)
@@ -57,7 +98,9 @@ func TestExtractZip_FlattensNestedDir(t *testing.T) {
 		"release-v1.0/thunder": []byte("thunder-binary"),
 	})
 
-	require.NoError(t, dm.extractZip(zipPath, BinDir(dir), "thunder"))
+	hasCLI, err := dm.extractZip(zipPath, BinDir(dir), "thunder")
+	require.NoError(t, err)
+	assert.False(t, hasCLI)
 
 	got, err := os.ReadFile(filepath.Join(BinDir(dir), "thunder"))
 	require.NoError(t, err)
