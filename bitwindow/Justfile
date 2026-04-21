@@ -27,10 +27,11 @@ download:
 
 run: download
     #!/usr/bin/env bash
+    extra="${FLUTTER_RUN_ARGS:-}"
     case "$(uname -s)" in
-        Darwin*)  flutter run -d macos;;    # macOS
-        Linux*)   flutter run -d linux;;    # Linux
-        MINGW*|MSYS*|CYGWIN*)  flutter run -d windows;; # Windows
+        Darwin*)  flutter run $extra -d macos;;    # macOS
+        Linux*)   flutter run $extra -d linux;;    # Linux
+        MINGW*|MSYS*|CYGWIN*)  flutter run $extra -d windows;; # Windows
         *)        echo "Unknown operating system" && exit 1 ;;
     esac
 
