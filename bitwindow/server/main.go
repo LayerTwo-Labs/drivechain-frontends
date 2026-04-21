@@ -11,6 +11,7 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"sync"
 	"time"
@@ -597,7 +598,11 @@ func startOrchestratord(ctx context.Context, conf config.Config) (*exec.Cmd, err
 	if err != nil {
 		return nil, fmt.Errorf("find self path: %w", err)
 	}
-	orchPath := filepath.Join(filepath.Dir(selfPath), "orchestratord")
+	orchName := "orchestratord"
+	if runtime.GOOS == "windows" {
+		orchName += ".exe"
+	}
+	orchPath := filepath.Join(filepath.Dir(selfPath), orchName)
 	if _, err := os.Stat(orchPath); err != nil {
 		return nil, fmt.Errorf("orchestratord not found at %s: %w", orchPath, err)
 	}
