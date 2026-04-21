@@ -623,8 +623,27 @@ func (n Network) ReadableName() string {
 // ---------------------------------------------------------------------------
 
 // ExtraFilesForDeletion returns per-binary extra files to delete from assets dir.
-// Dart: deleteBinaries switch statement (L178-231)
-func (b BinaryDirConfig) ExtraFilesForDeletion() []string {
+//
+// The list has two parts:
+//  1. A static set of non-CLI extras (bitcoind's qt/util, bitwindowd's DLLs, etc.)
+//     plus CLI names that don't match the "<binary>-cli" pattern (bitnames/bitassets).
+//  2. A runtime scan for "<binaryName>-cli" and "<binaryName>-cli.exe" in assetsDir,
+//     so sidechains whose CLI is bundled in the archive (thunder, truthcoin, ...)
+//     get picked up when present and silently skipped when the archive only ships
+//     a raw main binary.
+//
+// Dart equivalent: deleteBinaries switch statement (L178-231)
+func (b BinaryDirConfig) ExtraFilesForDeletion(assetsDir string) []string {
+	files := b.staticExtraFiles()
+	for _, cli := range []string{b.BinaryName + "-cli", b.BinaryName + "-cli.exe"} {
+		if _, err := os.Stat(filepath.Join(assetsDir, cli)); err == nil {
+			files = append(files, cli)
+		}
+	}
+	return files
+}
+
+func (b BinaryDirConfig) staticExtraFiles() []string {
 	switch b.BinaryName {
 	case "bitcoind":
 		return []string{"bitcoin-cli", "bitcoin-util", "bitcoin-cli.exe", "bitcoin-util.exe", "qt"}
@@ -639,16 +658,8 @@ func (b BinaryDirConfig) ExtraFilesForDeletion() []string {
 		return []string{"bitnames-cli"}
 	case "plain_bitassets":
 		return []string{"bitassets-cli"}
-	case "thunder":
-		return []string{"thunder-cli"}
 	case "thunder-orchard":
 		return []string{"thunder-orchard"}
-	case "truthcoin":
-		return []string{"truthcoin-cli"}
-	case "photon":
-		return []string{"photon-cli"}
-	case "coinshift":
-		return []string{"coinshift-cli"}
 	default:
 		return nil
 	}
@@ -668,7 +679,7 @@ func (b BinaryDirConfig) DeleteBinaries(assetsDir string, log zerolog.Logger) {
 	DeleteFilesWithRetry(pathsInDir(assetsDir, baseFiles), log)
 
 	// Delete extra per-binary files
-	extra := b.ExtraFilesForDeletion()
+	extra := b.ExtraFilesForDeletion(assetsDir)
 	if len(extra) > 0 {
 		DeleteFilesWithRetry(pathsInDir(assetsDir, extra), log)
 	}
@@ -686,7 +697,7 @@ func (b BinaryDirConfig) GetBinaryPaths(assetsDir string, log zerolog.Logger) []
 	}
 	paths := GetExistingFilesInDir(assetsDir, baseFiles, log)
 
-	extra := b.ExtraFilesForDeletion()
+	extra := b.ExtraFilesForDeletion(assetsDir)
 	if len(extra) > 0 {
 		paths = append(paths, GetExistingFilesInDir(assetsDir, extra, log)...)
 	}
