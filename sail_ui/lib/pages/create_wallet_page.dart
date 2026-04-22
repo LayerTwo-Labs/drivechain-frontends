@@ -54,6 +54,11 @@ class _SailCreateWalletPageState extends State<SailCreateWalletPage> {
   bool _isGenerating = false;
   bool _awaitingBackend = false;
   bool _hasNavigatedInternally = false;
+  String? _error;
+
+  void _clearErrorOnInput() {
+    if (_error != null && mounted) setState(() => _error = null);
+  }
 
   void _setScreen(WelcomeScreen screen) {
     if (_currentScreen != screen) {
@@ -69,6 +74,9 @@ class _SailCreateWalletPageState extends State<SailCreateWalletPage> {
     _currentScreen = widget.initialScreen;
     _mnemonicController.addListener(_onMnemonicChanged);
     _passphraseController.addListener(setstate);
+    _mnemonicController.addListener(_clearErrorOnInput);
+    _passphraseController.addListener(_clearErrorOnInput);
+    _walletNameController.addListener(_clearErrorOnInput);
 
     _walletProvider.hasExistingWallet().then((value) {
       setState(() {
@@ -85,6 +93,9 @@ class _SailCreateWalletPageState extends State<SailCreateWalletPage> {
   void dispose() {
     _mnemonicController.removeListener(_onMnemonicChanged);
     _passphraseController.removeListener(setstate);
+    _mnemonicController.removeListener(_clearErrorOnInput);
+    _passphraseController.removeListener(_clearErrorOnInput);
+    _walletNameController.removeListener(_clearErrorOnInput);
     _mnemonicController.dispose();
     _passphraseController.dispose();
     _walletNameController.dispose();
@@ -211,7 +222,7 @@ class _SailCreateWalletPageState extends State<SailCreateWalletPage> {
           _isValidInput = true;
         });
       } catch (e) {
-        await _showErrorDialog('Error generating from entropy: $e');
+        if (mounted) setState(() => _error = 'Error generating from entropy: $e');
         _clearWalletData();
         return;
       }
@@ -221,6 +232,7 @@ class _SailCreateWalletPageState extends State<SailCreateWalletPage> {
   }
 
   Future<void> _handleAdvancedCreate() async {
+    if (mounted) setState(() => _error = null);
     if (!_isValidInput) return;
     try {
       final entropyHex = _mnemonicController.text.trim();
@@ -228,9 +240,9 @@ class _SailCreateWalletPageState extends State<SailCreateWalletPage> {
       if (_isHexMode) {
         entropy = hex.decode(entropyHex);
         if (entropy.length < 16 || entropy.length > 32 || entropy.length % 4 != 0) {
-          await _showErrorDialog(
-            'Invalid entropy length. Must be 16-32 bytes and a multiple of 4.',
-          );
+          if (mounted) {
+            setState(() => _error = 'Invalid entropy length. Must be 16-32 bytes and a multiple of 4.');
+          }
           return;
         }
       } else {
@@ -253,7 +265,7 @@ class _SailCreateWalletPageState extends State<SailCreateWalletPage> {
       _isValidInput = true;
       _setScreen(WelcomeScreen.success);
     } catch (e) {
-      await _showErrorDialog('Error creating wallet: $e');
+      if (mounted) setState(() => _error = 'Error creating wallet: $e');
     }
   }
 
@@ -276,8 +288,8 @@ class _SailCreateWalletPageState extends State<SailCreateWalletPage> {
         setState(() {
           _awaitingBackend = false;
           _isGenerating = false;
+          _error = 'Backend not ready after 60s — try again';
         });
-        await _showErrorDialog('Backend not ready after 60s — try again');
       }
       rethrow;
     } finally {
@@ -294,16 +306,6 @@ class _SailCreateWalletPageState extends State<SailCreateWalletPage> {
     } catch (_) {
       return false;
     }
-  }
-
-  Future<void> _showErrorDialog(String message) async {
-    await errorDialog(
-      context: context,
-      action: 'Error',
-      title: 'Error',
-      subtitle: message,
-    );
-    _mnemonicController.clear();
   }
 
   // ignore: avoid_build_methods
@@ -534,6 +536,7 @@ class _SailCreateWalletPageState extends State<SailCreateWalletPage> {
   // ignore: avoid_build_methods
   Widget _buildAdvancedScreen() {
     final theme = SailTheme.of(context);
+    final errorBanner = _error;
     return Stack(
       children: [
         // Main scrollable content
@@ -648,6 +651,21 @@ class _SailCreateWalletPageState extends State<SailCreateWalletPage> {
             ),
           ),
         ),
+        if (errorBanner != null)
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 56,
+            child: Center(
+              child: SizedBox(
+                width: 800,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: SailStyleValues.padding08),
+                  child: SailText.primary13(errorBanner, color: theme.colors.error),
+                ),
+              ),
+            ),
+          ),
         BottomActionBar(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
@@ -775,6 +793,11 @@ class _SailCreateWalletPageState extends State<SailCreateWalletPage> {
                   ),
                 ),
               ),
+              if (_error != null)
+                Padding(
+                  padding: const EdgeInsets.only(top: SailStyleValues.padding08),
+                  child: SailText.primary13(_error!, color: theme.colors.error),
+                ),
               const SizedBox(height: 20),
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -806,6 +829,7 @@ class _SailCreateWalletPageState extends State<SailCreateWalletPage> {
 
   // ignore: avoid_build_methods
   Widget _buildRestoreScreen() {
+    final theme = SailTheme.of(context);
     return Center(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 32.0),
@@ -859,6 +883,11 @@ class _SailCreateWalletPageState extends State<SailCreateWalletPage> {
                 ),
               ),
               const SizedBox(height: 24),
+              if (_error != null)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: SailStyleValues.padding08),
+                  child: SailText.primary13(_error!, color: theme.colors.error),
+                ),
               // Navigation buttons
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -898,12 +927,17 @@ class _SailCreateWalletPageState extends State<SailCreateWalletPage> {
   }
 
   Future<void> _handleFastMode() async {
+    if (mounted) setState(() => _error = null);
     try {
       final walletName = _walletNameController.text.trim();
 
       if (hasExistingWallet && walletName.isEmpty) {
-        await _showErrorDialog('Please enter a wallet name');
-        setState(() => _isGenerating = false);
+        if (mounted) {
+          setState(() {
+            _error = 'Please enter a wallet name';
+            _isGenerating = false;
+          });
+        }
         return;
       }
 
@@ -921,7 +955,7 @@ class _SailCreateWalletPageState extends State<SailCreateWalletPage> {
       }
     } catch (e) {
       if (mounted) {
-        await _showErrorDialog('Failed to generate wallet: $e');
+        setState(() => _error = 'Failed to generate wallet: $e');
       }
     }
 
@@ -931,17 +965,18 @@ class _SailCreateWalletPageState extends State<SailCreateWalletPage> {
   }
 
   Future<void> _handleRestore() async {
+    if (mounted) setState(() => _error = null);
     if (!_isValidMnemonic(_mnemonicController.text)) {
-      await _showErrorDialog(
-        'Invalid mnemonic format. Please enter 12 or 24 words.',
-      );
+      if (mounted) {
+        setState(() => _error = 'Invalid mnemonic format. Please enter 12 or 24 words.');
+      }
       return;
     }
 
     final walletName = _walletNameController.text.trim();
 
     if (hasExistingWallet && walletName.isEmpty) {
-      await _showErrorDialog('Please enter a wallet name');
+      if (mounted) setState(() => _error = 'Please enter a wallet name');
       return;
     }
 
@@ -963,7 +998,7 @@ class _SailCreateWalletPageState extends State<SailCreateWalletPage> {
         _setScreen(WelcomeScreen.success);
       }
     } catch (e) {
-      await _showErrorDialog('Failed to generate wallet: $e');
+      if (mounted) setState(() => _error = 'Failed to generate wallet: $e');
     }
   }
 
