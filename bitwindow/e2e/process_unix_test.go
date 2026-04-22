@@ -52,6 +52,10 @@ func signalGroup(cmd *exec.Cmd, sig syscall.Signal) error {
 	return nil
 }
 
+// killOrphanDaemons is a no-op on Unix — children stay in the process group
+// and die with it. See the Windows variant for the motivation.
+func killOrphanDaemons(t *testing.T) { t.Helper() }
+
 // closeAppViaWindowSystem triggers a graceful "user closed the window"
 // event for the Flutter app identified by pid. This exercises the GUI
 // close path — onWindowClose in root_page.dart — NOT the POSIX signal
