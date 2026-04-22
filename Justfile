@@ -1,6 +1,9 @@
 format:
     bash scripts/format.sh
 
+setup:
+    bash scripts/install-hooks.sh
+
 gen-router:
     #!/usr/bin/env bash
     set -euo pipefail
