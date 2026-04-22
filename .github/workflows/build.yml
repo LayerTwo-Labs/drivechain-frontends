@@ -34,8 +34,8 @@ jobs:
       bitwindow: ${{ steps.filter.outputs.bitwindow }}
       build_all: ${{ steps.filter.outputs.build_all }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: dorny/paths-filter@v2
+      - uses: actions/checkout@v5
+      - uses: dorny/paths-filter@v4
         id: filter
         with:
           filters: |
@@ -158,10 +158,10 @@ jobs:
     strategy:
       matrix: ${{ fromJson(needs.matrix-prep.outputs.matrix) }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Cache Flutter SDK
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: |
             ~/.flutter
@@ -171,7 +171,7 @@ jobs:
             flutter-build-3.41.6-
 
       - name: Cache Go modules
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: |
             ~/go/pkg/mod
@@ -188,9 +188,9 @@ jobs:
       - name: Install Fastforge - a tool for building and distributing apps
         run: dart pub global activate fastforge
 
-      - uses: extractions/setup-just@v1
+      - uses: extractions/setup-just@v4
       # Setup go for building bitwindowd
-      - uses: actions/setup-go@v5
+      - uses: actions/setup-go@v6
         with:
           go-version: "1.25"
 
@@ -797,7 +797,7 @@ jobs:
           ls -la "${{ env.BUILD_DIR }}/${{ matrix.client }}/release/" || echo "Release directory not found"
           echo "=== End of artifacts list ==="
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         with:
           name:
             ${{ matrix.client }}-binaries-${{ runner.os }}${{ matrix.chain != ''
@@ -817,7 +817,7 @@ jobs:
       github.repository_owner == 'LayerTwo-Labs'
     steps:
       - name: Download artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         continue-on-error: true
 
       - name: Check which clients have version changes
@@ -1038,7 +1038,7 @@ jobs:
           cat hashes.json | jq .
 
       - name: Upload hashes.json as artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: hashes
           path: hashes.json
