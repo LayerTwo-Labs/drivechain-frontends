@@ -11,8 +11,9 @@ import (
 type HealthCheckType int
 
 const (
-	HealthCheckTCP     HealthCheckType = iota
-	HealthCheckJSONRPC                 // JSON-RPC call (e.g. getblockcount)
+	HealthCheckTCP        HealthCheckType = iota
+	HealthCheckJSONRPC                    // JSON-RPC call (e.g. getblockcount)
+	HealthCheckConnectRPC                 // Connect-JSON POST (e.g. cusf.mainchain.v1.ValidatorService/GetChainTip)
 )
 
 type DownloadSource int

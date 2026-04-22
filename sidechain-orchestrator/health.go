@@ -8,6 +8,7 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"strings"
 	"time"
 )
 
@@ -93,6 +94,53 @@ func (h *JSONRPCHealthCheck) Check(ctx context.Context) error {
 	return nil
 }
 
+// ConnectRPCHealthCheck POSTs an empty JSON body to a Connect-JSON endpoint and
+// inspects the response. On Connect-JSON, success is HTTP 200 with a JSON body
+// that has no `code` field; failure is HTTP 4xx/5xx with
+// `{"code":"...","message":"..."}`. Warmup errors (daemon up, not ready) come
+// back here as an error message that the connection monitor pattern-matches
+// into startupError — e.g. the enforcer returning "Validator is not synced"
+// while still catching up to the mainchain tip.
+type ConnectRPCHealthCheck struct {
+	URL     string // e.g. "http://localhost:50051/cusf.mainchain.v1.ValidatorService/GetChainTip"
+	Timeout time.Duration
+}
+
+func (h *ConnectRPCHealthCheck) Check(ctx context.Context) error {
+	ctx, cancel := context.WithTimeout(ctx, h.Timeout)
+	defer cancel()
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, h.URL, strings.NewReader("{}"))
+	if err != nil {
+		return fmt.Errorf("build Connect request: %w", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return fmt.Errorf("Connect %s: %w", h.URL, err)
+	}
+	defer resp.Body.Close() //nolint:errcheck // cleanup
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return fmt.Errorf("read Connect response: %w", err)
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		var cerr struct {
+			Code    string `json:"code"`
+			Message string `json:"message"`
+		}
+		if json.Unmarshal(body, &cerr) == nil && cerr.Message != "" {
+			return fmt.Errorf("%s", cerr.Message)
+		}
+		return fmt.Errorf("Connect HTTP %d: %s", resp.StatusCode, string(body))
+	}
+
+	return nil
+}
+
 // HealthCheckOpts provides optional configuration for health checkers.
 type HealthCheckOpts struct {
 	User     string
@@ -121,6 +169,12 @@ func NewHealthChecker(config BinaryConfig, opts ...HealthCheckOpts) HealthChecke
 			User:     opt.User,
 			Password: opt.Password,
 			Timeout:  timeout,
+		}
+	case HealthCheckConnectRPC:
+		path := strings.TrimPrefix(config.HealthCheckRPC, "/")
+		return &ConnectRPCHealthCheck{
+			URL:     fmt.Sprintf("http://%s:%d/%s", host, config.Port, path),
+			Timeout: timeout,
 		}
 	default:
 		return &TCPHealthCheck{

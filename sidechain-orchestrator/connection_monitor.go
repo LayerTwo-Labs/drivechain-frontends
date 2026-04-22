@@ -128,8 +128,13 @@ var bitcoindStartupPatterns = []string{
 
 // Enforcer startup messages.
 // Dart: enforcer_rpc.dart L154-156
+// Also covers warmup messages returned by the ValidatorService Connect RPC
+// during initial sync (e.g. GetChainTip returns "validator is not synced yet"
+// until the enforcer has caught up to the mainchain tip).
 var enforcerStartupPatterns = []string{
 	"Validator is not synced",
+	"validator is not synced",
+	"not synced",
 }
 
 // NewConnectionMonitor creates a monitor for a binary.

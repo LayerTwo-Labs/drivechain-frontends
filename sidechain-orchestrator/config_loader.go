@@ -206,6 +206,9 @@ func jsonToBinaryConfig(key string, jb jsonBinaryConf) BinaryConfig {
 		case "jsonrpc":
 			bc.HealthCheckType = HealthCheckJSONRPC
 			bc.HealthCheckRPC = jb.HealthCheck.RPCMethod
+		case "connect_rpc":
+			bc.HealthCheckType = HealthCheckConnectRPC
+			bc.HealthCheckRPC = jb.HealthCheck.RPCMethod
 		default:
 			bc.HealthCheckType = HealthCheckTCP
 		}
