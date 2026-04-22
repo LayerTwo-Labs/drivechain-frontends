@@ -5,6 +5,7 @@ import 'dart:math';
 import 'package:auto_route/auto_route.dart';
 import 'package:convert/convert.dart' show hex;
 import 'package:crypto/crypto.dart' show sha256;
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get_it/get_it.dart';
@@ -51,6 +52,7 @@ class _SailCreateWalletPageState extends State<SailCreateWalletPage> {
 
   bool hasExistingWallet = false;
   bool _isGenerating = false;
+  bool _awaitingBackend = false;
   bool _hasNavigatedInternally = false;
 
   void _setScreen(WelcomeScreen screen) {
@@ -237,6 +239,12 @@ class _SailCreateWalletPageState extends State<SailCreateWalletPage> {
         entropy = hash.bytes.sublist(0, 16);
       }
 
+      try {
+        await _awaitBackendReady();
+      } catch (_) {
+        return;
+      }
+
       final wallet = await _walletProvider.generateWalletFromEntropy(
         entropy,
         passphrase: null,
@@ -246,6 +254,45 @@ class _SailCreateWalletPageState extends State<SailCreateWalletPage> {
       _setScreen(WelcomeScreen.success);
     } catch (e) {
       await _showErrorDialog('Error creating wallet: $e');
+    }
+  }
+
+  Future<void> _awaitBackendReady() async {
+    if (!GetIt.I.isRegistered<OrchestratorRPC>()) return;
+    final orchestrator = GetIt.I.get<OrchestratorRPC>();
+    if (await _probeWalletManager(orchestrator)) return;
+
+    if (mounted) setState(() => _awaitingBackend = true);
+
+    final ready = ValueNotifier<bool>(false);
+    final timer = Timer.periodic(const Duration(milliseconds: 500), (_) async {
+      if (await _probeWalletManager(orchestrator)) ready.value = true;
+    });
+
+    try {
+      await awaitBackendReady(ready);
+    } on TimeoutException {
+      if (mounted) {
+        setState(() {
+          _awaitingBackend = false;
+          _isGenerating = false;
+        });
+        await _showErrorDialog('Backend not ready after 60s — try again');
+      }
+      rethrow;
+    } finally {
+      timer.cancel();
+      ready.dispose();
+      if (mounted && _awaitingBackend) setState(() => _awaitingBackend = false);
+    }
+  }
+
+  static Future<bool> _probeWalletManager(OrchestratorRPC orchestrator) async {
+    try {
+      await orchestrator.wallet.getWalletStatus();
+      return true;
+    } catch (_) {
+      return false;
     }
   }
 
@@ -623,7 +670,9 @@ class _SailCreateWalletPageState extends State<SailCreateWalletPage> {
             SailButton(
               label: 'Create Wallet',
               variant: ButtonVariant.primary,
-              disabled: !_isValidInput,
+              disabled: !_isValidInput || _awaitingBackend,
+              loading: _awaitingBackend,
+              loadingLabel: 'Connecting to bitwindowd…',
               onPressed: _handleAdvancedCreate,
             ),
           ],
@@ -684,7 +733,7 @@ class _SailCreateWalletPageState extends State<SailCreateWalletPage> {
                     ],
                   ),
                   child: TextButton(
-                    onPressed: _isGenerating
+                    onPressed: (_isGenerating || _awaitingBackend)
                         ? null
                         : () {
                             setState(() => _isGenerating = true);
@@ -704,7 +753,9 @@ class _SailCreateWalletPageState extends State<SailCreateWalletPage> {
                         Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 16),
                           child: SailText.primary15(
-                            _isGenerating
+                            _awaitingBackend
+                                ? 'Connecting to bitwindowd…'
+                                : _isGenerating
                                 ? 'Generating Your Wallet'
                                 : hasExistingWallet
                                 ? 'Create Another Wallet'
@@ -713,7 +764,7 @@ class _SailCreateWalletPageState extends State<SailCreateWalletPage> {
                             bold: true,
                           ),
                         ),
-                        if (_isGenerating)
+                        if (_awaitingBackend || _isGenerating)
                           SizedBox(
                             width: 15,
                             height: 15,
@@ -831,8 +882,10 @@ class _SailCreateWalletPageState extends State<SailCreateWalletPage> {
                   SailButton(
                     label: 'Restore',
                     variant: ButtonVariant.primary,
+                    disabled: _awaitingBackend,
+                    loading: _awaitingBackend,
                     onPressed: _handleRestore,
-                    loadingLabel: 'Restoring your wallet',
+                    loadingLabel: _awaitingBackend ? 'Connecting to bitwindowd…' : 'Restoring your wallet',
                   ),
                 ],
               ),
@@ -851,6 +904,12 @@ class _SailCreateWalletPageState extends State<SailCreateWalletPage> {
       if (hasExistingWallet && walletName.isEmpty) {
         await _showErrorDialog('Please enter a wallet name');
         setState(() => _isGenerating = false);
+        return;
+      }
+
+      try {
+        await _awaitBackendReady();
+      } catch (_) {
         return;
       }
 
@@ -883,6 +942,12 @@ class _SailCreateWalletPageState extends State<SailCreateWalletPage> {
 
     if (hasExistingWallet && walletName.isEmpty) {
       await _showErrorDialog('Please enter a wallet name');
+      return;
+    }
+
+    try {
+      await _awaitBackendReady();
+    } catch (_) {
       return;
     }
 
@@ -963,6 +1028,28 @@ class _SailCreateWalletPageState extends State<SailCreateWalletPage> {
         ),
       ),
     );
+  }
+}
+
+@visibleForTesting
+Future<void> awaitBackendReady(
+  ValueListenable<bool> ready, {
+  Duration timeout = const Duration(seconds: 60),
+}) async {
+  if (ready.value) return;
+
+  final completer = Completer<void>();
+  void listener() {
+    if (ready.value && !completer.isCompleted) {
+      completer.complete();
+    }
+  }
+
+  ready.addListener(listener);
+  try {
+    await completer.future.timeout(timeout);
+  } finally {
+    ready.removeListener(listener);
   }
 }
 
