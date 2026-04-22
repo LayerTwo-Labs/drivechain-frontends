@@ -11,8 +11,11 @@ test *args:
 lint:
     go vet ./...
 
-gen:
+gen: gen-cusf
     buf generate --template buf.go.gen.yaml .
+
+gen-cusf:
+    buf generate --template buf.go.gen.yaml https://github.com/LayerTwo-Labs/cusf_sidechain_proto.git
 
 clean:
     rm -rf ./bin

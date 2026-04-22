@@ -192,6 +192,8 @@ func (pm *ProcessManager) Start(_ context.Context, config BinaryConfig, args []s
 		cmd.Env = append(cmd.Env, k+"="+v)
 	}
 
+	configureProcessAttr(cmd)
+
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
 		return 0, fmt.Errorf("stdout pipe: %w", err)
@@ -440,7 +442,6 @@ func (pm *ProcessManager) Start(_ context.Context, config BinaryConfig, args []s
 	return cmd.Process.Pid, nil
 }
 
-// Stop gracefully stops a process. If force is true, sends SIGKILL immediately.
 func (pm *ProcessManager) Stop(_ context.Context, name string, force bool) error {
 	pm.mu.Lock()
 	proc, exists := pm.processes[name]
@@ -461,14 +462,32 @@ func (pm *ProcessManager) Stop(_ context.Context, name string, force bool) error
 		return fmt.Errorf("stop %s: %w", name, err)
 	}
 
-	// Wait for the process to exit (with timeout)
 	select {
 	case <-proc.exitCh:
 		return nil
-	case <-time.After(10 * time.Second):
-		// Force kill after timeout
-		pm.log.Warn().Str("binary", name).Msg("graceful shutdown timed out, force killing")
+	case <-time.After(gracefulKillTimeout):
+		pm.log.Warn().
+			Str("binary", name).
+			Dur("timeout", gracefulKillTimeout).
+			Msg("graceful shutdown timed out, force killing")
 		return forceKillProcess(proc.Pid)
+	}
+}
+
+func (pm *ProcessManager) WaitForExit(name string, timeout time.Duration) bool {
+	pm.mu.Lock()
+	proc, exists := pm.processes[name]
+	pm.mu.Unlock()
+
+	if !exists {
+		return true
+	}
+
+	select {
+	case <-proc.exitCh:
+		return true
+	case <-time.After(timeout):
+		return false
 	}
 }
 

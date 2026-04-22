@@ -2,6 +2,7 @@ package orchestrator
 
 import (
 	"context"
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"net"
@@ -13,7 +14,13 @@ import (
 	"sync"
 	"time"
 
+	"connectrpc.com/connect"
+	"golang.org/x/net/http2"
+
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config"
+	enforcerpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1"
+	enforcerrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1/mainchainv1connect"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/wallet"
 	"github.com/rs/zerolog"
 	"github.com/samber/lo"
@@ -985,6 +992,16 @@ func (o *Orchestrator) ShutdownAll(ctx context.Context, force bool) (<-chan Shut
 				CurrentBinary:  name,
 			}
 
+			if !force && o.stopBinaryViaRPC(ctx, name) {
+				o.monitorsMu.Lock()
+				if mon, ok := o.monitors[name]; ok {
+					mon.MarkStopped()
+				}
+				o.monitorsMu.Unlock()
+				completed++
+				continue
+			}
+
 			if err := o.process.Stop(ctx, name, force); err != nil {
 				o.log.Warn().Err(err).Str("binary", name).Msg("stop during shutdown")
 			}
@@ -1007,6 +1024,76 @@ func (o *Orchestrator) ShutdownAll(ctx context.Context, force bool) (<-chan Shut
 	}()
 
 	return ch, nil
+}
+
+func (o *Orchestrator) stopBinaryViaRPC(_ context.Context, name string) bool {
+	var rpcErr error
+	switch name {
+	case "bitcoind":
+		rpcErr = o.callBitcoindStopRPC()
+	case "enforcer":
+		rpcErr = o.callEnforcerStopRPC()
+	default:
+		cfg, err := o.getConfig(name)
+		if err != nil || !cfg.IsSidechain() || cfg.Port == 0 {
+			return false
+		}
+		rpcErr = o.callSidechainStopRPC(cfg)
+	}
+
+	// Wait even if the ack failed — daemons close their RPC listener
+	// partway through shutdown, and re-signaling a flushing daemon can
+	// corrupt on-disk state.
+	if o.process.WaitForExit(name, gracefulKillTimeout) {
+		o.log.Info().Err(rpcErr).Str("binary", name).Msg("stopped via RPC")
+		return true
+	}
+
+	o.log.Warn().Err(rpcErr).Str("binary", name).Msg("RPC stop did not finish; falling back to signal")
+	return false
+}
+
+func (o *Orchestrator) callBitcoindStopRPC() error {
+	client, err := o.CoreStatusClient()
+	if err != nil {
+		return fmt.Errorf("bitcoind RPC stop: no core client: %w", err)
+	}
+	// Detached: a near-expired upstream ctx would force an unsafe fallback.
+	rpcCtx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+	return client.Stop(rpcCtx)
+}
+
+func (o *Orchestrator) callSidechainStopRPC(cfg BinaryConfig) error {
+	proxy := sidechain.NewJSONRPCProxy("127.0.0.1", cfg.Port)
+	rpcCtx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+	return proxy.Stop(rpcCtx)
+}
+
+func (o *Orchestrator) callEnforcerStopRPC() error {
+	cfg, ok := o.Configs()["enforcer"]
+	if !ok || cfg.Port == 0 {
+		return fmt.Errorf("enforcer RPC stop: no config")
+	}
+	httpClient := &http.Client{
+		Transport: &http2.Transport{
+			AllowHTTP: true,
+			DialTLSContext: func(ctx context.Context, network, addr string, _ *tls.Config) (net.Conn, error) {
+				var d net.Dialer
+				return d.DialContext(ctx, network, addr)
+			},
+		},
+	}
+	client := enforcerrpc.NewValidatorServiceClient(
+		httpClient,
+		fmt.Sprintf("http://127.0.0.1:%d", cfg.Port),
+		connect.WithGRPC(),
+	)
+	rpcCtx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+	_, err := client.Stop(rpcCtx, connect.NewRequest(&enforcerpb.StopRequest{}))
+	return err
 }
 
 // AdoptOrphans reads PID files from a previous session and adopts any

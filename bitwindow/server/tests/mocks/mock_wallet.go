@@ -14,7 +14,7 @@ import (
 	reflect "reflect"
 
 	connect "connectrpc.com/connect"
-	mainchainv1 "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/cusf/mainchain/v1"
+	mainchainv1 "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1"
 	gomock "go.uber.org/mock/gomock"
 )
 

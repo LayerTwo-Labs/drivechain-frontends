@@ -7,7 +7,6 @@ format:
 lint: format fix
 
 gen-server:
-    cd server && buf generate --template buf.go.gen.yaml https://github.com/LayerTwo-Labs/cusf_sidechain_proto.git
     cd server && buf generate --template buf.go.gen.yaml .
 
 gen: gen-server gen-bitwindow-client
