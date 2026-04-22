@@ -71,7 +71,20 @@ func (h *JSONRPCHealthCheck) Check(ctx context.Context) error {
 		return fmt.Errorf("JSON-RPC %s: %w", h.Method, err)
 	}
 	defer resp.Body.Close() //nolint:errcheck // cleanup
-	_, _ = io.Copy(io.Discard, resp.Body)
+
+	respBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return fmt.Errorf("read JSON-RPC %s response: %w", h.Method, err)
+	}
+
+	// bitcoind during warmup returns HTTP 200 with an embedded JSON-RPC error
+	// (e.g. code -28 "Loading block index…"). We must parse the body rather
+	// than trust the HTTP status, otherwise the orchestrator flips
+	// connected=true while the daemon is still booting.
+	var rpcResp jsonRPCResponse
+	if jerr := json.Unmarshal(respBody, &rpcResp); jerr == nil && rpcResp.Error != nil {
+		return fmt.Errorf("%s: %s", h.Method, rpcResp.Error.Message)
+	}
 
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("JSON-RPC %s returned HTTP %d", h.Method, resp.StatusCode)
