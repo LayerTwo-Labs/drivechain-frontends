@@ -99,6 +99,30 @@ func (b BinaryDirConfig) RootDirNetwork(network Network) string {
 	return filepath.Join(b.AppDir(), subdir)
 }
 
+// DatadirNetwork returns the network-aware datadir used for most file lookups.
+// For bitcoind, if bitcoinOverride is non-empty it is used as the base (from
+// the user's `datadir=` setting in bitwindow-bitcoin.conf); otherwise we fall
+// back to the platform default. bitcoind and bitwindowd add a per-network
+// subdir (e.g. "signet/"); other binaries keep the flat root dir.
+// Dart: Binary.datadir() + Binary.datadirNetwork() (L1537-1591)
+func (b BinaryDirConfig) DatadirNetwork(network Network, bitcoinOverride string) string {
+	baseDir := b.RootDirNetwork(network)
+	if b.BinaryName == "bitcoind" && bitcoinOverride != "" {
+		baseDir = bitcoinOverride
+	}
+	switch b.BinaryName {
+	case "bitcoind":
+		if network == NetworkMainnet || network == NetworkForknet {
+			return baseDir
+		}
+		return filepath.Join(baseDir, network.ReadableName())
+	case "bitwindowd":
+		return filepath.Join(baseDir, network.ReadableName())
+	default:
+		return baseDir
+	}
+}
+
 // RootDir returns the root data directory (same for all networks).
 // Panics if directories differ per network.
 // Dart: Binary.rootDir() (L1529-1535)
@@ -246,10 +270,16 @@ var (
 )
 
 // DirConfigByName returns the BinaryDirConfig for a given binary name.
+// Matches against the JSON key, display Name, or BinaryName (case-insensitive).
+// The JSON-key match is what lets runtime config names like "enforcer" resolve
+// to the dir config keyed under "enforcer" despite its BinaryName being
+// "bip300301-enforcer".
 func DirConfigByName(name string) (BinaryDirConfig, bool) {
 	lower := strings.ToLower(name)
-	for _, d := range loadDirConfigs() {
-		if strings.ToLower(d.Name) == lower || strings.ToLower(d.BinaryName) == lower {
+	for key, d := range loadDirConfigs() {
+		if strings.ToLower(key) == lower ||
+			strings.ToLower(d.Name) == lower ||
+			strings.ToLower(d.BinaryName) == lower {
 			return d, true
 		}
 	}

@@ -143,12 +143,18 @@ drivechain=1
 `
 	}
 
+	// Pin datadir to the Drivechain dir so bitcoind doesn't fall back to
+	// Bitcoin Core's standard datadir (~/Library/Application Support/Bitcoin
+	// on macOS, etc.).
+	datadir := m.rootDirNetwork(m.Network)
+
 	return fmt.Sprintf(`%s%d
 
 # Generated code. Any changes to this file *will* get overwritten.
 # source: bitwindow bitcoin config settings
 
 # Common settings for all networks
+datadir=%s
 rpcuser=user
 rpcpassword=password
 server=1
@@ -184,7 +190,7 @@ acceptnonstdtxn=1
 
 # Regtest-specific settings
 [regtest]
-`, bitcoinConfVersionCommentPrefix, BitcoinConfMigrationsVersion, currentNetwork, mainSection)
+`, bitcoinConfVersionCommentPrefix, BitcoinConfMigrationsVersion, datadir, currentNetwork, mainSection)
 }
 
 // SaveConfig writes the current config to disk.

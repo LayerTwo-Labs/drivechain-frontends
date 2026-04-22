@@ -419,6 +419,33 @@ func (o *Orchestrator) RecentLogs(name string, n int) ([]LogEntry, error) {
 	return proc.RecentLogs(n), nil
 }
 
+// prefetchBinary downloads a binary in the background and signals completion
+// on the returned channel (nil = success, non-nil = failure). Used to
+// parallelise enforcer + target downloads with bitcoind's IBD so the binaries
+// are already on disk when it's their turn to start.
+//
+// Safe to call even if the binary is already downloaded — DownloadManager
+// short-circuits with a single Done message in that case.
+func (o *Orchestrator) prefetchBinary(ctx context.Context, cfg BinaryConfig) <-chan error {
+	done := make(chan error, 1)
+	go func() {
+		defer close(done)
+		progressCh, err := o.download.Download(ctx, cfg, o.Network, false)
+		if err != nil {
+			done <- err
+			return
+		}
+		for p := range progressCh {
+			if p.Error != nil {
+				done <- p.Error
+				return
+			}
+		}
+		done <- nil
+	}()
+	return done
+}
+
 // StartWithL1 starts a binary along with its dependency chain:
 // Bitcoin Core -> wait for wallet/IBD -> Enforcer -> target binary.
 func (o *Orchestrator) StartWithL1(ctx context.Context, target string, opts StartOpts) (<-chan StartupProgress, error) {
@@ -433,8 +460,18 @@ func (o *Orchestrator) StartWithL1(ctx context.Context, target string, opts Star
 		defer close(ch)
 
 		if opts.Immediate {
-			o.startTargetOnly(ctx, config, opts, ch)
+			o.startTargetOnly(ctx, config, opts, ch, nil)
 			return
+		}
+
+		// Kick off enforcer + target downloads in parallel with bitcoind's IBD.
+		// By the time we need to start them, they're already on disk. If the
+		// prefetch is still running when we need to start, we block on its
+		// completion — which is no worse than the old sequential flow.
+		enforcerPrefetch := o.prefetchBinary(ctx, o.configs["enforcer"])
+		var targetPrefetch <-chan error
+		if config.Name != "enforcer" {
+			targetPrefetch = o.prefetchBinary(ctx, config)
 		}
 
 		// Auto-build core args if none provided and config manager is available
@@ -508,6 +545,12 @@ func (o *Orchestrator) StartWithL1(ctx context.Context, target string, opts Star
 				o.log.Info().Str("binary", "bitcoind").Int("pid", pid).Msg("adopted externally-running process")
 			}
 		} else {
+			// Mark as initializing BEFORE we start doing work. Covers the whole
+			// download → process.Start → wait-for-connection window so the UI
+			// shows a spinner instead of a red X. testConnection clears this on
+			// the first successful ping; error paths below clear it explicitly.
+			coreMon.SetInitializing(true)
+
 			// Dart L216-217: only start restart timer if this process starts the binary!
 			coreArgs := opts.CoreArgs // capture for closure
 			coreMon.StartRestartTimer(ctx,
@@ -560,15 +603,18 @@ func (o *Orchestrator) StartWithL1(ctx context.Context, target string, opts Star
 
 			downloadCh, err := o.download.Download(ctx, o.configs["bitcoind"], o.Network, false)
 			if err != nil {
+				coreMon.SetInitializing(false)
 				ch <- StartupProgress{Error: fmt.Errorf("download bitcoind: %w", err)}
 				return
 			}
 			if err := forwardDownload(downloadCh, ch, "downloading-bitcoind"); err != nil {
+				coreMon.SetInitializing(false)
 				ch <- StartupProgress{Error: fmt.Errorf("download bitcoind: %w", err)}
 				return
 			}
 
 			if _, err := o.process.Start(ctx, o.configs["bitcoind"], opts.CoreArgs, nil); err != nil {
+				coreMon.SetInitializing(false)
 				ch <- StartupProgress{Error: fmt.Errorf("start bitcoind: %w", err)}
 				return
 			}
@@ -577,6 +623,7 @@ func (o *Orchestrator) StartWithL1(ctx context.Context, target string, opts Star
 			// Wait for the connection timer to detect bitcoind is healthy
 			ch <- StartupProgress{Stage: "waiting-bitcoind", Message: "waiting for Bitcoin Core to accept connections..."}
 			if err := waitForConnectedOrExit(ctx, coreMon, coreProc); err != nil {
+				coreMon.SetInitializing(false)
 				ch <- StartupProgress{Error: fmt.Errorf("wait for bitcoind: %w", err)}
 				return
 			}
@@ -584,18 +631,20 @@ func (o *Orchestrator) StartWithL1(ctx context.Context, target string, opts Star
 
 		// Wait for wallet + IBD, then start enforcer.
 		if !opts.Immediate {
-			o.startEnforcerWhenReady(ctx, opts)
+			o.startEnforcerWhenReady(ctx, opts, enforcerPrefetch)
 		}
 
 		// Start the target after enforcer is ready.
-		o.startTargetOnly(ctx, config, opts, ch)
+		o.startTargetOnly(ctx, config, opts, ch, targetPrefetch)
 	}()
 
 	return ch, nil
 }
 
 // startEnforcerWhenReady waits for wallet + IBD completion, then starts the enforcer.
-func (o *Orchestrator) startEnforcerWhenReady(ctx context.Context, opts StartOpts) {
+// If prefetched is non-nil, the enforcer binary is already being downloaded
+// in parallel and we wait on its completion instead of starting a new download.
+func (o *Orchestrator) startEnforcerWhenReady(ctx context.Context, opts StartOpts, prefetched <-chan error) {
 	// 1. Wait for wallet to exist — enforcer needs the L1 seed.
 	if o.WalletSvc != nil && !o.WalletSvc.HasWallet() {
 		o.log.Info().Msg("waiting for wallet before starting enforcer")
@@ -612,17 +661,38 @@ func (o *Orchestrator) startEnforcerWhenReady(ctx context.Context, opts StartOpt
 	// 2. Wait for IBD to complete — enforcer needs a fully synced chain.
 	client, err := o.CoreStatusClient()
 	if err == nil {
-		o.log.Info().Msg("waiting for IBD to complete before starting enforcer")
+		o.log.Info().
+			Str("core_rpc", fmt.Sprintf("localhost:%d", o.BitcoinConf.GetRPCPort())).
+			Msg("waiting for IBD to complete before starting enforcer")
+		var lastErr error
+		var errCount int
 		for {
 			complete, err := client.IsIBDComplete(ctx)
-			if err == nil && complete {
-				break
+			if err == nil {
+				if complete {
+					break
+				}
+				// Mid-IBD, bitcoind is reachable: nothing to log, just wait.
+			} else {
+				errCount++
+				// Surface the RPC error the first time and then once a
+				// minute so a persistent misconfig (wrong port / creds)
+				// doesn't hide behind silent retries.
+				if errCount == 1 || errCount%12 == 0 {
+					o.log.Warn().Err(err).Int("attempts", errCount).
+						Msg("IBD check RPC failed; will keep retrying")
+				}
+				lastErr = err
 			}
 			select {
 			case <-ctx.Done():
 				return
 			case <-time.After(5 * time.Second):
 			}
+		}
+		if lastErr != nil {
+			o.log.Info().Int("recovered_after", errCount).
+				Msg("IBD check recovered after earlier RPC errors")
 		}
 		o.log.Info().Msg("IBD complete, proceeding with enforcer")
 	}
@@ -660,6 +730,10 @@ func (o *Orchestrator) startEnforcerWhenReady(ctx context.Context, opts StartOpt
 		return
 	}
 
+	// Mark initializing for the download + start window. testConnection clears
+	// this on the first successful ping; error paths below clear it explicitly.
+	enforcerMon.SetInitializing(true)
+
 	enfOpts := opts
 	enforcerMon.StartRestartTimer(ctx,
 		func(restartCtx context.Context) error {
@@ -680,19 +754,31 @@ func (o *Orchestrator) startEnforcerWhenReady(ctx context.Context, opts StartOpt
 		},
 	)
 
-	downloadCh, err := o.download.Download(ctx, enforcerCfg, o.Network, false)
-	if err != nil {
-		o.log.Error().Err(err).Msg("failed to download enforcer")
-		return
-	}
-	for progress := range downloadCh {
-		if progress.Error != nil {
-			o.log.Error().Err(progress.Error).Msg("enforcer download error")
+	if prefetched != nil {
+		// Download was kicked off in parallel with bitcoind IBD.
+		if err := <-prefetched; err != nil {
+			enforcerMon.SetInitializing(false)
+			o.log.Error().Err(err).Msg("enforcer prefetch download failed")
 			return
+		}
+	} else {
+		downloadCh, err := o.download.Download(ctx, enforcerCfg, o.Network, false)
+		if err != nil {
+			enforcerMon.SetInitializing(false)
+			o.log.Error().Err(err).Msg("failed to download enforcer")
+			return
+		}
+		for progress := range downloadCh {
+			if progress.Error != nil {
+				enforcerMon.SetInitializing(false)
+				o.log.Error().Err(progress.Error).Msg("enforcer download error")
+				return
+			}
 		}
 	}
 
 	if _, err := o.process.Start(ctx, enforcerCfg, opts.EnforcerArgs, nil); err != nil {
+		enforcerMon.SetInitializing(false)
 		o.log.Error().Err(err).Msg("failed to start enforcer")
 		return
 	}
@@ -700,7 +786,9 @@ func (o *Orchestrator) startEnforcerWhenReady(ctx context.Context, opts StartOpt
 	o.log.Info().Msg("enforcer started")
 }
 
-func (o *Orchestrator) startTargetOnly(ctx context.Context, config BinaryConfig, opts StartOpts, ch chan<- StartupProgress) {
+// If prefetched is non-nil, the target binary is already being downloaded in
+// parallel and we wait on its completion instead of starting a new download.
+func (o *Orchestrator) startTargetOnly(ctx context.Context, config BinaryConfig, opts StartOpts, ch chan<- StartupProgress, prefetched <-chan error) {
 	targetChecker := NewHealthChecker(config)
 	targetMon := o.getOrCreateMonitor(config.Name, targetChecker, nil)
 
@@ -722,16 +810,33 @@ func (o *Orchestrator) startTargetOnly(ctx context.Context, config BinaryConfig,
 		return
 	}
 
-	ch <- StartupProgress{Stage: "downloading-" + config.Name, Message: fmt.Sprintf("downloading %s...", config.DisplayName)}
+	// Mark initializing for the download + start + wait window. testConnection
+	// clears this on the first successful ping; error paths below clear it
+	// explicitly.
+	targetMon.SetInitializing(true)
 
-	downloadCh, err := o.download.Download(ctx, config, o.Network, false)
-	if err != nil {
-		ch <- StartupProgress{Error: fmt.Errorf("download %s: %w", config.Name, err)}
-		return
-	}
-	if err := forwardDownload(downloadCh, ch, "downloading-"+config.Name); err != nil {
-		ch <- StartupProgress{Error: fmt.Errorf("download %s: %w", config.Name, err)}
-		return
+	if prefetched != nil {
+		// Download was kicked off in parallel with bitcoind IBD.
+		ch <- StartupProgress{Stage: "downloading-" + config.Name, Message: fmt.Sprintf("waiting for %s download...", config.DisplayName)}
+		if err := <-prefetched; err != nil {
+			targetMon.SetInitializing(false)
+			ch <- StartupProgress{Error: fmt.Errorf("download %s: %w", config.Name, err)}
+			return
+		}
+	} else {
+		ch <- StartupProgress{Stage: "downloading-" + config.Name, Message: fmt.Sprintf("downloading %s...", config.DisplayName)}
+
+		downloadCh, err := o.download.Download(ctx, config, o.Network, false)
+		if err != nil {
+			targetMon.SetInitializing(false)
+			ch <- StartupProgress{Error: fmt.Errorf("download %s: %w", config.Name, err)}
+			return
+		}
+		if err := forwardDownload(downloadCh, ch, "downloading-"+config.Name); err != nil {
+			targetMon.SetInitializing(false)
+			ch <- StartupProgress{Error: fmt.Errorf("download %s: %w", config.Name, err)}
+			return
+		}
 	}
 
 	// If already running (e.g. enforcer started as a dep), just wait for connection.
@@ -739,6 +844,7 @@ func (o *Orchestrator) startTargetOnly(ctx context.Context, config BinaryConfig,
 		o.log.Info().Str("binary", config.Name).Msg("process already running, waiting for connection")
 		ch <- StartupProgress{Stage: "waiting-" + config.Name, Message: fmt.Sprintf("waiting for %s...", config.DisplayName)}
 		if err := waitForConnectedOrExit(ctx, targetMon, o.process.Get(config.Name)); err != nil {
+			targetMon.SetInitializing(false)
 			ch <- StartupProgress{Error: fmt.Errorf("wait for %s: %w", config.Name, err)}
 			return
 		}
@@ -775,6 +881,7 @@ func (o *Orchestrator) startTargetOnly(ctx context.Context, config BinaryConfig,
 	)
 
 	if _, err := o.process.Start(ctx, config, targetArgs, targetEnv); err != nil {
+		targetMon.SetInitializing(false)
 		ch <- StartupProgress{Error: fmt.Errorf("start %s: %w", config.Name, err)}
 		return
 	}
@@ -782,6 +889,7 @@ func (o *Orchestrator) startTargetOnly(ctx context.Context, config BinaryConfig,
 
 	ch <- StartupProgress{Stage: "waiting-" + config.Name, Message: fmt.Sprintf("waiting for %s to accept connections...", config.DisplayName)}
 	if err := waitForConnectedOrExit(ctx, targetMon, targetProc); err != nil {
+		targetMon.SetInitializing(false)
 		ch <- StartupProgress{Error: fmt.Errorf("wait for %s: %w", config.Name, err)}
 		return
 	}

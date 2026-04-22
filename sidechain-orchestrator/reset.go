@@ -38,6 +38,31 @@ type ResetEvent struct {
 	FailedCount  int
 }
 
+type pathEntry struct {
+	path     string
+	category string
+}
+
+// collectPathEntries returns the deduplicated, deterministic list that preview
+// and deletion MUST share — otherwise their counts diverge and the UI desyncs.
+func (o *Orchestrator) collectPathEntries(cat ResetCategory) []pathEntry {
+	pathsByCategory := o.collectPaths(cat)
+	order := []string{"blockchain_data", "node_software", "logs", "settings", "wallet"}
+
+	var entries []pathEntry
+	seen := make(map[string]bool)
+	for _, category := range order {
+		for _, p := range pathsByCategory[category] {
+			if seen[p] {
+				continue
+			}
+			seen[p] = true
+			entries = append(entries, pathEntry{path: p, category: category})
+		}
+	}
+	return entries
+}
+
 // categoryLabel maps category flags to human-readable labels.
 func categoryLabel(cat string) string {
 	switch cat {
@@ -75,8 +100,18 @@ func (o *Orchestrator) collectPaths(cat ResetCategory) map[string][]string {
 
 	binDir := BinDir(o.BitwindowDir)
 
+	// User may have overridden bitcoind's datadir in bitwindow-bitcoin.conf;
+	// honour that so reset targets the right place on disk.
+	bitcoinOverride := ""
+	if o.BitcoinConf != nil {
+		bitcoinOverride = o.BitcoinConf.DetectedDataDir
+	}
+
 	for _, dc := range targets {
-		networkDir := dc.RootDirNetwork(network)
+		// Use the network-aware datadir so we hit bitcoind's signet/ subdir
+		// (blocks, chainstate, wallets) and bitwindowd's signet/ subdir
+		// (bitwindow.db, wallet.json). Other binaries get the flat root.
+		networkDir := dc.DatadirNetwork(network, bitcoinOverride)
 
 		if cat.DeleteBlockchainData {
 			result["blockchain_data"] = append(result["blockchain_data"],
@@ -119,23 +154,21 @@ func (o *Orchestrator) collectPaths(cat ResetCategory) map[string][]string {
 // PreviewResetData returns the list of files/directories that would be deleted
 // for the given categories, without performing any deletions.
 func (o *Orchestrator) PreviewResetData(cat ResetCategory) ([]ResetFileInfo, error) {
-	pathsByCategory := o.collectPaths(cat)
+	entries := o.collectPathEntries(cat)
 
 	var files []ResetFileInfo
-	for category, paths := range pathsByCategory {
-		for _, p := range paths {
-			info := ResetFileInfo{
-				Path:     p,
-				Category: category,
-			}
-			if fi, err := os.Stat(p); err == nil {
-				info.IsDirectory = fi.IsDir()
-				if !fi.IsDir() {
-					info.SizeBytes = fi.Size()
-				}
-			}
-			files = append(files, info)
+	for _, e := range entries {
+		info := ResetFileInfo{
+			Path:     e.path,
+			Category: e.category,
 		}
+		if fi, err := os.Stat(e.path); err == nil {
+			info.IsDirectory = fi.IsDir()
+			if !fi.IsDir() {
+				info.SizeBytes = fi.Size()
+			}
+		}
+		files = append(files, info)
 	}
 
 	return files, nil
@@ -173,23 +206,7 @@ func (o *Orchestrator) StreamResetData(ctx context.Context, cat ResetCategory) (
 		}
 	}
 
-	pathsByCategory := o.collectPaths(cat)
-
-	// Flatten to ordered list for deletion.
-	type pathEntry struct {
-		path     string
-		category string
-	}
-	var entries []pathEntry
-	seen := make(map[string]bool)
-	for category, paths := range pathsByCategory {
-		for _, p := range paths {
-			if !seen[p] {
-				seen[p] = true
-				entries = append(entries, pathEntry{path: p, category: category})
-			}
-		}
-	}
+	entries := o.collectPathEntries(cat)
 
 	events := make(chan ResetEvent, len(entries)+1)
 
