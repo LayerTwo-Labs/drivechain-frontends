@@ -178,8 +178,10 @@ func (o *Orchestrator) PreviewResetData(cat ResetCategory) ([]ResetFileInfo, err
 // sending each deletion event to the returned channel. The final event has
 // Done=true with summary counts.
 func (o *Orchestrator) StreamResetData(ctx context.Context, cat ResetCategory) (<-chan ResetEvent, error) {
-	// Stop all managed binaries before touching anything on disk.
-	shutdownCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	// Budget grows with dependency-chain length; ShutdownAll is sequential.
+	running := o.process.ListRunning()
+	shutdownBudget := gracefulKillTimeout * time.Duration(len(running)+2)
+	shutdownCtx, cancel := context.WithTimeout(ctx, shutdownBudget)
 	defer cancel()
 
 	ch, err := o.ShutdownAll(shutdownCtx, false)
@@ -192,8 +194,8 @@ func (o *Orchestrator) StreamResetData(ctx context.Context, cat ResetCategory) (
 		}
 	}
 
-	// Small grace period for file handles to be released.
-	time.Sleep(2 * time.Second)
+	// Windows keeps handles briefly after force-kill; wait before RemoveAll.
+	time.Sleep(postKillFileLockGrace)
 
 	// Wallet deletion via WalletSvc (must happen while Core is down).
 	if cat.DeleteWalletFiles && o.WalletSvc != nil {

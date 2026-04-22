@@ -9,7 +9,7 @@
 package mainchainv1
 
 import (
-	v1 "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/cusf/common/v1"
+	v1 "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/common/v1"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	wrapperspb "google.golang.org/protobuf/types/known/wrapperspb"
@@ -3161,8 +3161,8 @@ const file_cusf_mainchain_v1_validator_proto_rawDesc = "" +
 	"\x10GetTwoWayPegData\x12*.cusf.mainchain.v1.GetTwoWayPegDataRequest\x1a+.cusf.mainchain.v1.GetTwoWayPegDataResponse\x12j\n" +
 	"\x0fSubscribeEvents\x12).cusf.mainchain.v1.SubscribeEventsRequest\x1a*.cusf.mainchain.v1.SubscribeEventsResponse0\x01\x12\x8e\x01\n" +
 	"\x1bSubscribeHeaderSyncProgress\x125.cusf.mainchain.v1.SubscribeHeaderSyncProgressRequest\x1a6.cusf.mainchain.v1.SubscribeHeaderSyncProgressResponse0\x01\x12G\n" +
-	"\x04Stop\x12\x1e.cusf.mainchain.v1.StopRequest\x1a\x1f.cusf.mainchain.v1.StopResponseB\xe3\x01\n" +
-	"\x15com.cusf.mainchain.v1B\x0eValidatorProtoP\x01ZTgithub.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/cusf/mainchain/v1;mainchainv1\xa2\x02\x03CMX\xaa\x02\x11Cusf.Mainchain.V1\xca\x02\x11Cusf\\Mainchain\\V1\xe2\x02\x1dCusf\\Mainchain\\V1\\GPBMetadata\xea\x02\x13Cusf::Mainchain::V1b\x06proto3"
+	"\x04Stop\x12\x1e.cusf.mainchain.v1.StopRequest\x1a\x1f.cusf.mainchain.v1.StopResponseB\xe9\x01\n" +
+	"\x15com.cusf.mainchain.v1B\x0eValidatorProtoP\x01ZZgithub.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1;mainchainv1\xa2\x02\x03CMX\xaa\x02\x11Cusf.Mainchain.V1\xca\x02\x11Cusf\\Mainchain\\V1\xe2\x02\x1dCusf\\Mainchain\\V1\\GPBMetadata\xea\x02\x13Cusf::Mainchain::V1b\x06proto3"
 
 var (
 	file_cusf_mainchain_v1_validator_proto_rawDescOnce sync.Once

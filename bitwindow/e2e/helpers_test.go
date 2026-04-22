@@ -75,10 +75,9 @@ func startJustRun(t *testing.T, extraEnv map[string]string) *runHandle {
 	return startJustRunIn(t, makeTempDataDir(t), extraEnv)
 }
 
-// makeTempDataDir returns a per-test temp dir with best-effort cleanup. Unlike
-// t.TempDir(), a RemoveAll failure doesn't fail the test — on Windows detached
-// daemons can keep the exe locked past force-kill, and we'd rather pass the
-// test than spuriously fail over a disk-cleanup race.
+// Windows holds file handles on Dart-spawned detached daemons (bitwindowd,
+// orchestratord) past test end; t.TempDir's fatal RemoveAll races against
+// that. Swallow the error — the test already passed or failed on its own.
 func makeTempDataDir(t *testing.T) string {
 	t.Helper()
 	dir, err := os.MkdirTemp("", "bitwindow-e2e-")
@@ -93,10 +92,10 @@ func makeTempDataDir(t *testing.T) string {
 	return dir
 }
 
-// startJustRunIn is like startJustRun but uses the given dataDir. Use this to
-// reuse state across two consecutive launches (see the restart test).
 func startJustRunIn(t *testing.T, dataDir string, extraEnv map[string]string) *runHandle {
 	t.Helper()
+
+	sweepPriorRunOrphans(t)
 
 	bitwindowDir := bitwindowRepoDir(t)
 
@@ -185,13 +184,12 @@ func (h *runHandle) stop(t *testing.T, graceful time.Duration) {
 			t.Logf("kill: %v", err)
 		}
 		<-h.doneCh
-		// Dart's Process.start on Windows defaults to detached, so
-		// bitwindowd/orchestratord can escape the tree kill. Sweep them
-		// by image name too.
-		killOrphanDaemons(t)
+		// sail_ui's Dart Process.start on Windows spawns detached by default,
+		// so bitwindowd/orchestratord escape the `just run` tree and survive
+		// even a /F /T sweep. Clean them up by name — out-of-scope for this PR.
+		sweepPriorRunOrphans(t)
 	})
 }
-
 
 // waitUntil polls pred every interval until it returns true or deadline
 // passes. On deadline, fails with msg.

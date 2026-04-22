@@ -376,6 +376,14 @@ func (c *CoreStatusClient) ListDescriptors(ctx context.Context, walletName strin
 	return &desc, nil
 }
 
+// Stop acks immediately; the caller must wait for process exit for the flush.
+func (c *CoreStatusClient) Stop(ctx context.Context) error {
+	if _, err := c.call(ctx, "stop"); err != nil {
+		return fmt.Errorf("bitcoind stop RPC: %w", err)
+	}
+	return nil
+}
+
 // --- Helpers ---
 
 // callWallet calls a method on a specific wallet using the /wallet/<name> URL path.

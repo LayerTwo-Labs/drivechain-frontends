@@ -9,9 +9,17 @@ import (
 	"strconv"
 	"strings"
 	"syscall"
+	"time"
 
 	"github.com/rs/zerolog"
 )
+
+const (
+	gracefulKillTimeout   = 10 * time.Second
+	postKillFileLockGrace = 2 * time.Second
+)
+
+func configureProcessAttr(_ *exec.Cmd) {}
 
 // chmod makes a file executable.
 func chmod(path string) error {
