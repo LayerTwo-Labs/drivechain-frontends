@@ -2,6 +2,7 @@
 
 #include <dwmapi.h>
 #include <flutter_windows.h>
+#include <tlhelp32.h>
 
 #include "resource.h"
 
@@ -35,6 +36,45 @@ using EnableNonClientDpiScaling = BOOL __stdcall(HWND hwnd);
 // scale factor
 int Scale(int source, double scale_factor) {
   return static_cast<int>(source * scale_factor);
+}
+
+// Force-terminate every managed daemon we might have spawned. Used on
+// WM_CLOSE because Dart's ProcessSignal.sigint.watch doesn't fire for GUI
+// apps on Windows (so the Mac/Linux close-to-SIGINT trick doesn't work) and
+// Dart's Process.start may create detached children that escape a tree-kill.
+void TerminateManagedDaemons() {
+  static const wchar_t* const kNames[] = {
+      L"bitwindowd.exe",
+      L"orchestratord.exe",
+      L"bitcoind.exe",
+      L"bip300301_enforcer.exe",
+      L"thunder.exe",
+      L"zside.exe",
+      L"plain_bitnames.exe",
+      L"plain_bitassets.exe",
+      L"truthcoin.exe",
+      L"coinshift.exe",
+      L"photon.exe",
+  };
+  HANDLE snap = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
+  if (snap == INVALID_HANDLE_VALUE) return;
+  PROCESSENTRY32W pe{};
+  pe.dwSize = sizeof(pe);
+  if (Process32FirstW(snap, &pe)) {
+    do {
+      for (const wchar_t* name : kNames) {
+        if (_wcsicmp(pe.szExeFile, name) == 0) {
+          HANDLE h = OpenProcess(PROCESS_TERMINATE, FALSE, pe.th32ProcessID);
+          if (h) {
+            TerminateProcess(h, 0);
+            CloseHandle(h);
+          }
+          break;
+        }
+      }
+    } while (Process32NextW(snap, &pe));
+  }
+  CloseHandle(snap);
 }
 
 // Dynamically loads the |EnableNonClientDpiScaling| from the User32 module.
@@ -179,6 +219,12 @@ Win32Window::MessageHandler(HWND hwnd,
                             WPARAM const wparam,
                             LPARAM const lparam) noexcept {
   switch (message) {
+    case WM_CLOSE:
+      // Kill every managed daemon (bitwindowd, orchestratord, bitcoind,
+      // enforcer, sidechains) before the window tears down.
+      TerminateManagedDaemons();
+      break;
+
     case WM_DESTROY:
       window_handle_ = nullptr;
       Destroy();
