@@ -61,6 +61,16 @@ func runTaskkill(pid int, force bool) error {
 	return nil
 }
 
+// killOrphanDaemons force-kills daemons by image name. Dart's Process.start
+// on Windows spawns detached processes by default, so bitwindowd/orchestratord
+// escape the `just run` process tree and survive a /T sweep.
+func killOrphanDaemons(t *testing.T) {
+	t.Helper()
+	for _, name := range []string{"bitwindowd.exe", "orchestratord.exe", "bitcoind.exe"} {
+		_ = exec.Command("taskkill", "/F", "/IM", name).Run()
+	}
+}
+
 // closeAppViaWindowSystem sends WM_CLOSE to the top-level window of the
 // given pid — the Windows equivalent of clicking the X button. Goes through
 // the Flutter onWindowClose handler, not a POSIX signal.

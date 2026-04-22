@@ -28,7 +28,7 @@ func TestJustRunRestart(t *testing.T) {
 
 	t.Logf("Issue 3 / restart: launching two successive `just run` on %s", runtime.GOOS)
 
-	dataDir := t.TempDir()
+	dataDir := makeTempDataDir(t)
 
 	// ------------------------------------------------------------------
 	// Boot 1 — generate wallet, save address at derivation index 0.

@@ -72,7 +72,25 @@ type runHandle struct {
 // other. Returns a runHandle the caller must stop.
 func startJustRun(t *testing.T, extraEnv map[string]string) *runHandle {
 	t.Helper()
-	return startJustRunIn(t, t.TempDir(), extraEnv)
+	return startJustRunIn(t, makeTempDataDir(t), extraEnv)
+}
+
+// makeTempDataDir returns a per-test temp dir with best-effort cleanup. Unlike
+// t.TempDir(), a RemoveAll failure doesn't fail the test — on Windows detached
+// daemons can keep the exe locked past force-kill, and we'd rather pass the
+// test than spuriously fail over a disk-cleanup race.
+func makeTempDataDir(t *testing.T) string {
+	t.Helper()
+	dir, err := os.MkdirTemp("", "bitwindow-e2e-")
+	if err != nil {
+		t.Fatalf("mkdir temp: %v", err)
+	}
+	t.Cleanup(func() {
+		if err := os.RemoveAll(dir); err != nil {
+			t.Logf("temp dir cleanup (non-fatal): %v", err)
+		}
+	})
+	return dir
 }
 
 // startJustRunIn is like startJustRun but uses the given dataDir. Use this to
@@ -167,6 +185,10 @@ func (h *runHandle) stop(t *testing.T, graceful time.Duration) {
 			t.Logf("kill: %v", err)
 		}
 		<-h.doneCh
+		// Dart's Process.start on Windows defaults to detached, so
+		// bitwindowd/orchestratord can escape the tree kill. Sweep them
+		// by image name too.
+		killOrphanDaemons(t)
 	})
 }
 
