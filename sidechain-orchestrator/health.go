@@ -112,19 +112,19 @@ func (h *ConnectRPCHealthCheck) Check(ctx context.Context) error {
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, h.URL, strings.NewReader("{}"))
 	if err != nil {
-		return fmt.Errorf("build Connect request: %w", err)
+		return fmt.Errorf("build connect request: %w", err)
 	}
 	req.Header.Set("Content-Type", "application/json")
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		return fmt.Errorf("Connect %s: %w", h.URL, err)
+		return fmt.Errorf("connect %s: %w", h.URL, err)
 	}
 	defer resp.Body.Close() //nolint:errcheck // cleanup
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return fmt.Errorf("read Connect response: %w", err)
+		return fmt.Errorf("read connect response: %w", err)
 	}
 
 	if resp.StatusCode != http.StatusOK {
@@ -135,7 +135,7 @@ func (h *ConnectRPCHealthCheck) Check(ctx context.Context) error {
 		if json.Unmarshal(body, &cerr) == nil && cerr.Message != "" {
 			return fmt.Errorf("%s", cerr.Message)
 		}
-		return fmt.Errorf("Connect HTTP %d: %s", resp.StatusCode, string(body))
+		return fmt.Errorf("connect HTTP %d: %s", resp.StatusCode, string(body))
 	}
 
 	return nil
