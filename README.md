@@ -14,4 +14,6 @@ A collection of various Drivechain-related applications.
 
 - [ZSide](zside/README.md)
 
+- [Coinshift](coinshift/README.md)
+
 - [Faucet](faucet/README.md)
