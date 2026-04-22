@@ -118,8 +118,16 @@ class BackendStateProvider extends ChangeNotifier {
     final rpc = _rpcForBinaryName(status.name);
     if (rpc == null) return null;
 
-    final startupError = status.startupError.isNotEmpty ? status.startupError : null;
-    final connectionError = status.connectionError.isNotEmpty ? status.connectionError : null;
+    // Always derive from the current status. Critically, when the orchestrator stops
+    // reporting a startup_error (empty string in the message), we must null out the
+    // stale value on the RPC so the UI doesn't keep rendering a warmup message after
+    // the binary is healthy. Same story for connectionError.
+    //
+    // Belt-and-suspenders: once the orchestrator reports connected=true with no
+    // startup_error, force a null so any stale value from a previous tick is gone.
+    final bool healthy = status.connected && status.startupError.isEmpty;
+    final startupError = (status.startupError.isEmpty || healthy) ? null : status.startupError;
+    final connectionError = status.connectionError.isEmpty ? null : status.connectionError;
 
     // Check if anything actually changed to avoid unnecessary rebuilds
     if (rpc.connected == status.connected &&

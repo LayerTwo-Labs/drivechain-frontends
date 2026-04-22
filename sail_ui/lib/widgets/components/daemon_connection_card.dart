@@ -166,11 +166,16 @@ class DaemonConnectionCard extends StatelessWidget {
               child: SailText.secondary12(
                 prettifyLogMessage(
                   infoMessage ??
-                      // During initialization, show startup logs instead of connection errors
+                      // Precedence: connectionError (hard fail) is red-worthy; startupError is the
+                      // orchestrator's primary warmup signal (e.g. "Loading block index…") and must
+                      // win over the initialising-binary fallback so we don't overwrite a real
+                      // warmup message with a generic spinner. Only fall back to the latest startup
+                      // log line when the orchestrator hasn't published a startup_error yet.
+                      connection.connectionError ??
+                      connection.startupError ??
                       (connection.initializingBinary
                           ? (providerBinary?.startupLogs.lastOrNull?.message ?? 'Initializing...')
-                          : connection.connectionError) ??
-                      connection.startupError ??
+                          : null) ??
                       (!connection.connected ? 'Not connected' : ''),
                 ),
                 monospace: true,
@@ -181,19 +186,46 @@ class DaemonConnectionCard extends StatelessWidget {
     );
   }
 
-  Color _getConnectionColor(SailThemeData theme) {
-    if (syncInfo != null && syncInfo!.downloadInfo.isDownloading) {
-      return theme.colors.orangeLight;
-    } else if (infoMessage != null) {
-      return theme.colors.info;
-    } else if (connection.initializingBinary) {
-      return theme.colors.orangeLight;
-    } else if (connection.connected) {
-      return theme.colors.success;
-    } else {
-      return theme.colors.error;
-    }
-  }
+  Color _getConnectionColor(SailThemeData theme) => resolveDaemonStatusColor(
+    theme: theme,
+    connectionError: connection.connectionError,
+    startupError: connection.startupError,
+    initializingBinary: connection.initializingBinary,
+    connected: connection.connected,
+    isDownloading: syncInfo?.downloadInfo.isDownloading ?? false,
+    hasInfoMessage: infoMessage != null,
+  );
+}
+
+/// Pure function for the daemon-status color precedence. Exposed for testing.
+///
+/// Precedence (top wins):
+///  1. hard connection error  -> red   (explicit RPC/transport failure)
+///  2. orchestrator startupError -> amber (warmup message, not a failure)
+///  3. initializingBinary        -> amber
+///  4. !connected                -> amber (orchestrator hasn't reported a failure yet —
+///                                         this is the "booting, no news" window that
+///                                         used to flash red)
+///  5. download in progress      -> amber
+///  6. explicit infoMessage      -> info
+///  7. connected                 -> success
+@visibleForTesting
+Color resolveDaemonStatusColor({
+  required SailThemeData theme,
+  required String? connectionError,
+  required String? startupError,
+  required bool initializingBinary,
+  required bool connected,
+  required bool isDownloading,
+  required bool hasInfoMessage,
+}) {
+  if (connectionError != null) return theme.colors.error;
+  if (startupError != null) return theme.colors.orangeLight;
+  if (initializingBinary) return theme.colors.orangeLight;
+  if (!connected) return theme.colors.orangeLight;
+  if (isDownloading) return theme.colors.orangeLight;
+  if (hasInfoMessage) return theme.colors.info;
+  return theme.colors.success;
 }
 
 class BlockStatus extends StatelessWidget {
