@@ -156,27 +156,21 @@ class DaemonConnectionCard extends StatelessWidget {
                 syncInfo: syncInfo!,
               ),
             ),
-          if (infoMessage != null ||
-              connection.connectionError != null ||
-              connection.startupError != null ||
-              connection.initializingBinary ||
-              !connection.connected)
+          if (infoMessage != null || connection.connectionError != null || !connection.connected)
             Padding(
               padding: const EdgeInsets.only(top: SailStyleValues.padding04),
               child: SailText.secondary12(
                 prettifyLogMessage(
+                  // When connected, the daemon is healthy — stale startupError and
+                  // initializingBinary are ignored. Only show this row for real trouble
+                  // (connectionError, !connected) or explicit infoMessage.
                   infoMessage ??
-                      // Precedence: connectionError (hard fail) is red-worthy; startupError is the
-                      // orchestrator's primary warmup signal (e.g. "Loading block index…") and must
-                      // win over the initialising-binary fallback so we don't overwrite a real
-                      // warmup message with a generic spinner. Only fall back to the latest startup
-                      // log line when the orchestrator hasn't published a startup_error yet.
                       connection.connectionError ??
                       connection.startupError ??
                       (connection.initializingBinary
                           ? (providerBinary?.startupLogs.lastOrNull?.message ?? 'Initializing...')
                           : null) ??
-                      (!connection.connected ? 'Not connected' : ''),
+                      'Not connected',
                 ),
                 monospace: true,
               ),
@@ -200,15 +194,15 @@ class DaemonConnectionCard extends StatelessWidget {
 /// Pure function for the daemon-status color precedence. Exposed for testing.
 ///
 /// Precedence (top wins):
-///  1. hard connection error  -> red   (explicit RPC/transport failure)
-///  2. orchestrator startupError -> amber (warmup message, not a failure)
-///  3. initializingBinary        -> amber
-///  4. !connected                -> amber (orchestrator hasn't reported a failure yet —
-///                                         this is the "booting, no news" window that
-///                                         used to flash red)
-///  5. download in progress      -> amber
-///  6. explicit infoMessage      -> info
-///  7. connected                 -> success
+///  1. connectionError           -> red    (explicit RPC/transport failure)
+///  2. connected                 -> green  (startupError/initializing are ignored once
+///                                          the daemon is on the wire — they'd be stale);
+///                                  except isDownloading still amber, infoMessage still info
+///  3. startupError              -> amber  (warmup message surfaced while !connected)
+///  4. initializingBinary        -> amber
+///  5. isDownloading             -> amber
+///  6. hasInfoMessage            -> info
+///  7. !connected, no other info -> amber  (booting, no news — used to flash red)
 @visibleForTesting
 Color resolveDaemonStatusColor({
   required SailThemeData theme,
@@ -220,12 +214,16 @@ Color resolveDaemonStatusColor({
   required bool hasInfoMessage,
 }) {
   if (connectionError != null) return theme.colors.error;
+  if (connected) {
+    if (isDownloading) return theme.colors.orangeLight;
+    if (hasInfoMessage) return theme.colors.info;
+    return theme.colors.success;
+  }
   if (startupError != null) return theme.colors.orangeLight;
   if (initializingBinary) return theme.colors.orangeLight;
-  if (!connected) return theme.colors.orangeLight;
   if (isDownloading) return theme.colors.orangeLight;
   if (hasInfoMessage) return theme.colors.info;
-  return theme.colors.success;
+  return theme.colors.orangeLight;
 }
 
 class BlockStatus extends StatelessWidget {

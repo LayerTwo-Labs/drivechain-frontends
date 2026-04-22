@@ -375,34 +375,22 @@ class BottomNavViewModel extends BaseViewModel with ChangeTrackingMixin {
       false;
 
   Color get connectionColor {
-    // Precedence (top wins). The orchestrator is the source of truth for startup
-    // state, so we read its signals in order:
-    //  1. connectionError on any binary  -> red   (explicit failure)
-    //  2. startupError on any binary     -> amber (warmup message, not a failure)
-    //  3. initializingBinary on any      -> amber
-    //  4. !connected on any              -> amber (used to be red — that made services
-    //                                              flash red during the 50ms–5s window
-    //                                              before orchestrator set initializing=true)
-    //  5. any download in progress       -> amber
-    //  6. any binary not yet in-sync     -> amber
-    //  7. all good                       -> green
+    // Precedence (top wins):
+    //  1. any connectionError -> red   (explicit failure)
+    //  2. not all connected   -> amber (any !connected, regardless of startupError/init)
+    //  3. any download        -> amber
+    //  4. any binary !in-sync -> amber
+    //  5. else                -> green
+    //
+    // `connected` is the authoritative "healthy" signal — stale startupError /
+    // initializingBinary on an already-connected daemon are ignored.
     if (mainchain.connectionError != null ||
         enforcer.connectionError != null ||
         additionalConnection.connectionError != null) {
       return SailColorScheme.red;
     }
 
-    if (mainchain.startupError != null ||
-        enforcer.startupError != null ||
-        additionalConnection.rpc.startupError != null) {
-      return SailColorScheme.orange;
-    }
-
-    if (initializingAny) {
-      return SailColorScheme.orange;
-    }
-
-    if (!mainchain.connected || !enforcer.connected || !additionalConnection.connected) {
+    if (!allConnected) {
       return SailColorScheme.orange;
     }
 
@@ -486,20 +474,21 @@ class BottomNavViewModel extends BaseViewModel with ChangeTrackingMixin {
     return 'All binaries connected';
   }
 
-  /// Returns the per-binary status line following the A/B precedence in the plan:
+  /// Per-binary status line. `connected` short-circuits to healthy — any stale
+  /// startupError/initializingBinary on a connected daemon is ignored. Order:
   ///  1. connectionError    -> show it (hard fail)
-  ///  2. startupError       -> show it verbatim (orchestrator warmup message)
-  ///  3. initializingBinary -> show latest startup log line, or "Initializing [name]…"
-  ///  4. !connected         -> "Waiting for [name]"
-  ///  5. else               -> null (healthy from this binary's POV)
+  ///  2. connected          -> null (healthy from this binary's POV)
+  ///  3. startupError       -> show it verbatim (orchestrator warmup message)
+  ///  4. initializingBinary -> show latest startup log line, or "Initializing [name]…"
+  ///  5. else (!connected)  -> "Waiting for [name]"
   String? _statusLineFor({required RPCConnection rpc, required String binaryLabel}) {
     if (rpc.connectionError != null) return rpc.connectionError;
+    if (rpc.connected) return null;
     if (rpc.startupError != null) return rpc.startupError;
     if (rpc.initializingBinary) {
       return rpc.binary.startupLogs.lastOrNull?.message ?? 'Initializing $binaryLabel…';
     }
-    if (!rpc.connected) return 'Waiting for $binaryLabel';
-    return null;
+    return 'Waiting for $binaryLabel';
   }
 
   @override

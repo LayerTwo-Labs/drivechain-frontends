@@ -7,12 +7,12 @@
 //
 // New precedence (see `resolveDaemonStatusColor`):
 //   connectionError  -> red
-//   startupError     -> amber   (warmup message, not a failure)
+//   connected        -> green   (short-circuits — stale startupError/init ignored)
+//   startupError     -> amber   (warmup message, only while !connected)
 //   initializing     -> amber
-//   !connected       -> amber   (was red before this change — the fix)
 //   downloading      -> amber
 //   has infoMessage  -> info
-//   otherwise        -> success
+//   !connected only  -> amber   (was red before this change — the fix)
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -88,6 +88,22 @@ void main() {
 
     test('success when fully healthy', () {
       expect(call(connected: true), theme.colors.success);
+    });
+
+    test('connected wins over stale startupError / initializing', () {
+      // Once the daemon is on the wire, lingering warmup signals are ignored.
+      expect(
+        call(connected: true, startupError: 'Loading block index…'),
+        theme.colors.success,
+      );
+      expect(
+        call(connected: true, initializingBinary: true),
+        theme.colors.success,
+      );
+      expect(
+        call(connected: true, startupError: 'x', initializingBinary: true),
+        theme.colors.success,
+      );
     });
   });
 }
