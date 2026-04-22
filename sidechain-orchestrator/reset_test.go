@@ -155,28 +155,29 @@ func TestPreviewResetData_StatsExistingFiles(t *testing.T) {
 func TestPreviewResetData_DirectoryMarked(t *testing.T) {
 	o := newResetTestOrchestrator(t)
 
-	// Seed a directory that will be picked up (e.g. blocks dir for bitcoind).
-	// We need to figure out the network dir for bitcoind and create a "blocks"
-	// directory inside it.
-	cfg, ok := o.configs["bitcoind"]
-	if !ok {
-		t.Skip("bitcoind config not present in defaults")
-	}
-	_ = cfg
-	// Use collectPaths to discover what paths would be looked up, then
-	// create one as a directory.
+	// Pick any blockchain_data path that doesn't already exist (orchestrator
+	// init seeds a few files like bitwindow-enforcer.conf), create it as a
+	// directory, and verify preview reports IsDirectory=true.
 	paths := o.collectPaths(ResetCategory{DeleteBlockchainData: true})
-	if bcPaths, ok := paths["blockchain_data"]; ok && len(bcPaths) > 0 {
-		// Create the first path as a directory.
-		seedDir(t, bcPaths[0])
+	bcPaths := paths["blockchain_data"]
+	var target string
+	for _, p := range bcPaths {
+		if _, err := os.Stat(p); os.IsNotExist(err) {
+			target = p
+			break
+		}
+	}
+	if target == "" {
+		t.Skip("no unused blockchain_data path available to seed")
+	}
+	seedDir(t, target)
 
-		files, err := o.PreviewResetData(ResetCategory{DeleteBlockchainData: true})
-		require.NoError(t, err)
-		for _, f := range files {
-			if f.Path == bcPaths[0] {
-				assert.True(t, f.IsDirectory)
-				assert.Zero(t, f.SizeBytes, "directories should report 0 size")
-			}
+	files, err := o.PreviewResetData(ResetCategory{DeleteBlockchainData: true})
+	require.NoError(t, err)
+	for _, f := range files {
+		if f.Path == target {
+			assert.True(t, f.IsDirectory)
+			assert.Zero(t, f.SizeBytes, "directories should report 0 size")
 		}
 	}
 }

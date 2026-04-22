@@ -232,6 +232,22 @@ func (m *ConnectionMonitor) InitializingBinary() bool {
 	return m.initializingBinary
 }
 
+// SetInitializing flips the initializing flag and fires onChange so the
+// frontend sees the transition immediately (before the next 1s ping).
+// Orchestrator calls this around process.Start so the UI shows an "initializing"
+// spinner instead of a red X during the fresh-boot window where testConnection
+// is still failing.
+func (m *ConnectionMonitor) SetInitializing(v bool) {
+	m.mu.Lock()
+	if m.initializingBinary == v {
+		m.mu.Unlock()
+		return
+	}
+	m.initializingBinary = v
+	m.mu.Unlock()
+	m.notifyChange()
+}
+
 // ConnectModeOnly returns whether the monitor is in connect-mode-only
 // (willfully stopped, only watching for external restart).
 func (m *ConnectionMonitor) ConnectModeOnly() bool {
@@ -322,6 +338,7 @@ func (m *ConnectionMonitor) testConnection(ctx context.Context) {
 		m.completedStartup = true
 		m.restartCount = 0
 		m.hasCrashError = false // clear crash error on successful reconnection
+		m.initializingBinary = false
 	} else if isConnectModeOnly {
 		// Dart L119-124: in connect-mode-only, just stay clean disconnected
 		m.connected = false
@@ -592,6 +609,7 @@ func (m *ConnectionMonitor) MarkStopped() {
 	// Dart L371-378: cleanup
 	m.connected = false
 	m.stoppingBinary = false
+	m.initializingBinary = false
 	m.connectionError = ""
 	m.startupError = ""
 	m.hasCrashError = false

@@ -13,6 +13,10 @@ class ResetConfirmationPage extends StatefulWidget {
   final bool deleteNodeSoftware;
   final Logger log;
   final Future<void> Function()? preDeleteAction;
+  // When provided, deletion is delegated to the orchestrator: server stops
+  // binaries and deletes, streaming one event per path. Null → legacy
+  // client-side deletion via Binary methods (still used by sidechain apps).
+  final Stream<StreamResetDataResponse> Function()? orchestratorDelete;
 
   const ResetConfirmationPage({
     super.key,
@@ -23,6 +27,7 @@ class ResetConfirmationPage extends StatefulWidget {
     required this.deleteNodeSoftware,
     required this.log,
     this.preDeleteAction,
+    this.orchestratorDelete,
   });
 
   @override
@@ -95,6 +100,23 @@ class _ResetConfirmationPageState extends State<ResetConfirmationPage> {
       await widget.preDeleteAction!();
     }
 
+    if (widget.orchestratorDelete != null) {
+      await _runOrchestratorDelete();
+    } else {
+      await _runClientDelete();
+    }
+
+    // Re-download binaries if needed (server doesn't repopulate bin/).
+    if (widget.deleteNodeSoftware) {
+      await copyBinariesFromAssets(widget.log, widget.appDir);
+    }
+
+    if (mounted) {
+      setState(() => _deletionComplete = true);
+    }
+  }
+
+  Future<void> _runClientDelete() async {
     // Stop binaries first
     await Future.wait(
       widget.binariesToReset.map((b) => widget.binaryProvider.stop(b)),
@@ -142,14 +164,43 @@ class _ResetConfirmationPageState extends State<ResetConfirmationPage> {
 
       await Future.delayed(const Duration(milliseconds: 50));
     }
+  }
 
-    // Re-download binaries if needed
-    if (widget.deleteNodeSoftware) {
-      await copyBinariesFromAssets(widget.log, widget.appDir);
+  Future<void> _runOrchestratorDelete() async {
+    // Orchestrator stops binaries server-side; no client-side stop needed.
+    final pathToItem = <String, DeleteItem>{};
+    for (final item in widget.filesToDelete) {
+      pathToItem[item.path] = item;
     }
 
-    if (mounted) {
-      setState(() => _deletionComplete = true);
+    var seen = 0;
+    try {
+      await for (final event in widget.orchestratorDelete!()) {
+        if (!mounted) return;
+        if (event.done) break;
+        setState(() {
+          _stoppingBinaries = false;
+          _currentIndex = seen;
+          final item = pathToItem[event.path];
+          if (item != null) {
+            item.status = event.success ? DeleteItemStatus.success : DeleteItemStatus.error;
+            if (!event.success) item.errorMessage = event.error;
+          }
+        });
+        seen++;
+      }
+    } catch (e) {
+      widget.log.e('Orchestrator reset stream failed: $e');
+      if (mounted) {
+        setState(() {
+          for (final item in widget.filesToDelete) {
+            if (item.status == DeleteItemStatus.pending || item.status == DeleteItemStatus.inProgress) {
+              item.status = DeleteItemStatus.error;
+              item.errorMessage = e.toString();
+            }
+          }
+        });
+      }
     }
   }
 

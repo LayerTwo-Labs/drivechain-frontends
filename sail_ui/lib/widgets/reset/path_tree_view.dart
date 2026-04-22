@@ -50,10 +50,12 @@ class TreeNode {
             isDirectory: nodeIsDirectory,
           );
 
-          // If this is a leaf node (in original paths) and it's a directory,
-          // collapse it by default since it represents an entire directory deletion
+          // Leaf directory in the paths list → whole dir gets deleted.
+          // Collapse by default but populate children so the user can expand
+          // to see exactly what's inside before confirming.
           if (isLast && nodeIsDirectory && pathsSet.contains(partialPath)) {
             defaultCollapsed.add(partialPath);
+            await _populateChildren(current.children[part]!, partialPath);
           }
         } else if (!isLast) {
           current.children[part]!.isDirectory = true;
@@ -63,6 +65,31 @@ class TreeNode {
     }
 
     return (root, defaultCollapsed);
+  }
+
+  /// Walk a real directory and attach its contents as TreeNode children so
+  /// a leaf directory in the paths list can be expanded in the UI.
+  static Future<void> _populateChildren(TreeNode node, String dirPath) async {
+    try {
+      final entities = await Directory(dirPath).list(followLinks: false).toList();
+      entities.sort((a, b) => a.path.compareTo(b.path));
+      for (final entity in entities) {
+        final name = path.basename(entity.path);
+        if (node.children.containsKey(name)) continue;
+        final isDir = entity is Directory;
+        final child = TreeNode(
+          name: name,
+          fullPath: entity.path,
+          isDirectory: isDir,
+        );
+        node.children[name] = child;
+        if (isDir) {
+          await _populateChildren(child, entity.path);
+        }
+      }
+    } catch (_) {
+      // Permission / I/O — skip silently so the preview still renders.
+    }
   }
 }
 
