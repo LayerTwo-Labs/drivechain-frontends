@@ -61,7 +61,7 @@ dev_dependencies:
   drivechain_lints:
     path: ../drivechain_lints
   auto_route_generator: ^10.4.0
-  build_runner: ^2.13.0
+  build_runner: ^2.14.0
 
 flutter:
   assets:
