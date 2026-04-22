@@ -184,9 +184,10 @@ func (h *runHandle) stop(t *testing.T, graceful time.Duration) {
 			t.Logf("kill: %v", err)
 		}
 		<-h.doneCh
-		// sail_ui's Dart Process.start on Windows spawns detached by default,
-		// so bitwindowd/orchestratord escape the `just run` tree and survive
-		// even a /F /T sweep. Clean them up by name — out-of-scope for this PR.
+		// Final sweep for Windows: Job Object covers clean process death,
+		// but if the Flutter app was hung (Dart onShutdown threw before
+		// windowManager.destroy), bitwindow.exe survives the tree-kill
+		// and its descendants are still alive.
 		sweepPriorRunOrphans(t)
 	})
 }

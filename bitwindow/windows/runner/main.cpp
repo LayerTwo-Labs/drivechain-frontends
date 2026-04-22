@@ -5,8 +5,34 @@
 #include "flutter_window.h"
 #include "utils.h"
 
+namespace {
+
+// KILL_ON_JOB_CLOSE makes the kernel terminate every descendant when the
+// last handle to this job closes — covers taskkill /F and crash paths where
+// the window-close fallback doesn't run.
+void BindChildrenToJobObject() {
+  HANDLE job = ::CreateJobObjectW(nullptr, nullptr);
+  if (job == nullptr) {
+    return;
+  }
+  JOBOBJECT_EXTENDED_LIMIT_INFORMATION info{};
+  info.BasicLimitInformation.LimitFlags =
+      JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE |
+      JOB_OBJECT_LIMIT_DIE_ON_UNHANDLED_EXCEPTION;
+  if (!::SetInformationJobObject(job, JobObjectExtendedLimitInformation,
+                                 &info, sizeof(info))) {
+    ::CloseHandle(job);
+    return;
+  }
+  ::AssignProcessToJobObject(job, ::GetCurrentProcess());
+}
+
+}  // namespace
+
 int APIENTRY wWinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE prev,
                       _In_ wchar_t *command_line, _In_ int show_command) {
+  BindChildrenToJobObject();
+
   // Attach to console when present (e.g., 'flutter run') or create a
   // new console when running with a debugger.
   if (!::AttachConsole(ATTACH_PARENT_PROCESS) && ::IsDebuggerPresent()) {
