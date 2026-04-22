@@ -217,24 +217,38 @@ class BottomNav extends StatelessWidget {
                       navigateToLogs: model.navigateToLogs,
                       onOpenConfConfigurator: onOpenEnforcerConfConfigurator,
                     ),
-                  DaemonConnectionCard(
-                    connection: additionalConnection.rpc,
-                    syncInfo: model.syncProvider.additionalSyncInfo,
-                    infoMessage: _getDownloadMessage(
-                      model.syncProvider.additionalSyncInfo,
-                    ),
-                    restartDaemon: () => binaryProvider.start(
-                      binaryProvider.binaries.firstWhere(
-                        (b) => b.name == additionalConnection.rpc.binary.name,
-                      ),
-                    ),
-                    stopDaemon: () => binaryProvider.stop(
-                      binaryProvider.binaries.firstWhere(
-                        (b) => b.name == additionalConnection.rpc.binary.name,
-                      ),
-                    ),
-                    navigateToLogs: model.navigateToLogs,
-                    onOpenConfConfigurator: onOpenAdditionalConfConfigurator,
+                  Builder(
+                    builder: (context) {
+                      // During Core IBD the sidechain RPC has no blocks yet, so its sync
+                      // progress comes back as 0/0 — which reads as "broken" in the UI.
+                      // Detect "Core is ready" (connected and not in IBD / still booting)
+                      // and suppress the sync row until Core can actually give us work.
+                      final bool coreReady =
+                          model.mainchain.connected &&
+                          !model.mainchain.initializingBinary &&
+                          model.mainchain.startupError == null &&
+                          !model.mainchain.inIBD;
+                      final infoMessage =
+                          _getDownloadMessage(model.syncProvider.additionalSyncInfo) ??
+                          (!coreReady ? 'Waiting for Bitcoin Core to finish syncing' : null);
+                      return DaemonConnectionCard(
+                        connection: additionalConnection.rpc,
+                        syncInfo: coreReady ? model.syncProvider.additionalSyncInfo : null,
+                        infoMessage: infoMessage,
+                        restartDaemon: () => binaryProvider.start(
+                          binaryProvider.binaries.firstWhere(
+                            (b) => b.name == additionalConnection.rpc.binary.name,
+                          ),
+                        ),
+                        stopDaemon: () => binaryProvider.stop(
+                          binaryProvider.binaries.firstWhere(
+                            (b) => b.name == additionalConnection.rpc.binary.name,
+                          ),
+                        ),
+                        navigateToLogs: model.navigateToLogs,
+                        onOpenConfConfigurator: onOpenAdditionalConfConfigurator,
+                      );
+                    },
                   ),
                 ],
               ),
