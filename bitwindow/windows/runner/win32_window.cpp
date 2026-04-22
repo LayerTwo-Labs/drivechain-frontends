@@ -38,10 +38,10 @@ int Scale(int source, double scale_factor) {
   return static_cast<int>(source * scale_factor);
 }
 
-// Force-terminate every managed daemon we might have spawned. Used on
-// WM_CLOSE because Dart's ProcessSignal.sigint.watch doesn't fire for GUI
-// apps on Windows (so the Mac/Linux close-to-SIGINT trick doesn't work) and
-// Dart's Process.start may create detached children that escape a tree-kill.
+// Fallback for WM_CLOSE when the Dart graceful shutdown path didn't intercept
+// (e.g. setPreventClose not set, or onShutdown threw before destroying the
+// window). Job Object cleanup only fires once this process exits, which won't
+// happen if the window is stuck — so we kill the managed tree here too.
 void TerminateManagedDaemons() {
   static const wchar_t* const kNames[] = {
       L"bitwindowd.exe",
@@ -220,8 +220,6 @@ Win32Window::MessageHandler(HWND hwnd,
                             LPARAM const lparam) noexcept {
   switch (message) {
     case WM_CLOSE:
-      // Kill every managed daemon (bitwindowd, orchestratord, bitcoind,
-      // enforcer, sidechains) before the window tears down.
       TerminateManagedDaemons();
       break;
 
