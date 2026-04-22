@@ -17,10 +17,10 @@ jobs:
     if: github.event.pull_request.draft == false
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Cache Go modules
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: |
             ~/go/pkg/mod
@@ -29,7 +29,7 @@ jobs:
           restore-keys: |
             go-${{ env.GO_VERSION }}-${{ runner.os }}-
 
-      - uses: actions/setup-go@v5
+      - uses: actions/setup-go@v6
         with:
           go-version: ${{ env.GO_VERSION }}
 
@@ -39,7 +39,7 @@ jobs:
           sudo apt-get install -y sqlite3 libsqlite3-dev
 
       - name: Cache managed binaries
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ~/.local/share/bitwindow/assets/bin
           key: managed-binaries-v2-${{ runner.os }}-${{ hashFiles('sidechain-orchestrator/chains_config.json', 'sidechain-orchestrator/config/chains_config.json') }}
@@ -52,7 +52,7 @@ jobs:
 
       - name: Upload backend smoke logs
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: bitwindow-backend-smoke-logs
           path: ${{ runner.temp }}/bitwindow-backend-smoke-logs
@@ -76,11 +76,11 @@ jobs:
             cache-path: ~/Library/Application Support/bitwindow/assets/bin
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Cache Go modules (Unix)
         if: runner.os != 'Windows'
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: |
             ~/go/pkg/mod
@@ -91,7 +91,7 @@ jobs:
 
       - name: Cache Go modules (Windows)
         if: runner.os == 'Windows'
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: |
             %LocalAppData%\go-build
@@ -100,7 +100,7 @@ jobs:
           restore-keys: |
             go-${{ env.GO_VERSION }}-${{ runner.os }}-
 
-      - uses: actions/setup-go@v5
+      - uses: actions/setup-go@v6
         with:
           go-version: ${{ env.GO_VERSION }}
 
@@ -121,7 +121,7 @@ jobs:
           echo "SQLite support built-in on Windows"
 
       - name: Cache bitcoind binary
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ${{ matrix.cache-path }}
           key: bitcoind-${{ runner.os }}-v30.2

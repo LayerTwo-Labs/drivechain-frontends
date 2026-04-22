@@ -44,14 +44,14 @@ jobs:
         working-directory: ${{ matrix.package }}
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Check migration registrations
         if: matrix.package == 'sail_ui'
         run: ../scripts/check-migrations.sh
 
       - name: Cache Flutter SDK
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: |
             ~/.flutter
@@ -71,7 +71,7 @@ jobs:
           sdk: ${{ env.DART_VERSION }}
 
       - name: Cache dependencies
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: |
             ${{ matrix.package }}/.dart_tool
