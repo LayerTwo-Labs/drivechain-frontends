@@ -372,10 +372,7 @@ abstract class Binary {
         return _getExistingFilesInDir(rootdir, [
           'validator',
           'bitwindow-enforcer.conf',
-          network
-              .toReadableNet()
-              .replaceAll('mainnet', 'bitcoin')
-              .replaceAll('forknet', 'bitcoin'),
+          network.toReadableNet().replaceAll('mainnet', 'bitcoin').replaceAll('forknet', 'bitcoin'),
         ]);
 
       case BinaryType.bitWindow:
@@ -514,10 +511,7 @@ abstract class Binary {
         final walletNetworkDir = path.join(
           rootdir,
           'wallet',
-          network
-              .toReadableNet()
-              .replaceAll('mainnet', 'bitcoin')
-              .replaceAll('forknet', 'bitcoin'),
+          network.toReadableNet().replaceAll('mainnet', 'bitcoin').replaceAll('forknet', 'bitcoin'),
         );
         if (await Directory(walletNetworkDir).exists()) {
           paths.add(walletNetworkDir);
@@ -738,8 +732,7 @@ abstract class Binary {
     // Check if binary exists in any of the possible paths
     for (final binaryPath in possiblePaths) {
       try {
-        if (Directory(binaryPath).existsSync() ||
-            File(binaryPath).existsSync()) {
+        if (Directory(binaryPath).existsSync() || File(binaryPath).existsSync()) {
           var resolvedPath = binaryPath;
           // Handle .app bundles on macOS
           if (Platform.isMacOS && (resolvedPath.endsWith('.app'))) {
@@ -764,8 +757,7 @@ abstract class Binary {
   List<String> _getPossibleBinaryPaths(String baseBinary, Directory appDir) {
     final paths = <String>[];
     final network = GetIt.I.get<BitcoinConfProvider>().network;
-    final subfolder =
-        metadata.downloadConfig.extractSubfolder?[network]?[OS.current] ?? '';
+    final subfolder = metadata.downloadConfig.extractSubfolder?[network]?[OS.current] ?? '';
 
     if (kDebugMode) {
       paths.addAll([
@@ -882,9 +874,7 @@ abstract class Binary {
   Future<DateTime?> _checkDirectReleaseDate() async {
     try {
       final os = getOS();
-      final fileName = metadata
-          .downloadConfig
-          .files[GetIt.I.get<BitcoinConfProvider>().network]![os];
+      final fileName = metadata.downloadConfig.files[GetIt.I.get<BitcoinConfProvider>().network]![os];
       final baseUrl = metadata.downloadConfig.baseUrl(
         GetIt.I.get<BitcoinConfProvider>().network,
       );
@@ -1031,8 +1021,7 @@ class BitcoinCore extends Binary {
                    ...allNetworksUrl(
                      'https://bitcoincore.org/bin/bitcoin-core-30.2/',
                    ),
-                   BitcoinNetwork.BITCOIN_NETWORK_FORKNET:
-                       'https://releases.drivechain.info/',
+                   BitcoinNetwork.BITCOIN_NETWORK_FORKNET: 'https://releases.drivechain.info/',
                  },
                  binary: 'bitcoind',
                  files: {
@@ -1042,12 +1031,9 @@ class BitcoinCore extends Binary {
                      OS.windows: 'bitcoin-30.2-win64.zip',
                    }),
                    BitcoinNetwork.BITCOIN_NETWORK_FORKNET: {
-                     OS.linux:
-                         'L1-bitcoin-patched-forknet-x86_64-unknown-linux-gnu.zip',
-                     OS.macos:
-                         'L1-bitcoin-patched-forknet-x86_64-apple-darwin.zip',
-                     OS.windows:
-                         'L1-bitcoin-patched-forknet-x86_64-w64-msvc.zip',
+                     OS.linux: 'L1-bitcoin-patched-forknet-x86_64-unknown-linux-gnu.zip',
+                     OS.macos: 'L1-bitcoin-patched-forknet-x86_64-apple-darwin.zip',
+                     OS.windows: 'L1-bitcoin-patched-forknet-x86_64-w64-msvc.zip',
                    },
                  },
                  extractSubfolder: {
@@ -1118,8 +1104,7 @@ class BitWindow extends Binary {
     super.name = 'BitWindow',
     super.version = 'latest',
     super.description = 'GUI for managing drivechain operations',
-    super.repoUrl =
-        'https://github.com/LayerTwo-Labs/drivechain-frontends/bitwindow',
+    super.repoUrl = 'https://github.com/LayerTwo-Labs/drivechain-frontends/bitwindow',
     DirectoryConfig? directories,
     MetadataConfig? metadata,
     int? port,
@@ -1199,8 +1184,7 @@ class Orchestratord extends Binary {
     super.name = 'Orchestratord',
     super.version = 'latest',
     super.description = 'Sidechain orchestrator daemon',
-    super.repoUrl =
-        'https://github.com/LayerTwo-Labs/drivechain-frontends/orchestrator',
+    super.repoUrl = 'https://github.com/LayerTwo-Labs/drivechain-frontends/orchestrator',
     DirectoryConfig? directories,
     MetadataConfig? metadata,
     int? port,
@@ -1279,8 +1263,7 @@ class ZSided extends Binary {
     super.name = 'ZSided',
     super.version = 'latest',
     super.description = 'ZSide sidechain orchestrator daemon',
-    super.repoUrl =
-        'https://github.com/LayerTwo-Labs/drivechain-frontends/zside/server',
+    super.repoUrl = 'https://github.com/LayerTwo-Labs/drivechain-frontends/zside/server',
     DirectoryConfig? directories,
     MetadataConfig? metadata,
     int? port,
@@ -1388,12 +1371,9 @@ class Enforcer extends Binary {
                  baseUrls: allNetworksUrl('https://releases.drivechain.info/'),
                  binary: 'bip300301-enforcer',
                  files: allNetworks({
-                   OS.linux:
-                       'bip300301-enforcer-latest-x86_64-unknown-linux-gnu.zip',
-                   OS.macos:
-                       'bip300301-enforcer-latest-x86_64-apple-darwin.zip',
-                   OS.windows:
-                       'bip300301-enforcer-latest-x86_64-pc-windows-gnu.zip',
+                   OS.linux: 'bip300301-enforcer-latest-x86_64-unknown-linux-gnu.zip',
+                   OS.macos: 'bip300301-enforcer-latest-x86_64-apple-darwin.zip',
+                   OS.windows: 'bip300301-enforcer-latest-x86_64-pc-windows-gnu.zip',
                  }),
                ),
                remoteTimestamp: null,
@@ -1485,12 +1465,9 @@ class GRPCurl extends Binary {
                  OS.windows: 'grpcurl',
                }),
                flutterFrontend: {
-                 OS.linux:
-                     'grpcurl', // filled in so it just follows same code-path
-                 OS.macos:
-                     'grpcurl', // filled in so it just follows same code-path
-                 OS.windows:
-                     'grpcurl', // filled in so it just follows same code-path
+                 OS.linux: 'grpcurl', // filled in so it just follows same code-path
+                 OS.macos: 'grpcurl', // filled in so it just follows same code-path
+                 OS.windows: 'grpcurl', // filled in so it just follows same code-path
                },
              ),
          metadata:
@@ -1552,8 +1529,7 @@ extension BinaryPaths on Binary {
   /// This is where the Flutter app stores settings.json, wallet.json, debug.log, etc.
   /// Returns null for binaries that don't have a Flutter frontend.
   String? flutterFrontendDir() {
-    final home =
-        Platform.environment['HOME'] ?? Platform.environment['USERPROFILE'];
+    final home = Platform.environment['HOME'] ?? Platform.environment['USERPROFILE'];
     if (home == null) return null;
 
     return switch (type) {
@@ -1857,10 +1833,7 @@ extension BinaryPaths on Binary {
 
     // Sort version directories by version number
     versionDirs.sort((a, b) {
-      final aVersion = a.path
-          .split(Platform.pathSeparator)
-          .last
-          .substring(1); // Remove 'v' prefix
+      final aVersion = a.path.split(Platform.pathSeparator).last.substring(1); // Remove 'v' prefix
       final bVersion = b.path.split(Platform.pathSeparator).last.substring(1);
 
       // Split version numbers into components and compare each
@@ -1881,11 +1854,7 @@ extension BinaryPaths on Binary {
     final latestVersionDir = versionDirs.first;
 
     // Get all log files in the latest version directory
-    final logFiles = latestVersionDir
-        .listSync()
-        .whereType<File>()
-        .where((file) => file.path.endsWith('.log'))
-        .toList();
+    final logFiles = latestVersionDir.listSync().whereType<File>().where((file) => file.path.endsWith('.log')).toList();
 
     if (logFiles.isEmpty) {
       return filePath([
@@ -1906,8 +1875,7 @@ extension BinaryPaths on Binary {
   }
 
   String appdir() {
-    final home =
-        Platform.environment['HOME'] ?? Platform.environment['USERPROFILE'];
+    final home = Platform.environment['HOME'] ?? Platform.environment['USERPROFILE'];
     if (home == null) {
       throw 'unable to determine HOME location';
     }
@@ -1956,9 +1924,7 @@ extension BinaryPaths on Binary {
     switch (type) {
       case BinaryType.bitcoinCore:
         final provider = GetIt.I<BitcoinConfProvider>();
-        return (provider.detectedDataDir?.isNotEmpty == true)
-            ? provider.detectedDataDir!
-            : rootDirNetwork(network);
+        return (provider.detectedDataDir?.isNotEmpty == true) ? provider.detectedDataDir! : rootDirNetwork(network);
 
       case BinaryType.enforcer:
         final provider = GetIt.I<EnforcerConfProvider>();
@@ -1996,8 +1962,7 @@ extension BinaryPaths on Binary {
 
     switch (type) {
       case BinaryType.bitcoinCore:
-        if (network == BitcoinNetwork.BITCOIN_NETWORK_MAINNET ||
-            network == BitcoinNetwork.BITCOIN_NETWORK_FORKNET) {
+        if (network == BitcoinNetwork.BITCOIN_NETWORK_MAINNET || network == BitcoinNetwork.BITCOIN_NETWORK_FORKNET) {
           return baseDir;
         }
         return path.join(baseDir, network.toReadableNet());
@@ -2107,9 +2072,7 @@ extension BinaryPaths on Binary {
 /// Join a list of filepath segments based on the underlying platform
 /// path separator
 String filePath(List<String> segments) {
-  return segments
-      .where((element) => element.isNotEmpty)
-      .join(Platform.pathSeparator);
+  return segments.where((element) => element.isNotEmpty).join(Platform.pathSeparator);
 }
 
 extension BinaryDownload on Binary {
@@ -2137,9 +2100,7 @@ extension BinaryDownload on Binary {
       return files.any((entity) {
         if (entity is! File) return false;
         final fileName = path.basename(entity.path);
-        final fileBaseName = path
-            .basenameWithoutExtension(fileName)
-            .toLowerCase();
+        final fileBaseName = path.basenameWithoutExtension(fileName).toLowerCase();
         return fileBaseName == baseNameToFind;
       });
     } catch (e) {
@@ -2256,8 +2217,7 @@ class DirectoryConfig {
 
   @override
   bool operator ==(Object other) =>
-      identical(this, other) ||
-      other is DirectoryConfig && _mapEquals(binary, other.binary);
+      identical(this, other) || other is DirectoryConfig && _mapEquals(binary, other.binary);
 
   @override
   int get hashCode => binary.hashCode;
@@ -2304,9 +2264,8 @@ class MetadataConfig {
   final DownloadConfig? _alternativeDownloadConfig;
 
   // if test chains enabled, use those, but only if an alternative config exists
-  DownloadConfig get downloadConfig => _settingsProvider.useTestSidechains
-      ? _alternativeDownloadConfig ?? _downloadConfig
-      : _downloadConfig;
+  DownloadConfig get downloadConfig =>
+      _settingsProvider.useTestSidechains ? _alternativeDownloadConfig ?? _downloadConfig : _downloadConfig;
 
   DateTime? remoteTimestamp; // Last-Modified from server
   DateTime? downloadedTimestamp; // Local file timestamp
@@ -2333,8 +2292,7 @@ class MetadataConfig {
   }) {
     return MetadataConfig(
       downloadConfig: downloadConfig ?? _downloadConfig,
-      alternativeDownloadConfig:
-          alternativeDownloadConfig ?? _alternativeDownloadConfig,
+      alternativeDownloadConfig: alternativeDownloadConfig ?? _alternativeDownloadConfig,
       remoteTimestamp: remoteTimestamp,
       downloadedTimestamp: downloadedTimestamp,
       binaryPath: binaryPath,
@@ -2349,11 +2307,9 @@ class MetadataConfig {
 
     // Check alternative download config equality
     bool alternativeConfigsEqual;
-    if (_alternativeDownloadConfig == null &&
-        other._alternativeDownloadConfig == null) {
+    if (_alternativeDownloadConfig == null && other._alternativeDownloadConfig == null) {
       alternativeConfigsEqual = true;
-    } else if (_alternativeDownloadConfig != null &&
-        other._alternativeDownloadConfig != null) {
+    } else if (_alternativeDownloadConfig != null && other._alternativeDownloadConfig != null) {
       alternativeConfigsEqual = _mapEquals(
         _alternativeDownloadConfig.files,
         other._alternativeDownloadConfig.files,
@@ -2523,9 +2479,7 @@ BitcoinNetwork _networkFromJsonKey(String key) {
     'signet' => BitcoinNetwork.BITCOIN_NETWORK_SIGNET,
     'testnet' => BitcoinNetwork.BITCOIN_NETWORK_TESTNET,
     'forknet' => BitcoinNetwork.BITCOIN_NETWORK_FORKNET,
-    _ =>
-      BitcoinNetwork
-          .BITCOIN_NETWORK_UNSPECIFIED, // 'default' key handled separately
+    _ => BitcoinNetwork.BITCOIN_NETWORK_UNSPECIFIED, // 'default' key handled separately
   };
 }
 
@@ -2574,9 +2528,7 @@ Map<BitcoinNetwork, Map<OS, String>> _directoryBinaryFromJson(
 Map<OS, String> _osMapFromJson(Map<String, dynamic> json) {
   return {
     for (final entry in json.entries)
-      if (entry.key == 'linux' ||
-          entry.key == 'macos' ||
-          entry.key == 'windows')
+      if (entry.key == 'linux' || entry.key == 'macos' || entry.key == 'windows')
         _osFromJsonKey(entry.key): entry.value as String,
   };
 }
@@ -2609,9 +2561,7 @@ extension DownloadConfigJson on DownloadConfig {
       baseUrls: baseUrls,
       binary: json['binary'] as String,
       files: _filesFromJson(filesJson),
-      extractSubfolder:
-          json.containsKey('extract_subfolder') &&
-              json['extract_subfolder'] != null
+      extractSubfolder: json.containsKey('extract_subfolder') && json['extract_subfolder'] != null
           ? _filesFromJson(json['extract_subfolder'] as Map<String, dynamic>)
           : null,
     );
@@ -2692,8 +2642,7 @@ Binary binaryFromJson(String key, Map<String, dynamic> json) {
   final downloadConfig = DownloadConfigJson.fromJson(downloadJson);
 
   DownloadConfig? altDownloadConfig;
-  if (json.containsKey('alternative_download') &&
-      json['alternative_download'] != null) {
+  if (json.containsKey('alternative_download') && json['alternative_download'] != null) {
     altDownloadConfig = DownloadConfigJson.fromJson(
       json['alternative_download'] as Map<String, dynamic>,
     );
