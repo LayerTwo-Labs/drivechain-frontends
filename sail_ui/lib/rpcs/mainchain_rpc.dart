@@ -29,9 +29,6 @@ abstract class MainchainRPC extends RPCConnection {
   bool inHeaderSync = true;
   bool inSync = true;
 
-  Future<void> waitForIBD();
-  Future<void> waitForHeaderSync();
-  Future<void> waitForSync();
   Future<dynamic> callRAW(String method, [List<dynamic>? params]);
   List<String> getMethods();
   Future<List<PeerInfo>> getPeerInfo();
@@ -151,48 +148,6 @@ class MainchainRPCLive extends MainchainRPC {
     log.d('Args after deduplication: $args');
 
     return args;
-  }
-
-  @override
-  Future<void> waitForIBD() async {
-    int lastLoggedThousand = 0;
-    while (inIBD) {
-      try {
-        final info = await getBlockchainInfo();
-        int currentThousand = (info.blocks / 1000).floor();
-        if (currentThousand > lastLoggedThousand) {
-          log.w('Synced ${info.headers} headers');
-          lastLoggedThousand = currentThousand;
-        }
-      } finally {
-        await Future.delayed(const Duration(seconds: 1));
-      }
-    }
-  }
-
-  @override
-  Future<void> waitForSync() async {
-    int lastLoggedThousand = 0;
-    while (inSync) {
-      try {
-        final info = await getBlockchainInfo();
-        int currentThousand = (info.blocks / 1000).floor();
-        if (currentThousand > lastLoggedThousand) {
-          log.w('Synced ${info.blocks}/${info.headers} blocks');
-          lastLoggedThousand = currentThousand;
-        }
-      } finally {
-        await Future.delayed(const Duration(seconds: 1));
-      }
-    }
-  }
-
-  @override
-  Future<void> waitForHeaderSync() async {
-    while (inHeaderSync) {
-      // pollIBDStatus() is responsible for updating the syncedHeaders
-      await Future.delayed(const Duration(seconds: 1));
-    }
   }
 
   @override

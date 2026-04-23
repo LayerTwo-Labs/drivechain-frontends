@@ -59,9 +59,6 @@ class MockMainchainRPC extends MainchainRPC {
   }
 
   @override
-  Future<void> waitForIBD() async {}
-
-  @override
   Future<BlockchainInfo> getBlockchainInfo() async {
     return BlockchainInfo(
       chain: 'test',
@@ -91,11 +88,6 @@ class MockMainchainRPC extends MainchainRPC {
   @override
   Future<List<String>> binaryArgs() {
     return Future.value([]);
-  }
-
-  @override
-  Future<void> waitForHeaderSync() async {
-    return;
   }
 
   @override
@@ -136,11 +128,6 @@ class MockMainchainRPC extends MainchainRPC {
   @override
   Future<TxOutsetInfo> getTxOutsetInfo() {
     throw UnimplementedError();
-  }
-
-  @override
-  Future<void> waitForSync() async {
-    return;
   }
 
   @override

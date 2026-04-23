@@ -282,23 +282,6 @@ func (c *CoreStatusClient) call(ctx context.Context, method string, params ...in
 	return rpcResp.Result, nil
 }
 
-// IsIBDComplete checks if Bitcoin Core has finished initial block download.
-func (c *CoreStatusClient) IsIBDComplete(ctx context.Context) (bool, error) {
-	result, err := c.call(ctx, "getblockchaininfo")
-	if err != nil {
-		return false, err
-	}
-
-	var info struct {
-		InitialBlockDownload bool `json:"initialblockdownload"`
-	}
-	if err := json.Unmarshal(result, &info); err != nil {
-		return false, fmt.Errorf("decode getblockchaininfo: %w", err)
-	}
-
-	return !info.InitialBlockDownload, nil
-}
-
 // IsHeaderSyncComplete reports whether Bitcoin Core has finished downloading
 // headers — block IBD may still be in progress. Enforcer only needs headers
 // to start validating BIP300/301 activity (it syncs blocks alongside Core),
