@@ -160,6 +160,29 @@ func TestService_BroadcastNews(t *testing.T) {
 		assert.Contains(t, err.Error(), "headline must be set")
 	})
 
+	t.Run("broadcast news with whitespace-only headline", func(t *testing.T) {
+		t.Parallel()
+
+		database := database.Test(t)
+		ctx := context.Background()
+		topicID := validTopicID()
+		require.NoError(t, opreturns.CreateTopic(ctx, database, topicID, "Test Topic", "topic_txid", true, 7))
+
+		cli := miscv1connect.NewMiscServiceClient(apitests.API(t, database))
+
+		// Whitespace-only headlines previously passed validation, got
+		// stored as spaces, and rendered blank in the UI Title column.
+		for _, h := range []string{"   ", "\t", "\n", " \t "} {
+			_, err := cli.BroadcastNews(context.Background(), connect.NewRequest(&miscv1.BroadcastNewsRequest{
+				Topic:    topicID.String(),
+				Headline: h,
+				Content:  "content",
+			}))
+			require.Error(t, err, "whitespace-only headline %q must be rejected", h)
+			assert.Contains(t, err.Error(), "headline must be set")
+		}
+	})
+
 	t.Run("broadcast news with headline too long", func(t *testing.T) {
 		t.Parallel()
 

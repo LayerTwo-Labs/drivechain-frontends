@@ -183,6 +183,23 @@ func IsCreateTopic(data []byte) (TopicInfo, bool) {
 		return TopicInfo{}, false
 	}
 
+	// Disambiguate from news messages that happen to start with "new".
+	// News wire format is <4 topic><64 NULL-padded headline><content>, so
+	// any NULL in the 64-byte headline slot marks this as news, not a
+	// topic creation. Topic-creation names are user-entered text and
+	// contain no NULL bytes. Skip byte 7 (retention) which may legitimately
+	// be 0x00 in the new format.
+	nameStart := TopicIdLength + len(newTopicTag) + 1 // skip retention byte
+	headlineEnd := TopicIdLength + 64
+	if headlineEnd > len(data) {
+		headlineEnd = len(data)
+	}
+	for i := nameStart; i < headlineEnd; i++ {
+		if data[i] == 0 {
+			return TopicInfo{}, false
+		}
+	}
+
 	afterNew := rest[len(newTopicTag):]
 
 	// New format: <retention_1byte><name>
