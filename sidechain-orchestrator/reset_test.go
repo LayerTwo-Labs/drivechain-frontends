@@ -343,6 +343,42 @@ func TestStreamResetData_ContextCancellation(t *testing.T) {
 	_ = err
 }
 
+// TestStreamResetData_DeletesNestedDirectoryTree ensures os.RemoveAll
+// actually recurses end-to-end. Flat files per category weren't enough
+// to catch Windows's tree-walk aborting on a single locked file — this
+// test gives the stream a real nested dir and asserts every leaf dies.
+func TestStreamResetData_DeletesNestedDirectoryTree(t *testing.T) {
+	o := newResetTestOrchestrator(t)
+
+	// collectPaths returns the binary file itself from BinDir — we make
+	// that "file" a directory full of nested content (as .app bundles
+	// are on macOS). os.RemoveAll must walk and delete everything under
+	// it, not just the top level.
+	binDir := BinDir(o.BitwindowDir)
+	require.NoError(t, os.MkdirAll(binDir, 0o755))
+
+	nested := filepath.Join(binDir, "bitcoind")
+	deep := filepath.Join(nested, "Contents", "MacOS", "Resources", "en.lproj")
+	require.NoError(t, os.MkdirAll(deep, 0o755))
+	leaf := filepath.Join(deep, "InfoPlist.strings")
+	require.NoError(t, os.WriteFile(leaf, []byte("leaf"), 0o644))
+
+	ch, err := o.StreamResetData(context.Background(), ResetCategory{DeleteNodeSoftware: true})
+	require.NoError(t, err)
+	var done ResetEvent
+	for evt := range ch {
+		if evt.Done {
+			done = evt
+		}
+	}
+
+	assert.Zero(t, done.FailedCount, "deep tree should delete cleanly")
+	_, leafErr := os.Stat(leaf)
+	assert.True(t, os.IsNotExist(leafErr), "deep leaf %s must be deleted, not just top-level dir", leaf)
+	_, rootErr := os.Stat(nested)
+	assert.True(t, os.IsNotExist(rootErr), "nested root %s must be deleted", nested)
+}
+
 func TestStreamResetData_DeduplicatesAcrossCategories(t *testing.T) {
 	o := newResetTestOrchestrator(t)
 
