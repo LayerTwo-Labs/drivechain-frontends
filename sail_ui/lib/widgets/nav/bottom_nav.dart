@@ -219,18 +219,19 @@ class BottomNav extends StatelessWidget {
                     ),
                   Builder(
                     builder: (context) {
-                      // During Core IBD the sidechain RPC has no blocks yet, so its sync
-                      // progress comes back as 0/0 — which reads as "broken" in the UI.
-                      // Detect "Core is ready" (connected and not in IBD / still booting)
-                      // and suppress the sync row until Core can actually give us work.
+                      // During Core's header sync the sidechain RPC has no chain state yet,
+                      // so its sync progress comes back as 0/0 — reads as "broken" in the UI.
+                      // Once headers are synced, Core can answer block queries even while
+                      // block IBD is still running, so release the card then — waiting for
+                      // full IBD made users stare at a dead UI for the whole chain download.
                       final bool coreReady =
                           model.mainchain.connected &&
                           !model.mainchain.initializingBinary &&
                           model.mainchain.startupError == null &&
-                          !model.mainchain.inIBD;
+                          !model.mainchain.inHeaderSync;
                       final infoMessage =
                           _getDownloadMessage(model.syncProvider.additionalSyncInfo) ??
-                          (!coreReady ? 'Waiting for Bitcoin Core to finish syncing' : null);
+                          (!coreReady ? 'Waiting for Bitcoin Core header sync' : null);
                       return DaemonConnectionCard(
                         connection: additionalConnection.rpc,
                         syncInfo: coreReady ? model.syncProvider.additionalSyncInfo : null,
