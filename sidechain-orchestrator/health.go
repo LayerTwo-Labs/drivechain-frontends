@@ -299,6 +299,36 @@ func (c *CoreStatusClient) IsIBDComplete(ctx context.Context) (bool, error) {
 	return !info.InitialBlockDownload, nil
 }
 
+// IsHeaderSyncComplete reports whether Bitcoin Core has finished downloading
+// headers — block IBD may still be in progress. Enforcer only needs headers
+// to start validating BIP300/301 activity (it syncs blocks alongside Core),
+// so gating on IBD forces users to wait for the full chain when they don't
+// have to. Signal: headers > 0 AND headers >= blocks AND we're past the
+// "still connecting / no chain" bootstrap phase (headers > 10).
+func (c *CoreStatusClient) IsHeaderSyncComplete(ctx context.Context) (bool, error) {
+	result, err := c.call(ctx, "getblockchaininfo")
+	if err != nil {
+		return false, err
+	}
+
+	var info struct {
+		Blocks  int64 `json:"blocks"`
+		Headers int64 `json:"headers"`
+	}
+	if err := json.Unmarshal(result, &info); err != nil {
+		return false, fmt.Errorf("decode getblockchaininfo: %w", err)
+	}
+
+	// Header sync happens ahead of block validation: headers >= blocks during
+	// IBD, and both equal at tip. A fresh node reports 0/0 until peers start
+	// feeding headers — require at least 10 headers to avoid false positives
+	// before any peer connects.
+	if info.Headers < 10 {
+		return false, nil
+	}
+	return info.Headers >= info.Blocks, nil
+}
+
 // IsWalletLoaded checks if a wallet is loaded in Bitcoin Core.
 func (c *CoreStatusClient) IsWalletLoaded(ctx context.Context) (bool, error) {
 	result, err := c.call(ctx, "getwalletinfo")

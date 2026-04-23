@@ -665,21 +665,25 @@ func (o *Orchestrator) startEnforcerWhenReady(ctx context.Context, opts StartOpt
 		o.log.Info().Msg("wallet created")
 	}
 
-	// 2. Wait for IBD to complete — enforcer needs a fully synced chain.
+	// 2. Wait for HEADER sync to complete — enforcer starts once Core has
+	// the header chain and validates blocks in parallel as Core downloads
+	// them. Waiting for full IBD here kept enforcer offline for the entire
+	// chain download, which is minutes-to-hours of dead UI for no benefit.
 	client, err := o.CoreStatusClient()
 	if err == nil {
 		o.log.Info().
 			Str("core_rpc", fmt.Sprintf("localhost:%d", o.BitcoinConf.GetRPCPort())).
-			Msg("waiting for IBD to complete before starting enforcer")
+			Msg("waiting for header sync before starting enforcer")
 		var lastErr error
 		var errCount int
 		for {
-			complete, err := client.IsIBDComplete(ctx)
+			complete, err := client.IsHeaderSyncComplete(ctx)
 			if err == nil {
 				if complete {
 					break
 				}
-				// Mid-IBD, bitcoind is reachable: nothing to log, just wait.
+				// Headers still coming in, bitcoind is reachable: nothing to
+				// log, just wait.
 			} else {
 				errCount++
 				// Surface the RPC error the first time and then once a
@@ -687,7 +691,7 @@ func (o *Orchestrator) startEnforcerWhenReady(ctx context.Context, opts StartOpt
 				// doesn't hide behind silent retries.
 				if errCount == 1 || errCount%12 == 0 {
 					o.log.Warn().Err(err).Int("attempts", errCount).
-						Msg("IBD check RPC failed; will keep retrying")
+						Msg("header-sync check RPC failed; will keep retrying")
 				}
 				lastErr = err
 			}
@@ -699,9 +703,9 @@ func (o *Orchestrator) startEnforcerWhenReady(ctx context.Context, opts StartOpt
 		}
 		if lastErr != nil {
 			o.log.Info().Int("recovered_after", errCount).
-				Msg("IBD check recovered after earlier RPC errors")
+				Msg("header-sync check recovered after earlier RPC errors")
 		}
-		o.log.Info().Msg("IBD complete, proceeding with enforcer")
+		o.log.Info().Msg("header sync complete, proceeding with enforcer")
 	}
 
 	enforcerCfg := o.configs["enforcer"]

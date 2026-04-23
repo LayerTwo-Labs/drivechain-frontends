@@ -84,9 +84,13 @@ class MainchainRPCLive extends MainchainRPC {
       try {
         final info = await getBlockchainInfo();
 
-        // Update header sync status
+        // Update header sync status. Header download runs ahead of block
+        // validation — `info.headers` is the count Core has received from
+        // peers. A fresh node boots with 0/0 and the header count jumps to
+        // the chain tip within seconds once peers connect. Require at least
+        // 10 headers so we don't declare "header sync done" mid-bootstrap.
         final wasInHeaderSync = inHeaderSync;
-        inHeaderSync = info.blocks < 10;
+        inHeaderSync = info.headers < 10;
 
         // Update IBD status
         final wasInIBD = inIBD;
