@@ -43,6 +43,14 @@ type pathEntry struct {
 	category string
 }
 
+func dirExists(p string) bool {
+	if p == "" {
+		return false
+	}
+	info, err := os.Stat(p)
+	return err == nil && info.IsDir()
+}
+
 // collectPathEntries returns the deduplicated, deterministic list that preview
 // and deletion MUST share — otherwise their counts diverge and the UI desyncs.
 func (o *Orchestrator) collectPathEntries(cat ResetCategory) []pathEntry {
@@ -107,31 +115,67 @@ func (o *Orchestrator) collectPaths(cat ResetCategory) map[string][]string {
 		bitcoinOverride = o.BitcoinConf.DetectedDataDir
 	}
 
+	// Audit log so users can see exactly which paths the preview
+	// considered vs. found. Critical for diagnosing "reset listed 12 items
+	// but my data dir has way more" reports.
+	o.log.Info().
+		Str("network", string(network)).
+		Str("bitcoin_override", bitcoinOverride).
+		Str("bin_dir", binDir).
+		Int("targets", len(targets)).
+		Bool("also_sidechains", cat.AlsoResetSidechains).
+		Msg("reset-preview: begin walk")
+
 	for _, dc := range targets {
 		// Use the network-aware datadir so we hit bitcoind's signet/ subdir
 		// (blocks, chainstate, wallets) and bitwindowd's signet/ subdir
 		// (bitwindow.db, wallet.json). Other binaries get the flat root.
 		networkDir := dc.DatadirNetwork(network, bitcoinOverride)
+		rootDir := dc.RootDirNetwork(network)
+		flutter := dc.FlutterFrontendPath()
+
+		o.log.Info().
+			Str("binary", dc.BinaryName).
+			Str("network_dir", networkDir).
+			Str("root_dir", rootDir).
+			Str("flutter_dir", flutter).
+			Bool("network_dir_exists", dirExists(networkDir)).
+			Bool("root_dir_exists", dirExists(rootDir)).
+			Bool("flutter_dir_exists", dirExists(flutter)).
+			Msg("reset-preview: inspect binary")
+
+		logFound := func(category string, paths []string) {
+			if len(paths) == 0 {
+				o.log.Info().Str("binary", dc.BinaryName).Str("category", category).Msg("reset-preview: no paths found")
+				return
+			}
+			o.log.Info().Str("binary", dc.BinaryName).Str("category", category).Int("count", len(paths)).Strs("paths", paths).Msg("reset-preview: paths found")
+		}
 
 		if cat.DeleteBlockchainData {
-			result["blockchain_data"] = append(result["blockchain_data"],
-				dc.GetBlockchainDataPaths(networkDir, network, o.log)...)
+			p := dc.GetBlockchainDataPaths(networkDir, network, o.log)
+			result["blockchain_data"] = append(result["blockchain_data"], p...)
+			logFound("blockchain_data", p)
 		}
 		if cat.DeleteNodeSoftware {
-			result["node_software"] = append(result["node_software"],
-				dc.GetBinaryPaths(binDir, o.log)...)
+			p := dc.GetBinaryPaths(binDir, o.log)
+			result["node_software"] = append(result["node_software"], p...)
+			logFound("node_software", p)
 		}
 		if cat.DeleteLogs {
-			result["logs"] = append(result["logs"],
-				dc.GetLogPaths(networkDir, o.log)...)
+			p := dc.GetLogPaths(networkDir, o.log)
+			result["logs"] = append(result["logs"], p...)
+			logFound("logs", p)
 		}
 		if cat.DeleteSettings {
-			result["settings"] = append(result["settings"],
-				dc.GetSettingsPaths(networkDir, network, o.log)...)
+			p := dc.GetSettingsPaths(networkDir, network, o.log)
+			result["settings"] = append(result["settings"], p...)
+			logFound("settings", p)
 		}
 		if cat.DeleteWalletFiles {
-			result["wallet"] = append(result["wallet"],
-				dc.GetWalletPaths(networkDir, network, o.log)...)
+			p := dc.GetWalletPaths(networkDir, network, o.log)
+			result["wallet"] = append(result["wallet"], p...)
+			logFound("wallet", p)
 		}
 	}
 
