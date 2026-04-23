@@ -24,6 +24,12 @@ class WalletReaderProvider extends ChangeNotifier {
   String? activeWalletId;
   String? unlockedPassword;
 
+  /// Mirrors `has_wallet` from the WatchWalletData stream. Distinct from
+  /// `isWalletUnlocked` — a locked/encrypted wallet has `hasWalletOnDisk=true`
+  /// with an empty `wallets` list. A manually-deleted wallet.json flips this
+  /// to false, which WalletLostListener uses to push the create-wallet route.
+  bool hasWalletOnDisk = false;
+
   WalletData? get activeWallet => wallets.where((w) => w.id == activeWalletId).firstOrNull;
   WalletData? get enforcerWallet => wallets.where((w) => w.walletType == BinaryType.enforcer).firstOrNull;
 
@@ -93,6 +99,12 @@ class WalletReaderProvider extends ChangeNotifier {
       );
     }
     activeWalletId = newActiveId;
+
+    final previousHasWallet = hasWalletOnDisk;
+    hasWalletOnDisk = resp.hasWallet as bool;
+    if (previousHasWallet != hasWalletOnDisk) {
+      _logger.i('WalletReaderProvider: hasWalletOnDisk $previousHasWallet -> $hasWalletOnDisk');
+    }
 
     wallets = resp.wallets.map<WalletData>((protoWallet) {
       WalletGradient gradient = WalletGradient.fromWalletId(protoWallet.id);

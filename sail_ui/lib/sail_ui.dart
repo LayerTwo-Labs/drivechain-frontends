@@ -140,6 +140,7 @@ export 'pages/enforcer_conf_editor_page.dart';
 export 'routing/password_guard.dart';
 export 'routing/datadir_guard.dart';
 export 'routing/wallet_guard.dart';
+export 'routing/wallet_lost_listener.dart';
 export 'routing/network_guard.dart';
 export 'pages/datadir_setup_page.dart';
 export 'providers/bitcoin_conf_provider.dart';
