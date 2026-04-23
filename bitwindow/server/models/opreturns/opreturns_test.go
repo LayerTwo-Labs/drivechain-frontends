@@ -114,22 +114,15 @@ func TestListCoinNews_FullWidth64ByteHeadline(t *testing.T) {
 	assert.Equal(t, "body", news[0].Content)
 }
 
-// TestListCoinNews_HeadlineStartingWithNewIsNotTopicCreation is the
-// regression target for the headline/topic-creation ambiguity. A news
-// message whose headline starts with "new" (e.g. "news flash about X")
-// must NOT be classified as a topic-creation OP_RETURN and dropped from
-// the news list.
-//
-// KNOWN BUG — currently skipped. IsCreateTopic matches any payload
-// whose bytes [4:7] equal "new", which includes standard news
-// headlines like "news flash" or "new partnership". Fix: make
-// IsCreateTopic reject payloads whose length fits the news-message
-// shape (>= 68 bytes with 64-byte null-padded headline slot), or
-// introduce a more specific topic-creation marker.
+// TestListCoinNews_HeadlineStartingWithNewIsNotTopicCreation guards the
+// headline/topic-creation ambiguity. A news message whose headline
+// starts with "new" (e.g. "news flash about X") must NOT be classified
+// as a topic-creation OP_RETURN and dropped from the news list. The
+// classifier now looks for NULL bytes inside the 64-byte headline slot
+// — news messages always have them (unless the headline is the full 64
+// bytes), topic-creation names never do.
 func TestListCoinNews_HeadlineStartingWithNewIsNotTopicCreation(t *testing.T) {
-	t.Skip("known bug: IsCreateTopic false-positives on 'new'-prefixed news headlines — remove skip when fixed")
 	topic := mustTopicID(t, "a1a1a1a1")
-	// "news" starts with "new", which is the topic-creation prefix.
 	headline := "news flash about drivechain"
 	db := seedTopicAndNews(t, topic, "US Weekly", headline, "body")
 
@@ -199,11 +192,11 @@ func TestListCoinNews_ShortMessageBelowHeadlineEnd(t *testing.T) {
 	assert.Equal(t, "short!!!", news[0].Headline, "trailing spaces stripped, no panic")
 }
 
-// TestIsCreateTopic_RejectsNewsMessage makes sure that the topic
-// classifier doesn't false-positive on a standard news message. The
-// 64-byte NULL-padded headline block means byte index 4 is almost
-// always \x00, which cannot match "new". Guarding this keeps news
-// rows out of the skip branch.
+// TestIsCreateTopic_RejectsNewsMessage makes sure the topic classifier
+// doesn't false-positive on a standard news message. The 64-byte
+// NULL-padded headline slot means a news message with any headline
+// shorter than 64 bytes always has NULLs in the headline region —
+// which the classifier now treats as the news signal.
 func TestIsCreateTopic_RejectsNewsMessage(t *testing.T) {
 	topic := mustTopicID(t, "a1a1a1a1")
 	headlines := []string{
@@ -211,21 +204,14 @@ func TestIsCreateTopic_RejectsNewsMessage(t *testing.T) {
 		"",
 		"   ",
 		"news flash",
-		"new coin launched", // starts with "new" but is a news headline
+		"new coin launched",
+		"newly launched protocol",
 	}
 	for _, h := range headlines {
 		t.Run(h, func(t *testing.T) {
 			data := EncodeNewsMessage(topic, h, "content")
 			_, isTopic := IsCreateTopic(data)
-			if h == "new coin launched" || h == "news flash" {
-				// These WILL false-positive because the encoded bytes at
-				// [4:7] are literally "new". Document the hazard so a
-				// fix can flip the assertion.
-				assert.True(t, isTopic,
-					"current impl incorrectly classifies 'new'-prefixed news as topic creation (headline=%q)", h)
-				return
-			}
-			assert.False(t, isTopic, "standard news must not be classified as topic creation (headline=%q)", h)
+			assert.False(t, isTopic, "news must not be classified as topic creation (headline=%q)", h)
 		})
 	}
 }
@@ -243,22 +229,17 @@ func TestIsCreateTopic_RecognizesRealTopicCreation(t *testing.T) {
 	assert.Equal(t, int32(14), info.RetentionDays)
 }
 
-// TestListCoinNews_MisclassifiedHeadlineIsDropped is the explicit
-// reproducer for the "blank title" UX: a news row whose headline
-// starts with "new" (e.g. "news about X") is classified as a topic
-// creation, skipped from the feed, and never shown. Users then see
-// fewer rows than they broadcast. Tracks alongside the classifier
-// test above — fix together.
-func TestListCoinNews_MisclassifiedHeadlineIsDropped(t *testing.T) {
+// TestListCoinNews_NewPrefixedHeadlineSurvivesDecode locks in the
+// classifier fix: a 'new'-prefixed headline round-trips through
+// ListCoinNews instead of being dropped as a misclassified topic
+// creation.
+func TestListCoinNews_NewPrefixedHeadlineSurvivesDecode(t *testing.T) {
 	topic := mustTopicID(t, "a1a1a1a1")
 	headline := "new partnership announced"
 	db := seedTopicAndNews(t, topic, "US Weekly", headline, "body")
 
 	news, err := ListCoinNews(context.Background(), db)
 	require.NoError(t, err)
-
-	// Current behaviour: IsCreateTopic returns true for this payload,
-	// so ListCoinNews skips it. This assertion documents the bug.
-	assert.Empty(t, news,
-		"known bug: 'new'-prefixed headlines are dropped because IsCreateTopic matches their headline bytes")
+	require.Len(t, news, 1)
+	assert.Equal(t, headline, news[0].Headline)
 }

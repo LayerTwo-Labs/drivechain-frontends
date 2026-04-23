@@ -92,7 +92,7 @@ func (s *Server) BroadcastNews(ctx context.Context, req *connect.Request[miscv1.
 		return nil, connect.NewError(connect.CodeInvalidArgument, err)
 	}
 
-	if req.Msg.Headline == "" {
+	if strings.TrimSpace(req.Msg.Headline) == "" {
 		err := errors.New("headline must be set")
 		return nil, connect.NewError(connect.CodeInvalidArgument, err)
 	}
