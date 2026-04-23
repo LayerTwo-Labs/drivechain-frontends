@@ -704,25 +704,6 @@ func (o *Orchestrator) startEnforcerWhenReady(ctx context.Context, opts StartOpt
 		o.log.Info().Msg("IBD complete, proceeding with enforcer")
 	}
 
-	// 3. Inject L1 seed
-	if o.WalletSvc != nil {
-		filtered := make([]string, 0, len(opts.EnforcerArgs))
-		for _, arg := range opts.EnforcerArgs {
-			if !strings.HasPrefix(arg, "--wallet-seed-file") {
-				filtered = append(filtered, arg)
-			}
-		}
-		opts.EnforcerArgs = filtered
-
-		l1Path, err := o.WalletSvc.WriteL1Starter()
-		if err != nil {
-			o.log.Warn().Err(err).Msg("failed to write L1 starter, continuing without")
-		} else {
-			opts.EnforcerArgs = append(opts.EnforcerArgs, fmt.Sprintf("--wallet-seed-file=%s", l1Path))
-			o.log.Info().Str("path", l1Path).Msg("injected L1 starter for enforcer")
-		}
-	}
-
 	enforcerCfg := o.configs["enforcer"]
 	enforcerChecker := NewHealthChecker(enforcerCfg)
 	enforcerMon := o.getOrCreateMonitor("enforcer", enforcerChecker, enforcerStartupPatterns)
@@ -735,6 +716,32 @@ func (o *Orchestrator) startEnforcerWhenReady(ctx context.Context, opts StartOpt
 			o.process.AdoptProcess(enforcerCfg, pid)
 		}
 		return
+	}
+
+	// 3. Inject L1 seed. If we can't produce one (no enforcer wallet,
+	// wallet.json missing, mnemonic empty) we MUST NOT start the enforcer
+	// binary — it would boot with no seed, reuse whatever BDK state is on
+	// disk from a prior run, and get stuck in "Aborting wallet sync to
+	// new checkpoint" loops the user can't escape from. Fail loudly so
+	// the frontend's WalletGuard can route the user to create a wallet.
+	if o.WalletSvc != nil {
+		filtered := make([]string, 0, len(opts.EnforcerArgs))
+		for _, arg := range opts.EnforcerArgs {
+			if !strings.HasPrefix(arg, "--wallet-seed-file") {
+				filtered = append(filtered, arg)
+			}
+		}
+		opts.EnforcerArgs = filtered
+
+		l1Path, err := o.WalletSvc.WriteL1Starter()
+		if err != nil {
+			o.log.Error().Err(err).Msg("refusing to start enforcer without L1 seed")
+			enforcerMon.SetConnectionError(fmt.Sprintf("cannot start enforcer without L1 wallet seed: %v", err))
+			enforcerMon.SetInitializing(false)
+			return
+		}
+		opts.EnforcerArgs = append(opts.EnforcerArgs, fmt.Sprintf("--wallet-seed-file=%s", l1Path))
+		o.log.Info().Str("path", l1Path).Msg("injected L1 starter for enforcer")
 	}
 
 	// Mark initializing for the download + start window. testConnection clears
