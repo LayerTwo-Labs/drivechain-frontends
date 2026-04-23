@@ -1234,8 +1234,12 @@ func (s *Service) startWatcher() {
 				if !ok {
 					return
 				}
+				// Also react to Remove/Rename so a user manually deleting
+				// wallet.json clears in-memory state and pushes the no-wallet
+				// signal to the frontend WalletGuard.
 				if strings.HasSuffix(event.Name, "wallet.json") &&
-					(event.Has(fsnotify.Write) || event.Has(fsnotify.Create)) {
+					(event.Has(fsnotify.Write) || event.Has(fsnotify.Create) ||
+						event.Has(fsnotify.Remove) || event.Has(fsnotify.Rename)) {
 					debounce.Reset(100 * time.Millisecond)
 				}
 			case <-debounce.C:
