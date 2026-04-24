@@ -300,6 +300,23 @@ func realMain(ctx context.Context, cancelCtx context.CancelFunc) error {
 	}()
 
 	bitcoinEngine := engines.NewBitcoind(srv.Bitcoind, db, conf)
+
+	// Dedicated log stream for coinnews sync. Pretty-printed, one line per
+	// coinnews OP_RETURN seen at parse time. Sits next to the main server log.
+	coinnewsLogPath := filepath.Join(filepath.Dir(conf.LogPath), "coinnews-sync.log")
+	if coinnewsFile, err := os.OpenFile(coinnewsLogPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666); err != nil {
+		log.Warn().Err(err).Str("path", coinnewsLogPath).Msg("could not open coinnews-sync.log, skipping dedicated log")
+	} else {
+		coinnewsWriter := zerolog.NewConsoleWriter(func(w *zerolog.ConsoleWriter) {
+			w.Out = coinnewsFile
+			w.NoColor = true
+			w.TimeFormat = time.DateTime + ".000"
+		})
+		coinnewsLogger := zerolog.New(coinnewsWriter).With().Timestamp().Logger()
+		bitcoinEngine.SetCoinnewsLogger(&coinnewsLogger)
+		log.Info().Str("path", coinnewsLogPath).Msg("coinnews sync log enabled")
+	}
+
 	deniabilityEngine := engines.NewDeniability(srv.Wallet, srv.Bitcoind, db, srv.WalletEngine)
 
 	log.Info().Msgf("server: listening on %s", conf.APIHost)

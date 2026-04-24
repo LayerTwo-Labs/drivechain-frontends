@@ -414,6 +414,13 @@ func ListCoinNews(ctx context.Context, db *sql.DB) ([]CoinNews, error) {
 
 		// Remove all the whitespace padding
 		headline = strings.TrimRight(headline, string([]byte{0}))
+		content = strings.TrimRight(content, string([]byte{0}))
+
+		// Skip empty entries — junk posts where the payload is just a
+		// space+null padding (headline blank, content blank).
+		if strings.TrimSpace(headline) == "" && strings.TrimSpace(content) == "" {
+			continue
+		}
 
 		coinNews = append(coinNews, CoinNews{
 			ID:        opReturn.ID,
