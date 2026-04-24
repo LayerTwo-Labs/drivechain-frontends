@@ -123,8 +123,7 @@
       "chain_layer": 1,
       "color": "green",
       "health_check": {
-        "type": "connect_rpc",
-        "rpc_method": "cusf.mainchain.v1.ValidatorService/GetChainTip"
+        "type": "tcp"
       },
       "dependencies": ["bitcoind"],
       "startup_log_patterns": [
