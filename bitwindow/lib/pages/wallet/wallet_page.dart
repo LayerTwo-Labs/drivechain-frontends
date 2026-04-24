@@ -18,6 +18,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get_it/get_it.dart';
+import 'package:logger/logger.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:stacked/stacked.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -245,9 +246,25 @@ class _GetCoinsButtonState extends State<GetCoinsButton> {
           onPressed: () => launchUrl(Uri.parse(url)),
         );
       }
-    } catch (error) {
+    } catch (error, stackTrace) {
+      final log = GetIt.I.get<Logger>();
+      String userMessage = error.toString();
+      if (error is DioException) {
+        log.e(
+          'faucet claim failed: status=${error.response?.statusCode} '
+          'body=${error.response?.data} type=${error.type} message=${error.message}',
+          error: error,
+          stackTrace: stackTrace,
+        );
+        final body = error.response?.data;
+        if (body is Map && body['message'] is String) {
+          userMessage = body['message'] as String;
+        }
+      } else {
+        log.e('faucet claim failed', error: error, stackTrace: stackTrace);
+      }
       if (mounted) {
-        showSnackBar(context, 'Failed to claim from faucet: ${error.toString()}');
+        showSnackBar(context, 'Failed to claim from faucet: $userMessage');
       }
     } finally {
       if (mounted) {
