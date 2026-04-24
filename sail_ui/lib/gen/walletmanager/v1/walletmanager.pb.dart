@@ -3669,10 +3669,14 @@ class GetWalletSeedRequest extends $pb.GeneratedMessage {
 class GetWalletSeedResponse extends $pb.GeneratedMessage {
   factory GetWalletSeedResponse({
     $core.String? seedHex,
+    $core.String? mnemonic,
   }) {
     final $result = create();
     if (seedHex != null) {
       $result.seedHex = seedHex;
+    }
+    if (mnemonic != null) {
+      $result.mnemonic = mnemonic;
     }
     return $result;
   }
@@ -3682,6 +3686,7 @@ class GetWalletSeedResponse extends $pb.GeneratedMessage {
 
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'GetWalletSeedResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'walletmanager.v1'), createEmptyInstance: create)
     ..aOS(1, _omitFieldNames ? '' : 'seedHex')
+    ..aOS(2, _omitFieldNames ? '' : 'mnemonic')
     ..hasRequiredFields = false
   ;
 
@@ -3714,6 +3719,16 @@ class GetWalletSeedResponse extends $pb.GeneratedMessage {
   $core.bool hasSeedHex() => $_has(0);
   @$pb.TagNumber(1)
   void clearSeedHex() => clearField(1);
+
+  /// BIP39 mnemonic words for the wallet. Sensitive — treat like seed_hex.
+  @$pb.TagNumber(2)
+  $core.String get mnemonic => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set mnemonic($core.String v) { $_setString(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasMnemonic() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearMnemonic() => clearField(2);
 }
 
 class WatchWalletDataResponse extends $pb.GeneratedMessage {

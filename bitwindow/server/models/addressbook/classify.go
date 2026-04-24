@@ -41,24 +41,24 @@ func ClassifyAddress(s string) pb.AddressType {
 	if strings.Count(s, "_") == 2 {
 		slot, addr, checksum, err := drivechain.DecodeDepositAddress(s)
 		if err == nil && slot != nil && checksum != nil {
-			if _, ok := decodeL1Any(addr); ok {
+			if decodeL1Any(addr) {
 				return pb.AddressType_ADDRESS_TYPE_DRIVECHAIN_DEPOSIT
 			}
 		}
 	}
 
-	if _, ok := decodeL1Any(s); ok {
+	if decodeL1Any(s) {
 		return pb.AddressType_ADDRESS_TYPE_BITCOIN_L1
 	}
 
 	return pb.AddressType_ADDRESS_TYPE_UNKNOWN
 }
 
-func decodeL1Any(s string) (btcutil.Address, bool) {
+func decodeL1Any(s string) bool {
 	for _, p := range allChainParams {
-		if a, err := btcutil.DecodeAddress(s, p); err == nil {
-			return a, true
+		if _, err := btcutil.DecodeAddress(s, p); err == nil {
+			return true
 		}
 	}
-	return nil, false
+	return false
 }

@@ -24,8 +24,8 @@ func buildBIP47V3(t *testing.T, compressedPubKey []byte) string {
 	copy(payload[2:], compressedPubKey)
 	h1 := sha256.Sum256(payload)
 	h2 := sha256.Sum256(h1[:])
-	full := append(payload, h2[:4]...)
-	return base58.Encode(full)
+	payload = append(payload, h2[:4]...)
+	return base58.Encode(payload)
 }
 
 func depositChecksum(slot int, addr string) string {

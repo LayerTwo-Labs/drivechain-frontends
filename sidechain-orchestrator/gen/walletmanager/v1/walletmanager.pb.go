@@ -3024,8 +3024,10 @@ func (x *GetWalletSeedRequest) GetWalletId() string {
 }
 
 type GetWalletSeedResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	SeedHex       string                 `protobuf:"bytes,1,opt,name=seed_hex,json=seedHex,proto3" json:"seed_hex,omitempty"`
+	state   protoimpl.MessageState `protogen:"open.v1"`
+	SeedHex string                 `protobuf:"bytes,1,opt,name=seed_hex,json=seedHex,proto3" json:"seed_hex,omitempty"`
+	// BIP39 mnemonic words for the wallet. Sensitive — treat like seed_hex.
+	Mnemonic      string `protobuf:"bytes,2,opt,name=mnemonic,proto3" json:"mnemonic,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -3063,6 +3065,13 @@ func (*GetWalletSeedResponse) Descriptor() ([]byte, []int) {
 func (x *GetWalletSeedResponse) GetSeedHex() string {
 	if x != nil {
 		return x.SeedHex
+	}
+	return ""
+}
+
+func (x *GetWalletSeedResponse) GetMnemonic() string {
+	if x != nil {
+		return x.Mnemonic
 	}
 	return ""
 }
@@ -3372,9 +3381,10 @@ const file_walletmanager_v1_walletmanager_proto_rawDesc = "" +
 	"\x17DeriveAddressesResponse\x12\x1c\n" +
 	"\taddresses\x18\x01 \x03(\tR\taddresses\"3\n" +
 	"\x14GetWalletSeedRequest\x12\x1b\n" +
-	"\twallet_id\x18\x01 \x01(\tR\bwalletId\"2\n" +
+	"\twallet_id\x18\x01 \x01(\tR\bwalletId\"N\n" +
 	"\x15GetWalletSeedResponse\x12\x19\n" +
-	"\bseed_hex\x18\x01 \x01(\tR\aseedHex\"\xaa\x02\n" +
+	"\bseed_hex\x18\x01 \x01(\tR\aseedHex\x12\x1a\n" +
+	"\bmnemonic\x18\x02 \x01(\tR\bmnemonic\"\xaa\x02\n" +
 	"\x17WatchWalletDataResponse\x12\x1d\n" +
 	"\n" +
 	"has_wallet\x18\x01 \x01(\bR\thasWallet\x12\x1c\n" +

@@ -76,6 +76,7 @@ func Commands() []*cli.Command {
 		updateCommand,
 		whichCommand,
 		walletCommand,
+		resetCommand,
 	}
 
 	// Add sidechain proxy commands
