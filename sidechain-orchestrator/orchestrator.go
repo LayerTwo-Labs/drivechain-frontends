@@ -321,6 +321,15 @@ func (o *Orchestrator) Start(ctx context.Context, name string, args []string, en
 // Stop stops a running binary and marks its monitor as stopped so
 // the restart timer won't automatically bring it back.
 func (o *Orchestrator) Stop(ctx context.Context, name string, force bool) error {
+	// Flip "stopping" before sending the signal so the frontend shows
+	// a stopping badge during the graceful-shutdown window. MarkStopped
+	// below clears the flag once the process has actually exited.
+	o.monitorsMu.Lock()
+	if mon, ok := o.monitors[name]; ok {
+		mon.SetStopping(true)
+	}
+	o.monitorsMu.Unlock()
+
 	err := o.process.Stop(ctx, name, force)
 
 	// Always mark the monitor as stopped, even if process.Stop failed
@@ -1002,6 +1011,15 @@ func (o *Orchestrator) ShutdownAll(ctx context.Context, force bool) (<-chan Shut
 				CompletedCount: completed,
 				CurrentBinary:  name,
 			}
+
+			// Flip stopping so the frontend shows a shutdown badge for the
+			// duration of this binary's graceful-kill window. MarkStopped
+			// below clears it.
+			o.monitorsMu.Lock()
+			if mon, ok := o.monitors[name]; ok {
+				mon.SetStopping(true)
+			}
+			o.monitorsMu.Unlock()
 
 			if !force && o.stopBinaryViaRPC(ctx, name) {
 				o.monitorsMu.Lock()
