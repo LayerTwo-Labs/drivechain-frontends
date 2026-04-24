@@ -129,7 +129,9 @@ func (h *WalletHandler) RemoveEncryption(ctx context.Context, req *connect.Reque
 }
 
 func (h *WalletHandler) ListWallets(ctx context.Context, req *connect.Request[pb.ListWalletsRequest]) (*connect.Response[pb.ListWalletsResponse], error) {
-	wallets := h.svc.ListWallets()
+	// Use GetAllWallets so we can access the seed for BIP47 derivation —
+	// parity with sendWalletData. ListWallets (metadata-only) can't see it.
+	wallets := h.svc.GetAllWallets()
 	pbWallets := make([]*pb.WalletMetadata, len(wallets))
 	for i, w := range wallets {
 		var gradientJSON string
@@ -137,11 +139,12 @@ func (h *WalletHandler) ListWallets(ctx context.Context, req *connect.Request[pb
 			gradientJSON = string(w.Gradient)
 		}
 		pbWallets[i] = &pb.WalletMetadata{
-			Id:           w.ID,
-			Name:         w.Name,
-			WalletType:   w.WalletType,
-			GradientJson: gradientJSON,
-			CreatedAt:    w.CreatedAt.Format(time.RFC3339),
+			Id:               w.ID,
+			Name:             w.Name,
+			WalletType:       w.WalletType,
+			GradientJson:     gradientJSON,
+			CreatedAt:        w.CreatedAt.Format(time.RFC3339),
+			Bip47PaymentCode: wallet.Bip47V3PaymentCodeFromSeed(w.Master.SeedHex),
 		}
 	}
 	return connect.NewResponse(&pb.ListWalletsResponse{
@@ -1034,7 +1037,8 @@ func (h *WalletHandler) GetWalletSeed(ctx context.Context, req *connect.Request[
 		for _, w := range wallets {
 			if w.WalletType == "enforcer" {
 				return connect.NewResponse(&pb.GetWalletSeedResponse{
-					SeedHex: w.Master.SeedHex,
+					SeedHex:  w.Master.SeedHex,
+					Mnemonic: w.Master.Mnemonic,
 				}), nil
 			}
 		}
@@ -1044,7 +1048,8 @@ func (h *WalletHandler) GetWalletSeed(ctx context.Context, req *connect.Request[
 	for _, w := range wallets {
 		if w.ID == walletID {
 			return connect.NewResponse(&pb.GetWalletSeedResponse{
-				SeedHex: w.Master.SeedHex,
+				SeedHex:  w.Master.SeedHex,
+				Mnemonic: w.Master.Mnemonic,
 			}), nil
 		}
 	}

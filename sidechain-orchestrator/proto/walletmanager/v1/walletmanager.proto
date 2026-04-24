@@ -364,6 +364,8 @@ message GetWalletSeedRequest {
 
 message GetWalletSeedResponse {
   string seed_hex = 1;
+  // BIP39 mnemonic words for the wallet. Sensitive — treat like seed_hex.
+  string mnemonic = 2;
 }
 
 // ============================================================================

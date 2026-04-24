@@ -806,12 +806,14 @@ const GetWalletSeedResponse$json = {
   '1': 'GetWalletSeedResponse',
   '2': [
     {'1': 'seed_hex', '3': 1, '4': 1, '5': 9, '10': 'seedHex'},
+    {'1': 'mnemonic', '3': 2, '4': 1, '5': 9, '10': 'mnemonic'},
   ],
 };
 
 /// Descriptor for `GetWalletSeedResponse`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List getWalletSeedResponseDescriptor = $convert.base64Decode(
-    'ChVHZXRXYWxsZXRTZWVkUmVzcG9uc2USGQoIc2VlZF9oZXgYASABKAlSB3NlZWRIZXg=');
+    'ChVHZXRXYWxsZXRTZWVkUmVzcG9uc2USGQoIc2VlZF9oZXgYASABKAlSB3NlZWRIZXgSGgoIbW'
+    '5lbW9uaWMYAiABKAlSCG1uZW1vbmlj');
 
 @$core.Deprecated('Use watchWalletDataResponseDescriptor instead')
 const WatchWalletDataResponse$json = {
