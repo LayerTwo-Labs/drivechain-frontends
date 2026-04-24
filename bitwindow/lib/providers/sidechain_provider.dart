@@ -26,9 +26,14 @@ class SidechainProvider extends ChangeNotifier {
 
   String? error;
 
+  /// Last wallet ID we fetched for. Used to detect an actual wallet switch
+  /// (vs. the stream just delivering a periodic refresh of the same wallet).
+  String? _lastWalletId;
+
   SidechainProvider() {
     _syncProvider.addListener(_onSync);
     _walletReader.addListener(_onWalletChanged);
+    _lastWalletId = _walletReader.activeWalletId;
     fetch();
   }
 
@@ -39,10 +44,16 @@ class SidechainProvider extends ChangeNotifier {
   }
 
   void _onWalletChanged() {
-    // Clear and refetch when wallet changes since deposits are per-wallet
-    sidechains = List.filled(256, null);
-    sidechainProposals = [];
-    notifyListeners();
+    final currentId = _walletReader.activeWalletId;
+    if (currentId == _lastWalletId) {
+      // Same wallet, unrelated stream tick. No refetch needed.
+      return;
+    }
+    _lastWalletId = currentId;
+
+    // Actual wallet switch: refetch. The old data stays visible until fetch
+    // completes and atomically replaces `sidechains` — no clear-to-empty
+    // intermediate state.
     fetch();
   }
 
