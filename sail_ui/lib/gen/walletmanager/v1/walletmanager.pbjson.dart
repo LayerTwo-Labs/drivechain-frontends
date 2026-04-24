@@ -186,6 +186,7 @@ const WalletMetadata$json = {
     {'1': 'wallet_type', '3': 3, '4': 1, '5': 9, '10': 'walletType'},
     {'1': 'gradient_json', '3': 4, '4': 1, '5': 9, '10': 'gradientJson'},
     {'1': 'created_at', '3': 5, '4': 1, '5': 9, '10': 'createdAt'},
+    {'1': 'bip47_payment_code', '3': 6, '4': 1, '5': 9, '10': 'bip47PaymentCode'},
   ],
 };
 
@@ -193,7 +194,8 @@ const WalletMetadata$json = {
 final $typed_data.Uint8List walletMetadataDescriptor = $convert.base64Decode(
     'Cg5XYWxsZXRNZXRhZGF0YRIOCgJpZBgBIAEoCVICaWQSEgoEbmFtZRgCIAEoCVIEbmFtZRIfCg'
     't3YWxsZXRfdHlwZRgDIAEoCVIKd2FsbGV0VHlwZRIjCg1ncmFkaWVudF9qc29uGAQgASgJUgxn'
-    'cmFkaWVudEpzb24SHQoKY3JlYXRlZF9hdBgFIAEoCVIJY3JlYXRlZEF0');
+    'cmFkaWVudEpzb24SHQoKY3JlYXRlZF9hdBgFIAEoCVIJY3JlYXRlZEF0EiwKEmJpcDQ3X3BheW'
+    '1lbnRfY29kZRgGIAEoCVIQYmlwNDdQYXltZW50Q29kZQ==');
 
 @$core.Deprecated('Use listWalletsRequestDescriptor instead')
 const ListWalletsRequest$json = {

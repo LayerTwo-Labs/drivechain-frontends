@@ -647,14 +647,17 @@ func (*RemoveEncryptionResponse) Descriptor() ([]byte, []int) {
 }
 
 type WalletMetadata struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	Name          string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
-	WalletType    string                 `protobuf:"bytes,3,opt,name=wallet_type,json=walletType,proto3" json:"wallet_type,omitempty"`
-	GradientJson  string                 `protobuf:"bytes,4,opt,name=gradient_json,json=gradientJson,proto3" json:"gradient_json,omitempty"`
-	CreatedAt     string                 `protobuf:"bytes,5,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"` // ISO 8601
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state        protoimpl.MessageState `protogen:"open.v1"`
+	Id           string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Name         string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	WalletType   string                 `protobuf:"bytes,3,opt,name=wallet_type,json=walletType,proto3" json:"wallet_type,omitempty"`
+	GradientJson string                 `protobuf:"bytes,4,opt,name=gradient_json,json=gradientJson,proto3" json:"gradient_json,omitempty"`
+	CreatedAt    string                 `protobuf:"bytes,5,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"` // ISO 8601
+	// BIP47 v3 payment code derived from the wallet's master pubkey.
+	// Deterministic per wallet, never changes. Empty for watch-only wallets.
+	Bip47PaymentCode string `protobuf:"bytes,6,opt,name=bip47_payment_code,json=bip47PaymentCode,proto3" json:"bip47_payment_code,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
 }
 
 func (x *WalletMetadata) Reset() {
@@ -718,6 +721,13 @@ func (x *WalletMetadata) GetGradientJson() string {
 func (x *WalletMetadata) GetCreatedAt() string {
 	if x != nil {
 		return x.CreatedAt
+	}
+	return ""
+}
+
+func (x *WalletMetadata) GetBip47PaymentCode() string {
+	if x != nil {
+		return x.Bip47PaymentCode
 	}
 	return ""
 }
@@ -3188,7 +3198,7 @@ const file_walletmanager_v1_walletmanager_proto_rawDesc = "" +
 	"\x16ChangePasswordResponse\"5\n" +
 	"\x17RemoveEncryptionRequest\x12\x1a\n" +
 	"\bpassword\x18\x01 \x01(\tR\bpassword\"\x1a\n" +
-	"\x18RemoveEncryptionResponse\"\x99\x01\n" +
+	"\x18RemoveEncryptionResponse\"\xc7\x01\n" +
 	"\x0eWalletMetadata\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12\x1f\n" +
@@ -3196,7 +3206,8 @@ const file_walletmanager_v1_walletmanager_proto_rawDesc = "" +
 	"walletType\x12#\n" +
 	"\rgradient_json\x18\x04 \x01(\tR\fgradientJson\x12\x1d\n" +
 	"\n" +
-	"created_at\x18\x05 \x01(\tR\tcreatedAt\"\x14\n" +
+	"created_at\x18\x05 \x01(\tR\tcreatedAt\x12,\n" +
+	"\x12bip47_payment_code\x18\x06 \x01(\tR\x10bip47PaymentCode\"\x14\n" +
 	"\x12ListWalletsRequest\"{\n" +
 	"\x13ListWalletsResponse\x12:\n" +
 	"\awallets\x18\x01 \x03(\v2 .walletmanager.v1.WalletMetadataR\awallets\x12(\n" +

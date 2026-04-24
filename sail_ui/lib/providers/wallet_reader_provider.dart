@@ -140,6 +140,7 @@ class WalletReaderProvider extends ChangeNotifier {
           (t) => t.name == protoWallet.walletType,
           orElse: () => BinaryType.enforcer,
         ),
+        bip47PaymentCode: protoWallet.bip47PaymentCode,
       );
     }).toList();
 

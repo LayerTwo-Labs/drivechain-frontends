@@ -13,6 +13,9 @@ class WalletData {
   final WalletGradient gradient;
   final DateTime createdAt;
   final BinaryType walletType;
+  // BIP47 v3 payment code from orchestrator's WatchWalletData stream.
+  // Not persisted — populated only from the proto, not from wallet.json.
+  final String bip47PaymentCode;
 
   WalletData({
     required this.version,
@@ -24,6 +27,7 @@ class WalletData {
     required this.gradient,
     required this.createdAt,
     required this.walletType,
+    this.bip47PaymentCode = '',
   });
 
   Map<String, dynamic> toJson() {

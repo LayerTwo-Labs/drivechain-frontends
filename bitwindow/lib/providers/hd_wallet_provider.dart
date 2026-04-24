@@ -18,7 +18,6 @@ class HDWalletProvider extends ChangeNotifier {
   bool _initialized = false;
   final bool _isProcessing = false;
   String? _mnemonic;
-  String _bip47PaymentCode = '';
 
   String? get seedHex => _seedHex;
   String? get masterKey => _masterKey;
@@ -26,9 +25,22 @@ class HDWalletProvider extends ChangeNotifier {
   bool get isInitialized => _initialized;
   bool get isProcessing => _isProcessing;
   String? get mnemonic => _mnemonic;
-  String get bip47PaymentCode => _bip47PaymentCode;
 
-  HDWalletProvider();
+  /// BIP47 v3 payment code — computed server-side by the orchestrator and
+  /// delivered on the WatchWalletData stream. No local crypto involved.
+  String get bip47PaymentCode => GetIt.I.get<WalletReaderProvider>().activeWallet?.bip47PaymentCode ?? '';
+
+  HDWalletProvider() {
+    // Forward wallet-state changes so listeners (e.g. the receive page)
+    // rebuild when bip47PaymentCode arrives.
+    GetIt.I.get<WalletReaderProvider>().addListener(notifyListeners);
+  }
+
+  @override
+  void dispose() {
+    GetIt.I.get<WalletReaderProvider>().removeListener(notifyListeners);
+    super.dispose();
+  }
 
   Future<void> init() async {
     if (_initialized) return;
@@ -45,6 +57,7 @@ class HDWalletProvider extends ChangeNotifier {
   Future<bool> loadMnemonic() async {
     try {
       await _loadMnemonic();
+      notifyListeners();
       return true;
     } catch (e) {
       _error = "Couldn't load wallet mnemonic: $e";
@@ -64,10 +77,12 @@ class HDWalletProvider extends ChangeNotifier {
   }
 
   Future<void> _loadMnemonic() async {
+    log.i('HDWalletProvider: _loadMnemonic start');
     try {
       // Use WalletWriterProvider to load L1 mnemonic (supports both old and new structure)
       final walletProvider = GetIt.I.get<WalletWriterProvider>();
       final l1Mnemonic = await walletProvider.getL1Starter();
+      log.i('HDWalletProvider: getL1Starter returned len=${l1Mnemonic?.length ?? -1}');
 
       if (l1Mnemonic == null || l1Mnemonic.isEmpty) {
         throw Exception('Could not load L1 wallet mnemonic');
@@ -82,21 +97,10 @@ class HDWalletProvider extends ChangeNotifier {
       final masterKey = chain.forPath('m');
       _masterKey = masterKey.privateKeyHex();
 
-      try {
-        final extendedPublicKey = (masterKey as ExtendedPrivateKey).publicKey();
-        final masterQ = extendedPublicKey.q;
-        if (masterQ != null) {
-          final masterPubKeyBytes = masterQ.getEncoded(true);
-          final masterPubKeyHex = hex.encode(masterPubKeyBytes);
-          _bip47PaymentCode = _generateBip47v3PaymentCode(masterPubKeyHex);
-        }
-      } catch (e) {
-        _bip47PaymentCode = '';
-      }
-
       _error = null;
       _initialized = true;
-    } catch (e) {
+    } catch (e, st) {
+      log.e('HDWalletProvider: _loadMnemonic failed', error: e, stackTrace: st);
       _error = "Couldn't load wallet for HD Explorer";
       _seedHex = _masterKey = _mnemonic = null;
       _initialized = false;
@@ -109,7 +113,6 @@ class HDWalletProvider extends ChangeNotifier {
     _seedHex = null;
     _masterKey = null;
     _mnemonic = null;
-    _bip47PaymentCode = '';
     _error = null;
     notifyListeners();
   }
@@ -143,40 +146,6 @@ class HDWalletProvider extends ChangeNotifier {
     final ripemd160 = RIPEMD160Digest();
     final sha256Result = sha256Digest.process(data);
     return ripemd160.process(sha256Result);
-  }
-
-  String _generateBip47v3PaymentCode(String masterPubKeyHex) {
-    try {
-      if (masterPubKeyHex.length != 66) {
-        return '';
-      }
-
-      final pubKeyBytes = hex.decode(masterPubKeyHex);
-      if (pubKeyBytes.length != 33) {
-        return '';
-      }
-
-      final binaryPayload = Uint8List(34);
-      binaryPayload[0] = 0x03;
-      binaryPayload.setRange(1, 34, pubKeyBytes);
-
-      final versionedPayload = Uint8List(35);
-      versionedPayload[0] = 0x22;
-      versionedPayload.setRange(1, 35, binaryPayload);
-
-      final sha256Digest = SHA256Digest();
-      final hash1 = sha256Digest.process(versionedPayload);
-      final hash2 = sha256Digest.process(hash1);
-      final checksum = hash2.sublist(0, 4);
-
-      final finalBytes = Uint8List(39);
-      finalBytes.setRange(0, 35, versionedPayload);
-      finalBytes.setRange(35, 39, checksum);
-
-      return base58.encode(finalBytes);
-    } catch (e) {
-      return '';
-    }
   }
 
   bool _validateExtendedKey(String extendedKey) {

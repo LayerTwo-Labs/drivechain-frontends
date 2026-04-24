@@ -119,6 +119,9 @@ message WalletMetadata {
   string wallet_type = 3;
   string gradient_json = 4;
   string created_at = 5; // ISO 8601
+  // BIP47 v3 payment code derived from the wallet's master pubkey.
+  // Deterministic per wallet, never changes. Empty for watch-only wallets.
+  string bip47_payment_code = 6;
 }
 
 message ListWalletsRequest {}

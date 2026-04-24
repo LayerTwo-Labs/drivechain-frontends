@@ -99,8 +99,8 @@ class ReceiveTab extends StatelessWidget {
                         Expanded(
                           child: SailTextField(
                             loading: LoadingDetails(
-                              enabled: model.address.isEmpty,
-                              description: 'Waiting for enforcer to start and wallet to sync..',
+                              enabled: model.bip47PaymentCode.isEmpty,
+                              description: 'Waiting for wallet to sync..',
                             ),
                             controller: TextEditingController(text: model.bip47PaymentCode),
                             hintText: 'A Drivechain address',
@@ -112,11 +112,6 @@ class ReceiveTab extends StatelessWidget {
                         ),
                       ],
                     ),
-                    if (model.bip47PaymentCode.isEmpty)
-                      SailButton(
-                        label: 'Generate Bip47 Payment Code',
-                        onPressed: model.generateNewAddress,
-                      ),
                   ],
                 ),
               ),
@@ -332,6 +327,10 @@ class ReceivePageViewModel extends BaseViewModel {
     _bitwindowRPC.addListener(generateNewAddress);
     transactionsProvider.addListener(notifyListeners);
     _addressBookProvider.addListener(notifyListeners);
+    _hdWalletProvider.addListener(notifyListeners);
+    if (!_hdWalletProvider.isInitialized) {
+      _hdWalletProvider.init();
+    }
     generateNewAddress();
   }
 
@@ -339,6 +338,7 @@ class ReceivePageViewModel extends BaseViewModel {
   void dispose() {
     transactionsProvider.removeListener(notifyListeners);
     _addressBookProvider.removeListener(notifyListeners);
+    _hdWalletProvider.removeListener(notifyListeners);
     super.dispose();
   }
 
@@ -346,18 +346,6 @@ class ReceivePageViewModel extends BaseViewModel {
     try {
       modelError = null;
       await transactionsProvider.fetch();
-    } catch (e) {
-      if (e.toString() != modelError) {
-        modelError = e.toString();
-        notifyListeners();
-      }
-    }
-  }
-
-  Future<void> generateBip47PaymentCode() async {
-    try {
-      modelError = null;
-      await _hdWalletProvider.loadMnemonic();
     } catch (e) {
       if (e.toString() != modelError) {
         modelError = e.toString();

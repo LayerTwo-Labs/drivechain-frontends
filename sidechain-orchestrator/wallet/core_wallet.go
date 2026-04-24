@@ -326,6 +326,32 @@ func masterFingerprint(masterKey *bip32.Key) string {
 	return hex.EncodeToString(h[:4])
 }
 
+// Bip47V3PaymentCodeFromSeed derives a BIP47 v3 payment code from a BIP32 seed.
+// Layout: version(0x22) || prefix(0x03) || compressed_master_pubkey(33B) || base58check.
+// Returns "" if seedHex is empty or malformed.
+func Bip47V3PaymentCodeFromSeed(seedHex string) string {
+	if seedHex == "" {
+		return ""
+	}
+	seed, err := hex.DecodeString(seedHex)
+	if err != nil {
+		return ""
+	}
+	masterKey, err := bip32.NewMasterKey(seed)
+	if err != nil {
+		return ""
+	}
+	pubKey := masterKey.PublicKey().Key // 33-byte compressed
+	if len(pubKey) != 33 {
+		return ""
+	}
+	payload := make([]byte, 35)
+	payload[0] = 0x22
+	payload[1] = 0x03
+	copy(payload[2:], pubKey)
+	return base58CheckEncode(payload)
+}
+
 // hash160 computes RIPEMD160(SHA256(data)).
 func hash160(data []byte) []byte {
 	sha := sha256.Sum256(data)
