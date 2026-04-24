@@ -90,18 +90,12 @@ class BackendStateProvider extends ChangeNotifier {
       onError: (error) {
         _log.w('BackendStateProvider: watchBinaries error: $error');
 
-        // Backend is gone — mark all orchestrator-managed binaries as disconnected.
-        for (final status in binaries.values) {
-          final rpc = _rpcForBinaryName(status.name);
-          if (rpc != null) {
-            rpc.connected = false;
-            rpc.initializingBinary = false;
-            rpc.stoppingBinary = false;
-            rpc.markStateChanged();
-          }
-        }
-        binaries.clear();
-        notifyListeners();
+        // Do NOT clear `binaries` or flip RPCs to disconnected on a transient
+        // stream error — the reconnect takes ~2s and clearing makes the
+        // sidechain list UI vanish and re-appear ("spasm"). The stream pushes
+        // the full state on reconnect, so last-known state is fine to keep.
+        // If the backend is genuinely gone, individual RPC calls will fail
+        // and those code paths set their own disconnected state.
 
         // Stream broke — retry after delay
         Future.delayed(const Duration(seconds: 2), () {
