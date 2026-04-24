@@ -51,6 +51,15 @@ type Parser struct {
 	mu       sync.Mutex
 	topics   []opreturns.TopicInfo
 	m4Engine *M4Engine
+
+	// Dedicated sink for coinnews sync events. Nil => logging disabled.
+	coinnewsLog *zerolog.Logger
+}
+
+// SetCoinnewsLogger attaches a dedicated logger for coinnews sync events.
+// Passing nil disables coinnews-sync logging.
+func (p *Parser) SetCoinnewsLogger(logger *zerolog.Logger) {
+	p.coinnewsLog = logger
 }
 
 // Run runs the engine. It checks if a new block has been mined,
@@ -596,6 +605,8 @@ func (p *Parser) handleOpReturns(
 			Int("vout", vout).
 			Msgf("bitcoind_engine/parser: found OP_RETURN")
 
+		p.logCoinnews(txid, vout, data, height)
+
 		// Always fetch fee for OP_RETURN transactions. This avoids a race
 		// condition where blocks are processed in parallel and a topic
 		// created in one block isn't yet registered when a news article
@@ -632,6 +643,62 @@ func (p *Parser) handleOpReturns(
 	}
 
 	return opReturns, nil
+}
+
+// logCoinnews emits a detailed line to the dedicated coinnews-sync log when
+// the OP_RETURN's first 4 bytes match a known coin_news_topics entry.
+// No-op if no logger is attached (SetCoinnewsLogger not called).
+func (p *Parser) logCoinnews(txid string, vout int, data []byte, height *uint32) {
+	if p.coinnewsLog == nil || len(data) < 4 {
+		return
+	}
+
+	p.mu.Lock()
+	topicHex := hex.EncodeToString(data[:4])
+	var topicName string
+	for _, t := range p.topics {
+		if t.ID.String() == topicHex {
+			topicName = t.Name
+			break
+		}
+	}
+	p.mu.Unlock()
+
+	if topicName == "" {
+		return // not a coinnews entry
+	}
+
+	// Skip topic-creation OP_RETURNs — bytes 5..7 == "new" (0x6e6577).
+	if len(data) >= 8 && bytes.Equal(data[4:7], []byte("new")) {
+		return
+	}
+
+	payload := data[4:]
+	payloadHex := hex.EncodeToString(payload)
+	// Trim trailing NULs for the text preview; those are padding, not content.
+	textPreview := string(bytes.TrimRight(payload, "\x00"))
+	if len(textPreview) > 120 {
+		textPreview = textPreview[:120]
+	}
+
+	heightVal := int64(-1)
+	if height != nil {
+		heightVal = int64(*height)
+	}
+
+	evt := p.coinnewsLog.Info().
+		Str("txid", txid).
+		Int("vout", vout).
+		Int64("height", heightVal).
+		Str("topic_hex", topicHex).
+		Str("topic_name", topicName).
+		Int("payload_bytes", len(payload)).
+		Str("payload_hex", payloadHex).
+		Str("text_preview", textPreview)
+	if height == nil {
+		evt = evt.Str("source", "mempool")
+	}
+	evt.Msg("coinnews synced")
 }
 
 // parseOPReturnData extracts the actual data from an OP_RETURN script by handling
