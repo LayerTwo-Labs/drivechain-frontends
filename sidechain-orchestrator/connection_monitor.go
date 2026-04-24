@@ -253,6 +253,22 @@ func (m *ConnectionMonitor) SetInitializing(v bool) {
 	m.notifyChange()
 }
 
+// SetStopping flips the stopping flag and fires onChange so the frontend
+// sees the transition immediately. Orchestrator calls SetStopping(true)
+// right before signalling the process, so the UI can badge the binary as
+// "stopping" during the shutdown window (between signal and exit).
+// MarkStopped resets the flag to false once the process is actually gone.
+func (m *ConnectionMonitor) SetStopping(v bool) {
+	m.mu.Lock()
+	if m.stoppingBinary == v {
+		m.mu.Unlock()
+		return
+	}
+	m.stoppingBinary = v
+	m.mu.Unlock()
+	m.notifyChange()
+}
+
 // ConnectModeOnly returns whether the monitor is in connect-mode-only
 // (willfully stopped, only watching for external restart).
 func (m *ConnectionMonitor) ConnectModeOnly() bool {
