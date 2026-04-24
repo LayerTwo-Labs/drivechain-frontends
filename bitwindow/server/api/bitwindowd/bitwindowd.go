@@ -426,15 +426,20 @@ func (s *Server) CreateAddressBookEntry(ctx context.Context, req *connect.Reques
 		return nil, connect.NewError(connect.CodeInvalidArgument, err)
 	}
 
-	address, err := btcutil.DecodeAddress(req.Msg.Address, s.walletEngine.GetChainParams())
-	if err != nil {
-		err = fmt.Errorf("invalid address: %w", err)
+	addr := strings.TrimSpace(req.Msg.Address)
+	kind := addressbook.ClassifyAddress(addr)
+	if kind == pb.AddressType_ADDRESS_TYPE_UNKNOWN || kind == pb.AddressType_ADDRESS_TYPE_UNSPECIFIED {
+		err := fmt.Errorf(
+			"invalid address %q: must be (1) a Bitcoin address on any network, "+
+				"(2) a Drivechain deposit address s<slot>_<addr>_<checksum>, or "+
+				"(3) a BIP47 v3 payment code", addr,
+		)
 		zerolog.Ctx(ctx).Error().Err(err).Msg("invalid address format")
 		return nil, connect.NewError(connect.CodeInvalidArgument, err)
 	}
 
 	// User-added addresses don't belong to a specific wallet (nil walletId)
-	if err := addressbook.Create(ctx, s.db, nil, req.Msg.Label, address.String(), direction); err != nil {
+	if err := addressbook.Create(ctx, s.db, nil, req.Msg.Label, addr, direction); err != nil {
 		// Check if this is a unique constraint error for address+direction
 		if err.Error() == addressbook.ErrUniqueAddress {
 			// Get the existing entry to update
@@ -446,7 +451,7 @@ func (s *Server) CreateAddressBookEntry(ctx context.Context, req *connect.Reques
 
 			// Find the entry with matching address and direction
 			for _, entry := range entries {
-				if entry.Address == req.Msg.Address && entry.Direction == direction {
+				if entry.Address == addr && entry.Direction == direction {
 					// Update its label instead
 					if err := addressbook.UpdateLabel(ctx, s.db, entry.ID, req.Msg.Label); err != nil {
 						zerolog.Ctx(ctx).Error().Err(err).Msg("could not update address book entry label")
@@ -468,7 +473,7 @@ func (s *Server) CreateAddressBookEntry(ctx context.Context, req *connect.Reques
 	}
 
 	entry, ok := lo.Find(entries, func(entry addressbook.Entry) bool {
-		return entry.Address == req.Msg.Address && entry.Direction == direction
+		return entry.Address == addr && entry.Direction == direction
 	})
 	if !ok {
 		zerolog.Ctx(ctx).Error().Err(err).Msg("could not find newly created address book entry")
@@ -492,6 +497,7 @@ func EntryToProto(entry *addressbook.Entry) *pb.AddressBookEntry {
 		Direction:  addressbook.DirectionToProto(entry.Direction),
 		CreateTime: timestamppb.New(entry.CreatedAt),
 		WalletId:   walletId,
+		Type:       addressbook.ClassifyAddress(entry.Address),
 	}
 }
 
@@ -503,19 +509,8 @@ func (s *Server) ListAddressBook(ctx context.Context, req *connect.Request[empty
 	}
 
 	var pbEntries []*pb.AddressBookEntry
-	for _, entry := range entries {
-		walletId := ""
-		if entry.WalletID != nil {
-			walletId = *entry.WalletID
-		}
-		pbEntries = append(pbEntries, &pb.AddressBookEntry{
-			Id:         entry.ID,
-			Label:      entry.Label,
-			Address:    entry.Address,
-			Direction:  addressbook.DirectionToProto(entry.Direction),
-			CreateTime: timestamppb.New(entry.CreatedAt),
-			WalletId:   walletId,
-		})
+	for i := range entries {
+		pbEntries = append(pbEntries, EntryToProto(&entries[i]))
 	}
 
 	return connect.NewResponse(&pb.ListAddressBookResponse{

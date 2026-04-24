@@ -167,6 +167,14 @@ enum BitcoinNetwork {
   BITCOIN_NETWORK_FORKNET = 6;
 }
 
+enum AddressType {
+  ADDRESS_TYPE_UNSPECIFIED = 0;
+  ADDRESS_TYPE_UNKNOWN = 1;
+  ADDRESS_TYPE_BITCOIN_L1 = 2;
+  ADDRESS_TYPE_DRIVECHAIN_DEPOSIT = 3;
+  ADDRESS_TYPE_BIP47_PAYMENT_CODE = 4;
+}
+
 message AddressBookEntry {
   int64 id = 1;
   string label = 2;
@@ -174,6 +182,9 @@ message AddressBookEntry {
   Direction direction = 4;
   google.protobuf.Timestamp create_time = 5;
   string wallet_id = 6;
+  // Classified server-side on every read from the stored `address` string.
+  // Not persisted.
+  AddressType type = 7;
 }
 
 message ListAddressBookResponse {
