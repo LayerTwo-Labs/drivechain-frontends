@@ -1,28 +1,31 @@
-import 'package:auto_route/auto_route.dart';
 import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:sail_ui/providers/wallet_reader_provider.dart';
 
-/// Watches WalletReaderProvider.hasWalletOnDisk and pushes the
-/// create-wallet route when it transitions `true -> false`. Mid-session
-/// WalletGuard (an AutoRouteGuard) only fires on navigation, so a user
-/// sitting on the Overview page while someone manually deletes
-/// wallet.json would never be prompted. This listener closes that gap.
+/// Watches WalletReaderProvider.hasWalletOnDisk and invokes
+/// [onWalletLost] when it transitions `true -> false`. WalletGuard
+/// (an AutoRouteGuard) only fires on navigation, so a user sitting on
+/// the Overview page while someone manually deletes wallet.json would
+/// never be prompted. This listener closes that gap.
 ///
-/// Placement: wrap the child that lives *inside* `MaterialApp.router`
-/// (typically the app shell beneath AutoRouter), so AutoRouter.of(context)
-/// resolves to the app's root router.
+/// The caller owns routing — [onWalletLost] typically reaches the app's
+/// root router via GetIt (e.g. `GetIt.I.get<AppRouter>().replaceAll(...)`).
+/// Routing through `AutoRouter.of(context)` is unsafe here because this
+/// widget is wrapped in `MaterialApp.router`'s `builder`, where the
+/// AutoRouter sits *below* (in `child`), not above — so the lookup
+/// throws.
 class WalletLostListener extends StatefulWidget {
   final Widget child;
 
-  /// Factory for the create-wallet route — same contract as WalletGuard.
-  final PageRouteInfo Function() createWalletRoute;
+  /// Invoked when wallet.json transitions from present to absent.
+  /// Called from the listener callback, not during build.
+  final void Function() onWalletLost;
 
   const WalletLostListener({
     super.key,
     required this.child,
-    required this.createWalletRoute,
+    required this.onWalletLost,
   });
 
   @override
@@ -67,10 +70,8 @@ class _WalletLostListenerState extends State<WalletLostListener> {
     if (!lost) return;
     if (!mounted) return;
 
-    _log.w('WalletLostListener: wallet.json disappeared, routing to create-wallet');
-    // replaceAll so the user can't back-button into a dead Overview page
-    // against an enforcer that refuses to boot without an L1 seed.
-    AutoRouter.of(context).replaceAll([widget.createWalletRoute()]);
+    _log.w('WalletLostListener: wallet.json disappeared, invoking onWalletLost');
+    widget.onWalletLost();
   }
 
   @override
