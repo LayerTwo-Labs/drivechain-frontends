@@ -1101,7 +1101,7 @@ func (h *WalletHandler) WatchWalletData(ctx context.Context, req *connect.Reques
 }
 
 func (h *WalletHandler) sendWalletData(ctx context.Context, stream *connect.ServerStream[pb.WatchWalletDataResponse]) error {
-	wallets := h.svc.ListWallets()
+	wallets := h.svc.GetAllWallets()
 	pbWallets := make([]*pb.WalletMetadata, len(wallets))
 	for i, w := range wallets {
 		var gradientJSON string
@@ -1109,11 +1109,12 @@ func (h *WalletHandler) sendWalletData(ctx context.Context, stream *connect.Serv
 			gradientJSON = string(w.Gradient)
 		}
 		pbWallets[i] = &pb.WalletMetadata{
-			Id:           w.ID,
-			Name:         w.Name,
-			WalletType:   w.WalletType,
-			GradientJson: gradientJSON,
-			CreatedAt:    w.CreatedAt.Format(time.RFC3339),
+			Id:               w.ID,
+			Name:             w.Name,
+			WalletType:       w.WalletType,
+			GradientJson:     gradientJSON,
+			CreatedAt:        w.CreatedAt.Format(time.RFC3339),
+			Bip47PaymentCode: wallet.Bip47V3PaymentCodeFromSeed(w.Master.SeedHex),
 		}
 	}
 

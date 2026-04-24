@@ -710,6 +710,7 @@ class WalletMetadata extends $pb.GeneratedMessage {
     $core.String? walletType,
     $core.String? gradientJson,
     $core.String? createdAt,
+    $core.String? bip47PaymentCode,
   }) {
     final $result = create();
     if (id != null) {
@@ -727,6 +728,9 @@ class WalletMetadata extends $pb.GeneratedMessage {
     if (createdAt != null) {
       $result.createdAt = createdAt;
     }
+    if (bip47PaymentCode != null) {
+      $result.bip47PaymentCode = bip47PaymentCode;
+    }
     return $result;
   }
   WalletMetadata._() : super();
@@ -739,6 +743,7 @@ class WalletMetadata extends $pb.GeneratedMessage {
     ..aOS(3, _omitFieldNames ? '' : 'walletType')
     ..aOS(4, _omitFieldNames ? '' : 'gradientJson')
     ..aOS(5, _omitFieldNames ? '' : 'createdAt')
+    ..aOS(6, _omitFieldNames ? '' : 'bip47PaymentCode')
     ..hasRequiredFields = false
   ;
 
@@ -807,6 +812,17 @@ class WalletMetadata extends $pb.GeneratedMessage {
   $core.bool hasCreatedAt() => $_has(4);
   @$pb.TagNumber(5)
   void clearCreatedAt() => clearField(5);
+
+  /// BIP47 v3 payment code derived from the wallet's master pubkey.
+  /// Deterministic per wallet, never changes. Empty for watch-only wallets.
+  @$pb.TagNumber(6)
+  $core.String get bip47PaymentCode => $_getSZ(5);
+  @$pb.TagNumber(6)
+  set bip47PaymentCode($core.String v) { $_setString(5, v); }
+  @$pb.TagNumber(6)
+  $core.bool hasBip47PaymentCode() => $_has(5);
+  @$pb.TagNumber(6)
+  void clearBip47PaymentCode() => clearField(6);
 }
 
 class ListWalletsRequest extends $pb.GeneratedMessage {
