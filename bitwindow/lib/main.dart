@@ -499,7 +499,9 @@ class _BitwindowAppContent extends StatelessWidget {
         // this case on their own.
         return _ErrorBoundary(
           child: WalletLostListener(
-            createWalletRoute: () => SailCreateWalletRoute(homeRoute: const RootRoute()),
+            onWalletLost: () => GetIt.I.get<AppRouter>().replaceAll([
+              SailCreateWalletRoute(homeRoute: const RootRoute()),
+            ]),
             child: Scaffold(
               body: child ?? const SizedBox.shrink(),
               bottomNavigationBar: const PersistentStatusBar(),
