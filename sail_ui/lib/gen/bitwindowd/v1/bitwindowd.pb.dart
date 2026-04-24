@@ -1346,6 +1346,7 @@ class AddressBookEntry extends $pb.GeneratedMessage {
     Direction? direction,
     $0.Timestamp? createTime,
     $core.String? walletId,
+    AddressType? type,
   }) {
     final $result = create();
     if (id != null) {
@@ -1366,6 +1367,9 @@ class AddressBookEntry extends $pb.GeneratedMessage {
     if (walletId != null) {
       $result.walletId = walletId;
     }
+    if (type != null) {
+      $result.type = type;
+    }
     return $result;
   }
   AddressBookEntry._() : super();
@@ -1379,6 +1383,7 @@ class AddressBookEntry extends $pb.GeneratedMessage {
     ..e<Direction>(4, _omitFieldNames ? '' : 'direction', $pb.PbFieldType.OE, defaultOrMaker: Direction.DIRECTION_UNSPECIFIED, valueOf: Direction.valueOf, enumValues: Direction.values)
     ..aOM<$0.Timestamp>(5, _omitFieldNames ? '' : 'createTime', subBuilder: $0.Timestamp.create)
     ..aOS(6, _omitFieldNames ? '' : 'walletId')
+    ..e<AddressType>(7, _omitFieldNames ? '' : 'type', $pb.PbFieldType.OE, defaultOrMaker: AddressType.ADDRESS_TYPE_UNSPECIFIED, valueOf: AddressType.valueOf, enumValues: AddressType.values)
     ..hasRequiredFields = false
   ;
 
@@ -1458,6 +1463,17 @@ class AddressBookEntry extends $pb.GeneratedMessage {
   $core.bool hasWalletId() => $_has(5);
   @$pb.TagNumber(6)
   void clearWalletId() => clearField(6);
+
+  /// Classified server-side on every read from the stored `address` string.
+  /// Not persisted.
+  @$pb.TagNumber(7)
+  AddressType get type => $_getN(6);
+  @$pb.TagNumber(7)
+  set type(AddressType v) { setField(7, v); }
+  @$pb.TagNumber(7)
+  $core.bool hasType() => $_has(6);
+  @$pb.TagNumber(7)
+  void clearType() => clearField(7);
 }
 
 class ListAddressBookResponse extends $pb.GeneratedMessage {

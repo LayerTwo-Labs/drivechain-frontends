@@ -133,6 +133,61 @@ func (BitcoinNetwork) EnumDescriptor() ([]byte, []int) {
 	return file_bitwindowd_v1_bitwindowd_proto_rawDescGZIP(), []int{1}
 }
 
+type AddressType int32
+
+const (
+	AddressType_ADDRESS_TYPE_UNSPECIFIED        AddressType = 0
+	AddressType_ADDRESS_TYPE_UNKNOWN            AddressType = 1
+	AddressType_ADDRESS_TYPE_BITCOIN_L1         AddressType = 2
+	AddressType_ADDRESS_TYPE_DRIVECHAIN_DEPOSIT AddressType = 3
+	AddressType_ADDRESS_TYPE_BIP47_PAYMENT_CODE AddressType = 4
+)
+
+// Enum value maps for AddressType.
+var (
+	AddressType_name = map[int32]string{
+		0: "ADDRESS_TYPE_UNSPECIFIED",
+		1: "ADDRESS_TYPE_UNKNOWN",
+		2: "ADDRESS_TYPE_BITCOIN_L1",
+		3: "ADDRESS_TYPE_DRIVECHAIN_DEPOSIT",
+		4: "ADDRESS_TYPE_BIP47_PAYMENT_CODE",
+	}
+	AddressType_value = map[string]int32{
+		"ADDRESS_TYPE_UNSPECIFIED":        0,
+		"ADDRESS_TYPE_UNKNOWN":            1,
+		"ADDRESS_TYPE_BITCOIN_L1":         2,
+		"ADDRESS_TYPE_DRIVECHAIN_DEPOSIT": 3,
+		"ADDRESS_TYPE_BIP47_PAYMENT_CODE": 4,
+	}
+)
+
+func (x AddressType) Enum() *AddressType {
+	p := new(AddressType)
+	*p = x
+	return p
+}
+
+func (x AddressType) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (AddressType) Descriptor() protoreflect.EnumDescriptor {
+	return file_bitwindowd_v1_bitwindowd_proto_enumTypes[2].Descriptor()
+}
+
+func (AddressType) Type() protoreflect.EnumType {
+	return &file_bitwindowd_v1_bitwindowd_proto_enumTypes[2]
+}
+
+func (x AddressType) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use AddressType.Descriptor instead.
+func (AddressType) EnumDescriptor() ([]byte, []int) {
+	return file_bitwindowd_v1_bitwindowd_proto_rawDescGZIP(), []int{2}
+}
+
 type BitwindowdServiceStopRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// If true, only stop bitwindow itself without stopping downstream services (enforcer, bitcoind)
@@ -1139,13 +1194,16 @@ func (x *CreateAddressBookEntryResponse) GetEntry() *AddressBookEntry {
 }
 
 type AddressBookEntry struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            int64                  `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
-	Label         string                 `protobuf:"bytes,2,opt,name=label,proto3" json:"label,omitempty"`
-	Address       string                 `protobuf:"bytes,3,opt,name=address,proto3" json:"address,omitempty"`
-	Direction     Direction              `protobuf:"varint,4,opt,name=direction,proto3,enum=bitwindowd.v1.Direction" json:"direction,omitempty"`
-	CreateTime    *timestamppb.Timestamp `protobuf:"bytes,5,opt,name=create_time,json=createTime,proto3" json:"create_time,omitempty"`
-	WalletId      string                 `protobuf:"bytes,6,opt,name=wallet_id,json=walletId,proto3" json:"wallet_id,omitempty"`
+	state      protoimpl.MessageState `protogen:"open.v1"`
+	Id         int64                  `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
+	Label      string                 `protobuf:"bytes,2,opt,name=label,proto3" json:"label,omitempty"`
+	Address    string                 `protobuf:"bytes,3,opt,name=address,proto3" json:"address,omitempty"`
+	Direction  Direction              `protobuf:"varint,4,opt,name=direction,proto3,enum=bitwindowd.v1.Direction" json:"direction,omitempty"`
+	CreateTime *timestamppb.Timestamp `protobuf:"bytes,5,opt,name=create_time,json=createTime,proto3" json:"create_time,omitempty"`
+	WalletId   string                 `protobuf:"bytes,6,opt,name=wallet_id,json=walletId,proto3" json:"wallet_id,omitempty"`
+	// Classified server-side on every read from the stored `address` string.
+	// Not persisted.
+	Type          AddressType `protobuf:"varint,7,opt,name=type,proto3,enum=bitwindowd.v1.AddressType" json:"type,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1220,6 +1278,13 @@ func (x *AddressBookEntry) GetWalletId() string {
 		return x.WalletId
 	}
 	return ""
+}
+
+func (x *AddressBookEntry) GetType() AddressType {
+	if x != nil {
+		return x.Type
+	}
+	return AddressType_ADDRESS_TYPE_UNSPECIFIED
 }
 
 type ListAddressBookResponse struct {
@@ -2510,7 +2575,7 @@ const file_bitwindowd_v1_bitwindowd_proto_rawDesc = "" +
 	"\aaddress\x18\x02 \x01(\tR\aaddress\x126\n" +
 	"\tdirection\x18\x03 \x01(\x0e2\x18.bitwindowd.v1.DirectionR\tdirection\"W\n" +
 	"\x1eCreateAddressBookEntryResponse\x125\n" +
-	"\x05entry\x18\x01 \x01(\v2\x1f.bitwindowd.v1.AddressBookEntryR\x05entry\"\xe4\x01\n" +
+	"\x05entry\x18\x01 \x01(\v2\x1f.bitwindowd.v1.AddressBookEntryR\x05entry\"\x94\x02\n" +
 	"\x10AddressBookEntry\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\x03R\x02id\x12\x14\n" +
 	"\x05label\x18\x02 \x01(\tR\x05label\x12\x18\n" +
@@ -2518,7 +2583,8 @@ const file_bitwindowd_v1_bitwindowd_proto_rawDesc = "" +
 	"\tdirection\x18\x04 \x01(\x0e2\x18.bitwindowd.v1.DirectionR\tdirection\x12;\n" +
 	"\vcreate_time\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampR\n" +
 	"createTime\x12\x1b\n" +
-	"\twallet_id\x18\x06 \x01(\tR\bwalletId\"T\n" +
+	"\twallet_id\x18\x06 \x01(\tR\bwalletId\x12.\n" +
+	"\x04type\x18\a \x01(\x0e2\x1a.bitwindowd.v1.AddressTypeR\x04type\"T\n" +
 	"\x17ListAddressBookResponse\x129\n" +
 	"\aentries\x18\x01 \x03(\v2\x1f.bitwindowd.v1.AddressBookEntryR\aentries\"_\n" +
 	"\x1dUpdateAddressBookEntryRequest\x12\x0e\n" +
@@ -2631,7 +2697,13 @@ const file_bitwindowd_v1_bitwindowd_proto_rawDesc = "" +
 	"\x17BITCOIN_NETWORK_REGTEST\x10\x03\x12\x1a\n" +
 	"\x16BITCOIN_NETWORK_SIGNET\x10\x04\x12\x1b\n" +
 	"\x17BITCOIN_NETWORK_TESTNET\x10\x05\x12\x1b\n" +
-	"\x17BITCOIN_NETWORK_FORKNET\x10\x062\xaf\x0e\n" +
+	"\x17BITCOIN_NETWORK_FORKNET\x10\x06*\xac\x01\n" +
+	"\vAddressType\x12\x1c\n" +
+	"\x18ADDRESS_TYPE_UNSPECIFIED\x10\x00\x12\x18\n" +
+	"\x14ADDRESS_TYPE_UNKNOWN\x10\x01\x12\x1b\n" +
+	"\x17ADDRESS_TYPE_BITCOIN_L1\x10\x02\x12#\n" +
+	"\x1fADDRESS_TYPE_DRIVECHAIN_DEPOSIT\x10\x03\x12#\n" +
+	"\x1fADDRESS_TYPE_BIP47_PAYMENT_CODE\x10\x042\xaf\x0e\n" +
 	"\x11BitwindowdService\x12K\n" +
 	"\x04Stop\x12+.bitwindowd.v1.BitwindowdServiceStopRequest\x1a\x16.google.protobuf.Empty\x12k\n" +
 	"\x12StartManagedBinary\x12(.bitwindowd.v1.StartManagedBinaryRequest\x1a).bitwindowd.v1.StartManagedBinaryResponse0\x01\x12T\n" +
@@ -2669,114 +2741,116 @@ func file_bitwindowd_v1_bitwindowd_proto_rawDescGZIP() []byte {
 	return file_bitwindowd_v1_bitwindowd_proto_rawDescData
 }
 
-var file_bitwindowd_v1_bitwindowd_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
+var file_bitwindowd_v1_bitwindowd_proto_enumTypes = make([]protoimpl.EnumInfo, 3)
 var file_bitwindowd_v1_bitwindowd_proto_msgTypes = make([]protoimpl.MessageInfo, 34)
 var file_bitwindowd_v1_bitwindowd_proto_goTypes = []any{
 	(Direction)(0),                          // 0: bitwindowd.v1.Direction
 	(BitcoinNetwork)(0),                     // 1: bitwindowd.v1.BitcoinNetwork
-	(*BitwindowdServiceStopRequest)(nil),    // 2: bitwindowd.v1.BitwindowdServiceStopRequest
-	(*StartManagedBinaryRequest)(nil),       // 3: bitwindowd.v1.StartManagedBinaryRequest
-	(*StartManagedBinaryResponse)(nil),      // 4: bitwindowd.v1.StartManagedBinaryResponse
-	(*StopManagedBinaryRequest)(nil),        // 5: bitwindowd.v1.StopManagedBinaryRequest
-	(*DownloadManagedBinaryRequest)(nil),    // 6: bitwindowd.v1.DownloadManagedBinaryRequest
-	(*DownloadManagedBinaryResponse)(nil),   // 7: bitwindowd.v1.DownloadManagedBinaryResponse
-	(*ShutdownManagedBinariesRequest)(nil),  // 8: bitwindowd.v1.ShutdownManagedBinariesRequest
-	(*ShutdownManagedBinariesResponse)(nil), // 9: bitwindowd.v1.ShutdownManagedBinariesResponse
-	(*CreateDenialRequest)(nil),             // 10: bitwindowd.v1.CreateDenialRequest
-	(*DenialInfo)(nil),                      // 11: bitwindowd.v1.DenialInfo
-	(*ExecutedDenial)(nil),                  // 12: bitwindowd.v1.ExecutedDenial
-	(*CancelDenialRequest)(nil),             // 13: bitwindowd.v1.CancelDenialRequest
-	(*PauseDenialRequest)(nil),              // 14: bitwindowd.v1.PauseDenialRequest
-	(*ResumeDenialRequest)(nil),             // 15: bitwindowd.v1.ResumeDenialRequest
-	(*CreateAddressBookEntryRequest)(nil),   // 16: bitwindowd.v1.CreateAddressBookEntryRequest
-	(*CreateAddressBookEntryResponse)(nil),  // 17: bitwindowd.v1.CreateAddressBookEntryResponse
-	(*AddressBookEntry)(nil),                // 18: bitwindowd.v1.AddressBookEntry
-	(*ListAddressBookResponse)(nil),         // 19: bitwindowd.v1.ListAddressBookResponse
-	(*UpdateAddressBookEntryRequest)(nil),   // 20: bitwindowd.v1.UpdateAddressBookEntryRequest
-	(*DeleteAddressBookEntryRequest)(nil),   // 21: bitwindowd.v1.DeleteAddressBookEntryRequest
-	(*GetSyncInfoResponse)(nil),             // 22: bitwindowd.v1.GetSyncInfoResponse
-	(*SetTransactionNoteRequest)(nil),       // 23: bitwindowd.v1.SetTransactionNoteRequest
-	(*GetFireplaceStatsResponse)(nil),       // 24: bitwindowd.v1.GetFireplaceStatsResponse
-	(*ListRecentTransactionsRequest)(nil),   // 25: bitwindowd.v1.ListRecentTransactionsRequest
-	(*ListRecentTransactionsResponse)(nil),  // 26: bitwindowd.v1.ListRecentTransactionsResponse
-	(*RecentTransaction)(nil),               // 27: bitwindowd.v1.RecentTransaction
-	(*ListBlocksRequest)(nil),               // 28: bitwindowd.v1.ListBlocksRequest
-	(*Block)(nil),                           // 29: bitwindowd.v1.Block
-	(*ListBlocksResponse)(nil),              // 30: bitwindowd.v1.ListBlocksResponse
-	(*MineBlocksResponse)(nil),              // 31: bitwindowd.v1.MineBlocksResponse
-	(*GetNetworkStatsResponse)(nil),         // 32: bitwindowd.v1.GetNetworkStatsResponse
-	(*ProcessBandwidth)(nil),                // 33: bitwindowd.v1.ProcessBandwidth
-	(*MineBlocksResponse_HashRate)(nil),     // 34: bitwindowd.v1.MineBlocksResponse.HashRate
-	(*MineBlocksResponse_BlockFound)(nil),   // 35: bitwindowd.v1.MineBlocksResponse.BlockFound
-	(*timestamppb.Timestamp)(nil),           // 36: google.protobuf.Timestamp
-	(*emptypb.Empty)(nil),                   // 37: google.protobuf.Empty
+	(AddressType)(0),                        // 2: bitwindowd.v1.AddressType
+	(*BitwindowdServiceStopRequest)(nil),    // 3: bitwindowd.v1.BitwindowdServiceStopRequest
+	(*StartManagedBinaryRequest)(nil),       // 4: bitwindowd.v1.StartManagedBinaryRequest
+	(*StartManagedBinaryResponse)(nil),      // 5: bitwindowd.v1.StartManagedBinaryResponse
+	(*StopManagedBinaryRequest)(nil),        // 6: bitwindowd.v1.StopManagedBinaryRequest
+	(*DownloadManagedBinaryRequest)(nil),    // 7: bitwindowd.v1.DownloadManagedBinaryRequest
+	(*DownloadManagedBinaryResponse)(nil),   // 8: bitwindowd.v1.DownloadManagedBinaryResponse
+	(*ShutdownManagedBinariesRequest)(nil),  // 9: bitwindowd.v1.ShutdownManagedBinariesRequest
+	(*ShutdownManagedBinariesResponse)(nil), // 10: bitwindowd.v1.ShutdownManagedBinariesResponse
+	(*CreateDenialRequest)(nil),             // 11: bitwindowd.v1.CreateDenialRequest
+	(*DenialInfo)(nil),                      // 12: bitwindowd.v1.DenialInfo
+	(*ExecutedDenial)(nil),                  // 13: bitwindowd.v1.ExecutedDenial
+	(*CancelDenialRequest)(nil),             // 14: bitwindowd.v1.CancelDenialRequest
+	(*PauseDenialRequest)(nil),              // 15: bitwindowd.v1.PauseDenialRequest
+	(*ResumeDenialRequest)(nil),             // 16: bitwindowd.v1.ResumeDenialRequest
+	(*CreateAddressBookEntryRequest)(nil),   // 17: bitwindowd.v1.CreateAddressBookEntryRequest
+	(*CreateAddressBookEntryResponse)(nil),  // 18: bitwindowd.v1.CreateAddressBookEntryResponse
+	(*AddressBookEntry)(nil),                // 19: bitwindowd.v1.AddressBookEntry
+	(*ListAddressBookResponse)(nil),         // 20: bitwindowd.v1.ListAddressBookResponse
+	(*UpdateAddressBookEntryRequest)(nil),   // 21: bitwindowd.v1.UpdateAddressBookEntryRequest
+	(*DeleteAddressBookEntryRequest)(nil),   // 22: bitwindowd.v1.DeleteAddressBookEntryRequest
+	(*GetSyncInfoResponse)(nil),             // 23: bitwindowd.v1.GetSyncInfoResponse
+	(*SetTransactionNoteRequest)(nil),       // 24: bitwindowd.v1.SetTransactionNoteRequest
+	(*GetFireplaceStatsResponse)(nil),       // 25: bitwindowd.v1.GetFireplaceStatsResponse
+	(*ListRecentTransactionsRequest)(nil),   // 26: bitwindowd.v1.ListRecentTransactionsRequest
+	(*ListRecentTransactionsResponse)(nil),  // 27: bitwindowd.v1.ListRecentTransactionsResponse
+	(*RecentTransaction)(nil),               // 28: bitwindowd.v1.RecentTransaction
+	(*ListBlocksRequest)(nil),               // 29: bitwindowd.v1.ListBlocksRequest
+	(*Block)(nil),                           // 30: bitwindowd.v1.Block
+	(*ListBlocksResponse)(nil),              // 31: bitwindowd.v1.ListBlocksResponse
+	(*MineBlocksResponse)(nil),              // 32: bitwindowd.v1.MineBlocksResponse
+	(*GetNetworkStatsResponse)(nil),         // 33: bitwindowd.v1.GetNetworkStatsResponse
+	(*ProcessBandwidth)(nil),                // 34: bitwindowd.v1.ProcessBandwidth
+	(*MineBlocksResponse_HashRate)(nil),     // 35: bitwindowd.v1.MineBlocksResponse.HashRate
+	(*MineBlocksResponse_BlockFound)(nil),   // 36: bitwindowd.v1.MineBlocksResponse.BlockFound
+	(*timestamppb.Timestamp)(nil),           // 37: google.protobuf.Timestamp
+	(*emptypb.Empty)(nil),                   // 38: google.protobuf.Empty
 }
 var file_bitwindowd_v1_bitwindowd_proto_depIdxs = []int32{
-	36, // 0: bitwindowd.v1.DenialInfo.create_time:type_name -> google.protobuf.Timestamp
-	36, // 1: bitwindowd.v1.DenialInfo.cancel_time:type_name -> google.protobuf.Timestamp
-	36, // 2: bitwindowd.v1.DenialInfo.next_execution_time:type_name -> google.protobuf.Timestamp
-	12, // 3: bitwindowd.v1.DenialInfo.executions:type_name -> bitwindowd.v1.ExecutedDenial
-	36, // 4: bitwindowd.v1.DenialInfo.paused_at:type_name -> google.protobuf.Timestamp
-	36, // 5: bitwindowd.v1.ExecutedDenial.create_time:type_name -> google.protobuf.Timestamp
+	37, // 0: bitwindowd.v1.DenialInfo.create_time:type_name -> google.protobuf.Timestamp
+	37, // 1: bitwindowd.v1.DenialInfo.cancel_time:type_name -> google.protobuf.Timestamp
+	37, // 2: bitwindowd.v1.DenialInfo.next_execution_time:type_name -> google.protobuf.Timestamp
+	13, // 3: bitwindowd.v1.DenialInfo.executions:type_name -> bitwindowd.v1.ExecutedDenial
+	37, // 4: bitwindowd.v1.DenialInfo.paused_at:type_name -> google.protobuf.Timestamp
+	37, // 5: bitwindowd.v1.ExecutedDenial.create_time:type_name -> google.protobuf.Timestamp
 	0,  // 6: bitwindowd.v1.CreateAddressBookEntryRequest.direction:type_name -> bitwindowd.v1.Direction
-	18, // 7: bitwindowd.v1.CreateAddressBookEntryResponse.entry:type_name -> bitwindowd.v1.AddressBookEntry
+	19, // 7: bitwindowd.v1.CreateAddressBookEntryResponse.entry:type_name -> bitwindowd.v1.AddressBookEntry
 	0,  // 8: bitwindowd.v1.AddressBookEntry.direction:type_name -> bitwindowd.v1.Direction
-	36, // 9: bitwindowd.v1.AddressBookEntry.create_time:type_name -> google.protobuf.Timestamp
-	18, // 10: bitwindowd.v1.ListAddressBookResponse.entries:type_name -> bitwindowd.v1.AddressBookEntry
-	36, // 11: bitwindowd.v1.GetSyncInfoResponse.tip_block_processed_at:type_name -> google.protobuf.Timestamp
-	27, // 12: bitwindowd.v1.ListRecentTransactionsResponse.transactions:type_name -> bitwindowd.v1.RecentTransaction
-	36, // 13: bitwindowd.v1.RecentTransaction.time:type_name -> google.protobuf.Timestamp
-	36, // 14: bitwindowd.v1.Block.block_time:type_name -> google.protobuf.Timestamp
-	29, // 15: bitwindowd.v1.ListBlocksResponse.recent_blocks:type_name -> bitwindowd.v1.Block
-	35, // 16: bitwindowd.v1.MineBlocksResponse.block_found:type_name -> bitwindowd.v1.MineBlocksResponse.BlockFound
-	34, // 17: bitwindowd.v1.MineBlocksResponse.hash_rate:type_name -> bitwindowd.v1.MineBlocksResponse.HashRate
-	33, // 18: bitwindowd.v1.GetNetworkStatsResponse.bitcoind_bandwidth:type_name -> bitwindowd.v1.ProcessBandwidth
-	33, // 19: bitwindowd.v1.GetNetworkStatsResponse.enforcer_bandwidth:type_name -> bitwindowd.v1.ProcessBandwidth
-	2,  // 20: bitwindowd.v1.BitwindowdService.Stop:input_type -> bitwindowd.v1.BitwindowdServiceStopRequest
-	3,  // 21: bitwindowd.v1.BitwindowdService.StartManagedBinary:input_type -> bitwindowd.v1.StartManagedBinaryRequest
-	5,  // 22: bitwindowd.v1.BitwindowdService.StopManagedBinary:input_type -> bitwindowd.v1.StopManagedBinaryRequest
-	6,  // 23: bitwindowd.v1.BitwindowdService.DownloadManagedBinary:input_type -> bitwindowd.v1.DownloadManagedBinaryRequest
-	8,  // 24: bitwindowd.v1.BitwindowdService.ShutdownManagedBinaries:input_type -> bitwindowd.v1.ShutdownManagedBinariesRequest
-	37, // 25: bitwindowd.v1.BitwindowdService.MineBlocks:input_type -> google.protobuf.Empty
-	10, // 26: bitwindowd.v1.BitwindowdService.CreateDenial:input_type -> bitwindowd.v1.CreateDenialRequest
-	13, // 27: bitwindowd.v1.BitwindowdService.CancelDenial:input_type -> bitwindowd.v1.CancelDenialRequest
-	14, // 28: bitwindowd.v1.BitwindowdService.PauseDenial:input_type -> bitwindowd.v1.PauseDenialRequest
-	15, // 29: bitwindowd.v1.BitwindowdService.ResumeDenial:input_type -> bitwindowd.v1.ResumeDenialRequest
-	16, // 30: bitwindowd.v1.BitwindowdService.CreateAddressBookEntry:input_type -> bitwindowd.v1.CreateAddressBookEntryRequest
-	37, // 31: bitwindowd.v1.BitwindowdService.ListAddressBook:input_type -> google.protobuf.Empty
-	20, // 32: bitwindowd.v1.BitwindowdService.UpdateAddressBookEntry:input_type -> bitwindowd.v1.UpdateAddressBookEntryRequest
-	21, // 33: bitwindowd.v1.BitwindowdService.DeleteAddressBookEntry:input_type -> bitwindowd.v1.DeleteAddressBookEntryRequest
-	37, // 34: bitwindowd.v1.BitwindowdService.GetSyncInfo:input_type -> google.protobuf.Empty
-	23, // 35: bitwindowd.v1.BitwindowdService.SetTransactionNote:input_type -> bitwindowd.v1.SetTransactionNoteRequest
-	37, // 36: bitwindowd.v1.BitwindowdService.GetFireplaceStats:input_type -> google.protobuf.Empty
-	25, // 37: bitwindowd.v1.BitwindowdService.ListRecentTransactions:input_type -> bitwindowd.v1.ListRecentTransactionsRequest
-	28, // 38: bitwindowd.v1.BitwindowdService.ListBlocks:input_type -> bitwindowd.v1.ListBlocksRequest
-	37, // 39: bitwindowd.v1.BitwindowdService.GetNetworkStats:input_type -> google.protobuf.Empty
-	37, // 40: bitwindowd.v1.BitwindowdService.Stop:output_type -> google.protobuf.Empty
-	4,  // 41: bitwindowd.v1.BitwindowdService.StartManagedBinary:output_type -> bitwindowd.v1.StartManagedBinaryResponse
-	37, // 42: bitwindowd.v1.BitwindowdService.StopManagedBinary:output_type -> google.protobuf.Empty
-	7,  // 43: bitwindowd.v1.BitwindowdService.DownloadManagedBinary:output_type -> bitwindowd.v1.DownloadManagedBinaryResponse
-	9,  // 44: bitwindowd.v1.BitwindowdService.ShutdownManagedBinaries:output_type -> bitwindowd.v1.ShutdownManagedBinariesResponse
-	31, // 45: bitwindowd.v1.BitwindowdService.MineBlocks:output_type -> bitwindowd.v1.MineBlocksResponse
-	37, // 46: bitwindowd.v1.BitwindowdService.CreateDenial:output_type -> google.protobuf.Empty
-	37, // 47: bitwindowd.v1.BitwindowdService.CancelDenial:output_type -> google.protobuf.Empty
-	37, // 48: bitwindowd.v1.BitwindowdService.PauseDenial:output_type -> google.protobuf.Empty
-	37, // 49: bitwindowd.v1.BitwindowdService.ResumeDenial:output_type -> google.protobuf.Empty
-	17, // 50: bitwindowd.v1.BitwindowdService.CreateAddressBookEntry:output_type -> bitwindowd.v1.CreateAddressBookEntryResponse
-	19, // 51: bitwindowd.v1.BitwindowdService.ListAddressBook:output_type -> bitwindowd.v1.ListAddressBookResponse
-	37, // 52: bitwindowd.v1.BitwindowdService.UpdateAddressBookEntry:output_type -> google.protobuf.Empty
-	37, // 53: bitwindowd.v1.BitwindowdService.DeleteAddressBookEntry:output_type -> google.protobuf.Empty
-	22, // 54: bitwindowd.v1.BitwindowdService.GetSyncInfo:output_type -> bitwindowd.v1.GetSyncInfoResponse
-	37, // 55: bitwindowd.v1.BitwindowdService.SetTransactionNote:output_type -> google.protobuf.Empty
-	24, // 56: bitwindowd.v1.BitwindowdService.GetFireplaceStats:output_type -> bitwindowd.v1.GetFireplaceStatsResponse
-	26, // 57: bitwindowd.v1.BitwindowdService.ListRecentTransactions:output_type -> bitwindowd.v1.ListRecentTransactionsResponse
-	30, // 58: bitwindowd.v1.BitwindowdService.ListBlocks:output_type -> bitwindowd.v1.ListBlocksResponse
-	32, // 59: bitwindowd.v1.BitwindowdService.GetNetworkStats:output_type -> bitwindowd.v1.GetNetworkStatsResponse
-	40, // [40:60] is the sub-list for method output_type
-	20, // [20:40] is the sub-list for method input_type
-	20, // [20:20] is the sub-list for extension type_name
-	20, // [20:20] is the sub-list for extension extendee
-	0,  // [0:20] is the sub-list for field type_name
+	37, // 9: bitwindowd.v1.AddressBookEntry.create_time:type_name -> google.protobuf.Timestamp
+	2,  // 10: bitwindowd.v1.AddressBookEntry.type:type_name -> bitwindowd.v1.AddressType
+	19, // 11: bitwindowd.v1.ListAddressBookResponse.entries:type_name -> bitwindowd.v1.AddressBookEntry
+	37, // 12: bitwindowd.v1.GetSyncInfoResponse.tip_block_processed_at:type_name -> google.protobuf.Timestamp
+	28, // 13: bitwindowd.v1.ListRecentTransactionsResponse.transactions:type_name -> bitwindowd.v1.RecentTransaction
+	37, // 14: bitwindowd.v1.RecentTransaction.time:type_name -> google.protobuf.Timestamp
+	37, // 15: bitwindowd.v1.Block.block_time:type_name -> google.protobuf.Timestamp
+	30, // 16: bitwindowd.v1.ListBlocksResponse.recent_blocks:type_name -> bitwindowd.v1.Block
+	36, // 17: bitwindowd.v1.MineBlocksResponse.block_found:type_name -> bitwindowd.v1.MineBlocksResponse.BlockFound
+	35, // 18: bitwindowd.v1.MineBlocksResponse.hash_rate:type_name -> bitwindowd.v1.MineBlocksResponse.HashRate
+	34, // 19: bitwindowd.v1.GetNetworkStatsResponse.bitcoind_bandwidth:type_name -> bitwindowd.v1.ProcessBandwidth
+	34, // 20: bitwindowd.v1.GetNetworkStatsResponse.enforcer_bandwidth:type_name -> bitwindowd.v1.ProcessBandwidth
+	3,  // 21: bitwindowd.v1.BitwindowdService.Stop:input_type -> bitwindowd.v1.BitwindowdServiceStopRequest
+	4,  // 22: bitwindowd.v1.BitwindowdService.StartManagedBinary:input_type -> bitwindowd.v1.StartManagedBinaryRequest
+	6,  // 23: bitwindowd.v1.BitwindowdService.StopManagedBinary:input_type -> bitwindowd.v1.StopManagedBinaryRequest
+	7,  // 24: bitwindowd.v1.BitwindowdService.DownloadManagedBinary:input_type -> bitwindowd.v1.DownloadManagedBinaryRequest
+	9,  // 25: bitwindowd.v1.BitwindowdService.ShutdownManagedBinaries:input_type -> bitwindowd.v1.ShutdownManagedBinariesRequest
+	38, // 26: bitwindowd.v1.BitwindowdService.MineBlocks:input_type -> google.protobuf.Empty
+	11, // 27: bitwindowd.v1.BitwindowdService.CreateDenial:input_type -> bitwindowd.v1.CreateDenialRequest
+	14, // 28: bitwindowd.v1.BitwindowdService.CancelDenial:input_type -> bitwindowd.v1.CancelDenialRequest
+	15, // 29: bitwindowd.v1.BitwindowdService.PauseDenial:input_type -> bitwindowd.v1.PauseDenialRequest
+	16, // 30: bitwindowd.v1.BitwindowdService.ResumeDenial:input_type -> bitwindowd.v1.ResumeDenialRequest
+	17, // 31: bitwindowd.v1.BitwindowdService.CreateAddressBookEntry:input_type -> bitwindowd.v1.CreateAddressBookEntryRequest
+	38, // 32: bitwindowd.v1.BitwindowdService.ListAddressBook:input_type -> google.protobuf.Empty
+	21, // 33: bitwindowd.v1.BitwindowdService.UpdateAddressBookEntry:input_type -> bitwindowd.v1.UpdateAddressBookEntryRequest
+	22, // 34: bitwindowd.v1.BitwindowdService.DeleteAddressBookEntry:input_type -> bitwindowd.v1.DeleteAddressBookEntryRequest
+	38, // 35: bitwindowd.v1.BitwindowdService.GetSyncInfo:input_type -> google.protobuf.Empty
+	24, // 36: bitwindowd.v1.BitwindowdService.SetTransactionNote:input_type -> bitwindowd.v1.SetTransactionNoteRequest
+	38, // 37: bitwindowd.v1.BitwindowdService.GetFireplaceStats:input_type -> google.protobuf.Empty
+	26, // 38: bitwindowd.v1.BitwindowdService.ListRecentTransactions:input_type -> bitwindowd.v1.ListRecentTransactionsRequest
+	29, // 39: bitwindowd.v1.BitwindowdService.ListBlocks:input_type -> bitwindowd.v1.ListBlocksRequest
+	38, // 40: bitwindowd.v1.BitwindowdService.GetNetworkStats:input_type -> google.protobuf.Empty
+	38, // 41: bitwindowd.v1.BitwindowdService.Stop:output_type -> google.protobuf.Empty
+	5,  // 42: bitwindowd.v1.BitwindowdService.StartManagedBinary:output_type -> bitwindowd.v1.StartManagedBinaryResponse
+	38, // 43: bitwindowd.v1.BitwindowdService.StopManagedBinary:output_type -> google.protobuf.Empty
+	8,  // 44: bitwindowd.v1.BitwindowdService.DownloadManagedBinary:output_type -> bitwindowd.v1.DownloadManagedBinaryResponse
+	10, // 45: bitwindowd.v1.BitwindowdService.ShutdownManagedBinaries:output_type -> bitwindowd.v1.ShutdownManagedBinariesResponse
+	32, // 46: bitwindowd.v1.BitwindowdService.MineBlocks:output_type -> bitwindowd.v1.MineBlocksResponse
+	38, // 47: bitwindowd.v1.BitwindowdService.CreateDenial:output_type -> google.protobuf.Empty
+	38, // 48: bitwindowd.v1.BitwindowdService.CancelDenial:output_type -> google.protobuf.Empty
+	38, // 49: bitwindowd.v1.BitwindowdService.PauseDenial:output_type -> google.protobuf.Empty
+	38, // 50: bitwindowd.v1.BitwindowdService.ResumeDenial:output_type -> google.protobuf.Empty
+	18, // 51: bitwindowd.v1.BitwindowdService.CreateAddressBookEntry:output_type -> bitwindowd.v1.CreateAddressBookEntryResponse
+	20, // 52: bitwindowd.v1.BitwindowdService.ListAddressBook:output_type -> bitwindowd.v1.ListAddressBookResponse
+	38, // 53: bitwindowd.v1.BitwindowdService.UpdateAddressBookEntry:output_type -> google.protobuf.Empty
+	38, // 54: bitwindowd.v1.BitwindowdService.DeleteAddressBookEntry:output_type -> google.protobuf.Empty
+	23, // 55: bitwindowd.v1.BitwindowdService.GetSyncInfo:output_type -> bitwindowd.v1.GetSyncInfoResponse
+	38, // 56: bitwindowd.v1.BitwindowdService.SetTransactionNote:output_type -> google.protobuf.Empty
+	25, // 57: bitwindowd.v1.BitwindowdService.GetFireplaceStats:output_type -> bitwindowd.v1.GetFireplaceStatsResponse
+	27, // 58: bitwindowd.v1.BitwindowdService.ListRecentTransactions:output_type -> bitwindowd.v1.ListRecentTransactionsResponse
+	31, // 59: bitwindowd.v1.BitwindowdService.ListBlocks:output_type -> bitwindowd.v1.ListBlocksResponse
+	33, // 60: bitwindowd.v1.BitwindowdService.GetNetworkStats:output_type -> bitwindowd.v1.GetNetworkStatsResponse
+	41, // [41:61] is the sub-list for method output_type
+	21, // [21:41] is the sub-list for method input_type
+	21, // [21:21] is the sub-list for extension type_name
+	21, // [21:21] is the sub-list for extension extendee
+	0,  // [0:21] is the sub-list for field type_name
 }
 
 func init() { file_bitwindowd_v1_bitwindowd_proto_init() }
@@ -2795,7 +2869,7 @@ func file_bitwindowd_v1_bitwindowd_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_bitwindowd_v1_bitwindowd_proto_rawDesc), len(file_bitwindowd_v1_bitwindowd_proto_rawDesc)),
-			NumEnums:      2,
+			NumEnums:      3,
 			NumMessages:   34,
 			NumExtensions: 0,
 			NumServices:   1,

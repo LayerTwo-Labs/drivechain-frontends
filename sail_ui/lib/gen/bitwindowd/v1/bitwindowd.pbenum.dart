@@ -55,5 +55,26 @@ class BitcoinNetwork extends $pb.ProtobufEnum {
   const BitcoinNetwork._($core.int v, $core.String n) : super(v, n);
 }
 
+class AddressType extends $pb.ProtobufEnum {
+  static const AddressType ADDRESS_TYPE_UNSPECIFIED = AddressType._(0, _omitEnumNames ? '' : 'ADDRESS_TYPE_UNSPECIFIED');
+  static const AddressType ADDRESS_TYPE_UNKNOWN = AddressType._(1, _omitEnumNames ? '' : 'ADDRESS_TYPE_UNKNOWN');
+  static const AddressType ADDRESS_TYPE_BITCOIN_L1 = AddressType._(2, _omitEnumNames ? '' : 'ADDRESS_TYPE_BITCOIN_L1');
+  static const AddressType ADDRESS_TYPE_DRIVECHAIN_DEPOSIT = AddressType._(3, _omitEnumNames ? '' : 'ADDRESS_TYPE_DRIVECHAIN_DEPOSIT');
+  static const AddressType ADDRESS_TYPE_BIP47_PAYMENT_CODE = AddressType._(4, _omitEnumNames ? '' : 'ADDRESS_TYPE_BIP47_PAYMENT_CODE');
+
+  static const $core.List<AddressType> values = <AddressType> [
+    ADDRESS_TYPE_UNSPECIFIED,
+    ADDRESS_TYPE_UNKNOWN,
+    ADDRESS_TYPE_BITCOIN_L1,
+    ADDRESS_TYPE_DRIVECHAIN_DEPOSIT,
+    ADDRESS_TYPE_BIP47_PAYMENT_CODE,
+  ];
+
+  static final $core.Map<$core.int, AddressType> _byValue = $pb.ProtobufEnum.initByValue(values);
+  static AddressType? valueOf($core.int value) => _byValue[value];
+
+  const AddressType._($core.int v, $core.String n) : super(v, n);
+}
+
 
 const _omitEnumNames = $core.bool.fromEnvironment('protobuf.omit_enum_names');

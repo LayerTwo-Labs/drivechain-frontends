@@ -52,6 +52,25 @@ final $typed_data.Uint8List bitcoinNetworkDescriptor = $convert.base64Decode(
     'QklUQ09JTl9ORVRXT1JLX1JFR1RFU1QQAxIaChZCSVRDT0lOX05FVFdPUktfU0lHTkVUEAQSGw'
     'oXQklUQ09JTl9ORVRXT1JLX1RFU1RORVQQBRIbChdCSVRDT0lOX05FVFdPUktfRk9SS05FVBAG');
 
+@$core.Deprecated('Use addressTypeDescriptor instead')
+const AddressType$json = {
+  '1': 'AddressType',
+  '2': [
+    {'1': 'ADDRESS_TYPE_UNSPECIFIED', '2': 0},
+    {'1': 'ADDRESS_TYPE_UNKNOWN', '2': 1},
+    {'1': 'ADDRESS_TYPE_BITCOIN_L1', '2': 2},
+    {'1': 'ADDRESS_TYPE_DRIVECHAIN_DEPOSIT', '2': 3},
+    {'1': 'ADDRESS_TYPE_BIP47_PAYMENT_CODE', '2': 4},
+  ],
+};
+
+/// Descriptor for `AddressType`. Decode as a `google.protobuf.EnumDescriptorProto`.
+final $typed_data.Uint8List addressTypeDescriptor = $convert.base64Decode(
+    'CgtBZGRyZXNzVHlwZRIcChhBRERSRVNTX1RZUEVfVU5TUEVDSUZJRUQQABIYChRBRERSRVNTX1'
+    'RZUEVfVU5LTk9XThABEhsKF0FERFJFU1NfVFlQRV9CSVRDT0lOX0wxEAISIwofQUREUkVTU19U'
+    'WVBFX0RSSVZFQ0hBSU5fREVQT1NJVBADEiMKH0FERFJFU1NfVFlQRV9CSVA0N19QQVlNRU5UX0'
+    'NPREUQBA==');
+
 @$core.Deprecated('Use bitwindowdServiceStopRequestDescriptor instead')
 const BitwindowdServiceStopRequest$json = {
   '1': 'BitwindowdServiceStopRequest',
@@ -329,6 +348,7 @@ const AddressBookEntry$json = {
     {'1': 'direction', '3': 4, '4': 1, '5': 14, '6': '.bitwindowd.v1.Direction', '10': 'direction'},
     {'1': 'create_time', '3': 5, '4': 1, '5': 11, '6': '.google.protobuf.Timestamp', '10': 'createTime'},
     {'1': 'wallet_id', '3': 6, '4': 1, '5': 9, '10': 'walletId'},
+    {'1': 'type', '3': 7, '4': 1, '5': 14, '6': '.bitwindowd.v1.AddressType', '10': 'type'},
   ],
 };
 
@@ -338,7 +358,7 @@ final $typed_data.Uint8List addressBookEntryDescriptor = $convert.base64Decode(
     'wSGAoHYWRkcmVzcxgDIAEoCVIHYWRkcmVzcxI2CglkaXJlY3Rpb24YBCABKA4yGC5iaXR3aW5k'
     'b3dkLnYxLkRpcmVjdGlvblIJZGlyZWN0aW9uEjsKC2NyZWF0ZV90aW1lGAUgASgLMhouZ29vZ2'
     'xlLnByb3RvYnVmLlRpbWVzdGFtcFIKY3JlYXRlVGltZRIbCgl3YWxsZXRfaWQYBiABKAlSCHdh'
-    'bGxldElk');
+    'bGxldElkEi4KBHR5cGUYByABKA4yGi5iaXR3aW5kb3dkLnYxLkFkZHJlc3NUeXBlUgR0eXBl');
 
 @$core.Deprecated('Use listAddressBookResponseDescriptor instead')
 const ListAddressBookResponse$json = {
