@@ -711,6 +711,9 @@ class WalletMetadata extends $pb.GeneratedMessage {
     $core.String? gradientJson,
     $core.String? createdAt,
     $core.String? bip47PaymentCode,
+    $core.String? masterMnemonic,
+    $core.String? l1Mnemonic,
+    $core.Iterable<SidechainStarter>? sidechains,
   }) {
     final $result = create();
     if (id != null) {
@@ -731,6 +734,15 @@ class WalletMetadata extends $pb.GeneratedMessage {
     if (bip47PaymentCode != null) {
       $result.bip47PaymentCode = bip47PaymentCode;
     }
+    if (masterMnemonic != null) {
+      $result.masterMnemonic = masterMnemonic;
+    }
+    if (l1Mnemonic != null) {
+      $result.l1Mnemonic = l1Mnemonic;
+    }
+    if (sidechains != null) {
+      $result.sidechains.addAll(sidechains);
+    }
     return $result;
   }
   WalletMetadata._() : super();
@@ -744,6 +756,9 @@ class WalletMetadata extends $pb.GeneratedMessage {
     ..aOS(4, _omitFieldNames ? '' : 'gradientJson')
     ..aOS(5, _omitFieldNames ? '' : 'createdAt')
     ..aOS(6, _omitFieldNames ? '' : 'bip47PaymentCode')
+    ..aOS(7, _omitFieldNames ? '' : 'masterMnemonic')
+    ..aOS(8, _omitFieldNames ? '' : 'l1Mnemonic')
+    ..pc<SidechainStarter>(9, _omitFieldNames ? '' : 'sidechains', $pb.PbFieldType.PM, subBuilder: SidechainStarter.create)
     ..hasRequiredFields = false
   ;
 
@@ -823,6 +838,108 @@ class WalletMetadata extends $pb.GeneratedMessage {
   $core.bool hasBip47PaymentCode() => $_has(5);
   @$pb.TagNumber(6)
   void clearBip47PaymentCode() => clearField(6);
+
+  /// Starter material — populated for the active wallet only, empty otherwise.
+  /// The Starters tab and HD wallet provider read these instead of hitting a
+  /// separate RPC.
+  @$pb.TagNumber(7)
+  $core.String get masterMnemonic => $_getSZ(6);
+  @$pb.TagNumber(7)
+  set masterMnemonic($core.String v) { $_setString(6, v); }
+  @$pb.TagNumber(7)
+  $core.bool hasMasterMnemonic() => $_has(6);
+  @$pb.TagNumber(7)
+  void clearMasterMnemonic() => clearField(7);
+
+  @$pb.TagNumber(8)
+  $core.String get l1Mnemonic => $_getSZ(7);
+  @$pb.TagNumber(8)
+  set l1Mnemonic($core.String v) { $_setString(7, v); }
+  @$pb.TagNumber(8)
+  $core.bool hasL1Mnemonic() => $_has(7);
+  @$pb.TagNumber(8)
+  void clearL1Mnemonic() => clearField(8);
+
+  @$pb.TagNumber(9)
+  $core.List<SidechainStarter> get sidechains => $_getList(8);
+}
+
+class SidechainStarter extends $pb.GeneratedMessage {
+  factory SidechainStarter({
+    $core.int? slot,
+    $core.String? name,
+    $core.String? mnemonic,
+  }) {
+    final $result = create();
+    if (slot != null) {
+      $result.slot = slot;
+    }
+    if (name != null) {
+      $result.name = name;
+    }
+    if (mnemonic != null) {
+      $result.mnemonic = mnemonic;
+    }
+    return $result;
+  }
+  SidechainStarter._() : super();
+  factory SidechainStarter.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory SidechainStarter.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'SidechainStarter', package: const $pb.PackageName(_omitMessageNames ? '' : 'walletmanager.v1'), createEmptyInstance: create)
+    ..a<$core.int>(1, _omitFieldNames ? '' : 'slot', $pb.PbFieldType.O3)
+    ..aOS(2, _omitFieldNames ? '' : 'name')
+    ..aOS(3, _omitFieldNames ? '' : 'mnemonic')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  SidechainStarter clone() => SidechainStarter()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  SidechainStarter copyWith(void Function(SidechainStarter) updates) => super.copyWith((message) => updates(message as SidechainStarter)) as SidechainStarter;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static SidechainStarter create() => SidechainStarter._();
+  SidechainStarter createEmptyInstance() => create();
+  static $pb.PbList<SidechainStarter> createRepeated() => $pb.PbList<SidechainStarter>();
+  @$core.pragma('dart2js:noInline')
+  static SidechainStarter getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<SidechainStarter>(create);
+  static SidechainStarter? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.int get slot => $_getIZ(0);
+  @$pb.TagNumber(1)
+  set slot($core.int v) { $_setSignedInt32(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasSlot() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearSlot() => clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.String get name => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set name($core.String v) { $_setString(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasName() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearName() => clearField(2);
+
+  @$pb.TagNumber(3)
+  $core.String get mnemonic => $_getSZ(2);
+  @$pb.TagNumber(3)
+  set mnemonic($core.String v) { $_setString(2, v); }
+  @$pb.TagNumber(3)
+  $core.bool hasMnemonic() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearMnemonic() => clearField(3);
 }
 
 class ListWalletsRequest extends $pb.GeneratedMessage {

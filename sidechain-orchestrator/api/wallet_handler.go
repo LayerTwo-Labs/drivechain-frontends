@@ -13,6 +13,7 @@ import (
 	"google.golang.org/protobuf/types/known/emptypb"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
+	orchestrator "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator"
 	commonv1 "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/common/v1"
 	enforcerpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1"
 	enforcerrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1/mainchainv1connect"
@@ -20,6 +21,23 @@ import (
 	rpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1/walletmanagerv1connect"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/wallet"
 )
+
+// allSidechainSlots returns slots for every configured sidechain, so wallet
+// generation derives a starter for every slot up front. Without this, sidechain
+// starters only appear after a sidechain is launched, and the Starters tab
+// shows blanks.
+func allSidechainSlots() []wallet.SidechainSlot {
+	cfgs := orchestrator.AllSidechains()
+	slots := make([]wallet.SidechainSlot, len(cfgs))
+	for i, c := range cfgs {
+		name := c.DisplayName
+		if name == "" {
+			name = c.Name
+		}
+		slots[i] = wallet.SidechainSlot{Slot: c.Slot, Name: name}
+	}
+	return slots
+}
 
 var _ rpc.WalletManagerServiceHandler = new(WalletHandler)
 
@@ -85,7 +103,7 @@ func (h *WalletHandler) GetWalletStatus(ctx context.Context, req *connect.Reques
 }
 
 func (h *WalletHandler) GenerateWallet(ctx context.Context, req *connect.Request[pb.GenerateWalletRequest]) (*connect.Response[pb.GenerateWalletResponse], error) {
-	w, err := h.svc.GenerateWallet(req.Msg.Name, req.Msg.CustomMnemonic, req.Msg.Passphrase, nil)
+	w, err := h.svc.GenerateWallet(req.Msg.Name, req.Msg.CustomMnemonic, req.Msg.Passphrase, allSidechainSlots())
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
@@ -1107,13 +1125,14 @@ func (h *WalletHandler) WatchWalletData(ctx context.Context, req *connect.Reques
 
 func (h *WalletHandler) sendWalletData(ctx context.Context, stream *connect.ServerStream[pb.WatchWalletDataResponse]) error {
 	wallets := h.svc.GetAllWallets()
+	activeID := h.svc.ActiveWalletID()
 	pbWallets := make([]*pb.WalletMetadata, len(wallets))
 	for i, w := range wallets {
 		var gradientJSON string
 		if w.Gradient != nil {
 			gradientJSON = string(w.Gradient)
 		}
-		pbWallets[i] = &pb.WalletMetadata{
+		md := &pb.WalletMetadata{
 			Id:               w.ID,
 			Name:             w.Name,
 			WalletType:       w.WalletType,
@@ -1121,9 +1140,22 @@ func (h *WalletHandler) sendWalletData(ctx context.Context, stream *connect.Serv
 			CreatedAt:        w.CreatedAt.Format(time.RFC3339),
 			Bip47PaymentCode: wallet.Bip47V3PaymentCodeFromSeed(w.Master.SeedHex),
 		}
+		// Starter material is sensitive; only attach it for the active wallet
+		// so non-active entries don't broadcast it on every stream tick.
+		if w.ID == activeID {
+			md.MasterMnemonic = w.Master.Mnemonic
+			md.L1Mnemonic = w.L1.Mnemonic
+			md.Sidechains = make([]*pb.SidechainStarter, len(w.Sidechains))
+			for j, sc := range w.Sidechains {
+				md.Sidechains[j] = &pb.SidechainStarter{
+					Slot:     int32(sc.Slot),
+					Name:     sc.Name,
+					Mnemonic: sc.Mnemonic,
+				}
+			}
+		}
+		pbWallets[i] = md
 	}
-
-	activeID := h.svc.ActiveWalletID()
 
 	// Balance is fetched separately via GetBalance RPC when Core wallets are loaded.
 	// WatchWalletData only streams wallet metadata — no Core dependency.

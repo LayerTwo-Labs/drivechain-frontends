@@ -187,6 +187,9 @@ const WalletMetadata$json = {
     {'1': 'gradient_json', '3': 4, '4': 1, '5': 9, '10': 'gradientJson'},
     {'1': 'created_at', '3': 5, '4': 1, '5': 9, '10': 'createdAt'},
     {'1': 'bip47_payment_code', '3': 6, '4': 1, '5': 9, '10': 'bip47PaymentCode'},
+    {'1': 'master_mnemonic', '3': 7, '4': 1, '5': 9, '10': 'masterMnemonic'},
+    {'1': 'l1_mnemonic', '3': 8, '4': 1, '5': 9, '10': 'l1Mnemonic'},
+    {'1': 'sidechains', '3': 9, '4': 3, '5': 11, '6': '.walletmanager.v1.SidechainStarter', '10': 'sidechains'},
   ],
 };
 
@@ -195,7 +198,25 @@ final $typed_data.Uint8List walletMetadataDescriptor = $convert.base64Decode(
     'Cg5XYWxsZXRNZXRhZGF0YRIOCgJpZBgBIAEoCVICaWQSEgoEbmFtZRgCIAEoCVIEbmFtZRIfCg'
     't3YWxsZXRfdHlwZRgDIAEoCVIKd2FsbGV0VHlwZRIjCg1ncmFkaWVudF9qc29uGAQgASgJUgxn'
     'cmFkaWVudEpzb24SHQoKY3JlYXRlZF9hdBgFIAEoCVIJY3JlYXRlZEF0EiwKEmJpcDQ3X3BheW'
-    '1lbnRfY29kZRgGIAEoCVIQYmlwNDdQYXltZW50Q29kZQ==');
+    '1lbnRfY29kZRgGIAEoCVIQYmlwNDdQYXltZW50Q29kZRInCg9tYXN0ZXJfbW5lbW9uaWMYByAB'
+    'KAlSDm1hc3Rlck1uZW1vbmljEh8KC2wxX21uZW1vbmljGAggASgJUgpsMU1uZW1vbmljEkIKCn'
+    'NpZGVjaGFpbnMYCSADKAsyIi53YWxsZXRtYW5hZ2VyLnYxLlNpZGVjaGFpblN0YXJ0ZXJSCnNp'
+    'ZGVjaGFpbnM=');
+
+@$core.Deprecated('Use sidechainStarterDescriptor instead')
+const SidechainStarter$json = {
+  '1': 'SidechainStarter',
+  '2': [
+    {'1': 'slot', '3': 1, '4': 1, '5': 5, '10': 'slot'},
+    {'1': 'name', '3': 2, '4': 1, '5': 9, '10': 'name'},
+    {'1': 'mnemonic', '3': 3, '4': 1, '5': 9, '10': 'mnemonic'},
+  ],
+};
+
+/// Descriptor for `SidechainStarter`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List sidechainStarterDescriptor = $convert.base64Decode(
+    'ChBTaWRlY2hhaW5TdGFydGVyEhIKBHNsb3QYASABKAVSBHNsb3QSEgoEbmFtZRgCIAEoCVIEbm'
+    'FtZRIaCghtbmVtb25pYxgDIAEoCVIIbW5lbW9uaWM=');
 
 @$core.Deprecated('Use listWalletsRequestDescriptor instead')
 const ListWalletsRequest$json = {
@@ -889,6 +910,7 @@ const $core.Map<$core.String, $core.Map<$core.String, $core.dynamic>> WalletMana
   '.walletmanager.v1.ListWalletsRequest': ListWalletsRequest$json,
   '.walletmanager.v1.ListWalletsResponse': ListWalletsResponse$json,
   '.walletmanager.v1.WalletMetadata': WalletMetadata$json,
+  '.walletmanager.v1.SidechainStarter': SidechainStarter$json,
   '.walletmanager.v1.SwitchWalletRequest': SwitchWalletRequest$json,
   '.walletmanager.v1.SwitchWalletResponse': SwitchWalletResponse$json,
   '.walletmanager.v1.UpdateWalletMetadataRequest': UpdateWalletMetadataRequest$json,

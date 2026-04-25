@@ -122,6 +122,19 @@ message WalletMetadata {
   // BIP47 v3 payment code derived from the wallet's master pubkey.
   // Deterministic per wallet, never changes. Empty for watch-only wallets.
   string bip47_payment_code = 6;
+
+  // Starter material — populated for the active wallet only, empty otherwise.
+  // The Starters tab and HD wallet provider read these instead of hitting a
+  // separate RPC.
+  string master_mnemonic = 7;
+  string l1_mnemonic = 8;
+  repeated SidechainStarter sidechains = 9;
+}
+
+message SidechainStarter {
+  int32 slot = 1;
+  string name = 2;
+  string mnemonic = 3;
 }
 
 message ListWalletsRequest {}

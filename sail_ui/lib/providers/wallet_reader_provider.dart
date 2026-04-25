@@ -123,14 +123,22 @@ class WalletReaderProvider extends ChangeNotifier {
       return WalletData(
         version: 1,
         master: MasterWallet(
-          mnemonic: '',
+          mnemonic: protoWallet.masterMnemonic,
           seedHex: '',
           masterKey: '',
           chainCode: '',
-          name: '',
+          name: 'Master',
         ),
-        l1: L1Wallet(mnemonic: '', name: ''),
-        sidechains: [],
+        l1: L1Wallet(mnemonic: protoWallet.l1Mnemonic),
+        sidechains: protoWallet.sidechains
+            .map(
+              (sc) => SidechainWallet(
+                slot: sc.slot,
+                name: sc.name,
+                mnemonic: sc.mnemonic,
+              ),
+            )
+            .toList(),
         id: protoWallet.id,
         name: protoWallet.name,
         gradient: gradient,
