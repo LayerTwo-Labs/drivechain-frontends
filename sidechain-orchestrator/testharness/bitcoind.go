@@ -11,6 +11,21 @@ import (
 	"github.com/rs/zerolog"
 )
 
+// bitcoindBinaryPath returns the on-disk path for a specific Core variant
+// from a configs slice. Falls back to the legacy flat layout when the variant
+// cannot be resolved (no bitcoincore entry, missing variant id).
+func bitcoindBinaryPath(dataDir string, configs []orchestrator.BinaryConfig, variantID string) string {
+	for _, c := range configs {
+		if !c.IsBitcoinCore {
+			continue
+		}
+		if v, ok := c.Variants[variantID]; ok {
+			return orchestrator.CoreBinaryPath(dataDir, v, "bitcoind")
+		}
+	}
+	return orchestrator.BinaryPath(dataDir, "bitcoind")
+}
+
 // findBitcoind locates or downloads the bitcoind binary using the orchestrator's
 // download logic. This is the same path as `orchestratorctl download bitcoind`.
 //
@@ -19,7 +34,11 @@ func findBitcoind(t *testing.T, log zerolog.Logger) string {
 	t.Helper()
 
 	dataDir := orchestrator.DefaultDataDir()
-	orchPath := orchestrator.BinaryPath(dataDir, "bitcoind")
+	// Testharness uses the default ("touched") variant unconditionally — it
+	// always wants the drivechain build, regardless of whatever the user has
+	// pinned in orchestrator_settings.json.
+	configs := orchestrator.AllDefaults()
+	orchPath := bitcoindBinaryPath(dataDir, configs, orchestrator.DefaultCoreVariantID)
 
 	// Check if already downloaded and working.
 	if _, err := os.Stat(orchPath); err == nil {
@@ -36,7 +55,7 @@ func findBitcoind(t *testing.T, log zerolog.Logger) string {
 	log.Info().Msg("downloading bitcoind via orchestrator...")
 
 	configPath := orchestrator.ConfigFilePath(orchestrator.DefaultBitwindowDir())
-	configs := orchestrator.LoadConfigFile(configPath, log)
+	configs = orchestrator.LoadConfigFile(configPath, log)
 
 	var bitcoindConfig *orchestrator.BinaryConfig
 	for i := range configs {
@@ -50,6 +69,10 @@ func findBitcoind(t *testing.T, log zerolog.Logger) string {
 	}
 
 	dm := orchestrator.NewDownloadManager(dataDir, configPath, log)
+	dm.CoreVariant = func() (orchestrator.CoreVariantSpec, bool) {
+		v, ok := bitcoindConfig.Variants[orchestrator.DefaultCoreVariantID]
+		return v, ok
+	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 	defer cancel()

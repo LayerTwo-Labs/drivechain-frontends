@@ -438,6 +438,58 @@ extension type WalletManagerServiceClient (connect.Transport _transport) {
     );
   }
 
+  /// Bitcoin Core variant selection (untouched / touched / knots).
+  Future<walletmanagerv1walletmanager.ListCoreVariantsResponse> listCoreVariants(
+    walletmanagerv1walletmanager.ListCoreVariantsRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.WalletManagerService.listCoreVariants,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
+  Future<walletmanagerv1walletmanager.GetCoreVariantResponse> getCoreVariant(
+    walletmanagerv1walletmanager.GetCoreVariantRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.WalletManagerService.getCoreVariant,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
+  Future<walletmanagerv1walletmanager.SetCoreVariantResponse> setCoreVariant(
+    walletmanagerv1walletmanager.SetCoreVariantRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.WalletManagerService.setCoreVariant,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
   /// Stream wallet state changes. Sends the full wallet state immediately,
   /// then again whenever wallets or balance change.
   Stream<walletmanagerv1walletmanager.WatchWalletDataResponse> watchWalletData(

@@ -47,6 +47,9 @@ abstract class WalletManagerServiceBase extends $pb.GeneratedService {
   $async.Future<$13.BumpFeeResponse> bumpFee($pb.ServerContext ctx, $13.BumpFeeRequest request);
   $async.Future<$13.DeriveAddressesResponse> deriveAddresses($pb.ServerContext ctx, $13.DeriveAddressesRequest request);
   $async.Future<$13.GetWalletSeedResponse> getWalletSeed($pb.ServerContext ctx, $13.GetWalletSeedRequest request);
+  $async.Future<$13.ListCoreVariantsResponse> listCoreVariants($pb.ServerContext ctx, $13.ListCoreVariantsRequest request);
+  $async.Future<$13.GetCoreVariantResponse> getCoreVariant($pb.ServerContext ctx, $13.GetCoreVariantRequest request);
+  $async.Future<$13.SetCoreVariantResponse> setCoreVariant($pb.ServerContext ctx, $13.SetCoreVariantRequest request);
   $async.Future<$13.WatchWalletDataResponse> watchWalletData($pb.ServerContext ctx, $12.Empty request);
 
   $pb.GeneratedMessage createRequest($core.String methodName) {
@@ -76,6 +79,9 @@ abstract class WalletManagerServiceBase extends $pb.GeneratedService {
       case 'BumpFee': return $13.BumpFeeRequest();
       case 'DeriveAddresses': return $13.DeriveAddressesRequest();
       case 'GetWalletSeed': return $13.GetWalletSeedRequest();
+      case 'ListCoreVariants': return $13.ListCoreVariantsRequest();
+      case 'GetCoreVariant': return $13.GetCoreVariantRequest();
+      case 'SetCoreVariant': return $13.SetCoreVariantRequest();
       case 'WatchWalletData': return $12.Empty();
       default: throw $core.ArgumentError('Unknown method: $methodName');
     }
@@ -108,6 +114,9 @@ abstract class WalletManagerServiceBase extends $pb.GeneratedService {
       case 'BumpFee': return this.bumpFee(ctx, request as $13.BumpFeeRequest);
       case 'DeriveAddresses': return this.deriveAddresses(ctx, request as $13.DeriveAddressesRequest);
       case 'GetWalletSeed': return this.getWalletSeed(ctx, request as $13.GetWalletSeedRequest);
+      case 'ListCoreVariants': return this.listCoreVariants(ctx, request as $13.ListCoreVariantsRequest);
+      case 'GetCoreVariant': return this.getCoreVariant(ctx, request as $13.GetCoreVariantRequest);
+      case 'SetCoreVariant': return this.setCoreVariant(ctx, request as $13.SetCoreVariantRequest);
       case 'WatchWalletData': return this.watchWalletData(ctx, request as $12.Empty);
       default: throw $core.ArgumentError('Unknown method: $methodName');
     }

@@ -38,6 +38,11 @@ service WalletManagerService {
   // Seed access for cheque engine
   rpc GetWalletSeed(GetWalletSeedRequest) returns (GetWalletSeedResponse);
 
+  // Bitcoin Core variant selection (untouched / touched / knots).
+  rpc ListCoreVariants(ListCoreVariantsRequest) returns (ListCoreVariantsResponse);
+  rpc GetCoreVariant(GetCoreVariantRequest) returns (GetCoreVariantResponse);
+  rpc SetCoreVariant(SetCoreVariantRequest) returns (SetCoreVariantResponse);
+
   // Stream wallet state changes. Sends the full wallet state immediately,
   // then again whenever wallets or balance change.
   rpc WatchWalletData(google.protobuf.Empty) returns (stream WatchWalletDataResponse);
@@ -380,6 +385,35 @@ message GetWalletSeedResponse {
   // BIP39 mnemonic words for the wallet. Sensitive — treat like seed_hex.
   string mnemonic = 2;
 }
+
+// ============================================================================
+// Core variant selection
+// ============================================================================
+
+message ListCoreVariantsRequest {}
+
+message CoreVariant {
+  string id = 1;
+  string display_name = 2;
+  bool installed = 3;
+}
+
+message ListCoreVariantsResponse {
+  repeated CoreVariant variants = 1;
+  string active_id = 2;
+}
+
+message GetCoreVariantRequest {}
+
+message GetCoreVariantResponse {
+  string id = 1;
+}
+
+message SetCoreVariantRequest {
+  string id = 1;
+}
+
+message SetCoreVariantResponse {}
 
 // ============================================================================
 // Watch Wallet Data

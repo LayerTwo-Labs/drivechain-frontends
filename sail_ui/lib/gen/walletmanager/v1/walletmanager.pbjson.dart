@@ -836,6 +836,87 @@ final $typed_data.Uint8List getWalletSeedResponseDescriptor = $convert.base64Dec
     'ChVHZXRXYWxsZXRTZWVkUmVzcG9uc2USGQoIc2VlZF9oZXgYASABKAlSB3NlZWRIZXgSGgoIbW'
     '5lbW9uaWMYAiABKAlSCG1uZW1vbmlj');
 
+@$core.Deprecated('Use listCoreVariantsRequestDescriptor instead')
+const ListCoreVariantsRequest$json = {
+  '1': 'ListCoreVariantsRequest',
+};
+
+/// Descriptor for `ListCoreVariantsRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List listCoreVariantsRequestDescriptor = $convert.base64Decode(
+    'ChdMaXN0Q29yZVZhcmlhbnRzUmVxdWVzdA==');
+
+@$core.Deprecated('Use coreVariantDescriptor instead')
+const CoreVariant$json = {
+  '1': 'CoreVariant',
+  '2': [
+    {'1': 'id', '3': 1, '4': 1, '5': 9, '10': 'id'},
+    {'1': 'display_name', '3': 2, '4': 1, '5': 9, '10': 'displayName'},
+    {'1': 'installed', '3': 3, '4': 1, '5': 8, '10': 'installed'},
+  ],
+};
+
+/// Descriptor for `CoreVariant`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List coreVariantDescriptor = $convert.base64Decode(
+    'CgtDb3JlVmFyaWFudBIOCgJpZBgBIAEoCVICaWQSIQoMZGlzcGxheV9uYW1lGAIgASgJUgtkaX'
+    'NwbGF5TmFtZRIcCglpbnN0YWxsZWQYAyABKAhSCWluc3RhbGxlZA==');
+
+@$core.Deprecated('Use listCoreVariantsResponseDescriptor instead')
+const ListCoreVariantsResponse$json = {
+  '1': 'ListCoreVariantsResponse',
+  '2': [
+    {'1': 'variants', '3': 1, '4': 3, '5': 11, '6': '.walletmanager.v1.CoreVariant', '10': 'variants'},
+    {'1': 'active_id', '3': 2, '4': 1, '5': 9, '10': 'activeId'},
+  ],
+};
+
+/// Descriptor for `ListCoreVariantsResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List listCoreVariantsResponseDescriptor = $convert.base64Decode(
+    'ChhMaXN0Q29yZVZhcmlhbnRzUmVzcG9uc2USOQoIdmFyaWFudHMYASADKAsyHS53YWxsZXRtYW'
+    '5hZ2VyLnYxLkNvcmVWYXJpYW50Ugh2YXJpYW50cxIbCglhY3RpdmVfaWQYAiABKAlSCGFjdGl2'
+    'ZUlk');
+
+@$core.Deprecated('Use getCoreVariantRequestDescriptor instead')
+const GetCoreVariantRequest$json = {
+  '1': 'GetCoreVariantRequest',
+};
+
+/// Descriptor for `GetCoreVariantRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List getCoreVariantRequestDescriptor = $convert.base64Decode(
+    'ChVHZXRDb3JlVmFyaWFudFJlcXVlc3Q=');
+
+@$core.Deprecated('Use getCoreVariantResponseDescriptor instead')
+const GetCoreVariantResponse$json = {
+  '1': 'GetCoreVariantResponse',
+  '2': [
+    {'1': 'id', '3': 1, '4': 1, '5': 9, '10': 'id'},
+  ],
+};
+
+/// Descriptor for `GetCoreVariantResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List getCoreVariantResponseDescriptor = $convert.base64Decode(
+    'ChZHZXRDb3JlVmFyaWFudFJlc3BvbnNlEg4KAmlkGAEgASgJUgJpZA==');
+
+@$core.Deprecated('Use setCoreVariantRequestDescriptor instead')
+const SetCoreVariantRequest$json = {
+  '1': 'SetCoreVariantRequest',
+  '2': [
+    {'1': 'id', '3': 1, '4': 1, '5': 9, '10': 'id'},
+  ],
+};
+
+/// Descriptor for `SetCoreVariantRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List setCoreVariantRequestDescriptor = $convert.base64Decode(
+    'ChVTZXRDb3JlVmFyaWFudFJlcXVlc3QSDgoCaWQYASABKAlSAmlk');
+
+@$core.Deprecated('Use setCoreVariantResponseDescriptor instead')
+const SetCoreVariantResponse$json = {
+  '1': 'SetCoreVariantResponse',
+};
+
+/// Descriptor for `SetCoreVariantResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List setCoreVariantResponseDescriptor = $convert.base64Decode(
+    'ChZTZXRDb3JlVmFyaWFudFJlc3BvbnNl');
+
 @$core.Deprecated('Use watchWalletDataResponseDescriptor instead')
 const WatchWalletDataResponse$json = {
   '1': 'WatchWalletDataResponse',
@@ -887,6 +968,9 @@ const $core.Map<$core.String, $core.dynamic> WalletManagerServiceBase$json = {
     {'1': 'BumpFee', '2': '.walletmanager.v1.BumpFeeRequest', '3': '.walletmanager.v1.BumpFeeResponse'},
     {'1': 'DeriveAddresses', '2': '.walletmanager.v1.DeriveAddressesRequest', '3': '.walletmanager.v1.DeriveAddressesResponse'},
     {'1': 'GetWalletSeed', '2': '.walletmanager.v1.GetWalletSeedRequest', '3': '.walletmanager.v1.GetWalletSeedResponse'},
+    {'1': 'ListCoreVariants', '2': '.walletmanager.v1.ListCoreVariantsRequest', '3': '.walletmanager.v1.ListCoreVariantsResponse'},
+    {'1': 'GetCoreVariant', '2': '.walletmanager.v1.GetCoreVariantRequest', '3': '.walletmanager.v1.GetCoreVariantResponse'},
+    {'1': 'SetCoreVariant', '2': '.walletmanager.v1.SetCoreVariantRequest', '3': '.walletmanager.v1.SetCoreVariantResponse'},
     {'1': 'WatchWalletData', '2': '.google.protobuf.Empty', '3': '.walletmanager.v1.WatchWalletDataResponse', '6': true},
   ],
 };
@@ -951,6 +1035,13 @@ const $core.Map<$core.String, $core.Map<$core.String, $core.dynamic>> WalletMana
   '.walletmanager.v1.DeriveAddressesResponse': DeriveAddressesResponse$json,
   '.walletmanager.v1.GetWalletSeedRequest': GetWalletSeedRequest$json,
   '.walletmanager.v1.GetWalletSeedResponse': GetWalletSeedResponse$json,
+  '.walletmanager.v1.ListCoreVariantsRequest': ListCoreVariantsRequest$json,
+  '.walletmanager.v1.ListCoreVariantsResponse': ListCoreVariantsResponse$json,
+  '.walletmanager.v1.CoreVariant': CoreVariant$json,
+  '.walletmanager.v1.GetCoreVariantRequest': GetCoreVariantRequest$json,
+  '.walletmanager.v1.GetCoreVariantResponse': GetCoreVariantResponse$json,
+  '.walletmanager.v1.SetCoreVariantRequest': SetCoreVariantRequest$json,
+  '.walletmanager.v1.SetCoreVariantResponse': SetCoreVariantResponse$json,
   '.google.protobuf.Empty': $12.Empty$json,
   '.walletmanager.v1.WatchWalletDataResponse': WatchWalletDataResponse$json,
 };
@@ -1003,7 +1094,12 @@ final $typed_data.Uint8List walletManagerServiceDescriptor = $convert.base64Deco
     'VlUmVzcG9uc2USZgoPRGVyaXZlQWRkcmVzc2VzEigud2FsbGV0bWFuYWdlci52MS5EZXJpdmVB'
     'ZGRyZXNzZXNSZXF1ZXN0Gikud2FsbGV0bWFuYWdlci52MS5EZXJpdmVBZGRyZXNzZXNSZXNwb2'
     '5zZRJgCg1HZXRXYWxsZXRTZWVkEiYud2FsbGV0bWFuYWdlci52MS5HZXRXYWxsZXRTZWVkUmVx'
-    'dWVzdBonLndhbGxldG1hbmFnZXIudjEuR2V0V2FsbGV0U2VlZFJlc3BvbnNlElYKD1dhdGNoV2'
-    'FsbGV0RGF0YRIWLmdvb2dsZS5wcm90b2J1Zi5FbXB0eRopLndhbGxldG1hbmFnZXIudjEuV2F0'
-    'Y2hXYWxsZXREYXRhUmVzcG9uc2UwAQ==');
+    'dWVzdBonLndhbGxldG1hbmFnZXIudjEuR2V0V2FsbGV0U2VlZFJlc3BvbnNlEmkKEExpc3RDb3'
+    'JlVmFyaWFudHMSKS53YWxsZXRtYW5hZ2VyLnYxLkxpc3RDb3JlVmFyaWFudHNSZXF1ZXN0Giou'
+    'd2FsbGV0bWFuYWdlci52MS5MaXN0Q29yZVZhcmlhbnRzUmVzcG9uc2USYwoOR2V0Q29yZVZhcm'
+    'lhbnQSJy53YWxsZXRtYW5hZ2VyLnYxLkdldENvcmVWYXJpYW50UmVxdWVzdBooLndhbGxldG1h'
+    'bmFnZXIudjEuR2V0Q29yZVZhcmlhbnRSZXNwb25zZRJjCg5TZXRDb3JlVmFyaWFudBInLndhbG'
+    'xldG1hbmFnZXIudjEuU2V0Q29yZVZhcmlhbnRSZXF1ZXN0Gigud2FsbGV0bWFuYWdlci52MS5T'
+    'ZXRDb3JlVmFyaWFudFJlc3BvbnNlElYKD1dhdGNoV2FsbGV0RGF0YRIWLmdvb2dsZS5wcm90b2'
+    'J1Zi5FbXB0eRopLndhbGxldG1hbmFnZXIudjEuV2F0Y2hXYWxsZXREYXRhUmVzcG9uc2UwAQ==');
 

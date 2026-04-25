@@ -137,6 +137,10 @@ type ProcessManager struct {
 	pidManager *PidFileManager
 	log        zerolog.Logger
 
+	// CoreVariant resolves the binary path for Bitcoin Core when set. If nil
+	// (or it returns ok=false), the default flat BinaryPath is used.
+	CoreVariant func(config BinaryConfig) (CoreVariantSpec, bool)
+
 	mu        sync.Mutex
 	processes map[string]*ManagedProcess // keyed by config name
 
@@ -170,6 +174,11 @@ func (pm *ProcessManager) Start(_ context.Context, config BinaryConfig, args []s
 	pm.mu.Unlock()
 
 	binPath := BinaryPath(pm.dataDir, config.BinaryName)
+	if pm.CoreVariant != nil {
+		if v, ok := pm.CoreVariant(config); ok {
+			binPath = CoreBinaryPath(pm.dataDir, v, config.BinaryName)
+		}
+	}
 	if _, err := os.Stat(binPath); err != nil {
 		return 0, fmt.Errorf("binary not found at %s: %w", binPath, err)
 	}

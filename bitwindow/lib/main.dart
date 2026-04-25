@@ -191,6 +191,8 @@ Future<(Directory, File, Logger)> init(String arguments) async {
   GetIt.I.registerLazySingleton<WalletReaderProvider>(() => walletReader);
   await walletReader.init();
 
+  GetIt.I.registerLazySingleton<CoreVariantProvider>(() => CoreVariantProvider());
+
   final walletWriter = WalletWriterProvider(bitwindowAppDir: applicationDir);
   GetIt.I.registerLazySingleton<WalletWriterProvider>(() => walletWriter);
   await walletWriter.init();

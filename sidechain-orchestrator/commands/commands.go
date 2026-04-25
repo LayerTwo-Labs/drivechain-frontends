@@ -411,7 +411,7 @@ var wipeCommand = &cli.Command{
 		if dataDir == "" {
 			dataDir = orchestrator.DefaultDataDir()
 		}
-		binPath := orchestrator.BinaryPath(dataDir, name)
+		binPath := binaryPathFor(dataDir, name)
 		if err := os.Remove(binPath); err == nil {
 			fmt.Printf("removed %s\n", binPath)
 		}
@@ -595,7 +595,7 @@ var versionCommand = &cli.Command{
 
 			ver := "not downloaded"
 			if b.Downloaded {
-				ver = binaryVersion(orchestrator.BinaryPath(dataDir, b.Name))
+				ver = binaryVersion(binaryPathFor(dataDir, b.Name))
 			}
 
 			fmt.Printf("  %-20s %-25s %s\n", b.Name, ver, b.RepoUrl)
@@ -699,7 +699,7 @@ var whichCommand = &cli.Command{
 		}
 
 		name := cctx.Args().First()
-		binPath := orchestrator.BinaryPath(dataDir, name)
+		binPath := binaryPathFor(dataDir, name)
 
 		if _, err := os.Stat(binPath); err != nil {
 			fmt.Printf("%s (not downloaded)\n", binPath)
@@ -708,6 +708,22 @@ var whichCommand = &cli.Command{
 		}
 		return nil
 	},
+}
+
+// binaryPathFor returns the on-disk path the orchestrator currently uses for
+// a binary. For bitcoind it consults orchestrator_settings.json so it picks
+// up whichever Core variant is active; for everything else it falls back to
+// the legacy flat layout.
+func binaryPathFor(dataDir, name string) string {
+	if name != "bitcoind" {
+		return orchestrator.BinaryPath(dataDir, name)
+	}
+	return orchestrator.ActiveCoreBinaryPath(
+		dataDir,
+		orchestrator.DefaultBitwindowDir(),
+		orchestrator.AllDefaults(),
+		name,
+	)
 }
 
 func extractVersion(s string) string {
