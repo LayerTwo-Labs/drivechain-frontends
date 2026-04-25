@@ -53,6 +53,10 @@ type BinaryConfig struct {
 	ForknetFiles     map[string]string // os -> forknet-specific filename (BitcoinCore only)
 	ExtractSubfolder map[string]string // os -> subfolder to extract from zip (empty = root)
 
+	// Core variant configuration — only populated for the bitcoincore entry.
+	// Keys are variant IDs (e.g. "untouched", "touched", "knots").
+	Variants map[string]CoreVariantSpec
+
 	// Alternative download configuration — Dart: MetadataConfig.alternativeDownloadConfig
 	// Used for test chain builds when SettingsProvider selects it.
 	AltDownloadURLs     map[string]string // network -> base URL
@@ -132,9 +136,53 @@ func (c BinaryConfig) AltBaseURL(network string) string {
 	return ""
 }
 
+// CoreVariantSpec describes a single Bitcoin Core build variant.
+type CoreVariantSpec struct {
+	ID                string
+	Subfolder         string
+	BaseURL           string
+	Files             map[string]string // os -> filename
+	AvailableNetworks []string
+}
+
+// FileForOS returns the variant's download filename for the current platform.
+func (v CoreVariantSpec) FileForOS() (string, error) {
+	f, ok := v.Files[currentOS()]
+	if !ok || f == "" {
+		return "", fmt.Errorf("no download file for variant %s on %s", v.ID, currentOS())
+	}
+	return f, nil
+}
+
+// AvailableOn reports whether the variant is offered for the given network.
+func (v CoreVariantSpec) AvailableOn(network string) bool {
+	for _, n := range v.AvailableNetworks {
+		if n == network {
+			return true
+		}
+	}
+	return false
+}
+
+// DefaultCoreVariantID is the variant used when no settings file exists.
+const DefaultCoreVariantID = "touched"
+
 // BinDir returns the directory where binaries are stored.
 func BinDir(dataDir string) string {
 	return filepath.Join(dataDir, "assets", "bin")
+}
+
+// CoreBinaryPath returns the on-disk path for a given Core variant's binary.
+// Variant subfolders keep all three builds coexistent under BinDir.
+func CoreBinaryPath(dataDir string, variant CoreVariantSpec, binaryName string) string {
+	name := binaryName
+	if runtime.GOOS == "windows" {
+		name += ".exe"
+	}
+	if variant.Subfolder == "" {
+		return filepath.Join(BinDir(dataDir), name)
+	}
+	return filepath.Join(BinDir(dataDir), variant.Subfolder, name)
 }
 
 // PidDir returns the directory where PID files are stored.

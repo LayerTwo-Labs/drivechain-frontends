@@ -186,7 +186,16 @@ func newOrchestratorOnlyNode(t *testing.T) *orchestratorOnlyNode {
 	bitcoinDataDir := filepath.Join(nodeDir, "bitcoin")
 	require.NoError(t, os.MkdirAll(bitwindowDir, 0o700))
 	require.NoError(t, os.MkdirAll(bitcoinDataDir, 0o700))
-	copyManagedBinary(t, bitcoindBin, orchestrator.BinaryPath(bitwindowDir, "bitcoind"))
+	// Pin the orchestrator under test to the untouched variant so we can
+	// drop the locally-built bitcoind into its variant subfolder.
+	require.NoError(t, os.WriteFile(
+		filepath.Join(bitwindowDir, "orchestrator_settings.json"),
+		[]byte(`{"core_variant":"untouched"}`),
+		0o600,
+	))
+	smokeConfigs := orchestrator.AllDefaults()
+	bitcoindDestPath := orchestrator.ActiveCoreBinaryPath(bitwindowDir, bitwindowDir, smokeConfigs, "bitcoind")
+	copyManagedBinary(t, bitcoindBin, bitcoindDestPath)
 	enforcerBin := findEnforcer(t)
 	copyManagedBinary(t, enforcerBin, orchestrator.BinaryPath(bitwindowDir, "bip300301-enforcer"))
 
@@ -345,7 +354,10 @@ func findBitcoind(t *testing.T) string {
 	t.Helper()
 	log := zerolog.New(zerolog.NewTestWriter(t)).With().Timestamp().Logger()
 	dataDir := orchestrator.DefaultDataDir()
-	orchPath := orchestrator.BinaryPath(dataDir, "bitcoind")
+	bitwindowDir := orchestrator.DefaultBitwindowDir()
+	configPath := orchestrator.ConfigFilePath(bitwindowDir)
+	configs := orchestrator.LoadConfigFile(configPath, log)
+	orchPath := orchestrator.ActiveCoreBinaryPath(dataDir, bitwindowDir, configs, "bitcoind")
 
 	if _, err := os.Stat(orchPath); err == nil {
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -356,8 +368,6 @@ func findBitcoind(t *testing.T) string {
 		}
 	}
 
-	configPath := orchestrator.ConfigFilePath(orchestrator.DefaultBitwindowDir())
-	configs := orchestrator.LoadConfigFile(configPath, log)
 	var bitcoindConfig *orchestrator.BinaryConfig
 	for i := range configs {
 		if configs[i].Name == "bitcoind" {
@@ -368,6 +378,10 @@ func findBitcoind(t *testing.T) string {
 	require.NotNil(t, bitcoindConfig)
 
 	dm := orchestrator.NewDownloadManager(dataDir, configPath, log)
+	// bitcoind downloads are now variant-keyed; pick a regtest-compatible
+	// variant explicitly since we don't have a full Orchestrator here.
+	variant := bitcoindConfig.Variants["untouched"]
+	dm.CoreVariant = func() (orchestrator.CoreVariantSpec, bool) { return variant, true }
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 	defer cancel()
 	progressCh, err := dm.Download(ctx, *bitcoindConfig, "regtest", true)
@@ -376,10 +390,11 @@ func findBitcoind(t *testing.T) string {
 		require.NoError(t, p.Error)
 	}
 
+	downloadedPath := orchestrator.CoreBinaryPath(dataDir, variant, "bitcoind")
 	verifyCtx, verifyCancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer verifyCancel()
-	require.NoError(t, exec.CommandContext(verifyCtx, orchPath, "--version").Run())
-	return orchPath
+	require.NoError(t, exec.CommandContext(verifyCtx, downloadedPath, "--version").Run())
+	return downloadedPath
 }
 
 func buildOrchestratord(t *testing.T, outDir string) string {

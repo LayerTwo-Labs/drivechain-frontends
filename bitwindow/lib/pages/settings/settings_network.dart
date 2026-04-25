@@ -15,6 +15,7 @@ class SettingsNetwork extends StatefulWidget {
 class _SettingsNetworkState extends State<SettingsNetwork> {
   final _settingsProvider = GetIt.I.get<SettingsProvider>();
   BitcoinConfProvider get _confProvider => GetIt.I.get<BitcoinConfProvider>();
+  CoreVariantProvider get _variantProvider => GetIt.I.get<CoreVariantProvider>();
   bool _isSelectingDataDir = false;
 
   @override
@@ -22,12 +23,16 @@ class _SettingsNetworkState extends State<SettingsNetwork> {
     super.initState();
     _settingsProvider.addListener(setstate);
     _confProvider.addListener(setstate);
+    _variantProvider.addListener(setstate);
+    // Pick up live edits to chains_config.json since the last refresh.
+    _variantProvider.refresh();
   }
 
   @override
   void dispose() {
     _settingsProvider.removeListener(setstate);
     _confProvider.removeListener(setstate);
+    _variantProvider.removeListener(setstate);
     super.dispose();
   }
 
@@ -91,6 +96,43 @@ class _SettingsNetworkState extends State<SettingsNetwork> {
     await _confProvider.updateDataDir(null);
   }
 
+  Future<void> _handleVariantChange(String? id) async {
+    if (id == null || id == _variantProvider.activeId) return;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Switch Bitcoin Core variant?'),
+        content: const Text(
+          'Bitcoin Core will be stopped, the new build downloaded if needed, and then restarted.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Switch'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+
+    await _variantProvider.setVariant(id);
+    if (!mounted) return;
+    final err = _variantProvider.lastError;
+    if (err != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to switch Core variant: $err'),
+          backgroundColor: SailTheme.of(context).colors.error,
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = SailTheme.of(context);
@@ -111,6 +153,31 @@ class _SettingsNetworkState extends State<SettingsNetwork> {
             SailText.secondary13('Configure Bitcoin network and node settings'),
           ],
         ),
+        if (_variantProvider.isVisible)
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              SailText.primary15('Bitcoin Core Variant'),
+              const SailSpacing(SailStyleValues.padding08),
+              SailDropdownButton<String>(
+                value: _variantProvider.activeId,
+                enabled: !_variantProvider.busy,
+                items: _variantProvider.variants
+                    .map(
+                      (v) => SailDropdownItem<String>(
+                        value: v.id,
+                        label: v.installed ? v.displayName : '${v.displayName} (will download)',
+                      ),
+                    )
+                    .toList(),
+                onChanged: (String? id) async => _handleVariantChange(id),
+              ),
+              const SailSpacing(4),
+              SailText.secondary12(
+                'Choose which Bitcoin Core build the orchestrator runs',
+              ),
+            ],
+          ),
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [

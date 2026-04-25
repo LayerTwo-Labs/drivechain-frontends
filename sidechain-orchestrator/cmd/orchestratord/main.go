@@ -186,6 +186,7 @@ func run(cctx *cli.Context) error {
 
 	// Wallet manager service
 	walletHandler := api.NewWalletHandler(walletSvc)
+	walletHandler.SetOrchestrator(orch)
 
 	// Set up wallet engine for Core RPC operations if bitcoin config is available
 	if orch.BitcoinConf != nil {

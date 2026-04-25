@@ -3848,6 +3848,338 @@ class GetWalletSeedResponse extends $pb.GeneratedMessage {
   void clearMnemonic() => clearField(2);
 }
 
+class ListCoreVariantsRequest extends $pb.GeneratedMessage {
+  factory ListCoreVariantsRequest() => create();
+  ListCoreVariantsRequest._() : super();
+  factory ListCoreVariantsRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory ListCoreVariantsRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ListCoreVariantsRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'walletmanager.v1'), createEmptyInstance: create)
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  ListCoreVariantsRequest clone() => ListCoreVariantsRequest()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  ListCoreVariantsRequest copyWith(void Function(ListCoreVariantsRequest) updates) => super.copyWith((message) => updates(message as ListCoreVariantsRequest)) as ListCoreVariantsRequest;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ListCoreVariantsRequest create() => ListCoreVariantsRequest._();
+  ListCoreVariantsRequest createEmptyInstance() => create();
+  static $pb.PbList<ListCoreVariantsRequest> createRepeated() => $pb.PbList<ListCoreVariantsRequest>();
+  @$core.pragma('dart2js:noInline')
+  static ListCoreVariantsRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<ListCoreVariantsRequest>(create);
+  static ListCoreVariantsRequest? _defaultInstance;
+}
+
+class CoreVariant extends $pb.GeneratedMessage {
+  factory CoreVariant({
+    $core.String? id,
+    $core.String? displayName,
+    $core.bool? installed,
+  }) {
+    final $result = create();
+    if (id != null) {
+      $result.id = id;
+    }
+    if (displayName != null) {
+      $result.displayName = displayName;
+    }
+    if (installed != null) {
+      $result.installed = installed;
+    }
+    return $result;
+  }
+  CoreVariant._() : super();
+  factory CoreVariant.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory CoreVariant.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'CoreVariant', package: const $pb.PackageName(_omitMessageNames ? '' : 'walletmanager.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'id')
+    ..aOS(2, _omitFieldNames ? '' : 'displayName')
+    ..aOB(3, _omitFieldNames ? '' : 'installed')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  CoreVariant clone() => CoreVariant()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  CoreVariant copyWith(void Function(CoreVariant) updates) => super.copyWith((message) => updates(message as CoreVariant)) as CoreVariant;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static CoreVariant create() => CoreVariant._();
+  CoreVariant createEmptyInstance() => create();
+  static $pb.PbList<CoreVariant> createRepeated() => $pb.PbList<CoreVariant>();
+  @$core.pragma('dart2js:noInline')
+  static CoreVariant getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<CoreVariant>(create);
+  static CoreVariant? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get id => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set id($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearId() => clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.String get displayName => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set displayName($core.String v) { $_setString(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasDisplayName() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearDisplayName() => clearField(2);
+
+  @$pb.TagNumber(3)
+  $core.bool get installed => $_getBF(2);
+  @$pb.TagNumber(3)
+  set installed($core.bool v) { $_setBool(2, v); }
+  @$pb.TagNumber(3)
+  $core.bool hasInstalled() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearInstalled() => clearField(3);
+}
+
+class ListCoreVariantsResponse extends $pb.GeneratedMessage {
+  factory ListCoreVariantsResponse({
+    $core.Iterable<CoreVariant>? variants,
+    $core.String? activeId,
+  }) {
+    final $result = create();
+    if (variants != null) {
+      $result.variants.addAll(variants);
+    }
+    if (activeId != null) {
+      $result.activeId = activeId;
+    }
+    return $result;
+  }
+  ListCoreVariantsResponse._() : super();
+  factory ListCoreVariantsResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory ListCoreVariantsResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ListCoreVariantsResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'walletmanager.v1'), createEmptyInstance: create)
+    ..pc<CoreVariant>(1, _omitFieldNames ? '' : 'variants', $pb.PbFieldType.PM, subBuilder: CoreVariant.create)
+    ..aOS(2, _omitFieldNames ? '' : 'activeId')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  ListCoreVariantsResponse clone() => ListCoreVariantsResponse()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  ListCoreVariantsResponse copyWith(void Function(ListCoreVariantsResponse) updates) => super.copyWith((message) => updates(message as ListCoreVariantsResponse)) as ListCoreVariantsResponse;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ListCoreVariantsResponse create() => ListCoreVariantsResponse._();
+  ListCoreVariantsResponse createEmptyInstance() => create();
+  static $pb.PbList<ListCoreVariantsResponse> createRepeated() => $pb.PbList<ListCoreVariantsResponse>();
+  @$core.pragma('dart2js:noInline')
+  static ListCoreVariantsResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<ListCoreVariantsResponse>(create);
+  static ListCoreVariantsResponse? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.List<CoreVariant> get variants => $_getList(0);
+
+  @$pb.TagNumber(2)
+  $core.String get activeId => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set activeId($core.String v) { $_setString(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasActiveId() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearActiveId() => clearField(2);
+}
+
+class GetCoreVariantRequest extends $pb.GeneratedMessage {
+  factory GetCoreVariantRequest() => create();
+  GetCoreVariantRequest._() : super();
+  factory GetCoreVariantRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory GetCoreVariantRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'GetCoreVariantRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'walletmanager.v1'), createEmptyInstance: create)
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  GetCoreVariantRequest clone() => GetCoreVariantRequest()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  GetCoreVariantRequest copyWith(void Function(GetCoreVariantRequest) updates) => super.copyWith((message) => updates(message as GetCoreVariantRequest)) as GetCoreVariantRequest;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static GetCoreVariantRequest create() => GetCoreVariantRequest._();
+  GetCoreVariantRequest createEmptyInstance() => create();
+  static $pb.PbList<GetCoreVariantRequest> createRepeated() => $pb.PbList<GetCoreVariantRequest>();
+  @$core.pragma('dart2js:noInline')
+  static GetCoreVariantRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<GetCoreVariantRequest>(create);
+  static GetCoreVariantRequest? _defaultInstance;
+}
+
+class GetCoreVariantResponse extends $pb.GeneratedMessage {
+  factory GetCoreVariantResponse({
+    $core.String? id,
+  }) {
+    final $result = create();
+    if (id != null) {
+      $result.id = id;
+    }
+    return $result;
+  }
+  GetCoreVariantResponse._() : super();
+  factory GetCoreVariantResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory GetCoreVariantResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'GetCoreVariantResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'walletmanager.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'id')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  GetCoreVariantResponse clone() => GetCoreVariantResponse()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  GetCoreVariantResponse copyWith(void Function(GetCoreVariantResponse) updates) => super.copyWith((message) => updates(message as GetCoreVariantResponse)) as GetCoreVariantResponse;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static GetCoreVariantResponse create() => GetCoreVariantResponse._();
+  GetCoreVariantResponse createEmptyInstance() => create();
+  static $pb.PbList<GetCoreVariantResponse> createRepeated() => $pb.PbList<GetCoreVariantResponse>();
+  @$core.pragma('dart2js:noInline')
+  static GetCoreVariantResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<GetCoreVariantResponse>(create);
+  static GetCoreVariantResponse? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get id => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set id($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearId() => clearField(1);
+}
+
+class SetCoreVariantRequest extends $pb.GeneratedMessage {
+  factory SetCoreVariantRequest({
+    $core.String? id,
+  }) {
+    final $result = create();
+    if (id != null) {
+      $result.id = id;
+    }
+    return $result;
+  }
+  SetCoreVariantRequest._() : super();
+  factory SetCoreVariantRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory SetCoreVariantRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'SetCoreVariantRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'walletmanager.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'id')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  SetCoreVariantRequest clone() => SetCoreVariantRequest()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  SetCoreVariantRequest copyWith(void Function(SetCoreVariantRequest) updates) => super.copyWith((message) => updates(message as SetCoreVariantRequest)) as SetCoreVariantRequest;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static SetCoreVariantRequest create() => SetCoreVariantRequest._();
+  SetCoreVariantRequest createEmptyInstance() => create();
+  static $pb.PbList<SetCoreVariantRequest> createRepeated() => $pb.PbList<SetCoreVariantRequest>();
+  @$core.pragma('dart2js:noInline')
+  static SetCoreVariantRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<SetCoreVariantRequest>(create);
+  static SetCoreVariantRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get id => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set id($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearId() => clearField(1);
+}
+
+class SetCoreVariantResponse extends $pb.GeneratedMessage {
+  factory SetCoreVariantResponse() => create();
+  SetCoreVariantResponse._() : super();
+  factory SetCoreVariantResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory SetCoreVariantResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'SetCoreVariantResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'walletmanager.v1'), createEmptyInstance: create)
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  SetCoreVariantResponse clone() => SetCoreVariantResponse()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  SetCoreVariantResponse copyWith(void Function(SetCoreVariantResponse) updates) => super.copyWith((message) => updates(message as SetCoreVariantResponse)) as SetCoreVariantResponse;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static SetCoreVariantResponse create() => SetCoreVariantResponse._();
+  SetCoreVariantResponse createEmptyInstance() => create();
+  static $pb.PbList<SetCoreVariantResponse> createRepeated() => $pb.PbList<SetCoreVariantResponse>();
+  @$core.pragma('dart2js:noInline')
+  static SetCoreVariantResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<SetCoreVariantResponse>(create);
+  static SetCoreVariantResponse? _defaultInstance;
+}
+
 class WatchWalletDataResponse extends $pb.GeneratedMessage {
   factory WatchWalletDataResponse({
     $core.bool? hasWallet,
@@ -4057,6 +4389,15 @@ class WalletManagerServiceApi {
   ;
   $async.Future<GetWalletSeedResponse> getWalletSeed($pb.ClientContext? ctx, GetWalletSeedRequest request) =>
     _client.invoke<GetWalletSeedResponse>(ctx, 'WalletManagerService', 'GetWalletSeed', request, GetWalletSeedResponse())
+  ;
+  $async.Future<ListCoreVariantsResponse> listCoreVariants($pb.ClientContext? ctx, ListCoreVariantsRequest request) =>
+    _client.invoke<ListCoreVariantsResponse>(ctx, 'WalletManagerService', 'ListCoreVariants', request, ListCoreVariantsResponse())
+  ;
+  $async.Future<GetCoreVariantResponse> getCoreVariant($pb.ClientContext? ctx, GetCoreVariantRequest request) =>
+    _client.invoke<GetCoreVariantResponse>(ctx, 'WalletManagerService', 'GetCoreVariant', request, GetCoreVariantResponse())
+  ;
+  $async.Future<SetCoreVariantResponse> setCoreVariant($pb.ClientContext? ctx, SetCoreVariantRequest request) =>
+    _client.invoke<SetCoreVariantResponse>(ctx, 'WalletManagerService', 'SetCoreVariant', request, SetCoreVariantResponse())
   ;
   $async.Future<WatchWalletDataResponse> watchWalletData($pb.ClientContext? ctx, $12.Empty request) =>
     _client.invoke<WatchWalletDataResponse>(ctx, 'WalletManagerService', 'WatchWalletData', request, WatchWalletDataResponse())

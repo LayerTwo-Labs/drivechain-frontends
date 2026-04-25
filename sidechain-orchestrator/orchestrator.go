@@ -91,6 +91,7 @@ type Orchestrator struct {
 	SidechainConfs map[string]*config.SidechainConfManager
 	WalletSvc      *wallet.Service // for seed injection into sidechain/enforcer args
 	WalletEngine   *WalletEngine   // manages wallet→Core mapping, sync, backend routing
+	Settings       *SettingsStore
 
 	configs    map[string]BinaryConfig
 	download   *DownloadManager
@@ -108,20 +109,41 @@ type Orchestrator struct {
 
 	mu sync.RWMutex
 
+	// coreVariantMu serialises the entire stop -> persist -> download -> restart
+	// sequence so two concurrent SetCoreVariant calls can't race the on-disk
+	// state into an inconsistent shape.
+	coreVariantMu sync.Mutex
+
 	cachedBTCPrice  float64
 	cachedPriceTime time.Time
 	priceMu         sync.Mutex
+
+	// stopBinary is the Stop primitive used by SetCoreVariant. Production wires
+	// this to o.Stop; tests override it to inject force/graceful failures.
+	stopBinary func(ctx context.Context, name string, force bool) error
+
+	// bootBitcoindForVariantSwap boots bitcoind after a variant swap. Returns
+	// a channel that is closed when boot is complete. Production wires this to
+	// the real boot helper; tests override it to bypass process spawning.
+	bootBitcoindForVariantSwap func(ctx context.Context) <-chan StartupProgress
 }
 
 // New creates a new Orchestrator.
 func New(dataDir, network, bitwindowDir string, configs []BinaryConfig, log zerolog.Logger) *Orchestrator {
 	pidMgr := NewPidFileManager(dataDir, log)
 
+	settings, err := NewSettingsStore(bitwindowDir)
+	if err != nil {
+		log.Warn().Err(err).Msg("orchestrator settings load failed, using defaults")
+		settings = &SettingsStore{bitwindowDir: bitwindowDir, current: defaultOrchestratorSettings()}
+	}
+
 	orch := &Orchestrator{
 		DataDir:      dataDir,
 		Network:      network,
 		BitwindowDir: bitwindowDir,
 		StateChanged: make(chan struct{}, 1),
+		Settings:     settings,
 		configs:      lo.SliceToMap(configs, func(c BinaryConfig) (string, BinaryConfig) { return c.Name, c }),
 		download:     NewDownloadManager(dataDir, ConfigFilePath(bitwindowDir), log),
 		process:      NewProcessManager(dataDir, pidMgr, log),
@@ -129,6 +151,37 @@ func New(dataDir, network, bitwindowDir string, configs []BinaryConfig, log zero
 		monitors:     make(map[string]*ConnectionMonitor),
 		log:          log.With().Str("component", "orchestrator").Logger(),
 	}
+
+	// Variant resolver shared by download + process managers. The persisted
+	// ID wins when it's available on the current network; otherwise we clamp
+	// to the first network-compatible variant so a user who switched
+	// networks doesn't end up launching the wrong build.
+	variantResolver := func(c BinaryConfig) (CoreVariantSpec, bool) {
+		if !c.IsBitcoinCore {
+			return CoreVariantSpec{}, false
+		}
+		id := orch.Settings.CoreVariant()
+		if v, ok := c.Variants[id]; ok && v.AvailableOn(orch.Network) {
+			return v, true
+		}
+		available := FilterVariantsForNetwork(c.Variants, orch.Network)
+		if len(available) == 0 {
+			return CoreVariantSpec{}, false
+		}
+		sort.Slice(available, func(i, j int) bool { return available[i].ID < available[j].ID })
+		return available[0], true
+	}
+	orch.download.CoreVariant = func() (CoreVariantSpec, bool) {
+		cfg, ok := orch.configs["bitcoind"]
+		if !ok {
+			return CoreVariantSpec{}, false
+		}
+		return variantResolver(cfg)
+	}
+	orch.process.CoreVariant = variantResolver
+
+	orch.stopBinary = orch.Stop
+	orch.bootBitcoindForVariantSwap = orch.defaultBootBitcoindForVariantSwap
 
 	// Wire process exit events to ConnectionMonitor state.
 	// When a process crashes, its stderr error message becomes the monitor's
@@ -352,7 +405,13 @@ func (o *Orchestrator) Status(name string) BinaryStatus {
 	}
 
 	proc := o.process.Get(name)
-	_, downloaded := os.Stat(BinaryPath(o.DataDir, config.BinaryName))
+	binPath := BinaryPath(o.DataDir, config.BinaryName)
+	if config.IsBitcoinCore && o.Settings != nil {
+		if v, ok := config.Variants[o.Settings.CoreVariant()]; ok {
+			binPath = CoreBinaryPath(o.DataDir, v, config.BinaryName)
+		}
+	}
+	_, downloaded := os.Stat(binPath)
 	status := BinaryStatus{
 		Name:         config.Name,
 		DisplayName:  config.DisplayName,
@@ -816,8 +875,25 @@ func (o *Orchestrator) startEnforcerWhenReady(ctx context.Context, opts StartOpt
 // If prefetched is non-nil, the target binary is already being downloaded in
 // parallel and we wait on its completion instead of starting a new download.
 func (o *Orchestrator) startTargetOnly(ctx context.Context, config BinaryConfig, opts StartOpts, ch chan<- StartupProgress, prefetched <-chan error) {
-	targetChecker := NewHealthChecker(config)
-	targetMon := o.getOrCreateMonitor(config.Name, targetChecker, nil)
+	var startupPatterns []string
+	var healthOpts HealthCheckOpts
+	if config.IsBitcoinCore && o.BitcoinConf != nil {
+		if config.Port == 0 {
+			config.Port = o.BitcoinConf.GetRPCPort()
+		}
+		if o.BitcoinConf.Config != nil {
+			section := o.BitcoinConf.Network.CoreSection()
+			healthOpts.User = o.BitcoinConf.Config.GetEffectiveSetting("rpcuser", section)
+			healthOpts.Password = o.BitcoinConf.Config.GetEffectiveSetting("rpcpassword", section)
+		}
+		startupPatterns = bitcoindStartupPatterns
+		if len(opts.TargetArgs) == 0 {
+			confPath := o.BitcoinConf.GetConfFilePath()
+			opts.TargetArgs = []string{fmt.Sprintf("-conf=%s", confPath)}
+		}
+	}
+	targetChecker := NewHealthChecker(config, healthOpts)
+	targetMon := o.getOrCreateMonitor(config.Name, targetChecker, startupPatterns)
 
 	// Keep the target monitor alive even if the frontend asked us to start
 	// the chain before the target RPC is reachable.
@@ -1154,6 +1230,120 @@ func (o *Orchestrator) AdoptOrphans(ctx context.Context) error {
 // ProcessManager returns the underlying process manager (for direct access if needed).
 func (o *Orchestrator) ProcessManager() *ProcessManager {
 	return o.process
+}
+
+// CoreVariant returns the currently selected Bitcoin Core variant ID.
+func (o *Orchestrator) CoreVariant() string {
+	if o.Settings == nil {
+		return DefaultCoreVariantID
+	}
+	return o.Settings.CoreVariant()
+}
+
+// ListCoreVariants returns the variants offered for the current network.
+// On mainnet the slice is empty (the UI hides the picker entirely).
+func (o *Orchestrator) ListCoreVariants() []CoreVariantSpec {
+	cfg, ok := o.configs["bitcoind"]
+	if !ok {
+		return nil
+	}
+	return FilterVariantsForNetwork(cfg.Variants, o.Network)
+}
+
+// SetCoreVariant stops bitcoind, persists the new variant, ensures the binary
+// is on disk for it, and restarts bitcoind. The whole sequence is serialised
+// behind coreVariantMu so concurrent callers can't race the on-disk state.
+// On stop failure we escalate to SIGKILL; if even that fails we abort before
+// touching settings.
+func (o *Orchestrator) SetCoreVariant(ctx context.Context, id string) error {
+	if o.Settings == nil {
+		return fmt.Errorf("orchestrator settings not initialised")
+	}
+	if o.Network == "mainnet" {
+		return fmt.Errorf("core variant switching is disabled on mainnet")
+	}
+
+	coreCfg, ok := o.configs["bitcoind"]
+	if !ok {
+		return fmt.Errorf("bitcoind config not found")
+	}
+	variant, ok := coreCfg.Variants[id]
+	if !ok {
+		return fmt.Errorf("unknown core variant: %s", id)
+	}
+	if !variant.AvailableOn(o.Network) {
+		return fmt.Errorf("variant %s is not available on network %s", id, o.Network)
+	}
+
+	o.coreVariantMu.Lock()
+	defer o.coreVariantMu.Unlock()
+
+	wasRunning := o.process.IsRunning("bitcoind")
+	if wasRunning {
+		if err := o.stopBitcoindForVariantSwap(ctx); err != nil {
+			return fmt.Errorf("stop bitcoind for core-variant switch: %w", err)
+		}
+	}
+
+	if _, err := o.Settings.SetCoreVariant(id); err != nil {
+		return fmt.Errorf("persist core variant: %w", err)
+	}
+
+	progressCh, err := o.download.Download(ctx, coreCfg, o.Network, false)
+	if err != nil {
+		return fmt.Errorf("ensure variant binary: %w", err)
+	}
+	for p := range progressCh {
+		if p.Error != nil {
+			return fmt.Errorf("download variant %s: %w", id, p.Error)
+		}
+	}
+
+	if !wasRunning {
+		return nil
+	}
+
+	bootCh := o.bootBitcoindForVariantSwap(ctx)
+	for p := range bootCh {
+		if p.Error != nil {
+			return fmt.Errorf("restart bitcoind: %w", p.Error)
+		}
+	}
+	return nil
+}
+
+// stopBitcoindForVariantSwap stops bitcoind, escalating to SIGKILL on graceful
+// failure. Returns an error only when both the graceful and force-kill
+// attempts fail so the caller can keep settings/state coherent.
+func (o *Orchestrator) stopBitcoindForVariantSwap(ctx context.Context) error {
+	if err := o.stopBinary(ctx, "bitcoind", false); err != nil {
+		o.log.Warn().Err(err).Msg("graceful stop failed during core-variant switch, escalating to SIGKILL")
+		if killErr := o.stopBinary(ctx, "bitcoind", true); killErr != nil {
+			return fmt.Errorf("graceful stop failed (%v) and force kill failed: %w", err, killErr)
+		}
+	}
+	return nil
+}
+
+// defaultBootBitcoindForVariantSwap reuses the standard L1 boot path so
+// timers, port resolution, and health wiring all match a normal user-initiated
+// start. We mark the bitcoind monitor stopped first so any restart timer armed
+// by an earlier crash can't fire mid-switch and boot the old variant.
+func (o *Orchestrator) defaultBootBitcoindForVariantSwap(ctx context.Context) <-chan StartupProgress {
+	o.monitorsMu.Lock()
+	if mon, ok := o.monitors["bitcoind"]; ok {
+		mon.MarkStopped()
+	}
+	o.monitorsMu.Unlock()
+
+	ch, err := o.StartWithL1(ctx, "bitcoind", StartOpts{Immediate: true})
+	if err != nil {
+		out := make(chan StartupProgress, 1)
+		out <- StartupProgress{Error: err}
+		close(out)
+		return out
+	}
+	return ch
 }
 
 // Configs returns the binary configs.

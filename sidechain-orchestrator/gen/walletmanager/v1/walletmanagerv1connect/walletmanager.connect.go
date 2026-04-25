@@ -109,6 +109,15 @@ const (
 	// WalletManagerServiceGetWalletSeedProcedure is the fully-qualified name of the
 	// WalletManagerService's GetWalletSeed RPC.
 	WalletManagerServiceGetWalletSeedProcedure = "/walletmanager.v1.WalletManagerService/GetWalletSeed"
+	// WalletManagerServiceListCoreVariantsProcedure is the fully-qualified name of the
+	// WalletManagerService's ListCoreVariants RPC.
+	WalletManagerServiceListCoreVariantsProcedure = "/walletmanager.v1.WalletManagerService/ListCoreVariants"
+	// WalletManagerServiceGetCoreVariantProcedure is the fully-qualified name of the
+	// WalletManagerService's GetCoreVariant RPC.
+	WalletManagerServiceGetCoreVariantProcedure = "/walletmanager.v1.WalletManagerService/GetCoreVariant"
+	// WalletManagerServiceSetCoreVariantProcedure is the fully-qualified name of the
+	// WalletManagerService's SetCoreVariant RPC.
+	WalletManagerServiceSetCoreVariantProcedure = "/walletmanager.v1.WalletManagerService/SetCoreVariant"
 	// WalletManagerServiceWatchWalletDataProcedure is the fully-qualified name of the
 	// WalletManagerService's WatchWalletData RPC.
 	WalletManagerServiceWatchWalletDataProcedure = "/walletmanager.v1.WalletManagerService/WatchWalletData"
@@ -145,6 +154,10 @@ type WalletManagerServiceClient interface {
 	DeriveAddresses(context.Context, *connect.Request[v1.DeriveAddressesRequest]) (*connect.Response[v1.DeriveAddressesResponse], error)
 	// Seed access for cheque engine
 	GetWalletSeed(context.Context, *connect.Request[v1.GetWalletSeedRequest]) (*connect.Response[v1.GetWalletSeedResponse], error)
+	// Bitcoin Core variant selection (untouched / touched / knots).
+	ListCoreVariants(context.Context, *connect.Request[v1.ListCoreVariantsRequest]) (*connect.Response[v1.ListCoreVariantsResponse], error)
+	GetCoreVariant(context.Context, *connect.Request[v1.GetCoreVariantRequest]) (*connect.Response[v1.GetCoreVariantResponse], error)
+	SetCoreVariant(context.Context, *connect.Request[v1.SetCoreVariantRequest]) (*connect.Response[v1.SetCoreVariantResponse], error)
 	// Stream wallet state changes. Sends the full wallet state immediately,
 	// then again whenever wallets or balance change.
 	WatchWalletData(context.Context, *connect.Request[emptypb.Empty]) (*connect.ServerStreamForClient[v1.WatchWalletDataResponse], error)
@@ -311,6 +324,24 @@ func NewWalletManagerServiceClient(httpClient connect.HTTPClient, baseURL string
 			connect.WithSchema(walletManagerServiceMethods.ByName("GetWalletSeed")),
 			connect.WithClientOptions(opts...),
 		),
+		listCoreVariants: connect.NewClient[v1.ListCoreVariantsRequest, v1.ListCoreVariantsResponse](
+			httpClient,
+			baseURL+WalletManagerServiceListCoreVariantsProcedure,
+			connect.WithSchema(walletManagerServiceMethods.ByName("ListCoreVariants")),
+			connect.WithClientOptions(opts...),
+		),
+		getCoreVariant: connect.NewClient[v1.GetCoreVariantRequest, v1.GetCoreVariantResponse](
+			httpClient,
+			baseURL+WalletManagerServiceGetCoreVariantProcedure,
+			connect.WithSchema(walletManagerServiceMethods.ByName("GetCoreVariant")),
+			connect.WithClientOptions(opts...),
+		),
+		setCoreVariant: connect.NewClient[v1.SetCoreVariantRequest, v1.SetCoreVariantResponse](
+			httpClient,
+			baseURL+WalletManagerServiceSetCoreVariantProcedure,
+			connect.WithSchema(walletManagerServiceMethods.ByName("SetCoreVariant")),
+			connect.WithClientOptions(opts...),
+		),
 		watchWalletData: connect.NewClient[emptypb.Empty, v1.WatchWalletDataResponse](
 			httpClient,
 			baseURL+WalletManagerServiceWatchWalletDataProcedure,
@@ -347,6 +378,9 @@ type walletManagerServiceClient struct {
 	bumpFee                 *connect.Client[v1.BumpFeeRequest, v1.BumpFeeResponse]
 	deriveAddresses         *connect.Client[v1.DeriveAddressesRequest, v1.DeriveAddressesResponse]
 	getWalletSeed           *connect.Client[v1.GetWalletSeedRequest, v1.GetWalletSeedResponse]
+	listCoreVariants        *connect.Client[v1.ListCoreVariantsRequest, v1.ListCoreVariantsResponse]
+	getCoreVariant          *connect.Client[v1.GetCoreVariantRequest, v1.GetCoreVariantResponse]
+	setCoreVariant          *connect.Client[v1.SetCoreVariantRequest, v1.SetCoreVariantResponse]
 	watchWalletData         *connect.Client[emptypb.Empty, v1.WatchWalletDataResponse]
 }
 
@@ -475,6 +509,21 @@ func (c *walletManagerServiceClient) GetWalletSeed(ctx context.Context, req *con
 	return c.getWalletSeed.CallUnary(ctx, req)
 }
 
+// ListCoreVariants calls walletmanager.v1.WalletManagerService.ListCoreVariants.
+func (c *walletManagerServiceClient) ListCoreVariants(ctx context.Context, req *connect.Request[v1.ListCoreVariantsRequest]) (*connect.Response[v1.ListCoreVariantsResponse], error) {
+	return c.listCoreVariants.CallUnary(ctx, req)
+}
+
+// GetCoreVariant calls walletmanager.v1.WalletManagerService.GetCoreVariant.
+func (c *walletManagerServiceClient) GetCoreVariant(ctx context.Context, req *connect.Request[v1.GetCoreVariantRequest]) (*connect.Response[v1.GetCoreVariantResponse], error) {
+	return c.getCoreVariant.CallUnary(ctx, req)
+}
+
+// SetCoreVariant calls walletmanager.v1.WalletManagerService.SetCoreVariant.
+func (c *walletManagerServiceClient) SetCoreVariant(ctx context.Context, req *connect.Request[v1.SetCoreVariantRequest]) (*connect.Response[v1.SetCoreVariantResponse], error) {
+	return c.setCoreVariant.CallUnary(ctx, req)
+}
+
 // WatchWalletData calls walletmanager.v1.WalletManagerService.WatchWalletData.
 func (c *walletManagerServiceClient) WatchWalletData(ctx context.Context, req *connect.Request[emptypb.Empty]) (*connect.ServerStreamForClient[v1.WatchWalletDataResponse], error) {
 	return c.watchWalletData.CallServerStream(ctx, req)
@@ -512,6 +561,10 @@ type WalletManagerServiceHandler interface {
 	DeriveAddresses(context.Context, *connect.Request[v1.DeriveAddressesRequest]) (*connect.Response[v1.DeriveAddressesResponse], error)
 	// Seed access for cheque engine
 	GetWalletSeed(context.Context, *connect.Request[v1.GetWalletSeedRequest]) (*connect.Response[v1.GetWalletSeedResponse], error)
+	// Bitcoin Core variant selection (untouched / touched / knots).
+	ListCoreVariants(context.Context, *connect.Request[v1.ListCoreVariantsRequest]) (*connect.Response[v1.ListCoreVariantsResponse], error)
+	GetCoreVariant(context.Context, *connect.Request[v1.GetCoreVariantRequest]) (*connect.Response[v1.GetCoreVariantResponse], error)
+	SetCoreVariant(context.Context, *connect.Request[v1.SetCoreVariantRequest]) (*connect.Response[v1.SetCoreVariantResponse], error)
 	// Stream wallet state changes. Sends the full wallet state immediately,
 	// then again whenever wallets or balance change.
 	WatchWalletData(context.Context, *connect.Request[emptypb.Empty], *connect.ServerStream[v1.WatchWalletDataResponse]) error
@@ -674,6 +727,24 @@ func NewWalletManagerServiceHandler(svc WalletManagerServiceHandler, opts ...con
 		connect.WithSchema(walletManagerServiceMethods.ByName("GetWalletSeed")),
 		connect.WithHandlerOptions(opts...),
 	)
+	walletManagerServiceListCoreVariantsHandler := connect.NewUnaryHandler(
+		WalletManagerServiceListCoreVariantsProcedure,
+		svc.ListCoreVariants,
+		connect.WithSchema(walletManagerServiceMethods.ByName("ListCoreVariants")),
+		connect.WithHandlerOptions(opts...),
+	)
+	walletManagerServiceGetCoreVariantHandler := connect.NewUnaryHandler(
+		WalletManagerServiceGetCoreVariantProcedure,
+		svc.GetCoreVariant,
+		connect.WithSchema(walletManagerServiceMethods.ByName("GetCoreVariant")),
+		connect.WithHandlerOptions(opts...),
+	)
+	walletManagerServiceSetCoreVariantHandler := connect.NewUnaryHandler(
+		WalletManagerServiceSetCoreVariantProcedure,
+		svc.SetCoreVariant,
+		connect.WithSchema(walletManagerServiceMethods.ByName("SetCoreVariant")),
+		connect.WithHandlerOptions(opts...),
+	)
 	walletManagerServiceWatchWalletDataHandler := connect.NewServerStreamHandler(
 		WalletManagerServiceWatchWalletDataProcedure,
 		svc.WatchWalletData,
@@ -732,6 +803,12 @@ func NewWalletManagerServiceHandler(svc WalletManagerServiceHandler, opts ...con
 			walletManagerServiceDeriveAddressesHandler.ServeHTTP(w, r)
 		case WalletManagerServiceGetWalletSeedProcedure:
 			walletManagerServiceGetWalletSeedHandler.ServeHTTP(w, r)
+		case WalletManagerServiceListCoreVariantsProcedure:
+			walletManagerServiceListCoreVariantsHandler.ServeHTTP(w, r)
+		case WalletManagerServiceGetCoreVariantProcedure:
+			walletManagerServiceGetCoreVariantHandler.ServeHTTP(w, r)
+		case WalletManagerServiceSetCoreVariantProcedure:
+			walletManagerServiceSetCoreVariantHandler.ServeHTTP(w, r)
 		case WalletManagerServiceWatchWalletDataProcedure:
 			walletManagerServiceWatchWalletDataHandler.ServeHTTP(w, r)
 		default:
@@ -841,6 +918,18 @@ func (UnimplementedWalletManagerServiceHandler) DeriveAddresses(context.Context,
 
 func (UnimplementedWalletManagerServiceHandler) GetWalletSeed(context.Context, *connect.Request[v1.GetWalletSeedRequest]) (*connect.Response[v1.GetWalletSeedResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("walletmanager.v1.WalletManagerService.GetWalletSeed is not implemented"))
+}
+
+func (UnimplementedWalletManagerServiceHandler) ListCoreVariants(context.Context, *connect.Request[v1.ListCoreVariantsRequest]) (*connect.Response[v1.ListCoreVariantsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("walletmanager.v1.WalletManagerService.ListCoreVariants is not implemented"))
+}
+
+func (UnimplementedWalletManagerServiceHandler) GetCoreVariant(context.Context, *connect.Request[v1.GetCoreVariantRequest]) (*connect.Response[v1.GetCoreVariantResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("walletmanager.v1.WalletManagerService.GetCoreVariant is not implemented"))
+}
+
+func (UnimplementedWalletManagerServiceHandler) SetCoreVariant(context.Context, *connect.Request[v1.SetCoreVariantRequest]) (*connect.Response[v1.SetCoreVariantResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("walletmanager.v1.WalletManagerService.SetCoreVariant is not implemented"))
 }
 
 func (UnimplementedWalletManagerServiceHandler) WatchWalletData(context.Context, *connect.Request[emptypb.Empty], *connect.ServerStream[v1.WatchWalletDataResponse]) error {

@@ -35,6 +35,12 @@ type DownloadManager struct {
 	httpClient     *http.Client
 	log            zerolog.Logger
 	inFlight       sync.Map
+
+	// CoreVariant returns the active Bitcoin Core variant spec to use for
+	// download/extract. It is consulted only when config.IsBitcoinCore. May
+	// be left nil — in that case the download falls back to the legacy
+	// per-network file selection (default vs. forknet).
+	CoreVariant func() (CoreVariantSpec, bool)
 }
 
 func NewDownloadManager(dataDir, configFilePath string, log zerolog.Logger) *DownloadManager {
@@ -50,7 +56,15 @@ func NewDownloadManager(dataDir, configFilePath string, log zerolog.Logger) *Dow
 // Download downloads a binary to the bin directory with progress reporting.
 // It determines the download strategy based on config (GitHub vs direct).
 func (d *DownloadManager) Download(ctx context.Context, config BinaryConfig, network string, force bool) (<-chan DownloadProgress, error) {
+	// Resolve the Core variant once: callers don't have to know about it,
+	// but every path below (target binary path, download URL, extract dir)
+	// must agree on the choice.
+	variant, hasVariant := d.activeVariant(config)
+
 	binPath := BinaryPath(d.dataDir, config.BinaryName)
+	if hasVariant {
+		binPath = CoreBinaryPath(d.dataDir, variant, config.BinaryName)
+	}
 
 	if !force {
 		if _, err := os.Stat(binPath); err == nil {
@@ -61,24 +75,40 @@ func (d *DownloadManager) Download(ctx context.Context, config BinaryConfig, net
 		}
 	}
 
-	fileName, err := config.FileForOS()
-	if err != nil {
-		return nil, err
+	var fileName string
+	var baseURL string
+	if hasVariant {
+		f, err := variant.FileForOS()
+		if err != nil {
+			return nil, err
+		}
+		fileName = f
+		baseURL = variant.BaseURL
+	} else {
+		f, err := config.FileForOS()
+		if err != nil {
+			return nil, err
+		}
+		fileName = f
+		baseURL = config.BaseURL(network)
 	}
 
-	baseURL := config.BaseURL(network)
 	if fileName == "" || baseURL == "" {
 		return nil, fmt.Errorf("no download available for %s on %s", config.Name, currentOS())
 	}
 
-	if _, loaded := d.inFlight.LoadOrStore(config.Name, true); loaded {
+	inFlightKey := config.Name
+	if hasVariant {
+		inFlightKey = config.Name + ":" + variant.ID
+	}
+	if _, loaded := d.inFlight.LoadOrStore(inFlightKey, true); loaded {
 		return nil, fmt.Errorf("%s is already being downloaded", config.Name)
 	}
 
 	ch := make(chan DownloadProgress, 100)
 
 	go func() {
-		defer d.inFlight.Delete(config.Name)
+		defer d.inFlight.Delete(inFlightKey)
 		defer close(ch)
 
 		var downloadURL string
@@ -126,18 +156,29 @@ func (d *DownloadManager) Download(ctx context.Context, config BinaryConfig, net
 
 		ch <- DownloadProgress{Message: "extracting..."}
 
-		hasCLI, err := d.extractBinary(savePath, config, d.dataDir, network)
+		hasCLI, err := d.extractBinary(savePath, config, d.dataDir, network, variant, hasVariant)
 		if err != nil {
 			ch <- DownloadProgress{Error: fmt.Errorf("extract: %w", err)}
 			return
 		}
 		d.log.Info().Bool("has_cli", hasCLI).Str("binary", config.BinaryName).Msg("extraction complete")
 
-		binPath := BinaryPath(d.dataDir, config.BinaryName)
-		ch <- DownloadProgress{Message: binPath, Done: true}
+		finalPath := BinaryPath(d.dataDir, config.BinaryName)
+		if hasVariant {
+			finalPath = CoreBinaryPath(d.dataDir, variant, config.BinaryName)
+		}
+		ch <- DownloadProgress{Message: finalPath, Done: true}
 	}()
 
 	return ch, nil
+}
+
+// activeVariant resolves the Core variant for the given config, if applicable.
+func (d *DownloadManager) activeVariant(config BinaryConfig) (CoreVariantSpec, bool) {
+	if !config.IsBitcoinCore || d.CoreVariant == nil {
+		return CoreVariantSpec{}, false
+	}
+	return d.CoreVariant()
 }
 
 // resolveGitHubURL queries the GitHub releases API and finds the asset
@@ -261,15 +302,21 @@ func (d *DownloadManager) downloadFile(ctx context.Context, url, savePath string
 // extractBinary extracts a downloaded archive to the bin directory.
 // Returns hasCLI=true iff a companion CLI binary (name contains "-cli") was
 // extracted alongside the main binary. Raw binaries never have a CLI.
-func (d *DownloadManager) extractBinary(archivePath string, config BinaryConfig, dataDir, network string) (bool, error) {
+func (d *DownloadManager) extractBinary(archivePath string, config BinaryConfig, dataDir, network string, variant CoreVariantSpec, hasVariant bool) (bool, error) {
 	destDir := BinDir(dataDir)
 
-	// Apply extract subfolder for the current network + OS (matches Dart behavior)
-	if subfolder, ok := config.ExtractSubfolder[currentOS()]; ok && subfolder != "" {
-		// Only use subfolder if this is the network that has forknet files
-		// Check if we're on forknet and have forknet-specific files
-		if network == "forknet" && len(config.ForknetFiles) > 0 {
-			destDir = filepath.Join(destDir, subfolder)
+	switch {
+	case hasVariant && variant.Subfolder != "":
+		// Core variants live in their own per-variant subfolder so multiple
+		// builds (untouched / touched / knots) can coexist on disk.
+		destDir = filepath.Join(destDir, variant.Subfolder)
+	case !config.IsBitcoinCore:
+		// Non-Core binaries keep the legacy network-driven extract subfolder
+		// (forknet zips ship a top-level directory we have to peel off).
+		if subfolder, ok := config.ExtractSubfolder[currentOS()]; ok && subfolder != "" {
+			if network == "forknet" && len(config.ForknetFiles) > 0 {
+				destDir = filepath.Join(destDir, subfolder)
+			}
 		}
 	}
 

@@ -212,6 +212,18 @@ class OrchestratorWalletRPC {
     return _client.watchWalletData(emptypb.Empty());
   }
 
+  Future<wmpb.ListCoreVariantsResponse> listCoreVariants() {
+    return _client.listCoreVariants(wmpb.ListCoreVariantsRequest());
+  }
+
+  Future<wmpb.GetCoreVariantResponse> getCoreVariant() {
+    return _client.getCoreVariant(wmpb.GetCoreVariantRequest());
+  }
+
+  Future<wmpb.SetCoreVariantResponse> setCoreVariant(String id) {
+    return _client.setCoreVariant(wmpb.SetCoreVariantRequest(id: id));
+  }
+
   String _bytesToHex(List<int> bytes) {
     final buffer = StringBuffer();
     for (final byte in bytes) {

@@ -58,6 +58,14 @@ type jsonDownloadConf struct {
 	Binary           string                     `json:"binary"`
 	Files            map[string]json.RawMessage `json:"files"`
 	ExtractSubfolder map[string]json.RawMessage `json:"extract_subfolder"`
+	Variants         map[string]jsonVariantConf `json:"variants"`
+}
+
+type jsonVariantConf struct {
+	Subfolder         string            `json:"subfolder"`
+	BaseURL           string            `json:"base_url"`
+	Files             map[string]string `json:"files"`
+	AvailableNetworks []string          `json:"available_networks"`
 }
 
 // LoadConfigFile loads binary configs from a chains_config.json file.
@@ -240,6 +248,19 @@ func jsonToBinaryConfig(key string, jb jsonBinaryConf) BinaryConfig {
 		if len(forknetSub) > 0 {
 			bc.ExtractSubfolder = forknetSub
 		}
+
+		for id, v := range jb.Download.Variants {
+			if bc.Variants == nil {
+				bc.Variants = make(map[string]CoreVariantSpec, len(jb.Download.Variants))
+			}
+			bc.Variants[id] = CoreVariantSpec{
+				ID:                id,
+				Subfolder:         v.Subfolder,
+				BaseURL:           v.BaseURL,
+				Files:             v.Files,
+				AvailableNetworks: v.AvailableNetworks,
+			}
+		}
 	}
 
 	// Parse alternative download config
@@ -303,6 +324,7 @@ func parseOSMapFromNetworkMap(networkMap map[string]json.RawMessage, network str
 	}
 	return entry
 }
+
 
 // parseOSMapFromExtract extracts an OS map from extract_subfolder for a given network.
 func parseOSMapFromExtract(subfolder map[string]json.RawMessage, network string) map[string]string {

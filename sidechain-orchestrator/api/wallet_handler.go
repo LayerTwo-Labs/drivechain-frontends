@@ -48,6 +48,7 @@ type WalletHandler struct {
 	svc            *wallet.Service
 	engine         *wallet.WalletEngine               // nil until Core RPC is configured
 	enforcerWallet enforcerrpc.WalletServiceClient    // nil until enforcer is configured
+	orch           *orchestrator.Orchestrator         // nil until set; used for Core variant RPCs
 }
 
 func NewWalletHandler(svc *wallet.Service) *WalletHandler {
@@ -57,6 +58,12 @@ func NewWalletHandler(svc *wallet.Service) *WalletHandler {
 // SetEngine sets the wallet engine (called after Core RPC config is available).
 func (h *WalletHandler) SetEngine(engine *wallet.WalletEngine) {
 	h.engine = engine
+}
+
+// SetOrchestrator wires the orchestrator so Core variant RPCs can drive
+// download/restart flows without each handler call rebuilding context.
+func (h *WalletHandler) SetOrchestrator(orch *orchestrator.Orchestrator) {
+	h.orch = orch
 }
 
 // SetEnforcerWallet sets the enforcer wallet client used for enforcer-type wallets.
@@ -1170,6 +1177,78 @@ func (h *WalletHandler) sendWalletData(ctx context.Context, stream *connect.Serv
 		ConfirmedSats:   confirmedSats,
 		UnconfirmedSats: unconfirmedSats,
 	})
+}
+
+// ============================================================================
+// Core variant RPCs
+// ============================================================================
+
+func (h *WalletHandler) ListCoreVariants(ctx context.Context, req *connect.Request[pb.ListCoreVariantsRequest]) (*connect.Response[pb.ListCoreVariantsResponse], error) {
+	if h.orch == nil {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("orchestrator not configured"))
+	}
+	specs := h.orch.ListCoreVariants()
+	out := make([]*pb.CoreVariant, 0, len(specs))
+	for _, v := range specs {
+		out = append(out, &pb.CoreVariant{
+			Id:          v.ID,
+			DisplayName: coreVariantDisplayName(v.ID),
+			Installed:   orchestrator.CoreVariantInstalled(h.orch.DataDir, v, "bitcoind"),
+		})
+	}
+	sort.Slice(out, func(i, j int) bool { return out[i].Id < out[j].Id })
+
+	// Clamp active_id to the visible list. The persisted ID is fine to keep
+	// on disk — but the UI dropdown will throw when given a value that isn't
+	// one of its items, so an out-of-list active surfaces as "".
+	activeID := h.orch.CoreVariant()
+	visible := false
+	for _, v := range out {
+		if v.Id == activeID {
+			visible = true
+			break
+		}
+	}
+	if !visible {
+		activeID = ""
+	}
+	return connect.NewResponse(&pb.ListCoreVariantsResponse{
+		Variants: out,
+		ActiveId: activeID,
+	}), nil
+}
+
+func (h *WalletHandler) GetCoreVariant(ctx context.Context, req *connect.Request[pb.GetCoreVariantRequest]) (*connect.Response[pb.GetCoreVariantResponse], error) {
+	if h.orch == nil {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("orchestrator not configured"))
+	}
+	return connect.NewResponse(&pb.GetCoreVariantResponse{Id: h.orch.CoreVariant()}), nil
+}
+
+func (h *WalletHandler) SetCoreVariant(ctx context.Context, req *connect.Request[pb.SetCoreVariantRequest]) (*connect.Response[pb.SetCoreVariantResponse], error) {
+	if h.orch == nil {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("orchestrator not configured"))
+	}
+	if req.Msg.Id == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("variant id required"))
+	}
+	if err := h.orch.SetCoreVariant(ctx, req.Msg.Id); err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+	return connect.NewResponse(&pb.SetCoreVariantResponse{}), nil
+}
+
+func coreVariantDisplayName(id string) string {
+	switch id {
+	case "untouched":
+		return "Bitcoin Core (vanilla)"
+	case "touched":
+		return "Bitcoin Core (Drivechain)"
+	case "knots":
+		return "Bitcoin Knots"
+	default:
+		return id
+	}
 }
 
 // ============================================================================

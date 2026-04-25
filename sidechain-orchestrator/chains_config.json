@@ -48,25 +48,36 @@
       },
       "download": {
         "binary": "bitcoind",
-        "files": {
-          "default": {
+        "variants": {
+          "untouched": {
+            "subfolder": "bitcoin",
             "base_url": "https://bitcoincore.org/bin/bitcoin-core-30.2/",
-            "linux": "bitcoin-30.2-x86_64-linux-gnu.tar.gz",
-            "macos": "bitcoin-30.2-x86_64-apple-darwin.tar.gz",
-            "windows": "bitcoin-30.2-win64.zip"
+            "files": {
+              "linux": "bitcoin-30.2-x86_64-linux-gnu.tar.gz",
+              "macos": "bitcoin-30.2-x86_64-apple-darwin.tar.gz",
+              "windows": "bitcoin-30.2-win64.zip"
+            },
+            "available_networks": ["signet", "testnet", "regtest"]
           },
-          "forknet": {
+          "touched": {
+            "subfolder": "drivechain",
             "base_url": "https://releases.drivechain.info/",
-            "linux": "L1-bitcoin-patched-forknet-x86_64-unknown-linux-gnu.zip",
-            "macos": "L1-bitcoin-patched-forknet-x86_64-apple-darwin.zip",
-            "windows": "L1-bitcoin-patched-forknet-x86_64-w64-msvc.zip"
-          }
-        },
-        "extract_subfolder": {
-          "forknet": {
-            "linux": "forknet",
-            "macos": "forknet",
-            "windows": "forknet"
+            "files": {
+              "linux": "L1-bitcoin-patched-forknet-x86_64-unknown-linux-gnu.zip",
+              "macos": "L1-bitcoin-patched-forknet-x86_64-apple-darwin.zip",
+              "windows": "L1-bitcoin-patched-forknet-x86_64-w64-msvc.zip"
+            },
+            "available_networks": ["forknet"]
+          },
+          "knots": {
+            "subfolder": "knots",
+            "base_url": "https://bitcoinknots.org/files/29.x/29.3.knots20260210/",
+            "files": {
+              "linux": "bitcoin-29.3.knots20260210-x86_64-linux-gnu.tar.gz",
+              "macos": "bitcoin-29.3.knots20260210-x86_64-apple-darwin.tar.gz",
+              "windows": "bitcoin-29.3.knots20260210-win64-pgpverifiable.zip"
+            },
+            "available_networks": ["signet", "testnet", "regtest"]
           }
         }
       },

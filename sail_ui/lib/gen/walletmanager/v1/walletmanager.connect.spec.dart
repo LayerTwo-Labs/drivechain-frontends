@@ -190,6 +190,28 @@ abstract final class WalletManagerService {
     walletmanagerv1walletmanager.GetWalletSeedResponse.new,
   );
 
+  /// Bitcoin Core variant selection (untouched / touched / knots).
+  static const listCoreVariants = connect.Spec(
+    '/$name/ListCoreVariants',
+    connect.StreamType.unary,
+    walletmanagerv1walletmanager.ListCoreVariantsRequest.new,
+    walletmanagerv1walletmanager.ListCoreVariantsResponse.new,
+  );
+
+  static const getCoreVariant = connect.Spec(
+    '/$name/GetCoreVariant',
+    connect.StreamType.unary,
+    walletmanagerv1walletmanager.GetCoreVariantRequest.new,
+    walletmanagerv1walletmanager.GetCoreVariantResponse.new,
+  );
+
+  static const setCoreVariant = connect.Spec(
+    '/$name/SetCoreVariant',
+    connect.StreamType.unary,
+    walletmanagerv1walletmanager.SetCoreVariantRequest.new,
+    walletmanagerv1walletmanager.SetCoreVariantResponse.new,
+  );
+
   /// Stream wallet state changes. Sends the full wallet state immediately,
   /// then again whenever wallets or balance change.
   static const watchWalletData = connect.Spec(
