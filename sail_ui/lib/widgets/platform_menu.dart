@@ -174,12 +174,14 @@ class _MenuButtonState extends State<_MenuButton> {
   String _getShortcutLabel(MenuSerializableShortcut shortcut) {
     if (shortcut is SingleActivator) {
       final List<String> keys = [];
-      if (shortcut.meta) keys.add('⌘');
-      if (shortcut.shift) keys.add('⇧');
-      if (shortcut.alt) keys.add('⌥');
-      if (shortcut.control) keys.add('⌃');
+      // Shortcuts are authored with `meta: true` for macOS Cmd. macOS hits the
+      // native PlatformMenuBar path above, so this branch only runs on
+      // Linux/Windows — map meta to Ctrl instead of rendering ⌘.
+      if (shortcut.control || shortcut.meta) keys.add('Ctrl');
+      if (shortcut.shift) keys.add('Shift');
+      if (shortcut.alt) keys.add('Alt');
       keys.add(shortcut.trigger.keyLabel);
-      return keys.join(' ');
+      return keys.join('+');
     }
     return '';
   }
