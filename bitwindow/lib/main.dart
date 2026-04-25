@@ -34,7 +34,6 @@ import 'package:bitwindow/providers/sidechain_provider.dart';
 import 'package:bitwindow/providers/transactions_provider.dart';
 import 'package:bitwindow/providers/coin_selection_provider.dart';
 import 'package:bitwindow/routing/router.dart';
-import 'package:sail_ui/pages/router.gr.dart';
 import 'package:bitwindow/widgets/address_list.dart';
 import 'package:bitwindow/widgets/hash_calculator_modal.dart';
 import 'package:flutter/material.dart';
@@ -492,20 +491,10 @@ class _BitwindowAppContent extends StatelessWidget {
         // layout cost on normal routes. When either daemon fails terminally
         // it renders a 36px red banner — visible on pre-auth screens where
         // root_page's richer BottomNav isn't mounted.
-        //
-        // WalletLostListener proactively routes to create-wallet if
-        // wallet.json disappears mid-session (e.g. manual deletion).
-        // AutoRouteGuards only fire on navigation so they can't catch
-        // this case on their own.
         return _ErrorBoundary(
-          child: WalletLostListener(
-            onWalletLost: () => GetIt.I.get<AppRouter>().replaceAll([
-              SailCreateWalletRoute(homeRoute: const RootRoute()),
-            ]),
-            child: Scaffold(
-              body: child ?? const SizedBox.shrink(),
-              bottomNavigationBar: const PersistentStatusBar(),
-            ),
+          child: Scaffold(
+            body: child ?? const SizedBox.shrink(),
+            bottomNavigationBar: const PersistentStatusBar(),
           ),
         );
       },

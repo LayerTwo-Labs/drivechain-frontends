@@ -26,8 +26,7 @@ class WalletReaderProvider extends ChangeNotifier {
 
   /// Mirrors `has_wallet` from the WatchWalletData stream. Distinct from
   /// `isWalletUnlocked` — a locked/encrypted wallet has `hasWalletOnDisk=true`
-  /// with an empty `wallets` list. A manually-deleted wallet.json flips this
-  /// to false, which WalletLostListener uses to push the create-wallet route.
+  /// with an empty `wallets` list.
   bool hasWalletOnDisk = false;
 
   WalletData? get activeWallet => wallets.where((w) => w.id == activeWalletId).firstOrNull;
