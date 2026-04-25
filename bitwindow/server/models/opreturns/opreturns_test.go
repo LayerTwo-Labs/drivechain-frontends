@@ -243,3 +243,63 @@ func TestListCoinNews_NewPrefixedHeadlineSurvivesDecode(t *testing.T) {
 	require.Len(t, news, 1)
 	assert.Equal(t, headline, news[0].Headline)
 }
+
+// TestBackfillCoinNewsBlockTime regresses #1655: pre-fix, op_returns.created_at
+// was stamped with sync wall time instead of the block time. Migration 033
+// rewrites confirmed rows from processed_blocks.block_time. Mempool rows
+// (height NULL) and rows with no matching processed_blocks entry are left
+// alone.
+//
+// SQL is duplicated from migrations/033_coin_news_block_time_backfill.sql —
+// keep them in sync.
+func TestBackfillCoinNewsBlockTime(t *testing.T) {
+	ctx := context.Background()
+	db := database.Test(t)
+
+	confirmedHeight := uint32(800000)
+	orphanHeight := uint32(800001) // no processed_blocks row
+	blockTime := time.Date(2024, 1, 1, 12, 0, 0, 0, time.UTC)
+	syncTime := time.Date(2026, 4, 25, 8, 0, 0, 0, time.UTC)
+
+	_, err := db.ExecContext(ctx, `
+		INSERT INTO processed_blocks (height, block_hash, block_time, txids)
+		VALUES (?, ?, ?, ?)
+	`, confirmedHeight, "deadbeef", blockTime, "")
+	require.NoError(t, err)
+
+	require.NoError(t, Persist(ctx, db, []OPReturn{
+		{Height: &confirmedHeight, TxID: "confirmed", Vout: 0, Data: []byte{0xa1, 0xa1, 0xa1, 0xa1}, CreatedAt: &syncTime},
+		{Height: &orphanHeight, TxID: "orphan", Vout: 0, Data: []byte{0xa1, 0xa1, 0xa1, 0xa1}, CreatedAt: &syncTime},
+		{Height: nil, TxID: "mempool", Vout: 0, Data: []byte{0xa1, 0xa1, 0xa1, 0xa1}, CreatedAt: &syncTime},
+	}))
+
+	const backfillSQL = `
+		UPDATE op_returns
+		SET created_at = (
+			SELECT block_time FROM processed_blocks
+			WHERE processed_blocks.height = op_returns.height
+		)
+		WHERE op_returns.height IS NOT NULL
+		  AND EXISTS (
+			SELECT 1 FROM processed_blocks
+			WHERE processed_blocks.height = op_returns.height
+		);`
+	_, err = db.ExecContext(ctx, backfillSQL)
+	require.NoError(t, err)
+
+	got := func(txid string) time.Time {
+		t.Helper()
+		var ts time.Time
+		require.NoError(t, db.QueryRowContext(ctx,
+			`SELECT created_at FROM op_returns WHERE txid = ?`, txid,
+		).Scan(&ts))
+		return ts
+	}
+
+	assert.WithinDuration(t, blockTime, got("confirmed"), time.Second,
+		"confirmed row with matching processed_blocks must adopt block_time")
+	assert.WithinDuration(t, syncTime, got("orphan"), time.Second,
+		"row without a matching processed_blocks entry must be left alone")
+	assert.WithinDuration(t, syncTime, got("mempool"), time.Second,
+		"mempool row (NULL height) must be left alone")
+}
