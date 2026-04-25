@@ -1,7 +1,6 @@
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
 import 'package:sail_ui/sail_ui.dart';
-import 'package:sail_ui/widgets/console/integrated_console_view.dart';
 
 @RoutePage()
 class ConsolePage extends StatefulWidget {
@@ -18,7 +17,7 @@ class _ConsolePageState extends State<ConsolePage> {
       child: SailColumn(
         children: [
           const Expanded(
-            child: IntegratedConsoleView(),
+            child: CLIConsoleView(),
           ),
         ],
       ),
