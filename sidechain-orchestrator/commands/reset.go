@@ -41,7 +41,7 @@ func resetCategoriesFromCtx(cctx *cli.Context) (blockchain, software, logs, sett
 
 func ensureAnyResetCategory(cctx *cli.Context) error {
 	blockchain, software, logs, settings, wallets, _ := resetCategoriesFromCtx(cctx)
-	if !(blockchain || software || logs || settings || wallets) {
+	if !blockchain && !software && !logs && !settings && !wallets {
 		return fmt.Errorf("pick at least one category: --blockchain-data, --node-software, --logs, --settings, --wallets")
 	}
 	return nil
@@ -75,13 +75,13 @@ var resetPreviewCommand = &cli.Command{
 
 		var totalBytes int64
 		tw := tabwriter.NewWriter(os.Stdout, 0, 2, 2, ' ', 0)
-		fmt.Fprintln(tw, "CATEGORY\tSIZE\tPATH\tKIND")
+		_, _ = fmt.Fprintln(tw, "CATEGORY\tSIZE\tPATH\tKIND")
 		for _, f := range resp.Msg.Files {
 			kind := "file"
 			if f.IsDirectory {
 				kind = "dir"
 			}
-			fmt.Fprintf(tw, "%s\t%s\t%s\t%s\n", f.Category, humanBytes(f.SizeBytes), f.Path, kind)
+			_, _ = fmt.Fprintf(tw, "%s\t%s\t%s\t%s\n", f.Category, humanBytes(f.SizeBytes), f.Path, kind)
 			totalBytes += f.SizeBytes
 		}
 		if err := tw.Flush(); err != nil {
