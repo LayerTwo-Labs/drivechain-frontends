@@ -538,7 +538,7 @@ func (p *Parser) getBlock(ctx context.Context, height uint32) (*wire.MsgBlock, e
 
 // finds all OP_RETURN outputs for a specific tx
 func (p *Parser) handleOpReturns(
-	ctx context.Context, tx *wire.MsgTx, height *uint32, _ *time.Time,
+	ctx context.Context, tx *wire.MsgTx, height *uint32, createdAt *time.Time,
 ) ([]opreturns.OPReturn, error) {
 	txid := tx.TxID()
 
@@ -634,11 +634,12 @@ func (p *Parser) handleOpReturns(
 		}
 
 		opReturns = append(opReturns, opreturns.OPReturn{
-			TxID:   txid,
-			Data:   data,
-			Vout:   int32(vout),
-			Height: height,
-			Fee:    fee,
+			TxID:      txid,
+			Data:      data,
+			Vout:      int32(vout),
+			Height:    height,
+			Fee:       fee,
+			CreatedAt: createdAt,
 		})
 	}
 
