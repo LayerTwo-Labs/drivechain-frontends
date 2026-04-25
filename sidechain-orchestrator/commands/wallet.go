@@ -186,9 +186,9 @@ var walletListCommand = &cli.Command{
 		tw := tabwriter.NewWriter(os.Stdout, 0, 2, 2, ' ', 0)
 		verbose := cctx.Bool("verbose")
 		if verbose {
-			fmt.Fprintln(tw, "ACTIVE\tID\tNAME\tTYPE\tCREATED\tBIP47\tGRADIENT")
+			_, _ = fmt.Fprintln(tw, "ACTIVE\tID\tNAME\tTYPE\tCREATED\tBIP47\tGRADIENT")
 		} else {
-			fmt.Fprintln(tw, "ACTIVE\tID\tNAME\tTYPE\tCREATED\tBIP47")
+			_, _ = fmt.Fprintln(tw, "ACTIVE\tID\tNAME\tTYPE\tCREATED\tBIP47")
 		}
 		for _, w := range resp.Msg.Wallets {
 			marker := " "
@@ -204,9 +204,9 @@ var walletListCommand = &cli.Command{
 				if grad == "" {
 					grad = "-"
 				}
-				fmt.Fprintf(tw, "%s\t%s\t%s\t%s\t%s\t%s\t%s\n", marker, w.Id, w.Name, w.WalletType, w.CreatedAt, bip47, grad)
+				_, _ = fmt.Fprintf(tw, "%s\t%s\t%s\t%s\t%s\t%s\t%s\n", marker, w.Id, w.Name, w.WalletType, w.CreatedAt, bip47, grad)
 			} else {
-				fmt.Fprintf(tw, "%s\t%s\t%s\t%s\t%s\t%s\n", marker, w.Id, w.Name, w.WalletType, w.CreatedAt, bip47)
+				_, _ = fmt.Fprintf(tw, "%s\t%s\t%s\t%s\t%s\t%s\n", marker, w.Id, w.Name, w.WalletType, w.CreatedAt, bip47)
 			}
 		}
 		return tw.Flush()
@@ -500,13 +500,13 @@ var walletAddressesCommand = &cli.Command{
 			return nil
 		}
 		tw := tabwriter.NewWriter(os.Stdout, 0, 2, 2, ' ', 0)
-		fmt.Fprintln(tw, "ADDRESS\tRECEIVED (BTC)\tTX COUNT\tLABEL")
+		_, _ = fmt.Fprintln(tw, "ADDRESS\tRECEIVED (BTC)\tTX COUNT\tLABEL")
 		for _, a := range resp.Msg.Addresses {
 			label := a.Label
 			if label == "" {
 				label = "-"
 			}
-			fmt.Fprintf(tw, "%s\t%s\t%d\t%s\n", a.Address, satsToBtcInt(a.AmountSats), a.TxCount, label)
+			_, _ = fmt.Fprintf(tw, "%s\t%s\t%d\t%s\n", a.Address, satsToBtcInt(a.AmountSats), a.TxCount, label)
 		}
 		return tw.Flush()
 	},
@@ -538,13 +538,13 @@ var walletTransactionsCommand = &cli.Command{
 			return nil
 		}
 		tw := tabwriter.NewWriter(os.Stdout, 0, 2, 2, ' ', 0)
-		fmt.Fprintln(tw, "TIME\tCATEGORY\tAMOUNT (BTC)\tCONF\tTXID")
+		_, _ = fmt.Fprintln(tw, "TIME\tCATEGORY\tAMOUNT (BTC)\tCONF\tTXID")
 		for _, t := range resp.Msg.Transactions {
 			ts := "-"
 			if t.Time != 0 {
 				ts = time.Unix(t.Time, 0).Format("2006-01-02 15:04")
 			}
-			fmt.Fprintf(tw, "%s\t%s\t%s\t%d\t%s\n", ts, t.Category, satsToBtcInt(t.AmountSats), t.Confirmations, t.Txid)
+			_, _ = fmt.Fprintf(tw, "%s\t%s\t%s\t%d\t%s\n", ts, t.Category, satsToBtcInt(t.AmountSats), t.Confirmations, t.Txid)
 		}
 		return tw.Flush()
 	},
@@ -570,13 +570,13 @@ var walletUnspentCommand = &cli.Command{
 			return nil
 		}
 		tw := tabwriter.NewWriter(os.Stdout, 0, 2, 2, ' ', 0)
-		fmt.Fprintln(tw, "OUTPOINT\tADDRESS\tBTC\tCONF\tLABEL")
+		_, _ = fmt.Fprintln(tw, "OUTPOINT\tADDRESS\tBTC\tCONF\tLABEL")
 		for _, u := range resp.Msg.Utxos {
 			label := u.Label
 			if label == "" {
 				label = "-"
 			}
-			fmt.Fprintf(tw, "%s:%d\t%s\t%s\t%d\t%s\n", u.Txid, u.Vout, u.Address, satsToBtcInt(u.AmountSats), u.Confirmations, label)
+			_, _ = fmt.Fprintf(tw, "%s:%d\t%s\t%s\t%d\t%s\n", u.Txid, u.Vout, u.Address, satsToBtcInt(u.AmountSats), u.Confirmations, label)
 		}
 		return tw.Flush()
 	},
@@ -684,18 +684,18 @@ var walletTxCommand = &cli.Command{
 		if len(m.Inputs) > 0 {
 			fmt.Println("\ninputs:")
 			tw := tabwriter.NewWriter(os.Stdout, 0, 2, 2, ' ', 0)
-			fmt.Fprintln(tw, "  IDX\tPREV\tADDRESS\tSATS")
+			_, _ = fmt.Fprintln(tw, "  IDX\tPREV\tADDRESS\tSATS")
 			for _, in := range m.Inputs {
-				fmt.Fprintf(tw, "  %d\t%s:%d\t%s\t%d\n", in.Index, in.PrevTxid, in.PrevVout, in.Address, in.ValueSats)
+				_, _ = fmt.Fprintf(tw, "  %d\t%s:%d\t%s\t%d\n", in.Index, in.PrevTxid, in.PrevVout, in.Address, in.ValueSats)
 			}
 			_ = tw.Flush()
 		}
 		if len(m.Outputs) > 0 {
 			fmt.Println("\noutputs:")
 			tw := tabwriter.NewWriter(os.Stdout, 0, 2, 2, ' ', 0)
-			fmt.Fprintln(tw, "  IDX\tADDRESS\tSATS\tTYPE")
+			_, _ = fmt.Fprintln(tw, "  IDX\tADDRESS\tSATS\tTYPE")
 			for _, out := range m.Outputs {
-				fmt.Fprintf(tw, "  %d\t%s\t%d\t%s\n", out.Index, out.Address, out.ValueSats, out.ScriptType)
+				_, _ = fmt.Fprintf(tw, "  %d\t%s\t%d\t%s\n", out.Index, out.Address, out.ValueSats, out.ScriptType)
 			}
 			_ = tw.Flush()
 		}
