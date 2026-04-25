@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
-import 'package:sail_ui/widgets/console/integrated_console_view.dart';
 
 /// A comprehensive debug window for sidechain applications.
 /// Provides tabs for Information, Processes, Console, and Peers.
@@ -365,7 +364,7 @@ class SidechainConsoleTab extends StatelessWidget {
     return SailCard(
       title: 'Debug Console',
       subtitle: 'Execute $sidechainName CLI commands',
-      child: const IntegratedConsoleView(),
+      child: const CLIConsoleView(),
     );
   }
 }

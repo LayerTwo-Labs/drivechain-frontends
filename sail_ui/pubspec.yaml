@@ -47,8 +47,6 @@ dependencies:
   window_manager: ^0.5.1
   web: ^1.1.1
   thirds: ^0.2.0-alpha.1
-  xterm: ^4.0.0
-  flutter_pty: ^0.4.2
 
   file_picker: ^11.0.2
   http: ^1.6.0

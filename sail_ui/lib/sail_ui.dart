@@ -236,6 +236,7 @@ export 'widgets/components/dashboard_group.dart';
 export 'widgets/components/sail_info_box.dart';
 export 'widgets/components/table.dart';
 export 'widgets/components/utxo.dart';
+export 'widgets/console/cli_console_service.dart';
 export 'widgets/console/console_view.dart';
 export 'widgets/debug/sidechain_debug_window.dart';
 export 'widgets/containers/action_tile.dart';
