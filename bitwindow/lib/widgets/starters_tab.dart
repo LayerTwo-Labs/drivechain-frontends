@@ -313,7 +313,7 @@ TableRow mnemonicRow(
   BuildContext context,
   StartersPageViewModel viewModel,
   String name,
-  String mnemonic,
+  String? mnemonic,
   bool isRevealed,
   bool hasMnemonic,
 ) {
@@ -339,7 +339,7 @@ TableRow mnemonicRow(
       Padding(
         padding: const EdgeInsets.all(12.0),
         child: SailText.secondary13(
-          hasMnemonic ? (isRevealed ? mnemonic : '••••••••••••') : 'No starter generated',
+          hasMnemonic ? (isRevealed ? (mnemonic ?? '') : '••••••••••••') : 'No starter generated',
           color: hasMnemonic ? SailTheme.of(context).colors.text : SailTheme.of(context).colors.textSecondary,
         ),
       ),
@@ -351,7 +351,7 @@ TableRow mnemonicRow(
           children: [
             if (hasMnemonic) ...[
               CopyButton(
-                text: mnemonic,
+                text: mnemonic!,
               ),
               const SizedBox(width: 8),
               if (!isRevealed)
