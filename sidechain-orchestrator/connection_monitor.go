@@ -124,6 +124,10 @@ var bitcoindStartupPatterns = []string{
 	"Creating work queue",
 	"RPC warming up",
 	"Done loading",
+	// BitcoindHealthCheck synthesises this when getpeerinfo reports a
+	// non-zero presynced_headers but getblockchaininfo still reports 0/0
+	// (BIP324 headers presync — RPC is responsive, chain isn't visible yet).
+	PresyncMessagePrefix,
 }
 
 // Enforcer startup messages.

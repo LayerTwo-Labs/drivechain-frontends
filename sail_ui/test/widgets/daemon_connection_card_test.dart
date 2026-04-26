@@ -71,6 +71,21 @@ void main() {
       );
     });
 
+    // BIP324 headers-presync: BitcoindHealthCheck on the orchestrator
+    // synthesises a startup error containing the peer-reported height when
+    // getblockchaininfo still reports 0/0. The UI must treat this exactly
+    // like the -28 warmup phase: amber dot, !connected — not green/connected
+    // with a frozen-looking 0/0 progress bar (the bug this guards against).
+    test('amber for presync — synthetic startupError carrying header height', () {
+      expect(
+        call(
+          startupError: 'Pre-synchronizing blockheaders, height: 226000',
+          connected: false,
+        ),
+        theme.colors.orangeLight,
+      );
+    });
+
     test('amber while initializing', () {
       expect(
         call(initializingBinary: true, connected: false),

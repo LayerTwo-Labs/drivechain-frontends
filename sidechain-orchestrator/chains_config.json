@@ -23,6 +23,7 @@
         "Verification: No coin database inconsistencies",
         "Loading block index",
         "Done loading",
+        "Pre-synchronizing blockheaders",
         "Synchronizing blockheaders",
         "Rescan completed in",
         "Rescan started from block"
