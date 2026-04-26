@@ -835,7 +835,17 @@ Future<void> bootBitwindowBackend(Logger log) async {
     log.w('STARTUP: proceeding without orchestratord readiness confirmation');
   }
 
-  // 3. Stream binary logs and start watching state.
+  // 3. Now that orchestratord is up, re-seed the wallet reader. The
+  //    earlier init() in setupBitwindow runs before any backend exists, so
+  //    its listWallets/getWalletStatus calls fail and the provider sits
+  //    empty until the WatchWalletData stream eventually delivers — which
+  //    can lag long enough that the wallet dropdown, BIP47 card and
+  //    starters tab render empty against an already-loaded wallet.
+  if (orchestratorReady && GetIt.I.isRegistered<WalletReaderProvider>()) {
+    unawaited(GetIt.I.get<WalletReaderProvider>().init());
+  }
+
+  // 4. Stream binary logs and start watching state.
   _streamBinaryLogs(orchestrator, 'bitcoind', BinaryType.bitcoinCore, log);
   _streamBinaryLogs(orchestrator, 'enforcer', BinaryType.enforcer, log);
   _streamBinaryLogs(orchestrator, 'bitwindow', BinaryType.bitWindow, log);
