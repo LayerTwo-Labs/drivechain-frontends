@@ -1,6 +1,8 @@
 import 'package:connectrpc/http2.dart';
 import 'package:connectrpc/protobuf.dart';
 import 'package:connectrpc/protocol/connect.dart' as connect;
+import 'package:get_it/get_it.dart';
+import 'package:logger/logger.dart';
 import 'package:sail_ui/gen/orchestrator/v1/orchestrator.connect.client.dart';
 import 'package:sail_ui/gen/orchestrator/v1/orchestrator.pb.dart';
 import 'package:sail_ui/rpcs/orchestrator_wallet_rpc.dart';
@@ -9,16 +11,51 @@ import 'package:sail_ui/rpcs/orchestrator_wallet_rpc.dart';
 /// Wraps the generated OrchestratorServiceClient for binary management.
 class OrchestratorRPC {
   late OrchestratorServiceClient _client;
-  late final OrchestratorWalletRPC wallet;
+  late OrchestratorWalletRPC wallet;
+  final String _host;
+  final int _port;
 
-  OrchestratorRPC({required String host, required int port}) {
+  OrchestratorRPC({required String host, required int port}) : _host = host, _port = port {
+    _initializeConnection();
+  }
+
+  void _initializeConnection() {
     final transport = connect.Transport(
-      baseUrl: 'http://$host:$port',
+      baseUrl: 'http://$_host:$_port',
       codec: const ProtoCodec(),
       httpClient: createHttpClient(),
     );
     _client = OrchestratorServiceClient(transport);
     wallet = OrchestratorWalletRPC.fromTransport(transport);
+  }
+
+  /// Drop the dead HTTP/2 connection and rebuild the transport. The Dart
+  /// connectrpc client doesn't auto-recover from a `GOAWAY`/connection-reset,
+  /// so a single transport failure poisons every subsequent call (including
+  /// the WatchWalletData stream's reconnect). Callers can pair this with
+  /// [recreateIfHttp2Error] to retry once on the rebuilt transport.
+  void recreateConnection() {
+    final logger = GetIt.I.isRegistered<Logger>() ? GetIt.I.get<Logger>() : null;
+    logger?.w('OrchestratorRPC: recreating HTTP/2 connection');
+    _initializeConnection();
+  }
+
+  static bool isHttp2ConnectionError(Object e) {
+    final s = e.toString().toLowerCase();
+    return s.contains('http/2 connection is finishing') ||
+        s.contains('connection closed') ||
+        s.contains('stream closed') ||
+        s.contains('connection is being forcefully terminated') ||
+        s.contains('_cancreatenewstream');
+  }
+
+  /// Rebuild the transport iff [e] looks like an HTTP/2 connection failure.
+  /// Returns true when the connection was recreated, so callers can decide
+  /// whether to retry the operation.
+  bool recreateIfHttp2Error(Object e) {
+    if (!isHttp2ConnectionError(e)) return false;
+    recreateConnection();
+    return true;
   }
 
   Future<ListBinariesResponse> listBinaries() {
