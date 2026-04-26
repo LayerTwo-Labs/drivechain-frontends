@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
-import 'package:connectrpc/http2.dart';
 import 'package:connectrpc/protobuf.dart';
 import 'package:connectrpc/protocol/connect.dart' as connect;
 import 'package:get_it/get_it.dart';
@@ -33,7 +32,7 @@ class EnforcerConfProvider extends ChangeNotifier {
     final transport = connect.Transport(
       baseUrl: 'http://localhost:30400',
       codec: const ProtoCodec(),
-      httpClient: createHttpClient(),
+      httpClient: keepaliveHttpClient(),
     );
     _client = EnforcerConfServiceClient(transport);
   }

@@ -1,7 +1,7 @@
 import 'dart:convert';
 
-import 'package:connectrpc/http2.dart';
 import 'package:connectrpc/protobuf.dart';
+import 'package:sail_ui/rpcs/keepalive_http_client.dart';
 import 'package:connectrpc/protocol/connect.dart' as connect;
 import 'package:fixnum/fixnum.dart';
 import 'package:get_it/get_it.dart';
@@ -63,7 +63,7 @@ class ThunderLive extends ThunderRPC {
     final transport = connect.Transport(
       baseUrl: 'http://localhost:30400',
       codec: const ProtoCodec(),
-      httpClient: createHttpClient(),
+      httpClient: keepaliveHttpClient(),
     );
     _client = ThunderServiceClient(transport);
   }

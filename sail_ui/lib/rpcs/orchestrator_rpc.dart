@@ -1,5 +1,5 @@
-import 'package:connectrpc/http2.dart';
 import 'package:connectrpc/protobuf.dart';
+import 'package:sail_ui/rpcs/keepalive_http_client.dart';
 import 'package:connectrpc/protocol/connect.dart' as connect;
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
@@ -23,7 +23,7 @@ class OrchestratorRPC {
     final transport = connect.Transport(
       baseUrl: 'http://$_host:$_port',
       codec: const ProtoCodec(),
-      httpClient: createHttpClient(),
+      httpClient: keepaliveHttpClient(),
     );
     _client = OrchestratorServiceClient(transport);
     wallet = OrchestratorWalletRPC.fromTransport(transport);
