@@ -66,6 +66,11 @@ class WalletReaderProvider extends ChangeNotifier {
         _onData,
         onError: (Object e) {
           _logger.e('WalletReaderProvider: stream error: $e');
+          // The Dart connectrpc client doesn't recover from a GOAWAY /
+          // forcefully-terminated HTTP/2 connection on its own — every
+          // subsequent stream subscription would fail. Rebuild the
+          // transport so the next reconnect has a chance.
+          GetIt.I.get<OrchestratorRPC>().recreateIfHttp2Error(e);
           _scheduleReconnect();
         },
         onDone: () {
@@ -76,6 +81,14 @@ class WalletReaderProvider extends ChangeNotifier {
     } catch (e) {
       _logger.e('WalletReaderProvider: failed to subscribe: $e');
       _scheduleReconnect();
+    }
+
+    // Self-heal: if the stream is flaky (HTTP/2 connection drops have been
+    // observed) and we never got the first push through, fall back to a
+    // direct listWallets/getWalletStatus so the dropdown / BIP47 / starters
+    // tabs don't sit empty against a wallet that's actually loaded.
+    if (wallets.isEmpty && !Environment.isInTest) {
+      unawaited(init());
     }
   }
 
@@ -100,11 +113,38 @@ class WalletReaderProvider extends ChangeNotifier {
     required String? newActiveId,
     required bool newHasWalletOnDisk,
   }) {
+    // Build the wallet list FIRST and only swap state in if it succeeds.
+    // Previously the field assignments happened inline with the .map, so a
+    // throw mid-build (e.g. unexpected proto shape) would leave activeWalletId
+    // and hasWalletOnDisk set with `wallets` still empty and notifyListeners
+    // skipped — exactly the state behind the empty-dropdown bug.
+    final List<WalletData> nextWallets = [];
+    int failures = 0;
+    for (final protoWallet in protoWallets) {
+      try {
+        nextWallets.add(_walletDataFromProto(protoWallet));
+      } catch (e, st) {
+        failures += 1;
+        _logger.e(
+          'WalletReaderProvider: failed to materialize wallet '
+          'id=${_safe(() => protoWallet.id)} type=${_safe(() => protoWallet.walletType)}: $e\n$st',
+        );
+      }
+    }
+    if (failures > 0 && nextWallets.isEmpty && wallets.isNotEmpty) {
+      // Don't blow away a known-good list with an all-broken update.
+      _logger.w(
+        'WalletReaderProvider: dropping update — all '
+        '${protoWallets.length} wallets failed to parse, keeping prior state',
+      );
+      return;
+    }
+
     final previousActiveId = activeWalletId;
     if (previousActiveId != newActiveId) {
       _logger.i(
         'WalletReaderProvider: activeWalletId $previousActiveId -> $newActiveId '
-        '(wallets=${protoWallets.length})',
+        '(wallets=${nextWallets.length})',
       );
     }
     activeWalletId = newActiveId;
@@ -115,60 +155,69 @@ class WalletReaderProvider extends ChangeNotifier {
       _logger.i('WalletReaderProvider: hasWalletOnDisk $previousHasWallet -> $hasWalletOnDisk');
     }
 
-    wallets = protoWallets.map<WalletData>((protoWallet) {
-      WalletGradient gradient = WalletGradient.fromWalletId(protoWallet.id);
-      if (protoWallet.gradientJson.isNotEmpty) {
-        try {
-          final parsed = WalletGradient.fromJsonString(protoWallet.gradientJson);
-          // Legacy default {"background_svg":""} parses cleanly but would
-          // render an empty avatar; keep the deterministic fallback in that
-          // case.
-          if ((parsed.backgroundSvg ?? '').isNotEmpty) {
-            gradient = parsed;
-          }
-        } catch (_) {}
-      }
-
-      DateTime createdAt = DateTime.now();
-      if (protoWallet.createdAt.isNotEmpty) {
-        try {
-          createdAt = DateTime.parse(protoWallet.createdAt);
-        } catch (_) {}
-      }
-
-      return WalletData(
-        version: 1,
-        master: MasterWallet(
-          mnemonic: protoWallet.masterMnemonic,
-          seedHex: '',
-          masterKey: '',
-          chainCode: '',
-          name: 'Master',
-        ),
-        l1: L1Wallet(mnemonic: protoWallet.l1Mnemonic),
-        sidechains: protoWallet.sidechains
-            .map(
-              (sc) => SidechainWallet(
-                slot: sc.slot,
-                name: sc.name,
-                mnemonic: sc.mnemonic,
-              ),
-            )
-            .toList(),
-        id: protoWallet.id,
-        name: protoWallet.name,
-        gradient: gradient,
-        createdAt: createdAt,
-        walletType: BinaryType.values.firstWhere(
-          (t) => t.name == protoWallet.walletType,
-          orElse: () => BinaryType.enforcer,
-        ),
-        walletTypeRaw: protoWallet.walletType,
-        bip47PaymentCode: protoWallet.bip47PaymentCode,
-      );
-    }).toList();
-
+    wallets = nextWallets;
     notifyListeners();
+  }
+
+  WalletData _walletDataFromProto(dynamic protoWallet) {
+    WalletGradient gradient = WalletGradient.fromWalletId(protoWallet.id);
+    if (protoWallet.gradientJson.isNotEmpty) {
+      try {
+        final parsed = WalletGradient.fromJsonString(protoWallet.gradientJson);
+        // Legacy default {"background_svg":""} parses cleanly but would
+        // render an empty avatar; keep the deterministic fallback in that
+        // case.
+        if ((parsed.backgroundSvg ?? '').isNotEmpty) {
+          gradient = parsed;
+        }
+      } catch (_) {}
+    }
+
+    DateTime createdAt = DateTime.now();
+    if (protoWallet.createdAt.isNotEmpty) {
+      try {
+        createdAt = DateTime.parse(protoWallet.createdAt);
+      } catch (_) {}
+    }
+
+    return WalletData(
+      version: 1,
+      master: MasterWallet(
+        mnemonic: protoWallet.masterMnemonic,
+        seedHex: '',
+        masterKey: '',
+        chainCode: '',
+        name: 'Master',
+      ),
+      l1: L1Wallet(mnemonic: protoWallet.l1Mnemonic),
+      sidechains: protoWallet.sidechains
+          .map<SidechainWallet>(
+            (sc) => SidechainWallet(
+              slot: sc.slot,
+              name: sc.name,
+              mnemonic: sc.mnemonic,
+            ),
+          )
+          .toList(),
+      id: protoWallet.id,
+      name: protoWallet.name,
+      gradient: gradient,
+      createdAt: createdAt,
+      walletType: BinaryType.values.firstWhere(
+        (t) => t.name == protoWallet.walletType,
+        orElse: () => BinaryType.enforcer,
+      ),
+      walletTypeRaw: protoWallet.walletType,
+      bip47PaymentCode: protoWallet.bip47PaymentCode,
+    );
+  }
+
+  String _safe(dynamic Function() f) {
+    try {
+      return '${f()}';
+    } catch (_) {
+      return '<unreadable>';
+    }
   }
 
   Future<void> init() async {
@@ -180,24 +229,41 @@ class WalletReaderProvider extends ChangeNotifier {
     // listWallets + getWalletStatus return the same fields the stream
     // would push, so we can populate the provider directly.
     if (wallets.isNotEmpty) return;
+    final orchestrator = GetIt.I.get<OrchestratorRPC>();
+    Future<List<dynamic>> seed() => Future.wait([
+      orchestrator.wallet.listWallets(),
+      orchestrator.wallet.getWalletStatus(),
+    ]).timeout(const Duration(seconds: 3));
+
+    List<dynamic> results;
     try {
-      final results = await Future.wait([
-        _client.listWallets(),
-        _client.getWalletStatus(),
-      ]).timeout(const Duration(seconds: 3));
-      // Stream may have delivered while we awaited — let it win.
-      if (wallets.isNotEmpty) return;
-      final list = results[0] as dynamic;
-      final status = results[1] as dynamic;
-      if (list.wallets.isEmpty) return;
-      _applyState(
-        protoWallets: list.wallets,
-        newActiveId: list.activeWalletId.isEmpty ? null : list.activeWalletId as String,
-        newHasWalletOnDisk: status.hasWallet as bool,
-      );
+      results = await seed();
     } catch (e) {
-      _logger.w('WalletReaderProvider: init seed failed: $e');
+      // The orchestrator's HTTP/2 connection sometimes returns
+      // "Connection is being forcefully terminated" mid-handshake; rebuild
+      // the transport and try once more before giving up.
+      if (orchestrator.recreateIfHttp2Error(e)) {
+        try {
+          results = await seed();
+        } catch (e2) {
+          _logger.w('WalletReaderProvider: init seed retry failed: $e2');
+          return;
+        }
+      } else {
+        _logger.w('WalletReaderProvider: init seed failed: $e');
+        return;
+      }
     }
+    // Stream may have delivered while we awaited — let it win.
+    if (wallets.isNotEmpty) return;
+    final list = results[0] as dynamic;
+    final status = results[1] as dynamic;
+    if (list.wallets.isEmpty) return;
+    _applyState(
+      protoWallets: list.wallets,
+      newActiveId: list.activeWalletId.isEmpty ? null : list.activeWalletId as String,
+      newHasWalletOnDisk: status.hasWallet as bool,
+    );
   }
 
   Future<bool> hasWallet() async {
