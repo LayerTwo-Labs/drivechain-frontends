@@ -13,17 +13,40 @@ func DefaultDataDir() (string, error) {
 
 	switch runtime.GOOS {
 	case "linux":
-		const linuxAppName = "com.layertwolabs.bitwindow"
+		// Flutter's path_provider on Linux uses the GApplication id when
+		// libgio is loadable and falls back to the executable name otherwise.
+		// libgio is unreliable across distros, so the canonical subdir is
+		// "bitwindow" (matching the executable name in CMakeLists.txt).
+		// Older installs landed under "com.layertwolabs.bitwindow"; on first
+		// boot we rename the legacy dir into place and leave a symlink so
+		// libgio-good Flutter still resolves to the same data.
+		const (
+			linuxAppName       = "bitwindow"
+			linuxAppNameLegacy = "com.layertwolabs.bitwindow"
+		)
 
+		var base string
 		if xdgDataHome := os.Getenv("XDG_DATA_HOME"); xdgDataHome != "" {
-			dir = filepath.Join(xdgDataHome, linuxAppName)
+			base = xdgDataHome
 		} else {
 			home, err := os.UserHomeDir()
 			if err != nil {
 				return "", err
 			}
-			dir = filepath.Join(home, ".local", "share", linuxAppName)
+			base = filepath.Join(home, ".local", "share")
 		}
+
+		newPath := filepath.Join(base, linuxAppName)
+		legacy := filepath.Join(base, linuxAppNameLegacy)
+
+		_, newErr := os.Stat(newPath)
+		_, legacyErr := os.Stat(legacy)
+		if os.IsNotExist(newErr) && legacyErr == nil {
+			if err := os.Rename(legacy, newPath); err == nil {
+				_ = os.Symlink(newPath, legacy)
+			}
+		}
+		dir = newPath
 	case "darwin":
 		const macosAppName = "bitwindow"
 

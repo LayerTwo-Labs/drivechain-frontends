@@ -99,7 +99,7 @@ func TestBitWindowPath(t *testing.T) {
 	case "windows":
 		want = filepath.Join(home(), "AppData", "Roaming", "10520LayertwoLabs", "BitWindow")
 	default:
-		want = filepath.Join(home(), ".local", "share", "com.layertwolabs.bitwindow")
+		want = filepath.Join(home(), ".local", "share", "bitwindow")
 	}
 	if p != want {
 		t.Errorf("BitWindow path = %q, want %q", p, want)

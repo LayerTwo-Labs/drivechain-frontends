@@ -1116,12 +1116,12 @@ class BitWindow extends Binary {
              directories ??
              DirectoryConfig(
                binary: allNetworks({
-                 OS.linux: 'com.layertwolabs.bitwindow',
+                 OS.linux: 'bitwindow',
                  OS.macos: 'bitwindow',
                  OS.windows: '10520LayertwoLabs/BitWindow',
                }),
                flutterFrontend: {
-                 OS.linux: 'com.layertwolabs.bitwindow',
+                 OS.linux: 'bitwindow',
                  OS.macos: 'bitwindow',
                  OS.windows: '10520LayertwoLabs/BitWindow',
                },
@@ -1551,7 +1551,7 @@ extension BinaryPaths on Binary {
           home,
           '.local',
           'share',
-          'com.layertwolabs.bitwindow',
+          'bitwindow',
         ),
       },
       BinaryType.thunder => switch (OS.current) {
