@@ -136,38 +136,11 @@ class WalletReaderProvider extends ChangeNotifier {
     required String? newActiveId,
     required bool newHasWalletOnDisk,
   }) {
-    // Build the wallet list FIRST and only swap state in if it succeeds.
-    // Previously the field assignments happened inline with the .map, so a
-    // throw mid-build (e.g. unexpected proto shape) would leave activeWalletId
-    // and hasWalletOnDisk set with `wallets` still empty and notifyListeners
-    // skipped — exactly the state behind the empty-dropdown bug.
-    final List<WalletData> nextWallets = [];
-    int failures = 0;
-    for (final protoWallet in protoWallets) {
-      try {
-        nextWallets.add(_walletDataFromProto(protoWallet));
-      } catch (e, st) {
-        failures += 1;
-        _logger.e(
-          'WalletReaderProvider: failed to materialize wallet '
-          'id=${_safe(() => protoWallet.id)} type=${_safe(() => protoWallet.walletType)}: $e\n$st',
-        );
-      }
-    }
-    if (failures > 0 && nextWallets.isEmpty && wallets.isNotEmpty) {
-      // Don't blow away a known-good list with an all-broken update.
-      _logger.w(
-        'WalletReaderProvider: dropping update — all '
-        '${protoWallets.length} wallets failed to parse, keeping prior state',
-      );
-      return;
-    }
-
     final previousActiveId = activeWalletId;
     if (previousActiveId != newActiveId) {
       _logger.i(
         'WalletReaderProvider: activeWalletId $previousActiveId -> $newActiveId '
-        '(wallets=${nextWallets.length})',
+        '(wallets=${protoWallets.length})',
       );
     }
     activeWalletId = newActiveId;
@@ -178,69 +151,60 @@ class WalletReaderProvider extends ChangeNotifier {
       _logger.i('WalletReaderProvider: hasWalletOnDisk $previousHasWallet -> $hasWalletOnDisk');
     }
 
-    wallets = nextWallets;
+    wallets = protoWallets.map<WalletData>((protoWallet) {
+      WalletGradient gradient = WalletGradient.fromWalletId(protoWallet.id);
+      if (protoWallet.gradientJson.isNotEmpty) {
+        try {
+          final parsed = WalletGradient.fromJsonString(protoWallet.gradientJson);
+          // Legacy default {"background_svg":""} parses cleanly but would
+          // render an empty avatar; keep the deterministic fallback in that
+          // case.
+          if ((parsed.backgroundSvg ?? '').isNotEmpty) {
+            gradient = parsed;
+          }
+        } catch (_) {}
+      }
+
+      DateTime createdAt = DateTime.now();
+      if (protoWallet.createdAt.isNotEmpty) {
+        try {
+          createdAt = DateTime.parse(protoWallet.createdAt);
+        } catch (_) {}
+      }
+
+      return WalletData(
+        version: 1,
+        master: MasterWallet(
+          mnemonic: protoWallet.masterMnemonic,
+          seedHex: '',
+          masterKey: '',
+          chainCode: '',
+          name: 'Master',
+        ),
+        l1: L1Wallet(mnemonic: protoWallet.l1Mnemonic),
+        sidechains: protoWallet.sidechains
+            .map<SidechainWallet>(
+              (sc) => SidechainWallet(
+                slot: sc.slot,
+                name: sc.name,
+                mnemonic: sc.mnemonic,
+              ),
+            )
+            .toList(),
+        id: protoWallet.id,
+        name: protoWallet.name,
+        gradient: gradient,
+        createdAt: createdAt,
+        walletType: BinaryType.values.firstWhere(
+          (t) => t.name == protoWallet.walletType,
+          orElse: () => BinaryType.enforcer,
+        ),
+        walletTypeRaw: protoWallet.walletType,
+        bip47PaymentCode: protoWallet.bip47PaymentCode,
+      );
+    }).toList();
+
     notifyListeners();
-  }
-
-  WalletData _walletDataFromProto(dynamic protoWallet) {
-    WalletGradient gradient = WalletGradient.fromWalletId(protoWallet.id);
-    if (protoWallet.gradientJson.isNotEmpty) {
-      try {
-        final parsed = WalletGradient.fromJsonString(protoWallet.gradientJson);
-        // Legacy default {"background_svg":""} parses cleanly but would
-        // render an empty avatar; keep the deterministic fallback in that
-        // case.
-        if ((parsed.backgroundSvg ?? '').isNotEmpty) {
-          gradient = parsed;
-        }
-      } catch (_) {}
-    }
-
-    DateTime createdAt = DateTime.now();
-    if (protoWallet.createdAt.isNotEmpty) {
-      try {
-        createdAt = DateTime.parse(protoWallet.createdAt);
-      } catch (_) {}
-    }
-
-    return WalletData(
-      version: 1,
-      master: MasterWallet(
-        mnemonic: protoWallet.masterMnemonic,
-        seedHex: '',
-        masterKey: '',
-        chainCode: '',
-        name: 'Master',
-      ),
-      l1: L1Wallet(mnemonic: protoWallet.l1Mnemonic),
-      sidechains: protoWallet.sidechains
-          .map<SidechainWallet>(
-            (sc) => SidechainWallet(
-              slot: sc.slot,
-              name: sc.name,
-              mnemonic: sc.mnemonic,
-            ),
-          )
-          .toList(),
-      id: protoWallet.id,
-      name: protoWallet.name,
-      gradient: gradient,
-      createdAt: createdAt,
-      walletType: BinaryType.values.firstWhere(
-        (t) => t.name == protoWallet.walletType,
-        orElse: () => BinaryType.enforcer,
-      ),
-      walletTypeRaw: protoWallet.walletType,
-      bip47PaymentCode: protoWallet.bip47PaymentCode,
-    );
-  }
-
-  String _safe(dynamic Function() f) {
-    try {
-      return '${f()}';
-    } catch (_) {
-      return '<unreadable>';
-    }
   }
 
   Future<void> init() async {
