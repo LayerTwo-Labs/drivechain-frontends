@@ -88,23 +88,34 @@ class WalletReaderProvider extends ChangeNotifier {
   }
 
   void _onData(dynamic resp) {
+    _applyState(
+      protoWallets: resp.wallets,
+      newActiveId: resp.activeWalletId.isEmpty ? null : resp.activeWalletId as String,
+      newHasWalletOnDisk: resp.hasWallet as bool,
+    );
+  }
+
+  void _applyState({
+    required Iterable<dynamic> protoWallets,
+    required String? newActiveId,
+    required bool newHasWalletOnDisk,
+  }) {
     final previousActiveId = activeWalletId;
-    final newActiveId = resp.activeWalletId.isEmpty ? null : resp.activeWalletId as String;
     if (previousActiveId != newActiveId) {
       _logger.i(
         'WalletReaderProvider: activeWalletId $previousActiveId -> $newActiveId '
-        '(wallets=${resp.wallets.length})',
+        '(wallets=${protoWallets.length})',
       );
     }
     activeWalletId = newActiveId;
 
     final previousHasWallet = hasWalletOnDisk;
-    hasWalletOnDisk = resp.hasWallet as bool;
+    hasWalletOnDisk = newHasWalletOnDisk;
     if (previousHasWallet != hasWalletOnDisk) {
       _logger.i('WalletReaderProvider: hasWalletOnDisk $previousHasWallet -> $hasWalletOnDisk');
     }
 
-    wallets = resp.wallets.map<WalletData>((protoWallet) {
+    wallets = protoWallets.map<WalletData>((protoWallet) {
       WalletGradient gradient = WalletGradient.fromWalletId(protoWallet.id);
       if (protoWallet.gradientJson.isNotEmpty) {
         try {
@@ -161,7 +172,32 @@ class WalletReaderProvider extends ChangeNotifier {
   }
 
   Future<void> init() async {
-    // Stream will deliver initial state; nothing extra needed.
+    if (Environment.isInTest) return;
+    // Seed state synchronously instead of waiting for the WatchWalletData
+    // stream. The stream races UI mount on cold start, and a slow/broken
+    // stream leaves the wallet dropdown, BIP47 card and starters tab empty
+    // even when the orchestrator already has the wallet on disk.
+    // listWallets + getWalletStatus return the same fields the stream
+    // would push, so we can populate the provider directly.
+    if (wallets.isNotEmpty) return;
+    try {
+      final results = await Future.wait([
+        _client.listWallets(),
+        _client.getWalletStatus(),
+      ]).timeout(const Duration(seconds: 3));
+      // Stream may have delivered while we awaited — let it win.
+      if (wallets.isNotEmpty) return;
+      final list = results[0] as dynamic;
+      final status = results[1] as dynamic;
+      if (list.wallets.isEmpty) return;
+      _applyState(
+        protoWallets: list.wallets,
+        newActiveId: list.activeWalletId.isEmpty ? null : list.activeWalletId as String,
+        newHasWalletOnDisk: status.hasWallet as bool,
+      );
+    } catch (e) {
+      _logger.w('WalletReaderProvider: init seed failed: $e');
+    }
   }
 
   Future<bool> hasWallet() async {
