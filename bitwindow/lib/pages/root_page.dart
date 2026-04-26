@@ -422,12 +422,14 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
                                           height: 1.5,
                                         ),
                                         children: [
-                                          const TextSpan(text: 'Drivechain version v0.47.00.0-unk (64-bit)\n\n'),
                                           const TextSpan(
-                                            text: 'Copyright (C) 2009-2024 The Drivechain developers\n',
+                                            text: 'BitWindow — GUI for the BIP300/301 sidechain enforcer.\n\n',
                                           ),
                                           const TextSpan(
-                                            text: 'Copyright (C) 2009-2024 The Bitcoin Core developers\n\n',
+                                            text: 'Copyright (C) 2009-2026 The Drivechain developers\n',
+                                          ),
+                                          const TextSpan(
+                                            text: 'Copyright (C) 2009-2026 The Bitcoin Core developers\n\n',
                                           ),
                                           const TextSpan(
                                             text: 'Please contribute if you find Drivechain useful. Visit ',
@@ -560,21 +562,34 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
                   ],
                 ),
                 PlatformMenuItemGroup(
-                  members: [
-                    PlatformMenuItem(
-                      label: 'Hide bitwindow',
-                      shortcut: const SingleActivator(LogicalKeyboardKey.keyH, meta: true),
-                      onSelected: () async {
-                        await windowManager.hide();
-                      },
-                    ),
-                    PlatformMenuItem(
-                      label: 'Show All',
-                      onSelected: () async {
-                        await windowManager.show();
-                      },
-                    ),
-                  ],
+                  members: Platform.isMacOS
+                      ? [
+                          PlatformMenuItem(
+                            label: 'Hide bitwindow',
+                            shortcut: const SingleActivator(LogicalKeyboardKey.keyH, meta: true),
+                            onSelected: () async {
+                              await windowManager.hide();
+                            },
+                          ),
+                          PlatformMenuItem(
+                            label: 'Show All',
+                            onSelected: () async {
+                              await windowManager.show();
+                            },
+                          ),
+                        ]
+                      : [
+                          // Linux/Windows have no dock or default tray, so a
+                          // hidden window has no taskbar entry to bring back.
+                          // Minimize keeps the taskbar/Alt-Tab entry alive.
+                          PlatformMenuItem(
+                            label: 'Minimize bitwindow',
+                            shortcut: const SingleActivator(LogicalKeyboardKey.keyM, meta: true),
+                            onSelected: () async {
+                              await windowManager.minimize();
+                            },
+                          ),
+                        ],
                 ),
                 PlatformMenuItemGroup(
                   members: [
