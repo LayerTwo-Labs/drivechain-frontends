@@ -108,7 +108,13 @@ class WalletReaderProvider extends ChangeNotifier {
       WalletGradient gradient = WalletGradient.fromWalletId(protoWallet.id);
       if (protoWallet.gradientJson.isNotEmpty) {
         try {
-          gradient = WalletGradient.fromJsonString(protoWallet.gradientJson);
+          final parsed = WalletGradient.fromJsonString(protoWallet.gradientJson);
+          // Legacy default {"background_svg":""} parses cleanly but would
+          // render an empty avatar; keep the deterministic fallback in that
+          // case.
+          if ((parsed.backgroundSvg ?? '').isNotEmpty) {
+            gradient = parsed;
+          }
         } catch (_) {}
       }
 
