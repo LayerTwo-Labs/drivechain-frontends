@@ -184,6 +184,7 @@ export 'rpcs/bitwindow_api.dart';
 export 'rpcs/coinshift_rpc.dart';
 export 'rpcs/enforcer_rpc.dart';
 export 'rpcs/orchestrator_rpc.dart';
+export 'rpcs/orchestrator_wallet_rpc.dart';
 export 'rpcs/mainchain_rpc.dart';
 export 'rpcs/rpc_sidechain.dart';
 export 'rpcs/thunder_rpc.dart';

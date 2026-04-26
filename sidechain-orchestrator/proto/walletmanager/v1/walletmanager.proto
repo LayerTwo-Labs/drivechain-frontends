@@ -43,6 +43,11 @@ service WalletManagerService {
   rpc GetCoreVariant(GetCoreVariantRequest) returns (GetCoreVariantResponse);
   rpc SetCoreVariant(SetCoreVariantRequest) returns (SetCoreVariantResponse);
 
+  // Test-sidechains toggle. When enabled, layer-2 binaries download/run from
+  // the alternative_download config (test builds) instead of the default.
+  rpc GetTestSidechains(GetTestSidechainsRequest) returns (GetTestSidechainsResponse);
+  rpc SetTestSidechains(SetTestSidechainsRequest) returns (SetTestSidechainsResponse);
+
   // Stream wallet state changes. Sends the full wallet state immediately,
   // then again whenever wallets or balance change.
   rpc WatchWalletData(google.protobuf.Empty) returns (stream WatchWalletDataResponse);
@@ -414,6 +419,22 @@ message SetCoreVariantRequest {
 }
 
 message SetCoreVariantResponse {}
+
+// ============================================================================
+// Test-sidechains toggle
+// ============================================================================
+
+message GetTestSidechainsRequest {}
+
+message GetTestSidechainsResponse {
+  bool enabled = 1;
+}
+
+message SetTestSidechainsRequest {
+  bool enabled = 1;
+}
+
+message SetTestSidechainsResponse {}
 
 // ============================================================================
 // Watch Wallet Data

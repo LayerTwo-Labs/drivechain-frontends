@@ -4180,6 +4180,170 @@ class SetCoreVariantResponse extends $pb.GeneratedMessage {
   static SetCoreVariantResponse? _defaultInstance;
 }
 
+class GetTestSidechainsRequest extends $pb.GeneratedMessage {
+  factory GetTestSidechainsRequest() => create();
+  GetTestSidechainsRequest._() : super();
+  factory GetTestSidechainsRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory GetTestSidechainsRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'GetTestSidechainsRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'walletmanager.v1'), createEmptyInstance: create)
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  GetTestSidechainsRequest clone() => GetTestSidechainsRequest()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  GetTestSidechainsRequest copyWith(void Function(GetTestSidechainsRequest) updates) => super.copyWith((message) => updates(message as GetTestSidechainsRequest)) as GetTestSidechainsRequest;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static GetTestSidechainsRequest create() => GetTestSidechainsRequest._();
+  GetTestSidechainsRequest createEmptyInstance() => create();
+  static $pb.PbList<GetTestSidechainsRequest> createRepeated() => $pb.PbList<GetTestSidechainsRequest>();
+  @$core.pragma('dart2js:noInline')
+  static GetTestSidechainsRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<GetTestSidechainsRequest>(create);
+  static GetTestSidechainsRequest? _defaultInstance;
+}
+
+class GetTestSidechainsResponse extends $pb.GeneratedMessage {
+  factory GetTestSidechainsResponse({
+    $core.bool? enabled,
+  }) {
+    final $result = create();
+    if (enabled != null) {
+      $result.enabled = enabled;
+    }
+    return $result;
+  }
+  GetTestSidechainsResponse._() : super();
+  factory GetTestSidechainsResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory GetTestSidechainsResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'GetTestSidechainsResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'walletmanager.v1'), createEmptyInstance: create)
+    ..aOB(1, _omitFieldNames ? '' : 'enabled')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  GetTestSidechainsResponse clone() => GetTestSidechainsResponse()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  GetTestSidechainsResponse copyWith(void Function(GetTestSidechainsResponse) updates) => super.copyWith((message) => updates(message as GetTestSidechainsResponse)) as GetTestSidechainsResponse;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static GetTestSidechainsResponse create() => GetTestSidechainsResponse._();
+  GetTestSidechainsResponse createEmptyInstance() => create();
+  static $pb.PbList<GetTestSidechainsResponse> createRepeated() => $pb.PbList<GetTestSidechainsResponse>();
+  @$core.pragma('dart2js:noInline')
+  static GetTestSidechainsResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<GetTestSidechainsResponse>(create);
+  static GetTestSidechainsResponse? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.bool get enabled => $_getBF(0);
+  @$pb.TagNumber(1)
+  set enabled($core.bool v) { $_setBool(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasEnabled() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearEnabled() => clearField(1);
+}
+
+class SetTestSidechainsRequest extends $pb.GeneratedMessage {
+  factory SetTestSidechainsRequest({
+    $core.bool? enabled,
+  }) {
+    final $result = create();
+    if (enabled != null) {
+      $result.enabled = enabled;
+    }
+    return $result;
+  }
+  SetTestSidechainsRequest._() : super();
+  factory SetTestSidechainsRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory SetTestSidechainsRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'SetTestSidechainsRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'walletmanager.v1'), createEmptyInstance: create)
+    ..aOB(1, _omitFieldNames ? '' : 'enabled')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  SetTestSidechainsRequest clone() => SetTestSidechainsRequest()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  SetTestSidechainsRequest copyWith(void Function(SetTestSidechainsRequest) updates) => super.copyWith((message) => updates(message as SetTestSidechainsRequest)) as SetTestSidechainsRequest;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static SetTestSidechainsRequest create() => SetTestSidechainsRequest._();
+  SetTestSidechainsRequest createEmptyInstance() => create();
+  static $pb.PbList<SetTestSidechainsRequest> createRepeated() => $pb.PbList<SetTestSidechainsRequest>();
+  @$core.pragma('dart2js:noInline')
+  static SetTestSidechainsRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<SetTestSidechainsRequest>(create);
+  static SetTestSidechainsRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.bool get enabled => $_getBF(0);
+  @$pb.TagNumber(1)
+  set enabled($core.bool v) { $_setBool(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasEnabled() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearEnabled() => clearField(1);
+}
+
+class SetTestSidechainsResponse extends $pb.GeneratedMessage {
+  factory SetTestSidechainsResponse() => create();
+  SetTestSidechainsResponse._() : super();
+  factory SetTestSidechainsResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory SetTestSidechainsResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'SetTestSidechainsResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'walletmanager.v1'), createEmptyInstance: create)
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  SetTestSidechainsResponse clone() => SetTestSidechainsResponse()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  SetTestSidechainsResponse copyWith(void Function(SetTestSidechainsResponse) updates) => super.copyWith((message) => updates(message as SetTestSidechainsResponse)) as SetTestSidechainsResponse;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static SetTestSidechainsResponse create() => SetTestSidechainsResponse._();
+  SetTestSidechainsResponse createEmptyInstance() => create();
+  static $pb.PbList<SetTestSidechainsResponse> createRepeated() => $pb.PbList<SetTestSidechainsResponse>();
+  @$core.pragma('dart2js:noInline')
+  static SetTestSidechainsResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<SetTestSidechainsResponse>(create);
+  static SetTestSidechainsResponse? _defaultInstance;
+}
+
 class WatchWalletDataResponse extends $pb.GeneratedMessage {
   factory WatchWalletDataResponse({
     $core.bool? hasWallet,
@@ -4398,6 +4562,12 @@ class WalletManagerServiceApi {
   ;
   $async.Future<SetCoreVariantResponse> setCoreVariant($pb.ClientContext? ctx, SetCoreVariantRequest request) =>
     _client.invoke<SetCoreVariantResponse>(ctx, 'WalletManagerService', 'SetCoreVariant', request, SetCoreVariantResponse())
+  ;
+  $async.Future<GetTestSidechainsResponse> getTestSidechains($pb.ClientContext? ctx, GetTestSidechainsRequest request) =>
+    _client.invoke<GetTestSidechainsResponse>(ctx, 'WalletManagerService', 'GetTestSidechains', request, GetTestSidechainsResponse())
+  ;
+  $async.Future<SetTestSidechainsResponse> setTestSidechains($pb.ClientContext? ctx, SetTestSidechainsRequest request) =>
+    _client.invoke<SetTestSidechainsResponse>(ctx, 'WalletManagerService', 'SetTestSidechains', request, SetTestSidechainsResponse())
   ;
   $async.Future<WatchWalletDataResponse> watchWalletData($pb.ClientContext? ctx, $12.Empty request) =>
     _client.invoke<WatchWalletDataResponse>(ctx, 'WalletManagerService', 'WatchWalletData', request, WatchWalletDataResponse())

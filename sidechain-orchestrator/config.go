@@ -185,6 +185,20 @@ func CoreBinaryPath(dataDir string, variant CoreVariantSpec, binaryName string) 
 	return filepath.Join(BinDir(dataDir), variant.Subfolder, name)
 }
 
+// testSidechainSubfolder is the on-disk namespace for layer-2 test/alternative
+// builds. Keeps prod and test binaries side-by-side so flipping the toggle
+// doesn't trash the cached download.
+const testSidechainSubfolder = "test"
+
+// TestSidechainBinaryPath returns the on-disk path for a layer-2 test build.
+func TestSidechainBinaryPath(dataDir, binaryName string) string {
+	name := binaryName
+	if runtime.GOOS == "windows" {
+		name += ".exe"
+	}
+	return filepath.Join(BinDir(dataDir), testSidechainSubfolder, name)
+}
+
 // PidDir returns the directory where PID files are stored.
 func PidDir(dataDir string) string {
 	return filepath.Join(dataDir, "pids")

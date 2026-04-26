@@ -50,6 +50,8 @@ abstract class WalletManagerServiceBase extends $pb.GeneratedService {
   $async.Future<$13.ListCoreVariantsResponse> listCoreVariants($pb.ServerContext ctx, $13.ListCoreVariantsRequest request);
   $async.Future<$13.GetCoreVariantResponse> getCoreVariant($pb.ServerContext ctx, $13.GetCoreVariantRequest request);
   $async.Future<$13.SetCoreVariantResponse> setCoreVariant($pb.ServerContext ctx, $13.SetCoreVariantRequest request);
+  $async.Future<$13.GetTestSidechainsResponse> getTestSidechains($pb.ServerContext ctx, $13.GetTestSidechainsRequest request);
+  $async.Future<$13.SetTestSidechainsResponse> setTestSidechains($pb.ServerContext ctx, $13.SetTestSidechainsRequest request);
   $async.Future<$13.WatchWalletDataResponse> watchWalletData($pb.ServerContext ctx, $12.Empty request);
 
   $pb.GeneratedMessage createRequest($core.String methodName) {
@@ -82,6 +84,8 @@ abstract class WalletManagerServiceBase extends $pb.GeneratedService {
       case 'ListCoreVariants': return $13.ListCoreVariantsRequest();
       case 'GetCoreVariant': return $13.GetCoreVariantRequest();
       case 'SetCoreVariant': return $13.SetCoreVariantRequest();
+      case 'GetTestSidechains': return $13.GetTestSidechainsRequest();
+      case 'SetTestSidechains': return $13.SetTestSidechainsRequest();
       case 'WatchWalletData': return $12.Empty();
       default: throw $core.ArgumentError('Unknown method: $methodName');
     }
@@ -117,6 +121,8 @@ abstract class WalletManagerServiceBase extends $pb.GeneratedService {
       case 'ListCoreVariants': return this.listCoreVariants(ctx, request as $13.ListCoreVariantsRequest);
       case 'GetCoreVariant': return this.getCoreVariant(ctx, request as $13.GetCoreVariantRequest);
       case 'SetCoreVariant': return this.setCoreVariant(ctx, request as $13.SetCoreVariantRequest);
+      case 'GetTestSidechains': return this.getTestSidechains(ctx, request as $13.GetTestSidechainsRequest);
+      case 'SetTestSidechains': return this.setTestSidechains(ctx, request as $13.SetTestSidechainsRequest);
       case 'WatchWalletData': return this.watchWalletData(ctx, request as $12.Empty);
       default: throw $core.ArgumentError('Unknown method: $methodName');
     }

@@ -1242,6 +1242,27 @@ func (h *WalletHandler) SetCoreVariant(ctx context.Context, req *connect.Request
 	return connect.NewResponse(&pb.SetCoreVariantResponse{}), nil
 }
 
+// ============================================================================
+// Test-sidechains toggle
+// ============================================================================
+
+func (h *WalletHandler) GetTestSidechains(ctx context.Context, req *connect.Request[pb.GetTestSidechainsRequest]) (*connect.Response[pb.GetTestSidechainsResponse], error) {
+	if h.orch == nil {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("orchestrator not configured"))
+	}
+	return connect.NewResponse(&pb.GetTestSidechainsResponse{Enabled: h.orch.UseTestSidechains()}), nil
+}
+
+func (h *WalletHandler) SetTestSidechains(ctx context.Context, req *connect.Request[pb.SetTestSidechainsRequest]) (*connect.Response[pb.SetTestSidechainsResponse], error) {
+	if h.orch == nil {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("orchestrator not configured"))
+	}
+	if err := h.orch.SetTestSidechains(ctx, req.Msg.Enabled); err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+	return connect.NewResponse(&pb.SetTestSidechainsResponse{}), nil
+}
+
 func coreVariantDisplayName(id string) string {
 	switch id {
 	case "untouched":

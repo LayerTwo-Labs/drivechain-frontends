@@ -17,7 +17,8 @@ const orchestratorSettingsFile = "orchestrator_settings.json"
 
 // OrchestratorSettings is the on-disk shape of orchestrator_settings.json.
 type OrchestratorSettings struct {
-	CoreVariant string `json:"core_variant"`
+	CoreVariant       string `json:"core_variant"`
+	UseTestSidechains bool   `json:"use_test_sidechains"`
 }
 
 func defaultOrchestratorSettings() OrchestratorSettings {
@@ -146,6 +147,27 @@ func (s *SettingsStore) SetCoreVariant(id string) (string, error) {
 	}
 	next := s.current
 	next.CoreVariant = id
+	if err := SaveSettings(s.bitwindowDir, next); err != nil {
+		return prev, err
+	}
+	s.current = next
+	return prev, nil
+}
+
+func (s *SettingsStore) UseTestSidechains() bool {
+	return s.Get().UseTestSidechains
+}
+
+// SetUseTestSidechains persists the new value and returns the previous one.
+func (s *SettingsStore) SetUseTestSidechains(v bool) (bool, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	prev := s.current.UseTestSidechains
+	if prev == v {
+		return prev, nil
+	}
+	next := s.current
+	next.UseTestSidechains = v
 	if err := SaveSettings(s.bitwindowDir, next); err != nil {
 		return prev, err
 	}

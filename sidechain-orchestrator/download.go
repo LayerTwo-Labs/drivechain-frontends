@@ -41,6 +41,21 @@ type DownloadManager struct {
 	// be left nil — in that case the download falls back to the legacy
 	// per-network file selection (default vs. forknet).
 	CoreVariant func() (CoreVariantSpec, bool)
+
+	// SidechainVariant resolves the test/alternative download spec for a
+	// layer-2 binary. ok=false means use the production fields. The "test"
+	// suffix is also used to namespace the in-flight key and the on-disk
+	// extract dir so prod and test builds can coexist without clobbering.
+	SidechainVariant func(BinaryConfig) (sidechainVariantSpec, bool)
+}
+
+// sidechainVariantSpec is the minimal projection of BinaryConfig fields the
+// download/process managers need to resolve an alternative build.
+type sidechainVariantSpec struct {
+	BinaryName       string
+	BaseURL          string
+	FileName         string
+	ExtractSubfolder string
 }
 
 func NewDownloadManager(dataDir, configFilePath string, log zerolog.Logger) *DownloadManager {
@@ -56,14 +71,23 @@ func NewDownloadManager(dataDir, configFilePath string, log zerolog.Logger) *Dow
 // Download downloads a binary to the bin directory with progress reporting.
 // It determines the download strategy based on config (GitHub vs direct).
 func (d *DownloadManager) Download(ctx context.Context, config BinaryConfig, network string, force bool) (<-chan DownloadProgress, error) {
-	// Resolve the Core variant once: callers don't have to know about it,
-	// but every path below (target binary path, download URL, extract dir)
-	// must agree on the choice.
+	// Resolve variants once: callers don't have to know about them, but every
+	// path below (target binary path, download URL, extract dir) must agree
+	// on the choice. Core variants and sidechain test-builds are mutually
+	// exclusive — Core is always layer-1, test sidechains are layer-2.
 	variant, hasVariant := d.activeVariant(config)
+	scVariant, hasSCVariant := d.activeSidechainVariant(config)
 
-	binPath := BinaryPath(d.dataDir, config.BinaryName)
+	binaryName := config.BinaryName
+	if hasSCVariant {
+		binaryName = scVariant.BinaryName
+	}
+
+	binPath := BinaryPath(d.dataDir, binaryName)
 	if hasVariant {
 		binPath = CoreBinaryPath(d.dataDir, variant, config.BinaryName)
+	} else if hasSCVariant {
+		binPath = TestSidechainBinaryPath(d.dataDir, binaryName)
 	}
 
 	if !force {
@@ -77,14 +101,18 @@ func (d *DownloadManager) Download(ctx context.Context, config BinaryConfig, net
 
 	var fileName string
 	var baseURL string
-	if hasVariant {
+	switch {
+	case hasVariant:
 		f, err := variant.FileForOS()
 		if err != nil {
 			return nil, err
 		}
 		fileName = f
 		baseURL = variant.BaseURL
-	} else {
+	case hasSCVariant:
+		fileName = scVariant.FileName
+		baseURL = scVariant.BaseURL
+	default:
 		f, err := config.FileForOS()
 		if err != nil {
 			return nil, err
@@ -98,8 +126,11 @@ func (d *DownloadManager) Download(ctx context.Context, config BinaryConfig, net
 	}
 
 	inFlightKey := config.Name
-	if hasVariant {
+	switch {
+	case hasVariant:
 		inFlightKey = config.Name + ":" + variant.ID
+	case hasSCVariant:
+		inFlightKey = config.Name + ":test"
 	}
 	if _, loaded := d.inFlight.LoadOrStore(inFlightKey, true); loaded {
 		return nil, fmt.Errorf("%s is already being downloaded", config.Name)
@@ -156,16 +187,28 @@ func (d *DownloadManager) Download(ctx context.Context, config BinaryConfig, net
 
 		ch <- DownloadProgress{Message: "extracting..."}
 
-		hasCLI, err := d.extractBinary(savePath, config, d.dataDir, network, variant, hasVariant)
+		extractCfg := config
+		if hasSCVariant {
+			extractCfg.BinaryName = scVariant.BinaryName
+			if scVariant.ExtractSubfolder != "" {
+				extractCfg.ExtractSubfolder = map[string]string{currentOS(): scVariant.ExtractSubfolder}
+			} else {
+				extractCfg.ExtractSubfolder = nil
+			}
+		}
+		hasCLI, err := d.extractBinary(savePath, extractCfg, d.dataDir, network, variant, hasVariant, hasSCVariant)
 		if err != nil {
 			ch <- DownloadProgress{Error: fmt.Errorf("extract: %w", err)}
 			return
 		}
-		d.log.Info().Bool("has_cli", hasCLI).Str("binary", config.BinaryName).Msg("extraction complete")
+		d.log.Info().Bool("has_cli", hasCLI).Str("binary", extractCfg.BinaryName).Msg("extraction complete")
 
-		finalPath := BinaryPath(d.dataDir, config.BinaryName)
-		if hasVariant {
+		finalPath := BinaryPath(d.dataDir, extractCfg.BinaryName)
+		switch {
+		case hasVariant:
 			finalPath = CoreBinaryPath(d.dataDir, variant, config.BinaryName)
+		case hasSCVariant:
+			finalPath = TestSidechainBinaryPath(d.dataDir, extractCfg.BinaryName)
 		}
 		ch <- DownloadProgress{Message: finalPath, Done: true}
 	}()
@@ -179,6 +222,15 @@ func (d *DownloadManager) activeVariant(config BinaryConfig) (CoreVariantSpec, b
 		return CoreVariantSpec{}, false
 	}
 	return d.CoreVariant()
+}
+
+// activeSidechainVariant resolves the test-build spec for a layer-2 binary.
+// Returns ok=false when the toggle is off or the config has no alt fields.
+func (d *DownloadManager) activeSidechainVariant(config BinaryConfig) (sidechainVariantSpec, bool) {
+	if config.IsBitcoinCore || d.SidechainVariant == nil {
+		return sidechainVariantSpec{}, false
+	}
+	return d.SidechainVariant(config)
 }
 
 // resolveGitHubURL queries the GitHub releases API and finds the asset
@@ -302,7 +354,7 @@ func (d *DownloadManager) downloadFile(ctx context.Context, url, savePath string
 // extractBinary extracts a downloaded archive to the bin directory.
 // Returns hasCLI=true iff a companion CLI binary (name contains "-cli") was
 // extracted alongside the main binary. Raw binaries never have a CLI.
-func (d *DownloadManager) extractBinary(archivePath string, config BinaryConfig, dataDir, network string, variant CoreVariantSpec, hasVariant bool) (bool, error) {
+func (d *DownloadManager) extractBinary(archivePath string, config BinaryConfig, dataDir, network string, variant CoreVariantSpec, hasVariant, hasSCVariant bool) (bool, error) {
 	destDir := BinDir(dataDir)
 
 	switch {
@@ -310,6 +362,11 @@ func (d *DownloadManager) extractBinary(archivePath string, config BinaryConfig,
 		// Core variants live in their own per-variant subfolder so multiple
 		// builds (untouched / touched / knots) can coexist on disk.
 		destDir = filepath.Join(destDir, variant.Subfolder)
+	case hasSCVariant:
+		// Test sidechain builds live under bin/test/ so the production
+		// binary in bin/ stays intact and the user can flip back without
+		// redownloading.
+		destDir = filepath.Join(destDir, testSidechainSubfolder)
 	case !config.IsBitcoinCore:
 		// Non-Core binaries keep the legacy network-driven extract subfolder
 		// (forknet zips ship a top-level directory we have to peel off).
