@@ -142,8 +142,18 @@ func (d *DownloadManager) Download(ctx context.Context, config BinaryConfig, net
 		defer d.inFlight.Delete(inFlightKey)
 		defer close(ch)
 
+		// Test sidechain alt URLs are always served directly from
+		// releases.drivechain.info; the prod-side DownloadSourceGitHub flag
+		// (used by zside/thunder-orchard for the production builds) doesn't
+		// apply to them. Falling through to resolveGitHubURL would try to
+		// JSON-parse an HTML 404 and abort the download with a confusing
+		// "decode response: invalid character '<'" error.
 		var downloadURL string
-		switch config.DownloadSource {
+		source := config.DownloadSource
+		if hasSCVariant {
+			source = DownloadSourceDirect
+		}
+		switch source {
 		case DownloadSourceGitHub:
 			url, err := d.resolveGitHubURL(ctx, baseURL, fileName)
 			if err != nil {
@@ -363,10 +373,11 @@ func (d *DownloadManager) extractBinary(archivePath string, config BinaryConfig,
 		// builds (untouched / touched / knots) can coexist on disk.
 		destDir = filepath.Join(destDir, variant.Subfolder)
 	case hasSCVariant:
-		// Test sidechain builds live under bin/test/ so the production
-		// binary in bin/ stays intact and the user can flip back without
-		// redownloading.
-		destDir = filepath.Join(destDir, testSidechainSubfolder)
+		// Test sidechain builds live under bin/test/<binary>/ — Flutter app
+		// archives bring their own runtime layout (`Thunder.app/...` on
+		// macOS, `<name>/<bin>+lib/+data/` on Linux) and need a private
+		// directory so multiple sidechains' lib/data trees don't collide.
+		destDir = filepath.Join(destDir, testSidechainSubfolder, config.BinaryName)
 	case !config.IsBitcoinCore:
 		// Non-Core binaries keep the legacy network-driven extract subfolder
 		// (forknet zips ship a top-level directory we have to peel off).
@@ -382,12 +393,126 @@ func (d *DownloadManager) extractBinary(archivePath string, config BinaryConfig,
 	lower := strings.ToLower(archivePath)
 	switch {
 	case strings.HasSuffix(lower, ".zip"):
+		// Test sidechain archives ship as Flutter app bundles — the
+		// flatten-by-basename move would destroy the bundle structure
+		// (collapsing 1800+ Info.plist + framework files into one
+		// directory), so we preserve the layout for them.
+		if hasSCVariant {
+			return d.extractZipPreservingTree(archivePath, destDir, config.ExtractSubfolder[currentOS()])
+		}
 		return d.extractZip(archivePath, destDir, config.BinaryName)
 	case strings.HasSuffix(lower, ".tar.gz") || strings.HasSuffix(lower, ".tgz"):
 		return d.extractTarGz(archivePath, destDir, config.BinaryName)
 	default:
+		// For test sidechains the raw payload is a single Windows .exe; we
+		// land it at `bin/test/<binary>.exe` (where binary already includes
+		// the `.exe` suffix on Windows via Files[currentOS()]) so the
+		// resolver finds it without further plumbing.
+		if hasSCVariant {
+			return d.processRawBinary(archivePath, destDir, config.BinaryName+exeSuffix())
+		}
 		return d.processRawBinary(archivePath, destDir, config.BinaryName)
 	}
+}
+
+// exeSuffix is ".exe" on Windows and "" elsewhere — used to land raw-binary
+// test sidechain payloads (Flutter Windows builds ship as a single .exe) at
+// a path the launcher can find without further heuristics.
+func exeSuffix() string {
+	if runtime.GOOS == "windows" {
+		return ".exe"
+	}
+	return ""
+}
+
+// extractZipPreservingTree extracts a zip preserving its directory layout.
+// Used for test sidechain Flutter app bundles, where the `Foo.app/` (macOS)
+// or `foo/lib/...` (Linux) tree must remain intact for the runtime to
+// find frameworks, plugins, and assets at the expected relative paths. If
+// stripPrefix is non-empty, that path prefix is removed from each archive
+// entry so the archive's top-level namespace doesn't double up against
+// destDir's per-binary subfolder (e.g. without stripping "thunder/", the
+// Linux extract would land at `bin/test/thunder/thunder/thunder`).
+func (d *DownloadManager) extractZipPreservingTree(archivePath, destDir, stripPrefix string) (bool, error) {
+	r, err := zip.OpenReader(archivePath)
+	if err != nil {
+		return false, fmt.Errorf("open zip: %w", err)
+	}
+	defer r.Close() //nolint:errcheck // cleanup
+
+	if stripPrefix != "" && !strings.HasSuffix(stripPrefix, "/") {
+		stripPrefix += "/"
+	}
+
+	moved := 0
+	hasCLI := false
+	for _, f := range r.File {
+		name := f.Name
+		if stripPrefix != "" {
+			if !strings.HasPrefix(name, stripPrefix) {
+				// Anything outside the expected top-level dir is metadata
+				// we don't want polluting the bin tree (LICENSE, README,
+				// stray sibling files). Skip silently.
+				continue
+			}
+			name = strings.TrimPrefix(name, stripPrefix)
+			if name == "" {
+				continue
+			}
+		}
+
+		destPath := filepath.Join(destDir, name)
+
+		if f.FileInfo().IsDir() {
+			if err := os.MkdirAll(destPath, 0o755); err != nil {
+				return false, fmt.Errorf("create dir: %w", err)
+			}
+			continue
+		}
+
+		if err := os.MkdirAll(filepath.Dir(destPath), 0o755); err != nil {
+			return false, fmt.Errorf("create dir: %w", err)
+		}
+
+		// Symlinks (`Versions/Current` -> `A`, `framework_name` ->
+		// `Versions/A/framework_name`) are essential to macOS framework
+		// resolution; the framework's main binary is reached through them
+		// and code-signing fails to verify if they're rewritten as files.
+		if f.Mode()&os.ModeSymlink != 0 {
+			rc, err := f.Open()
+			if err != nil {
+				return false, fmt.Errorf("open symlink %s: %w", f.Name, err)
+			}
+			target, err := io.ReadAll(rc)
+			_ = rc.Close()
+			if err != nil {
+				return false, fmt.Errorf("read symlink %s: %w", f.Name, err)
+			}
+			_ = os.Remove(destPath)
+			if err := os.Symlink(string(target), destPath); err != nil {
+				return false, fmt.Errorf("create symlink %s -> %s: %w", destPath, string(target), err)
+			}
+			moved++
+			continue
+		}
+
+		if err := extractZipFile(f, destPath); err != nil {
+			return false, err
+		}
+		if err := chmod(destPath); err != nil {
+			d.log.Warn().Err(err).Str("file", destPath).Msg("chmod")
+		}
+		if strings.Contains(strings.ToLower(strings.TrimSuffix(filepath.Base(destPath), ".exe")), "-cli") {
+			hasCLI = true
+		}
+		moved++
+	}
+
+	if moved == 0 {
+		return false, fmt.Errorf("no files extracted from %s (stripPrefix=%q)", archivePath, stripPrefix)
+	}
+
+	return hasCLI, nil
 }
 
 // extractZip extracts a zip archive, flattening single-directory archives.

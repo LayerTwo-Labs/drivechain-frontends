@@ -2,8 +2,10 @@ package orchestrator
 
 import (
 	"fmt"
+	"os"
 	"path/filepath"
 	"runtime"
+	"strings"
 
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config"
 )
@@ -190,13 +192,44 @@ func CoreBinaryPath(dataDir string, variant CoreVariantSpec, binaryName string) 
 // doesn't trash the cached download.
 const testSidechainSubfolder = "test"
 
-// TestSidechainBinaryPath returns the on-disk path for a layer-2 test build.
+// TestSidechainDir returns the per-binary directory that test/alternative
+// sidechain builds extract into. Test builds are full Flutter app bundles
+// with sibling lib/data trees (Linux) or `.app` packages (macOS); each
+// sidechain therefore needs its own subfolder so libraries don't collide.
+func TestSidechainDir(dataDir, binaryName string) string {
+	return filepath.Join(BinDir(dataDir), testSidechainSubfolder, binaryName)
+}
+
+// TestSidechainBinaryPath resolves the launchable binary inside a test build's
+// directory. Three shapes are supported:
+//
+//   - Linux: `<dir>/<binaryName>` next to `lib/`+`data/`.
+//   - macOS: `<dir>/<TitleCase>.app/Contents/MacOS/<TitleCase>` (Flutter
+//     bundle). We walk the directory once to find the `.app` so the spec
+//     doesn't need to encode TitleCase mappings (`thunder` → `Thunder`,
+//     `bitassets` → `BitAssets`, etc.).
+//   - Windows: `<dir>/<binaryName>.exe` — single self-contained .exe.
 func TestSidechainBinaryPath(dataDir, binaryName string) string {
-	name := binaryName
-	if runtime.GOOS == "windows" {
-		name += ".exe"
+	dir := TestSidechainDir(dataDir, binaryName)
+	switch runtime.GOOS {
+	case "windows":
+		return filepath.Join(dir, binaryName+".exe")
+	case "darwin":
+		// Look for the .app bundle. Single pass is fine — the dir holds
+		// exactly one app per sidechain.
+		entries, _ := os.ReadDir(dir)
+		for _, e := range entries {
+			if e.IsDir() && strings.HasSuffix(e.Name(), ".app") {
+				inner := strings.TrimSuffix(e.Name(), ".app")
+				return filepath.Join(dir, e.Name(), "Contents", "MacOS", inner)
+			}
+		}
+		// Fallback so callers always get a path; nonexistent stat is the
+		// "not downloaded yet" signal.
+		return filepath.Join(dir, binaryName)
+	default:
+		return filepath.Join(dir, binaryName)
 	}
-	return filepath.Join(BinDir(dataDir), testSidechainSubfolder, name)
 }
 
 // PidDir returns the directory where PID files are stored.
