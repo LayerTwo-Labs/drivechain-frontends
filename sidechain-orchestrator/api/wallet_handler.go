@@ -1131,8 +1131,17 @@ func (h *WalletHandler) WatchWalletData(ctx context.Context, req *connect.Reques
 }
 
 func (h *WalletHandler) sendWalletData(ctx context.Context, stream *connect.ServerStream[pb.WatchWalletDataResponse]) error {
-	wallets := h.svc.GetAllWallets()
-	activeID := h.svc.ActiveWalletID()
+	resp := buildWatchWalletDataResponse(
+		h.svc.GetAllWallets(),
+		h.svc.ActiveWalletID(),
+		h.svc.HasWallet(),
+		h.svc.IsEncrypted(),
+		h.svc.IsUnlocked(),
+	)
+	return stream.Send(resp)
+}
+
+func buildWatchWalletDataResponse(wallets []wallet.WalletData, activeID string, hasWallet, encrypted, unlocked bool) *pb.WatchWalletDataResponse {
 	pbWallets := make([]*pb.WalletMetadata, len(wallets))
 	for i, w := range wallets {
 		var gradientJSON string
@@ -1165,20 +1174,13 @@ func (h *WalletHandler) sendWalletData(ctx context.Context, stream *connect.Serv
 		}
 		pbWallets[i] = md
 	}
-
-	// Balance is fetched separately via GetBalance RPC when Core wallets are loaded.
-	// WatchWalletData only streams wallet metadata — no Core dependency.
-	var confirmedSats, unconfirmedSats float64
-
-	return stream.Send(&pb.WatchWalletDataResponse{
-		HasWallet:       h.svc.HasWallet(),
-		Encrypted:       h.svc.IsEncrypted(),
-		Unlocked:        h.svc.IsUnlocked(),
-		ActiveWalletId:  activeID,
-		Wallets:         pbWallets,
-		ConfirmedSats:   confirmedSats,
-		UnconfirmedSats: unconfirmedSats,
-	})
+	return &pb.WatchWalletDataResponse{
+		HasWallet:      hasWallet,
+		Encrypted:      encrypted,
+		Unlocked:       unlocked,
+		ActiveWalletId: activeID,
+		Wallets:        pbWallets,
+	}
 }
 
 // ============================================================================

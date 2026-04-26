@@ -393,148 +393,7 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
                       onSelected: () {
                         showDialog(
                           context: context,
-                          builder: (context) {
-                            final theme = SailTheme.of(context);
-                            return Dialog(
-                              backgroundColor: theme.colors.backgroundSecondary,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: SailStyleValues.borderRadiusSmall,
-                                side: BorderSide(
-                                  color: theme.colors.border,
-                                  width: 1,
-                                ),
-                              ),
-                              child: Container(
-                                width: 800,
-                                padding: const EdgeInsets.all(24),
-                                child: Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    SailText.primary20('About Drivechain'),
-                                    const SizedBox(height: 16),
-                                    SelectableText.rich(
-                                      TextSpan(
-                                        style: TextStyle(
-                                          fontSize: 12,
-                                          color: theme.colors.text,
-                                          fontFamily: 'Inter',
-                                          height: 1.5,
-                                        ),
-                                        children: [
-                                          const TextSpan(
-                                            text: 'BitWindow — GUI for the BIP300/301 sidechain enforcer.\n\n',
-                                          ),
-                                          const TextSpan(
-                                            text: 'Copyright (C) 2009-2026 The Drivechain developers\n',
-                                          ),
-                                          const TextSpan(
-                                            text: 'Copyright (C) 2009-2026 The Bitcoin Core developers\n\n',
-                                          ),
-                                          const TextSpan(
-                                            text: 'Please contribute if you find Drivechain useful. Visit ',
-                                          ),
-                                          TextSpan(
-                                            text: 'https://drivechain.info',
-                                            style: TextStyle(
-                                              color: theme.colors.primary,
-                                              decoration: TextDecoration.underline,
-                                            ),
-                                            recognizer: TapGestureRecognizer()
-                                              ..onTap = () async {
-                                                await launchUrl(Uri.parse('https://drivechain.info'));
-                                              },
-                                          ),
-                                          const TextSpan(text: ' for further information about the software.\n'),
-                                          const TextSpan(
-                                            text: 'The source code for this application is available from ',
-                                          ),
-                                          TextSpan(
-                                            text: 'https://github.com/LayerTwo-Labs/drivechain-frontends',
-                                            style: TextStyle(
-                                              color: theme.colors.primary,
-                                              decoration: TextDecoration.underline,
-                                            ),
-                                            recognizer: TapGestureRecognizer()
-                                              ..onTap = () async {
-                                                await launchUrl(
-                                                  Uri.parse(
-                                                    'https://github.com/LayerTwo-Labs/drivechain-frontends',
-                                                  ),
-                                                );
-                                              },
-                                          ),
-                                          const TextSpan(
-                                            text: '. The source code for the underlying enforcer is available from ',
-                                          ),
-                                          TextSpan(
-                                            text: 'https://github.com/LayerTwo-Labs/bip300301_enforcer',
-                                            style: TextStyle(
-                                              color: theme.colors.primary,
-                                              decoration: TextDecoration.underline,
-                                            ),
-                                            recognizer: TapGestureRecognizer()
-                                              ..onTap = () async {
-                                                await launchUrl(
-                                                  Uri.parse(
-                                                    'https://github.com/LayerTwo-Labs/bip300301_enforcer',
-                                                  ),
-                                                );
-                                              },
-                                          ),
-                                          const TextSpan(text: '.\n\n'),
-                                          const TextSpan(text: 'This is experimental software.\n'),
-                                          const TextSpan(
-                                            text:
-                                                'Distributed under the MIT software license, see the accompanying file COPYING or ',
-                                          ),
-                                          TextSpan(
-                                            text: 'https://opensource.org/licenses/MIT',
-                                            style: TextStyle(
-                                              color: theme.colors.primary,
-                                              decoration: TextDecoration.underline,
-                                            ),
-                                            recognizer: TapGestureRecognizer()
-                                              ..onTap = () async {
-                                                await launchUrl(Uri.parse('https://opensource.org/licenses/MIT'));
-                                              },
-                                          ),
-                                          const TextSpan(text: '\n\n'),
-                                          const TextSpan(
-                                            text:
-                                                'This product includes software developed by the OpenSSL Project for use in the OpenSSL Toolkit ',
-                                          ),
-                                          TextSpan(
-                                            text: 'https://www.openssl.org',
-                                            style: TextStyle(
-                                              color: theme.colors.primary,
-                                              decoration: TextDecoration.underline,
-                                            ),
-                                            recognizer: TapGestureRecognizer()
-                                              ..onTap = () async {
-                                                await launchUrl(Uri.parse('https://www.openssl.org'));
-                                              },
-                                          ),
-                                          const TextSpan(
-                                            text:
-                                                ' and cryptographic software written by Eric Young and UPnP software written by Thomas Bernard.',
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                    const SizedBox(height: 20),
-                                    Align(
-                                      alignment: Alignment.centerRight,
-                                      child: SailButton(
-                                        onPressed: () async => Navigator.of(context).pop(),
-                                        label: 'OK',
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            );
-                          },
+                          builder: (context) => const AboutBitwindowDialog(),
                         );
                       },
                     ),
@@ -562,34 +421,7 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
                   ],
                 ),
                 PlatformMenuItemGroup(
-                  members: Platform.isMacOS
-                      ? [
-                          PlatformMenuItem(
-                            label: 'Hide bitwindow',
-                            shortcut: const SingleActivator(LogicalKeyboardKey.keyH, meta: true),
-                            onSelected: () async {
-                              await windowManager.hide();
-                            },
-                          ),
-                          PlatformMenuItem(
-                            label: 'Show All',
-                            onSelected: () async {
-                              await windowManager.show();
-                            },
-                          ),
-                        ]
-                      : [
-                          // Linux/Windows have no dock or default tray, so a
-                          // hidden window has no taskbar entry to bring back.
-                          // Minimize keeps the taskbar/Alt-Tab entry alive.
-                          PlatformMenuItem(
-                            label: 'Minimize bitwindow',
-                            shortcut: const SingleActivator(LogicalKeyboardKey.keyM, meta: true),
-                            onSelected: () async {
-                              await windowManager.minimize();
-                            },
-                          ),
-                        ],
+                  members: buildVisibilityMenuItems(isMacOS: Platform.isMacOS),
                 ),
                 PlatformMenuItemGroup(
                   members: [
@@ -1492,5 +1324,184 @@ String formatTimeDifference(int value, String unit) {
 extension on Block {
   String toPretty() {
     return 'Block $height\nBlockTime=${blockTime.toDateTime().toLocal().format()}\nHash=$hash';
+  }
+}
+
+List<PlatformMenuItem> buildVisibilityMenuItems({required bool isMacOS}) {
+  if (isMacOS) {
+    return [
+      PlatformMenuItem(
+        label: 'Hide bitwindow',
+        shortcut: const SingleActivator(LogicalKeyboardKey.keyH, meta: true),
+        onSelected: () async {
+          await windowManager.hide();
+        },
+      ),
+      PlatformMenuItem(
+        label: 'Show All',
+        onSelected: () async {
+          await windowManager.show();
+        },
+      ),
+    ];
+  }
+  // Linux/Windows have no dock or default tray, so a hidden window has no
+  // taskbar entry to bring back. Minimize keeps the taskbar/Alt-Tab entry
+  // alive.
+  return [
+    PlatformMenuItem(
+      label: 'Minimize bitwindow',
+      shortcut: const SingleActivator(LogicalKeyboardKey.keyM, meta: true),
+      onSelected: () async {
+        await windowManager.minimize();
+      },
+    ),
+  ];
+}
+
+class AboutBitwindowDialog extends StatelessWidget {
+  const AboutBitwindowDialog({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = SailTheme.of(context);
+    return Dialog(
+      backgroundColor: theme.colors.backgroundSecondary,
+      shape: RoundedRectangleBorder(
+        borderRadius: SailStyleValues.borderRadiusSmall,
+        side: BorderSide(
+          color: theme.colors.border,
+          width: 1,
+        ),
+      ),
+      child: Container(
+        width: 800,
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SailText.primary20('About Drivechain'),
+            const SizedBox(height: 16),
+            SelectableText.rich(
+              TextSpan(
+                style: TextStyle(
+                  fontSize: 12,
+                  color: theme.colors.text,
+                  fontFamily: 'Inter',
+                  height: 1.5,
+                ),
+                children: [
+                  const TextSpan(
+                    text: 'BitWindow — GUI for the BIP300/301 sidechain enforcer.\n\n',
+                  ),
+                  const TextSpan(
+                    text: 'Copyright (C) 2009-2026 The Drivechain developers\n',
+                  ),
+                  const TextSpan(
+                    text: 'Copyright (C) 2009-2026 The Bitcoin Core developers\n\n',
+                  ),
+                  const TextSpan(
+                    text: 'Please contribute if you find Drivechain useful. Visit ',
+                  ),
+                  TextSpan(
+                    text: 'https://drivechain.info',
+                    style: TextStyle(
+                      color: theme.colors.primary,
+                      decoration: TextDecoration.underline,
+                    ),
+                    recognizer: TapGestureRecognizer()
+                      ..onTap = () async {
+                        await launchUrl(Uri.parse('https://drivechain.info'));
+                      },
+                  ),
+                  const TextSpan(text: ' for further information about the software.\n'),
+                  const TextSpan(
+                    text: 'The source code for this application is available from ',
+                  ),
+                  TextSpan(
+                    text: 'https://github.com/LayerTwo-Labs/drivechain-frontends',
+                    style: TextStyle(
+                      color: theme.colors.primary,
+                      decoration: TextDecoration.underline,
+                    ),
+                    recognizer: TapGestureRecognizer()
+                      ..onTap = () async {
+                        await launchUrl(
+                          Uri.parse(
+                            'https://github.com/LayerTwo-Labs/drivechain-frontends',
+                          ),
+                        );
+                      },
+                  ),
+                  const TextSpan(
+                    text: '. The source code for the underlying enforcer is available from ',
+                  ),
+                  TextSpan(
+                    text: 'https://github.com/LayerTwo-Labs/bip300301_enforcer',
+                    style: TextStyle(
+                      color: theme.colors.primary,
+                      decoration: TextDecoration.underline,
+                    ),
+                    recognizer: TapGestureRecognizer()
+                      ..onTap = () async {
+                        await launchUrl(
+                          Uri.parse(
+                            'https://github.com/LayerTwo-Labs/bip300301_enforcer',
+                          ),
+                        );
+                      },
+                  ),
+                  const TextSpan(text: '.\n\n'),
+                  const TextSpan(text: 'This is experimental software.\n'),
+                  const TextSpan(
+                    text: 'Distributed under the MIT software license, see the accompanying file COPYING or ',
+                  ),
+                  TextSpan(
+                    text: 'https://opensource.org/licenses/MIT',
+                    style: TextStyle(
+                      color: theme.colors.primary,
+                      decoration: TextDecoration.underline,
+                    ),
+                    recognizer: TapGestureRecognizer()
+                      ..onTap = () async {
+                        await launchUrl(Uri.parse('https://opensource.org/licenses/MIT'));
+                      },
+                  ),
+                  const TextSpan(text: '\n\n'),
+                  const TextSpan(
+                    text:
+                        'This product includes software developed by the OpenSSL Project for use in the OpenSSL Toolkit ',
+                  ),
+                  TextSpan(
+                    text: 'https://www.openssl.org',
+                    style: TextStyle(
+                      color: theme.colors.primary,
+                      decoration: TextDecoration.underline,
+                    ),
+                    recognizer: TapGestureRecognizer()
+                      ..onTap = () async {
+                        await launchUrl(Uri.parse('https://www.openssl.org'));
+                      },
+                  ),
+                  const TextSpan(
+                    text:
+                        ' and cryptographic software written by Eric Young and UPnP software written by Thomas Bernard.',
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 20),
+            Align(
+              alignment: Alignment.centerRight,
+              child: SailButton(
+                onPressed: () async => Navigator.of(context).pop(),
+                label: 'OK',
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
