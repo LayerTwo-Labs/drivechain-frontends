@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:get_it/get_it.dart';
 import 'package:path/path.dart' as path;
 import 'package:sail_ui/sail_ui.dart';
 
@@ -58,23 +59,19 @@ class CLIConsole {
   };
 
   /// Discover available CLI executables on disk. Returns map of cli name → absolute path.
+  ///
+  /// Every binary is downloaded into the BitWindow app dir's `assets/bin/`,
+  /// not into per-binary frontend dirs. Resolving from each binary's own
+  /// `frontendDir()` (the previous approach) pointed at sidechain-app dirs
+  /// that don't exist on a BitWindow-only install, so nothing was ever found.
   static Future<Map<String, String>> discoverCLIs() async {
     final available = <String, String>{};
     final exeSuffix = Platform.isWindows ? '.exe' : '';
 
-    for (final binary in allBinaries) {
-      final binaryName = binary.runtimeType.toString();
-      final cliName = _binaryToCLI[binaryName];
-      if (cliName == null) continue;
+    final bindir = binDir(GetIt.I.get<BinaryProvider>().appDir.path);
+    if (!bindir.existsSync()) return available;
 
-      final Directory bindir;
-      try {
-        bindir = binDir(binary.frontendDir());
-      } catch (_) {
-        continue;
-      }
-      if (!bindir.existsSync()) continue;
-
+    for (final cliName in _binaryToCLI.values) {
       final found = _findExecutable(bindir, '$cliName$exeSuffix');
       if (found != null) {
         await _ensureExecutable(found);
