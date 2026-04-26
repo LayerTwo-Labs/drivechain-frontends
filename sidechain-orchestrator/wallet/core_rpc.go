@@ -538,6 +538,35 @@ func (c *CoreRPCClient) GetBlockCount(ctx context.Context) (int, error) {
 	return count, nil
 }
 
+// CoreAddressInfo is a subset of getaddressinfo's response. We only need the
+// HD derivation path so the orchestrator can rebuild the privkey from its
+// seed for BIP47 ECDH blinding.
+type CoreAddressInfo struct {
+	Address    string `json:"address"`
+	HDKeyPath  string `json:"hdkeypath"`
+	HDSeedID   string `json:"hdseedid"`
+	IsMine     bool   `json:"ismine"`
+	Solvable   bool   `json:"solvable"`
+	IsScript   bool   `json:"isscript"`
+	IsWitness  bool   `json:"iswitness"`
+	WitnessVer int    `json:"witness_version"`
+	PubKey     string `json:"pubkey"`
+}
+
+// GetAddressInfo returns information about an address in the wallet, including
+// the HD derivation path when known.
+func (c *CoreRPCClient) GetAddressInfo(ctx context.Context, walletName, address string) (*CoreAddressInfo, error) {
+	result, err := c.call(ctx, walletName, "getaddressinfo", address)
+	if err != nil {
+		return nil, err
+	}
+	var info CoreAddressInfo
+	if err := json.Unmarshal(result, &info); err != nil {
+		return nil, fmt.Errorf("decode getaddressinfo: %w", err)
+	}
+	return &info, nil
+}
+
 // DeriveAddresses derives addresses from a descriptor.
 func (c *CoreRPCClient) DeriveAddresses(ctx context.Context, descriptor string, rangeStart, rangeEnd int) ([]string, error) {
 	result, err := c.call(ctx, "", "deriveaddresses", descriptor, []int{rangeStart, rangeEnd})

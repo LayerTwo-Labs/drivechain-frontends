@@ -4,11 +4,11 @@ import (
 	"strings"
 
 	"github.com/btcsuite/btcd/btcutil"
-	"github.com/btcsuite/btcd/btcutil/base58"
 	"github.com/btcsuite/btcd/chaincfg"
 
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/drivechain"
 	pb "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/bitwindowd/v1"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/wallet/bip47"
 )
 
 var allChainParams = []*chaincfg.Params{
@@ -24,7 +24,8 @@ var allChainParams = []*chaincfg.Params{
 // matches and ADDRESS_TYPE_UNSPECIFIED for the empty string.
 //
 // Ordering (cheapest → most expensive):
-//  1. BIP47 v3: base58-decode to 39 bytes with leading 0x22 0x03.
+//  1. BIP47 v1 spec payment code: base58check-decode succeeds with version
+//     byte 0x47 and an 80-byte payload that parses as a valid payment code.
 //  2. Drivechain deposit: strict 3-part s<slot>_<addr>_<checksum> with
 //     valid checksum and an embedded L1 address that decodes on some net.
 //  3. Bitcoin L1 on any of mainnet / signet / testnet3 / regtest.
@@ -34,7 +35,7 @@ func ClassifyAddress(s string) pb.AddressType {
 		return pb.AddressType_ADDRESS_TYPE_UNSPECIFIED
 	}
 
-	if raw := base58.Decode(s); len(raw) == 39 && raw[0] == 0x22 && raw[1] == 0x03 {
+	if _, err := bip47.ParsePaymentCode(s); err == nil {
 		return pb.AddressType_ADDRESS_TYPE_BIP47_PAYMENT_CODE
 	}
 
