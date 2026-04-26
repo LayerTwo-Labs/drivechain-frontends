@@ -18,6 +18,19 @@ class WalletReaderProvider extends ChangeNotifier {
 
   StreamSubscription<dynamic>? _watchSub;
   Timer? _reconnectTimer;
+  int _reconnectAttempt = 0;
+  // Backoff schedule. First retry is immediate so transient drops don't
+  // leave the UI stale for seconds; later retries cap out at 10s so a
+  // permanently-down orchestrator doesn't spam connect attempts.
+  static const _backoff = <Duration>[
+    Duration.zero,
+    Duration(milliseconds: 200),
+    Duration(milliseconds: 500),
+    Duration(seconds: 1),
+    Duration(seconds: 2),
+    Duration(seconds: 5),
+    Duration(seconds: 10),
+  ];
 
   List<WalletData> wallets = [];
   String? activeWalletId;
@@ -94,13 +107,23 @@ class WalletReaderProvider extends ChangeNotifier {
 
   void _scheduleReconnect() {
     _reconnectTimer?.cancel();
-    _reconnectTimer = Timer(const Duration(seconds: 2), () {
-      _logger.i('WalletReaderProvider: reconnect attempt');
-      _subscribe();
-    });
+    final delay = _backoff[_reconnectAttempt.clamp(0, _backoff.length - 1)];
+    _reconnectAttempt += 1;
+    if (delay == Duration.zero) {
+      _logger.i('WalletReaderProvider: reconnecting immediately (attempt $_reconnectAttempt)');
+      scheduleMicrotask(_subscribe);
+    } else {
+      _logger.i(
+        'WalletReaderProvider: reconnect in ${delay.inMilliseconds}ms (attempt $_reconnectAttempt)',
+      );
+      _reconnectTimer = Timer(delay, _subscribe);
+    }
   }
 
   void _onData(dynamic resp) {
+    // Successful frame — backoff schedule resets so the next drop retries
+    // fast.
+    _reconnectAttempt = 0;
     _applyState(
       protoWallets: resp.wallets,
       newActiveId: resp.activeWalletId.isEmpty ? null : resp.activeWalletId as String,
