@@ -338,14 +338,14 @@ func (s *Service) LoadMasterStarter() map[string]interface{} {
 		return nil
 	}
 	return map[string]interface{}{
-		"mnemonic":          w.Master.Mnemonic,
-		"seed_hex":          w.Master.SeedHex,
-		"master_key":        w.Master.MasterKey,
-		"chain_code":        w.Master.ChainCode,
-		"bip39_binary":      w.Master.BIP39Binary,
-		"bip39_checksum":    w.Master.BIP39Checksum,
+		"mnemonic":           w.Master.Mnemonic,
+		"seed_hex":           w.Master.SeedHex,
+		"master_key":         w.Master.MasterKey,
+		"chain_code":         w.Master.ChainCode,
+		"bip39_binary":       w.Master.BIP39Binary,
+		"bip39_checksum":     w.Master.BIP39Checksum,
 		"bip39_checksum_hex": w.Master.BIP39ChecksumHex,
-		"name":              w.Master.Name,
+		"name":               w.Master.Name,
 	}
 }
 
@@ -492,10 +492,12 @@ func (s *Service) GenerateWallet(name, customMnemonic, passphrase string, slots 
 		Int("sidechain_count", len(wallet.Sidechains)).
 		Msg("wallet keys derived")
 
-	// Set ID, gradient, timestamp
+	// Set ID and timestamp. Leave Gradient nil so the Dart side derives a
+	// deterministic visual via WalletGradient.fromWalletId; storing a stub
+	// like {"background_svg":""} would round-trip as an unrenderable avatar.
 	wallet.ID = generateWalletID()
 	wallet.CreatedAt = time.Now()
-	wallet.Gradient = defaultGradient(wallet.ID)
+	wallet.Gradient = nil
 
 	// Add to list and set as active
 	s.wallets = append(s.wallets, *wallet)
@@ -1275,9 +1277,4 @@ func generateWalletID() string {
 	b := make([]byte, 16)
 	_, _ = rand.Read(b)
 	return strings.ToUpper(hex.EncodeToString(b))
-}
-
-// defaultGradient returns a simple default gradient JSON for a wallet.
-func defaultGradient(walletID string) json.RawMessage {
-	return json.RawMessage(`{"background_svg":""}`)
 }
