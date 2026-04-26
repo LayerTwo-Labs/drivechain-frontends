@@ -4,7 +4,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
 import 'package:path/path.dart' as p;
 import 'package:sail_ui/sail_ui.dart';
-import 'package:sail_ui/widgets/console/cli_console_service.dart';
 
 void main() {
   late Directory tempAppDir;
