@@ -31,15 +31,27 @@ class HDWalletProvider extends ChangeNotifier {
   String get bip47PaymentCode => GetIt.I.get<WalletReaderProvider>().activeWallet?.bip47PaymentCode ?? '';
 
   HDWalletProvider() {
-    // Forward wallet-state changes so listeners (e.g. the receive page)
-    // rebuild when bip47PaymentCode arrives.
-    GetIt.I.get<WalletReaderProvider>().addListener(notifyListeners);
+    GetIt.I.get<WalletReaderProvider>().addListener(_onWalletStream);
   }
 
   @override
   void dispose() {
-    GetIt.I.get<WalletReaderProvider>().removeListener(notifyListeners);
+    GetIt.I.get<WalletReaderProvider>().removeListener(_onWalletStream);
     super.dispose();
+  }
+
+  // Auto-load when the enforcer wallet finally arrives on the stream. First
+  // paint races the stream subscription, so init() can fire before any
+  // mnemonic is available — without this, the "Couldn't load wallet" error
+  // would stick until the user reloaded the page.
+  void _onWalletStream() {
+    final reader = GetIt.I.get<WalletReaderProvider>();
+    final mnemonic = reader.getL1Mnemonic();
+    if (!_initialized && mnemonic != null && mnemonic.isNotEmpty) {
+      _loadMnemonic().then((_) => notifyListeners());
+      return;
+    }
+    notifyListeners();
   }
 
   Future<void> init() async {

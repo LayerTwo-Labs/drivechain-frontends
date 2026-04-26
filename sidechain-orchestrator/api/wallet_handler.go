@@ -1147,9 +1147,11 @@ func (h *WalletHandler) sendWalletData(ctx context.Context, stream *connect.Serv
 			CreatedAt:        w.CreatedAt.Format(time.RFC3339),
 			Bip47PaymentCode: wallet.Bip47V3PaymentCodeFromSeed(w.Master.SeedHex),
 		}
-		// Starter material is sensitive; only attach it for the active wallet
-		// so non-active entries don't broadcast it on every stream tick.
-		if w.ID == activeID {
+		// Starter material lives only on the enforcer wallet (L1 mnemonic and
+		// sidechain starters are derived from its seed). Attach it to that
+		// wallet's metadata so the Dart side can find it whether or not the
+		// active wallet happens to be the enforcer.
+		if w.WalletType == walletTypeEnforcer {
 			md.MasterMnemonic = w.Master.Mnemonic
 			md.L1Mnemonic = w.L1.Mnemonic
 			md.Sidechains = make([]*pb.SidechainStarter, len(w.Sidechains))

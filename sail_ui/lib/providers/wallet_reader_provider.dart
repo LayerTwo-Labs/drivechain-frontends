@@ -274,10 +274,12 @@ class WalletReaderProvider extends ChangeNotifier {
     }
   }
 
-  String? getL1Mnemonic() => activeWallet?.l1.mnemonic;
+  // L1 + sidechain starters are always derived from the enforcer wallet, even
+  // if the active wallet is a separate Bitcoin Core wallet.
+  String? getL1Mnemonic() => enforcerWallet?.l1.mnemonic;
 
   String? getSidechainMnemonic(int slot) {
-    final wallet = activeWallet;
+    final wallet = enforcerWallet;
     if (wallet == null) return null;
     return wallet.sidechains.where((sc) => sc.slot == slot).firstOrNull?.mnemonic;
   }
