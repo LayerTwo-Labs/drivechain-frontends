@@ -13,6 +13,8 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/tyler-smith/go-bip32"
 	"golang.org/x/crypto/ripemd160" //nolint:staticcheck // Bitcoin protocol requires RIPEMD160
+
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/wallet/bip47"
 )
 
 // WalletEngine manages Bitcoin Core wallets derived from wallet.json seeds.
@@ -281,6 +283,11 @@ func (e *WalletEngine) CoreRPC() *CoreRPCClient {
 	return e.rpc
 }
 
+// Network returns the network identifier ("mainnet", "signet", "regtest", "testnet").
+func (e *WalletEngine) Network() string {
+	return e.network
+}
+
 // ResolveWalletID returns the wallet ID to use. If empty, returns active wallet ID.
 func (e *WalletEngine) ResolveWalletID(walletID string) (string, error) {
 	if walletID != "" {
@@ -326,30 +333,18 @@ func masterFingerprint(masterKey *bip32.Key) string {
 	return hex.EncodeToString(h[:4])
 }
 
-// Bip47V3PaymentCodeFromSeed derives a BIP47 v3 payment code from a BIP32 seed.
-// Layout: version(0x22) || prefix(0x03) || compressed_master_pubkey(33B) || base58check.
-// Returns "" if seedHex is empty or malformed.
-func Bip47V3PaymentCodeFromSeed(seedHex string) string {
+// Bip47PaymentCodeFromSeed returns the BIP47 v1 spec-compliant payment code
+// (m/47'/0'/0' xpub serialized as 81-byte base58check with version 0x47) for a
+// BIP32 seed. Returns "" if seedHex is empty or malformed.
+func Bip47PaymentCodeFromSeed(seedHex string) string {
 	if seedHex == "" {
 		return ""
 	}
-	seed, err := hex.DecodeString(seedHex)
+	pc, err := bip47.PaymentCodeFromSeed(seedHex)
 	if err != nil {
 		return ""
 	}
-	masterKey, err := bip32.NewMasterKey(seed)
-	if err != nil {
-		return ""
-	}
-	pubKey := masterKey.PublicKey().Key // 33-byte compressed
-	if len(pubKey) != 33 {
-		return ""
-	}
-	payload := make([]byte, 35)
-	payload[0] = 0x22
-	payload[1] = 0x03
-	copy(payload[2:], pubKey)
-	return base58CheckEncode(payload)
+	return pc.Base58()
 }
 
 // hash160 computes RIPEMD160(SHA256(data)).

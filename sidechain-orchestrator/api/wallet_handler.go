@@ -20,6 +20,7 @@ import (
 	pb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1"
 	rpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1/walletmanagerv1connect"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/wallet"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/wallet/bip47state"
 )
 
 // allSidechainSlots returns slots for every configured sidechain, so wallet
@@ -49,10 +50,18 @@ type WalletHandler struct {
 	engine         *wallet.WalletEngine               // nil until Core RPC is configured
 	enforcerWallet enforcerrpc.WalletServiceClient    // nil until enforcer is configured
 	orch           *orchestrator.Orchestrator         // nil until set; used for Core variant RPCs
+	bip47State     *bip47state.Store                  // nil until SetBip47StateStore is called
 }
 
 func NewWalletHandler(svc *wallet.Service) *WalletHandler {
 	return &WalletHandler{svc: svc}
+}
+
+// SetBip47StateStore wires the persistent BIP47 send state used by the
+// orchestrator to derive per-payment indices and remember whether a
+// notification tx has already been broadcast for a given recipient.
+func (h *WalletHandler) SetBip47StateStore(store *bip47state.Store) {
+	h.bip47State = store
 }
 
 // SetEngine sets the wallet engine (called after Core RPC config is available).
@@ -86,6 +95,16 @@ func (h *WalletHandler) walletTypeFor(walletID string) (string, string, error) {
 		}
 	}
 	return "", "", fmt.Errorf("wallet %s not found", walletID)
+}
+
+// walletSeedHex returns the master seed hex for a wallet, or "" if not found.
+func (h *WalletHandler) walletSeedHex(walletID string) string {
+	for _, w := range h.svc.GetAllWallets() {
+		if w.ID == walletID {
+			return w.Master.SeedHex
+		}
+	}
+	return ""
 }
 
 func (h *WalletHandler) requireEnforcerWallet() error {
@@ -169,7 +188,7 @@ func (h *WalletHandler) ListWallets(ctx context.Context, req *connect.Request[pb
 			WalletType:       w.WalletType,
 			GradientJson:     gradientJSON,
 			CreatedAt:        w.CreatedAt.Format(time.RFC3339),
-			Bip47PaymentCode: wallet.Bip47V3PaymentCodeFromSeed(w.Master.SeedHex),
+			Bip47PaymentCode: wallet.Bip47PaymentCodeFromSeed(w.Master.SeedHex),
 		}
 	}
 	return connect.NewResponse(&pb.ListWalletsResponse{
@@ -354,6 +373,21 @@ func (h *WalletHandler) SendTransaction(ctx context.Context, req *connect.Reques
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("cannot provide both fee rate and fixed fee"))
 	}
 
+	walletID, wType, err := h.walletTypeFor(req.Msg.WalletId)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+	}
+
+	// Resolve any BIP47 payment-code destinations into per-payment addresses
+	// before the dust check so we validate against the substituted address.
+	expansion, err := h.expandBip47Destinations(ctx, walletID, wType, req.Msg.Destinations)
+	if err != nil {
+		return nil, err
+	}
+	if expansion.notificationTxHex != "" || !destinationsEqual(expansion.destinations, req.Msg.Destinations) {
+		req = connect.NewRequest(applyDestinationsToRequest(req.Msg, expansion.destinations))
+	}
+
 	const dustLimitSats int64 = 546
 	for address, sats := range req.Msg.Destinations {
 		if sats < dustLimitSats {
@@ -364,9 +398,12 @@ func (h *WalletHandler) SendTransaction(ctx context.Context, req *connect.Reques
 		}
 	}
 
-	walletID, wType, err := h.walletTypeFor(req.Msg.WalletId)
-	if err != nil {
-		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+	if expansion.notificationTxHex != "" {
+		notifTxID, err := h.broadcastBip47Notification(ctx, walletID, expansion.recipientCode, expansion.notificationTxHex)
+		if err != nil {
+			return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("broadcast bip47 notification: %w", err))
+		}
+		_ = notifTxID
 	}
 
 	if wType == walletTypeEnforcer {
@@ -1154,7 +1191,7 @@ func buildWatchWalletDataResponse(wallets []wallet.WalletData, activeID string, 
 			WalletType:       w.WalletType,
 			GradientJson:     gradientJSON,
 			CreatedAt:        w.CreatedAt.Format(time.RFC3339),
-			Bip47PaymentCode: wallet.Bip47V3PaymentCodeFromSeed(w.Master.SeedHex),
+			Bip47PaymentCode: wallet.Bip47PaymentCodeFromSeed(w.Master.SeedHex),
 		}
 		// Starter material lives only on the enforcer wallet (L1 mnemonic and
 		// sidechain starters are derived from its seed). Attach it to that

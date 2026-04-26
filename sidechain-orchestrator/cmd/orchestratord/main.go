@@ -39,6 +39,7 @@ import (
 	truthcoinsvc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/truthcoin"
 	zsidesvc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/zside"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/wallet"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/wallet/bip47state"
 )
 
 func main() {
@@ -187,6 +188,7 @@ func run(cctx *cli.Context) error {
 	// Wallet manager service
 	walletHandler := api.NewWalletHandler(walletSvc)
 	walletHandler.SetOrchestrator(orch)
+	walletHandler.SetBip47StateStore(bip47state.NewStore(bitwindowDir))
 
 	// Set up wallet engine for Core RPC operations if bitcoin config is available
 	if orch.BitcoinConf != nil {
