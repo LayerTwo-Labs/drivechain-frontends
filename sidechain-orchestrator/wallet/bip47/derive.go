@@ -80,7 +80,7 @@ func DerivePaymentAddressTyped(senderSeedHex string, recipient *PaymentCode, ind
 	}
 	bPub, err := bExt.ECPubKey()
 	if err != nil {
-		return nil, fmt.Errorf("Bᵢ ECPubKey: %w", err)
+		return nil, fmt.Errorf("recipient indexed pubkey: %w", err)
 	}
 
 	tweaked, err := computePaymentPubKey(a0, bPub)
