@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:connectrpc/http2.dart';
 import 'package:connectrpc/protobuf.dart';
 import 'package:connectrpc/protocol/connect.dart' as connect;
 import 'package:get_it/get_it.dart';
@@ -66,7 +65,7 @@ class BackendSidechainConfProvider extends GenericSidechainConfProvider {
     final transport = connect.Transport(
       baseUrl: 'http://localhost:30400',
       codec: const ProtoCodec(),
-      httpClient: createHttpClient(),
+      httpClient: keepaliveHttpClient(),
     );
     _client = SidechainConfServiceClient(transport);
   }

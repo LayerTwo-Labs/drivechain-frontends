@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:connectrpc/http2.dart';
 import 'package:connectrpc/protobuf.dart';
 import 'package:connectrpc/protocol/connect.dart' as connect;
 import 'package:fixnum/fixnum.dart';
@@ -77,7 +76,7 @@ class BitwindowRPCLive extends BitwindowRPC {
   }
 
   void _initializeConnection({required String host, required int port}) async {
-    final httpClient = createHttpClient();
+    final httpClient = keepaliveHttpClient();
     final baseUrl = 'http://$host:$port';
     final transport = connect.Transport(
       baseUrl: baseUrl,

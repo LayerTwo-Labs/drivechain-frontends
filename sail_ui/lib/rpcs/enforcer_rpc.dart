@@ -1,6 +1,5 @@
 import 'dart:convert';
 
-import 'package:connectrpc/http2.dart';
 import 'package:connectrpc/protobuf.dart';
 import 'package:connectrpc/protocol/grpc.dart' as grpc;
 import 'package:get_it/get_it.dart';
@@ -38,7 +37,7 @@ class EnforcerLive extends EnforcerRPC {
 
   void _initializeConnection() {
     // Create new HTTP/2 transport and client
-    final httpClient = createHttpClient();
+    final httpClient = keepaliveHttpClient();
     final baseUrl = 'http://localhost:${binary.port}';
     _grpcTransport = grpc.Transport(
       baseUrl: baseUrl,
