@@ -790,6 +790,23 @@ Future<void> bootBitwindowBackend(Logger log) async {
     }
   }());
 
+  // Download Bitcoin Core in background — the orchestrator only triggers a
+  // Core download when bitcoind isn't already running, so users with an
+  // external bitcoind (Homebrew, system install) end up without bitcoin-cli
+  // and the rest of the Core CLI utilities. The orchestrator's Download is
+  // idempotent (no-op if already extracted), so this is cheap on every other
+  // run.
+  final bitcoinCore = binaryProvider.binaries.firstWhere((b) => b is BitcoinCore);
+  unawaited(() async {
+    try {
+      log.i('Downloading Bitcoin Core in background (for bitcoin-cli)');
+      await binaryProvider.download(bitcoinCore);
+      log.i('Bitcoin Core download complete');
+    } catch (e) {
+      log.w('Failed to download Bitcoin Core: $e');
+    }
+  }());
+
   // 1. Start bitwindowd — it manages orchestratord internally,
   //    which in turn manages bitcoind, enforcer, and sidechains.
   log.i('STARTUP: starting bitwindowd');

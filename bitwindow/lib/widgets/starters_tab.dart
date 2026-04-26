@@ -158,7 +158,11 @@ class StartersTab extends StatelessWidget {
   Widget build(BuildContext context) {
     return ViewModelBuilder<StartersPageViewModel>.reactive(
       viewModelBuilder: () => StartersPageViewModel(),
+      onViewModelReady: (model) => model.init(),
       builder: (context, viewModel, child) {
+        // Pull a fresh future on every rebuild — the wallet stream pings
+        // notifyListeners as wallets arrive, and we need a re-fetch then or
+        // the table sticks at "empty" while activeWallet is still null.
         return FutureBuilder<List<Map<String, dynamic>>>(
           future: viewModel.loadStarters(),
           builder: (context, snapshot) {
@@ -378,6 +382,7 @@ TableRow mnemonicRow(
 class StartersPageViewModel extends BaseViewModel {
   final Set<String> _revealedStarters = {};
   final WalletWriterProvider _walletProvider = GetIt.I.get<WalletWriterProvider>();
+  final WalletReaderProvider _walletReader = GetIt.I.get<WalletReaderProvider>();
 
   /// Controllers for user input
   final TextEditingController mainchainAddressController = TextEditingController();
@@ -385,8 +390,18 @@ class StartersPageViewModel extends BaseViewModel {
   final TextEditingController paymentTxIdController = TextEditingController();
 
   void init() {
-    // Initialize any required data
     amountController.text = '1.0 BTC';
+    // Re-render whenever the wallet stream emits — without this, opening the
+    // Starters tab before the WatchWalletData stream has delivered the
+    // enforcer wallet leaves the table permanently empty (the FutureBuilder
+    // captures a blank loadStarters() result and never refetches).
+    _walletReader.addListener(notifyListeners);
+  }
+
+  @override
+  void dispose() {
+    _walletReader.removeListener(notifyListeners);
+    super.dispose();
   }
 
   void resetStartersTab() {
@@ -399,10 +414,15 @@ class StartersPageViewModel extends BaseViewModel {
 
     final starters = <Map<String, dynamic>>[];
     final masterData = await _walletProvider.loadMasterStarter();
-    if (masterData == null) return starters;
-
-    // Add master starter
-    starters.add(masterData);
+    // Always render the table scaffold — return the master row even when the
+    // mnemonic is still empty (e.g., wallet stream hasn't fired yet, or the
+    // active wallet is watch-only). The previous early-return left the
+    // entire tab blank, which is what the user reported.
+    if (masterData != null) {
+      starters.add(masterData);
+    } else {
+      starters.add({'name': 'Master', 'mnemonic': null});
+    }
 
     final l1Mnemonic = await _walletProvider.getL1Starter();
     starters.add({

@@ -85,36 +85,37 @@ class ReceiveTab extends StatelessWidget {
                   ),
                 ],
               ),
-              SailCard(
-                title: 'Receive with Bip47 v3 Payment Code',
-                error: model.modelError,
-                child: SailColumn(
-                  spacing: SailStyleValues.padding16,
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    SailRow(
-                      spacing: SailStyleValues.padding08,
-                      children: [
-                        Expanded(
-                          child: SailTextField(
-                            loading: LoadingDetails(
-                              enabled: model.bip47PaymentCode.isEmpty,
-                              description: 'Waiting for wallet to sync..',
-                            ),
-                            controller: TextEditingController(text: model.bip47PaymentCode),
-                            hintText: 'A Drivechain address',
-                            readOnly: true,
-                            suffixWidget: CopyButton(
-                              text: model.bip47PaymentCode,
+              if (!model.hideBip47)
+                SailCard(
+                  title: 'Receive with Bip47 v3 Payment Code',
+                  error: model.modelError,
+                  child: SailColumn(
+                    spacing: SailStyleValues.padding16,
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      SailRow(
+                        spacing: SailStyleValues.padding08,
+                        children: [
+                          Expanded(
+                            child: SailTextField(
+                              loading: LoadingDetails(
+                                enabled: model.bip47PaymentCode.isEmpty,
+                                description: 'Waiting for wallet to sync..',
+                              ),
+                              controller: TextEditingController(text: model.bip47PaymentCode),
+                              hintText: 'A Drivechain address',
+                              readOnly: true,
+                              suffixWidget: CopyButton(
+                                text: model.bip47PaymentCode,
+                              ),
                             ),
                           ),
-                        ),
-                      ],
-                    ),
-                  ],
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
-              ),
 
               ReceiveAddressesTable(
                 model: model,
@@ -310,6 +311,17 @@ class ReceivePageViewModel extends BaseViewModel {
 
   String get address => transactionsProvider.address;
   String get bip47PaymentCode => _hdWalletProvider.bip47PaymentCode;
+
+  /// Watch-only wallets in BitWindow only carry a BIP84 xpub today, not the
+  /// BIP47 branch needed to derive a payment code. Hide the BIP47 card for
+  /// them so the receive tab doesn't show an indefinite spinner over a row
+  /// the user can't actually populate.
+  bool get hideBip47 {
+    final reader = GetIt.I.get<WalletReaderProvider>();
+    final active = reader.activeWallet;
+    return active != null && active.isWatchOnly;
+  }
+
   List<ReceiveAddress> get receiveAddresses => transactionsProvider.receiveAddresses.toList();
 
   AddressBookEntry get matchingEntry => _addressBookProvider.receiveEntries.firstWhere(

@@ -182,13 +182,17 @@ func (h *WalletHandler) ListWallets(ctx context.Context, req *connect.Request[pb
 		if w.Gradient != nil {
 			gradientJSON = string(w.Gradient)
 		}
+		bip47Code, err := wallet.Bip47PaymentCodeFromSeed(w.Master.SeedHex)
+		if err != nil {
+			h.svc.Log().Error().Err(err).Str("wallet_id", w.ID).Msg("ListWallets: bip47 derivation failed")
+		}
 		pbWallets[i] = &pb.WalletMetadata{
 			Id:               w.ID,
 			Name:             w.Name,
 			WalletType:       w.WalletType,
 			GradientJson:     gradientJSON,
 			CreatedAt:        w.CreatedAt.Format(time.RFC3339),
-			Bip47PaymentCode: wallet.Bip47PaymentCodeFromSeed(w.Master.SeedHex),
+			Bip47PaymentCode: bip47Code,
 		}
 	}
 	return connect.NewResponse(&pb.ListWalletsResponse{
@@ -1174,16 +1178,31 @@ func (h *WalletHandler) sendWalletData(ctx context.Context, stream *connect.Serv
 		h.svc.HasWallet(),
 		h.svc.IsEncrypted(),
 		h.svc.IsUnlocked(),
+		bip47Logger(h.svc),
 	)
 	return stream.Send(resp)
 }
 
-func buildWatchWalletDataResponse(wallets []wallet.WalletData, activeID string, hasWallet, encrypted, unlocked bool) *pb.WatchWalletDataResponse {
+// bip47Logger returns a callback that surfaces BIP47 derivation errors via
+// the wallet service's logger. Returning the error path silently as ""
+// reads in the UI as an indefinite spinner — the loader sticks until a
+// non-empty payment code arrives — so the error MUST be observable.
+func bip47Logger(svc *wallet.Service) func(walletID string, err error) {
+	return func(walletID string, err error) {
+		svc.Log().Error().Err(err).Str("wallet_id", walletID).Msg("bip47 derivation failed")
+	}
+}
+
+func buildWatchWalletDataResponse(wallets []wallet.WalletData, activeID string, hasWallet, encrypted, unlocked bool, onBip47Err func(walletID string, err error)) *pb.WatchWalletDataResponse {
 	pbWallets := make([]*pb.WalletMetadata, len(wallets))
 	for i, w := range wallets {
 		var gradientJSON string
 		if w.Gradient != nil {
 			gradientJSON = string(w.Gradient)
+		}
+		bip47Code, err := wallet.Bip47PaymentCodeFromSeed(w.Master.SeedHex)
+		if err != nil && onBip47Err != nil {
+			onBip47Err(w.ID, err)
 		}
 		md := &pb.WalletMetadata{
 			Id:               w.ID,
@@ -1191,7 +1210,7 @@ func buildWatchWalletDataResponse(wallets []wallet.WalletData, activeID string, 
 			WalletType:       w.WalletType,
 			GradientJson:     gradientJSON,
 			CreatedAt:        w.CreatedAt.Format(time.RFC3339),
-			Bip47PaymentCode: wallet.Bip47PaymentCodeFromSeed(w.Master.SeedHex),
+			Bip47PaymentCode: bip47Code,
 		}
 		// Starter material lives only on the enforcer wallet (L1 mnemonic and
 		// sidechain starters are derived from its seed). Attach it to that

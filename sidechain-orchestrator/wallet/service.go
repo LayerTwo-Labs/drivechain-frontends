@@ -166,6 +166,15 @@ func (s *Service) EnforcerWallet() *WalletData {
 	return s.enforcerWallet()
 }
 
+// Log returns a pointer to the service's logger so consumers in the api
+// package can surface wallet-tied errors (e.g. BIP47 derivation failures)
+// without allocating a separate logger or smuggling one through every
+// handler. Pointer-returned because zerolog's level methods (Error/Warn/...)
+// have pointer receivers and can't be called on a returned-by-value Logger.
+func (s *Service) Log() *zerolog.Logger {
+	return &s.log
+}
+
 // enforcerWallet returns the enforcer wallet without locking. Must be called with mu held.
 func (s *Service) enforcerWallet() *WalletData {
 	for i := range s.wallets {
@@ -1162,6 +1171,30 @@ func (s *Service) loadWalletFile() error {
 
 	s.wallets = wf.Wallets
 	s.activeWalletID = wf.ActiveWalletID
+
+	// Backfill missing wallet_type for wallets created before the field was
+	// introduced. Anything with a Master.Mnemonic but no type is the original
+	// single-wallet enforcer install; anything without a mnemonic is a
+	// watch-only entry. Saves the file again only when something changed so
+	// we don't churn the disk on every load.
+	migrated := false
+	for i := range s.wallets {
+		if s.wallets[i].WalletType != "" {
+			continue
+		}
+		if s.wallets[i].Master.Mnemonic != "" {
+			s.wallets[i].WalletType = "enforcer"
+		} else {
+			s.wallets[i].WalletType = "watchOnly"
+		}
+		migrated = true
+	}
+	if migrated {
+		s.log.Info().Msg("backfilled missing wallet_type on legacy wallets")
+		if err := s.saveWalletFile(); err != nil {
+			s.log.Warn().Err(err).Msg("save after wallet_type backfill failed")
+		}
+	}
 	s.log.Debug().Int("wallet_count", len(s.wallets)).Str("active_id", s.activeWalletID).Msg("wallet file loaded")
 	return nil
 }
