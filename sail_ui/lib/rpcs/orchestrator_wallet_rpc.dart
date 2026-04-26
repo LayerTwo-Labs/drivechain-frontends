@@ -224,6 +224,14 @@ class OrchestratorWalletRPC {
     return _client.setCoreVariant(wmpb.SetCoreVariantRequest(id: id));
   }
 
+  Future<wmpb.GetTestSidechainsResponse> getTestSidechains() {
+    return _client.getTestSidechains(wmpb.GetTestSidechainsRequest());
+  }
+
+  Future<wmpb.SetTestSidechainsResponse> setTestSidechains(bool enabled) {
+    return _client.setTestSidechains(wmpb.SetTestSidechainsRequest(enabled: enabled));
+  }
+
   String _bytesToHex(List<int> bytes) {
     final buffer = StringBuffer();
     for (final byte in bytes) {

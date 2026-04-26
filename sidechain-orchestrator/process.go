@@ -141,6 +141,10 @@ type ProcessManager struct {
 	// (or it returns ok=false), the default flat BinaryPath is used.
 	CoreVariant func(config BinaryConfig) (CoreVariantSpec, bool)
 
+	// SidechainVariant resolves the on-disk binary name for layer-2 test
+	// builds. ok=false means use the production BinaryName + flat BinaryPath.
+	SidechainVariant func(config BinaryConfig) (sidechainVariantSpec, bool)
+
 	mu        sync.Mutex
 	processes map[string]*ManagedProcess // keyed by config name
 
@@ -164,6 +168,30 @@ func NewProcessManager(dataDir string, pidManager *PidFileManager, log zerolog.L
 	}
 }
 
+// resolvePaths picks the on-disk binary path and PID-file name for a config,
+// honouring whichever variant resolver is active. Test sidechain builds use
+// a "<bin>-test" PID-file name so prod and test PID files don't collide and
+// adopt-orphan can attribute them to the right config.
+func (pm *ProcessManager) resolvePaths(config BinaryConfig) (binPath, pidName string) {
+	binPath = BinaryPath(pm.dataDir, config.BinaryName)
+	pidName = config.BinaryName
+
+	if pm.CoreVariant != nil {
+		if v, ok := pm.CoreVariant(config); ok {
+			binPath = CoreBinaryPath(pm.dataDir, v, config.BinaryName)
+			return binPath, pidName
+		}
+	}
+	if pm.SidechainVariant != nil {
+		if sv, ok := pm.SidechainVariant(config); ok {
+			binPath = TestSidechainBinaryPath(pm.dataDir, sv.BinaryName)
+			pidName = sv.BinaryName + "-test"
+			return binPath, pidName
+		}
+	}
+	return binPath, pidName
+}
+
 // Start launches a binary and returns its PID.
 func (pm *ProcessManager) Start(_ context.Context, config BinaryConfig, args []string, env map[string]string) (int, error) {
 	pm.mu.Lock()
@@ -173,15 +201,11 @@ func (pm *ProcessManager) Start(_ context.Context, config BinaryConfig, args []s
 	}
 	pm.mu.Unlock()
 
-	binPath := BinaryPath(pm.dataDir, config.BinaryName)
-	if pm.CoreVariant != nil {
-		if v, ok := pm.CoreVariant(config); ok {
-			binPath = CoreBinaryPath(pm.dataDir, v, config.BinaryName)
-		}
-	}
+	binPath, pidName := pm.resolvePaths(config)
 	if _, err := os.Stat(binPath); err != nil {
 		return 0, fmt.Errorf("binary not found at %s: %w", binPath, err)
 	}
+	_ = pidName // referenced below for PID file ops
 
 	if err := chmod(binPath); err != nil {
 		pm.log.Warn().Err(err).Str("binary", config.Name).Msg("chmod")
@@ -230,7 +254,7 @@ func (pm *ProcessManager) Start(_ context.Context, config BinaryConfig, args []s
 	pm.mu.Unlock()
 
 	// Write PID file
-	if err := pm.pidManager.WritePidFile(config.BinaryName, cmd.Process.Pid); err != nil {
+	if err := pm.pidManager.WritePidFile(pidName, cmd.Process.Pid); err != nil {
 		pm.log.Warn().Err(err).Str("binary", config.Name).Msg("write PID file")
 	}
 
@@ -394,7 +418,7 @@ func (pm *ProcessManager) Start(_ context.Context, config BinaryConfig, args []s
 		delete(pm.processes, config.Name)
 		pm.mu.Unlock()
 
-		_ = pm.pidManager.DeletePidFile(config.BinaryName)
+		_ = pm.pidManager.DeletePidFile(pidName)
 
 		pm.log.Info().
 			Str("binary", config.Name).

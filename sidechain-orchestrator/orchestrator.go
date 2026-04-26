@@ -114,6 +114,10 @@ type Orchestrator struct {
 	// state into an inconsistent shape.
 	coreVariantMu sync.Mutex
 
+	// testSidechainsMu serialises the stop -> persist -> wipe sequence for
+	// SetTestSidechains. Same reason as coreVariantMu.
+	testSidechainsMu sync.Mutex
+
 	cachedBTCPrice  float64
 	cachedPriceTime time.Time
 	priceMu         sync.Mutex
@@ -179,6 +183,34 @@ func New(dataDir, network, bitwindowDir string, configs []BinaryConfig, log zero
 		return variantResolver(cfg)
 	}
 	orch.process.CoreVariant = variantResolver
+
+	// Sidechain variant resolver: returns the alt fields from BinaryConfig
+	// when the test toggle is on AND the config actually has alt download
+	// data. Anything else falls back to the production fields.
+	sidechainVariantResolver := func(c BinaryConfig) (sidechainVariantSpec, bool) {
+		if c.ChainLayer != 2 || c.AltBinaryName == "" {
+			return sidechainVariantSpec{}, false
+		}
+		if !orch.Settings.UseTestSidechains() {
+			return sidechainVariantSpec{}, false
+		}
+		fileName := c.AltFiles[currentOS()]
+		if fileName == "" {
+			return sidechainVariantSpec{}, false
+		}
+		baseURL := c.AltBaseURL(orch.Network)
+		if baseURL == "" {
+			return sidechainVariantSpec{}, false
+		}
+		return sidechainVariantSpec{
+			BinaryName:       c.AltBinaryName,
+			BaseURL:          baseURL,
+			FileName:         fileName,
+			ExtractSubfolder: c.AltExtractSubfolder[currentOS()],
+		}, true
+	}
+	orch.download.SidechainVariant = sidechainVariantResolver
+	orch.process.SidechainVariant = sidechainVariantResolver
 
 	orch.stopBinary = orch.Stop
 	orch.bootBitcoindForVariantSwap = orch.defaultBootBitcoindForVariantSwap
@@ -409,6 +441,11 @@ func (o *Orchestrator) Status(name string) BinaryStatus {
 	if config.IsBitcoinCore && o.Settings != nil {
 		if v, ok := config.Variants[o.Settings.CoreVariant()]; ok {
 			binPath = CoreBinaryPath(o.DataDir, v, config.BinaryName)
+		}
+	}
+	if o.process.SidechainVariant != nil {
+		if sv, ok := o.process.SidechainVariant(config); ok {
+			binPath = TestSidechainBinaryPath(o.DataDir, sv.BinaryName)
 		}
 	}
 	_, downloaded := os.Stat(binPath)
@@ -1202,21 +1239,37 @@ func (o *Orchestrator) callEnforcerStopRPC() error {
 }
 
 // AdoptOrphans reads PID files from a previous session and adopts any
-// processes that are still alive.
+// processes that are still alive. Layer-2 PID files are namespaced by mode
+// (e.g. thunder.pid vs thunder-test.pid) so we can attribute the right
+// owner when the user has flipped the test-sidechains toggle between runs.
 func (o *Orchestrator) AdoptOrphans(ctx context.Context) error {
 	pids := o.pidManager.ListPidFiles()
+	useTest := o.UseTestSidechains()
 
-	for binaryName, pid := range pids {
-		if !o.pidManager.ValidatePid(pid, binaryName) {
-			o.log.Debug().Str("binary", binaryName).Int("pid", pid).Msg("stale PID file, cleaning up")
-			_ = o.pidManager.DeletePidFile(binaryName)
+	for pidName, pid := range pids {
+		// Only adopt PIDs that match the currently-selected mode. A stale
+		// prod PID file from before a test-mode flip has nothing in
+		// pm.processes — it should sit on disk until the user flips back.
+		isTestPid := strings.HasSuffix(pidName, "-test")
+		if isTestPid != useTest {
+			continue
+		}
+
+		realBinaryName := pidName
+		if isTestPid {
+			realBinaryName = strings.TrimSuffix(pidName, "-test")
+		}
+
+		if !o.pidManager.ValidatePid(pid, realBinaryName) {
+			o.log.Debug().Str("binary", pidName).Int("pid", pid).Msg("stale PID file, cleaning up")
+			_ = o.pidManager.DeletePidFile(pidName)
 			continue
 		}
 
 		// Find the matching config
-		config, found := o.findConfigByBinaryName(binaryName)
+		config, found := o.findConfigByBinaryName(realBinaryName)
 		if !found {
-			o.log.Warn().Str("binary", binaryName).Msg("no config for orphaned process")
+			o.log.Warn().Str("binary", pidName).Msg("no config for orphaned process")
 			continue
 		}
 
@@ -1310,6 +1363,86 @@ func (o *Orchestrator) SetCoreVariant(ctx context.Context, id string) error {
 		}
 	}
 	return nil
+}
+
+// UseTestSidechains reports the persisted test-sidechains preference.
+func (o *Orchestrator) UseTestSidechains() bool {
+	if o.Settings == nil {
+		return false
+	}
+	return o.Settings.UseTestSidechains()
+}
+
+// SetTestSidechains flips the persisted test-sidechains toggle. The flow is:
+//  1. Stop every running layer-2 (sidechain) binary, escalating to SIGKILL on
+//     graceful failure.
+//  2. Persist the new value before any wipe so a crash leaves coherent state.
+//  3. Wipe on-disk binaries for both production and test layouts so the next
+//     launch redownloads from the correct source.
+//
+// We don't auto-restart anything: the frontend triggers redownload + start
+// on the user's next StartWithL1.
+func (o *Orchestrator) SetTestSidechains(ctx context.Context, enabled bool) error {
+	if o.Settings == nil {
+		return fmt.Errorf("orchestrator settings not initialised")
+	}
+
+	o.testSidechainsMu.Lock()
+	defer o.testSidechainsMu.Unlock()
+
+	if o.Settings.UseTestSidechains() == enabled {
+		return nil
+	}
+
+	// Collect every layer-2 config once; we'll iterate twice (stop + wipe).
+	var l2 []BinaryConfig
+	for _, c := range o.Configs() {
+		if c.ChainLayer == 2 {
+			l2 = append(l2, c)
+		}
+	}
+
+	for _, c := range l2 {
+		if !o.process.IsRunning(c.Name) {
+			continue
+		}
+		if err := o.stopBinary(ctx, c.Name, false); err != nil {
+			o.log.Warn().Err(err).Str("binary", c.Name).Msg("graceful stop failed during test-sidechains switch, escalating to SIGKILL")
+			if killErr := o.stopBinary(ctx, c.Name, true); killErr != nil {
+				return fmt.Errorf("stop %s for test-sidechains switch: graceful failed (%v) and force kill failed: %w", c.Name, err, killErr)
+			}
+		}
+	}
+
+	if _, err := o.Settings.SetUseTestSidechains(enabled); err != nil {
+		return fmt.Errorf("persist test-sidechains: %w", err)
+	}
+
+	for _, c := range l2 {
+		o.wipeSidechainBinaries(c)
+	}
+	return nil
+}
+
+// wipeSidechainBinaries removes both prod and test on-disk layouts for a
+// layer-2 config so the next download writes to a clean slot. Logs every
+// removal so the user has a paper trail of what got nuked.
+func (o *Orchestrator) wipeSidechainBinaries(c BinaryConfig) {
+	prodPath := BinaryPath(o.DataDir, c.BinaryName)
+	if err := os.Remove(prodPath); err == nil {
+		o.log.Info().Str("binary", c.Name).Str("path", prodPath).Msg("wiped sidechain binary (prod) for test-sidechains switch")
+	} else if !os.IsNotExist(err) {
+		o.log.Warn().Err(err).Str("path", prodPath).Msg("could not remove prod sidechain binary")
+	}
+
+	if c.AltBinaryName != "" {
+		testPath := TestSidechainBinaryPath(o.DataDir, c.AltBinaryName)
+		if err := os.Remove(testPath); err == nil {
+			o.log.Info().Str("binary", c.Name).Str("path", testPath).Msg("wiped sidechain binary (test) for test-sidechains switch")
+		} else if !os.IsNotExist(err) {
+			o.log.Warn().Err(err).Str("path", testPath).Msg("could not remove test sidechain binary")
+		}
+	}
 }
 
 // stopBitcoindForVariantSwap stops bitcoind, escalating to SIGKILL on graceful

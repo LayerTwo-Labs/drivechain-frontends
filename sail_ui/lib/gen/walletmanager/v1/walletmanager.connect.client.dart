@@ -490,6 +490,42 @@ extension type WalletManagerServiceClient (connect.Transport _transport) {
     );
   }
 
+  /// Test-sidechains toggle. When enabled, layer-2 binaries download/run from
+  /// the alternative_download config (test builds) instead of the default.
+  Future<walletmanagerv1walletmanager.GetTestSidechainsResponse> getTestSidechains(
+    walletmanagerv1walletmanager.GetTestSidechainsRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.WalletManagerService.getTestSidechains,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
+  Future<walletmanagerv1walletmanager.SetTestSidechainsResponse> setTestSidechains(
+    walletmanagerv1walletmanager.SetTestSidechainsRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.WalletManagerService.setTestSidechains,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
   /// Stream wallet state changes. Sends the full wallet state immediately,
   /// then again whenever wallets or balance change.
   Stream<walletmanagerv1walletmanager.WatchWalletDataResponse> watchWalletData(

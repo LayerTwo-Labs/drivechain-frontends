@@ -212,6 +212,22 @@ abstract final class WalletManagerService {
     walletmanagerv1walletmanager.SetCoreVariantResponse.new,
   );
 
+  /// Test-sidechains toggle. When enabled, layer-2 binaries download/run from
+  /// the alternative_download config (test builds) instead of the default.
+  static const getTestSidechains = connect.Spec(
+    '/$name/GetTestSidechains',
+    connect.StreamType.unary,
+    walletmanagerv1walletmanager.GetTestSidechainsRequest.new,
+    walletmanagerv1walletmanager.GetTestSidechainsResponse.new,
+  );
+
+  static const setTestSidechains = connect.Spec(
+    '/$name/SetTestSidechains',
+    connect.StreamType.unary,
+    walletmanagerv1walletmanager.SetTestSidechainsRequest.new,
+    walletmanagerv1walletmanager.SetTestSidechainsResponse.new,
+  );
+
   /// Stream wallet state changes. Sends the full wallet state immediately,
   /// then again whenever wallets or balance change.
   static const watchWalletData = connect.Spec(
