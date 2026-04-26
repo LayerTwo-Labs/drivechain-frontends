@@ -76,8 +76,11 @@ func TestDownload_SidechainVariant_HitsAltURL(t *testing.T) {
 	assert.True(t, last.Done)
 	assert.Equal(t, "/thunder-test.zip", requested)
 
-	// Test build lands under bin/test/, prod path stays empty.
-	expected := filepath.Join(BinDir(dir), "test", binName)
+	// Test build lands under bin/test/<binary>/<binary> — Flutter app
+	// archives need a per-binary namespace for their lib/data trees, so
+	// every test sidechain extracts into its own subdirectory and the
+	// resolver finds the binary inside.
+	expected := TestSidechainBinaryPath(dir, "thunder")
 	got, err := os.ReadFile(expected)
 	require.NoError(t, err)
 	assert.Equal(t, "test-bin", string(got))
@@ -167,7 +170,7 @@ func TestDownload_SidechainVariant_CoexistsWithProd(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, "prod-bin", string(prod))
 
-	test, err := os.ReadFile(filepath.Join(BinDir(dir), "test", binName))
+	test, err := os.ReadFile(TestSidechainBinaryPath(dir, "thunder"))
 	require.NoError(t, err)
 	assert.Equal(t, "test-bin", string(test))
 }
@@ -298,10 +301,14 @@ func TestIntegration_TestSidechains_FreshSwitchHitsAltURL(t *testing.T) {
 	assert.Contains(t, requested, "/test/thunder.zip", "must hit alt URL when toggle is on")
 	assert.NotContains(t, requested, "/prod/thunder.zip")
 
-	// Test build lives under bin/test/.
+	// Test build lives under bin/test/<binary>/<binary>.
 	got, err := os.ReadFile(TestSidechainBinaryPath(dataDir, "thunder"))
 	require.NoError(t, err)
 	assert.Equal(t, "test-bin", string(got))
+	// Per-binary directory exists.
+	scDir, err := os.Stat(TestSidechainDir(dataDir, "thunder"))
+	require.NoError(t, err)
+	assert.True(t, scDir.IsDir())
 
 	// Status reports Downloaded=true via the test path.
 	status := o.Status("thunder")
