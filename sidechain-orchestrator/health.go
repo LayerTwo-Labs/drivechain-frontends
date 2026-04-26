@@ -159,6 +159,19 @@ func NewHealthChecker(config BinaryConfig, opts ...HealthCheckOpts) HealthChecke
 
 	switch config.HealthCheckType {
 	case HealthCheckJSONRPC:
+		// Bitcoin Core needs presync detection on top of the basic ping —
+		// during BIP324 headers-presync, getblockcount returns 0 cleanly, so
+		// the regular check would flip connected=true with blocks=0/headers=0
+		// and the UI would look frozen. BitcoindHealthCheck synthesises a
+		// startup error containing the presync height instead.
+		if config.IsBitcoinCore {
+			return &BitcoindHealthCheck{
+				URL:      fmt.Sprintf("http://%s:%d", host, config.Port),
+				User:     opt.User,
+				Password: opt.Password,
+				Timeout:  timeout,
+			}
+		}
 		method := config.HealthCheckRPC
 		if method == "" {
 			method = "getblockcount"
