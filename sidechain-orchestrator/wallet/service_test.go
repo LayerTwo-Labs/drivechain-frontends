@@ -789,3 +789,65 @@ func TestServiceEncryptedPersistence(t *testing.T) {
 	assert.Equal(t, w.ID, svc2.ActiveWalletID())
 	assert.Equal(t, "EncPersist", svc2.ActiveWalletName())
 }
+
+func TestServiceLegacyWalletTypeBackfill(t *testing.T) {
+	dir := t.TempDir()
+	log := zerolog.New(zerolog.NewTestWriter(t)).With().Timestamp().Logger()
+
+	// Hand-write a wallet.json that omits wallet_type — mirrors what users
+	// generated before the field existed. Both shapes need a fix-up on load:
+	// a wallet with a master mnemonic should land as "enforcer", a wallet
+	// without one should land as "watchOnly". Without the backfill, the
+	// receive-tab BIP47 spinner and the Starters tab both stay blank for
+	// these legacy installs because every code path that branches on
+	// wallet_type defaults to "not enforcer".
+	legacyJSON := []byte(`{
+		"version": 1,
+		"activeWalletId": "LEGACY1",
+		"wallets": [
+			{
+				"version": 1,
+				"id": "LEGACY1",
+				"name": "Legacy Hot",
+				"createdAt": "2025-01-01T00:00:00Z",
+				"master": {"mnemonic": "abandon abandon abandon", "seed_hex": ""},
+				"l1": {"mnemonic": ""},
+				"sidechains": []
+			},
+			{
+				"version": 1,
+				"id": "LEGACY2",
+				"name": "Legacy Watch",
+				"createdAt": "2025-01-01T00:00:00Z",
+				"master": {"mnemonic": "", "seed_hex": ""},
+				"l1": {"mnemonic": ""},
+				"sidechains": []
+			}
+		]
+	}`)
+	require.NoError(t, os.WriteFile(filepath.Join(dir, "wallet.json"), legacyJSON, 0o600))
+
+	svc := NewService(dir, log)
+	require.NoError(t, svc.Init())
+	defer svc.Close()
+
+	wallets := svc.ListWallets()
+	require.Len(t, wallets, 2)
+
+	byID := map[string]string{}
+	for _, w := range wallets {
+		byID[w.ID] = w.WalletType
+	}
+	assert.Equal(t, "enforcer", byID["LEGACY1"], "wallet with mnemonic should backfill to enforcer")
+	assert.Equal(t, "watchOnly", byID["LEGACY2"], "wallet without mnemonic should backfill to watchOnly")
+
+	// Reload to confirm the backfill persisted to disk — otherwise the
+	// receive-tab spinner would come back next launch.
+	svc.Close()
+	svc2 := NewService(dir, log)
+	require.NoError(t, svc2.Init())
+	defer svc2.Close()
+	for _, w := range svc2.ListWallets() {
+		require.NotEmpty(t, w.WalletType, "wallet_type must persist after backfill")
+	}
+}

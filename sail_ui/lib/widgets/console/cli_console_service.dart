@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -6,8 +7,11 @@ import 'package:get_it/get_it.dart';
 import 'package:path/path.dart' as path;
 import 'package:sail_ui/sail_ui.dart';
 
-/// Console view backed by the on-disk CLI binaries (bitcoin-cli, enforcer-cli, …).
-/// Discovers binaries on first build, then delegates to [ConsoleView].
+/// Console view backed by the on-disk CLI binaries (bitcoin-cli, …) plus
+/// a synthetic enforcer-cli powered by the bitwindowd JSON bridge. The real
+/// `bitcoin-cli` is shipped alongside `bitcoind` in the Bitcoin Core archive
+/// and discovered on disk; the enforcer ships no CLI of its own, hence the
+/// JSON-bridge wrapper.
 class CLIConsoleView extends StatefulWidget {
   const CLIConsoleView({super.key});
 
@@ -30,7 +34,7 @@ class _CLIConsoleViewState extends State<CLIConsoleView> {
         if (services.isEmpty) {
           return Center(
             child: SailText.primary13(
-              'No CLI binaries found. Make sure binaries are downloaded.',
+              'No CLI services available.',
             ),
           );
         }
@@ -44,6 +48,11 @@ class CLIConsole {
   static const _maxOutputBytes = 200 * 1024;
   static const _commandTimeout = Duration(minutes: 5);
 
+  /// Real CLI binaries we discover on disk and exec. Every binary downloaded
+  /// by the orchestrator lands in BitWindow's `assets/bin/` (the Bitcoin Core
+  /// archive ships `bitcoin-cli`, `bitcoin-util`, etc. alongside `bitcoind`).
+  /// The enforcer is intentionally absent — it has no native CLI; we expose
+  /// it via the synthetic [_buildEnforcerService] instead.
   static const _binaryToCLI = {
     'BitcoinCore': 'bitcoin-cli',
     'BitWindow': 'bitwindow-cli',
@@ -54,16 +63,13 @@ class CLIConsole {
     'BitAssets': 'bitassets-cli',
     'CoinShift': 'coinshift-cli',
     'ZSide': 'zside-cli',
-    'GRPCurl': 'grpcurl',
     'Orchestratord': 'orchestratorctl',
   };
 
-  /// Discover available CLI executables on disk. Returns map of cli name → absolute path.
-  ///
-  /// Every binary is downloaded into the BitWindow app dir's `assets/bin/`,
-  /// not into per-binary frontend dirs. Resolving from each binary's own
-  /// `frontendDir()` (the previous approach) pointed at sidechain-app dirs
-  /// that don't exist on a BitWindow-only install, so nothing was ever found.
+  /// Discover available CLI executables on disk. Returns map of cli name →
+  /// absolute path. Walks `assets/bin` recursively so binaries that landed in
+  /// per-variant subfolders (Core variants, test sidechain builds) are
+  /// still found.
   static Future<Map<String, String>> discoverCLIs() async {
     final available = <String, String>{};
     final exeSuffix = Platform.isWindows ? '.exe' : '';
@@ -100,36 +106,79 @@ class CLIConsole {
     }
   }
 
-  /// Build console services for every detected CLI, plus the enforcer-cli wrapper.
+  /// Build console services: real CLI binaries on disk, plus the synthetic
+  /// enforcer-cli (gRPC has no native CLI client we can ship).
   static Future<List<ConsoleService>> buildServices() async {
-    final clis = await discoverCLIs();
     final services = <ConsoleService>[];
 
+    final clis = await discoverCLIs();
     for (final entry in clis.entries) {
       services.add(
         ConsoleService(
           name: entry.key,
           commands: [entry.key],
-          execute: (command, args) => _execute(entry.key, entry.value, args),
+          execute: (command, args) => _execProcess(entry.key, entry.value, args),
         ),
       );
     }
 
-    final grpcurl = clis['grpcurl'];
-    if (grpcurl != null) {
-      services.add(
-        ConsoleService(
-          name: 'enforcer-cli',
-          commands: ['enforcer-cli'],
-          execute: (command, args) => _execute('enforcer-cli', grpcurl, args),
-        ),
-      );
-    }
+    final enforcer = _buildEnforcerService();
+    if (enforcer != null) services.add(enforcer);
 
     return services;
   }
 
-  static Future<String> _execute(
+  /// Synthetic `enforcer-cli` powered by the bitwindowd JSON bridge at
+  /// `localhost:30301/<method>` — bridge-transcodes JSON to the enforcer's
+  /// gRPC. Usage:
+  ///
+  /// `enforcer-cli cusf.mainchain.v1.ValidatorService/GetChainTip`
+  /// `enforcer-cli cusf.mainchain.v1.WalletService/GetBalance {}`
+  static ConsoleService? _buildEnforcerService() {
+    if (!GetIt.I.isRegistered<EnforcerRPC>()) return null;
+    final rpc = GetIt.I.get<EnforcerRPC>();
+    final commands = <String>['enforcer-cli', ...rpc.getMethods()];
+    return ConsoleService(
+      name: 'enforcer-cli',
+      commands: commands,
+      execute: (command, args) async {
+        String method;
+        List<String> rest;
+        if (command == 'enforcer-cli') {
+          if (args.isEmpty) {
+            return 'usage: enforcer-cli <Service/Method> [json_body]';
+          }
+          method = args.first;
+          rest = args.sublist(1);
+        } else {
+          method = command;
+          rest = args;
+        }
+
+        final body = rest.isEmpty ? '{}' : rest.join(' ');
+        try {
+          final result = await rpc.callRAW(method, body).timeout(_commandTimeout);
+          return _formatJson(result);
+        } on TimeoutException {
+          throw 'rpc timed out after ${_commandTimeout.inMinutes}m';
+        }
+      },
+    );
+  }
+
+  static String _formatJson(dynamic value) {
+    if (value == null) return '';
+    if (value is String) {
+      try {
+        return const JsonEncoder.withIndent('  ').convert(jsonDecode(value));
+      } catch (_) {
+        return value;
+      }
+    }
+    return const JsonEncoder.withIndent('  ').convert(value);
+  }
+
+  static Future<String> _execProcess(
     String cli,
     String exePath,
     List<String> args,
@@ -170,8 +219,6 @@ class CLIConsole {
 
   static List<String> _wrapArgs(String cli, List<String> args) {
     switch (cli) {
-      case 'enforcer-cli':
-        return ['-plaintext', 'localhost:50051', ...args];
       case 'bitcoin-cli':
         try {
           final conf = BitcoinCore().confFile();

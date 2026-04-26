@@ -335,16 +335,20 @@ func masterFingerprint(masterKey *bip32.Key) string {
 
 // Bip47PaymentCodeFromSeed returns the BIP47 v1 spec-compliant payment code
 // (m/47'/0'/0' xpub serialized as 81-byte base58check with version 0x47) for a
-// BIP32 seed. Returns "" if seedHex is empty or malformed.
-func Bip47PaymentCodeFromSeed(seedHex string) string {
+// BIP32 seed. Returns ("", nil) for an empty seed (watch-only wallet) so the
+// UI can distinguish "not applicable" from "still computing". A non-nil error
+// means the seed parsed but BIP47 derivation failed — caller should log it
+// instead of silently returning an empty code, which the UI can't tell apart
+// from a still-loading state.
+func Bip47PaymentCodeFromSeed(seedHex string) (string, error) {
 	if seedHex == "" {
-		return ""
+		return "", nil
 	}
 	pc, err := bip47.PaymentCodeFromSeed(seedHex)
 	if err != nil {
-		return ""
+		return "", fmt.Errorf("bip47: derive payment code: %w", err)
 	}
-	return pc.Base58()
+	return pc.Base58(), nil
 }
 
 // hash160 computes RIPEMD160(SHA256(data)).

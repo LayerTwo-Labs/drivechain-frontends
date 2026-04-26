@@ -10,10 +10,12 @@ WalletData _wallet({
   required BinaryType type,
   String l1 = '',
   List<SidechainWallet> sidechains = const [],
+  String? walletTypeRaw,
+  String masterMnemonic = '',
 }) {
   return WalletData(
     version: 1,
-    master: MasterWallet(mnemonic: '', seedHex: '', masterKey: '', chainCode: ''),
+    master: MasterWallet(mnemonic: masterMnemonic, seedHex: '', masterKey: '', chainCode: ''),
     l1: L1Wallet(mnemonic: l1),
     sidechains: sidechains,
     id: id,
@@ -21,6 +23,7 @@ WalletData _wallet({
     gradient: WalletGradient.fromWalletId(id),
     createdAt: DateTime.utc(2026, 1, 1),
     walletType: type,
+    walletTypeRaw: walletTypeRaw ?? type.name,
   );
 }
 
@@ -79,5 +82,24 @@ void main() {
 
     expect(provider.enforcerWallet, isNull);
     expect(provider.getL1Mnemonic(), isNull);
+  });
+
+  test('isWatchOnly is driven by raw proto walletType, not BinaryType', () {
+    // The proto's "watchOnly" string has no BinaryType counterpart, so the
+    // enum field gets a junk fallback. The raw string is the only signal
+    // the receive-tab can trust to swap the indefinite BIP47 spinner for
+    // the "not available" message.
+    final watchOnly = _wallet(
+      id: 'wo',
+      type: BinaryType.enforcer, // junk fallback the proto parser produces
+      walletTypeRaw: 'watchOnly',
+    );
+    final hot = _wallet(
+      id: 'hot',
+      type: BinaryType.enforcer,
+      walletTypeRaw: 'enforcer',
+    );
+    expect(watchOnly.isWatchOnly, isTrue);
+    expect(hot.isWatchOnly, isFalse);
   });
 }
