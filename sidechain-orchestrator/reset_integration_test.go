@@ -68,7 +68,7 @@ func bitwindowRoot(home string) string {
 		// Matches chains_config.json "windows": "10520LayertwoLabs/BitWindow"
 		return filepath.Join(appRoot(home), "10520LayertwoLabs", "BitWindow")
 	default:
-		return filepath.Join(appRoot(home), "com.layertwolabs.bitwindow")
+		return filepath.Join(appRoot(home), "bitwindow")
 	}
 }
 

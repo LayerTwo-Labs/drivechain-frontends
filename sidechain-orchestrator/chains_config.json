@@ -100,13 +100,13 @@
       "directories": {
         "binary": {
           "default": {
-            "linux": "com.layertwolabs.bitwindow",
+            "linux": "bitwindow",
             "macos": "bitwindow",
             "windows": "10520LayertwoLabs/BitWindow"
           }
         },
         "flutter_frontend": {
-          "linux": "com.layertwolabs.bitwindow",
+          "linux": "bitwindow",
           "macos": "bitwindow",
           "windows": "10520LayertwoLabs/BitWindow"
         }
