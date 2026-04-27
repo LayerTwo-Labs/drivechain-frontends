@@ -25,6 +25,7 @@ type RpcClients struct {
 	Zside     *jsonrpc.Client
 	CoinShift *jsonrpc.Client
 	Photon    *jsonrpc.Client
+	Truthcoin *jsonrpc.Client
 }
 
 func New(
@@ -39,6 +40,7 @@ func New(
 		rpcClients.Zside,
 		rpcClients.CoinShift,
 		rpcClients.Photon,
+		rpcClients.Truthcoin,
 	}
 }
 
@@ -50,6 +52,7 @@ type Server struct {
 	zside     *jsonrpc.Client
 	coinshift *jsonrpc.Client
 	photon    *jsonrpc.Client
+	truthcoin *jsonrpc.Client
 }
 
 func (s *Server) GetChainTips(ctx context.Context, req *connect.Request[pb.GetChainTipsRequest]) (*connect.Response[pb.GetChainTipsResponse], error) {
@@ -140,6 +143,16 @@ func (s *Server) GetChainTips(ctx context.Context, req *connect.Request[pb.GetCh
 			return fmt.Errorf("get photon tip: %w", err)
 		}
 		res.Photon = fetched
+		return nil
+	})
+
+	p.Go(func(ctx context.Context) error {
+		var err error
+		fetched, err := s.getSidechainTip(ctx, s.truthcoin, bestMainchainBlock.Msg)
+		if err != nil {
+			return fmt.Errorf("get truthcoin tip: %w", err)
+		}
+		res.Truthcoin = fetched
 		return nil
 	})
 

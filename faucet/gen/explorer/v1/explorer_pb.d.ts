@@ -127,6 +127,13 @@ export declare type GetChainTipsResponse = Message<"explorer.v1.GetChainTipsResp
    * @generated from field: explorer.v1.ChainTip photon = 7;
    */
   photon?: ChainTip;
+
+  /**
+   * L2-S13
+   *
+   * @generated from field: explorer.v1.ChainTip truthcoin = 8;
+   */
+  truthcoin?: ChainTip;
 };
 
 /**
@@ -181,6 +188,13 @@ export declare type GetChainTipsResponseJson = {
    * @generated from field: explorer.v1.ChainTip photon = 7;
    */
   photon?: ChainTipJson;
+
+  /**
+   * L2-S13
+   *
+   * @generated from field: explorer.v1.ChainTip truthcoin = 8;
+   */
+  truthcoin?: ChainTipJson;
 };
 
 /**

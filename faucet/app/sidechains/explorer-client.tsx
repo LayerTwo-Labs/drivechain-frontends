@@ -93,6 +93,13 @@ export function ExplorerClient({ initialData }: ExplorerClientProps) {
           repoUrl="https://github.com/LayerTwo-Labs/photon"
           mainchainTimestamp={data?.mainchain?.timestamp}
         />
+        <BlockCard
+          title="Truthcoin"
+          subtitle="Most recent block on the Truthcoin sidechain (L2-S13)"
+          block={data?.truthcoin}
+          repoUrl="https://github.com/LayerTwo-Labs/truthcoin-dc"
+          mainchainTimestamp={data?.mainchain?.timestamp}
+        />
       </div>
 
       <Card>
