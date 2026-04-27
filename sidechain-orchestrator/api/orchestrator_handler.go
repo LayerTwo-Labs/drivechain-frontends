@@ -374,6 +374,7 @@ func statusToProto(s orchestrator.BinaryStatus) *pb.BinaryStatusMsg {
 		Downloadable:    s.Downloadable,
 		Description:     s.Description,
 		Downloaded:      s.Downloaded,
+		BinaryPath:      s.BinaryPath,
 		PortInUse:       s.PortInUse,
 		Version:         s.Version,
 		RepoUrl:         s.RepoURL,

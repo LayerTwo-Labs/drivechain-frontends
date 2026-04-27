@@ -46,6 +46,7 @@ type BinaryStatus struct {
 	Downloadable    bool   // binary has download URLs configured
 	Description     string // short description of the binary
 	Downloaded      bool   // binary file exists on disk
+	BinaryPath      string // absolute path to the launchable binary (variant-aware), empty when not downloaded
 	PortInUse       bool   // port is reachable (something is listening)
 	Version         string // configured version string
 	RepoURL         string // source code repository URL
@@ -447,7 +448,8 @@ func (o *Orchestrator) Status(name string) BinaryStatus {
 			binPath = TestSidechainBinaryPath(o.DataDir, sv.BinaryName)
 		}
 	}
-	_, downloaded := os.Stat(binPath)
+	_, statErr := os.Stat(binPath)
+	downloaded := statErr == nil
 	status := BinaryStatus{
 		Name:         config.Name,
 		DisplayName:  config.DisplayName,
@@ -455,9 +457,12 @@ func (o *Orchestrator) Status(name string) BinaryStatus {
 		Port:         config.Port,
 		Downloadable: config.Downloadable(),
 		Description:  config.Description,
-		Downloaded:   downloaded == nil,
+		Downloaded:   downloaded,
 		Version:      config.Version,
 		RepoURL:      config.RepoURL,
+	}
+	if downloaded {
+		status.BinaryPath = binPath
 	}
 
 	if proc != nil {

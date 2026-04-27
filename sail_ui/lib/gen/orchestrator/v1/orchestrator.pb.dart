@@ -39,6 +39,7 @@ class BinaryStatusMsg extends $pb.GeneratedMessage {
     $core.String? version,
     $core.String? repoUrl,
     $core.Iterable<StartupLogEntryMsg>? startupLogs,
+    $core.String? binaryPath,
   }) {
     final $result = create();
     if (name != null) {
@@ -107,6 +108,9 @@ class BinaryStatusMsg extends $pb.GeneratedMessage {
     if (startupLogs != null) {
       $result.startupLogs.addAll(startupLogs);
     }
+    if (binaryPath != null) {
+      $result.binaryPath = binaryPath;
+    }
     return $result;
   }
   BinaryStatusMsg._() : super();
@@ -136,6 +140,7 @@ class BinaryStatusMsg extends $pb.GeneratedMessage {
     ..aOS(20, _omitFieldNames ? '' : 'version')
     ..aOS(21, _omitFieldNames ? '' : 'repoUrl')
     ..pc<StartupLogEntryMsg>(22, _omitFieldNames ? '' : 'startupLogs', $pb.PbFieldType.PM, subBuilder: StartupLogEntryMsg.create)
+    ..aOS(23, _omitFieldNames ? '' : 'binaryPath')
     ..hasRequiredFields = false
   ;
 
@@ -351,6 +356,18 @@ class BinaryStatusMsg extends $pb.GeneratedMessage {
 
   @$pb.TagNumber(22)
   $core.List<StartupLogEntryMsg> get startupLogs => $_getList(21);
+
+  /// Absolute path to the launchable binary on disk (variant-aware: returns
+  /// bin/test/<binary>/... for active sidechain alt-builds, the resolved
+  /// .app/Contents/MacOS path on macOS, etc.). Empty when not downloaded.
+  @$pb.TagNumber(23)
+  $core.String get binaryPath => $_getSZ(22);
+  @$pb.TagNumber(23)
+  set binaryPath($core.String v) { $_setString(22, v); }
+  @$pb.TagNumber(23)
+  $core.bool hasBinaryPath() => $_has(22);
+  @$pb.TagNumber(23)
+  void clearBinaryPath() => clearField(23);
 }
 
 class StartupLogEntryMsg extends $pb.GeneratedMessage {
