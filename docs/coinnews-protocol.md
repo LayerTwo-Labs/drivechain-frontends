@@ -6,7 +6,7 @@ CoinNews encodes a topic-scoped bulletin board — stories, threaded
 comments, signed votes — inside Bitcoin `OP_RETURN` outputs.
 Indexers reach the same view by scanning blocks; no trusted server.
 Wire format is engineered for byte-efficiency (Vote = 111 B,
-headline-only Story = 6 B + headline) so on-chain footprint per
+headline-only Story = 8 B + headline) so on-chain footprint per
 message stays close to the irreducible signature + reference cost.
 
 ## Definitions
@@ -185,7 +185,8 @@ TopicID wins; later collisions are silently ignored.
 
 Headline is a varint-prefixed UTF-8 string. The trailing TLV section
 (§10) carries optional `url`, `body`, `subtype`, etc. A
-headline-only Story is 7 + headline bytes.
+headline-only Story is 8 + headline bytes (`magic 2 + tag 1 + topic 4
++ headline-length varint 1 + headline`).
 
 Stories are unsigned: attribution falls to the spending transaction's
 first input address. Implementations wanting cryptographic authorship

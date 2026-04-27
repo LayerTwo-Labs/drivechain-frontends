@@ -8,7 +8,7 @@ import (
 )
 
 // ItemID is the 12-byte truncated SHA-256 of a CoinNews Item's outpoint
-// (BIP §4). 96 bits of collision space — at any plausible CoinNews
+// (spec §4). 96 bits of collision space — at any plausible CoinNews
 // volume the chance of any collision is < 10⁻¹³.
 type ItemID [ItemIDLen]byte
 

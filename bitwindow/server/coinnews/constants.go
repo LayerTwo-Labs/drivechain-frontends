@@ -1,11 +1,11 @@
 package coinnews
 
 // Magic is the 2-byte prefix every CoinNews payload starts with — see
-// BIP §1. Lets indexers reject non-CoinNews OP_RETURN traffic with a
+// spec §1. Lets indexers reject non-CoinNews OP_RETURN traffic with a
 // 2-byte prefix scan.
 var Magic = [2]byte{'C', 'N'}
 
-// TypeTag identifies the payload that follows Magic. See BIP §1.
+// TypeTag identifies the payload that follows Magic. See spec §1.
 type TypeTag byte
 
 const (
@@ -40,7 +40,7 @@ const (
 	HeadlineMaxLen = 252
 )
 
-// TLVTag values defined in BIP §10. Tags 0x80–0xef are reserved for the
+// TLVTag values defined in spec §10. Tags 0x80–0xef are reserved for the
 // out-of-band metadata registry; 0xf0–0xff for application-private
 // extensions.
 type TLVTag byte

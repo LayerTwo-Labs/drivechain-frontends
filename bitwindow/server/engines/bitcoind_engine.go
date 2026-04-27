@@ -173,6 +173,13 @@ func (p *Parser) handleBlockTick(ctx context.Context) error {
 		lastProcessedHeight -= 20
 		zerolog.Ctx(ctx).Trace().
 			Msgf("bitcoind_engine/parser: detected reorg, processing last 20 blocks")
+
+		// Wipe the CoinNews rows that came from blocks we're about to
+		// replay; otherwise the canonical first-wins rules see stale
+		// orphans from the pre-reorg chain and ignore the new winners.
+		if err := p.purgeCoinNewsAtOrAbove(ctx, lastProcessedHeight+1); err != nil {
+			return fmt.Errorf("purge coinnews on reorg: %w", err)
+		}
 	}
 
 	const batchSize = 30
@@ -265,6 +272,14 @@ func (p *Parser) handleBlockTick(ctx context.Context) error {
 // and marks the block as processed.
 func (p *Parser) processBlocks(ctx context.Context, coreBlocks []lo.Tuple2[uint32, *wire.MsgBlock]) error {
 
+	// CoinNews indexing must commit BEFORE the block is marked processed:
+	// if it fails, we want the next sync attempt to retry, not skip the
+	// block as already-done. Sequential, canonical-order pass — see
+	// indexCoinNewsBlocks for the spec rationale.
+	if err := p.indexCoinNewsBlocks(ctx, coreBlocks); err != nil {
+		return fmt.Errorf("index coinnews: %w", err)
+	}
+
 	// Insert the processed blocks
 	if err := blocks.MarkBlocksProcessed(ctx, p.db, lo.Map(coreBlocks, func(t lo.Tuple2[uint32, *wire.MsgBlock], _ int) blocks.ProcessedBlock {
 		height, block := t.Unpack()
@@ -311,7 +326,9 @@ func (p *Parser) HandleNewRawTransaction(
 	return nil
 }
 
-// Nil height means unconfirmed. Nil time means we don't know the TX time
+// Nil height means unconfirmed. Nil time means we don't know the TX time.
+// CoinNews indexing runs separately, in canonical scan order, after all
+// blocks in a batch are fetched (see processBlocks).
 func (p *Parser) opReturnForTXID(
 	ctx context.Context, tx *wire.MsgTx,
 	height *uint32, createdAt *time.Time,
@@ -606,6 +623,12 @@ func (p *Parser) handleOpReturns(
 			Msgf("bitcoind_engine/parser: found OP_RETURN")
 
 		p.logCoinnews(txid, vout, data, height)
+
+		// CoinNews indexing happens elsewhere — we cannot do it here
+		// because handleOpReturns runs concurrently across blocks in
+		// a batch, and the spec's first-wins/last-wins rules require
+		// canonical (height, tx_index, vout_index) order. See
+		// processBlocks → indexCoinNewsBlocks.
 
 		// Always fetch fee for OP_RETURN transactions. This avoids a race
 		// condition where blocks are processed in parallel and a topic
