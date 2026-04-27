@@ -72,27 +72,6 @@ func Parse() (Config, error) {
 		conf.BitcoinCoreRpcPassword = password
 	}
 
-	// Handle network/URL derivation
-	switch {
-	case conf.BitcoinCoreNetwork != "" && conf.BitcoinCoreURL != "":
-		// Both set - use as provided
-	case conf.BitcoinCoreNetwork != "" && conf.BitcoinCoreURL == "":
-		// Network set, derive URL
-		conf.BitcoinCoreURL = deriveURLFromNetwork(conf.BitcoinCoreNetwork)
-		if conf.BitcoinCoreURL == "" {
-			return Config{}, fmt.Errorf("could not derive URL from network %q", conf.BitcoinCoreNetwork)
-		}
-	case conf.BitcoinCoreNetwork == "" && conf.BitcoinCoreURL != "":
-		// URL set, derive network
-		conf.BitcoinCoreNetwork = deriveNetworkFromURL(conf.BitcoinCoreURL)
-		if conf.BitcoinCoreNetwork == "" {
-			return Config{}, fmt.Errorf("could not derive network from URL %q: please specify --bitcoincore.network flag", conf.BitcoinCoreURL)
-		}
-	default:
-		// Neither set
-		return Config{}, errors.New("either --bitcoincore.network or --bitcoincore.url must be specified")
-	}
-
 	if conf.Datadir == "" {
 		datadir, err := dir.DefaultDataDir()
 		if err != nil {
@@ -101,20 +80,56 @@ func Parse() (Config, error) {
 		conf.Datadir = datadir
 	}
 
-	// Append network subdirectory
-	conf.Datadir = filepath.Join(conf.Datadir, string(conf.BitcoinCoreNetwork))
-
-	if conf.LogPath == "" {
-		conf.LogPath = filepath.Join(conf.Datadir, "server.log")
-	}
-
-	// Ensure the data directory exists
-	err := os.MkdirAll(conf.Datadir, 0755)
-	if err != nil && !os.IsExist(err) {
-		return Config{}, fmt.Errorf("create data directory: %w", err)
-	}
-
 	return conf, nil
+}
+
+// BitwindowDir returns the parent dir before the per-network suffix is
+// appended in Finalize. bitwindow-bitcoin.conf and wallet.json live here.
+func (c *Config) BitwindowDir() string {
+	return c.Datadir
+}
+
+// Finalize resolves the network/URL/auth and appends the per-network suffix
+// to Datadir. Call exactly once after Parse, before opening the log file or
+// using any path/URL fields. The two args come from BitcoinConfManager when
+// it is available; pass empty values to fall back to the CLI flags.
+func (c *Config) Finalize(confNetwork Network, confRPCPort int) error {
+	switch {
+	case confNetwork != "":
+		// bitwindow-bitcoin.conf wins. CLI --bitcoincore.network was just a seed.
+		c.BitcoinCoreNetwork = confNetwork
+		if confRPCPort > 0 {
+			c.BitcoinCoreURL = fmt.Sprintf("http://localhost:%d", confRPCPort)
+		} else {
+			c.BitcoinCoreURL = deriveURLFromNetwork(confNetwork)
+		}
+	case c.BitcoinCoreNetwork != "" && c.BitcoinCoreURL != "":
+		// Flags set explicitly, no conf manager — used by integration tests.
+	case c.BitcoinCoreNetwork != "" && c.BitcoinCoreURL == "":
+		c.BitcoinCoreURL = deriveURLFromNetwork(c.BitcoinCoreNetwork)
+		if c.BitcoinCoreURL == "" {
+			return fmt.Errorf("could not derive URL from network %q", c.BitcoinCoreNetwork)
+		}
+	case c.BitcoinCoreNetwork == "" && c.BitcoinCoreURL != "":
+		c.BitcoinCoreNetwork = deriveNetworkFromURL(c.BitcoinCoreURL)
+		if c.BitcoinCoreNetwork == "" {
+			return fmt.Errorf("could not derive network from URL %q: please specify --bitcoincore.network flag", c.BitcoinCoreURL)
+		}
+	default:
+		return errors.New("either --bitcoincore.network or --bitcoincore.url must be specified")
+	}
+
+	c.Datadir = filepath.Join(c.Datadir, string(c.BitcoinCoreNetwork))
+
+	if c.LogPath == "" {
+		c.LogPath = filepath.Join(c.Datadir, "server.log")
+	}
+
+	if err := os.MkdirAll(c.Datadir, 0755); err != nil && !os.IsExist(err) {
+		return fmt.Errorf("create data directory: %w", err)
+	}
+
+	return nil
 }
 
 func deriveURLFromNetwork(network Network) string {

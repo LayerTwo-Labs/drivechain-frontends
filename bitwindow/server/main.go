@@ -25,6 +25,7 @@ import (
 	dial "github.com/LayerTwo-Labs/sidesail/bitwindow/server/dial"
 	engines "github.com/LayerTwo-Labs/sidesail/bitwindow/server/engines"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/version"
+	orchconfig "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config"
 	cryptorpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/crypto/v1/cryptov1connect"
 	rpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1/mainchainv1connect"
 	orchpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/orchestrator/v1"
@@ -85,6 +86,44 @@ func realMain(ctx context.Context, cancelCtx context.CancelFunc) error {
 		return nil
 	}
 
+	// Resolve the network from bitwindow-bitcoin.conf (when present) before
+	// finalizing paths/URLs. The CLI --bitcoincore.network flag is only the
+	// first-boot seed; once the conf exists, its chain= setting wins. This
+	// matches the orchestrator policy so a network switch in the frontend
+	// flows to bitwindowd too — see OnNetworkChanged below.
+	bootLogger := zerolog.New(os.Stderr).With().Timestamp().Logger()
+	bitcoinConf, confErr := orchconfig.NewBitcoinConfManager(
+		conf.BitwindowDir(),
+		orchconfig.Network(conf.BitcoinCoreNetwork),
+		bootLogger,
+	)
+	var (
+		confNetwork orchconfig.Network
+		confRPCPort int
+	)
+	if confErr != nil {
+		bootLogger.Warn().Err(confErr).Msg("could not load bitwindow-bitcoin.conf; falling back to CLI flags")
+	} else {
+		confNetwork = bitcoinConf.Network
+		confRPCPort = bitcoinConf.GetRPCPort()
+		// Pull rpcuser/rpcpassword from the conf when available so bitwindowd
+		// always matches whatever bitcoind is running with. CLI flag values
+		// are kept as fallbacks for tests / cookie-auth setups.
+		if bitcoinConf.Config != nil && conf.BitcoinCoreCookie == "" {
+			section := bitcoinConf.Network.CoreSection()
+			if u := bitcoinConf.Config.GetEffectiveSetting("rpcuser", section); u != "" {
+				conf.BitcoinCoreRpcUser = u
+			}
+			if p := bitcoinConf.Config.GetEffectiveSetting("rpcpassword", section); p != "" {
+				conf.BitcoinCoreRpcPassword = p
+			}
+		}
+	}
+
+	if err := conf.Finalize(config.Network(confNetwork), confRPCPort); err != nil {
+		return fmt.Errorf("finalize config: %w", err)
+	}
+
 	logFile, err := os.OpenFile(conf.LogPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
 	if err != nil {
 		return fmt.Errorf("open log file: %w", err)
@@ -100,6 +139,26 @@ func realMain(ctx context.Context, cancelCtx context.CancelFunc) error {
 	// Now that the logger is initialized, we can use zerolog.Ctx(ctx) safely
 	log := zerolog.Ctx(ctx)
 	log.Info().Msgf("logger initialized successfully with file %q", conf.LogPath)
+	log.Info().
+		Str("network", string(conf.BitcoinCoreNetwork)).
+		Str("bitcoind_rpc", conf.BitcoinCoreURL).
+		Msg("resolved Bitcoin Core network from bitwindow-bitcoin.conf")
+
+	// Watch the conf for runtime network switches. When the user flips the
+	// network in the frontend, the conf is rewritten; we exit so the parent
+	// (BitWindow.app process manager) relaunches us against the new chain.
+	// bitcoind itself is restarted by the orchestrator's matching watcher.
+	if bitcoinConf != nil {
+		bitcoinConf.OnNetworkChanged = func() {
+			log.Warn().Msg("bitwindow-bitcoin.conf network changed; shutting down so the parent process manager restarts bitwindowd against the fresh chain")
+			cancelCtx()
+		}
+		if err := bitcoinConf.StartWatching(); err != nil {
+			log.Warn().Err(err).Msg("could not watch bitwindow-bitcoin.conf for network changes")
+		} else {
+			defer bitcoinConf.StopWatching()
+		}
+	}
 
 	log.Debug().
 		Msgf("initiating database")
