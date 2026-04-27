@@ -36,10 +36,16 @@ type BitcoinConfManager struct {
 }
 
 // NewBitcoinConfManager creates a new BitcoinConfManager and loads config.
-func NewBitcoinConfManager(bitwindowDir string, log zerolog.Logger) (*BitcoinConfManager, error) {
+// defaultNetwork seeds the network used to generate the conf on first boot
+// (when no bitwindow-bitcoin.conf exists yet); once the conf exists, its
+// chain= setting drives the manager and the seed is ignored.
+func NewBitcoinConfManager(bitwindowDir string, defaultNetwork Network, log zerolog.Logger) (*BitcoinConfManager, error) {
+	if defaultNetwork == "" {
+		defaultNetwork = NetworkSignet
+	}
 	m := &BitcoinConfManager{
 		BitwindowDir: bitwindowDir,
-		Network:      NetworkSignet, // default before config is loaded
+		Network:      defaultNetwork,
 		log:          log.With().Str("component", "bitcoin-conf").Logger(),
 	}
 	if err := m.LoadConfig(true); err != nil {
