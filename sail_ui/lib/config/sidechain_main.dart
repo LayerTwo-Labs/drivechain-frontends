@@ -49,10 +49,12 @@ Future<void> initSidechainDependencies({
     () => FormatterProvider(settingsProvider),
   );
 
-  // Register WalletReaderProvider pointing to bitwindow directory
+  // Register WalletReaderProvider pointing to bitwindow directory.
+  // init() is deferred to bootBackendManagedSidechain — the seed call
+  // requires OrchestratorRPC, which standalone sidechain launches register
+  // only after orchestratord is up.
   final walletReader = WalletReaderProvider(bitwindowDir);
   GetIt.I.registerLazySingleton<WalletReaderProvider>(() => walletReader);
-  await walletReader.init();
 
   // Register WalletWriterProvider (same code as BitWindow) for chain-agnostic wallet creation
   final walletWriter = WalletWriterProvider(

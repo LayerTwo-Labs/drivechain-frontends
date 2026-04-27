@@ -216,6 +216,12 @@ class WalletReaderProvider extends ChangeNotifier {
     // listWallets + getWalletStatus return the same fields the stream
     // would push, so we can populate the provider directly.
     if (wallets.isNotEmpty) return;
+    if (!GetIt.I.isRegistered<OrchestratorRPC>()) {
+      // bootBackendManagedSidechain calls back into init() once the
+      // orchestrator is registered + ready; bail without crashing.
+      _logger.d('WalletReaderProvider: OrchestratorRPC not registered yet, skipping seed');
+      return;
+    }
     final orchestrator = GetIt.I.get<OrchestratorRPC>();
     Future<List<dynamic>> seed() => Future.wait([
       orchestrator.wallet.listWallets(),

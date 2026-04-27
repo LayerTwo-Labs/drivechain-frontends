@@ -7,6 +7,7 @@ import 'package:sail_ui/config/binaries.dart';
 import 'package:sail_ui/providers/backend_state_provider.dart';
 import 'package:sail_ui/providers/binaries/binary_provider.dart';
 import 'package:sail_ui/providers/log_provider.dart';
+import 'package:sail_ui/providers/wallet_reader_provider.dart';
 import 'package:sail_ui/rpcs/orchestrator_rpc.dart';
 
 Future<void> initBackendManagedSidechainRuntime({
@@ -86,6 +87,14 @@ Future<void> bootBackendManagedSidechain({
     _streamBinaryLogs(orchestrator, targetBinaryName, binary);
     _streamBinaryLogs(orchestrator, 'bitcoind', BinaryType.bitcoinCore);
     _streamBinaryLogs(orchestrator, 'enforcer', BinaryType.enforcer);
+
+    // Seed wallet state now that OrchestratorRPC is registered + reachable.
+    // initSidechainDependencies registers the provider lazily but cannot
+    // call init() itself — the seed RPC needs an OrchestratorRPC, and
+    // standalone sidechain launches don't have one until we get here.
+    if (GetIt.I.isRegistered<WalletReaderProvider>()) {
+      unawaited(GetIt.I.get<WalletReaderProvider>().init());
+    }
 
     log.i('bootBackendManagedSidechain: starting backend state watch');
     backendState.startWatching();
