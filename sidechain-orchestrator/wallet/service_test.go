@@ -851,3 +851,73 @@ func TestServiceLegacyWalletTypeBackfill(t *testing.T) {
 		require.NotEmpty(t, w.WalletType, "wallet_type must persist after backfill")
 	}
 }
+
+func TestServiceDeleteAllWallets_SoftDeletesByMoving(t *testing.T) {
+	dir := t.TempDir()
+	log := zerolog.New(zerolog.NewTestWriter(t)).With().Timestamp().Logger()
+	svc := NewService(dir, log)
+	require.NoError(t, svc.Init())
+	defer svc.Close()
+
+	w, err := svc.GenerateWallet("Soft", "", "", testSlots)
+	require.NoError(t, err)
+	require.NotEmpty(t, w.ID)
+
+	walletPath := filepath.Join(dir, "wallet.json")
+	originalBytes, err := os.ReadFile(walletPath)
+	require.NoError(t, err)
+	require.NotEmpty(t, originalBytes, "fixture: wallet.json must exist before reset")
+
+	// Hand the service a fake "binary wallet" so we can prove the same
+	// soft-delete contract applies to per-binary paths (bitcoind wallets,
+	// enforcer wallets, sidechain LMDBs). It lives outside `dir` to mirror
+	// real installs where each binary has its own root.
+	binDir := t.TempDir()
+	fakeBinaryWallet := filepath.Join(binDir, "wallets")
+	require.NoError(t, os.MkdirAll(fakeBinaryWallet, 0o700))
+	require.NoError(t, os.WriteFile(filepath.Join(fakeBinaryWallet, "wallet.dat"), []byte("priv-keys"), 0o600))
+	svc.GetBinaryWalletPaths = func() []string { return []string{fakeBinaryWallet} }
+
+	require.NoError(t, svc.DeleteAllWallets(nil, nil))
+
+	// Original locations are GONE (moved, not lingering at the source).
+	_, err = os.Stat(walletPath)
+	assert.True(t, os.IsNotExist(err), "wallet.json must be moved off the original path")
+	_, err = os.Stat(fakeBinaryWallet)
+	assert.True(t, os.IsNotExist(err), "binary wallet path must be moved off the original path")
+
+	// Backups land next to each source under wallet_backups/<ts>/<base>.
+	bitwindowBackup := findBackup(t, filepath.Join(dir, "wallet_backups"), "wallet.json")
+	require.NotEmpty(t, bitwindowBackup, "wallet.json must be soft-deleted under wallet_backups/")
+	gotBytes, err := os.ReadFile(bitwindowBackup)
+	require.NoError(t, err)
+	assert.Equal(t, originalBytes, gotBytes, "soft-delete must preserve wallet bytes verbatim")
+
+	binaryBackup := findBackup(t, filepath.Join(binDir, "wallet_backups"), "wallets")
+	require.NotEmpty(t, binaryBackup, "binary wallet must be soft-deleted next to its source")
+	keys, err := os.ReadFile(filepath.Join(binaryBackup, "wallet.dat"))
+	require.NoError(t, err)
+	assert.Equal(t, []byte("priv-keys"), keys, "private keys must survive soft-delete intact")
+}
+
+// findBackup walks `root/<ts>/` looking for an entry whose basename is `name`
+// and returns its absolute path. Empty string if nothing matches — used by
+// soft-delete tests to assert the backup landed in the expected per-source
+// wallet_backups dir.
+func findBackup(t *testing.T, root, name string) string {
+	t.Helper()
+	entries, err := os.ReadDir(root)
+	if err != nil {
+		return ""
+	}
+	for _, ts := range entries {
+		if !ts.IsDir() {
+			continue
+		}
+		candidate := filepath.Join(root, ts.Name(), name)
+		if _, err := os.Stat(candidate); err == nil {
+			return candidate
+		}
+	}
+	return ""
+}
