@@ -6,7 +6,7 @@ import (
 	"io"
 )
 
-// CompactSize encodes Bitcoin's compact-size varint per BIP §2:
+// CompactSize encodes Bitcoin's compact-size varint per spec §2:
 //
 //	0x00..0xfc       -> 1 byte
 //	0xfd + uint16 LE -> 3 bytes
@@ -36,7 +36,7 @@ func encodeCompactSize(w writer, n uint64) error {
 		_, err := w.Write(buf[:])
 		return err
 	default:
-		return fmt.Errorf("coinnews: length %d exceeds compact-size 0xfe budget", n)
+		return fmt.Errorf("coinnews: length %d exceeds uint32 (>2^32-1); the 0xff varint form is reserved", n)
 	}
 }
 

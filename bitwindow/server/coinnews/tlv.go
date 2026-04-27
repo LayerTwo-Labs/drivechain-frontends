@@ -5,7 +5,7 @@ import (
 	"fmt"
 )
 
-// TLV is one Tag-Length-Value tuple (BIP §10). Length is implied by
+// TLV is one Tag-Length-Value tuple (spec §10). Length is implied by
 // len(Value) on encode and recovered from the wire on decode.
 type TLV struct {
 	Tag   TLVTag
@@ -14,7 +14,7 @@ type TLV struct {
 
 // EncodeTLVs writes the concatenation of (tag ‖ varint-length ‖ value)
 // for every entry in `tlvs`, preserving caller order. Order is
-// significant for first-wins duplicate semantics (BIP §10).
+// significant for first-wins duplicate semantics (spec §10).
 func EncodeTLVs(w writer, tlvs []TLV) error {
 	for _, t := range tlvs {
 		if err := w.WriteByte(byte(t.Tag)); err != nil {
@@ -55,7 +55,7 @@ func DecodeTLVs(b []byte) ([]TLV, error) {
 }
 
 // FindFirst returns the first TLV with the given tag, or nil if absent.
-// Encodes the BIP §10 first-wins rule for single-value tags.
+// Encodes the spec §10 first-wins rule for single-value tags.
 func FindFirst(tlvs []TLV, tag TLVTag) *TLV {
 	for i := range tlvs {
 		if tlvs[i].Tag == tag {
