@@ -25,20 +25,12 @@ void main() {
   });
 
   group('buildVisibilityMenuItems', () {
-    test('macOS exposes Hide and Show All', () {
-      final items = buildVisibilityMenuItems(isMacOS: true);
-      expect(items, hasLength(2));
-      expect(items[0].label, 'Hide bitwindow');
-      expect(
-        items[0].shortcut,
-        const SingleActivator(LogicalKeyboardKey.keyH, meta: true),
-      );
-      expect(items[1].label, 'Show All');
-      expect(items[1].shortcut, isNull);
-    });
-
-    test('non-macOS exposes Minimize with Ctrl+M shortcut', () {
-      final items = buildVisibilityMenuItems(isMacOS: false);
+    test('exposes Minimize with Cmd/Ctrl+M on every platform', () {
+      // Issue #1657: macOS used to call windowManager.hide(), which strips
+      // the dock icon and leaves users with no first-party way back into
+      // the app. Minimize is the only path now — keep the menu surface
+      // identical across platforms so the shortcut and label match.
+      final items = buildVisibilityMenuItems();
       expect(items, hasLength(1));
       expect(items.single.label, 'Minimize bitwindow');
       expect(
@@ -49,6 +41,8 @@ void main() {
       expect(
         items.where((m) => m.label == 'Hide bitwindow' || m.label == 'Show All'),
         isEmpty,
+        reason:
+            'hide/show-all must not return as menu items — bringing the window back relied on a dock icon that hide() removed',
       );
     });
   });
