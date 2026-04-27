@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:auto_route/auto_route.dart';
 import 'package:bitwindow/dialogs/base58_decoder_dialog.dart';
 import 'package:bitwindow/dialogs/command_palette_dialog.dart';
+import 'package:bitwindow/pages/settings/settings_network.dart';
 import 'package:bitwindow/pages/settings_page.dart';
 import 'package:bitwindow/pages/wallet/wallet_page.dart';
 import 'package:bitwindow/services/code_search_service.dart';
@@ -1096,7 +1097,7 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
                               ],
                               onChanged: (BitcoinNetwork? network) async {
                                 if (network == null || _confProvider.hasPrivateBitcoinConf) return;
-                                await _confProvider.swapNetwork(context, network);
+                                await swapNetworkWithDatadirPrompt(context, _confProvider, network);
                               },
                             ),
                             SailButton(

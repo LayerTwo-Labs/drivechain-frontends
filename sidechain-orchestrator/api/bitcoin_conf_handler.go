@@ -68,6 +68,16 @@ func (h *BitcoinConfHandler) SetBitcoinConfigNetwork(ctx context.Context, req *c
 	}
 
 	network := config.NetworkFromString(networkStr)
+
+	// Guard: mainnet/forknet need a datadir set up before we switch. Surface
+	// a FailedPrecondition so the frontend can prompt the user to pick one.
+	if !h.conf.HasDatadirForNetwork(network) {
+		return nil, connect.NewError(
+			connect.CodeFailedPrecondition,
+			fmt.Errorf("datadir not configured for %s", network),
+		)
+	}
+
 	if err := h.conf.UpdateNetwork(network); err != nil {
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("update network: %w", err))
 	}

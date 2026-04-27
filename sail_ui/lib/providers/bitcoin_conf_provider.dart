@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:auto_route/auto_route.dart';
+import 'package:connectrpc/connect.dart' as crpc;
 import 'package:connectrpc/protobuf.dart';
 import 'package:connectrpc/protocol/connect.dart' as connect;
 import 'package:flutter/material.dart';
@@ -8,6 +9,17 @@ import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:sail_ui/env.dart';
 import 'package:sail_ui/sail_ui.dart';
+
+/// Thrown when the user tries to switch to a network that requires a datadir
+/// (mainnet/forknet) but none is configured. Callers should prompt for a
+/// directory, persist it via [BitcoinConfProvider.updateDataDir], then retry.
+class MissingDatadirException implements Exception {
+  final BitcoinNetwork network;
+  MissingDatadirException(this.network);
+
+  @override
+  String toString() => 'datadir not configured for $network';
+}
 
 /// Bitcoin Core configuration provider backed by orchestrator's BitcoinConfService.
 /// All reads/writes go through the backend — no local file access.
@@ -111,8 +123,15 @@ class BitcoinConfProvider extends ChangeNotifier {
         SetBitcoinConfigNetworkRequest(network: _networkToString(newNetwork)),
       );
       await loadConfig();
+    } on crpc.ConnectException catch (e) {
+      if (e.code == crpc.Code.failedPrecondition && e.message.contains('datadir not configured')) {
+        throw MissingDatadirException(newNetwork);
+      }
+      log.e('BitcoinConfProvider: failed to update network: $e');
+      rethrow;
     } catch (e) {
       log.e('BitcoinConfProvider: failed to update network: $e');
+      rethrow;
     }
   }
 

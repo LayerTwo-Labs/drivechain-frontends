@@ -57,8 +57,7 @@ class _SettingsNetworkState extends State<SettingsNetwork> {
       return;
     }
 
-    // swapNetwork() handles everything: datadir check, dialogs, service restart
-    await _confProvider.swapNetwork(context, network);
+    await swapNetworkWithDatadirPrompt(context, _confProvider, network);
   }
 
   Future<void> _selectDataDirectory() async {
@@ -290,8 +289,32 @@ class _SettingsNetworkState extends State<SettingsNetwork> {
   }
 }
 
+/// Wraps a network swap with a datadir prompt. If the backend rejects the
+/// swap because the target network has no datadir configured, this opens
+/// [DataDirSelectionDialog], persists the chosen path, then retries the swap.
+Future<void> swapNetworkWithDatadirPrompt(
+  BuildContext context,
+  BitcoinConfProvider provider,
+  BitcoinNetwork network,
+) async {
+  try {
+    await provider.swapNetwork(context, network);
+  } on MissingDatadirException catch (e) {
+    if (!context.mounted) return;
+    final selected = await showDialog<String>(
+      context: context,
+      builder: (_) => DataDirSelectionDialog(network: e.network),
+    );
+    if (selected == null || selected.isEmpty) return;
+    await provider.updateDataDir(selected, forNetwork: e.network);
+    if (!context.mounted) return;
+    await provider.swapNetwork(context, network);
+  }
+}
+
 class DataDirSelectionDialog extends StatefulWidget {
-  const DataDirSelectionDialog({super.key});
+  final BitcoinNetwork? network;
+  const DataDirSelectionDialog({super.key, this.network});
 
   @override
   State<DataDirSelectionDialog> createState() => _DataDirSelectionDialogState();
@@ -331,6 +354,17 @@ class _DataDirSelectionDialogState extends State<DataDirSelectionDialog> {
     }
   }
 
+  String _subtitle() {
+    switch (widget.network) {
+      case BitcoinNetwork.BITCOIN_NETWORK_MAINNET:
+        return 'Mainnet needs a Bitcoin Core data directory with the blockchain data (2.5TB+). Pick a directory that contains the blocks folder.';
+      case BitcoinNetwork.BITCOIN_NETWORK_FORKNET:
+        return 'Forknet needs a data directory to store the chain. Pick an empty directory or one already used for forknet.';
+      default:
+        return 'Pick a directory for Bitcoin Core to store its data.';
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = SailTheme.of(context);
@@ -341,8 +375,7 @@ class _DataDirSelectionDialogState extends State<DataDirSelectionDialog> {
         constraints: const BoxConstraints(maxWidth: 500),
         child: SailCard(
           title: 'Select Bitcoin Data Directory',
-          subtitle:
-              'Mainnet requires a Bitcoin Core data directory with the blockchain data (2.5TB+). Select a directory that contains the blocks folder.',
+          subtitle: _subtitle(),
           child: SailColumn(
             spacing: SailStyleValues.padding16,
             crossAxisAlignment: CrossAxisAlignment.start,

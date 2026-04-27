@@ -9,21 +9,34 @@ import (
 const bitcoinConfVersionCommentPrefix = "# bitwindow-bitcoin-conf-version="
 
 // BitcoinConfig represents a parsed Bitcoin Core configuration file.
-// 1:1 port of sail_ui/lib/models/bitcoin_config.dart
+//
+// Order matters: the conf editor and the user expect the on-disk order to be
+// preserved across read/write round-trips. Go maps don't preserve insertion
+// order, so we keep a parallel `*Order` slice for each settings map and walk
+// it in Serialize.
 type BitcoinConfig struct {
 	GlobalSettings  map[string]string
+	GlobalOrder     []string
 	NetworkSettings map[string]map[string]string // "main", "test", "signet", "regtest"
+	NetworkOrder    map[string][]string
 	ConfigVersion   int
 }
 
 func NewBitcoinConfig() *BitcoinConfig {
 	return &BitcoinConfig{
 		GlobalSettings: make(map[string]string),
+		GlobalOrder:    nil,
 		NetworkSettings: map[string]map[string]string{
 			"main":    {},
 			"test":    {},
 			"signet":  {},
 			"regtest": {},
+		},
+		NetworkOrder: map[string][]string{
+			"main":    nil,
+			"test":    nil,
+			"signet":  nil,
+			"regtest": nil,
 		},
 		ConfigVersion: 0,
 	}
@@ -66,19 +79,16 @@ func ParseBitcoinConfig(content string) *BitcoinConfig {
 		if eqIdx > 0 {
 			key := strings.TrimSpace(trimmed[:eqIdx])
 			value := strings.TrimSpace(trimmed[eqIdx+1:])
-
-			if currentSection != "" {
-				config.NetworkSettings[currentSection][key] = value
-			} else {
-				config.GlobalSettings[key] = value
-			}
+			config.SetSetting(key, value, currentSection)
 		}
 	}
 
 	return config
 }
 
-// Serialize writes the config back to file format.
+// Serialize writes the config back to file format, preserving the order in
+// which keys were inserted (i.e. the order they appeared on disk for parsed
+// configs, or insertion order for programmatically built configs).
 func (c *BitcoinConfig) Serialize() string {
 	var b strings.Builder
 
@@ -92,8 +102,8 @@ func (c *BitcoinConfig) Serialize() string {
 	// Write global settings
 	if len(c.GlobalSettings) > 0 {
 		b.WriteString("# [common settings]\n")
-		for key, value := range c.GlobalSettings {
-			fmt.Fprintf(&b, "%s=%s\n", key, value)
+		for _, key := range c.orderedKeys("") {
+			fmt.Fprintf(&b, "%s=%s\n", key, c.GlobalSettings[key])
 		}
 		b.WriteString("\n")
 	}
@@ -116,14 +126,45 @@ func (c *BitcoinConfig) Serialize() string {
 			}
 			fmt.Fprintf(&b, "# Options for %s only\n", label)
 			fmt.Fprintf(&b, "%s\n", sectionNames[network])
-			for key, value := range settings {
-				fmt.Fprintf(&b, "%s=%s\n", key, value)
+			for _, key := range c.orderedKeys(network) {
+				fmt.Fprintf(&b, "%s=%s\n", key, settings[key])
 			}
 			b.WriteString("\n")
 		}
 	}
 
 	return b.String()
+}
+
+// orderedKeys returns keys for a section (or globals if section == ""), using
+// the tracked insertion order. Any keys present in the map but missing from
+// the order list (defensive: e.g. a caller wrote directly to the map) are
+// appended in map-iteration order at the end.
+func (c *BitcoinConfig) orderedKeys(section string) []string {
+	var order []string
+	var settings map[string]string
+	if section == "" {
+		order = c.GlobalOrder
+		settings = c.GlobalSettings
+	} else {
+		order = c.NetworkOrder[section]
+		settings = c.NetworkSettings[section]
+	}
+
+	seen := make(map[string]struct{}, len(order))
+	out := make([]string, 0, len(settings))
+	for _, k := range order {
+		if _, ok := settings[k]; ok {
+			out = append(out, k)
+			seen[k] = struct{}{}
+		}
+	}
+	for k := range settings {
+		if _, ok := seen[k]; !ok {
+			out = append(out, k)
+		}
+	}
+	return out
 }
 
 func (c *BitcoinConfig) GetSetting(key string, section ...string) string {
@@ -148,22 +189,43 @@ func (c *BitcoinConfig) GetEffectiveSetting(key, network string) string {
 
 func (c *BitcoinConfig) SetSetting(key, value string, section ...string) {
 	if len(section) > 0 && section[0] != "" {
-		if s, ok := c.NetworkSettings[section[0]]; ok {
-			s[key] = value
+		s := section[0]
+		if _, ok := c.NetworkSettings[s]; !ok {
+			c.NetworkSettings[s] = make(map[string]string)
 		}
+		if _, exists := c.NetworkSettings[s][key]; !exists {
+			c.NetworkOrder[s] = append(c.NetworkOrder[s], key)
+		}
+		c.NetworkSettings[s][key] = value
 	} else {
+		if _, exists := c.GlobalSettings[key]; !exists {
+			c.GlobalOrder = append(c.GlobalOrder, key)
+		}
 		c.GlobalSettings[key] = value
 	}
 }
 
 func (c *BitcoinConfig) RemoveSetting(key string, section ...string) {
 	if len(section) > 0 && section[0] != "" {
-		if s, ok := c.NetworkSettings[section[0]]; ok {
-			delete(s, key)
+		s := section[0]
+		if settings, ok := c.NetworkSettings[s]; ok {
+			delete(settings, key)
+			c.NetworkOrder[s] = removeFromOrder(c.NetworkOrder[s], key)
 		}
 	} else {
 		delete(c.GlobalSettings, key)
+		c.GlobalOrder = removeFromOrder(c.GlobalOrder, key)
 	}
+}
+
+// ReplaceSection swaps in a new map+order pair for a section, used when a
+// per-network [main] backup file is loaded.
+func (c *BitcoinConfig) ReplaceSection(section string, settings map[string]string, order []string) {
+	if _, ok := c.NetworkSettings[section]; !ok {
+		return
+	}
+	c.NetworkSettings[section] = settings
+	c.NetworkOrder[section] = order
 }
 
 func (c *BitcoinConfig) HasSetting(key string, section ...string) bool {
@@ -176,4 +238,13 @@ func (c *BitcoinConfig) HasSetting(key string, section ...string) bool {
 	}
 	_, exists := c.GlobalSettings[key]
 	return exists
+}
+
+func removeFromOrder(order []string, key string) []string {
+	for i, k := range order {
+		if k == key {
+			return append(order[:i], order[i+1:]...)
+		}
+	}
+	return order
 }
