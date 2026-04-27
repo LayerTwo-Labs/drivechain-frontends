@@ -204,7 +204,7 @@ function StatusDot({ status, isMainchain }: { status: ChainStatus; isMainchain?:
   const label = labels[status];
   return (
     <span className="relative group/dot shrink-0 flex items-center justify-center h-4 w-4">
-      <span className={`inline-block h-1.5 w-1.5 rounded-full ${color}`} />
+      <span className={`inline-block h-2.5 w-2.5 rounded-full ${color}`} />
       <span className="absolute left-full top-1/2 -translate-y-1/2 ml-1 px-2 py-0.5 text-[11px] leading-tight rounded bg-foreground text-background whitespace-nowrap opacity-0 group-hover/dot:opacity-100 transition-opacity duration-150 pointer-events-none">
         {label}
       </span>
