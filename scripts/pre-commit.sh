@@ -1,12 +1,39 @@
 #!/usr/bin/env bash
-# Block commits that CI would reject. Two gates:
-#   1. dart format on staged Dart files; re-stage if reformatted.
-#   2. flutter analyze on every Dart project that has staged changes.
-# Skips generated (lib/gen/**) and tooling (.dart_tool/**) paths.
+# Block commits that CI would reject. Three gates:
+#   1. gofmt on staged Go files; re-stage if reformatted (CI's
+#      golangci-lint runs gofmt and rejects on style; failing on push
+#      after a clean local `go test` is wasted CI time).
+#   2. dart format on staged Dart files; re-stage if reformatted.
+#   3. flutter analyze on every Dart project that has staged changes.
+# Skips generated paths.
 # Install: bash scripts/install-hooks.sh
 
 set -euo pipefail
 
+# ----- Go: gofmt -----------------------------------------------------------
+go_files=$(git diff --cached --name-only --diff-filter=ACMR -- '*.go' \
+  | grep -vE '(^|/)gen/' \
+  | grep -vE '(^|/)vendor/' \
+  | grep -vE '\.pb\.go$' \
+  || true)
+
+if [ -n "$go_files" ]; then
+  if command -v gofmt >/dev/null 2>&1; then
+    bad=$(gofmt -l $go_files 2>/dev/null || true)
+    if [ -n "$bad" ]; then
+      echo "pre-commit: gofmt rewrote: $bad" >&2
+      while IFS= read -r f; do
+        [ -z "$f" ] && continue
+        gofmt -w -- "$f"
+        git add -- "$f"
+      done <<<"$bad"
+    fi
+  else
+    echo "pre-commit: gofmt not found on PATH, skipping Go format" >&2
+  fi
+fi
+
+# ----- Dart: format + analyze ----------------------------------------------
 files=$(git diff --cached --name-only --diff-filter=ACMR -- '*.dart' \
   | grep -vE '(^|/)lib/gen/' \
   | grep -vE '(^|/)\.dart_tool/' \
