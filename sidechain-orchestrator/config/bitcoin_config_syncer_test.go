@@ -1,6 +1,7 @@
 package config
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -144,10 +145,10 @@ func TestRunBitcoinConfMigrationsPartial(t *testing.T) {
 
 	migrated := RunBitcoinConfMigrations(config, false)
 	if !migrated {
-		t.Fatal("expected migrations 3+4 to run")
+		t.Fatal("expected migrations 3+ to run")
 	}
-	if config.ConfigVersion != 4 {
-		t.Errorf("version = %d, want 4", config.ConfigVersion)
+	if config.ConfigVersion != BitcoinConfMigrationsVersion {
+		t.Errorf("version = %d, want %d", config.ConfigVersion, BitcoinConfMigrationsVersion)
 	}
 
 	// Migration 3 should have updated signet
@@ -155,6 +156,34 @@ func TestRunBitcoinConfMigrationsPartial(t *testing.T) {
 		t.Errorf("signetblocktime = %q, want 600", config.NetworkSettings["signet"]["signetblocktime"])
 	}
 }
+
+// Existing mainnet/signet/regtest configs that predate migration 5 must get
+// rest=1 added to their global settings — the enforcer requires it on every
+// network. Regression guard for the bug where mainnet conf shipped without
+// rest=1, the enforcer crashed at boot, and the UI lost its enforcer chain
+// tip.
+func TestRunBitcoinConfMigrationsBackfillsRest(t *testing.T) {
+	config := NewBitcoinConfig()
+	config.ConfigVersion = 4
+	// User's existing mainnet conf at the time migration 5 lands.
+	config.GlobalSettings["rpcuser"] = "user"
+	config.GlobalSettings["rpcpassword"] = "password"
+	config.GlobalSettings["server"] = "1"
+	config.GlobalSettings["txindex"] = "1"
+	config.GlobalSettings["chain"] = "main"
+
+	migrated := RunBitcoinConfMigrations(config, false)
+	if !migrated {
+		t.Fatal("expected migration 5 to run on a v4 config")
+	}
+	if got := config.GlobalSettings["rest"]; got != "1" {
+		t.Errorf("rest = %q, want 1", got)
+	}
+	if config.ConfigVersion != BitcoinConfMigrationsVersion {
+		t.Errorf("version = %d, want %d", config.ConfigVersion, BitcoinConfMigrationsVersion)
+	}
+}
+
 
 func TestRunBitcoinConfMigrationsForknetConditional(t *testing.T) {
 	// Currently no forknet-specific migration data, but test the mechanism
@@ -202,13 +231,25 @@ func TestGetDefaultConfigHasVersionPrefix(t *testing.T) {
 	m := &BitcoinConfManager{Network: NetworkSignet}
 	conf := m.GetDefaultConfig()
 
-	prefix := "# bitwindow-bitcoin-conf-version=4"
+	prefix := fmt.Sprintf("# bitwindow-bitcoin-conf-version=%d", BitcoinConfMigrationsVersion)
 	if !strings.HasPrefix(conf, prefix) {
 		first := conf
 		if len(first) > 80 {
 			first = first[:80]
 		}
 		t.Errorf("default config should start with %q, got %q...", prefix, first)
+	}
+}
+
+// The mainnet template ships rest=1 — without it the enforcer crashes at
+// boot. Regression guard for the bug where mainnet was carved out into a
+// "minimal" template that dropped the setting.
+func TestGetDefaultConfigMainnetIncludesRest(t *testing.T) {
+	m := &BitcoinConfManager{Network: NetworkMainnet}
+	conf := m.GetDefaultConfig()
+
+	if !strings.Contains(conf, "\nrest=1\n") {
+		t.Errorf("mainnet default config must include rest=1, got:\n%s", conf)
 	}
 }
 

@@ -163,10 +163,22 @@ var bitcoinConfMigrations = []BitcoinConfMigration{
 			},
 		},
 	},
+	{
+		// Mainnet support shipped with a "minimal" mainnet template that
+		// dropped rest=1. The enforcer requires REST on every network, so
+		// without this the enforcer dies at boot. Backfill it for existing
+		// configs that predate the fixed default.
+		Version: 5,
+		Changes: map[string]map[string]string{
+			"": {
+				"rest": "1",
+			},
+		},
+	},
 }
 
 // BitcoinConfMigrationsVersion is the highest migration version.
-var BitcoinConfMigrationsVersion = 4
+var BitcoinConfMigrationsVersion = 5
 
 // RunBitcoinConfMigrations applies pending migrations to a BitcoinConfig.
 // isForknet controls whether "forknet" or "mainnet" section data applies to [main].
