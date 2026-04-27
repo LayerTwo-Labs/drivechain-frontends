@@ -422,7 +422,7 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
                   ],
                 ),
                 PlatformMenuItemGroup(
-                  members: buildVisibilityMenuItems(isMacOS: Platform.isMacOS),
+                  members: buildVisibilityMenuItems(),
                 ),
                 PlatformMenuItemGroup(
                   members: [
@@ -1328,27 +1328,13 @@ extension on Block {
   }
 }
 
-List<PlatformMenuItem> buildVisibilityMenuItems({required bool isMacOS}) {
-  if (isMacOS) {
-    return [
-      PlatformMenuItem(
-        label: 'Hide bitwindow',
-        shortcut: const SingleActivator(LogicalKeyboardKey.keyH, meta: true),
-        onSelected: () async {
-          await windowManager.hide();
-        },
-      ),
-      PlatformMenuItem(
-        label: 'Show All',
-        onSelected: () async {
-          await windowManager.show();
-        },
-      ),
-    ];
-  }
-  // Linux/Windows have no dock or default tray, so a hidden window has no
-  // taskbar entry to bring back. Minimize keeps the taskbar/Alt-Tab entry
-  // alive.
+List<PlatformMenuItem> buildVisibilityMenuItems() {
+  // Minimize on every platform — `windowManager.hide()` removes the window
+  // from the dock/taskbar with no first-party way to bring it back (issue
+  // #1657: "process is still running but no way to bring the window back
+  // after that"). Minimize keeps the dock icon and Alt-Tab entry, so a
+  // single click restores the window. Cmd/Ctrl+M is the standard system
+  // shortcut for window minimize.
   return [
     PlatformMenuItem(
       label: 'Minimize bitwindow',
