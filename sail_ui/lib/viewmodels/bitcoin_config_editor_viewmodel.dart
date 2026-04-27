@@ -31,6 +31,9 @@ class BitcoinConfigEditorViewModel extends ChangeNotifier {
 
   void _onConfProviderChanged() {
     if (_isDisposed) return;
+    // Don't clobber the editor while the user is mid-edit — the conf
+    // provider polls every 5s and would otherwise wipe in-progress changes.
+    if (hasUnsavedChanges) return;
     _rawConfigText = null;
     currentPreset = ConfigPreset.custom;
     loadConfig();

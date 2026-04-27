@@ -21,8 +21,12 @@ const kMainnetConfVersionCommentPrefix = "# bitwindow-mainnet-conf-version="
 
 // ForknetConfig stores [main] section settings when network is forknet.
 // Stored in bitwindow-forknet.conf alongside the master bitcoin config.
+//
+// Order matters: Set/Parse track insertion order so Serialize emits keys in
+// the same order they appeared on disk.
 type ForknetConfig struct {
 	Settings map[string]string
+	Order    []string
 	Version  int
 }
 
@@ -30,6 +34,18 @@ func NewForknetConfig() *ForknetConfig {
 	return &ForknetConfig{
 		Settings: make(map[string]string),
 	}
+}
+
+func (c *ForknetConfig) Set(key, value string) {
+	if _, exists := c.Settings[key]; !exists {
+		c.Order = append(c.Order, key)
+	}
+	c.Settings[key] = value
+}
+
+func (c *ForknetConfig) Delete(key string) {
+	delete(c.Settings, key)
+	c.Order = removeFromOrder(c.Order, key)
 }
 
 func ParseForknetConfig(content string) *ForknetConfig {
@@ -49,7 +65,7 @@ func ParseForknetConfig(content string) *ForknetConfig {
 		if eqIdx := strings.Index(trimmed, "="); eqIdx > 0 {
 			key := strings.TrimSpace(trimmed[:eqIdx])
 			value := strings.TrimSpace(trimmed[eqIdx+1:])
-			c.Settings[key] = value
+			c.Set(key, value)
 		}
 	}
 	return c
@@ -58,8 +74,8 @@ func ParseForknetConfig(content string) *ForknetConfig {
 func (c *ForknetConfig) Serialize() string {
 	var b strings.Builder
 	fmt.Fprintf(&b, "%s%d\n", kForknetConfVersionCommentPrefix, c.Version)
-	for key, value := range c.Settings {
-		fmt.Fprintf(&b, "%s=%s\n", key, value)
+	for _, key := range orderedKeys(c.Order, c.Settings) {
+		fmt.Fprintf(&b, "%s=%s\n", key, c.Settings[key])
 	}
 	return b.String()
 }
@@ -68,6 +84,7 @@ func (c *ForknetConfig) Serialize() string {
 // Stored in bitwindow-mainnet.conf alongside the master bitcoin config.
 type MainnetConfig struct {
 	Settings map[string]string
+	Order    []string
 	Version  int
 }
 
@@ -75,6 +92,18 @@ func NewMainnetConfig() *MainnetConfig {
 	return &MainnetConfig{
 		Settings: make(map[string]string),
 	}
+}
+
+func (c *MainnetConfig) Set(key, value string) {
+	if _, exists := c.Settings[key]; !exists {
+		c.Order = append(c.Order, key)
+	}
+	c.Settings[key] = value
+}
+
+func (c *MainnetConfig) Delete(key string) {
+	delete(c.Settings, key)
+	c.Order = removeFromOrder(c.Order, key)
 }
 
 func ParseMainnetConfig(content string) *MainnetConfig {
@@ -94,7 +123,7 @@ func ParseMainnetConfig(content string) *MainnetConfig {
 		if eqIdx := strings.Index(trimmed, "="); eqIdx > 0 {
 			key := strings.TrimSpace(trimmed[:eqIdx])
 			value := strings.TrimSpace(trimmed[eqIdx+1:])
-			c.Settings[key] = value
+			c.Set(key, value)
 		}
 	}
 	return c
@@ -103,10 +132,29 @@ func ParseMainnetConfig(content string) *MainnetConfig {
 func (c *MainnetConfig) Serialize() string {
 	var b strings.Builder
 	fmt.Fprintf(&b, "%s%d\n", kMainnetConfVersionCommentPrefix, c.Version)
-	for key, value := range c.Settings {
-		fmt.Fprintf(&b, "%s=%s\n", key, value)
+	for _, key := range orderedKeys(c.Order, c.Settings) {
+		fmt.Fprintf(&b, "%s=%s\n", key, c.Settings[key])
 	}
 	return b.String()
+}
+
+// orderedKeys returns keys from settings using the tracked order, with any
+// stray keys (set via direct map writes) appended at the end.
+func orderedKeys(order []string, settings map[string]string) []string {
+	seen := make(map[string]struct{}, len(order))
+	out := make([]string, 0, len(settings))
+	for _, k := range order {
+		if _, ok := settings[k]; ok {
+			out = append(out, k)
+			seen[k] = struct{}{}
+		}
+	}
+	for k := range settings {
+		if _, ok := seen[k]; !ok {
+			out = append(out, k)
+		}
+	}
+	return out
 }
 
 // ---------------------------------------------------------------------------
@@ -138,9 +186,9 @@ var bitcoinConfMigrations = []BitcoinConfMigration{
 		Version: 2,
 		Changes: map[string]map[string]string{
 			"signet": {
-				"addnode":          "172.105.148.135:38333",
-				"signetblocktime":  "60",
-				"signetchallenge":  "00141551188e5153533b4fdd555449e640d9cc129456",
+				"addnode":         "172.105.148.135:38333",
+				"signetblocktime": "60",
+				"signetchallenge": "00141551188e5153533b4fdd555449e640d9cc129456",
 				"acceptnonstdtxn": "1",
 			},
 		},
@@ -206,14 +254,7 @@ func RunBitcoinConfMigrations(config *BitcoinConfig, isForknet bool) bool {
 			}
 
 			for key, value := range settings {
-				if targetSection == "" {
-					config.GlobalSettings[key] = value
-				} else {
-					if _, ok := config.NetworkSettings[targetSection]; !ok {
-						config.NetworkSettings[targetSection] = make(map[string]string)
-					}
-					config.NetworkSettings[targetSection][key] = value
-				}
+				config.SetSetting(key, value, targetSection)
 			}
 		}
 		config.ConfigVersion = m.Version
@@ -231,7 +272,7 @@ func RunForknetConfMigrations(config *ForknetConfig) bool {
 		}
 		if forknetChanges, ok := m.Changes["forknet"]; ok {
 			for key, value := range forknetChanges {
-				config.Settings[key] = value
+				config.Set(key, value)
 			}
 		}
 		config.Version = m.Version
@@ -249,7 +290,7 @@ func RunMainnetConfMigrations(config *MainnetConfig) bool {
 		}
 		if mainnetChanges, ok := m.Changes["mainnet"]; ok {
 			for key, value := range mainnetChanges {
-				config.Settings[key] = value
+				config.Set(key, value)
 			}
 		}
 		config.Version = m.Version
@@ -457,13 +498,29 @@ func (m *BitcoinConfManager) getMainSectionPath(n Network) string {
 	return filepath.Join(m.BitwindowDir, name)
 }
 
-// getDefaultMainSection returns the default [main] section settings for a network.
-func getDefaultMainSection(n Network) map[string]string {
+// getDefaultMainSection returns the default [main] section settings for a
+// network, plus a stable key order so Serialize emits keys in a predictable
+// sequence on first creation.
+func getDefaultMainSection(n Network) (map[string]string, []string) {
 	if n == NetworkForknet {
-		return map[string]string{
-			"port":              "8300",
-			"rpcport":           "18301",
-			"rpcbind":           "127.0.0.1",
+		order := []string{
+			"port",
+			"rpcport",
+			"rpcbind",
+			"rpcallowip",
+			"zmqpubhashblock",
+			"zmqpubhashtx",
+			"zmqpubrawblock",
+			"zmqpubrawtx",
+			"assumevalid",
+			"minimumchainwork",
+			"listenonion",
+			"drivechain",
+		}
+		settings := map[string]string{
+			"port":             "8300",
+			"rpcport":          "18301",
+			"rpcbind":          "127.0.0.1",
 			"rpcallowip":       "0.0.0.0/0",
 			"zmqpubhashblock":  "tcp://127.0.0.1:29001",
 			"zmqpubhashtx":     "tcp://127.0.0.1:29002",
@@ -474,8 +531,9 @@ func getDefaultMainSection(n Network) map[string]string {
 			"listenonion":      "0",
 			"drivechain":       "1",
 		}
+		return settings, order
 	}
-	return map[string]string{}
+	return map[string]string{}, nil
 }
 
 // ---------------------------------------------------------------------------
@@ -495,9 +553,7 @@ func (m *BitcoinConfManager) SaveMainSectionForNetwork(n Network) error {
 	}
 
 	mainSettings := m.Config.NetworkSettings["main"]
-	if mainSettings == nil {
-		mainSettings = map[string]string{}
-	}
+	mainOrder := m.Config.NetworkOrder["main"]
 
 	if n == NetworkForknet {
 		fc := NewForknetConfig()
@@ -508,8 +564,8 @@ func (m *BitcoinConfManager) SaveMainSectionForNetwork(n Network) error {
 			fc.Version = ParseForknetConfig(string(data)).Version
 		}
 
-		for k, v := range mainSettings {
-			fc.Settings[k] = v
+		for _, k := range orderedKeys(mainOrder, mainSettings) {
+			fc.Set(k, mainSettings[k])
 		}
 		return os.WriteFile(confPath, []byte(fc.Serialize()), 0644)
 	}
@@ -522,8 +578,8 @@ func (m *BitcoinConfManager) SaveMainSectionForNetwork(n Network) error {
 		mc.Version = ParseMainnetConfig(string(data)).Version
 	}
 
-	for k, v := range mainSettings {
-		mc.Settings[k] = v
+	for _, k := range orderedKeys(mainOrder, mainSettings) {
+		mc.Set(k, mainSettings[k])
 	}
 	return os.WriteFile(confPath, []byte(mc.Serialize()), 0644)
 }
@@ -540,7 +596,8 @@ func (m *BitcoinConfManager) LoadMainSectionForNetwork(n Network) error {
 	if err != nil {
 		if os.IsNotExist(err) {
 			m.log.Info().Str("network", string(n)).Msg("no saved [main] section, using defaults")
-			m.Config.NetworkSettings["main"] = getDefaultMainSection(n)
+			settings, order := getDefaultMainSection(n)
+			m.Config.ReplaceSection("main", settings, order)
 			return nil
 		}
 		return fmt.Errorf("read main section: %w", err)
@@ -548,18 +605,18 @@ func (m *BitcoinConfManager) LoadMainSectionForNetwork(n Network) error {
 
 	if n == NetworkForknet {
 		fc := ParseForknetConfig(string(data))
-		newMain := make(map[string]string)
+		newMain := make(map[string]string, len(fc.Settings))
 		for k, v := range fc.Settings {
 			newMain[k] = v
 		}
-		m.Config.NetworkSettings["main"] = newMain
+		m.Config.ReplaceSection("main", newMain, append([]string(nil), fc.Order...))
 	} else {
 		mc := ParseMainnetConfig(string(data))
-		newMain := make(map[string]string)
+		newMain := make(map[string]string, len(mc.Settings))
 		for k, v := range mc.Settings {
 			newMain[k] = v
 		}
-		m.Config.NetworkSettings["main"] = newMain
+		m.Config.ReplaceSection("main", newMain, append([]string(nil), mc.Order...))
 	}
 
 	m.log.Info().Str("network", string(n)).Str("path", confPath).Msg("loaded [main] section")
@@ -579,8 +636,9 @@ func (m *BitcoinConfManager) migrateForknetConfig() error {
 		fc = ParseForknetConfig(string(data))
 	} else {
 		fc = NewForknetConfig()
-		for k, v := range getDefaultMainSection(NetworkForknet) {
-			fc.Settings[k] = v
+		settings, order := getDefaultMainSection(NetworkForknet)
+		for _, k := range orderedKeys(order, settings) {
+			fc.Set(k, settings[k])
 		}
 	}
 
@@ -605,8 +663,9 @@ func (m *BitcoinConfManager) migrateMainnetConfig() error {
 		mc = ParseMainnetConfig(string(data))
 	} else {
 		mc = NewMainnetConfig()
-		for k, v := range getDefaultMainSection(NetworkMainnet) {
-			mc.Settings[k] = v
+		settings, order := getDefaultMainSection(NetworkMainnet)
+		for _, k := range orderedKeys(order, settings) {
+			mc.Set(k, settings[k])
 		}
 	}
 
@@ -673,8 +732,16 @@ func (m *BitcoinConfManager) CopyConfigDownstream() error {
 // ---------------------------------------------------------------------------
 
 // UpdateDataDir sets the datadir for the specified (or current) network.
-// If updating for a DIFFERENT mainnet/forknet network, saves the [main]
-// section to that network's file first so it persists across network switches.
+//
+// For the current network: writes to master's [main] section AND mirrors to
+// the per-network backup (bitwindow-mainnet.conf / bitwindow-forknet.conf).
+// The mirror is essential — on every network switch, LoadMainSectionForNetwork
+// replaces [main] with the backup file's contents, so without a backup the
+// datadir vanishes the next time the user switches and switches back.
+//
+// For a different network (e.g. configuring mainnet datadir while on signet):
+// writes only to the per-network backup. Master's [main] belongs to the
+// currently-active network, so we don't touch it.
 func (m *BitcoinConfManager) UpdateDataDir(dataDir string, forNetwork Network) error {
 	if m.HasPrivateConf || m.Config == nil {
 		return nil
@@ -684,21 +751,26 @@ func (m *BitcoinConfManager) UpdateDataDir(dataDir string, forNetwork Network) e
 	if targetNetwork == "" {
 		targetNetwork = m.Network
 	}
-	section := CoreSectionForNetwork(targetNetwork)
 
-	dataDir = strings.TrimSpace(dataDir)
-	if dataDir == "" {
+	cleanDataDir := strings.ReplaceAll(strings.TrimSpace(dataDir), "\\ ", " ")
+
+	if targetNetwork != m.Network {
+		if !isMainnetOrForknet(targetNetwork) {
+			return nil
+		}
+		return m.updateDatadirInBackup(targetNetwork, cleanDataDir)
+	}
+
+	section := CoreSectionForNetwork(targetNetwork)
+	if cleanDataDir == "" {
 		m.Config.RemoveSetting("datadir", section)
 	} else {
-		cleanDataDir := strings.ReplaceAll(dataDir, "\\ ", " ")
 		m.Config.SetSetting("datadir", cleanDataDir, section)
 	}
 
-	// Cross-network save: if updating datadir for a DIFFERENT mainnet/forknet
-	// network, save [main] to that network's file so it persists when switched.
-	if isMainnetOrForknet(targetNetwork) && targetNetwork != m.Network {
+	if isMainnetOrForknet(targetNetwork) {
 		if err := m.SaveMainSectionForNetwork(targetNetwork); err != nil {
-			m.log.Error().Err(err).Msg("cross-network datadir save failed")
+			m.log.Error().Err(err).Msg("save per-network backup")
 		}
 	}
 
@@ -706,6 +778,50 @@ func (m *BitcoinConfManager) UpdateDataDir(dataDir string, forNetwork Network) e
 		return err
 	}
 	return m.LoadConfig(false)
+}
+
+// updateDatadirInBackup writes a datadir change directly to the per-network
+// backup file, without touching master. Used when the target network differs
+// from the currently-active network.
+func (m *BitcoinConfManager) updateDatadirInBackup(n Network, dataDir string) error {
+	confPath := m.getMainSectionPath(n)
+	if err := os.MkdirAll(filepath.Dir(confPath), 0755); err != nil {
+		return fmt.Errorf("create dir: %w", err)
+	}
+
+	if n == NetworkForknet {
+		var fc *ForknetConfig
+		if data, err := os.ReadFile(confPath); err == nil {
+			fc = ParseForknetConfig(string(data))
+		} else {
+			fc = NewForknetConfig()
+			fc.Version = BitcoinConfMigrationsVersion
+			settings, order := getDefaultMainSection(n)
+			for _, k := range orderedKeys(order, settings) {
+				fc.Set(k, settings[k])
+			}
+		}
+		if dataDir == "" {
+			fc.Delete("datadir")
+		} else {
+			fc.Set("datadir", dataDir)
+		}
+		return os.WriteFile(confPath, []byte(fc.Serialize()), 0644)
+	}
+
+	var mc *MainnetConfig
+	if data, err := os.ReadFile(confPath); err == nil {
+		mc = ParseMainnetConfig(string(data))
+	} else {
+		mc = NewMainnetConfig()
+		mc.Version = BitcoinConfMigrationsVersion
+	}
+	if dataDir == "" {
+		mc.Delete("datadir")
+	} else {
+		mc.Set("datadir", dataDir)
+	}
+	return os.WriteFile(confPath, []byte(mc.Serialize()), 0644)
 }
 
 // ---------------------------------------------------------------------------

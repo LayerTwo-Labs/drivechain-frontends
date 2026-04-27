@@ -272,20 +272,23 @@ func TestGetMainSectionPath(t *testing.T) {
 }
 
 func TestGetDefaultMainSection(t *testing.T) {
-	forknet := getDefaultMainSection(NetworkForknet)
+	forknet, forknetOrder := getDefaultMainSection(NetworkForknet)
 	if forknet["drivechain"] != "1" {
 		t.Error("forknet should have drivechain=1")
 	}
 	if forknet["rpcport"] != "18301" {
 		t.Errorf("forknet rpcport = %q, want 18301", forknet["rpcport"])
 	}
+	if len(forknetOrder) != len(forknet) {
+		t.Errorf("forknet order len %d != settings len %d", len(forknetOrder), len(forknet))
+	}
 
-	mainnet := getDefaultMainSection(NetworkMainnet)
+	mainnet, _ := getDefaultMainSection(NetworkMainnet)
 	if len(mainnet) != 0 {
 		t.Errorf("mainnet defaults should be empty, got %v", mainnet)
 	}
 
-	signet := getDefaultMainSection(NetworkSignet)
+	signet, _ := getDefaultMainSection(NetworkSignet)
 	if len(signet) != 0 {
 		t.Errorf("signet defaults should be empty, got %v", signet)
 	}
