@@ -102,7 +102,10 @@ func (m *BitcoinConfManager) GetRPCPort() int {
 func (m *BitcoinConfManager) GetDefaultConfig() string {
 	currentNetwork := CoreSectionForNetwork(m.Network)
 
-	// Real mainnet gets minimal standard Bitcoin Core config
+	// Real mainnet gets minimal standard Bitcoin Core config.
+	// rest=1 is required by the enforcer on every network, including mainnet —
+	// without it the enforcer crashes at boot with "Bitcoin Core REST server is
+	// not enabled" and the UI's enforcer-derived chain state goes blank.
 	if m.Network == NetworkMainnet {
 		mainnetDatadir := m.rootDirNetwork(NetworkMainnet)
 		return fmt.Sprintf(`# Generated code. Any changes to this file *will* get overwritten.
@@ -115,6 +118,7 @@ rpcpassword=password
 server=1
 listen=1
 txindex=1
+rest=1
 chain=main
 `, mainnetDatadir)
 	}
