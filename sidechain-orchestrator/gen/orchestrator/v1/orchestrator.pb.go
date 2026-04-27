@@ -45,8 +45,12 @@ type BinaryStatusMsg struct {
 	Version         string                 `protobuf:"bytes,20,opt,name=version,proto3" json:"version,omitempty"`                                           // configured version string
 	RepoUrl         string                 `protobuf:"bytes,21,opt,name=repo_url,json=repoUrl,proto3" json:"repo_url,omitempty"`                            // source code repository URL
 	StartupLogs     []*StartupLogEntryMsg  `protobuf:"bytes,22,rep,name=startup_logs,json=startupLogs,proto3" json:"startup_logs,omitempty"`                // recent startup progress messages
-	unknownFields   protoimpl.UnknownFields
-	sizeCache       protoimpl.SizeCache
+	// Absolute path to the launchable binary on disk (variant-aware: returns
+	// bin/test/<binary>/... for active sidechain alt-builds, the resolved
+	// .app/Contents/MacOS path on macOS, etc.). Empty when not downloaded.
+	BinaryPath    string `protobuf:"bytes,23,opt,name=binary_path,json=binaryPath,proto3" json:"binary_path,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *BinaryStatusMsg) Reset() {
@@ -231,6 +235,13 @@ func (x *BinaryStatusMsg) GetStartupLogs() []*StartupLogEntryMsg {
 		return x.StartupLogs
 	}
 	return nil
+}
+
+func (x *BinaryStatusMsg) GetBinaryPath() string {
+	if x != nil {
+		return x.BinaryPath
+	}
+	return ""
 }
 
 type StartupLogEntryMsg struct {
@@ -2069,7 +2080,7 @@ var File_orchestrator_v1_orchestrator_proto protoreflect.FileDescriptor
 
 const file_orchestrator_v1_orchestrator_proto_rawDesc = "" +
 	"\n" +
-	"\"orchestrator/v1/orchestrator.proto\x12\x0forchestrator.v1\"\xdd\x05\n" +
+	"\"orchestrator/v1/orchestrator.proto\x12\x0forchestrator.v1\"\xfe\x05\n" +
 	"\x0fBinaryStatusMsg\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12!\n" +
 	"\fdisplay_name\x18\x02 \x01(\tR\vdisplayName\x12\x18\n" +
@@ -2096,7 +2107,9 @@ const file_orchestrator_v1_orchestrator_proto_rawDesc = "" +
 	"\vport_in_use\x18\x13 \x01(\bR\tportInUse\x12\x18\n" +
 	"\aversion\x18\x14 \x01(\tR\aversion\x12\x19\n" +
 	"\brepo_url\x18\x15 \x01(\tR\arepoUrl\x12F\n" +
-	"\fstartup_logs\x18\x16 \x03(\v2#.orchestrator.v1.StartupLogEntryMsgR\vstartupLogs\"U\n" +
+	"\fstartup_logs\x18\x16 \x03(\v2#.orchestrator.v1.StartupLogEntryMsgR\vstartupLogs\x12\x1f\n" +
+	"\vbinary_path\x18\x17 \x01(\tR\n" +
+	"binaryPath\"U\n" +
 	"\x12StartupLogEntryMsg\x12%\n" +
 	"\x0etimestamp_unix\x18\x01 \x01(\x03R\rtimestampUnix\x12\x18\n" +
 	"\amessage\x18\x02 \x01(\tR\amessage\"\x15\n" +

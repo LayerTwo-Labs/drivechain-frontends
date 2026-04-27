@@ -39,6 +39,7 @@ const BinaryStatusMsg$json = {
     {'1': 'version', '3': 20, '4': 1, '5': 9, '10': 'version'},
     {'1': 'repo_url', '3': 21, '4': 1, '5': 9, '10': 'repoUrl'},
     {'1': 'startup_logs', '3': 22, '4': 3, '5': 11, '6': '.orchestrator.v1.StartupLogEntryMsg', '10': 'startupLogs'},
+    {'1': 'binary_path', '3': 23, '4': 1, '5': 9, '10': 'binaryPath'},
   ],
 };
 
@@ -57,7 +58,7 @@ final $typed_data.Uint8List binaryStatusMsgDescriptor = $convert.base64Decode(
     'ZGVkGBIgASgIUgpkb3dubG9hZGVkEh4KC3BvcnRfaW5fdXNlGBMgASgIUglwb3J0SW5Vc2USGA'
     'oHdmVyc2lvbhgUIAEoCVIHdmVyc2lvbhIZCghyZXBvX3VybBgVIAEoCVIHcmVwb1VybBJGCgxz'
     'dGFydHVwX2xvZ3MYFiADKAsyIy5vcmNoZXN0cmF0b3IudjEuU3RhcnR1cExvZ0VudHJ5TXNnUg'
-    'tzdGFydHVwTG9ncw==');
+    'tzdGFydHVwTG9ncxIfCgtiaW5hcnlfcGF0aBgXIAEoCVIKYmluYXJ5UGF0aA==');
 
 @$core.Deprecated('Use startupLogEntryMsgDescriptor instead')
 const StartupLogEntryMsg$json = {

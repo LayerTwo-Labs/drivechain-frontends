@@ -113,6 +113,18 @@ func TestSidechainVariant_DownloadAndBoot(t *testing.T) {
 		return sidechainVariantSpec{BinaryName: c.AltBinaryName}, true
 	}
 
+	// Status (used to populate the BinaryStatusMsg.binary_path RPC field)
+	// must report the same test-variant path so the frontend trusts the
+	// orchestrator instead of duplicating filesystem-resolution logic.
+	o := New(dataDir, "signet", t.TempDir(), []BinaryConfig{cfg}, log)
+	o.process.SidechainVariant = func(c BinaryConfig) (sidechainVariantSpec, bool) {
+		return sidechainVariantSpec{BinaryName: c.AltBinaryName}, true
+	}
+	st := o.Status(cfg.Name)
+	require.True(t, st.Downloaded, "Status reports not-downloaded for %s", cfg.Name)
+	assert.Equal(t, binPath, st.BinaryPath,
+		"Status.BinaryPath %q must equal TestSidechainBinaryPath %q for variant-aware resolution", st.BinaryPath, binPath)
+
 	pid, err := pm.Start(context.Background(), cfg, nil, nil)
 	require.NoError(t, err)
 	require.NotZero(t, pid)

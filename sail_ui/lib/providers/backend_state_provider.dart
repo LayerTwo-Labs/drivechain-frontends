@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
@@ -80,6 +81,7 @@ class BackendStateProvider extends ChangeNotifier {
 
           final rpc = _syncConnectionState(status);
           if (rpc != null) changedRpcs.add(rpc);
+          _syncBinaryPath(status);
         }
         // Batch notifications: one per changed RPC, then one for ourselves
         for (final rpc in changedRpcs) {
@@ -135,6 +137,33 @@ class BackendStateProvider extends ChangeNotifier {
     rpc.startupError = startupError;
     rpc.connectionError = connectionError;
     return rpc;
+  }
+
+  /// Mirror the orchestrator's `binary_path` field onto the matching
+  /// `Binary.metadata.binaryPath`. Orchestrator owns the truth — it knows
+  /// where it extracted the file (variant-aware, .app-resolved on macOS),
+  /// so the frontend stops trying to second-guess from a list of guessed
+  /// paths and just uses what was reported.
+  void _syncBinaryPath(BinaryStatusMsg status) {
+    if (!GetIt.I.isRegistered<BinaryProvider>()) return;
+    final type = _binaryTypeFromName(status.name);
+    if (type == null) return;
+
+    final reported = status.binaryPath;
+    final next = reported.isEmpty ? null : File(reported);
+
+    final binaryProvider = GetIt.I.get<BinaryProvider>();
+    binaryProvider.updateBinary(type, (b) {
+      if (b.metadata.binaryPath?.path == next?.path) return b;
+      return b.copyWith(
+        metadata: b.metadata.copyWith(
+          remoteTimestamp: b.metadata.remoteTimestamp,
+          downloadedTimestamp: b.metadata.downloadedTimestamp,
+          binaryPath: next,
+          updateable: b.metadata.updateable,
+        ),
+      );
+    });
   }
 
   /// Get the RPCConnection for a backend binary name, or null.
