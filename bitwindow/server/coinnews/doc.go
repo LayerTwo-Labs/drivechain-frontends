@@ -1,5 +1,5 @@
 // Package coinnews is the reference implementation of the CoinNews
-// OP_RETURN protocol described in docs/bip-coinnews.md.
+// OP_RETURN protocol described in docs/coinnews-protocol.md.
 //
 // The package is intentionally indexer-agnostic: it knows how to turn
 // CoinNews messages into bytes and bytes back into messages, and it
