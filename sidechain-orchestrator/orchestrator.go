@@ -247,20 +247,19 @@ func New(dataDir, network, bitwindowDir string, configs []BinaryConfig, log zero
 	}
 
 	// Initialize config managers for auto-building args
-	bitcoinConf, err := config.NewBitcoinConfManager(bitwindowDir, log)
+	bitcoinConf, err := config.NewBitcoinConfManager(bitwindowDir, config.Network(network), log)
 	if err != nil {
 		log.Warn().Err(err).Msg("failed to initialize bitcoin config manager, args must be passed explicitly")
 	} else {
-		// Sync the bitcoin conf network with the CLI --network flag
-		cliNetwork := config.Network(network)
-		if bitcoinConf.Network != cliNetwork {
+		// bitwindow-bitcoin.conf on disk wins. The CLI --network flag only
+		// seeds the first-boot default inside NewBitcoinConfManager — once
+		// the conf exists, persisted state drives the orchestrator.
+		if string(bitcoinConf.Network) != orch.Network {
 			log.Info().
 				Str("conf_network", string(bitcoinConf.Network)).
 				Str("cli_network", network).
-				Msg("overriding bitcoin conf network to match CLI flag")
-			if err := bitcoinConf.UpdateNetwork(cliNetwork); err != nil {
-				log.Warn().Err(err).Msg("failed to update bitcoin conf network")
-			}
+				Msg("using persisted network from bitwindow-bitcoin.conf")
+			orch.Network = string(bitcoinConf.Network)
 		}
 		orch.BitcoinConf = bitcoinConf
 

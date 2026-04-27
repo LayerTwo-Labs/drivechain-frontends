@@ -20,6 +20,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config"
 )
 
 // variantArchive is the fake archive served by the mock server for a given
@@ -223,14 +225,20 @@ func TestIntegration_VariantResolver_ClampsOnNetworkSwap(t *testing.T) {
 	first := newIntegrationOrchestrator(t, "signet", srv.URL+"/", dataDir, bwDir)
 	require.NoError(t, first.SetCoreVariant(context.Background(), "knots"))
 
-	// Same data dirs, different network. Settings still say knots.
-	second := newIntegrationOrchestrator(t, "forknet", srv.URL+"/", dataDir, bwDir)
+	// Persist the network swap to disk the way the UI does — bitwindow-
+	// bitcoin.conf is the source of truth on subsequent boots, the CLI
+	// flag only seeds first-boot defaults.
+	require.NoError(t, first.BitcoinConf.UpdateNetwork(config.NetworkForknet))
+
+	// Same data dirs; the new orchestrator picks up the persisted forknet.
+	second := newIntegrationOrchestrator(t, "signet", srv.URL+"/", dataDir, bwDir)
 
 	v, ok := second.download.CoreVariant()
 	require.True(t, ok, "resolver must produce a variant on forknet")
 	assert.Equal(t, "touched", v.ID, "persisted knots is not forknet-compatible; must clamp to touched")
 
-	// On a network where knots IS available, the persisted choice still wins.
+	// Swap back to signet via the conf, then knots becomes valid again.
+	require.NoError(t, second.BitcoinConf.UpdateNetwork(config.NetworkSignet))
 	third := newIntegrationOrchestrator(t, "signet", srv.URL+"/", dataDir, bwDir)
 	v, ok = third.download.CoreVariant()
 	require.True(t, ok)
