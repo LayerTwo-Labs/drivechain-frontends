@@ -79,6 +79,11 @@ func ParseBitcoinConfig(content string) *BitcoinConfig {
 		if eqIdx > 0 {
 			key := strings.TrimSpace(trimmed[:eqIdx])
 			value := strings.TrimSpace(trimmed[eqIdx+1:])
+			// Strip inline `# comment` so values like `chain=main # current
+			// network` round-trip as just `main`.
+			if hashIdx := strings.Index(value, "#"); hashIdx >= 0 {
+				value = strings.TrimSpace(value[:hashIdx])
+			}
 			config.SetSetting(key, value, currentSection)
 		}
 	}
