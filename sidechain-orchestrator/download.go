@@ -197,28 +197,25 @@ func (d *DownloadManager) Download(ctx context.Context, config BinaryConfig, net
 
 		ch <- DownloadProgress{Message: "extracting..."}
 
-		extractCfg := config
+		extractName := config.BinaryName
+		stripPrefix := ""
 		if hasSCVariant {
-			extractCfg.BinaryName = scVariant.BinaryName
-			if scVariant.ExtractSubfolder != "" {
-				extractCfg.ExtractSubfolder = map[string]string{currentOS(): scVariant.ExtractSubfolder}
-			} else {
-				extractCfg.ExtractSubfolder = nil
-			}
+			extractName = scVariant.BinaryName
+			stripPrefix = scVariant.ExtractSubfolder
 		}
-		hasCLI, err := d.extractBinary(savePath, extractCfg, d.dataDir, network, variant, hasVariant, hasSCVariant)
+		hasCLI, err := d.extractBinary(savePath, config, extractName, stripPrefix, d.dataDir, network, variant, hasVariant, hasSCVariant)
 		if err != nil {
 			ch <- DownloadProgress{Error: fmt.Errorf("extract: %w", err)}
 			return
 		}
-		d.log.Info().Bool("has_cli", hasCLI).Str("binary", extractCfg.BinaryName).Msg("extraction complete")
+		d.log.Info().Bool("has_cli", hasCLI).Str("binary", extractName).Msg("extraction complete")
 
-		finalPath := BinaryPath(d.dataDir, extractCfg.BinaryName)
+		finalPath := BinaryPath(d.dataDir, extractName)
 		switch {
 		case hasVariant:
 			finalPath = CoreBinaryPath(d.dataDir, variant, config.BinaryName)
 		case hasSCVariant:
-			finalPath = TestSidechainBinaryPath(d.dataDir, extractCfg.BinaryName)
+			finalPath = TestSidechainBinaryPath(d.dataDir, extractName)
 		}
 		ch <- DownloadProgress{Message: finalPath, Done: true}
 	}()
@@ -364,7 +361,7 @@ func (d *DownloadManager) downloadFile(ctx context.Context, url, savePath string
 // extractBinary extracts a downloaded archive to the bin directory.
 // Returns hasCLI=true iff a companion CLI binary (name contains "-cli") was
 // extracted alongside the main binary. Raw binaries never have a CLI.
-func (d *DownloadManager) extractBinary(archivePath string, config BinaryConfig, dataDir, network string, variant CoreVariantSpec, hasVariant, hasSCVariant bool) (bool, error) {
+func (d *DownloadManager) extractBinary(archivePath string, config BinaryConfig, extractName, stripPrefix, dataDir, network string, variant CoreVariantSpec, hasVariant, hasSCVariant bool) (bool, error) {
 	destDir := BinDir(dataDir)
 
 	switch {
@@ -373,14 +370,11 @@ func (d *DownloadManager) extractBinary(archivePath string, config BinaryConfig,
 		// builds (untouched / touched / knots) can coexist on disk.
 		destDir = filepath.Join(destDir, variant.Subfolder)
 	case hasSCVariant:
-		// Test sidechain builds live under bin/test/<binary>/ — Flutter app
-		// archives bring their own runtime layout (`Thunder.app/...` on
-		// macOS, `<name>/<bin>+lib/+data/` on Linux) and need a private
-		// directory so multiple sidechains' lib/data trees don't collide.
-		destDir = filepath.Join(destDir, testSidechainSubfolder, config.BinaryName)
+		// Test sidechain builds need a private dir so per-binary lib/data
+		// trees don't collide.
+		destDir = filepath.Join(destDir, testSidechainSubfolder, extractName)
 	case !config.IsBitcoinCore:
-		// Non-Core binaries keep the legacy network-driven extract subfolder
-		// (forknet zips ship a top-level directory we have to peel off).
+		// Forknet zips ship a top-level directory we have to peel off.
 		if subfolder, ok := config.ExtractSubfolder[currentOS()]; ok && subfolder != "" {
 			if network == "forknet" && len(config.ForknetFiles) > 0 {
 				destDir = filepath.Join(destDir, subfolder)
@@ -393,36 +387,22 @@ func (d *DownloadManager) extractBinary(archivePath string, config BinaryConfig,
 	lower := strings.ToLower(archivePath)
 	switch {
 	case strings.HasSuffix(lower, ".zip"):
-		// Test sidechain archives ship as Flutter app bundles — the
-		// flatten-by-basename move would destroy the bundle structure
-		// (collapsing 1800+ Info.plist + framework files into one
-		// directory), so we preserve the layout for them.
+		// Test sidechain archives ship as Flutter app bundles — flatten-by-
+		// basename would destroy the bundle, so preserve the tree.
 		if hasSCVariant {
-			return d.extractZipPreservingTree(archivePath, destDir, config.ExtractSubfolder[currentOS()])
+			return d.extractZipPreservingTree(archivePath, destDir, stripPrefix)
 		}
-		return d.extractZip(archivePath, destDir, config.BinaryName)
+		return d.extractZip(archivePath, destDir, extractName)
 	case strings.HasSuffix(lower, ".tar.gz") || strings.HasSuffix(lower, ".tgz"):
-		return d.extractTarGz(archivePath, destDir, config.BinaryName)
+		return d.extractTarGz(archivePath, destDir, extractName)
 	default:
-		// For test sidechains the raw payload is a single Windows .exe; we
-		// land it at `bin/test/<binary>.exe` (where binary already includes
-		// the `.exe` suffix on Windows via Files[currentOS()]) so the
-		// resolver finds it without further plumbing.
-		if hasSCVariant {
-			return d.processRawBinary(archivePath, destDir, config.BinaryName+exeSuffix())
+		// Raw test-sidechain payload on Windows lands at <name>.exe.
+		name := extractName
+		if hasSCVariant && runtime.GOOS == "windows" {
+			name += ".exe"
 		}
-		return d.processRawBinary(archivePath, destDir, config.BinaryName)
+		return d.processRawBinary(archivePath, destDir, name)
 	}
-}
-
-// exeSuffix is ".exe" on Windows and "" elsewhere — used to land raw-binary
-// test sidechain payloads (Flutter Windows builds ship as a single .exe) at
-// a path the launcher can find without further heuristics.
-func exeSuffix() string {
-	if runtime.GOOS == "windows" {
-		return ".exe"
-	}
-	return ""
 }
 
 // extractZipPreservingTree extracts a zip preserving its directory layout.
