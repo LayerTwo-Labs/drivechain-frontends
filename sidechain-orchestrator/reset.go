@@ -268,6 +268,21 @@ func (o *Orchestrator) StreamResetData(ctx context.Context, cat ResetCategory) (
 				Category: entry.category,
 			}
 
+			// Wallet paths were already moved aside by WalletSvc.DeleteAllWallets
+			// (soft-delete via moveToBackup). Running os.RemoveAll here would
+			// either no-op (path already moved) or destructively wipe a path
+			// the wallet service decided to leave alone. Skip the category
+			// outright so reset events still report it but the original keys
+			// stay recoverable.
+			if entry.category == "wallet" {
+				evt.Success = true
+				deleted++
+				evt.DeletedCount = deleted
+				evt.FailedCount = failed
+				events <- evt
+				continue
+			}
+
 			if err := os.RemoveAll(entry.path); err != nil && !os.IsNotExist(err) {
 				evt.Success = false
 				evt.Error = err.Error()

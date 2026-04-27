@@ -2,10 +2,12 @@ package wallet
 
 import (
 	"crypto/rand"
+	"crypto/sha256"
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -65,6 +67,118 @@ func NewService(bitwindowDir string, log zerolog.Logger) *Service {
 		done:         make(chan struct{}),
 		StateChanged: make(chan struct{}, 1),
 	}
+}
+
+// moveToBackup relocates `path` under `<parent>/wallet_backups/<ts>/<base>`,
+// keeping the backup local to the original binary's data tree (Bitcoin
+// Core wallets stay under the bitcoind datadir, the enforcer's wallet stays
+// under bip300301_enforcer, etc.). Same-fs rename keeps it atomic and
+// avoids cross-device move pitfalls. No-ops cleanly when `path` doesn't
+// exist. Used in lieu of os.Remove anywhere a wallet-bearing file or
+// directory could be touched: deletion is irreversible, but a renamed copy
+// is always a `mv` away from recovery.
+func (s *Service) moveToBackup(path string) (string, error) {
+	if path == "" {
+		return "", nil
+	}
+	if _, err := os.Stat(path); os.IsNotExist(err) {
+		return "", nil
+	} else if err != nil {
+		return "", fmt.Errorf("stat %s: %w", path, err)
+	}
+
+	parent := filepath.Dir(path)
+	backupRoot := filepath.Join(parent, "wallet_backups", time.Now().UTC().Format("20060102-150405"))
+	if err := os.MkdirAll(backupRoot, 0o700); err != nil {
+		return "", fmt.Errorf("create backup root: %w", err)
+	}
+
+	dest := filepath.Join(backupRoot, filepath.Base(path))
+	// Tag against second-resolution timestamp collisions (two backups
+	// inside the same parent within the same second).
+	if _, err := os.Stat(dest); err == nil {
+		dest = filepath.Join(backupRoot, fmt.Sprintf("%s-%s", filepath.Base(path), shortHash(path+time.Now().Format(".999999999"))))
+	}
+
+	if err := os.Rename(path, dest); err != nil {
+		// Same-parent rename should be in-fs; this branch only fires if a
+		// future caller redirects backupRoot to a different mount.
+		if err := copyTreeAndRemove(path, dest); err != nil {
+			return "", fmt.Errorf("backup-move %s -> %s: %w", path, dest, err)
+		}
+	}
+	s.log.Info().Str("from", path).Str("to", dest).Msg("wallet path moved to backup")
+	return dest, nil
+}
+
+// shortHash produces a deterministic 8-char fingerprint of `s` for use as a
+// disambiguator when two paths share a basename in the same backup dir.
+func shortHash(s string) string {
+	sum := sha256.Sum256([]byte(s))
+	return hex.EncodeToString(sum[:4])
+}
+
+// copyTreeAndRemove copies src to dst and removes src on success.
+func copyTreeAndRemove(src, dst string) error {
+	info, err := os.Stat(src)
+	if err != nil {
+		return err
+	}
+	if info.IsDir() {
+		if err := copyDir(src, dst); err != nil {
+			return err
+		}
+	} else {
+		if err := copyFile(src, dst, info.Mode()); err != nil {
+			return err
+		}
+	}
+	return os.RemoveAll(src)
+}
+
+func copyDir(src, dst string) error {
+	if err := os.MkdirAll(dst, 0o700); err != nil {
+		return err
+	}
+	entries, err := os.ReadDir(src)
+	if err != nil {
+		return err
+	}
+	for _, e := range entries {
+		sp := filepath.Join(src, e.Name())
+		dp := filepath.Join(dst, e.Name())
+		info, err := e.Info()
+		if err != nil {
+			return err
+		}
+		if info.IsDir() {
+			if err := copyDir(sp, dp); err != nil {
+				return err
+			}
+			continue
+		}
+		if err := copyFile(sp, dp, info.Mode()); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func copyFile(src, dst string, mode os.FileMode) error {
+	in, err := os.Open(src)
+	if err != nil {
+		return err
+	}
+	defer in.Close() //nolint:errcheck // read-only
+	out, err := os.OpenFile(dst, os.O_RDWR|os.O_CREATE|os.O_TRUNC, mode.Perm())
+	if err != nil {
+		return err
+	}
+	if _, err := io.Copy(out, in); err != nil {
+		_ = out.Close()
+		return err
+	}
+	return out.Close()
 }
 
 // Init loads the wallet file and starts the file watcher.
@@ -360,22 +474,40 @@ func (s *Service) LoadMasterStarter() map[string]interface{} {
 
 // DeleteCoreMultisigWallets deletes multisig_* directories from Bitcoin Core datadir.
 // Dart: WalletWriterProvider._deleteCoreMultisigWallets (L533-552)
+// DeleteCoreMultisigWallets is retained for backwards compatibility but is
+// now a soft-delete: each `multisig_*` directory is moved to
+// `<coreDataDir>/wallet_backups/<ts>/` rather than removed. Multisig keys
+// are user-level secrets we can't reconstruct, so we never `os.RemoveAll`
+// them.
 func DeleteCoreMultisigWallets(coreDataDir string, log zerolog.Logger) {
 	entries, err := os.ReadDir(coreDataDir)
 	if err != nil {
 		log.Error().Err(err).Msg("error reading core data dir for multisig cleanup")
 		return
 	}
+	backupRoot := filepath.Join(coreDataDir, "wallet_backups", time.Now().UTC().Format("20060102-150405"))
 	for _, entry := range entries {
-		if entry.IsDir() && strings.HasPrefix(entry.Name(), "multisig_") {
-			path := filepath.Join(coreDataDir, entry.Name())
-			if err := os.RemoveAll(path); err != nil {
-				log.Warn().Err(err).Str("path", path).Msg("could not delete multisig wallet")
-			} else {
-				log.Info().Str("path", path).Msg("deleted multisig wallet")
-			}
+		if !entry.IsDir() || !strings.HasPrefix(entry.Name(), "multisig_") {
+			continue
+		}
+		if err := os.MkdirAll(backupRoot, 0o700); err != nil {
+			log.Warn().Err(err).Str("backup", backupRoot).Msg("could not create multisig backup root")
+			return
+		}
+		src := filepath.Join(coreDataDir, entry.Name())
+		dst := filepath.Join(backupRoot, entry.Name())
+		if err := os.Rename(src, dst); err != nil {
+			log.Warn().Err(err).Str("path", src).Msg("could not back up multisig wallet")
+		} else {
+			log.Info().Str("from", src).Str("to", dst).Msg("multisig wallet moved to backup")
 		}
 	}
+}
+
+// softDeleteCoreMultisigWallets is the method form used by DeleteAllWallets
+// so the same backup logic flows through Service's logger context.
+func (s *Service) softDeleteCoreMultisigWallets() {
+	DeleteCoreMultisigWallets(s.CoreDataDir, s.log)
 }
 
 // CreateBitcoinCoreWallet creates a new Bitcoin Core wallet (subsequent, not first enforcer).
@@ -930,43 +1062,44 @@ func (s *Service) DeleteAllWallets(onStatusUpdate func(string), beforeBoot func(
 	}
 	time.Sleep(5 * time.Second)
 
-	// Dart L580: onStatusUpdate?.call('Deleting wallet files')
+	// Dart L580: onStatusUpdate?.call('Backing up wallet files')
 	if onStatusUpdate != nil {
-		onStatusUpdate("Deleting wallet files")
+		onStatusUpdate("Backing up wallet files")
 	}
 
-	// Dart L585-598: delete wallet.json and wallet_encryption.json
-	if err := os.Remove(s.walletFilePath()); err != nil && !os.IsNotExist(err) {
-		s.log.Error().Err(err).Msg("could not delete wallet.json")
-	} else {
-		s.log.Info().Str("path", s.walletFilePath()).Msg("deleted wallet file")
+	// Soft-delete wallet.json + wallet_encryption.json by moving them under
+	// <bitwindowDir>/wallet_backups/<ts>/. Keys here are recoverable via a
+	// `mv` on disk; an os.Remove would not be.
+	if _, err := s.moveToBackup(s.walletFilePath()); err != nil {
+		s.log.Error().Err(err).Msg("could not back up wallet.json")
 	}
-	if err := os.Remove(s.metadataFilePath()); err != nil && !os.IsNotExist(err) {
-		s.log.Error().Err(err).Msg("could not delete wallet_encryption.json")
-	} else {
-		s.log.Info().Str("path", s.metadataFilePath()).Msg("deleted encryption metadata")
+	if _, err := s.moveToBackup(s.metadataFilePath()); err != nil {
+		s.log.Error().Err(err).Msg("could not back up wallet_encryption.json")
 	}
 
-	// Dart L600-608: delete per-binary wallet paths
+	// Soft-delete per-binary wallet paths the same way: each lands under
+	// its own parent's wallet_backups/<ts>/, keeping bitcoind's wallets
+	// in the bitcoind datadir, the enforcer's under bip300301_enforcer,
+	// etc., and never touching the user's keys destructively.
 	if s.GetBinaryWalletPaths != nil {
 		paths := s.GetBinaryWalletPaths()
 		for _, p := range paths {
-			if err := os.RemoveAll(p); err != nil {
-				s.log.Warn().Err(err).Str("path", p).Msg("could not delete binary wallet path")
-			} else {
-				s.log.Info().Str("path", p).Msg("deleted binary wallet path")
+			if _, err := s.moveToBackup(p); err != nil {
+				s.log.Warn().Err(err).Str("path", p).Msg("could not back up binary wallet path")
 			}
 		}
 	}
 
-	// Dart L610: onStatusUpdate?.call('Cleaning multisig wallets')
+	// Dart L610: onStatusUpdate?.call('Backing up multisig wallets')
 	if onStatusUpdate != nil {
-		onStatusUpdate("Cleaning multisig wallets")
+		onStatusUpdate("Backing up multisig wallets")
 	}
 
-	// Dart L618: _deleteCoreMultisigWallets
+	// Dart L618: soft-delete the per-network multisig dirs under Bitcoin
+	// Core's datadir. Same backup-not-delete rule: a multisig wallet may
+	// be mid-coordination and we can't recover keys we shred.
 	if s.CoreDataDir != "" {
-		DeleteCoreMultisigWallets(s.CoreDataDir, s.log)
+		s.softDeleteCoreMultisigWallets()
 	}
 
 	// Dart L623: onStatusUpdate?.call('Clearing wallet state')
