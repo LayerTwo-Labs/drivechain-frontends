@@ -6,7 +6,7 @@ import (
 )
 
 // EncodeTopicCreation produces the wire bytes for a Topic Creation
-// (BIP §5):
+// (spec §5):
 //
 //	"CN" ‖ 0x01 ‖ topic(4) ‖ retention(1) ‖ name(varint+UTF-8)
 func EncodeTopicCreation(t TopicCreation) ([]byte, error) {
@@ -25,17 +25,12 @@ func EncodeTopicCreation(t TopicCreation) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-// EncodeStory (BIP §6):
+// EncodeStory (spec §6):
 //
 //	"CN" ‖ 0x02 ‖ topic(4) ‖ headline(varint+UTF-8) ‖ tlv*
+//
+// Long headlines are legal; the varint just costs more bytes.
 func EncodeStory(s Story) ([]byte, error) {
-	if len(s.Headline) > HeadlineMaxLen {
-		// Not a hard error — long headlines are legal — but we want
-		// callers to be aware they're paying a 3-byte varint instead
-		// of 1 byte. Returning the headline anyway lets ranking land
-		// the post; refusing here would force every wallet to
-		// pre-truncate.
-	}
 	var buf bytes.Buffer
 	buf.Write(Magic[:])
 	buf.WriteByte(byte(TypeStory))
@@ -50,7 +45,7 @@ func EncodeStory(s Story) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-// EncodeComment (BIP §7). Caller is responsible for producing a sig
+// EncodeComment (spec §7). Caller is responsible for producing a sig
 // that covers CommentSigHash(Parent, SerialiseTLVs(TLVs)) — the
 // encoder does not re-sign on the fly because callers may want to
 // build the bytes once (e.g. for fee preview) before signing.
@@ -67,7 +62,7 @@ func EncodeComment(c Comment) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-// EncodeVote (BIP §8). Always 111 B — the only CoinNews payload with
+// EncodeVote (spec §8). Always 111 B — the only CoinNews payload with
 // no variable-length section.
 func EncodeVote(v Vote) ([]byte, error) {
 	if v.Kind != TypeUpvote && v.Kind != TypeDownvote {
@@ -85,8 +80,13 @@ func EncodeVote(v Vote) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-// EncodeContinuation (BIP §9).
+// EncodeContinuation (spec §9). Empty chunks are rejected — they let
+// a publisher pad block space without contributing to the reassembled
+// payload, so we refuse to produce or accept them.
 func EncodeContinuation(c Continuation) ([]byte, error) {
+	if len(c.Chunk) == 0 {
+		return nil, fmt.Errorf("coinnews: continuation chunk must be non-empty")
+	}
 	if len(c.Chunk) > ContinuationChunk {
 		return nil, fmt.Errorf("coinnews: continuation chunk %d > %d", len(c.Chunk), ContinuationChunk)
 	}

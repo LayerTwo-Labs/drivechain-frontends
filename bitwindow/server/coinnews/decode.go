@@ -6,10 +6,16 @@ import (
 )
 
 // ErrNotCoinNews indicates the payload's leading bytes don't match the
-// "CN" magic or the TypeTag is unknown — i.e. this OP_RETURN belongs
-// to some other application. Indexers SHOULD treat this as "skip,
-// not error".
+// "CN" magic — this OP_RETURN belongs to some other application.
+// Indexers SHOULD treat this as "skip, not error".
 var ErrNotCoinNews = errors.New("coinnews: payload is not a CoinNews message")
+
+// ErrUnknownTypeTag indicates the magic matched but the TypeTag isn't
+// one this codec knows about. Per spec §1 a future protocol revision
+// may define new tags — current indexers MUST drop the message, but
+// keeping the error distinct from ErrNotCoinNews preserves telemetry
+// (a sudden uptick in unknown tags ⇒ a newer publisher is on chain).
+var ErrUnknownTypeTag = errors.New("coinnews: unknown type tag")
 
 // DecodeMessage classifies the payload and returns one of:
 //
@@ -47,10 +53,10 @@ func DecodeMessage(payload []byte) (TypeTag, any, error) {
 	default:
 		// Unknown TypeTag: the magic matched, so the publisher
 		// intended this as a CoinNews message, but we don't know how
-		// to parse it. Per BIP §1, indexers MUST drop unknown tags —
-		// reflect that as ErrNotCoinNews so the caller's "skip" path
-		// fires.
-		return 0, nil, ErrNotCoinNews
+		// to parse it. Per spec §1, indexers MUST drop unknown tags —
+		// callers treat this as a skip, but the distinct error keeps
+		// telemetry useful.
+		return 0, nil, ErrUnknownTypeTag
 	}
 }
 
@@ -158,8 +164,10 @@ func VerifyVote(v *Vote) error {
 }
 
 func decodeContinuation(b []byte) (*Continuation, error) {
-	if len(b) < ItemIDLen+1 {
-		return nil, fmt.Errorf("coinnews: continuation truncated")
+	if len(b) <= ItemIDLen+1 {
+		// Header-only continuations are meaningless — they let a
+		// publisher pad block space without contributing payload.
+		return nil, fmt.Errorf("coinnews: continuation chunk must be non-empty")
 	}
 	if len(b) > ItemIDLen+1+ContinuationChunk {
 		return nil, fmt.Errorf("coinnews: continuation chunk %d > %d", len(b)-ItemIDLen-1, ContinuationChunk)

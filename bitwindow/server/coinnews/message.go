@@ -10,22 +10,22 @@ type XOnlyPubKey [XOnlyPubKeyLen]byte
 type SchnorrSig [SchnorrSigLen]byte
 
 // TopicCreation announces a topic. Earliest confirmed creation per
-// TopicID wins (BIP §5).
+// TopicID wins (spec §5).
 type TopicCreation struct {
-	Topic          Topic
-	RetentionDays  byte
-	Name           string
+	Topic         Topic
+	RetentionDays byte
+	Name          string
 }
 
 // Story is a Topic-scoped post. Headline is required; everything else
-// rides in the TLV section (BIP §6).
+// rides in the TLV section (spec §6).
 type Story struct {
 	Topic    Topic
 	Headline string
 	TLVs     []TLV
 }
 
-// Comment is a signed reply to another Item (BIP §7). Sig MUST cover
+// Comment is a signed reply to another Item (spec §7). Sig MUST cover
 // CommentSigHash(Parent, SerialiseTLVs(TLVs)).
 type Comment struct {
 	Parent    ItemID
@@ -34,7 +34,7 @@ type Comment struct {
 	TLVs      []TLV
 }
 
-// Vote is a signed +1 (Up) or −1 (Down) directed at one Item (BIP §8).
+// Vote is a signed +1 (Up) or −1 (Down) directed at one Item (spec §8).
 type Vote struct {
 	Kind      TypeTag // TypeUpvote or TypeDownvote
 	Target    ItemID
@@ -42,7 +42,7 @@ type Vote struct {
 	Sig       SchnorrSig
 }
 
-// Continuation extends a head Message that didn't fit in 80 B (BIP §9).
+// Continuation extends a head Message that didn't fit in 80 B (spec §9).
 type Continuation struct {
 	Head  ItemID
 	Seq   byte

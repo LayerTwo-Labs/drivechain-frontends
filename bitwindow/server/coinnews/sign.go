@@ -31,12 +31,12 @@ func taggedHash(tag [32]byte, msg ...[]byte) [32]byte {
 }
 
 // CommentSigHash is the 32-byte digest a Comment's signature MUST cover
-// per BIP §7.
+// per spec §7.
 func CommentSigHash(parent ItemID, tlvBlob []byte) [32]byte {
 	return taggedHash(tagCommentHash, parent[:], tlvBlob)
 }
 
-// VoteSigHash is the digest a Vote's signature MUST cover per BIP §8.
+// VoteSigHash is the digest a Vote's signature MUST cover per spec §8.
 // Includes the type tag byte so an upvote and a downvote signed against
 // the same target produce different digests — protects against trivial
 // up-to-down replay.

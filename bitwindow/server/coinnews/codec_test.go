@@ -60,9 +60,9 @@ func TestItemIDDeterministic(t *testing.T) {
 	assert.Equal(t, id1, parsed)
 }
 
-// --- BIP test vectors ------------------------------------------------------
+// --- Spec test vectors ------------------------------------------------------
 
-// TestVector_TopicCreation matches the worked example in the BIP's
+// TestVector_TopicCreation matches the worked example in the spec's
 // "Test Vectors" section.
 func TestVector_TopicCreation(t *testing.T) {
 	tc := TopicCreation{
@@ -84,7 +84,7 @@ func TestVector_TopicCreation(t *testing.T) {
 	assert.Equal(t, tc, *roundTripped)
 }
 
-// TestVector_VoteEnvelopeIs111Bytes pins the BIP §8 invariant: a Vote
+// TestVector_VoteEnvelopeIs111Bytes pins the spec §8 invariant: a Vote
 // envelope is exactly 111 bytes regardless of pubkey or sig contents.
 // A regression here means the on-chain footprint of every vote
 // changes — strictly observable to anyone scanning blocks.
@@ -107,7 +107,7 @@ func TestVector_VoteEnvelopeIs111Bytes(t *testing.T) {
 
 	encoded, err := EncodeVote(v)
 	require.NoError(t, err)
-	assert.Equal(t, 111, len(encoded), "Vote envelope must be exactly 111 B per BIP §8")
+	assert.Equal(t, 111, len(encoded), "Vote envelope must be exactly 111 B per spec §8")
 }
 
 // TestStoryRoundTripWithTLV proves the TLV section survives encode →
@@ -189,7 +189,7 @@ func TestCommentSignatureRoundTrip(t *testing.T) {
 
 // TestVoteSignatureRoundTrip mirrors the comment test and additionally
 // proves the typetag is part of the digest — flipping up→down without
-// re-signing must fail (BIP §8 first-wins replay protection).
+// re-signing must fail (spec §8 first-wins replay protection).
 func TestVoteSignatureRoundTrip(t *testing.T) {
 	priv, err := btcec.NewPrivateKey()
 	require.NoError(t, err)
@@ -220,21 +220,30 @@ func TestVoteSignatureRoundTrip(t *testing.T) {
 }
 
 // TestNotCoinNewsTraffic proves the dispatcher's classification: any
-// payload that doesn't start with "CN" must report ErrNotCoinNews so
-// the indexer's "skip" path fires instead of erroring out.
+// payload that doesn't start with "CN" reports ErrNotCoinNews so the
+// indexer's "skip" path fires instead of erroring out.
 func TestNotCoinNewsTraffic(t *testing.T) {
 	for _, p := range [][]byte{
 		nil,
 		{},
-		{'C'},                         // half-magic
-		{'C', 'X', 0x01},              // wrong magic
-		{'C', 'N'},                    // magic but no type
-		{'C', 'N', 0xff, 0x00, 0x00},  // unknown type
-		{'X', 'X', 0x01, 0x00, 0x00},  // some other protocol
+		{'C'},                        // half-magic
+		{'C', 'X', 0x01},             // wrong magic
+		{'C', 'N'},                   // magic but no type
+		{'X', 'X', 0x01, 0x00, 0x00}, // some other protocol
 	} {
 		_, _, err := DecodeMessage(p)
 		assert.ErrorIs(t, err, ErrNotCoinNews, "payload %x", p)
 	}
+}
+
+// TestUnknownTypeTagDistinct proves an unknown TypeTag (magic matched
+// but the byte after isn't a known type) returns ErrUnknownTypeTag,
+// NOT ErrNotCoinNews — telemetry distinguishes "future protocol
+// version" from "wrong protocol entirely."
+func TestUnknownTypeTagDistinct(t *testing.T) {
+	_, _, err := DecodeMessage([]byte{'C', 'N', 0xff, 0x00, 0x00})
+	assert.ErrorIs(t, err, ErrUnknownTypeTag, "unknown TypeTag must surface as ErrUnknownTypeTag")
+	assert.NotErrorIs(t, err, ErrNotCoinNews, "ErrUnknownTypeTag must be distinct from ErrNotCoinNews")
 }
 
 // TestContinuationChunkBound rejects oversize chunks: §9 caps a single
