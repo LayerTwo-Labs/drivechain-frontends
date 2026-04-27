@@ -152,18 +152,7 @@ func run(cctx *cli.Context) error {
 
 		return nil
 	}
-	walletSvc.GetBinaryWalletPaths = func() []string {
-		paths := []string{}
-		network := config.Network(network)
-		for _, cfg := range orch.Configs() {
-			dirConfig, ok := config.DirConfigByName(cfg.Name)
-			if !ok {
-				continue
-			}
-			paths = append(paths, dirConfig.GetWalletPaths(dirConfig.RootDirNetwork(network), network, log)...)
-		}
-		return paths
-	}
+	walletSvc.GetBinaryWalletPaths = orch.BinaryWalletPaths
 	if orch.BitcoinConf != nil {
 		walletSvc.CoreDataDir = config.BitcoinCoreDirs.RootDirNetwork(orch.BitcoinConf.Network)
 	}

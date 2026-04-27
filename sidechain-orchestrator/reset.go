@@ -296,3 +296,28 @@ func (o *Orchestrator) StreamResetData(ctx context.Context, cat ResetCategory) (
 
 	return events, nil
 }
+
+// BinaryWalletPaths returns the per-binary on-disk wallet locations that a
+// "Delete Wallet Files" / "Fully Obliterate" reset must remove. Mirrors the
+// path enumeration used by collectPaths/StreamResetData so the wallet
+// service's pre-deletion sweep agrees with the file-by-file pass that runs
+// after — without that agreement, the sweep can miss `<datadir>/<network>/
+// wallets/` while the second pass deletes blockchain data, leaving
+// the user's wallet alive against an empty chain (issue #1627).
+func (o *Orchestrator) BinaryWalletPaths() []string {
+	network := config.Network(o.Network)
+	bitcoinOverride := ""
+	if o.BitcoinConf != nil {
+		bitcoinOverride = o.BitcoinConf.DetectedDataDir
+	}
+
+	var paths []string
+	for _, cfg := range o.Configs() {
+		dirConfig, ok := config.DirConfigByName(cfg.Name)
+		if !ok {
+			continue
+		}
+		paths = append(paths, dirConfig.GetWalletPaths(dirConfig.DatadirNetwork(network, bitcoinOverride), network, o.log)...)
+	}
+	return paths
+}
