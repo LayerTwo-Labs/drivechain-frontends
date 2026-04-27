@@ -7,6 +7,7 @@ import (
 	"sort"
 	"testing"
 
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -437,5 +438,46 @@ func TestPreviewResetData_ResultsAreStable(t *testing.T) {
 	for i := range files1 {
 		assert.Equal(t, files1[i].Path, files2[i].Path)
 		assert.Equal(t, files1[i].Category, files2[i].Category)
+	}
+}
+
+// ---------- BinaryWalletPaths ----------------------------------------------
+
+// TestBinaryWalletPaths_BitcoindUsesNetworkAwareDatadir guards issue #1627.
+// The wallet sweep must look for bitcoind wallets at `<datadir>/<network>/
+// wallets/`, not the bare root. The previous wiring passed RootDirNetwork —
+// dropping the per-network subfolder — so a "Fully Obliterate Everything"
+// pass left the user's enforcer wallet untouched.
+func TestBinaryWalletPaths_BitcoindUsesNetworkAwareDatadir(t *testing.T) {
+	o := newResetTestOrchestrator(t)
+
+	// Point bitcoind at our tempdir as if the user set `datadir=<tmp>` in
+	// bitwindow-bitcoin.conf, then drop a wallets/ dir under
+	// <override>/<network>/. The path must show up in BinaryWalletPaths
+	// regardless of whether anything else exists in the root.
+	override := t.TempDir()
+	o.BitcoinConf = &config.BitcoinConfManager{
+		Network:         config.Network("signet"),
+		DetectedDataDir: override,
+	}
+	bitcoinNetworkDir := filepath.Join(override, "signet")
+	walletsDir := filepath.Join(bitcoinNetworkDir, "wallets")
+	require.NoError(t, os.MkdirAll(walletsDir, 0o755))
+
+	paths := o.BinaryWalletPaths()
+
+	found := false
+	for _, p := range paths {
+		if p == walletsDir {
+			found = true
+			break
+		}
+	}
+	assert.True(t, found, "bitcoind signet wallets dir must be in BinaryWalletPaths; got: %v", paths)
+
+	// And the bare-root mistake must NOT appear (would be the regression).
+	bareRootWallets := filepath.Join(override, "wallets")
+	for _, p := range paths {
+		assert.NotEqual(t, bareRootWallets, p, "must not point at bare-root <override>/wallets — that's the pre-fix layout")
 	}
 }
