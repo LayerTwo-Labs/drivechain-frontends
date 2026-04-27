@@ -24,4 +24,5 @@ message GetChainTipsResponse {
   ChainTip zside = 5; // L2-S98
   ChainTip coinshift = 6; // L2-S255
   ChainTip photon = 7; // L2-S99
+  ChainTip truthcoin = 8; // L2-S13
 }

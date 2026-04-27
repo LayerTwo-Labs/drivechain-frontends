@@ -127,6 +127,7 @@ type GetChainTipsResponse struct {
 	Zside         *ChainTip              `protobuf:"bytes,5,opt,name=zside,proto3" json:"zside,omitempty"`         // L2-S98
 	Coinshift     *ChainTip              `protobuf:"bytes,6,opt,name=coinshift,proto3" json:"coinshift,omitempty"` // L2-S255
 	Photon        *ChainTip              `protobuf:"bytes,7,opt,name=photon,proto3" json:"photon,omitempty"`       // L2-S99
+	Truthcoin     *ChainTip              `protobuf:"bytes,8,opt,name=truthcoin,proto3" json:"truthcoin,omitempty"` // L2-S13
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -210,6 +211,13 @@ func (x *GetChainTipsResponse) GetPhoton() *ChainTip {
 	return nil
 }
 
+func (x *GetChainTipsResponse) GetTruthcoin() *ChainTip {
+	if x != nil {
+		return x.Truthcoin
+	}
+	return nil
+}
+
 var File_explorer_v1_explorer_proto protoreflect.FileDescriptor
 
 const file_explorer_v1_explorer_proto_rawDesc = "" +
@@ -219,7 +227,7 @@ const file_explorer_v1_explorer_proto_rawDesc = "" +
 	"\bChainTip\x12\x12\n" +
 	"\x04hash\x18\x01 \x01(\tR\x04hash\x12\x16\n" +
 	"\x06height\x18\x02 \x01(\x04R\x06height\x128\n" +
-	"\ttimestamp\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\ttimestamp\"\xf5\x02\n" +
+	"\ttimestamp\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\ttimestamp\"\xaa\x03\n" +
 	"\x14GetChainTipsResponse\x123\n" +
 	"\tmainchain\x18\x01 \x01(\v2\x15.explorer.v1.ChainTipR\tmainchain\x12/\n" +
 	"\athunder\x18\x02 \x01(\v2\x15.explorer.v1.ChainTipR\athunder\x123\n" +
@@ -227,7 +235,8 @@ const file_explorer_v1_explorer_proto_rawDesc = "" +
 	"\bbitnames\x18\x04 \x01(\v2\x15.explorer.v1.ChainTipR\bbitnames\x12+\n" +
 	"\x05zside\x18\x05 \x01(\v2\x15.explorer.v1.ChainTipR\x05zside\x123\n" +
 	"\tcoinshift\x18\x06 \x01(\v2\x15.explorer.v1.ChainTipR\tcoinshift\x12-\n" +
-	"\x06photon\x18\a \x01(\v2\x15.explorer.v1.ChainTipR\x06photon2h\n" +
+	"\x06photon\x18\a \x01(\v2\x15.explorer.v1.ChainTipR\x06photon\x123\n" +
+	"\ttruthcoin\x18\b \x01(\v2\x15.explorer.v1.ChainTipR\ttruthcoin2h\n" +
 	"\x0fExplorerService\x12U\n" +
 	"\fGetChainTips\x12 .explorer.v1.GetChainTipsRequest\x1a!.explorer.v1.GetChainTipsResponse\"\x00B\xb9\x01\n" +
 	"\x0fcom.explorer.v1B\rExplorerProtoP\x01ZJgithub.com/LayerTwo-Labs/sidesail/faucet/server/gen/explorer/v1;explorerv1\xa2\x02\x03EXX\xaa\x02\vExplorer.V1\xca\x02\vExplorer\\V1\xe2\x02\x17Explorer\\V1\\GPBMetadata\xea\x02\fExplorer::V1b\x06proto3"
@@ -252,21 +261,22 @@ var file_explorer_v1_explorer_proto_goTypes = []any{
 	(*timestamppb.Timestamp)(nil), // 3: google.protobuf.Timestamp
 }
 var file_explorer_v1_explorer_proto_depIdxs = []int32{
-	3, // 0: explorer.v1.ChainTip.timestamp:type_name -> google.protobuf.Timestamp
-	1, // 1: explorer.v1.GetChainTipsResponse.mainchain:type_name -> explorer.v1.ChainTip
-	1, // 2: explorer.v1.GetChainTipsResponse.thunder:type_name -> explorer.v1.ChainTip
-	1, // 3: explorer.v1.GetChainTipsResponse.bitassets:type_name -> explorer.v1.ChainTip
-	1, // 4: explorer.v1.GetChainTipsResponse.bitnames:type_name -> explorer.v1.ChainTip
-	1, // 5: explorer.v1.GetChainTipsResponse.zside:type_name -> explorer.v1.ChainTip
-	1, // 6: explorer.v1.GetChainTipsResponse.coinshift:type_name -> explorer.v1.ChainTip
-	1, // 7: explorer.v1.GetChainTipsResponse.photon:type_name -> explorer.v1.ChainTip
-	0, // 8: explorer.v1.ExplorerService.GetChainTips:input_type -> explorer.v1.GetChainTipsRequest
-	2, // 9: explorer.v1.ExplorerService.GetChainTips:output_type -> explorer.v1.GetChainTipsResponse
-	9, // [9:10] is the sub-list for method output_type
-	8, // [8:9] is the sub-list for method input_type
-	8, // [8:8] is the sub-list for extension type_name
-	8, // [8:8] is the sub-list for extension extendee
-	0, // [0:8] is the sub-list for field type_name
+	3,  // 0: explorer.v1.ChainTip.timestamp:type_name -> google.protobuf.Timestamp
+	1,  // 1: explorer.v1.GetChainTipsResponse.mainchain:type_name -> explorer.v1.ChainTip
+	1,  // 2: explorer.v1.GetChainTipsResponse.thunder:type_name -> explorer.v1.ChainTip
+	1,  // 3: explorer.v1.GetChainTipsResponse.bitassets:type_name -> explorer.v1.ChainTip
+	1,  // 4: explorer.v1.GetChainTipsResponse.bitnames:type_name -> explorer.v1.ChainTip
+	1,  // 5: explorer.v1.GetChainTipsResponse.zside:type_name -> explorer.v1.ChainTip
+	1,  // 6: explorer.v1.GetChainTipsResponse.coinshift:type_name -> explorer.v1.ChainTip
+	1,  // 7: explorer.v1.GetChainTipsResponse.photon:type_name -> explorer.v1.ChainTip
+	1,  // 8: explorer.v1.GetChainTipsResponse.truthcoin:type_name -> explorer.v1.ChainTip
+	0,  // 9: explorer.v1.ExplorerService.GetChainTips:input_type -> explorer.v1.GetChainTipsRequest
+	2,  // 10: explorer.v1.ExplorerService.GetChainTips:output_type -> explorer.v1.GetChainTipsResponse
+	10, // [10:11] is the sub-list for method output_type
+	9,  // [9:10] is the sub-list for method input_type
+	9,  // [9:9] is the sub-list for extension type_name
+	9,  // [9:9] is the sub-list for extension extendee
+	0,  // [0:9] is the sub-list for field type_name
 }
 
 func init() { file_explorer_v1_explorer_proto_init() }
