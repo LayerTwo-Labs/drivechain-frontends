@@ -53,10 +53,6 @@ const (
 	TLVSubtype    TLVTag = 0x05
 	TLVMediaHash  TLVTag = 0x06
 	TLVReplyQuote TLVTag = 0x07
-	// TLVHandle is the latest-wins display handle for an author; its
-	// latest occurrence in any signed Message authored by `author_xpk`
-	// supersedes earlier handles for the same pubkey.
-	TLVHandle TLVTag = 0x08
 )
 
 // Subtype values for the Story `subtype` TLV (tag 0x05).
