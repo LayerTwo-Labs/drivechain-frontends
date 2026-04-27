@@ -85,6 +85,7 @@ abstract class Binary {
   bool get updateAvailable =>
       isDownloaded &&
       metadata.remoteTimestamp != null &&
+      metadata.downloadedTimestamp != null &&
       metadata.remoteTimestamp!.isAfter(metadata.downloadedTimestamp!);
 
   // Process log storage (in-memory, session-based)
