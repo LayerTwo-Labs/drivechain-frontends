@@ -725,6 +725,16 @@ abstract class Binary {
   }
 
   Future<File> resolveBinaryPath(Directory appDir) async {
+    // Test-sidechain alt build extracts to `bin/test/<binary>/` and the
+    // launchable file inside varies by OS (Linux: bare binary; macOS:
+    // `<TitleCase>.app/Contents/MacOS/<TitleCase>`; Windows: `<binary>.exe`).
+    // Scan rather than guess casing so we mirror
+    // sidechain-orchestrator/config.go:TestSidechainBinaryPath exactly.
+    if (metadata.isUsingAlternative) {
+      final testFile = _resolveTestSidechainBinary(appDir);
+      if (testFile != null) return testFile;
+    }
+
     // First find all possible paths the binary might be in,
     // such as .exe, .app, /assets/bin, $datadir/assets etc.
     final possiblePaths = _getPossibleBinaryPaths(binary, appDir);
@@ -752,6 +762,31 @@ abstract class Binary {
     }
 
     throw Exception('Binary not found');
+  }
+
+  File? _resolveTestSidechainBinary(Directory appDir) {
+    final testDir = Directory(path.join(binDir(appDir.path).path, 'test', binary));
+    if (!testDir.existsSync()) return null;
+
+    if (Platform.isWindows) {
+      final exe = File(path.join(testDir.path, '$binary.exe'));
+      return exe.existsSync() ? exe : null;
+    }
+
+    if (Platform.isMacOS) {
+      for (final entry in testDir.listSync()) {
+        final name = path.basename(entry.path);
+        if (entry is Directory && name.endsWith('.app')) {
+          final inner = name.substring(0, name.length - '.app'.length);
+          final exe = File(path.join(entry.path, 'Contents', 'MacOS', inner));
+          if (exe.existsSync()) return exe;
+        }
+      }
+      return null;
+    }
+
+    final lin = File(path.join(testDir.path, binary));
+    return lin.existsSync() ? lin : null;
   }
 
   List<String> _getPossibleBinaryPaths(String baseBinary, Directory appDir) {
@@ -2144,6 +2179,11 @@ class MetadataConfig {
   // if test chains enabled, use those, but only if an alternative config exists
   DownloadConfig get downloadConfig =>
       _settingsProvider.useTestSidechains ? _alternativeDownloadConfig ?? _downloadConfig : _downloadConfig;
+
+  /// True when the active download config is the test-sidechain alternative.
+  /// Mirrors the orchestrator's `SidechainVariant` toggle so the resolver
+  /// knows to look under `bin/test/<binary>/` instead of `bin/<subfolder>/`.
+  bool get isUsingAlternative => _settingsProvider.useTestSidechains && _alternativeDownloadConfig != null;
 
   DateTime? remoteTimestamp; // Last-Modified from server
   DateTime? downloadedTimestamp; // Local file timestamp
