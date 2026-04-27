@@ -1,3 +1,5 @@
+import 'package:bitwindow/pages/settings/datadir_select_page.dart';
+import 'package:bitwindow/pages/settings/network_swap_page.dart';
 import 'package:bitwindow/routing/router.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
@@ -289,132 +291,37 @@ class _SettingsNetworkState extends State<SettingsNetwork> {
   }
 }
 
-/// Wraps a network swap with a datadir prompt. If the backend rejects the
-/// swap because the target network has no datadir configured, this opens
-/// [DataDirSelectionDialog], persists the chosen path, then retries the swap.
+/// Pushes the full-page network swap flow. When the target network has no
+/// datadir configured yet, this first pushes [DataDirSelectPage] to capture
+/// one (mirroring the wallet-guard full-page pattern), then pushes
+/// [NetworkSwapPage] which performs "shut down → save → boot back up" with
+/// progress UI matching the reset flow.
 Future<void> swapNetworkWithDatadirPrompt(
   BuildContext context,
   BitcoinConfProvider provider,
   BitcoinNetwork network,
 ) async {
-  try {
-    await provider.swapNetwork(context, network);
-  } on MissingDatadirException catch (e) {
-    if (!context.mounted) return;
-    final selected = await showDialog<String>(
-      context: context,
-      builder: (_) => DataDirSelectionDialog(network: e.network),
+  if (provider.network == network) return;
+
+  if (_networkNeedsDatadir(network) && provider.detectedDataDir == null) {
+    final selected = await Navigator.of(context).push<String>(
+      MaterialPageRoute(builder: (_) => DataDirSelectPage(network: network)),
     );
     if (selected == null || selected.isEmpty) return;
-    await provider.updateDataDir(selected, forNetwork: e.network);
     if (!context.mounted) return;
-    await provider.swapNetwork(context, network);
-  }
-}
-
-class DataDirSelectionDialog extends StatefulWidget {
-  final BitcoinNetwork? network;
-  const DataDirSelectionDialog({super.key, this.network});
-
-  @override
-  State<DataDirSelectionDialog> createState() => _DataDirSelectionDialogState();
-}
-
-class _DataDirSelectionDialogState extends State<DataDirSelectionDialog> {
-  String? selectedPath;
-  bool isSelecting = false;
-
-  Future<void> _selectDirectory() async {
-    setState(() {
-      isSelecting = true;
-    });
-
-    try {
-      final result = await FilePicker.getDirectoryPath();
-      if (result != null) {
-        setState(() {
-          selectedPath = result;
-        });
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error selecting directory: $e'),
-            backgroundColor: SailTheme.of(context).colors.error,
-          ),
-        );
-      }
-    } finally {
-      if (mounted) {
-        setState(() {
-          isSelecting = false;
-        });
-      }
-    }
+    await provider.updateDataDir(selected, forNetwork: network);
   }
 
-  String _subtitle() {
-    switch (widget.network) {
-      case BitcoinNetwork.BITCOIN_NETWORK_MAINNET:
-        return 'Mainnet needs a Bitcoin Core data directory with the blockchain data (2.5TB+). Pick a directory that contains the blocks folder.';
-      case BitcoinNetwork.BITCOIN_NETWORK_FORKNET:
-        return 'Forknet needs a data directory to store the chain. Pick an empty directory or one already used for forknet.';
-      default:
-        return 'Pick a directory for Bitcoin Core to store its data.';
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = SailTheme.of(context);
-
-    return Dialog(
-      backgroundColor: Colors.transparent,
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 500),
-        child: SailCard(
-          title: 'Select Bitcoin Data Directory',
-          subtitle: _subtitle(),
-          child: SailColumn(
-            spacing: SailStyleValues.padding16,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(SailStyleValues.padding12),
-                decoration: BoxDecoration(
-                  border: Border.all(color: theme.colors.border),
-                  borderRadius: SailStyleValues.borderRadiusSmall,
-                ),
-                child: SailText.secondary13(
-                  selectedPath ?? 'No directory selected',
-                ),
-              ),
-              SailButton(
-                label: 'Browse',
-                loading: isSelecting,
-                onPressed: () async => await _selectDirectory(),
-              ),
-              SailRow(
-                mainAxisAlignment: MainAxisAlignment.end,
-                spacing: SailStyleValues.padding08,
-                children: [
-                  SailButton(
-                    label: 'Cancel',
-                    variant: ButtonVariant.secondary,
-                    onPressed: () async => Navigator.of(context).pop(),
-                  ),
-                  SailButton(
-                    label: 'Confirm',
-                    disabled: selectedPath == null,
-                    onPressed: () async => Navigator.of(context).pop(selectedPath),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
+  if (!context.mounted) return;
+  await Navigator.of(context).push<bool>(
+    MaterialPageRoute(
+      builder: (_) => NetworkSwapPage(
+        fromNetwork: provider.network,
+        toNetwork: network,
       ),
-    );
-  }
+    ),
+  );
 }
+
+bool _networkNeedsDatadir(BitcoinNetwork network) =>
+    network == BitcoinNetwork.BITCOIN_NETWORK_MAINNET || network == BitcoinNetwork.BITCOIN_NETWORK_FORKNET;
