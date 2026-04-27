@@ -1,6 +1,7 @@
 package explorer
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -9,6 +10,7 @@ import (
 	btcpb "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha"
 	"github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha/bitcoindv1alphaconnect"
 	"github.com/rs/zerolog"
+	"github.com/samber/lo"
 	"github.com/sourcegraph/conc/pool"
 
 	pb "github.com/LayerTwo-Labs/sidesail/faucet/server/gen/explorer/v1"
@@ -88,7 +90,7 @@ func (s *Server) GetChainTips(ctx context.Context, req *connect.Request[pb.GetCh
 	}
 	p := pool.New().WithContext(ctx)
 	p.Go(func(ctx context.Context) error {
-		fetched, err := s.getSidechainTip(ctx, s.thunder, bestMainchainBlock.Msg)
+		fetched, err := s.getSidechainTip(ctx, lo.T2("thunder", s.thunder), bestMainchainBlock.Msg)
 		if err != nil {
 			return fmt.Errorf("get thunder tip: %w", err)
 		}
@@ -98,7 +100,7 @@ func (s *Server) GetChainTips(ctx context.Context, req *connect.Request[pb.GetCh
 
 	p.Go(func(ctx context.Context) error {
 		var err error
-		fetched, err := s.getSidechainTip(ctx, s.bitassets, bestMainchainBlock.Msg)
+		fetched, err := s.getSidechainTip(ctx, lo.T2("bitassets", s.bitassets), bestMainchainBlock.Msg)
 		if err != nil {
 			return fmt.Errorf("get bitassets tip: %w", err)
 		}
@@ -108,7 +110,7 @@ func (s *Server) GetChainTips(ctx context.Context, req *connect.Request[pb.GetCh
 
 	p.Go(func(ctx context.Context) error {
 		var err error
-		fetched, err := s.getSidechainTip(ctx, s.bitnames, bestMainchainBlock.Msg)
+		fetched, err := s.getSidechainTip(ctx, lo.T2("bitnames", s.bitnames), bestMainchainBlock.Msg)
 		if err != nil {
 			return fmt.Errorf("get bitnames tip: %w", err)
 		}
@@ -118,7 +120,7 @@ func (s *Server) GetChainTips(ctx context.Context, req *connect.Request[pb.GetCh
 
 	p.Go(func(ctx context.Context) error {
 		var err error
-		fetched, err := s.getSidechainTip(ctx, s.zside, bestMainchainBlock.Msg)
+		fetched, err := s.getSidechainTip(ctx, lo.T2("zside", s.zside), bestMainchainBlock.Msg)
 		if err != nil {
 			return fmt.Errorf("get zside tip: %w", err)
 		}
@@ -128,7 +130,7 @@ func (s *Server) GetChainTips(ctx context.Context, req *connect.Request[pb.GetCh
 
 	p.Go(func(ctx context.Context) error {
 		var err error
-		fetched, err := s.getSidechainTip(ctx, s.coinshift, bestMainchainBlock.Msg)
+		fetched, err := s.getSidechainTip(ctx, lo.T2("coinshift", s.coinshift), bestMainchainBlock.Msg)
 		if err != nil {
 			return fmt.Errorf("get coinshift tip: %w", err)
 		}
@@ -138,7 +140,7 @@ func (s *Server) GetChainTips(ctx context.Context, req *connect.Request[pb.GetCh
 
 	p.Go(func(ctx context.Context) error {
 		var err error
-		fetched, err := s.getSidechainTip(ctx, s.photon, bestMainchainBlock.Msg)
+		fetched, err := s.getSidechainTip(ctx, lo.T2("photon", s.photon), bestMainchainBlock.Msg)
 		if err != nil {
 			return fmt.Errorf("get photon tip: %w", err)
 		}
@@ -148,7 +150,7 @@ func (s *Server) GetChainTips(ctx context.Context, req *connect.Request[pb.GetCh
 
 	p.Go(func(ctx context.Context) error {
 		var err error
-		fetched, err := s.getSidechainTip(ctx, s.truthcoin, bestMainchainBlock.Msg)
+		fetched, err := s.getSidechainTip(ctx, lo.T2("truthcoin", s.truthcoin), bestMainchainBlock.Msg)
 		if err != nil {
 			return fmt.Errorf("get truthcoin tip: %w", err)
 		}
@@ -165,7 +167,8 @@ func (s *Server) GetChainTips(ctx context.Context, req *connect.Request[pb.GetCh
 	return connect.NewResponse(res), nil
 }
 
-func (s *Server) getSidechainTip(ctx context.Context, sidechain *jsonrpc.Client, bestMainchainBlock *btcpb.GetBlockResponse) (*pb.ChainTip, error) {
+func (s *Server) getSidechainTip(ctx context.Context, sidechain lo.Tuple2[string, *jsonrpc.Client], bestMainchainBlock *btcpb.GetBlockResponse) (*pb.ChainTip, error) {
+	_, client := sidechain.Unpack()
 	bestSidechainMainchainBlock, err := s.getBestSidechainMainchainBlock(
 		ctx, sidechain, bestMainchainBlock,
 	)
@@ -173,7 +176,7 @@ func (s *Server) getSidechainTip(ctx context.Context, sidechain *jsonrpc.Client,
 		return nil, fmt.Errorf("best mainchain block as seen by sidechain: %w", err)
 	}
 
-	rawHeight, err := sidechain.Call(ctx, "getblockcount")
+	rawHeight, err := client.Call(ctx, "getblockcount")
 	if err != nil {
 		return nil, fmt.Errorf("get sidechain block count: %w", err)
 	}
@@ -183,32 +186,42 @@ func (s *Server) getSidechainTip(ctx context.Context, sidechain *jsonrpc.Client,
 		return nil, err
 	}
 
-	rawBestSidechainHash, err := sidechain.Call(ctx, "get_best_sidechain_block_hash")
+	rawBestSidechainHash, err := client.Call(ctx, "get_best_sidechain_block_hash")
 	if err != nil {
 		return nil, fmt.Errorf("get sidechain best block hash: %w", err)
 	}
 
 	var bestSidechainHash string
-	if err := json.Unmarshal(rawBestSidechainHash, &bestSidechainHash); err != nil {
-		return nil, err
+
+	// No blocks on sidechain means the best sidechain block hash is null
+	if !bytes.Equal(rawBestSidechainHash, []byte("null")) {
+		if err := json.Unmarshal(rawBestSidechainHash, &bestSidechainHash); err != nil {
+			return nil, err
+		}
 	}
 
 	return &pb.ChainTip{
 		Height:    uint64(height),
 		Hash:      bestSidechainHash,
-		Timestamp: bestSidechainMainchainBlock.Time,
+		Timestamp: bestSidechainMainchainBlock.GetTime(), // can be nil in case of no blocks
 	}, nil
 }
 
 // Fetch the best mainchain block, as seen by the sidechain
 func (s *Server) getBestSidechainMainchainBlock(
-	ctx context.Context, sidechain *jsonrpc.Client,
+	ctx context.Context, sidechain lo.Tuple2[string, *jsonrpc.Client],
 	bestMainchainBlock *btcpb.GetBlockResponse,
 ) (*btcpb.GetBlockResponse, error) {
+	name, client := sidechain.Unpack()
 
-	rawHash, err := sidechain.Call(ctx, "get_best_mainchain_block_hash")
+	rawHash, err := client.Call(ctx, "get_best_mainchain_block_hash")
 	if err != nil {
 		return nil, err
+	}
+
+	// If there are no blocks on the sidechain, this is what we get
+	if bytes.Equal(rawHash, []byte("null")) {
+		return nil, nil
 	}
 
 	var hash string
@@ -216,8 +229,12 @@ func (s *Server) getBestSidechainMainchainBlock(
 		return nil, err
 	}
 
+	if hash == "" {
+		return nil, fmt.Errorf("best mainchain block hash returned by sidechain is empty: %s", rawHash)
+	}
+
 	zerolog.Ctx(ctx).Debug().
-		Msgf("best sidechain mainchain block: %q", hash)
+		Msgf("best sidechain mainchain block seen from %s: %q", name, hash)
 
 	if hash == bestMainchainBlock.Hash {
 		return bestMainchainBlock, nil

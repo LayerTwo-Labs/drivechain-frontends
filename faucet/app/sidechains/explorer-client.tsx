@@ -172,13 +172,13 @@ function getChainStatus(
   mainchainTimestamp?: Timestamp,
   staleThresholdMs?: number
 ): ChainStatus {
-  if (!block?.height) return "unreachable";
+  if (!block) return "unreachable";
   if (staleThresholdMs && block.timestamp) {
     const blockTimeMs = Number(block.timestamp.seconds) * 1000;
     return Date.now() - blockTimeMs > staleThresholdMs ? "behind" : "synced";
   }
-  if (!mainchainTimestamp || !block.timestamp) return "synced";
-  return Number(block.timestamp.seconds) >= Number(mainchainTimestamp.seconds)
+  if (!mainchainTimestamp) return "synced";
+  return Number(block.timestamp?.seconds) >= Number(mainchainTimestamp.seconds)
     ? "synced"
     : "behind";
 }
@@ -276,7 +276,13 @@ function BlockCard({
       </CardHeader>
       <CardContent className="flex flex-col gap-1">
         <div className="text-sm">Height: {block?.height.toString()}</div>
-        <CopyHash hash={block?.hash ?? ""} />
+        {block?.hash ? (
+          <CopyHash hash={block.hash} />
+        ) : (
+          <div className="text-sm">
+            Hash: <span className="italic">N/A</span>
+          </div>
+        )}
         {staleThresholdMs && block?.timestamp && (
           <div className="text-sm">
             Last block: {formatDistanceToNow(timestampToDate(block.timestamp), { addSuffix: true })}
