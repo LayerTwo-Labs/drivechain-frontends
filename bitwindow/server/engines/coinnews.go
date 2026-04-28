@@ -10,8 +10,8 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/samber/lo"
 
-	codec "github.com/LayerTwo-Labs/sidesail/coinnews/codec"
 	cnstore "github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/coinnews"
+	codec "github.com/LayerTwo-Labs/sidesail/coinnews/codec"
 )
 
 // indexCoinNewsBlocks runs the CoinNews indexing pass over a batch of
