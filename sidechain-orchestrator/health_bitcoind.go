@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 	"time"
 )
 
@@ -64,6 +65,15 @@ func (h *BitcoindHealthCheck) Check(ctx context.Context) error {
 		})
 	}
 
+	// Even when getblockchaininfo answers cleanly, bitcoind can still be in a
+	// phase where wallet RPCs (and the ZMQ socket) are not usable yet — most
+	// commonly during the post-IBD wallet rescan. Probe a cheap wallet RPC
+	// and surface its -28 message as the startup state so downstream engines
+	// (cheque, ZMQ, enforcer boot) wait instead of crashing on first call.
+	if walletErr := h.probeWalletReady(ctx); walletErr != nil {
+		return walletErr
+	}
+
 	if info.Headers > 0 || info.Blocks > 0 {
 		return nil
 	}
@@ -73,6 +83,36 @@ func (h *BitcoindHealthCheck) Check(ctx context.Context) error {
 		return nil
 	}
 	return fmt.Errorf("%s, height: %d", PresyncMessagePrefix, height)
+}
+
+// probeWalletReady returns a startup-style error iff bitcoind is still in a
+// phase that breaks wallet RPCs (e.g. mid-rescan, mid-verify). It returns nil
+// in every other case — including transport failures — so a transient probe
+// blip doesn't take the binary out of "connected" state.
+func (h *BitcoindHealthCheck) probeWalletReady(ctx context.Context) error {
+	raw, err := h.rpcCall(ctx, "listwallets", nil)
+	if err == nil && raw != nil {
+		return nil
+	}
+	if err == nil {
+		return nil
+	}
+	msg := err.Error()
+	for _, p := range []string{
+		"-28",
+		"Verifying blocks",
+		"Loading block index",
+		"Loading wallet",
+		"Wallet loading",
+		"Wallet already loading",
+		"Rescanning",
+		"Still rescanning",
+	} {
+		if strings.Contains(msg, p) {
+			return fmt.Errorf("%s", strings.TrimSpace(msg))
+		}
+	}
+	return nil
 }
 
 type bitcoindBlockchainInfo struct {

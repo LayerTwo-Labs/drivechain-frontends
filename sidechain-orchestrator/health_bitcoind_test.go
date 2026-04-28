@@ -22,9 +22,11 @@ import (
 type rpcStub struct {
 	getblockchaininfo func() (interface{}, *jsonRPCErrorBody)
 	getpeerinfo       func() (interface{}, *jsonRPCErrorBody)
+	listwallets       func() (interface{}, *jsonRPCErrorBody)
 
 	getblockchaininfoCalls atomic.Int32
 	getpeerinfoCalls       atomic.Int32
+	listwalletsCalls       atomic.Int32
 }
 
 type jsonRPCErrorBody struct {
@@ -54,6 +56,16 @@ func (s *rpcStub) handler(t *testing.T) http.HandlerFunc {
 			s.getpeerinfoCalls.Add(1)
 			require.NotNil(t, s.getpeerinfo, "test forgot to stub getpeerinfo")
 			result, rpcErr = s.getpeerinfo()
+		case "listwallets":
+			s.listwalletsCalls.Add(1)
+			// Default to "wallet RPC works" when the test didn't explicitly
+			// stub listwallets — the probe is supposed to be a transparent
+			// extra readiness check, not a behaviour change for healthy nodes.
+			if s.listwallets == nil {
+				result = []string{}
+			} else {
+				result, rpcErr = s.listwallets()
+			}
 		default:
 			t.Fatalf("unexpected RPC method: %s", req.Method)
 		}
@@ -224,6 +236,49 @@ func TestBitcoindHealthCheck_PeerinfoErrorIsHealthy(t *testing.T) {
 			return map[string]interface{}{"blocks": 0, "headers": 0}, nil
 		},
 		getpeerinfo: func() (interface{}, *jsonRPCErrorBody) {
+			return nil, &jsonRPCErrorBody{Code: -32601, Message: "method not found"}
+		},
+	}
+	srv := httptest.NewServer(stub.handler(t))
+	defer srv.Close()
+
+	err := newBitcoindHealthCheck(srv.URL).Check(context.Background())
+	require.NoError(t, err)
+}
+
+// Regression for the wallet-rescan / verify-blocks scenario: getblockchaininfo
+// returns a healthy answer (Core is past -28 for chain RPCs) but the wallet
+// is still rescanning, so listwallets returns -28. The check must surface
+// that as a startup error so downstream engines (cheque, ZMQ, enforcer boot)
+// don't start hammering bitcoind before the wallet is ready.
+func TestBitcoindHealthCheck_WalletStillRescanningSurfacesStartupError(t *testing.T) {
+	stub := &rpcStub{
+		getblockchaininfo: func() (interface{}, *jsonRPCErrorBody) {
+			return map[string]interface{}{"blocks": 558063, "headers": 947019}, nil
+		},
+		listwallets: func() (interface{}, *jsonRPCErrorBody) {
+			return nil, &jsonRPCErrorBody{Code: -28, Message: "Verifying blocks…"}
+		},
+	}
+	srv := httptest.NewServer(stub.handler(t))
+	defer srv.Close()
+
+	err := newBitcoindHealthCheck(srv.URL).Check(context.Background())
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "Verifying blocks")
+}
+
+// If listwallets fails for a reason that isn't a startup-state error
+// (e.g. transport error mid-shutdown), we must NOT take the binary out of
+// "connected" state — getblockchaininfo already proved it was healthy.
+// Returning nil keeps connected=true so a transient probe blip doesn't
+// flap the UI.
+func TestBitcoindHealthCheck_ListwalletsNonStartupErrorIsHealthy(t *testing.T) {
+	stub := &rpcStub{
+		getblockchaininfo: func() (interface{}, *jsonRPCErrorBody) {
+			return map[string]interface{}{"blocks": 100, "headers": 100}, nil
+		},
+		listwallets: func() (interface{}, *jsonRPCErrorBody) {
 			return nil, &jsonRPCErrorBody{Code: -32601, Message: "method not found"}
 		},
 	}
