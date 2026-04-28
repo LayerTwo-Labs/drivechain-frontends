@@ -14,9 +14,7 @@ const description = `Hacker News for Bitcoin, indexed straight from the chain ($
 export const metadata: Metadata = {
   title,
   description,
-  metadataBase: process.env.METADATA_BASE_URL
-    ? new URL(process.env.METADATA_BASE_URL)
-    : undefined,
+  metadataBase: process.env.METADATA_BASE_URL ? new URL(process.env.METADATA_BASE_URL) : undefined,
   openGraph: {
     title,
     description,
@@ -30,16 +28,12 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
-  children,
-}: Readonly<{ children: React.ReactNode }>) {
+export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en">
       <body className="min-h-screen flex flex-col">
         <Navbar />
-        <main className="container mx-auto max-w-4xl px-3 py-3 flex-grow w-full">
-          {children}
-        </main>
+        <main className="container mx-auto max-w-4xl px-3 py-3 flex-grow w-full">{children}</main>
         <Footer />
       </body>
     </html>

@@ -8,7 +8,11 @@ export function Footer() {
           Home
         </Link>
         <span>|</span>
-        <Link href="https://github.com/LayerTwo-Labs/sidesail" target="_blank" className="hover:underline">
+        <Link
+          href="https://github.com/LayerTwo-Labs/sidesail"
+          target="_blank"
+          className="hover:underline"
+        >
           GitHub
         </Link>
         <span>|</span>
