@@ -1443,9 +1443,13 @@ type GetSyncInfoResponse struct {
 	TipBlockProcessedAt *timestamppb.Timestamp `protobuf:"bytes,4,opt,name=tip_block_processed_at,json=tipBlockProcessedAt,proto3" json:"tip_block_processed_at,omitempty"`
 	HeaderHeight        int64                  `protobuf:"varint,5,opt,name=header_height,json=headerHeight,proto3" json:"header_height,omitempty"`
 	// sync progress between 0 and 1
-	SyncProgress  float64 `protobuf:"fixed64,6,opt,name=sync_progress,json=syncProgress,proto3" json:"sync_progress,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	SyncProgress float64 `protobuf:"fixed64,6,opt,name=sync_progress,json=syncProgress,proto3" json:"sync_progress,omitempty"`
+	// Non-empty while bitcoind is in a startup phase (e.g. "Verifying blocks…",
+	// "Rescanning…", "Loading wallet"). When set, the numeric height fields are
+	// 0/0 and the UI should render this message instead of "0/0 blocks".
+	StartupMessage string `protobuf:"bytes,7,opt,name=startup_message,json=startupMessage,proto3" json:"startup_message,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *GetSyncInfoResponse) Reset() {
@@ -1518,6 +1522,13 @@ func (x *GetSyncInfoResponse) GetSyncProgress() float64 {
 		return x.SyncProgress
 	}
 	return 0
+}
+
+func (x *GetSyncInfoResponse) GetStartupMessage() string {
+	if x != nil {
+		return x.StartupMessage
+	}
+	return ""
 }
 
 // Request to set a transaction note
@@ -2592,14 +2603,15 @@ const file_bitwindowd_v1_bitwindowd_proto_rawDesc = "" +
 	"\x05label\x18\x02 \x01(\tR\x05label\x12\x18\n" +
 	"\aaddress\x18\x03 \x01(\tR\aaddress\"/\n" +
 	"\x1dDeleteAddressBookEntryRequest\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\x03R\x02id\"\xa6\x02\n" +
+	"\x02id\x18\x01 \x01(\x03R\x02id\"\xcf\x02\n" +
 	"\x13GetSyncInfoResponse\x12(\n" +
 	"\x10tip_block_height\x18\x01 \x01(\x03R\x0etipBlockHeight\x12$\n" +
 	"\x0etip_block_time\x18\x02 \x01(\x03R\ftipBlockTime\x12$\n" +
 	"\x0etip_block_hash\x18\x03 \x01(\tR\ftipBlockHash\x12O\n" +
 	"\x16tip_block_processed_at\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampR\x13tipBlockProcessedAt\x12#\n" +
 	"\rheader_height\x18\x05 \x01(\x03R\fheaderHeight\x12#\n" +
-	"\rsync_progress\x18\x06 \x01(\x01R\fsyncProgress\"C\n" +
+	"\rsync_progress\x18\x06 \x01(\x01R\fsyncProgress\x12'\n" +
+	"\x0fstartup_message\x18\a \x01(\tR\x0estartupMessage\"C\n" +
 	"\x19SetTransactionNoteRequest\x12\x12\n" +
 	"\x04txid\x18\x01 \x01(\tR\x04txid\x12\x12\n" +
 	"\x04note\x18\x02 \x01(\tR\x04note\"\xa3\x01\n" +

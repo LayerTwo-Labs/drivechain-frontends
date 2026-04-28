@@ -545,6 +545,15 @@ func (s *Server) GetSyncInfo(ctx context.Context, req *connect.Request[emptypb.E
 
 	tip, err := bitcoind.GetBlockchainInfo(ctx, connect.NewRequest(&corepb.GetBlockchainInfoRequest{}))
 	if err != nil {
+		// Bitcoin Core returns -28 from every RPC while it's still loading the
+		// block index, verifying blocks, or rescanning the wallet. Treat that
+		// as "still booting" and surface the message so the UI can render
+		// "Verifying blocks…" instead of a misleading "0 / 0 blocks" state.
+		if msg := engines.ExtractBitcoindStartupMessage(err.Error()); msg != "" {
+			return connect.NewResponse(&pb.GetSyncInfoResponse{
+				StartupMessage: msg,
+			}), nil
+		}
 		return nil, err
 	}
 
@@ -1040,6 +1049,12 @@ func (s *Server) GetNetworkStats(ctx context.Context, req *connect.Request[empty
 	// Fetch blockchain info
 	blockchainInfo, err := bitcoind.GetBlockchainInfo(ctx, connect.NewRequest(&corepb.GetBlockchainInfoRequest{}))
 	if err != nil {
+		// -28 / wallet-loading errors mean bitcoind is still booting. Return
+		// Unavailable so the Dart caller treats this as "still warming up" and
+		// keeps its previous stats instead of toasting an Internal error.
+		if engines.IsBitcoinCoreStartupError(err.Error()) {
+			return nil, connect.NewError(connect.CodeUnavailable, fmt.Errorf("get blockchain info: %w", err))
+		}
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("get blockchain info: %w", err))
 	}
 

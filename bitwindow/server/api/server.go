@@ -560,27 +560,22 @@ func getLogLevel(procedure string, code connect.Code, err error) zerolog.Level {
 
 // isBitcoinCoreStartupError returns true for Bitcoin Core RPC errors
 // that indicate the node is still starting up or not yet connected.
+// Wraps engines.IsBitcoinCoreStartupError plus connection-level failures
+// that the engine helper doesn't cover (we want to suppress noisy logs
+// for those too, but they aren't real "startup" states elsewhere).
 func isBitcoinCoreStartupError(errMsg string) bool {
-	startupPatterns := []string{
-		"Loading block index",
-		"Loading wallet",
-		"Loading P2P addresses",
-		"Loading banlist",
-		"Verifying blocks",
-		"Replaying blocks",
-		"Rescanning",
-		"-28:", // Bitcoin Core "loading" error code
+	if engines.IsBitcoinCoreStartupError(errMsg) {
+		return true
+	}
+	for _, p := range []string{
 		"unable to connect to Bitcoin Core",
 		"does not accept connections",
 		"connection refused",
-	}
-
-	for _, pattern := range startupPatterns {
-		if strings.Contains(errMsg, pattern) {
+	} {
+		if strings.Contains(errMsg, p) {
 			return true
 		}
 	}
-
 	return false
 }
 

@@ -76,6 +76,10 @@ class BlockchainInfo {
   final int sizeOnDisk;
   final bool pruned;
   final List<String> warnings;
+  // Non-empty while bitcoind is in a startup phase (Verifying blocks…,
+  // Rescanning…, Loading wallet). When set, blocks/headers will be 0/0
+  // and the UI should render the message instead of the numeric heights.
+  final String startupMessage;
 
   BlockchainInfo({
     required this.chain,
@@ -91,6 +95,7 @@ class BlockchainInfo {
     required this.sizeOnDisk,
     required this.pruned,
     required this.warnings,
+    this.startupMessage = '',
   });
 
   factory BlockchainInfo.fromMap(Map<String, dynamic> map) {
@@ -111,6 +116,7 @@ class BlockchainInfo {
       sizeOnDisk: map['size_on_disk'] ?? 0,
       pruned: map['pruned'] ?? false,
       warnings: List<String>.from(map['warnings'] ?? []),
+      startupMessage: map['startup_message'] ?? '',
     );
   }
 
@@ -131,6 +137,7 @@ class BlockchainInfo {
     'size_on_disk': sizeOnDisk,
     'pruned': pruned,
     'warnings': warnings,
+    'startup_message': startupMessage,
   };
 
   static BlockchainInfo empty() => BlockchainInfo(

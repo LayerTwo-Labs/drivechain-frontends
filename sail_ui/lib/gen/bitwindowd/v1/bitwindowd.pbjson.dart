@@ -410,6 +410,7 @@ const GetSyncInfoResponse$json = {
     {'1': 'tip_block_processed_at', '3': 4, '4': 1, '5': 11, '6': '.google.protobuf.Timestamp', '10': 'tipBlockProcessedAt'},
     {'1': 'header_height', '3': 5, '4': 1, '5': 3, '10': 'headerHeight'},
     {'1': 'sync_progress', '3': 6, '4': 1, '5': 1, '10': 'syncProgress'},
+    {'1': 'startup_message', '3': 7, '4': 1, '5': 9, '10': 'startupMessage'},
   ],
 };
 
@@ -420,7 +421,8 @@ final $typed_data.Uint8List getSyncInfoResponseDescriptor = $convert.base64Decod
     'b2NrX2hhc2gYAyABKAlSDHRpcEJsb2NrSGFzaBJPChZ0aXBfYmxvY2tfcHJvY2Vzc2VkX2F0GA'
     'QgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcFITdGlwQmxvY2tQcm9jZXNzZWRBdBIj'
     'Cg1oZWFkZXJfaGVpZ2h0GAUgASgDUgxoZWFkZXJIZWlnaHQSIwoNc3luY19wcm9ncmVzcxgGIA'
-    'EoAVIMc3luY1Byb2dyZXNz');
+    'EoAVIMc3luY1Byb2dyZXNzEicKD3N0YXJ0dXBfbWVzc2FnZRgHIAEoCVIOc3RhcnR1cE1lc3Nh'
+    'Z2U=');
 
 @$core.Deprecated('Use setTransactionNoteRequestDescriptor instead')
 const SetTransactionNoteRequest$json = {

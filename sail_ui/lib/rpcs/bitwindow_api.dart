@@ -169,6 +169,7 @@ class BitwindowRPCLive extends BitwindowRPC {
         sizeOnDisk: 0,
         pruned: false,
         warnings: [],
+        startupMessage: syncInfo.startupMessage,
       );
     });
   }
