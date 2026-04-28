@@ -218,7 +218,7 @@ func run(cctx *cli.Context) error {
 
 	// Bitcoin config service
 	if orch.BitcoinConf != nil {
-		confHandler := api.NewBitcoinConfHandler(orch.BitcoinConf)
+		confHandler := api.NewBitcoinConfHandler(orch)
 		confPath, confH := rpc.NewBitcoinConfServiceHandler(confHandler, connect.WithInterceptors())
 		mux.Handle(confPath, confH)
 	}

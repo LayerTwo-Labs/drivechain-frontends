@@ -9,6 +9,7 @@ import (
 
 	"connectrpc.com/connect"
 
+	orchestrator "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config"
 	pb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/orchestrator/v1"
 	rpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/orchestrator/v1/orchestratorv1connect"
@@ -18,11 +19,12 @@ var _ rpc.BitcoinConfServiceHandler = new(BitcoinConfHandler)
 
 // BitcoinConfHandler implements the BitcoinConfService gRPC handler.
 type BitcoinConfHandler struct {
+	orch *orchestrator.Orchestrator
 	conf *config.BitcoinConfManager
 }
 
-func NewBitcoinConfHandler(conf *config.BitcoinConfManager) *BitcoinConfHandler {
-	return &BitcoinConfHandler{conf: conf}
+func NewBitcoinConfHandler(orch *orchestrator.Orchestrator) *BitcoinConfHandler {
+	return &BitcoinConfHandler{orch: orch, conf: orch.BitcoinConf}
 }
 
 func (h *BitcoinConfHandler) GetBitcoinConfig(ctx context.Context, req *connect.Request[pb.GetBitcoinConfigRequest]) (*connect.Response[pb.GetBitcoinConfigResponse], error) {
@@ -78,8 +80,8 @@ func (h *BitcoinConfHandler) SetBitcoinConfigNetwork(ctx context.Context, req *c
 		)
 	}
 
-	if err := h.conf.UpdateNetwork(network); err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("update network: %w", err))
+	if err := h.orch.SwapNetwork(ctx, network); err != nil {
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("swap network: %w", err))
 	}
 
 	return connect.NewResponse(&pb.SetBitcoinConfigNetworkResponse{}), nil

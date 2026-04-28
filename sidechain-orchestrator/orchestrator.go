@@ -119,6 +119,10 @@ type Orchestrator struct {
 	// SetTestSidechains. Same reason as coreVariantMu.
 	testSidechainsMu sync.Mutex
 
+	// swapNetworkMu serialises the stop -> persist -> restart sequence for
+	// SwapNetwork. Same reason as coreVariantMu.
+	swapNetworkMu sync.Mutex
+
 	cachedBTCPrice  float64
 	cachedPriceTime time.Time
 	priceMu         sync.Mutex
@@ -1364,6 +1368,95 @@ func (o *Orchestrator) SetCoreVariant(ctx context.Context, id string) error {
 	for p := range bootCh {
 		if p.Error != nil {
 			return fmt.Errorf("restart bitcoind: %w", p.Error)
+		}
+	}
+	return nil
+}
+
+// SwapNetwork performs an atomic Bitcoin network swap: stop running
+// L2 sidechains + enforcer + bitcoind in reverse-dependency order,
+// persist the new network to bitwindow-bitcoin.conf, refresh in-memory
+// state, then restart the L1 stack if bitcoind/enforcer was running.
+// Sidechains are intentionally not auto-restarted — the user re-launches
+// them when they want to.
+func (o *Orchestrator) SwapNetwork(ctx context.Context, n config.Network) error {
+	if o.BitcoinConf == nil {
+		return fmt.Errorf("bitcoin config manager not initialised")
+	}
+
+	o.swapNetworkMu.Lock()
+	defer o.swapNetworkMu.Unlock()
+
+	if config.Network(o.Network) == n {
+		return nil
+	}
+
+	bitcoindWasRunning := o.process.IsRunning("bitcoind")
+	enforcerWasRunning := o.process.IsRunning("enforcer")
+
+	var runningL2 []string
+	for _, c := range o.Configs() {
+		if c.ChainLayer == 2 && o.process.IsRunning(c.Name) {
+			runningL2 = append(runningL2, c.Name)
+		}
+	}
+
+	for _, name := range runningL2 {
+		if err := o.stopForNetworkSwap(ctx, name); err != nil {
+			return err
+		}
+	}
+	if enforcerWasRunning {
+		if err := o.stopForNetworkSwap(ctx, "enforcer"); err != nil {
+			return err
+		}
+	}
+	if bitcoindWasRunning {
+		if err := o.stopForNetworkSwap(ctx, "bitcoind"); err != nil {
+			return err
+		}
+	}
+
+	if err := o.BitcoinConf.UpdateNetwork(n); err != nil {
+		return fmt.Errorf("persist network: %w", err)
+	}
+	if err := o.BitcoinConf.LoadConfig(false); err != nil {
+		return fmt.Errorf("reload config: %w", err)
+	}
+	o.Network = string(n)
+
+	// rpcuser/rpcpass/esplora-url live in per-network sections of
+	// bitwindow-bitcoin.conf; the persisted enforcer.conf still holds the
+	// previous network's values until we sync it forward.
+	if o.EnforcerConf != nil {
+		if err := o.EnforcerConf.SyncFromBitcoinConf(); err != nil {
+			return fmt.Errorf("sync enforcer config: %w", err)
+		}
+	}
+
+	if !bitcoindWasRunning && !enforcerWasRunning {
+		return nil
+	}
+
+	bootCh, err := o.StartWithL1(ctx, "bitcoind", StartOpts{})
+	if err != nil {
+		return fmt.Errorf("restart L1 stack on new network: %w", err)
+	}
+	for p := range bootCh {
+		if p.Error != nil {
+			return fmt.Errorf("restart L1 stack: %w", p.Error)
+		}
+	}
+	return nil
+}
+
+// stopForNetworkSwap stops a binary, escalating to SIGKILL on graceful
+// failure. Mirrors stopBitcoindForVariantSwap but generic over name.
+func (o *Orchestrator) stopForNetworkSwap(ctx context.Context, name string) error {
+	if err := o.stopBinary(ctx, name, false); err != nil {
+		o.log.Warn().Err(err).Str("binary", name).Msg("graceful stop failed during network swap, escalating to SIGKILL")
+		if killErr := o.stopBinary(ctx, name, true); killErr != nil {
+			return fmt.Errorf("stop %s for network swap: graceful failed (%v) and force kill failed: %w", name, err, killErr)
 		}
 	}
 	return nil
