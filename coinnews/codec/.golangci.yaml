@@ -1,0 +1,9 @@
+version: "2"
+run:
+  tests: true
+
+linters:
+  settings:
+    staticcheck:
+      checks:
+        - "-ST1005"

@@ -1,0 +1,17 @@
+version: "2"
+run:
+  tests: true
+
+linters:
+  enable:
+    - depguard
+  settings:
+    depguard:
+      rules:
+        all:
+          deny:
+            - pkg: log
+              desc: "use zerolog!"
+    staticcheck:
+      checks:
+        - "-ST1005"
