@@ -906,6 +906,22 @@ func (o *Orchestrator) startEnforcerWhenReady(ctx context.Context, opts StartOpt
 	// this on the first successful ping; error paths below clear it explicitly.
 	enforcerMon.SetInitializing(true)
 
+	// 4. Wait for bitcoind's ZMQ sequence socket to actually accept dials.
+	// The enforcer exits 1 the moment its initial ZMQ dial fails — that
+	// happens when bitcoind is RPC-reachable but the socket isn't bound yet
+	// (early boot) or, much more commonly, when bitcoin.conf is missing
+	// zmqpubsequence entirely. Probing first means we either back off until
+	// the socket is up, or surface a clear error in the UI instead of an
+	// opaque "exit code 1" loop the user can't diagnose.
+	if zmqAddr := extractZmqSequenceAddr(opts.EnforcerArgs); zmqAddr != "" {
+		if err := waitForZmqReachable(ctx, zmqAddr, &o.log); err != nil {
+			enforcerMon.SetConnectionError(err.Error())
+			enforcerMon.SetInitializing(false)
+			o.log.Error().Err(err).Str("zmq_addr", zmqAddr).Msg("refusing to start enforcer: bitcoind ZMQ socket unreachable")
+			return
+		}
+	}
+
 	enfOpts := opts
 	enforcerMon.StartRestartTimer(ctx,
 		func(restartCtx context.Context) error {

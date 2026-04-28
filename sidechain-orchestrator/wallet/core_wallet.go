@@ -9,6 +9,7 @@ import (
 	"math/big"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/rs/zerolog"
 	"github.com/tyler-smith/go-bip32"
@@ -16,6 +17,14 @@ import (
 
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/wallet/bip47"
 )
+
+// walletLoadingBackoff is how long EnsureCoreWallet short-circuits subsequent
+// calls after a transient bitcoind error (e.g. -4 Wallet already loading or
+// -28 Verifying blocks). Frontends poll this path aggressively while the user
+// stares at the wallet view; without a gate every poll triggers a fresh
+// CreateWallet/LoadWallet RPC and we drown bitcoind in retries that all fail
+// the same way until Core is past startup.
+const walletLoadingBackoff = 5 * time.Second
 
 // WalletEngine manages Bitcoin Core wallets derived from wallet.json seeds.
 // It handles BIP84 descriptor derivation and lazy Core wallet creation.
@@ -27,6 +36,13 @@ type WalletEngine struct {
 
 	mu          sync.RWMutex
 	coreWallets map[string]string // walletID -> Core wallet name
+
+	// Transient backoff: when bitcoind responds with a "still booting" error
+	// (-4 Wallet already loading, -28 Verifying blocks, …), EnsureCoreWallet
+	// returns the cached error for `walletLoadingBackoff` so the next ~5s of
+	// frontend polls don't translate into RPC storms against bitcoind.
+	loadingUntil time.Time
+	loadingErr   error
 }
 
 // NewWalletEngine creates a new WalletEngine.
@@ -62,6 +78,12 @@ func (e *WalletEngine) EnsureCoreWallet(ctx context.Context, walletID string) (s
 		return name, nil
 	}
 
+	// Short-circuit while a recent attempt is still in the bitcoind-warming-up
+	// window — return the same error without re-hitting RPC.
+	if e.loadingErr != nil && time.Now().Before(e.loadingUntil) {
+		return "", e.loadingErr
+	}
+
 	// Find wallet data
 	all := e.svc.GetAllWallets()
 	var targetWallet *WalletData
@@ -77,19 +99,27 @@ func (e *WalletEngine) EnsureCoreWallet(ctx context.Context, walletID string) (s
 
 	walletName := fmt.Sprintf("wallet_%s", walletID[:8])
 
+	var err error
 	switch targetWallet.WalletType {
 	case "bitcoinCore":
-		if err := e.createBitcoinCoreWallet(ctx, walletName, targetWallet.Master.SeedHex); err != nil {
-			return "", err
-		}
+		err = e.createBitcoinCoreWallet(ctx, walletName, targetWallet.Master.SeedHex)
 	case "watchOnly":
-		if err := e.createWatchOnlyWallet(ctx, walletName, targetWallet); err != nil {
-			return "", err
-		}
+		err = e.createWatchOnlyWallet(ctx, walletName, targetWallet)
 	default:
 		return "", fmt.Errorf("wallet type %s does not use Bitcoin Core", targetWallet.WalletType)
 	}
 
+	if err != nil {
+		if isTransientWalletErr(err) {
+			e.loadingUntil = time.Now().Add(walletLoadingBackoff)
+			e.loadingErr = err
+		}
+		return "", err
+	}
+
+	// Success — clear any previous transient gate and cache the wallet name.
+	e.loadingUntil = time.Time{}
+	e.loadingErr = nil
 	e.coreWallets[walletID] = walletName
 	return walletName, nil
 }
