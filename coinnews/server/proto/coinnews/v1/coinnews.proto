@@ -1,0 +1,122 @@
+syntax = "proto3";
+
+package coinnews.v1;
+
+import "google/protobuf/empty.proto";
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/LayerTwo-Labs/sidesail/coinnews/server/gen/coinnews/v1;coinnewsv1";
+
+// Read-only RPC surface for the CoinNews indexer. Mirrors the
+// determinism budget from docs/coinnews-protocol.md §4.2 — given the
+// same chain tip, every conforming server returns the same rows.
+service CoinNewsService {
+  // List the front-page items, ranked by HN score (spec §13).
+  rpc ListFrontPage(ListFrontPageRequest) returns (ListFrontPageResponse);
+
+  // Newest items, ordered by canonical scan order DESC.
+  rpc ListNewFeed(ListNewFeedRequest) returns (ListNewFeedResponse);
+
+  // One item by its hex-encoded ItemID.
+  rpc GetItem(GetItemRequest) returns (GetItemResponse);
+
+  // Every comment under a root item, depth-first.
+  rpc ListThread(ListThreadRequest) returns (ListThreadResponse);
+
+  // Items authored by `author_xpk_hex` (32-byte x-only pubkey).
+  rpc ListByAuthor(ListByAuthorRequest) returns (ListByAuthorResponse);
+
+  // Items in `topic_hex` (4-byte topic).
+  rpc ListByTopic(ListByTopicRequest) returns (ListByTopicResponse);
+
+  // All known topics. Display-only metadata; topic IDs are canonical.
+  rpc ListTopics(google.protobuf.Empty) returns (ListTopicsResponse);
+}
+
+// Subtype mirrors codec/constants.go; numeric so the proto can grow
+// without touching the codec.
+enum Subtype {
+  SUBTYPE_LINK = 0;
+  SUBTYPE_TEXT = 1;
+  SUBTYPE_ASK  = 2;
+  SUBTYPE_SHOW = 3;
+  SUBTYPE_POLL = 4;
+  SUBTYPE_JOB  = 5;
+}
+
+message Item {
+  string item_id_hex = 1;
+  string topic_hex   = 2;
+  string headline    = 3;
+  string url         = 4;
+  string body        = 5;
+  Subtype subtype    = 6;
+  string lang        = 7;
+  bool   nsfw        = 8;
+  string author_xpk_hex = 9;
+  uint32 block_height = 10;
+  google.protobuf.Timestamp block_time = 11;
+  int32  points       = 12;
+  int32  comment_count = 13;
+  double score        = 14;
+}
+
+message Comment {
+  string item_id_hex   = 1;
+  string parent_id_hex = 2;
+  string author_xpk_hex = 3;
+  string body          = 4;
+  string url           = 5;
+  string lang          = 6;
+  string reply_quote   = 7;
+  uint32 block_height  = 8;
+  google.protobuf.Timestamp block_time = 9;
+  int32  points        = 10;
+  double score         = 11;
+}
+
+message Topic {
+  string topic_hex = 1;
+  string name = 2;
+  uint32 retention_days = 3;
+  uint32 created_height = 4;
+  string txid = 5;
+}
+
+message ListFrontPageRequest {
+  uint32 limit  = 1;
+  uint32 offset = 2;
+  optional Subtype subtype = 3;
+  optional string  topic_hex = 4;
+}
+message ListFrontPageResponse { repeated Item items = 1; }
+
+message ListNewFeedRequest {
+  uint32 limit  = 1;
+  uint32 offset = 2;
+  optional Subtype subtype = 3;
+  optional string  topic_hex = 4;
+}
+message ListNewFeedResponse { repeated Item items = 1; }
+
+message GetItemRequest  { string item_id_hex = 1; }
+message GetItemResponse { Item item = 1; }
+
+message ListThreadRequest  { string root_id_hex = 1; }
+message ListThreadResponse { repeated Comment comments = 1; }
+
+message ListByAuthorRequest {
+  string author_xpk_hex = 1;
+  uint32 limit  = 2;
+  uint32 offset = 3;
+}
+message ListByAuthorResponse { repeated Item items = 1; }
+
+message ListByTopicRequest {
+  string topic_hex = 1;
+  uint32 limit  = 2;
+  uint32 offset = 3;
+}
+message ListByTopicResponse { repeated Item items = 1; }
+
+message ListTopicsResponse { repeated Topic topics = 1; }
