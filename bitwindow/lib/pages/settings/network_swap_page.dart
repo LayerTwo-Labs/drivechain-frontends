@@ -1,11 +1,11 @@
-import 'package:bitwindow/main.dart' show bootBitwindowBackend;
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:sail_ui/sail_ui.dart';
 
-/// Confirms a Bitcoin network change, then runs the swap as
-/// "shut down → save → boot back up", mirroring the reset flow.
+/// Confirms a Bitcoin network change, then asks the orchestrator to do
+/// the swap atomically: stop bitcoind+enforcer, persist the new network,
+/// restart the L1 stack. bitwindowd itself stays alive throughout.
 class NetworkSwapPage extends StatefulWidget {
   final BitcoinNetwork fromNetwork;
   final BitcoinNetwork toNetwork;
@@ -23,60 +23,38 @@ class NetworkSwapPage extends StatefulWidget {
 class _NetworkSwapPageState extends State<NetworkSwapPage> {
   Logger get _log => GetIt.I.get<Logger>();
   BitcoinConfProvider get _conf => GetIt.I.get<BitcoinConfProvider>();
-  BinaryProvider get _binaries => GetIt.I.get<BinaryProvider>();
 
-  final List<_SwapStep> _steps = [
-    _SwapStep('Stopping binaries'),
-    _SwapStep('Saving network configuration'),
-    _SwapStep('Starting binaries'),
-  ];
+  final _SwapStep _step = _SwapStep('Switching network');
 
   bool _isSwapping = false;
   bool _swapComplete = false;
-  int _currentStepIndex = -1;
   String? _error;
 
   Future<void> _startSwap() async {
     setState(() {
       _isSwapping = true;
       _error = null;
+      _step.startTime = DateTime.now();
+      _step.endTime = null;
     });
 
     try {
-      await _runStep(0, () async {
-        await _binaries.stop(BitWindow());
-        await Future.delayed(const Duration(seconds: 2));
-      });
-      await _runStep(1, () => _conf.updateNetwork(widget.toNetwork));
-      await _runStep(2, () => bootBitwindowBackend(_log));
-
+      await _conf.updateNetwork(widget.toNetwork);
       if (mounted) {
-        setState(() => _swapComplete = true);
+        setState(() {
+          _step.endTime = DateTime.now();
+          _swapComplete = true;
+        });
       }
     } catch (e) {
       _log.e('NetworkSwapPage: swap failed: $e');
       if (mounted) {
         setState(() {
+          _step.endTime = DateTime.now();
           _error = e.toString();
-          if (_currentStepIndex >= 0 && _currentStepIndex < _steps.length) {
-            _steps[_currentStepIndex].endTime = DateTime.now();
-          }
         });
       }
     }
-  }
-
-  Future<void> _runStep(int idx, Future<void> Function() action) async {
-    if (!mounted) return;
-    setState(() {
-      _currentStepIndex = idx;
-      _steps[idx].startTime = DateTime.now();
-    });
-    await action();
-    if (!mounted) return;
-    setState(() {
-      _steps[idx].endTime = DateTime.now();
-    });
   }
 
   void _handleBack() {
@@ -173,20 +151,11 @@ class _NetworkSwapPageState extends State<NetworkSwapPage> {
                               ),
                               child: Padding(
                                 padding: const EdgeInsets.all(SailStyleValues.padding12),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    for (var i = 0; i < _steps.length; i++)
-                                      Padding(
-                                        padding: const EdgeInsets.symmetric(vertical: 2),
-                                        child: ProgressStepTile(
-                                          name: _steps[i].name,
-                                          isCompleted: _steps[i].isCompleted,
-                                          duration: _steps[i].duration,
-                                          isActive: i == _currentStepIndex && !_steps[i].isCompleted,
-                                        ),
-                                      ),
-                                  ],
+                                child: ProgressStepTile(
+                                  name: _step.name,
+                                  isCompleted: _step.isCompleted,
+                                  duration: _step.duration,
+                                  isActive: _isSwapping && !_step.isCompleted,
                                 ),
                               ),
                             ),
