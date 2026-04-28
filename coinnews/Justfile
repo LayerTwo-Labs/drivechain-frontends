@@ -9,22 +9,73 @@ build-docker:
     docker build --platform linux/amd64 --file Dockerfile .
 
 run-client:
-    bun dev
+    bun dev --port 3004
 
-run:
+# `just dev` — one-shot: build server, point at local Bitcoin Core
+# (signet defaults match bitwindow's), run scanner + Next.js. Stops
+# both when you Ctrl-C.
+dev:
     #!/usr/bin/env bash
-    set -e
-    cd server && go build -o coinnewsd . && cd ..
-    ./server/coinnewsd &
+    set -euo pipefail
+    BITCOIND_URL="${COINNEWS_BITCOIND_URL:-http://127.0.0.1:38332}"
+    BITCOIND_USER="${COINNEWS_BITCOIND_USER:-user}"
+    BITCOIND_PASS="${COINNEWS_BITCOIND_PASS:-password}"
+    NETWORK="${COINNEWS_NETWORK:-signet}"
+
+    echo "==> preflight: pinging Bitcoin Core at ${BITCOIND_URL} (${NETWORK})"
+    if ! curl -fsS --max-time 3 -u "${BITCOIND_USER}:${BITCOIND_PASS}" \
+        --data-binary '{"jsonrpc":"1.0","id":"coinnews-preflight","method":"getblockcount","params":[]}' \
+        -H 'content-type: text/plain;' "${BITCOIND_URL}/" >/dev/null 2>&1; then
+        echo
+        echo "  Bitcoin Core unreachable at ${BITCOIND_URL}."
+        echo "  Override with COINNEWS_BITCOIND_URL / COINNEWS_BITCOIND_USER / COINNEWS_BITCOIND_PASS."
+        echo
+        exit 1
+    fi
+    echo "    Core OK."
+
+    echo "==> building coinnewsd"
+    (cd server && go build -o coinnewsd .)
+
+    cleanup() {
+        echo
+        echo "==> shutting down"
+        if [[ -n "${SERVER_PID:-}" ]] && kill -0 "${SERVER_PID}" 2>/dev/null; then
+            kill "${SERVER_PID}" 2>/dev/null || true
+            wait "${SERVER_PID}" 2>/dev/null || true
+        fi
+    }
+    trap cleanup EXIT INT TERM
+
+    echo "==> starting coinnewsd on :8080 (db: ./server/coinnews.db, network: ${NETWORK})"
+    (cd server && \
+        COINNEWS_BITCOIND_URL="${BITCOIND_URL}" \
+        COINNEWS_BITCOIND_USER="${BITCOIND_USER}" \
+        COINNEWS_BITCOIND_PASS="${BITCOIND_PASS}" \
+        COINNEWS_NETWORK="${NETWORK}" \
+        ./coinnewsd) &
     SERVER_PID=$!
-    sleep 1
-    bun dev
-    kill $SERVER_PID
+
+    # Give the server a beat to bind before the frontend tries to talk to it.
+    for i in 1 2 3 4 5 6 7 8 9 10; do
+        if curl -fsS --max-time 1 http://127.0.0.1:8080/healthz >/dev/null 2>&1; then break; fi
+        sleep 0.3
+    done
+
+    echo "==> starting next.js on :3004 (open http://localhost:3004)"
+    NEXT_PUBLIC_NETWORK="${NETWORK}" \
+        API_BASE_URL="http://127.0.0.1:8080" \
+        NEXT_PUBLIC_API_CLIENT_BASE_URL="http://127.0.0.1:8080" \
+        bun dev --port 3004
+
+# Alias.
+run: dev
 
 lint:
     cd server && golangci-lint run ./...
 
 test:
+    cd codec && go test ./...
     cd server && go test ./...
 
 run-server: build-server
