@@ -12,7 +12,7 @@ import (
 	"slices"
 	"time"
 
-	codec "github.com/LayerTwo-Labs/sidesail/bitwindow/server/coinnews"
+	codec "github.com/LayerTwo-Labs/sidesail/coinnews/codec"
 )
 
 // BlockPos locates an Item in canonical scan order (spec §4.2). Always
