@@ -48,9 +48,7 @@ export default async function ItemPage({ params }: { params: Params }) {
         </Link>{" "}
         · {it.commentCount} comments · block {it.blockHeight}
       </div>
-      {it.body && (
-        <div className="whitespace-pre-wrap break-words text-sm py-3">{it.body}</div>
-      )}
+      {it.body && <div className="whitespace-pre-wrap break-words text-sm py-3">{it.body}</div>}
       <hr className="my-3 border-[var(--border)]" />
       <Thread rootIdHex={id} comments={thread.comments} />
     </article>

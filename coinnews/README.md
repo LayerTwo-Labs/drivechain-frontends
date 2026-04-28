@@ -14,6 +14,5 @@ just test         # server tests
 just run          # build + run the server, then bun dev
 ```
 
-The frontend points at `API_BASE_URL` (server-side) /
-`NEXT_PUBLIC_API_CLIENT_BASE_URL` (browser). Default points at
-`http://localhost:8080` to match the server's default listen address.
+The frontend points at `API_BASE_URL` (server-side) / `NEXT_PUBLIC_API_CLIENT_BASE_URL` (browser).
+Default points at `http://localhost:8080` to match the server's default listen address.

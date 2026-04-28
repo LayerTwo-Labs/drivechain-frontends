@@ -48,7 +48,10 @@ function NavLink({
   return (
     <Link
       href={href}
-      className={cn("text-sm transition-opacity", active ? "font-bold" : "opacity-90 hover:opacity-100")}
+      className={cn(
+        "text-sm transition-opacity",
+        active ? "font-bold" : "opacity-90 hover:opacity-100"
+      )}
     >
       {children}
     </Link>

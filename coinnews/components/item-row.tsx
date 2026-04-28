@@ -23,9 +23,7 @@ export function ItemRow({ item, rank }: { item: Item; rank?: number }) {
           >
             {item.headline || "(untitled)"}
           </Link>
-          {host && (
-            <span className="text-xs text-[var(--muted-foreground)]">({host})</span>
-          )}
+          {host && <span className="text-xs text-[var(--muted-foreground)]">({host})</span>}
         </div>
         <div className="text-xs text-[var(--muted-foreground)]">
           {item.points} {item.points === 1 ? "point" : "points"} ·{" "}
