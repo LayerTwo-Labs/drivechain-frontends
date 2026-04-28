@@ -7,29 +7,49 @@ package store
 import (
 	"context"
 	"crypto/sha256"
+	"database/sql"
 	_ "embed"
 	"encoding/binary"
 	"encoding/hex"
 	"fmt"
+	"math"
 	"slices"
 	"strings"
+	"sync"
 	"time"
 
-	"database/sql"
-
 	codec "github.com/LayerTwo-Labs/sidesail/coinnews/codec"
-	_ "github.com/mattn/go-sqlite3"
+	"github.com/mattn/go-sqlite3"
 )
 
 //go:embed schema.sql
 var schemaSQL string
+
+const driverName = "sqlite3-coinnews"
+
+var registerOnce sync.Once
+
+// registerDriver registers a sqlite3 driver variant that exposes the
+// `pow` function the front-page ranker needs. SQLite's default build
+// omits math functions; registering a Go-side `pow` keeps the SQL
+// portable and keeps us off CGO build tags.
+func registerDriver() {
+	registerOnce.Do(func() {
+		sql.Register(driverName, &sqlite3.SQLiteDriver{
+			ConnectHook: func(c *sqlite3.SQLiteConn) error {
+				return c.RegisterFunc("pow", math.Pow, true)
+			},
+		})
+	})
+}
 
 // Open opens (or creates) the SQLite database at `path`, applies
 // the schema if missing, and returns a ready *sql.DB. Safe to call
 // repeatedly — `CREATE TABLE IF NOT EXISTS` makes the schema apply
 // idempotent.
 func Open(ctx context.Context, path string) (*sql.DB, error) {
-	db, err := sql.Open("sqlite3", path+"?_journal=WAL&_busy_timeout=5000&_foreign_keys=on")
+	registerDriver()
+	db, err := sql.Open(driverName, path+"?_journal=WAL&_busy_timeout=5000&_foreign_keys=on")
 	if err != nil {
 		return nil, fmt.Errorf("open sqlite: %w", err)
 	}
