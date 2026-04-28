@@ -9,8 +9,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	codec "github.com/LayerTwo-Labs/sidesail/coinnews/codec"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/database"
+	codec "github.com/LayerTwo-Labs/sidesail/coinnews/codec"
 )
 
 // pos returns a BlockPos seeded for tests. Callers tweak fields they
