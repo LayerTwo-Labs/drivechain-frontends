@@ -18,7 +18,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
 
-	codec "github.com/LayerTwo-Labs/sidesail/bitwindow/server/coinnews"
+	codec "github.com/LayerTwo-Labs/sidesail/coinnews/codec"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/database"
 	service "github.com/LayerTwo-Labs/sidesail/bitwindow/server/service"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/tests/mocks"

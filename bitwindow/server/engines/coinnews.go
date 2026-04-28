@@ -10,7 +10,7 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/samber/lo"
 
-	codec "github.com/LayerTwo-Labs/sidesail/bitwindow/server/coinnews"
+	codec "github.com/LayerTwo-Labs/sidesail/coinnews/codec"
 	cnstore "github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/coinnews"
 )
 
