@@ -1656,6 +1656,7 @@ class GetSyncInfoResponse extends $pb.GeneratedMessage {
     $0.Timestamp? tipBlockProcessedAt,
     $fixnum.Int64? headerHeight,
     $core.double? syncProgress,
+    $core.String? startupMessage,
   }) {
     final $result = create();
     if (tipBlockHeight != null) {
@@ -1676,6 +1677,9 @@ class GetSyncInfoResponse extends $pb.GeneratedMessage {
     if (syncProgress != null) {
       $result.syncProgress = syncProgress;
     }
+    if (startupMessage != null) {
+      $result.startupMessage = startupMessage;
+    }
     return $result;
   }
   GetSyncInfoResponse._() : super();
@@ -1689,6 +1693,7 @@ class GetSyncInfoResponse extends $pb.GeneratedMessage {
     ..aOM<$0.Timestamp>(4, _omitFieldNames ? '' : 'tipBlockProcessedAt', subBuilder: $0.Timestamp.create)
     ..aInt64(5, _omitFieldNames ? '' : 'headerHeight')
     ..a<$core.double>(6, _omitFieldNames ? '' : 'syncProgress', $pb.PbFieldType.OD)
+    ..aOS(7, _omitFieldNames ? '' : 'startupMessage')
     ..hasRequiredFields = false
   ;
 
@@ -1769,6 +1774,18 @@ class GetSyncInfoResponse extends $pb.GeneratedMessage {
   $core.bool hasSyncProgress() => $_has(5);
   @$pb.TagNumber(6)
   void clearSyncProgress() => clearField(6);
+
+  /// Non-empty while bitcoind is in a startup phase (e.g. "Verifying blocks…",
+  /// "Rescanning…", "Loading wallet"). When set, the numeric height fields are
+  /// 0/0 and the UI should render this message instead of "0/0 blocks".
+  @$pb.TagNumber(7)
+  $core.String get startupMessage => $_getSZ(6);
+  @$pb.TagNumber(7)
+  set startupMessage($core.String v) { $_setString(6, v); }
+  @$pb.TagNumber(7)
+  $core.bool hasStartupMessage() => $_has(6);
+  @$pb.TagNumber(7)
+  void clearStartupMessage() => clearField(7);
 }
 
 /// Request to set a transaction note

@@ -468,7 +468,14 @@ func (e *WalletEngine) EnsureBitcoinCoreWallet(ctx context.Context, walletId str
 			e.mu.Unlock()
 			return resp.Msg.CoreWalletName, nil
 		}
-		// Fall through to local on error
+		// If the orchestrator says "still warming up" (Unavailable), don't
+		// fall through to the local path — it would re-issue the same RPCs
+		// against bitcoind and fail the same way, defeating the orchestrator's
+		// 5s backoff and storming bitcoind during IBD/rescan.
+		if connect.CodeOf(err) == connect.CodeUnavailable || IsBitcoinCoreStartupError(err.Error()) {
+			return "", err
+		}
+		// Otherwise fall through to local fallback.
 	}
 
 	e.mu.Lock()

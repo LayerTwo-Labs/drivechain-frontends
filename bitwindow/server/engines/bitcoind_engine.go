@@ -472,22 +472,10 @@ func (p *Parser) handleTimestamp(
 	return nil
 }
 
-// isBitcoinCoreStartupError checks if the error is a Bitcoin Core startup message
+// isBitcoinCoreStartupError is kept as a package-private alias of the shared
+// helper so existing call sites in this file don't need to change.
 func isBitcoinCoreStartupError(errMsg string) bool {
-	startupPatterns := []string{
-		"-28:",
-		"Loading block index",
-		"Verifying blocks",
-		"Loading wallet",
-		"Rescanning",
-		"Loading P2P addresses",
-	}
-	for _, pattern := range startupPatterns {
-		if strings.Contains(errMsg, pattern) {
-			return true
-		}
-	}
-	return false
+	return IsBitcoinCoreStartupError(errMsg)
 }
 
 func (p *Parser) currentHeight(ctx context.Context) (uint32, chainhash.Hash, error) {

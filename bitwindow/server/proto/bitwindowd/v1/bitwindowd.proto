@@ -209,6 +209,10 @@ message GetSyncInfoResponse {
   int64 header_height = 5;
   // sync progress between 0 and 1
   double sync_progress = 6;
+  // Non-empty while bitcoind is in a startup phase (e.g. "Verifying blocks…",
+  // "Rescanning…", "Loading wallet"). When set, the numeric height fields are
+  // 0/0 and the UI should render this message instead of "0/0 blocks".
+  string startup_message = 7;
 }
 
 // Request to set a transaction note
