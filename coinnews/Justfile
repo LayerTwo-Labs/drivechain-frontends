@@ -1,0 +1,34 @@
+gen:
+    buf generate --template buf.web.gen.yaml server
+    cd server && buf generate --template buf.go.gen.yaml .
+
+build-client:
+    bun run build
+
+build-docker:
+    docker build --platform linux/amd64 --file Dockerfile .
+
+run-client:
+    bun dev
+
+run:
+    #!/usr/bin/env bash
+    set -e
+    cd server && go build -o coinnewsd . && cd ..
+    ./server/coinnewsd &
+    SERVER_PID=$!
+    sleep 1
+    bun dev
+    kill $SERVER_PID
+
+lint:
+    cd server && golangci-lint run ./...
+
+test:
+    cd server && go test ./...
+
+run-server: build-server
+    ./server/coinnewsd
+
+build-server:
+    cd server && go build -o coinnewsd .
