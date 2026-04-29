@@ -120,6 +120,14 @@ class BackendStateProvider extends ChangeNotifier {
     final startupError = status.startupError.isEmpty ? null : status.startupError;
     final connectionError = status.connectionError.isEmpty ? null : status.connectionError;
 
+    // Mirror the orchestrator's blockchain_sync onto MainchainRPC's IBD
+    // flags. Single source of truth: the backend already runs
+    // getblockchaininfo as part of its health-check loop, no reason for
+    // the frontend to make its own RPC call.
+    if (rpc is MainchainRPC) {
+      rpc.applyBackendSync(status.hasBlockchainSync() ? status.blockchainSync : null);
+    }
+
     // Check if anything actually changed to avoid unnecessary rebuilds
     if (rpc.connected == status.connected &&
         rpc.stoppingBinary == status.stopping &&

@@ -51,6 +51,22 @@ type BinaryStatus struct {
 	Version         string // configured version string
 	RepoURL         string // source code repository URL
 	StartupLogs     []StartupLogLine
+	// BlockchainSync is populated for chainLayer=1 binaries from the
+	// orchestrator's getblockchaininfo health poll. Nil when no sample yet.
+	BlockchainSync *BlockchainSync
+}
+
+// BlockchainSync is the snapshot the connection monitor records after each
+// successful getblockchaininfo. Frontend reads this from BinaryStatusMsg
+// instead of running its own bitcoind RPC client.
+type BlockchainSync struct {
+	Blocks               int
+	Headers              int
+	VerificationProgress float64
+	InitialBlockDownload bool
+	InHeaderSync         bool
+	Time                 int64
+	BestBlockHash        string
 }
 
 // StartupProgress reports progress during StartWithL1.
@@ -308,6 +324,14 @@ func (o *Orchestrator) getOrCreateMonitor(name string, checker HealthChecker, st
 	return mon
 }
 
+// getMonitor returns the existing ConnectionMonitor for a binary, or nil if
+// none has been created yet. Read-only — does NOT create.
+func (o *Orchestrator) getMonitor(name string) *ConnectionMonitor {
+	o.monitorsMu.Lock()
+	defer o.monitorsMu.Unlock()
+	return o.monitors[name]
+}
+
 // StopAllMonitors stops all connection monitor timers.
 func (o *Orchestrator) StopAllMonitors() {
 	o.monitorsMu.Lock()
@@ -491,6 +515,7 @@ func (o *Orchestrator) Status(name string) BinaryStatus {
 		status.Initializing = mon.InitializingBinary()
 		status.ConnectModeOnly = mon.ConnectModeOnly()
 		status.StartupLogs = mon.StartupLogs()
+		status.BlockchainSync = mon.BlockchainSync()
 	}
 	o.monitorsMu.Unlock()
 
@@ -645,6 +670,22 @@ func (o *Orchestrator) StartWithL1(ctx context.Context, target string, opts Star
 		}
 		coreChecker := NewHealthChecker(coreCfg, coreHealthOpts)
 		coreMon := o.getOrCreateMonitor("bitcoind", coreChecker, bitcoindStartupPatterns)
+
+		// Push every successful getblockchaininfo into the monitor so the
+		// WatchBinaries stream carries live tip + IBD state. Frontend reads
+		// it from BinaryStatusMsg.blockchain_sync instead of running its own
+		// bitcoind RPC client. The enforcer mirrors mainchain blocks
+		// (GetEnforcerBlockchainInfo proxies to the same data) so we copy
+		// the snapshot onto its monitor while it's connected — same source
+		// of truth, one less poll for the UI to make.
+		if bc, ok := coreChecker.(*BitcoindHealthCheck); ok {
+			bc.OnSync = func(s *BlockchainSync) {
+				coreMon.SetBlockchainSync(s)
+				if enfMon := o.getMonitor("enforcer"); enfMon != nil && enfMon.Connected() {
+					enfMon.SetBlockchainSync(s)
+				}
+			}
+		}
 
 		// Dart L208: await startConnectionTimer()
 		coreMon.StartConnectionTimer(ctx)

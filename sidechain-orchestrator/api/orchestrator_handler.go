@@ -219,10 +219,10 @@ func (h *Handler) ShutdownAll(ctx context.Context, req *connect.Request[pb.Shutd
 
 	for p := range ch {
 		msg := &pb.ShutdownAllResponse{
-			TotalCount:    int32(p.TotalCount),
+			TotalCount:     int32(p.TotalCount),
 			CompletedCount: int32(p.CompletedCount),
-			CurrentBinary: p.CurrentBinary,
-			Done:          p.Done,
+			CurrentBinary:  p.CurrentBinary,
+			Done:           p.Done,
 		}
 		if p.Error != nil {
 			msg.Error = p.Error.Error()
@@ -355,6 +355,19 @@ func statusToProto(s orchestrator.BinaryStatus) *pb.BinaryStatusMsg {
 		}
 	}
 
+	var sync *pb.BlockchainSyncMsg
+	if s.BlockchainSync != nil {
+		sync = &pb.BlockchainSyncMsg{
+			Blocks:               int32(s.BlockchainSync.Blocks),
+			Headers:              int32(s.BlockchainSync.Headers),
+			VerificationProgress: s.BlockchainSync.VerificationProgress,
+			InitialBlockDownload: s.BlockchainSync.InitialBlockDownload,
+			InHeaderSync:         s.BlockchainSync.InHeaderSync,
+			Time:                 s.BlockchainSync.Time,
+			BestBlockHash:        s.BlockchainSync.BestBlockHash,
+		}
+	}
+
 	return &pb.BinaryStatusMsg{
 		Name:            s.Name,
 		DisplayName:     s.DisplayName,
@@ -379,5 +392,6 @@ func statusToProto(s orchestrator.BinaryStatus) *pb.BinaryStatusMsg {
 		Version:         s.Version,
 		RepoUrl:         s.RepoURL,
 		StartupLogs:     startupLogs,
+		BlockchainSync:  sync,
 	}
 }

@@ -223,10 +223,23 @@ var bitcoinConfMigrations = []BitcoinConfMigration{
 			},
 		},
 	},
+	{
+		// The mainnet template also dropped zmqpubsequence. Without it the
+		// enforcer dies at boot with "ZMQ address for mempool sync is not
+		// reachable" and the L1 stack never comes up. Backfill globally
+		// (the line is harmless on signet/forknet, where the same value is
+		// already in the default template).
+		Version: 6,
+		Changes: map[string]map[string]string{
+			"": {
+				"zmqpubsequence": "tcp://127.0.0.1:29000",
+			},
+		},
+	},
 }
 
 // BitcoinConfMigrationsVersion is the highest migration version.
-var BitcoinConfMigrationsVersion = 5
+var BitcoinConfMigrationsVersion = 6
 
 // RunBitcoinConfMigrations applies pending migrations to a BitcoinConfig.
 // isForknet controls whether "forknet" or "mainnet" section data applies to [main].

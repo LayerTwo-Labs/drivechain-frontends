@@ -17,13 +17,13 @@ const bitwindowBitcoinConfFilename = "bitwindow-bitcoin.conf"
 // Port of the data/config logic from sail_ui/lib/providers/bitcoin_conf_provider.dart.
 // UI-specific logic (file watching, navigation, restart) is omitted.
 type BitcoinConfManager struct {
-	BitwindowDir   string
-	Network        Network
-	Config         *BitcoinConfig
-	ConfigPath     string
+	BitwindowDir    string
+	Network         Network
+	Config          *BitcoinConfig
+	ConfigPath      string
 	DetectedDataDir string
-	HasPrivateConf bool
-	log            zerolog.Logger
+	HasPrivateConf  bool
+	log             zerolog.Logger
 
 	// OnNetworkChanged is called after a network switch completes.
 	// Set by the server to restart services (orchestrator binaries).
@@ -32,7 +32,6 @@ type BitcoinConfManager struct {
 	// File watching (managed by StartWatching/StopWatching)
 	watcher   *fsnotify.Watcher
 	watchDone chan struct{}
-
 }
 
 // NewBitcoinConfManager creates a new BitcoinConfManager and loads config.
@@ -112,9 +111,14 @@ func (m *BitcoinConfManager) GetDefaultConfig() string {
 	// rest=1 is required by the enforcer on every network, including mainnet —
 	// without it the enforcer crashes at boot with "Bitcoin Core REST server is
 	// not enabled" and the UI's enforcer-derived chain state goes blank.
+	// zmqpubsequence is also required by the enforcer's mempool sync; without
+	// it the enforcer dies at startup with "ZMQ address for mempool sync is
+	// not reachable" and never starts.
 	if m.Network == NetworkMainnet {
 		mainnetDatadir := m.rootDirNetwork(NetworkMainnet)
-		return fmt.Sprintf(`# Generated code. Any changes to this file *will* get overwritten.
+		return fmt.Sprintf(`%s%d
+
+# Generated code. Any changes to this file *will* get overwritten.
 # source: bitwindow bitcoin config settings
 
 # Standard Bitcoin Core mainnet configuration
@@ -125,8 +129,9 @@ server=1
 listen=1
 txindex=1
 rest=1
+zmqpubsequence=tcp://127.0.0.1:29000
 chain=main
-`, mainnetDatadir)
+`, bitcoinConfVersionCommentPrefix, BitcoinConfMigrationsVersion, mainnetDatadir)
 	}
 
 	// Build [main] section based on network
