@@ -17,13 +17,13 @@ const bitwindowBitcoinConfFilename = "bitwindow-bitcoin.conf"
 // Port of the data/config logic from sail_ui/lib/providers/bitcoin_conf_provider.dart.
 // UI-specific logic (file watching, navigation, restart) is omitted.
 type BitcoinConfManager struct {
-	BitwindowDir   string
-	Network        Network
-	Config         *BitcoinConfig
-	ConfigPath     string
+	BitwindowDir    string
+	Network         Network
+	Config          *BitcoinConfig
+	ConfigPath      string
 	DetectedDataDir string
-	HasPrivateConf bool
-	log            zerolog.Logger
+	HasPrivateConf  bool
+	log             zerolog.Logger
 
 	// OnNetworkChanged is called after a network switch completes.
 	// Set by the server to restart services (orchestrator binaries).
@@ -32,7 +32,6 @@ type BitcoinConfManager struct {
 	// File watching (managed by StartWatching/StopWatching)
 	watcher   *fsnotify.Watcher
 	watchDone chan struct{}
-
 }
 
 // NewBitcoinConfManager creates a new BitcoinConfManager and loads config.
@@ -105,33 +104,29 @@ func (m *BitcoinConfManager) GetRPCPort() int {
 
 // GetDefaultConfig generates the default bitcoin.conf content.
 // Port of getDefaultConfig() from bitcoin_conf_provider.dart.
+//
+// One unified template across all networks: a common settings block (datadir,
+// RPC, ZMQ, perf knobs, uacomment) that's identical everywhere, plus per-network
+// [main]/[signet]/[test]/[regtest] sections for the actual differences. The
+// enforcer is now expected to run on mainnet too, so it gets the same perf
+// settings (rpcthreads, rpcworkqueue) and ZMQ wiring as the other networks.
+//
+// fallbackfee deliberately lives only in the non-mainnet sections — Bitcoin
+// Core rejects a non-zero fallbackfee on mainnet, and the setting is mainly
+// useful for testnet/signet/regtest where fee estimation is unreliable.
 func (m *BitcoinConfManager) GetDefaultConfig() string {
 	currentNetwork := CoreSectionForNetwork(m.Network)
 
-	// Real mainnet gets minimal standard Bitcoin Core config.
-	// rest=1 is required by the enforcer on every network, including mainnet —
-	// without it the enforcer crashes at boot with "Bitcoin Core REST server is
-	// not enabled" and the UI's enforcer-derived chain state goes blank.
-	if m.Network == NetworkMainnet {
-		mainnetDatadir := m.rootDirNetwork(NetworkMainnet)
-		return fmt.Sprintf(`# Generated code. Any changes to this file *will* get overwritten.
-# source: bitwindow bitcoin config settings
-
-# Standard Bitcoin Core mainnet configuration
-datadir=%s
-rpcuser=user
-rpcpassword=password
-server=1
-listen=1
-txindex=1
-rest=1
-chain=main
-`, mainnetDatadir)
-	}
-
-	// Build [main] section based on network
+	// Per-network [main] section overrides. Mainnet has no [main] overrides;
+	// signet/testnet/regtest options live in their own sections below.
+	// Forknet uses [main] because its chain= is "main" (it's a drivechain
+	// testnet on mainnet params).
 	var mainSection string
-	if m.Network == NetworkForknet {
+	switch m.Network {
+	case NetworkForknet:
+		// Forknet runs as chain=main, so fallbackfee belongs here (not in
+		// the common block) — Bitcoin Core rejects fallbackfee on real
+		// mainnet but accepts it on this drivechain testnet.
 		mainSection = `# Forknet-specific settings (drivechain testnet on mainnet params)
 [main]
 port=8300
@@ -146,16 +141,17 @@ assumevalid=0000000000000000000000000000000000000000000000000000000000000000
 minimumchainwork=0x00
 listenonion=0
 drivechain=1
+fallbackfee=0.00021
 `
-	} else {
-		mainSection = `# Fill mainnet-specific settings here
+	default:
+		mainSection = `# Mainnet-specific settings
 [main]
 `
 	}
 
-	// Pin datadir to the Drivechain dir so bitcoind doesn't fall back to
-	// Bitcoin Core's standard datadir (~/Library/Application Support/Bitcoin
-	// on macOS, etc.).
+	// Pin datadir explicitly so bitcoind doesn't silently fall back to
+	// ~/.bitcoin/Bitcoin/etc. Mainnet → Bitcoin Core's standard datadir;
+	// every other network → Drivechain dir.
 	datadir := m.rootDirNetwork(m.Network)
 
 	return fmt.Sprintf(`%s%d
@@ -174,7 +170,6 @@ zmqpubsequence=tcp://127.0.0.1:29000
 rpcthreads=20
 rpcworkqueue=100
 rest=1
-fallbackfee=0.00021
 uacomment=BitWindow-0.2
 chain=%s # current network
 
@@ -193,13 +188,16 @@ addnode=172.105.148.135:38333
 signetblocktime=600
 signetchallenge=a91484fa7c2460891fe5212cb08432e21a4207909aa987
 acceptnonstdtxn=1
+fallbackfee=0.00021
 
 %s
 # Testnet-specific settings
 [test]
+fallbackfee=0.00021
 
 # Regtest-specific settings
 [regtest]
+fallbackfee=0.00021
 `, bitcoinConfVersionCommentPrefix, BitcoinConfMigrationsVersion, datadir, currentNetwork, mainSection)
 }
 
