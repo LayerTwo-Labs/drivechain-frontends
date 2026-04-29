@@ -184,7 +184,6 @@ func TestRunBitcoinConfMigrationsBackfillsRest(t *testing.T) {
 	}
 }
 
-
 func TestRunBitcoinConfMigrationsForknetConditional(t *testing.T) {
 	// Currently no forknet-specific migration data, but test the mechanism
 	config := NewBitcoinConfig()
@@ -250,6 +249,71 @@ func TestGetDefaultConfigMainnetIncludesRest(t *testing.T) {
 
 	if !strings.Contains(conf, "\nrest=1\n") {
 		t.Errorf("mainnet default config must include rest=1, got:\n%s", conf)
+	}
+}
+
+// Mainnet runs the enforcer too, so it must ship the same enforcer-required
+// settings (zmqpubsequence) and perf knobs (rpcthreads, rpcworkqueue) as
+// signet/forknet. Regression guard for the unify-template change.
+func TestGetDefaultConfigMainnetMatchesEnforcerExpectations(t *testing.T) {
+	m := &BitcoinConfManager{Network: NetworkMainnet}
+	conf := m.GetDefaultConfig()
+
+	required := []string{
+		"\nzmqpubsequence=tcp://127.0.0.1:29000\n",
+		"\nrpcthreads=20\n",
+		"\nrpcworkqueue=100\n",
+		"\nuacomment=BitWindow-0.2\n",
+	}
+	for _, line := range required {
+		if !strings.Contains(conf, line) {
+			t.Errorf("mainnet default config missing %q, got:\n%s", strings.TrimSpace(line), conf)
+		}
+	}
+}
+
+// Bitcoin Core rejects a non-zero fallbackfee on real mainnet. The setting
+// can still appear in [signet]/[test]/[regtest] sections (bitcoind only
+// applies the matching section), but must NOT be in the global block or
+// [main] section.
+func TestGetDefaultConfigFallbackfeeNotOnMainnet(t *testing.T) {
+	m := &BitcoinConfManager{Network: NetworkMainnet}
+	conf := m.GetDefaultConfig()
+
+	// Slice the conf into the global block (before the first [section]) and
+	// the [main] section; fallbackfee must appear in neither.
+	headerIdx := strings.Index(conf, "\n[")
+	globalBlock := conf
+	rest := ""
+	if headerIdx >= 0 {
+		globalBlock = conf[:headerIdx]
+		rest = conf[headerIdx:]
+	}
+	if strings.Contains(globalBlock, "fallbackfee=") {
+		t.Errorf("mainnet global block must not include fallbackfee, got:\n%s", globalBlock)
+	}
+
+	// Find [main] section and verify it doesn't include fallbackfee either.
+	if mainIdx := strings.Index(rest, "\n[main]"); mainIdx >= 0 {
+		mainBlock := rest[mainIdx:]
+		if next := strings.Index(mainBlock[1:], "\n["); next >= 0 {
+			mainBlock = mainBlock[:next+1]
+		}
+		if strings.Contains(mainBlock, "fallbackfee=") {
+			t.Errorf("mainnet [main] section must not include fallbackfee, got:\n%s", mainBlock)
+		}
+	}
+}
+
+func TestGetDefaultConfigForknetKeepsFallbackfee(t *testing.T) {
+	m := &BitcoinConfManager{Network: NetworkForknet}
+	conf := m.GetDefaultConfig()
+	if !strings.Contains(conf, "fallbackfee=0.00021") {
+		t.Errorf("forknet default config must include fallbackfee, got:\n%s", conf)
+	}
+	// Forknet's drivechain=1 must still be present after the unify refactor.
+	if !strings.Contains(conf, "drivechain=1") {
+		t.Errorf("forknet default config must include drivechain=1, got:\n%s", conf)
 	}
 }
 

@@ -1,10 +1,9 @@
-import 'dart:async';
 import 'dart:io';
 
 import 'package:dart_coin_rpc/dart_coin_rpc.dart';
 import 'package:dio/dio.dart';
 import 'package:get_it/get_it.dart';
-import 'package:sail_ui/env.dart';
+import 'package:sail_ui/gen/orchestrator/v1/orchestrator.pb.dart' as orch_pb;
 import 'package:sail_ui/sail_ui.dart';
 
 /// RPC connection to the mainchain node. Only really used
@@ -25,9 +24,42 @@ abstract class MainchainRPC extends RPCConnection {
     notifyListeners();
   }
 
+  // IBD state mirrors what the orchestrator tells us via WatchBinaries
+  // (BinaryStatusMsg.blockchain_sync). The frontend never polls bitcoind
+  // directly anymore — `applyBackendSync` is the single mutation point,
+  // called from BackendStateProvider whenever the stream pushes new state.
   bool inIBD = true;
   bool inHeaderSync = true;
+  // Misnamed historically: true while *syncing*, false when fully caught up.
   bool inSync = true;
+
+  /// Mirror the orchestrator's blockchain_sync field onto our IBD flags.
+  /// Pass null when the backend hasn't reported a sample yet — flags reset
+  /// to the initial "still syncing" state so UI shows the loading affordance
+  /// instead of falsely reporting synced.
+  void applyBackendSync(orch_pb.BlockchainSyncMsg? sync) {
+    final bool nextHeaderSync;
+    final bool nextIBD;
+    final bool nextSync;
+    if (sync == null) {
+      nextHeaderSync = true;
+      nextIBD = true;
+      nextSync = true;
+    } else {
+      nextHeaderSync = sync.inHeaderSync;
+      nextIBD = nextHeaderSync || sync.initialBlockDownload;
+      // inSync is "still syncing" — true unless headers caught up to blocks.
+      nextSync = nextIBD || sync.blocks != sync.headers;
+    }
+
+    if (nextHeaderSync == inHeaderSync && nextIBD == inIBD && nextSync == inSync) {
+      return;
+    }
+    inHeaderSync = nextHeaderSync;
+    inIBD = nextIBD;
+    inSync = nextSync;
+    notifyListeners();
+  }
 
   Future<dynamic> callRAW(String method, [List<dynamic>? params]);
   List<String> getMethods();
@@ -63,55 +95,7 @@ class MainchainRPCLive extends MainchainRPC {
     : super(
         conf: readMainchainConf(),
         binaryType: BinaryType.bitcoinCore,
-      ) {
-    if (Environment.isInTest) {
-      return;
-    }
-    pollIBDStatus();
-  }
-
-  void pollIBDStatus() {
-    // start off with the assumption that the parent chain is syncing
-    inIBD = true;
-    inHeaderSync = true;
-    inSync = true;
-    log.i('mainchain init: starting IBD status polling');
-
-    Timer.periodic(const Duration(seconds: 1), (timer) async {
-      try {
-        final info = await getBlockchainInfo();
-
-        // Update header sync status. Header download runs ahead of block
-        // validation — `info.headers` is the count Core has received from
-        // peers. A fresh node boots with 0/0 and the header count jumps to
-        // the chain tip within seconds once peers connect. Require at least
-        // 10 headers so we don't declare "header sync done" mid-bootstrap.
-        final wasInHeaderSync = inHeaderSync;
-        inHeaderSync = info.headers < 10;
-
-        // Update IBD status
-        final wasInIBD = inIBD;
-        inIBD = inHeaderSync || info.initialBlockDownload;
-
-        final wasInSync = inSync;
-        if (!inIBD && info.blocks == info.headers) {
-          // IBD is done, and block height matches header height,
-          // we're fully synced
-          inSync = false;
-        }
-
-        // Only notify if status changed
-        if (wasInHeaderSync != inHeaderSync || wasInIBD != inIBD || inSync != wasInSync) {
-          log.i(
-            'IBD status changed - inHeaderSync: $inHeaderSync, inIBD: $inIBD, inSync: $inSync',
-          );
-          notifyListeners();
-        }
-      } catch (error) {
-        // probably just cant connect, and is in bootup-phase, which is okay
-      }
-    });
-  }
+      );
 
   // cleanArgs makes sure to NOT add any cli-args that are already set in the conf file
   // any duplicates are removed

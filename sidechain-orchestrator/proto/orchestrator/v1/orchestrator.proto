@@ -76,6 +76,29 @@ message BinaryStatusMsg {
   // bin/test/<binary>/... for active sidechain alt-builds, the resolved
   // .app/Contents/MacOS path on macOS, etc.). Empty when not downloaded.
   string binary_path = 23;
+  // Live blockchain sync state for chain-layer 1 binaries (bitcoind, enforcer).
+  // Populated from the orchestrator's existing health-check getblockchaininfo
+  // poll, so the frontend never has to make its own RPC call to read sync
+  // state. Nil/zero for non-L1 binaries or before the first successful poll.
+  BlockchainSyncMsg blockchain_sync = 24;
+}
+
+// BlockchainSyncMsg snapshots the chain tip + IBD state for an L1 binary.
+// Filled in by the orchestrator after each successful getblockchaininfo poll
+// and pushed to the frontend via WatchBinaries.
+message BlockchainSyncMsg {
+  int32 blocks = 1;
+  int32 headers = 2;
+  double verification_progress = 3;
+  bool initial_block_download = 4;
+  // True while the node is still bootstrapping headers (headers count too low
+  // to have meaningful sync info). Frontend uses this to gate "waiting for
+  // headers" UI without doing its own threshold math.
+  bool in_header_sync = 5;
+  // Block tip timestamp (unix seconds), 0 when no tip yet.
+  int64 time = 6;
+  // Best block hash at the tip — empty before the first poll.
+  string best_block_hash = 7;
 }
 
 message StartupLogEntryMsg {

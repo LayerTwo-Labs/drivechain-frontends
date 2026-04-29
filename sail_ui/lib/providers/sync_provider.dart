@@ -6,6 +6,7 @@ import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:sail_ui/env.dart';
 import 'package:sail_ui/gen/google/protobuf/timestamp.pb.dart';
+import 'package:sail_ui/gen/orchestrator/v1/orchestrator.pb.dart' as orch_pb;
 import 'package:sail_ui/sail_ui.dart';
 
 /// Represents detailed information about a blockchain
@@ -61,6 +62,8 @@ class SyncProvider extends ChangeNotifier {
   MainchainRPC get mainchainRPC => GetIt.I.get<MainchainRPC>();
   EnforcerRPC get enforcerRPC => GetIt.I.get<EnforcerRPC>();
   BinaryProvider get binaryProvider => GetIt.I.get<BinaryProvider>();
+  BackendStateProvider? get _backendState =>
+      GetIt.I.isRegistered<BackendStateProvider>() ? GetIt.I.get<BackendStateProvider>() : null;
 
   SyncConnection get mainchain => SyncConnection(rpc: mainchainRPC, name: BitcoinCore().name);
   SyncConnection get enforcer => SyncConnection(rpc: enforcerRPC, name: Enforcer().name);
@@ -78,16 +81,13 @@ class SyncProvider extends ChangeNotifier {
   // Mainchain state
   SyncInfo? mainchainSyncInfo;
   String? mainchainError;
-  Timer? _mainchainTimer;
-  bool _isFetchingMainchain = false;
 
   // Enforcer state
   SyncInfo? enforcerSyncInfo;
   String? enforcerError;
-  Timer? _enforcerTimer;
-  bool _isFetchingEnforcer = false;
 
-  // Additional connection state
+  // Additional connection state (sidechain — orchestrator doesn't proxy
+  // sidechain blockchain info, so we still poll directly here).
   SyncInfo? additionalSyncInfo;
   String? additionalError;
   Timer? _additionalTimer;
@@ -95,10 +95,14 @@ class SyncProvider extends ChangeNotifier {
 
   SyncProvider({this.additionalConnection, bool startTimer = true}) {
     binaryProvider.addListener(_checkDownloadProgress);
+    _backendState?.addListener(_onBackendStateChanged);
 
     if (startTimer && !Environment.isInTest) {
-      _startAllTimers();
+      if (additionalConnection != null) {
+        _startAdditionalTimer();
+      }
     }
+    _onBackendStateChanged();
     fetch();
   }
 
@@ -107,78 +111,63 @@ class SyncProvider extends ChangeNotifier {
     binaryProvider.addListener(_checkDownloadProgress);
   }
 
-  void _startAllTimers() {
-    _startMainchainTimer();
-    _startEnforcerTimer();
-    if (additionalConnection != null) {
-      _startAdditionalTimer();
+  // Orchestrator binary names — same keys used by BackendStateProvider's
+  // `binaries` map (status.name from the proto). Don't use Binary.binaryName,
+  // which encodes the executable filename and diverges (e.g.
+  // "bip300301-enforcer" vs the orchestrator's "enforcer").
+  static const String _kMainchainBinary = 'bitcoind';
+  static const String _kEnforcerBinary = 'enforcer';
+
+  void _onBackendStateChanged() {
+    final state = _backendState;
+    if (state == null) return;
+
+    bool hasChanges = false;
+    if (_applyBackendBinary(state.binaries[_kMainchainBinary], _kMainchainBinary)) {
+      hasChanges = true;
+    }
+    if (_applyBackendBinary(state.binaries[_kEnforcerBinary], _kEnforcerBinary)) {
+      hasChanges = true;
+    }
+    if (hasChanges) {
+      notifyListeners();
     }
   }
 
-  void _startMainchainTimer() {
-    if (Environment.isInTest) {
-      return;
+  bool _applyBackendBinary(BinaryStatusMsg? status, String name) {
+    final isMainchain = name == _kMainchainBinary;
+    final isEnforcer = name == _kEnforcerBinary;
+    if (!isMainchain && !isEnforcer) return false;
+
+    final orch_pb.BlockchainSyncMsg? sync = (status?.hasBlockchainSync() ?? false) ? status!.blockchainSync : null;
+    final SyncInfo? prev = isMainchain ? mainchainSyncInfo : enforcerSyncInfo;
+
+    if (sync == null) {
+      // No backend sample yet — keep the previous SyncInfo so the UI doesn't
+      // flicker between "loading" and "synced" if a stream hiccup arrives.
+      return false;
     }
 
-    _mainchainTimer?.cancel();
-    void tick() async {
-      if (_isFetchingMainchain) return;
-      _isFetchingMainchain = true;
+    final goal = isEnforcer ? (mainchainSyncInfo?.progressGoal ?? sync.headers.toDouble()) : sync.headers.toDouble();
 
-      try {
-        bool wasSynced = mainchainSyncInfo?.isSynced ?? false;
-        await _fetchMainchain();
-        bool isSynced = mainchainSyncInfo?.isSynced ?? false;
+    final newSyncInfo = SyncInfo(
+      progressCurrent: sync.blocks.toDouble(),
+      progressGoal: goal,
+      lastBlockAt: sync.time != 0 ? Timestamp(seconds: sync.time) : null,
+      downloadInfo: prev?.downloadInfo ?? DownloadInfo(),
+    );
 
-        if (wasSynced != isSynced) {
-          // changed sync status, so we must apply the correct timer
-          _mainchainTimer?.cancel();
-          _mainchainTimer = Timer.periodic(
-            isSynced ? PASSIVE_INTERVAL : AGGRESSIVE_INTERVAL,
-            (_) => tick(),
-          );
-        }
-      } catch (e) {
-        // swallow
-      } finally {
-        _isFetchingMainchain = false;
-      }
+    if (!_syncInfoHasChanged(prev, newSyncInfo)) {
+      return false;
     }
-
-    _mainchainTimer = Timer.periodic(AGGRESSIVE_INTERVAL, (_) => tick());
-  }
-
-  void _startEnforcerTimer() {
-    if (Environment.isInTest) {
-      return;
+    if (isMainchain) {
+      mainchainSyncInfo = newSyncInfo;
+      mainchainError = null;
+    } else {
+      enforcerSyncInfo = newSyncInfo;
+      enforcerError = null;
     }
-
-    _enforcerTimer?.cancel();
-    void tick() async {
-      if (_isFetchingEnforcer) return;
-      _isFetchingEnforcer = true;
-
-      try {
-        bool wasSynced = enforcerSyncInfo?.isSynced ?? false;
-        await _fetchEnforcer();
-        bool isSynced = enforcerSyncInfo?.isSynced ?? false;
-
-        if (wasSynced != isSynced) {
-          // changed sync status, so we must apply the correct timer
-          _enforcerTimer?.cancel();
-          _enforcerTimer = Timer.periodic(
-            isSynced ? PASSIVE_INTERVAL : AGGRESSIVE_INTERVAL,
-            (_) => tick(),
-          );
-        }
-      } catch (e) {
-        // swallow
-      } finally {
-        _isFetchingEnforcer = false;
-      }
-    }
-
-    _enforcerTimer = Timer.periodic(AGGRESSIVE_INTERVAL, (_) => tick());
+    return true;
   }
 
   void _startAdditionalTimer() {
@@ -212,70 +201,6 @@ class SyncProvider extends ChangeNotifier {
     }
 
     _additionalTimer = Timer.periodic(AGGRESSIVE_INTERVAL, (_) => tick());
-  }
-
-  Future<void> _fetchMainchain() async {
-    bool hasChanges = false;
-    try {
-      if (!mainchain.rpc.connected) return;
-
-      final newBlockchainInfo = await mainchain.rpc.getBlockchainInfo();
-      final newSyncInfo = SyncInfo(
-        progressCurrent: newBlockchainInfo.blocks.toDouble(),
-        progressGoal: newBlockchainInfo.headers.toDouble(),
-        lastBlockAt: newBlockchainInfo.time != 0 ? Timestamp(seconds: Int64(newBlockchainInfo.time)) : null,
-        downloadInfo: mainchainSyncInfo?.downloadInfo ?? DownloadInfo(),
-      );
-
-      if (_syncInfoHasChanged(mainchainSyncInfo, newSyncInfo) || mainchainError != null) {
-        mainchainSyncInfo = newSyncInfo;
-        mainchainError = null;
-        hasChanges = true;
-      }
-    } catch (e) {
-      final newError = extractConnectException(e);
-      if (mainchainError != newError) {
-        mainchainError = newError;
-        hasChanges = true;
-      }
-    } finally {
-      _isFetchingMainchain = false;
-      if (hasChanges) {
-        notifyListeners();
-      }
-    }
-  }
-
-  Future<void> _fetchEnforcer() async {
-    bool hasChanges = false;
-    try {
-      if (!enforcer.rpc.connected) return;
-
-      final newBlockchainInfo = await enforcer.rpc.getBlockchainInfo();
-      final newSyncInfo = SyncInfo(
-        progressCurrent: newBlockchainInfo.blocks.toDouble(),
-        progressGoal: mainchainSyncInfo?.progressGoal ?? 0,
-        lastBlockAt: newBlockchainInfo.time != 0 ? Timestamp(seconds: Int64(newBlockchainInfo.time)) : null,
-        downloadInfo: enforcerSyncInfo?.downloadInfo ?? DownloadInfo(),
-      );
-
-      if (_syncInfoHasChanged(enforcerSyncInfo, newSyncInfo) || enforcerError != null) {
-        enforcerSyncInfo = newSyncInfo;
-        enforcerError = null;
-        hasChanges = true;
-      }
-    } catch (e) {
-      final newError = extractConnectException(e);
-      if (enforcerError != newError) {
-        enforcerError = newError;
-        hasChanges = true;
-      }
-    } finally {
-      _isFetchingEnforcer = false;
-      if (hasChanges) {
-        notifyListeners();
-      }
-    }
   }
 
   Future<void> _fetchAdditional() async {
@@ -374,13 +299,13 @@ class SyncProvider extends ChangeNotifier {
     return oldInfo != newInfo;
   }
 
-  // For manual fetching of all connections
+  // Pull state from all sources. Mainchain + enforcer come from the backend
+  // stream (no fetch needed); the sidechain still polls.
   Future<void> fetch() async {
-    await Future.wait([
-      _fetchMainchain(),
-      _fetchEnforcer(),
-      if (additionalConnection != null) _fetchAdditional(),
-    ]);
+    _onBackendStateChanged();
+    if (additionalConnection != null) {
+      await _fetchAdditional();
+    }
   }
 
   /// Clear all sync state - useful when network changes or services restart
@@ -396,10 +321,9 @@ class SyncProvider extends ChangeNotifier {
 
   @override
   void dispose() {
-    _mainchainTimer?.cancel();
-    _enforcerTimer?.cancel();
     _additionalTimer?.cancel();
     binaryProvider.removeListener(_checkDownloadProgress);
+    _backendState?.removeListener(_onBackendStateChanged);
     super.dispose();
   }
 }

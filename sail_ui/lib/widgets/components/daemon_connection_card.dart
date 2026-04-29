@@ -161,16 +161,13 @@ class DaemonConnectionCard extends StatelessWidget {
               padding: const EdgeInsets.only(top: SailStyleValues.padding04),
               child: SailText.secondary12(
                 prettifyLogMessage(
-                  // When connected, the daemon is healthy — stale startupError and
-                  // initializingBinary are ignored. Only show this row for real trouble
-                  // (connectionError, !connected) or explicit infoMessage.
-                  infoMessage ??
-                      connection.connectionError ??
-                      connection.startupError ??
-                      (connection.initializingBinary
-                          ? (providerBinary?.startupLogs.lastOrNull?.message ?? 'Initializing...')
-                          : null) ??
-                      'Not connected',
+                  resolveDaemonStatusMessage(
+                    connectionError: connection.connectionError,
+                    startupError: connection.startupError,
+                    infoMessage: infoMessage,
+                    initializingBinary: connection.initializingBinary,
+                    initializingFallback: providerBinary?.startupLogs.lastOrNull?.message,
+                  ),
                 ),
                 monospace: true,
               ),
@@ -189,6 +186,32 @@ class DaemonConnectionCard extends StatelessWidget {
     isDownloading: syncInfo?.downloadInfo.isDownloading ?? false,
     hasInfoMessage: infoMessage != null,
   );
+}
+
+/// Pure function for the daemon-status text precedence. Exposed for testing.
+///
+/// Real failure signals beat informational hints: a fatal `connectionError`
+/// (e.g. enforcer "ZMQ address not reachable") must NOT be masked by a stale
+/// `infoMessage` like "Waiting for L1 to sync headers". Order:
+///
+///  1. connectionError      — explicit RPC/transport failure
+///  2. startupError         — warmup message ("Loading block index…")
+///  3. infoMessage          — caller-provided hint
+///  4. initializing fallback — most recent startup log line, else "Initializing..."
+///  5. "Not connected"      — last resort when no other signal exists
+@visibleForTesting
+String resolveDaemonStatusMessage({
+  required String? connectionError,
+  required String? startupError,
+  required String? infoMessage,
+  required bool initializingBinary,
+  required String? initializingFallback,
+}) {
+  if (connectionError != null) return connectionError;
+  if (startupError != null) return startupError;
+  if (infoMessage != null) return infoMessage;
+  if (initializingBinary) return initializingFallback ?? 'Initializing...';
+  return 'Not connected';
 }
 
 /// Pure function for the daemon-status color precedence. Exposed for testing.

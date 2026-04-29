@@ -121,4 +121,68 @@ void main() {
       );
     });
   });
+
+  // The regression this guards against: the enforcer dies at boot with a
+  // fatal "ZMQ address for mempool sync is not reachable" connectionError,
+  // but bottom_nav.dart was passing infoMessage="Waiting for L1 to sync
+  // headers..." into the card. Old precedence (infoMessage first) hid the
+  // real error. New precedence: real failure signals win.
+  group('resolveDaemonStatusMessage', () {
+    String call({
+      String? connectionError,
+      String? startupError,
+      String? infoMessage,
+      bool initializingBinary = false,
+      String? initializingFallback,
+    }) => resolveDaemonStatusMessage(
+      connectionError: connectionError,
+      startupError: startupError,
+      infoMessage: infoMessage,
+      initializingBinary: initializingBinary,
+      initializingFallback: initializingFallback,
+    );
+
+    test('connectionError beats infoMessage', () {
+      expect(
+        call(
+          connectionError: 'ZMQ address for mempool sync is not reachable',
+          infoMessage: 'Waiting for L1 to sync headers...',
+        ),
+        'ZMQ address for mempool sync is not reachable',
+      );
+    });
+
+    test('startupError beats infoMessage', () {
+      expect(
+        call(
+          startupError: 'Loading block index…',
+          infoMessage: 'Waiting for L1 to sync headers...',
+        ),
+        'Loading block index…',
+      );
+    });
+
+    test('connectionError beats startupError', () {
+      expect(
+        call(connectionError: 'real fail', startupError: 'warming up'),
+        'real fail',
+      );
+    });
+
+    test('infoMessage shows when no error or warmup is set', () {
+      expect(call(infoMessage: 'Waiting for L1 to sync headers...'), 'Waiting for L1 to sync headers...');
+    });
+
+    test('initializing fallback used when no other signal', () {
+      expect(
+        call(initializingBinary: true, initializingFallback: 'Loading wallet…'),
+        'Loading wallet…',
+      );
+      expect(call(initializingBinary: true), 'Initializing...');
+    });
+
+    test('falls back to "Not connected" when no signal at all', () {
+      expect(call(), 'Not connected');
+    });
+  });
 }

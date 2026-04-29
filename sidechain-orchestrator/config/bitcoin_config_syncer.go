@@ -223,10 +223,36 @@ var bitcoinConfMigrations = []BitcoinConfMigration{
 			},
 		},
 	},
+	{
+		// The mainnet template also dropped zmqpubsequence. Without it the
+		// enforcer dies at boot with "ZMQ address for mempool sync is not
+		// reachable" and the L1 stack never comes up. Backfill globally
+		// (the line is harmless on signet/forknet, where the same value is
+		// already in the default template).
+		Version: 6,
+		Changes: map[string]map[string]string{
+			"": {
+				"zmqpubsequence": "tcp://127.0.0.1:29000",
+			},
+		},
+	},
+	{
+		// Mainnet now runs the enforcer too, so it should get the same
+		// throughput knobs as the signet/forknet defaults. Without these
+		// the enforcer's burst of RPC calls during sync can starve other
+		// callers on a 4-thread default RPC pool.
+		Version: 7,
+		Changes: map[string]map[string]string{
+			"": {
+				"rpcthreads":   "20",
+				"rpcworkqueue": "100",
+			},
+		},
+	},
 }
 
 // BitcoinConfMigrationsVersion is the highest migration version.
-var BitcoinConfMigrationsVersion = 5
+var BitcoinConfMigrationsVersion = 7
 
 // RunBitcoinConfMigrations applies pending migrations to a BitcoinConfig.
 // isForknet controls whether "forknet" or "mainnet" section data applies to [main].
@@ -516,6 +542,7 @@ func getDefaultMainSection(n Network) (map[string]string, []string) {
 			"minimumchainwork",
 			"listenonion",
 			"drivechain",
+			"fallbackfee",
 		}
 		settings := map[string]string{
 			"port":             "8300",
@@ -530,6 +557,7 @@ func getDefaultMainSection(n Network) (map[string]string, []string) {
 			"minimumchainwork": "0x00",
 			"listenonion":      "0",
 			"drivechain":       "1",
+			"fallbackfee":      "0.00021",
 		}
 		return settings, order
 	}
