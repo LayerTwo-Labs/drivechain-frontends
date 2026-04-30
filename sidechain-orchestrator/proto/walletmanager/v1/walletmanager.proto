@@ -453,4 +453,12 @@ message WatchWalletDataResponse {
   // Active wallet balance (zero if no active wallet)
   double confirmed_sats = 6;
   double unconfirmed_sats = 7;
+
+  // Monotonic sequence number per send within a single stream. Lets the
+  // client detect missed events across a reconnect.
+  int64 seq = 8;
+  // Idle keepalive frames carry no payload — only `seq` and `heartbeat=true`
+  // are populated. The client's heartbeat watchdog uses these to tell a
+  // healthy-but-quiet stream apart from a half-open connection.
+  bool heartbeat = 9;
 }

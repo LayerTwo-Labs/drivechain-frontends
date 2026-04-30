@@ -258,17 +258,41 @@ func (e *ChequeEngine) importChequeDescriptor(ctx context.Context) {
 		}
 	}
 
+	// Wait for bitcoind to connect — bitwindowd kicks off orchestratord and
+	// runs in parallel, so on first launch this goroutine hits the RPC port
+	// before bitcoind exists. Bailing here meant cheque_watch was never
+	// created and every later recovery pass got -18 wallet-not-loaded.
+	var connected bool
+	for !connected {
+		select {
+		case <-ctx.Done():
+			return
+		case connected = <-e.bitcoind.ConnectedChan():
+			if !connected {
+				log.Debug().Msg("bitcoind disconnected, waiting for reconnection")
+			}
+		}
+	}
+
 	bitcoind, err := e.bitcoind.Get(ctx)
 	if err != nil {
 		log.Warn().Err(err).Msg("cannot import cheque descriptors: bitcoind not available")
 		return
 	}
 
-	// Ensure cheque wallet exists in Bitcoin Core
-	coreWallets, err := bitcoind.ListWallets(ctx, connect.NewRequest(&emptypb.Empty{}))
-	if err != nil {
-		log.Warn().Err(err).Msg("cannot import cheque descriptors: failed to list wallets")
-		return
+	// service.Service may flip Connected before the RPC port accepts traffic.
+	// Poll ListWallets until it answers — same pattern as recoverChequesOnUnlock.
+	var coreWallets *connect.Response[corepb.ListWalletsResponse]
+	for {
+		coreWallets, err = bitcoind.ListWallets(ctx, connect.NewRequest(&emptypb.Empty{}))
+		if err == nil {
+			break
+		}
+		select {
+		case <-ctx.Done():
+			return
+		case <-time.After(time.Second):
+		}
 	}
 
 	walletExists := lo.Contains(coreWallets.Msg.Wallets, ChequeWalletName)

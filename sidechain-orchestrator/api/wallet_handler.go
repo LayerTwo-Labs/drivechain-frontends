@@ -1135,23 +1135,31 @@ func (h *WalletHandler) GetWalletSeed(ctx context.Context, req *connect.Request[
 // ============================================================================
 
 func (h *WalletHandler) WatchWalletData(ctx context.Context, req *connect.Request[emptypb.Empty], stream *connect.ServerStream[pb.WatchWalletDataResponse]) error {
-	// Send initial state immediately.
-	if err := h.sendWalletData(ctx, stream); err != nil {
+	var seq int64
+
+	if err := h.sendWalletData(ctx, stream, &seq); err != nil {
 		return err
 	}
 
-	// Debounce rapid state changes into one send.
 	debounce := time.NewTimer(0)
 	if !debounce.Stop() {
 		<-debounce.C
 	}
 	pending := false
 
-	// Fallback ticker: ensure state is sent at least every 5 seconds
-	// even if no state changes are detected (e.g. balance changes from
-	// new blocks come from Core, not from wallet.Service mutations).
-	fallback := time.NewTicker(5 * time.Second)
-	defer fallback.Stop()
+	// Heartbeat: idle keepalive so the client's watchdog can distinguish
+	// a quiet stream from a half-open connection. Reset whenever a real
+	// frame goes out so we don't double up.
+	heartbeat := time.NewTicker(WatchHeartbeatInterval)
+	defer heartbeat.Stop()
+
+	send := func() error {
+		if err := h.sendWalletData(ctx, stream, &seq); err != nil {
+			return err
+		}
+		heartbeat.Reset(WatchHeartbeatInterval)
+		return nil
+	}
 
 	for {
 		select {
@@ -1166,19 +1174,23 @@ func (h *WalletHandler) WatchWalletData(ctx context.Context, req *connect.Reques
 
 		case <-debounce.C:
 			pending = false
-			if err := h.sendWalletData(ctx, stream); err != nil {
+			if err := send(); err != nil {
 				return err
 			}
 
-		case <-fallback.C:
-			if err := h.sendWalletData(ctx, stream); err != nil {
+		case <-heartbeat.C:
+			seq++
+			if err := stream.Send(&pb.WatchWalletDataResponse{
+				Seq:       seq,
+				Heartbeat: true,
+			}); err != nil {
 				return err
 			}
 		}
 	}
 }
 
-func (h *WalletHandler) sendWalletData(ctx context.Context, stream *connect.ServerStream[pb.WatchWalletDataResponse]) error {
+func (h *WalletHandler) sendWalletData(ctx context.Context, stream *connect.ServerStream[pb.WatchWalletDataResponse], seq *int64) error {
 	resp := buildWatchWalletDataResponse(
 		h.svc.GetAllWallets(),
 		h.svc.ActiveWalletID(),
@@ -1187,6 +1199,8 @@ func (h *WalletHandler) sendWalletData(ctx context.Context, stream *connect.Serv
 		h.svc.IsUnlocked(),
 		bip47Logger(h.svc),
 	)
+	*seq++
+	resp.Seq = *seq
 	return stream.Send(resp)
 }
 

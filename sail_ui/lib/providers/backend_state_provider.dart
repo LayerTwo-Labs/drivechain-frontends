@@ -15,6 +15,7 @@ import 'package:sail_ui/rpcs/enforcer_rpc.dart';
 import 'package:sail_ui/rpcs/mainchain_rpc.dart';
 import 'package:sail_ui/rpcs/orchestrator_rpc.dart';
 import 'package:sail_ui/rpcs/photon_rpc.dart';
+import 'package:sail_ui/rpcs/stream_supervisor.dart';
 import 'package:sail_ui/rpcs/thunder_rpc.dart';
 import 'package:sail_ui/rpcs/truthcoin_rpc.dart';
 import 'package:sail_ui/rpcs/zside_rpc.dart';
@@ -62,7 +63,7 @@ class BackendStateProvider extends ChangeNotifier {
   /// Whether the initial startup sequence has completed.
   bool startupComplete = false;
 
-  StreamSubscription<WatchBinariesResponse>? _watchSub;
+  StreamSupervisor<WatchBinariesResponse>? _supervisor;
 
   BackendStateProvider(this._orchestrator);
 
@@ -71,40 +72,35 @@ class BackendStateProvider extends ChangeNotifier {
   ///
   /// Syncs connection state from the Go ConnectionMonitor to Flutter
   /// RPCConnections so the UI shows proper connected/startup/error states.
+  /// The supervisor handles all reconnect logic — last-known `binaries`
+  /// state is kept across drops so the sidechain list UI doesn't flap.
   void startWatching() {
-    _watchSub?.cancel();
-    _watchSub = _orchestrator.watchBinaries().listen(
-      (response) {
-        final changedRpcs = <RPCConnection>{};
-        for (final status in response.binaries) {
-          binaries[status.name] = status;
+    _supervisor?.dispose();
+    _supervisor = StreamSupervisor<WatchBinariesResponse>(
+      subscribe: () => _orchestrator.watchBinaries(),
+      onEvent: _onResponse,
+      onTransportDeath: _orchestrator.recreateConnection,
+      logger: _log,
+      tag: 'BackendStateProvider',
+    )..start();
+  }
 
-          final rpc = _syncConnectionState(status);
-          if (rpc != null) changedRpcs.add(rpc);
-          _syncBinaryPath(status);
-        }
-        // Batch notifications: one per changed RPC, then one for ourselves
-        for (final rpc in changedRpcs) {
-          rpc.notifyListeners();
-        }
-        notifyListeners();
-      },
-      onError: (error) {
-        _log.w('BackendStateProvider: watchBinaries error: $error');
+  void _onResponse(WatchBinariesResponse response) {
+    // Heartbeat frames carry no state — they exist purely so the
+    // supervisor's watchdog can prove liveness. Skip downstream work.
+    if (response.heartbeat) return;
 
-        // Do NOT clear `binaries` or flip RPCs to disconnected on a transient
-        // stream error — the reconnect takes ~2s and clearing makes the
-        // sidechain list UI vanish and re-appear ("spasm"). The stream pushes
-        // the full state on reconnect, so last-known state is fine to keep.
-        // If the backend is genuinely gone, individual RPC calls will fail
-        // and those code paths set their own disconnected state.
-
-        // Stream broke — retry after delay
-        Future.delayed(const Duration(seconds: 2), () {
-          if (_watchSub != null) startWatching();
-        });
-      },
-    );
+    final changedRpcs = <RPCConnection>{};
+    for (final status in response.binaries) {
+      binaries[status.name] = status;
+      final rpc = _syncConnectionState(status);
+      if (rpc != null) changedRpcs.add(rpc);
+      _syncBinaryPath(status);
+    }
+    for (final rpc in changedRpcs) {
+      rpc.notifyListeners();
+    }
+    notifyListeners();
   }
 
   /// Sync all connection state from the Go backend to the Flutter RPCConnection.
@@ -347,8 +343,8 @@ class BackendStateProvider extends ChangeNotifier {
 
   @override
   void dispose() {
-    _watchSub?.cancel();
-    _watchSub = null;
+    _supervisor?.dispose();
+    _supervisor = null;
     super.dispose();
   }
 }

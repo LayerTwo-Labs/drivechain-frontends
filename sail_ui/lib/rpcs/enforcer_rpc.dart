@@ -37,7 +37,7 @@ class EnforcerLive extends EnforcerRPC {
 
   void _initializeConnection() {
     // Create new HTTP/2 transport and client
-    final httpClient = keepaliveHttpClient();
+    final httpClient = unaryHttpClient();
     final baseUrl = 'http://localhost:${binary.port}';
     _grpcTransport = grpc.Transport(
       baseUrl: baseUrl,

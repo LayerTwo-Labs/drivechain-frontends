@@ -26,8 +26,13 @@ class _InMemoryStore implements KeyValueStore {
 
 class _FakeWalletRPC extends OrchestratorWalletRPC {
   _FakeWalletRPC()
-    : super.fromTransport(
-        connect.Transport(
+    : super.fromTransports(
+        unary: connect.Transport(
+          baseUrl: 'http://127.0.0.1:1',
+          codec: const ProtoCodec(),
+          httpClient: createHttpClient(),
+        ),
+        stream: connect.Transport(
           baseUrl: 'http://127.0.0.1:1',
           codec: const ProtoCodec(),
           httpClient: createHttpClient(),

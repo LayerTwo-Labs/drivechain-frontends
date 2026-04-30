@@ -3643,8 +3643,15 @@ type WatchWalletDataResponse struct {
 	// Active wallet balance (zero if no active wallet)
 	ConfirmedSats   float64 `protobuf:"fixed64,6,opt,name=confirmed_sats,json=confirmedSats,proto3" json:"confirmed_sats,omitempty"`
 	UnconfirmedSats float64 `protobuf:"fixed64,7,opt,name=unconfirmed_sats,json=unconfirmedSats,proto3" json:"unconfirmed_sats,omitempty"`
-	unknownFields   protoimpl.UnknownFields
-	sizeCache       protoimpl.SizeCache
+	// Monotonic sequence number per send within a single stream. Lets the
+	// client detect missed events across a reconnect.
+	Seq int64 `protobuf:"varint,8,opt,name=seq,proto3" json:"seq,omitempty"`
+	// Idle keepalive frames carry no payload — only `seq` and `heartbeat=true`
+	// are populated. The client's heartbeat watchdog uses these to tell a
+	// healthy-but-quiet stream apart from a half-open connection.
+	Heartbeat     bool `protobuf:"varint,9,opt,name=heartbeat,proto3" json:"heartbeat,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *WatchWalletDataResponse) Reset() {
@@ -3724,6 +3731,20 @@ func (x *WatchWalletDataResponse) GetUnconfirmedSats() float64 {
 		return x.UnconfirmedSats
 	}
 	return 0
+}
+
+func (x *WatchWalletDataResponse) GetSeq() int64 {
+	if x != nil {
+		return x.Seq
+	}
+	return 0
+}
+
+func (x *WatchWalletDataResponse) GetHeartbeat() bool {
+	if x != nil {
+		return x.Heartbeat
+	}
+	return false
 }
 
 var File_walletmanager_v1_walletmanager_proto protoreflect.FileDescriptor
@@ -3969,7 +3990,7 @@ const file_walletmanager_v1_walletmanager_proto_rawDesc = "" +
 	"\aenabled\x18\x01 \x01(\bR\aenabled\"4\n" +
 	"\x18SetTestSidechainsRequest\x12\x18\n" +
 	"\aenabled\x18\x01 \x01(\bR\aenabled\"\x1b\n" +
-	"\x19SetTestSidechainsResponse\"\xaa\x02\n" +
+	"\x19SetTestSidechainsResponse\"\xda\x02\n" +
 	"\x17WatchWalletDataResponse\x12\x1d\n" +
 	"\n" +
 	"has_wallet\x18\x01 \x01(\bR\thasWallet\x12\x1c\n" +
@@ -3978,7 +3999,9 @@ const file_walletmanager_v1_walletmanager_proto_rawDesc = "" +
 	"\x10active_wallet_id\x18\x04 \x01(\tR\x0eactiveWalletId\x12:\n" +
 	"\awallets\x18\x05 \x03(\v2 .walletmanager.v1.WalletMetadataR\awallets\x12%\n" +
 	"\x0econfirmed_sats\x18\x06 \x01(\x01R\rconfirmedSats\x12)\n" +
-	"\x10unconfirmed_sats\x18\a \x01(\x01R\x0funconfirmedSats2\x8f\x19\n" +
+	"\x10unconfirmed_sats\x18\a \x01(\x01R\x0funconfirmedSats\x12\x10\n" +
+	"\x03seq\x18\b \x01(\x03R\x03seq\x12\x1c\n" +
+	"\theartbeat\x18\t \x01(\bR\theartbeat2\x8f\x19\n" +
 	"\x14WalletManagerService\x12f\n" +
 	"\x0fGetWalletStatus\x12(.walletmanager.v1.GetWalletStatusRequest\x1a).walletmanager.v1.GetWalletStatusResponse\x12c\n" +
 	"\x0eGenerateWallet\x12'.walletmanager.v1.GenerateWalletRequest\x1a(.walletmanager.v1.GenerateWalletResponse\x12]\n" +

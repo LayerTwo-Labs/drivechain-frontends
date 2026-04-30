@@ -72,10 +72,34 @@ func New(
 		walletDir:    walletDir,
 	}
 
-	// Initialize watch wallet in background
+	// Initialize watch wallet in background. bitwindowd kicks off
+	// orchestratord in parallel, so bitcoind doesn't exist yet at
+	// NewServer time — we wait for it instead of bailing on the first
+	// connection-refused (cheque_watch otherwise never gets created).
 	go func() {
-		// Use background context since this runs independently of startup
 		bgCtx := context.Background()
+
+		var connected bool
+		for !connected {
+			select {
+			case <-ctx.Done():
+				return
+			case connected = <-bitcoind.ConnectedChan():
+			}
+		}
+		for {
+			if c, err := bitcoind.Get(bgCtx); err == nil {
+				if _, err := c.ListWallets(bgCtx, connect.NewRequest(&emptypb.Empty{})); err == nil {
+					break
+				}
+			}
+			select {
+			case <-ctx.Done():
+				return
+			case <-time.After(time.Second):
+			}
+		}
+
 		if err := s.ensureWatchWallet(bgCtx); err != nil {
 			zerolog.Ctx(bgCtx).Warn().Err(err).Msg("failed to initialize watch wallet")
 		}

@@ -69,7 +69,7 @@ class PhotonLive extends PhotonRPC {
     final transport = connect.Transport(
       baseUrl: 'http://localhost:30400',
       codec: const ProtoCodec(),
-      httpClient: keepaliveHttpClient(),
+      httpClient: unaryHttpClient(),
     );
     _client = PhotonServiceClient(transport);
   }
