@@ -1,27 +1,39 @@
+import 'dart:io' as io;
+
 import 'package:connectrpc/connect.dart';
 import 'package:connectrpc/http2.dart';
+import 'package:connectrpc/io.dart' as connect_io;
 
-/// Build a connectrpc HTTP client with sensible keepalive defaults.
+/// HTTP transport for **unary** RPC calls — plain HTTP/1.1.
 ///
-/// `package:connectrpc`'s default `createHttpClient()` does not send PING
-/// frames, so an idle server-streaming RPC (like `WatchWalletData`) is
-/// invisible to the underlying TCP socket. Go's `http2.Server` —
-/// configured with `ReadIdleTimeout: 30s` in the orchestrator — then
-/// triggers a server-side liveness PING; if the round-trip stalls, the
-/// server tears the connection down with a `GOAWAY`, which surfaces as
-/// "Connection is being forcefully terminated. (errorCode: 10)" on the
-/// Dart side.
+/// Unary calls are short-lived; HTTP/1.1 is well-trodden in the Dart
+/// connectrpc package and avoids the multiplexing failure modes that bite
+/// only long-running streams. We deliberately don't share an HTTP/2
+/// connection between unary and streaming calls so a poisoned streaming
+/// transport can't take down list/get RPCs that are otherwise fine.
+HttpClient unaryHttpClient() {
+  final client = io.HttpClient()
+    ..idleTimeout = const Duration(minutes: 5)
+    ..connectionTimeout = const Duration(seconds: 30);
+  return connect_io.createHttpClient(client);
+}
+
+/// HTTP transport for **server-streaming** RPCs — HTTP/2 with keepalive PINGs.
 ///
-/// Sending client-side PINGs every 10s keeps the server's read idle
-/// timer reset, *and* lets the connectrpc transport detect a dead
-/// connection proactively (within `pingTimeout`) so the next call
-/// transparently establishes a fresh socket via `Http2ClientTransport`'s
-/// internal `verify()` loop — no manual transport rebuild needed.
+/// Server-streaming over HTTP/2 is the path the connectrpc Dart package is
+/// best tested against. Half-open detection at the HTTP/2 layer (PING
+/// timeout) plus the application-level [StreamSupervisor] watchdog gives
+/// us two independent layers of liveness checks.
 ///
-/// `pingIdleConnections: true` ensures we keep pinging even when no
-/// streams are open, so a long-lived connection doesn't go silent and
-/// hit the server's 30s idle window.
-HttpClient keepaliveHttpClient() {
+/// PING config:
+/// - `pingInterval: 10s` keeps the server's `ReadIdleTimeout: 30s` from
+///   firing a server-side liveness PING that would tear the connection
+///   down with GOAWAY when the round-trip stalls.
+/// - `pingTimeout: 5s` — if our PING isn't acked, the transport surfaces
+///   the failure to the active stream, which the supervisor handles.
+/// - `pingIdleConnections: true` — keep pinging even when no streams are
+///   open so the long-lived transport doesn't go silent.
+HttpClient streamingHttpClient() {
   return createHttpClient(
     transport: Http2ClientTransport(
       pingInterval: const Duration(seconds: 10),
@@ -30,3 +42,8 @@ HttpClient keepaliveHttpClient() {
     ),
   );
 }
+
+/// Back-compat alias for callers (like `bitwindow_api.dart`) that mix unary
+/// and streaming on the same transport and haven't been split yet.
+/// Prefer [unaryHttpClient] / [streamingHttpClient] in new code.
+HttpClient keepaliveHttpClient() => streamingHttpClient();

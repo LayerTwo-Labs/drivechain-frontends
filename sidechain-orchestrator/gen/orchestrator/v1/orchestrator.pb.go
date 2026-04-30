@@ -933,8 +933,15 @@ func (*WatchBinariesRequest) Descriptor() ([]byte, []int) {
 }
 
 type WatchBinariesResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Binaries      []*BinaryStatusMsg     `protobuf:"bytes,1,rep,name=binaries,proto3" json:"binaries,omitempty"`
+	state    protoimpl.MessageState `protogen:"open.v1"`
+	Binaries []*BinaryStatusMsg     `protobuf:"bytes,1,rep,name=binaries,proto3" json:"binaries,omitempty"`
+	// Monotonic sequence number, incremented per send within a single stream.
+	// Lets the client detect missed events if a reconnect skips numbers.
+	Seq int64 `protobuf:"varint,2,opt,name=seq,proto3" json:"seq,omitempty"`
+	// True for idle keepalive frames sent so the client's heartbeat watchdog
+	// can distinguish a healthy-but-quiet stream from a half-open connection.
+	// Heartbeat frames carry no data — `binaries` is empty.
+	Heartbeat     bool `protobuf:"varint,3,opt,name=heartbeat,proto3" json:"heartbeat,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -974,6 +981,20 @@ func (x *WatchBinariesResponse) GetBinaries() []*BinaryStatusMsg {
 		return x.Binaries
 	}
 	return nil
+}
+
+func (x *WatchBinariesResponse) GetSeq() int64 {
+	if x != nil {
+		return x.Seq
+	}
+	return 0
+}
+
+func (x *WatchBinariesResponse) GetHeartbeat() bool {
+	if x != nil {
+		return x.Heartbeat
+	}
+	return false
 }
 
 type StreamLogsRequest struct {
@@ -2265,9 +2286,11 @@ const file_orchestrator_v1_orchestrator_proto_rawDesc = "" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x14\n" +
 	"\x05force\x18\x02 \x01(\bR\x05force\"\x14\n" +
 	"\x12StopBinaryResponse\"\x16\n" +
-	"\x14WatchBinariesRequest\"U\n" +
+	"\x14WatchBinariesRequest\"\x85\x01\n" +
 	"\x15WatchBinariesResponse\x12<\n" +
-	"\bbinaries\x18\x01 \x03(\v2 .orchestrator.v1.BinaryStatusMsgR\bbinaries\";\n" +
+	"\bbinaries\x18\x01 \x03(\v2 .orchestrator.v1.BinaryStatusMsgR\bbinaries\x12\x10\n" +
+	"\x03seq\x18\x02 \x01(\x03R\x03seq\x12\x1c\n" +
+	"\theartbeat\x18\x03 \x01(\bR\theartbeat\";\n" +
 	"\x11StreamLogsRequest\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x12\n" +
 	"\x04tail\x18\x02 \x01(\x05R\x04tail\"g\n" +

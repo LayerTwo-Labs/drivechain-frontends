@@ -82,22 +82,34 @@ func (h *Handler) StopBinary(ctx context.Context, req *connect.Request[pb.StopBi
 }
 
 func (h *Handler) WatchBinaries(ctx context.Context, req *connect.Request[pb.WatchBinariesRequest], stream *connect.ServerStream[pb.WatchBinariesResponse]) error {
-	// Send initial state immediately
-	if err := h.sendBinaryStatuses(stream); err != nil {
+	var seq int64
+
+	// Send initial state immediately so the client gets full state on subscribe.
+	if err := h.sendBinaryStatuses(stream, &seq); err != nil {
 		return err
 	}
 
-	// Debounce timer: batch rapid state changes into one send
+	// Debounce: batch rapid state changes into one send.
 	debounce := time.NewTimer(0)
 	if !debounce.Stop() {
 		<-debounce.C
 	}
 	pending := false
 
-	// Fallback ticker: ensure state is sent at least every 5 seconds
-	// even if no state changes are detected
-	fallback := time.NewTicker(5 * time.Second)
-	defer fallback.Stop()
+	// Heartbeat: emit an idle keepalive at WatchHeartbeatInterval when no
+	// data has been sent, so the client's heartbeat watchdog can tell a
+	// healthy-but-quiet stream apart from a half-open connection. Reset
+	// whenever a real frame goes out.
+	heartbeat := time.NewTicker(WatchHeartbeatInterval)
+	defer heartbeat.Stop()
+
+	send := func() error {
+		if err := h.sendBinaryStatuses(stream, &seq); err != nil {
+			return err
+		}
+		heartbeat.Reset(WatchHeartbeatInterval)
+		return nil
+	}
 
 	for {
 		select {
@@ -105,7 +117,6 @@ func (h *Handler) WatchBinaries(ctx context.Context, req *connect.Request[pb.Wat
 			return ctx.Err()
 
 		case <-h.orch.StateChanged:
-			// State changed — start debounce if not already pending
 			if !pending {
 				debounce.Reset(50 * time.Millisecond)
 				pending = true
@@ -113,19 +124,22 @@ func (h *Handler) WatchBinaries(ctx context.Context, req *connect.Request[pb.Wat
 
 		case <-debounce.C:
 			pending = false
-			if err := h.sendBinaryStatuses(stream); err != nil {
+			if err := send(); err != nil {
 				return err
 			}
 
-		case <-fallback.C:
-			if err := h.sendBinaryStatuses(stream); err != nil {
+		case <-heartbeat.C:
+			if err := stream.Send(&pb.WatchBinariesResponse{
+				Seq:       atomicInc(&seq),
+				Heartbeat: true,
+			}); err != nil {
 				return err
 			}
 		}
 	}
 }
 
-func (h *Handler) sendBinaryStatuses(stream *connect.ServerStream[pb.WatchBinariesResponse]) error {
+func (h *Handler) sendBinaryStatuses(stream *connect.ServerStream[pb.WatchBinariesResponse], seq *int64) error {
 	statuses := h.orch.ListAll()
 	pbStatuses := make([]*pb.BinaryStatusMsg, len(statuses))
 	for i, s := range statuses {
@@ -133,7 +147,16 @@ func (h *Handler) sendBinaryStatuses(stream *connect.ServerStream[pb.WatchBinari
 	}
 	return stream.Send(&pb.WatchBinariesResponse{
 		Binaries: pbStatuses,
+		Seq:      atomicInc(seq),
 	})
+}
+
+// atomicInc bumps a per-stream counter — accessed only from the stream
+// handler's single goroutine, so no atomic op is actually needed; the name
+// just signals "claim then return."
+func atomicInc(seq *int64) int64 {
+	*seq++
+	return *seq
 }
 
 func (h *Handler) StreamLogs(ctx context.Context, req *connect.Request[pb.StreamLogsRequest], stream *connect.ServerStream[pb.StreamLogsResponse]) error {

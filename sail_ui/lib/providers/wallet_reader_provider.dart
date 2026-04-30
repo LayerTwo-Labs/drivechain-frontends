@@ -5,32 +5,21 @@ import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:sail_ui/env.dart';
+import 'package:sail_ui/gen/walletmanager/v1/walletmanager.pb.dart' as wmpb;
+import 'package:sail_ui/rpcs/stream_supervisor.dart';
 import 'package:sail_ui/sail_ui.dart';
 
 /// Wallet reader provider backed by orchestrator's WalletManagerService.
 ///
-/// Uses a server-streaming RPC (WatchWalletData) to receive wallet state
-/// updates instead of polling.
+/// Uses the WatchWalletData server-streaming RPC, wrapped in a
+/// [StreamSupervisor] that owns reconnect, transport recreation, and
+/// heartbeat detection.
 class WalletReaderProvider extends ChangeNotifier {
   final Logger _logger = GetIt.I.get<Logger>();
   OrchestratorWalletRPC get _client => GetIt.I.get<OrchestratorRPC>().wallet;
   final Directory bitwindowAppDir;
 
-  StreamSubscription<dynamic>? _watchSub;
-  Timer? _reconnectTimer;
-  int _reconnectAttempt = 0;
-  // Backoff schedule. First retry is immediate so transient drops don't
-  // leave the UI stale for seconds; later retries cap out at 10s so a
-  // permanently-down orchestrator doesn't spam connect attempts.
-  static const _backoff = <Duration>[
-    Duration.zero,
-    Duration(milliseconds: 200),
-    Duration(milliseconds: 500),
-    Duration(seconds: 1),
-    Duration(seconds: 2),
-    Duration(seconds: 5),
-    Duration(seconds: 10),
-  ];
+  StreamSupervisor<wmpb.WatchWalletDataResponse>? _supervisor;
 
   List<WalletData> wallets = [];
   String? activeWalletId;
@@ -60,74 +49,24 @@ class WalletReaderProvider extends ChangeNotifier {
   bool get isWalletLocked => !isWalletUnlocked;
 
   WalletReaderProvider(this.bitwindowAppDir) {
-    _startWatching();
-  }
-
-  void _startWatching() {
     if (Environment.isInTest) return;
-    _subscribe();
+    _supervisor = StreamSupervisor<wmpb.WatchWalletDataResponse>(
+      subscribe: () => _client.watchWalletData(),
+      onEvent: _onResponse,
+      onTransportDeath: GetIt.I.get<OrchestratorRPC>().recreateConnection,
+      logger: _logger,
+      tag: 'WalletReaderProvider',
+    )..start();
   }
 
-  void _subscribe() {
-    _watchSub?.cancel();
-    _reconnectTimer?.cancel();
-
-    try {
-      _logger.i('WalletReaderProvider: subscribing to watchWalletData');
-      final stream = _client.watchWalletData();
-      _watchSub = stream.listen(
-        _onData,
-        onError: (Object e) {
-          _logger.e('WalletReaderProvider: stream error: $e');
-          // The Dart connectrpc client doesn't recover from a GOAWAY /
-          // forcefully-terminated HTTP/2 connection on its own — every
-          // subsequent stream subscription would fail. Rebuild the
-          // transport so the next reconnect has a chance.
-          GetIt.I.get<OrchestratorRPC>().recreateIfHttp2Error(e);
-          _scheduleReconnect();
-        },
-        onDone: () {
-          _logger.i('WalletReaderProvider: stream closed, reconnecting');
-          _scheduleReconnect();
-        },
-      );
-    } catch (e) {
-      _logger.e('WalletReaderProvider: failed to subscribe: $e');
-      _scheduleReconnect();
-    }
-
-    // Self-heal: if the stream is flaky (HTTP/2 connection drops have been
-    // observed) and we never got the first push through, fall back to a
-    // direct listWallets/getWalletStatus so the dropdown / BIP47 / starters
-    // tabs don't sit empty against a wallet that's actually loaded.
-    if (wallets.isEmpty && !Environment.isInTest) {
-      unawaited(init());
-    }
-  }
-
-  void _scheduleReconnect() {
-    _reconnectTimer?.cancel();
-    final delay = _backoff[_reconnectAttempt.clamp(0, _backoff.length - 1)];
-    _reconnectAttempt += 1;
-    if (delay == Duration.zero) {
-      _logger.i('WalletReaderProvider: reconnecting immediately (attempt $_reconnectAttempt)');
-      scheduleMicrotask(_subscribe);
-    } else {
-      _logger.i(
-        'WalletReaderProvider: reconnect in ${delay.inMilliseconds}ms (attempt $_reconnectAttempt)',
-      );
-      _reconnectTimer = Timer(delay, _subscribe);
-    }
-  }
-
-  void _onData(dynamic resp) {
-    // Successful frame — backoff schedule resets so the next drop retries
-    // fast.
-    _reconnectAttempt = 0;
+  void _onResponse(wmpb.WatchWalletDataResponse resp) {
+    // Heartbeat frames carry no payload — supervisor uses them only for
+    // liveness detection, no state to apply here.
+    if (resp.heartbeat) return;
     _applyState(
       protoWallets: resp.wallets,
-      newActiveId: resp.activeWalletId.isEmpty ? null : resp.activeWalletId as String,
-      newHasWalletOnDisk: resp.hasWallet as bool,
+      newActiveId: resp.activeWalletId.isEmpty ? null : resp.activeWalletId,
+      newHasWalletOnDisk: resp.hasWallet,
     );
   }
 
@@ -410,8 +349,8 @@ class WalletReaderProvider extends ChangeNotifier {
 
   @override
   void dispose() {
-    _watchSub?.cancel();
-    _reconnectTimer?.cancel();
+    _supervisor?.dispose();
+    _supervisor = null;
     super.dispose();
   }
 }

@@ -10,23 +10,32 @@ import 'package:sail_ui/gen/walletmanager/v1/walletmanager.pb.dart' as wmpb;
 /// Shared wallet RPC client backed by orchestrator WalletManagerService.
 ///
 /// This is the shared wallet boundary for BitWindow and sidechain frontends
-/// when wallet/runtime ownership lives in orchestrator.
+/// when wallet/runtime ownership lives in orchestrator. Splits unary
+/// (HTTP/1.1) and streaming (HTTP/2) over two transports — see
+/// [OrchestratorRPC] for why.
 class OrchestratorWalletRPC {
-  late WalletManagerServiceClient _client;
+  late WalletManagerServiceClient _unaryClient;
+  late WalletManagerServiceClient _streamClient;
 
   static const _defaultTransactionCount = 100;
 
-  /// Create from a shared transport (used by OrchestratorRPC).
-  OrchestratorWalletRPC.fromTransport(connect.Transport transport) {
-    _client = WalletManagerServiceClient(transport);
+  /// Create from the two transports owned by [OrchestratorRPC]. Unary RPCs
+  /// go to [unary], server-streaming RPCs (currently just `watchWalletData`)
+  /// go to [stream].
+  OrchestratorWalletRPC.fromTransports({
+    required connect.Transport unary,
+    required connect.Transport stream,
+  }) {
+    _unaryClient = WalletManagerServiceClient(unary);
+    _streamClient = WalletManagerServiceClient(stream);
   }
 
   Future<wmpb.GetWalletStatusResponse> getWalletStatus() {
-    return _client.getWalletStatus(wmpb.GetWalletStatusRequest());
+    return _unaryClient.getWalletStatus(wmpb.GetWalletStatusRequest());
   }
 
   Future<wmpb.ListWalletsResponse> listWallets() {
-    return _client.listWallets(wmpb.ListWalletsRequest());
+    return _unaryClient.listWallets(wmpb.ListWalletsRequest());
   }
 
   Future<wmpb.GenerateWalletResponse> generateWallet({
@@ -34,7 +43,7 @@ class OrchestratorWalletRPC {
     String? customMnemonic,
     String? passphrase,
   }) {
-    return _client.generateWallet(
+    return _unaryClient.generateWallet(
       wmpb.GenerateWalletRequest(
         name: name,
         customMnemonic: customMnemonic ?? '',
@@ -44,22 +53,22 @@ class OrchestratorWalletRPC {
   }
 
   Future<wmpb.UnlockWalletResponse> unlockWallet(String password) {
-    return _client.unlockWallet(wmpb.UnlockWalletRequest(password: password));
+    return _unaryClient.unlockWallet(wmpb.UnlockWalletRequest(password: password));
   }
 
   Future<wmpb.LockWalletResponse> lockWallet() {
-    return _client.lockWallet(wmpb.LockWalletRequest());
+    return _unaryClient.lockWallet(wmpb.LockWalletRequest());
   }
 
   Future<wmpb.EncryptWalletResponse> encryptWallet(String password) {
-    return _client.encryptWallet(wmpb.EncryptWalletRequest(password: password));
+    return _unaryClient.encryptWallet(wmpb.EncryptWalletRequest(password: password));
   }
 
   Future<wmpb.ChangePasswordResponse> changePassword(
     String oldPassword,
     String newPassword,
   ) {
-    return _client.changePassword(
+    return _unaryClient.changePassword(
       wmpb.ChangePasswordRequest(
         oldPassword: oldPassword,
         newPassword: newPassword,
@@ -68,7 +77,7 @@ class OrchestratorWalletRPC {
   }
 
   Future<wmpb.RemoveEncryptionResponse> removeEncryption(String password) {
-    return _client.removeEncryption(
+    return _unaryClient.removeEncryption(
       wmpb.RemoveEncryptionRequest(password: password),
     );
   }
@@ -78,7 +87,7 @@ class OrchestratorWalletRPC {
     required String xpubOrDescriptor,
     required String gradientJson,
   }) {
-    return _client.createWatchOnlyWallet(
+    return _unaryClient.createWatchOnlyWallet(
       wmpb.CreateWatchOnlyWalletRequest(
         name: name,
         xpubOrDescriptor: xpubOrDescriptor,
@@ -88,7 +97,7 @@ class OrchestratorWalletRPC {
   }
 
   Future<wmpb.SwitchWalletResponse> switchWallet(String walletId) {
-    return _client.switchWallet(wmpb.SwitchWalletRequest(walletId: walletId));
+    return _unaryClient.switchWallet(wmpb.SwitchWalletRequest(walletId: walletId));
   }
 
   Future<wmpb.UpdateWalletMetadataResponse> updateWalletMetadata({
@@ -96,7 +105,7 @@ class OrchestratorWalletRPC {
     required String name,
     required String gradientJson,
   }) {
-    return _client.updateWalletMetadata(
+    return _unaryClient.updateWalletMetadata(
       wmpb.UpdateWalletMetadataRequest(
         walletId: walletId,
         name: name,
@@ -106,19 +115,19 @@ class OrchestratorWalletRPC {
   }
 
   Future<wmpb.DeleteWalletResponse> deleteWallet(String walletId) {
-    return _client.deleteWallet(wmpb.DeleteWalletRequest(walletId: walletId));
+    return _unaryClient.deleteWallet(wmpb.DeleteWalletRequest(walletId: walletId));
   }
 
   Future<wmpb.DeleteAllWalletsResponse> deleteAllWallets() {
-    return _client.deleteAllWallets(wmpb.DeleteAllWalletsRequest());
+    return _unaryClient.deleteAllWallets(wmpb.DeleteAllWalletsRequest());
   }
 
   Future<wmpb.GetBalanceResponse> getBalance(String walletId) {
-    return _client.getBalance(wmpb.GetBalanceRequest(walletId: walletId));
+    return _unaryClient.getBalance(wmpb.GetBalanceRequest(walletId: walletId));
   }
 
   Future<wmpb.GetNewAddressResponse> getNewAddress(String walletId) {
-    return _client.getNewAddress(wmpb.GetNewAddressRequest(walletId: walletId));
+    return _unaryClient.getNewAddress(wmpb.GetNewAddressRequest(walletId: walletId));
   }
 
   Future<wmpb.SendTransactionResponse> sendTransaction({
@@ -134,7 +143,7 @@ class OrchestratorWalletRPC {
     final resolvedOpReturnHex =
         opReturnHex ?? (opReturnMessage == null ? null : _bytesToHex(utf8.encode(opReturnMessage)));
 
-    return _client.sendTransaction(
+    return _unaryClient.sendTransaction(
       wmpb.SendTransactionRequest(
         walletId: walletId,
         destinations: destinations.map((key, value) => MapEntry(key, Int64(value))),
@@ -151,17 +160,17 @@ class OrchestratorWalletRPC {
     required String walletId,
     int count = _defaultTransactionCount,
   }) {
-    return _client.listTransactions(
+    return _unaryClient.listTransactions(
       wmpb.ListTransactionsRequest(walletId: walletId, count: count),
     );
   }
 
   Future<wmpb.ListUnspentResponse> listUnspent(String walletId) {
-    return _client.listUnspent(wmpb.ListUnspentRequest(walletId: walletId));
+    return _unaryClient.listUnspent(wmpb.ListUnspentRequest(walletId: walletId));
   }
 
   Future<wmpb.ListReceiveAddressesResponse> listReceiveAddresses(String walletId) {
-    return _client.listReceiveAddresses(
+    return _unaryClient.listReceiveAddresses(
       wmpb.ListReceiveAddressesRequest(walletId: walletId),
     );
   }
@@ -170,7 +179,7 @@ class OrchestratorWalletRPC {
     required String walletId,
     required String txid,
   }) async {
-    final response = await _client.getTransactionDetails(
+    final response = await _unaryClient.getTransactionDetails(
       wmpb.GetTransactionDetailsRequest(walletId: walletId, txid: txid),
     );
 
@@ -199,7 +208,7 @@ class OrchestratorWalletRPC {
     required String txid,
     int? newFeeRate,
   }) {
-    return _client.bumpFee(
+    return _unaryClient.bumpFee(
       wmpb.BumpFeeRequest(
         walletId: walletId,
         txid: txid,
@@ -209,27 +218,27 @@ class OrchestratorWalletRPC {
   }
 
   Stream<wmpb.WatchWalletDataResponse> watchWalletData() {
-    return _client.watchWalletData(emptypb.Empty());
+    return _streamClient.watchWalletData(emptypb.Empty());
   }
 
   Future<wmpb.ListCoreVariantsResponse> listCoreVariants() {
-    return _client.listCoreVariants(wmpb.ListCoreVariantsRequest());
+    return _unaryClient.listCoreVariants(wmpb.ListCoreVariantsRequest());
   }
 
   Future<wmpb.GetCoreVariantResponse> getCoreVariant() {
-    return _client.getCoreVariant(wmpb.GetCoreVariantRequest());
+    return _unaryClient.getCoreVariant(wmpb.GetCoreVariantRequest());
   }
 
   Future<wmpb.SetCoreVariantResponse> setCoreVariant(String id) {
-    return _client.setCoreVariant(wmpb.SetCoreVariantRequest(id: id));
+    return _unaryClient.setCoreVariant(wmpb.SetCoreVariantRequest(id: id));
   }
 
   Future<wmpb.GetTestSidechainsResponse> getTestSidechains() {
-    return _client.getTestSidechains(wmpb.GetTestSidechainsRequest());
+    return _unaryClient.getTestSidechains(wmpb.GetTestSidechainsRequest());
   }
 
   Future<wmpb.SetTestSidechainsResponse> setTestSidechains(bool enabled) {
-    return _client.setTestSidechains(wmpb.SetTestSidechainsRequest(enabled: enabled));
+    return _unaryClient.setTestSidechains(wmpb.SetTestSidechainsRequest(enabled: enabled));
   }
 
   String _bytesToHex(List<int> bytes) {

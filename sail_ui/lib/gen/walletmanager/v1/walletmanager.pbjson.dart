@@ -970,6 +970,8 @@ const WatchWalletDataResponse$json = {
     {'1': 'wallets', '3': 5, '4': 3, '5': 11, '6': '.walletmanager.v1.WalletMetadata', '10': 'wallets'},
     {'1': 'confirmed_sats', '3': 6, '4': 1, '5': 1, '10': 'confirmedSats'},
     {'1': 'unconfirmed_sats', '3': 7, '4': 1, '5': 1, '10': 'unconfirmedSats'},
+    {'1': 'seq', '3': 8, '4': 1, '5': 3, '10': 'seq'},
+    {'1': 'heartbeat', '3': 9, '4': 1, '5': 8, '10': 'heartbeat'},
   ],
 };
 
@@ -980,7 +982,8 @@ final $typed_data.Uint8List watchWalletDataResponseDescriptor = $convert.base64D
     'a2VkEigKEGFjdGl2ZV93YWxsZXRfaWQYBCABKAlSDmFjdGl2ZVdhbGxldElkEjoKB3dhbGxldH'
     'MYBSADKAsyIC53YWxsZXRtYW5hZ2VyLnYxLldhbGxldE1ldGFkYXRhUgd3YWxsZXRzEiUKDmNv'
     'bmZpcm1lZF9zYXRzGAYgASgBUg1jb25maXJtZWRTYXRzEikKEHVuY29uZmlybWVkX3NhdHMYBy'
-    'ABKAFSD3VuY29uZmlybWVkU2F0cw==');
+    'ABKAFSD3VuY29uZmlybWVkU2F0cxIQCgNzZXEYCCABKANSA3NlcRIcCgloZWFydGJlYXQYCSAB'
+    'KAhSCWhlYXJ0YmVhdA==');
 
 const $core.Map<$core.String, $core.dynamic> WalletManagerServiceBase$json = {
   '1': 'WalletManagerService',

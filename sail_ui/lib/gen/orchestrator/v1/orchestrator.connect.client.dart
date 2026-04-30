@@ -7,7 +7,7 @@ import "package:connectrpc/connect.dart" as connect;
 import "orchestrator.pb.dart" as orchestratorv1orchestrator;
 import "orchestrator.connect.spec.dart" as specs;
 
-extension type OrchestratorServiceClient(connect.Transport _transport) {
+extension type OrchestratorServiceClient (connect.Transport _transport) {
   /// List all configured binaries and their status.
   Future<orchestratorv1orchestrator.ListBinariesResponse> listBinaries(
     orchestratorv1orchestrator.ListBinariesRequest input, {

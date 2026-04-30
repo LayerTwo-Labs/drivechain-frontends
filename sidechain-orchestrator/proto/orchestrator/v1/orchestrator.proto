@@ -166,6 +166,13 @@ message WatchBinariesRequest {}
 
 message WatchBinariesResponse {
   repeated BinaryStatusMsg binaries = 1;
+  // Monotonic sequence number, incremented per send within a single stream.
+  // Lets the client detect missed events if a reconnect skips numbers.
+  int64 seq = 2;
+  // True for idle keepalive frames sent so the client's heartbeat watchdog
+  // can distinguish a healthy-but-quiet stream from a half-open connection.
+  // Heartbeat frames carry no data — `binaries` is empty.
+  bool heartbeat = 3;
 }
 
 // StreamLogs

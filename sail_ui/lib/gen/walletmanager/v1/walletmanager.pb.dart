@@ -4353,6 +4353,8 @@ class WatchWalletDataResponse extends $pb.GeneratedMessage {
     $core.Iterable<WalletMetadata>? wallets,
     $core.double? confirmedSats,
     $core.double? unconfirmedSats,
+    $fixnum.Int64? seq,
+    $core.bool? heartbeat,
   }) {
     final $result = create();
     if (hasWallet != null) {
@@ -4376,6 +4378,12 @@ class WatchWalletDataResponse extends $pb.GeneratedMessage {
     if (unconfirmedSats != null) {
       $result.unconfirmedSats = unconfirmedSats;
     }
+    if (seq != null) {
+      $result.seq = seq;
+    }
+    if (heartbeat != null) {
+      $result.heartbeat = heartbeat;
+    }
     return $result;
   }
   WatchWalletDataResponse._() : super();
@@ -4390,6 +4398,8 @@ class WatchWalletDataResponse extends $pb.GeneratedMessage {
     ..pc<WalletMetadata>(5, _omitFieldNames ? '' : 'wallets', $pb.PbFieldType.PM, subBuilder: WalletMetadata.create)
     ..a<$core.double>(6, _omitFieldNames ? '' : 'confirmedSats', $pb.PbFieldType.OD)
     ..a<$core.double>(7, _omitFieldNames ? '' : 'unconfirmedSats', $pb.PbFieldType.OD)
+    ..aInt64(8, _omitFieldNames ? '' : 'seq')
+    ..aOB(9, _omitFieldNames ? '' : 'heartbeat')
     ..hasRequiredFields = false
   ;
 
@@ -4473,6 +4483,29 @@ class WatchWalletDataResponse extends $pb.GeneratedMessage {
   $core.bool hasUnconfirmedSats() => $_has(6);
   @$pb.TagNumber(7)
   void clearUnconfirmedSats() => clearField(7);
+
+  /// Monotonic sequence number per send within a single stream. Lets the
+  /// client detect missed events across a reconnect.
+  @$pb.TagNumber(8)
+  $fixnum.Int64 get seq => $_getI64(7);
+  @$pb.TagNumber(8)
+  set seq($fixnum.Int64 v) { $_setInt64(7, v); }
+  @$pb.TagNumber(8)
+  $core.bool hasSeq() => $_has(7);
+  @$pb.TagNumber(8)
+  void clearSeq() => clearField(8);
+
+  /// Idle keepalive frames carry no payload — only `seq` and `heartbeat=true`
+  /// are populated. The client's heartbeat watchdog uses these to tell a
+  /// healthy-but-quiet stream apart from a half-open connection.
+  @$pb.TagNumber(9)
+  $core.bool get heartbeat => $_getBF(8);
+  @$pb.TagNumber(9)
+  set heartbeat($core.bool v) { $_setBool(8, v); }
+  @$pb.TagNumber(9)
+  $core.bool hasHeartbeat() => $_has(8);
+  @$pb.TagNumber(9)
+  void clearHeartbeat() => clearField(9);
 }
 
 class WalletManagerServiceApi {

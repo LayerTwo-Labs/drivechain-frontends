@@ -110,7 +110,7 @@ class CoinShiftLive extends CoinShiftRPC {
     final transport = connect.Transport(
       baseUrl: 'http://localhost:30400',
       codec: const ProtoCodec(),
-      httpClient: keepaliveHttpClient(),
+      httpClient: unaryHttpClient(),
     );
     _client = CoinShiftServiceClient(transport);
   }
