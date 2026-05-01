@@ -47,6 +47,19 @@ service OrchestratorService {
 
   // Reset/delete data categories. Stops affected binaries, streams each deletion event.
   rpc StreamResetData(StreamResetDataRequest) returns (stream StreamResetDataResponse);
+
+  // ─── Bitcoin Core typed extensions ────────────────────────────────────────
+  // Sit alongside the btc-buf BitcoinService for methods btc-buf doesn't type
+  // (getmempoolinfo) plus a generic raw-call escape hatch (finalizepsbt,
+  // descriptorprocesspsbt, …). Frontends prefer the typed btc-buf methods
+  // when available.
+
+  // Full bitcoind getmempoolinfo response. Distinct from getrawmempool.
+  rpc GetCoreMempoolInfo(GetCoreMempoolInfoRequest) returns (GetCoreMempoolInfoResponse);
+
+  // Generic raw bitcoind RPC. Optional `wallet` field routes the call to
+  // /wallet/{name} on bitcoind for wallet-scoped RPCs.
+  rpc CoreRawCall(CoreRawCallRequest) returns (CoreRawCallResponse);
 }
 
 message BinaryStatusMsg {
@@ -310,4 +323,51 @@ message StreamResetDataResponse {
   bool done = 5; // true on final message
   int32 deleted_count = 6;
   int32 failed_count = 7;
+}
+
+// ─── Bitcoin Core typed extensions ────────────────────────────────────────
+
+message GetCoreMempoolInfoRequest {}
+
+// Mirrors bitcoind's getmempoolinfo. Aggregate stats — distinct from
+// getrawmempool which lists individual mempool txids.
+message GetCoreMempoolInfoResponse {
+  bool loaded = 1;
+  // Number of transactions in the mempool.
+  int64 size = 2;
+  // Sum of serialized sizes (bytes).
+  int64 bytes = 3;
+  // Total memory usage (bytes).
+  int64 usage = 4;
+  // Sum of all tx fees (BTC).
+  double total_fee = 5;
+  // Mempool size cap (bytes).
+  int64 max_mempool = 6;
+  // Lowest fee rate accepted into mempool (BTC/kvB).
+  double mempool_min_fee = 7;
+  // Lowest fee rate eligible for relay (BTC/kvB).
+  double min_relay_tx_fee = 8;
+  // Minimum bump-fee increment (BTC/kvB).
+  double incremental_relay_fee = 9;
+  // Transactions in mempool not yet broadcast.
+  int64 unbroadcast_count = 10;
+  bool full_rbf = 11;
+}
+
+message CoreRawCallRequest {
+  // bitcoind RPC method name (e.g. "finalizepsbt").
+  string method = 1;
+  // JSON-encoded positional params array (e.g. '["psbtBase64", false]').
+  // Empty string means no params.
+  string params_json = 2;
+  // Optional bitcoind wallet name to scope the call to. When set, the request
+  // is routed to /wallet/{wallet} on bitcoind so wallet-scoped RPCs like
+  // listtransactions / getbalance / getwalletinfo dispatch to the right
+  // wallet. Empty = node-level call.
+  string wallet = 3;
+}
+
+message CoreRawCallResponse {
+  // JSON-encoded result. Caller decodes to its expected shape.
+  string result_json = 1;
 }

@@ -858,7 +858,6 @@ class _MultisigTransactionsTableState extends State<MultisigTransactionsTable> {
 }
 
 class MultisigLoungeViewModel extends BaseViewModel {
-  final MainchainRPC _rpc = GetIt.I.get<MainchainRPC>();
   final HDWalletProvider _hdWalletProvider = GetIt.I.get<HDWalletProvider>();
   final BlockchainProvider _blockchainProvider = GetIt.I.get<BlockchainProvider>();
   final _walletManager = WalletRPCManager();
@@ -1599,7 +1598,7 @@ class MultisigLoungeViewModel extends BaseViewModel {
 
       final mnemonic = _hdWalletProvider.mnemonic!;
 
-      final isMainnet = await _rpc.callRAW('getblockchaininfo').then((info) {
+      final isMainnet = await bitcoindRpcCall('getblockchaininfo').then((info) {
         if (info is Map) {
           final chain = info['chain'] as String? ?? 'main';
           return chain == 'main';
@@ -1702,7 +1701,7 @@ class MultisigLoungeViewModel extends BaseViewModel {
       }
 
       try {
-        await _rpc.callRAW('decodepsbt', [psbtData]);
+        await bitcoindRpcCall('decodepsbt', params: [psbtData]);
       } catch (e) {
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(

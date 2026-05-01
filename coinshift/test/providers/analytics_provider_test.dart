@@ -13,7 +13,7 @@ void main() {
   setUpAll(() async {
     final coinshiftRPC = MockCoinShiftRPC();
     GetIt.I.registerLazySingleton<CoinShiftRPC>(() => coinshiftRPC);
-    GetIt.I.registerLazySingleton<MainchainRPC>(() => MockMainchainRPC());
+    GetIt.I.registerLazySingleton<BitcoindConnection>(() => MockBitcoindConnection());
     GetIt.I.registerLazySingleton<Logger>(() => Logger());
 
     // Register SwapProvider (needed by AnalyticsProvider)

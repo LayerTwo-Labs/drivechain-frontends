@@ -206,10 +206,13 @@ func TestOrchestrator_ListCoreVariants(t *testing.T) {
 		want    []string
 	}{
 		{"mainnet", nil},
-		{"signet", []string{"untouched", "knots"}},
-		{"testnet", []string{"untouched", "knots"}},
-		{"regtest", []string{"untouched", "knots"}},
-		{"forknet", []string{"touched"}},
+		// "patched" (drivechain.info L1-bitcoin-patched-latest) is available on
+		// every non-mainnet chain so a user who lands on signet still gets a
+		// drivechain-aware build by default instead of vanilla / knots.
+		{"signet", []string{"untouched", "knots", "patched"}},
+		{"testnet", []string{"untouched", "knots", "patched"}},
+		{"regtest", []string{"untouched", "knots", "patched"}},
+		{"forknet", []string{"touched", "patched"}},
 	}
 	for _, tc := range cases {
 		t.Run(tc.network, func(t *testing.T) {

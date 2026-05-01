@@ -67,8 +67,13 @@ type GetBitcoinConfigResponse struct {
 	ConfigContent             string                 `protobuf:"bytes,6,opt,name=config_content,json=configContent,proto3" json:"config_content,omitempty"`         // raw config file content
 	NetworkSupportsSidechains bool                   `protobuf:"varint,7,opt,name=network_supports_sidechains,json=networkSupportsSidechains,proto3" json:"network_supports_sidechains,omitempty"`
 	IsDemoMode                bool                   `protobuf:"varint,8,opt,name=is_demo_mode,json=isDemoMode,proto3" json:"is_demo_mode,omitempty"` // true on mainnet
-	unknownFields             protoimpl.UnknownFields
-	sizeCache                 protoimpl.SizeCache
+	// RPC creds — exposed so localhost callers (cpuminer, future tools) that
+	// need raw bitcoind JSON-RPC can dial it without re-parsing config_content.
+	// Prefer the hosted BitcoinService proxy when possible.
+	RpcUser       string `protobuf:"bytes,9,opt,name=rpc_user,json=rpcUser,proto3" json:"rpc_user,omitempty"`
+	RpcPassword   string `protobuf:"bytes,10,opt,name=rpc_password,json=rpcPassword,proto3" json:"rpc_password,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *GetBitcoinConfigResponse) Reset() {
@@ -155,6 +160,20 @@ func (x *GetBitcoinConfigResponse) GetIsDemoMode() bool {
 		return x.IsDemoMode
 	}
 	return false
+}
+
+func (x *GetBitcoinConfigResponse) GetRpcUser() string {
+	if x != nil {
+		return x.RpcUser
+	}
+	return ""
+}
+
+func (x *GetBitcoinConfigResponse) GetRpcPassword() string {
+	if x != nil {
+		return x.RpcPassword
+	}
+	return ""
 }
 
 type SetBitcoinConfigNetworkRequest struct {
@@ -410,7 +429,7 @@ var File_orchestrator_v1_bitcoin_conf_proto protoreflect.FileDescriptor
 const file_orchestrator_v1_bitcoin_conf_proto_rawDesc = "" +
 	"\n" +
 	"\"orchestrator/v1/bitcoin_conf.proto\x12\x0forchestrator.v1\"\x19\n" +
-	"\x17GetBitcoinConfigRequest\"\xcf\x02\n" +
+	"\x17GetBitcoinConfigRequest\"\x8d\x03\n" +
 	"\x18GetBitcoinConfigResponse\x12\x18\n" +
 	"\anetwork\x18\x01 \x01(\tR\anetwork\x12\x19\n" +
 	"\brpc_port\x18\x02 \x01(\x05R\arpcPort\x12(\n" +
@@ -421,7 +440,10 @@ const file_orchestrator_v1_bitcoin_conf_proto_rawDesc = "" +
 	"\x0econfig_content\x18\x06 \x01(\tR\rconfigContent\x12>\n" +
 	"\x1bnetwork_supports_sidechains\x18\a \x01(\bR\x19networkSupportsSidechains\x12 \n" +
 	"\fis_demo_mode\x18\b \x01(\bR\n" +
-	"isDemoMode\":\n" +
+	"isDemoMode\x12\x19\n" +
+	"\brpc_user\x18\t \x01(\tR\arpcUser\x12!\n" +
+	"\frpc_password\x18\n" +
+	" \x01(\tR\vrpcPassword\":\n" +
 	"\x1eSetBitcoinConfigNetworkRequest\x12\x18\n" +
 	"\anetwork\x18\x01 \x01(\tR\anetwork\"!\n" +
 	"\x1fSetBitcoinConfigNetworkResponse\"U\n" +

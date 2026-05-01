@@ -42,9 +42,12 @@ func (h *BitcoinConfHandler) GetBitcoinConfig(ctx context.Context, req *connect.
 		network == config.NetworkSignet ||
 		network == config.NetworkRegtest
 
-	var configContent string
+	var configContent, rpcUser, rpcPassword string
 	if h.conf.Config != nil {
 		configContent = h.conf.Config.Serialize()
+		section := h.conf.Network.CoreSection()
+		rpcUser = h.conf.Config.GetEffectiveSetting("rpcuser", section)
+		rpcPassword = h.conf.Config.GetEffectiveSetting("rpcpassword", section)
 	}
 
 	return connect.NewResponse(&pb.GetBitcoinConfigResponse{
@@ -56,6 +59,8 @@ func (h *BitcoinConfHandler) GetBitcoinConfig(ctx context.Context, req *connect.
 		ConfigContent:             configContent,
 		NetworkSupportsSidechains: networkSupportsSidechains,
 		IsDemoMode:                network == config.NetworkMainnet,
+		RpcUser:                   rpcUser,
+		RpcPassword:               rpcPassword,
 	}), nil
 }
 

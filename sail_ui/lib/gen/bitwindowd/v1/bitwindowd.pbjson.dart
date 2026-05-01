@@ -84,116 +84,6 @@ final $typed_data.Uint8List bitwindowdServiceStopRequestDescriptor = $convert.ba
     'ChxCaXR3aW5kb3dkU2VydmljZVN0b3BSZXF1ZXN0EicKD3NraXBfZG93bnN0cmVhbRgBIAEoCF'
     'IOc2tpcERvd25zdHJlYW0=');
 
-@$core.Deprecated('Use startManagedBinaryRequestDescriptor instead')
-const StartManagedBinaryRequest$json = {
-  '1': 'StartManagedBinaryRequest',
-  '2': [
-    {'1': 'name', '3': 1, '4': 1, '5': 9, '10': 'name'},
-  ],
-};
-
-/// Descriptor for `StartManagedBinaryRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List startManagedBinaryRequestDescriptor = $convert.base64Decode(
-    'ChlTdGFydE1hbmFnZWRCaW5hcnlSZXF1ZXN0EhIKBG5hbWUYASABKAlSBG5hbWU=');
-
-@$core.Deprecated('Use startManagedBinaryResponseDescriptor instead')
-const StartManagedBinaryResponse$json = {
-  '1': 'StartManagedBinaryResponse',
-  '2': [
-    {'1': 'stage', '3': 1, '4': 1, '5': 9, '10': 'stage'},
-    {'1': 'message', '3': 2, '4': 1, '5': 9, '10': 'message'},
-    {'1': 'done', '3': 3, '4': 1, '5': 8, '10': 'done'},
-    {'1': 'error', '3': 4, '4': 1, '5': 9, '10': 'error'},
-    {'1': 'bytes_downloaded', '3': 5, '4': 1, '5': 3, '10': 'bytesDownloaded'},
-    {'1': 'total_bytes', '3': 6, '4': 1, '5': 3, '10': 'totalBytes'},
-  ],
-};
-
-/// Descriptor for `StartManagedBinaryResponse`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List startManagedBinaryResponseDescriptor = $convert.base64Decode(
-    'ChpTdGFydE1hbmFnZWRCaW5hcnlSZXNwb25zZRIUCgVzdGFnZRgBIAEoCVIFc3RhZ2USGAoHbW'
-    'Vzc2FnZRgCIAEoCVIHbWVzc2FnZRISCgRkb25lGAMgASgIUgRkb25lEhQKBWVycm9yGAQgASgJ'
-    'UgVlcnJvchIpChBieXRlc19kb3dubG9hZGVkGAUgASgDUg9ieXRlc0Rvd25sb2FkZWQSHwoLdG'
-    '90YWxfYnl0ZXMYBiABKANSCnRvdGFsQnl0ZXM=');
-
-@$core.Deprecated('Use stopManagedBinaryRequestDescriptor instead')
-const StopManagedBinaryRequest$json = {
-  '1': 'StopManagedBinaryRequest',
-  '2': [
-    {'1': 'name', '3': 1, '4': 1, '5': 9, '10': 'name'},
-    {'1': 'force', '3': 2, '4': 1, '5': 8, '10': 'force'},
-  ],
-};
-
-/// Descriptor for `StopManagedBinaryRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List stopManagedBinaryRequestDescriptor = $convert.base64Decode(
-    'ChhTdG9wTWFuYWdlZEJpbmFyeVJlcXVlc3QSEgoEbmFtZRgBIAEoCVIEbmFtZRIUCgVmb3JjZR'
-    'gCIAEoCFIFZm9yY2U=');
-
-@$core.Deprecated('Use downloadManagedBinaryRequestDescriptor instead')
-const DownloadManagedBinaryRequest$json = {
-  '1': 'DownloadManagedBinaryRequest',
-  '2': [
-    {'1': 'name', '3': 1, '4': 1, '5': 9, '10': 'name'},
-    {'1': 'force', '3': 2, '4': 1, '5': 8, '10': 'force'},
-  ],
-};
-
-/// Descriptor for `DownloadManagedBinaryRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List downloadManagedBinaryRequestDescriptor = $convert.base64Decode(
-    'ChxEb3dubG9hZE1hbmFnZWRCaW5hcnlSZXF1ZXN0EhIKBG5hbWUYASABKAlSBG5hbWUSFAoFZm'
-    '9yY2UYAiABKAhSBWZvcmNl');
-
-@$core.Deprecated('Use downloadManagedBinaryResponseDescriptor instead')
-const DownloadManagedBinaryResponse$json = {
-  '1': 'DownloadManagedBinaryResponse',
-  '2': [
-    {'1': 'bytes_downloaded', '3': 1, '4': 1, '5': 3, '10': 'bytesDownloaded'},
-    {'1': 'total_bytes', '3': 2, '4': 1, '5': 3, '10': 'totalBytes'},
-    {'1': 'message', '3': 3, '4': 1, '5': 9, '10': 'message'},
-    {'1': 'done', '3': 4, '4': 1, '5': 8, '10': 'done'},
-    {'1': 'error', '3': 5, '4': 1, '5': 9, '10': 'error'},
-  ],
-};
-
-/// Descriptor for `DownloadManagedBinaryResponse`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List downloadManagedBinaryResponseDescriptor = $convert.base64Decode(
-    'Ch1Eb3dubG9hZE1hbmFnZWRCaW5hcnlSZXNwb25zZRIpChBieXRlc19kb3dubG9hZGVkGAEgAS'
-    'gDUg9ieXRlc0Rvd25sb2FkZWQSHwoLdG90YWxfYnl0ZXMYAiABKANSCnRvdGFsQnl0ZXMSGAoH'
-    'bWVzc2FnZRgDIAEoCVIHbWVzc2FnZRISCgRkb25lGAQgASgIUgRkb25lEhQKBWVycm9yGAUgAS'
-    'gJUgVlcnJvcg==');
-
-@$core.Deprecated('Use shutdownManagedBinariesRequestDescriptor instead')
-const ShutdownManagedBinariesRequest$json = {
-  '1': 'ShutdownManagedBinariesRequest',
-  '2': [
-    {'1': 'force', '3': 1, '4': 1, '5': 8, '10': 'force'},
-  ],
-};
-
-/// Descriptor for `ShutdownManagedBinariesRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List shutdownManagedBinariesRequestDescriptor = $convert.base64Decode(
-    'Ch5TaHV0ZG93bk1hbmFnZWRCaW5hcmllc1JlcXVlc3QSFAoFZm9yY2UYASABKAhSBWZvcmNl');
-
-@$core.Deprecated('Use shutdownManagedBinariesResponseDescriptor instead')
-const ShutdownManagedBinariesResponse$json = {
-  '1': 'ShutdownManagedBinariesResponse',
-  '2': [
-    {'1': 'total_count', '3': 1, '4': 1, '5': 5, '10': 'totalCount'},
-    {'1': 'completed_count', '3': 2, '4': 1, '5': 5, '10': 'completedCount'},
-    {'1': 'current_binary', '3': 3, '4': 1, '5': 9, '10': 'currentBinary'},
-    {'1': 'done', '3': 4, '4': 1, '5': 8, '10': 'done'},
-    {'1': 'error', '3': 5, '4': 1, '5': 9, '10': 'error'},
-  ],
-};
-
-/// Descriptor for `ShutdownManagedBinariesResponse`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List shutdownManagedBinariesResponseDescriptor = $convert.base64Decode(
-    'Ch9TaHV0ZG93bk1hbmFnZWRCaW5hcmllc1Jlc3BvbnNlEh8KC3RvdGFsX2NvdW50GAEgASgFUg'
-    'p0b3RhbENvdW50EicKD2NvbXBsZXRlZF9jb3VudBgCIAEoBVIOY29tcGxldGVkQ291bnQSJQoO'
-    'Y3VycmVudF9iaW5hcnkYAyABKAlSDWN1cnJlbnRCaW5hcnkSEgoEZG9uZRgEIAEoCFIEZG9uZR'
-    'IUCgVlcnJvchgFIAEoCVIFZXJyb3I=');
-
 @$core.Deprecated('Use createDenialRequestDescriptor instead')
 const CreateDenialRequest$json = {
   '1': 'CreateDenialRequest',
@@ -659,14 +549,31 @@ final $typed_data.Uint8List processBandwidthDescriptor = $convert.base64Decode(
     'J5dGVzGAUgASgEUgx0b3RhbFJ4Qnl0ZXMSJAoOdG90YWxfdHhfYnl0ZXMYBiABKARSDHRvdGFs'
     'VHhCeXRlcxIpChBjb25uZWN0aW9uX2NvdW50GAcgASgFUg9jb25uZWN0aW9uQ291bnQ=');
 
+@$core.Deprecated('Use updateNetworkRequestDescriptor instead')
+const UpdateNetworkRequest$json = {
+  '1': 'UpdateNetworkRequest',
+  '2': [
+    {'1': 'network', '3': 1, '4': 1, '5': 9, '10': 'network'},
+  ],
+};
+
+/// Descriptor for `UpdateNetworkRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List updateNetworkRequestDescriptor = $convert.base64Decode(
+    'ChRVcGRhdGVOZXR3b3JrUmVxdWVzdBIYCgduZXR3b3JrGAEgASgJUgduZXR3b3Jr');
+
+@$core.Deprecated('Use updateNetworkResponseDescriptor instead')
+const UpdateNetworkResponse$json = {
+  '1': 'UpdateNetworkResponse',
+};
+
+/// Descriptor for `UpdateNetworkResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List updateNetworkResponseDescriptor = $convert.base64Decode(
+    'ChVVcGRhdGVOZXR3b3JrUmVzcG9uc2U=');
+
 const $core.Map<$core.String, $core.dynamic> BitwindowdServiceBase$json = {
   '1': 'BitwindowdService',
   '2': [
     {'1': 'Stop', '2': '.bitwindowd.v1.BitwindowdServiceStopRequest', '3': '.google.protobuf.Empty'},
-    {'1': 'StartManagedBinary', '2': '.bitwindowd.v1.StartManagedBinaryRequest', '3': '.bitwindowd.v1.StartManagedBinaryResponse', '6': true},
-    {'1': 'StopManagedBinary', '2': '.bitwindowd.v1.StopManagedBinaryRequest', '3': '.google.protobuf.Empty'},
-    {'1': 'DownloadManagedBinary', '2': '.bitwindowd.v1.DownloadManagedBinaryRequest', '3': '.bitwindowd.v1.DownloadManagedBinaryResponse', '6': true},
-    {'1': 'ShutdownManagedBinaries', '2': '.bitwindowd.v1.ShutdownManagedBinariesRequest', '3': '.bitwindowd.v1.ShutdownManagedBinariesResponse', '6': true},
     {'1': 'MineBlocks', '2': '.google.protobuf.Empty', '3': '.bitwindowd.v1.MineBlocksResponse', '6': true},
     {'1': 'CreateDenial', '2': '.bitwindowd.v1.CreateDenialRequest', '3': '.google.protobuf.Empty'},
     {'1': 'CancelDenial', '2': '.bitwindowd.v1.CancelDenialRequest', '3': '.google.protobuf.Empty'},
@@ -682,6 +589,7 @@ const $core.Map<$core.String, $core.dynamic> BitwindowdServiceBase$json = {
     {'1': 'ListRecentTransactions', '2': '.bitwindowd.v1.ListRecentTransactionsRequest', '3': '.bitwindowd.v1.ListRecentTransactionsResponse'},
     {'1': 'ListBlocks', '2': '.bitwindowd.v1.ListBlocksRequest', '3': '.bitwindowd.v1.ListBlocksResponse'},
     {'1': 'GetNetworkStats', '2': '.google.protobuf.Empty', '3': '.bitwindowd.v1.GetNetworkStatsResponse'},
+    {'1': 'UpdateNetwork', '2': '.bitwindowd.v1.UpdateNetworkRequest', '3': '.bitwindowd.v1.UpdateNetworkResponse'},
   ],
 };
 
@@ -689,13 +597,6 @@ const $core.Map<$core.String, $core.dynamic> BitwindowdServiceBase$json = {
 const $core.Map<$core.String, $core.Map<$core.String, $core.dynamic>> BitwindowdServiceBase$messageJson = {
   '.bitwindowd.v1.BitwindowdServiceStopRequest': BitwindowdServiceStopRequest$json,
   '.google.protobuf.Empty': $1.Empty$json,
-  '.bitwindowd.v1.StartManagedBinaryRequest': StartManagedBinaryRequest$json,
-  '.bitwindowd.v1.StartManagedBinaryResponse': StartManagedBinaryResponse$json,
-  '.bitwindowd.v1.StopManagedBinaryRequest': StopManagedBinaryRequest$json,
-  '.bitwindowd.v1.DownloadManagedBinaryRequest': DownloadManagedBinaryRequest$json,
-  '.bitwindowd.v1.DownloadManagedBinaryResponse': DownloadManagedBinaryResponse$json,
-  '.bitwindowd.v1.ShutdownManagedBinariesRequest': ShutdownManagedBinariesRequest$json,
-  '.bitwindowd.v1.ShutdownManagedBinariesResponse': ShutdownManagedBinariesResponse$json,
   '.bitwindowd.v1.MineBlocksResponse': MineBlocksResponse$json,
   '.bitwindowd.v1.MineBlocksResponse.BlockFound': MineBlocksResponse_BlockFound$json,
   '.bitwindowd.v1.MineBlocksResponse.HashRate': MineBlocksResponse_HashRate$json,
@@ -721,42 +622,37 @@ const $core.Map<$core.String, $core.Map<$core.String, $core.dynamic>> Bitwindowd
   '.bitwindowd.v1.Block': Block$json,
   '.bitwindowd.v1.GetNetworkStatsResponse': GetNetworkStatsResponse$json,
   '.bitwindowd.v1.ProcessBandwidth': ProcessBandwidth$json,
+  '.bitwindowd.v1.UpdateNetworkRequest': UpdateNetworkRequest$json,
+  '.bitwindowd.v1.UpdateNetworkResponse': UpdateNetworkResponse$json,
 };
 
 /// Descriptor for `BitwindowdService`. Decode as a `google.protobuf.ServiceDescriptorProto`.
 final $typed_data.Uint8List bitwindowdServiceDescriptor = $convert.base64Decode(
     'ChFCaXR3aW5kb3dkU2VydmljZRJLCgRTdG9wEisuYml0d2luZG93ZC52MS5CaXR3aW5kb3dkU2'
-    'VydmljZVN0b3BSZXF1ZXN0GhYuZ29vZ2xlLnByb3RvYnVmLkVtcHR5EmsKElN0YXJ0TWFuYWdl'
-    'ZEJpbmFyeRIoLmJpdHdpbmRvd2QudjEuU3RhcnRNYW5hZ2VkQmluYXJ5UmVxdWVzdBopLmJpdH'
-    'dpbmRvd2QudjEuU3RhcnRNYW5hZ2VkQmluYXJ5UmVzcG9uc2UwARJUChFTdG9wTWFuYWdlZEJp'
-    'bmFyeRInLmJpdHdpbmRvd2QudjEuU3RvcE1hbmFnZWRCaW5hcnlSZXF1ZXN0GhYuZ29vZ2xlLn'
-    'Byb3RvYnVmLkVtcHR5EnQKFURvd25sb2FkTWFuYWdlZEJpbmFyeRIrLmJpdHdpbmRvd2QudjEu'
-    'RG93bmxvYWRNYW5hZ2VkQmluYXJ5UmVxdWVzdBosLmJpdHdpbmRvd2QudjEuRG93bmxvYWRNYW'
-    '5hZ2VkQmluYXJ5UmVzcG9uc2UwARJ6ChdTaHV0ZG93bk1hbmFnZWRCaW5hcmllcxItLmJpdHdp'
-    'bmRvd2QudjEuU2h1dGRvd25NYW5hZ2VkQmluYXJpZXNSZXF1ZXN0Gi4uYml0d2luZG93ZC52MS'
-    '5TaHV0ZG93bk1hbmFnZWRCaW5hcmllc1Jlc3BvbnNlMAESSQoKTWluZUJsb2NrcxIWLmdvb2ds'
-    'ZS5wcm90b2J1Zi5FbXB0eRohLmJpdHdpbmRvd2QudjEuTWluZUJsb2Nrc1Jlc3BvbnNlMAESSg'
-    'oMQ3JlYXRlRGVuaWFsEiIuYml0d2luZG93ZC52MS5DcmVhdGVEZW5pYWxSZXF1ZXN0GhYuZ29v'
-    'Z2xlLnByb3RvYnVmLkVtcHR5EkoKDENhbmNlbERlbmlhbBIiLmJpdHdpbmRvd2QudjEuQ2FuY2'
-    'VsRGVuaWFsUmVxdWVzdBoWLmdvb2dsZS5wcm90b2J1Zi5FbXB0eRJICgtQYXVzZURlbmlhbBIh'
-    'LmJpdHdpbmRvd2QudjEuUGF1c2VEZW5pYWxSZXF1ZXN0GhYuZ29vZ2xlLnByb3RvYnVmLkVtcH'
-    'R5EkoKDFJlc3VtZURlbmlhbBIiLmJpdHdpbmRvd2QudjEuUmVzdW1lRGVuaWFsUmVxdWVzdBoW'
-    'Lmdvb2dsZS5wcm90b2J1Zi5FbXB0eRJ1ChZDcmVhdGVBZGRyZXNzQm9va0VudHJ5EiwuYml0d2'
-    'luZG93ZC52MS5DcmVhdGVBZGRyZXNzQm9va0VudHJ5UmVxdWVzdBotLmJpdHdpbmRvd2QudjEu'
-    'Q3JlYXRlQWRkcmVzc0Jvb2tFbnRyeVJlc3BvbnNlElEKD0xpc3RBZGRyZXNzQm9vaxIWLmdvb2'
-    'dsZS5wcm90b2J1Zi5FbXB0eRomLmJpdHdpbmRvd2QudjEuTGlzdEFkZHJlc3NCb29rUmVzcG9u'
-    'c2USXgoWVXBkYXRlQWRkcmVzc0Jvb2tFbnRyeRIsLmJpdHdpbmRvd2QudjEuVXBkYXRlQWRkcm'
-    'Vzc0Jvb2tFbnRyeVJlcXVlc3QaFi5nb29nbGUucHJvdG9idWYuRW1wdHkSXgoWRGVsZXRlQWRk'
-    'cmVzc0Jvb2tFbnRyeRIsLmJpdHdpbmRvd2QudjEuRGVsZXRlQWRkcmVzc0Jvb2tFbnRyeVJlcX'
-    'Vlc3QaFi5nb29nbGUucHJvdG9idWYuRW1wdHkSSQoLR2V0U3luY0luZm8SFi5nb29nbGUucHJv'
-    'dG9idWYuRW1wdHkaIi5iaXR3aW5kb3dkLnYxLkdldFN5bmNJbmZvUmVzcG9uc2USVgoSU2V0VH'
-    'JhbnNhY3Rpb25Ob3RlEiguYml0d2luZG93ZC52MS5TZXRUcmFuc2FjdGlvbk5vdGVSZXF1ZXN0'
-    'GhYuZ29vZ2xlLnByb3RvYnVmLkVtcHR5ElUKEUdldEZpcmVwbGFjZVN0YXRzEhYuZ29vZ2xlLn'
-    'Byb3RvYnVmLkVtcHR5GiguYml0d2luZG93ZC52MS5HZXRGaXJlcGxhY2VTdGF0c1Jlc3BvbnNl'
-    'EnUKFkxpc3RSZWNlbnRUcmFuc2FjdGlvbnMSLC5iaXR3aW5kb3dkLnYxLkxpc3RSZWNlbnRUcm'
-    'Fuc2FjdGlvbnNSZXF1ZXN0Gi0uYml0d2luZG93ZC52MS5MaXN0UmVjZW50VHJhbnNhY3Rpb25z'
-    'UmVzcG9uc2USUQoKTGlzdEJsb2NrcxIgLmJpdHdpbmRvd2QudjEuTGlzdEJsb2Nrc1JlcXVlc3'
-    'QaIS5iaXR3aW5kb3dkLnYxLkxpc3RCbG9ja3NSZXNwb25zZRJRCg9HZXROZXR3b3JrU3RhdHMS'
-    'Fi5nb29nbGUucHJvdG9idWYuRW1wdHkaJi5iaXR3aW5kb3dkLnYxLkdldE5ldHdvcmtTdGF0c1'
-    'Jlc3BvbnNl');
+    'VydmljZVN0b3BSZXF1ZXN0GhYuZ29vZ2xlLnByb3RvYnVmLkVtcHR5EkkKCk1pbmVCbG9ja3MS'
+    'Fi5nb29nbGUucHJvdG9idWYuRW1wdHkaIS5iaXR3aW5kb3dkLnYxLk1pbmVCbG9ja3NSZXNwb2'
+    '5zZTABEkoKDENyZWF0ZURlbmlhbBIiLmJpdHdpbmRvd2QudjEuQ3JlYXRlRGVuaWFsUmVxdWVz'
+    'dBoWLmdvb2dsZS5wcm90b2J1Zi5FbXB0eRJKCgxDYW5jZWxEZW5pYWwSIi5iaXR3aW5kb3dkLn'
+    'YxLkNhbmNlbERlbmlhbFJlcXVlc3QaFi5nb29nbGUucHJvdG9idWYuRW1wdHkSSAoLUGF1c2VE'
+    'ZW5pYWwSIS5iaXR3aW5kb3dkLnYxLlBhdXNlRGVuaWFsUmVxdWVzdBoWLmdvb2dsZS5wcm90b2'
+    'J1Zi5FbXB0eRJKCgxSZXN1bWVEZW5pYWwSIi5iaXR3aW5kb3dkLnYxLlJlc3VtZURlbmlhbFJl'
+    'cXVlc3QaFi5nb29nbGUucHJvdG9idWYuRW1wdHkSdQoWQ3JlYXRlQWRkcmVzc0Jvb2tFbnRyeR'
+    'IsLmJpdHdpbmRvd2QudjEuQ3JlYXRlQWRkcmVzc0Jvb2tFbnRyeVJlcXVlc3QaLS5iaXR3aW5k'
+    'b3dkLnYxLkNyZWF0ZUFkZHJlc3NCb29rRW50cnlSZXNwb25zZRJRCg9MaXN0QWRkcmVzc0Jvb2'
+    'sSFi5nb29nbGUucHJvdG9idWYuRW1wdHkaJi5iaXR3aW5kb3dkLnYxLkxpc3RBZGRyZXNzQm9v'
+    'a1Jlc3BvbnNlEl4KFlVwZGF0ZUFkZHJlc3NCb29rRW50cnkSLC5iaXR3aW5kb3dkLnYxLlVwZG'
+    'F0ZUFkZHJlc3NCb29rRW50cnlSZXF1ZXN0GhYuZ29vZ2xlLnByb3RvYnVmLkVtcHR5El4KFkRl'
+    'bGV0ZUFkZHJlc3NCb29rRW50cnkSLC5iaXR3aW5kb3dkLnYxLkRlbGV0ZUFkZHJlc3NCb29rRW'
+    '50cnlSZXF1ZXN0GhYuZ29vZ2xlLnByb3RvYnVmLkVtcHR5EkkKC0dldFN5bmNJbmZvEhYuZ29v'
+    'Z2xlLnByb3RvYnVmLkVtcHR5GiIuYml0d2luZG93ZC52MS5HZXRTeW5jSW5mb1Jlc3BvbnNlEl'
+    'YKElNldFRyYW5zYWN0aW9uTm90ZRIoLmJpdHdpbmRvd2QudjEuU2V0VHJhbnNhY3Rpb25Ob3Rl'
+    'UmVxdWVzdBoWLmdvb2dsZS5wcm90b2J1Zi5FbXB0eRJVChFHZXRGaXJlcGxhY2VTdGF0cxIWLm'
+    'dvb2dsZS5wcm90b2J1Zi5FbXB0eRooLmJpdHdpbmRvd2QudjEuR2V0RmlyZXBsYWNlU3RhdHNS'
+    'ZXNwb25zZRJ1ChZMaXN0UmVjZW50VHJhbnNhY3Rpb25zEiwuYml0d2luZG93ZC52MS5MaXN0Um'
+    'VjZW50VHJhbnNhY3Rpb25zUmVxdWVzdBotLmJpdHdpbmRvd2QudjEuTGlzdFJlY2VudFRyYW5z'
+    'YWN0aW9uc1Jlc3BvbnNlElEKCkxpc3RCbG9ja3MSIC5iaXR3aW5kb3dkLnYxLkxpc3RCbG9ja3'
+    'NSZXF1ZXN0GiEuYml0d2luZG93ZC52MS5MaXN0QmxvY2tzUmVzcG9uc2USUQoPR2V0TmV0d29y'
+    'a1N0YXRzEhYuZ29vZ2xlLnByb3RvYnVmLkVtcHR5GiYuYml0d2luZG93ZC52MS5HZXROZXR3b3'
+    'JrU3RhdHNSZXNwb25zZRJaCg1VcGRhdGVOZXR3b3JrEiMuYml0d2luZG93ZC52MS5VcGRhdGVO'
+    'ZXR3b3JrUmVxdWVzdBokLmJpdHdpbmRvd2QudjEuVXBkYXRlTmV0d29ya1Jlc3BvbnNl');
 

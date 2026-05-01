@@ -1,7 +1,5 @@
 import 'package:fixnum/src/int64.dart';
 import 'package:sail_ui/classes/rpc_connection.dart';
-import 'package:sail_ui/gen/bitcoin/bitcoind/v1alpha/bitcoin.pb.dart'
-    hide UnspentOutput, BumpFeeRequest, BumpFeeResponse;
 import 'package:sail_ui/gen/bitdrive/v1/bitdrive.pb.dart';
 import 'package:sail_ui/gen/multisig/v1/multisig.pb.dart' as multisigpb;
 import 'package:sail_ui/gen/bitwindowd/v1/bitwindowd.pb.dart';
@@ -24,8 +22,6 @@ class MockAPI extends BitwindowRPC {
   BitwindowAPI get bitwindowd => MockBitwindowdAPI();
   @override
   final WalletAPI wallet = MockWalletAPI();
-  @override
-  final BitcoindAPI bitcoind = MockBitcoindAPI();
   @override
   final DrivechainAPI drivechain = MockDrivechainAPI();
   @override
@@ -155,6 +151,9 @@ class MockBitwindowdAPI implements BitwindowAPI {
   }
 
   @override
+  Future<void> updateNetwork(String network) async {}
+
+  @override
   Stream<MineBlocksResponse> mineBlocks() {
     return Stream.periodic(const Duration(seconds: 1)).map((_) => MineBlocksResponse());
   }
@@ -167,29 +166,6 @@ class MockBitwindowdAPI implements BitwindowAPI {
   @override
   Future<void> resumeDenial(Int64 id) {
     return Future.value();
-  }
-
-  @override
-  Stream<StartManagedBinaryResponse> startManagedBinary(String name) {
-    return const Stream.empty();
-  }
-
-  @override
-  Future<void> stopManagedBinary(String name, {bool force = false}) {
-    return Future.value();
-  }
-
-  @override
-  Stream<DownloadManagedBinaryResponse> downloadManagedBinary(
-    String name, {
-    bool force = false,
-  }) {
-    return const Stream.empty();
-  }
-
-  @override
-  Stream<ShutdownManagedBinariesResponse> shutdownManagedBinaries({bool force = false}) {
-    return const Stream.empty();
   }
 }
 
@@ -372,124 +348,6 @@ class MockWalletAPI implements WalletAPI {
   @override
   Future<ValidateBackupResponse> validateBackup(List<int> backupData, String filename) {
     return Future.value(ValidateBackupResponse(valid: true));
-  }
-}
-
-class MockBitcoindAPI implements BitcoindAPI {
-  @override
-  Future<List<Peer>> listPeers() async {
-    return [];
-  }
-
-  @override
-  Future<GetBlockchainInfoResponse> getBlockchainInfo() async {
-    return GetBlockchainInfoResponse();
-  }
-
-  @override
-  Future<EstimateSmartFeeResponse> estimateSmartFee(int confTarget) async {
-    return EstimateSmartFeeResponse();
-  }
-
-  @override
-  Future<GetRawTransactionResponse> getRawTransaction(String txid) async {
-    return GetRawTransactionResponse();
-  }
-
-  @override
-  Future<GetBlockResponse> getBlock({String? hash, int? height}) async {
-    return GetBlockResponse();
-  }
-
-  @override
-  Future<BackupWalletResponse> backupWallet(String destination, String wallet) async {
-    return BackupWalletResponse();
-  }
-
-  @override
-  Future<CreateMultisigResponse> createMultisig(int nRequired, List<String> keys) async {
-    return CreateMultisigResponse();
-  }
-
-  @override
-  Future<CreateWalletResponse> createWallet(
-    String name,
-    String passphrase,
-    bool avoidReuse,
-    bool disablePrivateKeys,
-    bool blank,
-  ) async {
-    return CreateWalletResponse();
-  }
-
-  @override
-  Future<GetAccountResponse> getAccount(String address, String wallet) async {
-    return GetAccountResponse();
-  }
-
-  @override
-  Future<GetAddressesByAccountResponse> getAddressesByAccount(String account, String wallet) async {
-    return GetAddressesByAccountResponse();
-  }
-
-  @override
-  Future<KeyPoolRefillResponse> keyPoolRefill(int newSize, String wallet) async {
-    return KeyPoolRefillResponse();
-  }
-
-  @override
-  Future<ListAccountsResponse> listAccounts(int minConf, String wallet) async {
-    return ListAccountsResponse();
-  }
-
-  @override
-  Future<SetAccountResponse> setAccount(String address, String account, String wallet) async {
-    return SetAccountResponse();
-  }
-
-  @override
-  Future<UnloadWalletResponse> unloadWallet(String walletName, String wallet) async {
-    return UnloadWalletResponse();
-  }
-
-  @override
-  Future<AnalyzePsbtResponse> analyzePsbt(AnalyzePsbtRequest request) async {
-    return AnalyzePsbtResponse();
-  }
-
-  @override
-  Future<CombinePsbtResponse> combinePsbt(CombinePsbtRequest request) async {
-    return CombinePsbtResponse();
-  }
-
-  @override
-  Future<CreatePsbtResponse> createPsbt(CreatePsbtRequest request) async {
-    return CreatePsbtResponse();
-  }
-
-  @override
-  Future<DecodePsbtResponse> decodePsbt(DecodePsbtRequest request) async {
-    return DecodePsbtResponse();
-  }
-
-  @override
-  Future<JoinPsbtsResponse> joinPsbts(JoinPsbtsRequest request) async {
-    return JoinPsbtsResponse();
-  }
-
-  @override
-  Future<TestMempoolAcceptResponse> testMempoolAccept(TestMempoolAcceptRequest request) async {
-    return TestMempoolAcceptResponse();
-  }
-
-  @override
-  Future<UtxoUpdatePsbtResponse> utxoUpdatePsbt(UtxoUpdatePsbtRequest request) async {
-    return UtxoUpdatePsbtResponse();
-  }
-
-  @override
-  Future<GetRawMempoolResponse> getRawMempool() async {
-    return GetRawMempoolResponse();
   }
 }
 

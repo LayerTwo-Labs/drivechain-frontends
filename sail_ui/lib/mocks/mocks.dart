@@ -5,16 +5,9 @@ import 'package:logger/logger.dart';
 import 'package:sail_ui/gen/cusf/mainchain/v1/wallet.connect.client.dart';
 import 'package:sail_ui/gen/notification/v1/notification.pb.dart';
 import 'package:sail_ui/sail_ui.dart';
-import 'package:sail_ui/gen/bitcoin/bitcoind/v1alpha/bitcoin.pb.dart';
 
-class MockMainchainRPC extends MainchainRPC {
-  MockMainchainRPC()
-    : super(
-        conf: CoreConnectionSettings.empty(
-          BitcoinNetwork.BITCOIN_NETWORK_SIGNET,
-        ),
-        binaryType: BinaryType.bitcoinCore,
-      );
+class MockBitcoindConnection extends BitcoindConnection {
+  MockBitcoindConnection() : super();
 
   bool _connected = false;
   bool _initializing = false;
@@ -88,51 +81,6 @@ class MockMainchainRPC extends MainchainRPC {
   @override
   Future<List<String>> binaryArgs() {
     return Future.value([]);
-  }
-
-  @override
-  Future<dynamic> callRAW(String method, [List? params]) {
-    return Future.value(null);
-  }
-
-  @override
-  List<String> getMethods() {
-    return [];
-  }
-
-  @override
-  Future<List<PeerInfo>> getPeerInfo() {
-    return Future.value([]);
-  }
-
-  @override
-  Future<String> getDataDir() {
-    throw UnimplementedError();
-  }
-
-  @override
-  Future<MempoolInfo> getMempoolInfo() {
-    throw UnimplementedError();
-  }
-
-  @override
-  Future<MiningInfo> getMiningInfo() {
-    throw UnimplementedError();
-  }
-
-  @override
-  Future<NetworkInfo> getNetworkInfo() {
-    throw UnimplementedError();
-  }
-
-  @override
-  Future<TxOutsetInfo> getTxOutsetInfo() {
-    throw UnimplementedError();
-  }
-
-  @override
-  Future<void> submitBlock(String blockData) async {
-    return;
   }
 }
 
@@ -235,8 +183,6 @@ class MockBitwindowRPC extends BitwindowRPC {
   WalletAPI get wallet => throw UnimplementedError();
   @override
   BitwindowAPI get bitwindowd => throw UnimplementedError();
-  @override
-  BitcoindAPI get bitcoind => throw UnimplementedError();
   @override
   DrivechainAPI get drivechain => throw UnimplementedError();
   @override
@@ -1788,7 +1734,7 @@ class MockSyncProvider implements SyncProvider {
   SyncConnection get mainchain => throw UnimplementedError();
 
   @override
-  MainchainRPC get mainchainRPC => throw UnimplementedError();
+  BitcoindConnection get mainchainRPC => throw UnimplementedError();
 
   @override
   BinaryProvider get binaryProvider => throw UnimplementedError();
@@ -1803,136 +1749,6 @@ class MockSyncProvider implements SyncProvider {
 
   @override
   bool get isSynced => true;
-}
-
-class MockBitcoindAPI implements BitcoindAPI {
-  @override
-  Future<List<Peer>> listPeers() {
-    return Future.value([]);
-  }
-
-  @override
-  Future<GetBlockchainInfoResponse> getBlockchainInfo() {
-    return Future.value(GetBlockchainInfoResponse());
-  }
-
-  @override
-  Future<EstimateSmartFeeResponse> estimateSmartFee(int confTarget) {
-    return Future.value(EstimateSmartFeeResponse());
-  }
-
-  @override
-  Future<GetRawTransactionResponse> getRawTransaction(String txid) {
-    return Future.value(GetRawTransactionResponse());
-  }
-
-  @override
-  Future<GetBlockResponse> getBlock({String? hash, int? height}) async {
-    return GetBlockResponse();
-  }
-
-  @override
-  Future<BackupWalletResponse> backupWallet(String destination, String wallet) {
-    return Future.value(BackupWalletResponse());
-  }
-
-  @override
-  Future<CreateMultisigResponse> createMultisig(
-    int nRequired,
-    List<String> keys,
-  ) {
-    return Future.value(CreateMultisigResponse());
-  }
-
-  @override
-  Future<CreateWalletResponse> createWallet(
-    String name,
-    String passphrase,
-    bool avoidReuse,
-    bool disablePrivateKeys,
-    bool blank,
-  ) {
-    return Future.value(CreateWalletResponse());
-  }
-
-  @override
-  Future<GetAccountResponse> getAccount(String address, String wallet) {
-    return Future.value(GetAccountResponse());
-  }
-
-  @override
-  Future<GetAddressesByAccountResponse> getAddressesByAccount(
-    String account,
-    String wallet,
-  ) {
-    return Future.value(GetAddressesByAccountResponse());
-  }
-
-  @override
-  Future<KeyPoolRefillResponse> keyPoolRefill(int newSize, String wallet) {
-    return Future.value(KeyPoolRefillResponse());
-  }
-
-  @override
-  Future<ListAccountsResponse> listAccounts(int minConf, String wallet) {
-    return Future.value(ListAccountsResponse());
-  }
-
-  @override
-  Future<SetAccountResponse> setAccount(
-    String address,
-    String account,
-    String wallet,
-  ) {
-    return Future.value(SetAccountResponse());
-  }
-
-  @override
-  Future<UnloadWalletResponse> unloadWallet(String walletName, String wallet) {
-    return Future.value(UnloadWalletResponse());
-  }
-
-  @override
-  Future<AnalyzePsbtResponse> analyzePsbt(AnalyzePsbtRequest request) {
-    return Future.value(AnalyzePsbtResponse());
-  }
-
-  @override
-  Future<CombinePsbtResponse> combinePsbt(CombinePsbtRequest request) {
-    return Future.value(CombinePsbtResponse());
-  }
-
-  @override
-  Future<CreatePsbtResponse> createPsbt(CreatePsbtRequest request) {
-    return Future.value(CreatePsbtResponse());
-  }
-
-  @override
-  Future<DecodePsbtResponse> decodePsbt(DecodePsbtRequest request) {
-    return Future.value(DecodePsbtResponse());
-  }
-
-  @override
-  Future<JoinPsbtsResponse> joinPsbts(JoinPsbtsRequest request) {
-    return Future.value(JoinPsbtsResponse());
-  }
-
-  @override
-  Future<TestMempoolAcceptResponse> testMempoolAccept(
-    TestMempoolAcceptRequest request,
-  ) {
-    return Future.value(TestMempoolAcceptResponse());
-  }
-
-  @override
-  Future<UtxoUpdatePsbtResponse> utxoUpdatePsbt(UtxoUpdatePsbtRequest request) {
-    return Future.value(UtxoUpdatePsbtResponse());
-  }
-
-  @override
-  Future<GetRawMempoolResponse> getRawMempool() {
-    return Future.value(GetRawMempoolResponse());
-  }
 }
 
 class MockBinary extends Binary {

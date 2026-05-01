@@ -23,10 +23,6 @@ export 'bitwindowd.pb.dart';
 
 abstract class BitwindowdServiceBase extends $pb.GeneratedService {
   $async.Future<$1.Empty> stop($pb.ServerContext ctx, $3.BitwindowdServiceStopRequest request);
-  $async.Future<$3.StartManagedBinaryResponse> startManagedBinary($pb.ServerContext ctx, $3.StartManagedBinaryRequest request);
-  $async.Future<$1.Empty> stopManagedBinary($pb.ServerContext ctx, $3.StopManagedBinaryRequest request);
-  $async.Future<$3.DownloadManagedBinaryResponse> downloadManagedBinary($pb.ServerContext ctx, $3.DownloadManagedBinaryRequest request);
-  $async.Future<$3.ShutdownManagedBinariesResponse> shutdownManagedBinaries($pb.ServerContext ctx, $3.ShutdownManagedBinariesRequest request);
   $async.Future<$3.MineBlocksResponse> mineBlocks($pb.ServerContext ctx, $1.Empty request);
   $async.Future<$1.Empty> createDenial($pb.ServerContext ctx, $3.CreateDenialRequest request);
   $async.Future<$1.Empty> cancelDenial($pb.ServerContext ctx, $3.CancelDenialRequest request);
@@ -42,14 +38,11 @@ abstract class BitwindowdServiceBase extends $pb.GeneratedService {
   $async.Future<$3.ListRecentTransactionsResponse> listRecentTransactions($pb.ServerContext ctx, $3.ListRecentTransactionsRequest request);
   $async.Future<$3.ListBlocksResponse> listBlocks($pb.ServerContext ctx, $3.ListBlocksRequest request);
   $async.Future<$3.GetNetworkStatsResponse> getNetworkStats($pb.ServerContext ctx, $1.Empty request);
+  $async.Future<$3.UpdateNetworkResponse> updateNetwork($pb.ServerContext ctx, $3.UpdateNetworkRequest request);
 
   $pb.GeneratedMessage createRequest($core.String methodName) {
     switch (methodName) {
       case 'Stop': return $3.BitwindowdServiceStopRequest();
-      case 'StartManagedBinary': return $3.StartManagedBinaryRequest();
-      case 'StopManagedBinary': return $3.StopManagedBinaryRequest();
-      case 'DownloadManagedBinary': return $3.DownloadManagedBinaryRequest();
-      case 'ShutdownManagedBinaries': return $3.ShutdownManagedBinariesRequest();
       case 'MineBlocks': return $1.Empty();
       case 'CreateDenial': return $3.CreateDenialRequest();
       case 'CancelDenial': return $3.CancelDenialRequest();
@@ -65,6 +58,7 @@ abstract class BitwindowdServiceBase extends $pb.GeneratedService {
       case 'ListRecentTransactions': return $3.ListRecentTransactionsRequest();
       case 'ListBlocks': return $3.ListBlocksRequest();
       case 'GetNetworkStats': return $1.Empty();
+      case 'UpdateNetwork': return $3.UpdateNetworkRequest();
       default: throw $core.ArgumentError('Unknown method: $methodName');
     }
   }
@@ -72,10 +66,6 @@ abstract class BitwindowdServiceBase extends $pb.GeneratedService {
   $async.Future<$pb.GeneratedMessage> handleCall($pb.ServerContext ctx, $core.String methodName, $pb.GeneratedMessage request) {
     switch (methodName) {
       case 'Stop': return this.stop(ctx, request as $3.BitwindowdServiceStopRequest);
-      case 'StartManagedBinary': return this.startManagedBinary(ctx, request as $3.StartManagedBinaryRequest);
-      case 'StopManagedBinary': return this.stopManagedBinary(ctx, request as $3.StopManagedBinaryRequest);
-      case 'DownloadManagedBinary': return this.downloadManagedBinary(ctx, request as $3.DownloadManagedBinaryRequest);
-      case 'ShutdownManagedBinaries': return this.shutdownManagedBinaries(ctx, request as $3.ShutdownManagedBinariesRequest);
       case 'MineBlocks': return this.mineBlocks(ctx, request as $1.Empty);
       case 'CreateDenial': return this.createDenial(ctx, request as $3.CreateDenialRequest);
       case 'CancelDenial': return this.cancelDenial(ctx, request as $3.CancelDenialRequest);
@@ -91,6 +81,7 @@ abstract class BitwindowdServiceBase extends $pb.GeneratedService {
       case 'ListRecentTransactions': return this.listRecentTransactions(ctx, request as $3.ListRecentTransactionsRequest);
       case 'ListBlocks': return this.listBlocks(ctx, request as $3.ListBlocksRequest);
       case 'GetNetworkStats': return this.getNetworkStats(ctx, request as $1.Empty);
+      case 'UpdateNetwork': return this.updateNetwork(ctx, request as $3.UpdateNetworkRequest);
       default: throw $core.ArgumentError('Unknown method: $methodName');
     }
   }

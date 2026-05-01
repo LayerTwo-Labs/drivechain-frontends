@@ -277,4 +277,41 @@ extension type OrchestratorServiceClient (connect.Transport _transport) {
       onTrailer: onTrailer,
     );
   }
+
+  /// Full bitcoind getmempoolinfo response. Distinct from getrawmempool.
+  Future<orchestratorv1orchestrator.GetCoreMempoolInfoResponse> getCoreMempoolInfo(
+    orchestratorv1orchestrator.GetCoreMempoolInfoRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.OrchestratorService.getCoreMempoolInfo,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
+  /// Generic raw bitcoind RPC. Optional `wallet` field routes the call to
+  /// /wallet/{name} on bitcoind for wallet-scoped RPCs.
+  Future<orchestratorv1orchestrator.CoreRawCallResponse> coreRawCall(
+    orchestratorv1orchestrator.CoreRawCallRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.OrchestratorService.coreRawCall,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
 }

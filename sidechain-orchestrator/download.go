@@ -142,6 +142,22 @@ func (d *DownloadManager) Download(ctx context.Context, config BinaryConfig, net
 		defer d.inFlight.Delete(inFlightKey)
 		defer close(ch)
 
+		// send aborts the goroutine when ctx fires *or* when the consumer
+		// disappears and the buffered channel fills. Without this, an
+		// unprotected `ch <- ...` could block forever (channel full, no
+		// reader), the deferred `inFlight.Delete` would never run, and
+		// every subsequent Download call for the same binary would error
+		// out with "X is already being downloaded" — which is exactly how
+		// the canceled-then-restart path was wedging the orchestrator.
+		send := func(p DownloadProgress) bool {
+			select {
+			case ch <- p:
+				return true
+			case <-ctx.Done():
+				return false
+			}
+		}
+
 		// Test sidechain alt URLs are always served directly from
 		// releases.drivechain.info; the prod-side DownloadSourceGitHub flag
 		// (used by zside/thunder-orchard for the production builds) doesn't
@@ -157,7 +173,7 @@ func (d *DownloadManager) Download(ctx context.Context, config BinaryConfig, net
 		case DownloadSourceGitHub:
 			url, err := d.resolveGitHubURL(ctx, baseURL, fileName)
 			if err != nil {
-				ch <- DownloadProgress{Error: fmt.Errorf("resolve GitHub URL: %w", err)}
+				send(DownloadProgress{Error: fmt.Errorf("resolve GitHub URL: %w", err)})
 				return
 			}
 			downloadURL = url
@@ -169,7 +185,7 @@ func (d *DownloadManager) Download(ctx context.Context, config BinaryConfig, net
 
 		tmpDir, err := os.MkdirTemp("", "orchestrator-download-*")
 		if err != nil {
-			ch <- DownloadProgress{Error: fmt.Errorf("create temp dir: %w", err)}
+			send(DownloadProgress{Error: fmt.Errorf("create temp dir: %w", err)})
 			return
 		}
 		defer os.RemoveAll(tmpDir) //nolint:errcheck // cleanup
@@ -177,12 +193,14 @@ func (d *DownloadManager) Download(ctx context.Context, config BinaryConfig, net
 		savePath := filepath.Join(tmpDir, filepath.Base(downloadURL))
 
 		if err := d.downloadFile(ctx, downloadURL, savePath, ch); err != nil {
-			ch <- DownloadProgress{Error: err}
+			send(DownloadProgress{Error: err})
 			return
 		}
 
 		// Compute SHA256 hash and write back to config
-		ch <- DownloadProgress{Message: "verifying hash..."}
+		if !send(DownloadProgress{Message: "verifying hash..."}) {
+			return
+		}
 		archiveHash, archiveSize, err := hashFile(savePath)
 		if err != nil {
 			d.log.Warn().Err(err).Msg("failed to hash archive")
@@ -195,7 +213,9 @@ func (d *DownloadManager) Download(ctx context.Context, config BinaryConfig, net
 			}
 		}
 
-		ch <- DownloadProgress{Message: "extracting..."}
+		if !send(DownloadProgress{Message: "extracting..."}) {
+			return
+		}
 
 		extractName := config.BinaryName
 		stripPrefix := ""
@@ -205,7 +225,7 @@ func (d *DownloadManager) Download(ctx context.Context, config BinaryConfig, net
 		}
 		hasCLI, err := d.extractBinary(savePath, config, extractName, stripPrefix, d.dataDir, network, variant, hasVariant, hasSCVariant)
 		if err != nil {
-			ch <- DownloadProgress{Error: fmt.Errorf("extract: %w", err)}
+			send(DownloadProgress{Error: fmt.Errorf("extract: %w", err)})
 			return
 		}
 		d.log.Info().Bool("has_cli", hasCLI).Str("binary", extractName).Msg("extraction complete")
@@ -217,7 +237,7 @@ func (d *DownloadManager) Download(ctx context.Context, config BinaryConfig, net
 		case hasSCVariant:
 			finalPath = TestSidechainBinaryPath(d.dataDir, extractName)
 		}
-		ch <- DownloadProgress{Message: finalPath, Done: true}
+		send(DownloadProgress{Message: finalPath, Done: true})
 	}()
 
 	return ch, nil
@@ -341,9 +361,16 @@ func (d *DownloadManager) downloadFile(ctx context.Context, url, savePath string
 			}
 
 			if shouldSend {
-				progress <- DownloadProgress{
+				// Honor ctx so a canceled download doesn't deadlock here
+				// when the consumer's already gone — same wedge pattern
+				// as the outer goroutine's `ch <-` sends.
+				select {
+				case progress <- DownloadProgress{
 					BytesDownloaded: downloaded,
 					TotalBytes:      total,
+				}:
+				case <-ctx.Done():
+					return ctx.Err()
 				}
 			}
 		}

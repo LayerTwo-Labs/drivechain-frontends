@@ -106,8 +106,8 @@ Future<void> initSidechainDependencies({
   GetIt.I.registerSingleton<BinaryProvider>(binaryProvider);
 
   // register and boot binaries
-  final mainchainRPC = MainchainRPCLive.create();
-  GetIt.I.registerLazySingleton<MainchainRPC>(() => mainchainRPC);
+  final mainchainRPC = BitcoindConnection();
+  GetIt.I.registerLazySingleton<BitcoindConnection>(() => mainchainRPC);
   final enforcer = EnforcerLive();
   GetIt.I.registerSingleton<EnforcerRPC>(enforcer);
   final binary = binaries.firstWhere((b) => b.type == sidechainType);

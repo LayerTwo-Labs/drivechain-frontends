@@ -34,6 +34,8 @@ const GetBitcoinConfigResponse$json = {
     {'1': 'config_content', '3': 6, '4': 1, '5': 9, '10': 'configContent'},
     {'1': 'network_supports_sidechains', '3': 7, '4': 1, '5': 8, '10': 'networkSupportsSidechains'},
     {'1': 'is_demo_mode', '3': 8, '4': 1, '5': 8, '10': 'isDemoMode'},
+    {'1': 'rpc_user', '3': 9, '4': 1, '5': 9, '10': 'rpcUser'},
+    {'1': 'rpc_password', '3': 10, '4': 1, '5': 9, '10': 'rpcPassword'},
   ],
 };
 
@@ -45,7 +47,8 @@ final $typed_data.Uint8List getBitcoinConfigResponseDescriptor = $convert.base64
     '9kYXRhX2RpchgFIAEoCVIPZGV0ZWN0ZWREYXRhRGlyEiUKDmNvbmZpZ19jb250ZW50GAYgASgJ'
     'Ug1jb25maWdDb250ZW50Ej4KG25ldHdvcmtfc3VwcG9ydHNfc2lkZWNoYWlucxgHIAEoCFIZbm'
     'V0d29ya1N1cHBvcnRzU2lkZWNoYWlucxIgCgxpc19kZW1vX21vZGUYCCABKAhSCmlzRGVtb01v'
-    'ZGU=');
+    'ZGUSGQoIcnBjX3VzZXIYCSABKAlSB3JwY1VzZXISIQoMcnBjX3Bhc3N3b3JkGAogASgJUgtycG'
+    'NQYXNzd29yZA==');
 
 @$core.Deprecated('Use setBitcoinConfigNetworkRequestDescriptor instead')
 const SetBitcoinConfigNetworkRequest$json = {

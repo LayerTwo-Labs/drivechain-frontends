@@ -36,18 +36,6 @@ const (
 const (
 	// BitwindowdServiceStopProcedure is the fully-qualified name of the BitwindowdService's Stop RPC.
 	BitwindowdServiceStopProcedure = "/bitwindowd.v1.BitwindowdService/Stop"
-	// BitwindowdServiceStartManagedBinaryProcedure is the fully-qualified name of the
-	// BitwindowdService's StartManagedBinary RPC.
-	BitwindowdServiceStartManagedBinaryProcedure = "/bitwindowd.v1.BitwindowdService/StartManagedBinary"
-	// BitwindowdServiceStopManagedBinaryProcedure is the fully-qualified name of the
-	// BitwindowdService's StopManagedBinary RPC.
-	BitwindowdServiceStopManagedBinaryProcedure = "/bitwindowd.v1.BitwindowdService/StopManagedBinary"
-	// BitwindowdServiceDownloadManagedBinaryProcedure is the fully-qualified name of the
-	// BitwindowdService's DownloadManagedBinary RPC.
-	BitwindowdServiceDownloadManagedBinaryProcedure = "/bitwindowd.v1.BitwindowdService/DownloadManagedBinary"
-	// BitwindowdServiceShutdownManagedBinariesProcedure is the fully-qualified name of the
-	// BitwindowdService's ShutdownManagedBinaries RPC.
-	BitwindowdServiceShutdownManagedBinariesProcedure = "/bitwindowd.v1.BitwindowdService/ShutdownManagedBinaries"
 	// BitwindowdServiceMineBlocksProcedure is the fully-qualified name of the BitwindowdService's
 	// MineBlocks RPC.
 	BitwindowdServiceMineBlocksProcedure = "/bitwindowd.v1.BitwindowdService/MineBlocks"
@@ -93,15 +81,14 @@ const (
 	// BitwindowdServiceGetNetworkStatsProcedure is the fully-qualified name of the BitwindowdService's
 	// GetNetworkStats RPC.
 	BitwindowdServiceGetNetworkStatsProcedure = "/bitwindowd.v1.BitwindowdService/GetNetworkStats"
+	// BitwindowdServiceUpdateNetworkProcedure is the fully-qualified name of the BitwindowdService's
+	// UpdateNetwork RPC.
+	BitwindowdServiceUpdateNetworkProcedure = "/bitwindowd.v1.BitwindowdService/UpdateNetwork"
 )
 
 // BitwindowdServiceClient is a client for the bitwindowd.v1.BitwindowdService service.
 type BitwindowdServiceClient interface {
 	Stop(context.Context, *connect.Request[v1.BitwindowdServiceStopRequest]) (*connect.Response[emptypb.Empty], error)
-	StartManagedBinary(context.Context, *connect.Request[v1.StartManagedBinaryRequest]) (*connect.ServerStreamForClient[v1.StartManagedBinaryResponse], error)
-	StopManagedBinary(context.Context, *connect.Request[v1.StopManagedBinaryRequest]) (*connect.Response[emptypb.Empty], error)
-	DownloadManagedBinary(context.Context, *connect.Request[v1.DownloadManagedBinaryRequest]) (*connect.ServerStreamForClient[v1.DownloadManagedBinaryResponse], error)
-	ShutdownManagedBinaries(context.Context, *connect.Request[v1.ShutdownManagedBinariesRequest]) (*connect.ServerStreamForClient[v1.ShutdownManagedBinariesResponse], error)
 	MineBlocks(context.Context, *connect.Request[emptypb.Empty]) (*connect.ServerStreamForClient[v1.MineBlocksResponse], error)
 	// Deniability operations
 	CreateDenial(context.Context, *connect.Request[v1.CreateDenialRequest]) (*connect.Response[emptypb.Empty], error)
@@ -122,6 +109,14 @@ type BitwindowdServiceClient interface {
 	ListBlocks(context.Context, *connect.Request[v1.ListBlocksRequest]) (*connect.Response[v1.ListBlocksResponse], error)
 	// Get network statistics
 	GetNetworkStats(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.GetNetworkStatsResponse], error)
+	// Swap bitcoind network. bitwindowd is the entry point so the DB swap
+	// (network-scoped folder) is co-located with the orchestrator update.
+	// Implementation: forward to orchestratord's SetBitcoinConfigNetwork
+	// (which rewrites bitcoin.conf and restarts bitcoind on the new chain),
+	// then exit so the launcher restarts bitwindowd with a fresh DB scoped
+	// to the new network. Returns once orchestratord acknowledges the swap;
+	// the bitwindowd process exit happens shortly after.
+	UpdateNetwork(context.Context, *connect.Request[v1.UpdateNetworkRequest]) (*connect.Response[v1.UpdateNetworkResponse], error)
 }
 
 // NewBitwindowdServiceClient constructs a client for the bitwindowd.v1.BitwindowdService service.
@@ -139,30 +134,6 @@ func NewBitwindowdServiceClient(httpClient connect.HTTPClient, baseURL string, o
 			httpClient,
 			baseURL+BitwindowdServiceStopProcedure,
 			connect.WithSchema(bitwindowdServiceMethods.ByName("Stop")),
-			connect.WithClientOptions(opts...),
-		),
-		startManagedBinary: connect.NewClient[v1.StartManagedBinaryRequest, v1.StartManagedBinaryResponse](
-			httpClient,
-			baseURL+BitwindowdServiceStartManagedBinaryProcedure,
-			connect.WithSchema(bitwindowdServiceMethods.ByName("StartManagedBinary")),
-			connect.WithClientOptions(opts...),
-		),
-		stopManagedBinary: connect.NewClient[v1.StopManagedBinaryRequest, emptypb.Empty](
-			httpClient,
-			baseURL+BitwindowdServiceStopManagedBinaryProcedure,
-			connect.WithSchema(bitwindowdServiceMethods.ByName("StopManagedBinary")),
-			connect.WithClientOptions(opts...),
-		),
-		downloadManagedBinary: connect.NewClient[v1.DownloadManagedBinaryRequest, v1.DownloadManagedBinaryResponse](
-			httpClient,
-			baseURL+BitwindowdServiceDownloadManagedBinaryProcedure,
-			connect.WithSchema(bitwindowdServiceMethods.ByName("DownloadManagedBinary")),
-			connect.WithClientOptions(opts...),
-		),
-		shutdownManagedBinaries: connect.NewClient[v1.ShutdownManagedBinariesRequest, v1.ShutdownManagedBinariesResponse](
-			httpClient,
-			baseURL+BitwindowdServiceShutdownManagedBinariesProcedure,
-			connect.WithSchema(bitwindowdServiceMethods.ByName("ShutdownManagedBinaries")),
 			connect.WithClientOptions(opts...),
 		),
 		mineBlocks: connect.NewClient[emptypb.Empty, v1.MineBlocksResponse](
@@ -255,56 +226,39 @@ func NewBitwindowdServiceClient(httpClient connect.HTTPClient, baseURL string, o
 			connect.WithSchema(bitwindowdServiceMethods.ByName("GetNetworkStats")),
 			connect.WithClientOptions(opts...),
 		),
+		updateNetwork: connect.NewClient[v1.UpdateNetworkRequest, v1.UpdateNetworkResponse](
+			httpClient,
+			baseURL+BitwindowdServiceUpdateNetworkProcedure,
+			connect.WithSchema(bitwindowdServiceMethods.ByName("UpdateNetwork")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
 // bitwindowdServiceClient implements BitwindowdServiceClient.
 type bitwindowdServiceClient struct {
-	stop                    *connect.Client[v1.BitwindowdServiceStopRequest, emptypb.Empty]
-	startManagedBinary      *connect.Client[v1.StartManagedBinaryRequest, v1.StartManagedBinaryResponse]
-	stopManagedBinary       *connect.Client[v1.StopManagedBinaryRequest, emptypb.Empty]
-	downloadManagedBinary   *connect.Client[v1.DownloadManagedBinaryRequest, v1.DownloadManagedBinaryResponse]
-	shutdownManagedBinaries *connect.Client[v1.ShutdownManagedBinariesRequest, v1.ShutdownManagedBinariesResponse]
-	mineBlocks              *connect.Client[emptypb.Empty, v1.MineBlocksResponse]
-	createDenial            *connect.Client[v1.CreateDenialRequest, emptypb.Empty]
-	cancelDenial            *connect.Client[v1.CancelDenialRequest, emptypb.Empty]
-	pauseDenial             *connect.Client[v1.PauseDenialRequest, emptypb.Empty]
-	resumeDenial            *connect.Client[v1.ResumeDenialRequest, emptypb.Empty]
-	createAddressBookEntry  *connect.Client[v1.CreateAddressBookEntryRequest, v1.CreateAddressBookEntryResponse]
-	listAddressBook         *connect.Client[emptypb.Empty, v1.ListAddressBookResponse]
-	updateAddressBookEntry  *connect.Client[v1.UpdateAddressBookEntryRequest, emptypb.Empty]
-	deleteAddressBookEntry  *connect.Client[v1.DeleteAddressBookEntryRequest, emptypb.Empty]
-	getSyncInfo             *connect.Client[emptypb.Empty, v1.GetSyncInfoResponse]
-	setTransactionNote      *connect.Client[v1.SetTransactionNoteRequest, emptypb.Empty]
-	getFireplaceStats       *connect.Client[emptypb.Empty, v1.GetFireplaceStatsResponse]
-	listRecentTransactions  *connect.Client[v1.ListRecentTransactionsRequest, v1.ListRecentTransactionsResponse]
-	listBlocks              *connect.Client[v1.ListBlocksRequest, v1.ListBlocksResponse]
-	getNetworkStats         *connect.Client[emptypb.Empty, v1.GetNetworkStatsResponse]
+	stop                   *connect.Client[v1.BitwindowdServiceStopRequest, emptypb.Empty]
+	mineBlocks             *connect.Client[emptypb.Empty, v1.MineBlocksResponse]
+	createDenial           *connect.Client[v1.CreateDenialRequest, emptypb.Empty]
+	cancelDenial           *connect.Client[v1.CancelDenialRequest, emptypb.Empty]
+	pauseDenial            *connect.Client[v1.PauseDenialRequest, emptypb.Empty]
+	resumeDenial           *connect.Client[v1.ResumeDenialRequest, emptypb.Empty]
+	createAddressBookEntry *connect.Client[v1.CreateAddressBookEntryRequest, v1.CreateAddressBookEntryResponse]
+	listAddressBook        *connect.Client[emptypb.Empty, v1.ListAddressBookResponse]
+	updateAddressBookEntry *connect.Client[v1.UpdateAddressBookEntryRequest, emptypb.Empty]
+	deleteAddressBookEntry *connect.Client[v1.DeleteAddressBookEntryRequest, emptypb.Empty]
+	getSyncInfo            *connect.Client[emptypb.Empty, v1.GetSyncInfoResponse]
+	setTransactionNote     *connect.Client[v1.SetTransactionNoteRequest, emptypb.Empty]
+	getFireplaceStats      *connect.Client[emptypb.Empty, v1.GetFireplaceStatsResponse]
+	listRecentTransactions *connect.Client[v1.ListRecentTransactionsRequest, v1.ListRecentTransactionsResponse]
+	listBlocks             *connect.Client[v1.ListBlocksRequest, v1.ListBlocksResponse]
+	getNetworkStats        *connect.Client[emptypb.Empty, v1.GetNetworkStatsResponse]
+	updateNetwork          *connect.Client[v1.UpdateNetworkRequest, v1.UpdateNetworkResponse]
 }
 
 // Stop calls bitwindowd.v1.BitwindowdService.Stop.
 func (c *bitwindowdServiceClient) Stop(ctx context.Context, req *connect.Request[v1.BitwindowdServiceStopRequest]) (*connect.Response[emptypb.Empty], error) {
 	return c.stop.CallUnary(ctx, req)
-}
-
-// StartManagedBinary calls bitwindowd.v1.BitwindowdService.StartManagedBinary.
-func (c *bitwindowdServiceClient) StartManagedBinary(ctx context.Context, req *connect.Request[v1.StartManagedBinaryRequest]) (*connect.ServerStreamForClient[v1.StartManagedBinaryResponse], error) {
-	return c.startManagedBinary.CallServerStream(ctx, req)
-}
-
-// StopManagedBinary calls bitwindowd.v1.BitwindowdService.StopManagedBinary.
-func (c *bitwindowdServiceClient) StopManagedBinary(ctx context.Context, req *connect.Request[v1.StopManagedBinaryRequest]) (*connect.Response[emptypb.Empty], error) {
-	return c.stopManagedBinary.CallUnary(ctx, req)
-}
-
-// DownloadManagedBinary calls bitwindowd.v1.BitwindowdService.DownloadManagedBinary.
-func (c *bitwindowdServiceClient) DownloadManagedBinary(ctx context.Context, req *connect.Request[v1.DownloadManagedBinaryRequest]) (*connect.ServerStreamForClient[v1.DownloadManagedBinaryResponse], error) {
-	return c.downloadManagedBinary.CallServerStream(ctx, req)
-}
-
-// ShutdownManagedBinaries calls bitwindowd.v1.BitwindowdService.ShutdownManagedBinaries.
-func (c *bitwindowdServiceClient) ShutdownManagedBinaries(ctx context.Context, req *connect.Request[v1.ShutdownManagedBinariesRequest]) (*connect.ServerStreamForClient[v1.ShutdownManagedBinariesResponse], error) {
-	return c.shutdownManagedBinaries.CallServerStream(ctx, req)
 }
 
 // MineBlocks calls bitwindowd.v1.BitwindowdService.MineBlocks.
@@ -382,13 +336,14 @@ func (c *bitwindowdServiceClient) GetNetworkStats(ctx context.Context, req *conn
 	return c.getNetworkStats.CallUnary(ctx, req)
 }
 
+// UpdateNetwork calls bitwindowd.v1.BitwindowdService.UpdateNetwork.
+func (c *bitwindowdServiceClient) UpdateNetwork(ctx context.Context, req *connect.Request[v1.UpdateNetworkRequest]) (*connect.Response[v1.UpdateNetworkResponse], error) {
+	return c.updateNetwork.CallUnary(ctx, req)
+}
+
 // BitwindowdServiceHandler is an implementation of the bitwindowd.v1.BitwindowdService service.
 type BitwindowdServiceHandler interface {
 	Stop(context.Context, *connect.Request[v1.BitwindowdServiceStopRequest]) (*connect.Response[emptypb.Empty], error)
-	StartManagedBinary(context.Context, *connect.Request[v1.StartManagedBinaryRequest], *connect.ServerStream[v1.StartManagedBinaryResponse]) error
-	StopManagedBinary(context.Context, *connect.Request[v1.StopManagedBinaryRequest]) (*connect.Response[emptypb.Empty], error)
-	DownloadManagedBinary(context.Context, *connect.Request[v1.DownloadManagedBinaryRequest], *connect.ServerStream[v1.DownloadManagedBinaryResponse]) error
-	ShutdownManagedBinaries(context.Context, *connect.Request[v1.ShutdownManagedBinariesRequest], *connect.ServerStream[v1.ShutdownManagedBinariesResponse]) error
 	MineBlocks(context.Context, *connect.Request[emptypb.Empty], *connect.ServerStream[v1.MineBlocksResponse]) error
 	// Deniability operations
 	CreateDenial(context.Context, *connect.Request[v1.CreateDenialRequest]) (*connect.Response[emptypb.Empty], error)
@@ -409,6 +364,14 @@ type BitwindowdServiceHandler interface {
 	ListBlocks(context.Context, *connect.Request[v1.ListBlocksRequest]) (*connect.Response[v1.ListBlocksResponse], error)
 	// Get network statistics
 	GetNetworkStats(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.GetNetworkStatsResponse], error)
+	// Swap bitcoind network. bitwindowd is the entry point so the DB swap
+	// (network-scoped folder) is co-located with the orchestrator update.
+	// Implementation: forward to orchestratord's SetBitcoinConfigNetwork
+	// (which rewrites bitcoin.conf and restarts bitcoind on the new chain),
+	// then exit so the launcher restarts bitwindowd with a fresh DB scoped
+	// to the new network. Returns once orchestratord acknowledges the swap;
+	// the bitwindowd process exit happens shortly after.
+	UpdateNetwork(context.Context, *connect.Request[v1.UpdateNetworkRequest]) (*connect.Response[v1.UpdateNetworkResponse], error)
 }
 
 // NewBitwindowdServiceHandler builds an HTTP handler from the service implementation. It returns
@@ -422,30 +385,6 @@ func NewBitwindowdServiceHandler(svc BitwindowdServiceHandler, opts ...connect.H
 		BitwindowdServiceStopProcedure,
 		svc.Stop,
 		connect.WithSchema(bitwindowdServiceMethods.ByName("Stop")),
-		connect.WithHandlerOptions(opts...),
-	)
-	bitwindowdServiceStartManagedBinaryHandler := connect.NewServerStreamHandler(
-		BitwindowdServiceStartManagedBinaryProcedure,
-		svc.StartManagedBinary,
-		connect.WithSchema(bitwindowdServiceMethods.ByName("StartManagedBinary")),
-		connect.WithHandlerOptions(opts...),
-	)
-	bitwindowdServiceStopManagedBinaryHandler := connect.NewUnaryHandler(
-		BitwindowdServiceStopManagedBinaryProcedure,
-		svc.StopManagedBinary,
-		connect.WithSchema(bitwindowdServiceMethods.ByName("StopManagedBinary")),
-		connect.WithHandlerOptions(opts...),
-	)
-	bitwindowdServiceDownloadManagedBinaryHandler := connect.NewServerStreamHandler(
-		BitwindowdServiceDownloadManagedBinaryProcedure,
-		svc.DownloadManagedBinary,
-		connect.WithSchema(bitwindowdServiceMethods.ByName("DownloadManagedBinary")),
-		connect.WithHandlerOptions(opts...),
-	)
-	bitwindowdServiceShutdownManagedBinariesHandler := connect.NewServerStreamHandler(
-		BitwindowdServiceShutdownManagedBinariesProcedure,
-		svc.ShutdownManagedBinaries,
-		connect.WithSchema(bitwindowdServiceMethods.ByName("ShutdownManagedBinaries")),
 		connect.WithHandlerOptions(opts...),
 	)
 	bitwindowdServiceMineBlocksHandler := connect.NewServerStreamHandler(
@@ -538,18 +477,16 @@ func NewBitwindowdServiceHandler(svc BitwindowdServiceHandler, opts ...connect.H
 		connect.WithSchema(bitwindowdServiceMethods.ByName("GetNetworkStats")),
 		connect.WithHandlerOptions(opts...),
 	)
+	bitwindowdServiceUpdateNetworkHandler := connect.NewUnaryHandler(
+		BitwindowdServiceUpdateNetworkProcedure,
+		svc.UpdateNetwork,
+		connect.WithSchema(bitwindowdServiceMethods.ByName("UpdateNetwork")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/bitwindowd.v1.BitwindowdService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case BitwindowdServiceStopProcedure:
 			bitwindowdServiceStopHandler.ServeHTTP(w, r)
-		case BitwindowdServiceStartManagedBinaryProcedure:
-			bitwindowdServiceStartManagedBinaryHandler.ServeHTTP(w, r)
-		case BitwindowdServiceStopManagedBinaryProcedure:
-			bitwindowdServiceStopManagedBinaryHandler.ServeHTTP(w, r)
-		case BitwindowdServiceDownloadManagedBinaryProcedure:
-			bitwindowdServiceDownloadManagedBinaryHandler.ServeHTTP(w, r)
-		case BitwindowdServiceShutdownManagedBinariesProcedure:
-			bitwindowdServiceShutdownManagedBinariesHandler.ServeHTTP(w, r)
 		case BitwindowdServiceMineBlocksProcedure:
 			bitwindowdServiceMineBlocksHandler.ServeHTTP(w, r)
 		case BitwindowdServiceCreateDenialProcedure:
@@ -580,6 +517,8 @@ func NewBitwindowdServiceHandler(svc BitwindowdServiceHandler, opts ...connect.H
 			bitwindowdServiceListBlocksHandler.ServeHTTP(w, r)
 		case BitwindowdServiceGetNetworkStatsProcedure:
 			bitwindowdServiceGetNetworkStatsHandler.ServeHTTP(w, r)
+		case BitwindowdServiceUpdateNetworkProcedure:
+			bitwindowdServiceUpdateNetworkHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -591,22 +530,6 @@ type UnimplementedBitwindowdServiceHandler struct{}
 
 func (UnimplementedBitwindowdServiceHandler) Stop(context.Context, *connect.Request[v1.BitwindowdServiceStopRequest]) (*connect.Response[emptypb.Empty], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("bitwindowd.v1.BitwindowdService.Stop is not implemented"))
-}
-
-func (UnimplementedBitwindowdServiceHandler) StartManagedBinary(context.Context, *connect.Request[v1.StartManagedBinaryRequest], *connect.ServerStream[v1.StartManagedBinaryResponse]) error {
-	return connect.NewError(connect.CodeUnimplemented, errors.New("bitwindowd.v1.BitwindowdService.StartManagedBinary is not implemented"))
-}
-
-func (UnimplementedBitwindowdServiceHandler) StopManagedBinary(context.Context, *connect.Request[v1.StopManagedBinaryRequest]) (*connect.Response[emptypb.Empty], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("bitwindowd.v1.BitwindowdService.StopManagedBinary is not implemented"))
-}
-
-func (UnimplementedBitwindowdServiceHandler) DownloadManagedBinary(context.Context, *connect.Request[v1.DownloadManagedBinaryRequest], *connect.ServerStream[v1.DownloadManagedBinaryResponse]) error {
-	return connect.NewError(connect.CodeUnimplemented, errors.New("bitwindowd.v1.BitwindowdService.DownloadManagedBinary is not implemented"))
-}
-
-func (UnimplementedBitwindowdServiceHandler) ShutdownManagedBinaries(context.Context, *connect.Request[v1.ShutdownManagedBinariesRequest], *connect.ServerStream[v1.ShutdownManagedBinariesResponse]) error {
-	return connect.NewError(connect.CodeUnimplemented, errors.New("bitwindowd.v1.BitwindowdService.ShutdownManagedBinaries is not implemented"))
 }
 
 func (UnimplementedBitwindowdServiceHandler) MineBlocks(context.Context, *connect.Request[emptypb.Empty], *connect.ServerStream[v1.MineBlocksResponse]) error {
@@ -667,4 +590,8 @@ func (UnimplementedBitwindowdServiceHandler) ListBlocks(context.Context, *connec
 
 func (UnimplementedBitwindowdServiceHandler) GetNetworkStats(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.GetNetworkStatsResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("bitwindowd.v1.BitwindowdService.GetNetworkStats is not implemented"))
+}
+
+func (UnimplementedBitwindowdServiceHandler) UpdateNetwork(context.Context, *connect.Request[v1.UpdateNetworkRequest]) (*connect.Response[v1.UpdateNetworkResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("bitwindowd.v1.BitwindowdService.UpdateNetwork is not implemented"))
 }

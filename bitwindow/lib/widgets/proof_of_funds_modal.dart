@@ -737,7 +737,7 @@ class ProofOfFundsViewModel extends BaseViewModel {
   final EnforcerRPC enforcer = GetIt.I.get<EnforcerRPC>();
   final BitwindowRPC bitwindowd = GetIt.I.get<BitwindowRPC>();
   OrchestratorWalletRPC get orchestratorWallet => GetIt.I.get<OrchestratorRPC>().wallet;
-  final MainchainRPC mainchain = GetIt.I.get<MainchainRPC>();
+  final BitcoindConnection mainchain = GetIt.I.get<BitcoindConnection>();
   final HDWalletProvider hdWallet = GetIt.I.get<HDWalletProvider>();
   WalletReaderProvider get _walletReader => GetIt.I<WalletReaderProvider>();
 

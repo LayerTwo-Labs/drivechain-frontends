@@ -10,7 +10,7 @@ class ZSideProvider extends ChangeNotifier {
   ZSideRPC get rpc => GetIt.I.get<ZSideRPC>();
   Logger get log => GetIt.I.get<Logger>();
 
-  MainchainRPC get _mainchainRPC => GetIt.I.get<MainchainRPC>();
+  BitcoindConnection get _mainchainRPC => GetIt.I.get<BitcoindConnection>();
   ZSideRPC get _rpc => GetIt.I.get<ZSideRPC>();
 
   String zsideAddress = '';

@@ -37,6 +37,13 @@ type ManagedProcess struct {
 	exitCh   chan struct{} // closed when process exits
 	exitCode int
 	exitErr  string
+	// exitDetails holds the rich crash message: stderr buffer or last
+	// error/fatal/panic lines from stdout, with `exitErr` (cmd.Wait
+	// status) as a fallback. Populated alongside the OnExit callback so
+	// later code paths (waitForConnectedOrExit, daemon-card error
+	// rendering) can surface the *actual* crash reason instead of just
+	// "exit status 1".
+	exitDetails string
 }
 
 // ExitCh returns a channel that is closed when the process exits.
@@ -56,6 +63,17 @@ func (p *ManagedProcess) ExitErr() string {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 	return p.exitErr
+}
+
+// ExitDetails returns the rich crash message extracted from stderr / last
+// error log lines. Empty if the process is still running or exited cleanly.
+// Prefer this over ExitErr() in user-facing surfaces — ExitErr only carries
+// the Go cmd.Wait status (e.g. "exit status 1"), while ExitDetails carries
+// the actual reason the binary printed before dying.
+func (p *ManagedProcess) ExitDetails() string {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	return p.exitDetails
 }
 
 const maxLogEntries = 5000
@@ -403,6 +421,14 @@ func (pm *ProcessManager) Start(_ context.Context, config BinaryConfig, args []s
 			if errMsg == "" {
 				errMsg = fmt.Sprintf("process exited with code %d", exitCode)
 			}
+
+			// Stash the rich crash reason so callers like
+			// waitForConnectedOrExit can return the actual error to the
+			// frontend instead of overwriting it with the bare cmd.Wait
+			// status ("exit status 1").
+			proc.mu.Lock()
+			proc.exitDetails = errMsg
+			proc.mu.Unlock()
 		}
 
 		// Add exit marker (like Dart's addExitMarker)

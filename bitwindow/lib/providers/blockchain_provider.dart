@@ -10,7 +10,8 @@ import 'package:sail_ui/sail_ui.dart';
 class BlockchainProvider extends ChangeNotifier {
   Logger get log => GetIt.I.get<Logger>();
   BitwindowRPC get bitwindowd => GetIt.I.get<BitwindowRPC>();
-  MainchainRPC get mainchain => GetIt.I.get<MainchainRPC>();
+  OrchestratorRPC get _orchestrator => GetIt.I.get<OrchestratorRPC>();
+  BitcoindConnection get mainchain => GetIt.I.get<BitcoindConnection>();
   EnforcerRPC get enforcer => GetIt.I.get<EnforcerRPC>();
   SyncProvider get syncProvider => GetIt.I.get<SyncProvider>();
 
@@ -42,7 +43,7 @@ class BlockchainProvider extends ChangeNotifier {
     _isFetching = true;
 
     try {
-      final newPeers = await bitwindowd.bitcoind.listPeers();
+      final newPeers = (await _orchestrator.bitcoind.getPeerInfo(GetPeerInfoRequest())).peers;
       final newTXs = await bitwindowd.bitwindowd.listRecentTransactions();
       final (newBlocks, hasMore) = await bitwindowd.bitwindowd.listBlocks();
 

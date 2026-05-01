@@ -584,6 +584,70 @@ final $typed_data.Uint8List streamResetDataResponseDescriptor = $convert.base64D
     'ASgJUgVlcnJvchISCgRkb25lGAUgASgIUgRkb25lEiMKDWRlbGV0ZWRfY291bnQYBiABKAVSDG'
     'RlbGV0ZWRDb3VudBIhCgxmYWlsZWRfY291bnQYByABKAVSC2ZhaWxlZENvdW50');
 
+@$core.Deprecated('Use getCoreMempoolInfoRequestDescriptor instead')
+const GetCoreMempoolInfoRequest$json = {
+  '1': 'GetCoreMempoolInfoRequest',
+};
+
+/// Descriptor for `GetCoreMempoolInfoRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List getCoreMempoolInfoRequestDescriptor = $convert.base64Decode(
+    'ChlHZXRDb3JlTWVtcG9vbEluZm9SZXF1ZXN0');
+
+@$core.Deprecated('Use getCoreMempoolInfoResponseDescriptor instead')
+const GetCoreMempoolInfoResponse$json = {
+  '1': 'GetCoreMempoolInfoResponse',
+  '2': [
+    {'1': 'loaded', '3': 1, '4': 1, '5': 8, '10': 'loaded'},
+    {'1': 'size', '3': 2, '4': 1, '5': 3, '10': 'size'},
+    {'1': 'bytes', '3': 3, '4': 1, '5': 3, '10': 'bytes'},
+    {'1': 'usage', '3': 4, '4': 1, '5': 3, '10': 'usage'},
+    {'1': 'total_fee', '3': 5, '4': 1, '5': 1, '10': 'totalFee'},
+    {'1': 'max_mempool', '3': 6, '4': 1, '5': 3, '10': 'maxMempool'},
+    {'1': 'mempool_min_fee', '3': 7, '4': 1, '5': 1, '10': 'mempoolMinFee'},
+    {'1': 'min_relay_tx_fee', '3': 8, '4': 1, '5': 1, '10': 'minRelayTxFee'},
+    {'1': 'incremental_relay_fee', '3': 9, '4': 1, '5': 1, '10': 'incrementalRelayFee'},
+    {'1': 'unbroadcast_count', '3': 10, '4': 1, '5': 3, '10': 'unbroadcastCount'},
+    {'1': 'full_rbf', '3': 11, '4': 1, '5': 8, '10': 'fullRbf'},
+  ],
+};
+
+/// Descriptor for `GetCoreMempoolInfoResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List getCoreMempoolInfoResponseDescriptor = $convert.base64Decode(
+    'ChpHZXRDb3JlTWVtcG9vbEluZm9SZXNwb25zZRIWCgZsb2FkZWQYASABKAhSBmxvYWRlZBISCg'
+    'RzaXplGAIgASgDUgRzaXplEhQKBWJ5dGVzGAMgASgDUgVieXRlcxIUCgV1c2FnZRgEIAEoA1IF'
+    'dXNhZ2USGwoJdG90YWxfZmVlGAUgASgBUgh0b3RhbEZlZRIfCgttYXhfbWVtcG9vbBgGIAEoA1'
+    'IKbWF4TWVtcG9vbBImCg9tZW1wb29sX21pbl9mZWUYByABKAFSDW1lbXBvb2xNaW5GZWUSJwoQ'
+    'bWluX3JlbGF5X3R4X2ZlZRgIIAEoAVINbWluUmVsYXlUeEZlZRIyChVpbmNyZW1lbnRhbF9yZW'
+    'xheV9mZWUYCSABKAFSE2luY3JlbWVudGFsUmVsYXlGZWUSKwoRdW5icm9hZGNhc3RfY291bnQY'
+    'CiABKANSEHVuYnJvYWRjYXN0Q291bnQSGQoIZnVsbF9yYmYYCyABKAhSB2Z1bGxSYmY=');
+
+@$core.Deprecated('Use coreRawCallRequestDescriptor instead')
+const CoreRawCallRequest$json = {
+  '1': 'CoreRawCallRequest',
+  '2': [
+    {'1': 'method', '3': 1, '4': 1, '5': 9, '10': 'method'},
+    {'1': 'params_json', '3': 2, '4': 1, '5': 9, '10': 'paramsJson'},
+    {'1': 'wallet', '3': 3, '4': 1, '5': 9, '10': 'wallet'},
+  ],
+};
+
+/// Descriptor for `CoreRawCallRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List coreRawCallRequestDescriptor = $convert.base64Decode(
+    'ChJDb3JlUmF3Q2FsbFJlcXVlc3QSFgoGbWV0aG9kGAEgASgJUgZtZXRob2QSHwoLcGFyYW1zX2'
+    'pzb24YAiABKAlSCnBhcmFtc0pzb24SFgoGd2FsbGV0GAMgASgJUgZ3YWxsZXQ=');
+
+@$core.Deprecated('Use coreRawCallResponseDescriptor instead')
+const CoreRawCallResponse$json = {
+  '1': 'CoreRawCallResponse',
+  '2': [
+    {'1': 'result_json', '3': 1, '4': 1, '5': 9, '10': 'resultJson'},
+  ],
+};
+
+/// Descriptor for `CoreRawCallResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List coreRawCallResponseDescriptor = $convert.base64Decode(
+    'ChNDb3JlUmF3Q2FsbFJlc3BvbnNlEh8KC3Jlc3VsdF9qc29uGAEgASgJUgpyZXN1bHRKc29u');
+
 const $core.Map<$core.String, $core.dynamic> OrchestratorServiceBase$json = {
   '1': 'OrchestratorService',
   '2': [
@@ -602,6 +666,8 @@ const $core.Map<$core.String, $core.dynamic> OrchestratorServiceBase$json = {
     {'1': 'GetMainchainBalance', '2': '.orchestrator.v1.GetMainchainBalanceRequest', '3': '.orchestrator.v1.GetMainchainBalanceResponse'},
     {'1': 'PreviewResetData', '2': '.orchestrator.v1.PreviewResetDataRequest', '3': '.orchestrator.v1.PreviewResetDataResponse'},
     {'1': 'StreamResetData', '2': '.orchestrator.v1.StreamResetDataRequest', '3': '.orchestrator.v1.StreamResetDataResponse', '6': true},
+    {'1': 'GetCoreMempoolInfo', '2': '.orchestrator.v1.GetCoreMempoolInfoRequest', '3': '.orchestrator.v1.GetCoreMempoolInfoResponse'},
+    {'1': 'CoreRawCall', '2': '.orchestrator.v1.CoreRawCallRequest', '3': '.orchestrator.v1.CoreRawCallResponse'},
   ],
 };
 
@@ -643,6 +709,10 @@ const $core.Map<$core.String, $core.Map<$core.String, $core.dynamic>> Orchestrat
   '.orchestrator.v1.ResetFileInfo': ResetFileInfo$json,
   '.orchestrator.v1.StreamResetDataRequest': StreamResetDataRequest$json,
   '.orchestrator.v1.StreamResetDataResponse': StreamResetDataResponse$json,
+  '.orchestrator.v1.GetCoreMempoolInfoRequest': GetCoreMempoolInfoRequest$json,
+  '.orchestrator.v1.GetCoreMempoolInfoResponse': GetCoreMempoolInfoResponse$json,
+  '.orchestrator.v1.CoreRawCallRequest': CoreRawCallRequest$json,
+  '.orchestrator.v1.CoreRawCallResponse': CoreRawCallResponse$json,
 };
 
 /// Descriptor for `OrchestratorService`. Decode as a `google.protobuf.ServiceDescriptorProto`.
@@ -674,5 +744,9 @@ final $typed_data.Uint8List orchestratorServiceDescriptor = $convert.base64Decod
     'c3BvbnNlEmcKEFByZXZpZXdSZXNldERhdGESKC5vcmNoZXN0cmF0b3IudjEuUHJldmlld1Jlc2'
     'V0RGF0YVJlcXVlc3QaKS5vcmNoZXN0cmF0b3IudjEuUHJldmlld1Jlc2V0RGF0YVJlc3BvbnNl'
     'EmYKD1N0cmVhbVJlc2V0RGF0YRInLm9yY2hlc3RyYXRvci52MS5TdHJlYW1SZXNldERhdGFSZX'
-    'F1ZXN0Gigub3JjaGVzdHJhdG9yLnYxLlN0cmVhbVJlc2V0RGF0YVJlc3BvbnNlMAE=');
+    'F1ZXN0Gigub3JjaGVzdHJhdG9yLnYxLlN0cmVhbVJlc2V0RGF0YVJlc3BvbnNlMAESbQoSR2V0'
+    'Q29yZU1lbXBvb2xJbmZvEioub3JjaGVzdHJhdG9yLnYxLkdldENvcmVNZW1wb29sSW5mb1JlcX'
+    'Vlc3QaKy5vcmNoZXN0cmF0b3IudjEuR2V0Q29yZU1lbXBvb2xJbmZvUmVzcG9uc2USWAoLQ29y'
+    'ZVJhd0NhbGwSIy5vcmNoZXN0cmF0b3IudjEuQ29yZVJhd0NhbGxSZXF1ZXN0GiQub3JjaGVzdH'
+    'JhdG9yLnYxLkNvcmVSYXdDYWxsUmVzcG9uc2U=');
 

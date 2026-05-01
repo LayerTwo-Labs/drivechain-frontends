@@ -1,7 +1,10 @@
 import 'package:bitwindow/pages/bitwindow_console_tab.dart';
+import 'package:fixnum/fixnum.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get_it/get_it.dart';
+import 'package:sail_ui/gen/bitcoin/bitcoind/v1alpha/bitcoin.pb.dart'
+    show GetNetworkInfoResponse, GetNetworkInfoRequest, GetPeerInfoRequest;
 import 'package:sail_ui/sail_ui.dart';
 
 class DebugWindow extends StatefulWidget {
@@ -71,12 +74,12 @@ class InformationTab extends StatefulWidget {
 }
 
 class _InformationTabState extends State<InformationTab> {
-  MainchainRPC get mainchain => GetIt.I.get<MainchainRPC>();
+  OrchestratorRPC get _orchestrator => GetIt.I.get<OrchestratorRPC>();
+  BitcoinConfProvider get _confProvider => GetIt.I.get<BitcoinConfProvider>();
 
-  BlockchainInfo? _blockchainInfo;
-  NetworkInfo? _networkInfo;
-  MempoolInfo? _mempoolInfo;
-  String? _dataDir;
+  GetMainchainBlockchainInfoResponse? _blockchainInfo;
+  GetNetworkInfoResponse? _networkInfo;
+  GetCoreMempoolInfoResponse? _mempoolInfo;
 
   @override
   void initState() {
@@ -86,16 +89,14 @@ class _InformationTabState extends State<InformationTab> {
 
   Future<void> _loadInfo() async {
     try {
-      final blockchainInfo = await mainchain.getBlockchainInfo();
-      final networkInfo = await mainchain.getNetworkInfo();
-      final mempoolInfo = await mainchain.getMempoolInfo();
-      final dataDir = await mainchain.getDataDir();
+      final blockchainInfo = await _orchestrator.getMainchainBlockchainInfo();
+      final networkInfo = await _orchestrator.bitcoind.getNetworkInfo(GetNetworkInfoRequest());
+      final mempoolInfo = await _orchestrator.getCoreMempoolInfo();
 
       setState(() {
         _blockchainInfo = blockchainInfo;
         _networkInfo = networkInfo;
         _mempoolInfo = mempoolInfo;
-        _dataDir = dataDir;
       });
     } catch (e) {
       // do nothing
@@ -118,7 +119,7 @@ class _InformationTabState extends State<InformationTab> {
                 'Client version': _networkInfo?.version.toString() ?? 'Loading...',
                 'User Agent': _networkInfo?.subversion ?? 'Loading...',
                 'Protocol Version': _networkInfo?.protocolVersion.toString() ?? 'Loading...',
-                'Datadir': _dataDir ?? 'Loading...',
+                'Datadir': _confProvider.detectedDataDir ?? 'default',
               },
             ),
             InfoSection(
@@ -135,9 +136,9 @@ class _InformationTabState extends State<InformationTab> {
                 'Headers': _blockchainInfo?.headers.toString() ?? 'Loading...',
                 'Verification Progress': '${((_blockchainInfo?.verificationProgress ?? 0) * 100).toStringAsFixed(0)}%',
                 'Difficulty': _blockchainInfo?.difficulty.toString() ?? 'Loading...',
-                'Size on Disk': '${_blockchainInfo?.sizeOnDisk ?? 0} bytes',
-                'Last block time': _blockchainInfo?.time != null
-                    ? DateTime.fromMillisecondsSinceEpoch(_blockchainInfo!.time * 1000).toString()
+                'Size on Disk': '${_blockchainInfo?.sizeOnDisk.toInt() ?? 0} bytes',
+                'Last block time': (_blockchainInfo?.time ?? Int64.ZERO) != Int64.ZERO
+                    ? DateTime.fromMillisecondsSinceEpoch(_blockchainInfo!.time.toInt() * 1000).toString()
                     : 'Loading...',
               },
             ),
@@ -340,7 +341,7 @@ class PeersTab extends StatefulWidget {
 }
 
 class _PeersTabState extends State<PeersTab> {
-  MainchainRPC get mainchain => GetIt.I.get<MainchainRPC>();
+  OrchestratorRPC get _orchestrator => GetIt.I.get<OrchestratorRPC>();
   List<PeerInfo> peers = [];
 
   @override
@@ -350,9 +351,9 @@ class _PeersTabState extends State<PeersTab> {
   }
 
   Future<void> _loadPeers() async {
-    final peerList = await mainchain.getPeerInfo();
+    final resp = await _orchestrator.bitcoind.getPeerInfo(GetPeerInfoRequest());
     setState(() {
-      peers = peerList;
+      peers = resp.peers.map(PeerInfo.fromProto).toList();
     });
   }
 

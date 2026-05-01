@@ -1,9 +1,11 @@
 import 'dart:async';
 
+import 'package:fixnum/fixnum.dart';
 import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:sail_ui/env.dart';
+import 'package:sail_ui/gen/bitcoin/bitcoind/v1alpha/bitcoin.pb.dart';
 import 'package:sail_ui/sail_ui.dart';
 
 /// Statistics about a fee bucket
@@ -82,6 +84,7 @@ class MempoolStats {
 class MempoolProvider extends ChangeNotifier {
   Logger get log => GetIt.I.get<Logger>();
   BitwindowRPC get api => GetIt.I.get<BitwindowRPC>();
+  OrchestratorRPC get _orchestrator => GetIt.I.get<OrchestratorRPC>();
 
   MempoolStats stats = MempoolStats.empty();
   String? error;
@@ -108,7 +111,7 @@ class MempoolProvider extends ChangeNotifier {
     isFetching = true;
 
     try {
-      final mempoolResponse = await api.bitcoind.getRawMempool();
+      final mempoolResponse = await _orchestrator.bitcoind.getRawMempool(GetRawMempoolRequest());
       final transactions = mempoolResponse.transactions;
 
       // Calculate fee buckets
@@ -178,7 +181,9 @@ class MempoolProvider extends ChangeNotifier {
       final confTargets = [1, 3, 6, 12, 24, 144];
       for (final target in confTargets) {
         try {
-          final estimate = await api.bitcoind.estimateSmartFee(target);
+          final estimate = await _orchestrator.bitcoind.estimateSmartFee(
+            EstimateSmartFeeRequest()..confTarget = Int64(target),
+          );
           if (estimate.feeRate > 0) {
             // Convert BTC/kB to sat/vB
             final satPerVb = (estimate.feeRate * 100000000 / 1000).toDouble();

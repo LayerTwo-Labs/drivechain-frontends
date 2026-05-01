@@ -1,11 +1,9 @@
 import 'dart:async';
-import 'dart:convert';
 
 import 'package:bitwindow/models/multisig_group.dart';
 import 'package:bitwindow/models/multisig_transaction.dart';
 import 'package:bitwindow/providers/hd_wallet_provider.dart';
 import 'package:bitwindow/widgets/create_multisig_modal.dart';
-import 'package:dio/dio.dart';
 import 'package:fixnum/fixnum.dart';
 import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
@@ -20,6 +18,9 @@ class FileOperationLock {
     return await operation();
   }
 }
+
+// Shared helper now lives in sail_ui as `bitcoindRpcCall`.
+Future<dynamic> _coreRaw(String method, [List<dynamic>? params]) => bitcoindRpcCall(method, params: params);
 
 class TransactionStatusManager {
   static Future<void> updateTransactionStatus({
@@ -70,13 +71,11 @@ class TransactionStatusManager {
 }
 
 class PSBTValidator {
-  static final MainchainRPC _rpc = GetIt.I.get<MainchainRPC>();
-
   /// Checks if any signatures have been added to the PSBT using finalizepsbt as source of truth
   static Future<bool> hasAnySignatures(String psbtBase64, int totalKeysInGroup) async {
     try {
       // Use finalizepsbt as the ultimate source of truth
-      final finalizeResult = await _rpc.callRAW('finalizepsbt', [psbtBase64, false]);
+      final finalizeResult = await _coreRaw('finalizepsbt', [psbtBase64, false]);
 
       if (finalizeResult is! Map) {
         return false;
@@ -91,7 +90,7 @@ class PSBTValidator {
 
       // If not complete, check if any signatures were added by analyzing the result
       if (resultPsbt != null) {
-        final analysis = await _rpc.callRAW('analyzepsbt', [resultPsbt]);
+        final analysis = await _coreRaw('analyzepsbt', [resultPsbt]);
 
         if (analysis is Map) {
           final inputs = analysis['inputs'] as List<dynamic>? ?? [];
@@ -129,7 +128,7 @@ class PSBTValidator {
   static Future<bool> hasValidSignatures(String psbtBase64, int requiredSigs, {int? totalKeys}) async {
     try {
       // Use finalizepsbt to check if we have sufficient signatures
-      final finalizeResult = await _rpc.callRAW('finalizepsbt', [psbtBase64, false]);
+      final finalizeResult = await _coreRaw('finalizepsbt', [psbtBase64, false]);
 
       if (finalizeResult is! Map) {
         return false;
@@ -155,7 +154,7 @@ class PSBTValidator {
   static Future<bool> isReadyForBroadcast(String psbtBase64, int requiredSigs) async {
     try {
       // Simply check if finalizepsbt says it's complete
-      final finalizeResult = await _rpc.callRAW('finalizepsbt', [psbtBase64, false]);
+      final finalizeResult = await _coreRaw('finalizepsbt', [psbtBase64, false]);
 
       if (finalizeResult is! Map) return false;
 
@@ -169,7 +168,7 @@ class PSBTValidator {
   static Future<int> countSignatures(String psbtBase64, {int? totalKeys}) async {
     try {
       // Use finalizepsbt to get a reliable view of the PSBT
-      final finalizeResult = await _rpc.callRAW('finalizepsbt', [psbtBase64, false]);
+      final finalizeResult = await _coreRaw('finalizepsbt', [psbtBase64, false]);
 
       if (finalizeResult is! Map) return 0;
 
@@ -183,7 +182,7 @@ class PSBTValidator {
 
       // Analyze the finalized PSBT to count signatures
       final psbtToAnalyze = resultPsbt ?? psbtBase64;
-      final analysis = await _rpc.callRAW('analyzepsbt', [psbtToAnalyze]);
+      final analysis = await _coreRaw('analyzepsbt', [psbtToAnalyze]);
 
       if (analysis is! Map) return 0;
 
@@ -248,8 +247,6 @@ class BalanceManager {
           ['*', 100, 0, true], // Get last 100 transactions
         );
 
-        final rpc = GetIt.I.get<MainchainRPC>();
-
         for (final walletTx in transactions) {
           if (walletTx is Map<String, dynamic>) {
             final txid = walletTx['txid'] as String?;
@@ -258,7 +255,7 @@ class BalanceManager {
               final existingTx = await TransactionStorage.getTransactionByTxid(txid);
               if (existingTx == null) {
                 // Process new transaction
-                await MultisigStorage._processHistoricalTransaction(group, walletTx, rpc);
+                await MultisigStorage._processHistoricalTransaction(group, walletTx);
                 TransactionStorage.notifier.notifyTransactionChange();
               }
             }
@@ -461,8 +458,6 @@ class MultisigLogger {
 }
 
 class MultisigDescriptorBuilder {
-  static final MainchainRPC _rpc = GetIt.I.get<MainchainRPC>();
-
   static Future<MultisigDescriptors> buildWatchOnlyDescriptors(MultisigGroup group) async {
     final sortedKeys = _sortKeysByBIP67(group.keys);
 
@@ -533,7 +528,7 @@ class MultisigDescriptorBuilder {
         return descriptor;
       }
 
-      final result = await _rpc.callRAW('getdescriptorinfo', [descriptor]);
+      final result = await _coreRaw('getdescriptorinfo', [descriptor]);
 
       if (result is Map && result['descriptor'] != null) {
         return result['descriptor'] as String;
@@ -572,7 +567,6 @@ class SigningResult {
 }
 
 class MultisigRPCSigner {
-  final MainchainRPC _rpc = GetIt.I.get<MainchainRPC>();
   final HDWalletProvider _hdWallet = GetIt.I.get<HDWalletProvider>();
 
   Future<SigningResult> signPSBT({
@@ -620,7 +614,7 @@ class MultisigRPCSigner {
 
       String finalPsbt;
       if (participantPSBTs.length > 1) {
-        finalPsbt = await _rpc.callRAW('combinepsbt', [participantPSBTs]) as String;
+        finalPsbt = await _coreRaw('combinepsbt', [participantPSBTs]) as String;
       } else {
         finalPsbt = participantPSBTs[0];
       }
@@ -671,7 +665,7 @@ class MultisigRPCSigner {
         fingerprint!,
       );
 
-      final result = await _rpc.callRAW('descriptorprocesspsbt', [
+      final result = await _coreRaw('descriptorprocesspsbt', [
         psbtBase64,
         descriptors,
         'ALL',
@@ -1072,7 +1066,6 @@ class WalletRPCManager {
   factory WalletRPCManager() => _instance;
   WalletRPCManager._internal();
 
-  MainchainRPC get _rpc => GetIt.I.get<MainchainRPC>();
   String? _currentlyLoadedWallet;
 
   Future<T> withWallet<T>(
@@ -1092,12 +1085,12 @@ class WalletRPCManager {
 
   Future<void> loadWallet(String walletName) async {
     try {
-      final loadedWallets = await _rpc.callRAW('listwallets', []);
+      final loadedWallets = await _coreRaw('listwallets', []);
       if (loadedWallets is List && loadedWallets.contains(walletName)) {
         return;
       }
 
-      await _rpc.callRAW('loadwallet', [walletName]);
+      await _coreRaw('loadwallet', [walletName]);
     } catch (e) {
       if (e.toString().contains('already loaded')) {
         return;
@@ -1109,7 +1102,7 @@ class WalletRPCManager {
 
   Future<void> unloadWallet(String walletName) async {
     try {
-      await _rpc.callRAW('unloadwallet', [walletName]);
+      await _coreRaw('unloadwallet', [walletName]);
     } catch (e) {
       if (e.toString().contains('not found') || e.toString().contains('not loaded')) {
         return;
@@ -1118,40 +1111,8 @@ class WalletRPCManager {
   }
 
   Future<T> callWalletRPC<T>(String walletName, String method, List<dynamic> params) async {
-    final rpcLive = _rpc as MainchainRPCLive;
-    final conf = rpcLive.conf;
-
-    final dio = Dio();
-    dio.options.baseUrl = 'http://${conf.host}:${conf.port}';
-    dio.options.headers = {
-      'Content-Type': 'application/json',
-    };
-
-    final auth = 'Basic ${base64Encode(utf8.encode('${conf.username}:${conf.password}'))}';
-    dio.options.headers['Authorization'] = auth;
-
-    final payload = {
-      'jsonrpc': '2.0',
-      'method': method,
-      'params': params,
-      'id': DateTime.now().millisecondsSinceEpoch,
-    };
-
-    try {
-      final response = await dio.post(
-        '/wallet/$walletName',
-        data: payload,
-      );
-
-      final data = response.data;
-      if (data['error'] != null) {
-        final error = data['error'];
-        throw Exception('RPC Error ${error['code']}: ${error['message']}');
-      }
-      return data['result'] as T;
-    } catch (e) {
-      rethrow;
-    }
+    final result = await bitcoindRpcCall(method, params: params, wallet: walletName);
+    return result as T;
   }
 
   Future<double> getWalletBalance(
@@ -1216,7 +1177,7 @@ class WalletRPCManager {
       loadOnStartup,
     ];
 
-    return await _rpc.callRAW('createwallet', params) as Map<String, dynamic>;
+    return await _coreRaw('createwallet', params) as Map<String, dynamic>;
   }
 
   Future<void> importWallet(String walletName, String filename) async {
@@ -1227,7 +1188,7 @@ class WalletRPCManager {
 
   Future<void> unloadAllWallets() async {
     try {
-      final loadedWallets = await _rpc.callRAW('listwallets', []);
+      final loadedWallets = await _coreRaw('listwallets', []);
       if (loadedWallets is List) {
         for (final walletName in loadedWallets) {
           if (walletName is String) {
@@ -1245,7 +1206,7 @@ class WalletRPCManager {
 
   Future<bool> isWalletLoaded(String walletName) async {
     try {
-      final loadedWallets = await _rpc.callRAW('listwallets', []);
+      final loadedWallets = await _coreRaw('listwallets', []);
       return loadedWallets is List && loadedWallets.contains(walletName);
     } catch (e) {
       return false;
@@ -1281,7 +1242,7 @@ class WalletRPCManager {
 
   Future<void> rescanRecentBlocks(String walletName, {int hoursBack = 24}) async {
     return await withWallet<void>(walletName, () async {
-      final blockchainInfo = await _rpc.callRAW('getblockchaininfo', []);
+      final blockchainInfo = await _coreRaw('getblockchaininfo', []);
 
       if (blockchainInfo is! Map || blockchainInfo['blocks'] is! int) {
         throw Exception('getblockchaininfo returned invalid response: $blockchainInfo');
@@ -1388,7 +1349,6 @@ class MultisigStorage {
       }
 
       final walletManager = WalletRPCManager();
-      final rpc = GetIt.I.get<MainchainRPC>();
       final transactions = await walletManager.callWalletRPC<List<dynamic>>(
         group.watchWalletName!,
         'listtransactions',
@@ -1414,7 +1374,7 @@ class MultisigStorage {
 
       for (final walletTx in relevantTxs) {
         try {
-          await _processHistoricalTransaction(group, walletTx, rpc);
+          await _processHistoricalTransaction(group, walletTx);
         } catch (e) {
           // Continue processing other transactions
         }
@@ -1427,7 +1387,6 @@ class MultisigStorage {
   static Future<void> _processHistoricalTransaction(
     MultisigGroup group,
     Map<String, dynamic> walletTx,
-    MainchainRPC rpc,
   ) async {
     final txid = walletTx['txid'] as String;
     final originalAmount = (walletTx['amount'] as num?)?.toDouble() ?? 0.0;
@@ -1439,7 +1398,7 @@ class MultisigStorage {
     if (existingTx != null) {
       return;
     }
-    final txDetails = await rpc.callRAW('getrawtransaction', [txid, true]) as Map<String, dynamic>;
+    final txDetails = await _coreRaw('getrawtransaction', [txid, true]) as Map<String, dynamic>;
 
     if (txDetails.isEmpty) {
       return;
@@ -1554,11 +1513,9 @@ class MultisigStorage {
   }
 
   static Future<void> createMultisigWallet(String walletName, String descriptorReceive, String descriptorChange) async {
-    final rpc = GetIt.I.get<MainchainRPC>();
-
     try {
       // Create wallet directly in network folder, no wallets/ subdirectory
-      await rpc.callRAW('createwallet', [
+      await _coreRaw('createwallet', [
         walletName, // Create directly in network folder
         true, // disable_private_keys - DISABLE private keys (watch-only)
         true, // blank (start empty)
@@ -1569,7 +1526,7 @@ class MultisigStorage {
       ]);
 
       try {
-        await rpc.callRAW('loadwallet', [walletName]);
+        await _coreRaw('loadwallet', [walletName]);
       } catch (e) {
         // Wallet might already be loaded
       }

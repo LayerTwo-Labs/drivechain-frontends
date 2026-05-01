@@ -165,8 +165,6 @@ class FundGroupModalViewModel extends BaseViewModel {
 
   Future<String> _generateMultisigAddress(MultisigGroup group) async {
     try {
-      final api = GetIt.I.get<MainchainRPC>();
-
       // Load latest group state from backend RPC
       final groups = await MultisigStorage.loadGroups();
       final enhancedGroup = groups.firstWhere(
@@ -232,12 +230,12 @@ class FundGroupModalViewModel extends BaseViewModel {
         MultisigLogger.info('Creating ${enhancedGroup.m}-of-${enhancedGroup.n} multisig wallet: $walletName');
         final changeDesc = 'wsh(sortedmulti(${enhancedGroup.m},$keyDescriptors/1/*))';
 
-        final receiveResult = await api.callRAW('getdescriptorinfo', [receiveDesc]);
+        final receiveResult = await bitcoindRpcCall('getdescriptorinfo', params: [receiveDesc]);
         final receiveWithChecksum = receiveResult is Map && receiveResult['descriptor'] != null
             ? receiveResult['descriptor'] as String
             : receiveDesc;
 
-        final changeResult = await api.callRAW('getdescriptorinfo', [changeDesc]);
+        final changeResult = await bitcoindRpcCall('getdescriptorinfo', params: [changeDesc]);
         final changeWithChecksum = changeResult is Map && changeResult['descriptor'] != null
             ? changeResult['descriptor'] as String
             : changeDesc;
@@ -272,9 +270,9 @@ class FundGroupModalViewModel extends BaseViewModel {
 
       int nextIndex = updatedGroup.nextReceiveIndex;
 
-      final addresses = await api.callRAW(
+      final addresses = await bitcoindRpcCall(
         'deriveaddresses',
-        [
+        params: [
           descriptor,
           [nextIndex, nextIndex],
         ],

@@ -29,6 +29,11 @@ message GetBitcoinConfigResponse {
   string config_content = 6; // raw config file content
   bool network_supports_sidechains = 7;
   bool is_demo_mode = 8; // true on mainnet
+  // RPC creds — exposed so localhost callers (cpuminer, future tools) that
+  // need raw bitcoind JSON-RPC can dial it without re-parsing config_content.
+  // Prefer the hosted BitcoinService proxy when possible.
+  string rpc_user = 9;
+  string rpc_password = 10;
 }
 
 // SetBitcoinConfigNetwork

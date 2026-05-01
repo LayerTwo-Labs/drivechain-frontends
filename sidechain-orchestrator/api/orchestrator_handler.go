@@ -1,7 +1,13 @@
 package api
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
+	"fmt"
+	"io"
+	"net/http"
+	"strings"
 	"time"
 
 	"connectrpc.com/connect"
@@ -417,4 +423,118 @@ func statusToProto(s orchestrator.BinaryStatus) *pb.BinaryStatusMsg {
 		StartupLogs:     startupLogs,
 		BlockchainSync:  sync,
 	}
+}
+
+// ─── Bitcoin Core typed extensions ─────────────────────────────────────────
+//
+// Direct JSON-RPC to bitcoind for methods btc-buf doesn't type
+// (getmempoolinfo, finalizepsbt, descriptorprocesspsbt, …). Credentials come
+// from the orchestrator's BitcoinConf, which it already loads at startup.
+
+type coreRPCResult struct {
+	Result json.RawMessage `json:"result"`
+	Error  *struct {
+		Code    int    `json:"code"`
+		Message string `json:"message"`
+	} `json:"error"`
+}
+
+func (h *Handler) callCoreRPC(ctx context.Context, method, paramsJSON, wallet string) (json.RawMessage, error) {
+	if h.orch.BitcoinConf == nil {
+		return nil, connect.NewError(connect.CodeUnavailable, fmt.Errorf("bitcoin conf not loaded"))
+	}
+
+	port := h.orch.BitcoinConf.GetRPCPort()
+	var user, password string
+	if h.orch.BitcoinConf.Config != nil {
+		section := h.orch.BitcoinConf.Network.CoreSection()
+		user = h.orch.BitcoinConf.Config.GetEffectiveSetting("rpcuser", section)
+		password = h.orch.BitcoinConf.Config.GetEffectiveSetting("rpcpassword", section)
+	}
+
+	if paramsJSON == "" {
+		paramsJSON = "[]"
+	}
+	body := []byte(fmt.Sprintf(`{"jsonrpc":"1.0","id":"orchestratord","method":%q,"params":%s}`, method, paramsJSON))
+
+	url := fmt.Sprintf("http://localhost:%d", port)
+	if wallet != "" {
+		url = strings.TrimRight(url, "/") + "/wallet/" + wallet
+	}
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(body))
+	if err != nil {
+		return nil, fmt.Errorf("build %s request: %w", method, err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+	if user != "" {
+		req.SetBasicAuth(user, password)
+	}
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", method, err)
+	}
+	defer resp.Body.Close() //nolint:errcheck // cleanup
+
+	respBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("read %s response: %w", method, err)
+	}
+
+	var out coreRPCResult
+	if jerr := json.Unmarshal(respBody, &out); jerr != nil {
+		if resp.StatusCode != http.StatusOK {
+			return nil, fmt.Errorf("%s: HTTP %d", method, resp.StatusCode)
+		}
+		return nil, fmt.Errorf("decode %s: %w", method, jerr)
+	}
+	if out.Error != nil {
+		return nil, fmt.Errorf("%s: %s", method, out.Error.Message)
+	}
+	return out.Result, nil
+}
+
+func (h *Handler) GetCoreMempoolInfo(ctx context.Context, _ *connect.Request[pb.GetCoreMempoolInfoRequest]) (*connect.Response[pb.GetCoreMempoolInfoResponse], error) {
+	raw, err := h.callCoreRPC(ctx, "getmempoolinfo", "[]", "")
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+	var info struct {
+		Loaded              bool    `json:"loaded"`
+		Size                int64   `json:"size"`
+		Bytes               int64   `json:"bytes"`
+		Usage               int64   `json:"usage"`
+		TotalFee            float64 `json:"total_fee"`
+		MaxMempool          int64   `json:"maxmempool"`
+		MempoolMinFee       float64 `json:"mempoolminfee"`
+		MinRelayTxFee       float64 `json:"minrelaytxfee"`
+		IncrementalRelayFee float64 `json:"incrementalrelayfee"`
+		UnbroadcastCount    int64   `json:"unbroadcastcount"`
+		FullRBF             bool    `json:"fullrbf"`
+	}
+	if err := json.Unmarshal(raw, &info); err != nil {
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("decode getmempoolinfo: %w", err))
+	}
+	return connect.NewResponse(&pb.GetCoreMempoolInfoResponse{
+		Loaded:              info.Loaded,
+		Size:                info.Size,
+		Bytes:               info.Bytes,
+		Usage:               info.Usage,
+		TotalFee:            info.TotalFee,
+		MaxMempool:          info.MaxMempool,
+		MempoolMinFee:       info.MempoolMinFee,
+		MinRelayTxFee:       info.MinRelayTxFee,
+		IncrementalRelayFee: info.IncrementalRelayFee,
+		UnbroadcastCount:    info.UnbroadcastCount,
+		FullRbf:             info.FullRBF,
+	}), nil
+}
+
+func (h *Handler) CoreRawCall(ctx context.Context, req *connect.Request[pb.CoreRawCallRequest]) (*connect.Response[pb.CoreRawCallResponse], error) {
+	raw, err := h.callCoreRPC(ctx, req.Msg.Method, req.Msg.ParamsJson, req.Msg.Wallet)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+	return connect.NewResponse(&pb.CoreRawCallResponse{ResultJson: string(raw)}), nil
 }

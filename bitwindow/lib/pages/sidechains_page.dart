@@ -750,7 +750,8 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
 
     // Check if binary is running
     final rpc = switch (sidechain) {
-      var b when b is BitcoinCore => GetIt.I.isRegistered<MainchainRPC>() ? GetIt.I.get<MainchainRPC>() : null,
+      var b when b is BitcoinCore =>
+        GetIt.I.isRegistered<BitcoindConnection>() ? GetIt.I.get<BitcoindConnection>() : null,
       var b when b is Enforcer => GetIt.I.isRegistered<EnforcerRPC>() ? GetIt.I.get<EnforcerRPC>() : null,
       var b when b is BitWindow => GetIt.I.isRegistered<BitwindowRPC>() ? GetIt.I.get<BitwindowRPC>() : null,
       var b when b is Thunder => GetIt.I.isRegistered<ThunderRPC>() ? GetIt.I.get<ThunderRPC>() : null,

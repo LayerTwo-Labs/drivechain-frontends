@@ -3,6 +3,7 @@ import 'package:sail_ui/rpcs/keepalive_http_client.dart';
 import 'package:connectrpc/protocol/connect.dart' as connect;
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
+import 'package:sail_ui/gen/bitcoin/bitcoind/v1alpha/bitcoin.connect.client.dart';
 import 'package:sail_ui/gen/orchestrator/v1/orchestrator.connect.client.dart';
 import 'package:sail_ui/gen/orchestrator/v1/orchestrator.pb.dart';
 import 'package:sail_ui/rpcs/orchestrator_wallet_rpc.dart';
@@ -21,6 +22,10 @@ class OrchestratorRPC {
   late OrchestratorServiceClient _unaryClient;
   late OrchestratorServiceClient _streamClient;
   late OrchestratorWalletRPC wallet;
+
+  /// btc-buf BitcoinService — single canonical bitcoind proxy for all
+  /// callers. Routes peers / mempool / fee / blocks / PSBT helpers.
+  late BitcoinServiceClient bitcoind;
   final String _host;
   final int _port;
 
@@ -43,10 +48,8 @@ class OrchestratorRPC {
     );
     _unaryClient = OrchestratorServiceClient(unaryTransport);
     _streamClient = OrchestratorServiceClient(streamTransport);
-    wallet = OrchestratorWalletRPC.fromTransports(
-      unary: unaryTransport,
-      stream: streamTransport,
-    );
+    wallet = OrchestratorWalletRPC.fromTransports(unary: unaryTransport, stream: streamTransport);
+    bitcoind = BitcoinServiceClient(unaryTransport);
   }
 
   /// Rebuild both transports. Called by [StreamSupervisor] when it
@@ -95,11 +98,7 @@ class OrchestratorRPC {
     Map<String, String>? env,
   }) {
     return _unaryClient.startBinary(
-      StartBinaryRequest(
-        name: name,
-        extraArgs: extraArgs ?? [],
-        env: env ?? {},
-      ),
+      StartBinaryRequest(name: name, extraArgs: extraArgs ?? [], env: env ?? {}),
     );
   }
 
@@ -112,19 +111,29 @@ class OrchestratorRPC {
   }
 
   Future<GetMainchainBlockchainInfoResponse> getMainchainBlockchainInfo() {
-    return _unaryClient.getMainchainBlockchainInfo(
-      GetMainchainBlockchainInfoRequest(),
-    );
+    return _unaryClient.getMainchainBlockchainInfo(GetMainchainBlockchainInfoRequest());
   }
 
   Future<GetEnforcerBlockchainInfoResponse> getEnforcerBlockchainInfo() {
-    return _unaryClient.getEnforcerBlockchainInfo(
-      GetEnforcerBlockchainInfoRequest(),
-    );
+    return _unaryClient.getEnforcerBlockchainInfo(GetEnforcerBlockchainInfoRequest());
   }
 
   Future<GetMainchainBalanceResponse> getMainchainBalance() {
     return _unaryClient.getMainchainBalance(GetMainchainBalanceRequest());
+  }
+
+  Future<GetCoreMempoolInfoResponse> getCoreMempoolInfo() {
+    return _unaryClient.getCoreMempoolInfo(GetCoreMempoolInfoRequest());
+  }
+
+  Future<CoreRawCallResponse> coreRawCall(
+    String method, {
+    String paramsJson = '',
+    String wallet = '',
+  }) {
+    return _unaryClient.coreRawCall(
+      CoreRawCallRequest(method: method, paramsJson: paramsJson, wallet: wallet),
+    );
   }
 
   Future<PreviewResetDataResponse> previewResetData({
@@ -149,13 +158,8 @@ class OrchestratorRPC {
 
   // ─── server-streaming ─────────────────────────────────────────────────────
 
-  Stream<DownloadBinaryResponse> downloadBinary(
-    String name, {
-    bool force = false,
-  }) {
-    return _streamClient.downloadBinary(
-      DownloadBinaryRequest(name: name, force: force),
-    );
+  Stream<DownloadBinaryResponse> downloadBinary(String name, {bool force = false}) {
+    return _streamClient.downloadBinary(DownloadBinaryRequest(name: name, force: force));
   }
 
   Stream<WatchBinariesResponse> watchBinaries() {

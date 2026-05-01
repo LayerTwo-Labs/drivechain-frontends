@@ -33,7 +33,6 @@ class _ImportPSBTModalState extends State<ImportPSBTModal> {
   String? _modalError;
   String? _selectedFileName;
   Map<String, dynamic>? _importedData;
-  MainchainRPC get _rpc => GetIt.I.get<MainchainRPC>();
   HDWalletProvider get _hdWallet => GetIt.I.get<HDWalletProvider>();
 
   @override
@@ -180,7 +179,7 @@ class _ImportPSBTModalState extends State<ImportPSBTModal> {
     try {
       final cleanPsbt = _psbtController.text.replaceAll(RegExp(r'\s'), '');
 
-      final decodedPsbt = await _rpc.callRAW('decodepsbt', [cleanPsbt]);
+      final decodedPsbt = await bitcoindRpcCall('decodepsbt', params: [cleanPsbt]);
       if (decodedPsbt is! Map) {
         throw Exception('Invalid PSBT format');
       }

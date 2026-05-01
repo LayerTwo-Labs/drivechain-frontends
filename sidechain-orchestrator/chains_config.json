@@ -70,6 +70,16 @@
             },
             "available_networks": ["forknet"]
           },
+          "patched": {
+            "subfolder": "drivechain-patched",
+            "base_url": "https://releases.drivechain.info/",
+            "files": {
+              "linux": "L1-bitcoin-patched-latest-x86_64-unknown-linux-gnu.zip",
+              "macos": "L1-bitcoin-patched-latest-x86_64-apple-darwin.zip",
+              "windows": "L1-bitcoin-patched-latest-x86_64-w64-msvc.zip"
+            },
+            "available_networks": ["mainnet", "signet", "testnet", "regtest", "forknet"]
+          },
           "knots": {
             "subfolder": "knots",
             "base_url": "https://bitcoinknots.org/files/29.x/29.3.knots20260210/",

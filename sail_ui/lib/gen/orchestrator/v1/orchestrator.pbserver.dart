@@ -36,6 +36,8 @@ abstract class OrchestratorServiceBase extends $pb.GeneratedService {
   $async.Future<$5.GetMainchainBalanceResponse> getMainchainBalance($pb.ServerContext ctx, $5.GetMainchainBalanceRequest request);
   $async.Future<$5.PreviewResetDataResponse> previewResetData($pb.ServerContext ctx, $5.PreviewResetDataRequest request);
   $async.Future<$5.StreamResetDataResponse> streamResetData($pb.ServerContext ctx, $5.StreamResetDataRequest request);
+  $async.Future<$5.GetCoreMempoolInfoResponse> getCoreMempoolInfo($pb.ServerContext ctx, $5.GetCoreMempoolInfoRequest request);
+  $async.Future<$5.CoreRawCallResponse> coreRawCall($pb.ServerContext ctx, $5.CoreRawCallRequest request);
 
   $pb.GeneratedMessage createRequest($core.String methodName) {
     switch (methodName) {
@@ -54,6 +56,8 @@ abstract class OrchestratorServiceBase extends $pb.GeneratedService {
       case 'GetMainchainBalance': return $5.GetMainchainBalanceRequest();
       case 'PreviewResetData': return $5.PreviewResetDataRequest();
       case 'StreamResetData': return $5.StreamResetDataRequest();
+      case 'GetCoreMempoolInfo': return $5.GetCoreMempoolInfoRequest();
+      case 'CoreRawCall': return $5.CoreRawCallRequest();
       default: throw $core.ArgumentError('Unknown method: $methodName');
     }
   }
@@ -75,6 +79,8 @@ abstract class OrchestratorServiceBase extends $pb.GeneratedService {
       case 'GetMainchainBalance': return this.getMainchainBalance(ctx, request as $5.GetMainchainBalanceRequest);
       case 'PreviewResetData': return this.previewResetData(ctx, request as $5.PreviewResetDataRequest);
       case 'StreamResetData': return this.streamResetData(ctx, request as $5.StreamResetDataRequest);
+      case 'GetCoreMempoolInfo': return this.getCoreMempoolInfo(ctx, request as $5.GetCoreMempoolInfoRequest);
+      case 'CoreRawCall': return this.coreRawCall(ctx, request as $5.CoreRawCallRequest);
       default: throw $core.ArgumentError('Unknown method: $methodName');
     }
   }

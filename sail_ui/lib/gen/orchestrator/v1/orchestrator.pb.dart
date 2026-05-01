@@ -2827,6 +2827,375 @@ class StreamResetDataResponse extends $pb.GeneratedMessage {
   void clearFailedCount() => clearField(7);
 }
 
+class GetCoreMempoolInfoRequest extends $pb.GeneratedMessage {
+  factory GetCoreMempoolInfoRequest() => create();
+  GetCoreMempoolInfoRequest._() : super();
+  factory GetCoreMempoolInfoRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory GetCoreMempoolInfoRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'GetCoreMempoolInfoRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'orchestrator.v1'), createEmptyInstance: create)
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  GetCoreMempoolInfoRequest clone() => GetCoreMempoolInfoRequest()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  GetCoreMempoolInfoRequest copyWith(void Function(GetCoreMempoolInfoRequest) updates) => super.copyWith((message) => updates(message as GetCoreMempoolInfoRequest)) as GetCoreMempoolInfoRequest;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static GetCoreMempoolInfoRequest create() => GetCoreMempoolInfoRequest._();
+  GetCoreMempoolInfoRequest createEmptyInstance() => create();
+  static $pb.PbList<GetCoreMempoolInfoRequest> createRepeated() => $pb.PbList<GetCoreMempoolInfoRequest>();
+  @$core.pragma('dart2js:noInline')
+  static GetCoreMempoolInfoRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<GetCoreMempoolInfoRequest>(create);
+  static GetCoreMempoolInfoRequest? _defaultInstance;
+}
+
+/// Mirrors bitcoind's getmempoolinfo. Aggregate stats — distinct from
+/// getrawmempool which lists individual mempool txids.
+class GetCoreMempoolInfoResponse extends $pb.GeneratedMessage {
+  factory GetCoreMempoolInfoResponse({
+    $core.bool? loaded,
+    $fixnum.Int64? size,
+    $fixnum.Int64? bytes,
+    $fixnum.Int64? usage,
+    $core.double? totalFee,
+    $fixnum.Int64? maxMempool,
+    $core.double? mempoolMinFee,
+    $core.double? minRelayTxFee,
+    $core.double? incrementalRelayFee,
+    $fixnum.Int64? unbroadcastCount,
+    $core.bool? fullRbf,
+  }) {
+    final $result = create();
+    if (loaded != null) {
+      $result.loaded = loaded;
+    }
+    if (size != null) {
+      $result.size = size;
+    }
+    if (bytes != null) {
+      $result.bytes = bytes;
+    }
+    if (usage != null) {
+      $result.usage = usage;
+    }
+    if (totalFee != null) {
+      $result.totalFee = totalFee;
+    }
+    if (maxMempool != null) {
+      $result.maxMempool = maxMempool;
+    }
+    if (mempoolMinFee != null) {
+      $result.mempoolMinFee = mempoolMinFee;
+    }
+    if (minRelayTxFee != null) {
+      $result.minRelayTxFee = minRelayTxFee;
+    }
+    if (incrementalRelayFee != null) {
+      $result.incrementalRelayFee = incrementalRelayFee;
+    }
+    if (unbroadcastCount != null) {
+      $result.unbroadcastCount = unbroadcastCount;
+    }
+    if (fullRbf != null) {
+      $result.fullRbf = fullRbf;
+    }
+    return $result;
+  }
+  GetCoreMempoolInfoResponse._() : super();
+  factory GetCoreMempoolInfoResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory GetCoreMempoolInfoResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'GetCoreMempoolInfoResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'orchestrator.v1'), createEmptyInstance: create)
+    ..aOB(1, _omitFieldNames ? '' : 'loaded')
+    ..aInt64(2, _omitFieldNames ? '' : 'size')
+    ..aInt64(3, _omitFieldNames ? '' : 'bytes')
+    ..aInt64(4, _omitFieldNames ? '' : 'usage')
+    ..a<$core.double>(5, _omitFieldNames ? '' : 'totalFee', $pb.PbFieldType.OD)
+    ..aInt64(6, _omitFieldNames ? '' : 'maxMempool')
+    ..a<$core.double>(7, _omitFieldNames ? '' : 'mempoolMinFee', $pb.PbFieldType.OD)
+    ..a<$core.double>(8, _omitFieldNames ? '' : 'minRelayTxFee', $pb.PbFieldType.OD)
+    ..a<$core.double>(9, _omitFieldNames ? '' : 'incrementalRelayFee', $pb.PbFieldType.OD)
+    ..aInt64(10, _omitFieldNames ? '' : 'unbroadcastCount')
+    ..aOB(11, _omitFieldNames ? '' : 'fullRbf')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  GetCoreMempoolInfoResponse clone() => GetCoreMempoolInfoResponse()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  GetCoreMempoolInfoResponse copyWith(void Function(GetCoreMempoolInfoResponse) updates) => super.copyWith((message) => updates(message as GetCoreMempoolInfoResponse)) as GetCoreMempoolInfoResponse;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static GetCoreMempoolInfoResponse create() => GetCoreMempoolInfoResponse._();
+  GetCoreMempoolInfoResponse createEmptyInstance() => create();
+  static $pb.PbList<GetCoreMempoolInfoResponse> createRepeated() => $pb.PbList<GetCoreMempoolInfoResponse>();
+  @$core.pragma('dart2js:noInline')
+  static GetCoreMempoolInfoResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<GetCoreMempoolInfoResponse>(create);
+  static GetCoreMempoolInfoResponse? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.bool get loaded => $_getBF(0);
+  @$pb.TagNumber(1)
+  set loaded($core.bool v) { $_setBool(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasLoaded() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearLoaded() => clearField(1);
+
+  /// Number of transactions in the mempool.
+  @$pb.TagNumber(2)
+  $fixnum.Int64 get size => $_getI64(1);
+  @$pb.TagNumber(2)
+  set size($fixnum.Int64 v) { $_setInt64(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasSize() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearSize() => clearField(2);
+
+  /// Sum of serialized sizes (bytes).
+  @$pb.TagNumber(3)
+  $fixnum.Int64 get bytes => $_getI64(2);
+  @$pb.TagNumber(3)
+  set bytes($fixnum.Int64 v) { $_setInt64(2, v); }
+  @$pb.TagNumber(3)
+  $core.bool hasBytes() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearBytes() => clearField(3);
+
+  /// Total memory usage (bytes).
+  @$pb.TagNumber(4)
+  $fixnum.Int64 get usage => $_getI64(3);
+  @$pb.TagNumber(4)
+  set usage($fixnum.Int64 v) { $_setInt64(3, v); }
+  @$pb.TagNumber(4)
+  $core.bool hasUsage() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearUsage() => clearField(4);
+
+  /// Sum of all tx fees (BTC).
+  @$pb.TagNumber(5)
+  $core.double get totalFee => $_getN(4);
+  @$pb.TagNumber(5)
+  set totalFee($core.double v) { $_setDouble(4, v); }
+  @$pb.TagNumber(5)
+  $core.bool hasTotalFee() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearTotalFee() => clearField(5);
+
+  /// Mempool size cap (bytes).
+  @$pb.TagNumber(6)
+  $fixnum.Int64 get maxMempool => $_getI64(5);
+  @$pb.TagNumber(6)
+  set maxMempool($fixnum.Int64 v) { $_setInt64(5, v); }
+  @$pb.TagNumber(6)
+  $core.bool hasMaxMempool() => $_has(5);
+  @$pb.TagNumber(6)
+  void clearMaxMempool() => clearField(6);
+
+  /// Lowest fee rate accepted into mempool (BTC/kvB).
+  @$pb.TagNumber(7)
+  $core.double get mempoolMinFee => $_getN(6);
+  @$pb.TagNumber(7)
+  set mempoolMinFee($core.double v) { $_setDouble(6, v); }
+  @$pb.TagNumber(7)
+  $core.bool hasMempoolMinFee() => $_has(6);
+  @$pb.TagNumber(7)
+  void clearMempoolMinFee() => clearField(7);
+
+  /// Lowest fee rate eligible for relay (BTC/kvB).
+  @$pb.TagNumber(8)
+  $core.double get minRelayTxFee => $_getN(7);
+  @$pb.TagNumber(8)
+  set minRelayTxFee($core.double v) { $_setDouble(7, v); }
+  @$pb.TagNumber(8)
+  $core.bool hasMinRelayTxFee() => $_has(7);
+  @$pb.TagNumber(8)
+  void clearMinRelayTxFee() => clearField(8);
+
+  /// Minimum bump-fee increment (BTC/kvB).
+  @$pb.TagNumber(9)
+  $core.double get incrementalRelayFee => $_getN(8);
+  @$pb.TagNumber(9)
+  set incrementalRelayFee($core.double v) { $_setDouble(8, v); }
+  @$pb.TagNumber(9)
+  $core.bool hasIncrementalRelayFee() => $_has(8);
+  @$pb.TagNumber(9)
+  void clearIncrementalRelayFee() => clearField(9);
+
+  /// Transactions in mempool not yet broadcast.
+  @$pb.TagNumber(10)
+  $fixnum.Int64 get unbroadcastCount => $_getI64(9);
+  @$pb.TagNumber(10)
+  set unbroadcastCount($fixnum.Int64 v) { $_setInt64(9, v); }
+  @$pb.TagNumber(10)
+  $core.bool hasUnbroadcastCount() => $_has(9);
+  @$pb.TagNumber(10)
+  void clearUnbroadcastCount() => clearField(10);
+
+  @$pb.TagNumber(11)
+  $core.bool get fullRbf => $_getBF(10);
+  @$pb.TagNumber(11)
+  set fullRbf($core.bool v) { $_setBool(10, v); }
+  @$pb.TagNumber(11)
+  $core.bool hasFullRbf() => $_has(10);
+  @$pb.TagNumber(11)
+  void clearFullRbf() => clearField(11);
+}
+
+class CoreRawCallRequest extends $pb.GeneratedMessage {
+  factory CoreRawCallRequest({
+    $core.String? method,
+    $core.String? paramsJson,
+    $core.String? wallet,
+  }) {
+    final $result = create();
+    if (method != null) {
+      $result.method = method;
+    }
+    if (paramsJson != null) {
+      $result.paramsJson = paramsJson;
+    }
+    if (wallet != null) {
+      $result.wallet = wallet;
+    }
+    return $result;
+  }
+  CoreRawCallRequest._() : super();
+  factory CoreRawCallRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory CoreRawCallRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'CoreRawCallRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'orchestrator.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'method')
+    ..aOS(2, _omitFieldNames ? '' : 'paramsJson')
+    ..aOS(3, _omitFieldNames ? '' : 'wallet')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  CoreRawCallRequest clone() => CoreRawCallRequest()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  CoreRawCallRequest copyWith(void Function(CoreRawCallRequest) updates) => super.copyWith((message) => updates(message as CoreRawCallRequest)) as CoreRawCallRequest;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static CoreRawCallRequest create() => CoreRawCallRequest._();
+  CoreRawCallRequest createEmptyInstance() => create();
+  static $pb.PbList<CoreRawCallRequest> createRepeated() => $pb.PbList<CoreRawCallRequest>();
+  @$core.pragma('dart2js:noInline')
+  static CoreRawCallRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<CoreRawCallRequest>(create);
+  static CoreRawCallRequest? _defaultInstance;
+
+  /// bitcoind RPC method name (e.g. "finalizepsbt").
+  @$pb.TagNumber(1)
+  $core.String get method => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set method($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasMethod() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearMethod() => clearField(1);
+
+  /// JSON-encoded positional params array (e.g. '["psbtBase64", false]').
+  /// Empty string means no params.
+  @$pb.TagNumber(2)
+  $core.String get paramsJson => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set paramsJson($core.String v) { $_setString(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasParamsJson() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearParamsJson() => clearField(2);
+
+  /// Optional bitcoind wallet name to scope the call to. When set, the request
+  /// is routed to /wallet/{wallet} on bitcoind so wallet-scoped RPCs like
+  /// listtransactions / getbalance / getwalletinfo dispatch to the right
+  /// wallet. Empty = node-level call.
+  @$pb.TagNumber(3)
+  $core.String get wallet => $_getSZ(2);
+  @$pb.TagNumber(3)
+  set wallet($core.String v) { $_setString(2, v); }
+  @$pb.TagNumber(3)
+  $core.bool hasWallet() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearWallet() => clearField(3);
+}
+
+class CoreRawCallResponse extends $pb.GeneratedMessage {
+  factory CoreRawCallResponse({
+    $core.String? resultJson,
+  }) {
+    final $result = create();
+    if (resultJson != null) {
+      $result.resultJson = resultJson;
+    }
+    return $result;
+  }
+  CoreRawCallResponse._() : super();
+  factory CoreRawCallResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory CoreRawCallResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'CoreRawCallResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'orchestrator.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'resultJson')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  CoreRawCallResponse clone() => CoreRawCallResponse()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  CoreRawCallResponse copyWith(void Function(CoreRawCallResponse) updates) => super.copyWith((message) => updates(message as CoreRawCallResponse)) as CoreRawCallResponse;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static CoreRawCallResponse create() => CoreRawCallResponse._();
+  CoreRawCallResponse createEmptyInstance() => create();
+  static $pb.PbList<CoreRawCallResponse> createRepeated() => $pb.PbList<CoreRawCallResponse>();
+  @$core.pragma('dart2js:noInline')
+  static CoreRawCallResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<CoreRawCallResponse>(create);
+  static CoreRawCallResponse? _defaultInstance;
+
+  /// JSON-encoded result. Caller decodes to its expected shape.
+  @$pb.TagNumber(1)
+  $core.String get resultJson => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set resultJson($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasResultJson() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearResultJson() => clearField(1);
+}
+
 class OrchestratorServiceApi {
   $pb.RpcClient _client;
   OrchestratorServiceApi(this._client);
@@ -2875,6 +3244,12 @@ class OrchestratorServiceApi {
   ;
   $async.Future<StreamResetDataResponse> streamResetData($pb.ClientContext? ctx, StreamResetDataRequest request) =>
     _client.invoke<StreamResetDataResponse>(ctx, 'OrchestratorService', 'StreamResetData', request, StreamResetDataResponse())
+  ;
+  $async.Future<GetCoreMempoolInfoResponse> getCoreMempoolInfo($pb.ClientContext? ctx, GetCoreMempoolInfoRequest request) =>
+    _client.invoke<GetCoreMempoolInfoResponse>(ctx, 'OrchestratorService', 'GetCoreMempoolInfo', request, GetCoreMempoolInfoResponse())
+  ;
+  $async.Future<CoreRawCallResponse> coreRawCall($pb.ClientContext? ctx, CoreRawCallRequest request) =>
+    _client.invoke<CoreRawCallResponse>(ctx, 'OrchestratorService', 'CoreRawCall', request, CoreRawCallResponse())
   ;
 }
 

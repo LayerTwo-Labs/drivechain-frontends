@@ -2,18 +2,14 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
-	"net"
 	"net/http"
 	_ "net/http/pprof"
-	"net/url"
 	"os"
 	"os/signal"
 	"path/filepath"
 	"runtime"
 	"strings"
-	"sync"
 	"time"
 
 	"os/exec"
@@ -21,11 +17,8 @@ import (
 	"connectrpc.com/connect"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/api"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/config"
-	database "github.com/LayerTwo-Labs/sidesail/bitwindow/server/database"
 	dial "github.com/LayerTwo-Labs/sidesail/bitwindow/server/dial"
-	engines "github.com/LayerTwo-Labs/sidesail/bitwindow/server/engines"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/version"
-	orchconfig "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config"
 	cryptorpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/crypto/v1/cryptov1connect"
 	rpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1/mainchainv1connect"
 	orchpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/orchestrator/v1"
@@ -36,14 +29,10 @@ import (
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/photon"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/thunder"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/truthcoin"
-	corepb "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha"
 	corerpc "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha/bitcoindv1alphaconnect"
-	coreproxy "github.com/barebitcoin/btc-buf/server"
-	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/jessevdk/go-flags"
 	"github.com/rs/zerolog"
 	"github.com/samber/lo"
-	"google.golang.org/protobuf/types/known/emptypb"
 )
 
 func main() {
@@ -86,41 +75,32 @@ func realMain(ctx context.Context, cancelCtx context.CancelFunc) error {
 		return nil
 	}
 
-	// Resolve the network from bitwindow-bitcoin.conf (when present) before
-	// finalizing paths/URLs. The CLI --bitcoincore.network flag is only the
-	// first-boot seed; once the conf exists, its chain= setting wins. This
-	// matches the orchestrator policy so a network switch in the frontend
-	// flows to bitwindowd too — see OnNetworkChanged below.
+	// orchestratord is the canonical owner of the bitcoin.conf — both the
+	// network identity and the RPC creds live there. We start it first, wait
+	// for it to be ready, then ask it for the network. bitwindowd never
+	// parses bitcoin.conf itself.
 	bootLogger := zerolog.New(os.Stderr).With().Timestamp().Logger()
-	bitcoinConf, confErr := orchconfig.NewBitcoinConfManager(
-		conf.BitwindowDir(),
-		orchconfig.Network(conf.BitcoinCoreNetwork),
-		bootLogger,
-	)
-	var (
-		confNetwork orchconfig.Network
-		confRPCPort int
-	)
-	if confErr != nil {
-		bootLogger.Warn().Err(confErr).Msg("could not load bitwindow-bitcoin.conf; falling back to CLI flags")
-	} else {
-		confNetwork = bitcoinConf.Network
-		confRPCPort = bitcoinConf.GetRPCPort()
-		// Pull rpcuser/rpcpassword from the conf when available so bitwindowd
-		// always matches whatever bitcoind is running with. CLI flag values
-		// are kept as fallbacks for tests / cookie-auth setups.
-		if bitcoinConf.Config != nil && conf.BitcoinCoreCookie == "" {
-			section := bitcoinConf.Network.CoreSection()
-			if u := bitcoinConf.Config.GetEffectiveSetting("rpcuser", section); u != "" {
-				conf.BitcoinCoreRpcUser = u
+	bootCtx := bootLogger.WithContext(ctx)
+
+	orchCmd, err := startOrchestratord(bootCtx, conf)
+	if err != nil {
+		bootLogger.Warn().Err(err).Msg("failed to start orchestratord (may already be running)")
+	} else if orchCmd != nil {
+		defer func() {
+			if orchCmd.Process != nil {
+				bootLogger.Info().Int("pid", orchCmd.Process.Pid).Msg("stopping orchestratord")
+				_ = orchCmd.Process.Signal(os.Interrupt)
+				_ = orchCmd.Wait()
 			}
-			if p := bitcoinConf.Config.GetEffectiveSetting("rpcpassword", section); p != "" {
-				conf.BitcoinCoreRpcPassword = p
-			}
-		}
+		}()
 	}
 
-	if err := conf.Finalize(config.Network(confNetwork), confRPCPort); err != nil {
+	network, err := waitForOrchestratorNetwork(bootCtx, conf.OrchestratorAddr, bootLogger)
+	if err != nil {
+		return fmt.Errorf("read network from orchestratord: %w", err)
+	}
+
+	if err := conf.Finalize(config.Network(network)); err != nil {
 		return fmt.Errorf("finalize config: %w", err)
 	}
 
@@ -136,101 +116,17 @@ func realMain(ctx context.Context, cancelCtx context.CancelFunc) error {
 	// Take care not to use zerolog before this point
 	initLogger(logFile, logLevel)
 
-	// Now that the logger is initialized, we can use zerolog.Ctx(ctx) safely
 	log := zerolog.Ctx(ctx)
 	log.Info().Msgf("logger initialized successfully with file %q", conf.LogPath)
 	log.Info().
 		Str("network", string(conf.BitcoinCoreNetwork)).
-		Str("bitcoind_rpc", conf.BitcoinCoreURL).
-		Msg("resolved Bitcoin Core network from bitwindow-bitcoin.conf")
+		Msg("aligned bitwindowd to orchestratord network")
 
-	// Watch the conf for runtime network switches. When the user flips the
-	// network in the frontend, the conf is rewritten; we exit so the parent
-	// (BitWindow.app process manager) relaunches us against the new chain.
-	// bitcoind itself is restarted by the orchestrator's matching watcher.
-	if bitcoinConf != nil {
-		bitcoinConf.OnNetworkChanged = func() {
-			log.Warn().Msg("bitwindow-bitcoin.conf network changed; shutting down so the parent process manager restarts bitwindowd against the fresh chain")
-			cancelCtx()
-		}
-		if err := bitcoinConf.StartWatching(); err != nil {
-			log.Warn().Err(err).Msg("could not watch bitwindow-bitcoin.conf for network changes")
-		} else {
-			defer bitcoinConf.StopWatching()
-		}
-	}
-
-	log.Debug().
-		Msgf("initiating database")
-
-	db, err := database.New(ctx, conf)
-	if err != nil {
-		log.Error().Err(err).Msg("init database")
-		return fmt.Errorf("init database: %w", err)
-	}
-	defer database.SafeDefer(ctx, db.Close)
-
-	// Start orchestratord as a subprocess — it manages bitcoind, enforcer, and sidechains.
-	// If orchestratord is already running, startOrchestratord returns (nil, nil) and we
-	// deliberately leave it as an orphan on exit rather than shutting it down.
-	orchCmd, err := startOrchestratord(ctx, conf)
-	if err != nil {
-		log.Warn().Err(err).Msg("failed to start orchestratord (may already be running)")
-	} else if orchCmd != nil {
-		defer func() {
-			if orchCmd.Process != nil {
-				log.Info().Int("pid", orchCmd.Process.Pid).Msg("stopping orchestratord")
-				_ = orchCmd.Process.Signal(os.Interrupt)
-				_ = orchCmd.Wait()
-			}
-		}()
-	}
-
-	// Tell orchestratord to start the L1 stack (bitcoind → wallet → IBD → enforcer).
-	// This runs in the background — bitwindowd doesn't need to wait for it.
-	go func() {
-		orchClient := orchrpc.NewOrchestratorServiceClient(
-			http.DefaultClient,
-			conf.OrchestratorAddr,
-			connect.WithGRPC(),
-		)
-
-		// Wait for orchestratord to be ready.
-		for i := 0; i < 30; i++ {
-			_, err := orchClient.ListBinaries(ctx, connect.NewRequest(&orchpb.ListBinariesRequest{}))
-			if err == nil {
-				break
-			}
-			time.Sleep(500 * time.Millisecond)
-		}
-
-		log.Info().Msg("kicking off L1 stack via orchestrator")
-		stream, err := orchClient.StartWithL1(ctx, connect.NewRequest(&orchpb.StartWithL1Request{
-			Target: "enforcer",
-		}))
-		if err != nil {
-			log.Warn().Err(err).Msg("failed to start L1 stack (non-fatal)")
-			return
-		}
-		for stream.Receive() {
-			msg := stream.Msg()
-			if msg.GetError() != "" {
-				log.Warn().Str("stage", msg.GetStage()).Str("error", msg.GetError()).Msg("L1 startup issue (non-fatal)")
-			}
-			if msg.GetDone() {
-				break
-			}
-		}
-	}()
+	// Network alignment at startup. Subsequent network swaps are handled
+	// in-process via Server.Recycle — bitwindowd never exits across a swap.
 
 	bitcoindConnector := func(ctx context.Context) (corerpc.BitcoinServiceClient, error) {
-		bitcoind, err := startCoreProxy(ctx, conf)
-		return bitcoind, err
-	}
-
-	coreProxy, err := startCoreProxy(ctx, conf)
-	if err != nil {
-		return fmt.Errorf("init core proxy: %w", err)
+		return dial.Bitcoind(ctx, conf.OrchestratorAddr)
 	}
 
 	enforcerConnector := func(ctx context.Context) (rpc.ValidatorServiceClient, error) {
@@ -268,11 +164,7 @@ func realMain(ctx context.Context, cancelCtx context.CancelFunc) error {
 		return dial.CoinShift(ctx, "localhost", 6255)
 	}
 
-	// Wallet should be in parent dir (shared across all networks)
-	walletDir := filepath.Dir(conf.Datadir)
-	chainParams := getChainParams(conf.BitcoinCoreNetwork)
 	services := api.Services{
-		Database:          db,
 		BitcoindConnector: bitcoindConnector,
 		WalletConnector:   walletConnector,
 		EnforcerConnector: enforcerConnector,
@@ -286,27 +178,17 @@ func realMain(ctx context.Context, cancelCtx context.CancelFunc) error {
 		PhotonConnector:    photonConnector,
 		CoinShiftConnector: coinshiftConnector,
 
-		ChainParams:      chainParams,
-		WalletDir:        walletDir,
-		DataDir:          conf.Datadir,
 		OrchestratorAddr: conf.OrchestratorAddr,
 	}
 
-	// Use this to obtain a random unused port for the core proxy.
-	coreProxyListener, err := net.Listen("tcp", "localhost:")
-	if err != nil {
-		return fmt.Errorf("listen on core proxy: %w", err)
-	}
-
-	if err := coreProxyListener.Close(); err != nil {
-		return fmt.Errorf("close core proxy listener: %w", err)
-	}
-
+	// api.New builds the long-lived service connectors, then constructs the
+	// initial Runtime (per-network DB, engines, sub-handlers) and starts its
+	// engines. Subsequent network swaps recycle the Runtime in-process —
+	// the bitwindowd process never exits across a swap.
 	srv, err := api.New(
 		ctx,
 		services,
 		conf,
-		coreProxyListener,
 		func(ctx context.Context) {
 			log.Info().Msg("shutting down")
 			cancelCtx()
@@ -316,72 +198,8 @@ func realMain(ctx context.Context, cancelCtx context.CancelFunc) error {
 		return err
 	}
 
-	// Start the cheque engine
-	srv.ChequeEngine.Start(ctx)
-
-	// Auto-unlock unencrypted wallets
-	go func() {
-		walletPath := filepath.Join(walletDir, "wallet.json")
-		encryptionMetadataPath := filepath.Join(walletDir, "wallet_encryption.json")
-
-		// Check if wallet file exists
-		if _, err := os.Stat(walletPath); err != nil {
-			return
-		}
-
-		// If wallet_encryption.json exists, wallet is encrypted - skip auto-unlock
-		if _, err := os.Stat(encryptionMetadataPath); err == nil {
-			log.Info().Msg("wallet is encrypted, skipping auto-unlock")
-			return
-		}
-
-		log.Info().Msg("unencrypted wallet detected, auto-unlocking cheque engine")
-
-		// Load wallet data
-		walletData, err := os.ReadFile(walletPath)
-		if err != nil {
-			log.Error().Err(err).Msg("failed to read wallet for auto-unlock")
-			return
-		}
-
-		var walletMap map[string]any
-		if err := json.Unmarshal(walletData, &walletMap); err != nil {
-			log.Error().Err(err).Msg("failed to parse wallet for auto-unlock")
-			return
-		}
-
-		// Unlock the wallet engine with the wallet data
-		if err := srv.WalletEngine.Unlock(walletMap); err != nil {
-			log.Error().Err(err).Msg("failed to auto-unlock wallet engine")
-		} else {
-			log.Info().Msg("wallet engine auto-unlocked successfully")
-		}
-	}()
-
-	bitcoinEngine := engines.NewBitcoind(srv.Bitcoind, db, conf)
-
-	// Dedicated log stream for coinnews sync. Pretty-printed, one line per
-	// coinnews OP_RETURN seen at parse time. Sits next to the main server log.
-	coinnewsLogPath := filepath.Join(filepath.Dir(conf.LogPath), "coinnews-sync.log")
-	if coinnewsFile, err := os.OpenFile(coinnewsLogPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666); err != nil {
-		log.Warn().Err(err).Str("path", coinnewsLogPath).Msg("could not open coinnews-sync.log, skipping dedicated log")
-	} else {
-		coinnewsWriter := zerolog.NewConsoleWriter(func(w *zerolog.ConsoleWriter) {
-			w.Out = coinnewsFile
-			w.NoColor = true
-			w.TimeFormat = time.DateTime + ".000"
-		})
-		coinnewsLogger := zerolog.New(coinnewsWriter).With().Timestamp().Logger()
-		bitcoinEngine.SetCoinnewsLogger(&coinnewsLogger)
-		log.Info().Str("path", coinnewsLogPath).Msg("coinnews sync log enabled")
-	}
-
-	deniabilityEngine := engines.NewDeniability(srv.Wallet, srv.Bitcoind, db, srv.WalletEngine)
-
 	log.Info().Msgf("server: listening on %s", conf.APIHost)
 
-	// Start pprof server for profiling (memory leaks, CPU, etc.)
-	// Access at http://localhost:6060/debug/pprof/
 	go func() {
 		pprofAddr := "localhost:6060"
 		log.Info().Msgf("pprof: listening on %s", pprofAddr)
@@ -390,101 +208,16 @@ func realMain(ctx context.Context, cancelCtx context.CancelFunc) error {
 		}
 	}()
 
-	errs := make(chan error)
+	errs := make(chan error, 1)
 	go func() {
 		errs <- srv.Serve(ctx, conf.APIHost)
-	}()
-	go func() {
-		errs <- bitcoinEngine.Run(ctx)
-	}()
-	go func() {
-		log.Info().Msgf("core proxy: listening on %s", coreProxyListener.Addr().String())
-		errs <- coreProxy.Listen(ctx, coreProxyListener.Addr().String())
-	}()
-	go func() {
-		errs <- deniabilityEngine.Run(ctx)
-	}()
-	go func() {
-		errs <- srv.TimestampEngine.Run(ctx)
-	}()
-	go func() {
-		errs <- srv.NotificationEngine.Run(ctx)
-	}()
-	go func() {
-		errs <- srv.SidechainMonitorEngine.Run(ctx)
-	}()
-
-	// Start demo engine if in demo mode (mainnet)
-	if conf.IsDemoMode() {
-		demoEngine := engines.NewDemoEngine(db)
-		go func() {
-			errs <- demoEngine.Run(ctx)
-		}()
-		log.Info().Msg("demo mode enabled: simulating sidechain activity")
-	}
-
-	// If Bitcoin Core publishes raw transactions, we can use this to handle
-	// pending mempool entries. ZMQ notifications might not be available
-	// right away. We want a retry mechanism that doesn't stall startup for
-	// the rest of the system.
-
-	go func() {
-		var zmqEngine *engines.ZMQ
-		const maxAttempts = 20
-
-		for attempt := range maxAttempts {
-			var err error
-			zmqEngine, err = getZmqEngine(ctx, conf)
-			if err != nil {
-				// Connection errors during startup are expected
-				if connect.CodeOf(err) == connect.CodeUnavailable || strings.Contains(err.Error(), "connection refused") {
-					log.Debug().Msg("ZMQ engine: waiting for Bitcoin Core connection")
-				} else {
-					log.Error().Err(err).Msg("unable to acquire and start ZMQ engine")
-				}
-
-				select {
-				case <-ctx.Done():
-					return
-
-				case <-time.After(time.Second * 5):
-				}
-
-				continue
-			}
-
-			if attempt != 0 {
-				log.Debug().Msgf("ZMQ engine acquired on attempt %d", attempt)
-			}
-			break
-
-		}
-
-		if zmqEngine == nil {
-			log.Warn().Msg("no ZMQ engine acquired, skipping")
-			return
-		}
-
-		go func() {
-			for tx := range zmqEngine.Subscribe() {
-				if err := bitcoinEngine.HandleNewRawTransaction(ctx, tx); err != nil {
-					log.Error().Err(err).Msgf("handle new raw transaction: %s", tx.TxHash())
-				}
-			}
-		}()
-
-		log.Info().Msg("starting ZMQ engine")
-		errs <- zmqEngine.Run(ctx)
 	}()
 
 	go func() {
 		<-ctx.Done()
-
-		ctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), time.Second*1)
+		shutdownCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), time.Second*5)
 		defer cancel()
-
-		srv.Shutdown(ctx)
-
+		srv.Shutdown(shutdownCtx)
 		errs <- nil
 	}()
 
@@ -529,95 +262,6 @@ func initLogger(logFile *os.File, logLevel zerolog.Level) {
 		}))
 
 	zerolog.DefaultContextLogger = &logger
-}
-
-var (
-	coreProxyMu      sync.Mutex
-	cachedCoreProxy  *coreproxy.Bitcoind
-	coreProxyLogOnce sync.Once
-)
-
-func startCoreProxy(ctx context.Context, conf config.Config) (*coreproxy.Bitcoind, error) {
-	coreProxyMu.Lock()
-	defer coreProxyMu.Unlock()
-
-	// Return cached instance if available
-	if cachedCoreProxy != nil {
-		return cachedCoreProxy, nil
-	}
-
-	coreURL, err := url.Parse(conf.BitcoinCoreURL)
-	if err != nil {
-		return nil, fmt.Errorf("parse bitcoin core url: %w", err)
-	}
-
-	// Log only once
-	coreProxyLogOnce.Do(func() {
-		at := coreURL.Host
-		if conf.BitcoinCoreRpcUser != "" {
-			at = fmt.Sprintf("%s:****@%s", conf.BitcoinCoreRpcUser, at)
-		}
-		zerolog.Ctx(ctx).Info().
-			Msgf("starting Bitcoin Core proxy at %s", at)
-	})
-
-	logLevel := zerolog.WarnLevel
-
-	// We don't want info logs from the core proxy because the ReconnectLoop()
-	// makes it spammy
-	warnLogger := zerolog.Ctx(ctx).Level(logLevel)
-	initCtx := warnLogger.WithContext(ctx)
-
-	opts := []coreproxy.Option{
-		// Also configure the per-request log level
-		coreproxy.WithLogging(func(ctx context.Context) *zerolog.Logger {
-			log := zerolog.Ctx(ctx).Level(logLevel)
-			return &log
-		}),
-
-		// We don't want startup of bitwindow to depend on Core running
-		coreproxy.WithoutInitialConnectionCheck(),
-	}
-
-	if coreURL.Scheme == "https" {
-		opts = append(opts, coreproxy.WithTLS())
-	}
-
-	proxy, err := coreproxy.NewBitcoind(
-		initCtx, coreURL.Host,
-		conf.BitcoinCoreRpcUser, conf.BitcoinCoreRpcPassword,
-		opts...,
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	// Cache on success
-	cachedCoreProxy = proxy
-	return cachedCoreProxy, nil
-}
-
-func getZmqEngine(ctx context.Context, conf config.Config) (*engines.ZMQ, error) {
-	btc, err := startCoreProxy(ctx, conf)
-	if err != nil {
-		return nil, fmt.Errorf("start core proxy: %w", err)
-	}
-
-	notifs, err := btc.GetZmqNotifications(ctx, connect.NewRequest(&emptypb.Empty{}))
-	if err != nil {
-		return nil, fmt.Errorf("get zmq notifications: %w", err)
-	}
-
-	pubRawTxAddress, foundPubRawTx := lo.Find(notifs.Msg.Notifications,
-		func(n *corepb.GetZmqNotificationsResponse_Notification) bool {
-			return n.Type == "pubrawtx"
-		})
-
-	if !foundPubRawTx {
-		return nil, nil
-	}
-
-	return engines.NewZMQ(pubRawTxAddress.Address)
 }
 
 // isNoisyStartupMessage returns true for Bitcoin Core startup messages that
@@ -683,12 +327,12 @@ func startOrchestratord(ctx context.Context, conf config.Config) (*exec.Cmd, err
 		return nil, fmt.Errorf("orchestratord not found at %s: %w", orchPath, err)
 	}
 
-	// Build args from our config.
-	// bitwindow-dir is the parent of the network-specific datadir —
-	// wallet.json lives there, not under the network subdirectory.
-	bitwindowDir := filepath.Dir(conf.Datadir)
+	// orchestratord owns the bitcoin.conf — pick up network from there, not
+	// from a CLI flag we'd have to keep aligned. conf.Datadir is the raw
+	// bitwindow base dir at this point (Finalize runs *after* we've queried
+	// orchestratord for the network).
+	bitwindowDir := conf.BitwindowDir()
 	args := []string{
-		"--network", string(conf.BitcoinCoreNetwork),
 		"--datadir", bitwindowDir,
 		"--bitwindow-dir", bitwindowDir,
 	}
@@ -708,19 +352,34 @@ func startOrchestratord(ctx context.Context, conf config.Config) (*exec.Cmd, err
 	return cmd, nil
 }
 
-func getChainParams(network config.Network) *chaincfg.Params {
-	switch network {
-	case config.NetworkMainnet:
-		return &chaincfg.MainNetParams
-	case config.NetworkForknet:
-		return &chaincfg.MainNetParams
-	case config.NetworkTestnet:
-		return &chaincfg.TestNet3Params
-	case config.NetworkSignet:
-		return &chaincfg.SigNetParams
-	case config.NetworkRegtest:
-		return &chaincfg.RegressionNetParams
-	default:
-		return &chaincfg.SigNetParams
+// waitForOrchestratorNetwork polls orchestratord for the current network.
+// orchestratord owns the bitcoin.conf — bitwindowd is just a consumer of
+// that view of the world. Retries for ~15s while orchestratord boots.
+func waitForOrchestratorNetwork(ctx context.Context, addr string, log zerolog.Logger) (string, error) {
+	if addr == "" {
+		return "", fmt.Errorf("orchestrator.addr not configured")
 	}
+
+	confClient := orchrpc.NewBitcoinConfServiceClient(http.DefaultClient, addr, connect.WithGRPC())
+
+	for i := 0; i < 30; i++ {
+		resp, err := confClient.GetBitcoinConfig(ctx, connect.NewRequest(&orchpb.GetBitcoinConfigRequest{}))
+		if err == nil {
+			network := resp.Msg.GetNetwork()
+			if network == "" {
+				return "", fmt.Errorf("orchestratord returned empty network")
+			}
+			log.Info().Str("network", network).Int("attempts", i+1).Msg("aligned to orchestratord network")
+			return network, nil
+		}
+		if i == 29 {
+			return "", fmt.Errorf("orchestratord did not become ready: %w", err)
+		}
+		select {
+		case <-ctx.Done():
+			return "", ctx.Err()
+		case <-time.After(500 * time.Millisecond):
+		}
+	}
+	return "", fmt.Errorf("orchestratord did not become ready in time")
 }

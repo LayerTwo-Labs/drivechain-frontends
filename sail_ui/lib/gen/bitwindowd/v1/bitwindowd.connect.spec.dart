@@ -18,34 +18,6 @@ abstract final class BitwindowdService {
     googleprotobufempty.Empty.new,
   );
 
-  static const startManagedBinary = connect.Spec(
-    '/$name/StartManagedBinary',
-    connect.StreamType.server,
-    bitwindowdv1bitwindowd.StartManagedBinaryRequest.new,
-    bitwindowdv1bitwindowd.StartManagedBinaryResponse.new,
-  );
-
-  static const stopManagedBinary = connect.Spec(
-    '/$name/StopManagedBinary',
-    connect.StreamType.unary,
-    bitwindowdv1bitwindowd.StopManagedBinaryRequest.new,
-    googleprotobufempty.Empty.new,
-  );
-
-  static const downloadManagedBinary = connect.Spec(
-    '/$name/DownloadManagedBinary',
-    connect.StreamType.server,
-    bitwindowdv1bitwindowd.DownloadManagedBinaryRequest.new,
-    bitwindowdv1bitwindowd.DownloadManagedBinaryResponse.new,
-  );
-
-  static const shutdownManagedBinaries = connect.Spec(
-    '/$name/ShutdownManagedBinaries',
-    connect.StreamType.server,
-    bitwindowdv1bitwindowd.ShutdownManagedBinariesRequest.new,
-    bitwindowdv1bitwindowd.ShutdownManagedBinariesResponse.new,
-  );
-
   static const mineBlocks = connect.Spec(
     '/$name/MineBlocks',
     connect.StreamType.server,
@@ -154,5 +126,19 @@ abstract final class BitwindowdService {
     connect.StreamType.unary,
     googleprotobufempty.Empty.new,
     bitwindowdv1bitwindowd.GetNetworkStatsResponse.new,
+  );
+
+  /// Swap bitcoind network. bitwindowd is the entry point so the DB swap
+  /// (network-scoped folder) is co-located with the orchestrator update.
+  /// Implementation: forward to orchestratord's SetBitcoinConfigNetwork
+  /// (which rewrites bitcoin.conf and restarts bitcoind on the new chain),
+  /// then exit so the launcher restarts bitwindowd with a fresh DB scoped
+  /// to the new network. Returns once orchestratord acknowledges the swap;
+  /// the bitwindowd process exit happens shortly after.
+  static const updateNetwork = connect.Spec(
+    '/$name/UpdateNetwork',
+    connect.StreamType.unary,
+    bitwindowdv1bitwindowd.UpdateNetworkRequest.new,
+    bitwindowdv1bitwindowd.UpdateNetworkResponse.new,
   );
 }

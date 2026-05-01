@@ -26,74 +26,6 @@ extension type BitwindowdServiceClient (connect.Transport _transport) {
     );
   }
 
-  Stream<bitwindowdv1bitwindowd.StartManagedBinaryResponse> startManagedBinary(
-    bitwindowdv1bitwindowd.StartManagedBinaryRequest input, {
-    connect.Headers? headers,
-    connect.AbortSignal? signal,
-    Function(connect.Headers)? onHeader,
-    Function(connect.Headers)? onTrailer,
-  }) {
-    return connect.Client(_transport).server(
-      specs.BitwindowdService.startManagedBinary,
-      input,
-      signal: signal,
-      headers: headers,
-      onHeader: onHeader,
-      onTrailer: onTrailer,
-    );
-  }
-
-  Future<googleprotobufempty.Empty> stopManagedBinary(
-    bitwindowdv1bitwindowd.StopManagedBinaryRequest input, {
-    connect.Headers? headers,
-    connect.AbortSignal? signal,
-    Function(connect.Headers)? onHeader,
-    Function(connect.Headers)? onTrailer,
-  }) {
-    return connect.Client(_transport).unary(
-      specs.BitwindowdService.stopManagedBinary,
-      input,
-      signal: signal,
-      headers: headers,
-      onHeader: onHeader,
-      onTrailer: onTrailer,
-    );
-  }
-
-  Stream<bitwindowdv1bitwindowd.DownloadManagedBinaryResponse> downloadManagedBinary(
-    bitwindowdv1bitwindowd.DownloadManagedBinaryRequest input, {
-    connect.Headers? headers,
-    connect.AbortSignal? signal,
-    Function(connect.Headers)? onHeader,
-    Function(connect.Headers)? onTrailer,
-  }) {
-    return connect.Client(_transport).server(
-      specs.BitwindowdService.downloadManagedBinary,
-      input,
-      signal: signal,
-      headers: headers,
-      onHeader: onHeader,
-      onTrailer: onTrailer,
-    );
-  }
-
-  Stream<bitwindowdv1bitwindowd.ShutdownManagedBinariesResponse> shutdownManagedBinaries(
-    bitwindowdv1bitwindowd.ShutdownManagedBinariesRequest input, {
-    connect.Headers? headers,
-    connect.AbortSignal? signal,
-    Function(connect.Headers)? onHeader,
-    Function(connect.Headers)? onTrailer,
-  }) {
-    return connect.Client(_transport).server(
-      specs.BitwindowdService.shutdownManagedBinaries,
-      input,
-      signal: signal,
-      headers: headers,
-      onHeader: onHeader,
-      onTrailer: onTrailer,
-    );
-  }
-
   Stream<bitwindowdv1bitwindowd.MineBlocksResponse> mineBlocks(
     googleprotobufempty.Empty input, {
     connect.Headers? headers,
@@ -346,6 +278,30 @@ extension type BitwindowdServiceClient (connect.Transport _transport) {
   }) {
     return connect.Client(_transport).unary(
       specs.BitwindowdService.getNetworkStats,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
+  /// Swap bitcoind network. bitwindowd is the entry point so the DB swap
+  /// (network-scoped folder) is co-located with the orchestrator update.
+  /// Implementation: forward to orchestratord's SetBitcoinConfigNetwork
+  /// (which rewrites bitcoin.conf and restarts bitcoind on the new chain),
+  /// then exit so the launcher restarts bitwindowd with a fresh DB scoped
+  /// to the new network. Returns once orchestratord acknowledges the swap;
+  /// the bitwindowd process exit happens shortly after.
+  Future<bitwindowdv1bitwindowd.UpdateNetworkResponse> updateNetwork(
+    bitwindowdv1bitwindowd.UpdateNetworkRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.BitwindowdService.updateNetwork,
       input,
       signal: signal,
       headers: headers,

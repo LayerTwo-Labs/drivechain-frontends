@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"sync/atomic"
 	"syscall"
 	"time"
 
@@ -16,6 +17,9 @@ import (
 	"github.com/urfave/cli/v2"
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/h2c"
+
+	corerpc "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha/bitcoindv1alphaconnect"
+	coreproxy "github.com/barebitcoin/btc-buf/server"
 
 	orchestrator "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/api"
@@ -223,6 +227,36 @@ func run(cctx *cli.Context) error {
 		mux.Handle(confPath, confH)
 	}
 
+	// Bitcoin Core proxy (btc-buf BitcoinService) — single canonical route
+	// to bitcoind. Behind a swappable shim so a network swap can rebuild
+	// the underlying proxy with fresh creds without re-registering the mux
+	// path or restarting the orchestrator. OnNetworkChanged fires after
+	// SwapNetwork persists the new config.
+	if orch.BitcoinConf != nil {
+		swappable := newSwappableHandler()
+		if proxy, err := startCoreProxy(ctx, orch, log); err != nil {
+			log.Warn().Err(err).Msg("failed to start bitcoin core proxy")
+		} else {
+			_, coreH := corerpc.NewBitcoinServiceHandler(proxy, connect.WithInterceptors())
+			swappable.swap(coreH)
+		}
+		// The path is constant; register once.
+		corePath, _ := corerpc.NewBitcoinServiceHandler(noopBitcoinService{}, connect.WithInterceptors())
+		mux.Handle(corePath, swappable)
+		log.Info().Str("service", "bitcoin.bitcoind.v1alpha.BitcoinService").Msg("registered bitcoin core proxy")
+
+		orch.BitcoinConf.OnNetworkChanged = func() {
+			rebuilt, err := startCoreProxy(ctx, orch, log)
+			if err != nil {
+				log.Error().Err(err).Msg("rebuild bitcoin core proxy after network swap")
+				return
+			}
+			_, h := corerpc.NewBitcoinServiceHandler(rebuilt, connect.WithInterceptors())
+			swappable.swap(h)
+			log.Info().Str("network", string(orch.BitcoinConf.Network)).Msg("rebuilt bitcoin core proxy for new network")
+		}
+	}
+
 	// Enforcer config service
 	if orch.EnforcerConf != nil {
 		enforcerHandler := api.NewEnforcerConfHandler(orch.EnforcerConf)
@@ -352,4 +386,63 @@ func run(cctx *cli.Context) error {
 
 	log.Info().Msg("orchestratord shutdown complete")
 	return nil
+}
+
+// swappableHandler holds an http.Handler atomically so the registered
+// /bitcoin.bitcoind.v1alpha.BitcoinService/ path can swap its dispatch
+// target on network change without re-registering the mux.
+type swappableHandler struct {
+	inner atomic.Pointer[http.Handler]
+}
+
+func newSwappableHandler() *swappableHandler {
+	return &swappableHandler{}
+}
+
+func (s *swappableHandler) swap(h http.Handler) {
+	s.inner.Store(&h)
+}
+
+func (s *swappableHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	cur := s.inner.Load()
+	if cur == nil {
+		http.Error(w, "bitcoin service not ready", http.StatusServiceUnavailable)
+		return
+	}
+	(*cur).ServeHTTP(w, r)
+}
+
+// noopBitcoinService satisfies the BitcoinServiceHandler interface for the
+// sole purpose of asking corerpc.NewBitcoinServiceHandler what mux path to
+// register under. The returned handler is discarded — only the path is used.
+type noopBitcoinService struct {
+	corerpc.UnimplementedBitcoinServiceHandler
+}
+
+// startCoreProxy initializes the btc-buf BitcoinService proxy against the
+// bitcoind managed by this orchestrator. The proxy survives a not-yet-running
+// bitcoind via WithoutInitialConnectionCheck — btc-buf's rpcclient reconnects
+// once Core comes up.
+func startCoreProxy(ctx context.Context, orch *orchestrator.Orchestrator, log zerolog.Logger) (*coreproxy.Bitcoind, error) {
+	port := orch.BitcoinConf.GetRPCPort()
+	var user, password string
+	if orch.BitcoinConf.Config != nil {
+		section := orch.BitcoinConf.Network.CoreSection()
+		user = orch.BitcoinConf.Config.GetEffectiveSetting("rpcuser", section)
+		password = orch.BitcoinConf.Config.GetEffectiveSetting("rpcpassword", section)
+	}
+
+	host := fmt.Sprintf("localhost:%d", port)
+	log.Info().Str("host", host).Str("user", user).Msg("starting Bitcoin Core proxy")
+
+	// Quiet the proxy's connection logs — its rpcclient retries on a tight
+	// loop while bitcoind is starting and floods stdout otherwise.
+	proxyLog := log.Level(zerolog.WarnLevel)
+	initCtx := proxyLog.WithContext(ctx)
+
+	return coreproxy.NewBitcoind(
+		initCtx, host, user, password,
+		coreproxy.WithLogging(func(_ context.Context) *zerolog.Logger { return &proxyLog }),
+		coreproxy.WithoutInitialConnectionCheck(),
+	)
 }

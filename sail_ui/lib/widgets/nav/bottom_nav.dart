@@ -219,19 +219,25 @@ class BottomNav extends StatelessWidget {
                     ),
                   Builder(
                     builder: (context) {
-                      // During Core's header sync the sidechain RPC has no chain state yet,
-                      // so its sync progress comes back as 0/0 — reads as "broken" in the UI.
-                      // Once headers are synced, Core can answer block queries even while
-                      // block IBD is still running, so release the card then — waiting for
-                      // full IBD made users stare at a dead UI for the whole chain download.
+                      // Only sidechains (chainLayer == 2) actually need Core
+                      // header sync — their RPC reports 0/0 until headers
+                      // arrive, which reads as "broken" in the UI. Layer-1
+                      // companions like bitwindowd have their own
+                      // independent connection state and must show it
+                      // unconditionally; gating their card on Core's IBD
+                      // hid the bitwindowd backend status entirely behind
+                      // a misleading "Waiting for Bitcoin Core header sync"
+                      // message even when bitwindowd was healthy.
+                      final isSidechain = additionalConnection.rpc.binary.chainLayer == 2;
                       final bool coreReady =
-                          model.mainchain.connected &&
-                          !model.mainchain.initializingBinary &&
-                          model.mainchain.startupError == null &&
-                          !model.mainchain.inHeaderSync;
+                          !isSidechain ||
+                          (model.mainchain.connected &&
+                              !model.mainchain.initializingBinary &&
+                              model.mainchain.startupError == null &&
+                              !model.mainchain.inHeaderSync);
                       final infoMessage =
                           _getDownloadMessage(model.syncProvider.additionalSyncInfo) ??
-                          (!coreReady ? 'Waiting for Bitcoin Core header sync' : null);
+                          (isSidechain && !coreReady ? 'Waiting for Bitcoin Core header sync' : null);
                       return DaemonConnectionCard(
                         connection: additionalConnection.rpc,
                         syncInfo: coreReady ? model.syncProvider.additionalSyncInfo : null,
@@ -333,7 +339,7 @@ class BottomNavViewModel extends BaseViewModel with ChangeTrackingMixin {
   final ConnectionMonitor additionalConnection;
 
   // Required connections
-  MainchainRPC get mainchain => GetIt.I.get<MainchainRPC>();
+  BitcoindConnection get mainchain => GetIt.I.get<BitcoindConnection>();
   EnforcerRPC get enforcer => GetIt.I.get<EnforcerRPC>();
   SyncProvider get syncProvider => GetIt.I.get<SyncProvider>();
   BinaryProvider get binaryProvider => GetIt.I.get<BinaryProvider>();

@@ -12,7 +12,7 @@ import 'package:sail_ui/rpcs/bitassets_rpc.dart';
 import 'package:sail_ui/rpcs/bitnames_rpc.dart';
 import 'package:sail_ui/rpcs/coinshift_rpc.dart';
 import 'package:sail_ui/rpcs/enforcer_rpc.dart';
-import 'package:sail_ui/rpcs/mainchain_rpc.dart';
+import 'package:sail_ui/rpcs/bitcoind_connection.dart';
 import 'package:sail_ui/rpcs/orchestrator_rpc.dart';
 import 'package:sail_ui/rpcs/photon_rpc.dart';
 import 'package:sail_ui/rpcs/stream_supervisor.dart';
@@ -116,11 +116,11 @@ class BackendStateProvider extends ChangeNotifier {
     final startupError = status.startupError.isEmpty ? null : status.startupError;
     final connectionError = status.connectionError.isEmpty ? null : status.connectionError;
 
-    // Mirror the orchestrator's blockchain_sync onto MainchainRPC's IBD
+    // Mirror the orchestrator's blockchain_sync onto BitcoindConnection's IBD
     // flags. Single source of truth: the backend already runs
     // getblockchaininfo as part of its health-check loop, no reason for
     // the frontend to make its own RPC call.
-    if (rpc is MainchainRPC) {
+    if (rpc is BitcoindConnection) {
       rpc.applyBackendSync(status.hasBlockchainSync() ? status.blockchainSync : null);
     }
 
@@ -173,7 +173,7 @@ class BackendStateProvider extends ChangeNotifier {
   /// Get the RPCConnection for a backend binary name, or null.
   RPCConnection? _rpcForBinaryName(String name) {
     return switch (name) {
-      'bitcoind' => GetIt.I.isRegistered<MainchainRPC>() ? GetIt.I.get<MainchainRPC>() : null,
+      'bitcoind' => GetIt.I.isRegistered<BitcoindConnection>() ? GetIt.I.get<BitcoindConnection>() : null,
       'enforcer' => GetIt.I.isRegistered<EnforcerRPC>() ? GetIt.I.get<EnforcerRPC>() : null,
       // bitwindowd state is managed by BinaryProvider (daemon binary), not the orchestrator stream.
       'thunder' => GetIt.I.isRegistered<ThunderRPC>() ? GetIt.I.get<ThunderRPC>() : null,

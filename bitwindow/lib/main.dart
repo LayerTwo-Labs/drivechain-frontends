@@ -161,7 +161,7 @@ Future<(Directory, File, Logger)> init(String arguments) async {
     initialBinaries: initalBinaries(),
   );
   GetIt.I.registerSingleton<BinaryProvider>(binaryProvider);
-  GetIt.I.registerSingleton<MainchainRPC>(MainchainRPCLive.create());
+  GetIt.I.registerSingleton<BitcoindConnection>(BitcoindConnection());
   GetIt.I.registerSingleton<EnforcerRPC>(EnforcerLive());
   // Shared system boundary for runtime and wallet flows used across apps.
   final orchestrator = OrchestratorRPC(
@@ -852,6 +852,25 @@ Future<void> bootBitwindowBackend(Logger log) async {
 
   log.i('STARTUP: starting backend state watch');
   backendState.startWatching();
+
+  // 5. Kick off the L1 stack (bitcoind → wallet → IBD → enforcer) by calling
+  //    StartWithL1 directly on orchestratord. We deliberately don't route
+  //    this through bitwindowd — that indirection swallowed the progress
+  //    stream, so download bytes and stage messages never reached the
+  //    daemon-status card. trackStartup pipes bytes_downloaded/total_bytes
+  //    into BinaryProvider.downloadInfo (which SyncProvider already turns
+  //    into the SyncInfo the card reads) and stage messages into each
+  //    binary's startup_logs. Fire-and-forget — nothing in boot waits on
+  //    this finishing.
+  if (orchestratorReady) {
+    unawaited(() async {
+      try {
+        await backendState.trackStartup(orchestrator.startWithL1('enforcer'));
+      } catch (e) {
+        log.w('STARTUP: L1 stack startup ended with error (non-fatal): $e');
+      }
+    }());
+  }
 }
 
 void _streamBinaryLogs(OrchestratorRPC orchestrator, String binaryName, BinaryType binaryType, Logger log) {

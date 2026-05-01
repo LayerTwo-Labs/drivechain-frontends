@@ -78,6 +78,12 @@ const (
 	// OrchestratorServiceStreamResetDataProcedure is the fully-qualified name of the
 	// OrchestratorService's StreamResetData RPC.
 	OrchestratorServiceStreamResetDataProcedure = "/orchestrator.v1.OrchestratorService/StreamResetData"
+	// OrchestratorServiceGetCoreMempoolInfoProcedure is the fully-qualified name of the
+	// OrchestratorService's GetCoreMempoolInfo RPC.
+	OrchestratorServiceGetCoreMempoolInfoProcedure = "/orchestrator.v1.OrchestratorService/GetCoreMempoolInfo"
+	// OrchestratorServiceCoreRawCallProcedure is the fully-qualified name of the OrchestratorService's
+	// CoreRawCall RPC.
+	OrchestratorServiceCoreRawCallProcedure = "/orchestrator.v1.OrchestratorService/CoreRawCall"
 )
 
 // OrchestratorServiceClient is a client for the orchestrator.v1.OrchestratorService service.
@@ -112,6 +118,11 @@ type OrchestratorServiceClient interface {
 	PreviewResetData(context.Context, *connect.Request[v1.PreviewResetDataRequest]) (*connect.Response[v1.PreviewResetDataResponse], error)
 	// Reset/delete data categories. Stops affected binaries, streams each deletion event.
 	StreamResetData(context.Context, *connect.Request[v1.StreamResetDataRequest]) (*connect.ServerStreamForClient[v1.StreamResetDataResponse], error)
+	// Full bitcoind getmempoolinfo response. Distinct from getrawmempool.
+	GetCoreMempoolInfo(context.Context, *connect.Request[v1.GetCoreMempoolInfoRequest]) (*connect.Response[v1.GetCoreMempoolInfoResponse], error)
+	// Generic raw bitcoind RPC. Optional `wallet` field routes the call to
+	// /wallet/{name} on bitcoind for wallet-scoped RPCs.
+	CoreRawCall(context.Context, *connect.Request[v1.CoreRawCallRequest]) (*connect.Response[v1.CoreRawCallResponse], error)
 }
 
 // NewOrchestratorServiceClient constructs a client for the orchestrator.v1.OrchestratorService
@@ -215,6 +226,18 @@ func NewOrchestratorServiceClient(httpClient connect.HTTPClient, baseURL string,
 			connect.WithSchema(orchestratorServiceMethods.ByName("StreamResetData")),
 			connect.WithClientOptions(opts...),
 		),
+		getCoreMempoolInfo: connect.NewClient[v1.GetCoreMempoolInfoRequest, v1.GetCoreMempoolInfoResponse](
+			httpClient,
+			baseURL+OrchestratorServiceGetCoreMempoolInfoProcedure,
+			connect.WithSchema(orchestratorServiceMethods.ByName("GetCoreMempoolInfo")),
+			connect.WithClientOptions(opts...),
+		),
+		coreRawCall: connect.NewClient[v1.CoreRawCallRequest, v1.CoreRawCallResponse](
+			httpClient,
+			baseURL+OrchestratorServiceCoreRawCallProcedure,
+			connect.WithSchema(orchestratorServiceMethods.ByName("CoreRawCall")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -235,6 +258,8 @@ type orchestratorServiceClient struct {
 	getMainchainBalance        *connect.Client[v1.GetMainchainBalanceRequest, v1.GetMainchainBalanceResponse]
 	previewResetData           *connect.Client[v1.PreviewResetDataRequest, v1.PreviewResetDataResponse]
 	streamResetData            *connect.Client[v1.StreamResetDataRequest, v1.StreamResetDataResponse]
+	getCoreMempoolInfo         *connect.Client[v1.GetCoreMempoolInfoRequest, v1.GetCoreMempoolInfoResponse]
+	coreRawCall                *connect.Client[v1.CoreRawCallRequest, v1.CoreRawCallResponse]
 }
 
 // ListBinaries calls orchestrator.v1.OrchestratorService.ListBinaries.
@@ -312,6 +337,16 @@ func (c *orchestratorServiceClient) StreamResetData(ctx context.Context, req *co
 	return c.streamResetData.CallServerStream(ctx, req)
 }
 
+// GetCoreMempoolInfo calls orchestrator.v1.OrchestratorService.GetCoreMempoolInfo.
+func (c *orchestratorServiceClient) GetCoreMempoolInfo(ctx context.Context, req *connect.Request[v1.GetCoreMempoolInfoRequest]) (*connect.Response[v1.GetCoreMempoolInfoResponse], error) {
+	return c.getCoreMempoolInfo.CallUnary(ctx, req)
+}
+
+// CoreRawCall calls orchestrator.v1.OrchestratorService.CoreRawCall.
+func (c *orchestratorServiceClient) CoreRawCall(ctx context.Context, req *connect.Request[v1.CoreRawCallRequest]) (*connect.Response[v1.CoreRawCallResponse], error) {
+	return c.coreRawCall.CallUnary(ctx, req)
+}
+
 // OrchestratorServiceHandler is an implementation of the orchestrator.v1.OrchestratorService
 // service.
 type OrchestratorServiceHandler interface {
@@ -345,6 +380,11 @@ type OrchestratorServiceHandler interface {
 	PreviewResetData(context.Context, *connect.Request[v1.PreviewResetDataRequest]) (*connect.Response[v1.PreviewResetDataResponse], error)
 	// Reset/delete data categories. Stops affected binaries, streams each deletion event.
 	StreamResetData(context.Context, *connect.Request[v1.StreamResetDataRequest], *connect.ServerStream[v1.StreamResetDataResponse]) error
+	// Full bitcoind getmempoolinfo response. Distinct from getrawmempool.
+	GetCoreMempoolInfo(context.Context, *connect.Request[v1.GetCoreMempoolInfoRequest]) (*connect.Response[v1.GetCoreMempoolInfoResponse], error)
+	// Generic raw bitcoind RPC. Optional `wallet` field routes the call to
+	// /wallet/{name} on bitcoind for wallet-scoped RPCs.
+	CoreRawCall(context.Context, *connect.Request[v1.CoreRawCallRequest]) (*connect.Response[v1.CoreRawCallResponse], error)
 }
 
 // NewOrchestratorServiceHandler builds an HTTP handler from the service implementation. It returns
@@ -444,6 +484,18 @@ func NewOrchestratorServiceHandler(svc OrchestratorServiceHandler, opts ...conne
 		connect.WithSchema(orchestratorServiceMethods.ByName("StreamResetData")),
 		connect.WithHandlerOptions(opts...),
 	)
+	orchestratorServiceGetCoreMempoolInfoHandler := connect.NewUnaryHandler(
+		OrchestratorServiceGetCoreMempoolInfoProcedure,
+		svc.GetCoreMempoolInfo,
+		connect.WithSchema(orchestratorServiceMethods.ByName("GetCoreMempoolInfo")),
+		connect.WithHandlerOptions(opts...),
+	)
+	orchestratorServiceCoreRawCallHandler := connect.NewUnaryHandler(
+		OrchestratorServiceCoreRawCallProcedure,
+		svc.CoreRawCall,
+		connect.WithSchema(orchestratorServiceMethods.ByName("CoreRawCall")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/orchestrator.v1.OrchestratorService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case OrchestratorServiceListBinariesProcedure:
@@ -476,6 +528,10 @@ func NewOrchestratorServiceHandler(svc OrchestratorServiceHandler, opts ...conne
 			orchestratorServicePreviewResetDataHandler.ServeHTTP(w, r)
 		case OrchestratorServiceStreamResetDataProcedure:
 			orchestratorServiceStreamResetDataHandler.ServeHTTP(w, r)
+		case OrchestratorServiceGetCoreMempoolInfoProcedure:
+			orchestratorServiceGetCoreMempoolInfoHandler.ServeHTTP(w, r)
+		case OrchestratorServiceCoreRawCallProcedure:
+			orchestratorServiceCoreRawCallHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -543,4 +599,12 @@ func (UnimplementedOrchestratorServiceHandler) PreviewResetData(context.Context,
 
 func (UnimplementedOrchestratorServiceHandler) StreamResetData(context.Context, *connect.Request[v1.StreamResetDataRequest], *connect.ServerStream[v1.StreamResetDataResponse]) error {
 	return connect.NewError(connect.CodeUnimplemented, errors.New("orchestrator.v1.OrchestratorService.StreamResetData is not implemented"))
+}
+
+func (UnimplementedOrchestratorServiceHandler) GetCoreMempoolInfo(context.Context, *connect.Request[v1.GetCoreMempoolInfoRequest]) (*connect.Response[v1.GetCoreMempoolInfoResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("orchestrator.v1.OrchestratorService.GetCoreMempoolInfo is not implemented"))
+}
+
+func (UnimplementedOrchestratorServiceHandler) CoreRawCall(context.Context, *connect.Request[v1.CoreRawCallRequest]) (*connect.Response[v1.CoreRawCallResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("orchestrator.v1.OrchestratorService.CoreRawCall is not implemented"))
 }

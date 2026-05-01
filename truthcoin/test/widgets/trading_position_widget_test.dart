@@ -2,7 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:sail_ui/mocks/mocks.dart';
-import 'package:sail_ui/rpcs/mainchain_rpc.dart';
+import 'package:sail_ui/rpcs/bitcoind_connection.dart';
 import 'package:sail_ui/rpcs/rpc_sidechain.dart';
 import 'package:sail_ui/rpcs/truthcoin_rpc.dart';
 import 'package:sail_ui/providers/balance_provider.dart';
@@ -26,7 +26,7 @@ void main() {
 
     GetIt.I.registerLazySingleton<SidechainRPC>(() => mockRpc);
     GetIt.I.registerLazySingleton<TruthcoinRPC>(() => mockRpc);
-    GetIt.I.registerLazySingleton<MainchainRPC>(() => MockMainchainRPC());
+    GetIt.I.registerLazySingleton<BitcoindConnection>(() => MockBitcoindConnection());
     GetIt.I.registerLazySingleton<Logger>(() => Logger(level: Level.off));
 
     final marketProvider = MarketProvider();

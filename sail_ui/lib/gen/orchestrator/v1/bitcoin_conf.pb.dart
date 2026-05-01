@@ -56,6 +56,8 @@ class GetBitcoinConfigResponse extends $pb.GeneratedMessage {
     $core.String? configContent,
     $core.bool? networkSupportsSidechains,
     $core.bool? isDemoMode,
+    $core.String? rpcUser,
+    $core.String? rpcPassword,
   }) {
     final $result = create();
     if (network != null) {
@@ -82,6 +84,12 @@ class GetBitcoinConfigResponse extends $pb.GeneratedMessage {
     if (isDemoMode != null) {
       $result.isDemoMode = isDemoMode;
     }
+    if (rpcUser != null) {
+      $result.rpcUser = rpcUser;
+    }
+    if (rpcPassword != null) {
+      $result.rpcPassword = rpcPassword;
+    }
     return $result;
   }
   GetBitcoinConfigResponse._() : super();
@@ -97,6 +105,8 @@ class GetBitcoinConfigResponse extends $pb.GeneratedMessage {
     ..aOS(6, _omitFieldNames ? '' : 'configContent')
     ..aOB(7, _omitFieldNames ? '' : 'networkSupportsSidechains')
     ..aOB(8, _omitFieldNames ? '' : 'isDemoMode')
+    ..aOS(9, _omitFieldNames ? '' : 'rpcUser')
+    ..aOS(10, _omitFieldNames ? '' : 'rpcPassword')
     ..hasRequiredFields = false
   ;
 
@@ -192,6 +202,27 @@ class GetBitcoinConfigResponse extends $pb.GeneratedMessage {
   $core.bool hasIsDemoMode() => $_has(7);
   @$pb.TagNumber(8)
   void clearIsDemoMode() => clearField(8);
+
+  /// RPC creds — exposed so localhost callers (cpuminer, future tools) that
+  /// need raw bitcoind JSON-RPC can dial it without re-parsing config_content.
+  /// Prefer the hosted BitcoinService proxy when possible.
+  @$pb.TagNumber(9)
+  $core.String get rpcUser => $_getSZ(8);
+  @$pb.TagNumber(9)
+  set rpcUser($core.String v) { $_setString(8, v); }
+  @$pb.TagNumber(9)
+  $core.bool hasRpcUser() => $_has(8);
+  @$pb.TagNumber(9)
+  void clearRpcUser() => clearField(9);
+
+  @$pb.TagNumber(10)
+  $core.String get rpcPassword => $_getSZ(9);
+  @$pb.TagNumber(10)
+  set rpcPassword($core.String v) { $_setString(9, v); }
+  @$pb.TagNumber(10)
+  $core.bool hasRpcPassword() => $_has(9);
+  @$pb.TagNumber(10)
+  void clearRpcPassword() => clearField(10);
 }
 
 class SetBitcoinConfigNetworkRequest extends $pb.GeneratedMessage {
