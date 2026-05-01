@@ -59,7 +59,7 @@ class SyncConnection {
 class SyncProvider extends ChangeNotifier {
   Logger get log => GetIt.I.get<Logger>();
 
-  MainchainRPC get mainchainRPC => GetIt.I.get<MainchainRPC>();
+  BitcoindConnection get mainchainRPC => GetIt.I.get<BitcoindConnection>();
   EnforcerRPC get enforcerRPC => GetIt.I.get<EnforcerRPC>();
   BinaryProvider get binaryProvider => GetIt.I.get<BinaryProvider>();
   BackendStateProvider? get _backendState =>

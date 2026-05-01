@@ -68,8 +68,13 @@ type jsonVariantConf struct {
 	AvailableNetworks []string          `json:"available_networks"`
 }
 
-// LoadConfigFile loads binary configs from a chains_config.json file.
-// Falls back to the embedded default config on any error.
+// LoadConfigFile loads binary configs from a chains_config.json file,
+// overlaying it on top of the embedded defaults. Embedded fields fill in
+// anything missing from the on-disk file — critical for fields the user
+// has no business overriding (is_bitcoin_core, health_check) when their
+// on-disk file pre-dates a schema bump.
+//
+// Falls back to embedded only when the on-disk file is missing or unparseable.
 func LoadConfigFile(path string, log zerolog.Logger) []BinaryConfig {
 	data, err := os.ReadFile(path)
 	if err != nil {
@@ -77,14 +82,62 @@ func LoadConfigFile(path string, log zerolog.Logger) []BinaryConfig {
 		return loadEmbeddedConfig(log)
 	}
 
-	configs, err := parseConfigJSON(data)
+	merged, err := mergeWithEmbedded(data)
 	if err != nil {
 		log.Warn().Err(err).Str("path", path).Msg("failed to parse config file, using embedded default")
 		return loadEmbeddedConfig(log)
 	}
 
-	log.Info().Int("count", len(configs)).Str("path", path).Msg("loaded binary configs from file")
+	configs, err := parseConfigJSON(merged)
+	if err != nil {
+		log.Warn().Err(err).Str("path", path).Msg("failed to parse merged config, using embedded default")
+		return loadEmbeddedConfig(log)
+	}
+
+	log.Info().Int("count", len(configs)).Str("path", path).Msg("loaded binary configs from file (merged with embedded defaults)")
 	return configs
+}
+
+// mergeWithEmbedded deep-merges the on-disk JSON over the embedded defaults
+// so missing fields fall through to embedded values. Object keys recurse;
+// arrays and scalars are taken from the overlay if present, else kept from
+// the base. The return is the merged JSON bytes — caller parses them via
+// parseConfigJSON.
+//
+// Why this matters: the on-disk chains_config.json is seeded once from a
+// bundled asset and migrated only when an explicit migration file exists.
+// If the orch's embedded config gets a new field (e.g. is_bitcoin_core,
+// health_check) without a paired migration, every existing user's on-disk
+// file silently drops the field on parse, and the missing field changes
+// runtime behavior (here: no BlockchainSync streaming because the binary
+// no longer matches the BitcoindHealthCheck branch).
+func mergeWithEmbedded(onDisk []byte) ([]byte, error) {
+	var base, overlay map[string]any
+	if err := json.Unmarshal(embeddedConfig, &base); err != nil {
+		return nil, fmt.Errorf("parse embedded: %w", err)
+	}
+	if err := json.Unmarshal(onDisk, &overlay); err != nil {
+		return nil, fmt.Errorf("parse on-disk: %w", err)
+	}
+	deepMergeMap(base, overlay)
+	return json.Marshal(base)
+}
+
+// deepMergeMap merges overlay into base in place. For matching keys whose
+// values are both maps, it recurses; otherwise the overlay value replaces
+// the base value. Keys present only in base are untouched.
+func deepMergeMap(base, overlay map[string]any) {
+	for k, v := range overlay {
+		if bv, ok := base[k]; ok {
+			bm, baseIsMap := bv.(map[string]any)
+			om, overlayIsMap := v.(map[string]any)
+			if baseIsMap && overlayIsMap {
+				deepMergeMap(bm, om)
+				continue
+			}
+		}
+		base[k] = v
+	}
 }
 
 // loadEmbeddedConfig parses the embedded chains_config.json.
@@ -136,12 +189,17 @@ func WatchConfigFile(path string, onChange func([]BinaryConfig), log zerolog.Log
 					log.Warn().Err(err).Msg("failed to read updated config file")
 					continue
 				}
-				configs, err := parseConfigJSON(data)
+				merged, err := mergeWithEmbedded(data)
+				if err != nil {
+					log.Warn().Err(err).Msg("failed to merge updated config with embedded defaults")
+					continue
+				}
+				configs, err := parseConfigJSON(merged)
 				if err != nil {
 					log.Warn().Err(err).Msg("failed to parse updated config file")
 					continue
 				}
-				log.Info().Int("count", len(configs)).Msg("reloaded config from file")
+				log.Info().Int("count", len(configs)).Msg("reloaded config from file (merged with embedded defaults)")
 				onChange(configs)
 
 			case err, ok := <-watcher.Errors:
@@ -173,19 +231,19 @@ func parseConfigJSON(data []byte) ([]BinaryConfig, error) {
 
 // jsonKeyToName maps JSON keys to internal binary names.
 var jsonKeyToName = map[string]string{
-	"bitcoincore": "bitcoind",
-	"bitwindow":   "bitwindowd",
-	"enforcer":    "enforcer",
-	"grpcurl":     "grpcurl",
-	"orchestratord":    "orchestratord",
-	"zsided":      "zsided",
-	"thunder":     "thunder",
-	"bitnames":    "bitnames",
-	"bitassets":   "bitassets",
-	"truthcoin":   "truthcoin",
-	"photon":      "photon",
-	"coinshift":   "coinshift",
-	"zside":       "zside",
+	"bitcoincore":   "bitcoind",
+	"bitwindow":     "bitwindowd",
+	"enforcer":      "enforcer",
+	"grpcurl":       "grpcurl",
+	"orchestratord": "orchestratord",
+	"zsided":        "zsided",
+	"thunder":       "thunder",
+	"bitnames":      "bitnames",
+	"bitassets":     "bitassets",
+	"truthcoin":     "truthcoin",
+	"photon":        "photon",
+	"coinshift":     "coinshift",
+	"zside":         "zside",
 }
 
 func jsonToBinaryConfig(key string, jb jsonBinaryConf) BinaryConfig {
@@ -324,7 +382,6 @@ func parseOSMapFromNetworkMap(networkMap map[string]json.RawMessage, network str
 	}
 	return entry
 }
-
 
 // parseOSMapFromExtract extracts an OS map from extract_subfolder for a given network.
 func parseOSMapFromExtract(subfolder map[string]json.RawMessage, network string) map[string]string {

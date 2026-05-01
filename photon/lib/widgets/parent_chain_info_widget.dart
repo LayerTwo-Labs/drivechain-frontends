@@ -93,7 +93,7 @@ class _InfoRow extends StatelessWidget {
 
 class ParentChainInfoViewModel extends BaseViewModel {
   PhotonRPC get _rpc => GetIt.I.get<PhotonRPC>();
-  MainchainRPC get _mainchainRPC => GetIt.I.get<MainchainRPC>();
+  OrchestratorRPC get _orchestrator => GetIt.I.get<OrchestratorRPC>();
 
   String? mainchainTipHash;
   int? mainchainTipHeight;
@@ -116,13 +116,13 @@ class ParentChainInfoViewModel extends BaseViewModel {
 
       final hashFuture = _rpc.getBestMainchainBlockHash();
       final wealthFuture = _rpc.getSidechainWealth();
-      final blockchainInfoFuture = _mainchainRPC.getBlockchainInfo();
+      final blockchainInfoFuture = _orchestrator.getMainchainBlockchainInfo();
 
       final results = await Future.wait([hashFuture, wealthFuture, blockchainInfoFuture]);
 
       mainchainTipHash = results[0] as String?;
       sidechainWealth = results[1] as double?;
-      mainchainTipHeight = (results[2] as BlockchainInfo?)?.blocks;
+      mainchainTipHeight = (results[2] as GetMainchainBlockchainInfoResponse?)?.blocks;
 
       notifyListeners();
     } catch (e) {

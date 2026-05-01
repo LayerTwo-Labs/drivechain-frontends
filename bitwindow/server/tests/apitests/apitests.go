@@ -145,7 +145,7 @@ func API(t *testing.T, database *sql.DB, options ...ServerOpt) (connect.HTTPClie
 	srv, err := api.New(ctx, services, config.Config{
 		GuiBootedMainchain: false,
 		GuiBootedEnforcer:  false,
-	}, nil, func(shutdownCtx context.Context) {
+	}, func(shutdownCtx context.Context) {
 		logger.Info().Msg("shutdown")
 	})
 	require.NoError(t, err)

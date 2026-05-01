@@ -410,7 +410,7 @@ class BinaryProvider extends ChangeNotifier {
 
   RPCConnection? _rpcFor(Binary binary) {
     return switch (binary) {
-      var b when b is BitcoinCore => _getRegistered<MainchainRPC>(),
+      var b when b is BitcoinCore => _getRegistered<BitcoindConnection>(),
       var b when b is Enforcer => _getRegistered<EnforcerRPC>(),
       var b when b is BitWindow => _getRegistered<BitwindowRPC>(),
       var b when b is Thunder => _getRegistered<ThunderRPC>(),

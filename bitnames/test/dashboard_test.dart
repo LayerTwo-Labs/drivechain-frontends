@@ -14,7 +14,7 @@ import 'package:sail_ui/providers/balance_provider.dart';
 import 'package:sail_ui/providers/sidechain/address_provider.dart';
 import 'package:sail_ui/providers/sidechain/sidechain_transactions_provider.dart';
 import 'package:sail_ui/rpcs/bitnames_rpc.dart';
-import 'package:sail_ui/rpcs/mainchain_rpc.dart';
+import 'package:sail_ui/rpcs/bitcoind_connection.dart';
 import 'package:sail_ui/rpcs/rpc_sidechain.dart';
 
 import 'mocks/rpc_mock_sidechain.dart';
@@ -35,7 +35,7 @@ void main() {
     final bitnamesRPC = MockBitnamesRPC();
     GetIt.I.registerLazySingleton<SidechainRPC>(() => sidechainRPC);
     GetIt.I.registerLazySingleton<BitnamesRPC>(() => bitnamesRPC);
-    GetIt.I.registerLazySingleton<MainchainRPC>(() => MockMainchainRPC());
+    GetIt.I.registerLazySingleton<BitcoindConnection>(() => MockBitcoindConnection());
     GetIt.I.registerLazySingleton<Logger>(() => Logger());
 
     GetIt.I.registerLazySingleton<SidechainTransactionsProvider>(() => txProvider);

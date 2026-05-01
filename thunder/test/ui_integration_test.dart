@@ -22,8 +22,8 @@ void main() {
     if (!GetIt.I.isRegistered<ThunderRPC>()) {
       GetIt.I.registerLazySingleton<ThunderRPC>(() => thunderRPC);
     }
-    if (!GetIt.I.isRegistered<MainchainRPC>()) {
-      GetIt.I.registerLazySingleton<MainchainRPC>(() => MockMainchainRPC());
+    if (!GetIt.I.isRegistered<BitcoindConnection>()) {
+      GetIt.I.registerLazySingleton<BitcoindConnection>(() => MockBitcoindConnection());
     }
     if (!GetIt.I.isRegistered<Logger>()) {
       GetIt.I.registerLazySingleton<Logger>(() => Logger());

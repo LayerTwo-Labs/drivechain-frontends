@@ -40,7 +40,9 @@ import (
 
 var _ rpc.BitwindowdServiceHandler = new(Server)
 
-// New creates a new Server
+// New creates a new Server. recycle hot-swaps bitwindowd's per-network
+// runtime (DB, engines, sub-handlers) in-process when UpdateNetwork is
+// called — bitwindowd never exits across a network swap.
 func New(
 	onShutdown func(ctx context.Context),
 	db *sql.DB,
@@ -49,6 +51,7 @@ func New(
 	bitcoind *service.Service[corerpc.BitcoinServiceClient],
 	walletEngine *engines.WalletEngine,
 	config config.Config,
+	recycle func(ctx context.Context, network config.Network) error,
 ) *Server {
 	s := &Server{
 		onShutdown:       onShutdown,
@@ -58,6 +61,7 @@ func New(
 		bitcoind:         bitcoind,
 		walletEngine:     walletEngine,
 		bandwidthTracker: bandwidth.NewTracker(),
+		recycle:          recycle,
 
 		config: config,
 	}
@@ -72,158 +76,60 @@ type Server struct {
 	bitcoind         *service.Service[corerpc.BitcoinServiceClient]
 	walletEngine     *engines.WalletEngine
 	bandwidthTracker *bandwidth.Tracker
+	recycle          func(ctx context.Context, network config.Network) error
 
 	config config.Config
 }
 
-func (s *Server) orchestratorClient() (orchrpc.OrchestratorServiceClient, error) {
+// UpdateNetwork swaps bitcoind to a new network and recycles bitwindowd's
+// per-network runtime in-process — bitwindowd never exits.
+//
+// Sequence:
+//  1. Forward to orchestratord's SetBitcoinConfigNetwork. orchestratord
+//     rewrites bitcoin.conf, restarts bitcoind on the new chain, and
+//     atomically rebuilds its hosted bitcoin proxy. All `service.Service`
+//     reconnect loops (bitcoind, enforcer, wallet) reconverge automatically.
+//  2. Hand off to recycle: closes the old DB, opens a new network-scoped
+//     one, rebuilds engines + sub-handlers, atomic-swaps the listener mux.
+//     The HTTP server stays bound to the same port across the swap.
+//  3. Return success.
+func (s *Server) UpdateNetwork(ctx context.Context, req *connect.Request[pb.UpdateNetworkRequest]) (*connect.Response[pb.UpdateNetworkResponse], error) {
+	if req.Msg.Network == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("network required"))
+	}
 	if s.config.OrchestratorAddr == "" {
-		return nil, connect.NewError(connect.CodeUnavailable, fmt.Errorf("orchestrator address is not configured"))
+		return nil, connect.NewError(connect.CodeUnavailable, fmt.Errorf("orchestrator.addr not configured"))
+	}
+	if s.recycle == nil {
+		return nil, connect.NewError(connect.CodeUnimplemented, fmt.Errorf("recycle callback not wired"))
 	}
 
-	return orchrpc.NewOrchestratorServiceClient(
-		http.DefaultClient,
-		s.config.OrchestratorAddr,
-		connect.WithGRPC(),
-	), nil
+	network := config.Network(req.Msg.Network)
+	if !isKnownNetwork(network) {
+		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("unknown network: %q", req.Msg.Network))
+	}
+
+	confClient := orchrpc.NewBitcoinConfServiceClient(http.DefaultClient, s.config.OrchestratorAddr, connect.WithGRPC())
+	if _, err := confClient.SetBitcoinConfigNetwork(ctx, connect.NewRequest(&orchpb.SetBitcoinConfigNetworkRequest{
+		Network: req.Msg.Network,
+	})); err != nil {
+		return nil, connect.NewError(connect.CodeOf(err), fmt.Errorf("orchestrator.SetBitcoinConfigNetwork: %w", err))
+	}
+
+	if err := s.recycle(ctx, network); err != nil {
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("recycle runtime to %s: %w", network, err))
+	}
+
+	zerolog.Ctx(ctx).Info().Str("network", req.Msg.Network).Msg("network swap complete (in-process)")
+	return connect.NewResponse(&pb.UpdateNetworkResponse{}), nil
 }
 
-func (s *Server) StartManagedBinary(
-	ctx context.Context,
-	req *connect.Request[pb.StartManagedBinaryRequest],
-	stream *connect.ServerStream[pb.StartManagedBinaryResponse],
-) error {
-	client, err := s.orchestratorClient()
-	if err != nil {
-		return err
+func isKnownNetwork(n config.Network) bool {
+	switch n {
+	case config.NetworkMainnet, config.NetworkForknet, config.NetworkSignet, config.NetworkTestnet, config.NetworkRegtest:
+		return true
 	}
-
-	orchStream, err := client.StartWithL1(ctx, connect.NewRequest(&orchpb.StartWithL1Request{
-		Target:     req.Msg.Name,
-		TargetArgs: []string{"--headless"},
-	}))
-	if err != nil {
-		return connect.NewError(connect.CodeInternal, fmt.Errorf("start managed binary %s: %w", req.Msg.Name, err))
-	}
-
-	for orchStream.Receive() {
-		msg := orchStream.Msg()
-		if err := stream.Send(&pb.StartManagedBinaryResponse{
-			Stage:           msg.GetStage(),
-			Message:         msg.GetMessage(),
-			Done:            msg.GetDone(),
-			Error:           msg.GetError(),
-			BytesDownloaded: msg.GetBytesDownloaded(),
-			TotalBytes:      msg.GetTotalBytes(),
-		}); err != nil {
-			return err
-		}
-		if msg.GetDone() || msg.GetError() != "" {
-			break
-		}
-	}
-
-	if err := orchStream.Err(); err != nil {
-		return connect.NewError(connect.CodeInternal, fmt.Errorf("read startup stream for %s: %w", req.Msg.Name, err))
-	}
-
-	return nil
-}
-
-func (s *Server) StopManagedBinary(ctx context.Context, req *connect.Request[pb.StopManagedBinaryRequest]) (*connect.Response[emptypb.Empty], error) {
-	client, err := s.orchestratorClient()
-	if err != nil {
-		return nil, err
-	}
-
-	_, err = client.StopBinary(ctx, connect.NewRequest(&orchpb.StopBinaryRequest{
-		Name:  req.Msg.Name,
-		Force: req.Msg.Force,
-	}))
-	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("stop managed binary %s: %w", req.Msg.Name, err))
-	}
-
-	return connect.NewResponse(&emptypb.Empty{}), nil
-}
-
-func (s *Server) DownloadManagedBinary(
-	ctx context.Context,
-	req *connect.Request[pb.DownloadManagedBinaryRequest],
-	stream *connect.ServerStream[pb.DownloadManagedBinaryResponse],
-) error {
-	client, err := s.orchestratorClient()
-	if err != nil {
-		return err
-	}
-
-	orchStream, err := client.DownloadBinary(ctx, connect.NewRequest(&orchpb.DownloadBinaryRequest{
-		Name:  req.Msg.Name,
-		Force: req.Msg.Force,
-	}))
-	if err != nil {
-		return connect.NewError(connect.CodeInternal, fmt.Errorf("download managed binary %s: %w", req.Msg.Name, err))
-	}
-
-	for orchStream.Receive() {
-		msg := orchStream.Msg()
-		if err := stream.Send(&pb.DownloadManagedBinaryResponse{
-			BytesDownloaded: msg.GetBytesDownloaded(),
-			TotalBytes:      msg.GetTotalBytes(),
-			Message:         msg.GetMessage(),
-			Done:            msg.GetDone(),
-			Error:           msg.GetError(),
-		}); err != nil {
-			return err
-		}
-		if msg.GetDone() || msg.GetError() != "" {
-			break
-		}
-	}
-
-	if err := orchStream.Err(); err != nil {
-		return connect.NewError(connect.CodeInternal, fmt.Errorf("read download stream for %s: %w", req.Msg.Name, err))
-	}
-
-	return nil
-}
-
-func (s *Server) ShutdownManagedBinaries(
-	ctx context.Context,
-	req *connect.Request[pb.ShutdownManagedBinariesRequest],
-	stream *connect.ServerStream[pb.ShutdownManagedBinariesResponse],
-) error {
-	client, err := s.orchestratorClient()
-	if err != nil {
-		return err
-	}
-
-	orchStream, err := client.ShutdownAll(ctx, connect.NewRequest(&orchpb.ShutdownAllRequest{Force: req.Msg.Force}))
-	if err != nil {
-		return connect.NewError(connect.CodeInternal, fmt.Errorf("shutdown managed binaries: %w", err))
-	}
-
-	for orchStream.Receive() {
-		msg := orchStream.Msg()
-		if err := stream.Send(&pb.ShutdownManagedBinariesResponse{
-			TotalCount:     msg.GetTotalCount(),
-			CompletedCount: msg.GetCompletedCount(),
-			CurrentBinary:  msg.GetCurrentBinary(),
-			Done:           msg.GetDone(),
-			Error:          msg.GetError(),
-		}); err != nil {
-			return err
-		}
-		if msg.GetDone() || msg.GetError() != "" {
-			break
-		}
-	}
-
-	if err := orchStream.Err(); err != nil {
-		return connect.NewError(connect.CodeInternal, fmt.Errorf("read shutdown stream: %w", err))
-	}
-
-	return nil
+	return false
 }
 
 // Stop implements drivechainv1connect.DrivechainServiceHandler.
@@ -984,10 +890,17 @@ func (s *Server) MineBlocks(ctx context.Context, req *connect.Request[emptypb.Em
 		return connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("get mining address: %w", err))
 	}
 
+	// cpuminer talks raw bitcoind JSON-RPC; pull the live creds from
+	// orchestratord so we always match whatever bitcoind is running with.
+	confClient := orchrpc.NewBitcoinConfServiceClient(http.DefaultClient, s.config.OrchestratorAddr, connect.WithGRPC())
+	confResp, err := confClient.GetBitcoinConfig(ctx, connect.NewRequest(&orchpb.GetBitcoinConfigRequest{}))
+	if err != nil {
+		return connect.NewError(connect.CodeUnavailable, fmt.Errorf("read bitcoin config from orchestrator: %w", err))
+	}
 	miner, err := cpuminer.New(cpuminer.Config{
-		RpcURL:          s.config.BitcoinCoreURL,
-		RpcUser:         s.config.BitcoinCoreRpcUser,
-		RpcPass:         s.config.BitcoinCoreRpcPassword,
+		RpcURL:          fmt.Sprintf("http://localhost:%d", confResp.Msg.RpcPort),
+		RpcUser:         confResp.Msg.RpcUser,
+		RpcPass:         confResp.Msg.RpcPassword,
 		Routines:        1, // Single routine sufficient for regtest/testnet mining
 		CoinbaseAddress: address,
 	})

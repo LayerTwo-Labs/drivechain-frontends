@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:connectrpc/protobuf.dart';
 import 'package:connectrpc/protocol/connect.dart' as connect;
@@ -6,19 +7,10 @@ import 'package:fixnum/fixnum.dart';
 import 'package:get_it/get_it.dart';
 import 'package:http/http.dart' as http;
 import 'package:logger/logger.dart';
-import 'package:sail_ui/gen/bitcoin/bitcoind/v1alpha/bitcoin.connect.client.dart';
 import 'package:sail_ui/gen/bitdrive/v1/bitdrive.pb.dart' as bitdrivepb;
 import 'package:sail_ui/gen/multisig/v1/multisig.pb.dart' as multisigpb;
 import 'package:sail_ui/gen/multisig/v1/multisig.connect.client.dart';
 import 'package:sail_ui/gen/utils/v1/utils.pb.dart' as utilspb;
-import 'package:sail_ui/gen/bitcoin/bitcoind/v1alpha/bitcoin.pb.dart'
-    hide
-        UnspentOutput,
-        GetNewAddressRequest,
-        ListTransactionsRequest,
-        ListUnspentRequest,
-        BumpFeeRequest,
-        BumpFeeResponse;
 import 'package:sail_ui/gen/m4/v1/m4.connect.client.dart';
 import 'package:sail_ui/gen/m4/v1/m4.pb.dart' as m4pb;
 import 'package:sail_ui/gen/notification/v1/notification.connect.client.dart';
@@ -33,7 +25,6 @@ abstract class BitwindowRPC extends RPCConnection {
 
   BitwindowAPI get bitwindowd;
   WalletAPI get wallet;
-  BitcoindAPI get bitcoind;
   DrivechainAPI get drivechain;
   MiscAPI get misc;
   M4API get m4;
@@ -54,8 +45,6 @@ class BitwindowRPCLive extends BitwindowRPC {
   late BitwindowAPI bitwindowd;
   @override
   late WalletAPI wallet;
-  @override
-  late BitcoindAPI bitcoind;
   @override
   late DrivechainAPI drivechain;
   @override
@@ -86,7 +75,6 @@ class BitwindowRPCLive extends BitwindowRPC {
 
     bitwindowd = _BitwindowAPILive(BitwindowdServiceClient(transport));
     wallet = _WalletAPILive(WalletServiceClient(transport));
-    bitcoind = _BitcoindAPILive(BitcoinServiceClient(transport));
     drivechain = _DrivechainAPILive(DrivechainServiceClient(transport));
     misc = _MiscAPILive(MiscServiceClient(transport));
     m4 = _M4APILive(M4ServiceClient(transport));
@@ -101,22 +89,9 @@ class BitwindowRPCLive extends BitwindowRPC {
   @override
   Future<List<String>> binaryArgs() async {
     final bitwBinary = GetIt.I.get<BinaryProvider>().binaries.where((b) => b.name == binary.name).first;
-
-    // now set the bitcoincore host with correct ports
-    final mainchainConf = readMainchainConf();
-
-    // Use the port from config instead of hardcoding by network
-    bitwBinary.addBootArg(
-      '--bitcoincore.url=http://localhost:${mainchainConf.port}',
-      override: true,
-    );
-
-    return [
-      '--bitcoincore.rpcuser=${mainchainConf.username}',
-      '--bitcoincore.rpcpassword=${mainchainConf.password}',
-      '--bitcoincore.network=${mainchainConf.network.toReadableNet()}',
-      if (bitwBinary.extraBootArgs.isNotEmpty) ...bitwBinary.extraBootArgs,
-    ];
+    // bitwindowd queries orchestratord at startup for network + bitcoind
+    // creds — no flags needed here. Forward any extras callers added.
+    return [...bitwBinary.extraBootArgs];
   }
 
   @override
@@ -373,13 +348,6 @@ class BitwindowRPCLive extends BitwindowRPC {
 
 abstract class BitwindowAPI {
   Future<void> stop({bool skipDownstream = false});
-  Stream<StartManagedBinaryResponse> startManagedBinary(String name);
-  Future<void> stopManagedBinary(String name, {bool force = false});
-  Stream<DownloadManagedBinaryResponse> downloadManagedBinary(
-    String name, {
-    bool force = false,
-  });
-  Stream<ShutdownManagedBinariesResponse> shutdownManagedBinaries({bool force = false});
 
   // CPU mining
   Stream<MineBlocksResponse> mineBlocks();
@@ -419,6 +387,10 @@ abstract class BitwindowAPI {
   });
 
   Future<GetNetworkStatsResponse> getNetworkStats();
+
+  /// Swap bitcoind network. bitwindowd forwards to orchestratord and exits
+  /// for a launcher restart so the DB rescopes to the new network folder.
+  Future<void> updateNetwork(String network);
 }
 
 class _BitwindowAPILive implements BitwindowAPI {
@@ -431,35 +403,6 @@ class _BitwindowAPILive implements BitwindowAPI {
   Future<void> stop({bool skipDownstream = false}) async {
     await _client.stop(
       BitwindowdServiceStopRequest(skipDownstream: skipDownstream),
-    );
-  }
-
-  @override
-  Stream<StartManagedBinaryResponse> startManagedBinary(String name) {
-    return _client.startManagedBinary(StartManagedBinaryRequest(name: name));
-  }
-
-  @override
-  Future<void> stopManagedBinary(String name, {bool force = false}) async {
-    await _client.stopManagedBinary(
-      StopManagedBinaryRequest(name: name, force: force),
-    );
-  }
-
-  @override
-  Stream<DownloadManagedBinaryResponse> downloadManagedBinary(
-    String name, {
-    bool force = false,
-  }) {
-    return _client.downloadManagedBinary(
-      DownloadManagedBinaryRequest(name: name, force: force),
-    );
-  }
-
-  @override
-  Stream<ShutdownManagedBinariesResponse> shutdownManagedBinaries({bool force = false}) {
-    return _client.shutdownManagedBinaries(
-      ShutdownManagedBinariesRequest(force: force),
     );
   }
 
@@ -605,6 +548,15 @@ class _BitwindowAPILive implements BitwindowAPI {
     } catch (e) {
       final error = 'could not get network stats: ${extractConnectException(e)}';
       throw BitcoindException(error);
+    }
+  }
+
+  @override
+  Future<void> updateNetwork(String network) async {
+    try {
+      await _client.updateNetwork(UpdateNetworkRequest(network: network));
+    } catch (e) {
+      throw BitcoindException('could not update network: ${extractConnectException(e)}');
     }
   }
 }
@@ -1200,408 +1152,6 @@ class _WalletAPILive implements WalletAPI {
     } catch (e) {
       final error = extractConnectException(e);
       throw WalletException(error);
-    }
-  }
-}
-
-abstract class BitcoindAPI {
-  Future<List<Peer>> listPeers();
-  Future<GetBlockchainInfoResponse> getBlockchainInfo();
-  Future<EstimateSmartFeeResponse> estimateSmartFee(int confTarget);
-  Future<GetRawTransactionResponse> getRawTransaction(String txid);
-  Future<GetBlockResponse> getBlock({String? hash, int? height});
-  Future<GetRawMempoolResponse> getRawMempool();
-
-  Future<CreateWalletResponse> createWallet(
-    String name,
-    String passphrase,
-    bool avoidReuse,
-    bool disablePrivateKeys,
-    bool blank,
-  );
-  Future<BackupWalletResponse> backupWallet(String destination, String wallet);
-  Future<UnloadWalletResponse> unloadWallet(String walletName, String wallet);
-
-  // Key/Address management
-  Future<KeyPoolRefillResponse> keyPoolRefill(int newSize, String wallet);
-
-  // Account operations
-  Future<GetAccountResponse> getAccount(String address, String wallet);
-
-  Future<SetAccountResponse> setAccount(
-    String address,
-    String account,
-    String wallet,
-  );
-  Future<GetAddressesByAccountResponse> getAddressesByAccount(
-    String account,
-    String wallet,
-  );
-  Future<ListAccountsResponse> listAccounts(int minConf, String wallet);
-
-  // Multi-sig operations
-  Future<CreateMultisigResponse> createMultisig(
-    int requiredSigs,
-    List<String> keys,
-  );
-
-  // PSBT handling
-  Future<CreatePsbtResponse> createPsbt(CreatePsbtRequest request);
-  Future<DecodePsbtResponse> decodePsbt(DecodePsbtRequest request);
-  Future<AnalyzePsbtResponse> analyzePsbt(AnalyzePsbtRequest request);
-  Future<CombinePsbtResponse> combinePsbt(CombinePsbtRequest request);
-  Future<UtxoUpdatePsbtResponse> utxoUpdatePsbt(UtxoUpdatePsbtRequest request);
-  Future<JoinPsbtsResponse> joinPsbts(JoinPsbtsRequest request);
-
-  // Transaction misc
-  Future<TestMempoolAcceptResponse> testMempoolAccept(
-    TestMempoolAcceptRequest request,
-  );
-}
-
-class _BitcoindAPILive implements BitcoindAPI {
-  final BitcoinServiceClient _client;
-  Logger get log => GetIt.I.get<Logger>();
-
-  _BitcoindAPILive(this._client);
-
-  @override
-  Future<GetBlockchainInfoResponse> getBlockchainInfo() async {
-    // This should not try catched because callers elsewhere expect
-    // it to throw if the connection is not live.
-    final response = await _client.getBlockchainInfo(
-      GetBlockchainInfoRequest(),
-    );
-    return response;
-  }
-
-  @override
-  Future<List<Peer>> listPeers() async {
-    try {
-      final response = await _client.getPeerInfo(GetPeerInfoRequest());
-      return response.peers;
-    } catch (e) {
-      final error = 'could not list peers: ${extractConnectException(e)}';
-      throw BitcoindException(error);
-    }
-  }
-
-  @override
-  Future<EstimateSmartFeeResponse> estimateSmartFee(int confTarget) async {
-    try {
-      final response = await _client.estimateSmartFee(
-        EstimateSmartFeeRequest()..confTarget = Int64(confTarget),
-      );
-      return response;
-    } catch (e) {
-      final error = 'could not estimate smart fee: ${extractConnectException(e)}';
-      throw BitcoindException(error);
-    }
-  }
-
-  @override
-  Future<GetRawTransactionResponse> getRawTransaction(String txid) async {
-    try {
-      final response = await _client.getRawTransaction(
-        GetRawTransactionRequest()
-          ..txid = txid
-          ..verbosity = GetRawTransactionRequest_Verbosity.VERBOSITY_TX_INFO,
-      );
-      return response;
-    } catch (e) {
-      final error = 'could not get transaction: ${extractConnectException(e)}';
-      throw BitcoindException(error);
-    }
-  }
-
-  @override
-  Future<GetBlockResponse> getBlock({String? hash, int? height}) async {
-    try {
-      final request = GetBlockRequest();
-      if (hash != null) {
-        request.hash = hash;
-      } else if (height != null) {
-        request.height = height;
-      } else {
-        throw BitcoindException('Either hash or height must be provided');
-      }
-
-      final response = await _client.getBlock(request);
-
-      return response;
-    } catch (e) {
-      final error = 'could not get block: ${extractConnectException(e)}';
-      throw BitcoindException(error);
-    }
-  }
-
-  // Key/Address management
-
-  @override
-  Future<KeyPoolRefillResponse> keyPoolRefill(
-    int newSize,
-    String wallet,
-  ) async {
-    try {
-      final response = await _client.keyPoolRefill(
-        KeyPoolRefillRequest()..newSize = newSize,
-      );
-      log.i('Successfully refilled key pool to size $newSize');
-      return response;
-    } catch (e) {
-      final error = 'could not refill key pool: ${extractConnectException(e)}';
-      throw BitcoindException(error);
-    }
-  }
-
-  // Account operations
-  @override
-  Future<GetAccountResponse> getAccount(String address, String wallet) async {
-    try {
-      final response = await _client.getAccount(
-        GetAccountRequest()..address = address,
-      );
-      log.i('Successfully got account for wallet $wallet address $address');
-      return response;
-    } catch (e) {
-      final error = 'could not get account: ${extractConnectException(e)}';
-      throw BitcoindException(error);
-    }
-  }
-
-  @override
-  Future<SetAccountResponse> setAccount(
-    String address,
-    String account,
-    String wallet,
-  ) async {
-    try {
-      final response = await _client.setAccount(
-        SetAccountRequest()
-          ..address = address
-          ..account = account
-          ..wallet = wallet,
-      );
-      log.i('Successfully set account $account for address $address');
-      return response;
-    } catch (e) {
-      final error = 'could not set account: ${extractConnectException(e)}';
-      throw BitcoindException(error);
-    }
-  }
-
-  @override
-  Future<GetAddressesByAccountResponse> getAddressesByAccount(
-    String account,
-    String wallet,
-  ) async {
-    try {
-      final response = await _client.getAddressesByAccount(
-        GetAddressesByAccountRequest()..account = account,
-      );
-      log.i('Successfully got addresses for account $account');
-      return response;
-    } catch (e) {
-      final error = 'could not get addresses by account: ${extractConnectException(e)}';
-      throw BitcoindException(error);
-    }
-  }
-
-  @override
-  Future<ListAccountsResponse> listAccounts(int minConf, String wallet) async {
-    try {
-      final response = await _client.listAccounts(
-        ListAccountsRequest()..minConf = minConf,
-      );
-      log.i('Successfully listed accounts with minConf=$minConf');
-      return response;
-    } catch (e) {
-      final error = 'could not list accounts: ${extractConnectException(e)}';
-      throw BitcoindException(error);
-    }
-  }
-
-  @override
-  Future<CreateMultisigResponse> createMultisig(
-    int requiredSigs,
-    List<String> keys,
-  ) async {
-    try {
-      final response = await _client.createMultisig(
-        CreateMultisigRequest()
-          ..requiredSigs = requiredSigs
-          ..keys.addAll(keys),
-      );
-      log.i(
-        'Successfully created multisig with required=$requiredSigs, keys=${keys.length}',
-      );
-      return response;
-    } catch (e) {
-      final error = 'could not create multisig: ${extractConnectException(e)}';
-      throw BitcoindException(error);
-    }
-  }
-
-  @override
-  Future<BackupWalletResponse> backupWallet(
-    String destination,
-    String wallet,
-  ) async {
-    try {
-      final response = await _client.backupWallet(
-        BackupWalletRequest()
-          ..destination = destination
-          ..wallet = wallet,
-      );
-      log.i('Successfully backed up wallet $wallet to $destination');
-      return response;
-    } catch (e) {
-      final error = 'could not backup wallet: ${extractConnectException(e)}';
-      throw BitcoindException(error);
-    }
-  }
-
-  @override
-  Future<CreateWalletResponse> createWallet(
-    String name,
-    String passphrase,
-    bool avoidReuse,
-    bool disablePrivateKeys,
-    bool blank,
-  ) async {
-    try {
-      final response = await _client.createWallet(
-        CreateWalletRequest()
-          ..name = name
-          ..passphrase = passphrase
-          ..avoidReuse = avoidReuse
-          ..disablePrivateKeys = disablePrivateKeys
-          ..blank = blank,
-      );
-      log.i('Successfully created wallet $name');
-      return response;
-    } catch (e) {
-      final error = 'could not create wallet: ${extractConnectException(e)}';
-      throw BitcoindException(error);
-    }
-  }
-
-  @override
-  Future<UnloadWalletResponse> unloadWallet(
-    String walletName,
-    String wallet,
-  ) async {
-    try {
-      final response = await _client.unloadWallet(
-        UnloadWalletRequest()
-          ..walletName = walletName
-          ..wallet = wallet,
-      );
-      log.i('Successfully unloaded wallet');
-      return response;
-    } catch (e) {
-      final error = 'could not unload wallet: ${extractConnectException(e)}';
-      throw BitcoindException(error);
-    }
-  }
-
-  @override
-  Future<CreatePsbtResponse> createPsbt(CreatePsbtRequest request) async {
-    try {
-      final response = await _client.createPsbt(request);
-      log.i('Successfully created PSBT');
-      return response;
-    } catch (e) {
-      final error = 'could not create PSBT: ${extractConnectException(e)}';
-      throw BitcoindException(error);
-    }
-  }
-
-  @override
-  Future<DecodePsbtResponse> decodePsbt(DecodePsbtRequest request) async {
-    try {
-      final response = await _client.decodePsbt(request);
-      log.i('Successfully decoded PSBT');
-      return response;
-    } catch (e) {
-      final error = 'could not decode PSBT: ${extractConnectException(e)}';
-      throw BitcoindException(error);
-    }
-  }
-
-  @override
-  Future<AnalyzePsbtResponse> analyzePsbt(AnalyzePsbtRequest request) async {
-    try {
-      final response = await _client.analyzePsbt(request);
-      log.i('Successfully analyzed PSBT');
-      return response;
-    } catch (e) {
-      final error = 'could not analyze PSBT: ${extractConnectException(e)}';
-      throw BitcoindException(error);
-    }
-  }
-
-  @override
-  Future<CombinePsbtResponse> combinePsbt(CombinePsbtRequest request) async {
-    try {
-      final response = await _client.combinePsbt(request);
-      log.i('Successfully combined PSBTs');
-      return response;
-    } catch (e) {
-      final error = 'could not combine PSBTs: ${extractConnectException(e)}';
-      throw BitcoindException(error);
-    }
-  }
-
-  @override
-  Future<UtxoUpdatePsbtResponse> utxoUpdatePsbt(
-    UtxoUpdatePsbtRequest request,
-  ) async {
-    try {
-      final response = await _client.utxoUpdatePsbt(request);
-      log.i('Successfully updated PSBT UTXOs');
-      return response;
-    } catch (e) {
-      final error = 'could not update PSBT UTXOs: ${extractConnectException(e)}';
-      throw BitcoindException(error);
-    }
-  }
-
-  @override
-  Future<JoinPsbtsResponse> joinPsbts(JoinPsbtsRequest request) async {
-    try {
-      final response = await _client.joinPsbts(request);
-      log.i('Successfully joined PSBTs');
-      return response;
-    } catch (e) {
-      final error = 'could not join PSBTs: ${extractConnectException(e)}';
-      throw BitcoindException(error);
-    }
-  }
-
-  @override
-  Future<TestMempoolAcceptResponse> testMempoolAccept(
-    TestMempoolAcceptRequest request,
-  ) async {
-    try {
-      log.d('Testing mempool acceptance');
-      final response = await _client.testMempoolAccept(request);
-      log.i('Successfully tested mempool acceptance');
-      return response;
-    } catch (e) {
-      final error = 'could not test mempool acceptance: ${extractConnectException(e)}';
-      throw BitcoindException(error);
-    }
-  }
-
-  @override
-  Future<GetRawMempoolResponse> getRawMempool() async {
-    try {
-      final response = await _client.getRawMempool(GetRawMempoolRequest());
-      return response;
-    } catch (e) {
-      final error = 'could not get raw mempool: ${extractConnectException(e)}';
-      throw BitcoindException(error);
     }
   }
 }
@@ -2462,4 +2012,17 @@ extension StringExtension on String {
   String capitalize() {
     return '${this[0].toUpperCase()}${substring(1).toLowerCase()}';
   }
+}
+
+/// Routes a raw bitcoind RPC through orchestratord's CoreRawCall passthrough.
+/// Use this when btc-buf doesn't type the method (finalizepsbt,
+/// descriptorprocesspsbt, decodepsbt, getdescriptorinfo, listwallets, …).
+/// Encodes [params] as a JSON array on the way in; decodes the JSON result
+/// on the way back. Returns null for empty results (void-style RPCs).
+Future<dynamic> bitcoindRpcCall(String method, {List<dynamic>? params, String wallet = ''}) async {
+  final orchestrator = GetIt.I.get<OrchestratorRPC>();
+  final paramsJson = params == null ? '' : jsonEncode(params);
+  final resp = await orchestrator.coreRawCall(method, paramsJson: paramsJson, wallet: wallet);
+  if (resp.resultJson.isEmpty) return null;
+  return jsonDecode(resp.resultJson);
 }

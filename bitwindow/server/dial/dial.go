@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 
@@ -22,12 +23,40 @@ import (
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/photon"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/thunder"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/truthcoin"
+	corerpc "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha/bitcoindv1alphaconnect"
 	"github.com/rs/zerolog"
 	"golang.org/x/net/http2"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
 // EnforcerValidator creates a CUSF enforcer (validator & wallet) client.
+// Bitcoind returns a btc-buf BitcoinService client against the orchestrator's
+// hosted core proxy. orchestratorAddr is a full URL (config.OrchestratorAddr
+// defaults to "http://localhost:30400"); a bare host:port also works and gets
+// prefixed with http://. Single canonical bitcoind RPC route — no direct dial.
+func Bitcoind(ctx context.Context, orchestratorAddr string) (corerpc.BitcoinServiceClient, error) {
+	if orchestratorAddr == "" {
+		return nil, errors.New("empty orchestrator addr")
+	}
+	return corerpc.NewBitcoinServiceClient(
+		getSharedClient(ctx),
+		ensureHTTPScheme(orchestratorAddr),
+		connect.WithGRPC(),
+	), nil
+}
+
+// ensureHTTPScheme returns addr unchanged if it already has an http:// or
+// https:// scheme; otherwise prefixes http://. Guards against the
+// double-prefix bug where callers passing a full URL ended up with
+// "http://http://..." which Connect dialed as if "http" were a hostname.
+func ensureHTTPScheme(addr string) string {
+	lower := strings.ToLower(addr)
+	if strings.HasPrefix(lower, "http://") || strings.HasPrefix(lower, "https://") {
+		return addr
+	}
+	return "http://" + addr
+}
+
 func EnforcerValidator(ctx context.Context, url string) (
 	rpc.ValidatorServiceClient, error,
 ) {

@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
+import 'package:sail_ui/gen/bitcoin/bitcoind/v1alpha/bitcoin.pb.dart' show GetBlockRequest;
 import 'package:sail_ui/gen/wallet/v1/wallet.pb.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:stacked/stacked.dart';
@@ -222,11 +223,12 @@ class DetailRow extends StatelessWidget {
 }
 
 class BlockExplorerViewModel extends BaseViewModel {
-  final MainchainRPC mainchain = GetIt.I.get<MainchainRPC>();
+  final BitcoindConnection mainchain = GetIt.I.get<BitcoindConnection>();
   final BlockchainProvider blockchainProvider = GetIt.I.get<BlockchainProvider>();
   final searchController = TextEditingController();
   late final ScrollController scrollController;
   final BitwindowRPC bitwindow = GetIt.I.get<BitwindowRPC>();
+  final OrchestratorRPC orchestrator = GetIt.I.get<OrchestratorRPC>();
 
   final Future<void> Function(Block) blockViewBuilder;
 
@@ -254,10 +256,14 @@ class BlockExplorerViewModel extends BaseViewModel {
 
   Future<void> searchBlock(String query) async {
     try {
-      final block = await bitwindow.bitcoind.getBlock(
-        height: int.tryParse(query),
-        hash: int.tryParse(query) == null ? query : null,
-      );
+      final req = GetBlockRequest();
+      final asHeight = int.tryParse(query);
+      if (asHeight != null) {
+        req.height = asHeight;
+      } else {
+        req.hash = query;
+      }
+      final block = await orchestrator.bitcoind.getBlock(req);
       // the bitcoind rpc `getblock` returns a slightly
       // different data model than the bitwindowd rpc `listblocks`
       final converted = Block(

@@ -2,7 +2,6 @@ import 'package:bitwindow/models/multisig_group.dart';
 import 'package:bitwindow/models/multisig_transaction.dart';
 import 'package:bitwindow/providers/multisig_provider.dart';
 import 'package:flutter/material.dart';
-import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
 
 class CombineBroadcastModal extends StatefulWidget {
@@ -24,7 +23,6 @@ class _CombineBroadcastModalState extends State<CombineBroadcastModal> {
   String? _error;
   List<MultisigTransaction> _eligibleTransactions = [];
   List<MultisigGroup> _multisigGroups = [];
-  MainchainRPC get _rpc => GetIt.I.get<MainchainRPC>();
 
   @override
   void initState() {
@@ -98,11 +96,11 @@ class _CombineBroadcastModalState extends State<CombineBroadcastModal> {
       if (uniquePSBTs.length == 1) {
         combined = uniquePSBTs.first;
       } else {
-        final combineResult = await _rpc.callRAW('combinepsbt', [uniquePSBTs]);
+        final combineResult = await bitcoindRpcCall('combinepsbt', params: [uniquePSBTs]);
         combined = combineResult as String;
       }
 
-      final finalizeResult = await _rpc.callRAW('finalizepsbt', [combined]);
+      final finalizeResult = await bitcoindRpcCall('finalizepsbt', params: [combined]);
 
       if (finalizeResult is! Map) {
         throw Exception('PSBT finalization returned invalid result type');
@@ -170,7 +168,7 @@ class _CombineBroadcastModalState extends State<CombineBroadcastModal> {
         throw Exception('Transaction not finalized - cannot broadcast');
       }
 
-      final txid = await _rpc.callRAW('sendrawtransaction', [tx.finalHex!]) as String;
+      final txid = await bitcoindRpcCall('sendrawtransaction', params: [tx.finalHex!]) as String;
 
       await TransactionStatusManager.updateTransactionStatus(
         transactionId: tx.id,

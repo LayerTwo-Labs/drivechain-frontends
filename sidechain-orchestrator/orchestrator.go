@@ -97,6 +97,20 @@ type StartOpts struct {
 	Immediate    bool // start target without waiting for L1
 }
 
+// failBoot routes a StartWithL1 failure to all the places the frontend can
+// see it: clears the monitor's initializing flag (otherwise the spinner
+// stays forever), records the error on the monitor (so WatchBinaries
+// surfaces it on BinaryStatus.connection_error → DaemonConnectionCard),
+// and emits a StartupProgress on the boot stream (so the caller's awaited
+// future actually rejects). Without all three, a fatal boot failure can
+// silently look identical to "still initializing", which is exactly how
+// the bitcoind-binary-not-found regression hid in the UI.
+func failBoot(mon *ConnectionMonitor, ch chan<- StartupProgress, prefix string, err error) {
+	mon.SetInitializing(false)
+	mon.SetConnectionError(fmt.Sprintf("%s: %v", prefix, err))
+	ch <- StartupProgress{Error: fmt.Errorf("%s: %w", prefix, err)}
+}
+
 // Orchestrator coordinates binary download, process management, and health checking.
 type Orchestrator struct {
 	DataDir      string
@@ -180,7 +194,9 @@ func New(dataDir, network, bitwindowDir string, configs []BinaryConfig, log zero
 	// Variant resolver shared by download + process managers. The persisted
 	// ID wins when it's available on the current network; otherwise we clamp
 	// to the first network-compatible variant so a user who switched
-	// networks doesn't end up launching the wrong build.
+	// networks doesn't end up launching the wrong build. knots is always
+	// ranked last in the fallback order — pure alphabetical was silently
+	// picking it over vanilla / drivechain-patched on signet.
 	variantResolver := func(c BinaryConfig) (CoreVariantSpec, bool) {
 		if !c.IsBitcoinCore {
 			return CoreVariantSpec{}, false
@@ -193,7 +209,9 @@ func New(dataDir, network, bitwindowDir string, configs []BinaryConfig, log zero
 		if len(available) == 0 {
 			return CoreVariantSpec{}, false
 		}
-		sort.Slice(available, func(i, j int) bool { return available[i].ID < available[j].ID })
+		sort.Slice(available, func(i, j int) bool {
+			return preferenceLess(available[i].ID, available[j].ID)
+		})
 		return available[0], true
 	}
 	orch.download.CoreVariant = func() (CoreVariantSpec, bool) {
@@ -764,19 +782,16 @@ func (o *Orchestrator) StartWithL1(ctx context.Context, target string, opts Star
 
 			downloadCh, err := o.download.Download(ctx, o.configs["bitcoind"], o.Network, false)
 			if err != nil {
-				coreMon.SetInitializing(false)
-				ch <- StartupProgress{Error: fmt.Errorf("download bitcoind: %w", err)}
+				failBoot(coreMon, ch, "download bitcoind", err)
 				return
 			}
 			if err := forwardDownload(downloadCh, ch, "downloading-bitcoind"); err != nil {
-				coreMon.SetInitializing(false)
-				ch <- StartupProgress{Error: fmt.Errorf("download bitcoind: %w", err)}
+				failBoot(coreMon, ch, "download bitcoind", err)
 				return
 			}
 
 			if _, err := o.process.Start(ctx, o.configs["bitcoind"], opts.CoreArgs, nil); err != nil {
-				coreMon.SetInitializing(false)
-				ch <- StartupProgress{Error: fmt.Errorf("start bitcoind: %w", err)}
+				failBoot(coreMon, ch, "start bitcoind", err)
 				return
 			}
 			coreProc := o.process.Get("bitcoind")
@@ -784,8 +799,7 @@ func (o *Orchestrator) StartWithL1(ctx context.Context, target string, opts Star
 			// Wait for the connection timer to detect bitcoind is healthy
 			ch <- StartupProgress{Stage: "waiting-bitcoind", Message: "waiting for Bitcoin Core to accept connections..."}
 			if err := waitForConnectedOrExit(ctx, coreMon, coreProc); err != nil {
-				coreMon.SetInitializing(false)
-				ch <- StartupProgress{Error: fmt.Errorf("wait for bitcoind: %w", err)}
+				failBoot(coreMon, ch, "wait for bitcoind", err)
 				return
 			}
 		}
@@ -1024,8 +1038,7 @@ func (o *Orchestrator) startTargetOnly(ctx context.Context, config BinaryConfig,
 		// Download was kicked off in parallel with bitcoind IBD.
 		ch <- StartupProgress{Stage: "downloading-" + config.Name, Message: fmt.Sprintf("waiting for %s download...", config.DisplayName)}
 		if err := <-prefetched; err != nil {
-			targetMon.SetInitializing(false)
-			ch <- StartupProgress{Error: fmt.Errorf("download %s: %w", config.Name, err)}
+			failBoot(targetMon, ch, "download "+config.Name, err)
 			return
 		}
 	} else {
@@ -1033,13 +1046,11 @@ func (o *Orchestrator) startTargetOnly(ctx context.Context, config BinaryConfig,
 
 		downloadCh, err := o.download.Download(ctx, config, o.Network, false)
 		if err != nil {
-			targetMon.SetInitializing(false)
-			ch <- StartupProgress{Error: fmt.Errorf("download %s: %w", config.Name, err)}
+			failBoot(targetMon, ch, "download "+config.Name, err)
 			return
 		}
 		if err := forwardDownload(downloadCh, ch, "downloading-"+config.Name); err != nil {
-			targetMon.SetInitializing(false)
-			ch <- StartupProgress{Error: fmt.Errorf("download %s: %w", config.Name, err)}
+			failBoot(targetMon, ch, "download "+config.Name, err)
 			return
 		}
 	}
@@ -1049,8 +1060,7 @@ func (o *Orchestrator) startTargetOnly(ctx context.Context, config BinaryConfig,
 		o.log.Info().Str("binary", config.Name).Msg("process already running, waiting for connection")
 		ch <- StartupProgress{Stage: "waiting-" + config.Name, Message: fmt.Sprintf("waiting for %s...", config.DisplayName)}
 		if err := waitForConnectedOrExit(ctx, targetMon, o.process.Get(config.Name)); err != nil {
-			targetMon.SetInitializing(false)
-			ch <- StartupProgress{Error: fmt.Errorf("wait for %s: %w", config.Name, err)}
+			failBoot(targetMon, ch, "wait for "+config.Name, err)
 			return
 		}
 		ch <- StartupProgress{Stage: "done", Message: fmt.Sprintf("%s started", config.DisplayName), Done: true}
@@ -1086,22 +1096,26 @@ func (o *Orchestrator) startTargetOnly(ctx context.Context, config BinaryConfig,
 	)
 
 	if _, err := o.process.Start(ctx, config, targetArgs, targetEnv); err != nil {
-		targetMon.SetInitializing(false)
-		ch <- StartupProgress{Error: fmt.Errorf("start %s: %w", config.Name, err)}
+		failBoot(targetMon, ch, "start "+config.Name, err)
 		return
 	}
 	targetProc := o.process.Get(config.Name)
 
 	ch <- StartupProgress{Stage: "waiting-" + config.Name, Message: fmt.Sprintf("waiting for %s to accept connections...", config.DisplayName)}
 	if err := waitForConnectedOrExit(ctx, targetMon, targetProc); err != nil {
-		targetMon.SetInitializing(false)
-		ch <- StartupProgress{Error: fmt.Errorf("wait for %s: %w", config.Name, err)}
+		failBoot(targetMon, ch, "wait for "+config.Name, err)
 		return
 	}
 
 	ch <- StartupProgress{Stage: "done", Message: fmt.Sprintf("%s started", config.DisplayName), Done: true}
 }
 
+// waitForConnectedOrExit blocks until the monitor reports connected, the
+// process exits, or ctx is canceled. Errors are returned raw so the caller
+// (failBoot) is the single owner of the "wait for X:" prefix — the
+// previous version pre-prefixed ctx.Err() and the caller re-prefixed,
+// producing surprised users staring at "wait for enforcer: wait for
+// enforcer: context canceled" in the daemon card.
 func waitForConnectedOrExit(ctx context.Context, mon *ConnectionMonitor, proc *ManagedProcess) error {
 	if proc == nil {
 		return mon.WaitForConnected(ctx)
@@ -1114,11 +1128,17 @@ func waitForConnectedOrExit(ctx context.Context, mon *ConnectionMonitor, proc *M
 
 		select {
 		case <-ctx.Done():
-			return fmt.Errorf("wait for %s: %w", mon.Name, ctx.Err())
+			return ctx.Err()
 		case <-proc.ExitCh():
 			exitCode := proc.ExitCode()
-			exitErr := proc.ExitErr()
-			if exitErr != "" {
+			// Prefer the rich crash reason (stderr buffer / last error log
+			// lines) over the bare cmd.Wait status. ExitDetails was
+			// populated by the process manager just before this channel
+			// closed, so it's available now.
+			if details := proc.ExitDetails(); details != "" {
+				return fmt.Errorf("%s exited with code %d: %s", mon.Name, exitCode, details)
+			}
+			if exitErr := proc.ExitErr(); exitErr != "" {
 				return fmt.Errorf("%s exited with code %d: %s", mon.Name, exitCode, exitErr)
 			}
 			return fmt.Errorf("%s exited with code %d", mon.Name, exitCode)

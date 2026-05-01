@@ -26,19 +26,22 @@ HttpClient unaryHttpClient() {
 /// us two independent layers of liveness checks.
 ///
 /// PING config:
-/// - `pingInterval: 10s` keeps the server's `ReadIdleTimeout: 30s` from
-///   firing a server-side liveness PING that would tear the connection
-///   down with GOAWAY when the round-trip stalls.
-/// - `pingTimeout: 5s` — if our PING isn't acked, the transport surfaces
-///   the failure to the active stream, which the supervisor handles.
-/// - `pingIdleConnections: true` — keep pinging even when no streams are
-///   open so the long-lived transport doesn't go silent.
+/// - `pingInterval: 20s` keeps the server's `ReadIdleTimeout: 30s` from
+///   firing without flooding it. Earlier we ran 10s with idle-pings on,
+///   which caused both bitwindowd and orchestratord to tear streams down
+///   every ~15s with HTTP/2 PROTOCOL_ERROR / GOAWAY (CONNECT_ERROR=10) —
+///   server-side flood-protection mistook the steady ping cadence on
+///   otherwise-quiet streams for misbehavior.
+/// - `pingTimeout: 10s` — long enough to absorb GC / scheduler jitter.
+/// - `pingIdleConnections: false` — server-side handlers already emit
+///   5s heartbeat frames, which keep the read-idle timer reset on their
+///   own. Layering client pings on top is what tripped the flood guard.
 HttpClient streamingHttpClient() {
   return createHttpClient(
     transport: Http2ClientTransport(
-      pingInterval: const Duration(seconds: 10),
-      pingTimeout: const Duration(seconds: 5),
-      pingIdleConnections: true,
+      pingInterval: const Duration(seconds: 20),
+      pingTimeout: const Duration(seconds: 10),
+      pingIdleConnections: false,
     ),
   );
 }

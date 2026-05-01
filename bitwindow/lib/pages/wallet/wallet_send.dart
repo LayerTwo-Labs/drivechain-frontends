@@ -10,9 +10,11 @@ import 'package:bitwindow/providers/coin_selection_provider.dart';
 import 'package:bitwindow/utils/bitcoin_uri.dart';
 import 'package:bitwindow/utils/coin_selection.dart';
 import 'package:collection/collection.dart';
+import 'package:fixnum/fixnum.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
+import 'package:sail_ui/gen/bitcoin/bitcoind/v1alpha/bitcoin.pb.dart' show EstimateSmartFeeRequest;
 import 'package:sail_ui/gen/wallet/v1/wallet.pb.dart' as pb;
 import 'package:sail_ui/gen/wallet/v1/wallet.pbserver.dart' hide CoinSelectionStrategy;
 import 'package:sail_ui/sail_ui.dart';
@@ -343,7 +345,8 @@ class SendPageViewModel extends BaseViewModel {
   AddressBookProvider get addressBookProvider => GetIt.I<AddressBookProvider>();
   CoinSelectionProvider get coinSelectionProvider => GetIt.I<CoinSelectionProvider>();
   BitwindowRPC get bitwindowd => GetIt.I<BitwindowRPC>();
-  OrchestratorWalletRPC get _orchestratorWallet => GetIt.I<OrchestratorRPC>().wallet;
+  OrchestratorRPC get _orchestrator => GetIt.I<OrchestratorRPC>();
+  OrchestratorWalletRPC get _orchestratorWallet => _orchestrator.wallet;
   SettingsProvider get settingsProvider => GetIt.I<SettingsProvider>();
   WalletReaderProvider get _walletReader => GetIt.I<WalletReaderProvider>();
 
@@ -680,7 +683,9 @@ class SendPageViewModel extends BaseViewModel {
 
   Future<void> estimateFee(int confTarget) async {
     try {
-      final response = await bitwindowd.bitcoind.estimateSmartFee(confTarget);
+      final response = await _orchestrator.bitcoind.estimateSmartFee(
+        EstimateSmartFeeRequest()..confTarget = Int64(confTarget),
+      );
       if (response.hasFeeRate()) {
         // Convert BTC/kvB to sats/byte, then estimate for a typical transaction
         final btcPerKvb = response.feeRate;

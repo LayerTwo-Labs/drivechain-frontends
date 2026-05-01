@@ -3,9 +3,11 @@ import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:sail_ui/sail_ui.dart';
 
-/// Confirms a Bitcoin network change, then asks the orchestrator to do
-/// the swap atomically: stop bitcoind+enforcer, persist the new network,
-/// restart the L1 stack. bitwindowd itself stays alive throughout.
+/// Confirms a Bitcoin network change. Routes through bitwindowd's
+/// `UpdateNetwork` RPC: orchestratord rewrites the conf and restarts
+/// bitcoind on the new chain, then bitwindowd recycles its DB + engines
+/// in-process. The bitwindowd HTTP server stays up across the swap on
+/// the same port — no process restart, no launcher dance.
 class NetworkSwapPage extends StatefulWidget {
   final BitcoinNetwork fromNetwork;
   final BitcoinNetwork toNetwork;
@@ -22,7 +24,7 @@ class NetworkSwapPage extends StatefulWidget {
 
 class _NetworkSwapPageState extends State<NetworkSwapPage> {
   Logger get _log => GetIt.I.get<Logger>();
-  BitcoinConfProvider get _conf => GetIt.I.get<BitcoinConfProvider>();
+  BitwindowRPC get _bitwindow => GetIt.I.get<BitwindowRPC>();
 
   final _SwapStep _step = _SwapStep('Switching network');
 
@@ -39,7 +41,7 @@ class _NetworkSwapPageState extends State<NetworkSwapPage> {
     });
 
     try {
-      await _conf.updateNetwork(widget.toNetwork);
+      await _bitwindow.bitwindowd.updateNetwork(_networkToString(widget.toNetwork));
       if (mounted) {
         setState(() {
           _step.endTime = DateTime.now();
@@ -139,7 +141,7 @@ class _NetworkSwapPageState extends State<NetworkSwapPage> {
                                 ? _error!
                                 : _isSwapping
                                 ? 'Switching from $fromName to $toName...'
-                                : 'BitWindow will stop, save the new network, and boot back up. Switching from $fromName to $toName.',
+                                : 'BitWindow will swap bitcoind to $toName and reload its data — the app stays open. Switching from $fromName to $toName.',
                             textAlign: TextAlign.center,
                           ),
                           const SizedBox(height: 24),
@@ -209,4 +211,21 @@ class _SwapStep {
 
   bool get isCompleted => endTime != null;
   Duration? get duration => (startTime != null && endTime != null) ? endTime!.difference(startTime!) : null;
+}
+
+String _networkToString(BitcoinNetwork network) {
+  switch (network) {
+    case BitcoinNetwork.BITCOIN_NETWORK_MAINNET:
+      return 'mainnet';
+    case BitcoinNetwork.BITCOIN_NETWORK_FORKNET:
+      return 'forknet';
+    case BitcoinNetwork.BITCOIN_NETWORK_TESTNET:
+      return 'testnet';
+    case BitcoinNetwork.BITCOIN_NETWORK_SIGNET:
+      return 'signet';
+    case BitcoinNetwork.BITCOIN_NETWORK_REGTEST:
+      return 'regtest';
+    default:
+      return 'signet';
+  }
 }

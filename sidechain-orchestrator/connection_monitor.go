@@ -381,13 +381,24 @@ func (m *ConnectionMonitor) testConnection(ctx context.Context) {
 
 	m.mu.Unlock()
 
+	// Defensive: guarantee `testing` is reset even if Checker.Check panics
+	// or returns through any other path. The flag was previously cleared at
+	// the explicit success/early-return sites — a panic in Check or in the
+	// OnSync hook left `testing` true forever, all subsequent ticks skipped,
+	// and the BlockchainSync froze silently with no error visible to the
+	// frontend. defer ensures the next tick always gets a chance to run.
+	defer func() {
+		m.mu.Lock()
+		m.testing = false
+		m.mu.Unlock()
+	}()
+
 	err := m.Checker.Check(ctx)
 
 	m.mu.Lock()
 
 	// Dart L94-96: stop() was called while ping was in-flight — discard
 	if m.pingEpoch != epochBefore {
-		m.testing = false
 		m.mu.Unlock()
 		return
 	}
@@ -450,7 +461,6 @@ func (m *ConnectionMonitor) testConnection(ctx context.Context) {
 	}
 
 	changed := m.connected != wasConnected || m.connectionError != oldConnErr || m.startupError != oldStartupErr
-	m.testing = false
 	m.mu.Unlock()
 
 	if changed {

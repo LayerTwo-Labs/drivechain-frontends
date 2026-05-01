@@ -75,9 +75,9 @@ Future<void> registerTestDependencies() async {
     );
   }
 
-  if (!GetIt.I.isRegistered<MainchainRPC>()) {
-    GetIt.I.registerLazySingleton<MainchainRPC>(
-      () => MockMainchainRPC(),
+  if (!GetIt.I.isRegistered<BitcoindConnection>()) {
+    GetIt.I.registerLazySingleton<BitcoindConnection>(
+      () => MockBitcoindConnection(),
     );
   }
 

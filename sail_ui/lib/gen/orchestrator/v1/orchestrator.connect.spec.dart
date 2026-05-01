@@ -129,4 +129,21 @@ abstract final class OrchestratorService {
     orchestratorv1orchestrator.StreamResetDataRequest.new,
     orchestratorv1orchestrator.StreamResetDataResponse.new,
   );
+
+  /// Full bitcoind getmempoolinfo response. Distinct from getrawmempool.
+  static const getCoreMempoolInfo = connect.Spec(
+    '/$name/GetCoreMempoolInfo',
+    connect.StreamType.unary,
+    orchestratorv1orchestrator.GetCoreMempoolInfoRequest.new,
+    orchestratorv1orchestrator.GetCoreMempoolInfoResponse.new,
+  );
+
+  /// Generic raw bitcoind RPC. Optional `wallet` field routes the call to
+  /// /wallet/{name} on bitcoind for wallet-scoped RPCs.
+  static const coreRawCall = connect.Spec(
+    '/$name/CoreRawCall',
+    connect.StreamType.unary,
+    orchestratorv1orchestrator.CoreRawCallRequest.new,
+    orchestratorv1orchestrator.CoreRawCallResponse.new,
+  );
 }

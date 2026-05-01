@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
 
 	dir "github.com/LayerTwo-Labs/sidesail/bitwindow/server/dir"
 	"github.com/jessevdk/go-flags"
@@ -21,14 +20,14 @@ const (
 	NetworkTestnet Network = "testnet"
 )
 
+// Config holds bitwindowd's runtime configuration. Network identity is
+// **not** declared here as a CLI flag — bitwindowd sources it from
+// orchestratord at startup via [Finalize] so it is always aligned with
+// orchestrator's view of the world. bitcoind RPC creds aren't needed
+// either: bitwindowd dials orchestratord's hosted BitcoinService for any
+// bitcoind call.
 type Config struct {
 	Version bool `long:"version" short:"v" description:"Print version information and exit"`
-
-	BitcoinCoreURL         string  `long:"bitcoincore.url" description:"URL for connecting to Bitcoin Core - derived from network if not set"`
-	BitcoinCoreCookie      string  `long:"bitcoincore.cookie" description:"Path to Bitcoin Core cookie file"`
-	BitcoinCoreRpcUser     string  `long:"bitcoincore.rpcuser" default:"user"`
-	BitcoinCoreRpcPassword string  `long:"bitcoincore.rpcpassword" default:"password"`
-	BitcoinCoreNetwork     Network `long:"bitcoincore.network" description:"Bitcoin network - derived from URL if not set" choice:"mainnet" choice:"forknet" choice:"regtest" choice:"signet" choice:"testnet"`
 
 	EnforcerHost     string `long:"enforcer.host" description:"host:port for connecting to the enforcer server" default:"localhost:50051"`
 	OrchestratorAddr string `long:"orchestrator.addr" description:"URL for connecting to the orchestrator daemon" default:"http://localhost:30400"`
@@ -43,6 +42,10 @@ type Config struct {
 	GuiBootedEnforcer  bool `long:"gui-booted-enforcer" description:"Set to true if GUI booted this process. Used by this application to shutdown everything correctly."`
 
 	SyncToHeight uint32 `long:"sync-to-height" description:"Sync to this height and then exit"`
+
+	// BitcoinCoreNetwork is set by Finalize from orchestratord — never from
+	// CLI flags. Used downstream for Datadir scoping and chain-params lookup.
+	BitcoinCoreNetwork Network `no-flag:"true"`
 }
 
 func Parse() (Config, error) {
@@ -51,25 +54,6 @@ func Parse() (Config, error) {
 
 	if _, err := parser.Parse(); err != nil {
 		return Config{}, err
-	}
-
-	if conf.BitcoinCoreCookie == "" && (conf.BitcoinCoreRpcPassword == "" || conf.BitcoinCoreRpcUser == "") {
-		return Config{}, errors.New("no Bitcoin Core auth provided")
-	}
-
-	if conf.BitcoinCoreCookie != "" {
-		cookie, err := os.ReadFile(conf.BitcoinCoreCookie)
-		if err != nil {
-			return Config{}, fmt.Errorf("read cookie file %q: %w", conf.BitcoinCoreCookie, err)
-		}
-
-		user, password, ok := strings.Cut(string(cookie), ":")
-		if !ok || user == "" || password == "" {
-			return Config{}, fmt.Errorf("unexpected cookie format: %s", string(cookie))
-		}
-
-		conf.BitcoinCoreRpcUser = user
-		conf.BitcoinCoreRpcPassword = password
 	}
 
 	if conf.Datadir == "" {
@@ -84,42 +68,20 @@ func Parse() (Config, error) {
 }
 
 // BitwindowDir returns the parent dir before the per-network suffix is
-// appended in Finalize. bitwindow-bitcoin.conf and wallet.json live here.
+// appended in Finalize. wallet.json lives here.
 func (c *Config) BitwindowDir() string {
 	return c.Datadir
 }
 
-// Finalize resolves the network/URL/auth and appends the per-network suffix
-// to Datadir. Call exactly once after Parse, before opening the log file or
-// using any path/URL fields. The two args come from BitcoinConfManager when
-// it is available; pass empty values to fall back to the CLI flags.
-func (c *Config) Finalize(confNetwork Network, confRPCPort int) error {
-	switch {
-	case confNetwork != "":
-		// bitwindow-bitcoin.conf wins. CLI --bitcoincore.network was just a seed.
-		c.BitcoinCoreNetwork = confNetwork
-		if confRPCPort > 0 {
-			c.BitcoinCoreURL = fmt.Sprintf("http://localhost:%d", confRPCPort)
-		} else {
-			c.BitcoinCoreURL = deriveURLFromNetwork(confNetwork)
-		}
-	case c.BitcoinCoreNetwork != "" && c.BitcoinCoreURL != "":
-		// Flags set explicitly, no conf manager — used by integration tests.
-	case c.BitcoinCoreNetwork != "" && c.BitcoinCoreURL == "":
-		c.BitcoinCoreURL = deriveURLFromNetwork(c.BitcoinCoreNetwork)
-		if c.BitcoinCoreURL == "" {
-			return fmt.Errorf("could not derive URL from network %q", c.BitcoinCoreNetwork)
-		}
-	case c.BitcoinCoreNetwork == "" && c.BitcoinCoreURL != "":
-		c.BitcoinCoreNetwork = deriveNetworkFromURL(c.BitcoinCoreURL)
-		if c.BitcoinCoreNetwork == "" {
-			return fmt.Errorf("could not derive network from URL %q: please specify --bitcoincore.network flag", c.BitcoinCoreURL)
-		}
-	default:
-		return errors.New("either --bitcoincore.network or --bitcoincore.url must be specified")
+// Finalize sets the network (sourced from orchestratord by the caller) and
+// appends the per-network suffix to Datadir. Call exactly once after Parse,
+// before opening the log file or using any path fields.
+func (c *Config) Finalize(network Network) error {
+	if network == "" {
+		return errors.New("Finalize: empty network — caller must source it from orchestratord")
 	}
-
-	c.Datadir = filepath.Join(c.Datadir, string(c.BitcoinCoreNetwork))
+	c.BitcoinCoreNetwork = network
+	c.Datadir = filepath.Join(c.Datadir, string(network))
 
 	if c.LogPath == "" {
 		c.LogPath = filepath.Join(c.Datadir, "server.log")
@@ -130,38 +92,6 @@ func (c *Config) Finalize(confNetwork Network, confRPCPort int) error {
 	}
 
 	return nil
-}
-
-func deriveURLFromNetwork(network Network) string {
-	switch network {
-	case NetworkMainnet:
-		return "http://localhost:8332"
-	case NetworkForknet:
-		return "http://localhost:18301"
-	case NetworkTestnet:
-		return "http://localhost:18332"
-	case NetworkSignet:
-		return "http://localhost:38332"
-	case NetworkRegtest:
-		return "http://localhost:18443"
-	}
-	return ""
-}
-
-func deriveNetworkFromURL(url string) Network {
-	switch {
-	case strings.Contains(url, ":8332"):
-		return NetworkMainnet
-	case strings.Contains(url, ":18301"):
-		return NetworkForknet
-	case strings.Contains(url, ":18332"):
-		return NetworkTestnet
-	case strings.Contains(url, ":38332"):
-		return NetworkSignet
-	case strings.Contains(url, ":18443"):
-		return NetworkRegtest
-	}
-	return ""
 }
 
 // IsDemoMode returns true when running on mainnet, enabling demo mode
