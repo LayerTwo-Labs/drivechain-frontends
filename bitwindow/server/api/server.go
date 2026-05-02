@@ -114,6 +114,16 @@ func New(
 	photonSvc := service.New("photon", svcs.PhotonConnector)
 	coinshiftSvc := service.New("coinshift", svcs.CoinShiftConnector)
 
+	// Eagerly seed the bitcoind connection so callers (health checks, the
+	// wallet bootstrap goroutine waiting on ConnectedChan, the cheque
+	// recovery loop) don't have to wait a full reconnect-ticker period.
+	// dial.Bitcoind is stateless and always returns success once the
+	// orchestrator addr is set, so this is cheap. Remote-handshake
+	// connectors (enforcer wallet/validator/crypto) stay lazy because they
+	// do real I/O; eager-connecting them would change downstream test
+	// semantics that depend on those staying disconnected at boot.
+	_, _ = bitcoindSvc.Connect(ctx)
+
 	// Reconnect loops are inherent service behavior — keep them on the
 	// root ctx so they survive runtime recycles.
 	bitcoindSvc.StartReconnectLoop(ctx)
