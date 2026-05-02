@@ -100,7 +100,10 @@ class BlockchainProvider extends ChangeNotifier {
         // we check every 5 seconds.
 
         // Check if we need to change the interval
-        final newInterval = mainchain.inIBD ? const Duration(milliseconds: 200) : const Duration(seconds: 5);
+        // SyncProvider is the source of truth for "are we still catching up";
+        // ride its `isSynced` so we drop to a calmer cadence the moment all
+        // tracked daemons report synced.
+        final newInterval = syncProvider.isSynced ? const Duration(seconds: 5) : const Duration(milliseconds: 200);
         if (newInterval != _currentInterval) {
           // IBD-status changed!
           _currentInterval = newInterval;

@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net"
 	"net/http"
 	"os"
@@ -51,22 +52,6 @@ type BinaryStatus struct {
 	Version         string // configured version string
 	RepoURL         string // source code repository URL
 	StartupLogs     []StartupLogLine
-	// BlockchainSync is populated for chainLayer=1 binaries from the
-	// orchestrator's getblockchaininfo health poll. Nil when no sample yet.
-	BlockchainSync *BlockchainSync
-}
-
-// BlockchainSync is the snapshot the connection monitor records after each
-// successful getblockchaininfo. Frontend reads this from BinaryStatusMsg
-// instead of running its own bitcoind RPC client.
-type BlockchainSync struct {
-	Blocks               int
-	Headers              int
-	VerificationProgress float64
-	InitialBlockDownload bool
-	InHeaderSync         bool
-	Time                 int64
-	BestBlockHash        string
 }
 
 // StartupProgress reports progress during StartWithL1.
@@ -99,8 +84,8 @@ type StartOpts struct {
 
 // failBoot routes a StartWithL1 failure to all the places the frontend can
 // see it: clears the monitor's initializing flag (otherwise the spinner
-// stays forever), records the error on the monitor (so WatchBinaries
-// surfaces it on BinaryStatus.connection_error → DaemonConnectionCard),
+// stays forever), records the error on the monitor (so the next
+// listBinaries poll surfaces it on BinaryStatus.connection_error → DaemonConnectionCard),
 // and emits a StartupProgress on the boot stream (so the caller's awaited
 // future actually rejects). Without all three, a fatal boot failure can
 // silently look identical to "still initializing", which is exactly how
@@ -133,10 +118,6 @@ type Orchestrator struct {
 	// Dart: RPCConnection instances — one per binary, for persistent health monitoring
 	monitors   map[string]*ConnectionMonitor
 	monitorsMu sync.Mutex
-
-	// StateChanged is signaled whenever any binary's connection state changes.
-	// WatchBinaries selects on this to push updates immediately.
-	StateChanged chan struct{}
 
 	mu sync.RWMutex
 
@@ -181,7 +162,6 @@ func New(dataDir, network, bitwindowDir string, configs []BinaryConfig, log zero
 		DataDir:      dataDir,
 		Network:      network,
 		BitwindowDir: bitwindowDir,
-		StateChanged: make(chan struct{}, 1),
 		Settings:     settings,
 		configs:      lo.SliceToMap(configs, func(c BinaryConfig) (string, BinaryConfig) { return c.Name, c }),
 		download:     NewDownloadManager(dataDir, ConfigFilePath(bitwindowDir), log),
@@ -336,12 +316,6 @@ func (o *Orchestrator) getOrCreateMonitor(name string, checker HealthChecker, st
 	}
 
 	mon := NewConnectionMonitor(name, checker, startupPatterns, o.log)
-	mon.SetOnChange(func() {
-		select {
-		case o.StateChanged <- struct{}{}:
-		default:
-		}
-	})
 	o.monitors[name] = mon
 	return mon
 }
@@ -537,7 +511,6 @@ func (o *Orchestrator) Status(name string) BinaryStatus {
 		status.Initializing = mon.InitializingBinary()
 		status.ConnectModeOnly = mon.ConnectModeOnly()
 		status.StartupLogs = mon.StartupLogs()
-		status.BlockchainSync = mon.BlockchainSync()
 	}
 	o.monitorsMu.Unlock()
 
@@ -692,22 +665,6 @@ func (o *Orchestrator) StartWithL1(ctx context.Context, target string, opts Star
 		}
 		coreChecker := NewHealthChecker(coreCfg, coreHealthOpts)
 		coreMon := o.getOrCreateMonitor("bitcoind", coreChecker, bitcoindStartupPatterns)
-
-		// Push every successful getblockchaininfo into the monitor so the
-		// WatchBinaries stream carries live tip + IBD state. Frontend reads
-		// it from BinaryStatusMsg.blockchain_sync instead of running its own
-		// bitcoind RPC client. The enforcer mirrors mainchain blocks
-		// (GetEnforcerBlockchainInfo proxies to the same data) so we copy
-		// the snapshot onto its monitor while it's connected — same source
-		// of truth, one less poll for the UI to make.
-		if bc, ok := coreChecker.(*BitcoindHealthCheck); ok {
-			bc.OnSync = func(s *BlockchainSync) {
-				coreMon.SetBlockchainSync(s)
-				if enfMon := o.getMonitor("enforcer"); enfMon != nil && enfMon.Connected() {
-					enfMon.SetBlockchainSync(s)
-				}
-			}
-		}
 
 		// Dart L208: await startConnectionTimer()
 		coreMon.StartConnectionTimer(ctx)
@@ -1713,13 +1670,6 @@ type MainchainBlockchainInfo struct {
 	Pruned               bool    `json:"pruned"`
 }
 
-// EnforcerBlockchainInfo holds minimal chain tip info from the enforcer.
-type EnforcerBlockchainInfo struct {
-	Blocks  int
-	Headers int
-	Time    int64
-}
-
 // MainchainBalance holds confirmed + unconfirmed balances from bitcoind.
 type MainchainBalance struct {
 	Confirmed   float64
@@ -1746,26 +1696,209 @@ func (o *Orchestrator) GetMainchainBlockchainInfo(ctx context.Context) (*Maincha
 	return &info, nil
 }
 
-// GetEnforcerBlockchainInfo returns chain tip info for the enforcer.
-// The enforcer mirrors mainchain blocks, so when running we proxy the mainchain
-// block count. This avoids needing cusf proto stubs in the orchestrator.
-func (o *Orchestrator) GetEnforcerBlockchainInfo(ctx context.Context) (*EnforcerBlockchainInfo, error) {
-	if !o.process.IsRunning("enforcer") {
-		return &EnforcerBlockchainInfo{}, nil
+// ChainSyncResult is one chain's tip snapshot. Error is set on failure;
+// the numeric fields are best-effort zero in that case.
+type ChainSyncResult struct {
+	Blocks  int64
+	Headers int64
+	Time    int64
+	Error   string
+}
+
+// SyncStatus is the atomic snapshot returned by GetSyncStatus. The three
+// chains are polled in parallel so the numbers are taken at the same wall
+// clock instant — no two cards in the UI can disagree.
+type SyncStatus struct {
+	Mainchain *ChainSyncResult
+	Enforcer  *ChainSyncResult
+	Sidechain *ChainSyncResult // nil if no sidechain was requested
+}
+
+// sidechainServicePath maps a binary name to the Connect-RPC service path
+// that exposes its block-count RPC. The body is always {} and the response
+// has a single int64 `count` field.
+var sidechainServicePath = map[string]string{
+	"thunder":   "/thunder.v1.ThunderService/GetBlockCount",
+	"bitnames":  "/bitnames.v1.BitnamesService/GetBlockCount",
+	"bitassets": "/bitassets.v1.BitAssetsService/GetBlockCount",
+	"zside":     "/zside.v1.ZSideService/GetBlockCount",
+	"photon":    "/photon.v1.PhotonService/GetBlockCount",
+	"truthcoin": "/truthcoin.v1.TruthcoinService/GetBlockCount",
+	"coinshift": "/coinshift.v1.CoinShiftService/GetBlockCount",
+}
+
+// GetSyncStatus fans out three concurrent probes (mainchain bitcoind,
+// enforcer ValidatorService, optional sidechain Connect RPC) and returns
+// them as one atomic snapshot. Per-chain errors are surfaced inline on
+// the corresponding ChainSyncResult.Error — the overall call only errors
+// out when no probe could even be dispatched.
+//
+// No caching: every call hits the live RPCs. Callers (UI poll loops) own
+// the cadence.
+func (o *Orchestrator) GetSyncStatus(ctx context.Context, sidechainName string) (*SyncStatus, error) {
+	out := &SyncStatus{
+		Mainchain: &ChainSyncResult{},
+		Enforcer:  &ChainSyncResult{},
+	}
+	if sidechainName != "" {
+		out.Sidechain = &ChainSyncResult{}
 	}
 
-	// The enforcer tracks mainchain blocks, so use mainchain block count as a proxy.
-	mainInfo, err := o.GetMainchainBlockchainInfo(ctx)
+	var wg sync.WaitGroup
+
+	// Mainchain: bitcoind getblockchaininfo.
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		info, err := o.GetMainchainBlockchainInfo(ctx)
+		if err != nil {
+			out.Mainchain.Error = err.Error()
+			return
+		}
+		out.Mainchain.Blocks = int64(info.Blocks)
+		out.Mainchain.Headers = int64(info.Headers)
+		out.Mainchain.Time = info.Time
+	}()
+
+	// Enforcer: cusf.mainchain.v1.ValidatorService/GetChainTip via gRPC over h2c.
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		cfg, ok := o.Configs()["enforcer"]
+		if !ok || cfg.Port == 0 {
+			out.Enforcer.Error = "enforcer not configured"
+			return
+		}
+		if !o.process.IsRunning("enforcer") {
+			out.Enforcer.Error = "not running"
+			return
+		}
+		httpClient := &http.Client{
+			Transport: &http2.Transport{
+				AllowHTTP: true,
+				DialTLSContext: func(ctx context.Context, network, addr string, _ *tls.Config) (net.Conn, error) {
+					var d net.Dialer
+					return d.DialContext(ctx, network, addr)
+				},
+			},
+		}
+		client := enforcerrpc.NewValidatorServiceClient(
+			httpClient,
+			fmt.Sprintf("http://127.0.0.1:%d", cfg.Port),
+			connect.WithGRPC(),
+		)
+		rpcCtx, cancel := context.WithTimeout(ctx, 2*time.Second)
+		defer cancel()
+		resp, err := client.GetChainTip(rpcCtx, connect.NewRequest(&enforcerpb.GetChainTipRequest{}))
+		if err != nil {
+			out.Enforcer.Error = err.Error()
+			return
+		}
+		out.Enforcer.Blocks = int64(resp.Msg.GetBlockHeaderInfo().GetHeight())
+	}()
+
+	// Sidechain: Connect-JSON POST to the chain's block-count RPC.
+	if sidechainName != "" {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			cfg, ok := o.Configs()[sidechainName]
+			if !ok {
+				out.Sidechain.Error = fmt.Sprintf("unknown sidechain: %s", sidechainName)
+				return
+			}
+			if !o.process.IsRunning(sidechainName) {
+				out.Sidechain.Error = "not running"
+				return
+			}
+			port := cfg.Port
+
+			switch sidechainName {
+			case "bitwindowd":
+				url := fmt.Sprintf("http://localhost:%d/bitwindowd.v1.BitwindowdService/GetSyncInfo", port)
+				var resp struct {
+					TipBlockHeight int64 `json:"tipBlockHeight"`
+					TipBlockTime   int64 `json:"tipBlockTime"`
+				}
+				if err := connectJSONPost(ctx, url, &resp); err != nil {
+					out.Sidechain.Error = err.Error()
+					return
+				}
+				out.Sidechain.Blocks = resp.TipBlockHeight
+				out.Sidechain.Time = resp.TipBlockTime
+			default:
+				path, known := sidechainServicePath[sidechainName]
+				if !known {
+					out.Sidechain.Error = fmt.Sprintf("unknown sidechain: %s", sidechainName)
+					return
+				}
+				url := fmt.Sprintf("http://localhost:%d%s", port, path)
+				var resp struct {
+					Count int64 `json:"count"`
+				}
+				if err := connectJSONPost(ctx, url, &resp); err != nil {
+					out.Sidechain.Error = err.Error()
+					return
+				}
+				out.Sidechain.Blocks = resp.Count
+			}
+		}()
+	}
+
+	wg.Wait()
+
+	// Headers fan-out: enforcer measures progress against bitcoind's tip,
+	// sidechains measure indexing progress against bitcoind's blocks. If
+	// mainchain failed, fall back to whatever the dependent chain knows
+	// about itself so the UI doesn't divide by zero.
+	if out.Enforcer.Error == "" {
+		if out.Mainchain.Error == "" {
+			out.Enforcer.Headers = out.Mainchain.Headers
+		} else {
+			out.Enforcer.Headers = out.Enforcer.Blocks
+		}
+	}
+	if out.Sidechain != nil && out.Sidechain.Error == "" {
+		if out.Mainchain.Error == "" {
+			out.Sidechain.Headers = out.Mainchain.Blocks
+		} else {
+			out.Sidechain.Headers = out.Sidechain.Blocks
+		}
+	}
+
+	return out, nil
+}
+
+// connectJSONPost issues a Connect-JSON unary call (POST with empty {} body)
+// against url and decodes the response body into out. Used for sidechain
+// RPCs the orchestrator doesn't have generated stubs for.
+func connectJSONPost(ctx context.Context, url string, out interface{}) error {
+	rpcCtx, cancel := context.WithTimeout(ctx, 2*time.Second)
+	defer cancel()
+
+	req, err := http.NewRequestWithContext(rpcCtx, http.MethodPost, url, strings.NewReader("{}"))
 	if err != nil {
-		// Enforcer is running but we can't reach bitcoind — return zeros
-		return &EnforcerBlockchainInfo{}, nil
+		return fmt.Errorf("build request: %w", err)
 	}
+	req.Header.Set("Content-Type", "application/json")
 
-	return &EnforcerBlockchainInfo{
-		Blocks:  mainInfo.Blocks,
-		Headers: mainInfo.Headers,
-		Time:    mainInfo.Time,
-	}, nil
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close() //nolint:errcheck // cleanup
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return fmt.Errorf("read response: %w", err)
+	}
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("HTTP %d: %s", resp.StatusCode, strings.TrimSpace(string(body)))
+	}
+	if err := json.Unmarshal(body, out); err != nil {
+		return fmt.Errorf("decode response: %w", err)
+	}
+	return nil
 }
 
 // GetMainchainBalance proxies getbalance + getunconfirmedbalance from bitcoind.

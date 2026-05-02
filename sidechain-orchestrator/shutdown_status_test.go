@@ -14,9 +14,9 @@ import (
 // TestStop_EmitsStoppingThenStopped guards the frontend-visible shutdown
 // sequence: the daemon-status card relies on stoppingBinary flipping to
 // true while the graceful-shutdown signal is in flight, and back to false
-// once the process is actually gone. If either edge stops firing onChange,
-// WatchBinaries doesn't push a frame, and the card sits frozen on "running"
-// during shutdown — exactly the symptom that motivated this test.
+// once the process is actually gone. The frontend polls listBinaries on a
+// 1s timer; this test pins the underlying onChange-edge contract that
+// keeps the per-monitor state in sync, even though it's currently unwired.
 func TestStop_EmitsStoppingThenStopped(t *testing.T) {
 	o := newTestOrchestrator(t)
 

@@ -109,8 +109,8 @@ func LoadConfigFile(path string, log zerolog.Logger) []BinaryConfig {
 // If the orch's embedded config gets a new field (e.g. is_bitcoin_core,
 // health_check) without a paired migration, every existing user's on-disk
 // file silently drops the field on parse, and the missing field changes
-// runtime behavior (here: no BlockchainSync streaming because the binary
-// no longer matches the BitcoindHealthCheck branch).
+// runtime behavior (here: bitcoind no longer matches the BitcoindHealthCheck
+// branch, so presync detection silently regresses).
 func mergeWithEmbedded(onDisk []byte) ([]byte, error) {
 	var base, overlay map[string]any
 	if err := json.Unmarshal(embeddedConfig, &base); err != nil {

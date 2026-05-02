@@ -29,12 +29,12 @@ enum _FailureKind { stream, transport }
 ///
 /// Usage:
 /// ```dart
-/// final supervisor = StreamSupervisor<WatchBinariesResponse>(
-///   subscribe: () => orchestrator.watchBinaries(),
+/// final supervisor = StreamSupervisor<WatchWalletDataResponse>(
+///   subscribe: () => walletReader.watchWalletData(),
 ///   onEvent: _apply,
 ///   onTransportDeath: orchestrator.recreateConnection,
 ///   logger: log,
-///   tag: 'BackendStateProvider',
+///   tag: 'WalletReaderProvider',
 /// )..start();
 /// ...
 /// await supervisor.dispose();

@@ -50,14 +50,6 @@ abstract final class OrchestratorService {
     orchestratorv1orchestrator.StopBinaryResponse.new,
   );
 
-  /// Stream live status updates for all binaries.
-  static const watchBinaries = connect.Spec(
-    '/$name/WatchBinaries',
-    connect.StreamType.server,
-    orchestratorv1orchestrator.WatchBinariesRequest.new,
-    orchestratorv1orchestrator.WatchBinariesResponse.new,
-  );
-
   /// Stream stdout/stderr from a binary.
   static const streamLogs = connect.Spec(
     '/$name/StreamLogs',
@@ -104,6 +96,16 @@ abstract final class OrchestratorService {
     connect.StreamType.unary,
     orchestratorv1orchestrator.GetEnforcerBlockchainInfoRequest.new,
     orchestratorv1orchestrator.GetEnforcerBlockchainInfoResponse.new,
+  );
+
+  /// One-shot snapshot of mainchain + enforcer + bitwindow daemon sync state.
+  /// Backend fans out to all three in parallel so the three numbers are taken
+  /// at the same wall-clock instant — no two cards in the UI can ever disagree.
+  static const getSyncStatus = connect.Spec(
+    '/$name/GetSyncStatus',
+    connect.StreamType.unary,
+    orchestratorv1orchestrator.GetSyncStatusRequest.new,
+    orchestratorv1orchestrator.GetSyncStatusResponse.new,
   );
 
   /// Get wallet balance from Bitcoin Core (proxied via orchestrator).

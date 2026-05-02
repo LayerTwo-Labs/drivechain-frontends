@@ -56,53 +56,65 @@ class SyncConnection {
   SyncConnection({required this.rpc, required this.name});
 }
 
+/// Polls a single orchestrator RPC (`GetSyncStatus`) for an atomic snapshot
+/// of mainchain + enforcer + (optionally) sidechain tip data. Three numbers
+/// taken at one wall-clock instant means the three daemon cards in the UI
+/// can never disagree mid-tick.
+///
+/// Cadence is 200 ms while any tracked daemon is still syncing or
+/// disconnected, then drops to 1 s once everything is fully caught up.
 class SyncProvider extends ChangeNotifier {
   Logger get log => GetIt.I.get<Logger>();
 
+  OrchestratorRPC get _orchestrator => GetIt.I.get<OrchestratorRPC>();
+  BinaryProvider get binaryProvider => GetIt.I.get<BinaryProvider>();
+
+  // Kept around for callers that ask the provider which daemons it tracks.
+  // The actual RPC calls happen exclusively via [_orchestrator].
   BitcoindConnection get mainchainRPC => GetIt.I.get<BitcoindConnection>();
   EnforcerRPC get enforcerRPC => GetIt.I.get<EnforcerRPC>();
-  BinaryProvider get binaryProvider => GetIt.I.get<BinaryProvider>();
-  BackendStateProvider? get _backendState =>
-      GetIt.I.isRegistered<BackendStateProvider>() ? GetIt.I.get<BackendStateProvider>() : null;
 
   SyncConnection get mainchain => SyncConnection(rpc: mainchainRPC, name: BitcoinCore().name);
   SyncConnection get enforcer => SyncConnection(rpc: enforcerRPC, name: Enforcer().name);
   final SyncConnection? additionalConnection;
 
-  /// Returns true only when all connections (mainchain, enforcer, and additional if present) are fully synced.
+  /// Returns true only when all tracked daemons are fully synced.
   bool get isSynced =>
       (mainchainSyncInfo?.isSynced ?? false) &&
       (enforcerSyncInfo?.isSynced ?? false) &&
       (additionalConnection == null || (additionalSyncInfo?.isSynced ?? false));
 
-  static const Duration AGGRESSIVE_INTERVAL = Duration(milliseconds: 100);
-  static const Duration PASSIVE_INTERVAL = Duration(seconds: 5);
+  /// True while bitcoind is still pulling its initial header set. Derived
+  /// from the latest snapshot; consumers used to read this off
+  /// `BitcoindConnection.inHeaderSync` (now removed).
+  bool get inHeaderSync {
+    final m = mainchainSyncInfo;
+    if (m == null) return true;
+    return m.progressGoal < 10;
+  }
 
-  // Mainchain state
+  static const Duration AGGRESSIVE_INTERVAL = Duration(milliseconds: 200);
+  static const Duration PASSIVE_INTERVAL = Duration(seconds: 1);
+
   SyncInfo? mainchainSyncInfo;
   String? mainchainError;
 
-  // Enforcer state
   SyncInfo? enforcerSyncInfo;
   String? enforcerError;
 
-  // Additional connection state (sidechain — orchestrator doesn't proxy
-  // sidechain blockchain info, so we still poll directly here).
   SyncInfo? additionalSyncInfo;
   String? additionalError;
-  Timer? _additionalTimer;
-  bool _isFetchingAdditional = false;
+
+  Timer? _timer;
+  bool _isFetching = false;
+  Duration _currentInterval = AGGRESSIVE_INTERVAL;
 
   SyncProvider({this.additionalConnection, bool startTimer = true}) {
     binaryProvider.addListener(_checkDownloadProgress);
-    _backendState?.addListener(_onBackendStateChanged);
 
     if (startTimer && !Environment.isInTest) {
-      if (additionalConnection != null) {
-        _startAdditionalTimer();
-      }
+      _scheduleNextTick();
     }
-    _onBackendStateChanged();
     fetch();
   }
 
@@ -111,144 +123,117 @@ class SyncProvider extends ChangeNotifier {
     binaryProvider.addListener(_checkDownloadProgress);
   }
 
-  // Orchestrator binary names — same keys used by BackendStateProvider's
-  // `binaries` map (status.name from the proto). Don't use Binary.binaryName,
-  // which encodes the executable filename and diverges (e.g.
-  // "bip300301-enforcer" vs the orchestrator's "enforcer").
-  static const String _kMainchainBinary = 'bitcoind';
-  static const String _kEnforcerBinary = 'enforcer';
+  void _scheduleNextTick() {
+    _timer?.cancel();
+    _timer = Timer.periodic(_currentInterval, (_) => _tick());
+  }
 
-  void _onBackendStateChanged() {
-    final state = _backendState;
-    if (state == null) return;
+  Future<void> _tick() async {
+    if (_isFetching) return;
+    _isFetching = true;
 
-    bool hasChanges = false;
-    if (_applyBackendBinary(state.binaries[_kMainchainBinary], _kMainchainBinary)) {
-      hasChanges = true;
-    }
-    if (_applyBackendBinary(state.binaries[_kEnforcerBinary], _kEnforcerBinary)) {
-      hasChanges = true;
-    }
-    if (hasChanges) {
-      notifyListeners();
+    try {
+      final wasAllSynced = isSynced;
+      await _fetch();
+      final nowAllSynced = isSynced;
+
+      // Switch cadence on sync-state edge so a freshly-synced daemon stops
+      // burning CPU on 200 ms ticks, and a regression back into IBD
+      // immediately speeds back up.
+      final nextInterval = nowAllSynced ? PASSIVE_INTERVAL : AGGRESSIVE_INTERVAL;
+      if (nextInterval != _currentInterval || wasAllSynced != nowAllSynced) {
+        _currentInterval = nextInterval;
+        _scheduleNextTick();
+      }
+    } catch (_) {
+      // swallow — _fetch() already records errors per-chain
+    } finally {
+      _isFetching = false;
     }
   }
 
-  bool _applyBackendBinary(BinaryStatusMsg? status, String name) {
-    final isMainchain = name == _kMainchainBinary;
-    final isEnforcer = name == _kEnforcerBinary;
-    if (!isMainchain && !isEnforcer) return false;
-
-    final orch_pb.BlockchainSyncMsg? sync = (status?.hasBlockchainSync() ?? false) ? status!.blockchainSync : null;
-    final SyncInfo? prev = isMainchain ? mainchainSyncInfo : enforcerSyncInfo;
-
-    if (sync == null) {
-      // No backend sample yet — keep the previous SyncInfo so the UI doesn't
-      // flicker between "loading" and "synced" if a stream hiccup arrives.
-      return false;
-    }
-
-    final goal = isEnforcer ? (mainchainSyncInfo?.progressGoal ?? sync.headers.toDouble()) : sync.headers.toDouble();
-
-    final newSyncInfo = SyncInfo(
-      progressCurrent: sync.blocks.toDouble(),
-      progressGoal: goal,
-      lastBlockAt: sync.time != 0 ? Timestamp(seconds: sync.time) : null,
-      downloadInfo: prev?.downloadInfo ?? DownloadInfo(),
-    );
-
-    if (!_syncInfoHasChanged(prev, newSyncInfo)) {
-      return false;
-    }
-    if (isMainchain) {
-      mainchainSyncInfo = newSyncInfo;
-      mainchainError = null;
-    } else {
-      enforcerSyncInfo = newSyncInfo;
-      enforcerError = null;
-    }
-    return true;
-  }
-
-  void _startAdditionalTimer() {
-    if (Environment.isInTest) {
+  Future<void> _fetch() async {
+    final orch_pb.GetSyncStatusResponse resp;
+    try {
+      resp = await _orchestrator.getSyncStatus(
+        sidechain: additionalConnection?.name ?? '',
+      );
+    } catch (e) {
+      final err = extractConnectException(e);
+      var changed = false;
+      if (mainchainError != err) {
+        mainchainError = err;
+        changed = true;
+      }
+      if (enforcerError != err) {
+        enforcerError = err;
+        changed = true;
+      }
+      if (additionalConnection != null && additionalError != err) {
+        additionalError = err;
+        changed = true;
+      }
+      if (changed) notifyListeners();
       return;
     }
 
-    _additionalTimer?.cancel();
-    void tick() async {
-      if (_isFetchingAdditional) return;
-      _isFetchingAdditional = true;
+    var changed = false;
 
-      try {
-        bool wasSynced = additionalSyncInfo?.isSynced ?? false;
-        await _fetchAdditional();
-        bool isSynced = additionalSyncInfo?.isSynced ?? false;
+    final newMainchain = _toSyncInfo(resp.mainchain, mainchainSyncInfo);
+    if (_diff(mainchainSyncInfo, newMainchain) || mainchainError != _errOrNull(resp.mainchain)) {
+      mainchainSyncInfo = newMainchain;
+      mainchainError = _errOrNull(resp.mainchain);
+      changed = true;
+    }
 
-        if (wasSynced != isSynced) {
-          // changed sync status, so we must apply the correct timer
-          _additionalTimer?.cancel();
-          _additionalTimer = Timer.periodic(
-            isSynced ? PASSIVE_INTERVAL : AGGRESSIVE_INTERVAL,
-            (_) => tick(),
-          );
-        }
-      } catch (e) {
-        // swallow
-      } finally {
-        _isFetchingAdditional = false;
+    final newEnforcer = _toSyncInfo(resp.enforcer, enforcerSyncInfo);
+    if (_diff(enforcerSyncInfo, newEnforcer) || enforcerError != _errOrNull(resp.enforcer)) {
+      enforcerSyncInfo = newEnforcer;
+      enforcerError = _errOrNull(resp.enforcer);
+      changed = true;
+    }
+
+    if (additionalConnection != null) {
+      final newAdditional = _toSyncInfo(resp.sidechain, additionalSyncInfo);
+      if (_diff(additionalSyncInfo, newAdditional) || additionalError != _errOrNull(resp.sidechain)) {
+        additionalSyncInfo = newAdditional;
+        additionalError = _errOrNull(resp.sidechain);
+        changed = true;
       }
     }
 
-    _additionalTimer = Timer.periodic(AGGRESSIVE_INTERVAL, (_) => tick());
+    if (changed) notifyListeners();
   }
 
-  Future<void> _fetchAdditional() async {
-    if (additionalConnection == null) return;
+  SyncInfo _toSyncInfo(orch_pb.ChainSync? cs, SyncInfo? prev) {
+    final blocks = (cs?.blocks ?? 0).toDouble();
+    final headers = (cs?.headers ?? 0).toDouble();
+    return SyncInfo(
+      progressCurrent: blocks,
+      progressGoal: headers,
+      lastBlockAt: (cs?.time ?? Int64(0)) != Int64(0) ? Timestamp(seconds: cs!.time) : null,
+      downloadInfo: prev?.downloadInfo ?? DownloadInfo(),
+    );
+  }
 
-    bool hasChanges = false;
-    try {
-      if (!additionalConnection!.rpc.connected) return;
+  String? _errOrNull(orch_pb.ChainSync? cs) {
+    final e = cs?.error ?? '';
+    return e.isEmpty ? null : e;
+  }
 
-      final newBlockchainInfo = await additionalConnection!.rpc.getBlockchainInfo();
-      final newSyncInfo = SyncInfo(
-        progressCurrent: newBlockchainInfo.blocks.toDouble(),
-        progressGoal: newBlockchainInfo.headers.toDouble(),
-        lastBlockAt: newBlockchainInfo.time != 0 ? Timestamp(seconds: Int64(newBlockchainInfo.time)) : null,
-        downloadInfo: additionalSyncInfo?.downloadInfo ?? DownloadInfo(),
-      );
-
-      if (_syncInfoHasChanged(additionalSyncInfo, newSyncInfo) || additionalError != null) {
-        additionalSyncInfo = newSyncInfo;
-        additionalError = null;
-        hasChanges = true;
-      }
-    } catch (e) {
-      final newError = extractConnectException(e);
-      if (additionalError != newError) {
-        additionalError = newError;
-        hasChanges = true;
-      }
-    } finally {
-      _isFetchingAdditional = false;
-      if (hasChanges) {
-        notifyListeners();
-      }
-    }
+  bool _diff(SyncInfo? a, SyncInfo? b) {
+    if (a == null || b == null) return true;
+    return a != b;
   }
 
   void _checkDownloadProgress() {
     bool hasChanges = false;
 
-    var downloadInfo = binaryProvider.downloadProgress(
-      enforcer.rpc.binary.type,
-    );
+    var downloadInfo = binaryProvider.downloadProgress(enforcer.rpc.binary.type);
     if (downloadInfo.isDownloading || (enforcerSyncInfo?.downloadInfo.isDownloading != downloadInfo.isDownloading)) {
-      final (currentMB, totalMB) = (downloadInfo.progress, downloadInfo.total);
-
       enforcerSyncInfo = SyncInfo(
-        progressCurrent: currentMB.toDouble(),
-        progressGoal: totalMB.toDouble(),
+        progressCurrent: downloadInfo.progress.toDouble(),
+        progressGoal: downloadInfo.total.toDouble(),
         lastBlockAt: null,
         downloadInfo: downloadInfo,
       );
@@ -257,11 +242,9 @@ class SyncProvider extends ChangeNotifier {
 
     downloadInfo = binaryProvider.downloadProgress(mainchain.rpc.binary.type);
     if (downloadInfo.isDownloading || (mainchainSyncInfo?.downloadInfo.isDownloading != downloadInfo.isDownloading)) {
-      final (currentMB, totalMB) = (downloadInfo.progress, downloadInfo.total);
-
       mainchainSyncInfo = SyncInfo(
-        progressCurrent: currentMB,
-        progressGoal: totalMB,
+        progressCurrent: downloadInfo.progress,
+        progressGoal: downloadInfo.total,
         lastBlockAt: null,
         downloadInfo: downloadInfo,
       );
@@ -269,19 +252,12 @@ class SyncProvider extends ChangeNotifier {
     }
 
     if (additionalConnection != null) {
-      downloadInfo = binaryProvider.downloadProgress(
-        additionalConnection!.rpc.binary.type,
-      );
+      downloadInfo = binaryProvider.downloadProgress(additionalConnection!.rpc.binary.type);
       if (downloadInfo.isDownloading ||
           (additionalSyncInfo?.downloadInfo.isDownloading != downloadInfo.isDownloading)) {
-        final (currentMB, totalMB) = (
-          downloadInfo.progress,
-          downloadInfo.total,
-        );
-
         additionalSyncInfo = SyncInfo(
-          progressCurrent: currentMB,
-          progressGoal: totalMB,
+          progressCurrent: downloadInfo.progress,
+          progressGoal: downloadInfo.total,
           lastBlockAt: null,
           downloadInfo: downloadInfo,
         );
@@ -289,26 +265,21 @@ class SyncProvider extends ChangeNotifier {
       }
     }
 
-    if (hasChanges) {
-      notifyListeners();
-    }
+    if (hasChanges) notifyListeners();
   }
 
-  bool _syncInfoHasChanged(SyncInfo? oldInfo, SyncInfo? newInfo) {
-    if (oldInfo == null || newInfo == null) return true;
-    return oldInfo != newInfo;
-  }
-
-  // Pull state from all sources. Mainchain + enforcer come from the backend
-  // stream (no fetch needed); the sidechain still polls.
+  /// Manual one-shot fetch — same as a single tick but without rescheduling.
   Future<void> fetch() async {
-    _onBackendStateChanged();
-    if (additionalConnection != null) {
-      await _fetchAdditional();
+    if (_isFetching) return;
+    _isFetching = true;
+    try {
+      await _fetch();
+    } finally {
+      _isFetching = false;
     }
   }
 
-  /// Clear all sync state - useful when network changes or services restart
+  /// Clear all sync state — useful when network changes or services restart.
   void clearState() {
     mainchainSyncInfo = null;
     mainchainError = null;
@@ -321,9 +292,8 @@ class SyncProvider extends ChangeNotifier {
 
   @override
   void dispose() {
-    _additionalTimer?.cancel();
+    _timer?.cancel();
     binaryProvider.removeListener(_checkDownloadProgress);
-    _backendState?.removeListener(_onBackendStateChanged);
     super.dispose();
   }
 }

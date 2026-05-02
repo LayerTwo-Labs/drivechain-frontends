@@ -11,8 +11,8 @@ import (
 // "fatal boot error invisible to the frontend" bug. When pm.Start fails
 // inside StartWithL1, the error needs to reach three places:
 //
-//  1. ConnectionMonitor.connectionError — so WatchBinaries carries it to
-//     Flutter and DaemonConnectionCard renders the red error message.
+//  1. ConnectionMonitor.connectionError — so the next listBinaries poll
+//     carries it to Flutter and DaemonConnectionCard renders the red error.
 //  2. ConnectionMonitor.initializing = false — so the spinner stops.
 //  3. StartupProgress.Error on the StartWithL1 stream — so the caller's
 //     awaited future actually rejects (not silent "still initializing").
@@ -20,7 +20,8 @@ import (
 // The original bug: pm.Start returned `binary not found at /...bitcoin/bitcoind`
 // (variant subfolder mismatch). Only path #3 was wired, BackendStateProvider
 // logged + threw, and DaemonConnectionCard never saw the error because
-// _syncConnectionState reads from WatchBinaries (#1), not from the throw.
+// _syncConnectionState reads from the listBinaries snapshot (#1), not
+// from the throw.
 func TestFailBoot_PropagatesEverywhere(t *testing.T) {
 	mon := NewConnectionMonitor("bitcoind", &fakeChecker{}, nil, testLogger(t))
 	mon.SetInitializing(true)
@@ -36,7 +37,7 @@ func TestFailBoot_PropagatesEverywhere(t *testing.T) {
 
 	got := mon.ConnectionError()
 	if got == "" {
-		t.Fatal("monitor.connectionError empty after failBoot; WatchBinaries wouldn't carry the error to Flutter")
+		t.Fatal("monitor.connectionError empty after failBoot; listBinaries wouldn't carry the error to Flutter")
 	}
 	if !strings.Contains(got, "start bitcoind") || !strings.Contains(got, "binary not found") {
 		t.Errorf("monitor.connectionError = %q, want both %q and %q substrings", got, "start bitcoind", "binary not found")

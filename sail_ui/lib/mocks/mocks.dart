@@ -13,7 +13,6 @@ class MockBitcoindConnection extends BitcoindConnection {
   bool _initializing = false;
   bool _stopping = false;
   String? _error;
-  bool _inIBD = true;
 
   @override
   bool get connected => _connected;
@@ -23,8 +22,6 @@ class MockBitcoindConnection extends BitcoindConnection {
   bool get stoppingBinary => _stopping;
   @override
   String? get connectionError => _error;
-  @override
-  bool get inIBD => _inIBD;
 
   void setConnected(bool value) {
     _connected = value;
@@ -44,30 +41,6 @@ class MockBitcoindConnection extends BitcoindConnection {
   void setError(String? value) {
     _error = value;
     notifyListeners();
-  }
-
-  void setIBD(bool value) {
-    _inIBD = value;
-    notifyListeners();
-  }
-
-  @override
-  Future<BlockchainInfo> getBlockchainInfo() async {
-    return BlockchainInfo(
-      chain: 'test',
-      blocks: 100,
-      headers: 200,
-      bestBlockHash: 'mock_hash',
-      difficulty: 1.0,
-      time: 0,
-      medianTime: 0,
-      verificationProgress: 0.5,
-      initialBlockDownload: _inIBD,
-      chainWork: '',
-      sizeOnDisk: 0,
-      pruned: false,
-      warnings: [],
-    );
   }
 
   @override
@@ -1749,6 +1722,9 @@ class MockSyncProvider implements SyncProvider {
 
   @override
   bool get isSynced => true;
+
+  @override
+  bool get inHeaderSync => false;
 }
 
 class MockBinary extends Binary {

@@ -98,24 +98,6 @@ extension type OrchestratorServiceClient (connect.Transport _transport) {
     );
   }
 
-  /// Stream live status updates for all binaries.
-  Stream<orchestratorv1orchestrator.WatchBinariesResponse> watchBinaries(
-    orchestratorv1orchestrator.WatchBinariesRequest input, {
-    connect.Headers? headers,
-    connect.AbortSignal? signal,
-    Function(connect.Headers)? onHeader,
-    Function(connect.Headers)? onTrailer,
-  }) {
-    return connect.Client(_transport).server(
-      specs.OrchestratorService.watchBinaries,
-      input,
-      signal: signal,
-      headers: headers,
-      onHeader: onHeader,
-      onTrailer: onTrailer,
-    );
-  }
-
   /// Stream stdout/stderr from a binary.
   Stream<orchestratorv1orchestrator.StreamLogsResponse> streamLogs(
     orchestratorv1orchestrator.StreamLogsRequest input, {
@@ -216,6 +198,26 @@ extension type OrchestratorServiceClient (connect.Transport _transport) {
   }) {
     return connect.Client(_transport).unary(
       specs.OrchestratorService.getEnforcerBlockchainInfo,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
+  /// One-shot snapshot of mainchain + enforcer + bitwindow daemon sync state.
+  /// Backend fans out to all three in parallel so the three numbers are taken
+  /// at the same wall-clock instant — no two cards in the UI can ever disagree.
+  Future<orchestratorv1orchestrator.GetSyncStatusResponse> getSyncStatus(
+    orchestratorv1orchestrator.GetSyncStatusRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.OrchestratorService.getSyncStatus,
       input,
       signal: signal,
       headers: headers,

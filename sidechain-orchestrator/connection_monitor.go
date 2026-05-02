@@ -86,20 +86,16 @@ type ConnectionMonitor struct {
 	// ExitedFunc: returns (exitCode, exited). Dart: BinaryProvider.exited(binary)
 	exitedFunc func() (int, bool)
 
-	// onChange is called whenever connection state changes. The orchestrator
-	// uses this to notify watchBinaries subscribers immediately.
+	// onChange is called whenever connection state changes. Currently unwired
+	// — the frontend polls listBinaries on a 1s timer instead — but kept as
+	// infrastructure for any future stream/push consumer.
 	onChange func()
 
 	// startupLogs holds recent startup progress messages (like "Loading block index...")
-	// that match the binary's startup_log_patterns. Streamed to the UI via watchBinaries.
+	// that match the binary's startup_log_patterns. Surfaced to the UI via the
+	// listBinaries poll loop.
 	// Dart: Binary.startupLogs (binaries.dart)
 	startupLogs []StartupLogLine
-
-	// blockchainSync is the most recent snapshot of L1 chain state captured
-	// by health-check pollers (BitcoindHealthCheck for bitcoind, the orchestrator's
-	// enforcer prober for the enforcer). Streamed to the UI via watchBinaries
-	// so the frontend never needs its own bitcoind RPC client.
-	blockchainSync *BlockchainSync
 }
 
 // StartupLogLine is a timestamped startup progress message.
@@ -180,42 +176,6 @@ func (m *ConnectionMonitor) StartupLogs() []StartupLogLine {
 	out := make([]StartupLogLine, len(m.startupLogs))
 	copy(out, m.startupLogs)
 	return out
-}
-
-// SetBlockchainSync stores the latest sync snapshot recorded by a poller.
-// Fires onChange so subscribers see the new tip without waiting for the
-// next status diff (sync state changes far more often than connected/error).
-func (m *ConnectionMonitor) SetBlockchainSync(s *BlockchainSync) {
-	m.mu.Lock()
-	if blockchainSyncEqual(m.blockchainSync, s) {
-		m.mu.Unlock()
-		return
-	}
-	m.blockchainSync = s
-	m.mu.Unlock()
-	m.notifyChange()
-}
-
-// BlockchainSync returns the most recent sync snapshot, or nil before the
-// first successful poll.
-func (m *ConnectionMonitor) BlockchainSync() *BlockchainSync {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-	if m.blockchainSync == nil {
-		return nil
-	}
-	c := *m.blockchainSync
-	return &c
-}
-
-func blockchainSyncEqual(a, b *BlockchainSync) bool {
-	if a == nil && b == nil {
-		return true
-	}
-	if a == nil || b == nil {
-		return false
-	}
-	return *a == *b
 }
 
 // SetConnectionError sets the connection error from an external source (e.g. process crash).
@@ -383,10 +343,10 @@ func (m *ConnectionMonitor) testConnection(ctx context.Context) {
 
 	// Defensive: guarantee `testing` is reset even if Checker.Check panics
 	// or returns through any other path. The flag was previously cleared at
-	// the explicit success/early-return sites — a panic in Check or in the
-	// OnSync hook left `testing` true forever, all subsequent ticks skipped,
-	// and the BlockchainSync froze silently with no error visible to the
-	// frontend. defer ensures the next tick always gets a chance to run.
+	// the explicit success/early-return sites — a panic in Check left
+	// `testing` true forever, all subsequent ticks were skipped, and the
+	// monitor froze silently with no error visible to the frontend. defer
+	// ensures the next tick always gets a chance to run.
 	defer func() {
 		m.mu.Lock()
 		m.testing = false

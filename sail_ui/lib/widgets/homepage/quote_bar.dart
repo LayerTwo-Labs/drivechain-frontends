@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
@@ -36,7 +35,6 @@ class _QuoteBarState extends State<QuoteBar> {
       final list = widget.quotes!.map(_Quote.fromMap).toList();
       if (list.isNotEmpty) {
         _quotes = list;
-        _index = Random().nextInt(list.length);
         _startTimer();
       }
     } else {
@@ -67,7 +65,6 @@ class _QuoteBarState extends State<QuoteBar> {
 
       setState(() {
         _quotes = list;
-        _index = Random().nextInt(list.length);
       });
       _startTimer();
     } catch (_) {
