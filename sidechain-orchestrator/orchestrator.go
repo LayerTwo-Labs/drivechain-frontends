@@ -320,14 +320,6 @@ func (o *Orchestrator) getOrCreateMonitor(name string, checker HealthChecker, st
 	return mon
 }
 
-// getMonitor returns the existing ConnectionMonitor for a binary, or nil if
-// none has been created yet. Read-only — does NOT create.
-func (o *Orchestrator) getMonitor(name string) *ConnectionMonitor {
-	o.monitorsMu.Lock()
-	defer o.monitorsMu.Unlock()
-	return o.monitors[name]
-}
-
 // StopAllMonitors stops all connection monitor timers.
 func (o *Orchestrator) StopAllMonitors() {
 	o.monitorsMu.Lock()
