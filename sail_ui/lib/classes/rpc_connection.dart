@@ -9,7 +9,8 @@ import 'package:sail_ui/sail_ui.dart';
 /// Base class for RPC connections to binaries.
 ///
 /// Connection state (connected, errors, etc.) is managed by
-/// BackendStateProvider via the orchestrator's WatchBinaries stream.
+/// BackendStateProvider, which polls the orchestrator's listBinaries RPC
+/// once per second and writes the snapshot onto each RPCConnection.
 /// This class is primarily a state container + data provider for
 /// balance/blockchain queries.
 abstract class RPCConnection extends ChangeNotifier {

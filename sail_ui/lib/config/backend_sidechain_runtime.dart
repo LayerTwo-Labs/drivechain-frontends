@@ -54,7 +54,7 @@ Future<void> bootBackendManagedSidechain({
       // renders the spinner + startup log during the pre-orchestratord
       // phase of cold-boot rather than flashing "Not connected".
       // BackendStateProvider.startWatching() clears the flag once the
-      // orchestrator's WatchBinaries stream starts reporting.
+      // orchestrator's listBinaries poll starts reporting.
       if (appRpc != null) {
         appRpc.initializingBinary = true;
         appRpc.connectionError = null;
@@ -81,7 +81,7 @@ Future<void> bootBackendManagedSidechain({
 
       log.i('bootBackendManagedSidechain: orchestratord is ready');
       // Leave clearing the flag to BackendStateProvider — it owns the
-      // authoritative connection state once WatchBinaries is up.
+      // authoritative connection state once the listBinaries poll is up.
     }
 
     _streamBinaryLogs(orchestrator, targetBinaryName, binary);

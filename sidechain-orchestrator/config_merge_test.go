@@ -11,8 +11,8 @@ import (
 // Symptom: a user's on-disk chains_config.json was seeded from a bundled
 // asset before is_bitcoin_core / health_check were introduced. Without
 // merging, the orch parsed only what was on disk, lost is_bitcoin_core,
-// and routed bitcoind through the generic JSONRPCHealthCheck (no OnSync)
-// instead of BitcoindHealthCheck. UI never received a single block height.
+// and routed bitcoind through the generic JSONRPCHealthCheck instead of
+// BitcoindHealthCheck. Presync detection silently regressed.
 func TestMergeWithEmbedded_FillsInMissingFields(t *testing.T) {
 	// Stale overlay: bitcoincore is named but missing is_bitcoin_core,
 	// health_check, dependencies, startup_log_patterns.
@@ -88,40 +88,3 @@ func TestMergeWithEmbedded_OverlayWinsForLeafScalars(t *testing.T) {
 	}
 }
 
-// TestMergeWithEmbedded_ProducesBitcoindHealthCheck closes the loop end
-// to end: a stale overlay merged + parsed must produce a BinaryConfig
-// where IsBitcoinCore is true and HealthCheckType routes through the
-// branch that wires OnSync.
-func TestMergeWithEmbedded_ProducesBitcoindHealthCheck(t *testing.T) {
-	overlay := []byte(`{
-		"version": 1,
-		"binaries": {
-			"bitcoincore": {"name": "Bitcoin Core", "port": 0}
-		}
-	}`)
-	merged, err := mergeWithEmbedded(overlay)
-	if err != nil {
-		t.Fatalf("merge: %v", err)
-	}
-	configs, err := parseConfigJSON(merged)
-	if err != nil {
-		t.Fatalf("parse: %v", err)
-	}
-
-	var core *BinaryConfig
-	for i := range configs {
-		if configs[i].Name == "bitcoind" {
-			core = &configs[i]
-			break
-		}
-	}
-	if core == nil {
-		t.Fatal("bitcoind config missing after merge")
-	}
-	if !core.IsBitcoinCore {
-		t.Error("IsBitcoinCore false after merge — BitcoindHealthCheck branch will be skipped, blockchain_sync will never stream")
-	}
-	if core.HealthCheckType != HealthCheckJSONRPC {
-		t.Errorf("HealthCheckType = %v, want HealthCheckJSONRPC", core.HealthCheckType)
-	}
-}

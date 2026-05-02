@@ -115,7 +115,8 @@ Future<void> initSidechainDependencies({
   GetIt.I.registerSingleton<SidechainRPC>(sidechainConnection);
 
   // Binary lifecycle is managed by the backend (e.g. orchestratord).
-  // State flows through BackendStateProvider.startWatching() → watchBinaries stream → RPCConnection.
+  // State flows through BackendStateProvider.startWatching() → 1s
+  // listBinaries poll → RPCConnection.
 
   GetIt.I.registerLazySingleton<BMMProvider>(() => BMMProvider());
   GetIt.I.registerLazySingleton<AppRouter>(() => AppRouter());

@@ -333,13 +333,6 @@ var statusCommand = &cli.Command{
 	Name:      "status",
 	Usage:     "Show status of binaries",
 	ArgsUsage: "[binary]",
-	Flags: []cli.Flag{
-		&cli.BoolFlag{
-			Name:    "stream",
-			Aliases: []string{"s"},
-			Usage:   "stream live status updates",
-		},
-	},
 	Action: func(cctx *cli.Context) error {
 		client := newClient(cctx)
 
@@ -352,20 +345,6 @@ var statusCommand = &cli.Command{
 			}
 			printStatus(resp.Msg.Status)
 			return nil
-		}
-
-		if cctx.Bool("stream") {
-			stream, err := client.WatchBinaries(cctx.Context, connect.NewRequest(&pb.WatchBinariesRequest{}))
-			if err != nil {
-				return err
-			}
-			for stream.Receive() {
-				fmt.Print("\033[2J\033[H") // clear screen
-				for _, s := range stream.Msg().Binaries {
-					printStatus(s)
-				}
-			}
-			return stream.Err()
 		}
 
 		resp, err := client.ListBinaries(cctx.Context, connect.NewRequest(&pb.ListBinariesRequest{}))

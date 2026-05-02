@@ -273,8 +273,8 @@ void bootBinaries(Logger log) async {
     final binaryProvider = GetIt.I.get<BinaryProvider>();
     // Seed the DaemonConnectionCard's "Initializing..." spinner + startup log
     // before ZSided has a chance to come up. Without this the card sits on
-    // "Not connected" until BackendStateProvider.startWatching() begins
-    // receiving WatchBinaries updates from the orchestrator.
+    // "Not connected" until BackendStateProvider's listBinaries poll lands
+    // its first snapshot.
     final zsideRpc = GetIt.I.isRegistered<ZSideRPC>() ? GetIt.I.get<ZSideRPC>() : null;
     if (zsideRpc != null) {
       zsideRpc.initializingBinary = true;

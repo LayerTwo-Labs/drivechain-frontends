@@ -48,9 +48,6 @@ const (
 	// OrchestratorServiceStopBinaryProcedure is the fully-qualified name of the OrchestratorService's
 	// StopBinary RPC.
 	OrchestratorServiceStopBinaryProcedure = "/orchestrator.v1.OrchestratorService/StopBinary"
-	// OrchestratorServiceWatchBinariesProcedure is the fully-qualified name of the
-	// OrchestratorService's WatchBinaries RPC.
-	OrchestratorServiceWatchBinariesProcedure = "/orchestrator.v1.OrchestratorService/WatchBinaries"
 	// OrchestratorServiceStreamLogsProcedure is the fully-qualified name of the OrchestratorService's
 	// StreamLogs RPC.
 	OrchestratorServiceStreamLogsProcedure = "/orchestrator.v1.OrchestratorService/StreamLogs"
@@ -69,6 +66,9 @@ const (
 	// OrchestratorServiceGetEnforcerBlockchainInfoProcedure is the fully-qualified name of the
 	// OrchestratorService's GetEnforcerBlockchainInfo RPC.
 	OrchestratorServiceGetEnforcerBlockchainInfoProcedure = "/orchestrator.v1.OrchestratorService/GetEnforcerBlockchainInfo"
+	// OrchestratorServiceGetSyncStatusProcedure is the fully-qualified name of the
+	// OrchestratorService's GetSyncStatus RPC.
+	OrchestratorServiceGetSyncStatusProcedure = "/orchestrator.v1.OrchestratorService/GetSyncStatus"
 	// OrchestratorServiceGetMainchainBalanceProcedure is the fully-qualified name of the
 	// OrchestratorService's GetMainchainBalance RPC.
 	OrchestratorServiceGetMainchainBalanceProcedure = "/orchestrator.v1.OrchestratorService/GetMainchainBalance"
@@ -98,8 +98,6 @@ type OrchestratorServiceClient interface {
 	StartBinary(context.Context, *connect.Request[v1.StartBinaryRequest]) (*connect.Response[v1.StartBinaryResponse], error)
 	// Stop a binary.
 	StopBinary(context.Context, *connect.Request[v1.StopBinaryRequest]) (*connect.Response[v1.StopBinaryResponse], error)
-	// Stream live status updates for all binaries.
-	WatchBinaries(context.Context, *connect.Request[v1.WatchBinariesRequest]) (*connect.ServerStreamForClient[v1.WatchBinariesResponse], error)
 	// Stream stdout/stderr from a binary.
 	StreamLogs(context.Context, *connect.Request[v1.StreamLogsRequest]) (*connect.ServerStreamForClient[v1.StreamLogsResponse], error)
 	// Start a binary with its full dependency chain (Core -> Enforcer -> target).
@@ -112,6 +110,10 @@ type OrchestratorServiceClient interface {
 	GetMainchainBlockchainInfo(context.Context, *connect.Request[v1.GetMainchainBlockchainInfoRequest]) (*connect.Response[v1.GetMainchainBlockchainInfoResponse], error)
 	// Get blockchain info from the enforcer (proxied via orchestrator).
 	GetEnforcerBlockchainInfo(context.Context, *connect.Request[v1.GetEnforcerBlockchainInfoRequest]) (*connect.Response[v1.GetEnforcerBlockchainInfoResponse], error)
+	// One-shot snapshot of mainchain + enforcer + bitwindow daemon sync state.
+	// Backend fans out to all three in parallel so the three numbers are taken
+	// at the same wall-clock instant — no two cards in the UI can ever disagree.
+	GetSyncStatus(context.Context, *connect.Request[v1.GetSyncStatusRequest]) (*connect.Response[v1.GetSyncStatusResponse], error)
 	// Get wallet balance from Bitcoin Core (proxied via orchestrator).
 	GetMainchainBalance(context.Context, *connect.Request[v1.GetMainchainBalanceRequest]) (*connect.Response[v1.GetMainchainBalanceResponse], error)
 	// Preview what would be deleted for the given reset categories (no side effects).
@@ -166,12 +168,6 @@ func NewOrchestratorServiceClient(httpClient connect.HTTPClient, baseURL string,
 			connect.WithSchema(orchestratorServiceMethods.ByName("StopBinary")),
 			connect.WithClientOptions(opts...),
 		),
-		watchBinaries: connect.NewClient[v1.WatchBinariesRequest, v1.WatchBinariesResponse](
-			httpClient,
-			baseURL+OrchestratorServiceWatchBinariesProcedure,
-			connect.WithSchema(orchestratorServiceMethods.ByName("WatchBinaries")),
-			connect.WithClientOptions(opts...),
-		),
 		streamLogs: connect.NewClient[v1.StreamLogsRequest, v1.StreamLogsResponse](
 			httpClient,
 			baseURL+OrchestratorServiceStreamLogsProcedure,
@@ -206,6 +202,12 @@ func NewOrchestratorServiceClient(httpClient connect.HTTPClient, baseURL string,
 			httpClient,
 			baseURL+OrchestratorServiceGetEnforcerBlockchainInfoProcedure,
 			connect.WithSchema(orchestratorServiceMethods.ByName("GetEnforcerBlockchainInfo")),
+			connect.WithClientOptions(opts...),
+		),
+		getSyncStatus: connect.NewClient[v1.GetSyncStatusRequest, v1.GetSyncStatusResponse](
+			httpClient,
+			baseURL+OrchestratorServiceGetSyncStatusProcedure,
+			connect.WithSchema(orchestratorServiceMethods.ByName("GetSyncStatus")),
 			connect.WithClientOptions(opts...),
 		),
 		getMainchainBalance: connect.NewClient[v1.GetMainchainBalanceRequest, v1.GetMainchainBalanceResponse](
@@ -248,13 +250,13 @@ type orchestratorServiceClient struct {
 	downloadBinary             *connect.Client[v1.DownloadBinaryRequest, v1.DownloadBinaryResponse]
 	startBinary                *connect.Client[v1.StartBinaryRequest, v1.StartBinaryResponse]
 	stopBinary                 *connect.Client[v1.StopBinaryRequest, v1.StopBinaryResponse]
-	watchBinaries              *connect.Client[v1.WatchBinariesRequest, v1.WatchBinariesResponse]
 	streamLogs                 *connect.Client[v1.StreamLogsRequest, v1.StreamLogsResponse]
 	startWithL1                *connect.Client[v1.StartWithL1Request, v1.StartWithL1Response]
 	shutdownAll                *connect.Client[v1.ShutdownAllRequest, v1.ShutdownAllResponse]
 	getBTCPrice                *connect.Client[v1.GetBTCPriceRequest, v1.GetBTCPriceResponse]
 	getMainchainBlockchainInfo *connect.Client[v1.GetMainchainBlockchainInfoRequest, v1.GetMainchainBlockchainInfoResponse]
 	getEnforcerBlockchainInfo  *connect.Client[v1.GetEnforcerBlockchainInfoRequest, v1.GetEnforcerBlockchainInfoResponse]
+	getSyncStatus              *connect.Client[v1.GetSyncStatusRequest, v1.GetSyncStatusResponse]
 	getMainchainBalance        *connect.Client[v1.GetMainchainBalanceRequest, v1.GetMainchainBalanceResponse]
 	previewResetData           *connect.Client[v1.PreviewResetDataRequest, v1.PreviewResetDataResponse]
 	streamResetData            *connect.Client[v1.StreamResetDataRequest, v1.StreamResetDataResponse]
@@ -287,11 +289,6 @@ func (c *orchestratorServiceClient) StopBinary(ctx context.Context, req *connect
 	return c.stopBinary.CallUnary(ctx, req)
 }
 
-// WatchBinaries calls orchestrator.v1.OrchestratorService.WatchBinaries.
-func (c *orchestratorServiceClient) WatchBinaries(ctx context.Context, req *connect.Request[v1.WatchBinariesRequest]) (*connect.ServerStreamForClient[v1.WatchBinariesResponse], error) {
-	return c.watchBinaries.CallServerStream(ctx, req)
-}
-
 // StreamLogs calls orchestrator.v1.OrchestratorService.StreamLogs.
 func (c *orchestratorServiceClient) StreamLogs(ctx context.Context, req *connect.Request[v1.StreamLogsRequest]) (*connect.ServerStreamForClient[v1.StreamLogsResponse], error) {
 	return c.streamLogs.CallServerStream(ctx, req)
@@ -320,6 +317,11 @@ func (c *orchestratorServiceClient) GetMainchainBlockchainInfo(ctx context.Conte
 // GetEnforcerBlockchainInfo calls orchestrator.v1.OrchestratorService.GetEnforcerBlockchainInfo.
 func (c *orchestratorServiceClient) GetEnforcerBlockchainInfo(ctx context.Context, req *connect.Request[v1.GetEnforcerBlockchainInfoRequest]) (*connect.Response[v1.GetEnforcerBlockchainInfoResponse], error) {
 	return c.getEnforcerBlockchainInfo.CallUnary(ctx, req)
+}
+
+// GetSyncStatus calls orchestrator.v1.OrchestratorService.GetSyncStatus.
+func (c *orchestratorServiceClient) GetSyncStatus(ctx context.Context, req *connect.Request[v1.GetSyncStatusRequest]) (*connect.Response[v1.GetSyncStatusResponse], error) {
+	return c.getSyncStatus.CallUnary(ctx, req)
 }
 
 // GetMainchainBalance calls orchestrator.v1.OrchestratorService.GetMainchainBalance.
@@ -360,8 +362,6 @@ type OrchestratorServiceHandler interface {
 	StartBinary(context.Context, *connect.Request[v1.StartBinaryRequest]) (*connect.Response[v1.StartBinaryResponse], error)
 	// Stop a binary.
 	StopBinary(context.Context, *connect.Request[v1.StopBinaryRequest]) (*connect.Response[v1.StopBinaryResponse], error)
-	// Stream live status updates for all binaries.
-	WatchBinaries(context.Context, *connect.Request[v1.WatchBinariesRequest], *connect.ServerStream[v1.WatchBinariesResponse]) error
 	// Stream stdout/stderr from a binary.
 	StreamLogs(context.Context, *connect.Request[v1.StreamLogsRequest], *connect.ServerStream[v1.StreamLogsResponse]) error
 	// Start a binary with its full dependency chain (Core -> Enforcer -> target).
@@ -374,6 +374,10 @@ type OrchestratorServiceHandler interface {
 	GetMainchainBlockchainInfo(context.Context, *connect.Request[v1.GetMainchainBlockchainInfoRequest]) (*connect.Response[v1.GetMainchainBlockchainInfoResponse], error)
 	// Get blockchain info from the enforcer (proxied via orchestrator).
 	GetEnforcerBlockchainInfo(context.Context, *connect.Request[v1.GetEnforcerBlockchainInfoRequest]) (*connect.Response[v1.GetEnforcerBlockchainInfoResponse], error)
+	// One-shot snapshot of mainchain + enforcer + bitwindow daemon sync state.
+	// Backend fans out to all three in parallel so the three numbers are taken
+	// at the same wall-clock instant — no two cards in the UI can ever disagree.
+	GetSyncStatus(context.Context, *connect.Request[v1.GetSyncStatusRequest]) (*connect.Response[v1.GetSyncStatusResponse], error)
 	// Get wallet balance from Bitcoin Core (proxied via orchestrator).
 	GetMainchainBalance(context.Context, *connect.Request[v1.GetMainchainBalanceRequest]) (*connect.Response[v1.GetMainchainBalanceResponse], error)
 	// Preview what would be deleted for the given reset categories (no side effects).
@@ -424,12 +428,6 @@ func NewOrchestratorServiceHandler(svc OrchestratorServiceHandler, opts ...conne
 		connect.WithSchema(orchestratorServiceMethods.ByName("StopBinary")),
 		connect.WithHandlerOptions(opts...),
 	)
-	orchestratorServiceWatchBinariesHandler := connect.NewServerStreamHandler(
-		OrchestratorServiceWatchBinariesProcedure,
-		svc.WatchBinaries,
-		connect.WithSchema(orchestratorServiceMethods.ByName("WatchBinaries")),
-		connect.WithHandlerOptions(opts...),
-	)
 	orchestratorServiceStreamLogsHandler := connect.NewServerStreamHandler(
 		OrchestratorServiceStreamLogsProcedure,
 		svc.StreamLogs,
@@ -464,6 +462,12 @@ func NewOrchestratorServiceHandler(svc OrchestratorServiceHandler, opts ...conne
 		OrchestratorServiceGetEnforcerBlockchainInfoProcedure,
 		svc.GetEnforcerBlockchainInfo,
 		connect.WithSchema(orchestratorServiceMethods.ByName("GetEnforcerBlockchainInfo")),
+		connect.WithHandlerOptions(opts...),
+	)
+	orchestratorServiceGetSyncStatusHandler := connect.NewUnaryHandler(
+		OrchestratorServiceGetSyncStatusProcedure,
+		svc.GetSyncStatus,
+		connect.WithSchema(orchestratorServiceMethods.ByName("GetSyncStatus")),
 		connect.WithHandlerOptions(opts...),
 	)
 	orchestratorServiceGetMainchainBalanceHandler := connect.NewUnaryHandler(
@@ -508,8 +512,6 @@ func NewOrchestratorServiceHandler(svc OrchestratorServiceHandler, opts ...conne
 			orchestratorServiceStartBinaryHandler.ServeHTTP(w, r)
 		case OrchestratorServiceStopBinaryProcedure:
 			orchestratorServiceStopBinaryHandler.ServeHTTP(w, r)
-		case OrchestratorServiceWatchBinariesProcedure:
-			orchestratorServiceWatchBinariesHandler.ServeHTTP(w, r)
 		case OrchestratorServiceStreamLogsProcedure:
 			orchestratorServiceStreamLogsHandler.ServeHTTP(w, r)
 		case OrchestratorServiceStartWithL1Procedure:
@@ -522,6 +524,8 @@ func NewOrchestratorServiceHandler(svc OrchestratorServiceHandler, opts ...conne
 			orchestratorServiceGetMainchainBlockchainInfoHandler.ServeHTTP(w, r)
 		case OrchestratorServiceGetEnforcerBlockchainInfoProcedure:
 			orchestratorServiceGetEnforcerBlockchainInfoHandler.ServeHTTP(w, r)
+		case OrchestratorServiceGetSyncStatusProcedure:
+			orchestratorServiceGetSyncStatusHandler.ServeHTTP(w, r)
 		case OrchestratorServiceGetMainchainBalanceProcedure:
 			orchestratorServiceGetMainchainBalanceHandler.ServeHTTP(w, r)
 		case OrchestratorServicePreviewResetDataProcedure:
@@ -561,10 +565,6 @@ func (UnimplementedOrchestratorServiceHandler) StopBinary(context.Context, *conn
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("orchestrator.v1.OrchestratorService.StopBinary is not implemented"))
 }
 
-func (UnimplementedOrchestratorServiceHandler) WatchBinaries(context.Context, *connect.Request[v1.WatchBinariesRequest], *connect.ServerStream[v1.WatchBinariesResponse]) error {
-	return connect.NewError(connect.CodeUnimplemented, errors.New("orchestrator.v1.OrchestratorService.WatchBinaries is not implemented"))
-}
-
 func (UnimplementedOrchestratorServiceHandler) StreamLogs(context.Context, *connect.Request[v1.StreamLogsRequest], *connect.ServerStream[v1.StreamLogsResponse]) error {
 	return connect.NewError(connect.CodeUnimplemented, errors.New("orchestrator.v1.OrchestratorService.StreamLogs is not implemented"))
 }
@@ -587,6 +587,10 @@ func (UnimplementedOrchestratorServiceHandler) GetMainchainBlockchainInfo(contex
 
 func (UnimplementedOrchestratorServiceHandler) GetEnforcerBlockchainInfo(context.Context, *connect.Request[v1.GetEnforcerBlockchainInfoRequest]) (*connect.Response[v1.GetEnforcerBlockchainInfoResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("orchestrator.v1.OrchestratorService.GetEnforcerBlockchainInfo is not implemented"))
+}
+
+func (UnimplementedOrchestratorServiceHandler) GetSyncStatus(context.Context, *connect.Request[v1.GetSyncStatusRequest]) (*connect.Response[v1.GetSyncStatusResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("orchestrator.v1.OrchestratorService.GetSyncStatus is not implemented"))
 }
 
 func (UnimplementedOrchestratorServiceHandler) GetMainchainBalance(context.Context, *connect.Request[v1.GetMainchainBalanceRequest]) (*connect.Response[v1.GetMainchainBalanceResponse], error) {

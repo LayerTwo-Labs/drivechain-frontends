@@ -18,9 +18,6 @@ service OrchestratorService {
   // Stop a binary.
   rpc StopBinary(StopBinaryRequest) returns (StopBinaryResponse);
 
-  // Stream live status updates for all binaries.
-  rpc WatchBinaries(WatchBinariesRequest) returns (stream WatchBinariesResponse);
-
   // Stream stdout/stderr from a binary.
   rpc StreamLogs(StreamLogsRequest) returns (stream StreamLogsResponse);
 
@@ -38,6 +35,11 @@ service OrchestratorService {
 
   // Get blockchain info from the enforcer (proxied via orchestrator).
   rpc GetEnforcerBlockchainInfo(GetEnforcerBlockchainInfoRequest) returns (GetEnforcerBlockchainInfoResponse);
+
+  // One-shot snapshot of mainchain + enforcer + bitwindow daemon sync state.
+  // Backend fans out to all three in parallel so the three numbers are taken
+  // at the same wall-clock instant — no two cards in the UI can ever disagree.
+  rpc GetSyncStatus(GetSyncStatusRequest) returns (GetSyncStatusResponse);
 
   // Get wallet balance from Bitcoin Core (proxied via orchestrator).
   rpc GetMainchainBalance(GetMainchainBalanceRequest) returns (GetMainchainBalanceResponse);
@@ -89,29 +91,6 @@ message BinaryStatusMsg {
   // bin/test/<binary>/... for active sidechain alt-builds, the resolved
   // .app/Contents/MacOS path on macOS, etc.). Empty when not downloaded.
   string binary_path = 23;
-  // Live blockchain sync state for chain-layer 1 binaries (bitcoind, enforcer).
-  // Populated from the orchestrator's existing health-check getblockchaininfo
-  // poll, so the frontend never has to make its own RPC call to read sync
-  // state. Nil/zero for non-L1 binaries or before the first successful poll.
-  BlockchainSyncMsg blockchain_sync = 24;
-}
-
-// BlockchainSyncMsg snapshots the chain tip + IBD state for an L1 binary.
-// Filled in by the orchestrator after each successful getblockchaininfo poll
-// and pushed to the frontend via WatchBinaries.
-message BlockchainSyncMsg {
-  int32 blocks = 1;
-  int32 headers = 2;
-  double verification_progress = 3;
-  bool initial_block_download = 4;
-  // True while the node is still bootstrapping headers (headers count too low
-  // to have meaningful sync info). Frontend uses this to gate "waiting for
-  // headers" UI without doing its own threshold math.
-  bool in_header_sync = 5;
-  // Block tip timestamp (unix seconds), 0 when no tip yet.
-  int64 time = 6;
-  // Best block hash at the tip — empty before the first poll.
-  string best_block_hash = 7;
 }
 
 message StartupLogEntryMsg {
@@ -172,21 +151,6 @@ message StopBinaryRequest {
 }
 
 message StopBinaryResponse {}
-
-// WatchBinaries
-
-message WatchBinariesRequest {}
-
-message WatchBinariesResponse {
-  repeated BinaryStatusMsg binaries = 1;
-  // Monotonic sequence number, incremented per send within a single stream.
-  // Lets the client detect missed events if a reconnect skips numbers.
-  int64 seq = 2;
-  // True for idle keepalive frames sent so the client's heartbeat watchdog
-  // can distinguish a healthy-but-quiet stream from a half-open connection.
-  // Heartbeat frames carry no data — `binaries` is empty.
-  bool heartbeat = 3;
-}
 
 // StreamLogs
 
@@ -271,6 +235,42 @@ message GetEnforcerBlockchainInfoResponse {
   int32 blocks = 1;
   int32 headers = 2;
   int64 time = 3;
+}
+
+// GetSyncStatus
+//
+// Atomic snapshot of mainchain + enforcer sync state, plus optionally a
+// caller-specified sidechain (bitwindow, thunder, zside, bitnames,
+// bitassets, photon, truthcoin, coinshift). The orchestrator fans out
+// concurrently and returns a combined result. A daemon that isn't
+// reachable returns its `ChainSync` zero-valued with an `error` string.
+
+message GetSyncStatusRequest {
+  // Optional binary name. When set, the response's `sidechain` field is
+  // populated from that daemon's tip RPC. Empty → mainchain + enforcer
+  // only.
+  string sidechain = 1;
+}
+
+message GetSyncStatusResponse {
+  ChainSync mainchain = 1;  // bitcoind
+  ChainSync enforcer = 2;   // BIP300/301 enforcer
+  ChainSync sidechain = 3;  // present only if request.sidechain was set
+}
+
+message ChainSync {
+  // Current tip height for this daemon.
+  int32 blocks = 1;
+  // Goal height. For bitcoind this is its header count. For enforcer and
+  // sidechain entries, this is bitcoind's current block count — so each
+  // card measures against the same upstream target rather than its own
+  // independent number.
+  int32 headers = 2;
+  // Block tip timestamp (unix seconds), 0 if no tip yet.
+  int64 time = 3;
+  // Empty on success; otherwise a short description of why this daemon's
+  // sync info isn't available (not running, RPC error, etc.).
+  string error = 4;
 }
 
 // GetMainchainBalance

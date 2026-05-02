@@ -13,9 +13,9 @@ import 'package:sail_ui/rpcs/bitnames_rpc.dart';
 import 'package:sail_ui/rpcs/coinshift_rpc.dart';
 import 'package:sail_ui/rpcs/enforcer_rpc.dart';
 import 'package:sail_ui/rpcs/bitcoind_connection.dart';
+import 'package:sail_ui/env.dart';
 import 'package:sail_ui/rpcs/orchestrator_rpc.dart';
 import 'package:sail_ui/rpcs/photon_rpc.dart';
-import 'package:sail_ui/rpcs/stream_supervisor.dart';
 import 'package:sail_ui/rpcs/thunder_rpc.dart';
 import 'package:sail_ui/rpcs/truthcoin_rpc.dart';
 import 'package:sail_ui/rpcs/zside_rpc.dart';
@@ -43,13 +43,16 @@ class BackendStartupProgress {
   String? get downloadingBinary => isDownloading ? stage.replaceFirst('downloading-', '') : null;
 }
 
-/// Syncs binary state from the Go backend to the Flutter frontend.
+/// Syncs binary state from the Go backend to the Flutter frontend by polling
+/// the orchestrator's `ListBinaries` RPC every 1s. Updates RPCConnection
+/// flags (connected/startup/error) and BinaryProvider's binary paths.
 ///
-/// Listens to:
-/// - `watchBinaries()` stream for live binary status
-/// - `StartWithL1` progress for startup stages and download progress
+/// Also tracks `StartWithL1` startup progress (download bytes, stage
+/// messages) when the caller hands us that stream.
 ///
-/// Updates `BinaryProvider`'s download info so existing UI progress bars work.
+/// No streaming here — the old `WatchBinaries` server-stream was replaced
+/// with this poller because per-second snapshots are simpler than a
+/// supervised stream and avoid the half-open-connection failure mode.
 class BackendStateProvider extends ChangeNotifier {
   final OrchestratorRPC _orchestrator;
   final Logger _log = GetIt.I.get<Logger>();
@@ -63,35 +66,44 @@ class BackendStateProvider extends ChangeNotifier {
   /// Whether the initial startup sequence has completed.
   bool startupComplete = false;
 
-  StreamSupervisor<WatchBinariesResponse>? _supervisor;
+  Timer? _pollTimer;
+  bool _polling = false;
+
+  static const Duration _pollInterval = Duration(seconds: 1);
 
   BackendStateProvider(this._orchestrator);
 
-  /// Start listening to the watchBinaries stream from the backend.
-  /// Call this after the daemon process is running and serving gRPC.
-  ///
-  /// Syncs connection state from the Go ConnectionMonitor to Flutter
-  /// RPCConnections so the UI shows proper connected/startup/error states.
-  /// The supervisor handles all reconnect logic — last-known `binaries`
-  /// state is kept across drops so the sidechain list UI doesn't flap.
+  /// Start polling `listBinaries()` once per second. Call this after the
+  /// daemon process is running and serving gRPC. Idempotent.
   void startWatching() {
-    _supervisor?.dispose();
-    _supervisor = StreamSupervisor<WatchBinariesResponse>(
-      subscribe: () => _orchestrator.watchBinaries(),
-      onEvent: _onResponse,
-      onTransportDeath: _orchestrator.recreateConnection,
-      logger: _log,
-      tag: 'BackendStateProvider',
-    )..start();
+    if (Environment.isInTest) return;
+    _pollTimer?.cancel();
+    // Kick a poll immediately so the UI gets a snapshot without waiting a
+    // full tick on first connect.
+    unawaited(_poll());
+    _pollTimer = Timer.periodic(_pollInterval, (_) => _poll());
   }
 
-  void _onResponse(WatchBinariesResponse response) {
-    // Heartbeat frames carry no state — they exist purely so the
-    // supervisor's watchdog can prove liveness. Skip downstream work.
-    if (response.heartbeat) return;
+  Future<void> _poll() async {
+    if (_polling) return;
+    _polling = true;
+    try {
+      final resp = await _orchestrator.listBinaries();
+      _apply(resp.binaries);
+    } catch (e) {
+      // Transport blip — keep last-known state on screen, try again next
+      // tick. The orchestrator-process keepalive watchdog (separate code
+      // path) will recreate the underlying HTTP/2 transport if it's truly
+      // dead.
+      _log.d('BackendStateProvider: listBinaries failed: $e');
+    } finally {
+      _polling = false;
+    }
+  }
 
+  void _apply(List<BinaryStatusMsg> statuses) {
     final changedRpcs = <RPCConnection>{};
-    for (final status in response.binaries) {
+    for (final status in statuses) {
       binaries[status.name] = status;
       final rpc = _syncConnectionState(status);
       if (rpc != null) changedRpcs.add(rpc);
@@ -115,14 +127,6 @@ class BackendStateProvider extends ChangeNotifier {
     // a stale warmup message. Same for connectionError.
     final startupError = status.startupError.isEmpty ? null : status.startupError;
     final connectionError = status.connectionError.isEmpty ? null : status.connectionError;
-
-    // Mirror the orchestrator's blockchain_sync onto BitcoindConnection's IBD
-    // flags. Single source of truth: the backend already runs
-    // getblockchaininfo as part of its health-check loop, no reason for
-    // the frontend to make its own RPC call.
-    if (rpc is BitcoindConnection) {
-      rpc.applyBackendSync(status.hasBlockchainSync() ? status.blockchainSync : null);
-    }
 
     // Check if anything actually changed to avoid unnecessary rebuilds
     if (rpc.connected == status.connected &&
@@ -190,7 +194,7 @@ class BackendStateProvider extends ChangeNotifier {
   /// Track startup progress from a StartWithL1 stream.
   /// Updates download progress on BinaryProvider so existing progress bars work.
   /// Connection state (initializingBinary, connected, etc.) is synced via
-  /// watchBinaries → _syncConnectionState, not set here.
+  /// the [_poll] loop → [_syncConnectionState], not set here.
   Future<void> trackStartup(Stream<StartWithL1Response> stream) async {
     startupComplete = false;
     StartWithL1Response? lastProgress;
@@ -343,8 +347,8 @@ class BackendStateProvider extends ChangeNotifier {
 
   @override
   void dispose() {
-    _supervisor?.dispose();
-    _supervisor = null;
+    _pollTimer?.cancel();
+    _pollTimer = null;
     super.dispose();
   }
 }

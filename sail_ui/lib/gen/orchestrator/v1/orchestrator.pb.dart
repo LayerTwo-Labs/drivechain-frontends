@@ -40,7 +40,6 @@ class BinaryStatusMsg extends $pb.GeneratedMessage {
     $core.String? repoUrl,
     $core.Iterable<StartupLogEntryMsg>? startupLogs,
     $core.String? binaryPath,
-    BlockchainSyncMsg? blockchainSync,
   }) {
     final $result = create();
     if (name != null) {
@@ -112,9 +111,6 @@ class BinaryStatusMsg extends $pb.GeneratedMessage {
     if (binaryPath != null) {
       $result.binaryPath = binaryPath;
     }
-    if (blockchainSync != null) {
-      $result.blockchainSync = blockchainSync;
-    }
     return $result;
   }
   BinaryStatusMsg._() : super();
@@ -145,7 +141,6 @@ class BinaryStatusMsg extends $pb.GeneratedMessage {
     ..aOS(21, _omitFieldNames ? '' : 'repoUrl')
     ..pc<StartupLogEntryMsg>(22, _omitFieldNames ? '' : 'startupLogs', $pb.PbFieldType.PM, subBuilder: StartupLogEntryMsg.create)
     ..aOS(23, _omitFieldNames ? '' : 'binaryPath')
-    ..aOM<BlockchainSyncMsg>(24, _omitFieldNames ? '' : 'blockchainSync', subBuilder: BlockchainSyncMsg.create)
     ..hasRequiredFields = false
   ;
 
@@ -373,163 +368,6 @@ class BinaryStatusMsg extends $pb.GeneratedMessage {
   $core.bool hasBinaryPath() => $_has(22);
   @$pb.TagNumber(23)
   void clearBinaryPath() => clearField(23);
-
-  /// Live blockchain sync state for chain-layer 1 binaries (bitcoind, enforcer).
-  /// Populated from the orchestrator's existing health-check getblockchaininfo
-  /// poll, so the frontend never has to make its own RPC call to read sync
-  /// state. Nil/zero for non-L1 binaries or before the first successful poll.
-  @$pb.TagNumber(24)
-  BlockchainSyncMsg get blockchainSync => $_getN(23);
-  @$pb.TagNumber(24)
-  set blockchainSync(BlockchainSyncMsg v) { setField(24, v); }
-  @$pb.TagNumber(24)
-  $core.bool hasBlockchainSync() => $_has(23);
-  @$pb.TagNumber(24)
-  void clearBlockchainSync() => clearField(24);
-  @$pb.TagNumber(24)
-  BlockchainSyncMsg ensureBlockchainSync() => $_ensure(23);
-}
-
-/// BlockchainSyncMsg snapshots the chain tip + IBD state for an L1 binary.
-/// Filled in by the orchestrator after each successful getblockchaininfo poll
-/// and pushed to the frontend via WatchBinaries.
-class BlockchainSyncMsg extends $pb.GeneratedMessage {
-  factory BlockchainSyncMsg({
-    $core.int? blocks,
-    $core.int? headers,
-    $core.double? verificationProgress,
-    $core.bool? initialBlockDownload,
-    $core.bool? inHeaderSync,
-    $fixnum.Int64? time,
-    $core.String? bestBlockHash,
-  }) {
-    final $result = create();
-    if (blocks != null) {
-      $result.blocks = blocks;
-    }
-    if (headers != null) {
-      $result.headers = headers;
-    }
-    if (verificationProgress != null) {
-      $result.verificationProgress = verificationProgress;
-    }
-    if (initialBlockDownload != null) {
-      $result.initialBlockDownload = initialBlockDownload;
-    }
-    if (inHeaderSync != null) {
-      $result.inHeaderSync = inHeaderSync;
-    }
-    if (time != null) {
-      $result.time = time;
-    }
-    if (bestBlockHash != null) {
-      $result.bestBlockHash = bestBlockHash;
-    }
-    return $result;
-  }
-  BlockchainSyncMsg._() : super();
-  factory BlockchainSyncMsg.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory BlockchainSyncMsg.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
-
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'BlockchainSyncMsg', package: const $pb.PackageName(_omitMessageNames ? '' : 'orchestrator.v1'), createEmptyInstance: create)
-    ..a<$core.int>(1, _omitFieldNames ? '' : 'blocks', $pb.PbFieldType.O3)
-    ..a<$core.int>(2, _omitFieldNames ? '' : 'headers', $pb.PbFieldType.O3)
-    ..a<$core.double>(3, _omitFieldNames ? '' : 'verificationProgress', $pb.PbFieldType.OD)
-    ..aOB(4, _omitFieldNames ? '' : 'initialBlockDownload')
-    ..aOB(5, _omitFieldNames ? '' : 'inHeaderSync')
-    ..aInt64(6, _omitFieldNames ? '' : 'time')
-    ..aOS(7, _omitFieldNames ? '' : 'bestBlockHash')
-    ..hasRequiredFields = false
-  ;
-
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
-  'Will be removed in next major version')
-  BlockchainSyncMsg clone() => BlockchainSyncMsg()..mergeFromMessage(this);
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
-  'Will be removed in next major version')
-  BlockchainSyncMsg copyWith(void Function(BlockchainSyncMsg) updates) => super.copyWith((message) => updates(message as BlockchainSyncMsg)) as BlockchainSyncMsg;
-
-  $pb.BuilderInfo get info_ => _i;
-
-  @$core.pragma('dart2js:noInline')
-  static BlockchainSyncMsg create() => BlockchainSyncMsg._();
-  BlockchainSyncMsg createEmptyInstance() => create();
-  static $pb.PbList<BlockchainSyncMsg> createRepeated() => $pb.PbList<BlockchainSyncMsg>();
-  @$core.pragma('dart2js:noInline')
-  static BlockchainSyncMsg getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<BlockchainSyncMsg>(create);
-  static BlockchainSyncMsg? _defaultInstance;
-
-  @$pb.TagNumber(1)
-  $core.int get blocks => $_getIZ(0);
-  @$pb.TagNumber(1)
-  set blocks($core.int v) { $_setSignedInt32(0, v); }
-  @$pb.TagNumber(1)
-  $core.bool hasBlocks() => $_has(0);
-  @$pb.TagNumber(1)
-  void clearBlocks() => clearField(1);
-
-  @$pb.TagNumber(2)
-  $core.int get headers => $_getIZ(1);
-  @$pb.TagNumber(2)
-  set headers($core.int v) { $_setSignedInt32(1, v); }
-  @$pb.TagNumber(2)
-  $core.bool hasHeaders() => $_has(1);
-  @$pb.TagNumber(2)
-  void clearHeaders() => clearField(2);
-
-  @$pb.TagNumber(3)
-  $core.double get verificationProgress => $_getN(2);
-  @$pb.TagNumber(3)
-  set verificationProgress($core.double v) { $_setDouble(2, v); }
-  @$pb.TagNumber(3)
-  $core.bool hasVerificationProgress() => $_has(2);
-  @$pb.TagNumber(3)
-  void clearVerificationProgress() => clearField(3);
-
-  @$pb.TagNumber(4)
-  $core.bool get initialBlockDownload => $_getBF(3);
-  @$pb.TagNumber(4)
-  set initialBlockDownload($core.bool v) { $_setBool(3, v); }
-  @$pb.TagNumber(4)
-  $core.bool hasInitialBlockDownload() => $_has(3);
-  @$pb.TagNumber(4)
-  void clearInitialBlockDownload() => clearField(4);
-
-  /// True while the node is still bootstrapping headers (headers count too low
-  /// to have meaningful sync info). Frontend uses this to gate "waiting for
-  /// headers" UI without doing its own threshold math.
-  @$pb.TagNumber(5)
-  $core.bool get inHeaderSync => $_getBF(4);
-  @$pb.TagNumber(5)
-  set inHeaderSync($core.bool v) { $_setBool(4, v); }
-  @$pb.TagNumber(5)
-  $core.bool hasInHeaderSync() => $_has(4);
-  @$pb.TagNumber(5)
-  void clearInHeaderSync() => clearField(5);
-
-  /// Block tip timestamp (unix seconds), 0 when no tip yet.
-  @$pb.TagNumber(6)
-  $fixnum.Int64 get time => $_getI64(5);
-  @$pb.TagNumber(6)
-  set time($fixnum.Int64 v) { $_setInt64(5, v); }
-  @$pb.TagNumber(6)
-  $core.bool hasTime() => $_has(5);
-  @$pb.TagNumber(6)
-  void clearTime() => clearField(6);
-
-  /// Best block hash at the tip — empty before the first poll.
-  @$pb.TagNumber(7)
-  $core.String get bestBlockHash => $_getSZ(6);
-  @$pb.TagNumber(7)
-  set bestBlockHash($core.String v) { $_setString(6, v); }
-  @$pb.TagNumber(7)
-  $core.bool hasBestBlockHash() => $_has(6);
-  @$pb.TagNumber(7)
-  void clearBestBlockHash() => clearField(7);
 }
 
 class StartupLogEntryMsg extends $pb.GeneratedMessage {
@@ -1154,115 +992,6 @@ class StopBinaryResponse extends $pb.GeneratedMessage {
   @$core.pragma('dart2js:noInline')
   static StopBinaryResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<StopBinaryResponse>(create);
   static StopBinaryResponse? _defaultInstance;
-}
-
-class WatchBinariesRequest extends $pb.GeneratedMessage {
-  factory WatchBinariesRequest() => create();
-  WatchBinariesRequest._() : super();
-  factory WatchBinariesRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory WatchBinariesRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
-
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'WatchBinariesRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'orchestrator.v1'), createEmptyInstance: create)
-    ..hasRequiredFields = false
-  ;
-
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
-  'Will be removed in next major version')
-  WatchBinariesRequest clone() => WatchBinariesRequest()..mergeFromMessage(this);
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
-  'Will be removed in next major version')
-  WatchBinariesRequest copyWith(void Function(WatchBinariesRequest) updates) => super.copyWith((message) => updates(message as WatchBinariesRequest)) as WatchBinariesRequest;
-
-  $pb.BuilderInfo get info_ => _i;
-
-  @$core.pragma('dart2js:noInline')
-  static WatchBinariesRequest create() => WatchBinariesRequest._();
-  WatchBinariesRequest createEmptyInstance() => create();
-  static $pb.PbList<WatchBinariesRequest> createRepeated() => $pb.PbList<WatchBinariesRequest>();
-  @$core.pragma('dart2js:noInline')
-  static WatchBinariesRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<WatchBinariesRequest>(create);
-  static WatchBinariesRequest? _defaultInstance;
-}
-
-class WatchBinariesResponse extends $pb.GeneratedMessage {
-  factory WatchBinariesResponse({
-    $core.Iterable<BinaryStatusMsg>? binaries,
-    $fixnum.Int64? seq,
-    $core.bool? heartbeat,
-  }) {
-    final $result = create();
-    if (binaries != null) {
-      $result.binaries.addAll(binaries);
-    }
-    if (seq != null) {
-      $result.seq = seq;
-    }
-    if (heartbeat != null) {
-      $result.heartbeat = heartbeat;
-    }
-    return $result;
-  }
-  WatchBinariesResponse._() : super();
-  factory WatchBinariesResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory WatchBinariesResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
-
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'WatchBinariesResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'orchestrator.v1'), createEmptyInstance: create)
-    ..pc<BinaryStatusMsg>(1, _omitFieldNames ? '' : 'binaries', $pb.PbFieldType.PM, subBuilder: BinaryStatusMsg.create)
-    ..aInt64(2, _omitFieldNames ? '' : 'seq')
-    ..aOB(3, _omitFieldNames ? '' : 'heartbeat')
-    ..hasRequiredFields = false
-  ;
-
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
-  'Will be removed in next major version')
-  WatchBinariesResponse clone() => WatchBinariesResponse()..mergeFromMessage(this);
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
-  'Will be removed in next major version')
-  WatchBinariesResponse copyWith(void Function(WatchBinariesResponse) updates) => super.copyWith((message) => updates(message as WatchBinariesResponse)) as WatchBinariesResponse;
-
-  $pb.BuilderInfo get info_ => _i;
-
-  @$core.pragma('dart2js:noInline')
-  static WatchBinariesResponse create() => WatchBinariesResponse._();
-  WatchBinariesResponse createEmptyInstance() => create();
-  static $pb.PbList<WatchBinariesResponse> createRepeated() => $pb.PbList<WatchBinariesResponse>();
-  @$core.pragma('dart2js:noInline')
-  static WatchBinariesResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<WatchBinariesResponse>(create);
-  static WatchBinariesResponse? _defaultInstance;
-
-  @$pb.TagNumber(1)
-  $core.List<BinaryStatusMsg> get binaries => $_getList(0);
-
-  /// Monotonic sequence number, incremented per send within a single stream.
-  /// Lets the client detect missed events if a reconnect skips numbers.
-  @$pb.TagNumber(2)
-  $fixnum.Int64 get seq => $_getI64(1);
-  @$pb.TagNumber(2)
-  set seq($fixnum.Int64 v) { $_setInt64(1, v); }
-  @$pb.TagNumber(2)
-  $core.bool hasSeq() => $_has(1);
-  @$pb.TagNumber(2)
-  void clearSeq() => clearField(2);
-
-  /// True for idle keepalive frames sent so the client's heartbeat watchdog
-  /// can distinguish a healthy-but-quiet stream from a half-open connection.
-  /// Heartbeat frames carry no data — `binaries` is empty.
-  @$pb.TagNumber(3)
-  $core.bool get heartbeat => $_getBF(2);
-  @$pb.TagNumber(3)
-  set heartbeat($core.bool v) { $_setBool(2, v); }
-  @$pb.TagNumber(3)
-  $core.bool hasHeartbeat() => $_has(2);
-  @$pb.TagNumber(3)
-  void clearHeartbeat() => clearField(3);
 }
 
 class StreamLogsRequest extends $pb.GeneratedMessage {
@@ -2219,6 +1948,243 @@ class GetEnforcerBlockchainInfoResponse extends $pb.GeneratedMessage {
   $core.bool hasTime() => $_has(2);
   @$pb.TagNumber(3)
   void clearTime() => clearField(3);
+}
+
+class GetSyncStatusRequest extends $pb.GeneratedMessage {
+  factory GetSyncStatusRequest({
+    $core.String? sidechain,
+  }) {
+    final $result = create();
+    if (sidechain != null) {
+      $result.sidechain = sidechain;
+    }
+    return $result;
+  }
+  GetSyncStatusRequest._() : super();
+  factory GetSyncStatusRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory GetSyncStatusRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'GetSyncStatusRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'orchestrator.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'sidechain')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  GetSyncStatusRequest clone() => GetSyncStatusRequest()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  GetSyncStatusRequest copyWith(void Function(GetSyncStatusRequest) updates) => super.copyWith((message) => updates(message as GetSyncStatusRequest)) as GetSyncStatusRequest;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static GetSyncStatusRequest create() => GetSyncStatusRequest._();
+  GetSyncStatusRequest createEmptyInstance() => create();
+  static $pb.PbList<GetSyncStatusRequest> createRepeated() => $pb.PbList<GetSyncStatusRequest>();
+  @$core.pragma('dart2js:noInline')
+  static GetSyncStatusRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<GetSyncStatusRequest>(create);
+  static GetSyncStatusRequest? _defaultInstance;
+
+  /// Optional binary name. When set, the response's `sidechain` field is
+  /// populated from that daemon's tip RPC. Empty → mainchain + enforcer
+  /// only.
+  @$pb.TagNumber(1)
+  $core.String get sidechain => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set sidechain($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasSidechain() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearSidechain() => clearField(1);
+}
+
+class GetSyncStatusResponse extends $pb.GeneratedMessage {
+  factory GetSyncStatusResponse({
+    ChainSync? mainchain,
+    ChainSync? enforcer,
+    ChainSync? sidechain,
+  }) {
+    final $result = create();
+    if (mainchain != null) {
+      $result.mainchain = mainchain;
+    }
+    if (enforcer != null) {
+      $result.enforcer = enforcer;
+    }
+    if (sidechain != null) {
+      $result.sidechain = sidechain;
+    }
+    return $result;
+  }
+  GetSyncStatusResponse._() : super();
+  factory GetSyncStatusResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory GetSyncStatusResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'GetSyncStatusResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'orchestrator.v1'), createEmptyInstance: create)
+    ..aOM<ChainSync>(1, _omitFieldNames ? '' : 'mainchain', subBuilder: ChainSync.create)
+    ..aOM<ChainSync>(2, _omitFieldNames ? '' : 'enforcer', subBuilder: ChainSync.create)
+    ..aOM<ChainSync>(3, _omitFieldNames ? '' : 'sidechain', subBuilder: ChainSync.create)
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  GetSyncStatusResponse clone() => GetSyncStatusResponse()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  GetSyncStatusResponse copyWith(void Function(GetSyncStatusResponse) updates) => super.copyWith((message) => updates(message as GetSyncStatusResponse)) as GetSyncStatusResponse;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static GetSyncStatusResponse create() => GetSyncStatusResponse._();
+  GetSyncStatusResponse createEmptyInstance() => create();
+  static $pb.PbList<GetSyncStatusResponse> createRepeated() => $pb.PbList<GetSyncStatusResponse>();
+  @$core.pragma('dart2js:noInline')
+  static GetSyncStatusResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<GetSyncStatusResponse>(create);
+  static GetSyncStatusResponse? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  ChainSync get mainchain => $_getN(0);
+  @$pb.TagNumber(1)
+  set mainchain(ChainSync v) { setField(1, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasMainchain() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearMainchain() => clearField(1);
+  @$pb.TagNumber(1)
+  ChainSync ensureMainchain() => $_ensure(0);
+
+  @$pb.TagNumber(2)
+  ChainSync get enforcer => $_getN(1);
+  @$pb.TagNumber(2)
+  set enforcer(ChainSync v) { setField(2, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasEnforcer() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearEnforcer() => clearField(2);
+  @$pb.TagNumber(2)
+  ChainSync ensureEnforcer() => $_ensure(1);
+
+  @$pb.TagNumber(3)
+  ChainSync get sidechain => $_getN(2);
+  @$pb.TagNumber(3)
+  set sidechain(ChainSync v) { setField(3, v); }
+  @$pb.TagNumber(3)
+  $core.bool hasSidechain() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearSidechain() => clearField(3);
+  @$pb.TagNumber(3)
+  ChainSync ensureSidechain() => $_ensure(2);
+}
+
+class ChainSync extends $pb.GeneratedMessage {
+  factory ChainSync({
+    $core.int? blocks,
+    $core.int? headers,
+    $fixnum.Int64? time,
+    $core.String? error,
+  }) {
+    final $result = create();
+    if (blocks != null) {
+      $result.blocks = blocks;
+    }
+    if (headers != null) {
+      $result.headers = headers;
+    }
+    if (time != null) {
+      $result.time = time;
+    }
+    if (error != null) {
+      $result.error = error;
+    }
+    return $result;
+  }
+  ChainSync._() : super();
+  factory ChainSync.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory ChainSync.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ChainSync', package: const $pb.PackageName(_omitMessageNames ? '' : 'orchestrator.v1'), createEmptyInstance: create)
+    ..a<$core.int>(1, _omitFieldNames ? '' : 'blocks', $pb.PbFieldType.O3)
+    ..a<$core.int>(2, _omitFieldNames ? '' : 'headers', $pb.PbFieldType.O3)
+    ..aInt64(3, _omitFieldNames ? '' : 'time')
+    ..aOS(4, _omitFieldNames ? '' : 'error')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  ChainSync clone() => ChainSync()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  ChainSync copyWith(void Function(ChainSync) updates) => super.copyWith((message) => updates(message as ChainSync)) as ChainSync;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ChainSync create() => ChainSync._();
+  ChainSync createEmptyInstance() => create();
+  static $pb.PbList<ChainSync> createRepeated() => $pb.PbList<ChainSync>();
+  @$core.pragma('dart2js:noInline')
+  static ChainSync getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<ChainSync>(create);
+  static ChainSync? _defaultInstance;
+
+  /// Current tip height for this daemon.
+  @$pb.TagNumber(1)
+  $core.int get blocks => $_getIZ(0);
+  @$pb.TagNumber(1)
+  set blocks($core.int v) { $_setSignedInt32(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasBlocks() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearBlocks() => clearField(1);
+
+  /// Goal height. For bitcoind this is its header count. For enforcer and
+  /// sidechain entries, this is bitcoind's current block count — so each
+  /// card measures against the same upstream target rather than its own
+  /// independent number.
+  @$pb.TagNumber(2)
+  $core.int get headers => $_getIZ(1);
+  @$pb.TagNumber(2)
+  set headers($core.int v) { $_setSignedInt32(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasHeaders() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearHeaders() => clearField(2);
+
+  /// Block tip timestamp (unix seconds), 0 if no tip yet.
+  @$pb.TagNumber(3)
+  $fixnum.Int64 get time => $_getI64(2);
+  @$pb.TagNumber(3)
+  set time($fixnum.Int64 v) { $_setInt64(2, v); }
+  @$pb.TagNumber(3)
+  $core.bool hasTime() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearTime() => clearField(3);
+
+  /// Empty on success; otherwise a short description of why this daemon's
+  /// sync info isn't available (not running, RPC error, etc.).
+  @$pb.TagNumber(4)
+  $core.String get error => $_getSZ(3);
+  @$pb.TagNumber(4)
+  set error($core.String v) { $_setString(3, v); }
+  @$pb.TagNumber(4)
+  $core.bool hasError() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearError() => clearField(4);
 }
 
 class GetMainchainBalanceRequest extends $pb.GeneratedMessage {
@@ -3215,9 +3181,6 @@ class OrchestratorServiceApi {
   $async.Future<StopBinaryResponse> stopBinary($pb.ClientContext? ctx, StopBinaryRequest request) =>
     _client.invoke<StopBinaryResponse>(ctx, 'OrchestratorService', 'StopBinary', request, StopBinaryResponse())
   ;
-  $async.Future<WatchBinariesResponse> watchBinaries($pb.ClientContext? ctx, WatchBinariesRequest request) =>
-    _client.invoke<WatchBinariesResponse>(ctx, 'OrchestratorService', 'WatchBinaries', request, WatchBinariesResponse())
-  ;
   $async.Future<StreamLogsResponse> streamLogs($pb.ClientContext? ctx, StreamLogsRequest request) =>
     _client.invoke<StreamLogsResponse>(ctx, 'OrchestratorService', 'StreamLogs', request, StreamLogsResponse())
   ;
@@ -3235,6 +3198,9 @@ class OrchestratorServiceApi {
   ;
   $async.Future<GetEnforcerBlockchainInfoResponse> getEnforcerBlockchainInfo($pb.ClientContext? ctx, GetEnforcerBlockchainInfoRequest request) =>
     _client.invoke<GetEnforcerBlockchainInfoResponse>(ctx, 'OrchestratorService', 'GetEnforcerBlockchainInfo', request, GetEnforcerBlockchainInfoResponse())
+  ;
+  $async.Future<GetSyncStatusResponse> getSyncStatus($pb.ClientContext? ctx, GetSyncStatusRequest request) =>
+    _client.invoke<GetSyncStatusResponse>(ctx, 'OrchestratorService', 'GetSyncStatus', request, GetSyncStatusResponse())
   ;
   $async.Future<GetMainchainBalanceResponse> getMainchainBalance($pb.ClientContext? ctx, GetMainchainBalanceRequest request) =>
     _client.invoke<GetMainchainBalanceResponse>(ctx, 'OrchestratorService', 'GetMainchainBalance', request, GetMainchainBalanceResponse())

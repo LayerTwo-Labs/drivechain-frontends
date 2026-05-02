@@ -8,7 +8,6 @@ import (
 	"io"
 	"net/http"
 	"strings"
-	"time"
 
 	"connectrpc.com/connect"
 
@@ -87,83 +86,6 @@ func (h *Handler) StopBinary(ctx context.Context, req *connect.Request[pb.StopBi
 	return connect.NewResponse(&pb.StopBinaryResponse{}), nil
 }
 
-func (h *Handler) WatchBinaries(ctx context.Context, req *connect.Request[pb.WatchBinariesRequest], stream *connect.ServerStream[pb.WatchBinariesResponse]) error {
-	var seq int64
-
-	// Send initial state immediately so the client gets full state on subscribe.
-	if err := h.sendBinaryStatuses(stream, &seq); err != nil {
-		return err
-	}
-
-	// Debounce: batch rapid state changes into one send.
-	debounce := time.NewTimer(0)
-	if !debounce.Stop() {
-		<-debounce.C
-	}
-	pending := false
-
-	// Heartbeat: emit an idle keepalive at WatchHeartbeatInterval when no
-	// data has been sent, so the client's heartbeat watchdog can tell a
-	// healthy-but-quiet stream apart from a half-open connection. Reset
-	// whenever a real frame goes out.
-	heartbeat := time.NewTicker(WatchHeartbeatInterval)
-	defer heartbeat.Stop()
-
-	send := func() error {
-		if err := h.sendBinaryStatuses(stream, &seq); err != nil {
-			return err
-		}
-		heartbeat.Reset(WatchHeartbeatInterval)
-		return nil
-	}
-
-	for {
-		select {
-		case <-ctx.Done():
-			return ctx.Err()
-
-		case <-h.orch.StateChanged:
-			if !pending {
-				debounce.Reset(50 * time.Millisecond)
-				pending = true
-			}
-
-		case <-debounce.C:
-			pending = false
-			if err := send(); err != nil {
-				return err
-			}
-
-		case <-heartbeat.C:
-			if err := stream.Send(&pb.WatchBinariesResponse{
-				Seq:       atomicInc(&seq),
-				Heartbeat: true,
-			}); err != nil {
-				return err
-			}
-		}
-	}
-}
-
-func (h *Handler) sendBinaryStatuses(stream *connect.ServerStream[pb.WatchBinariesResponse], seq *int64) error {
-	statuses := h.orch.ListAll()
-	pbStatuses := make([]*pb.BinaryStatusMsg, len(statuses))
-	for i, s := range statuses {
-		pbStatuses[i] = statusToProto(s)
-	}
-	return stream.Send(&pb.WatchBinariesResponse{
-		Binaries: pbStatuses,
-		Seq:      atomicInc(seq),
-	})
-}
-
-// atomicInc bumps a per-stream counter — accessed only from the stream
-// handler's single goroutine, so no atomic op is actually needed; the name
-// just signals "claim then return."
-func atomicInc(seq *int64) int64 {
-	*seq++
-	return *seq
-}
 
 func (h *Handler) StreamLogs(ctx context.Context, req *connect.Request[pb.StreamLogsRequest], stream *connect.ServerStream[pb.StreamLogsResponse]) error {
 	// Send recent logs first
@@ -296,16 +218,49 @@ func (h *Handler) GetMainchainBlockchainInfo(ctx context.Context, req *connect.R
 	}), nil
 }
 
+// GetEnforcerBlockchainInfo is a thin compatibility shim over the new
+// GetSyncStatus path. Frontends should migrate to GetSyncStatus directly.
 func (h *Handler) GetEnforcerBlockchainInfo(ctx context.Context, req *connect.Request[pb.GetEnforcerBlockchainInfoRequest]) (*connect.Response[pb.GetEnforcerBlockchainInfoResponse], error) {
-	info, err := h.orch.GetEnforcerBlockchainInfo(ctx)
+	s, err := h.orch.GetSyncStatus(ctx, "")
 	if err != nil {
 		return nil, err
 	}
+	enf := s.Enforcer
+	if enf == nil || enf.Error != "" {
+		return connect.NewResponse(&pb.GetEnforcerBlockchainInfoResponse{}), nil
+	}
 	return connect.NewResponse(&pb.GetEnforcerBlockchainInfoResponse{
-		Blocks:  int32(info.Blocks),
-		Headers: int32(info.Headers),
-		Time:    info.Time,
+		Blocks:  int32(enf.Blocks),
+		Headers: int32(enf.Headers),
+		Time:    enf.Time,
 	}), nil
+}
+
+func (h *Handler) GetSyncStatus(ctx context.Context, req *connect.Request[pb.GetSyncStatusRequest]) (*connect.Response[pb.GetSyncStatusResponse], error) {
+	s, err := h.orch.GetSyncStatus(ctx, req.Msg.Sidechain)
+	if err != nil {
+		return nil, err
+	}
+	out := &pb.GetSyncStatusResponse{
+		Mainchain: chainSyncToProto(s.Mainchain),
+		Enforcer:  chainSyncToProto(s.Enforcer),
+	}
+	if s.Sidechain != nil {
+		out.Sidechain = chainSyncToProto(s.Sidechain)
+	}
+	return connect.NewResponse(out), nil
+}
+
+func chainSyncToProto(s *orchestrator.ChainSyncResult) *pb.ChainSync {
+	if s == nil {
+		return nil
+	}
+	return &pb.ChainSync{
+		Blocks:  int32(s.Blocks),
+		Headers: int32(s.Headers),
+		Time:    s.Time,
+		Error:   s.Error,
+	}
 }
 
 func (h *Handler) GetMainchainBalance(ctx context.Context, req *connect.Request[pb.GetMainchainBalanceRequest]) (*connect.Response[pb.GetMainchainBalanceResponse], error) {
@@ -384,19 +339,6 @@ func statusToProto(s orchestrator.BinaryStatus) *pb.BinaryStatusMsg {
 		}
 	}
 
-	var sync *pb.BlockchainSyncMsg
-	if s.BlockchainSync != nil {
-		sync = &pb.BlockchainSyncMsg{
-			Blocks:               int32(s.BlockchainSync.Blocks),
-			Headers:              int32(s.BlockchainSync.Headers),
-			VerificationProgress: s.BlockchainSync.VerificationProgress,
-			InitialBlockDownload: s.BlockchainSync.InitialBlockDownload,
-			InHeaderSync:         s.BlockchainSync.InHeaderSync,
-			Time:                 s.BlockchainSync.Time,
-			BestBlockHash:        s.BlockchainSync.BestBlockHash,
-		}
-	}
-
 	return &pb.BinaryStatusMsg{
 		Name:            s.Name,
 		DisplayName:     s.DisplayName,
@@ -421,7 +363,6 @@ func statusToProto(s orchestrator.BinaryStatus) *pb.BinaryStatusMsg {
 		Version:         s.Version,
 		RepoUrl:         s.RepoURL,
 		StartupLogs:     startupLogs,
-		BlockchainSync:  sync,
 	}
 }
 

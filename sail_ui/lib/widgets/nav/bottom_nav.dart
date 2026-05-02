@@ -201,7 +201,7 @@ class BottomNav extends StatelessWidget {
                           ) ??
                           (model.mainchain.initializingBinary
                               ? 'Waiting for mainchain to finish initializing'
-                              : model.mainchain.inHeaderSync
+                              : model.syncProvider.inHeaderSync
                               ? 'Waiting for L1 to sync headers...'
                               : null),
                       restartDaemon: () => binaryProvider.start(
@@ -234,7 +234,7 @@ class BottomNav extends StatelessWidget {
                           (model.mainchain.connected &&
                               !model.mainchain.initializingBinary &&
                               model.mainchain.startupError == null &&
-                              !model.mainchain.inHeaderSync);
+                              !model.syncProvider.inHeaderSync);
                       final infoMessage =
                           _getDownloadMessage(model.syncProvider.additionalSyncInfo) ??
                           (isSidechain && !coreReady ? 'Waiting for Bitcoin Core header sync' : null);
@@ -405,7 +405,7 @@ class BottomNavViewModel extends BaseViewModel with ChangeTrackingMixin {
       return SailColorScheme.orange;
     }
 
-    if (mainchain.inSync) {
+    if (!(syncProvider.mainchainSyncInfo?.isSynced ?? false)) {
       return SailColorScheme.orange;
     }
 
@@ -462,7 +462,7 @@ class BottomNavViewModel extends BaseViewModel with ChangeTrackingMixin {
     );
     if (additionalLine != null) return additionalLine;
 
-    if (mainchain.inSync) {
+    if (!(syncProvider.mainchainSyncInfo?.isSynced ?? false)) {
       return 'Syncing mainchain blocks';
     }
 

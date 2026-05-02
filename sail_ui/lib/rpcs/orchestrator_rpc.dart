@@ -114,8 +114,11 @@ class OrchestratorRPC {
     return _unaryClient.getMainchainBlockchainInfo(GetMainchainBlockchainInfoRequest());
   }
 
-  Future<GetEnforcerBlockchainInfoResponse> getEnforcerBlockchainInfo() {
-    return _unaryClient.getEnforcerBlockchainInfo(GetEnforcerBlockchainInfoRequest());
+  /// Atomic snapshot of mainchain + enforcer + (optionally) sidechain tip
+  /// state. Pass the active sidechain binary name to also receive its tip;
+  /// pass empty for mainchain + enforcer only.
+  Future<GetSyncStatusResponse> getSyncStatus({String sidechain = ''}) {
+    return _unaryClient.getSyncStatus(GetSyncStatusRequest(sidechain: sidechain));
   }
 
   Future<GetMainchainBalanceResponse> getMainchainBalance() {
@@ -160,10 +163,6 @@ class OrchestratorRPC {
 
   Stream<DownloadBinaryResponse> downloadBinary(String name, {bool force = false}) {
     return _streamClient.downloadBinary(DownloadBinaryRequest(name: name, force: force));
-  }
-
-  Stream<WatchBinariesResponse> watchBinaries() {
-    return _streamClient.watchBinaries(WatchBinariesRequest());
   }
 
   Stream<StreamLogsResponse> streamLogs(String name, {int tail = 0}) {

@@ -26,12 +26,6 @@ type BitcoindHealthCheck struct {
 	User     string
 	Password string
 	Timeout  time.Duration
-
-	// OnSync is invoked after each successful getblockchaininfo call with the
-	// full blockchain state. The orchestrator wires this to the bitcoind
-	// monitor's SetBlockchainSync so the WatchBinaries stream carries the tip
-	// without a second RPC client. Optional — nil is fine.
-	OnSync func(*BlockchainSync)
 }
 
 // PresyncMessagePrefix is the prefix used in synthetic startup errors when
@@ -47,22 +41,6 @@ func (h *BitcoindHealthCheck) Check(ctx context.Context) error {
 	info, err := h.callBlockchainInfo(ctx)
 	if err != nil {
 		return err
-	}
-
-	// Headers count below 10 means we're still pre-syncing. Frontend reads
-	// this off BlockchainSync.in_header_sync to gate "waiting for headers" UI.
-	inHeaderSync := info.Headers < 10
-
-	if h.OnSync != nil {
-		h.OnSync(&BlockchainSync{
-			Blocks:               int(info.Blocks),
-			Headers:              int(info.Headers),
-			VerificationProgress: info.VerificationProgress,
-			InitialBlockDownload: info.InitialBlockDownload,
-			InHeaderSync:         inHeaderSync,
-			Time:                 info.Time,
-			BestBlockHash:        info.BestBlockHash,
-		})
 	}
 
 	// Even when getblockchaininfo answers cleanly, bitcoind can still be in a
