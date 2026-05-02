@@ -158,10 +158,26 @@ func (p *Parser) handleBlockTick(ctx context.Context) error {
 		lastProcessedHash = lastProcessedBlock.Hash
 	}
 
-	// Get current blockchain height
-	currentHeight, currentHash, err := p.currentHeight(ctx)
+	// Get current blockchain height + IBD flag.
+	currentHeight, currentHash, inIBD, err := p.currentChainState(ctx)
 	if err != nil {
 		return fmt.Errorf("fetch current height: %w", err)
+	}
+
+	// While Core is still doing initial block download, skip the OP_RETURN
+	// scan entirely. Each scan fans out a parallel batch of blocks and
+	// issues per-tx GetRawTransaction calls (needed for fee), all of which
+	// queue behind cs_main on Core. During IBD that's enough RPC pressure
+	// to push getblockchaininfo past its client timeout, which then trips
+	// the orchestrator's connection-lost monitor — and the UI block height
+	// stops updating. Catching up to the tip will happen in one batch the
+	// first tick after IBD clears; until then, keep out of Core's way.
+	if inIBD {
+		zerolog.Ctx(ctx).Debug().
+			Uint32("tip", currentHeight).
+			Uint32("processed", lastProcessedHeight).
+			Msg("bitcoind_engine/parser: skipping scan while Core is in IBD")
+		return nil
 	}
 
 	zerolog.Ctx(ctx).Trace().
@@ -479,22 +495,30 @@ func isBitcoinCoreStartupError(errMsg string) bool {
 }
 
 func (p *Parser) currentHeight(ctx context.Context) (uint32, chainhash.Hash, error) {
+	height, hash, _, err := p.currentChainState(ctx)
+	return height, hash, err
+}
+
+// currentChainState returns the tip plus the IBD flag in one RPC. Callers
+// that want to gate heavy work on "Core has caught up" use the inIBD
+// return so they don't pay the cost of a second getblockchaininfo.
+func (p *Parser) currentChainState(ctx context.Context) (uint32, chainhash.Hash, bool, error) {
 	bitcoind, err := p.bitcoind.Get(ctx)
 	if err != nil {
-		return 0, chainhash.Hash{}, err
+		return 0, chainhash.Hash{}, false, err
 	}
 
 	resp, err := bitcoind.GetBlockchainInfo(ctx, &connect.Request[corepb.GetBlockchainInfoRequest]{})
 	if err != nil {
-		return 0, chainhash.Hash{}, err
+		return 0, chainhash.Hash{}, false, err
 	}
 
 	hash, err := chainhash.NewHashFromStr(resp.Msg.BestBlockHash)
 	if err != nil {
-		return 0, chainhash.Hash{}, fmt.Errorf("parse best block hash: %w", err)
+		return 0, chainhash.Hash{}, false, fmt.Errorf("parse best block hash: %w", err)
 	}
 
-	return resp.Msg.Blocks, *hash, nil
+	return resp.Msg.Blocks, *hash, resp.Msg.InitialBlockDownload, nil
 }
 
 func (p *Parser) getBlock(ctx context.Context, height uint32) (*wire.MsgBlock, error) {

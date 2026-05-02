@@ -46,6 +46,13 @@ type Config struct {
 	// BitcoinCoreNetwork is set by Finalize from orchestratord — never from
 	// CLI flags. Used downstream for Datadir scoping and chain-params lookup.
 	BitcoinCoreNetwork Network `no-flag:"true"`
+
+	// baseDatadir / baseLogPath capture the un-finalized values on the
+	// first Finalize so subsequent calls (network swap via Recycle) can
+	// recompute network-scoped paths from the original base instead of
+	// stacking another suffix (".../signet/forknet/forknet/...").
+	baseDatadir string `no-flag:"true"`
+	baseLogPath string `no-flag:"true"`
 }
 
 func Parse() (Config, error) {
@@ -74,17 +81,27 @@ func (c *Config) BitwindowDir() string {
 }
 
 // Finalize sets the network (sourced from orchestratord by the caller) and
-// appends the per-network suffix to Datadir. Call exactly once after Parse,
-// before opening the log file or using any path fields.
+// appends the per-network suffix to Datadir. Idempotent — re-running on
+// network swap recomputes paths from the original base, so suffixes don't
+// stack across swaps.
 func (c *Config) Finalize(network Network) error {
 	if network == "" {
 		return errors.New("Finalize: empty network — caller must source it from orchestratord")
 	}
-	c.BitcoinCoreNetwork = network
-	c.Datadir = filepath.Join(c.Datadir, string(network))
 
-	if c.LogPath == "" {
+	// First call snapshots the un-suffixed base for future swaps.
+	if c.baseDatadir == "" {
+		c.baseDatadir = c.Datadir
+		c.baseLogPath = c.LogPath
+	}
+
+	c.BitcoinCoreNetwork = network
+	c.Datadir = filepath.Join(c.baseDatadir, string(network))
+
+	if c.baseLogPath == "" {
 		c.LogPath = filepath.Join(c.Datadir, "server.log")
+	} else {
+		c.LogPath = c.baseLogPath
 	}
 
 	if err := os.MkdirAll(c.Datadir, 0755); err != nil && !os.IsExist(err) {

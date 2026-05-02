@@ -56,7 +56,7 @@ type BinaryConfig struct {
 	ExtractSubfolder map[string]string // os -> subfolder to extract from zip (empty = root)
 
 	// Core variant configuration — only populated for the bitcoincore entry.
-	// Keys are variant IDs (e.g. "untouched", "touched", "knots").
+	// Keys are variant IDs ("core", "patched", "knots").
 	Variants map[string]CoreVariantSpec
 
 	// Alternative download configuration — Dart: MetadataConfig.alternativeDownloadConfig
@@ -167,24 +167,24 @@ func (v CoreVariantSpec) AvailableOn(network string) bool {
 }
 
 // DefaultCoreVariantID is the variant used when no settings file exists.
-const DefaultCoreVariantID = "touched"
+// "patched" is the only variant available on every network (including
+// mainnet) so it's a safe default that won't get clamped to empty.
+const DefaultCoreVariantID = "patched"
 
 // BinDir returns the directory where binaries are stored.
 func BinDir(dataDir string) string {
 	return filepath.Join(dataDir, "assets", "bin")
 }
 
-// CoreBinaryPath returns the on-disk path for a given Core variant's binary.
-// Variant subfolders keep all three builds coexistent under BinDir.
-func CoreBinaryPath(dataDir string, variant CoreVariantSpec, binaryName string) string {
+// CoreBinaryPath returns the on-disk path for the active Bitcoin Core
+// daemon. All variants share a single `bin/bitcoind` location — switching
+// variants re-downloads and overwrites whatever was there.
+func CoreBinaryPath(dataDir string, _ CoreVariantSpec, binaryName string) string {
 	name := binaryName
 	if runtime.GOOS == "windows" {
 		name += ".exe"
 	}
-	if variant.Subfolder == "" {
-		return filepath.Join(BinDir(dataDir), name)
-	}
-	return filepath.Join(BinDir(dataDir), variant.Subfolder, name)
+	return filepath.Join(BinDir(dataDir), name)
 }
 
 // testSidechainSubfolder is the on-disk namespace for layer-2 test/alternative

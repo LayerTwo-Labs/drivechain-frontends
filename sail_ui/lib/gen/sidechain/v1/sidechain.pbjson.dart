@@ -29,10 +29,10 @@ const GetDetectedWithdrawalsRequest$json = {
 };
 
 /// Descriptor for `GetDetectedWithdrawalsRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List getDetectedWithdrawalsRequestDescriptor = $convert.base64Decode(
-    'Ch1HZXREZXRlY3RlZFdpdGhkcmF3YWxzUmVxdWVzdBIhCglzaWRlY2hhaW4YASABKAlIAFIJc2'
-    'lkZWNoYWluiAEBEhkKBWxpbWl0GAIgASgFSAFSBWxpbWl0iAEBQgwKCl9zaWRlY2hhaW5CCAoG'
-    'X2xpbWl0');
+final $typed_data.Uint8List getDetectedWithdrawalsRequestDescriptor =
+    $convert.base64Decode('Ch1HZXREZXRlY3RlZFdpdGhkcmF3YWxzUmVxdWVzdBIhCglzaWRlY2hhaW4YASABKAlIAFIJc2'
+        'lkZWNoYWluiAEBEhkKBWxpbWl0GAIgASgFSAFSBWxpbWl0iAEBQgwKCl9zaWRlY2hhaW5CCAoG'
+        'X2xpbWl0');
 
 @$core.Deprecated('Use getDetectedWithdrawalsResponseDescriptor instead')
 const GetDetectedWithdrawalsResponse$json = {
@@ -43,9 +43,9 @@ const GetDetectedWithdrawalsResponse$json = {
 };
 
 /// Descriptor for `GetDetectedWithdrawalsResponse`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List getDetectedWithdrawalsResponseDescriptor = $convert.base64Decode(
-    'Ch5HZXREZXRlY3RlZFdpdGhkcmF3YWxzUmVzcG9uc2USQgoLd2l0aGRyYXdhbHMYASADKAsyIC'
-    '5zaWRlY2hhaW4udjEuRGV0ZWN0ZWRXaXRoZHJhd2FsUgt3aXRoZHJhd2Fscw==');
+final $typed_data.Uint8List getDetectedWithdrawalsResponseDescriptor =
+    $convert.base64Decode('Ch5HZXREZXRlY3RlZFdpdGhkcmF3YWxzUmVzcG9uc2USQgoLd2l0aGRyYXdhbHMYASADKAsyIC'
+        '5zaWRlY2hhaW4udjEuRGV0ZWN0ZWRXaXRoZHJhd2FsUgt3aXRoZHJhd2Fscw==');
 
 @$core.Deprecated('Use getWithdrawalByTxidRequestDescriptor instead')
 const GetWithdrawalByTxidRequest$json = {
@@ -56,14 +56,23 @@ const GetWithdrawalByTxidRequest$json = {
 };
 
 /// Descriptor for `GetWithdrawalByTxidRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List getWithdrawalByTxidRequestDescriptor = $convert.base64Decode(
-    'ChpHZXRXaXRoZHJhd2FsQnlUeGlkUmVxdWVzdBISCgR0eGlkGAEgASgJUgR0eGlk');
+final $typed_data.Uint8List getWithdrawalByTxidRequestDescriptor =
+    $convert.base64Decode('ChpHZXRXaXRoZHJhd2FsQnlUeGlkUmVxdWVzdBISCgR0eGlkGAEgASgJUgR0eGlk');
 
 @$core.Deprecated('Use getWithdrawalByTxidResponseDescriptor instead')
 const GetWithdrawalByTxidResponse$json = {
   '1': 'GetWithdrawalByTxidResponse',
   '2': [
-    {'1': 'withdrawal', '3': 1, '4': 1, '5': 11, '6': '.sidechain.v1.DetectedWithdrawal', '9': 0, '10': 'withdrawal', '17': true},
+    {
+      '1': 'withdrawal',
+      '3': 1,
+      '4': 1,
+      '5': 11,
+      '6': '.sidechain.v1.DetectedWithdrawal',
+      '9': 0,
+      '10': 'withdrawal',
+      '17': true
+    },
   ],
   '8': [
     {'1': '_withdrawal'},
@@ -71,10 +80,10 @@ const GetWithdrawalByTxidResponse$json = {
 };
 
 /// Descriptor for `GetWithdrawalByTxidResponse`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List getWithdrawalByTxidResponseDescriptor = $convert.base64Decode(
-    'ChtHZXRXaXRoZHJhd2FsQnlUeGlkUmVzcG9uc2USRQoKd2l0aGRyYXdhbBgBIAEoCzIgLnNpZG'
-    'VjaGFpbi52MS5EZXRlY3RlZFdpdGhkcmF3YWxIAFIKd2l0aGRyYXdhbIgBAUINCgtfd2l0aGRy'
-    'YXdhbA==');
+final $typed_data.Uint8List getWithdrawalByTxidResponseDescriptor =
+    $convert.base64Decode('ChtHZXRXaXRoZHJhd2FsQnlUeGlkUmVzcG9uc2USRQoKd2l0aGRyYXdhbBgBIAEoCzIgLnNpZG'
+        'VjaGFpbi52MS5EZXRlY3RlZFdpdGhkcmF3YWxIAFIKd2l0aGRyYXdhbIgBAUINCgtfd2l0aGRy'
+        'YXdhbA==');
 
 @$core.Deprecated('Use detectedWithdrawalDescriptor instead')
 const DetectedWithdrawal$json = {
@@ -93,18 +102,26 @@ const DetectedWithdrawal$json = {
 };
 
 /// Descriptor for `DetectedWithdrawal`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List detectedWithdrawalDescriptor = $convert.base64Decode(
-    'ChJEZXRlY3RlZFdpdGhkcmF3YWwSEgoEdHhpZBgBIAEoCVIEdHhpZBIcCglzaWRlY2hhaW4YAi'
-    'ABKAlSCXNpZGVjaGFpbhIWCgZhbW91bnQYAyABKANSBmFtb3VudBIgCgtkZXN0aW5hdGlvbhgE'
-    'IAEoCVILZGVzdGluYXRpb24SOwoLZGV0ZWN0ZWRfYXQYBSABKAsyGi5nb29nbGUucHJvdG9idW'
-    'YuVGltZXN0YW1wUgpkZXRlY3RlZEF0EiIKCmJsb2NrX2hhc2gYBiABKAlIAFIJYmxvY2tIYXNo'
-    'iAEBQg0KC19ibG9ja19oYXNo');
+final $typed_data.Uint8List detectedWithdrawalDescriptor =
+    $convert.base64Decode('ChJEZXRlY3RlZFdpdGhkcmF3YWwSEgoEdHhpZBgBIAEoCVIEdHhpZBIcCglzaWRlY2hhaW4YAi'
+        'ABKAlSCXNpZGVjaGFpbhIWCgZhbW91bnQYAyABKANSBmFtb3VudBIgCgtkZXN0aW5hdGlvbhgE'
+        'IAEoCVILZGVzdGluYXRpb24SOwoLZGV0ZWN0ZWRfYXQYBSABKAsyGi5nb29nbGUucHJvdG9idW'
+        'YuVGltZXN0YW1wUgpkZXRlY3RlZEF0EiIKCmJsb2NrX2hhc2gYBiABKAlIAFIJYmxvY2tIYXNo'
+        'iAEBQg0KC19ibG9ja19oYXNo');
 
 const $core.Map<$core.String, $core.dynamic> SidechainServiceBase$json = {
   '1': 'SidechainService',
   '2': [
-    {'1': 'GetDetectedWithdrawals', '2': '.sidechain.v1.GetDetectedWithdrawalsRequest', '3': '.sidechain.v1.GetDetectedWithdrawalsResponse'},
-    {'1': 'GetWithdrawalByTxid', '2': '.sidechain.v1.GetWithdrawalByTxidRequest', '3': '.sidechain.v1.GetWithdrawalByTxidResponse'},
+    {
+      '1': 'GetDetectedWithdrawals',
+      '2': '.sidechain.v1.GetDetectedWithdrawalsRequest',
+      '3': '.sidechain.v1.GetDetectedWithdrawalsResponse'
+    },
+    {
+      '1': 'GetWithdrawalByTxid',
+      '2': '.sidechain.v1.GetWithdrawalByTxidRequest',
+      '3': '.sidechain.v1.GetWithdrawalByTxidResponse'
+    },
   ],
 };
 
@@ -119,10 +136,9 @@ const $core.Map<$core.String, $core.Map<$core.String, $core.dynamic>> SidechainS
 };
 
 /// Descriptor for `SidechainService`. Decode as a `google.protobuf.ServiceDescriptorProto`.
-final $typed_data.Uint8List sidechainServiceDescriptor = $convert.base64Decode(
-    'ChBTaWRlY2hhaW5TZXJ2aWNlEnMKFkdldERldGVjdGVkV2l0aGRyYXdhbHMSKy5zaWRlY2hhaW'
-    '4udjEuR2V0RGV0ZWN0ZWRXaXRoZHJhd2Fsc1JlcXVlc3QaLC5zaWRlY2hhaW4udjEuR2V0RGV0'
-    'ZWN0ZWRXaXRoZHJhd2Fsc1Jlc3BvbnNlEmoKE0dldFdpdGhkcmF3YWxCeVR4aWQSKC5zaWRlY2'
-    'hhaW4udjEuR2V0V2l0aGRyYXdhbEJ5VHhpZFJlcXVlc3QaKS5zaWRlY2hhaW4udjEuR2V0V2l0'
-    'aGRyYXdhbEJ5VHhpZFJlc3BvbnNl');
-
+final $typed_data.Uint8List sidechainServiceDescriptor =
+    $convert.base64Decode('ChBTaWRlY2hhaW5TZXJ2aWNlEnMKFkdldERldGVjdGVkV2l0aGRyYXdhbHMSKy5zaWRlY2hhaW'
+        '4udjEuR2V0RGV0ZWN0ZWRXaXRoZHJhd2Fsc1JlcXVlc3QaLC5zaWRlY2hhaW4udjEuR2V0RGV0'
+        'ZWN0ZWRXaXRoZHJhd2Fsc1Jlc3BvbnNlEmoKE0dldFdpdGhkcmF3YWxCeVR4aWQSKC5zaWRlY2'
+        'hhaW4udjEuR2V0V2l0aGRyYXdhbEJ5VHhpZFJlcXVlc3QaKS5zaWRlY2hhaW4udjEuR2V0V2l0'
+        'aGRyYXdhbEJ5VHhpZFJlc3BvbnNl');

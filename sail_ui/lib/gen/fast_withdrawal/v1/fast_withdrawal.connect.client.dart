@@ -8,7 +8,7 @@ import "fast_withdrawal.pb.dart" as fast_withdrawalv1fast_withdrawal;
 import "fast_withdrawal.connect.spec.dart" as specs;
 
 /// FastWithdrawalService handles fast withdrawal initiation and monitoring
-extension type FastWithdrawalServiceClient (connect.Transport _transport) {
+extension type FastWithdrawalServiceClient(connect.Transport _transport) {
   /// InitiateFastWithdrawal starts a fast withdrawal and streams status updates
   Stream<fast_withdrawalv1fast_withdrawal.FastWithdrawalUpdate> initiateFastWithdrawal(
     fast_withdrawalv1fast_withdrawal.InitiateFastWithdrawalRequest input, {

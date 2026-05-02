@@ -9,7 +9,10 @@ import 'package:sail_ui/gen/google/protobuf/timestamp.pb.dart';
 import 'package:sail_ui/gen/orchestrator/v1/orchestrator.pb.dart' as orch_pb;
 import 'package:sail_ui/sail_ui.dart';
 
-/// Represents detailed information about a blockchain
+/// Detailed sync info for one chain. While downloading, progressCurrent /
+/// progressGoal are MB downloaded / MB total — the same fields used for
+/// blocks/headers when synced. The UI uses [DownloadInfo.isDownloading] to
+/// pick the right label ("MB" vs "blocks").
 class SyncInfo {
   final double progressCurrent;
   final double progressGoal;
@@ -57,20 +60,20 @@ class SyncConnection {
 }
 
 /// Polls a single orchestrator RPC (`GetSyncStatus`) for an atomic snapshot
-/// of mainchain + enforcer + (optionally) sidechain tip data. Three numbers
-/// taken at one wall-clock instant means the three daemon cards in the UI
-/// can never disagree mid-tick.
+/// of mainchain + enforcer + every known sidechain (including bitwindowd).
+/// One RPC carries both sync state AND download progress — when a binary is
+/// being downloaded its slot's [SyncInfo.downloadInfo] is populated, with
+/// progressCurrent/progressGoal holding MB downloaded / MB total.
 ///
-/// Cadence is 200 ms while any tracked daemon is still syncing or
-/// disconnected, then drops to 1 s once everything is fully caught up.
+/// Cadence is 100 ms while anything is still syncing or downloading,
+/// then drops to 1 s once everything is fully caught up.
 class SyncProvider extends ChangeNotifier {
   Logger get log => GetIt.I.get<Logger>();
 
   OrchestratorRPC get _orchestrator => GetIt.I.get<OrchestratorRPC>();
-  BinaryProvider get binaryProvider => GetIt.I.get<BinaryProvider>();
 
-  // Kept around for callers that ask the provider which daemons it tracks.
-  // The actual RPC calls happen exclusively via [_orchestrator].
+  // Kept for callers that want the typed RPC handle. SyncProvider itself
+  // doesn't dial these — it polls the orchestrator only.
   BitcoindConnection get mainchainRPC => GetIt.I.get<BitcoindConnection>();
   EnforcerRPC get enforcerRPC => GetIt.I.get<EnforcerRPC>();
 
@@ -78,22 +81,33 @@ class SyncProvider extends ChangeNotifier {
   SyncConnection get enforcer => SyncConnection(rpc: enforcerRPC, name: Enforcer().name);
   final SyncConnection? additionalConnection;
 
-  /// Returns true only when all tracked daemons are fully synced.
-  bool get isSynced =>
-      (mainchainSyncInfo?.isSynced ?? false) &&
-      (enforcerSyncInfo?.isSynced ?? false) &&
-      (additionalConnection == null || (additionalSyncInfo?.isSynced ?? false));
+  /// Returns true when bitcoind and enforcer are fully synced. Per-app
+  /// "is everything ready" checks should also confirm their own additional
+  /// daemon (read [bitwindowdSyncInfo] or [sidechains] directly).
+  bool get isSynced => (mainchainSyncInfo?.isSynced ?? false) && (enforcerSyncInfo?.isSynced ?? false);
 
-  /// True while bitcoind is still pulling its initial header set. Derived
-  /// from the latest snapshot; consumers used to read this off
-  /// `BitcoindConnection.inHeaderSync` (now removed).
+  /// True when *any* tracked daemon is actively downloading. Drives the
+  /// 100 ms cadence even when mainchain + enforcer are already synced —
+  /// e.g. someone runs `orchestratorctl download thunder` from the CLI
+  /// and we want to see MB ticks immediately.
+  bool get _anyDownloading {
+    if (mainchainSyncInfo?.downloadInfo.isDownloading ?? false) return true;
+    if (enforcerSyncInfo?.downloadInfo.isDownloading ?? false) return true;
+    if (bitwindowdSyncInfo?.downloadInfo.isDownloading ?? false) return true;
+    for (final s in sidechains.values) {
+      if (s.downloadInfo.isDownloading) return true;
+    }
+    return false;
+  }
+
+  /// True while bitcoind is still pulling its initial header set.
   bool get inHeaderSync {
     final m = mainchainSyncInfo;
     if (m == null) return true;
     return m.progressGoal < 10;
   }
 
-  static const Duration AGGRESSIVE_INTERVAL = Duration(milliseconds: 200);
+  static const Duration AGGRESSIVE_INTERVAL = Duration(milliseconds: 100);
   static const Duration PASSIVE_INTERVAL = Duration(seconds: 1);
 
   SyncInfo? mainchainSyncInfo;
@@ -102,25 +116,32 @@ class SyncProvider extends ChangeNotifier {
   SyncInfo? enforcerSyncInfo;
   String? enforcerError;
 
-  SyncInfo? additionalSyncInfo;
-  String? additionalError;
+  /// Per-sidechain sync state, keyed by [SidechainType]. Populated from
+  /// `GetSyncStatusResponse.sidechains` on every poll. Includes every L2
+  /// chain the orchestrator manages — entries that aren't running yet
+  /// carry `error="not running"`.
+  ///
+  /// bitwindowd is NOT in here. The orchestrator doesn't know bitwindowd
+  /// exists — bitwindow's own daemon card reads [bitwindowdSyncInfo]
+  /// instead, populated by polling bitwindowd's GetSyncInfo directly.
+  Map<orch_pb.SidechainType, SyncInfo> sidechains = const {};
+  Map<orch_pb.SidechainType, String?> sidechainErrors = const {};
+
+  /// bitwindow's own daemon state, populated by polling bitwindowd
+  /// directly each tick. Stays null when no [BitwindowRPC] is registered
+  /// (every non-bitwindow app).
+  SyncInfo? bitwindowdSyncInfo;
+  String? bitwindowdError;
 
   Timer? _timer;
   bool _isFetching = false;
   Duration _currentInterval = AGGRESSIVE_INTERVAL;
 
   SyncProvider({this.additionalConnection, bool startTimer = true}) {
-    binaryProvider.addListener(_checkDownloadProgress);
-
     if (startTimer && !Environment.isInTest) {
       _scheduleNextTick();
     }
     fetch();
-  }
-
-  // opts into the provider also notifying of download progress
-  void listenDownloads() {
-    binaryProvider.addListener(_checkDownloadProgress);
   }
 
   void _scheduleNextTick() {
@@ -133,15 +154,13 @@ class SyncProvider extends ChangeNotifier {
     _isFetching = true;
 
     try {
-      final wasAllSynced = isSynced;
       await _fetch();
-      final nowAllSynced = isSynced;
 
-      // Switch cadence on sync-state edge so a freshly-synced daemon stops
-      // burning CPU on 200 ms ticks, and a regression back into IBD
-      // immediately speeds back up.
-      final nextInterval = nowAllSynced ? PASSIVE_INTERVAL : AGGRESSIVE_INTERVAL;
-      if (nextInterval != _currentInterval || wasAllSynced != nowAllSynced) {
+      // Stay aggressive while anything's downloading OR not yet synced —
+      // that covers user-triggered CLI downloads of sidechains too.
+      final aggressive = _anyDownloading || !isSynced;
+      final nextInterval = aggressive ? AGGRESSIVE_INTERVAL : PASSIVE_INTERVAL;
+      if (nextInterval != _currentInterval) {
         _currentInterval = nextInterval;
         _scheduleNextTick();
       }
@@ -153,66 +172,114 @@ class SyncProvider extends ChangeNotifier {
   }
 
   Future<void> _fetch() async {
-    final orch_pb.GetSyncStatusResponse resp;
+    // Fan out two parallel polls: orchestrator for L1 + sidechains, and
+    // (when applicable) bitwindowd directly for the bitwindow daemon card.
+    // The orchestrator deliberately doesn't know bitwindowd exists, so its
+    // GetSyncStatus skips it and we hit bitwindowd ourselves. The check is
+    // by GetIt registration — every non-bitwindow app skips the second
+    // poll automatically because BitwindowRPC isn't wired in.
+    final orchFuture = _orchestrator.getSyncStatus();
+    final BitwindowRPC? bitwindowRpc = GetIt.I.isRegistered<BitwindowRPC>() ? GetIt.I.get<BitwindowRPC>() : null;
+    final bitwindowFuture = bitwindowRpc?.bitwindowd.getSyncInfo();
+
+    orch_pb.GetSyncStatusResponse? resp;
+    String? orchErr;
     try {
-      resp = await _orchestrator.getSyncStatus(
-        sidechain: additionalConnection?.name ?? '',
-      );
+      resp = await orchFuture;
     } catch (e) {
-      final err = extractConnectException(e);
-      var changed = false;
-      if (mainchainError != err) {
-        mainchainError = err;
-        changed = true;
-      }
-      if (enforcerError != err) {
-        enforcerError = err;
-        changed = true;
-      }
-      if (additionalConnection != null && additionalError != err) {
-        additionalError = err;
-        changed = true;
-      }
-      if (changed) notifyListeners();
-      return;
+      orchErr = extractConnectException(e);
     }
 
     var changed = false;
 
-    final newMainchain = _toSyncInfo(resp.mainchain, mainchainSyncInfo);
-    if (_diff(mainchainSyncInfo, newMainchain) || mainchainError != _errOrNull(resp.mainchain)) {
-      mainchainSyncInfo = newMainchain;
-      mainchainError = _errOrNull(resp.mainchain);
-      changed = true;
-    }
-
-    final newEnforcer = _toSyncInfo(resp.enforcer, enforcerSyncInfo);
-    if (_diff(enforcerSyncInfo, newEnforcer) || enforcerError != _errOrNull(resp.enforcer)) {
-      enforcerSyncInfo = newEnforcer;
-      enforcerError = _errOrNull(resp.enforcer);
-      changed = true;
-    }
-
-    if (additionalConnection != null) {
-      final newAdditional = _toSyncInfo(resp.sidechain, additionalSyncInfo);
-      if (_diff(additionalSyncInfo, newAdditional) || additionalError != _errOrNull(resp.sidechain)) {
-        additionalSyncInfo = newAdditional;
-        additionalError = _errOrNull(resp.sidechain);
+    if (resp != null) {
+      final newMainchain = _toSyncInfo(resp.mainchain);
+      if (_diff(mainchainSyncInfo, newMainchain) || mainchainError != _errOrNull(resp.mainchain)) {
+        mainchainSyncInfo = newMainchain;
+        mainchainError = _errOrNull(resp.mainchain);
         changed = true;
+      }
+
+      final newEnforcer = _toSyncInfo(resp.enforcer);
+      if (_diff(enforcerSyncInfo, newEnforcer) || enforcerError != _errOrNull(resp.enforcer)) {
+        enforcerSyncInfo = newEnforcer;
+        enforcerError = _errOrNull(resp.enforcer);
+        changed = true;
+      }
+
+      final newSidechains = <orch_pb.SidechainType, SyncInfo>{};
+      final newSidechainErrors = <orch_pb.SidechainType, String?>{};
+      for (final entry in resp.sidechains) {
+        newSidechains[entry.type] = _toSyncInfo(entry.sync);
+        newSidechainErrors[entry.type] = _errOrNull(entry.sync);
+      }
+      if (!_sidechainMapEquals(sidechains, newSidechains) ||
+          !_sidechainMapEquals(sidechainErrors, newSidechainErrors)) {
+        sidechains = newSidechains;
+        sidechainErrors = newSidechainErrors;
+        changed = true;
+      }
+    } else {
+      if (mainchainError != orchErr) {
+        mainchainError = orchErr;
+        changed = true;
+      }
+      if (enforcerError != orchErr) {
+        enforcerError = orchErr;
+        changed = true;
+      }
+      if (sidechainErrors.values.any((e) => e != orchErr)) {
+        sidechainErrors = {for (final k in sidechainErrors.keys) k: orchErr};
+        changed = true;
+      }
+    }
+
+    if (bitwindowFuture != null) {
+      try {
+        final info = await bitwindowFuture;
+        final next = SyncInfo(
+          progressCurrent: info.tipBlockHeight.toDouble(),
+          progressGoal: info.headerHeight.toDouble(),
+          lastBlockAt: info.tipBlockTime != Int64(0) ? Timestamp(seconds: info.tipBlockTime) : null,
+          downloadInfo: const DownloadInfo(),
+        );
+        if (_diff(bitwindowdSyncInfo, next) || bitwindowdError != null) {
+          bitwindowdSyncInfo = next;
+          bitwindowdError = null;
+          changed = true;
+        }
+      } catch (e) {
+        final err = extractConnectException(e);
+        if (bitwindowdError != err) {
+          bitwindowdError = err;
+          changed = true;
+        }
       }
     }
 
     if (changed) notifyListeners();
   }
 
-  SyncInfo _toSyncInfo(orch_pb.ChainSync? cs, SyncInfo? prev) {
+  /// Builds a SyncInfo from the proto. When `is_downloading=true`,
+  /// blocks/headers carry MB downloaded / MB total — populate
+  /// [DownloadInfo] so the existing UI code that switches on
+  /// `syncInfo.downloadInfo.isDownloading` keeps working.
+  SyncInfo _toSyncInfo(orch_pb.ChainSync? cs) {
     final blocks = (cs?.blocks ?? 0).toDouble();
     final headers = (cs?.headers ?? 0).toDouble();
+    if (cs?.isDownloading ?? false) {
+      return SyncInfo(
+        progressCurrent: blocks,
+        progressGoal: headers,
+        lastBlockAt: null,
+        downloadInfo: DownloadInfo(progress: blocks, total: headers, isDownloading: true),
+      );
+    }
     return SyncInfo(
       progressCurrent: blocks,
       progressGoal: headers,
       lastBlockAt: (cs?.time ?? Int64(0)) != Int64(0) ? Timestamp(seconds: cs!.time) : null,
-      downloadInfo: prev?.downloadInfo ?? DownloadInfo(),
+      downloadInfo: const DownloadInfo(),
     );
   }
 
@@ -226,46 +293,12 @@ class SyncProvider extends ChangeNotifier {
     return a != b;
   }
 
-  void _checkDownloadProgress() {
-    bool hasChanges = false;
-
-    var downloadInfo = binaryProvider.downloadProgress(enforcer.rpc.binary.type);
-    if (downloadInfo.isDownloading || (enforcerSyncInfo?.downloadInfo.isDownloading != downloadInfo.isDownloading)) {
-      enforcerSyncInfo = SyncInfo(
-        progressCurrent: downloadInfo.progress.toDouble(),
-        progressGoal: downloadInfo.total.toDouble(),
-        lastBlockAt: null,
-        downloadInfo: downloadInfo,
-      );
-      hasChanges = true;
+  bool _sidechainMapEquals<V>(Map<orch_pb.SidechainType, V> a, Map<orch_pb.SidechainType, V> b) {
+    if (a.length != b.length) return false;
+    for (final k in a.keys) {
+      if (!b.containsKey(k) || a[k] != b[k]) return false;
     }
-
-    downloadInfo = binaryProvider.downloadProgress(mainchain.rpc.binary.type);
-    if (downloadInfo.isDownloading || (mainchainSyncInfo?.downloadInfo.isDownloading != downloadInfo.isDownloading)) {
-      mainchainSyncInfo = SyncInfo(
-        progressCurrent: downloadInfo.progress,
-        progressGoal: downloadInfo.total,
-        lastBlockAt: null,
-        downloadInfo: downloadInfo,
-      );
-      hasChanges = true;
-    }
-
-    if (additionalConnection != null) {
-      downloadInfo = binaryProvider.downloadProgress(additionalConnection!.rpc.binary.type);
-      if (downloadInfo.isDownloading ||
-          (additionalSyncInfo?.downloadInfo.isDownloading != downloadInfo.isDownloading)) {
-        additionalSyncInfo = SyncInfo(
-          progressCurrent: downloadInfo.progress,
-          progressGoal: downloadInfo.total,
-          lastBlockAt: null,
-          downloadInfo: downloadInfo,
-        );
-        hasChanges = true;
-      }
-    }
-
-    if (hasChanges) notifyListeners();
+    return true;
   }
 
   /// Manual one-shot fetch — same as a single tick but without rescheduling.
@@ -285,15 +318,16 @@ class SyncProvider extends ChangeNotifier {
     mainchainError = null;
     enforcerSyncInfo = null;
     enforcerError = null;
-    additionalSyncInfo = null;
-    additionalError = null;
+    bitwindowdSyncInfo = null;
+    bitwindowdError = null;
+    sidechains = const {};
+    sidechainErrors = const {};
     notifyListeners();
   }
 
   @override
   void dispose() {
     _timer?.cancel();
-    binaryProvider.removeListener(_checkDownloadProgress);
     super.dispose();
   }
 }

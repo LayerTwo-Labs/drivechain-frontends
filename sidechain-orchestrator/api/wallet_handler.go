@@ -1277,7 +1277,11 @@ func (h *WalletHandler) ListCoreVariants(ctx context.Context, req *connect.Reque
 			Installed:   orchestrator.CoreVariantInstalled(h.orch.DataDir, v, "bitcoind"),
 		})
 	}
-	sort.Slice(out, func(i, j int) bool { return out[i].Id < out[j].Id })
+	// Display order: Patched first (default), Core second, Knots third.
+	// Anything else sorts alphabetically after.
+	sort.Slice(out, func(i, j int) bool {
+		return coreVariantOrder(out[i].Id) < coreVariantOrder(out[j].Id)
+	})
 
 	// Clamp active_id to the visible list. The persisted ID is fine to keep
 	// on disk — but the UI dropdown will throw when given a value that isn't
@@ -1342,14 +1346,30 @@ func (h *WalletHandler) SetTestSidechains(ctx context.Context, req *connect.Requ
 
 func coreVariantDisplayName(id string) string {
 	switch id {
-	case "untouched":
-		return "Bitcoin Core (vanilla)"
-	case "touched":
-		return "Bitcoin Core (Drivechain)"
+	case "core":
+		return "Bitcoin Core"
+	case "patched":
+		return "Bitcoin Patched"
 	case "knots":
-		return "Bitcoin Knots"
+		return "Knots"
 	default:
 		return id
+	}
+}
+
+// coreVariantOrder is the dropdown sort key. Lower wins. Anything outside
+// the named list sorts last (and tied entries fall back to ID order
+// implicitly via the sort.Slice contract).
+func coreVariantOrder(id string) int {
+	switch id {
+	case "patched":
+		return 0
+	case "core":
+		return 1
+	case "knots":
+		return 2
+	default:
+		return 99
 	}
 }
 

@@ -45,28 +45,23 @@ func (h *Handler) GetBinaryStatus(ctx context.Context, req *connect.Request[pb.G
 	}), nil
 }
 
-func (h *Handler) DownloadBinary(ctx context.Context, req *connect.Request[pb.DownloadBinaryRequest], stream *connect.ServerStream[pb.DownloadBinaryResponse]) error {
-	ch, err := h.orch.Download(ctx, req.Msg.Name, req.Msg.Force)
+// DownloadBinary dispatches a download in a background goroutine and
+// returns immediately. Mirrors StartWithL1's fire-and-forget shape so a
+// transport blip / client disconnect can't cancel an in-flight download.
+// Progress is polled out of GetSyncStatus (DownloadManager.state-backed).
+func (h *Handler) DownloadBinary(ctx context.Context, req *connect.Request[pb.DownloadBinaryRequest]) (*connect.Response[pb.DownloadBinaryResponse], error) {
+	ch, err := h.orch.Download(context.Background(), req.Msg.Name, req.Msg.Force)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	for p := range ch {
-		msg := &pb.DownloadBinaryResponse{
-			BytesDownloaded: p.BytesDownloaded,
-			TotalBytes:      p.TotalBytes,
-			Message:         p.Message,
-			Done:            p.Done,
+	go func() {
+		for range ch {
+			// drain — DownloadManager.state already feeds the polled API
 		}
-		if p.Error != nil {
-			msg.Error = p.Error.Error()
-		}
-		if err := stream.Send(msg); err != nil {
-			return err
-		}
-	}
+	}()
 
-	return nil
+	return connect.NewResponse(&pb.DownloadBinaryResponse{}), nil
 }
 
 func (h *Handler) StartBinary(ctx context.Context, req *connect.Request[pb.StartBinaryRequest]) (*connect.Response[pb.StartBinaryResponse], error) {
@@ -85,7 +80,6 @@ func (h *Handler) StopBinary(ctx context.Context, req *connect.Request[pb.StopBi
 	}
 	return connect.NewResponse(&pb.StopBinaryResponse{}), nil
 }
-
 
 func (h *Handler) StreamLogs(ctx context.Context, req *connect.Request[pb.StreamLogsRequest], stream *connect.ServerStream[pb.StreamLogsResponse]) error {
 	// Send recent logs first
@@ -131,35 +125,37 @@ func (h *Handler) StreamLogs(ctx context.Context, req *connect.Request[pb.Stream
 	}
 }
 
-func (h *Handler) StartWithL1(ctx context.Context, req *connect.Request[pb.StartWithL1Request], stream *connect.ServerStream[pb.StartWithL1Response]) error {
-	ch, err := h.orch.StartWithL1(ctx, req.Msg.Target, orchestrator.StartOpts{
+// StartWithL1 dispatches a boot goroutine and returns immediately. The
+// goroutine uses context.Background() so that a transport blip / client
+// disconnect on this RPC can't cancel an in-flight bitcoind download or
+// kill a partway-launched daemon. Callers poll GetSyncStatus for download
+// + sync state and ListBinaries for connection state — neither depends
+// on this RPC's lifetime.
+func (h *Handler) StartWithL1(ctx context.Context, req *connect.Request[pb.StartWithL1Request]) (*connect.Response[pb.StartWithL1Response], error) {
+	opts := orchestrator.StartOpts{
 		TargetArgs:   req.Msg.TargetArgs,
 		TargetEnv:    req.Msg.TargetEnv,
 		CoreArgs:     req.Msg.CoreArgs,
 		EnforcerArgs: req.Msg.EnforcerArgs,
 		Immediate:    req.Msg.Immediate,
-	})
+	}
+	target := req.Msg.Target
+
+	ch, err := h.orch.StartWithL1(context.Background(), target, opts)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	for p := range ch {
-		msg := &pb.StartWithL1Response{
-			Stage:           p.Stage,
-			Message:         p.Message,
-			Done:            p.Done,
-			BytesDownloaded: p.BytesDownloaded,
-			TotalBytes:      p.TotalBytes,
+	// Drain in the background so the channel doesn't fill and block the
+	// boot goroutine. Errors get logged via the orchestrator's own logger
+	// already; nothing to surface to the now-departed caller.
+	go func() {
+		for range ch {
+			// drain
 		}
-		if p.Error != nil {
-			msg.Error = p.Error.Error()
-		}
-		if err := stream.Send(msg); err != nil {
-			return err
-		}
-	}
+	}()
 
-	return nil
+	return connect.NewResponse(&pb.StartWithL1Response{}), nil
 }
 
 func (h *Handler) ShutdownAll(ctx context.Context, req *connect.Request[pb.ShutdownAllRequest], stream *connect.ServerStream[pb.ShutdownAllResponse]) error {
@@ -221,7 +217,7 @@ func (h *Handler) GetMainchainBlockchainInfo(ctx context.Context, req *connect.R
 // GetEnforcerBlockchainInfo is a thin compatibility shim over the new
 // GetSyncStatus path. Frontends should migrate to GetSyncStatus directly.
 func (h *Handler) GetEnforcerBlockchainInfo(ctx context.Context, req *connect.Request[pb.GetEnforcerBlockchainInfoRequest]) (*connect.Response[pb.GetEnforcerBlockchainInfoResponse], error) {
-	s, err := h.orch.GetSyncStatus(ctx, "")
+	s, err := h.orch.GetSyncStatus(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -237,18 +233,53 @@ func (h *Handler) GetEnforcerBlockchainInfo(ctx context.Context, req *connect.Re
 }
 
 func (h *Handler) GetSyncStatus(ctx context.Context, req *connect.Request[pb.GetSyncStatusRequest]) (*connect.Response[pb.GetSyncStatusResponse], error) {
-	s, err := h.orch.GetSyncStatus(ctx, req.Msg.Sidechain)
+	s, err := h.orch.GetSyncStatus(ctx)
 	if err != nil {
 		return nil, err
 	}
-	out := &pb.GetSyncStatusResponse{
-		Mainchain: chainSyncToProto(s.Mainchain),
-		Enforcer:  chainSyncToProto(s.Enforcer),
+	sidechains := make([]*pb.SidechainStatus, 0, len(s.Sidechains))
+	for name, cs := range s.Sidechains {
+		t := sidechainTypeFromName(name)
+		if t == pb.SidechainType_SIDECHAIN_TYPE_UNSPECIFIED {
+			// Unknown sidechain type — skip rather than ship UNSPECIFIED,
+			// which would force every frontend into a default switch arm
+			// for something it can't render anyway.
+			continue
+		}
+		sidechains = append(sidechains, &pb.SidechainStatus{
+			Type: t,
+			Sync: chainSyncToProto(cs),
+		})
 	}
-	if s.Sidechain != nil {
-		out.Sidechain = chainSyncToProto(s.Sidechain)
+	return connect.NewResponse(&pb.GetSyncStatusResponse{
+		Mainchain:  chainSyncToProto(s.Mainchain),
+		Enforcer:   chainSyncToProto(s.Enforcer),
+		Sidechains: sidechains,
+	}), nil
+}
+
+// sidechainTypeFromName maps the orch's logical binary name to the proto
+// enum. Sidechains the orchestrator manages but doesn't have a typed enum
+// value for return UNSPECIFIED — callers should drop those.
+func sidechainTypeFromName(name string) pb.SidechainType {
+	switch name {
+	case "thunder":
+		return pb.SidechainType_SIDECHAIN_TYPE_THUNDER
+	case "zside":
+		return pb.SidechainType_SIDECHAIN_TYPE_ZSIDE
+	case "bitnames":
+		return pb.SidechainType_SIDECHAIN_TYPE_BITNAMES
+	case "bitassets":
+		return pb.SidechainType_SIDECHAIN_TYPE_BITASSETS
+	case "truthcoin":
+		return pb.SidechainType_SIDECHAIN_TYPE_TRUTHCOIN
+	case "photon":
+		return pb.SidechainType_SIDECHAIN_TYPE_PHOTON
+	case "coinshift":
+		return pb.SidechainType_SIDECHAIN_TYPE_COINSHIFT
+	default:
+		return pb.SidechainType_SIDECHAIN_TYPE_UNSPECIFIED
 	}
-	return connect.NewResponse(out), nil
 }
 
 func chainSyncToProto(s *orchestrator.ChainSyncResult) *pb.ChainSync {
@@ -256,10 +287,11 @@ func chainSyncToProto(s *orchestrator.ChainSyncResult) *pb.ChainSync {
 		return nil
 	}
 	return &pb.ChainSync{
-		Blocks:  int32(s.Blocks),
-		Headers: int32(s.Headers),
-		Time:    s.Time,
-		Error:   s.Error,
+		Blocks:        int32(s.Blocks),
+		Headers:       int32(s.Headers),
+		Time:          s.Time,
+		Error:         s.Error,
+		IsDownloading: s.IsDownloading,
 	}
 }
 

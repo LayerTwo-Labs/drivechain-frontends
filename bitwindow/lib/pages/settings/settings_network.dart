@@ -74,6 +74,15 @@ class _SettingsNetworkState extends State<SettingsNetwork> {
       if (result != null) {
         // Backend validates writability via the RPC.
         await _confProvider.updateDataDir(result);
+        if (!mounted) return;
+        await Navigator.of(context).push<bool>(
+          MaterialPageRoute(
+            builder: (_) => const L1RestartPage(
+              reason:
+                  'Bitcoin Core needs to restart for the new data directory to take effect. The new chain data will be written to the path you just chose.',
+            ),
+          ),
+        );
       }
     } catch (e) {
       if (mounted) {

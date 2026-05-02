@@ -23,9 +23,9 @@ const OutPoint$json = {
 };
 
 /// Descriptor for `OutPoint`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List outPointDescriptor = $convert.base64Decode(
-    'CghPdXRQb2ludBIuCgR0eGlkGAEgASgLMhouY3VzZi5jb21tb24udjEuUmV2ZXJzZUhleFIEdH'
-    'hpZBIwCgR2b3V0GAIgASgLMhwuZ29vZ2xlLnByb3RvYnVmLlVJbnQzMlZhbHVlUgR2b3V0');
+final $typed_data.Uint8List outPointDescriptor =
+    $convert.base64Decode('CghPdXRQb2ludBIuCgR0eGlkGAEgASgLMhouY3VzZi5jb21tb24udjEuUmV2ZXJzZUhleFIEdH'
+        'hpZBIwCgR2b3V0GAIgASgLMhwuZ29vZ2xlLnByb3RvYnVmLlVJbnQzMlZhbHVlUgR2b3V0');
 
 @$core.Deprecated('Use sidechainDeclarationDescriptor instead')
 const SidechainDeclaration$json = {
@@ -51,12 +51,11 @@ const SidechainDeclaration_V0$json = {
 };
 
 /// Descriptor for `SidechainDeclaration`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List sidechainDeclarationDescriptor = $convert.base64Decode(
-    'ChRTaWRlY2hhaW5EZWNsYXJhdGlvbhI8CgJ2MBgBIAEoCzIqLmN1c2YubWFpbmNoYWluLnYxLl'
-    'NpZGVjaGFpbkRlY2xhcmF0aW9uLlYwSABSAnYwGuMBCgJWMBIyCgV0aXRsZRgBIAEoCzIcLmdv'
-    'b2dsZS5wcm90b2J1Zi5TdHJpbmdWYWx1ZVIFdGl0bGUSPgoLZGVzY3JpcHRpb24YAiABKAsyHC'
-    '5nb29nbGUucHJvdG9idWYuU3RyaW5nVmFsdWVSC2Rlc2NyaXB0aW9uEjgKCWhhc2hfaWRfMRgD'
-    'IAEoCzIcLmN1c2YuY29tbW9uLnYxLkNvbnNlbnN1c0hleFIHaGFzaElkMRIvCgloYXNoX2lkXz'
-    'IYBCABKAsyEy5jdXNmLmNvbW1vbi52MS5IZXhSB2hhc2hJZDJCFwoVc2lkZWNoYWluX2RlY2xh'
-    'cmF0aW9u');
-
+final $typed_data.Uint8List sidechainDeclarationDescriptor =
+    $convert.base64Decode('ChRTaWRlY2hhaW5EZWNsYXJhdGlvbhI8CgJ2MBgBIAEoCzIqLmN1c2YubWFpbmNoYWluLnYxLl'
+        'NpZGVjaGFpbkRlY2xhcmF0aW9uLlYwSABSAnYwGuMBCgJWMBIyCgV0aXRsZRgBIAEoCzIcLmdv'
+        'b2dsZS5wcm90b2J1Zi5TdHJpbmdWYWx1ZVIFdGl0bGUSPgoLZGVzY3JpcHRpb24YAiABKAsyHC'
+        '5nb29nbGUucHJvdG9idWYuU3RyaW5nVmFsdWVSC2Rlc2NyaXB0aW9uEjgKCWhhc2hfaWRfMRgD'
+        'IAEoCzIcLmN1c2YuY29tbW9uLnYxLkNvbnNlbnN1c0hleFIHaGFzaElkMRIvCgloYXNoX2lkXz'
+        'IYBCABKAsyEy5jdXNmLmNvbW1vbi52MS5IZXhSB2hhc2hJZDJCFwoVc2lkZWNoYWluX2RlY2xh'
+        'cmF0aW9u');

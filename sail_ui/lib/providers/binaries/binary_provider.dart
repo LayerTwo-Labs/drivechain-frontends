@@ -63,15 +63,14 @@ class BinaryProvider extends ChangeNotifier {
 
   OrchestratorRPC get _orchestrator => GetIt.I.get<OrchestratorRPC>();
 
-  BackendStateProvider? get _backendState =>
-      GetIt.I.isRegistered<BackendStateProvider>() ? GetIt.I.get<BackendStateProvider>() : null;
-
   // =========================================================================
   // Lifecycle operations
   // =========================================================================
 
   /// Start a binary. Daemon binaries (Orchestratord) are spawned directly;
-  /// everything else is delegated to the orchestrator.
+  /// everything else is delegated to the orchestrator. The L1 boot stream
+  /// is drained for stage logs + done/error — download bytes come through
+  /// SyncProvider's polled GetSyncStatus, not this stream.
   Future<void> start(Binary binary) async {
     if (_isDaemonBinary(binary)) {
       await _startDaemonBinary(binary);
@@ -85,21 +84,9 @@ class BinaryProvider extends ChangeNotifier {
     }
 
     log.i('BinaryProvider: starting $name via orchestrator');
-
-    final backendState = _backendState;
-    if (backendState != null) {
-      await backendState.trackStartup(
-        _orchestrator.startWithL1(name),
-      );
-    } else {
-      await for (final progress in _orchestrator.startWithL1(name)) {
-        log.i('${progress.stage}: ${progress.message}');
-        if (progress.error.isNotEmpty) {
-          throw StateError(progress.error);
-        }
-        if (progress.done) break;
-      }
-    }
+    // Fire-and-forget: orch dispatches boot in the background. Connection
+    // state shows up via BackendStateProvider's listBinaries poll.
+    await _orchestrator.startWithL1(name);
   }
 
   Future<void> stop(Binary binary, {bool skipDownstream = false}) async {
@@ -127,51 +114,11 @@ class BinaryProvider extends ChangeNotifier {
 
     log.i('BinaryProvider: downloading $name via orchestrator');
 
-    try {
-      await for (final progress in _orchestrator.downloadBinary(
-        name,
-        force: shouldUpdate,
-      )) {
-        updateBinary(binary.type, (b) {
-          return b.copyWith(
-            downloadInfo: DownloadInfo(
-              progress: progress.bytesDownloaded.toDouble(),
-              total: progress.totalBytes.toDouble(),
-              message: progress.message,
-              isDownloading: !progress.done && progress.error.isEmpty,
-            ),
-          );
-        });
-        notifyListeners();
-
-        if (progress.error.isNotEmpty) {
-          throw StateError(progress.error);
-        }
-        if (progress.done) break;
-      }
-
-      // Refresh metadata so the "update available" flag clears.
-      final updated = await binary.updateMetadata(appDir);
-      updateBinary(binary.type, (b) {
-        return b.copyWith(
-          metadata: updated.metadata,
-          downloadInfo: const DownloadInfo(progress: 0.0, isDownloading: false),
-        );
-      });
-      notifyListeners();
-    } catch (e) {
-      updateBinary(binary.type, (b) {
-        return b.copyWith(
-          downloadInfo: DownloadInfo(
-            progress: 0.0,
-            message: e.toString(),
-            isDownloading: false,
-          ),
-        );
-      });
-      notifyListeners();
-      rethrow;
-    }
+    // Fire-and-forget: orch dispatches the download in a background goroutine
+    // and returns. SyncProvider's polled GetSyncStatus picks up MB progress
+    // for the matching sidechain slot. Connection state once the binary's
+    // up arrives via BackendStateProvider's listBinaries poll.
+    await _orchestrator.downloadBinary(name, force: shouldUpdate);
   }
 
   Future<bool> onShutdown({ShutdownOptions? shutdownOptions}) async {
@@ -373,12 +320,6 @@ class BinaryProvider extends ChangeNotifier {
 
   String? connectionError(Binary binary) {
     return _rpcFor(binary)?.connectionError;
-  }
-
-  /// Download progress for a binary type.
-  DownloadInfo downloadProgress(BinaryType type) {
-    final binary = binaries.where((b) => b.type == type).firstOrNull;
-    return binary?.downloadInfo ?? const DownloadInfo(progress: 0.0, isDownloading: false);
   }
 
   // =========================================================================

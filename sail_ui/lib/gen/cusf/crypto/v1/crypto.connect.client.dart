@@ -7,7 +7,7 @@ import "package:connectrpc/connect.dart" as connect;
 import "crypto.pb.dart" as cusfcryptov1crypto;
 import "crypto.connect.spec.dart" as specs;
 
-extension type CryptoServiceClient (connect.Transport _transport) {
+extension type CryptoServiceClient(connect.Transport _transport) {
   Future<cusfcryptov1crypto.HmacSha512Response> hmacSha512(
     cusfcryptov1crypto.HmacSha512Request input, {
     connect.Headers? headers,

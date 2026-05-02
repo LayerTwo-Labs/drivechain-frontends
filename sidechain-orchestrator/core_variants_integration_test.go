@@ -9,10 +9,10 @@ package orchestrator
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"os"
-	"path/filepath"
 	"runtime"
 	"sync"
 	"sync/atomic"
@@ -35,26 +35,49 @@ func variantArchive(t *testing.T, variantID string) []byte {
 	return makeZipBytes(t, map[string][]byte{binName: []byte(variantID)})
 }
 
-// requestCount tracks per-variant download counts so coexistence tests can
-// assert "switching to an installed variant must not redownload."
+// requestCount tracks per-variant download counts.
 type requestCount struct {
-	untouched, touched, knots atomic.Int32
+	core, patched, knots atomic.Int32
 }
 
 func newVariantServer(t *testing.T, counts *requestCount) *httptest.Server {
 	t.Helper()
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		// Don't count HEAD probes — those are the new Content-Length probe
+		// and don't represent an actual download.
+		isGet := r.Method == http.MethodGet
 		switch r.URL.Path {
-		case "/untouched.zip":
-			counts.untouched.Add(1)
-			_, _ = w.Write(variantArchive(t, "untouched"))
-		case "/touched.zip":
-			counts.touched.Add(1)
-			_, _ = w.Write(variantArchive(t, "touched"))
+		case "/core.zip":
+			if isGet {
+				counts.core.Add(1)
+			}
+			body := variantArchive(t, "core")
+			w.Header().Set("Content-Length", fmt.Sprintf("%d", len(body)))
+			if !isGet {
+				return
+			}
+			_, _ = w.Write(body)
+		case "/patched.zip":
+			if isGet {
+				counts.patched.Add(1)
+			}
+			body := variantArchive(t, "patched")
+			w.Header().Set("Content-Length", fmt.Sprintf("%d", len(body)))
+			if !isGet {
+				return
+			}
+			_, _ = w.Write(body)
 		case "/knots.zip":
-			counts.knots.Add(1)
-			_, _ = w.Write(variantArchive(t, "knots"))
+			if isGet {
+				counts.knots.Add(1)
+			}
+			body := variantArchive(t, "knots")
+			w.Header().Set("Content-Length", fmt.Sprintf("%d", len(body)))
+			if !isGet {
+				return
+			}
+			_, _ = w.Write(body)
 		default:
 			http.NotFound(w, r)
 		}
@@ -98,17 +121,14 @@ func TestIntegration_SetCoreVariant_FreshSwitchInstallsBinary(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, "knots", persisted.CoreVariant)
 
-	// Knots binary landed in its variant subfolder; default touched did not.
+	// Knots binary landed at the single shared bin/bitcoind path.
 	knots := o.configs["bitcoind"].Variants["knots"]
-	touched := o.configs["bitcoind"].Variants["touched"]
 	got, err := os.ReadFile(variantBinary(dataDir, knots))
 	require.NoError(t, err)
 	assert.Equal(t, "knots", string(got))
-	_, err = os.Stat(variantBinary(dataDir, touched))
-	assert.True(t, os.IsNotExist(err), "non-selected variant must not download")
 
 	assert.Equal(t, int32(1), counts.knots.Load())
-	assert.Equal(t, int32(0), counts.touched.Load())
+	assert.Equal(t, int32(0), counts.patched.Load())
 }
 
 func TestIntegration_SetCoreVariant_PersistsAcrossRestart(t *testing.T) {
@@ -127,7 +147,9 @@ func TestIntegration_SetCoreVariant_PersistsAcrossRestart(t *testing.T) {
 	assert.Equal(t, "knots", second.CoreVariant())
 }
 
-func TestIntegration_SetCoreVariant_CoexistsAndSkipsCachedDownload(t *testing.T) {
+// All variants share bin/bitcoind, so every switch wipes-and-redownloads.
+// Final on-disk binary is whichever variant was selected last.
+func TestIntegration_SetCoreVariant_RedownloadsOnEverySwitch(t *testing.T) {
 	counts := &requestCount{}
 	srv := newVariantServer(t, counts)
 	defer srv.Close()
@@ -137,19 +159,18 @@ func TestIntegration_SetCoreVariant_CoexistsAndSkipsCachedDownload(t *testing.T)
 
 	ctx := context.Background()
 	require.NoError(t, o.SetCoreVariant(ctx, "knots"))
-	require.NoError(t, o.SetCoreVariant(ctx, "untouched"))
-	// Switching back to the cached knots binary must not redownload.
+	require.NoError(t, o.SetCoreVariant(ctx, "core"))
 	require.NoError(t, o.SetCoreVariant(ctx, "knots"))
 
+	// Final active is knots; bin/bitcoind contains the knots payload.
 	knots := o.configs["bitcoind"].Variants["knots"]
-	untouched := o.configs["bitcoind"].Variants["untouched"]
-	_, err := os.Stat(variantBinary(dataDir, knots))
-	require.NoError(t, err, "knots binary must persist after switching away")
-	_, err = os.Stat(variantBinary(dataDir, untouched))
-	require.NoError(t, err, "untouched binary must persist after switching away")
+	got, err := os.ReadFile(variantBinary(dataDir, knots))
+	require.NoError(t, err)
+	assert.Equal(t, "knots", string(got))
 
-	assert.Equal(t, int32(1), counts.knots.Load(), "knots must be downloaded exactly once")
-	assert.Equal(t, int32(1), counts.untouched.Load())
+	// Each switch fires its own download (no caching across switches).
+	assert.Equal(t, int32(2), counts.knots.Load(), "knots downloaded once per switch to it")
+	assert.Equal(t, int32(1), counts.core.Load())
 }
 
 func TestIntegration_SetCoreVariant_RejectsMainnet(t *testing.T) {
@@ -168,15 +189,12 @@ func TestIntegration_SetCoreVariant_RejectsIncompatibleNetwork(t *testing.T) {
 	defer srv.Close()
 
 	dataDir := t.TempDir()
-	o := newIntegrationOrchestrator(t, "signet", srv.URL+"/", dataDir, t.TempDir())
-	err := o.SetCoreVariant(context.Background(), "touched")
+	o := newIntegrationOrchestrator(t, "forknet", srv.URL+"/", dataDir, t.TempDir())
+	// "core" is not available on forknet — must be rejected.
+	err := o.SetCoreVariant(context.Background(), "core")
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "not available")
-	// No download should have been attempted for the rejected variant.
-	assert.Equal(t, int32(0), counts.touched.Load())
-	touched := o.configs["bitcoind"].Variants["touched"]
-	_, statErr := os.Stat(variantBinary(dataDir, touched))
-	assert.True(t, os.IsNotExist(statErr))
+	assert.Equal(t, int32(0), counts.core.Load())
 }
 
 func TestIntegration_SetCoreVariant_RejectsUnknownVariant(t *testing.T) {
@@ -197,11 +215,11 @@ func TestIntegration_ListCoreVariants_FilterByNetwork(t *testing.T) {
 		network string
 		want    []string
 	}{
-		{"mainnet", nil},
-		{"forknet", []string{"touched"}},
-		{"signet", []string{"untouched", "knots"}},
-		{"testnet", []string{"untouched", "knots"}},
-		{"regtest", []string{"untouched", "knots"}},
+		{"mainnet", []string{"patched"}},
+		{"forknet", []string{"patched"}},
+		{"signet", []string{"core", "patched", "knots"}},
+		{"testnet", []string{"core", "patched", "knots"}},
+		{"regtest", []string{"core", "patched", "knots"}},
 	}
 	for _, tc := range cases {
 		t.Run(tc.network, func(t *testing.T) {
@@ -213,7 +231,7 @@ func TestIntegration_ListCoreVariants_FilterByNetwork(t *testing.T) {
 }
 
 // User picks knots on signet, then relaunches the app on forknet. The
-// resolver must clamp to a forknet-compatible variant (touched) instead of
+// resolver must clamp to a forknet-compatible variant (patched) instead of
 // honouring the persisted knots ID.
 func TestIntegration_VariantResolver_ClampsOnNetworkSwap(t *testing.T) {
 	srv := newVariantServer(t, &requestCount{})
@@ -235,7 +253,7 @@ func TestIntegration_VariantResolver_ClampsOnNetworkSwap(t *testing.T) {
 
 	v, ok := second.download.CoreVariant()
 	require.True(t, ok, "resolver must produce a variant on forknet")
-	assert.Equal(t, "touched", v.ID, "persisted knots is not forknet-compatible; must clamp to touched")
+	assert.Equal(t, "patched", v.ID, "persisted knots is not forknet-compatible; must clamp to patched")
 
 	// Swap back to signet via the conf, then knots becomes valid again.
 	require.NoError(t, second.BitcoinConf.UpdateNetwork(config.NetworkSignet))
@@ -252,13 +270,12 @@ func TestIntegration_VariantResolver_FallbackWhenSettingsEmpty(t *testing.T) {
 	o := newIntegrationOrchestrator(t, "forknet", srv.URL+"/", "", "")
 	v, ok := o.download.CoreVariant()
 	require.True(t, ok, "fresh forknet install must resolve to a variant")
-	assert.Equal(t, "touched", v.ID)
+	assert.Equal(t, "patched", v.ID)
 }
 
-// Verifies the path the launcher would use after a switch. The orchestrator's
-// process manager queries CoreVariant() at Start time, and the variant
-// resolver wires CoreBinaryPath into ProcessManager. Without launching
-// bitcoind we can still confirm the resolver reports the right active path.
+// Verifies the launcher path after a switch. With the single-bitcoind layout
+// the path is always BinDir/bitcoind regardless of variant — the active
+// variant only changes which payload was last downloaded into that file.
 func TestIntegration_SetCoreVariant_ResolverPointsAtActiveVariant(t *testing.T) {
 	srv := newVariantServer(t, &requestCount{})
 	defer srv.Close()
@@ -269,17 +286,13 @@ func TestIntegration_SetCoreVariant_ResolverPointsAtActiveVariant(t *testing.T) 
 	require.NoError(t, o.SetCoreVariant(context.Background(), "knots"))
 
 	knots := o.configs["bitcoind"].Variants["knots"]
-	expected := filepath.Join(BinDir(dataDir), knots.Subfolder, "bitcoind")
-	if runtime.GOOS == "windows" {
-		expected += ".exe"
-	}
+	expected := BinaryPath(dataDir, "bitcoind")
 	assert.Equal(t, expected, CoreBinaryPath(dataDir, knots, "bitcoind"))
 }
 
 // Five concurrent SetCoreVariant calls must not race the on-disk state. The
-// coreVariantMu serialises stop -> persist -> download -> restart so we end up
-// with a coherent active variant, and only the actually-attempted variants
-// land in the bin dir.
+// coreVariantMu serialises stop -> wipe -> persist -> download -> restart so
+// we end up with a coherent final active variant whose payload is on disk.
 func TestIntegration_SetCoreVariant_Concurrent(t *testing.T) {
 	counts := &requestCount{}
 	srv := newVariantServer(t, counts)
@@ -289,7 +302,7 @@ func TestIntegration_SetCoreVariant_Concurrent(t *testing.T) {
 	bwDir := t.TempDir()
 	o := newIntegrationOrchestrator(t, "signet", srv.URL+"/", dataDir, bwDir)
 
-	candidates := []string{"untouched", "knots", "untouched", "knots", "untouched"}
+	candidates := []string{"core", "knots", "core", "knots", "core"}
 
 	var wg sync.WaitGroup
 	for _, id := range candidates {
@@ -301,26 +314,18 @@ func TestIntegration_SetCoreVariant_Concurrent(t *testing.T) {
 	}
 	wg.Wait()
 
-	// Final active variant must be one of the inputs, not a half-baked value.
+	// Final active variant must be one of the inputs.
 	final := o.CoreVariant()
-	require.Contains(t, []string{"untouched", "knots"}, final)
+	require.Contains(t, []string{"core", "knots"}, final)
 	persisted, err := LoadSettings(bwDir)
 	require.NoError(t, err)
 	assert.Equal(t, final, persisted.CoreVariant)
 
-	// Every attempted variant lands as a single binary; no torn writes.
-	untouched := o.configs["bitcoind"].Variants["untouched"]
-	knots := o.configs["bitcoind"].Variants["knots"]
-	for _, v := range []CoreVariantSpec{untouched, knots} {
-		got, err := os.ReadFile(variantBinary(dataDir, v))
-		require.NoError(t, err)
-		assert.Equal(t, v.ID, string(got))
-	}
-
-	// Only one download per variant, regardless of how many goroutines asked
-	// for it. Five attempts with two distinct ids => two HTTP fetches.
-	assert.LessOrEqual(t, counts.untouched.Load(), int32(1), "untouched downloaded more than once")
-	assert.LessOrEqual(t, counts.knots.Load(), int32(1), "knots downloaded more than once")
+	// bin/bitcoind contains exactly one payload — the final active variant's.
+	v := o.configs["bitcoind"].Variants[final]
+	got, err := os.ReadFile(variantBinary(dataDir, v))
+	require.NoError(t, err)
+	assert.Equal(t, final, string(got))
 }
 
 // Graceful stop fails -> SetCoreVariant must escalate to SIGKILL and persist
@@ -376,7 +381,7 @@ func TestIntegration_SetCoreVariant_StopFailure(t *testing.T) {
 		o := newIntegrationOrchestrator(t, "signet", srv.URL+"/", dataDir, bwDir)
 
 		// Pre-set to a known value so we can prove no persist happened.
-		_, err := o.Settings.SetCoreVariant("untouched")
+		_, err := o.Settings.SetCoreVariant("core")
 		require.NoError(t, err)
 
 		o.process.AdoptProcess(o.configs["bitcoind"], 1)
@@ -394,10 +399,10 @@ func TestIntegration_SetCoreVariant_StopFailure(t *testing.T) {
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "stop")
 
-		assert.Equal(t, "untouched", o.CoreVariant(), "settings must stay untouched on stop failure")
+		assert.Equal(t, "core", o.CoreVariant(), "settings must stay untouched on stop failure")
 		persisted, lerr := LoadSettings(bwDir)
 		require.NoError(t, lerr)
-		assert.Equal(t, "untouched", persisted.CoreVariant)
+		assert.Equal(t, "core", persisted.CoreVariant)
 		assert.Equal(t, preDownloads, counts.knots.Load(), "no download must run when stop failed")
 
 		knots := o.configs["bitcoind"].Variants["knots"]
@@ -423,16 +428,16 @@ func TestIntegration_SetCoreVariant_RejectedStopLeavesSettingsUnchanged(t *testi
 	o := newIntegrationOrchestrator(t, "signet", srv.URL+"/", dataDir, bwDir)
 	require.Equal(t, "knots", o.CoreVariant())
 
-	// "touched" is forknet-only: must be rejected on signet.
-	err := o.SetCoreVariant(context.Background(), "touched")
+	// Switching to a totally unknown variant must be rejected without
+	// touching the persisted active.
+	err := o.SetCoreVariant(context.Background(), "doge")
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "not available")
+	assert.Contains(t, err.Error(), "unknown core variant")
 
 	assert.Equal(t, "knots", o.CoreVariant())
 	persisted, err := LoadSettings(bwDir)
 	require.NoError(t, err)
 	assert.Equal(t, "knots", persisted.CoreVariant)
-	assert.Equal(t, int32(0), counts.touched.Load())
 }
 
 // When the persisted active variant isn't valid for the current network, the
@@ -447,15 +452,17 @@ func TestIntegration_ListCoreVariants_ClampsActiveOnNetworkMismatch(t *testing.T
 	bwDir := t.TempDir()
 
 	// Persist a forknet-only variant, then load orchestrator on signet.
-	require.NoError(t, SaveSettings(bwDir, OrchestratorSettings{CoreVariant: "touched"}))
+	// "core" is not available on forknet, but it IS valid on signet, so use
+	// it inverse here: persist an unknown id to simulate a mismatch.
+	require.NoError(t, SaveSettings(bwDir, OrchestratorSettings{CoreVariant: "stale-id"}))
 	o := newIntegrationOrchestrator(t, "signet", srv.URL+"/", dataDir, bwDir)
 
 	// Persisted ID is preserved on disk.
-	assert.Equal(t, "touched", o.CoreVariant())
+	assert.Equal(t, "stale-id", o.CoreVariant())
 
-	// Visible list for signet excludes touched.
+	// Visible list for signet excludes the stale id.
 	visible := variantIDs(o.ListCoreVariants())
-	assert.NotContains(t, visible, "touched")
+	assert.NotContains(t, visible, "stale-id")
 
 	// Simulate the wallet handler clamp: active_id from CoreVariant() not in
 	// the visible list -> empty.
@@ -474,41 +481,24 @@ func TestIntegration_ListCoreVariants_ClampsActiveOnNetworkMismatch(t *testing.T
 	assert.Equal(t, "", clamped, "active must clamp to empty when not in visible list")
 }
 
-// CLI subcommands like `which`/`wipe`/`list` must resolve the active variant
-// from orchestrator_settings.json instead of using the legacy flat path.
-func TestIntegration_LegacyBinaryPathCallsites(t *testing.T) {
+// All variants share BinDir/bitcoind, so the active resolver always returns
+// the flat path regardless of which variant is active. Settings still drive
+// which payload is on disk; the path is invariant.
+func TestIntegration_ActiveCoreBinaryPath(t *testing.T) {
 	dataDir := t.TempDir()
 	bwDir := t.TempDir()
 
-	binName := "bitcoind"
-	if runtime.GOOS == "windows" {
-		binName += ".exe"
-	}
-
 	configs := []BinaryConfig{makeBitcoindCoreConfig("http://unused/")}
-	knots := configs[0].Variants["knots"]
 
-	// Place a stub binary in the variant subfolder only — flat path stays empty.
-	variantPath := CoreBinaryPath(dataDir, knots, "bitcoind")
-	require.NoError(t, os.MkdirAll(filepath.Dir(variantPath), 0o755))
-	require.NoError(t, os.WriteFile(variantPath, []byte("stub"), 0o755))
 	require.NoError(t, SaveSettings(bwDir, OrchestratorSettings{CoreVariant: "knots"}))
-
 	got := ActiveCoreBinaryPath(dataDir, bwDir, configs, "bitcoind")
-	assert.Equal(t, variantPath, got, "must resolve the active variant subfolder, not BinDir root")
+	assert.Equal(t, BinaryPath(dataDir, "bitcoind"), got)
 
-	// Sanity: the legacy flat path doesn't exist.
-	flatPath := filepath.Join(BinDir(dataDir), binName)
-	_, err := os.Stat(flatPath)
-	assert.True(t, os.IsNotExist(err), "must not look at BinDir/%s", binName)
+	// Switching settings to a different variant doesn't change the path.
+	require.NoError(t, SaveSettings(bwDir, OrchestratorSettings{CoreVariant: "core"}))
+	assert.Equal(t, BinaryPath(dataDir, "bitcoind"), ActiveCoreBinaryPath(dataDir, bwDir, configs, "bitcoind"))
 
-	// Resolver must follow settings even when they change.
-	require.NoError(t, SaveSettings(bwDir, OrchestratorSettings{CoreVariant: "untouched"}))
-	untouched := configs[0].Variants["untouched"]
-	expected := CoreBinaryPath(dataDir, untouched, "bitcoind")
-	assert.Equal(t, expected, ActiveCoreBinaryPath(dataDir, bwDir, configs, "bitcoind"))
-
-	// And falls back to flat layout for non-bitcoind names.
+	// Non-bitcoind binaries always use the flat layout.
 	other := ActiveCoreBinaryPath(dataDir, bwDir, configs, "enforcer")
 	assert.Equal(t, BinaryPath(dataDir, "enforcer"), other)
 }

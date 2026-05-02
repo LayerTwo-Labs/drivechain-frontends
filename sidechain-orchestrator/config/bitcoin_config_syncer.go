@@ -249,10 +249,28 @@ var bitcoinConfMigrations = []BitcoinConfMigration{
 			},
 		},
 	},
+	{
+		// bitwindowd's ZMQ engine requires pubrawtx (and the others) to
+		// stream tx/block notifications. Previously these only lived in
+		// forknet's [main] section, which left signet/testnet/mainnet
+		// users with "unable to acquire ZMQ engine" loops and a
+		// degraded daemon link. Move them globally — Bitcoin Core happily
+		// accepts the same zmqpub* lines on every network, and the
+		// per-forknet copies were just duplication.
+		Version: 8,
+		Changes: map[string]map[string]string{
+			"": {
+				"zmqpubhashblock": "tcp://127.0.0.1:29001",
+				"zmqpubhashtx":    "tcp://127.0.0.1:29002",
+				"zmqpubrawblock":  "tcp://127.0.0.1:29003",
+				"zmqpubrawtx":     "tcp://127.0.0.1:29004",
+			},
+		},
+	},
 }
 
 // BitcoinConfMigrationsVersion is the highest migration version.
-var BitcoinConfMigrationsVersion = 7
+var BitcoinConfMigrationsVersion = 8
 
 // RunBitcoinConfMigrations applies pending migrations to a BitcoinConfig.
 // isForknet controls whether "forknet" or "mainnet" section data applies to [main].
@@ -357,24 +375,21 @@ func (m *BitcoinConfManager) tryLoadPrivateConfig() bool {
 	return true
 }
 
-// handleNetworkChangeIfNeeded handles network change: load saved settings, write config, restart services.
-// Dart: _handleNetworkChangeIfNeeded (L267)
+// handleNetworkChangeIfNeeded handles network change: refresh derived state
+// + restart services. We deliberately don't restore master's [main] from a
+// per-network backup file anymore — that mechanism kept silently wiping
+// user-set keys (notably datadir) whenever the backup happened to lack
+// them. Master's [main] is now the single source of truth and survives
+// network swaps as-is. Bitcoin Core ignores [main] when chain != main, so
+// stale forknet keys leaking into master while on signet are harmless.
 func (m *BitcoinConfManager) handleNetworkChangeIfNeeded(oldNetwork Network, isFirst bool) {
 	networkChanged := !isFirst && oldNetwork != m.Network
 	if !networkChanged {
 		return
 	}
 
-	// Load saved [main] section for the new network
-	if err := m.LoadMainSectionForNetwork(m.Network); err != nil {
-		m.log.Error().Err(err).Msg("load [main] section for new network")
-	}
 	m.loadStateFromConfig()
-	if err := m.writeConfigFile(); err != nil {
-		m.log.Error().Err(err).Msg("write config after network change")
-	}
 
-	// Restart all services for the new network
 	if m.OnNetworkChanged != nil {
 		m.OnNetworkChanged()
 	}
@@ -382,13 +397,18 @@ func (m *BitcoinConfManager) handleNetworkChangeIfNeeded(oldNetwork Network, isF
 
 // loadStateFromConfig loads network and datadir state from currentConfig.
 // Dart: _loadStateFromConfig (L595)
+//
+// DetectedDataDir reads only the per-network section (no global fallback) so
+// "user has explicitly chosen one" is the same question as "is this empty?".
+// The DataDirGuard / swap prompt rely on that. The global default still
+// reaches bitcoind via the on-disk conf file — this is purely a UI signal.
 func (m *BitcoinConfManager) loadStateFromConfig() {
 	if m.Config == nil {
 		return
 	}
 
 	m.Network = NetworkFromConfig(m.Config)
-	m.DetectedDataDir = m.Config.GetEffectiveSetting("datadir", CoreSectionForNetwork(m.Network))
+	m.DetectedDataDir = m.Config.GetSetting("datadir", CoreSectionForNetwork(m.Network))
 
 	// Ensure datadir exists — Bitcoin Core fails with a cryptic assertion error (exit code -6) if it doesn't
 	if m.DetectedDataDir != "" {
@@ -417,8 +437,9 @@ func (m *BitcoinConfManager) writeConfigFile() error {
 	return nil
 }
 
-// saveConfig writes config, saves [main] section backup, then reloads.
-// Dart: _saveConfig (L505)
+// saveConfig writes config to disk and reloads. The per-network [main]
+// backup (formerly written here when not switching networks) was removed
+// — see handleNetworkChangeIfNeeded for the rationale.
 func (m *BitcoinConfManager) saveConfig() error {
 	if m.Config == nil {
 		return nil
@@ -430,14 +451,6 @@ func (m *BitcoinConfManager) saveConfig() error {
 
 	if err := m.writeConfigFile(); err != nil {
 		return err
-	}
-
-	// Only save main section backup if NOT a network switch
-	newNetwork := NetworkFromConfig(m.Config)
-	if m.Network == newNetwork {
-		if err := m.SaveMainSectionForNetwork(m.Network); err != nil {
-			m.log.Error().Err(err).Msg("save main section backup")
-		}
 	}
 
 	return m.LoadConfig(false)
@@ -614,6 +627,11 @@ func (m *BitcoinConfManager) SaveMainSectionForNetwork(n Network) error {
 
 // LoadMainSectionForNetwork loads the [main] section from the per-network backup file.
 // If the file doesn't exist, applies default settings for the network.
+//
+// An empty backup file (just the version comment, no settings) does NOT clobber
+// master's [main] — that path used to wipe a freshly-set datadir on the next
+// network swap because the backup had been auto-created at v7 with zero
+// settings. Treat empty-but-present the same as missing.
 func (m *BitcoinConfManager) LoadMainSectionForNetwork(n Network) error {
 	if m.Config == nil || !isMainnetOrForknet(n) {
 		return nil
@@ -633,6 +651,10 @@ func (m *BitcoinConfManager) LoadMainSectionForNetwork(n Network) error {
 
 	if n == NetworkForknet {
 		fc := ParseForknetConfig(string(data))
+		if len(fc.Settings) == 0 {
+			m.log.Info().Str("network", string(n)).Str("path", confPath).Msg("empty [main] backup; keeping master's [main]")
+			return nil
+		}
 		newMain := make(map[string]string, len(fc.Settings))
 		for k, v := range fc.Settings {
 			newMain[k] = v
@@ -640,6 +662,10 @@ func (m *BitcoinConfManager) LoadMainSectionForNetwork(n Network) error {
 		m.Config.ReplaceSection("main", newMain, append([]string(nil), fc.Order...))
 	} else {
 		mc := ParseMainnetConfig(string(data))
+		if len(mc.Settings) == 0 {
+			m.log.Info().Str("network", string(n)).Str("path", confPath).Msg("empty [main] backup; keeping master's [main]")
+			return nil
+		}
 		newMain := make(map[string]string, len(mc.Settings))
 		for k, v := range mc.Settings {
 			newMain[k] = v
@@ -759,47 +785,23 @@ func (m *BitcoinConfManager) CopyConfigDownstream() error {
 // Piece 9: UpdateDataDir with cross-network logic
 // ---------------------------------------------------------------------------
 
-// UpdateDataDir sets the datadir for the specified (or current) network.
-//
-// For the current network: writes to master's [main] section AND mirrors to
-// the per-network backup (bitwindow-mainnet.conf / bitwindow-forknet.conf).
-// The mirror is essential — on every network switch, LoadMainSectionForNetwork
-// replaces [main] with the backup file's contents, so without a backup the
-// datadir vanishes the next time the user switches and switches back.
-//
-// For a different network (e.g. configuring mainnet datadir while on signet):
-// writes only to the per-network backup. Master's [main] belongs to the
-// currently-active network, so we don't touch it.
+// UpdateDataDir sets the global datadir on master's bitwindow-bitcoin.conf.
+// Bitcoin Core only honours datadir at the top level — section-scoped
+// datadir lines are silently ignored at startup — so this writes to the
+// global block. forNetwork is accepted for API compat but ignored: there
+// is one datadir for the whole app, applied across every network. Bitcoin
+// Core itself appends the per-chain subdir (signet/, testnet3/, etc.).
 func (m *BitcoinConfManager) UpdateDataDir(dataDir string, forNetwork Network) error {
+	_ = forNetwork
 	if m.HasPrivateConf || m.Config == nil {
 		return nil
 	}
 
-	targetNetwork := forNetwork
-	if targetNetwork == "" {
-		targetNetwork = m.Network
-	}
-
 	cleanDataDir := strings.ReplaceAll(strings.TrimSpace(dataDir), "\\ ", " ")
-
-	if targetNetwork != m.Network {
-		if !isMainnetOrForknet(targetNetwork) {
-			return nil
-		}
-		return m.updateDatadirInBackup(targetNetwork, cleanDataDir)
-	}
-
-	section := CoreSectionForNetwork(targetNetwork)
 	if cleanDataDir == "" {
-		m.Config.RemoveSetting("datadir", section)
+		m.Config.RemoveSetting("datadir")
 	} else {
-		m.Config.SetSetting("datadir", cleanDataDir, section)
-	}
-
-	if isMainnetOrForknet(targetNetwork) {
-		if err := m.SaveMainSectionForNetwork(targetNetwork); err != nil {
-			m.log.Error().Err(err).Msg("save per-network backup")
-		}
+		m.Config.SetSetting("datadir", cleanDataDir)
 	}
 
 	if err := m.SaveConfig(); err != nil {
@@ -856,26 +858,19 @@ func (m *BitcoinConfManager) updateDatadirInBackup(n Network, dataDir string) er
 // Piece 10: HasDatadirForNetwork
 // ---------------------------------------------------------------------------
 
-// HasDatadirForNetwork checks whether a datadir is configured for the given network
-// by reading the per-network config backup file.
+// HasDatadirForNetwork reports whether a global datadir is configured.
+// Mainnet and forknet require an explicit user-chosen path because the
+// platform default sits inside ~/Library/Application Support and is not
+// suitable for full mainnet data; signet / testnet / regtest accept the
+// default. The value is global — the same one applies to every network.
 func (m *BitcoinConfManager) HasDatadirForNetwork(n Network) bool {
 	if !isMainnetOrForknet(n) {
-		return true // non-mainnet/forknet networks don't need explicit datadirs
+		return true
 	}
-
-	confPath := m.getMainSectionPath(n)
-	data, err := os.ReadFile(confPath)
-	if err != nil {
+	if m.Config == nil {
 		return false
 	}
-
-	if n == NetworkForknet {
-		fc := ParseForknetConfig(string(data))
-		return fc.Settings["datadir"] != ""
-	}
-
-	mc := ParseMainnetConfig(string(data))
-	return mc.Settings["datadir"] != ""
+	return m.Config.GetSetting("datadir") != ""
 }
 
 // ---------------------------------------------------------------------------

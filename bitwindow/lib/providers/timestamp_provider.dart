@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
+import 'package:sail_ui/classes/rpc_connection.dart';
 import 'package:sail_ui/gen/misc/v1/misc.pb.dart';
 import 'package:sail_ui/providers/sync_provider.dart';
 import 'package:sail_ui/rpcs/bitwindow_api.dart';
@@ -53,7 +54,9 @@ class TimestampProvider extends ChangeNotifier {
       timestamps = await _bitwindowRPC.misc.listTimestamps();
       modelError = null;
     } catch (e) {
-      log.e('Failed to fetch timestamps: $e');
+      if (!isExpectedBootError(e)) {
+        log.e('Failed to fetch timestamps: $e');
+      }
       modelError = e.toString();
     } finally {
       isLoading = false;

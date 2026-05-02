@@ -42,8 +42,9 @@ class NetworkProvider extends ChangeNotifier {
       notifyListeners();
     } catch (e) {
       final errStr = e.toString();
-      // Don't log Bitcoin Core startup errors (e.g., "-28: Loading block index")
-      if (!_isBitcoinCoreStartupError(errStr)) {
+      // Bitcoin Core warmup ("-28: Loading block index") and connection-refused
+      // chatter during boot are expected — silently swallow them.
+      if (!isExpectedBootError(e) && !_isBitcoinCoreStartupError(errStr)) {
         log.e('fetch network stats: $e');
       }
       error = errStr;

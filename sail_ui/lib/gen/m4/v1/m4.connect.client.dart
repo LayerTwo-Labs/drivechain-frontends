@@ -8,7 +8,7 @@ import "m4.pb.dart" as m4v1m4;
 import "m4.connect.spec.dart" as specs;
 
 /// M4 Explorer Service
-extension type M4ServiceClient (connect.Transport _transport) {
+extension type M4ServiceClient(connect.Transport _transport) {
   /// Get M4 voting history
   Future<m4v1m4.GetM4HistoryResponse> getM4History(
     m4v1m4.GetM4HistoryRequest input, {

@@ -50,7 +50,7 @@
       "download": {
         "binary": "bitcoind",
         "variants": {
-          "untouched": {
+          "core": {
             "subfolder": "bitcoin",
             "base_url": "https://bitcoincore.org/bin/bitcoin-core-30.2/",
             "files": {
@@ -59,16 +59,6 @@
               "windows": "bitcoin-30.2-win64.zip"
             },
             "available_networks": ["signet", "testnet", "regtest"]
-          },
-          "touched": {
-            "subfolder": "drivechain",
-            "base_url": "https://releases.drivechain.info/",
-            "files": {
-              "linux": "L1-bitcoin-patched-forknet-x86_64-unknown-linux-gnu.zip",
-              "macos": "L1-bitcoin-patched-forknet-x86_64-apple-darwin.zip",
-              "windows": "L1-bitcoin-patched-forknet-x86_64-w64-msvc.zip"
-            },
-            "available_networks": ["forknet"]
           },
           "patched": {
             "subfolder": "drivechain-patched",

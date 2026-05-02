@@ -607,7 +607,7 @@ class BinariesTab extends StatelessWidget {
             ],
             rowBuilder: (context, row, selected) {
               final binary = allBinaries[row];
-              final downloadInfo = binaryProvider.downloadProgress(binary.type);
+              final downloadInfo = binary.downloadInfo;
               final hash = downloadInfo.hash;
               final hashMatch = downloadInfo.hashMatch;
               final status = binary.isDownloaded ? 'Downloaded' : 'Not downloaded';
@@ -633,7 +633,7 @@ class BinariesTab extends StatelessWidget {
             emptyPlaceholder: 'No binaries configured',
             onDoubleTap: (index) {
               final binary = allBinaries[int.parse(index)];
-              final hash = binaryProvider.downloadProgress(binary.type).hash;
+              final hash = binary.downloadInfo.hash;
               if (hash != null) {
                 Clipboard.setData(ClipboardData(text: hash));
                 ScaffoldMessenger.of(context).showSnackBar(

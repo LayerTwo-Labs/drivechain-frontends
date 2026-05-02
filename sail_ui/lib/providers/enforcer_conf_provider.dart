@@ -65,9 +65,10 @@ class EnforcerConfProvider extends ChangeNotifier {
 
       notifyListeners();
     } catch (e) {
-      log.e('EnforcerConfProvider: failed to load config: $e');
+      if (!isExpectedBootError(e)) {
+        log.e('EnforcerConfProvider: failed to load config: $e');
+      }
       if (_isConnectionError(e)) {
-        log.i('EnforcerConfProvider: recreating connection');
         _initClient();
       }
     }

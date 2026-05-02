@@ -236,11 +236,11 @@ class BottomNav extends StatelessWidget {
                               model.mainchain.startupError == null &&
                               !model.syncProvider.inHeaderSync);
                       final infoMessage =
-                          _getDownloadMessage(model.syncProvider.additionalSyncInfo) ??
+                          _getDownloadMessage(model.additionalSyncInfo) ??
                           (isSidechain && !coreReady ? 'Waiting for Bitcoin Core header sync' : null);
                       return DaemonConnectionCard(
                         connection: additionalConnection.rpc,
-                        syncInfo: coreReady ? model.syncProvider.additionalSyncInfo : null,
+                        syncInfo: coreReady ? model.additionalSyncInfo : null,
                         infoMessage: infoMessage,
                         restartDaemon: () => binaryProvider.start(
                           binaryProvider.binaries.firstWhere(
@@ -273,7 +273,7 @@ class BottomNav extends StatelessWidget {
       return null;
     }
 
-    // Check if we're downloading (downloadProgress < 1)
+    // Show "downloading X / Y" until progressPercent hits 100%.
     if (syncInfo.downloadInfo.progressPercent < 1) {
       final progressPercent = (syncInfo.downloadInfo.progressPercent * 100).toStringAsFixed(0);
       if (progressPercent == '100') {
@@ -358,7 +358,25 @@ class BottomNavViewModel extends BaseViewModel with ChangeTrackingMixin {
     enforcer.addListener(_onChange);
     additionalConnection.rpc.addListener(_onChange);
     syncProvider.addListener(_onChange);
-    syncProvider.listenDownloads();
+  }
+
+  /// Resolves the SyncInfo for the additional daemon card. SyncProvider
+  /// keeps the sources separate (orch's sidechains map vs the direct
+  /// bitwindowd poll), so each call site picks the right one based on the
+  /// connection's RPC type.
+  SyncInfo? get additionalSyncInfo {
+    final binary = additionalConnection.rpc.binary;
+    return switch (binary) {
+      BitWindow() => syncProvider.bitwindowdSyncInfo,
+      Thunder() => syncProvider.sidechains[SidechainType.SIDECHAIN_TYPE_THUNDER],
+      ZSide() => syncProvider.sidechains[SidechainType.SIDECHAIN_TYPE_ZSIDE],
+      BitNames() => syncProvider.sidechains[SidechainType.SIDECHAIN_TYPE_BITNAMES],
+      BitAssets() => syncProvider.sidechains[SidechainType.SIDECHAIN_TYPE_BITASSETS],
+      Truthcoin() => syncProvider.sidechains[SidechainType.SIDECHAIN_TYPE_TRUTHCOIN],
+      Photon() => syncProvider.sidechains[SidechainType.SIDECHAIN_TYPE_PHOTON],
+      CoinShift() => syncProvider.sidechains[SidechainType.SIDECHAIN_TYPE_COINSHIFT],
+      _ => null,
+    };
   }
 
   void _onChange() {
@@ -367,7 +385,7 @@ class BottomNavViewModel extends BaseViewModel with ChangeTrackingMixin {
     track('connectionStatus', connectionStatus);
     track('mainchainSyncInfo', syncProvider.mainchainSyncInfo);
     track('enforcerSyncInfo', syncProvider.enforcerSyncInfo);
-    track('additionalSyncInfo', syncProvider.additionalSyncInfo);
+    track('additionalSyncInfo', additionalSyncInfo);
     notifyIfChanged(); // Use change tracking for normal updates
   }
 
@@ -378,7 +396,7 @@ class BottomNavViewModel extends BaseViewModel with ChangeTrackingMixin {
   bool get downloadingAny =>
       syncProvider.mainchainSyncInfo?.downloadInfo.isDownloading ??
       syncProvider.enforcerSyncInfo?.downloadInfo.isDownloading ??
-      syncProvider.additionalSyncInfo?.downloadInfo.isDownloading ??
+      additionalSyncInfo?.downloadInfo.isDownloading ??
       false;
 
   Color get connectionColor {
@@ -413,7 +431,7 @@ class BottomNavViewModel extends BaseViewModel with ChangeTrackingMixin {
       return SailColorScheme.orange;
     }
 
-    if (!(syncProvider.additionalSyncInfo?.isSynced ?? false)) {
+    if (!(additionalSyncInfo?.isSynced ?? false)) {
       return SailColorScheme.orange;
     }
 
@@ -437,7 +455,7 @@ class BottomNavViewModel extends BaseViewModel with ChangeTrackingMixin {
       return 'Downloading enforcer...';
     }
 
-    if (syncProvider.additionalSyncInfo?.downloadInfo.isDownloading ?? false) {
+    if (additionalSyncInfo?.downloadInfo.isDownloading ?? false) {
       return 'Downloading ${additionalConnection.name}...';
     }
 
@@ -470,7 +488,7 @@ class BottomNavViewModel extends BaseViewModel with ChangeTrackingMixin {
       return 'Syncing enforcer blocks';
     }
 
-    if (!(syncProvider.additionalSyncInfo?.isSynced ?? false)) {
+    if (!(additionalSyncInfo?.isSynced ?? false)) {
       return 'Syncing ${additionalConnection.name} blocks';
     }
 
@@ -515,11 +533,11 @@ class ChainLoaders extends ViewModelWidget<BottomNavViewModel> {
   Widget build(BuildContext context, BottomNavViewModel viewModel) {
     final mainchainConnected = viewModel.syncProvider.mainchainSyncInfo != null;
     final enforcerConnected = viewModel.syncProvider.enforcerSyncInfo != null;
-    final additionalConnected = viewModel.syncProvider.additionalSyncInfo != null;
+    final additionalConnected = viewModel.additionalSyncInfo != null;
 
     final mainchainSynced = mainchainConnected && viewModel.syncProvider.mainchainSyncInfo!.isSynced;
     final enforcerSynced = enforcerConnected && viewModel.syncProvider.enforcerSyncInfo!.isSynced;
-    final additionalSynced = additionalConnected && viewModel.syncProvider.additionalSyncInfo!.isSynced;
+    final additionalSynced = additionalConnected && viewModel.additionalSyncInfo!.isSynced;
 
     return ConstrainedBox(
       constraints: const BoxConstraints(maxWidth: 300),
@@ -547,7 +565,7 @@ class ChainLoaders extends ViewModelWidget<BottomNavViewModel> {
           if (additionalConnected && !additionalSynced) ...[
             ChainLoader(
               name: viewModel.syncProvider.additionalConnection!.name,
-              syncInfo: viewModel.syncProvider.additionalSyncInfo!,
+              syncInfo: viewModel.additionalSyncInfo!,
               justPercent: true,
             ),
           ],
@@ -560,7 +578,7 @@ class ChainLoaders extends ViewModelWidget<BottomNavViewModel> {
           ] else if (additionalSynced) ...[
             DividerDot(),
             SailText.secondary12(
-              '${formatWithThousandSpacers(viewModel.syncProvider.additionalSyncInfo?.progressCurrent.toInt() ?? 'Loading')} blocks',
+              '${formatWithThousandSpacers(viewModel.additionalSyncInfo?.progressCurrent.toInt() ?? 'Loading')} blocks',
             ),
           ],
         ],

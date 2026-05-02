@@ -22,9 +22,9 @@ const ConsensusHex$json = {
 };
 
 /// Descriptor for `ConsensusHex`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List consensusHexDescriptor = $convert.base64Decode(
-    'CgxDb25zZW5zdXNIZXgSLgoDaGV4GAEgASgLMhwuZ29vZ2xlLnByb3RvYnVmLlN0cmluZ1ZhbH'
-    'VlUgNoZXg=');
+final $typed_data.Uint8List consensusHexDescriptor =
+    $convert.base64Decode('CgxDb25zZW5zdXNIZXgSLgoDaGV4GAEgASgLMhwuZ29vZ2xlLnByb3RvYnVmLlN0cmluZ1ZhbH'
+        'VlUgNoZXg=');
 
 @$core.Deprecated('Use hexDescriptor instead')
 const Hex$json = {
@@ -35,8 +35,8 @@ const Hex$json = {
 };
 
 /// Descriptor for `Hex`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List hexDescriptor = $convert.base64Decode(
-    'CgNIZXgSLgoDaGV4GAEgASgLMhwuZ29vZ2xlLnByb3RvYnVmLlN0cmluZ1ZhbHVlUgNoZXg=');
+final $typed_data.Uint8List hexDescriptor =
+    $convert.base64Decode('CgNIZXgSLgoDaGV4GAEgASgLMhwuZ29vZ2xlLnByb3RvYnVmLlN0cmluZ1ZhbHVlUgNoZXg=');
 
 @$core.Deprecated('Use reverseHexDescriptor instead')
 const ReverseHex$json = {
@@ -47,7 +47,6 @@ const ReverseHex$json = {
 };
 
 /// Descriptor for `ReverseHex`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List reverseHexDescriptor = $convert.base64Decode(
-    'CgpSZXZlcnNlSGV4Ei4KA2hleBgBIAEoCzIcLmdvb2dsZS5wcm90b2J1Zi5TdHJpbmdWYWx1ZV'
-    'IDaGV4');
-
+final $typed_data.Uint8List reverseHexDescriptor =
+    $convert.base64Decode('CgpSZXZlcnNlSGV4Ei4KA2hleBgBIAEoCzIcLmdvb2dsZS5wcm90b2J1Zi5TdHJpbmdWYWx1ZV'
+        'IDaGV4');

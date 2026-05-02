@@ -227,8 +227,12 @@ Future<void> copyBinariesFromAssets(Logger log, Directory appDir) async {
 
       log.d('Successfully wrote binary: ${binary.name}');
     } catch (e) {
-      log.w('Failed to copy binary ${binary.name}: $e');
-      // It's fine to fail, probably just doesn't exist in the assets/bin directory
+      // Most binaries aren't bundled into assets/bin (only bitwindowd and
+      // orchestratord are) — Flutter's "Unable to load asset" error is
+      // expected for everything else. Silence it; surface anything else.
+      if (!e.toString().contains('Unable to load asset')) {
+        log.w('Failed to copy binary ${binary.name}: $e');
+      }
     }
   }
 

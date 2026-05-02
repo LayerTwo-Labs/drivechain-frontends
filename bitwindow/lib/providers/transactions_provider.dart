@@ -6,6 +6,7 @@ import 'package:fixnum/fixnum.dart';
 import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
+import 'package:sail_ui/classes/rpc_connection.dart';
 import 'package:sail_ui/env.dart';
 import 'package:sail_ui/gen/google/protobuf/timestamp.pb.dart';
 import 'package:sail_ui/gen/wallet/v1/wallet.pb.dart';
@@ -196,7 +197,9 @@ class TransactionProvider extends ChangeNotifier {
       }
     } catch (e) {
       if (e.toString() != error) {
-        _log.w('TransactionProvider: fetch failed: $e');
+        if (!isExpectedBootError(e)) {
+          _log.w('TransactionProvider: fetch failed: $e');
+        }
         error = e.toString();
         notifyListeners();
       }

@@ -21,24 +21,30 @@ func CoreVariantInstalled(dataDir string, v CoreVariantSpec, binaryName string) 
 // any time the persisted variant was forknet-only. Knots is a niche
 // fork that should never be picked by accident.
 func preferenceLess(a, b string) bool {
-	if a == b {
-		return false
+	return variantPreference(a) < variantPreference(b)
+}
+
+// variantPreference assigns each variant a sort key. Lower wins. Patched is
+// the safest fallback in the drivechain ecosystem (works on every chain,
+// drivechain-aware), Core is next, Knots last (niche fork). Unknown
+// variants sort between core and knots so they're at least visible.
+func variantPreference(id string) int {
+	switch id {
+	case "patched":
+		return 0
+	case "core":
+		return 1
+	case "knots":
+		return 3
+	default:
+		return 2
 	}
-	if a == "knots" {
-		return false
-	}
-	if b == "knots" {
-		return true
-	}
-	return a < b
 }
 
 // FilterVariantsForNetwork returns variants available for the given network.
-// Mainnet always returns nil so the UI hides itself.
+// "patched" is available on every chain — including mainnet — so the
+// dropdown always has at least one item the user can pick.
 func FilterVariantsForNetwork(variants map[string]CoreVariantSpec, network string) []CoreVariantSpec {
-	if network == "mainnet" {
-		return nil
-	}
 	out := make([]CoreVariantSpec, 0, len(variants))
 	for _, v := range variants {
 		if v.AvailableOn(network) {

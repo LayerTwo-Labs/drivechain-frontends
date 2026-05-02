@@ -54,14 +54,15 @@ type BinaryStatus struct {
 	StartupLogs     []StartupLogLine
 }
 
-// StartupProgress reports progress during StartWithL1.
+// StartupProgress reports progress during StartWithL1. Download fields
+// are in megabytes (matches DownloadProgress).
 type StartupProgress struct {
-	Stage           string // e.g. "downloading-bitcoind", "starting-bitcoind", "waiting-ibd"
-	Message         string
-	Done            bool
-	Error           error
-	BytesDownloaded int64
-	TotalBytes      int64
+	Stage        string // e.g. "downloading-bitcoind", "starting-bitcoind", "waiting-ibd"
+	Message      string
+	Done         bool
+	Error        error
+	MBDownloaded int64
+	MBTotal      int64
 }
 
 // ShutdownProgress reports progress during ShutdownAll.
@@ -138,6 +139,30 @@ type Orchestrator struct {
 	cachedPriceTime time.Time
 	priceMu         sync.Mutex
 
+	// Cached canonical sidechain header heights from
+	// node.<network>.drivechain.info/explorer.v1.ExplorerService/GetChainTips.
+	// Used by GetSyncStatus to populate ChainSync.Headers — local sidechains
+	// only know what they've indexed, not the network tip. TTL keeps polling
+	// reasonable; on fetch failure we keep serving the previous values
+	// rather than dropping headers from the response (callers depend on
+	// them being non-zero to compute progress percentages).
+	explorerMu      sync.Mutex
+	explorerHeights map[string]int64
+	explorerFetched time.Time
+
+	// Cache for getblockchaininfo. During IBD this RPC can take seconds
+	// because it blocks on Core's cs_main lock; without a cache, every
+	// caller (orchestrator monitor, frontend SyncProvider, etc.) issues
+	// its own copy and they queue behind cs_main, eventually tripping the
+	// HTTP client timeout and triggering connection-lost cycles. The
+	// cache + single-flight collapses concurrent callers onto one in-flight
+	// RPC and serves recent results from memory.
+	bciMu        sync.Mutex
+	bciInFlight  chan struct{} // non-nil while a fetch is running; closed on completion
+	bciInfo      *MainchainBlockchainInfo
+	bciErr       error
+	bciFetchedAt time.Time
+
 	// stopBinary is the Stop primitive used by SetCoreVariant. Production wires
 	// this to o.Stop; tests override it to inject force/graceful failures.
 	stopBinary func(ctx context.Context, name string, force bool) error
@@ -146,6 +171,14 @@ type Orchestrator struct {
 	// a channel that is closed when boot is complete. Production wires this to
 	// the real boot helper; tests override it to bypass process spawning.
 	bootBitcoindForVariantSwap func(ctx context.Context) <-chan StartupProgress
+}
+
+// DownloadStateForTest exposes the DownloadManager's per-binary state to
+// tests in sibling packages (e.g. api/) so they can poll for completion
+// without subscribing to a stream. Returns ok=true while the download is
+// in flight.
+func (o *Orchestrator) DownloadStateForTest(name string) (DownloadState, bool) {
+	return o.download.State(name)
 }
 
 // New creates a new Orchestrator.
@@ -1103,12 +1136,12 @@ func forwardDownload(downloadCh <-chan DownloadProgress, startupCh chan<- Startu
 		if p.Error != nil {
 			return p.Error
 		}
-		if p.BytesDownloaded > 0 || p.Message != "" {
+		if p.MBDownloaded > 0 || p.Message != "" {
 			startupCh <- StartupProgress{
-				Stage:           stage,
-				Message:         p.Message,
-				BytesDownloaded: p.BytesDownloaded,
-				TotalBytes:      p.TotalBytes,
+				Stage:        stage,
+				Message:      p.Message,
+				MBDownloaded: p.MBDownloaded,
+				MBTotal:      p.MBTotal,
 			}
 		}
 	}
@@ -1376,7 +1409,16 @@ func (o *Orchestrator) SetCoreVariant(ctx context.Context, id string) error {
 		return fmt.Errorf("persist core variant: %w", err)
 	}
 
-	progressCh, err := o.download.Download(ctx, coreCfg, o.Network, false)
+	// All variants share `bin/bitcoind` — wipe whatever's there so the new
+	// variant downloads clean. Without this, force=true on Download would
+	// still skip the network fetch when the file's hash matched something
+	// it shouldn't (different variant, same path).
+	binPath := CoreBinaryPath(o.DataDir, variant, coreCfg.BinaryName)
+	if err := os.Remove(binPath); err != nil && !os.IsNotExist(err) {
+		return fmt.Errorf("wipe existing bitcoind: %w", err)
+	}
+
+	progressCh, err := o.download.Download(ctx, coreCfg, o.Network, true)
 	if err != nil {
 		return fmt.Errorf("ensure variant binary: %w", err)
 	}
@@ -1464,15 +1506,22 @@ func (o *Orchestrator) SwapNetwork(ctx context.Context, n config.Network) error 
 		return nil
 	}
 
-	bootCh, err := o.StartWithL1(ctx, "bitcoind", StartOpts{})
+	// Fire-and-forget the L1 boot — the network conf is already persisted
+	// and the L1 stack is wired to start, which is all the UI needs to
+	// move on. Header sync / IBD / enforcer wait would otherwise block
+	// this RPC for a minutes-long full connection. Use context.Background
+	// so a request cancellation doesn't abort the daemon launch mid-flight.
+	bootCh, err := o.StartWithL1(context.Background(), "bitcoind", StartOpts{})
 	if err != nil {
 		return fmt.Errorf("restart L1 stack on new network: %w", err)
 	}
-	for p := range bootCh {
-		if p.Error != nil {
-			return fmt.Errorf("restart L1 stack: %w", p.Error)
+	go func() {
+		for p := range bootCh {
+			if p.Error != nil {
+				o.log.Error().Err(p.Error).Msg("L1 stack restart after network swap failed")
+			}
 		}
-	}
+	}()
 	return nil
 }
 
@@ -1668,8 +1717,67 @@ type MainchainBalance struct {
 	Unconfirmed float64
 }
 
-// GetMainchainBlockchainInfo proxies getblockchaininfo from bitcoind.
+// blockchainInfoCacheTTL bounds how often the orchestrator actually issues
+// getblockchaininfo against bitcoind. Polling is cheap on the wire but
+// during IBD the RPC blocks on cs_main; multiple unbounded callers turned
+// every status fetch into a thundering herd against Core. 1s is fresh
+// enough for the UI (faster than block intervals on every network) and
+// gives Core room to make actual progress between calls.
+const blockchainInfoCacheTTL = time.Second
+
+// GetMainchainBlockchainInfo proxies getblockchaininfo from bitcoind. The
+// result is cached for [blockchainInfoCacheTTL]; concurrent callers across
+// that window share a single in-flight RPC and the same answer.
 func (o *Orchestrator) GetMainchainBlockchainInfo(ctx context.Context) (*MainchainBlockchainInfo, error) {
+	o.bciMu.Lock()
+	// Cache hit on a recent successful fetch — return immediately.
+	if o.bciInfo != nil && o.bciErr == nil && time.Since(o.bciFetchedAt) < blockchainInfoCacheTTL {
+		info := o.bciInfo
+		o.bciMu.Unlock()
+		return info, nil
+	}
+	// A fetch is already in flight — wait for it instead of issuing another.
+	if ch := o.bciInFlight; ch != nil {
+		o.bciMu.Unlock()
+		select {
+		case <-ch:
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		}
+		o.bciMu.Lock()
+		info, err := o.bciInfo, o.bciErr
+		o.bciMu.Unlock()
+		return info, err
+	}
+	// We're the leader — install the in-flight signal and run the fetch.
+	ch := make(chan struct{})
+	o.bciInFlight = ch
+	o.bciMu.Unlock()
+
+	info, err := o.fetchMainchainBlockchainInfo(ctx)
+
+	o.bciMu.Lock()
+	if err == nil {
+		o.bciInfo = info
+		o.bciErr = nil
+		o.bciFetchedAt = time.Now()
+	} else {
+		// Don't poison the cached info on transient errors — keep the last
+		// good value but record the error for the leader's return. Followers
+		// that joined this fetch see the same error via bciErr below.
+		o.bciErr = err
+	}
+	o.bciInFlight = nil
+	close(ch)
+	o.bciMu.Unlock()
+
+	return info, err
+}
+
+// fetchMainchainBlockchainInfo runs the actual getblockchaininfo RPC. Pulled
+// out so GetMainchainBlockchainInfo can wrap it with the cache + single-flight
+// machinery above.
+func (o *Orchestrator) fetchMainchainBlockchainInfo(ctx context.Context) (*MainchainBlockchainInfo, error) {
 	client, err := o.CoreStatusClient()
 	if err != nil {
 		return nil, err
@@ -1688,22 +1796,28 @@ func (o *Orchestrator) GetMainchainBlockchainInfo(ctx context.Context) (*Maincha
 	return &info, nil
 }
 
-// ChainSyncResult is one chain's tip snapshot. Error is set on failure;
-// the numeric fields are best-effort zero in that case.
+// ChainSyncResult is one chain's tip snapshot. Error is set on failure; the
+// numeric fields are best-effort zero in that case. While IsDownloading is
+// true, Blocks/Headers carry MB downloaded / MB total instead of chain
+// heights — the polled API reuses the same fields so adding download state
+// didn't require new wire fields.
 type ChainSyncResult struct {
-	Blocks  int64
-	Headers int64
-	Time    int64
-	Error   string
+	Blocks        int64
+	Headers       int64
+	Time          int64
+	Error         string
+	IsDownloading bool
 }
 
-// SyncStatus is the atomic snapshot returned by GetSyncStatus. The three
-// chains are polled in parallel so the numbers are taken at the same wall
-// clock instant — no two cards in the UI can disagree.
+// SyncStatus is the atomic snapshot returned by GetSyncStatus. Mainchain +
+// enforcer are always populated; Sidechains carries one entry per
+// orchestrator-managed L2 sidechain binary, keyed by the binary's logical
+// name. Frontends that aren't sidechains (e.g. bitwindow's own bitwindowd
+// daemon) are NOT in this map — the orchestrator knows nothing about them.
 type SyncStatus struct {
-	Mainchain *ChainSyncResult
-	Enforcer  *ChainSyncResult
-	Sidechain *ChainSyncResult // nil if no sidechain was requested
+	Mainchain  *ChainSyncResult
+	Enforcer   *ChainSyncResult
+	Sidechains map[string]*ChainSyncResult
 }
 
 // sidechainServicePath maps a binary name to the Connect-RPC service path
@@ -1719,29 +1833,56 @@ var sidechainServicePath = map[string]string{
 	"coinshift": "/coinshift.v1.CoinShiftService/GetBlockCount",
 }
 
-// GetSyncStatus fans out three concurrent probes (mainchain bitcoind,
-// enforcer ValidatorService, optional sidechain Connect RPC) and returns
-// them as one atomic snapshot. Per-chain errors are surfaced inline on
-// the corresponding ChainSyncResult.Error — the overall call only errors
-// out when no probe could even be dispatched.
+// GetSyncStatus fans out concurrent probes — mainchain bitcoind, enforcer
+// ValidatorService, plus every known sidechain — and returns them as one
+// atomic snapshot. For each slot, an in-flight download takes precedence:
+// if DownloadManager.State reports Running, the slot is filled with MB
+// downloaded / MB total and IsDownloading=true; otherwise the live RPC
+// is queried for the chain tip.
 //
-// No caching: every call hits the live RPCs. Callers (UI poll loops) own
-// the cadence.
-func (o *Orchestrator) GetSyncStatus(ctx context.Context, sidechainName string) (*SyncStatus, error) {
+// Per-chain errors are surfaced inline on ChainSyncResult.Error — the
+// overall call only errors out when no probe could even be dispatched.
+func (o *Orchestrator) GetSyncStatus(ctx context.Context) (*SyncStatus, error) {
 	out := &SyncStatus{
-		Mainchain: &ChainSyncResult{},
-		Enforcer:  &ChainSyncResult{},
+		Mainchain:  &ChainSyncResult{},
+		Enforcer:   &ChainSyncResult{},
+		Sidechains: make(map[string]*ChainSyncResult),
 	}
-	if sidechainName != "" {
-		out.Sidechain = &ChainSyncResult{}
+
+	// Pre-populate sidechain map with one slot per L2 sidechain. The
+	// frontend uses these to render placeholders even before any binary
+	// is running, and to render download progress for binaries that
+	// haven't finished installing yet.
+	for name, cfg := range o.Configs() {
+		if cfg.ChainLayer == 2 {
+			out.Sidechains[name] = &ChainSyncResult{}
+		}
 	}
 
 	var wg sync.WaitGroup
 
-	// Mainchain: bitcoind getblockchaininfo.
+	// Explorer fan-out runs in parallel with the per-chain probes so its
+	// network round-trip never serialises behind them. Result is merged
+	// into Sidechain.Headers after wg.Wait(); a failed fetch leaves the
+	// shared `heights` map nil, which the merge step handles by falling
+	// back to slot.Blocks.
+	var heights map[string]int64
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
+		heights = o.fetchExplorerHeights(ctx)
+	}()
+
+	// Mainchain: download check first, then bitcoind getblockchaininfo.
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		if state, ok := o.download.State("bitcoind"); ok && state.Running {
+			out.Mainchain.Blocks = state.MBDownloaded
+			out.Mainchain.Headers = state.MBTotal
+			out.Mainchain.IsDownloading = true
+			return
+		}
 		info, err := o.GetMainchainBlockchainInfo(ctx)
 		if err != nil {
 			out.Mainchain.Error = err.Error()
@@ -1752,10 +1893,16 @@ func (o *Orchestrator) GetSyncStatus(ctx context.Context, sidechainName string) 
 		out.Mainchain.Time = info.Time
 	}()
 
-	// Enforcer: cusf.mainchain.v1.ValidatorService/GetChainTip via gRPC over h2c.
+	// Enforcer: download check, then ValidatorService.GetChainTip.
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
+		if state, ok := o.download.State("enforcer"); ok && state.Running {
+			out.Enforcer.Blocks = state.MBDownloaded
+			out.Enforcer.Headers = state.MBTotal
+			out.Enforcer.IsDownloading = true
+			return
+		}
 		cfg, ok := o.Configs()["enforcer"]
 		if !ok || cfg.Port == 0 {
 			out.Enforcer.Error = "enforcer not configured"
@@ -1789,76 +1936,134 @@ func (o *Orchestrator) GetSyncStatus(ctx context.Context, sidechainName string) 
 		out.Enforcer.Blocks = int64(resp.Msg.GetBlockHeaderInfo().GetHeight())
 	}()
 
-	// Sidechain: Connect-JSON POST to the chain's block-count RPC.
-	if sidechainName != "" {
+	// Sidechains: one goroutine per slot. Download check first, then the
+	// chain's block-count RPC.
+	for name, slot := range out.Sidechains {
+		name, slot := name, slot
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			cfg, ok := o.Configs()[sidechainName]
+			if state, ok := o.download.State(name); ok && state.Running {
+				slot.Blocks = state.MBDownloaded
+				slot.Headers = state.MBTotal
+				slot.IsDownloading = true
+				return
+			}
+			cfg, ok := o.Configs()[name]
 			if !ok {
-				out.Sidechain.Error = fmt.Sprintf("unknown sidechain: %s", sidechainName)
+				slot.Error = fmt.Sprintf("unknown sidechain: %s", name)
 				return
 			}
-			if !o.process.IsRunning(sidechainName) {
-				out.Sidechain.Error = "not running"
+			if !o.process.IsRunning(name) {
+				slot.Error = "not running"
 				return
 			}
-			port := cfg.Port
-
-			switch sidechainName {
-			case "bitwindowd":
-				url := fmt.Sprintf("http://localhost:%d/bitwindowd.v1.BitwindowdService/GetSyncInfo", port)
-				var resp struct {
-					TipBlockHeight int64 `json:"tipBlockHeight"`
-					TipBlockTime   int64 `json:"tipBlockTime"`
-				}
-				if err := connectJSONPost(ctx, url, &resp); err != nil {
-					out.Sidechain.Error = err.Error()
-					return
-				}
-				out.Sidechain.Blocks = resp.TipBlockHeight
-				out.Sidechain.Time = resp.TipBlockTime
-			default:
-				path, known := sidechainServicePath[sidechainName]
-				if !known {
-					out.Sidechain.Error = fmt.Sprintf("unknown sidechain: %s", sidechainName)
-					return
-				}
-				url := fmt.Sprintf("http://localhost:%d%s", port, path)
-				var resp struct {
-					Count int64 `json:"count"`
-				}
-				if err := connectJSONPost(ctx, url, &resp); err != nil {
-					out.Sidechain.Error = err.Error()
-					return
-				}
-				out.Sidechain.Blocks = resp.Count
+			path, known := sidechainServicePath[name]
+			if !known {
+				slot.Error = fmt.Sprintf("unknown sidechain: %s", name)
+				return
 			}
+			url := fmt.Sprintf("http://localhost:%d%s", cfg.Port, path)
+			var resp struct {
+				Count int64 `json:"count"`
+			}
+			if err := connectJSONPost(ctx, url, &resp); err != nil {
+				slot.Error = err.Error()
+				return
+			}
+			slot.Blocks = resp.Count
 		}()
 	}
 
 	wg.Wait()
 
-	// Headers fan-out: enforcer measures progress against bitcoind's tip,
-	// sidechains measure indexing progress against bitcoind's blocks. If
-	// mainchain failed, fall back to whatever the dependent chain knows
-	// about itself so the UI doesn't divide by zero.
-	if out.Enforcer.Error == "" {
-		if out.Mainchain.Error == "" {
+	// Headers fan-out: dependent chains measure progress against bitcoind's
+	// tip. Skip this for downloading slots — their blocks/headers are MB,
+	// not chain heights, and overwriting headers would corrupt the meaning.
+	if !out.Enforcer.IsDownloading && out.Enforcer.Error == "" {
+		if !out.Mainchain.IsDownloading && out.Mainchain.Error == "" {
 			out.Enforcer.Headers = out.Mainchain.Headers
 		} else {
 			out.Enforcer.Headers = out.Enforcer.Blocks
 		}
 	}
-	if out.Sidechain != nil && out.Sidechain.Error == "" {
-		if out.Mainchain.Error == "" {
-			out.Sidechain.Headers = out.Mainchain.Blocks
+	// Sidechain headers come from the public explorer (fetched in parallel
+	// above). The local sidechain RPC only reports blocks it has indexed,
+	// which can't act as the goal — that has to be the network tip. Best-
+	// effort: when the explorer fetch fails the map is empty and Headers
+	// fall back to slot.Blocks so the UI doesn't divide by zero.
+	for name, slot := range out.Sidechains {
+		if slot.IsDownloading || slot.Error != "" {
+			continue
+		}
+		if h, ok := heights[name]; ok {
+			slot.Headers = h
 		} else {
-			out.Sidechain.Headers = out.Sidechain.Blocks
+			slot.Headers = slot.Blocks
 		}
 	}
 
 	return out, nil
+}
+
+// explorerCacheTTL bounds how often we hit the public explorer. Sidechain
+// tips move on the order of a minute; 30 s is plenty fresh for the UI.
+const explorerCacheTTL = 30 * time.Second
+
+// fetchExplorerHeights returns the canonical per-sidechain network tip
+// heights, keyed by orchestrator binary name (matches the keys in
+// SyncStatus.Sidechains). Cached for [explorerCacheTTL]. On failure we
+// keep serving the previous values rather than dropping headers entirely.
+func (o *Orchestrator) fetchExplorerHeights(ctx context.Context) map[string]int64 {
+	o.explorerMu.Lock()
+	if !o.explorerFetched.IsZero() && time.Since(o.explorerFetched) < explorerCacheTTL {
+		out := o.explorerHeights
+		o.explorerMu.Unlock()
+		return out
+	}
+	o.explorerMu.Unlock()
+
+	// "forknet" runs on mainnet params for the L1 but the explorer host
+	// keys it as "forknet". The other readable names match the URL slug
+	// directly (mainnet/signet/testnet/regtest).
+	url := fmt.Sprintf("https://node.%s.drivechain.info/api/explorer.v1.ExplorerService/GetChainTips", o.Network)
+
+	rpcCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+
+	// The Connect-JSON shape: each known sidechain key maps to an object
+	// with a `height` string. We tolerate either string or numeric heights
+	// because the explorer's previous shape returned numbers; the current
+	// one returns strings.
+	var resp map[string]struct {
+		Height interface{} `json:"height"`
+	}
+	if err := connectJSONPost(rpcCtx, url, &resp); err != nil {
+		o.log.Debug().Err(err).Msg("explorer GetChainTips failed; keeping cached heights")
+		o.explorerMu.Lock()
+		out := o.explorerHeights
+		o.explorerMu.Unlock()
+		return out
+	}
+
+	heights := make(map[string]int64, len(resp))
+	for name, entry := range resp {
+		switch v := entry.Height.(type) {
+		case string:
+			if n, err := strconv.ParseInt(v, 10, 64); err == nil {
+				heights[name] = n
+			}
+		case float64:
+			heights[name] = int64(v)
+		}
+	}
+
+	o.explorerMu.Lock()
+	o.explorerHeights = heights
+	o.explorerFetched = time.Now()
+	o.explorerMu.Unlock()
+
+	return heights
 }
 
 // connectJSONPost issues a Connect-JSON unary call (POST with empty {} body)

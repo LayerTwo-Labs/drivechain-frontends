@@ -18,7 +18,7 @@ class Direction extends $pb.ProtobufEnum {
   static const Direction DIRECTION_SEND = Direction._(1, _omitEnumNames ? '' : 'DIRECTION_SEND');
   static const Direction DIRECTION_RECEIVE = Direction._(2, _omitEnumNames ? '' : 'DIRECTION_RECEIVE');
 
-  static const $core.List<Direction> values = <Direction> [
+  static const $core.List<Direction> values = <Direction>[
     DIRECTION_UNSPECIFIED,
     DIRECTION_SEND,
     DIRECTION_RECEIVE,
@@ -31,15 +31,22 @@ class Direction extends $pb.ProtobufEnum {
 }
 
 class BitcoinNetwork extends $pb.ProtobufEnum {
-  static const BitcoinNetwork BITCOIN_NETWORK_UNSPECIFIED = BitcoinNetwork._(0, _omitEnumNames ? '' : 'BITCOIN_NETWORK_UNSPECIFIED');
-  static const BitcoinNetwork BITCOIN_NETWORK_UNKNOWN = BitcoinNetwork._(1, _omitEnumNames ? '' : 'BITCOIN_NETWORK_UNKNOWN');
-  static const BitcoinNetwork BITCOIN_NETWORK_MAINNET = BitcoinNetwork._(2, _omitEnumNames ? '' : 'BITCOIN_NETWORK_MAINNET');
-  static const BitcoinNetwork BITCOIN_NETWORK_REGTEST = BitcoinNetwork._(3, _omitEnumNames ? '' : 'BITCOIN_NETWORK_REGTEST');
-  static const BitcoinNetwork BITCOIN_NETWORK_SIGNET = BitcoinNetwork._(4, _omitEnumNames ? '' : 'BITCOIN_NETWORK_SIGNET');
-  static const BitcoinNetwork BITCOIN_NETWORK_TESTNET = BitcoinNetwork._(5, _omitEnumNames ? '' : 'BITCOIN_NETWORK_TESTNET');
-  static const BitcoinNetwork BITCOIN_NETWORK_FORKNET = BitcoinNetwork._(6, _omitEnumNames ? '' : 'BITCOIN_NETWORK_FORKNET');
+  static const BitcoinNetwork BITCOIN_NETWORK_UNSPECIFIED =
+      BitcoinNetwork._(0, _omitEnumNames ? '' : 'BITCOIN_NETWORK_UNSPECIFIED');
+  static const BitcoinNetwork BITCOIN_NETWORK_UNKNOWN =
+      BitcoinNetwork._(1, _omitEnumNames ? '' : 'BITCOIN_NETWORK_UNKNOWN');
+  static const BitcoinNetwork BITCOIN_NETWORK_MAINNET =
+      BitcoinNetwork._(2, _omitEnumNames ? '' : 'BITCOIN_NETWORK_MAINNET');
+  static const BitcoinNetwork BITCOIN_NETWORK_REGTEST =
+      BitcoinNetwork._(3, _omitEnumNames ? '' : 'BITCOIN_NETWORK_REGTEST');
+  static const BitcoinNetwork BITCOIN_NETWORK_SIGNET =
+      BitcoinNetwork._(4, _omitEnumNames ? '' : 'BITCOIN_NETWORK_SIGNET');
+  static const BitcoinNetwork BITCOIN_NETWORK_TESTNET =
+      BitcoinNetwork._(5, _omitEnumNames ? '' : 'BITCOIN_NETWORK_TESTNET');
+  static const BitcoinNetwork BITCOIN_NETWORK_FORKNET =
+      BitcoinNetwork._(6, _omitEnumNames ? '' : 'BITCOIN_NETWORK_FORKNET');
 
-  static const $core.List<BitcoinNetwork> values = <BitcoinNetwork> [
+  static const $core.List<BitcoinNetwork> values = <BitcoinNetwork>[
     BITCOIN_NETWORK_UNSPECIFIED,
     BITCOIN_NETWORK_UNKNOWN,
     BITCOIN_NETWORK_MAINNET,
@@ -56,13 +63,16 @@ class BitcoinNetwork extends $pb.ProtobufEnum {
 }
 
 class AddressType extends $pb.ProtobufEnum {
-  static const AddressType ADDRESS_TYPE_UNSPECIFIED = AddressType._(0, _omitEnumNames ? '' : 'ADDRESS_TYPE_UNSPECIFIED');
+  static const AddressType ADDRESS_TYPE_UNSPECIFIED =
+      AddressType._(0, _omitEnumNames ? '' : 'ADDRESS_TYPE_UNSPECIFIED');
   static const AddressType ADDRESS_TYPE_UNKNOWN = AddressType._(1, _omitEnumNames ? '' : 'ADDRESS_TYPE_UNKNOWN');
   static const AddressType ADDRESS_TYPE_BITCOIN_L1 = AddressType._(2, _omitEnumNames ? '' : 'ADDRESS_TYPE_BITCOIN_L1');
-  static const AddressType ADDRESS_TYPE_DRIVECHAIN_DEPOSIT = AddressType._(3, _omitEnumNames ? '' : 'ADDRESS_TYPE_DRIVECHAIN_DEPOSIT');
-  static const AddressType ADDRESS_TYPE_BIP47_PAYMENT_CODE = AddressType._(4, _omitEnumNames ? '' : 'ADDRESS_TYPE_BIP47_PAYMENT_CODE');
+  static const AddressType ADDRESS_TYPE_DRIVECHAIN_DEPOSIT =
+      AddressType._(3, _omitEnumNames ? '' : 'ADDRESS_TYPE_DRIVECHAIN_DEPOSIT');
+  static const AddressType ADDRESS_TYPE_BIP47_PAYMENT_CODE =
+      AddressType._(4, _omitEnumNames ? '' : 'ADDRESS_TYPE_BIP47_PAYMENT_CODE');
 
-  static const $core.List<AddressType> values = <AddressType> [
+  static const $core.List<AddressType> values = <AddressType>[
     ADDRESS_TYPE_UNSPECIFIED,
     ADDRESS_TYPE_UNKNOWN,
     ADDRESS_TYPE_BITCOIN_L1,
@@ -75,6 +85,5 @@ class AddressType extends $pb.ProtobufEnum {
 
   const AddressType._($core.int v, $core.String n) : super(v, n);
 }
-
 
 const _omitEnumNames = $core.bool.fromEnvironment('protobuf.omit_enum_names');

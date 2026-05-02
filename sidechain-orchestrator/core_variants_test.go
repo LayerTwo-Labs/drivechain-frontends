@@ -32,9 +32,9 @@ func makeBitcoindCoreConfig(baseURL string) BinaryConfig {
 		IsBitcoinCore:  true,
 		DownloadSource: DownloadSourceDirect,
 		Variants: map[string]CoreVariantSpec{
-			"untouched": mkVariant("untouched", "bitcoin", []string{"signet", "testnet", "regtest"}),
-			"touched":   mkVariant("touched", "drivechain", []string{"forknet"}),
-			"knots":     mkVariant("knots", "knots", []string{"signet", "testnet", "regtest"}),
+			"core":    mkVariant("core", "bitcoin", []string{"signet", "testnet", "regtest"}),
+			"patched": mkVariant("patched", "drivechain-patched", []string{"mainnet", "signet", "testnet", "regtest", "forknet"}),
+			"knots":   mkVariant("knots", "knots", []string{"signet", "testnet", "regtest"}),
 		},
 	}
 }
@@ -42,15 +42,13 @@ func makeBitcoindCoreConfig(baseURL string) BinaryConfig {
 func TestCoreBinaryPath(t *testing.T) {
 	dir := t.TempDir()
 
-	v := CoreVariantSpec{ID: "untouched", Subfolder: "bitcoin"}
+	// All variants resolve to the single bin/bitcoind location — variant
+	// switching wipes-and-replaces, no per-variant subfolders.
+	v := CoreVariantSpec{ID: "core", Subfolder: "bitcoin"}
 	got := CoreBinaryPath(dir, v, "bitcoind")
-	want := filepath.Join(BinDir(dir), "bitcoin", "bitcoind")
-	if runtime.GOOS == "windows" {
-		want = filepath.Join(BinDir(dir), "bitcoin", "bitcoind.exe")
-	}
+	want := BinaryPath(dir, "bitcoind")
 	assert.Equal(t, want, got)
 
-	// Empty subfolder collapses to BinDir.
 	v2 := CoreVariantSpec{ID: "x"}
 	assert.Equal(t, BinaryPath(dir, "bitcoind"), CoreBinaryPath(dir, v2, "bitcoind"))
 }
@@ -66,17 +64,17 @@ func TestCoreVariantSpec_AvailableOn(t *testing.T) {
 func TestFilterVariantsForNetwork(t *testing.T) {
 	cfg := makeBitcoindCoreConfig("http://example/").Variants
 
-	mainnet := FilterVariantsForNetwork(cfg, "mainnet")
-	assert.Empty(t, mainnet, "mainnet must hide all variants")
+	mainnet := variantIDs(FilterVariantsForNetwork(cfg, "mainnet"))
+	assert.ElementsMatch(t, []string{"patched"}, mainnet)
 
 	signet := variantIDs(FilterVariantsForNetwork(cfg, "signet"))
-	assert.ElementsMatch(t, []string{"untouched", "knots"}, signet)
+	assert.ElementsMatch(t, []string{"core", "patched", "knots"}, signet)
 
 	forknet := variantIDs(FilterVariantsForNetwork(cfg, "forknet"))
-	assert.ElementsMatch(t, []string{"touched"}, forknet)
+	assert.ElementsMatch(t, []string{"patched"}, forknet)
 
 	testnet := variantIDs(FilterVariantsForNetwork(cfg, "testnet"))
-	assert.ElementsMatch(t, []string{"untouched", "knots"}, testnet)
+	assert.ElementsMatch(t, []string{"core", "patched", "knots"}, testnet)
 }
 
 func variantIDs(vs []CoreVariantSpec) []string {
@@ -100,7 +98,7 @@ func TestParseConfigJSON_BitcoincoreVariants(t *testing.T) {
 	}
 	require.NotEmpty(t, core.Variants, "embedded config must declare core variants")
 
-	for _, id := range []string{"untouched", "touched", "knots"} {
+	for _, id := range []string{"core", "patched", "knots"} {
 		v, ok := core.Variants[id]
 		require.True(t, ok, "missing variant %s", id)
 		assert.NotEmpty(t, v.Subfolder)
@@ -109,10 +107,11 @@ func TestParseConfigJSON_BitcoincoreVariants(t *testing.T) {
 		assert.NotEmpty(t, v.AvailableNetworks)
 	}
 
-	assert.True(t, core.Variants["touched"].AvailableOn("forknet"))
-	assert.True(t, core.Variants["untouched"].AvailableOn("signet"))
+	assert.True(t, core.Variants["patched"].AvailableOn("forknet"))
+	assert.True(t, core.Variants["patched"].AvailableOn("mainnet"))
+	assert.True(t, core.Variants["core"].AvailableOn("signet"))
 	assert.True(t, core.Variants["knots"].AvailableOn("signet"))
-	assert.False(t, core.Variants["touched"].AvailableOn("signet"))
+	assert.False(t, core.Variants["core"].AvailableOn("forknet"))
 }
 
 func TestSettingsStore_RoundTrip(t *testing.T) {
@@ -163,25 +162,21 @@ func TestDownload_VariantSelectsURLAndDestination(t *testing.T) {
 	assert.True(t, last.Done)
 	assert.Equal(t, "/knots.zip", requested, "must hit the variant's filename")
 
-	// Binary must land in the variant's subfolder, not in BinDir root.
+	// All variants share bin/bitcoind — no per-variant subfolder.
 	binName := "bitcoind"
 	if runtime.GOOS == "windows" {
 		binName += ".exe"
 	}
-	expected := filepath.Join(BinDir(dir), "knots", binName)
+	expected := filepath.Join(BinDir(dir), binName)
 	got, err := os.ReadFile(expected)
 	require.NoError(t, err)
 	assert.Equal(t, "knots-bin", string(got))
-
-	// Flat path must NOT exist (would imply we extracted to BinDir root).
-	_, err = os.Stat(filepath.Join(BinDir(dir), binName))
-	assert.True(t, os.IsNotExist(err), "must not write bitcoind to BinDir root when variant is active")
 }
 
 func TestDownload_VariantSkipsWhenInstalled(t *testing.T) {
 	dm, dir := newTestDownloadManager(t)
 	cfg := makeBitcoindCoreConfig("http://unused/")
-	variant := cfg.Variants["touched"]
+	variant := cfg.Variants["patched"]
 	dm.CoreVariant = func() (CoreVariantSpec, bool) { return variant, true }
 
 	target := CoreBinaryPath(dir, variant, "bitcoind")
@@ -205,14 +200,14 @@ func TestOrchestrator_ListCoreVariants(t *testing.T) {
 		network string
 		want    []string
 	}{
-		{"mainnet", nil},
 		// "patched" (drivechain.info L1-bitcoin-patched-latest) is available on
-		// every non-mainnet chain so a user who lands on signet still gets a
-		// drivechain-aware build by default instead of vanilla / knots.
-		{"signet", []string{"untouched", "knots", "patched"}},
-		{"testnet", []string{"untouched", "knots", "patched"}},
-		{"regtest", []string{"untouched", "knots", "patched"}},
-		{"forknet", []string{"touched", "patched"}},
+		// every chain — including mainnet — so the dropdown always has at least
+		// one option.
+		{"mainnet", []string{"patched"}},
+		{"signet", []string{"core", "knots", "patched"}},
+		{"testnet", []string{"core", "knots", "patched"}},
+		{"regtest", []string{"core", "knots", "patched"}},
+		{"forknet", []string{"patched"}},
 	}
 	for _, tc := range cases {
 		t.Run(tc.network, func(t *testing.T) {

@@ -4,6 +4,7 @@ import 'package:fixnum/fixnum.dart';
 import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
+import 'package:sail_ui/classes/rpc_connection.dart';
 import 'package:sail_ui/gen/wallet/v1/wallet.pb.dart';
 import 'package:sail_ui/providers/sync_provider.dart';
 import 'package:sail_ui/providers/wallet_reader_provider.dart';
@@ -89,7 +90,9 @@ class CheckProvider extends ChangeNotifier {
       // Also check funding for unfunded checks (detects mempool txs)
       await _checkUnfundedChecks();
     } catch (e) {
-      log.e('Failed to fetch checks: $e');
+      if (!isExpectedBootError(e)) {
+        log.e('Failed to fetch checks: $e');
+      }
       modelError = e.toString();
     } finally {
       _isLoading = false;

@@ -21,23 +21,29 @@ import 'fast_withdrawal.pbjson.dart';
 export 'fast_withdrawal.pb.dart';
 
 abstract class FastWithdrawalServiceBase extends $pb.GeneratedService {
-  $async.Future<$5.FastWithdrawalUpdate> initiateFastWithdrawal($pb.ServerContext ctx, $5.InitiateFastWithdrawalRequest request);
+  $async.Future<$5.FastWithdrawalUpdate> initiateFastWithdrawal(
+      $pb.ServerContext ctx, $5.InitiateFastWithdrawalRequest request);
 
   $pb.GeneratedMessage createRequest($core.String methodName) {
     switch (methodName) {
-      case 'InitiateFastWithdrawal': return $5.InitiateFastWithdrawalRequest();
-      default: throw $core.ArgumentError('Unknown method: $methodName');
+      case 'InitiateFastWithdrawal':
+        return $5.InitiateFastWithdrawalRequest();
+      default:
+        throw $core.ArgumentError('Unknown method: $methodName');
     }
   }
 
-  $async.Future<$pb.GeneratedMessage> handleCall($pb.ServerContext ctx, $core.String methodName, $pb.GeneratedMessage request) {
+  $async.Future<$pb.GeneratedMessage> handleCall(
+      $pb.ServerContext ctx, $core.String methodName, $pb.GeneratedMessage request) {
     switch (methodName) {
-      case 'InitiateFastWithdrawal': return this.initiateFastWithdrawal(ctx, request as $5.InitiateFastWithdrawalRequest);
-      default: throw $core.ArgumentError('Unknown method: $methodName');
+      case 'InitiateFastWithdrawal':
+        return this.initiateFastWithdrawal(ctx, request as $5.InitiateFastWithdrawalRequest);
+      default:
+        throw $core.ArgumentError('Unknown method: $methodName');
     }
   }
 
   $core.Map<$core.String, $core.dynamic> get $json => FastWithdrawalServiceBase$json;
-  $core.Map<$core.String, $core.Map<$core.String, $core.dynamic>> get $messageJson => FastWithdrawalServiceBase$messageJson;
+  $core.Map<$core.String, $core.Map<$core.String, $core.dynamic>> get $messageJson =>
+      FastWithdrawalServiceBase$messageJson;
 }
-

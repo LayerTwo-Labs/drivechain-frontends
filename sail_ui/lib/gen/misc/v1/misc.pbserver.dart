@@ -33,33 +33,51 @@ abstract class MiscServiceBase extends $pb.GeneratedService {
 
   $pb.GeneratedMessage createRequest($core.String methodName) {
     switch (methodName) {
-      case 'ListOPReturn': return $1.Empty();
-      case 'BroadcastNews': return $8.BroadcastNewsRequest();
-      case 'CreateTopic': return $8.CreateTopicRequest();
-      case 'ListTopics': return $1.Empty();
-      case 'ListCoinNews': return $8.ListCoinNewsRequest();
-      case 'TimestampFile': return $8.TimestampFileRequest();
-      case 'ListTimestamps': return $1.Empty();
-      case 'VerifyTimestamp': return $8.VerifyTimestampRequest();
-      default: throw $core.ArgumentError('Unknown method: $methodName');
+      case 'ListOPReturn':
+        return $1.Empty();
+      case 'BroadcastNews':
+        return $8.BroadcastNewsRequest();
+      case 'CreateTopic':
+        return $8.CreateTopicRequest();
+      case 'ListTopics':
+        return $1.Empty();
+      case 'ListCoinNews':
+        return $8.ListCoinNewsRequest();
+      case 'TimestampFile':
+        return $8.TimestampFileRequest();
+      case 'ListTimestamps':
+        return $1.Empty();
+      case 'VerifyTimestamp':
+        return $8.VerifyTimestampRequest();
+      default:
+        throw $core.ArgumentError('Unknown method: $methodName');
     }
   }
 
-  $async.Future<$pb.GeneratedMessage> handleCall($pb.ServerContext ctx, $core.String methodName, $pb.GeneratedMessage request) {
+  $async.Future<$pb.GeneratedMessage> handleCall(
+      $pb.ServerContext ctx, $core.String methodName, $pb.GeneratedMessage request) {
     switch (methodName) {
-      case 'ListOPReturn': return this.listOPReturn(ctx, request as $1.Empty);
-      case 'BroadcastNews': return this.broadcastNews(ctx, request as $8.BroadcastNewsRequest);
-      case 'CreateTopic': return this.createTopic(ctx, request as $8.CreateTopicRequest);
-      case 'ListTopics': return this.listTopics(ctx, request as $1.Empty);
-      case 'ListCoinNews': return this.listCoinNews(ctx, request as $8.ListCoinNewsRequest);
-      case 'TimestampFile': return this.timestampFile(ctx, request as $8.TimestampFileRequest);
-      case 'ListTimestamps': return this.listTimestamps(ctx, request as $1.Empty);
-      case 'VerifyTimestamp': return this.verifyTimestamp(ctx, request as $8.VerifyTimestampRequest);
-      default: throw $core.ArgumentError('Unknown method: $methodName');
+      case 'ListOPReturn':
+        return this.listOPReturn(ctx, request as $1.Empty);
+      case 'BroadcastNews':
+        return this.broadcastNews(ctx, request as $8.BroadcastNewsRequest);
+      case 'CreateTopic':
+        return this.createTopic(ctx, request as $8.CreateTopicRequest);
+      case 'ListTopics':
+        return this.listTopics(ctx, request as $1.Empty);
+      case 'ListCoinNews':
+        return this.listCoinNews(ctx, request as $8.ListCoinNewsRequest);
+      case 'TimestampFile':
+        return this.timestampFile(ctx, request as $8.TimestampFileRequest);
+      case 'ListTimestamps':
+        return this.listTimestamps(ctx, request as $1.Empty);
+      case 'VerifyTimestamp':
+        return this.verifyTimestamp(ctx, request as $8.VerifyTimestampRequest);
+      default:
+        throw $core.ArgumentError('Unknown method: $methodName');
     }
   }
 
   $core.Map<$core.String, $core.dynamic> get $json => MiscServiceBase$json;
   $core.Map<$core.String, $core.Map<$core.String, $core.dynamic>> get $messageJson => MiscServiceBase$messageJson;
 }
-

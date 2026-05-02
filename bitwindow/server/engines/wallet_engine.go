@@ -25,6 +25,7 @@ import (
 	"github.com/btcsuite/btcd/wire"
 	"github.com/rs/zerolog"
 	"github.com/samber/lo"
+	"golang.org/x/sync/singleflight"
 	"google.golang.org/protobuf/types/known/emptypb"
 )
 
@@ -75,6 +76,13 @@ type WalletEngine struct {
 
 	// Maps walletId -> Bitcoin Core wallet name (cache)
 	coreWallets map[string]string
+
+	// Coalesces concurrent EnsureBitcoinCoreWallet calls for the same
+	// walletId into a single in-flight execution. The frontend polls
+	// listTransactions every 5s, and each call before the cache populates
+	// would otherwise issue its own loadwallet RPC against bitcoind —
+	// causing a queue of "wallet already loading" -4s while Core is busy.
+	ensureGroup singleflight.Group
 
 	// Cached wallet metadata (populated during unlock for encrypted wallets)
 	walletCache map[string]*WalletInfo
@@ -455,8 +463,33 @@ func (e *WalletEngine) GetWalletBackendType(ctx context.Context, walletId string
 // ============================================================================
 
 // EnsureBitcoinCoreWallet ensures a Bitcoin Core wallet exists for the given walletId
-// Creates it from the seed if it doesn't exist (lazy loading)
+// Creates it from the seed if it doesn't exist (lazy loading).
+//
+// Concurrent callers for the same walletId are coalesced via singleflight so
+// only one CreateWallet/LoadWallet against bitcoind is in flight at a time.
+// Without this, each frontend poll would queue another loadwallet RPC and
+// hit "-4: Wallet already loading" while Core was busy.
 func (e *WalletEngine) EnsureBitcoinCoreWallet(ctx context.Context, walletId string) (string, error) {
+	// Fast path — cache hit, no need to coalesce.
+	e.mu.RLock()
+	if walletName, exists := e.coreWallets[walletId]; exists {
+		e.mu.RUnlock()
+		return walletName, nil
+	}
+	e.mu.RUnlock()
+
+	v, err, _ := e.ensureGroup.Do(walletId, func() (interface{}, error) {
+		return e.ensureBitcoinCoreWalletLocked(ctx, walletId)
+	})
+	if err != nil {
+		return "", err
+	}
+	return v.(string), nil
+}
+
+// ensureBitcoinCoreWalletLocked is the singleflight-wrapped body of
+// EnsureBitcoinCoreWallet. Don't call directly.
+func (e *WalletEngine) ensureBitcoinCoreWalletLocked(ctx context.Context, walletId string) (string, error) {
 	// Try orchestrator first
 	if e.orchClient != nil {
 		resp, err := e.orchClient.CreateBitcoinCoreWallet(ctx, connect.NewRequest(&orchpb.CreateBitcoinCoreWalletRequest{

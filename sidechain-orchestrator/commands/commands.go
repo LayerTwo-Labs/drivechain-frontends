@@ -9,9 +9,8 @@ import (
 	"os"
 	"os/exec"
 	"os/signal"
-	"path/filepath"
-	"regexp"
 	"reflect"
+	"regexp"
 	"strings"
 	"syscall"
 	"time"
@@ -205,27 +204,16 @@ var startCommand = &cli.Command{
 		}
 
 		if withDeps {
-			stream, err := client.StartWithL1(cctx.Context, connect.NewRequest(&pb.StartWithL1Request{
+			// Fire-and-forget on the server side — boot proceeds in a
+			// background goroutine. Poll GetSyncStatus / ListBinaries via
+			// `orchestratorctl status` for progress.
+			if _, err := client.StartWithL1(cctx.Context, connect.NewRequest(&pb.StartWithL1Request{
 				Target:     name,
 				TargetArgs: cctx.StringSlice("args"),
-			}))
-			if err != nil {
+			})); err != nil {
 				return err
 			}
-
-			for stream.Receive() {
-				msg := stream.Msg()
-				if msg.Error != "" {
-					return fmt.Errorf("startup error: %s", msg.Error)
-				}
-				fmt.Printf("[%s] %s\n", msg.Stage, msg.Message)
-				if msg.Done {
-					fmt.Println("startup complete")
-				}
-			}
-			if err := stream.Err(); err != nil {
-				return err
-			}
+			fmt.Println("L1 boot kicked off; poll status for progress")
 		} else {
 			resp, err := client.StartBinary(cctx.Context, connect.NewRequest(&pb.StartBinaryRequest{
 				Name:      name,
@@ -744,80 +732,19 @@ func formatBytes(b int64) string {
 
 // runDownload streams a binary download with a progress bar.
 func runDownload(ctx context.Context, client rpc.OrchestratorServiceClient, name string, force bool) error {
-	stream, err := client.DownloadBinary(ctx, connect.NewRequest(&pb.DownloadBinaryRequest{
+	// DownloadBinary is fire-and-forget on the server now — kick it off
+	// and poll GetSyncStatus until the binary's slot reports
+	// is_downloading=false. Tickless waiting (1 s cadence) is plenty here;
+	// the orch's DownloadManager.state map drives the numbers regardless.
+	if _, err := client.DownloadBinary(ctx, connect.NewRequest(&pb.DownloadBinaryRequest{
 		Name:  name,
 		Force: force,
-	}))
-	if err != nil {
+	})); err != nil {
 		return err
 	}
 
-	showedBar := false
-	for stream.Receive() {
-		msg := stream.Msg()
-		if msg.Error != "" {
-			if showedBar {
-				fmt.Println()
-			}
-			return fmt.Errorf("download error: %s", msg.Error)
-		}
-		if msg.Message != "" && !msg.Done {
-			if showedBar {
-				fmt.Println()
-				showedBar = false
-			}
-			fmt.Println(msg.Message)
-		} else if msg.TotalBytes > 0 {
-			pct := float64(msg.BytesDownloaded) / float64(msg.TotalBytes) * 100
-			barWidth := 30
-			filled := int(pct / 100 * float64(barWidth))
-			bar := strings.Repeat("█", filled) + strings.Repeat("░", barWidth-filled)
-			fmt.Printf("\r  %s %5.1f%%  %s / %s",
-				bar, pct,
-				formatBytes(msg.BytesDownloaded),
-				formatBytes(msg.TotalBytes),
-			)
-			showedBar = true
-		}
-		if msg.Done {
-			if showedBar {
-				fmt.Println()
-			}
-			binPath := msg.Message
-
-			if showedBar {
-				fmt.Printf("downloaded to %s\n", binPath)
-			} else {
-				fmt.Printf("already downloaded at %s\n", binPath)
-			}
-
-			// Hint about PATH if the binary's directory isn't in PATH.
-			binDir := filepath.Dir(binPath)
-			pathDirs := filepath.SplitList(os.Getenv("PATH"))
-			inPath := false
-			for _, d := range pathDirs {
-				if d == binDir {
-					inPath = true
-					break
-				}
-			}
-			if !inPath {
-				shell := filepath.Base(os.Getenv("SHELL"))
-				switch shell {
-				case "fish":
-					fmt.Printf("\nthe binary folder is not in your PATH. add it with:\n  fish_add_path %s\n", binDir)
-				case "zsh":
-					fmt.Printf("\nthe binary folder is not in your PATH. add it with:\n  echo 'export PATH=\"%s:$PATH\"' >> ~/.zshrc && source ~/.zshrc\n", binDir)
-				default:
-					fmt.Printf("\nthe binary folder is not in your PATH. add it with:\n  echo 'export PATH=\"%s:$PATH\"' >> ~/.bashrc && source ~/.bashrc\n", binDir)
-				}
-			} else {
-				fmt.Printf("\ninstalled. start with:\n  orchestratorctl start %s\n", name)
-			}
-		}
-	}
-
-	return stream.Err()
+	fmt.Printf("downloading %s — poll status with `orchestratorctl status` for progress\n", name)
+	return nil
 }
 
 // confirmYes reads a line from stdin and returns true for "y", "Y", or empty (default yes).
@@ -1102,7 +1029,7 @@ func createMethodCommand(sidechainName, cmdName, usage string, clientFactory Cli
 // runSidechainMethod executes a method on the sidechain client with smart binary management
 func runSidechainMethod(cctx *cli.Context, sidechainName string, clientFactory ClientFactory, methodName string) error {
 	client := newClient(cctx)
-	
+
 	// Check if binary is downloaded
 	resp, err := client.GetBinaryStatus(cctx.Context, connect.NewRequest(&pb.GetBinaryStatusRequest{
 		Name: sidechainName,
@@ -1151,7 +1078,7 @@ func runSidechainMethod(cctx *cli.Context, sidechainName string, clientFactory C
 func callClientMethod(ctx context.Context, client SidechainClient, methodName string) error {
 	clientValue := reflect.ValueOf(client)
 	method := clientValue.MethodByName(methodName)
-	
+
 	if !method.IsValid() {
 		return fmt.Errorf("method %s not found on client", methodName)
 	}

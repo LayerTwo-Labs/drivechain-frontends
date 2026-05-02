@@ -7,7 +7,7 @@ import "package:connectrpc/connect.dart" as connect;
 import "bitnames.pb.dart" as bitnamesv1bitnames;
 import "bitnames.connect.spec.dart" as specs;
 
-extension type BitnamesServiceClient (connect.Transport _transport) {
+extension type BitnamesServiceClient(connect.Transport _transport) {
   /// Get wallet balance (total and available).
   Future<bitnamesv1bitnames.GetBalanceResponse> getBalance(
     bitnamesv1bitnames.GetBalanceRequest input, {

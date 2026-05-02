@@ -27,9 +27,13 @@ abstract final class OrchestratorService {
   );
 
   /// Download a binary with streaming progress.
+  /// Kicks off a download in a background goroutine and returns
+  /// immediately. Progress (MB downloaded / total, is_downloading) is
+  /// polled out of GetSyncStatus, never tied to this RPC's lifetime — so
+  /// a transport blip can't cancel an in-flight download.
   static const downloadBinary = connect.Spec(
     '/$name/DownloadBinary',
-    connect.StreamType.server,
+    connect.StreamType.unary,
     orchestratorv1orchestrator.DownloadBinaryRequest.new,
     orchestratorv1orchestrator.DownloadBinaryResponse.new,
   );
@@ -58,10 +62,14 @@ abstract final class OrchestratorService {
     orchestratorv1orchestrator.StreamLogsResponse.new,
   );
 
-  /// Start a binary with its full dependency chain (Core -> Enforcer -> target).
+  /// Kick off a binary and its full L1 dependency chain (Core -> Enforcer ->
+  /// target). Fire-and-forget on the server: returns as soon as the boot
+  /// goroutine is dispatched. Callers poll GetSyncStatus / ListBinaries for
+  /// download progress and connection state — never tied to this RPC's
+  /// lifetime, so a transport blip can't kill an in-flight download.
   static const startWithL1 = connect.Spec(
     '/$name/StartWithL1',
-    connect.StreamType.server,
+    connect.StreamType.unary,
     orchestratorv1orchestrator.StartWithL1Request.new,
     orchestratorv1orchestrator.StartWithL1Response.new,
   );

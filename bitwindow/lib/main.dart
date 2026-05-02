@@ -62,25 +62,38 @@ Color getNetworkAccentColor(BitcoinNetwork network) {
 }
 
 void main(List<String> args) async {
-  await withWindowsFileRetry(() async {
-    try {
-      WidgetsFlutterBinding.ensureInitialized();
+  // Some connectrpc/HTTP2 codepaths surface transient socket errors as
+  // unhandled future errors during boot (the daemons aren't listening yet).
+  // Catch them in a zone so they don't print giant red stack traces.
+  await runZonedGuarded(
+    () async {
+      await withWindowsFileRetry(() async {
+        try {
+          WidgetsFlutterBinding.ensureInitialized();
 
-      // Get the current window controller to check if this is a sub-window
-      final windowController = await WindowController.fromCurrentEngine();
+          // Get the current window controller to check if this is a sub-window
+          final windowController = await WindowController.fromCurrentEngine();
 
-      final (applicationDir, logFile, log) = await init(windowController.arguments);
+          final (applicationDir, logFile, log) = await init(windowController.arguments);
 
-      // If arguments are not empty, this is a sub-window
-      if (windowController.arguments.isNotEmpty) {
-        return runMultiWindow(windowController.arguments, log, applicationDir, logFile);
-      }
+          // If arguments are not empty, this is a sub-window
+          if (windowController.arguments.isNotEmpty) {
+            return runMultiWindow(windowController.arguments, log, applicationDir, logFile);
+          }
 
-      await runMainWindow(log, applicationDir, logFile);
-    } catch (e, stackTrace) {
-      runErrorScreen(e, stackTrace);
-    }
-  });
+          await runMainWindow(log, applicationDir, logFile);
+        } catch (e, stackTrace) {
+          runErrorScreen(e, stackTrace);
+        }
+      });
+    },
+    (error, stack) {
+      if (isExpectedBootError(error)) return;
+      // Unexpected — keep the existing behavior of surfacing it.
+      // ignore: avoid_print
+      print('Unhandled error: $error\n$stack');
+    },
+  );
 }
 
 Future<(Directory, File, Logger)> init(String arguments) async {
@@ -853,21 +866,17 @@ Future<void> bootBitwindowBackend(Logger log) async {
   log.i('STARTUP: starting backend state watch');
   backendState.startWatching();
 
-  // 5. Kick off the L1 stack (bitcoind → wallet → IBD → enforcer) by calling
-  //    StartWithL1 directly on orchestratord. We deliberately don't route
-  //    this through bitwindowd — that indirection swallowed the progress
-  //    stream, so download bytes and stage messages never reached the
-  //    daemon-status card. trackStartup pipes bytes_downloaded/total_bytes
-  //    into BinaryProvider.downloadInfo (which SyncProvider already turns
-  //    into the SyncInfo the card reads) and stage messages into each
-  //    binary's startup_logs. Fire-and-forget — nothing in boot waits on
-  //    this finishing.
+  // 5. Kick off the L1 stack (bitcoind → wallet → IBD → enforcer). StartWithL1
+  //    is fire-and-forget on the server now — boot runs on a background
+  //    goroutine and survives any transport blip. Download bytes come via
+  //    SyncProvider's polled GetSyncStatus; connection state via
+  //    BackendStateProvider's polled ListBinaries.
   if (orchestratorReady) {
     unawaited(() async {
       try {
-        await backendState.trackStartup(orchestrator.startWithL1('enforcer'));
+        await orchestrator.startWithL1('enforcer');
       } catch (e) {
-        log.w('STARTUP: L1 stack startup ended with error (non-fatal): $e');
+        log.w('STARTUP: L1 stack dispatch failed (non-fatal): $e');
       }
     }());
   }

@@ -34,7 +34,7 @@ func findBitcoind(t *testing.T, log zerolog.Logger) string {
 	t.Helper()
 
 	dataDir := orchestrator.DefaultDataDir()
-	// Testharness uses the default ("touched") variant unconditionally — it
+	// Testharness uses the default ("patched") variant unconditionally — it
 	// always wants the drivechain build, regardless of whatever the user has
 	// pinned in orchestrator_settings.json.
 	configs := orchestrator.AllDefaults()
@@ -91,8 +91,8 @@ func findBitcoind(t *testing.T, log zerolog.Logger) string {
 		if p.Error != nil {
 			t.Fatalf("testharness: bitcoind download failed: %v", p.Error)
 		}
-		if p.TotalBytes > 0 && p.BytesDownloaded > 0 {
-			pct := float64(p.BytesDownloaded) / float64(p.TotalBytes) * 100
+		if p.MBTotal > 0 && p.MBDownloaded > 0 {
+			pct := float64(p.MBDownloaded) / float64(p.MBTotal) * 100
 			if int(pct)%10 == 0 {
 				log.Info().Float64("pct", pct).Msg("downloading bitcoind")
 			}

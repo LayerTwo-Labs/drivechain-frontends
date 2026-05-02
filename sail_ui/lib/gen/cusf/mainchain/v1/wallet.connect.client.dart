@@ -7,7 +7,7 @@ import "package:connectrpc/connect.dart" as connect;
 import "wallet.pb.dart" as cusfmainchainv1wallet;
 import "wallet.connect.spec.dart" as specs;
 
-extension type WalletServiceClient (connect.Transport _transport) {
+extension type WalletServiceClient(connect.Transport _transport) {
   Future<cusfmainchainv1wallet.BroadcastWithdrawalBundleResponse> broadcastWithdrawalBundle(
     cusfmainchainv1wallet.BroadcastWithdrawalBundleRequest input, {
     connect.Headers? headers,

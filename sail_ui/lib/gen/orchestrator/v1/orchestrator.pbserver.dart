@@ -30,62 +30,104 @@ abstract class OrchestratorServiceBase extends $pb.GeneratedService {
   $async.Future<$5.StartWithL1Response> startWithL1($pb.ServerContext ctx, $5.StartWithL1Request request);
   $async.Future<$5.ShutdownAllResponse> shutdownAll($pb.ServerContext ctx, $5.ShutdownAllRequest request);
   $async.Future<$5.GetBTCPriceResponse> getBTCPrice($pb.ServerContext ctx, $5.GetBTCPriceRequest request);
-  $async.Future<$5.GetMainchainBlockchainInfoResponse> getMainchainBlockchainInfo($pb.ServerContext ctx, $5.GetMainchainBlockchainInfoRequest request);
-  $async.Future<$5.GetEnforcerBlockchainInfoResponse> getEnforcerBlockchainInfo($pb.ServerContext ctx, $5.GetEnforcerBlockchainInfoRequest request);
+  $async.Future<$5.GetMainchainBlockchainInfoResponse> getMainchainBlockchainInfo(
+      $pb.ServerContext ctx, $5.GetMainchainBlockchainInfoRequest request);
+  $async.Future<$5.GetEnforcerBlockchainInfoResponse> getEnforcerBlockchainInfo(
+      $pb.ServerContext ctx, $5.GetEnforcerBlockchainInfoRequest request);
   $async.Future<$5.GetSyncStatusResponse> getSyncStatus($pb.ServerContext ctx, $5.GetSyncStatusRequest request);
-  $async.Future<$5.GetMainchainBalanceResponse> getMainchainBalance($pb.ServerContext ctx, $5.GetMainchainBalanceRequest request);
-  $async.Future<$5.PreviewResetDataResponse> previewResetData($pb.ServerContext ctx, $5.PreviewResetDataRequest request);
+  $async.Future<$5.GetMainchainBalanceResponse> getMainchainBalance(
+      $pb.ServerContext ctx, $5.GetMainchainBalanceRequest request);
+  $async.Future<$5.PreviewResetDataResponse> previewResetData(
+      $pb.ServerContext ctx, $5.PreviewResetDataRequest request);
   $async.Future<$5.StreamResetDataResponse> streamResetData($pb.ServerContext ctx, $5.StreamResetDataRequest request);
-  $async.Future<$5.GetCoreMempoolInfoResponse> getCoreMempoolInfo($pb.ServerContext ctx, $5.GetCoreMempoolInfoRequest request);
+  $async.Future<$5.GetCoreMempoolInfoResponse> getCoreMempoolInfo(
+      $pb.ServerContext ctx, $5.GetCoreMempoolInfoRequest request);
   $async.Future<$5.CoreRawCallResponse> coreRawCall($pb.ServerContext ctx, $5.CoreRawCallRequest request);
 
   $pb.GeneratedMessage createRequest($core.String methodName) {
     switch (methodName) {
-      case 'ListBinaries': return $5.ListBinariesRequest();
-      case 'GetBinaryStatus': return $5.GetBinaryStatusRequest();
-      case 'DownloadBinary': return $5.DownloadBinaryRequest();
-      case 'StartBinary': return $5.StartBinaryRequest();
-      case 'StopBinary': return $5.StopBinaryRequest();
-      case 'StreamLogs': return $5.StreamLogsRequest();
-      case 'StartWithL1': return $5.StartWithL1Request();
-      case 'ShutdownAll': return $5.ShutdownAllRequest();
-      case 'GetBTCPrice': return $5.GetBTCPriceRequest();
-      case 'GetMainchainBlockchainInfo': return $5.GetMainchainBlockchainInfoRequest();
-      case 'GetEnforcerBlockchainInfo': return $5.GetEnforcerBlockchainInfoRequest();
-      case 'GetSyncStatus': return $5.GetSyncStatusRequest();
-      case 'GetMainchainBalance': return $5.GetMainchainBalanceRequest();
-      case 'PreviewResetData': return $5.PreviewResetDataRequest();
-      case 'StreamResetData': return $5.StreamResetDataRequest();
-      case 'GetCoreMempoolInfo': return $5.GetCoreMempoolInfoRequest();
-      case 'CoreRawCall': return $5.CoreRawCallRequest();
-      default: throw $core.ArgumentError('Unknown method: $methodName');
+      case 'ListBinaries':
+        return $5.ListBinariesRequest();
+      case 'GetBinaryStatus':
+        return $5.GetBinaryStatusRequest();
+      case 'DownloadBinary':
+        return $5.DownloadBinaryRequest();
+      case 'StartBinary':
+        return $5.StartBinaryRequest();
+      case 'StopBinary':
+        return $5.StopBinaryRequest();
+      case 'StreamLogs':
+        return $5.StreamLogsRequest();
+      case 'StartWithL1':
+        return $5.StartWithL1Request();
+      case 'ShutdownAll':
+        return $5.ShutdownAllRequest();
+      case 'GetBTCPrice':
+        return $5.GetBTCPriceRequest();
+      case 'GetMainchainBlockchainInfo':
+        return $5.GetMainchainBlockchainInfoRequest();
+      case 'GetEnforcerBlockchainInfo':
+        return $5.GetEnforcerBlockchainInfoRequest();
+      case 'GetSyncStatus':
+        return $5.GetSyncStatusRequest();
+      case 'GetMainchainBalance':
+        return $5.GetMainchainBalanceRequest();
+      case 'PreviewResetData':
+        return $5.PreviewResetDataRequest();
+      case 'StreamResetData':
+        return $5.StreamResetDataRequest();
+      case 'GetCoreMempoolInfo':
+        return $5.GetCoreMempoolInfoRequest();
+      case 'CoreRawCall':
+        return $5.CoreRawCallRequest();
+      default:
+        throw $core.ArgumentError('Unknown method: $methodName');
     }
   }
 
-  $async.Future<$pb.GeneratedMessage> handleCall($pb.ServerContext ctx, $core.String methodName, $pb.GeneratedMessage request) {
+  $async.Future<$pb.GeneratedMessage> handleCall(
+      $pb.ServerContext ctx, $core.String methodName, $pb.GeneratedMessage request) {
     switch (methodName) {
-      case 'ListBinaries': return this.listBinaries(ctx, request as $5.ListBinariesRequest);
-      case 'GetBinaryStatus': return this.getBinaryStatus(ctx, request as $5.GetBinaryStatusRequest);
-      case 'DownloadBinary': return this.downloadBinary(ctx, request as $5.DownloadBinaryRequest);
-      case 'StartBinary': return this.startBinary(ctx, request as $5.StartBinaryRequest);
-      case 'StopBinary': return this.stopBinary(ctx, request as $5.StopBinaryRequest);
-      case 'StreamLogs': return this.streamLogs(ctx, request as $5.StreamLogsRequest);
-      case 'StartWithL1': return this.startWithL1(ctx, request as $5.StartWithL1Request);
-      case 'ShutdownAll': return this.shutdownAll(ctx, request as $5.ShutdownAllRequest);
-      case 'GetBTCPrice': return this.getBTCPrice(ctx, request as $5.GetBTCPriceRequest);
-      case 'GetMainchainBlockchainInfo': return this.getMainchainBlockchainInfo(ctx, request as $5.GetMainchainBlockchainInfoRequest);
-      case 'GetEnforcerBlockchainInfo': return this.getEnforcerBlockchainInfo(ctx, request as $5.GetEnforcerBlockchainInfoRequest);
-      case 'GetSyncStatus': return this.getSyncStatus(ctx, request as $5.GetSyncStatusRequest);
-      case 'GetMainchainBalance': return this.getMainchainBalance(ctx, request as $5.GetMainchainBalanceRequest);
-      case 'PreviewResetData': return this.previewResetData(ctx, request as $5.PreviewResetDataRequest);
-      case 'StreamResetData': return this.streamResetData(ctx, request as $5.StreamResetDataRequest);
-      case 'GetCoreMempoolInfo': return this.getCoreMempoolInfo(ctx, request as $5.GetCoreMempoolInfoRequest);
-      case 'CoreRawCall': return this.coreRawCall(ctx, request as $5.CoreRawCallRequest);
-      default: throw $core.ArgumentError('Unknown method: $methodName');
+      case 'ListBinaries':
+        return this.listBinaries(ctx, request as $5.ListBinariesRequest);
+      case 'GetBinaryStatus':
+        return this.getBinaryStatus(ctx, request as $5.GetBinaryStatusRequest);
+      case 'DownloadBinary':
+        return this.downloadBinary(ctx, request as $5.DownloadBinaryRequest);
+      case 'StartBinary':
+        return this.startBinary(ctx, request as $5.StartBinaryRequest);
+      case 'StopBinary':
+        return this.stopBinary(ctx, request as $5.StopBinaryRequest);
+      case 'StreamLogs':
+        return this.streamLogs(ctx, request as $5.StreamLogsRequest);
+      case 'StartWithL1':
+        return this.startWithL1(ctx, request as $5.StartWithL1Request);
+      case 'ShutdownAll':
+        return this.shutdownAll(ctx, request as $5.ShutdownAllRequest);
+      case 'GetBTCPrice':
+        return this.getBTCPrice(ctx, request as $5.GetBTCPriceRequest);
+      case 'GetMainchainBlockchainInfo':
+        return this.getMainchainBlockchainInfo(ctx, request as $5.GetMainchainBlockchainInfoRequest);
+      case 'GetEnforcerBlockchainInfo':
+        return this.getEnforcerBlockchainInfo(ctx, request as $5.GetEnforcerBlockchainInfoRequest);
+      case 'GetSyncStatus':
+        return this.getSyncStatus(ctx, request as $5.GetSyncStatusRequest);
+      case 'GetMainchainBalance':
+        return this.getMainchainBalance(ctx, request as $5.GetMainchainBalanceRequest);
+      case 'PreviewResetData':
+        return this.previewResetData(ctx, request as $5.PreviewResetDataRequest);
+      case 'StreamResetData':
+        return this.streamResetData(ctx, request as $5.StreamResetDataRequest);
+      case 'GetCoreMempoolInfo':
+        return this.getCoreMempoolInfo(ctx, request as $5.GetCoreMempoolInfoRequest);
+      case 'CoreRawCall':
+        return this.coreRawCall(ctx, request as $5.CoreRawCallRequest);
+      default:
+        throw $core.ArgumentError('Unknown method: $methodName');
     }
   }
 
   $core.Map<$core.String, $core.dynamic> get $json => OrchestratorServiceBase$json;
-  $core.Map<$core.String, $core.Map<$core.String, $core.dynamic>> get $messageJson => OrchestratorServiceBase$messageJson;
+  $core.Map<$core.String, $core.Map<$core.String, $core.dynamic>> get $messageJson =>
+      OrchestratorServiceBase$messageJson;
 }
-

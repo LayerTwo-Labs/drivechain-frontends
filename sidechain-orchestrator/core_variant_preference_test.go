@@ -6,22 +6,22 @@ import (
 )
 
 // TestPreferenceLess_KnotsAlwaysLast is the explicit regression guard: the
-// fallback variant comparator was plain alphabetical ("knots" < "untouched"),
+// fallback variant comparator was plain alphabetical ("knots" < "core"),
 // which silently shipped users a bitcoinknots.org binary on signet whenever
-// their persisted variant ("touched" — forknet-only) didn't apply. Knots
-// must always sort last in the fallback order.
+// the persisted variant didn't apply. Knots must always sort last so the
+// fallback prefers the drivechain-aware patched build.
 func TestPreferenceLess_KnotsAlwaysLast(t *testing.T) {
 	cases := []struct {
 		input []string
 		want  []string
 	}{
 		{
-			input: []string{"knots", "untouched", "patched", "touched"},
-			want:  []string{"patched", "touched", "untouched", "knots"},
+			input: []string{"knots", "core", "patched"},
+			want:  []string{"patched", "core", "knots"},
 		},
 		{
-			input: []string{"knots", "untouched"},
-			want:  []string{"untouched", "knots"},
+			input: []string{"knots", "core"},
+			want:  []string{"core", "knots"},
 		},
 		{
 			input: []string{"knots", "patched"},
@@ -32,8 +32,8 @@ func TestPreferenceLess_KnotsAlwaysLast(t *testing.T) {
 			want:  []string{"knots"},
 		},
 		{
-			input: []string{"patched", "untouched"},
-			want:  []string{"patched", "untouched"},
+			input: []string{"patched", "core"},
+			want:  []string{"patched", "core"},
 		},
 	}
 
@@ -86,7 +86,7 @@ func TestEmbeddedConfig_SignetFallbackPicksPatched(t *testing.T) {
 	}
 
 	if available[0].ID == "knots" {
-		t.Fatalf("signet fallback picked knots; want patched/untouched first. order=%v", ids)
+		t.Fatalf("signet fallback picked knots; want core/patched first. order=%v", ids)
 	}
 	if available[0].ID != "patched" {
 		t.Errorf("signet fallback picked %q, want %q. order=%v", available[0].ID, "patched", ids)
@@ -99,7 +99,7 @@ func TestEmbeddedConfig_SignetFallbackPicksPatched(t *testing.T) {
 // TestPreferenceLess_StrictWeakOrdering — sort.Slice requires a strict weak
 // ordering. Catch transitivity / antisymmetry violations early.
 func TestPreferenceLess_StrictWeakOrdering(t *testing.T) {
-	ids := []string{"knots", "untouched", "patched", "touched"}
+	ids := []string{"knots", "core", "patched"}
 	for _, a := range ids {
 		if preferenceLess(a, a) {
 			t.Errorf("preferenceLess(%q, %q) = true, must be false (irreflexive)", a, a)
