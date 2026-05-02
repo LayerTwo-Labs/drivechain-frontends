@@ -303,8 +303,17 @@ func (rt *Runtime) Start(parent context.Context) {
 	rt.ctx, rt.cancel = context.WithCancel(parent)
 	log := zerolog.Ctx(parent)
 
-	// ChequeEngine has Start (it manages its own goroutine internally).
-	rt.chequeEngine.Start(rt.ctx)
+	// ChequeEngine spawns its own goroutines; track them in rt.wg so
+	// runtime shutdown blocks until they drain. Otherwise an in-flight
+	// bitcoind mock call can race the gomock controller's Finish (called
+	// after rt.Close) and panic with "Fail in goroutine after Test
+	// completed".
+	chequeDone := rt.chequeEngine.Start(rt.ctx)
+	rt.wg.Add(1)
+	go func() {
+		defer rt.wg.Done()
+		<-chequeDone
+	}()
 
 	// Auto-unlock any unencrypted wallet from disk. Mirrors the previous
 	// main.go startup logic; runs once per runtime.

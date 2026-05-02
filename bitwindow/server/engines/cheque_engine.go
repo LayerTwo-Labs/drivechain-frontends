@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"connectrpc.com/connect"
@@ -232,16 +233,37 @@ func (e *ChequeEngine) ScanForFunds(ctx context.Context, walletId string, bitcoi
 	return recoveries, nil
 }
 
-// Start begins the cheque engine background monitoring
-func (e *ChequeEngine) Start(ctx context.Context) {
+// Start begins the cheque engine background monitoring. Returned channel
+// closes once both background goroutines have exited; runtime/test
+// shutdown should block on it so in-flight bitcoind RPC calls don't race
+// the gomock controller's teardown (calling t.Fatalf from a goroutine
+// after the test ended panics).
+func (e *ChequeEngine) Start(ctx context.Context) <-chan struct{} {
 	log := zerolog.Ctx(ctx)
 	log.Info().Msg("cheque engine started")
 
+	done := make(chan struct{})
+	var pending atomic.Int32
+	pending.Store(2)
+	finish := func() {
+		if pending.Add(-1) == 0 {
+			close(done)
+		}
+	}
+
 	// Import cheque descriptor into Bitcoin Core so it tracks all cheque addresses
-	go e.importChequeDescriptor(ctx)
+	go func() {
+		defer finish()
+		e.importChequeDescriptor(ctx)
+	}()
 
 	// Cheque recovery waits for unlock since it needs to derive addresses
-	go e.recoverChequesOnUnlock(ctx)
+	go func() {
+		defer finish()
+		e.recoverChequesOnUnlock(ctx)
+	}()
+
+	return done
 }
 
 // importChequeDescriptors imports the cheque derivation path descriptors for all wallets into Bitcoin Core

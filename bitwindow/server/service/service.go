@@ -43,7 +43,9 @@ func (s *Service[T]) Get(ctx context.Context) (T, error) {
 	if s.connected.Load() {
 		zerolog.Ctx(ctx).Trace().
 			Msgf("get service: %q is already connected", s.name)
+		s.mu.RLock()
 		client := s.client
+		s.mu.RUnlock()
 		return client, nil
 	}
 

@@ -130,14 +130,14 @@ func startBitwindowd(t *testing.T, binPath string, node *orchestratorOnlyNode, a
 	stderrFile, err := os.Create(filepath.Join(logDir, "bitwindowd.stderr.log"))
 	require.NoError(t, err)
 
+	// bitcoincore.* flags were removed when bitwindowd started sourcing
+	// Bitcoin Core config from the orchestrator (see commit caff0cb0). The
+	// orchestrator owns bitcoin.conf; bitwindowd looks it up via the
+	// orchestrator gRPC connection.
 	cmd := exec.Command(
 		binPath,
 		"--datadir", node.BitwindowDir,
 		"--api.host", apiHost,
-		"--bitcoincore.network", "regtest",
-		"--bitcoincore.url", fmt.Sprintf("http://127.0.0.1:%d", node.BitcoindRPCPort),
-		"--bitcoincore.rpcuser", "test",
-		"--bitcoincore.rpcpassword", "test",
 		"--enforcer.host", fmt.Sprintf("127.0.0.1:%d", node.EnforcerGRPCPort),
 		"--orchestrator.addr", fmt.Sprintf("http://127.0.0.1:%d", node.OrchdGRPCPort),
 	)
@@ -217,12 +217,17 @@ port=%d
 `, bitcoinDataDir, rpcPort, p2pPort)
 	require.NoError(t, os.WriteFile(filepath.Join(bitwindowDir, "bitwindow-bitcoin.conf"), []byte(bitwindowBitcoinConf), 0o600))
 
+	// `--binary=enforcer` auto-boots the L1 stack (bitcoind → enforcer)
+	// once orchestratord comes up, since the smoke test asserts both are
+	// running. Production normally triggers this via StartWithL1; the
+	// orchestratord CLI flag is the same code path, just kicked from main.
 	orchCmd := exec.Command(orchBin,
 		"--datadir", bitwindowDir,
 		"--bitwindow-dir", bitwindowDir,
 		"--network", "regtest",
 		"--rpclisten", fmt.Sprintf("127.0.0.1:%d", grpcPort),
 		"--loglevel", "info",
+		"--binary=enforcer",
 	)
 	orchStdout, err := orchCmd.StdoutPipe()
 	require.NoError(t, err)
