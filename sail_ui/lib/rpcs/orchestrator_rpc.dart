@@ -1,8 +1,6 @@
 import 'package:connectrpc/protobuf.dart';
 import 'package:sail_ui/rpcs/keepalive_http_client.dart';
 import 'package:connectrpc/protocol/connect.dart' as connect;
-import 'package:get_it/get_it.dart';
-import 'package:logger/logger.dart';
 import 'package:sail_ui/gen/bitcoin/bitcoind/v1alpha/bitcoin.connect.client.dart';
 import 'package:sail_ui/gen/orchestrator/v1/orchestrator.connect.client.dart';
 import 'package:sail_ui/gen/orchestrator/v1/orchestrator.pb.dart';
@@ -58,8 +56,9 @@ class OrchestratorRPC {
   /// the failure mode that knocks out HTTP/2 streams (network drop, sleep)
   /// also typically invalidates HTTP/1.1 keepalive connections.
   void recreateConnection() {
-    final logger = GetIt.I.isRegistered<Logger>() ? GetIt.I.get<Logger>() : null;
-    logger?.w('OrchestratorRPC: recreating transports');
+    // Silent — this fires constantly during boot while the daemon is still
+    // coming up. The supervisor's own attempt counter surfaces a warning
+    // once it's clearly stuck.
     _initializeConnection();
   }
 
@@ -114,11 +113,11 @@ class OrchestratorRPC {
     return _unaryClient.getMainchainBlockchainInfo(GetMainchainBlockchainInfoRequest());
   }
 
-  /// Atomic snapshot of mainchain + enforcer + (optionally) sidechain tip
-  /// state. Pass the active sidechain binary name to also receive its tip;
-  /// pass empty for mainchain + enforcer only.
-  Future<GetSyncStatusResponse> getSyncStatus({String sidechain = ''}) {
-    return _unaryClient.getSyncStatus(GetSyncStatusRequest(sidechain: sidechain));
+  /// Atomic snapshot of mainchain + enforcer + every known sidechain.
+  /// Each ChainSync also reports download progress: when `is_downloading`
+  /// is true, blocks/headers carry MB downloaded / MB total.
+  Future<GetSyncStatusResponse> getSyncStatus() {
+    return _unaryClient.getSyncStatus(GetSyncStatusRequest());
   }
 
   Future<GetMainchainBalanceResponse> getMainchainBalance() {
@@ -159,17 +158,25 @@ class OrchestratorRPC {
     );
   }
 
-  // ─── server-streaming ─────────────────────────────────────────────────────
-
-  Stream<DownloadBinaryResponse> downloadBinary(String name, {bool force = false}) {
-    return _streamClient.downloadBinary(DownloadBinaryRequest(name: name, force: force));
+  /// Fire-and-forget: server kicks off a background download and returns
+  /// immediately. Progress is polled out of [getSyncStatus] — the
+  /// SyncProvider already shows download MB on the matching sidechain
+  /// slot, so callers don't need to subscribe to anything.
+  Future<DownloadBinaryResponse> downloadBinary(String name, {bool force = false}) {
+    return _unaryClient.downloadBinary(DownloadBinaryRequest(name: name, force: force));
   }
+
+  // ─── server-streaming ─────────────────────────────────────────────────────
 
   Stream<StreamLogsResponse> streamLogs(String name, {int tail = 0}) {
     return _streamClient.streamLogs(StreamLogsRequest(name: name, tail: tail));
   }
 
-  Stream<StartWithL1Response> startWithL1(
+  /// Fire-and-forget: server kicks off the boot goroutine and returns
+  /// immediately. Download / connection state come from polled
+  /// GetSyncStatus and ListBinaries — neither tied to this call's lifetime,
+  /// so a transport blip can't kill an in-flight bitcoind download.
+  Future<StartWithL1Response> startWithL1(
     String target, {
     List<String>? targetArgs,
     Map<String, String>? targetEnv,
@@ -177,7 +184,7 @@ class OrchestratorRPC {
     List<String>? enforcerArgs,
     bool immediate = false,
   }) {
-    return _streamClient.startWithL1(
+    return _unaryClient.startWithL1(
       StartWithL1Request(
         target: target,
         targetArgs: targetArgs ?? [],

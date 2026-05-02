@@ -11,14 +11,30 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// blockHEAD wraps a handler so HEAD requests get 405 — used by tests that
+// want to verify "unknown total" behavior, since the new probe step would
+// otherwise pull Content-Length from the test server's HEAD response.
+func blockHEAD(h http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodHead {
+			w.WriteHeader(http.StatusMethodNotAllowed)
+			return
+		}
+		h(w, r)
+	}
+}
+
 func TestDownloadFile_ThrottlesProgress(t *testing.T) {
-	// Create a 100KB payload — small enough to be fast, large enough to generate
-	// multiple progress events at 0.1% granularity (each 0.1% = 100 bytes).
-	totalSize := 100_000
+	// 5 MB payload — large enough to generate multiple progress events at
+	// 1% granularity and to round to non-zero MB after conversion.
+	totalSize := 5 * 1024 * 1024
 	payload := make([]byte, totalSize)
 
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Length", fmt.Sprintf("%d", totalSize))
+		if r.Method == http.MethodHead {
+			return
+		}
 		_, _ = w.Write(payload)
 	}))
 	defer srv.Close()
@@ -38,30 +54,28 @@ func TestDownloadFile_ThrottlesProgress(t *testing.T) {
 		events = append(events, p)
 	}
 
-	// With 0.1% granularity on 100KB, max possible events = 1000
-	// But we should have far fewer than one-per-read-call (100KB / 32KB buffer = ~3 reads)
-	// The exact count depends on how reads align, but must be <= 1000
-	assert.LessOrEqual(t, len(events), 1000, "should throttle to at most 1000 events (0.1%% granularity)")
+	// 1% granularity — at most 101 events (0% through 100% inclusive).
+	assert.LessOrEqual(t, len(events), 101, "should throttle to at most 101 events (1%% granularity)")
 	assert.Greater(t, len(events), 0, "should have at least one progress event")
 
-	// All events should have correct total
+	expectedMBTotal := int64(totalSize / (1024 * 1024))
 	for _, e := range events {
-		assert.Equal(t, int64(totalSize), e.TotalBytes)
-		assert.Greater(t, e.BytesDownloaded, int64(0))
+		assert.Equal(t, expectedMBTotal, e.MBTotal)
+		assert.GreaterOrEqual(t, e.MBDownloaded, int64(0))
 	}
 
-	// Last event should be at 100%
 	last := events[len(events)-1]
-	assert.Equal(t, int64(totalSize), last.BytesDownloaded)
+	assert.Equal(t, expectedMBTotal, last.MBDownloaded)
 }
 
 func TestDownloadFile_ThrottlesProgress_UnknownTotal(t *testing.T) {
-	// Create a 3MB payload with no Content-Length → unknown total
 	totalSize := 3 * 1024 * 1024
 	payload := make([]byte, totalSize)
 
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Don't set Content-Length so ContentLength = -1
+	// Block HEAD so the probe fails — exercises the "no Content-Length anywhere"
+	// path. Real-world equivalent: a server that omits Content-Length on both
+	// HEAD and GET (transfer-encoded streaming response).
+	srv := httptest.NewServer(blockHEAD(func(w http.ResponseWriter, r *http.Request) {
 		_, _ = w.Write(payload)
 	}))
 	defer srv.Close()
@@ -81,22 +95,23 @@ func TestDownloadFile_ThrottlesProgress_UnknownTotal(t *testing.T) {
 		events = append(events, p)
 	}
 
-	// With 3MB payload, should get ~3 events (one per MB)
 	assert.GreaterOrEqual(t, len(events), 2, "should report roughly every 1MB")
 	assert.LessOrEqual(t, len(events), 5, "should not over-report for 3MB")
 
-	// TotalBytes should be -1 (unknown)
 	for _, e := range events {
-		assert.Equal(t, int64(-1), e.TotalBytes)
+		assert.Equal(t, int64(-1), e.MBTotal)
 	}
 }
 
 func TestDownloadFile_ProgressMessages(t *testing.T) {
-	totalSize := 100_000
+	totalSize := 5 * 1024 * 1024
 	payload := make([]byte, totalSize)
 
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Length", fmt.Sprintf("%d", totalSize))
+		if r.Method == http.MethodHead {
+			return
+		}
 		_, _ = w.Write(payload)
 	}))
 	defer srv.Close()
@@ -113,22 +128,21 @@ func TestDownloadFile_ProgressMessages(t *testing.T) {
 
 	var updates []DownloadProgress
 	for p := range ch {
-		if p.TotalBytes > 0 {
+		if p.MBTotal > 0 {
 			updates = append(updates, p)
 		}
 	}
 
 	assert.Greater(t, len(updates), 0, "should have progress updates")
 
-	// All updates should have correct total
+	expectedMBTotal := int64(totalSize / (1024 * 1024))
 	for _, u := range updates {
-		assert.Equal(t, int64(totalSize), u.TotalBytes)
-		assert.Greater(t, u.BytesDownloaded, int64(0))
+		assert.Equal(t, expectedMBTotal, u.MBTotal)
+		assert.GreaterOrEqual(t, u.MBDownloaded, int64(0))
 	}
 
-	// Last update should have downloaded everything
 	last := updates[len(updates)-1]
-	assert.Equal(t, int64(totalSize), last.BytesDownloaded)
+	assert.Equal(t, expectedMBTotal, last.MBDownloaded)
 }
 
 func TestDownload_ConcurrentProtection(t *testing.T) {
@@ -199,9 +213,8 @@ func TestForwardDownload(t *testing.T) {
 	downloadCh := make(chan DownloadProgress, 10)
 	startupCh := make(chan StartupProgress, 10)
 
-	// Send some progress events
-	downloadCh <- DownloadProgress{BytesDownloaded: 1000, TotalBytes: 10000, Message: "Downloaded 0.00 MB / 0.01 MB (10.0%)"}
-	downloadCh <- DownloadProgress{BytesDownloaded: 5000, TotalBytes: 10000, Message: "Downloaded 0.01 MB / 0.01 MB (50.0%)"}
+	downloadCh <- DownloadProgress{MBDownloaded: 1, MBTotal: 10, Message: "1 / 10 MB"}
+	downloadCh <- DownloadProgress{MBDownloaded: 5, MBTotal: 10, Message: "5 / 10 MB"}
 	downloadCh <- DownloadProgress{Message: "extracting..."}
 	downloadCh <- DownloadProgress{Message: "done", Done: true}
 	close(downloadCh)
@@ -217,27 +230,24 @@ func TestForwardDownload(t *testing.T) {
 
 	require.Len(t, events, 4)
 
-	// All events should have the correct stage
 	for _, e := range events {
 		assert.Equal(t, "downloading-bitcoind", e.Stage)
 	}
 
-	// First two should have download bytes
-	assert.Equal(t, int64(1000), events[0].BytesDownloaded)
-	assert.Equal(t, int64(10000), events[0].TotalBytes)
-	assert.Equal(t, int64(5000), events[1].BytesDownloaded)
-	assert.Equal(t, int64(10000), events[1].TotalBytes)
+	assert.Equal(t, int64(1), events[0].MBDownloaded)
+	assert.Equal(t, int64(10), events[0].MBTotal)
+	assert.Equal(t, int64(5), events[1].MBDownloaded)
+	assert.Equal(t, int64(10), events[1].MBTotal)
 
-	// Last two are messages without bytes
 	assert.Equal(t, "extracting...", events[2].Message)
-	assert.Equal(t, int64(0), events[2].BytesDownloaded)
+	assert.Equal(t, int64(0), events[2].MBDownloaded)
 }
 
 func TestForwardDownload_Error(t *testing.T) {
 	downloadCh := make(chan DownloadProgress, 10)
 	startupCh := make(chan StartupProgress, 10)
 
-	downloadCh <- DownloadProgress{BytesDownloaded: 1000, TotalBytes: 10000, Message: "progress"}
+	downloadCh <- DownloadProgress{MBDownloaded: 1, MBTotal: 10, Message: "progress"}
 	downloadCh <- DownloadProgress{Error: fmt.Errorf("network timeout")}
 	close(downloadCh)
 
@@ -246,7 +256,6 @@ func TestForwardDownload_Error(t *testing.T) {
 	assert.Contains(t, err.Error(), "network timeout")
 	close(startupCh)
 
-	// Only the first event should have been forwarded (before the error)
 	var events []StartupProgress
 	for p := range startupCh {
 		events = append(events, p)
@@ -259,9 +268,8 @@ func TestForwardDownload_SkipsEmpty(t *testing.T) {
 	downloadCh := make(chan DownloadProgress, 10)
 	startupCh := make(chan StartupProgress, 10)
 
-	// An event with zero bytes and no message should be skipped
-	downloadCh <- DownloadProgress{BytesDownloaded: 0, TotalBytes: 0, Message: ""}
-	downloadCh <- DownloadProgress{BytesDownloaded: 1000, TotalBytes: 10000, Message: "progress"}
+	downloadCh <- DownloadProgress{MBDownloaded: 0, MBTotal: 0, Message: ""}
+	downloadCh <- DownloadProgress{MBDownloaded: 1, MBTotal: 10, Message: "progress"}
 	close(downloadCh)
 
 	err := forwardDownload(downloadCh, startupCh, "downloading-thunder")
@@ -272,16 +280,14 @@ func TestForwardDownload_SkipsEmpty(t *testing.T) {
 	for p := range startupCh {
 		events = append(events, p)
 	}
-	// Only the second event should be forwarded
 	require.Len(t, events, 1)
-	assert.Equal(t, int64(1000), events[0].BytesDownloaded)
+	assert.Equal(t, int64(1), events[0].MBDownloaded)
 }
 
 func TestForwardDownload_AlreadyDownloaded(t *testing.T) {
 	downloadCh := make(chan DownloadProgress, 10)
 	startupCh := make(chan StartupProgress, 10)
 
-	// "already downloaded" has a message but no bytes
 	downloadCh <- DownloadProgress{Message: "already downloaded", Done: true}
 	close(downloadCh)
 
@@ -295,7 +301,7 @@ func TestForwardDownload_AlreadyDownloaded(t *testing.T) {
 	}
 	require.Len(t, events, 1)
 	assert.Equal(t, "already downloaded", events[0].Message)
-	assert.Equal(t, int64(0), events[0].BytesDownloaded)
+	assert.Equal(t, int64(0), events[0].MBDownloaded)
 }
 
 func TestDownload_ClearsInFlightOnCompletion(t *testing.T) {
@@ -304,6 +310,9 @@ func TestDownload_ClearsInFlightOnCompletion(t *testing.T) {
 
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Length", fmt.Sprintf("%d", totalSize))
+		if r.Method == http.MethodHead {
+			return
+		}
 		_, _ = w.Write(payload)
 	}))
 	defer srv.Close()
@@ -314,6 +323,9 @@ func TestDownload_ClearsInFlightOnCompletion(t *testing.T) {
 	zipContent := makeZipBytes(t, map[string][]byte{"test-binary": []byte("data")})
 	srv2 := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Length", fmt.Sprintf("%d", len(zipContent)))
+		if r.Method == http.MethodHead {
+			return
+		}
 		_, _ = w.Write(zipContent)
 	}))
 	defer srv2.Close()
@@ -333,7 +345,6 @@ func TestDownload_ClearsInFlightOnCompletion(t *testing.T) {
 	drainProgress(t, ch)
 
 	// Should be able to download again (inFlight cleared)
-	// Need to remove the binary first since force=true still checks the goroutine
 	_ = dir // suppress unused warning
 	ch, err = dm.Download(context.Background(), config, "default", true)
 	require.NoError(t, err)
@@ -341,11 +352,10 @@ func TestDownload_ClearsInFlightOnCompletion(t *testing.T) {
 }
 
 func TestDownloadFile_ProgressMessagesUnknownTotal(t *testing.T) {
-	totalSize := 2 * 1024 * 1024 // 2MB
+	totalSize := 2 * 1024 * 1024
 	payload := make([]byte, totalSize)
 
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// No Content-Length
+	srv := httptest.NewServer(blockHEAD(func(w http.ResponseWriter, r *http.Request) {
 		_, _ = w.Write(payload)
 	}))
 	defer srv.Close()
@@ -362,16 +372,15 @@ func TestDownloadFile_ProgressMessagesUnknownTotal(t *testing.T) {
 
 	var updates []DownloadProgress
 	for p := range ch {
-		if p.BytesDownloaded > 0 {
+		if p.MBDownloaded > 0 {
 			updates = append(updates, p)
 		}
 	}
 
 	assert.Greater(t, len(updates), 0, "should have progress updates")
 
-	// When total is unknown, TotalBytes should be -1 or 0
 	for _, u := range updates {
-		assert.LessOrEqual(t, u.TotalBytes, int64(0), "unknown total should be <= 0")
-		assert.Greater(t, u.BytesDownloaded, int64(0))
+		assert.LessOrEqual(t, u.MBTotal, int64(0), "unknown total should be <= 0")
+		assert.Greater(t, u.MBDownloaded, int64(0))
 	}
 }

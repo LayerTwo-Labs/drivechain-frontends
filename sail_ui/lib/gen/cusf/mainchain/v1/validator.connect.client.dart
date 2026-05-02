@@ -7,7 +7,7 @@ import "package:connectrpc/connect.dart" as connect;
 import "validator.pb.dart" as cusfmainchainv1validator;
 import "validator.connect.spec.dart" as specs;
 
-extension type ValidatorServiceClient (connect.Transport _transport) {
+extension type ValidatorServiceClient(connect.Transport _transport) {
   /// Fetches information about a specific mainchain block header,
   /// and optionally, it's ancestors
   Future<cusfmainchainv1validator.GetBlockHeaderInfoResponse> getBlockHeaderInfo(

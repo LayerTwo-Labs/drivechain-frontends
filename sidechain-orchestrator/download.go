@@ -22,11 +22,35 @@ import (
 )
 
 type DownloadProgress struct {
-	BytesDownloaded int64
-	TotalBytes      int64 // -1 if unknown
-	Message         string
-	Done            bool
-	Error           error
+	// Progress in megabytes — bytes are converted at the source (downloadFile)
+	// so every consumer (UI, logs, tests) sees the same units.
+	MBDownloaded int64
+	MBTotal      int64 // -1 if unknown
+	Message      string
+	Done         bool
+	Error        error
+}
+
+// DownloadState is the in-memory snapshot of the latest progress event for a
+// binary. The orchestrator's GetSyncStatus reads from here so the polled API
+// can carry download progress without a separate stream — frontends never
+// need to subscribe to DownloadBinary / StartWithL1 just to draw a progress
+// bar.
+type DownloadState struct {
+	MBDownloaded int64
+	MBTotal      int64
+	Message      string
+	Running      bool
+}
+
+const bytesPerMB int64 = 1024 * 1024
+
+// toMB rounds bytes down to whole megabytes. -1 (unknown total) passes through.
+func toMB(bytes int64) int64 {
+	if bytes < 0 {
+		return -1
+	}
+	return bytes / bytesPerMB
 }
 
 type DownloadManager struct {
@@ -35,6 +59,11 @@ type DownloadManager struct {
 	httpClient     *http.Client
 	log            zerolog.Logger
 	inFlight       sync.Map
+	// state holds the latest DownloadState for each in-flight binary, keyed
+	// by the binary's logical name (e.g. "bitcoind", "thunder"). Updated on
+	// every progress event from downloadFile, deleted on Done/Error so a
+	// later GetSyncStatus tick reports nothing rather than stale bytes.
+	state sync.Map
 
 	// CoreVariant returns the active Bitcoin Core variant spec to use for
 	// download/extract. It is consulted only when config.IsBitcoinCore. May
@@ -138,8 +167,17 @@ func (d *DownloadManager) Download(ctx context.Context, config BinaryConfig, net
 
 	ch := make(chan DownloadProgress, 100)
 
+	// stateKey is the binary's logical name — what GetSyncStatus looks up
+	// when populating ChainSync. It deliberately ignores the variant suffix
+	// in inFlightKey: a download for "bitcoind:knots" and "bitcoind:patched"
+	// can't run concurrently anyway (gated by inFlight), and the UI shows
+	// progress for "bitcoind".
+	stateKey := config.Name
+	d.state.Store(stateKey, DownloadState{Running: true})
+
 	go func() {
 		defer d.inFlight.Delete(inFlightKey)
+		defer d.state.Delete(stateKey)
 		defer close(ch)
 
 		// send aborts the goroutine when ctx fires *or* when the consumer
@@ -150,6 +188,17 @@ func (d *DownloadManager) Download(ctx context.Context, config BinaryConfig, net
 		// out with "X is already being downloaded" — which is exactly how
 		// the canceled-then-restart path was wedging the orchestrator.
 		send := func(p DownloadProgress) bool {
+			// Mirror every progress event into the state map. The polled
+			// GetSyncStatus reads from here so the frontend gets download
+			// bytes without subscribing to this channel.
+			if p.Error == nil && !p.Done {
+				d.state.Store(stateKey, DownloadState{
+					MBDownloaded: p.MBDownloaded,
+					MBTotal:      p.MBTotal,
+					Message:      p.Message,
+					Running:      true,
+				})
+			}
 			select {
 			case ch <- p:
 				return true
@@ -260,6 +309,23 @@ func (d *DownloadManager) activeSidechainVariant(config BinaryConfig) (sidechain
 	return d.SidechainVariant(config)
 }
 
+// State returns the latest download progress snapshot for a binary, keyed by
+// its logical name (e.g. "bitcoind", "thunder"). ok=false means no download
+// is in flight for that name. Read by Orchestrator.GetSyncStatus so the
+// polled API can report download progress without callers needing to
+// subscribe to the DownloadBinary / StartWithL1 streams.
+func (d *DownloadManager) State(binaryName string) (DownloadState, bool) {
+	v, ok := d.state.Load(binaryName)
+	if !ok {
+		return DownloadState{}, false
+	}
+	state, ok := v.(DownloadState)
+	if !ok {
+		return DownloadState{}, false
+	}
+	return state, true
+}
+
 // resolveGitHubURL queries the GitHub releases API and finds the asset
 // matching the regex pattern.
 func (d *DownloadManager) resolveGitHubURL(ctx context.Context, apiURL, pattern string) (string, error) {
@@ -307,8 +373,40 @@ func (d *DownloadManager) resolveGitHubURL(ctx context.Context, apiURL, pattern 
 	return "", fmt.Errorf("no asset matching %q in release", pattern)
 }
 
-// downloadFile downloads a URL to a local path with progress reporting.
+// probeContentLength asks the server for the size up front via HEAD. Returns
+// -1 when the server doesn't answer with a usable Content-Length so the
+// caller can fall back to whatever the GET response carries (or unknown).
+//
+// We probe explicitly because some download paths (S3-backed redirects via
+// the GitHub API, the bitcoincore.org tarball) return a final response with
+// no Content-Length, and the UI then can't show a total. A HEAD round-trip
+// is cheap and reliably gives us the number on releases.drivechain.info.
+func (d *DownloadManager) probeContentLength(ctx context.Context, url string) int64 {
+	req, err := http.NewRequestWithContext(ctx, http.MethodHead, url, nil)
+	if err != nil {
+		return -1
+	}
+	resp, err := d.httpClient.Do(req)
+	if err != nil {
+		return -1
+	}
+	defer resp.Body.Close() //nolint:errcheck // cleanup
+	if resp.StatusCode != http.StatusOK {
+		return -1
+	}
+	if resp.ContentLength > 0 {
+		return resp.ContentLength
+	}
+	return -1
+}
+
+// downloadFile downloads a URL to a local path with progress reporting in MB.
 func (d *DownloadManager) downloadFile(ctx context.Context, url, savePath string, progress chan<- DownloadProgress) error {
+	// Probe the size first — final GET responses sometimes lack Content-Length
+	// (S3 redirects, transfer-encoded responses), and the UI's progress bar
+	// goes blank when total is unknown.
+	probedTotal := d.probeContentLength(ctx, url)
+
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
 		return fmt.Errorf("create request: %w", err)
@@ -331,8 +429,11 @@ func (d *DownloadManager) downloadFile(ctx context.Context, url, savePath string
 	defer f.Close() //nolint:errcheck // cleanup
 
 	total := resp.ContentLength
+	if total <= 0 {
+		total = probedTotal
+	}
 	var downloaded int64
-	var lastPermille int64 = -1                // tracks 0.1% increments (0-1000)
+	var lastPct int64 = -1
 	const unknownChunkSize int64 = 1024 * 1024 // report every ~1MB when total unknown
 	var lastUnknownReport int64
 
@@ -347,10 +448,9 @@ func (d *DownloadManager) downloadFile(ctx context.Context, url, savePath string
 
 			shouldSend := false
 			if total > 0 {
-				// Report every 1% to avoid flooding clients.
 				pct := downloaded * 100 / total
-				if pct != lastPermille {
-					lastPermille = pct
+				if pct != lastPct {
+					lastPct = pct
 					shouldSend = true
 				}
 			} else {
@@ -366,8 +466,8 @@ func (d *DownloadManager) downloadFile(ctx context.Context, url, savePath string
 				// as the outer goroutine's `ch <-` sends.
 				select {
 				case progress <- DownloadProgress{
-					BytesDownloaded: downloaded,
-					TotalBytes:      total,
+					MBDownloaded: toMB(downloaded),
+					MBTotal:      toMB(total),
 				}:
 				case <-ctx.Done():
 					return ctx.Err()
@@ -392,10 +492,6 @@ func (d *DownloadManager) extractBinary(archivePath string, config BinaryConfig,
 	destDir := BinDir(dataDir)
 
 	switch {
-	case hasVariant && variant.Subfolder != "":
-		// Core variants live in their own per-variant subfolder so multiple
-		// builds (untouched / touched / knots) can coexist on disk.
-		destDir = filepath.Join(destDir, variant.Subfolder)
 	case hasSCVariant:
 		// Test sidechain builds need a private dir so per-binary lib/data
 		// trees don't collide.

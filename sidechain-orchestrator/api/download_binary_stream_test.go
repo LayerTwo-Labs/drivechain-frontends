@@ -23,29 +23,25 @@ import (
 	rpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/orchestrator/v1/orchestratorv1connect"
 )
 
-// TestDownloadBinary_StreamsProgressAndCompletes is the end-to-end regression
-// guard for the DownloadBinary RPC: a fresh download must stream incremental
-// progress (BytesDownloaded / TotalBytes), end with Done=true, and the
-// channel-to-stream forwarder must not drop or reorder events.
-//
-// Why end-to-end: download_test.go covers the channel layer directly, and
-// download_progress_test.go covers downloadFile throttling. Neither catches
-// regressions in the Connect handler that reads `<-ch` and calls stream.Send
-// — exactly the seam where my failBoot / select-on-ctx changes touched code.
-func TestDownloadBinary_StreamsProgressAndCompletes(t *testing.T) {
-	// Stub binary download server. Use a real zip whose payload entry is
-	// large enough to cross multiple 1% progress thresholds in downloadFile,
-	// so the stream carries intermediate frames not just the final Done.
-	bigBinary := bytes.Repeat([]byte("x"), 200_000)
+// TestDownloadBinary_DispatchesAndCompletes is the regression guard for the
+// unary DownloadBinary contract: the RPC returns immediately, the goroutine
+// runs in the background, and the binary lands on disk eventually. Progress
+// is no longer streamed back to the client — that's polled out of
+// GetSyncStatus / DownloadManager.State, which is exercised elsewhere.
+func TestDownloadBinary_DispatchesAndCompletes(t *testing.T) {
+	bigBinary := bytes.Repeat([]byte("x"), 5*1024*1024)
 	payload := makeZipBytes(t, map[string][]byte{"streamtest": bigBinary})
 	binarySrv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Length", fmt.Sprintf("%d", len(payload)))
+		if r.Method == http.MethodHead {
+			w.WriteHeader(http.StatusOK)
+			return
+		}
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write(payload)
 	}))
 	defer binarySrv.Close()
 
-	// Build an orch with a single test binary pointed at the stub server.
 	orch := newTestOrchHandlerWithBinary(t, orchestrator.BinaryConfig{
 		Name:           "streamtest",
 		BinaryName:     "streamtest",
@@ -54,7 +50,6 @@ func TestDownloadBinary_StreamsProgressAndCompletes(t *testing.T) {
 		Files:          map[string]string{currentOS(): "streamtest.zip"},
 	})
 
-	// Wire the Connect handler behind an h2c httptest server.
 	mux := http.NewServeMux()
 	path, h := rpc.NewOrchestratorServiceHandler(NewHandler(orch))
 	mux.Handle(path, h)
@@ -67,39 +62,31 @@ func TestDownloadBinary_StreamsProgressAndCompletes(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
-	stream, err := client.DownloadBinary(ctx, connect.NewRequest(&pb.DownloadBinaryRequest{
+	// Unary call returns immediately — boot goroutine runs server-side.
+	resp, err := client.DownloadBinary(ctx, connect.NewRequest(&pb.DownloadBinaryRequest{
 		Name:  "streamtest",
 		Force: true,
 	}))
 	require.NoError(t, err)
+	require.NotNil(t, resp)
 
-	var (
-		events       []*pb.DownloadBinaryResponse
-		sawProgress  bool
-		lastByteSeen int64
-	)
-	for stream.Receive() {
-		msg := stream.Msg()
-		events = append(events, msg)
-		require.Empty(t, msg.Error, "no event must carry an error in the happy path: %+v", msg)
-
-		if msg.BytesDownloaded > 0 {
-			sawProgress = true
-			require.GreaterOrEqual(t, msg.BytesDownloaded, lastByteSeen, "progress must be monotonic")
-			lastByteSeen = msg.BytesDownloaded
+	// The download is now off-thread; spin until it lands or we hit timeout.
+	deadline := time.Now().Add(20 * time.Second)
+	for {
+		if time.Now().After(deadline) {
+			t.Fatalf("timed out waiting for download to complete")
 		}
+		// State stays populated while running and is deleted on completion.
+		_, running := orch.DownloadStateForTest("streamtest")
+		if !running {
+			break
+		}
+		time.Sleep(50 * time.Millisecond)
 	}
-	require.NoError(t, stream.Err(), "stream must close cleanly")
-	require.NotEmpty(t, events, "must receive at least one event")
-
-	last := events[len(events)-1]
-	require.True(t, last.Done, "last event must have Done=true; got %+v", last)
-	require.True(t, sawProgress || last.Done, "either progress events or a Done frame must be present")
 }
 
 // TestDownloadBinary_RejectsUnknownBinary confirms the handler returns an
-// error before opening a stream when the binary name isn't in the orch's
-// config — Flutter shouldn't see a half-open stream that immediately closes.
+// error directly — the goroutine never gets dispatched.
 func TestDownloadBinary_RejectsUnknownBinary(t *testing.T) {
 	orch := newTestOrchHandlerWithBinary(t, orchestrator.BinaryConfig{
 		Name:           "streamtest",
@@ -115,16 +102,10 @@ func TestDownloadBinary_RejectsUnknownBinary(t *testing.T) {
 	defer srv.Close()
 
 	client := rpc.NewOrchestratorServiceClient(srv.Client(), srv.URL, connect.WithGRPC())
-	stream, err := client.DownloadBinary(context.Background(), connect.NewRequest(&pb.DownloadBinaryRequest{
+	_, err := client.DownloadBinary(context.Background(), connect.NewRequest(&pb.DownloadBinaryRequest{
 		Name: "no-such-binary",
 	}))
-	require.NoError(t, err, "RPC dispatch itself must succeed")
-
-	// Walk the stream — it should close with an error, not silently end empty.
-	for stream.Receive() {
-		// drain
-	}
-	require.Error(t, stream.Err(), "stream must surface the unknown-binary error to the caller")
+	require.Error(t, err, "unknown binary must surface as an RPC error")
 }
 
 // newTestOrchHandlerWithBinary builds a minimal Orchestrator wired with a

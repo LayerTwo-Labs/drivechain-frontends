@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
+import 'package:sail_ui/classes/rpc_connection.dart';
 import 'package:sail_ui/gen/drivechain/v1/drivechain.pb.dart' as drivechainpb;
 import 'package:sail_ui/gen/m4/v1/m4.pb.dart' as m4pb;
 import 'package:sail_ui/providers/sync_provider.dart';
@@ -89,7 +90,9 @@ class M4Provider extends ChangeNotifier {
       votePreferences = results[2] as List<m4pb.M4Vote>;
       modelError = null;
     } catch (e) {
-      log.e('Failed to fetch M4 data: $e');
+      if (!isExpectedBootError(e)) {
+        log.e('Failed to fetch M4 data: $e');
+      }
       modelError = e.toString();
     } finally {
       if (!_disposed) {

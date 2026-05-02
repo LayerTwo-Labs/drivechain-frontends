@@ -230,7 +230,12 @@ func NewCoreStatusClient(host string, port int, user, password string) *CoreStat
 		url:      fmt.Sprintf("http://%s:%d", host, port),
 		user:     user,
 		password: password,
-		client:   &http.Client{Timeout: 5 * time.Second},
+		// 15s rather than 5s. During IBD getblockchaininfo blocks on
+		// Core's cs_main lock and routinely takes several seconds while
+		// blocks are being processed. A tight 5s timeout was tripping the
+		// connection-lost monitor on every other poll, which then storm-
+		// reconnects against an already-overloaded daemon.
+		client: &http.Client{Timeout: 15 * time.Second},
 	}
 }
 

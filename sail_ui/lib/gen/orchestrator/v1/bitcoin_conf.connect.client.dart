@@ -7,7 +7,7 @@ import "package:connectrpc/connect.dart" as connect;
 import "bitcoin_conf.pb.dart" as orchestratorv1bitcoin_conf;
 import "bitcoin_conf.connect.spec.dart" as specs;
 
-extension type BitcoinConfServiceClient (connect.Transport _transport) {
+extension type BitcoinConfServiceClient(connect.Transport _transport) {
   /// Get current Bitcoin Core configuration state.
   Future<orchestratorv1bitcoin_conf.GetBitcoinConfigResponse> getBitcoinConfig(
     orchestratorv1bitcoin_conf.GetBitcoinConfigRequest input, {

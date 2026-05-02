@@ -14,15 +14,22 @@ import 'dart:core' as $core;
 import 'package:protobuf/protobuf.dart' as $pb;
 
 class FastWithdrawalUpdate_Status extends $pb.ProtobufEnum {
-  static const FastWithdrawalUpdate_Status STATUS_UNSPECIFIED = FastWithdrawalUpdate_Status._(0, _omitEnumNames ? '' : 'STATUS_UNSPECIFIED');
-  static const FastWithdrawalUpdate_Status STATUS_INITIATING = FastWithdrawalUpdate_Status._(1, _omitEnumNames ? '' : 'STATUS_INITIATING');
-  static const FastWithdrawalUpdate_Status STATUS_PENDING = FastWithdrawalUpdate_Status._(2, _omitEnumNames ? '' : 'STATUS_PENDING');
-  static const FastWithdrawalUpdate_Status STATUS_DETECTED = FastWithdrawalUpdate_Status._(3, _omitEnumNames ? '' : 'STATUS_DETECTED');
-  static const FastWithdrawalUpdate_Status STATUS_CONFIRMED = FastWithdrawalUpdate_Status._(4, _omitEnumNames ? '' : 'STATUS_CONFIRMED');
-  static const FastWithdrawalUpdate_Status STATUS_FAILED = FastWithdrawalUpdate_Status._(5, _omitEnumNames ? '' : 'STATUS_FAILED');
-  static const FastWithdrawalUpdate_Status STATUS_COMPLETED = FastWithdrawalUpdate_Status._(6, _omitEnumNames ? '' : 'STATUS_COMPLETED');
+  static const FastWithdrawalUpdate_Status STATUS_UNSPECIFIED =
+      FastWithdrawalUpdate_Status._(0, _omitEnumNames ? '' : 'STATUS_UNSPECIFIED');
+  static const FastWithdrawalUpdate_Status STATUS_INITIATING =
+      FastWithdrawalUpdate_Status._(1, _omitEnumNames ? '' : 'STATUS_INITIATING');
+  static const FastWithdrawalUpdate_Status STATUS_PENDING =
+      FastWithdrawalUpdate_Status._(2, _omitEnumNames ? '' : 'STATUS_PENDING');
+  static const FastWithdrawalUpdate_Status STATUS_DETECTED =
+      FastWithdrawalUpdate_Status._(3, _omitEnumNames ? '' : 'STATUS_DETECTED');
+  static const FastWithdrawalUpdate_Status STATUS_CONFIRMED =
+      FastWithdrawalUpdate_Status._(4, _omitEnumNames ? '' : 'STATUS_CONFIRMED');
+  static const FastWithdrawalUpdate_Status STATUS_FAILED =
+      FastWithdrawalUpdate_Status._(5, _omitEnumNames ? '' : 'STATUS_FAILED');
+  static const FastWithdrawalUpdate_Status STATUS_COMPLETED =
+      FastWithdrawalUpdate_Status._(6, _omitEnumNames ? '' : 'STATUS_COMPLETED');
 
-  static const $core.List<FastWithdrawalUpdate_Status> values = <FastWithdrawalUpdate_Status> [
+  static const $core.List<FastWithdrawalUpdate_Status> values = <FastWithdrawalUpdate_Status>[
     STATUS_UNSPECIFIED,
     STATUS_INITIATING,
     STATUS_PENDING,
@@ -37,6 +44,5 @@ class FastWithdrawalUpdate_Status extends $pb.ProtobufEnum {
 
   const FastWithdrawalUpdate_Status._($core.int v, $core.String n) : super(v, n);
 }
-
 
 const _omitEnumNames = $core.bool.fromEnvironment('protobuf.omit_enum_names');

@@ -19,8 +19,8 @@ const GetBitcoinConfigRequest$json = {
 };
 
 /// Descriptor for `GetBitcoinConfigRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List getBitcoinConfigRequestDescriptor = $convert.base64Decode(
-    'ChdHZXRCaXRjb2luQ29uZmlnUmVxdWVzdA==');
+final $typed_data.Uint8List getBitcoinConfigRequestDescriptor =
+    $convert.base64Decode('ChdHZXRCaXRjb2luQ29uZmlnUmVxdWVzdA==');
 
 @$core.Deprecated('Use getBitcoinConfigResponseDescriptor instead')
 const GetBitcoinConfigResponse$json = {
@@ -40,15 +40,15 @@ const GetBitcoinConfigResponse$json = {
 };
 
 /// Descriptor for `GetBitcoinConfigResponse`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List getBitcoinConfigResponseDescriptor = $convert.base64Decode(
-    'ChhHZXRCaXRjb2luQ29uZmlnUmVzcG9uc2USGAoHbmV0d29yaxgBIAEoCVIHbmV0d29yaxIZCg'
-    'hycGNfcG9ydBgCIAEoBVIHcnBjUG9ydBIoChBoYXNfcHJpdmF0ZV9jb25mGAMgASgIUg5oYXNQ'
-    'cml2YXRlQ29uZhIfCgtjb25maWdfcGF0aBgEIAEoCVIKY29uZmlnUGF0aBIqChFkZXRlY3RlZF'
-    '9kYXRhX2RpchgFIAEoCVIPZGV0ZWN0ZWREYXRhRGlyEiUKDmNvbmZpZ19jb250ZW50GAYgASgJ'
-    'Ug1jb25maWdDb250ZW50Ej4KG25ldHdvcmtfc3VwcG9ydHNfc2lkZWNoYWlucxgHIAEoCFIZbm'
-    'V0d29ya1N1cHBvcnRzU2lkZWNoYWlucxIgCgxpc19kZW1vX21vZGUYCCABKAhSCmlzRGVtb01v'
-    'ZGUSGQoIcnBjX3VzZXIYCSABKAlSB3JwY1VzZXISIQoMcnBjX3Bhc3N3b3JkGAogASgJUgtycG'
-    'NQYXNzd29yZA==');
+final $typed_data.Uint8List getBitcoinConfigResponseDescriptor =
+    $convert.base64Decode('ChhHZXRCaXRjb2luQ29uZmlnUmVzcG9uc2USGAoHbmV0d29yaxgBIAEoCVIHbmV0d29yaxIZCg'
+        'hycGNfcG9ydBgCIAEoBVIHcnBjUG9ydBIoChBoYXNfcHJpdmF0ZV9jb25mGAMgASgIUg5oYXNQ'
+        'cml2YXRlQ29uZhIfCgtjb25maWdfcGF0aBgEIAEoCVIKY29uZmlnUGF0aBIqChFkZXRlY3RlZF'
+        '9kYXRhX2RpchgFIAEoCVIPZGV0ZWN0ZWREYXRhRGlyEiUKDmNvbmZpZ19jb250ZW50GAYgASgJ'
+        'Ug1jb25maWdDb250ZW50Ej4KG25ldHdvcmtfc3VwcG9ydHNfc2lkZWNoYWlucxgHIAEoCFIZbm'
+        'V0d29ya1N1cHBvcnRzU2lkZWNoYWlucxIgCgxpc19kZW1vX21vZGUYCCABKAhSCmlzRGVtb01v'
+        'ZGUSGQoIcnBjX3VzZXIYCSABKAlSB3JwY1VzZXISIQoMcnBjX3Bhc3N3b3JkGAogASgJUgtycG'
+        'NQYXNzd29yZA==');
 
 @$core.Deprecated('Use setBitcoinConfigNetworkRequestDescriptor instead')
 const SetBitcoinConfigNetworkRequest$json = {
@@ -59,9 +59,9 @@ const SetBitcoinConfigNetworkRequest$json = {
 };
 
 /// Descriptor for `SetBitcoinConfigNetworkRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List setBitcoinConfigNetworkRequestDescriptor = $convert.base64Decode(
-    'Ch5TZXRCaXRjb2luQ29uZmlnTmV0d29ya1JlcXVlc3QSGAoHbmV0d29yaxgBIAEoCVIHbmV0d2'
-    '9yaw==');
+final $typed_data.Uint8List setBitcoinConfigNetworkRequestDescriptor =
+    $convert.base64Decode('Ch5TZXRCaXRjb2luQ29uZmlnTmV0d29ya1JlcXVlc3QSGAoHbmV0d29yaxgBIAEoCVIHbmV0d2'
+        '9yaw==');
 
 @$core.Deprecated('Use setBitcoinConfigNetworkResponseDescriptor instead')
 const SetBitcoinConfigNetworkResponse$json = {
@@ -69,8 +69,8 @@ const SetBitcoinConfigNetworkResponse$json = {
 };
 
 /// Descriptor for `SetBitcoinConfigNetworkResponse`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List setBitcoinConfigNetworkResponseDescriptor = $convert.base64Decode(
-    'Ch9TZXRCaXRjb2luQ29uZmlnTmV0d29ya1Jlc3BvbnNl');
+final $typed_data.Uint8List setBitcoinConfigNetworkResponseDescriptor =
+    $convert.base64Decode('Ch9TZXRCaXRjb2luQ29uZmlnTmV0d29ya1Jlc3BvbnNl');
 
 @$core.Deprecated('Use setBitcoinConfigDataDirRequestDescriptor instead')
 const SetBitcoinConfigDataDirRequest$json = {
@@ -82,9 +82,9 @@ const SetBitcoinConfigDataDirRequest$json = {
 };
 
 /// Descriptor for `SetBitcoinConfigDataDirRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List setBitcoinConfigDataDirRequestDescriptor = $convert.base64Decode(
-    'Ch5TZXRCaXRjb2luQ29uZmlnRGF0YURpclJlcXVlc3QSGQoIZGF0YV9kaXIYASABKAlSB2RhdG'
-    'FEaXISGAoHbmV0d29yaxgCIAEoCVIHbmV0d29yaw==');
+final $typed_data.Uint8List setBitcoinConfigDataDirRequestDescriptor =
+    $convert.base64Decode('Ch5TZXRCaXRjb2luQ29uZmlnRGF0YURpclJlcXVlc3QSGQoIZGF0YV9kaXIYASABKAlSB2RhdG'
+        'FEaXISGAoHbmV0d29yaxgCIAEoCVIHbmV0d29yaw==');
 
 @$core.Deprecated('Use setBitcoinConfigDataDirResponseDescriptor instead')
 const SetBitcoinConfigDataDirResponse$json = {
@@ -92,8 +92,8 @@ const SetBitcoinConfigDataDirResponse$json = {
 };
 
 /// Descriptor for `SetBitcoinConfigDataDirResponse`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List setBitcoinConfigDataDirResponseDescriptor = $convert.base64Decode(
-    'Ch9TZXRCaXRjb2luQ29uZmlnRGF0YURpclJlc3BvbnNl');
+final $typed_data.Uint8List setBitcoinConfigDataDirResponseDescriptor =
+    $convert.base64Decode('Ch9TZXRCaXRjb2luQ29uZmlnRGF0YURpclJlc3BvbnNl');
 
 @$core.Deprecated('Use writeBitcoinConfigRequestDescriptor instead')
 const WriteBitcoinConfigRequest$json = {
@@ -104,9 +104,9 @@ const WriteBitcoinConfigRequest$json = {
 };
 
 /// Descriptor for `WriteBitcoinConfigRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List writeBitcoinConfigRequestDescriptor = $convert.base64Decode(
-    'ChlXcml0ZUJpdGNvaW5Db25maWdSZXF1ZXN0EiUKDmNvbmZpZ19jb250ZW50GAEgASgJUg1jb2'
-    '5maWdDb250ZW50');
+final $typed_data.Uint8List writeBitcoinConfigRequestDescriptor =
+    $convert.base64Decode('ChlXcml0ZUJpdGNvaW5Db25maWdSZXF1ZXN0EiUKDmNvbmZpZ19jb250ZW50GAEgASgJUg1jb2'
+        '5maWdDb250ZW50');
 
 @$core.Deprecated('Use writeBitcoinConfigResponseDescriptor instead')
 const WriteBitcoinConfigResponse$json = {
@@ -114,16 +114,32 @@ const WriteBitcoinConfigResponse$json = {
 };
 
 /// Descriptor for `WriteBitcoinConfigResponse`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List writeBitcoinConfigResponseDescriptor = $convert.base64Decode(
-    'ChpXcml0ZUJpdGNvaW5Db25maWdSZXNwb25zZQ==');
+final $typed_data.Uint8List writeBitcoinConfigResponseDescriptor =
+    $convert.base64Decode('ChpXcml0ZUJpdGNvaW5Db25maWdSZXNwb25zZQ==');
 
 const $core.Map<$core.String, $core.dynamic> BitcoinConfServiceBase$json = {
   '1': 'BitcoinConfService',
   '2': [
-    {'1': 'GetBitcoinConfig', '2': '.orchestrator.v1.GetBitcoinConfigRequest', '3': '.orchestrator.v1.GetBitcoinConfigResponse'},
-    {'1': 'SetBitcoinConfigNetwork', '2': '.orchestrator.v1.SetBitcoinConfigNetworkRequest', '3': '.orchestrator.v1.SetBitcoinConfigNetworkResponse'},
-    {'1': 'SetBitcoinConfigDataDir', '2': '.orchestrator.v1.SetBitcoinConfigDataDirRequest', '3': '.orchestrator.v1.SetBitcoinConfigDataDirResponse'},
-    {'1': 'WriteBitcoinConfig', '2': '.orchestrator.v1.WriteBitcoinConfigRequest', '3': '.orchestrator.v1.WriteBitcoinConfigResponse'},
+    {
+      '1': 'GetBitcoinConfig',
+      '2': '.orchestrator.v1.GetBitcoinConfigRequest',
+      '3': '.orchestrator.v1.GetBitcoinConfigResponse'
+    },
+    {
+      '1': 'SetBitcoinConfigNetwork',
+      '2': '.orchestrator.v1.SetBitcoinConfigNetworkRequest',
+      '3': '.orchestrator.v1.SetBitcoinConfigNetworkResponse'
+    },
+    {
+      '1': 'SetBitcoinConfigDataDir',
+      '2': '.orchestrator.v1.SetBitcoinConfigDataDirRequest',
+      '3': '.orchestrator.v1.SetBitcoinConfigDataDirResponse'
+    },
+    {
+      '1': 'WriteBitcoinConfig',
+      '2': '.orchestrator.v1.WriteBitcoinConfigRequest',
+      '3': '.orchestrator.v1.WriteBitcoinConfigResponse'
+    },
   ],
 };
 
@@ -140,14 +156,13 @@ const $core.Map<$core.String, $core.Map<$core.String, $core.dynamic>> BitcoinCon
 };
 
 /// Descriptor for `BitcoinConfService`. Decode as a `google.protobuf.ServiceDescriptorProto`.
-final $typed_data.Uint8List bitcoinConfServiceDescriptor = $convert.base64Decode(
-    'ChJCaXRjb2luQ29uZlNlcnZpY2USZwoQR2V0Qml0Y29pbkNvbmZpZxIoLm9yY2hlc3RyYXRvci'
-    '52MS5HZXRCaXRjb2luQ29uZmlnUmVxdWVzdBopLm9yY2hlc3RyYXRvci52MS5HZXRCaXRjb2lu'
-    'Q29uZmlnUmVzcG9uc2USfAoXU2V0Qml0Y29pbkNvbmZpZ05ldHdvcmsSLy5vcmNoZXN0cmF0b3'
-    'IudjEuU2V0Qml0Y29pbkNvbmZpZ05ldHdvcmtSZXF1ZXN0GjAub3JjaGVzdHJhdG9yLnYxLlNl'
-    'dEJpdGNvaW5Db25maWdOZXR3b3JrUmVzcG9uc2USfAoXU2V0Qml0Y29pbkNvbmZpZ0RhdGFEaX'
-    'ISLy5vcmNoZXN0cmF0b3IudjEuU2V0Qml0Y29pbkNvbmZpZ0RhdGFEaXJSZXF1ZXN0GjAub3Jj'
-    'aGVzdHJhdG9yLnYxLlNldEJpdGNvaW5Db25maWdEYXRhRGlyUmVzcG9uc2USbQoSV3JpdGVCaX'
-    'Rjb2luQ29uZmlnEioub3JjaGVzdHJhdG9yLnYxLldyaXRlQml0Y29pbkNvbmZpZ1JlcXVlc3Qa'
-    'Ky5vcmNoZXN0cmF0b3IudjEuV3JpdGVCaXRjb2luQ29uZmlnUmVzcG9uc2U=');
-
+final $typed_data.Uint8List bitcoinConfServiceDescriptor =
+    $convert.base64Decode('ChJCaXRjb2luQ29uZlNlcnZpY2USZwoQR2V0Qml0Y29pbkNvbmZpZxIoLm9yY2hlc3RyYXRvci'
+        '52MS5HZXRCaXRjb2luQ29uZmlnUmVxdWVzdBopLm9yY2hlc3RyYXRvci52MS5HZXRCaXRjb2lu'
+        'Q29uZmlnUmVzcG9uc2USfAoXU2V0Qml0Y29pbkNvbmZpZ05ldHdvcmsSLy5vcmNoZXN0cmF0b3'
+        'IudjEuU2V0Qml0Y29pbkNvbmZpZ05ldHdvcmtSZXF1ZXN0GjAub3JjaGVzdHJhdG9yLnYxLlNl'
+        'dEJpdGNvaW5Db25maWdOZXR3b3JrUmVzcG9uc2USfAoXU2V0Qml0Y29pbkNvbmZpZ0RhdGFEaX'
+        'ISLy5vcmNoZXN0cmF0b3IudjEuU2V0Qml0Y29pbkNvbmZpZ0RhdGFEaXJSZXF1ZXN0GjAub3Jj'
+        'aGVzdHJhdG9yLnYxLlNldEJpdGNvaW5Db25maWdEYXRhRGlyUmVzcG9uc2USbQoSV3JpdGVCaX'
+        'Rjb2luQ29uZmlnEioub3JjaGVzdHJhdG9yLnYxLldyaXRlQml0Y29pbkNvbmZpZ1JlcXVlc3Qa'
+        'Ky5vcmNoZXN0cmF0b3IudjEuV3JpdGVCaXRjb2luQ29uZmlnUmVzcG9uc2U=');

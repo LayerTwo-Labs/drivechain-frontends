@@ -21,7 +21,7 @@ class Network extends $pb.ProtobufEnum {
   static const Network NETWORK_SIGNET = Network._(4, _omitEnumNames ? '' : 'NETWORK_SIGNET');
   static const Network NETWORK_TESTNET = Network._(5, _omitEnumNames ? '' : 'NETWORK_TESTNET');
 
-  static const $core.List<Network> values = <Network> [
+  static const $core.List<Network> values = <Network>[
     NETWORK_UNSPECIFIED,
     NETWORK_UNKNOWN,
     NETWORK_MAINNET,
@@ -35,6 +35,5 @@ class Network extends $pb.ProtobufEnum {
 
   const Network._($core.int v, $core.String n) : super(v, n);
 }
-
 
 const _omitEnumNames = $core.bool.fromEnvironment('protobuf.omit_enum_names');

@@ -29,46 +29,71 @@ abstract class BitDriveServiceBase extends $pb.GeneratedService {
   $async.Future<$2.ListFilesResponse> listFiles($pb.ServerContext ctx, $1.Empty request);
   $async.Future<$2.GetFileResponse> getFile($pb.ServerContext ctx, $2.GetFileRequest request);
   $async.Future<$1.Empty> deleteFile($pb.ServerContext ctx, $2.DeleteFileRequest request);
-  $async.Future<$2.StoreMultisigDataResponse> storeMultisigData($pb.ServerContext ctx, $2.StoreMultisigDataRequest request);
+  $async.Future<$2.StoreMultisigDataResponse> storeMultisigData(
+      $pb.ServerContext ctx, $2.StoreMultisigDataRequest request);
   $async.Future<$1.Empty> wipeData($pb.ServerContext ctx, $1.Empty request);
   $async.Future<$2.GetBitdriveDirResponse> getBitdriveDir($pb.ServerContext ctx, $1.Empty request);
   $async.Future<$1.Empty> openBitdriveDir($pb.ServerContext ctx, $1.Empty request);
 
   $pb.GeneratedMessage createRequest($core.String methodName) {
     switch (methodName) {
-      case 'StoreFile': return $2.StoreFileRequest();
-      case 'RetrieveContent': return $2.RetrieveContentRequest();
-      case 'ScanForFiles': return $1.Empty();
-      case 'DownloadPendingFiles': return $1.Empty();
-      case 'ListFiles': return $1.Empty();
-      case 'GetFile': return $2.GetFileRequest();
-      case 'DeleteFile': return $2.DeleteFileRequest();
-      case 'StoreMultisigData': return $2.StoreMultisigDataRequest();
-      case 'WipeData': return $1.Empty();
-      case 'GetBitdriveDir': return $1.Empty();
-      case 'OpenBitdriveDir': return $1.Empty();
-      default: throw $core.ArgumentError('Unknown method: $methodName');
+      case 'StoreFile':
+        return $2.StoreFileRequest();
+      case 'RetrieveContent':
+        return $2.RetrieveContentRequest();
+      case 'ScanForFiles':
+        return $1.Empty();
+      case 'DownloadPendingFiles':
+        return $1.Empty();
+      case 'ListFiles':
+        return $1.Empty();
+      case 'GetFile':
+        return $2.GetFileRequest();
+      case 'DeleteFile':
+        return $2.DeleteFileRequest();
+      case 'StoreMultisigData':
+        return $2.StoreMultisigDataRequest();
+      case 'WipeData':
+        return $1.Empty();
+      case 'GetBitdriveDir':
+        return $1.Empty();
+      case 'OpenBitdriveDir':
+        return $1.Empty();
+      default:
+        throw $core.ArgumentError('Unknown method: $methodName');
     }
   }
 
-  $async.Future<$pb.GeneratedMessage> handleCall($pb.ServerContext ctx, $core.String methodName, $pb.GeneratedMessage request) {
+  $async.Future<$pb.GeneratedMessage> handleCall(
+      $pb.ServerContext ctx, $core.String methodName, $pb.GeneratedMessage request) {
     switch (methodName) {
-      case 'StoreFile': return this.storeFile(ctx, request as $2.StoreFileRequest);
-      case 'RetrieveContent': return this.retrieveContent(ctx, request as $2.RetrieveContentRequest);
-      case 'ScanForFiles': return this.scanForFiles(ctx, request as $1.Empty);
-      case 'DownloadPendingFiles': return this.downloadPendingFiles(ctx, request as $1.Empty);
-      case 'ListFiles': return this.listFiles(ctx, request as $1.Empty);
-      case 'GetFile': return this.getFile(ctx, request as $2.GetFileRequest);
-      case 'DeleteFile': return this.deleteFile(ctx, request as $2.DeleteFileRequest);
-      case 'StoreMultisigData': return this.storeMultisigData(ctx, request as $2.StoreMultisigDataRequest);
-      case 'WipeData': return this.wipeData(ctx, request as $1.Empty);
-      case 'GetBitdriveDir': return this.getBitdriveDir(ctx, request as $1.Empty);
-      case 'OpenBitdriveDir': return this.openBitdriveDir(ctx, request as $1.Empty);
-      default: throw $core.ArgumentError('Unknown method: $methodName');
+      case 'StoreFile':
+        return this.storeFile(ctx, request as $2.StoreFileRequest);
+      case 'RetrieveContent':
+        return this.retrieveContent(ctx, request as $2.RetrieveContentRequest);
+      case 'ScanForFiles':
+        return this.scanForFiles(ctx, request as $1.Empty);
+      case 'DownloadPendingFiles':
+        return this.downloadPendingFiles(ctx, request as $1.Empty);
+      case 'ListFiles':
+        return this.listFiles(ctx, request as $1.Empty);
+      case 'GetFile':
+        return this.getFile(ctx, request as $2.GetFileRequest);
+      case 'DeleteFile':
+        return this.deleteFile(ctx, request as $2.DeleteFileRequest);
+      case 'StoreMultisigData':
+        return this.storeMultisigData(ctx, request as $2.StoreMultisigDataRequest);
+      case 'WipeData':
+        return this.wipeData(ctx, request as $1.Empty);
+      case 'GetBitdriveDir':
+        return this.getBitdriveDir(ctx, request as $1.Empty);
+      case 'OpenBitdriveDir':
+        return this.openBitdriveDir(ctx, request as $1.Empty);
+      default:
+        throw $core.ArgumentError('Unknown method: $methodName');
     }
   }
 
   $core.Map<$core.String, $core.dynamic> get $json => BitDriveServiceBase$json;
   $core.Map<$core.String, $core.Map<$core.String, $core.dynamic>> get $messageJson => BitDriveServiceBase$messageJson;
 }
-

@@ -178,11 +178,15 @@ class WalletReaderProvider extends ChangeNotifier {
         try {
           results = await seed();
         } catch (e2) {
-          _logger.w('WalletReaderProvider: init seed retry failed: $e2');
+          if (!isExpectedBootError(e2)) {
+            _logger.w('WalletReaderProvider: init seed retry failed: $e2');
+          }
           return;
         }
       } else {
-        _logger.w('WalletReaderProvider: init seed failed: $e');
+        if (!isExpectedBootError(e)) {
+          _logger.w('WalletReaderProvider: init seed failed: $e');
+        }
         return;
       }
     }

@@ -102,9 +102,10 @@ class BitcoinConfProvider extends ChangeNotifier {
 
       notifyListeners();
     } catch (e) {
-      log.e('BitcoinConfProvider: failed to load config: $e');
+      if (!isExpectedBootError(e)) {
+        log.e('BitcoinConfProvider: failed to load config: $e');
+      }
       if (_isConnectionError(e)) {
-        log.i('BitcoinConfProvider: recreating connection');
         _initClient();
       }
     }

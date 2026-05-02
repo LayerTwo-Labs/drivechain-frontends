@@ -28,65 +28,103 @@ abstract class BitwindowdServiceBase extends $pb.GeneratedService {
   $async.Future<$1.Empty> cancelDenial($pb.ServerContext ctx, $3.CancelDenialRequest request);
   $async.Future<$1.Empty> pauseDenial($pb.ServerContext ctx, $3.PauseDenialRequest request);
   $async.Future<$1.Empty> resumeDenial($pb.ServerContext ctx, $3.ResumeDenialRequest request);
-  $async.Future<$3.CreateAddressBookEntryResponse> createAddressBookEntry($pb.ServerContext ctx, $3.CreateAddressBookEntryRequest request);
+  $async.Future<$3.CreateAddressBookEntryResponse> createAddressBookEntry(
+      $pb.ServerContext ctx, $3.CreateAddressBookEntryRequest request);
   $async.Future<$3.ListAddressBookResponse> listAddressBook($pb.ServerContext ctx, $1.Empty request);
   $async.Future<$1.Empty> updateAddressBookEntry($pb.ServerContext ctx, $3.UpdateAddressBookEntryRequest request);
   $async.Future<$1.Empty> deleteAddressBookEntry($pb.ServerContext ctx, $3.DeleteAddressBookEntryRequest request);
   $async.Future<$3.GetSyncInfoResponse> getSyncInfo($pb.ServerContext ctx, $1.Empty request);
   $async.Future<$1.Empty> setTransactionNote($pb.ServerContext ctx, $3.SetTransactionNoteRequest request);
   $async.Future<$3.GetFireplaceStatsResponse> getFireplaceStats($pb.ServerContext ctx, $1.Empty request);
-  $async.Future<$3.ListRecentTransactionsResponse> listRecentTransactions($pb.ServerContext ctx, $3.ListRecentTransactionsRequest request);
+  $async.Future<$3.ListRecentTransactionsResponse> listRecentTransactions(
+      $pb.ServerContext ctx, $3.ListRecentTransactionsRequest request);
   $async.Future<$3.ListBlocksResponse> listBlocks($pb.ServerContext ctx, $3.ListBlocksRequest request);
   $async.Future<$3.GetNetworkStatsResponse> getNetworkStats($pb.ServerContext ctx, $1.Empty request);
   $async.Future<$3.UpdateNetworkResponse> updateNetwork($pb.ServerContext ctx, $3.UpdateNetworkRequest request);
 
   $pb.GeneratedMessage createRequest($core.String methodName) {
     switch (methodName) {
-      case 'Stop': return $3.BitwindowdServiceStopRequest();
-      case 'MineBlocks': return $1.Empty();
-      case 'CreateDenial': return $3.CreateDenialRequest();
-      case 'CancelDenial': return $3.CancelDenialRequest();
-      case 'PauseDenial': return $3.PauseDenialRequest();
-      case 'ResumeDenial': return $3.ResumeDenialRequest();
-      case 'CreateAddressBookEntry': return $3.CreateAddressBookEntryRequest();
-      case 'ListAddressBook': return $1.Empty();
-      case 'UpdateAddressBookEntry': return $3.UpdateAddressBookEntryRequest();
-      case 'DeleteAddressBookEntry': return $3.DeleteAddressBookEntryRequest();
-      case 'GetSyncInfo': return $1.Empty();
-      case 'SetTransactionNote': return $3.SetTransactionNoteRequest();
-      case 'GetFireplaceStats': return $1.Empty();
-      case 'ListRecentTransactions': return $3.ListRecentTransactionsRequest();
-      case 'ListBlocks': return $3.ListBlocksRequest();
-      case 'GetNetworkStats': return $1.Empty();
-      case 'UpdateNetwork': return $3.UpdateNetworkRequest();
-      default: throw $core.ArgumentError('Unknown method: $methodName');
+      case 'Stop':
+        return $3.BitwindowdServiceStopRequest();
+      case 'MineBlocks':
+        return $1.Empty();
+      case 'CreateDenial':
+        return $3.CreateDenialRequest();
+      case 'CancelDenial':
+        return $3.CancelDenialRequest();
+      case 'PauseDenial':
+        return $3.PauseDenialRequest();
+      case 'ResumeDenial':
+        return $3.ResumeDenialRequest();
+      case 'CreateAddressBookEntry':
+        return $3.CreateAddressBookEntryRequest();
+      case 'ListAddressBook':
+        return $1.Empty();
+      case 'UpdateAddressBookEntry':
+        return $3.UpdateAddressBookEntryRequest();
+      case 'DeleteAddressBookEntry':
+        return $3.DeleteAddressBookEntryRequest();
+      case 'GetSyncInfo':
+        return $1.Empty();
+      case 'SetTransactionNote':
+        return $3.SetTransactionNoteRequest();
+      case 'GetFireplaceStats':
+        return $1.Empty();
+      case 'ListRecentTransactions':
+        return $3.ListRecentTransactionsRequest();
+      case 'ListBlocks':
+        return $3.ListBlocksRequest();
+      case 'GetNetworkStats':
+        return $1.Empty();
+      case 'UpdateNetwork':
+        return $3.UpdateNetworkRequest();
+      default:
+        throw $core.ArgumentError('Unknown method: $methodName');
     }
   }
 
-  $async.Future<$pb.GeneratedMessage> handleCall($pb.ServerContext ctx, $core.String methodName, $pb.GeneratedMessage request) {
+  $async.Future<$pb.GeneratedMessage> handleCall(
+      $pb.ServerContext ctx, $core.String methodName, $pb.GeneratedMessage request) {
     switch (methodName) {
-      case 'Stop': return this.stop(ctx, request as $3.BitwindowdServiceStopRequest);
-      case 'MineBlocks': return this.mineBlocks(ctx, request as $1.Empty);
-      case 'CreateDenial': return this.createDenial(ctx, request as $3.CreateDenialRequest);
-      case 'CancelDenial': return this.cancelDenial(ctx, request as $3.CancelDenialRequest);
-      case 'PauseDenial': return this.pauseDenial(ctx, request as $3.PauseDenialRequest);
-      case 'ResumeDenial': return this.resumeDenial(ctx, request as $3.ResumeDenialRequest);
-      case 'CreateAddressBookEntry': return this.createAddressBookEntry(ctx, request as $3.CreateAddressBookEntryRequest);
-      case 'ListAddressBook': return this.listAddressBook(ctx, request as $1.Empty);
-      case 'UpdateAddressBookEntry': return this.updateAddressBookEntry(ctx, request as $3.UpdateAddressBookEntryRequest);
-      case 'DeleteAddressBookEntry': return this.deleteAddressBookEntry(ctx, request as $3.DeleteAddressBookEntryRequest);
-      case 'GetSyncInfo': return this.getSyncInfo(ctx, request as $1.Empty);
-      case 'SetTransactionNote': return this.setTransactionNote(ctx, request as $3.SetTransactionNoteRequest);
-      case 'GetFireplaceStats': return this.getFireplaceStats(ctx, request as $1.Empty);
-      case 'ListRecentTransactions': return this.listRecentTransactions(ctx, request as $3.ListRecentTransactionsRequest);
-      case 'ListBlocks': return this.listBlocks(ctx, request as $3.ListBlocksRequest);
-      case 'GetNetworkStats': return this.getNetworkStats(ctx, request as $1.Empty);
-      case 'UpdateNetwork': return this.updateNetwork(ctx, request as $3.UpdateNetworkRequest);
-      default: throw $core.ArgumentError('Unknown method: $methodName');
+      case 'Stop':
+        return this.stop(ctx, request as $3.BitwindowdServiceStopRequest);
+      case 'MineBlocks':
+        return this.mineBlocks(ctx, request as $1.Empty);
+      case 'CreateDenial':
+        return this.createDenial(ctx, request as $3.CreateDenialRequest);
+      case 'CancelDenial':
+        return this.cancelDenial(ctx, request as $3.CancelDenialRequest);
+      case 'PauseDenial':
+        return this.pauseDenial(ctx, request as $3.PauseDenialRequest);
+      case 'ResumeDenial':
+        return this.resumeDenial(ctx, request as $3.ResumeDenialRequest);
+      case 'CreateAddressBookEntry':
+        return this.createAddressBookEntry(ctx, request as $3.CreateAddressBookEntryRequest);
+      case 'ListAddressBook':
+        return this.listAddressBook(ctx, request as $1.Empty);
+      case 'UpdateAddressBookEntry':
+        return this.updateAddressBookEntry(ctx, request as $3.UpdateAddressBookEntryRequest);
+      case 'DeleteAddressBookEntry':
+        return this.deleteAddressBookEntry(ctx, request as $3.DeleteAddressBookEntryRequest);
+      case 'GetSyncInfo':
+        return this.getSyncInfo(ctx, request as $1.Empty);
+      case 'SetTransactionNote':
+        return this.setTransactionNote(ctx, request as $3.SetTransactionNoteRequest);
+      case 'GetFireplaceStats':
+        return this.getFireplaceStats(ctx, request as $1.Empty);
+      case 'ListRecentTransactions':
+        return this.listRecentTransactions(ctx, request as $3.ListRecentTransactionsRequest);
+      case 'ListBlocks':
+        return this.listBlocks(ctx, request as $3.ListBlocksRequest);
+      case 'GetNetworkStats':
+        return this.getNetworkStats(ctx, request as $1.Empty);
+      case 'UpdateNetwork':
+        return this.updateNetwork(ctx, request as $3.UpdateNetworkRequest);
+      default:
+        throw $core.ArgumentError('Unknown method: $methodName');
     }
   }
 
   $core.Map<$core.String, $core.dynamic> get $json => BitwindowdServiceBase$json;
   $core.Map<$core.String, $core.Map<$core.String, $core.dynamic>> get $messageJson => BitwindowdServiceBase$messageJson;
 }
-

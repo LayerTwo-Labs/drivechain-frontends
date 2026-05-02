@@ -54,13 +54,25 @@ class _BitcoinConfEditorPageContent extends StatelessWidget {
                         },
                       ),
                       const SailSpacing(SailStyleValues.padding12),
-                      // Save button
+                      // Save button — writes to disk only.
                       SailButton(
                         label: 'Save',
                         loading: viewModel.isLoading,
                         disabled: !viewModel.hasUnsavedChanges,
                         onPressed: () async {
                           await viewModel.saveConfig();
+                        },
+                      ),
+                      const SailSpacing(SailStyleValues.padding12),
+                      // Apply button — saves AND restarts Core/Enforcer so
+                      // changes actually take effect.
+                      SailButton(
+                        label: 'Apply',
+                        variant: ButtonVariant.primary,
+                        loading: viewModel.isLoading,
+                        disabled: !viewModel.hasUnsavedChanges && !viewModel.canRestart,
+                        onPressed: () async {
+                          await viewModel.applyAndRestart(context);
                         },
                       ),
                     ],

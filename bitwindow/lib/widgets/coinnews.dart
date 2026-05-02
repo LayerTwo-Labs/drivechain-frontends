@@ -117,7 +117,7 @@ class CoinNewsLargeView extends ViewModelWidget<CoinNewsLargeViewModel> {
   @override
   Widget build(BuildContext context, CoinNewsLargeViewModel viewModel) {
     return SizedBox(
-      height: 500,
+      height: 300,
       child: SailRow(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         spacing: SailStyleValues.padding16,

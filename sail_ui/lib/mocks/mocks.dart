@@ -1677,12 +1677,6 @@ class MockSyncProvider implements SyncProvider {
   }
 
   @override
-  String? additionalError;
-
-  @override
-  SyncInfo? additionalSyncInfo;
-
-  @override
   String? enforcerError;
 
   @override
@@ -1693,6 +1687,18 @@ class MockSyncProvider implements SyncProvider {
 
   @override
   SyncInfo? mainchainSyncInfo;
+
+  @override
+  Map<SidechainType, SyncInfo> sidechains = const {};
+
+  @override
+  Map<SidechainType, String?> sidechainErrors = const {};
+
+  @override
+  SyncInfo? bitwindowdSyncInfo;
+
+  @override
+  String? bitwindowdError;
 
   @override
   SyncConnection? get additionalConnection => throw UnimplementedError();
@@ -1708,14 +1714,6 @@ class MockSyncProvider implements SyncProvider {
 
   @override
   BitcoindConnection get mainchainRPC => throw UnimplementedError();
-
-  @override
-  BinaryProvider get binaryProvider => throw UnimplementedError();
-
-  @override
-  void listenDownloads() {
-    return;
-  }
 
   @override
   void clearState() {}

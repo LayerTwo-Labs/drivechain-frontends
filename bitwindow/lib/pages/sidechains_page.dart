@@ -690,7 +690,34 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
   final EnforcerRPC _enforcerRPC = GetIt.I.get<EnforcerRPC>();
   final BinaryProvider _binaryProvider = GetIt.I.get<BinaryProvider>();
   final BitcoinConfProvider _confProvider = GetIt.I.get<BitcoinConfProvider>();
+  final SyncProvider _syncProvider = GetIt.I.get<SyncProvider>();
   WalletReaderProvider get _walletReader => GetIt.I<WalletReaderProvider>();
+
+  // Resolve a Sidechain Binary to its SidechainType enum (key into
+  // SyncProvider.sidechains). bitwindowd is intentionally absent — the
+  // orchestrator doesn't manage it, so it never shows up there.
+  SidechainType? _sidechainType(Binary b) => switch (b) {
+    Thunder() => SidechainType.SIDECHAIN_TYPE_THUNDER,
+    ZSide() => SidechainType.SIDECHAIN_TYPE_ZSIDE,
+    BitNames() => SidechainType.SIDECHAIN_TYPE_BITNAMES,
+    BitAssets() => SidechainType.SIDECHAIN_TYPE_BITASSETS,
+    Truthcoin() => SidechainType.SIDECHAIN_TYPE_TRUTHCOIN,
+    Photon() => SidechainType.SIDECHAIN_TYPE_PHOTON,
+    CoinShift() => SidechainType.SIDECHAIN_TYPE_COINSHIFT,
+    _ => null,
+  };
+
+  DownloadInfo _downloadInfoFor(Binary b) {
+    final type = _sidechainType(b);
+    if (type == null) return const DownloadInfo();
+    return _syncProvider.sidechains[type]?.downloadInfo ?? const DownloadInfo();
+  }
+
+  SyncInfo? _syncInfoFor(Binary b) {
+    final type = _sidechainType(b);
+    if (type == null) return null;
+    return _syncProvider.sidechains[type];
+  }
 
   final TextEditingController addressController = TextEditingController();
   final TextEditingController depositAmountController = TextEditingController();
@@ -708,6 +735,8 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
 
     _binaryProvider.addListener(_onChange);
     _binaryProvider.addListener(notifyListeners);
+    _syncProvider.addListener(_onChange);
+    _syncProvider.addListener(notifyListeners);
   }
 
   bool get loading => _enforcerRPC.initializingBinary;
@@ -823,11 +852,10 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
     final isRunning = _binaryProvider.isConnected(sidechain);
     final isInitializing = _binaryProvider.isInitializing(sidechain);
     final stopping = _binaryProvider.isStopping(sidechain);
-    final downloading = _binaryProvider.downloadProgress(sidechain.type).isDownloading;
+    final downloadInfo = _downloadInfoFor(sidechain);
+    final downloading = downloadInfo.isDownloading;
 
     if (downloading) {
-      final downloadInfo = _binaryProvider.downloadProgress(sidechain.type);
-
       final syncInfo = SyncInfo(
         progressCurrent: downloadInfo.progress,
         progressGoal: downloadInfo.total,
@@ -855,6 +883,19 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
     }
 
     if (isRunning) {
+      // Running but indexing — show the same ChainLoader the daemon-status
+      // card uses so the user sees `X / Y blocks` ticking up. Reuses the
+      // SyncInfo populated by the orch's GetSyncStatus poll, so the value
+      // matches whatever the bottom-nav reports for the same chain.
+      final syncInfo = _syncInfoFor(sidechain);
+      if (syncInfo != null && !syncInfo.isSynced && syncInfo.progressGoal > 0) {
+        return ChainLoader(
+          name: sidechain.name,
+          syncInfo: syncInfo,
+          justPercent: true,
+          expanded: false,
+        );
+      }
       return SailButton(
         key: ValueKey('stop_slot_${sidechain.slot}_${sidechain.name}'),
         label: 'Stop',
@@ -936,7 +977,7 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
 
     final isRunning = _binaryProvider.isConnected(sidechain);
     final isInitializing = _binaryProvider.isInitializing(sidechain);
-    final downloading = _binaryProvider.downloadProgress(sidechain.type).isDownloading;
+    final downloading = _downloadInfoFor(sidechain).isDownloading;
     final error = _binaryProvider.connectionError(sidechain);
     final startupErr = rpc.startupError;
 
@@ -1233,7 +1274,7 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
       states['${key}_connected'] = _binaryProvider.isConnected(binary);
       states['${key}_initializing'] = _binaryProvider.isInitializing(binary);
       states['${key}_stopping'] = _binaryProvider.isStopping(binary);
-      states['${key}_downloading'] = _binaryProvider.downloadProgress(binary.type).isDownloading;
+      states['${key}_downloading'] = _downloadInfoFor(binary).isDownloading;
       states['${key}_error'] = _binaryProvider.connectionError(binary);
       states['${key}_downloaded'] = binary.isDownloaded;
     }

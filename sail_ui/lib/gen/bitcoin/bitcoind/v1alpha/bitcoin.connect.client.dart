@@ -8,7 +8,7 @@ import "bitcoin.pb.dart" as bitcoinbitcoindv1alphabitcoin;
 import "bitcoin.connect.spec.dart" as specs;
 import "../../../google/protobuf/empty.pb.dart" as googleprotobufempty;
 
-extension type BitcoinServiceClient (connect.Transport _transport) {
+extension type BitcoinServiceClient(connect.Transport _transport) {
   Future<bitcoinbitcoindv1alphabitcoin.GetBlockchainInfoResponse> getBlockchainInfo(
     bitcoinbitcoindv1alphabitcoin.GetBlockchainInfoRequest input, {
     connect.Headers? headers,

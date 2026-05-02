@@ -485,33 +485,32 @@ func TestCopyConfigDownstream(t *testing.T) {
 func TestHasDatadirForNetwork(t *testing.T) {
 	tmpDir := t.TempDir()
 	m := newTestManager(tmpDir)
+	m.Config = NewBitcoinConfig()
 
-	// No file — should be false
+	// No global datadir — mainnet/forknet should be false
 	if m.HasDatadirForNetwork(NetworkForknet) {
-		t.Error("should be false when file doesn't exist")
+		t.Error("should be false when global datadir is empty")
 	}
 
-	// Non-mainnet/forknet — always true
+	// Non-mainnet/forknet — always true (signet/test/regtest use bitcoind defaults).
 	if !m.HasDatadirForNetwork(NetworkSignet) {
 		t.Error("signet should always return true")
 	}
 
-	// Create file with datadir
-	fc := NewForknetConfig()
-	fc.Settings["datadir"] = "/some/path"
-	confPath := m.getMainSectionPath(NetworkForknet)
-	require.NoError(t, os.WriteFile(confPath, []byte(fc.Serialize()), 0644))
+	// Set the global (top-level) datadir
+	m.Config.SetSetting("datadir", "/some/path")
 
 	if !m.HasDatadirForNetwork(NetworkForknet) {
-		t.Error("should be true when datadir is set")
+		t.Error("should be true when global datadir is set")
 	}
 
-	// Create file without datadir
-	fc2 := NewForknetConfig()
-	require.NoError(t, os.WriteFile(confPath, []byte(fc2.Serialize()), 0644))
+	// Section-scoped datadir is ignored — Bitcoin Core only honours the
+	// top-level value, and HasDatadirForNetwork mirrors that contract.
+	m.Config.RemoveSetting("datadir")
+	m.Config.SetSetting("datadir", "/section/only", "main")
 
 	if m.HasDatadirForNetwork(NetworkForknet) {
-		t.Error("should be false when datadir is empty")
+		t.Error("section-scoped datadir must not satisfy HasDatadirForNetwork")
 	}
 }
 

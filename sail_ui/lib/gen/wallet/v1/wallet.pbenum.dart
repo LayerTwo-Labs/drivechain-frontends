@@ -15,12 +15,16 @@ import 'package:protobuf/protobuf.dart' as $pb;
 
 /// Coin Selection Strategy
 class CoinSelectionStrategy extends $pb.ProtobufEnum {
-  static const CoinSelectionStrategy COIN_SELECTION_STRATEGY_UNSPECIFIED = CoinSelectionStrategy._(0, _omitEnumNames ? '' : 'COIN_SELECTION_STRATEGY_UNSPECIFIED');
-  static const CoinSelectionStrategy COIN_SELECTION_STRATEGY_LARGEST_FIRST = CoinSelectionStrategy._(1, _omitEnumNames ? '' : 'COIN_SELECTION_STRATEGY_LARGEST_FIRST');
-  static const CoinSelectionStrategy COIN_SELECTION_STRATEGY_SMALLEST_FIRST = CoinSelectionStrategy._(2, _omitEnumNames ? '' : 'COIN_SELECTION_STRATEGY_SMALLEST_FIRST');
-  static const CoinSelectionStrategy COIN_SELECTION_STRATEGY_RANDOM = CoinSelectionStrategy._(3, _omitEnumNames ? '' : 'COIN_SELECTION_STRATEGY_RANDOM');
+  static const CoinSelectionStrategy COIN_SELECTION_STRATEGY_UNSPECIFIED =
+      CoinSelectionStrategy._(0, _omitEnumNames ? '' : 'COIN_SELECTION_STRATEGY_UNSPECIFIED');
+  static const CoinSelectionStrategy COIN_SELECTION_STRATEGY_LARGEST_FIRST =
+      CoinSelectionStrategy._(1, _omitEnumNames ? '' : 'COIN_SELECTION_STRATEGY_LARGEST_FIRST');
+  static const CoinSelectionStrategy COIN_SELECTION_STRATEGY_SMALLEST_FIRST =
+      CoinSelectionStrategy._(2, _omitEnumNames ? '' : 'COIN_SELECTION_STRATEGY_SMALLEST_FIRST');
+  static const CoinSelectionStrategy COIN_SELECTION_STRATEGY_RANDOM =
+      CoinSelectionStrategy._(3, _omitEnumNames ? '' : 'COIN_SELECTION_STRATEGY_RANDOM');
 
-  static const $core.List<CoinSelectionStrategy> values = <CoinSelectionStrategy> [
+  static const $core.List<CoinSelectionStrategy> values = <CoinSelectionStrategy>[
     COIN_SELECTION_STRATEGY_UNSPECIFIED,
     COIN_SELECTION_STRATEGY_LARGEST_FIRST,
     COIN_SELECTION_STRATEGY_SMALLEST_FIRST,
@@ -32,6 +36,5 @@ class CoinSelectionStrategy extends $pb.ProtobufEnum {
 
   const CoinSelectionStrategy._($core.int v, $core.String n) : super(v, n);
 }
-
 
 const _omitEnumNames = $core.bool.fromEnvironment('protobuf.omit_enum_names');

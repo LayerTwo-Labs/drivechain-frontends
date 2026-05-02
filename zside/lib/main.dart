@@ -312,13 +312,13 @@ void bootBinaries(Logger log) async {
     final backendState = GetIt.I.get<BackendStateProvider>();
     backendState.startWatching();
 
-    // Use zsided's gRPC to start the dependency chain.
-    // BackendStateProvider tracks progress and updates download bars in the UI.
-    log.i('bootBinaries: calling StartWithL1');
-    await backendState.trackStartup(
-      orchestrator.startWithL1('zside', targetArgs: ['--headless']),
-    );
-    log.i('bootBinaries: StartWithL1 completed');
+    // Fire-and-forget: server dispatches the boot goroutine and returns.
+    // Download / connection state come from polled GetSyncStatus +
+    // ListBinaries. The actual boot survives transport blips because the
+    // server's goroutine ctx is detached from this call.
+    log.i('bootBinaries: dispatching StartWithL1');
+    await orchestrator.startWithL1('zside', targetArgs: ['--headless']);
+    log.i('bootBinaries: StartWithL1 dispatched');
   } catch (e, st) {
     log.e('bootBinaries failed: $e\n$st');
   }

@@ -199,7 +199,7 @@ class PidFileManager {
     // First check if alive (fast check)
     final alive = await isPidAlive(pid);
     if (!alive) {
-      log.d('PID $pid is not alive');
+      // Silent — stale PIDs from prior runs are expected on every boot.
       return false;
     }
 

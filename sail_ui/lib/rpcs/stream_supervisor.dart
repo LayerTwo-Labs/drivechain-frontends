@@ -3,6 +3,7 @@ import 'dart:math';
 
 import 'package:flutter/foundation.dart';
 import 'package:logger/logger.dart';
+import 'package:sail_ui/classes/rpc_connection.dart';
 
 /// The cadence at which the orchestrator's server-streaming Watch* handlers
 /// emit idle keepalive frames. Kept in lock-step with `WatchHeartbeatInterval`
@@ -111,7 +112,11 @@ class StreamSupervisor<T> {
     _sub?.cancel();
     _reconnectTimer?.cancel();
 
-    _logger.d('$_tag: subscribing (attempt ${_attempt + 1})');
+    // First few attempts during boot are routine — silent. Only surface
+    // once the daemon has clearly failed to come up.
+    if (_attempt > 5) {
+      _logger.w('$_tag: subscribing (attempt ${_attempt + 1})');
+    }
     Stream<T> stream;
     try {
       stream = _subscribe();
@@ -142,7 +147,12 @@ class StreamSupervisor<T> {
       },
       onError: (Object e, StackTrace st) {
         final kind = _classify(e);
-        _logger.w('$_tag: stream error (${kind.name}): $e');
+        // Connection-refused during boot is the daemon still warming up —
+        // silent. Anything else, or a persistent failure past attempt 5,
+        // gets the loud treatment.
+        if (_attempt > 5 || !isExpectedBootError(e)) {
+          _logger.w('$_tag: stream error (${kind.name}): $e');
+        }
         _setHealthy(false);
         _scheduleReconnect(kind, e, st);
       },
@@ -194,7 +204,6 @@ class StreamSupervisor<T> {
 
     final delay = _backoffFor(_attempt);
     _attempt++;
-    _logger.d('$_tag: reconnect in ${delay.inMilliseconds}ms');
     _reconnectTimer = Timer(delay, _connect);
   }
 

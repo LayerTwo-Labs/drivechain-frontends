@@ -93,15 +93,23 @@ type OrchestratorServiceClient interface {
 	// Get the status of a single binary.
 	GetBinaryStatus(context.Context, *connect.Request[v1.GetBinaryStatusRequest]) (*connect.Response[v1.GetBinaryStatusResponse], error)
 	// Download a binary with streaming progress.
-	DownloadBinary(context.Context, *connect.Request[v1.DownloadBinaryRequest]) (*connect.ServerStreamForClient[v1.DownloadBinaryResponse], error)
+	// Kicks off a download in a background goroutine and returns
+	// immediately. Progress (MB downloaded / total, is_downloading) is
+	// polled out of GetSyncStatus, never tied to this RPC's lifetime — so
+	// a transport blip can't cancel an in-flight download.
+	DownloadBinary(context.Context, *connect.Request[v1.DownloadBinaryRequest]) (*connect.Response[v1.DownloadBinaryResponse], error)
 	// Start a binary.
 	StartBinary(context.Context, *connect.Request[v1.StartBinaryRequest]) (*connect.Response[v1.StartBinaryResponse], error)
 	// Stop a binary.
 	StopBinary(context.Context, *connect.Request[v1.StopBinaryRequest]) (*connect.Response[v1.StopBinaryResponse], error)
 	// Stream stdout/stderr from a binary.
 	StreamLogs(context.Context, *connect.Request[v1.StreamLogsRequest]) (*connect.ServerStreamForClient[v1.StreamLogsResponse], error)
-	// Start a binary with its full dependency chain (Core -> Enforcer -> target).
-	StartWithL1(context.Context, *connect.Request[v1.StartWithL1Request]) (*connect.ServerStreamForClient[v1.StartWithL1Response], error)
+	// Kick off a binary and its full L1 dependency chain (Core -> Enforcer ->
+	// target). Fire-and-forget on the server: returns as soon as the boot
+	// goroutine is dispatched. Callers poll GetSyncStatus / ListBinaries for
+	// download progress and connection state — never tied to this RPC's
+	// lifetime, so a transport blip can't kill an in-flight download.
+	StartWithL1(context.Context, *connect.Request[v1.StartWithL1Request]) (*connect.Response[v1.StartWithL1Response], error)
 	// Shutdown all running binaries.
 	ShutdownAll(context.Context, *connect.Request[v1.ShutdownAllRequest]) (*connect.ServerStreamForClient[v1.ShutdownAllResponse], error)
 	// Get the current BTC/USD exchange rate.
@@ -275,8 +283,8 @@ func (c *orchestratorServiceClient) GetBinaryStatus(ctx context.Context, req *co
 }
 
 // DownloadBinary calls orchestrator.v1.OrchestratorService.DownloadBinary.
-func (c *orchestratorServiceClient) DownloadBinary(ctx context.Context, req *connect.Request[v1.DownloadBinaryRequest]) (*connect.ServerStreamForClient[v1.DownloadBinaryResponse], error) {
-	return c.downloadBinary.CallServerStream(ctx, req)
+func (c *orchestratorServiceClient) DownloadBinary(ctx context.Context, req *connect.Request[v1.DownloadBinaryRequest]) (*connect.Response[v1.DownloadBinaryResponse], error) {
+	return c.downloadBinary.CallUnary(ctx, req)
 }
 
 // StartBinary calls orchestrator.v1.OrchestratorService.StartBinary.
@@ -295,8 +303,8 @@ func (c *orchestratorServiceClient) StreamLogs(ctx context.Context, req *connect
 }
 
 // StartWithL1 calls orchestrator.v1.OrchestratorService.StartWithL1.
-func (c *orchestratorServiceClient) StartWithL1(ctx context.Context, req *connect.Request[v1.StartWithL1Request]) (*connect.ServerStreamForClient[v1.StartWithL1Response], error) {
-	return c.startWithL1.CallServerStream(ctx, req)
+func (c *orchestratorServiceClient) StartWithL1(ctx context.Context, req *connect.Request[v1.StartWithL1Request]) (*connect.Response[v1.StartWithL1Response], error) {
+	return c.startWithL1.CallUnary(ctx, req)
 }
 
 // ShutdownAll calls orchestrator.v1.OrchestratorService.ShutdownAll.
@@ -357,15 +365,23 @@ type OrchestratorServiceHandler interface {
 	// Get the status of a single binary.
 	GetBinaryStatus(context.Context, *connect.Request[v1.GetBinaryStatusRequest]) (*connect.Response[v1.GetBinaryStatusResponse], error)
 	// Download a binary with streaming progress.
-	DownloadBinary(context.Context, *connect.Request[v1.DownloadBinaryRequest], *connect.ServerStream[v1.DownloadBinaryResponse]) error
+	// Kicks off a download in a background goroutine and returns
+	// immediately. Progress (MB downloaded / total, is_downloading) is
+	// polled out of GetSyncStatus, never tied to this RPC's lifetime — so
+	// a transport blip can't cancel an in-flight download.
+	DownloadBinary(context.Context, *connect.Request[v1.DownloadBinaryRequest]) (*connect.Response[v1.DownloadBinaryResponse], error)
 	// Start a binary.
 	StartBinary(context.Context, *connect.Request[v1.StartBinaryRequest]) (*connect.Response[v1.StartBinaryResponse], error)
 	// Stop a binary.
 	StopBinary(context.Context, *connect.Request[v1.StopBinaryRequest]) (*connect.Response[v1.StopBinaryResponse], error)
 	// Stream stdout/stderr from a binary.
 	StreamLogs(context.Context, *connect.Request[v1.StreamLogsRequest], *connect.ServerStream[v1.StreamLogsResponse]) error
-	// Start a binary with its full dependency chain (Core -> Enforcer -> target).
-	StartWithL1(context.Context, *connect.Request[v1.StartWithL1Request], *connect.ServerStream[v1.StartWithL1Response]) error
+	// Kick off a binary and its full L1 dependency chain (Core -> Enforcer ->
+	// target). Fire-and-forget on the server: returns as soon as the boot
+	// goroutine is dispatched. Callers poll GetSyncStatus / ListBinaries for
+	// download progress and connection state — never tied to this RPC's
+	// lifetime, so a transport blip can't kill an in-flight download.
+	StartWithL1(context.Context, *connect.Request[v1.StartWithL1Request]) (*connect.Response[v1.StartWithL1Response], error)
 	// Shutdown all running binaries.
 	ShutdownAll(context.Context, *connect.Request[v1.ShutdownAllRequest], *connect.ServerStream[v1.ShutdownAllResponse]) error
 	// Get the current BTC/USD exchange rate.
@@ -410,7 +426,7 @@ func NewOrchestratorServiceHandler(svc OrchestratorServiceHandler, opts ...conne
 		connect.WithSchema(orchestratorServiceMethods.ByName("GetBinaryStatus")),
 		connect.WithHandlerOptions(opts...),
 	)
-	orchestratorServiceDownloadBinaryHandler := connect.NewServerStreamHandler(
+	orchestratorServiceDownloadBinaryHandler := connect.NewUnaryHandler(
 		OrchestratorServiceDownloadBinaryProcedure,
 		svc.DownloadBinary,
 		connect.WithSchema(orchestratorServiceMethods.ByName("DownloadBinary")),
@@ -434,7 +450,7 @@ func NewOrchestratorServiceHandler(svc OrchestratorServiceHandler, opts ...conne
 		connect.WithSchema(orchestratorServiceMethods.ByName("StreamLogs")),
 		connect.WithHandlerOptions(opts...),
 	)
-	orchestratorServiceStartWithL1Handler := connect.NewServerStreamHandler(
+	orchestratorServiceStartWithL1Handler := connect.NewUnaryHandler(
 		OrchestratorServiceStartWithL1Procedure,
 		svc.StartWithL1,
 		connect.WithSchema(orchestratorServiceMethods.ByName("StartWithL1")),
@@ -553,8 +569,8 @@ func (UnimplementedOrchestratorServiceHandler) GetBinaryStatus(context.Context, 
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("orchestrator.v1.OrchestratorService.GetBinaryStatus is not implemented"))
 }
 
-func (UnimplementedOrchestratorServiceHandler) DownloadBinary(context.Context, *connect.Request[v1.DownloadBinaryRequest], *connect.ServerStream[v1.DownloadBinaryResponse]) error {
-	return connect.NewError(connect.CodeUnimplemented, errors.New("orchestrator.v1.OrchestratorService.DownloadBinary is not implemented"))
+func (UnimplementedOrchestratorServiceHandler) DownloadBinary(context.Context, *connect.Request[v1.DownloadBinaryRequest]) (*connect.Response[v1.DownloadBinaryResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("orchestrator.v1.OrchestratorService.DownloadBinary is not implemented"))
 }
 
 func (UnimplementedOrchestratorServiceHandler) StartBinary(context.Context, *connect.Request[v1.StartBinaryRequest]) (*connect.Response[v1.StartBinaryResponse], error) {
@@ -569,8 +585,8 @@ func (UnimplementedOrchestratorServiceHandler) StreamLogs(context.Context, *conn
 	return connect.NewError(connect.CodeUnimplemented, errors.New("orchestrator.v1.OrchestratorService.StreamLogs is not implemented"))
 }
 
-func (UnimplementedOrchestratorServiceHandler) StartWithL1(context.Context, *connect.Request[v1.StartWithL1Request], *connect.ServerStream[v1.StartWithL1Response]) error {
-	return connect.NewError(connect.CodeUnimplemented, errors.New("orchestrator.v1.OrchestratorService.StartWithL1 is not implemented"))
+func (UnimplementedOrchestratorServiceHandler) StartWithL1(context.Context, *connect.Request[v1.StartWithL1Request]) (*connect.Response[v1.StartWithL1Response], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("orchestrator.v1.OrchestratorService.StartWithL1 is not implemented"))
 }
 
 func (UnimplementedOrchestratorServiceHandler) ShutdownAll(context.Context, *connect.Request[v1.ShutdownAllRequest], *connect.ServerStream[v1.ShutdownAllResponse]) error {

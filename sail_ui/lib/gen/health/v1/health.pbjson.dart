@@ -19,7 +19,14 @@ import '../../google/protobuf/empty.pbjson.dart' as $1;
 const CheckResponse$json = {
   '1': 'CheckResponse',
   '2': [
-    {'1': 'service_statuses', '3': 1, '4': 3, '5': 11, '6': '.health.v1.CheckResponse.ServiceStatus', '10': 'serviceStatuses'},
+    {
+      '1': 'service_statuses',
+      '3': 1,
+      '4': 3,
+      '5': 11,
+      '6': '.health.v1.CheckResponse.ServiceStatus',
+      '10': 'serviceStatuses'
+    },
   ],
   '3': [CheckResponse_ServiceStatus$json],
   '4': [CheckResponse_Status$json],
@@ -46,13 +53,13 @@ const CheckResponse_Status$json = {
 };
 
 /// Descriptor for `CheckResponse`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List checkResponseDescriptor = $convert.base64Decode(
-    'Cg1DaGVja1Jlc3BvbnNlElEKEHNlcnZpY2Vfc3RhdHVzZXMYASADKAsyJi5oZWFsdGgudjEuQ2'
-    'hlY2tSZXNwb25zZS5TZXJ2aWNlU3RhdHVzUg9zZXJ2aWNlU3RhdHVzZXMaawoNU2VydmljZVN0'
-    'YXR1cxIhCgxzZXJ2aWNlX25hbWUYASABKAlSC3NlcnZpY2VOYW1lEjcKBnN0YXR1cxgCIAEoDj'
-    'IfLmhlYWx0aC52MS5DaGVja1Jlc3BvbnNlLlN0YXR1c1IGc3RhdHVzImgKBlN0YXR1cxIWChJT'
-    'VEFUVVNfVU5TUEVDSUZJRUQQABISCg5TVEFUVVNfU0VSVklORxABEhYKElNUQVRVU19OT1RfU0'
-    'VSVklORxACEhoKFlNUQVRVU19TRVJWSUNFX1VOS05PV04QAw==');
+final $typed_data.Uint8List checkResponseDescriptor =
+    $convert.base64Decode('Cg1DaGVja1Jlc3BvbnNlElEKEHNlcnZpY2Vfc3RhdHVzZXMYASADKAsyJi5oZWFsdGgudjEuQ2'
+        'hlY2tSZXNwb25zZS5TZXJ2aWNlU3RhdHVzUg9zZXJ2aWNlU3RhdHVzZXMaawoNU2VydmljZVN0'
+        'YXR1cxIhCgxzZXJ2aWNlX25hbWUYASABKAlSC3NlcnZpY2VOYW1lEjcKBnN0YXR1cxgCIAEoDj'
+        'IfLmhlYWx0aC52MS5DaGVja1Jlc3BvbnNlLlN0YXR1c1IGc3RhdHVzImgKBlN0YXR1cxIWChJT'
+        'VEFUVVNfVU5TUEVDSUZJRUQQABISCg5TVEFUVVNfU0VSVklORxABEhYKElNUQVRVU19OT1RfU0'
+        'VSVklORxACEhoKFlNUQVRVU19TRVJWSUNFX1VOS05PV04QAw==');
 
 const $core.Map<$core.String, $core.dynamic> HealthServiceBase$json = {
   '1': 'HealthService',
@@ -70,8 +77,7 @@ const $core.Map<$core.String, $core.Map<$core.String, $core.dynamic>> HealthServ
 };
 
 /// Descriptor for `HealthService`. Decode as a `google.protobuf.ServiceDescriptorProto`.
-final $typed_data.Uint8List healthServiceDescriptor = $convert.base64Decode(
-    'Cg1IZWFsdGhTZXJ2aWNlEjkKBUNoZWNrEhYuZ29vZ2xlLnByb3RvYnVmLkVtcHR5GhguaGVhbH'
-    'RoLnYxLkNoZWNrUmVzcG9uc2USOwoFV2F0Y2gSFi5nb29nbGUucHJvdG9idWYuRW1wdHkaGC5o'
-    'ZWFsdGgudjEuQ2hlY2tSZXNwb25zZTAB');
-
+final $typed_data.Uint8List healthServiceDescriptor =
+    $convert.base64Decode('Cg1IZWFsdGhTZXJ2aWNlEjkKBUNoZWNrEhYuZ29vZ2xlLnByb3RvYnVmLkVtcHR5GhguaGVhbH'
+        'RoLnYxLkNoZWNrUmVzcG9uc2USOwoFV2F0Y2gSFi5nb29nbGUucHJvdG9idWYuRW1wdHkaGC5o'
+        'ZWFsdGgudjEuQ2hlY2tSZXNwb25zZTAB');

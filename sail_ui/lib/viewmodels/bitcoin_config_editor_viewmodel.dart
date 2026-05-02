@@ -1,4 +1,4 @@
-import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:sail_ui/sail_ui.dart';
@@ -112,6 +112,34 @@ class BitcoinConfigEditorViewModel extends ChangeNotifier {
       isLoading = false;
       notifyListeners();
     }
+  }
+
+  /// True when a BinaryProvider is registered, i.e. the host app can
+  /// actually drive the L1 restart that Apply triggers. Falls back to
+  /// false in test harnesses / sub-windows that don't wire one up.
+  bool get canRestart => GetIt.I.isRegistered<BinaryProvider>();
+
+  /// Save (if there are unsaved edits) then push the L1 restart screen so
+  /// bitcoind / enforcer come back up reading the new conf. Pure save is
+  /// still available via [saveConfig] for users who want to apply later.
+  Future<void> applyAndRestart(BuildContext context) async {
+    if (hasUnsavedChanges) {
+      await saveConfig();
+      if (errorMessage != null) return;
+    }
+    if (!canRestart) {
+      log.w('applyAndRestart: BinaryProvider not registered, skipping restart');
+      return;
+    }
+    if (!context.mounted) return;
+    await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (_) => const L1RestartPage(
+          reason:
+              'Bitcoin Core needs to restart for the new configuration to take effect. Existing chain data is kept.',
+        ),
+      ),
+    );
   }
 
   void applyPreset(ConfigPreset preset) {

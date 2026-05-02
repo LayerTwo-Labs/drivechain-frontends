@@ -21,26 +21,34 @@ import 'sidechain.pbjson.dart';
 export 'sidechain.pb.dart';
 
 abstract class SidechainServiceBase extends $pb.GeneratedService {
-  $async.Future<$11.GetDetectedWithdrawalsResponse> getDetectedWithdrawals($pb.ServerContext ctx, $11.GetDetectedWithdrawalsRequest request);
-  $async.Future<$11.GetWithdrawalByTxidResponse> getWithdrawalByTxid($pb.ServerContext ctx, $11.GetWithdrawalByTxidRequest request);
+  $async.Future<$11.GetDetectedWithdrawalsResponse> getDetectedWithdrawals(
+      $pb.ServerContext ctx, $11.GetDetectedWithdrawalsRequest request);
+  $async.Future<$11.GetWithdrawalByTxidResponse> getWithdrawalByTxid(
+      $pb.ServerContext ctx, $11.GetWithdrawalByTxidRequest request);
 
   $pb.GeneratedMessage createRequest($core.String methodName) {
     switch (methodName) {
-      case 'GetDetectedWithdrawals': return $11.GetDetectedWithdrawalsRequest();
-      case 'GetWithdrawalByTxid': return $11.GetWithdrawalByTxidRequest();
-      default: throw $core.ArgumentError('Unknown method: $methodName');
+      case 'GetDetectedWithdrawals':
+        return $11.GetDetectedWithdrawalsRequest();
+      case 'GetWithdrawalByTxid':
+        return $11.GetWithdrawalByTxidRequest();
+      default:
+        throw $core.ArgumentError('Unknown method: $methodName');
     }
   }
 
-  $async.Future<$pb.GeneratedMessage> handleCall($pb.ServerContext ctx, $core.String methodName, $pb.GeneratedMessage request) {
+  $async.Future<$pb.GeneratedMessage> handleCall(
+      $pb.ServerContext ctx, $core.String methodName, $pb.GeneratedMessage request) {
     switch (methodName) {
-      case 'GetDetectedWithdrawals': return this.getDetectedWithdrawals(ctx, request as $11.GetDetectedWithdrawalsRequest);
-      case 'GetWithdrawalByTxid': return this.getWithdrawalByTxid(ctx, request as $11.GetWithdrawalByTxidRequest);
-      default: throw $core.ArgumentError('Unknown method: $methodName');
+      case 'GetDetectedWithdrawals':
+        return this.getDetectedWithdrawals(ctx, request as $11.GetDetectedWithdrawalsRequest);
+      case 'GetWithdrawalByTxid':
+        return this.getWithdrawalByTxid(ctx, request as $11.GetWithdrawalByTxidRequest);
+      default:
+        throw $core.ArgumentError('Unknown method: $methodName');
     }
   }
 
   $core.Map<$core.String, $core.dynamic> get $json => SidechainServiceBase$json;
   $core.Map<$core.String, $core.Map<$core.String, $core.dynamic>> get $messageJson => SidechainServiceBase$messageJson;
 }
-

@@ -165,6 +165,32 @@ String extractConnectException(Object error) {
   return error.toString();
 }
 
+/// Errors that are expected during boot and don't deserve a stack-trace in
+/// the console. Polling providers spam these every 100ms while daemons are
+/// still coming up — collapse them to a single debug line.
+bool isExpectedBootError(Object error) {
+  final s = error.toString().toLowerCase();
+  return s.contains('connection refused') ||
+      s.contains('connection reset') ||
+      s.contains('connection closed') ||
+      s.contains('connection is being forcefully terminated') ||
+      s.contains('protocol_error') ||
+      s.contains('http/2 connection is finishing') ||
+      // ConnectRPC / gRPC error codes surfaced when daemons are down
+      s.contains('[unavailable]') ||
+      s.contains('unable to connect to bitcoin core') ||
+      s.contains('unable to connect to enforcer') ||
+      s.contains('dial tcp') ||
+      // bitcoind / Core warmup RPC errors during cold start
+      s.contains('rpc error -28') ||
+      s.contains('loading block index') ||
+      s.contains('loading banlist') ||
+      s.contains('verifying blocks') ||
+      s.contains('loading wallet') ||
+      s.contains('rescanning') ||
+      s.contains('loading p2p addresses');
+}
+
 /// Extracts just the message from log lines like:
 /// `2025-11-26T06:16:51.195731Z INFO bip300301_enforcer: app/main.rs:376: Listening for JSON-RPC`
 String prettifyLogMessage(String message) {

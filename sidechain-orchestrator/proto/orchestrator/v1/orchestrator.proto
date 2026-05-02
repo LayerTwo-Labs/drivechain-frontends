@@ -10,7 +10,11 @@ service OrchestratorService {
   rpc GetBinaryStatus(GetBinaryStatusRequest) returns (GetBinaryStatusResponse);
 
   // Download a binary with streaming progress.
-  rpc DownloadBinary(DownloadBinaryRequest) returns (stream DownloadBinaryResponse);
+  // Kicks off a download in a background goroutine and returns
+  // immediately. Progress (MB downloaded / total, is_downloading) is
+  // polled out of GetSyncStatus, never tied to this RPC's lifetime — so
+  // a transport blip can't cancel an in-flight download.
+  rpc DownloadBinary(DownloadBinaryRequest) returns (DownloadBinaryResponse);
 
   // Start a binary.
   rpc StartBinary(StartBinaryRequest) returns (StartBinaryResponse);
@@ -21,8 +25,12 @@ service OrchestratorService {
   // Stream stdout/stderr from a binary.
   rpc StreamLogs(StreamLogsRequest) returns (stream StreamLogsResponse);
 
-  // Start a binary with its full dependency chain (Core -> Enforcer -> target).
-  rpc StartWithL1(StartWithL1Request) returns (stream StartWithL1Response);
+  // Kick off a binary and its full L1 dependency chain (Core -> Enforcer ->
+  // target). Fire-and-forget on the server: returns as soon as the boot
+  // goroutine is dispatched. Callers poll GetSyncStatus / ListBinaries for
+  // download progress and connection state — never tied to this RPC's
+  // lifetime, so a transport blip can't kill an in-flight download.
+  rpc StartWithL1(StartWithL1Request) returns (StartWithL1Response);
 
   // Shutdown all running binaries.
   rpc ShutdownAll(ShutdownAllRequest) returns (stream ShutdownAllResponse);
@@ -123,13 +131,7 @@ message DownloadBinaryRequest {
   bool force = 2;
 }
 
-message DownloadBinaryResponse {
-  int64 bytes_downloaded = 1;
-  int64 total_bytes = 2;
-  string message = 3;
-  bool done = 4;
-  string error = 5;
-}
+message DownloadBinaryResponse {}
 
 // StartBinary
 
@@ -176,14 +178,7 @@ message StartWithL1Request {
   bool immediate = 6;
 }
 
-message StartWithL1Response {
-  string stage = 1;
-  string message = 2;
-  bool done = 3;
-  string error = 4;
-  int64 bytes_downloaded = 5;
-  int64 total_bytes = 6;
-}
+message StartWithL1Response {}
 
 // ShutdownAll
 
@@ -245,32 +240,54 @@ message GetEnforcerBlockchainInfoResponse {
 // concurrently and returns a combined result. A daemon that isn't
 // reachable returns its `ChainSync` zero-valued with an `error` string.
 
-message GetSyncStatusRequest {
-  // Optional binary name. When set, the response's `sidechain` field is
-  // populated from that daemon's tip RPC. Empty → mainchain + enforcer
-  // only.
-  string sidechain = 1;
-}
+message GetSyncStatusRequest {}
 
 message GetSyncStatusResponse {
-  ChainSync mainchain = 1;  // bitcoind
-  ChainSync enforcer = 2;   // BIP300/301 enforcer
-  ChainSync sidechain = 3;  // present only if request.sidechain was set
+  ChainSync mainchain = 1;                   // bitcoind
+  ChainSync enforcer = 2;                    // BIP300/301 enforcer
+  // All sidechains the orchestrator knows about. Always includes every
+  // configured sidechain — daemons that aren't running yet appear with
+  // their `sync.error` set so the UI can render a placeholder. While a
+  // sidechain is downloading, its sync.is_downloading is true and
+  // blocks/headers are MB downloaded / MB total.
+  repeated SidechainStatus sidechains = 3;
+}
+
+// SidechainType keeps the response strongly-typed so callers don't have to
+// match magic strings. UNSPECIFIED is reserved for forwards-compat — when
+// a frontend sees it, the binary is known to the orchestrator but doesn't
+// have a typed enum value yet.
+enum SidechainType {
+  SIDECHAIN_TYPE_UNSPECIFIED = 0;
+  SIDECHAIN_TYPE_THUNDER = 1;
+  SIDECHAIN_TYPE_ZSIDE = 2;
+  SIDECHAIN_TYPE_BITNAMES = 3;
+  SIDECHAIN_TYPE_BITASSETS = 4;
+  SIDECHAIN_TYPE_TRUTHCOIN = 5;
+  SIDECHAIN_TYPE_PHOTON = 6;
+  SIDECHAIN_TYPE_COINSHIFT = 7;
+}
+
+message SidechainStatus {
+  SidechainType type = 1;
+  ChainSync sync = 2;
 }
 
 message ChainSync {
-  // Current tip height for this daemon.
+  // While is_downloading=true: blocks = MB downloaded, headers = MB total.
+  // Otherwise: blocks = current tip height, headers = bitcoind's header
+  // count (or this daemon's own headers if mainchain is unavailable).
   int32 blocks = 1;
-  // Goal height. For bitcoind this is its header count. For enforcer and
-  // sidechain entries, this is bitcoind's current block count — so each
-  // card measures against the same upstream target rather than its own
-  // independent number.
   int32 headers = 2;
   // Block tip timestamp (unix seconds), 0 if no tip yet.
   int64 time = 3;
   // Empty on success; otherwise a short description of why this daemon's
   // sync info isn't available (not running, RPC error, etc.).
   string error = 4;
+  // When true, the orchestrator is currently downloading the binary for
+  // this slot — blocks/headers carry MB downloaded / MB total instead of
+  // chain heights. The UI uses this to format "X MB" vs "N blocks".
+  bool is_downloading = 5;
 }
 
 // GetMainchainBalance

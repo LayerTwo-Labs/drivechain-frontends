@@ -2,6 +2,7 @@ import 'package:bitwindow/utils/coin_selection.dart';
 import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
+import 'package:sail_ui/classes/rpc_connection.dart';
 import 'package:sail_ui/gen/wallet/v1/wallet.pb.dart' as pb;
 import 'package:sail_ui/rpcs/bitwindow_api.dart';
 
@@ -55,7 +56,9 @@ class CoinSelectionProvider extends ChangeNotifier {
     } catch (e) {
       if (e.toString() != error) {
         error = e.toString();
-        _log.w('Failed to fetch coin selection data: $e');
+        if (!isExpectedBootError(e)) {
+          _log.w('Failed to fetch coin selection data: $e');
+        }
         notifyListeners();
       }
     } finally {
