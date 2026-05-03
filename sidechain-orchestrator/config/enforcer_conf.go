@@ -14,6 +14,35 @@ import (
 
 const bitwindowEnforcerConfFilename = "bitwindow-enforcer.conf"
 
+// derivedEnforcerSettings are fields the enforcer needs but that BitWindow
+// derives entirely from the active bitcoin.conf / network at boot. Keeping
+// them in the persisted enforcer.conf is what produced the regtest-port-on-
+// signet bug: the file was written once on regtest, the user swapped to
+// signet, the rest of the system updated but the enforcer.conf still said
+// `node-rpc-addr=127.0.0.1:18443` and the enforcer dutifully tried to
+// REST against regtest.
+//
+// The persisted file is now restricted to genuine user toggles
+// (enable-wallet, enable-mempool, anything the user pastes in by hand);
+// these derived fields are stripped on load and overlaid fresh by
+// GetCliArgs every boot.
+var derivedEnforcerSettings = []string{
+	"node-rpc-user",
+	"node-rpc-pass",
+	"node-rpc-addr",
+	"node-zmq-addr-sequence",
+	"wallet-esplora-url",
+}
+
+func stripDerivedEnforcerSettings(c *EnforcerConfig) {
+	if c == nil {
+		return
+	}
+	for _, key := range derivedEnforcerSettings {
+		c.RemoveSetting(key)
+	}
+}
+
 // ---------------------------------------------------------------------------
 // Migration system (Dart: _kEnforcerConfVersion, _enforcerConfMigrations)
 // ---------------------------------------------------------------------------
@@ -26,18 +55,10 @@ type EnforcerConfMigration struct {
 	Apply   func(config *EnforcerConfig)
 }
 
-// Migration 2: add node-zmq-addr-sequence (now a required enforcer arg).
-// Dart: _EnforcerMigration2AddZmqSequence (L358)
-var enforcerConfMigrations = []EnforcerConfMigration{
-	{
-		Version: 2,
-		Apply: func(config *EnforcerConfig) {
-			if !config.HasSetting("node-zmq-addr-sequence") {
-				config.SetSetting("node-zmq-addr-sequence", "tcp://127.0.0.1:29000")
-			}
-		},
-	},
-}
+// No active migrations — derived fields are stripped on every load
+// instead, see stripDerivedEnforcerSettings. The version is left at 2 so
+// pre-existing v2 files don't trigger spurious rewrites.
+var enforcerConfMigrations = []EnforcerConfMigration{}
 
 // RunEnforcerConfMigrations applies pending migrations to an EnforcerConfig.
 // Returns true if any migration was applied.
@@ -131,6 +152,7 @@ func (m *EnforcerConfManager) LoadConfig() error {
 		}
 
 		m.Config = ParseEnforcerConfig(content)
+		stripDerivedEnforcerSettings(m.Config)
 		return nil
 	}
 
@@ -141,6 +163,7 @@ func (m *EnforcerConfManager) LoadConfig() error {
 	// Dart: content = getDefaultConfig(); file.writeAsString(content);
 	content := m.GetDefaultConfig()
 	m.Config = ParseEnforcerConfig(content)
+	stripDerivedEnforcerSettings(m.Config)
 
 	if mkErr := os.MkdirAll(filepath.Dir(m.ConfigPath), 0755); mkErr != nil {
 		m.log.Error().Err(mkErr).Msg("failed to create enforcer config directory")
@@ -153,12 +176,16 @@ func (m *EnforcerConfManager) LoadConfig() error {
 	return nil
 }
 
-// SaveConfig writes the current config to disk.
+// SaveConfig writes the current config to disk. Strips derived fields
+// before serialising so they can never be persisted, even if someone
+// (legacy code, a stale RPC, the user pasting them in via WriteConfig)
+// puts them back into the in-memory state.
 // Dart: _saveConfig (L44)
 func (m *EnforcerConfManager) SaveConfig() error {
 	if m.Config == nil {
 		return nil
 	}
+	stripDerivedEnforcerSettings(m.Config)
 	confPath := m.getConfigPath()
 	if err := os.MkdirAll(filepath.Dir(confPath), 0755); err != nil {
 		return err
@@ -170,21 +197,13 @@ func (m *EnforcerConfManager) SaveConfig() error {
 	return nil
 }
 
-// NodeRpcDiffers checks if local node-rpc settings differ from BitcoinConfProvider.
-// Dart: nodeRpcDiffers (L57)
+// NodeRpcDiffers used to compare persisted enforcer node-rpc settings
+// against the bitcoin.conf-derived values. Now that those settings are
+// never persisted (they're overlaid fresh by GetCliArgs each boot),
+// "differs" is always false. Kept for the wire-shape compatibility of
+// the EnforcerConfService.GetEnforcerConfig RPC.
 func (m *EnforcerConfManager) NodeRpcDiffers() bool {
-	if m.Config == nil {
-		return false
-	}
-
-	expected := m.GetExpectedNodeRpcSettings()
-	localUser := m.Config.GetSetting("node-rpc-user")
-	localPass := m.Config.GetSetting("node-rpc-pass")
-	localAddr := m.Config.GetSetting("node-rpc-addr")
-
-	return localUser != expected["node-rpc-user"] ||
-		localPass != expected["node-rpc-pass"] ||
-		localAddr != expected["node-rpc-addr"]
+	return false
 }
 
 // GetExpectedNodeRpcSettings derives RPC credentials from bitcoin config.
@@ -229,71 +248,40 @@ func (m *EnforcerConfManager) GetExpectedNodeRpcSettings() map[string]string {
 	}
 }
 
-// SyncFromBitcoinConf syncs node-rpc settings from the bitcoin config and saves.
-// Dart: syncNodeRpcFromBitcoinConf (L102)
+// SyncFromBitcoinConf used to write bitcoin-conf-derived node-rpc /
+// esplora settings into the persisted enforcer.conf. Those fields are
+// no longer persisted (they're overlaid fresh by GetCliArgs each boot),
+// so this is now a no-op. Kept so the EnforcerConfService.SyncNodeRpc...
+// RPC stays callable from older clients without a proto change.
 func (m *EnforcerConfManager) SyncFromBitcoinConf() error {
-	if m.Config == nil {
-		return nil
-	}
-
-	expected := m.GetExpectedNodeRpcSettings()
-	m.Config.SetSetting("node-rpc-user", expected["node-rpc-user"])
-	m.Config.SetSetting("node-rpc-pass", expected["node-rpc-pass"])
-	m.Config.SetSetting("node-rpc-addr", expected["node-rpc-addr"])
-	m.Config.SetSetting("node-zmq-addr-sequence", expected["node-zmq-addr-sequence"])
-
-	// Sync esplora URL based on current network, but preserve an explicit empty
-	// override so callers can intentionally disable the wallet esplora client.
-	if value, ok := m.Config.Settings["wallet-esplora-url"]; ok && value == "" {
-		// Keep explicit empty override.
-	} else {
-		esploraURL := EsploraURLForNetwork(m.bitcoinConf.Network)
-		if esploraURL != "" {
-			m.Config.SetSetting("wallet-esplora-url", esploraURL)
-		} else {
-			m.Config.RemoveSetting("wallet-esplora-url")
-		}
-	}
-
-	return m.SaveConfig()
+	return nil
 }
 
 // GetDefaultConfig generates the default enforcer config content.
+//
+// node-rpc-{user,pass,addr}, node-zmq-addr-sequence, and wallet-esplora-url
+// are deliberately NOT in this template even though the enforcer needs
+// them — they're derived from the active bitcoin.conf / network and
+// overlaid by GetCliArgs at boot. Persisting them here is what made the
+// enforcer.conf desync from Core whenever the user swapped networks.
 // Dart: getDefaultConfig (L194)
 func (m *EnforcerConfManager) GetDefaultConfig() string {
-	nodeRpc := m.GetExpectedNodeRpcSettings()
-	esploraURL := EsploraURLForNetwork(m.bitcoinConf.Network)
-
-	esploraLine := "# wallet-esplora-url="
-	if esploraURL != "" {
-		esploraLine = fmt.Sprintf("wallet-esplora-url=%s", esploraURL)
-	}
-
-	// Dart: '$kEnforcerConfVersionCommentPrefix$_kEnforcerConfVersion'
 	return fmt.Sprintf(`%s%d
 
 # Enforcer Configuration - Generated by BitWindow
 # These settings are converted to CLI arguments when the Enforcer starts.
+#
+# node-rpc-* / node-zmq-addr-sequence / wallet-esplora-url are derived
+# from your active Bitcoin Core config and current network — BitWindow
+# appends them to the CLI args at boot, so adding them here will be
+# stripped on the next load.
 
 # Enable wallet functionality (default: true)
 enable-wallet=true
 
 # Enable mempool support - required for getblocktemplate (default: true)
 enable-mempool=true
-
-# Node RPC settings (synced from Bitcoin Core config)
-node-rpc-user=%s
-node-rpc-pass=%s
-node-rpc-addr=%s
-
-# Node ZMQ sequence address (must match zmqpubsequence in bitcoin.conf)
-node-zmq-addr-sequence=tcp://127.0.0.1:29000
-
-# Network-specific esplora URL
-%s
-`, enforcerConfVersionCommentPrefix, enforcerConfMigrationsVersion,
-		nodeRpc["node-rpc-user"], nodeRpc["node-rpc-pass"], nodeRpc["node-rpc-addr"],
-		esploraLine)
+`, enforcerConfVersionCommentPrefix, enforcerConfMigrationsVersion)
 }
 
 // GetCurrentConfigContent returns the current configuration content as string.
@@ -305,17 +293,21 @@ func (m *EnforcerConfManager) GetCurrentConfigContent() string {
 	return m.Config.Serialize()
 }
 
-// WriteConfig writes raw configuration content to the file.
+// WriteConfig writes raw configuration content to the file. Derived
+// fields pasted in via the UI are stripped before persistence so the
+// file can never out-of-band override what GetCliArgs derives at boot.
 // Dart: writeConfig (L233)
 func (m *EnforcerConfManager) WriteConfig(content string) error {
 	config := ParseEnforcerConfig(content)
+	stripDerivedEnforcerSettings(config)
 	m.Config = config
 
+	cleaned := config.Serialize()
 	confPath := m.getConfigPath()
 	if err := os.MkdirAll(filepath.Dir(confPath), 0755); err != nil {
 		return fmt.Errorf("create dir: %w", err)
 	}
-	if err := os.WriteFile(confPath, []byte(content), 0644); err != nil {
+	if err := os.WriteFile(confPath, []byte(cleaned), 0644); err != nil {
 		return fmt.Errorf("write config: %w", err)
 	}
 
@@ -328,32 +320,53 @@ func (m *EnforcerConfManager) WriteConfig(content string) error {
 func (m *EnforcerConfManager) GetCliArgs() []string {
 	var args []string
 
-	if m.Config == nil {
-		return args
-	}
-
-	for key, value := range m.Config.Settings {
-		switch value {
-		case "true":
-			args = append(args, fmt.Sprintf("--%s", key))
-		case "false":
-			continue
-		default:
-			if value != "" {
-				args = append(args, fmt.Sprintf("--%s=%s", key, value))
+	if m.Config != nil {
+		// User toggles only — derived fields are stripped on load and
+		// re-added below from the active bitcoin.conf / network. This
+		// guarantees that swapping networks always picks up the new RPC
+		// port / esplora URL, even if a stale persisted file slipped
+		// through some pre-strip code path.
+		for key, value := range m.Config.Settings {
+			if isDerivedEnforcerSetting(key) {
+				continue
+			}
+			switch value {
+			case "true":
+				args = append(args, fmt.Sprintf("--%s", key))
+			case "false":
+				continue
+			default:
+				if value != "" {
+					args = append(args, fmt.Sprintf("--%s=%s", key, value))
+				}
 			}
 		}
 	}
 
-	// Add esplora URL if not in config
-	if !m.Config.HasSetting("wallet-esplora-url") {
-		esploraURL := EsploraURLForNetwork(m.bitcoinConf.Network)
-		if esploraURL != "" {
-			args = append(args, fmt.Sprintf("--wallet-esplora-url=%s", esploraURL))
+	// Always overlay the bitcoin-conf-derived RPC + ZMQ wiring.
+	expected := m.GetExpectedNodeRpcSettings()
+	for _, key := range []string{"node-rpc-user", "node-rpc-pass", "node-rpc-addr", "node-zmq-addr-sequence"} {
+		if v := expected[key]; v != "" {
+			args = append(args, fmt.Sprintf("--%s=%s", key, v))
 		}
 	}
 
+	// Esplora URL is also network-derived; only attach it on networks
+	// where we have a known endpoint.
+	if esploraURL := EsploraURLForNetwork(m.bitcoinConf.Network); esploraURL != "" {
+		args = append(args, fmt.Sprintf("--wallet-esplora-url=%s", esploraURL))
+	}
+
 	return args
+}
+
+func isDerivedEnforcerSetting(key string) bool {
+	for _, k := range derivedEnforcerSettings {
+		if k == key {
+			return true
+		}
+	}
+	return false
 }
 
 // ---------------------------------------------------------------------------
