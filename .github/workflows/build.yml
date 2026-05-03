@@ -209,6 +209,12 @@ jobs:
           if [ -d "sidechain-orchestrator" ]; then
             cp -r sidechain-orchestrator "$BUILD_DIR/"
           fi
+          # Copy coinnews/codec for bitwindow's Go module replace directive
+          if [ -d "coinnews/codec" ]; then
+            mkdir -p "$BUILD_DIR/coinnews"
+            cp -r coinnews/codec "$BUILD_DIR/coinnews/"
+          fi
+
           # Recreate assets/bin directory
           mkdir -p "$BUILD_DIR/${{ matrix.client }}/assets/bin"
           echo "BUILD_DIR=$BUILD_DIR" >> $GITHUB_ENV
