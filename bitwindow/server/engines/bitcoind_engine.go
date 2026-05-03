@@ -494,11 +494,6 @@ func isBitcoinCoreStartupError(errMsg string) bool {
 	return IsBitcoinCoreStartupError(errMsg)
 }
 
-func (p *Parser) currentHeight(ctx context.Context) (uint32, chainhash.Hash, error) {
-	height, hash, _, err := p.currentChainState(ctx)
-	return height, hash, err
-}
-
 // currentChainState returns the tip plus the IBD flag in one RPC. Callers
 // that want to gate heavy work on "Core has caught up" use the inIBD
 // return so they don't pay the cost of a second getblockchaininfo.
