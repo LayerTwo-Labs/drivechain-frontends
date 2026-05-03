@@ -186,11 +186,11 @@ func newOrchestratorOnlyNode(t *testing.T) *orchestratorOnlyNode {
 	bitcoinDataDir := filepath.Join(nodeDir, "bitcoin")
 	require.NoError(t, os.MkdirAll(bitwindowDir, 0o700))
 	require.NoError(t, os.MkdirAll(bitcoinDataDir, 0o700))
-	// Pin the orchestrator under test to the untouched variant so we can
+	// Pin the orchestrator under test to the core variant so we can
 	// drop the locally-built bitcoind into its variant subfolder.
 	require.NoError(t, os.WriteFile(
 		filepath.Join(bitwindowDir, "orchestrator_settings.json"),
-		[]byte(`{"core_variant":"untouched"}`),
+		[]byte(`{"core_variant":"core"}`),
 		0o600,
 	))
 	smokeConfigs := orchestrator.AllDefaults()
@@ -385,7 +385,7 @@ func findBitcoind(t *testing.T) string {
 	dm := orchestrator.NewDownloadManager(dataDir, configPath, log)
 	// bitcoind downloads are now variant-keyed; pick a regtest-compatible
 	// variant explicitly since we don't have a full Orchestrator here.
-	variant := bitcoindConfig.Variants["untouched"]
+	variant := bitcoindConfig.Variants["core"]
 	dm.CoreVariant = func() (orchestrator.CoreVariantSpec, bool) { return variant, true }
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 	defer cancel()

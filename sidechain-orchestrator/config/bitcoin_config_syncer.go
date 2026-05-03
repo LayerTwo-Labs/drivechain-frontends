@@ -810,50 +810,6 @@ func (m *BitcoinConfManager) UpdateDataDir(dataDir string, forNetwork Network) e
 	return m.LoadConfig(false)
 }
 
-// updateDatadirInBackup writes a datadir change directly to the per-network
-// backup file, without touching master. Used when the target network differs
-// from the currently-active network.
-func (m *BitcoinConfManager) updateDatadirInBackup(n Network, dataDir string) error {
-	confPath := m.getMainSectionPath(n)
-	if err := os.MkdirAll(filepath.Dir(confPath), 0755); err != nil {
-		return fmt.Errorf("create dir: %w", err)
-	}
-
-	if n == NetworkForknet {
-		var fc *ForknetConfig
-		if data, err := os.ReadFile(confPath); err == nil {
-			fc = ParseForknetConfig(string(data))
-		} else {
-			fc = NewForknetConfig()
-			fc.Version = BitcoinConfMigrationsVersion
-			settings, order := getDefaultMainSection(n)
-			for _, k := range orderedKeys(order, settings) {
-				fc.Set(k, settings[k])
-			}
-		}
-		if dataDir == "" {
-			fc.Delete("datadir")
-		} else {
-			fc.Set("datadir", dataDir)
-		}
-		return os.WriteFile(confPath, []byte(fc.Serialize()), 0644)
-	}
-
-	var mc *MainnetConfig
-	if data, err := os.ReadFile(confPath); err == nil {
-		mc = ParseMainnetConfig(string(data))
-	} else {
-		mc = NewMainnetConfig()
-		mc.Version = BitcoinConfMigrationsVersion
-	}
-	if dataDir == "" {
-		mc.Delete("datadir")
-	} else {
-		mc.Set("datadir", dataDir)
-	}
-	return os.WriteFile(confPath, []byte(mc.Serialize()), 0644)
-}
-
 // ---------------------------------------------------------------------------
 // Piece 10: HasDatadirForNetwork
 // ---------------------------------------------------------------------------
