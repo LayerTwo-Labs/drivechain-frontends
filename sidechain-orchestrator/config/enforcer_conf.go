@@ -63,7 +63,7 @@ func RunEnforcerConfMigrations(config *EnforcerConfig) bool {
 type EnforcerConfManager struct {
 	Config      *EnforcerConfig
 	ConfigPath  string
-	ConfigDir   string // override for testing; empty = use EnforcerDirs.RootDir()
+	ConfigDir   string // directory where bitwindow-enforcer.conf lives; required
 	bitcoinConf *BitcoinConfManager
 	log         zerolog.Logger
 
@@ -77,10 +77,19 @@ type EnforcerConfManager struct {
 }
 
 // NewEnforcerConfManager creates a new EnforcerConfManager and loads config.
+// configDir is the directory where bitwindow-enforcer.conf lives (typically
+// the orchestrator's bitwindowDir). It must be set; tests previously
+// scribbled on the user's real ~/Library/Application Support/bip300301_enforcer/
+// because there was no required dir parameter and the old fallback used a
+// hardcoded global path.
 // Dart: EnforcerConfProvider.create() (L25)
-func NewEnforcerConfManager(bitcoinConf *BitcoinConfManager, log zerolog.Logger) (*EnforcerConfManager, error) {
+func NewEnforcerConfManager(bitcoinConf *BitcoinConfManager, configDir string, log zerolog.Logger) (*EnforcerConfManager, error) {
+	if configDir == "" {
+		return nil, fmt.Errorf("enforcer conf manager requires a non-empty configDir")
+	}
 	m := &EnforcerConfManager{
 		bitcoinConf: bitcoinConf,
+		ConfigDir:   configDir,
 		log:         log.With().Str("component", "enforcer-conf").Logger(),
 	}
 	// Dart: await instance.loadConfig();
@@ -456,11 +465,11 @@ func (m *EnforcerConfManager) reloadConfigFromFileSystem() {
 // Helpers
 // ---------------------------------------------------------------------------
 
-// getConfigPath returns the path to the enforcer config file.
-// Dart: _getConfigPath (L135) = path.join(Enforcer().rootDir(), 'bitwindow-enforcer.conf')
+// getConfigPath returns the path to the enforcer config file. ConfigDir is
+// required at construction time, so there's no global-path fallback —
+// previously that fallback caused tests (which never set ConfigDir) to
+// open and rewrite the user's real enforcer.conf under
+// ~/Library/Application Support/bip300301_enforcer/.
 func (m *EnforcerConfManager) getConfigPath() string {
-	if m.ConfigDir != "" {
-		return filepath.Join(m.ConfigDir, bitwindowEnforcerConfFilename)
-	}
-	return filepath.Join(EnforcerDirs.RootDir(), bitwindowEnforcerConfFilename)
+	return filepath.Join(m.ConfigDir, bitwindowEnforcerConfFilename)
 }

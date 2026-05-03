@@ -329,7 +329,7 @@ func New(dataDir, network, bitwindowDir string, configs []BinaryConfig, log zero
 		}
 		orch.BitcoinConf = bitcoinConf
 
-		enforcerConf, err := config.NewEnforcerConfManager(bitcoinConf, log)
+		enforcerConf, err := config.NewEnforcerConfManager(bitcoinConf, bitwindowDir, log)
 		if err != nil {
 			log.Warn().Err(err).Msg("failed to initialize enforcer config manager, args must be passed explicitly")
 		} else {
