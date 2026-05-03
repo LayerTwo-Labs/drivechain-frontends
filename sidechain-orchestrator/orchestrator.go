@@ -1033,6 +1033,23 @@ func (o *Orchestrator) startEnforcerWhenReady(ctx context.Context, opts StartOpt
 		}
 	}
 
+	// Race guard: if enforcer is already in pm.processes (e.g. enforcerMon
+	// briefly reports not connected during a transient RPC blip but the
+	// process we own is still alive), wait for the existing process's
+	// connection to recover rather than calling Start again. Without this,
+	// process.Start returns "enforcer is already running" and surfaces a
+	// phantom error on the enforcer card. Mirrors the bitcoind-side guard.
+	if o.process.IsRunning("enforcer") {
+		o.log.Info().Str("binary", "enforcer").Msg("process already in tracking map, waiting for connection")
+		if err := waitForConnectedOrExit(ctx, enforcerMon, o.process.Get("enforcer")); err != nil {
+			enforcerMon.SetInitializing(false)
+			o.log.Error().Err(err).Msg("failed to wait for enforcer")
+			return
+		}
+		o.log.Info().Msg("enforcer connection recovered")
+		return
+	}
+
 	if _, err := o.process.Start(ctx, enforcerCfg, opts.EnforcerArgs, nil); err != nil {
 		enforcerMon.SetInitializing(false)
 		o.log.Error().Err(err).Msg("failed to start enforcer")
