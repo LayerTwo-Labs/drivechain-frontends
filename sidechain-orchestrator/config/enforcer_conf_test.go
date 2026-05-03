@@ -79,32 +79,27 @@ func TestEnforcerLoadConfigFromScratch(t *testing.T) {
 	}
 }
 
-func TestEnforcerLoadConfigStripsDerivedFields(t *testing.T) {
-	// Old conf files (or anything that snuck derived fields in) must
-	// have those fields stripped on load — that's how a stale regtest
-	// node-rpc-addr never makes it into the running enforcer's args.
+func TestEnforcerLoadConfigPreservesPersistedDerivedFields(t *testing.T) {
+	// Persisted bitwindow-enforcer.conf has precedence — anything written
+	// there (by the user, by a future migration, by a tool) survives load
+	// untouched. GetCliArgs only fills in gaps from the network derivation.
 	m, _ := newTestEnforcerManager(t)
 
 	confPath := m.getConfigPath()
 	require.NoError(t, os.MkdirAll(filepath.Dir(confPath), 0755))
-	stale := "# bitwindow-enforcer-conf-version=2\n" +
+	custom := "# bitwindow-enforcer-conf-version=2\n" +
 		"enable-wallet=true\n" +
-		"node-rpc-user=stale\n" +
-		"node-rpc-pass=stale\n" +
-		"node-rpc-addr=127.0.0.1:18443\n" +
-		"node-zmq-addr-sequence=tcp://127.0.0.1:99999\n" +
-		"wallet-esplora-url=http://localhost:3003\n"
-	require.NoError(t, os.WriteFile(confPath, []byte(stale), 0644))
+		"node-rpc-addr=10.0.0.5:8332\n" +
+		"node-rpc-user=alice\n"
+	require.NoError(t, os.WriteFile(confPath, []byte(custom), 0644))
 
 	require.NoError(t, m.LoadConfig())
 
-	for _, key := range derivedEnforcerSettings {
-		if m.Config.HasSetting(key) {
-			t.Errorf("derived field %q must be stripped on load, still present", key)
-		}
+	if got := m.Config.GetSetting("node-rpc-addr"); got != "10.0.0.5:8332" {
+		t.Errorf("persisted node-rpc-addr = %q, want unchanged 10.0.0.5:8332", got)
 	}
-	if m.Config.GetSetting("enable-wallet") != "true" {
-		t.Error("user toggle enable-wallet must survive the strip")
+	if got := m.Config.GetSetting("node-rpc-user"); got != "alice" {
+		t.Errorf("persisted node-rpc-user = %q, want unchanged alice", got)
 	}
 }
 
@@ -287,31 +282,31 @@ func TestGetCliArgsAlwaysOverlaysDerivedFromBitcoinConf(t *testing.T) {
 	requireArg(t, args, "--wallet-esplora-url=")
 }
 
-func TestGetCliArgsIgnoresStalePersistedDerivedFields(t *testing.T) {
-	// Even if a stale persisted file somehow survived the load-time
-	// strip (older-build dropped a file, race, you name it),
-	// GetCliArgs must derive from the live bitcoin.conf, not from the
-	// file. This is the regression test for "regtest port baked into
-	// signet enforcer.conf".
+func TestGetCliArgsPersistedValuesWinOverNetworkDerivation(t *testing.T) {
+	// bitwindow-enforcer.conf has precedence: when a derived field is
+	// explicitly set in the persisted config, GetCliArgs uses that and
+	// does NOT also emit the bitcoin.conf-derived value. This is the
+	// "advanced override" path — point the enforcer at a different
+	// bitcoind than BitWindow's own.
 	m, _ := newTestEnforcerManager(t) // signet
 	require.NoError(t, m.LoadConfig())
 
-	const stalePort = "127.0.0.1:18443"
-	const staleEsplora = "http://localhost:3003"
-	m.Config.SetSetting("node-rpc-addr", stalePort)
-	m.Config.SetSetting("wallet-esplora-url", staleEsplora)
+	const customAddr = "10.0.0.5:8332"
+	const customEsplora = "http://my-esplora.example/api"
+	m.Config.SetSetting("node-rpc-addr", customAddr)
+	m.Config.SetSetting("wallet-esplora-url", customEsplora)
 
 	args := m.GetCliArgs()
 
-	rejectArg(t, args, "--node-rpc-addr="+stalePort)
-	rejectArg(t, args, "--wallet-esplora-url="+staleEsplora)
+	// Persisted values must show up.
+	requireArg(t, args, "--node-rpc-addr="+customAddr)
+	requireArg(t, args, "--wallet-esplora-url="+customEsplora)
 
-	// And the actual values must come from the live network, whatever
-	// those happen to be — pulled from the same helpers production uses.
-	wantAddr := fmt.Sprintf("--node-rpc-addr=127.0.0.1:%d", RPCPortForNetwork(m.bitcoinConf.Network))
-	wantEsplora := fmt.Sprintf("--wallet-esplora-url=%s", EsploraURLForNetwork(m.bitcoinConf.Network))
-	requireArg(t, args, wantAddr)
-	requireArg(t, args, wantEsplora)
+	// And the network-derived defaults must NOT also be appended —
+	// otherwise the enforcer would see two --node-rpc-addr flags and
+	// the override wouldn't actually override anything.
+	rejectArg(t, args, fmt.Sprintf("--node-rpc-addr=127.0.0.1:%d", RPCPortForNetwork(m.bitcoinConf.Network)))
+	rejectArg(t, args, fmt.Sprintf("--wallet-esplora-url=%s", EsploraURLForNetwork(m.bitcoinConf.Network)))
 }
 
 func TestGetCliArgsReflectsCurrentNetwork(t *testing.T) {
