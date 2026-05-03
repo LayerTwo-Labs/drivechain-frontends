@@ -720,6 +720,26 @@ func (s *Server) ListRecentTransactions(ctx context.Context, c *connect.Request[
 		return nil, fmt.Errorf("bitcoind: could not get blockchain info: %w", err)
 	}
 
+	// While Core is in IBD on a populated chain (mainnet / forknet), the
+	// historical block walk below is the single biggest source of cs_main
+	// pressure on this whole codebase: it issues a per-tx
+	// GetRawTransaction for every tx in up to 100 recent blocks. During
+	// IBD that storms Core badly enough to push getblockchaininfo past
+	// its client timeout. The user has nothing useful to look at in that
+	// window anyway — return mempool only and bail.
+	if info.Msg.InitialBlockDownload && config.IsFullChainNetwork(s.config.BitcoinCoreNetwork) {
+		return connect.NewResponse(&pb.ListRecentTransactionsResponse{
+			Transactions: transactions,
+		}), nil
+	}
+
+	// Resolve the requested count up front so the block walk can stop as
+	// soon as we have enough.
+	count := int64(100)
+	if c.Msg.Count > 0 {
+		count = c.Msg.Count
+	}
+
 	// Get block at latest height
 	blockHashRes, err := bitcoind.GetBlock(ctx, connect.NewRequest(&corepb.GetBlockRequest{
 		Hash:      info.Msg.BestBlockHash,
@@ -729,29 +749,35 @@ func (s *Server) ListRecentTransactions(ctx context.Context, c *connect.Request[
 		return nil, fmt.Errorf("bitcoind: could not get block at height %d: %w", info.Msg.Blocks, err)
 	}
 
-	// Extract transactions from the 100 most recent blocks
+	// Walk recent blocks, fetching per-tx fee info, until we have `count`
+	// non-coinbase transactions. Cap the walk at maxBlocks so an empty
+	// signet/regtest chain doesn't run away. Previously this always
+	// scanned 100 blocks regardless and threw away the surplus — on
+	// mainnet that meant ~300k GetRawTransaction RPCs per call, every
+	// 5s, all serialised behind cs_main on Core.
+	const maxBlocks = 100
 	currentHash := blockHashRes.Msg.Hash
-	for i := 0; i < 100 && currentHash != ""; i++ {
+walkBlocks:
+	for i := 0; i < maxBlocks && currentHash != ""; i++ {
 		blockRes, err := bitcoind.GetBlock(ctx, connect.NewRequest(&corepb.GetBlockRequest{
 			Hash:      currentHash,
-			Verbosity: corepb.GetBlockRequest_VERBOSITY_BLOCK_TX_INFO, // Get full transaction details
+			Verbosity: corepb.GetBlockRequest_VERBOSITY_BLOCK_TX_INFO,
 		}))
 		if err != nil {
 			return nil, fmt.Errorf("bitcoind: could not get block: %w", err)
 		}
 		for idx, txid := range blockRes.Msg.Txids {
-			// Get full transaction details
+			// Skip coinbase before we pay for GetRawTransaction.
+			if idx == 0 {
+				continue
+			}
+
 			txRes, err := bitcoind.GetRawTransaction(ctx, connect.NewRequest(&corepb.GetRawTransactionRequest{
 				Txid:      txid,
 				Verbosity: corepb.GetRawTransactionRequest_VERBOSITY_TX_PREVOUT_INFO,
 			}))
 			if err != nil {
 				return nil, fmt.Errorf("bitcoind: could not get transaction %s: %w", txid, err)
-			}
-
-			// Coinbase transaction
-			if idx == 0 {
-				continue
 			}
 
 			fee, err := btcutil.NewAmount(txRes.Msg.Fee)
@@ -766,6 +792,10 @@ func (s *Server) ListRecentTransactions(ctx context.Context, c *connect.Request[
 				FeeSats:          uint64(fee),
 				ConfirmedInBlock: &blockRes.Msg.Height,
 			})
+
+			if int64(len(transactions)) >= count {
+				break walkBlocks
+			}
 		}
 
 		currentHash = blockRes.Msg.PreviousBlockHash
@@ -777,10 +807,6 @@ func (s *Server) ListRecentTransactions(ctx context.Context, c *connect.Request[
 	})
 
 	// Limit to requested count
-	count := int64(100)
-	if c.Msg.Count > 0 {
-		count = c.Msg.Count
-	}
 	if count > int64(len(transactions)) {
 		count = int64(len(transactions))
 	}
