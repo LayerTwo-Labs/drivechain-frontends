@@ -116,3 +116,11 @@ func (c *Config) Finalize(network Network) error {
 func (c *Config) IsDemoMode() bool {
 	return c.BitcoinCoreNetwork == NetworkMainnet
 }
+
+// IsFullChainNetwork reports whether the network has full mainnet-scale
+// block volume (mainnet / forknet). Callers gate IBD-only RPC throttling
+// on this — signet / testnet / regtest blocks are small or empty so
+// running scans through their IBD doesn't move the needle on Core load.
+func IsFullChainNetwork(n Network) bool {
+	return n == NetworkMainnet || n == NetworkForknet
+}
