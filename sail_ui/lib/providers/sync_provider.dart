@@ -140,8 +140,8 @@ class SyncProvider extends ChangeNotifier {
   SyncProvider({this.additionalConnection, bool startTimer = true}) {
     if (startTimer && !Environment.isInTest) {
       _scheduleNextTick();
+      fetch();
     }
-    fetch();
   }
 
   void _scheduleNextTick() {
