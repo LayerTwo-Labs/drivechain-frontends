@@ -89,6 +89,33 @@ class BinaryProvider extends ChangeNotifier {
     await _orchestrator.startWithL1(name);
   }
 
+  /// Restart a single binary in-place. Unlike [start], which routes through
+  /// the orchestrator's full L1 boot chain (Core -> Enforcer -> target),
+  /// this stops + starts only the named binary. Restarting the enforcer
+  /// never tries to spawn or adopt bitcoind — fixes the "bitcoind is already
+  /// running" phantom error that surfaced on Bitcoin Core's card whenever a
+  /// user clicked Restart on a sibling daemon.
+  ///
+  /// Use this for the per-daemon Restart buttons in daemon status cards,
+  /// chain-settings modals, the persistent status bar, and the sidechains
+  /// page. Reserve [start] for first-time chain bootstrap.
+  Future<void> restart(Binary binary) async {
+    if (_isDaemonBinary(binary)) {
+      await _stopDaemonBinary(binary);
+      await _startDaemonBinary(binary);
+      return;
+    }
+
+    final name = _orchestratorName(binary);
+    if (name == null) {
+      log.e('BinaryProvider: unknown binary ${binary.name}');
+      return;
+    }
+
+    log.i('BinaryProvider: restarting $name via orchestrator');
+    await _orchestrator.restartDaemon(name);
+  }
+
   Future<void> stop(Binary binary, {bool skipDownstream = false}) async {
     if (_isDaemonBinary(binary)) {
       await _stopDaemonBinary(binary);

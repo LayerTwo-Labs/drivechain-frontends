@@ -54,6 +54,9 @@ const (
 	// OrchestratorServiceStartWithL1Procedure is the fully-qualified name of the OrchestratorService's
 	// StartWithL1 RPC.
 	OrchestratorServiceStartWithL1Procedure = "/orchestrator.v1.OrchestratorService/StartWithL1"
+	// OrchestratorServiceRestartDaemonProcedure is the fully-qualified name of the
+	// OrchestratorService's RestartDaemon RPC.
+	OrchestratorServiceRestartDaemonProcedure = "/orchestrator.v1.OrchestratorService/RestartDaemon"
 	// OrchestratorServiceShutdownAllProcedure is the fully-qualified name of the OrchestratorService's
 	// ShutdownAll RPC.
 	OrchestratorServiceShutdownAllProcedure = "/orchestrator.v1.OrchestratorService/ShutdownAll"
@@ -110,6 +113,12 @@ type OrchestratorServiceClient interface {
 	// download progress and connection state — never tied to this RPC's
 	// lifetime, so a transport blip can't kill an in-flight download.
 	StartWithL1(context.Context, *connect.Request[v1.StartWithL1Request]) (*connect.Response[v1.StartWithL1Response], error)
+	// Stop the named binary and start it again, single-daemon scope. Never
+	// touches sibling daemons: restarting "enforcer" never spawns or adopts
+	// bitcoind. Use this for per-daemon "Restart" buttons on UI cards;
+	// StartWithL1 stays the entry point for full-chain bootstrap. Same
+	// fire-and-forget shape as StartWithL1.
+	RestartDaemon(context.Context, *connect.Request[v1.RestartDaemonRequest]) (*connect.Response[v1.RestartDaemonResponse], error)
 	// Shutdown all running binaries.
 	ShutdownAll(context.Context, *connect.Request[v1.ShutdownAllRequest]) (*connect.ServerStreamForClient[v1.ShutdownAllResponse], error)
 	// Get the current BTC/USD exchange rate.
@@ -188,6 +197,12 @@ func NewOrchestratorServiceClient(httpClient connect.HTTPClient, baseURL string,
 			connect.WithSchema(orchestratorServiceMethods.ByName("StartWithL1")),
 			connect.WithClientOptions(opts...),
 		),
+		restartDaemon: connect.NewClient[v1.RestartDaemonRequest, v1.RestartDaemonResponse](
+			httpClient,
+			baseURL+OrchestratorServiceRestartDaemonProcedure,
+			connect.WithSchema(orchestratorServiceMethods.ByName("RestartDaemon")),
+			connect.WithClientOptions(opts...),
+		),
 		shutdownAll: connect.NewClient[v1.ShutdownAllRequest, v1.ShutdownAllResponse](
 			httpClient,
 			baseURL+OrchestratorServiceShutdownAllProcedure,
@@ -260,6 +275,7 @@ type orchestratorServiceClient struct {
 	stopBinary                 *connect.Client[v1.StopBinaryRequest, v1.StopBinaryResponse]
 	streamLogs                 *connect.Client[v1.StreamLogsRequest, v1.StreamLogsResponse]
 	startWithL1                *connect.Client[v1.StartWithL1Request, v1.StartWithL1Response]
+	restartDaemon              *connect.Client[v1.RestartDaemonRequest, v1.RestartDaemonResponse]
 	shutdownAll                *connect.Client[v1.ShutdownAllRequest, v1.ShutdownAllResponse]
 	getBTCPrice                *connect.Client[v1.GetBTCPriceRequest, v1.GetBTCPriceResponse]
 	getMainchainBlockchainInfo *connect.Client[v1.GetMainchainBlockchainInfoRequest, v1.GetMainchainBlockchainInfoResponse]
@@ -305,6 +321,11 @@ func (c *orchestratorServiceClient) StreamLogs(ctx context.Context, req *connect
 // StartWithL1 calls orchestrator.v1.OrchestratorService.StartWithL1.
 func (c *orchestratorServiceClient) StartWithL1(ctx context.Context, req *connect.Request[v1.StartWithL1Request]) (*connect.Response[v1.StartWithL1Response], error) {
 	return c.startWithL1.CallUnary(ctx, req)
+}
+
+// RestartDaemon calls orchestrator.v1.OrchestratorService.RestartDaemon.
+func (c *orchestratorServiceClient) RestartDaemon(ctx context.Context, req *connect.Request[v1.RestartDaemonRequest]) (*connect.Response[v1.RestartDaemonResponse], error) {
+	return c.restartDaemon.CallUnary(ctx, req)
 }
 
 // ShutdownAll calls orchestrator.v1.OrchestratorService.ShutdownAll.
@@ -382,6 +403,12 @@ type OrchestratorServiceHandler interface {
 	// download progress and connection state — never tied to this RPC's
 	// lifetime, so a transport blip can't kill an in-flight download.
 	StartWithL1(context.Context, *connect.Request[v1.StartWithL1Request]) (*connect.Response[v1.StartWithL1Response], error)
+	// Stop the named binary and start it again, single-daemon scope. Never
+	// touches sibling daemons: restarting "enforcer" never spawns or adopts
+	// bitcoind. Use this for per-daemon "Restart" buttons on UI cards;
+	// StartWithL1 stays the entry point for full-chain bootstrap. Same
+	// fire-and-forget shape as StartWithL1.
+	RestartDaemon(context.Context, *connect.Request[v1.RestartDaemonRequest]) (*connect.Response[v1.RestartDaemonResponse], error)
 	// Shutdown all running binaries.
 	ShutdownAll(context.Context, *connect.Request[v1.ShutdownAllRequest], *connect.ServerStream[v1.ShutdownAllResponse]) error
 	// Get the current BTC/USD exchange rate.
@@ -454,6 +481,12 @@ func NewOrchestratorServiceHandler(svc OrchestratorServiceHandler, opts ...conne
 		OrchestratorServiceStartWithL1Procedure,
 		svc.StartWithL1,
 		connect.WithSchema(orchestratorServiceMethods.ByName("StartWithL1")),
+		connect.WithHandlerOptions(opts...),
+	)
+	orchestratorServiceRestartDaemonHandler := connect.NewUnaryHandler(
+		OrchestratorServiceRestartDaemonProcedure,
+		svc.RestartDaemon,
+		connect.WithSchema(orchestratorServiceMethods.ByName("RestartDaemon")),
 		connect.WithHandlerOptions(opts...),
 	)
 	orchestratorServiceShutdownAllHandler := connect.NewServerStreamHandler(
@@ -532,6 +565,8 @@ func NewOrchestratorServiceHandler(svc OrchestratorServiceHandler, opts ...conne
 			orchestratorServiceStreamLogsHandler.ServeHTTP(w, r)
 		case OrchestratorServiceStartWithL1Procedure:
 			orchestratorServiceStartWithL1Handler.ServeHTTP(w, r)
+		case OrchestratorServiceRestartDaemonProcedure:
+			orchestratorServiceRestartDaemonHandler.ServeHTTP(w, r)
 		case OrchestratorServiceShutdownAllProcedure:
 			orchestratorServiceShutdownAllHandler.ServeHTTP(w, r)
 		case OrchestratorServiceGetBTCPriceProcedure:
@@ -587,6 +622,10 @@ func (UnimplementedOrchestratorServiceHandler) StreamLogs(context.Context, *conn
 
 func (UnimplementedOrchestratorServiceHandler) StartWithL1(context.Context, *connect.Request[v1.StartWithL1Request]) (*connect.Response[v1.StartWithL1Response], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("orchestrator.v1.OrchestratorService.StartWithL1 is not implemented"))
+}
+
+func (UnimplementedOrchestratorServiceHandler) RestartDaemon(context.Context, *connect.Request[v1.RestartDaemonRequest]) (*connect.Response[v1.RestartDaemonResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("orchestrator.v1.OrchestratorService.RestartDaemon is not implemented"))
 }
 
 func (UnimplementedOrchestratorServiceHandler) ShutdownAll(context.Context, *connect.Request[v1.ShutdownAllRequest], *connect.ServerStream[v1.ShutdownAllResponse]) error {

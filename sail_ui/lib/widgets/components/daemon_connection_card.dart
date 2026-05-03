@@ -64,10 +64,9 @@ class DaemonConnectionCard extends StatelessWidget {
                         shouldUpdate: true,
                       );
 
-                      // 2. Stop the binary
-                      await _binaryProvider.stop(providerBinary);
-
-                      // 3. Start the binary with retry logic (3 attempts, 5 second wait)
+                      // 2. Restart the binary with retry logic (3 attempts,
+                      // 5 second wait). Per-daemon scope — restarting the
+                      // enforcer here must not poke bitcoind and vice versa.
                       bool started = false;
                       int attempts = 0;
                       const maxAttempts = 3;
@@ -76,14 +75,12 @@ class DaemonConnectionCard extends StatelessWidget {
                       while (!started && attempts < maxAttempts) {
                         attempts++;
                         try {
-                          await _binaryProvider.start(providerBinary);
+                          await _binaryProvider.restart(providerBinary);
                           started = true;
                         } catch (e) {
                           if (attempts < maxAttempts) {
-                            // Wait before retry
                             await Future.delayed(retryDelay);
                           } else {
-                            // Re-throw the error on final attempt
                             rethrow;
                           }
                         }
