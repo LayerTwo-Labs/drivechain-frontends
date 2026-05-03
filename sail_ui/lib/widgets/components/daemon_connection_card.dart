@@ -278,10 +278,10 @@ class BlockStatus extends StatelessWidget {
         Expanded(
           child: Tooltip(
             message: syncInfo.downloadInfo.isDownloading
-                ? 'Downloading $name\nProgress: $currentProgress MB\nSize: $goalProgress MB'
+                ? 'Downloading $name\nProgress: ${formatWithThousandSpacers(currentProgress)} MB\nSize: ${formatWithThousandSpacers(goalProgress)} MB'
                 : downloadJustFinished
                 ? 'Starting $name...'
-                : '$name\nCurrent height $currentProgress\nHeader height $goalProgress',
+                : '$name\nCurrent height ${formatWithThousandSpacers(currentProgress)}\nHeader height ${formatWithThousandSpacers(goalProgress)}',
             child: SailRow(
               spacing: SailStyleValues.padding08,
               mainAxisAlignment: MainAxisAlignment.start,
