@@ -28,6 +28,7 @@ abstract class OrchestratorServiceBase extends $pb.GeneratedService {
   $async.Future<$5.StopBinaryResponse> stopBinary($pb.ServerContext ctx, $5.StopBinaryRequest request);
   $async.Future<$5.StreamLogsResponse> streamLogs($pb.ServerContext ctx, $5.StreamLogsRequest request);
   $async.Future<$5.StartWithL1Response> startWithL1($pb.ServerContext ctx, $5.StartWithL1Request request);
+  $async.Future<$5.RestartDaemonResponse> restartDaemon($pb.ServerContext ctx, $5.RestartDaemonRequest request);
   $async.Future<$5.ShutdownAllResponse> shutdownAll($pb.ServerContext ctx, $5.ShutdownAllRequest request);
   $async.Future<$5.GetBTCPriceResponse> getBTCPrice($pb.ServerContext ctx, $5.GetBTCPriceRequest request);
   $async.Future<$5.GetMainchainBlockchainInfoResponse> getMainchainBlockchainInfo(
@@ -60,6 +61,8 @@ abstract class OrchestratorServiceBase extends $pb.GeneratedService {
         return $5.StreamLogsRequest();
       case 'StartWithL1':
         return $5.StartWithL1Request();
+      case 'RestartDaemon':
+        return $5.RestartDaemonRequest();
       case 'ShutdownAll':
         return $5.ShutdownAllRequest();
       case 'GetBTCPrice':
@@ -102,6 +105,8 @@ abstract class OrchestratorServiceBase extends $pb.GeneratedService {
         return this.streamLogs(ctx, request as $5.StreamLogsRequest);
       case 'StartWithL1':
         return this.startWithL1(ctx, request as $5.StartWithL1Request);
+      case 'RestartDaemon':
+        return this.restartDaemon(ctx, request as $5.RestartDaemonRequest);
       case 'ShutdownAll':
         return this.shutdownAll(ctx, request as $5.ShutdownAllRequest);
       case 'GetBTCPrice':

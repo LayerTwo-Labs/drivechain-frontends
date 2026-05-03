@@ -635,164 +635,236 @@ func (o *Orchestrator) StartWithL1(ctx context.Context, target string, opts Star
 			targetPrefetch = o.prefetchBinary(ctx, config)
 		}
 
-		// Auto-build core args if none provided and config manager is available
-		if len(opts.CoreArgs) == 0 && o.BitcoinConf != nil {
-			confPath := o.BitcoinConf.GetConfFilePath()
-			opts.CoreArgs = []string{fmt.Sprintf("-conf=%s", confPath)}
-			o.log.Info().Strs("core_args", opts.CoreArgs).Msg("auto-built core args from config")
+		o.prepareCoreArgs(&opts)
+		o.prepareEnforcerArgs(&opts)
+		o.injectSidechainStarter(config, &opts)
+
+		if !o.startBitcoindOnly(ctx, opts, ch) {
+			return
 		}
 
-		// Auto-build enforcer args if none provided and config manager is available
-		if len(opts.EnforcerArgs) == 0 && o.EnforcerConf != nil {
-			opts.EnforcerArgs = o.EnforcerConf.GetCliArgs()
-			o.log.Info().Strs("enforcer_args", opts.EnforcerArgs).Msg("auto-built enforcer args from config")
-		}
-
-		// Dart binary_provider.dart L314-326: inject sidechain seed for chainLayer==2 targets
-		// Dart: always tries for any chainLayer==2, no HasWallet/IsUnlocked guard
-		if config.ChainLayer == 2 && config.Slot > 0 && o.WalletSvc != nil {
-			// Dart L321: walletWriter.getSidechainStarter(slot) — ensure exists
-			if _, err := o.WalletSvc.GetOrDeriveSidechainStarter(config.Slot, config.DisplayName); err != nil {
-				o.log.Warn().Err(err).Int("slot", config.Slot).Msg("could not ensure sidechain starter")
-			}
-			// Dart L322: walletReader.writeSidechainStarter(slot) — write to temp file
-			scPath, err := o.WalletSvc.WriteSidechainStarter(config.Slot)
-			if err != nil {
-				o.log.Warn().Err(err).Int("slot", config.Slot).Msg("failed to write sidechain starter")
-			} else {
-				opts.TargetArgs = append(opts.TargetArgs, fmt.Sprintf("--mnemonic-seed-phrase-path=%s", scPath))
-				o.log.Info().Str("path", scPath).Int("slot", config.Slot).Msg("injected sidechain starter")
-			}
-		}
-
-		// === Bitcoin Core: initBinary pattern (rpc_connection.dart L197-232) ===
-		//
-		// Dart flow:
-		//   1. startConnectionTimer() — pings once, then starts 1s timer
-		//   2. if (connected) → "already running, not booting" → return
-		//   3. else → bootProcess() → wait for connection
-		//
-		// The connection timer keeps running persistently so that after a
-		// stop() the monitor enters connectModeOnly and can detect
-		// externally-restarted processes.
-
-		coreCfg := o.configs["bitcoind"]
-		var coreHealthOpts HealthCheckOpts
-		if o.BitcoinConf != nil {
-			if coreCfg.Port == 0 {
-				coreCfg.Port = o.BitcoinConf.GetRPCPort()
-			}
-			if o.BitcoinConf.Config != nil {
-				section := o.BitcoinConf.Network.CoreSection()
-				coreHealthOpts.User = o.BitcoinConf.Config.GetEffectiveSetting("rpcuser", section)
-				coreHealthOpts.Password = o.BitcoinConf.Config.GetEffectiveSetting("rpcpassword", section)
-			}
-		}
-		coreChecker := NewHealthChecker(coreCfg, coreHealthOpts)
-		coreMon := o.getOrCreateMonitor("bitcoind", coreChecker, bitcoindStartupPatterns)
-
-		// Dart L208: await startConnectionTimer()
-		coreMon.StartConnectionTimer(ctx)
-
-		// Dart L209-213: if (connected) { "already running, not booting"; return }
-		if coreMon.Connected() {
-			o.log.Info().Str("binary", "bitcoind").Msg("already running, not booting")
-			ch <- StartupProgress{Stage: "waiting-bitcoind", Message: "Bitcoin Core already running"}
-
-			// Adopt with real PID if possible (Dart: PidFileManager.readPidFile)
-			if !o.process.IsRunning("bitcoind") {
-				pid := o.discoverPid(coreCfg)
-				o.process.AdoptProcess(coreCfg, pid)
-				o.log.Info().Str("binary", "bitcoind").Int("pid", pid).Msg("adopted externally-running process")
-			}
-		} else {
-			// Mark as initializing BEFORE we start doing work. Covers the whole
-			// download → process.Start → wait-for-connection window so the UI
-			// shows a spinner instead of a red X. testConnection clears this on
-			// the first successful ping; error paths below clear it explicitly.
-			coreMon.SetInitializing(true)
-
-			// Dart L216-217: only start restart timer if this process starts the binary!
-			coreArgs := opts.CoreArgs // capture for closure
-			coreMon.StartRestartTimer(ctx,
-				// restartFunc: re-start bitcoind
-				// Dart binary_provider.dart L490-506: detect -reindex need before restart
-				func(restartCtx context.Context) error {
-					// Check stderr logs for reindex marker before restarting
-					// Dart L491-492: logs.any((line) => line.contains('Please restart with -reindex'))
-					proc := o.process.Get("bitcoind")
-					if proc != nil {
-						logs := proc.RecentLogs(100)
-						for _, entry := range logs {
-							if strings.Contains(entry.Line, "Please restart with -reindex") {
-								o.log.Warn().Msg("Bitcoin Core needs reindex, adding -reindex flag for next boot attempt")
-								hasReindex := false
-								for _, arg := range coreArgs {
-									if arg == "-reindex" {
-										hasReindex = true
-										break
-									}
-								}
-								if !hasReindex {
-									coreArgs = append(coreArgs, "-reindex")
-								}
-								break
-							}
-						}
-					}
-
-					_, err := o.process.Start(restartCtx, o.configs["bitcoind"], coreArgs, nil)
-					return err
-				},
-				// exitedFunc: check if bitcoind exited with non-zero code
-				func() (int, bool) {
-					proc := o.process.Get("bitcoind")
-					if proc == nil {
-						return 0, false
-					}
-					select {
-					case <-proc.ExitCh():
-						return proc.ExitCode(), true
-					default:
-						return 0, false
-					}
-				},
-			)
-
-			// Dart L219: log + bootProcess
-			ch <- StartupProgress{Stage: "starting-bitcoind", Message: "starting Bitcoin Core..."}
-
-			downloadCh, err := o.download.Download(ctx, o.configs["bitcoind"], o.Network, false)
-			if err != nil {
-				failBoot(coreMon, ch, "download bitcoind", err)
-				return
-			}
-			if err := forwardDownload(downloadCh, ch, "downloading-bitcoind"); err != nil {
-				failBoot(coreMon, ch, "download bitcoind", err)
-				return
-			}
-
-			if _, err := o.process.Start(ctx, o.configs["bitcoind"], opts.CoreArgs, nil); err != nil {
-				failBoot(coreMon, ch, "start bitcoind", err)
-				return
-			}
-			coreProc := o.process.Get("bitcoind")
-
-			// Wait for the connection timer to detect bitcoind is healthy
-			ch <- StartupProgress{Stage: "waiting-bitcoind", Message: "waiting for Bitcoin Core to accept connections..."}
-			if err := waitForConnectedOrExit(ctx, coreMon, coreProc); err != nil {
-				failBoot(coreMon, ch, "wait for bitcoind", err)
-				return
-			}
-		}
-
-		// Wait for wallet + IBD, then start enforcer.
-		if !opts.Immediate {
-			o.startEnforcerWhenReady(ctx, opts, enforcerPrefetch)
-		}
+		o.startEnforcerWhenReady(ctx, opts, enforcerPrefetch)
 
 		// Start the target after enforcer is ready.
 		o.startTargetOnly(ctx, config, opts, ch, targetPrefetch)
+	}()
+
+	return ch, nil
+}
+
+// prepareCoreArgs auto-fills opts.CoreArgs from BitcoinConf when empty.
+func (o *Orchestrator) prepareCoreArgs(opts *StartOpts) {
+	if len(opts.CoreArgs) > 0 || o.BitcoinConf == nil {
+		return
+	}
+	confPath := o.BitcoinConf.GetConfFilePath()
+	opts.CoreArgs = []string{fmt.Sprintf("-conf=%s", confPath)}
+	o.log.Info().Strs("core_args", opts.CoreArgs).Msg("auto-built core args from config")
+}
+
+// prepareEnforcerArgs auto-fills opts.EnforcerArgs from EnforcerConf when empty.
+func (o *Orchestrator) prepareEnforcerArgs(opts *StartOpts) {
+	if len(opts.EnforcerArgs) > 0 || o.EnforcerConf == nil {
+		return
+	}
+	opts.EnforcerArgs = o.EnforcerConf.GetCliArgs()
+	o.log.Info().Strs("enforcer_args", opts.EnforcerArgs).Msg("auto-built enforcer args from config")
+}
+
+// injectSidechainStarter writes the sidechain seed to a temp file and appends
+// --mnemonic-seed-phrase-path=... to opts.TargetArgs for chainLayer==2 binaries.
+// Dart binary_provider.dart L314-326.
+func (o *Orchestrator) injectSidechainStarter(config BinaryConfig, opts *StartOpts) {
+	if config.ChainLayer != 2 || config.Slot <= 0 || o.WalletSvc == nil {
+		return
+	}
+	if _, err := o.WalletSvc.GetOrDeriveSidechainStarter(config.Slot, config.DisplayName); err != nil {
+		o.log.Warn().Err(err).Int("slot", config.Slot).Msg("could not ensure sidechain starter")
+	}
+	scPath, err := o.WalletSvc.WriteSidechainStarter(config.Slot)
+	if err != nil {
+		o.log.Warn().Err(err).Int("slot", config.Slot).Msg("failed to write sidechain starter")
+		return
+	}
+	opts.TargetArgs = append(opts.TargetArgs, fmt.Sprintf("--mnemonic-seed-phrase-path=%s", scPath))
+	o.log.Info().Str("path", scPath).Int("slot", config.Slot).Msg("injected sidechain starter")
+}
+
+// startBitcoindOnly handles the bitcoind portion of a chain boot.
+// Returns true on success (or already-running), false on fatal failure
+// (failBoot has already surfaced the error to the UI in that case).
+//
+// Dart parity: rpc_connection.dart L197-232 initBinary pattern.
+//  1. startConnectionTimer() — pings once, then starts 1s timer
+//  2. if (connected) → "already running, not booting" → return
+//  3. else → bootProcess() → wait for connection
+func (o *Orchestrator) startBitcoindOnly(ctx context.Context, opts StartOpts, ch chan<- StartupProgress) bool {
+	coreCfg := o.configs["bitcoind"]
+	var coreHealthOpts HealthCheckOpts
+	if o.BitcoinConf != nil {
+		if coreCfg.Port == 0 {
+			coreCfg.Port = o.BitcoinConf.GetRPCPort()
+		}
+		if o.BitcoinConf.Config != nil {
+			section := o.BitcoinConf.Network.CoreSection()
+			coreHealthOpts.User = o.BitcoinConf.Config.GetEffectiveSetting("rpcuser", section)
+			coreHealthOpts.Password = o.BitcoinConf.Config.GetEffectiveSetting("rpcpassword", section)
+		}
+	}
+	coreChecker := NewHealthChecker(coreCfg, coreHealthOpts)
+	coreMon := o.getOrCreateMonitor("bitcoind", coreChecker, bitcoindStartupPatterns)
+
+	coreMon.StartConnectionTimer(ctx)
+
+	if coreMon.Connected() {
+		o.log.Info().Str("binary", "bitcoind").Msg("already running, not booting")
+		ch <- StartupProgress{Stage: "waiting-bitcoind", Message: "Bitcoin Core already running"}
+
+		if !o.process.IsRunning("bitcoind") {
+			pid := o.discoverPid(coreCfg)
+			o.process.AdoptProcess(coreCfg, pid)
+			o.log.Info().Str("binary", "bitcoind").Int("pid", pid).Msg("adopted externally-running process")
+		}
+		return true
+	}
+
+	coreMon.SetInitializing(true)
+
+	coreArgs := opts.CoreArgs
+	coreMon.StartRestartTimer(ctx,
+		// Dart binary_provider.dart L490-506: detect -reindex need before restart
+		func(restartCtx context.Context) error {
+			proc := o.process.Get("bitcoind")
+			if proc != nil {
+				logs := proc.RecentLogs(100)
+				for _, entry := range logs {
+					if strings.Contains(entry.Line, "Please restart with -reindex") {
+						o.log.Warn().Msg("Bitcoin Core needs reindex, adding -reindex flag for next boot attempt")
+						hasReindex := false
+						for _, arg := range coreArgs {
+							if arg == "-reindex" {
+								hasReindex = true
+								break
+							}
+						}
+						if !hasReindex {
+							coreArgs = append(coreArgs, "-reindex")
+						}
+						break
+					}
+				}
+			}
+
+			_, err := o.process.Start(restartCtx, o.configs["bitcoind"], coreArgs, nil)
+			return err
+		},
+		func() (int, bool) {
+			proc := o.process.Get("bitcoind")
+			if proc == nil {
+				return 0, false
+			}
+			select {
+			case <-proc.ExitCh():
+				return proc.ExitCode(), true
+			default:
+				return 0, false
+			}
+		},
+	)
+
+	ch <- StartupProgress{Stage: "starting-bitcoind", Message: "starting Bitcoin Core..."}
+
+	downloadCh, err := o.download.Download(ctx, o.configs["bitcoind"], o.Network, false)
+	if err != nil {
+		failBoot(coreMon, ch, "download bitcoind", err)
+		return false
+	}
+	if err := forwardDownload(downloadCh, ch, "downloading-bitcoind"); err != nil {
+		failBoot(coreMon, ch, "download bitcoind", err)
+		return false
+	}
+
+	// If the process is already in pm.processes (e.g. coreMon.Connected()
+	// briefly false during transient RPC blip but the process we own is
+	// still alive), wait for the existing process's connection to recover
+	// rather than calling Start again — Start would return "bitcoind is
+	// already running" and surface a phantom error on the bitcoind card.
+	if o.process.IsRunning("bitcoind") {
+		o.log.Info().Str("binary", "bitcoind").Msg("process already in tracking map, waiting for connection")
+		ch <- StartupProgress{Stage: "waiting-bitcoind", Message: "waiting for Bitcoin Core to accept connections..."}
+		if err := waitForConnectedOrExit(ctx, coreMon, o.process.Get("bitcoind")); err != nil {
+			failBoot(coreMon, ch, "wait for bitcoind", err)
+			return false
+		}
+		return true
+	}
+
+	if _, err := o.process.Start(ctx, o.configs["bitcoind"], opts.CoreArgs, nil); err != nil {
+		failBoot(coreMon, ch, "start bitcoind", err)
+		return false
+	}
+	coreProc := o.process.Get("bitcoind")
+
+	ch <- StartupProgress{Stage: "waiting-bitcoind", Message: "waiting for Bitcoin Core to accept connections..."}
+	if err := waitForConnectedOrExit(ctx, coreMon, coreProc); err != nil {
+		failBoot(coreMon, ch, "wait for bitcoind", err)
+		return false
+	}
+	return true
+}
+
+// RestartDaemon stops the named binary and starts it again — single-daemon
+// scope. Unlike StartWithL1, this never touches sibling daemons: restarting
+// "enforcer" only restarts the enforcer; it never tries to spawn or adopt
+// bitcoind. Use it for the "Restart" button on per-daemon UI cards.
+//
+// The returned channel emits StartupProgress events the same way StartWithL1
+// does and is closed when the restart completes (or fails).
+func (o *Orchestrator) RestartDaemon(ctx context.Context, name string) (<-chan StartupProgress, error) {
+	config, err := o.getConfig(name)
+	if err != nil {
+		return nil, err
+	}
+
+	ch := make(chan StartupProgress, 100)
+
+	go func() {
+		defer close(ch)
+
+		// Best-effort stop. If the binary isn't running, fall straight through
+		// to start.
+		if o.process.IsRunning(name) {
+			ch <- StartupProgress{Stage: "stopping-" + name, Message: fmt.Sprintf("stopping %s...", config.DisplayName)}
+			if err := o.Stop(ctx, name, false); err != nil {
+				o.log.Warn().Err(err).Str("binary", name).Msg("graceful stop failed during restart, escalating to SIGKILL")
+				if killErr := o.Stop(ctx, name, true); killErr != nil {
+					o.log.Error().Err(killErr).Str("binary", name).Msg("force kill also failed during restart")
+					ch <- StartupProgress{Error: fmt.Errorf("stop %s: %w", name, killErr)}
+					return
+				}
+			}
+		}
+
+		opts := StartOpts{}
+
+		switch name {
+		case "bitcoind":
+			o.prepareCoreArgs(&opts)
+			if !o.startBitcoindOnly(ctx, opts, ch) {
+				return
+			}
+			ch <- StartupProgress{Stage: "done", Message: fmt.Sprintf("%s started", config.DisplayName), Done: true}
+
+		case "enforcer":
+			o.prepareEnforcerArgs(&opts)
+			o.startEnforcerWhenReady(ctx, opts, nil)
+			ch <- StartupProgress{Stage: "done", Message: fmt.Sprintf("%s started", config.DisplayName), Done: true}
+
+		default:
+			o.injectSidechainStarter(config, &opts)
+			// startTargetOnly emits its own "done" event.
+			o.startTargetOnly(ctx, config, opts, ch, nil)
+		}
 	}()
 
 	return ch, nil

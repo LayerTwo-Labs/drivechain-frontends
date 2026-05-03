@@ -32,6 +32,13 @@ service OrchestratorService {
   // lifetime, so a transport blip can't kill an in-flight download.
   rpc StartWithL1(StartWithL1Request) returns (StartWithL1Response);
 
+  // Stop the named binary and start it again, single-daemon scope. Never
+  // touches sibling daemons: restarting "enforcer" never spawns or adopts
+  // bitcoind. Use this for per-daemon "Restart" buttons on UI cards;
+  // StartWithL1 stays the entry point for full-chain bootstrap. Same
+  // fire-and-forget shape as StartWithL1.
+  rpc RestartDaemon(RestartDaemonRequest) returns (RestartDaemonResponse);
+
   // Shutdown all running binaries.
   rpc ShutdownAll(ShutdownAllRequest) returns (stream ShutdownAllResponse);
 
@@ -179,6 +186,14 @@ message StartWithL1Request {
 }
 
 message StartWithL1Response {}
+
+// RestartDaemon
+
+message RestartDaemonRequest {
+  string name = 1;
+}
+
+message RestartDaemonResponse {}
 
 // ShutdownAll
 

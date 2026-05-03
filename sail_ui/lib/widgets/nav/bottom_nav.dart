@@ -173,7 +173,7 @@ class BottomNav extends StatelessWidget {
                     DaemonConnectionCard(
                       connection: model.mainchain,
                       syncInfo: model.syncProvider.mainchainSyncInfo,
-                      restartDaemon: () => binaryProvider.start(
+                      restartDaemon: () => binaryProvider.restart(
                         binaryProvider.binaries.firstWhere(
                           (b) => b.name == BitcoinCore().name,
                         ),
@@ -204,7 +204,7 @@ class BottomNav extends StatelessWidget {
                               : model.syncProvider.inHeaderSync
                               ? 'Waiting for L1 to sync headers...'
                               : null),
-                      restartDaemon: () => binaryProvider.start(
+                      restartDaemon: () => binaryProvider.restart(
                         binaryProvider.binaries.firstWhere(
                           (b) => b.name == Enforcer().name,
                         ),
@@ -242,7 +242,7 @@ class BottomNav extends StatelessWidget {
                         connection: additionalConnection.rpc,
                         syncInfo: coreReady ? model.additionalSyncInfo : null,
                         infoMessage: infoMessage,
-                        restartDaemon: () => binaryProvider.start(
+                        restartDaemon: () => binaryProvider.restart(
                           binaryProvider.binaries.firstWhere(
                             (b) => b.name == additionalConnection.rpc.binary.name,
                           ),

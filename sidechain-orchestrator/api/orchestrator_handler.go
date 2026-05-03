@@ -125,6 +125,25 @@ func (h *Handler) StreamLogs(ctx context.Context, req *connect.Request[pb.Stream
 	}
 }
 
+// RestartDaemon stops + starts a single binary. Same fire-and-forget shape
+// as StartWithL1: the boot goroutine uses context.Background() so a transport
+// blip can't kill an in-flight restart. Crucially, it does NOT cascade to
+// sibling daemons — restarting "enforcer" never spawns or adopts bitcoind.
+func (h *Handler) RestartDaemon(ctx context.Context, req *connect.Request[pb.RestartDaemonRequest]) (*connect.Response[pb.RestartDaemonResponse], error) {
+	ch, err := h.orch.RestartDaemon(context.Background(), req.Msg.Name)
+	if err != nil {
+		return nil, err
+	}
+
+	go func() {
+		for range ch {
+			// drain
+		}
+	}()
+
+	return connect.NewResponse(&pb.RestartDaemonResponse{}), nil
+}
+
 // StartWithL1 dispatches a boot goroutine and returns immediately. The
 // goroutine uses context.Background() so that a transport blip / client
 // disconnect on this RPC can't cancel an in-flight bitcoind download or
