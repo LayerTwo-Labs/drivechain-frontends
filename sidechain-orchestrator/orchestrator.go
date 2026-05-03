@@ -163,6 +163,20 @@ type Orchestrator struct {
 	bciErr       error
 	bciFetchedAt time.Time
 
+	// httpClientsMu guards the lazy HTTP-client singletons used by the
+	// chatty pollers (CoreStatusClient, GetSyncStatus). Each client is built
+	// once and reused across every poll — without this, every probe
+	// constructed a fresh http.Client whose connection pool died with the
+	// call, churning hundreds of TCP connections per second against
+	// bitcoind/enforcer/sidechains and exhausting the receivers' fd limits
+	// during sync.
+	httpClientsMu       sync.Mutex
+	coreStatusClient    *CoreStatusClient
+	coreStatusClientKey string
+	enforcerHTTPClient  *http.Client
+	sidechainHTTPClient *http.Client
+	explorerHTTPClient  *http.Client
+
 	// stopBinary is the Stop primitive used by SetCoreVariant. Production wires
 	// this to o.Stop; tests override it to inject force/graceful failures.
 	stopBinary func(ctx context.Context, name string, force bool) error
@@ -2001,17 +2015,8 @@ func (o *Orchestrator) GetSyncStatus(ctx context.Context) (*SyncStatus, error) {
 			out.Enforcer.Error = "not running"
 			return
 		}
-		httpClient := &http.Client{
-			Transport: &http2.Transport{
-				AllowHTTP: true,
-				DialTLSContext: func(ctx context.Context, network, addr string, _ *tls.Config) (net.Conn, error) {
-					var d net.Dialer
-					return d.DialContext(ctx, network, addr)
-				},
-			},
-		}
 		client := enforcerrpc.NewValidatorServiceClient(
-			httpClient,
+			o.enforcerHTTP(),
 			fmt.Sprintf("http://127.0.0.1:%d", cfg.Port),
 			connect.WithGRPC(),
 		)
@@ -2056,7 +2061,7 @@ func (o *Orchestrator) GetSyncStatus(ctx context.Context) (*SyncStatus, error) {
 			var resp struct {
 				Count int64 `json:"count"`
 			}
-			if err := connectJSONPost(ctx, url, &resp); err != nil {
+			if err := connectJSONPost(ctx, o.sidechainHTTP(), url, &resp); err != nil {
 				slot.Error = err.Error()
 				return
 			}
@@ -2127,7 +2132,7 @@ func (o *Orchestrator) fetchExplorerHeights(ctx context.Context) map[string]int6
 	var resp map[string]struct {
 		Height interface{} `json:"height"`
 	}
-	if err := connectJSONPost(rpcCtx, url, &resp); err != nil {
+	if err := connectJSONPost(rpcCtx, o.explorerHTTP(), url, &resp); err != nil {
 		o.log.Debug().Err(err).Msg("explorer GetChainTips failed; keeping cached heights")
 		o.explorerMu.Lock()
 		out := o.explorerHeights
@@ -2157,8 +2162,11 @@ func (o *Orchestrator) fetchExplorerHeights(ctx context.Context) map[string]int6
 
 // connectJSONPost issues a Connect-JSON unary call (POST with empty {} body)
 // against url and decodes the response body into out. Used for sidechain
-// RPCs the orchestrator doesn't have generated stubs for.
-func connectJSONPost(ctx context.Context, url string, out interface{}) error {
+// RPCs the orchestrator doesn't have generated stubs for. The caller passes
+// the http.Client so connection pools survive across polls — using
+// http.DefaultClient mixed local + remote traffic in one pool and lost
+// keep-alive on every call, churning sockets at the receivers.
+func connectJSONPost(ctx context.Context, client *http.Client, url string, out interface{}) error {
 	rpcCtx, cancel := context.WithTimeout(ctx, 2*time.Second)
 	defer cancel()
 
@@ -2168,7 +2176,7 @@ func connectJSONPost(ctx context.Context, url string, out interface{}) error {
 	}
 	req.Header.Set("Content-Type", "application/json")
 
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := client.Do(req)
 	if err != nil {
 		return err
 	}
@@ -2229,7 +2237,86 @@ func (o *Orchestrator) CoreStatusClient() (*CoreStatusClient, error) {
 		password = o.BitcoinConf.Config.GetEffectiveSetting("rpcpassword", section)
 	}
 
-	return NewCoreStatusClient("localhost", port, user, password), nil
+	// Cache the client (and therefore its underlying http.Client + connection
+	// pool) so back-to-back getblockchaininfo / getbalance calls reuse the
+	// same TCP connection instead of dialling a fresh one every time. The
+	// key is rebuilt only when port/user/password actually change — a
+	// SetCoreVariant or auth swap will invalidate it cleanly.
+	key := fmt.Sprintf("%d|%s|%s", port, user, password)
+	o.httpClientsMu.Lock()
+	defer o.httpClientsMu.Unlock()
+	if o.coreStatusClient != nil && o.coreStatusClientKey == key {
+		return o.coreStatusClient, nil
+	}
+	o.coreStatusClient = NewCoreStatusClient("localhost", port, user, password)
+	o.coreStatusClientKey = key
+	return o.coreStatusClient, nil
+}
+
+// enforcerHTTP returns the singleton h2c http.Client used to talk to the
+// BIP300/301 enforcer's ValidatorService. One client is shared across all
+// GetSyncStatus polls so the underlying http2.Transport's connection pool
+// survives — previously this was rebuilt per call and the new transport's
+// pool was thrown away as soon as the call returned, leaving the
+// connection in TIME_WAIT and starting a fresh dial on the next poll.
+// MaxConnsPerHost: 1 caps us at one live connection regardless of poll
+// concurrency; HTTP/2 multiplexes streams over it.
+func (o *Orchestrator) enforcerHTTP() *http.Client {
+	o.httpClientsMu.Lock()
+	defer o.httpClientsMu.Unlock()
+	if o.enforcerHTTPClient != nil {
+		return o.enforcerHTTPClient
+	}
+	o.enforcerHTTPClient = &http.Client{
+		Transport: &http2.Transport{
+			AllowHTTP: true,
+			DialTLSContext: func(ctx context.Context, network, addr string, _ *tls.Config) (net.Conn, error) {
+				var d net.Dialer
+				return d.DialContext(ctx, network, addr)
+			},
+		},
+	}
+	return o.enforcerHTTPClient
+}
+
+// sidechainHTTP returns the singleton HTTP/1 client used for the per-
+// sidechain Connect-JSON block-count probes in GetSyncStatus. A single
+// shared client is fine because http.Transport keys its connection pool
+// by host:port — every sidechain ends up with its own pool, capped at one
+// live connection by MaxConnsPerHost.
+func (o *Orchestrator) sidechainHTTP() *http.Client {
+	o.httpClientsMu.Lock()
+	defer o.httpClientsMu.Unlock()
+	if o.sidechainHTTPClient != nil {
+		return o.sidechainHTTPClient
+	}
+	o.sidechainHTTPClient = &http.Client{
+		Transport: &http.Transport{
+			MaxConnsPerHost:     1,
+			MaxIdleConnsPerHost: 1,
+			IdleConnTimeout:     90 * time.Second,
+		},
+	}
+	return o.sidechainHTTPClient
+}
+
+// explorerHTTP returns the singleton HTTPS client used for the public
+// explorer GetChainTips fetch. Kept separate from the localhost clients so
+// the localhost-tuned MaxConnsPerHost doesn't bleed into a remote call
+// where we genuinely benefit from the default pool sizing.
+func (o *Orchestrator) explorerHTTP() *http.Client {
+	o.httpClientsMu.Lock()
+	defer o.httpClientsMu.Unlock()
+	if o.explorerHTTPClient != nil {
+		return o.explorerHTTPClient
+	}
+	o.explorerHTTPClient = &http.Client{
+		Transport: &http.Transport{
+			MaxIdleConnsPerHost: 2,
+			IdleConnTimeout:     90 * time.Second,
+		},
+	}
+	return o.explorerHTTPClient
 }
 
 // CreateCoreWallet creates a Bitcoin Core wallet from a seed via BIP84 descriptor import.
