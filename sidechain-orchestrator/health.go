@@ -235,7 +235,22 @@ func NewCoreStatusClient(host string, port int, user, password string) *CoreStat
 		// blocks are being processed. A tight 5s timeout was tripping the
 		// connection-lost monitor on every other poll, which then storm-
 		// reconnects against an already-overloaded daemon.
-		client: &http.Client{Timeout: 15 * time.Second},
+		//
+		// Explicit Transport (rather than http.DefaultTransport) so we can
+		// pin MaxConnsPerHost to 1: bitcoind serialises RPCs behind cs_main
+		// anyway, so opening multiple connections only piles up sockets in
+		// TIME_WAIT without buying parallelism. IdleConnTimeout matches
+		// Go's default; MaxIdleConnsPerHost: 2 leaves headroom for the
+		// rare overlap between a slow getblockchaininfo and a quick
+		// getbalance.
+		client: &http.Client{
+			Timeout: 15 * time.Second,
+			Transport: &http.Transport{
+				MaxConnsPerHost:     1,
+				MaxIdleConnsPerHost: 2,
+				IdleConnTimeout:     90 * time.Second,
+			},
+		},
 	}
 }
 
