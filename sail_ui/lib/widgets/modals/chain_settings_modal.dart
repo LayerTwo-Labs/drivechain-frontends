@@ -412,10 +412,9 @@ class ChainSettingsViewModel extends BaseViewModel {
 
       bool wasRunning = _binaryProvider.isConnected(_binary);
       if (wasRunning) {
-        // 2. Stop the binary
-        await _binaryProvider.stop(_binary);
-
-        // 3. Start the binary with retry logic (3 attempts, 5 second wait)
+        // 2. Restart the binary with retry logic (3 attempts, 5 second wait).
+        // Per-daemon scope: restarting one binary here must not poke its
+        // siblings.
         bool started = false;
         int attempts = 0;
         const maxAttempts = 3;
@@ -424,14 +423,12 @@ class ChainSettingsViewModel extends BaseViewModel {
         while (!started && attempts < maxAttempts) {
           attempts++;
           try {
-            await _binaryProvider.start(_binary);
+            await _binaryProvider.restart(_binary);
             started = true;
           } catch (e) {
             if (attempts < maxAttempts) {
-              // Wait before retry
               await Future.delayed(retryDelay);
             } else {
-              // Re-throw the error on final attempt
               rethrow;
             }
           }

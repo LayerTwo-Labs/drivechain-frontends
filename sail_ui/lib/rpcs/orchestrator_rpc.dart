@@ -196,6 +196,15 @@ class OrchestratorRPC {
     );
   }
 
+  /// Fire-and-forget: stops + starts the named binary on the server. Single-
+  /// daemon scope — never touches sibling daemons, so restarting "enforcer"
+  /// can't surface a phantom "bitcoind is already running" error on Bitcoin
+  /// Core's card. Use this for per-daemon Restart buttons; reserve
+  /// [startWithL1] for full-chain bootstrap.
+  Future<RestartDaemonResponse> restartDaemon(String name) {
+    return _unaryClient.restartDaemon(RestartDaemonRequest(name: name));
+  }
+
   Stream<ShutdownAllResponse> shutdownAll({bool force = false}) {
     return _streamClient.shutdownAll(ShutdownAllRequest(force: force));
   }

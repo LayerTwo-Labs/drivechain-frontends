@@ -142,6 +142,28 @@ extension type OrchestratorServiceClient(connect.Transport _transport) {
     );
   }
 
+  /// Stop the named binary and start it again, single-daemon scope. Never
+  /// touches sibling daemons: restarting "enforcer" never spawns or adopts
+  /// bitcoind. Use this for per-daemon "Restart" buttons on UI cards;
+  /// StartWithL1 stays the entry point for full-chain bootstrap. Same
+  /// fire-and-forget shape as StartWithL1.
+  Future<orchestratorv1orchestrator.RestartDaemonResponse> restartDaemon(
+    orchestratorv1orchestrator.RestartDaemonRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.OrchestratorService.restartDaemon,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
   /// Shutdown all running binaries.
   Stream<orchestratorv1orchestrator.ShutdownAllResponse> shutdownAll(
     orchestratorv1orchestrator.ShutdownAllRequest input, {

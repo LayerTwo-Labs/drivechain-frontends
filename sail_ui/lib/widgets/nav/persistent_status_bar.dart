@@ -69,7 +69,7 @@ class PersistentStatusBar extends StatelessWidget {
                       variant: ButtonVariant.ghost,
                       onPressed: () async {
                         for (final binary in broken) {
-                          await binaryProvider.start(binary);
+                          await binaryProvider.restart(binary);
                         }
                       },
                     ),

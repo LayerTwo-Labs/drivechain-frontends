@@ -74,6 +74,18 @@ abstract final class OrchestratorService {
     orchestratorv1orchestrator.StartWithL1Response.new,
   );
 
+  /// Stop the named binary and start it again, single-daemon scope. Never
+  /// touches sibling daemons: restarting "enforcer" never spawns or adopts
+  /// bitcoind. Use this for per-daemon "Restart" buttons on UI cards;
+  /// StartWithL1 stays the entry point for full-chain bootstrap. Same
+  /// fire-and-forget shape as StartWithL1.
+  static const restartDaemon = connect.Spec(
+    '/$name/RestartDaemon',
+    connect.StreamType.unary,
+    orchestratorv1orchestrator.RestartDaemonRequest.new,
+    orchestratorv1orchestrator.RestartDaemonResponse.new,
+  );
+
   /// Shutdown all running binaries.
   static const shutdownAll = connect.Spec(
     '/$name/ShutdownAll',
