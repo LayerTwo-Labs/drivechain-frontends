@@ -15,32 +15,16 @@ import (
 const bitwindowEnforcerConfFilename = "bitwindow-enforcer.conf"
 
 // derivedEnforcerSettings are fields the enforcer needs but that BitWindow
-// derives entirely from the active bitcoin.conf / network at boot. Keeping
-// them in the persisted enforcer.conf is what produced the regtest-port-on-
-// signet bug: the file was written once on regtest, the user swapped to
-// signet, the rest of the system updated but the enforcer.conf still said
-// `node-rpc-addr=127.0.0.1:18443` and the enforcer dutifully tried to
-// REST against regtest.
-//
-// The persisted file is now restricted to genuine user toggles
-// (enable-wallet, enable-mempool, anything the user pastes in by hand);
-// these derived fields are stripped on load and overlaid fresh by
-// GetCliArgs every boot.
+// can derive from the active bitcoin.conf / network at boot. They aren't
+// part of the default template — GetCliArgs overlays them only when the
+// persisted file doesn't already specify a value, so an explicit override
+// in bitwindow-enforcer.conf always wins.
 var derivedEnforcerSettings = []string{
 	"node-rpc-user",
 	"node-rpc-pass",
 	"node-rpc-addr",
 	"node-zmq-addr-sequence",
 	"wallet-esplora-url",
-}
-
-func stripDerivedEnforcerSettings(c *EnforcerConfig) {
-	if c == nil {
-		return
-	}
-	for _, key := range derivedEnforcerSettings {
-		c.RemoveSetting(key)
-	}
 }
 
 // ---------------------------------------------------------------------------
@@ -55,9 +39,9 @@ type EnforcerConfMigration struct {
 	Apply   func(config *EnforcerConfig)
 }
 
-// No active migrations — derived fields are stripped on every load
-// instead, see stripDerivedEnforcerSettings. The version is left at 2 so
-// pre-existing v2 files don't trigger spurious rewrites.
+// No active migrations after derived fields stopped being part of the
+// default template. Version is left at 2 so pre-existing v2 files don't
+// trigger spurious rewrites.
 var enforcerConfMigrations = []EnforcerConfMigration{}
 
 // RunEnforcerConfMigrations applies pending migrations to an EnforcerConfig.
@@ -137,7 +121,6 @@ func (m *EnforcerConfManager) LoadConfig() error {
 		}
 
 		m.Config = ParseEnforcerConfig(content)
-		stripDerivedEnforcerSettings(m.Config)
 		return nil
 	}
 
@@ -148,7 +131,6 @@ func (m *EnforcerConfManager) LoadConfig() error {
 	// Dart: content = getDefaultConfig(); file.writeAsString(content);
 	content := m.GetDefaultConfig()
 	m.Config = ParseEnforcerConfig(content)
-	stripDerivedEnforcerSettings(m.Config)
 
 	if mkErr := os.MkdirAll(filepath.Dir(m.ConfigPath), 0755); mkErr != nil {
 		m.log.Error().Err(mkErr).Msg("failed to create enforcer config directory")
@@ -161,16 +143,12 @@ func (m *EnforcerConfManager) LoadConfig() error {
 	return nil
 }
 
-// SaveConfig writes the current config to disk. Strips derived fields
-// before serialising so they can never be persisted, even if someone
-// (legacy code, a stale RPC, the user pasting them in via WriteConfig)
-// puts them back into the in-memory state.
+// SaveConfig writes the current config to disk.
 // Dart: _saveConfig (L44)
 func (m *EnforcerConfManager) SaveConfig() error {
 	if m.Config == nil {
 		return nil
 	}
-	stripDerivedEnforcerSettings(m.Config)
 	confPath := m.getConfigPath()
 	if err := os.MkdirAll(filepath.Dir(confPath), 0755); err != nil {
 		return err
@@ -260,21 +238,16 @@ func (m *EnforcerConfManager) GetCurrentConfigContent() string {
 	return m.Config.Serialize()
 }
 
-// WriteConfig writes raw configuration content to the file. Derived
-// fields pasted in via the UI are stripped before persistence so the
-// file can never out-of-band override what GetCliArgs derives at boot.
+// WriteConfig writes raw configuration content to the file.
 // Dart: writeConfig (L233)
 func (m *EnforcerConfManager) WriteConfig(content string) error {
-	config := ParseEnforcerConfig(content)
-	stripDerivedEnforcerSettings(config)
-	m.Config = config
+	m.Config = ParseEnforcerConfig(content)
 
-	cleaned := config.Serialize()
 	confPath := m.getConfigPath()
 	if err := os.MkdirAll(filepath.Dir(confPath), 0755); err != nil {
 		return fmt.Errorf("create dir: %w", err)
 	}
-	if err := os.WriteFile(confPath, []byte(cleaned), 0644); err != nil {
+	if err := os.WriteFile(confPath, []byte(content), 0644); err != nil {
 		return fmt.Errorf("write config: %w", err)
 	}
 
@@ -282,21 +255,21 @@ func (m *EnforcerConfManager) WriteConfig(content string) error {
 	return nil
 }
 
-// GetCliArgs converts current config settings to CLI arguments for the enforcer.
+// GetCliArgs converts current config settings to CLI arguments for the
+// enforcer. Persisted values always win — for the bitcoin-conf-derived
+// keys (node-rpc-*, node-zmq-addr-sequence, wallet-esplora-url) we
+// fall back to the bitcoin.conf / network derivation only when the
+// persisted file doesn't specify a value. That preserves an explicit
+// override while keeping fresh installs (no derived keys in the default
+// template) network-correct out of the box.
 // Dart: getCliArgs (L275)
 func (m *EnforcerConfManager) GetCliArgs() []string {
 	var args []string
+	seen := make(map[string]bool)
 
 	if m.Config != nil {
-		// User toggles only — derived fields are stripped on load and
-		// re-added below from the active bitcoin.conf / network. This
-		// guarantees that swapping networks always picks up the new RPC
-		// port / esplora URL, even if a stale persisted file slipped
-		// through some pre-strip code path.
 		for key, value := range m.Config.Settings {
-			if isDerivedEnforcerSetting(key) {
-				continue
-			}
+			seen[key] = true
 			switch value {
 			case "true":
 				args = append(args, fmt.Sprintf("--%s", key))
@@ -310,30 +283,23 @@ func (m *EnforcerConfManager) GetCliArgs() []string {
 		}
 	}
 
-	// Always overlay the bitcoin-conf-derived RPC + ZMQ wiring.
 	expected := m.GetExpectedNodeRpcSettings()
 	for _, key := range []string{"node-rpc-user", "node-rpc-pass", "node-rpc-addr", "node-zmq-addr-sequence"} {
+		if seen[key] {
+			continue
+		}
 		if v := expected[key]; v != "" {
 			args = append(args, fmt.Sprintf("--%s=%s", key, v))
 		}
 	}
 
-	// Esplora URL is also network-derived; only attach it on networks
-	// where we have a known endpoint.
-	if esploraURL := EsploraURLForNetwork(m.bitcoinConf.Network); esploraURL != "" {
-		args = append(args, fmt.Sprintf("--wallet-esplora-url=%s", esploraURL))
+	if !seen["wallet-esplora-url"] {
+		if esploraURL := EsploraURLForNetwork(m.bitcoinConf.Network); esploraURL != "" {
+			args = append(args, fmt.Sprintf("--wallet-esplora-url=%s", esploraURL))
+		}
 	}
 
 	return args
-}
-
-func isDerivedEnforcerSetting(key string) bool {
-	for _, k := range derivedEnforcerSettings {
-		if k == key {
-			return true
-		}
-	}
-	return false
 }
 
 // ---------------------------------------------------------------------------
