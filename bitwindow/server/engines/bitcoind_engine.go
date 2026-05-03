@@ -62,6 +62,15 @@ func (p *Parser) SetCoinnewsLogger(logger *zerolog.Logger) {
 	p.coinnewsLog = logger
 }
 
+// isFullChainNetwork reports whether the given network has full mainnet-
+// scale block volume. The OP_RETURN scanner's per-tx GetRawTransaction
+// fan-out is cheap on small-block networks and only becomes a problem on
+// these. signet / testnet / regtest blocks are small or empty so the
+// scanner stays running there during IBD.
+func isFullChainNetwork(n config.Network) bool {
+	return n == config.NetworkMainnet || n == config.NetworkForknet
+}
+
 // Run runs the engine. It checks if a new block has been mined,
 // and if so, handles it!
 //
@@ -164,18 +173,23 @@ func (p *Parser) handleBlockTick(ctx context.Context) error {
 		return fmt.Errorf("fetch current height: %w", err)
 	}
 
-	// While Core is still doing initial block download, skip the OP_RETURN
-	// scan entirely. Each scan fans out a parallel batch of blocks and
-	// issues per-tx GetRawTransaction calls (needed for fee), all of which
-	// queue behind cs_main on Core. During IBD that's enough RPC pressure
-	// to push getblockchaininfo past its client timeout, which then trips
-	// the orchestrator's connection-lost monitor — and the UI block height
-	// stops updating. Catching up to the tip will happen in one batch the
-	// first tick after IBD clears; until then, keep out of Core's way.
-	if inIBD {
+	// While Core is still doing initial block download on a *full* chain
+	// (mainnet / forknet), skip the OP_RETURN scan entirely. Each scan
+	// fans out a parallel batch of blocks and issues per-tx
+	// GetRawTransaction calls (needed for fee), all of which queue behind
+	// cs_main. During IBD on a populated chain that's enough pressure to
+	// push getblockchaininfo past its client timeout, which trips the
+	// orchestrator's connection-lost monitor and freezes the UI height.
+	// Catching up runs in one batch the first tick after IBD clears.
+	//
+	// Signet / testnet / regtest blocks are small or empty, so the scan
+	// is cheap even mid-sync — keep running there so the user sees recent
+	// OP_RETURN activity while Core finishes catching up.
+	if inIBD && isFullChainNetwork(p.conf.BitcoinCoreNetwork) {
 		zerolog.Ctx(ctx).Debug().
 			Uint32("tip", currentHeight).
 			Uint32("processed", lastProcessedHeight).
+			Str("network", string(p.conf.BitcoinCoreNetwork)).
 			Msg("bitcoind_engine/parser: skipping scan while Core is in IBD")
 		return nil
 	}
