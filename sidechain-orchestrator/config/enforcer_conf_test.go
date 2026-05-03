@@ -36,20 +36,13 @@ func newTestEnforcerManager(t *testing.T) (*EnforcerConfManager, string) {
 // ---------------------------------------------------------------------------
 
 func TestRunEnforcerConfMigrationsFresh(t *testing.T) {
+	// No active migrations after derived fields stopped being persisted —
+	// fresh configs need no work.
 	config := NewEnforcerConfig()
 	migrated := RunEnforcerConfMigrations(config)
 
-	if !migrated {
-		t.Fatal("expected migrations to run on fresh config")
-	}
-	if config.ConfigVersion != enforcerConfMigrationsVersion {
-		t.Errorf("version = %d, want %d", config.ConfigVersion, enforcerConfMigrationsVersion)
-	}
-	if !config.HasSetting("node-zmq-addr-sequence") {
-		t.Error("migration should have added node-zmq-addr-sequence")
-	}
-	if config.GetSetting("node-zmq-addr-sequence") != "tcp://127.0.0.1:29000" {
-		t.Errorf("zmq addr = %q", config.GetSetting("node-zmq-addr-sequence"))
+	if migrated {
+		t.Error("no migrations should run on a fresh config")
 	}
 }
 
@@ -60,19 +53,6 @@ func TestRunEnforcerConfMigrationsSkipsApplied(t *testing.T) {
 	migrated := RunEnforcerConfMigrations(config)
 	if migrated {
 		t.Error("should not migrate when already at current version")
-	}
-}
-
-func TestRunEnforcerConfMigrationsPreservesExisting(t *testing.T) {
-	config := NewEnforcerConfig()
-	config.ConfigVersion = 1
-	config.SetSetting("node-zmq-addr-sequence", "tcp://127.0.0.1:99999")
-
-	RunEnforcerConfMigrations(config)
-
-	// Migration 2 should NOT overwrite existing value (uses HasSetting check)
-	if config.GetSetting("node-zmq-addr-sequence") != "tcp://127.0.0.1:99999" {
-		t.Errorf("should not overwrite existing zmq addr, got %q", config.GetSetting("node-zmq-addr-sequence"))
 	}
 }
 
@@ -98,33 +78,32 @@ func TestEnforcerLoadConfigFromScratch(t *testing.T) {
 	}
 }
 
-func TestEnforcerLoadConfigWithMigration(t *testing.T) {
+func TestEnforcerLoadConfigStripsDerivedFields(t *testing.T) {
+	// Old conf files (or anything that snuck derived fields in) must
+	// have those fields stripped on load — that's how a stale regtest
+	// node-rpc-addr never makes it into the running enforcer's args.
 	m, _ := newTestEnforcerManager(t)
 
-	// Write a v1 config without zmq setting
 	confPath := m.getConfigPath()
 	require.NoError(t, os.MkdirAll(filepath.Dir(confPath), 0755))
-	require.NoError(t, os.WriteFile(confPath, []byte("# bitwindow-enforcer-conf-version=1\nenable-wallet=true\n"), 0644))
+	stale := "# bitwindow-enforcer-conf-version=2\n" +
+		"enable-wallet=true\n" +
+		"node-rpc-user=stale\n" +
+		"node-rpc-pass=stale\n" +
+		"node-rpc-addr=127.0.0.1:18443\n" +
+		"node-zmq-addr-sequence=tcp://127.0.0.1:99999\n" +
+		"wallet-esplora-url=http://localhost:3003\n"
+	require.NoError(t, os.WriteFile(confPath, []byte(stale), 0644))
 
-	if err := m.LoadConfig(); err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, m.LoadConfig())
 
-	// Should have been migrated to v2 with zmq
-	if m.Config.ConfigVersion != enforcerConfMigrationsVersion {
-		t.Errorf("version = %d, want %d", m.Config.ConfigVersion, enforcerConfMigrationsVersion)
+	for _, key := range derivedEnforcerSettings {
+		if m.Config.HasSetting(key) {
+			t.Errorf("derived field %q must be stripped on load, still present", key)
+		}
 	}
-	if !m.Config.HasSetting("node-zmq-addr-sequence") {
-		t.Error("migration should have added node-zmq-addr-sequence")
-	}
-
-	// File should have been written with migrated content
-	data, err := os.ReadFile(confPath)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !strings.Contains(string(data), "node-zmq-addr-sequence") {
-		t.Error("migrated file should contain node-zmq-addr-sequence")
+	if m.Config.GetSetting("enable-wallet") != "true" {
+		t.Error("user toggle enable-wallet must survive the strip")
 	}
 }
 
@@ -146,74 +125,36 @@ func TestEnforcerLoadConfigIdempotent(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// NodeRpcDiffers tests
+// NodeRpcDiffers / SyncFromBitcoinConf — both vestigial after derived
+// fields stopped being persisted; just guard the wire-shape behaviour.
 // ---------------------------------------------------------------------------
 
-func TestNodeRpcDiffers(t *testing.T) {
+func TestNodeRpcDiffersAlwaysFalse(t *testing.T) {
 	m, _ := newTestEnforcerManager(t)
 	require.NoError(t, m.LoadConfig())
 
-	// After sync, should not differ
-	require.NoError(t, m.SyncFromBitcoinConf())
 	if m.NodeRpcDiffers() {
-		t.Error("should not differ after sync")
+		t.Error("NodeRpcDiffers must always be false now that node-rpc-* are not persisted")
 	}
 
-	// Change a setting manually
+	// Even if some legacy code stuffs a stale value back in, the answer
+	// is still false — there's nothing meaningful to compare against.
 	m.Config.SetSetting("node-rpc-user", "wrong")
-	if !m.NodeRpcDiffers() {
-		t.Error("should differ after manual change")
+	if m.NodeRpcDiffers() {
+		t.Error("NodeRpcDiffers must remain false even with manually-injected stale state")
 	}
 }
 
-// ---------------------------------------------------------------------------
-// SyncFromBitcoinConf tests
-// ---------------------------------------------------------------------------
-
-func TestSyncFromBitcoinConf(t *testing.T) {
+func TestSyncFromBitcoinConfIsNoOp(t *testing.T) {
 	m, _ := newTestEnforcerManager(t)
 	require.NoError(t, m.LoadConfig())
 
-	// Set bitcoin conf to have specific values
-	m.bitcoinConf.Config.GlobalSettings["rpcuser"] = "myuser"
-	m.bitcoinConf.Config.GlobalSettings["rpcpassword"] = "mypass"
-
-	if err := m.SyncFromBitcoinConf(); err != nil {
-		t.Fatal(err)
-	}
-
-	if m.Config.GetSetting("node-rpc-user") != "myuser" {
-		t.Errorf("user = %q, want myuser", m.Config.GetSetting("node-rpc-user"))
-	}
-	if m.Config.GetSetting("node-rpc-pass") != "mypass" {
-		t.Errorf("pass = %q, want mypass", m.Config.GetSetting("node-rpc-pass"))
-	}
-}
-
-func TestSyncFromBitcoinConfSetsEsplora(t *testing.T) {
-	m, _ := newTestEnforcerManager(t)
-	require.NoError(t, m.LoadConfig())
-
-	// Signet should have esplora URL
-	m.bitcoinConf.Network = NetworkSignet
 	require.NoError(t, m.SyncFromBitcoinConf())
-	if m.Config.GetSetting("wallet-esplora-url") != "https://explorer.signet.drivechain.info/api" {
-		t.Errorf("esplora = %q", m.Config.GetSetting("wallet-esplora-url"))
-	}
 
-	// Explicit empty override should survive sync.
-	m.Config.SetSetting("wallet-esplora-url", "")
-	require.NoError(t, m.SyncFromBitcoinConf())
-	if got := m.Config.GetSetting("wallet-esplora-url"); got != "" {
-		t.Errorf("esplora override = %q, want empty", got)
-	}
-
-	// Testnet should have no esplora URL (removed)
-	m.Config.RemoveSetting("wallet-esplora-url")
-	m.bitcoinConf.Network = NetworkTestnet
-	require.NoError(t, m.SyncFromBitcoinConf())
-	if m.Config.HasSetting("wallet-esplora-url") {
-		t.Error("testnet should not have esplora URL")
+	for _, key := range derivedEnforcerSettings {
+		if m.Config.HasSetting(key) {
+			t.Errorf("SyncFromBitcoinConf must not persist derived field %q", key)
+		}
 	}
 }
 
@@ -336,14 +277,87 @@ func TestEnforcerGetDefaultConfigHasVersionPrefix(t *testing.T) {
 	}
 }
 
-func TestEnforcerGetDefaultConfigHasNodeRpc(t *testing.T) {
+func TestEnforcerGetDefaultConfigOmitsDerivedFields(t *testing.T) {
 	m, _ := newTestEnforcerManager(t)
 
 	conf := m.GetDefaultConfig()
-	if !strings.Contains(conf, "node-rpc-user=user") {
-		t.Error("should contain node-rpc-user")
+	for _, key := range derivedEnforcerSettings {
+		// match "key=" to avoid false-positives on a comment that
+		// references the field name.
+		needle := key + "="
+		if strings.Contains(conf, needle) {
+			t.Errorf("default config must not persist derived field %q (substring %q found)", key, needle)
+		}
 	}
-	if !strings.Contains(conf, "node-rpc-pass=password") {
-		t.Error("should contain node-rpc-pass")
+	// The genuine user toggles still belong in the template.
+	if !strings.Contains(conf, "enable-wallet=true") {
+		t.Error("default config should still include enable-wallet=true")
 	}
+	if !strings.Contains(conf, "enable-mempool=true") {
+		t.Error("default config should still include enable-mempool=true")
+	}
+}
+
+// ---------------------------------------------------------------------------
+// GetCliArgs derived-field overlay
+// ---------------------------------------------------------------------------
+
+func TestGetCliArgsAlwaysOverlaysDerivedFromBitcoinConf(t *testing.T) {
+	m, _ := newTestEnforcerManager(t)
+	require.NoError(t, m.LoadConfig())
+
+	args := m.GetCliArgs()
+
+	// Signet RPC port (38332) and signet esplora must be present even
+	// though the persisted file contains nothing about them.
+	requireArg(t, args, "--node-rpc-addr=127.0.0.1:38332")
+	requireArg(t, args, "--node-rpc-user=user")
+	requireArg(t, args, "--node-rpc-pass=password")
+	requireArg(t, args, "--node-zmq-addr-sequence=tcp://127.0.0.1:29000")
+	requireArg(t, args, "--wallet-esplora-url=https://explorer.signet.drivechain.info/api")
+}
+
+func TestGetCliArgsIgnoresStalePersistedDerivedFields(t *testing.T) {
+	// Even if a stale persisted file somehow survived the load-time
+	// strip (older-build dropped a file, race, you name it),
+	// GetCliArgs must derive from the live bitcoin.conf, not from the
+	// file. This is the regression test for "regtest port baked into
+	// signet enforcer.conf".
+	m, _ := newTestEnforcerManager(t)
+	require.NoError(t, m.LoadConfig())
+
+	m.Config.SetSetting("node-rpc-addr", "127.0.0.1:18443")
+	m.Config.SetSetting("wallet-esplora-url", "http://localhost:3003")
+
+	args := m.GetCliArgs()
+
+	for _, bad := range []string{"--node-rpc-addr=127.0.0.1:18443", "--wallet-esplora-url=http://localhost:3003"} {
+		for _, got := range args {
+			if got == bad {
+				t.Errorf("GetCliArgs must ignore stale persisted derived field, got %q", got)
+			}
+		}
+	}
+	requireArg(t, args, "--node-rpc-addr=127.0.0.1:38332")
+	requireArg(t, args, "--wallet-esplora-url=https://explorer.signet.drivechain.info/api")
+}
+
+func TestGetCliArgsOverlaysWhenConfigIsNil(t *testing.T) {
+	// If we're called before LoadConfig (e.g. from a command-line tool
+	// that just wants the args), derived fields still need to land.
+	m, _ := newTestEnforcerManager(t)
+
+	args := m.GetCliArgs()
+
+	requireArg(t, args, "--node-rpc-addr=127.0.0.1:38332")
+}
+
+func requireArg(t *testing.T, args []string, want string) {
+	t.Helper()
+	for _, got := range args {
+		if got == want {
+			return
+		}
+	}
+	t.Errorf("expected arg %q in %v", want, args)
 }
