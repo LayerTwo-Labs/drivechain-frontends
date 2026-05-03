@@ -1596,15 +1596,6 @@ func (o *Orchestrator) SwapNetwork(ctx context.Context, n config.Network) error 
 	}
 	o.Network = string(n)
 
-	// rpcuser/rpcpass/esplora-url live in per-network sections of
-	// bitwindow-bitcoin.conf; the persisted enforcer.conf still holds the
-	// previous network's values until we sync it forward.
-	if o.EnforcerConf != nil {
-		if err := o.EnforcerConf.SyncFromBitcoinConf(); err != nil {
-			return fmt.Errorf("sync enforcer config: %w", err)
-		}
-	}
-
 	if !bitcoindWasRunning && !enforcerWasRunning {
 		return nil
 	}

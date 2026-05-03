@@ -88,10 +88,6 @@ type EnforcerConfManager struct {
 	bitcoinConf *BitcoinConfManager
 	log         zerolog.Logger
 
-	// OnBitcoinConfChanged is called when bitcoin config changes.
-	// Set externally; triggers SyncFromBitcoinConf.
-	OnBitcoinConfChanged func()
-
 	// File watching (managed by StartWatching/StopWatching)
 	watcher   *fsnotify.Watcher
 	watchDone chan struct{}
@@ -113,19 +109,8 @@ func NewEnforcerConfManager(bitcoinConf *BitcoinConfManager, configDir string, l
 		ConfigDir:   configDir,
 		log:         log.With().Str("component", "enforcer-conf").Logger(),
 	}
-	// Dart: await instance.loadConfig();
 	if err := m.LoadConfig(); err != nil {
 		return nil, fmt.Errorf("load enforcer config: %w", err)
-	}
-	// Dart: instance._setupFileWatching();
-	// (caller should call StartWatching after construction)
-
-	// Dart: instance._listenToBitcoinConf();
-	// (handled via OnBitcoinConfChanged callback set by caller)
-
-	// Dart: await instance.syncNodeRpcFromBitcoinConf();
-	if err := m.SyncFromBitcoinConf(); err != nil {
-		m.log.Warn().Err(err).Msg("failed to sync enforcer config from bitcoin conf")
 	}
 	return m, nil
 }
@@ -197,15 +182,6 @@ func (m *EnforcerConfManager) SaveConfig() error {
 	return nil
 }
 
-// NodeRpcDiffers used to compare persisted enforcer node-rpc settings
-// against the bitcoin.conf-derived values. Now that those settings are
-// never persisted (they're overlaid fresh by GetCliArgs each boot),
-// "differs" is always false. Kept for the wire-shape compatibility of
-// the EnforcerConfService.GetEnforcerConfig RPC.
-func (m *EnforcerConfManager) NodeRpcDiffers() bool {
-	return false
-}
-
 // GetExpectedNodeRpcSettings derives RPC credentials from bitcoin config.
 // Dart: getExpectedNodeRpcSettings (L71)
 func (m *EnforcerConfManager) GetExpectedNodeRpcSettings() map[string]string {
@@ -246,15 +222,6 @@ func (m *EnforcerConfManager) GetExpectedNodeRpcSettings() map[string]string {
 		"node-rpc-addr":          fmt.Sprintf("%s:%d", host, port),
 		"node-zmq-addr-sequence": zmqSequence,
 	}
-}
-
-// SyncFromBitcoinConf used to write bitcoin-conf-derived node-rpc /
-// esplora settings into the persisted enforcer.conf. Those fields are
-// no longer persisted (they're overlaid fresh by GetCliArgs each boot),
-// so this is now a no-op. Kept so the EnforcerConfService.SyncNodeRpc...
-// RPC stays callable from older clients without a proto change.
-func (m *EnforcerConfManager) SyncFromBitcoinConf() error {
-	return nil
 }
 
 // GetDefaultConfig generates the default enforcer config content.
