@@ -1,6 +1,7 @@
 package config
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -308,13 +309,16 @@ func TestGetCliArgsAlwaysOverlaysDerivedFromBitcoinConf(t *testing.T) {
 
 	args := m.GetCliArgs()
 
-	// Signet RPC port (38332) and signet esplora must be present even
-	// though the persisted file contains nothing about them.
-	requireArg(t, args, "--node-rpc-addr=127.0.0.1:38332")
-	requireArg(t, args, "--node-rpc-user=user")
-	requireArg(t, args, "--node-rpc-pass=password")
-	requireArg(t, args, "--node-zmq-addr-sequence=tcp://127.0.0.1:29000")
-	requireArg(t, args, "--wallet-esplora-url=https://explorer.signet.drivechain.info/api")
+	// Each derived field must show up — exact values are network/config
+	// dependent and tested elsewhere (network_test.go for port mapping,
+	// EsploraURLForNetwork for esplora). What this test guarantees is
+	// the overlay: every derived flag is present in CLI args even when
+	// the persisted file contains nothing about them.
+	requireArg(t, args, "--node-rpc-addr=")
+	requireArg(t, args, "--node-rpc-user=")
+	requireArg(t, args, "--node-rpc-pass=")
+	requireArg(t, args, "--node-zmq-addr-sequence=")
+	requireArg(t, args, "--wallet-esplora-url=")
 }
 
 func TestGetCliArgsIgnoresStalePersistedDerivedFields(t *testing.T) {
@@ -323,23 +327,51 @@ func TestGetCliArgsIgnoresStalePersistedDerivedFields(t *testing.T) {
 	// GetCliArgs must derive from the live bitcoin.conf, not from the
 	// file. This is the regression test for "regtest port baked into
 	// signet enforcer.conf".
-	m, _ := newTestEnforcerManager(t)
+	m, _ := newTestEnforcerManager(t) // signet
 	require.NoError(t, m.LoadConfig())
 
-	m.Config.SetSetting("node-rpc-addr", "127.0.0.1:18443")
-	m.Config.SetSetting("wallet-esplora-url", "http://localhost:3003")
+	const stalePort = "127.0.0.1:18443"
+	const staleEsplora = "http://localhost:3003"
+	m.Config.SetSetting("node-rpc-addr", stalePort)
+	m.Config.SetSetting("wallet-esplora-url", staleEsplora)
 
 	args := m.GetCliArgs()
 
-	for _, bad := range []string{"--node-rpc-addr=127.0.0.1:18443", "--wallet-esplora-url=http://localhost:3003"} {
-		for _, got := range args {
-			if got == bad {
-				t.Errorf("GetCliArgs must ignore stale persisted derived field, got %q", got)
-			}
-		}
-	}
-	requireArg(t, args, "--node-rpc-addr=127.0.0.1:38332")
-	requireArg(t, args, "--wallet-esplora-url=https://explorer.signet.drivechain.info/api")
+	rejectArg(t, args, "--node-rpc-addr="+stalePort)
+	rejectArg(t, args, "--wallet-esplora-url="+staleEsplora)
+
+	// And the actual values must come from the live network, whatever
+	// those happen to be — pulled from the same helpers production uses.
+	wantAddr := fmt.Sprintf("--node-rpc-addr=127.0.0.1:%d", RPCPortForNetwork(m.bitcoinConf.Network))
+	wantEsplora := fmt.Sprintf("--wallet-esplora-url=%s", EsploraURLForNetwork(m.bitcoinConf.Network))
+	requireArg(t, args, wantAddr)
+	requireArg(t, args, wantEsplora)
+}
+
+func TestGetCliArgsReflectsCurrentNetwork(t *testing.T) {
+	// Swap the manager's network mid-flight and confirm the next
+	// GetCliArgs call surfaces the new network's port + esplora URL.
+	// This is what the original bug claimed should happen but didn't —
+	// the persisted file pinned the args to whatever network was active
+	// when the file was first written.
+	m, _ := newTestEnforcerManager(t) // starts on signet
+	require.NoError(t, m.LoadConfig())
+
+	signetArgs := m.GetCliArgs()
+	requireArg(t, signetArgs, fmt.Sprintf("--node-rpc-addr=127.0.0.1:%d", RPCPortForNetwork(NetworkSignet)))
+	requireArg(t, signetArgs, fmt.Sprintf("--wallet-esplora-url=%s", EsploraURLForNetwork(NetworkSignet)))
+
+	m.bitcoinConf.Network = NetworkRegtest
+	regtestArgs := m.GetCliArgs()
+	requireArg(t, regtestArgs, fmt.Sprintf("--node-rpc-addr=127.0.0.1:%d", RPCPortForNetwork(NetworkRegtest)))
+	requireArg(t, regtestArgs, fmt.Sprintf("--wallet-esplora-url=%s", EsploraURLForNetwork(NetworkRegtest)))
+
+	m.bitcoinConf.Network = NetworkMainnet
+	mainnetArgs := m.GetCliArgs()
+	requireArg(t, mainnetArgs, fmt.Sprintf("--node-rpc-addr=127.0.0.1:%d", RPCPortForNetwork(NetworkMainnet)))
+	// Mainnet has an esplora URL too; assert presence by prefix rather
+	// than exact value to keep the test robust to provider swaps.
+	requireArg(t, mainnetArgs, "--wallet-esplora-url=")
 }
 
 func TestGetCliArgsOverlaysWhenConfigIsNil(t *testing.T) {
@@ -349,15 +381,27 @@ func TestGetCliArgsOverlaysWhenConfigIsNil(t *testing.T) {
 
 	args := m.GetCliArgs()
 
-	requireArg(t, args, "--node-rpc-addr=127.0.0.1:38332")
+	requireArg(t, args, "--node-rpc-addr=")
 }
 
-func requireArg(t *testing.T, args []string, want string) {
+// requireArg asserts at least one element of args has the given prefix.
+// Pass a full "--flag=value" to assert presence-by-exact-content; pass
+// just "--flag=" to assert presence-by-key.
+func requireArg(t *testing.T, args []string, prefix string) {
 	t.Helper()
 	for _, got := range args {
-		if got == want {
+		if strings.HasPrefix(got, prefix) {
 			return
 		}
 	}
-	t.Errorf("expected arg %q in %v", want, args)
+	t.Errorf("expected an arg with prefix %q in %v", prefix, args)
+}
+
+func rejectArg(t *testing.T, args []string, bad string) {
+	t.Helper()
+	for _, got := range args {
+		if got == bad {
+			t.Errorf("arg %q must not appear in %v", bad, args)
+		}
+	}
 }
