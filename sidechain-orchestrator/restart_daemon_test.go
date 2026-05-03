@@ -103,3 +103,84 @@ func TestPrepareEnforcerArgs_NoOpWhenAlreadySet(t *testing.T) {
 	o.prepareEnforcerArgs(&opts)
 	require.Equal(t, []string{"--my=arg"}, opts.EnforcerArgs)
 }
+
+// TestStartEnforcerWhenReady_AlreadyInPM_NoPhantomStart is the symmetric
+// regression guard for the bitcoind-side IsRunning race PR #1703 fixed.
+//
+// Scenario: enforcer is adopted (sits in pm.processes from a PID file), the
+// L1 cascade re-enters startEnforcerWhenReady, and enforcerMon.Connected()
+// briefly reports false (transient blip, slow first ping). Without the
+// guard, process.Start("enforcer", ...) returns "enforcer is already
+// running" — a phantom error condition that the orchestrator should treat
+// as "wait for the existing process's RPC to come back," not "boot
+// failure."
+//
+// With the guard in place, the function falls through to
+// waitForConnectedOrExit on the existing process. The pm entry for the
+// adopted enforcer must remain intact (PID unchanged), and no
+// "already running" string appears on the enforcer monitor's
+// ConnectionError.
+func TestStartEnforcerWhenReady_AlreadyInPM_NoPhantomStart(t *testing.T) {
+	o := newTestOrchestrator(t)
+
+	enforcerCfg, _ := o.getConfig("enforcer")
+	const adoptedPid = 1234
+	o.process.AdoptProcess(enforcerCfg, adoptedPid)
+	require.True(t, o.process.IsRunning("enforcer"))
+
+	// mockChecker keeps mon.Connected() false through the function's
+	// connected-skip check, forcing the path that previously ran into
+	// process.Start("enforcer", ...).
+	enforcerChecker := &mockChecker{}
+	enforcerMon := o.getOrCreateMonitor("enforcer", enforcerChecker, enforcerStartupPatterns)
+	require.Empty(t, enforcerMon.ConnectionError())
+
+	// Tight timeout: waitForConnectedOrExit blocks until the (fake) process
+	// exits or ctx expires. We cancel quickly to keep the test fast.
+	ctx, cancel := context.WithTimeout(context.Background(), 200*time.Millisecond)
+	defer cancel()
+
+	o.startEnforcerWhenReady(ctx, StartOpts{}, nil)
+
+	// Adopted PID survives — the guard never spawned a new process and
+	// never tried to mutate pm.processes.
+	proc := o.process.Get("enforcer")
+	require.NotNil(t, proc)
+	require.Equal(t, adoptedPid, proc.Pid)
+
+	// "already running" must never reach the enforcer monitor as a
+	// surfaced error string.
+	got := enforcerMon.ConnectionError()
+	if strings.Contains(got, "already running") {
+		t.Errorf("enforcer monitor.ConnectionError = %q; the IsRunning guard must prevent process.Start from racing pm.processes", got)
+	}
+}
+
+// TestRestartDaemon_BitcoindLeavesEnforcerMonitorUntouched is the symmetric
+// counterpart to TestRestartDaemon_EnforcerLeavesBitcoindMonitorUntouched.
+// Confirms the per-daemon scope of RestartDaemon: restarting bitcoind must
+// never touch enforcer state.
+func TestRestartDaemon_BitcoindLeavesEnforcerMonitorUntouched(t *testing.T) {
+	o := newTestOrchestrator(t)
+
+	enforcerCfg, _ := o.getConfig("enforcer")
+	o.process.AdoptProcess(enforcerCfg, 5678)
+
+	enforcerChecker := &mockChecker{}
+	enforcerMon := o.getOrCreateMonitor("enforcer", enforcerChecker, enforcerStartupPatterns)
+	require.Empty(t, enforcerMon.ConnectionError())
+
+	ctx, cancel := context.WithTimeout(context.Background(), 200*time.Millisecond)
+	defer cancel()
+
+	ch, err := o.RestartDaemon(ctx, "bitcoind")
+	require.NoError(t, err)
+
+	for range ch {
+	}
+
+	got := enforcerMon.ConnectionError()
+	if strings.Contains(got, "already running") {
+		t.Errorf("enforcer monitor.ConnectionError = %q after RestartDaemon(\"bitcoind\"); restart bitcoind must not surface 'already running' phantom errors on enforcer", got)
+	}
+}
