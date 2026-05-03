@@ -8,13 +8,13 @@ import 'package:sail_ui/sail_ui.dart';
 
 /// BinaryProvider double that exposes setters for the exact fields the
 /// PersistentStatusBar inspects (isConnected / isInitializing / isStopping /
-/// connectionError) and records calls to [start].
+/// connectionError) and records calls to [restart].
 class _FakeBinaryProvider extends BinaryProvider {
   final Map<BinaryType, bool> _connected = {};
   final Map<BinaryType, bool> _initializing = {};
   final Map<BinaryType, bool> _stopping = {};
   final Map<BinaryType, String?> _errors = {};
-  final List<BinaryType> startedTypes = [];
+  final List<BinaryType> restartedTypes = [];
 
   _FakeBinaryProvider({required super.appDir, required super.binaries}) : super.test();
 
@@ -45,8 +45,8 @@ class _FakeBinaryProvider extends BinaryProvider {
   String? connectionError(Binary binary) => _errors[binary.type];
 
   @override
-  Future<void> start(Binary binary) async {
-    startedTypes.add(binary.type);
+  Future<void> restart(Binary binary) async {
+    restartedTypes.add(binary.type);
   }
 
   @override
@@ -152,7 +152,7 @@ void main() {
     expect(find.text('Restart'), findsWidgets);
   });
 
-  testWidgets('tapping Restart calls BinaryProvider.start for every broken daemon', (tester) async {
+  testWidgets('tapping Restart calls BinaryProvider.restart for every broken daemon', (tester) async {
     binaryProvider.setState(BinaryType.orchestratord, error: 'down');
     binaryProvider.setState(BinaryType.bitWindow, error: 'down');
 
@@ -163,7 +163,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(
-      binaryProvider.startedTypes,
+      binaryProvider.restartedTypes,
       containsAll(<BinaryType>[BinaryType.orchestratord, BinaryType.bitWindow]),
     );
   });
