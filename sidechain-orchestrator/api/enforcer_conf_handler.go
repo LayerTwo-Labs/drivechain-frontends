@@ -37,15 +37,17 @@ func (h *EnforcerConfHandler) GetEnforcerConfig(ctx context.Context, req *connec
 		configContent = h.conf.Config.Serialize()
 	}
 
-	nodeRpcDiffers := h.conf.NodeRpcDiffers()
-
 	return connect.NewResponse(&pb.GetEnforcerConfigResponse{
-		ConfigContent:            configContent,
-		ConfigPath:               h.conf.ConfigPath,
-		NodeRpcDiffers:           nodeRpcDiffers,
-		DefaultConfig:            h.conf.GetDefaultConfig(),
-		CliArgs:                  h.conf.GetCliArgs(),
-		ExpectedNodeRpcSettings:  h.conf.GetExpectedNodeRpcSettings(),
+		ConfigContent: configContent,
+		ConfigPath:    h.conf.ConfigPath,
+		// node-rpc-* are no longer persisted in enforcer.conf — they're
+		// overlaid from bitcoin.conf at boot — so the file can never
+		// "differ" from the live derivation. Hardcode false to keep the
+		// proto field's wire shape without a proto change.
+		NodeRpcDiffers:          false,
+		DefaultConfig:           h.conf.GetDefaultConfig(),
+		CliArgs:                 h.conf.GetCliArgs(),
+		ExpectedNodeRpcSettings: h.conf.GetExpectedNodeRpcSettings(),
 	}), nil
 }
 
@@ -67,10 +69,8 @@ func (h *EnforcerConfHandler) SyncNodeRpcFromBitcoinConf(ctx context.Context, re
 	if h.conf == nil {
 		return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("enforcer config manager not initialized"))
 	}
-
-	if err := h.conf.SyncFromBitcoinConf(); err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("sync from bitcoin conf: %w", err))
-	}
-
+	// No-op: node-rpc-* are now overlaid from bitcoin.conf at boot, so
+	// there's nothing to sync into the persisted file. Kept callable so
+	// older clients that still invoke this RPC don't error out.
 	return connect.NewResponse(&pb.SyncNodeRpcFromBitcoinConfResponse{}), nil
 }

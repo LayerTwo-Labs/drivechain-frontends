@@ -126,40 +126,6 @@ func TestEnforcerLoadConfigIdempotent(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// NodeRpcDiffers / SyncFromBitcoinConf — both vestigial after derived
-// fields stopped being persisted; just guard the wire-shape behaviour.
-// ---------------------------------------------------------------------------
-
-func TestNodeRpcDiffersAlwaysFalse(t *testing.T) {
-	m, _ := newTestEnforcerManager(t)
-	require.NoError(t, m.LoadConfig())
-
-	if m.NodeRpcDiffers() {
-		t.Error("NodeRpcDiffers must always be false now that node-rpc-* are not persisted")
-	}
-
-	// Even if some legacy code stuffs a stale value back in, the answer
-	// is still false — there's nothing meaningful to compare against.
-	m.Config.SetSetting("node-rpc-user", "wrong")
-	if m.NodeRpcDiffers() {
-		t.Error("NodeRpcDiffers must remain false even with manually-injected stale state")
-	}
-}
-
-func TestSyncFromBitcoinConfIsNoOp(t *testing.T) {
-	m, _ := newTestEnforcerManager(t)
-	require.NoError(t, m.LoadConfig())
-
-	require.NoError(t, m.SyncFromBitcoinConf())
-
-	for _, key := range derivedEnforcerSettings {
-		if m.Config.HasSetting(key) {
-			t.Errorf("SyncFromBitcoinConf must not persist derived field %q", key)
-		}
-	}
-}
-
-// ---------------------------------------------------------------------------
 // GetCurrentConfigContent / WriteConfig tests
 // ---------------------------------------------------------------------------
 
