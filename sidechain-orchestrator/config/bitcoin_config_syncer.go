@@ -398,17 +398,18 @@ func (m *BitcoinConfManager) handleNetworkChangeIfNeeded(oldNetwork Network, isF
 // loadStateFromConfig loads network and datadir state from currentConfig.
 // Dart: _loadStateFromConfig (L595)
 //
-// DetectedDataDir reads only the per-network section (no global fallback) so
-// "user has explicitly chosen one" is the same question as "is this empty?".
-// The DataDirGuard / swap prompt rely on that. The global default still
-// reaches bitcoind via the on-disk conf file — this is purely a UI signal.
+// DetectedDataDir uses GetEffectiveSetting: per-network section first, then
+// global. This matches where UpdateDataDir writes (global, since Bitcoin Core
+// only honours top-level datadir) and where bitcoind itself reads from. A
+// user with their own bitcoin.conf may put datadir under [main] — that still
+// wins. Empty here means "no datadir is configured anywhere".
 func (m *BitcoinConfManager) loadStateFromConfig() {
 	if m.Config == nil {
 		return
 	}
 
 	m.Network = NetworkFromConfig(m.Config)
-	m.DetectedDataDir = m.Config.GetSetting("datadir", CoreSectionForNetwork(m.Network))
+	m.DetectedDataDir = m.Config.GetEffectiveSetting("datadir", CoreSectionForNetwork(m.Network))
 
 	// Ensure datadir exists — Bitcoin Core fails with a cryptic assertion error (exit code -6) if it doesn't
 	if m.DetectedDataDir != "" {
