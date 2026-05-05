@@ -514,6 +514,50 @@ func TestHasDatadirForNetwork(t *testing.T) {
 	}
 }
 
+// Regression: UpdateDataDir writes datadir to the global section (Bitcoin
+// Core only honours top-level datadir), so loadStateFromConfig must read
+// the global value too. Reading only [main] left DetectedDataDir empty
+// after reload, which made DataDirGuard re-prompt and reject the resulting
+// navigation — symptom: blank white screen on mainnet boot.
+func TestDetectedDataDirSurvivesReloadAfterUpdate(t *testing.T) {
+	tmpDir := t.TempDir()
+	m := newTestManager(tmpDir)
+	m.Network = NetworkMainnet
+	m.Config.SetSetting("chain", "main")
+
+	masterPath := m.getBitWindowConfigPath()
+	require.NoError(t, os.MkdirAll(filepath.Dir(masterPath), 0755))
+	require.NoError(t, os.WriteFile(masterPath, []byte(m.Config.Serialize()), 0644))
+
+	chosen := filepath.Join(tmpDir, "blocks")
+	require.NoError(t, m.UpdateDataDir(chosen, NetworkMainnet))
+	require.Equal(t, chosen, m.DetectedDataDir, "datadir must be visible immediately after UpdateDataDir")
+
+	// Simulate app restart — fresh manager loads the conf from disk.
+	m2 := &BitcoinConfManager{
+		BitwindowDir: tmpDir,
+		Network:      NetworkMainnet,
+		log:          zerolog.Nop(),
+	}
+	require.NoError(t, m2.LoadConfig(true))
+	require.Equal(t, chosen, m2.DetectedDataDir, "datadir written to global must be detected after reload")
+}
+
+// Per-section datadir still wins when present — covers users with their own
+// bitcoin.conf that scopes datadir under [main].
+func TestDetectedDataDirPrefersPerNetworkSection(t *testing.T) {
+	tmpDir := t.TempDir()
+	m := newTestManager(tmpDir)
+	m.Config.SetSetting("chain", "main")
+	m.Config.SetSetting("datadir", "/global/path")
+	m.Config.SetSetting("datadir", "/main/path", "main")
+
+	m.loadStateFromConfig()
+
+	require.Equal(t, NetworkMainnet, m.Network)
+	require.Equal(t, "/main/path", m.DetectedDataDir)
+}
+
 // ---------------------------------------------------------------------------
 // Piece 8 tests: UpdateNetwork with [main] section swap
 // ---------------------------------------------------------------------------
