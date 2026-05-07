@@ -1386,6 +1386,162 @@ func TestService_ListBlocks(t *testing.T) {
 		require.NoError(t, err)
 		assert.Len(t, resp.Msg.RecentBlocks, 5)
 	})
+
+	t.Run("repeat call at the same tip is served from cache", func(t *testing.T) {
+		t.Parallel()
+
+		db := database.Test(t)
+		ctrl := gomock.NewController(t)
+		mockBitcoind := mocks.NewMockBitcoinServiceClient(ctrl)
+		expectWatchWalletNoop(mockBitcoind)
+
+		// GetBlockHash + GetBlock fire 5× (= pageSize) total across both
+		// calls — the second call must come from cache.
+		mockBitcoind.EXPECT().GetBlockchainInfo(gomock.Any(), gomock.Any()).
+			Return(&connect.Response[corepb.GetBlockchainInfoResponse]{
+				Msg: &corepb.GetBlockchainInfoResponse{Blocks: 10},
+			}, nil).Times(2)
+		mockBitcoind.EXPECT().GetBlockHash(gomock.Any(), gomock.Any()).
+			Return(&connect.Response[corepb.GetBlockHashResponse]{
+				Msg: &corepb.GetBlockHashResponse{Hash: "h"},
+			}, nil).Times(5)
+		mockBitcoind.EXPECT().GetBlock(gomock.Any(), gomock.Any()).
+			Return(&connect.Response[corepb.GetBlockResponse]{
+				Msg: &corepb.GetBlockResponse{Height: 10, Hash: "h", Time: timestamppb.Now()},
+			}, nil).Times(5)
+
+		cli := v1connect.NewBitwindowdServiceClient(apitests.API(t, db, apitests.WithBitcoind(mockBitcoind)))
+
+		req := connect.NewRequest(&v1.ListBlocksRequest{PageSize: 5})
+		first, err := cli.ListBlocks(context.Background(), req)
+		require.NoError(t, err)
+		require.Len(t, first.Msg.RecentBlocks, 5)
+
+		second, err := cli.ListBlocks(context.Background(), connect.NewRequest(&v1.ListBlocksRequest{PageSize: 5}))
+		require.NoError(t, err)
+		require.Len(t, second.Msg.RecentBlocks, 5)
+	})
+
+	t.Run("cache is dropped on same-height reorg (different best-block-hash)", func(t *testing.T) {
+		t.Parallel()
+
+		db := database.Test(t)
+		ctrl := gomock.NewController(t)
+		mockBitcoind := mocks.NewMockBitcoinServiceClient(ctrl)
+		expectWatchWalletNoop(mockBitcoind)
+
+		// Same height, different hash = same-height reorg. Each call
+		// must do its own fan-out (10 fetches each = 20 total).
+		gomock.InOrder(
+			mockBitcoind.EXPECT().GetBlockchainInfo(gomock.Any(), gomock.Any()).
+				Return(&connect.Response[corepb.GetBlockchainInfoResponse]{
+					Msg: &corepb.GetBlockchainInfoResponse{Blocks: 10, BestBlockHash: "hash-A"},
+				}, nil),
+			mockBitcoind.EXPECT().GetBlockchainInfo(gomock.Any(), gomock.Any()).
+				Return(&connect.Response[corepb.GetBlockchainInfoResponse]{
+					Msg: &corepb.GetBlockchainInfoResponse{Blocks: 10, BestBlockHash: "hash-B"},
+				}, nil),
+		)
+		mockBitcoind.EXPECT().GetBlockHash(gomock.Any(), gomock.Any()).
+			Return(&connect.Response[corepb.GetBlockHashResponse]{
+				Msg: &corepb.GetBlockHashResponse{Hash: "h"},
+			}, nil).Times(10)
+		mockBitcoind.EXPECT().GetBlock(gomock.Any(), gomock.Any()).
+			Return(&connect.Response[corepb.GetBlockResponse]{
+				Msg: &corepb.GetBlockResponse{Height: 10, Hash: "h", Time: timestamppb.Now()},
+			}, nil).Times(10)
+
+		cli := v1connect.NewBitwindowdServiceClient(apitests.API(t, db, apitests.WithBitcoind(mockBitcoind)))
+
+		_, err := cli.ListBlocks(context.Background(), connect.NewRequest(&v1.ListBlocksRequest{PageSize: 5}))
+		require.NoError(t, err)
+		_, err = cli.ListBlocks(context.Background(), connect.NewRequest(&v1.ListBlocksRequest{PageSize: 5}))
+		require.NoError(t, err)
+	})
+
+	t.Run("returned slice is decoupled from cache (caller mutation safe)", func(t *testing.T) {
+		t.Parallel()
+
+		db := database.Test(t)
+		ctrl := gomock.NewController(t)
+		mockBitcoind := mocks.NewMockBitcoinServiceClient(ctrl)
+		expectWatchWalletNoop(mockBitcoind)
+
+		mockBitcoind.EXPECT().GetBlockchainInfo(gomock.Any(), gomock.Any()).
+			Return(&connect.Response[corepb.GetBlockchainInfoResponse]{
+				Msg: &corepb.GetBlockchainInfoResponse{Blocks: 10, BestBlockHash: "h"},
+			}, nil).Times(2)
+		mockBitcoind.EXPECT().GetBlockHash(gomock.Any(), gomock.Any()).
+			Return(&connect.Response[corepb.GetBlockHashResponse]{
+				Msg: &corepb.GetBlockHashResponse{Hash: "h"},
+			}, nil).Times(3)
+		mockBitcoind.EXPECT().GetBlock(gomock.Any(), gomock.Any()).
+			Return(&connect.Response[corepb.GetBlockResponse]{
+				Msg: &corepb.GetBlockResponse{Height: 10, Hash: "h", Time: timestamppb.Now()},
+			}, nil).Times(3)
+
+		cli := v1connect.NewBitwindowdServiceClient(apitests.API(t, db, apitests.WithBitcoind(mockBitcoind)))
+
+		first, err := cli.ListBlocks(context.Background(), connect.NewRequest(&v1.ListBlocksRequest{PageSize: 3}))
+		require.NoError(t, err)
+		require.Len(t, first.Msg.RecentBlocks, 3)
+
+		// Mutate the response: if the cache shared its backing array
+		// we'd corrupt the next caller.
+		first.Msg.RecentBlocks[0] = nil
+		first.Msg.RecentBlocks = append(first.Msg.RecentBlocks, nil, nil, nil, nil)
+
+		second, err := cli.ListBlocks(context.Background(), connect.NewRequest(&v1.ListBlocksRequest{PageSize: 3}))
+		require.NoError(t, err)
+		require.Len(t, second.Msg.RecentBlocks, 3, "cache must hand out a fresh slice")
+		require.NotNil(t, second.Msg.RecentBlocks[0])
+	})
+
+	t.Run("cache is dropped when tip moves", func(t *testing.T) {
+		t.Parallel()
+
+		db := database.Test(t)
+		ctrl := gomock.NewController(t)
+		mockBitcoind := mocks.NewMockBitcoinServiceClient(ctrl)
+
+		mockBitcoind.EXPECT().ListWallets(gomock.Any(), gomock.Any()).
+			Return(&connect.Response[corepb.ListWalletsResponse]{
+				Msg: &corepb.ListWalletsResponse{Wallets: []string{}},
+			}, nil).AnyTimes()
+		mockBitcoind.EXPECT().CreateWallet(gomock.Any(), gomock.Any()).
+			Return(&connect.Response[corepb.CreateWalletResponse]{
+				Msg: &corepb.CreateWalletResponse{Name: "cheque_watch"},
+			}, nil).AnyTimes()
+
+		// First call: tip=10. Second call: tip=11 — must invalidate the
+		// cache and re-fetch all blocks. So GetBlockHash + GetBlock fire
+		// 5 times PER call = 10 total.
+		gomock.InOrder(
+			mockBitcoind.EXPECT().GetBlockchainInfo(gomock.Any(), gomock.Any()).
+				Return(&connect.Response[corepb.GetBlockchainInfoResponse]{
+					Msg: &corepb.GetBlockchainInfoResponse{Blocks: 10},
+				}, nil),
+			mockBitcoind.EXPECT().GetBlockchainInfo(gomock.Any(), gomock.Any()).
+				Return(&connect.Response[corepb.GetBlockchainInfoResponse]{
+					Msg: &corepb.GetBlockchainInfoResponse{Blocks: 11},
+				}, nil),
+		)
+		mockBitcoind.EXPECT().GetBlockHash(gomock.Any(), gomock.Any()).
+			Return(&connect.Response[corepb.GetBlockHashResponse]{
+				Msg: &corepb.GetBlockHashResponse{Hash: "h"},
+			}, nil).Times(10)
+		mockBitcoind.EXPECT().GetBlock(gomock.Any(), gomock.Any()).
+			Return(&connect.Response[corepb.GetBlockResponse]{
+				Msg: &corepb.GetBlockResponse{Height: 10, Hash: "h", Time: timestamppb.Now()},
+			}, nil).Times(10)
+
+		cli := v1connect.NewBitwindowdServiceClient(apitests.API(t, db, apitests.WithBitcoind(mockBitcoind)))
+
+		_, err := cli.ListBlocks(context.Background(), connect.NewRequest(&v1.ListBlocksRequest{PageSize: 5}))
+		require.NoError(t, err)
+		_, err = cli.ListBlocks(context.Background(), connect.NewRequest(&v1.ListBlocksRequest{PageSize: 5}))
+		require.NoError(t, err)
+	})
 }
 
 func TestService_ListRecentTransactions(t *testing.T) {
@@ -1620,4 +1776,17 @@ func TestService_GetNetworkStats(t *testing.T) {
 		assert.Equal(t, "/Satoshi:25.0.0/", resp.Msg.Subversion)
 		assert.Equal(t, 12345.67, resp.Msg.Difficulty)
 	})
+}
+
+// expectWatchWalletNoop satisfies the background ensureWatchWallet path
+// for tests that don't care about it.
+func expectWatchWalletNoop(m *mocks.MockBitcoinServiceClient) {
+	m.EXPECT().ListWallets(gomock.Any(), gomock.Any()).
+		Return(&connect.Response[corepb.ListWalletsResponse]{
+			Msg: &corepb.ListWalletsResponse{Wallets: []string{}},
+		}, nil).AnyTimes()
+	m.EXPECT().CreateWallet(gomock.Any(), gomock.Any()).
+		Return(&connect.Response[corepb.CreateWalletResponse]{
+			Msg: &corepb.CreateWalletResponse{Name: "cheque_watch"},
+		}, nil).AnyTimes()
 }

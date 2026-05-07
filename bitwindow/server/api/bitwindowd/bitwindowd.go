@@ -10,6 +10,8 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"sync"
+	"sync/atomic"
 	"time"
 
 	"connectrpc.com/connect"
@@ -79,6 +81,43 @@ type Server struct {
 	recycle          func(ctx context.Context, network config.Network) error
 
 	config config.Config
+
+	// Memoizes ListBlocks responses. Validity gated on (height, hash) —
+	// hash too, so same-height reorgs invalidate.
+	listBlocksCache sync.Map // listBlocksCacheKey -> *listBlocksCacheEntry
+	listBlocksTip   atomic.Pointer[blocksTip]
+}
+
+type listBlocksCacheKey struct {
+	startHeight uint32
+	pageSize    uint32
+}
+
+type listBlocksCacheEntry struct {
+	blocks  []*pb.Block
+	hasMore bool
+	tip     blocksTip
+}
+
+type blocksTip struct {
+	height uint32
+	hash   string
+}
+
+// observeTip records the current tip and returns true the first time we
+// see a new (height, hash) pair. Same-height reorgs are caught because
+// the hash changes.
+func (s *Server) observeTip(height uint32, hash string) (changed bool) {
+	next := blocksTip{height: height, hash: hash}
+	for {
+		prev := s.listBlocksTip.Load()
+		if prev != nil && *prev == next {
+			return false
+		}
+		if s.listBlocksTip.CompareAndSwap(prev, &next) {
+			return true
+		}
+	}
 }
 
 // UpdateNetwork swaps bitcoind to a new network and recycles bitwindowd's
@@ -603,9 +642,11 @@ func (s *Server) ListBlocks(ctx context.Context, c *connect.Request[pb.ListBlock
 	if err != nil {
 		return nil, fmt.Errorf("bitcoind: could not get blockchain info: %w", err)
 	}
+	currentTip := info.Msg.Blocks
+	currentHash := info.Msg.BestBlockHash
 
 	// Default to most recent blocks if no pagination
-	startHeight := info.Msg.Blocks
+	startHeight := currentTip
 	if c.Msg.StartHeight > 0 {
 		startHeight = c.Msg.StartHeight
 	}
@@ -614,6 +655,28 @@ func (s *Server) ListBlocks(ctx context.Context, c *connect.Request[pb.ListBlock
 	pageSize := uint32(50)
 	if c.Msg.PageSize > 0 {
 		pageSize = c.Msg.PageSize
+	}
+
+	currentValidity := blocksTip{height: currentTip, hash: currentHash}
+	if s.observeTip(currentTip, currentHash) {
+		s.listBlocksCache.Range(func(k, _ any) bool {
+			s.listBlocksCache.Delete(k)
+			return true
+		})
+	}
+	cacheKey := listBlocksCacheKey{startHeight: startHeight, pageSize: pageSize}
+	if v, ok := s.listBlocksCache.Load(cacheKey); ok {
+		entry := v.(*listBlocksCacheEntry)
+		if entry.tip == currentValidity {
+			// Slice header is freshly allocated; *pb.Block elements
+			// are shared and must be treated read-only by the caller.
+			out := make([]*pb.Block, len(entry.blocks))
+			copy(out, entry.blocks)
+			return connect.NewResponse(&pb.ListBlocksResponse{
+				RecentBlocks: out,
+				HasMore:      entry.hasMore,
+			}), nil
+		}
 	}
 
 	p := pool.NewWithResults[*pb.Block]().
@@ -678,9 +741,18 @@ func (s *Server) ListBlocks(ctx context.Context, c *connect.Request[pb.ListBlock
 		return -cmp.Compare(a.Height, b.Height)
 	})
 
+	hasMore := startHeight > uint32(len(blocks))
+	s.listBlocksCache.Store(cacheKey, &listBlocksCacheEntry{
+		blocks:  blocks,
+		hasMore: hasMore,
+		tip:     currentValidity,
+	})
+
+	out := make([]*pb.Block, len(blocks))
+	copy(out, blocks)
 	return connect.NewResponse(&pb.ListBlocksResponse{
-		RecentBlocks: blocks,
-		HasMore:      startHeight > uint32(len(blocks)),
+		RecentBlocks: out,
+		HasMore:      hasMore,
 	}), nil
 }
 
