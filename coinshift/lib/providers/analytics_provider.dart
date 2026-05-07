@@ -190,7 +190,7 @@ class AnalyticsProvider extends ChangeNotifier {
 
     // Filter by created height - approximate since we don't have timestamps
     // Assuming ~10 minutes per block
-    final blocksPerHour = 6;
+    const blocksPerHour = 6;
     final currentHeight = swaps.isNotEmpty ? swaps.map((s) => s.createdAtHeight).reduce((a, b) => a > b ? a : b) : 0;
 
     final blocksToInclude = switch (selectedTimeRange) {

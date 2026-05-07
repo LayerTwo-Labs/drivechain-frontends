@@ -95,15 +95,11 @@ class BlockchainProvider extends ChangeNotifier {
     void tick() async {
       try {
         await fetch();
-        // During IBD we should be pretty spammy to get up-to-date info all the time
-        // After IBD however we can check less frequently, so as soon as IBD is done
-        // we check every 5 seconds.
-
-        // Check if we need to change the interval
-        // SyncProvider is the source of truth for "are we still catching up";
-        // ride its `isSynced` so we drop to a calmer cadence the moment all
-        // tracked daemons report synced.
-        final newInterval = syncProvider.isSynced ? const Duration(seconds: 5) : const Duration(milliseconds: 200);
+        // Mirror SyncProvider's cadence signal so absent daemons don't
+        // trap us in 200ms polling forever.
+        final newInterval = syncProvider.shouldPollAggressively
+            ? const Duration(milliseconds: 200)
+            : const Duration(seconds: 5);
         if (newInterval != _currentInterval) {
           // IBD-status changed!
           _currentInterval = newInterval;

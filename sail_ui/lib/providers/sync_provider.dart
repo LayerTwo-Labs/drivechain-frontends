@@ -86,19 +86,25 @@ class SyncProvider extends ChangeNotifier {
   /// daemon (read [bitwindowdSyncInfo] or [sidechains] directly).
   bool get isSynced => (mainchainSyncInfo?.isSynced ?? false) && (enforcerSyncInfo?.isSynced ?? false);
 
-  /// True when *any* tracked daemon is actively downloading. Drives the
-  /// 100 ms cadence even when mainchain + enforcer are already synced —
-  /// e.g. someone runs `orchestratorctl download thunder` from the CLI
-  /// and we want to see MB ticks immediately.
-  bool get _anyDownloading {
-    if (mainchainSyncInfo?.downloadInfo.isDownloading ?? false) return true;
-    if (enforcerSyncInfo?.downloadInfo.isDownloading ?? false) return true;
-    if (bitwindowdSyncInfo?.downloadInfo.isDownloading ?? false) return true;
-    for (final s in sidechains.values) {
-      if (s.downloadInfo.isDownloading) return true;
-    }
-    return false;
-  }
+  /// All tracked SyncInfo slots in one list — null entries mean the
+  /// daemon hasn't reported yet. Both [_anyDownloading] and
+  /// [shouldPollAggressively] iterate this so the set stays in sync.
+  List<SyncInfo?> get _trackedSyncInfos => [
+    mainchainSyncInfo,
+    enforcerSyncInfo,
+    bitwindowdSyncInfo,
+    ...sidechains.values,
+  ];
+
+  /// True if any tracked daemon is downloading binaries.
+  bool get _anyDownloading => _trackedSyncInfos.any(
+    (s) => s?.downloadInfo.isDownloading ?? false,
+  );
+
+  /// Cadence signal — true only when there's actual progress to display.
+  /// A null SyncInfo (daemon not running) does NOT count: polling fast
+  /// for something with nothing to show would just burn CPU.
+  bool get shouldPollAggressively => _anyDownloading || _trackedSyncInfos.any((s) => s != null && !s.isSynced);
 
   /// True while bitcoind is still pulling its initial header set.
   bool get inHeaderSync {
@@ -156,10 +162,7 @@ class SyncProvider extends ChangeNotifier {
     try {
       await _fetch();
 
-      // Stay aggressive while anything's downloading OR not yet synced —
-      // that covers user-triggered CLI downloads of sidechains too.
-      final aggressive = _anyDownloading || !isSynced;
-      final nextInterval = aggressive ? AGGRESSIVE_INTERVAL : PASSIVE_INTERVAL;
+      final nextInterval = shouldPollAggressively ? AGGRESSIVE_INTERVAL : PASSIVE_INTERVAL;
       if (nextInterval != _currentInterval) {
         _currentInterval = nextInterval;
         _scheduleNextTick();

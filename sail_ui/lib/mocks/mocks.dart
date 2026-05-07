@@ -1722,6 +1722,9 @@ class MockSyncProvider implements SyncProvider {
   bool get isSynced => true;
 
   @override
+  bool get shouldPollAggressively => false;
+
+  @override
   bool get inHeaderSync => false;
 }
 
