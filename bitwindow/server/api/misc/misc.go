@@ -53,9 +53,14 @@ type Server struct {
 	bitcoind        *service.Service[corerpc.BitcoinServiceClient]
 }
 
+// listOPReturnLimit is the cap for the gRPC ListOPReturn handler. The
+// UI is the only consumer and only renders the most-recent N; without
+// a cap each poll dragged every row in the table back through the wire.
+const listOPReturnLimit = 1000
+
 // ListOPReturn implements miscv1connect.MiscServiceHandler.
 func (s *Server) ListOPReturn(ctx context.Context, req *connect.Request[emptypb.Empty]) (*connect.Response[miscv1.ListOPReturnResponse], error) {
-	opReturns, err := opreturns.List(ctx, s.database)
+	opReturns, err := opreturns.List(ctx, s.database, listOPReturnLimit)
 	if err != nil {
 		zerolog.Ctx(ctx).Error().Err(err).Msg("could not list op returns")
 		return nil, err

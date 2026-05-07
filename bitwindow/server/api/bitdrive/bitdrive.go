@@ -127,7 +127,7 @@ func (s *Server) RetrieveContent(ctx context.Context, req *connect.Request[bitdr
 	}
 
 	// Get OP_RETURN data
-	opReturns, err := opreturns.List(ctx, s.database)
+	opReturns, err := opreturns.List(ctx, s.database, 0)
 	if err != nil {
 		return nil, fmt.Errorf("list OP_RETURNs: %w", err)
 	}
@@ -164,7 +164,7 @@ func (s *Server) ScanForFiles(ctx context.Context, req *connect.Request[emptypb.
 	log := zerolog.Ctx(ctx)
 
 	// Get all OP_RETURNs
-	allOpReturns, err := opreturns.List(ctx, s.database)
+	allOpReturns, err := opreturns.List(ctx, s.database, 0)
 	if err != nil {
 		return nil, fmt.Errorf("list OP_RETURNs: %w", err)
 	}
@@ -240,7 +240,7 @@ func (s *Server) DownloadPendingFiles(ctx context.Context, req *connect.Request[
 	var downloadedCount, failedCount uint32
 
 	// Get all OP_RETURNs
-	allOpReturns, err := opreturns.List(ctx, s.database)
+	allOpReturns, err := opreturns.List(ctx, s.database, 0)
 	if err != nil {
 		return nil, fmt.Errorf("list OP_RETURNs: %w", err)
 	}

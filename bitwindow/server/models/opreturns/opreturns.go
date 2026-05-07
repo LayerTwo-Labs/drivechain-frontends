@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"slices"
 	"strings"
+	"sync"
 	"time"
 	"unicode"
 
@@ -16,6 +17,45 @@ import (
 	"github.com/btcsuite/btcd/btcutil"
 	"github.com/rs/zerolog"
 )
+
+// Backstop TTL for cached List / ListCoinNews — the contract is that
+// Persist and CreateTopic invalidate; TTL only matters if a query
+// races a write.
+const listCacheTTL = 2 * time.Second
+
+// Caches are keyed by *sql.DB so parallel tests with their own DBs
+// don't share entries. Production has one *sql.DB per network so this
+// is effectively a singleton.
+
+type listCacheEntry struct {
+	rows []OPReturn
+	at   time.Time
+}
+
+type coinNewsCacheEntry struct {
+	rows []CoinNews
+	at   time.Time
+}
+
+var (
+	listCacheMu      sync.RWMutex
+	listCacheEntries = map[*sql.DB]map[int]listCacheEntry{}
+
+	coinNewsCacheMu      sync.RWMutex
+	coinNewsCacheEntries = map[*sql.DB]coinNewsCacheEntry{}
+)
+
+// invalidateCaches drops cached List / ListCoinNews entries for db.
+// Called from Persist and CreateTopic.
+func invalidateCaches(db *sql.DB) {
+	listCacheMu.Lock()
+	delete(listCacheEntries, db)
+	listCacheMu.Unlock()
+
+	coinNewsCacheMu.Lock()
+	delete(coinNewsCacheEntries, db)
+	coinNewsCacheMu.Unlock()
+}
 
 func Persist(
 	ctx context.Context, db *sql.DB, values []OPReturn,
@@ -55,6 +95,8 @@ func Persist(
 		return fmt.Errorf("persist %d OP_RETURN(s): %w", len(values), err)
 	}
 
+	invalidateCaches(db)
+
 	zerolog.Ctx(ctx).Debug().
 		Msgf("opreturns: persisted %d OP_RETURN(s) in %s", len(values), time.Since(start))
 
@@ -71,12 +113,34 @@ type OPReturn struct {
 	CreatedAt *time.Time
 }
 
-func List(ctx context.Context, db *sql.DB) ([]OPReturn, error) {
-	rows, err := db.QueryContext(ctx, `
+// List returns the most-recent OP_RETURNs, ordered by created_at desc,
+// capped at `limit`. Pass 0 (or any value <= 0) to skip the cap — only
+// do that when the caller genuinely needs the full table; this table
+// grows linearly with chain height. The returned slice is freshly
+// allocated; element values are shared, so OPReturn fields must be
+// treated read-only.
+func List(ctx context.Context, db *sql.DB, limit int) ([]OPReturn, error) {
+	listCacheMu.RLock()
+	cached, hit := listCacheEntries[db][limit]
+	listCacheMu.RUnlock()
+	if hit && time.Since(cached.at) < listCacheTTL {
+		out := make([]OPReturn, len(cached.rows))
+		copy(out, cached.rows)
+		return out, nil
+	}
+
+	query := `
 		SELECT id, txid, vout, unhex(op_return_data), fee_sats, height, created_at
 		FROM op_returns
 		ORDER BY created_at DESC
-	`)
+	`
+	args := []any{}
+	if limit > 0 {
+		query += "\nLIMIT ?"
+		args = append(args, limit)
+	}
+
+	rows, err := db.QueryContext(ctx, query, args...)
 	if err != nil {
 		return nil, fmt.Errorf("list: query op_returns: %w", err)
 	}
@@ -84,9 +148,7 @@ func List(ctx context.Context, db *sql.DB) ([]OPReturn, error) {
 
 	var opReturns []OPReturn
 	for rows.Next() {
-		var (
-			opReturn OPReturn
-		)
+		var opReturn OPReturn
 		err := rows.Scan(
 			&opReturn.ID, &opReturn.TxID, &opReturn.Vout,
 			&opReturn.Data, &opReturn.Fee, &opReturn.Height, &opReturn.CreatedAt,
@@ -94,13 +156,22 @@ func List(ctx context.Context, db *sql.DB) ([]OPReturn, error) {
 		if err != nil {
 			return nil, fmt.Errorf("list: scan op_return: %w", err)
 		}
-
 		opReturns = append(opReturns, opReturn)
 	}
-
 	if err := rows.Err(); err != nil {
 		return nil, fmt.Errorf("list: iterate op_returns: %w", err)
 	}
+
+	snapshot := make([]OPReturn, len(opReturns))
+	copy(snapshot, opReturns)
+	listCacheMu.Lock()
+	byLimit, ok := listCacheEntries[db]
+	if !ok {
+		byLimit = map[int]listCacheEntry{}
+		listCacheEntries[db] = byLimit
+	}
+	byLimit[limit] = listCacheEntry{rows: snapshot, at: time.Now()}
+	listCacheMu.Unlock()
 
 	return opReturns, nil
 }
@@ -253,6 +324,9 @@ func CreateTopic(ctx context.Context, db *sql.DB, topic TopicID, name string, tx
 		return fmt.Errorf("create topic: %w", err)
 	}
 
+	// Topic changes alter which rows the ListCoinNews JOIN matches.
+	invalidateCaches(db)
+
 	return nil
 }
 
@@ -354,48 +428,66 @@ func (t TopicID) String() string {
 	return hex.EncodeToString(t[:])
 }
 
-func extractTopic(topics []Topic, topic TopicID) (Topic, bool) {
-	for _, t := range topics {
-		if t.Topic == topic {
-			return t, true
-		}
-	}
-	return Topic{}, false
-}
-
+// ListCoinNews returns OP_RETURNs that match a known topic, with the
+// per-topic retention cutoff applied. Topic match (first 4 bytes /
+// 8 hex chars of op_return_data) and retention are done in SQL; the Go
+// pass only strips topic-creation rows and empty payloads.
 func ListCoinNews(ctx context.Context, db *sql.DB) ([]CoinNews, error) {
-	opReturns, err := List(ctx, db)
-	if err != nil {
-		return nil, err
+	coinNewsCacheMu.RLock()
+	cached, hit := coinNewsCacheEntries[db]
+	coinNewsCacheMu.RUnlock()
+	if hit && time.Since(cached.at) < listCacheTTL {
+		out := make([]CoinNews, len(cached.rows))
+		copy(out, cached.rows)
+		return out, nil
 	}
 
-	topics, err := ListTopics(ctx, db)
+	// retention_days = 0 means keep forever.
+	rows, err := db.QueryContext(ctx, `
+		SELECT
+			o.id, o.txid, o.vout, unhex(o.op_return_data), o.fee_sats, o.height, o.created_at,
+			t.id, t.topic, t.name, t.confirmed, COALESCE(t.txid, ''), COALESCE(t.retention_days, 7), t.created_at
+		FROM op_returns o
+		INNER JOIN coin_news_topics t
+			ON SUBSTR(o.op_return_data, 1, 8) = t.topic
+		WHERE
+			t.retention_days = 0
+			OR o.created_at >= datetime('now', '-' || t.retention_days || ' days')
+		ORDER BY o.created_at DESC
+	`)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("list coin news: query: %w", err)
 	}
+	defer rows.Close()
 
 	var coinNews []CoinNews
-	for _, opReturn := range opReturns {
+	for rows.Next() {
+		var (
+			opReturn   OPReturn
+			topic      Topic
+			rawTopicID string
+		)
+		err := rows.Scan(
+			&opReturn.ID, &opReturn.TxID, &opReturn.Vout,
+			&opReturn.Data, &opReturn.Fee, &opReturn.Height, &opReturn.CreatedAt,
+			&topic.ID, &rawTopicID, &topic.Name, &topic.Confirmed, &topic.Txid, &topic.RetentionDays, &topic.CreatedAt,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("list coin news: scan: %w", err)
+		}
+
+		topicID, err := ValidNewsTopicID(rawTopicID)
+		if err != nil {
+			return nil, fmt.Errorf("list coin news: invalid topic ID: %w", err)
+		}
+		topic.Topic = topicID
+
 		if len(opReturn.Data) < TopicIdLength {
 			continue
 		}
-
-		// Skip over all topic creation OP_RETURNs
+		// Topic-creation rows match the prefix but aren't news.
 		if _, ok := IsCreateTopic(opReturn.Data); ok {
 			continue
-		}
-
-		topic, ok := extractTopic(topics, TopicID(opReturn.Data[:TopicIdLength]))
-		if !ok {
-			continue
-		}
-
-		// Filter by retention days (0 = infinite retention)
-		if topic.RetentionDays > 0 {
-			cutoff := time.Now().AddDate(0, 0, -int(topic.RetentionDays))
-			if opReturn.CreatedAt.Before(cutoff) {
-				continue
-			}
 		}
 
 		var (
@@ -432,6 +524,15 @@ func ListCoinNews(ctx context.Context, db *sql.DB) ([]CoinNews, error) {
 			CreatedAt: opReturn.CreatedAt,
 		})
 	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("list coin news: iterate: %w", err)
+	}
+
+	snapshot := make([]CoinNews, len(coinNews))
+	copy(snapshot, coinNews)
+	coinNewsCacheMu.Lock()
+	coinNewsCacheEntries[db] = coinNewsCacheEntry{rows: snapshot, at: time.Now()}
+	coinNewsCacheMu.Unlock()
 
 	return coinNews, nil
 }
