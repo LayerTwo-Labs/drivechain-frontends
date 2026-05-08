@@ -122,33 +122,59 @@ class _ChainSettingsModalState extends State<ChainSettingsModal> {
                           loading: viewModel.isUpdating,
                           loadingLabel: 'Updating',
                         ),
-                      SailButton(
-                        onPressed: () async {
-                          final binaryProvider = GetIt.I.get<BinaryProvider>();
-                          final appDir = GetIt.I.get<BinaryProvider>().appDir;
-                          final binary = widget.connection.binary;
+                      Tooltip(
+                        message: 'Wipe ${viewModel.binary.name} binary and data, then reinstall',
+                        child: SailButton(
+                          onPressed: () async {
+                            final confirmed = await showDialog<bool>(
+                              context: context,
+                              builder: (dialogCtx) => AlertDialog(
+                                title: SailText.primary15('Wipe ${viewModel.binary.name}?'),
+                                content: SailText.secondary13(
+                                  'This stops ${viewModel.binary.name}, deletes its binary and all data directories, '
+                                  'then copies a fresh binary from assets.',
+                                ),
+                                actions: [
+                                  SailButton(
+                                    label: 'Cancel',
+                                    variant: ButtonVariant.secondary,
+                                    onPressed: () async => Navigator.of(dialogCtx).pop(false),
+                                  ),
+                                  SailButton(
+                                    label: 'Wipe',
+                                    variant: ButtonVariant.destructive,
+                                    onPressed: () async => Navigator.of(dialogCtx).pop(true),
+                                  ),
+                                ],
+                              ),
+                            );
+                            if (confirmed != true) return;
 
-                          await binaryProvider.stop(
-                            binary,
-                            skipDownstream: true,
-                          );
+                            final binaryProvider = GetIt.I.get<BinaryProvider>();
+                            final appDir = GetIt.I.get<BinaryProvider>().appDir;
+                            final binary = widget.connection.binary;
 
-                          // Delete binaries and all datadir paths
-                          await binary.deleteBinaries(binDir(appDir.path));
-                          final allPaths = await binary.getAllDatadirPaths();
-                          await binary.deleteFiles(allPaths);
-                          await copyBinariesFromAssets(
-                            GetIt.I.get<Logger>(),
-                            appDir,
-                          );
+                            await binaryProvider.stop(
+                              binary,
+                              skipDownstream: true,
+                            );
 
-                          if (context.mounted) {
-                            Navigator.of(context).pop();
-                          }
-                        },
-                        variant: ButtonVariant.icon,
-                        icon: SailSVGAsset.trash,
-                        textColor: SailColorScheme.red,
+                            await binary.deleteBinaries(binDir(appDir.path));
+                            final allPaths = await binary.getAllDatadirPaths();
+                            await binary.deleteFiles(allPaths);
+                            await copyBinariesFromAssets(
+                              GetIt.I.get<Logger>(),
+                              appDir,
+                            );
+
+                            if (context.mounted) {
+                              Navigator.of(context).pop();
+                            }
+                          },
+                          variant: ButtonVariant.icon,
+                          icon: SailSVGAsset.trash,
+                          textColor: SailColorScheme.red,
+                        ),
                       ),
                     ],
                   ),
