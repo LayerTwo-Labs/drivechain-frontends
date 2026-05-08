@@ -187,9 +187,12 @@ class _CreateAnotherWalletPageState extends State<CreateAnotherWalletPage> {
         backgroundColor: theme.colors.background,
         foregroundColor: theme.colors.text,
         leading: _currentStep > 0
-            ? IconButton(
-                icon: const Icon(Icons.arrow_back),
-                onPressed: _previousStep,
+            ? Padding(
+                padding: const EdgeInsetsDirectional.only(start: 8),
+                child: IconButton(
+                  icon: const Icon(Icons.arrow_back),
+                  onPressed: _previousStep,
+                ),
               )
             : null,
       ),

@@ -61,9 +61,12 @@ class _DataDirSelectPageState extends State<DataDirSelectPage> {
       appBar: AppBar(
         backgroundColor: theme.colors.background,
         foregroundColor: theme.colors.text,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => Navigator.of(context).pop(),
+        leading: Padding(
+          padding: const EdgeInsetsDirectional.only(start: 8),
+          child: IconButton(
+            icon: const Icon(Icons.arrow_back),
+            onPressed: () => Navigator.of(context).pop(),
+          ),
         ),
       ),
       body: SafeArea(
