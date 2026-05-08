@@ -167,11 +167,11 @@ class _ButtonContent extends StatelessWidget {
       children: [
         if (isLoading) ...[
           SizedBox(
-            width: 12,
-            height: 12,
+            width: label != null ? 12 : 14,
+            height: label != null ? 12 : 14,
             child: LoadingIndicator.insideButton(foregroundColor),
           ),
-          const SizedBox(width: 8),
+          if (label != null) const SizedBox(width: 8),
         ] else if (icon != null || endIcon != null) ...[
           if (icon != null)
             SailSVG.fromAsset(

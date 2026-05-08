@@ -188,5 +188,29 @@ void main() {
       // Loading SailButton shows progress indicator(s)
       expect(find.byType(SailButton), findsOneWidget);
     });
+
+    // Regression: an icon-variant SailButton must keep the same width whether
+    // it shows the spinner (loading=true) or the icon (loading=false).
+    // Otherwise hovering the daemon stop/restart button caused UI jitter.
+    testWidgets('icon button width is invariant under loading toggle', (tester) async {
+      Widget pump(bool loading) => buildTestableWidget(
+        Center(
+          child: SailButton(
+            variant: ButtonVariant.icon,
+            icon: SailSVGAsset.square,
+            loading: loading,
+            onPressed: () async {},
+          ),
+        ),
+      );
+
+      await tester.pumpWidget(pump(false));
+      final notLoadingSize = tester.getSize(find.byType(SailButton));
+
+      await tester.pumpWidget(pump(true));
+      final loadingSize = tester.getSize(find.byType(SailButton));
+
+      expect(loadingSize.width, notLoadingSize.width);
+    });
   });
 }
