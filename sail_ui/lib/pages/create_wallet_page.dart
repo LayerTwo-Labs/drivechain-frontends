@@ -113,15 +113,18 @@ class _SailCreateWalletPageState extends State<SailCreateWalletPage> {
         leading:
             (hasExistingWallet || widget.onBack != null) &&
                 (_currentScreen == WelcomeScreen.initial || widget.initialScreen == _currentScreen)
-            ? IconButton(
-                icon: const Icon(Icons.arrow_back),
-                onPressed: () {
-                  if (widget.onBack != null) {
-                    widget.onBack!();
-                  } else {
-                    context.router.maybePop();
-                  }
-                },
+            ? Padding(
+                padding: const EdgeInsetsDirectional.only(start: 8),
+                child: IconButton(
+                  icon: const Icon(Icons.arrow_back),
+                  onPressed: () {
+                    if (widget.onBack != null) {
+                      widget.onBack!();
+                    } else {
+                      context.router.maybePop();
+                    }
+                  },
+                ),
               )
             : null,
       ),
