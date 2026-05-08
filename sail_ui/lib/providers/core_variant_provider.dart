@@ -35,11 +35,10 @@ class CoreVariantProvider extends ChangeNotifier {
     try {
       final resp = await _orch.wallet.listCoreVariants();
       _variants = resp.variants;
-      // Clamp to the visible set: a persisted variant from a different
-      // network would otherwise feed SailDropdownButton a value not in its
-      // items list and trigger an assertion.
-      final visible = _variants.any((v) => v.id == resp.activeId);
-      _activeId = visible ? resp.activeId : '';
+      _activeId = resolveActiveId(
+        reportedActiveId: resp.activeId,
+        visibleIds: _variants.map((v) => v.id),
+      );
       _lastError = null;
       notifyListeners();
     } catch (e) {
@@ -47,6 +46,20 @@ class CoreVariantProvider extends ChangeNotifier {
       _lastError = e.toString();
       notifyListeners();
     }
+  }
+
+  /// Clamps the orchestrator-reported active id to something the dropdown
+  /// can actually render. A persisted id from another network would feed
+  /// SailDropdownButton a value not in its items list and trigger an
+  /// assertion; an empty reported id leaves the dropdown blank. In both
+  /// cases we fall back to the first visible variant when one exists.
+  static String resolveActiveId({
+    required String reportedActiveId,
+    required Iterable<String> visibleIds,
+  }) {
+    final ids = visibleIds.toList();
+    if (ids.contains(reportedActiveId)) return reportedActiveId;
+    return ids.isEmpty ? '' : ids.first;
   }
 
   /// Switches the active Core variant via the orchestrator. Stops bitcoind,

@@ -49,6 +49,48 @@ void main() {
     expect(find.byType(SailDropdownButton<String>), findsNothing);
   });
 
+  group('CoreVariantProvider.resolveActiveId', () {
+    test('passes through a reported id that is visible', () {
+      expect(
+        CoreVariantProvider.resolveActiveId(
+          reportedActiveId: 'knots',
+          visibleIds: const ['untouched', 'knots'],
+        ),
+        'knots',
+      );
+    });
+
+    test('falls back to the first visible id when reported id is empty', () {
+      expect(
+        CoreVariantProvider.resolveActiveId(
+          reportedActiveId: '',
+          visibleIds: const ['untouched', 'knots'],
+        ),
+        'untouched',
+      );
+    });
+
+    test('falls back to the first visible id when reported id is unknown', () {
+      expect(
+        CoreVariantProvider.resolveActiveId(
+          reportedActiveId: 'patched-from-other-network',
+          visibleIds: const ['untouched', 'knots'],
+        ),
+        'untouched',
+      );
+    });
+
+    test('returns empty when no variants are visible', () {
+      expect(
+        CoreVariantProvider.resolveActiveId(
+          reportedActiveId: 'anything',
+          visibleIds: const [],
+        ),
+        '',
+      );
+    });
+  });
+
   testWidgets('renders dropdown with installed and download labels', (tester) async {
     final variants = [
       wmpb.CoreVariant(id: 'untouched', displayName: 'Bitcoin Core (vanilla)', installed: true),
