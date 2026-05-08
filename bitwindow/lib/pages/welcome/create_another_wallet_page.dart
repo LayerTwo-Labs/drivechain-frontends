@@ -186,15 +186,7 @@ class _CreateAnotherWalletPageState extends State<CreateAnotherWalletPage> {
       appBar: AppBar(
         backgroundColor: theme.colors.background,
         foregroundColor: theme.colors.text,
-        leading: _currentStep > 0
-            ? Padding(
-                padding: const EdgeInsetsDirectional.only(start: 8),
-                child: IconButton(
-                  icon: const Icon(Icons.arrow_back),
-                  onPressed: _previousStep,
-                ),
-              )
-            : null,
+        leading: _currentStep > 0 ? SailAppBarBackButton(onPressed: _previousStep) : null,
       ),
       body: SafeArea(
         child: PageView(
