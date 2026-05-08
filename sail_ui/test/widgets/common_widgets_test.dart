@@ -221,6 +221,27 @@ void main() {
       expect(opacity.opacity, 0.5);
     });
 
+    testWidgets('bitcoin text field accepts decimal numerics, rejects letters', (tester) async {
+      final controller = TextEditingController();
+      await tester.pumpWidget(
+        buildTestableWidget(
+          SailTextField(
+            controller: controller,
+            hintText: '',
+            textFieldType: TextFieldType.bitcoin,
+          ),
+        ),
+      );
+
+      await tester.enterText(find.byType(TextField), '0.00012345');
+      await tester.pump();
+      expect(controller.text, '0.00012345');
+
+      await tester.enterText(find.byType(TextField), 'abc');
+      await tester.pump();
+      expect(controller.text, isNot('abc'));
+    });
+
     // Regression: an icon-variant SailButton must keep the same width whether
     // it shows the spinner (loading=true) or the icon (loading=false).
     // Otherwise hovering the daemon stop/restart button caused UI jitter.

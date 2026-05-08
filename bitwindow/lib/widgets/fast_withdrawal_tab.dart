@@ -96,6 +96,7 @@ class _WithdrawalFormState extends State<_WithdrawalForm> {
             label: 'Withdraw amount (BTC)',
             controller: amountController,
             hintText: 'How much do you want to withdraw?',
+            textFieldType: TextFieldType.bitcoin,
             suffixWidget: PasteButton(
               onPaste: (text) => amountController.text = text,
             ),
