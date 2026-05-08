@@ -229,12 +229,8 @@ class _ResetConfirmationPageState extends State<ResetConfirmationPage> {
         appBar: AppBar(
           backgroundColor: theme.colors.background,
           foregroundColor: theme.colors.text,
-          leading: Padding(
-            padding: const EdgeInsetsDirectional.only(start: 8),
-            child: IconButton(
-              icon: const Icon(Icons.arrow_back),
-              onPressed: _isDeleting && !_deletionComplete ? null : _handleBack,
-            ),
+          leading: SailAppBarBackButton(
+            onPressed: _isDeleting && !_deletionComplete ? null : _handleBack,
           ),
         ),
         body: SafeArea(

@@ -189,6 +189,25 @@ void main() {
       expect(find.byType(SailButton), findsOneWidget);
     });
 
+    testWidgets(
+      'SailAppBarBackButton renders arrow_back with start padding',
+      (tester) async {
+        await tester.pumpWidget(
+          buildTestableWidget(SailAppBarBackButton(onPressed: () {})),
+        );
+        expect(find.byIcon(Icons.arrow_back), findsOneWidget);
+        final padding = tester.widget<Padding>(
+          find
+              .descendant(
+                of: find.byType(SailAppBarBackButton),
+                matching: find.byType(Padding),
+              )
+              .first,
+        );
+        expect(padding.padding, const EdgeInsetsDirectional.only(start: 8));
+      },
+    );
+
     // SailButton with onPressed: null should look disabled, not just be
     // un-clickable. Previously the opacity layer only fired on the explicit
     // `disabled` prop, leaving null-onPressed buttons looking enabled.
