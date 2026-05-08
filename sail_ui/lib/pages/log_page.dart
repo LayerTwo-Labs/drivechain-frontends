@@ -124,12 +124,16 @@ class _FileLogsTabState extends State<_FileLogsTab> {
                       horizontal: 16.0,
                       vertical: 2.0,
                     ),
-                    child: Text.rich(
-                      _parseAnsiCodes(_logLines[index]),
-                      style: const TextStyle(
-                        fontFamily: 'IBMPlexMono',
-                        fontSize: 10,
-                        color: SailColorScheme.whiteDark,
+                    child: SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: Text.rich(
+                        _parseAnsiCodes(_logLines[index]),
+                        softWrap: false,
+                        style: const TextStyle(
+                          fontFamily: 'IBMPlexMono',
+                          fontSize: 10,
+                          color: SailColorScheme.whiteDark,
+                        ),
                       ),
                     ),
                   );
