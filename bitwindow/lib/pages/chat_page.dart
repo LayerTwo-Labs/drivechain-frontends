@@ -226,9 +226,10 @@ class ChatPage extends StatelessWidget {
                     Expanded(
                       // Chat panel (inlined)
                       child: model.selectedContact == null
-                          ? SailCard(
-                              bottomPadding: false,
-                              child: Center(
+                          ? Center(
+                              child: SailCard(
+                                width: null,
+                                bottomPadding: false,
                                 child: Column(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
