@@ -286,12 +286,20 @@ class _CategorySection extends StatelessWidget {
             ),
           ),
           const SailSpacing(SailStyleValues.padding20),
-          for (final option in options)
-            _OptionWidget(
-              option: option,
-              viewModel: viewModel,
-              getSectionForOption: getSectionForOption,
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                for (final option in options)
+                  _OptionWidget(
+                    option: option,
+                    viewModel: viewModel,
+                    getSectionForOption: getSectionForOption,
+                  ),
+              ],
             ),
+          ),
         ],
       ),
     );
