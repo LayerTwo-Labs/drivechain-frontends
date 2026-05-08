@@ -104,7 +104,7 @@ class _SailButtonState extends State<SailButton> {
 
     return _SailScaleButton(
       onPressed: _handlePress,
-      disabled: widget.disabled,
+      disabled: widget.disabled || widget.onPressed == null,
       loading: _isLoading,
       variant: widget.variant,
       color: style.backgroundColor,

@@ -189,6 +189,19 @@ void main() {
       expect(find.byType(SailButton), findsOneWidget);
     });
 
+    // SailButton with onPressed: null should look disabled, not just be
+    // un-clickable. Previously the opacity layer only fired on the explicit
+    // `disabled` prop, leaving null-onPressed buttons looking enabled.
+    testWidgets('null onPressed renders as disabled (50% opacity)', (tester) async {
+      await tester.pumpWidget(
+        buildTestableWidget(SailButton(label: 'Disabled', onPressed: null)),
+      );
+      final opacity = tester.widget<Opacity>(
+        find.descendant(of: find.byType(SailButton), matching: find.byType(Opacity)).first,
+      );
+      expect(opacity.opacity, 0.5);
+    });
+
     // Regression: an icon-variant SailButton must keep the same width whether
     // it shows the spinner (loading=true) or the icon (loading=false).
     // Otherwise hovering the daemon stop/restart button caused UI jitter.
