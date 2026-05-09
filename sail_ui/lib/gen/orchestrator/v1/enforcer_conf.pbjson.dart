@@ -19,8 +19,8 @@ const GetEnforcerConfigRequest$json = {
 };
 
 /// Descriptor for `GetEnforcerConfigRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List getEnforcerConfigRequestDescriptor =
-    $convert.base64Decode('ChhHZXRFbmZvcmNlckNvbmZpZ1JlcXVlc3Q=');
+final $typed_data.Uint8List getEnforcerConfigRequestDescriptor = $convert.base64Decode(
+    'ChhHZXRFbmZvcmNlckNvbmZpZ1JlcXVlc3Q=');
 
 @$core.Deprecated('Use getEnforcerConfigResponseDescriptor instead')
 const GetEnforcerConfigResponse$json = {
@@ -31,14 +31,7 @@ const GetEnforcerConfigResponse$json = {
     {'1': 'node_rpc_differs', '3': 3, '4': 1, '5': 8, '10': 'nodeRpcDiffers'},
     {'1': 'default_config', '3': 4, '4': 1, '5': 9, '10': 'defaultConfig'},
     {'1': 'cli_args', '3': 5, '4': 3, '5': 9, '10': 'cliArgs'},
-    {
-      '1': 'expected_node_rpc_settings',
-      '3': 6,
-      '4': 3,
-      '5': 11,
-      '6': '.orchestrator.v1.GetEnforcerConfigResponse.ExpectedNodeRpcSettingsEntry',
-      '10': 'expectedNodeRpcSettings'
-    },
+    {'1': 'expected_node_rpc_settings', '3': 6, '4': 3, '5': 11, '6': '.orchestrator.v1.GetEnforcerConfigResponse.ExpectedNodeRpcSettingsEntry', '10': 'expectedNodeRpcSettings'},
   ],
   '3': [GetEnforcerConfigResponse_ExpectedNodeRpcSettingsEntry$json],
 };
@@ -54,15 +47,15 @@ const GetEnforcerConfigResponse_ExpectedNodeRpcSettingsEntry$json = {
 };
 
 /// Descriptor for `GetEnforcerConfigResponse`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List getEnforcerConfigResponseDescriptor =
-    $convert.base64Decode('ChlHZXRFbmZvcmNlckNvbmZpZ1Jlc3BvbnNlEiUKDmNvbmZpZ19jb250ZW50GAEgASgJUg1jb2'
-        '5maWdDb250ZW50Eh8KC2NvbmZpZ19wYXRoGAIgASgJUgpjb25maWdQYXRoEigKEG5vZGVfcnBj'
-        'X2RpZmZlcnMYAyABKAhSDm5vZGVScGNEaWZmZXJzEiUKDmRlZmF1bHRfY29uZmlnGAQgASgJUg'
-        '1kZWZhdWx0Q29uZmlnEhkKCGNsaV9hcmdzGAUgAygJUgdjbGlBcmdzEoQBChpleHBlY3RlZF9u'
-        'b2RlX3JwY19zZXR0aW5ncxgGIAMoCzJHLm9yY2hlc3RyYXRvci52MS5HZXRFbmZvcmNlckNvbm'
-        'ZpZ1Jlc3BvbnNlLkV4cGVjdGVkTm9kZVJwY1NldHRpbmdzRW50cnlSF2V4cGVjdGVkTm9kZVJw'
-        'Y1NldHRpbmdzGkoKHEV4cGVjdGVkTm9kZVJwY1NldHRpbmdzRW50cnkSEAoDa2V5GAEgASgJUg'
-        'NrZXkSFAoFdmFsdWUYAiABKAlSBXZhbHVlOgI4AQ==');
+final $typed_data.Uint8List getEnforcerConfigResponseDescriptor = $convert.base64Decode(
+    'ChlHZXRFbmZvcmNlckNvbmZpZ1Jlc3BvbnNlEiUKDmNvbmZpZ19jb250ZW50GAEgASgJUg1jb2'
+    '5maWdDb250ZW50Eh8KC2NvbmZpZ19wYXRoGAIgASgJUgpjb25maWdQYXRoEigKEG5vZGVfcnBj'
+    'X2RpZmZlcnMYAyABKAhSDm5vZGVScGNEaWZmZXJzEiUKDmRlZmF1bHRfY29uZmlnGAQgASgJUg'
+    '1kZWZhdWx0Q29uZmlnEhkKCGNsaV9hcmdzGAUgAygJUgdjbGlBcmdzEoQBChpleHBlY3RlZF9u'
+    'b2RlX3JwY19zZXR0aW5ncxgGIAMoCzJHLm9yY2hlc3RyYXRvci52MS5HZXRFbmZvcmNlckNvbm'
+    'ZpZ1Jlc3BvbnNlLkV4cGVjdGVkTm9kZVJwY1NldHRpbmdzRW50cnlSF2V4cGVjdGVkTm9kZVJw'
+    'Y1NldHRpbmdzGkoKHEV4cGVjdGVkTm9kZVJwY1NldHRpbmdzRW50cnkSEAoDa2V5GAEgASgJUg'
+    'NrZXkSFAoFdmFsdWUYAiABKAlSBXZhbHVlOgI4AQ==');
 
 @$core.Deprecated('Use writeEnforcerConfigRequestDescriptor instead')
 const WriteEnforcerConfigRequest$json = {
@@ -73,9 +66,9 @@ const WriteEnforcerConfigRequest$json = {
 };
 
 /// Descriptor for `WriteEnforcerConfigRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List writeEnforcerConfigRequestDescriptor =
-    $convert.base64Decode('ChpXcml0ZUVuZm9yY2VyQ29uZmlnUmVxdWVzdBIlCg5jb25maWdfY29udGVudBgBIAEoCVINY2'
-        '9uZmlnQ29udGVudA==');
+final $typed_data.Uint8List writeEnforcerConfigRequestDescriptor = $convert.base64Decode(
+    'ChpXcml0ZUVuZm9yY2VyQ29uZmlnUmVxdWVzdBIlCg5jb25maWdfY29udGVudBgBIAEoCVINY2'
+    '9uZmlnQ29udGVudA==');
 
 @$core.Deprecated('Use writeEnforcerConfigResponseDescriptor instead')
 const WriteEnforcerConfigResponse$json = {
@@ -83,8 +76,8 @@ const WriteEnforcerConfigResponse$json = {
 };
 
 /// Descriptor for `WriteEnforcerConfigResponse`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List writeEnforcerConfigResponseDescriptor =
-    $convert.base64Decode('ChtXcml0ZUVuZm9yY2VyQ29uZmlnUmVzcG9uc2U=');
+final $typed_data.Uint8List writeEnforcerConfigResponseDescriptor = $convert.base64Decode(
+    'ChtXcml0ZUVuZm9yY2VyQ29uZmlnUmVzcG9uc2U=');
 
 @$core.Deprecated('Use syncNodeRpcFromBitcoinConfRequestDescriptor instead')
 const SyncNodeRpcFromBitcoinConfRequest$json = {
@@ -92,8 +85,8 @@ const SyncNodeRpcFromBitcoinConfRequest$json = {
 };
 
 /// Descriptor for `SyncNodeRpcFromBitcoinConfRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List syncNodeRpcFromBitcoinConfRequestDescriptor =
-    $convert.base64Decode('CiFTeW5jTm9kZVJwY0Zyb21CaXRjb2luQ29uZlJlcXVlc3Q=');
+final $typed_data.Uint8List syncNodeRpcFromBitcoinConfRequestDescriptor = $convert.base64Decode(
+    'CiFTeW5jTm9kZVJwY0Zyb21CaXRjb2luQ29uZlJlcXVlc3Q=');
 
 @$core.Deprecated('Use syncNodeRpcFromBitcoinConfResponseDescriptor instead')
 const SyncNodeRpcFromBitcoinConfResponse$json = {
@@ -101,27 +94,15 @@ const SyncNodeRpcFromBitcoinConfResponse$json = {
 };
 
 /// Descriptor for `SyncNodeRpcFromBitcoinConfResponse`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List syncNodeRpcFromBitcoinConfResponseDescriptor =
-    $convert.base64Decode('CiJTeW5jTm9kZVJwY0Zyb21CaXRjb2luQ29uZlJlc3BvbnNl');
+final $typed_data.Uint8List syncNodeRpcFromBitcoinConfResponseDescriptor = $convert.base64Decode(
+    'CiJTeW5jTm9kZVJwY0Zyb21CaXRjb2luQ29uZlJlc3BvbnNl');
 
 const $core.Map<$core.String, $core.dynamic> EnforcerConfServiceBase$json = {
   '1': 'EnforcerConfService',
   '2': [
-    {
-      '1': 'GetEnforcerConfig',
-      '2': '.orchestrator.v1.GetEnforcerConfigRequest',
-      '3': '.orchestrator.v1.GetEnforcerConfigResponse'
-    },
-    {
-      '1': 'WriteEnforcerConfig',
-      '2': '.orchestrator.v1.WriteEnforcerConfigRequest',
-      '3': '.orchestrator.v1.WriteEnforcerConfigResponse'
-    },
-    {
-      '1': 'SyncNodeRpcFromBitcoinConf',
-      '2': '.orchestrator.v1.SyncNodeRpcFromBitcoinConfRequest',
-      '3': '.orchestrator.v1.SyncNodeRpcFromBitcoinConfResponse'
-    },
+    {'1': 'GetEnforcerConfig', '2': '.orchestrator.v1.GetEnforcerConfigRequest', '3': '.orchestrator.v1.GetEnforcerConfigResponse'},
+    {'1': 'WriteEnforcerConfig', '2': '.orchestrator.v1.WriteEnforcerConfigRequest', '3': '.orchestrator.v1.WriteEnforcerConfigResponse'},
+    {'1': 'SyncNodeRpcFromBitcoinConf', '2': '.orchestrator.v1.SyncNodeRpcFromBitcoinConfRequest', '3': '.orchestrator.v1.SyncNodeRpcFromBitcoinConfResponse'},
   ],
 };
 
@@ -129,8 +110,7 @@ const $core.Map<$core.String, $core.dynamic> EnforcerConfServiceBase$json = {
 const $core.Map<$core.String, $core.Map<$core.String, $core.dynamic>> EnforcerConfServiceBase$messageJson = {
   '.orchestrator.v1.GetEnforcerConfigRequest': GetEnforcerConfigRequest$json,
   '.orchestrator.v1.GetEnforcerConfigResponse': GetEnforcerConfigResponse$json,
-  '.orchestrator.v1.GetEnforcerConfigResponse.ExpectedNodeRpcSettingsEntry':
-      GetEnforcerConfigResponse_ExpectedNodeRpcSettingsEntry$json,
+  '.orchestrator.v1.GetEnforcerConfigResponse.ExpectedNodeRpcSettingsEntry': GetEnforcerConfigResponse_ExpectedNodeRpcSettingsEntry$json,
   '.orchestrator.v1.WriteEnforcerConfigRequest': WriteEnforcerConfigRequest$json,
   '.orchestrator.v1.WriteEnforcerConfigResponse': WriteEnforcerConfigResponse$json,
   '.orchestrator.v1.SyncNodeRpcFromBitcoinConfRequest': SyncNodeRpcFromBitcoinConfRequest$json,
@@ -138,11 +118,12 @@ const $core.Map<$core.String, $core.Map<$core.String, $core.dynamic>> EnforcerCo
 };
 
 /// Descriptor for `EnforcerConfService`. Decode as a `google.protobuf.ServiceDescriptorProto`.
-final $typed_data.Uint8List enforcerConfServiceDescriptor =
-    $convert.base64Decode('ChNFbmZvcmNlckNvbmZTZXJ2aWNlEmoKEUdldEVuZm9yY2VyQ29uZmlnEikub3JjaGVzdHJhdG'
-        '9yLnYxLkdldEVuZm9yY2VyQ29uZmlnUmVxdWVzdBoqLm9yY2hlc3RyYXRvci52MS5HZXRFbmZv'
-        'cmNlckNvbmZpZ1Jlc3BvbnNlEnAKE1dyaXRlRW5mb3JjZXJDb25maWcSKy5vcmNoZXN0cmF0b3'
-        'IudjEuV3JpdGVFbmZvcmNlckNvbmZpZ1JlcXVlc3QaLC5vcmNoZXN0cmF0b3IudjEuV3JpdGVF'
-        'bmZvcmNlckNvbmZpZ1Jlc3BvbnNlEoUBChpTeW5jTm9kZVJwY0Zyb21CaXRjb2luQ29uZhIyLm'
-        '9yY2hlc3RyYXRvci52MS5TeW5jTm9kZVJwY0Zyb21CaXRjb2luQ29uZlJlcXVlc3QaMy5vcmNo'
-        'ZXN0cmF0b3IudjEuU3luY05vZGVScGNGcm9tQml0Y29pbkNvbmZSZXNwb25zZQ==');
+final $typed_data.Uint8List enforcerConfServiceDescriptor = $convert.base64Decode(
+    'ChNFbmZvcmNlckNvbmZTZXJ2aWNlEmoKEUdldEVuZm9yY2VyQ29uZmlnEikub3JjaGVzdHJhdG'
+    '9yLnYxLkdldEVuZm9yY2VyQ29uZmlnUmVxdWVzdBoqLm9yY2hlc3RyYXRvci52MS5HZXRFbmZv'
+    'cmNlckNvbmZpZ1Jlc3BvbnNlEnAKE1dyaXRlRW5mb3JjZXJDb25maWcSKy5vcmNoZXN0cmF0b3'
+    'IudjEuV3JpdGVFbmZvcmNlckNvbmZpZ1JlcXVlc3QaLC5vcmNoZXN0cmF0b3IudjEuV3JpdGVF'
+    'bmZvcmNlckNvbmZpZ1Jlc3BvbnNlEoUBChpTeW5jTm9kZVJwY0Zyb21CaXRjb2luQ29uZhIyLm'
+    '9yY2hlc3RyYXRvci52MS5TeW5jTm9kZVJwY0Zyb21CaXRjb2luQ29uZlJlcXVlc3QaMy5vcmNo'
+    'ZXN0cmF0b3IudjEuU3luY05vZGVScGNGcm9tQml0Y29pbkNvbmZSZXNwb25zZQ==');
+

@@ -128,6 +128,17 @@ abstract final class OrchestratorService {
     orchestratorv1orchestrator.GetSyncStatusResponse.new,
   );
 
+  /// Snapshot of every binary the orchestrator is currently downloading.
+  /// Reads from the in-memory DownloadManager state — light, polled by the
+  /// frontend's DownloadProvider on a fast (100ms) cadence while a download
+  /// is in flight, and dropping back to 2s when the response is empty.
+  static const getDownloadStatus = connect.Spec(
+    '/$name/GetDownloadStatus',
+    connect.StreamType.unary,
+    orchestratorv1orchestrator.GetDownloadStatusRequest.new,
+    orchestratorv1orchestrator.GetDownloadStatusResponse.new,
+  );
+
   /// Get wallet balance from Bitcoin Core (proxied via orchestrator).
   static const getMainchainBalance = connect.Spec(
     '/$name/GetMainchainBalance',

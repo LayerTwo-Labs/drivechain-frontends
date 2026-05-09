@@ -72,6 +72,9 @@ const (
 	// OrchestratorServiceGetSyncStatusProcedure is the fully-qualified name of the
 	// OrchestratorService's GetSyncStatus RPC.
 	OrchestratorServiceGetSyncStatusProcedure = "/orchestrator.v1.OrchestratorService/GetSyncStatus"
+	// OrchestratorServiceGetDownloadStatusProcedure is the fully-qualified name of the
+	// OrchestratorService's GetDownloadStatus RPC.
+	OrchestratorServiceGetDownloadStatusProcedure = "/orchestrator.v1.OrchestratorService/GetDownloadStatus"
 	// OrchestratorServiceGetMainchainBalanceProcedure is the fully-qualified name of the
 	// OrchestratorService's GetMainchainBalance RPC.
 	OrchestratorServiceGetMainchainBalanceProcedure = "/orchestrator.v1.OrchestratorService/GetMainchainBalance"
@@ -131,6 +134,11 @@ type OrchestratorServiceClient interface {
 	// Backend fans out to all three in parallel so the three numbers are taken
 	// at the same wall-clock instant — no two cards in the UI can ever disagree.
 	GetSyncStatus(context.Context, *connect.Request[v1.GetSyncStatusRequest]) (*connect.Response[v1.GetSyncStatusResponse], error)
+	// Snapshot of every binary the orchestrator is currently downloading.
+	// Reads from the in-memory DownloadManager state — light, polled by the
+	// frontend's DownloadProvider on a fast (100ms) cadence while a download
+	// is in flight, and dropping back to 2s when the response is empty.
+	GetDownloadStatus(context.Context, *connect.Request[v1.GetDownloadStatusRequest]) (*connect.Response[v1.GetDownloadStatusResponse], error)
 	// Get wallet balance from Bitcoin Core (proxied via orchestrator).
 	GetMainchainBalance(context.Context, *connect.Request[v1.GetMainchainBalanceRequest]) (*connect.Response[v1.GetMainchainBalanceResponse], error)
 	// Preview what would be deleted for the given reset categories (no side effects).
@@ -233,6 +241,12 @@ func NewOrchestratorServiceClient(httpClient connect.HTTPClient, baseURL string,
 			connect.WithSchema(orchestratorServiceMethods.ByName("GetSyncStatus")),
 			connect.WithClientOptions(opts...),
 		),
+		getDownloadStatus: connect.NewClient[v1.GetDownloadStatusRequest, v1.GetDownloadStatusResponse](
+			httpClient,
+			baseURL+OrchestratorServiceGetDownloadStatusProcedure,
+			connect.WithSchema(orchestratorServiceMethods.ByName("GetDownloadStatus")),
+			connect.WithClientOptions(opts...),
+		),
 		getMainchainBalance: connect.NewClient[v1.GetMainchainBalanceRequest, v1.GetMainchainBalanceResponse](
 			httpClient,
 			baseURL+OrchestratorServiceGetMainchainBalanceProcedure,
@@ -281,6 +295,7 @@ type orchestratorServiceClient struct {
 	getMainchainBlockchainInfo *connect.Client[v1.GetMainchainBlockchainInfoRequest, v1.GetMainchainBlockchainInfoResponse]
 	getEnforcerBlockchainInfo  *connect.Client[v1.GetEnforcerBlockchainInfoRequest, v1.GetEnforcerBlockchainInfoResponse]
 	getSyncStatus              *connect.Client[v1.GetSyncStatusRequest, v1.GetSyncStatusResponse]
+	getDownloadStatus          *connect.Client[v1.GetDownloadStatusRequest, v1.GetDownloadStatusResponse]
 	getMainchainBalance        *connect.Client[v1.GetMainchainBalanceRequest, v1.GetMainchainBalanceResponse]
 	previewResetData           *connect.Client[v1.PreviewResetDataRequest, v1.PreviewResetDataResponse]
 	streamResetData            *connect.Client[v1.StreamResetDataRequest, v1.StreamResetDataResponse]
@@ -353,6 +368,11 @@ func (c *orchestratorServiceClient) GetSyncStatus(ctx context.Context, req *conn
 	return c.getSyncStatus.CallUnary(ctx, req)
 }
 
+// GetDownloadStatus calls orchestrator.v1.OrchestratorService.GetDownloadStatus.
+func (c *orchestratorServiceClient) GetDownloadStatus(ctx context.Context, req *connect.Request[v1.GetDownloadStatusRequest]) (*connect.Response[v1.GetDownloadStatusResponse], error) {
+	return c.getDownloadStatus.CallUnary(ctx, req)
+}
+
 // GetMainchainBalance calls orchestrator.v1.OrchestratorService.GetMainchainBalance.
 func (c *orchestratorServiceClient) GetMainchainBalance(ctx context.Context, req *connect.Request[v1.GetMainchainBalanceRequest]) (*connect.Response[v1.GetMainchainBalanceResponse], error) {
 	return c.getMainchainBalance.CallUnary(ctx, req)
@@ -421,6 +441,11 @@ type OrchestratorServiceHandler interface {
 	// Backend fans out to all three in parallel so the three numbers are taken
 	// at the same wall-clock instant — no two cards in the UI can ever disagree.
 	GetSyncStatus(context.Context, *connect.Request[v1.GetSyncStatusRequest]) (*connect.Response[v1.GetSyncStatusResponse], error)
+	// Snapshot of every binary the orchestrator is currently downloading.
+	// Reads from the in-memory DownloadManager state — light, polled by the
+	// frontend's DownloadProvider on a fast (100ms) cadence while a download
+	// is in flight, and dropping back to 2s when the response is empty.
+	GetDownloadStatus(context.Context, *connect.Request[v1.GetDownloadStatusRequest]) (*connect.Response[v1.GetDownloadStatusResponse], error)
 	// Get wallet balance from Bitcoin Core (proxied via orchestrator).
 	GetMainchainBalance(context.Context, *connect.Request[v1.GetMainchainBalanceRequest]) (*connect.Response[v1.GetMainchainBalanceResponse], error)
 	// Preview what would be deleted for the given reset categories (no side effects).
@@ -519,6 +544,12 @@ func NewOrchestratorServiceHandler(svc OrchestratorServiceHandler, opts ...conne
 		connect.WithSchema(orchestratorServiceMethods.ByName("GetSyncStatus")),
 		connect.WithHandlerOptions(opts...),
 	)
+	orchestratorServiceGetDownloadStatusHandler := connect.NewUnaryHandler(
+		OrchestratorServiceGetDownloadStatusProcedure,
+		svc.GetDownloadStatus,
+		connect.WithSchema(orchestratorServiceMethods.ByName("GetDownloadStatus")),
+		connect.WithHandlerOptions(opts...),
+	)
 	orchestratorServiceGetMainchainBalanceHandler := connect.NewUnaryHandler(
 		OrchestratorServiceGetMainchainBalanceProcedure,
 		svc.GetMainchainBalance,
@@ -577,6 +608,8 @@ func NewOrchestratorServiceHandler(svc OrchestratorServiceHandler, opts ...conne
 			orchestratorServiceGetEnforcerBlockchainInfoHandler.ServeHTTP(w, r)
 		case OrchestratorServiceGetSyncStatusProcedure:
 			orchestratorServiceGetSyncStatusHandler.ServeHTTP(w, r)
+		case OrchestratorServiceGetDownloadStatusProcedure:
+			orchestratorServiceGetDownloadStatusHandler.ServeHTTP(w, r)
 		case OrchestratorServiceGetMainchainBalanceProcedure:
 			orchestratorServiceGetMainchainBalanceHandler.ServeHTTP(w, r)
 		case OrchestratorServicePreviewResetDataProcedure:
@@ -646,6 +679,10 @@ func (UnimplementedOrchestratorServiceHandler) GetEnforcerBlockchainInfo(context
 
 func (UnimplementedOrchestratorServiceHandler) GetSyncStatus(context.Context, *connect.Request[v1.GetSyncStatusRequest]) (*connect.Response[v1.GetSyncStatusResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("orchestrator.v1.OrchestratorService.GetSyncStatus is not implemented"))
+}
+
+func (UnimplementedOrchestratorServiceHandler) GetDownloadStatus(context.Context, *connect.Request[v1.GetDownloadStatusRequest]) (*connect.Response[v1.GetDownloadStatusResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("orchestrator.v1.OrchestratorService.GetDownloadStatus is not implemented"))
 }
 
 func (UnimplementedOrchestratorServiceHandler) GetMainchainBalance(context.Context, *connect.Request[v1.GetMainchainBalanceRequest]) (*connect.Response[v1.GetMainchainBalanceResponse], error) {

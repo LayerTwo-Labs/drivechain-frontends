@@ -56,6 +56,12 @@ service OrchestratorService {
   // at the same wall-clock instant — no two cards in the UI can ever disagree.
   rpc GetSyncStatus(GetSyncStatusRequest) returns (GetSyncStatusResponse);
 
+  // Snapshot of every binary the orchestrator is currently downloading.
+  // Reads from the in-memory DownloadManager state — light, polled by the
+  // frontend's DownloadProvider on a fast (100ms) cadence while a download
+  // is in flight, and dropping back to 2s when the response is empty.
+  rpc GetDownloadStatus(GetDownloadStatusRequest) returns (GetDownloadStatusResponse);
+
   // Get wallet balance from Bitcoin Core (proxied via orchestrator).
   rpc GetMainchainBalance(GetMainchainBalanceRequest) returns (GetMainchainBalanceResponse);
 
@@ -283,26 +289,68 @@ enum SidechainType {
   SIDECHAIN_TYPE_COINSHIFT = 7;
 }
 
+// BinaryType is the single typed identifier for any binary the system tracks.
+// Used wire-side by the orchestrator and consumed directly by the Flutter
+// frontends — there is no parallel Dart enum. UNSPECIFIED is reserved for
+// forwards-compat: when a frontend sees it, the binary is known to the
+// orchestrator but doesn't have a typed enum value yet.
+enum BinaryType {
+  BINARY_TYPE_UNSPECIFIED = 0;
+  BINARY_TYPE_BITCOIND = 1;
+  BINARY_TYPE_ENFORCER = 2;
+  BINARY_TYPE_BITWINDOWD = 3;
+  BINARY_TYPE_THUNDER = 4;
+  BINARY_TYPE_ZSIDE = 5;
+  BINARY_TYPE_BITNAMES = 6;
+  BINARY_TYPE_BITASSETS = 7;
+  BINARY_TYPE_TRUTHCOIN = 8;
+  BINARY_TYPE_PHOTON = 9;
+  BINARY_TYPE_COINSHIFT = 10;
+  BINARY_TYPE_GRPCURL = 11;
+  BINARY_TYPE_ORCHESTRATORD = 12;
+  BINARY_TYPE_ZSIDED = 13;
+}
+
 message SidechainStatus {
   SidechainType type = 1;
   ChainSync sync = 2;
 }
 
 message ChainSync {
-  // While is_downloading=true: blocks = MB downloaded, headers = MB total.
-  // Otherwise: blocks = current tip height, headers = bitcoind's header
-  // count (or this daemon's own headers if mainchain is unavailable).
+  // Current tip height for the chain.
   int32 blocks = 1;
+  // bitcoind's header count, or this daemon's own headers if mainchain is
+  // unavailable.
   int32 headers = 2;
   // Block tip timestamp (unix seconds), 0 if no tip yet.
   int64 time = 3;
   // Empty on success; otherwise a short description of why this daemon's
   // sync info isn't available (not running, RPC error, etc.).
   string error = 4;
-  // When true, the orchestrator is currently downloading the binary for
-  // this slot — blocks/headers carry MB downloaded / MB total instead of
-  // chain heights. The UI uses this to format "X MB" vs "N blocks".
-  bool is_downloading = 5;
+}
+
+// GetDownloadStatus
+//
+// Snapshot of the orchestrator's live download tracking. Returns one entry
+// per binary that is currently being fetched. A daemon that is not in flight
+// is omitted entirely — the empty list is the steady state.
+
+message GetDownloadStatusRequest {}
+
+message GetDownloadStatusResponse {
+  repeated DownloadStatus downloads = 1;
+}
+
+message DownloadStatus {
+  // Typed identifier for the binary being downloaded.
+  BinaryType binary = 1;
+  // Megabytes downloaded so far. Source of truth lives in DownloadManager.
+  int64 mb_downloaded = 2;
+  // Total size in megabytes, or -1 when the server hasn't reported a
+  // Content-Length yet.
+  int64 mb_total = 3;
+  // Optional human-readable progress string ("verifying hash", ...).
+  string message = 4;
 }
 
 // GetMainchainBalance

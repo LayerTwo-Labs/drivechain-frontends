@@ -22,38 +22,28 @@ export 'zside_conf.pb.dart';
 
 abstract class ZSideConfServiceBase extends $pb.GeneratedService {
   $async.Future<$8.GetZSideConfigResponse> getZSideConfig($pb.ServerContext ctx, $8.GetZSideConfigRequest request);
-  $async.Future<$8.WriteZSideConfigResponse> writeZSideConfig(
-      $pb.ServerContext ctx, $8.WriteZSideConfigRequest request);
-  $async.Future<$8.ZSideSyncNetworkFromBitcoinConfResponse> syncNetworkFromBitcoinConf(
-      $pb.ServerContext ctx, $8.ZSideSyncNetworkFromBitcoinConfRequest request);
+  $async.Future<$8.WriteZSideConfigResponse> writeZSideConfig($pb.ServerContext ctx, $8.WriteZSideConfigRequest request);
+  $async.Future<$8.ZSideSyncNetworkFromBitcoinConfResponse> syncNetworkFromBitcoinConf($pb.ServerContext ctx, $8.ZSideSyncNetworkFromBitcoinConfRequest request);
 
   $pb.GeneratedMessage createRequest($core.String methodName) {
     switch (methodName) {
-      case 'GetZSideConfig':
-        return $8.GetZSideConfigRequest();
-      case 'WriteZSideConfig':
-        return $8.WriteZSideConfigRequest();
-      case 'SyncNetworkFromBitcoinConf':
-        return $8.ZSideSyncNetworkFromBitcoinConfRequest();
-      default:
-        throw $core.ArgumentError('Unknown method: $methodName');
+      case 'GetZSideConfig': return $8.GetZSideConfigRequest();
+      case 'WriteZSideConfig': return $8.WriteZSideConfigRequest();
+      case 'SyncNetworkFromBitcoinConf': return $8.ZSideSyncNetworkFromBitcoinConfRequest();
+      default: throw $core.ArgumentError('Unknown method: $methodName');
     }
   }
 
-  $async.Future<$pb.GeneratedMessage> handleCall(
-      $pb.ServerContext ctx, $core.String methodName, $pb.GeneratedMessage request) {
+  $async.Future<$pb.GeneratedMessage> handleCall($pb.ServerContext ctx, $core.String methodName, $pb.GeneratedMessage request) {
     switch (methodName) {
-      case 'GetZSideConfig':
-        return this.getZSideConfig(ctx, request as $8.GetZSideConfigRequest);
-      case 'WriteZSideConfig':
-        return this.writeZSideConfig(ctx, request as $8.WriteZSideConfigRequest);
-      case 'SyncNetworkFromBitcoinConf':
-        return this.syncNetworkFromBitcoinConf(ctx, request as $8.ZSideSyncNetworkFromBitcoinConfRequest);
-      default:
-        throw $core.ArgumentError('Unknown method: $methodName');
+      case 'GetZSideConfig': return this.getZSideConfig(ctx, request as $8.GetZSideConfigRequest);
+      case 'WriteZSideConfig': return this.writeZSideConfig(ctx, request as $8.WriteZSideConfigRequest);
+      case 'SyncNetworkFromBitcoinConf': return this.syncNetworkFromBitcoinConf(ctx, request as $8.ZSideSyncNetworkFromBitcoinConfRequest);
+      default: throw $core.ArgumentError('Unknown method: $methodName');
     }
   }
 
   $core.Map<$core.String, $core.dynamic> get $json => ZSideConfServiceBase$json;
   $core.Map<$core.String, $core.Map<$core.String, $core.dynamic>> get $messageJson => ZSideConfServiceBase$messageJson;
 }
+
