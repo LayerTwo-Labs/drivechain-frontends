@@ -8,6 +8,15 @@ import 'package:sail_ui/gen/wallet/v1/wallet.pb.dart';
 import 'package:sail_ui/sail_ui.dart' hide DetailRow;
 import 'package:stacked/stacked.dart';
 
+/// True when the denial schedule still has a future execution to run. The
+/// proto sets `nextExecutionTime` to the epoch-zero default when the schedule
+/// is exhausted, so we treat that as "no scheduled next execution" rather
+/// than rendering it as a 1969 timestamp.
+bool denialHasScheduledNextExecution(DenialInfo info) {
+  if (!info.hasNextExecutionTime()) return false;
+  return info.nextExecutionTime.toDateTime().millisecondsSinceEpoch != 0;
+}
+
 class DeniabilityTab extends StatelessWidget {
   final SailWindow? newWindowButton;
 
@@ -288,7 +297,8 @@ class _DeniabilityTableState extends State<DeniabilityTable> {
                     final completedHops = utxo.denialInfo.hopsCompleted;
                     final totalHops = utxo.denialInfo.numHops;
                     hops = '$completedHops/$totalHops';
-                    if (utxo.denialInfo.nextExecutionTime.toDateTime().second == 0) {
+                    final hasNext = denialHasScheduledNextExecution(utxo.denialInfo);
+                    if (!hasNext) {
                       hops = '$completedHops';
                     }
 
@@ -299,12 +309,10 @@ class _DeniabilityTableState extends State<DeniabilityTable> {
                         ? 'Cancelled'
                         : isPaused
                         ? 'Paused'
-                        : utxo.denialInfo.nextExecutionTime.toDateTime().second == 0
+                        : !hasNext
                         ? 'Completed'
                         : 'Ongoing';
-                    nextExecution = utxo.denialInfo.hasNextExecutionTime()
-                        ? utxo.denialInfo.nextExecutionTime.toDateTime().toLocal().toString()
-                        : '-';
+                    nextExecution = hasNext ? utxo.denialInfo.nextExecutionTime.toDateTime().toLocal().toString() : '-';
                     // Only the tip can be controlled (paused/resumed/cancelled)
                     canControl = isTip && (status == 'Ongoing' || status == 'Paused');
 
@@ -475,12 +483,12 @@ class _DeniabilityTableState extends State<DeniabilityTable> {
               ? 'Cancelled'
               : a.denialInfo.hasPausedAt()
               ? 'Paused'
-              : (a.denialInfo.nextExecutionTime.toDateTime().second == 0 ? 'Completed' : 'Ongoing');
+              : (denialHasScheduledNextExecution(a.denialInfo) ? 'Ongoing' : 'Completed');
           bValue = b.denialInfo.hasCancelTime()
               ? 'Cancelled'
               : b.denialInfo.hasPausedAt()
               ? 'Paused'
-              : (b.denialInfo.nextExecutionTime.toDateTime().second == 0 ? 'Completed' : 'Ongoing');
+              : (denialHasScheduledNextExecution(b.denialInfo) ? 'Ongoing' : 'Completed');
           return sortAscending ? aValue.compareTo(bValue) : bValue.compareTo(aValue);
         default:
           return 0;
@@ -518,7 +526,7 @@ class _DeniabilityTableState extends State<DeniabilityTable> {
                           DetailRow(label: 'Status', value: _getDeniabilityStatus(utxo)),
                           DetailRow(label: 'Completed Hops', value: '${utxo.denialInfo.executions.length}'),
                           DetailRow(label: 'Total Hops', value: '${utxo.denialInfo.numHops}'),
-                          if (utxo.denialInfo.hasNextExecutionTime())
+                          if (denialHasScheduledNextExecution(utxo.denialInfo))
                             DetailRow(
                               label: 'Next Execution',
                               value: formatDate(utxo.denialInfo.nextExecutionTime.toDateTime()),
@@ -575,7 +583,7 @@ class _DeniabilityTableState extends State<DeniabilityTable> {
     final completedHops = utxo.denialInfo.executions.length;
     final totalHops = utxo.denialInfo.numHops;
 
-    if (utxo.denialInfo.nextExecutionTime.toDateTime().second == 0) return 'Completed';
+    if (!denialHasScheduledNextExecution(utxo.denialInfo)) return 'Completed';
     return 'Ongoing ($completedHops/$totalHops hops)';
   }
 }
@@ -590,7 +598,7 @@ class DeniabilityViewModel extends BaseViewModel {
     if (!u.hasDenialInfo()) return true;
     // Has denial info but it's cancelled or completed
     if (u.denialInfo.hasCancelTime()) return true;
-    if (u.denialInfo.nextExecutionTime.toDateTime().second == 0) return true;
+    if (!denialHasScheduledNextExecution(u.denialInfo)) return true;
     return false;
   }).toList();
 
