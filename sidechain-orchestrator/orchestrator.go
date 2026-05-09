@@ -1007,7 +1007,7 @@ func (o *Orchestrator) startEnforcerWhenReady(ctx context.Context, opts StartOpt
 	enfOpts := opts
 	enforcerMon.StartRestartTimer(ctx,
 		func(restartCtx context.Context) error {
-			_, err := o.process.Start(restartCtx, o.configs["enforcer"], enfOpts.EnforcerArgs, nil)
+			_, err := o.process.Start(restartCtx, o.configs["enforcer"], enfOpts.EnforcerArgs, enforcerEnv())
 			return err
 		},
 		func() (int, bool) {
@@ -1064,13 +1064,23 @@ func (o *Orchestrator) startEnforcerWhenReady(ctx context.Context, opts StartOpt
 		return
 	}
 
-	if _, err := o.process.Start(ctx, enforcerCfg, opts.EnforcerArgs, nil); err != nil {
+	if _, err := o.process.Start(ctx, enforcerCfg, opts.EnforcerArgs, enforcerEnv()); err != nil {
 		enforcerMon.SetInitializing(false)
 		o.log.Error().Err(err).Msg("failed to start enforcer")
 		return
 	}
 
 	o.log.Info().Msg("enforcer started")
+}
+
+// enforcerEnv returns the environment overlay applied when launching the
+// enforcer. RUST_BACKTRACE is set so panics emit a backtrace in the logs we
+// already capture — without it the user sees only "the enforcer crashed",
+// which is useless for triage.
+func enforcerEnv() map[string]string {
+	return map[string]string{
+		"RUST_BACKTRACE": "1",
+	}
 }
 
 // If prefetched is non-nil, the target binary is already being downloaded in
