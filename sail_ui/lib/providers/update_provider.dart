@@ -7,6 +7,7 @@ import 'package:http/http.dart' as http;
 import 'package:logger/logger.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:sail_ui/config/binaries.dart';
+import 'package:sail_ui/gen/orchestrator/v1/orchestrator.pbenum.dart';
 
 /// Callback to gracefully shut down all running processes before an update.
 /// Should call BinaryProvider.onShutdown() or equivalent.
@@ -50,13 +51,13 @@ class UpdateProvider extends ChangeNotifier {
 
   /// Get the key used in versions.json for this binary type
   String get _appname => switch (binaryType) {
-    BinaryType.bitWindow => 'bitwindow',
-    BinaryType.thunder => 'thunder',
-    BinaryType.zSide => 'zside',
-    BinaryType.bitnames => 'bitnames',
-    BinaryType.bitassets => 'bitassets',
-    BinaryType.truthcoin => 'truthcoin',
-    BinaryType.photon => 'photon',
+    BinaryType.BINARY_TYPE_BITWINDOWD => 'bitwindow',
+    BinaryType.BINARY_TYPE_THUNDER => 'thunder',
+    BinaryType.BINARY_TYPE_ZSIDE => 'zside',
+    BinaryType.BINARY_TYPE_BITNAMES => 'bitnames',
+    BinaryType.BINARY_TYPE_BITASSETS => 'bitassets',
+    BinaryType.BINARY_TYPE_TRUTHCOIN => 'truthcoin',
+    BinaryType.BINARY_TYPE_PHOTON => 'photon',
     _ => throw UnsupportedError(
       'Update provider not supported for ${binaryType.name}',
     ),

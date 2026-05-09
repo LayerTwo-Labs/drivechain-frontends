@@ -106,7 +106,7 @@ class CoinShiftLive extends CoinShiftRPC {
 
   late CoinShiftServiceClient _client;
 
-  CoinShiftLive() : super(binaryType: BinaryType.coinShift) {
+  CoinShiftLive() : super(binaryType: BinaryType.BINARY_TYPE_COINSHIFT) {
     final transport = connect.Transport(
       baseUrl: 'http://localhost:30400',
       codec: const ProtoCodec(),

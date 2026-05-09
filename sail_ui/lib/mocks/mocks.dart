@@ -58,7 +58,7 @@ class MockBitcoindConnection extends BitcoindConnection {
 }
 
 class MockEnforcerRPC extends EnforcerRPC {
-  MockEnforcerRPC() : super(binaryType: BinaryType.enforcer);
+  MockEnforcerRPC() : super(binaryType: BinaryType.BINARY_TYPE_ENFORCER);
 
   bool _connected = false;
   bool _initializing = false;
@@ -145,7 +145,7 @@ class MockEnforcerRPC extends EnforcerRPC {
 }
 
 class MockBitwindowRPC extends BitwindowRPC {
-  MockBitwindowRPC() : super(binaryType: BinaryType.bitWindow);
+  MockBitwindowRPC() : super(binaryType: BinaryType.BINARY_TYPE_BITWINDOWD);
 
   bool _connected = false;
   bool _initializing = false;
@@ -233,7 +233,7 @@ class MockBitwindowRPC extends BitwindowRPC {
 }
 
 class MockThunderRPC extends ThunderRPC {
-  MockThunderRPC() : super(binaryType: BinaryType.thunder);
+  MockThunderRPC() : super(binaryType: BinaryType.BINARY_TYPE_THUNDER);
 
   bool _connected = false;
   bool _initializing = false;
@@ -423,7 +423,7 @@ class MockThunderRPC extends ThunderRPC {
 }
 
 class MockTruthcoinRPC extends TruthcoinRPC {
-  MockTruthcoinRPC() : super(binaryType: BinaryType.truthcoin);
+  MockTruthcoinRPC() : super(binaryType: BinaryType.BINARY_TYPE_TRUTHCOIN);
 
   bool _connected = false;
   bool _initializing = false;
@@ -868,7 +868,7 @@ class MockTruthcoinRPC extends TruthcoinRPC {
 }
 
 class MockPhotonRPC extends PhotonRPC {
-  MockPhotonRPC() : super(binaryType: BinaryType.photon);
+  MockPhotonRPC() : super(binaryType: BinaryType.BINARY_TYPE_PHOTON);
 
   bool _connected = false;
   bool _initializing = false;
@@ -1068,7 +1068,7 @@ class MockPhotonRPC extends PhotonRPC {
 }
 
 class MockBitnamesRPC extends BitnamesRPC {
-  MockBitnamesRPC() : super(binaryType: BinaryType.bitnames);
+  MockBitnamesRPC() : super(binaryType: BinaryType.BINARY_TYPE_BITNAMES);
 
   bool _connected = false;
   bool _initializing = false;
@@ -1383,7 +1383,7 @@ class MockBitnamesRPC extends BitnamesRPC {
 }
 
 class MockCoinShiftRPC extends CoinShiftRPC {
-  MockCoinShiftRPC() : super(binaryType: BinaryType.coinShift);
+  MockCoinShiftRPC() : super(binaryType: BinaryType.BINARY_TYPE_COINSHIFT);
 
   bool _connected = false;
   bool _initializing = false;
@@ -1728,7 +1728,7 @@ class MockSyncProvider implements SyncProvider {
 class MockBinary extends Binary {
   final BinaryType _type;
 
-  MockBinary({BinaryType type = BinaryType.bitWindow})
+  MockBinary({BinaryType type = BinaryType.BINARY_TYPE_BITWINDOWD})
     : _type = type,
       super(
         name: _binaryTypeName(type),
@@ -1790,32 +1790,35 @@ class MockBinary extends Binary {
 
 String _binaryTypeName(BinaryType type) {
   switch (type) {
-    case BinaryType.bitcoinCore:
+    case BinaryType.BINARY_TYPE_BITCOIND:
       return 'Bitcoin Core';
-    case BinaryType.enforcer:
+    case BinaryType.BINARY_TYPE_ENFORCER:
       return 'Enforcer';
-    case BinaryType.bitWindow:
+    case BinaryType.BINARY_TYPE_BITWINDOWD:
       return 'BitWindow';
-    case BinaryType.thunder:
+    case BinaryType.BINARY_TYPE_THUNDER:
       return 'Thunder';
-    case BinaryType.bitnames:
+    case BinaryType.BINARY_TYPE_BITNAMES:
       return 'Bitnames';
-    case BinaryType.bitassets:
+    case BinaryType.BINARY_TYPE_BITASSETS:
       return 'BitAssets';
-    case BinaryType.zSide:
+    case BinaryType.BINARY_TYPE_ZSIDE:
       return 'zSide';
-    case BinaryType.grpcurl:
+    case BinaryType.BINARY_TYPE_GRPCURL:
       return 'grpcurl';
-    case BinaryType.photon:
+    case BinaryType.BINARY_TYPE_PHOTON:
       return 'Photon';
-    case BinaryType.truthcoin:
+    case BinaryType.BINARY_TYPE_TRUTHCOIN:
       return 'Truthcoin';
-    case BinaryType.coinShift:
+    case BinaryType.BINARY_TYPE_COINSHIFT:
       return 'CoinShift';
-    case BinaryType.orchestratord:
+    case BinaryType.BINARY_TYPE_ORCHESTRATORD:
       return 'Orchestratord';
-    case BinaryType.zSided:
+    case BinaryType.BINARY_TYPE_ZSIDED:
       return 'ZSided';
+    case BinaryType.BINARY_TYPE_UNSPECIFIED:
+    default:
+      throw StateError('unsupported BinaryType: $type');
   }
 }
 
@@ -1825,14 +1828,14 @@ class MockBinaryProvider extends BinaryProvider {
     : super.test(
         appDir: Directory('/tmp'),
         binaries: [
-          MockBinary(type: BinaryType.bitWindow),
-          MockBinary(type: BinaryType.zSide),
-          MockBinary(type: BinaryType.thunder),
-          MockBinary(type: BinaryType.truthcoin),
-          MockBinary(type: BinaryType.photon),
-          MockBinary(type: BinaryType.bitnames),
-          MockBinary(type: BinaryType.bitassets),
-          MockBinary(type: BinaryType.coinShift),
+          MockBinary(type: BinaryType.BINARY_TYPE_BITWINDOWD),
+          MockBinary(type: BinaryType.BINARY_TYPE_ZSIDE),
+          MockBinary(type: BinaryType.BINARY_TYPE_THUNDER),
+          MockBinary(type: BinaryType.BINARY_TYPE_TRUTHCOIN),
+          MockBinary(type: BinaryType.BINARY_TYPE_PHOTON),
+          MockBinary(type: BinaryType.BINARY_TYPE_BITNAMES),
+          MockBinary(type: BinaryType.BINARY_TYPE_BITASSETS),
+          MockBinary(type: BinaryType.BINARY_TYPE_COINSHIFT),
         ],
       );
 

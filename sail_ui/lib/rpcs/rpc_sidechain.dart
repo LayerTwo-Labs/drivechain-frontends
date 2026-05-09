@@ -55,11 +55,11 @@ abstract class SidechainRPC extends RPCConnection {
   Future<int?> fetchExplorerHeaders() async {
     // Map BinaryType to Explorer service keys
     final sidechainKey = switch (binaryType) {
-      BinaryType.thunder => 'thunder',
-      BinaryType.bitassets => 'bitassets',
-      BinaryType.bitnames => 'bitnames',
-      BinaryType.zSide => 'zside',
-      BinaryType.coinShift => 'coinshift',
+      BinaryType.BINARY_TYPE_THUNDER => 'thunder',
+      BinaryType.BINARY_TYPE_BITASSETS => 'bitassets',
+      BinaryType.BINARY_TYPE_BITNAMES => 'bitnames',
+      BinaryType.BINARY_TYPE_ZSIDE => 'zside',
+      BinaryType.BINARY_TYPE_COINSHIFT => 'coinshift',
       _ => null,
     };
 

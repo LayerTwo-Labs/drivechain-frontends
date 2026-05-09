@@ -14,7 +14,7 @@ import 'package:sail_ui/sail_ui.dart';
 /// Sync state (blocks/headers/IBD) is fetched by [SyncProvider] from
 /// `OrchestratorRPC.getSyncStatus`, not held here.
 class BitcoindConnection extends RPCConnection {
-  BitcoindConnection() : super(binaryType: BinaryType.bitcoinCore);
+  BitcoindConnection() : super(binaryType: BinaryType.BINARY_TYPE_BITCOIND);
 
   @override
   Future<List<String>> binaryArgs() async {

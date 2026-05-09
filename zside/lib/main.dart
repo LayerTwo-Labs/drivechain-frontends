@@ -92,7 +92,7 @@ Future<(Directory, File, Logger)> init(String arguments) async {
   late ZSideLive zsideRPC;
 
   await initSidechainDependencies(
-    sidechainType: BinaryType.zSide,
+    sidechainType: BinaryType.BINARY_TYPE_ZSIDE,
     createSidechainConnection: (_) {
       zsideRPC = ZSideLive();
       GetIt.I.registerSingleton<ZSideRPC>(zsideRPC);
@@ -281,8 +281,8 @@ void bootBinaries(Logger log) async {
       zsideRpc.connectionError = null;
       zsideRpc.markStateChanged();
     }
-    binaryProvider.addStartupLogForBinary(BinaryType.zSide, 'Starting zsided...');
-    binaryProvider.addStartupLogForBinary(BinaryType.zSided, 'Starting zsided...');
+    binaryProvider.addStartupLogForBinary(BinaryType.BINARY_TYPE_ZSIDE, 'Starting zsided...');
+    binaryProvider.addStartupLogForBinary(BinaryType.BINARY_TYPE_ZSIDED, 'Starting zsided...');
 
     // Start zsided via BinaryProvider (it's bundled, not downloaded)
     final zsided = binaryProvider.binaries.firstWhere((b) => b is ZSided);
@@ -290,8 +290,8 @@ void bootBinaries(Logger log) async {
 
     // Wait for zsided to be ready before calling StartWithL1
     log.i('bootBinaries: waiting for zsided readiness');
-    binaryProvider.addStartupLogForBinary(BinaryType.zSide, 'Waiting for zsided...');
-    binaryProvider.addStartupLogForBinary(BinaryType.zSided, 'Waiting for zsided...');
+    binaryProvider.addStartupLogForBinary(BinaryType.BINARY_TYPE_ZSIDE, 'Waiting for zsided...');
+    binaryProvider.addStartupLogForBinary(BinaryType.BINARY_TYPE_ZSIDED, 'Waiting for zsided...');
     final orchestrator = GetIt.I.get<OrchestratorRPC>();
     for (var i = 0; i < 30; i++) {
       try {

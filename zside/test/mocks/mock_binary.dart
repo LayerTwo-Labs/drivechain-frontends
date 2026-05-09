@@ -45,7 +45,7 @@ class MockBinary extends Binary {
       );
 
   @override
-  BinaryType get type => BinaryType.zSide;
+  BinaryType get type => BinaryType.BINARY_TYPE_ZSIDE;
 
   @override
   Color get color => SailColorScheme.orange;

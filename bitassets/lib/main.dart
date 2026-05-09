@@ -82,7 +82,7 @@ Future<(Directory, File, Logger)> init(String arguments) async {
   late BitAssetsLive bitassetsRPC;
 
   await initSidechainDependencies(
-    sidechainType: BinaryType.bitassets,
+    sidechainType: BinaryType.BINARY_TYPE_BITASSETS,
     createSidechainConnection: (_) {
       bitassetsRPC = BitAssetsLive();
       GetIt.I.registerSingleton<BitAssetsRPC>(bitassetsRPC);
@@ -99,7 +99,7 @@ Future<(Directory, File, Logger)> init(String arguments) async {
   unawaited(
     initBackendManagedSidechainRuntime(
       log: log,
-      binary: BinaryType.bitassets,
+      binary: BinaryType.BINARY_TYPE_BITASSETS,
       appRpc: bitassetsRPC,
     ),
   );
@@ -139,7 +139,7 @@ void bootBinaries(Logger log) {
   unawaited(
     bootBackendManagedSidechain(
       log: log,
-      binary: BinaryType.bitassets,
+      binary: BinaryType.BINARY_TYPE_BITASSETS,
       appRpc: GetIt.I.isRegistered<BitAssetsRPC>() ? GetIt.I.get<BitAssetsRPC>() : null,
     ),
   );

@@ -256,7 +256,7 @@ Future<(Directory, File, Logger)> init(String arguments) async {
   GetIt.I.registerSingleton<UpdateProvider>(
     UpdateProvider(
       log: log,
-      binaryType: BinaryType.bitWindow,
+      binaryType: BinaryType.BINARY_TYPE_BITWINDOWD,
       currentVersion: AppVersion.version,
       onBeforeUpdate: () async {
         final binaryProvider = GetIt.I.get<BinaryProvider>();
@@ -821,8 +821,8 @@ Future<void> bootBitwindowBackend(Logger log) async {
     bitwindowRpc.connectionError = null;
     bitwindowRpc.markStateChanged();
   }
-  binaryProvider.addStartupLogForBinary(BinaryType.orchestratord, 'Waiting for orchestratord...');
-  binaryProvider.addStartupLogForBinary(BinaryType.bitWindow, 'Waiting for orchestratord...');
+  binaryProvider.addStartupLogForBinary(BinaryType.BINARY_TYPE_ORCHESTRATORD, 'Waiting for orchestratord...');
+  binaryProvider.addStartupLogForBinary(BinaryType.BINARY_TYPE_BITWINDOWD, 'Waiting for orchestratord...');
 
   var orchestratorReady = false;
   for (var i = 0; i < 30; i++) {
@@ -859,9 +859,9 @@ Future<void> bootBitwindowBackend(Logger log) async {
   }
 
   // 4. Stream binary logs and start watching state.
-  _streamBinaryLogs(orchestrator, 'bitcoind', BinaryType.bitcoinCore, log);
-  _streamBinaryLogs(orchestrator, 'enforcer', BinaryType.enforcer, log);
-  _streamBinaryLogs(orchestrator, 'bitwindow', BinaryType.bitWindow, log);
+  _streamBinaryLogs(orchestrator, 'bitcoind', BinaryType.BINARY_TYPE_BITCOIND, log);
+  _streamBinaryLogs(orchestrator, 'enforcer', BinaryType.BINARY_TYPE_ENFORCER, log);
+  _streamBinaryLogs(orchestrator, 'bitwindow', BinaryType.BINARY_TYPE_BITWINDOWD, log);
 
   log.i('STARTUP: starting backend state watch');
   backendState.startWatching();
@@ -1021,7 +1021,7 @@ List<Binary> initalBinaries() {
   return [
     ...coreBinaries,
     ...sidechainBinaries,
-    resolveFromConfig(BinaryType.grpcurl, () => GRPCurl()),
+    resolveFromConfig(BinaryType.BINARY_TYPE_GRPCURL, () => GRPCurl()),
   ];
 }
 

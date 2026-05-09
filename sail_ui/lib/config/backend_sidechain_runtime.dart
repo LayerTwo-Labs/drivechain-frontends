@@ -61,10 +61,10 @@ Future<void> bootBackendManagedSidechain({
         appRpc.markStateChanged();
         binaryProvider.addStartupLogForBinary(appRpc.binaryType, 'Starting orchestratord...');
       }
-      binaryProvider.addStartupLogForBinary(BinaryType.orchestratord, 'Starting orchestratord...');
+      binaryProvider.addStartupLogForBinary(BinaryType.BINARY_TYPE_ORCHESTRATORD, 'Starting orchestratord...');
 
       // Pass --binary flag so orchestratord auto-boots the sidechain with deps
-      final orchestratord = binaryProvider.binaries.firstWhere((b) => b.type == BinaryType.orchestratord);
+      final orchestratord = binaryProvider.binaries.firstWhere((b) => b.type == BinaryType.BINARY_TYPE_ORCHESTRATORD);
       orchestratord.addBootArg('--binary=$targetBinaryName');
       log.i('bootBackendManagedSidechain: starting orchestratord with --binary=$targetBinaryName');
       await binaryProvider.start(orchestratord);
@@ -73,7 +73,7 @@ Future<void> bootBackendManagedSidechain({
       if (appRpc != null) {
         binaryProvider.addStartupLogForBinary(appRpc.binaryType, 'Waiting for orchestratord...');
       }
-      binaryProvider.addStartupLogForBinary(BinaryType.orchestratord, 'Waiting for orchestratord...');
+      binaryProvider.addStartupLogForBinary(BinaryType.BINARY_TYPE_ORCHESTRATORD, 'Waiting for orchestratord...');
       final ready = await _waitForBackendReady(orchestrator);
       if (!ready) {
         throw StateError('orchestratord did not become ready after 15s');
@@ -85,8 +85,8 @@ Future<void> bootBackendManagedSidechain({
     }
 
     _streamBinaryLogs(orchestrator, targetBinaryName, binary);
-    _streamBinaryLogs(orchestrator, 'bitcoind', BinaryType.bitcoinCore);
-    _streamBinaryLogs(orchestrator, 'enforcer', BinaryType.enforcer);
+    _streamBinaryLogs(orchestrator, 'bitcoind', BinaryType.BINARY_TYPE_BITCOIND);
+    _streamBinaryLogs(orchestrator, 'enforcer', BinaryType.BINARY_TYPE_ENFORCER);
 
     // Seed wallet state now that OrchestratorRPC is registered + reachable.
     // initSidechainDependencies registers the provider lazily but cannot

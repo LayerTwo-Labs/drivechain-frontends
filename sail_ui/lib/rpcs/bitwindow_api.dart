@@ -60,7 +60,7 @@ class BitwindowRPCLive extends BitwindowRPC {
   @override
   late UtilsAPI utils;
 
-  BitwindowRPCLive({required String host, required int port}) : super(binaryType: BinaryType.bitWindow) {
+  BitwindowRPCLive({required String host, required int port}) : super(binaryType: BinaryType.BINARY_TYPE_BITWINDOWD) {
     _initializeConnection(host: host, port: port);
   }
 

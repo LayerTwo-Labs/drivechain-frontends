@@ -16,7 +16,7 @@ class PersistentStatusBar extends StatelessWidget {
 
   const PersistentStatusBar({
     super.key,
-    this.monitored = const [BinaryType.orchestratord, BinaryType.bitWindow],
+    this.monitored = const [BinaryType.BINARY_TYPE_ORCHESTRATORD, BinaryType.BINARY_TYPE_BITWINDOWD],
   });
 
   @override

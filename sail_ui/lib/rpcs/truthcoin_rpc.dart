@@ -246,7 +246,7 @@ class TruthcoinLive extends TruthcoinRPC {
 
   late TruthcoinServiceClient _client;
 
-  TruthcoinLive() : super(binaryType: BinaryType.truthcoin) {
+  TruthcoinLive() : super(binaryType: BinaryType.BINARY_TYPE_TRUTHCOIN) {
     final transport = connect.Transport(
       baseUrl: 'http://localhost:30400',
       codec: const ProtoCodec(),

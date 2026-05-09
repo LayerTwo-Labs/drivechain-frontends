@@ -31,7 +31,7 @@ class WalletReaderProvider extends ChangeNotifier {
   bool hasWalletOnDisk = false;
 
   WalletData? get activeWallet => wallets.where((w) => w.id == activeWalletId).firstOrNull;
-  WalletData? get enforcerWallet => wallets.where((w) => w.walletType == BinaryType.enforcer).firstOrNull;
+  WalletData? get enforcerWallet => wallets.where((w) => w.walletType == BinaryType.BINARY_TYPE_ENFORCER).firstOrNull;
 
   List<WalletMetadata> get availableWallets => wallets
       .map(
@@ -136,7 +136,7 @@ class WalletReaderProvider extends ChangeNotifier {
         createdAt: createdAt,
         walletType: BinaryType.values.firstWhere(
           (t) => t.name == protoWallet.walletType,
-          orElse: () => BinaryType.enforcer,
+          orElse: () => BinaryType.BINARY_TYPE_ENFORCER,
         ),
         walletTypeRaw: protoWallet.walletType,
         bip47PaymentCode: protoWallet.bip47PaymentCode,

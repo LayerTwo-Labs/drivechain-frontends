@@ -92,7 +92,7 @@ class ZSideLive extends ZSideRPC {
 
   late ZSideServiceClient _client;
 
-  ZSideLive() : super(binaryType: BinaryType.zSide) {
+  ZSideLive() : super(binaryType: BinaryType.BINARY_TYPE_ZSIDE) {
     final transport = connect.Transport(
       baseUrl: 'http://localhost:30400',
       codec: const ProtoCodec(),
