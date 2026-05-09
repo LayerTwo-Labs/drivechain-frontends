@@ -86,16 +86,36 @@ class SyncProvider extends ChangeNotifier {
   /// daemon (read [bitwindowdSyncInfo] or [sidechains] directly).
   bool get isSynced => (mainchainSyncInfo?.isSynced ?? false) && (enforcerSyncInfo?.isSynced ?? false);
 
-  /// True when *any* tracked daemon is actively downloading. Drives the
-  /// 100 ms cadence even when mainchain + enforcer are already synced —
-  /// e.g. someone runs `orchestratorctl download thunder` from the CLI
-  /// and we want to see MB ticks immediately.
-  bool get _anyDownloading {
-    if (mainchainSyncInfo?.downloadInfo.isDownloading ?? false) return true;
-    if (enforcerSyncInfo?.downloadInfo.isDownloading ?? false) return true;
-    if (bitwindowdSyncInfo?.downloadInfo.isDownloading ?? false) return true;
-    for (final s in sidechains.values) {
-      if (s.downloadInfo.isDownloading) return true;
+  /// Per-connection vote on whether the global poll cadence should stay at
+  /// the aggressive 100 ms interval. A connection votes yes only if it's
+  /// actively downloading or it's running but not yet synced. Absent or
+  /// errored connections vote no — otherwise an unstarted sidechain pins
+  /// the whole app at 100 ms forever and chews ~37% CPU on the Flutter
+  /// side (issue #1754).
+  static bool connectionWantsAggressivePoll(SyncInfo? info, String? error) {
+    if (info == null) return false;
+    if (error != null && error.isNotEmpty) return false;
+    if (info.downloadInfo.isDownloading) return true;
+    return !info.isSynced;
+  }
+
+  /// True when *any* tracked connection wants aggressive (100 ms) polling.
+  /// Built from the per-connection helper so an absent sidechain with
+  /// `error="not running"` doesn't drag the cadence down.
+  bool get _wantsAggressivePoll {
+    if (connectionWantsAggressivePoll(mainchainSyncInfo, mainchainError)) {
+      return true;
+    }
+    if (connectionWantsAggressivePoll(enforcerSyncInfo, enforcerError)) {
+      return true;
+    }
+    if (connectionWantsAggressivePoll(bitwindowdSyncInfo, bitwindowdError)) {
+      return true;
+    }
+    for (final entry in sidechains.entries) {
+      if (connectionWantsAggressivePoll(entry.value, sidechainErrors[entry.key])) {
+        return true;
+      }
     }
     return false;
   }
@@ -156,10 +176,11 @@ class SyncProvider extends ChangeNotifier {
     try {
       await _fetch();
 
-      // Stay aggressive while anything's downloading OR not yet synced —
-      // that covers user-triggered CLI downloads of sidechains too.
-      final aggressive = _anyDownloading || !isSynced;
-      final nextInterval = aggressive ? AGGRESSIVE_INTERVAL : PASSIVE_INTERVAL;
+      // Aggregate per-connection votes — see [connectionWantsAggressivePoll].
+      // Catches user-triggered CLI downloads of sidechains too, while
+      // ignoring absent ("not running") sidechains that should not drive
+      // the cadence.
+      final nextInterval = _wantsAggressivePoll ? AGGRESSIVE_INTERVAL : PASSIVE_INTERVAL;
       if (nextInterval != _currentInterval) {
         _currentInterval = nextInterval;
         _scheduleNextTick();
