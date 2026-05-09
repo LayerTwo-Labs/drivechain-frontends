@@ -115,8 +115,8 @@ void main() {
   }
 
   testWidgets('collapses to shrink when both daemons are healthy', (tester) async {
-    binaryProvider.setState(BinaryType.orchestratord, connected: true);
-    binaryProvider.setState(BinaryType.bitWindow, connected: true);
+    binaryProvider.setState(BinaryType.BINARY_TYPE_ORCHESTRATORD, connected: true);
+    binaryProvider.setState(BinaryType.BINARY_TYPE_BITWINDOWD, connected: true);
 
     await tester.pumpWidget(wrap(const PersistentStatusBar()));
     await tester.pump();
@@ -128,8 +128,8 @@ void main() {
   });
 
   testWidgets('collapses to shrink while a daemon is initializing', (tester) async {
-    binaryProvider.setState(BinaryType.orchestratord, initializing: true, error: 'boot error');
-    binaryProvider.setState(BinaryType.bitWindow, connected: true);
+    binaryProvider.setState(BinaryType.BINARY_TYPE_ORCHESTRATORD, initializing: true, error: 'boot error');
+    binaryProvider.setState(BinaryType.BINARY_TYPE_BITWINDOWD, connected: true);
 
     await tester.pumpWidget(wrap(const PersistentStatusBar()));
     await tester.pump();
@@ -140,8 +140,8 @@ void main() {
   });
 
   testWidgets('shows error banner only when a daemon has a terminal error', (tester) async {
-    binaryProvider.setState(BinaryType.orchestratord, error: 'connection refused');
-    binaryProvider.setState(BinaryType.bitWindow, connected: true);
+    binaryProvider.setState(BinaryType.BINARY_TYPE_ORCHESTRATORD, error: 'connection refused');
+    binaryProvider.setState(BinaryType.BINARY_TYPE_BITWINDOWD, connected: true);
 
     await tester.pumpWidget(wrap(const PersistentStatusBar()));
     await tester.pump();
@@ -153,8 +153,8 @@ void main() {
   });
 
   testWidgets('tapping Restart calls BinaryProvider.restart for every broken daemon', (tester) async {
-    binaryProvider.setState(BinaryType.orchestratord, error: 'down');
-    binaryProvider.setState(BinaryType.bitWindow, error: 'down');
+    binaryProvider.setState(BinaryType.BINARY_TYPE_ORCHESTRATORD, error: 'down');
+    binaryProvider.setState(BinaryType.BINARY_TYPE_BITWINDOWD, error: 'down');
 
     await tester.pumpWidget(wrap(const PersistentStatusBar()));
     await tester.pump();
@@ -164,7 +164,7 @@ void main() {
 
     expect(
       binaryProvider.restartedTypes,
-      containsAll(<BinaryType>[BinaryType.orchestratord, BinaryType.bitWindow]),
+      containsAll(<BinaryType>[BinaryType.BINARY_TYPE_ORCHESTRATORD, BinaryType.BINARY_TYPE_BITWINDOWD]),
     );
   });
 
@@ -176,8 +176,8 @@ void main() {
     //     body: child, bottomNavigationBar: PersistentStatusBar()))
     // The bar must render with no "No Material widget"/"No Overlay widget"/
     // unbounded-constraints errors regardless of daemon state.
-    binaryProvider.setState(BinaryType.orchestratord, error: 'down');
-    binaryProvider.setState(BinaryType.bitWindow, error: 'down');
+    binaryProvider.setState(BinaryType.BINARY_TYPE_ORCHESTRATORD, error: 'down');
+    binaryProvider.setState(BinaryType.BINARY_TYPE_BITWINDOWD, error: 'down');
 
     tester.view.physicalSize = const Size(4000, 1200);
     tester.view.devicePixelRatio = 1.0;

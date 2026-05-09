@@ -17,7 +17,7 @@ WalletData _enforcer({String l1Mnemonic = ''}) => WalletData(
   name: 'Enforcer',
   gradient: WalletGradient.fromWalletId('enf'),
   createdAt: DateTime.utc(2026, 1, 1),
-  walletType: BinaryType.enforcer,
+  walletType: BinaryType.BINARY_TYPE_ENFORCER,
 );
 
 void main() {
@@ -76,7 +76,7 @@ void main() {
         name: 'Core',
         gradient: WalletGradient.fromWalletId('core'),
         createdAt: DateTime.utc(2026, 1, 1),
-        walletType: BinaryType.bitcoinCore,
+        walletType: BinaryType.BINARY_TYPE_BITCOIND,
       ),
     ];
     reader.activeWalletId = 'core';

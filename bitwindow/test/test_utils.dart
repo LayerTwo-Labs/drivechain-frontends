@@ -102,7 +102,7 @@ Future<void> registerTestDependencies() async {
   if (!GetIt.I.isRegistered<BitwindowRPC>()) {
     GetIt.I.registerLazySingleton<BitwindowRPC>(
       () => MockAPI(
-        binaryType: BinaryType.bitWindow,
+        binaryType: BinaryType.BINARY_TYPE_BITWINDOWD,
       ),
     );
   }
@@ -111,7 +111,7 @@ Future<void> registerTestDependencies() async {
     final balanceProvider = BalanceProvider(
       connections: [
         MockAPI(
-          binaryType: BinaryType.bitWindow,
+          binaryType: BinaryType.BINARY_TYPE_BITWINDOWD,
         ),
       ],
     );

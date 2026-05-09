@@ -221,7 +221,7 @@ class ZSide extends Sidechain {
   final int slot = 98;
 
   @override
-  BinaryType get type => BinaryType.zSide;
+  BinaryType get type => BinaryType.BINARY_TYPE_ZSIDE;
 
   @override
   Color color = SailColorScheme.blue;
@@ -320,7 +320,7 @@ class Thunder extends Sidechain {
   final int slot = 9;
 
   @override
-  BinaryType get type => BinaryType.thunder;
+  BinaryType get type => BinaryType.BINARY_TYPE_THUNDER;
 
   @override
   Color color = SailColorScheme.purple;
@@ -419,7 +419,7 @@ class BitNames extends Sidechain {
   final int slot = 2;
 
   @override
-  BinaryType get type => BinaryType.bitnames;
+  BinaryType get type => BinaryType.BINARY_TYPE_BITNAMES;
 
   @override
   Color color = SailColorScheme.green;
@@ -518,7 +518,7 @@ class BitAssets extends Sidechain {
   final int slot = 4;
 
   @override
-  BinaryType get type => BinaryType.bitassets;
+  BinaryType get type => BinaryType.BINARY_TYPE_BITASSETS;
 
   @override
   Color color = SailColorScheme.blue;
@@ -617,7 +617,7 @@ class Truthcoin extends Sidechain {
   final int slot = 13;
 
   @override
-  BinaryType get type => BinaryType.truthcoin;
+  BinaryType get type => BinaryType.BINARY_TYPE_TRUTHCOIN;
 
   @override
   Color color = SailColorScheme.orange;
@@ -716,7 +716,7 @@ class Photon extends Sidechain {
   final int slot = 99;
 
   @override
-  BinaryType get type => BinaryType.photon;
+  BinaryType get type => BinaryType.BINARY_TYPE_PHOTON;
 
   @override
   Color color = SailColorScheme.purple;
@@ -815,7 +815,7 @@ class CoinShift extends Sidechain {
   final int slot = 255;
 
   @override
-  BinaryType get type => BinaryType.coinShift;
+  BinaryType get type => BinaryType.BINARY_TYPE_COINSHIFT;
 
   @override
   Color color = SailColorScheme.orange;

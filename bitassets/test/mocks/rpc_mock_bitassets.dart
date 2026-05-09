@@ -3,7 +3,7 @@ import 'package:sail_ui/sail_ui.dart';
 class MockBitAssetsRPC extends BitAssetsRPC {
   MockBitAssetsRPC()
     : super(
-        binaryType: BinaryType.bitassets,
+        binaryType: BinaryType.BINARY_TYPE_BITASSETS,
       );
 
   @override

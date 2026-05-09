@@ -78,7 +78,7 @@ Future<(Directory, File, Logger)> init(String arguments) async {
   late ThunderLive thunderRPC;
 
   await initSidechainDependencies(
-    sidechainType: BinaryType.thunder,
+    sidechainType: BinaryType.BINARY_TYPE_THUNDER,
     createSidechainConnection: (_) {
       thunderRPC = ThunderLive();
       GetIt.I.registerSingleton<ThunderRPC>(thunderRPC);
@@ -95,7 +95,7 @@ Future<(Directory, File, Logger)> init(String arguments) async {
   unawaited(
     initBackendManagedSidechainRuntime(
       log: log,
-      binary: BinaryType.thunder,
+      binary: BinaryType.BINARY_TYPE_THUNDER,
       appRpc: thunderRPC,
     ),
   );
@@ -158,7 +158,7 @@ void bootBinaries(Logger log) {
   unawaited(
     bootBackendManagedSidechain(
       log: log,
-      binary: BinaryType.orchestratord,
+      binary: BinaryType.BINARY_TYPE_ORCHESTRATORD,
       appRpc: GetIt.I.isRegistered<ThunderRPC>() ? GetIt.I.get<ThunderRPC>() : null,
     ),
   );

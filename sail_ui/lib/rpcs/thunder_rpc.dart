@@ -59,7 +59,7 @@ class ThunderLive extends ThunderRPC {
 
   late ThunderServiceClient _client;
 
-  ThunderLive() : super(binaryType: BinaryType.thunder) {
+  ThunderLive() : super(binaryType: BinaryType.BINARY_TYPE_THUNDER) {
     final transport = connect.Transport(
       baseUrl: 'http://localhost:30400',
       codec: const ProtoCodec(),

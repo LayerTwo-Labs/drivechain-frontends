@@ -65,7 +65,7 @@ class PhotonLive extends PhotonRPC {
 
   late PhotonServiceClient _client;
 
-  PhotonLive() : super(binaryType: BinaryType.photon) {
+  PhotonLive() : super(binaryType: BinaryType.BINARY_TYPE_PHOTON) {
     final transport = connect.Transport(
       baseUrl: 'http://localhost:30400',
       codec: const ProtoCodec(),

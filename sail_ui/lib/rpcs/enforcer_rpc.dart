@@ -31,7 +31,7 @@ class EnforcerLive extends EnforcerRPC {
   late WalletServiceClient wallet;
   late grpc.Transport _grpcTransport;
 
-  EnforcerLive() : super(binaryType: BinaryType.enforcer) {
+  EnforcerLive() : super(binaryType: BinaryType.BINARY_TYPE_ENFORCER) {
     _initializeConnection();
   }
 

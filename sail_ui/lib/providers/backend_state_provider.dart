@@ -5,7 +5,6 @@ import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:sail_ui/classes/rpc_connection.dart';
-import 'package:sail_ui/config/binaries.dart';
 import 'package:sail_ui/gen/orchestrator/v1/orchestrator.pb.dart';
 import 'package:sail_ui/providers/binaries/binary_provider.dart';
 import 'package:sail_ui/rpcs/bitassets_rpc.dart';
@@ -163,26 +162,26 @@ class BackendStateProvider extends ChangeNotifier {
   BinaryType? _binaryTypeFromName(String name) {
     switch (name) {
       case 'bitcoind':
-        return BinaryType.bitcoinCore;
+        return BinaryType.BINARY_TYPE_BITCOIND;
       case 'enforcer':
-        return BinaryType.enforcer;
+        return BinaryType.BINARY_TYPE_ENFORCER;
       case 'thunder':
-        return BinaryType.thunder;
+        return BinaryType.BINARY_TYPE_THUNDER;
       case 'zside':
-        return BinaryType.zSide;
+        return BinaryType.BINARY_TYPE_ZSIDE;
       case 'bitwindow':
       case 'bitwindowd':
-        return BinaryType.bitWindow;
+        return BinaryType.BINARY_TYPE_BITWINDOWD;
       case 'bitnames':
-        return BinaryType.bitnames;
+        return BinaryType.BINARY_TYPE_BITNAMES;
       case 'bitassets':
-        return BinaryType.bitassets;
+        return BinaryType.BINARY_TYPE_BITASSETS;
       case 'truthcoin':
-        return BinaryType.truthcoin;
+        return BinaryType.BINARY_TYPE_TRUTHCOIN;
       case 'photon':
-        return BinaryType.photon;
+        return BinaryType.BINARY_TYPE_PHOTON;
       case 'coinshift':
-        return BinaryType.coinShift;
+        return BinaryType.BINARY_TYPE_COINSHIFT;
       default:
         return null;
     }

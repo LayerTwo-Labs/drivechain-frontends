@@ -37,8 +37,8 @@ void main() {
   test('getL1Mnemonic reads from enforcer wallet, not the active one', () {
     final provider = WalletReaderProvider(Directory.systemTemp);
     provider.wallets = [
-      _wallet(id: 'enf', type: BinaryType.enforcer, l1: 'enforcer-l1-mnemonic'),
-      _wallet(id: 'core', type: BinaryType.bitcoinCore, l1: 'core-l1-mnemonic'),
+      _wallet(id: 'enf', type: BinaryType.BINARY_TYPE_ENFORCER, l1: 'enforcer-l1-mnemonic'),
+      _wallet(id: 'core', type: BinaryType.BINARY_TYPE_BITCOIND, l1: 'core-l1-mnemonic'),
     ];
     provider.activeWalletId = 'core';
 
@@ -52,7 +52,7 @@ void main() {
     provider.wallets = [
       _wallet(
         id: 'enf',
-        type: BinaryType.enforcer,
+        type: BinaryType.BINARY_TYPE_ENFORCER,
         sidechains: [
           SidechainWallet(slot: 9, name: 'Thunder', mnemonic: 'thunder-starter'),
           SidechainWallet(slot: 5, name: 'BitNames', mnemonic: 'bitnames-starter'),
@@ -60,7 +60,7 @@ void main() {
       ),
       _wallet(
         id: 'core',
-        type: BinaryType.bitcoinCore,
+        type: BinaryType.BINARY_TYPE_BITCOIND,
         sidechains: [
           SidechainWallet(slot: 9, name: 'Thunder', mnemonic: 'core-thunder'),
         ],
@@ -76,7 +76,7 @@ void main() {
   test('getL1Mnemonic returns null when enforcer wallet absent', () {
     final provider = WalletReaderProvider(Directory.systemTemp);
     provider.wallets = [
-      _wallet(id: 'core', type: BinaryType.bitcoinCore, l1: 'core-l1'),
+      _wallet(id: 'core', type: BinaryType.BINARY_TYPE_BITCOIND, l1: 'core-l1'),
     ];
     provider.activeWalletId = 'core';
 
@@ -91,12 +91,12 @@ void main() {
     // the "not available" message.
     final watchOnly = _wallet(
       id: 'wo',
-      type: BinaryType.enforcer, // junk fallback the proto parser produces
+      type: BinaryType.BINARY_TYPE_ENFORCER, // junk fallback the proto parser produces
       walletTypeRaw: 'watchOnly',
     );
     final hot = _wallet(
       id: 'hot',
-      type: BinaryType.enforcer,
+      type: BinaryType.BINARY_TYPE_ENFORCER,
       walletTypeRaw: 'enforcer',
     );
     expect(watchOnly.isWatchOnly, isTrue);

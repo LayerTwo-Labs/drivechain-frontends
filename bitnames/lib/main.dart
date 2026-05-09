@@ -120,7 +120,7 @@ Future<(Directory, File, Logger)> init(String arguments) async {
   late BitnamesLive bitnamesRPC;
 
   await initSidechainDependencies(
-    sidechainType: BinaryType.bitnames,
+    sidechainType: BinaryType.BINARY_TYPE_BITNAMES,
     createSidechainConnection: (_) {
       bitnamesRPC = BitnamesLive();
       GetIt.I.registerSingleton<BitnamesRPC>(bitnamesRPC);
@@ -137,7 +137,7 @@ Future<(Directory, File, Logger)> init(String arguments) async {
   unawaited(
     initBackendManagedSidechainRuntime(
       log: log,
-      binary: BinaryType.bitnames,
+      binary: BinaryType.BINARY_TYPE_BITNAMES,
       appRpc: bitnamesRPC,
     ),
   );
@@ -162,7 +162,7 @@ void bootBinaries(Logger log) {
   unawaited(
     bootBackendManagedSidechain(
       log: log,
-      binary: BinaryType.bitnames,
+      binary: BinaryType.BINARY_TYPE_BITNAMES,
       appRpc: GetIt.I.isRegistered<BitnamesRPC>() ? GetIt.I.get<BitnamesRPC>() : null,
     ),
   );

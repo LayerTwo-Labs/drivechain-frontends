@@ -36,7 +36,7 @@ class FastWithdrawalForm extends StatelessWidget {
 
     final walletReader = GetIt.I.get<WalletReaderProvider>();
     final activeWallet = walletReader.activeWallet;
-    if (activeWallet != null && activeWallet.walletType != BinaryType.enforcer) {
+    if (activeWallet != null && activeWallet.walletType != BinaryType.BINARY_TYPE_ENFORCER) {
       return SailCard(
         error: 'Switch to your enforcer wallet to interact with sidechains',
         child: SizedBox(),

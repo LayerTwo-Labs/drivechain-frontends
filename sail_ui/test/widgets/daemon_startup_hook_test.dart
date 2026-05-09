@@ -75,9 +75,9 @@ void main() {
       binaries: [bitwindow, Orchestratord()],
     );
 
-    provider.addStartupLogForBinary(BinaryType.bitWindow, 'Starting BitWindow...');
+    provider.addStartupLogForBinary(BinaryType.BINARY_TYPE_BITWINDOWD, 'Starting BitWindow...');
 
-    final logs = provider.binaries.firstWhere((b) => b.type == BinaryType.bitWindow).startupLogs;
+    final logs = provider.binaries.firstWhere((b) => b.type == BinaryType.BINARY_TYPE_BITWINDOWD).startupLogs;
     expect(logs, isNotEmpty);
     expect(logs.last.message, 'Starting BitWindow...');
   });
@@ -88,9 +88,9 @@ void main() {
       binaries: [BitWindow(), Orchestratord()],
     );
 
-    provider.addStartupLogForBinary(BinaryType.orchestratord, 'Waiting for orchestratord...');
+    provider.addStartupLogForBinary(BinaryType.BINARY_TYPE_ORCHESTRATORD, 'Waiting for orchestratord...');
 
-    final logs = provider.binaries.firstWhere((b) => b.type == BinaryType.orchestratord).startupLogs;
+    final logs = provider.binaries.firstWhere((b) => b.type == BinaryType.BINARY_TYPE_ORCHESTRATORD).startupLogs;
     expect(logs.last.message, 'Waiting for orchestratord...');
   });
 
@@ -101,7 +101,7 @@ void main() {
       // true before the loop, clear it when the RPC call finally succeeds.
       // This is the exact sequence that keeps DaemonConnectionCard showing
       // "Initializing..." instead of "Not connected" during early boot.
-      final rpc = _StubRpc(binaryType: BinaryType.bitWindow);
+      final rpc = _StubRpc(binaryType: BinaryType.BINARY_TYPE_BITWINDOWD);
       final observedDuringWait = <bool>[];
 
       rpc.initializingBinary = true;

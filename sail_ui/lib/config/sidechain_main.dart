@@ -176,15 +176,15 @@ List<Binary> _initialBinaries(
   Binary resolve(BinaryType type) {
     return configBinaries.firstWhere(
       (b) => b.type == type,
-      orElse: () => type.binary, // fall back to hardcoded defaults
+      orElse: () => defaultBinaryFor(type),
     );
   }
 
   final sidechain = resolve(sidechainType);
   var binaries = [
-    resolve(BinaryType.bitcoinCore),
-    resolve(BinaryType.enforcer),
-    resolve(BinaryType.grpcurl),
+    resolve(BinaryType.BINARY_TYPE_BITCOIND),
+    resolve(BinaryType.BINARY_TYPE_ENFORCER),
+    resolve(BinaryType.BINARY_TYPE_GRPCURL),
     sidechain,
     ...additional,
   ];
@@ -243,25 +243,25 @@ Future<void> copyBinariesFromAssets(Logger log, Directory appDir) async {
 List<Binary> get allBinaries => [
   ...coreBinaries,
   ...sidechainBinaries,
-  resolveFromConfig(BinaryType.orchestratord, () => Orchestratord()),
-  resolveFromConfig(BinaryType.zSided, () => ZSided()),
+  resolveFromConfig(BinaryType.BINARY_TYPE_ORCHESTRATORD, () => Orchestratord()),
+  resolveFromConfig(BinaryType.BINARY_TYPE_ZSIDED, () => ZSided()),
 ];
 
 List<Binary> get coreBinaries => [
-  resolveFromConfig(BinaryType.bitcoinCore, () => BitcoinCore()),
-  resolveFromConfig(BinaryType.enforcer, () => Enforcer()),
-  resolveFromConfig(BinaryType.bitWindow, () => BitWindow()),
-  resolveFromConfig(BinaryType.orchestratord, () => Orchestratord()),
+  resolveFromConfig(BinaryType.BINARY_TYPE_BITCOIND, () => BitcoinCore()),
+  resolveFromConfig(BinaryType.BINARY_TYPE_ENFORCER, () => Enforcer()),
+  resolveFromConfig(BinaryType.BINARY_TYPE_BITWINDOWD, () => BitWindow()),
+  resolveFromConfig(BinaryType.BINARY_TYPE_ORCHESTRATORD, () => Orchestratord()),
 ];
 
 List<Binary> get sidechainBinaries => [
-  resolveFromConfig(BinaryType.thunder, () => Thunder()),
-  resolveFromConfig(BinaryType.truthcoin, () => Truthcoin()),
-  resolveFromConfig(BinaryType.photon, () => Photon()),
-  resolveFromConfig(BinaryType.bitnames, () => BitNames()),
-  resolveFromConfig(BinaryType.bitassets, () => BitAssets()),
-  resolveFromConfig(BinaryType.coinShift, () => CoinShift()),
-  resolveFromConfig(BinaryType.zSide, () => ZSide()),
+  resolveFromConfig(BinaryType.BINARY_TYPE_THUNDER, () => Thunder()),
+  resolveFromConfig(BinaryType.BINARY_TYPE_TRUTHCOIN, () => Truthcoin()),
+  resolveFromConfig(BinaryType.BINARY_TYPE_PHOTON, () => Photon()),
+  resolveFromConfig(BinaryType.BINARY_TYPE_BITNAMES, () => BitNames()),
+  resolveFromConfig(BinaryType.BINARY_TYPE_BITASSETS, () => BitAssets()),
+  resolveFromConfig(BinaryType.BINARY_TYPE_COINSHIFT, () => CoinShift()),
+  resolveFromConfig(BinaryType.BINARY_TYPE_ZSIDE, () => ZSide()),
 ];
 
 Binary resolveFromConfig(BinaryType type, Binary Function() fallback) {

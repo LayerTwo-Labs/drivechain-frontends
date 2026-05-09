@@ -59,9 +59,9 @@ class WalletData {
     final walletType = walletTypeStr != null
         ? BinaryType.values.firstWhere(
             (e) => e.name == walletTypeStr,
-            orElse: () => BinaryType.bitcoinCore,
+            orElse: () => BinaryType.BINARY_TYPE_BITCOIND,
           )
-        : BinaryType.bitcoinCore;
+        : BinaryType.BINARY_TYPE_BITCOIND;
 
     return WalletData(
       version: json['version'] as int? ?? 1,

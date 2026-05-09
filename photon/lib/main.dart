@@ -79,7 +79,7 @@ Future<(Directory, File, Logger)> init(String arguments) async {
   }
 
   await initSidechainDependencies(
-    sidechainType: BinaryType.photon,
+    sidechainType: BinaryType.BINARY_TYPE_PHOTON,
     createSidechainConnection: createSidechainConnection,
     applicationDir: applicationDir,
     log: log,
@@ -92,7 +92,7 @@ Future<(Directory, File, Logger)> init(String arguments) async {
   unawaited(
     initBackendManagedSidechainRuntime(
       log: log,
-      binary: BinaryType.photon,
+      binary: BinaryType.BINARY_TYPE_PHOTON,
       appRpc: GetIt.I.isRegistered<PhotonRPC>() ? GetIt.I.get<PhotonRPC>() : null,
     ),
   );
@@ -243,7 +243,7 @@ void bootBinaries(Logger log) {
   unawaited(
     bootBackendManagedSidechain(
       log: log,
-      binary: BinaryType.orchestratord,
+      binary: BinaryType.BINARY_TYPE_ORCHESTRATORD,
       appRpc: GetIt.I.isRegistered<PhotonRPC>() ? GetIt.I.get<PhotonRPC>() : null,
     ),
   );

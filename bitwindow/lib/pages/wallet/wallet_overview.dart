@@ -469,7 +469,7 @@ class OverviewViewModel extends BaseViewModel with ChangeTrackingMixin {
   double get balance => _balanceProvider.balance;
   double get pendingBalance => _balanceProvider.pendingBalance;
 
-  bool get isCoreWallet => _walletReader.activeWallet?.walletType != BinaryType.enforcer;
+  bool get isCoreWallet => _walletReader.activeWallet?.walletType != BinaryType.BINARY_TYPE_ENFORCER;
 
   String sortColumn = 'date';
   bool sortAscending = true;

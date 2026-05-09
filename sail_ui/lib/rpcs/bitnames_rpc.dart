@@ -145,7 +145,7 @@ class BitnamesLive extends BitnamesRPC {
 
   late BitnamesServiceClient _client;
 
-  BitnamesLive() : super(binaryType: BinaryType.bitnames) {
+  BitnamesLive() : super(binaryType: BinaryType.BINARY_TYPE_BITNAMES) {
     final transport = connect.Transport(
       baseUrl: 'http://localhost:30400',
       codec: const ProtoCodec(),

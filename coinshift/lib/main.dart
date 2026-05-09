@@ -81,7 +81,7 @@ Future<(Directory, File, Logger)> init(String arguments) async {
   }
 
   await initSidechainDependencies(
-    sidechainType: BinaryType.coinShift,
+    sidechainType: BinaryType.BINARY_TYPE_COINSHIFT,
     createSidechainConnection: createSidechainConnection,
     applicationDir: applicationDir,
     log: log,
@@ -94,7 +94,7 @@ Future<(Directory, File, Logger)> init(String arguments) async {
   unawaited(
     initBackendManagedSidechainRuntime(
       log: log,
-      binary: BinaryType.coinShift,
+      binary: BinaryType.BINARY_TYPE_COINSHIFT,
       appRpc: GetIt.I.isRegistered<CoinShiftRPC>() ? GetIt.I.get<CoinShiftRPC>() : null,
     ),
   );
@@ -253,7 +253,7 @@ void bootBinaries(Logger log) {
   unawaited(
     bootBackendManagedSidechain(
       log: log,
-      binary: BinaryType.orchestratord,
+      binary: BinaryType.BINARY_TYPE_ORCHESTRATORD,
       appRpc: GetIt.I.isRegistered<CoinShiftRPC>() ? GetIt.I.get<CoinShiftRPC>() : null,
     ),
   );

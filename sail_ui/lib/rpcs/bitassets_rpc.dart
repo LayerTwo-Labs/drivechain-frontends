@@ -230,7 +230,7 @@ class BitAssetsLive extends BitAssetsRPC {
 
   late BitAssetsServiceClient _client;
 
-  BitAssetsLive() : super(binaryType: BinaryType.bitassets) {
+  BitAssetsLive() : super(binaryType: BinaryType.BINARY_TYPE_BITASSETS) {
     final transport = connect.Transport(
       baseUrl: 'http://localhost:30400',
       codec: const ProtoCodec(),

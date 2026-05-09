@@ -11,41 +11,33 @@ import 'package:logger/logger.dart';
 import 'package:path/path.dart' as path;
 import 'package:sail_ui/sail_ui.dart';
 
+// Re-export BinaryType so callers that only import this file (the historical
+// home of the now-deleted Dart enum) keep working without an extra import.
+export 'package:sail_ui/gen/orchestrator/v1/orchestrator.pbenum.dart' show BinaryType;
+
 const kBitwindowBitcoinConfFilename = 'bitwindow-bitcoin.conf';
 
-enum BinaryType {
-  bitcoinCore,
-  bitWindow,
-  enforcer,
-  zSide,
-  thunder,
-  bitnames,
-  bitassets,
-  truthcoin,
-  photon,
-  coinShift,
-  grpcurl,
-  orchestratord,
-  zSided,
-}
+Never _unsupportedBinaryType(BinaryType t) => throw StateError('unsupported BinaryType: $t');
 
-extension BinaryTypeExtension on BinaryType {
-  Binary get binary => switch (this) {
-    BinaryType.bitcoinCore => BitcoinCore(),
-    BinaryType.bitWindow => BitWindow(),
-    BinaryType.enforcer => Enforcer(),
-    BinaryType.zSide => ZSide(),
-    BinaryType.thunder => Thunder(),
-    BinaryType.bitnames => BitNames(),
-    BinaryType.bitassets => BitAssets(),
-    BinaryType.truthcoin => Truthcoin(),
-    BinaryType.photon => Photon(),
-    BinaryType.coinShift => CoinShift(),
-    BinaryType.grpcurl => GRPCurl(),
-    BinaryType.orchestratord => Orchestratord(),
-    BinaryType.zSided => ZSided(),
-  };
-}
+/// Default-constructed [Binary] for a proto [BinaryType]. Throws on
+/// UNSPECIFIED — that value only ever surfaces from the wire and indicates
+/// the orchestrator named a binary the frontend doesn't recognise.
+Binary defaultBinaryFor(BinaryType type) => switch (type) {
+  BinaryType.BINARY_TYPE_BITCOIND => BitcoinCore(),
+  BinaryType.BINARY_TYPE_BITWINDOWD => BitWindow(),
+  BinaryType.BINARY_TYPE_ENFORCER => Enforcer(),
+  BinaryType.BINARY_TYPE_ZSIDE => ZSide(),
+  BinaryType.BINARY_TYPE_THUNDER => Thunder(),
+  BinaryType.BINARY_TYPE_BITNAMES => BitNames(),
+  BinaryType.BINARY_TYPE_BITASSETS => BitAssets(),
+  BinaryType.BINARY_TYPE_TRUTHCOIN => Truthcoin(),
+  BinaryType.BINARY_TYPE_PHOTON => Photon(),
+  BinaryType.BINARY_TYPE_COINSHIFT => CoinShift(),
+  BinaryType.BINARY_TYPE_GRPCURL => GRPCurl(),
+  BinaryType.BINARY_TYPE_ORCHESTRATORD => Orchestratord(),
+  BinaryType.BINARY_TYPE_ZSIDED => ZSided(),
+  _ => _unsupportedBinaryType(type),
+};
 
 abstract class Binary {
   Logger get log => GetIt.I.get<Logger>();
@@ -180,7 +172,7 @@ abstract class Binary {
 
     // then any extra files for that specific chain
     switch (type) {
-      case BinaryType.bitcoinCore:
+      case BinaryType.BINARY_TYPE_BITCOIND:
         await _deleteFilesInDir(dir, [
           'bitcoin-cli',
           'bitcoin-util',
@@ -189,14 +181,14 @@ abstract class Binary {
           'qt', // a directory!
         ]);
 
-      case BinaryType.enforcer:
+      case BinaryType.BINARY_TYPE_ENFORCER:
         // nothing extra for the enforcer itself, but also delete
         // grpcurl-stuff
         await _deleteFilesInDir(dir, ['LICENSE', 'grpcurl']);
 
         break;
 
-      case BinaryType.bitWindow:
+      case BinaryType.BINARY_TYPE_BITWINDOWD:
         await _deleteFilesInDir(dir, [
           'data',
           'lib',
@@ -208,31 +200,34 @@ abstract class Binary {
           'window_manager_plugin.dll',
         ]);
 
-      case BinaryType.bitnames:
+      case BinaryType.BINARY_TYPE_BITNAMES:
         await _deleteFilesInDir(dir, ['bitnames-cli']);
 
-      case BinaryType.bitassets:
+      case BinaryType.BINARY_TYPE_BITASSETS:
         await _deleteFilesInDir(dir, ['bitassets-cli']);
 
-      case BinaryType.thunder:
+      case BinaryType.BINARY_TYPE_THUNDER:
         await _deleteFilesInDir(dir, ['thunder-cli']);
 
-      case BinaryType.zSide:
+      case BinaryType.BINARY_TYPE_ZSIDE:
         await _deleteFilesInDir(dir, ['thunder-orchard']);
 
-      case BinaryType.truthcoin:
+      case BinaryType.BINARY_TYPE_TRUTHCOIN:
         await _deleteFilesInDir(dir, ['truthcoin-cli']);
 
-      case BinaryType.photon:
+      case BinaryType.BINARY_TYPE_PHOTON:
         await _deleteFilesInDir(dir, ['photon-cli']);
 
-      case BinaryType.coinShift:
+      case BinaryType.BINARY_TYPE_COINSHIFT:
         await _deleteFilesInDir(dir, ['coinshift-cli']);
 
-      case BinaryType.grpcurl:
-      case BinaryType.orchestratord:
-      case BinaryType.zSided:
+      case BinaryType.BINARY_TYPE_GRPCURL:
+      case BinaryType.BINARY_TYPE_ORCHESTRATORD:
+      case BinaryType.BINARY_TYPE_ZSIDED:
         break;
+
+      case BinaryType.BINARY_TYPE_UNSPECIFIED:
+        throw StateError('unsupported BinaryType: $type');
     }
   }
 
@@ -350,7 +345,7 @@ abstract class Binary {
     _log('getBlockchainDataPaths for $name: networkDir=$networkDir');
 
     switch (type) {
-      case BinaryType.bitcoinCore:
+      case BinaryType.BINARY_TYPE_BITCOIND:
         return _getExistingFilesInDir(networkDir, [
           '.lock',
           'anchors.dat',
@@ -367,7 +362,7 @@ abstract class Binary {
           'settings.json',
         ]);
 
-      case BinaryType.enforcer:
+      case BinaryType.BINARY_TYPE_ENFORCER:
         final rootdir = rootDir();
         final network = GetIt.I.get<BitcoinConfProvider>().network;
         return _getExistingFilesInDir(rootdir, [
@@ -376,26 +371,30 @@ abstract class Binary {
           network.toReadableNet().replaceAll('mainnet', 'bitcoin').replaceAll('forknet', 'bitcoin'),
         ]);
 
-      case BinaryType.bitWindow:
+      case BinaryType.BINARY_TYPE_BITWINDOWD:
         return _getExistingFilesInDir(networkDir, ['bitdrive', 'bitwindow.db']);
 
-      case BinaryType.bitnames:
-      case BinaryType.bitassets:
-      case BinaryType.thunder:
-      case BinaryType.zSide:
-      case BinaryType.truthcoin:
-      case BinaryType.photon:
-      case BinaryType.coinShift:
+      case BinaryType.BINARY_TYPE_BITNAMES:
+      case BinaryType.BINARY_TYPE_BITASSETS:
+      case BinaryType.BINARY_TYPE_THUNDER:
+      case BinaryType.BINARY_TYPE_ZSIDE:
+      case BinaryType.BINARY_TYPE_TRUTHCOIN:
+      case BinaryType.BINARY_TYPE_PHOTON:
+      case BinaryType.BINARY_TYPE_COINSHIFT:
         return _getExistingFilesInDir(networkDir, [
           'data.mdb',
           'lock.mdb',
           'logs',
         ]);
 
-      case BinaryType.grpcurl:
-      case BinaryType.orchestratord:
-      case BinaryType.zSided:
+      case BinaryType.BINARY_TYPE_GRPCURL:
+      case BinaryType.BINARY_TYPE_ORCHESTRATORD:
+      case BinaryType.BINARY_TYPE_ZSIDED:
         return [];
+
+      case BinaryType.BINARY_TYPE_UNSPECIFIED:
+      default:
+        throw StateError('unsupported BinaryType: $type');
     }
   }
 
@@ -415,7 +414,7 @@ abstract class Binary {
     }
 
     switch (type) {
-      case BinaryType.bitcoinCore:
+      case BinaryType.BINARY_TYPE_BITCOIND:
         final network = GetIt.I<BitcoinConfProvider>().network;
         paths.addAll(
           await _getExistingFilesInDir(datadirNetwork(), ['settings.json']),
@@ -429,10 +428,10 @@ abstract class Binary {
         );
         return paths;
 
-      case BinaryType.enforcer:
+      case BinaryType.BINARY_TYPE_ENFORCER:
         return [];
 
-      case BinaryType.bitWindow:
+      case BinaryType.BINARY_TYPE_BITWINDOWD:
         paths.addAll(
           await _getExistingFilesInDir(datadirNetwork(), ['server.log']),
         );
@@ -450,11 +449,11 @@ abstract class Binary {
         );
         return paths;
 
-      case BinaryType.bitnames:
-      case BinaryType.bitassets:
-      case BinaryType.zSide:
-      case BinaryType.truthcoin:
-      case BinaryType.photon:
+      case BinaryType.BINARY_TYPE_BITNAMES:
+      case BinaryType.BINARY_TYPE_BITASSETS:
+      case BinaryType.BINARY_TYPE_ZSIDE:
+      case BinaryType.BINARY_TYPE_TRUTHCOIN:
+      case BinaryType.BINARY_TYPE_PHOTON:
         paths.addAll(
           await _getExistingFilesInDir(frontendDir(), [
             'assets',
@@ -465,7 +464,7 @@ abstract class Binary {
         );
         return paths;
 
-      case BinaryType.thunder:
+      case BinaryType.BINARY_TYPE_THUNDER:
         paths.addAll(
           await _getExistingFilesInDir(rootDir(), [
             'start.sh',
@@ -484,7 +483,7 @@ abstract class Binary {
         );
         return paths;
 
-      case BinaryType.coinShift:
+      case BinaryType.BINARY_TYPE_COINSHIFT:
         paths.addAll(
           await _getExistingFilesInDir(datadirNetwork(), [
             'debug.log',
@@ -493,10 +492,14 @@ abstract class Binary {
         );
         return paths;
 
-      case BinaryType.grpcurl:
-      case BinaryType.orchestratord:
-      case BinaryType.zSided:
+      case BinaryType.BINARY_TYPE_GRPCURL:
+      case BinaryType.BINARY_TYPE_ORCHESTRATORD:
+      case BinaryType.BINARY_TYPE_ZSIDED:
         return [];
+
+      case BinaryType.BINARY_TYPE_UNSPECIFIED:
+      default:
+        throw StateError('unsupported BinaryType: $type');
     }
   }
 
@@ -507,7 +510,7 @@ abstract class Binary {
     final paths = <String>[];
 
     switch (type) {
-      case BinaryType.enforcer:
+      case BinaryType.BINARY_TYPE_ENFORCER:
         final rootdir = rootDir();
         final walletNetworkDir = path.join(
           rootdir,
@@ -518,19 +521,19 @@ abstract class Binary {
           paths.add(walletNetworkDir);
         }
 
-      case BinaryType.bitcoinCore:
+      case BinaryType.BINARY_TYPE_BITCOIND:
         paths.addAll(await _getBitcoinCoreWalletPaths(networkDir));
 
-      case BinaryType.bitnames:
-      case BinaryType.bitassets:
-      case BinaryType.thunder:
-      case BinaryType.zSide:
-      case BinaryType.truthcoin:
-      case BinaryType.photon:
-      case BinaryType.coinShift:
+      case BinaryType.BINARY_TYPE_BITNAMES:
+      case BinaryType.BINARY_TYPE_BITASSETS:
+      case BinaryType.BINARY_TYPE_THUNDER:
+      case BinaryType.BINARY_TYPE_ZSIDE:
+      case BinaryType.BINARY_TYPE_TRUTHCOIN:
+      case BinaryType.BINARY_TYPE_PHOTON:
+      case BinaryType.BINARY_TYPE_COINSHIFT:
         paths.addAll(await _getExistingFilesInDir(networkDir, ['wallet.mdb']));
 
-      case BinaryType.bitWindow:
+      case BinaryType.BINARY_TYPE_BITWINDOWD:
         paths.addAll(
           await _getExistingFilesInDir(networkDir, [
             'wallet.json',
@@ -538,10 +541,13 @@ abstract class Binary {
           ]),
         );
 
-      case BinaryType.grpcurl:
-      case BinaryType.orchestratord:
-      case BinaryType.zSided:
+      case BinaryType.BINARY_TYPE_GRPCURL:
+      case BinaryType.BINARY_TYPE_ORCHESTRATORD:
+      case BinaryType.BINARY_TYPE_ZSIDED:
         return [];
+
+      case BinaryType.BINARY_TYPE_UNSPECIFIED:
+        throw StateError('unsupported BinaryType: $type');
     }
 
     // Also include Flutter frontend app directory (getApplicationSupportDirectory())
@@ -581,12 +587,12 @@ abstract class Binary {
     final paths = <String>[];
 
     switch (type) {
-      case BinaryType.bitcoinCore:
+      case BinaryType.BINARY_TYPE_BITCOIND:
         paths.addAll(
           await _getExistingFilesInDir(datadirNetwork(), ['debug.log']),
         );
 
-      case BinaryType.enforcer:
+      case BinaryType.BINARY_TYPE_ENFORCER:
         // Individual log file + entire logs directory
         paths.addAll(
           await _getExistingFilesInDir(datadirNetwork(), [
@@ -595,25 +601,28 @@ abstract class Binary {
           ]),
         );
 
-      case BinaryType.bitWindow:
+      case BinaryType.BINARY_TYPE_BITWINDOWD:
         paths.addAll(
           await _getExistingFilesInDir(datadirNetwork(), ['server.log']),
         );
         paths.addAll(await _getExistingFilesInDir(rootDir(), ['debug.log']));
 
-      case BinaryType.thunder:
-      case BinaryType.bitnames:
-      case BinaryType.bitassets:
-      case BinaryType.zSide:
-      case BinaryType.truthcoin:
-      case BinaryType.photon:
-      case BinaryType.coinShift:
+      case BinaryType.BINARY_TYPE_THUNDER:
+      case BinaryType.BINARY_TYPE_BITNAMES:
+      case BinaryType.BINARY_TYPE_BITASSETS:
+      case BinaryType.BINARY_TYPE_ZSIDE:
+      case BinaryType.BINARY_TYPE_TRUTHCOIN:
+      case BinaryType.BINARY_TYPE_PHOTON:
+      case BinaryType.BINARY_TYPE_COINSHIFT:
         paths.addAll(await _getExistingFilesInDir(datadirNetwork(), ['logs']));
 
-      case BinaryType.grpcurl:
-      case BinaryType.orchestratord:
-      case BinaryType.zSided:
+      case BinaryType.BINARY_TYPE_GRPCURL:
+      case BinaryType.BINARY_TYPE_ORCHESTRATORD:
+      case BinaryType.BINARY_TYPE_ZSIDED:
         break;
+
+      case BinaryType.BINARY_TYPE_UNSPECIFIED:
+        throw StateError('unsupported BinaryType: $type');
     }
 
     // Also include Flutter frontend debug.log
@@ -643,7 +652,7 @@ abstract class Binary {
 
     // Extra files per chain
     switch (type) {
-      case BinaryType.bitcoinCore:
+      case BinaryType.BINARY_TYPE_BITCOIND:
         paths.addAll(
           await _getExistingFilesInDir(dir, [
             'bitcoin-cli',
@@ -654,10 +663,10 @@ abstract class Binary {
           ]),
         );
 
-      case BinaryType.enforcer:
+      case BinaryType.BINARY_TYPE_ENFORCER:
         paths.addAll(await _getExistingFilesInDir(dir, ['LICENSE', 'grpcurl']));
 
-      case BinaryType.bitWindow:
+      case BinaryType.BINARY_TYPE_BITWINDOWD:
         paths.addAll(
           await _getExistingFilesInDir(dir, [
             'data',
@@ -671,31 +680,34 @@ abstract class Binary {
           ]),
         );
 
-      case BinaryType.bitnames:
+      case BinaryType.BINARY_TYPE_BITNAMES:
         paths.addAll(await _getExistingFilesInDir(dir, ['bitnames-cli']));
 
-      case BinaryType.bitassets:
+      case BinaryType.BINARY_TYPE_BITASSETS:
         paths.addAll(await _getExistingFilesInDir(dir, ['bitassets-cli']));
 
-      case BinaryType.thunder:
+      case BinaryType.BINARY_TYPE_THUNDER:
         paths.addAll(await _getExistingFilesInDir(dir, ['thunder-cli']));
 
-      case BinaryType.zSide:
+      case BinaryType.BINARY_TYPE_ZSIDE:
         paths.addAll(await _getExistingFilesInDir(dir, ['thunder-orchard']));
 
-      case BinaryType.truthcoin:
+      case BinaryType.BINARY_TYPE_TRUTHCOIN:
         paths.addAll(await _getExistingFilesInDir(dir, ['truthcoin-cli']));
 
-      case BinaryType.photon:
+      case BinaryType.BINARY_TYPE_PHOTON:
         paths.addAll(await _getExistingFilesInDir(dir, ['photon-cli']));
 
-      case BinaryType.coinShift:
+      case BinaryType.BINARY_TYPE_COINSHIFT:
         paths.addAll(await _getExistingFilesInDir(dir, ['coinshift-cli']));
 
-      case BinaryType.grpcurl:
-      case BinaryType.orchestratord:
-      case BinaryType.zSided:
+      case BinaryType.BINARY_TYPE_GRPCURL:
+      case BinaryType.BINARY_TYPE_ORCHESTRATORD:
+      case BinaryType.BINARY_TYPE_ZSIDED:
         break;
+
+      case BinaryType.BINARY_TYPE_UNSPECIFIED:
+        throw StateError('unsupported BinaryType: $type');
     }
 
     return paths;
@@ -918,7 +930,7 @@ abstract class Binary {
   String get connectionString {
     // For BitcoinCore, get the actual port from BitcoinConfProvider which handles
     // both network defaults and user's custom rpcport setting
-    if (type == BinaryType.bitcoinCore && port == 0) {
+    if (type == BinaryType.BINARY_TYPE_BITCOIND && port == 0) {
       try {
         final confProvider = GetIt.I.get<BitcoinConfProvider>();
         // The provider should expose the actual port being used
@@ -1056,7 +1068,7 @@ class BitcoinCore extends Binary {
        );
 
   @override
-  BinaryType get type => BinaryType.bitcoinCore;
+  BinaryType get type => BinaryType.BINARY_TYPE_BITCOIND;
 
   @override
   Color get color => SailColorScheme.green;
@@ -1149,7 +1161,7 @@ class BitWindow extends Binary {
        );
 
   @override
-  BinaryType get type => BinaryType.bitWindow;
+  BinaryType get type => BinaryType.BINARY_TYPE_BITWINDOWD;
 
   @override
   Color get color => SailColorScheme.green;
@@ -1228,7 +1240,7 @@ class Orchestratord extends Binary {
        );
 
   @override
-  BinaryType get type => BinaryType.orchestratord;
+  BinaryType get type => BinaryType.BINARY_TYPE_ORCHESTRATORD;
 
   @override
   Color get color => SailColorScheme.orange;
@@ -1307,7 +1319,7 @@ class ZSided extends Binary {
        );
 
   @override
-  BinaryType get type => BinaryType.zSided;
+  BinaryType get type => BinaryType.BINARY_TYPE_ZSIDED;
 
   @override
   Color get color => SailColorScheme.blue;
@@ -1386,7 +1398,7 @@ class Enforcer extends Binary {
        );
 
   @override
-  BinaryType get type => BinaryType.enforcer;
+  BinaryType get type => BinaryType.BINARY_TYPE_ENFORCER;
 
   @override
   Color get color => SailColorScheme.green;
@@ -1494,7 +1506,7 @@ class GRPCurl extends Binary {
        );
 
   @override
-  BinaryType get type => BinaryType.grpcurl;
+  BinaryType get type => BinaryType.BINARY_TYPE_GRPCURL;
 
   @override
   Color get color => SailColorScheme.green;
@@ -1530,51 +1542,53 @@ class GRPCurl extends Binary {
 /// path mapping can be exercised without touching dart:io.
 String? flutterFrontendDirFor(BinaryType type, OS os, String home) {
   return switch (type) {
-    BinaryType.bitWindow => switch (os) {
+    BinaryType.BINARY_TYPE_BITWINDOWD => switch (os) {
       OS.macos => path.join(home, 'Library', 'Application Support', 'bitwindow'),
       OS.windows => path.join(home, 'AppData', 'Roaming', '10520LayertwoLabs', 'BitWindow'),
       OS.linux => path.join(home, '.local', 'share', 'bitwindow'),
     },
-    BinaryType.thunder => switch (os) {
+    BinaryType.BINARY_TYPE_THUNDER => switch (os) {
       OS.macos => path.join(home, 'Library', 'Application Support', 'com.layertwolabs.thunder'),
       OS.windows => path.join(home, 'AppData', 'Roaming', '10520LayertwoLabs', 'Thunder'),
       OS.linux => path.join(home, '.local', 'share', 'com.layertwolabs.thunder'),
     },
-    BinaryType.zSide => switch (os) {
+    BinaryType.BINARY_TYPE_ZSIDE => switch (os) {
       OS.macos => path.join(home, 'Library', 'Application Support', 'com.layertwolabs.zside'),
       OS.windows => path.join(home, 'AppData', 'Roaming', '10520LayertwoLabs', 'ZSide'),
       OS.linux => path.join(home, '.local', 'share', 'com.layertwolabs.zside'),
     },
-    BinaryType.bitnames => switch (os) {
+    BinaryType.BINARY_TYPE_BITNAMES => switch (os) {
       OS.macos => path.join(home, 'Library', 'Application Support', 'com.layertwolabs.bitnames'),
       OS.windows => path.join(home, 'AppData', 'Roaming', '10520LayertwoLabs', 'BitNames'),
       OS.linux => path.join(home, '.local', 'share', 'com.layertwolabs.bitnames'),
     },
-    BinaryType.bitassets => switch (os) {
+    BinaryType.BINARY_TYPE_BITASSETS => switch (os) {
       OS.macos => path.join(home, 'Library', 'Application Support', 'com.layertwolabs.bitassets'),
       OS.windows => path.join(home, 'AppData', 'Roaming', '10520LayertwoLabs', 'BitAssets'),
       OS.linux => path.join(home, '.local', 'share', 'com.layertwolabs.bitassets'),
     },
-    BinaryType.truthcoin => switch (os) {
+    BinaryType.BINARY_TYPE_TRUTHCOIN => switch (os) {
       OS.macos => path.join(home, 'Library', 'Application Support', 'com.layertwolabs.truthcoin'),
       OS.windows => path.join(home, 'AppData', 'Roaming', '10520LayertwoLabs', 'Truthcoin'),
       OS.linux => path.join(home, '.local', 'share', 'com.layertwolabs.truthcoin'),
     },
-    BinaryType.photon => switch (os) {
+    BinaryType.BINARY_TYPE_PHOTON => switch (os) {
       OS.macos => path.join(home, 'Library', 'Application Support', 'com.layertwolabs.photon'),
       OS.windows => path.join(home, 'AppData', 'Roaming', '10520LayertwoLabs', 'Photon'),
       OS.linux => path.join(home, '.local', 'share', 'com.layertwolabs.photon'),
     },
-    BinaryType.coinShift => switch (os) {
+    BinaryType.BINARY_TYPE_COINSHIFT => switch (os) {
       OS.macos => path.join(home, 'Library', 'Application Support', 'com.layertwolabs.coinshift'),
       OS.windows => path.join(home, 'AppData', 'Roaming', '10520LayertwoLabs', 'Coinshift'),
       OS.linux => path.join(home, '.local', 'share', 'com.layertwolabs.coinshift'),
     },
-    BinaryType.bitcoinCore ||
-    BinaryType.enforcer ||
-    BinaryType.grpcurl ||
-    BinaryType.orchestratord ||
-    BinaryType.zSided => null,
+    BinaryType.BINARY_TYPE_BITCOIND ||
+    BinaryType.BINARY_TYPE_ENFORCER ||
+    BinaryType.BINARY_TYPE_GRPCURL ||
+    BinaryType.BINARY_TYPE_ORCHESTRATORD ||
+    BinaryType.BINARY_TYPE_ZSIDED => null,
+    BinaryType.BINARY_TYPE_UNSPECIFIED => _unsupportedBinaryType(type),
+    _ => _unsupportedBinaryType(type),
   };
 }
 
@@ -1590,7 +1604,7 @@ extension BinaryPaths on Binary {
 
   String confFile() {
     return switch (type) {
-      BinaryType.bitcoinCore => () {
+      BinaryType.BINARY_TYPE_BITCOIND => () {
         final network = GetIt.I.get<BitcoinConfProvider>().network;
         // For mainnet, use standard Bitcoin datadir; otherwise use Drivechain datadir (respects custom datadir)
         final confDir = network == BitcoinNetwork.BITCOIN_NETWORK_MAINNET
@@ -1613,20 +1627,22 @@ extension BinaryPaths on Binary {
 
   String logPath() {
     return switch (type) {
-      BinaryType.bitcoinCore => filePath([
+      BinaryType.BINARY_TYPE_BITCOIND => filePath([
         BitcoinCore().datadirNetwork(),
         'debug.log',
       ]),
-      BinaryType.bitWindow => filePath([datadirNetwork(), 'server.log']),
-      BinaryType.thunder ||
-      BinaryType.bitnames ||
-      BinaryType.bitassets ||
-      BinaryType.zSide ||
-      BinaryType.truthcoin ||
-      BinaryType.photon ||
-      BinaryType.coinShift => _findLatestDirVersionedLog(),
-      BinaryType.enforcer => _findLatestEnforcerLog(),
-      BinaryType.grpcurl || BinaryType.orchestratord || BinaryType.zSided => '',
+      BinaryType.BINARY_TYPE_BITWINDOWD => filePath([datadirNetwork(), 'server.log']),
+      BinaryType.BINARY_TYPE_THUNDER ||
+      BinaryType.BINARY_TYPE_BITNAMES ||
+      BinaryType.BINARY_TYPE_BITASSETS ||
+      BinaryType.BINARY_TYPE_ZSIDE ||
+      BinaryType.BINARY_TYPE_TRUTHCOIN ||
+      BinaryType.BINARY_TYPE_PHOTON ||
+      BinaryType.BINARY_TYPE_COINSHIFT => _findLatestDirVersionedLog(),
+      BinaryType.BINARY_TYPE_ENFORCER => _findLatestEnforcerLog(),
+      BinaryType.BINARY_TYPE_GRPCURL || BinaryType.BINARY_TYPE_ORCHESTRATORD || BinaryType.BINARY_TYPE_ZSIDED => '',
+      BinaryType.BINARY_TYPE_UNSPECIFIED => _unsupportedBinaryType(type),
+      _ => _unsupportedBinaryType(type),
     };
   }
 
@@ -1761,7 +1777,7 @@ extension BinaryPaths on Binary {
 
     switch (OS.current) {
       case OS.linux:
-        if (type == BinaryType.bitcoinCore) {
+        if (type == BinaryType.BINARY_TYPE_BITCOIND) {
           // in good style, this is different than all the others
           return filePath([home]);
         }
@@ -1801,22 +1817,22 @@ extension BinaryPaths on Binary {
     final network = GetIt.I<BitcoinConfProvider>().network;
 
     switch (type) {
-      case BinaryType.bitcoinCore:
+      case BinaryType.BINARY_TYPE_BITCOIND:
         final provider = GetIt.I<BitcoinConfProvider>();
         return (provider.detectedDataDir?.isNotEmpty == true) ? provider.detectedDataDir! : rootDirNetwork(network);
 
-      case BinaryType.enforcer:
+      case BinaryType.BINARY_TYPE_ENFORCER:
         final provider = GetIt.I<EnforcerConfProvider>();
         final customDir = provider.currentConfig?.getSetting('datadir');
         return customDir ?? rootDir();
 
-      case BinaryType.thunder:
-      case BinaryType.bitnames:
-      case BinaryType.bitassets:
-      case BinaryType.zSide:
-      case BinaryType.truthcoin:
-      case BinaryType.photon:
-      case BinaryType.coinShift:
+      case BinaryType.BINARY_TYPE_THUNDER:
+      case BinaryType.BINARY_TYPE_BITNAMES:
+      case BinaryType.BINARY_TYPE_BITASSETS:
+      case BinaryType.BINARY_TYPE_ZSIDE:
+      case BinaryType.BINARY_TYPE_TRUTHCOIN:
+      case BinaryType.BINARY_TYPE_PHOTON:
+      case BinaryType.BINARY_TYPE_COINSHIFT:
         if (GetIt.I.isRegistered<GenericSidechainConfProvider>()) {
           final provider = GetIt.I<GenericSidechainConfProvider>();
           final customDir = provider.currentConfig?.getSetting('datadir');
@@ -1824,13 +1840,17 @@ extension BinaryPaths on Binary {
         }
         return rootDir();
 
-      case BinaryType.bitWindow:
+      case BinaryType.BINARY_TYPE_BITWINDOWD:
         return rootDir();
 
-      case BinaryType.grpcurl:
-      case BinaryType.orchestratord:
-      case BinaryType.zSided:
+      case BinaryType.BINARY_TYPE_GRPCURL:
+      case BinaryType.BINARY_TYPE_ORCHESTRATORD:
+      case BinaryType.BINARY_TYPE_ZSIDED:
         return rootDir();
+
+      case BinaryType.BINARY_TYPE_UNSPECIFIED:
+      default:
+        throw StateError('unsupported BinaryType: $type');
     }
   }
 
@@ -1840,27 +1860,31 @@ extension BinaryPaths on Binary {
     final baseDir = datadir();
 
     switch (type) {
-      case BinaryType.bitcoinCore:
+      case BinaryType.BINARY_TYPE_BITCOIND:
         if (network == BitcoinNetwork.BITCOIN_NETWORK_MAINNET || network == BitcoinNetwork.BITCOIN_NETWORK_FORKNET) {
           return baseDir;
         }
         return path.join(baseDir, network.toReadableNet());
 
-      case BinaryType.bitWindow:
+      case BinaryType.BINARY_TYPE_BITWINDOWD:
         return path.join(baseDir, network.toReadableNet());
 
-      case BinaryType.enforcer:
-      case BinaryType.thunder:
-      case BinaryType.bitnames:
-      case BinaryType.bitassets:
-      case BinaryType.zSide:
-      case BinaryType.truthcoin:
-      case BinaryType.photon:
-      case BinaryType.coinShift:
-      case BinaryType.grpcurl:
-      case BinaryType.orchestratord:
-      case BinaryType.zSided:
+      case BinaryType.BINARY_TYPE_ENFORCER:
+      case BinaryType.BINARY_TYPE_THUNDER:
+      case BinaryType.BINARY_TYPE_BITNAMES:
+      case BinaryType.BINARY_TYPE_BITASSETS:
+      case BinaryType.BINARY_TYPE_ZSIDE:
+      case BinaryType.BINARY_TYPE_TRUTHCOIN:
+      case BinaryType.BINARY_TYPE_PHOTON:
+      case BinaryType.BINARY_TYPE_COINSHIFT:
+      case BinaryType.BINARY_TYPE_GRPCURL:
+      case BinaryType.BINARY_TYPE_ORCHESTRATORD:
+      case BinaryType.BINARY_TYPE_ZSIDED:
         return baseDir;
+
+      case BinaryType.BINARY_TYPE_UNSPECIFIED:
+      default:
+        throw StateError('unsupported BinaryType: $type');
     }
   }
 
@@ -1905,7 +1929,7 @@ extension BinaryPaths on Binary {
         return 'Unknown';
       }
 
-      if (type == BinaryType.enforcer) {
+      if (type == BinaryType.BINARY_TYPE_ENFORCER) {
         final versionLine = lines.firstWhere(
           (line) => line.contains('bip300301_enforcer_lib'),
           orElse: () => '',
@@ -2474,38 +2498,40 @@ Map<BitcoinNetwork, String> _baseUrlsFromFilesJson(
 
 BinaryType _binaryTypeFromJsonKey(String key) {
   return switch (key) {
-    'bitcoincore' => BinaryType.bitcoinCore,
-    'bitwindow' => BinaryType.bitWindow,
-    'enforcer' => BinaryType.enforcer,
-    'grpcurl' => BinaryType.grpcurl,
-    'orchestratord' => BinaryType.orchestratord,
-    'zsided' => BinaryType.zSided,
-    'thunder' => BinaryType.thunder,
-    'bitnames' => BinaryType.bitnames,
-    'bitassets' => BinaryType.bitassets,
-    'truthcoin' => BinaryType.truthcoin,
-    'photon' => BinaryType.photon,
-    'coinshift' => BinaryType.coinShift,
-    'zside' => BinaryType.zSide,
+    'bitcoincore' => BinaryType.BINARY_TYPE_BITCOIND,
+    'bitwindow' => BinaryType.BINARY_TYPE_BITWINDOWD,
+    'enforcer' => BinaryType.BINARY_TYPE_ENFORCER,
+    'grpcurl' => BinaryType.BINARY_TYPE_GRPCURL,
+    'orchestratord' => BinaryType.BINARY_TYPE_ORCHESTRATORD,
+    'zsided' => BinaryType.BINARY_TYPE_ZSIDED,
+    'thunder' => BinaryType.BINARY_TYPE_THUNDER,
+    'bitnames' => BinaryType.BINARY_TYPE_BITNAMES,
+    'bitassets' => BinaryType.BINARY_TYPE_BITASSETS,
+    'truthcoin' => BinaryType.BINARY_TYPE_TRUTHCOIN,
+    'photon' => BinaryType.BINARY_TYPE_PHOTON,
+    'coinshift' => BinaryType.BINARY_TYPE_COINSHIFT,
+    'zside' => BinaryType.BINARY_TYPE_ZSIDE,
     _ => throw ArgumentError('Unknown binary key: $key'),
   };
 }
 
 String binaryTypeToJsonKey(BinaryType type) {
   return switch (type) {
-    BinaryType.bitcoinCore => 'bitcoincore',
-    BinaryType.bitWindow => 'bitwindow',
-    BinaryType.enforcer => 'enforcer',
-    BinaryType.grpcurl => 'grpcurl',
-    BinaryType.orchestratord => 'orchestratord',
-    BinaryType.zSided => 'zsided',
-    BinaryType.thunder => 'thunder',
-    BinaryType.bitnames => 'bitnames',
-    BinaryType.bitassets => 'bitassets',
-    BinaryType.truthcoin => 'truthcoin',
-    BinaryType.photon => 'photon',
-    BinaryType.coinShift => 'coinshift',
-    BinaryType.zSide => 'zside',
+    BinaryType.BINARY_TYPE_BITCOIND => 'bitcoincore',
+    BinaryType.BINARY_TYPE_BITWINDOWD => 'bitwindow',
+    BinaryType.BINARY_TYPE_ENFORCER => 'enforcer',
+    BinaryType.BINARY_TYPE_GRPCURL => 'grpcurl',
+    BinaryType.BINARY_TYPE_ORCHESTRATORD => 'orchestratord',
+    BinaryType.BINARY_TYPE_ZSIDED => 'zsided',
+    BinaryType.BINARY_TYPE_THUNDER => 'thunder',
+    BinaryType.BINARY_TYPE_BITNAMES => 'bitnames',
+    BinaryType.BINARY_TYPE_BITASSETS => 'bitassets',
+    BinaryType.BINARY_TYPE_TRUTHCOIN => 'truthcoin',
+    BinaryType.BINARY_TYPE_PHOTON => 'photon',
+    BinaryType.BINARY_TYPE_COINSHIFT => 'coinshift',
+    BinaryType.BINARY_TYPE_ZSIDE => 'zside',
+    BinaryType.BINARY_TYPE_UNSPECIFIED => _unsupportedBinaryType(type),
+    _ => _unsupportedBinaryType(type),
   };
 }
 
@@ -2545,7 +2571,7 @@ Binary binaryFromJson(String key, Map<String, dynamic> json) {
 
   // Dispatch to correct subclass
   return switch (binaryType) {
-    BinaryType.bitcoinCore => BitcoinCore(
+    BinaryType.BINARY_TYPE_BITCOIND => BitcoinCore(
       name: name,
       version: version,
       description: description,
@@ -2555,7 +2581,7 @@ Binary binaryFromJson(String key, Map<String, dynamic> json) {
       port: port,
       chainLayer: chainLayer,
     ),
-    BinaryType.bitWindow => BitWindow(
+    BinaryType.BINARY_TYPE_BITWINDOWD => BitWindow(
       name: name,
       version: version,
       description: description,
@@ -2565,7 +2591,7 @@ Binary binaryFromJson(String key, Map<String, dynamic> json) {
       port: port,
       chainLayer: chainLayer,
     ),
-    BinaryType.enforcer => Enforcer(
+    BinaryType.BINARY_TYPE_ENFORCER => Enforcer(
       name: name,
       version: version,
       description: description,
@@ -2575,7 +2601,7 @@ Binary binaryFromJson(String key, Map<String, dynamic> json) {
       port: port,
       chainLayer: chainLayer,
     ),
-    BinaryType.grpcurl => GRPCurl(
+    BinaryType.BINARY_TYPE_GRPCURL => GRPCurl(
       name: name,
       version: version,
       description: description,
@@ -2585,7 +2611,7 @@ Binary binaryFromJson(String key, Map<String, dynamic> json) {
       port: port,
       chainLayer: chainLayer,
     ),
-    BinaryType.orchestratord => Orchestratord(
+    BinaryType.BINARY_TYPE_ORCHESTRATORD => Orchestratord(
       name: name,
       version: version,
       description: description,
@@ -2595,7 +2621,7 @@ Binary binaryFromJson(String key, Map<String, dynamic> json) {
       port: port,
       chainLayer: chainLayer,
     ),
-    BinaryType.zSided => ZSided(
+    BinaryType.BINARY_TYPE_ZSIDED => ZSided(
       name: name,
       version: version,
       description: description,
@@ -2605,7 +2631,7 @@ Binary binaryFromJson(String key, Map<String, dynamic> json) {
       port: port,
       chainLayer: chainLayer,
     ),
-    BinaryType.thunder => Thunder(
+    BinaryType.BINARY_TYPE_THUNDER => Thunder(
       name: name,
       version: version,
       description: description,
@@ -2615,7 +2641,7 @@ Binary binaryFromJson(String key, Map<String, dynamic> json) {
       port: port,
       chainLayer: chainLayer,
     ),
-    BinaryType.bitnames => BitNames(
+    BinaryType.BINARY_TYPE_BITNAMES => BitNames(
       name: name,
       version: version,
       description: description,
@@ -2625,7 +2651,7 @@ Binary binaryFromJson(String key, Map<String, dynamic> json) {
       port: port,
       chainLayer: chainLayer,
     ),
-    BinaryType.bitassets => BitAssets(
+    BinaryType.BINARY_TYPE_BITASSETS => BitAssets(
       name: name,
       version: version,
       description: description,
@@ -2635,7 +2661,7 @@ Binary binaryFromJson(String key, Map<String, dynamic> json) {
       port: port,
       chainLayer: chainLayer,
     ),
-    BinaryType.truthcoin => Truthcoin(
+    BinaryType.BINARY_TYPE_TRUTHCOIN => Truthcoin(
       name: name,
       version: version,
       description: description,
@@ -2645,7 +2671,7 @@ Binary binaryFromJson(String key, Map<String, dynamic> json) {
       port: port,
       chainLayer: chainLayer,
     ),
-    BinaryType.photon => Photon(
+    BinaryType.BINARY_TYPE_PHOTON => Photon(
       name: name,
       version: version,
       description: description,
@@ -2655,7 +2681,7 @@ Binary binaryFromJson(String key, Map<String, dynamic> json) {
       port: port,
       chainLayer: chainLayer,
     ),
-    BinaryType.coinShift => CoinShift(
+    BinaryType.BINARY_TYPE_COINSHIFT => CoinShift(
       name: name,
       version: version,
       description: description,
@@ -2665,7 +2691,7 @@ Binary binaryFromJson(String key, Map<String, dynamic> json) {
       port: port,
       chainLayer: chainLayer,
     ),
-    BinaryType.zSide => ZSide(
+    BinaryType.BINARY_TYPE_ZSIDE => ZSide(
       name: name,
       version: version,
       description: description,
@@ -2675,5 +2701,7 @@ Binary binaryFromJson(String key, Map<String, dynamic> json) {
       port: port,
       chainLayer: chainLayer,
     ),
+    BinaryType.BINARY_TYPE_UNSPECIFIED => _unsupportedBinaryType(binaryType),
+    _ => _unsupportedBinaryType(binaryType),
   };
 }
