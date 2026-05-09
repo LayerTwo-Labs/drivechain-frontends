@@ -89,6 +89,93 @@ func (SidechainType) EnumDescriptor() ([]byte, []int) {
 	return file_orchestrator_v1_orchestrator_proto_rawDescGZIP(), []int{0}
 }
 
+// BinaryType is the single typed identifier for any binary the system tracks.
+// Used wire-side by the orchestrator and consumed directly by the Flutter
+// frontends — there is no parallel Dart enum. UNSPECIFIED is reserved for
+// forwards-compat: when a frontend sees it, the binary is known to the
+// orchestrator but doesn't have a typed enum value yet.
+type BinaryType int32
+
+const (
+	BinaryType_BINARY_TYPE_UNSPECIFIED   BinaryType = 0
+	BinaryType_BINARY_TYPE_BITCOIND      BinaryType = 1
+	BinaryType_BINARY_TYPE_ENFORCER      BinaryType = 2
+	BinaryType_BINARY_TYPE_BITWINDOWD    BinaryType = 3
+	BinaryType_BINARY_TYPE_THUNDER       BinaryType = 4
+	BinaryType_BINARY_TYPE_ZSIDE         BinaryType = 5
+	BinaryType_BINARY_TYPE_BITNAMES      BinaryType = 6
+	BinaryType_BINARY_TYPE_BITASSETS     BinaryType = 7
+	BinaryType_BINARY_TYPE_TRUTHCOIN     BinaryType = 8
+	BinaryType_BINARY_TYPE_PHOTON        BinaryType = 9
+	BinaryType_BINARY_TYPE_COINSHIFT     BinaryType = 10
+	BinaryType_BINARY_TYPE_GRPCURL       BinaryType = 11
+	BinaryType_BINARY_TYPE_ORCHESTRATORD BinaryType = 12
+	BinaryType_BINARY_TYPE_ZSIDED        BinaryType = 13
+)
+
+// Enum value maps for BinaryType.
+var (
+	BinaryType_name = map[int32]string{
+		0:  "BINARY_TYPE_UNSPECIFIED",
+		1:  "BINARY_TYPE_BITCOIND",
+		2:  "BINARY_TYPE_ENFORCER",
+		3:  "BINARY_TYPE_BITWINDOWD",
+		4:  "BINARY_TYPE_THUNDER",
+		5:  "BINARY_TYPE_ZSIDE",
+		6:  "BINARY_TYPE_BITNAMES",
+		7:  "BINARY_TYPE_BITASSETS",
+		8:  "BINARY_TYPE_TRUTHCOIN",
+		9:  "BINARY_TYPE_PHOTON",
+		10: "BINARY_TYPE_COINSHIFT",
+		11: "BINARY_TYPE_GRPCURL",
+		12: "BINARY_TYPE_ORCHESTRATORD",
+		13: "BINARY_TYPE_ZSIDED",
+	}
+	BinaryType_value = map[string]int32{
+		"BINARY_TYPE_UNSPECIFIED":   0,
+		"BINARY_TYPE_BITCOIND":      1,
+		"BINARY_TYPE_ENFORCER":      2,
+		"BINARY_TYPE_BITWINDOWD":    3,
+		"BINARY_TYPE_THUNDER":       4,
+		"BINARY_TYPE_ZSIDE":         5,
+		"BINARY_TYPE_BITNAMES":      6,
+		"BINARY_TYPE_BITASSETS":     7,
+		"BINARY_TYPE_TRUTHCOIN":     8,
+		"BINARY_TYPE_PHOTON":        9,
+		"BINARY_TYPE_COINSHIFT":     10,
+		"BINARY_TYPE_GRPCURL":       11,
+		"BINARY_TYPE_ORCHESTRATORD": 12,
+		"BINARY_TYPE_ZSIDED":        13,
+	}
+)
+
+func (x BinaryType) Enum() *BinaryType {
+	p := new(BinaryType)
+	*p = x
+	return p
+}
+
+func (x BinaryType) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (BinaryType) Descriptor() protoreflect.EnumDescriptor {
+	return file_orchestrator_v1_orchestrator_proto_enumTypes[1].Descriptor()
+}
+
+func (BinaryType) Type() protoreflect.EnumType {
+	return &file_orchestrator_v1_orchestrator_proto_enumTypes[1]
+}
+
+func (x BinaryType) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use BinaryType.Descriptor instead.
+func (BinaryType) EnumDescriptor() ([]byte, []int) {
+	return file_orchestrator_v1_orchestrator_proto_rawDescGZIP(), []int{1}
+}
+
 type BinaryStatusMsg struct {
 	state           protoimpl.MessageState `protogen:"open.v1"`
 	Name            string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
@@ -1751,20 +1838,16 @@ func (x *SidechainStatus) GetSync() *ChainSync {
 
 type ChainSync struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// While is_downloading=true: blocks = MB downloaded, headers = MB total.
-	// Otherwise: blocks = current tip height, headers = bitcoind's header
-	// count (or this daemon's own headers if mainchain is unavailable).
-	Blocks  int32 `protobuf:"varint,1,opt,name=blocks,proto3" json:"blocks,omitempty"`
+	// Current tip height for the chain.
+	Blocks int32 `protobuf:"varint,1,opt,name=blocks,proto3" json:"blocks,omitempty"`
+	// bitcoind's header count, or this daemon's own headers if mainchain is
+	// unavailable.
 	Headers int32 `protobuf:"varint,2,opt,name=headers,proto3" json:"headers,omitempty"`
 	// Block tip timestamp (unix seconds), 0 if no tip yet.
 	Time int64 `protobuf:"varint,3,opt,name=time,proto3" json:"time,omitempty"`
 	// Empty on success; otherwise a short description of why this daemon's
 	// sync info isn't available (not running, RPC error, etc.).
-	Error string `protobuf:"bytes,4,opt,name=error,proto3" json:"error,omitempty"`
-	// When true, the orchestrator is currently downloading the binary for
-	// this slot — blocks/headers carry MB downloaded / MB total instead of
-	// chain heights. The UI uses this to format "X MB" vs "N blocks".
-	IsDownloading bool `protobuf:"varint,5,opt,name=is_downloading,json=isDownloading,proto3" json:"is_downloading,omitempty"`
+	Error         string `protobuf:"bytes,4,opt,name=error,proto3" json:"error,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1827,11 +1910,157 @@ func (x *ChainSync) GetError() string {
 	return ""
 }
 
-func (x *ChainSync) GetIsDownloading() bool {
+type GetDownloadStatusRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetDownloadStatusRequest) Reset() {
+	*x = GetDownloadStatusRequest{}
+	mi := &file_orchestrator_v1_orchestrator_proto_msgTypes[30]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetDownloadStatusRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetDownloadStatusRequest) ProtoMessage() {}
+
+func (x *GetDownloadStatusRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_orchestrator_v1_orchestrator_proto_msgTypes[30]
 	if x != nil {
-		return x.IsDownloading
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
 	}
-	return false
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetDownloadStatusRequest.ProtoReflect.Descriptor instead.
+func (*GetDownloadStatusRequest) Descriptor() ([]byte, []int) {
+	return file_orchestrator_v1_orchestrator_proto_rawDescGZIP(), []int{30}
+}
+
+type GetDownloadStatusResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Downloads     []*DownloadStatus      `protobuf:"bytes,1,rep,name=downloads,proto3" json:"downloads,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetDownloadStatusResponse) Reset() {
+	*x = GetDownloadStatusResponse{}
+	mi := &file_orchestrator_v1_orchestrator_proto_msgTypes[31]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetDownloadStatusResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetDownloadStatusResponse) ProtoMessage() {}
+
+func (x *GetDownloadStatusResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_orchestrator_v1_orchestrator_proto_msgTypes[31]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetDownloadStatusResponse.ProtoReflect.Descriptor instead.
+func (*GetDownloadStatusResponse) Descriptor() ([]byte, []int) {
+	return file_orchestrator_v1_orchestrator_proto_rawDescGZIP(), []int{31}
+}
+
+func (x *GetDownloadStatusResponse) GetDownloads() []*DownloadStatus {
+	if x != nil {
+		return x.Downloads
+	}
+	return nil
+}
+
+type DownloadStatus struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Typed identifier for the binary being downloaded.
+	Binary BinaryType `protobuf:"varint,1,opt,name=binary,proto3,enum=orchestrator.v1.BinaryType" json:"binary,omitempty"`
+	// Megabytes downloaded so far. Source of truth lives in DownloadManager.
+	MbDownloaded int64 `protobuf:"varint,2,opt,name=mb_downloaded,json=mbDownloaded,proto3" json:"mb_downloaded,omitempty"`
+	// Total size in megabytes, or -1 when the server hasn't reported a
+	// Content-Length yet.
+	MbTotal int64 `protobuf:"varint,3,opt,name=mb_total,json=mbTotal,proto3" json:"mb_total,omitempty"`
+	// Optional human-readable progress string ("verifying hash", ...).
+	Message       string `protobuf:"bytes,4,opt,name=message,proto3" json:"message,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DownloadStatus) Reset() {
+	*x = DownloadStatus{}
+	mi := &file_orchestrator_v1_orchestrator_proto_msgTypes[32]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DownloadStatus) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DownloadStatus) ProtoMessage() {}
+
+func (x *DownloadStatus) ProtoReflect() protoreflect.Message {
+	mi := &file_orchestrator_v1_orchestrator_proto_msgTypes[32]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DownloadStatus.ProtoReflect.Descriptor instead.
+func (*DownloadStatus) Descriptor() ([]byte, []int) {
+	return file_orchestrator_v1_orchestrator_proto_rawDescGZIP(), []int{32}
+}
+
+func (x *DownloadStatus) GetBinary() BinaryType {
+	if x != nil {
+		return x.Binary
+	}
+	return BinaryType_BINARY_TYPE_UNSPECIFIED
+}
+
+func (x *DownloadStatus) GetMbDownloaded() int64 {
+	if x != nil {
+		return x.MbDownloaded
+	}
+	return 0
+}
+
+func (x *DownloadStatus) GetMbTotal() int64 {
+	if x != nil {
+		return x.MbTotal
+	}
+	return 0
+}
+
+func (x *DownloadStatus) GetMessage() string {
+	if x != nil {
+		return x.Message
+	}
+	return ""
 }
 
 type GetMainchainBalanceRequest struct {
@@ -1842,7 +2071,7 @@ type GetMainchainBalanceRequest struct {
 
 func (x *GetMainchainBalanceRequest) Reset() {
 	*x = GetMainchainBalanceRequest{}
-	mi := &file_orchestrator_v1_orchestrator_proto_msgTypes[30]
+	mi := &file_orchestrator_v1_orchestrator_proto_msgTypes[33]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1854,7 +2083,7 @@ func (x *GetMainchainBalanceRequest) String() string {
 func (*GetMainchainBalanceRequest) ProtoMessage() {}
 
 func (x *GetMainchainBalanceRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_orchestrator_v1_orchestrator_proto_msgTypes[30]
+	mi := &file_orchestrator_v1_orchestrator_proto_msgTypes[33]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1867,7 +2096,7 @@ func (x *GetMainchainBalanceRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetMainchainBalanceRequest.ProtoReflect.Descriptor instead.
 func (*GetMainchainBalanceRequest) Descriptor() ([]byte, []int) {
-	return file_orchestrator_v1_orchestrator_proto_rawDescGZIP(), []int{30}
+	return file_orchestrator_v1_orchestrator_proto_rawDescGZIP(), []int{33}
 }
 
 type GetMainchainBalanceResponse struct {
@@ -1880,7 +2109,7 @@ type GetMainchainBalanceResponse struct {
 
 func (x *GetMainchainBalanceResponse) Reset() {
 	*x = GetMainchainBalanceResponse{}
-	mi := &file_orchestrator_v1_orchestrator_proto_msgTypes[31]
+	mi := &file_orchestrator_v1_orchestrator_proto_msgTypes[34]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1892,7 +2121,7 @@ func (x *GetMainchainBalanceResponse) String() string {
 func (*GetMainchainBalanceResponse) ProtoMessage() {}
 
 func (x *GetMainchainBalanceResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_orchestrator_v1_orchestrator_proto_msgTypes[31]
+	mi := &file_orchestrator_v1_orchestrator_proto_msgTypes[34]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1905,7 +2134,7 @@ func (x *GetMainchainBalanceResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetMainchainBalanceResponse.ProtoReflect.Descriptor instead.
 func (*GetMainchainBalanceResponse) Descriptor() ([]byte, []int) {
-	return file_orchestrator_v1_orchestrator_proto_rawDescGZIP(), []int{31}
+	return file_orchestrator_v1_orchestrator_proto_rawDescGZIP(), []int{34}
 }
 
 func (x *GetMainchainBalanceResponse) GetConfirmed() float64 {
@@ -1936,7 +2165,7 @@ type PreviewResetDataRequest struct {
 
 func (x *PreviewResetDataRequest) Reset() {
 	*x = PreviewResetDataRequest{}
-	mi := &file_orchestrator_v1_orchestrator_proto_msgTypes[32]
+	mi := &file_orchestrator_v1_orchestrator_proto_msgTypes[35]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1948,7 +2177,7 @@ func (x *PreviewResetDataRequest) String() string {
 func (*PreviewResetDataRequest) ProtoMessage() {}
 
 func (x *PreviewResetDataRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_orchestrator_v1_orchestrator_proto_msgTypes[32]
+	mi := &file_orchestrator_v1_orchestrator_proto_msgTypes[35]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1961,7 +2190,7 @@ func (x *PreviewResetDataRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PreviewResetDataRequest.ProtoReflect.Descriptor instead.
 func (*PreviewResetDataRequest) Descriptor() ([]byte, []int) {
-	return file_orchestrator_v1_orchestrator_proto_rawDescGZIP(), []int{32}
+	return file_orchestrator_v1_orchestrator_proto_rawDescGZIP(), []int{35}
 }
 
 func (x *PreviewResetDataRequest) GetDeleteBlockchainData() bool {
@@ -2015,7 +2244,7 @@ type PreviewResetDataResponse struct {
 
 func (x *PreviewResetDataResponse) Reset() {
 	*x = PreviewResetDataResponse{}
-	mi := &file_orchestrator_v1_orchestrator_proto_msgTypes[33]
+	mi := &file_orchestrator_v1_orchestrator_proto_msgTypes[36]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2027,7 +2256,7 @@ func (x *PreviewResetDataResponse) String() string {
 func (*PreviewResetDataResponse) ProtoMessage() {}
 
 func (x *PreviewResetDataResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_orchestrator_v1_orchestrator_proto_msgTypes[33]
+	mi := &file_orchestrator_v1_orchestrator_proto_msgTypes[36]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2040,7 +2269,7 @@ func (x *PreviewResetDataResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PreviewResetDataResponse.ProtoReflect.Descriptor instead.
 func (*PreviewResetDataResponse) Descriptor() ([]byte, []int) {
-	return file_orchestrator_v1_orchestrator_proto_rawDescGZIP(), []int{33}
+	return file_orchestrator_v1_orchestrator_proto_rawDescGZIP(), []int{36}
 }
 
 func (x *PreviewResetDataResponse) GetFiles() []*ResetFileInfo {
@@ -2062,7 +2291,7 @@ type ResetFileInfo struct {
 
 func (x *ResetFileInfo) Reset() {
 	*x = ResetFileInfo{}
-	mi := &file_orchestrator_v1_orchestrator_proto_msgTypes[34]
+	mi := &file_orchestrator_v1_orchestrator_proto_msgTypes[37]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2074,7 +2303,7 @@ func (x *ResetFileInfo) String() string {
 func (*ResetFileInfo) ProtoMessage() {}
 
 func (x *ResetFileInfo) ProtoReflect() protoreflect.Message {
-	mi := &file_orchestrator_v1_orchestrator_proto_msgTypes[34]
+	mi := &file_orchestrator_v1_orchestrator_proto_msgTypes[37]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2087,7 +2316,7 @@ func (x *ResetFileInfo) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ResetFileInfo.ProtoReflect.Descriptor instead.
 func (*ResetFileInfo) Descriptor() ([]byte, []int) {
-	return file_orchestrator_v1_orchestrator_proto_rawDescGZIP(), []int{34}
+	return file_orchestrator_v1_orchestrator_proto_rawDescGZIP(), []int{37}
 }
 
 func (x *ResetFileInfo) GetPath() string {
@@ -2132,7 +2361,7 @@ type StreamResetDataRequest struct {
 
 func (x *StreamResetDataRequest) Reset() {
 	*x = StreamResetDataRequest{}
-	mi := &file_orchestrator_v1_orchestrator_proto_msgTypes[35]
+	mi := &file_orchestrator_v1_orchestrator_proto_msgTypes[38]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2144,7 +2373,7 @@ func (x *StreamResetDataRequest) String() string {
 func (*StreamResetDataRequest) ProtoMessage() {}
 
 func (x *StreamResetDataRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_orchestrator_v1_orchestrator_proto_msgTypes[35]
+	mi := &file_orchestrator_v1_orchestrator_proto_msgTypes[38]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2157,7 +2386,7 @@ func (x *StreamResetDataRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StreamResetDataRequest.ProtoReflect.Descriptor instead.
 func (*StreamResetDataRequest) Descriptor() ([]byte, []int) {
-	return file_orchestrator_v1_orchestrator_proto_rawDescGZIP(), []int{35}
+	return file_orchestrator_v1_orchestrator_proto_rawDescGZIP(), []int{38}
 }
 
 func (x *StreamResetDataRequest) GetDeleteBlockchainData() bool {
@@ -2217,7 +2446,7 @@ type StreamResetDataResponse struct {
 
 func (x *StreamResetDataResponse) Reset() {
 	*x = StreamResetDataResponse{}
-	mi := &file_orchestrator_v1_orchestrator_proto_msgTypes[36]
+	mi := &file_orchestrator_v1_orchestrator_proto_msgTypes[39]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2229,7 +2458,7 @@ func (x *StreamResetDataResponse) String() string {
 func (*StreamResetDataResponse) ProtoMessage() {}
 
 func (x *StreamResetDataResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_orchestrator_v1_orchestrator_proto_msgTypes[36]
+	mi := &file_orchestrator_v1_orchestrator_proto_msgTypes[39]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2242,7 +2471,7 @@ func (x *StreamResetDataResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StreamResetDataResponse.ProtoReflect.Descriptor instead.
 func (*StreamResetDataResponse) Descriptor() ([]byte, []int) {
-	return file_orchestrator_v1_orchestrator_proto_rawDescGZIP(), []int{36}
+	return file_orchestrator_v1_orchestrator_proto_rawDescGZIP(), []int{39}
 }
 
 func (x *StreamResetDataResponse) GetPath() string {
@@ -2302,7 +2531,7 @@ type GetCoreMempoolInfoRequest struct {
 
 func (x *GetCoreMempoolInfoRequest) Reset() {
 	*x = GetCoreMempoolInfoRequest{}
-	mi := &file_orchestrator_v1_orchestrator_proto_msgTypes[37]
+	mi := &file_orchestrator_v1_orchestrator_proto_msgTypes[40]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2314,7 +2543,7 @@ func (x *GetCoreMempoolInfoRequest) String() string {
 func (*GetCoreMempoolInfoRequest) ProtoMessage() {}
 
 func (x *GetCoreMempoolInfoRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_orchestrator_v1_orchestrator_proto_msgTypes[37]
+	mi := &file_orchestrator_v1_orchestrator_proto_msgTypes[40]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2327,7 +2556,7 @@ func (x *GetCoreMempoolInfoRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetCoreMempoolInfoRequest.ProtoReflect.Descriptor instead.
 func (*GetCoreMempoolInfoRequest) Descriptor() ([]byte, []int) {
-	return file_orchestrator_v1_orchestrator_proto_rawDescGZIP(), []int{37}
+	return file_orchestrator_v1_orchestrator_proto_rawDescGZIP(), []int{40}
 }
 
 // Mirrors bitcoind's getmempoolinfo. Aggregate stats — distinct from
@@ -2360,7 +2589,7 @@ type GetCoreMempoolInfoResponse struct {
 
 func (x *GetCoreMempoolInfoResponse) Reset() {
 	*x = GetCoreMempoolInfoResponse{}
-	mi := &file_orchestrator_v1_orchestrator_proto_msgTypes[38]
+	mi := &file_orchestrator_v1_orchestrator_proto_msgTypes[41]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2372,7 +2601,7 @@ func (x *GetCoreMempoolInfoResponse) String() string {
 func (*GetCoreMempoolInfoResponse) ProtoMessage() {}
 
 func (x *GetCoreMempoolInfoResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_orchestrator_v1_orchestrator_proto_msgTypes[38]
+	mi := &file_orchestrator_v1_orchestrator_proto_msgTypes[41]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2385,7 +2614,7 @@ func (x *GetCoreMempoolInfoResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetCoreMempoolInfoResponse.ProtoReflect.Descriptor instead.
 func (*GetCoreMempoolInfoResponse) Descriptor() ([]byte, []int) {
-	return file_orchestrator_v1_orchestrator_proto_rawDescGZIP(), []int{38}
+	return file_orchestrator_v1_orchestrator_proto_rawDescGZIP(), []int{41}
 }
 
 func (x *GetCoreMempoolInfoResponse) GetLoaded() bool {
@@ -2483,7 +2712,7 @@ type CoreRawCallRequest struct {
 
 func (x *CoreRawCallRequest) Reset() {
 	*x = CoreRawCallRequest{}
-	mi := &file_orchestrator_v1_orchestrator_proto_msgTypes[39]
+	mi := &file_orchestrator_v1_orchestrator_proto_msgTypes[42]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2495,7 +2724,7 @@ func (x *CoreRawCallRequest) String() string {
 func (*CoreRawCallRequest) ProtoMessage() {}
 
 func (x *CoreRawCallRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_orchestrator_v1_orchestrator_proto_msgTypes[39]
+	mi := &file_orchestrator_v1_orchestrator_proto_msgTypes[42]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2508,7 +2737,7 @@ func (x *CoreRawCallRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CoreRawCallRequest.ProtoReflect.Descriptor instead.
 func (*CoreRawCallRequest) Descriptor() ([]byte, []int) {
-	return file_orchestrator_v1_orchestrator_proto_rawDescGZIP(), []int{39}
+	return file_orchestrator_v1_orchestrator_proto_rawDescGZIP(), []int{42}
 }
 
 func (x *CoreRawCallRequest) GetMethod() string {
@@ -2542,7 +2771,7 @@ type CoreRawCallResponse struct {
 
 func (x *CoreRawCallResponse) Reset() {
 	*x = CoreRawCallResponse{}
-	mi := &file_orchestrator_v1_orchestrator_proto_msgTypes[40]
+	mi := &file_orchestrator_v1_orchestrator_proto_msgTypes[43]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2554,7 +2783,7 @@ func (x *CoreRawCallResponse) String() string {
 func (*CoreRawCallResponse) ProtoMessage() {}
 
 func (x *CoreRawCallResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_orchestrator_v1_orchestrator_proto_msgTypes[40]
+	mi := &file_orchestrator_v1_orchestrator_proto_msgTypes[43]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2567,7 +2796,7 @@ func (x *CoreRawCallResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CoreRawCallResponse.ProtoReflect.Descriptor instead.
 func (*CoreRawCallResponse) Descriptor() ([]byte, []int) {
-	return file_orchestrator_v1_orchestrator_proto_rawDescGZIP(), []int{40}
+	return file_orchestrator_v1_orchestrator_proto_rawDescGZIP(), []int{43}
 }
 
 func (x *CoreRawCallResponse) GetResultJson() string {
@@ -2709,13 +2938,20 @@ const file_orchestrator_v1_orchestrator_proto_rawDesc = "" +
 	"sidechains\"u\n" +
 	"\x0fSidechainStatus\x122\n" +
 	"\x04type\x18\x01 \x01(\x0e2\x1e.orchestrator.v1.SidechainTypeR\x04type\x12.\n" +
-	"\x04sync\x18\x02 \x01(\v2\x1a.orchestrator.v1.ChainSyncR\x04sync\"\x8e\x01\n" +
+	"\x04sync\x18\x02 \x01(\v2\x1a.orchestrator.v1.ChainSyncR\x04sync\"g\n" +
 	"\tChainSync\x12\x16\n" +
 	"\x06blocks\x18\x01 \x01(\x05R\x06blocks\x12\x18\n" +
 	"\aheaders\x18\x02 \x01(\x05R\aheaders\x12\x12\n" +
 	"\x04time\x18\x03 \x01(\x03R\x04time\x12\x14\n" +
-	"\x05error\x18\x04 \x01(\tR\x05error\x12%\n" +
-	"\x0eis_downloading\x18\x05 \x01(\bR\risDownloading\"\x1c\n" +
+	"\x05error\x18\x04 \x01(\tR\x05error\"\x1a\n" +
+	"\x18GetDownloadStatusRequest\"Z\n" +
+	"\x19GetDownloadStatusResponse\x12=\n" +
+	"\tdownloads\x18\x01 \x03(\v2\x1f.orchestrator.v1.DownloadStatusR\tdownloads\"\x9f\x01\n" +
+	"\x0eDownloadStatus\x123\n" +
+	"\x06binary\x18\x01 \x01(\x0e2\x1b.orchestrator.v1.BinaryTypeR\x06binary\x12#\n" +
+	"\rmb_downloaded\x18\x02 \x01(\x03R\fmbDownloaded\x12\x19\n" +
+	"\bmb_total\x18\x03 \x01(\x03R\ambTotal\x12\x18\n" +
+	"\amessage\x18\x04 \x01(\tR\amessage\"\x1c\n" +
 	"\x1aGetMainchainBalanceRequest\"]\n" +
 	"\x1bGetMainchainBalanceResponse\x12\x1c\n" +
 	"\tconfirmed\x18\x01 \x01(\x01R\tconfirmed\x12 \n" +
@@ -2783,7 +3019,24 @@ const file_orchestrator_v1_orchestrator_proto_rawDesc = "" +
 	"\x18SIDECHAIN_TYPE_BITASSETS\x10\x04\x12\x1c\n" +
 	"\x18SIDECHAIN_TYPE_TRUTHCOIN\x10\x05\x12\x19\n" +
 	"\x15SIDECHAIN_TYPE_PHOTON\x10\x06\x12\x1c\n" +
-	"\x18SIDECHAIN_TYPE_COINSHIFT\x10\a2\xae\x0e\n" +
+	"\x18SIDECHAIN_TYPE_COINSHIFT\x10\a*\xfc\x02\n" +
+	"\n" +
+	"BinaryType\x12\x1b\n" +
+	"\x17BINARY_TYPE_UNSPECIFIED\x10\x00\x12\x18\n" +
+	"\x14BINARY_TYPE_BITCOIND\x10\x01\x12\x18\n" +
+	"\x14BINARY_TYPE_ENFORCER\x10\x02\x12\x1a\n" +
+	"\x16BINARY_TYPE_BITWINDOWD\x10\x03\x12\x17\n" +
+	"\x13BINARY_TYPE_THUNDER\x10\x04\x12\x15\n" +
+	"\x11BINARY_TYPE_ZSIDE\x10\x05\x12\x18\n" +
+	"\x14BINARY_TYPE_BITNAMES\x10\x06\x12\x19\n" +
+	"\x15BINARY_TYPE_BITASSETS\x10\a\x12\x19\n" +
+	"\x15BINARY_TYPE_TRUTHCOIN\x10\b\x12\x16\n" +
+	"\x12BINARY_TYPE_PHOTON\x10\t\x12\x19\n" +
+	"\x15BINARY_TYPE_COINSHIFT\x10\n" +
+	"\x12\x17\n" +
+	"\x13BINARY_TYPE_GRPCURL\x10\v\x12\x1d\n" +
+	"\x19BINARY_TYPE_ORCHESTRATORD\x10\f\x12\x16\n" +
+	"\x12BINARY_TYPE_ZSIDED\x10\r2\x9a\x0f\n" +
 	"\x13OrchestratorService\x12[\n" +
 	"\fListBinaries\x12$.orchestrator.v1.ListBinariesRequest\x1a%.orchestrator.v1.ListBinariesResponse\x12d\n" +
 	"\x0fGetBinaryStatus\x12'.orchestrator.v1.GetBinaryStatusRequest\x1a(.orchestrator.v1.GetBinaryStatusResponse\x12a\n" +
@@ -2799,7 +3052,8 @@ const file_orchestrator_v1_orchestrator_proto_rawDesc = "" +
 	"\vGetBTCPrice\x12#.orchestrator.v1.GetBTCPriceRequest\x1a$.orchestrator.v1.GetBTCPriceResponse\x12\x85\x01\n" +
 	"\x1aGetMainchainBlockchainInfo\x122.orchestrator.v1.GetMainchainBlockchainInfoRequest\x1a3.orchestrator.v1.GetMainchainBlockchainInfoResponse\x12\x82\x01\n" +
 	"\x19GetEnforcerBlockchainInfo\x121.orchestrator.v1.GetEnforcerBlockchainInfoRequest\x1a2.orchestrator.v1.GetEnforcerBlockchainInfoResponse\x12^\n" +
-	"\rGetSyncStatus\x12%.orchestrator.v1.GetSyncStatusRequest\x1a&.orchestrator.v1.GetSyncStatusResponse\x12p\n" +
+	"\rGetSyncStatus\x12%.orchestrator.v1.GetSyncStatusRequest\x1a&.orchestrator.v1.GetSyncStatusResponse\x12j\n" +
+	"\x11GetDownloadStatus\x12).orchestrator.v1.GetDownloadStatusRequest\x1a*.orchestrator.v1.GetDownloadStatusResponse\x12p\n" +
 	"\x13GetMainchainBalance\x12+.orchestrator.v1.GetMainchainBalanceRequest\x1a,.orchestrator.v1.GetMainchainBalanceResponse\x12g\n" +
 	"\x10PreviewResetData\x12(.orchestrator.v1.PreviewResetDataRequest\x1a).orchestrator.v1.PreviewResetDataResponse\x12f\n" +
 	"\x0fStreamResetData\x12'.orchestrator.v1.StreamResetDataRequest\x1a(.orchestrator.v1.StreamResetDataResponse0\x01\x12m\n" +
@@ -2819,107 +3073,115 @@ func file_orchestrator_v1_orchestrator_proto_rawDescGZIP() []byte {
 	return file_orchestrator_v1_orchestrator_proto_rawDescData
 }
 
-var file_orchestrator_v1_orchestrator_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_orchestrator_v1_orchestrator_proto_msgTypes = make([]protoimpl.MessageInfo, 43)
+var file_orchestrator_v1_orchestrator_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
+var file_orchestrator_v1_orchestrator_proto_msgTypes = make([]protoimpl.MessageInfo, 46)
 var file_orchestrator_v1_orchestrator_proto_goTypes = []any{
 	(SidechainType)(0),                         // 0: orchestrator.v1.SidechainType
-	(*BinaryStatusMsg)(nil),                    // 1: orchestrator.v1.BinaryStatusMsg
-	(*StartupLogEntryMsg)(nil),                 // 2: orchestrator.v1.StartupLogEntryMsg
-	(*ListBinariesRequest)(nil),                // 3: orchestrator.v1.ListBinariesRequest
-	(*ListBinariesResponse)(nil),               // 4: orchestrator.v1.ListBinariesResponse
-	(*GetBinaryStatusRequest)(nil),             // 5: orchestrator.v1.GetBinaryStatusRequest
-	(*GetBinaryStatusResponse)(nil),            // 6: orchestrator.v1.GetBinaryStatusResponse
-	(*DownloadBinaryRequest)(nil),              // 7: orchestrator.v1.DownloadBinaryRequest
-	(*DownloadBinaryResponse)(nil),             // 8: orchestrator.v1.DownloadBinaryResponse
-	(*StartBinaryRequest)(nil),                 // 9: orchestrator.v1.StartBinaryRequest
-	(*StartBinaryResponse)(nil),                // 10: orchestrator.v1.StartBinaryResponse
-	(*StopBinaryRequest)(nil),                  // 11: orchestrator.v1.StopBinaryRequest
-	(*StopBinaryResponse)(nil),                 // 12: orchestrator.v1.StopBinaryResponse
-	(*StreamLogsRequest)(nil),                  // 13: orchestrator.v1.StreamLogsRequest
-	(*StreamLogsResponse)(nil),                 // 14: orchestrator.v1.StreamLogsResponse
-	(*StartWithL1Request)(nil),                 // 15: orchestrator.v1.StartWithL1Request
-	(*StartWithL1Response)(nil),                // 16: orchestrator.v1.StartWithL1Response
-	(*RestartDaemonRequest)(nil),               // 17: orchestrator.v1.RestartDaemonRequest
-	(*RestartDaemonResponse)(nil),              // 18: orchestrator.v1.RestartDaemonResponse
-	(*ShutdownAllRequest)(nil),                 // 19: orchestrator.v1.ShutdownAllRequest
-	(*ShutdownAllResponse)(nil),                // 20: orchestrator.v1.ShutdownAllResponse
-	(*GetBTCPriceRequest)(nil),                 // 21: orchestrator.v1.GetBTCPriceRequest
-	(*GetBTCPriceResponse)(nil),                // 22: orchestrator.v1.GetBTCPriceResponse
-	(*GetMainchainBlockchainInfoRequest)(nil),  // 23: orchestrator.v1.GetMainchainBlockchainInfoRequest
-	(*GetMainchainBlockchainInfoResponse)(nil), // 24: orchestrator.v1.GetMainchainBlockchainInfoResponse
-	(*GetEnforcerBlockchainInfoRequest)(nil),   // 25: orchestrator.v1.GetEnforcerBlockchainInfoRequest
-	(*GetEnforcerBlockchainInfoResponse)(nil),  // 26: orchestrator.v1.GetEnforcerBlockchainInfoResponse
-	(*GetSyncStatusRequest)(nil),               // 27: orchestrator.v1.GetSyncStatusRequest
-	(*GetSyncStatusResponse)(nil),              // 28: orchestrator.v1.GetSyncStatusResponse
-	(*SidechainStatus)(nil),                    // 29: orchestrator.v1.SidechainStatus
-	(*ChainSync)(nil),                          // 30: orchestrator.v1.ChainSync
-	(*GetMainchainBalanceRequest)(nil),         // 31: orchestrator.v1.GetMainchainBalanceRequest
-	(*GetMainchainBalanceResponse)(nil),        // 32: orchestrator.v1.GetMainchainBalanceResponse
-	(*PreviewResetDataRequest)(nil),            // 33: orchestrator.v1.PreviewResetDataRequest
-	(*PreviewResetDataResponse)(nil),           // 34: orchestrator.v1.PreviewResetDataResponse
-	(*ResetFileInfo)(nil),                      // 35: orchestrator.v1.ResetFileInfo
-	(*StreamResetDataRequest)(nil),             // 36: orchestrator.v1.StreamResetDataRequest
-	(*StreamResetDataResponse)(nil),            // 37: orchestrator.v1.StreamResetDataResponse
-	(*GetCoreMempoolInfoRequest)(nil),          // 38: orchestrator.v1.GetCoreMempoolInfoRequest
-	(*GetCoreMempoolInfoResponse)(nil),         // 39: orchestrator.v1.GetCoreMempoolInfoResponse
-	(*CoreRawCallRequest)(nil),                 // 40: orchestrator.v1.CoreRawCallRequest
-	(*CoreRawCallResponse)(nil),                // 41: orchestrator.v1.CoreRawCallResponse
-	nil,                                        // 42: orchestrator.v1.StartBinaryRequest.EnvEntry
-	nil,                                        // 43: orchestrator.v1.StartWithL1Request.TargetEnvEntry
+	(BinaryType)(0),                            // 1: orchestrator.v1.BinaryType
+	(*BinaryStatusMsg)(nil),                    // 2: orchestrator.v1.BinaryStatusMsg
+	(*StartupLogEntryMsg)(nil),                 // 3: orchestrator.v1.StartupLogEntryMsg
+	(*ListBinariesRequest)(nil),                // 4: orchestrator.v1.ListBinariesRequest
+	(*ListBinariesResponse)(nil),               // 5: orchestrator.v1.ListBinariesResponse
+	(*GetBinaryStatusRequest)(nil),             // 6: orchestrator.v1.GetBinaryStatusRequest
+	(*GetBinaryStatusResponse)(nil),            // 7: orchestrator.v1.GetBinaryStatusResponse
+	(*DownloadBinaryRequest)(nil),              // 8: orchestrator.v1.DownloadBinaryRequest
+	(*DownloadBinaryResponse)(nil),             // 9: orchestrator.v1.DownloadBinaryResponse
+	(*StartBinaryRequest)(nil),                 // 10: orchestrator.v1.StartBinaryRequest
+	(*StartBinaryResponse)(nil),                // 11: orchestrator.v1.StartBinaryResponse
+	(*StopBinaryRequest)(nil),                  // 12: orchestrator.v1.StopBinaryRequest
+	(*StopBinaryResponse)(nil),                 // 13: orchestrator.v1.StopBinaryResponse
+	(*StreamLogsRequest)(nil),                  // 14: orchestrator.v1.StreamLogsRequest
+	(*StreamLogsResponse)(nil),                 // 15: orchestrator.v1.StreamLogsResponse
+	(*StartWithL1Request)(nil),                 // 16: orchestrator.v1.StartWithL1Request
+	(*StartWithL1Response)(nil),                // 17: orchestrator.v1.StartWithL1Response
+	(*RestartDaemonRequest)(nil),               // 18: orchestrator.v1.RestartDaemonRequest
+	(*RestartDaemonResponse)(nil),              // 19: orchestrator.v1.RestartDaemonResponse
+	(*ShutdownAllRequest)(nil),                 // 20: orchestrator.v1.ShutdownAllRequest
+	(*ShutdownAllResponse)(nil),                // 21: orchestrator.v1.ShutdownAllResponse
+	(*GetBTCPriceRequest)(nil),                 // 22: orchestrator.v1.GetBTCPriceRequest
+	(*GetBTCPriceResponse)(nil),                // 23: orchestrator.v1.GetBTCPriceResponse
+	(*GetMainchainBlockchainInfoRequest)(nil),  // 24: orchestrator.v1.GetMainchainBlockchainInfoRequest
+	(*GetMainchainBlockchainInfoResponse)(nil), // 25: orchestrator.v1.GetMainchainBlockchainInfoResponse
+	(*GetEnforcerBlockchainInfoRequest)(nil),   // 26: orchestrator.v1.GetEnforcerBlockchainInfoRequest
+	(*GetEnforcerBlockchainInfoResponse)(nil),  // 27: orchestrator.v1.GetEnforcerBlockchainInfoResponse
+	(*GetSyncStatusRequest)(nil),               // 28: orchestrator.v1.GetSyncStatusRequest
+	(*GetSyncStatusResponse)(nil),              // 29: orchestrator.v1.GetSyncStatusResponse
+	(*SidechainStatus)(nil),                    // 30: orchestrator.v1.SidechainStatus
+	(*ChainSync)(nil),                          // 31: orchestrator.v1.ChainSync
+	(*GetDownloadStatusRequest)(nil),           // 32: orchestrator.v1.GetDownloadStatusRequest
+	(*GetDownloadStatusResponse)(nil),          // 33: orchestrator.v1.GetDownloadStatusResponse
+	(*DownloadStatus)(nil),                     // 34: orchestrator.v1.DownloadStatus
+	(*GetMainchainBalanceRequest)(nil),         // 35: orchestrator.v1.GetMainchainBalanceRequest
+	(*GetMainchainBalanceResponse)(nil),        // 36: orchestrator.v1.GetMainchainBalanceResponse
+	(*PreviewResetDataRequest)(nil),            // 37: orchestrator.v1.PreviewResetDataRequest
+	(*PreviewResetDataResponse)(nil),           // 38: orchestrator.v1.PreviewResetDataResponse
+	(*ResetFileInfo)(nil),                      // 39: orchestrator.v1.ResetFileInfo
+	(*StreamResetDataRequest)(nil),             // 40: orchestrator.v1.StreamResetDataRequest
+	(*StreamResetDataResponse)(nil),            // 41: orchestrator.v1.StreamResetDataResponse
+	(*GetCoreMempoolInfoRequest)(nil),          // 42: orchestrator.v1.GetCoreMempoolInfoRequest
+	(*GetCoreMempoolInfoResponse)(nil),         // 43: orchestrator.v1.GetCoreMempoolInfoResponse
+	(*CoreRawCallRequest)(nil),                 // 44: orchestrator.v1.CoreRawCallRequest
+	(*CoreRawCallResponse)(nil),                // 45: orchestrator.v1.CoreRawCallResponse
+	nil,                                        // 46: orchestrator.v1.StartBinaryRequest.EnvEntry
+	nil,                                        // 47: orchestrator.v1.StartWithL1Request.TargetEnvEntry
 }
 var file_orchestrator_v1_orchestrator_proto_depIdxs = []int32{
-	2,  // 0: orchestrator.v1.BinaryStatusMsg.startup_logs:type_name -> orchestrator.v1.StartupLogEntryMsg
-	1,  // 1: orchestrator.v1.ListBinariesResponse.binaries:type_name -> orchestrator.v1.BinaryStatusMsg
-	1,  // 2: orchestrator.v1.GetBinaryStatusResponse.status:type_name -> orchestrator.v1.BinaryStatusMsg
-	42, // 3: orchestrator.v1.StartBinaryRequest.env:type_name -> orchestrator.v1.StartBinaryRequest.EnvEntry
-	43, // 4: orchestrator.v1.StartWithL1Request.target_env:type_name -> orchestrator.v1.StartWithL1Request.TargetEnvEntry
-	30, // 5: orchestrator.v1.GetSyncStatusResponse.mainchain:type_name -> orchestrator.v1.ChainSync
-	30, // 6: orchestrator.v1.GetSyncStatusResponse.enforcer:type_name -> orchestrator.v1.ChainSync
-	29, // 7: orchestrator.v1.GetSyncStatusResponse.sidechains:type_name -> orchestrator.v1.SidechainStatus
+	3,  // 0: orchestrator.v1.BinaryStatusMsg.startup_logs:type_name -> orchestrator.v1.StartupLogEntryMsg
+	2,  // 1: orchestrator.v1.ListBinariesResponse.binaries:type_name -> orchestrator.v1.BinaryStatusMsg
+	2,  // 2: orchestrator.v1.GetBinaryStatusResponse.status:type_name -> orchestrator.v1.BinaryStatusMsg
+	46, // 3: orchestrator.v1.StartBinaryRequest.env:type_name -> orchestrator.v1.StartBinaryRequest.EnvEntry
+	47, // 4: orchestrator.v1.StartWithL1Request.target_env:type_name -> orchestrator.v1.StartWithL1Request.TargetEnvEntry
+	31, // 5: orchestrator.v1.GetSyncStatusResponse.mainchain:type_name -> orchestrator.v1.ChainSync
+	31, // 6: orchestrator.v1.GetSyncStatusResponse.enforcer:type_name -> orchestrator.v1.ChainSync
+	30, // 7: orchestrator.v1.GetSyncStatusResponse.sidechains:type_name -> orchestrator.v1.SidechainStatus
 	0,  // 8: orchestrator.v1.SidechainStatus.type:type_name -> orchestrator.v1.SidechainType
-	30, // 9: orchestrator.v1.SidechainStatus.sync:type_name -> orchestrator.v1.ChainSync
-	35, // 10: orchestrator.v1.PreviewResetDataResponse.files:type_name -> orchestrator.v1.ResetFileInfo
-	3,  // 11: orchestrator.v1.OrchestratorService.ListBinaries:input_type -> orchestrator.v1.ListBinariesRequest
-	5,  // 12: orchestrator.v1.OrchestratorService.GetBinaryStatus:input_type -> orchestrator.v1.GetBinaryStatusRequest
-	7,  // 13: orchestrator.v1.OrchestratorService.DownloadBinary:input_type -> orchestrator.v1.DownloadBinaryRequest
-	9,  // 14: orchestrator.v1.OrchestratorService.StartBinary:input_type -> orchestrator.v1.StartBinaryRequest
-	11, // 15: orchestrator.v1.OrchestratorService.StopBinary:input_type -> orchestrator.v1.StopBinaryRequest
-	13, // 16: orchestrator.v1.OrchestratorService.StreamLogs:input_type -> orchestrator.v1.StreamLogsRequest
-	15, // 17: orchestrator.v1.OrchestratorService.StartWithL1:input_type -> orchestrator.v1.StartWithL1Request
-	17, // 18: orchestrator.v1.OrchestratorService.RestartDaemon:input_type -> orchestrator.v1.RestartDaemonRequest
-	19, // 19: orchestrator.v1.OrchestratorService.ShutdownAll:input_type -> orchestrator.v1.ShutdownAllRequest
-	21, // 20: orchestrator.v1.OrchestratorService.GetBTCPrice:input_type -> orchestrator.v1.GetBTCPriceRequest
-	23, // 21: orchestrator.v1.OrchestratorService.GetMainchainBlockchainInfo:input_type -> orchestrator.v1.GetMainchainBlockchainInfoRequest
-	25, // 22: orchestrator.v1.OrchestratorService.GetEnforcerBlockchainInfo:input_type -> orchestrator.v1.GetEnforcerBlockchainInfoRequest
-	27, // 23: orchestrator.v1.OrchestratorService.GetSyncStatus:input_type -> orchestrator.v1.GetSyncStatusRequest
-	31, // 24: orchestrator.v1.OrchestratorService.GetMainchainBalance:input_type -> orchestrator.v1.GetMainchainBalanceRequest
-	33, // 25: orchestrator.v1.OrchestratorService.PreviewResetData:input_type -> orchestrator.v1.PreviewResetDataRequest
-	36, // 26: orchestrator.v1.OrchestratorService.StreamResetData:input_type -> orchestrator.v1.StreamResetDataRequest
-	38, // 27: orchestrator.v1.OrchestratorService.GetCoreMempoolInfo:input_type -> orchestrator.v1.GetCoreMempoolInfoRequest
-	40, // 28: orchestrator.v1.OrchestratorService.CoreRawCall:input_type -> orchestrator.v1.CoreRawCallRequest
-	4,  // 29: orchestrator.v1.OrchestratorService.ListBinaries:output_type -> orchestrator.v1.ListBinariesResponse
-	6,  // 30: orchestrator.v1.OrchestratorService.GetBinaryStatus:output_type -> orchestrator.v1.GetBinaryStatusResponse
-	8,  // 31: orchestrator.v1.OrchestratorService.DownloadBinary:output_type -> orchestrator.v1.DownloadBinaryResponse
-	10, // 32: orchestrator.v1.OrchestratorService.StartBinary:output_type -> orchestrator.v1.StartBinaryResponse
-	12, // 33: orchestrator.v1.OrchestratorService.StopBinary:output_type -> orchestrator.v1.StopBinaryResponse
-	14, // 34: orchestrator.v1.OrchestratorService.StreamLogs:output_type -> orchestrator.v1.StreamLogsResponse
-	16, // 35: orchestrator.v1.OrchestratorService.StartWithL1:output_type -> orchestrator.v1.StartWithL1Response
-	18, // 36: orchestrator.v1.OrchestratorService.RestartDaemon:output_type -> orchestrator.v1.RestartDaemonResponse
-	20, // 37: orchestrator.v1.OrchestratorService.ShutdownAll:output_type -> orchestrator.v1.ShutdownAllResponse
-	22, // 38: orchestrator.v1.OrchestratorService.GetBTCPrice:output_type -> orchestrator.v1.GetBTCPriceResponse
-	24, // 39: orchestrator.v1.OrchestratorService.GetMainchainBlockchainInfo:output_type -> orchestrator.v1.GetMainchainBlockchainInfoResponse
-	26, // 40: orchestrator.v1.OrchestratorService.GetEnforcerBlockchainInfo:output_type -> orchestrator.v1.GetEnforcerBlockchainInfoResponse
-	28, // 41: orchestrator.v1.OrchestratorService.GetSyncStatus:output_type -> orchestrator.v1.GetSyncStatusResponse
-	32, // 42: orchestrator.v1.OrchestratorService.GetMainchainBalance:output_type -> orchestrator.v1.GetMainchainBalanceResponse
-	34, // 43: orchestrator.v1.OrchestratorService.PreviewResetData:output_type -> orchestrator.v1.PreviewResetDataResponse
-	37, // 44: orchestrator.v1.OrchestratorService.StreamResetData:output_type -> orchestrator.v1.StreamResetDataResponse
-	39, // 45: orchestrator.v1.OrchestratorService.GetCoreMempoolInfo:output_type -> orchestrator.v1.GetCoreMempoolInfoResponse
-	41, // 46: orchestrator.v1.OrchestratorService.CoreRawCall:output_type -> orchestrator.v1.CoreRawCallResponse
-	29, // [29:47] is the sub-list for method output_type
-	11, // [11:29] is the sub-list for method input_type
-	11, // [11:11] is the sub-list for extension type_name
-	11, // [11:11] is the sub-list for extension extendee
-	0,  // [0:11] is the sub-list for field type_name
+	31, // 9: orchestrator.v1.SidechainStatus.sync:type_name -> orchestrator.v1.ChainSync
+	34, // 10: orchestrator.v1.GetDownloadStatusResponse.downloads:type_name -> orchestrator.v1.DownloadStatus
+	1,  // 11: orchestrator.v1.DownloadStatus.binary:type_name -> orchestrator.v1.BinaryType
+	39, // 12: orchestrator.v1.PreviewResetDataResponse.files:type_name -> orchestrator.v1.ResetFileInfo
+	4,  // 13: orchestrator.v1.OrchestratorService.ListBinaries:input_type -> orchestrator.v1.ListBinariesRequest
+	6,  // 14: orchestrator.v1.OrchestratorService.GetBinaryStatus:input_type -> orchestrator.v1.GetBinaryStatusRequest
+	8,  // 15: orchestrator.v1.OrchestratorService.DownloadBinary:input_type -> orchestrator.v1.DownloadBinaryRequest
+	10, // 16: orchestrator.v1.OrchestratorService.StartBinary:input_type -> orchestrator.v1.StartBinaryRequest
+	12, // 17: orchestrator.v1.OrchestratorService.StopBinary:input_type -> orchestrator.v1.StopBinaryRequest
+	14, // 18: orchestrator.v1.OrchestratorService.StreamLogs:input_type -> orchestrator.v1.StreamLogsRequest
+	16, // 19: orchestrator.v1.OrchestratorService.StartWithL1:input_type -> orchestrator.v1.StartWithL1Request
+	18, // 20: orchestrator.v1.OrchestratorService.RestartDaemon:input_type -> orchestrator.v1.RestartDaemonRequest
+	20, // 21: orchestrator.v1.OrchestratorService.ShutdownAll:input_type -> orchestrator.v1.ShutdownAllRequest
+	22, // 22: orchestrator.v1.OrchestratorService.GetBTCPrice:input_type -> orchestrator.v1.GetBTCPriceRequest
+	24, // 23: orchestrator.v1.OrchestratorService.GetMainchainBlockchainInfo:input_type -> orchestrator.v1.GetMainchainBlockchainInfoRequest
+	26, // 24: orchestrator.v1.OrchestratorService.GetEnforcerBlockchainInfo:input_type -> orchestrator.v1.GetEnforcerBlockchainInfoRequest
+	28, // 25: orchestrator.v1.OrchestratorService.GetSyncStatus:input_type -> orchestrator.v1.GetSyncStatusRequest
+	32, // 26: orchestrator.v1.OrchestratorService.GetDownloadStatus:input_type -> orchestrator.v1.GetDownloadStatusRequest
+	35, // 27: orchestrator.v1.OrchestratorService.GetMainchainBalance:input_type -> orchestrator.v1.GetMainchainBalanceRequest
+	37, // 28: orchestrator.v1.OrchestratorService.PreviewResetData:input_type -> orchestrator.v1.PreviewResetDataRequest
+	40, // 29: orchestrator.v1.OrchestratorService.StreamResetData:input_type -> orchestrator.v1.StreamResetDataRequest
+	42, // 30: orchestrator.v1.OrchestratorService.GetCoreMempoolInfo:input_type -> orchestrator.v1.GetCoreMempoolInfoRequest
+	44, // 31: orchestrator.v1.OrchestratorService.CoreRawCall:input_type -> orchestrator.v1.CoreRawCallRequest
+	5,  // 32: orchestrator.v1.OrchestratorService.ListBinaries:output_type -> orchestrator.v1.ListBinariesResponse
+	7,  // 33: orchestrator.v1.OrchestratorService.GetBinaryStatus:output_type -> orchestrator.v1.GetBinaryStatusResponse
+	9,  // 34: orchestrator.v1.OrchestratorService.DownloadBinary:output_type -> orchestrator.v1.DownloadBinaryResponse
+	11, // 35: orchestrator.v1.OrchestratorService.StartBinary:output_type -> orchestrator.v1.StartBinaryResponse
+	13, // 36: orchestrator.v1.OrchestratorService.StopBinary:output_type -> orchestrator.v1.StopBinaryResponse
+	15, // 37: orchestrator.v1.OrchestratorService.StreamLogs:output_type -> orchestrator.v1.StreamLogsResponse
+	17, // 38: orchestrator.v1.OrchestratorService.StartWithL1:output_type -> orchestrator.v1.StartWithL1Response
+	19, // 39: orchestrator.v1.OrchestratorService.RestartDaemon:output_type -> orchestrator.v1.RestartDaemonResponse
+	21, // 40: orchestrator.v1.OrchestratorService.ShutdownAll:output_type -> orchestrator.v1.ShutdownAllResponse
+	23, // 41: orchestrator.v1.OrchestratorService.GetBTCPrice:output_type -> orchestrator.v1.GetBTCPriceResponse
+	25, // 42: orchestrator.v1.OrchestratorService.GetMainchainBlockchainInfo:output_type -> orchestrator.v1.GetMainchainBlockchainInfoResponse
+	27, // 43: orchestrator.v1.OrchestratorService.GetEnforcerBlockchainInfo:output_type -> orchestrator.v1.GetEnforcerBlockchainInfoResponse
+	29, // 44: orchestrator.v1.OrchestratorService.GetSyncStatus:output_type -> orchestrator.v1.GetSyncStatusResponse
+	33, // 45: orchestrator.v1.OrchestratorService.GetDownloadStatus:output_type -> orchestrator.v1.GetDownloadStatusResponse
+	36, // 46: orchestrator.v1.OrchestratorService.GetMainchainBalance:output_type -> orchestrator.v1.GetMainchainBalanceResponse
+	38, // 47: orchestrator.v1.OrchestratorService.PreviewResetData:output_type -> orchestrator.v1.PreviewResetDataResponse
+	41, // 48: orchestrator.v1.OrchestratorService.StreamResetData:output_type -> orchestrator.v1.StreamResetDataResponse
+	43, // 49: orchestrator.v1.OrchestratorService.GetCoreMempoolInfo:output_type -> orchestrator.v1.GetCoreMempoolInfoResponse
+	45, // 50: orchestrator.v1.OrchestratorService.CoreRawCall:output_type -> orchestrator.v1.CoreRawCallResponse
+	32, // [32:51] is the sub-list for method output_type
+	13, // [13:32] is the sub-list for method input_type
+	13, // [13:13] is the sub-list for extension type_name
+	13, // [13:13] is the sub-list for extension extendee
+	0,  // [0:13] is the sub-list for field type_name
 }
 
 func init() { file_orchestrator_v1_orchestrator_proto_init() }
@@ -2932,8 +3194,8 @@ func file_orchestrator_v1_orchestrator_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_orchestrator_v1_orchestrator_proto_rawDesc), len(file_orchestrator_v1_orchestrator_proto_rawDesc)),
-			NumEnums:      1,
-			NumMessages:   43,
+			NumEnums:      2,
+			NumMessages:   46,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

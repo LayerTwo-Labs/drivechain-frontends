@@ -7,7 +7,7 @@ import "package:connectrpc/connect.dart" as connect;
 import "truthcoin.pb.dart" as truthcoinv1truthcoin;
 import "truthcoin.connect.spec.dart" as specs;
 
-extension type TruthcoinServiceClient(connect.Transport _transport) {
+extension type TruthcoinServiceClient (connect.Transport _transport) {
   /// Get wallet balance (total and available).
   Future<truthcoinv1truthcoin.GetBalanceResponse> getBalance(
     truthcoinv1truthcoin.GetBalanceRequest input, {

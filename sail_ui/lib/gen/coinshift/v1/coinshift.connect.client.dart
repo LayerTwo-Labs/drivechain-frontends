@@ -7,7 +7,7 @@ import "package:connectrpc/connect.dart" as connect;
 import "coinshift.pb.dart" as coinshiftv1coinshift;
 import "coinshift.connect.spec.dart" as specs;
 
-extension type CoinShiftServiceClient(connect.Transport _transport) {
+extension type CoinShiftServiceClient (connect.Transport _transport) {
   /// Get wallet balance (total and available).
   Future<coinshiftv1coinshift.GetBalanceResponse> getBalance(
     coinshiftv1coinshift.GetBalanceRequest input, {

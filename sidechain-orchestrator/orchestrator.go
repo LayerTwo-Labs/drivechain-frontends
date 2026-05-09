@@ -195,6 +195,13 @@ func (o *Orchestrator) DownloadStateForTest(name string) (DownloadState, bool) {
 	return o.download.State(name)
 }
 
+// DownloadStates returns the live download snapshot for every binary the
+// manager is currently fetching. Empty map means no in-flight downloads.
+// Source of truth for the GetDownloadStatus RPC.
+func (o *Orchestrator) DownloadStates() map[string]DownloadState {
+	return o.download.States()
+}
+
 // New creates a new Orchestrator.
 func New(dataDir, network, bitwindowDir string, configs []BinaryConfig, log zerolog.Logger) *Orchestrator {
 	pidMgr := NewPidFileManager(dataDir, log)
@@ -1901,16 +1908,12 @@ func (o *Orchestrator) fetchMainchainBlockchainInfo(ctx context.Context) (*Mainc
 }
 
 // ChainSyncResult is one chain's tip snapshot. Error is set on failure; the
-// numeric fields are best-effort zero in that case. While IsDownloading is
-// true, Blocks/Headers carry MB downloaded / MB total instead of chain
-// heights — the polled API reuses the same fields so adding download state
-// didn't require new wire fields.
+// numeric fields are best-effort zero in that case.
 type ChainSyncResult struct {
-	Blocks        int64
-	Headers       int64
-	Time          int64
-	Error         string
-	IsDownloading bool
+	Blocks  int64
+	Headers int64
+	Time    int64
+	Error   string
 }
 
 // SyncStatus is the atomic snapshot returned by GetSyncStatus. Mainchain +
@@ -1977,16 +1980,10 @@ func (o *Orchestrator) GetSyncStatus(ctx context.Context) (*SyncStatus, error) {
 		heights = o.fetchExplorerHeights(ctx)
 	}()
 
-	// Mainchain: download check first, then bitcoind getblockchaininfo.
+	// Mainchain: bitcoind getblockchaininfo.
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		if state, ok := o.download.State("bitcoind"); ok && state.Running {
-			out.Mainchain.Blocks = state.MBDownloaded
-			out.Mainchain.Headers = state.MBTotal
-			out.Mainchain.IsDownloading = true
-			return
-		}
 		info, err := o.GetMainchainBlockchainInfo(ctx)
 		if err != nil {
 			out.Mainchain.Error = err.Error()
@@ -1997,16 +1994,10 @@ func (o *Orchestrator) GetSyncStatus(ctx context.Context) (*SyncStatus, error) {
 		out.Mainchain.Time = info.Time
 	}()
 
-	// Enforcer: download check, then ValidatorService.GetChainTip.
+	// Enforcer: ValidatorService.GetChainTip.
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		if state, ok := o.download.State("enforcer"); ok && state.Running {
-			out.Enforcer.Blocks = state.MBDownloaded
-			out.Enforcer.Headers = state.MBTotal
-			out.Enforcer.IsDownloading = true
-			return
-		}
 		cfg, ok := o.Configs()["enforcer"]
 		if !ok || cfg.Port == 0 {
 			out.Enforcer.Error = "enforcer not configured"
@@ -2038,12 +2029,6 @@ func (o *Orchestrator) GetSyncStatus(ctx context.Context) (*SyncStatus, error) {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			if state, ok := o.download.State(name); ok && state.Running {
-				slot.Blocks = state.MBDownloaded
-				slot.Headers = state.MBTotal
-				slot.IsDownloading = true
-				return
-			}
 			cfg, ok := o.Configs()[name]
 			if !ok {
 				slot.Error = fmt.Sprintf("unknown sidechain: %s", name)
@@ -2073,10 +2058,10 @@ func (o *Orchestrator) GetSyncStatus(ctx context.Context) (*SyncStatus, error) {
 	wg.Wait()
 
 	// Headers fan-out: dependent chains measure progress against bitcoind's
-	// tip. Skip this for downloading slots — their blocks/headers are MB,
-	// not chain heights, and overwriting headers would corrupt the meaning.
-	if !out.Enforcer.IsDownloading && out.Enforcer.Error == "" {
-		if !out.Mainchain.IsDownloading && out.Mainchain.Error == "" {
+	// tip. Errored slots are skipped so we don't overwrite their zero state
+	// with stale mainchain numbers.
+	if out.Enforcer.Error == "" {
+		if out.Mainchain.Error == "" {
 			out.Enforcer.Headers = out.Mainchain.Headers
 		} else {
 			out.Enforcer.Headers = out.Enforcer.Blocks
@@ -2088,7 +2073,7 @@ func (o *Orchestrator) GetSyncStatus(ctx context.Context) (*SyncStatus, error) {
 	// effort: when the explorer fetch fails the map is empty and Headers
 	// fall back to slot.Blocks so the UI doesn't divide by zero.
 	for name, slot := range out.Sidechains {
-		if slot.IsDownloading || slot.Error != "" {
+		if slot.Error != "" {
 			continue
 		}
 		if h, ok := heights[name]; ok {

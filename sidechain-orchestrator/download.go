@@ -326,6 +326,27 @@ func (d *DownloadManager) State(binaryName string) (DownloadState, bool) {
 	return state, true
 }
 
+// States returns a snapshot of every download currently in flight, keyed by
+// the binary's logical name. Entries are inserted when a download starts
+// and deleted when its goroutine returns (Done or Error), so the snapshot
+// is naturally restricted to live downloads — no need for a Running check.
+func (d *DownloadManager) States() map[string]DownloadState {
+	out := make(map[string]DownloadState)
+	d.state.Range(func(key, value any) bool {
+		name, ok := key.(string)
+		if !ok {
+			return true
+		}
+		state, ok := value.(DownloadState)
+		if !ok {
+			return true
+		}
+		out[name] = state
+		return true
+	})
+	return out
+}
+
 // resolveGitHubURL queries the GitHub releases API and finds the asset
 // matching the regex pattern.
 func (d *DownloadManager) resolveGitHubURL(ctx context.Context, apiURL, pattern string) (string, error) {

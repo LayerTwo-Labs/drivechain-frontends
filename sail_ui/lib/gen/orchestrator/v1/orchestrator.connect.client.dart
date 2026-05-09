@@ -7,7 +7,7 @@ import "package:connectrpc/connect.dart" as connect;
 import "orchestrator.pb.dart" as orchestratorv1orchestrator;
 import "orchestrator.connect.spec.dart" as specs;
 
-extension type OrchestratorServiceClient(connect.Transport _transport) {
+extension type OrchestratorServiceClient (connect.Transport _transport) {
   /// List all configured binaries and their status.
   Future<orchestratorv1orchestrator.ListBinariesResponse> listBinaries(
     orchestratorv1orchestrator.ListBinariesRequest input, {
@@ -248,6 +248,27 @@ extension type OrchestratorServiceClient(connect.Transport _transport) {
   }) {
     return connect.Client(_transport).unary(
       specs.OrchestratorService.getSyncStatus,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
+  /// Snapshot of every binary the orchestrator is currently downloading.
+  /// Reads from the in-memory DownloadManager state — light, polled by the
+  /// frontend's DownloadProvider on a fast (100ms) cadence while a download
+  /// is in flight, and dropping back to 2s when the response is empty.
+  Future<orchestratorv1orchestrator.GetDownloadStatusResponse> getDownloadStatus(
+    orchestratorv1orchestrator.GetDownloadStatusRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.OrchestratorService.getDownloadStatus,
       input,
       signal: signal,
       headers: headers,

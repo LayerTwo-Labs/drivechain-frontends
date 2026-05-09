@@ -306,11 +306,71 @@ func chainSyncToProto(s *orchestrator.ChainSyncResult) *pb.ChainSync {
 		return nil
 	}
 	return &pb.ChainSync{
-		Blocks:        int32(s.Blocks),
-		Headers:       int32(s.Headers),
-		Time:          s.Time,
-		Error:         s.Error,
-		IsDownloading: s.IsDownloading,
+		Blocks:  int32(s.Blocks),
+		Headers: int32(s.Headers),
+		Time:    s.Time,
+		Error:   s.Error,
+	}
+}
+
+// GetDownloadStatus returns one entry per binary that the orchestrator's
+// DownloadManager is currently fetching. The response is the empty list
+// when nothing is in flight — frontends rely on that as the steady state.
+// Binaries the proto enum doesn't know about (e.g. grpcurl) are dropped so
+// the wire format stays strongly typed.
+func (h *Handler) GetDownloadStatus(ctx context.Context, req *connect.Request[pb.GetDownloadStatusRequest]) (*connect.Response[pb.GetDownloadStatusResponse], error) {
+	states := h.orch.DownloadStates()
+	downloads := make([]*pb.DownloadStatus, 0, len(states))
+	for name, s := range states {
+		t := binaryTypeFromName(name)
+		if t == pb.BinaryType_BINARY_TYPE_UNSPECIFIED {
+			continue
+		}
+		downloads = append(downloads, &pb.DownloadStatus{
+			Binary:       t,
+			MbDownloaded: s.MBDownloaded,
+			MbTotal:      s.MBTotal,
+			Message:      s.Message,
+		})
+	}
+	return connect.NewResponse(&pb.GetDownloadStatusResponse{
+		Downloads: downloads,
+	}), nil
+}
+
+// binaryTypeFromName maps the orchestrator's logical binary name to the
+// proto BinaryType enum. Returns UNSPECIFIED for unknown names — callers
+// should drop those rather than ship the unspecified value.
+func binaryTypeFromName(name string) pb.BinaryType {
+	switch name {
+	case "bitcoind":
+		return pb.BinaryType_BINARY_TYPE_BITCOIND
+	case "enforcer":
+		return pb.BinaryType_BINARY_TYPE_ENFORCER
+	case "bitwindowd":
+		return pb.BinaryType_BINARY_TYPE_BITWINDOWD
+	case "thunder":
+		return pb.BinaryType_BINARY_TYPE_THUNDER
+	case "zside":
+		return pb.BinaryType_BINARY_TYPE_ZSIDE
+	case "bitnames":
+		return pb.BinaryType_BINARY_TYPE_BITNAMES
+	case "bitassets":
+		return pb.BinaryType_BINARY_TYPE_BITASSETS
+	case "truthcoin":
+		return pb.BinaryType_BINARY_TYPE_TRUTHCOIN
+	case "photon":
+		return pb.BinaryType_BINARY_TYPE_PHOTON
+	case "coinshift":
+		return pb.BinaryType_BINARY_TYPE_COINSHIFT
+	case "grpcurl":
+		return pb.BinaryType_BINARY_TYPE_GRPCURL
+	case "orchestratord":
+		return pb.BinaryType_BINARY_TYPE_ORCHESTRATORD
+	case "zsided":
+		return pb.BinaryType_BINARY_TYPE_ZSIDED
+	default:
+		return pb.BinaryType_BINARY_TYPE_UNSPECIFIED
 	}
 }
 
