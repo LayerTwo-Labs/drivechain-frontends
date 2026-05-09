@@ -707,11 +707,12 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
     _ => null,
   };
 
-  DownloadInfo _downloadInfoFor(Binary b) {
-    final type = _sidechainType(b);
-    if (type == null) return const DownloadInfo();
-    return _syncProvider.sidechains[type]?.downloadInfo ?? const DownloadInfo();
+  DownloadProgress? _downloadProgressFor(Binary b) {
+    if (!GetIt.I.isRegistered<DownloadProvider>()) return null;
+    return GetIt.I.get<DownloadProvider>().statusFor(b.type);
   }
+
+  bool _isDownloadingFor(Binary b) => _downloadProgressFor(b) != null;
 
   SyncInfo? _syncInfoFor(Binary b) {
     final type = _sidechainType(b);
@@ -752,7 +753,7 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
   bool get isUsingBitcoinCoreWallet {
     final activeWallet = _walletReader.activeWallet;
     if (activeWallet == null) return false;
-    return activeWallet.walletType != BinaryType.enforcer;
+    return activeWallet.walletType != BinaryType.BINARY_TYPE_ENFORCER;
   }
 
   List<SidechainOverview?> get sidechains => _sidechainProvider.sidechains;
@@ -852,15 +853,12 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
     final isRunning = _binaryProvider.isConnected(sidechain);
     final isInitializing = _binaryProvider.isInitializing(sidechain);
     final stopping = _binaryProvider.isStopping(sidechain);
-    final downloadInfo = _downloadInfoFor(sidechain);
-    final downloading = downloadInfo.isDownloading;
-
-    if (downloading) {
+    final progress = _downloadProgressFor(sidechain);
+    if (progress != null) {
       final syncInfo = SyncInfo(
-        progressCurrent: downloadInfo.progress,
-        progressGoal: downloadInfo.total,
+        progressCurrent: progress.mbDownloaded.toDouble(),
+        progressGoal: progress.mbTotal > 0 ? progress.mbTotal.toDouble() : 0,
         lastBlockAt: null,
-        downloadInfo: downloadInfo,
       );
 
       return ChainLoader(
@@ -977,7 +975,7 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
 
     final isRunning = _binaryProvider.isConnected(sidechain);
     final isInitializing = _binaryProvider.isInitializing(sidechain);
-    final downloading = _downloadInfoFor(sidechain).isDownloading;
+    final downloading = _isDownloadingFor(sidechain);
     final error = _binaryProvider.connectionError(sidechain);
     final startupErr = rpc.startupError;
 
@@ -1274,7 +1272,7 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
       states['${key}_connected'] = _binaryProvider.isConnected(binary);
       states['${key}_initializing'] = _binaryProvider.isInitializing(binary);
       states['${key}_stopping'] = _binaryProvider.isStopping(binary);
-      states['${key}_downloading'] = _downloadInfoFor(binary).isDownloading;
+      states['${key}_downloading'] = _isDownloadingFor(binary);
       states['${key}_error'] = _binaryProvider.connectionError(binary);
       states['${key}_downloaded'] = binary.isDownloaded;
     }

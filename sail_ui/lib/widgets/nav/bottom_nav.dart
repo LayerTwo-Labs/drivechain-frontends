@@ -183,9 +183,7 @@ class BottomNav extends StatelessWidget {
                           (b) => b.name == BitcoinCore().name,
                         ),
                       ),
-                      infoMessage: _getDownloadMessage(
-                        model.syncProvider.mainchainSyncInfo,
-                      ),
+                      infoMessage: null,
                       navigateToLogs: model.navigateToLogs,
                       onOpenConfConfigurator: onOpenConfConfigurator,
                     ),
@@ -195,15 +193,11 @@ class BottomNav extends StatelessWidget {
                     DaemonConnectionCard(
                       connection: model.enforcer,
                       syncInfo: model.syncProvider.enforcerSyncInfo,
-                      infoMessage:
-                          _getDownloadMessage(
-                            model.syncProvider.enforcerSyncInfo,
-                          ) ??
-                          (model.mainchain.initializingBinary
-                              ? 'Waiting for mainchain to finish initializing'
-                              : model.syncProvider.inHeaderSync
-                              ? 'Waiting for L1 to sync headers...'
-                              : null),
+                      infoMessage: model.mainchain.initializingBinary
+                          ? 'Waiting for mainchain to finish initializing'
+                          : model.syncProvider.inHeaderSync
+                          ? 'Waiting for L1 to sync headers...'
+                          : null,
                       restartDaemon: () => binaryProvider.restart(
                         binaryProvider.binaries.firstWhere(
                           (b) => b.name == Enforcer().name,
@@ -235,9 +229,7 @@ class BottomNav extends StatelessWidget {
                               !model.mainchain.initializingBinary &&
                               model.mainchain.startupError == null &&
                               !model.syncProvider.inHeaderSync);
-                      final infoMessage =
-                          _getDownloadMessage(model.additionalSyncInfo) ??
-                          (isSidechain && !coreReady ? 'Waiting for Bitcoin Core header sync' : null);
+                      final infoMessage = isSidechain && !coreReady ? 'Waiting for Bitcoin Core header sync' : null;
                       return DaemonConnectionCard(
                         connection: additionalConnection.rpc,
                         syncInfo: coreReady ? model.additionalSyncInfo : null,
@@ -264,26 +256,6 @@ class BottomNav extends StatelessWidget {
         }),
       ),
     );
-  }
-
-  String? _getDownloadMessage(SyncInfo? syncInfo) {
-    if (syncInfo == null) return null;
-
-    if (!syncInfo.downloadInfo.isDownloading) {
-      return null;
-    }
-
-    // Show "downloading X / Y" until progressPercent hits 100%.
-    if (syncInfo.downloadInfo.progressPercent < 1) {
-      final progressPercent = (syncInfo.downloadInfo.progressPercent * 100).toStringAsFixed(0);
-      if (progressPercent == '100') {
-        return null;
-      } else {
-        return syncInfo.downloadInfo.message;
-      }
-    }
-
-    return 'Finishing up...';
   }
 }
 
@@ -343,6 +315,8 @@ class BottomNavViewModel extends BaseViewModel with ChangeTrackingMixin {
   EnforcerRPC get enforcer => GetIt.I.get<EnforcerRPC>();
   SyncProvider get syncProvider => GetIt.I.get<SyncProvider>();
   BinaryProvider get binaryProvider => GetIt.I.get<BinaryProvider>();
+  DownloadProvider? get downloadProvider =>
+      GetIt.I.isRegistered<DownloadProvider>() ? GetIt.I.get<DownloadProvider>() : null;
 
   final bool mainchainInfo;
   final Function(String, String, BinaryType) navigateToLogs;
@@ -358,6 +332,7 @@ class BottomNavViewModel extends BaseViewModel with ChangeTrackingMixin {
     enforcer.addListener(_onChange);
     additionalConnection.rpc.addListener(_onChange);
     syncProvider.addListener(_onChange);
+    downloadProvider?.addListener(_onChange);
   }
 
   /// Resolves the SyncInfo for the additional daemon card. SyncProvider
@@ -393,11 +368,7 @@ class BottomNavViewModel extends BaseViewModel with ChangeTrackingMixin {
   bool get allConnected => mainchain.connected && enforcer.connected && additionalConnection.connected;
   bool get initializingAny =>
       mainchain.initializingBinary || enforcer.initializingBinary || additionalConnection.initializingBinary;
-  bool get downloadingAny =>
-      syncProvider.mainchainSyncInfo?.downloadInfo.isDownloading ??
-      syncProvider.enforcerSyncInfo?.downloadInfo.isDownloading ??
-      additionalSyncInfo?.downloadInfo.isDownloading ??
-      false;
+  bool get downloadingAny => downloadProvider?.hasActiveDownloads ?? false;
 
   Color get connectionColor {
     // Precedence (top wins):
@@ -447,16 +418,17 @@ class BottomNavViewModel extends BaseViewModel with ChangeTrackingMixin {
   }
 
   String get _connectionStatusRaw {
-    if (syncProvider.mainchainSyncInfo?.downloadInfo.isDownloading ?? false) {
-      return 'Downloading mainchain...';
-    }
-
-    if (syncProvider.enforcerSyncInfo?.downloadInfo.isDownloading ?? false) {
-      return 'Downloading enforcer...';
-    }
-
-    if (additionalSyncInfo?.downloadInfo.isDownloading ?? false) {
-      return 'Downloading ${additionalConnection.name}...';
+    final dp = downloadProvider;
+    if (dp != null && dp.hasActiveDownloads) {
+      if (dp.statusFor(BinaryType.BINARY_TYPE_BITCOIND) != null) return 'Downloading mainchain...';
+      if (dp.statusFor(BinaryType.BINARY_TYPE_ENFORCER) != null) return 'Downloading enforcer...';
+      final additionalType = additionalConnection.rpc.binary.type;
+      if (dp.statusFor(additionalType) != null) {
+        return 'Downloading ${additionalConnection.name}...';
+      }
+      // Some other binary the user kicked off — just show the first one.
+      final first = dp.downloads.values.first;
+      return 'Downloading ${defaultBinaryFor(first.binary).name}...';
     }
 
     // Precedence per service: connectionError (hard fail) > startupError (warmup message,
@@ -603,27 +575,11 @@ class ChainLoader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final currentProgress = formatProgress(
-      syncInfo.progressCurrent,
-      syncInfo.downloadInfo.isDownloading,
-    );
-    final goalProgress = formatProgress(
-      syncInfo.progressGoal,
-      syncInfo.downloadInfo.isDownloading,
-    );
-
-    // Check if download just finished but blockchain sync hasn't started yet
-    final downloadJustFinished =
-        !syncInfo.downloadInfo.isDownloading &&
-        syncInfo.downloadInfo.progressPercent >= 1 &&
-        syncInfo.progressCurrent <= 1;
+    final currentProgress = formatProgress(syncInfo.progressCurrent, false);
+    final goalProgress = formatProgress(syncInfo.progressGoal, false);
 
     final widget = Tooltip(
-      message: syncInfo.downloadInfo.isDownloading
-          ? 'Downloading $name\n${syncInfo.downloadInfo.message}'
-          : downloadJustFinished
-          ? 'Starting $name...'
-          : '$name\nCurrent height $currentProgress\nHeader height $goalProgress',
+      message: '$name\nCurrent height $currentProgress\nHeader height $goalProgress',
       child: ProgressBar(
         current: syncInfo.progressCurrent,
         goal: syncInfo.progressGoal,

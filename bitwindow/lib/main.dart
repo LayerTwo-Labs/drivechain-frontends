@@ -228,6 +228,7 @@ Future<(Directory, File, Logger)> init(String arguments) async {
       additionalConnection: SyncConnection(rpc: bitwindow, name: bitwindow.binary.name),
     ),
   );
+  GetIt.I.registerLazySingleton<DownloadProvider>(() => DownloadProvider());
   GetIt.I.registerSingleton<BlockchainProvider>(BlockchainProvider());
   GetIt.I.registerSingleton<NetworkProvider>(NetworkProvider());
   GetIt.I.registerSingleton<TransactionProvider>(TransactionProvider());

@@ -120,6 +120,13 @@ class OrchestratorRPC {
     return _unaryClient.getSyncStatus(GetSyncStatusRequest());
   }
 
+  /// Snapshot of every binary the orchestrator is currently downloading.
+  /// Empty list is the steady state — drives the [DownloadProvider]'s
+  /// passive-vs-aggressive cadence.
+  Future<GetDownloadStatusResponse> getDownloadStatus() {
+    return _unaryClient.getDownloadStatus(GetDownloadStatusRequest());
+  }
+
   Future<GetMainchainBalanceResponse> getMainchainBalance() {
     return _unaryClient.getMainchainBalance(GetMainchainBalanceRequest());
   }

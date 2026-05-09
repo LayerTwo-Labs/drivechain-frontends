@@ -33,10 +33,25 @@ class DaemonConnectionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final downloadProvider = GetIt.I.isRegistered<DownloadProvider>() ? GetIt.I.get<DownloadProvider>() : null;
+    if (downloadProvider == null) {
+      return _buildCard(context, downloadProgress: null);
+    }
+    return ListenableBuilder(
+      listenable: downloadProvider,
+      builder: (context, _) {
+        final progress = downloadProvider.statusFor(connection.binary.type);
+        return _buildCard(context, downloadProgress: progress);
+      },
+    );
+  }
+
+  Widget _buildCard(BuildContext context, {required DownloadProgress? downloadProgress}) {
     final theme = SailTheme.of(context);
     final providerBinary = _binaryProvider.binaries.firstWhereOrNull(
       (b) => b.name == connection.binary.name,
     );
+    final isDownloading = downloadProgress != null;
 
     return SailCard(
       child: SailColumn(
@@ -50,7 +65,7 @@ class DaemonConnectionCard extends StatelessWidget {
               ),
               SailSVG.fromAsset(
                 SailSVGAsset.iconConnectionStatus,
-                color: _getConnectionColor(theme),
+                color: _getConnectionColor(theme, isDownloading: isDownloading),
               ),
               Expanded(child: Container()),
               if (providerBinary != null && providerBinary.updateAvailable)
@@ -130,7 +145,7 @@ class DaemonConnectionCard extends StatelessWidget {
               ),
               _RestartStopButton(
                 binaryName: connection.binary.name,
-                isInitializing: connection.initializingBinary || (syncInfo?.downloadInfo.isDownloading ?? false),
+                isInitializing: connection.initializingBinary || isDownloading,
                 isConnected: connection.connected,
                 isStopping: connection.stoppingBinary,
                 onRestart: restartDaemon,
@@ -145,7 +160,15 @@ class DaemonConnectionCard extends StatelessWidget {
                 ),
             ],
           ),
-          if (syncInfo != null)
+          if (downloadProgress != null)
+            SizedBox(
+              width: 350,
+              child: DownloadStatusRow(
+                name: connection.binary.name,
+                download: downloadProgress,
+              ),
+            )
+          else if (syncInfo != null)
             SizedBox(
               width: 350,
               child: BlockStatus(
@@ -174,15 +197,62 @@ class DaemonConnectionCard extends StatelessWidget {
     );
   }
 
-  Color _getConnectionColor(SailThemeData theme) => resolveDaemonStatusColor(
+  Color _getConnectionColor(SailThemeData theme, {required bool isDownloading}) => resolveDaemonStatusColor(
     theme: theme,
     connectionError: connection.connectionError,
     startupError: connection.startupError,
     initializingBinary: connection.initializingBinary,
     connected: connection.connected,
-    isDownloading: syncInfo?.downloadInfo.isDownloading ?? false,
+    isDownloading: isDownloading,
     hasInfoMessage: infoMessage != null,
   );
+}
+
+/// Renders the in-flight download progress for a daemon. Shown by the
+/// DaemonConnectionCard whenever the DownloadProvider has a live entry for
+/// this binary — sync state is suppressed because the binary isn't running
+/// yet anyway.
+class DownloadStatusRow extends StatelessWidget {
+  final String name;
+  final DownloadProgress download;
+
+  const DownloadStatusRow({
+    super.key,
+    required this.name,
+    required this.download,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final tooltip = download.mbTotal > 0
+        ? 'Downloading $name\nProgress: ${formatDataSizeFromMB(download.mbDownloaded.toDouble())}\nSize: ${formatDataSizeFromMB(download.mbTotal.toDouble())}'
+        : 'Downloading $name\n${formatDataSizeFromMB(download.mbDownloaded.toDouble())} so far (size unknown)';
+
+    return SailRow(
+      mainAxisAlignment: MainAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(
+          child: Tooltip(
+            message: tooltip,
+            child: SailRow(
+              spacing: SailStyleValues.padding08,
+              mainAxisAlignment: MainAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: ProgressBar(
+                    current: download.mbDownloaded.toDouble(),
+                    goal: download.mbTotal > 0 ? download.mbTotal.toDouble() : 0,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
 }
 
 /// Pure function for the daemon-status text precedence. Exposed for testing.
@@ -254,22 +324,8 @@ class BlockStatus extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final currentProgress = formatProgress(
-      syncInfo.progressCurrent,
-      syncInfo.downloadInfo.isDownloading,
-    );
-    final goalProgress = formatProgress(
-      syncInfo.progressGoal,
-      syncInfo.downloadInfo.isDownloading,
-    );
-
-    // Check if download just finished but blockchain sync hasn't started yet
-    // This happens when progressCurrent is very low (download progress was 0-1)
-    // but we're no longer downloading
-    final downloadJustFinished =
-        !syncInfo.downloadInfo.isDownloading &&
-        syncInfo.downloadInfo.progressPercent >= 1 &&
-        syncInfo.progressCurrent <= 1;
+    final currentProgress = formatProgress(syncInfo.progressCurrent, false);
+    final goalProgress = formatProgress(syncInfo.progressGoal, false);
 
     return SailRow(
       mainAxisAlignment: MainAxisAlignment.start,
@@ -277,11 +333,8 @@ class BlockStatus extends StatelessWidget {
       children: [
         Expanded(
           child: Tooltip(
-            message: syncInfo.downloadInfo.isDownloading
-                ? 'Downloading $name\nProgress: ${formatDataSizeFromMB(syncInfo.progressCurrent)}\nSize: ${formatDataSizeFromMB(syncInfo.progressGoal)}'
-                : downloadJustFinished
-                ? 'Starting $name...'
-                : '$name\nCurrent height ${formatWithThousandSpacers(currentProgress)}\nHeader height ${formatWithThousandSpacers(goalProgress)}',
+            message:
+                '$name\nCurrent height ${formatWithThousandSpacers(currentProgress)}\nHeader height ${formatWithThousandSpacers(goalProgress)}',
             child: SailRow(
               spacing: SailStyleValues.padding08,
               mainAxisAlignment: MainAxisAlignment.start,
@@ -294,14 +347,8 @@ class BlockStatus extends StatelessWidget {
                       goal: syncInfo.progressGoal,
                     ),
                   )
-                else if (downloadJustFinished)
-                  SailText.secondary12('Finishing up...')
                 else
-                  SailText.secondary12(
-                    syncInfo.downloadInfo.isDownloading
-                        ? formatDataSizeFromMB(syncInfo.progressCurrent)
-                        : '${formatWithThousandSpacers(currentProgress)} sync height',
-                  ),
+                  SailText.secondary12('${formatWithThousandSpacers(currentProgress)} sync height'),
               ],
             ),
           ),
