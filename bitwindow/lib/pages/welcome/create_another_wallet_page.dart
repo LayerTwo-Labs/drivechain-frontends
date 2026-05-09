@@ -287,6 +287,14 @@ class _NameStep extends StatefulWidget {
   State<_NameStep> createState() => _NameStepState();
 }
 
+/// True when [name], trimmed and case-folded, collides with any existing
+/// wallet's name.
+bool isWalletNameTaken(String name, Iterable<String> existingNames) {
+  final normalized = name.trim().toLowerCase();
+  if (normalized.isEmpty) return false;
+  return existingNames.any((n) => n.trim().toLowerCase() == normalized);
+}
+
 class _NameStepState extends State<_NameStep> {
   @override
   void initState() {
@@ -296,6 +304,10 @@ class _NameStepState extends State<_NameStep> {
 
   @override
   Widget build(BuildContext context) {
+    final existing = GetIt.I.get<WalletReaderProvider>().availableWallets.map((w) => w.name);
+    final trimmed = widget.nameController.text.trim();
+    final isTaken = isWalletNameTaken(trimmed, existing);
+
     return Center(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 32.0),
@@ -314,13 +326,23 @@ class _NameStepState extends State<_NameStep> {
                 hintText: 'Wallet name',
                 textFieldType: TextFieldType.text,
               ),
+              if (isTaken) ...[
+                const SizedBox(height: 8),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: SailText.secondary12(
+                    'A wallet with that name already exists.',
+                    color: SailTheme.of(context).colors.error,
+                  ),
+                ),
+              ],
               const SizedBox(height: 48),
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
                   SailButton(
                     label: 'Next',
-                    disabled: widget.nameController.text.trim().isEmpty,
+                    disabled: trimmed.isEmpty || isTaken,
                     onPressed: () async => widget.onNext(),
                   ),
                 ],
