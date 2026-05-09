@@ -346,6 +346,18 @@ class _XpubStep extends StatefulWidget {
   State<_XpubStep> createState() => _XpubStepState();
 }
 
+/// Loose check for an xpub-style key (xpub/tpub/ypub/zpub/upub/vpub) or a
+/// descriptor (anything containing balanced parentheses). Catches obvious
+/// garbage at the form layer; the backend remains the authoritative validator.
+bool isPlausibleXpubOrDescriptor(String input) {
+  final trimmed = input.trim();
+  if (trimmed.isEmpty) return false;
+  if (RegExp(r'^[xyztuv]pub[1-9A-HJ-NP-Za-km-z]{50,120}$').hasMatch(trimmed)) {
+    return true;
+  }
+  return trimmed.contains('(') && trimmed.contains(')');
+}
+
 class _XpubStepState extends State<_XpubStep> {
   @override
   void initState() {
@@ -355,6 +367,10 @@ class _XpubStepState extends State<_XpubStep> {
 
   @override
   Widget build(BuildContext context) {
+    final raw = widget.xpubController.text;
+    final trimmed = raw.trim();
+    final showError = trimmed.isNotEmpty && !isPlausibleXpubOrDescriptor(trimmed);
+
     return Center(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 32.0),
@@ -378,13 +394,23 @@ class _XpubStepState extends State<_XpubStep> {
                 textFieldType: TextFieldType.text,
                 maxLines: 3,
               ),
+              if (showError) ...[
+                const SizedBox(height: 8),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: SailText.secondary12(
+                    "That doesn't look like an xpub or a descriptor.",
+                    color: SailTheme.of(context).colors.error,
+                  ),
+                ),
+              ],
               const SizedBox(height: 48),
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
                   SailButton(
                     label: 'Next',
-                    disabled: widget.xpubController.text.trim().isEmpty,
+                    disabled: !isPlausibleXpubOrDescriptor(trimmed),
                     onPressed: () async => widget.onNext(),
                   ),
                 ],
