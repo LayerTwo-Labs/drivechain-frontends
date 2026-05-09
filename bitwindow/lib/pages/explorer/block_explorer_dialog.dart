@@ -11,6 +11,30 @@ import 'package:sail_ui/gen/wallet/v1/wallet.pb.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:stacked/stacked.dart';
 
+/// Thrown when a transaction details lookup runs with no wallet selected.
+/// Lets [humanizeTransactionLoadError] distinguish "no wallet" from RPC
+/// errors without sniffing exception strings.
+class NoActiveWalletException implements Exception {
+  const NoActiveWalletException();
+}
+
+/// Maps a raw exception from the transaction-details RPC to copy a normal
+/// user can act on. Technical detail still goes to the log; this is what we
+/// surface in the dialog.
+String humanizeTransactionLoadError(Object e) {
+  if (e is NoActiveWalletException) {
+    return 'Open a wallet first — there is no active wallet to look this transaction up in.';
+  }
+  final raw = e.toString().toLowerCase();
+  if (raw.contains('not found') || raw.contains('no such') || raw.contains('does not exist')) {
+    return 'This transaction was not found in the active wallet. It may belong to another wallet, or the wallet may not be fully synced yet.';
+  }
+  if (raw.contains('connection') || raw.contains('unavailable') || raw.contains('refused')) {
+    return 'Could not reach the orchestrator. Make sure your daemon is running and try again.';
+  }
+  return 'Could not load this transaction. Try again, or check the daemon logs if the problem persists.';
+}
+
 class BlockExplorerDialog extends StatelessWidget {
   const BlockExplorerDialog({
     super.key,
@@ -470,7 +494,9 @@ class _TransactionDetailsDialogState extends State<TransactionDetailsDialog> wit
 
     try {
       final walletId = walletReader.activeWalletId;
-      if (walletId == null) throw Exception('No active wallet');
+      if (walletId == null) {
+        throw const NoActiveWalletException();
+      }
 
       final details = await orchestratorWallet.getTransactionDetails(
         walletId: walletId,
@@ -488,7 +514,7 @@ class _TransactionDetailsDialogState extends State<TransactionDetailsDialog> wit
       if (!mounted) return;
       setState(() {
         _details = null;
-        error = 'failed to load transaction ${widget.txid}: $e';
+        error = humanizeTransactionLoadError(e);
         _isLoading = false;
       });
     }
