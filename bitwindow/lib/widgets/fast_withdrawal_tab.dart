@@ -107,7 +107,9 @@ class _WithdrawalFormState extends State<_WithdrawalForm> {
               SailText.secondary13('From L2'),
               const SizedBox(height: 8),
               SailDropdownButton(
-                items: ['Thunder', 'BitNames'].map((chain) => SailDropdownItem(label: chain, value: chain)).toList(),
+                items: FastWithdrawalProvider.supportedLayer2Chains
+                    .map((chain) => SailDropdownItem(label: chain, value: chain))
+                    .toList(),
                 value: provider.layer2Chain,
                 onChanged: (dynamic value) {
                   provider.setLayer2Chain(value as String);

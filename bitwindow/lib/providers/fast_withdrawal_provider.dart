@@ -39,6 +39,20 @@ class FastWithdrawalProvider extends ChangeNotifier {
 
   static String get defaultServer => fastWithdrawalServers[0]['url']!;
 
+  /// Layer-2 chains the fast-withdrawal server accepts. Order is shown in
+  /// the dropdown. Auto-send (sending L2 funds from inside BitWindow) only
+  /// fires when [_getSidechainRPC] returns non-null; the rest fall back to
+  /// the user copying the payment address into their own L2 wallet.
+  static const List<String> supportedLayer2Chains = [
+    'Thunder',
+    'BitNames',
+    'BitAssets',
+    'ZSide',
+    'Photon',
+    'Truthcoin',
+    'CoinShift',
+  ];
+
   // Stage tracking
   FastWithdrawalStage stage = FastWithdrawalStage.idle;
   String? errorMessage;
