@@ -242,6 +242,17 @@ class _SettingsResetState extends State<SettingsReset> {
         GetIt.I.get<WalletReaderProvider>().clearState();
       }
 
+      // Reset the checkbox selection so the form returns to its default state.
+      setState(() {
+        _deleteNodeSoftware = false;
+        _deleteBlockchainData = false;
+        _deleteLogs = false;
+        _deleteWalletFiles = false;
+        _deleteSettings = false;
+        _alsoResetSidechains = false;
+        _obliterateEverything = false;
+      });
+
       unawaited(rebootBitwindowBackend(log));
 
       final router = GetIt.I.get<AppRouter>();
