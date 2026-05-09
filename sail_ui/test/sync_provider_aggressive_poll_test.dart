@@ -1,19 +1,10 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sail_ui/sail_ui.dart';
 
-SyncInfo _info({
-  double current = 0,
-  double goal = 0,
-  bool downloading = false,
-}) => SyncInfo(
+SyncInfo _info({double current = 0, double goal = 0}) => SyncInfo(
   progressCurrent: current,
   progressGoal: goal,
   lastBlockAt: null,
-  downloadInfo: DownloadInfo(
-    progress: current,
-    total: goal,
-    isDownloading: downloading,
-  ),
 );
 
 void main() {
@@ -38,10 +29,10 @@ void main() {
       );
     });
 
-    test('returns true while a binary is being downloaded', () {
-      final info = _info(current: 25, goal: 100, downloading: true);
-      expect(SyncProvider.connectionWantsAggressivePoll(info, null), true);
-      // Empty error string is treated as no error.
+    test('treats an empty error string as no error', () {
+      // Lower-level proto fields default to "" for unset; the helper must
+      // treat that exactly like null.
+      final info = _info(current: 25, goal: 100);
       expect(SyncProvider.connectionWantsAggressivePoll(info, ''), true);
     });
 

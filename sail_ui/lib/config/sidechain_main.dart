@@ -132,6 +132,7 @@ Future<void> initSidechainDependencies({
   );
   GetIt.I.registerLazySingleton<SyncProvider>(() => syncProvider);
   unawaited(syncProvider.fetch());
+  GetIt.I.registerLazySingleton<DownloadProvider>(() => DownloadProvider());
   GetIt.I.registerLazySingleton<SidechainTransactionsProvider>(
     () => SidechainTransactionsProvider(),
   );

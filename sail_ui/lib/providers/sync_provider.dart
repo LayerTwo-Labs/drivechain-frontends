@@ -9,30 +9,20 @@ import 'package:sail_ui/gen/google/protobuf/timestamp.pb.dart';
 import 'package:sail_ui/gen/orchestrator/v1/orchestrator.pb.dart' as orch_pb;
 import 'package:sail_ui/sail_ui.dart';
 
-/// Detailed sync info for one chain. While downloading, progressCurrent /
-/// progressGoal are MB downloaded / MB total — the same fields used for
-/// blocks/headers when synced. The UI uses [DownloadInfo.isDownloading] to
-/// pick the right label ("MB" vs "blocks").
+/// Detailed sync info for one chain. progressCurrent / progressGoal are
+/// chain heights — download progress lives in [DownloadProvider], not here.
 class SyncInfo {
   final double progressCurrent;
   final double progressGoal;
   final Timestamp? lastBlockAt;
-  final DownloadInfo downloadInfo;
 
-  // progress returns the download progress if it's currently downloading, else
-  // the blockchain sync progress compared to headers
-  double get progress => downloadInfo.progressPercent < 1
-      ? downloadInfo.progressPercent
-      : progressGoal == 0
-      ? 0
-      : progressCurrent / progressGoal;
+  double get progress => progressGoal == 0 ? 0 : progressCurrent / progressGoal;
   bool get isSynced => progressGoal > 0 && progressCurrent == progressGoal;
 
   SyncInfo({
     required this.progressCurrent,
     required this.progressGoal,
     required this.lastBlockAt,
-    required this.downloadInfo,
   });
 
   @override
@@ -41,10 +31,7 @@ class SyncInfo {
     return other is SyncInfo &&
         other.progressCurrent == progressCurrent &&
         other.progressGoal == progressGoal &&
-        other.lastBlockAt == lastBlockAt &&
-        other.progress == progress &&
-        other.isSynced == isSynced &&
-        other.downloadInfo.toString() == downloadInfo.toString();
+        other.lastBlockAt == lastBlockAt;
   }
 
   @override
@@ -61,12 +48,11 @@ class SyncConnection {
 
 /// Polls a single orchestrator RPC (`GetSyncStatus`) for an atomic snapshot
 /// of mainchain + enforcer + every known sidechain (including bitwindowd).
-/// One RPC carries both sync state AND download progress — when a binary is
-/// being downloaded its slot's [SyncInfo.downloadInfo] is populated, with
-/// progressCurrent/progressGoal holding MB downloaded / MB total.
+/// Carries chain-tip state only — download progress is owned by the
+/// [DownloadProvider] which polls its own RPC on a separate cadence.
 ///
-/// Cadence is 100 ms while anything is still syncing or downloading,
-/// then drops to 1 s once everything is fully caught up.
+/// Cadence is 100 ms while any tracked connection is still syncing, then
+/// drops to 1 s once everything is fully caught up.
 class SyncProvider extends ChangeNotifier {
   Logger get log => GetIt.I.get<Logger>();
 
@@ -88,14 +74,13 @@ class SyncProvider extends ChangeNotifier {
 
   /// Per-connection vote on whether the global poll cadence should stay at
   /// the aggressive 100 ms interval. A connection votes yes only if it's
-  /// actively downloading or it's running but not yet synced. Absent or
-  /// errored connections vote no — otherwise an unstarted sidechain pins
-  /// the whole app at 100 ms forever and chews ~37% CPU on the Flutter
-  /// side (issue #1754).
+  /// running but not yet synced. Absent or errored connections vote no —
+  /// otherwise an unstarted sidechain pins the whole app at 100 ms forever
+  /// and chews ~37% CPU on the Flutter side (issue #1754). Download
+  /// progress runs on its own DownloadProvider timer.
   static bool connectionWantsAggressivePoll(SyncInfo? info, String? error) {
     if (info == null) return false;
     if (error != null && error.isNotEmpty) return false;
-    if (info.downloadInfo.isDownloading) return true;
     return !info.isSynced;
   }
 
@@ -262,7 +247,6 @@ class SyncProvider extends ChangeNotifier {
           progressCurrent: info.tipBlockHeight.toDouble(),
           progressGoal: info.headerHeight.toDouble(),
           lastBlockAt: info.tipBlockTime != Int64(0) ? Timestamp(seconds: info.tipBlockTime) : null,
-          downloadInfo: const DownloadInfo(),
         );
         if (_diff(bitwindowdSyncInfo, next) || bitwindowdError != null) {
           bitwindowdSyncInfo = next;
@@ -281,26 +265,14 @@ class SyncProvider extends ChangeNotifier {
     if (changed) notifyListeners();
   }
 
-  /// Builds a SyncInfo from the proto. When `is_downloading=true`,
-  /// blocks/headers carry MB downloaded / MB total — populate
-  /// [DownloadInfo] so the existing UI code that switches on
-  /// `syncInfo.downloadInfo.isDownloading` keeps working.
+  /// Builds a SyncInfo from the proto.
   SyncInfo _toSyncInfo(orch_pb.ChainSync? cs) {
     final blocks = (cs?.blocks ?? 0).toDouble();
     final headers = (cs?.headers ?? 0).toDouble();
-    if (cs?.isDownloading ?? false) {
-      return SyncInfo(
-        progressCurrent: blocks,
-        progressGoal: headers,
-        lastBlockAt: null,
-        downloadInfo: DownloadInfo(progress: blocks, total: headers, isDownloading: true),
-      );
-    }
     return SyncInfo(
       progressCurrent: blocks,
       progressGoal: headers,
       lastBlockAt: (cs?.time ?? Int64(0)) != Int64(0) ? Timestamp(seconds: cs!.time) : null,
-      downloadInfo: const DownloadInfo(),
     );
   }
 
