@@ -432,6 +432,59 @@ func TestFileWatchingTriggersReload(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
+// Datadir slot accessors + round-trip
+// ---------------------------------------------------------------------------
+
+func TestDatadirSlotsRoundTrip(t *testing.T) {
+	src := `# bitwindow-bitcoin-conf-version=8
+
+# bitwindow-datadir-default=/Volumes/SSD/bitcoin
+# bitwindow-datadir-forknet=/Volumes/HDD/forknet
+
+datadir=/Volumes/SSD/bitcoin
+chain=signet
+`
+	c := ParseBitcoinConfig(src)
+	require.Equal(t, "/Volumes/SSD/bitcoin", c.GetGroupDatadir(DatadirGroupDefault))
+	require.Equal(t, "/Volumes/HDD/forknet", c.GetGroupDatadir(DatadirGroupForknet))
+
+	c.SetGroupDatadir(DatadirGroupForknet, "/new/forknet/path")
+
+	out := c.Serialize()
+	require.Contains(t, out, "# bitwindow-datadir-default=/Volumes/SSD/bitcoin\n")
+	require.Contains(t, out, "# bitwindow-datadir-forknet=/new/forknet/path\n")
+
+	// Stable order: default before forknet
+	defIdx := strings.Index(out, "# bitwindow-datadir-default=")
+	fkIdx := strings.Index(out, "# bitwindow-datadir-forknet=")
+	require.Greater(t, fkIdx, defIdx, "default slot should serialize before forknet slot")
+
+	// Re-parse, values stable
+	c2 := ParseBitcoinConfig(out)
+	require.Equal(t, "/Volumes/SSD/bitcoin", c2.GetGroupDatadir(DatadirGroupDefault))
+	require.Equal(t, "/new/forknet/path", c2.GetGroupDatadir(DatadirGroupForknet))
+}
+
+func TestDatadirSlotsClearedOnEmpty(t *testing.T) {
+	c := NewBitcoinConfig()
+	c.SetGroupDatadir(DatadirGroupForknet, "/some/path")
+	require.Equal(t, "/some/path", c.GetGroupDatadir(DatadirGroupForknet))
+	c.SetGroupDatadir(DatadirGroupForknet, "")
+	require.Equal(t, "", c.GetGroupDatadir(DatadirGroupForknet))
+
+	out := c.Serialize()
+	require.NotContains(t, out, "# bitwindow-datadir-forknet=")
+}
+
+func TestDatadirGroupForNetwork(t *testing.T) {
+	require.Equal(t, DatadirGroupDefault, DatadirGroupForNetwork(NetworkMainnet))
+	require.Equal(t, DatadirGroupDefault, DatadirGroupForNetwork(NetworkSignet))
+	require.Equal(t, DatadirGroupDefault, DatadirGroupForNetwork(NetworkTestnet))
+	require.Equal(t, DatadirGroupDefault, DatadirGroupForNetwork(NetworkRegtest))
+	require.Equal(t, DatadirGroupForknet, DatadirGroupForNetwork(NetworkForknet))
+}
+
+// ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
