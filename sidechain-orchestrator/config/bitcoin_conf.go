@@ -212,7 +212,11 @@ func (m *BitcoinConfManager) SaveConfig() error {
 	return os.WriteFile(confPath, []byte(m.Config.Serialize()), 0644)
 }
 
-// UpdateNetwork writes the new network to the config file.
+// UpdateNetwork writes the new network to the config file. On a cross-group
+// swap (default ↔ forknet) it first snapshots the live `datadir=` value into
+// the leaving group's slot, then materializes the entering group's slot into
+// `datadir=`. Within a group, datadir is left untouched (Bitcoin Core's chain
+// subdirs partition the four default networks under the same folder).
 // 1:1 port of Dart updateNetwork (frontend_bitcoin_conf_provider.dart L290).
 func (m *BitcoinConfManager) UpdateNetwork(n Network) error {
 	if m.HasPrivateConf {
@@ -223,11 +227,20 @@ func (m *BitcoinConfManager) UpdateNetwork(n Network) error {
 		return nil
 	}
 
+	oldGroup := DatadirGroupForNetwork(m.Network)
+	newGroup := DatadirGroupForNetwork(n)
+	if oldGroup != newGroup {
+		// Snapshot the live datadir into the leaving group's slot so we can
+		// restore it on the next swap back. Honor a user's manual
+		// datadir= edit by adopting it as the leaving group's value.
+		if liveDatadir := m.Config.GetSetting("datadir"); liveDatadir != "" {
+			m.Config.SetGroupDatadir(oldGroup, liveDatadir)
+		}
+	}
+
 	chainValue := "signet"
 	switch n {
-	case NetworkMainnet:
-		chainValue = "main"
-	case NetworkForknet:
+	case NetworkMainnet, NetworkForknet:
 		chainValue = "main"
 	case NetworkTestnet:
 		chainValue = "test"
@@ -238,12 +251,10 @@ func (m *BitcoinConfManager) UpdateNetwork(n Network) error {
 	}
 	m.Config.SetSetting("chain", chainValue)
 
-	switch n {
-	case NetworkForknet:
-		m.Config.SetSetting("drivechain", "1", "main")
-	case NetworkMainnet:
-		m.Config.RemoveSetting("drivechain", "main")
-	default:
+	m.applyMainSectionDefaults(n)
+
+	if oldGroup != newGroup {
+		m.materializeDatadirForGroup(newGroup)
 	}
 
 	return m.saveConfig()

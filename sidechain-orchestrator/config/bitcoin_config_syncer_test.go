@@ -230,9 +230,12 @@ func TestHasDatadirForNetwork(t *testing.T) {
 	m := newTestManager(tmpDir)
 	m.Config = NewBitcoinConfig()
 
-	// No global datadir — mainnet/forknet should be false
+	// No datadir anywhere — mainnet/forknet should be false
 	if m.HasDatadirForNetwork(NetworkForknet) {
-		t.Error("should be false when global datadir is empty")
+		t.Error("forknet should be false when slot is empty")
+	}
+	if m.HasDatadirForNetwork(NetworkMainnet) {
+		t.Error("mainnet should be false when slot/datadir is empty")
 	}
 
 	// Non-mainnet/forknet — always true (signet/test/regtest use bitcoind defaults).
@@ -240,18 +243,32 @@ func TestHasDatadirForNetwork(t *testing.T) {
 		t.Error("signet should always return true")
 	}
 
+	// Forknet only honours its own slot, not the live datadir or default slot.
 	m.Config.SetSetting("datadir", "/some/path")
-
+	m.Config.SetGroupDatadir(DatadirGroupDefault, "/some/path")
+	if m.HasDatadirForNetwork(NetworkForknet) {
+		t.Error("forknet should ignore default-group datadir")
+	}
+	m.Config.SetGroupDatadir(DatadirGroupForknet, "/forknet/path")
 	if !m.HasDatadirForNetwork(NetworkForknet) {
-		t.Error("should be true when global datadir is set")
+		t.Error("forknet should be true when forknet slot is set")
+	}
+
+	// Mainnet accepts either the default slot or a top-level datadir= line
+	// (so a hand-edited or pre-slot conf isn't rejected at boot).
+	m2 := newTestManager(tmpDir)
+	m2.Config = NewBitcoinConfig()
+	m2.Config.SetSetting("datadir", "/raw/path")
+	if !m2.HasDatadirForNetwork(NetworkMainnet) {
+		t.Error("mainnet should accept top-level datadir without slot")
 	}
 
 	// Section-scoped datadir is ignored — Bitcoin Core only honours the
-	// top-level value, and HasDatadirForNetwork mirrors that contract.
-	m.Config.RemoveSetting("datadir")
-	m.Config.SetSetting("datadir", "/section/only", "main")
-
-	if m.HasDatadirForNetwork(NetworkForknet) {
+	// top-level value.
+	m3 := newTestManager(tmpDir)
+	m3.Config = NewBitcoinConfig()
+	m3.Config.SetSetting("datadir", "/section/only", "main")
+	if m3.HasDatadirForNetwork(NetworkMainnet) {
 		t.Error("section-scoped datadir must not satisfy HasDatadirForNetwork")
 	}
 }
@@ -297,6 +314,113 @@ func TestDetectedDataDirPrefersPerNetworkSection(t *testing.T) {
 
 	require.Equal(t, NetworkMainnet, m.Network)
 	require.Equal(t, "/main/path", m.DetectedDataDir)
+}
+
+// ---------------------------------------------------------------------------
+// UpdateDataDir + materialize/snapshot semantics
+// ---------------------------------------------------------------------------
+
+// UpdateDataDir for the inactive group must NOT touch the active datadir=
+// line — only the slot is recorded.
+func TestUpdateDataDirInactiveGroupLeavesActiveAlone(t *testing.T) {
+	tmpDir := t.TempDir()
+	m := newTestManager(tmpDir)
+	m.Network = NetworkForknet
+	m.Config.SetSetting("chain", "main")
+	m.Config.SetSetting("drivechain", "1", "main")
+	m.Config.SetSetting("datadir", "/forknet/live")
+	m.Config.SetGroupDatadir(DatadirGroupForknet, "/forknet/live")
+
+	masterPath := m.getBitWindowConfigPath()
+	require.NoError(t, os.MkdirAll(filepath.Dir(masterPath), 0755))
+	require.NoError(t, os.WriteFile(masterPath, []byte(m.Config.Serialize()), 0644))
+
+	require.NoError(t, m.UpdateDataDir("/picked/for/mainnet", NetworkMainnet))
+
+	require.Equal(t, "/picked/for/mainnet", m.Config.GetGroupDatadir(DatadirGroupDefault))
+	require.Equal(t, "/forknet/live", m.Config.GetSetting("datadir"), "active datadir must not change when setting inactive group")
+}
+
+// UpdateDataDir for the active group must update both the slot AND the live
+// datadir= line so bitcoind sees the new path.
+func TestUpdateDataDirActiveGroupUpdatesLive(t *testing.T) {
+	tmpDir := t.TempDir()
+	m := newTestManager(tmpDir)
+	m.Network = NetworkMainnet
+	m.Config.SetSetting("chain", "main")
+
+	masterPath := m.getBitWindowConfigPath()
+	require.NoError(t, os.MkdirAll(filepath.Dir(masterPath), 0755))
+	require.NoError(t, os.WriteFile(masterPath, []byte(m.Config.Serialize()), 0644))
+
+	require.NoError(t, m.UpdateDataDir("/picked/for/mainnet", NetworkMainnet))
+
+	require.Equal(t, "/picked/for/mainnet", m.Config.GetGroupDatadir(DatadirGroupDefault))
+	require.Equal(t, "/picked/for/mainnet", m.Config.GetSetting("datadir"))
+}
+
+// Manual edit: rewrite datadir= directly on disk, reload, swap to forknet —
+// default slot must reflect the manual value (snapshot adopts the live edit).
+func TestSwapAdoptsManuallyEditedDatadirIntoSlot(t *testing.T) {
+	tmpDir := t.TempDir()
+	m := newTestManager(tmpDir)
+	m.Network = NetworkMainnet
+	m.Config.SetSetting("chain", "main")
+	m.Config.SetSetting("datadir", "/manually/edited")
+
+	masterPath := m.getBitWindowConfigPath()
+	require.NoError(t, os.MkdirAll(filepath.Dir(masterPath), 0755))
+	require.NoError(t, os.WriteFile(masterPath, []byte(m.Config.Serialize()), 0644))
+
+	// Pre-stage forknet path so the swap is allowed.
+	m.Config.SetGroupDatadir(DatadirGroupForknet, "/forknet/path")
+	require.NoError(t, os.WriteFile(masterPath, []byte(m.Config.Serialize()), 0644))
+	require.NoError(t, m.LoadConfig(false))
+
+	require.NoError(t, m.UpdateNetwork(NetworkForknet))
+
+	require.Equal(t, "/manually/edited", m.Config.GetGroupDatadir(DatadirGroupDefault))
+	require.Equal(t, "/forknet/path", m.Config.GetSetting("datadir"))
+}
+
+// Within-group swap (mainnet ↔ signet) leaves datadir= alone and writes no
+// slot — Bitcoin Core's chain subdirs partition the four default networks
+// under the same folder.
+func TestUpdateNetworkWithinDefaultGroupKeepsDatadir(t *testing.T) {
+	tmpDir := t.TempDir()
+	m := newTestManager(tmpDir)
+	m.Network = NetworkMainnet
+	m.Config.SetSetting("chain", "main")
+	m.Config.SetSetting("datadir", "/shared/default")
+
+	masterPath := m.getBitWindowConfigPath()
+	require.NoError(t, os.MkdirAll(filepath.Dir(masterPath), 0755))
+	require.NoError(t, os.WriteFile(masterPath, []byte(m.Config.Serialize()), 0644))
+
+	require.NoError(t, m.UpdateNetwork(NetworkSignet))
+
+	require.Equal(t, "/shared/default", m.Config.GetSetting("datadir"))
+	require.Equal(t, "", m.Config.GetGroupDatadir(DatadirGroupDefault), "no slot writes happen on within-group swap")
+	require.Equal(t, "", m.Config.GetGroupDatadir(DatadirGroupForknet))
+}
+
+// applyMainSectionDefaults: signet → forknet adds drivechain=1 + alt ports
+// under [main]; forknet → mainnet strips them.
+func TestApplyMainSectionDefaultsForknetThenMainnet(t *testing.T) {
+	m := &BitcoinConfManager{Config: NewBitcoinConfig(), log: zerolog.Nop()}
+	m.Config.SetSetting("chain", "signet")
+
+	m.applyMainSectionDefaults(NetworkForknet)
+	require.Equal(t, "1", m.Config.GetSetting("drivechain", "main"))
+	require.Equal(t, "8300", m.Config.GetSetting("port", "main"))
+	require.Equal(t, "18301", m.Config.GetSetting("rpcport", "main"))
+	require.Equal(t, "0.00021", m.Config.GetSetting("fallbackfee", "main"))
+
+	m.applyMainSectionDefaults(NetworkMainnet)
+	require.Equal(t, "", m.Config.GetSetting("drivechain", "main"))
+	require.Equal(t, "", m.Config.GetSetting("port", "main"))
+	require.Equal(t, "", m.Config.GetSetting("rpcport", "main"))
+	require.Equal(t, "", m.Config.GetSetting("fallbackfee", "main"))
 }
 
 // ---------------------------------------------------------------------------
