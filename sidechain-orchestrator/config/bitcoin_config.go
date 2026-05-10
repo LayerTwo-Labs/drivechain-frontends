@@ -223,16 +223,6 @@ func (c *BitcoinConfig) RemoveSetting(key string, section ...string) {
 	}
 }
 
-// ReplaceSection swaps in a new map+order pair for a section, used when a
-// per-network [main] backup file is loaded.
-func (c *BitcoinConfig) ReplaceSection(section string, settings map[string]string, order []string) {
-	if _, ok := c.NetworkSettings[section]; !ok {
-		return
-	}
-	c.NetworkSettings[section] = settings
-	c.NetworkOrder[section] = order
-}
-
 func (c *BitcoinConfig) HasSetting(key string, section ...string) bool {
 	if len(section) > 0 && section[0] != "" {
 		if s, ok := c.NetworkSettings[section[0]]; ok {

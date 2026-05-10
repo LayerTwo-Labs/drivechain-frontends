@@ -5,7 +5,6 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
-	"strings"
 
 	"github.com/fsnotify/fsnotify"
 	"github.com/rs/zerolog"
@@ -252,35 +251,20 @@ func (m *BitcoinConfManager) UpdateNetwork(n Network) error {
 
 // loadOrCreateConfigContent loads config content from BitWindow config file, or creates default if missing.
 // Runs versioned migrations on load when stored version < current.
-// First migrates bitwindow-forknet.conf, then checks network to apply forknet data.
 // 1:1 port of Dart _loadOrCreateConfigContent (frontend_bitcoin_conf_provider.dart L132).
 func (m *BitcoinConfManager) loadOrCreateConfigContent() (string, error) {
 	confPath := m.getBitWindowConfigPath()
-
-	// Always migrate forknet and mainnet configs first (if they exist or have pending migrations)
-	if err := m.migrateForknetConfig(); err != nil {
-		m.log.Warn().Err(err).Msg("migrate forknet config")
-	}
-	if err := m.migrateMainnetConfig(); err != nil {
-		m.log.Warn().Err(err).Msg("migrate mainnet config")
-	}
 
 	if data, err := os.ReadFile(confPath); err == nil {
 		content := string(data)
 		config := ParseBitcoinConfig(content)
 
-		// Determine if current config is forknet (chain=main + drivechain=1)
-		chainSetting := strings.ToLower(config.GetSetting("chain"))
-		drivechainSetting := config.GetEffectiveSetting("drivechain", "main")
-		isForknet := (chainSetting == "main" || chainSetting == "mainnet") && drivechainSetting == "1"
-
-		// Run migrations — forknet data only applies to [main] if currently on forknet
-		if RunBitcoinConfMigrations(config, isForknet) {
+		if RunBitcoinConfMigrations(config) {
 			content = config.Serialize()
 			if err := os.WriteFile(confPath, []byte(content), 0644); err != nil {
 				m.log.Error().Err(err).Msg("failed to write migrated config")
 			} else {
-				m.log.Info().Int("version", config.ConfigVersion).Bool("isForknet", isForknet).Msg("migrated bitwindow-bitcoin.conf")
+				m.log.Info().Int("version", config.ConfigVersion).Msg("migrated bitwindow-bitcoin.conf")
 			}
 		}
 		return content, nil
