@@ -73,7 +73,7 @@ class _SettingsNetworkState extends State<SettingsNetwork> {
       );
       if (result != null) {
         // Backend validates writability via the RPC.
-        await _confProvider.updateDataDir(result);
+        await _confProvider.updateDataDir(result, forNetwork: _confProvider.network);
         if (!mounted) return;
         await Navigator.of(context).push<bool>(
           MaterialPageRoute(
@@ -103,7 +103,7 @@ class _SettingsNetworkState extends State<SettingsNetwork> {
   }
 
   Future<void> _clearDataDir() async {
-    await _confProvider.updateDataDir(null);
+    await _confProvider.updateDataDir(null, forNetwork: _confProvider.network);
   }
 
   Future<void> _handleVariantChange(String? id) async {
@@ -251,7 +251,11 @@ class _SettingsNetworkState extends State<SettingsNetwork> {
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              SailText.primary15('Bitcoin Data Directory'),
+              SailText.primary15(
+                _confProvider.network == BitcoinNetwork.BITCOIN_NETWORK_FORKNET
+                    ? 'Bitcoin Data Directory — Forknet'
+                    : 'Bitcoin Data Directory — Default',
+              ),
               const SailSpacing(SailStyleValues.padding08),
               SailRow(
                 spacing: SailStyleValues.padding08,
@@ -312,7 +316,7 @@ Future<void> swapNetworkWithDatadirPrompt(
 ) async {
   if (provider.network == network) return;
 
-  if (_networkNeedsDatadir(network) && provider.detectedDataDir == null) {
+  if (_networkNeedsDatadir(network) && provider.dataDirFor(network) == null) {
     final selected = await Navigator.of(context).push<String>(
       MaterialPageRoute(builder: (_) => DataDirSelectPage(network: network)),
     );
