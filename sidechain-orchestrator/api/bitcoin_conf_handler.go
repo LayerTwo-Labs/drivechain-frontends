@@ -42,12 +42,26 @@ func (h *BitcoinConfHandler) GetBitcoinConfig(ctx context.Context, req *connect.
 		network == config.NetworkSignet ||
 		network == config.NetworkRegtest
 
-	var configContent, rpcUser, rpcPassword string
+	var configContent, rpcUser, rpcPassword, defaultDatadir, forknetDatadir string
 	if h.conf.Config != nil {
 		configContent = h.conf.Config.Serialize()
 		section := h.conf.Network.CoreSection()
 		rpcUser = h.conf.Config.GetEffectiveSetting("rpcuser", section)
 		rpcPassword = h.conf.Config.GetEffectiveSetting("rpcpassword", section)
+		defaultDatadir = h.conf.Config.GetGroupDatadir(config.DatadirGroupDefault)
+		forknetDatadir = h.conf.Config.GetGroupDatadir(config.DatadirGroupForknet)
+		// If the active group has a live datadir but no slot recorded yet
+		// (fresh install or hand-edited conf), surface the live value as
+		// the active slot so the UI doesn't claim "no datadir set".
+		activeGroup := config.DatadirGroupForNetwork(h.conf.Network)
+		if liveDatadir := h.conf.Config.GetSetting("datadir"); liveDatadir != "" {
+			if activeGroup == config.DatadirGroupDefault && defaultDatadir == "" {
+				defaultDatadir = liveDatadir
+			}
+			if activeGroup == config.DatadirGroupForknet && forknetDatadir == "" {
+				forknetDatadir = liveDatadir
+			}
+		}
 	}
 
 	return connect.NewResponse(&pb.GetBitcoinConfigResponse{
@@ -61,6 +75,8 @@ func (h *BitcoinConfHandler) GetBitcoinConfig(ctx context.Context, req *connect.
 		IsDemoMode:                network == config.NetworkMainnet,
 		RpcUser:                   rpcUser,
 		RpcPassword:               rpcPassword,
+		DefaultDatadir:            defaultDatadir,
+		ForknetDatadir:            forknetDatadir,
 	}), nil
 }
 
@@ -114,6 +130,12 @@ func (h *BitcoinConfHandler) SetBitcoinConfigDataDir(ctx context.Context, req *c
 		return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("bitcoin config manager not initialized"))
 	}
 
+	networkStr := strings.TrimSpace(req.Msg.Network)
+	if networkStr == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("network is required"))
+	}
+	forNetwork := config.NetworkFromString(networkStr)
+
 	dataDir := strings.TrimSpace(req.Msg.DataDir)
 
 	// Validate writability when setting (not clearing) a datadir.
@@ -121,12 +143,6 @@ func (h *BitcoinConfHandler) SetBitcoinConfigDataDir(ctx context.Context, req *c
 		if err := validateDirWritable(dataDir); err != nil {
 			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("directory not writable: %w", err))
 		}
-	}
-
-	// Use the manager's UpdateDataDir which handles cross-network [main] section saves
-	var forNetwork config.Network
-	if req.Msg.Network != "" {
-		forNetwork = config.NetworkFromString(req.Msg.Network)
 	}
 
 	if err := h.conf.UpdateDataDir(dataDir, forNetwork); err != nil {

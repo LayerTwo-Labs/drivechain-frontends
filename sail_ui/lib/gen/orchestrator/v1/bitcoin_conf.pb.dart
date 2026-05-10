@@ -58,6 +58,8 @@ class GetBitcoinConfigResponse extends $pb.GeneratedMessage {
     $core.bool? isDemoMode,
     $core.String? rpcUser,
     $core.String? rpcPassword,
+    $core.String? defaultDatadir,
+    $core.String? forknetDatadir,
   }) {
     final $result = create();
     if (network != null) {
@@ -90,6 +92,12 @@ class GetBitcoinConfigResponse extends $pb.GeneratedMessage {
     if (rpcPassword != null) {
       $result.rpcPassword = rpcPassword;
     }
+    if (defaultDatadir != null) {
+      $result.defaultDatadir = defaultDatadir;
+    }
+    if (forknetDatadir != null) {
+      $result.forknetDatadir = forknetDatadir;
+    }
     return $result;
   }
   GetBitcoinConfigResponse._() : super();
@@ -107,6 +115,8 @@ class GetBitcoinConfigResponse extends $pb.GeneratedMessage {
     ..aOB(8, _omitFieldNames ? '' : 'isDemoMode')
     ..aOS(9, _omitFieldNames ? '' : 'rpcUser')
     ..aOS(10, _omitFieldNames ? '' : 'rpcPassword')
+    ..aOS(11, _omitFieldNames ? '' : 'defaultDatadir')
+    ..aOS(12, _omitFieldNames ? '' : 'forknetDatadir')
     ..hasRequiredFields = false
   ;
 
@@ -223,6 +233,27 @@ class GetBitcoinConfigResponse extends $pb.GeneratedMessage {
   $core.bool hasRpcPassword() => $_has(9);
   @$pb.TagNumber(10)
   void clearRpcPassword() => clearField(10);
+
+  /// Per-group datadir snapshots. The active group's value mirrors
+  /// detected_data_dir; the inactive group's value is the path that will be
+  /// restored on the next swap into that group. Empty = no path stored.
+  @$pb.TagNumber(11)
+  $core.String get defaultDatadir => $_getSZ(10);
+  @$pb.TagNumber(11)
+  set defaultDatadir($core.String v) { $_setString(10, v); }
+  @$pb.TagNumber(11)
+  $core.bool hasDefaultDatadir() => $_has(10);
+  @$pb.TagNumber(11)
+  void clearDefaultDatadir() => clearField(11);
+
+  @$pb.TagNumber(12)
+  $core.String get forknetDatadir => $_getSZ(11);
+  @$pb.TagNumber(12)
+  set forknetDatadir($core.String v) { $_setString(11, v); }
+  @$pb.TagNumber(12)
+  $core.bool hasForknetDatadir() => $_has(11);
+  @$pb.TagNumber(12)
+  void clearForknetDatadir() => clearField(12);
 }
 
 class SetBitcoinConfigNetworkRequest extends $pb.GeneratedMessage {

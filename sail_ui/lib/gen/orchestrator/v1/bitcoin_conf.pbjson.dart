@@ -36,6 +36,8 @@ const GetBitcoinConfigResponse$json = {
     {'1': 'is_demo_mode', '3': 8, '4': 1, '5': 8, '10': 'isDemoMode'},
     {'1': 'rpc_user', '3': 9, '4': 1, '5': 9, '10': 'rpcUser'},
     {'1': 'rpc_password', '3': 10, '4': 1, '5': 9, '10': 'rpcPassword'},
+    {'1': 'default_datadir', '3': 11, '4': 1, '5': 9, '10': 'defaultDatadir'},
+    {'1': 'forknet_datadir', '3': 12, '4': 1, '5': 9, '10': 'forknetDatadir'},
   ],
 };
 
@@ -48,7 +50,8 @@ final $typed_data.Uint8List getBitcoinConfigResponseDescriptor = $convert.base64
     'Ug1jb25maWdDb250ZW50Ej4KG25ldHdvcmtfc3VwcG9ydHNfc2lkZWNoYWlucxgHIAEoCFIZbm'
     'V0d29ya1N1cHBvcnRzU2lkZWNoYWlucxIgCgxpc19kZW1vX21vZGUYCCABKAhSCmlzRGVtb01v'
     'ZGUSGQoIcnBjX3VzZXIYCSABKAlSB3JwY1VzZXISIQoMcnBjX3Bhc3N3b3JkGAogASgJUgtycG'
-    'NQYXNzd29yZA==');
+    'NQYXNzd29yZBInCg9kZWZhdWx0X2RhdGFkaXIYCyABKAlSDmRlZmF1bHREYXRhZGlyEicKD2Zv'
+    'cmtuZXRfZGF0YWRpchgMIAEoCVIOZm9ya25ldERhdGFkaXI=');
 
 @$core.Deprecated('Use setBitcoinConfigNetworkRequestDescriptor instead')
 const SetBitcoinConfigNetworkRequest$json = {
