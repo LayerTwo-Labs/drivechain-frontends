@@ -31,9 +31,24 @@ class BitcoinConfProvider extends ChangeNotifier {
   bool hasPrivateBitcoinConf = false;
   String? configPath;
   BitcoinNetwork network = BitcoinNetwork.BITCOIN_NETWORK_SIGNET;
-  String? detectedDataDir;
+  String? defaultDatadir;
+  String? forknetDatadir;
   BitcoinConfig? currentConfig;
   late final RootStackRouter router;
+
+  /// The datadir for the currently active network — same as
+  /// [dataDirFor]([network]).
+  String? get detectedDataDir => dataDirFor(network);
+
+  /// Returns the datadir recorded for [n]'s datadir group, or null if
+  /// none is configured. Forknet has its own group; everything else shares
+  /// the default group (Bitcoin Core auto-partitions via chain subdirs).
+  String? dataDirFor(BitcoinNetwork n) {
+    if (n == BitcoinNetwork.BITCOIN_NETWORK_FORKNET) {
+      return forknetDatadir;
+    }
+    return defaultDatadir;
+  }
 
   bool get networkSupportsSidechains {
     return network == BitcoinNetwork.BITCOIN_NETWORK_FORKNET ||
@@ -87,7 +102,8 @@ class BitcoinConfProvider extends ChangeNotifier {
 
       hasPrivateBitcoinConf = resp.hasPrivateConf;
       configPath = resp.configPath.isEmpty ? null : resp.configPath;
-      detectedDataDir = resp.detectedDataDir.isEmpty ? null : resp.detectedDataDir;
+      defaultDatadir = resp.defaultDatadir.isEmpty ? null : resp.defaultDatadir;
+      forknetDatadir = resp.forknetDatadir.isEmpty ? null : resp.forknetDatadir;
       rpcPort = resp.rpcPort;
 
       network = _parseNetwork(resp.network);
@@ -147,13 +163,13 @@ class BitcoinConfProvider extends ChangeNotifier {
 
   Future<void> updateDataDir(
     String? dataDir, {
-    BitcoinNetwork? forNetwork,
+    required BitcoinNetwork forNetwork,
   }) async {
     try {
       await _client.setBitcoinConfigDataDir(
         SetBitcoinConfigDataDirRequest(
           dataDir: dataDir ?? '',
-          network: forNetwork != null ? _networkToString(forNetwork) : '',
+          network: _networkToString(forNetwork),
         ),
       );
       await loadConfig();
