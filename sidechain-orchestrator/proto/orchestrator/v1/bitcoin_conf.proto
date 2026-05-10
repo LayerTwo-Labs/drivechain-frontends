@@ -34,6 +34,11 @@ message GetBitcoinConfigResponse {
   // Prefer the hosted BitcoinService proxy when possible.
   string rpc_user = 9;
   string rpc_password = 10;
+  // Per-group datadir snapshots. The active group's value mirrors
+  // detected_data_dir; the inactive group's value is the path that will be
+  // restored on the next swap into that group. Empty = no path stored.
+  string default_datadir = 11;
+  string forknet_datadir = 12;
 }
 
 // SetBitcoinConfigNetwork

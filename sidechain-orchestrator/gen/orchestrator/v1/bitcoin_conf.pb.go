@@ -70,10 +70,15 @@ type GetBitcoinConfigResponse struct {
 	// RPC creds — exposed so localhost callers (cpuminer, future tools) that
 	// need raw bitcoind JSON-RPC can dial it without re-parsing config_content.
 	// Prefer the hosted BitcoinService proxy when possible.
-	RpcUser       string `protobuf:"bytes,9,opt,name=rpc_user,json=rpcUser,proto3" json:"rpc_user,omitempty"`
-	RpcPassword   string `protobuf:"bytes,10,opt,name=rpc_password,json=rpcPassword,proto3" json:"rpc_password,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	RpcUser     string `protobuf:"bytes,9,opt,name=rpc_user,json=rpcUser,proto3" json:"rpc_user,omitempty"`
+	RpcPassword string `protobuf:"bytes,10,opt,name=rpc_password,json=rpcPassword,proto3" json:"rpc_password,omitempty"`
+	// Per-group datadir snapshots. The active group's value mirrors
+	// detected_data_dir; the inactive group's value is the path that will be
+	// restored on the next swap into that group. Empty = no path stored.
+	DefaultDatadir string `protobuf:"bytes,11,opt,name=default_datadir,json=defaultDatadir,proto3" json:"default_datadir,omitempty"`
+	ForknetDatadir string `protobuf:"bytes,12,opt,name=forknet_datadir,json=forknetDatadir,proto3" json:"forknet_datadir,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *GetBitcoinConfigResponse) Reset() {
@@ -172,6 +177,20 @@ func (x *GetBitcoinConfigResponse) GetRpcUser() string {
 func (x *GetBitcoinConfigResponse) GetRpcPassword() string {
 	if x != nil {
 		return x.RpcPassword
+	}
+	return ""
+}
+
+func (x *GetBitcoinConfigResponse) GetDefaultDatadir() string {
+	if x != nil {
+		return x.DefaultDatadir
+	}
+	return ""
+}
+
+func (x *GetBitcoinConfigResponse) GetForknetDatadir() string {
+	if x != nil {
+		return x.ForknetDatadir
 	}
 	return ""
 }
@@ -429,7 +448,7 @@ var File_orchestrator_v1_bitcoin_conf_proto protoreflect.FileDescriptor
 const file_orchestrator_v1_bitcoin_conf_proto_rawDesc = "" +
 	"\n" +
 	"\"orchestrator/v1/bitcoin_conf.proto\x12\x0forchestrator.v1\"\x19\n" +
-	"\x17GetBitcoinConfigRequest\"\x8d\x03\n" +
+	"\x17GetBitcoinConfigRequest\"\xdf\x03\n" +
 	"\x18GetBitcoinConfigResponse\x12\x18\n" +
 	"\anetwork\x18\x01 \x01(\tR\anetwork\x12\x19\n" +
 	"\brpc_port\x18\x02 \x01(\x05R\arpcPort\x12(\n" +
@@ -443,7 +462,9 @@ const file_orchestrator_v1_bitcoin_conf_proto_rawDesc = "" +
 	"isDemoMode\x12\x19\n" +
 	"\brpc_user\x18\t \x01(\tR\arpcUser\x12!\n" +
 	"\frpc_password\x18\n" +
-	" \x01(\tR\vrpcPassword\":\n" +
+	" \x01(\tR\vrpcPassword\x12'\n" +
+	"\x0fdefault_datadir\x18\v \x01(\tR\x0edefaultDatadir\x12'\n" +
+	"\x0fforknet_datadir\x18\f \x01(\tR\x0eforknetDatadir\":\n" +
 	"\x1eSetBitcoinConfigNetworkRequest\x12\x18\n" +
 	"\anetwork\x18\x01 \x01(\tR\anetwork\"!\n" +
 	"\x1fSetBitcoinConfigNetworkResponse\"U\n" +
