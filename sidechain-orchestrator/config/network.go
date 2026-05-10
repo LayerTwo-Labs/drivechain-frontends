@@ -13,6 +13,26 @@ const (
 	NetworkTestnet Network = "testnet"
 )
 
+// DatadirGroup partitions networks by which folder bitcoind writes to.
+// Forknet runs on chain=main and writes to the root of datadir, colliding
+// with mainnet — so it needs its own group. The four "default" networks
+// share one datadir because Bitcoin Core auto-partitions them via chain
+// subdirectories (signet/, testnet3/, regtest/, blocks/ for mainnet).
+type DatadirGroup string
+
+const (
+	DatadirGroupDefault DatadirGroup = "default"
+	DatadirGroupForknet DatadirGroup = "forknet"
+)
+
+// DatadirGroupForNetwork returns the datadir group a network belongs to.
+func DatadirGroupForNetwork(n Network) DatadirGroup {
+	if n == NetworkForknet {
+		return DatadirGroupForknet
+	}
+	return DatadirGroupDefault
+}
+
 // RPCPortForNetwork returns the default RPC port for a given network.
 func RPCPortForNetwork(n Network) int {
 	switch n {
