@@ -11,6 +11,61 @@ import (
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config"
 )
 
+// Cross-group swap (default → forknet → default) preserves both groups'
+// datadirs in slots and rewrites the live datadir= line each time so
+// bitcoind boots against the correct path. Re-entering the original group
+// must not re-prompt — the datadir is restored from the preserved slot.
+func TestSwapNetwork_CrossGroupPreservesDatadirs(t *testing.T) {
+	o := newTestOrchestrator(t)
+	require.NotNil(t, o.BitcoinConf)
+
+	// Active network starts as signet (default group). Pre-stage both
+	// group slots so the datadir guard passes for forknet/mainnet.
+	o.BitcoinConf.Config.SetGroupDatadir(config.DatadirGroupDefault, "/tmp/group-default")
+	o.BitcoinConf.Config.SetGroupDatadir(config.DatadirGroupForknet, "/tmp/group-forknet")
+	o.BitcoinConf.Config.SetSetting("datadir", "/tmp/group-default")
+	require.NoError(t, o.BitcoinConf.SaveConfig())
+	require.NoError(t, o.BitcoinConf.LoadConfig(false))
+
+	// Default → mainnet (within-group): live datadir keeps /tmp/group-default.
+	require.NoError(t, o.SwapNetwork(context.Background(), config.NetworkMainnet))
+	require.Equal(t, "/tmp/group-default", o.BitcoinConf.Config.GetSetting("datadir"))
+
+	// Mainnet → forknet (cross-group): live datadir flips to forknet's,
+	// default slot retains the mainnet datadir.
+	require.NoError(t, o.SwapNetwork(context.Background(), config.NetworkForknet))
+	require.Equal(t, "/tmp/group-forknet", o.BitcoinConf.Config.GetSetting("datadir"))
+	require.Equal(t, "/tmp/group-default", o.BitcoinConf.Config.GetGroupDatadir(config.DatadirGroupDefault))
+	require.Equal(t, "/tmp/group-forknet", o.BitcoinConf.Config.GetGroupDatadir(config.DatadirGroupForknet))
+
+	// Forknet → mainnet (cross-group back): default slot restored, forknet
+	// slot retained for the next swap.
+	require.NoError(t, o.SwapNetwork(context.Background(), config.NetworkMainnet))
+	require.Equal(t, "/tmp/group-default", o.BitcoinConf.Config.GetSetting("datadir"))
+	require.Equal(t, "/tmp/group-forknet", o.BitcoinConf.Config.GetGroupDatadir(config.DatadirGroupForknet))
+}
+
+// Within-group swap (mainnet → signet) leaves the datadir alone — Bitcoin
+// Core's chain subdirs do the per-network partitioning. No slot writes
+// happen, no prompt is required.
+func TestSwapNetwork_WithinDefaultGroupKeepsDatadir(t *testing.T) {
+	o := newTestOrchestrator(t)
+	require.NotNil(t, o.BitcoinConf)
+
+	o.BitcoinConf.Config.SetGroupDatadir(config.DatadirGroupDefault, "/tmp/shared-default")
+	o.BitcoinConf.Config.SetSetting("datadir", "/tmp/shared-default")
+	require.NoError(t, o.BitcoinConf.SaveConfig())
+	require.NoError(t, o.BitcoinConf.LoadConfig(false))
+
+	require.NoError(t, o.SwapNetwork(context.Background(), config.NetworkMainnet))
+	require.Equal(t, "/tmp/shared-default", o.BitcoinConf.Config.GetSetting("datadir"))
+
+	require.NoError(t, o.SwapNetwork(context.Background(), config.NetworkRegtest))
+	require.Equal(t, "/tmp/shared-default", o.BitcoinConf.Config.GetSetting("datadir"))
+	// Forknet slot was never written.
+	require.Equal(t, "", o.BitcoinConf.Config.GetGroupDatadir(config.DatadirGroupForknet))
+}
+
 // TestSwapNetwork_FiresOnNetworkChanged is the orchestrator-level regression
 // guard for the in-process bitcoin proxy rebuild flow:
 //
