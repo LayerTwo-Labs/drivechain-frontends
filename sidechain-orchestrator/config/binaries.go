@@ -50,13 +50,13 @@ func currentOSName() string {
 // BinaryDirConfig holds directory configuration for a single binary.
 // Extracted from orchestrator.BinaryConfig for use in the config package.
 type BinaryDirConfig struct {
-	Name          string
-	BinaryName    string
-	ChainLayer    int
-	Port          int
-	DataDir       map[string]string // os -> subdir (default for all networks)
-	DataDirMainnet map[string]string // os -> subdir (mainnet override)
-	IsBitcoinCore bool              // Linux appdir exception
+	Name               string
+	BinaryName         string
+	ChainLayer         int
+	Port               int
+	DataDir            map[string]string // os -> subdir (default for all networks)
+	DataDirMainnet     map[string]string // os -> subdir (mainnet override)
+	IsBitcoinCore      bool              // Linux appdir exception
 	FlutterFrontendDir map[string]string // os -> Flutter app data subdir
 }
 
@@ -415,8 +415,8 @@ func (b BinaryDirConfig) GetSettingsPaths(networkDir string, network Network, lo
 		paths = append(paths, GetExistingFilesInDir(networkDir, []string{"server.log"}, log)...)
 		rootDir := BitWindowDirs.RootDir()
 		paths = append(paths, GetExistingFilesInDir(rootDir, []string{
-			"assets", "bitwindow-bitcoin.conf", "bitwindow-mainnet.conf",
-			"bitwindow-forknet.conf", "debug.log", "downloads", "pids", "settings.json",
+			"assets", "bitwindow-bitcoin.conf",
+			"debug.log", "downloads", "pids", "settings.json",
 		}, log)...)
 
 	case "thunder":
@@ -973,12 +973,12 @@ func (b BinaryDirConfig) CalculateHash(appDir string) (string, error) {
 // DownloadProgress tracks download progress for a binary.
 // Dart: DownloadInfo class (L1969-2025)
 type DownloadProgress struct {
-	Progress     float64   // bytes downloaded
-	Total        float64   // total bytes
-	Error        string    // error message
-	Message      string    // status message
-	Hash         string    // SHA256 hash
-	DownloadedAt time.Time // when download completed
+	Progress      float64   // bytes downloaded
+	Total         float64   // total bytes
+	Error         string    // error message
+	Message       string    // status message
+	Hash          string    // SHA256 hash
+	DownloadedAt  time.Time // when download completed
 	IsDownloading bool
 }
 
@@ -1001,8 +1001,8 @@ type ProcessLogEntry struct {
 // ShutdownProgressInfo reports progress during shutdown.
 // Dart: ShutdownProgress class (L1954-1966)
 type ShutdownProgressInfo struct {
-	TotalCount    int
+	TotalCount     int
 	CompletedCount int
-	CurrentBinary string
-	IsForceKill   bool
+	CurrentBinary  string
+	IsForceKill    bool
 }
