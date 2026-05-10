@@ -358,26 +358,28 @@ func (m *BitcoinConfManager) CopyConfigDownstream() error {
 }
 
 // ---------------------------------------------------------------------------
-// Piece 9: UpdateDataDir with cross-network logic
+// UpdateDataDir + datadir-group helpers
 // ---------------------------------------------------------------------------
 
-// UpdateDataDir sets the global datadir on master's bitwindow-bitcoin.conf.
-// Bitcoin Core only honours datadir at the top level — section-scoped
-// datadir lines are silently ignored at startup — so this writes to the
-// global block. forNetwork is accepted for API compat but ignored: there
-// is one datadir for the whole app, applied across every network. Bitcoin
-// Core itself appends the per-chain subdir (signet/, testnet3/, etc.).
+// UpdateDataDir records dataDir for forNetwork's datadir group. If the group
+// is currently active, it also rewrites the live `datadir=` line so bitcoind
+// reads the new path on next boot. Otherwise it only updates the inactive
+// group's slot — the active datadir is untouched.
+//
+// forNetwork must be a known Network value; the group resolution depends on
+// it (forknet vs default).
 func (m *BitcoinConfManager) UpdateDataDir(dataDir string, forNetwork Network) error {
-	_ = forNetwork
 	if m.HasPrivateConf || m.Config == nil {
 		return nil
 	}
 
 	cleanDataDir := strings.ReplaceAll(strings.TrimSpace(dataDir), "\\ ", " ")
-	if cleanDataDir == "" {
-		m.Config.RemoveSetting("datadir")
-	} else {
-		m.Config.SetSetting("datadir", cleanDataDir)
+
+	group := DatadirGroupForNetwork(forNetwork)
+	m.Config.SetGroupDatadir(group, cleanDataDir)
+
+	if group == DatadirGroupForNetwork(m.Network) {
+		m.materializeDatadirForGroup(group)
 	}
 
 	if err := m.SaveConfig(); err != nil {
@@ -386,23 +388,80 @@ func (m *BitcoinConfManager) UpdateDataDir(dataDir string, forNetwork Network) e
 	return m.LoadConfig(false)
 }
 
-// ---------------------------------------------------------------------------
-// Piece 10: HasDatadirForNetwork
-// ---------------------------------------------------------------------------
-
-// HasDatadirForNetwork reports whether a global datadir is configured.
-// Mainnet and forknet require an explicit user-chosen path because the
-// platform default sits inside ~/Library/Application Support and is not
-// suitable for full mainnet data; signet / testnet / regtest accept the
-// default. The value is global — the same one applies to every network.
-func (m *BitcoinConfManager) HasDatadirForNetwork(n Network) bool {
-	if n != NetworkMainnet && n != NetworkForknet {
-		return true
+// materializeDatadirForGroup copies the group's slot value into the live
+// `datadir=` line that bitcoind reads, or clears it if the slot is empty.
+// Caller is responsible for persisting via SaveConfig.
+func (m *BitcoinConfManager) materializeDatadirForGroup(g DatadirGroup) {
+	if m.Config == nil {
+		return
 	}
+	path := m.Config.GetGroupDatadir(g)
+	if path == "" {
+		m.Config.RemoveSetting("datadir")
+		return
+	}
+	m.Config.SetSetting("datadir", path)
+}
+
+// HasDatadirForNetwork reports whether a datadir is configured for n's group.
+// Mainnet/forknet require an explicit user-chosen path because the platform
+// default sits inside ~/Library/Application Support and isn't suitable for
+// full chain data; signet/testnet/regtest accept the default (Bitcoin Core
+// auto-partitions them under chain subdirs).
+func (m *BitcoinConfManager) HasDatadirForNetwork(n Network) bool {
 	if m.Config == nil {
 		return false
 	}
-	return m.Config.GetSetting("datadir") != ""
+	if n == NetworkForknet {
+		return m.Config.GetGroupDatadir(DatadirGroupForknet) != ""
+	}
+	if n == NetworkMainnet {
+		// Mainnet still needs a user-chosen path — it would otherwise write
+		// 700+ GB into Library/Application Support.
+		if m.Config.GetGroupDatadir(DatadirGroupDefault) != "" {
+			return true
+		}
+		// Tolerate a top-level datadir= without a slot (e.g. user-edited
+		// conf or pre-slot install — first cross-group swap will adopt it
+		// into the slot).
+		return m.Config.GetSetting("datadir") != ""
+	}
+	return true
+}
+
+// applyMainSectionDefaults ensures master's [main] section matches what the
+// active network expects. Forknet wants drivechain=1 + the alternate ports;
+// real mainnet/the default group want those keys absent. signet/test/regtest
+// don't read [main], so this is a no-op for them.
+func (m *BitcoinConfManager) applyMainSectionDefaults(n Network) {
+	if m.Config == nil {
+		return
+	}
+	switch n {
+	case NetworkForknet:
+		forknetMainDefaults := []struct{ k, v string }{
+			{"port", "8300"},
+			{"rpcport", "18301"},
+			{"rpcbind", "127.0.0.1"},
+			{"rpcallowip", "0.0.0.0/0"},
+			{"assumevalid", "0000000000000000000000000000000000000000000000000000000000000000"},
+			{"minimumchainwork", "0x00"},
+			{"listenonion", "0"},
+			{"drivechain", "1"},
+			{"fallbackfee", "0.00021"},
+		}
+		for _, kv := range forknetMainDefaults {
+			if !m.Config.HasSetting(kv.k, "main") {
+				m.Config.SetSetting(kv.k, kv.v, "main")
+			}
+		}
+	case NetworkMainnet:
+		// Strip forknet-only keys; bitcoind on real mainnet must not see
+		// drivechain=1 or the alternate port.
+		for _, k := range []string{"drivechain", "port", "rpcport", "fallbackfee"} {
+			m.Config.RemoveSetting(k, "main")
+		}
+	}
 }
 
 // ---------------------------------------------------------------------------
