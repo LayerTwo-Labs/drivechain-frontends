@@ -110,7 +110,6 @@ func (m *EnforcerConfManager) LoadConfig() error {
 		content := string(data)
 		config := ParseEnforcerConfig(content)
 
-		// Dart: runConfigMigrations<EnforcerConfig>(config, _kEnforcerConfVersion, ...)
 		if RunEnforcerConfMigrations(config) {
 			content = config.Serialize()
 			if writeErr := os.WriteFile(m.ConfigPath, []byte(content), 0644); writeErr != nil {
