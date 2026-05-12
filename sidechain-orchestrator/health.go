@@ -150,6 +150,14 @@ type HealthCheckOpts struct {
 // NewHealthChecker creates the appropriate health checker for a binary config.
 func NewHealthChecker(config BinaryConfig, opts ...HealthCheckOpts) HealthChecker {
 	timeout := 2 * time.Second
+	// Bitcoin Core holds cs_main during block validation; getblockchaininfo
+	// routinely takes many seconds during IBD on slow storage. A short
+	// deadline trips the connection monitor on every poll and storm-
+	// reconnects against an already-overloaded daemon. 60s is the budget
+	// we give bitcoind to answer one health RPC.
+	if config.IsBitcoinCore {
+		timeout = 60 * time.Second
+	}
 	host := "localhost"
 
 	var opt HealthCheckOpts
@@ -159,11 +167,12 @@ func NewHealthChecker(config BinaryConfig, opts ...HealthCheckOpts) HealthChecke
 
 	switch config.HealthCheckType {
 	case HealthCheckJSONRPC:
-		// Bitcoin Core needs presync detection on top of the basic ping —
-		// during BIP324 headers-presync, getblockcount returns 0 cleanly, so
-		// the regular check would flip connected=true with blocks=0/headers=0
-		// and the UI would look frozen. BitcoindHealthCheck synthesises a
-		// startup error containing the presync height instead.
+		// During BIP324 headers-presync getblockchaininfo answers cleanly
+		// with blocks=0 and headers=0, so a vanilla JSON-RPC check would
+		// flip connected=true with no progress indicator. The bitcoind
+		// checker synthesises a "Pre-synchronizing blockheaders" startup
+		// error in that one case. Same single RPC, different result
+		// interpretation — no separate probes.
 		if config.IsBitcoinCore {
 			return &BitcoindHealthCheck{
 				URL:      fmt.Sprintf("http://%s:%d", host, config.Port),
@@ -216,51 +225,6 @@ func WaitForHealthy(ctx context.Context, checker HealthChecker, interval time.Du
 	}
 }
 
-// CoreStatusClient is a minimal Bitcoin Core JSON-RPC client for startup sequencing checks.
-// It only implements the 2-3 calls needed to check wallet unlock and IBD status.
-type CoreStatusClient struct {
-	url      string
-	user     string
-	password string
-	client   *http.Client
-}
-
-func NewCoreStatusClient(host string, port int, user, password string) *CoreStatusClient {
-	return &CoreStatusClient{
-		url:      fmt.Sprintf("http://%s:%d", host, port),
-		user:     user,
-		password: password,
-		// 15s rather than 5s. During IBD getblockchaininfo blocks on
-		// Core's cs_main lock and routinely takes several seconds while
-		// blocks are being processed. A tight 5s timeout was tripping the
-		// connection-lost monitor on every other poll, which then storm-
-		// reconnects against an already-overloaded daemon.
-		//
-		// Explicit Transport (rather than http.DefaultTransport) so we can
-		// pin MaxConnsPerHost to 1: bitcoind serialises RPCs behind cs_main
-		// anyway, so opening multiple connections only piles up sockets in
-		// TIME_WAIT without buying parallelism. IdleConnTimeout matches
-		// Go's default; MaxIdleConnsPerHost: 2 leaves headroom for the
-		// rare overlap between a slow getblockchaininfo and a quick
-		// getbalance.
-		client: &http.Client{
-			Timeout: 15 * time.Second,
-			Transport: &http.Transport{
-				MaxConnsPerHost:     1,
-				MaxIdleConnsPerHost: 2,
-				IdleConnTimeout:     90 * time.Second,
-			},
-		},
-	}
-}
-
-type jsonRPCRequest struct {
-	JSONRPC string        `json:"jsonrpc"`
-	ID      string        `json:"id"`
-	Method  string        `json:"method"`
-	Params  []interface{} `json:"params"`
-}
-
 type jsonRPCResponse struct {
 	Result json.RawMessage `json:"result"`
 	Error  *struct {
@@ -269,50 +233,24 @@ type jsonRPCResponse struct {
 	} `json:"error"`
 }
 
+// CoreStatusClient is a minimal Bitcoin Core JSON-RPC client for startup sequencing checks.
+// It only implements the 2-3 calls needed to check wallet unlock and IBD status.
+type CoreStatusClient struct {
+	url      string
+	user     string
+	password string
+}
+
+func NewCoreStatusClient(host string, port int, user, password string) *CoreStatusClient {
+	return &CoreStatusClient{
+		url:      fmt.Sprintf("http://%s:%d", host, port),
+		user:     user,
+		password: password,
+	}
+}
+
 func (c *CoreStatusClient) call(ctx context.Context, method string, params ...interface{}) (json.RawMessage, error) {
-	if params == nil {
-		params = []interface{}{}
-	}
-	body, err := json.Marshal(jsonRPCRequest{
-		JSONRPC: "1.0",
-		ID:      "orchestrator",
-		Method:  method,
-		Params:  params,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("marshal %s request: %w", method, err)
-	}
-
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.url, bytes.NewReader(body))
-	if err != nil {
-		return nil, fmt.Errorf("create %s request: %w", method, err)
-	}
-	req.Header.Set("Content-Type", "application/json")
-	if c.user != "" {
-		req.SetBasicAuth(c.user, c.password)
-	}
-
-	resp, err := c.client.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("%s call: %w", method, err)
-	}
-	defer resp.Body.Close() //nolint:errcheck // cleanup
-
-	respBody, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, fmt.Errorf("read %s response: %w", method, err)
-	}
-
-	var rpcResp jsonRPCResponse
-	if err := json.Unmarshal(respBody, &rpcResp); err != nil {
-		return nil, fmt.Errorf("decode %s response: %w", method, err)
-	}
-
-	if rpcResp.Error != nil {
-		return nil, fmt.Errorf("%s RPC error %d: %s", method, rpcResp.Error.Code, rpcResp.Error.Message)
-	}
-
-	return rpcResp.Result, nil
+	return CallBitcoindRPC(ctx, c.url, c.user, c.password, method, params)
 }
 
 // IsHeaderSyncComplete reports whether Bitcoin Core has finished downloading

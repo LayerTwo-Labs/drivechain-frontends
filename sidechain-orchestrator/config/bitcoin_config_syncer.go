@@ -114,10 +114,26 @@ var bitcoinConfMigrations = []BitcoinConfMigration{
 			},
 		},
 	},
+	{
+		// Cap concurrent RPCs at 10 (down from 20). Bitcoin Core serialises
+		// most work behind cs_main during IBD, so a higher thread count
+		// just lets more callers pile up against the same lock while
+		// bitwindow's poll loop and the enforcer race for slots. Ten is
+		// plenty of headroom for our actual concurrency. rpcworkqueue
+		// drops proportionally — 50 still absorbs bursts without papering
+		// over a stuck daemon.
+		Version: 9,
+		Changes: map[string]map[string]string{
+			"": {
+				"rpcthreads":   "10",
+				"rpcworkqueue": "50",
+			},
+		},
+	},
 }
 
 // BitcoinConfMigrationsVersion is the highest migration version.
-var BitcoinConfMigrationsVersion = 8
+var BitcoinConfMigrationsVersion = 9
 
 // RunBitcoinConfMigrations applies pending migrations to a BitcoinConfig.
 // Returns true if any migration was applied.

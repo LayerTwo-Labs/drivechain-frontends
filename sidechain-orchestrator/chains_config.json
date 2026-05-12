@@ -13,7 +13,7 @@
       "is_bitcoin_core": true,
       "health_check": {
         "type": "jsonrpc",
-        "rpc_method": "getblockcount"
+        "rpc_method": "getblockchaininfo"
       },
       "dependencies": [],
       "startup_log_patterns": [
