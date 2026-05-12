@@ -36,18 +36,21 @@ func (h *BitcoindHealthCheck) Check(ctx context.Context) error {
 	}
 
 	var info struct {
-		Blocks               int64 `json:"blocks"`
-		Headers              int64 `json:"headers"`
-		InitialBlockDownload bool  `json:"initialblockdownload"`
+		Chain   string `json:"chain"`
+		Blocks  int64  `json:"blocks"`
+		Headers int64  `json:"headers"`
 	}
 	if err := json.Unmarshal(raw, &info); err != nil {
 		return fmt.Errorf("decode getblockchaininfo: %w", err)
 	}
-	// Gate the synthetic presync error on initialblockdownload — a fresh
-	// regtest node legitimately sits at blocks=0/headers=0 with IBD=false
-	// (no peers, nothing to sync), and treating that as presync leaves it
-	// stuck in startup forever. Real BIP324 presync reports IBD=true.
-	if info.InitialBlockDownload && info.Blocks == 0 && info.Headers == 0 {
+	// BIP324 headers-presync only happens on networks where peers
+	// exchange headers (mainnet, signet, testnet, forknet). Regtest has
+	// no peers and never enters presync; a fresh regtest node sits at
+	// blocks=0/headers=0 as steady state — and `initialblockdownload`
+	// is no help here either, because Core sets IBD=true whenever the
+	// tip's block time is older than 24h and regtest genesis dates to
+	// 2011. So gate by chain instead.
+	if info.Chain != "regtest" && info.Blocks == 0 && info.Headers == 0 {
 		return fmt.Errorf("%s", PresyncMessagePrefix)
 	}
 	return nil
