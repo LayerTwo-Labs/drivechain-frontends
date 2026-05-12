@@ -137,8 +137,8 @@ func TestGetDefaultConfigMainnetMatchesEnforcerExpectations(t *testing.T) {
 
 	required := []string{
 		"\nzmqpubsequence=tcp://127.0.0.1:29000\n",
-		"\nrpcthreads=20\n",
-		"\nrpcworkqueue=100\n",
+		"\nrpcthreads=10\n",
+		"\nrpcworkqueue=50\n",
 		"\nuacomment=BitWindow-0.2\n",
 	}
 	for _, line := range required {

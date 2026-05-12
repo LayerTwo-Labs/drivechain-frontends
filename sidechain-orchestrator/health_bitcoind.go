@@ -15,10 +15,10 @@ import (
 const PresyncMessagePrefix = "Pre-synchronizing blockheaders"
 
 // BitcoindHealthCheck calls getblockchaininfo through the shared
-// orchestrator → bitcoind RPC gate. When bitcoind reports blocks=0 and
-// headers=0 it's still in BIP324 headers-presync — a vanilla success
-// signal would freeze the UI at 0/0, so the checker synthesises a
-// presync startup error instead. One RPC only.
+// orchestrator → bitcoind RPC gate. When bitcoind is still in BIP324
+// headers-presync the RPC reports blocks=0/headers=0 cleanly; a vanilla
+// success signal would freeze the UI at 0/0, so the checker synthesises
+// a presync startup error in that one case. One RPC only.
 type BitcoindHealthCheck struct {
 	URL      string
 	User     string
@@ -36,13 +36,18 @@ func (h *BitcoindHealthCheck) Check(ctx context.Context) error {
 	}
 
 	var info struct {
-		Blocks  int64 `json:"blocks"`
-		Headers int64 `json:"headers"`
+		Blocks               int64 `json:"blocks"`
+		Headers              int64 `json:"headers"`
+		InitialBlockDownload bool  `json:"initialblockdownload"`
 	}
 	if err := json.Unmarshal(raw, &info); err != nil {
 		return fmt.Errorf("decode getblockchaininfo: %w", err)
 	}
-	if info.Blocks == 0 && info.Headers == 0 {
+	// Gate the synthetic presync error on initialblockdownload — a fresh
+	// regtest node legitimately sits at blocks=0/headers=0 with IBD=false
+	// (no peers, nothing to sync), and treating that as presync leaves it
+	// stuck in startup forever. Real BIP324 presync reports IBD=true.
+	if info.InitialBlockDownload && info.Blocks == 0 && info.Headers == 0 {
 		return fmt.Errorf("%s", PresyncMessagePrefix)
 	}
 	return nil
