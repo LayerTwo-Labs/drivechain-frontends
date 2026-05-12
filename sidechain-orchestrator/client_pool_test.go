@@ -14,7 +14,9 @@ import (
 // connection pool every time and churning hundreds of TCP sockets per
 // second against bitcoind / enforcer / sidechains. These tests pin the
 // singleton behaviour so a regression that reintroduces per-call clients
-// fails loudly.
+// fails loudly. Bitcoind RPCs route through CallBitcoindRPC's shared
+// http.DefaultClient + concurrency gate; sidechain and enforcer traffic
+// use the per-orchestrator pooled clients tested below.
 
 func TestCoreStatusClient_ReusedAcrossCalls(t *testing.T) {
 	o := newTestOrchestrator(t)
@@ -26,7 +28,6 @@ func TestCoreStatusClient_ReusedAcrossCalls(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.Same(t, first, second, "CoreStatusClient should return the same instance for unchanged config")
-	assert.Same(t, first.client, second.client, "underlying http.Client must also be reused so the connection pool survives")
 }
 
 func TestCoreStatusClient_RebuiltOnConfigChange(t *testing.T) {
