@@ -48,12 +48,15 @@ class WalletReaderProvider extends ChangeNotifier {
   bool get isWalletUnlocked => wallets.isNotEmpty;
   bool get isWalletLocked => !isWalletUnlocked;
 
-  WalletReaderProvider(this.bitwindowAppDir) {
+  WalletReaderProvider(this.bitwindowAppDir);
+
+  void _ensureSupervisor() {
     if (Environment.isInTest) return;
+    if (_supervisor != null) return;
     _supervisor = StreamSupervisor<wmpb.WatchWalletDataResponse>(
       subscribe: () => _client.watchWalletData(),
       onEvent: _onResponse,
-      onTransportDeath: GetIt.I.get<OrchestratorRPC>().recreateConnection,
+      onTransportDeath: () => GetIt.I.get<OrchestratorRPC>().recreateConnection(),
       logger: _logger,
       tag: 'WalletReaderProvider',
     )..start();
@@ -148,6 +151,13 @@ class WalletReaderProvider extends ChangeNotifier {
 
   Future<void> init() async {
     if (Environment.isInTest) return;
+    if (!GetIt.I.isRegistered<OrchestratorRPC>()) {
+      // bootBackendManagedSidechain calls back into init() once the
+      // orchestrator is registered + ready; bail without crashing.
+      _logger.d('WalletReaderProvider: OrchestratorRPC not registered yet, skipping seed');
+      return;
+    }
+    _ensureSupervisor();
     // Seed state synchronously instead of waiting for the WatchWalletData
     // stream. The stream races UI mount on cold start, and a slow/broken
     // stream leaves the wallet dropdown, BIP47 card and starters tab empty
@@ -155,12 +165,6 @@ class WalletReaderProvider extends ChangeNotifier {
     // listWallets + getWalletStatus return the same fields the stream
     // would push, so we can populate the provider directly.
     if (wallets.isNotEmpty) return;
-    if (!GetIt.I.isRegistered<OrchestratorRPC>()) {
-      // bootBackendManagedSidechain calls back into init() once the
-      // orchestrator is registered + ready; bail without crashing.
-      _logger.d('WalletReaderProvider: OrchestratorRPC not registered yet, skipping seed');
-      return;
-    }
     final orchestrator = GetIt.I.get<OrchestratorRPC>();
     Future<List<dynamic>> seed() => Future.wait([
       orchestrator.wallet.listWallets(),
