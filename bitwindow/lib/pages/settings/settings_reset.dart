@@ -96,7 +96,7 @@ class _SettingsResetState extends State<SettingsReset> {
                   _deleteSettings = v;
                   _updateObliterate();
                 }),
-                title: 'Delete BitWindow Settings',
+                title: 'Delete LitWindow Settings',
                 subtitle: 'Resets all configuration to defaults',
                 isDestructive: false,
               ),

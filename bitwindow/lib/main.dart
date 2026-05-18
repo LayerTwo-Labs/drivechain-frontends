@@ -548,7 +548,7 @@ class _SplashScreen extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     SailText.primary10(
-                      'Starting BitWindow...',
+                      'Starting LitWindow...',
                       color: theme.colors.inactiveNavText,
                     ),
                     const SizedBox(

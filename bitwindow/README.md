@@ -1,6 +1,10 @@
-# BitWindow
+# LitWindow
 
-Frontend for interacting with a Drivechain-enabled layer 1 Bitcoin network.
+LitWindow is the Litecoin/Liteverse signet adaptation branch of the upstream BitWindow frontend.
+
+The upstream project remains BitWindow. This branch changes only UI-facing product text for now; package names, bundle identifiers, binary names, install paths, daemon names, and deep build identifiers intentionally remain unchanged until a later migration requires it.
+
+This branch is for local Litecoin/Liteverse signet work and does not make production network assumptions.
 
 ## Prerequisites
 

@@ -46,7 +46,7 @@ class _SettingsAboutState extends State<SettingsAbout> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => SailAlertCard(
-        title: 'Update BitWindow?',
+        title: 'Update LitWindow?',
         subtitle:
             'The application will download and install version ${_updateProvider.latestVersion}, then restart automatically.',
         onConfirm: () async => Navigator.of(context).pop(true),
@@ -106,7 +106,7 @@ class _SettingsAboutState extends State<SettingsAbout> {
           children: [
             SailText.primary15('Application'),
             const SailSpacing(SailStyleValues.padding08),
-            SailText.secondary13(AppVersion.appName),
+            SailText.secondary13('LitWindow'),
           ],
         ),
         Column(

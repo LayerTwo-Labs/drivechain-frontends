@@ -91,7 +91,7 @@ class SettingsPageState extends State<SettingsPage> {
               'Settings',
               bold: true,
             ),
-            SailText.secondary13('Manage your BitWindow settings.'),
+            SailText.secondary13('Manage your LitWindow settings.'),
             const SailSpacing(SailStyleValues.padding10),
             Divider(
               height: 1,
@@ -1369,7 +1369,7 @@ class _AboutSettingsContentState extends State<_AboutSettingsContent> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => SailAlertCard(
-        title: 'Update BitWindow?',
+        title: 'Update LitWindow?',
         subtitle:
             'The application will download and install version ${_updateProvider.latestVersion}, then restart automatically.',
         onConfirm: () async => Navigator.of(context).pop(true),
@@ -1437,7 +1437,7 @@ class _AboutSettingsContentState extends State<_AboutSettingsContent> {
           children: [
             SailText.primary15('Application'),
             const SailSpacing(SailStyleValues.padding08),
-            SailText.secondary13(AppVersion.appName),
+            SailText.secondary13('LitWindow'),
           ],
         ),
 
@@ -1780,10 +1780,10 @@ class _NetworkSwapProgressDialogState extends State<NetworkSwapProgressDialog> {
     final stepNames = [
       'Stopping Bitcoin Core',
       'Stopping Enforcer',
-      'Stopping BitWindow',
+      'Stopping LitWindow',
       'Waiting for processes to exit',
       'Updating bitcoin.conf',
-      'Starting Core, Enforcer and BitWindow',
+      'Starting Core, Enforcer and LitWindow',
       'Network swap complete',
     ];
 

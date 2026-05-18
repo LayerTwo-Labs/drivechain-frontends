@@ -1258,7 +1258,7 @@ class _StatusBarState extends State<StatusBar> {
     return BottomNav(
       additionalConnection: ConnectionMonitor(
         rpc: bitwindow,
-        name: 'BitWindow',
+        name: 'LitWindow',
       ),
       navigateToLogs: (title, logPath, binaryType) {
         GetIt.I.get<AppRouter>().push(
@@ -1380,7 +1380,7 @@ class AboutBitwindowDialog extends StatelessWidget {
                 ),
                 children: [
                   const TextSpan(
-                    text: 'BitWindow — GUI for the BIP300/301 sidechain enforcer.\n\n',
+                    text: 'LitWindow — GUI for the BIP300/301 sidechain enforcer.\n\n',
                   ),
                   const TextSpan(
                     text: 'Copyright (C) 2009-2026 The Drivechain developers\n',
