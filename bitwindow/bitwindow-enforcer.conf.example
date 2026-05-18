@@ -1,0 +1,9 @@
+# LitWindow local enforcer template.
+# Copy to bitwindow-enforcer.conf for local use. Never commit the real file.
+# Local-devnet/signet only unless you intentionally change every network value.
+
+--node-rpc-addr=127.0.0.1:<LOCALHOST_RPC_PORT>
+--node-rpc-user=<RPC_USER>
+--node-rpc-pass=<RPC_PASSWORD>
+--node-zmq-addr-sequence=tcp://127.0.0.1:<LOCALHOST_ZMQ_PORT>
+--data-dir=<PATH_TO_LOCAL_ENFORCER_DATA_DIR>

@@ -1,0 +1,14 @@
+# LitWindow local Litecoin/Liteverse signet template.
+# Copy to bitwindow-bitcoin.conf for local use. Never commit the real file.
+# Local-devnet/signet only unless you intentionally change every network value.
+
+regtest=1
+server=1
+rpcuser=<RPC_USER>
+rpcpassword=<RPC_PASSWORD>
+rpcport=<LOCALHOST_PORT>
+rpcbind=127.0.0.1
+rpcallowip=127.0.0.1
+zmqpubsequence=tcp://127.0.0.1:<LOCALHOST_ZMQ_PORT>
+txindex=1
+rest=1

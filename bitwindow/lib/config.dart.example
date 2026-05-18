@@ -1,0 +1,18 @@
+// LitWindow local config template.
+// Copy to config.dart for local use. Never commit the real file.
+// Local-devnet/signet only unless you intentionally change every network value.
+//
+// This is a template: replace placeholder strings with local values after
+// copying to config.dart.
+
+const liteverseBitcoinConfPath = '<PATH_TO_LOCAL_LITECOIN_CONF>';
+const liteverseEnforcerConfPath = '<PATH_TO_LOCAL_ENFORCER_CONF>';
+const liteverseDataDir = '<PATH_TO_LOCAL_DATA_DIR>';
+const liteverseNetwork = 'signet';
+const liteverseSlot = '<LITEVERSE_SIGNET_SLOT>';
+
+const liteverseRpcHost = '127.0.0.1';
+const liteverseRpcPort = '<LOCALHOST_PORT>';
+const liteverseRpcUser = '<RPC_USER>';
+const liteverseRpcPassword = '<RPC_PASSWORD>';
+const liteverseZmqSequence = 'tcp://127.0.0.1:<LOCALHOST_ZMQ_PORT>';

@@ -6,6 +6,19 @@ The upstream project remains BitWindow. This branch changes only UI-facing produ
 
 This branch is for local Litecoin/Liteverse signet work and does not make production network assumptions.
 
+## Local Configuration
+
+LitWindow local config files are intentionally untracked. Use the `.example`
+templates as starting points, copy them to the non-example filenames for local
+use, and never commit real RPC credentials, cookies, wallet paths, or private
+machine-local settings.
+
+- `bitwindow-bitcoin.conf.example`
+- `bitwindow-enforcer.conf.example`
+- `lib/config.dart.example`
+
+Keep production configuration separate from local signet/devnet configuration.
+
 ## Prerequisites
 
 - [Dart](https://dart.dev/get-dart)

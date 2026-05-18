@@ -62,3 +62,9 @@ vendor/
 # Build artifacts
 sidechain-orchestrator/orchestratorctl
 sidechain-orchestrator/orchestratord
+
+# LitWindow local config overrides. Keep real credentials and machine-local
+# paths out of git; commit only the matching .example templates.
+bitwindow/bitwindow-bitcoin.conf
+bitwindow/bitwindow-enforcer.conf
+bitwindow/lib/config.dart
