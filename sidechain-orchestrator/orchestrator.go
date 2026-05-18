@@ -1899,10 +1899,20 @@ func (o *Orchestrator) fetchMainchainBlockchainInfo(ctx context.Context) (*Mainc
 		return nil, fmt.Errorf("getblockchaininfo: %w", err)
 	}
 
-	var info MainchainBlockchainInfo
-	if err := json.Unmarshal(result, &info); err != nil {
-		return nil, fmt.Errorf("decode getblockchaininfo: %w", err)
+	var raw map[string]interface{}
+	if err := json.Unmarshal(result, &raw); err != nil {
+    		return nil, fmt.Errorf("decode raw getblockchaininfo: %w", err)
 	}
+
+	cleaned, err := json.Marshal(raw)
+	if err != nil {
+    		return nil, fmt.Errorf("re-encode getblockchaininfo: %w", err)
+	}	
+
+var info MainchainBlockchainInfo
+if err := json.Unmarshal(cleaned, &info); err != nil {
+    return nil, fmt.Errorf("decode cleaned getblockchaininfo: %w", err)
+}
 
 	return &info, nil
 }
