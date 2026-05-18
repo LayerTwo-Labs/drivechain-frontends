@@ -7,7 +7,7 @@ import "package:connectrpc/connect.dart" as connect;
 import "thunder.pb.dart" as thunderv1thunder;
 import "thunder.connect.spec.dart" as specs;
 
-extension type ThunderServiceClient (connect.Transport _transport) {
+extension type ThunderServiceClient(connect.Transport _transport) {
   /// Get wallet balance (total and available).
   Future<thunderv1thunder.GetBalanceResponse> getBalance(
     thunderv1thunder.GetBalanceRequest input, {

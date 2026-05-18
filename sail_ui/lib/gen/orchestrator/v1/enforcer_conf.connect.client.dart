@@ -7,7 +7,7 @@ import "package:connectrpc/connect.dart" as connect;
 import "enforcer_conf.pb.dart" as orchestratorv1enforcer_conf;
 import "enforcer_conf.connect.spec.dart" as specs;
 
-extension type EnforcerConfServiceClient (connect.Transport _transport) {
+extension type EnforcerConfServiceClient(connect.Transport _transport) {
   /// Get current Enforcer configuration state.
   Future<orchestratorv1enforcer_conf.GetEnforcerConfigResponse> getEnforcerConfig(
     orchestratorv1enforcer_conf.GetEnforcerConfigRequest input, {

@@ -19,8 +19,8 @@ const GetThunderConfigRequest$json = {
 };
 
 /// Descriptor for `GetThunderConfigRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List getThunderConfigRequestDescriptor = $convert.base64Decode(
-    'ChdHZXRUaHVuZGVyQ29uZmlnUmVxdWVzdA==');
+final $typed_data.Uint8List getThunderConfigRequestDescriptor =
+    $convert.base64Decode('ChdHZXRUaHVuZGVyQ29uZmlnUmVxdWVzdA==');
 
 @$core.Deprecated('Use getThunderConfigResponseDescriptor instead')
 const GetThunderConfigResponse$json = {
@@ -35,11 +35,11 @@ const GetThunderConfigResponse$json = {
 };
 
 /// Descriptor for `GetThunderConfigResponse`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List getThunderConfigResponseDescriptor = $convert.base64Decode(
-    'ChhHZXRUaHVuZGVyQ29uZmlnUmVzcG9uc2USJQoOY29uZmlnX2NvbnRlbnQYASABKAlSDWNvbm'
-    'ZpZ0NvbnRlbnQSHwoLY29uZmlnX3BhdGgYAiABKAlSCmNvbmZpZ1BhdGgSJQoOZGVmYXVsdF9j'
-    'b25maWcYAyABKAlSDWRlZmF1bHRDb25maWcSGQoIY2xpX2FyZ3MYBCADKAlSB2NsaUFyZ3MSGA'
-    'oHbmV0d29yaxgFIAEoCVIHbmV0d29yaw==');
+final $typed_data.Uint8List getThunderConfigResponseDescriptor =
+    $convert.base64Decode('ChhHZXRUaHVuZGVyQ29uZmlnUmVzcG9uc2USJQoOY29uZmlnX2NvbnRlbnQYASABKAlSDWNvbm'
+        'ZpZ0NvbnRlbnQSHwoLY29uZmlnX3BhdGgYAiABKAlSCmNvbmZpZ1BhdGgSJQoOZGVmYXVsdF9j'
+        'b25maWcYAyABKAlSDWRlZmF1bHRDb25maWcSGQoIY2xpX2FyZ3MYBCADKAlSB2NsaUFyZ3MSGA'
+        'oHbmV0d29yaxgFIAEoCVIHbmV0d29yaw==');
 
 @$core.Deprecated('Use writeThunderConfigRequestDescriptor instead')
 const WriteThunderConfigRequest$json = {
@@ -50,9 +50,9 @@ const WriteThunderConfigRequest$json = {
 };
 
 /// Descriptor for `WriteThunderConfigRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List writeThunderConfigRequestDescriptor = $convert.base64Decode(
-    'ChlXcml0ZVRodW5kZXJDb25maWdSZXF1ZXN0EiUKDmNvbmZpZ19jb250ZW50GAEgASgJUg1jb2'
-    '5maWdDb250ZW50');
+final $typed_data.Uint8List writeThunderConfigRequestDescriptor =
+    $convert.base64Decode('ChlXcml0ZVRodW5kZXJDb25maWdSZXF1ZXN0EiUKDmNvbmZpZ19jb250ZW50GAEgASgJUg1jb2'
+        '5maWdDb250ZW50');
 
 @$core.Deprecated('Use writeThunderConfigResponseDescriptor instead')
 const WriteThunderConfigResponse$json = {
@@ -60,8 +60,8 @@ const WriteThunderConfigResponse$json = {
 };
 
 /// Descriptor for `WriteThunderConfigResponse`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List writeThunderConfigResponseDescriptor = $convert.base64Decode(
-    'ChpXcml0ZVRodW5kZXJDb25maWdSZXNwb25zZQ==');
+final $typed_data.Uint8List writeThunderConfigResponseDescriptor =
+    $convert.base64Decode('ChpXcml0ZVRodW5kZXJDb25maWdSZXNwb25zZQ==');
 
 @$core.Deprecated('Use syncNetworkFromBitcoinConfRequestDescriptor instead')
 const SyncNetworkFromBitcoinConfRequest$json = {
@@ -69,8 +69,8 @@ const SyncNetworkFromBitcoinConfRequest$json = {
 };
 
 /// Descriptor for `SyncNetworkFromBitcoinConfRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List syncNetworkFromBitcoinConfRequestDescriptor = $convert.base64Decode(
-    'CiFTeW5jTmV0d29ya0Zyb21CaXRjb2luQ29uZlJlcXVlc3Q=');
+final $typed_data.Uint8List syncNetworkFromBitcoinConfRequestDescriptor =
+    $convert.base64Decode('CiFTeW5jTmV0d29ya0Zyb21CaXRjb2luQ29uZlJlcXVlc3Q=');
 
 @$core.Deprecated('Use syncNetworkFromBitcoinConfResponseDescriptor instead')
 const SyncNetworkFromBitcoinConfResponse$json = {
@@ -78,15 +78,27 @@ const SyncNetworkFromBitcoinConfResponse$json = {
 };
 
 /// Descriptor for `SyncNetworkFromBitcoinConfResponse`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List syncNetworkFromBitcoinConfResponseDescriptor = $convert.base64Decode(
-    'CiJTeW5jTmV0d29ya0Zyb21CaXRjb2luQ29uZlJlc3BvbnNl');
+final $typed_data.Uint8List syncNetworkFromBitcoinConfResponseDescriptor =
+    $convert.base64Decode('CiJTeW5jTmV0d29ya0Zyb21CaXRjb2luQ29uZlJlc3BvbnNl');
 
 const $core.Map<$core.String, $core.dynamic> ThunderConfServiceBase$json = {
   '1': 'ThunderConfService',
   '2': [
-    {'1': 'GetThunderConfig', '2': '.orchestrator.v1.GetThunderConfigRequest', '3': '.orchestrator.v1.GetThunderConfigResponse'},
-    {'1': 'WriteThunderConfig', '2': '.orchestrator.v1.WriteThunderConfigRequest', '3': '.orchestrator.v1.WriteThunderConfigResponse'},
-    {'1': 'SyncNetworkFromBitcoinConf', '2': '.orchestrator.v1.SyncNetworkFromBitcoinConfRequest', '3': '.orchestrator.v1.SyncNetworkFromBitcoinConfResponse'},
+    {
+      '1': 'GetThunderConfig',
+      '2': '.orchestrator.v1.GetThunderConfigRequest',
+      '3': '.orchestrator.v1.GetThunderConfigResponse'
+    },
+    {
+      '1': 'WriteThunderConfig',
+      '2': '.orchestrator.v1.WriteThunderConfigRequest',
+      '3': '.orchestrator.v1.WriteThunderConfigResponse'
+    },
+    {
+      '1': 'SyncNetworkFromBitcoinConf',
+      '2': '.orchestrator.v1.SyncNetworkFromBitcoinConfRequest',
+      '3': '.orchestrator.v1.SyncNetworkFromBitcoinConfResponse'
+    },
   ],
 };
 
@@ -101,12 +113,11 @@ const $core.Map<$core.String, $core.Map<$core.String, $core.dynamic>> ThunderCon
 };
 
 /// Descriptor for `ThunderConfService`. Decode as a `google.protobuf.ServiceDescriptorProto`.
-final $typed_data.Uint8List thunderConfServiceDescriptor = $convert.base64Decode(
-    'ChJUaHVuZGVyQ29uZlNlcnZpY2USZwoQR2V0VGh1bmRlckNvbmZpZxIoLm9yY2hlc3RyYXRvci'
-    '52MS5HZXRUaHVuZGVyQ29uZmlnUmVxdWVzdBopLm9yY2hlc3RyYXRvci52MS5HZXRUaHVuZGVy'
-    'Q29uZmlnUmVzcG9uc2USbQoSV3JpdGVUaHVuZGVyQ29uZmlnEioub3JjaGVzdHJhdG9yLnYxLl'
-    'dyaXRlVGh1bmRlckNvbmZpZ1JlcXVlc3QaKy5vcmNoZXN0cmF0b3IudjEuV3JpdGVUaHVuZGVy'
-    'Q29uZmlnUmVzcG9uc2UShQEKGlN5bmNOZXR3b3JrRnJvbUJpdGNvaW5Db25mEjIub3JjaGVzdH'
-    'JhdG9yLnYxLlN5bmNOZXR3b3JrRnJvbUJpdGNvaW5Db25mUmVxdWVzdBozLm9yY2hlc3RyYXRv'
-    'ci52MS5TeW5jTmV0d29ya0Zyb21CaXRjb2luQ29uZlJlc3BvbnNl');
-
+final $typed_data.Uint8List thunderConfServiceDescriptor =
+    $convert.base64Decode('ChJUaHVuZGVyQ29uZlNlcnZpY2USZwoQR2V0VGh1bmRlckNvbmZpZxIoLm9yY2hlc3RyYXRvci'
+        '52MS5HZXRUaHVuZGVyQ29uZmlnUmVxdWVzdBopLm9yY2hlc3RyYXRvci52MS5HZXRUaHVuZGVy'
+        'Q29uZmlnUmVzcG9uc2USbQoSV3JpdGVUaHVuZGVyQ29uZmlnEioub3JjaGVzdHJhdG9yLnYxLl'
+        'dyaXRlVGh1bmRlckNvbmZpZ1JlcXVlc3QaKy5vcmNoZXN0cmF0b3IudjEuV3JpdGVUaHVuZGVy'
+        'Q29uZmlnUmVzcG9uc2UShQEKGlN5bmNOZXR3b3JrRnJvbUJpdGNvaW5Db25mEjIub3JjaGVzdH'
+        'JhdG9yLnYxLlN5bmNOZXR3b3JrRnJvbUJpdGNvaW5Db25mUmVxdWVzdBozLm9yY2hlc3RyYXRv'
+        'ci52MS5TeW5jTmV0d29ya0Zyb21CaXRjb2luQ29uZlJlc3BvbnNl');

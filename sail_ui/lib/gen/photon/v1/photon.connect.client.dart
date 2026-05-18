@@ -7,7 +7,7 @@ import "package:connectrpc/connect.dart" as connect;
 import "photon.pb.dart" as photonv1photon;
 import "photon.connect.spec.dart" as specs;
 
-extension type PhotonServiceClient (connect.Transport _transport) {
+extension type PhotonServiceClient(connect.Transport _transport) {
   /// Get wallet balance (total and available).
   Future<photonv1photon.GetBalanceResponse> getBalance(
     photonv1photon.GetBalanceRequest input, {

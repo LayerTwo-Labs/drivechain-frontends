@@ -39,8 +39,7 @@ CoreConnectionSettings readRPCConfig(
   // Both mainnet and forknet use root datadir, other networks use subdirs
   final networkDir = filePath([
     datadir,
-    (network == BitcoinNetwork.BITCOIN_NETWORK_MAINNET ||
-            network == BitcoinNetwork.BITCOIN_NETWORK_FORKNET)
+    (network == BitcoinNetwork.BITCOIN_NETWORK_MAINNET || network == BitcoinNetwork.BITCOIN_NETWORK_FORKNET)
         ? ''
         : network.toReadableNet(),
   ]);
@@ -49,12 +48,12 @@ CoreConnectionSettings readRPCConfig(
 
   // Use correct default port based on network — UPDATED FOR LITECOIN CORE
   final defaultPort = switch (network) {
-    BitcoinNetwork.BITCOIN_NETWORK_MAINNET => 9332,   // Litecoin mainnet
-    BitcoinNetwork.BITCOIN_NETWORK_FORKNET => 18301,  // forknet
-    BitcoinNetwork.BITCOIN_NETWORK_TESTNET => 19332,  // Litecoin testnet
+    BitcoinNetwork.BITCOIN_NETWORK_MAINNET => 9332, // Litecoin mainnet
+    BitcoinNetwork.BITCOIN_NETWORK_FORKNET => 18301, // forknet
+    BitcoinNetwork.BITCOIN_NETWORK_TESTNET => 19332, // Litecoin testnet
     BitcoinNetwork.BITCOIN_NETWORK_SIGNET => 38332,
-    BitcoinNetwork.BITCOIN_NETWORK_REGTEST => 19443,  // ← Litecoin Regtest (was Bitcoin's 18443)
-    _ => 19443,                                       // fallback to Litecoin regtest
+    BitcoinNetwork.BITCOIN_NETWORK_REGTEST => 19443, // ← Litecoin Regtest (was Bitcoin's 18443)
+    _ => 19443, // fallback to Litecoin regtest
   };
 
   // Default values
@@ -163,12 +162,8 @@ CoreConnectionSettings readRPCConfig(
 List<String> bitcoinCoreBinaryArgs(CoreConnectionSettings conf) {
   // Only include non-config args in the base args
   final args = [
-    conf.username.isNotEmpty && !conf.isFromConfigFile('rpcuser')
-        ? '-rpcuser=${conf.username}'
-        : '',
-    conf.password.isNotEmpty && !conf.isFromConfigFile('rpcpassword')
-        ? '-rpcpassword=${conf.password}'
-        : '',
+    conf.username.isNotEmpty && !conf.isFromConfigFile('rpcuser') ? '-rpcuser=${conf.username}' : '',
+    conf.password.isNotEmpty && !conf.isFromConfigFile('rpcpassword') ? '-rpcpassword=${conf.password}' : '',
   ];
 
   // Add all additional config values that aren't from config file
@@ -213,11 +208,10 @@ extension NetworkExtensions on BitcoinNetwork {
       case BitcoinNetwork.BITCOIN_NETWORK_SIGNET:
         return 'signet';
       case BitcoinNetwork.BITCOIN_NETWORK_REGTEST:
-        return 'regtest';                     // ← fixed (was 'Litecoin Regtest' → breaks paths)
+        return 'regtest'; // ← fixed (was 'Litecoin Regtest' → breaks paths)
       case BitcoinNetwork.BITCOIN_NETWORK_TESTNET:
         return 'testnet';
-      case BitcoinNetwork.BITCOIN_NETWORK_UNSPECIFIED ||
-           BitcoinNetwork.BITCOIN_NETWORK_UNKNOWN:
+      case BitcoinNetwork.BITCOIN_NETWORK_UNSPECIFIED || BitcoinNetwork.BITCOIN_NETWORK_UNKNOWN:
       default:
         return 'unknown';
     }
@@ -233,11 +227,10 @@ extension NetworkExtensions on BitcoinNetwork {
       case BitcoinNetwork.BITCOIN_NETWORK_SIGNET:
         return 'signet';
       case BitcoinNetwork.BITCOIN_NETWORK_REGTEST:
-        return 'regtest';                     // ← fixed for Litecoin Core compatibility
+        return 'regtest'; // ← fixed for Litecoin Core compatibility
       case BitcoinNetwork.BITCOIN_NETWORK_TESTNET:
         return 'test';
-      case BitcoinNetwork.BITCOIN_NETWORK_UNSPECIFIED ||
-           BitcoinNetwork.BITCOIN_NETWORK_UNKNOWN:
+      case BitcoinNetwork.BITCOIN_NETWORK_UNSPECIFIED || BitcoinNetwork.BITCOIN_NETWORK_UNKNOWN:
       default:
         return 'unknown';
     }
@@ -256,8 +249,7 @@ extension NetworkExtensions on BitcoinNetwork {
         return 'regtest';
       case BitcoinNetwork.BITCOIN_NETWORK_TESTNET:
         return 'test';
-      case BitcoinNetwork.BITCOIN_NETWORK_UNSPECIFIED ||
-           BitcoinNetwork.BITCOIN_NETWORK_UNKNOWN:
+      case BitcoinNetwork.BITCOIN_NETWORK_UNSPECIFIED || BitcoinNetwork.BITCOIN_NETWORK_UNKNOWN:
       default:
         return 'unknown';
     }
@@ -276,8 +268,7 @@ extension NetworkExtensions on BitcoinNetwork {
         return 'Testnet3';
       case BitcoinNetwork.BITCOIN_NETWORK_REGTEST:
         return 'Litecoin Regtest';
-      case BitcoinNetwork.BITCOIN_NETWORK_UNSPECIFIED ||
-           BitcoinNetwork.BITCOIN_NETWORK_UNKNOWN:
+      case BitcoinNetwork.BITCOIN_NETWORK_UNSPECIFIED || BitcoinNetwork.BITCOIN_NETWORK_UNKNOWN:
       default:
         return 'Unknown';
     }
