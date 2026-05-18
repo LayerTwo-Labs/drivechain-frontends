@@ -64,7 +64,7 @@ class _M4ExplorerPageState extends State<M4ExplorerPage> {
                   SailText.secondary13(
                     '1. Go to Settings\n'
                     '2. Switch to "Forknet" or "Signet" network\n'
-                    '3. Restart BitWindow\n'
+                    '3. Restart LitWindow\n'
                     '4. Return here to manage sidechain withdrawals',
                   ),
                 ],

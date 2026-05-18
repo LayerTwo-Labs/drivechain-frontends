@@ -140,7 +140,7 @@ class _NetworkSwapPageState extends State<NetworkSwapPage> {
                                 ? _error!
                                 : _isSwapping
                                 ? 'Switching from $fromName to $toName...'
-                                : 'BitWindow will swap bitcoind to $toName and reload its data — the app stays open. Switching from $fromName to $toName.',
+                                : 'LitWindow will swap bitcoind to $toName and reload its data — the app stays open. Switching from $fromName to $toName.',
                             textAlign: TextAlign.center,
                           ),
                           const SizedBox(height: 24),

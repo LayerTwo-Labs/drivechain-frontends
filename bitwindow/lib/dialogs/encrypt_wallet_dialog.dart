@@ -105,7 +105,7 @@ class _EncryptWalletDialogState extends State<EncryptWalletDialog> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 SailText.primary13(
-                  'You will need to enter this password every time you start BitWindow.',
+                  'You will need to enter this password every time you start LitWindow.',
                 ),
                 SailText.secondary12(
                   'WARNING: If you lose your password, you will need to restore your wallet '
