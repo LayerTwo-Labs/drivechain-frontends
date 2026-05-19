@@ -17,11 +17,13 @@ class NotificationProvider extends ChangeNotifier {
     required DialogType dialogType,
     Future<void> Function()? onPressed,
   }) {
-    final notification = SailNotification(
+    late final SailNotification notification;
+    notification = SailNotification(
+      key: Key(content),
       title: title,
       content: content,
-      removeNotification: (content) {
-        notifications.removeWhere((element) => element.key == Key(content));
+      removeNotification: (_) {
+        notifications.remove(notification);
         notifyListeners();
       },
       dialogType: dialogType,
