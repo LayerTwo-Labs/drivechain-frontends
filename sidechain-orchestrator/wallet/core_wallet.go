@@ -97,7 +97,11 @@ func (e *WalletEngine) EnsureCoreWallet(ctx context.Context, walletID string) (s
 		return "", fmt.Errorf("wallet %s not found", walletID)
 	}
 
-	walletName := fmt.Sprintf("wallet_%s", walletID[:8])
+	walletNamePrefix := walletID
+	if len(walletNamePrefix) > 8 {
+		walletNamePrefix = walletNamePrefix[:8]
+	}
+	walletName := fmt.Sprintf("wallet_%s", walletNamePrefix)
 
 	var err error
 	switch targetWallet.WalletType {
