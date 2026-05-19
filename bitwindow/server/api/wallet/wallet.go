@@ -1264,14 +1264,18 @@ func (s *Server) listUnspentEnforcer(ctx context.Context, getLabel func(string) 
 		return nil, fmt.Errorf("enforcer/wallet: could not list denials: %w", err)
 	}
 
+	// Resolve a received_at timestamp for every UTXO: enforcer's
+	// unconfirmed_last_seen → enforcer's confirmed_at_time → block time of
+	// confirmed_at_block (fetched from bitcoind once per block). Treat
+	// zero-valued Timestamps as missing so the UI never shows 1970.
+	blockTimes, err := s.fetchBlockTimesForUtxos(ctx, utxos.Msg.Outputs)
+	if err != nil {
+		zerolog.Ctx(ctx).Warn().Err(err).Msg("could not resolve block times for utxos")
+	}
+
 	var utxosWithInfo []*pb.UnspentOutput
 	for _, utxo := range utxos.Msg.Outputs {
-		var receivedAt *timestamppb.Timestamp
-		if utxo.UnconfirmedLastSeen != nil {
-			receivedAt = utxo.UnconfirmedLastSeen
-		} else if utxo.ConfirmedAtTime != nil {
-			receivedAt = utxo.ConfirmedAtTime
-		}
+		receivedAt := chooseReceivedAt(utxo, blockTimes)
 
 		utxosWithInfo = append(utxosWithInfo, &pb.UnspentOutput{
 			Output:     fmt.Sprintf("%s:%d", utxo.Txid.Hex.Value, utxo.Vout),
@@ -1285,6 +1289,88 @@ func (s *Server) listUnspentEnforcer(ctx context.Context, getLabel func(string) 
 	}
 
 	return utxosWithInfo, nil
+}
+
+// tsValid returns true when ts is non-nil and not the zero Timestamp.
+// Protobuf doesn't distinguish "unset" from "epoch 0" for value-typed
+// timestamps, so callers must check for the zero seconds case to avoid
+// 1970-01-01 leaking into the UI.
+func tsValid(ts *timestamppb.Timestamp) bool {
+	return ts != nil && (ts.GetSeconds() > 0 || ts.GetNanos() > 0)
+}
+
+// chooseReceivedAt picks the best timestamp for a UTXO row. Preference:
+// the wallet's first-seen mempool stamp, then the confirmation timestamp
+// reported by the enforcer, then the bitcoind block time for the
+// confirmation height (looked up in blockTimes).
+func chooseReceivedAt(
+	utxo *validatorpb.ListUnspentOutputsResponse_Output,
+	blockTimes map[uint32]*timestamppb.Timestamp,
+) *timestamppb.Timestamp {
+	if tsValid(utxo.UnconfirmedLastSeen) {
+		return utxo.UnconfirmedLastSeen
+	}
+	if tsValid(utxo.ConfirmedAtTime) {
+		return utxo.ConfirmedAtTime
+	}
+	if utxo.IsConfirmed && utxo.ConfirmedAtBlock > 0 {
+		if t, ok := blockTimes[utxo.ConfirmedAtBlock]; ok && tsValid(t) {
+			return t
+		}
+	}
+	return nil
+}
+
+// fetchBlockTimesForUtxos returns block times for every distinct
+// confirmed_at_block height present in utxos that lacks a usable
+// enforcer-supplied timestamp. Best effort — failures are logged but do
+// not abort the listing.
+func (s *Server) fetchBlockTimesForUtxos(
+	ctx context.Context,
+	utxos []*validatorpb.ListUnspentOutputsResponse_Output,
+) (map[uint32]*timestamppb.Timestamp, error) {
+	heights := map[uint32]struct{}{}
+	for _, utxo := range utxos {
+		if tsValid(utxo.UnconfirmedLastSeen) || tsValid(utxo.ConfirmedAtTime) {
+			continue
+		}
+		if !utxo.IsConfirmed || utxo.ConfirmedAtBlock == 0 {
+			continue
+		}
+		heights[utxo.ConfirmedAtBlock] = struct{}{}
+	}
+	if len(heights) == 0 {
+		return nil, nil
+	}
+
+	bitcoind, err := s.bitcoind.Get(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("bitcoind unavailable: %w", err)
+	}
+
+	out := make(map[uint32]*timestamppb.Timestamp, len(heights))
+	log := zerolog.Ctx(ctx)
+	for h := range heights {
+		hashResp, err := bitcoind.GetBlockHash(ctx, connect.NewRequest(&corepb.GetBlockHashRequest{
+			Height: h,
+		}))
+		if err != nil {
+			log.Warn().Err(err).Uint32("height", h).Msg("getblockhash failed")
+			continue
+		}
+		blockResp, err := bitcoind.GetBlock(ctx, connect.NewRequest(&corepb.GetBlockRequest{
+			Hash:      hashResp.Msg.Hash,
+			Verbosity: corepb.GetBlockRequest_VERBOSITY_BLOCK_INFO,
+		}))
+		if err != nil {
+			log.Warn().Err(err).Uint32("height", h).Msg("getblock failed")
+			continue
+		}
+		if blockResp.Msg.Time != nil {
+			out[h] = blockResp.Msg.Time
+		}
+	}
+	return out, nil
 }
 
 func (s *Server) listUnspentBitcoinCore(ctx context.Context, walletId string, getLabel func(string) string) ([]*pb.UnspentOutput, error) {
@@ -1326,10 +1412,13 @@ func (s *Server) listUnspentBitcoinCore(ctx context.Context, walletId string, ge
 			zerolog.Ctx(ctx).Warn().Err(err).Str("txid", txid).Msg("failed to get transaction timestamp")
 			continue
 		}
-		if txResp.Msg.TimeReceived != nil {
+		switch {
+		case tsValid(txResp.Msg.TimeReceived):
 			txTimestamps[txid] = txResp.Msg.TimeReceived
-		} else if txResp.Msg.Time != nil {
+		case tsValid(txResp.Msg.Time):
 			txTimestamps[txid] = txResp.Msg.Time
+		case tsValid(txResp.Msg.BlockTime):
+			txTimestamps[txid] = txResp.Msg.BlockTime
 		}
 	}
 
