@@ -1,6 +1,7 @@
 import 'package:bitwindow/providers/address_book_provider.dart';
 import 'package:bitwindow/providers/hd_wallet_provider.dart';
 import 'package:bitwindow/providers/transactions_provider.dart';
+import 'package:bitwindow/utils/explorer_url.dart';
 import 'package:fixnum/fixnum.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
@@ -8,6 +9,7 @@ import 'package:qr_flutter/qr_flutter.dart';
 import 'package:sail_ui/gen/wallet/v1/wallet.pb.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:stacked/stacked.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class ReceiveTab extends StatelessWidget {
   const ReceiveTab({super.key});
@@ -250,6 +252,7 @@ class _ReceiveAddressesTableState extends State<ReceiveAddressesTable> {
                   },
                   contextMenuItems: (rowId) {
                     final entry = entries.firstWhere((e) => e.address == rowId);
+                    final network = GetIt.I.get<BitcoinConfProvider>().network;
 
                     return [
                       SailMenuItem(
@@ -283,6 +286,10 @@ class _ReceiveAddressesTableState extends State<ReceiveAddressesTable> {
                           });
                         },
                         child: SailText.primary12(entry.label.isEmpty ? 'Add Label' : 'Update Label'),
+                      ),
+                      SailMenuItem(
+                        onSelected: () => launchUrl(Uri.parse(mempoolAddressUrl(entry.address, network))),
+                        child: SailText.primary12('View on mempool.space'),
                       ),
                     ];
                   },
