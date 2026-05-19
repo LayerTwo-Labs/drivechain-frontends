@@ -1,0 +1,38 @@
+name: Lint project
+on: pull_request
+jobs:
+  golangci-lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/setup-go@v3
+        with:
+          go-version: "1.24"
+
+      - uses: actions/checkout@v3
+      - uses: golangci/golangci-lint-action@v7
+
+  go-format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.24"
+
+      - uses: actions/cache@v4
+        name: Cache tools files
+        with:
+          path: .bin/go
+          key: ${{ runner.os }}-tools-${{ hashFiles('./scripts/check-go*.sh') }}
+          restore-keys: |
+            ${{ runner.os }}-tools-
+
+      - name: format
+        env:
+          WRITE: "1"
+        run: |
+          bash scripts/check-goimports.sh
+          bash scripts/check-gogroup.sh
+
+      - run: git diff --exit-code

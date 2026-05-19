@@ -1,0 +1,1319 @@
+syntax = "proto3";
+
+package bitcoin.bitcoind.v1alpha;
+
+import "google/protobuf/duration.proto";
+import "google/protobuf/empty.proto";
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/wrappers.proto";
+
+service BitcoinService {
+  rpc GetBlockchainInfo(GetBlockchainInfoRequest) returns (GetBlockchainInfoResponse);
+  rpc GetPeerInfo(GetPeerInfoRequest) returns (GetPeerInfoResponse);
+  rpc GetNetworkInfo(GetNetworkInfoRequest) returns (GetNetworkInfoResponse);
+  rpc GetNetTotals(GetNetTotalsRequest) returns (GetNetTotalsResponse);
+
+  // Fetches in-wallet transactions
+  rpc GetTransaction(GetTransactionRequest) returns (GetTransactionResponse);
+  rpc ListSinceBlock(ListSinceBlockRequest) returns (ListSinceBlockResponse);
+
+  // Wallet stuff
+  rpc GetNewAddress(GetNewAddressRequest) returns (GetNewAddressResponse);
+  rpc GetWalletInfo(GetWalletInfoRequest) returns (GetWalletInfoResponse);
+  rpc GetBalances(GetBalancesRequest) returns (GetBalancesResponse);
+  rpc Send(SendRequest) returns (SendResponse);
+  rpc SendToAddress(SendToAddressRequest) returns (SendToAddressResponse);
+  rpc BumpFee(BumpFeeRequest) returns (BumpFeeResponse);
+  rpc EstimateSmartFee(EstimateSmartFeeRequest) returns (EstimateSmartFeeResponse);
+  // Import a descriptor. If importing a watch-only descriptor, the wallet itself needs
+  // to be watch-only as well. The descriptor also needs to be normalized, with a
+  // checksum. This can be obtained by running it through GetDescriptorInfo.
+  rpc ImportDescriptors(ImportDescriptorsRequest) returns (ImportDescriptorsResponse);
+  rpc ListWallets(google.protobuf.Empty) returns (ListWalletsResponse);
+  rpc ListUnspent(ListUnspentRequest) returns (ListUnspentResponse);
+
+  rpc ListTransactions(ListTransactionsRequest) returns (ListTransactionsResponse);
+
+  rpc GetDescriptorInfo(GetDescriptorInfoRequest) returns (GetDescriptorInfoResponse);
+  rpc GetAddressInfo(GetAddressInfoRequest) returns (GetAddressInfoResponse);
+
+  // Mempool stuff
+  rpc GetRawMempool(GetRawMempoolRequest) returns (GetRawMempoolResponse);
+
+  // Raw TX stuff
+  rpc GetRawTransaction(GetRawTransactionRequest) returns (GetRawTransactionResponse);
+  rpc DecodeRawTransaction(DecodeRawTransactionRequest) returns (DecodeRawTransactionResponse);
+  rpc CreateRawTransaction(CreateRawTransactionRequest) returns (CreateRawTransactionResponse);
+  rpc SendRawTransaction(SendRawTransactionRequest) returns (SendRawTransactionResponse);
+  rpc SignRawTransactionWithWallet(SignRawTransactionWithWalletRequest) returns (SignRawTransactionWithWalletResponse);
+
+  rpc GetBlock(GetBlockRequest) returns (GetBlockResponse);
+  rpc GetBlockHash(GetBlockHashRequest) returns (GetBlockHashResponse);
+
+  // Wallet management
+  rpc CreateWallet(CreateWalletRequest) returns (CreateWalletResponse);
+  rpc LoadWallet(LoadWalletRequest) returns (LoadWalletResponse);
+  rpc BackupWallet(BackupWalletRequest) returns (BackupWalletResponse);
+  rpc UnloadWallet(UnloadWalletRequest) returns (UnloadWalletResponse);
+
+  // Key/Address management
+  rpc KeyPoolRefill(KeyPoolRefillRequest) returns (KeyPoolRefillResponse);
+
+  // Account operations
+  rpc GetAccount(GetAccountRequest) returns (GetAccountResponse);
+  rpc SetAccount(SetAccountRequest) returns (SetAccountResponse);
+  rpc GetAddressesByAccount(GetAddressesByAccountRequest) returns (GetAddressesByAccountResponse);
+  rpc ListAccounts(ListAccountsRequest) returns (ListAccountsResponse);
+
+  // Multi-sig operations
+  rpc CreateMultisig(CreateMultisigRequest) returns (CreateMultisigResponse);
+
+  // PSBT handling
+  rpc CreatePsbt(CreatePsbtRequest) returns (CreatePsbtResponse);
+  rpc DecodePsbt(DecodePsbtRequest) returns (DecodePsbtResponse);
+  rpc AnalyzePsbt(AnalyzePsbtRequest) returns (AnalyzePsbtResponse);
+  rpc CombinePsbt(CombinePsbtRequest) returns (CombinePsbtResponse);
+  rpc UtxoUpdatePsbt(UtxoUpdatePsbtRequest) returns (UtxoUpdatePsbtResponse);
+  rpc JoinPsbts(JoinPsbtsRequest) returns (JoinPsbtsResponse);
+
+  // Transaction misc
+  rpc TestMempoolAccept(TestMempoolAcceptRequest) returns (TestMempoolAcceptResponse);
+
+  // ZMQ
+
+  // Returns information about the active ZeroMQ notifications.
+  rpc GetZmqNotifications(google.protobuf.Empty) returns (GetZmqNotificationsResponse);
+}
+
+message GetBlockchainInfoRequest {}
+message GetBlockchainInfoResponse {
+  string best_block_hash = 1;
+
+  // The height of the most-work fully-validated chain.
+  uint32 blocks = 5;
+
+  // The current number of validated headers.
+  uint32 headers = 6;
+
+  string chain = 2;
+  string chain_work = 3;
+  bool initial_block_download = 4;
+
+  double verification_progress = 7;
+}
+
+message GetPeerInfoRequest {}
+
+message Peer {
+  // Peer index
+  int32 id = 1;
+
+  // The IP address and port of the peer (host:port)
+  string addr = 2;
+
+  // Bind address of the connection to the peer (ip:port)
+  string addr_bind = 3;
+
+  // Local address as reported by the peer (ip:port)
+  string addr_local = 4;
+
+  enum Network {
+    NETWORK_UNSPECIFIED = 0;
+    NETWORK_IPV4 = 1;
+    NETWORK_IPV6 = 2;
+    NETWORK_ONION = 3;
+    NETWORK_I2P = 4;
+    NETWORK_CJDNS = 5;
+    NETWORK_NOT_PUBLICLY_ROUTABLE = 6;
+  }
+  Network network = 5;
+
+  // The AS in the BGP route to the peer used for diversifying peer selection
+  int64 mapped_as = 6;
+
+  // The services offered (hex)
+  string services = 7;
+
+  // The services offered, in human-readable form
+  repeated string services_names = 8;
+
+  // Whether we relay transactions to this peer
+  bool relay_transactions = 9;
+
+  // The time of the last send
+  google.protobuf.Timestamp last_send_at = 10;
+
+  // The time of the last receive
+  google.protobuf.Timestamp last_recv_at = 11;
+
+  // The time of the last valid transaction received from this peer
+  google.protobuf.Timestamp last_transaction_at = 12;
+
+  // The time of the last block received from this peer
+  google.protobuf.Timestamp last_block_at = 13;
+
+  // The total bytes sent
+  uint64 bytes_sent = 14;
+
+  // The total bytes received
+  uint64 bytes_received = 15;
+
+  // The time of the connection
+  google.protobuf.Timestamp connected_at = 16;
+
+  // The time offset
+  google.protobuf.Duration time_offset = 17;
+
+  // The last ping time, if any
+  google.protobuf.Duration ping_time = 18;
+
+  // The minimum observed ping time, if any
+  google.protobuf.Duration min_ping = 19;
+
+  // The duration of an outstanding ping, if any
+  google.protobuf.Duration ping_wait = 20;
+
+  // The peer version, such as 70001
+  uint32 version = 21;
+
+  // The string version
+  string subver = 22;
+
+  // Inbound (true) or Outbound (false)
+  bool inbound = 23;
+
+  // Whether we selected peer as (compact blocks) high-bandwidth peer
+  bool bip152_hb_to = 24;
+
+  // Whether peer selected us as (compact blocks) high-bandwidth peer
+  bool bip152_hb_from = 25;
+
+  // The starting height (block) of the peer
+  int32 starting_height = 26;
+
+  // The current height of header pre-synchronization with this peer, or -1 if no low-work sync is in progress
+  int32 presynced_headers = 27;
+
+  // The last header we have in common with this peer
+  int32 synced_headers = 28;
+
+  // The last block we have in common with this peer
+  int32 synced_blocks = 29;
+
+  // The heights of blocks we're currently asking from this peer
+  repeated int32 inflight = 30;
+
+  // Whether we participate in address relay with this peer
+  bool addr_relay_enabled = 31;
+
+  // The total number of addresses processed, excluding those dropped due to rate limiting
+  int64 addr_processed = 32;
+
+  // The total number of addresses dropped due to rate limiting
+  int64 addr_rate_limited = 33;
+
+  // Any special permissions that have been granted to this peer
+  repeated string permissions = 34;
+
+  // The minimum fee rate for transactions this peer accepts
+  double min_fee_filter = 35;
+
+  // The total bytes sent aggregated by message type
+  map<string, int64> bytes_sent_per_msg = 36;
+
+  // The total bytes received aggregated by message type
+  map<string, int64> bytes_received_per_msg = 37;
+
+  enum ConnectionType {
+    CONNECTION_TYPE_UNSPECIFIED = 0;
+    CONNECTION_TYPE_OUTBOUND_FULL_RELAY = 1;
+    CONNECTION_TYPE_BLOCK_RELAY_ONLY = 2;
+    CONNECTION_TYPE_INBOUND = 3;
+    CONNECTION_TYPE_MANUAL = 4;
+    CONNECTION_TYPE_ADDR_FETCH = 5;
+    CONNECTION_TYPE_FEEDER = 6;
+  }
+  enum TransportProtocol {
+    TRANSPORT_PROTOCOL_UNSPECIFIED = 0;
+    TRANSPORT_PROTOCOL_DETECTING = 1;
+    TRANSPORT_PROTOCOL_V1 = 2;
+    TRANSPORT_PROTOCOL_V2 = 3;
+  }
+
+  // Type of connection
+  ConnectionType connection_type = 38;
+
+  // Type of transport protocol
+  TransportProtocol transport_protocol = 39;
+
+  // The session ID for this connection, or empty if there is none (v2 transport protocol only)
+  string session_id = 40;
+}
+
+message GetPeerInfoResponse {
+  repeated Peer peers = 1;
+}
+
+message GetNetworkInfoRequest {}
+
+message GetNetworkInfoResponse {
+  int32 version = 1;
+  string subversion = 2;
+  int32 protocol_version = 3;
+  string local_services = 4;
+  repeated string local_services_names = 5;
+  bool local_relay = 6;
+  int64 time_offset = 7;
+  int32 connections = 8;
+  int32 connections_in = 9;
+  int32 connections_out = 10;
+  bool network_active = 11;
+
+  message Network {
+    string name = 1;
+    bool limited = 2;
+    bool reachable = 3;
+    string proxy = 4;
+    bool proxy_randomize_credentials = 5;
+  }
+  repeated Network networks = 12;
+
+  double relay_fee = 13;
+  double incremental_fee = 14;
+
+  message LocalAddress {
+    string address = 1;
+    uint32 port = 2;
+    int32 score = 3;
+  }
+  repeated LocalAddress local_addresses = 15;
+
+  repeated string warnings = 16;
+}
+
+message GetNetTotalsRequest {}
+
+message GetNetTotalsResponse {
+  uint64 total_bytes_recv = 1;
+  uint64 total_bytes_sent = 2;
+  int64 time_millis = 3;
+}
+
+message GetNewAddressRequest {
+  string label = 1;
+  string address_type = 2;
+
+  // Only needs to be set if dealing with multiple wallets at the same time.
+  // TODO: better suited as a header?
+  string wallet = 3;
+}
+
+message GetNewAddressResponse {
+  string address = 1;
+}
+
+message GetWalletInfoRequest {
+  // Only needs to be set if dealing with multiple wallets at the same time.
+  // TODO: better suited as a header?
+  string wallet = 1;
+}
+
+message GetWalletInfoResponse {
+  string wallet_name = 1;
+  int64 wallet_version = 2;
+  string format = 3;
+
+  // The following fields are left out, as they are deprecated.
+  // double balance = 4;
+  // double unconfirmed_balance = 5;
+  // double immature_balance = 6;
+
+  int64 tx_count = 7;
+  int64 key_pool_size = 8;
+  int64 key_pool_size_hd_internal = 9;
+  double pay_tx_fee = 10;
+  bool private_keys_enabled = 11;
+  bool avoid_reuse = 12;
+
+  // Not set if no scan is in progress.
+  WalletScan scanning = 13;
+  bool descriptors = 14;
+  bool external_signer = 15;
+}
+
+message GetBalancesRequest {
+  string wallet = 1;
+}
+
+message GetBalancesResponse {
+  // balances from outputs that the wallet can sign
+  message Mine {
+    // trusted balance (outputs created by the wallet or confirmed outputs)
+    double trusted = 1;
+
+    // untrusted pending balance (outputs created by others that are in the mempool)
+    double untrusted_pending = 2;
+
+    // balance from immature coinbase outputs
+    double immature = 3;
+
+    // only present if avoid_reuse is set) balance from coins sent to addresses that were previously spent from (potentially privacy violating
+    double used = 4;
+  }
+
+  // watchonly balances (not present if wallet does not watch anything)
+  message Watchonly {
+    // trusted balance (outputs created by the wallet or confirmed outputs)
+    double trusted = 1;
+
+    // untrusted pending balance (outputs created by others that are in the mempool)
+    double untrusted_pending = 2;
+
+    // balance from immature coinbase outputs
+    double immature = 3;
+  }
+
+  Mine mine = 1;
+  Watchonly watchonly = 2;
+}
+
+message WalletScan {
+  int64 duration = 1;
+  double progress = 2;
+}
+
+message GetTransactionRequest {
+  string txid = 1;
+
+  // Removed in v30
+  reserved 2;
+  reserved 'include_watchonly';
+
+  bool verbose = 3;
+  string wallet = 4;
+}
+
+// Commented fields are not present in btcd/rpcclient
+message GetTransactionResponse {
+  double amount = 1;
+  double fee = 2;
+
+  // The number of confirmations for the transaction. Negative
+  // confirmations means the transaction conflicted that many
+  // blocks ago.
+  int32 confirmations = 3;
+  // bool generated = 4;
+  // bool trusted = 5;
+  string block_hash = 6;
+  // string block_height = 7;
+  uint32 block_index = 8;
+  google.protobuf.Timestamp block_time = 9;
+  string txid = 10;
+  // string witness_txid = 11;
+  repeated string wallet_conflicts = 12;
+  string replaced_by_txid = 13;
+  string replaces_txid = 14;
+  // string comment = 15;
+  // string to = 16;
+  google.protobuf.Timestamp time = 17;
+  google.protobuf.Timestamp time_received = 18;
+
+  // Whether this transaction signals BIP125 (Replace-by-fee, RBF) replaceability
+  // or has an unconfirmed ancestor signaling BIP125 replaceability. May be unspecified
+  // for unconfirmed transactions not in the mempool because their
+  // unconfirmed ancestors are unknown.
+  //
+  // Note that this is always set to 'no' once the transaction is confirmed.
+  Replaceable bip125_replaceable = 19;
+
+  // repeated string parent_descriptors = 20;
+
+  enum Replaceable {
+    REPLACEABLE_UNSPECIFIED = 0;
+    REPLACEABLE_YES = 1;
+    REPLACEABLE_NO = 2;
+  }
+
+  enum Category {
+    CATEGORY_UNSPECIFIED = 0;
+    CATEGORY_SEND = 1;
+    CATEGORY_RECEIVE = 2;
+    CATEGORY_GENERATE = 3;
+    CATEGORY_IMMATURE = 4;
+    CATEGORY_ORPHAN = 5;
+  }
+
+  message Details {
+    bool involves_watch_only = 1;
+    string address = 2;
+    Category category = 3;
+    double amount = 4;
+    // string label = 5;
+    uint32 vout = 6;
+    double fee = 7;
+    // bool abandoned = 8;
+    // repeated string parent_descriptors = 9;
+  }
+
+  repeated Details details = 21;
+
+  string hex = 22;
+
+  // TODO: add the 'decoded' field.
+}
+
+message GetRawTransactionRequest {
+  // The transaction ID. Required.
+  string txid = 1;
+
+  enum Verbosity {
+    VERBOSITY_UNSPECIFIED = 0;
+
+    // Returns the raw TX data, completely unprocessed. Response only sets hex.
+    VERBOSITY_RAW_DATA = 1;
+
+    // Returns information about the TX
+    VERBOSITY_TX_INFO = 2;
+
+    // Returns information about the TX, including fee and prevout information.
+    VERBOSITY_TX_PREVOUT_INFO = 3;
+  }
+
+  Verbosity verbosity = 2;
+
+  // The block in which to look for the transaction
+  string blockhash = 3;
+}
+
+message ScriptSig {
+  string asm = 1;
+  string hex = 2;
+}
+
+message Input {
+  string txid = 1;
+  uint32 vout = 2;
+  string coinbase = 3;
+  ScriptSig script_sig = 4;
+  uint32 sequence = 5;
+  repeated string witness = 6;
+}
+
+message ScriptPubKey {
+  string type = 1;
+  string address = 2;
+  string asm = 3;
+  string hex = 4;
+  repeated string addresses = 5;
+  uint32 req_sigs = 6;
+}
+
+message Output {
+  double amount = 1;
+  uint32 vout = 2;
+
+  ScriptPubKey script_pub_key = 3;
+  ScriptSig script_sig = 4;
+}
+
+message GetRawTransactionResponse {
+  RawTransaction tx = 1;
+  string txid = 8;
+  string hash = 9;
+  int32 size = 10;
+  int32 vsize = 11;
+  int32 weight = 12;
+  uint32 version = 13;
+  uint32 locktime = 14;
+
+  repeated Input inputs = 2;
+  repeated Output outputs = 3;
+
+  string blockhash = 4;
+  uint32 confirmations = 5;
+
+  // From docs: same as block time
+  reserved 6;
+  reserved "time";
+
+  google.protobuf.Timestamp block_time = 7;
+
+  // Transaction fee in BTC. Only set for for TX info verbosity.
+  double fee = 15;
+}
+
+message SendRequest {
+  // bitcoin address -> BTC amount
+  map<string, double> destinations = 1;
+
+  // Confirmation target in blocks.
+  uint32 conf_target = 2;
+
+  // Only needs to be set if dealing with multiple wallets at the same time.
+  // TODO: better suited as a header?
+  string wallet = 3;
+
+  // Include inputs that are not safe to spend (unconfirmed transactions from
+  // outside keys and unconfirmed replacement transactions.
+  bool include_unsafe = 4;
+
+  // Outouts to subtract the fee from, specified as as address from the
+  // 'destinations' field. The fee will be equally deducted from the amount of
+  // each specified output.
+  repeated string subtract_fee_from_outputs = 5;
+
+  // When false, returns a serialized transaction which will not be added
+  // to the wallet or broadcast.
+  //
+  // This is a 'bool value' instead of a plain bool. This is clunky to
+  // work with, but the alternative would have been to either:
+  //
+  // 1. Have this be a bool with the default value as the opposite of
+  //    Bitcoin Core
+  // 2. Rename the parameter to something else.
+  //
+  // Both of these seem bad.
+  google.protobuf.BoolValue add_to_wallet = 6;
+
+  // Satoshis per virtual byte (sat/vB).
+  double fee_rate = 7;
+}
+
+message SendResponse {
+  string txid = 1;
+  bool complete = 2;
+
+  // If 'add_to_wallet' is false, the raw transaction with signature(s)
+  RawTransaction tx = 3;
+}
+
+message SendToAddressRequest {
+  // The bitcoin address to send to.
+  string address = 1;
+  // The amount in BTC to send. eg 0.1
+  double amount = 2;
+  // A comment used to store what the transaction is for. Not part of the transaction, just kept in your wallet.
+  string comment = 3;
+  // A comment to store the name of the person or organization to which you're sending the transaction. Not part of the transaction, just kept in your wallet.
+  string comment_to = 4;
+  // Only needs to be set if dealing with multiple wallets at the same time.
+  string wallet = 5;
+}
+
+message SendToAddressResponse {
+  string txid = 1;
+}
+
+message EstimateSmartFeeRequest {
+  int64 conf_target = 1;
+
+  enum EstimateMode {
+    ESTIMATE_MODE_UNSPECIFIED = 0;
+    ESTIMATE_MODE_ECONOMICAL = 1;
+    ESTIMATE_MODE_CONSERVATIVE = 2;
+  }
+  EstimateMode estimate_mode = 2;
+}
+
+message EstimateSmartFeeResponse {
+  // Estimate fee rate in BTC/kvB (only present if no errors were encountered)
+  double fee_rate = 1;
+
+  // Errors encountered during processing (if there are any)
+  repeated string errors = 2;
+
+  // Block number where estimate was found.
+  int64 blocks = 3;
+}
+
+message DecodeRawTransactionRequest {
+  RawTransaction tx = 1;
+}
+
+message RawTransaction {
+  // Raw transaction data
+  bytes data = 1;
+
+  // Hex-encoded raw transaction data
+  string hex = 2;
+}
+
+message DecodeRawTransactionResponse {
+  string txid = 1;
+  string hash = 2;
+
+  // The serialized transaction size
+  uint32 size = 3;
+
+  // The virtual transaction size (differs from
+  // 'size' for witness transactions).
+  uint32 virtual_size = 4;
+
+  // The transaction's weight
+  uint32 weight = 5;
+
+  uint32 version = 6;
+
+  uint32 locktime = 7;
+
+  repeated Input inputs = 8;
+
+  repeated Output outputs = 9;
+}
+
+message ImportDescriptorsRequest {
+  message Request {
+    // Descriptor to import
+    string descriptor = 1;
+
+    // Set this descriptor to be the active descriptor for the corresponding type/externality.
+    bool active = 2;
+
+    uint32 range_start = 3;
+    uint32 range_end = 4;
+    // If a ranged descriptor is set to active, this specifies the next index to generate addresses from
+    uint32 next_index = 8;
+
+    // Nil passes 'now' to Bitcoin Core, which bypasses scanning.
+    google.protobuf.Timestamp timestamp = 5;
+
+    // Whether matching outputs should be treated as not incoming payments (e.g. change)
+    bool internal = 6;
+
+    // Label to assign to the address, only allowed with internal = false. Disabled for ranged descriptors.
+    string label = 7;
+  }
+
+  // Only needs to be set if dealing with multiple wallets at the same time.
+  // TODO: better suited as a header?
+  string wallet = 1;
+
+  repeated Request requests = 2;
+}
+
+message ImportDescriptorsResponse {
+  message Error {
+    int32 code = 1;
+    string message = 2;
+  }
+
+  message Response {
+    bool success = 1;
+    repeated string warnings = 2;
+    Error error = 3;
+  }
+
+  repeated Response responses = 1;
+}
+
+message GetDescriptorInfoRequest {
+  string descriptor = 1;
+}
+
+message GetDescriptorInfoResponse {
+  // The descriptor in canonical form, without private keys.
+  string descriptor = 1;
+
+  // The checksum for the input descriptor
+  string checksum = 2;
+
+  bool is_range = 3;
+
+  bool is_solvable = 4;
+
+  bool has_private_keys = 5;
+}
+
+message GetBlockRequest {
+  enum Verbosity {
+    VERBOSITY_UNSPECIFIED = 0;
+
+    // Returns the raw block data, completely unprocessed. Response only sets hex.
+    VERBOSITY_RAW_DATA = 1;
+
+    // Returns information about the block
+    VERBOSITY_BLOCK_INFO = 2;
+
+    // Returns information about the block and information
+    // about each transaction
+    VERBOSITY_BLOCK_TX_INFO = 3;
+
+    // Returns information about the block, information
+    // about each transaction and prevout information.
+    VERBOSITY_BLOCK_TX_PREVOUT_INFO = 4;
+  }
+
+  string hash = 1;
+  optional int32 height = 3;
+
+  Verbosity verbosity = 2;
+}
+
+message GetBlockResponse {
+  string hex = 1;
+
+  string hash = 2;
+  int32 confirmations = 3;
+  uint32 height = 4;
+  int32 version = 5;
+  string version_hex = 6;
+  string merkle_root = 7;
+  google.protobuf.Timestamp time = 8;
+  // google.protobuf.Timestamp median_time = 8; // not in rpcclient
+
+  uint32 nonce = 9;
+  string bits = 10;
+  double difficulty = 11;
+
+  // Expected number of hashes required to produce the chain up to this block (in hex)
+  // string chainwork = 12; // not in rpcclient
+  string previous_block_hash = 12;
+  string next_block_hash = 13;
+  int32 stripped_size = 14;
+  int32 size = 15;
+  int32 weight = 16;
+
+  // List of transactions in the block, by TXID.
+  repeated string txids = 17;
+}
+
+message BumpFeeRequest {
+  string wallet = 1;
+
+  // The TXID to be bumped
+  string txid = 2;
+}
+
+message BumpFeeResponse {
+  string txid = 1;
+  double original_fee = 2;
+  double new_fee = 3;
+  repeated string errors = 4;
+}
+
+message ListSinceBlockRequest {
+  string wallet = 1;
+
+  // If set, the block hash to list transactions since, otherwise list all transactions.
+  string hash = 2;
+}
+
+message ListSinceBlockResponse {
+  repeated GetTransactionResponse transactions = 1;
+}
+
+message GetRawMempoolRequest {
+  bool verbose = 1;
+}
+
+message MempoolEntry {
+  // All values are in whole bitcoins
+  message Fees {
+    double base = 1;
+    double modified = 2;
+    double ancestor = 3;
+    double descendant = 4;
+  }
+
+  uint32 virtual_size = 1;
+  uint32 weight = 2;
+  google.protobuf.Timestamp time = 3;
+  uint32 descendant_count = 4;
+  uint32 descendant_size = 5;
+  uint32 ancestor_count = 6;
+  uint32 ancestor_size = 7;
+  string witness_txid = 8;
+  Fees fees = 9;
+  repeated string depends = 10;
+  repeated string spent_by = 11;
+  bool bip125_replaceable = 12;
+
+  // A transaction is unbroadcast if initial broadcast not yet
+  // acknowledged by any peers.
+  bool unbroadcast = 13;
+}
+
+message GetRawMempoolResponse {
+  // Only set if this is a non-verbose response
+  repeated string txids = 1;
+
+  // Only set if this is a verbose response
+  map<string, MempoolEntry> transactions = 2;
+}
+
+message GetBlockHashRequest {
+  uint32 height = 1;
+}
+
+message GetBlockHashResponse {
+  string hash = 1;
+}
+
+message ListTransactionsRequest {
+  string wallet = 1;
+
+  // Defaults to 10
+  uint32 count = 2;
+
+  uint32 skip = 3;
+}
+
+message ListTransactionsResponse {
+  repeated GetTransactionResponse transactions = 1;
+}
+
+message ListWalletsResponse {
+  repeated string wallets = 1;
+}
+
+message ListUnspentRequest {
+  string wallet = 1;
+
+  // The minimum confirmations to filter
+  optional uint32 minimum_confirmations = 2;
+
+  // The maximum confirmations to filter
+  optional uint32 maximum_confirmations = 3;
+
+  // The bitcoin addresses to filter
+  repeated string addresses = 4;
+
+  // Whether to include unsafe outputs
+  bool include_unsafe = 5;
+
+  // Removed in v30
+  reserved 6;
+  reserved 'include_watch_only';
+
+  // TODO: query_options. WTF bitcoin core, a random
+  // pseudo-implementations of named arguments? Aaaah
+}
+
+message UnspentOutput {
+  // The transaction id
+  string txid = 1;
+
+  // The vout value
+  uint32 vout = 2;
+
+  // The bitcoin address (optional)
+  string address = 3;
+
+  // The associated label, or "" for the default label (optional)
+  // not in rpcclient
+  // string label = 4;
+
+  // The output script
+  string script_pub_key = 5;
+
+  // The transaction output amount in BTC
+  double amount = 6;
+
+  // The number of confirmations
+  uint32 confirmations = 7;
+
+  // The number of in-mempool ancestor transactions, including this one (if transaction is in the mempool) (optional)
+  // not in rpcclient
+  // uint32 ancestor_count = 8;
+
+  // The virtual transaction size of in-mempool ancestors, including this one (if transaction is in the mempool) (optional)
+  // not in rpcclient
+  // uint32 ancestor_size = 9;
+
+  // The total fees of in-mempool ancestors (including this one) with fee deltas used for mining priority in sat (if transaction is in the mempool) (optional)
+  // not in rpcclient
+  // uint64 ancestor_fees = 10;
+
+  // The redeem script if the output script is P2SH (optional)
+  string redeem_script = 11;
+
+  // Witness script if the output script is P2WSH or P2SH-P2WSH (optional)
+  // not in rpcclient
+  // string witness_script = 12;
+
+  // Whether we have the private keys to spend this output
+  bool spendable = 13;
+
+  // Whether we know how to spend this output, ignoring the lack of keys
+  // not in rpcclient
+  // bool solvable = 14;
+
+  //  Whether this output is reused/dirty (sent to an address that was previously spent from) (optional)
+  // not in rpcclient
+  // bool reused = 15;
+
+  // (only when solvable) A descriptor for spending this output (optional)
+  // not in rpcclient
+  // string desc = 16;
+
+  // List of parent descriptors for the output script of this coin
+  // not in rpcclient
+  // repeated string parent_descs = 17;
+
+  // Whether this output is considered safe to spend. Unconfirmed transactions from
+  // outside keys and unconfirmed replacement transactions are considered unsafe and
+  // are not eligible for spending by fundrawtransaction and sendtoaddress.
+  // not in rpcclient
+  // bool safe = 18;
+}
+
+message ListUnspentResponse {
+  repeated UnspentOutput unspent = 1;
+}
+
+message GetAddressInfoRequest {
+  string address = 1;
+
+  string wallet = 2;
+}
+
+message GetAddressInfoResponse {
+  string address = 1;
+
+  // Hex-encoded script pub key
+  string script_pub_key = 2;
+
+  bool is_mine = 3;
+
+  // Removed in v30
+  reserved 4;
+  reserved 'is_watch_only';
+
+  // If Core knows how to spend coins sent to this address, ignoring
+  // possible lack of private keys.
+  bool solvable = 5;
+
+  bool is_script = 6;
+
+  bool is_change = 7;
+
+  bool is_witness = 8;
+
+  uint32 witness_version = 9;
+
+  // Hex-encoded
+  string witness_program = 10;
+
+  string script_type = 11;
+
+  bool is_compressed = 12;
+
+  // TODO: bunch of other fields
+}
+
+// Request/Response messages for new endpoints
+message CreateWalletRequest {
+  string name = 1;
+  bool disable_private_keys = 2;
+  bool blank = 3;
+  string passphrase = 4;
+  bool avoid_reuse = 5;
+}
+
+message CreateWalletResponse {
+  string name = 1;
+  string warning = 2;
+}
+
+message LoadWalletRequest {
+  string filename = 1;
+  bool load_on_startup = 2;
+}
+
+message LoadWalletResponse {
+  string name = 1;
+  repeated string warnings = 2;
+}
+
+message BackupWalletRequest {
+  string destination = 1;
+  string wallet = 2;
+}
+
+message BackupWalletResponse {}
+
+message UnloadWalletRequest {
+  string wallet_name = 1;
+  string wallet = 2;
+}
+
+message UnloadWalletResponse {}
+
+message KeyPoolRefillRequest {
+  uint32 new_size = 1;
+  string wallet = 2;
+}
+
+message KeyPoolRefillResponse {}
+
+message GetAccountRequest {
+  string address = 1;
+  string wallet = 2;
+}
+
+message GetAccountResponse {
+  string account = 1;
+}
+
+message SetAccountRequest {
+  string address = 1;
+  string account = 2;
+  string wallet = 3;
+}
+
+message SetAccountResponse {}
+
+message GetAddressesByAccountRequest {
+  string account = 1;
+  string wallet = 2;
+}
+
+message GetAddressesByAccountResponse {
+  repeated string addresses = 1;
+}
+
+message ListAccountsRequest {
+  int32 min_conf = 1;
+  string wallet = 2;
+}
+
+message ListAccountsResponse {
+  map<string, double> accounts = 1;
+}
+
+message CreateMultisigRequest {
+  int32 required_sigs = 1;
+  repeated string keys = 2;
+}
+
+message CreateMultisigResponse {
+  string address = 1;
+  string redeem_script = 2;
+}
+
+// Transaction creation messages
+message CreateRawTransactionRequest {
+  message Input {
+    string txid = 1;
+    uint32 vout = 2;
+    uint32 sequence = 3;
+  }
+  repeated Input inputs = 1;
+  map<string, double> outputs = 2; // address -> amount
+  uint32 locktime = 3;
+}
+
+message CreateRawTransactionResponse {
+  RawTransaction tx = 1;
+}
+
+message SendRawTransactionRequest {
+  string hex_string = 1;
+  optional double maxfeerate = 2; // Max fee rate in BTC/kvB, default 0.10
+  optional double maxburnamount = 3; // Max burn amount in BTC, default 0.00
+}
+
+message SendRawTransactionResponse {
+  string txid = 1;
+}
+
+message CreatePsbtRequest {
+  message Input {
+    string txid = 1;
+    uint32 vout = 2;
+    uint32 sequence = 3;
+  }
+  repeated Input inputs = 1;
+  map<string, double> outputs = 2; // address -> amount
+  uint32 locktime = 3;
+  bool replaceable = 4;
+}
+
+message CreatePsbtResponse {
+  string psbt = 1; // Base64 encoded PSBT
+}
+
+message DecodePsbtRequest {
+  string psbt = 1; // Base64 encoded PSBT
+}
+
+message DecodePsbtResponse {
+  message WitnessUtxo {
+    double amount = 1;
+    ScriptPubKey script_pub_key = 2;
+  }
+
+  message RedeemScript {
+    string asm = 1;
+    string hex = 2;
+    string type = 3;
+  }
+
+  message Bip32Deriv {
+    string pubkey = 1;
+    string master_fingerprint = 2;
+    string path = 3;
+  }
+
+  message Input {
+    DecodeRawTransactionResponse non_witness_utxo = 1;
+    WitnessUtxo witness_utxo = 2;
+    map<string, string> partial_signatures = 3;
+    string sighash = 4;
+    RedeemScript redeem_script = 5;
+    RedeemScript witness_script = 6;
+    repeated Bip32Deriv bip32_derivs = 7;
+    ScriptSig final_scriptsig = 8;
+    repeated string final_scriptwitness = 9;
+    map<string, string> unknown = 10;
+  }
+
+  message Output {
+    RedeemScript redeem_script = 1;
+    RedeemScript witness_script = 2;
+    repeated Bip32Deriv bip32_derivs = 3;
+    map<string, string> unknown = 4;
+  }
+
+  DecodeRawTransactionResponse tx = 1;
+  map<string, string> unknown = 2;
+  repeated Input inputs = 3;
+  repeated Output outputs = 4;
+  double fee = 5;
+}
+
+message AnalyzePsbtRequest {
+  string psbt = 1; // Base64 encoded PSBT
+}
+
+message AnalyzePsbtResponse {
+  message Input {
+    bool has_utxo = 1;
+    bool is_final = 2;
+    message Missing {
+      repeated string pubkeys = 1;
+      repeated string signatures = 2;
+      string redeem_script = 3;
+      string witness_script = 4;
+    }
+    Missing missing = 3;
+    string next = 4;
+  }
+  repeated Input inputs = 1;
+  double estimated_vsize = 2;
+  double estimated_feerate = 3;
+  double fee = 4;
+  string next = 5;
+  string error = 6;
+}
+
+message CombinePsbtRequest {
+  repeated string psbts = 1; // Array of base64 encoded PSBTs
+}
+
+message CombinePsbtResponse {
+  string psbt = 1; // Combined base64 encoded PSBT
+}
+
+message UtxoUpdatePsbtRequest {
+  string psbt = 1; // Base64 encoded PSBT
+  repeated Descriptor descriptors = 2; // Array of descriptors
+}
+
+message UtxoUpdatePsbtResponse {
+  string psbt = 1; // Updated base64 encoded PSBT
+}
+
+message JoinPsbtsRequest {
+  repeated string psbts = 1; // Array of base64 encoded PSBTs
+}
+
+message JoinPsbtsResponse {
+  string psbt = 1; // Joined base64 encoded PSBT
+}
+
+message TestMempoolAcceptRequest {
+  repeated string rawtxs = 1;
+  double max_fee_rate = 2;
+}
+
+message TestMempoolAcceptResponse {
+  message Result {
+    string txid = 1;
+    bool allowed = 2;
+    string reject_reason = 3;
+    uint32 vsize = 4;
+    double fees = 5;
+  }
+  repeated Result results = 1;
+}
+
+// Add a new message for descriptor range
+message DescriptorRange {
+  oneof range_type {
+    int32 end = 1; // Single number for end (begin defaults to 0)
+    Range range = 2; // Begin and end range
+  }
+}
+
+// Add a new message for begin/end range
+message Range {
+  int32 begin = 1;
+  int32 end = 2;
+}
+
+// Add a new message for descriptor
+message Descriptor {
+  oneof descriptor {
+    string string_descriptor = 1; // Plain string descriptor
+    DescriptorObject object_descriptor = 2; // Descriptor object with range
+  }
+}
+
+// Add a new message for descriptor objects
+message DescriptorObject {
+  string desc = 1; // The output descriptor
+  DescriptorRange range = 2; // Optional range, defaults to 1000 if not specified
+}
+
+message GetZmqNotificationsResponse {
+  message Notification {
+    string type = 1; // Type of notification
+    string address = 2; // Address of the publisher
+    int64 high_water_mark = 3; // Outbound message high water mark
+  }
+  repeated Notification notifications = 1;
+}
+
+message SignRawTransactionWithWalletRequest {
+  // The transaction hex string
+  string hex_string = 1;
+
+  // Only needs to be set if dealing with multiple wallets at the same time.
+  string wallet = 2;
+}
+
+message SignRawTransactionWithWalletResponse {
+  // The hex-encoded raw transaction with signature(s)
+  string hex = 1;
+
+  // If the transaction has a complete set of signatures
+  bool complete = 2;
+
+  // Script verification errors (if there are any)
+  message Error {
+    // The hash of the referenced, previous transaction
+    string txid = 1;
+    // The index of the output to spent and used as input
+    uint32 vout = 2;
+    // The witness data
+    repeated string witness = 3;
+    // The hex-encoded signature script
+    string script_sig = 4;
+    // Script sequence number
+    uint32 sequence = 5;
+    // Verification or signing error related to the input
+    string error = 6;
+  }
+  repeated Error errors = 3;
+}

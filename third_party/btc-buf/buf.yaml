@@ -1,0 +1,15 @@
+version: v2
+modules:
+  - path: proto
+    name: buf.build/bitcoin/bitcoind
+lint:
+  use:
+    - STANDARD
+  rpc_allow_google_protobuf_empty_requests: true
+  disallow_comment_ignores: true
+breaking:
+  use:
+    - FILE
+  except:
+    - EXTENSION_NO_DELETE
+    - FIELD_SAME_DEFAULT

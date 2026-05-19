@@ -64,3 +64,5 @@ require (
 replace github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator => ../../sidechain-orchestrator
 
 replace github.com/LayerTwo-Labs/sidesail/coinnews/codec => ../../coinnews/codec
+
+replace github.com/barebitcoin/btc-buf => ../../third_party/btc-buf

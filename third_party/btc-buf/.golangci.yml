@@ -1,0 +1,34 @@
+version: "2"
+linters:
+  enable:
+    - depguard
+    - unconvert
+    - unparam
+  settings:
+    depguard:
+      rules:
+        all:
+          deny:
+            - pkg: log
+              desc: use zerolog
+
+            - pkg: github.com/rs/zerolog/log
+              desc: use context logger
+
+            - pkg: github.com/btcsuite/btcd/rpcclient
+              desc: use ./rpcclient
+
+            - pkg: github.com/btcsuite/btcd/btcjson
+              desc: use ./rpcclient/btcjson
+
+  exclusions:
+    paths:
+      - gen
+
+formatters:
+  enable:
+    - gofumpt
+
+  exclusions:
+    paths:
+      - gen
