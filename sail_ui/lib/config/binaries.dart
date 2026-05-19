@@ -1966,7 +1966,14 @@ extension BinaryPaths on Binary {
 
       return lines.first;
     } catch (e) {
-      log.w('Failed to get version for $name: $e');
+      // "Binary not found" is the expected state for any sidechain the user
+      // hasn't downloaded yet — log at debug, not warn, so the console isn't
+      // littered every time someone opens a chain-settings modal.
+      if (e is Exception && e.toString().contains('Binary not found')) {
+        log.d('binaryVersion: $name not installed yet');
+      } else {
+        log.w('Failed to get version for $name: $e');
+      }
       return 'Error: $e';
     }
   }
@@ -2454,7 +2461,11 @@ extension DirectoryConfigJson on DirectoryConfig {
 
 extension DownloadConfigJson on DownloadConfig {
   static DownloadConfig fromJson(Map<String, dynamic> json) {
-    final filesJson = json['files'] as Map<String, dynamic>;
+    // `files` is absent for variant-aware binaries (bitcoincore), where the
+    // per-OS download list lives under `download.variants.<id>.files`
+    // instead. The orchestrator resolves the active variant at download
+    // time, so the Dart side just needs to not crash on the missing key.
+    final filesJson = json['files'] as Map<String, dynamic>? ?? const {};
 
     // Extract per-network base_url from files entries, or fall back to top-level base_url
     final topLevelBaseUrl = json['base_url'] as String?;
