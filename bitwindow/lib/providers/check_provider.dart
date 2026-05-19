@@ -10,6 +10,33 @@ import 'package:sail_ui/providers/sync_provider.dart';
 import 'package:sail_ui/providers/wallet_reader_provider.dart';
 import 'package:sail_ui/rpcs/bitwindow_api.dart';
 
+/// Apply a CheckChequeFundingResponse to the in-memory cheque list. Returns
+/// true when [checks] was mutated and listeners should be notified.
+///
+/// Extracted as a pure function so the polling state machine can be unit
+/// tested without bringing up GetIt, the WalletReader, or the RPC client.
+bool applyFundingResponse(
+  List<Cheque> checks,
+  int id,
+  CheckChequeFundingResponse resp,
+) {
+  if (resp.fundedTxids.isEmpty) return false;
+  final index = checks.indexWhere((c) => c.id == id);
+  if (index == -1) return false;
+  checks[index] = Cheque(
+    id: checks[index].id,
+    derivationIndex: checks[index].derivationIndex,
+    address: checks[index].address,
+    expectedAmountSats: checks[index].expectedAmountSats,
+    funded: resp.funded,
+    fundedTxids: resp.fundedTxids,
+    actualAmountSats: resp.actualAmountSats,
+    createdAt: checks[index].createdAt,
+    fundedAt: resp.hasFundedAt() ? resp.fundedAt : null,
+  );
+  return true;
+}
+
 class CheckProvider extends ChangeNotifier {
   final Logger log = Logger(level: Level.debug);
   final BitwindowRPC _bitwindowRPC = GetIt.I.get<BitwindowRPC>();
@@ -134,22 +161,8 @@ class CheckProvider extends ChangeNotifier {
       if (walletId == null) throw Exception('No active wallet');
       final resp = await _bitwindowRPC.wallet.checkChequeFunding(walletId, id);
 
-      if (resp.fundedTxids.isNotEmpty) {
-        final index = _checks.indexWhere((c) => c.id == id);
-        if (index != -1) {
-          _checks[index] = Cheque(
-            id: _checks[index].id,
-            derivationIndex: _checks[index].derivationIndex,
-            address: _checks[index].address,
-            expectedAmountSats: _checks[index].expectedAmountSats,
-            funded: resp.funded,
-            fundedTxids: resp.fundedTxids,
-            actualAmountSats: resp.actualAmountSats,
-            createdAt: _checks[index].createdAt,
-            fundedAt: resp.hasFundedAt() ? resp.fundedAt : null,
-          );
-          notifyListeners();
-        }
+      if (applyFundingResponse(_checks, id, resp)) {
+        notifyListeners();
       }
 
       return resp.funded;
