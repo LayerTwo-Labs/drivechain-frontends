@@ -2,6 +2,7 @@ import 'package:bitwindow/models/multisig_group.dart';
 import 'package:bitwindow/models/multisig_transaction.dart';
 import 'package:bitwindow/providers/multisig_provider.dart';
 import 'package:flutter/material.dart';
+import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
 
 class CombineBroadcastModal extends StatefulWidget {
@@ -182,15 +183,13 @@ class _CombineBroadcastModalState extends State<CombineBroadcastModal> {
 
       widget.onSuccess();
 
+      GetIt.I.get<NotificationProvider>().add(
+        title: 'Transaction broadcast',
+        content: txid,
+        dialogType: DialogType.success,
+      );
       if (mounted) {
         Navigator.of(context).pop();
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Transaction broadcast successfully!\nTXID: ${txid.substring(0, 16)}...'),
-            duration: const Duration(seconds: 5),
-            backgroundColor: Colors.green,
-          ),
-        );
       }
     } catch (e) {
       if (mounted) {

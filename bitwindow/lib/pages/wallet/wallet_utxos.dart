@@ -635,16 +635,21 @@ class _ConsolidateDialogState extends State<_ConsolidateDialog> {
       final requiredInputs = _selectedOutpoints.map((op) => UnspentOutput(output: op)).toList();
 
       // Send transaction - fee will be deducted from total
-      await _orchestratorWallet.sendTransaction(
+      final txid = (await _orchestratorWallet.sendTransaction(
         walletId: widget.walletId,
         destinations: {newAddress: _totalSelectedSats},
         feeRateSatPerVbyte: 1, // Low fee rate for consolidation
         requiredInputs: requiredInputs,
+      )).txid;
+
+      GetIt.I.get<NotificationProvider>().add(
+        title: 'Consolidation sent',
+        content: txid,
+        dialogType: DialogType.info,
       );
 
       if (mounted) {
         Navigator.pop(context);
-        showSnackBar(context, 'Consolidation transaction sent!');
       }
     } catch (e) {
       if (mounted) {

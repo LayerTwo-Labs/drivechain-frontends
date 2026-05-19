@@ -580,9 +580,11 @@ class SendPageViewModel extends BaseViewModel {
       )).txid;
       await clearAll();
       log.d('Sent transaction: txid=$txid');
-      if (context.mounted) {
-        showSnackBar(context, 'Sent in txid=$txid');
-      }
+      GetIt.I.get<NotificationProvider>().add(
+        title: 'Transaction sent',
+        content: txid,
+        dialogType: DialogType.info,
+      );
     } catch (error) {
       log.e('Error sending transaction: $error');
       if (context.mounted) {
