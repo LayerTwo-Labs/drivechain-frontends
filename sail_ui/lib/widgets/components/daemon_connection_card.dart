@@ -73,36 +73,9 @@ class DaemonConnectionCard extends StatelessWidget {
                   label: 'Update',
                   onPressed: () async {
                     try {
-                      // 1. Download the updated binary
-                      await _binaryProvider.download(
-                        providerBinary,
-                        shouldUpdate: true,
-                      );
-
-                      // 2. Restart the binary with retry logic (3 attempts,
-                      // 5 second wait). Per-daemon scope — restarting the
-                      // enforcer here must not poke bitcoind and vice versa.
-                      bool started = false;
-                      int attempts = 0;
-                      const maxAttempts = 3;
-                      const retryDelay = Duration(seconds: 5);
-
-                      while (!started && attempts < maxAttempts) {
-                        attempts++;
-                        try {
-                          await _binaryProvider.restart(providerBinary);
-                          started = true;
-                        } catch (e) {
-                          if (attempts < maxAttempts) {
-                            await Future.delayed(retryDelay);
-                          } else {
-                            rethrow;
-                          }
-                        }
-                      }
-                    } catch (e) {
-                      // Handle any errors during the update process
-                      // You might want to show a snackbar or dialog here
+                      await _binaryProvider.update(providerBinary);
+                    } catch (_) {
+                      // Errors are visible via the daemon card's connection state.
                     }
                   },
                 ),

@@ -148,6 +148,78 @@ class BinaryProvider extends ChangeNotifier {
     await _orchestrator.downloadBinary(name, force: shouldUpdate);
   }
 
+  /// Force-download a binary and restart it if it was running. Used by the
+  /// "Update" buttons on daemon cards / chain-settings modal.
+  ///
+  /// The orchestrator's DownloadBinary RPC is fire-and-forget — calling
+  /// restart() immediately after download() races the running daemon against
+  /// its still-downloading replacement. So this method:
+  ///   1. force-dispatches the download
+  ///   2. polls GetDownloadStatus until the binary's entry disappears
+  ///   3. refreshes the local metadata (`downloadedTimestamp` from mtime)
+  ///      so `updateAvailable` flips to false
+  ///   4. restarts the daemon (only if it was running before) so it picks
+  ///      up the new executable
+  Future<void> update(Binary binary) async {
+    final name = _orchestratorName(binary);
+    if (name == null) {
+      log.i('BinaryProvider: skipping update for ${binary.name} (not orchestrator-managed)');
+      return;
+    }
+
+    final wasRunning = isConnected(binary);
+
+    log.i('BinaryProvider: starting update for $name');
+    await _orchestrator.downloadBinary(name, force: true);
+
+    // Poll until the orchestrator drops the binary out of its in-flight map.
+    // First tick might miss the entry if our poll lands before the server's
+    // goroutine has stored it, so we let the first miss slide.
+    const tick = Duration(milliseconds: 500);
+    const timeout = Duration(minutes: 15);
+    final deadline = DateTime.now().add(timeout);
+    bool seenInFlight = false;
+    while (DateTime.now().isBefore(deadline)) {
+      await Future.delayed(tick);
+      try {
+        final resp = await _orchestrator.getDownloadStatus();
+        final entry = resp.downloads.where((d) => d.binary == binary.type).firstOrNull;
+        if (entry != null) {
+          seenInFlight = true;
+          continue;
+        }
+        if (seenInFlight) break;
+      } catch (e) {
+        log.w('BinaryProvider: getDownloadStatus failed during update poll: $e');
+      }
+    }
+
+    // Refresh remote/downloaded timestamps so `updateAvailable` flips off.
+    final refreshed = await binary.updateMetadata(appDir);
+    updateBinary(binary.type, (_) => refreshed);
+
+    if (wasRunning) {
+      log.i('BinaryProvider: restarting $name after update');
+      bool started = false;
+      int attempts = 0;
+      const maxAttempts = 3;
+      const retryDelay = Duration(seconds: 5);
+      while (!started && attempts < maxAttempts) {
+        attempts++;
+        try {
+          await restart(binary);
+          started = true;
+        } catch (e) {
+          if (attempts < maxAttempts) {
+            await Future.delayed(retryDelay);
+          } else {
+            rethrow;
+          }
+        }
+      }
+    }
+  }
+
   Future<bool> onShutdown({ShutdownOptions? shutdownOptions}) async {
     log.i('BinaryProvider: shutting down all via orchestrator');
     _shuttingDown = true;
@@ -356,8 +428,16 @@ class BinaryProvider extends ChangeNotifier {
   void updateBinary(BinaryType type, Binary Function(Binary) updater) {
     for (int i = 0; i < binaries.length; i++) {
       if (binaries[i].type == type) {
-        binaries[i] = updater(binaries[i]);
-        break;
+        final prev = binaries[i];
+        final next = updater(prev);
+        if (identical(prev, next)) return;
+        binaries[i] = next;
+        // BackendStateProvider's 1s poll flips Binary.metadata.binaryPath
+        // here when a download completes — without this notify, every
+        // consumer reading binary.isDownloaded stays stale until something
+        // else (a click, a sync tick) forces a rebuild.
+        notifyListeners();
+        return;
       }
     }
   }
