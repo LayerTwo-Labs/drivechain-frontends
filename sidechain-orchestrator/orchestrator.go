@@ -898,11 +898,12 @@ func (o *Orchestrator) startEnforcerWhenReady(ctx context.Context, opts StartOpt
 	// 1. Wait for wallet to exist — enforcer needs the L1 seed.
 	if o.WalletSvc != nil && !o.WalletSvc.HasWallet() {
 		o.log.Info().Msg("waiting for wallet before starting enforcer")
+		sub := o.WalletSvc.Subscribe(ctx)
 		for !o.WalletSvc.HasWallet() {
 			select {
 			case <-ctx.Done():
 				return
-			case <-o.WalletSvc.StateChanged:
+			case <-sub:
 			}
 		}
 		o.log.Info().Msg("wallet created")

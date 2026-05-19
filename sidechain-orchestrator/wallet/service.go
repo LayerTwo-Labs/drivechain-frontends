@@ -1,6 +1,7 @@
 package wallet
 
 import (
+	"context"
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/base64"
@@ -53,10 +54,12 @@ type Service struct {
 	done      chan struct{}
 	closeOnce sync.Once
 
-	// StateChanged is signaled whenever wallet state changes (wallet created,
-	// deleted, switched, encrypted, etc.). WatchWalletData selects on this
-	// to push updates immediately.
-	StateChanged chan struct{}
+	// Per-subscriber fan-out for wallet state-change notifications. See
+	// Subscribe. The legacy single-buffered-channel design used to live here
+	// and broke whenever two consumers raced for the same buffered value —
+	// e.g. multiple WatchWalletData streams would steal each other's events.
+	subsMu sync.Mutex
+	subs   map[chan struct{}]struct{}
 }
 
 // NewService creates a new wallet service.
@@ -65,8 +68,36 @@ func NewService(bitwindowDir string, log zerolog.Logger) *Service {
 		bitwindowDir: bitwindowDir,
 		log:          log.With().Str("component", "wallet").Logger(),
 		done:         make(chan struct{}),
-		StateChanged: make(chan struct{}, 1),
+		subs:         make(map[chan struct{}]struct{}),
 	}
+}
+
+// Subscribe returns a per-caller channel that receives a notification every
+// time the wallet state changes (wallet created, deleted, switched,
+// encrypted, …). The channel is buffered to 1; notifyChanged drops on full
+// buffer rather than blocking, so a wedged consumer just misses intermediate
+// updates and picks up the next one.
+//
+// The subscription is unwound when ctx cancels. Always pass a ctx scoped to
+// the consumer's lifetime (per-stream for a Watch handler, the binary's
+// boot ctx for a one-shot wait).
+func (s *Service) Subscribe(ctx context.Context) <-chan struct{} {
+	ch := make(chan struct{}, 1)
+	s.subsMu.Lock()
+	s.subs[ch] = struct{}{}
+	s.subsMu.Unlock()
+
+	go func() {
+		<-ctx.Done()
+		s.subsMu.Lock()
+		defer s.subsMu.Unlock()
+		if _, ok := s.subs[ch]; ok {
+			delete(s.subs, ch)
+			close(ch)
+		}
+	}()
+
+	return ch
 }
 
 // moveToBackup relocates `path` under `<parent>/wallet_backups/<ts>/<base>`,
@@ -1364,13 +1395,19 @@ func (s *Service) saveWalletFile() error {
 	return nil
 }
 
-// notifyChanged signals StateChanged (non-blocking) so stream watchers
-// can push updated state to clients.
+// notifyChanged fans out a state-change notification to every Subscribe()
+// channel. Each subscriber gets a non-blocking send into its own buffered
+// channel; a slow consumer drops intermediate updates rather than blocking
+// the producer.
 func (s *Service) notifyChanged() {
-	select {
-	case s.StateChanged <- struct{}{}:
-	default:
+	s.subsMu.Lock()
+	for ch := range s.subs {
+		select {
+		case ch <- struct{}{}:
+		default:
+		}
 	}
+	s.subsMu.Unlock()
 }
 
 func (s *Service) startWatcher() {

@@ -1153,6 +1153,11 @@ func (h *WalletHandler) WatchWalletData(ctx context.Context, req *connect.Reques
 	heartbeat := time.NewTicker(WatchHeartbeatInterval)
 	defer heartbeat.Stop()
 
+	// Per-stream subscription. The wallet service fans out notifyChanged to
+	// every subscriber, so concurrent Watch streams don't steal each other's
+	// events. ctx scopes the subscription to this stream's lifetime.
+	stateChanged := h.svc.Subscribe(ctx)
+
 	send := func() error {
 		if err := h.sendWalletData(ctx, stream, &seq); err != nil {
 			return err
@@ -1166,7 +1171,7 @@ func (h *WalletHandler) WatchWalletData(ctx context.Context, req *connect.Reques
 		case <-ctx.Done():
 			return ctx.Err()
 
-		case <-h.svc.StateChanged:
+		case <-stateChanged:
 			if !pending {
 				debounce.Reset(50 * time.Millisecond)
 				pending = true
