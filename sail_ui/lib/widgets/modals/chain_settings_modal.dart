@@ -432,34 +432,8 @@ class ChainSettingsViewModel extends BaseViewModel {
     notifyListeners();
 
     try {
-      // 1. Download the updated binary
       Navigator.of(context).pop();
-      await _binaryProvider.download(_binary, shouldUpdate: true);
-
-      bool wasRunning = _binaryProvider.isConnected(_binary);
-      if (wasRunning) {
-        // 2. Restart the binary with retry logic (3 attempts, 5 second wait).
-        // Per-daemon scope: restarting one binary here must not poke its
-        // siblings.
-        bool started = false;
-        int attempts = 0;
-        const maxAttempts = 3;
-        const retryDelay = Duration(seconds: 5);
-
-        while (!started && attempts < maxAttempts) {
-          attempts++;
-          try {
-            await _binaryProvider.restart(_binary);
-            started = true;
-          } catch (e) {
-            if (attempts < maxAttempts) {
-              await Future.delayed(retryDelay);
-            } else {
-              rethrow;
-            }
-          }
-        }
-      }
+      await _binaryProvider.update(_binary);
     } catch (e) {
       // Handle any errors during the update process
       // You might want to show a snackbar or dialog here
