@@ -1094,6 +1094,10 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
                                   value: BitcoinNetwork.BITCOIN_NETWORK_TESTNET,
                                   label: BitcoinNetwork.BITCOIN_NETWORK_TESTNET.toDisplayName(),
                                 ),
+                                SailDropdownItem<BitcoinNetwork>(
+                                  value: BitcoinNetwork.BITCOIN_NETWORK_REGTEST,
+                                  label: BitcoinNetwork.BITCOIN_NETWORK_REGTEST.toDisplayName(),
+                                ),
                               ],
                               onChanged: (BitcoinNetwork? network) async {
                                 if (network == null || _confProvider.hasPrivateBitcoinConf) return;
