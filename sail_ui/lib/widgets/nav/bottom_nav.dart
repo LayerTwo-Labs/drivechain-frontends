@@ -426,7 +426,12 @@ class BottomNavViewModel extends BaseViewModel with ChangeTrackingMixin {
       if (dp.statusFor(additionalType) != null) {
         return 'Downloading ${additionalConnection.name}...';
       }
-      // Some other binary the user kicked off — just show the first one.
+      // Multiple sidechain downloads in flight (user clicked Download on
+      // several at once): show a stable count instead of `.values.first`,
+      // which flips every poll as the map iteration order changes.
+      if (dp.downloads.length > 1) {
+        return 'Downloading ${dp.downloads.length} binaries...';
+      }
       final first = dp.downloads.values.first;
       return 'Downloading ${defaultBinaryFor(first.binary).name}...';
     }
