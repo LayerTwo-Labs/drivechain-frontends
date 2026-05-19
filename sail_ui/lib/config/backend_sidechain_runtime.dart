@@ -49,6 +49,19 @@ Future<void> bootBackendManagedSidechain({
 
     if (await _backendIsReady(orchestrator)) {
       log.i('bootBackendManagedSidechain: orchestratord already ready');
+      // Cold-start funnels --binary=<target> into orchestratord's auto-boot
+      // hook (cmd/orchestratord/main.go:336), but a hot-start lands here and
+      // never tells anyone to bring the sidechain up. StartWithL1 on the Go
+      // side is idempotent — bitcoind/enforcer get adopted via PID files and
+      // the target sidechain is only spawned if it isn't already running —
+      // so calling it unconditionally here is safe and necessary.
+      unawaited(() async {
+        try {
+          await orchestrator.startWithL1(targetBinaryName);
+        } catch (e) {
+          log.w('bootBackendManagedSidechain: hot-start startWithL1($targetBinaryName) failed: $e');
+        }
+      }());
     } else {
       // Seed the app-level "initializing" state so DaemonConnectionCard
       // renders the spinner + startup log during the pre-orchestratord
