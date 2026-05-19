@@ -206,13 +206,34 @@ class WalletReaderProvider extends ChangeNotifier {
     );
   }
 
+  /// Returns true once the orchestrator confirms a wallet exists on disk.
+  ///
+  /// Polled with backoff so the WalletGuard doesn't race the orchestrator's
+  /// boot: on cold start, getWalletStatus() can throw "connection refused"
+  /// for a few seconds while orchestratord finishes coming up. Returning
+  /// false on that error silently misroutes existing users to the
+  /// "Set up your wallet" screen, so we keep retrying for ~5s before giving
+  /// up. Any non-transport error (e.g. a successful RPC with hasWallet=false)
+  /// short-circuits immediately.
   Future<bool> hasWallet() async {
-    try {
-      final resp = await _client.getWalletStatus();
-      return resp.hasWallet;
-    } catch (e) {
-      return false;
+    // Trust the streamed state when we have one.
+    if (hasWalletOnDisk) return true;
+
+    const maxAttempts = 10;
+    const delay = Duration(milliseconds: 500);
+    for (var attempt = 0; attempt < maxAttempts; attempt++) {
+      try {
+        final resp = await _client.getWalletStatus();
+        return resp.hasWallet;
+      } catch (e) {
+        if (attempt == maxAttempts - 1) {
+          _logger.w('WalletReaderProvider.hasWallet: giving up after $maxAttempts attempts: $e');
+          return false;
+        }
+        await Future.delayed(delay);
+      }
     }
+    return false;
   }
 
   Future<bool> isWalletEncrypted() async {
