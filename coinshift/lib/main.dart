@@ -253,7 +253,7 @@ void bootBinaries(Logger log) {
   unawaited(
     bootBackendManagedSidechain(
       log: log,
-      binary: BinaryType.BINARY_TYPE_ORCHESTRATORD,
+      binary: BinaryType.BINARY_TYPE_COINSHIFT,
       appRpc: GetIt.I.isRegistered<CoinShiftRPC>() ? GetIt.I.get<CoinShiftRPC>() : null,
     ),
   );

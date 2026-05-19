@@ -158,7 +158,7 @@ void bootBinaries(Logger log) {
   unawaited(
     bootBackendManagedSidechain(
       log: log,
-      binary: BinaryType.BINARY_TYPE_ORCHESTRATORD,
+      binary: BinaryType.BINARY_TYPE_THUNDER,
       appRpc: GetIt.I.isRegistered<ThunderRPC>() ? GetIt.I.get<ThunderRPC>() : null,
     ),
   );

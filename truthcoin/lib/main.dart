@@ -253,7 +253,7 @@ void bootBinaries(Logger log) {
   unawaited(
     bootBackendManagedSidechain(
       log: log,
-      binary: BinaryType.BINARY_TYPE_ORCHESTRATORD,
+      binary: BinaryType.BINARY_TYPE_TRUTHCOIN,
       appRpc: GetIt.I.isRegistered<TruthcoinRPC>() ? GetIt.I.get<TruthcoinRPC>() : null,
     ),
   );
