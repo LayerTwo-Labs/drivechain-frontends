@@ -243,7 +243,7 @@ void bootBinaries(Logger log) {
   unawaited(
     bootBackendManagedSidechain(
       log: log,
-      binary: BinaryType.BINARY_TYPE_ORCHESTRATORD,
+      binary: BinaryType.BINARY_TYPE_PHOTON,
       appRpc: GetIt.I.isRegistered<PhotonRPC>() ? GetIt.I.get<PhotonRPC>() : null,
     ),
   );
