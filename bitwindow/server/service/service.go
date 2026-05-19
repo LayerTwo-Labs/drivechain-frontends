@@ -25,16 +25,18 @@ type Service[T any] struct {
 
 	// For checking if service is connected
 	connected atomic.Bool
-	// Channel to send connection status changes
-	connectedCh chan bool
+
+	// Per-subscriber fan-out for connection state changes. See ConnectedChan.
+	subsMu sync.Mutex
+	subs   map[chan bool]struct{}
 }
 
 // New creates a new service wrapper
 func New[T any](name string, connector Connector[T]) *Service[T] {
 	return &Service[T]{
-		name:        name,
-		connector:   connector,
-		connectedCh: make(chan bool, 1),
+		name:      name,
+		connector: connector,
+		subs:      make(map[chan bool]struct{}),
 	}
 }
 
@@ -117,13 +119,51 @@ func (s *Service[T]) setConnected(ctx context.Context, val bool) {
 			log = &logger
 		}
 		log.Info().Msgf("%s changed connected to: %t", s.name, val)
-		select {
-		case s.connectedCh <- val:
-		default: // don't block if nobody is listening
+
+		// Fan out to every subscriber. Each subscriber owns its own
+		// buffered-by-1 channel; we drop on full buffer rather than block,
+		// matching the original non-blocking-send semantics. A subscriber
+		// that's wedged on its receiver will just miss intermediate updates
+		// and pick up the next one.
+		s.subsMu.Lock()
+		for ch := range s.subs {
+			select {
+			case ch <- val:
+			default:
+			}
 		}
+		s.subsMu.Unlock()
 	}
 }
 
-func (s *Service[T]) ConnectedChan() <-chan bool {
-	return s.connectedCh
+// ConnectedChan subscribes to this service's connection-state changes. Each
+// call returns a fresh buffered-by-1 channel, pre-seeded with the current
+// connection state, that receives a value every time setConnected fires.
+//
+// The subscription is unwound automatically when ctx is canceled — callers
+// should pass a ctx scoped to the lifetime of their consumer (per-stream for
+// a Watch handler, the server ctx for engine-wide bootstrap goroutines).
+//
+// Returning a fresh channel per caller (rather than the legacy single shared
+// buffered channel) is load-bearing: with the shared channel, two consumers
+// racing for one buffered value meant the loser deadlocked indefinitely.
+func (s *Service[T]) ConnectedChan(ctx context.Context) <-chan bool {
+	ch := make(chan bool, 1)
+	ch <- s.connected.Load()
+
+	s.subsMu.Lock()
+	s.subs[ch] = struct{}{}
+	s.subsMu.Unlock()
+
+	go func() {
+		<-ctx.Done()
+		s.subsMu.Lock()
+		defer s.subsMu.Unlock()
+		if _, ok := s.subs[ch]; ok {
+			delete(s.subs, ch)
+			close(ch)
+		}
+	}()
+
+	return ch
 }

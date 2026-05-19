@@ -94,10 +94,10 @@ func (s *Server) Watch(ctx context.Context, _ *connect.Request[emptypb.Empty], s
 	// and sends a status update whenever the status changes
 	// any update from any service triggers an event to be sent
 	// on the stream
-	go forwardStatus("bitcoind", s.bitcoind.ConnectedChan())
-	go forwardStatus("enforcer", s.enforcer.ConnectedChan())
-	go forwardStatus("wallet", s.wallet.ConnectedChan())
-	go forwardStatus("crypto", s.crypto.ConnectedChan())
+	go forwardStatus("bitcoind", s.bitcoind.ConnectedChan(ctx))
+	go forwardStatus("enforcer", s.enforcer.ConnectedChan(ctx))
+	go forwardStatus("wallet", s.wallet.ConnectedChan(ctx))
+	go forwardStatus("crypto", s.crypto.ConnectedChan(ctx))
 
 	// get initial status and send it when a client subscribes
 	statuses, err := s.getServiceStatuses(ctx)
