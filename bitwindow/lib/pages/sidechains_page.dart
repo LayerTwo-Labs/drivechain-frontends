@@ -2,6 +2,7 @@ import 'dart:math';
 
 import 'package:auto_route/auto_route.dart';
 import 'package:bitwindow/pages/explorer/block_explorer_dialog.dart';
+import 'package:bitwindow/pages/liteverse_bridge_status_panel.dart';
 import 'package:bitwindow/pages/sidechain_activation_management_page.dart';
 import 'package:bitwindow/providers/sidechain_provider.dart';
 import 'package:bitwindow/providers/transactions_provider.dart';
@@ -67,6 +68,10 @@ class SidechainsPage extends StatelessWidget {
               TabItem(
                 label: 'Starters',
                 child: StartersTab(),
+              ),
+              TabItem(
+                label: 'Liteverse Bridge',
+                child: LiteverseBridgeStatusPanel(),
               ),
             ],
             initialIndex: 0,
