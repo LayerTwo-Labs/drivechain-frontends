@@ -1,11 +1,25 @@
 import 'package:bitwindow/providers/check_provider.dart';
 import 'package:bitwindow/routing/router.dart';
+import 'package:bitwindow/utils/explorer_url.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:intl/intl.dart';
+import 'package:sail_ui/gen/google/protobuf/timestamp.pb.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:sail_ui/gen/wallet/v1/wallet.pb.dart';
 import 'package:stacked/stacked.dart';
+import 'package:url_launcher/url_launcher.dart';
+
+/// Renders a Cheque's created/funded/swept timestamp. Returns '-' for null
+/// or zero-valued proto Timestamps so unset DB timestamps don't surface as
+/// epoch 1970 in the UI. Exposed at the top level so unit tests can pin the
+/// formatting behavior without spinning up the full ChecksTable widget.
+String formatChequeDate(Timestamp? timestamp) {
+  if (timestamp == null) return '-';
+  final dt = timestamp.toDateTime().toLocal();
+  if (dt.millisecondsSinceEpoch == 0) return '-';
+  return DateFormat('MMM d, yyyy HH:mm').format(dt);
+}
 
 class ChecksTabViewModel extends BaseViewModel {
   final CheckProvider _checkProvider = GetIt.I.get<CheckProvider>();
@@ -198,7 +212,7 @@ class ChecksTable extends StatelessWidget {
                   : '-',
             ),
             SailTableCell(
-              value: 'View Details      ',
+              value: 'Fund Check / View Details         ',
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -234,21 +248,21 @@ class ChecksTable extends StatelessWidget {
           final check = checks.firstWhere((c) => c.id.toString() == rowId);
           _viewCheck(context, check);
         },
+        contextMenuItems: (rowId) {
+          final check = checks.firstWhere((c) => c.id.toString() == rowId);
+          final network = GetIt.I.get<BitcoinConfProvider>().network;
+          return [
+            SailMenuItem(
+              onSelected: () => launchUrl(Uri.parse(mempoolAddressUrl(check.address, network))),
+              child: SailText.primary12('View on mempool.space'),
+            ),
+          ];
+        },
       ),
     );
   }
 
-  String _formatDate(dynamic timestamp) {
-    if (timestamp == null) return '-';
-    try {
-      final dt = DateTime.fromMillisecondsSinceEpoch(
-        timestamp.seconds * 1000 + timestamp.nanos ~/ 1000000,
-      );
-      return DateFormat('MMM d, yyyy HH:mm').format(dt);
-    } catch (e) {
-      return '-';
-    }
-  }
+  String _formatDate(Timestamp? timestamp) => formatChequeDate(timestamp);
 
   String _truncateAddress(String address) {
     if (address.length <= 20) return address;
