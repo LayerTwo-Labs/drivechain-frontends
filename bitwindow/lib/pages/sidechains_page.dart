@@ -691,6 +691,8 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
   final BinaryProvider _binaryProvider = GetIt.I.get<BinaryProvider>();
   final BitcoinConfProvider _confProvider = GetIt.I.get<BitcoinConfProvider>();
   final SyncProvider _syncProvider = GetIt.I.get<SyncProvider>();
+  DownloadProvider? get _downloadProvider =>
+      GetIt.I.isRegistered<DownloadProvider>() ? GetIt.I.get<DownloadProvider>() : null;
   WalletReaderProvider get _walletReader => GetIt.I<WalletReaderProvider>();
 
   // Resolve a Sidechain Binary to its SidechainType enum (key into
@@ -707,10 +709,7 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
     _ => null,
   };
 
-  DownloadProgress? _downloadProgressFor(Binary b) {
-    if (!GetIt.I.isRegistered<DownloadProvider>()) return null;
-    return GetIt.I.get<DownloadProvider>().statusFor(b.type);
-  }
+  DownloadProgress? _downloadProgressFor(Binary b) => _downloadProvider?.statusFor(b.type);
 
   bool _isDownloadingFor(Binary b) => _downloadProgressFor(b) != null;
 
@@ -738,6 +737,11 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
     _binaryProvider.addListener(notifyListeners);
     _syncProvider.addListener(_onChange);
     _syncProvider.addListener(notifyListeners);
+    // DownloadProvider polls every 100ms while downloads are active. Without
+    // this listener the table never rebuilds during a download, so progress
+    // never advances and the button doesn't flip from "Download" → "Start"
+    // until the user touches the row.
+    _downloadProvider?.addListener(_onChange);
   }
 
   bool get loading => _enforcerRPC.initializingBinary;
@@ -1218,6 +1222,7 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
     depositAmountController.removeListener(_onChange);
     feeController.removeListener(_onChange);
     _binaryProvider.removeListener(_onChange);
+    _downloadProvider?.removeListener(_onChange);
   }
 
   void _onChange() {
