@@ -736,8 +736,12 @@ class BroadcastNewsViewModel extends BaseViewModel {
         ),
       );
 
+      GetIt.I.get<NotificationProvider>().add(
+        title: 'News broadcast',
+        content: headline,
+        dialogType: DialogType.success,
+      );
       if (!context.mounted) return;
-      showSnackBar(context, 'news broadcast successfully!');
       Navigator.of(context).pop();
     } catch (e) {
       showSnackBar(context, 'could not broadcast news: $e');
@@ -1232,16 +1236,20 @@ class NewGraffitiViewModel extends BaseViewModel {
       if (walletId == null) throw Exception('No active wallet');
 
       final address = (await _orchestratorWallet.getNewAddress(walletId)).address;
-      await _orchestratorWallet.sendTransaction(
+      final txid = (await _orchestratorWallet.sendTransaction(
         walletId: walletId,
         destinations: {address: 10000}, // 0.0001 BTC
         opReturnMessage: messageController.text,
         feeRateSatPerVbyte: 1,
+      )).txid;
+
+      GetIt.I.get<NotificationProvider>().add(
+        title: 'Graffiti broadcast',
+        content: txid,
+        dialogType: DialogType.success,
       );
 
       if (!context.mounted) return;
-
-      showSnackBar(context, 'graffiti broadcast successfully!');
       messageController.clear();
     } catch (e) {
       if (!context.mounted) return;

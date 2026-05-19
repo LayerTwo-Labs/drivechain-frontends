@@ -9,6 +9,7 @@ import 'package:qr_flutter/qr_flutter.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:sail_ui/gen/wallet/v1/wallet.pb.dart';
 import 'package:stacked/stacked.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class CheckDetailViewModel extends BaseViewModel {
   Logger get log => GetIt.I.get<Logger>();
@@ -83,13 +84,14 @@ class CheckDetailViewModel extends BaseViewModel {
         feeRateSatPerVbyte: 10,
       )).txid;
 
-      if (!context.mounted) return;
-
-      showSnackBar(
-        context,
-        'Transaction sent! TXID: ${txid.substring(0, 10)}...',
+      GetIt.I.get<NotificationProvider>().add(
+        title: 'Transaction sent',
+        content: txid,
+        dialogType: DialogType.info,
+        onPressed: () => launchUrl(Uri.parse('https://explorer.drivechain.info/tx/$txid')),
       );
 
+      if (!context.mounted) return;
       Navigator.of(context).pop();
     } catch (e) {
       if (!context.mounted) return;
