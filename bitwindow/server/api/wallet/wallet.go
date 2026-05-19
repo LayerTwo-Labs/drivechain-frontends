@@ -79,12 +79,14 @@ func New(
 	go func() {
 		bgCtx := context.Background()
 
-		var connected bool
-		for !connected {
+		// Poll IsConnected — see Service.ConnectedChan for the broadcast
+		// rationale; here we just need a one-shot wait and polling avoids
+		// the cleanup cost of a subscription.
+		for !bitcoind.IsConnected() {
 			select {
 			case <-ctx.Done():
 				return
-			case connected = <-bitcoind.ConnectedChan():
+			case <-time.After(100 * time.Millisecond):
 			}
 		}
 		for {

@@ -18,6 +18,7 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/samber/lo"
 	"google.golang.org/protobuf/types/known/emptypb"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 const (
@@ -280,19 +281,16 @@ func (e *ChequeEngine) importChequeDescriptor(ctx context.Context) {
 		}
 	}
 
-	// Wait for bitcoind to connect — bitwindowd kicks off orchestratord and
-	// runs in parallel, so on first launch this goroutine hits the RPC port
-	// before bitcoind exists. Bailing here meant cheque_watch was never
-	// created and every later recovery pass got -18 wallet-not-loaded.
-	var connected bool
-	for !connected {
+	// Wait for bitcoind to connect. Service.ConnectedChan is a single buffered
+	// channel shared by every consumer (health forwarder, ensureWatchWallet,
+	// us, recoverChequesOnUnlock); whichever goroutine reads first wins the
+	// one buffered value and the rest deadlock until the next state change.
+	// Poll IsConnected instead so this goroutine can't get starved.
+	for !e.bitcoind.IsConnected() {
 		select {
 		case <-ctx.Done():
 			return
-		case connected = <-e.bitcoind.ConnectedChan():
-			if !connected {
-				log.Debug().Msg("bitcoind disconnected, waiting for reconnection")
-			}
+		case <-time.After(100 * time.Millisecond):
 		}
 	}
 
@@ -411,7 +409,11 @@ func (e *ChequeEngine) importDescriptorForWallet(ctx context.Context, bitcoind c
 	// Use the descriptor with checksum from Bitcoin Core
 	descriptor := descInfo.Msg.Descriptor_
 
-	// Import the descriptor into Bitcoin Core cheque wallet
+	// Import the descriptor into Bitcoin Core cheque wallet.
+	// Timestamp=epoch triggers a full rescan so cheques funded before this
+	// import (e.g. the first run after the descriptor-deadlock fix landed)
+	// get picked up. btc-buf maps nil → "now" (no rescan), which would leave
+	// existing funded cheques permanently invisible.
 	resp, err := bitcoind.ImportDescriptors(ctx, connect.NewRequest(&corepb.ImportDescriptorsRequest{
 		Wallet: ChequeWalletName,
 		Requests: []*corepb.ImportDescriptorsRequest_Request{
@@ -420,7 +422,7 @@ func (e *ChequeEngine) importDescriptorForWallet(ctx context.Context, bitcoind c
 				Active:      true,
 				RangeStart:  0,
 				RangeEnd:    2000,
-				Timestamp:   nil,
+				Timestamp:   timestamppb.New(time.Unix(0, 0)),
 				Internal:    false,
 			},
 		},
@@ -464,16 +466,13 @@ func (e *ChequeEngine) recoverChequesOnUnlock(ctx context.Context) {
 
 	log.Info().Msg("wallet unlocked, waiting for bitcoind for cheque recovery")
 
-	// Wait for bitcoind to connect
-	var connected bool
-	for !connected {
+	// Poll IsConnected — see importChequeDescriptor for why ConnectedChan
+	// would starve this goroutine.
+	for !e.bitcoind.IsConnected() {
 		select {
 		case <-ctx.Done():
 			return
-		case connected = <-e.bitcoind.ConnectedChan():
-			if !connected {
-				log.Debug().Msg("bitcoind disconnected, waiting for reconnection")
-			}
+		case <-time.After(100 * time.Millisecond):
 		}
 	}
 
