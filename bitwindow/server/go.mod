@@ -7,7 +7,7 @@ require (
 	github.com/Masterminds/squirrel v1.5.4
 	github.com/barebitcoin/btc-buf v0.0.0-20251202201854-efb1eb3c5e20
 	github.com/brianvoe/gofakeit/v7 v7.14.1
-	github.com/btcsuite/btcd/btcutil v1.1.6
+	github.com/btcsuite/btcd/btcutil v1.2.0
 	github.com/go-zeromq/goczmq/v4 v4.2.2 // indirect
 	github.com/go-zeromq/zmq4 v0.17.0
 	github.com/jessevdk/go-flags v1.6.1
@@ -52,6 +52,8 @@ require (
 	github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator v0.0.0-20260401154321-d019aef317bb
 	github.com/tyler-smith/go-bip32 v1.0.0
 )
+
+require github.com/kcalvinalvin/anet v0.0.0-20251112173137-d8ddc1f6dbee // indirect
 
 require (
 	github.com/FactomProject/basen v0.0.0-20150613233007-fe3947df716e // indirect
