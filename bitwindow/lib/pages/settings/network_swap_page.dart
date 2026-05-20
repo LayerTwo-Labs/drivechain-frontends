@@ -12,11 +12,7 @@ class NetworkSwapPage extends StatefulWidget {
   final BitcoinNetwork fromNetwork;
   final BitcoinNetwork toNetwork;
 
-  const NetworkSwapPage({
-    super.key,
-    required this.fromNetwork,
-    required this.toNetwork,
-  });
+  const NetworkSwapPage({super.key, required this.fromNetwork, required this.toNetwork});
 
   @override
   State<NetworkSwapPage> createState() => _NetworkSwapPageState();
@@ -104,17 +100,9 @@ class _NetworkSwapPageState extends State<NetworkSwapPage> {
                             spacing: SailStyleValues.padding12,
                             children: [
                               if (_swapComplete)
-                                Icon(
-                                  Icons.check_circle,
-                                  color: theme.colors.success,
-                                  size: 32,
-                                )
+                                Icon(Icons.check_circle, color: theme.colors.success, size: 32)
                               else if (_error != null)
-                                Icon(
-                                  Icons.error,
-                                  color: theme.colors.error,
-                                  size: 32,
-                                )
+                                Icon(Icons.error, color: theme.colors.error, size: 32)
                               else
                                 SailSVG.fromAsset(
                                   SailSVGAsset.iconRestart,
@@ -140,7 +128,7 @@ class _NetworkSwapPageState extends State<NetworkSwapPage> {
                                 ? _error!
                                 : _isSwapping
                                 ? 'Switching from $fromName to $toName...'
-                                : 'BitWindow will swap bitcoind to $toName and reload its data — the app stays open. Switching from $fromName to $toName.',
+                                : 'BitWindow will swap bitcoind to $toName and reload its data — the app stays open.',
                             textAlign: TextAlign.center,
                           ),
                           const SizedBox(height: 24),
