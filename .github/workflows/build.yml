@@ -156,6 +156,7 @@ jobs:
       run:
         shell: bash
     strategy:
+      fail-fast: false
       matrix: ${{ fromJson(needs.matrix-prep.outputs.matrix) }}
     steps:
       - uses: actions/checkout@v5

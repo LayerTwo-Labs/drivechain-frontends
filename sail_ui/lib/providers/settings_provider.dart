@@ -14,7 +14,7 @@ class SettingsProvider extends ChangeNotifier {
 
   // Individual setting variables
   bool debugMode = false;
-  bool useTestSidechains = false;
+  bool useTestSidechains = true;
   BitwindowSettings bitwindowSettings = BitwindowSettings();
   SailFontValues font = SailFontValues.inter;
   BitcoinUnit bitcoinUnit = BitcoinUnit.btc;
