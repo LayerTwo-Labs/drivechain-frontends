@@ -24,8 +24,8 @@ require (
 	connectrpc.com/grpchealth v1.4.0 // indirect
 	connectrpc.com/grpcreflect v1.3.0
 	github.com/btcsuite/btcd v0.25.0
-	github.com/btcsuite/btcd/btcec/v2 v2.5.0
-	github.com/btcsuite/btcd/chaincfg/chainhash v1.1.0
+	github.com/btcsuite/btcd/btcec/v2 v2.3.6
+	github.com/btcsuite/btcd/chaincfg/chainhash v1.2.0
 	github.com/btcsuite/btclog v1.0.0 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/decred/dcrd/crypto/blake256 v1.1.0 // indirect
