@@ -326,7 +326,7 @@ class _ConsoleViewState extends State<ConsoleView> {
                                       vertical: 4,
                                     ),
                                     child: SailText.primary12(
-                                      '${service.name} -> $command',
+                                      service.name == command ? command : '${service.name} -> $command',
                                       color: theme.colors.text,
                                       monospace: true,
                                     ),

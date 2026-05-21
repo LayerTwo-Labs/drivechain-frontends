@@ -10,6 +10,8 @@ import (
 	"net/http"
 	"strings"
 	"time"
+
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config"
 )
 
 // HealthChecker checks if a binary is healthy.
@@ -266,11 +268,22 @@ func (c *CoreStatusClient) IsHeaderSyncComplete(ctx context.Context) (bool, erro
 	}
 
 	var info struct {
-		Blocks  int64 `json:"blocks"`
-		Headers int64 `json:"headers"`
+		Chain                string `json:"chain"`
+		Blocks               int64  `json:"blocks"`
+		Headers              int64  `json:"headers"`
+		InitialBlockDownload bool   `json:"initialblockdownload"`
 	}
 	if err := json.Unmarshal(result, &info); err != nil {
 		return false, fmt.Errorf("decode getblockchaininfo: %w", err)
+	}
+
+	// Regtest has no peers feeding headers — the "<10 headers" peer-driven
+	// guard would block enforcer startup forever. Empty regtest is steady state.
+	if config.NetworkFromString(info.Chain) == config.NetworkRegtest {
+		if info.InitialBlockDownload && info.Blocks == 0 {
+			return true, nil
+		}
+		return info.Headers >= info.Blocks, nil
 	}
 
 	// Header sync happens ahead of block validation: headers >= blocks during

@@ -118,6 +118,19 @@ class BlockchainProvider extends ChangeNotifier {
     _fetchTimer = Timer.periodic(_currentInterval, (_) => tick());
   }
 
+  /// Wipe cached state on network swap so the UI stops showing the previous
+  /// network's data while the next fetch repopulates from new bitwindowd.
+  void clear() {
+    peers = [];
+    blocks = [];
+    recentTransactions = [];
+    loadedBlockHeights = {};
+    hasMoreBlocks = true;
+    isLoadingMoreBlocks = false;
+    error = null;
+    notifyListeners();
+  }
+
   Future<void> loadMoreBlocks() async {
     if (!hasMoreBlocks || isLoadingMoreBlocks) return;
 

@@ -112,3 +112,51 @@ func TestConnectRPCHealthCheck_OpaqueHTTPError(t *testing.T) {
 	require.Error(t, err)
 	assert.True(t, strings.Contains(err.Error(), "HTTP 500"))
 }
+
+// Regtest sits at 0/0/IBD=true with no peers. Must report complete so the
+// enforcer is allowed to start instead of being stuck disconnected forever.
+func TestIsHeaderSyncComplete_RegtestEmpty(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"result":{"chain":"regtest","blocks":0,"headers":0,"initialblockdownload":true},"error":null,"id":1}`))
+	}))
+	defer srv.Close()
+
+	c := &CoreStatusClient{url: srv.URL}
+	complete, err := c.IsHeaderSyncComplete(context.Background())
+	require.NoError(t, err)
+	assert.True(t, complete, "regtest with 0 blocks and IBD=true must report header-sync complete")
+}
+
+// Non-regtest with <10 headers must still report incomplete — guard exists
+// to avoid false positives before any peer connects.
+func TestIsHeaderSyncComplete_MainnetFewHeaders(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"result":{"chain":"main","blocks":0,"headers":3,"initialblockdownload":true},"error":null,"id":1}`))
+	}))
+	defer srv.Close()
+
+	c := &CoreStatusClient{url: srv.URL}
+	complete, err := c.IsHeaderSyncComplete(context.Background())
+	require.NoError(t, err)
+	assert.False(t, complete, "mainnet with <10 headers must report incomplete")
+}
+
+// Once the user mines a regtest block, IBD flips false. Must keep reporting
+// complete so the enforcer stays up.
+func TestIsHeaderSyncComplete_RegtestMined(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"result":{"chain":"regtest","blocks":1,"headers":1,"initialblockdownload":false},"error":null,"id":1}`))
+	}))
+	defer srv.Close()
+
+	c := &CoreStatusClient{url: srv.URL}
+	complete, err := c.IsHeaderSyncComplete(context.Background())
+	require.NoError(t, err)
+	assert.True(t, complete)
+}

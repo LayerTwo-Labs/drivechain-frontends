@@ -317,5 +317,3 @@ message UpdateNetworkRequest {
 }
 
 message UpdateNetworkResponse {}
-
-

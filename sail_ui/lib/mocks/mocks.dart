@@ -1661,6 +1661,11 @@ class MockSyncProvider implements SyncProvider {
   }
 
   @override
+  void reset() {
+    return;
+  }
+
+  @override
   bool get hasListeners => false;
 
   @override

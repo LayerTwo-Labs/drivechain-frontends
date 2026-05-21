@@ -142,6 +142,20 @@ class SyncProvider extends ChangeNotifier {
   bool _isFetching = false;
   Duration _currentInterval = AGGRESSIVE_INTERVAL;
 
+  /// Wipe cached per-chain sync state. Called on network swap so stale
+  /// progress from the previous network doesn't linger in the UI.
+  void reset() {
+    mainchainSyncInfo = null;
+    mainchainError = null;
+    enforcerSyncInfo = null;
+    enforcerError = null;
+    sidechains = const {};
+    sidechainErrors = const {};
+    bitwindowdSyncInfo = null;
+    bitwindowdError = null;
+    notifyListeners();
+  }
+
   SyncProvider({this.additionalConnection, bool startTimer = true}) {
     if (startTimer && !Environment.isInTest) {
       _scheduleNextTick();

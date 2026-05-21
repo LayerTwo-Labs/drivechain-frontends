@@ -10,7 +10,7 @@ option go_package = "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/side
 service SidechainService {
   // GetDetectedWithdrawals returns all detected fast withdrawal transactions
   rpc GetDetectedWithdrawals(GetDetectedWithdrawalsRequest) returns (GetDetectedWithdrawalsResponse);
-  
+
   // GetWithdrawalByTxid returns a specific withdrawal by transaction ID
   rpc GetWithdrawalByTxid(GetWithdrawalByTxidRequest) returns (GetWithdrawalByTxidResponse);
 }
@@ -18,7 +18,7 @@ service SidechainService {
 message GetDetectedWithdrawalsRequest {
   // Optional filter by sidechain name
   optional string sidechain = 1;
-  
+
   // Optional limit on number of results
   optional int32 limit = 2;
 }
@@ -38,19 +38,19 @@ message GetWithdrawalByTxidResponse {
 message DetectedWithdrawal {
   // Transaction ID of the withdrawal
   string txid = 1;
-  
+
   // Sidechain name (thunder, bitnames, etc.)
   string sidechain = 2;
-  
+
   // Amount in satoshis
   int64 amount = 3;
-  
+
   // Destination address on mainchain
   string destination = 4;
-  
+
   // When the withdrawal was first detected
   google.protobuf.Timestamp detected_at = 5;
-  
+
   // Block hash if confirmed (optional)
   optional string block_hash = 6;
 }

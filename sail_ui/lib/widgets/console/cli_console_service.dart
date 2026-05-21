@@ -117,7 +117,12 @@ class CLIConsole {
         ConsoleService(
           name: entry.key,
           commands: [entry.key],
-          execute: (command, args) => _execProcess(entry.key, entry.value, args),
+          execute: (command, args) {
+            // Drop a leading cli-name (explicit form) so `bitcoin-cli generate 1`
+            // and bare `generate 1` produce the same argv to the binary.
+            final effectiveArgs = command == entry.key ? args : [command, ...args];
+            return _execProcess(entry.key, entry.value, effectiveArgs);
+          },
         ),
       );
     }

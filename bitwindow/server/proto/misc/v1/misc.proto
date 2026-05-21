@@ -37,8 +37,8 @@ message BroadcastNewsRequest {
   string headline = 2;
   string content = 3;
   // Fee options - exactly one should be set (0 = use Core's estimate)
-  uint64 fee_sat_per_vbyte = 4;  // Fee rate in sat/vB
-  uint64 fee_sats = 5;           // Total fee in satoshis
+  uint64 fee_sat_per_vbyte = 4; // Fee rate in sat/vB
+  uint64 fee_sats = 5; // Total fee in satoshis
 }
 
 message BroadcastNewsResponse {
@@ -48,7 +48,7 @@ message BroadcastNewsResponse {
 message CreateTopicRequest {
   string topic = 1;
   string name = 2;
-  int32 retention_days = 3;  // 0 = infinite retention
+  int32 retention_days = 3; // 0 = infinite retention
 }
 
 message CreateTopicResponse {
