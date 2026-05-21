@@ -16,7 +16,6 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/urfave/cli/v2"
 	"golang.org/x/net/http2"
-	"golang.org/x/net/http2/h2c"
 
 	corerpc "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha/bitcoindv1alphaconnect"
 	coreproxy "github.com/barebitcoin/btc-buf/server"
@@ -311,10 +310,17 @@ func run(cctx *cli.Context) error {
 		}
 	}
 
+	// h2c (HTTP/2 cleartext) via http.Server.Protocols — the ConnectRPC-blessed
+	// replacement for h2c.NewHandler. Carries Connect, gRPC and gRPC-Web on one
+	// listener. SendPingTimeout preserves the old http2.Server.ReadIdleTimeout
+	// behavior: ping every 30s of idle to evict dead connections.
+	protocols := new(http.Protocols)
+	protocols.SetHTTP1(true)
+	protocols.SetUnencryptedHTTP2(true)
 	srv := &http.Server{
-		Handler: h2c.NewHandler(mux, &http2.Server{
-			ReadIdleTimeout: 30 * time.Second,
-		}),
+		Handler:   mux,
+		Protocols: protocols,
+		HTTP2:     &http.HTTP2Config{SendPingTimeout: 30 * time.Second},
 	}
 
 	// Bind listener first so we know the port is ours before logging.

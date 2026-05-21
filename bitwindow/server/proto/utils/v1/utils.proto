@@ -29,10 +29,10 @@ message ParseBitcoinURIRequest {
 
 message ParseBitcoinURIResponse {
   string address = 1;
-  double amount = 2;          // Amount in BTC (optional)
-  string label = 3;           // Label (optional)
-  string message = 4;         // Message (optional)
-  map<string, string> extra_params = 5;  // Any additional parameters
+  double amount = 2; // Amount in BTC (optional)
+  string label = 3; // Label (optional)
+  string message = 4; // Message (optional)
+  map<string, string> extra_params = 5; // Any additional parameters
 }
 
 message ValidateBitcoinURIRequest {
@@ -41,7 +41,7 @@ message ValidateBitcoinURIRequest {
 
 message ValidateBitcoinURIResponse {
   bool valid = 1;
-  string error = 2;  // Error message if invalid
+  string error = 2; // Error message if invalid
 }
 
 // Base58Check
@@ -55,8 +55,8 @@ message DecodeBase58CheckResponse {
   bytes payload = 3;
   bytes checksum = 4;
   bool checksum_valid = 5;
-  string address_type = 6;  // Human-readable type description
-  string error = 7;         // Error message if invalid
+  string address_type = 6; // Human-readable type description
+  string error = 7; // Error message if invalid
 }
 
 message EncodeBase58CheckRequest {
@@ -71,19 +71,19 @@ message EncodeBase58CheckResponse {
 
 // Merkle Tree
 message CalculateMerkleTreeRequest {
-  repeated string txids = 1;  // List of transaction IDs (hex)
+  repeated string txids = 1; // List of transaction IDs (hex)
 }
 
 message CalculateMerkleTreeResponse {
   string merkle_root = 1;
   repeated MerkleTreeLevel levels = 2;
-  string formatted_text = 3;  // Human-readable tree display
+  string formatted_text = 3; // Human-readable tree display
 }
 
 message MerkleTreeLevel {
   int32 level = 1;
   repeated string hashes = 2;
-  repeated string rcb = 3;  // Reversed Concatenated Bytes for manual verification
+  repeated string rcb = 3; // Reversed Concatenated Bytes for manual verification
 }
 
 // Paper Wallet

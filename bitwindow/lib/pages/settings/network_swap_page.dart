@@ -1,3 +1,7 @@
+import 'package:bitwindow/providers/address_book_provider.dart';
+import 'package:bitwindow/providers/blockchain_provider.dart';
+import 'package:bitwindow/providers/hd_wallet_provider.dart';
+import 'package:bitwindow/providers/transactions_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
@@ -38,6 +42,7 @@ class _NetworkSwapPageState extends State<NetworkSwapPage> {
 
     try {
       await _bitwindow.bitwindowd.updateNetwork(_networkToString(widget.toNetwork));
+      await _clearFrontendCaches();
       if (mounted) {
         setState(() {
           _step.endTime = DateTime.now();
@@ -52,6 +57,32 @@ class _NetworkSwapPageState extends State<NetworkSwapPage> {
           _error = e.toString();
         });
       }
+    }
+  }
+
+  /// Wipe in-memory caches after a network swap — bitwindowd recycled its
+  /// DB in-process, so anything cached from the old network is now stale.
+  Future<void> _clearFrontendCaches() async {
+    if (GetIt.I.isRegistered<TransactionProvider>()) {
+      GetIt.I.get<TransactionProvider>().clear();
+    }
+    if (GetIt.I.isRegistered<BlockchainProvider>()) {
+      GetIt.I.get<BlockchainProvider>().clear();
+    }
+    if (GetIt.I.isRegistered<AddressBookProvider>()) {
+      GetIt.I.get<AddressBookProvider>().clear();
+    }
+    if (GetIt.I.isRegistered<BalanceProvider>()) {
+      GetIt.I.get<BalanceProvider>().clear();
+    }
+    if (GetIt.I.isRegistered<SyncProvider>()) {
+      GetIt.I.get<SyncProvider>().reset();
+    }
+    if (GetIt.I.isRegistered<WalletReaderProvider>()) {
+      GetIt.I.get<WalletReaderProvider>().clearState();
+    }
+    if (GetIt.I.isRegistered<HDWalletProvider>()) {
+      await GetIt.I.get<HDWalletProvider>().reinitialize();
     }
   }
 

@@ -15,10 +15,10 @@ service FastWithdrawalService {
 message InitiateFastWithdrawalRequest {
   // Sidechain name (thunder, bitnames, bitassets, etc.)
   string sidechain = 1;
-  
+
   // Amount in satoshis
   int64 amount = 2;
-  
+
   // Destination address on mainchain
   string destination = 3;
 }
@@ -26,28 +26,28 @@ message InitiateFastWithdrawalRequest {
 message FastWithdrawalUpdate {
   enum Status {
     STATUS_UNSPECIFIED = 0;
-    STATUS_INITIATING = 1;     // Calling sidechain RPC
-    STATUS_PENDING = 2;        // Withdrawal submitted, waiting for detection
-    STATUS_DETECTED = 3;       // Found in sidechain mempool/bundle
-    STATUS_CONFIRMED = 4;      // Confirmed on sidechain
-    STATUS_FAILED = 5;         // Error occurred
-    STATUS_COMPLETED = 6;      // Fully processed
+    STATUS_INITIATING = 1; // Calling sidechain RPC
+    STATUS_PENDING = 2; // Withdrawal submitted, waiting for detection
+    STATUS_DETECTED = 3; // Found in sidechain mempool/bundle
+    STATUS_CONFIRMED = 4; // Confirmed on sidechain
+    STATUS_FAILED = 5; // Error occurred
+    STATUS_COMPLETED = 6; // Fully processed
   }
-  
+
   Status status = 1;
-  
+
   // Transaction ID when detected
   optional string txid = 2;
-  
+
   // Error message if failed
   optional string error = 3;
-  
+
   // Block hash when confirmed
   optional string block_hash = 4;
-  
+
   // Timestamp of this update
   google.protobuf.Timestamp timestamp = 5;
-  
+
   // Human-readable status message
   string message = 6;
 }

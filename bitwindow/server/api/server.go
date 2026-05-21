@@ -26,8 +26,6 @@ import (
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/truthcoin"
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/rs/zerolog"
-	"golang.org/x/net/http2"
-	"golang.org/x/net/http2/h2c"
 
 	cryptorpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/crypto/v1/cryptov1connect"
 	validatorrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1/mainchainv1connect"
@@ -215,8 +213,7 @@ func (s *Server) Recycle(ctx context.Context, network config.Network) error {
 }
 
 func (s *Server) Handler() http.Handler {
-	// Use h2c, so we can serve HTTP/2 without TLS.
-	return h2c.NewHandler(s.topSwap, &http2.Server{})
+	return s.topSwap
 }
 
 func (s *Server) Serve(ctx context.Context, address string) error {
@@ -240,7 +237,12 @@ func (s *Server) Serve(ctx context.Context, address string) error {
 		log.Error().Err(err).Msg("could not close listener")
 	}()
 
-	s.server = &http.Server{Handler: s.Handler()}
+	// Serve HTTP/2 over plaintext (replaces the old h2c.NewHandler wrap).
+	// ConnectRPC clients negotiate HTTP/2 over h2c here.
+	protocols := new(http.Protocols)
+	protocols.SetHTTP1(true)
+	protocols.SetUnencryptedHTTP2(true)
+	s.server = &http.Server{Handler: s.Handler(), Protocols: protocols}
 	return s.server.Serve(lis)
 }
 

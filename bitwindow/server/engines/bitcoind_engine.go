@@ -124,8 +124,10 @@ func (p *Parser) handleBlockTick(ctx context.Context) error {
 	case err != nil &&
 		strings.Contains(err.Error(), "Block height out of range"):
 
-		zerolog.Ctx(ctx).Info().
-			Msgf("bitcoind_engine/parser: still in IBD, waiting for header download..")
+		// Block 1 doesn't exist yet — normal on a fresh regtest (no blocks
+		// mined) or a header-syncing full chain. Debug, not info; don't spam.
+		zerolog.Ctx(ctx).Debug().
+			Msgf("bitcoind_engine/parser: no block 1 yet, waiting for chain to advance..")
 		return nil
 
 	case connect.CodeOf(err) == connect.CodeUnavailable:

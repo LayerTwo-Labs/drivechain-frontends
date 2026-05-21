@@ -47,6 +47,14 @@ class AddressBookProvider extends ChangeNotifier {
     return !listEquals(entries, newEntries);
   }
 
+  /// Wipe cached entries on network swap; next fetch repopulates from
+  /// the new network's bitwindowd database.
+  void clear() {
+    _entries = [];
+    error = null;
+    notifyListeners();
+  }
+
   Future<void> createEntry(String label, String address, Direction direction) async {
     await bitwindowd.bitwindowd.createAddressBookEntry(label, address, direction);
     await fetch();
