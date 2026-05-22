@@ -919,7 +919,6 @@ class BitAssetRequest {
   });
 
   Map<String, dynamic> toJson() => {
-    'initial_supply': initialSupply,
     if (commitment != null) 'commitment': commitment,
     if (encryptionPubkey != null) 'encryption_pubkey': encryptionPubkey,
     if (signingPubkey != null) 'signing_pubkey': signingPubkey,
@@ -928,7 +927,7 @@ class BitAssetRequest {
   };
 
   factory BitAssetRequest.fromJson(Map<String, dynamic> json) => BitAssetRequest(
-    initialSupply: json['initial_supply'] as int,
+    initialSupply: (json['initial_supply'] as int?) ?? 0,
     commitment: json['commitment'] as String?,
     encryptionPubkey: json['encryption_pubkey'] as String?,
     signingPubkey: json['signing_pubkey'] as String?,
