@@ -116,18 +116,20 @@ Future<(Directory, File, Logger)> init(String arguments) async {
   if (!GetIt.I.isRegistered<Logger>()) {
     GetIt.I.registerLazySingleton<Logger>(() => log);
   }
-  final router = AppRouter();
+  final router = GetIt.I.isRegistered<AppRouter>() ? GetIt.I.get<AppRouter>() : AppRouter();
   if (!GetIt.I.isRegistered<AppRouter>()) {
     GetIt.I.registerLazySingleton<AppRouter>(() => router);
   }
 
-  late BitnamesLive bitnamesRPC;
+  late BitnamesRPC bitnamesRPC;
 
   await initSidechainDependencies(
     sidechainType: BinaryType.BINARY_TYPE_BITNAMES,
     createSidechainConnection: (_) {
-      bitnamesRPC = BitnamesLive();
-      if (!GetIt.I.isRegistered<BitnamesRPC>()) {
+      if (GetIt.I.isRegistered<BitnamesRPC>()) {
+        bitnamesRPC = GetIt.I.get<BitnamesRPC>();
+      } else {
+        bitnamesRPC = BitnamesLive();
         GetIt.I.registerSingleton<BitnamesRPC>(bitnamesRPC);
       }
       return bitnamesRPC;

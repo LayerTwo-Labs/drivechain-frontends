@@ -74,18 +74,20 @@ Future<(Directory, File, Logger)> init(String arguments) async {
   if (!GetIt.I.isRegistered<Logger>()) {
     GetIt.I.registerLazySingleton<Logger>(() => log);
   }
-  final router = AppRouter();
+  final router = GetIt.I.isRegistered<AppRouter>() ? GetIt.I.get<AppRouter>() : AppRouter();
   if (!GetIt.I.isRegistered<AppRouter>()) {
     GetIt.I.registerLazySingleton<AppRouter>(() => router);
   }
 
-  late ThunderLive thunderRPC;
+  late ThunderRPC thunderRPC;
 
   await initSidechainDependencies(
     sidechainType: BinaryType.BINARY_TYPE_THUNDER,
     createSidechainConnection: (_) {
-      thunderRPC = ThunderLive();
-      if (!GetIt.I.isRegistered<ThunderRPC>()) {
+      if (GetIt.I.isRegistered<ThunderRPC>()) {
+        thunderRPC = GetIt.I.get<ThunderRPC>();
+      } else {
+        thunderRPC = ThunderLive();
         GetIt.I.registerSingleton<ThunderRPC>(thunderRPC);
       }
       return thunderRPC;

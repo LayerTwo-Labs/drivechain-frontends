@@ -72,13 +72,13 @@ Future<(Directory, File, Logger)> init(String arguments) async {
   if (!GetIt.I.isRegistered<Logger>()) {
     GetIt.I.registerLazySingleton<Logger>(() => log);
   }
-  final router = AppRouter();
+  final router = GetIt.I.isRegistered<AppRouter>() ? GetIt.I.get<AppRouter>() : AppRouter();
   if (!GetIt.I.isRegistered<AppRouter>()) {
     GetIt.I.registerLazySingleton<AppRouter>(() => router);
   }
 
   SidechainRPC createSidechainConnection(Binary binary) {
-    final truthcoin = TruthcoinLive();
+    final truthcoin = GetIt.I.isRegistered<TruthcoinRPC>() ? GetIt.I.get<TruthcoinRPC>() : TruthcoinLive();
     if (!GetIt.I.isRegistered<TruthcoinRPC>()) {
       GetIt.I.registerSingleton<TruthcoinRPC>(truthcoin);
     }

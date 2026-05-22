@@ -69,13 +69,16 @@ Future<void> initSidechainDependencies({
   }
 
   // Register WalletWriterProvider (same code as BitWindow) for chain-agnostic wallet creation
-  final walletWriter = WalletWriterProvider(
-    bitwindowAppDir: bitwindowDir,
-  );
-  if (!GetIt.I.isRegistered<WalletWriterProvider>()) {
+  final walletWriterAlreadyRegistered = GetIt.I.isRegistered<WalletWriterProvider>();
+  final walletWriter = walletWriterAlreadyRegistered
+      ? GetIt.I.get<WalletWriterProvider>()
+      : WalletWriterProvider(
+          bitwindowAppDir: bitwindowDir,
+        );
+  if (!walletWriterAlreadyRegistered) {
     GetIt.I.registerLazySingleton<WalletWriterProvider>(() => walletWriter);
+    await walletWriter.init();
   }
-  await walletWriter.init();
 
   // Initialize BitcoinConfProvider eagerly to load config before UI renders
   final bitcoinConfProvider = await BitcoinConfProvider.create(router);
@@ -121,24 +124,31 @@ Future<void> initSidechainDependencies({
     additionalBinaries(),
     chainsConfigProvider,
   );
-  final binaryProvider = await BinaryProvider.create(
-    appDir: applicationDir,
-    initialBinaries: binaries,
-  );
+  final binaryProvider = GetIt.I.isRegistered<BinaryProvider>()
+      ? GetIt.I.get<BinaryProvider>()
+      : await BinaryProvider.create(
+          appDir: applicationDir,
+          initialBinaries: binaries,
+        );
   if (!GetIt.I.isRegistered<BinaryProvider>()) {
     GetIt.I.registerSingleton<BinaryProvider>(binaryProvider);
   }
 
   // register and boot binaries
-  final mainchainRPC = BitcoindConnection();
+  final mainchainRPC = GetIt.I.isRegistered<BitcoindConnection>()
+      ? GetIt.I.get<BitcoindConnection>()
+      : BitcoindConnection();
   if (!GetIt.I.isRegistered<BitcoindConnection>()) {
     GetIt.I.registerLazySingleton<BitcoindConnection>(() => mainchainRPC);
   }
-  final enforcer = EnforcerLive();
+  final enforcer = GetIt.I.isRegistered<EnforcerRPC>() ? GetIt.I.get<EnforcerRPC>() : EnforcerLive();
   if (!GetIt.I.isRegistered<EnforcerRPC>()) {
     GetIt.I.registerSingleton<EnforcerRPC>(enforcer);
   }
-  final binary = binaries.firstWhere((b) => b.type == sidechainType);
+  final binary = binaryProvider.binaries.firstWhere(
+    (b) => b.type == sidechainType,
+    orElse: () => binaries.firstWhere((b) => b.type == sidechainType),
+  );
   final sidechainConnection = createSidechainConnection(binary);
   if (!GetIt.I.isRegistered<SidechainRPC>()) {
     GetIt.I.registerSingleton<SidechainRPC>(sidechainConnection);
@@ -172,12 +182,14 @@ Future<void> initSidechainDependencies({
   if (!GetIt.I.isRegistered<AddressProvider>()) {
     GetIt.I.registerLazySingleton<AddressProvider>(() => AddressProvider());
   }
-  final syncProvider = SyncProvider(
-    additionalConnection: SyncConnection(
-      rpc: sidechainConnection,
-      name: sidechainConnection.chain.name,
-    ),
-  );
+  final syncProvider = GetIt.I.isRegistered<SyncProvider>()
+      ? GetIt.I.get<SyncProvider>()
+      : SyncProvider(
+          additionalConnection: SyncConnection(
+            rpc: sidechainConnection,
+            name: sidechainConnection.chain.name,
+          ),
+        );
   if (!GetIt.I.isRegistered<SyncProvider>()) {
     GetIt.I.registerLazySingleton<SyncProvider>(() => syncProvider);
   }
