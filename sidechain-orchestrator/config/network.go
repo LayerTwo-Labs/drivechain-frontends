@@ -52,6 +52,9 @@ func RPCPortForNetwork(n Network) int {
 }
 
 // EsploraURLForNetwork returns the esplora API URL for a given network.
+// Regtest returns "" — no public esplora exists for it and we don't ship a
+// local one, so the enforcer falls back to wallet-sync-source=disabled
+// (see GetCliArgs in enforcer_conf.go).
 func EsploraURLForNetwork(n Network) string {
 	switch n {
 	case NetworkSignet:
@@ -60,8 +63,6 @@ func EsploraURLForNetwork(n Network) string {
 		return "https://mempool.space/api"
 	case NetworkForknet:
 		return "https://explorer.forknet.drivechain.info/api"
-	case NetworkRegtest:
-		return "http://localhost:3003"
 	default:
 		return ""
 	}

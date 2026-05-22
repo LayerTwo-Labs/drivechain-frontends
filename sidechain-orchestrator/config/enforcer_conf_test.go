@@ -325,7 +325,10 @@ func TestGetCliArgsReflectsCurrentNetwork(t *testing.T) {
 	m.bitcoinConf.Network = NetworkRegtest
 	regtestArgs := m.GetCliArgs()
 	requireArg(t, regtestArgs, fmt.Sprintf("--node-rpc-addr=127.0.0.1:%d", RPCPortForNetwork(NetworkRegtest)))
-	requireArg(t, regtestArgs, fmt.Sprintf("--wallet-esplora-url=%s", EsploraURLForNetwork(NetworkRegtest)))
+	// Regtest has no esplora / electrs in the stack; the enforcer is
+	// switched to wallet-sync-source=disabled and gets no esplora URL.
+	rejectArgPrefix(t, regtestArgs, "--wallet-esplora-url=")
+	requireArg(t, regtestArgs, "--wallet-sync-source=disabled")
 
 	m.bitcoinConf.Network = NetworkMainnet
 	mainnetArgs := m.GetCliArgs()
@@ -363,6 +366,17 @@ func rejectArg(t *testing.T, args []string, bad string) {
 	for _, got := range args {
 		if got == bad {
 			t.Errorf("arg %q must not appear in %v", bad, args)
+		}
+	}
+}
+
+// rejectArgPrefix fails if any arg starts with prefix — use when you want
+// to assert a flag is absent regardless of its value.
+func rejectArgPrefix(t *testing.T, args []string, prefix string) {
+	t.Helper()
+	for _, got := range args {
+		if strings.HasPrefix(got, prefix) {
+			t.Errorf("arg with prefix %q must not appear in %v", prefix, args)
 		}
 	}
 }

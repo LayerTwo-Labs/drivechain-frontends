@@ -298,6 +298,14 @@ func (m *EnforcerConfManager) GetCliArgs() []string {
 		}
 	}
 
+	// Regtest has no esplora to point at and no bundled electrs — without
+	// an explicit sync source the enforcer dies on startup trying to dial
+	// http://localhost:3003. Default to "disabled": BDK still tracks new
+	// blocks via the ZMQ feed, just doesn't backfill from a chain server.
+	if m.bitcoinConf.Network == NetworkRegtest && !seen["wallet-sync-source"] {
+		args = append(args, "--wallet-sync-source=disabled")
+	}
+
 	return args
 }
 
