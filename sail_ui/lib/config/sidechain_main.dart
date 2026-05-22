@@ -114,6 +114,16 @@ Future<void> initSidechainDependencies({
   final sidechainConnection = createSidechainConnection(binary);
   GetIt.I.registerSingleton<SidechainRPC>(sidechainConnection);
 
+  // Register OrchestratorRPC before SyncProvider — the constructor just holds
+  // host/port, the connection dial is lazy. SyncProvider.fetch() runs from its
+  // own constructor and needs this resolvable before initBackendManagedSidechainRuntime
+  // runs. initBackendManagedSidechainRuntime guards against double-registration.
+  if (!GetIt.I.isRegistered<OrchestratorRPC>()) {
+    GetIt.I.registerSingleton<OrchestratorRPC>(
+      OrchestratorRPC(host: 'localhost', port: 30400),
+    );
+  }
+
   // Binary lifecycle is managed by the backend (e.g. orchestratord).
   // State flows through BackendStateProvider.startWatching() → 1s
   // listBinaries poll → RPCConnection.
