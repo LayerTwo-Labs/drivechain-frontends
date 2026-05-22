@@ -1012,13 +1012,18 @@ func (x *StreamLogsResponse) GetTimestampUnix() int64 {
 }
 
 type StartWithL1Request struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Target        string                 `protobuf:"bytes,1,opt,name=target,proto3" json:"target,omitempty"`
-	TargetArgs    []string               `protobuf:"bytes,2,rep,name=target_args,json=targetArgs,proto3" json:"target_args,omitempty"`
-	TargetEnv     map[string]string      `protobuf:"bytes,3,rep,name=target_env,json=targetEnv,proto3" json:"target_env,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
-	CoreArgs      []string               `protobuf:"bytes,4,rep,name=core_args,json=coreArgs,proto3" json:"core_args,omitempty"`
-	EnforcerArgs  []string               `protobuf:"bytes,5,rep,name=enforcer_args,json=enforcerArgs,proto3" json:"enforcer_args,omitempty"`
-	Immediate     bool                   `protobuf:"varint,6,opt,name=immediate,proto3" json:"immediate,omitempty"`
+	state        protoimpl.MessageState `protogen:"open.v1"`
+	Target       string                 `protobuf:"bytes,1,opt,name=target,proto3" json:"target,omitempty"`
+	TargetArgs   []string               `protobuf:"bytes,2,rep,name=target_args,json=targetArgs,proto3" json:"target_args,omitempty"`
+	TargetEnv    map[string]string      `protobuf:"bytes,3,rep,name=target_env,json=targetEnv,proto3" json:"target_env,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	CoreArgs     []string               `protobuf:"bytes,4,rep,name=core_args,json=coreArgs,proto3" json:"core_args,omitempty"`
+	EnforcerArgs []string               `protobuf:"bytes,5,rep,name=enforcer_args,json=enforcerArgs,proto3" json:"enforcer_args,omitempty"`
+	Immediate    bool                   `protobuf:"varint,6,opt,name=immediate,proto3" json:"immediate,omitempty"`
+	// Bypass UseTestSidechains for this call: always launch the prod-download
+	// binary even if the user toggled "Use test sidechains" on. Sidechain
+	// Flutter apps set this when self-booting their backend so the toggle
+	// doesn't re-spawn another Flutter bundle inside them.
+	ForceBackend  bool `protobuf:"varint,7,opt,name=force_backend,json=forceBackend,proto3" json:"force_backend,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1091,6 +1096,13 @@ func (x *StartWithL1Request) GetEnforcerArgs() []string {
 func (x *StartWithL1Request) GetImmediate() bool {
 	if x != nil {
 		return x.Immediate
+	}
+	return false
+}
+
+func (x *StartWithL1Request) GetForceBackend() bool {
+	if x != nil {
+		return x.ForceBackend
 	}
 	return false
 }
@@ -2874,7 +2886,7 @@ const file_orchestrator_v1_orchestrator_proto_rawDesc = "" +
 	"\x12StreamLogsResponse\x12\x16\n" +
 	"\x06stream\x18\x01 \x01(\tR\x06stream\x12\x12\n" +
 	"\x04line\x18\x02 \x01(\tR\x04line\x12%\n" +
-	"\x0etimestamp_unix\x18\x03 \x01(\x03R\rtimestampUnix\"\xbe\x02\n" +
+	"\x0etimestamp_unix\x18\x03 \x01(\x03R\rtimestampUnix\"\xe3\x02\n" +
 	"\x12StartWithL1Request\x12\x16\n" +
 	"\x06target\x18\x01 \x01(\tR\x06target\x12\x1f\n" +
 	"\vtarget_args\x18\x02 \x03(\tR\n" +
@@ -2883,7 +2895,8 @@ const file_orchestrator_v1_orchestrator_proto_rawDesc = "" +
 	"target_env\x18\x03 \x03(\v22.orchestrator.v1.StartWithL1Request.TargetEnvEntryR\ttargetEnv\x12\x1b\n" +
 	"\tcore_args\x18\x04 \x03(\tR\bcoreArgs\x12#\n" +
 	"\renforcer_args\x18\x05 \x03(\tR\fenforcerArgs\x12\x1c\n" +
-	"\timmediate\x18\x06 \x01(\bR\timmediate\x1a<\n" +
+	"\timmediate\x18\x06 \x01(\bR\timmediate\x12#\n" +
+	"\rforce_backend\x18\a \x01(\bR\fforceBackend\x1a<\n" +
 	"\x0eTargetEnvEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\x15\n" +

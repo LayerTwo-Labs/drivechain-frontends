@@ -190,6 +190,7 @@ class OrchestratorRPC {
     List<String>? coreArgs,
     List<String>? enforcerArgs,
     bool immediate = false,
+    bool forceBackend = false,
   }) {
     return _unaryClient.startWithL1(
       StartWithL1Request(
@@ -199,6 +200,7 @@ class OrchestratorRPC {
         coreArgs: coreArgs ?? [],
         enforcerArgs: enforcerArgs ?? [],
         immediate: immediate,
+        forceBackend: forceBackend,
       ),
     );
   }

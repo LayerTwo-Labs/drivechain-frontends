@@ -189,6 +189,11 @@ message StartWithL1Request {
   repeated string core_args = 4;
   repeated string enforcer_args = 5;
   bool immediate = 6;
+  // Bypass UseTestSidechains for this call: always launch the prod-download
+  // binary even if the user toggled "Use test sidechains" on. Sidechain
+  // Flutter apps set this when self-booting their backend so the toggle
+  // doesn't re-spawn another Flutter bundle inside them.
+  bool force_backend = 7;
 }
 
 message StartWithL1Response {}

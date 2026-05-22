@@ -300,6 +300,7 @@ const StartWithL1Request$json = {
     {'1': 'core_args', '3': 4, '4': 3, '5': 9, '10': 'coreArgs'},
     {'1': 'enforcer_args', '3': 5, '4': 3, '5': 9, '10': 'enforcerArgs'},
     {'1': 'immediate', '3': 6, '4': 1, '5': 8, '10': 'immediate'},
+    {'1': 'force_backend', '3': 7, '4': 1, '5': 8, '10': 'forceBackend'},
   ],
   '3': [StartWithL1Request_TargetEnvEntry$json],
 };
@@ -320,8 +321,9 @@ final $typed_data.Uint8List startWithL1RequestDescriptor = $convert.base64Decode
     'FyZ3MYAiADKAlSCnRhcmdldEFyZ3MSUQoKdGFyZ2V0X2VudhgDIAMoCzIyLm9yY2hlc3RyYXRv'
     'ci52MS5TdGFydFdpdGhMMVJlcXVlc3QuVGFyZ2V0RW52RW50cnlSCXRhcmdldEVudhIbCgljb3'
     'JlX2FyZ3MYBCADKAlSCGNvcmVBcmdzEiMKDWVuZm9yY2VyX2FyZ3MYBSADKAlSDGVuZm9yY2Vy'
-    'QXJncxIcCglpbW1lZGlhdGUYBiABKAhSCWltbWVkaWF0ZRo8Cg5UYXJnZXRFbnZFbnRyeRIQCg'
-    'NrZXkYASABKAlSA2tleRIUCgV2YWx1ZRgCIAEoCVIFdmFsdWU6AjgB');
+    'QXJncxIcCglpbW1lZGlhdGUYBiABKAhSCWltbWVkaWF0ZRIjCg1mb3JjZV9iYWNrZW5kGAcgAS'
+    'gIUgxmb3JjZUJhY2tlbmQaPAoOVGFyZ2V0RW52RW50cnkSEAoDa2V5GAEgASgJUgNrZXkSFAoF'
+    'dmFsdWUYAiABKAlSBXZhbHVlOgI4AQ==');
 
 @$core.Deprecated('Use startWithL1ResponseDescriptor instead')
 const StartWithL1Response$json = {

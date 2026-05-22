@@ -2221,6 +2221,13 @@ func (s *Server) SweepCheque(ctx context.Context, c *connect.Request[pb.SweepChe
 
 	addressStr := address.EncodeAddress()
 
+	// Ensure the watch wallet exists before querying. bitcoind may have restarted
+	// since the cheque engine first created it, in which case it sits on disk
+	// unloaded and ListUnspent returns -18.
+	if err := s.ensureWatchWallet(ctx); err != nil {
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("ensure watch wallet: %w", err))
+	}
+
 	// Get bitcoind client
 	bitcoind, err := s.bitcoind.Get(ctx)
 	if err != nil {

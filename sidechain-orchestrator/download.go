@@ -97,15 +97,33 @@ func NewDownloadManager(dataDir, configFilePath string, log zerolog.Logger) *Dow
 	}
 }
 
+// DownloadOptions tweaks Download behaviour per-call. Defaults are the
+// equivalent of the original Download(ctx, config, network, force) call.
+type DownloadOptions struct {
+	// ForceBackend skips the SidechainVariant resolver so the prod-download
+	// URL/path is used even when UseTestSidechains is on. Set by sidechain
+	// Flutter frontends self-booting their backend.
+	ForceBackend bool
+}
+
 // Download downloads a binary to the bin directory with progress reporting.
 // It determines the download strategy based on config (GitHub vs direct).
 func (d *DownloadManager) Download(ctx context.Context, config BinaryConfig, network string, force bool) (<-chan DownloadProgress, error) {
+	return d.DownloadWithOptions(ctx, config, network, force, DownloadOptions{})
+}
+
+// DownloadWithOptions is Download with per-call overrides (see DownloadOptions).
+func (d *DownloadManager) DownloadWithOptions(ctx context.Context, config BinaryConfig, network string, force bool, opts DownloadOptions) (<-chan DownloadProgress, error) {
 	// Resolve variants once: callers don't have to know about them, but every
 	// path below (target binary path, download URL, extract dir) must agree
 	// on the choice. Core variants and sidechain test-builds are mutually
 	// exclusive — Core is always layer-1, test sidechains are layer-2.
 	variant, hasVariant := d.activeVariant(config)
 	scVariant, hasSCVariant := d.activeSidechainVariant(config)
+	if opts.ForceBackend {
+		hasSCVariant = false
+		scVariant = sidechainVariantSpec{}
+	}
 
 	binaryName := config.BinaryName
 	if hasSCVariant {
