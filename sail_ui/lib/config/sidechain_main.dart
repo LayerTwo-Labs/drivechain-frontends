@@ -22,13 +22,17 @@ Future<void> initSidechainDependencies({
   required String currentVersion,
   List<Binary> Function() additionalBinaries = _noAdditionalBinaries,
 }) async {
-  GetIt.I.registerLazySingleton<NotificationProvider>(
-    () => NotificationProvider(),
-  );
+  if (!GetIt.I.isRegistered<NotificationProvider>()) {
+    GetIt.I.registerLazySingleton<NotificationProvider>(
+      () => NotificationProvider(),
+    );
+  }
 
   final store = await KeyValueStore.create(dir: applicationDir);
   final clientSettings = ClientSettings(store: store, log: log);
-  GetIt.I.registerLazySingleton<ClientSettings>(() => clientSettings);
+  if (!GetIt.I.isRegistered<ClientSettings>()) {
+    GetIt.I.registerLazySingleton<ClientSettings>(() => clientSettings);
+  }
 
   final bitwindowDir = Directory(
     path.join(applicationDir.parent.path, 'bitwindow'),
@@ -39,39 +43,53 @@ Future<void> initSidechainDependencies({
     store: bitwindowStore,
     log: log,
   );
-  GetIt.I.registerLazySingleton<BitwindowClientSettings>(
-    () => bitwindowClientSettings,
-  );
+  if (!GetIt.I.isRegistered<BitwindowClientSettings>()) {
+    GetIt.I.registerLazySingleton<BitwindowClientSettings>(
+      () => bitwindowClientSettings,
+    );
+  }
 
   final settingsProvider = await SettingsProvider.create();
-  GetIt.I.registerLazySingleton<SettingsProvider>(() => settingsProvider);
-  GetIt.I.registerLazySingleton<FormatterProvider>(
-    () => FormatterProvider(settingsProvider),
-  );
+  if (!GetIt.I.isRegistered<SettingsProvider>()) {
+    GetIt.I.registerLazySingleton<SettingsProvider>(() => settingsProvider);
+  }
+  if (!GetIt.I.isRegistered<FormatterProvider>()) {
+    GetIt.I.registerLazySingleton<FormatterProvider>(
+      () => FormatterProvider(settingsProvider),
+    );
+  }
 
   // Register WalletReaderProvider pointing to bitwindow directory.
   // init() is deferred to bootBackendManagedSidechain — the seed call
   // requires OrchestratorRPC, which standalone sidechain launches register
   // only after orchestratord is up.
   final walletReader = WalletReaderProvider(bitwindowDir);
-  GetIt.I.registerLazySingleton<WalletReaderProvider>(() => walletReader);
+  if (!GetIt.I.isRegistered<WalletReaderProvider>()) {
+    GetIt.I.registerLazySingleton<WalletReaderProvider>(() => walletReader);
+  }
 
   // Register WalletWriterProvider (same code as BitWindow) for chain-agnostic wallet creation
   final walletWriter = WalletWriterProvider(
     bitwindowAppDir: bitwindowDir,
   );
-  GetIt.I.registerLazySingleton<WalletWriterProvider>(() => walletWriter);
+  if (!GetIt.I.isRegistered<WalletWriterProvider>()) {
+    GetIt.I.registerLazySingleton<WalletWriterProvider>(() => walletWriter);
+  }
   await walletWriter.init();
 
   // Initialize BitcoinConfProvider eagerly to load config before UI renders
   final bitcoinConfProvider = await BitcoinConfProvider.create(router);
-  GetIt.I.registerLazySingleton<BitcoinConfProvider>(() => bitcoinConfProvider);
+  if (!GetIt.I.isRegistered<BitcoinConfProvider>()) {
+    GetIt.I.registerLazySingleton<BitcoinConfProvider>(() => bitcoinConfProvider);
+  }
 
   // Initialize EnforcerConfProvider (must be after BitcoinConfProvider)
   final enforcerConfProvider = await EnforcerConfProvider.create();
-  GetIt.I.registerLazySingleton<EnforcerConfProvider>(
-    () => enforcerConfProvider,
-  );
+  if (!GetIt.I.isRegistered<EnforcerConfProvider>()) {
+    GetIt.I.registerLazySingleton<EnforcerConfProvider>(
+      () => enforcerConfProvider,
+    );
+  }
 
   // Load paranoid mode from bitwindow settings before creating chains config
   final bitwindowSettingValue = BitwindowSettingValue();
@@ -85,13 +103,17 @@ Future<void> initSidechainDependencies({
     appDir: bitwindowDir,
     paranoidMode: paranoidMode,
   );
-  GetIt.I.registerSingleton<ChainsConfigProvider>(chainsConfigProvider);
+  if (!GetIt.I.isRegistered<ChainsConfigProvider>()) {
+    GetIt.I.registerSingleton<ChainsConfigProvider>(chainsConfigProvider);
+  }
 
   // first of all, write all binaries to the assets/bin directory
   await copyBinariesFromAssets(log, applicationDir);
 
   // Register LogProvider for process output capture
-  GetIt.I.registerSingleton<LogProvider>(LogProvider());
+  if (!GetIt.I.isRegistered<LogProvider>()) {
+    GetIt.I.registerSingleton<LogProvider>(LogProvider());
+  }
 
   // Load and register initial binary states
   final binaries = _initialBinaries(
@@ -103,16 +125,24 @@ Future<void> initSidechainDependencies({
     appDir: applicationDir,
     initialBinaries: binaries,
   );
-  GetIt.I.registerSingleton<BinaryProvider>(binaryProvider);
+  if (!GetIt.I.isRegistered<BinaryProvider>()) {
+    GetIt.I.registerSingleton<BinaryProvider>(binaryProvider);
+  }
 
   // register and boot binaries
   final mainchainRPC = BitcoindConnection();
-  GetIt.I.registerLazySingleton<BitcoindConnection>(() => mainchainRPC);
+  if (!GetIt.I.isRegistered<BitcoindConnection>()) {
+    GetIt.I.registerLazySingleton<BitcoindConnection>(() => mainchainRPC);
+  }
   final enforcer = EnforcerLive();
-  GetIt.I.registerSingleton<EnforcerRPC>(enforcer);
+  if (!GetIt.I.isRegistered<EnforcerRPC>()) {
+    GetIt.I.registerSingleton<EnforcerRPC>(enforcer);
+  }
   final binary = binaries.firstWhere((b) => b.type == sidechainType);
   final sidechainConnection = createSidechainConnection(binary);
-  GetIt.I.registerSingleton<SidechainRPC>(sidechainConnection);
+  if (!GetIt.I.isRegistered<SidechainRPC>()) {
+    GetIt.I.registerSingleton<SidechainRPC>(sidechainConnection);
+  }
 
   // Register OrchestratorRPC before SyncProvider — the constructor just holds
   // host/port, the connection dial is lazy. SyncProvider.fetch() runs from its
@@ -128,38 +158,56 @@ Future<void> initSidechainDependencies({
   // State flows through BackendStateProvider.startWatching() → 1s
   // listBinaries poll → RPCConnection.
 
-  GetIt.I.registerLazySingleton<BMMProvider>(() => BMMProvider());
-  GetIt.I.registerLazySingleton<AppRouter>(() => AppRouter());
-  GetIt.I.registerLazySingleton<BalanceProvider>(
-    () => BalanceProvider(connections: [sidechainConnection]),
-  );
-  GetIt.I.registerLazySingleton<AddressProvider>(() => AddressProvider());
+  if (!GetIt.I.isRegistered<BMMProvider>()) {
+    GetIt.I.registerLazySingleton<BMMProvider>(() => BMMProvider());
+  }
+  if (!GetIt.I.isRegistered<AppRouter>()) {
+    GetIt.I.registerLazySingleton<AppRouter>(() => AppRouter());
+  }
+  if (!GetIt.I.isRegistered<BalanceProvider>()) {
+    GetIt.I.registerLazySingleton<BalanceProvider>(
+      () => BalanceProvider(connections: [sidechainConnection]),
+    );
+  }
+  if (!GetIt.I.isRegistered<AddressProvider>()) {
+    GetIt.I.registerLazySingleton<AddressProvider>(() => AddressProvider());
+  }
   final syncProvider = SyncProvider(
     additionalConnection: SyncConnection(
       rpc: sidechainConnection,
       name: sidechainConnection.chain.name,
     ),
   );
-  GetIt.I.registerLazySingleton<SyncProvider>(() => syncProvider);
+  if (!GetIt.I.isRegistered<SyncProvider>()) {
+    GetIt.I.registerLazySingleton<SyncProvider>(() => syncProvider);
+  }
   unawaited(syncProvider.fetch());
-  GetIt.I.registerLazySingleton<DownloadProvider>(() => DownloadProvider());
-  GetIt.I.registerLazySingleton<SidechainTransactionsProvider>(
-    () => SidechainTransactionsProvider(),
-  );
-  GetIt.I.registerLazySingleton<PriceProvider>(() => PriceProvider());
+  if (!GetIt.I.isRegistered<DownloadProvider>()) {
+    GetIt.I.registerLazySingleton<DownloadProvider>(() => DownloadProvider());
+  }
+  if (!GetIt.I.isRegistered<SidechainTransactionsProvider>()) {
+    GetIt.I.registerLazySingleton<SidechainTransactionsProvider>(
+      () => SidechainTransactionsProvider(),
+    );
+  }
+  if (!GetIt.I.isRegistered<PriceProvider>()) {
+    GetIt.I.registerLazySingleton<PriceProvider>(() => PriceProvider());
+  }
 
   // Register UpdateProvider for checking updates
-  GetIt.I.registerSingleton<UpdateProvider>(
-    UpdateProvider(
-      log: log,
-      binaryType: sidechainType,
-      currentVersion: currentVersion,
-      onBeforeUpdate: () async {
-        final binaryProvider = GetIt.I.get<BinaryProvider>();
-        await binaryProvider.onShutdown();
-      },
-    ),
-  );
+  if (!GetIt.I.isRegistered<UpdateProvider>()) {
+    GetIt.I.registerSingleton<UpdateProvider>(
+      UpdateProvider(
+        log: log,
+        binaryType: sidechainType,
+        currentVersion: currentVersion,
+        onBeforeUpdate: () async {
+          final binaryProvider = GetIt.I.get<BinaryProvider>();
+          await binaryProvider.onShutdown();
+        },
+      ),
+    );
+  }
 }
 
 Future<File> getLogFile(Directory appDir) async {

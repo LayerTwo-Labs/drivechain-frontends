@@ -75,9 +75,13 @@ Future<(Directory, File, Logger)> init(String arguments) async {
   logFile ??= await getLogFile(applicationDir);
 
   final log = await logger(RuntimeArgs.fileLog, RuntimeArgs.consoleLog, logFile);
-  GetIt.I.registerLazySingleton<Logger>(() => log);
+  if (!GetIt.I.isRegistered<Logger>()) {
+    GetIt.I.registerLazySingleton<Logger>(() => log);
+  }
   final router = AppRouter();
-  GetIt.I.registerLazySingleton<AppRouter>(() => router);
+  if (!GetIt.I.isRegistered<AppRouter>()) {
+    GetIt.I.registerLazySingleton<AppRouter>(() => router);
+  }
 
   late BitAssetsLive bitassetsRPC;
 
@@ -85,7 +89,9 @@ Future<(Directory, File, Logger)> init(String arguments) async {
     sidechainType: BinaryType.BINARY_TYPE_BITASSETS,
     createSidechainConnection: (_) {
       bitassetsRPC = BitAssetsLive();
-      GetIt.I.registerSingleton<BitAssetsRPC>(bitassetsRPC);
+      if (!GetIt.I.isRegistered<BitAssetsRPC>()) {
+        GetIt.I.registerSingleton<BitAssetsRPC>(bitassetsRPC);
+      }
       return bitassetsRPC;
     },
     applicationDir: applicationDir,
@@ -106,31 +112,45 @@ Future<(Directory, File, Logger)> init(String arguments) async {
 
   // Initialize BitassetsConfProvider (must be after BitcoinConfProvider)
   final bitassetsConfProvider = await BitassetsConfProvider.create();
-  GetIt.I.registerLazySingleton<GenericSidechainConfProvider>(() => bitassetsConfProvider);
+  if (!GetIt.I.isRegistered<GenericSidechainConfProvider>()) {
+    GetIt.I.registerLazySingleton<GenericSidechainConfProvider>(() => bitassetsConfProvider);
+  }
 
-  GetIt.I.registerLazySingleton<BitAssetsProvider>(
-    () => BitAssetsProvider(),
-  );
+  if (!GetIt.I.isRegistered<BitAssetsProvider>()) {
+    GetIt.I.registerLazySingleton<BitAssetsProvider>(
+      () => BitAssetsProvider(),
+    );
+  }
 
   // Register asset analytics provider
-  GetIt.I.registerLazySingleton<AssetAnalyticsProvider>(
-    () => AssetAnalyticsProvider(),
-  );
+  if (!GetIt.I.isRegistered<AssetAnalyticsProvider>()) {
+    GetIt.I.registerLazySingleton<AssetAnalyticsProvider>(
+      () => AssetAnalyticsProvider(),
+    );
+  }
 
   // Register favorites provider
-  GetIt.I.registerLazySingleton<FavoritesProvider>(
-    () => FavoritesProvider(),
-  );
+  if (!GetIt.I.isRegistered<FavoritesProvider>()) {
+    GetIt.I.registerLazySingleton<FavoritesProvider>(
+      () => FavoritesProvider(),
+    );
+  }
 
   // Register price alert provider
-  GetIt.I.registerLazySingleton<PriceAlertProvider>(
-    () => PriceAlertProvider(),
-  );
+  if (!GetIt.I.isRegistered<PriceAlertProvider>()) {
+    GetIt.I.registerLazySingleton<PriceAlertProvider>(
+      () => PriceAlertProvider(),
+    );
+  }
 
   // Register homepage provider
   final bitassetsHomepageProvider = BitAssetsHomepageProvider();
-  GetIt.I.registerLazySingleton<BitAssetsHomepageProvider>(() => bitassetsHomepageProvider);
-  GetIt.I.registerLazySingleton<HomepageProvider>(() => bitassetsHomepageProvider);
+  if (!GetIt.I.isRegistered<BitAssetsHomepageProvider>()) {
+    GetIt.I.registerLazySingleton<BitAssetsHomepageProvider>(() => bitassetsHomepageProvider);
+  }
+  if (!GetIt.I.isRegistered<HomepageProvider>()) {
+    GetIt.I.registerLazySingleton<HomepageProvider>(() => bitassetsHomepageProvider);
+  }
 
   return (applicationDir, logFile, log);
 }
@@ -197,7 +217,9 @@ Future<void> runMainWindow(Logger log, Directory applicationDir, File logFile) a
 
   // Initialize WindowProvider for the main window
   final windowProvider = await WindowProvider.newInstance(logFile, applicationDir, isMainWindow: true);
-  GetIt.I.registerLazySingleton<WindowProvider>(() => windowProvider);
+  if (!GetIt.I.isRegistered<WindowProvider>()) {
+    GetIt.I.registerLazySingleton<WindowProvider>(() => windowProvider);
+  }
 
   _installSignalShutdownHandlers(log);
   _installAppExitHandler(log);

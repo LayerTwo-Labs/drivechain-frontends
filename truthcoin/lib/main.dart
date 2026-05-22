@@ -69,13 +69,19 @@ Future<(Directory, File, Logger)> init(String arguments) async {
   logFile ??= await getLogFile(applicationDir);
 
   final log = await logger(RuntimeArgs.fileLog, RuntimeArgs.consoleLog, logFile);
-  GetIt.I.registerLazySingleton<Logger>(() => log);
+  if (!GetIt.I.isRegistered<Logger>()) {
+    GetIt.I.registerLazySingleton<Logger>(() => log);
+  }
   final router = AppRouter();
-  GetIt.I.registerLazySingleton<AppRouter>(() => router);
+  if (!GetIt.I.isRegistered<AppRouter>()) {
+    GetIt.I.registerLazySingleton<AppRouter>(() => router);
+  }
 
   SidechainRPC createSidechainConnection(Binary binary) {
     final truthcoin = TruthcoinLive();
-    GetIt.I.registerSingleton<TruthcoinRPC>(truthcoin);
+    if (!GetIt.I.isRegistered<TruthcoinRPC>()) {
+      GetIt.I.registerSingleton<TruthcoinRPC>(truthcoin);
+    }
 
     return truthcoin;
   }
@@ -101,21 +107,31 @@ Future<(Directory, File, Logger)> init(String arguments) async {
 
   // Initialize TruthcoinConfProvider (must be after BitcoinConfProvider)
   final truthcoinConfProvider = await TruthcoinConfProvider.create();
-  GetIt.I.registerLazySingleton<GenericSidechainConfProvider>(() => truthcoinConfProvider);
+  if (!GetIt.I.isRegistered<GenericSidechainConfProvider>()) {
+    GetIt.I.registerLazySingleton<GenericSidechainConfProvider>(() => truthcoinConfProvider);
+  }
 
   // Register homepage provider
   final truthcoinHomepageProvider = TruthcoinHomepageProvider();
-  GetIt.I.registerLazySingleton<TruthcoinHomepageProvider>(() => truthcoinHomepageProvider);
+  if (!GetIt.I.isRegistered<TruthcoinHomepageProvider>()) {
+    GetIt.I.registerLazySingleton<TruthcoinHomepageProvider>(() => truthcoinHomepageProvider);
+  }
   // Register the abstract HomepageProvider as an alias to the concrete implementation
-  GetIt.I.registerLazySingleton<HomepageProvider>(() => truthcoinHomepageProvider);
+  if (!GetIt.I.isRegistered<HomepageProvider>()) {
+    GetIt.I.registerLazySingleton<HomepageProvider>(() => truthcoinHomepageProvider);
+  }
 
   // Register market provider
   final marketProvider = MarketProvider();
-  GetIt.I.registerLazySingleton<MarketProvider>(() => marketProvider);
+  if (!GetIt.I.isRegistered<MarketProvider>()) {
+    GetIt.I.registerLazySingleton<MarketProvider>(() => marketProvider);
+  }
 
   // Register voting provider
   final votingProvider = VotingProvider();
-  GetIt.I.registerLazySingleton<VotingProvider>(() => votingProvider);
+  if (!GetIt.I.isRegistered<VotingProvider>()) {
+    GetIt.I.registerLazySingleton<VotingProvider>(() => votingProvider);
+  }
 
   return (applicationDir, logFile, log);
 }
@@ -179,7 +195,9 @@ Future<void> runMainWindow(Logger log, Directory applicationDir, File logFile) a
 
   // Initialize WindowProvider for the main window
   final windowProvider = await WindowProvider.newInstance(logFile, applicationDir, isMainWindow: true);
-  GetIt.I.registerLazySingleton<WindowProvider>(() => windowProvider);
+  if (!GetIt.I.isRegistered<WindowProvider>()) {
+    GetIt.I.registerLazySingleton<WindowProvider>(() => windowProvider);
+  }
 
   await initAutoUpdater(log);
 
