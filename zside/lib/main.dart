@@ -85,9 +85,13 @@ Future<(Directory, File, Logger)> init(String arguments) async {
   logFile ??= await getLogFile(applicationDir);
 
   final log = await logger(RuntimeArgs.fileLog, RuntimeArgs.consoleLog, logFile);
-  GetIt.I.registerLazySingleton<Logger>(() => log);
+  if (!GetIt.I.isRegistered<Logger>()) {
+    GetIt.I.registerLazySingleton<Logger>(() => log);
+  }
   final router = AppRouter();
-  GetIt.I.registerLazySingleton<AppRouter>(() => router);
+  if (!GetIt.I.isRegistered<AppRouter>()) {
+    GetIt.I.registerLazySingleton<AppRouter>(() => router);
+  }
 
   late ZSideLive zsideRPC;
 
@@ -95,7 +99,9 @@ Future<(Directory, File, Logger)> init(String arguments) async {
     sidechainType: BinaryType.BINARY_TYPE_ZSIDE,
     createSidechainConnection: (_) {
       zsideRPC = ZSideLive();
-      GetIt.I.registerSingleton<ZSideRPC>(zsideRPC);
+      if (!GetIt.I.isRegistered<ZSideRPC>()) {
+        GetIt.I.registerSingleton<ZSideRPC>(zsideRPC);
+      }
       return zsideRPC;
     },
     applicationDir: applicationDir,
@@ -107,34 +113,50 @@ Future<(Directory, File, Logger)> init(String arguments) async {
 
   // Register OrchestratorRPC for communicating with zsided
   final orchestrator = OrchestratorRPC(host: 'localhost', port: 30303);
-  GetIt.I.registerSingleton<OrchestratorRPC>(orchestrator);
+  if (!GetIt.I.isRegistered<OrchestratorRPC>()) {
+    GetIt.I.registerSingleton<OrchestratorRPC>(orchestrator);
+  }
 
   // Register BackendStateProvider for streaming binary status
   final backendState = BackendStateProvider(orchestrator);
-  GetIt.I.registerSingleton<BackendStateProvider>(backendState);
+  if (!GetIt.I.isRegistered<BackendStateProvider>()) {
+    GetIt.I.registerSingleton<BackendStateProvider>(backendState);
+  }
 
   // Start zsided (Go backend), which orchestrates all binary lifecycle
   bootBinaries(log);
 
   // Initialize ZSideConfProvider (must be after BitcoinConfProvider)
   final zsideConfProvider = await ZSideConfProvider.create();
-  GetIt.I.registerLazySingleton<GenericSidechainConfProvider>(() => zsideConfProvider);
+  if (!GetIt.I.isRegistered<GenericSidechainConfProvider>()) {
+    GetIt.I.registerLazySingleton<GenericSidechainConfProvider>(() => zsideConfProvider);
+  }
 
-  GetIt.I.registerLazySingleton<ZSideProvider>(
-    () => ZSideProvider(),
-  );
+  if (!GetIt.I.isRegistered<ZSideProvider>()) {
+    GetIt.I.registerLazySingleton<ZSideProvider>(
+      () => ZSideProvider(),
+    );
+  }
 
-  GetIt.I.registerLazySingleton<CastProvider>(
-    () => CastProvider(),
-  );
+  if (!GetIt.I.isRegistered<CastProvider>()) {
+    GetIt.I.registerLazySingleton<CastProvider>(
+      () => CastProvider(),
+    );
+  }
 
-  GetIt.I.registerLazySingleton<TransactionsProvider>(
-    () => TransactionsProvider(),
-  );
+  if (!GetIt.I.isRegistered<TransactionsProvider>()) {
+    GetIt.I.registerLazySingleton<TransactionsProvider>(
+      () => TransactionsProvider(),
+    );
+  }
 
   final zsideHomepageProvider = ZSideHomepageProvider();
-  GetIt.I.registerLazySingleton<ZSideHomepageProvider>(() => zsideHomepageProvider);
-  GetIt.I.registerLazySingleton<HomepageProvider>(() => zsideHomepageProvider);
+  if (!GetIt.I.isRegistered<ZSideHomepageProvider>()) {
+    GetIt.I.registerLazySingleton<ZSideHomepageProvider>(() => zsideHomepageProvider);
+  }
+  if (!GetIt.I.isRegistered<HomepageProvider>()) {
+    GetIt.I.registerLazySingleton<HomepageProvider>(() => zsideHomepageProvider);
+  }
 
   return (applicationDir, logFile, log);
 }
@@ -198,7 +220,9 @@ Future<void> runMainWindow(Logger log, Directory applicationDir, File logFile) a
 
   // Initialize WindowProvider for the main window
   final windowProvider = await WindowProvider.newInstance(logFile, applicationDir, isMainWindow: true);
-  GetIt.I.registerLazySingleton<WindowProvider>(() => windowProvider);
+  if (!GetIt.I.isRegistered<WindowProvider>()) {
+    GetIt.I.registerLazySingleton<WindowProvider>(() => windowProvider);
+  }
 
   await initAutoUpdater(log);
 

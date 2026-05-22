@@ -67,13 +67,19 @@ Future<(Directory, File, Logger)> init(String arguments) async {
   logFile ??= await getLogFile(applicationDir);
 
   final log = await logger(RuntimeArgs.fileLog, RuntimeArgs.consoleLog, logFile);
-  GetIt.I.registerLazySingleton<Logger>(() => log);
+  if (!GetIt.I.isRegistered<Logger>()) {
+    GetIt.I.registerLazySingleton<Logger>(() => log);
+  }
   final router = AppRouter();
-  GetIt.I.registerLazySingleton<AppRouter>(() => router);
+  if (!GetIt.I.isRegistered<AppRouter>()) {
+    GetIt.I.registerLazySingleton<AppRouter>(() => router);
+  }
 
   SidechainRPC createSidechainConnection(Binary binary) {
     final photon = PhotonLive();
-    GetIt.I.registerSingleton<PhotonRPC>(photon);
+    if (!GetIt.I.isRegistered<PhotonRPC>()) {
+      GetIt.I.registerSingleton<PhotonRPC>(photon);
+    }
 
     return photon;
   }
@@ -99,13 +105,19 @@ Future<(Directory, File, Logger)> init(String arguments) async {
 
   // Initialize PhotonConfProvider (must be after BitcoinConfProvider)
   final photonConfProvider = await PhotonConfProvider.create();
-  GetIt.I.registerLazySingleton<GenericSidechainConfProvider>(() => photonConfProvider);
+  if (!GetIt.I.isRegistered<GenericSidechainConfProvider>()) {
+    GetIt.I.registerLazySingleton<GenericSidechainConfProvider>(() => photonConfProvider);
+  }
 
   // Register homepage provider
   final photonHomepageProvider = PhotonHomepageProvider();
-  GetIt.I.registerLazySingleton<PhotonHomepageProvider>(() => photonHomepageProvider);
+  if (!GetIt.I.isRegistered<PhotonHomepageProvider>()) {
+    GetIt.I.registerLazySingleton<PhotonHomepageProvider>(() => photonHomepageProvider);
+  }
   // Register the abstract HomepageProvider as an alias to the concrete implementation
-  GetIt.I.registerLazySingleton<HomepageProvider>(() => photonHomepageProvider);
+  if (!GetIt.I.isRegistered<HomepageProvider>()) {
+    GetIt.I.registerLazySingleton<HomepageProvider>(() => photonHomepageProvider);
+  }
 
   return (applicationDir, logFile, log);
 }
@@ -169,7 +181,9 @@ Future<void> runMainWindow(Logger log, Directory applicationDir, File logFile) a
 
   // Initialize WindowProvider for the main window
   final windowProvider = await WindowProvider.newInstance(logFile, applicationDir, isMainWindow: true);
-  GetIt.I.registerLazySingleton<WindowProvider>(() => windowProvider);
+  if (!GetIt.I.isRegistered<WindowProvider>()) {
+    GetIt.I.registerLazySingleton<WindowProvider>(() => windowProvider);
+  }
 
   await initAutoUpdater(log);
 

@@ -69,13 +69,19 @@ Future<(Directory, File, Logger)> init(String arguments) async {
   logFile ??= await getLogFile(applicationDir);
 
   final log = await logger(RuntimeArgs.fileLog, RuntimeArgs.consoleLog, logFile);
-  GetIt.I.registerLazySingleton<Logger>(() => log);
+  if (!GetIt.I.isRegistered<Logger>()) {
+    GetIt.I.registerLazySingleton<Logger>(() => log);
+  }
   final router = AppRouter();
-  GetIt.I.registerLazySingleton<AppRouter>(() => router);
+  if (!GetIt.I.isRegistered<AppRouter>()) {
+    GetIt.I.registerLazySingleton<AppRouter>(() => router);
+  }
 
   SidechainRPC createSidechainConnection(Binary binary) {
     final coinshift = CoinShiftLive();
-    GetIt.I.registerSingleton<CoinShiftRPC>(coinshift);
+    if (!GetIt.I.isRegistered<CoinShiftRPC>()) {
+      GetIt.I.registerSingleton<CoinShiftRPC>(coinshift);
+    }
 
     return coinshift;
   }
@@ -101,21 +107,31 @@ Future<(Directory, File, Logger)> init(String arguments) async {
 
   // Initialize CoinShiftConfProvider (must be after BitcoinConfProvider)
   final coinshiftConfProvider = await CoinShiftConfProvider.create();
-  GetIt.I.registerLazySingleton<GenericSidechainConfProvider>(() => coinshiftConfProvider);
+  if (!GetIt.I.isRegistered<GenericSidechainConfProvider>()) {
+    GetIt.I.registerLazySingleton<GenericSidechainConfProvider>(() => coinshiftConfProvider);
+  }
 
   // Register homepage provider
   final coinshiftHomepageProvider = CoinShiftHomepageProvider();
-  GetIt.I.registerLazySingleton<CoinShiftHomepageProvider>(() => coinshiftHomepageProvider);
+  if (!GetIt.I.isRegistered<CoinShiftHomepageProvider>()) {
+    GetIt.I.registerLazySingleton<CoinShiftHomepageProvider>(() => coinshiftHomepageProvider);
+  }
   // Register the abstract HomepageProvider as an alias to the concrete implementation
-  GetIt.I.registerLazySingleton<HomepageProvider>(() => coinshiftHomepageProvider);
+  if (!GetIt.I.isRegistered<HomepageProvider>()) {
+    GetIt.I.registerLazySingleton<HomepageProvider>(() => coinshiftHomepageProvider);
+  }
 
   // Register swap provider
   final swapProvider = SwapProvider();
-  GetIt.I.registerLazySingleton<SwapProvider>(() => swapProvider);
+  if (!GetIt.I.isRegistered<SwapProvider>()) {
+    GetIt.I.registerLazySingleton<SwapProvider>(() => swapProvider);
+  }
 
   // Register analytics provider (depends on SwapProvider)
   final analyticsProvider = AnalyticsProvider();
-  GetIt.I.registerLazySingleton<AnalyticsProvider>(() => analyticsProvider);
+  if (!GetIt.I.isRegistered<AnalyticsProvider>()) {
+    GetIt.I.registerLazySingleton<AnalyticsProvider>(() => analyticsProvider);
+  }
 
   return (applicationDir, logFile, log);
 }
@@ -179,7 +195,9 @@ Future<void> runMainWindow(Logger log, Directory applicationDir, File logFile) a
 
   // Initialize WindowProvider for the main window
   final windowProvider = await WindowProvider.newInstance(logFile, applicationDir, isMainWindow: true);
-  GetIt.I.registerLazySingleton<WindowProvider>(() => windowProvider);
+  if (!GetIt.I.isRegistered<WindowProvider>()) {
+    GetIt.I.registerLazySingleton<WindowProvider>(() => windowProvider);
+  }
 
   await initAutoUpdater(log);
 

@@ -71,9 +71,13 @@ Future<(Directory, File, Logger)> init(String arguments) async {
   logFile ??= await getLogFile(applicationDir);
 
   final log = await logger(RuntimeArgs.fileLog, RuntimeArgs.consoleLog, logFile);
-  GetIt.I.registerLazySingleton<Logger>(() => log);
+  if (!GetIt.I.isRegistered<Logger>()) {
+    GetIt.I.registerLazySingleton<Logger>(() => log);
+  }
   final router = AppRouter();
-  GetIt.I.registerLazySingleton<AppRouter>(() => router);
+  if (!GetIt.I.isRegistered<AppRouter>()) {
+    GetIt.I.registerLazySingleton<AppRouter>(() => router);
+  }
 
   late ThunderLive thunderRPC;
 
@@ -81,7 +85,9 @@ Future<(Directory, File, Logger)> init(String arguments) async {
     sidechainType: BinaryType.BINARY_TYPE_THUNDER,
     createSidechainConnection: (_) {
       thunderRPC = ThunderLive();
-      GetIt.I.registerSingleton<ThunderRPC>(thunderRPC);
+      if (!GetIt.I.isRegistered<ThunderRPC>()) {
+        GetIt.I.registerSingleton<ThunderRPC>(thunderRPC);
+      }
       return thunderRPC;
     },
     applicationDir: applicationDir,
@@ -102,13 +108,19 @@ Future<(Directory, File, Logger)> init(String arguments) async {
 
   // Initialize ThunderConfProvider (must be after BitcoinConfProvider)
   final thunderConfProvider = await ThunderConfProvider.create();
-  GetIt.I.registerLazySingleton<GenericSidechainConfProvider>(() => thunderConfProvider);
+  if (!GetIt.I.isRegistered<GenericSidechainConfProvider>()) {
+    GetIt.I.registerLazySingleton<GenericSidechainConfProvider>(() => thunderConfProvider);
+  }
 
   // Register homepage provider
   final thunderHomepageProvider = ThunderHomepageProvider();
-  GetIt.I.registerLazySingleton<ThunderHomepageProvider>(() => thunderHomepageProvider);
+  if (!GetIt.I.isRegistered<ThunderHomepageProvider>()) {
+    GetIt.I.registerLazySingleton<ThunderHomepageProvider>(() => thunderHomepageProvider);
+  }
   // Register the abstract HomepageProvider as an alias to the concrete implementation
-  GetIt.I.registerLazySingleton<HomepageProvider>(() => thunderHomepageProvider);
+  if (!GetIt.I.isRegistered<HomepageProvider>()) {
+    GetIt.I.registerLazySingleton<HomepageProvider>(() => thunderHomepageProvider);
+  }
 
   return (applicationDir, logFile, log);
 }
@@ -182,7 +194,9 @@ Future<void> runMainWindow(Logger log, Directory applicationDir, File logFile) a
 
   // Initialize WindowProvider for the main window
   final windowProvider = await WindowProvider.newInstance(logFile, applicationDir, isMainWindow: true);
-  GetIt.I.registerLazySingleton<WindowProvider>(() => windowProvider);
+  if (!GetIt.I.isRegistered<WindowProvider>()) {
+    GetIt.I.registerLazySingleton<WindowProvider>(() => windowProvider);
+  }
 
   _installSignalShutdownHandlers(log);
   _installAppExitHandler(log);

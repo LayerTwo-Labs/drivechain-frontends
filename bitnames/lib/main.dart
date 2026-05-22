@@ -113,9 +113,13 @@ Future<(Directory, File, Logger)> init(String arguments) async {
   logFile ??= await getLogFile(applicationDir);
 
   final log = await logger(RuntimeArgs.fileLog, RuntimeArgs.consoleLog, logFile);
-  GetIt.I.registerLazySingleton<Logger>(() => log);
+  if (!GetIt.I.isRegistered<Logger>()) {
+    GetIt.I.registerLazySingleton<Logger>(() => log);
+  }
   final router = AppRouter();
-  GetIt.I.registerLazySingleton<AppRouter>(() => router);
+  if (!GetIt.I.isRegistered<AppRouter>()) {
+    GetIt.I.registerLazySingleton<AppRouter>(() => router);
+  }
 
   late BitnamesLive bitnamesRPC;
 
@@ -123,7 +127,9 @@ Future<(Directory, File, Logger)> init(String arguments) async {
     sidechainType: BinaryType.BINARY_TYPE_BITNAMES,
     createSidechainConnection: (_) {
       bitnamesRPC = BitnamesLive();
-      GetIt.I.registerSingleton<BitnamesRPC>(bitnamesRPC);
+      if (!GetIt.I.isRegistered<BitnamesRPC>()) {
+        GetIt.I.registerSingleton<BitnamesRPC>(bitnamesRPC);
+      }
       return bitnamesRPC;
     },
     applicationDir: applicationDir,
@@ -144,16 +150,24 @@ Future<(Directory, File, Logger)> init(String arguments) async {
 
   // Initialize BitnamesConfProvider (must be after BitcoinConfProvider)
   final bitnamesConfProvider = await BitnamesConfProvider.create();
-  GetIt.I.registerLazySingleton<GenericSidechainConfProvider>(() => bitnamesConfProvider);
+  if (!GetIt.I.isRegistered<GenericSidechainConfProvider>()) {
+    GetIt.I.registerLazySingleton<GenericSidechainConfProvider>(() => bitnamesConfProvider);
+  }
 
-  GetIt.I.registerLazySingleton<BitnamesProvider>(
-    () => BitnamesProvider(),
-  );
+  if (!GetIt.I.isRegistered<BitnamesProvider>()) {
+    GetIt.I.registerLazySingleton<BitnamesProvider>(
+      () => BitnamesProvider(),
+    );
+  }
 
   // Register homepage provider
   final bitnamesHomepageProvider = BitnamesHomepageProvider();
-  GetIt.I.registerLazySingleton<BitnamesHomepageProvider>(() => bitnamesHomepageProvider);
-  GetIt.I.registerLazySingleton<HomepageProvider>(() => bitnamesHomepageProvider);
+  if (!GetIt.I.isRegistered<BitnamesHomepageProvider>()) {
+    GetIt.I.registerLazySingleton<BitnamesHomepageProvider>(() => bitnamesHomepageProvider);
+  }
+  if (!GetIt.I.isRegistered<HomepageProvider>()) {
+    GetIt.I.registerLazySingleton<HomepageProvider>(() => bitnamesHomepageProvider);
+  }
 
   return (applicationDir, logFile, log);
 }
@@ -186,7 +200,9 @@ Future<void> runMainWindow(Logger log, Directory applicationDir, File logFile) a
 
   // Initialize WindowProvider for the main window
   final windowProvider = await WindowProvider.newInstance(logFile, applicationDir, isMainWindow: true);
-  GetIt.I.registerLazySingleton<WindowProvider>(() => windowProvider);
+  if (!GetIt.I.isRegistered<WindowProvider>()) {
+    GetIt.I.registerLazySingleton<WindowProvider>(() => windowProvider);
+  }
 
   _installSignalShutdownHandlers(log);
   _installAppExitHandler(log);
