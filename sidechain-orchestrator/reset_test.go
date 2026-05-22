@@ -83,6 +83,52 @@ func TestCollectPaths_SidechainsExcludedByDefault(t *testing.T) {
 		"including sidechains should not reduce paths")
 }
 
+// Regression for #1695: "Fully Obliterate Everything skipping some sidechains".
+// Previously, collectPaths iterated o.Configs() which only contains runtime-
+// started binaries — so a sidechain the user never launched in this session
+// (commonly Bitnames, BitAssets) would silently miss the wipe. The fix
+// enumerates config.AllDirConfigs() instead, so every registered sidechain
+// is inspected regardless of session state.
+func TestResetTargetDirConfigs_IncludesAllSidechainsEvenWithEmptyRuntime(t *testing.T) {
+	o := newResetTestOrchestrator(t)
+
+	// Drop runtime configs entirely — the wipe must still target every
+	// sidechain's data dir from the embedded registry.
+	o.mu.Lock()
+	o.configs = nil
+	o.mu.Unlock()
+
+	targets := o.resetTargetDirConfigs(ResetCategory{AlsoResetSidechains: true})
+
+	seenBinary := make(map[string]bool)
+	for _, t := range targets {
+		seenBinary[t.BinaryName] = true
+	}
+
+	// Every sidechain registered in chains_config.json must be enumerated.
+	wantBinaries := []string{
+		"thunder", "bitnames", "bitassets", "thunder-orchard",
+		"truthcoin", "photon", "coinshift",
+	}
+	for _, b := range wantBinaries {
+		assert.Truef(t, seenBinary[b], "sidechain binary %q was skipped by resetTargetDirConfigs", b)
+	}
+}
+
+// AlsoResetSidechains=false must exclude every chainLayer==2 entry, leaving
+// only L1 binaries (bitcoind, bitwindowd, enforcer, orchestratord, ...).
+func TestResetTargetDirConfigs_OmitsSidechainsWhenFlagOff(t *testing.T) {
+	o := newResetTestOrchestrator(t)
+
+	targets := o.resetTargetDirConfigs(ResetCategory{AlsoResetSidechains: false})
+
+	for _, dc := range targets {
+		assert.NotEqualf(t, 2, dc.ChainLayer,
+			"sidechain %q (%s) leaked into reset targets when AlsoResetSidechains=false",
+			dc.Name, dc.BinaryName)
+	}
+}
+
 func TestCollectPaths_DeduplicatesWithinCategory(t *testing.T) {
 	o := newResetTestOrchestrator(t)
 	paths := o.collectPaths(ResetCategory{
