@@ -249,7 +249,31 @@ class WalletReaderProvider extends ChangeNotifier {
     try {
       await _client.unlockWallet(password);
       unlockedPassword = password;
-      // Stream will push updated state automatically.
+      // isWalletUnlocked is wallets.isNotEmpty; the watch stream lags on cold
+      // boot, so without an eager seed PasswordGuard reads stale-empty state
+      // when UnlockWalletRoute pops and rejects the resume navigation —
+      // user lands on a blank route. Mirror the init() seed pattern.
+      if (wallets.isEmpty && GetIt.I.isRegistered<OrchestratorRPC>()) {
+        try {
+          final orchestrator = GetIt.I.get<OrchestratorRPC>();
+          final results = await Future.wait([
+            orchestrator.wallet.listWallets(),
+            orchestrator.wallet.getWalletStatus(),
+          ]).timeout(const Duration(seconds: 3));
+          final list = results[0] as dynamic;
+          final status = results[1] as dynamic;
+          if (list.wallets.isNotEmpty) {
+            _applyState(
+              protoWallets: list.wallets,
+              newActiveId: list.activeWalletId.isEmpty ? null : list.activeWalletId as String,
+              newHasWalletOnDisk: status.hasWallet as bool,
+            );
+          }
+        } catch (e) {
+          _logger.w('WalletReaderProvider: unlock seed failed: $e');
+        }
+      }
+      notifyListeners();
       return true;
     } catch (e) {
       _logger.e('WalletReaderProvider: unlock failed: $e');
