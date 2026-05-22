@@ -326,6 +326,118 @@ func TestIntegration_TestSidechains_FreshSwitchHitsAltURL(t *testing.T) {
 	assert.Equal(t, "prod-bin", string(prodGot))
 }
 
+// TestDownload_ForceBackend_BypassesVariant proves that DownloadOptions.ForceBackend
+// overrides an active SidechainVariant resolver: the prod URL is hit and the
+// binary lands in the BinDir root, exactly as if the resolver were absent.
+// This is the path used by sidechain Flutter frontends self-booting their
+// backend — they don't want UseTestSidechains to swap in a Flutter bundle.
+func TestDownload_ForceBackend_BypassesVariant(t *testing.T) {
+	binName := "thunder"
+	if runtime.GOOS == "windows" {
+		binName += ".exe"
+	}
+	prodArchive := makeZipBytes(t, map[string][]byte{binName: []byte("prod-bin")})
+	testArchive := makeZipBytes(t, map[string][]byte{binName: []byte("test-bin")})
+
+	var requested string
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		requested = r.URL.Path
+		switch r.URL.Path {
+		case "/thunder-test.zip":
+			_, _ = w.Write(testArchive)
+		case "/thunder-prod.zip":
+			_, _ = w.Write(prodArchive)
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer srv.Close()
+
+	dm, dir := newTestDownloadManager(t)
+	dm.httpClient = srv.Client()
+
+	cfg := makeSidechainConfig(srv.URL + "/")
+	// Resolver active (mimics UseTestSidechains=true).
+	dm.SidechainVariant = func(c BinaryConfig) (sidechainVariantSpec, bool) {
+		return sidechainVariantSpec{
+			BinaryName: c.AltBinaryName,
+			BaseURL:    c.AltBaseURL("default"),
+			FileName:   c.AltFiles[currentOS()],
+		}, true
+	}
+
+	ch, err := dm.DownloadWithOptions(context.Background(), cfg, "default", true, DownloadOptions{ForceBackend: true})
+	require.NoError(t, err)
+	last := drainProgress(t, ch)
+	assert.True(t, last.Done)
+	assert.Equal(t, "/thunder-prod.zip", requested, "ForceBackend must hit prod URL even with resolver active")
+
+	// Prod binary lands in BinDir root, NOT under bin/test/.
+	prod, err := os.ReadFile(filepath.Join(BinDir(dir), binName))
+	require.NoError(t, err)
+	assert.Equal(t, "prod-bin", string(prod))
+
+	_, err = os.Stat(TestSidechainBinaryPath(dir, "thunder"))
+	assert.True(t, os.IsNotExist(err), "ForceBackend must not extract into the test subfolder")
+}
+
+// TestProcess_ForceBackend_BypassesVariant proves the same bypass on the
+// process side: resolvePaths must return the BinDir-root path (and no
+// "-test" PID suffix) when forceBackend=true, even with the resolver active.
+func TestProcess_ForceBackend_BypassesVariant(t *testing.T) {
+	dataDir := t.TempDir()
+	pm := NewProcessManager(dataDir, nil, testLogger(t))
+	cfg := makeSidechainConfig("http://example.invalid/")
+
+	pm.SidechainVariant = func(c BinaryConfig) (sidechainVariantSpec, bool) {
+		return sidechainVariantSpec{BinaryName: c.AltBinaryName}, true
+	}
+
+	// Default: resolver wins → test path + "-test" PID name.
+	binPath, pidName := pm.resolvePaths(cfg, false)
+	assert.Equal(t, TestSidechainBinaryPath(dataDir, "thunder"), binPath)
+	assert.Equal(t, "thunder-test", pidName)
+
+	// ForceBackend: resolver skipped → prod path + plain PID name.
+	binPath, pidName = pm.resolvePaths(cfg, true)
+	assert.Equal(t, BinaryPath(dataDir, "thunder"), binPath)
+	assert.Equal(t, "thunder", pidName)
+}
+
+func TestOrchestrator_ForceBackend_AdoptsProdPidWhenTestSidechainsEnabled(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("uses symlinked system sleep binary")
+	}
+
+	dataDir := t.TempDir()
+	bwDir := t.TempDir()
+	log := testLogger(t)
+
+	symlinkSystemBinary(t, dataDir, "sleep")
+	cfg := makeSidechainConfig("http://example.invalid/")
+	cfg.BinaryName = "sleep"
+	cfg.AltBinaryName = "sleep"
+
+	pm := NewProcessManager(dataDir, NewPidFileManager(dataDir, log), log)
+	pid, err := pm.StartWithOptions(context.Background(), cfg, []string{"30"}, nil, ProcessStartOptions{ForceBackend: true})
+	require.NoError(t, err)
+	require.NotZero(t, pid)
+	t.Cleanup(func() { _ = pm.Stop(context.Background(), cfg.Name, true) })
+
+	o := New(dataDir, "signet", bwDir, []BinaryConfig{cfg}, log)
+	_, err = o.Settings.SetUseTestSidechains(true)
+	require.NoError(t, err)
+	require.True(t, o.UseTestSidechains())
+
+	require.NoError(t, o.AdoptOrphans(context.Background()))
+	require.True(t, o.process.IsRunning(cfg.Name), "prod PID should be adopted as force-backend fallback while test sidechains are enabled")
+
+	status := o.Status(cfg.Name)
+	assert.True(t, status.Running)
+	assert.True(t, status.Downloaded)
+	assert.Equal(t, BinaryPath(dataDir, "sleep"), status.BinaryPath)
+}
+
 func TestOrchestrator_SidechainVariantResolver_ReturnsAltOnlyWhenEnabled(t *testing.T) {
 	dataDir := t.TempDir()
 	bwDir := t.TempDir()

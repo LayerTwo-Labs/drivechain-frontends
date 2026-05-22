@@ -157,6 +157,7 @@ func (h *Handler) StartWithL1(ctx context.Context, req *connect.Request[pb.Start
 		CoreArgs:     req.Msg.CoreArgs,
 		EnforcerArgs: req.Msg.EnforcerArgs,
 		Immediate:    req.Msg.Immediate,
+		ForceBackend: req.Msg.ForceBackend,
 	}
 	target := req.Msg.Target
 

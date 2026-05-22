@@ -85,6 +85,11 @@ func main() {
 				Usage:   "sidechain binary to start with deps on boot (can be repeated, e.g. --binary=thunder --binary=bitnames)",
 				EnvVars: []string{"ORCHESTRATOR_BINARY"},
 			},
+			&cli.BoolFlag{
+				Name:    "force-backend",
+				Usage:   "bypass UseTestSidechains for the --binary auto-boots; always launch the prod download",
+				EnvVars: []string{"ORCHESTRATOR_FORCE_BACKEND"},
+			},
 		},
 		Action: run,
 	}
@@ -339,11 +344,13 @@ func run(cctx *cli.Context) error {
 
 	// Auto-boot sidechains specified via --binary flags
 	binariesToBoot := cctx.StringSlice("binary")
+	forceBackend := cctx.Bool("force-backend")
 	for _, name := range binariesToBoot {
 		go func(target string) {
-			log.Info().Str("binary", target).Msg("auto-booting sidechain with deps")
+			log.Info().Str("binary", target).Bool("force_backend", forceBackend).Msg("auto-booting sidechain with deps")
 			ch, err := orch.StartWithL1(ctx, target, orchestrator.StartOpts{
-				TargetArgs: []string{"--headless"},
+				TargetArgs:   []string{"--headless"},
+				ForceBackend: forceBackend,
 			})
 			if err != nil {
 				log.Error().Err(err).Str("binary", target).Msg("failed to start sidechain")

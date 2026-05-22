@@ -28,6 +28,8 @@ type ManagedProcess struct {
 	Config  BinaryConfig
 	Pid     int
 	Cmd     *exec.Cmd
+	BinPath string // resolved executable path used for this process
+	PidName string // PID-file basename used for this process
 	Started time.Time
 	Adopted bool // true if this process was found from a previous session
 
@@ -189,8 +191,10 @@ func NewProcessManager(dataDir string, pidManager *PidFileManager, log zerolog.L
 // resolvePaths picks the on-disk binary path and PID-file name for a config,
 // honouring whichever variant resolver is active. Test sidechain builds use
 // a "<bin>-test" PID-file name so prod and test PID files don't collide and
-// adopt-orphan can attribute them to the right config.
-func (pm *ProcessManager) resolvePaths(config BinaryConfig) (binPath, pidName string) {
+// adopt-orphan can attribute them to the right config. If forceBackend is
+// true, the SidechainVariant resolver is skipped — the caller wants the
+// prod-download binary regardless of the UseTestSidechains toggle.
+func (pm *ProcessManager) resolvePaths(config BinaryConfig, forceBackend bool) (binPath, pidName string) {
 	binPath = BinaryPath(pm.dataDir, config.BinaryName)
 	pidName = config.BinaryName
 
@@ -200,7 +204,7 @@ func (pm *ProcessManager) resolvePaths(config BinaryConfig) (binPath, pidName st
 			return binPath, pidName
 		}
 	}
-	if pm.SidechainVariant != nil {
+	if !forceBackend && pm.SidechainVariant != nil {
 		if sv, ok := pm.SidechainVariant(config); ok {
 			binPath = TestSidechainBinaryPath(pm.dataDir, sv.BinaryName)
 			pidName = sv.BinaryName + "-test"
@@ -210,8 +214,23 @@ func (pm *ProcessManager) resolvePaths(config BinaryConfig) (binPath, pidName st
 	return binPath, pidName
 }
 
+// ProcessStartOptions tweaks process.Start behaviour per-call. Currently a
+// single flag, but the struct keeps the door open for future per-call
+// overrides without churning every callsite.
+type ProcessStartOptions struct {
+	// ForceBackend skips the SidechainVariant resolver so the prod-download
+	// binary is launched even when UseTestSidechains is on. Set by sidechain
+	// Flutter frontends self-booting their backend.
+	ForceBackend bool
+}
+
 // Start launches a binary and returns its PID.
-func (pm *ProcessManager) Start(_ context.Context, config BinaryConfig, args []string, env map[string]string) (int, error) {
+func (pm *ProcessManager) Start(ctx context.Context, config BinaryConfig, args []string, env map[string]string) (int, error) {
+	return pm.StartWithOptions(ctx, config, args, env, ProcessStartOptions{})
+}
+
+// StartWithOptions is Start with per-call overrides (see ProcessStartOptions).
+func (pm *ProcessManager) StartWithOptions(_ context.Context, config BinaryConfig, args []string, env map[string]string, opts ProcessStartOptions) (int, error) {
 	pm.mu.Lock()
 	if _, exists := pm.processes[config.Name]; exists {
 		pm.mu.Unlock()
@@ -219,7 +238,7 @@ func (pm *ProcessManager) Start(_ context.Context, config BinaryConfig, args []s
 	}
 	pm.mu.Unlock()
 
-	binPath, pidName := pm.resolvePaths(config)
+	binPath, pidName := pm.resolvePaths(config, opts.ForceBackend)
 	if _, err := os.Stat(binPath); err != nil {
 		return 0, fmt.Errorf("binary not found at %s: %w", binPath, err)
 	}
@@ -262,6 +281,8 @@ func (pm *ProcessManager) Start(_ context.Context, config BinaryConfig, args []s
 		Config:  config,
 		Pid:     cmd.Process.Pid,
 		Cmd:     cmd,
+		BinPath: binPath,
+		PidName: pidName,
 		Started: time.Now(),
 		logs:    make([]LogEntry, 0, 256),
 		exitCh:  make(chan struct{}),
@@ -597,6 +618,20 @@ func (pm *ProcessManager) ListRunning() []string {
 
 // AdoptProcess registers an externally-found process (from a PID file).
 func (pm *ProcessManager) AdoptProcess(config BinaryConfig, pid int) {
+	binPath, pidName := pm.resolvePaths(config, false)
+	pm.AdoptProcessResolved(config, pid, binPath, pidName)
+}
+
+// AdoptProcessWithOptions registers an externally-found process using the
+// same path resolution overrides as StartWithOptions.
+func (pm *ProcessManager) AdoptProcessWithOptions(config BinaryConfig, pid int, opts ProcessStartOptions) {
+	binPath, pidName := pm.resolvePaths(config, opts.ForceBackend)
+	pm.AdoptProcessResolved(config, pid, binPath, pidName)
+}
+
+// AdoptProcessResolved registers an externally-found process when the PID file
+// name already tells us which on-disk variant it belongs to.
+func (pm *ProcessManager) AdoptProcessResolved(config BinaryConfig, pid int, binPath, pidName string) {
 	pm.mu.Lock()
 	defer pm.mu.Unlock()
 
@@ -607,6 +642,8 @@ func (pm *ProcessManager) AdoptProcess(config BinaryConfig, pid int) {
 	pm.processes[config.Name] = &ManagedProcess{
 		Config:  config,
 		Pid:     pid,
+		BinPath: binPath,
+		PidName: pidName,
 		Started: time.Now(),
 		Adopted: true,
 		logs:    make([]LogEntry, 0),

@@ -57,7 +57,11 @@ Future<void> bootBackendManagedSidechain({
       // so calling it unconditionally here is safe and necessary.
       unawaited(() async {
         try {
-          await orchestrator.startWithL1(targetBinaryName);
+          // forceBackend: sidechain frontends always want the prod-download
+          // binary for their own backend. Without this, a user who toggled
+          // "Use test sidechains" in Bitwindow would have orchestratord
+          // re-spawn another Flutter bundle here instead of the real node.
+          await orchestrator.startWithL1(targetBinaryName, forceBackend: true);
         } catch (e) {
           log.w('bootBackendManagedSidechain: hot-start startWithL1($targetBinaryName) failed: $e');
         }
@@ -76,10 +80,13 @@ Future<void> bootBackendManagedSidechain({
       }
       binaryProvider.addStartupLogForBinary(BinaryType.BINARY_TYPE_ORCHESTRATORD, 'Starting orchestratord...');
 
-      // Pass --binary flag so orchestratord auto-boots the sidechain with deps
+      // Pass --binary flag so orchestratord auto-boots the sidechain with deps.
+      // --force-backend pairs with it so the auto-boot ignores UseTestSidechains
+      // (see hot-start path above for the rationale).
       final orchestratord = binaryProvider.binaries.firstWhere((b) => b.type == BinaryType.BINARY_TYPE_ORCHESTRATORD);
       orchestratord.addBootArg('--binary=$targetBinaryName');
-      log.i('bootBackendManagedSidechain: starting orchestratord with --binary=$targetBinaryName');
+      orchestratord.addBootArg('--force-backend');
+      log.i('bootBackendManagedSidechain: starting orchestratord with --binary=$targetBinaryName --force-backend');
       await binaryProvider.start(orchestratord);
 
       log.i('bootBackendManagedSidechain: waiting for orchestratord readiness');

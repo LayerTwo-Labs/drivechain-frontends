@@ -81,6 +81,10 @@ type StartOpts struct {
 	CoreArgs     []string
 	EnforcerArgs []string
 	Immediate    bool // start target without waiting for L1
+	// ForceBackend bypasses UseTestSidechains for the target binary. Set by
+	// sidechain Flutter frontends when self-booting their backend so the
+	// toggle doesn't swap in another Flutter bundle inside them.
+	ForceBackend bool
 }
 
 // failBoot routes a StartWithL1 failure to all the places the frontend can
@@ -514,6 +518,9 @@ func (o *Orchestrator) Status(name string) BinaryStatus {
 			binPath = TestSidechainBinaryPath(o.DataDir, sv.BinaryName)
 		}
 	}
+	if proc != nil && proc.BinPath != "" {
+		binPath = proc.BinPath
+	}
 	_, statErr := os.Stat(binPath)
 	downloaded := statErr == nil
 	status := BinaryStatus{
@@ -608,11 +615,11 @@ func (o *Orchestrator) RecentLogs(name string, n int) ([]LogEntry, error) {
 //
 // Safe to call even if the binary is already downloaded — DownloadManager
 // short-circuits with a single Done message in that case.
-func (o *Orchestrator) prefetchBinary(ctx context.Context, cfg BinaryConfig) <-chan error {
+func (o *Orchestrator) prefetchBinary(ctx context.Context, cfg BinaryConfig, forceBackend bool) <-chan error {
 	done := make(chan error, 1)
 	go func() {
 		defer close(done)
-		progressCh, err := o.download.Download(ctx, cfg, o.Network, false)
+		progressCh, err := o.download.DownloadWithOptions(ctx, cfg, o.Network, false, DownloadOptions{ForceBackend: forceBackend})
 		if err != nil {
 			done <- err
 			return
@@ -650,10 +657,10 @@ func (o *Orchestrator) StartWithL1(ctx context.Context, target string, opts Star
 		// By the time we need to start them, they're already on disk. If the
 		// prefetch is still running when we need to start, we block on its
 		// completion — which is no worse than the old sequential flow.
-		enforcerPrefetch := o.prefetchBinary(ctx, o.configs["enforcer"])
+		enforcerPrefetch := o.prefetchBinary(ctx, o.configs["enforcer"], false)
 		var targetPrefetch <-chan error
 		if config.Name != "enforcer" {
-			targetPrefetch = o.prefetchBinary(ctx, config)
+			targetPrefetch = o.prefetchBinary(ctx, config, opts.ForceBackend)
 		}
 
 		o.prepareCoreArgs(&opts)
@@ -1124,7 +1131,7 @@ func (o *Orchestrator) startTargetOnly(ctx context.Context, config BinaryConfig,
 
 		if !o.process.IsRunning(config.Name) {
 			pid := o.discoverPid(config)
-			o.process.AdoptProcess(config, pid)
+			o.process.AdoptProcessWithOptions(config, pid, ProcessStartOptions{ForceBackend: opts.ForceBackend})
 			o.log.Info().Str("binary", config.Name).Int("pid", pid).Msg("adopted externally-running target process")
 		}
 
@@ -1147,7 +1154,7 @@ func (o *Orchestrator) startTargetOnly(ctx context.Context, config BinaryConfig,
 	} else {
 		ch <- StartupProgress{Stage: "downloading-" + config.Name, Message: fmt.Sprintf("downloading %s...", config.DisplayName)}
 
-		downloadCh, err := o.download.Download(ctx, config, o.Network, false)
+		downloadCh, err := o.download.DownloadWithOptions(ctx, config, o.Network, false, DownloadOptions{ForceBackend: opts.ForceBackend})
 		if err != nil {
 			failBoot(targetMon, ch, "download "+config.Name, err)
 			return
@@ -1178,10 +1185,11 @@ func (o *Orchestrator) startTargetOnly(ctx context.Context, config BinaryConfig,
 	for k, v := range opts.TargetEnv {
 		targetEnv[k] = v
 	}
+	procOpts := ProcessStartOptions{ForceBackend: opts.ForceBackend}
 
 	targetMon.StartRestartTimer(ctx,
 		func(restartCtx context.Context) error {
-			_, err := o.process.Start(restartCtx, config, targetArgs, targetEnv)
+			_, err := o.process.StartWithOptions(restartCtx, config, targetArgs, targetEnv, procOpts)
 			return err
 		},
 		func() (int, bool) {
@@ -1198,7 +1206,7 @@ func (o *Orchestrator) startTargetOnly(ctx context.Context, config BinaryConfig,
 		},
 	)
 
-	if _, err := o.process.Start(ctx, config, targetArgs, targetEnv); err != nil {
+	if _, err := o.process.StartWithOptions(ctx, config, targetArgs, targetEnv, procOpts); err != nil {
 		failBoot(targetMon, ch, "start "+config.Name, err)
 		return
 	}
@@ -1433,13 +1441,21 @@ func (o *Orchestrator) callEnforcerStopRPC() error {
 func (o *Orchestrator) AdoptOrphans(ctx context.Context) error {
 	pids := o.pidManager.ListPidFiles()
 	useTest := o.UseTestSidechains()
+	pidNames := make([]string, 0, len(pids))
+	for pidName := range pids {
+		pidNames = append(pidNames, pidName)
+	}
+	sort.SliceStable(pidNames, func(i, j int) bool {
+		return adoptPriority(pidNames[i], useTest) < adoptPriority(pidNames[j], useTest)
+	})
 
-	for pidName, pid := range pids {
-		// Only adopt PIDs that match the currently-selected mode. A stale
-		// prod PID file from before a test-mode flip has nothing in
-		// pm.processes — it should sit on disk until the user flips back.
+	for _, pidName := range pidNames {
+		pid := pids[pidName]
+		// Test PID files are only meaningful while the test-sidechains toggle is
+		// active. Prod PID files are always eligible: sidechain Flutter apps use
+		// --force-backend to run prod backends even when the global toggle is on.
 		isTestPid := strings.HasSuffix(pidName, "-test")
-		if isTestPid != useTest {
+		if isTestPid && !useTest {
 			continue
 		}
 
@@ -1461,11 +1477,33 @@ func (o *Orchestrator) AdoptOrphans(ctx context.Context) error {
 			continue
 		}
 
-		o.process.AdoptProcess(config, pid)
+		binPath := BinaryPath(o.DataDir, config.BinaryName)
+		if isTestPid {
+			binPath = TestSidechainBinaryPath(o.DataDir, realBinaryName)
+		} else if config.IsBitcoinCore && o.process.CoreVariant != nil {
+			if v, ok := o.process.CoreVariant(config); ok {
+				binPath = CoreBinaryPath(o.DataDir, v, config.BinaryName)
+			}
+		}
+		o.process.AdoptProcessResolved(config, pid, binPath, pidName)
 		o.log.Info().Str("binary", config.Name).Int("pid", pid).Msg("adopted orphaned process")
 	}
 
 	return nil
+}
+
+func adoptPriority(pidName string, useTest bool) int {
+	isTestPid := strings.HasSuffix(pidName, "-test")
+	switch {
+	case useTest && isTestPid:
+		return 0
+	case !useTest && !isTestPid:
+		return 0
+	case useTest && !isTestPid:
+		return 1
+	default:
+		return 2
+	}
 }
 
 // ProcessManager returns the underlying process manager (for direct access if needed).

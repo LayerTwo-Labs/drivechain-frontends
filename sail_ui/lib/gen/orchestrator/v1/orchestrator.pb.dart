@@ -1074,6 +1074,7 @@ class StartWithL1Request extends $pb.GeneratedMessage {
     $core.Iterable<$core.String>? coreArgs,
     $core.Iterable<$core.String>? enforcerArgs,
     $core.bool? immediate,
+    $core.bool? forceBackend,
   }) {
     final $result = create();
     if (target != null) {
@@ -1094,6 +1095,9 @@ class StartWithL1Request extends $pb.GeneratedMessage {
     if (immediate != null) {
       $result.immediate = immediate;
     }
+    if (forceBackend != null) {
+      $result.forceBackend = forceBackend;
+    }
     return $result;
   }
   StartWithL1Request._() : super();
@@ -1107,6 +1111,7 @@ class StartWithL1Request extends $pb.GeneratedMessage {
     ..pPS(4, _omitFieldNames ? '' : 'coreArgs')
     ..pPS(5, _omitFieldNames ? '' : 'enforcerArgs')
     ..aOB(6, _omitFieldNames ? '' : 'immediate')
+    ..aOB(7, _omitFieldNames ? '' : 'forceBackend')
     ..hasRequiredFields = false
   ;
 
@@ -1160,6 +1165,19 @@ class StartWithL1Request extends $pb.GeneratedMessage {
   $core.bool hasImmediate() => $_has(5);
   @$pb.TagNumber(6)
   void clearImmediate() => clearField(6);
+
+  /// Bypass UseTestSidechains for this call: always launch the prod-download
+  /// binary even if the user toggled "Use test sidechains" on. Sidechain
+  /// Flutter apps set this when self-booting their backend so the toggle
+  /// doesn't re-spawn another Flutter bundle inside them.
+  @$pb.TagNumber(7)
+  $core.bool get forceBackend => $_getBF(6);
+  @$pb.TagNumber(7)
+  set forceBackend($core.bool v) { $_setBool(6, v); }
+  @$pb.TagNumber(7)
+  $core.bool hasForceBackend() => $_has(6);
+  @$pb.TagNumber(7)
+  void clearForceBackend() => clearField(7);
 }
 
 class StartWithL1Response extends $pb.GeneratedMessage {
