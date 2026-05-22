@@ -1,9 +1,67 @@
 import 'dart:io';
 
+import 'package:connectrpc/http2.dart';
+import 'package:connectrpc/protobuf.dart';
+import 'package:connectrpc/protocol/connect.dart' as connect;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
+import 'package:sail_ui/gen/walletmanager/v1/walletmanager.pb.dart' as wmpb;
 import 'package:sail_ui/sail_ui.dart';
+
+class _FakeWalletRPC extends OrchestratorWalletRPC {
+  _FakeWalletRPC()
+    : super.fromTransports(
+        unary: connect.Transport(
+          baseUrl: 'http://127.0.0.1:1',
+          codec: const ProtoCodec(),
+          httpClient: createHttpClient(),
+        ),
+        stream: connect.Transport(
+          baseUrl: 'http://127.0.0.1:1',
+          codec: const ProtoCodec(),
+          httpClient: createHttpClient(),
+        ),
+      );
+
+  int unlockCalls = 0;
+  int listCalls = 0;
+  int statusCalls = 0;
+  List<wmpb.WalletMetadata> walletsToReturn = const [];
+  String activeWalletIdToReturn = '';
+  bool hasWalletToReturn = true;
+
+  @override
+  Future<wmpb.UnlockWalletResponse> unlockWallet(String password) async {
+    unlockCalls++;
+    return wmpb.UnlockWalletResponse();
+  }
+
+  @override
+  Future<wmpb.ListWalletsResponse> listWallets() async {
+    listCalls++;
+    return wmpb.ListWalletsResponse(
+      wallets: walletsToReturn,
+      activeWalletId: activeWalletIdToReturn,
+    );
+  }
+
+  @override
+  Future<wmpb.GetWalletStatusResponse> getWalletStatus() async {
+    statusCalls++;
+    return wmpb.GetWalletStatusResponse(hasWallet: hasWalletToReturn);
+  }
+}
+
+class _FakeOrchestratorRPC extends OrchestratorRPC {
+  _FakeOrchestratorRPC(this._fake) : super(host: '127.0.0.1', port: 1);
+
+  final _FakeWalletRPC _fake;
+
+  @override
+  // ignore: overridden_fields
+  late final OrchestratorWalletRPC wallet = _fake;
+}
 
 WalletData _wallet({
   required String id,
@@ -82,6 +140,57 @@ void main() {
 
     expect(provider.enforcerWallet, isNull);
     expect(provider.getL1Mnemonic(), isNull);
+  });
+
+  test('unlockWallet seeds wallets and notifies listeners on success', () async {
+    // Regression for #1737: PasswordGuard reads `isWalletUnlocked`
+    // (wallets.isNotEmpty) when UnlockWalletRoute pops. Before the fix
+    // unlockWallet only awaited the RPC and never repopulated state, so
+    // the watch-stream lag left wallets empty and the post-pop navigation
+    // was rejected — user landed on a blank screen.
+    final fake = _FakeWalletRPC()
+      ..walletsToReturn = [
+        wmpb.WalletMetadata(id: 'core-1', name: 'Core', walletType: 'bitcoind'),
+      ]
+      ..activeWalletIdToReturn = 'core-1';
+    GetIt.I.registerSingleton<OrchestratorRPC>(_FakeOrchestratorRPC(fake));
+    addTearDown(() => GetIt.I.unregister<OrchestratorRPC>());
+
+    final provider = WalletReaderProvider(Directory.systemTemp);
+    expect(provider.isWalletUnlocked, isFalse);
+
+    var notifications = 0;
+    provider.addListener(() => notifications++);
+
+    final ok = await provider.unlockWallet('hunter2');
+
+    expect(ok, isTrue);
+    expect(fake.unlockCalls, 1);
+    expect(fake.listCalls, 1, reason: 'must eagerly seed via listWallets');
+    expect(fake.statusCalls, 1);
+    expect(provider.wallets, hasLength(1));
+    expect(provider.activeWalletId, 'core-1');
+    expect(provider.isWalletUnlocked, isTrue, reason: 'PasswordGuard checks this — must be true after unlock');
+    expect(notifications, greaterThanOrEqualTo(1), reason: 'listeners must fire so guards re-evaluate');
+    expect(provider.unlockedPassword, 'hunter2');
+  });
+
+  test('unlockWallet does not report success until wallet state is loaded', () async {
+    final fake = _FakeWalletRPC();
+    GetIt.I.registerSingleton<OrchestratorRPC>(_FakeOrchestratorRPC(fake));
+    addTearDown(() => GetIt.I.unregister<OrchestratorRPC>());
+
+    final provider = WalletReaderProvider(Directory.systemTemp)..unlockStateWait = const Duration(milliseconds: 1);
+
+    final ok = await provider.unlockWallet('hunter2');
+
+    expect(ok, isFalse);
+    expect(fake.unlockCalls, 1);
+    expect(fake.listCalls, 1);
+    expect(fake.statusCalls, 1);
+    expect(provider.isWalletUnlocked, isFalse);
+    expect(provider.wallets, isEmpty);
+    expect(provider.unlockedPassword, isNull);
   });
 
   test('isWatchOnly is driven by raw proto walletType, not BinaryType', () {

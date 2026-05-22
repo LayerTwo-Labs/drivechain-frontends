@@ -70,13 +70,13 @@ Future<(Directory, File, Logger)> init(String arguments) async {
   if (!GetIt.I.isRegistered<Logger>()) {
     GetIt.I.registerLazySingleton<Logger>(() => log);
   }
-  final router = AppRouter();
+  final router = GetIt.I.isRegistered<AppRouter>() ? GetIt.I.get<AppRouter>() : AppRouter();
   if (!GetIt.I.isRegistered<AppRouter>()) {
     GetIt.I.registerLazySingleton<AppRouter>(() => router);
   }
 
   SidechainRPC createSidechainConnection(Binary binary) {
-    final photon = PhotonLive();
+    final photon = GetIt.I.isRegistered<PhotonRPC>() ? GetIt.I.get<PhotonRPC>() : PhotonLive();
     if (!GetIt.I.isRegistered<PhotonRPC>()) {
       GetIt.I.registerSingleton<PhotonRPC>(photon);
     }

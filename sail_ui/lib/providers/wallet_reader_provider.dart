@@ -24,6 +24,7 @@ class WalletReaderProvider extends ChangeNotifier {
   List<WalletData> wallets = [];
   String? activeWalletId;
   String? unlockedPassword;
+  Duration unlockStateWait = Environment.isInTest ? const Duration(milliseconds: 10) : const Duration(seconds: 3);
 
   /// Mirrors `has_wallet` from the WatchWalletData stream. Distinct from
   /// `isWalletUnlocked` — a locked/encrypted wallet has `hasWalletOnDisk=true`
@@ -165,6 +166,10 @@ class WalletReaderProvider extends ChangeNotifier {
     // listWallets + getWalletStatus return the same fields the stream
     // would push, so we can populate the provider directly.
     if (wallets.isNotEmpty) return;
+    await _seedWalletsIfEmpty('init');
+  }
+
+  Future<List<dynamic>?> _fetchWalletSeed(String phase) async {
     final orchestrator = GetIt.I.get<OrchestratorRPC>();
     Future<List<dynamic>> seed() => Future.wait([
       orchestrator.wallet.listWallets(),
@@ -183,27 +188,63 @@ class WalletReaderProvider extends ChangeNotifier {
           results = await seed();
         } catch (e2) {
           if (!isExpectedBootError(e2)) {
-            _logger.w('WalletReaderProvider: init seed retry failed: $e2');
+            _logger.w('WalletReaderProvider: $phase seed retry failed: $e2');
           }
-          return;
+          return null;
         }
       } else {
         if (!isExpectedBootError(e)) {
-          _logger.w('WalletReaderProvider: init seed failed: $e');
+          _logger.w('WalletReaderProvider: $phase seed failed: $e');
         }
-        return;
+        return null;
       }
     }
+    return results;
+  }
+
+  Future<bool> _seedWalletsIfEmpty(String phase) async {
+    if (wallets.isNotEmpty) return true;
+    final results = await _fetchWalletSeed(phase);
+    if (results == null || wallets.isNotEmpty) return wallets.isNotEmpty;
+
     // Stream may have delivered while we awaited — let it win.
-    if (wallets.isNotEmpty) return;
     final list = results[0] as dynamic;
     final status = results[1] as dynamic;
-    if (list.wallets.isEmpty) return;
+    if (list.wallets.isEmpty) return false;
     _applyState(
       protoWallets: list.wallets,
       newActiveId: list.activeWalletId.isEmpty ? null : list.activeWalletId as String,
       newHasWalletOnDisk: status.hasWallet as bool,
     );
+    return wallets.isNotEmpty;
+  }
+
+  Future<bool> _waitForWalletState(Duration timeout) async {
+    if (wallets.isNotEmpty) return true;
+
+    final completer = Completer<bool>();
+    late VoidCallback listener;
+    Timer? timer;
+
+    listener = () {
+      if (wallets.isNotEmpty && !completer.isCompleted) {
+        completer.complete(true);
+      }
+    };
+
+    addListener(listener);
+    timer = Timer(timeout, () {
+      if (!completer.isCompleted) {
+        completer.complete(false);
+      }
+    });
+
+    try {
+      return await completer.future;
+    } finally {
+      timer.cancel();
+      removeListener(listener);
+    }
   }
 
   /// Returns true once the orchestrator confirms a wallet exists on disk.
@@ -248,31 +289,18 @@ class WalletReaderProvider extends ChangeNotifier {
   Future<bool> unlockWallet(String password) async {
     try {
       await _client.unlockWallet(password);
-      unlockedPassword = password;
       // isWalletUnlocked is wallets.isNotEmpty; the watch stream lags on cold
       // boot, so without an eager seed PasswordGuard reads stale-empty state
       // when UnlockWalletRoute pops and rejects the resume navigation —
       // user lands on a blank route. Mirror the init() seed pattern.
       if (wallets.isEmpty && GetIt.I.isRegistered<OrchestratorRPC>()) {
-        try {
-          final orchestrator = GetIt.I.get<OrchestratorRPC>();
-          final results = await Future.wait([
-            orchestrator.wallet.listWallets(),
-            orchestrator.wallet.getWalletStatus(),
-          ]).timeout(const Duration(seconds: 3));
-          final list = results[0] as dynamic;
-          final status = results[1] as dynamic;
-          if (list.wallets.isNotEmpty) {
-            _applyState(
-              protoWallets: list.wallets,
-              newActiveId: list.activeWalletId.isEmpty ? null : list.activeWalletId as String,
-              newHasWalletOnDisk: status.hasWallet as bool,
-            );
-          }
-        } catch (e) {
-          _logger.w('WalletReaderProvider: unlock seed failed: $e');
-        }
+        await _seedWalletsIfEmpty('unlock');
       }
+      if (wallets.isEmpty && !await _waitForWalletState(unlockStateWait)) {
+        _logger.w('WalletReaderProvider: unlock succeeded but wallet state did not load');
+        return false;
+      }
+      unlockedPassword = password;
       notifyListeners();
       return true;
     } catch (e) {

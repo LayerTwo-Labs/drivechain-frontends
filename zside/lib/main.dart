@@ -88,18 +88,20 @@ Future<(Directory, File, Logger)> init(String arguments) async {
   if (!GetIt.I.isRegistered<Logger>()) {
     GetIt.I.registerLazySingleton<Logger>(() => log);
   }
-  final router = AppRouter();
+  final router = GetIt.I.isRegistered<AppRouter>() ? GetIt.I.get<AppRouter>() : AppRouter();
   if (!GetIt.I.isRegistered<AppRouter>()) {
     GetIt.I.registerLazySingleton<AppRouter>(() => router);
   }
 
-  late ZSideLive zsideRPC;
+  late ZSideRPC zsideRPC;
 
   await initSidechainDependencies(
     sidechainType: BinaryType.BINARY_TYPE_ZSIDE,
     createSidechainConnection: (_) {
-      zsideRPC = ZSideLive();
-      if (!GetIt.I.isRegistered<ZSideRPC>()) {
+      if (GetIt.I.isRegistered<ZSideRPC>()) {
+        zsideRPC = GetIt.I.get<ZSideRPC>();
+      } else {
+        zsideRPC = ZSideLive();
         GetIt.I.registerSingleton<ZSideRPC>(zsideRPC);
       }
       return zsideRPC;
@@ -112,13 +114,17 @@ Future<(Directory, File, Logger)> init(String arguments) async {
   );
 
   // Register OrchestratorRPC for communicating with zsided
-  final orchestrator = OrchestratorRPC(host: 'localhost', port: 30303);
+  final orchestrator = GetIt.I.isRegistered<OrchestratorRPC>()
+      ? GetIt.I.get<OrchestratorRPC>()
+      : OrchestratorRPC(host: 'localhost', port: 30303);
   if (!GetIt.I.isRegistered<OrchestratorRPC>()) {
     GetIt.I.registerSingleton<OrchestratorRPC>(orchestrator);
   }
 
   // Register BackendStateProvider for streaming binary status
-  final backendState = BackendStateProvider(orchestrator);
+  final backendState = GetIt.I.isRegistered<BackendStateProvider>()
+      ? GetIt.I.get<BackendStateProvider>()
+      : BackendStateProvider(orchestrator);
   if (!GetIt.I.isRegistered<BackendStateProvider>()) {
     GetIt.I.registerSingleton<BackendStateProvider>(backendState);
   }
