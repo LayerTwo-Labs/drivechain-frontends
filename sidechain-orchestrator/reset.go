@@ -89,22 +89,35 @@ func categoryLabel(cat string) string {
 	}
 }
 
+// resetTargetDirConfigs returns the binaries whose datadirs the reset will
+// inspect. Enumerates from the embedded registry, not o.Configs() — a
+// sidechain the user never started in this session isn't in o.Configs(), and
+// the old code silently skipped its datadir. That's the "Obliterate deletes
+// Thunder but not Bitnames" bug (#1695): Thunder happened to be in the
+// runtime set, Bitnames wasn't.
+func (o *Orchestrator) resetTargetDirConfigs(cat ResetCategory) []config.BinaryDirConfig {
+	var targets []config.BinaryDirConfig
+	seen := make(map[string]bool)
+	for _, dirCfg := range config.AllDirConfigs() {
+		if dirCfg.ChainLayer == 2 && !cat.AlsoResetSidechains {
+			continue
+		}
+		key := dirCfg.BinaryName + "|" + dirCfg.Name
+		if seen[key] {
+			continue
+		}
+		seen[key] = true
+		targets = append(targets, dirCfg)
+	}
+	return targets
+}
+
 // collectPaths gathers all paths per category for the given reset categories.
 func (o *Orchestrator) collectPaths(cat ResetCategory) map[string][]string {
 	network := config.Network(o.Network)
 	result := make(map[string][]string)
 
-	var targets []config.BinaryDirConfig
-	for _, cfg := range o.Configs() {
-		dirCfg, ok := config.DirConfigByName(cfg.Name)
-		if !ok {
-			continue
-		}
-		if cfg.IsSidechain() && !cat.AlsoResetSidechains {
-			continue
-		}
-		targets = append(targets, dirCfg)
-	}
+	targets := o.resetTargetDirConfigs(cat)
 
 	binDir := BinDir(o.BitwindowDir)
 

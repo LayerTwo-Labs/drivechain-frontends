@@ -344,7 +344,7 @@ func (b BinaryDirConfig) GetBlockchainDataPaths(networkDir string, network Netwo
 	case "bitwindowd":
 		return GetExistingFilesInDir(networkDir, []string{"bitdrive", "bitwindow.db"}, log)
 
-	case "thunder", "plain_bitnames", "plain_bitassets", "thunder-orchard", "truthcoin", "photon", "coinshift":
+	case "thunder", "bitnames", "bitassets", "thunder-orchard", "truthcoin", "photon", "coinshift":
 		return GetExistingFilesInDir(networkDir, []string{"data.mdb", "lock.mdb", "logs"}, log)
 
 	default:
@@ -378,7 +378,7 @@ func (b BinaryDirConfig) GetWalletPaths(networkDir string, network Network, log 
 			paths = append(paths, legacyWallet)
 		}
 
-	case "thunder", "plain_bitnames", "plain_bitassets", "thunder-orchard", "truthcoin", "photon", "coinshift":
+	case "thunder", "bitnames", "bitassets", "thunder-orchard", "truthcoin", "photon", "coinshift":
 		paths = append(paths, GetExistingFilesInDir(networkDir, []string{"wallet.mdb"}, log)...)
 
 	case "bitwindowd":
@@ -426,7 +426,7 @@ func (b BinaryDirConfig) GetSettingsPaths(networkDir string, network Network, lo
 			paths = append(paths, GetExistingFilesInDir(dir, []string{"assets", "downloads", "debug.log", "settings.json"}, log)...)
 		}
 
-	case "plain_bitnames", "plain_bitassets", "thunder-orchard", "truthcoin", "photon":
+	case "bitnames", "bitassets", "thunder-orchard", "truthcoin", "photon":
 		if dir := b.FrontendDir(); dir != "" {
 			paths = append(paths, GetExistingFilesInDir(dir, []string{"assets", "downloads", "debug.log", "settings.json"}, log)...)
 		}
@@ -469,7 +469,7 @@ func (b BinaryDirConfig) GetLogPaths(networkDir string, log zerolog.Logger) []st
 		rootDir := BitWindowDirs.RootDir()
 		paths = append(paths, GetExistingFilesInDir(rootDir, []string{"debug.log"}, log)...)
 
-	case "thunder", "plain_bitnames", "plain_bitassets", "thunder-orchard", "truthcoin", "photon", "coinshift":
+	case "thunder", "bitnames", "bitassets", "thunder-orchard", "truthcoin", "photon", "coinshift":
 		paths = append(paths, GetExistingFilesInDir(networkDir, []string{"logs"}, log)...)
 	}
 
@@ -498,7 +498,7 @@ func (b BinaryDirConfig) LogPath(networkDir string) string {
 	case "bip300301-enforcer":
 		return findLatestEnforcerLog(networkDir)
 
-	case "thunder", "plain_bitnames", "plain_bitassets", "thunder-orchard", "truthcoin", "photon", "coinshift":
+	case "thunder", "bitnames", "bitassets", "thunder-orchard", "truthcoin", "photon", "coinshift":
 		return findLatestDirVersionedLog(networkDir)
 
 	default:
@@ -684,9 +684,9 @@ func (b BinaryDirConfig) staticExtraFiles() []string {
 			"flutter_platform_alert_plugin.dll", "flutter_windows.dll",
 			"screen_retriever_windows_plugin.dll", "url_launcher_windows_plugin.dll",
 			"window_manager_plugin.dll"}
-	case "plain_bitnames":
+	case "bitnames":
 		return []string{"bitnames-cli"}
-	case "plain_bitassets":
+	case "bitassets":
 		return []string{"bitassets-cli"}
 	case "thunder-orchard":
 		return []string{"thunder-orchard"}
