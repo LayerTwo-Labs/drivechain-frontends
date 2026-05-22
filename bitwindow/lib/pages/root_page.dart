@@ -71,6 +71,8 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
   bool _shutdownInProgress = false;
   bool _isWalletSwitching = false;
   bool _isWalletEncrypted = false;
+  List<PlatformMenuItem>? _cachedMenuList;
+  bool? _cachedMenuListEncrypted;
   DateTime? _lastShiftPress;
   final CodeSearchService _codeSearchService = CodeSearchService();
 
@@ -378,11 +380,21 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
   Widget build(BuildContext context) {
     final app = SailApp.of(context);
 
+    // Reuse menu list identity across rebuilds. PlatformMenuBar on macOS
+    // pushes the menus to the native NSMenu on every fresh list — that close
+    // animation is what users see as "toolbar resets every 5s" (the
+    // 5s BlockchainProvider tick triggers a RootPage rebuild via
+    // _onProviderChanged). The list only varies on encryption status.
+    if (_cachedMenuListEncrypted != _isWalletEncrypted) {
+      _cachedMenuListEncrypted = _isWalletEncrypted;
+      _cachedMenuList = null;
+    }
+
     return Stack(
       children: [
         CrossPlatformMenuBar(
           key: ValueKey('crossPlatformMenuBar'),
-          menus: [
+          menus: _cachedMenuList ??= [
             // First menu will be Apple menu (system provided)
             PlatformMenu(
               label: 'bitwindow',
