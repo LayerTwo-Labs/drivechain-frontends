@@ -177,7 +177,21 @@ class _ResetConfirmationPageState extends State<ResetConfirmationPage> {
     try {
       await for (final event in widget.orchestratorDelete!()) {
         if (!mounted) return;
-        if (event.done) break;
+        if (event.done) {
+          // Defensive: if the stream finishes without emitting an event for
+          // some preview item, flip it to error rather than letting the row
+          // stay greyed-out forever (#1723). The orchestrator-side fix should
+          // make this unreachable, but the cost is one extra setState.
+          setState(() {
+            for (final item in widget.filesToDelete) {
+              if (item.status == DeleteItemStatus.pending || item.status == DeleteItemStatus.inProgress) {
+                item.status = DeleteItemStatus.error;
+                item.errorMessage = 'No result from orchestrator';
+              }
+            }
+          });
+          break;
+        }
         setState(() {
           _stoppingBinaries = false;
           _currentIndex = seen;
