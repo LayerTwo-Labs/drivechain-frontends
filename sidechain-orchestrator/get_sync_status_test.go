@@ -320,3 +320,119 @@ func TestGetSyncStatus_AddingNewSidechainRequiresThreeRegistrations(t *testing.T
 		)
 	}
 }
+
+// countingSidechainServer returns an httptest.Server that records every
+// hit and replies with {"count": <count>} (or the supplied error status).
+func countingSidechainServer(t *testing.T, count int64) (*httptest.Server, *int32) {
+	t.Helper()
+	var hits int32
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		atomic.AddInt32(&hits, 1)
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]int64{"count": count})
+	}))
+	t.Cleanup(srv.Close)
+	return srv, &hits
+}
+
+func TestGetSidechainBlockCount_CachesWithinTTL(t *testing.T) {
+	o := newTestOrchestrator(t)
+	srv, hits := countingSidechainServer(t, 100)
+	setSidechainPort(t, o, "thunder", srv.URL)
+	adoptSidechain(t, o, "thunder")
+
+	first, err := o.GetSidechainBlockCount(context.Background(), "thunder")
+	require.NoError(t, err)
+	second, err := o.GetSidechainBlockCount(context.Background(), "thunder")
+	require.NoError(t, err)
+
+	assert.Equal(t, int64(100), first)
+	assert.Equal(t, int64(100), second)
+	assert.Equal(t, int32(1), atomic.LoadInt32(hits),
+		"two calls within sidechainCountCacheTTL must share one RPC — the cache is what stops UI flicker")
+}
+
+// Regression for "thunder block count doesn't update during sync": with the
+// old code, every transient RPC error reset slot.Blocks to 0 in the response
+// and the UI saw alternating 0/N values. The fix mirrors bitcoind's last-
+// good cache — failed fetches preserve the previous count.
+func TestGetSidechainBlockCount_PreservesLastGoodOnError(t *testing.T) {
+	o := newTestOrchestrator(t)
+
+	var hits int32
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		n := atomic.AddInt32(&hits, 1)
+		if n == 1 {
+			w.Header().Set("Content-Type", "application/json")
+			_ = json.NewEncoder(w).Encode(map[string]int64{"count": 1500})
+			return
+		}
+		w.WriteHeader(http.StatusInternalServerError)
+	}))
+	t.Cleanup(srv.Close)
+	setSidechainPort(t, o, "thunder", srv.URL)
+	adoptSidechain(t, o, "thunder")
+
+	first, err := o.GetSidechainBlockCount(context.Background(), "thunder")
+	require.NoError(t, err)
+	require.Equal(t, int64(1500), first)
+
+	// Bust the TTL so the next call hits the network (and fails).
+	o.sidechainCountMu.Lock()
+	o.sidechainCountCache["thunder"].fetchedAt = time.Now().Add(-time.Hour)
+	o.sidechainCountMu.Unlock()
+
+	second, err := o.GetSidechainBlockCount(context.Background(), "thunder")
+	require.Error(t, err, "the leader still surfaces the underlying RPC error")
+	assert.Equal(t, int64(1500), second,
+		"last-good blocks must survive a transient failure — bitcoind's pattern at orchestrator.go:1946-1955")
+}
+
+// The full UI flow: GetSyncStatus must report the cached count (and no
+// error) on the second call even when the sidechain RPC has started
+// timing out, otherwise the bottom-nav card flickers 0 → real → 0 → real.
+func TestGetSyncStatus_KeepsLastGoodBlocksAcrossTransientFailures(t *testing.T) {
+	o := newTestOrchestrator(t)
+	o.explorerHTTPClient = &http.Client{
+		Transport: roundTripperFunc(func(*http.Request) (*http.Response, error) {
+			return jsonResponse(map[string]map[string]interface{}{
+				"thunder": {"height": "200"},
+			}), nil
+		}),
+	}
+
+	var hits int32
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		n := atomic.AddInt32(&hits, 1)
+		if n == 1 {
+			w.Header().Set("Content-Type", "application/json")
+			_ = json.NewEncoder(w).Encode(map[string]int64{"count": 1500})
+			return
+		}
+		w.WriteHeader(http.StatusInternalServerError)
+	}))
+	t.Cleanup(srv.Close)
+	setSidechainPort(t, o, "thunder", srv.URL)
+	adoptSidechain(t, o, "thunder")
+
+	// First poll: succeeds, populates cache.
+	out, err := o.GetSyncStatus(context.Background())
+	require.NoError(t, err)
+	require.Equal(t, int64(1500), out.Sidechains["thunder"].Blocks)
+	require.Empty(t, out.Sidechains["thunder"].Error)
+
+	// Invalidate the TTL window so the next GetSyncStatus must re-fetch
+	// (and the upstream RPC will fail). Without the last-good cache the
+	// slot would come back Blocks=0, Error="HTTP 500..." — exactly the
+	// flicker the user reported.
+	o.sidechainCountMu.Lock()
+	o.sidechainCountCache["thunder"].fetchedAt = time.Now().Add(-time.Hour)
+	o.sidechainCountMu.Unlock()
+
+	out2, err := o.GetSyncStatus(context.Background())
+	require.NoError(t, err)
+	assert.Equal(t, int64(1500), out2.Sidechains["thunder"].Blocks,
+		"second poll must show the last-good 1500, not snap to zero")
+	assert.Equal(t, "", out2.Sidechains["thunder"].Error,
+		"transient RPC failure must not leak as a slot.Error — the cache hides it")
+}
