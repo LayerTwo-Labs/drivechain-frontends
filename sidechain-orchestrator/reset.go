@@ -235,6 +235,14 @@ func (o *Orchestrator) PreviewResetData(cat ResetCategory) ([]ResetFileInfo, err
 // sending each deletion event to the returned channel. The final event has
 // Done=true with summary counts.
 func (o *Orchestrator) StreamResetData(ctx context.Context, cat ResetCategory) (<-chan ResetEvent, error) {
+	// Snapshot entries BEFORE shutdown/wallet-move so the stream's emission set
+	// matches the preview the frontend already showed (#1723). Previously this
+	// ran after ShutdownAll deleted pid/lock files and DeleteAllWallets moved
+	// wallet paths aside — those entries silently dropped out of the recompute
+	// and the corresponding rows stayed grey forever. RemoveAll below tolerates
+	// the missing pid files via os.IsNotExist, so capturing eagerly is safe.
+	entries := o.collectPathEntries(cat)
+
 	// Budget grows with dependency-chain length; ShutdownAll is sequential.
 	running := o.process.ListRunning()
 	shutdownBudget := gracefulKillTimeout * time.Duration(len(running)+2)
@@ -264,8 +272,6 @@ func (o *Orchestrator) StreamResetData(ctx context.Context, cat ResetCategory) (
 			return nil, fmt.Errorf("delete wallet data: %w", err)
 		}
 	}
-
-	entries := o.collectPathEntries(cat)
 
 	events := make(chan ResetEvent, len(entries)+1)
 
