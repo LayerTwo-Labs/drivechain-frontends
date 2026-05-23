@@ -306,10 +306,10 @@ class BinaryProvider extends ChangeNotifier {
     );
   }
 
-  /// Daemon binaries are spawned directly by Flutter.
-  /// BitWindow embeds the orchestrator — Flutter just starts bitwindowd,
-  /// and bitwindowd manages orchestratord + everything else internally.
-  bool _isDaemonBinary(Binary binary) => binary is BitWindow;
+  /// Daemon binaries are spawned directly by Flutter rather than via the
+  /// orchestrator RPC (it can't start itself, and bitwindowd is the host
+  /// process for the embedded orchestrator).
+  bool _isDaemonBinary(Binary binary) => binary is BitWindow || binary is Orchestratord;
 
   /// Start a daemon binary by spawning it via ProcessManager.
   /// Watches for exit and auto-restarts unless we're shutting down.

@@ -9,6 +9,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -666,6 +667,7 @@ func (o *Orchestrator) StartWithL1(ctx context.Context, target string, opts Star
 		o.prepareCoreArgs(&opts)
 		o.prepareEnforcerArgs(&opts)
 		o.injectSidechainStarter(config, &opts)
+		o.injectHeadlessForForcedBackend(config, &opts)
 
 		if !o.startBitcoindOnly(ctx, opts, ch) {
 			return
@@ -673,7 +675,26 @@ func (o *Orchestrator) StartWithL1(ctx context.Context, target string, opts Star
 
 		o.startEnforcerWhenReady(ctx, opts, enforcerPrefetch)
 
-		// Start the target after enforcer is ready.
+		// Wait for enforcer's gRPC port to actually accept dials before
+		// launching the sidechain target. startEnforcerWhenReady returns
+		// once it has spawned the process — the gRPC bind on :50051 lands
+		// 2-3s later. Without this wait, sidechain backends race the bind
+		// and exit with "tcp connect error" against the CUSF mainchain
+		// service. Gated on ChainLayer == 2 so the L1 binaries (bitcoind,
+		// enforcer as target) don't wait on themselves.
+		if config.ChainLayer == 2 {
+			enforcerCfg := o.configs["enforcer"]
+			enforcerMon := o.getOrCreateMonitor("enforcer", NewHealthChecker(enforcerCfg), enforcerStartupPatterns)
+			if errMsg := enforcerMon.ConnectionError(); errMsg != "" {
+				failBoot(enforcerMon, ch, "wait for enforcer", fmt.Errorf("%s", errMsg))
+				return
+			}
+			if err := waitForConnectedOrExit(ctx, enforcerMon, o.process.Get("enforcer")); err != nil {
+				failBoot(enforcerMon, ch, "wait for enforcer", err)
+				return
+			}
+		}
+
 		o.startTargetOnly(ctx, config, opts, ch, targetPrefetch)
 	}()
 
@@ -716,6 +737,20 @@ func (o *Orchestrator) injectSidechainStarter(config BinaryConfig, opts *StartOp
 	}
 	opts.TargetArgs = append(opts.TargetArgs, fmt.Sprintf("--mnemonic-seed-phrase-path=%s", scPath))
 	o.log.Info().Str("path", scPath).Int("slot", config.Slot).Msg("injected sidechain starter")
+}
+
+// injectHeadlessForForcedBackend appends --headless to opts.TargetArgs when a
+// sidechain frontend asked us to launch the real Rust backend (ForceBackend).
+// Without this, the backend pops its built-in GUI and the user ends up with
+// two windows for the same sidechain.
+func (o *Orchestrator) injectHeadlessForForcedBackend(config BinaryConfig, opts *StartOpts) {
+	if !opts.ForceBackend || config.ChainLayer != 2 {
+		return
+	}
+	if slices.Contains(opts.TargetArgs, "--headless") {
+		return
+	}
+	opts.TargetArgs = append(opts.TargetArgs, "--headless")
 }
 
 // startBitcoindOnly handles the bitcoind portion of a chain boot.
@@ -890,6 +925,7 @@ func (o *Orchestrator) RestartDaemon(ctx context.Context, name string) (<-chan S
 
 		default:
 			o.injectSidechainStarter(config, &opts)
+			o.injectHeadlessForForcedBackend(config, &opts)
 			// startTargetOnly emits its own "done" event.
 			o.startTargetOnly(ctx, config, opts, ch, nil)
 		}
