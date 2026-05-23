@@ -155,25 +155,18 @@ type Orchestrator struct {
 	explorerHeights map[string]int64
 	explorerFetched time.Time
 
-	// Cache for getblockchaininfo. During IBD this RPC can take seconds
-	// because it blocks on Core's cs_main lock; without a cache, every
-	// caller (orchestrator monitor, frontend SyncProvider, etc.) issues
-	// its own copy and they queue behind cs_main, eventually tripping the
-	// HTTP client timeout and triggering connection-lost cycles. The
-	// cache + single-flight collapses concurrent callers onto one in-flight
-	// RPC and serves recent results from memory.
-	bciMu        sync.Mutex
-	bciInFlight  chan struct{} // non-nil while a fetch is running; closed on completion
-	bciInfo      *MainchainBlockchainInfo
-	bciErr       error
-	bciFetchedAt time.Time
-
-	// chainProbers caches one cachedChainProber per chain (bitcoind, enforcer,
-	// each sidechain). Same cache + single-flight + last-good-on-error machinery
-	// applies to every L1/L2 tip probe so the UI sees identical timing semantics
-	// across the board. Built lazily by chainProberFor.
-	chainProbersMu sync.Mutex
-	chainProbers   map[string]*cachedChainProber
+	// Cached chain-tip connections. Every chain (L1 bitcoind, enforcer, every
+	// L2 sidechain) goes through the same CachedConnection[T] primitive: TTL
+	// cache + single-flight + preserve-last-good-on-error. Only the underlying
+	// Connection differs. bitcoindInfo is the single source of truth for
+	// getblockchaininfo — both the rich external Connect RPC
+	// (GetMainchainBlockchainInfo) and the lean GetSyncStatus dispatch read
+	// through it via a projection, so one HTTP call per TTL covers both.
+	syncConnMu     sync.Mutex
+	bitcoindInfo   *CachedConnection[*MainchainBlockchainInfo]
+	bitcoindSync   Connection[*ChainSyncResult]
+	enforcerSync   *CachedConnection[*ChainSyncResult]
+	sidechainSyncs map[string]*CachedConnection[*ChainSyncResult]
 
 	// httpClientsMu guards the lazy HTTP-client singletons used by the
 	// chatty pollers (CoreStatusClient, GetSyncStatus). Each client is built
@@ -1918,115 +1911,36 @@ type MainchainBalance struct {
 // gives Core room to make actual progress between calls.
 const blockchainInfoCacheTTL = time.Second
 
-// GetMainchainBlockchainInfo proxies getblockchaininfo from bitcoind. The
-// result is cached for [blockchainInfoCacheTTL]; concurrent callers across
-// that window share a single in-flight RPC and the same answer.
-func (o *Orchestrator) GetMainchainBlockchainInfo(ctx context.Context) (*MainchainBlockchainInfo, error) {
-	o.bciMu.Lock()
-	// Cache hit on a recent successful fetch — return immediately.
-	if o.bciInfo != nil && o.bciErr == nil && time.Since(o.bciFetchedAt) < blockchainInfoCacheTTL {
-		info := o.bciInfo
-		o.bciMu.Unlock()
-		return info, nil
-	}
-	// A fetch is already in flight — wait for it instead of issuing another.
-	if ch := o.bciInFlight; ch != nil {
-		o.bciMu.Unlock()
-		select {
-		case <-ch:
-		case <-ctx.Done():
-			return nil, ctx.Err()
-		}
-		o.bciMu.Lock()
-		info, err := o.bciInfo, o.bciErr
-		o.bciMu.Unlock()
-		return info, err
-	}
-	// We're the leader — install the in-flight signal and run the fetch.
-	ch := make(chan struct{})
-	o.bciInFlight = ch
-	o.bciMu.Unlock()
-
-	info, err := o.fetchMainchainBlockchainInfo(ctx)
-
-	o.bciMu.Lock()
-	if err == nil {
-		o.bciInfo = info
-		o.bciErr = nil
-		o.bciFetchedAt = time.Now()
-	} else {
-		// Don't poison the cached info on transient errors — keep the last
-		// good value but record the error for the leader's return. Followers
-		// that joined this fetch see the same error via bciErr below.
-		o.bciErr = err
-	}
-	o.bciInFlight = nil
-	close(ch)
-	o.bciMu.Unlock()
-
-	return info, err
+// Connection is the only thing that differs between chains: a pure RPC call
+// that returns one typed value or an error. No caching, no single-flight,
+// no error preservation. Implementations wrap their wire protocol and
+// nothing else — the surrounding machinery (TTL cache, single-flight,
+// last-good-on-error) lives in CachedConnection and applies uniformly to
+// L1 and L2.
+type Connection[T any] interface {
+	Fetch(ctx context.Context) (T, error)
 }
 
-// fetchMainchainBlockchainInfo runs the actual getblockchaininfo RPC. Pulled
-// out so GetMainchainBlockchainInfo can wrap it with the cache + single-flight
-// machinery above.
-func (o *Orchestrator) fetchMainchainBlockchainInfo(ctx context.Context) (*MainchainBlockchainInfo, error) {
-	client, err := o.CoreStatusClient()
-	if err != nil {
-		return nil, err
-	}
+// CachedConnection wraps any Connection with TTL cache + single-flight +
+// preserve-last-good-on-error. THIS is the only caching primitive in the
+// orchestrator's chain-tip plumbing — every chain ends up here so the UI
+// sees identical timing semantics across the board.
+type CachedConnection[T any] struct {
+	inner Connection[T]
+	ttl   time.Duration
 
-	result, err := client.call(ctx, "getblockchaininfo")
-	if err != nil {
-		return nil, fmt.Errorf("getblockchaininfo: %w", err)
-	}
-
-	var info MainchainBlockchainInfo
-	if err := json.Unmarshal(result, &info); err != nil {
-		return nil, fmt.Errorf("decode getblockchaininfo: %w", err)
-	}
-
-	return &info, nil
+	mu       sync.Mutex
+	last     T
+	hasLast  bool
+	lastErr  error
+	fetched  time.Time
+	inFlight chan struct{}
 }
 
-// ChainSyncResult is one chain's tip snapshot. Error is set on failure; the
-// numeric fields are best-effort zero in that case.
-type ChainSyncResult struct {
-	Blocks  int64
-	Headers int64
-	Time    int64
-	Error   string
-}
-
-// chainProber returns one chain's current tip in its native wire format.
-// Concrete impls: bitcoindProber (JSON-RPC getblockchaininfo), enforcerProber
-// (Connect/gRPC ValidatorService.GetChainTip), sidechainProber (Connect-JSON
-// GetBlockCount). Each returns a partially-filled *ChainSyncResult; the
-// GetSyncStatus caller merges headers afterward (mainchain for enforcer,
-// public explorer for sidechains).
-type chainProber interface {
-	Probe(ctx context.Context) (*ChainSyncResult, error)
-}
-
-// cachedChainProber decorates any chainProber with the bitcoind-style
-// cache + single-flight + preserve-last-good-on-error pattern. Identical
-// machinery to GetMainchainBlockchainInfo, just generic over the underlying
-// probe. Every chain ends up here so the UI sees identical timing semantics
-// across L1 and L2.
-type cachedChainProber struct {
-	inner chainProber
-
-	mu        sync.Mutex
-	last      *ChainSyncResult
-	err       error
-	fetchedAt time.Time
-	inFlight  chan struct{}
-}
-
-func (c *cachedChainProber) Probe(ctx context.Context) (*ChainSyncResult, error) {
+func (c *CachedConnection[T]) Fetch(ctx context.Context) (T, error) {
 	c.mu.Lock()
 	// Cache hit on a recent successful fetch — return immediately.
-	if c.last != nil && c.err == nil && time.Since(c.fetchedAt) < blockchainInfoCacheTTL {
+	if c.hasLast && c.lastErr == nil && time.Since(c.fetched) < c.ttl {
 		out := c.last
 		c.mu.Unlock()
 		return out, nil
@@ -2037,10 +1951,11 @@ func (c *cachedChainProber) Probe(ctx context.Context) (*ChainSyncResult, error)
 		select {
 		case <-ch:
 		case <-ctx.Done():
-			return nil, ctx.Err()
+			var zero T
+			return zero, ctx.Err()
 		}
 		c.mu.Lock()
-		out, err := c.last, c.err
+		out, err := c.last, c.lastErr
 		c.mu.Unlock()
 		return out, err
 	}
@@ -2049,59 +1964,86 @@ func (c *cachedChainProber) Probe(ctx context.Context) (*ChainSyncResult, error)
 	c.inFlight = ch
 	c.mu.Unlock()
 
-	res, err := c.inner.Probe(ctx)
+	res, err := c.inner.Fetch(ctx)
 
 	c.mu.Lock()
 	if err == nil {
 		c.last = res
-		c.err = nil
-		c.fetchedAt = time.Now()
+		c.hasLast = true
+		c.lastErr = nil
+		c.fetched = time.Now()
 	} else {
-		// Don't poison the cached result on transient errors — keep the last
+		// Don't poison the cached value on transient errors — keep the last
 		// good value but record the error for the leader's return. Followers
-		// that joined this fetch see the same error via c.err below.
-		c.err = err
+		// that joined this fetch see the same error via lastErr below.
+		c.lastErr = err
 	}
 	c.inFlight = nil
 	close(ch)
 
 	out := c.last
 	c.mu.Unlock()
-	return out, err
+	if err != nil {
+		return out, err
+	}
+	return out, nil
 }
 
-// bitcoindProber wraps the existing GetMainchainBlockchainInfo (which still
-// has its own bciMu cache because the public Connect RPC at
-// api/orchestrator_handler.go:216 returns the rich *MainchainBlockchainInfo).
-// Projecting it down to *ChainSyncResult lets bitcoind ride the same generic
-// dispatch path as enforcer + sidechains. The double-caching coordinates
-// through bitcoind's underlying single-flight so there's no extra RPC churn.
-type bitcoindProber struct{ o *Orchestrator }
+// projected adapts Connection[A] into Connection[B] via a pure transform.
+// Used to expose one cached source of truth through multiple typed views —
+// e.g. bitcoind's getblockchaininfo powers both the rich Connect RPC and the
+// lean ChainSyncResult dispatch without issuing two HTTP calls per second.
+type projected[A, B any] struct {
+	inner Connection[A]
+	fn    func(A) B
+}
 
-func (p *bitcoindProber) Probe(ctx context.Context) (*ChainSyncResult, error) {
-	info, err := p.o.GetMainchainBlockchainInfo(ctx)
+func (p *projected[A, B]) Fetch(ctx context.Context) (B, error) {
+	a, err := p.inner.Fetch(ctx)
+	var zero B
+	if err != nil {
+		return zero, err
+	}
+	return p.fn(a), nil
+}
+
+// Project decorates a Connection[A] with a transform A→B.
+func Project[A, B any](inner Connection[A], fn func(A) B) Connection[B] {
+	return &projected[A, B]{inner: inner, fn: fn}
+}
+
+// bitcoindInfoConnection is the raw getblockchaininfo RPC. No caching —
+// CachedConnection wraps it for that.
+type bitcoindInfoConnection struct{ o *Orchestrator }
+
+func (c *bitcoindInfoConnection) Fetch(ctx context.Context) (*MainchainBlockchainInfo, error) {
+	client, err := c.o.CoreStatusClient()
 	if err != nil {
 		return nil, err
 	}
-	return &ChainSyncResult{
-		Blocks:  int64(info.Blocks),
-		Headers: int64(info.Headers),
-		Time:    info.Time,
-	}, nil
+	result, err := client.call(ctx, "getblockchaininfo")
+	if err != nil {
+		return nil, fmt.Errorf("getblockchaininfo: %w", err)
+	}
+	var info MainchainBlockchainInfo
+	if err := json.Unmarshal(result, &info); err != nil {
+		return nil, fmt.Errorf("decode getblockchaininfo: %w", err)
+	}
+	return &info, nil
 }
 
-// enforcerProber issues ValidatorService.GetChainTip with a 2s context
-// timeout. Headers stay zero — the GetSyncStatus merge step fills them
-// from the mainchain tip.
-type enforcerProber struct{ o *Orchestrator }
+// enforcerSyncConnection is the raw ValidatorService.GetChainTip RPC.
+// Headers stay zero — the GetSyncStatus merge step fills them from the
+// mainchain tip.
+type enforcerSyncConnection struct{ o *Orchestrator }
 
-func (p *enforcerProber) Probe(ctx context.Context) (*ChainSyncResult, error) {
-	cfg, ok := p.o.Configs()["enforcer"]
+func (c *enforcerSyncConnection) Fetch(ctx context.Context) (*ChainSyncResult, error) {
+	cfg, ok := c.o.Configs()["enforcer"]
 	if !ok || cfg.Port == 0 {
 		return nil, fmt.Errorf("enforcer not configured")
 	}
 	client := enforcerrpc.NewValidatorServiceClient(
-		p.o.enforcerHTTP(),
+		c.o.enforcerHTTP(),
 		fmt.Sprintf("http://127.0.0.1:%d", cfg.Port),
 		connect.WithGRPC(),
 	)
@@ -2116,57 +2058,119 @@ func (p *enforcerProber) Probe(ctx context.Context) (*ChainSyncResult, error) {
 	}, nil
 }
 
-// sidechainProber issues the Connect-JSON GetBlockCount against a single
-// orchestrator-managed L2. Headers stay zero — the GetSyncStatus merge
-// step fills them from the public explorer.
-type sidechainProber struct {
+// sidechainSyncConnection is the raw Connect-JSON GetBlockCount RPC for one
+// L2 sidechain. Headers stay zero — the GetSyncStatus merge step fills them
+// from the public explorer.
+type sidechainSyncConnection struct {
 	o    *Orchestrator
 	name string
 }
 
-func (p *sidechainProber) Probe(ctx context.Context) (*ChainSyncResult, error) {
-	cfg, ok := p.o.Configs()[p.name]
+func (c *sidechainSyncConnection) Fetch(ctx context.Context) (*ChainSyncResult, error) {
+	cfg, ok := c.o.Configs()[c.name]
 	if !ok {
-		return nil, fmt.Errorf("unknown sidechain: %s", p.name)
+		return nil, fmt.Errorf("unknown sidechain: %s", c.name)
 	}
-	path, known := sidechainServicePath[p.name]
+	path, known := sidechainServicePath[c.name]
 	if !known {
-		return nil, fmt.Errorf("unknown sidechain: %s", p.name)
+		return nil, fmt.Errorf("unknown sidechain: %s", c.name)
 	}
 	url := fmt.Sprintf("http://localhost:%d%s", cfg.Port, path)
 	var resp struct {
 		Count int64 `json:"count"`
 	}
-	if err := connectJSONPost(ctx, p.o.sidechainHTTP(), url, &resp); err != nil {
+	if err := connectJSONPost(ctx, c.o.sidechainHTTP(), url, &resp); err != nil {
 		return nil, err
 	}
 	return &ChainSyncResult{Blocks: resp.Count}, nil
 }
 
-// chainProberFor returns the cached chainProber for name, building (and
-// memoising) it on first use. Names match the BinaryConfig keys: "bitcoind",
-// "enforcer", or any L2 sidechain key.
-func (o *Orchestrator) chainProberFor(name string) *cachedChainProber {
-	o.chainProbersMu.Lock()
-	defer o.chainProbersMu.Unlock()
-	if o.chainProbers == nil {
-		o.chainProbers = make(map[string]*cachedChainProber)
+// mainchainInfoToSync projects a *MainchainBlockchainInfo down to the lean
+// *ChainSyncResult view that GetSyncStatus dispatches on.
+func mainchainInfoToSync(info *MainchainBlockchainInfo) *ChainSyncResult {
+	if info == nil {
+		return nil
 	}
-	if p, ok := o.chainProbers[name]; ok {
-		return p
+	return &ChainSyncResult{
+		Blocks:  int64(info.Blocks),
+		Headers: int64(info.Headers),
+		Time:    info.Time,
 	}
-	var inner chainProber
+}
+
+// bitcoindInfoCached returns the single cached Connection backing both
+// GetMainchainBlockchainInfo (rich external Connect RPC) and the lean
+// GetSyncStatus dispatch. Built lazily on first use.
+func (o *Orchestrator) bitcoindInfoCached() *CachedConnection[*MainchainBlockchainInfo] {
+	o.syncConnMu.Lock()
+	defer o.syncConnMu.Unlock()
+	if o.bitcoindInfo == nil {
+		o.bitcoindInfo = &CachedConnection[*MainchainBlockchainInfo]{
+			inner: &bitcoindInfoConnection{o: o},
+			ttl:   blockchainInfoCacheTTL,
+		}
+	}
+	return o.bitcoindInfo
+}
+
+// syncConnectionFor returns the cached *ChainSyncResult connection for name,
+// building (and memoising) it on first use. Names match the BinaryConfig
+// keys: "bitcoind", "enforcer", or any L2 sidechain key. For "bitcoind" the
+// returned value wraps a Project over bitcoindInfoCached so the rich
+// connection and the sync view share one in-flight RPC.
+func (o *Orchestrator) syncConnectionFor(name string) Connection[*ChainSyncResult] {
+	o.syncConnMu.Lock()
+	defer o.syncConnMu.Unlock()
 	switch name {
 	case "bitcoind":
-		inner = &bitcoindProber{o: o}
+		if o.bitcoindInfo == nil {
+			o.bitcoindInfo = &CachedConnection[*MainchainBlockchainInfo]{
+				inner: &bitcoindInfoConnection{o: o},
+				ttl:   blockchainInfoCacheTTL,
+			}
+		}
+		if o.bitcoindSync == nil {
+			o.bitcoindSync = Project[*MainchainBlockchainInfo, *ChainSyncResult](o.bitcoindInfo, mainchainInfoToSync)
+		}
+		return o.bitcoindSync
 	case "enforcer":
-		inner = &enforcerProber{o: o}
+		if o.enforcerSync == nil {
+			o.enforcerSync = &CachedConnection[*ChainSyncResult]{
+				inner: &enforcerSyncConnection{o: o},
+				ttl:   blockchainInfoCacheTTL,
+			}
+		}
+		return o.enforcerSync
 	default:
-		inner = &sidechainProber{o: o, name: name}
+		if o.sidechainSyncs == nil {
+			o.sidechainSyncs = make(map[string]*CachedConnection[*ChainSyncResult])
+		}
+		if c, ok := o.sidechainSyncs[name]; ok {
+			return c
+		}
+		c := &CachedConnection[*ChainSyncResult]{
+			inner: &sidechainSyncConnection{o: o, name: name},
+			ttl:   blockchainInfoCacheTTL,
+		}
+		o.sidechainSyncs[name] = c
+		return c
 	}
-	p := &cachedChainProber{inner: inner}
-	o.chainProbers[name] = p
-	return p
+}
+
+// GetMainchainBlockchainInfo proxies getblockchaininfo from bitcoind through
+// the shared cache. Signature is load-bearing — the public Connect RPC at
+// api/orchestrator_handler.go:216 returns this rich type directly.
+func (o *Orchestrator) GetMainchainBlockchainInfo(ctx context.Context) (*MainchainBlockchainInfo, error) {
+	return o.bitcoindInfoCached().Fetch(ctx)
+}
+
+// ChainSyncResult is one chain's tip snapshot. Error is set on failure; the
+// numeric fields are best-effort zero in that case.
+type ChainSyncResult struct {
+	Blocks  int64
+	Headers int64
+	Time    int64
+	Error   string
 }
 
 // SyncStatus is the atomic snapshot returned by GetSyncStatus. Mainchain +
@@ -2219,18 +2223,19 @@ func (o *Orchestrator) GetSyncStatus(ctx context.Context) (*SyncStatus, error) {
 		}
 	}
 
-	// Unified dispatch: build (name, slot, validate) tuples covering L1 +
+	// Unified dispatch: build (slot, conn, validate) tuples covering L1 +
 	// L2. validate returns the short-circuit error string for slots that
-	// shouldn't reach Probe (config missing, process not running, etc).
+	// shouldn't reach Fetch (config missing, process not running, etc). The
+	// dispatch loop body below is RPC-agnostic — only conn differs.
 	type job struct {
-		name     string
 		slot     *ChainSyncResult
+		conn     Connection[*ChainSyncResult]
 		validate func() string
 	}
 	jobs := []job{
 		{
-			name: "bitcoind",
 			slot: out.Mainchain,
+			conn: o.syncConnectionFor("bitcoind"),
 			validate: func() string {
 				if _, ok := o.Configs()["bitcoind"]; !ok {
 					return "bitcoind not configured"
@@ -2239,8 +2244,8 @@ func (o *Orchestrator) GetSyncStatus(ctx context.Context) (*SyncStatus, error) {
 			},
 		},
 		{
-			name: "enforcer",
 			slot: out.Enforcer,
+			conn: o.syncConnectionFor("enforcer"),
 			validate: func() string {
 				cfg, ok := o.Configs()["enforcer"]
 				if !ok || cfg.Port == 0 {
@@ -2256,8 +2261,8 @@ func (o *Orchestrator) GetSyncStatus(ctx context.Context) (*SyncStatus, error) {
 	for name, slot := range out.Sidechains {
 		name, slot := name, slot
 		jobs = append(jobs, job{
-			name: name,
 			slot: slot,
+			conn: o.syncConnectionFor(name),
 			validate: func() string {
 				if _, ok := o.Configs()[name]; !ok {
 					return fmt.Sprintf("unknown sidechain: %s", name)
@@ -2296,7 +2301,7 @@ func (o *Orchestrator) GetSyncStatus(ctx context.Context) (*SyncStatus, error) {
 				j.slot.Error = msg
 				return
 			}
-			res, err := o.chainProberFor(j.name).Probe(ctx)
+			res, err := j.conn.Fetch(ctx)
 			// Only surface the error when there's no cached value to fall
 			// back on — otherwise keep showing the last-good numbers so
 			// the UI's progress doesn't snap to zero on a transient
@@ -2346,15 +2351,32 @@ func (o *Orchestrator) GetSyncStatus(ctx context.Context) (*SyncStatus, error) {
 	return out, nil
 }
 
-// invalidateChainProberCacheForTest forces the named chainProber's cache
-// entry to expire so the next Probe call refetches. Test-only helper used
-// by get_sync_status_test.go to drive last-good-on-error coverage without
-// poking at unexported cache fields directly.
-func (o *Orchestrator) invalidateChainProberCacheForTest(name string) {
-	p := o.chainProberFor(name)
-	p.mu.Lock()
-	p.fetchedAt = time.Now().Add(-time.Hour)
-	p.mu.Unlock()
+// invalidateSyncConnectionCacheForTest forces the named CachedConnection's
+// TTL window to expire so the next Fetch call refetches. Test-only helper
+// used by get_sync_status_test.go to drive last-good-on-error coverage
+// without poking at unexported cache fields directly.
+func (o *Orchestrator) invalidateSyncConnectionCacheForTest(name string) {
+	// Building the connection first guarantees the cache field is non-nil.
+	_ = o.syncConnectionFor(name)
+	o.syncConnMu.Lock()
+	defer o.syncConnMu.Unlock()
+	switch name {
+	case "bitcoind":
+		c := o.bitcoindInfo
+		c.mu.Lock()
+		c.fetched = time.Now().Add(-time.Hour)
+		c.mu.Unlock()
+	case "enforcer":
+		c := o.enforcerSync
+		c.mu.Lock()
+		c.fetched = time.Now().Add(-time.Hour)
+		c.mu.Unlock()
+	default:
+		c := o.sidechainSyncs[name]
+		c.mu.Lock()
+		c.fetched = time.Now().Add(-time.Hour)
+		c.mu.Unlock()
+	}
 }
 
 // explorerCacheTTL bounds how often we hit the public explorer. Sidechain
