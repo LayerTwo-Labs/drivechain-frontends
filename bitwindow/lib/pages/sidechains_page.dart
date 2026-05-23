@@ -742,6 +742,11 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
     // never advances and the button doesn't flip from "Download" → "Start"
     // until the user touches the row.
     _downloadProvider?.addListener(_onChange);
+    // _onChange only fires notifyListeners on start/stop transitions because
+    // mbDownloaded isn't in the tracked binaryStates map — so without this
+    // direct hook the in-flight progress bar never repaints (#1728). Cheap:
+    // active downloads only, and the rebuild reads o(1) provider state.
+    _downloadProvider?.addListener(notifyListeners);
   }
 
   bool get loading => _enforcerRPC.initializingBinary;
