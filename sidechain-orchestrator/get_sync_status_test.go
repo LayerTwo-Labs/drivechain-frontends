@@ -335,28 +335,29 @@ func countingSidechainServer(t *testing.T, count int64) (*httptest.Server, *int3
 	return srv, &hits
 }
 
-func TestGetSidechainBlockCount_CachesWithinTTL(t *testing.T) {
+func TestSidechainProber_CachesWithinTTL(t *testing.T) {
 	o := newTestOrchestrator(t)
 	srv, hits := countingSidechainServer(t, 100)
 	setSidechainPort(t, o, "thunder", srv.URL)
 	adoptSidechain(t, o, "thunder")
 
-	first, err := o.GetSidechainBlockCount(context.Background(), "thunder")
+	first, err := o.chainProberFor("thunder").Probe(context.Background())
 	require.NoError(t, err)
-	second, err := o.GetSidechainBlockCount(context.Background(), "thunder")
+	second, err := o.chainProberFor("thunder").Probe(context.Background())
 	require.NoError(t, err)
 
-	assert.Equal(t, int64(100), first)
-	assert.Equal(t, int64(100), second)
+	assert.Equal(t, int64(100), first.Blocks)
+	assert.Equal(t, int64(100), second.Blocks)
 	assert.Equal(t, int32(1), atomic.LoadInt32(hits),
-		"two calls within sidechainCountCacheTTL must share one RPC — the cache is what stops UI flicker")
+		"two calls within blockchainInfoCacheTTL must share one RPC — the cache is what stops UI flicker")
 }
 
 // Regression for "thunder block count doesn't update during sync": with the
 // old code, every transient RPC error reset slot.Blocks to 0 in the response
-// and the UI saw alternating 0/N values. The fix mirrors bitcoind's last-
-// good cache — failed fetches preserve the previous count.
-func TestGetSidechainBlockCount_PreservesLastGoodOnError(t *testing.T) {
+// and the UI saw alternating 0/N values. The fix routes every chain through
+// cachedChainProber's last-good machinery — failed fetches preserve the
+// previous count.
+func TestSidechainProber_PreservesLastGoodOnError(t *testing.T) {
 	o := newTestOrchestrator(t)
 
 	var hits int32
@@ -373,18 +374,17 @@ func TestGetSidechainBlockCount_PreservesLastGoodOnError(t *testing.T) {
 	setSidechainPort(t, o, "thunder", srv.URL)
 	adoptSidechain(t, o, "thunder")
 
-	first, err := o.GetSidechainBlockCount(context.Background(), "thunder")
+	first, err := o.chainProberFor("thunder").Probe(context.Background())
 	require.NoError(t, err)
-	require.Equal(t, int64(1500), first)
+	require.Equal(t, int64(1500), first.Blocks)
 
 	// Bust the TTL so the next call hits the network (and fails).
-	o.sidechainCountMu.Lock()
-	o.sidechainCountCache["thunder"].fetchedAt = time.Now().Add(-time.Hour)
-	o.sidechainCountMu.Unlock()
+	o.invalidateChainProberCacheForTest("thunder")
 
-	second, err := o.GetSidechainBlockCount(context.Background(), "thunder")
+	second, err := o.chainProberFor("thunder").Probe(context.Background())
 	require.Error(t, err, "the leader still surfaces the underlying RPC error")
-	assert.Equal(t, int64(1500), second,
+	require.NotNil(t, second)
+	assert.Equal(t, int64(1500), second.Blocks,
 		"last-good blocks must survive a transient failure — bitcoind's pattern at orchestrator.go:1946-1955")
 }
 
@@ -425,9 +425,7 @@ func TestGetSyncStatus_KeepsLastGoodBlocksAcrossTransientFailures(t *testing.T) 
 	// (and the upstream RPC will fail). Without the last-good cache the
 	// slot would come back Blocks=0, Error="HTTP 500..." — exactly the
 	// flicker the user reported.
-	o.sidechainCountMu.Lock()
-	o.sidechainCountCache["thunder"].fetchedAt = time.Now().Add(-time.Hour)
-	o.sidechainCountMu.Unlock()
+	o.invalidateChainProberCacheForTest("thunder")
 
 	out2, err := o.GetSyncStatus(context.Background())
 	require.NoError(t, err)

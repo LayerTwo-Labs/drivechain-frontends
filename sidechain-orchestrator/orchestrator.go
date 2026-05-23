@@ -168,14 +168,12 @@ type Orchestrator struct {
 	bciErr       error
 	bciFetchedAt time.Time
 
-	// Per-sidechain GetBlockCount cache + single-flight, mirroring the
-	// bitcoind pattern above. Without this every SyncProvider poll
-	// (~10/s during sync) hit the sidechain's RPC raw — when a probe
-	// timed out the slot reset to Blocks=0/Error=timeout and the UI's
-	// block count flickered between 0 and the real value, looking
-	// like "thunder doesn't update during sync" while bitcoind did.
-	sidechainCountMu    sync.Mutex
-	sidechainCountCache map[string]*sidechainCountCacheEntry
+	// chainProbers caches one cachedChainProber per chain (bitcoind, enforcer,
+	// each sidechain). Same cache + single-flight + last-good-on-error machinery
+	// applies to every L1/L2 tip probe so the UI sees identical timing semantics
+	// across the board. Built lazily by chainProberFor.
+	chainProbersMu sync.Mutex
+	chainProbers   map[string]*cachedChainProber
 
 	// httpClientsMu guards the lazy HTTP-client singletons used by the
 	// chatty pollers (CoreStatusClient, GetSyncStatus). Each client is built
@@ -1991,107 +1989,6 @@ func (o *Orchestrator) fetchMainchainBlockchainInfo(ctx context.Context) (*Mainc
 	return &info, nil
 }
 
-// sidechainCountCacheEntry mirrors the bciMu/bciInfo/bciInFlight trio in
-// per-sidechain form. `blocks` holds the last-good count and is preserved
-// across transient RPC errors so the UI doesn't flicker to zero.
-type sidechainCountCacheEntry struct {
-	blocks    int64
-	err       error
-	fetchedAt time.Time
-	inFlight  chan struct{}
-}
-
-// sidechainCountCacheTTL matches blockchainInfoCacheTTL — the sidechain
-// daemons tick once per ~minute so a 1 s cache is plenty fresh for the
-// UI and 10x less load on the daemon under aggressive SyncProvider polling.
-const sidechainCountCacheTTL = time.Second
-
-// GetSidechainBlockCount returns the cached block-count for name, single-
-// flighting concurrent callers and preserving the last-good value across
-// transient RPC errors. Modelled on [GetMainchainBlockchainInfo]: a fresh
-// fetch is only issued once the cached value is older than
-// [sidechainCountCacheTTL] or has never been populated. The returned
-// error mirrors the most recent RPC outcome — callers that want only the
-// last-good number can ignore it (slot.Blocks stays accurate).
-func (o *Orchestrator) GetSidechainBlockCount(ctx context.Context, name string) (int64, error) {
-	o.sidechainCountMu.Lock()
-	if o.sidechainCountCache == nil {
-		o.sidechainCountCache = make(map[string]*sidechainCountCacheEntry)
-	}
-	entry, ok := o.sidechainCountCache[name]
-	if !ok {
-		entry = &sidechainCountCacheEntry{}
-		o.sidechainCountCache[name] = entry
-	}
-
-	// Cache hit on a recent successful fetch — return immediately.
-	if entry.err == nil && !entry.fetchedAt.IsZero() && time.Since(entry.fetchedAt) < sidechainCountCacheTTL {
-		blocks := entry.blocks
-		o.sidechainCountMu.Unlock()
-		return blocks, nil
-	}
-
-	// A fetch is already in flight — wait for it instead of issuing another.
-	if ch := entry.inFlight; ch != nil {
-		o.sidechainCountMu.Unlock()
-		select {
-		case <-ch:
-		case <-ctx.Done():
-			return 0, ctx.Err()
-		}
-		o.sidechainCountMu.Lock()
-		blocks, err := entry.blocks, entry.err
-		o.sidechainCountMu.Unlock()
-		return blocks, err
-	}
-
-	// We're the leader — install the in-flight signal and run the fetch.
-	ch := make(chan struct{})
-	entry.inFlight = ch
-	o.sidechainCountMu.Unlock()
-
-	blocks, err := o.fetchSidechainBlockCount(ctx, name)
-
-	o.sidechainCountMu.Lock()
-	if err == nil {
-		entry.blocks = blocks
-		entry.err = nil
-		entry.fetchedAt = time.Now()
-	} else {
-		// Don't poison the cached count on transient errors — keep the
-		// last good value but record the error so callers that *do* check
-		// can react. The follower path above will see this same (blocks, err).
-		entry.err = err
-	}
-	entry.inFlight = nil
-	close(ch)
-
-	cachedBlocks := entry.blocks
-	o.sidechainCountMu.Unlock()
-	return cachedBlocks, err
-}
-
-// fetchSidechainBlockCount issues the actual Connect-JSON RPC. Pulled out
-// so GetSidechainBlockCount can wrap it with cache + single-flight.
-func (o *Orchestrator) fetchSidechainBlockCount(ctx context.Context, name string) (int64, error) {
-	cfg, ok := o.Configs()[name]
-	if !ok {
-		return 0, fmt.Errorf("unknown sidechain: %s", name)
-	}
-	path, known := sidechainServicePath[name]
-	if !known {
-		return 0, fmt.Errorf("unknown sidechain: %s", name)
-	}
-	url := fmt.Sprintf("http://localhost:%d%s", cfg.Port, path)
-	var resp struct {
-		Count int64 `json:"count"`
-	}
-	if err := connectJSONPost(ctx, o.sidechainHTTP(), url, &resp); err != nil {
-		return 0, err
-	}
-	return resp.Count, nil
-}
-
 // ChainSyncResult is one chain's tip snapshot. Error is set on failure; the
 // numeric fields are best-effort zero in that case.
 type ChainSyncResult struct {
@@ -2099,6 +1996,177 @@ type ChainSyncResult struct {
 	Headers int64
 	Time    int64
 	Error   string
+}
+
+// chainProber returns one chain's current tip in its native wire format.
+// Concrete impls: bitcoindProber (JSON-RPC getblockchaininfo), enforcerProber
+// (Connect/gRPC ValidatorService.GetChainTip), sidechainProber (Connect-JSON
+// GetBlockCount). Each returns a partially-filled *ChainSyncResult; the
+// GetSyncStatus caller merges headers afterward (mainchain for enforcer,
+// public explorer for sidechains).
+type chainProber interface {
+	Probe(ctx context.Context) (*ChainSyncResult, error)
+}
+
+// cachedChainProber decorates any chainProber with the bitcoind-style
+// cache + single-flight + preserve-last-good-on-error pattern. Identical
+// machinery to GetMainchainBlockchainInfo, just generic over the underlying
+// probe. Every chain ends up here so the UI sees identical timing semantics
+// across L1 and L2.
+type cachedChainProber struct {
+	inner chainProber
+
+	mu        sync.Mutex
+	last      *ChainSyncResult
+	err       error
+	fetchedAt time.Time
+	inFlight  chan struct{}
+}
+
+func (c *cachedChainProber) Probe(ctx context.Context) (*ChainSyncResult, error) {
+	c.mu.Lock()
+	// Cache hit on a recent successful fetch — return immediately.
+	if c.last != nil && c.err == nil && time.Since(c.fetchedAt) < blockchainInfoCacheTTL {
+		out := c.last
+		c.mu.Unlock()
+		return out, nil
+	}
+	// A fetch is already in flight — wait for it instead of issuing another.
+	if ch := c.inFlight; ch != nil {
+		c.mu.Unlock()
+		select {
+		case <-ch:
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		}
+		c.mu.Lock()
+		out, err := c.last, c.err
+		c.mu.Unlock()
+		return out, err
+	}
+	// We're the leader — install the in-flight signal and run the fetch.
+	ch := make(chan struct{})
+	c.inFlight = ch
+	c.mu.Unlock()
+
+	res, err := c.inner.Probe(ctx)
+
+	c.mu.Lock()
+	if err == nil {
+		c.last = res
+		c.err = nil
+		c.fetchedAt = time.Now()
+	} else {
+		// Don't poison the cached result on transient errors — keep the last
+		// good value but record the error for the leader's return. Followers
+		// that joined this fetch see the same error via c.err below.
+		c.err = err
+	}
+	c.inFlight = nil
+	close(ch)
+
+	out := c.last
+	c.mu.Unlock()
+	return out, err
+}
+
+// bitcoindProber wraps the existing GetMainchainBlockchainInfo (which still
+// has its own bciMu cache because the public Connect RPC at
+// api/orchestrator_handler.go:216 returns the rich *MainchainBlockchainInfo).
+// Projecting it down to *ChainSyncResult lets bitcoind ride the same generic
+// dispatch path as enforcer + sidechains. The double-caching coordinates
+// through bitcoind's underlying single-flight so there's no extra RPC churn.
+type bitcoindProber struct{ o *Orchestrator }
+
+func (p *bitcoindProber) Probe(ctx context.Context) (*ChainSyncResult, error) {
+	info, err := p.o.GetMainchainBlockchainInfo(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return &ChainSyncResult{
+		Blocks:  int64(info.Blocks),
+		Headers: int64(info.Headers),
+		Time:    info.Time,
+	}, nil
+}
+
+// enforcerProber issues ValidatorService.GetChainTip with a 2s context
+// timeout. Headers stay zero — the GetSyncStatus merge step fills them
+// from the mainchain tip.
+type enforcerProber struct{ o *Orchestrator }
+
+func (p *enforcerProber) Probe(ctx context.Context) (*ChainSyncResult, error) {
+	cfg, ok := p.o.Configs()["enforcer"]
+	if !ok || cfg.Port == 0 {
+		return nil, fmt.Errorf("enforcer not configured")
+	}
+	client := enforcerrpc.NewValidatorServiceClient(
+		p.o.enforcerHTTP(),
+		fmt.Sprintf("http://127.0.0.1:%d", cfg.Port),
+		connect.WithGRPC(),
+	)
+	rpcCtx, cancel := context.WithTimeout(ctx, 2*time.Second)
+	defer cancel()
+	resp, err := client.GetChainTip(rpcCtx, connect.NewRequest(&enforcerpb.GetChainTipRequest{}))
+	if err != nil {
+		return nil, err
+	}
+	return &ChainSyncResult{
+		Blocks: int64(resp.Msg.GetBlockHeaderInfo().GetHeight()),
+	}, nil
+}
+
+// sidechainProber issues the Connect-JSON GetBlockCount against a single
+// orchestrator-managed L2. Headers stay zero — the GetSyncStatus merge
+// step fills them from the public explorer.
+type sidechainProber struct {
+	o    *Orchestrator
+	name string
+}
+
+func (p *sidechainProber) Probe(ctx context.Context) (*ChainSyncResult, error) {
+	cfg, ok := p.o.Configs()[p.name]
+	if !ok {
+		return nil, fmt.Errorf("unknown sidechain: %s", p.name)
+	}
+	path, known := sidechainServicePath[p.name]
+	if !known {
+		return nil, fmt.Errorf("unknown sidechain: %s", p.name)
+	}
+	url := fmt.Sprintf("http://localhost:%d%s", cfg.Port, path)
+	var resp struct {
+		Count int64 `json:"count"`
+	}
+	if err := connectJSONPost(ctx, p.o.sidechainHTTP(), url, &resp); err != nil {
+		return nil, err
+	}
+	return &ChainSyncResult{Blocks: resp.Count}, nil
+}
+
+// chainProberFor returns the cached chainProber for name, building (and
+// memoising) it on first use. Names match the BinaryConfig keys: "bitcoind",
+// "enforcer", or any L2 sidechain key.
+func (o *Orchestrator) chainProberFor(name string) *cachedChainProber {
+	o.chainProbersMu.Lock()
+	defer o.chainProbersMu.Unlock()
+	if o.chainProbers == nil {
+		o.chainProbers = make(map[string]*cachedChainProber)
+	}
+	if p, ok := o.chainProbers[name]; ok {
+		return p
+	}
+	var inner chainProber
+	switch name {
+	case "bitcoind":
+		inner = &bitcoindProber{o: o}
+	case "enforcer":
+		inner = &enforcerProber{o: o}
+	default:
+		inner = &sidechainProber{o: o, name: name}
+	}
+	p := &cachedChainProber{inner: inner}
+	o.chainProbers[name] = p
+	return p
 }
 
 // SyncStatus is the atomic snapshot returned by GetSyncStatus. Mainchain +
@@ -2151,6 +2219,60 @@ func (o *Orchestrator) GetSyncStatus(ctx context.Context) (*SyncStatus, error) {
 		}
 	}
 
+	// Unified dispatch: build (name, slot, validate) tuples covering L1 +
+	// L2. validate returns the short-circuit error string for slots that
+	// shouldn't reach Probe (config missing, process not running, etc).
+	type job struct {
+		name     string
+		slot     *ChainSyncResult
+		validate func() string
+	}
+	jobs := []job{
+		{
+			name: "bitcoind",
+			slot: out.Mainchain,
+			validate: func() string {
+				if _, ok := o.Configs()["bitcoind"]; !ok {
+					return "bitcoind not configured"
+				}
+				return ""
+			},
+		},
+		{
+			name: "enforcer",
+			slot: out.Enforcer,
+			validate: func() string {
+				cfg, ok := o.Configs()["enforcer"]
+				if !ok || cfg.Port == 0 {
+					return "enforcer not configured"
+				}
+				if !o.process.IsRunning("enforcer") {
+					return "not running"
+				}
+				return ""
+			},
+		},
+	}
+	for name, slot := range out.Sidechains {
+		name, slot := name, slot
+		jobs = append(jobs, job{
+			name: name,
+			slot: slot,
+			validate: func() string {
+				if _, ok := o.Configs()[name]; !ok {
+					return fmt.Sprintf("unknown sidechain: %s", name)
+				}
+				if _, known := sidechainServicePath[name]; !known {
+					return fmt.Sprintf("unknown sidechain: %s", name)
+				}
+				if !o.process.IsRunning(name) {
+					return "not running"
+				}
+				return ""
+			},
+		})
+	}
+
 	var wg sync.WaitGroup
 
 	// Explorer fan-out runs in parallel with the per-chain probes so its
@@ -2165,78 +2287,29 @@ func (o *Orchestrator) GetSyncStatus(ctx context.Context) (*SyncStatus, error) {
 		heights = o.fetchExplorerHeights(ctx)
 	}()
 
-	// Mainchain: bitcoind getblockchaininfo.
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		info, err := o.GetMainchainBlockchainInfo(ctx)
-		if err != nil {
-			out.Mainchain.Error = err.Error()
-			return
-		}
-		out.Mainchain.Blocks = int64(info.Blocks)
-		out.Mainchain.Headers = int64(info.Headers)
-		out.Mainchain.Time = info.Time
-	}()
-
-	// Enforcer: ValidatorService.GetChainTip.
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		cfg, ok := o.Configs()["enforcer"]
-		if !ok || cfg.Port == 0 {
-			out.Enforcer.Error = "enforcer not configured"
-			return
-		}
-		if !o.process.IsRunning("enforcer") {
-			out.Enforcer.Error = "not running"
-			return
-		}
-		client := enforcerrpc.NewValidatorServiceClient(
-			o.enforcerHTTP(),
-			fmt.Sprintf("http://127.0.0.1:%d", cfg.Port),
-			connect.WithGRPC(),
-		)
-		rpcCtx, cancel := context.WithTimeout(ctx, 2*time.Second)
-		defer cancel()
-		resp, err := client.GetChainTip(rpcCtx, connect.NewRequest(&enforcerpb.GetChainTipRequest{}))
-		if err != nil {
-			out.Enforcer.Error = err.Error()
-			return
-		}
-		out.Enforcer.Blocks = int64(resp.Msg.GetBlockHeaderInfo().GetHeight())
-	}()
-
-	// Sidechains: one goroutine per slot. The actual RPC goes through
-	// GetSidechainBlockCount which caches + single-flights and preserves
-	// last-good blocks across transient errors — the same machinery that
-	// keeps bitcoind's count from flickering during sync.
-	for name, slot := range out.Sidechains {
-		name, slot := name, slot
+	for _, j := range jobs {
+		j := j
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			if _, ok := o.Configs()[name]; !ok {
-				slot.Error = fmt.Sprintf("unknown sidechain: %s", name)
+			if msg := j.validate(); msg != "" {
+				j.slot.Error = msg
 				return
 			}
-			if !o.process.IsRunning(name) {
-				slot.Error = "not running"
+			res, err := o.chainProberFor(j.name).Probe(ctx)
+			// Only surface the error when there's no cached value to fall
+			// back on — otherwise keep showing the last-good numbers so
+			// the UI's progress doesn't snap to zero on a transient
+			// timeout. Same behaviour for L1 (bitcoind) and L2.
+			if err != nil && (res == nil || res.Blocks == 0) {
+				j.slot.Error = err.Error()
 				return
 			}
-			if _, known := sidechainServicePath[name]; !known {
-				slot.Error = fmt.Sprintf("unknown sidechain: %s", name)
-				return
+			if res != nil {
+				j.slot.Blocks = res.Blocks
+				j.slot.Headers = res.Headers
+				j.slot.Time = res.Time
 			}
-			blocks, err := o.GetSidechainBlockCount(ctx, name)
-			// Only surface the error when there's no cached count to fall
-			// back on — otherwise keep showing the last-good value so the
-			// UI's progress doesn't snap to zero on a transient timeout.
-			if err != nil && blocks == 0 {
-				slot.Error = err.Error()
-				return
-			}
-			slot.Blocks = blocks
 		}()
 	}
 
@@ -2271,6 +2344,17 @@ func (o *Orchestrator) GetSyncStatus(ctx context.Context) (*SyncStatus, error) {
 	}
 
 	return out, nil
+}
+
+// invalidateChainProberCacheForTest forces the named chainProber's cache
+// entry to expire so the next Probe call refetches. Test-only helper used
+// by get_sync_status_test.go to drive last-good-on-error coverage without
+// poking at unexported cache fields directly.
+func (o *Orchestrator) invalidateChainProberCacheForTest(name string) {
+	p := o.chainProberFor(name)
+	p.mu.Lock()
+	p.fetchedAt = time.Now().Add(-time.Hour)
+	p.mu.Unlock()
 }
 
 // explorerCacheTTL bounds how often we hit the public explorer. Sidechain
