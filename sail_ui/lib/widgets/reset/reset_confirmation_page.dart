@@ -4,6 +4,31 @@ import 'package:flutter/material.dart';
 import 'package:logger/logger.dart';
 import 'package:sail_ui/sail_ui.dart';
 
+/// Three-state header shown above the file list on the reset page.
+/// Pre-deletion = red warning. Complete with zero errors = green check.
+/// Complete with errors = orange warning, so partial wipes don't masquerade
+/// as a clean success (#1723).
+enum ResetHeaderState { confirm, success, partial }
+
+ResetHeaderState resetHeaderState({required bool deletionComplete, required int errorCount}) {
+  if (!deletionComplete) return ResetHeaderState.confirm;
+  return errorCount == 0 ? ResetHeaderState.success : ResetHeaderState.partial;
+}
+
+/// Defensive flip used on the stream's `done` event in case the orchestrator
+/// finished without emitting a per-path event for every preview row. Leaving
+/// rows in pending/inProgress would strand them grey forever; flipping to
+/// error surfaces the discrepancy. The orchestrator-side fix in d1b8158b
+/// should make this unreachable, but we keep the safety net (#1723).
+void applyDoneEventToItems(List<DeleteItem> items, {String message = 'No result from orchestrator'}) {
+  for (final item in items) {
+    if (item.status == DeleteItemStatus.pending || item.status == DeleteItemStatus.inProgress) {
+      item.status = DeleteItemStatus.error;
+      item.errorMessage = message;
+    }
+  }
+}
+
 /// Page showing files that will be deleted and asking for confirmation
 class ResetConfirmationPage extends StatefulWidget {
   final List<DeleteItem> filesToDelete;
@@ -178,18 +203,7 @@ class _ResetConfirmationPageState extends State<ResetConfirmationPage> {
       await for (final event in widget.orchestratorDelete!()) {
         if (!mounted) return;
         if (event.done) {
-          // Defensive: if the stream finishes without emitting an event for
-          // some preview item, flip it to error rather than letting the row
-          // stay greyed-out forever (#1723). The orchestrator-side fix should
-          // make this unreachable, but the cost is one extra setState.
-          setState(() {
-            for (final item in widget.filesToDelete) {
-              if (item.status == DeleteItemStatus.pending || item.status == DeleteItemStatus.inProgress) {
-                item.status = DeleteItemStatus.error;
-                item.errorMessage = 'No result from orchestrator';
-              }
-            }
-          });
+          setState(() => applyDoneEventToItems(widget.filesToDelete));
           break;
         }
         setState(() {
@@ -265,33 +279,34 @@ class _ResetConfirmationPageState extends State<ResetConfirmationPage> {
                             mainAxisAlignment: MainAxisAlignment.center,
                             spacing: SailStyleValues.padding12,
                             children: [
-                              if (_deletionComplete && errorCount == 0)
-                                Icon(
+                              switch (resetHeaderState(deletionComplete: _deletionComplete, errorCount: errorCount)) {
+                                ResetHeaderState.success => Icon(
                                   Icons.check_circle,
                                   color: theme.colors.success,
                                   size: 32,
-                                )
-                              else if (_deletionComplete)
-                                // Some files were left undeleted — surface that in the
-                                // header instead of the previous unconditional green
-                                // checkmark that masked partial wipes (#1723).
-                                SailSVG.fromAsset(
+                                ),
+                                ResetHeaderState.partial => SailSVG.fromAsset(
                                   SailSVGAsset.iconWarning,
                                   color: theme.colors.orange,
                                   width: 32,
                                   height: 32,
-                                )
-                              else
-                                SailSVG.fromAsset(
+                                ),
+                                ResetHeaderState.confirm => SailSVG.fromAsset(
                                   SailSVGAsset.iconWarning,
                                   color: theme.colors.error,
                                   width: 32,
                                   height: 32,
                                 ),
+                              },
                               SailText.primary24(
-                                _deletionComplete
-                                    ? (errorCount == 0 ? 'Reset Complete' : 'Reset Partially Complete')
-                                    : 'Confirm Deletion',
+                                switch (resetHeaderState(
+                                  deletionComplete: _deletionComplete,
+                                  errorCount: errorCount,
+                                )) {
+                                  ResetHeaderState.success => 'Reset Complete',
+                                  ResetHeaderState.partial => 'Reset Partially Complete',
+                                  ResetHeaderState.confirm => 'Confirm Deletion',
+                                },
                                 bold: true,
                               ),
                             ],
