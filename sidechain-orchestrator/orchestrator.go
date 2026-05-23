@@ -151,9 +151,7 @@ type Orchestrator struct {
 	// reasonable; on fetch failure we keep serving the previous values
 	// rather than dropping headers from the response (callers depend on
 	// them being non-zero to compute progress percentages).
-	explorerMu      sync.Mutex
-	explorerHeights map[string]int64
-	explorerFetched time.Time
+	explorerHeightsCache *CachedConnection[map[string]int64]
 
 	// Cached chain-tip connections. Every chain (L1 bitcoind, enforcer, every
 	// L2 sidechain) goes through the same CachedConnection[T] primitive: TTL
@@ -2383,23 +2381,17 @@ func (o *Orchestrator) invalidateSyncConnectionCacheForTest(name string) {
 // tips move on the order of a minute; 30 s is plenty fresh for the UI.
 const explorerCacheTTL = 30 * time.Second
 
-// fetchExplorerHeights returns the canonical per-sidechain network tip
-// heights, keyed by orchestrator binary name (matches the keys in
-// SyncStatus.Sidechains). Cached for [explorerCacheTTL]. On failure we
-// keep serving the previous values rather than dropping headers entirely.
-func (o *Orchestrator) fetchExplorerHeights(ctx context.Context) map[string]int64 {
-	o.explorerMu.Lock()
-	if !o.explorerFetched.IsZero() && time.Since(o.explorerFetched) < explorerCacheTTL {
-		out := o.explorerHeights
-		o.explorerMu.Unlock()
-		return out
-	}
-	o.explorerMu.Unlock()
+// explorerHeightsConnection is the raw GetChainTips RPC against the public
+// drivechain.info explorer. No caching — CachedConnection wraps it for that.
+type explorerHeightsConnection struct{ o *Orchestrator }
 
+func (c *explorerHeightsConnection) Fetch(ctx context.Context) (map[string]int64, error) {
 	// "forknet" runs on mainnet params for the L1 but the explorer host
 	// keys it as "forknet". The other readable names match the URL slug
-	// directly (mainnet/signet/testnet/regtest).
-	url := fmt.Sprintf("https://node.%s.drivechain.info/api/explorer.v1.ExplorerService/GetChainTips", o.Network)
+	// directly (mainnet/signet/testnet/regtest). Today only signet has a
+	// live explorer; calls on any other network fail, the CachedConnection
+	// last-good-on-error logic keeps serving the previous (or empty) map.
+	url := fmt.Sprintf("https://node.%s.drivechain.info/api/explorer.v1.ExplorerService/GetChainTips", c.o.Network)
 
 	rpcCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
@@ -2411,12 +2403,8 @@ func (o *Orchestrator) fetchExplorerHeights(ctx context.Context) map[string]int6
 	var resp map[string]struct {
 		Height interface{} `json:"height"`
 	}
-	if err := connectJSONPost(rpcCtx, o.explorerHTTP(), url, &resp); err != nil {
-		o.log.Debug().Err(err).Msg("explorer GetChainTips failed; keeping cached heights")
-		o.explorerMu.Lock()
-		out := o.explorerHeights
-		o.explorerMu.Unlock()
-		return out
+	if err := connectJSONPost(rpcCtx, c.o.explorerHTTP(), url, &resp); err != nil {
+		return nil, err
 	}
 
 	heights := make(map[string]int64, len(resp))
@@ -2430,12 +2418,35 @@ func (o *Orchestrator) fetchExplorerHeights(ctx context.Context) map[string]int6
 			heights[name] = int64(v)
 		}
 	}
+	return heights, nil
+}
 
-	o.explorerMu.Lock()
-	o.explorerHeights = heights
-	o.explorerFetched = time.Now()
-	o.explorerMu.Unlock()
+// explorerHeightsCached returns the single CachedConnection backing every
+// public-explorer fetch. Built lazily on first use under the shared
+// syncConnMu so concurrent first-callers don't race to build two of them.
+func (o *Orchestrator) explorerHeightsCached() *CachedConnection[map[string]int64] {
+	o.syncConnMu.Lock()
+	defer o.syncConnMu.Unlock()
+	if o.explorerHeightsCache == nil {
+		o.explorerHeightsCache = &CachedConnection[map[string]int64]{
+			inner: &explorerHeightsConnection{o: o},
+			ttl:   explorerCacheTTL,
+		}
+	}
+	return o.explorerHeightsCache
+}
 
+// fetchExplorerHeights returns the canonical per-sidechain network-tip
+// heights, keyed by orchestrator binary name. Cached for [explorerCacheTTL]
+// via the same CachedConnection primitive every chain-tip probe uses. On
+// failure we keep serving the previous values rather than dropping headers
+// entirely — the error is logged at debug and swallowed so callers (i.e.
+// GetSyncStatus's header-merge step) don't need to think about it.
+func (o *Orchestrator) fetchExplorerHeights(ctx context.Context) map[string]int64 {
+	heights, err := o.explorerHeightsCached().Fetch(ctx)
+	if err != nil {
+		o.log.Debug().Err(err).Msg("explorer GetChainTips failed; keeping cached heights")
+	}
 	return heights
 }
 
