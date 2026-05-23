@@ -335,15 +335,15 @@ func countingSidechainServer(t *testing.T, count int64) (*httptest.Server, *int3
 	return srv, &hits
 }
 
-func TestSidechainProber_CachesWithinTTL(t *testing.T) {
+func TestSidechainConnection_CachesWithinTTL(t *testing.T) {
 	o := newTestOrchestrator(t)
 	srv, hits := countingSidechainServer(t, 100)
 	setSidechainPort(t, o, "thunder", srv.URL)
 	adoptSidechain(t, o, "thunder")
 
-	first, err := o.chainProberFor("thunder").Probe(context.Background())
+	first, err := o.syncConnectionFor("thunder").Fetch(context.Background())
 	require.NoError(t, err)
-	second, err := o.chainProberFor("thunder").Probe(context.Background())
+	second, err := o.syncConnectionFor("thunder").Fetch(context.Background())
 	require.NoError(t, err)
 
 	assert.Equal(t, int64(100), first.Blocks)
@@ -355,9 +355,9 @@ func TestSidechainProber_CachesWithinTTL(t *testing.T) {
 // Regression for "thunder block count doesn't update during sync": with the
 // old code, every transient RPC error reset slot.Blocks to 0 in the response
 // and the UI saw alternating 0/N values. The fix routes every chain through
-// cachedChainProber's last-good machinery — failed fetches preserve the
+// CachedConnection's last-good machinery — failed fetches preserve the
 // previous count.
-func TestSidechainProber_PreservesLastGoodOnError(t *testing.T) {
+func TestSidechainConnection_PreservesLastGoodOnError(t *testing.T) {
 	o := newTestOrchestrator(t)
 
 	var hits int32
@@ -374,18 +374,18 @@ func TestSidechainProber_PreservesLastGoodOnError(t *testing.T) {
 	setSidechainPort(t, o, "thunder", srv.URL)
 	adoptSidechain(t, o, "thunder")
 
-	first, err := o.chainProberFor("thunder").Probe(context.Background())
+	first, err := o.syncConnectionFor("thunder").Fetch(context.Background())
 	require.NoError(t, err)
 	require.Equal(t, int64(1500), first.Blocks)
 
 	// Bust the TTL so the next call hits the network (and fails).
-	o.invalidateChainProberCacheForTest("thunder")
+	o.invalidateSyncConnectionCacheForTest("thunder")
 
-	second, err := o.chainProberFor("thunder").Probe(context.Background())
+	second, err := o.syncConnectionFor("thunder").Fetch(context.Background())
 	require.Error(t, err, "the leader still surfaces the underlying RPC error")
 	require.NotNil(t, second)
 	assert.Equal(t, int64(1500), second.Blocks,
-		"last-good blocks must survive a transient failure — bitcoind's pattern at orchestrator.go:1946-1955")
+		"last-good blocks must survive a transient failure")
 }
 
 // The full UI flow: GetSyncStatus must report the cached count (and no
@@ -425,7 +425,7 @@ func TestGetSyncStatus_KeepsLastGoodBlocksAcrossTransientFailures(t *testing.T) 
 	// (and the upstream RPC will fail). Without the last-good cache the
 	// slot would come back Blocks=0, Error="HTTP 500..." — exactly the
 	// flicker the user reported.
-	o.invalidateChainProberCacheForTest("thunder")
+	o.invalidateSyncConnectionCacheForTest("thunder")
 
 	out2, err := o.GetSyncStatus(context.Background())
 	require.NoError(t, err)
