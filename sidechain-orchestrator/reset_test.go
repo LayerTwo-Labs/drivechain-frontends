@@ -450,6 +450,60 @@ func TestStreamResetData_DeduplicatesAcrossCategories(t *testing.T) {
 	}
 }
 
+// TestCollectPathEntries_ShrinksWhenSeededFilesVanish locks in the *reason*
+// for the fix in commit d1b8158b: collectPathEntries delegates to
+// GetExistingFilesInDir, which silently drops paths that don't exist on
+// disk. The old StreamResetData called collectPathEntries AFTER ShutdownAll
+// removed pid/lock files and WalletSvc.DeleteAllWallets moved wallet dirs
+// aside — so the recompute returned fewer entries than the preview, and
+// the UI rows for the dropped paths stayed pending forever (#1723).
+//
+// The fix snapshots entries at the top of StreamResetData, before any
+// destructive operation runs. This test demonstrates the shrink behavior
+// directly so that any future refactor moving the snapshot back below
+// shutdown immediately reintroduces the bug — and this test catches it.
+func TestCollectPathEntries_ShrinksWhenSeededFilesVanish(t *testing.T) {
+	o := newResetTestOrchestrator(t)
+
+	binDir := BinDir(o.BitwindowDir)
+	seeded := []string{
+		filepath.Join(binDir, "bitcoind"),
+		filepath.Join(binDir, "bip300301-enforcer"),
+		filepath.Join(binDir, "thunder"),
+	}
+	for _, p := range seeded {
+		seedFile(t, p)
+	}
+
+	cat := ResetCategory{DeleteNodeSoftware: true}
+
+	before := o.collectPathEntries(cat)
+	require.NotEmpty(t, before, "expected seeded files in initial collect")
+
+	// Mid-call removal of a seeded path — same effect as ShutdownAll
+	// deleting bitcoind.pid or DeleteAllWallets moving a wallet dir.
+	require.NoError(t, os.Remove(seeded[0]))
+
+	after := o.collectPathEntries(cat)
+
+	assert.Lessf(t, len(after), len(before),
+		"collectPathEntries must shrink when seeded files vanish; "+
+			"that's why StreamResetData snapshots entries before shutdown — "+
+			"if this assertion ever flips, the fix in d1b8158b is no longer load-bearing "+
+			"(before=%d after=%d)", len(before), len(after))
+
+	// Confirm the vanished path specifically dropped out — pin the cause.
+	stillPresent := false
+	for _, e := range after {
+		if e.path == seeded[0] {
+			stillPresent = true
+			break
+		}
+	}
+	assert.False(t, stillPresent,
+		"deleted seed %q should no longer appear in collectPathEntries result", seeded[0])
+}
+
 // ---------- categoryLabel --------------------------------------------------
 
 func TestCategoryLabel(t *testing.T) {
