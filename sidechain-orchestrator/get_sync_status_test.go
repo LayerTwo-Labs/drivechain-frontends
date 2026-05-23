@@ -204,11 +204,12 @@ func TestFetchExplorerHeights_ServesStaleOnFailure(t *testing.T) {
 	require.Equal(t, int64(100), first["thunder"])
 
 	// Invalidate the TTL window so the next call hits the network again,
-	// where it will fail. The "keep serving previous values" branch at
-	// orchestrator.go:2196-2202 must still return the cached map.
-	o.explorerMu.Lock()
-	o.explorerFetched = time.Now().Add(-time.Hour)
-	o.explorerMu.Unlock()
+	// where it will fail. CachedConnection's last-good-on-error must still
+	// hand back the previously fetched map.
+	cc := o.explorerHeightsCached()
+	cc.mu.Lock()
+	cc.fetched = time.Now().Add(-time.Hour)
+	cc.mu.Unlock()
 
 	second := o.fetchExplorerHeights(ctx)
 	assert.Equal(t, int32(2), atomic.LoadInt32(&hits), "second call must hit the network after TTL expiry")
