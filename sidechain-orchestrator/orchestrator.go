@@ -2144,17 +2144,19 @@ func (o *Orchestrator) GetSyncStatus(ctx context.Context) (*SyncStatus, error) {
 	}
 	// Sidechain headers come from the public explorer (fetched in parallel
 	// above). The local sidechain RPC only reports blocks it has indexed,
-	// which can't act as the goal — that has to be the network tip. Best-
-	// effort: when the explorer fetch fails the map is empty and Headers
-	// fall back to slot.Blocks so the UI doesn't divide by zero.
+	// which can't act as the goal — that has to be the network tip. The
+	// explorer is a best-effort UX extra: only signet has one today, so on
+	// mainnet/testnet/regtest/forknet the fetch always fails. When it does,
+	// leave Headers at zero. The previous behaviour set Headers=Blocks,
+	// which made progress = blocks/blocks = 1.0 and rendered every running
+	// sidechain as fully synced even mid-IBD — a far worse failure mode
+	// than a stuck-at-zero progress bar.
 	for name, slot := range out.Sidechains {
 		if slot.Error != "" {
 			continue
 		}
 		if h, ok := heights[name]; ok {
 			slot.Headers = h
-		} else {
-			slot.Headers = slot.Blocks
 		}
 	}
 
