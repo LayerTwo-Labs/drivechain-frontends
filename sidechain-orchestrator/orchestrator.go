@@ -168,6 +168,15 @@ type Orchestrator struct {
 	bciErr       error
 	bciFetchedAt time.Time
 
+	// Per-sidechain GetBlockCount cache + single-flight, mirroring the
+	// bitcoind pattern above. Without this every SyncProvider poll
+	// (~10/s during sync) hit the sidechain's RPC raw — when a probe
+	// timed out the slot reset to Blocks=0/Error=timeout and the UI's
+	// block count flickered between 0 and the real value, looking
+	// like "thunder doesn't update during sync" while bitcoind did.
+	sidechainCountMu    sync.Mutex
+	sidechainCountCache map[string]*sidechainCountCacheEntry
+
 	// httpClientsMu guards the lazy HTTP-client singletons used by the
 	// chatty pollers (CoreStatusClient, GetSyncStatus). Each client is built
 	// once and reused across every poll — without this, every probe
@@ -1982,6 +1991,107 @@ func (o *Orchestrator) fetchMainchainBlockchainInfo(ctx context.Context) (*Mainc
 	return &info, nil
 }
 
+// sidechainCountCacheEntry mirrors the bciMu/bciInfo/bciInFlight trio in
+// per-sidechain form. `blocks` holds the last-good count and is preserved
+// across transient RPC errors so the UI doesn't flicker to zero.
+type sidechainCountCacheEntry struct {
+	blocks    int64
+	err       error
+	fetchedAt time.Time
+	inFlight  chan struct{}
+}
+
+// sidechainCountCacheTTL matches blockchainInfoCacheTTL — the sidechain
+// daemons tick once per ~minute so a 1 s cache is plenty fresh for the
+// UI and 10x less load on the daemon under aggressive SyncProvider polling.
+const sidechainCountCacheTTL = time.Second
+
+// GetSidechainBlockCount returns the cached block-count for name, single-
+// flighting concurrent callers and preserving the last-good value across
+// transient RPC errors. Modelled on [GetMainchainBlockchainInfo]: a fresh
+// fetch is only issued once the cached value is older than
+// [sidechainCountCacheTTL] or has never been populated. The returned
+// error mirrors the most recent RPC outcome — callers that want only the
+// last-good number can ignore it (slot.Blocks stays accurate).
+func (o *Orchestrator) GetSidechainBlockCount(ctx context.Context, name string) (int64, error) {
+	o.sidechainCountMu.Lock()
+	if o.sidechainCountCache == nil {
+		o.sidechainCountCache = make(map[string]*sidechainCountCacheEntry)
+	}
+	entry, ok := o.sidechainCountCache[name]
+	if !ok {
+		entry = &sidechainCountCacheEntry{}
+		o.sidechainCountCache[name] = entry
+	}
+
+	// Cache hit on a recent successful fetch — return immediately.
+	if entry.err == nil && !entry.fetchedAt.IsZero() && time.Since(entry.fetchedAt) < sidechainCountCacheTTL {
+		blocks := entry.blocks
+		o.sidechainCountMu.Unlock()
+		return blocks, nil
+	}
+
+	// A fetch is already in flight — wait for it instead of issuing another.
+	if ch := entry.inFlight; ch != nil {
+		o.sidechainCountMu.Unlock()
+		select {
+		case <-ch:
+		case <-ctx.Done():
+			return 0, ctx.Err()
+		}
+		o.sidechainCountMu.Lock()
+		blocks, err := entry.blocks, entry.err
+		o.sidechainCountMu.Unlock()
+		return blocks, err
+	}
+
+	// We're the leader — install the in-flight signal and run the fetch.
+	ch := make(chan struct{})
+	entry.inFlight = ch
+	o.sidechainCountMu.Unlock()
+
+	blocks, err := o.fetchSidechainBlockCount(ctx, name)
+
+	o.sidechainCountMu.Lock()
+	if err == nil {
+		entry.blocks = blocks
+		entry.err = nil
+		entry.fetchedAt = time.Now()
+	} else {
+		// Don't poison the cached count on transient errors — keep the
+		// last good value but record the error so callers that *do* check
+		// can react. The follower path above will see this same (blocks, err).
+		entry.err = err
+	}
+	entry.inFlight = nil
+	close(ch)
+
+	cachedBlocks := entry.blocks
+	o.sidechainCountMu.Unlock()
+	return cachedBlocks, err
+}
+
+// fetchSidechainBlockCount issues the actual Connect-JSON RPC. Pulled out
+// so GetSidechainBlockCount can wrap it with cache + single-flight.
+func (o *Orchestrator) fetchSidechainBlockCount(ctx context.Context, name string) (int64, error) {
+	cfg, ok := o.Configs()[name]
+	if !ok {
+		return 0, fmt.Errorf("unknown sidechain: %s", name)
+	}
+	path, known := sidechainServicePath[name]
+	if !known {
+		return 0, fmt.Errorf("unknown sidechain: %s", name)
+	}
+	url := fmt.Sprintf("http://localhost:%d%s", cfg.Port, path)
+	var resp struct {
+		Count int64 `json:"count"`
+	}
+	if err := connectJSONPost(ctx, o.sidechainHTTP(), url, &resp); err != nil {
+		return 0, err
+	}
+	return resp.Count, nil
+}
+
 // ChainSyncResult is one chain's tip snapshot. Error is set on failure; the
 // numeric fields are best-effort zero in that case.
 type ChainSyncResult struct {
@@ -2097,15 +2207,16 @@ func (o *Orchestrator) GetSyncStatus(ctx context.Context) (*SyncStatus, error) {
 		out.Enforcer.Blocks = int64(resp.Msg.GetBlockHeaderInfo().GetHeight())
 	}()
 
-	// Sidechains: one goroutine per slot. Download check first, then the
-	// chain's block-count RPC.
+	// Sidechains: one goroutine per slot. The actual RPC goes through
+	// GetSidechainBlockCount which caches + single-flights and preserves
+	// last-good blocks across transient errors — the same machinery that
+	// keeps bitcoind's count from flickering during sync.
 	for name, slot := range out.Sidechains {
 		name, slot := name, slot
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			cfg, ok := o.Configs()[name]
-			if !ok {
+			if _, ok := o.Configs()[name]; !ok {
 				slot.Error = fmt.Sprintf("unknown sidechain: %s", name)
 				return
 			}
@@ -2113,20 +2224,19 @@ func (o *Orchestrator) GetSyncStatus(ctx context.Context) (*SyncStatus, error) {
 				slot.Error = "not running"
 				return
 			}
-			path, known := sidechainServicePath[name]
-			if !known {
+			if _, known := sidechainServicePath[name]; !known {
 				slot.Error = fmt.Sprintf("unknown sidechain: %s", name)
 				return
 			}
-			url := fmt.Sprintf("http://localhost:%d%s", cfg.Port, path)
-			var resp struct {
-				Count int64 `json:"count"`
-			}
-			if err := connectJSONPost(ctx, o.sidechainHTTP(), url, &resp); err != nil {
+			blocks, err := o.GetSidechainBlockCount(ctx, name)
+			// Only surface the error when there's no cached count to fall
+			// back on — otherwise keep showing the last-good value so the
+			// UI's progress doesn't snap to zero on a transient timeout.
+			if err != nil && blocks == 0 {
 				slot.Error = err.Error()
 				return
 			}
-			slot.Blocks = resp.Count
+			slot.Blocks = blocks
 		}()
 	}
 
