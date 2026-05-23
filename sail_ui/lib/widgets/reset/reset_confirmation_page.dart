@@ -251,11 +251,21 @@ class _ResetConfirmationPageState extends State<ResetConfirmationPage> {
                             mainAxisAlignment: MainAxisAlignment.center,
                             spacing: SailStyleValues.padding12,
                             children: [
-                              if (_deletionComplete)
+                              if (_deletionComplete && errorCount == 0)
                                 Icon(
                                   Icons.check_circle,
                                   color: theme.colors.success,
                                   size: 32,
+                                )
+                              else if (_deletionComplete)
+                                // Some files were left undeleted — surface that in the
+                                // header instead of the previous unconditional green
+                                // checkmark that masked partial wipes (#1723).
+                                SailSVG.fromAsset(
+                                  SailSVGAsset.iconWarning,
+                                  color: theme.colors.orange,
+                                  width: 32,
+                                  height: 32,
                                 )
                               else
                                 SailSVG.fromAsset(
@@ -265,7 +275,9 @@ class _ResetConfirmationPageState extends State<ResetConfirmationPage> {
                                   height: 32,
                                 ),
                               SailText.primary24(
-                                _deletionComplete ? 'Reset Complete' : 'Confirm Deletion',
+                                _deletionComplete
+                                    ? (errorCount == 0 ? 'Reset Complete' : 'Reset Partially Complete')
+                                    : 'Confirm Deletion',
                                 bold: true,
                               ),
                             ],
