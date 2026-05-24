@@ -848,6 +848,12 @@ Future<void> bootBitwindowBackend(Logger log) async {
       await orchestrator.listBinaries();
       log.i('STARTUP: orchestratord is ready');
       orchestratorReady = true;
+      // SettingsProvider.create ran before orchestratord was up, so the
+      // test-sidechains flag may still be the cached/default value. Pull
+      // the real one from orchestratord now — BinaryProvider listens to
+      // SettingsProvider and re-fetches binary release timestamps with
+      // the right (test vs prod) URL when this flips.
+      unawaited(GetIt.I.get<SettingsProvider>().reconcileUseTestSidechainsFromOrchestrator());
       if (bitwindowRpc != null) {
         bitwindowRpc.initializingBinary = false;
         bitwindowRpc.markStateChanged();
