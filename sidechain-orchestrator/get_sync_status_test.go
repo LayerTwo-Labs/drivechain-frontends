@@ -71,8 +71,8 @@ func adoptSidechain(t *testing.T, o *Orchestrator, name string) {
 	o.process.AdoptProcess(cfg, 99999)
 }
 
-// sidechainCountServer spins up an httptest.Server that responds to any
-// POST with {"count": <count>} when status==200, or the supplied non-200
+// sidechainCountServer spins up an httptest.Server that answers the JSON-RPC
+// `getblockcount` call with <count> when status==200, or the supplied non-200
 // status (empty body).
 func sidechainCountServer(t *testing.T, status int, count int64) *httptest.Server {
 	t.Helper()
@@ -81,11 +81,26 @@ func sidechainCountServer(t *testing.T, status int, count int64) *httptest.Serve
 			w.WriteHeader(status)
 			return
 		}
-		w.Header().Set("Content-Type", "application/json")
-		_ = json.NewEncoder(w).Encode(map[string]int64{"count": count})
+		writeJSONRPCCount(w, r, count)
 	}))
 	t.Cleanup(srv.Close)
 	return srv
+}
+
+// writeJSONRPCCount echoes a JSON-RPC 2.0 success envelope with `count` as
+// the result. The id is mirrored from the request body when present.
+func writeJSONRPCCount(w http.ResponseWriter, r *http.Request, count int64) {
+	var req struct {
+		ID int64 `json:"id"`
+	}
+	body, _ := io.ReadAll(r.Body)
+	_ = json.Unmarshal(body, &req)
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(map[string]any{
+		"jsonrpc": "2.0",
+		"result":  count,
+		"id":      req.ID,
+	})
 }
 
 func TestGetSyncStatus_LeavesHeadersZeroWhenExplorerDown(t *testing.T) {
@@ -289,48 +304,33 @@ func TestGetSyncStatus_NotRunningSidechainCarriesError(t *testing.T) {
 	}
 }
 
-func TestGetSyncStatus_AddingNewSidechainRequiresThreeRegistrations(t *testing.T) {
+func TestGetSyncStatus_EveryL2SidechainHasAPort(t *testing.T) {
 	// Invariant: every L2 sidechain registered in chains_config.json has a
-	// corresponding entry in sidechainServicePath (orchestrator.go:2008).
-	// Without it, GetSyncStatus reaches the "unknown sidechain" branch
-	// (orchestrator.go:2117-2120) and the chain never reports a block
-	// height regardless of whether the binary is running. A new sidechain
-	// must be registered in three places: chains_config.json, the
-	// jsonKeyToName map (config_loader.go), and sidechainServicePath here.
+	// non-zero Port. GetSyncStatus dials the sidechain's JSON-RPC endpoint at
+	// 127.0.0.1:<Port>, so a missing port silently breaks the height probe.
 	for _, cfg := range AllDefaults() {
 		if cfg.ChainLayer != 2 {
 			continue
 		}
-		_, ok := sidechainServicePath[cfg.Name]
-		assert.Truef(t, ok,
-			"sidechain %q is registered in chains_config.json but has no entry in sidechainServicePath (orchestrator.go:2008) — it will never report block height",
-			cfg.Name,
-		)
+		assert.NotZerof(t, cfg.Port, "sidechain %q has ChainLayer=2 but no Port set in chains_config.json", cfg.Name)
 	}
 
-	// Mirror check against config.AllDirConfigs() — both producers must
-	// agree on the set of L2 names.
 	for key, dc := range config.AllDirConfigs() {
 		if dc.ChainLayer != 2 {
 			continue
 		}
-		_, ok := sidechainServicePath[key]
-		assert.Truef(t, ok,
-			"sidechain JSON key %q (chain_layer=2) has no entry in sidechainServicePath (orchestrator.go:2008)",
-			key,
-		)
+		assert.NotZerof(t, dc.Port, "sidechain JSON key %q (chain_layer=2) has no Port in config.AllDirConfigs", key)
 	}
 }
 
-// countingSidechainServer returns an httptest.Server that records every
-// hit and replies with {"count": <count>} (or the supplied error status).
+// countingSidechainServer returns an httptest.Server that records every hit
+// and replies with the JSON-RPC `getblockcount` success envelope for <count>.
 func countingSidechainServer(t *testing.T, count int64) (*httptest.Server, *int32) {
 	t.Helper()
 	var hits int32
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		atomic.AddInt32(&hits, 1)
-		w.Header().Set("Content-Type", "application/json")
-		_ = json.NewEncoder(w).Encode(map[string]int64{"count": count})
+		writeJSONRPCCount(w, r, count)
 	}))
 	t.Cleanup(srv.Close)
 	return srv, &hits
@@ -350,7 +350,7 @@ func TestSidechainConnection_CachesWithinTTL(t *testing.T) {
 	assert.Equal(t, int64(100), first.Blocks)
 	assert.Equal(t, int64(100), second.Blocks)
 	assert.Equal(t, int32(1), atomic.LoadInt32(hits),
-		"two calls within blockchainInfoCacheTTL must share one RPC — the cache is what stops UI flicker")
+		"two calls within chainSyncCacheTTL must share one RPC — the cache is what stops UI flicker")
 }
 
 // Regression for "thunder block count doesn't update during sync": with the
@@ -365,8 +365,7 @@ func TestSidechainConnection_PreservesLastGoodOnError(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		n := atomic.AddInt32(&hits, 1)
 		if n == 1 {
-			w.Header().Set("Content-Type", "application/json")
-			_ = json.NewEncoder(w).Encode(map[string]int64{"count": 1500})
+			writeJSONRPCCount(w, r, 1500)
 			return
 		}
 		w.WriteHeader(http.StatusInternalServerError)
@@ -406,8 +405,7 @@ func TestGetSyncStatus_KeepsLastGoodBlocksAcrossTransientFailures(t *testing.T) 
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		n := atomic.AddInt32(&hits, 1)
 		if n == 1 {
-			w.Header().Set("Content-Type", "application/json")
-			_ = json.NewEncoder(w).Encode(map[string]int64{"count": 1500})
+			writeJSONRPCCount(w, r, 1500)
 			return
 		}
 		w.WriteHeader(http.StatusInternalServerError)
