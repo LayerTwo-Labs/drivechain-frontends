@@ -32,9 +32,12 @@ class BinaryProvider extends ChangeNotifier {
   }) : _processManager = processManager {
     _processManager.addListener(notifyListeners);
     _startMetadataRefreshTimer();
+    _wireSettingsListener();
   }
 
   Timer? _metadataRefreshTimer;
+  VoidCallback? _settingsListener;
+  bool? _lastKnownUseTestSidechains;
 
   /// Refresh remote release timestamps every 5 minutes so newly published
   /// builds light up the daemon-card update indicator and the chain-settings
@@ -42,17 +45,42 @@ class BinaryProvider extends ChangeNotifier {
   /// already runs once during create(); this keeps it ticking after.
   void _startMetadataRefreshTimer() {
     _metadataRefreshTimer?.cancel();
-    _metadataRefreshTimer = Timer.periodic(const Duration(minutes: 5), (_) async {
-      final refreshed = await loadBinaryCreationTimestamp(binaries, appDir);
-      for (final b in refreshed) {
-        updateBinary(b.type, (_) => b);
-      }
+    _metadataRefreshTimer = Timer.periodic(const Duration(minutes: 5), (_) {
+      _refreshMetadata();
     });
+  }
+
+  /// Watch SettingsProvider so a toggle of "use test sidechains" flips the
+  /// cached download URLs immediately. Without this, the modal + sidechains-
+  /// page update indicator would keep showing the *prod* URL's release date
+  /// until the next 5-min refresh tick fired — and on first-boot the toggle
+  /// reconciles AFTER BinaryProvider.create has already cached prod dates.
+  void _wireSettingsListener() {
+    if (!GetIt.I.isRegistered<SettingsProvider>()) return;
+    final settings = GetIt.I.get<SettingsProvider>();
+    _lastKnownUseTestSidechains = settings.useTestSidechains;
+    _settingsListener = () {
+      if (settings.useTestSidechains != _lastKnownUseTestSidechains) {
+        _lastKnownUseTestSidechains = settings.useTestSidechains;
+        _refreshMetadata();
+      }
+    };
+    settings.addListener(_settingsListener!);
+  }
+
+  Future<void> _refreshMetadata() async {
+    final refreshed = await loadBinaryCreationTimestamp(binaries, appDir);
+    for (final b in refreshed) {
+      updateBinary(b.type, (_) => b);
+    }
   }
 
   @override
   void dispose() {
     _metadataRefreshTimer?.cancel();
+    if (_settingsListener != null && GetIt.I.isRegistered<SettingsProvider>()) {
+      GetIt.I.get<SettingsProvider>().removeListener(_settingsListener!);
+    }
     super.dispose();
   }
 
