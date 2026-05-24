@@ -80,8 +80,17 @@ class SettingsProvider extends ChangeNotifier {
     useTestSidechains = loadedSetting.value;
     notifyListeners();
 
-    // Reconcile against the orchestrator. If GetIt isn't ready (early bootstrap
-    // path on tests / fresh installs) we keep the cached value.
+    // Reconcile against the orchestrator if it's already registered. On most
+    // boots it isn't — SettingsProvider.create runs before the orchestrator
+    // is registered — and callers must invoke [reconcileUseTestSidechainsFromOrchestrator]
+    // once orchestratord becomes ready.
+    await reconcileUseTestSidechainsFromOrchestrator();
+  }
+
+  /// Re-fetch the test-sidechains flag from orchestratord and update the
+  /// local cache + listeners if it differs. Safe to call multiple times;
+  /// no-op when OrchestratorRPC isn't registered yet.
+  Future<void> reconcileUseTestSidechainsFromOrchestrator() async {
     if (!GetIt.I.isRegistered<OrchestratorRPC>()) {
       return;
     }
