@@ -924,7 +924,7 @@ abstract class Binary {
           ? GetIt.I.get<SettingsProvider>().useTestSidechains
           : false;
       final hasAlt = metadata.hasAlternativeDownloadConfig;
-      log.i('_checkDirectReleaseDate $name: useTest=$useTest hasAlt=$hasAlt url=$downloadUrl');
+      log.w('_checkDirectReleaseDate $name: useTest=$useTest hasAlt=$hasAlt url=$downloadUrl');
 
       final client = HttpClient();
 
