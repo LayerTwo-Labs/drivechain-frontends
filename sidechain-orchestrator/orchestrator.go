@@ -177,7 +177,6 @@ type Orchestrator struct {
 	coreStatusClient    *CoreStatusClient
 	coreStatusClientKey string
 	enforcerHTTPClient  *http.Client
-	sidechainHTTPClient *http.Client
 	explorerHTTPClient  *http.Client
 
 	// stopBinary is the Stop primitive used by SetCoreVariant. Production wires
@@ -1909,13 +1908,10 @@ type MainchainBalance struct {
 	Unconfirmed float64
 }
 
-// blockchainInfoCacheTTL bounds how often the orchestrator actually issues
-// getblockchaininfo against bitcoind. Polling is cheap on the wire but
-// during IBD the RPC blocks on cs_main; multiple unbounded callers turned
-// every status fetch into a thundering herd against Core. 1s is fresh
-// enough for the UI (faster than block intervals on every network) and
-// gives Core room to make actual progress between calls.
-const blockchainInfoCacheTTL = time.Second
+// chainSyncCacheTTL bounds how often the orchestrator re-fetches a chain's
+// tip. Matches the frontend's aggressive poll cadence so the UI gets fresh
+// numbers every tick without us issuing more than one RPC per chain per tick.
+const chainSyncCacheTTL = 100 * time.Millisecond
 
 // Connection is the only thing that differs between chains: a pure RPC call
 // that returns one typed value or an error. No caching, no single-flight,
@@ -2064,8 +2060,8 @@ func (c *enforcerSyncConnection) Fetch(ctx context.Context) (*ChainSyncResult, e
 	}, nil
 }
 
-// sidechainSyncConnection is the raw Connect-JSON GetBlockCount RPC for one
-// L2 sidechain. Headers stay zero — the GetSyncStatus merge step fills them
+// sidechainSyncConnection is the JSON-RPC `getblockcount` probe for one L2
+// sidechain. Headers stay zero — the GetSyncStatus merge step fills them
 // from the public explorer.
 type sidechainSyncConnection struct {
 	o    *Orchestrator
@@ -2077,18 +2073,12 @@ func (c *sidechainSyncConnection) Fetch(ctx context.Context) (*ChainSyncResult, 
 	if !ok {
 		return nil, fmt.Errorf("unknown sidechain: %s", c.name)
 	}
-	path, known := sidechainServicePath[c.name]
-	if !known {
-		return nil, fmt.Errorf("unknown sidechain: %s", c.name)
-	}
-	url := fmt.Sprintf("http://localhost:%d%s", cfg.Port, path)
-	var resp struct {
-		Count int64 `json:"count"`
-	}
-	if err := connectJSONPost(ctx, c.o.sidechainHTTP(), url, &resp); err != nil {
+	proxy := sidechain.NewJSONRPCProxy("127.0.0.1", cfg.Port)
+	count, err := proxy.GetBlockCount(ctx)
+	if err != nil {
 		return nil, err
 	}
-	return &ChainSyncResult{Blocks: resp.Count}, nil
+	return &ChainSyncResult{Blocks: count}, nil
 }
 
 // mainchainInfoToSync projects a *MainchainBlockchainInfo down to the lean
@@ -2113,7 +2103,7 @@ func (o *Orchestrator) bitcoindInfoCached() *CachedConnection[*MainchainBlockcha
 	if o.bitcoindInfo == nil {
 		o.bitcoindInfo = &CachedConnection[*MainchainBlockchainInfo]{
 			inner: &bitcoindInfoConnection{o: o},
-			ttl:   blockchainInfoCacheTTL,
+			ttl:   chainSyncCacheTTL,
 		}
 	}
 	return o.bitcoindInfo
@@ -2132,7 +2122,7 @@ func (o *Orchestrator) syncConnectionFor(name string) Connection[*ChainSyncResul
 		if o.bitcoindInfo == nil {
 			o.bitcoindInfo = &CachedConnection[*MainchainBlockchainInfo]{
 				inner: &bitcoindInfoConnection{o: o},
-				ttl:   blockchainInfoCacheTTL,
+				ttl:   chainSyncCacheTTL,
 			}
 		}
 		if o.bitcoindSync == nil {
@@ -2143,7 +2133,7 @@ func (o *Orchestrator) syncConnectionFor(name string) Connection[*ChainSyncResul
 		if o.enforcerSync == nil {
 			o.enforcerSync = &CachedConnection[*ChainSyncResult]{
 				inner: &enforcerSyncConnection{o: o},
-				ttl:   blockchainInfoCacheTTL,
+				ttl:   chainSyncCacheTTL,
 			}
 		}
 		return o.enforcerSync
@@ -2156,7 +2146,7 @@ func (o *Orchestrator) syncConnectionFor(name string) Connection[*ChainSyncResul
 		}
 		c := &CachedConnection[*ChainSyncResult]{
 			inner: &sidechainSyncConnection{o: o, name: name},
-			ttl:   blockchainInfoCacheTTL,
+			ttl:   chainSyncCacheTTL,
 		}
 		o.sidechainSyncs[name] = c
 		return c
@@ -2188,19 +2178,6 @@ type SyncStatus struct {
 	Mainchain  *ChainSyncResult
 	Enforcer   *ChainSyncResult
 	Sidechains map[string]*ChainSyncResult
-}
-
-// sidechainServicePath maps a binary name to the Connect-RPC service path
-// that exposes its block-count RPC. The body is always {} and the response
-// has a single int64 `count` field.
-var sidechainServicePath = map[string]string{
-	"thunder":   "/thunder.v1.ThunderService/GetBlockCount",
-	"bitnames":  "/bitnames.v1.BitnamesService/GetBlockCount",
-	"bitassets": "/bitassets.v1.BitAssetsService/GetBlockCount",
-	"zside":     "/zside.v1.ZSideService/GetBlockCount",
-	"photon":    "/photon.v1.PhotonService/GetBlockCount",
-	"truthcoin": "/truthcoin.v1.TruthcoinService/GetBlockCount",
-	"coinshift": "/coinshift.v1.CoinShiftService/GetBlockCount",
 }
 
 // GetSyncStatus fans out concurrent probes — mainchain bitcoind, enforcer
@@ -2271,9 +2248,6 @@ func (o *Orchestrator) GetSyncStatus(ctx context.Context) (*SyncStatus, error) {
 			conn: o.syncConnectionFor(name),
 			validate: func() string {
 				if _, ok := o.Configs()[name]; !ok {
-					return fmt.Sprintf("unknown sidechain: %s", name)
-				}
-				if _, known := sidechainServicePath[name]; !known {
 					return fmt.Sprintf("unknown sidechain: %s", name)
 				}
 				if !o.process.IsRunning(name) {
@@ -2575,27 +2549,6 @@ func (o *Orchestrator) enforcerHTTP() *http.Client {
 		},
 	}
 	return o.enforcerHTTPClient
-}
-
-// sidechainHTTP returns the singleton HTTP/1 client used for the per-
-// sidechain Connect-JSON block-count probes in GetSyncStatus. A single
-// shared client is fine because http.Transport keys its connection pool
-// by host:port — every sidechain ends up with its own pool, capped at one
-// live connection by MaxConnsPerHost.
-func (o *Orchestrator) sidechainHTTP() *http.Client {
-	o.httpClientsMu.Lock()
-	defer o.httpClientsMu.Unlock()
-	if o.sidechainHTTPClient != nil {
-		return o.sidechainHTTPClient
-	}
-	o.sidechainHTTPClient = &http.Client{
-		Transport: &http.Transport{
-			MaxConnsPerHost:     1,
-			MaxIdleConnsPerHost: 1,
-			IdleConnTimeout:     90 * time.Second,
-		},
-	}
-	return o.sidechainHTTPClient
 }
 
 // explorerHTTP returns the singleton HTTPS client used for the public
