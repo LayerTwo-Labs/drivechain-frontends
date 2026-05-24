@@ -820,6 +820,10 @@ Future<void> bootBitwindowBackend(Logger log) async {
   // 1. Start bitwindowd — it manages orchestratord internally,
   //    which in turn manages bitcoind, enforcer, and sidechains.
   log.i('STARTUP: starting bitwindowd');
+  // bitwindow always owns the backend stack: this is the canonical
+  // launcher and orchestratord lives downstream of bitwindowd. Marking
+  // ourselves as originator lets onShutdown() tear it down on exit.
+  binaryProvider.markBackendOriginator();
   await binaryProvider.start(bitwindow);
 
   // 2. Wait for orchestratord (managed by bitwindowd) to become ready.

@@ -221,11 +221,23 @@ class BinaryProvider extends ChangeNotifier {
   }
 
   Future<bool> onShutdown({ShutdownOptions? shutdownOptions}) async {
-    log.i('BinaryProvider: shutting down all via orchestrator');
     _shuttingDown = true;
 
-    final showShutdownPage = shutdownOptions?.showShutdownPage ?? false;
     final forceKill = shutdownOptions?.forceKill ?? false;
+
+    // Only the Flutter app that originally spawned orchestratord is allowed
+    // to tear the backend stack down. A non-originator app (e.g. thunder
+    // Flutter attached to bitwindow's already-running orchestratord) must
+    // exit quietly so it doesn't kill bitwindow's backend out from under it.
+    if (!_isBackendOriginator) {
+      log.i('BinaryProvider: skipping backend shutdown — this app did not originate the stack');
+      shutdownOptions?.onComplete();
+      return true;
+    }
+
+    log.i('BinaryProvider: shutting down all via orchestrator');
+
+    final showShutdownPage = shutdownOptions?.showShutdownPage ?? false;
 
     StreamController<ShutdownProgress>? progressController;
     if (showShutdownPage) {
@@ -283,6 +295,25 @@ class BinaryProvider extends ChangeNotifier {
   // =========================================================================
 
   bool _shuttingDown = false;
+
+  /// True when *this* Flutter instance is the one that originally spawned
+  /// orchestratord (cold-start path). False when we attached to an
+  /// already-running orchestratord from another Flutter app (hot-start path).
+  ///
+  /// Only the originator is allowed to issue shutdownAll on shutdown —
+  /// otherwise closing thunder Flutter while bitwindow is running would kill
+  /// bitwindow's backend stack out from under it.
+  bool _isBackendOriginator = false;
+
+  /// Mark this BinaryProvider as the originator of the live backend stack.
+  /// Set by bootBackendManagedSidechain on the cold-start branch (we
+  /// spawned orchestratord ourselves) and by app startup paths that boot
+  /// the L1 stack directly. Idempotent.
+  void markBackendOriginator() {
+    _isBackendOriginator = true;
+  }
+
+  bool get isBackendOriginator => _isBackendOriginator;
 
   /// Returns true for binaries that Flutter must spawn directly because
   /// the orchestrator can't manage itself.
