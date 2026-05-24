@@ -869,12 +869,19 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
         progressGoal: progress.mbTotal > 0 ? progress.mbTotal.toDouble() : 0,
         lastBlockAt: null,
       );
+      final tooltip = progress.mbTotal > 0
+          ? 'Downloading ${sidechain.name}\n'
+                'Progress: ${formatDataSizeFromMB(progress.mbDownloaded.toDouble())}\n'
+                'Size: ${formatDataSizeFromMB(progress.mbTotal.toDouble())}'
+          : 'Downloading ${sidechain.name}\n'
+                '${formatDataSizeFromMB(progress.mbDownloaded.toDouble())} so far (size unknown)';
 
       return ChainLoader(
         name: sidechain.name,
         syncInfo: syncInfo,
         justPercent: true,
         expanded: false,
+        tooltipMessage: tooltip,
       );
     }
 
