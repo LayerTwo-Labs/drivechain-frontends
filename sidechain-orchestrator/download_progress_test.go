@@ -431,12 +431,15 @@ func TestDownload_StateReflectsByteProgress(t *testing.T) {
 			t.Fatalf("download error: %v", p.Error)
 		}
 		// Look for a byte-progress event (no message, MBTotal>0). When one
-		// arrives, the matching state snapshot must reflect the same bytes.
+		// arrives, the state snapshot must already reflect *at least* the
+		// same bytes. send() writes state before unblocking the channel, so
+		// by the time we observe an event the state is already at or past
+		// it — the goroutine may have advanced further before we poll.
 		if p.MBTotal > 0 && p.MBDownloaded > 0 && p.Message == "" {
 			s, ok := dm.State("state-mirror")
 			require.True(t, ok, "state entry missing while download in flight")
 			assert.True(t, s.Running)
-			assert.Equal(t, p.MBDownloaded, s.MBDownloaded, "state must mirror byte progress")
+			assert.GreaterOrEqual(t, s.MBDownloaded, p.MBDownloaded, "state bytes must not lag behind the event")
 			assert.Equal(t, p.MBTotal, s.MBTotal)
 			sawByteProgress = true
 		}
