@@ -142,6 +142,43 @@ class SyncProvider extends ChangeNotifier {
   bool _isFetching = false;
   Duration _currentInterval = AGGRESSIVE_INTERVAL;
 
+  /// Last seen mainchain block height. Drives the new-block broadcast — every
+  /// _fetch() compares this against the freshly-polled value and, on a strict
+  /// increment, fires [_newBlockListeners] so dependent providers (balance,
+  /// transactions, blocks list) can refetch (#1766).
+  int _lastMainchainBlocks = 0;
+  final Set<void Function(int)> _newBlockListeners = <void Function(int)>{};
+
+  /// Register a callback to fire whenever a new mainchain block arrives.
+  /// The new height is passed to [cb]. Caller is responsible for calling
+  /// [offNewBlock] in dispose. Fire-and-forget — exceptions are swallowed
+  /// so one bad listener can't kill the whole broadcast.
+  void onNewBlock(void Function(int newHeight) cb) {
+    _newBlockListeners.add(cb);
+  }
+
+  void offNewBlock(void Function(int newHeight) cb) {
+    _newBlockListeners.remove(cb);
+  }
+
+  /// Apply the dedupe-and-broadcast logic for a freshly-polled mainchain
+  /// block height. Fires registered listeners only when [newBlocks] is a
+  /// strict increment over the last seen value. Public so tests can drive
+  /// the broadcast without standing up a mocked orchestrator transport;
+  /// production callers should go through [_fetch].
+  @visibleForTesting
+  void maybeFireNewBlock(int newBlocks) {
+    if (newBlocks <= _lastMainchainBlocks) return;
+    _lastMainchainBlocks = newBlocks;
+    for (final cb in _newBlockListeners.toList(growable: false)) {
+      try {
+        cb(newBlocks);
+      } catch (e) {
+        log.w('SyncProvider: new-block listener threw: $e');
+      }
+    }
+  }
+
   /// Wipe cached per-chain sync state. Called on network swap so stale
   /// progress from the previous network doesn't linger in the UI.
   void reset() {
@@ -153,6 +190,11 @@ class SyncProvider extends ChangeNotifier {
     sidechainErrors = const {};
     bitwindowdSyncInfo = null;
     bitwindowdError = null;
+    // Reset the new-block dedupe baseline so the first block on the new
+    // network fires onNewBlock callbacks. Without this a network swap from
+    // mainnet (height 800k) → regtest (height 0) would never fire again
+    // until regtest passed 800k.
+    _lastMainchainBlocks = 0;
     notifyListeners();
   }
 
@@ -219,6 +261,11 @@ class SyncProvider extends ChangeNotifier {
         mainchainError = _errOrNull(resp.mainchain);
         changed = true;
       }
+      // Fire the new-block broadcast on strict block-height increment. The
+      // SyncInfo equality check above includes progressGoal/lastBlockAt
+      // changes too, so we re-check the blocks delta independently to avoid
+      // false positives when only the header height moved.
+      maybeFireNewBlock(newMainchain.progressCurrent.toInt());
 
       final newEnforcer = _toSyncInfo(resp.enforcer);
       if (_diff(enforcerSyncInfo, newEnforcer) || enforcerError != _errOrNull(resp.enforcer)) {

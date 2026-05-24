@@ -1666,6 +1666,21 @@ class MockSyncProvider implements SyncProvider {
   }
 
   @override
+  void onNewBlock(void Function(int newHeight) cb) {
+    return;
+  }
+
+  @override
+  void offNewBlock(void Function(int newHeight) cb) {
+    return;
+  }
+
+  @override
+  void maybeFireNewBlock(int newBlocks) {
+    return;
+  }
+
+  @override
   bool get hasListeners => false;
 
   @override

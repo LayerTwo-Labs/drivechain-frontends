@@ -232,6 +232,19 @@ Future<(Directory, File, Logger)> init(String arguments) async {
   GetIt.I.registerSingleton<BlockchainProvider>(BlockchainProvider());
   GetIt.I.registerSingleton<NetworkProvider>(NetworkProvider());
   GetIt.I.registerSingleton<TransactionProvider>(TransactionProvider());
+
+  // Refetch live on every new mainchain block so the user sees fresh blocks,
+  // balance, and transactions without waiting for each provider's slower
+  // independent poll (#1766). SyncProvider's onNewBlock fires only on a
+  // strict height increment, so this is a no-op outside of actual new-block
+  // events. Tracked here in main so the wiring is explicit and one-shot.
+  GetIt.I<SyncProvider>().onNewBlock((_) {
+    unawaited(GetIt.I<BalanceProvider>().fetch());
+    unawaited(GetIt.I<BlockchainProvider>().fetch());
+    if (GetIt.I.isRegistered<TransactionProvider>()) {
+      unawaited(GetIt.I<TransactionProvider>().fetch());
+    }
+  });
   GetIt.I.registerSingleton<NewsProvider>(NewsProvider());
   GetIt.I.registerSingleton<SidechainProvider>(SidechainProvider());
   GetIt.I.registerSingleton<M4Provider>(M4Provider());

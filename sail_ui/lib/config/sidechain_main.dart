@@ -202,6 +202,20 @@ Future<void> initSidechainDependencies({
       () => SidechainTransactionsProvider(),
     );
   }
+
+  // Refetch on every new mainchain block — without this the UI relies on
+  // each provider's own (slower) poll cadence and the user sees stale
+  // balance/transactions for up to ~1s after a block lands (#1766). The
+  // SyncProvider's onNewBlock broadcast already dedupes on strict height
+  // increment, so this only fires when there's actually new data to fetch.
+  syncProvider.onNewBlock((_) {
+    if (GetIt.I.isRegistered<BalanceProvider>()) {
+      unawaited(GetIt.I<BalanceProvider>().fetch());
+    }
+    if (GetIt.I.isRegistered<SidechainTransactionsProvider>()) {
+      unawaited(GetIt.I<SidechainTransactionsProvider>().fetch());
+    }
+  });
   if (!GetIt.I.isRegistered<PriceProvider>()) {
     GetIt.I.registerLazySingleton<PriceProvider>(() => PriceProvider());
   }
