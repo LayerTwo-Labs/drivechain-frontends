@@ -920,6 +920,11 @@ abstract class Binary {
       }
 
       final downloadUrl = Uri.parse(baseUrl).resolve(fileName).toString();
+      final useTest = GetIt.I.isRegistered<SettingsProvider>()
+          ? GetIt.I.get<SettingsProvider>().useTestSidechains
+          : false;
+      final hasAlt = metadata.hasAlternativeDownloadConfig;
+      log.i('_checkDirectReleaseDate $name: useTest=$useTest hasAlt=$hasAlt url=$downloadUrl');
 
       final client = HttpClient();
 
@@ -2200,6 +2205,8 @@ class MetadataConfig {
   // if test chains enabled, use those, but only if an alternative config exists
   DownloadConfig get downloadConfig =>
       _settingsProvider.useTestSidechains ? _alternativeDownloadConfig ?? _downloadConfig : _downloadConfig;
+
+  bool get hasAlternativeDownloadConfig => _alternativeDownloadConfig != null;
 
   DateTime? remoteTimestamp; // Last-Modified from server
   DateTime? downloadedTimestamp; // Local file timestamp
