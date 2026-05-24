@@ -259,7 +259,7 @@ func (d *DownloadManager) DownloadWithOptions(ctx context.Context, config Binary
 
 		savePath := filepath.Join(tmpDir, filepath.Base(downloadURL))
 
-		if err := d.downloadFile(ctx, downloadURL, savePath, ch); err != nil {
+		if err := d.downloadFile(ctx, downloadURL, savePath, send); err != nil {
 			send(DownloadProgress{Error: err})
 			return
 		}
@@ -440,7 +440,11 @@ func (d *DownloadManager) probeContentLength(ctx context.Context, url string) in
 }
 
 // downloadFile downloads a URL to a local path with progress reporting in MB.
-func (d *DownloadManager) downloadFile(ctx context.Context, url, savePath string, progress chan<- DownloadProgress) error {
+// Progress events are delivered through `send`, which the caller uses to
+// mirror them into the DownloadManager.state map so polled status reads pick
+// them up. Returning false from send aborts the download (caller decided the
+// consumer is gone).
+func (d *DownloadManager) downloadFile(ctx context.Context, url, savePath string, send func(DownloadProgress) bool) error {
 	// Probe the size first — final GET responses sometimes lack Content-Length
 	// (S3 redirects, transfer-encoded responses), and the UI's progress bar
 	// goes blank when total is unknown.
@@ -500,15 +504,13 @@ func (d *DownloadManager) downloadFile(ctx context.Context, url, savePath string
 			}
 
 			if shouldSend {
-				// Honor ctx so a canceled download doesn't deadlock here
-				// when the consumer's already gone — same wedge pattern
-				// as the outer goroutine's `ch <-` sends.
-				select {
-				case progress <- DownloadProgress{
+				// send() already select{}s on ctx.Done internally and
+				// mirrors the event into state. Returning false means
+				// the consumer's gone — bail rather than deadlock.
+				if !send(DownloadProgress{
 					MBDownloaded: toMB(downloaded),
 					MBTotal:      toMB(total),
-				}:
-				case <-ctx.Done():
+				}) {
 					return ctx.Err()
 				}
 			}
