@@ -1113,6 +1113,14 @@ func (o *Orchestrator) startEnforcerWhenReady(ctx context.Context, opts StartOpt
 		return
 	}
 
+	// Log the literal argv at the actual spawn site (the auto-built-args log
+	// in prepareEnforcerArgs fires before --wallet-seed-file is injected and
+	// before any L1-seed rewrite, so it doesn't reflect the final command
+	// line). Helps diagnose "precisely one of rpc user and cookie must be
+	// set" -class errors (#1712) where the question is whether --node-rpc-user
+	// actually reaches the binary.
+	o.log.Info().Strs("argv", opts.EnforcerArgs).Msg("starting enforcer with final argv")
+
 	if _, err := o.process.Start(ctx, enforcerCfg, opts.EnforcerArgs, enforcerEnv()); err != nil {
 		enforcerMon.SetInitializing(false)
 		o.log.Error().Err(err).Msg("failed to start enforcer")
