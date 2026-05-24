@@ -83,10 +83,18 @@ class BinaryProvider extends ChangeNotifier {
       return;
     }
 
-    log.i('BinaryProvider: starting $name via orchestrator');
+    // L2 sidechains: always boot the headless rust backend, not the
+    // sidechain's own Flutter GUI bundle. Without --force-backend, the
+    // test-sidechains toggle would have orchestratord launch Thunder.app
+    // (etc.) as the "daemon", which never binds its RPC port and leaves
+    // the daemon card stuck in "initializing" forever. Sidechain GUIs are
+    // a separate concern — users open them directly when they want.
+    final forceBackend = binary.chainLayer == 2;
+
+    log.i('BinaryProvider: starting $name via orchestrator (forceBackend=$forceBackend)');
     // Fire-and-forget: orch dispatches boot in the background. Connection
     // state shows up via BackendStateProvider's listBinaries poll.
-    await _orchestrator.startWithL1(name);
+    await _orchestrator.startWithL1(name, forceBackend: forceBackend);
   }
 
   /// Restart a single binary in-place. Unlike [start], which routes through
