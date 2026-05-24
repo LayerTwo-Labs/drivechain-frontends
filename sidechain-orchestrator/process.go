@@ -25,13 +25,14 @@ type LogEntry struct {
 
 // ManagedProcess represents a running process managed by the orchestrator.
 type ManagedProcess struct {
-	Config  BinaryConfig
-	Pid     int
-	Cmd     *exec.Cmd
-	BinPath string // resolved executable path used for this process
-	PidName string // PID-file basename used for this process
-	Started time.Time
-	Adopted bool // true if this process was found from a previous session
+	Config       BinaryConfig
+	Pid          int
+	Cmd          *exec.Cmd
+	BinPath      string // resolved executable path used for this process
+	PidName      string // PID-file basename used for this process
+	Started      time.Time
+	Adopted      bool // true if this process was found from a previous session
+	ForceBackend bool // true if this sidechain was launched with --force-backend (skips flutter_frontend variant)
 
 	mu       sync.Mutex
 	logs     []LogEntry // ring buffer
@@ -278,14 +279,15 @@ func (pm *ProcessManager) StartWithOptions(_ context.Context, config BinaryConfi
 	}
 
 	proc := &ManagedProcess{
-		Config:  config,
-		Pid:     cmd.Process.Pid,
-		Cmd:     cmd,
-		BinPath: binPath,
-		PidName: pidName,
-		Started: time.Now(),
-		logs:    make([]LogEntry, 0, 256),
-		exitCh:  make(chan struct{}),
+		Config:       config,
+		Pid:          cmd.Process.Pid,
+		Cmd:          cmd,
+		BinPath:      binPath,
+		PidName:      pidName,
+		Started:      time.Now(),
+		ForceBackend: opts.ForceBackend,
+		logs:         make([]LogEntry, 0, 256),
+		exitCh:       make(chan struct{}),
 	}
 
 	pm.mu.Lock()
@@ -619,19 +621,19 @@ func (pm *ProcessManager) ListRunning() []string {
 // AdoptProcess registers an externally-found process (from a PID file).
 func (pm *ProcessManager) AdoptProcess(config BinaryConfig, pid int) {
 	binPath, pidName := pm.resolvePaths(config, false)
-	pm.AdoptProcessResolved(config, pid, binPath, pidName)
+	pm.AdoptProcessResolved(config, pid, binPath, pidName, false)
 }
 
 // AdoptProcessWithOptions registers an externally-found process using the
 // same path resolution overrides as StartWithOptions.
 func (pm *ProcessManager) AdoptProcessWithOptions(config BinaryConfig, pid int, opts ProcessStartOptions) {
 	binPath, pidName := pm.resolvePaths(config, opts.ForceBackend)
-	pm.AdoptProcessResolved(config, pid, binPath, pidName)
+	pm.AdoptProcessResolved(config, pid, binPath, pidName, opts.ForceBackend)
 }
 
 // AdoptProcessResolved registers an externally-found process when the PID file
 // name already tells us which on-disk variant it belongs to.
-func (pm *ProcessManager) AdoptProcessResolved(config BinaryConfig, pid int, binPath, pidName string) {
+func (pm *ProcessManager) AdoptProcessResolved(config BinaryConfig, pid int, binPath, pidName string, forceBackend bool) {
 	pm.mu.Lock()
 	defer pm.mu.Unlock()
 
@@ -640,14 +642,15 @@ func (pm *ProcessManager) AdoptProcessResolved(config BinaryConfig, pid int, bin
 	}
 
 	pm.processes[config.Name] = &ManagedProcess{
-		Config:  config,
-		Pid:     pid,
-		BinPath: binPath,
-		PidName: pidName,
-		Started: time.Now(),
-		Adopted: true,
-		logs:    make([]LogEntry, 0),
-		exitCh:  make(chan struct{}),
+		Config:       config,
+		Pid:          pid,
+		BinPath:      binPath,
+		PidName:      pidName,
+		Started:      time.Now(),
+		Adopted:      true,
+		ForceBackend: forceBackend,
+		logs:         make([]LogEntry, 0),
+		exitCh:       make(chan struct{}),
 	}
 
 	pm.log.Info().Str("binary", config.Name).Int("pid", pid).Msg("adopted orphaned process")
@@ -659,6 +662,15 @@ func (pm *ProcessManager) IsAdopted(name string) bool {
 	defer pm.mu.Unlock()
 	p, exists := pm.processes[name]
 	return exists && p.Adopted
+}
+
+// ForceBackendFor returns the ForceBackend flag the named process was started
+// with. False when the process is unknown — same default as a fresh StartOpts.
+func (pm *ProcessManager) ForceBackendFor(name string) bool {
+	pm.mu.Lock()
+	defer pm.mu.Unlock()
+	p, exists := pm.processes[name]
+	return exists && p.ForceBackend
 }
 
 // Remove removes a process from tracking without stopping it.

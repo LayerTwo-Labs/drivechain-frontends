@@ -891,6 +891,12 @@ func (o *Orchestrator) RestartDaemon(ctx context.Context, name string) (<-chan S
 	go func() {
 		defer close(ch)
 
+		// Capture the original boot mode before Stop drops the ManagedProcess
+		// record. Without this, restarting a sidechain that was launched with
+		// --force-backend forgets the flag and spawns the flutter_frontend
+		// variant instead — a second GUI window on top of the existing one.
+		forceBackend := o.process.ForceBackendFor(name)
+
 		// Best-effort stop. If the binary isn't running, fall straight through
 		// to start.
 		if o.process.IsRunning(name) {
@@ -905,7 +911,7 @@ func (o *Orchestrator) RestartDaemon(ctx context.Context, name string) (<-chan S
 			}
 		}
 
-		opts := StartOpts{}
+		opts := StartOpts{ForceBackend: forceBackend}
 
 		switch name {
 		case "bitcoind":
@@ -1526,7 +1532,7 @@ func (o *Orchestrator) AdoptOrphans(ctx context.Context) error {
 				binPath = CoreBinaryPath(o.DataDir, v, config.BinaryName)
 			}
 		}
-		o.process.AdoptProcessResolved(config, pid, binPath, pidName)
+		o.process.AdoptProcessResolved(config, pid, binPath, pidName, false)
 		o.log.Info().Str("binary", config.Name).Int("pid", pid).Msg("adopted orphaned process")
 	}
 
