@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -42,17 +43,15 @@ func TestDownloadFile_ThrottlesProgress(t *testing.T) {
 	dm, dir := newTestDownloadManager(t)
 	dm.httpClient = srv.Client()
 
-	ch := make(chan DownloadProgress, 2000)
+	var events []DownloadProgress
+	collect := func(p DownloadProgress) bool {
+		events = append(events, p)
+		return true
+	}
 	savePath := dir + "/test-download"
 
-	err := dm.downloadFile(context.Background(), srv.URL+"/file", savePath, ch)
+	err := dm.downloadFile(context.Background(), srv.URL+"/file", savePath, collect)
 	require.NoError(t, err)
-	close(ch)
-
-	var events []DownloadProgress
-	for p := range ch {
-		events = append(events, p)
-	}
 
 	// 1% granularity — at most 101 events (0% through 100% inclusive).
 	assert.LessOrEqual(t, len(events), 101, "should throttle to at most 101 events (1%% granularity)")
@@ -83,17 +82,15 @@ func TestDownloadFile_ThrottlesProgress_UnknownTotal(t *testing.T) {
 	dm, dir := newTestDownloadManager(t)
 	dm.httpClient = srv.Client()
 
-	ch := make(chan DownloadProgress, 2000)
+	var events []DownloadProgress
+	collect := func(p DownloadProgress) bool {
+		events = append(events, p)
+		return true
+	}
 	savePath := dir + "/test-download-unknown"
 
-	err := dm.downloadFile(context.Background(), srv.URL+"/file", savePath, ch)
+	err := dm.downloadFile(context.Background(), srv.URL+"/file", savePath, collect)
 	require.NoError(t, err)
-	close(ch)
-
-	var events []DownloadProgress
-	for p := range ch {
-		events = append(events, p)
-	}
 
 	assert.GreaterOrEqual(t, len(events), 2, "should report roughly every 1MB")
 	assert.LessOrEqual(t, len(events), 5, "should not over-report for 3MB")
@@ -119,19 +116,17 @@ func TestDownloadFile_ProgressMessages(t *testing.T) {
 	dm, dir := newTestDownloadManager(t)
 	dm.httpClient = srv.Client()
 
-	ch := make(chan DownloadProgress, 2000)
-	savePath := dir + "/test-download-msg"
-
-	err := dm.downloadFile(context.Background(), srv.URL+"/file", savePath, ch)
-	require.NoError(t, err)
-	close(ch)
-
 	var updates []DownloadProgress
-	for p := range ch {
+	collect := func(p DownloadProgress) bool {
 		if p.MBTotal > 0 {
 			updates = append(updates, p)
 		}
+		return true
 	}
+	savePath := dir + "/test-download-msg"
+
+	err := dm.downloadFile(context.Background(), srv.URL+"/file", savePath, collect)
+	require.NoError(t, err)
 
 	assert.Greater(t, len(updates), 0, "should have progress updates")
 
@@ -363,19 +358,17 @@ func TestDownloadFile_ProgressMessagesUnknownTotal(t *testing.T) {
 	dm, dir := newTestDownloadManager(t)
 	dm.httpClient = srv.Client()
 
-	ch := make(chan DownloadProgress, 2000)
-	savePath := dir + "/test-unknown-msg"
-
-	err := dm.downloadFile(context.Background(), srv.URL+"/file", savePath, ch)
-	require.NoError(t, err)
-	close(ch)
-
 	var updates []DownloadProgress
-	for p := range ch {
+	collect := func(p DownloadProgress) bool {
 		if p.MBDownloaded > 0 {
 			updates = append(updates, p)
 		}
+		return true
 	}
+	savePath := dir + "/test-unknown-msg"
+
+	err := dm.downloadFile(context.Background(), srv.URL+"/file", savePath, collect)
+	require.NoError(t, err)
 
 	assert.Greater(t, len(updates), 0, "should have progress updates")
 
@@ -383,4 +376,74 @@ func TestDownloadFile_ProgressMessagesUnknownTotal(t *testing.T) {
 		assert.LessOrEqual(t, u.MBTotal, int64(0), "unknown total should be <= 0")
 		assert.Greater(t, u.MBDownloaded, int64(0))
 	}
+}
+
+// Regression: byte-progress events from downloadFile must mirror into the
+// DownloadManager.state map. GetDownloadStatus reads from that map, so when
+// the mirror was skipped the UI stayed at 0% for the entire download and
+// then jumped straight to "done" once the goroutine exited and the entry
+// was deleted.
+func TestDownload_StateReflectsByteProgress(t *testing.T) {
+	totalSize := 5 * 1024 * 1024
+	payload := make([]byte, totalSize)
+
+	// Stream in 256 KB chunks with a short sleep between flushes so the
+	// caller has a window to observe state mid-download. Without this the
+	// goroutine completes before any test poll fires.
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Length", fmt.Sprintf("%d", totalSize))
+		if r.Method == http.MethodHead {
+			return
+		}
+		flusher, _ := w.(http.Flusher)
+		const chunk = 256 * 1024
+		for off := 0; off < len(payload); off += chunk {
+			end := off + chunk
+			if end > len(payload) {
+				end = len(payload)
+			}
+			_, _ = w.Write(payload[off:end])
+			if flusher != nil {
+				flusher.Flush()
+			}
+			time.Sleep(10 * time.Millisecond)
+		}
+	}))
+	defer srv.Close()
+
+	dm, _ := newTestDownloadManager(t)
+	dm.httpClient = srv.Client()
+
+	config := BinaryConfig{
+		Name:           "state-mirror",
+		BinaryName:     "state-mirror",
+		DownloadSource: DownloadSourceDirect,
+		DownloadURLs:   map[string]string{"default": srv.URL + "/"},
+		Files:          map[string]string{currentOS(): "state-mirror"},
+	}
+
+	ch, err := dm.Download(context.Background(), config, "default", true)
+	require.NoError(t, err)
+
+	var sawByteProgress bool
+	for p := range ch {
+		if p.Error != nil {
+			t.Fatalf("download error: %v", p.Error)
+		}
+		// Look for a byte-progress event (no message, MBTotal>0). When one
+		// arrives, the matching state snapshot must reflect the same bytes.
+		if p.MBTotal > 0 && p.MBDownloaded > 0 && p.Message == "" {
+			s, ok := dm.State("state-mirror")
+			require.True(t, ok, "state entry missing while download in flight")
+			assert.True(t, s.Running)
+			assert.Equal(t, p.MBDownloaded, s.MBDownloaded, "state must mirror byte progress")
+			assert.Equal(t, p.MBTotal, s.MBTotal)
+			sawByteProgress = true
+		}
+		if p.Done {
+			break
+		}
+	}
+
+	assert.True(t, sawByteProgress, "expected at least one mirrored byte-progress event")
 }
