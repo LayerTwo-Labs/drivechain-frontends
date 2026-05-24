@@ -772,6 +772,30 @@ abstract class Binary {
     final network = GetIt.I.get<BitcoinConfProvider>().network;
     final subfolder = metadata.downloadConfig.extractSubfolder?[network]?[OS.current] ?? '';
 
+    // When the user has flipped test sidechains on for an L2, orchestratord
+    // extracts the alt build to bin/test/<binary>/ — on macOS that's a
+    // Thunder.app-style bundle (Contents/MacOS/<TitleCase>), elsewhere a
+    // plain executable. Mirror sidechain-orchestrator/config.go
+    // TestSidechainBinaryPath so chain-settings reads the right mtime
+    // instead of the (likely missing) prod-path binary.
+    if (chainLayer == 2 && GetIt.I.get<SettingsProvider>().useTestSidechains) {
+      final testDir = Directory(path.join(binDir(appDir.path).path, 'test', baseBinary));
+      if (testDir.existsSync()) {
+        if (Platform.isMacOS) {
+          for (final entry in testDir.listSync()) {
+            if (entry is Directory && entry.path.endsWith('.app')) {
+              final appName = path.basenameWithoutExtension(entry.path);
+              paths.add(path.join(entry.path, 'Contents', 'MacOS', appName));
+            }
+          }
+        } else if (Platform.isWindows) {
+          paths.add(path.join(testDir.path, '$baseBinary.exe'));
+        } else {
+          paths.add(path.join(testDir.path, baseBinary));
+        }
+      }
+    }
+
     if (kDebugMode) {
       paths.addAll([
         path.join(binDir(Directory.current.path).path, subfolder, baseBinary),
