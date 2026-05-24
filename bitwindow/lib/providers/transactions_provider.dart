@@ -73,7 +73,6 @@ class TransactionProvider extends ChangeNotifier {
       return;
     }
     _isFetching = true;
-    error = null;
 
     try {
       // Prefer the streamed activeWalletId, but self-heal against a slow/broken
@@ -190,7 +189,7 @@ class TransactionProvider extends ChangeNotifier {
       ]);
 
       // If any update returned true, notify listeners
-      if (results.any((changed) => changed)) {
+      if (results.any((changed) => changed) || error != null) {
         initialized = true;
         error = null;
         notifyListeners();
