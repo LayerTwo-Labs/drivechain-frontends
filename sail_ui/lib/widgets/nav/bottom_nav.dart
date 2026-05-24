@@ -569,6 +569,10 @@ class ChainLoader extends StatelessWidget {
   final SyncInfo syncInfo;
   final bool justPercent;
   final bool expanded;
+  // Override the default "Current height / Header height" tooltip — callers
+  // that reuse this widget for non-block-height progress (e.g. download bytes
+  // on the sidechains page) supply their own caption.
+  final String? tooltipMessage;
 
   const ChainLoader({
     super.key,
@@ -576,6 +580,7 @@ class ChainLoader extends StatelessWidget {
     required this.syncInfo,
     this.justPercent = false,
     this.expanded = true,
+    this.tooltipMessage,
   });
 
   @override
@@ -584,7 +589,7 @@ class ChainLoader extends StatelessWidget {
     final goalProgress = formatProgress(syncInfo.progressGoal, false);
 
     final widget = Tooltip(
-      message: '$name\nCurrent height $currentProgress\nHeader height $goalProgress',
+      message: tooltipMessage ?? '$name\nCurrent height $currentProgress\nHeader height $goalProgress',
       child: ProgressBar(
         current: syncInfo.progressCurrent,
         goal: syncInfo.progressGoal,
