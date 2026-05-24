@@ -192,6 +192,87 @@ func TestGetCliArgs(t *testing.T) {
 	}
 }
 
+// Regression for #1712 ("Enforcer startup errors due to password and cookie
+// mixups"). The enforcer dies at startup with "precisely one of rpc user and
+// cookie must be set" when --node-rpc-user / --node-rpc-pass don't reach it.
+// These tests pin two invariants of GetCliArgs:
+//  1. A fresh config (no persisted overrides) always emits both flags via
+//     the bitcoin-conf-derived overlay.
+//  2. An EMPTY persisted value (e.g. user cleared the field in the
+//     configurator) must NOT mark the key as seen — the overlay default
+//     must still fire. Previously the seen[key]=true short-circuit ran
+//     first, leaving the enforcer with neither flag.
+func TestGetCliArgs_FreshConfigAlwaysEmitsNodeRpcUserAndPass(t *testing.T) {
+	m, _ := newTestEnforcerManager(t)
+	require.NoError(t, m.LoadConfig())
+
+	args := m.GetCliArgs()
+	hasUser, hasPass := false, false
+	for _, a := range args {
+		if strings.HasPrefix(a, "--node-rpc-user=") {
+			hasUser = true
+		}
+		if strings.HasPrefix(a, "--node-rpc-pass=") {
+			hasPass = true
+		}
+	}
+	if !hasUser {
+		t.Errorf("expected --node-rpc-user=... in args, got %v", args)
+	}
+	if !hasPass {
+		t.Errorf("expected --node-rpc-pass=... in args, got %v", args)
+	}
+}
+
+func TestGetCliArgs_EmptyPersistedValueFallsBackToOverlay(t *testing.T) {
+	m, _ := newTestEnforcerManager(t)
+	require.NoError(t, m.LoadConfig())
+
+	// Simulate the user clearing the value in the configurator. The
+	// persisted settings map carries an entry with an empty value.
+	m.Config.Settings["node-rpc-user"] = ""
+	m.Config.Settings["node-rpc-pass"] = ""
+
+	args := m.GetCliArgs()
+	hasUser, hasPass := false, false
+	for _, a := range args {
+		if strings.HasPrefix(a, "--node-rpc-user=") && a != "--node-rpc-user=" {
+			hasUser = true
+		}
+		if strings.HasPrefix(a, "--node-rpc-pass=") && a != "--node-rpc-pass=" {
+			hasPass = true
+		}
+	}
+	if !hasUser {
+		t.Errorf("empty persisted node-rpc-user must fall back to overlay default; got args=%v", args)
+	}
+	if !hasPass {
+		t.Errorf("empty persisted node-rpc-pass must fall back to overlay default; got args=%v", args)
+	}
+}
+
+func TestGetCliArgs_NonEmptyPersistedValueWinsOverOverlay(t *testing.T) {
+	m, _ := newTestEnforcerManager(t)
+	require.NoError(t, m.LoadConfig())
+
+	m.Config.Settings["node-rpc-user"] = "custom-user"
+	m.Config.Settings["node-rpc-pass"] = "custom-pass"
+
+	args := m.GetCliArgs()
+	hasCustomUser, hasCustomPass := false, false
+	for _, a := range args {
+		if a == "--node-rpc-user=custom-user" {
+			hasCustomUser = true
+		}
+		if a == "--node-rpc-pass=custom-pass" {
+			hasCustomPass = true
+		}
+	}
+	if !hasCustomUser || !hasCustomPass {
+		t.Errorf("expected custom persisted creds to win over overlay; got %v", args)
+	}
+}
+
 // ---------------------------------------------------------------------------
 // File watching tests
 // ---------------------------------------------------------------------------

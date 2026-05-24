@@ -264,20 +264,31 @@ func (m *EnforcerConfManager) WriteConfig(content string) error {
 // Dart: getCliArgs (L275)
 func (m *EnforcerConfManager) GetCliArgs() []string {
 	var args []string
+	// seen[key] is true only when the persisted conf had a NON-EMPTY value
+	// for that key. An empty entry (e.g. `node-rpc-user=` left blank in the
+	// configurator) used to mark seen=true while emitting no arg, then the
+	// overlay below would skip the same key — leaving the enforcer with no
+	// rpc-user flag and the cryptic "precisely one of rpc user and cookie
+	// must be set" error (#1712). Empty-value keys now fall through to the
+	// overlay's default.
 	seen := make(map[string]bool)
 
 	if m.Config != nil {
 		for key, value := range m.Config.Settings {
-			seen[key] = true
 			switch value {
 			case "true":
 				args = append(args, fmt.Sprintf("--%s", key))
+				seen[key] = true
 			case "false":
+				seen[key] = true
 				continue
 			default:
 				if value != "" {
 					args = append(args, fmt.Sprintf("--%s=%s", key, value))
+					seen[key] = true
 				}
+				// empty values intentionally leave seen[key] false so the
+				// overlay below can supply a derived default.
 			}
 		}
 	}
