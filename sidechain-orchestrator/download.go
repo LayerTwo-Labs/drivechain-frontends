@@ -208,14 +208,26 @@ func (d *DownloadManager) DownloadWithOptions(ctx context.Context, config Binary
 		send := func(p DownloadProgress) bool {
 			// Mirror every progress event into the state map. The polled
 			// GetSyncStatus reads from here so the frontend gets download
-			// bytes without subscribing to this channel.
+			// bytes without subscribing to this channel. Byte progress
+			// (MB fields) and status messages (Message field) flow as
+			// separate events — preserve the last byte counts across a
+			// message-only event so a "verifying hash..." update doesn't
+			// snap the progress bar back to 0.
 			if p.Error == nil && !p.Done {
-				d.state.Store(stateKey, DownloadState{
-					MBDownloaded: p.MBDownloaded,
-					MBTotal:      p.MBTotal,
-					Message:      p.Message,
-					Running:      true,
-				})
+				prev, _ := d.state.Load(stateKey)
+				next := DownloadState{Running: true}
+				if existing, ok := prev.(DownloadState); ok {
+					next = existing
+					next.Running = true
+				}
+				if p.MBDownloaded > 0 || p.MBTotal > 0 {
+					next.MBDownloaded = p.MBDownloaded
+					next.MBTotal = p.MBTotal
+				}
+				if p.Message != "" {
+					next.Message = p.Message
+				}
+				d.state.Store(stateKey, next)
 			}
 			select {
 			case ch <- p:
