@@ -31,6 +31,29 @@ class BinaryProvider extends ChangeNotifier {
     required ProcessManager processManager,
   }) : _processManager = processManager {
     _processManager.addListener(notifyListeners);
+    _startMetadataRefreshTimer();
+  }
+
+  Timer? _metadataRefreshTimer;
+
+  /// Refresh remote release timestamps every 5 minutes so newly published
+  /// builds light up the daemon-card update indicator and the chain-settings
+  /// modal without needing an app restart. `loadBinaryCreationTimestamp`
+  /// already runs once during create(); this keeps it ticking after.
+  void _startMetadataRefreshTimer() {
+    _metadataRefreshTimer?.cancel();
+    _metadataRefreshTimer = Timer.periodic(const Duration(minutes: 5), (_) async {
+      final refreshed = await loadBinaryCreationTimestamp(binaries, appDir);
+      for (final b in refreshed) {
+        updateBinary(b.type, (_) => b);
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _metadataRefreshTimer?.cancel();
+    super.dispose();
   }
 
   static Future<BinaryProvider> create({
