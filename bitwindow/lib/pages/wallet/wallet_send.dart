@@ -11,7 +11,8 @@ import 'package:bitwindow/utils/bitcoin_uri.dart';
 import 'package:bitwindow/utils/coin_selection.dart';
 import 'package:collection/collection.dart';
 import 'package:fixnum/fixnum.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' show Dialog;
+import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:sail_ui/gen/bitcoin/bitcoind/v1alpha/bitcoin.pb.dart' show EstimateSmartFeeRequest;
@@ -633,7 +634,7 @@ class SendPageViewModel extends BaseViewModel {
     if (address.isEmpty) return;
     if (!context.mounted) return;
 
-    await showDialog(
+    await showThemedDialog(
       context: context,
       builder: (context) => _SaveToAddressBookDialog(
         address: address,
@@ -833,7 +834,7 @@ class _SaveToAddressBookDialogState extends State<_SaveToAddressBookDialog> {
   @override
   Widget build(BuildContext context) {
     return Dialog(
-      backgroundColor: Colors.transparent,
+      backgroundColor: const Color(0x00000000),
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 400),
         child: SailCard(
