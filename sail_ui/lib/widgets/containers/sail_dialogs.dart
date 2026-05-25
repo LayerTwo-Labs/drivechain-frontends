@@ -4,11 +4,13 @@ import 'package:sail_ui/sail_ui.dart';
 Future<T?> showThemedDialog<T>({
   required BuildContext context,
   required WidgetBuilder builder,
+  bool barrierDismissible = true,
 }) async {
   final theme = SailTheme.of(context);
   return await showDialog(
     context: context,
     barrierColor: theme.colors.background.withValues(alpha: 0.4),
+    barrierDismissible: barrierDismissible,
     builder: builder,
   );
 }
