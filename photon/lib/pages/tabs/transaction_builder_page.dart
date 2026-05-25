@@ -1,5 +1,6 @@
 import 'package:auto_route/auto_route.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' show Icon, Icons;
+import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:stacked/stacked.dart';
@@ -110,7 +111,7 @@ class _UtxoSelectorPanel extends StatelessWidget {
                         return [
                           SailTableCell(
                             value: '',
-                            child: Checkbox(
+                            child: SailCheckbox(
                               value: isSelected,
                               onChanged: (_) => model.toggleUtxo(utxo.outpoint),
                             ),
@@ -223,7 +224,10 @@ class _TransactionCreatorPanel extends StatelessWidget {
                     _FeeRow(label: 'Amount', value: model.amountBtc ?? 0),
                     const SizedBox(height: 4),
                     _FeeRow(label: 'Fee', value: model.feeBtc),
-                    Divider(color: theme.colors.divider, height: SailStyleValues.padding16),
+                    SailSeparator(
+                      color: theme.colors.divider,
+                      padding: EdgeInsets.symmetric(vertical: SailStyleValues.padding08),
+                    ),
                     _FeeRow(label: 'Total', value: (model.amountBtc ?? 0) + model.feeBtc, bold: true),
                   ],
                 ),

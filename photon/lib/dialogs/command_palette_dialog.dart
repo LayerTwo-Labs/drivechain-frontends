@@ -1,5 +1,6 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' show Colors, Dialog, InputBorder, InputDecoration, TextField;
 import 'package:flutter/services.dart';
+import 'package:flutter/widgets.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:photon/services/code_search_service.dart';
 import 'package:photon/utils/menu_commands.dart';
