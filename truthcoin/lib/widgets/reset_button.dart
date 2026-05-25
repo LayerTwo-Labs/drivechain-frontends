@@ -1,5 +1,6 @@
 import 'package:auto_route/auto_route.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' show InkWell;
+import 'package:flutter/widgets.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:truthcoin/pages/tabs/home_page.dart';
 import 'package:truthcoin/pages/tabs/settings_page.dart';
@@ -11,7 +12,7 @@ class ResetButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = SailTheme.of(context);
 
-    return Tooltip(
+    return SailTooltip(
       message: 'Reset / Troubleshoot',
       child: InkWell(
         onTap: () => _navigateToResetSettings(context),

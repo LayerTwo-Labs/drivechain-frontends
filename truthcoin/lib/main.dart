@@ -6,6 +6,7 @@ import 'package:auto_updater/auto_updater.dart';
 import 'package:collection/collection.dart';
 import 'package:truthcoin/gen/version.dart';
 import 'package:desktop_multi_window/desktop_multi_window.dart';
+// ignore: avoid_material_import
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
