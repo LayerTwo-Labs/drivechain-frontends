@@ -1,5 +1,6 @@
 import 'package:auto_route/auto_route.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' show SelectableText;
+import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:stacked/stacked.dart';
@@ -24,7 +25,7 @@ class BlockExplorerPage extends StatelessWidget {
               children: [
                 // Navigation controls
                 _BlockNavigationControls(model: model),
-                const Divider(),
+                const SailSeparator(),
                 // Block details
                 if (model.errorMessage != null)
                   SailText.primary13(model.errorMessage!, color: theme.colors.error)
@@ -102,7 +103,7 @@ class _BlockDetails extends StatelessWidget {
           _BlockInfoRow(label: 'Merkle root', value: block['merkle_root']?.toString() ?? '-', selectable: true),
           _BlockInfoRow(label: 'Prev side hash', value: block['prev_side_hash']?.toString() ?? '-', selectable: true),
           _BlockInfoRow(label: 'Prev main hash', value: block['prev_main_hash']?.toString() ?? '-', selectable: true),
-          const Divider(),
+          const SailSeparator(),
           _BlockInfoRow(
             label: 'Num transactions',
             value: (block['num_transactions'] ?? block['transactions']?.length ?? 0).toString(),
@@ -120,7 +121,7 @@ class _BlockDetails extends StatelessWidget {
             value: (block['num_sigops'] ?? 0).toString(),
           ),
           if (block['body_size_limit'] != null) ...[
-            const Divider(),
+            const SailSeparator(),
             _BlockInfoRow(
               label: 'Body size limit',
               value: _formatSize(block['body_size_limit'] as int?),
@@ -132,7 +133,7 @@ class _BlockDetails extends StatelessWidget {
               value: (block['body_sigops_limit']).toString(),
             ),
           if (block['utreexo_accumulator'] != null) ...[
-            const Divider(),
+            const SailSeparator(),
             SailText.secondary13('Utreexo accumulator:'),
             Container(
               padding: const EdgeInsets.all(SailStyleValues.padding08),
