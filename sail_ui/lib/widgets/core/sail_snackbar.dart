@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:sail_ui/sail_ui.dart';
 
+/// Deprecated: prefer `showSailToast` from `widgets/feedback/sail_toast.dart`.
+/// This wrapper still ties into Material's ScaffoldMessenger and will be
+/// removed once callers migrate to the overlay-based toast stack.
 void showSnackBar(
   BuildContext context,
   String? message, {
