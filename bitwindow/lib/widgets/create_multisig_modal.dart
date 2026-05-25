@@ -8,8 +8,9 @@ import 'package:bs58/bs58.dart';
 import 'package:convert/convert.dart';
 import 'package:crypto/crypto.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' show Colors, Dialog;
 import 'package:flutter/services.dart';
+import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:sail_ui/sail_ui.dart';
@@ -691,11 +692,10 @@ class CreateMultisigModalViewModel extends BaseViewModel {
       notifyListeners();
 
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Key imported from ${file.name}'),
-            backgroundColor: Colors.green,
-          ),
+        showSailToast(
+          context,
+          'Key imported from ${file.name}',
+          variant: SailToastVariant.success,
         );
       }
     } catch (e) {

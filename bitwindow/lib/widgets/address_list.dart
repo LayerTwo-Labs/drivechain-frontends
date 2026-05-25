@@ -1,6 +1,7 @@
 import 'package:bitwindow/providers/address_book_provider.dart';
 import 'package:fixnum/fixnum.dart' show Int64;
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' show Colors, Dialog;
+import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:stacked/stacked.dart';
@@ -321,7 +322,7 @@ class _AddressBookContentState extends State<AddressBookContent> {
 
   void _showEditDialog(BuildContext context, AddressBookEntry entry) {
     widget.viewModel.prepareEdit(entry);
-    showDialog(
+    showThemedDialog(
       context: context,
       builder: (context) => _EditDialog(
         viewModel: widget.viewModel,
@@ -331,14 +332,14 @@ class _AddressBookContentState extends State<AddressBookContent> {
   }
 
   void _showCreateDialog(BuildContext context) {
-    showDialog(
+    showThemedDialog(
       context: context,
       builder: (context) => _CreateDialog(viewModel: widget.viewModel),
     );
   }
 
   void _showDeleteConfirmation(BuildContext context, AddressBookEntry entry) {
-    showDialog(
+    showThemedDialog(
       context: context,
       builder: (context) => Dialog(
         backgroundColor: Colors.transparent,

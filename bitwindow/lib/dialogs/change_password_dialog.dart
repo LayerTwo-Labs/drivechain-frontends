@@ -1,5 +1,5 @@
 import 'package:sail_ui/sail_ui.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 
 /// Dialog for changing the wallet password
@@ -11,7 +11,7 @@ class ChangePasswordDialog extends StatefulWidget {
 
   /// Show the change password dialog
   static Future<bool?> show(BuildContext context) {
-    return showDialog<bool>(
+    return showThemedDialog<bool>(
       context: context,
       barrierDismissible: false,
       builder: (context) => const ChangePasswordDialog(),

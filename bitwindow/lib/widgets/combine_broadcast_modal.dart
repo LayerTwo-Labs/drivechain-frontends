@@ -1,7 +1,8 @@
 import 'package:bitwindow/models/multisig_group.dart';
 import 'package:bitwindow/models/multisig_transaction.dart';
 import 'package:bitwindow/providers/multisig_provider.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' show Colors, Dialog, Icon, IconButton, Icons, Radio;
+import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
 
@@ -133,12 +134,11 @@ class _CombineBroadcastModalState extends State<CombineBroadcastModal> {
 
       if (mounted) {
         Navigator.of(context).pop();
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Transaction combined and finalized successfully! Ready for broadcast.'),
-            duration: Duration(seconds: 3),
-            backgroundColor: Colors.green,
-          ),
+        showSailToast(
+          context,
+          'Transaction combined and finalized successfully! Ready for broadcast.',
+          duration: const Duration(seconds: 3),
+          variant: SailToastVariant.success,
         );
       }
     } catch (e) {
@@ -247,7 +247,7 @@ class _CombineBroadcastModalState extends State<CombineBroadcastModal> {
               ? const Center(
                   child: Padding(
                     padding: EdgeInsets.all(48.0),
-                    child: CircularProgressIndicator(),
+                    child: LoadingIndicator(),
                   ),
                 )
               : SailColumn(
