@@ -1,6 +1,7 @@
 import 'package:auto_route/auto_route.dart';
 import 'package:bitwindow/routing/router.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' show AppBar, Scaffold;
+import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/pages/router.gr.dart';
 import 'package:sail_ui/sail_ui.dart';
@@ -119,11 +120,10 @@ class _CreateAnotherWalletPageState extends State<CreateAnotherWalletPage> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to create wallet: $e'),
-            backgroundColor: SailTheme.of(context).colors.error,
-          ),
+        showSailToast(
+          context,
+          'Failed to create wallet: $e',
+          variant: SailToastVariant.destructive,
         );
       }
     } finally {

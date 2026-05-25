@@ -4,7 +4,8 @@ import 'dart:io';
 import 'package:bitwindow/main.dart' show rebootBitwindowBackend;
 import 'package:bitwindow/pages/root_page.dart' show setRootPageNavigatingAway;
 import 'package:bitwindow/routing/router.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' show MaterialPageRoute;
+import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:sail_ui/pages/router.gr.dart';
@@ -180,7 +181,7 @@ class _SettingsResetState extends State<SettingsReset> {
     } catch (e) {
       log.e('previewResetData failed: $e');
       if (!context.mounted) return;
-      await showDialog(
+      await showThemedDialog(
         context: context,
         builder: (context) => SailAlertCard(
           title: 'Preview Failed',
@@ -195,7 +196,7 @@ class _SettingsResetState extends State<SettingsReset> {
 
     if (filesToDelete.isEmpty) {
       if (!context.mounted) return;
-      await showDialog(
+      await showThemedDialog(
         context: context,
         builder: (context) => SailAlertCard(
           title: 'Nothing to Delete',

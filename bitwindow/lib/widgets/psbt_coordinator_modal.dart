@@ -4,7 +4,8 @@ import 'package:bitwindow/models/multisig_transaction.dart';
 import 'package:bitwindow/providers/hd_wallet_provider.dart';
 import 'package:bitwindow/providers/multisig_provider.dart';
 import 'package:crypto/crypto.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' show Colors, Dialog;
+import 'package:flutter/widgets.dart';
 import 'package:flutter/services.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
@@ -150,7 +151,7 @@ class _GroupSelectionModal extends StatelessWidget {
                               label: 'Select Group',
                               onPressed: () async {
                                 Navigator.of(context).pop();
-                                await showDialog(
+                                await showThemedDialog(
                                   context: context,
                                   builder: (context) => PSBTCoordinatorModal(group: group),
                                 );

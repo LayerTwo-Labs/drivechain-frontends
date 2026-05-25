@@ -1,5 +1,6 @@
 import 'package:file_picker/file_picker.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' show AppBar, Scaffold;
+import 'package:flutter/widgets.dart';
 import 'package:sail_ui/sail_ui.dart';
 
 /// Full-page picker for the Bitcoin Core data directory. Pushed when a
@@ -26,11 +27,10 @@ class _DataDirSelectPageState extends State<DataDirSelectPage> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error selecting directory: $e'),
-            backgroundColor: SailTheme.of(context).colors.error,
-          ),
+        showSailToast(
+          context,
+          'Error selecting directory: $e',
+          variant: SailToastVariant.destructive,
         );
       }
     } finally {
