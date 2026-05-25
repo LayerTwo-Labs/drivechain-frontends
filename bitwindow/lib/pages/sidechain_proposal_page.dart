@@ -1,6 +1,7 @@
 import 'package:auto_route/auto_route.dart';
 import 'package:bitwindow/providers/sidechain_provider.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' show Material;
+import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:stacked/stacked.dart';
@@ -76,7 +77,7 @@ class SidechainProposalView extends StatelessWidget {
   }
 
   void _showInfoDialog(BuildContext context) {
-    showDialog(
+    showThemedDialog(
       context: context,
       barrierDismissible: true,
       builder: (BuildContext context) {
@@ -261,8 +262,7 @@ class SidechainProposalViewModel extends BaseViewModel {
 }
 
 Future<void> showSidechainProposalModal(BuildContext context) {
-  return showDialog<void>(
-    barrierDismissible: true,
+  return showThemedDialog<void>(
     context: context,
     builder: (BuildContext context) {
       return Padding(

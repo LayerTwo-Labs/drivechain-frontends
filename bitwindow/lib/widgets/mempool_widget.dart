@@ -1,7 +1,7 @@
 import 'dart:math';
 
 import 'package:bitwindow/providers/mempool_provider.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
 
@@ -199,7 +199,7 @@ class FeeDistributionChart extends StatelessWidget {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.end,
                       children: [
-                        Tooltip(
+                        SailTooltip(
                           message:
                               '${bucket.txCount} txs\n${(bucket.totalVsize / 1000).toStringAsFixed(1)} kB\n${bucket.totalFees.toStringAsFixed(0)} sats',
                           child: AnimatedContainer(
