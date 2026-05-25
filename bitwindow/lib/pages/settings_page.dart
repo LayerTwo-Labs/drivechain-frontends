@@ -16,7 +16,8 @@ import 'package:sail_ui/sail_ui.dart';
 import 'package:sail_ui/pages/router.gr.dart';
 import 'package:bitwindow/routing/router.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' show Colors, Dialog, Icon, Icons, SelectableText, SelectionArea;
+import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:intl/intl.dart';
 import 'package:logger/logger.dart';
@@ -93,8 +94,7 @@ class SettingsPageState extends State<SettingsPage> {
             ),
             SailText.secondary13('Manage your BitWindow settings.'),
             const SailSpacing(SailStyleValues.padding10),
-            Divider(
-              height: 1,
+            SailSeparator(
               thickness: 1,
               color: theme.colors.divider,
             ),
@@ -249,7 +249,7 @@ class _SecuritySettingsContentState extends State<_SecuritySettingsContent> {
                             small: true,
                             variant: ButtonVariant.secondary,
                             onPressed: () async {
-                              await showDialog(
+                              await showThemedDialog(
                                 context: context,
                                 builder: (context) => WalletManagementDialog(
                                   existingWallet: wallet,
@@ -292,7 +292,7 @@ class _SecuritySettingsContentState extends State<_SecuritySettingsContent> {
             SailButton(
               label: 'Create Backup',
               onPressed: () async {
-                await showDialog(
+                await showThemedDialog(
                   context: context,
                   builder: (context) => BackupWalletDialog(),
                 );
@@ -314,7 +314,7 @@ class _SecuritySettingsContentState extends State<_SecuritySettingsContent> {
             SailButton(
               label: 'Restore from Backup',
               onPressed: () async {
-                await showDialog(
+                await showThemedDialog(
                   context: context,
                   builder: (context) => const RestoreWalletDialog(),
                 );
@@ -337,7 +337,7 @@ class _SecuritySettingsContentState extends State<_SecuritySettingsContent> {
               SizedBox(
                 width: 20,
                 height: 20,
-                child: CircularProgressIndicator(strokeWidth: 2, color: theme.colors.primary),
+                child: LoadingIndicator(color: theme.colors.primary),
               ),
             ],
           )
@@ -355,11 +355,10 @@ class _SecuritySettingsContentState extends State<_SecuritySettingsContent> {
                   if (result == true) {
                     await _checkEncryptionStatus();
                     if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: const Text('Wallet encrypted successfully'),
-                          backgroundColor: theme.colors.success,
-                        ),
+                      showSailToast(
+                        context,
+                        'Wallet encrypted successfully',
+                        variant: SailToastVariant.success,
                       );
                     }
                   }
@@ -405,11 +404,10 @@ class _SecuritySettingsContentState extends State<_SecuritySettingsContent> {
                     onPressed: () async {
                       final result = await ChangePasswordDialog.show(context);
                       if (result == true && context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: const Text('Password changed successfully'),
-                            backgroundColor: theme.colors.success,
-                          ),
+                        showSailToast(
+                          context,
+                          'Password changed successfully',
+                          variant: SailToastVariant.success,
                         );
                       }
                     },
@@ -511,11 +509,10 @@ class _BackupWalletDialogState extends State<BackupWalletDialog> {
 
       if (mounted) {
         Navigator.of(context).pop();
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Backup created successfully at $_selectedPath'),
-            backgroundColor: SailTheme.of(context).colors.success,
-          ),
+        showSailToast(
+          context,
+          'Backup created successfully at $_selectedPath',
+          variant: SailToastVariant.success,
         );
       }
     } catch (e) {
@@ -964,7 +961,7 @@ class _RestoreWalletDialogState extends State<RestoreWalletDialog> {
         Navigator.of(context).pop();
 
         // Show progress dialog
-        final success = await showDialog<bool>(
+        final success = await showThemedDialog<bool>(
           context: context,
           barrierDismissible: false,
           builder: (context) => RestoreProgressDialog(
@@ -975,16 +972,13 @@ class _RestoreWalletDialogState extends State<RestoreWalletDialog> {
 
         // Show result
         if (mounted && success == true) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                hasCurrent && autoBackupPath != null
-                    ? 'Wallet restored! Previous wallet backed up to:\n$autoBackupPath'
-                    : 'Wallet restored successfully!',
-              ),
-              backgroundColor: SailTheme.of(context).colors.success,
-              duration: const Duration(seconds: 6),
-            ),
+          showSailToast(
+            context,
+            hasCurrent && autoBackupPath != null
+                ? 'Wallet restored! Previous wallet backed up to:\n$autoBackupPath'
+                : 'Wallet restored successfully!',
+            variant: SailToastVariant.success,
+            duration: const Duration(seconds: 6),
           );
         }
       }
@@ -1113,7 +1107,7 @@ class _ResetSettingsContentState extends State<_ResetSettingsContent> {
           label: 'Delete All Wallets',
           variant: ButtonVariant.destructive,
           onPressed: () async {
-            final confirmed = await showDialog<bool>(
+            final confirmed = await showThemedDialog<bool>(
               context: context,
               builder: (context) => SailAlertCard(
                 title: 'Reset Wallet?',
@@ -1132,7 +1126,7 @@ class _ResetSettingsContentState extends State<_ResetSettingsContent> {
             );
             if (confirmed == true && context.mounted) {
               final router = GetIt.I.get<AppRouter>();
-              await showDialog(
+              await showThemedDialog(
                 context: context,
                 barrierDismissible: false,
                 builder: (dialogContext) => ResetProgressDialog(
@@ -1159,7 +1153,7 @@ class _ResetSettingsContentState extends State<_ResetSettingsContent> {
           label: 'Reset Everything',
           variant: ButtonVariant.destructive,
           onPressed: () async {
-            final confirmed = await showDialog<bool>(
+            final confirmed = await showThemedDialog<bool>(
               context: context,
               builder: (context) => SailAlertCard(
                 title: 'Reset Everything?',
@@ -1366,7 +1360,7 @@ class _AboutSettingsContentState extends State<_AboutSettingsContent> {
   Future<void> _performUpdate() async {
     if (!Platform.isLinux) return;
 
-    final confirmed = await showDialog<bool>(
+    final confirmed = await showThemedDialog<bool>(
       context: context,
       builder: (context) => SailAlertCard(
         title: 'Update BitWindow?',
@@ -1382,11 +1376,10 @@ class _AboutSettingsContentState extends State<_AboutSettingsContent> {
       await _updateProvider.performUpdate();
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Update failed: $e'),
-            backgroundColor: SailTheme.of(context).colors.error,
-          ),
+        showSailToast(
+          context,
+          'Update failed: $e',
+          variant: SailToastVariant.destructive,
         );
       }
     }
@@ -1509,11 +1502,10 @@ class _DataDirSelectionDialogState extends State<DataDirSelectionDialog> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error selecting directory: $e'),
-            backgroundColor: SailTheme.of(context).colors.error,
-          ),
+        showSailToast(
+          context,
+          'Error selecting directory: $e',
+          variant: SailToastVariant.destructive,
         );
       }
     } finally {
@@ -1907,11 +1899,10 @@ Future<void> _resetWallets(
 
     if (context.mounted) {
       Navigator.of(context).pop();
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Could not reset wallets: $e'),
-          backgroundColor: SailTheme.of(context).colors.error,
-        ),
+      showSailToast(
+        context,
+        'Could not reset wallets: $e',
+        variant: SailToastVariant.destructive,
       );
     }
   }
@@ -1923,7 +1914,7 @@ Future<void> _resetEverything(BuildContext context) async {
   final router = GetIt.I.get<AppRouter>();
 
   // Show progress dialog
-  await showDialog(
+  await showThemedDialog(
     context: context,
     barrierDismissible: false,
     builder: (dialogContext) => ResetProgressDialog(
