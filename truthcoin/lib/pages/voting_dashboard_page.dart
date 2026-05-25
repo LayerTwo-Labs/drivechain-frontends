@@ -1,5 +1,6 @@
 import 'package:auto_route/auto_route.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' show Colors, Icon, Icons;
+import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:stacked/stacked.dart';
@@ -118,7 +119,7 @@ class _VoterStatusCard extends StatelessWidget {
                   value: model.currentVoter!.totalVotes.toString(),
                 ),
                 if (model.currentVoter!.currentPeriodParticipation != null) ...[
-                  const Divider(),
+                  const SailSeparator(),
                   _VoterStatRow(
                     label: 'Period Votes',
                     value:
@@ -571,14 +572,15 @@ class VotingDashboardViewModel extends BaseViewModel {
     notifyListeners();
 
     if (txid != null && context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Votes submitted: ${txid.substring(0, 16)}...')),
+      showSailToast(
+        context,
+        'Votes submitted: ${txid.substring(0, 16)}...',
       );
     }
   }
 
   Future<void> showRegisterDialog(BuildContext context) async {
-    final result = await showDialog<bool>(
+    final result = await showThemedDialog<bool>(
       context: context,
       builder: (context) => _RegisterVoterDialog(
         votingProvider: _votingProvider,
@@ -613,49 +615,40 @@ class _RegisterVoterDialogState extends State<_RegisterVoterDialog> {
 
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
-      title: const Text('Register as Voter'),
-      content: SizedBox(
-        width: 400,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            SailText.secondary13(
-              'Register to participate in the oracle voting system. '
-              'You can optionally provide a reputation bond to increase your initial reputation.',
-            ),
-            const SizedBox(height: 16),
-            SailText.secondary12('Reputation Bond (optional, in sats)'),
-            const SizedBox(height: 4),
-            SailTextField(
-              controller: bondController,
-              hintText: 'e.g., 10000',
-              textFieldType: TextFieldType.number,
-            ),
-            if (error != null) ...[
-              const SizedBox(height: 8),
-              SailText.secondary12(error!, color: Colors.red),
-            ],
-          ],
-        ),
-      ),
+    return SailDialog(
+      title: 'Register as Voter',
+      maxWidth: 460,
+      error: error,
       actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(false),
-          child: const Text('Cancel'),
+        SailButton(
+          label: 'Cancel',
+          variant: ButtonVariant.ghost,
+          onPressed: () async => Navigator.of(context).pop(false),
         ),
-        ElevatedButton(
-          onPressed: isLoading ? null : _register,
-          child: isLoading
-              ? const SizedBox(
-                  width: 16,
-                  height: 16,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                )
-              : const Text('Register'),
+        SailButton(
+          label: 'Register',
+          loading: isLoading,
+          onPressed: () async => _register(),
         ),
       ],
+      child: SailColumn(
+        spacing: SailStyleValues.padding08,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SailText.secondary13(
+            'Register to participate in the oracle voting system. '
+            'You can optionally provide a reputation bond to increase your initial reputation.',
+          ),
+          const SizedBox(height: 8),
+          SailText.secondary12('Reputation Bond (optional, in sats)'),
+          const SizedBox(height: 4),
+          SailTextField(
+            controller: bondController,
+            hintText: 'e.g., 10000',
+            textFieldType: TextFieldType.number,
+          ),
+        ],
+      ),
     );
   }
 
