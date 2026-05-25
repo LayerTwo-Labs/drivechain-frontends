@@ -12,7 +12,7 @@ import 'package:bitwindow/providers/news_provider.dart';
 import 'package:bitwindow/widgets/headline_highlight_text_field.dart';
 import 'package:bitwindow/widgets/homepage_widget_catalog.dart';
 import 'package:flutter/material.dart'
-    show AlertDialog, Colors, Dialog, DialogThemeData, InkWell, TextButton, Theme, showDatePicker;
+    show AlertDialog, ColorScheme, Colors, Dialog, DialogThemeData, InkWell, TextButton, Theme, showDatePicker;
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';

@@ -8,7 +8,7 @@ import 'package:bs58/bs58.dart';
 import 'package:convert/convert.dart';
 import 'package:crypto/crypto.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:flutter/material.dart' show Colors, Dialog;
+import 'package:flutter/material.dart' show Colors, Dialog, Icon, Icons;
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';

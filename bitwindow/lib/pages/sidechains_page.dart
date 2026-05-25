@@ -11,7 +11,7 @@ import 'package:bitwindow/widgets/homepage_widget_catalog.dart';
 import 'package:bitwindow/widgets/starters_tab.dart';
 import 'package:collection/collection.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart' show Icon, Icons, Material;
+import 'package:flutter/material.dart' show Colors, Icon, Icons, Material;
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';

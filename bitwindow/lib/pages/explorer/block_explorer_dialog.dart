@@ -2,7 +2,8 @@ import 'package:bitwindow/dialogs/merkle_tree_dialog.dart';
 import 'package:bitwindow/pages/explorer/widgets/transaction_flow_diagram.dart';
 import 'package:bitwindow/providers/blockchain_provider.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart' show Colors, Dialog, SelectableText, Tab, TabBar, TabBarView, TabController;
+import 'package:flutter/material.dart'
+    show Colors, Dialog, Icon, Icons, SelectableText, Tab, TabBar, TabBarView, TabController;
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';

@@ -29,7 +29,8 @@ import 'package:bitwindow/providers/news_provider.dart';
 import 'package:bitwindow/routing/router.dart';
 import 'package:bitwindow/utils/bitcoin_uri.dart';
 import 'package:flutter/gestures.dart';
-import 'package:flutter/material.dart' show BorderSide, Dialog, Scaffold, SelectionArea, TextSelectionThemeData, Theme;
+import 'package:flutter/material.dart'
+    show BorderSide, Dialog, Scaffold, SelectableText, SelectionArea, TextSelectionThemeData, Theme;
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';

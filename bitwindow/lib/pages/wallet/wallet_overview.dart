@@ -6,7 +6,8 @@ import 'package:bitwindow/providers/transactions_provider.dart';
 import 'package:csv/csv.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:fixnum/fixnum.dart';
-import 'package:flutter/material.dart' show Colors, DateTimeRange, Dialog, Theme, showDateRangePicker;
+import 'package:flutter/material.dart'
+    show ColorScheme, Colors, DateTimeRange, Dialog, Icon, Icons, Theme, showDateRangePicker;
 import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:intl/intl.dart';
