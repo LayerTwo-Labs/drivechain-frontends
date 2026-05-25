@@ -1,7 +1,9 @@
 import 'package:auto_route/auto_route.dart';
 import 'package:bitassets/providers/bitassets_provider.dart';
 import 'package:bitassets/settings/amm_settings.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart'
+    show Colors, ExpansionTile, IconButton, InkWell, MaterialTapTargetSize, TextButton;
+import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:stacked/stacked.dart';
@@ -230,8 +232,7 @@ class AmmTabPage extends StatelessWidget {
                                   child: SizedBox(
                                     width: 18,
                                     height: 18,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
+                                    child: LoadingIndicator(
                                       color: Colors.white,
                                     ),
                                   ),

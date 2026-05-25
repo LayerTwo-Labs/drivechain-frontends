@@ -5,8 +5,10 @@ import 'package:bitassets/providers/favorites_provider.dart';
 import 'package:bitassets/providers/price_alert_provider.dart';
 import 'package:bitassets/routing/router.dart';
 import 'package:bitassets/settings/price_alerts_settings.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart'
+    show AlertDialog, Colors, Icon, IconButton, Icons, InkWell, LinearProgressIndicator, TextButton;
 import 'package:flutter/services.dart';
+import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:stacked/stacked.dart';
@@ -600,7 +602,7 @@ class AuctionBrowserViewModel extends BaseViewModel {
     final bidController = TextEditingController();
     final theme = SailTheme.of(context);
 
-    showDialog(
+    showThemedDialog(
       context: context,
       builder: (dialogContext) {
         return AlertDialog(
@@ -712,7 +714,7 @@ class AuctionBrowserViewModel extends BaseViewModel {
       priceController.text = existingAlert.targetPrice.toString();
     }
 
-    showDialog(
+    showThemedDialog(
       context: context,
       builder: (dialogContext) {
         return StatefulBuilder(
