@@ -9,6 +9,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"os/exec"
 	"slices"
 	"sort"
 	"strconv"
@@ -1209,6 +1210,25 @@ func (o *Orchestrator) startTargetOnly(ctx context.Context, config BinaryConfig,
 		if err := forwardDownload(downloadCh, ch, "downloading-"+config.Name); err != nil {
 			failBoot(targetMon, ch, "download "+config.Name, err)
 			return
+		}
+	}
+
+	// GUI bundle (macOS test sidechain): open via Launch Services and stop
+	// here. Orchestratord never manages the GUI as a daemon — sidechain
+	// apps call back through StartWithL1 with ForceBackend=true to start
+	// their own rust daemon.
+	if !opts.ForceBackend && config.ChainLayer == 2 && o.process.SidechainVariant != nil {
+		if sv, ok := o.process.SidechainVariant(config); ok {
+			if appBundle := TestSidechainAppBundle(o.DataDir, sv.BinaryName); appBundle != "" {
+				o.log.Info().Str("bundle", appBundle).Str("binary", config.Name).Msg("opening GUI app bundle")
+				if err := exec.Command("open", "-a", appBundle).Run(); err != nil {
+					failBoot(targetMon, ch, "open "+config.Name, err)
+					return
+				}
+				targetMon.SetInitializing(false)
+				ch <- StartupProgress{Stage: "done", Message: fmt.Sprintf("%s opened", config.DisplayName), Done: true}
+				return
+			}
 		}
 	}
 

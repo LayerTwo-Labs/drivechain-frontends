@@ -129,6 +129,7 @@ Future<void> initSidechainDependencies({
       : await BinaryProvider.create(
           appDir: applicationDir,
           initialBinaries: binaries,
+          isSidechainApp: true,
         );
   if (!GetIt.I.isRegistered<BinaryProvider>()) {
     GetIt.I.registerSingleton<BinaryProvider>(binaryProvider);
