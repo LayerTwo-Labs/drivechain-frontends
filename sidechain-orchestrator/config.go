@@ -200,6 +200,22 @@ func TestSidechainDir(dataDir, binaryName string) string {
 	return filepath.Join(BinDir(dataDir), testSidechainSubfolder, binaryName)
 }
 
+// TestSidechainAppBundle returns the .app bundle path for a test sidechain
+// build on macOS, or "" if not on macOS / no bundle present.
+func TestSidechainAppBundle(dataDir, binaryName string) string {
+	if runtime.GOOS != "darwin" {
+		return ""
+	}
+	dir := TestSidechainDir(dataDir, binaryName)
+	entries, _ := os.ReadDir(dir)
+	for _, e := range entries {
+		if e.IsDir() && strings.HasSuffix(e.Name(), ".app") {
+			return filepath.Join(dir, e.Name())
+		}
+	}
+	return ""
+}
+
 // TestSidechainBinaryPath resolves the launchable binary inside a test build's
 // directory. Three shapes are supported:
 //

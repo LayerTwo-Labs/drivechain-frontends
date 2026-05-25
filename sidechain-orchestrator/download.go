@@ -302,8 +302,9 @@ func (d *DownloadManager) DownloadWithOptions(ctx context.Context, config Binary
 			extractName = scVariant.BinaryName
 			stripPrefix = scVariant.ExtractSubfolder
 		}
-		hasCLI, err := d.extractBinary(savePath, config, extractName, stripPrefix, d.dataDir, network, variant, hasVariant, hasSCVariant)
+		hasCLI, err := d.extractBinary(savePath, config, extractName, stripPrefix, d.dataDir, network, hasSCVariant)
 		if err != nil {
+			d.log.Error().Err(err).Str("binary", config.Name).Msg("extract failed")
 			send(DownloadProgress{Error: fmt.Errorf("extract: %w", err)})
 			return
 		}
@@ -541,7 +542,7 @@ func (d *DownloadManager) downloadFile(ctx context.Context, url, savePath string
 // extractBinary extracts a downloaded archive to the bin directory.
 // Returns hasCLI=true iff a companion CLI binary (name contains "-cli") was
 // extracted alongside the main binary. Raw binaries never have a CLI.
-func (d *DownloadManager) extractBinary(archivePath string, config BinaryConfig, extractName, stripPrefix, dataDir, network string, variant CoreVariantSpec, hasVariant, hasSCVariant bool) (bool, error) {
+func (d *DownloadManager) extractBinary(archivePath string, config BinaryConfig, extractName, stripPrefix, dataDir, network string, hasSCVariant bool) (bool, error) {
 	destDir := BinDir(dataDir)
 
 	switch {
@@ -549,6 +550,12 @@ func (d *DownloadManager) extractBinary(archivePath string, config BinaryConfig,
 		// Test sidechain builds need a private dir so per-binary lib/data
 		// trees don't collide.
 		destDir = filepath.Join(destDir, testSidechainSubfolder, extractName)
+		// Wipe the previous extract first — re-extracting a Flutter .app
+		// over the old tree breaks on framework symlink vs directory
+		// conflicts and aborts mid-way, leaving the old binary in place.
+		if err := os.RemoveAll(destDir); err != nil {
+			return false, fmt.Errorf("wipe stale extract dir: %w", err)
+		}
 	case !config.IsBitcoinCore:
 		// Forknet zips ship a top-level directory we have to peel off.
 		if subfolder, ok := config.ExtractSubfolder[currentOS()]; ok && subfolder != "" {

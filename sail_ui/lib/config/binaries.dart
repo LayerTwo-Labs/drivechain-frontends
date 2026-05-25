@@ -911,7 +911,7 @@ abstract class Binary {
   Future<DateTime?> _checkDirectReleaseDate() async {
     try {
       final os = getOS();
-      final fileName = metadata.downloadConfig.files[GetIt.I.get<BitcoinConfProvider>().network]![os];
+      final fileName = metadata.downloadConfig.files[GetIt.I.get<BitcoinConfProvider>().network]?[os];
       final baseUrl = metadata.downloadConfig.baseUrl(
         GetIt.I.get<BitcoinConfProvider>().network,
       );

@@ -22,6 +22,10 @@ class BinaryProvider extends ChangeNotifier {
 
   List<Binary> binaries;
 
+  /// True when this app is itself a sidechain GUI — force --headless so the
+  /// orchestrator boots the rust backend, not another .app bundle.
+  final bool isSidechainApp;
+
   /// Manages daemon processes spawned directly by Flutter.
   late final ProcessManager _processManager;
 
@@ -29,6 +33,7 @@ class BinaryProvider extends ChangeNotifier {
     required this.appDir,
     required this.binaries,
     required ProcessManager processManager,
+    required this.isSidechainApp,
   }) : _processManager = processManager {
     _processManager.addListener(notifyListeners);
     _startMetadataRefreshTimer();
@@ -87,6 +92,7 @@ class BinaryProvider extends ChangeNotifier {
   static Future<BinaryProvider> create({
     required Directory appDir,
     required List<Binary> initialBinaries,
+    bool isSidechainApp = false,
   }) async {
     final binaries = await loadBinaryCreationTimestamp(initialBinaries, appDir);
     final pidDir = Directory(path.join(appDir.path, 'pids'));
@@ -98,6 +104,7 @@ class BinaryProvider extends ChangeNotifier {
       appDir: appDir,
       binaries: binaries,
       processManager: processManager,
+      isSidechainApp: isSidechainApp,
     );
 
     // Adopt any processes from a previous session via PID files.
@@ -110,6 +117,7 @@ class BinaryProvider extends ChangeNotifier {
   BinaryProvider.test({
     required this.appDir,
     required this.binaries,
+    this.isSidechainApp = false,
   });
 
   OrchestratorRPC get _orchestrator => GetIt.I.get<OrchestratorRPC>();
@@ -134,13 +142,9 @@ class BinaryProvider extends ChangeNotifier {
       return;
     }
 
-    // L2 sidechains: always boot the headless rust backend, not the
-    // sidechain's own Flutter GUI bundle. Without --force-backend, the
-    // test-sidechains toggle would have orchestratord launch Thunder.app
-    // (etc.) as the "daemon", which never binds its RPC port and leaves
-    // the daemon card stuck in "initializing" forever. Sidechain GUIs are
-    // a separate concern — users open them directly when they want.
-    final forceBackend = binary.chainLayer == 2;
+    // Only force --headless when we *are* the sidechain GUI. BitWindow
+    // wants Start to lift the full Thunder.app for the user.
+    final forceBackend = isSidechainApp && binary.chainLayer == 2;
 
     log.i('BinaryProvider: starting $name via orchestrator (forceBackend=$forceBackend)');
     // Fire-and-forget: orch dispatches boot in the background. Connection
@@ -229,6 +233,18 @@ class BinaryProvider extends ChangeNotifier {
     final wasRunning = isConnected(binary);
 
     log.i('BinaryProvider: starting update for $name');
+
+    // Stop first so the on-disk binary isn't pinned by a running process.
+    // Re-extract over a running .app would fail mid-way on a symlink/dir
+    // conflict and silently leave the old binary in place.
+    if (wasRunning) {
+      try {
+        await _orchestrator.stopBinary(name);
+      } catch (e) {
+        log.w('BinaryProvider: stop before update failed for $name: $e');
+      }
+    }
+
     await _orchestrator.downloadBinary(name, force: true);
 
     // Poll until the orchestrator drops the binary out of its in-flight map.
