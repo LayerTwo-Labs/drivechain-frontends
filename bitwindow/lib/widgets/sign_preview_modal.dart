@@ -1,7 +1,8 @@
 import 'package:bitwindow/models/multisig_group.dart';
 import 'package:bitwindow/models/multisig_transaction.dart';
 import 'package:bitwindow/widgets/create_multisig_modal.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' show Colors, Dialog;
+import 'package:flutter/widgets.dart';
 import 'package:sail_ui/sail_ui.dart';
 
 class SignPreviewModal extends StatefulWidget {
@@ -249,7 +250,7 @@ class _SigningDetails extends StatelessWidget {
                   ],
                 ),
                 if (unsignedWalletKeys.isNotEmpty) ...[
-                  const Divider(height: 16),
+                  const SailSeparator(),
                   SailText.secondary12('Keys to be signed:'),
                   ...unsignedWalletKeys.map(
                     (key) => Padding(

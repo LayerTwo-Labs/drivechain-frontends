@@ -5,7 +5,8 @@ import 'package:auto_route/auto_route.dart';
 import 'package:bitwindow/models/chat_models.dart';
 import 'package:bitwindow/pages/sidechains_page.dart';
 import 'package:bitwindow/providers/chat_provider.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' show AlertDialog, InkWell, InputDecoration, MenuAnchor, MenuStyle, TextField;
+import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:stacked/stacked.dart';
@@ -93,7 +94,7 @@ class ChatPage extends StatelessWidget {
                             SailText.secondary13('No BitNames owned'),
                           const SizedBox(width: SailStyleValues.padding12),
                           if (model.hasSufficientBalance)
-                            Tooltip(
+                            SailTooltip(
                               message: 'Registering a BitName costs sats on the BitNames sidechain',
                               child: SailButton(
                                 label: 'Register BitName',
@@ -104,7 +105,7 @@ class ChatPage extends StatelessWidget {
                               ),
                             )
                           else if (GetIt.I.get<BitcoinConfProvider>().networkSupportsSidechains)
-                            Tooltip(
+                            SailTooltip(
                               message: 'You need BitNames sidechain balance to register a BitName',
                               child: SailButton(
                                 label: 'Deposit to BitNames',
@@ -379,14 +380,14 @@ class ChatPage extends StatelessWidget {
   }
 
   Future<void> _showAddContactDialog(BuildContext context, ChatViewModel model) async {
-    await showDialog<void>(
+    await showThemedDialog<void>(
       context: context,
       builder: (context) => _AddContactDialog(model: model),
     );
   }
 
   Future<void> _showRegisterBitNameDialog(BuildContext context, ChatViewModel model) async {
-    await showDialog<void>(
+    await showThemedDialog<void>(
       context: context,
       barrierDismissible: false,
       builder: (context) => _RegisterBitNameDialog(model: model),
@@ -419,10 +420,7 @@ class _ClaimingStatusBar extends StatelessWidget {
           SizedBox(
             width: 16,
             height: 16,
-            child: CircularProgressIndicator(
-              strokeWidth: 2,
-              color: theme.colors.primary,
-            ),
+            child: LoadingIndicator(color: theme.colors.primary),
           ),
           const SizedBox(width: SailStyleValues.padding12),
           Expanded(
@@ -992,7 +990,7 @@ class _SearchableIdentityDropdownState extends State<_SearchableIdentityDropdown
             ],
           ),
         ),
-        const Divider(height: 1),
+        const SailSeparator(),
         // Identity list
         if (filteredIdentities.isEmpty)
           Padding(

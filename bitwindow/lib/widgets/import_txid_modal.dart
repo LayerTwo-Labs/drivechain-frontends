@@ -3,8 +3,9 @@ import 'dart:convert';
 import 'package:bitwindow/models/multisig_group.dart';
 import 'package:bitwindow/providers/hd_wallet_provider.dart';
 import 'package:bitwindow/providers/multisig_provider.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' show Colors, Dialog;
 import 'package:flutter/services.dart';
+import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:sail_ui/sail_ui.dart';
@@ -85,10 +86,7 @@ class ImportTxidModal extends StatelessWidget {
                             const SizedBox(
                               width: 16,
                               height: 16,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                valueColor: AlwaysStoppedAnimation<Color>(Colors.orange),
-                              ),
+                              child: LoadingIndicator(color: Colors.orange),
                             ),
                             const SizedBox(width: 12),
                             Expanded(
@@ -291,11 +289,10 @@ class ImportTxidModalViewModel extends BaseViewModel {
       loadingStatus = null;
 
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Successfully imported multisig: ${multisigData['name'] ?? 'Unknown'}'),
-            backgroundColor: Colors.green,
-          ),
+        showSailToast(
+          context,
+          'Successfully imported multisig: ${multisigData['name'] ?? 'Unknown'}',
+          variant: SailToastVariant.success,
         );
         Navigator.of(context).pop(true);
       }

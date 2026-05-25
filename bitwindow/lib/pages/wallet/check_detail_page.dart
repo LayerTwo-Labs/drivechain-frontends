@@ -1,8 +1,10 @@
 import 'package:auto_route/auto_route.dart' hide AutoRouterX;
 import 'package:bitwindow/providers/check_provider.dart';
 import 'package:bitwindow/providers/transactions_provider.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart'
+    show AlertDialog, AppBar, Colors, Icon, Icons, Scaffold, SelectableText, TextButton;
 import 'package:flutter/services.dart';
+import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:qr_flutter/qr_flutter.dart';
@@ -161,7 +163,7 @@ class CheckDetailViewModel extends BaseViewModel {
     final passwordController = TextEditingController();
     bool isUnlocking = false;
 
-    await showDialog(
+    await showThemedDialog(
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setState) => AlertDialog(
@@ -243,7 +245,7 @@ class CheckDetailPage extends StatelessWidget {
           body: Builder(
             builder: (context) {
               if (model.isLoading) {
-                return const Center(child: CircularProgressIndicator());
+                return const Center(child: LoadingIndicator());
               }
 
               if (model.modelError != null || model.check == null) {

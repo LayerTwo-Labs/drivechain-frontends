@@ -1,8 +1,10 @@
 import 'package:auto_route/auto_route.dart';
 import 'package:bitwindow/providers/m4_provider.dart';
 import 'package:bitwindow/providers/sidechain_provider.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart'
+    show AppBar, ExpansionTile, Icon, Icons, InkWell, LinearProgressIndicator, ListTile, Scaffold, SelectableText;
 import 'package:flutter/services.dart';
+import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/gen/drivechain/v1/drivechain.pb.dart' as drivechainpb;
 import 'package:sail_ui/gen/m4/v1/m4.pb.dart' as m4pb;
@@ -109,7 +111,7 @@ class _M4ExplorerPageState extends State<M4ExplorerPage> {
                           child: Builder(
                             builder: (context) {
                               if (_sidechainProvider.sidechains.isEmpty) {
-                                return const Center(child: CircularProgressIndicator());
+                                return const Center(child: LoadingIndicator());
                               }
 
                               final activeSidechains = _activeSidechains;
@@ -160,7 +162,7 @@ class _M4ExplorerPageState extends State<M4ExplorerPage> {
                                       _m4Provider.withdrawalBundlesBySidechain.isNotEmpty ||
                                       _m4Provider.history.isNotEmpty;
                                   if (_m4Provider.isLoading && !hasData) {
-                                    return const Center(child: CircularProgressIndicator());
+                                    return const Center(child: LoadingIndicator());
                                   }
 
                                   if (_m4Provider.modelError != null) {
@@ -499,7 +501,7 @@ class _BundleRow extends StatelessWidget {
               ),
             ] else
               SailText.secondary12('Block ${bundle.blockHeight}'),
-            const Divider(height: 16),
+            const SailSeparator(),
           ],
         ),
       ),

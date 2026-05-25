@@ -3,7 +3,8 @@ import 'dart:io';
 import 'package:bitwindow/providers/hd_wallet_provider.dart';
 import 'package:bitwindow/providers/multisig_provider.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' show Colors, Dialog;
+import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:path/path.dart' as path;
 import 'package:sail_ui/sail_ui.dart';
@@ -32,7 +33,7 @@ class MultisigKeyModal extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     if (viewModel.isBusy)
-                      const Center(child: CircularProgressIndicator())
+                      const Center(child: LoadingIndicator())
                     else if (viewModel.keyInfo != null) ...[
                       SailText.primary15('Your Multisig Key Information:'),
                       const SizedBox(height: 16),
@@ -241,12 +242,11 @@ class MultisigKeyModalViewModel extends BaseViewModel {
     final keyName = keyNameController.text.trim();
     if (keyName.isEmpty) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Please enter a key name'),
-            backgroundColor: Colors.orange,
-            duration: Duration(seconds: 3),
-          ),
+        showSailToast(
+          context,
+          'Please enter a key name',
+          variant: SailToastVariant.warning,
+          duration: const Duration(seconds: 3),
         );
       }
       return;
@@ -257,23 +257,21 @@ class MultisigKeyModalViewModel extends BaseViewModel {
       final savedFilePath = await _saveConfigFileWithPicker();
 
       if (savedFilePath != null && context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Key saved to multisig.json and ${path.basename(savedFilePath)}'),
-            backgroundColor: Colors.green,
-            duration: const Duration(seconds: 3),
-          ),
+        showSailToast(
+          context,
+          'Key saved to multisig.json and ${path.basename(savedFilePath)}',
+          variant: SailToastVariant.success,
+          duration: const Duration(seconds: 3),
         );
         Navigator.of(context).pop();
       }
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to save key: $e'),
-            backgroundColor: Colors.red,
-            duration: const Duration(seconds: 3),
-          ),
+        showSailToast(
+          context,
+          'Failed to save key: $e',
+          variant: SailToastVariant.destructive,
+          duration: const Duration(seconds: 3),
         );
       }
     }

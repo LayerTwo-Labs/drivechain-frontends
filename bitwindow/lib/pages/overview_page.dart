@@ -11,8 +11,10 @@ import 'package:bitwindow/providers/homepage_provider.dart' as bitwindow;
 import 'package:bitwindow/providers/news_provider.dart';
 import 'package:bitwindow/widgets/headline_highlight_text_field.dart';
 import 'package:bitwindow/widgets/homepage_widget_catalog.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart'
+    show AlertDialog, Colors, Dialog, DialogThemeData, InkWell, TextButton, Theme, showDatePicker;
 import 'package:flutter/services.dart';
+import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/providers/price_provider.dart';
 import 'package:sail_ui/sail_ui.dart';
@@ -503,7 +505,7 @@ Future<void> displayCreateTopicDialog(BuildContext context) async {
 }
 
 Future<void> displayGraffitiExplorerDialog(BuildContext context) async {
-  await showDialog(
+  await showThemedDialog(
     context: context,
     builder: (context) => const Dialog(
       child: SizedBox(
@@ -516,7 +518,7 @@ Future<void> displayGraffitiExplorerDialog(BuildContext context) async {
 }
 
 void _showNewsHelp(BuildContext context) {
-  showDialog(
+  showThemedDialog(
     context: context,
     builder: (context) => AlertDialog(
       title: const Text('News Help'),
