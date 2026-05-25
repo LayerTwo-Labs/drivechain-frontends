@@ -272,6 +272,7 @@ export 'widgets/core/sail_text.dart';
 export 'widgets/core/scaffold.dart';
 export 'widgets/feedback/sail_alert.dart';
 export 'widgets/feedback/sail_skeleton.dart';
+export 'widgets/feedback/sail_toast.dart';
 export 'widgets/feedback/sail_tooltip.dart';
 export 'widgets/inputs/checkbox.dart';
 export 'widgets/inputs/dropdown_menu.dart';
