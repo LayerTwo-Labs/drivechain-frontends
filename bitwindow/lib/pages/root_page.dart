@@ -29,8 +29,9 @@ import 'package:bitwindow/providers/news_provider.dart';
 import 'package:bitwindow/routing/router.dart';
 import 'package:bitwindow/utils/bitcoin_uri.dart';
 import 'package:flutter/gestures.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' show BorderSide, Dialog, Scaffold, SelectionArea, TextSelectionThemeData, Theme;
 import 'package:flutter/services.dart';
+import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:sail_ui/pages/router.gr.dart';
@@ -344,7 +345,7 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
   }
 
   void _openCommandPalette() {
-    showDialog(
+    showThemedDialog(
       context: context,
       builder: (dialogContext) => CommandPaletteDialog(
         commands: _getMenuCommands(),
@@ -404,7 +405,7 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
                     PlatformMenuItem(
                       label: 'About bitwindow',
                       onSelected: () {
-                        showDialog(
+                        showThemedDialog(
                           context: context,
                           builder: (context) => const AboutBitwindowDialog(),
                         );
@@ -503,7 +504,7 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
                       PlatformMenuItem(
                         label: 'Encrypt Wallet',
                         onSelected: () {
-                          showDialog(
+                          showThemedDialog(
                             context: context,
                             builder: (context) => const EncryptWalletDialog(),
                           );
@@ -513,7 +514,7 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
                       PlatformMenuItem(
                         label: 'Change Password',
                         onSelected: () {
-                          showDialog(
+                          showThemedDialog(
                             context: context,
                             builder: (context) => const ChangePasswordDialog(),
                           );
@@ -590,7 +591,7 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
                     PlatformMenuItem(
                       label: 'Open URI Link',
                       onSelected: () async {
-                        final result = await showDialog<BitcoinURI>(
+                        final result = await showThemedDialog<BitcoinURI>(
                           context: context,
                           builder: (context) => const BitcoinURIDialog(),
                         );
@@ -621,7 +622,7 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
                     PlatformMenuItem(
                       label: 'Proof of Funds',
                       onSelected: () {
-                        showDialog(
+                        showThemedDialog(
                           context: context,
                           builder: (context) => const ProofOfFundsModal(),
                         );
@@ -641,7 +642,7 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
                     PlatformMenuItem(
                       label: 'Paper Wallet',
                       onSelected: () {
-                        showDialog(
+                        showThemedDialog(
                           context: context,
                           builder: (context) => const PaperWalletDialog(),
                         );
@@ -696,7 +697,7 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
                         PlatformMenuItem(
                           label: 'OP_RETURN Graffiti',
                           onSelected: () {
-                            showDialog(
+                            showThemedDialog(
                               context: context,
                               builder: (context) => const Dialog(
                                 child: SizedBox(
@@ -731,7 +732,7 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
                     PlatformMenuItem(
                       label: 'Chain Merchants',
                       onSelected: () {
-                        showDialog(
+                        showThemedDialog(
                           context: context,
                           builder: (context) => const ChainMerchantsDialog(),
                         );
@@ -764,7 +765,7 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
                     PlatformMenuItem(
                       label: 'Network Statistics',
                       onSelected: () {
-                        showDialog(
+                        showThemedDialog(
                           context: context,
                           builder: (context) => const NetworkStatisticsPage(),
                         );
@@ -830,7 +831,7 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
                     PlatformMenuItem(
                       label: 'Merkle Tree',
                       onSelected: () {
-                        showDialog(
+                        showThemedDialog(
                           context: context,
                           builder: (context) => const MerkleTreeDialog(),
                         );
@@ -843,7 +844,7 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
                     PlatformMenuItem(
                       label: 'Base58Check Decoder',
                       onSelected: () {
-                        showDialog(
+                        showThemedDialog(
                           context: context,
                           builder: (context) => const Base58DecoderDialog(),
                         );
@@ -1299,7 +1300,7 @@ class _StatusBarState extends State<StatusBar> {
         SailSkeletonizer(
           description: 'Waiting for bitcoind to connect..',
           enabled: !blockchainProvider.mainchain.connected,
-          child: Tooltip(
+          child: SailTooltip(
             message: blockchainProvider.blocks.firstOrNull?.toPretty() ?? '',
             child: SailText.secondary12('Last block: ${_getTimeSinceLastBlock()}'),
           ),
@@ -1308,7 +1309,7 @@ class _StatusBarState extends State<StatusBar> {
         SailSkeletonizer(
           description: 'Waiting for bitcoind to connect..',
           enabled: !blockchainProvider.mainchain.connected,
-          child: Tooltip(
+          child: SailTooltip(
             message: blockchainProvider.peers.map((e) => 'Peer id=${e.id} addr=${e.addr}').join('\n'),
             child: SailText.secondary12(
               formatTimeDifference(blockchainProvider.peers.length, 'peer'),
