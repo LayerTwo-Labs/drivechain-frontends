@@ -1,6 +1,7 @@
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/foundation.dart' as foundation;
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' show Colors, Dialog, InkWell;
+import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:sail_ui/sail_ui.dart';
@@ -185,8 +186,7 @@ class ZSideMeltCast extends StatelessWidget {
                       ],
                     ),
                   ),
-                  VerticalDivider(
-                    width: 1,
+                  SailSeparator.vertical(
                     thickness: 1,
                     color: theme.colors.divider,
                   ),
@@ -477,7 +477,7 @@ class _PendingMeltTableState extends State<PendingMeltTable> {
             ),
             onSelected: () {
               final entry = widget.entries.firstWhere((e) => e.utxo.raw == rowId);
-              showDialog(
+              showThemedDialog(
                 context: context,
                 builder: (context) => Dialog(
                   child: PendingMeltView(tx: entry),
@@ -635,7 +635,7 @@ class _PendingCastsTableState extends State<PendingCastsTable> {
 
   void _showBillDetails(BuildContext context, PendingCastBill bill) {
     final formatter = GetIt.I<FormatterProvider>();
-    showDialog(
+    showThemedDialog(
       context: context,
       builder: (context) => Dialog(
         backgroundColor: Colors.transparent,
@@ -900,7 +900,7 @@ class _UTXOsTableState extends State<UTXOsTable> {
           return [
             SailTableCell(
               value: '${formatter.formatBTC(amount)} ${container.chain.ticker}',
-              child: Tooltip(
+              child: SailTooltip(
                 message: isUnshielded
                     ? (isSafeAmount ? 'Melted, safe UTXO' : 'Not melted, unsafe amount')
                     : (isSafeAmount ? 'Casted, safe UTXO' : 'Not casted, unsafe UTXO'),
@@ -920,7 +920,7 @@ class _UTXOsTableState extends State<UTXOsTable> {
                     monospace: true,
                   ),
                   const SizedBox(width: 8),
-                  Tooltip(
+                  SailTooltip(
                     message: isUnshielded
                         ? (isSafeAmount ? 'Melted' : 'Not melted')
                         : (isSafeAmount ? 'Casted' : 'Not casted'),
@@ -941,7 +941,7 @@ class _UTXOsTableState extends State<UTXOsTable> {
                     monospace: true,
                   ),
                   const SizedBox(width: 8),
-                  Tooltip(
+                  SailTooltip(
                     message: confirmations >= 1 ? '$confirmations confirmations' : 'Unconfirmed',
                     child: SailSVG.icon(
                       confirmations >= 1 ? SailSVGAsset.iconSuccess : SailSVGAsset.iconPending,
@@ -989,7 +989,7 @@ class _UTXOsTableState extends State<UTXOsTable> {
   void _showUTXODetails(BuildContext context, dynamic utxo) {
     final formatter = GetIt.I<FormatterProvider>();
     final container = GetIt.I.get<ZSideRPC>();
-    showDialog(
+    showThemedDialog(
       context: context,
       builder: (context) => Dialog(
         backgroundColor: Colors.transparent,

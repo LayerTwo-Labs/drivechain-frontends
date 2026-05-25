@@ -2,7 +2,8 @@ import 'dart:async';
 import 'dart:math';
 
 import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' show Colors, Dialog;
+import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:sail_ui/sail_ui.dart';
@@ -746,7 +747,7 @@ class _TransactionTableState extends State<TransactionTable> {
 
   void _showUtxoDetails(BuildContext context, CoreTransaction utxo) {
     final formatter = GetIt.I<FormatterProvider>();
-    showDialog(
+    showThemedDialog(
       context: context,
       builder: (context) => Dialog(
         backgroundColor: Colors.transparent,
