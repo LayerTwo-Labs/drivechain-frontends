@@ -12,8 +12,9 @@ import 'package:bitassets/services/code_search_service.dart';
 import 'package:bitassets/utils/menu_commands.dart';
 import 'package:bitassets/utils/navigation_registry.dart';
 import 'package:bitassets/widgets/reset_button.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' show Scaffold;
 import 'package:flutter/services.dart';
+import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:sail_ui/pages/router.gr.dart';
@@ -124,7 +125,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver, Window
   }
 
   void _openCommandPalette() {
-    showDialog(
+    showThemedDialog(
       context: context,
       builder: (dialogContext) => CommandPaletteDialog(
         commands: _getMenuCommands(dialogContext),

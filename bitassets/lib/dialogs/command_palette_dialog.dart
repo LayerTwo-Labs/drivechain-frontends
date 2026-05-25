@@ -1,7 +1,8 @@
 import 'package:bitassets/services/code_search_service.dart';
 import 'package:bitassets/utils/menu_commands.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' show Colors, Dialog, InputBorder, InputDecoration, TextField;
 import 'package:flutter/services.dart';
+import 'package:flutter/widgets.dart';
 import 'package:sail_ui/sail_ui.dart';
 
 class CommandPaletteDialog extends StatefulWidget {

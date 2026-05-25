@@ -1,7 +1,8 @@
 import 'package:auto_route/auto_route.dart';
 import 'package:bitassets/providers/bitassets_provider.dart';
 import 'package:collection/collection.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' show Colors, Dialog;
+import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:stacked/stacked.dart';
@@ -230,10 +231,8 @@ class DutchAuctionTabPage extends StatelessWidget {
 Future<void> showAuctionDetails(BuildContext context, DutchAuctionEntry auction) async {
   await Future.microtask(() async {
     if (!context.mounted) return;
-    return showDialog<void>(
+    return showThemedDialog<void>(
       context: context,
-      barrierDismissible: true,
-      useRootNavigator: true,
       builder: (BuildContext dialogContext) {
         return PopScope(
           canPop: true,
@@ -275,7 +274,7 @@ Future<void> showAuctionDetails(BuildContext context, DutchAuctionEntry auction)
 Future<void> showBidDialog(BuildContext context, DutchAuctionEntry auction, DutchAuctionViewModel model) async {
   final bidController = TextEditingController();
 
-  await showDialog<void>(
+  await showThemedDialog<void>(
     context: context,
     builder: (BuildContext dialogContext) {
       return Dialog(

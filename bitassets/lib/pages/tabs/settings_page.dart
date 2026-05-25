@@ -2,7 +2,8 @@ import 'package:auto_route/auto_route.dart';
 import 'package:bitassets/pages/settings/settings_general.dart';
 import 'package:bitassets/pages/settings/settings_info.dart';
 import 'package:bitassets/pages/settings/settings_reset.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' show SelectionArea;
+import 'package:flutter/widgets.dart';
 import 'package:sail_ui/sail_ui.dart';
 
 @RoutePage()
@@ -76,8 +77,7 @@ class SettingsTabPageState extends State<SettingsTabPage> {
               ),
               SailText.secondary13('Manage your BitAssets settings.'),
               const SailSpacing(SailStyleValues.padding10),
-              Divider(
-                height: 1,
+              SailSeparator(
                 thickness: 1,
                 color: theme.colors.divider,
               ),
