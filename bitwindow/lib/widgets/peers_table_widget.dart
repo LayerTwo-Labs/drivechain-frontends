@@ -1,5 +1,5 @@
 import 'package:bitwindow/providers/blockchain_provider.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/gen/bitcoin/bitcoind/v1alpha/bitcoin.pb.dart';
 import 'package:sail_ui/sail_ui.dart';

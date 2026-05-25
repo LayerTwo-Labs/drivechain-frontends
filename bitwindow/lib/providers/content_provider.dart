@@ -1,7 +1,7 @@
 import 'dart:async';
 
-import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/widgets.dart';
 import 'package:sail_ui/widgets/modals/article_info_modal.dart';
 
 extension StringExtension on String {

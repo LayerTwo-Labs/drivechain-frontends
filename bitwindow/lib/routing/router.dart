@@ -23,7 +23,7 @@ import 'package:bitwindow/pages/wallet/timestamp_detail_page.dart';
 import 'package:bitwindow/pages/wallet/verify_timestamp_page.dart';
 import 'package:bitwindow/pages/wallet/wallet_page.dart';
 import 'package:bitwindow/pages/welcome/create_another_wallet_page.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/widgets.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:sail_ui/pages/router.gr.dart';
 

@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
 
@@ -29,7 +29,7 @@ class _SettingsAdvancedState extends State<SettingsAdvanced> {
   }
 
   Future<void> _onTestSidechainsToggle(bool value) async {
-    final confirmed = await showDialog<bool>(
+    final confirmed = await showThemedDialog<bool>(
       context: context,
       builder: (dialogContext) => SailAlertCard(
         title: value ? 'Switch to test sidechains?' : 'Switch to production sidechains?',
