@@ -1,5 +1,6 @@
 import 'package:auto_route/auto_route.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' show BorderSide, InputDecoration, OutlineInputBorder, SelectableText, TextField;
+import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:stacked/stacked.dart';
@@ -111,8 +112,7 @@ class _CoinShiftConfEditorPageContent extends StatelessWidget {
 
             const SailSpacing(SailStyleValues.padding12),
 
-            Divider(
-              height: 1,
+            SailSeparator(
               thickness: 1,
               color: theme.colors.divider,
             ),
@@ -142,7 +142,7 @@ class _MainContent extends StatelessWidget {
 
     if (viewModel.isLoading && viewModel.workingConfig == null) {
       return const Center(
-        child: CircularProgressIndicator(),
+        child: LoadingIndicator(),
       );
     }
 
@@ -378,19 +378,15 @@ class _ToggleSetting extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = SailTheme.of(context);
-
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           SailText.secondary12(label),
-          Switch(
+          SailSwitch(
             value: currentValue,
             onChanged: onChanged,
-            activeTrackColor: theme.colors.primary.withValues(alpha: 0.5),
-            activeThumbColor: theme.colors.primary,
           ),
         ],
       ),

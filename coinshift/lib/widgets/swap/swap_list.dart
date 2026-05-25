@@ -1,4 +1,5 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' show Icon, IconButton, Icons, InkWell, LinearProgressIndicator, SelectableText;
+import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:stacked/stacked.dart';
@@ -148,7 +149,7 @@ class SwapList extends StatelessWidget {
                   ),
                 ),
 
-              const Divider(height: 1),
+              const SailSeparator(),
 
               // Table
               Expanded(
@@ -481,7 +482,7 @@ class _SwapRow extends StatelessWidget {
         // Expanded details
         if (isExpanded) _SwapDetails(swap: swap, formatter: formatter),
 
-        const Divider(height: 1),
+        const SailSeparator(),
       ],
     );
   }
@@ -584,7 +585,7 @@ class _SwapDetails extends StatelessWidget {
 
           // Waiting confirmations info
           if (swap.state.isWaitingConfirmations) ...[
-            const Divider(),
+            const SailSeparator(),
             Container(
               padding: const EdgeInsets.all(SailStyleValues.padding08),
               decoration: BoxDecoration(
@@ -610,7 +611,7 @@ class _SwapDetails extends StatelessWidget {
 
           // Pending swap info
           if (swap.state.isPending) ...[
-            const Divider(),
+            const SailSeparator(),
             Container(
               padding: const EdgeInsets.all(SailStyleValues.padding08),
               decoration: BoxDecoration(
@@ -764,8 +765,10 @@ class SwapListViewModel extends BaseViewModel {
       successMessage = 'Swap claimed successfully! Transaction ID: $txid';
       notifyListeners();
     } else if (_swapProvider.error != null && context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to claim: ${_swapProvider.error}')),
+      showSailToast(
+        context,
+        'Failed to claim: ${_swapProvider.error}',
+        variant: SailToastVariant.destructive,
       );
     }
   }

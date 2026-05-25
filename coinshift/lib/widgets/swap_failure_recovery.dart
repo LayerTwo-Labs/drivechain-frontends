@@ -1,7 +1,8 @@
 import 'package:coinshift/providers/analytics_provider.dart';
 import 'package:coinshift/providers/swap_provider.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' show Colors, Icon, IconData, Icons, InkWell;
 import 'package:flutter/services.dart';
+import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:stacked/stacked.dart';
@@ -231,11 +232,10 @@ class _SwapRecoveryCard extends StatelessWidget {
 
   void _copySwapId(BuildContext context, String swapId) {
     Clipboard.setData(ClipboardData(text: swapId));
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Swap ID copied to clipboard'),
-        duration: Duration(seconds: 2),
-      ),
+    showSailToast(
+      context,
+      'Swap ID copied to clipboard',
+      duration: const Duration(seconds: 2),
     );
   }
 }
@@ -414,7 +414,7 @@ class SwapFailureRecoveryViewModel extends BaseViewModel {
   }
 
   void showUpdateL1TxDialog(BuildContext context, CoinShiftSwap swap) {
-    showDialog(
+    showThemedDialog(
       context: context,
       builder: (context) => _UpdateL1TxDialog(swap: swap),
     );
@@ -451,11 +451,24 @@ class _UpdateL1TxDialogState extends State<_UpdateL1TxDialog> {
 
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
-      title: const Text('Update L1 Transaction'),
-      content: SailColumn(
+    return SailDialog(
+      title: 'Update L1 Transaction',
+      maxWidth: 460,
+      actions: [
+        SailButton(
+          label: 'Cancel',
+          variant: ButtonVariant.ghost,
+          onPressed: () async => Navigator.of(context).pop(),
+        ),
+        SailButton(
+          label: 'Update',
+          loading: _isSubmitting,
+          onPressed: () async => _submit(),
+        ),
+      ],
+      child: SailColumn(
         spacing: SailStyleValues.padding12,
-        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SailText.secondary13(
             'Enter the L1 transaction ID and current confirmation count for this swap.',
@@ -471,22 +484,6 @@ class _UpdateL1TxDialogState extends State<_UpdateL1TxDialog> {
           ),
         ],
       ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Cancel'),
-        ),
-        TextButton(
-          onPressed: _isSubmitting ? null : _submit,
-          child: _isSubmitting
-              ? const SizedBox(
-                  width: 16,
-                  height: 16,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                )
-              : const Text('Update'),
-        ),
-      ],
     );
   }
 
