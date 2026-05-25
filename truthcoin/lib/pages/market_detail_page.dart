@@ -1,5 +1,6 @@
 import 'package:auto_route/auto_route.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' show Colors, LinearProgressIndicator;
+import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:stacked/stacked.dart';
@@ -542,8 +543,9 @@ class MarketDetailViewModel extends BaseViewModel {
       sharesController.clear();
       preview = null;
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Purchase successful: ${txid.substring(0, 16)}...')),
+        showSailToast(
+          context,
+          'Purchase successful: ${txid.substring(0, 16)}...',
         );
       }
     }
@@ -555,7 +557,7 @@ class MarketDetailViewModel extends BaseViewModel {
     // Show sell dialog
     if (selectedOutcome == null) return;
 
-    final result = await showDialog<bool>(
+    final result = await showThemedDialog<bool>(
       context: context,
       builder: (context) => _SellDialog(
         marketId: marketId,
@@ -604,85 +606,80 @@ class _SellDialogState extends State<_SellDialog> {
     final theme = SailTheme.of(context);
     final formatter = GetIt.I<FormatterProvider>();
 
-    return AlertDialog(
-      title: Text('Sell ${widget.outcome.name} Shares'),
-      content: SizedBox(
-        width: 400,
-        child: ListenableBuilder(
-          listenable: formatter,
-          builder: (context, _) => Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              SailText.secondary12('Seller Address'),
-              const SizedBox(height: 4),
-              SailTextField(
-                controller: addressController,
-                hintText: 'Your address holding the shares',
-              ),
-              const SizedBox(height: 12),
-              SailText.secondary12('Shares to Sell'),
-              const SizedBox(height: 4),
-              SailTextField(
-                controller: sharesController,
-                hintText: 'Number of shares',
-                textFieldType: TextFieldType.number,
-              ),
-              if (preview != null) ...[
-                const SizedBox(height: 16),
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: theme.colors.backgroundSecondary,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Column(
-                    children: [
-                      _PreviewRow(
-                        label: 'Gross Proceeds',
-                        value: formatter.formatSats(preview!.proceedsSats),
-                      ),
-                      _PreviewRow(
-                        label: 'Trading Fee',
-                        value: formatter.formatSats(preview!.tradingFeeSats),
-                      ),
-                      _PreviewRow(
-                        label: 'Net Proceeds',
-                        value: formatter.formatSats(preview!.netProceedsSats),
-                        bold: true,
-                      ),
-                      _PreviewRow(
-                        label: 'New Price',
-                        value: preview!.newPricePercent,
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-              if (error != null) ...[
-                const SizedBox(height: 8),
-                SailText.secondary12(error!, color: theme.colors.error),
-              ],
-            ],
-          ),
-        ),
-      ),
+    return SailDialog(
+      title: 'Sell ${widget.outcome.name} Shares',
+      maxWidth: 460,
+      error: error,
       actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(false),
-          child: const Text('Cancel'),
+        SailButton(
+          label: 'Cancel',
+          variant: ButtonVariant.ghost,
+          onPressed: () async => Navigator.of(context).pop(false),
         ),
-        TextButton(
-          onPressed: _previewSell,
-          child: const Text('Preview'),
+        SailButton(
+          label: 'Preview',
+          variant: ButtonVariant.secondary,
+          onPressed: () async => _previewSell(),
         ),
-        ElevatedButton(
-          onPressed: preview != null ? _executeSell : null,
-          child: isLoading
-              ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
-              : const Text('Sell'),
+        SailButton(
+          label: 'Sell',
+          loading: isLoading,
+          disabled: preview == null,
+          onPressed: () async => _executeSell(),
         ),
       ],
+      child: ListenableBuilder(
+        listenable: formatter,
+        builder: (context, _) => SailColumn(
+          spacing: SailStyleValues.padding08,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SailText.secondary12('Seller Address'),
+            SailTextField(
+              controller: addressController,
+              hintText: 'Your address holding the shares',
+            ),
+            const SizedBox(height: 8),
+            SailText.secondary12('Shares to Sell'),
+            SailTextField(
+              controller: sharesController,
+              hintText: 'Number of shares',
+              textFieldType: TextFieldType.number,
+            ),
+            if (preview != null) ...[
+              const SizedBox(height: 8),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: theme.colors.backgroundSecondary,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Column(
+                  children: [
+                    _PreviewRow(
+                      label: 'Gross Proceeds',
+                      value: formatter.formatSats(preview!.proceedsSats),
+                    ),
+                    _PreviewRow(
+                      label: 'Trading Fee',
+                      value: formatter.formatSats(preview!.tradingFeeSats),
+                    ),
+                    _PreviewRow(
+                      label: 'Net Proceeds',
+                      value: formatter.formatSats(preview!.netProceedsSats),
+                      bold: true,
+                    ),
+                    _PreviewRow(
+                      label: 'New Price',
+                      value: preview!.newPricePercent,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
     );
   }
 
