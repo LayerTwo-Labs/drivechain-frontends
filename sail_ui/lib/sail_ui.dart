@@ -222,6 +222,7 @@ export 'viewmodels/bitcoin_config_editor_viewmodel.dart';
 export 'viewmodels/enforcer_config_editor_viewmodel.dart';
 export 'widgets/buttons/back_button.dart';
 export 'widgets/buttons/button.dart';
+export 'widgets/buttons/sail_toggle_group.dart';
 export 'widgets/buttons/toggle.dart';
 export 'widgets/buttons/toggle_theme_button.dart';
 export 'widgets/chips/action_header_chip.dart';
