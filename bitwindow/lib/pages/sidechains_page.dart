@@ -11,8 +11,9 @@ import 'package:bitwindow/widgets/homepage_widget_catalog.dart';
 import 'package:bitwindow/widgets/starters_tab.dart';
 import 'package:collection/collection.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' show Icon, Icons, Material;
 import 'package:flutter/services.dart';
+import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/gen/wallet/v1/wallet.pb.dart';
 import 'package:sail_ui/pages/router.gr.dart';
@@ -33,7 +34,7 @@ class SidechainsPage extends StatelessWidget {
         builder: (context, model, child) {
           return InlineTabBar(
             endWidget: confProvider.isDemoMode
-                ? Tooltip(
+                ? SailTooltip(
                     message: 'This tab is just a demo, sidechains are simulated on mainnet',
                     child: Container(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
@@ -147,7 +148,7 @@ class _HashMismatchBanner extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = SailTheme.of(context);
 
-    return Tooltip(
+    return SailTooltip(
       message:
           'The downloaded binaries do not match the expected hashes from the release server.\n'
           'This could indicate the binaries were tampered with or the download was corrupted.\n'
@@ -380,7 +381,7 @@ class OnlyFilledTable extends ViewModelWidget<SidechainsViewModel> {
                             onPressed: viewModel.isUsingBitcoinCoreWallet
                                 ? null
                                 : () async {
-                                    await showDialog(
+                                    await showThemedDialog(
                                       context: context,
                                       builder: (context) => ChainSettingsModal(
                                         connection: viewModel.rpcForSlot(slot)!,
@@ -488,7 +489,7 @@ class OnlyFilledTable extends ViewModelWidget<SidechainsViewModel> {
         ? 'Switch to your enforcer wallet to deposit'
         : 'Start the sidechain before depositing';
 
-    return Tooltip(message: message, child: button);
+    return SailTooltip(message: message, child: button);
   }
 }
 
@@ -577,7 +578,7 @@ class FullTable extends ViewModelWidget<SidechainsViewModel> {
                       onPressed: viewModel.isUsingBitcoinCoreWallet
                           ? null
                           : () async {
-                              await showDialog(
+                              await showThemedDialog(
                                 context: context,
                                 builder: (context) => ChainSettingsModal(
                                   connection: viewModel.rpcForSlot(slot)!,
@@ -663,22 +664,24 @@ class FullTable extends ViewModelWidget<SidechainsViewModel> {
       );
     }
 
-    return Tooltip(
-      message: !viewModel.isSidechainRunning(slot) && viewModel.isUsingBitcoinCoreWallet
-          ? 'Switch to your enforcer wallet and start the sidechain before depositing'
-          : viewModel.isUsingBitcoinCoreWallet
-          ? 'Switch to your enforcer wallet to deposit'
-          : !viewModel.isSidechainRunning(slot)
-          ? 'Start the sidechain before depositing'
-          : null,
-      child: SailButton(
-        label: 'Deposit',
-        variant: ButtonVariant.primary,
-        insideTable: true,
-        disabled: !viewModel.isSidechainRunning(slot) || viewModel.isUsingBitcoinCoreWallet,
-        onPressed: () => showDepositModal(context, slot, sidechain.info.title),
-      ),
+    final tooltipMessage = !viewModel.isSidechainRunning(slot) && viewModel.isUsingBitcoinCoreWallet
+        ? 'Switch to your enforcer wallet and start the sidechain before depositing'
+        : viewModel.isUsingBitcoinCoreWallet
+        ? 'Switch to your enforcer wallet to deposit'
+        : !viewModel.isSidechainRunning(slot)
+        ? 'Start the sidechain before depositing'
+        : null;
+
+    final button = SailButton(
+      label: 'Deposit',
+      variant: ButtonVariant.primary,
+      insideTable: true,
+      disabled: !viewModel.isSidechainRunning(slot) || viewModel.isUsingBitcoinCoreWallet,
+      onPressed: () => showDepositModal(context, slot, sidechain.info.title),
     );
+
+    if (tooltipMessage == null) return button;
+    return SailTooltip(message: tooltipMessage, child: button);
   }
 }
 
@@ -1018,7 +1021,7 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
             ? 'Connecting...'
             : '');
 
-    return Tooltip(
+    return SailTooltip(
       message: tooltipMessage,
       child: SailSVG.fromAsset(SailSVGAsset.iconConnectionStatus, color: color, width: 16, height: 13),
     );
@@ -1367,7 +1370,7 @@ class MakeDepositsView extends ViewModelWidget<SidechainsViewModel> {
                         },
                   icon: SailSVGAsset.iconCopy,
                 ),
-                Tooltip(
+                SailTooltip(
                   message: isDisabled ? 'Disabled' : (viewModel.formatError ?? 'Format as deposit address'),
                   child: SailButton(
                     variant: ButtonVariant.icon,
@@ -1554,7 +1557,7 @@ class RecentWithdrawalsTable extends ViewModelWidget<SidechainsViewModel> {
 }
 
 Future<void> showDepositModal(BuildContext context, int slot, String sidechainName) {
-  return showDialog<void>(
+  return showThemedDialog<void>(
     barrierDismissible: true,
     context: context,
     builder: (context) => DepositModal(slot: slot, sidechainName: sidechainName),
@@ -1752,7 +1755,7 @@ class _DepositModalState extends State<DepositModal> {
                       suffixWidget: depositAddress != null ? CopyButton(text: depositAddress!) : null,
                     ),
                   ),
-                  Tooltip(
+                  SailTooltip(
                     message: 'Generate new address',
                     child: SailButton(
                       variant: ButtonVariant.icon,

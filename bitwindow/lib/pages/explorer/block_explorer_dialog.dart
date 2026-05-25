@@ -2,8 +2,9 @@ import 'package:bitwindow/dialogs/merkle_tree_dialog.dart';
 import 'package:bitwindow/pages/explorer/widgets/transaction_flow_diagram.dart';
 import 'package:bitwindow/providers/blockchain_provider.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' show Colors, Dialog, SelectableText, Tab, TabBar, TabBarView, TabController;
 import 'package:flutter/services.dart';
+import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:sail_ui/gen/bitcoin/bitcoind/v1alpha/bitcoin.pb.dart' show GetBlockRequest;
@@ -88,7 +89,7 @@ class BlockExplorerDialog extends StatelessWidget {
                       if (model.isLoadingMoreBlocks && index == 0) {
                         return const Padding(
                           padding: EdgeInsets.all(16),
-                          child: CircularProgressIndicator(),
+                          child: LoadingIndicator(),
                         );
                       }
                       final adjustedIndex = model.isLoadingMoreBlocks ? index - 1 : index;
@@ -115,7 +116,7 @@ class BlockExplorerDialog extends StatelessWidget {
   }
 
   Future<void> _showBlockDetails(BuildContext context, Block block) async {
-    await showDialog(
+    await showThemedDialog(
       context: context,
       builder: (context) => Dialog(
         backgroundColor: Colors.transparent,
@@ -194,7 +195,7 @@ class BlockExplorerDialog extends StatelessWidget {
                   SailButton(
                     label: 'View Merkle Tree',
                     onPressed: () async {
-                      await showDialog(
+                      await showThemedDialog(
                         context: context,
                         builder: (context) => MerkleTreeDialog(
                           initialTxids: block.txids,
@@ -536,7 +537,7 @@ class _TransactionDetailsDialogState extends State<TransactionDetailsDialog> wit
               ? const Center(
                   child: Padding(
                     padding: EdgeInsets.all(SailStyleValues.padding16),
-                    child: CircularProgressIndicator(),
+                    child: LoadingIndicator(),
                   ),
                 )
               : _details == null
@@ -859,10 +860,8 @@ Future<void> showTransactionDetails(BuildContext context, String txid) async {
   // Ensure we're running on a new frame
   await Future.microtask(() async {
     if (!context.mounted) return;
-    return showDialog<void>(
+    return showThemedDialog<void>(
       context: context,
-      barrierDismissible: true,
-      useRootNavigator: true,
       builder: (BuildContext dialogContext) {
         return PopScope(
           canPop: true,

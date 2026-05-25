@@ -2,7 +2,8 @@ import 'package:bitwindow/pages/settings/datadir_select_page.dart';
 import 'package:bitwindow/pages/settings/network_swap_page.dart';
 import 'package:bitwindow/routing/router.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' show AlertDialog, MaterialPageRoute, TextButton;
+import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/pages/router.gr.dart';
 import 'package:sail_ui/sail_ui.dart';
@@ -47,13 +48,10 @@ class _SettingsNetworkState extends State<SettingsNetwork> {
 
     if (_confProvider.hasPrivateBitcoinConf) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'Network is controlled by your bitcoin.conf file. To change network in bitwindow, delete your own bitcoin.conf file and restart.',
-            ),
-            backgroundColor: SailTheme.of(context).colors.info,
-          ),
+        showSailToast(
+          context,
+          'Network is controlled by your bitcoin.conf file. To change network in bitwindow, delete your own bitcoin.conf file and restart.',
+          variant: SailToastVariant.info,
         );
       }
       return;
@@ -86,11 +84,10 @@ class _SettingsNetworkState extends State<SettingsNetwork> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error selecting directory: $e'),
-            backgroundColor: SailTheme.of(context).colors.error,
-          ),
+        showSailToast(
+          context,
+          'Error selecting directory: $e',
+          variant: SailToastVariant.destructive,
         );
       }
     } finally {
@@ -109,7 +106,7 @@ class _SettingsNetworkState extends State<SettingsNetwork> {
   Future<void> _handleVariantChange(String? id) async {
     if (id == null || id == _variantProvider.activeId) return;
 
-    final confirmed = await showDialog<bool>(
+    final confirmed = await showThemedDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Switch Bitcoin Core variant?'),
@@ -134,11 +131,10 @@ class _SettingsNetworkState extends State<SettingsNetwork> {
     if (!mounted) return;
     final err = _variantProvider.lastError;
     if (err != null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Failed to switch Core variant: $err'),
-          backgroundColor: SailTheme.of(context).colors.error,
-        ),
+      showSailToast(
+        context,
+        'Failed to switch Core variant: $err',
+        variant: SailToastVariant.destructive,
       );
     }
   }
