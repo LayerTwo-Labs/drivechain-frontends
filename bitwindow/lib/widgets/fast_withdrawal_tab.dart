@@ -1,5 +1,5 @@
 import 'package:bitwindow/providers/fast_withdrawal_provider.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
 
@@ -244,7 +244,7 @@ class _PaymentSectionState extends State<_PaymentSection> {
                   const SizedBox(
                     width: 20,
                     height: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2),
+                    child: LoadingIndicator(),
                   ),
                   const SizedBox(width: 12),
                   SailText.primary13(

@@ -1,5 +1,5 @@
 import 'package:sail_ui/sail_ui.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 
 /// Dialog for removing wallet encryption entirely
@@ -11,7 +11,7 @@ class RemoveEncryptionDialog extends StatefulWidget {
 
   /// Show the remove encryption dialog
   static Future<bool?> show(BuildContext context) {
-    return showDialog<bool>(
+    return showThemedDialog<bool>(
       context: context,
       barrierDismissible: false,
       builder: (context) => const RemoveEncryptionDialog(),
