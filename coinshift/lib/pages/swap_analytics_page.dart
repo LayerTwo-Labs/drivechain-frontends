@@ -1,6 +1,7 @@
 import 'package:auto_route/auto_route.dart';
 import 'package:coinshift/providers/analytics_provider.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' show Icon, Icons;
+import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:stacked/stacked.dart';
@@ -334,7 +335,7 @@ class _SwapsNeedingAttentionCard extends StatelessWidget {
               listenable: formatter,
               builder: (context, child) => ListView.separated(
                 itemCount: swaps.length,
-                separatorBuilder: (context, index) => const Divider(height: 1),
+                separatorBuilder: (context, index) => const SailSeparator(),
                 itemBuilder: (context, index) {
                   final swap = swaps[index];
                   return _SwapAttentionRow(swap: swap, formatter: formatter);
