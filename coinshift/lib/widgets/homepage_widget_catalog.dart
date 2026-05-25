@@ -1,4 +1,5 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' show ListTile;
+import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:sail_ui/pages/sidechains/sidechain_overview_page.dart';
@@ -286,8 +287,9 @@ class _ActiveSwapsViewModel extends BaseViewModel {
   Future<void> claimSwap(BuildContext context, CoinShiftSwap swap) async {
     final txid = await _swapProvider.claimSwap(swap);
     if (txid != null && context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Swap claimed! TXID: $txid')),
+      showSailToast(
+        context,
+        'Swap claimed! TXID: $txid',
       );
     }
   }

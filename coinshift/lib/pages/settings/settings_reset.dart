@@ -1,7 +1,8 @@
 import 'dart:io';
 
 import 'package:coinshift/main.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' show MaterialPageRoute;
+import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:sail_ui/sail_ui.dart';
@@ -144,7 +145,7 @@ class _SettingsResetState extends State<SettingsReset> {
 
     if (filesToDelete.isEmpty) {
       if (!context.mounted) return;
-      await showDialog(
+      await showThemedDialog(
         context: context,
         builder: (context) => SailAlertCard(
           title: 'Nothing to Delete',

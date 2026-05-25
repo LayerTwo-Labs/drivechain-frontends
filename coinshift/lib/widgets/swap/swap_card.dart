@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:stacked/stacked.dart';
@@ -28,7 +28,7 @@ class SwapCard extends StatelessWidget {
                   'You offer L2 (sidechain) coins and request L1. Set where you want to receive L1, then who gets your L2 and the amounts.',
                   color: theme.colors.textSecondary,
                 ),
-                const Divider(),
+                const SailSeparator(),
 
                 // What you want (L1) section
                 SailText.primary13('What you want (L1)', bold: true),
@@ -138,7 +138,7 @@ class SwapCard extends StatelessWidget {
                   ],
                 ),
 
-                const Divider(),
+                const SailSeparator(),
 
                 // Create Swap Button
                 SailButton(
@@ -248,8 +248,9 @@ class SwapCardViewModel extends BaseViewModel {
         confirmationsController.clear();
 
         if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Swap created: ${result.txid}')),
+          showSailToast(
+            context,
+            'Swap created: ${result.txid}',
           );
         }
       } else {
