@@ -265,6 +265,7 @@ export 'widgets/containers/sail_sheet.dart';
 export 'widgets/containers/tab_bar.dart';
 export 'widgets/core/sail_app_bar.dart';
 export 'widgets/core/sail_padding.dart';
+export 'widgets/core/sail_separator.dart';
 export 'widgets/core/sail_shadow.dart';
 export 'widgets/core/sail_snackbar.dart';
 export 'widgets/core/sail_svg.dart';
