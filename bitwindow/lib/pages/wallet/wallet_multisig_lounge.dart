@@ -15,8 +15,9 @@ import 'package:bitwindow/widgets/psbt_coordinator_modal.dart';
 import 'package:bitwindow/widgets/sign_preview_modal.dart';
 import 'package:bitwindow/providers/hd_wallet_provider.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' show Colors, Dialog;
 import 'package:flutter/services.dart';
+import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:sail_ui/sail_ui.dart';
@@ -69,7 +70,7 @@ class _MultisigLoungeTabState extends State<MultisigLoungeTab> with WidgetsBindi
       builder: (context, viewModel, child) {
         if (viewModel.isLoading) {
           return const SailPage(
-            body: Center(child: CircularProgressIndicator()),
+            body: Center(child: LoadingIndicator()),
           );
         }
 
@@ -464,15 +465,13 @@ class _MultisigGroupsTableState extends State<MultisigGroupsTable> {
                   variant: ButtonVariant.secondary,
                   insideTable: true,
                   onPressed: () async {
-                    final messenger = ScaffoldMessenger.of(context);
                     await Clipboard.setData(ClipboardData(text: group.txid!));
                     if (context.mounted) {
-                      messenger.showSnackBar(
-                        SnackBar(
-                          content: Text('TXID copied to clipboard'),
-                          duration: const Duration(seconds: 2),
-                          backgroundColor: Colors.green,
-                        ),
+                      showSailToast(
+                        context,
+                        'TXID copied to clipboard',
+                        variant: SailToastVariant.success,
+                        duration: const Duration(seconds: 2),
                       );
                     }
                   },
@@ -960,14 +959,14 @@ class MultisigLoungeViewModel extends BaseViewModel {
   bool get hasReadyTransactions => transactions.any((tx) => tx.status == TxStatus.readyForBroadcast);
 
   Future<void> createNewGroup(BuildContext context) async {
-    await showDialog(
+    await showThemedDialog(
       context: context,
       builder: (context) => const CreateMultisigModal(),
     );
   }
 
   Future<void> importFromTxid(BuildContext context) async {
-    final result = await showDialog<bool>(
+    final result = await showThemedDialog<bool>(
       context: context,
       builder: (context) => const ImportTxidModal(),
     );
@@ -978,14 +977,14 @@ class MultisigLoungeViewModel extends BaseViewModel {
   }
 
   Future<void> getMultisigKey(BuildContext context) async {
-    await showDialog<void>(
+    await showThemedDialog<void>(
       context: context,
       builder: (context) => const MultisigKeyModal(),
     );
   }
 
   Future<void> importPSBT(BuildContext context) async {
-    await showDialog<bool>(
+    await showThemedDialog<bool>(
       context: context,
       builder: (context) => ImportPSBTModal(
         availableGroups: multisigGroups,
@@ -999,7 +998,7 @@ class MultisigLoungeViewModel extends BaseViewModel {
       await _getNewAddress(group);
 
       if (context.mounted) {
-        await showDialog<bool>(
+        await showThemedDialog<bool>(
           context: context,
           builder: (context) => FundGroupModal(
             groups: [group],
@@ -1008,8 +1007,10 @@ class MultisigLoungeViewModel extends BaseViewModel {
       }
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to get funding address: $e')),
+        showSailToast(
+          context,
+          'Failed to get funding address: $e',
+          variant: SailToastVariant.destructive,
         );
       }
     }
@@ -1017,7 +1018,7 @@ class MultisigLoungeViewModel extends BaseViewModel {
 
   Future<void> fundGroupWithSelection(BuildContext context) async {
     try {
-      await showDialog<bool>(
+      await showThemedDialog<bool>(
         context: context,
         builder: (context) => FundGroupModal(
           groups: multisigGroups,
@@ -1025,8 +1026,10 @@ class MultisigLoungeViewModel extends BaseViewModel {
       );
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to open funding modal: $e')),
+        showSailToast(
+          context,
+          'Failed to open funding modal: $e',
+          variant: SailToastVariant.destructive,
         );
       }
     }
@@ -1049,7 +1052,7 @@ class MultisigLoungeViewModel extends BaseViewModel {
     MultisigGroup? group,
   ) async {
     try {
-      await showDialog<bool>(
+      await showThemedDialog<bool>(
         context: context,
         builder: (context) => PSBTCoordinatorModal(
           group: group,
@@ -1058,8 +1061,10 @@ class MultisigLoungeViewModel extends BaseViewModel {
       );
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to create transaction: $e')),
+        showSailToast(
+          context,
+          'Failed to create transaction: $e',
+          variant: SailToastVariant.destructive,
         );
       }
     }
@@ -1203,7 +1208,7 @@ class MultisigLoungeViewModel extends BaseViewModel {
   }
 
   Future<void> openCombineAndBroadcastModal(BuildContext context) async {
-    await showDialog<bool>(
+    await showThemedDialog<bool>(
       context: context,
       builder: (context) => CombineBroadcastModal(
         onSuccess: () async {
@@ -1225,7 +1230,7 @@ class MultisigLoungeViewModel extends BaseViewModel {
       orElse: () => throw Exception('Group not found for transaction'),
     );
 
-    await showDialog<void>(
+    await showThemedDialog<void>(
       context: context,
       builder: (context) => Dialog(
         backgroundColor: Colors.transparent,
@@ -1546,7 +1551,7 @@ class MultisigLoungeViewModel extends BaseViewModel {
   ) async {
     if (!context.mounted) return;
 
-    await showDialog(
+    await showThemedDialog(
       context: context,
       builder: (context) => SignPreviewModal(
         transaction: tx,
@@ -1579,11 +1584,7 @@ class MultisigLoungeViewModel extends BaseViewModel {
 
       if (!canSign) {
         if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('No unsigned PSBTs available to sign'),
-            ),
-          );
+          showSailToast(context, 'No unsigned PSBTs available to sign');
         }
         return;
       }
@@ -1643,18 +1644,16 @@ class MultisigLoungeViewModel extends BaseViewModel {
               ? 'Transaction signed and completed successfully!'
               : 'Transaction signed successfully ($signedCount/${group.m} signatures)';
 
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(message),
-              backgroundColor: Colors.green,
-            ),
+          showSailToast(
+            context,
+            message,
+            variant: SailToastVariant.success,
           );
         } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Failed to add signatures to transaction'),
-              backgroundColor: Colors.red,
-            ),
+          showSailToast(
+            context,
+            'Failed to add signatures to transaction',
+            variant: SailToastVariant.destructive,
           );
         }
       }
@@ -1666,11 +1665,10 @@ class MultisigLoungeViewModel extends BaseViewModel {
       MultisigLogger.error('Error in transaction signing: $e');
 
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to sign transaction: $e'),
-            backgroundColor: Colors.red,
-          ),
+        showSailToast(
+          context,
+          'Failed to sign transaction: $e',
+          variant: SailToastVariant.destructive,
         );
       }
 
@@ -1690,11 +1688,10 @@ class MultisigLoungeViewModel extends BaseViewModel {
     try {
       if (psbtData.isEmpty) {
         if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('PSBT data is empty'),
-              backgroundColor: Colors.orange,
-            ),
+          showSailToast(
+            context,
+            'PSBT data is empty',
+            variant: SailToastVariant.warning,
           );
         }
         return;
@@ -1704,11 +1701,10 @@ class MultisigLoungeViewModel extends BaseViewModel {
         await bitcoindRpcCall('decodepsbt', params: [psbtData]);
       } catch (e) {
         if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Invalid PSBT format: $e'),
-              backgroundColor: Colors.red,
-            ),
+          showSailToast(
+            context,
+            'Invalid PSBT format: $e',
+            variant: SailToastVariant.destructive,
           );
         }
         return;
@@ -1740,14 +1736,11 @@ class MultisigLoungeViewModel extends BaseViewModel {
         await file.writeAsString(jsonString);
 
         if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                'PSBT exported successfully to ${path.basename(file.path)}',
-              ),
-              backgroundColor: Colors.green,
-              duration: const Duration(seconds: 3),
-            ),
+          showSailToast(
+            context,
+            'PSBT exported successfully to ${path.basename(file.path)}',
+            variant: SailToastVariant.success,
+            duration: const Duration(seconds: 3),
           );
         }
       }
@@ -1755,11 +1748,10 @@ class MultisigLoungeViewModel extends BaseViewModel {
       _logger.e('Failed to export PSBT to file: $e');
 
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to export PSBT: $e'),
-            backgroundColor: Colors.red,
-          ),
+        showSailToast(
+          context,
+          'Failed to export PSBT: $e',
+          variant: SailToastVariant.destructive,
         );
       }
     }
