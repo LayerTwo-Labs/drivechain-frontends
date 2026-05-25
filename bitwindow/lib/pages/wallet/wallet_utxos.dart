@@ -3,7 +3,8 @@ import 'package:bitwindow/pages/wallet/widgets/utxo_distribution_chart.dart';
 import 'package:bitwindow/providers/transactions_provider.dart';
 import 'package:bitwindow/providers/coin_selection_provider.dart';
 
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' show Colors, Dialog, Icon, Icons, InkWell;
+import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/gen/wallet/v1/wallet.pb.dart';
 import 'package:sail_ui/sail_ui.dart';
@@ -72,7 +73,7 @@ class _UTXOsTabState extends State<UTXOsTab> {
     if (walletId == null) return;
 
     // Show the consolidation dialog
-    await showDialog(
+    await showThemedDialog(
       context: context,
       builder: (context) => _ConsolidateDialog(
         walletId: walletId,
@@ -334,7 +335,7 @@ class _UTXOTableState extends State<UTXOTable> {
 
   Future<void> _showLabelDialog(BuildContext context, UnspentOutput utxo) async {
     final controller = TextEditingController(text: _getLabel(utxo));
-    final result = await showDialog<String>(
+    final result = await showThemedDialog<String>(
       context: context,
       builder: (context) => SailDialog(
         title: 'Edit UTXO Label',

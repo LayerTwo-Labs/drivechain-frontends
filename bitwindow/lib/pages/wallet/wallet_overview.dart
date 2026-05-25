@@ -6,7 +6,8 @@ import 'package:bitwindow/providers/transactions_provider.dart';
 import 'package:csv/csv.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:fixnum/fixnum.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' show Colors, DateTimeRange, Dialog, Theme, showDateRangePicker;
+import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:intl/intl.dart';
 import 'package:logger/logger.dart';
@@ -60,7 +61,7 @@ class OverviewTab extends StatelessWidget {
                         ),
                         // Show sidechain deposit volume (greyed out on mainnet)
                         Expanded(
-                          child: Tooltip(
+                          child: SailTooltip(
                             message: GetIt.I.get<BitcoinConfProvider>().networkSupportsSidechains
                                 ? ''
                                 : 'Sidechains require Forknet or Signet network',
@@ -302,7 +303,7 @@ class _TransactionTableState extends State<TransactionTable> {
                             onSelected: () async {
                               await Future.microtask(() async {
                                 if (!context.mounted) return;
-                                await showDialog(
+                                await showThemedDialog(
                                   context: context,
                                   builder: (context) => Dialog(
                                     backgroundColor: Colors.transparent,

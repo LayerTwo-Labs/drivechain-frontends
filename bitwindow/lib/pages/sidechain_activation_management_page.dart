@@ -3,7 +3,8 @@ import 'package:bitwindow/pages/explorer/block_explorer_dialog.dart';
 import 'package:bitwindow/pages/sidechain_proposal_page.dart';
 import 'package:bitwindow/providers/sidechain_provider.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' show AppBar, Colors, Dialog, Scaffold;
+import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:stacked/stacked.dart';
@@ -288,7 +289,7 @@ class _ActiveSidechainsTableState extends State<ActiveSidechainsTable> {
 Future<void> showSidechainActivationManagementModal(BuildContext context) {
   final size = MediaQuery.of(context).size;
 
-  return showDialog<void>(
+  return showThemedDialog<void>(
     barrierDismissible: true,
     context: context,
     builder: (BuildContext context) {

@@ -2,7 +2,8 @@ import 'package:bitwindow/pages/explorer/block_explorer_dialog.dart';
 import 'package:bitwindow/pages/wallet/denial_dialog.dart';
 import 'package:bitwindow/providers/transactions_provider.dart';
 import 'package:fixnum/fixnum.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' show Colors, Dialog, InkWell;
+import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/gen/wallet/v1/wallet.pb.dart';
 import 'package:sail_ui/sail_ui.dart' hide DetailRow;
@@ -340,7 +341,7 @@ class _DeniabilityTableState extends State<DeniabilityTable> {
                     SailTableCell(
                       value: nextExecution,
                     ),
-                    Tooltip(
+                    SailTooltip(
                       message: utxo.denialInfo.cancelReason,
                       child: SailTableCell(
                         value: status,
@@ -499,7 +500,7 @@ class _DeniabilityTableState extends State<DeniabilityTable> {
   void _showUtxoDetails(BuildContext context, UnspentOutput utxo) {
     final formatter = GetIt.I<FormatterProvider>();
 
-    showDialog(
+    showThemedDialog(
       context: context,
       builder: (context) => Dialog(
         backgroundColor: Colors.transparent,
@@ -567,7 +568,7 @@ class _DeniabilityTableState extends State<DeniabilityTable> {
   }
 
   void _showTransactionDetails(BuildContext context, String txid) {
-    showDialog(
+    showThemedDialog(
       context: context,
       builder: (context) => TransactionDetailsDialog(
         txid: txid,
@@ -622,21 +623,21 @@ class DeniabilityViewModel extends BaseViewModel {
   }
 
   void showDenyDialog(BuildContext context, String output, int valueSats) {
-    showDialog(
+    showThemedDialog(
       context: context,
       builder: (context) => DenialDialog(output: output, valueSats: valueSats),
     );
   }
 
   void showDenyAllDialog(BuildContext context) {
-    showDialog(
+    showThemedDialog(
       context: context,
       builder: (context) => DenialDialog(utxos: utxosWithoutDenial),
     );
   }
 
   void showConsolidateDialog(BuildContext context) {
-    showDialog(
+    showThemedDialog(
       context: context,
       builder: (context) => ConsolidateDialog(utxos: utxos),
     );

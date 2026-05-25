@@ -1,7 +1,8 @@
 import 'package:bitwindow/pages/bitwindow_console_tab.dart';
 import 'package:fixnum/fixnum.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' show Colors, Dialog;
 import 'package:flutter/services.dart';
+import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/gen/bitcoin/bitcoind/v1alpha/bitcoin.pb.dart'
     show GetNetworkInfoResponse, GetNetworkInfoRequest, GetPeerInfoRequest;
@@ -234,7 +235,7 @@ class _NetworkTabState extends State<NetworkTab> {
       return const SailCard(
         title: 'Network Statistics',
         subtitle: 'Bitcoin network and node statistics',
-        child: Center(child: CircularProgressIndicator()),
+        child: Center(child: LoadingIndicator()),
       );
     }
 
@@ -389,7 +390,7 @@ class _PeersTabState extends State<PeersTab> {
         rowCount: peers.length,
         emptyPlaceholder: 'No peers connected',
         onDoubleTap: (index) {
-          showDialog(
+          showThemedDialog(
             context: context,
             builder: (context) => PeerDetailsDialog(peer: peers[int.parse(index)]),
           );
@@ -636,11 +637,10 @@ class BinariesTab extends StatelessWidget {
               final hash = binary.downloadInfo.hash;
               if (hash != null) {
                 Clipboard.setData(ClipboardData(text: hash));
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('SHA256 hash copied to clipboard'),
-                    duration: const Duration(seconds: 2),
-                  ),
+                showSailToast(
+                  context,
+                  'SHA256 hash copied to clipboard',
+                  duration: const Duration(seconds: 2),
                 );
               }
             },
