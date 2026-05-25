@@ -1,6 +1,7 @@
 import 'dart:io';
 
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' show SelectionArea;
+import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
 
@@ -59,17 +60,17 @@ class SailCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = SailTheme.of(context);
+    final radius = borderRadius ?? SailStyleValues.borderRadiusLarge;
 
     return SelectionArea(
       child: SailShadow(
         shadowSize: shadowSize,
-        child: Material(
-          color: Colors.transparent,
-          clipBehavior: Clip.hardEdge,
+        child: ClipRRect(
+          borderRadius: radius,
           child: DecoratedBox(
             decoration: BoxDecoration(
               border: Border.all(color: theme.colors.border, width: 1.0),
-              borderRadius: borderRadius ?? SailStyleValues.borderRadiusLarge,
+              borderRadius: radius,
               color: color ?? theme.colors.background,
             ),
             child: SizedBox(
@@ -108,7 +109,7 @@ class SailCard extends StatelessWidget {
                               children: [
                                 if (widgetHeaderEnd != null) widgetHeaderEnd!,
                                 if (newWindow != null)
-                                  Tooltip(
+                                  SailTooltip(
                                     message: 'Open in a new window',
                                     child: SailButton(
                                       variant: ButtonVariant.icon,
@@ -191,9 +192,8 @@ class SailCardSmall extends StatelessWidget {
   Widget build(BuildContext context) {
     return SelectionArea(
       child: SailShadow(
-        child: Material(
+        child: ClipRRect(
           borderRadius: SailStyleValues.borderRadius,
-          color: Colors.transparent,
           child: SizedBox(
             child: Padding(
               padding: EdgeInsets.only(
@@ -325,9 +325,8 @@ class SailCardStats extends StatelessWidget {
     return SelectionArea(
       child: SailShadow(
         shadowSize: ShadowSize.regular,
-        child: Material(
-          color: Colors.transparent,
-          clipBehavior: Clip.hardEdge,
+        child: ClipRRect(
+          borderRadius: SailStyleValues.borderRadiusLarge,
           child: DecoratedBox(
             decoration: BoxDecoration(
               border: Border.all(color: theme.colors.border, width: 1.0),
