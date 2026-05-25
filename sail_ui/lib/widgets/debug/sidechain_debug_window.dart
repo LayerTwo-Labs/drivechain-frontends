@@ -1,7 +1,8 @@
 import 'dart:async';
 
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' show Dialog, SelectableText;
 import 'package:flutter/services.dart';
+import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
 
@@ -171,7 +172,7 @@ class _SidechainInfoTabState extends State<SidechainInfoTab> {
       return const SailCard(
         title: 'Debug Information',
         subtitle: 'General information about the sidechain node',
-        child: Center(child: CircularProgressIndicator()),
+        child: Center(child: LoadingIndicator()),
       );
     }
 
@@ -416,22 +417,22 @@ class _SidechainPeersTabState extends State<SidechainPeersTab> {
     try {
       await widget.rpc.callRAW('connect_peer', [address]);
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Connecting to $address...')));
+        showSailToast(context, 'Connecting to $address...');
         await _loadPeers();
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
+        showSailToast(
           context,
-        ).showSnackBar(SnackBar(content: Text('Failed to connect: $e')));
+          'Failed to connect: $e',
+          variant: SailToastVariant.destructive,
+        );
       }
     }
   }
 
   void _showConnectPeerDialog() {
-    showDialog(
+    showThemedDialog(
       context: context,
       builder: (context) => ConnectPeerDialog(onConnect: _connectPeer),
     );
@@ -479,7 +480,7 @@ class _SidechainPeersTabState extends State<SidechainPeersTab> {
       return const SailCard(
         title: 'Peer Information',
         subtitle: 'Connected peers and their details',
-        child: Center(child: CircularProgressIndicator()),
+        child: Center(child: LoadingIndicator()),
       );
     }
 
@@ -876,9 +877,7 @@ class _SidechainRPCMethodsTabState extends State<SidechainRPCMethodsTab> {
   void _copyResult() {
     if (_methodResult != null) {
       Clipboard.setData(ClipboardData(text: _methodResult!));
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Copied to clipboard')));
+      showSailToast(context, 'Copied to clipboard');
     }
   }
 
@@ -900,10 +899,11 @@ class _SidechainRPCMethodsTabState extends State<SidechainRPCMethodsTab> {
                 SailTextField(
                   controller: _searchController,
                   hintText: 'Search methods...',
-                  prefixIcon: Icon(
-                    Icons.search,
-                    size: 16,
+                  prefixIcon: SailSVG.fromAsset(
+                    SailSVGAsset.search,
                     color: theme.colors.textSecondary,
+                    width: 16,
+                    height: 16,
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -918,7 +918,8 @@ class _SidechainRPCMethodsTabState extends State<SidechainRPCMethodsTab> {
                       itemBuilder: (context, index) {
                         final method = _filteredMethods[index];
                         final isSelected = method == _selectedMethod;
-                        return InkWell(
+                        return GestureDetector(
+                          behavior: HitTestBehavior.opaque,
                           onTap: () {
                             setState(() {
                               _selectedMethod = method;
