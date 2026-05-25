@@ -3,7 +3,8 @@ import 'package:bitwindow/providers/hd_wallet_provider.dart';
 import 'package:bitwindow/providers/transactions_provider.dart';
 import 'package:bitwindow/utils/explorer_url.dart';
 import 'package:fixnum/fixnum.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' show Colors, Dialog;
+import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:sail_ui/gen/wallet/v1/wallet.pb.dart';
@@ -260,7 +261,7 @@ class _ReceiveAddressesTableState extends State<ReceiveAddressesTable> {
                         onSelected: () async {
                           await Future.microtask(() async {
                             if (!context.mounted) return;
-                            await showDialog(
+                            await showThemedDialog(
                               context: context,
                               builder: (context) => Dialog(
                                 backgroundColor: Colors.transparent,

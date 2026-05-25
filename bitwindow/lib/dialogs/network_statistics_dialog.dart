@@ -2,7 +2,8 @@ import 'package:auto_route/auto_route.dart';
 import 'package:bitwindow/models/bandwidth_data.dart';
 import 'package:bitwindow/providers/network_provider.dart';
 import 'package:fl_chart/fl_chart.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' show Icon, Icons;
+import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
 
@@ -53,7 +54,7 @@ class _NetworkStatisticsPageState extends State<NetworkStatisticsPage> {
           ? const Center(
               child: Padding(
                 padding: EdgeInsets.all(40),
-                child: CircularProgressIndicator(),
+                child: LoadingIndicator(),
               ),
             )
           : error != null
