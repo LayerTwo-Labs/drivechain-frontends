@@ -12,6 +12,7 @@ import 'package:bitnames/providers/bitnames_provider.dart';
 import 'package:bitnames/routing/router.dart';
 import 'package:collection/collection.dart';
 import 'package:desktop_multi_window/desktop_multi_window.dart';
+// ignore: avoid_material_import
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';

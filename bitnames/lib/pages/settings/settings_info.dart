@@ -2,7 +2,7 @@ import 'dart:io';
 
 import 'package:auto_updater/auto_updater.dart';
 import 'package:bitnames/gen/version.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
 
@@ -43,7 +43,7 @@ class _SettingsInfoState extends State<SettingsInfo> {
   Future<void> _performUpdate() async {
     if (!Platform.isLinux) return;
 
-    final confirmed = await showDialog<bool>(
+    final confirmed = await showThemedDialog<bool>(
       context: context,
       builder: (context) => SailAlertCard(
         title: 'Update BitNames?',
@@ -59,11 +59,10 @@ class _SettingsInfoState extends State<SettingsInfo> {
       await _updateProvider.performUpdate();
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Update failed: $e'),
-            backgroundColor: SailTheme.of(context).colors.error,
-          ),
+        showSailToast(
+          context,
+          'Update failed: $e',
+          variant: SailToastVariant.destructive,
         );
       }
     }

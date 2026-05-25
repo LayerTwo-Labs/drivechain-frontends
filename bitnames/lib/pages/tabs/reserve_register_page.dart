@@ -4,7 +4,8 @@ import 'dart:convert';
 import 'package:auto_route/auto_route.dart';
 import 'package:bitnames/providers/bitnames_provider.dart';
 import 'package:collection/collection.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' show Colors, Dialog;
+import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:stacked/stacked.dart';
@@ -328,10 +329,8 @@ class ReserveRegisterTab extends StatelessWidget {
 Future<void> showBitnameDetails(BuildContext context, BitnameEntry entry) async {
   await Future.microtask(() async {
     if (!context.mounted) return;
-    return showDialog<void>(
+    return showThemedDialog<void>(
       context: context,
-      barrierDismissible: true,
-      useRootNavigator: true,
       builder: (BuildContext dialogContext) {
         return PopScope(
           canPop: true,
