@@ -6,7 +6,7 @@ import 'package:bitwindow/pages/overview_page.dart';
 import 'package:bitwindow/providers/news_provider.dart';
 import 'package:bitwindow/widgets/pagination.dart';
 import 'package:collection/collection.dart';
-import 'package:flutter/material.dart' show SelectionArea, showModalBottomSheet;
+import 'package:flutter/material.dart' show Colors, SelectionArea, showModalBottomSheet;
 import 'package:flutter/widgets.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:url_launcher/url_launcher.dart';

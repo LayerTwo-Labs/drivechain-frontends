@@ -2,7 +2,7 @@ import 'package:auto_route/auto_route.dart' hide AutoRouterX;
 import 'package:bitwindow/providers/check_provider.dart';
 import 'package:bitwindow/providers/transactions_provider.dart';
 import 'package:flutter/material.dart'
-    show AlertDialog, AppBar, Colors, Icon, Icons, Scaffold, SelectableText, TextButton;
+    show AlertDialog, AppBar, Colors, MaterialTapTargetSize, Scaffold, SelectableText, TextButton;
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';

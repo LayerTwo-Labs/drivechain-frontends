@@ -1,6 +1,6 @@
 import 'package:bitwindow/pages/bitwindow_console_tab.dart';
 import 'package:fixnum/fixnum.dart';
-import 'package:flutter/material.dart' show Colors, Dialog;
+import 'package:flutter/material.dart' show Dialog, Icon, Icons;
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';

@@ -1,7 +1,7 @@
 import 'package:bitwindow/models/multisig_group.dart';
 import 'package:bitwindow/models/multisig_transaction.dart';
 import 'package:bitwindow/widgets/create_multisig_modal.dart';
-import 'package:flutter/material.dart' show Colors, Dialog;
+import 'package:flutter/material.dart' show Colors, Dialog, Icon, Icons;
 import 'package:flutter/widgets.dart';
 import 'package:sail_ui/sail_ui.dart';
 

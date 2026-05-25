@@ -5,7 +5,8 @@ import 'package:auto_route/auto_route.dart';
 import 'package:bitwindow/models/chat_models.dart';
 import 'package:bitwindow/pages/sidechains_page.dart';
 import 'package:bitwindow/providers/chat_provider.dart';
-import 'package:flutter/material.dart' show AlertDialog, InkWell, InputDecoration, MenuAnchor, MenuStyle, TextField;
+import 'package:flutter/material.dart'
+    show AlertDialog, InkWell, InputBorder, InputDecoration, MenuAnchor, MenuStyle, TextField;
 import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
