@@ -84,6 +84,103 @@ class _ChainSettingsModalState extends State<ChainSettingsModal> {
     }
   }
 
+  Future<void> _showWipeReset(BuildContext context, Binary binary) async {
+    final binaryProvider = GetIt.I.get<BinaryProvider>();
+    final appDir = binaryProvider.appDir;
+    final log = GetIt.I.get<Logger>();
+
+    final filesToDelete = <DeleteItem>[];
+    final itemsByPath = <String, DeleteItem>{};
+
+    void addItem(String itemPath, {bool skipClientDelete = false}) {
+      if (itemPath.isEmpty) return;
+      final existing = itemsByPath[itemPath];
+      if (existing == null) {
+        final item = DeleteItem(path: itemPath, skipClientDelete: skipClientDelete);
+        itemsByPath[itemPath] = item;
+        filesToDelete.add(item);
+        return;
+      }
+
+      if (skipClientDelete && !existing.skipClientDelete) {
+        final replacement = DeleteItem(path: itemPath, skipClientDelete: true);
+        final index = filesToDelete.indexOf(existing);
+        itemsByPath[itemPath] = replacement;
+        if (index >= 0) {
+          filesToDelete[index] = replacement;
+        }
+      }
+    }
+
+    void addItems(Iterable<String> paths, {bool skipClientDelete = false}) {
+      for (final itemPath in paths) {
+        addItem(itemPath, skipClientDelete: skipClientDelete);
+      }
+    }
+
+    try {
+      addItems(await binary.getBinaryPaths(binDir(appDir.path)));
+      addItems(await binary.getBlockchainDataPaths());
+      addItems(await binary.getSettingsPaths());
+      addItems(await binary.getLogPaths());
+
+      final walletPreview = await GetIt.I.get<OrchestratorRPC>().previewResetData(
+        deleteWalletFiles: true,
+        alsoResetSidechains: true,
+      );
+      addItems(
+        walletPreview.files.map((f) => f.path),
+        skipClientDelete: true,
+      );
+    } catch (e) {
+      log.e('Could not compute wipe preview for ${binary.name}: $e');
+      if (!context.mounted) return;
+      await showThemedDialog(
+        context: context,
+        builder: (context) => SailAlertCard(
+          title: 'Preview Failed',
+          subtitle: 'Could not compute reset preview: $e',
+          onConfirm: () async => Navigator.of(context).pop(),
+        ),
+      );
+      return;
+    }
+
+    if (!context.mounted) return;
+
+    if (filesToDelete.isEmpty) {
+      await showThemedDialog(
+        context: context,
+        builder: (context) => SailAlertCard(
+          title: 'Nothing to Delete',
+          subtitle: 'No files found for ${binary.name}.',
+          onConfirm: () async => Navigator.of(context).pop(),
+        ),
+      );
+      return;
+    }
+
+    final resetStarted = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (_) => ResetConfirmationPage(
+          filesToDelete: filesToDelete,
+          binariesToReset: [binary],
+          appDir: appDir,
+          binaryProvider: binaryProvider,
+          deleteNodeSoftware: true,
+          log: log,
+          preDeleteAction: () => GetIt.I.get<WalletWriterProvider>().deleteAllWallets(),
+        ),
+      ),
+    );
+
+    if (!context.mounted) return;
+
+    if (resetStarted == true) {
+      Navigator.of(context).pop();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return ViewModelBuilder<ChainSettingsViewModel>.reactive(
@@ -123,53 +220,10 @@ class _ChainSettingsModalState extends State<ChainSettingsModal> {
                           loadingLabel: 'Updating',
                         ),
                       Tooltip(
-                        message: 'Wipe ${viewModel.binary.name} binary and data, then reinstall',
+                        message: 'Wipe ${viewModel.binary.name} binary, data, and wallets, then reinstall',
                         child: SailButton(
                           onPressed: () async {
-                            final confirmed = await showDialog<bool>(
-                              context: context,
-                              builder: (dialogCtx) => AlertDialog(
-                                title: SailText.primary15('Wipe ${viewModel.binary.name}?'),
-                                content: SailText.secondary13(
-                                  'This stops ${viewModel.binary.name}, deletes its binary and all data directories, '
-                                  'then copies a fresh binary from assets.',
-                                ),
-                                actions: [
-                                  SailButton(
-                                    label: 'Cancel',
-                                    variant: ButtonVariant.secondary,
-                                    onPressed: () async => Navigator.of(dialogCtx).pop(false),
-                                  ),
-                                  SailButton(
-                                    label: 'Wipe',
-                                    variant: ButtonVariant.destructive,
-                                    onPressed: () async => Navigator.of(dialogCtx).pop(true),
-                                  ),
-                                ],
-                              ),
-                            );
-                            if (confirmed != true) return;
-
-                            final binaryProvider = GetIt.I.get<BinaryProvider>();
-                            final appDir = GetIt.I.get<BinaryProvider>().appDir;
-                            final binary = widget.connection.binary;
-
-                            await binaryProvider.stop(
-                              binary,
-                              skipDownstream: true,
-                            );
-
-                            await binary.deleteBinaries(binDir(appDir.path));
-                            final allPaths = await binary.getAllDatadirPaths();
-                            await binary.deleteFiles(allPaths);
-                            await copyBinariesFromAssets(
-                              GetIt.I.get<Logger>(),
-                              appDir,
-                            );
-
-                            if (context.mounted) {
-                              Navigator.of(context).pop();
-                            }
+                            await _showWipeReset(context, viewModel.binary);
                           },
                           variant: ButtonVariant.icon,
                           icon: SailSVGAsset.trash,
@@ -441,12 +495,6 @@ class ChainSettingsViewModel extends BaseViewModel {
       _isUpdating = false;
       notifyListeners();
     }
-  }
-
-  Future<void> handleDelete() async {
-    await _binary.deleteBinaries(binDir(appDir.path));
-    final allPaths = await _binary.getAllDatadirPaths();
-    await _binary.deleteFiles(allPaths);
   }
 
   Widget buildInfoRow(BuildContext context, String label, String value) {

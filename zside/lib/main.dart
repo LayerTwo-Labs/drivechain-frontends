@@ -10,6 +10,7 @@ import 'package:desktop_multi_window/desktop_multi_window.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
+import 'package:sail_ui/config/backend_sidechain_runtime.dart';
 import 'package:sail_ui/config/fonts.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:window_manager/window_manager.dart';
@@ -114,24 +115,14 @@ Future<(Directory, File, Logger)> init(String arguments) async {
     additionalBinaries: () => [Orchestratord()],
   );
 
-  // Register OrchestratorRPC for communicating with zsided
-  final orchestrator = GetIt.I.isRegistered<OrchestratorRPC>()
-      ? GetIt.I.get<OrchestratorRPC>()
-      : OrchestratorRPC(host: 'localhost', port: 30303);
-  if (!GetIt.I.isRegistered<OrchestratorRPC>()) {
-    GetIt.I.registerSingleton<OrchestratorRPC>(orchestrator);
-  }
-
-  // Register BackendStateProvider for streaming binary status
-  final backendState = GetIt.I.isRegistered<BackendStateProvider>()
-      ? GetIt.I.get<BackendStateProvider>()
-      : BackendStateProvider(orchestrator);
-  if (!GetIt.I.isRegistered<BackendStateProvider>()) {
-    GetIt.I.registerSingleton<BackendStateProvider>(backendState);
-  }
-
-  // Start zsided (Go backend), which orchestrates all binary lifecycle
-  bootBinaries(log);
+  // Register shared orchestrator runtime and start the managed backend.
+  unawaited(
+    initBackendManagedSidechainRuntime(
+      log: log,
+      binary: BinaryType.BINARY_TYPE_ZSIDE,
+      appRpc: zsideRPC,
+    ),
+  );
 
   // Initialize ZSideConfProvider (must be after BitcoinConfProvider)
   final zsideConfProvider = await ZSideConfProvider.create();
@@ -299,60 +290,14 @@ Future<File> getLogFile(Directory datadir) async {
   return logFile;
 }
 
-void bootBinaries(Logger log) async {
-  try {
-    final binaryProvider = GetIt.I.get<BinaryProvider>();
-    // Seed the DaemonConnectionCard's "Initializing..." spinner + startup log
-    // before ZSided has a chance to come up. Without this the card sits on
-    // "Not connected" until BackendStateProvider's listBinaries poll lands
-    // its first snapshot.
-    final zsideRpc = GetIt.I.isRegistered<ZSideRPC>() ? GetIt.I.get<ZSideRPC>() : null;
-    if (zsideRpc != null) {
-      zsideRpc.initializingBinary = true;
-      zsideRpc.connectionError = null;
-      zsideRpc.markStateChanged();
-    }
-    binaryProvider.addStartupLogForBinary(BinaryType.BINARY_TYPE_ZSIDE, 'Starting zsided...');
-    binaryProvider.addStartupLogForBinary(BinaryType.BINARY_TYPE_ZSIDED, 'Starting zsided...');
-
-    // Start zsided via BinaryProvider (it's bundled, not downloaded)
-    final zsided = binaryProvider.binaries.firstWhere((b) => b is ZSided);
-    await binaryProvider.start(zsided);
-
-    // Wait for zsided to be ready before calling StartWithL1
-    log.i('bootBinaries: waiting for zsided readiness');
-    binaryProvider.addStartupLogForBinary(BinaryType.BINARY_TYPE_ZSIDE, 'Waiting for zsided...');
-    binaryProvider.addStartupLogForBinary(BinaryType.BINARY_TYPE_ZSIDED, 'Waiting for zsided...');
-    final orchestrator = GetIt.I.get<OrchestratorRPC>();
-    for (var i = 0; i < 30; i++) {
-      try {
-        await orchestrator.listBinaries();
-        log.i('bootBinaries: zsided is ready');
-        break;
-      } catch (_) {
-        if (i == 29) {
-          log.e('bootBinaries: zsided did not become ready after 15s');
-          return;
-        }
-        await Future.delayed(const Duration(milliseconds: 500));
-      }
-    }
-
-    // Start watching binary status stream — this owns clearing
-    // initializingBinary once the orchestrator reports status.
-    final backendState = GetIt.I.get<BackendStateProvider>();
-    backendState.startWatching();
-
-    // Fire-and-forget: server dispatches the boot goroutine and returns.
-    // Download / connection state come from polled GetSyncStatus +
-    // ListBinaries. The actual boot survives transport blips because the
-    // server's goroutine ctx is detached from this call.
-    log.i('bootBinaries: dispatching StartWithL1');
-    await orchestrator.startWithL1('zside', targetArgs: ['--headless']);
-    log.i('bootBinaries: StartWithL1 dispatched');
-  } catch (e, st) {
-    log.e('bootBinaries failed: $e\n$st');
-  }
+void bootBinaries(Logger log) {
+  unawaited(
+    bootBackendManagedSidechain(
+      log: log,
+      binary: BinaryType.BINARY_TYPE_ZSIDE,
+      appRpc: GetIt.I.isRegistered<ZSideRPC>() ? GetIt.I.get<ZSideRPC>() : null,
+    ),
+  );
 }
 
 Future<void> initAutoUpdater(Logger log) async {

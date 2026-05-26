@@ -76,7 +76,9 @@ func SaveSettings(bitwindowDir string, s OrchestratorSettings) error {
 		}
 	}()
 
-	f, err := os.Open(tmp)
+	// O_RDWR (not O_RDONLY): Windows' FlushFileBuffers requires GENERIC_WRITE
+	// on the handle, so a read-only reopen makes f.Sync() fail with EACCES.
+	f, err := os.OpenFile(tmp, os.O_RDWR, 0)
 	if err != nil {
 		return fmt.Errorf("reopen orchestrator settings tmp: %w", err)
 	}

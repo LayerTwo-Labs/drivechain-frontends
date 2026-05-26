@@ -53,10 +53,16 @@ class AppRouter extends RootStackRouter {
           initial: true,
         ),
         AutoRoute(
-          page: SettingsTabRoute.page,
+          page: MarketExplorerRoute.page,
+        ),
+        AutoRoute(
+          page: VotingDashboardRoute.page,
         ),
         AutoRoute(
           page: ConsoleTabRoute.page,
+        ),
+        AutoRoute(
+          page: SettingsTabRoute.page,
         ),
       ],
     ),

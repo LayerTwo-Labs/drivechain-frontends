@@ -73,6 +73,7 @@ flutter:
 
   assets:
     - assets/bin/
+    - assets/photon.png
     # Source files for code search
     - lib/
 
