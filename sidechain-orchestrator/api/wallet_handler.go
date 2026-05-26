@@ -365,7 +365,7 @@ func (h *WalletHandler) GetNewAddress(ctx context.Context, req *connect.Request[
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
 
-	addr, err := h.engine.CoreRPC().GetNewAddress(ctx, coreName, "", "bech32")
+	addr, err := h.engine.PickReceiveAddress(ctx, coreName)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
