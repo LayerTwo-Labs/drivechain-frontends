@@ -15,7 +15,8 @@ import 'dart:core' as $core;
 import 'package:fixnum/fixnum.dart' as $fixnum;
 import 'package:protobuf/protobuf.dart' as $pb;
 
-import '../../google/protobuf/empty.pb.dart' as $12;
+import '../../google/protobuf/empty.pb.dart' as $13;
+import '../../google/protobuf/timestamp.pb.dart' as $12;
 
 class GetWalletStatusRequest extends $pb.GeneratedMessage {
   factory GetWalletStatusRequest() => create();
@@ -2471,6 +2472,7 @@ class UnspentOutput extends $pb.GeneratedMessage {
     $core.bool? spendable,
     $core.bool? solvable,
     $core.String? walletId,
+    $12.Timestamp? receivedAt,
   }) {
     final $result = create();
     if (txid != null) {
@@ -2503,6 +2505,9 @@ class UnspentOutput extends $pb.GeneratedMessage {
     if (walletId != null) {
       $result.walletId = walletId;
     }
+    if (receivedAt != null) {
+      $result.receivedAt = receivedAt;
+    }
     return $result;
   }
   UnspentOutput._() : super();
@@ -2520,6 +2525,7 @@ class UnspentOutput extends $pb.GeneratedMessage {
     ..aOB(8, _omitFieldNames ? '' : 'spendable')
     ..aOB(9, _omitFieldNames ? '' : 'solvable')
     ..aOS(10, _omitFieldNames ? '' : 'walletId')
+    ..aOM<$12.Timestamp>(11, _omitFieldNames ? '' : 'receivedAt', subBuilder: $12.Timestamp.create)
     ..hasRequiredFields = false
   ;
 
@@ -2633,6 +2639,19 @@ class UnspentOutput extends $pb.GeneratedMessage {
   $core.bool hasWalletId() => $_has(9);
   @$pb.TagNumber(10)
   void clearWalletId() => clearField(10);
+
+  /// Wallet's first-seen mempool timestamp when available, otherwise the
+  /// confirming block's time. Unset if neither is known.
+  @$pb.TagNumber(11)
+  $12.Timestamp get receivedAt => $_getN(10);
+  @$pb.TagNumber(11)
+  set receivedAt($12.Timestamp v) { setField(11, v); }
+  @$pb.TagNumber(11)
+  $core.bool hasReceivedAt() => $_has(10);
+  @$pb.TagNumber(11)
+  void clearReceivedAt() => clearField(11);
+  @$pb.TagNumber(11)
+  $12.Timestamp ensureReceivedAt() => $_ensure(10);
 }
 
 class ListUnspentResponse extends $pb.GeneratedMessage {
@@ -4602,7 +4621,7 @@ class WalletManagerServiceApi {
   $async.Future<SetTestSidechainsResponse> setTestSidechains($pb.ClientContext? ctx, SetTestSidechainsRequest request) =>
     _client.invoke<SetTestSidechainsResponse>(ctx, 'WalletManagerService', 'SetTestSidechains', request, SetTestSidechainsResponse())
   ;
-  $async.Future<WatchWalletDataResponse> watchWalletData($pb.ClientContext? ctx, $12.Empty request) =>
+  $async.Future<WatchWalletDataResponse> watchWalletData($pb.ClientContext? ctx, $13.Empty request) =>
     _client.invoke<WatchWalletDataResponse>(ctx, 'WalletManagerService', 'WatchWalletData', request, WatchWalletDataResponse())
   ;
 }

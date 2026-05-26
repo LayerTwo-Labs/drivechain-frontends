@@ -2077,7 +2077,7 @@ var File_cusf_mainchain_v1_wallet_proto protoreflect.FileDescriptor
 
 const file_cusf_mainchain_v1_wallet_proto_rawDesc = "" +
 	"\n" +
-	"\x1ecusf/mainchain/v1/wallet.proto\x12\x11cusf.mainchain.v1\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1egoogle/protobuf/wrappers.proto\x1a\x1bcusf/common/v1/common.proto\x1a\x1ecusf/mainchain/v1/common.proto\"\xe5\x03\n" +
+	"\x1ecusf/mainchain/v1/wallet.proto\x12\x11cusf.mainchain.v1\x1a\x1bcusf/common/v1/common.proto\x1a\x1ecusf/mainchain/v1/common.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1egoogle/protobuf/wrappers.proto\"\xe5\x03\n" +
 	"\x11WalletTransaction\x12.\n" +
 	"\x04txid\x18\x01 \x01(\v2\x1a.cusf.common.v1.ReverseHexR\x04txid\x12E\n" +
 	"\x0fraw_transaction\x18\x06 \x01(\v2\x1c.cusf.common.v1.ConsensusHexR\x0erawTransaction\x12\x19\n" +
@@ -2213,22 +2213,22 @@ const file_cusf_mainchain_v1_wallet_proto_rawDesc = "" +
 	"\x16confirmed_transitively\x18\b \x01(\v2\x1a.cusf.common.v1.ReverseHexR\x15confirmedTransitively\x12N\n" +
 	"\x15unconfirmed_last_seen\x18\t \x01(\v2\x1a.google.protobuf.TimestampR\x13unconfirmedLastSeen\x126\n" +
 	"\aaddress\x18\n" +
-	" \x01(\v2\x1c.google.protobuf.StringValueR\aaddress2\xee\f\n" +
-	"\rWalletService\x12\x86\x01\n" +
-	"\x19BroadcastWithdrawalBundle\x123.cusf.mainchain.v1.BroadcastWithdrawalBundleRequest\x1a4.cusf.mainchain.v1.BroadcastWithdrawalBundleResponse\x12\x9b\x01\n" +
+	" \x01(\v2\x1c.google.protobuf.StringValueR\aaddress2\x91\r\n" +
+	"\rWalletService\x12\x8b\x01\n" +
+	"\x19BroadcastWithdrawalBundle\x123.cusf.mainchain.v1.BroadcastWithdrawalBundleRequest\x1a4.cusf.mainchain.v1.BroadcastWithdrawalBundleResponse\"\x03\x90\x02\x02\x12\x9b\x01\n" +
 	" CreateBmmCriticalDataTransaction\x12:.cusf.mainchain.v1.CreateBmmCriticalDataTransactionRequest\x1a;.cusf.mainchain.v1.CreateBmmCriticalDataTransactionResponse\x12\x83\x01\n" +
 	"\x18CreateDepositTransaction\x122.cusf.mainchain.v1.CreateDepositTransactionRequest\x1a3.cusf.mainchain.v1.CreateDepositTransactionResponse\x12k\n" +
 	"\x10CreateNewAddress\x12*.cusf.mainchain.v1.CreateNewAddressRequest\x1a+.cusf.mainchain.v1.CreateNewAddressResponse\x12\x82\x01\n" +
 	"\x17CreateSidechainProposal\x121.cusf.mainchain.v1.CreateSidechainProposalRequest\x1a2.cusf.mainchain.v1.CreateSidechainProposalResponse0\x01\x12_\n" +
-	"\fCreateWallet\x12&.cusf.mainchain.v1.CreateWalletRequest\x1a'.cusf.mainchain.v1.CreateWalletResponse\x12Y\n" +
+	"\fCreateWallet\x12&.cusf.mainchain.v1.CreateWalletRequest\x1a'.cusf.mainchain.v1.CreateWalletResponse\x12^\n" +
 	"\n" +
-	"GetBalance\x12$.cusf.mainchain.v1.GetBalanceRequest\x1a%.cusf.mainchain.v1.GetBalanceResponse\x12\x9b\x01\n" +
-	" ListSidechainDepositTransactions\x12:.cusf.mainchain.v1.ListSidechainDepositTransactionsRequest\x1a;.cusf.mainchain.v1.ListSidechainDepositTransactionsResponse\x12k\n" +
-	"\x10ListTransactions\x12*.cusf.mainchain.v1.ListTransactionsRequest\x1a+.cusf.mainchain.v1.ListTransactionsResponse\x12q\n" +
-	"\x12ListUnspentOutputs\x12,.cusf.mainchain.v1.ListUnspentOutputsRequest\x1a-.cusf.mainchain.v1.ListUnspentOutputsResponse\x12P\n" +
-	"\aGetInfo\x12!.cusf.mainchain.v1.GetInfoRequest\x1a\".cusf.mainchain.v1.GetInfoResponse\x12h\n" +
-	"\x0fSendTransaction\x12).cusf.mainchain.v1.SendTransactionRequest\x1a*.cusf.mainchain.v1.SendTransactionResponse\x12_\n" +
-	"\fUnlockWallet\x12&.cusf.mainchain.v1.UnlockWalletRequest\x1a'.cusf.mainchain.v1.UnlockWalletResponse\x12g\n" +
+	"GetBalance\x12$.cusf.mainchain.v1.GetBalanceRequest\x1a%.cusf.mainchain.v1.GetBalanceResponse\"\x03\x90\x02\x01\x12\xa0\x01\n" +
+	" ListSidechainDepositTransactions\x12:.cusf.mainchain.v1.ListSidechainDepositTransactionsRequest\x1a;.cusf.mainchain.v1.ListSidechainDepositTransactionsResponse\"\x03\x90\x02\x01\x12p\n" +
+	"\x10ListTransactions\x12*.cusf.mainchain.v1.ListTransactionsRequest\x1a+.cusf.mainchain.v1.ListTransactionsResponse\"\x03\x90\x02\x01\x12v\n" +
+	"\x12ListUnspentOutputs\x12,.cusf.mainchain.v1.ListUnspentOutputsRequest\x1a-.cusf.mainchain.v1.ListUnspentOutputsResponse\"\x03\x90\x02\x01\x12U\n" +
+	"\aGetInfo\x12!.cusf.mainchain.v1.GetInfoRequest\x1a\".cusf.mainchain.v1.GetInfoResponse\"\x03\x90\x02\x01\x12h\n" +
+	"\x0fSendTransaction\x12).cusf.mainchain.v1.SendTransactionRequest\x1a*.cusf.mainchain.v1.SendTransactionResponse\x12d\n" +
+	"\fUnlockWallet\x12&.cusf.mainchain.v1.UnlockWalletRequest\x1a'.cusf.mainchain.v1.UnlockWalletResponse\"\x03\x90\x02\x02\x12g\n" +
 	"\x0eGenerateBlocks\x12(.cusf.mainchain.v1.GenerateBlocksRequest\x1a).cusf.mainchain.v1.GenerateBlocksResponse0\x01B\xe6\x01\n" +
 	"\x15com.cusf.mainchain.v1B\vWalletProtoP\x01ZZgithub.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1;mainchainv1\xa2\x02\x03CMX\xaa\x02\x11Cusf.Mainchain.V1\xca\x02\x11Cusf\\Mainchain\\V1\xe2\x02\x1dCusf\\Mainchain\\V1\\GPBMetadata\xea\x02\x13Cusf::Mainchain::V1b\x06proto3"
 

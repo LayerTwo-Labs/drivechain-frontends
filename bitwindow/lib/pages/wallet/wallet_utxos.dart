@@ -420,7 +420,7 @@ class _UTXOTableState extends State<UTXOTable> {
                   child: isFrozen ? Icon(Icons.ac_unit, size: 14, color: theme.colors.info) : const SizedBox(width: 14),
                 ),
                 SailTableCell(
-                  value: formatDate(utxo.receivedAt.toDateTime().toLocal()),
+                  value: utxo.hasReceivedAt() ? formatDate(utxo.receivedAt.toDateTime().toLocal()) : '—',
                 ),
                 SailTableCell(
                   value: '${utxo.output.substring(0, 6)}..:${utxo.output.split(':').last}',

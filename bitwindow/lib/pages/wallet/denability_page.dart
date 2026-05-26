@@ -348,7 +348,7 @@ class _DeniabilityTableState extends State<DeniabilityTable> {
                       ),
                     ),
                     SailTableCell(
-                      value: formatDate(utxo.receivedAt.toDateTime()),
+                      value: utxo.hasReceivedAt() ? formatDate(utxo.receivedAt.toDateTime()) : '—',
                     ),
                     SailTableCell(
                       value: canControl ? (isPaused ? 'Resume' : 'Pause') : 'Deny',

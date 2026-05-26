@@ -146,7 +146,7 @@ class TransactionProvider extends ChangeNotifier {
                     label: utxo.label,
                     valueSats: utxo.amountSats,
                     isChange: false,
-                    receivedAt: Timestamp(),
+                    receivedAt: utxo.hasReceivedAt() ? utxo.receivedAt : null,
                   ),
                 )
                 .toList();

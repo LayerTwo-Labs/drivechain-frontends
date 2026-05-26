@@ -3,6 +3,7 @@ syntax = "proto3";
 package walletmanager.v1;
 
 import "google/protobuf/empty.proto";
+import "google/protobuf/timestamp.proto";
 
 service WalletManagerService {
   // Wallet lifecycle
@@ -289,6 +290,9 @@ message UnspentOutput {
   bool spendable = 8;
   bool solvable = 9;
   string wallet_id = 10;
+  // Wallet's first-seen mempool timestamp when available, otherwise the
+  // confirming block's time. Unset if neither is known.
+  google.protobuf.Timestamp received_at = 11;
 }
 
 message ListUnspentResponse {

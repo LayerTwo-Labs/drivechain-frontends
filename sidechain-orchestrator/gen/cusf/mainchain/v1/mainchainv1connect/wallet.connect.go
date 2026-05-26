@@ -118,6 +118,7 @@ func NewWalletServiceClient(httpClient connect.HTTPClient, baseURL string, opts 
 			httpClient,
 			baseURL+WalletServiceBroadcastWithdrawalBundleProcedure,
 			connect.WithSchema(walletServiceMethods.ByName("BroadcastWithdrawalBundle")),
+			connect.WithIdempotency(connect.IdempotencyIdempotent),
 			connect.WithClientOptions(opts...),
 		),
 		createBmmCriticalDataTransaction: connect.NewClient[v1.CreateBmmCriticalDataTransactionRequest, v1.CreateBmmCriticalDataTransactionResponse](
@@ -154,30 +155,35 @@ func NewWalletServiceClient(httpClient connect.HTTPClient, baseURL string, opts 
 			httpClient,
 			baseURL+WalletServiceGetBalanceProcedure,
 			connect.WithSchema(walletServiceMethods.ByName("GetBalance")),
+			connect.WithIdempotency(connect.IdempotencyNoSideEffects),
 			connect.WithClientOptions(opts...),
 		),
 		listSidechainDepositTransactions: connect.NewClient[v1.ListSidechainDepositTransactionsRequest, v1.ListSidechainDepositTransactionsResponse](
 			httpClient,
 			baseURL+WalletServiceListSidechainDepositTransactionsProcedure,
 			connect.WithSchema(walletServiceMethods.ByName("ListSidechainDepositTransactions")),
+			connect.WithIdempotency(connect.IdempotencyNoSideEffects),
 			connect.WithClientOptions(opts...),
 		),
 		listTransactions: connect.NewClient[v1.ListTransactionsRequest, v1.ListTransactionsResponse](
 			httpClient,
 			baseURL+WalletServiceListTransactionsProcedure,
 			connect.WithSchema(walletServiceMethods.ByName("ListTransactions")),
+			connect.WithIdempotency(connect.IdempotencyNoSideEffects),
 			connect.WithClientOptions(opts...),
 		),
 		listUnspentOutputs: connect.NewClient[v1.ListUnspentOutputsRequest, v1.ListUnspentOutputsResponse](
 			httpClient,
 			baseURL+WalletServiceListUnspentOutputsProcedure,
 			connect.WithSchema(walletServiceMethods.ByName("ListUnspentOutputs")),
+			connect.WithIdempotency(connect.IdempotencyNoSideEffects),
 			connect.WithClientOptions(opts...),
 		),
 		getInfo: connect.NewClient[v1.GetInfoRequest, v1.GetInfoResponse](
 			httpClient,
 			baseURL+WalletServiceGetInfoProcedure,
 			connect.WithSchema(walletServiceMethods.ByName("GetInfo")),
+			connect.WithIdempotency(connect.IdempotencyNoSideEffects),
 			connect.WithClientOptions(opts...),
 		),
 		sendTransaction: connect.NewClient[v1.SendTransactionRequest, v1.SendTransactionResponse](
@@ -190,6 +196,7 @@ func NewWalletServiceClient(httpClient connect.HTTPClient, baseURL string, opts 
 			httpClient,
 			baseURL+WalletServiceUnlockWalletProcedure,
 			connect.WithSchema(walletServiceMethods.ByName("UnlockWallet")),
+			connect.WithIdempotency(connect.IdempotencyIdempotent),
 			connect.WithClientOptions(opts...),
 		),
 		generateBlocks: connect.NewClient[v1.GenerateBlocksRequest, v1.GenerateBlocksResponse](
@@ -327,6 +334,7 @@ func NewWalletServiceHandler(svc WalletServiceHandler, opts ...connect.HandlerOp
 		WalletServiceBroadcastWithdrawalBundleProcedure,
 		svc.BroadcastWithdrawalBundle,
 		connect.WithSchema(walletServiceMethods.ByName("BroadcastWithdrawalBundle")),
+		connect.WithIdempotency(connect.IdempotencyIdempotent),
 		connect.WithHandlerOptions(opts...),
 	)
 	walletServiceCreateBmmCriticalDataTransactionHandler := connect.NewUnaryHandler(
@@ -363,30 +371,35 @@ func NewWalletServiceHandler(svc WalletServiceHandler, opts ...connect.HandlerOp
 		WalletServiceGetBalanceProcedure,
 		svc.GetBalance,
 		connect.WithSchema(walletServiceMethods.ByName("GetBalance")),
+		connect.WithIdempotency(connect.IdempotencyNoSideEffects),
 		connect.WithHandlerOptions(opts...),
 	)
 	walletServiceListSidechainDepositTransactionsHandler := connect.NewUnaryHandler(
 		WalletServiceListSidechainDepositTransactionsProcedure,
 		svc.ListSidechainDepositTransactions,
 		connect.WithSchema(walletServiceMethods.ByName("ListSidechainDepositTransactions")),
+		connect.WithIdempotency(connect.IdempotencyNoSideEffects),
 		connect.WithHandlerOptions(opts...),
 	)
 	walletServiceListTransactionsHandler := connect.NewUnaryHandler(
 		WalletServiceListTransactionsProcedure,
 		svc.ListTransactions,
 		connect.WithSchema(walletServiceMethods.ByName("ListTransactions")),
+		connect.WithIdempotency(connect.IdempotencyNoSideEffects),
 		connect.WithHandlerOptions(opts...),
 	)
 	walletServiceListUnspentOutputsHandler := connect.NewUnaryHandler(
 		WalletServiceListUnspentOutputsProcedure,
 		svc.ListUnspentOutputs,
 		connect.WithSchema(walletServiceMethods.ByName("ListUnspentOutputs")),
+		connect.WithIdempotency(connect.IdempotencyNoSideEffects),
 		connect.WithHandlerOptions(opts...),
 	)
 	walletServiceGetInfoHandler := connect.NewUnaryHandler(
 		WalletServiceGetInfoProcedure,
 		svc.GetInfo,
 		connect.WithSchema(walletServiceMethods.ByName("GetInfo")),
+		connect.WithIdempotency(connect.IdempotencyNoSideEffects),
 		connect.WithHandlerOptions(opts...),
 	)
 	walletServiceSendTransactionHandler := connect.NewUnaryHandler(
@@ -399,6 +412,7 @@ func NewWalletServiceHandler(svc WalletServiceHandler, opts ...connect.HandlerOp
 		WalletServiceUnlockWalletProcedure,
 		svc.UnlockWallet,
 		connect.WithSchema(walletServiceMethods.ByName("UnlockWallet")),
+		connect.WithIdempotency(connect.IdempotencyIdempotent),
 		connect.WithHandlerOptions(opts...),
 	)
 	walletServiceGenerateBlocksHandler := connect.NewServerStreamHandler(

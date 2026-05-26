@@ -836,12 +836,12 @@ const file_cusf_sidechain_v1_sidechain_proto_rawDesc = "" +
 	"\x04txid\x18\x01 \x01(\fR\x04txid\x1a&\n" +
 	"\x10MempoolTxRemoved\x12\x12\n" +
 	"\x04txid\x18\x01 \x01(\fR\x04txidB\a\n" +
-	"\x05event2\xa7\x03\n" +
-	"\x10SidechainService\x12b\n" +
-	"\rGetMempoolTxs\x12'.cusf.sidechain.v1.GetMempoolTxsRequest\x1a(.cusf.sidechain.v1.GetMempoolTxsResponse\x12S\n" +
-	"\bGetUtxos\x12\".cusf.sidechain.v1.GetUtxosRequest\x1a#.cusf.sidechain.v1.GetUtxosResponse\x12n\n" +
-	"\x11SubmitTransaction\x12+.cusf.sidechain.v1.SubmitTransactionRequest\x1a,.cusf.sidechain.v1.SubmitTransactionResponse\x12j\n" +
-	"\x0fSubscribeEvents\x12).cusf.sidechain.v1.SubscribeEventsRequest\x1a*.cusf.sidechain.v1.SubscribeEventsResponse0\x01B\xe9\x01\n" +
+	"\x05event2\xbb\x03\n" +
+	"\x10SidechainService\x12g\n" +
+	"\rGetMempoolTxs\x12'.cusf.sidechain.v1.GetMempoolTxsRequest\x1a(.cusf.sidechain.v1.GetMempoolTxsResponse\"\x03\x90\x02\x01\x12X\n" +
+	"\bGetUtxos\x12\".cusf.sidechain.v1.GetUtxosRequest\x1a#.cusf.sidechain.v1.GetUtxosResponse\"\x03\x90\x02\x01\x12s\n" +
+	"\x11SubmitTransaction\x12+.cusf.sidechain.v1.SubmitTransactionRequest\x1a,.cusf.sidechain.v1.SubmitTransactionResponse\"\x03\x90\x02\x02\x12o\n" +
+	"\x0fSubscribeEvents\x12).cusf.sidechain.v1.SubscribeEventsRequest\x1a*.cusf.sidechain.v1.SubscribeEventsResponse\"\x03\x90\x02\x010\x01B\xe9\x01\n" +
 	"\x15com.cusf.sidechain.v1B\x0eSidechainProtoP\x01ZZgithub.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/sidechain/v1;sidechainv1\xa2\x02\x03CSX\xaa\x02\x11Cusf.Sidechain.V1\xca\x02\x11Cusf\\Sidechain\\V1\xe2\x02\x1dCusf\\Sidechain\\V1\\GPBMetadata\xea\x02\x13Cusf::Sidechain::V1b\x06proto3"
 
 var (

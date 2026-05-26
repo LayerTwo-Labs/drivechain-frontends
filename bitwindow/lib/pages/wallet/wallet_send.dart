@@ -737,7 +737,10 @@ class _UTXOSelectorState extends State<UTXOSelector> {
 
   String formatUnspentOutput(UnspentOutput u, {bool long = true}) {
     final amount = formatBitcoin(satoshiToBTC(u.valueSats.toInt()));
-    return '${u.output.substring(0, 6)}..:${u.output.split(':').last} ($amount)${long ? ' received ${formatDate(u.receivedAt.toDateTime(), long: false)}' : ''}';
+    final receivedSuffix = long && u.hasReceivedAt()
+        ? ' received ${formatDate(u.receivedAt.toDateTime(), long: false)}'
+        : '';
+    return '${u.output.substring(0, 6)}..:${u.output.split(':').last} ($amount)$receivedSuffix';
   }
 
   @override
