@@ -9,6 +9,7 @@ import 'package:bitwindow/providers/transactions_provider.dart';
 import 'package:bitwindow/providers/coin_selection_provider.dart';
 import 'package:bitwindow/utils/bitcoin_uri.dart';
 import 'package:bitwindow/utils/coin_selection.dart';
+import 'package:bitwindow/utils/explorer_url.dart';
 import 'package:collection/collection.dart';
 import 'package:fixnum/fixnum.dart';
 import 'package:flutter/material.dart' show Dialog;
@@ -20,6 +21,7 @@ import 'package:sail_ui/gen/wallet/v1/wallet.pb.dart' as pb;
 import 'package:sail_ui/gen/wallet/v1/wallet.pbserver.dart' hide CoinSelectionStrategy;
 import 'package:sail_ui/sail_ui.dart';
 import 'package:stacked/stacked.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class SendTab extends ViewModelWidget<SendPageViewModel> {
   const SendTab({super.key});
@@ -581,10 +583,12 @@ class SendPageViewModel extends BaseViewModel {
       )).txid;
       await clearAll();
       log.d('Sent transaction: txid=$txid');
+      final network = GetIt.I.get<BitcoinConfProvider>().network;
       GetIt.I.get<NotificationProvider>().add(
         title: 'Transaction sent',
         content: txid,
         dialogType: DialogType.info,
+        onPressed: () => launchUrl(Uri.parse(mempoolTxUrl(txid, network))),
       );
     } catch (error) {
       log.e('Error sending transaction: $error');

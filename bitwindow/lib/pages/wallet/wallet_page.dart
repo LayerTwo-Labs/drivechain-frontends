@@ -14,6 +14,7 @@ import 'package:bitwindow/pages/wallet/wallet_send.dart';
 import 'package:bitwindow/pages/wallet/wallet_utxos.dart';
 import 'package:bitwindow/providers/transactions_provider.dart';
 import 'package:bitwindow/utils/bitcoin_uri.dart';
+import 'package:bitwindow/utils/explorer_url.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter/services.dart';
@@ -237,13 +238,13 @@ class _GetCoinsButtonState extends State<GetCoinsButton> {
         final txid = response.data['txid'];
         if (!mounted) return;
 
-        final url = 'https://explorer.drivechain.info/tx/$txid';
+        final network = GetIt.I.get<BitcoinConfProvider>().network;
         final notificationProvider = GetIt.I.get<NotificationProvider>();
         notificationProvider.add(
           title: '2.1 BTC is on the way to your wallet',
           content: txid,
           dialogType: DialogType.info,
-          onPressed: () => launchUrl(Uri.parse(url)),
+          onPressed: () => launchUrl(Uri.parse(mempoolTxUrl(txid, network))),
         );
       }
     } catch (error, stackTrace) {
