@@ -74,6 +74,7 @@ flutter:
 
   assets:
     - assets/bin/
+    - assets/bitnames.png
     # Source files for code search
     - lib/
 

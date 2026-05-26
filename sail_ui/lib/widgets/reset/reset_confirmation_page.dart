@@ -122,7 +122,22 @@ class _ResetConfirmationPageState extends State<ResetConfirmationPage> {
     });
 
     if (widget.preDeleteAction != null) {
-      await widget.preDeleteAction!();
+      try {
+        await widget.preDeleteAction!();
+      } catch (e) {
+        widget.log.e('Pre-delete action failed: $e');
+        if (mounted) {
+          setState(() {
+            _stoppingBinaries = false;
+            _deletionComplete = true;
+            for (final item in widget.filesToDelete) {
+              item.status = DeleteItemStatus.error;
+              item.errorMessage = e.toString();
+            }
+          });
+        }
+        return;
+      }
     }
 
     if (widget.orchestratorDelete != null) {
@@ -160,6 +175,14 @@ class _ResetConfirmationPageState extends State<ResetConfirmationPage> {
         _currentIndex = i;
         item.status = DeleteItemStatus.inProgress;
       });
+
+      if (item.skipClientDelete) {
+        if (mounted) {
+          setState(() => item.status = DeleteItemStatus.success);
+        }
+        await Future.delayed(const Duration(milliseconds: 50));
+        continue;
+      }
 
       try {
         final filePath = item.path;
@@ -242,6 +265,8 @@ class _ResetConfirmationPageState extends State<ResetConfirmationPage> {
     final theme = SailTheme.of(context);
     final successCount = widget.filesToDelete.where((f) => f.status == DeleteItemStatus.success).length;
     final errorCount = widget.filesToDelete.where((f) => f.status == DeleteItemStatus.error).length;
+    final hasMovedItems = widget.filesToDelete.any((f) => f.skipClientDelete);
+    final resetVerb = hasMovedItems ? 'deleted or moved' : 'deleted';
 
     return PopScope(
       // Prevent back during active deletion, allow after completion
@@ -335,11 +360,11 @@ class _ResetConfirmationPageState extends State<ResetConfirmationPage> {
                               ),
                           ] else if (_deletionComplete)
                             SailText.secondary13(
-                              'Deleted $successCount items${errorCount > 0 ? ', $errorCount failed' : ''}',
+                              '${hasMovedItems ? 'Reset' : 'Deleted'} $successCount items${errorCount > 0 ? ', $errorCount failed' : ''}',
                             )
                           else
                             SailText.secondary13(
-                              'The following ${widget.filesToDelete.length} items will be deleted:',
+                              'The following ${widget.filesToDelete.length} items will be $resetVerb:',
                             ),
                           const SizedBox(height: 24),
                           DecoratedBox(
@@ -438,7 +463,9 @@ class _ResetConfirmationPageState extends State<ResetConfirmationPage> {
                     ),
                     const SizedBox(width: SailStyleValues.padding12),
                     SailButton(
-                      label: 'Delete ${widget.filesToDelete.length} items',
+                      label: hasMovedItems
+                          ? 'Reset ${widget.filesToDelete.length} items'
+                          : 'Delete ${widget.filesToDelete.length} items',
                       variant: ButtonVariant.destructive,
                       onPressed: () async => await _startDeletion(),
                     ),

@@ -73,6 +73,7 @@ flutter:
 
   assets:
     - assets/bin/
+    - assets/truthcoin.png
     # Source files for code search
     - lib/
 
