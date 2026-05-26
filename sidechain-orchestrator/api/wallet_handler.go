@@ -11,6 +11,7 @@ import (
 
 	"connectrpc.com/connect"
 	"google.golang.org/protobuf/types/known/emptypb"
+	"google.golang.org/protobuf/types/known/timestamppb"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	orchestrator "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator"
@@ -789,6 +790,7 @@ func (h *WalletHandler) ListUnspent(ctx context.Context, req *connect.Request[pb
 				Spendable:     true,
 				Solvable:      true,
 				WalletId:      walletID,
+				ReceivedAt:    enforcerReceivedAt(u),
 			})
 		}
 		return connect.NewResponse(&pb.ListUnspentResponse{
@@ -810,6 +812,8 @@ func (h *WalletHandler) ListUnspent(ctx context.Context, req *connect.Request[pb
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
 
+	txTimes := h.fetchCoreTxTimes(ctx, coreName, utxos)
+
 	pbUTXOs := make([]*pb.UnspentOutput, len(utxos))
 	for i, u := range utxos {
 		pbUTXOs[i] = &pb.UnspentOutput{
@@ -823,12 +827,70 @@ func (h *WalletHandler) ListUnspent(ctx context.Context, req *connect.Request[pb
 			Spendable:     u.Spendable,
 			Solvable:      u.Solvable,
 			WalletId:      walletID,
+			ReceivedAt:    txTimes[u.TxID],
 		}
 	}
 
 	return connect.NewResponse(&pb.ListUnspentResponse{
 		Utxos: pbUTXOs,
 	}), nil
+}
+
+// tsValid returns true when ts is non-nil and not the zero Timestamp.
+// Protobuf doesn't distinguish "unset" from "epoch 0" for Timestamp,
+// so callers must check for the zero seconds case to avoid 1970-01-01
+// leaking into the UI.
+func tsValid(ts *timestamppb.Timestamp) bool {
+	return ts != nil && (ts.GetSeconds() > 0 || ts.GetNanos() > 0)
+}
+
+// enforcerReceivedAt picks the best timestamp for a BDK UTXO row:
+// the wallet's first-seen mempool stamp, falling back to the enforcer's
+// confirmation timestamp. Returns nil when neither is known.
+func enforcerReceivedAt(u *enforcerpb.ListUnspentOutputsResponse_Output) *timestamppb.Timestamp {
+	if tsValid(u.UnconfirmedLastSeen) {
+		return u.UnconfirmedLastSeen
+	}
+	if tsValid(u.ConfirmedAtTime) {
+		return u.ConfirmedAtTime
+	}
+	return nil
+}
+
+// fetchCoreTxTimes returns, for each unique txid in utxos, the wallet's
+// time_received (when it first saw the tx) falling back to blocktime
+// then time. Best-effort: failures are logged and the txid is omitted.
+func (h *WalletHandler) fetchCoreTxTimes(ctx context.Context, walletName string, utxos []wallet.CoreUTXO) map[string]*timestamppb.Timestamp {
+	seen := make(map[string]struct{}, len(utxos))
+	out := make(map[string]*timestamppb.Timestamp, len(utxos))
+	for _, u := range utxos {
+		if _, ok := seen[u.TxID]; ok {
+			continue
+		}
+		seen[u.TxID] = struct{}{}
+
+		rawJSON, err := h.engine.CoreRPC().GetTransaction(ctx, walletName, u.TxID)
+		if err != nil {
+			continue
+		}
+		var tx struct {
+			TimeReceived int64 `json:"timereceived"`
+			BlockTime    int64 `json:"blocktime"`
+			Time         int64 `json:"time"`
+		}
+		if err := json.Unmarshal(rawJSON, &tx); err != nil {
+			continue
+		}
+		switch {
+		case tx.TimeReceived > 0:
+			out[u.TxID] = timestamppb.New(time.Unix(tx.TimeReceived, 0))
+		case tx.BlockTime > 0:
+			out[u.TxID] = timestamppb.New(time.Unix(tx.BlockTime, 0))
+		case tx.Time > 0:
+			out[u.TxID] = timestamppb.New(time.Unix(tx.Time, 0))
+		}
+	}
+	return out
 }
 
 func (h *WalletHandler) ListReceiveAddresses(ctx context.Context, req *connect.Request[pb.ListReceiveAddressesRequest]) (*connect.Response[pb.ListReceiveAddressesResponse], error) {

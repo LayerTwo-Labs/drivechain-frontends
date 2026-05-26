@@ -2952,7 +2952,7 @@ var File_cusf_mainchain_v1_validator_proto protoreflect.FileDescriptor
 
 const file_cusf_mainchain_v1_validator_proto_rawDesc = "" +
 	"\n" +
-	"!cusf/mainchain/v1/validator.proto\x12\x11cusf.mainchain.v1\x1a\x1egoogle/protobuf/wrappers.proto\x1a\x1bcusf/common/v1/common.proto\x1a\x1ecusf/mainchain/v1/common.proto\"\xf8\x01\n" +
+	"!cusf/mainchain/v1/validator.proto\x12\x11cusf.mainchain.v1\x1a\x1bcusf/common/v1/common.proto\x1a\x1ecusf/mainchain/v1/common.proto\x1a\x1egoogle/protobuf/wrappers.proto\"\xf8\x01\n" +
 	"\x0fBlockHeaderInfo\x129\n" +
 	"\n" +
 	"block_hash\x18\x01 \x01(\v2\x1a.cusf.common.v1.ReverseHexR\tblockHash\x12B\n" +
@@ -3146,22 +3146,21 @@ const file_cusf_mainchain_v1_validator_proto_rawDesc = "" +
 	"\x0fNETWORK_MAINNET\x10\x02\x12\x13\n" +
 	"\x0fNETWORK_REGTEST\x10\x03\x12\x12\n" +
 	"\x0eNETWORK_SIGNET\x10\x04\x12\x13\n" +
-	"\x0fNETWORK_TESTNET\x10\x052\xf0\n" +
-	"\n" +
-	"\x10ValidatorService\x12q\n" +
-	"\x12GetBlockHeaderInfo\x12,.cusf.mainchain.v1.GetBlockHeaderInfoRequest\x1a-.cusf.mainchain.v1.GetBlockHeaderInfoResponse\x12_\n" +
-	"\fGetBlockInfo\x12&.cusf.mainchain.v1.GetBlockInfoRequest\x1a'.cusf.mainchain.v1.GetBlockInfoResponse\x12z\n" +
-	"\x15GetBmmHStarCommitment\x12/.cusf.mainchain.v1.GetBmmHStarCommitmentRequest\x1a0.cusf.mainchain.v1.GetBmmHStarCommitmentResponse\x12_\n" +
-	"\fGetChainInfo\x12&.cusf.mainchain.v1.GetChainInfoRequest\x1a'.cusf.mainchain.v1.GetChainInfoResponse\x12\\\n" +
-	"\vGetChainTip\x12%.cusf.mainchain.v1.GetChainTipRequest\x1a&.cusf.mainchain.v1.GetChainTipResponse\x12h\n" +
-	"\x0fGetCoinbasePSBT\x12).cusf.mainchain.v1.GetCoinbasePSBTRequest\x1a*.cusf.mainchain.v1.GetCoinbasePSBTResponse\x12P\n" +
-	"\aGetCtip\x12!.cusf.mainchain.v1.GetCtipRequest\x1a\".cusf.mainchain.v1.GetCtipResponse\x12z\n" +
-	"\x15GetSidechainProposals\x12/.cusf.mainchain.v1.GetSidechainProposalsRequest\x1a0.cusf.mainchain.v1.GetSidechainProposalsResponse\x12b\n" +
-	"\rGetSidechains\x12'.cusf.mainchain.v1.GetSidechainsRequest\x1a(.cusf.mainchain.v1.GetSidechainsResponse\x12k\n" +
-	"\x10GetTwoWayPegData\x12*.cusf.mainchain.v1.GetTwoWayPegDataRequest\x1a+.cusf.mainchain.v1.GetTwoWayPegDataResponse\x12j\n" +
-	"\x0fSubscribeEvents\x12).cusf.mainchain.v1.SubscribeEventsRequest\x1a*.cusf.mainchain.v1.SubscribeEventsResponse0\x01\x12\x8e\x01\n" +
-	"\x1bSubscribeHeaderSyncProgress\x125.cusf.mainchain.v1.SubscribeHeaderSyncProgressRequest\x1a6.cusf.mainchain.v1.SubscribeHeaderSyncProgressResponse0\x01\x12G\n" +
-	"\x04Stop\x12\x1e.cusf.mainchain.v1.StopRequest\x1a\x1f.cusf.mainchain.v1.StopResponseB\xe9\x01\n" +
+	"\x0fNETWORK_TESTNET\x10\x052\xb1\v\n" +
+	"\x10ValidatorService\x12v\n" +
+	"\x12GetBlockHeaderInfo\x12,.cusf.mainchain.v1.GetBlockHeaderInfoRequest\x1a-.cusf.mainchain.v1.GetBlockHeaderInfoResponse\"\x03\x90\x02\x01\x12d\n" +
+	"\fGetBlockInfo\x12&.cusf.mainchain.v1.GetBlockInfoRequest\x1a'.cusf.mainchain.v1.GetBlockInfoResponse\"\x03\x90\x02\x01\x12\x7f\n" +
+	"\x15GetBmmHStarCommitment\x12/.cusf.mainchain.v1.GetBmmHStarCommitmentRequest\x1a0.cusf.mainchain.v1.GetBmmHStarCommitmentResponse\"\x03\x90\x02\x01\x12d\n" +
+	"\fGetChainInfo\x12&.cusf.mainchain.v1.GetChainInfoRequest\x1a'.cusf.mainchain.v1.GetChainInfoResponse\"\x03\x90\x02\x01\x12a\n" +
+	"\vGetChainTip\x12%.cusf.mainchain.v1.GetChainTipRequest\x1a&.cusf.mainchain.v1.GetChainTipResponse\"\x03\x90\x02\x01\x12m\n" +
+	"\x0fGetCoinbasePSBT\x12).cusf.mainchain.v1.GetCoinbasePSBTRequest\x1a*.cusf.mainchain.v1.GetCoinbasePSBTResponse\"\x03\x90\x02\x01\x12U\n" +
+	"\aGetCtip\x12!.cusf.mainchain.v1.GetCtipRequest\x1a\".cusf.mainchain.v1.GetCtipResponse\"\x03\x90\x02\x01\x12\x7f\n" +
+	"\x15GetSidechainProposals\x12/.cusf.mainchain.v1.GetSidechainProposalsRequest\x1a0.cusf.mainchain.v1.GetSidechainProposalsResponse\"\x03\x90\x02\x01\x12g\n" +
+	"\rGetSidechains\x12'.cusf.mainchain.v1.GetSidechainsRequest\x1a(.cusf.mainchain.v1.GetSidechainsResponse\"\x03\x90\x02\x01\x12p\n" +
+	"\x10GetTwoWayPegData\x12*.cusf.mainchain.v1.GetTwoWayPegDataRequest\x1a+.cusf.mainchain.v1.GetTwoWayPegDataResponse\"\x03\x90\x02\x01\x12o\n" +
+	"\x0fSubscribeEvents\x12).cusf.mainchain.v1.SubscribeEventsRequest\x1a*.cusf.mainchain.v1.SubscribeEventsResponse\"\x03\x90\x02\x010\x01\x12\x93\x01\n" +
+	"\x1bSubscribeHeaderSyncProgress\x125.cusf.mainchain.v1.SubscribeHeaderSyncProgressRequest\x1a6.cusf.mainchain.v1.SubscribeHeaderSyncProgressResponse\"\x03\x90\x02\x010\x01\x12L\n" +
+	"\x04Stop\x12\x1e.cusf.mainchain.v1.StopRequest\x1a\x1f.cusf.mainchain.v1.StopResponse\"\x03\x90\x02\x02B\xe9\x01\n" +
 	"\x15com.cusf.mainchain.v1B\x0eValidatorProtoP\x01ZZgithub.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1;mainchainv1\xa2\x02\x03CMX\xaa\x02\x11Cusf.Mainchain.V1\xca\x02\x11Cusf\\Mainchain\\V1\xe2\x02\x1dCusf\\Mainchain\\V1\\GPBMetadata\xea\x02\x13Cusf::Mainchain::V1b\x06proto3"
 
 var (

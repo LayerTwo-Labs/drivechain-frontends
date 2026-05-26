@@ -72,24 +72,28 @@ func NewSidechainServiceClient(httpClient connect.HTTPClient, baseURL string, op
 			httpClient,
 			baseURL+SidechainServiceGetMempoolTxsProcedure,
 			connect.WithSchema(sidechainServiceMethods.ByName("GetMempoolTxs")),
+			connect.WithIdempotency(connect.IdempotencyNoSideEffects),
 			connect.WithClientOptions(opts...),
 		),
 		getUtxos: connect.NewClient[v1.GetUtxosRequest, v1.GetUtxosResponse](
 			httpClient,
 			baseURL+SidechainServiceGetUtxosProcedure,
 			connect.WithSchema(sidechainServiceMethods.ByName("GetUtxos")),
+			connect.WithIdempotency(connect.IdempotencyNoSideEffects),
 			connect.WithClientOptions(opts...),
 		),
 		submitTransaction: connect.NewClient[v1.SubmitTransactionRequest, v1.SubmitTransactionResponse](
 			httpClient,
 			baseURL+SidechainServiceSubmitTransactionProcedure,
 			connect.WithSchema(sidechainServiceMethods.ByName("SubmitTransaction")),
+			connect.WithIdempotency(connect.IdempotencyIdempotent),
 			connect.WithClientOptions(opts...),
 		),
 		subscribeEvents: connect.NewClient[v1.SubscribeEventsRequest, v1.SubscribeEventsResponse](
 			httpClient,
 			baseURL+SidechainServiceSubscribeEventsProcedure,
 			connect.WithSchema(sidechainServiceMethods.ByName("SubscribeEvents")),
+			connect.WithIdempotency(connect.IdempotencyNoSideEffects),
 			connect.WithClientOptions(opts...),
 		),
 	}
@@ -142,24 +146,28 @@ func NewSidechainServiceHandler(svc SidechainServiceHandler, opts ...connect.Han
 		SidechainServiceGetMempoolTxsProcedure,
 		svc.GetMempoolTxs,
 		connect.WithSchema(sidechainServiceMethods.ByName("GetMempoolTxs")),
+		connect.WithIdempotency(connect.IdempotencyNoSideEffects),
 		connect.WithHandlerOptions(opts...),
 	)
 	sidechainServiceGetUtxosHandler := connect.NewUnaryHandler(
 		SidechainServiceGetUtxosProcedure,
 		svc.GetUtxos,
 		connect.WithSchema(sidechainServiceMethods.ByName("GetUtxos")),
+		connect.WithIdempotency(connect.IdempotencyNoSideEffects),
 		connect.WithHandlerOptions(opts...),
 	)
 	sidechainServiceSubmitTransactionHandler := connect.NewUnaryHandler(
 		SidechainServiceSubmitTransactionProcedure,
 		svc.SubmitTransaction,
 		connect.WithSchema(sidechainServiceMethods.ByName("SubmitTransaction")),
+		connect.WithIdempotency(connect.IdempotencyIdempotent),
 		connect.WithHandlerOptions(opts...),
 	)
 	sidechainServiceSubscribeEventsHandler := connect.NewServerStreamHandler(
 		SidechainServiceSubscribeEventsProcedure,
 		svc.SubscribeEvents,
 		connect.WithSchema(sidechainServiceMethods.ByName("SubscribeEvents")),
+		connect.WithIdempotency(connect.IdempotencyNoSideEffects),
 		connect.WithHandlerOptions(opts...),
 	)
 	return "/cusf.sidechain.v1.SidechainService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

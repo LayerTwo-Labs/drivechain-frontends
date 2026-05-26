@@ -13,7 +13,8 @@ import 'dart:convert' as $convert;
 import 'dart:core' as $core;
 import 'dart:typed_data' as $typed_data;
 
-import '../../google/protobuf/empty.pbjson.dart' as $12;
+import '../../google/protobuf/empty.pbjson.dart' as $13;
+import '../../google/protobuf/timestamp.pbjson.dart' as $12;
 
 @$core.Deprecated('Use getWalletStatusRequestDescriptor instead')
 const GetWalletStatusRequest$json = {
@@ -588,6 +589,7 @@ const UnspentOutput$json = {
     {'1': 'spendable', '3': 8, '4': 1, '5': 8, '10': 'spendable'},
     {'1': 'solvable', '3': 9, '4': 1, '5': 8, '10': 'solvable'},
     {'1': 'wallet_id', '3': 10, '4': 1, '5': 9, '10': 'walletId'},
+    {'1': 'received_at', '3': 11, '4': 1, '5': 11, '6': '.google.protobuf.Timestamp', '10': 'receivedAt'},
   ],
 };
 
@@ -598,7 +600,8 @@ final $typed_data.Uint8List unspentOutputDescriptor = $convert.base64Decode(
     'b3VudF9zYXRzGAUgASgDUgphbW91bnRTYXRzEiQKDWNvbmZpcm1hdGlvbnMYBiABKAVSDWNvbm'
     'Zpcm1hdGlvbnMSFAoFbGFiZWwYByABKAlSBWxhYmVsEhwKCXNwZW5kYWJsZRgIIAEoCFIJc3Bl'
     'bmRhYmxlEhoKCHNvbHZhYmxlGAkgASgIUghzb2x2YWJsZRIbCgl3YWxsZXRfaWQYCiABKAlSCH'
-    'dhbGxldElk');
+    'dhbGxldElkEjsKC3JlY2VpdmVkX2F0GAsgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFt'
+    'cFIKcmVjZWl2ZWRBdA==');
 
 @$core.Deprecated('Use listUnspentResponseDescriptor instead')
 const ListUnspentResponse$json = {
@@ -1063,6 +1066,7 @@ const $core.Map<$core.String, $core.Map<$core.String, $core.dynamic>> WalletMana
   '.walletmanager.v1.SendTransactionRequest': SendTransactionRequest$json,
   '.walletmanager.v1.SendTransactionRequest.DestinationsEntry': SendTransactionRequest_DestinationsEntry$json,
   '.walletmanager.v1.UnspentOutput': UnspentOutput$json,
+  '.google.protobuf.Timestamp': $12.Timestamp$json,
   '.walletmanager.v1.SendTransactionResponse': SendTransactionResponse$json,
   '.walletmanager.v1.ListTransactionsRequest': ListTransactionsRequest$json,
   '.walletmanager.v1.ListTransactionsResponse': ListTransactionsResponse$json,
@@ -1093,7 +1097,7 @@ const $core.Map<$core.String, $core.Map<$core.String, $core.dynamic>> WalletMana
   '.walletmanager.v1.GetTestSidechainsResponse': GetTestSidechainsResponse$json,
   '.walletmanager.v1.SetTestSidechainsRequest': SetTestSidechainsRequest$json,
   '.walletmanager.v1.SetTestSidechainsResponse': SetTestSidechainsResponse$json,
-  '.google.protobuf.Empty': $12.Empty$json,
+  '.google.protobuf.Empty': $13.Empty$json,
   '.walletmanager.v1.WatchWalletDataResponse': WatchWalletDataResponse$json,
 };
 
