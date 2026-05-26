@@ -1,17 +1,19 @@
 import 'package:sail_ui/sail_ui.dart';
 
-/// Build a block-explorer address URL for the active network. Forknet has a
-/// dedicated drivechain explorer; everything else falls through to
-/// mempool.space (with /signet as a sensible default for regtest, which isn't
-/// hosted anywhere public).
+/// Resolve the explorer host for the active network. Mainnet sits at the
+/// bare `explorer.drivechain.info`; every other network gets its own
+/// subdomain. Regtest has no public explorer, so fall through to signet's.
+String _explorerHost(BitcoinNetwork network) => switch (network) {
+  BitcoinNetwork.BITCOIN_NETWORK_MAINNET => 'explorer.drivechain.info',
+  BitcoinNetwork.BITCOIN_NETWORK_FORKNET => 'explorer.forknet.drivechain.info',
+  BitcoinNetwork.BITCOIN_NETWORK_TESTNET => 'explorer.testnet.drivechain.info',
+  _ => 'explorer.signet.drivechain.info',
+};
+
 String mempoolAddressUrl(String address, BitcoinNetwork network) {
-  if (network == BitcoinNetwork.BITCOIN_NETWORK_FORKNET) {
-    return 'https://explorer.forknet.drivechain.info/address/$address';
-  }
-  final prefix = switch (network) {
-    BitcoinNetwork.BITCOIN_NETWORK_MAINNET => '',
-    BitcoinNetwork.BITCOIN_NETWORK_TESTNET => '/testnet',
-    _ => '/signet',
-  };
-  return 'https://mempool.space$prefix/address/$address';
+  return 'https://${_explorerHost(network)}/address/$address';
+}
+
+String mempoolTxUrl(String txid, BitcoinNetwork network) {
+  return 'https://${_explorerHost(network)}/tx/$txid';
 }

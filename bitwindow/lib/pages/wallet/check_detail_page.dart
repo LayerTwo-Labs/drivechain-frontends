@@ -1,6 +1,7 @@
 import 'package:auto_route/auto_route.dart' hide AutoRouterX;
 import 'package:bitwindow/providers/check_provider.dart';
 import 'package:bitwindow/providers/transactions_provider.dart';
+import 'package:bitwindow/utils/explorer_url.dart';
 import 'package:flutter/material.dart'
     show AlertDialog, AppBar, Colors, MaterialTapTargetSize, Scaffold, SelectableText, TextButton;
 import 'package:flutter/services.dart';
@@ -86,11 +87,12 @@ class CheckDetailViewModel extends BaseViewModel {
         feeRateSatPerVbyte: 10,
       )).txid;
 
+      final network = GetIt.I.get<BitcoinConfProvider>().network;
       GetIt.I.get<NotificationProvider>().add(
         title: 'Transaction sent',
         content: txid,
         dialogType: DialogType.info,
-        onPressed: () => launchUrl(Uri.parse('https://explorer.drivechain.info/tx/$txid')),
+        onPressed: () => launchUrl(Uri.parse(mempoolTxUrl(txid, network))),
       );
 
       if (!context.mounted) return;

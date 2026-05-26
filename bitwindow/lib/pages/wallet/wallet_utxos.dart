@@ -2,6 +2,7 @@ import 'package:bitwindow/pages/explorer/block_explorer_dialog.dart';
 import 'package:bitwindow/pages/wallet/widgets/utxo_distribution_chart.dart';
 import 'package:bitwindow/providers/transactions_provider.dart';
 import 'package:bitwindow/providers/coin_selection_provider.dart';
+import 'package:bitwindow/utils/explorer_url.dart';
 
 import 'package:flutter/material.dart' show Colors, Dialog, Icon, Icons, InkWell;
 import 'package:flutter/widgets.dart';
@@ -9,6 +10,7 @@ import 'package:get_it/get_it.dart';
 import 'package:sail_ui/gen/wallet/v1/wallet.pb.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:stacked/stacked.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class UTXOsTab extends StatefulWidget {
   const UTXOsTab({super.key});
@@ -643,10 +645,12 @@ class _ConsolidateDialogState extends State<_ConsolidateDialog> {
         requiredInputs: requiredInputs,
       )).txid;
 
+      final network = GetIt.I.get<BitcoinConfProvider>().network;
       GetIt.I.get<NotificationProvider>().add(
         title: 'Consolidation sent',
         content: txid,
         dialogType: DialogType.info,
+        onPressed: () => launchUrl(Uri.parse(mempoolTxUrl(txid, network))),
       );
 
       if (mounted) {

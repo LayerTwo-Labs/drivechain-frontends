@@ -9,6 +9,7 @@ import 'package:bitwindow/pages/explorer/block_explorer_dialog.dart';
 import 'package:bitwindow/providers/blockchain_provider.dart';
 import 'package:bitwindow/providers/homepage_provider.dart' as bitwindow;
 import 'package:bitwindow/providers/news_provider.dart';
+import 'package:bitwindow/utils/explorer_url.dart';
 import 'package:bitwindow/widgets/headline_highlight_text_field.dart';
 import 'package:bitwindow/widgets/homepage_widget_catalog.dart';
 import 'package:flutter/material.dart'
@@ -19,6 +20,7 @@ import 'package:get_it/get_it.dart';
 import 'package:sail_ui/providers/price_provider.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:stacked/stacked.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 @RoutePage()
 class OverviewPage extends StatefulWidget {
@@ -1245,10 +1247,12 @@ class NewGraffitiViewModel extends BaseViewModel {
         feeRateSatPerVbyte: 1,
       )).txid;
 
+      final network = GetIt.I.get<BitcoinConfProvider>().network;
       GetIt.I.get<NotificationProvider>().add(
         title: 'Graffiti broadcast',
         content: txid,
         dialogType: DialogType.success,
+        onPressed: () => launchUrl(Uri.parse(mempoolTxUrl(txid, network))),
       );
 
       if (!context.mounted) return;

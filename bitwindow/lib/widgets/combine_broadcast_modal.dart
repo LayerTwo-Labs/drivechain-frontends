@@ -1,10 +1,12 @@
 import 'package:bitwindow/models/multisig_group.dart';
 import 'package:bitwindow/models/multisig_transaction.dart';
 import 'package:bitwindow/providers/multisig_provider.dart';
+import 'package:bitwindow/utils/explorer_url.dart';
 import 'package:flutter/material.dart' show Colors, Dialog, Icon, IconButton, Icons, Radio;
 import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class CombineBroadcastModal extends StatefulWidget {
   final Function() onSuccess;
@@ -183,10 +185,12 @@ class _CombineBroadcastModalState extends State<CombineBroadcastModal> {
 
       widget.onSuccess();
 
+      final network = GetIt.I.get<BitcoinConfProvider>().network;
       GetIt.I.get<NotificationProvider>().add(
         title: 'Transaction broadcast',
         content: txid,
         dialogType: DialogType.success,
+        onPressed: () => launchUrl(Uri.parse(mempoolTxUrl(txid, network))),
       );
       if (mounted) {
         Navigator.of(context).pop();
