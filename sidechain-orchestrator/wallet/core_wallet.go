@@ -56,6 +56,24 @@ func NewWalletEngine(svc *Service, rpc *CoreRPCClient, network string, log zerol
 	}
 }
 
+// PickReceiveAddress returns an existing unused address from the wallet, or
+// mints a new one if every address has received funds. "Unused" = present in
+// listreceivedbyaddress with zero amount and no txids (minconf=0 also catches
+// mempool receives). Lets the receive page poll without burning the keypool,
+// while staying entirely stateless across orchestrator restarts.
+func (e *WalletEngine) PickReceiveAddress(ctx context.Context, coreName string) (string, error) {
+	addrs, err := e.rpc.ListReceivedByAddress(ctx, coreName)
+	if err != nil {
+		return "", err
+	}
+	for _, a := range addrs {
+		if a.Amount == 0 && len(a.TxIDs) == 0 {
+			return a.Address, nil
+		}
+	}
+	return e.rpc.GetNewAddress(ctx, coreName, "", "bech32")
+}
+
 // coinType returns the BIP44 coin type for the network.
 func (e *WalletEngine) coinType() uint32 {
 	if e.network == "mainnet" {
