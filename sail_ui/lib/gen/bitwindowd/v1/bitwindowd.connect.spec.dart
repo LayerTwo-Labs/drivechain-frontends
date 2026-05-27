@@ -11,6 +11,11 @@ abstract final class BitwindowdService {
   /// Fully-qualified name of the BitwindowdService service.
   static const name = 'bitwindowd.v1.BitwindowdService';
 
+  /// Window-close + clean exit. Relays to orchestratord.Shutdown (which is
+  /// detached and drains bitcoind/enforcer over ~90s in the background), then
+  /// tears down bitwindowd itself. Acks fast so the Flutter window can destroy
+  /// immediately. Pass skip_downstream=true to leave the orchestratord stack
+  /// running (only bitwindowd dies).
   static const stop = connect.Spec(
     '/$name/Stop',
     connect.StreamType.unary,
