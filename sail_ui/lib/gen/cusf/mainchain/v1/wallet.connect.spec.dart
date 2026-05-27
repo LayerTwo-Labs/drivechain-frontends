@@ -15,6 +15,7 @@ abstract final class WalletService {
     connect.StreamType.unary,
     cusfmainchainv1wallet.BroadcastWithdrawalBundleRequest.new,
     cusfmainchainv1wallet.BroadcastWithdrawalBundleResponse.new,
+    idempotency: connect.Idempotency.idempotent,
   );
 
   static const createBmmCriticalDataTransaction = connect.Spec(
@@ -63,6 +64,7 @@ abstract final class WalletService {
     connect.StreamType.unary,
     cusfmainchainv1wallet.GetBalanceRequest.new,
     cusfmainchainv1wallet.GetBalanceResponse.new,
+    idempotency: connect.Idempotency.noSideEffects,
   );
 
   static const listSidechainDepositTransactions = connect.Spec(
@@ -70,6 +72,7 @@ abstract final class WalletService {
     connect.StreamType.unary,
     cusfmainchainv1wallet.ListSidechainDepositTransactionsRequest.new,
     cusfmainchainv1wallet.ListSidechainDepositTransactionsResponse.new,
+    idempotency: connect.Idempotency.noSideEffects,
   );
 
   static const listTransactions = connect.Spec(
@@ -77,6 +80,7 @@ abstract final class WalletService {
     connect.StreamType.unary,
     cusfmainchainv1wallet.ListTransactionsRequest.new,
     cusfmainchainv1wallet.ListTransactionsResponse.new,
+    idempotency: connect.Idempotency.noSideEffects,
   );
 
   static const listUnspentOutputs = connect.Spec(
@@ -84,6 +88,7 @@ abstract final class WalletService {
     connect.StreamType.unary,
     cusfmainchainv1wallet.ListUnspentOutputsRequest.new,
     cusfmainchainv1wallet.ListUnspentOutputsResponse.new,
+    idempotency: connect.Idempotency.noSideEffects,
   );
 
   static const getInfo = connect.Spec(
@@ -91,6 +96,7 @@ abstract final class WalletService {
     connect.StreamType.unary,
     cusfmainchainv1wallet.GetInfoRequest.new,
     cusfmainchainv1wallet.GetInfoResponse.new,
+    idempotency: connect.Idempotency.noSideEffects,
   );
 
   static const sendTransaction = connect.Spec(
@@ -105,6 +111,7 @@ abstract final class WalletService {
     connect.StreamType.unary,
     cusfmainchainv1wallet.UnlockWalletRequest.new,
     cusfmainchainv1wallet.UnlockWalletResponse.new,
+    idempotency: connect.Idempotency.idempotent,
   );
 
   /// Available on regtest and signet only.

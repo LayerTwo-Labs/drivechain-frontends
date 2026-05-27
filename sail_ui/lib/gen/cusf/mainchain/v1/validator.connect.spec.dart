@@ -17,6 +17,7 @@ abstract final class ValidatorService {
     connect.StreamType.unary,
     cusfmainchainv1validator.GetBlockHeaderInfoRequest.new,
     cusfmainchainv1validator.GetBlockHeaderInfoResponse.new,
+    idempotency: connect.Idempotency.noSideEffects,
   );
 
   /// Fetches information about a specific mainchain block (and optionally,
@@ -27,6 +28,7 @@ abstract final class ValidatorService {
     connect.StreamType.unary,
     cusfmainchainv1validator.GetBlockInfoRequest.new,
     cusfmainchainv1validator.GetBlockInfoResponse.new,
+    idempotency: connect.Idempotency.noSideEffects,
   );
 
   /// Fetches BMM h* commitment for a specific mainchain block,
@@ -36,6 +38,7 @@ abstract final class ValidatorService {
     connect.StreamType.unary,
     cusfmainchainv1validator.GetBmmHStarCommitmentRequest.new,
     cusfmainchainv1validator.GetBmmHStarCommitmentResponse.new,
+    idempotency: connect.Idempotency.noSideEffects,
   );
 
   static const getChainInfo = connect.Spec(
@@ -43,6 +46,7 @@ abstract final class ValidatorService {
     connect.StreamType.unary,
     cusfmainchainv1validator.GetChainInfoRequest.new,
     cusfmainchainv1validator.GetChainInfoResponse.new,
+    idempotency: connect.Idempotency.noSideEffects,
   );
 
   static const getChainTip = connect.Spec(
@@ -50,6 +54,7 @@ abstract final class ValidatorService {
     connect.StreamType.unary,
     cusfmainchainv1validator.GetChainTipRequest.new,
     cusfmainchainv1validator.GetChainTipResponse.new,
+    idempotency: connect.Idempotency.noSideEffects,
   );
 
   static const getCoinbasePSBT = connect.Spec(
@@ -57,6 +62,7 @@ abstract final class ValidatorService {
     connect.StreamType.unary,
     cusfmainchainv1validator.GetCoinbasePSBTRequest.new,
     cusfmainchainv1validator.GetCoinbasePSBTResponse.new,
+    idempotency: connect.Idempotency.noSideEffects,
   );
 
   static const getCtip = connect.Spec(
@@ -64,6 +70,7 @@ abstract final class ValidatorService {
     connect.StreamType.unary,
     cusfmainchainv1validator.GetCtipRequest.new,
     cusfmainchainv1validator.GetCtipResponse.new,
+    idempotency: connect.Idempotency.noSideEffects,
   );
 
   static const getSidechainProposals = connect.Spec(
@@ -71,6 +78,7 @@ abstract final class ValidatorService {
     connect.StreamType.unary,
     cusfmainchainv1validator.GetSidechainProposalsRequest.new,
     cusfmainchainv1validator.GetSidechainProposalsResponse.new,
+    idempotency: connect.Idempotency.noSideEffects,
   );
 
   static const getSidechains = connect.Spec(
@@ -78,6 +86,7 @@ abstract final class ValidatorService {
     connect.StreamType.unary,
     cusfmainchainv1validator.GetSidechainsRequest.new,
     cusfmainchainv1validator.GetSidechainsResponse.new,
+    idempotency: connect.Idempotency.noSideEffects,
   );
 
   static const getTwoWayPegData = connect.Spec(
@@ -85,6 +94,7 @@ abstract final class ValidatorService {
     connect.StreamType.unary,
     cusfmainchainv1validator.GetTwoWayPegDataRequest.new,
     cusfmainchainv1validator.GetTwoWayPegDataResponse.new,
+    idempotency: connect.Idempotency.noSideEffects,
   );
 
   static const subscribeEvents = connect.Spec(
@@ -92,6 +102,7 @@ abstract final class ValidatorService {
     connect.StreamType.server,
     cusfmainchainv1validator.SubscribeEventsRequest.new,
     cusfmainchainv1validator.SubscribeEventsResponse.new,
+    idempotency: connect.Idempotency.noSideEffects,
   );
 
   /// Stream header sync progress updates
@@ -100,6 +111,7 @@ abstract final class ValidatorService {
     connect.StreamType.server,
     cusfmainchainv1validator.SubscribeHeaderSyncProgressRequest.new,
     cusfmainchainv1validator.SubscribeHeaderSyncProgressResponse.new,
+    idempotency: connect.Idempotency.noSideEffects,
   );
 
   /// Safely shutdown the validator. This is equivalent to sending a SIGINT
@@ -110,5 +122,6 @@ abstract final class ValidatorService {
     connect.StreamType.unary,
     cusfmainchainv1validator.StopRequest.new,
     cusfmainchainv1validator.StopResponse.new,
+    idempotency: connect.Idempotency.idempotent,
   );
 }

@@ -1671,16 +1671,25 @@ func (s *Server) GetStats(ctx context.Context, c *connect.Request[pb.GetStatsReq
 		}
 		transactionCount := int64(len(txs.Msg.Transactions))
 
-		// Count transactions since the start of the current month
+		// Count transactions since the start of the current month, sum
+		// lifetime fees paid, and find the most recent confirmed tx.
 		now := time.Now()
 		currentYear, currentMonth, _ := now.Date()
 		currentMonthStart := time.Date(currentYear, currentMonth, 1, 0, 0, 0, 0, now.Location())
 		transactionCountSinceMonth := int64(0)
+		var totalFees int64
+		var lastTxAt *timestamppb.Timestamp
+		var lastTxBlockHeight uint32
 		for _, tx := range txs.Msg.Transactions {
+			totalFees += int64(tx.FeeSats)
 			if tx.ConfirmationTime != nil && tx.ConfirmationTime.Timestamp != nil {
 				t := tx.ConfirmationTime.Timestamp.AsTime()
 				if t.After(currentMonthStart) || t.Equal(currentMonthStart) {
 					transactionCountSinceMonth++
+				}
+				if lastTxAt == nil || t.After(lastTxAt.AsTime()) {
+					lastTxAt = tx.ConfirmationTime.Timestamp
+					lastTxBlockHeight = tx.ConfirmationTime.Height
 				}
 			}
 		}
@@ -1693,6 +1702,9 @@ func (s *Server) GetStats(ctx context.Context, c *connect.Request[pb.GetStatsReq
 			SidechainDepositVolumeLast_30Days: 0,
 			TransactionCountTotal:             transactionCount,
 			TransactionCountSinceMonth:        transactionCountSinceMonth,
+			TotalFeesSats:                     totalFees,
+			LastTxAt:                          lastTxAt,
+			LastTxBlockHeight:                 lastTxBlockHeight,
 		}), nil
 	}
 
@@ -1722,16 +1734,25 @@ func (s *Server) GetStats(ctx context.Context, c *connect.Request[pb.GetStatsReq
 	}
 	transactionCount := int64(len(txs.Msg.Transactions))
 
-	// Count transactions since the start of the current month
+	// Count transactions since the start of the current month, sum
+	// lifetime fees paid, and find the most recent confirmed tx.
 	now := time.Now()
 	currentYear, currentMonth, _ := now.Date()
 	currentMonthStart := time.Date(currentYear, currentMonth, 1, 0, 0, 0, 0, now.Location())
 	transactionCountSinceMonth := int64(0)
+	var totalFees int64
+	var lastTxAt *timestamppb.Timestamp
+	var lastTxBlockHeight uint32
 	for _, tx := range txs.Msg.Transactions {
-		if tx.ConfirmationInfo.Timestamp != nil {
+		totalFees += int64(tx.FeeSats)
+		if tx.ConfirmationInfo != nil && tx.ConfirmationInfo.Timestamp != nil {
 			t := tx.ConfirmationInfo.Timestamp.AsTime()
 			if t.After(currentMonthStart) || t.Equal(currentMonthStart) {
 				transactionCountSinceMonth++
+			}
+			if lastTxAt == nil || t.After(lastTxAt.AsTime()) {
+				lastTxAt = tx.ConfirmationInfo.Timestamp
+				lastTxBlockHeight = tx.ConfirmationInfo.Height
 			}
 		}
 	}
@@ -1765,6 +1786,9 @@ func (s *Server) GetStats(ctx context.Context, c *connect.Request[pb.GetStatsReq
 		SidechainDepositVolumeLast_30Days: depositSumLast30Days,
 		TransactionCountTotal:             transactionCount,
 		TransactionCountSinceMonth:        transactionCountSinceMonth,
+		TotalFeesSats:                     totalFees,
+		LastTxAt:                          lastTxAt,
+		LastTxBlockHeight:                 lastTxBlockHeight,
 	}), nil
 }
 

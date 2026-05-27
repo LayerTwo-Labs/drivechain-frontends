@@ -13,6 +13,7 @@ import 'dart:async' as _i18;
 
 import 'package:auto_route/auto_route.dart' as _i15;
 import 'package:collection/collection.dart' as _i20;
+import 'package:flutter/foundation.dart' as _i21;
 import 'package:flutter/material.dart' as _i16;
 import 'package:logger/logger.dart' as _i19;
 import 'package:sail_ui/pages/bitcoin_conf_editor_page.dart' as _i2;
@@ -416,13 +417,13 @@ class RestoreWalletRouteArgs {
 class SailCreateWalletRoute
     extends _i15.PageRouteInfo<SailCreateWalletRouteArgs> {
   SailCreateWalletRoute({
-    _i16.Key? key,
+    _i21.Key? key,
     String appName = 'Drivechain',
-    _i16.VoidCallback? onWalletCreated,
-    _i16.VoidCallback? onBack,
+    _i21.VoidCallback? onWalletCreated,
+    _i21.VoidCallback? onBack,
     bool showFileRestore = false,
     _i16.Widget Function(_i16.BuildContext)? additionalRestoreOptionsBuilder,
-    _i16.Widget Function(_i16.BuildContext, _i16.VoidCallback)?
+    _i16.Widget Function(_i16.BuildContext, _i21.VoidCallback)?
     successActionsBuilder,
     _i10.WelcomeScreen initialScreen = _i10.WelcomeScreen.initial,
     required _i15.PageRouteInfo<Object?> homeRoute,
@@ -477,20 +478,20 @@ class SailCreateWalletRouteArgs {
     required this.homeRoute,
   });
 
-  final _i16.Key? key;
+  final _i21.Key? key;
 
   final String appName;
 
-  final _i16.VoidCallback? onWalletCreated;
+  final _i21.VoidCallback? onWalletCreated;
 
-  final _i16.VoidCallback? onBack;
+  final _i21.VoidCallback? onBack;
 
   final bool showFileRestore;
 
   final _i16.Widget Function(_i16.BuildContext)?
   additionalRestoreOptionsBuilder;
 
-  final _i16.Widget Function(_i16.BuildContext, _i16.VoidCallback)?
+  final _i16.Widget Function(_i16.BuildContext, _i21.VoidCallback)?
   successActionsBuilder;
 
   final _i10.WelcomeScreen initialScreen;
