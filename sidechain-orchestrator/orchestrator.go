@@ -188,6 +188,11 @@ type Orchestrator struct {
 	// a channel that is closed when boot is complete. Production wires this to
 	// the real boot helper; tests override it to bypass process spawning.
 	bootBitcoindForVariantSwap func(ctx context.Context) <-chan StartupProgress
+
+	// Detached-daemon lifecycle. See shutdown.go.
+	shutdownMu    sync.Mutex
+	shutdownState int32         // shutdownState* constants
+	shutdownIdle  chan struct{} // closed when a drain completes; nil between drains
 }
 
 // DownloadStateForTest exposes the DownloadManager's per-binary state to
@@ -646,6 +651,12 @@ func (o *Orchestrator) StartWithL1(ctx context.Context, target string, opts Star
 
 	go func() {
 		defer close(ch)
+
+		// If a previous bitwindowd's drain is still in flight, adopt it:
+		// flip the will-exit bit off and block until the drained stops
+		// finish. UI surfacing happens via per-binary startup logs inside
+		// the helper. No-op in the steady state.
+		o.awaitDrainForBoot(ctx)
 
 		if opts.Immediate {
 			o.startTargetOnly(ctx, config, opts, ch, nil)

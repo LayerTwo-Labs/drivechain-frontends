@@ -750,6 +750,24 @@ const CoreRawCallResponse$json = {
 final $typed_data.Uint8List coreRawCallResponseDescriptor = $convert.base64Decode(
     'ChNDb3JlUmF3Q2FsbFJlc3BvbnNlEh8KC3Jlc3VsdF9qc29uGAEgASgJUgpyZXN1bHRKc29u');
 
+@$core.Deprecated('Use shutdownRequestDescriptor instead')
+const ShutdownRequest$json = {
+  '1': 'ShutdownRequest',
+};
+
+/// Descriptor for `ShutdownRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List shutdownRequestDescriptor = $convert.base64Decode(
+    'Cg9TaHV0ZG93blJlcXVlc3Q=');
+
+@$core.Deprecated('Use shutdownResponseDescriptor instead')
+const ShutdownResponse$json = {
+  '1': 'ShutdownResponse',
+};
+
+/// Descriptor for `ShutdownResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List shutdownResponseDescriptor = $convert.base64Decode(
+    'ChBTaHV0ZG93blJlc3BvbnNl');
+
 const $core.Map<$core.String, $core.dynamic> OrchestratorServiceBase$json = {
   '1': 'OrchestratorService',
   '2': [
@@ -762,6 +780,7 @@ const $core.Map<$core.String, $core.dynamic> OrchestratorServiceBase$json = {
     {'1': 'StartWithL1', '2': '.orchestrator.v1.StartWithL1Request', '3': '.orchestrator.v1.StartWithL1Response'},
     {'1': 'RestartDaemon', '2': '.orchestrator.v1.RestartDaemonRequest', '3': '.orchestrator.v1.RestartDaemonResponse'},
     {'1': 'ShutdownAll', '2': '.orchestrator.v1.ShutdownAllRequest', '3': '.orchestrator.v1.ShutdownAllResponse', '6': true},
+    {'1': 'Shutdown', '2': '.orchestrator.v1.ShutdownRequest', '3': '.orchestrator.v1.ShutdownResponse'},
     {'1': 'GetBTCPrice', '2': '.orchestrator.v1.GetBTCPriceRequest', '3': '.orchestrator.v1.GetBTCPriceResponse'},
     {'1': 'GetMainchainBlockchainInfo', '2': '.orchestrator.v1.GetMainchainBlockchainInfoRequest', '3': '.orchestrator.v1.GetMainchainBlockchainInfoResponse'},
     {'1': 'GetEnforcerBlockchainInfo', '2': '.orchestrator.v1.GetEnforcerBlockchainInfoRequest', '3': '.orchestrator.v1.GetEnforcerBlockchainInfoResponse'},
@@ -799,6 +818,8 @@ const $core.Map<$core.String, $core.Map<$core.String, $core.dynamic>> Orchestrat
   '.orchestrator.v1.RestartDaemonResponse': RestartDaemonResponse$json,
   '.orchestrator.v1.ShutdownAllRequest': ShutdownAllRequest$json,
   '.orchestrator.v1.ShutdownAllResponse': ShutdownAllResponse$json,
+  '.orchestrator.v1.ShutdownRequest': ShutdownRequest$json,
+  '.orchestrator.v1.ShutdownResponse': ShutdownResponse$json,
   '.orchestrator.v1.GetBTCPriceRequest': GetBTCPriceRequest$json,
   '.orchestrator.v1.GetBTCPriceResponse': GetBTCPriceResponse$json,
   '.orchestrator.v1.GetMainchainBlockchainInfoRequest': GetMainchainBlockchainInfoRequest$json,
@@ -842,25 +863,26 @@ final $typed_data.Uint8List orchestratorServiceDescriptor = $convert.base64Decod
     'cG9uc2USXgoNUmVzdGFydERhZW1vbhIlLm9yY2hlc3RyYXRvci52MS5SZXN0YXJ0RGFlbW9uUm'
     'VxdWVzdBomLm9yY2hlc3RyYXRvci52MS5SZXN0YXJ0RGFlbW9uUmVzcG9uc2USWgoLU2h1dGRv'
     'd25BbGwSIy5vcmNoZXN0cmF0b3IudjEuU2h1dGRvd25BbGxSZXF1ZXN0GiQub3JjaGVzdHJhdG'
-    '9yLnYxLlNodXRkb3duQWxsUmVzcG9uc2UwARJYCgtHZXRCVENQcmljZRIjLm9yY2hlc3RyYXRv'
-    'ci52MS5HZXRCVENQcmljZVJlcXVlc3QaJC5vcmNoZXN0cmF0b3IudjEuR2V0QlRDUHJpY2VSZX'
-    'Nwb25zZRKFAQoaR2V0TWFpbmNoYWluQmxvY2tjaGFpbkluZm8SMi5vcmNoZXN0cmF0b3IudjEu'
-    'R2V0TWFpbmNoYWluQmxvY2tjaGFpbkluZm9SZXF1ZXN0GjMub3JjaGVzdHJhdG9yLnYxLkdldE'
-    '1haW5jaGFpbkJsb2NrY2hhaW5JbmZvUmVzcG9uc2USggEKGUdldEVuZm9yY2VyQmxvY2tjaGFp'
-    'bkluZm8SMS5vcmNoZXN0cmF0b3IudjEuR2V0RW5mb3JjZXJCbG9ja2NoYWluSW5mb1JlcXVlc3'
-    'QaMi5vcmNoZXN0cmF0b3IudjEuR2V0RW5mb3JjZXJCbG9ja2NoYWluSW5mb1Jlc3BvbnNlEl4K'
-    'DUdldFN5bmNTdGF0dXMSJS5vcmNoZXN0cmF0b3IudjEuR2V0U3luY1N0YXR1c1JlcXVlc3QaJi'
-    '5vcmNoZXN0cmF0b3IudjEuR2V0U3luY1N0YXR1c1Jlc3BvbnNlEmoKEUdldERvd25sb2FkU3Rh'
-    'dHVzEikub3JjaGVzdHJhdG9yLnYxLkdldERvd25sb2FkU3RhdHVzUmVxdWVzdBoqLm9yY2hlc3'
-    'RyYXRvci52MS5HZXREb3dubG9hZFN0YXR1c1Jlc3BvbnNlEnAKE0dldE1haW5jaGFpbkJhbGFu'
-    'Y2USKy5vcmNoZXN0cmF0b3IudjEuR2V0TWFpbmNoYWluQmFsYW5jZVJlcXVlc3QaLC5vcmNoZX'
-    'N0cmF0b3IudjEuR2V0TWFpbmNoYWluQmFsYW5jZVJlc3BvbnNlEmcKEFByZXZpZXdSZXNldERh'
-    'dGESKC5vcmNoZXN0cmF0b3IudjEuUHJldmlld1Jlc2V0RGF0YVJlcXVlc3QaKS5vcmNoZXN0cm'
-    'F0b3IudjEuUHJldmlld1Jlc2V0RGF0YVJlc3BvbnNlEmYKD1N0cmVhbVJlc2V0RGF0YRInLm9y'
-    'Y2hlc3RyYXRvci52MS5TdHJlYW1SZXNldERhdGFSZXF1ZXN0Gigub3JjaGVzdHJhdG9yLnYxLl'
-    'N0cmVhbVJlc2V0RGF0YVJlc3BvbnNlMAESbQoSR2V0Q29yZU1lbXBvb2xJbmZvEioub3JjaGVz'
-    'dHJhdG9yLnYxLkdldENvcmVNZW1wb29sSW5mb1JlcXVlc3QaKy5vcmNoZXN0cmF0b3IudjEuR2'
-    'V0Q29yZU1lbXBvb2xJbmZvUmVzcG9uc2USWAoLQ29yZVJhd0NhbGwSIy5vcmNoZXN0cmF0b3Iu'
-    'djEuQ29yZVJhd0NhbGxSZXF1ZXN0GiQub3JjaGVzdHJhdG9yLnYxLkNvcmVSYXdDYWxsUmVzcG'
-    '9uc2U=');
+    '9yLnYxLlNodXRkb3duQWxsUmVzcG9uc2UwARJPCghTaHV0ZG93bhIgLm9yY2hlc3RyYXRvci52'
+    'MS5TaHV0ZG93blJlcXVlc3QaIS5vcmNoZXN0cmF0b3IudjEuU2h1dGRvd25SZXNwb25zZRJYCg'
+    'tHZXRCVENQcmljZRIjLm9yY2hlc3RyYXRvci52MS5HZXRCVENQcmljZVJlcXVlc3QaJC5vcmNo'
+    'ZXN0cmF0b3IudjEuR2V0QlRDUHJpY2VSZXNwb25zZRKFAQoaR2V0TWFpbmNoYWluQmxvY2tjaG'
+    'FpbkluZm8SMi5vcmNoZXN0cmF0b3IudjEuR2V0TWFpbmNoYWluQmxvY2tjaGFpbkluZm9SZXF1'
+    'ZXN0GjMub3JjaGVzdHJhdG9yLnYxLkdldE1haW5jaGFpbkJsb2NrY2hhaW5JbmZvUmVzcG9uc2'
+    'USggEKGUdldEVuZm9yY2VyQmxvY2tjaGFpbkluZm8SMS5vcmNoZXN0cmF0b3IudjEuR2V0RW5m'
+    'b3JjZXJCbG9ja2NoYWluSW5mb1JlcXVlc3QaMi5vcmNoZXN0cmF0b3IudjEuR2V0RW5mb3JjZX'
+    'JCbG9ja2NoYWluSW5mb1Jlc3BvbnNlEl4KDUdldFN5bmNTdGF0dXMSJS5vcmNoZXN0cmF0b3Iu'
+    'djEuR2V0U3luY1N0YXR1c1JlcXVlc3QaJi5vcmNoZXN0cmF0b3IudjEuR2V0U3luY1N0YXR1c1'
+    'Jlc3BvbnNlEmoKEUdldERvd25sb2FkU3RhdHVzEikub3JjaGVzdHJhdG9yLnYxLkdldERvd25s'
+    'b2FkU3RhdHVzUmVxdWVzdBoqLm9yY2hlc3RyYXRvci52MS5HZXREb3dubG9hZFN0YXR1c1Jlc3'
+    'BvbnNlEnAKE0dldE1haW5jaGFpbkJhbGFuY2USKy5vcmNoZXN0cmF0b3IudjEuR2V0TWFpbmNo'
+    'YWluQmFsYW5jZVJlcXVlc3QaLC5vcmNoZXN0cmF0b3IudjEuR2V0TWFpbmNoYWluQmFsYW5jZV'
+    'Jlc3BvbnNlEmcKEFByZXZpZXdSZXNldERhdGESKC5vcmNoZXN0cmF0b3IudjEuUHJldmlld1Jl'
+    'c2V0RGF0YVJlcXVlc3QaKS5vcmNoZXN0cmF0b3IudjEuUHJldmlld1Jlc2V0RGF0YVJlc3Bvbn'
+    'NlEmYKD1N0cmVhbVJlc2V0RGF0YRInLm9yY2hlc3RyYXRvci52MS5TdHJlYW1SZXNldERhdGFS'
+    'ZXF1ZXN0Gigub3JjaGVzdHJhdG9yLnYxLlN0cmVhbVJlc2V0RGF0YVJlc3BvbnNlMAESbQoSR2'
+    'V0Q29yZU1lbXBvb2xJbmZvEioub3JjaGVzdHJhdG9yLnYxLkdldENvcmVNZW1wb29sSW5mb1Jl'
+    'cXVlc3QaKy5vcmNoZXN0cmF0b3IudjEuR2V0Q29yZU1lbXBvb2xJbmZvUmVzcG9uc2USWAoLQ2'
+    '9yZVJhd0NhbGwSIy5vcmNoZXN0cmF0b3IudjEuQ29yZVJhd0NhbGxSZXF1ZXN0GiQub3JjaGVz'
+    'dHJhdG9yLnYxLkNvcmVSYXdDYWxsUmVzcG9uc2U=');
 

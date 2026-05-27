@@ -60,6 +60,9 @@ const (
 	// OrchestratorServiceShutdownAllProcedure is the fully-qualified name of the OrchestratorService's
 	// ShutdownAll RPC.
 	OrchestratorServiceShutdownAllProcedure = "/orchestrator.v1.OrchestratorService/ShutdownAll"
+	// OrchestratorServiceShutdownProcedure is the fully-qualified name of the OrchestratorService's
+	// Shutdown RPC.
+	OrchestratorServiceShutdownProcedure = "/orchestrator.v1.OrchestratorService/Shutdown"
 	// OrchestratorServiceGetBTCPriceProcedure is the fully-qualified name of the OrchestratorService's
 	// GetBTCPrice RPC.
 	OrchestratorServiceGetBTCPriceProcedure = "/orchestrator.v1.OrchestratorService/GetBTCPrice"
@@ -124,6 +127,14 @@ type OrchestratorServiceClient interface {
 	RestartDaemon(context.Context, *connect.Request[v1.RestartDaemonRequest]) (*connect.Response[v1.RestartDaemonResponse], error)
 	// Shutdown all running binaries.
 	ShutdownAll(context.Context, *connect.Request[v1.ShutdownAllRequest]) (*connect.ServerStreamForClient[v1.ShutdownAllResponse], error)
+	// Detached-daemon shutdown. bitwindowd calls this on window close;
+	// orchestratord acks immediately, drains its children (bitcoind, enforcer,
+	// sidechains) in a background goroutine, and os.Exit(0)s when done.
+	// Idempotent. If bitwindow is relaunched while the drain is still in
+	// flight, the next StartWithL1 transparently adopts it (flips the
+	// will-exit bit + awaits the in-flight stops) before booting a fresh
+	// stack — no separate cancel/await RPCs needed by callers.
+	Shutdown(context.Context, *connect.Request[v1.ShutdownRequest]) (*connect.Response[v1.ShutdownResponse], error)
 	// Get the current BTC/USD exchange rate.
 	GetBTCPrice(context.Context, *connect.Request[v1.GetBTCPriceRequest]) (*connect.Response[v1.GetBTCPriceResponse], error)
 	// Get blockchain info from Bitcoin Core (proxied via orchestrator).
@@ -217,6 +228,12 @@ func NewOrchestratorServiceClient(httpClient connect.HTTPClient, baseURL string,
 			connect.WithSchema(orchestratorServiceMethods.ByName("ShutdownAll")),
 			connect.WithClientOptions(opts...),
 		),
+		shutdown: connect.NewClient[v1.ShutdownRequest, v1.ShutdownResponse](
+			httpClient,
+			baseURL+OrchestratorServiceShutdownProcedure,
+			connect.WithSchema(orchestratorServiceMethods.ByName("Shutdown")),
+			connect.WithClientOptions(opts...),
+		),
 		getBTCPrice: connect.NewClient[v1.GetBTCPriceRequest, v1.GetBTCPriceResponse](
 			httpClient,
 			baseURL+OrchestratorServiceGetBTCPriceProcedure,
@@ -291,6 +308,7 @@ type orchestratorServiceClient struct {
 	startWithL1                *connect.Client[v1.StartWithL1Request, v1.StartWithL1Response]
 	restartDaemon              *connect.Client[v1.RestartDaemonRequest, v1.RestartDaemonResponse]
 	shutdownAll                *connect.Client[v1.ShutdownAllRequest, v1.ShutdownAllResponse]
+	shutdown                   *connect.Client[v1.ShutdownRequest, v1.ShutdownResponse]
 	getBTCPrice                *connect.Client[v1.GetBTCPriceRequest, v1.GetBTCPriceResponse]
 	getMainchainBlockchainInfo *connect.Client[v1.GetMainchainBlockchainInfoRequest, v1.GetMainchainBlockchainInfoResponse]
 	getEnforcerBlockchainInfo  *connect.Client[v1.GetEnforcerBlockchainInfoRequest, v1.GetEnforcerBlockchainInfoResponse]
@@ -346,6 +364,11 @@ func (c *orchestratorServiceClient) RestartDaemon(ctx context.Context, req *conn
 // ShutdownAll calls orchestrator.v1.OrchestratorService.ShutdownAll.
 func (c *orchestratorServiceClient) ShutdownAll(ctx context.Context, req *connect.Request[v1.ShutdownAllRequest]) (*connect.ServerStreamForClient[v1.ShutdownAllResponse], error) {
 	return c.shutdownAll.CallServerStream(ctx, req)
+}
+
+// Shutdown calls orchestrator.v1.OrchestratorService.Shutdown.
+func (c *orchestratorServiceClient) Shutdown(ctx context.Context, req *connect.Request[v1.ShutdownRequest]) (*connect.Response[v1.ShutdownResponse], error) {
+	return c.shutdown.CallUnary(ctx, req)
 }
 
 // GetBTCPrice calls orchestrator.v1.OrchestratorService.GetBTCPrice.
@@ -431,6 +454,14 @@ type OrchestratorServiceHandler interface {
 	RestartDaemon(context.Context, *connect.Request[v1.RestartDaemonRequest]) (*connect.Response[v1.RestartDaemonResponse], error)
 	// Shutdown all running binaries.
 	ShutdownAll(context.Context, *connect.Request[v1.ShutdownAllRequest], *connect.ServerStream[v1.ShutdownAllResponse]) error
+	// Detached-daemon shutdown. bitwindowd calls this on window close;
+	// orchestratord acks immediately, drains its children (bitcoind, enforcer,
+	// sidechains) in a background goroutine, and os.Exit(0)s when done.
+	// Idempotent. If bitwindow is relaunched while the drain is still in
+	// flight, the next StartWithL1 transparently adopts it (flips the
+	// will-exit bit + awaits the in-flight stops) before booting a fresh
+	// stack — no separate cancel/await RPCs needed by callers.
+	Shutdown(context.Context, *connect.Request[v1.ShutdownRequest]) (*connect.Response[v1.ShutdownResponse], error)
 	// Get the current BTC/USD exchange rate.
 	GetBTCPrice(context.Context, *connect.Request[v1.GetBTCPriceRequest]) (*connect.Response[v1.GetBTCPriceResponse], error)
 	// Get blockchain info from Bitcoin Core (proxied via orchestrator).
@@ -520,6 +551,12 @@ func NewOrchestratorServiceHandler(svc OrchestratorServiceHandler, opts ...conne
 		connect.WithSchema(orchestratorServiceMethods.ByName("ShutdownAll")),
 		connect.WithHandlerOptions(opts...),
 	)
+	orchestratorServiceShutdownHandler := connect.NewUnaryHandler(
+		OrchestratorServiceShutdownProcedure,
+		svc.Shutdown,
+		connect.WithSchema(orchestratorServiceMethods.ByName("Shutdown")),
+		connect.WithHandlerOptions(opts...),
+	)
 	orchestratorServiceGetBTCPriceHandler := connect.NewUnaryHandler(
 		OrchestratorServiceGetBTCPriceProcedure,
 		svc.GetBTCPrice,
@@ -600,6 +637,8 @@ func NewOrchestratorServiceHandler(svc OrchestratorServiceHandler, opts ...conne
 			orchestratorServiceRestartDaemonHandler.ServeHTTP(w, r)
 		case OrchestratorServiceShutdownAllProcedure:
 			orchestratorServiceShutdownAllHandler.ServeHTTP(w, r)
+		case OrchestratorServiceShutdownProcedure:
+			orchestratorServiceShutdownHandler.ServeHTTP(w, r)
 		case OrchestratorServiceGetBTCPriceProcedure:
 			orchestratorServiceGetBTCPriceHandler.ServeHTTP(w, r)
 		case OrchestratorServiceGetMainchainBlockchainInfoProcedure:
@@ -663,6 +702,10 @@ func (UnimplementedOrchestratorServiceHandler) RestartDaemon(context.Context, *c
 
 func (UnimplementedOrchestratorServiceHandler) ShutdownAll(context.Context, *connect.Request[v1.ShutdownAllRequest], *connect.ServerStream[v1.ShutdownAllResponse]) error {
 	return connect.NewError(connect.CodeUnimplemented, errors.New("orchestrator.v1.OrchestratorService.ShutdownAll is not implemented"))
+}
+
+func (UnimplementedOrchestratorServiceHandler) Shutdown(context.Context, *connect.Request[v1.ShutdownRequest]) (*connect.Response[v1.ShutdownResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("orchestrator.v1.OrchestratorService.Shutdown is not implemented"))
 }
 
 func (UnimplementedOrchestratorServiceHandler) GetBTCPrice(context.Context, *connect.Request[v1.GetBTCPriceRequest]) (*connect.Response[v1.GetBTCPriceResponse], error) {

@@ -42,6 +42,15 @@ service OrchestratorService {
   // Shutdown all running binaries.
   rpc ShutdownAll(ShutdownAllRequest) returns (stream ShutdownAllResponse);
 
+  // Detached-daemon shutdown. bitwindowd calls this on window close;
+  // orchestratord acks immediately, drains its children (bitcoind, enforcer,
+  // sidechains) in a background goroutine, and os.Exit(0)s when done.
+  // Idempotent. If bitwindow is relaunched while the drain is still in
+  // flight, the next StartWithL1 transparently adopts it (flips the
+  // will-exit bit + awaits the in-flight stops) before booting a fresh
+  // stack — no separate cancel/await RPCs needed by callers.
+  rpc Shutdown(ShutdownRequest) returns (ShutdownResponse);
+
   // Get the current BTC/USD exchange rate.
   rpc GetBTCPrice(GetBTCPriceRequest) returns (GetBTCPriceResponse);
 
@@ -456,3 +465,8 @@ message CoreRawCallResponse {
   // JSON-encoded result. Caller decodes to its expected shape.
   string result_json = 1;
 }
+
+// ─── Detached-daemon lifecycle ──────────────────────────────────────────────
+
+message ShutdownRequest {}
+message ShutdownResponse {}

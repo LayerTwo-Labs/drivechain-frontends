@@ -30,6 +30,7 @@ abstract class OrchestratorServiceBase extends $pb.GeneratedService {
   $async.Future<$5.StartWithL1Response> startWithL1($pb.ServerContext ctx, $5.StartWithL1Request request);
   $async.Future<$5.RestartDaemonResponse> restartDaemon($pb.ServerContext ctx, $5.RestartDaemonRequest request);
   $async.Future<$5.ShutdownAllResponse> shutdownAll($pb.ServerContext ctx, $5.ShutdownAllRequest request);
+  $async.Future<$5.ShutdownResponse> shutdown($pb.ServerContext ctx, $5.ShutdownRequest request);
   $async.Future<$5.GetBTCPriceResponse> getBTCPrice($pb.ServerContext ctx, $5.GetBTCPriceRequest request);
   $async.Future<$5.GetMainchainBlockchainInfoResponse> getMainchainBlockchainInfo($pb.ServerContext ctx, $5.GetMainchainBlockchainInfoRequest request);
   $async.Future<$5.GetEnforcerBlockchainInfoResponse> getEnforcerBlockchainInfo($pb.ServerContext ctx, $5.GetEnforcerBlockchainInfoRequest request);
@@ -52,6 +53,7 @@ abstract class OrchestratorServiceBase extends $pb.GeneratedService {
       case 'StartWithL1': return $5.StartWithL1Request();
       case 'RestartDaemon': return $5.RestartDaemonRequest();
       case 'ShutdownAll': return $5.ShutdownAllRequest();
+      case 'Shutdown': return $5.ShutdownRequest();
       case 'GetBTCPrice': return $5.GetBTCPriceRequest();
       case 'GetMainchainBlockchainInfo': return $5.GetMainchainBlockchainInfoRequest();
       case 'GetEnforcerBlockchainInfo': return $5.GetEnforcerBlockchainInfoRequest();
@@ -77,6 +79,7 @@ abstract class OrchestratorServiceBase extends $pb.GeneratedService {
       case 'StartWithL1': return this.startWithL1(ctx, request as $5.StartWithL1Request);
       case 'RestartDaemon': return this.restartDaemon(ctx, request as $5.RestartDaemonRequest);
       case 'ShutdownAll': return this.shutdownAll(ctx, request as $5.ShutdownAllRequest);
+      case 'Shutdown': return this.shutdown(ctx, request as $5.ShutdownRequest);
       case 'GetBTCPrice': return this.getBTCPrice(ctx, request as $5.GetBTCPriceRequest);
       case 'GetMainchainBlockchainInfo': return this.getMainchainBlockchainInfo(ctx, request as $5.GetMainchainBlockchainInfoRequest);
       case 'GetEnforcerBlockchainInfo': return this.getEnforcerBlockchainInfo(ctx, request as $5.GetEnforcerBlockchainInfoRequest);
