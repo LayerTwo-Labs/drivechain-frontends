@@ -17,6 +17,15 @@ import 'package:sail_ui/gen/wallet/v1/wallet.pb.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:stacked/stacked.dart';
 
+String _formatTimeAgo(DateTime when) {
+  final d = DateTime.now().difference(when);
+  if (d.inDays > 0) return '${d.inDays} day${d.inDays == 1 ? '' : 's'} ago';
+  if (d.inHours > 0) return '${d.inHours} hour${d.inHours == 1 ? '' : 's'} ago';
+  if (d.inMinutes > 0) return '${d.inMinutes} minute${d.inMinutes == 1 ? '' : 's'} ago';
+  final s = d.inSeconds < 0 ? 0 : d.inSeconds;
+  return '$s second${s == 1 ? '' : 's'} ago';
+}
+
 class OverviewTab extends StatelessWidget {
   const OverviewTab({super.key});
 
@@ -42,11 +51,11 @@ class OverviewTab extends StatelessWidget {
                       children: [
                         Expanded(
                           child: WalletStats(
-                            title: 'Balance',
-                            subtitle: '${formatter.formatBTC(model.pendingBalance)} pending',
+                            title: 'Lifetime fees paid',
                             value: formatter
-                                .formatBTC(model.balance)
+                                .formatSats(model.stats?.totalFeesSats.toInt() ?? 0)
                                 .replaceAll(' ${formatter.currentUnit.symbol}', ''),
+                            subtitle: 'across ${model.stats?.transactionCountTotal.toString() ?? '0'} transactions',
                             bitcoinAmount: true,
                             icon: SailSVGAsset.bitcoin,
                           ),
@@ -86,9 +95,13 @@ class OverviewTab extends StatelessWidget {
                         ),
                         Expanded(
                           child: WalletStats(
-                            title: 'Transaction Count',
-                            value: model.stats?.transactionCountTotal.toString() ?? '0',
-                            subtitle: '${model.stats?.transactionCountSinceMonth.toString() ?? '0'} in last month',
+                            title: 'Last activity',
+                            value: model.stats?.hasLastTxAt() ?? false
+                                ? _formatTimeAgo(model.stats!.lastTxAt.toDateTime().toLocal())
+                                : 'No activity',
+                            subtitle: model.stats?.hasLastTxAt() ?? false
+                                ? 'at block ${formatWithThousandSpacers(model.stats!.lastTxBlockHeight)}'
+                                : '',
                             icon: SailSVGAsset.activity,
                           ),
                         ),
@@ -468,9 +481,6 @@ class OverviewViewModel extends BaseViewModel with ChangeTrackingMixin {
     return filteredTransactions;
   }
 
-  double get balance => _balanceProvider.balance;
-  double get pendingBalance => _balanceProvider.pendingBalance;
-
   bool get isCoreWallet => _walletReader.activeWallet?.walletType != BinaryType.BINARY_TYPE_ENFORCER;
 
   String sortColumn = 'date';
@@ -484,6 +494,8 @@ class OverviewViewModel extends BaseViewModel with ChangeTrackingMixin {
 
   bool get loading => _enforcerRPC.initializingBinary;
 
+  Timer? _refreshTimer;
+
   OverviewViewModel() {
     initChangeTracker();
     searchController.addListener(_onChange);
@@ -493,12 +505,11 @@ class OverviewViewModel extends BaseViewModel with ChangeTrackingMixin {
     _balanceProvider.addListener(_debouncedGetStats);
     _enforcerRPC.addListener(_onChange);
     getStats();
+    _refreshTimer = Timer.periodic(const Duration(minutes: 1), (_) => getStats());
   }
 
   void _onChange() {
     track('entries', entries);
-    track('balance', balance);
-    track('pendingBalance', pendingBalance);
     track('searchText', searchController.text);
     track('dateRange', dateRange);
     track('loading', loading);
@@ -663,6 +674,7 @@ class OverviewViewModel extends BaseViewModel with ChangeTrackingMixin {
   @override
   void dispose() {
     _statsTimer?.cancel();
+    _refreshTimer?.cancel();
     searchController.removeListener(_onChange);
     _txProvider.removeListener(_onChange);
     _txProvider.removeListener(_debouncedGetStats);

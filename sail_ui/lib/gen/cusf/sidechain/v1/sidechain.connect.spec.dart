@@ -15,6 +15,7 @@ abstract final class SidechainService {
     connect.StreamType.unary,
     cusfsidechainv1sidechain.GetMempoolTxsRequest.new,
     cusfsidechainv1sidechain.GetMempoolTxsResponse.new,
+    idempotency: connect.Idempotency.noSideEffects,
   );
 
   static const getUtxos = connect.Spec(
@@ -22,6 +23,7 @@ abstract final class SidechainService {
     connect.StreamType.unary,
     cusfsidechainv1sidechain.GetUtxosRequest.new,
     cusfsidechainv1sidechain.GetUtxosResponse.new,
+    idempotency: connect.Idempotency.noSideEffects,
   );
 
   static const submitTransaction = connect.Spec(
@@ -29,6 +31,7 @@ abstract final class SidechainService {
     connect.StreamType.unary,
     cusfsidechainv1sidechain.SubmitTransactionRequest.new,
     cusfsidechainv1sidechain.SubmitTransactionResponse.new,
+    idempotency: connect.Idempotency.idempotent,
   );
 
   static const subscribeEvents = connect.Spec(
@@ -36,5 +39,6 @@ abstract final class SidechainService {
     connect.StreamType.server,
     cusfsidechainv1sidechain.SubscribeEventsRequest.new,
     cusfsidechainv1sidechain.SubscribeEventsResponse.new,
+    idempotency: connect.Idempotency.noSideEffects,
   );
 }

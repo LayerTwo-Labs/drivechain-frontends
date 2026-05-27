@@ -239,6 +239,11 @@ message GetStatsResponse {
   int64 sidechain_deposit_volume_last_30_days = 4;
   int64 transaction_count_total = 5;
   int64 transaction_count_since_month = 6;
+  int64 total_fees_sats = 7;
+  // Most-recent confirmed transaction in the wallet. Both unset when the
+  // wallet has no confirmed transactions yet.
+  google.protobuf.Timestamp last_tx_at = 8;
+  uint32 last_tx_block_height = 9;
 }
 
 // Wallet unlock/lock messages

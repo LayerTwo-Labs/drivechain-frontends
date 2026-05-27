@@ -1483,8 +1483,13 @@ type GetStatsResponse struct {
 	SidechainDepositVolumeLast_30Days int64                  `protobuf:"varint,4,opt,name=sidechain_deposit_volume_last_30_days,json=sidechainDepositVolumeLast30Days,proto3" json:"sidechain_deposit_volume_last_30_days,omitempty"`
 	TransactionCountTotal             int64                  `protobuf:"varint,5,opt,name=transaction_count_total,json=transactionCountTotal,proto3" json:"transaction_count_total,omitempty"`
 	TransactionCountSinceMonth        int64                  `protobuf:"varint,6,opt,name=transaction_count_since_month,json=transactionCountSinceMonth,proto3" json:"transaction_count_since_month,omitempty"`
-	unknownFields                     protoimpl.UnknownFields
-	sizeCache                         protoimpl.SizeCache
+	TotalFeesSats                     int64                  `protobuf:"varint,7,opt,name=total_fees_sats,json=totalFeesSats,proto3" json:"total_fees_sats,omitempty"`
+	// Most-recent confirmed transaction in the wallet. Both unset when the
+	// wallet has no confirmed transactions yet.
+	LastTxAt          *timestamppb.Timestamp `protobuf:"bytes,8,opt,name=last_tx_at,json=lastTxAt,proto3" json:"last_tx_at,omitempty"`
+	LastTxBlockHeight uint32                 `protobuf:"varint,9,opt,name=last_tx_block_height,json=lastTxBlockHeight,proto3" json:"last_tx_block_height,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
 }
 
 func (x *GetStatsResponse) Reset() {
@@ -1555,6 +1560,27 @@ func (x *GetStatsResponse) GetTransactionCountTotal() int64 {
 func (x *GetStatsResponse) GetTransactionCountSinceMonth() int64 {
 	if x != nil {
 		return x.TransactionCountSinceMonth
+	}
+	return 0
+}
+
+func (x *GetStatsResponse) GetTotalFeesSats() int64 {
+	if x != nil {
+		return x.TotalFeesSats
+	}
+	return 0
+}
+
+func (x *GetStatsResponse) GetLastTxAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.LastTxAt
+	}
+	return nil
+}
+
+func (x *GetStatsResponse) GetLastTxBlockHeight() uint32 {
+	if x != nil {
+		return x.LastTxBlockHeight
 	}
 	return 0
 }
@@ -4103,14 +4129,18 @@ const file_wallet_v1_wallet_proto_rawDesc = "" +
 	"\n" +
 	"public_key\x18\x04 \x01(\tR\tpublicKey\"-\n" +
 	"\x15VerifyMessageResponse\x12\x14\n" +
-	"\x05valid\x18\x01 \x01(\bR\x05valid\"\xf3\x02\n" +
+	"\x05valid\x18\x01 \x01(\bR\x05valid\"\x86\x04\n" +
 	"\x10GetStatsResponse\x12#\n" +
 	"\rutxos_current\x18\x01 \x01(\x04R\futxosCurrent\x124\n" +
 	"\x16utxos_unique_addresses\x18\x02 \x01(\x04R\x14utxosUniqueAddresses\x128\n" +
 	"\x18sidechain_deposit_volume\x18\x03 \x01(\x03R\x16sidechainDepositVolume\x12O\n" +
 	"%sidechain_deposit_volume_last_30_days\x18\x04 \x01(\x03R sidechainDepositVolumeLast30Days\x126\n" +
 	"\x17transaction_count_total\x18\x05 \x01(\x03R\x15transactionCountTotal\x12A\n" +
-	"\x1dtransaction_count_since_month\x18\x06 \x01(\x03R\x1atransactionCountSinceMonth\"1\n" +
+	"\x1dtransaction_count_since_month\x18\x06 \x01(\x03R\x1atransactionCountSinceMonth\x12&\n" +
+	"\x0ftotal_fees_sats\x18\a \x01(\x03R\rtotalFeesSats\x128\n" +
+	"\n" +
+	"last_tx_at\x18\b \x01(\v2\x1a.google.protobuf.TimestampR\blastTxAt\x12/\n" +
+	"\x14last_tx_block_height\x18\t \x01(\rR\x11lastTxBlockHeight\"1\n" +
 	"\x13UnlockWalletRequest\x12\x1a\n" +
 	"\bpassword\x18\x01 \x01(\tR\bpassword\"d\n" +
 	"\x13CreateChequeRequest\x12\x1b\n" +
@@ -4450,92 +4480,93 @@ var file_wallet_v1_wallet_proto_depIdxs = []int32{
 	68, // 8: wallet.v1.Confirmation.timestamp:type_name -> google.protobuf.Timestamp
 	16, // 9: wallet.v1.WalletTransaction.confirmation_time:type_name -> wallet.v1.Confirmation
 	66, // 10: wallet.v1.ListSidechainDepositsResponse.deposits:type_name -> wallet.v1.ListSidechainDepositsResponse.SidechainDeposit
-	34, // 11: wallet.v1.GetChequeResponse.cheque:type_name -> wallet.v1.Cheque
-	68, // 12: wallet.v1.Cheque.created_at:type_name -> google.protobuf.Timestamp
-	68, // 13: wallet.v1.Cheque.funded_at:type_name -> google.protobuf.Timestamp
-	68, // 14: wallet.v1.Cheque.swept_at:type_name -> google.protobuf.Timestamp
-	34, // 15: wallet.v1.ListChequesResponse.cheques:type_name -> wallet.v1.Cheque
-	68, // 16: wallet.v1.CheckChequeFundingResponse.funded_at:type_name -> google.protobuf.Timestamp
-	67, // 17: wallet.v1.GetUTXOMetadataResponse.metadata:type_name -> wallet.v1.GetUTXOMetadataResponse.MetadataEntry
-	0,  // 18: wallet.v1.SetCoinSelectionStrategyRequest.strategy:type_name -> wallet.v1.CoinSelectionStrategy
-	0,  // 19: wallet.v1.GetCoinSelectionStrategyResponse.strategy:type_name -> wallet.v1.CoinSelectionStrategy
-	52, // 20: wallet.v1.GetTransactionDetailsResponse.inputs:type_name -> wallet.v1.TransactionInput
-	53, // 21: wallet.v1.GetTransactionDetailsResponse.outputs:type_name -> wallet.v1.TransactionOutput
-	56, // 22: wallet.v1.GetUTXODistributionResponse.buckets:type_name -> wallet.v1.UTXOBucket
-	0,  // 23: wallet.v1.SelectCoinsRequest.strategy:type_name -> wallet.v1.CoinSelectionStrategy
-	12, // 24: wallet.v1.SelectCoinsResponse.selected_utxos:type_name -> wallet.v1.UnspentOutput
-	44, // 25: wallet.v1.GetUTXOMetadataResponse.MetadataEntry.value:type_name -> wallet.v1.UTXOMetadata
-	42, // 26: wallet.v1.WalletService.CreateBitcoinCoreWallet:input_type -> wallet.v1.CreateBitcoinCoreWalletRequest
-	8,  // 27: wallet.v1.WalletService.SendTransaction:input_type -> wallet.v1.SendTransactionRequest
-	1,  // 28: wallet.v1.WalletService.GetBalance:input_type -> wallet.v1.GetBalanceRequest
-	2,  // 29: wallet.v1.WalletService.GetNewAddress:input_type -> wallet.v1.GetNewAddressRequest
-	4,  // 30: wallet.v1.WalletService.ListTransactions:input_type -> wallet.v1.ListTransactionsRequest
-	5,  // 31: wallet.v1.WalletService.ListUnspent:input_type -> wallet.v1.ListUnspentRequest
-	6,  // 32: wallet.v1.WalletService.ListReceiveAddresses:input_type -> wallet.v1.ListReceiveAddressesRequest
-	18, // 33: wallet.v1.WalletService.ListSidechainDeposits:input_type -> wallet.v1.ListSidechainDepositsRequest
-	20, // 34: wallet.v1.WalletService.CreateSidechainDeposit:input_type -> wallet.v1.CreateSidechainDepositRequest
-	22, // 35: wallet.v1.WalletService.SignMessage:input_type -> wallet.v1.SignMessageRequest
-	24, // 36: wallet.v1.WalletService.VerifyMessage:input_type -> wallet.v1.VerifyMessageRequest
-	7,  // 37: wallet.v1.WalletService.GetStats:input_type -> wallet.v1.GetStatsRequest
-	27, // 38: wallet.v1.WalletService.UnlockWallet:input_type -> wallet.v1.UnlockWalletRequest
-	70, // 39: wallet.v1.WalletService.LockWallet:input_type -> google.protobuf.Empty
-	70, // 40: wallet.v1.WalletService.IsWalletUnlocked:input_type -> google.protobuf.Empty
-	28, // 41: wallet.v1.WalletService.CreateCheque:input_type -> wallet.v1.CreateChequeRequest
-	30, // 42: wallet.v1.WalletService.GetCheque:input_type -> wallet.v1.GetChequeRequest
-	32, // 43: wallet.v1.WalletService.GetChequePrivateKey:input_type -> wallet.v1.GetChequePrivateKeyRequest
-	35, // 44: wallet.v1.WalletService.ListCheques:input_type -> wallet.v1.ListChequesRequest
-	37, // 45: wallet.v1.WalletService.CheckChequeFunding:input_type -> wallet.v1.CheckChequeFundingRequest
-	39, // 46: wallet.v1.WalletService.SweepCheque:input_type -> wallet.v1.SweepChequeRequest
-	41, // 47: wallet.v1.WalletService.DeleteCheque:input_type -> wallet.v1.DeleteChequeRequest
-	45, // 48: wallet.v1.WalletService.SetUTXOMetadata:input_type -> wallet.v1.SetUTXOMetadataRequest
-	46, // 49: wallet.v1.WalletService.GetUTXOMetadata:input_type -> wallet.v1.GetUTXOMetadataRequest
-	48, // 50: wallet.v1.WalletService.SetCoinSelectionStrategy:input_type -> wallet.v1.SetCoinSelectionStrategyRequest
-	70, // 51: wallet.v1.WalletService.GetCoinSelectionStrategy:input_type -> google.protobuf.Empty
-	50, // 52: wallet.v1.WalletService.GetTransactionDetails:input_type -> wallet.v1.GetTransactionDetailsRequest
-	54, // 53: wallet.v1.WalletService.GetUTXODistribution:input_type -> wallet.v1.GetUTXODistributionRequest
-	57, // 54: wallet.v1.WalletService.BumpFee:input_type -> wallet.v1.BumpFeeRequest
-	59, // 55: wallet.v1.WalletService.SelectCoins:input_type -> wallet.v1.SelectCoinsRequest
-	70, // 56: wallet.v1.WalletService.CreateBackup:input_type -> google.protobuf.Empty
-	62, // 57: wallet.v1.WalletService.RestoreBackup:input_type -> wallet.v1.RestoreBackupRequest
-	63, // 58: wallet.v1.WalletService.ValidateBackup:input_type -> wallet.v1.ValidateBackupRequest
-	43, // 59: wallet.v1.WalletService.CreateBitcoinCoreWallet:output_type -> wallet.v1.CreateBitcoinCoreWalletResponse
-	9,  // 60: wallet.v1.WalletService.SendTransaction:output_type -> wallet.v1.SendTransactionResponse
-	10, // 61: wallet.v1.WalletService.GetBalance:output_type -> wallet.v1.GetBalanceResponse
-	3,  // 62: wallet.v1.WalletService.GetNewAddress:output_type -> wallet.v1.GetNewAddressResponse
-	11, // 63: wallet.v1.WalletService.ListTransactions:output_type -> wallet.v1.ListTransactionsResponse
-	13, // 64: wallet.v1.WalletService.ListUnspent:output_type -> wallet.v1.ListUnspentResponse
-	14, // 65: wallet.v1.WalletService.ListReceiveAddresses:output_type -> wallet.v1.ListReceiveAddressesResponse
-	19, // 66: wallet.v1.WalletService.ListSidechainDeposits:output_type -> wallet.v1.ListSidechainDepositsResponse
-	21, // 67: wallet.v1.WalletService.CreateSidechainDeposit:output_type -> wallet.v1.CreateSidechainDepositResponse
-	23, // 68: wallet.v1.WalletService.SignMessage:output_type -> wallet.v1.SignMessageResponse
-	25, // 69: wallet.v1.WalletService.VerifyMessage:output_type -> wallet.v1.VerifyMessageResponse
-	26, // 70: wallet.v1.WalletService.GetStats:output_type -> wallet.v1.GetStatsResponse
-	70, // 71: wallet.v1.WalletService.UnlockWallet:output_type -> google.protobuf.Empty
-	70, // 72: wallet.v1.WalletService.LockWallet:output_type -> google.protobuf.Empty
-	70, // 73: wallet.v1.WalletService.IsWalletUnlocked:output_type -> google.protobuf.Empty
-	29, // 74: wallet.v1.WalletService.CreateCheque:output_type -> wallet.v1.CreateChequeResponse
-	31, // 75: wallet.v1.WalletService.GetCheque:output_type -> wallet.v1.GetChequeResponse
-	33, // 76: wallet.v1.WalletService.GetChequePrivateKey:output_type -> wallet.v1.GetChequePrivateKeyResponse
-	36, // 77: wallet.v1.WalletService.ListCheques:output_type -> wallet.v1.ListChequesResponse
-	38, // 78: wallet.v1.WalletService.CheckChequeFunding:output_type -> wallet.v1.CheckChequeFundingResponse
-	40, // 79: wallet.v1.WalletService.SweepCheque:output_type -> wallet.v1.SweepChequeResponse
-	70, // 80: wallet.v1.WalletService.DeleteCheque:output_type -> google.protobuf.Empty
-	70, // 81: wallet.v1.WalletService.SetUTXOMetadata:output_type -> google.protobuf.Empty
-	47, // 82: wallet.v1.WalletService.GetUTXOMetadata:output_type -> wallet.v1.GetUTXOMetadataResponse
-	70, // 83: wallet.v1.WalletService.SetCoinSelectionStrategy:output_type -> google.protobuf.Empty
-	49, // 84: wallet.v1.WalletService.GetCoinSelectionStrategy:output_type -> wallet.v1.GetCoinSelectionStrategyResponse
-	51, // 85: wallet.v1.WalletService.GetTransactionDetails:output_type -> wallet.v1.GetTransactionDetailsResponse
-	55, // 86: wallet.v1.WalletService.GetUTXODistribution:output_type -> wallet.v1.GetUTXODistributionResponse
-	58, // 87: wallet.v1.WalletService.BumpFee:output_type -> wallet.v1.BumpFeeResponse
-	60, // 88: wallet.v1.WalletService.SelectCoins:output_type -> wallet.v1.SelectCoinsResponse
-	61, // 89: wallet.v1.WalletService.CreateBackup:output_type -> wallet.v1.CreateBackupResponse
-	70, // 90: wallet.v1.WalletService.RestoreBackup:output_type -> google.protobuf.Empty
-	64, // 91: wallet.v1.WalletService.ValidateBackup:output_type -> wallet.v1.ValidateBackupResponse
-	59, // [59:92] is the sub-list for method output_type
-	26, // [26:59] is the sub-list for method input_type
-	26, // [26:26] is the sub-list for extension type_name
-	26, // [26:26] is the sub-list for extension extendee
-	0,  // [0:26] is the sub-list for field type_name
+	68, // 11: wallet.v1.GetStatsResponse.last_tx_at:type_name -> google.protobuf.Timestamp
+	34, // 12: wallet.v1.GetChequeResponse.cheque:type_name -> wallet.v1.Cheque
+	68, // 13: wallet.v1.Cheque.created_at:type_name -> google.protobuf.Timestamp
+	68, // 14: wallet.v1.Cheque.funded_at:type_name -> google.protobuf.Timestamp
+	68, // 15: wallet.v1.Cheque.swept_at:type_name -> google.protobuf.Timestamp
+	34, // 16: wallet.v1.ListChequesResponse.cheques:type_name -> wallet.v1.Cheque
+	68, // 17: wallet.v1.CheckChequeFundingResponse.funded_at:type_name -> google.protobuf.Timestamp
+	67, // 18: wallet.v1.GetUTXOMetadataResponse.metadata:type_name -> wallet.v1.GetUTXOMetadataResponse.MetadataEntry
+	0,  // 19: wallet.v1.SetCoinSelectionStrategyRequest.strategy:type_name -> wallet.v1.CoinSelectionStrategy
+	0,  // 20: wallet.v1.GetCoinSelectionStrategyResponse.strategy:type_name -> wallet.v1.CoinSelectionStrategy
+	52, // 21: wallet.v1.GetTransactionDetailsResponse.inputs:type_name -> wallet.v1.TransactionInput
+	53, // 22: wallet.v1.GetTransactionDetailsResponse.outputs:type_name -> wallet.v1.TransactionOutput
+	56, // 23: wallet.v1.GetUTXODistributionResponse.buckets:type_name -> wallet.v1.UTXOBucket
+	0,  // 24: wallet.v1.SelectCoinsRequest.strategy:type_name -> wallet.v1.CoinSelectionStrategy
+	12, // 25: wallet.v1.SelectCoinsResponse.selected_utxos:type_name -> wallet.v1.UnspentOutput
+	44, // 26: wallet.v1.GetUTXOMetadataResponse.MetadataEntry.value:type_name -> wallet.v1.UTXOMetadata
+	42, // 27: wallet.v1.WalletService.CreateBitcoinCoreWallet:input_type -> wallet.v1.CreateBitcoinCoreWalletRequest
+	8,  // 28: wallet.v1.WalletService.SendTransaction:input_type -> wallet.v1.SendTransactionRequest
+	1,  // 29: wallet.v1.WalletService.GetBalance:input_type -> wallet.v1.GetBalanceRequest
+	2,  // 30: wallet.v1.WalletService.GetNewAddress:input_type -> wallet.v1.GetNewAddressRequest
+	4,  // 31: wallet.v1.WalletService.ListTransactions:input_type -> wallet.v1.ListTransactionsRequest
+	5,  // 32: wallet.v1.WalletService.ListUnspent:input_type -> wallet.v1.ListUnspentRequest
+	6,  // 33: wallet.v1.WalletService.ListReceiveAddresses:input_type -> wallet.v1.ListReceiveAddressesRequest
+	18, // 34: wallet.v1.WalletService.ListSidechainDeposits:input_type -> wallet.v1.ListSidechainDepositsRequest
+	20, // 35: wallet.v1.WalletService.CreateSidechainDeposit:input_type -> wallet.v1.CreateSidechainDepositRequest
+	22, // 36: wallet.v1.WalletService.SignMessage:input_type -> wallet.v1.SignMessageRequest
+	24, // 37: wallet.v1.WalletService.VerifyMessage:input_type -> wallet.v1.VerifyMessageRequest
+	7,  // 38: wallet.v1.WalletService.GetStats:input_type -> wallet.v1.GetStatsRequest
+	27, // 39: wallet.v1.WalletService.UnlockWallet:input_type -> wallet.v1.UnlockWalletRequest
+	70, // 40: wallet.v1.WalletService.LockWallet:input_type -> google.protobuf.Empty
+	70, // 41: wallet.v1.WalletService.IsWalletUnlocked:input_type -> google.protobuf.Empty
+	28, // 42: wallet.v1.WalletService.CreateCheque:input_type -> wallet.v1.CreateChequeRequest
+	30, // 43: wallet.v1.WalletService.GetCheque:input_type -> wallet.v1.GetChequeRequest
+	32, // 44: wallet.v1.WalletService.GetChequePrivateKey:input_type -> wallet.v1.GetChequePrivateKeyRequest
+	35, // 45: wallet.v1.WalletService.ListCheques:input_type -> wallet.v1.ListChequesRequest
+	37, // 46: wallet.v1.WalletService.CheckChequeFunding:input_type -> wallet.v1.CheckChequeFundingRequest
+	39, // 47: wallet.v1.WalletService.SweepCheque:input_type -> wallet.v1.SweepChequeRequest
+	41, // 48: wallet.v1.WalletService.DeleteCheque:input_type -> wallet.v1.DeleteChequeRequest
+	45, // 49: wallet.v1.WalletService.SetUTXOMetadata:input_type -> wallet.v1.SetUTXOMetadataRequest
+	46, // 50: wallet.v1.WalletService.GetUTXOMetadata:input_type -> wallet.v1.GetUTXOMetadataRequest
+	48, // 51: wallet.v1.WalletService.SetCoinSelectionStrategy:input_type -> wallet.v1.SetCoinSelectionStrategyRequest
+	70, // 52: wallet.v1.WalletService.GetCoinSelectionStrategy:input_type -> google.protobuf.Empty
+	50, // 53: wallet.v1.WalletService.GetTransactionDetails:input_type -> wallet.v1.GetTransactionDetailsRequest
+	54, // 54: wallet.v1.WalletService.GetUTXODistribution:input_type -> wallet.v1.GetUTXODistributionRequest
+	57, // 55: wallet.v1.WalletService.BumpFee:input_type -> wallet.v1.BumpFeeRequest
+	59, // 56: wallet.v1.WalletService.SelectCoins:input_type -> wallet.v1.SelectCoinsRequest
+	70, // 57: wallet.v1.WalletService.CreateBackup:input_type -> google.protobuf.Empty
+	62, // 58: wallet.v1.WalletService.RestoreBackup:input_type -> wallet.v1.RestoreBackupRequest
+	63, // 59: wallet.v1.WalletService.ValidateBackup:input_type -> wallet.v1.ValidateBackupRequest
+	43, // 60: wallet.v1.WalletService.CreateBitcoinCoreWallet:output_type -> wallet.v1.CreateBitcoinCoreWalletResponse
+	9,  // 61: wallet.v1.WalletService.SendTransaction:output_type -> wallet.v1.SendTransactionResponse
+	10, // 62: wallet.v1.WalletService.GetBalance:output_type -> wallet.v1.GetBalanceResponse
+	3,  // 63: wallet.v1.WalletService.GetNewAddress:output_type -> wallet.v1.GetNewAddressResponse
+	11, // 64: wallet.v1.WalletService.ListTransactions:output_type -> wallet.v1.ListTransactionsResponse
+	13, // 65: wallet.v1.WalletService.ListUnspent:output_type -> wallet.v1.ListUnspentResponse
+	14, // 66: wallet.v1.WalletService.ListReceiveAddresses:output_type -> wallet.v1.ListReceiveAddressesResponse
+	19, // 67: wallet.v1.WalletService.ListSidechainDeposits:output_type -> wallet.v1.ListSidechainDepositsResponse
+	21, // 68: wallet.v1.WalletService.CreateSidechainDeposit:output_type -> wallet.v1.CreateSidechainDepositResponse
+	23, // 69: wallet.v1.WalletService.SignMessage:output_type -> wallet.v1.SignMessageResponse
+	25, // 70: wallet.v1.WalletService.VerifyMessage:output_type -> wallet.v1.VerifyMessageResponse
+	26, // 71: wallet.v1.WalletService.GetStats:output_type -> wallet.v1.GetStatsResponse
+	70, // 72: wallet.v1.WalletService.UnlockWallet:output_type -> google.protobuf.Empty
+	70, // 73: wallet.v1.WalletService.LockWallet:output_type -> google.protobuf.Empty
+	70, // 74: wallet.v1.WalletService.IsWalletUnlocked:output_type -> google.protobuf.Empty
+	29, // 75: wallet.v1.WalletService.CreateCheque:output_type -> wallet.v1.CreateChequeResponse
+	31, // 76: wallet.v1.WalletService.GetCheque:output_type -> wallet.v1.GetChequeResponse
+	33, // 77: wallet.v1.WalletService.GetChequePrivateKey:output_type -> wallet.v1.GetChequePrivateKeyResponse
+	36, // 78: wallet.v1.WalletService.ListCheques:output_type -> wallet.v1.ListChequesResponse
+	38, // 79: wallet.v1.WalletService.CheckChequeFunding:output_type -> wallet.v1.CheckChequeFundingResponse
+	40, // 80: wallet.v1.WalletService.SweepCheque:output_type -> wallet.v1.SweepChequeResponse
+	70, // 81: wallet.v1.WalletService.DeleteCheque:output_type -> google.protobuf.Empty
+	70, // 82: wallet.v1.WalletService.SetUTXOMetadata:output_type -> google.protobuf.Empty
+	47, // 83: wallet.v1.WalletService.GetUTXOMetadata:output_type -> wallet.v1.GetUTXOMetadataResponse
+	70, // 84: wallet.v1.WalletService.SetCoinSelectionStrategy:output_type -> google.protobuf.Empty
+	49, // 85: wallet.v1.WalletService.GetCoinSelectionStrategy:output_type -> wallet.v1.GetCoinSelectionStrategyResponse
+	51, // 86: wallet.v1.WalletService.GetTransactionDetails:output_type -> wallet.v1.GetTransactionDetailsResponse
+	55, // 87: wallet.v1.WalletService.GetUTXODistribution:output_type -> wallet.v1.GetUTXODistributionResponse
+	58, // 88: wallet.v1.WalletService.BumpFee:output_type -> wallet.v1.BumpFeeResponse
+	60, // 89: wallet.v1.WalletService.SelectCoins:output_type -> wallet.v1.SelectCoinsResponse
+	61, // 90: wallet.v1.WalletService.CreateBackup:output_type -> wallet.v1.CreateBackupResponse
+	70, // 91: wallet.v1.WalletService.RestoreBackup:output_type -> google.protobuf.Empty
+	64, // 92: wallet.v1.WalletService.ValidateBackup:output_type -> wallet.v1.ValidateBackupResponse
+	60, // [60:93] is the sub-list for method output_type
+	27, // [27:60] is the sub-list for method input_type
+	27, // [27:27] is the sub-list for extension type_name
+	27, // [27:27] is the sub-list for extension extendee
+	0,  // [0:27] is the sub-list for field type_name
 }
 
 func init() { file_wallet_v1_wallet_proto_init() }
