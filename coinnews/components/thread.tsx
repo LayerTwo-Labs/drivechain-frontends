@@ -6,10 +6,10 @@ import { shortHex } from "@/lib/utils";
 export function Thread({ rootIdHex, comments }: { rootIdHex: string; comments: Comment[] }) {
   const tree = buildTree(rootIdHex, comments);
   if (tree.length === 0) {
-    return <p className="text-[var(--muted-foreground)] py-2">No comments yet.</p>;
+    return <p className="label" style={{ padding: "0.5rem 0" }}>No replies yet.</p>;
   }
   return (
-    <ul className="list-none p-0 m-0">
+    <ul className="thread">
       {tree.map((node) => (
         <ThreadNode key={node.c.itemIdHex} node={node} depth={0} />
       ))}
@@ -40,34 +40,34 @@ function ThreadNode({ node, depth }: { node: Node; depth: number }) {
   const c = node.c;
   const when = timeAgo(timestampToDate(c.blockTime));
   return (
-    <li
-      className="border-l border-[var(--border)] pl-2 my-2"
-      style={{ marginLeft: depth === 0 ? 0 : 12 }}
-    >
-      <div className="text-xs text-[var(--muted-foreground)]">
-        <Link href={`/u/${c.authorXpkHex}`} className="hover:underline">
-          {shortHex(c.authorXpkHex)}
-        </Link>{" "}
-        · {c.points} {c.points === 1 ? "point" : "points"} · {when} · block {c.blockHeight}
+    <li className={`thread__node${depth > 0 ? " thread__node--child" : ""}`}>
+      <div className="thread__meta">
+        <Link href={`/u/${c.authorXpkHex}`}>{shortHex(c.authorXpkHex)}</Link>
+        <span className="sep">·</span>
+        <span>
+          {c.points} {c.points === 1 ? "PT" : "PTS"}
+        </span>
+        <span className="sep">·</span>
+        <span>{when}</span>
+        <span className="sep">·</span>
+        <span>BLK {c.blockHeight}</span>
       </div>
       {c.replyQuote && (
-        <blockquote className="text-xs text-[var(--muted-foreground)] border-l-2 border-[var(--border)] pl-2 my-1 italic">
-          &gt; {c.replyQuote}
-        </blockquote>
+        <blockquote className="thread__quote">&gt; {c.replyQuote}</blockquote>
       )}
-      <div className="whitespace-pre-wrap break-words text-sm py-1">
+      <div className="thread__body">
         {c.body}
         {c.url && (
           <>
             {" "}
-            <a href={c.url} target="_blank" rel="noreferrer" className="underline">
+            <a href={c.url} target="_blank" rel="noreferrer">
               {c.url}
             </a>
           </>
         )}
       </div>
       {node.children.length > 0 && (
-        <ul className="list-none p-0 m-0">
+        <ul className="thread">
           {node.children.map((child) => (
             <ThreadNode key={child.c.itemIdHex} node={child} depth={depth + 1} />
           ))}

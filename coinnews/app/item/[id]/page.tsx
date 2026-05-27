@@ -27,29 +27,31 @@ export default async function ItemPage({ params }: { params: Params }) {
 
   return (
     <article>
-      <h1 className="text-base font-semibold">
-        <Link
-          href={url}
-          target={isExternal ? "_blank" : undefined}
-          className="text-foreground hover:underline"
-        >
+      <h1 className="story__title">
+        <Link href={url} target={isExternal ? "_blank" : undefined}>
           {it.headline || "(untitled)"}
         </Link>
-        {host && <span className="text-xs text-[var(--muted-foreground)] ml-1">({host})</span>}
+        {host && <span className="story__host">› {host}</span>}
       </h1>
-      <div className="text-xs text-[var(--muted-foreground)] mt-1">
-        {it.points} {it.points === 1 ? "point" : "points"} ·{" "}
-        <Link href={`/u/${it.authorXpkHex}`} className="hover:underline">
-          {shortHex(it.authorXpkHex)}
-        </Link>{" "}
-        · {when} ·{" "}
-        <Link href={`/t/${it.topicHex}`} className="hover:underline">
-          {topicLabel(it.topicHex)}
-        </Link>{" "}
-        · {it.commentCount} comments · block {it.blockHeight}
+      <div className="story__meta">
+        <span>
+          {it.points} {it.points === 1 ? "PT" : "PTS"}
+        </span>
+        <span className="sep">·</span>
+        <Link href={`/u/${it.authorXpkHex}`}>{shortHex(it.authorXpkHex)}</Link>
+        <span className="sep">·</span>
+        <span>{when}</span>
+        <span className="sep">·</span>
+        <Link href={`/t/${it.topicHex}`}>#{topicLabel(it.topicHex)}</Link>
+        <span className="sep">·</span>
+        <span>
+          {it.commentCount} {it.commentCount === 1 ? "REPLY" : "REPLIES"}
+        </span>
+        <span className="sep">·</span>
+        <span>BLK {it.blockHeight}</span>
       </div>
-      {it.body && <div className="whitespace-pre-wrap break-words text-sm py-3">{it.body}</div>}
-      <hr className="my-3 border-[var(--border)]" />
+      {it.body && <div className="story__body">{it.body}</div>}
+      <hr />
       <Thread rootIdHex={id} comments={thread.comments} />
     </article>
   );

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { Navbar } from "@/components/navbar";
 import { Footer } from "@/components/footer";
 import { instanceNetwork } from "@/lib/utils";
@@ -9,7 +10,7 @@ export const dynamic = "force-dynamic";
 
 const network = instanceNetwork();
 const title = `CoinNews (${network})`;
-const description = `Hacker News for Bitcoin, indexed straight from the chain (${network}).`;
+const description = `On-chain news indexer (${network}).`;
 
 export const metadata: Metadata = {
   title,
@@ -31,9 +32,19 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en">
-      <body className="min-h-screen flex flex-col">
-        <Navbar />
-        <main className="container mx-auto max-w-4xl px-3 py-3 flex-grow w-full">{children}</main>
+      <body className="app">
+        <header className="topbar">
+          <div className="container topbar__inner">
+            <Link href="/" className="brand">
+              <span className="brand__dot">◉</span>
+              <span>CoinNews</span>
+            </Link>
+            <Navbar />
+          </div>
+        </header>
+        <main className="main">
+          <div className="container">{children}</div>
+        </main>
         <Footer />
       </body>
     </html>
