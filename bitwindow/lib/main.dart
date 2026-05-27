@@ -820,11 +820,21 @@ Future<void> bootBitwindowBackend(Logger log) async {
 
   // 1. Start bitwindowd — it manages orchestratord internally,
   //    which in turn manages bitcoind, enforcer, and sidechains.
+  //
+  // Multi-instance: _adoptOrphanedProcesses (in the BinaryProvider
+  // constructor) reads bitwindowd's PID file and registers the still-alive
+  // process if found. A second bitwindow launched while the first is still
+  // open hot-attaches that way — isConnected(bitwindow) is already true,
+  // start() becomes a no-op (see _startDaemonBinary's isRunning early
+  // return), and we skip markBackendOriginator so this window's close
+  // doesn't tear the shared backend out from under the first one. Same
+  // pattern as sidechain hot-start in backend_sidechain_runtime.dart.
   log.i('STARTUP: starting bitwindowd');
-  // bitwindow always owns the backend stack: this is the canonical
-  // launcher and orchestratord lives downstream of bitwindowd. Marking
-  // ourselves as originator lets onShutdown() tear it down on exit.
-  binaryProvider.markBackendOriginator();
+  if (binaryProvider.isConnected(bitwindow)) {
+    log.i('STARTUP: bitwindowd was adopted from a sibling bitwindow; not claiming originator');
+  } else {
+    binaryProvider.markBackendOriginator();
+  }
   await binaryProvider.start(bitwindow);
 
   // 2. Wait for orchestratord (managed by bitwindowd) to become ready.
@@ -893,9 +903,12 @@ Future<void> bootBitwindowBackend(Logger log) async {
 
   // 5. Kick off the L1 stack (bitcoind → wallet → IBD → enforcer). StartWithL1
   //    is fire-and-forget on the server now — boot runs on a background
-  //    goroutine and survives any transport blip. Download bytes come via
-  //    SyncProvider's polled GetSyncStatus; connection state via
-  //    BackendStateProvider's polled ListBinaries.
+  //    goroutine and survives any transport blip. If a previous bitwindowd's
+  //    orchestratord is still draining, StartWithL1 server-side adopts it
+  //    (cancels its pending exit + awaits the in-flight stops) before
+  //    starting the fresh stack — caller-side glue not needed. Download
+  //    bytes come via SyncProvider's polled GetSyncStatus; connection state
+  //    via BackendStateProvider's polled ListBinaries.
   if (orchestratorReady) {
     unawaited(() async {
       try {
