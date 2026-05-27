@@ -25,11 +25,16 @@ import (
 const (
 	bip47TickInterval    = 10 * time.Second
 	bip47ListTxBatchSize = 100
-	// bip47GapLimit is the forward window of per-payment addresses kept
-	// imported into Core for each known sender. Whenever a sender's
-	// ImportedThroughIndex reaches its top, the next tick extends by gapLimit
-	// more.
+	// bip47GapLimit is the forward window of per-payment addresses imported
+	// into Core for each known sender, per extension.
 	bip47GapLimit = 20
+	// bip47TrailingBuffer is how many unused trailing addresses we keep ahead
+	// of the most recently used per-payment address before extending the
+	// imported window further. BIP44-style gap-limit semantics: we only grow
+	// when usage approaches the tail. The probe is the address at index
+	// (ImportedThroughIndex - bip47TrailingBuffer); if Core says it has
+	// received coins, we extend, otherwise we wait.
+	bip47TrailingBuffer = 3
 )
 
 // BIP47Engine watches Bitcoin Core wallets for incoming BIP47 notification
@@ -231,24 +236,38 @@ func (e *BIP47Engine) decodeNotificationTx(ctx context.Context, txid string, not
 	return decoded.Base58(), raw.BlockTime, nil
 }
 
-// extendImports walks every known inbound sender for this wallet and ensures
-// the next gapLimit per-payment addresses are imported as descriptors into
-// Core. Subsequent calls bump ImportedThroughIndex; Core ignores already-known
-// descriptors.
+// extendImports walks every known inbound sender for this wallet. For each
+// one, it imports the first gapLimit per-payment addresses on the very first
+// pass, and afterwards only extends the window further once the trailing
+// probe address (see bip47TrailingBuffer) has received coins. Core ignores
+// already-known descriptors.
 func (e *BIP47Engine) extendImports(ctx context.Context, walletID, coreName, seedHex string, net *chaincfg.Params) error {
 	inbound, err := e.inbound.ListByWallet(walletID)
 	if err != nil {
 		return err
 	}
+	if len(inbound) == 0 {
+		return nil
+	}
+	received, err := e.engine.CoreRPC().ListReceivedByAddress(ctx, coreName)
+	if err != nil {
+		return fmt.Errorf("listreceivedbyaddress: %w", err)
+	}
+	usedAddrs := make(map[string]bool, len(received))
+	for _, r := range received {
+		if r.Amount > 0 {
+			usedAddrs[r.Address] = true
+		}
+	}
 	for _, n := range inbound {
-		if err := e.extendImportsForSender(ctx, walletID, coreName, seedHex, n, net); err != nil {
+		if err := e.extendImportsForSender(ctx, walletID, coreName, seedHex, n, net, usedAddrs); err != nil {
 			e.log.Warn().Err(err).Str("wallet", walletID).Str("sender", n.SenderPaymentCode).Msg("extend imports for sender failed")
 		}
 	}
 	return nil
 }
 
-func (e *BIP47Engine) extendImportsForSender(ctx context.Context, walletID, coreName, seedHex string, n *bip47state.InboundNotification, net *chaincfg.Params) error {
+func (e *BIP47Engine) extendImportsForSender(ctx context.Context, walletID, coreName, seedHex string, n *bip47state.InboundNotification, net *chaincfg.Params, usedAddrs map[string]bool) error {
 	sender, err := bip47.ParsePaymentCode(n.SenderPaymentCode)
 	if err != nil {
 		return fmt.Errorf("parse sender payment code: %w", err)
@@ -256,6 +275,20 @@ func (e *BIP47Engine) extendImportsForSender(ctx context.Context, walletID, core
 	senderNotifPub, err := sender.NotificationPubKey()
 	if err != nil {
 		return fmt.Errorf("recover sender notification pubkey: %w", err)
+	}
+
+	// After the initial gapLimit bootstrap, only extend when the trailing
+	// probe address (ImportedThroughIndex - bip47TrailingBuffer) has received
+	// coins. Otherwise the window grows forever at every tick.
+	if n.ImportedThroughIndex >= bip47TrailingBuffer {
+		probeIdx := n.ImportedThroughIndex - bip47TrailingBuffer
+		probeAddr, _, err := bip47.DeriveReceivedPaymentAddress(seedHex, senderNotifPub, probeIdx, net, bip47.AddressP2PKH)
+		if err != nil {
+			return fmt.Errorf("derive probe address at index %d: %w", probeIdx, err)
+		}
+		if !usedAddrs[probeAddr.EncodeAddress()] {
+			return nil
+		}
 	}
 
 	start := n.ImportedThroughIndex
