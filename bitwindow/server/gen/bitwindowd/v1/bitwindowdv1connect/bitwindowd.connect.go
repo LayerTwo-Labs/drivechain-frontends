@@ -88,6 +88,11 @@ const (
 
 // BitwindowdServiceClient is a client for the bitwindowd.v1.BitwindowdService service.
 type BitwindowdServiceClient interface {
+	// Window-close + clean exit. Relays to orchestratord.Shutdown (which is
+	// detached and drains bitcoind/enforcer over ~90s in the background), then
+	// tears down bitwindowd itself. Acks fast so the Flutter window can destroy
+	// immediately. Pass skip_downstream=true to leave the orchestratord stack
+	// running (only bitwindowd dies).
 	Stop(context.Context, *connect.Request[v1.BitwindowdServiceStopRequest]) (*connect.Response[emptypb.Empty], error)
 	MineBlocks(context.Context, *connect.Request[emptypb.Empty]) (*connect.ServerStreamForClient[v1.MineBlocksResponse], error)
 	// Deniability operations
@@ -343,6 +348,11 @@ func (c *bitwindowdServiceClient) UpdateNetwork(ctx context.Context, req *connec
 
 // BitwindowdServiceHandler is an implementation of the bitwindowd.v1.BitwindowdService service.
 type BitwindowdServiceHandler interface {
+	// Window-close + clean exit. Relays to orchestratord.Shutdown (which is
+	// detached and drains bitcoind/enforcer over ~90s in the background), then
+	// tears down bitwindowd itself. Acks fast so the Flutter window can destroy
+	// immediately. Pass skip_downstream=true to leave the orchestratord stack
+	// running (only bitwindowd dies).
 	Stop(context.Context, *connect.Request[v1.BitwindowdServiceStopRequest]) (*connect.Response[emptypb.Empty], error)
 	MineBlocks(context.Context, *connect.Request[emptypb.Empty], *connect.ServerStream[v1.MineBlocksResponse]) error
 	// Deniability operations

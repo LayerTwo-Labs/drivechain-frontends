@@ -6,6 +6,11 @@ import "google/protobuf/empty.proto";
 import "google/protobuf/timestamp.proto";
 
 service BitwindowdService {
+  // Window-close + clean exit. Relays to orchestratord.Shutdown (which is
+  // detached and drains bitcoind/enforcer over ~90s in the background), then
+  // tears down bitwindowd itself. Acks fast so the Flutter window can destroy
+  // immediately. Pass skip_downstream=true to leave the orchestratord stack
+  // running (only bitwindowd dies).
   rpc Stop(BitwindowdServiceStopRequest) returns (google.protobuf.Empty);
 
   rpc MineBlocks(google.protobuf.Empty) returns (stream MineBlocksResponse);

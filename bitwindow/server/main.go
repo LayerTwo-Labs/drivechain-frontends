@@ -82,23 +82,29 @@ func realMain(ctx context.Context, cancelCtx context.CancelFunc) error {
 	bootLogger := zerolog.New(os.Stderr).With().Timestamp().Logger()
 	bootCtx := bootLogger.WithContext(ctx)
 
-	orchCmd, err := startOrchestratord(bootCtx, conf)
-	if err != nil {
+	if _, err := startOrchestratord(bootCtx, conf); err != nil {
 		bootLogger.Warn().Err(err).Msg("failed to start orchestratord (may already be running)")
-	} else if orchCmd != nil {
-		defer func() {
-			if orchCmd.Process != nil {
-				bootLogger.Info().Int("pid", orchCmd.Process.Pid).Msg("stopping orchestratord")
-				_ = orchCmd.Process.Signal(os.Interrupt)
-				_ = orchCmd.Wait()
-			}
-		}()
 	}
+
+	// Best-effort relay Shutdown to orchestratord on any bitwindowd exit path
+	// (Ctrl-C, panic, etc.). The window-close flow goes through
+	// BitwindowdService.Stop which has already relayed by the time this
+	// fires — Shutdown is idempotent on the orchestrator side, so the double
+	// call is harmless. orchestratord is detached and survives bitwindowd's
+	// exit either way.
+	defer relayShutdownToOrchestratord(conf.OrchestratorAddr, bootLogger)
 
 	network, err := waitForOrchestratorNetwork(bootCtx, conf.OrchestratorAddr, bootLogger)
 	if err != nil {
 		return fmt.Errorf("read network from orchestratord: %w", err)
 	}
+
+	// Adopting a still-draining orchestratord (cancel its pending exit, await
+	// in-flight stops) is owned by Flutter — see bootBitwindowBackend in
+	// bitwindow/lib/main.dart. That way the UI loads immediately and shows a
+	// "waiting for previous shutdown" status instead of blocking bitwindowd's
+	// startup. bitwindowd doesn't need to wait: its own bitcoind connections
+	// will retry once the new stack comes up.
 
 	if err := conf.Finalize(config.Network(network)); err != nil {
 		return fmt.Errorf("finalize config: %w", err)
@@ -337,11 +343,39 @@ func startOrchestratord(ctx context.Context, conf config.Config) (*exec.Cmd, err
 		"--bitwindow-dir", bitwindowDir,
 	}
 
-	log.Info().Str("path", orchPath).Strs("args", args).Msg("starting orchestratord")
+	// Detached: orchestratord owns its own lifecycle and outlives bitwindowd.
+	// On window close, bitwindowd relays a Shutdown RPC and exits immediately,
+	// while orchestratord keeps draining bitcoind for up to ~90s in the
+	// background. See plan: "Detach orchestratord + bitwindowd-mediated
+	// shutdown with mid-shutdown recovery".
+	//
+	// - exec.Command (no Context): bitwindowd's ctx cancellation does NOT
+	//   propagate to orchestratord.
+	// - Setpgid: orchestratord runs in its own process group, so bitwindowd's
+	//   exit doesn't deliver SIGHUP to it.
+	// - --logfile: orchestratord writes its zerolog stream to a file, since
+	//   stdout/stderr become orphaned once bitwindowd exits.
+	// - Stdout/Stderr → log file too: catches anything not routed through
+	//   zerolog (panics, child-process spew). Bitwindowd's fd closes when the
+	//   defer below runs; orchestratord inherits an independent fd that
+	//   survives.
+	// - Process.Release: tells the Go runtime to stop tracking the child so we
+	//   don't dangle a finalizer waiting on a process we've handed to init.
+	orchLogPath := filepath.Join(bitwindowDir, "orchestratord.log")
+	orchLogFile, err := os.OpenFile(orchLogPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o644)
+	if err != nil {
+		return nil, fmt.Errorf("open orchestratord log %s: %w", orchLogPath, err)
+	}
+	defer orchLogFile.Close() //nolint:errcheck — child has its own fd post-spawn
 
-	cmd := exec.CommandContext(ctx, orchPath, args...)
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
+	args = append(args, "--logfile", orchLogPath)
+
+	log.Info().Str("path", orchPath).Strs("args", args).Str("logfile", orchLogPath).Msg("starting orchestratord (detached)")
+
+	cmd := exec.Command(orchPath, args...)
+	configureOrchestratordSpawn(cmd)
+	cmd.Stdout = orchLogFile
+	cmd.Stderr = orchLogFile
 
 	if err := cmd.Start(); err != nil {
 		return nil, fmt.Errorf("start orchestratord: %w", err)
@@ -349,11 +383,34 @@ func startOrchestratord(ctx context.Context, conf config.Config) (*exec.Cmd, err
 
 	log.Info().Int("pid", cmd.Process.Pid).Msg("orchestratord started")
 
+	if err := cmd.Process.Release(); err != nil {
+		log.Warn().Err(err).Msg("release orchestratord process handle (continuing — child is independent)")
+	}
+
 	return cmd, nil
 }
 
 // waitForOrchestratorNetwork polls orchestratord for the current network.
 // orchestratord owns the bitcoin.conf — bitwindowd is just a consumer of
+// relayShutdownToOrchestratord fires the orchestratord Shutdown RPC on
+// bitwindowd exit. Best-effort: orchestratord acks immediately (the drain
+// runs in its own goroutine), and Shutdown is idempotent so a duplicate call
+// (Stop handler already relayed) is harmless. Short timeout so a dead/wedged
+// orchestratord doesn't keep bitwindowd hanging on shutdown.
+func relayShutdownToOrchestratord(addr string, log zerolog.Logger) {
+	if addr == "" {
+		return
+	}
+	client := orchrpc.NewOrchestratorServiceClient(http.DefaultClient, addr, connect.WithGRPC())
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+	if _, err := client.Shutdown(ctx, connect.NewRequest(&orchpb.ShutdownRequest{})); err != nil {
+		log.Warn().Err(err).Msg("relay Shutdown to orchestratord on exit (continuing)")
+		return
+	}
+	log.Info().Msg("relayed Shutdown to orchestratord on exit")
+}
+
 // that view of the world. Retries for ~15s while orchestratord boots.
 func waitForOrchestratorNetwork(ctx context.Context, addr string, log zerolog.Logger) (string, error) {
 	if addr == "" {

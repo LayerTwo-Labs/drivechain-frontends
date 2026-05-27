@@ -172,46 +172,37 @@ func isKnownNetwork(n config.Network) bool {
 }
 
 // Stop implements drivechainv1connect.DrivechainServiceHandler.
+// Stop is the window-close hook + clean-exit entry point. Relays to
+// orchestratord.Shutdown — orchestratord is detached and drains
+// bitcoind/enforcer in the background over ~90s — then triggers bitwindowd's
+// own teardown. Acks the frontend in milliseconds so the window can
+// windowManager.destroy() immediately. With skip_downstream=true the
+// orchestratord stack stays running (only bitwindowd dies).
 func (s *Server) Stop(ctx context.Context, req *connect.Request[pb.BitwindowdServiceStopRequest]) (*connect.Response[emptypb.Empty], error) {
-	defer func() {
-		zerolog.Ctx(ctx).Info().Msg("shutting down..")
-		s.onShutdown(ctx)
-	}()
+	log := zerolog.Ctx(ctx)
 
 	if req.Msg.SkipDownstream {
-		zerolog.Ctx(ctx).Info().Msg("skip_downstream=true, not stopping enforcer or bitcoind")
-		return connect.NewResponse(&emptypb.Empty{}), nil
+		log.Info().Msg("skip_downstream=true, bitwindowd-only exit (orchestratord stays running)")
+	} else if s.config.OrchestratorAddr != "" {
+		client := orchrpc.NewOrchestratorServiceClient(http.DefaultClient, s.config.OrchestratorAddr, connect.WithGRPC())
+		// Fresh context — the inbound ctx may be cancelled by the frontend
+		// the moment we return. Short timeout because orchestratord acks
+		// immediately (the drain runs in its own goroutine).
+		rpcCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		if _, err := client.Shutdown(rpcCtx, connect.NewRequest(&orchpb.ShutdownRequest{})); err != nil {
+			log.Warn().Err(err).Msg("relay Shutdown to orchestratord (continuing with bitwindowd teardown)")
+		} else {
+			log.Info().Msg("orchestratord Shutdown relayed; it will drain children in the background")
+		}
 	}
 
-	if s.config.GuiBootedMainchain {
-		zerolog.Ctx(ctx).Info().Msg("mainchain was booted by GUI, shutting down bitcoind..")
-		_, err := s.bitcoind.Get(ctx)
-		if err != nil {
-			return nil, err
-		}
-		// Note: Stop RPC not available in btc-buf yet
-		// bitcoind will be stopped via SIGTERM by the process manager
-		zerolog.Ctx(ctx).Info().Msg("bitcoind will be stopped by process manager")
-	} else {
-		zerolog.Ctx(ctx).Info().Msg("mainchain was not booted by GUI, not shutting down bitcoind..")
-	}
-
-	if s.config.GuiBootedEnforcer {
-		zerolog.Ctx(ctx).Info().Msg("enforcer was booted by GUI, shutting down bip300301-enforcer..")
-		validator, err := s.validator.Get(ctx)
-		if err != nil {
-			return nil, connect.NewError(connect.CodeInternal, err)
-		}
-		_, err = validator.Stop(ctx, connect.NewRequest(&validatorpb.StopRequest{}))
-		if err != nil {
-			err = fmt.Errorf("could not stop enforcer: %w", err)
-			zerolog.Ctx(ctx).Error().Err(err).Msg("could not stop enforcer")
-			return nil, connect.NewError(connect.CodeInternal, err)
-		}
-		zerolog.Ctx(ctx).Info().Msg("bip300301-enforcer shutdown complete")
-	} else {
-		zerolog.Ctx(ctx).Info().Msg("enforcer was not booted by GUI, not shutting down bip300301-enforcer..")
-	}
+	// Kick off bitwindowd's own teardown after we return the ack to the
+	// frontend.
+	defer func() {
+		log.Info().Msg("bitwindowd shutting down")
+		s.onShutdown(context.Background())
+	}()
 
 	return connect.NewResponse(&emptypb.Empty{}), nil
 }

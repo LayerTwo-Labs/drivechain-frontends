@@ -9,6 +9,11 @@ import "bitwindowd.pb.dart" as bitwindowdv1bitwindowd;
 import "bitwindowd.connect.spec.dart" as specs;
 
 extension type BitwindowdServiceClient (connect.Transport _transport) {
+  /// Window-close + clean exit. Relays to orchestratord.Shutdown (which is
+  /// detached and drains bitcoind/enforcer over ~90s in the background), then
+  /// tears down bitwindowd itself. Acks fast so the Flutter window can destroy
+  /// immediately. Pass skip_downstream=true to leave the orchestratord stack
+  /// running (only bitwindowd dies).
   Future<googleprotobufempty.Empty> stop(
     bitwindowdv1bitwindowd.BitwindowdServiceStopRequest input, {
     connect.Headers? headers,
