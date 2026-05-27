@@ -70,7 +70,6 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
   WalletReaderProvider get _walletReader => GetIt.I.get<WalletReaderProvider>();
   NotificationProvider get _notificationProvider => GetIt.I.get<NotificationProvider>();
   final ValueNotifier<List<Widget>> notificationsNotifier = ValueNotifier([]);
-  bool _shutdownInProgress = false;
   bool _isWalletSwitching = false;
   bool _isWalletEncrypted = false;
   List<PlatformMenuItem>? _cachedMenuList;
@@ -1189,29 +1188,17 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
 
   @override
   void onWindowClose() async {
-    // If shutdown is already in progress, trigger force-kill
-    if (_shutdownInProgress) {
-      await GetIt.I.get<BinaryProvider>().onShutdown(
-        shutdownOptions: ShutdownOptions(
-          router: GetIt.I.get<AppRouter>(),
-          onComplete: () async {
-            await windowManager.destroy();
-          },
-          showShutdownPage: false,
-          forceKill: true,
-        ),
-      );
-      return;
-    }
-
-    _shutdownInProgress = true;
+    // BinaryProvider.onShutdown relays to bitwindowd.Stop, which acks fast.
+    // orchestratord is detached and finishes its ~90s bitcoind drain in the
+    // background. Window destroys in milliseconds — no force-kill path, no
+    // shutdown page, no double-X handling needed.
     await GetIt.I.get<BinaryProvider>().onShutdown(
       shutdownOptions: ShutdownOptions(
         router: GetIt.I.get<AppRouter>(),
         onComplete: () async {
           await windowManager.destroy();
         },
-        showShutdownPage: true,
+        showShutdownPage: false,
       ),
     );
   }
