@@ -823,31 +823,42 @@ func shouldSkip(pkScript []byte) bool {
 	return false
 }
 
-// ensureSyncIsHealthy checks if the hash of block at height 1 differs
-// from whats in our database. If so, it wipes everything in processed_blocks,
-// to force a re-sync.
+// ensureSyncIsHealthy detects a true chain switch — i.e. the user pointed
+// bitwindowd at a different chain — by comparing the hash bitcoind reports
+// for block 1 against what we stored. Only that exact case justifies wiping
+// processed_blocks; normal shallow reorgs are handled by the rewind-20 path
+// in handleBlockTick. Transient bitcoind errors ("Block not found on disk"
+// during pruning/reindex/restart, RPC unavailability) are NOT chain switches
+// — they're a data-availability blip on bitcoind's side, and the right
+// response is "skip this tick, try again next time."
 func (p *Parser) ensureSyncIsHealthy(ctx context.Context) error {
-	// Get block at height 1 to check for chain switch
 	block1, err := p.getBlock(ctx, 1)
-	if err != nil && strings.Contains(err.Error(), "Block not found on disk") {
-		// someone wiped the chain, and bitcoind can't find the block we're requesting
-		zerolog.Ctx(ctx).Warn().
-			Err(err).
-			Msgf("bitcoind_engine/parser: complete reorg detected, wiping processed blocks")
-	} else if err != nil {
+	if err != nil {
+		if strings.Contains(err.Error(), "Block not found on disk") {
+			// bitcoind has the block in its index but the on-disk data is
+			// unavailable right now (pruning, reindex, recent restart, etc.).
+			// Not a chain switch. Leave processed_blocks alone and retry.
+			zerolog.Ctx(ctx).Warn().Err(err).
+				Msgf("bitcoind_engine/parser: getblock(1) reported missing on disk; deferring sync-health check")
+			return nil
+		}
 		return fmt.Errorf("detect chain deletion: get block 1: %w", err)
 	}
 
 	savedBlock1, err := blocks.GetProcessedBlock(ctx, p.db, 1)
 	if errors.Is(err, sql.ErrNoRows) {
-		// no blocks have been processed yet
-	} else if err != nil {
+		// Nothing processed yet — no health check to do.
+		return nil
+	}
+	if err != nil {
 		return fmt.Errorf("detect chain deletion: get latest processed height: %w", err)
 	}
 
-	if block1 == nil || !savedBlock1.Hash.IsEqual(lo.ToPtr(block1.Header.BlockHash())) {
-		zerolog.Ctx(ctx).Info().
-			Msgf("bitcoind_engine/parser: detected chain switch, reprocessing all blocks")
+	if !savedBlock1.Hash.IsEqual(lo.ToPtr(block1.Header.BlockHash())) {
+		zerolog.Ctx(ctx).Warn().
+			Str("stored_hash", savedBlock1.Hash.String()).
+			Str("current_hash", block1.Header.BlockHash().String()).
+			Msgf("bitcoind_engine/parser: block 1 hash differs from stored — chain switch detected, reprocessing all blocks")
 		return blocks.WipeProcessedBlocks(ctx, p.db)
 	}
 
