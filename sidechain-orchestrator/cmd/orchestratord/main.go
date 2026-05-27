@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 	"errors"
 	"fmt"
+	"io"
 	"net"
 	"net/http"
 	"os"
@@ -93,6 +94,11 @@ func main() {
 				Usage:   "bypass UseTestSidechains for the --binary auto-boots; always launch the prod download",
 				EnvVars: []string{"ORCHESTRATOR_FORCE_BACKEND"},
 			},
+			&cli.StringFlag{
+				Name:    "logfile",
+				Usage:   "append logs to this file instead of stdout (used when bitwindowd spawns us detached and our stdout has no reader)",
+				EnvVars: []string{"ORCHESTRATOR_LOGFILE"},
+			},
 		},
 		Action: run,
 	}
@@ -112,7 +118,19 @@ func run(cctx *cli.Context) error {
 	if err != nil {
 		level = zerolog.InfoLevel
 	}
-	log := zerolog.New(zerolog.ConsoleWriter{Out: os.Stdout}).
+	var logOut io.Writer = zerolog.ConsoleWriter{Out: os.Stdout}
+	if logPath := cctx.String("logfile"); logPath != "" {
+		// O_APPEND so multiple processes (e.g. an old instance still draining
+		// and a new instance probing the port) don't truncate each other.
+		f, err := os.OpenFile(logPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o644)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "open --logfile %q: %v\n", logPath, err)
+			os.Exit(1)
+		}
+		defer f.Close() //nolint:errcheck
+		logOut = zerolog.ConsoleWriter{Out: f, NoColor: true}
+	}
+	log := zerolog.New(logOut).
 		Level(level).
 		With().
 		Timestamp().
@@ -127,6 +145,18 @@ func run(cctx *cli.Context) error {
 		Str("network", network).
 		Str("rpclisten", listenAddr).
 		Msg("starting orchestratord")
+
+	// Single-instance check: if something is already serving on our port,
+	// it's almost certainly another orchestratord still draining (or healthy
+	// and owned by another bitwindowd). Exit cleanly so the caller can adopt
+	// the existing instance via RPC instead of fighting over the port. Done
+	// up front so we don't waste time initializing config / wallet / proxies
+	// only to bail at the listen step.
+	if conn, dialErr := net.DialTimeout("tcp", listenAddr, 200*time.Millisecond); dialErr == nil {
+		_ = conn.Close()
+		log.Info().Str("addr", listenAddr).Msg("orchestratord already running on this port; exiting (will be adopted by caller)")
+		return nil
+	}
 
 	// Load binary configs from JSON (in bitwindow dir), falling back to hardcoded defaults
 	bitwindowDir := cctx.String("bitwindow-dir")
@@ -397,24 +427,15 @@ func run(cctx *cli.Context) error {
 		cancel()
 	}
 
-	// Graceful shutdown: stop all managed binaries
+	// Route signal-driven shutdown through the same state machine the
+	// Shutdown RPC uses. BeginShutdown spawns a goroutine that drains
+	// children and then os.Exit(0)s — AwaitShutdownIdle blocks until the
+	// drain finishes; os.Exit usually fires before this returns. The final
+	// os.Exit is belt-and-suspenders for the "somehow we became KEEP" case.
 	log.Info().Msg("shutting down managed binaries...")
-	shutdownCh, err := orch.ShutdownAll(context.Background(), false)
-	if err != nil {
-		log.Error().Err(err).Msg("shutdown all")
-	} else {
-		for p := range shutdownCh {
-			if p.CurrentBinary != "" {
-				log.Info().Str("binary", p.CurrentBinary).Msg("stopping")
-			}
-		}
-	}
-
-	// Shutdown HTTP server
-	log.Info().Msg("shutting down gRPC server...")
-	if err := srv.Close(); err != nil {
-		log.Error().Err(err).Msg("close server")
-	}
+	orch.BeginShutdown()
+	_ = orch.AwaitShutdownIdle(context.Background())
+	os.Exit(0)
 
 	log.Info().Msg("orchestratord shutdown complete")
 	return nil

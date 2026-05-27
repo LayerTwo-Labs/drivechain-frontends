@@ -182,6 +182,30 @@ extension type OrchestratorServiceClient (connect.Transport _transport) {
     );
   }
 
+  /// Detached-daemon shutdown. bitwindowd calls this on window close;
+  /// orchestratord acks immediately, drains its children (bitcoind, enforcer,
+  /// sidechains) in a background goroutine, and os.Exit(0)s when done.
+  /// Idempotent. If bitwindow is relaunched while the drain is still in
+  /// flight, the next StartWithL1 transparently adopts it (flips the
+  /// will-exit bit + awaits the in-flight stops) before booting a fresh
+  /// stack — no separate cancel/await RPCs needed by callers.
+  Future<orchestratorv1orchestrator.ShutdownResponse> shutdown(
+    orchestratorv1orchestrator.ShutdownRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.OrchestratorService.shutdown,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
   /// Get the current BTC/USD exchange rate.
   Future<orchestratorv1orchestrator.GetBTCPriceResponse> getBTCPrice(
     orchestratorv1orchestrator.GetBTCPriceRequest input, {
