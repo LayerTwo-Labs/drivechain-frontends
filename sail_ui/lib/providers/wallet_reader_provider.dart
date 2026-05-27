@@ -9,6 +9,22 @@ import 'package:sail_ui/gen/walletmanager/v1/walletmanager.pb.dart' as wmpb;
 import 'package:sail_ui/rpcs/stream_supervisor.dart';
 import 'package:sail_ui/sail_ui.dart';
 
+/// Maps orchestrator [WalletMetadata.walletType] strings to [BinaryType].
+/// Proto values are `enforcer` / `bitcoinCore` / `watchOnly`, not enum names.
+BinaryType walletBinaryTypeFromProto(String raw) {
+  switch (raw) {
+    case 'enforcer':
+      return BinaryType.BINARY_TYPE_ENFORCER;
+    case 'bitcoinCore':
+    case 'bitcoind':
+      return BinaryType.BINARY_TYPE_BITCOIND;
+    case 'watchOnly':
+      return BinaryType.BINARY_TYPE_BITCOIND;
+    default:
+      return BinaryType.BINARY_TYPE_BITCOIND;
+  }
+}
+
 /// Wallet reader provider backed by orchestrator's WalletManagerService.
 ///
 /// Uses the WatchWalletData server-streaming RPC, wrapped in a
@@ -32,7 +48,7 @@ class WalletReaderProvider extends ChangeNotifier {
   bool hasWalletOnDisk = false;
 
   WalletData? get activeWallet => wallets.where((w) => w.id == activeWalletId).firstOrNull;
-  WalletData? get enforcerWallet => wallets.where((w) => w.walletType == BinaryType.BINARY_TYPE_ENFORCER).firstOrNull;
+  WalletData? get enforcerWallet => wallets.where((w) => w.walletTypeRaw == 'enforcer').firstOrNull;
 
   List<WalletMetadata> get availableWallets => wallets
       .map(
@@ -138,10 +154,7 @@ class WalletReaderProvider extends ChangeNotifier {
         name: protoWallet.name,
         gradient: gradient,
         createdAt: createdAt,
-        walletType: BinaryType.values.firstWhere(
-          (t) => t.name == protoWallet.walletType,
-          orElse: () => BinaryType.BINARY_TYPE_ENFORCER,
-        ),
+        walletType: walletBinaryTypeFromProto(protoWallet.walletType),
         walletTypeRaw: protoWallet.walletType,
         bip47PaymentCode: protoWallet.bip47PaymentCode,
       );

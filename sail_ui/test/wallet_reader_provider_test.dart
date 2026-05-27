@@ -193,6 +193,14 @@ void main() {
     expect(provider.unlockedPassword, isNull);
   });
 
+  test('walletBinaryTypeFromProto maps orchestrator wallet_type strings', () {
+    expect(walletBinaryTypeFromProto('enforcer'), BinaryType.BINARY_TYPE_ENFORCER);
+    expect(walletBinaryTypeFromProto('bitcoinCore'), BinaryType.BINARY_TYPE_BITCOIND);
+    expect(walletBinaryTypeFromProto('bitcoind'), BinaryType.BINARY_TYPE_BITCOIND);
+    expect(walletBinaryTypeFromProto('watchOnly'), BinaryType.BINARY_TYPE_BITCOIND);
+    expect(walletBinaryTypeFromProto('unknown'), BinaryType.BINARY_TYPE_BITCOIND);
+  });
+
   test('isWatchOnly is driven by raw proto walletType, not BinaryType', () {
     // The proto's "watchOnly" string has no BinaryType counterpart, so the
     // enum field gets a junk fallback. The raw string is the only signal

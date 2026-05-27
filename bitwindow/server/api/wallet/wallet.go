@@ -1063,6 +1063,10 @@ func (s *Server) ListSidechainDeposits(ctx context.Context, c *connect.Request[p
 
 	deposits, err := wallet.ListSidechainDepositTransactions(ctx, connect.NewRequest(&validatorpb.ListSidechainDepositTransactionsRequest{}))
 	if err != nil {
+		// No treasury UTXO indexed yet for an active slot (common on fresh signet).
+		if strings.Contains(err.Error(), "Missing value from db") {
+			return connect.NewResponse(&pb.ListSidechainDepositsResponse{}), nil
+		}
 		return nil, fmt.Errorf("enforcer/wallet: could not list sidechain deposits: %w", err)
 	}
 

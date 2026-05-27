@@ -76,7 +76,14 @@ class SidechainProvider extends ChangeNotifier {
 
       // Fill in the slots with the data retrieved from the API
       for (var sidechain in newSidechains) {
-        final deposits = await bitwindowd.wallet.listSidechainDeposits(walletId, sidechain.slot);
+        List<ListSidechainDepositsResponse_SidechainDeposit> deposits = [];
+        try {
+          deposits = await bitwindowd.wallet.listSidechainDeposits(walletId, sidechain.slot);
+        } catch (e, st) {
+          // Deposits are optional for listing active sidechains; enforcer may
+          // return "no treasury utxo yet" before the first deposit on a slot.
+          log.w('listSidechainDeposits slot ${sidechain.slot}: $e', stackTrace: st);
+        }
         final withdrawals = await bitwindowd.drivechain.listWithdrawals(sidechainId: sidechain.slot);
         updatedSidechains[sidechain.slot] = SidechainOverview(sidechain, deposits, withdrawals);
       }
