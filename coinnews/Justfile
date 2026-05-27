@@ -31,6 +31,11 @@ dev:
     fi
     echo "    Core OK."
 
+    if [[ ! -d node_modules ]]; then
+        echo "==> installing frontend deps (bun install)"
+        bun install
+    fi
+
     echo "==> building coinnewsd"
     (cd server && go build -o coinnewsd .)
 

@@ -16,6 +16,7 @@ import (
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/opreturns"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/timestamps"
 	service "github.com/LayerTwo-Labs/sidesail/bitwindow/server/service"
+	codec "github.com/LayerTwo-Labs/sidesail/coinnews/codec"
 	commonv1 "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/common/v1"
 	validatorpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1"
 	validatorrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1/mainchainv1connect"
@@ -119,14 +120,14 @@ func (s *Server) BroadcastNews(ctx context.Context, req *connect.Request[miscv1.
 		return nil, err
 	}
 
+	storyBytes, err := encodeStoryV2(topicID, req.Msg.Headline, req.Msg.Content)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+	}
 	sendReq := &validatorpb.SendTransactionRequest{
 		OpReturnMessage: &commonv1.Hex{
 			Hex: &wrapperspb.StringValue{
-				Value: hex.EncodeToString(
-					opreturns.EncodeNewsMessage(
-						topicID, req.Msg.Headline, req.Msg.Content,
-					),
-				),
+				Value: hex.EncodeToString(storyBytes),
 			},
 		},
 	}
@@ -204,13 +205,12 @@ func (s *Server) CreateTopic(ctx context.Context, req *connect.Request[miscv1.Cr
 	if err != nil {
 		return nil, err
 	}
+	topicCreationBytes := encodeTopicCreationV2(topicID, req.Msg.Name, retentionDays)
 	resp, err := wallet.SendTransaction(ctx,
 		connect.NewRequest(&validatorpb.SendTransactionRequest{
 			OpReturnMessage: &commonv1.Hex{
 				Hex: &wrapperspb.StringValue{
-					Value: hex.EncodeToString(
-						opreturns.EncodeTopicCreationMessage(topicID, req.Msg.Name, retentionDays),
-					),
+					Value: hex.EncodeToString(topicCreationBytes),
 				},
 			},
 		}))
@@ -415,4 +415,38 @@ func (s *Server) getCurrentBlockHeight(ctx context.Context) int64 {
 		return 0
 	}
 	return int64(info.Msg.Blocks)
+}
+
+// encodeStoryV2 encodes a CoinNews v2 Story per coinnews/codec
+// (spec §6). content, if non-empty, rides as a Body TLV.
+func encodeStoryV2(topicID opreturns.TopicID, headline, content string) ([]byte, error) {
+	var t codec.Topic
+	copy(t[:], topicID[:])
+	story := codec.Story{Topic: t, Headline: headline}
+	if content != "" {
+		story.TLVs = append(story.TLVs, codec.TLV{
+			Tag:   codec.TLVBody,
+			Value: []byte(content),
+		})
+	}
+	return codec.EncodeStory(story)
+}
+
+// encodeTopicCreationV2 encodes a CoinNews v2 TopicCreation (spec §5).
+// retentionDays is clamped to [0,255]; 0 means infinite retention.
+func encodeTopicCreationV2(topicID opreturns.TopicID, name string, retentionDays int32) []byte {
+	if retentionDays < 0 {
+		retentionDays = 0
+	}
+	if retentionDays > 255 {
+		retentionDays = 255
+	}
+	var t codec.Topic
+	copy(t[:], topicID[:])
+	b, _ := codec.EncodeTopicCreation(codec.TopicCreation{
+		Topic:         t,
+		RetentionDays: byte(retentionDays),
+		Name:          name,
+	})
+	return b
 }

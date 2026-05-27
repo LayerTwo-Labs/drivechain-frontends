@@ -8,37 +8,38 @@ export function ItemRow({ item, rank }: { item: Item; rank?: number }) {
   const isExternal = !!item.url;
   const host = item.url ? safeHost(item.url) : "";
   const when = timeAgo(timestampToDate(item.blockTime));
+  const rankLabel = rank !== undefined ? String(rank).padStart(2, "0") : "";
 
   return (
-    <li className="flex gap-2 py-1 items-baseline">
-      {rank !== undefined && (
-        <span className="text-[var(--muted-foreground)] tabular-nums w-6 text-right">{rank}.</span>
-      )}
-      <div className="flex-1 min-w-0">
-        <div className="flex flex-wrap items-baseline gap-x-1">
+    <li className="item-row">
+      {rank !== undefined && <span className="item-row__rank">{rankLabel}</span>}
+      <div className="item-row__body">
+        <div className="item-row__title-line">
           <Link
             href={url}
             target={isExternal ? "_blank" : undefined}
-            className="text-foreground hover:underline"
+            className="item-row__title"
           >
             {item.headline || "(untitled)"}
           </Link>
-          {host && <span className="text-xs text-[var(--muted-foreground)]">({host})</span>}
+          {host && <span className="item-row__host">› {host}</span>}
         </div>
-        <div className="text-xs text-[var(--muted-foreground)]">
-          {item.points} {item.points === 1 ? "point" : "points"} ·{" "}
-          <Link href={`/u/${item.authorXpkHex}`} className="hover:underline">
-            {shortHex(item.authorXpkHex)}
-          </Link>{" "}
-          · {when} ·{" "}
-          <Link href={`/t/${item.topicHex}`} className="hover:underline">
-            {topicLabel(item.topicHex)}
-          </Link>{" "}
-          ·{" "}
-          <Link href={`/item/${item.itemIdHex}`} className="hover:underline">
-            {item.commentCount} {item.commentCount === 1 ? "comment" : "comments"}
-          </Link>{" "}
-          · block {item.blockHeight}
+        <div className="item-row__meta">
+          <span>
+            {item.points} {item.points === 1 ? "PT" : "PTS"}
+          </span>
+          <span className="sep">·</span>
+          <Link href={`/u/${item.authorXpkHex}`}>{shortHex(item.authorXpkHex)}</Link>
+          <span className="sep">·</span>
+          <span>{when}</span>
+          <span className="sep">·</span>
+          <Link href={`/t/${item.topicHex}`}>#{topicLabel(item.topicHex)}</Link>
+          <span className="sep">·</span>
+          <Link href={`/item/${item.itemIdHex}`}>
+            {item.commentCount} {item.commentCount === 1 ? "REPLY" : "REPLIES"}
+          </Link>
+          <span className="sep">·</span>
+          <span>BLK {item.blockHeight}</span>
         </div>
       </div>
     </li>
