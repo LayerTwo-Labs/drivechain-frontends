@@ -218,6 +218,15 @@ class OrchestratorRPC {
     return _streamClient.shutdownAll(ShutdownAllRequest(force: force));
   }
 
+  /// Detached-daemon shutdown: orchestratord acks immediately and runs the
+  /// drain (bitcoind/enforcer/sidechains over up to ~90s) in the background.
+  /// Survives the caller's exit. Idempotent. If bitwindow is relaunched
+  /// mid-drain, the next [startWithL1] transparently adopts it server-side
+  /// — no separate cancel/await calls needed here.
+  Future<ShutdownResponse> shutdown() {
+    return _unaryClient.shutdown(ShutdownRequest());
+  }
+
   Stream<StreamResetDataResponse> streamResetData({
     bool deleteBlockchainData = false,
     bool deleteNodeSoftware = false,
