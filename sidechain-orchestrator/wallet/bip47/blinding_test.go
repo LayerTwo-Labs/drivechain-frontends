@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/btcsuite/btcd/btcutil"
+	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
 	"github.com/btcsuite/btcd/wire"
 	"github.com/stretchr/testify/require"
@@ -58,7 +59,7 @@ func TestBuildBlindedPayload_AliceToBob(t *testing.T) {
 	wif, err := btcutil.DecodeWIF(designatedInputWIF)
 	require.NoError(t, err)
 
-	alice, err := PaymentCodeFromSeed(aliceSeedHex)
+	alice, err := PaymentCodeFromSeed(aliceSeedHex, &chaincfg.MainNetParams)
 	require.NoError(t, err)
 	aliceSerialized := alice.Serialize()
 	require.Equal(t, aliceUnblindedPayload, hex.EncodeToString(aliceSerialized[:]))

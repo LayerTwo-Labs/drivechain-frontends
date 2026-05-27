@@ -75,3 +75,27 @@ func BuildBlindedPayload(senderCode [PaymentCodeLength]byte, designatedPriv *btc
 	mask := blindingMask(x, outpoint)
 	return applyBlinding(senderCode, mask), nil
 }
+
+// DecodeBlindedPayload reverses BuildBlindedPayload. Given the receiver's
+// notification private key B₀, the sender's input pubkey A (recovered from the
+// notification tx's first input scriptSig or witness), and the spent input's
+// outpoint, it XORs the 80-byte blinded payload with the same mask the sender
+// used and parses the result as the sender's payment code.
+//
+// ECDH symmetry: the sender's mask used key = a·B₀ where a is the sender's
+// designated input privkey. The receiver computes the same x by B₀ECDH·A.
+func DecodeBlindedPayload(myNotificationPriv *btcec.PrivateKey, senderInputPub *btcec.PublicKey, outpoint wire.OutPoint, blinded [PaymentCodeLength]byte) (*PaymentCode, error) {
+	if myNotificationPriv == nil {
+		return nil, fmt.Errorf("nil notification private key")
+	}
+	if senderInputPub == nil {
+		return nil, fmt.Errorf("nil sender input pubkey")
+	}
+	x, err := ecdhX(myNotificationPriv, senderInputPub)
+	if err != nil {
+		return nil, fmt.Errorf("ecdh: %w", err)
+	}
+	mask := blindingMask(x, outpoint)
+	unblinded := applyBlinding(blinded, mask)
+	return parseFromCheckDecoded(unblinded[:])
+}

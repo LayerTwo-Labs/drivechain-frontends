@@ -50,6 +50,29 @@ func tweakPubKey(b *btcec.PublicKey, s [32]byte) (*btcec.PublicKey, error) {
 	return btcec.NewPublicKey(&sum.X, &sum.Y), nil
 }
 
+// tweakPrivKey returns b + s (mod n) as a private key. Mirrors tweakPubKey
+// for the receiver side: when the sender produces B + s·G as an address pubkey
+// (where B = b·G), the receiver's matching privkey is b + s.
+func tweakPrivKey(b *btcec.PrivateKey, s [32]byte) (*btcec.PrivateKey, error) {
+	var sScalar btcec.ModNScalar
+	if overflow := sScalar.SetBytes(&s); overflow != 0 {
+		return nil, errors.New("scalar overflow (s >= n)")
+	}
+	if sScalar.IsZero() {
+		return nil, errors.New("scalar is zero")
+	}
+	var combined btcec.ModNScalar
+	combined.Set(&b.Key)
+	combined.Add(&sScalar)
+	if combined.IsZero() {
+		return nil, errors.New("resulting privkey scalar is zero")
+	}
+	var out [32]byte
+	combined.PutBytesUnchecked(out[:])
+	priv, _ := btcec.PrivKeyFromBytes(out[:])
+	return priv, nil
+}
+
 func hash160(data []byte) []byte {
 	sum := sha256.Sum256(data)
 	r := ripemd160.New()
@@ -68,4 +91,4 @@ func p2wpkhAddress(pub *btcec.PublicKey, net *chaincfg.Params) (btcutil.Address,
 }
 
 func hexDecode(s string) ([]byte, error) { return hex.DecodeString(s) }
-func hexEncode(b []byte) string           { return hex.EncodeToString(b) }
+func hexEncode(b []byte) string          { return hex.EncodeToString(b) }

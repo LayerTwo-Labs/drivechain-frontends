@@ -37,7 +37,7 @@ func TestBuildWatchWalletDataResponseStartersAttachToEnforcer(t *testing.T) {
 	resp := buildWatchWalletDataResponse(
 		[]wallet.WalletData{enforcer, core},
 		core.ID, // active wallet is the Core wallet, NOT the enforcer
-		true, false, true, nil,
+		true, false, true, nil, nil,
 	)
 
 	if got := resp.GetActiveWalletId(); got != core.ID {
@@ -104,7 +104,7 @@ func TestBuildWatchWalletDataResponseEnforcerSidechainsRoundTrip(t *testing.T) {
 	}
 
 	resp := buildWatchWalletDataResponse(
-		[]wallet.WalletData{enforcer}, enforcer.ID, true, false, true, nil,
+		[]wallet.WalletData{enforcer}, enforcer.ID, true, false, true, nil, nil,
 	)
 
 	w := resp.GetWallets()[0]
@@ -145,7 +145,7 @@ func TestBuildWatchWalletDataResponseBip47Populated(t *testing.T) {
 
 	resp := buildWatchWalletDataResponse(
 		[]wallet.WalletData{hot, watchOnly},
-		hot.ID, true, false, true, nil,
+		hot.ID, true, false, true, nil, nil,
 	)
 
 	var hotMd, watchMd string
@@ -183,7 +183,7 @@ func TestBuildWatchWalletDataResponseBip47ErrorSurfaces(t *testing.T) {
 	cb := func(id string, err error) { seenID = id; seenErr = err }
 
 	resp := buildWatchWalletDataResponse(
-		[]wallet.WalletData{bad}, bad.ID, true, false, true, cb,
+		[]wallet.WalletData{bad}, bad.ID, true, false, true, nil, cb,
 	)
 
 	if resp.GetWallets()[0].GetBip47PaymentCode() != "" {
@@ -213,7 +213,7 @@ func TestBuildWatchWalletDataResponseLegacyWalletTypeStarters(t *testing.T) {
 		Sidechains: []wallet.SidechainWallet{{Slot: 9, Name: "Thunder", Mnemonic: "legacy-side"}},
 	}
 	resp := buildWatchWalletDataResponse(
-		[]wallet.WalletData{legacy}, legacy.ID, true, false, true, nil,
+		[]wallet.WalletData{legacy}, legacy.ID, true, false, true, nil, nil,
 	)
 	w := resp.GetWallets()[0]
 	if w.GetMasterMnemonic() != "legacy master" {

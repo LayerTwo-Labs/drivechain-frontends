@@ -137,11 +137,14 @@ func (c *CoreRPCClient) ListWallets(ctx context.Context) ([]string, error) {
 
 // ImportDescriptor represents a descriptor import request.
 type ImportDescriptor struct {
-	Desc      string `json:"desc"`
-	Active    bool   `json:"active"`
-	Timestamp string `json:"timestamp"` // "now" or unix timestamp
-	Internal  bool   `json:"internal,omitempty"`
-	Range     []int  `json:"range,omitempty"`
+	Desc   string `json:"desc"`
+	Active bool   `json:"active"`
+	// Timestamp accepts the string "now" or an int64 unix timestamp. Core's
+	// importdescriptors rejects "0" as a string; pass int64(0) instead to
+	// request a rescan from genesis.
+	Timestamp any   `json:"timestamp"`
+	Internal  bool  `json:"internal,omitempty"`
+	Range     []int `json:"range,omitempty"`
 }
 
 // ImportDescriptorResult is the result of an importdescriptors call.
@@ -272,10 +275,20 @@ type CoreTransaction struct {
 
 // ListTransactions returns recent transactions.
 func (c *CoreRPCClient) ListTransactions(ctx context.Context, walletName string, count int) ([]CoreTransaction, error) {
+	return c.ListTransactionsRange(ctx, walletName, count, 0)
+}
+
+// ListTransactionsRange returns wallet transactions in a sliding window,
+// skipping the first `skip` entries (cursor-based scan). Use to incrementally
+// process new wallet activity without re-walking the entire history each tick.
+func (c *CoreRPCClient) ListTransactionsRange(ctx context.Context, walletName string, count, skip int) ([]CoreTransaction, error) {
 	if count <= 0 {
 		count = 100
 	}
-	result, err := c.call(ctx, walletName, "listtransactions", "*", count)
+	if skip < 0 {
+		skip = 0
+	}
+	result, err := c.call(ctx, walletName, "listtransactions", "*", count, skip)
 	if err != nil {
 		return nil, err
 	}

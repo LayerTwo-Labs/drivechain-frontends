@@ -9,7 +9,7 @@ import (
 )
 
 func TestSenderA0_AliceMatchesVector(t *testing.T) {
-	account, err := SeedAccountKey(aliceSeedHex)
+	account, err := SeedAccountKey(aliceSeedHex, &chaincfg.MainNetParams)
 	require.NoError(t, err)
 	a0Ext, err := account.Derive(0)
 	require.NoError(t, err)

@@ -11,6 +11,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/btcsuite/btcd/btcutil"
+	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/rs/zerolog"
 	"github.com/tyler-smith/go-bip32"
 	"golang.org/x/crypto/ripemd160" //nolint:staticcheck // Bitcoin protocol requires RIPEMD160
@@ -32,7 +34,7 @@ type WalletEngine struct {
 	svc     *Service
 	rpc     *CoreRPCClient
 	log     zerolog.Logger
-	network string // mainnet, testnet, signet, regtest
+	network *chaincfg.Params
 
 	mu          sync.RWMutex
 	coreWallets map[string]string // walletID -> Core wallet name
@@ -45,8 +47,10 @@ type WalletEngine struct {
 	loadingErr   error
 }
 
-// NewWalletEngine creates a new WalletEngine.
-func NewWalletEngine(svc *Service, rpc *CoreRPCClient, network string, log zerolog.Logger) *WalletEngine {
+// NewWalletEngine creates a new WalletEngine. Callers convert the CLI network
+// string via bip47send.NetworkParams (or equivalent) before passing — the
+// engine never sees the network name as a free-form string.
+func NewWalletEngine(svc *Service, rpc *CoreRPCClient, network *chaincfg.Params, log zerolog.Logger) *WalletEngine {
 	return &WalletEngine{
 		svc:         svc,
 		rpc:         rpc,
@@ -61,29 +65,43 @@ func NewWalletEngine(svc *Service, rpc *CoreRPCClient, network string, log zerol
 // listreceivedbyaddress with zero amount and no txids (minconf=0 also catches
 // mempool receives). Lets the receive page poll without burning the keypool,
 // while staying entirely stateless across orchestrator restarts.
+//
+// Candidates are filtered to the chain's bech32 prefix because the Core wallet
+// also imports P2PKH addresses for BIP47 (the notification address + per-sender
+// derived payment addresses) — those must never leak into the regular receive
+// flow.
 func (e *WalletEngine) PickReceiveAddress(ctx context.Context, coreName string) (string, error) {
 	addrs, err := e.rpc.ListReceivedByAddress(ctx, coreName)
 	if err != nil {
 		return "", err
 	}
+	prefix := e.bech32Prefix()
 	for _, a := range addrs {
-		if a.Amount == 0 && len(a.TxIDs) == 0 {
-			return a.Address, nil
+		if a.Amount != 0 || len(a.TxIDs) != 0 {
+			continue
 		}
+		if prefix != "" && !strings.HasPrefix(a.Address, prefix) {
+			continue
+		}
+		return a.Address, nil
 	}
 	return e.rpc.GetNewAddress(ctx, coreName, "", "bech32")
 }
 
-// coinType returns the BIP44 coin type for the network.
-func (e *WalletEngine) coinType() uint32 {
-	if e.network == "mainnet" {
-		return 0
+// bech32Prefix returns the HRP-with-separator prefix that any BIP84 receive
+// address on this network must start with — read directly off the typed
+// chaincfg.Params instead of remapping a network name string.
+func (e *WalletEngine) bech32Prefix() string {
+	if e.network == nil {
+		return ""
 	}
-	return 1
+	return e.network.Bech32HRPSegwit + "1"
 }
 
-// tprv version bytes (0x04358394) for testnet/signet/regtest extended private keys.
-var tprvVersionBytes = []byte{0x04, 0x35, 0x83, 0x94}
+// coinType returns the BIP44 coin type for the network.
+func (e *WalletEngine) coinType() uint32 {
+	return e.network.HDCoinType
+}
 
 // EnsureCoreWallet ensures a Bitcoin Core wallet exists for a wallet.json wallet.
 // Returns the Core wallet name.
@@ -135,11 +153,61 @@ func (e *WalletEngine) EnsureCoreWallet(ctx context.Context, walletID string) (s
 		return "", err
 	}
 
+	// Ensure the wallet's BIP47 notification descriptor is imported. Runs
+	// both for newly-created wallets and existing ones so the descriptor
+	// lands on first boot post-engine-deploy. Idempotent in Core, and a
+	// failure here shouldn't break wallet loading — the engine will retry
+	// next time EnsureCoreWallet runs.
+	if targetWallet.WalletType == "bitcoinCore" {
+		if perr := e.ensureBip47NotificationDescriptor(ctx, walletName, targetWallet.Master.SeedHex); perr != nil {
+			e.log.Warn().Err(perr).Str("wallet", walletName).Msg("could not ensure bip47 notification descriptor")
+		}
+	}
+
 	// Success — clear any previous transient gate and cache the wallet name.
 	e.loadingUntil = time.Time{}
 	e.loadingErr = nil
 	e.coreWallets[walletID] = walletName
 	return walletName, nil
+}
+
+// ensureBip47NotificationDescriptor imports the wallet's BIP47 notification
+// P2PKH key (m/47'/0'/0'/0) into Core if not already present. Uses
+// timestamp=0 so the first import rescans the chain from genesis and picks
+// up historic notification txs; subsequent imports are no-ops because Core
+// recognizes the descriptor as already known.
+func (e *WalletEngine) ensureBip47NotificationDescriptor(ctx context.Context, walletName, seedHex string) error {
+	if e.network == nil {
+		return nil
+	}
+	notifPriv, _, err := bip47.DeriveOwnNotificationKey(seedHex, e.network)
+	if err != nil {
+		return fmt.Errorf("derive notification key: %w", err)
+	}
+	wif, err := btcutil.NewWIF(notifPriv, e.network, true)
+	if err != nil {
+		return fmt.Errorf("encode notification wif: %w", err)
+	}
+	desc := mustAddChecksum(fmt.Sprintf("pkh(%s)", wif.String()))
+	results, err := e.rpc.ImportDescriptors(ctx, walletName, []ImportDescriptor{{
+		Desc:      desc,
+		Active:    false,
+		Timestamp: int64(0),
+	}})
+	if err != nil {
+		return fmt.Errorf("import bip47 notification descriptor: %w", err)
+	}
+	for i, r := range results {
+		if r.Success {
+			continue
+		}
+		msg := "unknown"
+		if r.Error != nil {
+			msg = r.Error.Message
+		}
+		return fmt.Errorf("bip47 descriptor %d import failed: %s", i, msg)
+	}
+	return nil
 }
 
 // createBitcoinCoreWallet creates a Bitcoin Core descriptor wallet from a seed.
@@ -331,8 +399,8 @@ func (e *WalletEngine) CoreRPC() *CoreRPCClient {
 	return e.rpc
 }
 
-// Network returns the network identifier ("mainnet", "signet", "regtest", "testnet").
-func (e *WalletEngine) Network() string {
+// Network returns the chain parameters this engine was constructed against.
+func (e *WalletEngine) Network() *chaincfg.Params {
 	return e.network
 }
 
@@ -348,9 +416,11 @@ func (e *WalletEngine) ResolveWalletID(walletID string) (string, error) {
 	return active, nil
 }
 
-// serializeKey serializes a BIP32 key, fixing version bytes for non-mainnet.
+// serializeKey serializes a BIP32 key, patching the version bytes to match the
+// engine's network. go-bip32 hardcodes mainnet xprv version bytes; for any
+// other chain Core rejects the serialized key, so we strip + replace + re-sum.
 func (e *WalletEngine) serializeKey(key *bip32.Key) string {
-	if e.network == "mainnet" {
+	if e.network == nil || e.network.HDPrivateKeyID == chaincfg.MainNetParams.HDPrivateKeyID {
 		return key.String()
 	}
 
@@ -365,7 +435,7 @@ func (e *WalletEngine) serializeKey(key *bip32.Key) string {
 	// serialized is 82 bytes: [4 version][74 data][4 checksum].
 	// Strip old checksum, patch version, recompute.
 	raw := serialized[:78]
-	copy(raw[0:4], tprvVersionBytes)
+	copy(raw[0:4], e.network.HDPrivateKeyID[:])
 	return base58CheckEncode(raw)
 }
 
@@ -382,17 +452,18 @@ func masterFingerprint(masterKey *bip32.Key) string {
 }
 
 // Bip47PaymentCodeFromSeed returns the BIP47 v1 spec-compliant payment code
-// (m/47'/0'/0' xpub serialized as 81-byte base58check with version 0x47) for a
-// BIP32 seed. Returns ("", nil) for an empty seed (watch-only wallet) so the
-// UI can distinguish "not applicable" from "still computing". A non-nil error
-// means the seed parsed but BIP47 derivation failed — caller should log it
-// instead of silently returning an empty code, which the UI can't tell apart
-// from a still-loading state.
-func Bip47PaymentCodeFromSeed(seedHex string) (string, error) {
+// (m/47'/coin_type'/0' xpub serialized as 81-byte base58check with version
+// 0x47) for a BIP32 seed. coin_type follows BIP44: mainnet=0, testnet variants
+// (signet/regtest/testnet3)=1. Returns ("", nil) for an empty seed (watch-only
+// wallet) so the UI can distinguish "not applicable" from "still computing".
+// A non-nil error means the seed parsed but BIP47 derivation failed — caller
+// should log it instead of silently returning an empty code, which the UI
+// can't tell apart from a still-loading state.
+func Bip47PaymentCodeFromSeed(seedHex string, net *chaincfg.Params) (string, error) {
 	if seedHex == "" {
 		return "", nil
 	}
-	pc, err := bip47.PaymentCodeFromSeed(seedHex)
+	pc, err := bip47.PaymentCodeFromSeed(seedHex, net)
 	if err != nil {
 		return "", fmt.Errorf("bip47: derive payment code: %w", err)
 	}

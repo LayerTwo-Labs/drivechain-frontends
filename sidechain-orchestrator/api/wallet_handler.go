@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
+	"github.com/btcsuite/btcd/chaincfg"
 	"google.golang.org/protobuf/types/known/emptypb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 	"google.golang.org/protobuf/types/known/wrapperspb"
@@ -115,6 +116,16 @@ func (h *WalletHandler) requireEnforcerWallet() error {
 	return nil
 }
 
+// bip47NetParams returns the chaincfg.Params for the BIP47 coin_type level.
+// Returns nil when the engine isn't wired yet — wallet.Bip47PaymentCodeFromSeed
+// treats nil as mainnet, matching pre-fix behavior.
+func (h *WalletHandler) bip47NetParams() *chaincfg.Params {
+	if h.engine == nil {
+		return nil
+	}
+	return h.engine.Network()
+}
+
 // ============================================================================
 // Wallet lifecycle RPCs
 // ============================================================================
@@ -183,7 +194,7 @@ func (h *WalletHandler) ListWallets(ctx context.Context, req *connect.Request[pb
 		if w.Gradient != nil {
 			gradientJSON = string(w.Gradient)
 		}
-		bip47Code, err := wallet.Bip47PaymentCodeFromSeed(w.Master.SeedHex)
+		bip47Code, err := wallet.Bip47PaymentCodeFromSeed(w.Master.SeedHex, h.bip47NetParams())
 		if err != nil {
 			h.svc.Log().Error().Err(err).Str("wallet_id", w.ID).Msg("ListWallets: bip47 derivation failed")
 		}
@@ -1199,7 +1210,7 @@ func (h *WalletHandler) GetWalletSeed(ctx context.Context, req *connect.Request[
 func (h *WalletHandler) WatchWalletData(ctx context.Context, req *connect.Request[emptypb.Empty], stream *connect.ServerStream[pb.WatchWalletDataResponse]) error {
 	var seq int64
 
-	if err := h.sendWalletData(ctx, stream, &seq); err != nil {
+	if err := h.sendWalletData(stream, &seq); err != nil {
 		return err
 	}
 
@@ -1221,7 +1232,7 @@ func (h *WalletHandler) WatchWalletData(ctx context.Context, req *connect.Reques
 	stateChanged := h.svc.Subscribe(ctx)
 
 	send := func() error {
-		if err := h.sendWalletData(ctx, stream, &seq); err != nil {
+		if err := h.sendWalletData(stream, &seq); err != nil {
 			return err
 		}
 		heartbeat.Reset(WatchHeartbeatInterval)
@@ -1257,13 +1268,14 @@ func (h *WalletHandler) WatchWalletData(ctx context.Context, req *connect.Reques
 	}
 }
 
-func (h *WalletHandler) sendWalletData(ctx context.Context, stream *connect.ServerStream[pb.WatchWalletDataResponse], seq *int64) error {
+func (h *WalletHandler) sendWalletData(stream *connect.ServerStream[pb.WatchWalletDataResponse], seq *int64) error {
 	resp := buildWatchWalletDataResponse(
 		h.svc.GetAllWallets(),
 		h.svc.ActiveWalletID(),
 		h.svc.HasWallet(),
 		h.svc.IsEncrypted(),
 		h.svc.IsUnlocked(),
+		h.bip47NetParams(),
 		bip47Logger(h.svc),
 	)
 	*seq++
@@ -1281,14 +1293,14 @@ func bip47Logger(svc *wallet.Service) func(walletID string, err error) {
 	}
 }
 
-func buildWatchWalletDataResponse(wallets []wallet.WalletData, activeID string, hasWallet, encrypted, unlocked bool, onBip47Err func(walletID string, err error)) *pb.WatchWalletDataResponse {
+func buildWatchWalletDataResponse(wallets []wallet.WalletData, activeID string, hasWallet, encrypted, unlocked bool, netParams *chaincfg.Params, onBip47Err func(walletID string, err error)) *pb.WatchWalletDataResponse {
 	pbWallets := make([]*pb.WalletMetadata, len(wallets))
 	for i, w := range wallets {
 		var gradientJSON string
 		if w.Gradient != nil {
 			gradientJSON = string(w.Gradient)
 		}
-		bip47Code, err := wallet.Bip47PaymentCodeFromSeed(w.Master.SeedHex)
+		bip47Code, err := wallet.Bip47PaymentCodeFromSeed(w.Master.SeedHex, netParams)
 		if err != nil && onBip47Err != nil {
 			onBip47Err(w.ID, err)
 		}

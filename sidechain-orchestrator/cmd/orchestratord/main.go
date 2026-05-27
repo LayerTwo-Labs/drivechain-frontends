@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"crypto/tls"
+	"errors"
 	"fmt"
 	"net"
 	"net/http"
@@ -23,6 +24,7 @@ import (
 	orchestrator "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/api"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/engines"
 	bitassetsrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/bitassets/v1/bitassetsv1connect"
 	bitnamesrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/bitnames/v1/bitnamesv1connect"
 	coinshiftrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/coinshift/v1/coinshiftv1connect"
@@ -42,6 +44,7 @@ import (
 	truthcoinsvc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/truthcoin"
 	zsidesvc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/zside"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/wallet"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/wallet/bip47send"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/wallet/bip47state"
 )
 
@@ -198,10 +201,26 @@ func run(cctx *cli.Context) error {
 		}
 
 		coreRPC := wallet.NewCoreRPCClient("localhost", port, user, password)
-		walletEngine := wallet.NewWalletEngine(walletSvc, coreRPC, network, log)
+		netParams, perr := bip47send.NetworkParams(network)
+		if perr != nil {
+			log.Warn().Err(perr).Str("network", network).Msg("unrecognised network; BIP47 features will be disabled")
+		}
+		walletEngine := wallet.NewWalletEngine(walletSvc, coreRPC, netParams, log)
 		walletHandler.SetEngine(walletEngine)
 
 		log.Info().Int("rpc_port", port).Msg("wallet engine initialized with Core RPC")
+
+		// BIP47 receive engine: watches each Core wallet's notification address
+		// for incoming notification txs, decodes their OP_RETURN payload to
+		// recover the sender's payment code, and imports per-payment receive
+		// descriptors so subsequent payments are spendable.
+		bip47InboundStore := bip47state.NewInboundStore(bitwindowDir)
+		bip47Engine := engines.NewBIP47Engine(log, walletSvc, walletEngine, bip47InboundStore)
+		go func() {
+			if err := bip47Engine.Run(ctx); err != nil && !errors.Is(err, context.Canceled) {
+				log.Error().Err(err).Msg("bip47 engine exited")
+			}
+		}()
 	}
 
 	// Lazy enforcer wallet client — used for enforcer-type wallets.
