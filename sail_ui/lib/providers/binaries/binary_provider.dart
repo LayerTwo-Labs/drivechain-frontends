@@ -6,7 +6,6 @@ import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:path/path.dart' as path;
-import 'package:sail_ui/pages/router.gr.dart';
 import 'package:sail_ui/sail_ui.dart';
 
 /// Manages binaries via the Go orchestrator daemon.
@@ -298,70 +297,38 @@ class BinaryProvider extends ChangeNotifier {
   Future<bool> onShutdown({ShutdownOptions? shutdownOptions}) async {
     _shuttingDown = true;
 
-    final forceKill = shutdownOptions?.forceKill ?? false;
-
-    // Only the Flutter app that originally spawned orchestratord is allowed
-    // to tear the backend stack down. A non-originator app (e.g. thunder
-    // Flutter attached to bitwindow's already-running orchestratord) must
-    // exit quietly so it doesn't kill bitwindow's backend out from under it.
+    // Only the Flutter app that originally spawned the backend stack is
+    // allowed to tear it down. A non-originator app (e.g. thunder Flutter
+    // attached to bitwindow's already-running orchestratord) must exit
+    // quietly so it doesn't kill bitwindow's backend out from under it.
     if (!_isBackendOriginator) {
       log.i('BinaryProvider: skipping backend shutdown — this app did not originate the stack');
       shutdownOptions?.onComplete();
       return true;
     }
 
-    log.i('BinaryProvider: shutting down all via orchestrator');
-
-    final showShutdownPage = shutdownOptions?.showShutdownPage ?? false;
-
-    StreamController<ShutdownProgress>? progressController;
-    if (showShutdownPage) {
-      progressController = StreamController<ShutdownProgress>.broadcast();
-    }
-
+    // Fire-and-forget. orchestratord acks immediately and drains
+    // bitcoind/enforcer/sidechains in its own goroutine over up to ~90s —
+    // detached from us, so it survives this Flutter process exiting.
+    log.i('BinaryProvider: relaying Shutdown to orchestratord (fire-and-forget)');
     try {
-      if (showShutdownPage && shutdownOptions != null) {
-        if (shutdownOptions.router.current.name != ShutDownRoute.name) {
-          unawaited(
-            shutdownOptions.router.push(
-              ShutDownRoute(
-                binaries: binaries,
-                shutdownStream: progressController!.stream,
-                onComplete: shutdownOptions.onComplete,
-              ),
-            ),
-          );
-        }
-      }
-
-      await for (final progress in _orchestrator.shutdownAll(force: forceKill)) {
-        progressController?.add(
-          ShutdownProgress(
-            totalCount: progress.totalCount,
-            completedCount: progress.completedCount,
-            currentBinary: progress.currentBinary.isNotEmpty ? progress.currentBinary : null,
-            isForceKill: forceKill,
-          ),
-        );
-
-        if (progress.error.isNotEmpty) {
-          log.e('BinaryProvider: shutdown error: ${progress.error}');
-        }
-        if (progress.done) break;
-      }
-
-      await progressController?.close();
-
-      // Stop any daemon binaries spawned directly by Flutter (e.g. orchestratord)
-      await _processManager.stopAll();
-
-      if (!showShutdownPage) {
-        shutdownOptions?.onComplete();
-      }
+      await _orchestrator.shutdown();
     } catch (error) {
-      log.e('error shutting down: $error');
+      log.e('error calling orchestrator.shutdown: $error');
     }
 
+    // Reap any Flutter-spawned children. For bitwindow that's bitwindowd
+    // (which itself idempotently relays Shutdown to orchestratord on exit,
+    // belt-and-suspenders). For sidechain apps that spawn orchestratord
+    // directly from Dart, this catches it via SIGTERM — orchestratord's
+    // signal handler routes through the same BeginShutdown path.
+    try {
+      await _processManager.stopAll();
+    } catch (error) {
+      log.e('error stopping flutter children: $error');
+    }
+
+    shutdownOptions?.onComplete();
     return true;
   }
 
