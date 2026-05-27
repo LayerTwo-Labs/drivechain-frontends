@@ -15,7 +15,9 @@ import (
 )
 
 const (
-	gracefulKillTimeout   = 10 * time.Second
+	// Bitcoin Core needs 30s+ to flush chainstate cleanly; Rosetta-translated
+	// builds need even longer. SIGKILL mid-flush wedges in macOS `UE` state.
+	gracefulKillTimeout   = 90 * time.Second
 	postKillFileLockGrace = 2 * time.Second
 )
 
