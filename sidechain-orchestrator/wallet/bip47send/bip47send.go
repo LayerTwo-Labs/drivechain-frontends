@@ -69,7 +69,7 @@ func BuildNotificationTx(
 	feeSats int64,
 	net *chaincfg.Params,
 ) (rawHex string, outpoint wire.OutPoint, err error) {
-	senderPC, err := bip47.PaymentCodeFromSeed(senderSeedHex)
+	senderPC, err := bip47.PaymentCodeFromSeed(senderSeedHex, net)
 	if err != nil {
 		return "", wire.OutPoint{}, fmt.Errorf("sender payment code: %w", err)
 	}
@@ -261,7 +261,7 @@ func SubstituteBip47Destination(
 		return nil, fmt.Errorf("%w: 0x%02x", ErrUnsupportedVersion, recipient.Version)
 	}
 
-	senderPC, err := bip47.PaymentCodeFromSeed(senderSeedHex)
+	senderPC, err := bip47.PaymentCodeFromSeed(senderSeedHex, net)
 	if err != nil {
 		return nil, fmt.Errorf("derive sender payment code: %w", err)
 	}

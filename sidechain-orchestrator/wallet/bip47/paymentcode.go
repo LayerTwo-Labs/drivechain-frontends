@@ -130,11 +130,24 @@ func (pc *PaymentCode) Equal(other *PaymentCode) bool {
 	return bytes.Equal(a[:], b[:])
 }
 
-func PaymentCodeFromSeed(seedHex string) (*PaymentCode, error) {
+// bip44CoinType returns the BIP44 coin_type value for a chain. Mainnet is 0;
+// all testnets (testnet3, signet, regtest) use 1 per BIP44. BIP47 inherits
+// this mapping at the second derivation level (m/47'/coin_type'/identity').
+func bip44CoinType(net *chaincfg.Params) uint32 {
+	if net == nil || net.Name == chaincfg.MainNetParams.Name {
+		return 0
+	}
+	return 1
+}
+
+func PaymentCodeFromSeed(seedHex string, net *chaincfg.Params) (*PaymentCode, error) {
 	seed, err := hexDecode(seedHex)
 	if err != nil {
 		return nil, fmt.Errorf("decode seed: %w", err)
 	}
+	// Master + xpub serialization always uses MainNetParams version bytes here
+	// because BIP32 derivation math is network-agnostic; the version bytes only
+	// affect serialization, never the derived key/chaincode pair.
 	master, err := hdkeychain.NewMaster(seed, &chaincfg.MainNetParams)
 	if err != nil {
 		return nil, fmt.Errorf("master key: %w", err)
@@ -144,9 +157,9 @@ func PaymentCodeFromSeed(seedHex string) (*PaymentCode, error) {
 	if err != nil {
 		return nil, fmt.Errorf("derive 47': %w", err)
 	}
-	coin, err := purpose.Derive(hardened + 0)
+	coin, err := purpose.Derive(hardened + bip44CoinType(net))
 	if err != nil {
-		return nil, fmt.Errorf("derive 0': %w", err)
+		return nil, fmt.Errorf("derive coin': %w", err)
 	}
 	account, err := coin.Derive(hardened + 0)
 	if err != nil {
@@ -172,14 +185,15 @@ func PaymentCodeFromSeed(seedHex string) (*PaymentCode, error) {
 	return pc, nil
 }
 
-func PaymentCodeFromMnemonic(mnemonic string) (*PaymentCode, error) {
+func PaymentCodeFromMnemonic(mnemonic string, net *chaincfg.Params) (*PaymentCode, error) {
 	seed := bip39.NewSeed(mnemonic, "")
-	return PaymentCodeFromSeed(hexEncode(seed))
+	return PaymentCodeFromSeed(hexEncode(seed), net)
 }
 
-// SeedAccountKey returns the m/47'/0'/0' extended private key. a₀ used for
-// sender-side per-payment derivation is child 0 of this.
-func SeedAccountKey(seedHex string) (*hdkeychain.ExtendedKey, error) {
+// SeedAccountKey returns the m/47'/coin_type'/0' extended private key, where
+// coin_type follows BIP44 (mainnet=0, testnet/signet/regtest=1). The a₀ key
+// used for sender-side per-payment derivation is child 0 of this.
+func SeedAccountKey(seedHex string, net *chaincfg.Params) (*hdkeychain.ExtendedKey, error) {
 	seed, err := hexDecode(seedHex)
 	if err != nil {
 		return nil, err
@@ -193,7 +207,7 @@ func SeedAccountKey(seedHex string) (*hdkeychain.ExtendedKey, error) {
 	if err != nil {
 		return nil, err
 	}
-	a, err = a.Derive(h + 0)
+	a, err = a.Derive(h + bip44CoinType(net))
 	if err != nil {
 		return nil, err
 	}

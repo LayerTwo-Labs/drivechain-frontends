@@ -70,9 +70,9 @@ func (h *WalletHandler) expandBip47Destinations(
 		return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("wallet %s has no master seed", walletID))
 	}
 
-	netParams, err := bip47send.NetworkParams(h.engine.Network())
-	if err != nil {
-		return nil, connect.NewError(connect.CodeFailedPrecondition, err)
+	netParams := h.engine.Network()
+	if netParams == nil {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("BIP47 send not supported on this network"))
 	}
 
 	result, err := bip47send.SubstituteBip47Destination(seedHex, walletID, destinations, netParams, h.bip47State)
