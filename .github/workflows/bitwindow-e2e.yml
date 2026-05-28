@@ -16,7 +16,7 @@ on:
   workflow_dispatch:
 
 env:
-  FLUTTER_VERSION: "3.41.6"
+  FLUTTER_VERSION: "3.44.0"
   GO_VERSION: "1.25"
 
 jobs:
@@ -54,7 +54,9 @@ jobs:
           path: |
             ~/go/pkg/mod
             ~/.cache/go-build
-          key: go-e2e-${{ env.GO_VERSION }}-${{ runner.os }}-${{ hashFiles('**/go.sum') }}
+          key:
+            go-e2e-${{ env.GO_VERSION }}-${{ runner.os }}-${{
+            hashFiles('**/go.sum') }}
           restore-keys: go-e2e-${{ env.GO_VERSION }}-${{ runner.os }}-
 
       - name: Cache Go modules (Windows)
@@ -64,7 +66,9 @@ jobs:
           path: |
             ~\AppData\Local\go-build
             ~\go\pkg\mod
-          key: go-e2e-${{ env.GO_VERSION }}-${{ runner.os }}-${{ hashFiles('**/go.sum') }}
+          key:
+            go-e2e-${{ env.GO_VERSION }}-${{ runner.os }}-${{
+            hashFiles('**/go.sum') }}
           restore-keys: go-e2e-${{ env.GO_VERSION }}-${{ runner.os }}-
 
       - uses: actions/setup-go@v6
@@ -98,7 +102,8 @@ jobs:
       - name: Issue 1 — boot test
         id: boot
         working-directory: bitwindow/e2e
-        run: go test -tags e2e -v -timeout 15m -run TestJustRunBootsDaemons ./...
+        run:
+          go test -tags e2e -v -timeout 15m -run TestJustRunBootsDaemons ./...
         env:
           BITWINDOW_TEST_LOG_DIR: ${{ runner.temp }}/e2e-logs/boot
           FLUTTER_RUN_ARGS: ${{ runner.os == 'Windows' && '-v' || '' }}
@@ -107,7 +112,9 @@ jobs:
         id: shutdown
         if: always() && steps.boot.conclusion == 'success'
         working-directory: bitwindow/e2e
-        run: go test -tags e2e -v -timeout 15m -run TestJustRunShutsDownDaemons ./...
+        run:
+          go test -tags e2e -v -timeout 15m -run TestJustRunShutsDownDaemons
+          ./...
         env:
           BITWINDOW_TEST_LOG_DIR: ${{ runner.temp }}/e2e-logs/shutdown
           FLUTTER_RUN_ARGS: ${{ runner.os == 'Windows' && '-v' || '' }}
@@ -125,7 +132,9 @@ jobs:
         id: window_close
         if: always() && steps.boot.conclusion == 'success'
         working-directory: bitwindow/e2e
-        run: go test -tags e2e -v -timeout 15m -run TestWindowCloseShutsDownDaemons ./...
+        run:
+          go test -tags e2e -v -timeout 15m -run TestWindowCloseShutsDownDaemons
+          ./...
         env:
           BITWINDOW_TEST_LOG_DIR: ${{ runner.temp }}/e2e-logs/window-close
           FLUTTER_RUN_ARGS: ${{ runner.os == 'Windows' && '-v' || '' }}

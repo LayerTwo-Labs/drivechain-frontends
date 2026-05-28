@@ -5,8 +5,7 @@ enum MarketState {
   trading(1, 'LIVE'),
   cancelled(3, 'CANCELLED'),
   invalid(4, 'INVALID'),
-  ossified(5, 'RESOLVED')
-  ;
+  ossified(5, 'RESOLVED');
 
   final int value;
   final String displayName;

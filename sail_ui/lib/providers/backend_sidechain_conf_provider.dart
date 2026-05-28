@@ -29,15 +29,12 @@ class BackendSidechainConfProvider extends GenericSidechainConfProvider {
     required this.sidechainName,
     required String appName,
     required String configFileName,
-    required String Function() getDataDir,
-    required Map<String, String> Function(String network) getNetworkPorts,
-    required String Function() getDefaultConfig,
+    required this._getDataDir,
+    required this._getNetworkPorts,
+    required this._getDefaultConfig,
     required List<String> skippedCliKeys,
   }) : _appNameValue = appName,
        _configFileNameValue = configFileName,
-       _getDataDir = getDataDir,
-       _getNetworkPorts = getNetworkPorts,
-       _getDefaultConfig = getDefaultConfig,
        _skippedCliKeysValue = skippedCliKeys;
 
   /// Create a BackendSidechainConfProvider from an existing GenericSidechainConfProvider

@@ -167,9 +167,9 @@ jobs:
           path: |
             ~/.flutter
             ~/.pub-cache
-          key: flutter-build-3.41.6-${{ runner.os }}
+          key: flutter-build-3.44.0-${{ runner.os }}
           restore-keys: |
-            flutter-build-3.41.6-
+            flutter-build-3.44.0-
 
       - name: Cache Go modules
         uses: actions/cache@v5
@@ -184,7 +184,7 @@ jobs:
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
-          flutter-version: 3.41.6
+          flutter-version: 3.44.0
 
       - name: Install Fastforge - a tool for building and distributing apps
         run: dart pub global activate fastforge

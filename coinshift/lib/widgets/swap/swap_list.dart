@@ -13,8 +13,7 @@ enum SwapStatusFilter {
   waitingConfirmations('Waiting Confirmations'),
   readyToClaim('Ready To Claim'),
   completed('Completed'),
-  cancelled('Cancelled')
-  ;
+  cancelled('Cancelled');
 
   final String label;
   const SwapStatusFilter(this.label);

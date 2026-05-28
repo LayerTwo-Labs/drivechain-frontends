@@ -27,7 +27,7 @@ class OrchestratorRPC {
   final String _host;
   final int _port;
 
-  OrchestratorRPC({required String host, required int port}) : _host = host, _port = port {
+  OrchestratorRPC({required this._host, required this._port}) {
     _initializeConnection();
   }
 

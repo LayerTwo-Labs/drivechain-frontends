@@ -31,9 +31,9 @@ class BinaryProvider extends ChangeNotifier {
   BinaryProvider._({
     required this.appDir,
     required this.binaries,
-    required ProcessManager processManager,
+    required this._processManager,
     required this.isSidechainApp,
-  }) : _processManager = processManager {
+  }) {
     _processManager.addListener(notifyListeners);
     _startMetadataRefreshTimer();
     _wireSettingsListener();

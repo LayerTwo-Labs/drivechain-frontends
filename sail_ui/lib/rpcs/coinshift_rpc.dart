@@ -461,8 +461,7 @@ enum ParentChainType {
   bch,
   ltc,
   signet,
-  regtest
-  ;
+  regtest;
 
   String get value => switch (this) {
     ParentChainType.btc => 'BTC',
@@ -483,8 +482,7 @@ enum ParentChainType {
 /// Swap direction
 enum SwapDirection {
   l2ToL1,
-  l1ToL2
-  ;
+  l1ToL2;
 
   static SwapDirection fromString(String value) {
     return switch (value) {
