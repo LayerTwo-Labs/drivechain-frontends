@@ -42,16 +42,16 @@ enum _FailureKind { stream, transport }
 /// ```
 class StreamSupervisor<T> {
   StreamSupervisor({
-    required Stream<T> Function() subscribe,
-    required void Function(T event) onEvent,
-    required void Function() onTransportDeath,
-    required Logger logger,
-    required String tag,
+    required this._subscribe,
+    required this._onEvent,
+    required this._onTransportDeath,
+    required this._logger,
+    required this._tag,
     Duration heartbeatTimeout = const Duration(seconds: 12),
-    Duration heartbeatCheckInterval = const Duration(seconds: 2),
+    this._heartbeatCheckInterval = const Duration(seconds: 2),
     Duration serverHeartbeatInterval = kServerHeartbeatInterval,
     bool Function(Object error)? isTransportError,
-    DateTime Function() now = _systemNow,
+    this._now = _systemNow,
   }) : assert(
          heartbeatTimeout > serverHeartbeatInterval * 2,
          'heartbeatTimeout ($heartbeatTimeout) must be > 2 * '
@@ -62,15 +62,8 @@ class StreamSupervisor<T> {
          'full interval out). A timeout ≤ 2× would produce spurious dead-'
          'stream detections under perfectly healthy conditions.',
        ),
-       _subscribe = subscribe,
-       _onEvent = onEvent,
-       _onTransportDeath = onTransportDeath,
-       _logger = logger,
-       _tag = tag,
        _heartbeatTimeout = heartbeatTimeout,
-       _heartbeatCheckInterval = heartbeatCheckInterval,
-       _isTransportError = isTransportError ?? _defaultIsTransportError,
-       _now = now;
+       _isTransportError = isTransportError ?? _defaultIsTransportError;
 
   final Stream<T> Function() _subscribe;
   final void Function(T) _onEvent;

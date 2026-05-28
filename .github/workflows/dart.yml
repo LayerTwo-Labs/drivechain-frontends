@@ -16,8 +16,8 @@ on:
       - ".github/workflows/dart.yml"
 
 env:
-  FLUTTER_VERSION: "3.41.6"
-  DART_VERSION: "3.11.4"
+  FLUTTER_VERSION: "3.44.0"
+  DART_VERSION: "3.12.0"
 
 jobs:
   format-lint-test:
@@ -56,7 +56,9 @@ jobs:
           path: |
             ~/.flutter
             ~/.pub-cache
-          key: flutter-${{ env.FLUTTER_VERSION }}-${{ env.DART_VERSION }}-${{ runner.os }}
+          key:
+            flutter-${{ env.FLUTTER_VERSION }}-${{ env.DART_VERSION }}-${{
+            runner.os }}
           restore-keys: |
             flutter-${{ env.FLUTTER_VERSION }}-${{ env.DART_VERSION }}-
             flutter-${{ env.FLUTTER_VERSION }}-
@@ -76,13 +78,17 @@ jobs:
           path: |
             ${{ matrix.package }}/.dart_tool
             ${{ matrix.package }}/build
-          key: dart-deps-${{ matrix.package }}-${{ hashFiles(format('{0}/pubspec.lock', matrix.package)) }}
+          key:
+            dart-deps-${{ matrix.package }}-${{
+            hashFiles(format('{0}/pubspec.lock', matrix.package)) }}
           restore-keys: |
             dart-deps-${{ matrix.package }}-
 
         # https://docs.flutter.dev/platform-integration/linux/building
       - name: Install Linux build dependencies
-        run: sudo apt-get update -y && sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev libstdc++-12-dev
+        run:
+          sudo apt-get update -y && sudo apt-get install -y clang cmake
+          ninja-build pkg-config libgtk-3-dev liblzma-dev libstdc++-12-dev
 
       - name: Install dependencies
         run: flutter pub get --enforce-lockfile

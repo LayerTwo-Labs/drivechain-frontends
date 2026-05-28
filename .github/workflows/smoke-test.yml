@@ -9,18 +9,18 @@ on:
   push:
     branches: [master]
     paths:
-      - "bitwindow/**" 
+      - "bitwindow/**"
       - "sail_ui/**"
 
 env:
-  FLUTTER_VERSION: "3.41.6"
+  FLUTTER_VERSION: "3.44.0"
 
 jobs:
   smoke-test:
     name: BitWindow Smoke Test
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    
+
     steps:
       - uses: actions/checkout@v5
 
@@ -61,7 +61,7 @@ jobs:
         run: |
           echo "🚀 Running BitWindow smoke test..."
           echo "This test verifies the app launches without crashing and shows expected UI."
-          
+
           # Run the minimal integration test
           flutter drive \
             --driver=test_driver/integration_test.dart \
@@ -79,7 +79,7 @@ jobs:
             echo "This means basic app functionality is broken."
             exit 1
           }
-          
+
           echo ""
           echo "✅ SMOKE TEST PASSED!"
           echo "BitWindow launches successfully and shows expected UI."

@@ -2183,8 +2183,8 @@ class DownloadConfig {
     required this.binary,
     required this.files,
     this.extractSubfolder,
-    Map<BitcoinNetwork, String> baseUrls = const {},
-  }) : _baseUrls = baseUrls;
+    this._baseUrls = const {},
+  });
 
   /// Get the base URL for a network. Falls back to first available URL.
   String baseUrl([BitcoinNetwork? network]) {
@@ -2214,14 +2214,13 @@ class MetadataConfig {
   bool updateable; // Whether the binary can be updated
 
   MetadataConfig({
-    required DownloadConfig downloadConfig,
-    DownloadConfig? alternativeDownloadConfig,
+    required this._downloadConfig,
+    this._alternativeDownloadConfig,
     required this.updateable,
     required this.remoteTimestamp,
     required this.downloadedTimestamp,
     required this.binaryPath,
-  }) : _alternativeDownloadConfig = alternativeDownloadConfig,
-       _downloadConfig = downloadConfig;
+  });
 
   MetadataConfig copyWith({
     DownloadConfig? downloadConfig,

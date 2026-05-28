@@ -29,8 +29,7 @@ enum SlotState {
   available,
   claimed,
   voting,
-  ossified
-  ;
+  ossified;
 
   static SlotState fromString(String str) {
     final lower = str.toLowerCase();
