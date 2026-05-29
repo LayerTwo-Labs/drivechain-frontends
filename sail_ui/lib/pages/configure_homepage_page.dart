@@ -123,7 +123,7 @@ class _SailConfigureHomePageState extends State<SailConfigureHomePage> {
                                       );
                                     },
                                     itemCount: model.tempConfiguration.widgets.length,
-                                    onReorder: model.reorderWidgets,
+                                    onReorderItem: model.reorderWidgets,
                                     itemBuilder: (context, index) {
                                       final widgetConfig = model.tempConfiguration.widgets[index];
                                       final widgetInfo = widget.widgetCatalog[widgetConfig.widgetId];

@@ -12,6 +12,7 @@ import (
 	"connectrpc.com/connect"
 	pb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1"
 	rpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1/walletmanagerv1connect"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/localauth"
 	"github.com/urfave/cli/v2"
 )
 
@@ -24,6 +25,7 @@ func newWalletClient(cctx *cli.Context) rpc.WalletManagerServiceClient {
 		http.DefaultClient,
 		url,
 		connect.WithGRPC(),
+		connect.WithInterceptors(localauth.Interceptor(cookieDir(cctx))),
 	)
 }
 

@@ -36,6 +36,7 @@ import (
 	truthcoinrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/truthcoin/v1/truthcoinv1connect"
 	walletrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1/walletmanagerv1connect"
 	zsiderpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/zside/v1/zsidev1connect"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/localauth"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain"
 	bitassetssvc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/bitassets"
 	bitnamessvc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/bitnames"
@@ -83,6 +84,12 @@ func main() {
 				Usage:   "path to bitwindow data directory",
 				Value:   orchestrator.DefaultBitwindowDir(),
 				EnvVars: []string{"ORCHESTRATOR_BITWINDOW_DIR"},
+			},
+			&cli.BoolFlag{
+				Name:    "local-auth",
+				Usage:   "write a per-session cookie token to <bitwindow-dir>/.auth.cookie and require it on every RPC (bitcoind-style local auth)",
+				Value:   true,
+				EnvVars: []string{"ORCHESTRATOR_LOCAL_AUTH"},
 			},
 			&cli.StringSliceFlag{
 				Name:    "binary",
@@ -139,6 +146,8 @@ func run(cctx *cli.Context) error {
 	dataDir := cctx.String("datadir")
 	network := cctx.String("network")
 	listenAddr := cctx.String("rpclisten")
+	bitwindowDir := cctx.String("bitwindow-dir")
+	localAuth := cctx.Bool("local-auth")
 
 	log.Info().
 		Str("datadir", dataDir).
@@ -146,23 +155,36 @@ func run(cctx *cli.Context) error {
 		Str("rpclisten", listenAddr).
 		Msg("starting orchestratord")
 
-	// Single-instance check: if something is already serving on our port,
-	// it's almost certainly another orchestratord still draining (or healthy
-	// and owned by another bitwindowd). Exit cleanly so the caller can adopt
-	// the existing instance via RPC instead of fighting over the port. Done
-	// up front so we don't waste time initializing config / wallet / proxies
-	// only to bail at the listen step.
+	// Single-instance check. With local auth enabled, adopting an existing
+	// listener would require sending it the bearer cookie; a port-squatter could
+	// harvest that token. Fail closed instead.
 	if conn, dialErr := net.DialTimeout("tcp", listenAddr, 200*time.Millisecond); dialErr == nil {
 		_ = conn.Close()
+		if localAuth {
+			return fmt.Errorf("RPC address %s is already in use; refusing to adopt an existing listener while local auth is enabled", listenAddr)
+		}
 		log.Info().Str("addr", listenAddr).Msg("orchestratord already running on this port; exiting (will be adopted by caller)")
 		return nil
 	}
 
 	// Load binary configs from JSON (in bitwindow dir), falling back to hardcoded defaults
-	bitwindowDir := cctx.String("bitwindow-dir")
 	configPath := orchestrator.ConfigFilePath(bitwindowDir)
 	configs := orchestrator.LoadConfigFile(configPath, log)
 	orch := orchestrator.New(dataDir, network, bitwindowDir, configs, log)
+
+	// Local RPC auth (bitcoind-style cookie). When enabled, clear any stale
+	// token now and write a fresh one only after this process owns the listener.
+	// authIC is added to every handler below, so all endpoints are authed
+	// uniformly.
+	authIC := localauth.Interceptor("")
+	if localAuth {
+		if err := localauth.RemoveCookie(bitwindowDir); err != nil {
+			return fmt.Errorf("remove stale local auth cookie: %w", err)
+		}
+		authIC = localauth.Interceptor(bitwindowDir)
+	} else if err := localauth.RemoveCookie(bitwindowDir); err != nil {
+		log.Warn().Err(err).Msg("could not clear stale local auth cookie")
+	}
 
 	// Watch config file for changes
 	stopWatch, err := orchestrator.WatchConfigFile(configPath, func(newConfigs []orchestrator.BinaryConfig) {
@@ -211,8 +233,34 @@ func run(cctx *cli.Context) error {
 	// Set up gRPC/ConnectRPC server
 	handler := api.NewHandler(orch)
 	mux := http.NewServeMux()
+	if localAuth {
+		// Allows a relaunched bitwindowd to verify that an occupied RPC port is
+		// the previous orchestratord without sending the bearer cookie to an
+		// arbitrary listener.
+		mux.HandleFunc("/local-auth/challenge", func(w http.ResponseWriter, r *http.Request) {
+			if r.Method != http.MethodGet {
+				http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+				return
+			}
+			nonce := r.URL.Query().Get("nonce")
+			if nonce == "" || len(nonce) > 256 {
+				http.Error(w, "invalid nonce", http.StatusBadRequest)
+				return
+			}
+			token, err := localauth.ReadCookie(bitwindowDir)
+			if err != nil {
+				http.Error(w, "read auth cookie", http.StatusInternalServerError)
+				return
+			}
+			if token == "" {
+				http.Error(w, "auth cookie missing", http.StatusServiceUnavailable)
+				return
+			}
+			_, _ = io.WriteString(w, localauth.ChallengeResponse(token, nonce))
+		})
+	}
 
-	path, h := rpc.NewOrchestratorServiceHandler(handler, connect.WithInterceptors())
+	path, h := rpc.NewOrchestratorServiceHandler(handler, connect.WithInterceptors(authIC))
 	mux.Handle(path, h)
 
 	// Wallet manager service
@@ -270,13 +318,13 @@ func run(cctx *cli.Context) error {
 		log.Info().Int("enforcer_port", enforcerCfg.Port).Msg("enforcer wallet client registered")
 	}
 
-	walletPath, walletH := walletrpc.NewWalletManagerServiceHandler(walletHandler, connect.WithInterceptors())
+	walletPath, walletH := walletrpc.NewWalletManagerServiceHandler(walletHandler, connect.WithInterceptors(authIC))
 	mux.Handle(walletPath, walletH)
 
 	// Bitcoin config service
 	if orch.BitcoinConf != nil {
 		confHandler := api.NewBitcoinConfHandler(orch)
-		confPath, confH := rpc.NewBitcoinConfServiceHandler(confHandler, connect.WithInterceptors())
+		confPath, confH := rpc.NewBitcoinConfServiceHandler(confHandler, connect.WithInterceptors(authIC))
 		mux.Handle(confPath, confH)
 	}
 
@@ -290,11 +338,11 @@ func run(cctx *cli.Context) error {
 		if proxy, err := startCoreProxy(ctx, orch, log); err != nil {
 			log.Warn().Err(err).Msg("failed to start bitcoin core proxy")
 		} else {
-			_, coreH := corerpc.NewBitcoinServiceHandler(proxy, connect.WithInterceptors())
+			_, coreH := corerpc.NewBitcoinServiceHandler(proxy, connect.WithInterceptors(authIC))
 			swappable.swap(coreH)
 		}
 		// The path is constant; register once.
-		corePath, _ := corerpc.NewBitcoinServiceHandler(noopBitcoinService{}, connect.WithInterceptors())
+		corePath, _ := corerpc.NewBitcoinServiceHandler(noopBitcoinService{}, connect.WithInterceptors(authIC))
 		mux.Handle(corePath, swappable)
 		log.Info().Str("service", "bitcoin.bitcoind.v1alpha.BitcoinService").Msg("registered bitcoin core proxy")
 
@@ -304,7 +352,7 @@ func run(cctx *cli.Context) error {
 				log.Error().Err(err).Msg("rebuild bitcoin core proxy after network swap")
 				return
 			}
-			_, h := corerpc.NewBitcoinServiceHandler(rebuilt, connect.WithInterceptors())
+			_, h := corerpc.NewBitcoinServiceHandler(rebuilt, connect.WithInterceptors(authIC))
 			swappable.swap(h)
 			log.Info().Str("network", string(orch.BitcoinConf.Network)).Msg("rebuilt bitcoin core proxy for new network")
 		}
@@ -313,13 +361,13 @@ func run(cctx *cli.Context) error {
 	// Enforcer config service
 	if orch.EnforcerConf != nil {
 		enforcerHandler := api.NewEnforcerConfHandler(orch.EnforcerConf)
-		enforcerPath, enforcerH := rpc.NewEnforcerConfServiceHandler(enforcerHandler, connect.WithInterceptors())
+		enforcerPath, enforcerH := rpc.NewEnforcerConfServiceHandler(enforcerHandler, connect.WithInterceptors(authIC))
 		mux.Handle(enforcerPath, enforcerH)
 	}
 
 	// Generic sidechain config service (all sidechains)
 	sidechainConfHandler := api.NewSidechainConfHandler(orch.SidechainConfs)
-	scConfPath, scConfH := rpc.NewSidechainConfServiceHandler(sidechainConfHandler, connect.WithInterceptors())
+	scConfPath, scConfH := rpc.NewSidechainConfServiceHandler(sidechainConfHandler, connect.WithInterceptors(authIC))
 	mux.Handle(scConfPath, scConfH)
 
 	// Per-sidechain typed RPC services (proxy to sidechain binary JSON-RPC)
@@ -328,37 +376,37 @@ func run(cctx *cli.Context) error {
 		switch name {
 		case "thunder":
 			h := thundersvc.NewHandler(proxy)
-			path, handler := thunderrpc.NewThunderServiceHandler(h, connect.WithInterceptors())
+			path, handler := thunderrpc.NewThunderServiceHandler(h, connect.WithInterceptors(authIC))
 			mux.Handle(path, handler)
 			log.Info().Str("sidechain", name).Int("port", cfg.Port).Msg("registered sidechain RPC service")
 		case "bitnames":
 			h := bitnamessvc.NewHandler(proxy)
-			path, handler := bitnamesrpc.NewBitnamesServiceHandler(h, connect.WithInterceptors())
+			path, handler := bitnamesrpc.NewBitnamesServiceHandler(h, connect.WithInterceptors(authIC))
 			mux.Handle(path, handler)
 			log.Info().Str("sidechain", name).Int("port", cfg.Port).Msg("registered sidechain RPC service")
 		case "bitassets":
 			h := bitassetssvc.NewHandler(proxy)
-			path, handler := bitassetsrpc.NewBitAssetsServiceHandler(h, connect.WithInterceptors())
+			path, handler := bitassetsrpc.NewBitAssetsServiceHandler(h, connect.WithInterceptors(authIC))
 			mux.Handle(path, handler)
 			log.Info().Str("sidechain", name).Int("port", cfg.Port).Msg("registered sidechain RPC service")
 		case "photon":
 			h := photonsvc.NewHandler(proxy)
-			path, handler := photonrpc.NewPhotonServiceHandler(h, connect.WithInterceptors())
+			path, handler := photonrpc.NewPhotonServiceHandler(h, connect.WithInterceptors(authIC))
 			mux.Handle(path, handler)
 			log.Info().Str("sidechain", name).Int("port", cfg.Port).Msg("registered sidechain RPC service")
 		case "truthcoin":
 			h := truthcoinsvc.NewHandler(proxy)
-			path, handler := truthcoinrpc.NewTruthcoinServiceHandler(h, connect.WithInterceptors())
+			path, handler := truthcoinrpc.NewTruthcoinServiceHandler(h, connect.WithInterceptors(authIC))
 			mux.Handle(path, handler)
 			log.Info().Str("sidechain", name).Int("port", cfg.Port).Msg("registered sidechain RPC service")
 		case "coinshift":
 			h := coinshiftsvc.NewHandler(proxy)
-			path, handler := coinshiftrpc.NewCoinShiftServiceHandler(h, connect.WithInterceptors())
+			path, handler := coinshiftrpc.NewCoinShiftServiceHandler(h, connect.WithInterceptors(authIC))
 			mux.Handle(path, handler)
 			log.Info().Str("sidechain", name).Int("port", cfg.Port).Msg("registered sidechain RPC service")
 		case "zside":
 			h := zsidesvc.NewHandler(proxy)
-			path, handler := zsiderpc.NewZSideServiceHandler(h, connect.WithInterceptors())
+			path, handler := zsiderpc.NewZSideServiceHandler(h, connect.WithInterceptors(authIC))
 			mux.Handle(path, handler)
 			log.Info().Str("sidechain", name).Int("port", cfg.Port).Msg("registered sidechain RPC service")
 		}
@@ -381,6 +429,13 @@ func run(cctx *cli.Context) error {
 	lis, err := net.Listen("tcp", listenAddr)
 	if err != nil {
 		return fmt.Errorf("listen %s: %w", listenAddr, err)
+	}
+	if localAuth {
+		if _, err := localauth.WriteCookie(bitwindowDir); err != nil {
+			_ = lis.Close()
+			return fmt.Errorf("write local auth cookie: %w", err)
+		}
+		log.Info().Str("cookie", localauth.CookiePath(bitwindowDir)).Msg("local RPC auth enabled")
 	}
 	log.Info().Str("addr", lis.Addr().String()).Msg("serving gRPC")
 

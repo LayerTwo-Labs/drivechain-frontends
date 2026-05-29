@@ -92,7 +92,7 @@ class HomepageConfiguration {
   HomepageConfiguration reorderWidgets(int oldIndex, int newIndex) {
     final newWidgets = List<HomepageWidgetConfig>.from(widgets);
     final widget = newWidgets.removeAt(oldIndex);
-    newWidgets.insert(newIndex > oldIndex ? newIndex - 1 : newIndex, widget);
+    newWidgets.insert(newIndex, widget);
     return copyWith(widgets: newWidgets, lastModified: DateTime.now());
   }
 

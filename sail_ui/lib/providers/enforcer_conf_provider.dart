@@ -33,6 +33,7 @@ class EnforcerConfProvider extends ChangeNotifier {
       baseUrl: 'http://localhost:30400',
       codec: const ProtoCodec(),
       httpClient: keepaliveHttpClient(),
+      interceptors: [LocalAuth.interceptor()],
     );
     _client = EnforcerConfServiceClient(transport);
   }

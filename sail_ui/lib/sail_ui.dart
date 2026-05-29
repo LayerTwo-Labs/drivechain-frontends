@@ -1,3 +1,4 @@
+export 'auth/local_auth.dart';
 export 'bitcoin.dart';
 export 'classes/node_connection_settings.dart';
 export 'models/active_sidechain.dart';

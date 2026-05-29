@@ -2,9 +2,14 @@ package main
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/hex"
 	"fmt"
+	"io"
+	"net"
 	"net/http"
 	_ "net/http/pprof"
+	"net/url"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -23,6 +28,7 @@ import (
 	rpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1/mainchainv1connect"
 	orchpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/orchestrator/v1"
 	orchrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/orchestrator/v1/orchestratorv1connect"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/localauth"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/bitassets"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/bitnames"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/coinshift"
@@ -82,8 +88,14 @@ func realMain(ctx context.Context, cancelCtx context.CancelFunc) error {
 	bootLogger := zerolog.New(os.Stderr).With().Timestamp().Logger()
 	bootCtx := bootLogger.WithContext(ctx)
 
+	// Base bitwindow dir (pre-Finalize) holding wallet.json and the shared
+	// .auth.cookie. Capture before Finalize suffixes Datadir with the network,
+	// and point the orchestrator (Bitcoind proxy) client at it for local auth.
+	bitwindowDir := conf.BitwindowDir()
+	dial.SetCookieDir(bitwindowDir)
+
 	if _, err := startOrchestratord(bootCtx, conf); err != nil {
-		bootLogger.Warn().Err(err).Msg("failed to start orchestratord (may already be running)")
+		return fmt.Errorf("start orchestratord: %w", err)
 	}
 
 	// Best-effort relay Shutdown to orchestratord on any bitwindowd exit path
@@ -92,9 +104,9 @@ func realMain(ctx context.Context, cancelCtx context.CancelFunc) error {
 	// fires — Shutdown is idempotent on the orchestrator side, so the double
 	// call is harmless. orchestratord is detached and survives bitwindowd's
 	// exit either way.
-	defer relayShutdownToOrchestratord(conf.OrchestratorAddr, bootLogger)
+	defer relayShutdownToOrchestratord(conf.OrchestratorAddr, bitwindowDir, bootLogger)
 
-	network, err := waitForOrchestratorNetwork(bootCtx, conf.OrchestratorAddr, bootLogger)
+	network, err := waitForOrchestratorNetwork(bootCtx, conf.OrchestratorAddr, bitwindowDir, bootLogger)
 	if err != nil {
 		return fmt.Errorf("read network from orchestratord: %w", err)
 	}
@@ -185,6 +197,7 @@ func realMain(ctx context.Context, cancelCtx context.CancelFunc) error {
 		CoinShiftConnector: coinshiftConnector,
 
 		OrchestratorAddr: conf.OrchestratorAddr,
+		BitwindowDir:     bitwindowDir,
 	}
 
 	// api.New builds the long-lived service connectors, then constructs the
@@ -302,21 +315,26 @@ func isNoisyStartupMessage(msg string) bool {
 }
 
 // startOrchestratord starts the orchestrator daemon as a subprocess.
-// If orchestratord is already running (e.g. from a previous session), it adopts
-// the existing instance instead of spawning a new one.
 func startOrchestratord(ctx context.Context, conf config.Config) (*exec.Cmd, error) {
 	log := zerolog.Ctx(ctx)
+	bitwindowDir := conf.BitwindowDir()
 
-	// Check if orchestratord is already running by trying to connect.
-	orchClient := orchrpc.NewOrchestratorServiceClient(
-		http.DefaultClient,
-		conf.OrchestratorAddr,
-		connect.WithGRPC(),
-	)
-	_, err := orchClient.ListBinaries(ctx, connect.NewRequest(&orchpb.ListBinariesRequest{}))
-	if err == nil {
-		log.Info().Msg("orchestratord already running, adopting existing instance")
+	// If a previous orchestratord is still draining, adopt it only after it
+	// proves it knows the cookie. This avoids sending the bearer token to an
+	// arbitrary listener that managed to occupy the port.
+	adopted, err := existingOrchestratorAdoptable(conf.OrchestratorAddr, bitwindowDir)
+	if err != nil {
+		return nil, err
+	}
+	if adopted {
+		log.Info().Str("addr", conf.OrchestratorAddr).Msg("orchestratord already running, adopting verified instance")
 		return nil, nil
+	}
+
+	// Drop stale bearer tokens before any readiness poll can attach one to a
+	// listener we did not spawn.
+	if err := localauth.RemoveCookie(bitwindowDir); err != nil {
+		return nil, fmt.Errorf("remove stale orchestrator auth cookie: %w", err)
 	}
 
 	// Find the orchestratord binary next to our own binary.
@@ -337,7 +355,6 @@ func startOrchestratord(ctx context.Context, conf config.Config) (*exec.Cmd, err
 	// from a CLI flag we'd have to keep aligned. conf.Datadir is the raw
 	// bitwindow base dir at this point (Finalize runs *after* we've queried
 	// orchestratord for the network).
-	bitwindowDir := conf.BitwindowDir()
 	args := []string{
 		"--datadir", bitwindowDir,
 		"--bitwindow-dir", bitwindowDir,
@@ -390,6 +407,99 @@ func startOrchestratord(ctx context.Context, conf config.Config) (*exec.Cmd, err
 	return cmd, nil
 }
 
+func existingOrchestratorAdoptable(addr, bitwindowDir string) (bool, error) {
+	hostPort, err := orchestratorHostPort(addr)
+	if err != nil {
+		return false, err
+	}
+	conn, err := net.DialTimeout("tcp", hostPort, 200*time.Millisecond)
+	if err != nil {
+		return false, nil
+	}
+	_ = conn.Close()
+
+	ok, err := verifyExistingOrchestrator(addr, bitwindowDir)
+	if err != nil {
+		return false, fmt.Errorf("orchestrator RPC address %s is already in use by an unverified listener: %w", hostPort, err)
+	}
+	if !ok {
+		return false, fmt.Errorf("orchestrator RPC address %s is already in use by an unverified listener; refusing to send local-auth cookie", hostPort)
+	}
+	return true, nil
+}
+
+func verifyExistingOrchestrator(addr, bitwindowDir string) (bool, error) {
+	token, err := localauth.ReadCookie(bitwindowDir)
+	if err != nil {
+		return false, fmt.Errorf("read local auth cookie: %w", err)
+	}
+	if token == "" {
+		return false, fmt.Errorf("local auth cookie is missing")
+	}
+
+	nonceBytes := make([]byte, 32)
+	if _, err := rand.Read(nonceBytes); err != nil {
+		return false, fmt.Errorf("generate challenge nonce: %w", err)
+	}
+	nonce := hex.EncodeToString(nonceBytes)
+
+	u, err := orchestratorURL(addr)
+	if err != nil {
+		return false, err
+	}
+	u.Path = "/local-auth/challenge"
+	q := u.Query()
+	q.Set("nonce", nonce)
+	u.RawQuery = q.Encode()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	defer cancel()
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)
+	if err != nil {
+		return false, fmt.Errorf("build challenge request: %w", err)
+	}
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return false, fmt.Errorf("challenge request failed: %w", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return false, fmt.Errorf("challenge status %s", resp.Status)
+	}
+	body, err := io.ReadAll(io.LimitReader(resp.Body, 1024))
+	if err != nil {
+		return false, fmt.Errorf("read challenge response: %w", err)
+	}
+	got := strings.TrimSpace(string(body))
+	return localauth.VerifyChallengeResponse(token, nonce, got), nil
+}
+
+func orchestratorURL(addr string) (*url.URL, error) {
+	raw := strings.TrimSpace(addr)
+	if raw == "" {
+		return nil, fmt.Errorf("orchestrator.addr not configured")
+	}
+	if !strings.Contains(raw, "://") {
+		raw = "http://" + raw
+	}
+	u, err := url.Parse(raw)
+	if err != nil {
+		return nil, fmt.Errorf("parse orchestrator.addr %q: %w", addr, err)
+	}
+	if u.Host == "" {
+		return nil, fmt.Errorf("orchestrator.addr %q has no host", addr)
+	}
+	return u, nil
+}
+
+func orchestratorHostPort(addr string) (string, error) {
+	u, err := orchestratorURL(addr)
+	if err != nil {
+		return "", err
+	}
+	return u.Host, nil
+}
+
 // waitForOrchestratorNetwork polls orchestratord for the current network.
 // orchestratord owns the bitcoin.conf — bitwindowd is just a consumer of
 // relayShutdownToOrchestratord fires the orchestratord Shutdown RPC on
@@ -397,11 +507,11 @@ func startOrchestratord(ctx context.Context, conf config.Config) (*exec.Cmd, err
 // runs in its own goroutine), and Shutdown is idempotent so a duplicate call
 // (Stop handler already relayed) is harmless. Short timeout so a dead/wedged
 // orchestratord doesn't keep bitwindowd hanging on shutdown.
-func relayShutdownToOrchestratord(addr string, log zerolog.Logger) {
+func relayShutdownToOrchestratord(addr, bitwindowDir string, log zerolog.Logger) {
 	if addr == "" {
 		return
 	}
-	client := orchrpc.NewOrchestratorServiceClient(http.DefaultClient, addr, connect.WithGRPC())
+	client := orchrpc.NewOrchestratorServiceClient(http.DefaultClient, addr, connect.WithGRPC(), connect.WithInterceptors(localauth.Interceptor(bitwindowDir)))
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
 	if _, err := client.Shutdown(ctx, connect.NewRequest(&orchpb.ShutdownRequest{})); err != nil {
@@ -412,12 +522,12 @@ func relayShutdownToOrchestratord(addr string, log zerolog.Logger) {
 }
 
 // that view of the world. Retries for ~15s while orchestratord boots.
-func waitForOrchestratorNetwork(ctx context.Context, addr string, log zerolog.Logger) (string, error) {
+func waitForOrchestratorNetwork(ctx context.Context, addr, bitwindowDir string, log zerolog.Logger) (string, error) {
 	if addr == "" {
 		return "", fmt.Errorf("orchestrator.addr not configured")
 	}
 
-	confClient := orchrpc.NewBitcoinConfServiceClient(http.DefaultClient, addr, connect.WithGRPC())
+	confClient := orchrpc.NewBitcoinConfServiceClient(http.DefaultClient, addr, connect.WithGRPC(), connect.WithInterceptors(localauth.Interceptor(bitwindowDir)))
 
 	for i := 0; i < 30; i++ {
 		resp, err := confClient.GetBitcoinConfig(ctx, connect.NewRequest(&orchpb.GetBitcoinConfigRequest{}))

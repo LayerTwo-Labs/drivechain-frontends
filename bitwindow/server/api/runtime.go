@@ -52,6 +52,7 @@ import (
 	cryptorpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/crypto/v1/cryptov1connect"
 	validatorrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1/mainchainv1connect"
 	orchrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1/walletmanagerv1connect"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/localauth"
 	corepb "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha"
 	corerpc "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha/bitcoindv1alphaconnect"
 	"github.com/btcsuite/btcd/chaincfg"
@@ -162,7 +163,12 @@ func (s *Server) buildRuntime(ctx context.Context, conf config.Config) (*Runtime
 		rt.chainParams,
 	)
 	if s.svcs.OrchestratorAddr != "" {
-		orchClient := orchrpc.NewWalletManagerServiceClient(http.DefaultClient, s.svcs.OrchestratorAddr)
+		// Seed-bearing client (GetWalletSeed) — attach the local-auth cookie.
+		orchClient := orchrpc.NewWalletManagerServiceClient(
+			http.DefaultClient,
+			s.svcs.OrchestratorAddr,
+			connect.WithInterceptors(localauth.Interceptor(s.svcs.BitwindowDir)),
+		)
 		rt.walletEngine.SetOrchestratorClient(orchClient)
 	}
 
@@ -206,7 +212,9 @@ func (s *Server) buildRuntime(ctx context.Context, conf config.Config) (*Runtime
 		rt.services = append(rt.services, servicePath)
 	}
 
-	stdOpts := []connect.HandlerOption{connect.WithInterceptors(logInterceptor())}
+	// All bitwindowd endpoints require the local-auth cookie (one interceptor,
+	// every handler). Disabled automatically when no cookie exists.
+	stdOpts := []connect.HandlerOption{connect.WithInterceptors(logInterceptor(), localauth.Interceptor(s.svcs.BitwindowDir))}
 
 	// bitwindowd — UpdateNetwork captured here calls back into Server.Recycle,
 	// which builds a fresh Runtime. Method value is bound to s, late-binds

@@ -38,6 +38,7 @@ Future<void> initSidechainDependencies({
     path.join(applicationDir.parent.path, 'bitwindow'),
   );
   await bitwindowDir.create(recursive: true);
+  LocalAuth.configure(bitwindowDir);
   final bitwindowStore = await KeyValueStore.create(dir: bitwindowDir);
   final bitwindowClientSettings = BitwindowClientSettings(
     store: bitwindowStore,

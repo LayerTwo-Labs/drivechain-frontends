@@ -77,6 +77,9 @@ func Parse() (Config, error) {
 // BitwindowDir returns the parent dir before the per-network suffix is
 // appended in Finalize. wallet.json lives here.
 func (c *Config) BitwindowDir() string {
+	if c.baseDatadir != "" {
+		return c.baseDatadir
+	}
 	return c.Datadir
 }
 

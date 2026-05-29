@@ -235,6 +235,7 @@ class BitAssetsLive extends BitAssetsRPC {
       baseUrl: 'http://localhost:30400',
       codec: const ProtoCodec(),
       httpClient: unaryHttpClient(),
+      interceptors: [LocalAuth.interceptor()],
     );
     _client = BitAssetsServiceClient(transport);
   }
