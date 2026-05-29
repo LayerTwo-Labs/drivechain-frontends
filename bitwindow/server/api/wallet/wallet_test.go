@@ -177,8 +177,9 @@ func TestService_GetCheque(t *testing.T) {
 			Id:       99999,
 		}))
 		require.Error(t, err)
-		// Error contains "no rows" for non-existent cheque
-		require.Contains(t, err.Error(), "no rows")
+		// A non-existent cheque must surface as NotFound, not a leaked
+		// "no rows" internal error.
+		require.Equal(t, connect.CodeNotFound, connect.CodeOf(err))
 	})
 }
 
@@ -210,8 +211,9 @@ func TestService_DeleteCheque(t *testing.T) {
 			Id:       99999,
 		}))
 		require.Error(t, err)
-		// Error contains "no rows" for non-existent cheque
-		require.Contains(t, err.Error(), "no rows")
+		// A non-existent cheque must surface as NotFound, not a leaked
+		// "no rows" internal error.
+		require.Equal(t, connect.CodeNotFound, connect.CodeOf(err))
 	})
 }
 

@@ -15,10 +15,7 @@ import (
 	"golang.org/x/crypto/pbkdf2"
 )
 
-const (
-	keyLength         = 32
-	defaultIterations = 100000
-)
+const keyLength = 32
 
 // EncryptionMetadata stores encryption parameters
 type EncryptionMetadata struct {

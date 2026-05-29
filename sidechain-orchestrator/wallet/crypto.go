@@ -14,10 +14,12 @@ import (
 )
 
 const (
-	keyLength         = 32
-	saltLength        = 32
-	ivLength          = 16
-	DefaultIterations = 100000
+	keyLength  = 32
+	saltLength = 32
+	ivLength   = 16
+	// OWASP-recommended minimum for PBKDF2-HMAC-SHA256 guarding a wallet seed.
+	// Decryption reads the per-file iteration count, so older wallets still open.
+	DefaultIterations = 600000
 )
 
 // DeriveKey derives an encryption key from a password using PBKDF2-HMAC-SHA256.
@@ -100,7 +102,7 @@ func GenerateSalt() ([]byte, error) {
 
 // EncryptionMetadata stores encryption parameters alongside the wallet file.
 type EncryptionMetadata struct {
-	Salt       string `json:"salt"`       // base64-encoded salt
+	Salt       string `json:"salt"` // base64-encoded salt
 	Iterations int    `json:"iterations"`
 	Encrypted  bool   `json:"encrypted"`
 	Version    string `json:"version"`
