@@ -844,6 +844,12 @@ func (s *Service) EncryptWallet(password string) error {
 		return fmt.Errorf("write metadata: %w", err)
 	}
 
+	// Encryption fully succeeded — remove the plaintext backup so the
+	// unencrypted seed doesn't linger on disk after the user encrypted.
+	if err := os.Remove(backupPath); err != nil {
+		s.log.Warn().Err(err).Str("backup_path", backupPath).Msg("could not remove plaintext wallet backup; delete it manually")
+	}
+
 	s.encryptionKey = key
 	s.unlockedPass = password
 

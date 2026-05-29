@@ -254,16 +254,12 @@ func (e *WalletEngine) Unlock(walletData map[string]any) error {
 	return nil
 }
 
-// Lock clears the seed from memory
+// Lock drops the in-memory seed and wallet cache. The seed string itself can't
+// be zeroed in place (Go strings are immutable) — it lingers until GC.
 func (e *WalletEngine) Lock() {
 	e.mu.Lock()
 	defer e.mu.Unlock()
 
-	// Zero out the seed for security
-	if e.seedHex != "" {
-		zeros := make([]byte, len(e.seedHex))
-		e.seedHex = string(zeros)
-	}
 	e.seedHex = ""
 	e.activeWalletId = ""
 	e.isUnlocked = false

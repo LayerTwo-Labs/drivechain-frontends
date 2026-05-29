@@ -3,6 +3,7 @@ package cheques
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -269,7 +270,7 @@ func Delete(ctx context.Context, db *sql.DB, walletID string, id int64) error {
 func CreateOrUpdateFromRecovery(ctx context.Context, db *sql.DB, walletID string, index uint32, address string, txids []string, amount uint64) error {
 	// Check if cheque already exists
 	existing, err := GetByAddress(ctx, db, walletID, address)
-	if err != nil && err != sql.ErrNoRows {
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
 		return fmt.Errorf("failed to check existing cheque: %w", err)
 	}
 
