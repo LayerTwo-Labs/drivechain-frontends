@@ -48,6 +48,12 @@ type Services struct {
 
 	OrchestratorAddr string // e.g. "http://localhost:30400"
 
+	// BitwindowDir is the base data dir (pre-network-suffix) holding wallet.json
+	// and .auth.cookie. Used to build the local-auth interceptor for both the
+	// inbound handlers and the orchestrator (WalletManager) client. Empty ⇒
+	// auth disabled.
+	BitwindowDir string
+
 	// Test overrides: when set, buildRuntime uses these instead of opening
 	// fresh from disk. Production callers leave these zero.
 	Database    *sql.DB

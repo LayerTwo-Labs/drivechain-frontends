@@ -71,6 +71,7 @@ class BitwindowRPCLive extends BitwindowRPC {
       baseUrl: baseUrl,
       codec: const ProtoCodec(),
       httpClient: httpClient,
+      interceptors: [LocalAuth.interceptor()],
     );
 
     bitwindowd = _BitwindowAPILive(BitwindowdServiceClient(transport));
@@ -152,9 +153,13 @@ class BitwindowRPCLive extends BitwindowRPC {
   @override
   Future<dynamic> callRAW(String url, [String body = '{}']) async {
     try {
+      final token = await LocalAuth.token();
       final response = await http.post(
         Uri.parse('http://localhost:30301/$url'),
-        headers: {'content-type': 'application/json'},
+        headers: {
+          'content-type': 'application/json',
+          if (token != null) 'authorization': 'Bearer $token',
+        },
         body: body,
       );
 

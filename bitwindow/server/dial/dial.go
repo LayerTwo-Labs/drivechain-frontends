@@ -17,6 +17,7 @@ import (
 	cryptorpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/crypto/v1/cryptov1connect"
 	pb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1"
 	rpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1/mainchainv1connect"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/localauth"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/bitassets"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/bitnames"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/coinshift"
@@ -42,6 +43,10 @@ func Bitcoind(ctx context.Context, orchestratorAddr string) (corerpc.BitcoinServ
 		getSharedClient(ctx),
 		ensureHTTPScheme(orchestratorAddr),
 		connect.WithGRPC(),
+		// Bitcoind is the one dial target on the orchestrator (its hosted core
+		// proxy); enforcer/sidechain dials go to other daemons and stay
+		// cookie-free.
+		connect.WithInterceptors(localauth.Interceptor(cookieDir)),
 	), nil
 }
 
@@ -232,7 +237,16 @@ var (
 	// Shared HTTP client for all connections
 	sharedClient *http.Client
 	clientOnce   sync.Once
+
+	// cookieDir is the bitwindow data dir holding .auth.cookie, used by the
+	// orchestrator-targeting Bitcoind client. Set once at startup via
+	// SetCookieDir; empty ⇒ localauth attaches no header (auth disabled).
+	cookieDir string
 )
+
+// SetCookieDir records the local-auth cookie directory for the orchestrator
+// (Bitcoind proxy) client. Call once at startup before the first dial.
+func SetCookieDir(dir string) { cookieDir = dir }
 
 // getSharedClient returns a singleton HTTP client for all connections
 func getSharedClient(ctx context.Context) *http.Client {

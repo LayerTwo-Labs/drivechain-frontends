@@ -29,6 +29,7 @@ import (
 	orchrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/orchestrator/v1/orchestratorv1connect"
 	walletpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1"
 	walletrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1/walletmanagerv1connect"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/localauth"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/types/known/emptypb"
@@ -57,8 +58,18 @@ func TestBackendRuntimeOwnershipSmoke(t *testing.T) {
 	proc := startBitwindowd(t, bitwindowdBin, node, apiHost, logDir)
 	defer stopCmdProcess(t, proc)
 
-	healthClient := healthv1connect.NewHealthServiceClient(http.DefaultClient, bitwindowdURL)
-	orchClient := orchrpc.NewOrchestratorServiceClient(http.DefaultClient, fmt.Sprintf("http://127.0.0.1:%d", node.OrchdGRPCPort), connect.WithGRPC())
+	authIC := localauth.Interceptor(node.BitwindowDir)
+	healthClient := healthv1connect.NewHealthServiceClient(
+		http.DefaultClient,
+		bitwindowdURL,
+		connect.WithInterceptors(authIC),
+	)
+	orchClient := orchrpc.NewOrchestratorServiceClient(
+		http.DefaultClient,
+		fmt.Sprintf("http://127.0.0.1:%d", node.OrchdGRPCPort),
+		connect.WithGRPC(),
+		connect.WithInterceptors(authIC),
+	)
 
 	waitForBitwindowdHealth(t, ctx, healthClient)
 	waitForBinaryReady(t, ctx, orchClient, "bitcoind")
@@ -258,6 +269,7 @@ port=%d
 			http.DefaultClient,
 			fmt.Sprintf("http://127.0.0.1:%d", grpcPort),
 			connect.WithGRPC(),
+			connect.WithInterceptors(localauth.Interceptor(bitwindowDir)),
 		),
 	}
 

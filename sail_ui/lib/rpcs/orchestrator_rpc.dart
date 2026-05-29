@@ -1,4 +1,5 @@
 import 'package:connectrpc/protobuf.dart';
+import 'package:sail_ui/auth/local_auth.dart';
 import 'package:sail_ui/rpcs/keepalive_http_client.dart';
 import 'package:connectrpc/protocol/connect.dart' as connect;
 import 'package:sail_ui/gen/bitcoin/bitcoind/v1alpha/bitcoin.connect.client.dart';
@@ -38,11 +39,13 @@ class OrchestratorRPC {
       baseUrl: _baseUrl,
       codec: const ProtoCodec(),
       httpClient: unaryHttpClient(),
+      interceptors: [LocalAuth.interceptor()],
     );
     final streamTransport = connect.Transport(
       baseUrl: _baseUrl,
       codec: const ProtoCodec(),
       httpClient: streamingHttpClient(),
+      interceptors: [LocalAuth.interceptor()],
     );
     _unaryClient = OrchestratorServiceClient(unaryTransport);
     _streamClient = OrchestratorServiceClient(streamTransport);

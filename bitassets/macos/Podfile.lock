@@ -4,29 +4,16 @@ PODS:
     - Sparkle
   - desktop_multi_window (0.0.1):
     - FlutterMacOS
-  - file_picker (0.0.1):
-    - FlutterMacOS
   - FlutterMacOS (1.0.0)
-  - path_provider_foundation (0.0.1):
-    - Flutter
-    - FlutterMacOS
   - screen_retriever_macos (0.0.1):
     - FlutterMacOS
   - Sparkle (2.9.1)
-  - url_launcher_macos (0.0.1):
-    - FlutterMacOS
-  - window_manager (0.5.0):
-    - FlutterMacOS
 
 DEPENDENCIES:
   - auto_updater_macos (from `Flutter/ephemeral/.symlinks/plugins/auto_updater_macos/macos`)
   - desktop_multi_window (from `Flutter/ephemeral/.symlinks/plugins/desktop_multi_window/macos`)
-  - file_picker (from `Flutter/ephemeral/.symlinks/plugins/file_picker/macos`)
   - FlutterMacOS (from `Flutter/ephemeral`)
-  - path_provider_foundation (from `Flutter/ephemeral/.symlinks/plugins/path_provider_foundation/darwin`)
   - screen_retriever_macos (from `Flutter/ephemeral/.symlinks/plugins/screen_retriever_macos/macos`)
-  - url_launcher_macos (from `Flutter/ephemeral/.symlinks/plugins/url_launcher_macos/macos`)
-  - window_manager (from `Flutter/ephemeral/.symlinks/plugins/window_manager/macos`)
 
 SPEC REPOS:
   trunk:
@@ -37,29 +24,17 @@ EXTERNAL SOURCES:
     :path: Flutter/ephemeral/.symlinks/plugins/auto_updater_macos/macos
   desktop_multi_window:
     :path: Flutter/ephemeral/.symlinks/plugins/desktop_multi_window/macos
-  file_picker:
-    :path: Flutter/ephemeral/.symlinks/plugins/file_picker/macos
   FlutterMacOS:
     :path: Flutter/ephemeral
-  path_provider_foundation:
-    :path: Flutter/ephemeral/.symlinks/plugins/path_provider_foundation/darwin
   screen_retriever_macos:
     :path: Flutter/ephemeral/.symlinks/plugins/screen_retriever_macos/macos
-  url_launcher_macos:
-    :path: Flutter/ephemeral/.symlinks/plugins/url_launcher_macos/macos
-  window_manager:
-    :path: Flutter/ephemeral/.symlinks/plugins/window_manager/macos
 
 SPEC CHECKSUMS:
   auto_updater_macos: 3a42f1a06be6981f1a18be37e6e7bf86aa732118
   desktop_multi_window: 93667594ccc4b88d91a97972fd3b1b89667fa80a
-  file_picker: 7584aae6fa07a041af2b36a2655122d42f578c1a
   FlutterMacOS: d0db08ddef1a9af05a5ec4b724367152bb0500b1
-  path_provider_foundation: 080d55be775b7414fd5a5ef3ac137b97b097e564
   screen_retriever_macos: 452e51764a9e1cdb74b3c541238795849f21557f
   Sparkle: a4115cd9a339b297a61163256e6954d9e35297ce
-  url_launcher_macos: 0fba8ddabfc33ce0a9afe7c5fef5aab3d8d2d673
-  window_manager: b729e31d38fb04905235df9ea896128991cad99e
 
 PODFILE CHECKSUM: 9e8d6c0fdb46e19301c6444943a68374392cb446
 

@@ -125,6 +125,8 @@ Future<(Directory, File, Logger)> init(String arguments) async {
 
   // Fall back to filesystem if not provided in args
   applicationDir ??= await Environment.datadir();
+  // Point local-auth at the cookie beside wallet.json so every RPC carries it.
+  LocalAuth.configure(applicationDir);
   logFile ??= await getLogFile();
 
   final log = await logger(Environment.fileLog, Environment.consoleLog, logFile);
@@ -308,9 +310,11 @@ Future<void> runMainWindow(Logger log, Directory applicationDir, File logFile) a
       await bootBitwindowBackend(log);
     } catch (e) {
       log.e('bootBitwindowBackend failed: $e');
+    } finally {
+      log.i('STARTUP: showing BitWindow UI');
+      // Show the app even if boot failed — providers will reconnect.
+      backendReady.value = true;
     }
-    // Show the app even if boot failed — providers will reconnect
-    backendReady.value = true;
   }());
 
   return runApp(BitwindowApp(log: log, backendReady: backendReady));
@@ -837,6 +841,19 @@ Future<void> bootBitwindowBackend(Logger log) async {
   }
   await binaryProvider.start(bitwindow);
 
+  // 1b. Local auth is on by default; the kill switch is ORCHESTRATOR_LOCAL_AUTH
+  //     =false/0 on our env, which we pass down to the backend. When on, the
+  //     backend writes a per-session cookie a moment after spawn — load it into
+  //     memory before the readiness RPCs below, which now require it. Same
+  //     await-on-startup pattern as the readiness loop. Skipped when disabled so
+  //     we don't wait for a cookie that will never appear.
+  final localAuthFlag = Platform.environment['ORCHESTRATOR_LOCAL_AUTH']?.toLowerCase();
+  if (localAuthFlag != 'false' && localAuthFlag != '0') {
+    log.i('STARTUP: waiting for local auth cookie');
+    final loaded = await LocalAuth.load();
+    log.i(loaded ? 'STARTUP: local auth cookie loaded' : 'STARTUP: local auth cookie did not appear');
+  }
+
   // 2. Wait for orchestratord (managed by bitwindowd) to become ready.
   //    _startDaemonBinary cleared bitwindow's initializingBinary when the
   //    process came up, but we're not actually "ready" until orchestratord
@@ -918,6 +935,8 @@ Future<void> bootBitwindowBackend(Logger log) async {
       }
     }());
   }
+
+  log.i('STARTUP: BitWindow backend boot task initialized');
 }
 
 void _streamBinaryLogs(OrchestratorRPC orchestrator, String binaryName, BinaryType binaryType, Logger log) {

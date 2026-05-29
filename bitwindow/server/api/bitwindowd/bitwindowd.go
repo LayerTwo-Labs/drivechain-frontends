@@ -30,6 +30,7 @@ import (
 	validatorrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1/mainchainv1connect"
 	orchpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/orchestrator/v1"
 	orchrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/orchestrator/v1/orchestratorv1connect"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/localauth"
 	corepb "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha"
 	corerpc "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha/bitcoindv1alphaconnect"
 	"github.com/btcsuite/btcd/btcutil"
@@ -148,7 +149,12 @@ func (s *Server) UpdateNetwork(ctx context.Context, req *connect.Request[pb.Upda
 		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("unknown network: %q", req.Msg.Network))
 	}
 
-	confClient := orchrpc.NewBitcoinConfServiceClient(http.DefaultClient, s.config.OrchestratorAddr, connect.WithGRPC())
+	confClient := orchrpc.NewBitcoinConfServiceClient(
+		http.DefaultClient,
+		s.config.OrchestratorAddr,
+		connect.WithGRPC(),
+		connect.WithInterceptors(localauth.Interceptor(s.config.BitwindowDir())),
+	)
 	if _, err := confClient.SetBitcoinConfigNetwork(ctx, connect.NewRequest(&orchpb.SetBitcoinConfigNetworkRequest{
 		Network: req.Msg.Network,
 	})); err != nil {
@@ -184,7 +190,12 @@ func (s *Server) Stop(ctx context.Context, req *connect.Request[pb.BitwindowdSer
 	if req.Msg.SkipDownstream {
 		log.Info().Msg("skip_downstream=true, bitwindowd-only exit (orchestratord stays running)")
 	} else if s.config.OrchestratorAddr != "" {
-		client := orchrpc.NewOrchestratorServiceClient(http.DefaultClient, s.config.OrchestratorAddr, connect.WithGRPC())
+		client := orchrpc.NewOrchestratorServiceClient(
+			http.DefaultClient,
+			s.config.OrchestratorAddr,
+			connect.WithGRPC(),
+			connect.WithInterceptors(localauth.Interceptor(s.config.BitwindowDir())),
+		)
 		// Fresh context — the inbound ctx may be cancelled by the frontend
 		// the moment we return. Short timeout because orchestratord acks
 		// immediately (the drain runs in its own goroutine).
@@ -981,7 +992,12 @@ func (s *Server) MineBlocks(ctx context.Context, req *connect.Request[emptypb.Em
 
 	// cpuminer talks raw bitcoind JSON-RPC; pull the live creds from
 	// orchestratord so we always match whatever bitcoind is running with.
-	confClient := orchrpc.NewBitcoinConfServiceClient(http.DefaultClient, s.config.OrchestratorAddr, connect.WithGRPC())
+	confClient := orchrpc.NewBitcoinConfServiceClient(
+		http.DefaultClient,
+		s.config.OrchestratorAddr,
+		connect.WithGRPC(),
+		connect.WithInterceptors(localauth.Interceptor(s.config.BitwindowDir())),
+	)
 	confResp, err := confClient.GetBitcoinConfig(ctx, connect.NewRequest(&orchpb.GetBitcoinConfigRequest{}))
 	if err != nil {
 		return connect.NewError(connect.CodeUnavailable, fmt.Errorf("read bitcoin config from orchestrator: %w", err))

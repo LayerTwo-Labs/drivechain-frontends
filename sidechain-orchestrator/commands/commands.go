@@ -21,6 +21,7 @@ import (
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config"
 	pb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/orchestrator/v1"
 	rpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/orchestrator/v1/orchestratorv1connect"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/localauth"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/bitassets"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/bitnames"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/coinshift"
@@ -43,6 +44,12 @@ var GlobalFlags = []cli.Flag{
 		Name:    "datadir",
 		Usage:   "data directory",
 		EnvVars: []string{"ORCHESTRATOR_DATADIR"},
+	},
+	&cli.StringFlag{
+		Name:    "bitwindow-dir",
+		Usage:   "bitwindow data directory containing the local-auth cookie",
+		Value:   orchestrator.DefaultBitwindowDir(),
+		EnvVars: []string{"ORCHESTRATOR_BITWINDOW_DIR"},
 	},
 	&cli.StringFlag{
 		Name:    "network",
@@ -85,6 +92,16 @@ func Commands() []*cli.Command {
 	return cmds
 }
 
+// cookieDir returns the directory holding the local-auth cookie. Keep this
+// separate from --datadir: orchestratord writes .auth.cookie under
+// --bitwindow-dir, while --datadir controls binary/data-directory layout.
+func cookieDir(cctx *cli.Context) string {
+	if d := cctx.String("bitwindow-dir"); d != "" {
+		return d
+	}
+	return orchestrator.DefaultBitwindowDir()
+}
+
 func newClient(cctx *cli.Context) rpc.OrchestratorServiceClient {
 	addr := cctx.String("rpcserver")
 	url := fmt.Sprintf("http://%s", addr)
@@ -92,6 +109,7 @@ func newClient(cctx *cli.Context) rpc.OrchestratorServiceClient {
 		http.DefaultClient,
 		url,
 		connect.WithGRPC(),
+		connect.WithInterceptors(localauth.Interceptor(cookieDir(cctx))),
 	)
 }
 

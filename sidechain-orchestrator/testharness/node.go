@@ -17,6 +17,7 @@ import (
 
 	"connectrpc.com/connect"
 	rpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1/walletmanagerv1connect"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/localauth"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/wallet"
 	"github.com/rs/zerolog"
 )
@@ -44,9 +45,11 @@ type Node struct {
 
 // testPorts returns ports for a test run. A single random base is chosen per
 // harness (via randomPortBase), then each node gets a 300-wide band:
-//   node0: base, base+100, base+200
-//   node1: base+300, base+400, base+500
-//   ...
+//
+//	node0: base, base+100, base+200
+//	node1: base+300, base+400, base+500
+//	...
+//
 // This avoids the previous bug where each call generated independent random
 // bases that could collide.
 func testPorts(base, nodeIndex int) (rpcPort, p2pPort, grpcPort int) {
@@ -211,6 +214,7 @@ port=%d
 		http.DefaultClient,
 		fmt.Sprintf("http://127.0.0.1:%d", grpcPort),
 		connect.WithGRPC(),
+		connect.WithInterceptors(localauth.Interceptor(bitwindowDir)),
 	)
 
 	nlog.Info().Msg("node ready")
@@ -250,7 +254,6 @@ func waitForBitcoind(t *testing.T, rpcClient *wallet.CoreRPCClient, nodeName str
 		time.Sleep(250 * time.Millisecond)
 	}
 }
-
 
 // GenerateToAddress mines blocks to the given address using the raw RPC client.
 func (n *Node) GenerateToAddress(ctx context.Context, blocks int, addr string) ([]string, error) {

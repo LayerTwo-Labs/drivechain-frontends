@@ -1,6 +1,11 @@
+import 'dart:async';
+
 import 'package:auto_route/auto_route.dart';
+import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/providers/wallet_reader_provider.dart';
+
+typedef CreateWalletRoute = PageRouteInfo Function(VoidCallback onWalletCreated);
 
 /// Guard that checks if a wallet exists.
 /// If no wallet exists, navigates to wallet creation page.
@@ -10,7 +15,7 @@ import 'package:sail_ui/providers/wallet_reader_provider.dart';
 class WalletGuard extends AutoRouteGuard {
   /// Factory function that creates the wallet creation route.
   /// Each app provides its own route (e.g., SailCreateWalletRoute()).
-  final PageRouteInfo Function() createWalletRoute;
+  final CreateWalletRoute createWalletRoute;
 
   WalletGuard({required this.createWalletRoute});
 
@@ -25,11 +30,18 @@ class WalletGuard extends AutoRouteGuard {
       return;
     }
 
-    // No wallet - redirect to wallet creation
-    await router.push(createWalletRoute());
+    void resumeAfterWalletCreation() {
+      if (resolver.isResolved) return;
+      unawaited(() async {
+        final walletNowExists = await walletReader.hasWallet();
+        if (!resolver.isResolved) {
+          resolver.next(walletNowExists);
+        }
+      }());
+    }
 
-    // After wallet creation, check again
-    final walletNowExists = await walletReader.hasWallet();
-    resolver.next(walletNowExists);
+    // No wallet - redirect to wallet creation while the guarded route stays
+    // suspended. The route's success action resolves this guard directly.
+    resolver.redirectUntil(createWalletRoute(resumeAfterWalletCreation));
   }
 }

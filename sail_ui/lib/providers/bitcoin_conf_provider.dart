@@ -75,6 +75,7 @@ class BitcoinConfProvider extends ChangeNotifier {
       baseUrl: 'http://localhost:30400',
       codec: const ProtoCodec(),
       httpClient: keepaliveHttpClient(),
+      interceptors: [LocalAuth.interceptor()],
     );
     _client = BitcoinConfServiceClient(transport);
   }

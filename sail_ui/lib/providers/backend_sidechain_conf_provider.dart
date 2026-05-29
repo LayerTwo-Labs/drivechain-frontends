@@ -63,6 +63,7 @@ class BackendSidechainConfProvider extends GenericSidechainConfProvider {
       baseUrl: 'http://localhost:30400',
       codec: const ProtoCodec(),
       httpClient: keepaliveHttpClient(),
+      interceptors: [LocalAuth.interceptor()],
     );
     _client = SidechainConfServiceClient(transport);
   }

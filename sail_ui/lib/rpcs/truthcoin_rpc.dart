@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:connectrpc/protobuf.dart';
 import 'package:sail_ui/rpcs/keepalive_http_client.dart';
 import 'package:connectrpc/protocol/connect.dart' as connect;
+import 'package:sail_ui/auth/local_auth.dart';
 import 'package:fixnum/fixnum.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
@@ -251,6 +252,7 @@ class TruthcoinLive extends TruthcoinRPC {
       baseUrl: 'http://localhost:30400',
       codec: const ProtoCodec(),
       httpClient: unaryHttpClient(),
+      interceptors: [LocalAuth.interceptor()],
     );
     _client = TruthcoinServiceClient(transport);
   }
