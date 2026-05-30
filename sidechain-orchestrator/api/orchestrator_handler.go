@@ -144,6 +144,16 @@ func (h *Handler) RestartDaemon(ctx context.Context, req *connect.Request[pb.Res
 	return connect.NewResponse(&pb.RestartDaemonResponse{}), nil
 }
 
+// RestartL1 stops + reboots the L1 stack (bitcoind + enforcer) on the current
+// config. The orchestrator owns the stop/start sequence so the frontend makes a
+// single call. context.Background() so a transport blip can't abort the reboot.
+func (h *Handler) RestartL1(ctx context.Context, req *connect.Request[pb.RestartL1Request]) (*connect.Response[pb.RestartL1Response], error) {
+	if err := h.orch.RestartL1(context.Background()); err != nil {
+		return nil, err
+	}
+	return connect.NewResponse(&pb.RestartL1Response{}), nil
+}
+
 // StartWithL1 dispatches a boot goroutine and returns immediately. The
 // goroutine uses context.Background() so that a transport blip / client
 // disconnect on this RPC can't cancel an in-flight bitcoind download or

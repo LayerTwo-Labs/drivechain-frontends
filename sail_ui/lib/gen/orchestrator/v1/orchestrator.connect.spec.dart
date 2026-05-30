@@ -86,6 +86,19 @@ abstract final class OrchestratorService {
     orchestratorv1orchestrator.RestartDaemonResponse.new,
   );
 
+  /// Restart the whole L1 stack (bitcoind + enforcer) on the current config.
+  /// Stops both (a not-running daemon is skipped, never an error) then boots
+  /// the L1 chain via the same path as StartWithL1. Running sidechains are left
+  /// alone — they reconnect once the enforcer is back. Fire-and-forget: returns
+  /// as soon as the boot goroutine is dispatched. Use this for the "Restart
+  /// Bitcoin Core and Enforcer" UI flow instead of hand-sequencing stop/start.
+  static const restartL1 = connect.Spec(
+    '/$name/RestartL1',
+    connect.StreamType.unary,
+    orchestratorv1orchestrator.RestartL1Request.new,
+    orchestratorv1orchestrator.RestartL1Response.new,
+  );
+
   /// Shutdown all running binaries.
   static const shutdownAll = connect.Spec(
     '/$name/ShutdownAll',

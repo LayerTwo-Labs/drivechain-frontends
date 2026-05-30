@@ -1294,6 +1294,70 @@ class RestartDaemonResponse extends $pb.GeneratedMessage {
   static RestartDaemonResponse? _defaultInstance;
 }
 
+class RestartL1Request extends $pb.GeneratedMessage {
+  factory RestartL1Request() => create();
+  RestartL1Request._() : super();
+  factory RestartL1Request.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory RestartL1Request.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'RestartL1Request', package: const $pb.PackageName(_omitMessageNames ? '' : 'orchestrator.v1'), createEmptyInstance: create)
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  RestartL1Request clone() => RestartL1Request()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  RestartL1Request copyWith(void Function(RestartL1Request) updates) => super.copyWith((message) => updates(message as RestartL1Request)) as RestartL1Request;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static RestartL1Request create() => RestartL1Request._();
+  RestartL1Request createEmptyInstance() => create();
+  static $pb.PbList<RestartL1Request> createRepeated() => $pb.PbList<RestartL1Request>();
+  @$core.pragma('dart2js:noInline')
+  static RestartL1Request getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<RestartL1Request>(create);
+  static RestartL1Request? _defaultInstance;
+}
+
+class RestartL1Response extends $pb.GeneratedMessage {
+  factory RestartL1Response() => create();
+  RestartL1Response._() : super();
+  factory RestartL1Response.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory RestartL1Response.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'RestartL1Response', package: const $pb.PackageName(_omitMessageNames ? '' : 'orchestrator.v1'), createEmptyInstance: create)
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  RestartL1Response clone() => RestartL1Response()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  RestartL1Response copyWith(void Function(RestartL1Response) updates) => super.copyWith((message) => updates(message as RestartL1Response)) as RestartL1Response;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static RestartL1Response create() => RestartL1Response._();
+  RestartL1Response createEmptyInstance() => create();
+  static $pb.PbList<RestartL1Response> createRepeated() => $pb.PbList<RestartL1Response>();
+  @$core.pragma('dart2js:noInline')
+  static RestartL1Response getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<RestartL1Response>(create);
+  static RestartL1Response? _defaultInstance;
+}
+
 class ShutdownAllRequest extends $pb.GeneratedMessage {
   factory ShutdownAllRequest({
     $core.bool? force,
@@ -3408,6 +3472,9 @@ class OrchestratorServiceApi {
   ;
   $async.Future<RestartDaemonResponse> restartDaemon($pb.ClientContext? ctx, RestartDaemonRequest request) =>
     _client.invoke<RestartDaemonResponse>(ctx, 'OrchestratorService', 'RestartDaemon', request, RestartDaemonResponse())
+  ;
+  $async.Future<RestartL1Response> restartL1($pb.ClientContext? ctx, RestartL1Request request) =>
+    _client.invoke<RestartL1Response>(ctx, 'OrchestratorService', 'RestartL1', request, RestartL1Response())
   ;
   $async.Future<ShutdownAllResponse> shutdownAll($pb.ClientContext? ctx, ShutdownAllRequest request) =>
     _client.invoke<ShutdownAllResponse>(ctx, 'OrchestratorService', 'ShutdownAll', request, ShutdownAllResponse())

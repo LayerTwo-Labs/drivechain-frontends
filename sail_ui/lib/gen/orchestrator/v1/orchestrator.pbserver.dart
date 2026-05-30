@@ -29,6 +29,7 @@ abstract class OrchestratorServiceBase extends $pb.GeneratedService {
   $async.Future<$5.StreamLogsResponse> streamLogs($pb.ServerContext ctx, $5.StreamLogsRequest request);
   $async.Future<$5.StartWithL1Response> startWithL1($pb.ServerContext ctx, $5.StartWithL1Request request);
   $async.Future<$5.RestartDaemonResponse> restartDaemon($pb.ServerContext ctx, $5.RestartDaemonRequest request);
+  $async.Future<$5.RestartL1Response> restartL1($pb.ServerContext ctx, $5.RestartL1Request request);
   $async.Future<$5.ShutdownAllResponse> shutdownAll($pb.ServerContext ctx, $5.ShutdownAllRequest request);
   $async.Future<$5.ShutdownResponse> shutdown($pb.ServerContext ctx, $5.ShutdownRequest request);
   $async.Future<$5.GetBTCPriceResponse> getBTCPrice($pb.ServerContext ctx, $5.GetBTCPriceRequest request);
@@ -52,6 +53,7 @@ abstract class OrchestratorServiceBase extends $pb.GeneratedService {
       case 'StreamLogs': return $5.StreamLogsRequest();
       case 'StartWithL1': return $5.StartWithL1Request();
       case 'RestartDaemon': return $5.RestartDaemonRequest();
+      case 'RestartL1': return $5.RestartL1Request();
       case 'ShutdownAll': return $5.ShutdownAllRequest();
       case 'Shutdown': return $5.ShutdownRequest();
       case 'GetBTCPrice': return $5.GetBTCPriceRequest();
@@ -78,6 +80,7 @@ abstract class OrchestratorServiceBase extends $pb.GeneratedService {
       case 'StreamLogs': return this.streamLogs(ctx, request as $5.StreamLogsRequest);
       case 'StartWithL1': return this.startWithL1(ctx, request as $5.StartWithL1Request);
       case 'RestartDaemon': return this.restartDaemon(ctx, request as $5.RestartDaemonRequest);
+      case 'RestartL1': return this.restartL1(ctx, request as $5.RestartL1Request);
       case 'ShutdownAll': return this.shutdownAll(ctx, request as $5.ShutdownAllRequest);
       case 'Shutdown': return this.shutdown(ctx, request as $5.ShutdownRequest);
       case 'GetBTCPrice': return this.getBTCPrice(ctx, request as $5.GetBTCPriceRequest);

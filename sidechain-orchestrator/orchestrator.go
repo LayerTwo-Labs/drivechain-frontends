@@ -1753,6 +1753,41 @@ func (o *Orchestrator) SwapNetwork(ctx context.Context, n config.Network) error 
 	return nil
 }
 
+// RestartL1 stops the L1 stack (enforcer + bitcoind) and boots it again on
+// the current config. Running sidechains are left alone — they reconnect once
+// the enforcer is back. This is the single server-side entry point for the
+// "Restart Bitcoin Core and Enforcer" UI flow; the frontend must not
+// hand-orchestrate stop/start itself. Stops are guarded by IsRunning, so a
+// not-running daemon is skipped rather than treated as an error.
+func (o *Orchestrator) RestartL1(ctx context.Context) error {
+	if o.process.IsRunning("enforcer") {
+		if err := o.stopForNetworkSwap(ctx, "enforcer"); err != nil {
+			return err
+		}
+	}
+	if o.process.IsRunning("bitcoind") {
+		if err := o.stopForNetworkSwap(ctx, "bitcoind"); err != nil {
+			return err
+		}
+	}
+
+	// Fire-and-forget the L1 boot — returning lets the UI move on while
+	// bitcoind IBD / enforcer wait run in the background. context.Background
+	// so a request cancellation can't abort the launch mid-flight.
+	bootCh, err := o.StartWithL1(context.Background(), "bitcoind", StartOpts{})
+	if err != nil {
+		return fmt.Errorf("restart L1 stack: %w", err)
+	}
+	go func() {
+		for p := range bootCh {
+			if p.Error != nil {
+				o.log.Error().Err(p.Error).Msg("L1 stack restart failed")
+			}
+		}
+	}()
+	return nil
+}
+
 // stopForNetworkSwap stops a binary, escalating to SIGKILL on graceful
 // failure. Mirrors stopBitcoindForVariantSwap but generic over name.
 func (o *Orchestrator) stopForNetworkSwap(ctx context.Context, name string) error {

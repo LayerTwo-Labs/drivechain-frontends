@@ -355,6 +355,24 @@ const RestartDaemonResponse$json = {
 final $typed_data.Uint8List restartDaemonResponseDescriptor = $convert.base64Decode(
     'ChVSZXN0YXJ0RGFlbW9uUmVzcG9uc2U=');
 
+@$core.Deprecated('Use restartL1RequestDescriptor instead')
+const RestartL1Request$json = {
+  '1': 'RestartL1Request',
+};
+
+/// Descriptor for `RestartL1Request`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List restartL1RequestDescriptor = $convert.base64Decode(
+    'ChBSZXN0YXJ0TDFSZXF1ZXN0');
+
+@$core.Deprecated('Use restartL1ResponseDescriptor instead')
+const RestartL1Response$json = {
+  '1': 'RestartL1Response',
+};
+
+/// Descriptor for `RestartL1Response`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List restartL1ResponseDescriptor = $convert.base64Decode(
+    'ChFSZXN0YXJ0TDFSZXNwb25zZQ==');
+
 @$core.Deprecated('Use shutdownAllRequestDescriptor instead')
 const ShutdownAllRequest$json = {
   '1': 'ShutdownAllRequest',
@@ -779,6 +797,7 @@ const $core.Map<$core.String, $core.dynamic> OrchestratorServiceBase$json = {
     {'1': 'StreamLogs', '2': '.orchestrator.v1.StreamLogsRequest', '3': '.orchestrator.v1.StreamLogsResponse', '6': true},
     {'1': 'StartWithL1', '2': '.orchestrator.v1.StartWithL1Request', '3': '.orchestrator.v1.StartWithL1Response'},
     {'1': 'RestartDaemon', '2': '.orchestrator.v1.RestartDaemonRequest', '3': '.orchestrator.v1.RestartDaemonResponse'},
+    {'1': 'RestartL1', '2': '.orchestrator.v1.RestartL1Request', '3': '.orchestrator.v1.RestartL1Response'},
     {'1': 'ShutdownAll', '2': '.orchestrator.v1.ShutdownAllRequest', '3': '.orchestrator.v1.ShutdownAllResponse', '6': true},
     {'1': 'Shutdown', '2': '.orchestrator.v1.ShutdownRequest', '3': '.orchestrator.v1.ShutdownResponse'},
     {'1': 'GetBTCPrice', '2': '.orchestrator.v1.GetBTCPriceRequest', '3': '.orchestrator.v1.GetBTCPriceResponse'},
@@ -816,6 +835,8 @@ const $core.Map<$core.String, $core.Map<$core.String, $core.dynamic>> Orchestrat
   '.orchestrator.v1.StartWithL1Response': StartWithL1Response$json,
   '.orchestrator.v1.RestartDaemonRequest': RestartDaemonRequest$json,
   '.orchestrator.v1.RestartDaemonResponse': RestartDaemonResponse$json,
+  '.orchestrator.v1.RestartL1Request': RestartL1Request$json,
+  '.orchestrator.v1.RestartL1Response': RestartL1Response$json,
   '.orchestrator.v1.ShutdownAllRequest': ShutdownAllRequest$json,
   '.orchestrator.v1.ShutdownAllResponse': ShutdownAllResponse$json,
   '.orchestrator.v1.ShutdownRequest': ShutdownRequest$json,
@@ -861,28 +882,30 @@ final $typed_data.Uint8List orchestratorServiceDescriptor = $convert.base64Decod
     'b3IudjEuU3RyZWFtTG9nc1Jlc3BvbnNlMAESWAoLU3RhcnRXaXRoTDESIy5vcmNoZXN0cmF0b3'
     'IudjEuU3RhcnRXaXRoTDFSZXF1ZXN0GiQub3JjaGVzdHJhdG9yLnYxLlN0YXJ0V2l0aEwxUmVz'
     'cG9uc2USXgoNUmVzdGFydERhZW1vbhIlLm9yY2hlc3RyYXRvci52MS5SZXN0YXJ0RGFlbW9uUm'
-    'VxdWVzdBomLm9yY2hlc3RyYXRvci52MS5SZXN0YXJ0RGFlbW9uUmVzcG9uc2USWgoLU2h1dGRv'
-    'd25BbGwSIy5vcmNoZXN0cmF0b3IudjEuU2h1dGRvd25BbGxSZXF1ZXN0GiQub3JjaGVzdHJhdG'
-    '9yLnYxLlNodXRkb3duQWxsUmVzcG9uc2UwARJPCghTaHV0ZG93bhIgLm9yY2hlc3RyYXRvci52'
-    'MS5TaHV0ZG93blJlcXVlc3QaIS5vcmNoZXN0cmF0b3IudjEuU2h1dGRvd25SZXNwb25zZRJYCg'
-    'tHZXRCVENQcmljZRIjLm9yY2hlc3RyYXRvci52MS5HZXRCVENQcmljZVJlcXVlc3QaJC5vcmNo'
-    'ZXN0cmF0b3IudjEuR2V0QlRDUHJpY2VSZXNwb25zZRKFAQoaR2V0TWFpbmNoYWluQmxvY2tjaG'
-    'FpbkluZm8SMi5vcmNoZXN0cmF0b3IudjEuR2V0TWFpbmNoYWluQmxvY2tjaGFpbkluZm9SZXF1'
-    'ZXN0GjMub3JjaGVzdHJhdG9yLnYxLkdldE1haW5jaGFpbkJsb2NrY2hhaW5JbmZvUmVzcG9uc2'
-    'USggEKGUdldEVuZm9yY2VyQmxvY2tjaGFpbkluZm8SMS5vcmNoZXN0cmF0b3IudjEuR2V0RW5m'
-    'b3JjZXJCbG9ja2NoYWluSW5mb1JlcXVlc3QaMi5vcmNoZXN0cmF0b3IudjEuR2V0RW5mb3JjZX'
-    'JCbG9ja2NoYWluSW5mb1Jlc3BvbnNlEl4KDUdldFN5bmNTdGF0dXMSJS5vcmNoZXN0cmF0b3Iu'
-    'djEuR2V0U3luY1N0YXR1c1JlcXVlc3QaJi5vcmNoZXN0cmF0b3IudjEuR2V0U3luY1N0YXR1c1'
-    'Jlc3BvbnNlEmoKEUdldERvd25sb2FkU3RhdHVzEikub3JjaGVzdHJhdG9yLnYxLkdldERvd25s'
-    'b2FkU3RhdHVzUmVxdWVzdBoqLm9yY2hlc3RyYXRvci52MS5HZXREb3dubG9hZFN0YXR1c1Jlc3'
-    'BvbnNlEnAKE0dldE1haW5jaGFpbkJhbGFuY2USKy5vcmNoZXN0cmF0b3IudjEuR2V0TWFpbmNo'
-    'YWluQmFsYW5jZVJlcXVlc3QaLC5vcmNoZXN0cmF0b3IudjEuR2V0TWFpbmNoYWluQmFsYW5jZV'
-    'Jlc3BvbnNlEmcKEFByZXZpZXdSZXNldERhdGESKC5vcmNoZXN0cmF0b3IudjEuUHJldmlld1Jl'
-    'c2V0RGF0YVJlcXVlc3QaKS5vcmNoZXN0cmF0b3IudjEuUHJldmlld1Jlc2V0RGF0YVJlc3Bvbn'
-    'NlEmYKD1N0cmVhbVJlc2V0RGF0YRInLm9yY2hlc3RyYXRvci52MS5TdHJlYW1SZXNldERhdGFS'
-    'ZXF1ZXN0Gigub3JjaGVzdHJhdG9yLnYxLlN0cmVhbVJlc2V0RGF0YVJlc3BvbnNlMAESbQoSR2'
-    'V0Q29yZU1lbXBvb2xJbmZvEioub3JjaGVzdHJhdG9yLnYxLkdldENvcmVNZW1wb29sSW5mb1Jl'
-    'cXVlc3QaKy5vcmNoZXN0cmF0b3IudjEuR2V0Q29yZU1lbXBvb2xJbmZvUmVzcG9uc2USWAoLQ2'
-    '9yZVJhd0NhbGwSIy5vcmNoZXN0cmF0b3IudjEuQ29yZVJhd0NhbGxSZXF1ZXN0GiQub3JjaGVz'
-    'dHJhdG9yLnYxLkNvcmVSYXdDYWxsUmVzcG9uc2U=');
+    'VxdWVzdBomLm9yY2hlc3RyYXRvci52MS5SZXN0YXJ0RGFlbW9uUmVzcG9uc2USUgoJUmVzdGFy'
+    'dEwxEiEub3JjaGVzdHJhdG9yLnYxLlJlc3RhcnRMMVJlcXVlc3QaIi5vcmNoZXN0cmF0b3Iudj'
+    'EuUmVzdGFydEwxUmVzcG9uc2USWgoLU2h1dGRvd25BbGwSIy5vcmNoZXN0cmF0b3IudjEuU2h1'
+    'dGRvd25BbGxSZXF1ZXN0GiQub3JjaGVzdHJhdG9yLnYxLlNodXRkb3duQWxsUmVzcG9uc2UwAR'
+    'JPCghTaHV0ZG93bhIgLm9yY2hlc3RyYXRvci52MS5TaHV0ZG93blJlcXVlc3QaIS5vcmNoZXN0'
+    'cmF0b3IudjEuU2h1dGRvd25SZXNwb25zZRJYCgtHZXRCVENQcmljZRIjLm9yY2hlc3RyYXRvci'
+    '52MS5HZXRCVENQcmljZVJlcXVlc3QaJC5vcmNoZXN0cmF0b3IudjEuR2V0QlRDUHJpY2VSZXNw'
+    'b25zZRKFAQoaR2V0TWFpbmNoYWluQmxvY2tjaGFpbkluZm8SMi5vcmNoZXN0cmF0b3IudjEuR2'
+    'V0TWFpbmNoYWluQmxvY2tjaGFpbkluZm9SZXF1ZXN0GjMub3JjaGVzdHJhdG9yLnYxLkdldE1h'
+    'aW5jaGFpbkJsb2NrY2hhaW5JbmZvUmVzcG9uc2USggEKGUdldEVuZm9yY2VyQmxvY2tjaGFpbk'
+    'luZm8SMS5vcmNoZXN0cmF0b3IudjEuR2V0RW5mb3JjZXJCbG9ja2NoYWluSW5mb1JlcXVlc3Qa'
+    'Mi5vcmNoZXN0cmF0b3IudjEuR2V0RW5mb3JjZXJCbG9ja2NoYWluSW5mb1Jlc3BvbnNlEl4KDU'
+    'dldFN5bmNTdGF0dXMSJS5vcmNoZXN0cmF0b3IudjEuR2V0U3luY1N0YXR1c1JlcXVlc3QaJi5v'
+    'cmNoZXN0cmF0b3IudjEuR2V0U3luY1N0YXR1c1Jlc3BvbnNlEmoKEUdldERvd25sb2FkU3RhdH'
+    'VzEikub3JjaGVzdHJhdG9yLnYxLkdldERvd25sb2FkU3RhdHVzUmVxdWVzdBoqLm9yY2hlc3Ry'
+    'YXRvci52MS5HZXREb3dubG9hZFN0YXR1c1Jlc3BvbnNlEnAKE0dldE1haW5jaGFpbkJhbGFuY2'
+    'USKy5vcmNoZXN0cmF0b3IudjEuR2V0TWFpbmNoYWluQmFsYW5jZVJlcXVlc3QaLC5vcmNoZXN0'
+    'cmF0b3IudjEuR2V0TWFpbmNoYWluQmFsYW5jZVJlc3BvbnNlEmcKEFByZXZpZXdSZXNldERhdG'
+    'ESKC5vcmNoZXN0cmF0b3IudjEuUHJldmlld1Jlc2V0RGF0YVJlcXVlc3QaKS5vcmNoZXN0cmF0'
+    'b3IudjEuUHJldmlld1Jlc2V0RGF0YVJlc3BvbnNlEmYKD1N0cmVhbVJlc2V0RGF0YRInLm9yY2'
+    'hlc3RyYXRvci52MS5TdHJlYW1SZXNldERhdGFSZXF1ZXN0Gigub3JjaGVzdHJhdG9yLnYxLlN0'
+    'cmVhbVJlc2V0RGF0YVJlc3BvbnNlMAESbQoSR2V0Q29yZU1lbXBvb2xJbmZvEioub3JjaGVzdH'
+    'JhdG9yLnYxLkdldENvcmVNZW1wb29sSW5mb1JlcXVlc3QaKy5vcmNoZXN0cmF0b3IudjEuR2V0'
+    'Q29yZU1lbXBvb2xJbmZvUmVzcG9uc2USWAoLQ29yZVJhd0NhbGwSIy5vcmNoZXN0cmF0b3Iudj'
+    'EuQ29yZVJhd0NhbGxSZXF1ZXN0GiQub3JjaGVzdHJhdG9yLnYxLkNvcmVSYXdDYWxsUmVzcG9u'
+    'c2U=');
 

@@ -217,6 +217,13 @@ class OrchestratorRPC {
     return _unaryClient.restartDaemon(RestartDaemonRequest(name: name));
   }
 
+  /// Restart the whole L1 stack (bitcoind + enforcer). The orchestrator owns
+  /// the stop/start sequence; a not-running daemon is skipped, not an error.
+  /// Fire-and-forget — returns once the server dispatches the reboot.
+  Future<RestartL1Response> restartL1() {
+    return _unaryClient.restartL1(RestartL1Request());
+  }
+
   Stream<ShutdownAllResponse> shutdownAll({bool force = false}) {
     return _streamClient.shutdownAll(ShutdownAllRequest(force: force));
   }

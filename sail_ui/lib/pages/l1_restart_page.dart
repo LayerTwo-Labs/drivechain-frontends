@@ -33,17 +33,11 @@ class _L1RestartPageState extends State<L1RestartPage> {
     });
 
     try {
-      // Stop dependent first so it doesn't fight the bitcoind teardown.
-      await _binaries.stop(Enforcer());
-      await _binaries.stop(BitcoinCore());
-
-      // Brief settle so the OS finishes releasing the bitcoind RPC port
-      // before the new process tries to bind.
-      await Future.delayed(const Duration(seconds: 1));
-
-      // start(BitcoinCore()) → orchestrator.startWithL1 → fire-and-forget.
-      // Returns once boot is dispatched, which is enough to pop the page.
-      await _binaries.start(BitcoinCore());
+      // Single server-side call: the orchestrator stops the enforcer +
+      // bitcoind (skipping any that aren't running) and reboots the L1 stack.
+      // Fire-and-forget — returns once the reboot is dispatched, which is
+      // enough to pop the page.
+      await _binaries.restartL1();
 
       if (!mounted) return;
       setState(() {
