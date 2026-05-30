@@ -178,6 +178,15 @@ class BinaryProvider extends ChangeNotifier {
     await _orchestrator.restartDaemon(name);
   }
 
+  /// Restart the whole L1 stack (bitcoind + enforcer) in one server-side call.
+  /// The orchestrator stops both (skipping any that aren't running) and reboots
+  /// the L1 chain — the frontend does not hand-sequence stop/start. Running
+  /// sidechains are left alone and reconnect once the enforcer is back.
+  Future<void> restartL1() async {
+    log.i('BinaryProvider: restarting L1 stack via orchestrator');
+    await _orchestrator.restartL1();
+  }
+
   Future<void> stop(Binary binary, {bool skipDownstream = false}) async {
     if (_isDaemonBinary(binary)) {
       await _stopDaemonBinary(binary);
