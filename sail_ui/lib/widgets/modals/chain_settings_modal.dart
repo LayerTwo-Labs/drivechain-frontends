@@ -123,15 +123,9 @@ class _ChainSettingsModalState extends State<ChainSettingsModal> {
       addItems(await binary.getBlockchainDataPaths());
       addItems(await binary.getSettingsPaths());
       addItems(await binary.getLogPaths());
-
-      final walletPreview = await GetIt.I.get<OrchestratorRPC>().previewResetData(
-        deleteWalletFiles: true,
-        alsoResetSidechains: true,
-      );
-      addItems(
-        walletPreview.files.map((f) => f.path),
-        skipClientDelete: true,
-      );
+      if (_isSidechainBinary(binary)) {
+        addItems(await binary.getWalletPaths(includeFrontendWallet: false));
+      }
     } catch (e) {
       log.e('Could not compute wipe preview for ${binary.name}: $e');
       if (!context.mounted) return;
@@ -169,7 +163,6 @@ class _ChainSettingsModalState extends State<ChainSettingsModal> {
           binaryProvider: binaryProvider,
           deleteNodeSoftware: true,
           log: log,
-          preDeleteAction: () => GetIt.I.get<WalletWriterProvider>().deleteAllWallets(),
         ),
       ),
     );
@@ -179,6 +172,19 @@ class _ChainSettingsModalState extends State<ChainSettingsModal> {
     if (resetStarted == true) {
       Navigator.of(context).pop();
     }
+  }
+
+  bool _isSidechainBinary(Binary binary) {
+    return switch (binary.type) {
+      BinaryType.BINARY_TYPE_THUNDER ||
+      BinaryType.BINARY_TYPE_BITNAMES ||
+      BinaryType.BINARY_TYPE_BITASSETS ||
+      BinaryType.BINARY_TYPE_ZSIDE ||
+      BinaryType.BINARY_TYPE_TRUTHCOIN ||
+      BinaryType.BINARY_TYPE_PHOTON ||
+      BinaryType.BINARY_TYPE_COINSHIFT => true,
+      _ => false,
+    };
   }
 
   @override
