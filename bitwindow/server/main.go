@@ -379,6 +379,12 @@ func startOrchestratord(ctx context.Context, conf config.Config) (*exec.Cmd, err
 	// - Process.Release: tells the Go runtime to stop tracking the child so we
 	//   don't dangle a finalizer waiting on a process we've handed to init.
 	orchLogPath := filepath.Join(bitwindowDir, "orchestratord.log")
+	// On a fresh install the bitwindow dir doesn't exist yet; opening the log
+	// would fail, orchestratord would never spawn, and the UI would poll a dead
+	// port until timeout. Ensure the dir exists first.
+	if err := os.MkdirAll(bitwindowDir, 0o755); err != nil {
+		return nil, fmt.Errorf("create bitwindow dir %s: %w", bitwindowDir, err)
+	}
 	orchLogFile, err := os.OpenFile(orchLogPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o644)
 	if err != nil {
 		return nil, fmt.Errorf("open orchestratord log %s: %w", orchLogPath, err)
