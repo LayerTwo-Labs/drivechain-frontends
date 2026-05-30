@@ -43,9 +43,9 @@ func TestJustRunRestart(t *testing.T) {
 		return len(processPIDs(t, orchestratordName)) > 0
 	})
 	waitForPort(t, orchestratordPort, rpcDeadline, "first launch: orchestratord")
-	waitForOrchestratorRPC(t, rpcDeadline)
+	waitForOrchestratorRPC(t, rpcDeadline, dataDir)
 
-	firstWalletID := generateTestWallet(t)
+	firstWalletID := generateTestWallet(t, dataDir)
 	t.Logf("first launch: wallet created, wallet_id=%s", firstWalletID)
 
 	first.stop(t, shutdownDeadline)
@@ -75,9 +75,9 @@ func TestJustRunRestart(t *testing.T) {
 		return len(processPIDs(t, orchestratordName)) > 0
 	})
 	waitForPort(t, orchestratordPort, rpcDeadline, "second launch: orchestratord")
-	waitForOrchestratorRPC(t, rpcDeadline)
+	waitForOrchestratorRPC(t, rpcDeadline, dataDir)
 
-	hasWallet, activeID := walletStatus(t)
+	hasWallet, activeID := walletStatus(t, dataDir)
 	if !hasWallet {
 		second.dumpDiagnostics(t)
 		t.Fatalf("second launch: no wallet present — bitwindow re-prompted for wallet generation (active_wallet_id=%q)", activeID)

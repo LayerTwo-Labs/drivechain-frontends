@@ -34,6 +34,12 @@ const (
 	bitwindowdPort    = 30301
 	orchestratordPort = 30400
 
+	// authCookieFile mirrors localauth.CookieFile: orchestratord writes a
+	// per-session bearer token here under the bitwindow data dir, and every
+	// RPC must carry it as `Authorization: Bearer <token>`. Kept as a literal
+	// so the e2e module stays dependency-free.
+	authCookieFile = ".auth.cookie"
+
 	// Fixed BIP39 test mnemonic — matches the wallet we create in the
 	// restart test. Deterministic derivation means the same wallet id
 	// comes out on both boots iff the wallet state was persisted.
@@ -389,13 +395,26 @@ func tcpListening(port int) bool {
 	return true
 }
 
+// readAuthCookie returns the local-auth bearer token from <dir>/.auth.cookie,
+// or "" if the cookie is absent (auth-disabled state). Mirrors
+// localauth.ReadCookie without pulling in the orchestrator module.
+func readAuthCookie(dir string) string {
+	b, err := os.ReadFile(filepath.Join(dir, authCookieFile))
+	if err != nil {
+		return ""
+	}
+	return strings.TrimSpace(string(b))
+}
+
 // connectCall performs a Connect-JSON unary RPC against an http://host:port
 // endpoint. The procedure argument is the fully-qualified protobuf name,
-// e.g. "walletmanager.v1.WalletManagerService/GenerateWallet". Returns the
-// raw JSON response body on success; returns an error for non-2xx statuses
-// with the response body in the error message so test failures are
+// e.g. "walletmanager.v1.WalletManagerService/GenerateWallet". cookieDir is the
+// bitwindow data dir holding .auth.cookie; the token there is attached as a
+// bearer header so the orchestrator's local-auth interceptor accepts the call.
+// Returns the raw JSON response body on success; returns an error for non-2xx
+// statuses with the response body in the error message so test failures are
 // actionable.
-func connectCall(port int, procedure string, req any) (json.RawMessage, error) {
+func connectCall(port int, procedure string, req any, cookieDir string) (json.RawMessage, error) {
 	body, err := json.Marshal(req)
 	if err != nil {
 		return nil, fmt.Errorf("marshal: %w", err)
@@ -407,6 +426,9 @@ func connectCall(port int, procedure string, req any) (json.RawMessage, error) {
 		return nil, fmt.Errorf("new request: %w", err)
 	}
 	httpReq.Header.Set("Content-Type", "application/json")
+	if token := readAuthCookie(cookieDir); token != "" {
+		httpReq.Header.Set("Authorization", "Bearer "+token)
+	}
 
 	client := &http.Client{Timeout: 10 * time.Second}
 	resp, err := client.Do(httpReq)
@@ -428,14 +450,14 @@ func connectCall(port int, procedure string, req any) (json.RawMessage, error) {
 // generateTestWallet creates a deterministic wallet via the orchestrator's
 // WalletManagerService and returns its wallet_id. Uses a fixed mnemonic so
 // the wallet is identifiable across runs even without bitcoind.
-func generateTestWallet(t *testing.T) string {
+func generateTestWallet(t *testing.T, cookieDir string) string {
 	t.Helper()
 	raw, err := connectCall(orchestratordPort,
 		"walletmanager.v1.WalletManagerService/GenerateWallet",
 		map[string]string{
 			"name":            testWalletName,
 			"custom_mnemonic": testWalletMnemonic,
-		})
+		}, cookieDir)
 	if err != nil {
 		t.Fatalf("GenerateWallet: %v", err)
 	}
@@ -453,11 +475,11 @@ func generateTestWallet(t *testing.T) string {
 
 // walletStatus returns (has_wallet, active_wallet_id) from orchestratord's
 // GetWalletStatus. Pure-state RPC — doesn't depend on bitcoind being up.
-func walletStatus(t *testing.T) (hasWallet bool, activeID string) {
+func walletStatus(t *testing.T, cookieDir string) (hasWallet bool, activeID string) {
 	t.Helper()
 	raw, err := connectCall(orchestratordPort,
 		"walletmanager.v1.WalletManagerService/GetWalletStatus",
-		map[string]any{})
+		map[string]any{}, cookieDir)
 	if err != nil {
 		t.Fatalf("GetWalletStatus: %v", err)
 	}
@@ -473,11 +495,11 @@ func walletStatus(t *testing.T) (hasWallet bool, activeID string) {
 
 // listWalletIDs returns the wallet_ids stored on orchestratord. Pure state,
 // doesn't depend on bitcoind.
-func listWalletIDs(t *testing.T) []string {
+func listWalletIDs(t *testing.T, cookieDir string) []string {
 	t.Helper()
 	raw, err := connectCall(orchestratordPort,
 		"walletmanager.v1.WalletManagerService/ListWallets",
-		map[string]any{})
+		map[string]any{}, cookieDir)
 	if err != nil {
 		t.Fatalf("ListWallets: %v", err)
 	}
@@ -507,12 +529,12 @@ func waitForPort(t *testing.T, port int, deadline time.Duration, label string) {
 // waitForOrchestratorRPC polls ListBinaries (a cheap, always-available RPC)
 // until it returns 200 OK or deadline. This proves orchestratord is actually
 // serving RPCs, not merely holding a port.
-func waitForOrchestratorRPC(t *testing.T, deadline time.Duration) {
+func waitForOrchestratorRPC(t *testing.T, deadline time.Duration, cookieDir string) {
 	t.Helper()
 	waitUntil(t, deadline, 1*time.Second, "orchestratord RPC not responsive", func() bool {
 		_, err := connectCall(orchestratordPort,
 			"orchestrator.v1.OrchestratorService/ListBinaries",
-			map[string]any{})
+			map[string]any{}, cookieDir)
 		return err == nil
 	})
 }
