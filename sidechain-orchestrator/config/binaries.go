@@ -383,11 +383,11 @@ func (b BinaryDirConfig) GetWalletPaths(networkDir string, network Network, log 
 
 	case "bitwindowd":
 		paths = append(paths, GetExistingFilesInDir(networkDir, []string{"wallet.json", "wallet_encryption.json"}, log)...)
-	}
-
-	// Also check Flutter frontend app directory
-	if dir := b.FlutterFrontendPath(); dir != "" {
-		paths = append(paths, GetExistingFilesInDir(dir, []string{"wallet.json", "wallet_encryption.json"}, log)...)
+		// The L1/app wallet also lives in the Flutter frontend dir. Only the L1
+		// binary owns it, so a sidechain wipe never reaches it.
+		if dir := b.FlutterFrontendPath(); dir != "" {
+			paths = append(paths, GetExistingFilesInDir(dir, []string{"wallet.json", "wallet_encryption.json"}, log)...)
+		}
 	}
 
 	return paths
