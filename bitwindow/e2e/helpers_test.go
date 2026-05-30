@@ -353,6 +353,14 @@ func (h *runHandle) dumpDiagnostics(t *testing.T) {
 	if data, err := os.ReadFile(filepath.Join(h.dataDir, "debug.log")); err == nil {
 		write("bitwindow-debug.log", string(data))
 	}
+
+	// orchestratord runs detached and writes its own zerolog stream here (see
+	// startOrchestratord's --logfile). Without it, boot-time failures like the
+	// auth cookie never appearing / RPC not responsive are invisible —
+	// bitwindowd's log only shows the client side.
+	if data, err := os.ReadFile(filepath.Join(h.dataDir, "orchestratord.log")); err == nil {
+		write("orchestratord.log", string(data))
+	}
 }
 
 // formatSample returns up to max trailing lines joined with newlines, for use
