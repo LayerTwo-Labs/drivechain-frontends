@@ -173,15 +173,14 @@ func run(cctx *cli.Context) error {
 	configs := orchestrator.LoadConfigFile(configPath, log)
 	orch := orchestrator.New(dataDir, network, bitwindowDir, configs, log)
 
-	// Local RPC auth (bitcoind-style cookie). When enabled, clear any stale
-	// token now and write a fresh one only after this process owns the listener.
+	// Local RPC auth (bitcoind-style cookie). When enabled, a fresh token is
+	// written once this process owns the listener (see WriteCookie below) — it
+	// overwrites any stale one, so we never delete the cookie out from under a
+	// client. When disabled, drop any leftover cookie so nothing presents it.
 	// authIC is added to every handler below, so all endpoints are authed
 	// uniformly.
 	authIC := localauth.Interceptor("")
 	if localAuth {
-		if err := localauth.RemoveCookie(bitwindowDir); err != nil {
-			return fmt.Errorf("remove stale local auth cookie: %w", err)
-		}
 		authIC = localauth.Interceptor(bitwindowDir)
 	} else if err := localauth.RemoveCookie(bitwindowDir); err != nil {
 		log.Warn().Err(err).Msg("could not clear stale local auth cookie")
