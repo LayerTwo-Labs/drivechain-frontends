@@ -503,8 +503,12 @@ abstract class Binary {
     }
   }
 
-  /// Get list of wallet paths that exist and would be backed up/deleted
-  Future<List<String>> getWalletPaths() async {
+  /// Get list of wallet paths that exist and would be backed up/deleted.
+  ///
+  /// [includeFrontendWallet] includes the shared Flutter app wallet files
+  /// (`wallet.json`, `wallet_encryption.json`). That is appropriate for a
+  /// global wallet reset, but not for a per-binary/sidechain reset.
+  Future<List<String>> getWalletPaths({bool includeFrontendWallet = true}) async {
     final network = GetIt.I.get<BitcoinConfProvider>().network;
     final networkDir = datadirNetwork();
     final paths = <String>[];
@@ -551,8 +555,10 @@ abstract class Binary {
     }
 
     // Also include Flutter frontend app directory (getApplicationSupportDirectory())
+    // only for global wallet reset flows. Sidechain settings reset must not
+    // touch BitWindow's shared wallet.json.
     final flutterDir = flutterFrontendDir();
-    if (flutterDir != null) {
+    if (includeFrontendWallet && flutterDir != null) {
       paths.addAll(
         await _getExistingFilesInDir(flutterDir, [
           'wallet.json',
