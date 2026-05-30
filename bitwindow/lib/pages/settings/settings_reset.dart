@@ -160,86 +160,50 @@ class _SettingsResetState extends State<SettingsReset> {
 
   Future<void> _executeReset(BuildContext context) async {
     final binaryProvider = GetIt.I.get<BinaryProvider>();
-    final orchestrator = GetIt.I.get<OrchestratorRPC>();
 
     final binariesToReset = [
       ...coreBinaries,
       if (_alsoResetSidechains) ...sidechainBinaries,
     ];
 
-    // Ask orchestrator what it would delete — server is source of truth.
-    final PreviewResetDataResponse preview;
-    try {
-      preview = await orchestrator.previewResetData(
-        deleteNodeSoftware: _deleteNodeSoftware,
-        deleteBlockchainData: _deleteBlockchainData,
-        deleteLogs: _deleteLogs,
-        deleteSettings: _deleteSettings,
-        deleteWalletFiles: _deleteWalletFiles,
-        alsoResetSidechains: _alsoResetSidechains,
-      );
-    } catch (e) {
-      log.e('previewResetData failed: $e');
-      if (!context.mounted) return;
-      await showThemedDialog(
-        context: context,
-        builder: (context) => SailAlertCard(
-          title: 'Preview Failed',
-          subtitle: 'Could not compute reset preview: $e',
-          onConfirm: () async => Navigator.of(context).pop(),
+    // One deletion spec per binary. Bitcoin Core's wallet is never wiped; every
+    // other binary's wallet is moved to wallet_backups/ server-side. The
+    // orchestrator gathers the paths and performs the delete.
+    final request = [
+      for (final binary in binariesToReset)
+        SingleDeletion(
+          binary: binary.type,
+          deletions: <DeletionType>[
+            if (_deleteNodeSoftware) DeletionType.DELETION_TYPE_SOFTWARE,
+            if (_deleteBlockchainData) DeletionType.DELETION_TYPE_DATA,
+            if (_deleteSettings) DeletionType.DELETION_TYPE_SETTINGS,
+            if (_deleteLogs) DeletionType.DELETION_TYPE_LOGS,
+            if (_deleteWalletFiles && binary.type != BinaryType.BINARY_TYPE_BITCOIND) DeletionType.DELETION_TYPE_WALLET,
+          ],
         ),
-      );
-      return;
-    }
+    ];
 
-    final filesToDelete = preview.files.map((f) => DeleteItem(path: f.path)).toList();
-
-    if (filesToDelete.isEmpty) {
-      if (!context.mounted) return;
-      await showThemedDialog(
-        context: context,
-        builder: (context) => SailAlertCard(
-          title: 'Nothing to Delete',
-          subtitle: 'No files found matching your selection.',
-          onConfirm: () async => Navigator.of(context).pop(),
-        ),
-      );
-      return;
-    }
-
-    if (!context.mounted) return;
-
-    // Show confirmation page with file list - orchestrator performs deletion.
+    // Confirmation page gathers the concrete file list and performs deletion.
     final confirmed = await Navigator.of(context).push<bool>(
       MaterialPageRoute(
         builder: (_) => ResetConfirmationPage(
-          filesToDelete: filesToDelete,
-          binariesToReset: binariesToReset,
+          request: request,
           appDir: appDir,
           binaryProvider: binaryProvider,
-          deleteNodeSoftware: _deleteNodeSoftware,
           log: log,
-          preDeleteAction: _deleteWalletFiles || _obliterateEverything
-              ? () => GetIt.I.get<WalletWriterProvider>().deleteAllWallets()
-              : null,
-          orchestratorDelete: () => orchestrator.streamResetData(
-            deleteNodeSoftware: _deleteNodeSoftware,
-            deleteBlockchainData: _deleteBlockchainData,
-            deleteLogs: _deleteLogs,
-            deleteSettings: _deleteSettings,
-            deleteWalletFiles: _deleteWalletFiles,
-            alsoResetSidechains: _alsoResetSidechains,
-          ),
         ),
       ),
     );
 
     if (!context.mounted) return;
 
-    // If deletion happened, restart binaries
     if (confirmed == true) {
-      // Clear in-memory wallet state so the create wallet page sees a fresh state
-      if (_deleteWalletFiles || _obliterateEverything) {
+      final needsWalletCreation = _deleteWalletFiles || _obliterateEverything;
+
+      // Clear in-memory wallet state so the create wallet page sees a fresh
+      // state. The orchestrator already cleared its own state server-side and
+      // moved the wallet files to wallet_backups/.
+      if (needsWalletCreation) {
         GetIt.I.get<WalletReaderProvider>().clearState();
       }
 
@@ -256,12 +220,10 @@ class _SettingsResetState extends State<SettingsReset> {
 
       unawaited(rebootBitwindowBackend(log));
 
-      final router = GetIt.I.get<AppRouter>();
-      final needsWalletCreation = _deleteWalletFiles || _obliterateEverything;
-
       if (needsWalletCreation) {
         // Prevent RootPage.dispose() from triggering app shutdown during navigation
         setRootPageNavigatingAway(true);
+        final router = GetIt.I.get<AppRouter>();
         await router.replaceAll([SailCreateWalletRoute(homeRoute: const RootRoute())]);
       }
     }

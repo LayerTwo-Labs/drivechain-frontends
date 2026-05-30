@@ -148,23 +148,11 @@ class OrchestratorRPC {
     );
   }
 
-  Future<PreviewResetDataResponse> previewResetData({
-    bool deleteBlockchainData = false,
-    bool deleteNodeSoftware = false,
-    bool deleteLogs = false,
-    bool deleteSettings = false,
-    bool deleteWalletFiles = false,
-    bool alsoResetSidechains = false,
-  }) {
-    return _unaryClient.previewResetData(
-      PreviewResetDataRequest(
-        deleteBlockchainData: deleteBlockchainData,
-        deleteNodeSoftware: deleteNodeSoftware,
-        deleteLogs: deleteLogs,
-        deleteSettings: deleteSettings,
-        deleteWalletFiles: deleteWalletFiles,
-        alsoResetSidechains: alsoResetSidechains,
-      ),
+  /// Gather (no side effects) the files/dirs that would be deleted for the
+  /// given per-binary deletion spec. Used to build the reset preview.
+  Future<GatherFilesToDeleteResponse> gatherFilesToDelete(List<SingleDeletion> items) {
+    return _unaryClient.gatherFilesToDelete(
+      GatherFilesToDeleteRequest(items: items),
     );
   }
 
@@ -237,23 +225,10 @@ class OrchestratorRPC {
     return _unaryClient.shutdown(ShutdownRequest());
   }
 
-  Stream<StreamResetDataResponse> streamResetData({
-    bool deleteBlockchainData = false,
-    bool deleteNodeSoftware = false,
-    bool deleteLogs = false,
-    bool deleteSettings = false,
-    bool deleteWalletFiles = false,
-    bool alsoResetSidechains = false,
-  }) {
-    return _streamClient.streamResetData(
-      StreamResetDataRequest(
-        deleteBlockchainData: deleteBlockchainData,
-        deleteNodeSoftware: deleteNodeSoftware,
-        deleteLogs: deleteLogs,
-        deleteSettings: deleteSettings,
-        deleteWalletFiles: deleteWalletFiles,
-        alsoResetSidechains: alsoResetSidechains,
-      ),
-    );
+  /// Delete the given paths. Server stops binaries first and moves wallet paths
+  /// to wallet_backups/ rather than removing them. Streams one event per path;
+  /// an empty [DeleteFilesResponse.error] means that path succeeded.
+  Stream<DeleteFilesResponse> deleteFiles(List<String> paths) {
+    return _streamClient.deleteFiles(DeleteFilesRequest(paths: paths));
   }
 }

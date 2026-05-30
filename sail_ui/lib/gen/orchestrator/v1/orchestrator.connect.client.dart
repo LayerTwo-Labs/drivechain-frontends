@@ -342,16 +342,17 @@ extension type OrchestratorServiceClient (connect.Transport _transport) {
     );
   }
 
-  /// Preview what would be deleted for the given reset categories (no side effects).
-  Future<orchestratorv1orchestrator.PreviewResetDataResponse> previewResetData(
-    orchestratorv1orchestrator.PreviewResetDataRequest input, {
+  /// Gather the files/dirs that would be deleted for a per-binary deletion spec
+  /// (no side effects). Shared by the single-binary wipe and the full reset page.
+  Future<orchestratorv1orchestrator.GatherFilesToDeleteResponse> gatherFilesToDelete(
+    orchestratorv1orchestrator.GatherFilesToDeleteRequest input, {
     connect.Headers? headers,
     connect.AbortSignal? signal,
     Function(connect.Headers)? onHeader,
     Function(connect.Headers)? onTrailer,
   }) {
     return connect.Client(_transport).unary(
-      specs.OrchestratorService.previewResetData,
+      specs.OrchestratorService.gatherFilesToDelete,
       input,
       signal: signal,
       headers: headers,
@@ -360,16 +361,18 @@ extension type OrchestratorServiceClient (connect.Transport _transport) {
     );
   }
 
-  /// Reset/delete data categories. Stops affected binaries, streams each deletion event.
-  Stream<orchestratorv1orchestrator.StreamResetDataResponse> streamResetData(
-    orchestratorv1orchestrator.StreamResetDataRequest input, {
+  /// Delete the given paths. Stops binaries first; wallet paths are moved to
+  /// wallet_backups/ instead of removed. Returns a gRPC error if it can't run.
+  /// Streams one message per path; an unset error means that path succeeded.
+  Stream<orchestratorv1orchestrator.DeleteFilesResponse> deleteFiles(
+    orchestratorv1orchestrator.DeleteFilesRequest input, {
     connect.Headers? headers,
     connect.AbortSignal? signal,
     Function(connect.Headers)? onHeader,
     Function(connect.Headers)? onTrailer,
   }) {
     return connect.Client(_transport).server(
-      specs.OrchestratorService.streamResetData,
+      specs.OrchestratorService.deleteFiles,
       input,
       signal: signal,
       headers: headers,

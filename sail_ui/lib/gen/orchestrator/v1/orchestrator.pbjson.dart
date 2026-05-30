@@ -67,6 +67,26 @@ final $typed_data.Uint8List binaryTypeDescriptor = $convert.base64Decode(
     'JJTkFSWV9UWVBFX0NPSU5TSElGVBAKEhcKE0JJTkFSWV9UWVBFX0dSUENVUkwQCxIdChlCSU5B'
     'UllfVFlQRV9PUkNIRVNUUkFUT1JEEAwSFgoSQklOQVJZX1RZUEVfWlNJREVEEA0=');
 
+@$core.Deprecated('Use deletionTypeDescriptor instead')
+const DeletionType$json = {
+  '1': 'DeletionType',
+  '2': [
+    {'1': 'DELETION_TYPE_UNSPECIFIED', '2': 0},
+    {'1': 'DELETION_TYPE_DATA', '2': 1},
+    {'1': 'DELETION_TYPE_WALLET', '2': 2},
+    {'1': 'DELETION_TYPE_SETTINGS', '2': 3},
+    {'1': 'DELETION_TYPE_LOGS', '2': 4},
+    {'1': 'DELETION_TYPE_SOFTWARE', '2': 5},
+  ],
+};
+
+/// Descriptor for `DeletionType`. Decode as a `google.protobuf.EnumDescriptorProto`.
+final $typed_data.Uint8List deletionTypeDescriptor = $convert.base64Decode(
+    'CgxEZWxldGlvblR5cGUSHQoZREVMRVRJT05fVFlQRV9VTlNQRUNJRklFRBAAEhYKEkRFTEVUSU'
+    '9OX1RZUEVfREFUQRABEhgKFERFTEVUSU9OX1RZUEVfV0FMTEVUEAISGgoWREVMRVRJT05fVFlQ'
+    'RV9TRVRUSU5HUxADEhYKEkRFTEVUSU9OX1RZUEVfTE9HUxAEEhoKFkRFTEVUSU9OX1RZUEVfU0'
+    '9GVFdBUkUQBQ==');
+
 @$core.Deprecated('Use binaryStatusMsgDescriptor instead')
 const BinaryStatusMsg$json = {
   '1': 'BinaryStatusMsg',
@@ -609,100 +629,91 @@ final $typed_data.Uint8List getMainchainBalanceResponseDescriptor = $convert.bas
     'ChtHZXRNYWluY2hhaW5CYWxhbmNlUmVzcG9uc2USHAoJY29uZmlybWVkGAEgASgBUgljb25maX'
     'JtZWQSIAoLdW5jb25maXJtZWQYAiABKAFSC3VuY29uZmlybWVk');
 
-@$core.Deprecated('Use previewResetDataRequestDescriptor instead')
-const PreviewResetDataRequest$json = {
-  '1': 'PreviewResetDataRequest',
+@$core.Deprecated('Use singleDeletionDescriptor instead')
+const SingleDeletion$json = {
+  '1': 'SingleDeletion',
   '2': [
-    {'1': 'delete_blockchain_data', '3': 1, '4': 1, '5': 8, '10': 'deleteBlockchainData'},
-    {'1': 'delete_node_software', '3': 2, '4': 1, '5': 8, '10': 'deleteNodeSoftware'},
-    {'1': 'delete_logs', '3': 3, '4': 1, '5': 8, '10': 'deleteLogs'},
-    {'1': 'delete_settings', '3': 4, '4': 1, '5': 8, '10': 'deleteSettings'},
-    {'1': 'delete_wallet_files', '3': 5, '4': 1, '5': 8, '10': 'deleteWalletFiles'},
-    {'1': 'also_reset_sidechains', '3': 6, '4': 1, '5': 8, '10': 'alsoResetSidechains'},
+    {'1': 'binary', '3': 1, '4': 1, '5': 14, '6': '.orchestrator.v1.BinaryType', '10': 'binary'},
+    {'1': 'deletions', '3': 2, '4': 3, '5': 14, '6': '.orchestrator.v1.DeletionType', '10': 'deletions'},
   ],
 };
 
-/// Descriptor for `PreviewResetDataRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List previewResetDataRequestDescriptor = $convert.base64Decode(
-    'ChdQcmV2aWV3UmVzZXREYXRhUmVxdWVzdBI0ChZkZWxldGVfYmxvY2tjaGFpbl9kYXRhGAEgAS'
-    'gIUhRkZWxldGVCbG9ja2NoYWluRGF0YRIwChRkZWxldGVfbm9kZV9zb2Z0d2FyZRgCIAEoCFIS'
-    'ZGVsZXRlTm9kZVNvZnR3YXJlEh8KC2RlbGV0ZV9sb2dzGAMgASgIUgpkZWxldGVMb2dzEicKD2'
-    'RlbGV0ZV9zZXR0aW5ncxgEIAEoCFIOZGVsZXRlU2V0dGluZ3MSLgoTZGVsZXRlX3dhbGxldF9m'
-    'aWxlcxgFIAEoCFIRZGVsZXRlV2FsbGV0RmlsZXMSMgoVYWxzb19yZXNldF9zaWRlY2hhaW5zGA'
-    'YgASgIUhNhbHNvUmVzZXRTaWRlY2hhaW5z');
+/// Descriptor for `SingleDeletion`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List singleDeletionDescriptor = $convert.base64Decode(
+    'Cg5TaW5nbGVEZWxldGlvbhIzCgZiaW5hcnkYASABKA4yGy5vcmNoZXN0cmF0b3IudjEuQmluYX'
+    'J5VHlwZVIGYmluYXJ5EjsKCWRlbGV0aW9ucxgCIAMoDjIdLm9yY2hlc3RyYXRvci52MS5EZWxl'
+    'dGlvblR5cGVSCWRlbGV0aW9ucw==');
 
-@$core.Deprecated('Use previewResetDataResponseDescriptor instead')
-const PreviewResetDataResponse$json = {
-  '1': 'PreviewResetDataResponse',
+@$core.Deprecated('Use gatherFilesToDeleteRequestDescriptor instead')
+const GatherFilesToDeleteRequest$json = {
+  '1': 'GatherFilesToDeleteRequest',
+  '2': [
+    {'1': 'items', '3': 1, '4': 3, '5': 11, '6': '.orchestrator.v1.SingleDeletion', '10': 'items'},
+  ],
+};
+
+/// Descriptor for `GatherFilesToDeleteRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List gatherFilesToDeleteRequestDescriptor = $convert.base64Decode(
+    'ChpHYXRoZXJGaWxlc1RvRGVsZXRlUmVxdWVzdBI1CgVpdGVtcxgBIAMoCzIfLm9yY2hlc3RyYX'
+    'Rvci52MS5TaW5nbGVEZWxldGlvblIFaXRlbXM=');
+
+@$core.Deprecated('Use gatherFilesToDeleteResponseDescriptor instead')
+const GatherFilesToDeleteResponse$json = {
+  '1': 'GatherFilesToDeleteResponse',
   '2': [
     {'1': 'files', '3': 1, '4': 3, '5': 11, '6': '.orchestrator.v1.ResetFileInfo', '10': 'files'},
   ],
 };
 
-/// Descriptor for `PreviewResetDataResponse`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List previewResetDataResponseDescriptor = $convert.base64Decode(
-    'ChhQcmV2aWV3UmVzZXREYXRhUmVzcG9uc2USNAoFZmlsZXMYASADKAsyHi5vcmNoZXN0cmF0b3'
-    'IudjEuUmVzZXRGaWxlSW5mb1IFZmlsZXM=');
+/// Descriptor for `GatherFilesToDeleteResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List gatherFilesToDeleteResponseDescriptor = $convert.base64Decode(
+    'ChtHYXRoZXJGaWxlc1RvRGVsZXRlUmVzcG9uc2USNAoFZmlsZXMYASADKAsyHi5vcmNoZXN0cm'
+    'F0b3IudjEuUmVzZXRGaWxlSW5mb1IFZmlsZXM=');
 
 @$core.Deprecated('Use resetFileInfoDescriptor instead')
 const ResetFileInfo$json = {
   '1': 'ResetFileInfo',
   '2': [
     {'1': 'path', '3': 1, '4': 1, '5': 9, '10': 'path'},
-    {'1': 'category', '3': 2, '4': 1, '5': 9, '10': 'category'},
-    {'1': 'size_bytes', '3': 3, '4': 1, '5': 3, '10': 'sizeBytes'},
-    {'1': 'is_directory', '3': 4, '4': 1, '5': 8, '10': 'isDirectory'},
+    {'1': 'deletion_type', '3': 2, '4': 1, '5': 14, '6': '.orchestrator.v1.DeletionType', '10': 'deletionType'},
+    {'1': 'binary', '3': 3, '4': 1, '5': 14, '6': '.orchestrator.v1.BinaryType', '10': 'binary'},
+    {'1': 'size_bytes', '3': 4, '4': 1, '5': 3, '10': 'sizeBytes'},
+    {'1': 'is_directory', '3': 5, '4': 1, '5': 8, '10': 'isDirectory'},
   ],
 };
 
 /// Descriptor for `ResetFileInfo`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List resetFileInfoDescriptor = $convert.base64Decode(
-    'Cg1SZXNldEZpbGVJbmZvEhIKBHBhdGgYASABKAlSBHBhdGgSGgoIY2F0ZWdvcnkYAiABKAlSCG'
-    'NhdGVnb3J5Eh0KCnNpemVfYnl0ZXMYAyABKANSCXNpemVCeXRlcxIhCgxpc19kaXJlY3RvcnkY'
-    'BCABKAhSC2lzRGlyZWN0b3J5');
+    'Cg1SZXNldEZpbGVJbmZvEhIKBHBhdGgYASABKAlSBHBhdGgSQgoNZGVsZXRpb25fdHlwZRgCIA'
+    'EoDjIdLm9yY2hlc3RyYXRvci52MS5EZWxldGlvblR5cGVSDGRlbGV0aW9uVHlwZRIzCgZiaW5h'
+    'cnkYAyABKA4yGy5vcmNoZXN0cmF0b3IudjEuQmluYXJ5VHlwZVIGYmluYXJ5Eh0KCnNpemVfYn'
+    'l0ZXMYBCABKANSCXNpemVCeXRlcxIhCgxpc19kaXJlY3RvcnkYBSABKAhSC2lzRGlyZWN0b3J5');
 
-@$core.Deprecated('Use streamResetDataRequestDescriptor instead')
-const StreamResetDataRequest$json = {
-  '1': 'StreamResetDataRequest',
+@$core.Deprecated('Use deleteFilesRequestDescriptor instead')
+const DeleteFilesRequest$json = {
+  '1': 'DeleteFilesRequest',
   '2': [
-    {'1': 'delete_blockchain_data', '3': 1, '4': 1, '5': 8, '10': 'deleteBlockchainData'},
-    {'1': 'delete_node_software', '3': 2, '4': 1, '5': 8, '10': 'deleteNodeSoftware'},
-    {'1': 'delete_logs', '3': 3, '4': 1, '5': 8, '10': 'deleteLogs'},
-    {'1': 'delete_settings', '3': 4, '4': 1, '5': 8, '10': 'deleteSettings'},
-    {'1': 'delete_wallet_files', '3': 5, '4': 1, '5': 8, '10': 'deleteWalletFiles'},
-    {'1': 'also_reset_sidechains', '3': 6, '4': 1, '5': 8, '10': 'alsoResetSidechains'},
+    {'1': 'paths', '3': 1, '4': 3, '5': 9, '10': 'paths'},
   ],
 };
 
-/// Descriptor for `StreamResetDataRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List streamResetDataRequestDescriptor = $convert.base64Decode(
-    'ChZTdHJlYW1SZXNldERhdGFSZXF1ZXN0EjQKFmRlbGV0ZV9ibG9ja2NoYWluX2RhdGEYASABKA'
-    'hSFGRlbGV0ZUJsb2NrY2hhaW5EYXRhEjAKFGRlbGV0ZV9ub2RlX3NvZnR3YXJlGAIgASgIUhJk'
-    'ZWxldGVOb2RlU29mdHdhcmUSHwoLZGVsZXRlX2xvZ3MYAyABKAhSCmRlbGV0ZUxvZ3MSJwoPZG'
-    'VsZXRlX3NldHRpbmdzGAQgASgIUg5kZWxldGVTZXR0aW5ncxIuChNkZWxldGVfd2FsbGV0X2Zp'
-    'bGVzGAUgASgIUhFkZWxldGVXYWxsZXRGaWxlcxIyChVhbHNvX3Jlc2V0X3NpZGVjaGFpbnMYBi'
-    'ABKAhSE2Fsc29SZXNldFNpZGVjaGFpbnM=');
+/// Descriptor for `DeleteFilesRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List deleteFilesRequestDescriptor = $convert.base64Decode(
+    'ChJEZWxldGVGaWxlc1JlcXVlc3QSFAoFcGF0aHMYASADKAlSBXBhdGhz');
 
-@$core.Deprecated('Use streamResetDataResponseDescriptor instead')
-const StreamResetDataResponse$json = {
-  '1': 'StreamResetDataResponse',
+@$core.Deprecated('Use deleteFilesResponseDescriptor instead')
+const DeleteFilesResponse$json = {
+  '1': 'DeleteFilesResponse',
   '2': [
     {'1': 'path', '3': 1, '4': 1, '5': 9, '10': 'path'},
-    {'1': 'category', '3': 2, '4': 1, '5': 9, '10': 'category'},
-    {'1': 'success', '3': 3, '4': 1, '5': 8, '10': 'success'},
-    {'1': 'error', '3': 4, '4': 1, '5': 9, '10': 'error'},
-    {'1': 'done', '3': 5, '4': 1, '5': 8, '10': 'done'},
-    {'1': 'deleted_count', '3': 6, '4': 1, '5': 5, '10': 'deletedCount'},
-    {'1': 'failed_count', '3': 7, '4': 1, '5': 5, '10': 'failedCount'},
+    {'1': 'error', '3': 2, '4': 1, '5': 9, '10': 'error'},
   ],
 };
 
-/// Descriptor for `StreamResetDataResponse`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List streamResetDataResponseDescriptor = $convert.base64Decode(
-    'ChdTdHJlYW1SZXNldERhdGFSZXNwb25zZRISCgRwYXRoGAEgASgJUgRwYXRoEhoKCGNhdGVnb3'
-    'J5GAIgASgJUghjYXRlZ29yeRIYCgdzdWNjZXNzGAMgASgIUgdzdWNjZXNzEhQKBWVycm9yGAQg'
-    'ASgJUgVlcnJvchISCgRkb25lGAUgASgIUgRkb25lEiMKDWRlbGV0ZWRfY291bnQYBiABKAVSDG'
-    'RlbGV0ZWRDb3VudBIhCgxmYWlsZWRfY291bnQYByABKAVSC2ZhaWxlZENvdW50');
+/// Descriptor for `DeleteFilesResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List deleteFilesResponseDescriptor = $convert.base64Decode(
+    'ChNEZWxldGVGaWxlc1Jlc3BvbnNlEhIKBHBhdGgYASABKAlSBHBhdGgSFAoFZXJyb3IYAiABKA'
+    'lSBWVycm9y');
 
 @$core.Deprecated('Use getCoreMempoolInfoRequestDescriptor instead')
 const GetCoreMempoolInfoRequest$json = {
@@ -806,8 +817,8 @@ const $core.Map<$core.String, $core.dynamic> OrchestratorServiceBase$json = {
     {'1': 'GetSyncStatus', '2': '.orchestrator.v1.GetSyncStatusRequest', '3': '.orchestrator.v1.GetSyncStatusResponse'},
     {'1': 'GetDownloadStatus', '2': '.orchestrator.v1.GetDownloadStatusRequest', '3': '.orchestrator.v1.GetDownloadStatusResponse'},
     {'1': 'GetMainchainBalance', '2': '.orchestrator.v1.GetMainchainBalanceRequest', '3': '.orchestrator.v1.GetMainchainBalanceResponse'},
-    {'1': 'PreviewResetData', '2': '.orchestrator.v1.PreviewResetDataRequest', '3': '.orchestrator.v1.PreviewResetDataResponse'},
-    {'1': 'StreamResetData', '2': '.orchestrator.v1.StreamResetDataRequest', '3': '.orchestrator.v1.StreamResetDataResponse', '6': true},
+    {'1': 'GatherFilesToDelete', '2': '.orchestrator.v1.GatherFilesToDeleteRequest', '3': '.orchestrator.v1.GatherFilesToDeleteResponse'},
+    {'1': 'DeleteFiles', '2': '.orchestrator.v1.DeleteFilesRequest', '3': '.orchestrator.v1.DeleteFilesResponse', '6': true},
     {'1': 'GetCoreMempoolInfo', '2': '.orchestrator.v1.GetCoreMempoolInfoRequest', '3': '.orchestrator.v1.GetCoreMempoolInfoResponse'},
     {'1': 'CoreRawCall', '2': '.orchestrator.v1.CoreRawCallRequest', '3': '.orchestrator.v1.CoreRawCallResponse'},
   ],
@@ -856,11 +867,12 @@ const $core.Map<$core.String, $core.Map<$core.String, $core.dynamic>> Orchestrat
   '.orchestrator.v1.DownloadStatus': DownloadStatus$json,
   '.orchestrator.v1.GetMainchainBalanceRequest': GetMainchainBalanceRequest$json,
   '.orchestrator.v1.GetMainchainBalanceResponse': GetMainchainBalanceResponse$json,
-  '.orchestrator.v1.PreviewResetDataRequest': PreviewResetDataRequest$json,
-  '.orchestrator.v1.PreviewResetDataResponse': PreviewResetDataResponse$json,
+  '.orchestrator.v1.GatherFilesToDeleteRequest': GatherFilesToDeleteRequest$json,
+  '.orchestrator.v1.SingleDeletion': SingleDeletion$json,
+  '.orchestrator.v1.GatherFilesToDeleteResponse': GatherFilesToDeleteResponse$json,
   '.orchestrator.v1.ResetFileInfo': ResetFileInfo$json,
-  '.orchestrator.v1.StreamResetDataRequest': StreamResetDataRequest$json,
-  '.orchestrator.v1.StreamResetDataResponse': StreamResetDataResponse$json,
+  '.orchestrator.v1.DeleteFilesRequest': DeleteFilesRequest$json,
+  '.orchestrator.v1.DeleteFilesResponse': DeleteFilesResponse$json,
   '.orchestrator.v1.GetCoreMempoolInfoRequest': GetCoreMempoolInfoRequest$json,
   '.orchestrator.v1.GetCoreMempoolInfoResponse': GetCoreMempoolInfoResponse$json,
   '.orchestrator.v1.CoreRawCallRequest': CoreRawCallRequest$json,
@@ -899,13 +911,12 @@ final $typed_data.Uint8List orchestratorServiceDescriptor = $convert.base64Decod
     'VzEikub3JjaGVzdHJhdG9yLnYxLkdldERvd25sb2FkU3RhdHVzUmVxdWVzdBoqLm9yY2hlc3Ry'
     'YXRvci52MS5HZXREb3dubG9hZFN0YXR1c1Jlc3BvbnNlEnAKE0dldE1haW5jaGFpbkJhbGFuY2'
     'USKy5vcmNoZXN0cmF0b3IudjEuR2V0TWFpbmNoYWluQmFsYW5jZVJlcXVlc3QaLC5vcmNoZXN0'
-    'cmF0b3IudjEuR2V0TWFpbmNoYWluQmFsYW5jZVJlc3BvbnNlEmcKEFByZXZpZXdSZXNldERhdG'
-    'ESKC5vcmNoZXN0cmF0b3IudjEuUHJldmlld1Jlc2V0RGF0YVJlcXVlc3QaKS5vcmNoZXN0cmF0'
-    'b3IudjEuUHJldmlld1Jlc2V0RGF0YVJlc3BvbnNlEmYKD1N0cmVhbVJlc2V0RGF0YRInLm9yY2'
-    'hlc3RyYXRvci52MS5TdHJlYW1SZXNldERhdGFSZXF1ZXN0Gigub3JjaGVzdHJhdG9yLnYxLlN0'
-    'cmVhbVJlc2V0RGF0YVJlc3BvbnNlMAESbQoSR2V0Q29yZU1lbXBvb2xJbmZvEioub3JjaGVzdH'
-    'JhdG9yLnYxLkdldENvcmVNZW1wb29sSW5mb1JlcXVlc3QaKy5vcmNoZXN0cmF0b3IudjEuR2V0'
-    'Q29yZU1lbXBvb2xJbmZvUmVzcG9uc2USWAoLQ29yZVJhd0NhbGwSIy5vcmNoZXN0cmF0b3Iudj'
-    'EuQ29yZVJhd0NhbGxSZXF1ZXN0GiQub3JjaGVzdHJhdG9yLnYxLkNvcmVSYXdDYWxsUmVzcG9u'
-    'c2U=');
+    'cmF0b3IudjEuR2V0TWFpbmNoYWluQmFsYW5jZVJlc3BvbnNlEnAKE0dhdGhlckZpbGVzVG9EZW'
+    'xldGUSKy5vcmNoZXN0cmF0b3IudjEuR2F0aGVyRmlsZXNUb0RlbGV0ZVJlcXVlc3QaLC5vcmNo'
+    'ZXN0cmF0b3IudjEuR2F0aGVyRmlsZXNUb0RlbGV0ZVJlc3BvbnNlEloKC0RlbGV0ZUZpbGVzEi'
+    'Mub3JjaGVzdHJhdG9yLnYxLkRlbGV0ZUZpbGVzUmVxdWVzdBokLm9yY2hlc3RyYXRvci52MS5E'
+    'ZWxldGVGaWxlc1Jlc3BvbnNlMAESbQoSR2V0Q29yZU1lbXBvb2xJbmZvEioub3JjaGVzdHJhdG'
+    '9yLnYxLkdldENvcmVNZW1wb29sSW5mb1JlcXVlc3QaKy5vcmNoZXN0cmF0b3IudjEuR2V0Q29y'
+    'ZU1lbXBvb2xJbmZvUmVzcG9uc2USWAoLQ29yZVJhd0NhbGwSIy5vcmNoZXN0cmF0b3IudjEuQ2'
+    '9yZVJhd0NhbGxSZXF1ZXN0GiQub3JjaGVzdHJhdG9yLnYxLkNvcmVSYXdDYWxsUmVzcG9uc2U=');
 

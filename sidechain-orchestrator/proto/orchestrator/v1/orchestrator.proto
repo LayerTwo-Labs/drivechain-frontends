@@ -82,11 +82,14 @@ service OrchestratorService {
   // Get wallet balance from Bitcoin Core (proxied via orchestrator).
   rpc GetMainchainBalance(GetMainchainBalanceRequest) returns (GetMainchainBalanceResponse);
 
-  // Preview what would be deleted for the given reset categories (no side effects).
-  rpc PreviewResetData(PreviewResetDataRequest) returns (PreviewResetDataResponse);
+  // Gather the files/dirs that would be deleted for a per-binary deletion spec
+  // (no side effects). Shared by the single-binary wipe and the full reset page.
+  rpc GatherFilesToDelete(GatherFilesToDeleteRequest) returns (GatherFilesToDeleteResponse);
 
-  // Reset/delete data categories. Stops affected binaries, streams each deletion event.
-  rpc StreamResetData(StreamResetDataRequest) returns (stream StreamResetDataResponse);
+  // Delete the given paths. Stops binaries first; wallet paths are moved to
+  // wallet_backups/ instead of removed. Returns a gRPC error if it can't run.
+  // Streams one message per path; an unset error means that path succeeded.
+  rpc DeleteFiles(DeleteFilesRequest) returns (stream DeleteFilesResponse);
 
   // ─── Bitcoin Core typed extensions ────────────────────────────────────────
   // Sit alongside the btc-buf BitcoinService for methods btc-buf doesn't type
@@ -390,47 +393,49 @@ message GetMainchainBalanceResponse {
   double unconfirmed = 2;
 }
 
-// PreviewResetData
+// GatherFilesToDelete
 
-message PreviewResetDataRequest {
-  bool delete_blockchain_data = 1;
-  bool delete_node_software = 2;
-  bool delete_logs = 3;
-  bool delete_settings = 4;
-  bool delete_wallet_files = 5;
-  bool also_reset_sidechains = 6;
+// DeletionType selects which category of a binary's files to gather/delete.
+enum DeletionType {
+  DELETION_TYPE_UNSPECIFIED = 0;
+  DELETION_TYPE_DATA = 1;     // blockchain data
+  DELETION_TYPE_WALLET = 2;   // wallet files (moved to wallet_backups/ on delete)
+  DELETION_TYPE_SETTINGS = 3; // config / settings files
+  DELETION_TYPE_LOGS = 4;     // log files
+  DELETION_TYPE_SOFTWARE = 5; // downloaded binary / node software
 }
 
-message PreviewResetDataResponse {
+// One binary plus the categories of its data to act on.
+message SingleDeletion {
+  BinaryType binary = 1;
+  repeated DeletionType deletions = 2;
+}
+
+message GatherFilesToDeleteRequest {
+  repeated SingleDeletion items = 1;
+}
+
+message GatherFilesToDeleteResponse {
   repeated ResetFileInfo files = 1;
 }
 
 message ResetFileInfo {
   string path = 1;
-  string category = 2; // e.g. "blockchain_data", "node_software", "logs", "settings", "wallet"
-  int64 size_bytes = 3;
-  bool is_directory = 4;
+  DeletionType deletion_type = 2;
+  BinaryType binary = 3;
+  int64 size_bytes = 4;
+  bool is_directory = 5;
 }
 
-// StreamResetData
+// DeleteFiles
 
-message StreamResetDataRequest {
-  bool delete_blockchain_data = 1;
-  bool delete_node_software = 2;
-  bool delete_logs = 3;
-  bool delete_settings = 4;
-  bool delete_wallet_files = 5;
-  bool also_reset_sidechains = 6;
+message DeleteFilesRequest {
+  repeated string paths = 1;
 }
 
-message StreamResetDataResponse {
+message DeleteFilesResponse {
   string path = 1;
-  string category = 2;
-  bool success = 3;
-  string error = 4;
-  bool done = 5; // true on final message
-  int32 deleted_count = 6;
-  int32 failed_count = 7;
+  string error = 2; // unset → this path was deleted successfully
 }
 
 // ─── Bitcoin Core typed extensions ────────────────────────────────────────

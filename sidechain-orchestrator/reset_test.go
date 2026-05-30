@@ -29,508 +29,122 @@ func seedFile(t *testing.T, path string) {
 	require.NoError(t, os.WriteFile(path, []byte("data"), 0o644))
 }
 
-// seedDir creates an empty directory.
-func seedDir(t *testing.T, path string) {
-	t.Helper()
-	require.NoError(t, os.MkdirAll(path, 0o755))
+func allCategories() []string {
+	return []string{catData, catSoftware, catLogs, catSettings, catWallet}
 }
 
-// ---------- collectPaths ---------------------------------------------------
+// ---------- GatherFilesToDelete --------------------------------------------
 
-func TestCollectPaths_NoCategories(t *testing.T) {
+func TestGather_NoSpecs(t *testing.T) {
 	o := newResetTestOrchestrator(t)
-	// With nothing selected, no paths should be returned.
-	paths := o.collectPaths(ResetCategory{})
-	assert.Empty(t, paths)
-}
-
-func TestCollectPaths_CategoriesAreCorrect(t *testing.T) {
-	o := newResetTestOrchestrator(t)
-	// Each flag should produce only its own category key.
-	for _, tc := range []struct {
-		cat      ResetCategory
-		wantKeys []string
-	}{
-		{ResetCategory{DeleteBlockchainData: true}, []string{"blockchain_data"}},
-		{ResetCategory{DeleteNodeSoftware: true}, []string{"node_software"}},
-		{ResetCategory{DeleteLogs: true}, []string{"logs"}},
-		{ResetCategory{DeleteSettings: true}, []string{"settings"}},
-		{ResetCategory{DeleteWalletFiles: true}, []string{"wallet"}},
-	} {
-		paths := o.collectPaths(tc.cat)
-		for key := range paths {
-			assert.Contains(t, tc.wantKeys, key, "unexpected category key %q", key)
-		}
-	}
-}
-
-func TestCollectPaths_SidechainsExcludedByDefault(t *testing.T) {
-	o := newResetTestOrchestrator(t)
-
-	without := o.collectPaths(ResetCategory{DeleteBlockchainData: true, AlsoResetSidechains: false})
-	with := o.collectPaths(ResetCategory{DeleteBlockchainData: true, AlsoResetSidechains: true})
-
-	// With sidechains included there should be at least as many paths.
-	totalWithout := 0
-	for _, p := range without {
-		totalWithout += len(p)
-	}
-	totalWith := 0
-	for _, p := range with {
-		totalWith += len(p)
-	}
-	assert.GreaterOrEqual(t, totalWith, totalWithout,
-		"including sidechains should not reduce paths")
-}
-
-// Regression for #1695: "Fully Obliterate Everything skipping some sidechains".
-// Previously, collectPaths iterated o.Configs() which only contains runtime-
-// started binaries — so a sidechain the user never launched in this session
-// (commonly Bitnames, BitAssets) would silently miss the wipe. The fix
-// enumerates config.AllDirConfigs() instead, so every registered sidechain
-// is inspected regardless of session state.
-func TestResetTargetDirConfigs_IncludesAllSidechainsEvenWithEmptyRuntime(t *testing.T) {
-	o := newResetTestOrchestrator(t)
-
-	// Drop runtime configs entirely — the wipe must still target every
-	// sidechain's data dir from the embedded registry.
-	o.mu.Lock()
-	o.configs = nil
-	o.mu.Unlock()
-
-	targets := o.resetTargetDirConfigs(ResetCategory{AlsoResetSidechains: true})
-
-	seenBinary := make(map[string]bool)
-	for _, t := range targets {
-		seenBinary[t.BinaryName] = true
-	}
-
-	// Every sidechain registered in chains_config.json must be enumerated.
-	wantBinaries := []string{
-		"thunder", "bitnames", "bitassets", "thunder-orchard",
-		"truthcoin", "photon", "coinshift",
-	}
-	for _, b := range wantBinaries {
-		assert.Truef(t, seenBinary[b], "sidechain binary %q was skipped by resetTargetDirConfigs", b)
-	}
-}
-
-// AlsoResetSidechains=false must exclude every chainLayer==2 entry, leaving
-// only L1 binaries (bitcoind, bitwindowd, enforcer, orchestratord, ...).
-func TestResetTargetDirConfigs_OmitsSidechainsWhenFlagOff(t *testing.T) {
-	o := newResetTestOrchestrator(t)
-
-	targets := o.resetTargetDirConfigs(ResetCategory{AlsoResetSidechains: false})
-
-	for _, dc := range targets {
-		assert.NotEqualf(t, 2, dc.ChainLayer,
-			"sidechain %q (%s) leaked into reset targets when AlsoResetSidechains=false",
-			dc.Name, dc.BinaryName)
-	}
-}
-
-func TestCollectPaths_DeduplicatesWithinCategory(t *testing.T) {
-	o := newResetTestOrchestrator(t)
-	paths := o.collectPaths(ResetCategory{
-		DeleteBlockchainData: true,
-		DeleteLogs:           true,
-		DeleteSettings:       true,
-		DeleteWalletFiles:    true,
-		DeleteNodeSoftware:   true,
-		AlsoResetSidechains:  true,
-	})
-	for cat, ps := range paths {
-		seen := make(map[string]bool)
-		for _, p := range ps {
-			assert.False(t, seen[p], "duplicate path %q in category %q", p, cat)
-			seen[p] = true
-		}
-	}
-}
-
-// ---------- PreviewResetData -----------------------------------------------
-
-func TestPreviewResetData_Empty(t *testing.T) {
-	o := newResetTestOrchestrator(t)
-	files, err := o.PreviewResetData(ResetCategory{})
+	files, err := o.GatherFilesToDelete(nil)
 	require.NoError(t, err)
 	assert.Empty(t, files)
 }
 
-func TestPreviewResetData_ReturnsCategoriesAndPaths(t *testing.T) {
+func TestGather_OnlyTargetsRequestedBinary(t *testing.T) {
 	o := newResetTestOrchestrator(t)
-	files, err := o.PreviewResetData(ResetCategory{
-		DeleteBlockchainData: true,
-		DeleteLogs:           true,
-		AlsoResetSidechains:  true,
+
+	// node_software lives in BinDir keyed by binary name. Seed bitcoind +
+	// thunder; gather only thunder and assert bitcoind never shows up.
+	binDir := BinDir(o.BitwindowDir)
+	seedFile(t, filepath.Join(binDir, "bitcoind"))
+	seedFile(t, filepath.Join(binDir, "thunder"))
+
+	files, err := o.GatherFilesToDelete([]GatherSpec{
+		{BinaryName: "thunder", Categories: []string{catSoftware}},
 	})
 	require.NoError(t, err)
 
-	// Verify all returned items have the expected category.
-	allowedCats := map[string]bool{"blockchain_data": true, "logs": true}
 	for _, f := range files {
-		assert.True(t, allowedCats[f.Category],
-			"unexpected category %q for path %q", f.Category, f.Path)
-		assert.NotEmpty(t, f.Path)
+		assert.NotEqual(t, "bitcoind", filepath.Base(f.Path),
+			"gather for thunder must not return bitcoind's software")
 	}
 }
 
-func TestPreviewResetData_StatsExistingFiles(t *testing.T) {
+func TestGather_OnlyRequestedCategories(t *testing.T) {
 	o := newResetTestOrchestrator(t)
 
-	// Seed a file that collectPaths will pick up for node_software.
-	// BinDir is <bitwindowDir>/assets/bin, and node_software collects
-	// binary paths from that directory.
+	files, err := o.GatherFilesToDelete([]GatherSpec{
+		{BinaryName: "bitcoind", Categories: []string{catData, catLogs}},
+	})
+	require.NoError(t, err)
+
+	allowed := map[string]bool{catData: true, catLogs: true}
+	for _, f := range files {
+		assert.Truef(t, allowed[f.Category], "unexpected category %q for %q", f.Category, f.Path)
+	}
+}
+
+func TestGather_StatsExistingFiles(t *testing.T) {
+	o := newResetTestOrchestrator(t)
+
 	binDir := BinDir(o.BitwindowDir)
 	seedFile(t, filepath.Join(binDir, "bitcoind"))
 
-	files, err := o.PreviewResetData(ResetCategory{DeleteNodeSoftware: true})
+	files, err := o.GatherFilesToDelete([]GatherSpec{
+		{BinaryName: "bitcoind", Categories: []string{catSoftware}},
+	})
 	require.NoError(t, err)
 
-	// At least the seeded file should show up with correct size.
 	var found bool
 	for _, f := range files {
 		if filepath.Base(f.Path) == "bitcoind" {
 			found = true
 			assert.False(t, f.IsDirectory)
 			assert.Equal(t, int64(len("data")), f.SizeBytes)
+			assert.Equal(t, catSoftware, f.Category)
+			assert.Equal(t, "bitcoind", f.BinaryName)
 		}
 	}
-	assert.True(t, found, "expected seeded bitcoind binary in preview")
+	assert.True(t, found, "expected seeded bitcoind binary in gather result")
 }
 
-func TestPreviewResetData_DirectoryMarked(t *testing.T) {
+func TestGather_DeduplicatesByPath(t *testing.T) {
 	o := newResetTestOrchestrator(t)
 
-	// Pick any blockchain_data path that doesn't already exist (orchestrator
-	// init seeds a few files like bitwindow-enforcer.conf), create it as a
-	// directory, and verify preview reports IsDirectory=true.
-	paths := o.collectPaths(ResetCategory{DeleteBlockchainData: true})
-	bcPaths := paths["blockchain_data"]
-	var target string
-	for _, p := range bcPaths {
-		if _, err := os.Stat(p); os.IsNotExist(err) {
-			target = p
-			break
-		}
-	}
-	if target == "" {
-		t.Skip("no unused blockchain_data path available to seed")
-	}
-	seedDir(t, target)
-
-	files, err := o.PreviewResetData(ResetCategory{DeleteBlockchainData: true})
+	files, err := o.GatherFilesToDelete([]GatherSpec{
+		{BinaryName: "bitcoind", Categories: allCategories()},
+		{BinaryName: "bitwindowd", Categories: allCategories()},
+	})
 	require.NoError(t, err)
+
+	seen := make(map[string]bool)
 	for _, f := range files {
-		if f.Path == target {
-			assert.True(t, f.IsDirectory)
-			assert.Zero(t, f.SizeBytes, "directories should report 0 size")
-		}
+		assert.Falsef(t, seen[f.Path], "duplicate path %q in gather result", f.Path)
+		seen[f.Path] = true
 	}
 }
 
-func TestPreviewResetData_NoSideEffects(t *testing.T) {
+func TestGather_NoSideEffects(t *testing.T) {
 	o := newResetTestOrchestrator(t)
 
 	binDir := BinDir(o.BitwindowDir)
 	testFile := filepath.Join(binDir, "bitcoind")
 	seedFile(t, testFile)
 
-	_, err := o.PreviewResetData(ResetCategory{DeleteNodeSoftware: true})
+	_, err := o.GatherFilesToDelete([]GatherSpec{
+		{BinaryName: "bitcoind", Categories: []string{catSoftware}},
+	})
 	require.NoError(t, err)
 
-	// File must still exist — preview is read-only.
 	_, statErr := os.Stat(testFile)
-	assert.NoError(t, statErr, "preview must not delete files")
+	assert.NoError(t, statErr, "gather must not delete files")
 }
 
-// ---------- StreamResetData ------------------------------------------------
-
-func TestStreamResetData_DeletesSeededFiles(t *testing.T) {
+func TestGather_ResultsAreStable(t *testing.T) {
 	o := newResetTestOrchestrator(t)
 
-	// Seed files in the bin directory (node_software category).
-	binDir := BinDir(o.BitwindowDir)
-	seedFile(t, filepath.Join(binDir, "bitcoind"))
-	seedFile(t, filepath.Join(binDir, "bip300301-enforcer"))
+	specs := []GatherSpec{
+		{BinaryName: "bitcoind", Categories: []string{catData, catSoftware, catLogs}},
+		{BinaryName: "thunder", Categories: allCategories()},
+	}
 
-	// Verify they exist in preview.
-	preview, err := o.PreviewResetData(ResetCategory{DeleteNodeSoftware: true})
+	files1, err := o.GatherFilesToDelete(specs)
 	require.NoError(t, err)
-	require.NotEmpty(t, preview, "expected seeded files in preview")
-
-	ch, err := o.StreamResetData(context.Background(), ResetCategory{DeleteNodeSoftware: true})
+	files2, err := o.GatherFilesToDelete(specs)
 	require.NoError(t, err)
 
-	var events []ResetEvent
-	for evt := range ch {
-		events = append(events, evt)
-	}
-
-	// Must have at least one non-done event + the final done event.
-	require.NotEmpty(t, events)
-	last := events[len(events)-1]
-	assert.True(t, last.Done, "last event must be the done summary")
-	assert.Zero(t, last.FailedCount, "no failures expected")
-
-	// Check files are actually gone.
-	for _, f := range preview {
-		_, statErr := os.Stat(f.Path)
-		assert.True(t, os.IsNotExist(statErr), "file %q should have been deleted", f.Path)
-	}
-}
-
-func TestStreamResetData_EmitsPerFileEvents(t *testing.T) {
-	o := newResetTestOrchestrator(t)
-
-	binDir := BinDir(o.BitwindowDir)
-	seedFile(t, filepath.Join(binDir, "bitcoind"))
-	seedFile(t, filepath.Join(binDir, "bip300301-enforcer"))
-
-	ch, err := o.StreamResetData(context.Background(), ResetCategory{DeleteNodeSoftware: true})
-	require.NoError(t, err)
-
-	var fileEvents []ResetEvent
-	var doneEvent ResetEvent
-	for evt := range ch {
-		if evt.Done {
-			doneEvent = evt
-		} else {
-			fileEvents = append(fileEvents, evt)
-		}
-	}
-
-	// Each per-file event should have path, category, and success.
-	for _, evt := range fileEvents {
-		assert.NotEmpty(t, evt.Path)
-		assert.Equal(t, "node_software", evt.Category)
-		assert.True(t, evt.Success)
-		assert.Empty(t, evt.Error)
-	}
-
-	// Done event should have cumulative counts.
-	assert.True(t, doneEvent.Done)
-	assert.Equal(t, len(fileEvents), doneEvent.DeletedCount)
-	assert.Zero(t, doneEvent.FailedCount)
-}
-
-func TestStreamResetData_CountsAreCumulative(t *testing.T) {
-	o := newResetTestOrchestrator(t)
-
-	binDir := BinDir(o.BitwindowDir)
-	seedFile(t, filepath.Join(binDir, "bitcoind"))
-	seedFile(t, filepath.Join(binDir, "bip300301-enforcer"))
-	seedFile(t, filepath.Join(binDir, "thunder"))
-
-	ch, err := o.StreamResetData(context.Background(), ResetCategory{DeleteNodeSoftware: true})
-	require.NoError(t, err)
-
-	prev := 0
-	for evt := range ch {
-		if evt.Done {
-			break
-		}
-		assert.GreaterOrEqual(t, evt.DeletedCount, prev,
-			"deleted count must be monotonically increasing")
-		prev = evt.DeletedCount
-	}
-}
-
-func TestStreamResetData_NonExistentPathsSucceed(t *testing.T) {
-	// When collectPaths returns paths that don't exist on disk,
-	// os.RemoveAll should succeed (IsNotExist is treated as success).
-	o := newResetTestOrchestrator(t)
-
-	// Don't seed any files — paths won't exist.
-	ch, err := o.StreamResetData(context.Background(), ResetCategory{
-		DeleteNodeSoftware: true,
-	})
-	require.NoError(t, err)
-
-	var failCount int
-	for evt := range ch {
-		if !evt.Done && !evt.Success {
-			failCount++
-		}
-	}
-	assert.Zero(t, failCount, "non-existent paths should not be failures")
-}
-
-func TestStreamResetData_EmptyCategories(t *testing.T) {
-	o := newResetTestOrchestrator(t)
-
-	ch, err := o.StreamResetData(context.Background(), ResetCategory{})
-	require.NoError(t, err)
-
-	var events []ResetEvent
-	for evt := range ch {
-		events = append(events, evt)
-	}
-
-	// Should still get a done event even with nothing to delete.
-	require.Len(t, events, 1)
-	assert.True(t, events[0].Done)
-	assert.Zero(t, events[0].DeletedCount)
-	assert.Zero(t, events[0].FailedCount)
-}
-
-func TestStreamResetData_ContextCancellation(t *testing.T) {
-	o := newResetTestOrchestrator(t)
-
-	ctx, cancel := context.WithCancel(context.Background())
-	cancel() // cancel immediately
-
-	// StreamResetData calls ShutdownAll which uses the context.
-	// With a cancelled context, it should return an error.
-	_, err := o.StreamResetData(ctx, ResetCategory{DeleteNodeSoftware: true})
-	// The shutdown step may or may not fail depending on whether there are
-	// running processes. With no running processes, ShutdownAll returns
-	// immediately so the cancellation may not surface. Either outcome is
-	// acceptable — the key thing is no panic / hang.
-	_ = err
-}
-
-// TestStreamResetData_DeletesNestedDirectoryTree ensures os.RemoveAll
-// actually recurses end-to-end. Flat files per category weren't enough
-// to catch Windows's tree-walk aborting on a single locked file — this
-// test gives the stream a real nested dir and asserts every leaf dies.
-func TestStreamResetData_DeletesNestedDirectoryTree(t *testing.T) {
-	o := newResetTestOrchestrator(t)
-
-	// collectPaths returns the binary file itself from BinDir — we make
-	// that "file" a directory full of nested content (as .app bundles
-	// are on macOS). os.RemoveAll must walk and delete everything under
-	// it, not just the top level.
-	binDir := BinDir(o.BitwindowDir)
-	require.NoError(t, os.MkdirAll(binDir, 0o755))
-
-	nested := filepath.Join(binDir, "bitcoind")
-	deep := filepath.Join(nested, "Contents", "MacOS", "Resources", "en.lproj")
-	require.NoError(t, os.MkdirAll(deep, 0o755))
-	leaf := filepath.Join(deep, "InfoPlist.strings")
-	require.NoError(t, os.WriteFile(leaf, []byte("leaf"), 0o644))
-
-	ch, err := o.StreamResetData(context.Background(), ResetCategory{DeleteNodeSoftware: true})
-	require.NoError(t, err)
-	var done ResetEvent
-	for evt := range ch {
-		if evt.Done {
-			done = evt
-		}
-	}
-
-	assert.Zero(t, done.FailedCount, "deep tree should delete cleanly")
-	_, leafErr := os.Stat(leaf)
-	assert.True(t, os.IsNotExist(leafErr), "deep leaf %s must be deleted, not just top-level dir", leaf)
-	_, rootErr := os.Stat(nested)
-	assert.True(t, os.IsNotExist(rootErr), "nested root %s must be deleted", nested)
-}
-
-func TestStreamResetData_DeduplicatesAcrossCategories(t *testing.T) {
-	o := newResetTestOrchestrator(t)
-
-	// Request multiple categories. Paths appearing in multiple categories
-	// should only be deleted once.
-	ch, err := o.StreamResetData(context.Background(), ResetCategory{
-		DeleteBlockchainData: true,
-		DeleteLogs:           true,
-		DeleteSettings:       true,
-		AlsoResetSidechains:  true,
-	})
-	require.NoError(t, err)
-
-	seen := make(map[string]bool)
-	for evt := range ch {
-		if evt.Done {
-			continue
-		}
-		assert.False(t, seen[evt.Path],
-			"path %q emitted more than once", evt.Path)
-		seen[evt.Path] = true
-	}
-}
-
-// TestCollectPathEntries_ShrinksWhenSeededFilesVanish locks in the *reason*
-// for the fix in commit d1b8158b: collectPathEntries delegates to
-// GetExistingFilesInDir, which silently drops paths that don't exist on
-// disk. The old StreamResetData called collectPathEntries AFTER ShutdownAll
-// removed pid/lock files and WalletSvc.DeleteAllWallets moved wallet dirs
-// aside — so the recompute returned fewer entries than the preview, and
-// the UI rows for the dropped paths stayed pending forever (#1723).
-//
-// The fix snapshots entries at the top of StreamResetData, before any
-// destructive operation runs. This test demonstrates the shrink behavior
-// directly so that any future refactor moving the snapshot back below
-// shutdown immediately reintroduces the bug — and this test catches it.
-func TestCollectPathEntries_ShrinksWhenSeededFilesVanish(t *testing.T) {
-	o := newResetTestOrchestrator(t)
-
-	binDir := BinDir(o.BitwindowDir)
-	seeded := []string{
-		filepath.Join(binDir, "bitcoind"),
-		filepath.Join(binDir, "bip300301-enforcer"),
-		filepath.Join(binDir, "thunder"),
-	}
-	for _, p := range seeded {
-		seedFile(t, p)
-	}
-
-	cat := ResetCategory{DeleteNodeSoftware: true}
-
-	before := o.collectPathEntries(cat)
-	require.NotEmpty(t, before, "expected seeded files in initial collect")
-
-	// Mid-call removal of a seeded path — same effect as ShutdownAll
-	// deleting bitcoind.pid or DeleteAllWallets moving a wallet dir.
-	require.NoError(t, os.Remove(seeded[0]))
-
-	after := o.collectPathEntries(cat)
-
-	assert.Lessf(t, len(after), len(before),
-		"collectPathEntries must shrink when seeded files vanish; "+
-			"that's why StreamResetData snapshots entries before shutdown — "+
-			"if this assertion ever flips, the fix in d1b8158b is no longer load-bearing "+
-			"(before=%d after=%d)", len(before), len(after))
-
-	// Confirm the vanished path specifically dropped out — pin the cause.
-	stillPresent := false
-	for _, e := range after {
-		if e.path == seeded[0] {
-			stillPresent = true
-			break
-		}
-	}
-	assert.False(t, stillPresent,
-		"deleted seed %q should no longer appear in collectPathEntries result", seeded[0])
-}
-
-// ---------- categoryLabel --------------------------------------------------
-
-func TestCategoryLabel(t *testing.T) {
-	for _, cat := range []string{"blockchain_data", "node_software", "logs", "settings", "wallet"} {
-		assert.Equal(t, cat, categoryLabel(cat))
-	}
-	assert.Equal(t, "unknown", categoryLabel("unknown"))
-}
-
-// ---------- ResetFileInfo ordering -----------------------------------------
-
-func TestPreviewResetData_ResultsAreStable(t *testing.T) {
-	o := newResetTestOrchestrator(t)
-
-	cat := ResetCategory{
-		DeleteBlockchainData: true,
-		DeleteNodeSoftware:   true,
-		DeleteLogs:           true,
-		AlsoResetSidechains:  true,
-	}
-
-	files1, err := o.PreviewResetData(cat)
-	require.NoError(t, err)
-	files2, err := o.PreviewResetData(cat)
-	require.NoError(t, err)
-
-	// Sort both by path for deterministic comparison.
 	sort.Slice(files1, func(i, j int) bool { return files1[i].Path < files1[j].Path })
 	sort.Slice(files2, func(i, j int) bool { return files2[i].Path < files2[j].Path })
 
@@ -541,20 +155,215 @@ func TestPreviewResetData_ResultsAreStable(t *testing.T) {
 	}
 }
 
+func TestGather_UnknownBinarySkipped(t *testing.T) {
+	o := newResetTestOrchestrator(t)
+	files, err := o.GatherFilesToDelete([]GatherSpec{
+		{BinaryName: "not-a-real-binary", Categories: allCategories()},
+	})
+	require.NoError(t, err)
+	assert.Empty(t, files)
+}
+
+// ---------- DeleteFiles ----------------------------------------------------
+
+func TestDeleteFiles_DeletesSeededFiles(t *testing.T) {
+	o := newResetTestOrchestrator(t)
+
+	binDir := BinDir(o.BitwindowDir)
+	a := filepath.Join(binDir, "bitcoind")
+	b := filepath.Join(binDir, "bip300301-enforcer")
+	seedFile(t, a)
+	seedFile(t, b)
+
+	ch, err := o.DeleteFiles(context.Background(), []string{a, b})
+	require.NoError(t, err)
+
+	var events []DeleteEvent
+	for evt := range ch {
+		events = append(events, evt)
+	}
+
+	require.Len(t, events, 2)
+	for _, evt := range events {
+		assert.Empty(t, evt.Error, "path %q should have deleted cleanly", evt.Path)
+	}
+	for _, p := range []string{a, b} {
+		_, statErr := os.Stat(p)
+		assert.True(t, os.IsNotExist(statErr), "file %q should have been deleted", p)
+	}
+}
+
+func TestDeleteFiles_EmitsOneEventPerPath(t *testing.T) {
+	o := newResetTestOrchestrator(t)
+
+	binDir := BinDir(o.BitwindowDir)
+	paths := []string{
+		filepath.Join(binDir, "bitcoind"),
+		filepath.Join(binDir, "thunder"),
+		filepath.Join(binDir, "bip300301-enforcer"),
+	}
+	for _, p := range paths {
+		seedFile(t, p)
+	}
+
+	ch, err := o.DeleteFiles(context.Background(), paths)
+	require.NoError(t, err)
+
+	seen := map[string]bool{}
+	for evt := range ch {
+		assert.NotEmpty(t, evt.Path)
+		seen[evt.Path] = true
+	}
+	for _, p := range paths {
+		assert.Truef(t, seen[p], "missing delete event for %q", p)
+	}
+}
+
+func TestDeleteFiles_NonExistentPathSucceeds(t *testing.T) {
+	o := newResetTestOrchestrator(t)
+
+	ghost := filepath.Join(o.BitwindowDir, "does-not-exist")
+	ch, err := o.DeleteFiles(context.Background(), []string{ghost})
+	require.NoError(t, err)
+
+	for evt := range ch {
+		assert.Empty(t, evt.Error, "non-existent path should not be a failure")
+	}
+}
+
+func TestDeleteFiles_Empty(t *testing.T) {
+	o := newResetTestOrchestrator(t)
+	ch, err := o.DeleteFiles(context.Background(), nil)
+	require.NoError(t, err)
+
+	var events []DeleteEvent
+	for evt := range ch {
+		events = append(events, evt)
+	}
+	assert.Empty(t, events)
+}
+
+func TestDeleteFiles_DeletesNestedDirectoryTree(t *testing.T) {
+	o := newResetTestOrchestrator(t)
+
+	binDir := BinDir(o.BitwindowDir)
+	require.NoError(t, os.MkdirAll(binDir, 0o755))
+	nested := filepath.Join(binDir, "bitcoind")
+	deep := filepath.Join(nested, "Contents", "MacOS", "Resources", "en.lproj")
+	require.NoError(t, os.MkdirAll(deep, 0o755))
+	leaf := filepath.Join(deep, "InfoPlist.strings")
+	require.NoError(t, os.WriteFile(leaf, []byte("leaf"), 0o644))
+
+	ch, err := o.DeleteFiles(context.Background(), []string{nested})
+	require.NoError(t, err)
+	for evt := range ch {
+		assert.Empty(t, evt.Error)
+	}
+
+	_, leafErr := os.Stat(leaf)
+	assert.True(t, os.IsNotExist(leafErr), "deep leaf %s must be deleted", leaf)
+	_, rootErr := os.Stat(nested)
+	assert.True(t, os.IsNotExist(rootErr), "nested root %s must be deleted", nested)
+}
+
+// TestDeleteFiles_WalletPathNotHardDeleted is the core guarantee: a wallet
+// path handed to DeleteFiles is moved to wallet_backups/ (when WalletSvc is
+// wired) and is never os.RemoveAll'd into oblivion. Either the original still
+// exists (no wallet service in this harness) or a wallet_backups/ sibling
+// holds it — what must never happen is the keys vanishing entirely.
+func TestDeleteFiles_WalletPathNotHardDeleted(t *testing.T) {
+	o := newResetTestOrchestrator(t)
+
+	// Seed a thunder wallet at the exact location GatherFilesToDelete reports.
+	gathered, err := o.GatherFilesToDelete([]GatherSpec{
+		{BinaryName: "thunder", Categories: []string{catWallet}},
+	})
+	require.NoError(t, err)
+
+	network := config.Network(o.Network)
+	dc, ok := config.DirConfigByName("thunder")
+	require.True(t, ok)
+	walletPath := filepath.Join(dc.DatadirNetwork(network, ""), "wallet.mdb")
+	seedFile(t, walletPath)
+
+	// Re-gather now that it exists on disk.
+	gathered, err = o.GatherFilesToDelete([]GatherSpec{
+		{BinaryName: "thunder", Categories: []string{catWallet}},
+	})
+	require.NoError(t, err)
+	var paths []string
+	for _, f := range gathered {
+		paths = append(paths, f.Path)
+	}
+	require.Contains(t, paths, walletPath)
+
+	ch, err := o.DeleteFiles(context.Background(), paths)
+	require.NoError(t, err)
+	for evt := range ch {
+		assert.Empty(t, evt.Error)
+	}
+
+	_, origErr := os.Stat(walletPath)
+	backupExists := false
+	if entries, e := os.ReadDir(filepath.Dir(walletPath)); e == nil {
+		for _, ent := range entries {
+			if ent.IsDir() && ent.Name() == "wallet_backups" {
+				backupExists = true
+			}
+		}
+	}
+	assert.True(t, origErr == nil || backupExists,
+		"wallet must be preserved in place or moved to wallet_backups/, never hard-deleted")
+}
+
+// TestIsWalletPath is the safety-critical classifier: it decides which paths
+// get moved to wallet_backups/ vs. hard-deleted. It must catch every chain's
+// wallet on both POSIX and Windows path shapes, and must not over-match obvious
+// non-wallet data.
+func TestIsWalletPath(t *testing.T) {
+	empty := map[string]bool{}
+
+	wallets := []string{
+		"/home/u/.local/share/thunder/wallet.mdb",    // every L2 sidechain
+		"/home/u/.drivechain/signet/wallet.dat",      // bitcoind legacy
+		"/home/u/.bitcoin/signet/wallets",            // bitcoind wallets dir
+		"/home/u/.bitcoin/signet/wallets/default",    // inside wallets dir
+		"/home/u/bip300301_enforcer/wallet/bitcoin",  // enforcer wallet dir
+		"/home/u/.local/share/bitwindow/wallet.json", // bitwindowd / frontend
+		"/home/u/.local/share/bitwindow/wallet_encryption.json",
+		`C:\Users\u\AppData\Roaming\bitwindow\wallet.json`,             // windows separators
+		`C:\Users\u\AppData\Roaming\Drivechain\signet\wallets\default`, // windows wallets dir
+		`C:\Users\u\AppData\Roaming\Thunder\wallet.mdb`,
+	}
+	for _, p := range wallets {
+		assert.Truef(t, isWalletPath(p, empty), "%q must be classified as a wallet", p)
+	}
+
+	nonWallets := []string{
+		"/home/u/.bitcoin/signet/blocks",
+		"/home/u/.bitcoin/signet/chainstate",
+		"/home/u/.local/share/thunder/data.mdb",
+		"/home/u/.local/share/thunder/debug.log",
+		"/home/u/.local/share/bitwindow/settings.json",
+		"/some/walletish/notawallet.dat", // ".dat" but not a wallet file
+		`C:\Users\u\AppData\Roaming\bitwindow\settings.json`,
+	}
+	for _, p := range nonWallets {
+		assert.Falsef(t, isWalletPath(p, empty), "%q must NOT be classified as a wallet", p)
+	}
+
+	// An explicit set membership always wins, even for an unusual location.
+	assert.True(t, isWalletPath("/weird/custom/keys", map[string]bool{"/weird/custom/keys": true}))
+}
+
 // ---------- BinaryWalletPaths ----------------------------------------------
 
 // TestBinaryWalletPaths_BitcoindUsesNetworkAwareDatadir guards issue #1627.
 // The wallet sweep must look for bitcoind wallets at `<datadir>/<network>/
-// wallets/`, not the bare root. The previous wiring passed RootDirNetwork —
-// dropping the per-network subfolder — so a "Fully Obliterate Everything"
-// pass left the user's enforcer wallet untouched.
+// wallets/`, not the bare root.
 func TestBinaryWalletPaths_BitcoindUsesNetworkAwareDatadir(t *testing.T) {
 	o := newResetTestOrchestrator(t)
 
-	// Point bitcoind at our tempdir as if the user set `datadir=<tmp>` in
-	// bitwindow-bitcoin.conf, then drop a wallets/ dir under
-	// <override>/<network>/. The path must show up in BinaryWalletPaths
-	// regardless of whether anything else exists in the root.
 	override := t.TempDir()
 	o.BitcoinConf = &config.BitcoinConfManager{
 		Network:         config.Network("signet"),
@@ -575,9 +384,8 @@ func TestBinaryWalletPaths_BitcoindUsesNetworkAwareDatadir(t *testing.T) {
 	}
 	assert.True(t, found, "bitcoind signet wallets dir must be in BinaryWalletPaths; got: %v", paths)
 
-	// And the bare-root mistake must NOT appear (would be the regression).
 	bareRootWallets := filepath.Join(override, "wallets")
 	for _, p := range paths {
-		assert.NotEqual(t, bareRootWallets, p, "must not point at bare-root <override>/wallets — that's the pre-fix layout")
+		assert.NotEqual(t, bareRootWallets, p, "must not point at bare-root <override>/wallets")
 	}
 }

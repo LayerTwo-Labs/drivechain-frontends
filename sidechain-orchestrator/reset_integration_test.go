@@ -5,7 +5,7 @@
 //
 // Strategy: redirect os.UserHomeDir() into t.TempDir() via HOME /
 // USERPROFILE, then seed every file layout a real boot would produce.
-// PreviewResetData MUST enumerate every seeded path or the UI lies to
+// GatherFilesToDelete MUST enumerate every seeded path or the UI lies to
 // the user about what a reset will touch.
 
 package orchestrator
@@ -89,9 +89,19 @@ func writeDir(t *testing.T, path string) {
 	require.NoError(t, os.MkdirAll(path, 0o755))
 }
 
+// l1Specs requests every category for the L1 stack (bitcoind + enforcer +
+// bitwindowd) — the set the global reset page would build.
+func l1Specs() []GatherSpec {
+	return []GatherSpec{
+		{BinaryName: "bitcoind", Categories: allCategories()},
+		{BinaryName: "enforcer", Categories: allCategories()},
+		{BinaryName: "bitwindowd", Categories: allCategories()},
+	}
+}
+
 // bootedLayout seeds a realistic post-boot tree for bitcoind + enforcer
 // + bitwindowd on the given network. Returns the absolute paths that
-// PreviewResetData MUST enumerate.
+// GatherFilesToDelete MUST enumerate.
 func bootedLayout(t *testing.T, home, network string) []string {
 	t.Helper()
 
@@ -200,16 +210,12 @@ func bootedLayout(t *testing.T, home, network string) []string {
 	return want
 }
 
-// TestResetPreview_EnumeratesBootedBitcoindEnforcerBitwindow is the
-// direct reproducer for the user's "only 12 items" screenshot. After
-// seeding a realistic post-boot layout, the preview MUST surface every
-// blockchain_data / wallet / log / settings file the binaries created.
-// Missing paths mean the UI will offer a "reset" that silently leaves
-// gigabytes of data behind.
-func TestResetPreview_EnumeratesBootedBitcoindEnforcerBitwindow(t *testing.T) {
+// TestGather_EnumeratesBootedBitcoindEnforcerBitwindow is the direct
+// reproducer for the user's "only 12 items" screenshot. After seeding a
+// realistic post-boot layout, the gather MUST surface every blockchain_data /
+// wallet / log / settings file the binaries created.
+func TestGather_EnumeratesBootedBitcoindEnforcerBitwindow(t *testing.T) {
 	home := redirectHome(t)
-	// BitwindowDir must live under the redirected home so the orch's
-	// own conf writing lands inside the sandbox too.
 	bitwindowDir := bitwindowRoot(home)
 	require.NoError(t, os.MkdirAll(bitwindowDir, 0o755))
 
@@ -219,14 +225,7 @@ func TestResetPreview_EnumeratesBootedBitcoindEnforcerBitwindow(t *testing.T) {
 	dataDir := t.TempDir()
 	o := New(dataDir, network, bitwindowDir, AllDefaults(), testLogger(t))
 
-	files, err := o.PreviewResetData(ResetCategory{
-		DeleteBlockchainData: true,
-		DeleteNodeSoftware:   true,
-		DeleteLogs:           true,
-		DeleteSettings:       true,
-		DeleteWalletFiles:    true,
-		AlsoResetSidechains:  true,
-	})
+	files, err := o.GatherFilesToDelete(l1Specs())
 	require.NoError(t, err)
 
 	got := make(map[string]struct{}, len(files))
@@ -243,22 +242,18 @@ func TestResetPreview_EnumeratesBootedBitcoindEnforcerBitwindow(t *testing.T) {
 	sort.Strings(missing)
 
 	if len(missing) > 0 {
-		t.Logf("preview returned %d paths; expected at least %d", len(files), len(expected))
-		t.Logf("--- preview contents ---")
+		t.Logf("gather returned %d paths; expected at least %d", len(files), len(expected))
 		for _, f := range files {
 			t.Logf("  %s [%s]", f.Path, f.Category)
 		}
-		t.Fatalf("preview is missing %d booted paths:\n  %s",
+		t.Fatalf("gather is missing %d booted paths:\n  %s",
 			len(missing), strings.Join(missing, "\n  "))
 	}
 }
 
-// TestResetPreview_FindsBitcoindBlockchainData boots the exact scenario
-// from the user's "12 items" screenshot: BitWindow flutter app dir and
-// Drivechain/ root both populated, bitcoind signet subdir full of block
-// data. Preview must include blocks/, chainstate/, and every other
-// post-boot artifact — not just the top-level conf files.
-func TestResetPreview_FindsBitcoindBlockchainData(t *testing.T) {
+// TestGather_FindsBitcoindBlockchainData boots the exact scenario from the
+// user's "12 items" screenshot: bitcoind signet subdir full of block data.
+func TestGather_FindsBitcoindBlockchainData(t *testing.T) {
 	home := redirectHome(t)
 	bitwindowDir := bitwindowRoot(home)
 	require.NoError(t, os.MkdirAll(bitwindowDir, 0o755))
@@ -267,8 +262,6 @@ func TestResetPreview_FindsBitcoindBlockchainData(t *testing.T) {
 	bcRoot := bitcoindRoot(home)
 	bcNet := filepath.Join(bcRoot, network)
 
-	// Minimal "booted once" bitcoind layout — blocks/chainstate always
-	// appear after first-run, even if the node didn't sync any blocks.
 	writeDir(t, filepath.Join(bcNet, "blocks"))
 	writeStub(t, filepath.Join(bcNet, "blocks", "blk00000.dat"))
 	writeDir(t, filepath.Join(bcNet, "chainstate"))
@@ -277,9 +270,8 @@ func TestResetPreview_FindsBitcoindBlockchainData(t *testing.T) {
 
 	o := New(t.TempDir(), network, bitwindowDir, AllDefaults(), testLogger(t))
 
-	files, err := o.PreviewResetData(ResetCategory{
-		DeleteBlockchainData: true,
-		DeleteLogs:           true,
+	files, err := o.GatherFilesToDelete([]GatherSpec{
+		{BinaryName: "bitcoind", Categories: []string{catData, catLogs}},
 	})
 	require.NoError(t, err)
 
@@ -301,24 +293,21 @@ func TestResetPreview_FindsBitcoindBlockchainData(t *testing.T) {
 		}
 	}
 	if len(missing) > 0 {
-		t.Logf("preview returned %d paths under network dir %s:", len(files), bcNet)
 		for _, f := range files {
 			t.Logf("  %s [%s]", f.Path, f.Category)
 		}
-		t.Fatalf("preview failed to enumerate bitcoind blockchain data (this is the user-reported '12 items' bug):\n  %s",
+		t.Fatalf("gather failed to enumerate bitcoind blockchain data:\n  %s",
 			strings.Join(missing, "\n  "))
 	}
 }
 
-// TestResetPreview_IncludesSidechainsWhenRequested confirms the sidechain
-// toggle: when AlsoResetSidechains=true the preview must walk every
-// sidechain data dir created at boot.
-func TestResetPreview_IncludesSidechainsWhenRequested(t *testing.T) {
+// TestGather_PerSidechainScoping confirms that gathering a single sidechain
+// (thunder) returns its data and nothing from another sidechain.
+func TestGather_PerSidechainScoping(t *testing.T) {
 	home := redirectHome(t)
 	bitwindowDir := bitwindowRoot(home)
 	require.NoError(t, os.MkdirAll(bitwindowDir, 0o755))
 
-	// Seed a thunder datadir exactly where RootDir() would find it.
 	thunder := config.ThunderDirs
 	thunderRoot := thunder.RootDir()
 	writeStub(t, filepath.Join(thunderRoot, "data.mdb"))
@@ -328,29 +317,18 @@ func TestResetPreview_IncludesSidechainsWhenRequested(t *testing.T) {
 
 	o := New(t.TempDir(), "signet", bitwindowDir, AllDefaults(), testLogger(t))
 
-	withoutSidechains, err := o.PreviewResetData(ResetCategory{
-		DeleteBlockchainData: true, DeleteWalletFiles: true, DeleteLogs: true,
-		AlsoResetSidechains: false,
+	files, err := o.GatherFilesToDelete([]GatherSpec{
+		{BinaryName: "thunder", Categories: allCategories()},
 	})
 	require.NoError(t, err)
 
-	withSidechains, err := o.PreviewResetData(ResetCategory{
-		DeleteBlockchainData: true, DeleteWalletFiles: true, DeleteLogs: true,
-		AlsoResetSidechains: true,
-	})
-	require.NoError(t, err)
-
-	thunderSeen := func(files []ResetFileInfo) bool {
-		for _, f := range files {
-			if strings.Contains(f.Path, thunderRoot) {
-				return true
-			}
+	thunderSeen := false
+	for _, f := range files {
+		if strings.Contains(f.Path, thunderRoot) {
+			thunderSeen = true
 		}
-		return false
+		assert.NotContains(t, f.Path, "bitnames",
+			"gathering thunder must not surface another sidechain's paths")
 	}
-
-	assert.False(t, thunderSeen(withoutSidechains),
-		"AlsoResetSidechains=false must not list any sidechain paths")
-	assert.True(t, thunderSeen(withSidechains),
-		"AlsoResetSidechains=true must enumerate sidechain (thunder) data")
+	assert.True(t, thunderSeen, "gathering thunder must enumerate its data dir")
 }

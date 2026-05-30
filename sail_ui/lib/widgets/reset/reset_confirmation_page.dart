@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:sail_ui/sail_ui.dart';
 
@@ -15,44 +16,22 @@ ResetHeaderState resetHeaderState({required bool deletionComplete, required int 
   return errorCount == 0 ? ResetHeaderState.success : ResetHeaderState.partial;
 }
 
-/// Defensive flip used on the stream's `done` event in case the orchestrator
-/// finished without emitting a per-path event for every preview row. Leaving
-/// rows in pending/inProgress would strand them grey forever; flipping to
-/// error surfaces the discrepancy. The orchestrator-side fix in d1b8158b
-/// should make this unreachable, but we keep the safety net (#1723).
-void applyDoneEventToItems(List<DeleteItem> items, {String message = 'No result from orchestrator'}) {
-  for (final item in items) {
-    if (item.status == DeleteItemStatus.pending || item.status == DeleteItemStatus.inProgress) {
-      item.status = DeleteItemStatus.error;
-      item.errorMessage = message;
-    }
-  }
-}
-
-/// Page showing files that will be deleted and asking for confirmation
+/// Route-driven reset page. Callers push it with [request] describing WHAT to
+/// delete (per-binary categories); the page gathers the concrete paths from the
+/// orchestrator for the overview, then deletes them via the orchestrator on
+/// confirm. Wallet paths are moved to wallet_backups/ server-side, not removed.
 class ResetConfirmationPage extends StatefulWidget {
-  final List<DeleteItem> filesToDelete;
-  final List<Binary> binariesToReset;
+  final List<SingleDeletion> request;
   final Directory appDir;
   final BinaryProvider binaryProvider;
-  final bool deleteNodeSoftware;
   final Logger log;
-  final Future<void> Function()? preDeleteAction;
-  // When provided, deletion is delegated to the orchestrator: server stops
-  // binaries and deletes, streaming one event per path. Null → legacy
-  // client-side deletion via Binary methods (still used by sidechain apps).
-  final Stream<StreamResetDataResponse> Function()? orchestratorDelete;
 
   const ResetConfirmationPage({
     super.key,
-    required this.filesToDelete,
-    required this.binariesToReset,
+    required this.request,
     required this.appDir,
     required this.binaryProvider,
-    required this.deleteNodeSoftware,
     required this.log,
-    this.preDeleteAction,
-    this.orchestratorDelete,
   });
 
   @override
@@ -60,9 +39,10 @@ class ResetConfirmationPage extends StatefulWidget {
 }
 
 class _ResetConfirmationPageState extends State<ResetConfirmationPage> {
-  bool _showUntouched = false;
-  List<String>? _untouchedFiles;
-  bool _loadingUntouched = false;
+  // Gather state
+  bool _gathering = true;
+  String? _gatherError;
+  List<DeleteItem> _items = [];
 
   // Deletion state
   bool _isDeleting = false;
@@ -70,47 +50,32 @@ class _ResetConfirmationPageState extends State<ResetConfirmationPage> {
   bool _stoppingBinaries = false;
   int _currentIndex = 0;
 
-  Future<void> _loadUntouchedFiles() async {
-    if (_untouchedFiles != null) return;
+  // Node software is re-downloaded after deletion; the server doesn't repopulate
+  // bin/. Derived from the request so we only re-copy when software was wiped.
+  bool get _deletesSoftware => widget.request.any((s) => s.deletions.contains(DeletionType.DELETION_TYPE_SOFTWARE));
 
-    setState(() => _loadingUntouched = true);
+  @override
+  void initState() {
+    super.initState();
+    _gather();
+  }
 
-    final allDatadirPaths = <String>{};
-    final filesToDeletePaths = widget.filesToDelete.map((f) => f.path).toSet();
-
-    for (final binary in widget.binariesToReset) {
-      final paths = await binary.getAllDatadirPaths();
-      allDatadirPaths.addAll(paths);
-    }
-
-    for (final binary in widget.binariesToReset) {
-      final binPaths = await binary.getBinaryPaths(binDir(widget.appDir.path));
-      for (final binPath in binPaths) {
-        if (await Directory(binPath).exists()) {
-          try {
-            await for (final entity in Directory(
-              binPath,
-            ).list(recursive: true, followLinks: false)) {
-              allDatadirPaths.add(entity.path);
-            }
-          } catch (_) {}
-        }
-        allDatadirPaths.add(binPath);
-      }
-    }
-
-    final untouched = allDatadirPaths.where((p) {
-      if (filesToDeletePaths.contains(p)) return false;
-      for (final deletePath in filesToDeletePaths) {
-        if (p.startsWith('$deletePath${Platform.pathSeparator}')) return false;
-      }
-      return true;
-    }).toList()..sort();
-
-    if (mounted) {
+  Future<void> _gather() async {
+    try {
+      final resp = await GetIt.I.get<OrchestratorRPC>().gatherFilesToDelete(widget.request);
+      if (!mounted) return;
       setState(() {
-        _untouchedFiles = untouched;
-        _loadingUntouched = false;
+        _items = resp.files
+            .map((f) => DeleteItem(path: f.path, isWallet: f.deletionType == DeletionType.DELETION_TYPE_WALLET))
+            .toList();
+        _gathering = false;
+      });
+    } catch (e) {
+      widget.log.e('Could not gather reset files: $e');
+      if (!mounted) return;
+      setState(() {
+        _gatherError = e.toString();
+        _gathering = false;
       });
     }
   }
@@ -121,130 +86,26 @@ class _ResetConfirmationPageState extends State<ResetConfirmationPage> {
       _stoppingBinaries = true;
     });
 
-    if (widget.preDeleteAction != null) {
-      try {
-        await widget.preDeleteAction!();
-      } catch (e) {
-        widget.log.e('Pre-delete action failed: $e');
-        if (mounted) {
-          setState(() {
-            _stoppingBinaries = false;
-            _deletionComplete = true;
-            for (final item in widget.filesToDelete) {
-              item.status = DeleteItemStatus.error;
-              item.errorMessage = e.toString();
-            }
-          });
-        }
-        return;
-      }
-    }
+    final pathToItem = {for (final item in _items) item.path: item};
 
-    if (widget.orchestratorDelete != null) {
-      await _runOrchestratorDelete();
-    } else {
-      await _runClientDelete();
-    }
-
-    // Re-download binaries if needed (server doesn't repopulate bin/).
-    if (widget.deleteNodeSoftware) {
-      await copyBinariesFromAssets(widget.log, widget.appDir);
-    }
-
-    if (mounted) {
-      setState(() => _deletionComplete = true);
-    }
-  }
-
-  Future<void> _runClientDelete() async {
-    // Stop binaries first
-    await Future.wait(
-      widget.binariesToReset.map((b) => widget.binaryProvider.stop(b)),
-    );
-    await Future.delayed(const Duration(seconds: 2));
-
-    if (!mounted) return;
-    setState(() => _stoppingBinaries = false);
-
-    // Delete each file one by one
-    for (var i = 0; i < widget.filesToDelete.length; i++) {
-      if (!mounted) return;
-
-      final item = widget.filesToDelete[i];
-      setState(() {
-        _currentIndex = i;
-        item.status = DeleteItemStatus.inProgress;
-      });
-
-      if (item.skipClientDelete) {
-        if (mounted) {
-          setState(() => item.status = DeleteItemStatus.success);
-        }
-        await Future.delayed(const Duration(milliseconds: 50));
-        continue;
-      }
-
-      try {
-        final filePath = item.path;
-        // Try to delete as directory first (recursive handles files inside)
-        // If that fails, try as a file
-        try {
-          await Directory(filePath).delete(recursive: true);
-        } on FileSystemException {
-          // Not a directory or doesn't exist as directory, try as file
-          final file = File(filePath);
-          if (await file.exists()) {
-            await file.delete();
-          }
-        }
-        if (mounted) {
-          setState(() => item.status = DeleteItemStatus.success);
-        }
-      } catch (e) {
-        widget.log.e('Failed to delete ${item.path}: $e');
-        if (mounted) {
-          setState(() {
-            item.status = DeleteItemStatus.error;
-            item.errorMessage = e.toString();
-          });
-        }
-      }
-
-      await Future.delayed(const Duration(milliseconds: 50));
-    }
-  }
-
-  Future<void> _runOrchestratorDelete() async {
-    // Orchestrator stops binaries server-side; no client-side stop needed.
-    final pathToItem = <String, DeleteItem>{};
-    for (final item in widget.filesToDelete) {
-      pathToItem[item.path] = item;
-    }
-
-    var seen = 0;
     try {
-      await for (final event in widget.orchestratorDelete!()) {
+      await for (final event in GetIt.I.get<OrchestratorRPC>().deleteFiles(_items.map((i) => i.path).toList())) {
         if (!mounted) return;
-        if (event.done) {
-          setState(() => applyDoneEventToItems(widget.filesToDelete));
-          break;
-        }
         setState(() {
           _stoppingBinaries = false;
-          _currentIndex = seen;
           final item = pathToItem[event.path];
           if (item != null) {
-            item.status = event.success ? DeleteItemStatus.success : DeleteItemStatus.error;
-            if (!event.success) item.errorMessage = event.error;
+            _currentIndex = _items.indexOf(item);
+            item.status = event.error.isEmpty ? DeleteItemStatus.success : DeleteItemStatus.error;
+            if (event.error.isNotEmpty) item.errorMessage = event.error;
           }
         });
-        seen++;
       }
     } catch (e) {
-      widget.log.e('Orchestrator reset stream failed: $e');
+      widget.log.e('Reset delete stream failed: $e');
       if (mounted) {
         setState(() {
-          for (final item in widget.filesToDelete) {
+          for (final item in _items) {
             if (item.status == DeleteItemStatus.pending || item.status == DeleteItemStatus.inProgress) {
               item.status = DeleteItemStatus.error;
               item.errorMessage = e.toString();
@@ -253,26 +114,46 @@ class _ResetConfirmationPageState extends State<ResetConfirmationPage> {
         });
       }
     }
+
+    // Any path the server didn't report on shouldn't linger grey forever.
+    if (mounted) {
+      setState(() {
+        for (final item in _items) {
+          if (item.status == DeleteItemStatus.pending || item.status == DeleteItemStatus.inProgress) {
+            item.status = DeleteItemStatus.error;
+            item.errorMessage = 'No result from orchestrator';
+          }
+        }
+      });
+    }
+
+    // Re-download binaries if needed (server doesn't repopulate bin/).
+    if (_deletesSoftware) {
+      await copyBinariesFromAssets(widget.log, widget.appDir);
+    }
+
+    if (mounted) {
+      setState(() => _deletionComplete = true);
+    }
   }
 
   void _handleBack() {
-    // Return true if deletion happened, so caller knows to restart binaries
+    // Return true if deletion happened, so caller knows to restart binaries.
     Navigator.of(context).pop(_isDeleting);
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = SailTheme.of(context);
-    final successCount = widget.filesToDelete.where((f) => f.status == DeleteItemStatus.success).length;
-    final errorCount = widget.filesToDelete.where((f) => f.status == DeleteItemStatus.error).length;
-    final hasMovedItems = widget.filesToDelete.any((f) => f.skipClientDelete);
+    final successCount = _items.where((f) => f.status == DeleteItemStatus.success).length;
+    final errorCount = _items.where((f) => f.status == DeleteItemStatus.error).length;
+    final hasMovedItems = _items.any((f) => f.isWallet);
     final resetVerb = hasMovedItems ? 'deleted or moved' : 'deleted';
 
     return PopScope(
       // Prevent back during active deletion, allow after completion
       canPop: !_isDeleting || _deletionComplete,
       onPopInvokedWithResult: (didPop, result) {
-        // If pop was prevented and deletion is complete, manually pop with result
         if (!didPop && _deletionComplete) {
           Navigator.of(context).pop(true);
         }
@@ -287,200 +168,144 @@ class _ResetConfirmationPageState extends State<ResetConfirmationPage> {
           ),
         ),
         body: SafeArea(
-          child: Stack(
-            children: [
-              Center(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 32.0),
-                  child: SizedBox(
-                    width: 800,
-                    child: SingleChildScrollView(
-                      padding: const EdgeInsets.only(bottom: 100),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          const SizedBox(height: 30),
-                          SailRow(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            spacing: SailStyleValues.padding12,
-                            children: [
-                              switch (resetHeaderState(deletionComplete: _deletionComplete, errorCount: errorCount)) {
-                                ResetHeaderState.success => Icon(
-                                  Icons.check_circle,
-                                  color: theme.colors.success,
-                                  size: 32,
-                                ),
-                                ResetHeaderState.partial => SailSVG.fromAsset(
-                                  SailSVGAsset.iconWarning,
-                                  color: theme.colors.orange,
-                                  width: 32,
-                                  height: 32,
-                                ),
-                                ResetHeaderState.confirm => SailSVG.fromAsset(
-                                  SailSVGAsset.iconWarning,
-                                  color: theme.colors.error,
-                                  width: 32,
-                                  height: 32,
-                                ),
-                              },
-                              SailText.primary24(
-                                switch (resetHeaderState(
-                                  deletionComplete: _deletionComplete,
-                                  errorCount: errorCount,
-                                )) {
-                                  ResetHeaderState.success => 'Reset Complete',
-                                  ResetHeaderState.partial => 'Reset Partially Complete',
-                                  ResetHeaderState.confirm => 'Confirm Deletion',
-                                },
-                                bold: true,
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 16),
-                          if (_isDeleting && !_deletionComplete) ...[
-                            if (_stoppingBinaries)
-                              SailRow(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                spacing: SailStyleValues.padding08,
-                                children: [
-                                  SizedBox(
-                                    width: 16,
-                                    height: 16,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                      color: theme.colors.primary,
-                                    ),
-                                  ),
-                                  SailText.secondary13('Stopping binaries...'),
-                                ],
-                              )
-                            else
-                              SailText.secondary13(
-                                'Deleting: ${_currentIndex + 1} / ${widget.filesToDelete.length}',
-                              ),
-                          ] else if (_deletionComplete)
-                            SailText.secondary13(
-                              '${hasMovedItems ? 'Reset' : 'Deleted'} $successCount items${errorCount > 0 ? ', $errorCount failed' : ''}',
-                            )
-                          else
-                            SailText.secondary13(
-                              'The following ${widget.filesToDelete.length} items will be $resetVerb:',
+          child: Center(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 32.0),
+              child: SizedBox(
+                width: 800,
+                child: _gathering
+                    ? Center(
+                        child: SailRow(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          spacing: SailStyleValues.padding08,
+                          children: [
+                            SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(strokeWidth: 2, color: theme.colors.primary),
                             ),
-                          const SizedBox(height: 24),
-                          DecoratedBox(
-                            decoration: BoxDecoration(
-                              color: theme.colors.backgroundSecondary,
-                              borderRadius: SailStyleValues.borderRadiusSmall,
-                            ),
-                            child: Padding(
-                              padding: const EdgeInsets.all(
-                                SailStyleValues.padding12,
-                              ),
-                              child: _isDeleting
-                                  ? _DeletionProgress(
-                                      filesToDelete: widget.filesToDelete,
-                                    )
-                                  : PathTreeView(
-                                      paths: widget.filesToDelete.map((f) => f.path).toList(),
-                                    ),
-                            ),
-                          ),
-                          if (!_isDeleting) ...[
-                            const SizedBox(height: 24),
-                            Center(
-                              child: SailButton(
-                                label: _showUntouched ? 'Hide untouched files' : 'Show untouched files',
-                                variant: ButtonVariant.ghost,
-                                onPressed: () async {
-                                  if (!_showUntouched) {
-                                    await _loadUntouchedFiles();
-                                  }
-                                  setState(
-                                    () => _showUntouched = !_showUntouched,
-                                  );
-                                },
-                              ),
-                            ),
-                            if (_showUntouched) ...[
-                              const SizedBox(height: 24),
-                              if (_loadingUntouched)
-                                Center(
-                                  child: SailRow(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    spacing: SailStyleValues.padding12,
-                                    children: [
-                                      SizedBox(
-                                        width: 16,
-                                        height: 16,
-                                        child: CircularProgressIndicator(
-                                          strokeWidth: 2,
-                                          color: theme.colors.primary,
-                                        ),
-                                      ),
-                                      SailText.secondary12('Loading...'),
-                                    ],
-                                  ),
-                                )
-                              else if (_untouchedFiles != null && _untouchedFiles!.isNotEmpty) ...[
-                                SailText.secondary13(
-                                  '${_untouchedFiles!.length} files will NOT be deleted:',
-                                ),
-                                const SizedBox(height: 12),
-                                DecoratedBox(
-                                  decoration: BoxDecoration(
-                                    color: theme.colors.backgroundSecondary,
-                                    borderRadius: SailStyleValues.borderRadiusSmall,
-                                  ),
-                                  child: Padding(
-                                    padding: const EdgeInsets.all(
-                                      SailStyleValues.padding12,
-                                    ),
-                                    child: PathTreeView(
-                                      paths: _untouchedFiles!,
-                                    ),
-                                  ),
-                                ),
-                              ] else
-                                Center(
-                                  child: SailText.secondary12(
-                                    'No untouched files found.',
-                                  ),
-                                ),
-                            ],
+                            SailText.secondary13('Gathering files...'),
                           ],
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
+                        ),
+                      )
+                    : _gatherError != null
+                    ? Center(child: SailText.secondary13('Could not compute reset preview: $_gatherError'))
+                    : _items.isEmpty
+                    ? Center(child: SailText.secondary13('Nothing to delete.'))
+                    : _buildContent(theme, successCount, errorCount, hasMovedItems, resetVerb),
               ),
-              BottomActionBar(
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildContent(
+    SailThemeData theme,
+    int successCount,
+    int errorCount,
+    bool hasMovedItems,
+    String resetVerb,
+  ) {
+    return Stack(
+      children: [
+        SingleChildScrollView(
+          padding: const EdgeInsets.only(bottom: 100),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              const SizedBox(height: 30),
+              SailRow(
+                mainAxisAlignment: MainAxisAlignment.center,
+                spacing: SailStyleValues.padding12,
                 children: [
-                  if (!_isDeleting) ...[
-                    SailButton(
-                      label: 'Cancel',
-                      onPressed: () async => Navigator.of(context).pop(false),
+                  switch (resetHeaderState(deletionComplete: _deletionComplete, errorCount: errorCount)) {
+                    ResetHeaderState.success => Icon(Icons.check_circle, color: theme.colors.success, size: 32),
+                    ResetHeaderState.partial => SailSVG.fromAsset(
+                      SailSVGAsset.iconWarning,
+                      color: theme.colors.orange,
+                      width: 32,
+                      height: 32,
                     ),
-                    const SizedBox(width: SailStyleValues.padding12),
-                    SailButton(
-                      label: hasMovedItems
-                          ? 'Reset ${widget.filesToDelete.length} items'
-                          : 'Delete ${widget.filesToDelete.length} items',
-                      variant: ButtonVariant.destructive,
-                      onPressed: () async => await _startDeletion(),
+                    ResetHeaderState.confirm => SailSVG.fromAsset(
+                      SailSVGAsset.iconWarning,
+                      color: theme.colors.error,
+                      width: 32,
+                      height: 32,
                     ),
-                  ] else if (_deletionComplete)
-                    SailButton(
-                      label: 'Continue',
-                      variant: ButtonVariant.primary,
-                      onPressed: () async => _handleBack(),
-                    ),
+                  },
+                  SailText.primary24(
+                    switch (resetHeaderState(deletionComplete: _deletionComplete, errorCount: errorCount)) {
+                      ResetHeaderState.success => 'Reset Complete',
+                      ResetHeaderState.partial => 'Reset Partially Complete',
+                      ResetHeaderState.confirm => 'Confirm Deletion',
+                    },
+                    bold: true,
+                  ),
                 ],
+              ),
+              const SizedBox(height: 16),
+              if (_isDeleting && !_deletionComplete) ...[
+                if (_stoppingBinaries)
+                  SailRow(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    spacing: SailStyleValues.padding08,
+                    children: [
+                      SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2, color: theme.colors.primary),
+                      ),
+                      SailText.secondary13('Stopping binaries...'),
+                    ],
+                  )
+                else
+                  SailText.secondary13('Deleting: ${_currentIndex + 1} / ${_items.length}'),
+              ] else if (_deletionComplete)
+                SailText.secondary13(
+                  '${hasMovedItems ? 'Reset' : 'Deleted'} $successCount items${errorCount > 0 ? ', $errorCount failed' : ''}',
+                )
+              else
+                SailText.secondary13('The following ${_items.length} items will be $resetVerb:'),
+              const SizedBox(height: 24),
+              DecoratedBox(
+                decoration: BoxDecoration(
+                  color: theme.colors.backgroundSecondary,
+                  borderRadius: SailStyleValues.borderRadiusSmall,
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(SailStyleValues.padding12),
+                  child: _isDeleting
+                      ? _DeletionProgress(filesToDelete: _items)
+                      : PathTreeView(paths: _items.map((f) => f.path).toList()),
+                ),
               ),
             ],
           ),
         ),
-      ),
+        BottomActionBar(
+          children: [
+            if (!_isDeleting) ...[
+              SailButton(
+                label: 'Cancel',
+                onPressed: () async => Navigator.of(context).pop(false),
+              ),
+              const SizedBox(width: SailStyleValues.padding12),
+              SailButton(
+                label: hasMovedItems ? 'Reset ${_items.length} items' : 'Delete ${_items.length} items',
+                variant: ButtonVariant.destructive,
+                onPressed: () async => await _startDeletion(),
+              ),
+            ] else if (_deletionComplete)
+              SailButton(
+                label: 'Continue',
+                variant: ButtonVariant.primary,
+                onPressed: () async => _handleBack(),
+              ),
+          ],
+        ),
+      ],
     );
   }
 }
@@ -532,30 +357,19 @@ class _StatusIcon extends StatelessWidget {
         return SizedBox(
           width: 16,
           height: 16,
-          child: Icon(
-            Icons.circle_outlined,
-            size: 14,
-            color: theme.colors.textTertiary,
-          ),
+          child: Icon(Icons.circle_outlined, size: 14, color: theme.colors.textTertiary),
         );
       case DeleteItemStatus.inProgress:
         return SizedBox(
           width: 16,
           height: 16,
-          child: CircularProgressIndicator(
-            strokeWidth: 2,
-            color: theme.colors.primary,
-          ),
+          child: CircularProgressIndicator(strokeWidth: 2, color: theme.colors.primary),
         );
       case DeleteItemStatus.success:
         return SizedBox(
           width: 16,
           height: 16,
-          child: Icon(
-            Icons.check_circle,
-            size: 16,
-            color: theme.colors.success,
-          ),
+          child: Icon(Icons.check_circle, size: 16, color: theme.colors.success),
         );
       case DeleteItemStatus.error:
         return SizedBox(
