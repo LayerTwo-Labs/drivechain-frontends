@@ -112,6 +112,10 @@ func (o *Orchestrator) GatherFilesToDelete(specs []GatherSpec) ([]ResetFileInfo,
 // moved to wallet_backups/ instead of being removed — keys are irreplaceable.
 // Each path is reported on the returned channel; an empty Error means success.
 // A returned error means deletion couldn't start at all (e.g. shutdown failed).
+//
+// Callers must pass only paths produced by GatherFilesToDelete. The RPC handler
+// enforces this by re-resolving the request's specs server-side rather than
+// trusting client-supplied paths.
 func (o *Orchestrator) DeleteFiles(ctx context.Context, paths []string) (<-chan DeleteEvent, error) {
 	// Any path could belong to a running daemon; stop them all first.
 	running := o.process.ListRunning()

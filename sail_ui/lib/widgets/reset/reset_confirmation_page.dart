@@ -89,7 +89,7 @@ class _ResetConfirmationPageState extends State<ResetConfirmationPage> {
     final pathToItem = {for (final item in _items) item.path: item};
 
     try {
-      await for (final event in GetIt.I.get<OrchestratorRPC>().deleteFiles(_items.map((i) => i.path).toList())) {
+      await for (final event in GetIt.I.get<OrchestratorRPC>().deleteFiles(widget.request)) {
         if (!mounted) return;
         setState(() {
           _stoppingBinaries = false;

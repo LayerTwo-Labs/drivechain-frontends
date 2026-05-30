@@ -476,9 +476,12 @@ func binaryNameFromType(t pb.BinaryType) string {
 	}
 }
 
-func (h *Handler) GatherFilesToDelete(ctx context.Context, req *connect.Request[pb.GatherFilesToDeleteRequest]) (*connect.Response[pb.GatherFilesToDeleteResponse], error) {
+// specsFromItems converts the proto selection (binary + deletion types) into
+// orchestrator gather specs. Shared by GatherFilesToDelete and DeleteFiles so
+// both resolve the exact same set of paths from an identical request.
+func specsFromItems(items []*pb.SingleDeletion) []orchestrator.GatherSpec {
 	var specs []orchestrator.GatherSpec
-	for _, item := range req.Msg.Items {
+	for _, item := range items {
 		name := binaryNameFromType(item.Binary)
 		if name == "" {
 			continue
@@ -491,8 +494,11 @@ func (h *Handler) GatherFilesToDelete(ctx context.Context, req *connect.Request[
 		}
 		specs = append(specs, orchestrator.GatherSpec{BinaryName: name, Categories: cats})
 	}
+	return specs
+}
 
-	files, err := h.orch.GatherFilesToDelete(specs)
+func (h *Handler) GatherFilesToDelete(ctx context.Context, req *connect.Request[pb.GatherFilesToDeleteRequest]) (*connect.Response[pb.GatherFilesToDeleteResponse], error) {
+	files, err := h.orch.GatherFilesToDelete(specsFromItems(req.Msg.Items))
 	if err != nil {
 		return nil, err
 	}
@@ -510,8 +516,37 @@ func (h *Handler) GatherFilesToDelete(ctx context.Context, req *connect.Request[
 	return connect.NewResponse(resp), nil
 }
 
+// deletablePaths returns the gathered paths minus the user's deselections.
+// `except` is subtractive only — a path not already in files is ignored — so the
+// result is always a subset of what GatherFilesToDelete produced. This is what
+// keeps DeleteFiles from ever touching a client-supplied path outside the
+// gather set, while still honoring per-file deselection.
+func deletablePaths(files []orchestrator.ResetFileInfo, except []string) []string {
+	skip := make(map[string]bool, len(except))
+	for _, p := range except {
+		skip[p] = true
+	}
+	paths := make([]string, 0, len(files))
+	for _, f := range files {
+		if skip[f.Path] {
+			continue
+		}
+		paths = append(paths, f.Path)
+	}
+	return paths
+}
+
 func (h *Handler) DeleteFiles(ctx context.Context, req *connect.Request[pb.DeleteFilesRequest], stream *connect.ServerStream[pb.DeleteFilesResponse]) error {
-	ch, err := h.orch.DeleteFiles(ctx, req.Msg.Paths)
+	// Re-resolve paths server-side from the same selection gather uses, then drop
+	// any the user deselected. The client never supplies raw paths and `except`
+	// is purely subtractive, so DeleteFiles can only ever touch a subset of what
+	// GatherFilesToDelete would report.
+	files, err := h.orch.GatherFilesToDelete(specsFromItems(req.Msg.Items))
+	if err != nil {
+		return err
+	}
+
+	ch, err := h.orch.DeleteFiles(ctx, deletablePaths(files, req.Msg.Except))
 	if err != nil {
 		return err
 	}

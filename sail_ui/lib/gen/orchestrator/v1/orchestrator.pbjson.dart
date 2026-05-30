@@ -693,13 +693,15 @@ final $typed_data.Uint8List resetFileInfoDescriptor = $convert.base64Decode(
 const DeleteFilesRequest$json = {
   '1': 'DeleteFilesRequest',
   '2': [
-    {'1': 'paths', '3': 1, '4': 3, '5': 9, '10': 'paths'},
+    {'1': 'items', '3': 1, '4': 3, '5': 11, '6': '.orchestrator.v1.SingleDeletion', '10': 'items'},
+    {'1': 'except', '3': 2, '4': 3, '5': 9, '10': 'except'},
   ],
 };
 
 /// Descriptor for `DeleteFilesRequest`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List deleteFilesRequestDescriptor = $convert.base64Decode(
-    'ChJEZWxldGVGaWxlc1JlcXVlc3QSFAoFcGF0aHMYASADKAlSBXBhdGhz');
+    'ChJEZWxldGVGaWxlc1JlcXVlc3QSNQoFaXRlbXMYASADKAsyHy5vcmNoZXN0cmF0b3IudjEuU2'
+    'luZ2xlRGVsZXRpb25SBWl0ZW1zEhYKBmV4Y2VwdBgCIAMoCVIGZXhjZXB0');
 
 @$core.Deprecated('Use deleteFilesResponseDescriptor instead')
 const DeleteFilesResponse$json = {
