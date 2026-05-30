@@ -2755,9 +2755,6 @@ class ResetFileInfo extends $pb.GeneratedMessage {
   void clearIsDirectory() => clearField(5);
 }
 
-/// DeleteFiles takes the same selection as GatherFilesToDelete and re-resolves
-/// the concrete paths server-side, so it can only ever delete what gather would
-/// report — clients never supply raw filesystem paths.
 class DeleteFilesRequest extends $pb.GeneratedMessage {
   factory DeleteFilesRequest({
     $core.Iterable<SingleDeletion>? items,
@@ -2803,12 +2800,11 @@ class DeleteFilesRequest extends $pb.GeneratedMessage {
   static DeleteFilesRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<DeleteFilesRequest>(create);
   static DeleteFilesRequest? _defaultInstance;
 
+  /// What to delete: the same per-binary categories passed to GatherFilesToDelete.
   @$pb.TagNumber(1)
   $core.List<SingleDeletion> get items => $_getList(0);
 
-  /// Paths the user deselected. Purely subtractive: the server deletes
-  /// gather(items) minus these, so `except` can narrow the set but never widen
-  /// it beyond what gather resolves. Ignored if not a member of that set.
+  /// Paths to omit from the deletion, e.g. files the user deselected.
   @$pb.TagNumber(2)
   $core.List<$core.String> get except => $_getList(1);
 }

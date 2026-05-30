@@ -225,12 +225,9 @@ class OrchestratorRPC {
     return _unaryClient.shutdown(ShutdownRequest());
   }
 
-  /// Delete the files for the given selection — the same request passed to
-  /// [gatherFilesToDelete]. The server re-resolves the concrete paths, so
-  /// [except] (paths the user deselected) can only narrow the set, never widen
-  /// it. Stops binaries first, and moves wallet paths to wallet_backups/ rather
-  /// than removing them. Streams one event per path; an empty
-  /// [DeleteFilesResponse.error] means that path succeeded.
+  /// Delete the files for [items] (the same selection passed to
+  /// [gatherFilesToDelete]), skipping any path in [except]. Streams one event
+  /// per path; an empty [DeleteFilesResponse.error] means that path succeeded.
   Stream<DeleteFilesResponse> deleteFiles(List<SingleDeletion> items, {List<String> except = const []}) {
     return _streamClient.deleteFiles(DeleteFilesRequest(items: items, except: except));
   }

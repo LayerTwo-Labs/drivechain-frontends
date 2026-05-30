@@ -165,7 +165,7 @@ type OrchestratorServiceClient interface {
 	// Gather the files/dirs that would be deleted for a per-binary deletion spec
 	// (no side effects). Shared by the single-binary wipe and the full reset page.
 	GatherFilesToDelete(context.Context, *connect.Request[v1.GatherFilesToDeleteRequest]) (*connect.Response[v1.GatherFilesToDeleteResponse], error)
-	// Delete the given paths. Stops binaries first; wallet paths are moved to
+	// Delete the selected files. Stops binaries first; wallet paths are moved to
 	// wallet_backups/ instead of removed. Returns a gRPC error if it can't run.
 	// Streams one message per path; an unset error means that path succeeded.
 	DeleteFiles(context.Context, *connect.Request[v1.DeleteFilesRequest]) (*connect.ServerStreamForClient[v1.DeleteFilesResponse], error)
@@ -514,7 +514,7 @@ type OrchestratorServiceHandler interface {
 	// Gather the files/dirs that would be deleted for a per-binary deletion spec
 	// (no side effects). Shared by the single-binary wipe and the full reset page.
 	GatherFilesToDelete(context.Context, *connect.Request[v1.GatherFilesToDeleteRequest]) (*connect.Response[v1.GatherFilesToDeleteResponse], error)
-	// Delete the given paths. Stops binaries first; wallet paths are moved to
+	// Delete the selected files. Stops binaries first; wallet paths are moved to
 	// wallet_backups/ instead of removed. Returns a gRPC error if it can't run.
 	// Streams one message per path; an unset error means that path succeeded.
 	DeleteFiles(context.Context, *connect.Request[v1.DeleteFilesRequest], *connect.ServerStream[v1.DeleteFilesResponse]) error

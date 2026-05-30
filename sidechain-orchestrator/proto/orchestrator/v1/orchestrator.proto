@@ -86,7 +86,7 @@ service OrchestratorService {
   // (no side effects). Shared by the single-binary wipe and the full reset page.
   rpc GatherFilesToDelete(GatherFilesToDeleteRequest) returns (GatherFilesToDeleteResponse);
 
-  // Delete the given paths. Stops binaries first; wallet paths are moved to
+  // Delete the selected files. Stops binaries first; wallet paths are moved to
   // wallet_backups/ instead of removed. Returns a gRPC error if it can't run.
   // Streams one message per path; an unset error means that path succeeded.
   rpc DeleteFiles(DeleteFilesRequest) returns (stream DeleteFilesResponse);
@@ -429,14 +429,10 @@ message ResetFileInfo {
 
 // DeleteFiles
 
-// DeleteFiles takes the same selection as GatherFilesToDelete and re-resolves
-// the concrete paths server-side, so it can only ever delete what gather would
-// report — clients never supply raw filesystem paths.
 message DeleteFilesRequest {
+  // What to delete: the same per-binary categories passed to GatherFilesToDelete.
   repeated SingleDeletion items = 1;
-  // Paths the user deselected. Purely subtractive: the server deletes
-  // gather(items) minus these, so `except` can narrow the set but never widen
-  // it beyond what gather resolves. Ignored if not a member of that set.
+  // Paths to omit from the deletion, e.g. files the user deselected.
   repeated string except = 2;
 }
 
