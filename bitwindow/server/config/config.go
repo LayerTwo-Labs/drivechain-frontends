@@ -33,7 +33,7 @@ type Config struct {
 	OrchestratorAddr string `long:"orchestrator.addr" description:"URL for connecting to the orchestrator daemon" default:"http://localhost:30400"`
 
 	APIHost string `long:"api.host" env:"API_HOST" description:"public address for the connect server" default:"localhost:30301"`
-	Datadir string `long:"datadir" description:"Path to the data directory"`
+	Datadir string `long:"datadir" env:"BITWINDOWD_DATADIR" description:"Path to the data directory"`
 
 	LogPath  string `long:"log.path" description:"Path to write logs to"`
 	LogLevel string `long:"log.level" description:"Log level" default:"info" env:"LOG_LEVEL"`
