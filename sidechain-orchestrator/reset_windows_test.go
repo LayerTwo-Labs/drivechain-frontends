@@ -1,16 +1,14 @@
 //go:build windows
 
 // Windows-specific reset integration tests. The bug these guard against:
-// StreamResetData on Windows only deletes a fraction of the files it
-// collected (user-reported "only 12 files deleted") because
-//   (a) force-killed daemons still hold file locks on bitcoind's blocks/
-//       chainstate/ dirs when os.RemoveAll runs, and
-//   (b) the current StreamResetData uses a bare os.RemoveAll with no retry,
-//       so the first ERROR_SHARING_VIOLATION on a locked file aborts that
-//       path's subtree and leaves files behind.
+// a reset on Windows only deletes a fraction of the files it collected
+// (user-reported "only 12 files deleted") because force-killed daemons still
+// hold file locks on bitcoind's blocks/ chainstate/ dirs when os.RemoveAll
+// runs. DeleteFiles waits postKillFileLockGrace after shutdown before removing
+// so those handles are released first.
 //
-// Tests seed a realistic, node_software-shaped datadir tree, then assert
-// the stream deletes every path it promised to — in both the clean case
+// Tests seed a realistic, node_software-shaped datadir tree, then assert the
+// delete stream removes every path gather promised — in both the clean case
 // and the "a handle was held briefly" case.
 
 package orchestrator
@@ -47,53 +45,71 @@ func seedNodeSoftwareTree(t *testing.T, o *Orchestrator) []string {
 	return seeded
 }
 
+// gatherNodeSoftware resolves the node_software paths for every configured
+// binary — the same selection a "delete node software" reset sends.
+func gatherNodeSoftware(t *testing.T, o *Orchestrator) []string {
+	t.Helper()
+	var specs []GatherSpec
+	for _, cfg := range o.Configs() {
+		if cfg.BinaryName == "" {
+			continue
+		}
+		specs = append(specs, GatherSpec{BinaryName: cfg.Name, Categories: []string{catSoftware}})
+	}
+	files, err := o.GatherFilesToDelete(specs)
+	require.NoError(t, err)
+	paths := make([]string, 0, len(files))
+	for _, f := range files {
+		paths = append(paths, f.Path)
+	}
+	return paths
+}
+
+// runDelete drives DeleteFiles to completion and tallies the per-path events.
+func runDelete(t *testing.T, o *Orchestrator, paths []string) (deleted, failed int) {
+	t.Helper()
+	ch, err := o.DeleteFiles(context.Background(), paths)
+	require.NoError(t, err)
+	for evt := range ch {
+		if evt.Error == "" {
+			deleted++
+		} else {
+			failed++
+		}
+	}
+	return deleted, failed
+}
+
 func TestWindowsReset_DeletesAllSeededBinaries(t *testing.T) {
 	o := newResetTestOrchestrator(t)
 	seeded := seedNodeSoftwareTree(t, o)
 
-	ch, err := o.StreamResetData(context.Background(),
-		ResetCategory{DeleteNodeSoftware: true})
-	require.NoError(t, err)
+	deleted, failed := runDelete(t, o, gatherNodeSoftware(t, o))
 
-	var events []ResetEvent
-	for evt := range ch {
-		events = append(events, evt)
-	}
-	require.NotEmpty(t, events)
-	done := events[len(events)-1]
-	require.True(t, done.Done)
-
-	// "Only 12 files deleted" regression: every seeded file MUST be in
-	// the success count, not the failure count.
-	assert.Zero(t, done.FailedCount,
-		"reset reported %d failures — Windows file locks are leaking through os.RemoveAll",
-		done.FailedCount)
-	assert.GreaterOrEqual(t, done.DeletedCount, len(seeded),
-		"DeletedCount=%d but seeded %d files — reset gave up partway",
-		done.DeletedCount, len(seeded))
+	// "Only 12 files deleted" regression: every seeded file MUST succeed,
+	// none may leak through as a failure.
+	assert.Zero(t, failed,
+		"reset reported %d failures — Windows file locks are leaking through os.RemoveAll", failed)
+	assert.GreaterOrEqual(t, deleted, len(seeded),
+		"deleted=%d but seeded %d files — reset gave up partway", deleted, len(seeded))
 
 	// Ground-truth check: nothing survives on disk.
 	for _, p := range seeded {
 		_, err := os.Stat(p)
-		assert.True(t, os.IsNotExist(err), "seeded file %s survived StreamResetData", p)
+		assert.True(t, os.IsNotExist(err), "seeded file %s survived DeleteFiles", p)
 	}
 }
 
-// TestWindowsReset_SurvivesBrieflyHeldFileHandle is a direct repro of
-// the Windows shutdown race: bitcoind releases its handle on a file
-// several hundred ms after taskkill /F returns. If reset runs inside
-// that window, os.RemoveAll fails with ERROR_SHARING_VIOLATION.
-//
-// A correct implementation retries on transient sharing violations
-// (same pattern as DeleteFilesWithRetry in config/binaries.go). The
-// current reset.go does not retry — this test is the failing
-// reproducer that tracks the gap.
+// TestWindowsReset_SurvivesBrieflyHeldFileHandle is a direct repro of the
+// Windows shutdown race: bitcoind releases its handle several hundred ms after
+// taskkill /F returns. DeleteFiles waits postKillFileLockGrace (5s) after
+// shutdown before removing, which must outlast such a transient handle.
 func TestWindowsReset_SurvivesBrieflyHeldFileHandle(t *testing.T) {
 	o := newResetTestOrchestrator(t)
 	seeded := seedNodeSoftwareTree(t, o)
 
-	// Open one seeded file exclusively for ~1s to mimic a lingering
-	// daemon handle. Windows refuses deletion while the handle is live.
+	// Open one seeded file exclusively for ~1s to mimic a lingering daemon
+	// handle. Windows refuses deletion while the handle is live.
 	locked := seeded[0]
 	f, err := os.Open(locked)
 	require.NoError(t, err)
@@ -104,51 +120,29 @@ func TestWindowsReset_SurvivesBrieflyHeldFileHandle(t *testing.T) {
 		close(released)
 	}()
 
-	ch, err := o.StreamResetData(context.Background(),
-		ResetCategory{DeleteNodeSoftware: true})
-	require.NoError(t, err)
-
-	var done ResetEvent
-	for evt := range ch {
-		if evt.Done {
-			done = evt
-		}
-	}
+	_, failed := runDelete(t, o, gatherNodeSoftware(t, o))
 	<-released
 
+	assert.Zero(t, failed, "a briefly-held handle leaked a failure past the post-kill grace")
 	if _, statErr := os.Stat(locked); !os.IsNotExist(statErr) {
-		t.Errorf("locked file %s survived StreamResetData — sharing violation leaked without retry (done=%+v)",
-			locked, done)
+		t.Errorf("locked file %s survived DeleteFiles — sharing violation leaked through the grace window", locked)
 	}
 }
 
-// TestWindowsReset_CountsMatchPreview catches the desync the user
-// reported: preview says N files but only 12 are actually deleted. The
-// preview and the deletion stream must walk the same entries; if they
-// drift, the UI progress bar is lying.
-func TestWindowsReset_CountsMatchPreview(t *testing.T) {
+// TestWindowsReset_CountsMatchGather catches the desync the user reported:
+// gather says N files but only 12 are actually deleted. Gather and the delete
+// stream must walk the same entries; if they drift, the UI progress is lying.
+func TestWindowsReset_CountsMatchGather(t *testing.T) {
 	o := newResetTestOrchestrator(t)
 	seedNodeSoftwareTree(t, o)
 
-	cat := ResetCategory{DeleteNodeSoftware: true}
-	preview, err := o.PreviewResetData(cat)
-	require.NoError(t, err)
-	require.NotEmpty(t, preview)
+	paths := gatherNodeSoftware(t, o)
+	require.NotEmpty(t, paths)
 
-	ch, err := o.StreamResetData(context.Background(), cat)
-	require.NoError(t, err)
+	deleted, failed := runDelete(t, o, paths)
 
-	var done ResetEvent
-	for evt := range ch {
-		if evt.Done {
-			done = evt
-		}
-	}
-
-	assert.Equal(t, len(preview), done.DeletedCount+done.FailedCount,
-		"preview promised %d paths but stream accounted for %d (deleted=%d failed=%d)",
-		len(preview), done.DeletedCount+done.FailedCount,
-		done.DeletedCount, done.FailedCount)
-	assert.Zero(t, done.FailedCount,
-		"reset must delete every promised path on Windows; got %d failures", done.FailedCount)
+	assert.Equal(t, len(paths), deleted+failed,
+		"gather promised %d paths but stream accounted for %d (deleted=%d failed=%d)",
+		len(paths), deleted+failed, deleted, failed)
+	assert.Zero(t, failed, "reset must delete every promised path on Windows; got %d failures", failed)
 }
