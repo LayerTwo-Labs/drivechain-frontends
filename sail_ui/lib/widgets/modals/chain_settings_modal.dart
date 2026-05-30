@@ -89,16 +89,16 @@ class _ChainSettingsModalState extends State<ChainSettingsModal> {
     final appDir = binaryProvider.appDir;
     final log = GetIt.I.get<Logger>();
 
-    // Per-binary wipe: only this binary's data. Bitcoin Core's wallet is never
-    // wiped (the rest of its data is); every other chain's wallet is moved to
-    // wallet_backups/ server-side. The orchestrator gathers the concrete paths
-    // and the page handles the delete.
+    // Wipe everything for this one binary. Wallet included for enforcer and
+    // sidechains (moved to wallet_backups/ server-side); excluded for bitcoind
+    // and bitwindow, whose L1 wallet is only ever wiped from the reset page.
     final deletions = <DeletionType>[
       DeletionType.DELETION_TYPE_DATA,
       DeletionType.DELETION_TYPE_SETTINGS,
       DeletionType.DELETION_TYPE_LOGS,
       DeletionType.DELETION_TYPE_SOFTWARE,
-      if (binary.type != BinaryType.BINARY_TYPE_BITCOIND) DeletionType.DELETION_TYPE_WALLET,
+      if (binary.type != BinaryType.BINARY_TYPE_BITCOIND && binary.type != BinaryType.BINARY_TYPE_BITWINDOWD)
+        DeletionType.DELETION_TYPE_WALLET,
     ];
 
     final resetStarted = await Navigator.of(context).push<bool>(
