@@ -331,11 +331,9 @@ func startOrchestratord(ctx context.Context, conf config.Config) (*exec.Cmd, err
 		return nil, nil
 	}
 
-	// Drop stale bearer tokens before any readiness poll can attach one to a
-	// listener we did not spawn.
-	if err := localauth.RemoveCookie(bitwindowDir); err != nil {
-		return nil, fmt.Errorf("remove stale orchestrator auth cookie: %w", err)
-	}
+	// Don't touch the cookie here: orchestratord overwrites it with a fresh
+	// token once it owns the listener. Deleting it from bitwindowd could yank
+	// the cookie out from under a still-live orchestratord we failed to adopt.
 
 	// Find the orchestratord binary next to our own binary.
 	selfPath, err := os.Executable()
