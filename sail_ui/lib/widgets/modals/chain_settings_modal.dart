@@ -89,79 +89,24 @@ class _ChainSettingsModalState extends State<ChainSettingsModal> {
     final appDir = binaryProvider.appDir;
     final log = GetIt.I.get<Logger>();
 
-    final filesToDelete = <DeleteItem>[];
-    final itemsByPath = <String, DeleteItem>{};
-
-    void addItem(String itemPath, {bool skipClientDelete = false}) {
-      if (itemPath.isEmpty) return;
-      final existing = itemsByPath[itemPath];
-      if (existing == null) {
-        final item = DeleteItem(path: itemPath, skipClientDelete: skipClientDelete);
-        itemsByPath[itemPath] = item;
-        filesToDelete.add(item);
-        return;
-      }
-
-      if (skipClientDelete && !existing.skipClientDelete) {
-        final replacement = DeleteItem(path: itemPath, skipClientDelete: true);
-        final index = filesToDelete.indexOf(existing);
-        itemsByPath[itemPath] = replacement;
-        if (index >= 0) {
-          filesToDelete[index] = replacement;
-        }
-      }
-    }
-
-    void addItems(Iterable<String> paths, {bool skipClientDelete = false}) {
-      for (final itemPath in paths) {
-        addItem(itemPath, skipClientDelete: skipClientDelete);
-      }
-    }
-
-    try {
-      addItems(await binary.getBinaryPaths(binDir(appDir.path)));
-      addItems(await binary.getBlockchainDataPaths());
-      addItems(await binary.getSettingsPaths());
-      addItems(await binary.getLogPaths());
-      if (_isSidechainBinary(binary)) {
-        addItems(await binary.getWalletPaths(includeFrontendWallet: false));
-      }
-    } catch (e) {
-      log.e('Could not compute wipe preview for ${binary.name}: $e');
-      if (!context.mounted) return;
-      await showThemedDialog(
-        context: context,
-        builder: (context) => SailAlertCard(
-          title: 'Preview Failed',
-          subtitle: 'Could not compute reset preview: $e',
-          onConfirm: () async => Navigator.of(context).pop(),
-        ),
-      );
-      return;
-    }
-
-    if (!context.mounted) return;
-
-    if (filesToDelete.isEmpty) {
-      await showThemedDialog(
-        context: context,
-        builder: (context) => SailAlertCard(
-          title: 'Nothing to Delete',
-          subtitle: 'No files found for ${binary.name}.',
-          onConfirm: () async => Navigator.of(context).pop(),
-        ),
-      );
-      return;
-    }
+    // Per-binary wipe: only this binary's data. Bitcoin Core's wallet is never
+    // wiped (the rest of its data is); every other chain's wallet is moved to
+    // wallet_backups/ server-side. The orchestrator gathers the concrete paths
+    // and the page handles the delete.
+    final deletions = <DeletionType>[
+      DeletionType.DELETION_TYPE_DATA,
+      DeletionType.DELETION_TYPE_SETTINGS,
+      DeletionType.DELETION_TYPE_LOGS,
+      DeletionType.DELETION_TYPE_SOFTWARE,
+      if (binary.type != BinaryType.BINARY_TYPE_BITCOIND) DeletionType.DELETION_TYPE_WALLET,
+    ];
 
     final resetStarted = await Navigator.of(context).push<bool>(
       MaterialPageRoute(
         builder: (_) => ResetConfirmationPage(
-          filesToDelete: filesToDelete,
-          binariesToReset: [binary],
+          request: [SingleDeletion(binary: binary.type, deletions: deletions)],
           appDir: appDir,
           binaryProvider: binaryProvider,
-          deleteNodeSoftware: true,
           log: log,
         ),
       ),
@@ -172,19 +117,6 @@ class _ChainSettingsModalState extends State<ChainSettingsModal> {
     if (resetStarted == true) {
       Navigator.of(context).pop();
     }
-  }
-
-  bool _isSidechainBinary(Binary binary) {
-    return switch (binary.type) {
-      BinaryType.BINARY_TYPE_THUNDER ||
-      BinaryType.BINARY_TYPE_BITNAMES ||
-      BinaryType.BINARY_TYPE_BITASSETS ||
-      BinaryType.BINARY_TYPE_ZSIDE ||
-      BinaryType.BINARY_TYPE_TRUTHCOIN ||
-      BinaryType.BINARY_TYPE_PHOTON ||
-      BinaryType.BINARY_TYPE_COINSHIFT => true,
-      _ => false,
-    };
   }
 
   @override

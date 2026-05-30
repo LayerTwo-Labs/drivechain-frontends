@@ -4,246 +4,116 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config"
 )
 
-// ResetCategory defines which data categories to delete.
-type ResetCategory struct {
-	DeleteBlockchainData bool
-	DeleteNodeSoftware   bool
-	DeleteLogs           bool
-	DeleteSettings       bool
-	DeleteWalletFiles    bool
-	AlsoResetSidechains  bool
+// Deletion categories. These string keys map 1:1 to the proto DeletionType
+// enum (converted in the API handler) and select which getter on
+// config.BinaryDirConfig is used.
+const (
+	catData     = "blockchain_data"
+	catSoftware = "node_software"
+	catLogs     = "logs"
+	catSettings = "settings"
+	catWallet   = "wallet"
+)
+
+// GatherSpec is one binary plus the categories of its data to gather.
+type GatherSpec struct {
+	BinaryName string // resolvable by config.DirConfigByName (JSON key / name / binary name)
+	Categories []string
 }
 
-// ResetFileInfo describes a single file/directory that would be affected by a reset.
+// ResetFileInfo describes a single file/directory that a reset would affect.
 type ResetFileInfo struct {
 	Path        string
 	Category    string
+	BinaryName  string
 	SizeBytes   int64
 	IsDirectory bool
 }
 
-// ResetEvent is emitted for each file deletion during a streaming reset.
-type ResetEvent struct {
-	Path         string
-	Category     string
-	Success      bool
-	Error        string
-	Done         bool
-	DeletedCount int
-	FailedCount  int
+// DeleteEvent is emitted for each path during DeleteFiles. Error is empty when
+// the path was removed (or moved to backup) successfully.
+type DeleteEvent struct {
+	Path  string
+	Error string
 }
 
-type pathEntry struct {
-	path     string
-	category string
-}
-
-func dirExists(p string) bool {
-	if p == "" {
-		return false
-	}
-	info, err := os.Stat(p)
-	return err == nil && info.IsDir()
-}
-
-// collectPathEntries returns the deduplicated, deterministic list that preview
-// and deletion MUST share — otherwise their counts diverge and the UI desyncs.
-func (o *Orchestrator) collectPathEntries(cat ResetCategory) []pathEntry {
-	pathsByCategory := o.collectPaths(cat)
-	order := []string{"blockchain_data", "node_software", "logs", "settings", "wallet"}
-
-	var entries []pathEntry
-	seen := make(map[string]bool)
-	for _, category := range order {
-		for _, p := range pathsByCategory[category] {
-			if seen[p] {
-				continue
-			}
-			seen[p] = true
-			entries = append(entries, pathEntry{path: p, category: category})
-		}
-	}
-	return entries
-}
-
-// categoryLabel maps category flags to human-readable labels.
-func categoryLabel(cat string) string {
-	switch cat {
-	case "blockchain_data":
-		return "blockchain_data"
-	case "node_software":
-		return "node_software"
-	case "logs":
-		return "logs"
-	case "settings":
-		return "settings"
-	case "wallet":
-		return "wallet"
-	default:
-		return cat
-	}
-}
-
-// resetTargetDirConfigs returns the binaries whose datadirs the reset will
-// inspect. Enumerates from the embedded registry, not o.Configs() — a
-// sidechain the user never started in this session isn't in o.Configs(), and
-// the old code silently skipped its datadir. That's the "Obliterate deletes
-// Thunder but not Bitnames" bug (#1695): Thunder happened to be in the
-// runtime set, Bitnames wasn't.
-func (o *Orchestrator) resetTargetDirConfigs(cat ResetCategory) []config.BinaryDirConfig {
-	var targets []config.BinaryDirConfig
-	seen := make(map[string]bool)
-	for _, dirCfg := range config.AllDirConfigs() {
-		if dirCfg.ChainLayer == 2 && !cat.AlsoResetSidechains {
-			continue
-		}
-		key := dirCfg.BinaryName + "|" + dirCfg.Name
-		if seen[key] {
-			continue
-		}
-		seen[key] = true
-		targets = append(targets, dirCfg)
-	}
-	return targets
-}
-
-// collectPaths gathers all paths per category for the given reset categories.
-func (o *Orchestrator) collectPaths(cat ResetCategory) map[string][]string {
+// GatherFilesToDelete resolves, per binary, the on-disk paths for each
+// requested category. No side effects. The returned list is deduplicated by
+// path so a file shared between two categories (e.g. a frontend wallet.json
+// that shows up under both settings and wallet) is only listed once.
+func (o *Orchestrator) GatherFilesToDelete(specs []GatherSpec) ([]ResetFileInfo, error) {
 	network := config.Network(o.Network)
-	result := make(map[string][]string)
-
-	targets := o.resetTargetDirConfigs(cat)
-
-	binDir := BinDir(o.BitwindowDir)
-
-	// User may have overridden bitcoind's datadir in bitwindow-bitcoin.conf;
-	// honour that so reset targets the right place on disk.
 	bitcoinOverride := ""
 	if o.BitcoinConf != nil {
 		bitcoinOverride = o.BitcoinConf.DetectedDataDir
 	}
-
-	// Audit log so users can see exactly which paths the preview
-	// considered vs. found. Critical for diagnosing "reset listed 12 items
-	// but my data dir has way more" reports.
-	o.log.Info().
-		Str("network", string(network)).
-		Str("bitcoin_override", bitcoinOverride).
-		Str("bin_dir", binDir).
-		Int("targets", len(targets)).
-		Bool("also_sidechains", cat.AlsoResetSidechains).
-		Msg("reset-preview: begin walk")
-
-	for _, dc := range targets {
-		// Use the network-aware datadir so we hit bitcoind's signet/ subdir
-		// (blocks, chainstate, wallets) and bitwindowd's signet/ subdir
-		// (bitwindow.db, wallet.json). Other binaries get the flat root.
-		networkDir := dc.DatadirNetwork(network, bitcoinOverride)
-		rootDir := dc.RootDirNetwork(network)
-		flutter := dc.FlutterFrontendPath()
-
-		o.log.Info().
-			Str("binary", dc.BinaryName).
-			Str("network_dir", networkDir).
-			Str("root_dir", rootDir).
-			Str("flutter_dir", flutter).
-			Bool("network_dir_exists", dirExists(networkDir)).
-			Bool("root_dir_exists", dirExists(rootDir)).
-			Bool("flutter_dir_exists", dirExists(flutter)).
-			Msg("reset-preview: inspect binary")
-
-		logFound := func(category string, paths []string) {
-			if len(paths) == 0 {
-				o.log.Info().Str("binary", dc.BinaryName).Str("category", category).Msg("reset-preview: no paths found")
-				return
-			}
-			o.log.Info().Str("binary", dc.BinaryName).Str("category", category).Int("count", len(paths)).Strs("paths", paths).Msg("reset-preview: paths found")
-		}
-
-		if cat.DeleteBlockchainData {
-			p := dc.GetBlockchainDataPaths(networkDir, network, o.log)
-			result["blockchain_data"] = append(result["blockchain_data"], p...)
-			logFound("blockchain_data", p)
-		}
-		if cat.DeleteNodeSoftware {
-			p := dc.GetBinaryPaths(binDir, o.log)
-			result["node_software"] = append(result["node_software"], p...)
-			logFound("node_software", p)
-		}
-		if cat.DeleteLogs {
-			p := dc.GetLogPaths(networkDir, o.log)
-			result["logs"] = append(result["logs"], p...)
-			logFound("logs", p)
-		}
-		if cat.DeleteSettings {
-			p := dc.GetSettingsPaths(networkDir, network, o.log)
-			result["settings"] = append(result["settings"], p...)
-			logFound("settings", p)
-		}
-		if cat.DeleteWalletFiles {
-			p := dc.GetWalletPaths(networkDir, network, o.log)
-			result["wallet"] = append(result["wallet"], p...)
-			logFound("wallet", p)
-		}
-	}
-
-	// Deduplicate within each category.
-	for cat, paths := range result {
-		seen := make(map[string]bool, len(paths))
-		var unique []string
-		for _, p := range paths {
-			if !seen[p] {
-				seen[p] = true
-				unique = append(unique, p)
-			}
-		}
-		result[cat] = unique
-	}
-
-	return result
-}
-
-// PreviewResetData returns the list of files/directories that would be deleted
-// for the given categories, without performing any deletions.
-func (o *Orchestrator) PreviewResetData(cat ResetCategory) ([]ResetFileInfo, error) {
-	entries := o.collectPathEntries(cat)
+	binDir := BinDir(o.BitwindowDir)
 
 	var files []ResetFileInfo
-	for _, e := range entries {
-		info := ResetFileInfo{
-			Path:     e.path,
-			Category: e.category,
+	seen := make(map[string]bool)
+
+	add := func(cat, binaryName string, paths []string) {
+		for _, p := range paths {
+			if p == "" || seen[p] {
+				continue
+			}
+			seen[p] = true
+			info := ResetFileInfo{Path: p, Category: cat, BinaryName: binaryName}
+			if fi, err := os.Stat(p); err == nil {
+				info.IsDirectory = fi.IsDir()
+				if !fi.IsDir() {
+					info.SizeBytes = fi.Size()
+				}
+			}
+			files = append(files, info)
 		}
-		if fi, err := os.Stat(e.path); err == nil {
-			info.IsDirectory = fi.IsDir()
-			if !fi.IsDir() {
-				info.SizeBytes = fi.Size()
+	}
+
+	for _, spec := range specs {
+		dc, ok := config.DirConfigByName(spec.BinaryName)
+		if !ok {
+			o.log.Warn().Str("binary", spec.BinaryName).Msg("gather: unknown binary, skipping")
+			continue
+		}
+		networkDir := dc.DatadirNetwork(network, bitcoinOverride)
+
+		for _, cat := range spec.Categories {
+			switch cat {
+			case catData:
+				add(cat, spec.BinaryName, dc.GetBlockchainDataPaths(networkDir, network, o.log))
+			case catSoftware:
+				add(cat, spec.BinaryName, dc.GetBinaryPaths(binDir, o.log))
+			case catLogs:
+				add(cat, spec.BinaryName, dc.GetLogPaths(networkDir, o.log))
+			case catSettings:
+				add(cat, spec.BinaryName, dc.GetSettingsPaths(networkDir, network, o.log))
+			case catWallet:
+				add(cat, spec.BinaryName, dc.GetWalletPaths(networkDir, network, o.log))
+				// bitwindowd's master wallet lives at the flat <bitwindowDir>/
+				// wallet.json, which the network-scoped getter above doesn't
+				// cover. Include it so a full wallet wipe backs it up too.
+				if dc.BinaryName == "bitwindowd" && o.WalletSvc != nil {
+					add(cat, spec.BinaryName, o.WalletSvc.MasterWalletPaths())
+				}
 			}
 		}
-		files = append(files, info)
 	}
 
 	return files, nil
 }
 
-// StreamResetData stops affected binaries, then deletes data file-by-file,
-// sending each deletion event to the returned channel. The final event has
-// Done=true with summary counts.
-func (o *Orchestrator) StreamResetData(ctx context.Context, cat ResetCategory) (<-chan ResetEvent, error) {
-	// Snapshot entries BEFORE shutdown/wallet-move so the stream's emission set
-	// matches the preview the frontend already showed (#1723). Previously this
-	// ran after ShutdownAll deleted pid/lock files and DeleteAllWallets moved
-	// wallet paths aside — those entries silently dropped out of the recompute
-	// and the corresponding rows stayed grey forever. RemoveAll below tolerates
-	// the missing pid files via os.IsNotExist, so capturing eagerly is safe.
-	entries := o.collectPathEntries(cat)
-
-	// Budget grows with dependency-chain length; ShutdownAll is sequential.
+// DeleteFiles stops all binaries, then removes each path. Wallet paths are
+// moved to wallet_backups/ instead of being removed — keys are irreplaceable.
+// Each path is reported on the returned channel; an empty Error means success.
+// A returned error means deletion couldn't start at all (e.g. shutdown failed).
+func (o *Orchestrator) DeleteFiles(ctx context.Context, paths []string) (<-chan DeleteEvent, error) {
+	// Any path could belong to a running daemon; stop them all first.
 	running := o.process.ListRunning()
 	shutdownBudget := gracefulKillTimeout * time.Duration(len(running)+2)
 	shutdownCtx, cancel := context.WithTimeout(ctx, shutdownBudget)
@@ -259,85 +129,108 @@ func (o *Orchestrator) StreamResetData(ctx context.Context, cat ResetCategory) (
 		}
 	}
 
-	// Windows keeps handles briefly after force-kill; wait before RemoveAll.
+	// Windows keeps handles briefly after force-kill; wait before removing.
 	time.Sleep(postKillFileLockGrace)
 
-	// Wallet deletion via WalletSvc (must happen while Core is down).
-	if cat.DeleteWalletFiles && o.WalletSvc != nil {
-		origStop := o.WalletSvc.OnStopAllBinaries
-		o.WalletSvc.OnStopAllBinaries = nil
-		err := o.WalletSvc.DeleteAllWallets(nil, nil)
-		o.WalletSvc.OnStopAllBinaries = origStop
-		if err != nil {
-			return nil, fmt.Errorf("delete wallet data: %w", err)
+	// Any path that is a known wallet location gets moved to backup rather than
+	// hard-deleted. Computed across every binary so a wallet path can never slip
+	// through to os.RemoveAll.
+	walletSet := o.allWalletPaths()
+	masterSet := map[string]bool{}
+	if o.WalletSvc != nil {
+		for _, p := range o.WalletSvc.MasterWalletPaths() {
+			masterSet[p] = true
 		}
 	}
 
-	events := make(chan ResetEvent, len(entries)+1)
-
+	events := make(chan DeleteEvent, len(paths)+1)
 	go func() {
 		defer close(events)
 
-		deleted := 0
-		failed := 0
-
-		for _, entry := range entries {
-			evt := ResetEvent{
-				Path:     entry.path,
-				Category: entry.category,
-			}
-
-			// Wallet paths were already moved aside by WalletSvc.DeleteAllWallets
-			// (soft-delete via moveToBackup). Running os.RemoveAll here would
-			// either no-op (path already moved) or destructively wipe a path
-			// the wallet service decided to leave alone. Skip the category
-			// outright so reset events still report it but the original keys
-			// stay recoverable.
-			if entry.category == "wallet" {
-				evt.Success = true
-				deleted++
-				evt.DeletedCount = deleted
-				evt.FailedCount = failed
-				events <- evt
-				continue
-			}
-
-			if err := os.RemoveAll(entry.path); err != nil && !os.IsNotExist(err) {
-				evt.Success = false
-				evt.Error = err.Error()
-				failed++
+		masterTouched := false
+		for _, p := range paths {
+			evt := DeleteEvent{Path: p}
+			if isWalletPath(p, walletSet) {
+				// Wallets are moved aside, never removed — keys are irreplaceable.
+				if o.WalletSvc != nil {
+					if _, err := o.WalletSvc.BackupPath(p); err != nil {
+						evt.Error = err.Error()
+					}
+				}
+				if masterSet[p] {
+					masterTouched = true
+				}
 			} else {
-				evt.Success = true
-				deleted++
+				if err := os.RemoveAll(p); err != nil && !os.IsNotExist(err) {
+					evt.Error = err.Error()
+				}
 			}
-
-			evt.DeletedCount = deleted
-			evt.FailedCount = failed
 			events <- evt
 		}
 
-		// Final summary event.
-		events <- ResetEvent{
-			Done:         true,
-			DeletedCount: deleted,
-			FailedCount:  failed,
-		}
-
-		if cat.DeleteNodeSoftware {
-			o.log.Info().Msg("node software deleted; frontend should trigger re-download")
+		// The orchestrator caches the master wallet in memory; once it's been
+		// moved aside, drop that state so the service reflects the wipe.
+		if masterTouched && o.WalletSvc != nil {
+			o.WalletSvc.ClearInMemoryState()
 		}
 	}()
 
 	return events, nil
 }
 
-// BinaryWalletPaths returns the per-binary on-disk wallet locations that a
-// "Delete Wallet Files" / "Fully Obliterate" reset must remove. Mirrors the
-// path enumeration used by collectPaths/StreamResetData so the wallet
-// service's pre-deletion sweep agrees with the file-by-file pass that runs
-// after — without that agreement, the sweep can miss `<datadir>/<network>/
-// wallets/` while the second pass deletes blockchain data, leaving
-// the user's wallet alive against an empty chain (issue #1627).
+// isWalletPath decides whether a path must be moved to backup rather than
+// removed. It first trusts the authoritative set computed from config, then
+// falls back to conservative name/segment heuristics. Over-classifying a path
+// as a wallet is harmless (it just leaves a recoverable backup); the one thing
+// that must never happen is a wallet slipping through to os.RemoveAll, so the
+// fallbacks deliberately err toward "this is a wallet".
+func isWalletPath(p string, walletSet map[string]bool) bool {
+	if walletSet[p] {
+		return true
+	}
+	// Normalise Windows backslashes + case, host-independently (filepath.ToSlash
+	// is a no-op on POSIX hosts, so do the replace manually) so the checks below
+	// hold for every platform's path shape.
+	lower := strings.ToLower(strings.ReplaceAll(p, `\`, "/"))
+
+	// Known wallet files, anywhere in the tree.
+	for _, name := range []string{"wallet.mdb", "wallet.dat", "wallet.json", "wallet_encryption.json"} {
+		if lower == name || strings.HasSuffix(lower, "/"+name) {
+			return true
+		}
+	}
+
+	// Wallet directories: bitcoind's `wallets/`, the enforcer's `wallet/<net>`.
+	return strings.Contains(lower, "/wallet/") || strings.HasSuffix(lower, "/wallet") ||
+		strings.Contains(lower, "/wallets/") || strings.HasSuffix(lower, "/wallets")
+}
+
+// allWalletPaths is the set of every binary's wallet locations for the current
+// network, used by DeleteFiles to decide move-to-backup vs. hard-delete.
+func (o *Orchestrator) allWalletPaths() map[string]bool {
+	network := config.Network(o.Network)
+	bitcoinOverride := ""
+	if o.BitcoinConf != nil {
+		bitcoinOverride = o.BitcoinConf.DetectedDataDir
+	}
+
+	set := make(map[string]bool)
+	for _, dc := range config.AllDirConfigs() {
+		for _, p := range dc.GetWalletPaths(dc.DatadirNetwork(network, bitcoinOverride), network, o.log) {
+			set[p] = true
+		}
+	}
+	if o.WalletSvc != nil {
+		for _, p := range o.WalletSvc.MasterWalletPaths() {
+			set[p] = true
+		}
+	}
+	return set
+}
+
+// BinaryWalletPaths returns the per-binary on-disk wallet locations that the
+// wallet service's pre-deletion sweep removes. Mirrors the path enumeration
+// GatherFilesToDelete uses so the sweep agrees with the file-by-file pass.
 func (o *Orchestrator) BinaryWalletPaths() []string {
 	network := config.Network(o.Network)
 	bitcoinOverride := ""

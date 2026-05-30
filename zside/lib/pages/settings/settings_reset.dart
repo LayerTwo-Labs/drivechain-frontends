@@ -123,50 +123,21 @@ class _SettingsResetState extends State<SettingsReset> {
     final binaryProvider = GetIt.I.get<BinaryProvider>();
     final binary = ZSide();
 
-    // Collect all file paths that would be deleted
-    final filesToDelete = <DeleteItem>[];
+    // The orchestrator gathers the concrete paths and performs the delete;
+    // wallet files are moved to wallet_backups/ server-side, never removed.
+    final deletions = <DeletionType>[
+      if (_deleteBlockchainData) DeletionType.DELETION_TYPE_DATA,
+      if (_deleteSettings) DeletionType.DELETION_TYPE_SETTINGS,
+      if (_deleteWalletFiles) DeletionType.DELETION_TYPE_WALLET,
+      if (_deleteLogs) DeletionType.DELETION_TYPE_LOGS,
+    ];
 
-    if (_deleteBlockchainData) {
-      final paths = await binary.getBlockchainDataPaths();
-      filesToDelete.addAll(paths.map((p) => DeleteItem(path: p)));
-    }
-    if (_deleteSettings) {
-      final paths = await binary.getSettingsPaths();
-      filesToDelete.addAll(paths.map((p) => DeleteItem(path: p)));
-    }
-    if (_deleteWalletFiles) {
-      final paths = await binary.getWalletPaths();
-      filesToDelete.addAll(paths.map((p) => DeleteItem(path: p)));
-    }
-    if (_deleteLogs) {
-      final paths = await binary.getLogPaths();
-      filesToDelete.addAll(paths.map((p) => DeleteItem(path: p)));
-    }
-
-    if (filesToDelete.isEmpty) {
-      if (!context.mounted) return;
-      await showThemedDialog(
-        context: context,
-        builder: (context) => SailAlertCard(
-          title: 'Nothing to Delete',
-          subtitle: 'No files found matching your selection.',
-          onConfirm: () async => Navigator.of(context).pop(),
-        ),
-      );
-      return;
-    }
-
-    if (!context.mounted) return;
-
-    // Show confirmation page with file list - deletion happens inline
     final confirmed = await Navigator.of(context).push<bool>(
       MaterialPageRoute(
         builder: (_) => ResetConfirmationPage(
-          filesToDelete: filesToDelete,
-          binariesToReset: [binary],
+          request: [SingleDeletion(binary: binary.type, deletions: deletions)],
           appDir: appDir,
           binaryProvider: binaryProvider,
-          deleteNodeSoftware: false,
           log: log,
         ),
       ),
@@ -178,9 +149,15 @@ class _SettingsResetState extends State<SettingsReset> {
     if (confirmed == true) {
       bootBinaries(log);
 
-      final zsideRPC = GetIt.I.get<ZSideRPC>();
-      while (!zsideRPC.connected) {
-        await Future.delayed(const Duration(seconds: 1));
+      // Wait for orchestrator to become ready
+      final orchestrator = GetIt.I.get<OrchestratorRPC>();
+      for (var i = 0; i < 30; i++) {
+        try {
+          await orchestrator.listBinaries();
+          break;
+        } catch (_) {
+          await Future.delayed(const Duration(milliseconds: 500));
+        }
       }
     }
   }

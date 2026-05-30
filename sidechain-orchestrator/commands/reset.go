@@ -25,26 +25,62 @@ func resetCategoryFlags() []cli.Flag {
 		&cli.BoolFlag{Name: "node-software", Usage: "include downloaded node binaries"},
 		&cli.BoolFlag{Name: "logs", Usage: "include log files"},
 		&cli.BoolFlag{Name: "settings", Usage: "include config / settings files"},
-		&cli.BoolFlag{Name: "wallets", Usage: "include wallet files (DANGEROUS)"},
+		&cli.BoolFlag{Name: "wallets", Usage: "include wallet files (moved to wallet_backups/)"},
 		&cli.BoolFlag{Name: "sidechains", Usage: "cascade the reset to sidechain data too"},
 	}
 }
 
-func resetCategoriesFromCtx(cctx *cli.Context) (blockchain, software, logs, settings, wallets, sidechains bool) {
-	return cctx.Bool("blockchain-data"),
-		cctx.Bool("node-software"),
-		cctx.Bool("logs"),
-		cctx.Bool("settings"),
-		cctx.Bool("wallets"),
-		cctx.Bool("sidechains")
-}
-
 func ensureAnyResetCategory(cctx *cli.Context) error {
-	blockchain, software, logs, settings, wallets, _ := resetCategoriesFromCtx(cctx)
-	if !blockchain && !software && !logs && !settings && !wallets {
+	if !cctx.Bool("blockchain-data") && !cctx.Bool("node-software") &&
+		!cctx.Bool("logs") && !cctx.Bool("settings") && !cctx.Bool("wallets") {
 		return fmt.Errorf("pick at least one category: --blockchain-data, --node-software, --logs, --settings, --wallets")
 	}
 	return nil
+}
+
+// resetSpecs builds the per-binary deletion request from the category flags.
+// L1 (bitcoind, enforcer, bitwindowd) is always included; sidechains only when
+// --sidechains is set.
+func resetSpecs(cctx *cli.Context) []*pb.SingleDeletion {
+	var dts []pb.DeletionType
+	if cctx.Bool("blockchain-data") {
+		dts = append(dts, pb.DeletionType_DELETION_TYPE_DATA)
+	}
+	if cctx.Bool("node-software") {
+		dts = append(dts, pb.DeletionType_DELETION_TYPE_SOFTWARE)
+	}
+	if cctx.Bool("logs") {
+		dts = append(dts, pb.DeletionType_DELETION_TYPE_LOGS)
+	}
+	if cctx.Bool("settings") {
+		dts = append(dts, pb.DeletionType_DELETION_TYPE_SETTINGS)
+	}
+	if cctx.Bool("wallets") {
+		dts = append(dts, pb.DeletionType_DELETION_TYPE_WALLET)
+	}
+
+	bins := []pb.BinaryType{
+		pb.BinaryType_BINARY_TYPE_BITCOIND,
+		pb.BinaryType_BINARY_TYPE_ENFORCER,
+		pb.BinaryType_BINARY_TYPE_BITWINDOWD,
+	}
+	if cctx.Bool("sidechains") {
+		bins = append(bins,
+			pb.BinaryType_BINARY_TYPE_THUNDER,
+			pb.BinaryType_BINARY_TYPE_ZSIDE,
+			pb.BinaryType_BINARY_TYPE_BITNAMES,
+			pb.BinaryType_BINARY_TYPE_BITASSETS,
+			pb.BinaryType_BINARY_TYPE_TRUTHCOIN,
+			pb.BinaryType_BINARY_TYPE_PHOTON,
+			pb.BinaryType_BINARY_TYPE_COINSHIFT,
+		)
+	}
+
+	specs := make([]*pb.SingleDeletion, 0, len(bins))
+	for _, b := range bins {
+		specs = append(specs, &pb.SingleDeletion{Binary: b, Deletions: dts})
+	}
+	return specs
 }
 
 var resetPreviewCommand = &cli.Command{
@@ -56,14 +92,8 @@ var resetPreviewCommand = &cli.Command{
 			return err
 		}
 		client := newClient(cctx)
-		blockchain, software, logs, settings, wallets, sidechains := resetCategoriesFromCtx(cctx)
-		resp, err := client.PreviewResetData(cctx.Context, connect.NewRequest(&pb.PreviewResetDataRequest{
-			DeleteBlockchainData: blockchain,
-			DeleteNodeSoftware:   software,
-			DeleteLogs:           logs,
-			DeleteSettings:       settings,
-			DeleteWalletFiles:    wallets,
-			AlsoResetSidechains:  sidechains,
+		resp, err := client.GatherFilesToDelete(cctx.Context, connect.NewRequest(&pb.GatherFilesToDeleteRequest{
+			Items: resetSpecs(cctx),
 		}))
 		if err != nil {
 			return err
@@ -81,7 +111,7 @@ var resetPreviewCommand = &cli.Command{
 			if f.IsDirectory {
 				kind = "dir"
 			}
-			_, _ = fmt.Fprintf(tw, "%s\t%s\t%s\t%s\n", f.Category, humanBytes(f.SizeBytes), f.Path, kind)
+			_, _ = fmt.Fprintf(tw, "%s\t%s\t%s\t%s\n", f.DeletionType, humanBytes(f.SizeBytes), f.Path, kind)
 			totalBytes += f.SizeBytes
 		}
 		if err := tw.Flush(); err != nil {
@@ -102,45 +132,50 @@ var resetRunCommand = &cli.Command{
 		}
 		prompt := "this will delete data via orchestratord. proceed?"
 		if cctx.Bool("wallets") {
-			prompt = "this will delete WALLET files (⚠️ funds at risk). proceed?"
+			prompt = "this will move WALLET files to wallet_backups/ and delete the rest. proceed?"
 		}
 		if err := confirmOrAbort(cctx, prompt); err != nil {
 			return err
 		}
 
 		client := newClient(cctx)
-		blockchain, software, logs, settings, wallets, sidechains := resetCategoriesFromCtx(cctx)
-		stream, err := client.StreamResetData(cctx.Context, connect.NewRequest(&pb.StreamResetDataRequest{
-			DeleteBlockchainData: blockchain,
-			DeleteNodeSoftware:   software,
-			DeleteLogs:           logs,
-			DeleteSettings:       settings,
-			DeleteWalletFiles:    wallets,
-			AlsoResetSidechains:  sidechains,
+
+		// Gather the concrete paths, then hand them to the dumb deleter.
+		gathered, err := client.GatherFilesToDelete(cctx.Context, connect.NewRequest(&pb.GatherFilesToDeleteRequest{
+			Items: resetSpecs(cctx),
 		}))
 		if err != nil {
 			return err
 		}
+		if len(gathered.Msg.Files) == 0 {
+			fmt.Println("nothing to delete")
+			return nil
+		}
+		paths := make([]string, 0, len(gathered.Msg.Files))
+		for _, f := range gathered.Msg.Files {
+			paths = append(paths, f.Path)
+		}
 
-		var last *pb.StreamResetDataResponse
+		stream, err := client.DeleteFiles(cctx.Context, connect.NewRequest(&pb.DeleteFilesRequest{Paths: paths}))
+		if err != nil {
+			return err
+		}
+
+		deleted, failed := 0, 0
 		for stream.Receive() {
 			msg := stream.Msg()
-			last = msg
-			if msg.Done {
-				break
+			if msg.Error == "" {
+				deleted++
+				fmt.Printf("  ok    %s\n", msg.Path)
+			} else {
+				failed++
+				fmt.Printf("  FAIL  %s (%s)\n", msg.Path, msg.Error)
 			}
-			status := "ok"
-			if !msg.Success {
-				status = fmt.Sprintf("FAIL (%s)", msg.Error)
-			}
-			fmt.Printf("  %-8s %s  %s\n", status, msg.Category, msg.Path)
 		}
 		if err := stream.Err(); err != nil {
 			return err
 		}
-		if last != nil && last.Done {
-			fmt.Printf("\ndeleted %d, failed %d\n", last.DeletedCount, last.FailedCount)
-		}
+		fmt.Printf("\ndeleted %d, failed %d\n", deleted, failed)
 		return nil
 	},
 }

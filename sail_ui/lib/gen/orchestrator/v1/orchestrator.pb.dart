@@ -2502,47 +2502,28 @@ class GetMainchainBalanceResponse extends $pb.GeneratedMessage {
   void clearUnconfirmed() => clearField(2);
 }
 
-class PreviewResetDataRequest extends $pb.GeneratedMessage {
-  factory PreviewResetDataRequest({
-    $core.bool? deleteBlockchainData,
-    $core.bool? deleteNodeSoftware,
-    $core.bool? deleteLogs,
-    $core.bool? deleteSettings,
-    $core.bool? deleteWalletFiles,
-    $core.bool? alsoResetSidechains,
+/// One binary plus the categories of its data to act on.
+class SingleDeletion extends $pb.GeneratedMessage {
+  factory SingleDeletion({
+    BinaryType? binary,
+    $core.Iterable<DeletionType>? deletions,
   }) {
     final $result = create();
-    if (deleteBlockchainData != null) {
-      $result.deleteBlockchainData = deleteBlockchainData;
+    if (binary != null) {
+      $result.binary = binary;
     }
-    if (deleteNodeSoftware != null) {
-      $result.deleteNodeSoftware = deleteNodeSoftware;
-    }
-    if (deleteLogs != null) {
-      $result.deleteLogs = deleteLogs;
-    }
-    if (deleteSettings != null) {
-      $result.deleteSettings = deleteSettings;
-    }
-    if (deleteWalletFiles != null) {
-      $result.deleteWalletFiles = deleteWalletFiles;
-    }
-    if (alsoResetSidechains != null) {
-      $result.alsoResetSidechains = alsoResetSidechains;
+    if (deletions != null) {
+      $result.deletions.addAll(deletions);
     }
     return $result;
   }
-  PreviewResetDataRequest._() : super();
-  factory PreviewResetDataRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory PreviewResetDataRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+  SingleDeletion._() : super();
+  factory SingleDeletion.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory SingleDeletion.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
 
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'PreviewResetDataRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'orchestrator.v1'), createEmptyInstance: create)
-    ..aOB(1, _omitFieldNames ? '' : 'deleteBlockchainData')
-    ..aOB(2, _omitFieldNames ? '' : 'deleteNodeSoftware')
-    ..aOB(3, _omitFieldNames ? '' : 'deleteLogs')
-    ..aOB(4, _omitFieldNames ? '' : 'deleteSettings')
-    ..aOB(5, _omitFieldNames ? '' : 'deleteWalletFiles')
-    ..aOB(6, _omitFieldNames ? '' : 'alsoResetSidechains')
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'SingleDeletion', package: const $pb.PackageName(_omitMessageNames ? '' : 'orchestrator.v1'), createEmptyInstance: create)
+    ..e<BinaryType>(1, _omitFieldNames ? '' : 'binary', $pb.PbFieldType.OE, defaultOrMaker: BinaryType.BINARY_TYPE_UNSPECIFIED, valueOf: BinaryType.valueOf, enumValues: BinaryType.values)
+    ..pc<DeletionType>(2, _omitFieldNames ? '' : 'deletions', $pb.PbFieldType.KE, valueOf: DeletionType.valueOf, enumValues: DeletionType.values, defaultEnumValue: DeletionType.DELETION_TYPE_UNSPECIFIED)
     ..hasRequiredFields = false
   ;
 
@@ -2550,80 +2531,82 @@ class PreviewResetDataRequest extends $pb.GeneratedMessage {
   'Using this can add significant overhead to your binary. '
   'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
   'Will be removed in next major version')
-  PreviewResetDataRequest clone() => PreviewResetDataRequest()..mergeFromMessage(this);
+  SingleDeletion clone() => SingleDeletion()..mergeFromMessage(this);
   @$core.Deprecated(
   'Using this can add significant overhead to your binary. '
   'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
   'Will be removed in next major version')
-  PreviewResetDataRequest copyWith(void Function(PreviewResetDataRequest) updates) => super.copyWith((message) => updates(message as PreviewResetDataRequest)) as PreviewResetDataRequest;
+  SingleDeletion copyWith(void Function(SingleDeletion) updates) => super.copyWith((message) => updates(message as SingleDeletion)) as SingleDeletion;
 
   $pb.BuilderInfo get info_ => _i;
 
   @$core.pragma('dart2js:noInline')
-  static PreviewResetDataRequest create() => PreviewResetDataRequest._();
-  PreviewResetDataRequest createEmptyInstance() => create();
-  static $pb.PbList<PreviewResetDataRequest> createRepeated() => $pb.PbList<PreviewResetDataRequest>();
+  static SingleDeletion create() => SingleDeletion._();
+  SingleDeletion createEmptyInstance() => create();
+  static $pb.PbList<SingleDeletion> createRepeated() => $pb.PbList<SingleDeletion>();
   @$core.pragma('dart2js:noInline')
-  static PreviewResetDataRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<PreviewResetDataRequest>(create);
-  static PreviewResetDataRequest? _defaultInstance;
+  static SingleDeletion getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<SingleDeletion>(create);
+  static SingleDeletion? _defaultInstance;
 
   @$pb.TagNumber(1)
-  $core.bool get deleteBlockchainData => $_getBF(0);
+  BinaryType get binary => $_getN(0);
   @$pb.TagNumber(1)
-  set deleteBlockchainData($core.bool v) { $_setBool(0, v); }
+  set binary(BinaryType v) { setField(1, v); }
   @$pb.TagNumber(1)
-  $core.bool hasDeleteBlockchainData() => $_has(0);
+  $core.bool hasBinary() => $_has(0);
   @$pb.TagNumber(1)
-  void clearDeleteBlockchainData() => clearField(1);
+  void clearBinary() => clearField(1);
 
   @$pb.TagNumber(2)
-  $core.bool get deleteNodeSoftware => $_getBF(1);
-  @$pb.TagNumber(2)
-  set deleteNodeSoftware($core.bool v) { $_setBool(1, v); }
-  @$pb.TagNumber(2)
-  $core.bool hasDeleteNodeSoftware() => $_has(1);
-  @$pb.TagNumber(2)
-  void clearDeleteNodeSoftware() => clearField(2);
-
-  @$pb.TagNumber(3)
-  $core.bool get deleteLogs => $_getBF(2);
-  @$pb.TagNumber(3)
-  set deleteLogs($core.bool v) { $_setBool(2, v); }
-  @$pb.TagNumber(3)
-  $core.bool hasDeleteLogs() => $_has(2);
-  @$pb.TagNumber(3)
-  void clearDeleteLogs() => clearField(3);
-
-  @$pb.TagNumber(4)
-  $core.bool get deleteSettings => $_getBF(3);
-  @$pb.TagNumber(4)
-  set deleteSettings($core.bool v) { $_setBool(3, v); }
-  @$pb.TagNumber(4)
-  $core.bool hasDeleteSettings() => $_has(3);
-  @$pb.TagNumber(4)
-  void clearDeleteSettings() => clearField(4);
-
-  @$pb.TagNumber(5)
-  $core.bool get deleteWalletFiles => $_getBF(4);
-  @$pb.TagNumber(5)
-  set deleteWalletFiles($core.bool v) { $_setBool(4, v); }
-  @$pb.TagNumber(5)
-  $core.bool hasDeleteWalletFiles() => $_has(4);
-  @$pb.TagNumber(5)
-  void clearDeleteWalletFiles() => clearField(5);
-
-  @$pb.TagNumber(6)
-  $core.bool get alsoResetSidechains => $_getBF(5);
-  @$pb.TagNumber(6)
-  set alsoResetSidechains($core.bool v) { $_setBool(5, v); }
-  @$pb.TagNumber(6)
-  $core.bool hasAlsoResetSidechains() => $_has(5);
-  @$pb.TagNumber(6)
-  void clearAlsoResetSidechains() => clearField(6);
+  $core.List<DeletionType> get deletions => $_getList(1);
 }
 
-class PreviewResetDataResponse extends $pb.GeneratedMessage {
-  factory PreviewResetDataResponse({
+class GatherFilesToDeleteRequest extends $pb.GeneratedMessage {
+  factory GatherFilesToDeleteRequest({
+    $core.Iterable<SingleDeletion>? items,
+  }) {
+    final $result = create();
+    if (items != null) {
+      $result.items.addAll(items);
+    }
+    return $result;
+  }
+  GatherFilesToDeleteRequest._() : super();
+  factory GatherFilesToDeleteRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory GatherFilesToDeleteRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'GatherFilesToDeleteRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'orchestrator.v1'), createEmptyInstance: create)
+    ..pc<SingleDeletion>(1, _omitFieldNames ? '' : 'items', $pb.PbFieldType.PM, subBuilder: SingleDeletion.create)
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  GatherFilesToDeleteRequest clone() => GatherFilesToDeleteRequest()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  GatherFilesToDeleteRequest copyWith(void Function(GatherFilesToDeleteRequest) updates) => super.copyWith((message) => updates(message as GatherFilesToDeleteRequest)) as GatherFilesToDeleteRequest;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static GatherFilesToDeleteRequest create() => GatherFilesToDeleteRequest._();
+  GatherFilesToDeleteRequest createEmptyInstance() => create();
+  static $pb.PbList<GatherFilesToDeleteRequest> createRepeated() => $pb.PbList<GatherFilesToDeleteRequest>();
+  @$core.pragma('dart2js:noInline')
+  static GatherFilesToDeleteRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<GatherFilesToDeleteRequest>(create);
+  static GatherFilesToDeleteRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.List<SingleDeletion> get items => $_getList(0);
+}
+
+class GatherFilesToDeleteResponse extends $pb.GeneratedMessage {
+  factory GatherFilesToDeleteResponse({
     $core.Iterable<ResetFileInfo>? files,
   }) {
     final $result = create();
@@ -2632,11 +2615,11 @@ class PreviewResetDataResponse extends $pb.GeneratedMessage {
     }
     return $result;
   }
-  PreviewResetDataResponse._() : super();
-  factory PreviewResetDataResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory PreviewResetDataResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+  GatherFilesToDeleteResponse._() : super();
+  factory GatherFilesToDeleteResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory GatherFilesToDeleteResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
 
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'PreviewResetDataResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'orchestrator.v1'), createEmptyInstance: create)
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'GatherFilesToDeleteResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'orchestrator.v1'), createEmptyInstance: create)
     ..pc<ResetFileInfo>(1, _omitFieldNames ? '' : 'files', $pb.PbFieldType.PM, subBuilder: ResetFileInfo.create)
     ..hasRequiredFields = false
   ;
@@ -2645,22 +2628,22 @@ class PreviewResetDataResponse extends $pb.GeneratedMessage {
   'Using this can add significant overhead to your binary. '
   'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
   'Will be removed in next major version')
-  PreviewResetDataResponse clone() => PreviewResetDataResponse()..mergeFromMessage(this);
+  GatherFilesToDeleteResponse clone() => GatherFilesToDeleteResponse()..mergeFromMessage(this);
   @$core.Deprecated(
   'Using this can add significant overhead to your binary. '
   'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
   'Will be removed in next major version')
-  PreviewResetDataResponse copyWith(void Function(PreviewResetDataResponse) updates) => super.copyWith((message) => updates(message as PreviewResetDataResponse)) as PreviewResetDataResponse;
+  GatherFilesToDeleteResponse copyWith(void Function(GatherFilesToDeleteResponse) updates) => super.copyWith((message) => updates(message as GatherFilesToDeleteResponse)) as GatherFilesToDeleteResponse;
 
   $pb.BuilderInfo get info_ => _i;
 
   @$core.pragma('dart2js:noInline')
-  static PreviewResetDataResponse create() => PreviewResetDataResponse._();
-  PreviewResetDataResponse createEmptyInstance() => create();
-  static $pb.PbList<PreviewResetDataResponse> createRepeated() => $pb.PbList<PreviewResetDataResponse>();
+  static GatherFilesToDeleteResponse create() => GatherFilesToDeleteResponse._();
+  GatherFilesToDeleteResponse createEmptyInstance() => create();
+  static $pb.PbList<GatherFilesToDeleteResponse> createRepeated() => $pb.PbList<GatherFilesToDeleteResponse>();
   @$core.pragma('dart2js:noInline')
-  static PreviewResetDataResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<PreviewResetDataResponse>(create);
-  static PreviewResetDataResponse? _defaultInstance;
+  static GatherFilesToDeleteResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<GatherFilesToDeleteResponse>(create);
+  static GatherFilesToDeleteResponse? _defaultInstance;
 
   @$pb.TagNumber(1)
   $core.List<ResetFileInfo> get files => $_getList(0);
@@ -2669,7 +2652,8 @@ class PreviewResetDataResponse extends $pb.GeneratedMessage {
 class ResetFileInfo extends $pb.GeneratedMessage {
   factory ResetFileInfo({
     $core.String? path,
-    $core.String? category,
+    DeletionType? deletionType,
+    BinaryType? binary,
     $fixnum.Int64? sizeBytes,
     $core.bool? isDirectory,
   }) {
@@ -2677,8 +2661,11 @@ class ResetFileInfo extends $pb.GeneratedMessage {
     if (path != null) {
       $result.path = path;
     }
-    if (category != null) {
-      $result.category = category;
+    if (deletionType != null) {
+      $result.deletionType = deletionType;
+    }
+    if (binary != null) {
+      $result.binary = binary;
     }
     if (sizeBytes != null) {
       $result.sizeBytes = sizeBytes;
@@ -2694,9 +2681,10 @@ class ResetFileInfo extends $pb.GeneratedMessage {
 
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ResetFileInfo', package: const $pb.PackageName(_omitMessageNames ? '' : 'orchestrator.v1'), createEmptyInstance: create)
     ..aOS(1, _omitFieldNames ? '' : 'path')
-    ..aOS(2, _omitFieldNames ? '' : 'category')
-    ..aInt64(3, _omitFieldNames ? '' : 'sizeBytes')
-    ..aOB(4, _omitFieldNames ? '' : 'isDirectory')
+    ..e<DeletionType>(2, _omitFieldNames ? '' : 'deletionType', $pb.PbFieldType.OE, defaultOrMaker: DeletionType.DELETION_TYPE_UNSPECIFIED, valueOf: DeletionType.valueOf, enumValues: DeletionType.values)
+    ..e<BinaryType>(3, _omitFieldNames ? '' : 'binary', $pb.PbFieldType.OE, defaultOrMaker: BinaryType.BINARY_TYPE_UNSPECIFIED, valueOf: BinaryType.valueOf, enumValues: BinaryType.values)
+    ..aInt64(4, _omitFieldNames ? '' : 'sizeBytes')
+    ..aOB(5, _omitFieldNames ? '' : 'isDirectory')
     ..hasRequiredFields = false
   ;
 
@@ -2731,74 +2719,58 @@ class ResetFileInfo extends $pb.GeneratedMessage {
   void clearPath() => clearField(1);
 
   @$pb.TagNumber(2)
-  $core.String get category => $_getSZ(1);
+  DeletionType get deletionType => $_getN(1);
   @$pb.TagNumber(2)
-  set category($core.String v) { $_setString(1, v); }
+  set deletionType(DeletionType v) { setField(2, v); }
   @$pb.TagNumber(2)
-  $core.bool hasCategory() => $_has(1);
+  $core.bool hasDeletionType() => $_has(1);
   @$pb.TagNumber(2)
-  void clearCategory() => clearField(2);
+  void clearDeletionType() => clearField(2);
 
   @$pb.TagNumber(3)
-  $fixnum.Int64 get sizeBytes => $_getI64(2);
+  BinaryType get binary => $_getN(2);
   @$pb.TagNumber(3)
-  set sizeBytes($fixnum.Int64 v) { $_setInt64(2, v); }
+  set binary(BinaryType v) { setField(3, v); }
   @$pb.TagNumber(3)
-  $core.bool hasSizeBytes() => $_has(2);
+  $core.bool hasBinary() => $_has(2);
   @$pb.TagNumber(3)
-  void clearSizeBytes() => clearField(3);
+  void clearBinary() => clearField(3);
 
   @$pb.TagNumber(4)
-  $core.bool get isDirectory => $_getBF(3);
+  $fixnum.Int64 get sizeBytes => $_getI64(3);
   @$pb.TagNumber(4)
-  set isDirectory($core.bool v) { $_setBool(3, v); }
+  set sizeBytes($fixnum.Int64 v) { $_setInt64(3, v); }
   @$pb.TagNumber(4)
-  $core.bool hasIsDirectory() => $_has(3);
+  $core.bool hasSizeBytes() => $_has(3);
   @$pb.TagNumber(4)
-  void clearIsDirectory() => clearField(4);
+  void clearSizeBytes() => clearField(4);
+
+  @$pb.TagNumber(5)
+  $core.bool get isDirectory => $_getBF(4);
+  @$pb.TagNumber(5)
+  set isDirectory($core.bool v) { $_setBool(4, v); }
+  @$pb.TagNumber(5)
+  $core.bool hasIsDirectory() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearIsDirectory() => clearField(5);
 }
 
-class StreamResetDataRequest extends $pb.GeneratedMessage {
-  factory StreamResetDataRequest({
-    $core.bool? deleteBlockchainData,
-    $core.bool? deleteNodeSoftware,
-    $core.bool? deleteLogs,
-    $core.bool? deleteSettings,
-    $core.bool? deleteWalletFiles,
-    $core.bool? alsoResetSidechains,
+class DeleteFilesRequest extends $pb.GeneratedMessage {
+  factory DeleteFilesRequest({
+    $core.Iterable<$core.String>? paths,
   }) {
     final $result = create();
-    if (deleteBlockchainData != null) {
-      $result.deleteBlockchainData = deleteBlockchainData;
-    }
-    if (deleteNodeSoftware != null) {
-      $result.deleteNodeSoftware = deleteNodeSoftware;
-    }
-    if (deleteLogs != null) {
-      $result.deleteLogs = deleteLogs;
-    }
-    if (deleteSettings != null) {
-      $result.deleteSettings = deleteSettings;
-    }
-    if (deleteWalletFiles != null) {
-      $result.deleteWalletFiles = deleteWalletFiles;
-    }
-    if (alsoResetSidechains != null) {
-      $result.alsoResetSidechains = alsoResetSidechains;
+    if (paths != null) {
+      $result.paths.addAll(paths);
     }
     return $result;
   }
-  StreamResetDataRequest._() : super();
-  factory StreamResetDataRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory StreamResetDataRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+  DeleteFilesRequest._() : super();
+  factory DeleteFilesRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory DeleteFilesRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
 
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'StreamResetDataRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'orchestrator.v1'), createEmptyInstance: create)
-    ..aOB(1, _omitFieldNames ? '' : 'deleteBlockchainData')
-    ..aOB(2, _omitFieldNames ? '' : 'deleteNodeSoftware')
-    ..aOB(3, _omitFieldNames ? '' : 'deleteLogs')
-    ..aOB(4, _omitFieldNames ? '' : 'deleteSettings')
-    ..aOB(5, _omitFieldNames ? '' : 'deleteWalletFiles')
-    ..aOB(6, _omitFieldNames ? '' : 'alsoResetSidechains')
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'DeleteFilesRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'orchestrator.v1'), createEmptyInstance: create)
+    ..pPS(1, _omitFieldNames ? '' : 'paths')
     ..hasRequiredFields = false
   ;
 
@@ -2806,124 +2778,48 @@ class StreamResetDataRequest extends $pb.GeneratedMessage {
   'Using this can add significant overhead to your binary. '
   'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
   'Will be removed in next major version')
-  StreamResetDataRequest clone() => StreamResetDataRequest()..mergeFromMessage(this);
+  DeleteFilesRequest clone() => DeleteFilesRequest()..mergeFromMessage(this);
   @$core.Deprecated(
   'Using this can add significant overhead to your binary. '
   'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
   'Will be removed in next major version')
-  StreamResetDataRequest copyWith(void Function(StreamResetDataRequest) updates) => super.copyWith((message) => updates(message as StreamResetDataRequest)) as StreamResetDataRequest;
+  DeleteFilesRequest copyWith(void Function(DeleteFilesRequest) updates) => super.copyWith((message) => updates(message as DeleteFilesRequest)) as DeleteFilesRequest;
 
   $pb.BuilderInfo get info_ => _i;
 
   @$core.pragma('dart2js:noInline')
-  static StreamResetDataRequest create() => StreamResetDataRequest._();
-  StreamResetDataRequest createEmptyInstance() => create();
-  static $pb.PbList<StreamResetDataRequest> createRepeated() => $pb.PbList<StreamResetDataRequest>();
+  static DeleteFilesRequest create() => DeleteFilesRequest._();
+  DeleteFilesRequest createEmptyInstance() => create();
+  static $pb.PbList<DeleteFilesRequest> createRepeated() => $pb.PbList<DeleteFilesRequest>();
   @$core.pragma('dart2js:noInline')
-  static StreamResetDataRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<StreamResetDataRequest>(create);
-  static StreamResetDataRequest? _defaultInstance;
+  static DeleteFilesRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<DeleteFilesRequest>(create);
+  static DeleteFilesRequest? _defaultInstance;
 
   @$pb.TagNumber(1)
-  $core.bool get deleteBlockchainData => $_getBF(0);
-  @$pb.TagNumber(1)
-  set deleteBlockchainData($core.bool v) { $_setBool(0, v); }
-  @$pb.TagNumber(1)
-  $core.bool hasDeleteBlockchainData() => $_has(0);
-  @$pb.TagNumber(1)
-  void clearDeleteBlockchainData() => clearField(1);
-
-  @$pb.TagNumber(2)
-  $core.bool get deleteNodeSoftware => $_getBF(1);
-  @$pb.TagNumber(2)
-  set deleteNodeSoftware($core.bool v) { $_setBool(1, v); }
-  @$pb.TagNumber(2)
-  $core.bool hasDeleteNodeSoftware() => $_has(1);
-  @$pb.TagNumber(2)
-  void clearDeleteNodeSoftware() => clearField(2);
-
-  @$pb.TagNumber(3)
-  $core.bool get deleteLogs => $_getBF(2);
-  @$pb.TagNumber(3)
-  set deleteLogs($core.bool v) { $_setBool(2, v); }
-  @$pb.TagNumber(3)
-  $core.bool hasDeleteLogs() => $_has(2);
-  @$pb.TagNumber(3)
-  void clearDeleteLogs() => clearField(3);
-
-  @$pb.TagNumber(4)
-  $core.bool get deleteSettings => $_getBF(3);
-  @$pb.TagNumber(4)
-  set deleteSettings($core.bool v) { $_setBool(3, v); }
-  @$pb.TagNumber(4)
-  $core.bool hasDeleteSettings() => $_has(3);
-  @$pb.TagNumber(4)
-  void clearDeleteSettings() => clearField(4);
-
-  @$pb.TagNumber(5)
-  $core.bool get deleteWalletFiles => $_getBF(4);
-  @$pb.TagNumber(5)
-  set deleteWalletFiles($core.bool v) { $_setBool(4, v); }
-  @$pb.TagNumber(5)
-  $core.bool hasDeleteWalletFiles() => $_has(4);
-  @$pb.TagNumber(5)
-  void clearDeleteWalletFiles() => clearField(5);
-
-  @$pb.TagNumber(6)
-  $core.bool get alsoResetSidechains => $_getBF(5);
-  @$pb.TagNumber(6)
-  set alsoResetSidechains($core.bool v) { $_setBool(5, v); }
-  @$pb.TagNumber(6)
-  $core.bool hasAlsoResetSidechains() => $_has(5);
-  @$pb.TagNumber(6)
-  void clearAlsoResetSidechains() => clearField(6);
+  $core.List<$core.String> get paths => $_getList(0);
 }
 
-class StreamResetDataResponse extends $pb.GeneratedMessage {
-  factory StreamResetDataResponse({
+class DeleteFilesResponse extends $pb.GeneratedMessage {
+  factory DeleteFilesResponse({
     $core.String? path,
-    $core.String? category,
-    $core.bool? success,
     $core.String? error,
-    $core.bool? done,
-    $core.int? deletedCount,
-    $core.int? failedCount,
   }) {
     final $result = create();
     if (path != null) {
       $result.path = path;
     }
-    if (category != null) {
-      $result.category = category;
-    }
-    if (success != null) {
-      $result.success = success;
-    }
     if (error != null) {
       $result.error = error;
     }
-    if (done != null) {
-      $result.done = done;
-    }
-    if (deletedCount != null) {
-      $result.deletedCount = deletedCount;
-    }
-    if (failedCount != null) {
-      $result.failedCount = failedCount;
-    }
     return $result;
   }
-  StreamResetDataResponse._() : super();
-  factory StreamResetDataResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory StreamResetDataResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+  DeleteFilesResponse._() : super();
+  factory DeleteFilesResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory DeleteFilesResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
 
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'StreamResetDataResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'orchestrator.v1'), createEmptyInstance: create)
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'DeleteFilesResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'orchestrator.v1'), createEmptyInstance: create)
     ..aOS(1, _omitFieldNames ? '' : 'path')
-    ..aOS(2, _omitFieldNames ? '' : 'category')
-    ..aOB(3, _omitFieldNames ? '' : 'success')
-    ..aOS(4, _omitFieldNames ? '' : 'error')
-    ..aOB(5, _omitFieldNames ? '' : 'done')
-    ..a<$core.int>(6, _omitFieldNames ? '' : 'deletedCount', $pb.PbFieldType.O3)
-    ..a<$core.int>(7, _omitFieldNames ? '' : 'failedCount', $pb.PbFieldType.O3)
+    ..aOS(2, _omitFieldNames ? '' : 'error')
     ..hasRequiredFields = false
   ;
 
@@ -2931,22 +2827,22 @@ class StreamResetDataResponse extends $pb.GeneratedMessage {
   'Using this can add significant overhead to your binary. '
   'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
   'Will be removed in next major version')
-  StreamResetDataResponse clone() => StreamResetDataResponse()..mergeFromMessage(this);
+  DeleteFilesResponse clone() => DeleteFilesResponse()..mergeFromMessage(this);
   @$core.Deprecated(
   'Using this can add significant overhead to your binary. '
   'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
   'Will be removed in next major version')
-  StreamResetDataResponse copyWith(void Function(StreamResetDataResponse) updates) => super.copyWith((message) => updates(message as StreamResetDataResponse)) as StreamResetDataResponse;
+  DeleteFilesResponse copyWith(void Function(DeleteFilesResponse) updates) => super.copyWith((message) => updates(message as DeleteFilesResponse)) as DeleteFilesResponse;
 
   $pb.BuilderInfo get info_ => _i;
 
   @$core.pragma('dart2js:noInline')
-  static StreamResetDataResponse create() => StreamResetDataResponse._();
-  StreamResetDataResponse createEmptyInstance() => create();
-  static $pb.PbList<StreamResetDataResponse> createRepeated() => $pb.PbList<StreamResetDataResponse>();
+  static DeleteFilesResponse create() => DeleteFilesResponse._();
+  DeleteFilesResponse createEmptyInstance() => create();
+  static $pb.PbList<DeleteFilesResponse> createRepeated() => $pb.PbList<DeleteFilesResponse>();
   @$core.pragma('dart2js:noInline')
-  static StreamResetDataResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<StreamResetDataResponse>(create);
-  static StreamResetDataResponse? _defaultInstance;
+  static DeleteFilesResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<DeleteFilesResponse>(create);
+  static DeleteFilesResponse? _defaultInstance;
 
   @$pb.TagNumber(1)
   $core.String get path => $_getSZ(0);
@@ -2958,58 +2854,13 @@ class StreamResetDataResponse extends $pb.GeneratedMessage {
   void clearPath() => clearField(1);
 
   @$pb.TagNumber(2)
-  $core.String get category => $_getSZ(1);
+  $core.String get error => $_getSZ(1);
   @$pb.TagNumber(2)
-  set category($core.String v) { $_setString(1, v); }
+  set error($core.String v) { $_setString(1, v); }
   @$pb.TagNumber(2)
-  $core.bool hasCategory() => $_has(1);
+  $core.bool hasError() => $_has(1);
   @$pb.TagNumber(2)
-  void clearCategory() => clearField(2);
-
-  @$pb.TagNumber(3)
-  $core.bool get success => $_getBF(2);
-  @$pb.TagNumber(3)
-  set success($core.bool v) { $_setBool(2, v); }
-  @$pb.TagNumber(3)
-  $core.bool hasSuccess() => $_has(2);
-  @$pb.TagNumber(3)
-  void clearSuccess() => clearField(3);
-
-  @$pb.TagNumber(4)
-  $core.String get error => $_getSZ(3);
-  @$pb.TagNumber(4)
-  set error($core.String v) { $_setString(3, v); }
-  @$pb.TagNumber(4)
-  $core.bool hasError() => $_has(3);
-  @$pb.TagNumber(4)
-  void clearError() => clearField(4);
-
-  @$pb.TagNumber(5)
-  $core.bool get done => $_getBF(4);
-  @$pb.TagNumber(5)
-  set done($core.bool v) { $_setBool(4, v); }
-  @$pb.TagNumber(5)
-  $core.bool hasDone() => $_has(4);
-  @$pb.TagNumber(5)
-  void clearDone() => clearField(5);
-
-  @$pb.TagNumber(6)
-  $core.int get deletedCount => $_getIZ(5);
-  @$pb.TagNumber(6)
-  set deletedCount($core.int v) { $_setSignedInt32(5, v); }
-  @$pb.TagNumber(6)
-  $core.bool hasDeletedCount() => $_has(5);
-  @$pb.TagNumber(6)
-  void clearDeletedCount() => clearField(6);
-
-  @$pb.TagNumber(7)
-  $core.int get failedCount => $_getIZ(6);
-  @$pb.TagNumber(7)
-  set failedCount($core.int v) { $_setSignedInt32(6, v); }
-  @$pb.TagNumber(7)
-  $core.bool hasFailedCount() => $_has(6);
-  @$pb.TagNumber(7)
-  void clearFailedCount() => clearField(7);
+  void clearError() => clearField(2);
 }
 
 class GetCoreMempoolInfoRequest extends $pb.GeneratedMessage {
@@ -3500,11 +3351,11 @@ class OrchestratorServiceApi {
   $async.Future<GetMainchainBalanceResponse> getMainchainBalance($pb.ClientContext? ctx, GetMainchainBalanceRequest request) =>
     _client.invoke<GetMainchainBalanceResponse>(ctx, 'OrchestratorService', 'GetMainchainBalance', request, GetMainchainBalanceResponse())
   ;
-  $async.Future<PreviewResetDataResponse> previewResetData($pb.ClientContext? ctx, PreviewResetDataRequest request) =>
-    _client.invoke<PreviewResetDataResponse>(ctx, 'OrchestratorService', 'PreviewResetData', request, PreviewResetDataResponse())
+  $async.Future<GatherFilesToDeleteResponse> gatherFilesToDelete($pb.ClientContext? ctx, GatherFilesToDeleteRequest request) =>
+    _client.invoke<GatherFilesToDeleteResponse>(ctx, 'OrchestratorService', 'GatherFilesToDelete', request, GatherFilesToDeleteResponse())
   ;
-  $async.Future<StreamResetDataResponse> streamResetData($pb.ClientContext? ctx, StreamResetDataRequest request) =>
-    _client.invoke<StreamResetDataResponse>(ctx, 'OrchestratorService', 'StreamResetData', request, StreamResetDataResponse())
+  $async.Future<DeleteFilesResponse> deleteFiles($pb.ClientContext? ctx, DeleteFilesRequest request) =>
+    _client.invoke<DeleteFilesResponse>(ctx, 'OrchestratorService', 'DeleteFiles', request, DeleteFilesResponse())
   ;
   $async.Future<GetCoreMempoolInfoResponse> getCoreMempoolInfo($pb.ClientContext? ctx, GetCoreMempoolInfoRequest request) =>
     _client.invoke<GetCoreMempoolInfoResponse>(ctx, 'OrchestratorService', 'GetCoreMempoolInfo', request, GetCoreMempoolInfoResponse())

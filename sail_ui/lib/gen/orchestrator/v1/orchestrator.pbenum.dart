@@ -88,5 +88,29 @@ class BinaryType extends $pb.ProtobufEnum {
   const BinaryType._($core.int v, $core.String n) : super(v, n);
 }
 
+/// DeletionType selects which category of a binary's files to gather/delete.
+class DeletionType extends $pb.ProtobufEnum {
+  static const DeletionType DELETION_TYPE_UNSPECIFIED = DeletionType._(0, _omitEnumNames ? '' : 'DELETION_TYPE_UNSPECIFIED');
+  static const DeletionType DELETION_TYPE_DATA = DeletionType._(1, _omitEnumNames ? '' : 'DELETION_TYPE_DATA');
+  static const DeletionType DELETION_TYPE_WALLET = DeletionType._(2, _omitEnumNames ? '' : 'DELETION_TYPE_WALLET');
+  static const DeletionType DELETION_TYPE_SETTINGS = DeletionType._(3, _omitEnumNames ? '' : 'DELETION_TYPE_SETTINGS');
+  static const DeletionType DELETION_TYPE_LOGS = DeletionType._(4, _omitEnumNames ? '' : 'DELETION_TYPE_LOGS');
+  static const DeletionType DELETION_TYPE_SOFTWARE = DeletionType._(5, _omitEnumNames ? '' : 'DELETION_TYPE_SOFTWARE');
+
+  static const $core.List<DeletionType> values = <DeletionType> [
+    DELETION_TYPE_UNSPECIFIED,
+    DELETION_TYPE_DATA,
+    DELETION_TYPE_WALLET,
+    DELETION_TYPE_SETTINGS,
+    DELETION_TYPE_LOGS,
+    DELETION_TYPE_SOFTWARE,
+  ];
+
+  static final $core.Map<$core.int, DeletionType> _byValue = $pb.ProtobufEnum.initByValue(values);
+  static DeletionType? valueOf($core.int value) => _byValue[value];
+
+  const DeletionType._($core.int v, $core.String n) : super(v, n);
+}
+
 
 const _omitEnumNames = $core.bool.fromEnvironment('protobuf.omit_enum_names');

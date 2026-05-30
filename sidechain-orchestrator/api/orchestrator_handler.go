@@ -407,59 +407,120 @@ func (h *Handler) GetMainchainBalance(ctx context.Context, req *connect.Request[
 	}), nil
 }
 
-func (h *Handler) PreviewResetData(ctx context.Context, req *connect.Request[pb.PreviewResetDataRequest]) (*connect.Response[pb.PreviewResetDataResponse], error) {
-	files, err := h.orch.PreviewResetData(orchestrator.ResetCategory{
-		DeleteBlockchainData: req.Msg.DeleteBlockchainData,
-		DeleteNodeSoftware:   req.Msg.DeleteNodeSoftware,
-		DeleteLogs:           req.Msg.DeleteLogs,
-		DeleteSettings:       req.Msg.DeleteSettings,
-		DeleteWalletFiles:    req.Msg.DeleteWalletFiles,
-		AlsoResetSidechains:  req.Msg.AlsoResetSidechains,
-	})
+func deletionTypeToCategory(dt pb.DeletionType) string {
+	switch dt {
+	case pb.DeletionType_DELETION_TYPE_DATA:
+		return "blockchain_data"
+	case pb.DeletionType_DELETION_TYPE_WALLET:
+		return "wallet"
+	case pb.DeletionType_DELETION_TYPE_SETTINGS:
+		return "settings"
+	case pb.DeletionType_DELETION_TYPE_LOGS:
+		return "logs"
+	case pb.DeletionType_DELETION_TYPE_SOFTWARE:
+		return "node_software"
+	default:
+		return ""
+	}
+}
+
+func categoryToDeletionType(cat string) pb.DeletionType {
+	switch cat {
+	case "blockchain_data":
+		return pb.DeletionType_DELETION_TYPE_DATA
+	case "wallet":
+		return pb.DeletionType_DELETION_TYPE_WALLET
+	case "settings":
+		return pb.DeletionType_DELETION_TYPE_SETTINGS
+	case "logs":
+		return pb.DeletionType_DELETION_TYPE_LOGS
+	case "node_software":
+		return pb.DeletionType_DELETION_TYPE_SOFTWARE
+	default:
+		return pb.DeletionType_DELETION_TYPE_UNSPECIFIED
+	}
+}
+
+// binaryNameFromType is the inverse of binaryTypeFromName: the canonical name
+// that config.DirConfigByName resolves (the JSON key, e.g. "enforcer").
+func binaryNameFromType(t pb.BinaryType) string {
+	switch t {
+	case pb.BinaryType_BINARY_TYPE_BITCOIND:
+		return "bitcoind"
+	case pb.BinaryType_BINARY_TYPE_ENFORCER:
+		return "enforcer"
+	case pb.BinaryType_BINARY_TYPE_BITWINDOWD:
+		return "bitwindowd"
+	case pb.BinaryType_BINARY_TYPE_THUNDER:
+		return "thunder"
+	case pb.BinaryType_BINARY_TYPE_ZSIDE:
+		return "zside"
+	case pb.BinaryType_BINARY_TYPE_BITNAMES:
+		return "bitnames"
+	case pb.BinaryType_BINARY_TYPE_BITASSETS:
+		return "bitassets"
+	case pb.BinaryType_BINARY_TYPE_TRUTHCOIN:
+		return "truthcoin"
+	case pb.BinaryType_BINARY_TYPE_PHOTON:
+		return "photon"
+	case pb.BinaryType_BINARY_TYPE_COINSHIFT:
+		return "coinshift"
+	case pb.BinaryType_BINARY_TYPE_GRPCURL:
+		return "grpcurl"
+	case pb.BinaryType_BINARY_TYPE_ORCHESTRATORD:
+		return "orchestratord"
+	case pb.BinaryType_BINARY_TYPE_ZSIDED:
+		return "zsided"
+	default:
+		return ""
+	}
+}
+
+func (h *Handler) GatherFilesToDelete(ctx context.Context, req *connect.Request[pb.GatherFilesToDeleteRequest]) (*connect.Response[pb.GatherFilesToDeleteResponse], error) {
+	var specs []orchestrator.GatherSpec
+	for _, item := range req.Msg.Items {
+		name := binaryNameFromType(item.Binary)
+		if name == "" {
+			continue
+		}
+		var cats []string
+		for _, dt := range item.Deletions {
+			if c := deletionTypeToCategory(dt); c != "" {
+				cats = append(cats, c)
+			}
+		}
+		specs = append(specs, orchestrator.GatherSpec{BinaryName: name, Categories: cats})
+	}
+
+	files, err := h.orch.GatherFilesToDelete(specs)
 	if err != nil {
 		return nil, err
 	}
 
-	resp := &pb.PreviewResetDataResponse{}
+	resp := &pb.GatherFilesToDeleteResponse{}
 	for _, f := range files {
 		resp.Files = append(resp.Files, &pb.ResetFileInfo{
-			Path:        f.Path,
-			Category:    f.Category,
-			SizeBytes:   f.SizeBytes,
-			IsDirectory: f.IsDirectory,
+			Path:         f.Path,
+			DeletionType: categoryToDeletionType(f.Category),
+			Binary:       binaryTypeFromName(f.BinaryName),
+			SizeBytes:    f.SizeBytes,
+			IsDirectory:  f.IsDirectory,
 		})
 	}
 	return connect.NewResponse(resp), nil
 }
 
-func (h *Handler) StreamResetData(ctx context.Context, req *connect.Request[pb.StreamResetDataRequest], stream *connect.ServerStream[pb.StreamResetDataResponse]) error {
-	ch, err := h.orch.StreamResetData(ctx, orchestrator.ResetCategory{
-		DeleteBlockchainData: req.Msg.DeleteBlockchainData,
-		DeleteNodeSoftware:   req.Msg.DeleteNodeSoftware,
-		DeleteLogs:           req.Msg.DeleteLogs,
-		DeleteSettings:       req.Msg.DeleteSettings,
-		DeleteWalletFiles:    req.Msg.DeleteWalletFiles,
-		AlsoResetSidechains:  req.Msg.AlsoResetSidechains,
-	})
+func (h *Handler) DeleteFiles(ctx context.Context, req *connect.Request[pb.DeleteFilesRequest], stream *connect.ServerStream[pb.DeleteFilesResponse]) error {
+	ch, err := h.orch.DeleteFiles(ctx, req.Msg.Paths)
 	if err != nil {
 		return err
 	}
 
 	for evt := range ch {
-		msg := &pb.StreamResetDataResponse{
-			Path:         evt.Path,
-			Category:     evt.Category,
-			Success:      evt.Success,
-			Error:        evt.Error,
-			Done:         evt.Done,
-			DeletedCount: int32(evt.DeletedCount),
-			FailedCount:  int32(evt.FailedCount),
-		}
-		if err := stream.Send(msg); err != nil {
+		if err := stream.Send(&pb.DeleteFilesResponse{Path: evt.Path, Error: evt.Error}); err != nil {
 			return err
 		}
 	}
-
 	return nil
 }
 

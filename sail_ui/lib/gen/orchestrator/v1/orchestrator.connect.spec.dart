@@ -174,20 +174,23 @@ abstract final class OrchestratorService {
     orchestratorv1orchestrator.GetMainchainBalanceResponse.new,
   );
 
-  /// Preview what would be deleted for the given reset categories (no side effects).
-  static const previewResetData = connect.Spec(
-    '/$name/PreviewResetData',
+  /// Gather the files/dirs that would be deleted for a per-binary deletion spec
+  /// (no side effects). Shared by the single-binary wipe and the full reset page.
+  static const gatherFilesToDelete = connect.Spec(
+    '/$name/GatherFilesToDelete',
     connect.StreamType.unary,
-    orchestratorv1orchestrator.PreviewResetDataRequest.new,
-    orchestratorv1orchestrator.PreviewResetDataResponse.new,
+    orchestratorv1orchestrator.GatherFilesToDeleteRequest.new,
+    orchestratorv1orchestrator.GatherFilesToDeleteResponse.new,
   );
 
-  /// Reset/delete data categories. Stops affected binaries, streams each deletion event.
-  static const streamResetData = connect.Spec(
-    '/$name/StreamResetData',
+  /// Delete the given paths. Stops binaries first; wallet paths are moved to
+  /// wallet_backups/ instead of removed. Returns a gRPC error if it can't run.
+  /// Streams one message per path; an unset error means that path succeeded.
+  static const deleteFiles = connect.Spec(
+    '/$name/DeleteFiles',
     connect.StreamType.server,
-    orchestratorv1orchestrator.StreamResetDataRequest.new,
-    orchestratorv1orchestrator.StreamResetDataResponse.new,
+    orchestratorv1orchestrator.DeleteFilesRequest.new,
+    orchestratorv1orchestrator.DeleteFilesResponse.new,
   );
 
   /// Full bitcoind getmempoolinfo response. Distinct from getrawmempool.

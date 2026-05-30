@@ -84,12 +84,12 @@ const (
 	// OrchestratorServiceGetMainchainBalanceProcedure is the fully-qualified name of the
 	// OrchestratorService's GetMainchainBalance RPC.
 	OrchestratorServiceGetMainchainBalanceProcedure = "/orchestrator.v1.OrchestratorService/GetMainchainBalance"
-	// OrchestratorServicePreviewResetDataProcedure is the fully-qualified name of the
-	// OrchestratorService's PreviewResetData RPC.
-	OrchestratorServicePreviewResetDataProcedure = "/orchestrator.v1.OrchestratorService/PreviewResetData"
-	// OrchestratorServiceStreamResetDataProcedure is the fully-qualified name of the
-	// OrchestratorService's StreamResetData RPC.
-	OrchestratorServiceStreamResetDataProcedure = "/orchestrator.v1.OrchestratorService/StreamResetData"
+	// OrchestratorServiceGatherFilesToDeleteProcedure is the fully-qualified name of the
+	// OrchestratorService's GatherFilesToDelete RPC.
+	OrchestratorServiceGatherFilesToDeleteProcedure = "/orchestrator.v1.OrchestratorService/GatherFilesToDelete"
+	// OrchestratorServiceDeleteFilesProcedure is the fully-qualified name of the OrchestratorService's
+	// DeleteFiles RPC.
+	OrchestratorServiceDeleteFilesProcedure = "/orchestrator.v1.OrchestratorService/DeleteFiles"
 	// OrchestratorServiceGetCoreMempoolInfoProcedure is the fully-qualified name of the
 	// OrchestratorService's GetCoreMempoolInfo RPC.
 	OrchestratorServiceGetCoreMempoolInfoProcedure = "/orchestrator.v1.OrchestratorService/GetCoreMempoolInfo"
@@ -162,10 +162,13 @@ type OrchestratorServiceClient interface {
 	GetDownloadStatus(context.Context, *connect.Request[v1.GetDownloadStatusRequest]) (*connect.Response[v1.GetDownloadStatusResponse], error)
 	// Get wallet balance from Bitcoin Core (proxied via orchestrator).
 	GetMainchainBalance(context.Context, *connect.Request[v1.GetMainchainBalanceRequest]) (*connect.Response[v1.GetMainchainBalanceResponse], error)
-	// Preview what would be deleted for the given reset categories (no side effects).
-	PreviewResetData(context.Context, *connect.Request[v1.PreviewResetDataRequest]) (*connect.Response[v1.PreviewResetDataResponse], error)
-	// Reset/delete data categories. Stops affected binaries, streams each deletion event.
-	StreamResetData(context.Context, *connect.Request[v1.StreamResetDataRequest]) (*connect.ServerStreamForClient[v1.StreamResetDataResponse], error)
+	// Gather the files/dirs that would be deleted for a per-binary deletion spec
+	// (no side effects). Shared by the single-binary wipe and the full reset page.
+	GatherFilesToDelete(context.Context, *connect.Request[v1.GatherFilesToDeleteRequest]) (*connect.Response[v1.GatherFilesToDeleteResponse], error)
+	// Delete the given paths. Stops binaries first; wallet paths are moved to
+	// wallet_backups/ instead of removed. Returns a gRPC error if it can't run.
+	// Streams one message per path; an unset error means that path succeeded.
+	DeleteFiles(context.Context, *connect.Request[v1.DeleteFilesRequest]) (*connect.ServerStreamForClient[v1.DeleteFilesResponse], error)
 	// Full bitcoind getmempoolinfo response. Distinct from getrawmempool.
 	GetCoreMempoolInfo(context.Context, *connect.Request[v1.GetCoreMempoolInfoRequest]) (*connect.Response[v1.GetCoreMempoolInfoResponse], error)
 	// Generic raw bitcoind RPC. Optional `wallet` field routes the call to
@@ -286,16 +289,16 @@ func NewOrchestratorServiceClient(httpClient connect.HTTPClient, baseURL string,
 			connect.WithSchema(orchestratorServiceMethods.ByName("GetMainchainBalance")),
 			connect.WithClientOptions(opts...),
 		),
-		previewResetData: connect.NewClient[v1.PreviewResetDataRequest, v1.PreviewResetDataResponse](
+		gatherFilesToDelete: connect.NewClient[v1.GatherFilesToDeleteRequest, v1.GatherFilesToDeleteResponse](
 			httpClient,
-			baseURL+OrchestratorServicePreviewResetDataProcedure,
-			connect.WithSchema(orchestratorServiceMethods.ByName("PreviewResetData")),
+			baseURL+OrchestratorServiceGatherFilesToDeleteProcedure,
+			connect.WithSchema(orchestratorServiceMethods.ByName("GatherFilesToDelete")),
 			connect.WithClientOptions(opts...),
 		),
-		streamResetData: connect.NewClient[v1.StreamResetDataRequest, v1.StreamResetDataResponse](
+		deleteFiles: connect.NewClient[v1.DeleteFilesRequest, v1.DeleteFilesResponse](
 			httpClient,
-			baseURL+OrchestratorServiceStreamResetDataProcedure,
-			connect.WithSchema(orchestratorServiceMethods.ByName("StreamResetData")),
+			baseURL+OrchestratorServiceDeleteFilesProcedure,
+			connect.WithSchema(orchestratorServiceMethods.ByName("DeleteFiles")),
 			connect.WithClientOptions(opts...),
 		),
 		getCoreMempoolInfo: connect.NewClient[v1.GetCoreMempoolInfoRequest, v1.GetCoreMempoolInfoResponse](
@@ -332,8 +335,8 @@ type orchestratorServiceClient struct {
 	getSyncStatus              *connect.Client[v1.GetSyncStatusRequest, v1.GetSyncStatusResponse]
 	getDownloadStatus          *connect.Client[v1.GetDownloadStatusRequest, v1.GetDownloadStatusResponse]
 	getMainchainBalance        *connect.Client[v1.GetMainchainBalanceRequest, v1.GetMainchainBalanceResponse]
-	previewResetData           *connect.Client[v1.PreviewResetDataRequest, v1.PreviewResetDataResponse]
-	streamResetData            *connect.Client[v1.StreamResetDataRequest, v1.StreamResetDataResponse]
+	gatherFilesToDelete        *connect.Client[v1.GatherFilesToDeleteRequest, v1.GatherFilesToDeleteResponse]
+	deleteFiles                *connect.Client[v1.DeleteFilesRequest, v1.DeleteFilesResponse]
 	getCoreMempoolInfo         *connect.Client[v1.GetCoreMempoolInfoRequest, v1.GetCoreMempoolInfoResponse]
 	coreRawCall                *connect.Client[v1.CoreRawCallRequest, v1.CoreRawCallResponse]
 }
@@ -423,14 +426,14 @@ func (c *orchestratorServiceClient) GetMainchainBalance(ctx context.Context, req
 	return c.getMainchainBalance.CallUnary(ctx, req)
 }
 
-// PreviewResetData calls orchestrator.v1.OrchestratorService.PreviewResetData.
-func (c *orchestratorServiceClient) PreviewResetData(ctx context.Context, req *connect.Request[v1.PreviewResetDataRequest]) (*connect.Response[v1.PreviewResetDataResponse], error) {
-	return c.previewResetData.CallUnary(ctx, req)
+// GatherFilesToDelete calls orchestrator.v1.OrchestratorService.GatherFilesToDelete.
+func (c *orchestratorServiceClient) GatherFilesToDelete(ctx context.Context, req *connect.Request[v1.GatherFilesToDeleteRequest]) (*connect.Response[v1.GatherFilesToDeleteResponse], error) {
+	return c.gatherFilesToDelete.CallUnary(ctx, req)
 }
 
-// StreamResetData calls orchestrator.v1.OrchestratorService.StreamResetData.
-func (c *orchestratorServiceClient) StreamResetData(ctx context.Context, req *connect.Request[v1.StreamResetDataRequest]) (*connect.ServerStreamForClient[v1.StreamResetDataResponse], error) {
-	return c.streamResetData.CallServerStream(ctx, req)
+// DeleteFiles calls orchestrator.v1.OrchestratorService.DeleteFiles.
+func (c *orchestratorServiceClient) DeleteFiles(ctx context.Context, req *connect.Request[v1.DeleteFilesRequest]) (*connect.ServerStreamForClient[v1.DeleteFilesResponse], error) {
+	return c.deleteFiles.CallServerStream(ctx, req)
 }
 
 // GetCoreMempoolInfo calls orchestrator.v1.OrchestratorService.GetCoreMempoolInfo.
@@ -508,10 +511,13 @@ type OrchestratorServiceHandler interface {
 	GetDownloadStatus(context.Context, *connect.Request[v1.GetDownloadStatusRequest]) (*connect.Response[v1.GetDownloadStatusResponse], error)
 	// Get wallet balance from Bitcoin Core (proxied via orchestrator).
 	GetMainchainBalance(context.Context, *connect.Request[v1.GetMainchainBalanceRequest]) (*connect.Response[v1.GetMainchainBalanceResponse], error)
-	// Preview what would be deleted for the given reset categories (no side effects).
-	PreviewResetData(context.Context, *connect.Request[v1.PreviewResetDataRequest]) (*connect.Response[v1.PreviewResetDataResponse], error)
-	// Reset/delete data categories. Stops affected binaries, streams each deletion event.
-	StreamResetData(context.Context, *connect.Request[v1.StreamResetDataRequest], *connect.ServerStream[v1.StreamResetDataResponse]) error
+	// Gather the files/dirs that would be deleted for a per-binary deletion spec
+	// (no side effects). Shared by the single-binary wipe and the full reset page.
+	GatherFilesToDelete(context.Context, *connect.Request[v1.GatherFilesToDeleteRequest]) (*connect.Response[v1.GatherFilesToDeleteResponse], error)
+	// Delete the given paths. Stops binaries first; wallet paths are moved to
+	// wallet_backups/ instead of removed. Returns a gRPC error if it can't run.
+	// Streams one message per path; an unset error means that path succeeded.
+	DeleteFiles(context.Context, *connect.Request[v1.DeleteFilesRequest], *connect.ServerStream[v1.DeleteFilesResponse]) error
 	// Full bitcoind getmempoolinfo response. Distinct from getrawmempool.
 	GetCoreMempoolInfo(context.Context, *connect.Request[v1.GetCoreMempoolInfoRequest]) (*connect.Response[v1.GetCoreMempoolInfoResponse], error)
 	// Generic raw bitcoind RPC. Optional `wallet` field routes the call to
@@ -628,16 +634,16 @@ func NewOrchestratorServiceHandler(svc OrchestratorServiceHandler, opts ...conne
 		connect.WithSchema(orchestratorServiceMethods.ByName("GetMainchainBalance")),
 		connect.WithHandlerOptions(opts...),
 	)
-	orchestratorServicePreviewResetDataHandler := connect.NewUnaryHandler(
-		OrchestratorServicePreviewResetDataProcedure,
-		svc.PreviewResetData,
-		connect.WithSchema(orchestratorServiceMethods.ByName("PreviewResetData")),
+	orchestratorServiceGatherFilesToDeleteHandler := connect.NewUnaryHandler(
+		OrchestratorServiceGatherFilesToDeleteProcedure,
+		svc.GatherFilesToDelete,
+		connect.WithSchema(orchestratorServiceMethods.ByName("GatherFilesToDelete")),
 		connect.WithHandlerOptions(opts...),
 	)
-	orchestratorServiceStreamResetDataHandler := connect.NewServerStreamHandler(
-		OrchestratorServiceStreamResetDataProcedure,
-		svc.StreamResetData,
-		connect.WithSchema(orchestratorServiceMethods.ByName("StreamResetData")),
+	orchestratorServiceDeleteFilesHandler := connect.NewServerStreamHandler(
+		OrchestratorServiceDeleteFilesProcedure,
+		svc.DeleteFiles,
+		connect.WithSchema(orchestratorServiceMethods.ByName("DeleteFiles")),
 		connect.WithHandlerOptions(opts...),
 	)
 	orchestratorServiceGetCoreMempoolInfoHandler := connect.NewUnaryHandler(
@@ -688,10 +694,10 @@ func NewOrchestratorServiceHandler(svc OrchestratorServiceHandler, opts ...conne
 			orchestratorServiceGetDownloadStatusHandler.ServeHTTP(w, r)
 		case OrchestratorServiceGetMainchainBalanceProcedure:
 			orchestratorServiceGetMainchainBalanceHandler.ServeHTTP(w, r)
-		case OrchestratorServicePreviewResetDataProcedure:
-			orchestratorServicePreviewResetDataHandler.ServeHTTP(w, r)
-		case OrchestratorServiceStreamResetDataProcedure:
-			orchestratorServiceStreamResetDataHandler.ServeHTTP(w, r)
+		case OrchestratorServiceGatherFilesToDeleteProcedure:
+			orchestratorServiceGatherFilesToDeleteHandler.ServeHTTP(w, r)
+		case OrchestratorServiceDeleteFilesProcedure:
+			orchestratorServiceDeleteFilesHandler.ServeHTTP(w, r)
 		case OrchestratorServiceGetCoreMempoolInfoProcedure:
 			orchestratorServiceGetCoreMempoolInfoHandler.ServeHTTP(w, r)
 		case OrchestratorServiceCoreRawCallProcedure:
@@ -773,12 +779,12 @@ func (UnimplementedOrchestratorServiceHandler) GetMainchainBalance(context.Conte
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("orchestrator.v1.OrchestratorService.GetMainchainBalance is not implemented"))
 }
 
-func (UnimplementedOrchestratorServiceHandler) PreviewResetData(context.Context, *connect.Request[v1.PreviewResetDataRequest]) (*connect.Response[v1.PreviewResetDataResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("orchestrator.v1.OrchestratorService.PreviewResetData is not implemented"))
+func (UnimplementedOrchestratorServiceHandler) GatherFilesToDelete(context.Context, *connect.Request[v1.GatherFilesToDeleteRequest]) (*connect.Response[v1.GatherFilesToDeleteResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("orchestrator.v1.OrchestratorService.GatherFilesToDelete is not implemented"))
 }
 
-func (UnimplementedOrchestratorServiceHandler) StreamResetData(context.Context, *connect.Request[v1.StreamResetDataRequest], *connect.ServerStream[v1.StreamResetDataResponse]) error {
-	return connect.NewError(connect.CodeUnimplemented, errors.New("orchestrator.v1.OrchestratorService.StreamResetData is not implemented"))
+func (UnimplementedOrchestratorServiceHandler) DeleteFiles(context.Context, *connect.Request[v1.DeleteFilesRequest], *connect.ServerStream[v1.DeleteFilesResponse]) error {
+	return connect.NewError(connect.CodeUnimplemented, errors.New("orchestrator.v1.OrchestratorService.DeleteFiles is not implemented"))
 }
 
 func (UnimplementedOrchestratorServiceHandler) GetCoreMempoolInfo(context.Context, *connect.Request[v1.GetCoreMempoolInfoRequest]) (*connect.Response[v1.GetCoreMempoolInfoResponse], error) {

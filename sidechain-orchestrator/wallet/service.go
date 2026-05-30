@@ -142,6 +142,30 @@ func (s *Service) moveToBackup(path string) (string, error) {
 	return dest, nil
 }
 
+// BackupPath soft-deletes a single wallet path by moving it under its parent's
+// wallet_backups/<ts>/. Exported wrapper around moveToBackup for the reset flow,
+// which classifies wallet paths and backs them up instead of removing them.
+func (s *Service) BackupPath(path string) (string, error) {
+	return s.moveToBackup(path)
+}
+
+// MasterWalletPaths returns the shared bitwindow wallet files (wallet.json +
+// wallet_encryption.json) at their flat <bitwindowDir> location.
+func (s *Service) MasterWalletPaths() []string {
+	return []string{s.walletFilePath(), s.metadataFilePath()}
+}
+
+// ClearInMemoryState drops the loaded wallet set so the service reflects a
+// post-wipe empty state. Called after the master wallet has been moved aside.
+func (s *Service) ClearInMemoryState() {
+	s.mu.Lock()
+	s.wallets = nil
+	s.activeWalletID = ""
+	s.encryptionKey = nil
+	s.unlockedPass = ""
+	s.mu.Unlock()
+}
+
 // shortHash produces a deterministic 8-char fingerprint of `s` for use as a
 // disambiguator when two paths share a basename in the same backup dir.
 func shortHash(s string) string {
