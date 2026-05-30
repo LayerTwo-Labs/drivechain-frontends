@@ -1759,33 +1759,40 @@ func (o *Orchestrator) SwapNetwork(ctx context.Context, n config.Network) error 
 // "Restart Bitcoin Core and Enforcer" UI flow; the frontend must not
 // hand-orchestrate stop/start itself. Stops are guarded by IsRunning, so a
 // not-running daemon is skipped rather than treated as an error.
-func (o *Orchestrator) RestartL1(ctx context.Context) error {
-	if o.process.IsRunning("enforcer") {
-		if err := o.stopForNetworkSwap(ctx, "enforcer"); err != nil {
-			return err
-		}
-	}
-	if o.process.IsRunning("bitcoind") {
-		if err := o.stopForNetworkSwap(ctx, "bitcoind"); err != nil {
-			return err
-		}
-	}
-
-	// Fire-and-forget the L1 boot — returning lets the UI move on while
-	// bitcoind IBD / enforcer wait run in the background. context.Background
-	// so a request cancellation can't abort the launch mid-flight.
-	bootCh, err := o.StartWithL1(context.Background(), "bitcoind", StartOpts{})
-	if err != nil {
-		return fmt.Errorf("restart L1 stack: %w", err)
-	}
+//
+// Fire-and-forget: the stop+start sequence runs in a background goroutine and
+// this returns immediately. The stops alone can take minutes (graceful
+// shutdown waits the full kill window per daemon before escalating to SIGKILL),
+// so doing them inline would block the RPC long past the point the UI needs —
+// it just needs the reboot to have been dispatched. context.Background() so a
+// transport blip / request cancellation can't abort the sequence mid-flight.
+func (o *Orchestrator) RestartL1() {
 	go func() {
+		ctx := context.Background()
+		if o.process.IsRunning("enforcer") {
+			if err := o.stopForNetworkSwap(ctx, "enforcer"); err != nil {
+				o.log.Error().Err(err).Msg("L1 stack restart: stop enforcer failed")
+				return
+			}
+		}
+		if o.process.IsRunning("bitcoind") {
+			if err := o.stopForNetworkSwap(ctx, "bitcoind"); err != nil {
+				o.log.Error().Err(err).Msg("L1 stack restart: stop bitcoind failed")
+				return
+			}
+		}
+
+		bootCh, err := o.StartWithL1(ctx, "bitcoind", StartOpts{})
+		if err != nil {
+			o.log.Error().Err(err).Msg("L1 stack restart: boot failed")
+			return
+		}
 		for p := range bootCh {
 			if p.Error != nil {
 				o.log.Error().Err(p.Error).Msg("L1 stack restart failed")
 			}
 		}
 	}()
-	return nil
 }
 
 // stopForNetworkSwap stops a binary, escalating to SIGKILL on graceful
