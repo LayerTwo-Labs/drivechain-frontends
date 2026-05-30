@@ -516,11 +516,9 @@ func (h *Handler) GatherFilesToDelete(ctx context.Context, req *connect.Request[
 	return connect.NewResponse(resp), nil
 }
 
-// deletablePaths returns the gathered paths minus the user's deselections.
-// `except` is subtractive only — a path not already in files is ignored — so the
-// result is always a subset of what GatherFilesToDelete produced. This is what
-// keeps DeleteFiles from ever touching a client-supplied path outside the
-// gather set, while still honoring per-file deselection.
+// deletablePaths drops user-deselected paths from the gathered set. Subtractive
+// only — a path that wasn't gathered is ignored, so a client can't reach a path
+// outside the gather set.
 func deletablePaths(files []orchestrator.ResetFileInfo, except []string) []string {
 	skip := make(map[string]bool, len(except))
 	for _, p := range except {
@@ -537,10 +535,8 @@ func deletablePaths(files []orchestrator.ResetFileInfo, except []string) []strin
 }
 
 func (h *Handler) DeleteFiles(ctx context.Context, req *connect.Request[pb.DeleteFilesRequest], stream *connect.ServerStream[pb.DeleteFilesResponse]) error {
-	// Re-resolve paths server-side from the same selection gather uses, then drop
-	// any the user deselected. The client never supplies raw paths and `except`
-	// is purely subtractive, so DeleteFiles can only ever touch a subset of what
-	// GatherFilesToDelete would report.
+	// Resolve paths from the request's specs instead of trusting client paths,
+	// so a caller can't drive deletion outside the gather set.
 	files, err := h.orch.GatherFilesToDelete(specsFromItems(req.Msg.Items))
 	if err != nil {
 		return err

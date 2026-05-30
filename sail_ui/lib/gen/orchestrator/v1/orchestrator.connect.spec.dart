@@ -183,7 +183,7 @@ abstract final class OrchestratorService {
     orchestratorv1orchestrator.GatherFilesToDeleteResponse.new,
   );
 
-  /// Delete the given paths. Stops binaries first; wallet paths are moved to
+  /// Delete the selected files. Stops binaries first; wallet paths are moved to
   /// wallet_backups/ instead of removed. Returns a gRPC error if it can't run.
   /// Streams one message per path; an unset error means that path succeeded.
   static const deleteFiles = connect.Spec(

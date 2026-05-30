@@ -2511,15 +2511,11 @@ func (x *ResetFileInfo) GetIsDirectory() bool {
 	return false
 }
 
-// DeleteFiles takes the same selection as GatherFilesToDelete and re-resolves
-// the concrete paths server-side, so it can only ever delete what gather would
-// report — clients never supply raw filesystem paths.
 type DeleteFilesRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	Items []*SingleDeletion      `protobuf:"bytes,1,rep,name=items,proto3" json:"items,omitempty"`
-	// Paths the user deselected. Purely subtractive: the server deletes
-	// gather(items) minus these, so `except` can narrow the set but never widen
-	// it beyond what gather resolves. Ignored if not a member of that set.
+	// What to delete: the same per-binary categories passed to GatherFilesToDelete.
+	Items []*SingleDeletion `protobuf:"bytes,1,rep,name=items,proto3" json:"items,omitempty"`
+	// Paths to omit from the deletion, e.g. files the user deselected.
 	Except        []string `protobuf:"bytes,2,rep,name=except,proto3" json:"except,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
