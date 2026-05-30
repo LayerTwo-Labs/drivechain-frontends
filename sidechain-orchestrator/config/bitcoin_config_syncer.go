@@ -245,7 +245,11 @@ func (m *BitcoinConfManager) writeConfigFile() error {
 	if err := os.WriteFile(confInfo.path, []byte(m.Config.Serialize()), 0644); err != nil {
 		return fmt.Errorf("write config: %w", err)
 	}
-	m.log.Debug().Str("path", confInfo.path).Msg("wrote config file")
+	m.log.Info().
+		Str("path", confInfo.path).
+		Str("datadir", m.Config.GetSetting("datadir")).
+		Str("chain", m.Config.GetSetting("chain")).
+		Msg("wrote bitwindow-bitcoin.conf")
 	return nil
 }
 

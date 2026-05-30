@@ -266,7 +266,8 @@ func (m *BitcoinConfManager) UpdateNetwork(n Network) error {
 func (m *BitcoinConfManager) loadOrCreateConfigContent() (string, error) {
 	confPath := m.getBitWindowConfigPath()
 
-	if data, err := os.ReadFile(confPath); err == nil {
+	data, readErr := os.ReadFile(confPath)
+	if readErr == nil {
 		content := string(data)
 		config := ParseBitcoinConfig(content)
 
@@ -281,14 +282,39 @@ func (m *BitcoinConfManager) loadOrCreateConfigContent() (string, error) {
 		return content, nil
 	}
 
-	// Create default config
+	// The file exists but couldn't be read (permissions, partial write, a
+	// directory in its place, transient FS error on the external volume, …).
+	// Regenerating defaults here would silently destroy the user's datadir +
+	// custom settings — exactly the data-loss bug we're guarding against. Fail
+	// closed so the L1 stack refuses to boot rather than clobber a recoverable
+	// file. Only a genuine "not found" is a real first-run.
+	if !os.IsNotExist(readErr) {
+		m.log.Error().Err(readErr).Str("path", confPath).
+			Msg("bitwindow-bitcoin.conf exists but is unreadable; refusing to overwrite with defaults")
+		return "", fmt.Errorf("read bitcoin config %s: %w", confPath, readErr)
+	}
+
+	// First run: no conf on disk. Defense in depth — if a file somehow appears
+	// at the path between the read and now, back it up before writing defaults
+	// so a regeneration is never destructive.
+	if _, statErr := os.Stat(confPath); statErr == nil {
+		backupPath := confPath + ".bak"
+		if existing, err := os.ReadFile(confPath); err == nil {
+			if werr := os.WriteFile(backupPath, existing, 0644); werr != nil {
+				m.log.Warn().Err(werr).Str("path", backupPath).Msg("failed to back up existing config before regenerating")
+			} else {
+				m.log.Warn().Str("backup", backupPath).Msg("backed up existing config before writing defaults")
+			}
+		}
+	}
+
 	content := m.GetDefaultConfig()
 	if err := os.MkdirAll(filepath.Dir(confPath), 0755); err != nil {
 		m.log.Error().Err(err).Msg("failed to create config directory")
 	} else if err := os.WriteFile(confPath, []byte(content), 0644); err != nil {
 		m.log.Error().Err(err).Str("path", confPath).Msg("failed to write default config")
 	} else {
-		m.log.Info().Str("path", confPath).Msg("created default config file")
+		m.log.Info().Str("path", confPath).Msg("created default config file (no existing conf found)")
 	}
 
 	return content, nil
