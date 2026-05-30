@@ -46,7 +46,7 @@ func TestJustRunBootsDaemons(t *testing.T) {
 
 	// 4. orchestratord RPC actually responds — proves it's serving, not
 	//    merely holding the port.
-	waitForOrchestratorRPC(t, rpcDeadline)
+	waitForOrchestratorRPC(t, rpcDeadline, run.dataDir)
 	t.Log("orchestratord RPC is responsive")
 
 	// 5. Give it 10s to surface any early crash, then verify the daemons
