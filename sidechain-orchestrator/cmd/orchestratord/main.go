@@ -37,6 +37,7 @@ import (
 	walletrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1/walletmanagerv1connect"
 	zsiderpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/zside/v1/zsidev1connect"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/localauth"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/rpcmeter"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain"
 	bitassetssvc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/bitassets"
 	bitnamessvc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/bitnames"
@@ -334,15 +335,22 @@ func run(cctx *cli.Context) error {
 	// path or restarting the orchestrator. OnNetworkChanged fires after
 	// SwapNetwork persists the new config.
 	if orch.BitcoinConf != nil {
+		// Meter every call through the proxy so we can see which bitcoind RPCs
+		// the frontend actually issues and how slow each is. authIC stays
+		// outermost (auth before metering); meterIC times only the post-auth
+		// handler. Logs a per-method summary every coreMeterInterval.
+		const coreMeterInterval = 30 * time.Second
+		meterIC := rpcmeter.New(ctx, log, coreMeterInterval).Interceptor()
+
 		swappable := newSwappableHandler()
 		if proxy, err := startCoreProxy(ctx, orch, log); err != nil {
 			log.Warn().Err(err).Msg("failed to start bitcoin core proxy")
 		} else {
-			_, coreH := corerpc.NewBitcoinServiceHandler(proxy, connect.WithInterceptors(authIC))
+			_, coreH := corerpc.NewBitcoinServiceHandler(proxy, connect.WithInterceptors(authIC, meterIC))
 			swappable.swap(coreH)
 		}
 		// The path is constant; register once.
-		corePath, _ := corerpc.NewBitcoinServiceHandler(noopBitcoinService{}, connect.WithInterceptors(authIC))
+		corePath, _ := corerpc.NewBitcoinServiceHandler(noopBitcoinService{}, connect.WithInterceptors(authIC, meterIC))
 		mux.Handle(corePath, swappable)
 		log.Info().Str("service", "bitcoin.bitcoind.v1alpha.BitcoinService").Msg("registered bitcoin core proxy")
 
@@ -352,7 +360,7 @@ func run(cctx *cli.Context) error {
 				log.Error().Err(err).Msg("rebuild bitcoin core proxy after network swap")
 				return
 			}
-			_, h := corerpc.NewBitcoinServiceHandler(rebuilt, connect.WithInterceptors(authIC))
+			_, h := corerpc.NewBitcoinServiceHandler(rebuilt, connect.WithInterceptors(authIC, meterIC))
 			swappable.swap(h)
 			log.Info().Str("network", string(orch.BitcoinConf.Network)).Msg("rebuilt bitcoin core proxy for new network")
 		}
