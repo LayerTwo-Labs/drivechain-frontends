@@ -2755,13 +2755,20 @@ class ResetFileInfo extends $pb.GeneratedMessage {
   void clearIsDirectory() => clearField(5);
 }
 
+/// DeleteFiles takes the same selection as GatherFilesToDelete and re-resolves
+/// the concrete paths server-side, so it can only ever delete what gather would
+/// report — clients never supply raw filesystem paths.
 class DeleteFilesRequest extends $pb.GeneratedMessage {
   factory DeleteFilesRequest({
-    $core.Iterable<$core.String>? paths,
+    $core.Iterable<SingleDeletion>? items,
+    $core.Iterable<$core.String>? except,
   }) {
     final $result = create();
-    if (paths != null) {
-      $result.paths.addAll(paths);
+    if (items != null) {
+      $result.items.addAll(items);
+    }
+    if (except != null) {
+      $result.except.addAll(except);
     }
     return $result;
   }
@@ -2770,7 +2777,8 @@ class DeleteFilesRequest extends $pb.GeneratedMessage {
   factory DeleteFilesRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
 
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'DeleteFilesRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'orchestrator.v1'), createEmptyInstance: create)
-    ..pPS(1, _omitFieldNames ? '' : 'paths')
+    ..pc<SingleDeletion>(1, _omitFieldNames ? '' : 'items', $pb.PbFieldType.PM, subBuilder: SingleDeletion.create)
+    ..pPS(2, _omitFieldNames ? '' : 'except')
     ..hasRequiredFields = false
   ;
 
@@ -2796,7 +2804,13 @@ class DeleteFilesRequest extends $pb.GeneratedMessage {
   static DeleteFilesRequest? _defaultInstance;
 
   @$pb.TagNumber(1)
-  $core.List<$core.String> get paths => $_getList(0);
+  $core.List<SingleDeletion> get items => $_getList(0);
+
+  /// Paths the user deselected. Purely subtractive: the server deletes
+  /// gather(items) minus these, so `except` can narrow the set but never widen
+  /// it beyond what gather resolves. Ignored if not a member of that set.
+  @$pb.TagNumber(2)
+  $core.List<$core.String> get except => $_getList(1);
 }
 
 class DeleteFilesResponse extends $pb.GeneratedMessage {

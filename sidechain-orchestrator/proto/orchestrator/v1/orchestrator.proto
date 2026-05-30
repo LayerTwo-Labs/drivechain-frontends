@@ -429,8 +429,15 @@ message ResetFileInfo {
 
 // DeleteFiles
 
+// DeleteFiles takes the same selection as GatherFilesToDelete and re-resolves
+// the concrete paths server-side, so it can only ever delete what gather would
+// report — clients never supply raw filesystem paths.
 message DeleteFilesRequest {
-  repeated string paths = 1;
+  repeated SingleDeletion items = 1;
+  // Paths the user deselected. Purely subtractive: the server deletes
+  // gather(items) minus these, so `except` can narrow the set but never widen
+  // it beyond what gather resolves. Ignored if not a member of that set.
+  repeated string except = 2;
 }
 
 message DeleteFilesResponse {

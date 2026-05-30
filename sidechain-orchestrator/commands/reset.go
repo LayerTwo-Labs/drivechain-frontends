@@ -151,12 +151,10 @@ var resetRunCommand = &cli.Command{
 			fmt.Println("nothing to delete")
 			return nil
 		}
-		paths := make([]string, 0, len(gathered.Msg.Files))
-		for _, f := range gathered.Msg.Files {
-			paths = append(paths, f.Path)
-		}
 
-		stream, err := client.DeleteFiles(cctx.Context, connect.NewRequest(&pb.DeleteFilesRequest{Paths: paths}))
+		// Hand the same selection to the deleter; it re-resolves paths
+		// server-side so only gather-reported files can be removed.
+		stream, err := client.DeleteFiles(cctx.Context, connect.NewRequest(&pb.DeleteFilesRequest{Items: resetSpecs(cctx)}))
 		if err != nil {
 			return err
 		}
