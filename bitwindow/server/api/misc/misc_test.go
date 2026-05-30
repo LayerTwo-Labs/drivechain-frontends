@@ -5,7 +5,6 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/hex"
-	"slices"
 	"strings"
 	"testing"
 
@@ -17,6 +16,7 @@ import (
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/tests"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/tests/apitests"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/tests/mocks"
+	coinnews "github.com/LayerTwo-Labs/sidesail/coinnews/codec"
 	commonv1 "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/common/v1"
 	pb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1"
 	corepb "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha"
@@ -232,15 +232,7 @@ func TestService_BroadcastNews(t *testing.T) {
 			SendTransaction(gomock.Any(), tests.Connect(&pb.SendTransactionRequest{
 				OpReturnMessage: &commonv1.Hex{
 					Hex: &wrapperspb.StringValue{
-						Value: topicID.String() +
-							hex.EncodeToString(
-								slices.Concat(
-									[]byte("Test News Headline"),
-									// 64 - 18 = 46
-									make([]byte, 46),
-								),
-							) +
-							hex.EncodeToString([]byte("This is the news content")),
+						Value: encodeStoryHex(t, topicID, "Test News Headline", "This is the news content"),
 					},
 				},
 			})).
@@ -318,11 +310,7 @@ func TestService_CreateTopic(t *testing.T) {
 			SendTransaction(gomock.Any(), tests.Connect(&pb.SendTransactionRequest{
 				OpReturnMessage: &commonv1.Hex{
 					Hex: &wrapperspb.StringValue{
-						// Format: <topic><"new"><retention_byte><name>
-						Value: "deadbeef" +
-							hex.EncodeToString([]byte("new")) +
-							hex.EncodeToString([]byte{7}) + // 7 days retention (default)
-							hex.EncodeToString([]byte("Test Topic")),
+						Value: encodeTopicCreationHex(t, "deadbeef", "Test Topic", 7),
 					},
 				},
 			})).
@@ -683,6 +671,41 @@ func TestService_ListCoinNews(t *testing.T) {
 		// Should be limited to 100 entries
 		assert.Len(t, resp.Msg.CoinNews, 100)
 	})
+}
+
+// encodeTopicCreationHex builds the expected SendTransaction OpReturn for a
+// topic creation using the same coinnews codec the production handler uses, so
+// the expectation tracks the real wire format instead of a stale hand-rolled
+// one. topicHex is the hex topic ID; retention is days (0 = infinite).
+func encodeTopicCreationHex(t *testing.T, topicHex, name string, retention byte) string {
+	t.Helper()
+	raw, err := hex.DecodeString(topicHex)
+	require.NoError(t, err)
+	var topic coinnews.Topic
+	copy(topic[:], raw)
+	b, err := coinnews.EncodeTopicCreation(coinnews.TopicCreation{
+		Topic:         topic,
+		RetentionDays: retention,
+		Name:          name,
+	})
+	require.NoError(t, err)
+	return hex.EncodeToString(b)
+}
+
+// encodeStoryHex builds the expected SendTransaction OpReturn for a story
+// (headline + optional body TLV) via the coinnews codec, mirroring the
+// production encoder.
+func encodeStoryHex(t *testing.T, topicID opreturns.TopicID, headline, content string) string {
+	t.Helper()
+	var topic coinnews.Topic
+	copy(topic[:], topicID[:])
+	story := coinnews.Story{Topic: topic, Headline: headline}
+	if content != "" {
+		story.TLVs = append(story.TLVs, coinnews.TLV{Tag: coinnews.TLVBody, Value: []byte(content)})
+	}
+	b, err := coinnews.EncodeStory(story)
+	require.NoError(t, err)
+	return hex.EncodeToString(b)
 }
 
 func validTopicID() opreturns.TopicID {
