@@ -275,7 +275,7 @@ func TestDeleteFiles_WalletPathNotHardDeleted(t *testing.T) {
 	o := newResetTestOrchestrator(t)
 
 	// Seed a thunder wallet at the exact location GatherFilesToDelete reports.
-	gathered, err := o.GatherFilesToDelete([]GatherSpec{
+	_, err := o.GatherFilesToDelete([]GatherSpec{
 		{BinaryName: "thunder", Categories: []string{catWallet}},
 	})
 	require.NoError(t, err)
@@ -287,7 +287,7 @@ func TestDeleteFiles_WalletPathNotHardDeleted(t *testing.T) {
 	seedFile(t, walletPath)
 
 	// Re-gather now that it exists on disk.
-	gathered, err = o.GatherFilesToDelete([]GatherSpec{
+	gathered, err := o.GatherFilesToDelete([]GatherSpec{
 		{BinaryName: "thunder", Categories: []string{catWallet}},
 	})
 	require.NoError(t, err)
