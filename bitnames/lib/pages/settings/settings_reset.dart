@@ -5,7 +5,6 @@ import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:sail_ui/sail_ui.dart';
-import 'package:bitnames/main.dart';
 
 class SettingsReset extends StatefulWidget {
   const SettingsReset({super.key});
@@ -132,7 +131,7 @@ class _SettingsResetState extends State<SettingsReset> {
       if (_deleteLogs) DeletionType.DELETION_TYPE_LOGS,
     ];
 
-    final confirmed = await Navigator.of(context).push<bool>(
+    await Navigator.of(context).push<bool>(
       MaterialPageRoute(
         builder: (_) => ResetConfirmationPage(
           request: [SingleDeletion(binary: binary.type, deletions: deletions)],
@@ -142,23 +141,5 @@ class _SettingsResetState extends State<SettingsReset> {
         ),
       ),
     );
-
-    if (!context.mounted) return;
-
-    // If deletion happened, restart binaries
-    if (confirmed == true) {
-      bootBinaries(log);
-
-      // Wait for orchestrator to become ready
-      final orchestrator = GetIt.I.get<OrchestratorRPC>();
-      for (var i = 0; i < 30; i++) {
-        try {
-          await orchestrator.listBinaries();
-          break;
-        } catch (_) {
-          await Future.delayed(const Duration(milliseconds: 500));
-        }
-      }
-    }
   }
 }

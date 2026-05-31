@@ -1,7 +1,5 @@
-import 'dart:async';
 import 'dart:io';
 
-import 'package:bitwindow/main.dart' show rebootBitwindowBackend;
 import 'package:bitwindow/pages/root_page.dart' show setRootPageNavigatingAway;
 import 'package:bitwindow/routing/router.dart';
 import 'package:flutter/material.dart' show MaterialPageRoute;
@@ -217,8 +215,6 @@ class _SettingsResetState extends State<SettingsReset> {
         _alsoResetSidechains = false;
         _obliterateEverything = false;
       });
-
-      unawaited(rebootBitwindowBackend(log));
 
       if (needsWalletCreation) {
         // Prevent RootPage.dispose() from triggering app shutdown during navigation

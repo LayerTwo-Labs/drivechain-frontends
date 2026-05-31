@@ -24,6 +24,19 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+var resetWindowsSoftwareBinaries = []ResetBinary{
+	ResetBinaryBitcoind,
+	ResetBinaryEnforcer,
+	ResetBinaryBitwindowd,
+	ResetBinaryThunder,
+	ResetBinaryZSide,
+	ResetBinaryBitNames,
+	ResetBinaryBitAssets,
+	ResetBinaryTruthcoin,
+	ResetBinaryPhoton,
+	ResetBinaryCoinShift,
+}
+
 // seedNodeSoftwareTree writes one .exe stub per configured binary into
 // <bitwindowDir>/assets/bin so GetBinaryPaths picks them up. Returns the
 // absolute paths of every file written.
@@ -33,7 +46,9 @@ func seedNodeSoftwareTree(t *testing.T, o *Orchestrator) []string {
 	require.NoError(t, os.MkdirAll(binDir, 0o755))
 
 	seeded := []string{}
-	for _, cfg := range o.Configs() {
+	for _, binary := range resetWindowsSoftwareBinaries {
+		cfg, ok := o.configForResetBinary(binary)
+		require.True(t, ok, "missing config for %v", binary)
 		if cfg.BinaryName == "" {
 			continue
 		}
@@ -50,11 +65,8 @@ func seedNodeSoftwareTree(t *testing.T, o *Orchestrator) []string {
 func gatherNodeSoftware(t *testing.T, o *Orchestrator) []string {
 	t.Helper()
 	var specs []GatherSpec
-	for _, cfg := range o.Configs() {
-		if cfg.BinaryName == "" {
-			continue
-		}
-		specs = append(specs, GatherSpec{BinaryName: cfg.Name, Categories: []string{catSoftware}})
+	for _, binary := range resetWindowsSoftwareBinaries {
+		specs = append(specs, GatherSpec{Binary: binary, Categories: []ResetCategory{catSoftware}})
 	}
 	files, err := o.GatherFilesToDelete(specs)
 	require.NoError(t, err)
