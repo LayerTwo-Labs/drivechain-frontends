@@ -407,72 +407,103 @@ func (h *Handler) GetMainchainBalance(ctx context.Context, req *connect.Request[
 	}), nil
 }
 
-func deletionTypeToCategory(dt pb.DeletionType) string {
+func deletionTypeToCategory(dt pb.DeletionType) (orchestrator.ResetCategory, bool) {
 	switch dt {
 	case pb.DeletionType_DELETION_TYPE_DATA:
-		return "blockchain_data"
+		return orchestrator.ResetCategoryData, true
 	case pb.DeletionType_DELETION_TYPE_WALLET:
-		return "wallet"
+		return orchestrator.ResetCategoryWallet, true
 	case pb.DeletionType_DELETION_TYPE_SETTINGS:
-		return "settings"
+		return orchestrator.ResetCategorySettings, true
 	case pb.DeletionType_DELETION_TYPE_LOGS:
-		return "logs"
+		return orchestrator.ResetCategoryLogs, true
 	case pb.DeletionType_DELETION_TYPE_SOFTWARE:
-		return "node_software"
+		return orchestrator.ResetCategorySoftware, true
 	default:
-		return ""
+		return orchestrator.ResetCategory(0), false
 	}
 }
 
-func categoryToDeletionType(cat string) pb.DeletionType {
+func categoryToDeletionType(cat orchestrator.ResetCategory) pb.DeletionType {
 	switch cat {
-	case "blockchain_data":
+	case orchestrator.ResetCategoryData:
 		return pb.DeletionType_DELETION_TYPE_DATA
-	case "wallet":
-		return pb.DeletionType_DELETION_TYPE_WALLET
-	case "settings":
-		return pb.DeletionType_DELETION_TYPE_SETTINGS
-	case "logs":
-		return pb.DeletionType_DELETION_TYPE_LOGS
-	case "node_software":
+	case orchestrator.ResetCategorySoftware:
 		return pb.DeletionType_DELETION_TYPE_SOFTWARE
+	case orchestrator.ResetCategoryLogs:
+		return pb.DeletionType_DELETION_TYPE_LOGS
+	case orchestrator.ResetCategorySettings:
+		return pb.DeletionType_DELETION_TYPE_SETTINGS
+	case orchestrator.ResetCategoryWallet:
+		return pb.DeletionType_DELETION_TYPE_WALLET
 	default:
 		return pb.DeletionType_DELETION_TYPE_UNSPECIFIED
 	}
 }
 
-// binaryNameFromType is the inverse of binaryTypeFromName: the canonical name
-// that config.DirConfigByName resolves (the JSON key, e.g. "enforcer").
-func binaryNameFromType(t pb.BinaryType) string {
+func resetBinaryFromType(t pb.BinaryType) orchestrator.ResetBinary {
 	switch t {
 	case pb.BinaryType_BINARY_TYPE_BITCOIND:
-		return "bitcoind"
+		return orchestrator.ResetBinaryBitcoind
 	case pb.BinaryType_BINARY_TYPE_ENFORCER:
-		return "enforcer"
+		return orchestrator.ResetBinaryEnforcer
 	case pb.BinaryType_BINARY_TYPE_BITWINDOWD:
-		return "bitwindowd"
+		return orchestrator.ResetBinaryBitwindowd
 	case pb.BinaryType_BINARY_TYPE_THUNDER:
-		return "thunder"
+		return orchestrator.ResetBinaryThunder
 	case pb.BinaryType_BINARY_TYPE_ZSIDE:
-		return "zside"
+		return orchestrator.ResetBinaryZSide
 	case pb.BinaryType_BINARY_TYPE_BITNAMES:
-		return "bitnames"
+		return orchestrator.ResetBinaryBitNames
 	case pb.BinaryType_BINARY_TYPE_BITASSETS:
-		return "bitassets"
+		return orchestrator.ResetBinaryBitAssets
 	case pb.BinaryType_BINARY_TYPE_TRUTHCOIN:
-		return "truthcoin"
+		return orchestrator.ResetBinaryTruthcoin
 	case pb.BinaryType_BINARY_TYPE_PHOTON:
-		return "photon"
+		return orchestrator.ResetBinaryPhoton
 	case pb.BinaryType_BINARY_TYPE_COINSHIFT:
-		return "coinshift"
+		return orchestrator.ResetBinaryCoinShift
 	case pb.BinaryType_BINARY_TYPE_GRPCURL:
-		return "grpcurl"
+		return orchestrator.ResetBinaryGRPCurl
 	case pb.BinaryType_BINARY_TYPE_ORCHESTRATORD:
-		return "orchestratord"
+		return orchestrator.ResetBinaryOrchestratord
 	case pb.BinaryType_BINARY_TYPE_ZSIDED:
-		return "zsided"
+		return orchestrator.ResetBinaryZSided
 	default:
-		return ""
+		return orchestrator.ResetBinaryUnknown
+	}
+}
+
+func binaryTypeFromResetBinary(binary orchestrator.ResetBinary) pb.BinaryType {
+	switch binary {
+	case orchestrator.ResetBinaryBitcoind:
+		return pb.BinaryType_BINARY_TYPE_BITCOIND
+	case orchestrator.ResetBinaryEnforcer:
+		return pb.BinaryType_BINARY_TYPE_ENFORCER
+	case orchestrator.ResetBinaryBitwindowd:
+		return pb.BinaryType_BINARY_TYPE_BITWINDOWD
+	case orchestrator.ResetBinaryThunder:
+		return pb.BinaryType_BINARY_TYPE_THUNDER
+	case orchestrator.ResetBinaryZSide:
+		return pb.BinaryType_BINARY_TYPE_ZSIDE
+	case orchestrator.ResetBinaryBitNames:
+		return pb.BinaryType_BINARY_TYPE_BITNAMES
+	case orchestrator.ResetBinaryBitAssets:
+		return pb.BinaryType_BINARY_TYPE_BITASSETS
+	case orchestrator.ResetBinaryTruthcoin:
+		return pb.BinaryType_BINARY_TYPE_TRUTHCOIN
+	case orchestrator.ResetBinaryPhoton:
+		return pb.BinaryType_BINARY_TYPE_PHOTON
+	case orchestrator.ResetBinaryCoinShift:
+		return pb.BinaryType_BINARY_TYPE_COINSHIFT
+	case orchestrator.ResetBinaryGRPCurl:
+		return pb.BinaryType_BINARY_TYPE_GRPCURL
+	case orchestrator.ResetBinaryOrchestratord:
+		return pb.BinaryType_BINARY_TYPE_ORCHESTRATORD
+	case orchestrator.ResetBinaryZSided:
+		return pb.BinaryType_BINARY_TYPE_ZSIDED
+	default:
+		return pb.BinaryType_BINARY_TYPE_UNSPECIFIED
 	}
 }
 
@@ -482,17 +513,17 @@ func binaryNameFromType(t pb.BinaryType) string {
 func specsFromItems(items []*pb.SingleDeletion) []orchestrator.GatherSpec {
 	var specs []orchestrator.GatherSpec
 	for _, item := range items {
-		name := binaryNameFromType(item.Binary)
-		if name == "" {
+		binary := resetBinaryFromType(item.Binary)
+		if binary == orchestrator.ResetBinaryUnknown {
 			continue
 		}
-		var cats []string
+		var cats []orchestrator.ResetCategory
 		for _, dt := range item.Deletions {
-			if c := deletionTypeToCategory(dt); c != "" {
+			if c, ok := deletionTypeToCategory(dt); ok {
 				cats = append(cats, c)
 			}
 		}
-		specs = append(specs, orchestrator.GatherSpec{BinaryName: name, Categories: cats})
+		specs = append(specs, orchestrator.GatherSpec{Binary: binary, Categories: cats})
 	}
 	return specs
 }
@@ -508,7 +539,7 @@ func (h *Handler) GatherFilesToDelete(ctx context.Context, req *connect.Request[
 		resp.Files = append(resp.Files, &pb.ResetFileInfo{
 			Path:         f.Path,
 			DeletionType: categoryToDeletionType(f.Category),
-			Binary:       binaryTypeFromName(f.BinaryName),
+			Binary:       binaryTypeFromResetBinary(f.Binary),
 			SizeBytes:    f.SizeBytes,
 			IsDirectory:  f.IsDirectory,
 		})
@@ -537,12 +568,13 @@ func deletablePaths(files []orchestrator.ResetFileInfo, except []string) []strin
 func (h *Handler) DeleteFiles(ctx context.Context, req *connect.Request[pb.DeleteFilesRequest], stream *connect.ServerStream[pb.DeleteFilesResponse]) error {
 	// Resolve paths from the request's specs instead of trusting client paths,
 	// so a caller can't drive deletion outside the gather set.
-	files, err := h.orch.GatherFilesToDelete(specsFromItems(req.Msg.Items))
+	specs := specsFromItems(req.Msg.Items)
+	files, err := h.orch.GatherFilesToDelete(specs)
 	if err != nil {
 		return err
 	}
 
-	ch, err := h.orch.DeleteFiles(ctx, deletablePaths(files, req.Msg.Except))
+	ch, err := h.orch.DeleteFiles(ctx, deletablePaths(files, req.Msg.Except), specs)
 	if err != nil {
 		return err
 	}

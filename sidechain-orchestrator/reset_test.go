@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"sort"
 	"testing"
+	"time"
 
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config"
 	"github.com/stretchr/testify/assert"
@@ -29,8 +30,38 @@ func seedFile(t *testing.T, path string) {
 	require.NoError(t, os.WriteFile(path, []byte("data"), 0o644))
 }
 
-func allCategories() []string {
-	return []string{catData, catSoftware, catLogs, catSettings, catWallet}
+func allCategories() []ResetCategory {
+	return []ResetCategory{catData, catSoftware, catLogs, catSettings, catWallet}
+}
+
+func fakeRunningForReset(t *testing.T, o *Orchestrator, binaries ...ResetBinary) {
+	t.Helper()
+
+	processes := make(map[string]*ManagedProcess, len(binaries))
+	for _, binary := range binaries {
+		cfg, ok := o.configForResetBinary(binary)
+		require.True(t, ok, "missing config for %v", binary)
+		processes[cfg.Name] = &ManagedProcess{
+			Config:  cfg,
+			Pid:     1000 + int(binary),
+			Started: time.Now(),
+			exitCh:  make(chan struct{}),
+		}
+	}
+
+	o.process.mu.Lock()
+	defer o.process.mu.Unlock()
+	for name, proc := range processes {
+		o.process.processes[name] = proc
+	}
+}
+
+func resetRestartBinaries(plan resetPlan) []ResetBinary {
+	out := make([]ResetBinary, 0, len(plan.restart))
+	for _, item := range plan.restart {
+		out = append(out, item.binary)
+	}
+	return out
 }
 
 // ---------- GatherFilesToDelete --------------------------------------------
@@ -52,7 +83,7 @@ func TestGather_OnlyTargetsRequestedBinary(t *testing.T) {
 	seedFile(t, filepath.Join(binDir, "thunder"))
 
 	files, err := o.GatherFilesToDelete([]GatherSpec{
-		{BinaryName: "thunder", Categories: []string{catSoftware}},
+		{Binary: ResetBinaryThunder, Categories: []ResetCategory{catSoftware}},
 	})
 	require.NoError(t, err)
 
@@ -66,13 +97,13 @@ func TestGather_OnlyRequestedCategories(t *testing.T) {
 	o := newResetTestOrchestrator(t)
 
 	files, err := o.GatherFilesToDelete([]GatherSpec{
-		{BinaryName: "bitcoind", Categories: []string{catData, catLogs}},
+		{Binary: ResetBinaryBitcoind, Categories: []ResetCategory{catData, catLogs}},
 	})
 	require.NoError(t, err)
 
-	allowed := map[string]bool{catData: true, catLogs: true}
+	allowed := map[ResetCategory]bool{catData: true, catLogs: true}
 	for _, f := range files {
-		assert.Truef(t, allowed[f.Category], "unexpected category %q for %q", f.Category, f.Path)
+		assert.Truef(t, allowed[f.Category], "unexpected category %v for %q", f.Category, f.Path)
 	}
 }
 
@@ -83,7 +114,7 @@ func TestGather_StatsExistingFiles(t *testing.T) {
 	seedFile(t, filepath.Join(binDir, "bitcoind"))
 
 	files, err := o.GatherFilesToDelete([]GatherSpec{
-		{BinaryName: "bitcoind", Categories: []string{catSoftware}},
+		{Binary: ResetBinaryBitcoind, Categories: []ResetCategory{catSoftware}},
 	})
 	require.NoError(t, err)
 
@@ -94,7 +125,7 @@ func TestGather_StatsExistingFiles(t *testing.T) {
 			assert.False(t, f.IsDirectory)
 			assert.Equal(t, int64(len("data")), f.SizeBytes)
 			assert.Equal(t, catSoftware, f.Category)
-			assert.Equal(t, "bitcoind", f.BinaryName)
+			assert.Equal(t, ResetBinaryBitcoind, f.Binary)
 		}
 	}
 	assert.True(t, found, "expected seeded bitcoind binary in gather result")
@@ -104,8 +135,8 @@ func TestGather_DeduplicatesByPath(t *testing.T) {
 	o := newResetTestOrchestrator(t)
 
 	files, err := o.GatherFilesToDelete([]GatherSpec{
-		{BinaryName: "bitcoind", Categories: allCategories()},
-		{BinaryName: "bitwindowd", Categories: allCategories()},
+		{Binary: ResetBinaryBitcoind, Categories: allCategories()},
+		{Binary: ResetBinaryBitwindowd, Categories: allCategories()},
 	})
 	require.NoError(t, err)
 
@@ -124,7 +155,7 @@ func TestGather_NoSideEffects(t *testing.T) {
 	seedFile(t, testFile)
 
 	_, err := o.GatherFilesToDelete([]GatherSpec{
-		{BinaryName: "bitcoind", Categories: []string{catSoftware}},
+		{Binary: ResetBinaryBitcoind, Categories: []ResetCategory{catSoftware}},
 	})
 	require.NoError(t, err)
 
@@ -136,8 +167,8 @@ func TestGather_ResultsAreStable(t *testing.T) {
 	o := newResetTestOrchestrator(t)
 
 	specs := []GatherSpec{
-		{BinaryName: "bitcoind", Categories: []string{catData, catSoftware, catLogs}},
-		{BinaryName: "thunder", Categories: allCategories()},
+		{Binary: ResetBinaryBitcoind, Categories: []ResetCategory{catData, catSoftware, catLogs}},
+		{Binary: ResetBinaryThunder, Categories: allCategories()},
 	}
 
 	files1, err := o.GatherFilesToDelete(specs)
@@ -158,10 +189,119 @@ func TestGather_ResultsAreStable(t *testing.T) {
 func TestGather_UnknownBinarySkipped(t *testing.T) {
 	o := newResetTestOrchestrator(t)
 	files, err := o.GatherFilesToDelete([]GatherSpec{
-		{BinaryName: "not-a-real-binary", Categories: allCategories()},
+		{Binary: ResetBinaryUnknown, Categories: allCategories()},
 	})
 	require.NoError(t, err)
 	assert.Empty(t, files)
+}
+
+// ---------- Reset shutdown graph -------------------------------------------
+
+func TestResetPlan_SidechainOnlyStopsAndRestartsThatSidechain(t *testing.T) {
+	o := newResetTestOrchestrator(t)
+	fakeRunningForReset(t, o,
+		ResetBinaryBitcoind,
+		ResetBinaryEnforcer,
+		ResetBinaryBitwindowd,
+		ResetBinaryThunder,
+		ResetBinaryBitNames,
+	)
+
+	plan := o.buildResetPlan([]GatherSpec{
+		{Binary: ResetBinaryThunder, Categories: []ResetCategory{catData}},
+	})
+
+	assert.Equal(t, map[ResetBinary]bool{
+		ResetBinaryThunder: true,
+	}, plan.stop)
+	assert.Equal(t, []ResetBinary{ResetBinaryThunder}, resetRestartBinaries(plan))
+}
+
+func TestResetPlan_BitwindowOnlyStopsAndRestartsBitwindow(t *testing.T) {
+	o := newResetTestOrchestrator(t)
+	fakeRunningForReset(t, o,
+		ResetBinaryBitcoind,
+		ResetBinaryEnforcer,
+		ResetBinaryBitwindowd,
+		ResetBinaryThunder,
+	)
+
+	plan := o.buildResetPlan([]GatherSpec{
+		{Binary: ResetBinaryBitwindowd, Categories: []ResetCategory{catData}},
+	})
+
+	assert.Equal(t, map[ResetBinary]bool{
+		ResetBinaryBitwindowd: true,
+	}, plan.stop)
+	assert.Equal(t, []ResetBinary{ResetBinaryBitwindowd}, resetRestartBinaries(plan))
+}
+
+func TestResetPlan_EnforcerStopsRunningSidechains(t *testing.T) {
+	o := newResetTestOrchestrator(t)
+	fakeRunningForReset(t, o,
+		ResetBinaryBitcoind,
+		ResetBinaryEnforcer,
+		ResetBinaryBitwindowd,
+		ResetBinaryThunder,
+		ResetBinaryBitNames,
+	)
+
+	plan := o.buildResetPlan([]GatherSpec{
+		{Binary: ResetBinaryEnforcer, Categories: []ResetCategory{catWallet}},
+	})
+
+	assert.Equal(t, map[ResetBinary]bool{
+		ResetBinaryEnforcer: true,
+		ResetBinaryThunder:  true,
+		ResetBinaryBitNames: true,
+	}, plan.stop)
+	assert.Equal(t, []ResetBinary{
+		ResetBinaryEnforcer,
+		ResetBinaryThunder,
+		ResetBinaryBitNames,
+	}, resetRestartBinaries(plan))
+}
+
+func TestResetPlan_BitcoindStopsEnforcerAndRunningSidechains(t *testing.T) {
+	o := newResetTestOrchestrator(t)
+	fakeRunningForReset(t, o,
+		ResetBinaryBitcoind,
+		ResetBinaryEnforcer,
+		ResetBinaryBitwindowd,
+		ResetBinaryThunder,
+		ResetBinaryPhoton,
+	)
+
+	plan := o.buildResetPlan([]GatherSpec{
+		{Binary: ResetBinaryBitcoind, Categories: []ResetCategory{catData}},
+	})
+
+	assert.Equal(t, map[ResetBinary]bool{
+		ResetBinaryBitcoind: true,
+		ResetBinaryEnforcer: true,
+		ResetBinaryThunder:  true,
+		ResetBinaryPhoton:   true,
+	}, plan.stop)
+	assert.Equal(t, []ResetBinary{
+		ResetBinaryBitcoind,
+		ResetBinaryEnforcer,
+		ResetBinaryThunder,
+		ResetBinaryPhoton,
+	}, resetRestartBinaries(plan))
+}
+
+func TestResetPlan_DoesNotRestartBinariesThatWereNotRunning(t *testing.T) {
+	o := newResetTestOrchestrator(t)
+	fakeRunningForReset(t, o, ResetBinaryBitcoind, ResetBinaryEnforcer)
+
+	plan := o.buildResetPlan([]GatherSpec{
+		{Binary: ResetBinaryThunder, Categories: []ResetCategory{catData}},
+	})
+
+	assert.Equal(t, map[ResetBinary]bool{
+		ResetBinaryThunder: true,
+	}, plan.stop)
+	assert.Empty(t, plan.restart)
 }
 
 // ---------- DeleteFiles ----------------------------------------------------
@@ -276,7 +416,7 @@ func TestDeleteFiles_WalletPathNotHardDeleted(t *testing.T) {
 
 	// Seed a thunder wallet at the exact location GatherFilesToDelete reports.
 	_, err := o.GatherFilesToDelete([]GatherSpec{
-		{BinaryName: "thunder", Categories: []string{catWallet}},
+		{Binary: ResetBinaryThunder, Categories: []ResetCategory{catWallet}},
 	})
 	require.NoError(t, err)
 
@@ -288,7 +428,7 @@ func TestDeleteFiles_WalletPathNotHardDeleted(t *testing.T) {
 
 	// Re-gather now that it exists on disk.
 	gathered, err := o.GatherFilesToDelete([]GatherSpec{
-		{BinaryName: "thunder", Categories: []string{catWallet}},
+		{Binary: ResetBinaryThunder, Categories: []ResetCategory{catWallet}},
 	})
 	require.NoError(t, err)
 	var paths []string

@@ -93,9 +93,9 @@ func writeDir(t *testing.T, path string) {
 // bitwindowd) — the set the global reset page would build.
 func l1Specs() []GatherSpec {
 	return []GatherSpec{
-		{BinaryName: "bitcoind", Categories: allCategories()},
-		{BinaryName: "enforcer", Categories: allCategories()},
-		{BinaryName: "bitwindowd", Categories: allCategories()},
+		{Binary: ResetBinaryBitcoind, Categories: allCategories()},
+		{Binary: ResetBinaryEnforcer, Categories: allCategories()},
+		{Binary: ResetBinaryBitwindowd, Categories: allCategories()},
 	}
 }
 
@@ -244,7 +244,7 @@ func TestGather_EnumeratesBootedBitcoindEnforcerBitwindow(t *testing.T) {
 	if len(missing) > 0 {
 		t.Logf("gather returned %d paths; expected at least %d", len(files), len(expected))
 		for _, f := range files {
-			t.Logf("  %s [%s]", f.Path, f.Category)
+			t.Logf("  %s [%v]", f.Path, f.Category)
 		}
 		t.Fatalf("gather is missing %d booted paths:\n  %s",
 			len(missing), strings.Join(missing, "\n  "))
@@ -271,7 +271,7 @@ func TestGather_FindsBitcoindBlockchainData(t *testing.T) {
 	o := New(t.TempDir(), network, bitwindowDir, AllDefaults(), testLogger(t))
 
 	files, err := o.GatherFilesToDelete([]GatherSpec{
-		{BinaryName: "bitcoind", Categories: []string{catData, catLogs}},
+		{Binary: ResetBinaryBitcoind, Categories: []ResetCategory{catData, catLogs}},
 	})
 	require.NoError(t, err)
 
@@ -294,7 +294,7 @@ func TestGather_FindsBitcoindBlockchainData(t *testing.T) {
 	}
 	if len(missing) > 0 {
 		for _, f := range files {
-			t.Logf("  %s [%s]", f.Path, f.Category)
+			t.Logf("  %s [%v]", f.Path, f.Category)
 		}
 		t.Fatalf("gather failed to enumerate bitcoind blockchain data:\n  %s",
 			strings.Join(missing, "\n  "))
@@ -318,7 +318,7 @@ func TestGather_PerSidechainScoping(t *testing.T) {
 	o := New(t.TempDir(), "signet", bitwindowDir, AllDefaults(), testLogger(t))
 
 	files, err := o.GatherFilesToDelete([]GatherSpec{
-		{BinaryName: "thunder", Categories: allCategories()},
+		{Binary: ResetBinaryThunder, Categories: allCategories()},
 	})
 	require.NoError(t, err)
 
