@@ -24,10 +24,11 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// bitwindowd/orchestratord are bundle-only (no download URL) and never wiped,
+// so they are intentionally absent here.
 var resetWindowsSoftwareBinaries = []ResetBinary{
 	ResetBinaryBitcoind,
 	ResetBinaryEnforcer,
-	ResetBinaryBitwindowd,
 	ResetBinaryThunder,
 	ResetBinaryZSide,
 	ResetBinaryBitNames,

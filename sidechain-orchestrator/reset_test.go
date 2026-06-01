@@ -147,6 +147,27 @@ func TestGather_DeduplicatesByPath(t *testing.T) {
 	}
 }
 
+func TestGather_NeverWipesBundledBinarySoftware(t *testing.T) {
+	o := newResetTestOrchestrator(t)
+
+	binDir := BinDir(o.BitwindowDir)
+	seedFile(t, filepath.Join(binDir, "bitwindowd"))
+	seedFile(t, filepath.Join(binDir, "bitcoind"))
+
+	files, err := o.GatherFilesToDelete([]GatherSpec{
+		{Binary: ResetBinaryBitwindowd, Categories: []ResetCategory{catSoftware}},
+		{Binary: ResetBinaryOrchestratord, Categories: []ResetCategory{catSoftware}},
+		{Binary: ResetBinaryBitcoind, Categories: []ResetCategory{catSoftware}},
+	})
+	require.NoError(t, err)
+
+	for _, f := range files {
+		assert.NotEqualf(t, ResetBinaryBitwindowd, f.Binary, "bitwindowd software must never be gathered: %q", f.Path)
+		assert.NotEqualf(t, ResetBinaryOrchestratord, f.Binary, "orchestratord software must never be gathered: %q", f.Path)
+	}
+	assert.NotEmpty(t, files, "bitcoind software should still be gathered")
+}
+
 func TestGather_NoSideEffects(t *testing.T) {
 	o := newResetTestOrchestrator(t)
 

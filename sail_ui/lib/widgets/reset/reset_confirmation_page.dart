@@ -50,10 +50,6 @@ class _ResetConfirmationPageState extends State<ResetConfirmationPage> {
   bool _stoppingBinaries = false;
   int _currentIndex = 0;
 
-  // Node software is re-downloaded after deletion; the server doesn't repopulate
-  // bin/. Derived from the request so we only re-copy when software was wiped.
-  bool get _deletesSoftware => widget.request.any((s) => s.deletions.contains(DeletionType.DELETION_TYPE_SOFTWARE));
-
   @override
   void initState() {
     super.initState();
@@ -125,11 +121,6 @@ class _ResetConfirmationPageState extends State<ResetConfirmationPage> {
           }
         }
       });
-    }
-
-    // Re-download binaries if needed (server doesn't repopulate bin/).
-    if (_deletesSoftware) {
-      await copyBinariesFromAssets(widget.log, widget.appDir);
     }
 
     if (mounted) {

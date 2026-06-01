@@ -178,6 +178,13 @@ func (o *Orchestrator) GatherFilesToDelete(specs []GatherSpec) ([]ResetFileInfo,
 			case catData:
 				add(cat, spec.Binary, dc.GetBlockchainDataPaths(networkDir, network, o.log))
 			case catSoftware:
+				// bitwindowd and orchestratord ship inside the app bundle and have
+				// no download URL in chains_config.json — once deleted there is
+				// nothing to re-fetch, and the running stack can't recover. Never
+				// wipe them; every other binary's software is downloadable.
+				if spec.Binary == ResetBinaryBitwindowd || spec.Binary == ResetBinaryOrchestratord {
+					continue
+				}
 				add(cat, spec.Binary, dc.GetBinaryPaths(binDir, o.log))
 			case catLogs:
 				add(cat, spec.Binary, dc.GetLogPaths(networkDir, o.log))
