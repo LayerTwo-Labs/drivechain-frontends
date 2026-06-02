@@ -122,6 +122,34 @@ class OrchestratorWalletRPC {
     return _unaryClient.deleteAllWallets(wmpb.DeleteAllWalletsRequest());
   }
 
+  Future<wmpb.ListWalletBackupsResponse> listWalletBackups() {
+    return _unaryClient.listWalletBackups(wmpb.ListWalletBackupsRequest());
+  }
+
+  Future<wmpb.RestoreWalletBackupResponse> restoreWalletBackup({
+    required String backupId,
+    String password = '',
+  }) {
+    return _unaryClient.restoreWalletBackup(
+      wmpb.RestoreWalletBackupRequest(
+        backupId: backupId,
+        password: password,
+      ),
+    );
+  }
+
+  Stream<wmpb.RestoreWalletBackupProgressResponse> restoreWalletBackupStream({
+    required String backupId,
+    String password = '',
+  }) {
+    return _streamClient.restoreWalletBackupStream(
+      wmpb.RestoreWalletBackupRequest(
+        backupId: backupId,
+        password: password,
+      ),
+    );
+  }
+
   Future<wmpb.GetBalanceResponse> getBalance(String walletId) {
     return _unaryClient.getBalance(wmpb.GetBalanceRequest(walletId: walletId));
   }

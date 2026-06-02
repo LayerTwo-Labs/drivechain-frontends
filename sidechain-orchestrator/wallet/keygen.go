@@ -4,6 +4,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/tyler-smith/go-bip32"
@@ -41,24 +42,22 @@ func DeriveStarter(seedHex, derivationPath string) (string, error) {
 		return "", fmt.Errorf("create master key: %w", err)
 	}
 
-	// Parse derivation path like "m/44'/0'/256'"
+	// Parse derivation paths like "m/44'/0'/256'".
 	childKey, err := deriveKeyAtPath(masterKey, derivationPath)
 	if err != nil {
 		return "", fmt.Errorf("derive key at %s: %w", derivationPath, err)
 	}
 
-	// SHA256 hash of private key bytes
-	// Dart's privateKeyHex() returns the serialized key which is [0x00, ...32-byte-key]
-	// (33 bytes total). We must match this format for compatible derivation.
+	// Dart's privateKeyHex() returns the serialized key which is
+	// [0x00, ...32-byte-key]. Hash that exact 33-byte value for compatibility.
 	serializedKey := make([]byte, 33)
 	serializedKey[0] = 0x00
 	copy(serializedKey[1:], childKey.Key)
 	hash := sha256.Sum256(serializedKey)
 
-	// First 16 bytes as entropy (128 bits = 12 words)
+	// First 16 bytes as entropy gives 128 bits, which maps to a 12-word mnemonic.
 	entropy := hash[:16]
 
-	// Create mnemonic from entropy
 	mnemonic, err := bip39.NewMnemonic(entropy)
 	if err != nil {
 		return "", fmt.Errorf("create mnemonic from entropy: %w", err)
@@ -68,7 +67,7 @@ func DeriveStarter(seedHex, derivationPath string) (string, error) {
 }
 
 // deriveKeyAtPath derives a BIP32 key at the given path.
-// Supports hardened derivation with ' suffix.
+// Supports hardened derivation with a ' suffix.
 func deriveKeyAtPath(masterKey *bip32.Key, path string) (*bip32.Key, error) {
 	// Remove "m/" prefix
 	path = strings.TrimPrefix(path, "m/")
@@ -76,26 +75,29 @@ func deriveKeyAtPath(masterKey *bip32.Key, path string) (*bip32.Key, error) {
 		return masterKey, nil
 	}
 
-	components := strings.Split(path, "/")
 	key := masterKey
-
-	for _, component := range components {
+	for _, component := range strings.Split(path, "/") {
 		hardened := strings.HasSuffix(component, "'")
 		component = strings.TrimSuffix(component, "'")
 
-		var index uint32
-		_, err := fmt.Sscanf(component, "%d", &index)
+		index, err := strconv.ParseUint(component, 10, 32)
 		if err != nil {
 			return nil, fmt.Errorf("parse path component %q: %w", component, err)
 		}
-
-		if hardened {
-			index += bip32.FirstHardenedChild
+		// BIP32 child indexes reserve values >= FirstHardenedChild for hardened
+		// derivation, so the path component itself must fit below that offset.
+		if index >= uint64(bip32.FirstHardenedChild) {
+			return nil, fmt.Errorf("path index %d out of range", index)
 		}
 
-		key, err = key.NewChildKey(index)
+		idx := uint32(index)
+		if hardened {
+			idx += bip32.FirstHardenedChild
+		}
+
+		key, err = key.NewChildKey(idx)
 		if err != nil {
-			return nil, fmt.Errorf("derive child %d: %w", index, err)
+			return nil, fmt.Errorf("derive child %d: %w", idx, err)
 		}
 	}
 

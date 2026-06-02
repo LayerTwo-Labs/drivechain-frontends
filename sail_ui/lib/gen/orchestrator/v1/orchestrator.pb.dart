@@ -2502,6 +2502,120 @@ class GetMainchainBalanceResponse extends $pb.GeneratedMessage {
   void clearUnconfirmed() => clearField(2);
 }
 
+class GetSidechainBalanceRequest extends $pb.GeneratedMessage {
+  factory GetSidechainBalanceRequest({
+    BinaryType? sidechain,
+  }) {
+    final $result = create();
+    if (sidechain != null) {
+      $result.sidechain = sidechain;
+    }
+    return $result;
+  }
+  GetSidechainBalanceRequest._() : super();
+  factory GetSidechainBalanceRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory GetSidechainBalanceRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'GetSidechainBalanceRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'orchestrator.v1'), createEmptyInstance: create)
+    ..e<BinaryType>(1, _omitFieldNames ? '' : 'sidechain', $pb.PbFieldType.OE, defaultOrMaker: BinaryType.BINARY_TYPE_UNSPECIFIED, valueOf: BinaryType.valueOf, enumValues: BinaryType.values)
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  GetSidechainBalanceRequest clone() => GetSidechainBalanceRequest()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  GetSidechainBalanceRequest copyWith(void Function(GetSidechainBalanceRequest) updates) => super.copyWith((message) => updates(message as GetSidechainBalanceRequest)) as GetSidechainBalanceRequest;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static GetSidechainBalanceRequest create() => GetSidechainBalanceRequest._();
+  GetSidechainBalanceRequest createEmptyInstance() => create();
+  static $pb.PbList<GetSidechainBalanceRequest> createRepeated() => $pb.PbList<GetSidechainBalanceRequest>();
+  @$core.pragma('dart2js:noInline')
+  static GetSidechainBalanceRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<GetSidechainBalanceRequest>(create);
+  static GetSidechainBalanceRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  BinaryType get sidechain => $_getN(0);
+  @$pb.TagNumber(1)
+  set sidechain(BinaryType v) { setField(1, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasSidechain() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearSidechain() => clearField(1);
+}
+
+class GetSidechainBalanceResponse extends $pb.GeneratedMessage {
+  factory GetSidechainBalanceResponse({
+    $fixnum.Int64? confirmedSats,
+    $fixnum.Int64? pendingSats,
+  }) {
+    final $result = create();
+    if (confirmedSats != null) {
+      $result.confirmedSats = confirmedSats;
+    }
+    if (pendingSats != null) {
+      $result.pendingSats = pendingSats;
+    }
+    return $result;
+  }
+  GetSidechainBalanceResponse._() : super();
+  factory GetSidechainBalanceResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory GetSidechainBalanceResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'GetSidechainBalanceResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'orchestrator.v1'), createEmptyInstance: create)
+    ..a<$fixnum.Int64>(1, _omitFieldNames ? '' : 'confirmedSats', $pb.PbFieldType.OU6, defaultOrMaker: $fixnum.Int64.ZERO)
+    ..a<$fixnum.Int64>(2, _omitFieldNames ? '' : 'pendingSats', $pb.PbFieldType.OU6, defaultOrMaker: $fixnum.Int64.ZERO)
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  GetSidechainBalanceResponse clone() => GetSidechainBalanceResponse()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  GetSidechainBalanceResponse copyWith(void Function(GetSidechainBalanceResponse) updates) => super.copyWith((message) => updates(message as GetSidechainBalanceResponse)) as GetSidechainBalanceResponse;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static GetSidechainBalanceResponse create() => GetSidechainBalanceResponse._();
+  GetSidechainBalanceResponse createEmptyInstance() => create();
+  static $pb.PbList<GetSidechainBalanceResponse> createRepeated() => $pb.PbList<GetSidechainBalanceResponse>();
+  @$core.pragma('dart2js:noInline')
+  static GetSidechainBalanceResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<GetSidechainBalanceResponse>(create);
+  static GetSidechainBalanceResponse? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $fixnum.Int64 get confirmedSats => $_getI64(0);
+  @$pb.TagNumber(1)
+  set confirmedSats($fixnum.Int64 v) { $_setInt64(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasConfirmedSats() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearConfirmedSats() => clearField(1);
+
+  @$pb.TagNumber(2)
+  $fixnum.Int64 get pendingSats => $_getI64(1);
+  @$pb.TagNumber(2)
+  set pendingSats($fixnum.Int64 v) { $_setInt64(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasPendingSats() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearPendingSats() => clearField(2);
+}
+
 /// One binary plus the categories of its data to act on.
 class SingleDeletion extends $pb.GeneratedMessage {
   factory SingleDeletion({
@@ -3360,6 +3474,9 @@ class OrchestratorServiceApi {
   ;
   $async.Future<GetMainchainBalanceResponse> getMainchainBalance($pb.ClientContext? ctx, GetMainchainBalanceRequest request) =>
     _client.invoke<GetMainchainBalanceResponse>(ctx, 'OrchestratorService', 'GetMainchainBalance', request, GetMainchainBalanceResponse())
+  ;
+  $async.Future<GetSidechainBalanceResponse> getSidechainBalance($pb.ClientContext? ctx, GetSidechainBalanceRequest request) =>
+    _client.invoke<GetSidechainBalanceResponse>(ctx, 'OrchestratorService', 'GetSidechainBalance', request, GetSidechainBalanceResponse())
   ;
   $async.Future<GatherFilesToDeleteResponse> gatherFilesToDelete($pb.ClientContext? ctx, GatherFilesToDeleteRequest request) =>
     _client.invoke<GatherFilesToDeleteResponse>(ctx, 'OrchestratorService', 'GatherFilesToDelete', request, GatherFilesToDeleteResponse())

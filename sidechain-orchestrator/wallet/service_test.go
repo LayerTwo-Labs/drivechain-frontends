@@ -5,8 +5,10 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"strconv"
 	"testing"
 
+	orchestratorpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/orchestrator/v1"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -533,7 +535,7 @@ func TestServiceGenerateWalletWithManySlots(t *testing.T) {
 
 	slots := make([]SidechainSlot, 10)
 	for i := range slots {
-		slots[i] = SidechainSlot{Slot: i, Name: "SC" + itoa(i)}
+		slots[i] = SidechainSlot{Slot: i, Name: "SC" + strconv.Itoa(i)}
 	}
 
 	w, err := svc.GenerateWallet("Many Slots", "", "", slots)
@@ -862,11 +864,15 @@ func TestServiceDeleteAllWallets_SoftDeletesByMoving(t *testing.T) {
 	w, err := svc.GenerateWallet("Soft", "", "", testSlots)
 	require.NoError(t, err)
 	require.NotEmpty(t, w.ID)
+	require.NoError(t, svc.SyncBalance(orchestratorpb.BinaryType_BINARY_TYPE_BITCOIND, w.ID, 11, 2, "Bitcoin"))
 
 	walletPath := filepath.Join(dir, "wallet.json")
 	originalBytes, err := os.ReadFile(walletPath)
 	require.NoError(t, err)
 	require.NotEmpty(t, originalBytes, "fixture: wallet.json must exist before reset")
+	metadataBytes, err := os.ReadFile(svc.WalletMetadataFilePath())
+	require.NoError(t, err)
+	require.NotEmpty(t, metadataBytes, "fixture: metadata.json must exist before reset")
 
 	// Hand the service a fake "binary wallet" so we can prove the same
 	// soft-delete contract applies to per-binary paths (bitcoind wallets,
@@ -892,12 +898,160 @@ func TestServiceDeleteAllWallets_SoftDeletesByMoving(t *testing.T) {
 	gotBytes, err := os.ReadFile(bitwindowBackup)
 	require.NoError(t, err)
 	assert.Equal(t, originalBytes, gotBytes, "soft-delete must preserve wallet bytes verbatim")
+	gotMetadataBytes, err := os.ReadFile(filepath.Join(filepath.Dir(bitwindowBackup), "metadata.json"))
+	require.NoError(t, err)
+	assert.Equal(t, metadataBytes, gotMetadataBytes, "wallet metadata must stay with wallet.json in the same backup")
 
 	binaryBackup := findBackup(t, filepath.Join(binDir, "wallet_backups"), "wallets")
 	require.NotEmpty(t, binaryBackup, "binary wallet must be soft-deleted next to its source")
 	keys, err := os.ReadFile(filepath.Join(binaryBackup, "wallet.dat"))
 	require.NoError(t, err)
 	assert.Equal(t, []byte("priv-keys"), keys, "private keys must survive soft-delete intact")
+}
+
+func TestServiceSyncBalanceWritesLatestKnownBalanceAndSkipsEqual(t *testing.T) {
+	svc := newTestService(t)
+	w, err := svc.GenerateWallet("Metadata", "", "", testSlots)
+	require.NoError(t, err)
+
+	require.NoError(t, svc.SyncBalance(orchestratorpb.BinaryType_BINARY_TYPE_BITCOIND, w.ID, 123, 4, "Bitcoin"))
+	meta, err := svc.loadWalletMetadataFile()
+	require.NoError(t, err)
+	assert.Equal(t, walletMetadataVersion, meta.Version)
+	assert.Equal(t, w.ID, meta.ActiveWalletID)
+	require.Len(t, meta.Wallets, 1)
+	snap, ok := meta.LatestKnownBalance["bitcoind"]
+	require.True(t, ok)
+	assert.Equal(t, orchestratorpb.BinaryType_BINARY_TYPE_BITCOIND, snap.Binary)
+	assert.Equal(t, uint64(123), snap.ConfirmedSats)
+	assert.Equal(t, uint64(4), snap.PendingSats)
+
+	firstBytes, err := os.ReadFile(svc.WalletMetadataFilePath())
+	require.NoError(t, err)
+	require.NoError(t, svc.SyncBalance(orchestratorpb.BinaryType_BINARY_TYPE_BITCOIND, w.ID, 123, 4, "Bitcoin"))
+	secondBytes, err := os.ReadFile(svc.WalletMetadataFilePath())
+	require.NoError(t, err)
+	assert.Equal(t, firstBytes, secondBytes, "unchanged balance metadata should not be rewritten")
+
+	require.NoError(t, svc.SyncBalance(orchestratorpb.BinaryType_BINARY_TYPE_BITCOIND, w.ID, 124, 4, "Bitcoin"))
+	meta, err = svc.loadWalletMetadataFile()
+	require.NoError(t, err)
+	assert.Equal(t, uint64(124), meta.LatestKnownBalance["bitcoind"].ConfirmedSats)
+}
+
+func TestServiceListWalletBackupsReadsUnencryptedMetadataForEncryptedBackup(t *testing.T) {
+	svc := newTestService(t)
+	w, err := svc.GenerateWallet("Encrypted metadata", "", "", testSlots)
+	require.NoError(t, err)
+	require.NoError(t, svc.SyncBalance(orchestratorpb.BinaryType_BINARY_TYPE_THUNDER, w.ID, 42, 7, "Thunder"))
+	require.NoError(t, svc.EncryptWallet("correct horse"))
+
+	backupDir := filepath.Join(svc.bitwindowDir, "wallet_backups", "20240102-030405")
+	require.NoError(t, os.MkdirAll(backupDir, 0o700))
+	copyTestFile(t, svc.walletFilePath(), filepath.Join(backupDir, "wallet.json"))
+	copyTestFile(t, svc.metadataFilePath(), filepath.Join(backupDir, "wallet_encryption.json"))
+	copyTestFile(t, svc.WalletMetadataFilePath(), filepath.Join(backupDir, "metadata.json"))
+
+	backups, err := svc.ListWalletBackups()
+	require.NoError(t, err)
+	require.Len(t, backups, 1)
+	backup := backups[0]
+	assert.True(t, backup.Valid)
+	assert.True(t, backup.Encrypted)
+	assert.True(t, backup.HasMetadata)
+	assert.Equal(t, w.ID, backup.ActiveWalletID)
+	require.Len(t, backup.LatestKnownBalance, 1)
+	assert.Equal(t, orchestratorpb.BinaryType_BINARY_TYPE_THUNDER, backup.LatestKnownBalance[0].Binary)
+	assert.Equal(t, uint64(42), backup.LatestKnownBalance[0].ConfirmedSats)
+	assert.Equal(t, uint64(7), backup.LatestKnownBalance[0].PendingSats)
+}
+
+func TestServiceRestoreWalletBackupRequiresPasswordBeforeMovingCurrentWallet(t *testing.T) {
+	svc := newTestService(t)
+	w, err := svc.GenerateWallet("Encrypted restore", "", "", testSlots)
+	require.NoError(t, err)
+	require.NoError(t, svc.SyncBalance(orchestratorpb.BinaryType_BINARY_TYPE_BITCOIND, w.ID, 555, 0, "Bitcoin"))
+	require.NoError(t, svc.EncryptWallet("correct horse"))
+
+	backupDir := filepath.Join(svc.bitwindowDir, "wallet_backups", "20240103-040506")
+	require.NoError(t, os.MkdirAll(backupDir, 0o700))
+	copyTestFile(t, svc.walletFilePath(), filepath.Join(backupDir, "wallet.json"))
+	copyTestFile(t, svc.metadataFilePath(), filepath.Join(backupDir, "wallet_encryption.json"))
+	copyTestFile(t, svc.WalletMetadataFilePath(), filepath.Join(backupDir, "metadata.json"))
+	encryptedWalletBytes, err := os.ReadFile(svc.walletFilePath())
+	require.NoError(t, err)
+
+	require.NoError(t, svc.RemoveEncryption("correct horse"))
+	currentWalletBytes, err := os.ReadFile(svc.walletFilePath())
+	require.NoError(t, err)
+	_, err = os.Stat(svc.metadataFilePath())
+	require.True(t, os.IsNotExist(err), "fixture: current wallet should be unencrypted before restore")
+
+	backups, err := svc.ListWalletBackups()
+	require.NoError(t, err)
+	require.Len(t, backups, 1)
+
+	err = svc.RestoreWalletBackup(backups[0].ID, "wrong horse")
+	require.Error(t, err)
+	afterBadPasswordBytes, err := os.ReadFile(svc.walletFilePath())
+	require.NoError(t, err)
+	assert.Equal(t, currentWalletBytes, afterBadPasswordBytes, "bad password must not move or overwrite current wallet")
+	_, err = os.Stat(svc.metadataFilePath())
+	require.True(t, os.IsNotExist(err), "bad password must not restore wallet_encryption.json")
+
+	require.NoError(t, svc.RestoreWalletBackup(backups[0].ID, "correct horse"))
+	restoredBytes, err := os.ReadFile(svc.walletFilePath())
+	require.NoError(t, err)
+	assert.Equal(t, encryptedWalletBytes, restoredBytes)
+	assert.True(t, svc.IsEncrypted())
+	meta, err := svc.loadWalletMetadataFile()
+	require.NoError(t, err)
+	assert.Equal(t, w.ID, meta.ActiveWalletID)
+}
+
+func TestServiceRestoreWalletBackupWithProgressReportsPlanAndStepStatuses(t *testing.T) {
+	svc := newTestService(t)
+	w, err := svc.GenerateWallet("Progress restore", "", "", testSlots)
+	require.NoError(t, err)
+	require.NoError(t, svc.SyncBalance(orchestratorpb.BinaryType_BINARY_TYPE_BITCOIND, w.ID, 777, 0, "Bitcoin"))
+
+	backupDir := filepath.Join(svc.bitwindowDir, "wallet_backups", "20240104-050607")
+	require.NoError(t, os.MkdirAll(backupDir, 0o700))
+	copyTestFile(t, svc.walletFilePath(), filepath.Join(backupDir, "wallet.json"))
+	copyTestFile(t, svc.WalletMetadataFilePath(), filepath.Join(backupDir, "metadata.json"))
+
+	backups, err := svc.ListWalletBackups()
+	require.NoError(t, err)
+	require.Len(t, backups, 1)
+
+	plan, err := svc.RestoreWalletBackupPlan(backups[0].ID)
+	require.NoError(t, err)
+	require.Equal(t, []RestoreWalletBackupStep{
+		{ID: restoreStepValidate, Name: "Validating wallet backup"},
+		{ID: restoreStepBackupCurrent, Name: "Backing up current wallet"},
+		{ID: restoreStepRestoreFiles, Name: "Restoring wallet files"},
+		{ID: restoreStepLoadWallet, Name: "Loading restored wallet"},
+		{ID: restoreStepComplete, Name: "Restore complete"},
+	}, plan)
+
+	var events []string
+	err = svc.RestoreWalletBackupWithProgress(backups[0].ID, "", func(stepID string, status RestoreWalletBackupStepStatus, stepErr error) {
+		require.NoError(t, stepErr)
+		events = append(events, string(status)+":"+stepID)
+	})
+	require.NoError(t, err)
+	require.Equal(t, []string{
+		string(RestoreWalletBackupStepStarted) + ":" + restoreStepValidate,
+		string(RestoreWalletBackupStepCompleted) + ":" + restoreStepValidate,
+		string(RestoreWalletBackupStepStarted) + ":" + restoreStepBackupCurrent,
+		string(RestoreWalletBackupStepCompleted) + ":" + restoreStepBackupCurrent,
+		string(RestoreWalletBackupStepStarted) + ":" + restoreStepRestoreFiles,
+		string(RestoreWalletBackupStepCompleted) + ":" + restoreStepRestoreFiles,
+		string(RestoreWalletBackupStepStarted) + ":" + restoreStepLoadWallet,
+		string(RestoreWalletBackupStepCompleted) + ":" + restoreStepLoadWallet,
+		string(RestoreWalletBackupStepStarted) + ":" + restoreStepComplete,
+		string(RestoreWalletBackupStepCompleted) + ":" + restoreStepComplete,
+	}, events)
 }
 
 // findBackup walks `root/<ts>/` looking for an entry whose basename is `name`
@@ -920,4 +1074,13 @@ func findBackup(t *testing.T, root, name string) string {
 		}
 	}
 	return ""
+}
+
+func copyTestFile(t *testing.T, src, dst string) {
+	t.Helper()
+	data, err := os.ReadFile(src)
+	require.NoError(t, err)
+	info, err := os.Stat(src)
+	require.NoError(t, err)
+	require.NoError(t, os.WriteFile(dst, data, info.Mode().Perm()))
 }

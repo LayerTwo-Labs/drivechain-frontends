@@ -267,7 +267,10 @@ func (o *Orchestrator) DeleteFiles(ctx context.Context, paths []string, specs ..
 		masterTouched := false
 		for _, p := range paths {
 			evt := DeleteEvent{Path: p}
-			if isWalletPath(p, walletSet) {
+			if isWalletBackupPath(p) {
+				// Existing wallet backups are the recovery source. Leave them in
+				// place even if a broad reset selection happens to gather them.
+			} else if isWalletPath(p, walletSet) {
 				// Wallets are moved aside, never removed — keys are irreplaceable.
 				if o.WalletSvc != nil {
 					if _, err := o.WalletSvc.BackupPath(p); err != nil {
@@ -555,9 +558,12 @@ func isWalletPath(p string, walletSet map[string]bool) bool {
 	// is a no-op on POSIX hosts, so do the replace manually) so the checks below
 	// hold for every platform's path shape.
 	lower := strings.ToLower(strings.ReplaceAll(p, `\`, "/"))
+	if isWalletBackupPath(lower) {
+		return true
+	}
 
 	// Known wallet files, anywhere in the tree.
-	for _, name := range []string{"wallet.mdb", "wallet.dat", "wallet.json", "wallet_encryption.json"} {
+	for _, name := range []string{"wallet.mdb", "wallet.dat", "wallet.json", "wallet_encryption.json", "metadata.json"} {
 		if lower == name || strings.HasSuffix(lower, "/"+name) {
 			return true
 		}
@@ -566,6 +572,11 @@ func isWalletPath(p string, walletSet map[string]bool) bool {
 	// Wallet directories: bitcoind's `wallets/`, the enforcer's `wallet/<net>`.
 	return strings.Contains(lower, "/wallet/") || strings.HasSuffix(lower, "/wallet") ||
 		strings.Contains(lower, "/wallets/") || strings.HasSuffix(lower, "/wallets")
+}
+
+func isWalletBackupPath(p string) bool {
+	lower := strings.ToLower(strings.ReplaceAll(p, `\`, "/"))
+	return strings.Contains(lower, "/wallet_backups/") || strings.HasSuffix(lower, "/wallet_backups")
 }
 
 // allWalletPaths is the set of every binary's wallet locations for the current

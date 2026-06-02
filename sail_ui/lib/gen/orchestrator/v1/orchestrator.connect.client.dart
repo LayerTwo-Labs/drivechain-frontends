@@ -342,6 +342,24 @@ extension type OrchestratorServiceClient (connect.Transport _transport) {
     );
   }
 
+  /// Get wallet balance from a sidechain daemon (proxied via orchestrator).
+  Future<orchestratorv1orchestrator.GetSidechainBalanceResponse> getSidechainBalance(
+    orchestratorv1orchestrator.GetSidechainBalanceRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.OrchestratorService.getSidechainBalance,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
   /// Gather the files/dirs that would be deleted for a per-binary deletion spec
   /// (no side effects). Shared by the single-binary wipe and the full reset page.
   Future<orchestratorv1orchestrator.GatherFilesToDeleteResponse> gatherFilesToDelete(

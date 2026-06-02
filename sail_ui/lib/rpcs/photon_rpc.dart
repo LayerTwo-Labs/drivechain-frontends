@@ -12,6 +12,7 @@ import 'package:sail_ui/classes/rpc_connection.dart';
 import 'package:sail_ui/config/binaries.dart';
 import 'package:sail_ui/gen/photon/v1/photon.connect.client.dart';
 import 'package:sail_ui/gen/photon/v1/photon.pb.dart' as pb;
+import 'package:sail_ui/rpcs/orchestrator_rpc.dart';
 import 'package:sail_ui/rpcs/rpc_sidechain.dart';
 import 'package:sail_ui/rpcs/thunder_utxo.dart';
 import 'package:sail_ui/widgets/components/core_transaction.dart';
@@ -81,9 +82,9 @@ class PhotonLive extends PhotonRPC {
 
   @override
   Future<(double, double)> balance() async {
-    final resp = await _client.getBalance(pb.GetBalanceRequest());
-    final confirmed = satoshiToBTC(resp.availableSats.toInt());
-    final unconfirmed = satoshiToBTC((resp.totalSats - resp.availableSats).toInt());
+    final resp = await GetIt.I.get<OrchestratorRPC>().getSidechainBalance(binaryType);
+    final confirmed = satoshiToBTC(resp.confirmedSats.toInt());
+    final unconfirmed = satoshiToBTC(resp.pendingSats.toInt());
     return (confirmed, unconfirmed);
   }
 

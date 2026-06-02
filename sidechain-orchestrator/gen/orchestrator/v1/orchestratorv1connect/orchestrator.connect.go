@@ -84,6 +84,9 @@ const (
 	// OrchestratorServiceGetMainchainBalanceProcedure is the fully-qualified name of the
 	// OrchestratorService's GetMainchainBalance RPC.
 	OrchestratorServiceGetMainchainBalanceProcedure = "/orchestrator.v1.OrchestratorService/GetMainchainBalance"
+	// OrchestratorServiceGetSidechainBalanceProcedure is the fully-qualified name of the
+	// OrchestratorService's GetSidechainBalance RPC.
+	OrchestratorServiceGetSidechainBalanceProcedure = "/orchestrator.v1.OrchestratorService/GetSidechainBalance"
 	// OrchestratorServiceGatherFilesToDeleteProcedure is the fully-qualified name of the
 	// OrchestratorService's GatherFilesToDelete RPC.
 	OrchestratorServiceGatherFilesToDeleteProcedure = "/orchestrator.v1.OrchestratorService/GatherFilesToDelete"
@@ -162,6 +165,8 @@ type OrchestratorServiceClient interface {
 	GetDownloadStatus(context.Context, *connect.Request[v1.GetDownloadStatusRequest]) (*connect.Response[v1.GetDownloadStatusResponse], error)
 	// Get wallet balance from Bitcoin Core (proxied via orchestrator).
 	GetMainchainBalance(context.Context, *connect.Request[v1.GetMainchainBalanceRequest]) (*connect.Response[v1.GetMainchainBalanceResponse], error)
+	// Get wallet balance from a sidechain daemon (proxied via orchestrator).
+	GetSidechainBalance(context.Context, *connect.Request[v1.GetSidechainBalanceRequest]) (*connect.Response[v1.GetSidechainBalanceResponse], error)
 	// Gather the files/dirs that would be deleted for a per-binary deletion spec
 	// (no side effects). Shared by the single-binary wipe and the full reset page.
 	GatherFilesToDelete(context.Context, *connect.Request[v1.GatherFilesToDeleteRequest]) (*connect.Response[v1.GatherFilesToDeleteResponse], error)
@@ -289,6 +294,12 @@ func NewOrchestratorServiceClient(httpClient connect.HTTPClient, baseURL string,
 			connect.WithSchema(orchestratorServiceMethods.ByName("GetMainchainBalance")),
 			connect.WithClientOptions(opts...),
 		),
+		getSidechainBalance: connect.NewClient[v1.GetSidechainBalanceRequest, v1.GetSidechainBalanceResponse](
+			httpClient,
+			baseURL+OrchestratorServiceGetSidechainBalanceProcedure,
+			connect.WithSchema(orchestratorServiceMethods.ByName("GetSidechainBalance")),
+			connect.WithClientOptions(opts...),
+		),
 		gatherFilesToDelete: connect.NewClient[v1.GatherFilesToDeleteRequest, v1.GatherFilesToDeleteResponse](
 			httpClient,
 			baseURL+OrchestratorServiceGatherFilesToDeleteProcedure,
@@ -335,6 +346,7 @@ type orchestratorServiceClient struct {
 	getSyncStatus              *connect.Client[v1.GetSyncStatusRequest, v1.GetSyncStatusResponse]
 	getDownloadStatus          *connect.Client[v1.GetDownloadStatusRequest, v1.GetDownloadStatusResponse]
 	getMainchainBalance        *connect.Client[v1.GetMainchainBalanceRequest, v1.GetMainchainBalanceResponse]
+	getSidechainBalance        *connect.Client[v1.GetSidechainBalanceRequest, v1.GetSidechainBalanceResponse]
 	gatherFilesToDelete        *connect.Client[v1.GatherFilesToDeleteRequest, v1.GatherFilesToDeleteResponse]
 	deleteFiles                *connect.Client[v1.DeleteFilesRequest, v1.DeleteFilesResponse]
 	getCoreMempoolInfo         *connect.Client[v1.GetCoreMempoolInfoRequest, v1.GetCoreMempoolInfoResponse]
@@ -426,6 +438,11 @@ func (c *orchestratorServiceClient) GetMainchainBalance(ctx context.Context, req
 	return c.getMainchainBalance.CallUnary(ctx, req)
 }
 
+// GetSidechainBalance calls orchestrator.v1.OrchestratorService.GetSidechainBalance.
+func (c *orchestratorServiceClient) GetSidechainBalance(ctx context.Context, req *connect.Request[v1.GetSidechainBalanceRequest]) (*connect.Response[v1.GetSidechainBalanceResponse], error) {
+	return c.getSidechainBalance.CallUnary(ctx, req)
+}
+
 // GatherFilesToDelete calls orchestrator.v1.OrchestratorService.GatherFilesToDelete.
 func (c *orchestratorServiceClient) GatherFilesToDelete(ctx context.Context, req *connect.Request[v1.GatherFilesToDeleteRequest]) (*connect.Response[v1.GatherFilesToDeleteResponse], error) {
 	return c.gatherFilesToDelete.CallUnary(ctx, req)
@@ -511,6 +528,8 @@ type OrchestratorServiceHandler interface {
 	GetDownloadStatus(context.Context, *connect.Request[v1.GetDownloadStatusRequest]) (*connect.Response[v1.GetDownloadStatusResponse], error)
 	// Get wallet balance from Bitcoin Core (proxied via orchestrator).
 	GetMainchainBalance(context.Context, *connect.Request[v1.GetMainchainBalanceRequest]) (*connect.Response[v1.GetMainchainBalanceResponse], error)
+	// Get wallet balance from a sidechain daemon (proxied via orchestrator).
+	GetSidechainBalance(context.Context, *connect.Request[v1.GetSidechainBalanceRequest]) (*connect.Response[v1.GetSidechainBalanceResponse], error)
 	// Gather the files/dirs that would be deleted for a per-binary deletion spec
 	// (no side effects). Shared by the single-binary wipe and the full reset page.
 	GatherFilesToDelete(context.Context, *connect.Request[v1.GatherFilesToDeleteRequest]) (*connect.Response[v1.GatherFilesToDeleteResponse], error)
@@ -634,6 +653,12 @@ func NewOrchestratorServiceHandler(svc OrchestratorServiceHandler, opts ...conne
 		connect.WithSchema(orchestratorServiceMethods.ByName("GetMainchainBalance")),
 		connect.WithHandlerOptions(opts...),
 	)
+	orchestratorServiceGetSidechainBalanceHandler := connect.NewUnaryHandler(
+		OrchestratorServiceGetSidechainBalanceProcedure,
+		svc.GetSidechainBalance,
+		connect.WithSchema(orchestratorServiceMethods.ByName("GetSidechainBalance")),
+		connect.WithHandlerOptions(opts...),
+	)
 	orchestratorServiceGatherFilesToDeleteHandler := connect.NewUnaryHandler(
 		OrchestratorServiceGatherFilesToDeleteProcedure,
 		svc.GatherFilesToDelete,
@@ -694,6 +719,8 @@ func NewOrchestratorServiceHandler(svc OrchestratorServiceHandler, opts ...conne
 			orchestratorServiceGetDownloadStatusHandler.ServeHTTP(w, r)
 		case OrchestratorServiceGetMainchainBalanceProcedure:
 			orchestratorServiceGetMainchainBalanceHandler.ServeHTTP(w, r)
+		case OrchestratorServiceGetSidechainBalanceProcedure:
+			orchestratorServiceGetSidechainBalanceHandler.ServeHTTP(w, r)
 		case OrchestratorServiceGatherFilesToDeleteProcedure:
 			orchestratorServiceGatherFilesToDeleteHandler.ServeHTTP(w, r)
 		case OrchestratorServiceDeleteFilesProcedure:
@@ -777,6 +804,10 @@ func (UnimplementedOrchestratorServiceHandler) GetDownloadStatus(context.Context
 
 func (UnimplementedOrchestratorServiceHandler) GetMainchainBalance(context.Context, *connect.Request[v1.GetMainchainBalanceRequest]) (*connect.Response[v1.GetMainchainBalanceResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("orchestrator.v1.OrchestratorService.GetMainchainBalance is not implemented"))
+}
+
+func (UnimplementedOrchestratorServiceHandler) GetSidechainBalance(context.Context, *connect.Request[v1.GetSidechainBalanceRequest]) (*connect.Response[v1.GetSidechainBalanceResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("orchestrator.v1.OrchestratorService.GetSidechainBalance is not implemented"))
 }
 
 func (UnimplementedOrchestratorServiceHandler) GatherFilesToDelete(context.Context, *connect.Request[v1.GatherFilesToDeleteRequest]) (*connect.Response[v1.GatherFilesToDeleteResponse], error) {

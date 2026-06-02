@@ -67,6 +67,10 @@ func satsToBtcInt(sats int64) string {
 	return fmt.Sprintf("%.8f", float64(sats)/float64(satsPerBTC))
 }
 
+func satsToBtcUint(sats uint64) string {
+	return fmt.Sprintf("%.8f", float64(sats)/float64(satsPerBTC))
+}
+
 var walletCommand = &cli.Command{
 	Name:  "wallet",
 	Usage: "Manage wallets",
@@ -76,6 +80,8 @@ var walletCommand = &cli.Command{
 		walletListCommand,
 		walletSetActiveCommand,
 		walletDeleteCommand,
+		walletBackupsCommand,
+		walletRestoreCommand,
 		walletLockCommand,
 		walletUnlockCommand,
 		walletEncryptCommand,
@@ -95,6 +101,119 @@ var walletCommand = &cli.Command{
 		walletWatchOnlyCreateCommand,
 		walletCoreCreateCommand,
 		walletEnsureCoreCommand,
+	},
+}
+
+var walletBackupsCommand = &cli.Command{
+	Name:    "list-restorable-wallets",
+	Aliases: []string{"backups", "backup-list"},
+	Usage:   "List local wallet backups available for restore",
+	Action: func(cctx *cli.Context) error {
+		client := newWalletClient(cctx)
+		resp, err := client.ListWalletBackups(cctx.Context, connect.NewRequest(&pb.ListWalletBackupsRequest{}))
+		if err != nil {
+			return err
+		}
+		if len(resp.Msg.Backups) == 0 {
+			fmt.Println("no wallet backups")
+			return nil
+		}
+
+		tw := tabwriter.NewWriter(os.Stdout, 0, 2, 2, ' ', 0)
+		_, _ = fmt.Fprintln(tw, "ID\tCREATED\tENCRYPTED\tVALID\tWALLETS\tLATEST KNOWN BALANCE")
+		for _, backup := range resp.Msg.Backups {
+			createdAt := "-"
+			if backup.CreatedAt != nil {
+				createdAt = backup.CreatedAt.AsTime().Local().Format("2006-01-02 15:04:05")
+			}
+			valid := "yes"
+			if !backup.Valid {
+				valid = backup.ErrorMessage
+				if valid == "" {
+					valid = "no"
+				}
+			}
+			_, _ = fmt.Fprintf(
+				tw,
+				"%s\t%s\t%v\t%s\t%s\t%s\n",
+				backup.BackupId,
+				createdAt,
+				backup.Encrypted,
+				valid,
+				formatBackupWallets(backup.Wallets),
+				formatBackupBalances(backup.LatestKnownBalance),
+			)
+		}
+		return tw.Flush()
+	},
+}
+
+var walletRestoreCommand = &cli.Command{
+	Name:      "restore-wallet",
+	Aliases:   []string{"restore"},
+	Usage:     "Restore a wallet from a local wallet_backups entry",
+	ArgsUsage: "<backup-id>",
+	Flags: []cli.Flag{
+		&cli.StringFlag{Name: "password", Usage: "password for encrypted backups"},
+		&cli.BoolFlag{Name: "yes", Usage: "skip the confirmation prompt"},
+	},
+	Action: func(cctx *cli.Context) error {
+		if cctx.NArg() < 1 {
+			return fmt.Errorf("usage: orchestratorctl wallet restore-wallet <backup-id> [--password PASSWORD]")
+		}
+		backupID := cctx.Args().First()
+		if err := confirmOrAbort(cctx, "restore wallet backup? current wallet files will be moved to wallet_backups/ first"); err != nil {
+			return err
+		}
+
+		client := newWalletClient(cctx)
+		stream, err := client.RestoreWalletBackupStream(cctx.Context, connect.NewRequest(&pb.RestoreWalletBackupRequest{
+			BackupId: backupID,
+			Password: cctx.String("password"),
+		}))
+		if err != nil {
+			return err
+		}
+
+		stepNames := map[string]string{}
+		for stream.Receive() {
+			msg := stream.Msg()
+			if len(msg.Steps) > 0 {
+				fmt.Println("restore plan:")
+				for _, step := range msg.Steps {
+					stepNames[step.StepId] = step.Name
+					fmt.Printf("  - %s\n", step.Name)
+				}
+				continue
+			}
+
+			status := msg.Status
+			if status == nil {
+				continue
+			}
+			if status.Complete {
+				fmt.Printf("restore complete: %s\n", backupID)
+				continue
+			}
+
+			name := stepNames[status.StepId]
+			if name == "" {
+				name = status.StepId
+			}
+			switch status.State {
+			case pb.RestoreWalletBackupStepState_RESTORE_WALLET_BACKUP_STEP_STATE_STARTED:
+				fmt.Printf("  start %s\n", name)
+			case pb.RestoreWalletBackupStepState_RESTORE_WALLET_BACKUP_STEP_STATE_COMPLETED:
+				fmt.Printf("  ok    %s\n", name)
+			case pb.RestoreWalletBackupStepState_RESTORE_WALLET_BACKUP_STEP_STATE_FAILED:
+				if status.Error != "" {
+					fmt.Printf("  FAIL  %s (%s)\n", name, status.Error)
+				} else {
+					fmt.Printf("  FAIL  %s\n", name)
+				}
+			}
+		}
+		return stream.Err()
 	},
 }
 
@@ -125,6 +244,43 @@ var walletStatusCommand = &cli.Command{
 		}
 		return nil
 	},
+}
+
+func formatBackupWallets(wallets []*pb.BackupWalletSummary) string {
+	if len(wallets) == 0 {
+		return "-"
+	}
+	parts := make([]string, 0, len(wallets))
+	for _, wallet := range wallets {
+		name := wallet.Name
+		if name == "" {
+			name = wallet.Id
+		}
+		if wallet.WalletType != "" {
+			name = fmt.Sprintf("%s (%s)", name, wallet.WalletType)
+		}
+		parts = append(parts, name)
+	}
+	return strings.Join(parts, ", ")
+}
+
+func formatBackupBalances(balances []*pb.BalanceSnapshot) string {
+	if len(balances) == 0 {
+		return "-"
+	}
+	parts := make([]string, 0, len(balances))
+	for _, balance := range balances {
+		name := balance.DisplayName
+		if name == "" {
+			name = strings.TrimPrefix(balance.Binary.String(), "BINARY_TYPE_")
+		}
+		value := fmt.Sprintf("%s: %s BTC", name, satsToBtcUint(balance.ConfirmedSats))
+		if balance.PendingSats > 0 {
+			value = fmt.Sprintf("%s (+%s pending)", value, satsToBtcUint(balance.PendingSats))
+		}
+		parts = append(parts, value)
+	}
+	return strings.Join(parts, ", ")
 }
 
 var walletCreateCommand = &cli.Command{

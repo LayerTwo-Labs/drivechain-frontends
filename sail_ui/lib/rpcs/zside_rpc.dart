@@ -12,6 +12,7 @@ import 'package:sail_ui/classes/rpc_connection.dart';
 import 'package:sail_ui/config/binaries.dart';
 import 'package:sail_ui/gen/zside/v1/zside.connect.client.dart';
 import 'package:sail_ui/gen/zside/v1/zside.pb.dart' as pb;
+import 'package:sail_ui/rpcs/orchestrator_rpc.dart';
 import 'package:sail_ui/rpcs/rpc_sidechain.dart';
 import 'package:sail_ui/rpcs/thunder_utxo.dart';
 import 'package:sail_ui/widgets/components/core_transaction.dart';
@@ -114,13 +115,9 @@ class ZSideLive extends ZSideRPC {
 
   @override
   Future<(double, double)> balance() async {
-    final resp = await _client.getBalance(pb.GetBalanceRequest());
-    final totalSats = resp.totalShieldedSats.toInt() + resp.totalTransparentSats.toInt();
-    final availableSats = resp.availableShieldedSats.toInt() + resp.availableTransparentSats.toInt();
-    final unconfirmedSats = totalSats - availableSats;
-
-    final confirmed = satoshiToBTC(availableSats);
-    final unconfirmed = satoshiToBTC(unconfirmedSats);
+    final resp = await GetIt.I.get<OrchestratorRPC>().getSidechainBalance(binaryType);
+    final confirmed = satoshiToBTC(resp.confirmedSats.toInt());
+    final unconfirmed = satoshiToBTC(resp.pendingSats.toInt());
     return (confirmed, unconfirmed);
   }
 

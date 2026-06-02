@@ -214,6 +214,57 @@ extension type WalletManagerServiceClient (connect.Transport _transport) {
     );
   }
 
+  Future<walletmanagerv1walletmanager.ListWalletBackupsResponse> listWalletBackups(
+    walletmanagerv1walletmanager.ListWalletBackupsRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.WalletManagerService.listWalletBackups,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
+  Future<walletmanagerv1walletmanager.RestoreWalletBackupResponse> restoreWalletBackup(
+    walletmanagerv1walletmanager.RestoreWalletBackupRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.WalletManagerService.restoreWalletBackup,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
+  Stream<walletmanagerv1walletmanager.RestoreWalletBackupProgressResponse> restoreWalletBackupStream(
+    walletmanagerv1walletmanager.RestoreWalletBackupRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).server(
+      specs.WalletManagerService.restoreWalletBackupStream,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
   Future<walletmanagerv1walletmanager.CreateWatchOnlyWalletResponse> createWatchOnlyWallet(
     walletmanagerv1walletmanager.CreateWatchOnlyWalletRequest input, {
     connect.Headers? headers,

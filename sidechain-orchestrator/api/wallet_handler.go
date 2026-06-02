@@ -19,6 +19,7 @@ import (
 	commonv1 "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/common/v1"
 	enforcerpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1"
 	enforcerrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1/mainchainv1connect"
+	orchestratorpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/orchestrator/v1"
 	pb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1"
 	rpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1/walletmanagerv1connect"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/wallet"
@@ -245,6 +246,80 @@ func (h *WalletHandler) DeleteAllWallets(ctx context.Context, req *connect.Reque
 	return connect.NewResponse(&pb.DeleteAllWalletsResponse{}), nil
 }
 
+func (h *WalletHandler) ListWalletBackups(ctx context.Context, req *connect.Request[pb.ListWalletBackupsRequest]) (*connect.Response[pb.ListWalletBackupsResponse], error) {
+	backups, err := h.svc.ListWalletBackups()
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+
+	resp := &pb.ListWalletBackupsResponse{Backups: make([]*pb.WalletBackup, 0, len(backups))}
+	for _, backup := range backups {
+		resp.Backups = append(resp.Backups, walletBackupToProto(backup))
+	}
+	return connect.NewResponse(resp), nil
+}
+
+func (h *WalletHandler) RestoreWalletBackup(ctx context.Context, req *connect.Request[pb.RestoreWalletBackupRequest]) (*connect.Response[pb.RestoreWalletBackupResponse], error) {
+	if err := h.svc.RestoreWalletBackup(req.Msg.BackupId, req.Msg.Password); err != nil {
+		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+	}
+	return connect.NewResponse(&pb.RestoreWalletBackupResponse{}), nil
+}
+
+func (h *WalletHandler) RestoreWalletBackupStream(ctx context.Context, req *connect.Request[pb.RestoreWalletBackupRequest], stream *connect.ServerStream[pb.RestoreWalletBackupProgressResponse]) error {
+	steps, err := h.svc.RestoreWalletBackupPlan(req.Msg.BackupId)
+	if err != nil {
+		return connect.NewError(connect.CodeInvalidArgument, err)
+	}
+
+	planned := make([]*pb.RestoreWalletBackupStep, 0, len(steps))
+	for _, step := range steps {
+		planned = append(planned, &pb.RestoreWalletBackupStep{
+			StepId: step.ID,
+			Name:   step.Name,
+		})
+	}
+	if err := stream.Send(&pb.RestoreWalletBackupProgressResponse{Steps: planned}); err != nil {
+		return err
+	}
+
+	var sendErr error
+	sendProgress := func(stepID string, status wallet.RestoreWalletBackupStepStatus, stepErr error) {
+		if sendErr != nil {
+			return
+		}
+		msg := &pb.RestoreWalletBackupProgressResponse{
+			Status: &pb.RestoreWalletBackupProgressStatus{
+				StepId: stepID,
+				State:  restoreStepStatusToProto(status),
+			},
+		}
+		if stepErr != nil {
+			msg.Status.Error = stepErr.Error()
+		}
+		if err := stream.Send(msg); err != nil {
+			sendErr = err
+		}
+	}
+
+	if err := h.svc.RestoreWalletBackupWithProgress(req.Msg.BackupId, req.Msg.Password, sendProgress); err != nil {
+		if sendErr != nil {
+			return sendErr
+		}
+		return connect.NewError(connect.CodeInvalidArgument, err)
+	}
+	if sendErr != nil {
+		return sendErr
+	}
+
+	return stream.Send(&pb.RestoreWalletBackupProgressResponse{
+		Status: &pb.RestoreWalletBackupProgressStatus{
+			Complete: true,
+			State:    pb.RestoreWalletBackupStepState_RESTORE_WALLET_BACKUP_STEP_STATE_COMPLETED,
+		},
+	})
+}
+
 func (h *WalletHandler) CreateWatchOnlyWallet(ctx context.Context, req *connect.Request[pb.CreateWatchOnlyWalletRequest]) (*connect.Response[pb.CreateWatchOnlyWalletResponse], error) {
 	if err := h.svc.CreateWatchOnlyWallet(req.Msg.Name, req.Msg.XpubOrDescriptor, req.Msg.GradientJson); err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)
@@ -318,6 +393,7 @@ func (h *WalletHandler) GetBalance(ctx context.Context, req *connect.Request[pb.
 		if err != nil {
 			return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("enforcer/wallet: get balance: %w", err))
 		}
+		_ = h.svc.SyncBalance(orchestratorpb.BinaryType_BINARY_TYPE_BITCOIND, walletID, uint64(resp.Msg.ConfirmedSats), uint64(resp.Msg.PendingSats), "Bitcoin")
 		return connect.NewResponse(&pb.GetBalanceResponse{
 			ConfirmedSats:   float64(resp.Msg.ConfirmedSats),
 			UnconfirmedSats: float64(resp.Msg.PendingSats),
@@ -343,9 +419,13 @@ func (h *WalletHandler) GetBalance(ctx context.Context, req *connect.Request[pb.
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
 
+	confirmedSats := btcToSats(confirmed)
+	unconfirmedSats := btcToSats(unconfirmed)
+	_ = h.svc.SyncBalance(orchestratorpb.BinaryType_BINARY_TYPE_BITCOIND, walletID, uint64(math.Round(confirmedSats)), uint64(math.Round(unconfirmedSats)), "Bitcoin")
+
 	return connect.NewResponse(&pb.GetBalanceResponse{
-		ConfirmedSats:   btcToSats(confirmed),
-		UnconfirmedSats: btcToSats(unconfirmed),
+		ConfirmedSats:   confirmedSats,
+		UnconfirmedSats: unconfirmedSats,
 	}), nil
 }
 
@@ -1449,6 +1529,53 @@ func coreVariantOrder(id string) int {
 		return 2
 	default:
 		return 99
+	}
+}
+
+func walletBackupToProto(backup wallet.WalletBackupInfo) *pb.WalletBackup {
+	out := &pb.WalletBackup{
+		BackupId:       backup.ID,
+		SourceName:     backup.SourceName,
+		Encrypted:      backup.Encrypted,
+		HasMetadata:    backup.HasMetadata,
+		ActiveWalletId: backup.ActiveWalletID,
+		Valid:          backup.Valid,
+		ErrorMessage:   backup.ErrorMessage,
+	}
+	if !backup.CreatedAt.IsZero() {
+		out.CreatedAt = timestamppb.New(backup.CreatedAt)
+	}
+	for _, w := range backup.Wallets {
+		out.Wallets = append(out.Wallets, &pb.BackupWalletSummary{
+			Id:         w.ID,
+			Name:       w.Name,
+			WalletType: w.WalletType,
+		})
+	}
+	for _, b := range backup.LatestKnownBalance {
+		out.LatestKnownBalance = append(out.LatestKnownBalance, &pb.BalanceSnapshot{
+			Binary:        b.Binary,
+			DisplayName:   b.DisplayName,
+			ConfirmedSats: b.ConfirmedSats,
+			PendingSats:   b.PendingSats,
+		})
+		if !b.UpdatedAt.IsZero() {
+			out.LatestKnownBalance[len(out.LatestKnownBalance)-1].UpdatedAt = timestamppb.New(b.UpdatedAt)
+		}
+	}
+	return out
+}
+
+func restoreStepStatusToProto(status wallet.RestoreWalletBackupStepStatus) pb.RestoreWalletBackupStepState {
+	switch status {
+	case wallet.RestoreWalletBackupStepStarted:
+		return pb.RestoreWalletBackupStepState_RESTORE_WALLET_BACKUP_STEP_STATE_STARTED
+	case wallet.RestoreWalletBackupStepCompleted:
+		return pb.RestoreWalletBackupStepState_RESTORE_WALLET_BACKUP_STEP_STATE_COMPLETED
+	case wallet.RestoreWalletBackupStepFailed:
+		return pb.RestoreWalletBackupStepState_RESTORE_WALLET_BACKUP_STEP_STATE_FAILED
+	default:
+		return pb.RestoreWalletBackupStepState_RESTORE_WALLET_BACKUP_STEP_STATE_UNSPECIFIED
 	}
 }
 

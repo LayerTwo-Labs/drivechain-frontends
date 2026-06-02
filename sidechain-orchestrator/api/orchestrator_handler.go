@@ -14,6 +14,13 @@ import (
 	orchestrator "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator"
 	pb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/orchestrator/v1"
 	rpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/orchestrator/v1/orchestratorv1connect"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/bitassets"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/bitnames"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/coinshift"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/photon"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/thunder"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/truthcoin"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/zside"
 )
 
 var _ rpc.OrchestratorServiceHandler = new(Handler)
@@ -405,6 +412,122 @@ func (h *Handler) GetMainchainBalance(ctx context.Context, req *connect.Request[
 		Confirmed:   bal.Confirmed,
 		Unconfirmed: bal.Unconfirmed,
 	}), nil
+}
+
+func (h *Handler) GetSidechainBalance(ctx context.Context, req *connect.Request[pb.GetSidechainBalanceRequest]) (*connect.Response[pb.GetSidechainBalanceResponse], error) {
+	name, displayName, err := sidechainBalanceTarget(req.Msg.Sidechain)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+	}
+	cfg, ok := h.orch.Configs()[name]
+	if !ok {
+		return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("sidechain %s is not configured", name))
+	}
+
+	confirmedSats, pendingSats, err := fetchSidechainBalance(ctx, req.Msg.Sidechain, cfg.Port)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeUnavailable, err)
+	}
+
+	if h.orch.WalletSvc != nil {
+		_ = h.orch.WalletSvc.SyncBalance(
+			req.Msg.Sidechain,
+			h.orch.WalletSvc.ActiveWalletID(),
+			uint64(confirmedSats),
+			uint64(pendingSats),
+			displayName,
+		)
+	}
+
+	return connect.NewResponse(&pb.GetSidechainBalanceResponse{
+		ConfirmedSats: uint64(confirmedSats),
+		PendingSats:   uint64(pendingSats),
+	}), nil
+}
+
+func sidechainBalanceTarget(binary pb.BinaryType) (name, displayName string, err error) {
+	switch binary {
+	case pb.BinaryType_BINARY_TYPE_THUNDER:
+		return "thunder", "Thunder", nil
+	case pb.BinaryType_BINARY_TYPE_ZSIDE:
+		return "zside", "ZSide", nil
+	case pb.BinaryType_BINARY_TYPE_BITNAMES:
+		return "bitnames", "BitNames", nil
+	case pb.BinaryType_BINARY_TYPE_BITASSETS:
+		return "bitassets", "BitAssets", nil
+	case pb.BinaryType_BINARY_TYPE_TRUTHCOIN:
+		return "truthcoin", "Truthcoin", nil
+	case pb.BinaryType_BINARY_TYPE_PHOTON:
+		return "photon", "Photon", nil
+	case pb.BinaryType_BINARY_TYPE_COINSHIFT:
+		return "coinshift", "CoinShift", nil
+	default:
+		return "", "", fmt.Errorf("unsupported sidechain binary type: %s", binary)
+	}
+}
+
+func fetchSidechainBalance(ctx context.Context, binary pb.BinaryType, port int) (confirmedSats, pendingSats int64, err error) {
+	switch binary {
+	case pb.BinaryType_BINARY_TYPE_THUNDER:
+		resp, err := thunder.NewClient("localhost", port).Balance(ctx)
+		if err != nil {
+			return 0, 0, err
+		}
+		confirmed, pending := balanceFromTotalAvailable(resp.TotalSats, resp.AvailableSats)
+		return confirmed, pending, nil
+	case pb.BinaryType_BINARY_TYPE_ZSIDE:
+		resp, err := zside.NewClient("localhost", port).Balance(ctx)
+		if err != nil {
+			return 0, 0, err
+		}
+		confirmed, pending := balanceFromTotalAvailable(resp.TotalSats, resp.AvailableSats)
+		return confirmed, pending, nil
+	case pb.BinaryType_BINARY_TYPE_BITNAMES:
+		resp, err := bitnames.NewClient("localhost", port).Balance(ctx)
+		if err != nil {
+			return 0, 0, err
+		}
+		confirmed, pending := balanceFromTotalAvailable(resp.TotalSats, resp.AvailableSats)
+		return confirmed, pending, nil
+	case pb.BinaryType_BINARY_TYPE_BITASSETS:
+		resp, err := bitassets.NewClient("localhost", port).Balance(ctx)
+		if err != nil {
+			return 0, 0, err
+		}
+		confirmed, pending := balanceFromTotalAvailable(resp.TotalSats, resp.AvailableSats)
+		return confirmed, pending, nil
+	case pb.BinaryType_BINARY_TYPE_TRUTHCOIN:
+		resp, err := truthcoin.NewClient("localhost", port).Balance(ctx)
+		if err != nil {
+			return 0, 0, err
+		}
+		confirmed, pending := balanceFromTotalAvailable(resp.TotalSats, resp.AvailableSats)
+		return confirmed, pending, nil
+	case pb.BinaryType_BINARY_TYPE_PHOTON:
+		resp, err := photon.NewClient("localhost", port).Balance(ctx)
+		if err != nil {
+			return 0, 0, err
+		}
+		confirmed, pending := balanceFromTotalAvailable(resp.TotalSats, resp.AvailableSats)
+		return confirmed, pending, nil
+	case pb.BinaryType_BINARY_TYPE_COINSHIFT:
+		resp, err := coinshift.NewClient("localhost", port).Balance(ctx)
+		if err != nil {
+			return 0, 0, err
+		}
+		confirmed, pending := balanceFromTotalAvailable(resp.TotalSats, resp.AvailableSats)
+		return confirmed, pending, nil
+	default:
+		return 0, 0, fmt.Errorf("unsupported sidechain binary type: %s", binary)
+	}
+}
+
+func balanceFromTotalAvailable(totalSats, availableSats int64) (confirmedSats, pendingSats int64) {
+	pending := totalSats - availableSats
+	if pending < 0 {
+		pending = 0
+	}
+	return availableSats, pending
 }
 
 func deletionTypeToCategory(dt pb.DeletionType) (orchestrator.ResetCategory, bool) {

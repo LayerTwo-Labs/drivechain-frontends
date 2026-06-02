@@ -56,6 +56,7 @@ CONTENTS
 1. wallet.json - Master wallet data (seed, derived keys, sidechain seeds)
 2. multisig/multisig.json - Multisig group configurations (exported from DB)
 3. transactions.json - Transaction history (exported from DB)
+4. metadata.json - Latest known wallet balance metadata
 
 All sidechain wallets are DERIVED from the master seed in wallet.json.
 Restoring this backup restores ALL your sidechain wallets automatically.
@@ -83,6 +84,16 @@ Keep this file secure. Anyone with access can control ALL your funds.
 		log.Info().Msg("backup: added wallet.json")
 	} else {
 		log.Warn().Err(err).Msg("backup: wallet.json not found")
+	}
+
+	metadataPath := filepath.Join(e.walletDir, "metadata.json")
+	if data, err := os.ReadFile(metadataPath); err == nil {
+		if err := addToZip(zw, "metadata.json", data); err != nil {
+			return nil, "", fmt.Errorf("write metadata.json: %w", err)
+		}
+		log.Info().Msg("backup: added metadata.json")
+	} else if !os.IsNotExist(err) {
+		log.Warn().Err(err).Msg("backup: metadata.json not readable")
 	}
 
 	// multisig data from DB
@@ -136,7 +147,7 @@ func (e *BackupEngine) RestoreBackup(ctx context.Context, data []byte, filename 
 	log := zerolog.Ctx(ctx)
 	ext := strings.ToLower(filepath.Ext(filename))
 
-	var walletJSON, multisigJSON, txJSON []byte
+	var walletJSON, metadataJSON, multisigJSON, txJSON []byte
 	var err error
 
 	switch ext {
@@ -147,7 +158,7 @@ func (e *BackupEngine) RestoreBackup(ctx context.Context, data []byte, filename 
 			return fmt.Errorf("invalid wallet.json: %w", err)
 		}
 	case ".zip":
-		walletJSON, multisigJSON, txJSON, err = extractZIP(data)
+		walletJSON, metadataJSON, multisigJSON, txJSON, err = extractZIP(data)
 		if err != nil {
 			return fmt.Errorf("extract zip: %w", err)
 		}
@@ -165,6 +176,14 @@ func (e *BackupEngine) RestoreBackup(ctx context.Context, data []byte, filename 
 		return fmt.Errorf("write wallet.json: %w", err)
 	}
 	log.Info().Msg("restore: wrote wallet.json")
+
+	if metadataJSON != nil {
+		metadataPath := filepath.Join(e.walletDir, "metadata.json")
+		if err := os.WriteFile(metadataPath, metadataJSON, 0600); err != nil {
+			return fmt.Errorf("write metadata.json: %w", err)
+		}
+		log.Info().Msg("restore: wrote metadata.json")
+	}
 
 	// Import multisig data into DB
 	if multisigJSON != nil {
@@ -469,10 +488,10 @@ func (e *BackupEngine) validateZIP(data []byte) (*BackupContents, error) {
 	return contents, nil
 }
 
-func extractZIP(data []byte) (walletJSON, multisigJSON, txJSON []byte, err error) {
+func extractZIP(data []byte) (walletJSON, metadataJSON, multisigJSON, txJSON []byte, err error) {
 	r, err := zip.NewReader(bytes.NewReader(data), int64(len(data)))
 	if err != nil {
-		return nil, nil, nil, fmt.Errorf("invalid zip: %w", err)
+		return nil, nil, nil, nil, fmt.Errorf("invalid zip: %w", err)
 	}
 
 	for _, f := range r.File {
@@ -489,6 +508,8 @@ func extractZIP(data []byte) (walletJSON, multisigJSON, txJSON []byte, err error
 		switch f.Name {
 		case "wallet.json":
 			walletJSON = content
+		case "metadata.json":
+			metadataJSON = content
 		case "multisig/multisig.json", "multisig\\multisig.json":
 			multisigJSON = content
 		case "transactions.json":

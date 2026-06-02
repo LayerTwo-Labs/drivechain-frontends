@@ -7,6 +7,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/tyler-smith/go-bip32"
 	"github.com/tyler-smith/go-bip39"
 )
 
@@ -126,8 +127,21 @@ func TestDeriveStarterInvalidPath(t *testing.T) {
 	assert.Error(t, err)
 }
 
-func TestDeriveStarterAtMasterPath(t *testing.T) {
-	// Derive at the same path twice should be identical
+func TestDeriveKeyAtPathInvalid(t *testing.T) {
+	seed := MnemonicToSeed("abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about", "")
+	mk, err := bip32.NewMasterKey(seed)
+	require.NoError(t, err)
+
+	// Non-numeric component.
+	_, err = deriveKeyAtPath(mk, "m/abc'/0'")
+	assert.Error(t, err)
+
+	// Index >= 2^31 is out of range before the hardened offset is applied.
+	_, err = deriveKeyAtPath(mk, "m/2147483648'/0'")
+	assert.Error(t, err)
+}
+
+func TestDeriveStarterDeterministic(t *testing.T) {
 	mnemonic := "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about"
 	seed := MnemonicToSeed(mnemonic, "")
 	seedHex := hex.EncodeToString(seed)
@@ -304,7 +318,7 @@ func TestCalculateChecksumBits(t *testing.T) {
 	assert.Equal(t, "0011", checksum)
 }
 
-// Helper for itoa without importing strconv
+// Helper for itoa without importing strconv.
 func itoa(n int) string {
 	if n == 0 {
 		return "0"
@@ -316,4 +330,3 @@ func itoa(n int) string {
 	}
 	return s
 }
-
