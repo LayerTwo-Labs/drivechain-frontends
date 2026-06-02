@@ -1027,8 +1027,18 @@ func createGenericSidechainCommand(sidechainName string, clientFactory ClientFac
 		Name:  sidechainName,
 		Usage: fmt.Sprintf("Manage %s sidechain", titleCase(sidechainName)),
 		Subcommands: []*cli.Command{
-			createMethodCommand(sidechainName, "balance", "Show wallet balance", clientFactory, "Balance"),
+			createSidechainBalanceCommand(sidechainName),
 			createMethodCommand(sidechainName, "generate-schema", "Generate OpenAPI schema", clientFactory, "OpenAPISchema"),
+		},
+	}
+}
+
+func createSidechainBalanceCommand(sidechainName string) *cli.Command {
+	return &cli.Command{
+		Name:  "balance",
+		Usage: "Show wallet balance through orchestratord",
+		Action: func(cctx *cli.Context) error {
+			return runSidechainBalance(cctx, sidechainName)
 		},
 	}
 }
@@ -1047,8 +1057,43 @@ func createMethodCommand(sidechainName, cmdName, usage string, clientFactory Cli
 // runSidechainMethod executes a method on the sidechain client with smart binary management
 func runSidechainMethod(cctx *cli.Context, sidechainName string, clientFactory ClientFactory, methodName string) error {
 	client := newClient(cctx)
+	if err := ensureSidechainDownloaded(cctx, client, sidechainName, methodName); err != nil {
+		return err
+	}
 
-	// Check if binary is downloaded
+	// Get the port for the sidechain
+	port, err := getSidechainPort(sidechainName)
+	if err != nil {
+		return fmt.Errorf("failed to get port for %s: %w", sidechainName, err)
+	}
+
+	// Create the sidechain client and call the method
+	sidechainClient := clientFactory(port)
+	return callClientMethod(cctx.Context, sidechainClient, methodName)
+}
+
+func runSidechainBalance(cctx *cli.Context, sidechainName string) error {
+	client := newClient(cctx)
+	if err := ensureSidechainDownloaded(cctx, client, sidechainName, "balance"); err != nil {
+		return err
+	}
+
+	binaryType, err := sidechainBinaryType(sidechainName)
+	if err != nil {
+		return err
+	}
+	resp, err := client.GetSidechainBalance(cctx.Context, connect.NewRequest(&pb.GetSidechainBalanceRequest{
+		Sidechain: binaryType,
+	}))
+	if err != nil {
+		return err
+	}
+	fmt.Printf("confirmed: %s BTC (%d sats)\n", satsToBtcUint(resp.Msg.ConfirmedSats), resp.Msg.ConfirmedSats)
+	fmt.Printf("pending:   %s BTC (%d sats)\n", satsToBtcUint(resp.Msg.PendingSats), resp.Msg.PendingSats)
+	return nil
+}
+
+func ensureSidechainDownloaded(cctx *cli.Context, client rpc.OrchestratorServiceClient, sidechainName, commandName string) error {
 	resp, err := client.GetBinaryStatus(cctx.Context, connect.NewRequest(&pb.GetBinaryStatusRequest{
 		Name: sidechainName,
 	}))
@@ -1070,7 +1115,7 @@ func runSidechainMethod(cctx *cli.Context, sidechainName string, clientFactory C
 		} else {
 			fmt.Printf("%s is not downloaded. download now? [Y/n] ", displayName)
 			if !confirmYes() {
-				return fmt.Errorf("cannot run %s command without %s binary", methodName, sidechainName)
+				return fmt.Errorf("cannot run %s command without %s binary", commandName, sidechainName)
 			}
 		}
 
@@ -1080,16 +1125,7 @@ func runSidechainMethod(cctx *cli.Context, sidechainName string, clientFactory C
 		}
 		fmt.Println()
 	}
-
-	// Get the port for the sidechain
-	port, err := getSidechainPort(sidechainName)
-	if err != nil {
-		return fmt.Errorf("failed to get port for %s: %w", sidechainName, err)
-	}
-
-	// Create the sidechain client and call the method
-	sidechainClient := clientFactory(port)
-	return callClientMethod(cctx.Context, sidechainClient, methodName)
+	return nil
 }
 
 // callClientMethod uses reflection to call the specified method on the client
@@ -1163,6 +1199,27 @@ func getSidechainPort(sidechainName string) (int, error) {
 		return 78332, nil
 	default:
 		return 0, fmt.Errorf("unknown sidechain: %s", sidechainName)
+	}
+}
+
+func sidechainBinaryType(sidechainName string) (pb.BinaryType, error) {
+	switch sidechainName {
+	case "bitnames":
+		return pb.BinaryType_BINARY_TYPE_BITNAMES, nil
+	case "thunder":
+		return pb.BinaryType_BINARY_TYPE_THUNDER, nil
+	case "bitassets":
+		return pb.BinaryType_BINARY_TYPE_BITASSETS, nil
+	case "coinshift":
+		return pb.BinaryType_BINARY_TYPE_COINSHIFT, nil
+	case "photon":
+		return pb.BinaryType_BINARY_TYPE_PHOTON, nil
+	case "truthcoin":
+		return pb.BinaryType_BINARY_TYPE_TRUTHCOIN, nil
+	case "zside":
+		return pb.BinaryType_BINARY_TYPE_ZSIDE, nil
+	default:
+		return pb.BinaryType_BINARY_TYPE_UNSPECIFIED, fmt.Errorf("unknown sidechain: %s", sidechainName)
 	}
 }
 

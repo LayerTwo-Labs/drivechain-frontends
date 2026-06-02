@@ -9,6 +9,7 @@ import 'package:get_it/get_it.dart';
 import 'package:intl/intl.dart';
 import 'package:logger/logger.dart';
 import 'package:path/path.dart' as path;
+import 'package:sail_ui/gen/walletmanager/v1/walletmanager.pb.dart' as wmpb;
 import 'package:sail_ui/sail_ui.dart';
 
 /// Create a wallet backup zip file via backend RPC.
@@ -558,7 +559,7 @@ class _BackupSuccessScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 32),
                 SailButton(
-                  label: 'Done',
+                  label: 'Complete',
                   variant: ButtonVariant.primary,
                   onPressed: () async {
                     await context.router.maybePop();
@@ -575,11 +576,16 @@ class _BackupSuccessScreen extends StatelessWidget {
 
 /// Restore progress step
 class RestoreProgressStep {
+  final String id;
   String name;
   DateTime startTime;
   DateTime? endTime;
 
-  RestoreProgressStep({required this.name, required this.startTime});
+  RestoreProgressStep({
+    String? id,
+    required this.name,
+    required this.startTime,
+  }) : id = id ?? name;
 
   bool get isCompleted => endTime != null;
   Duration? get duration => endTime?.difference(startTime);
@@ -606,12 +612,45 @@ class _RestoreWalletPageState extends State<RestoreWalletPage> {
   WalletWriterProvider get walletProvider => GetIt.I.get<WalletWriterProvider>();
 
   File? _selectedFile;
+  wmpb.WalletBackup? _selectedBackup;
+  List<wmpb.WalletBackup> _localBackups = [];
   String? _error;
+  String? _backupListError;
+  bool _loadingBackups = true;
   bool _isRestoring = false;
   final List<RestoreProgressStep> _steps = [];
   int _currentStepIndex = -1;
   bool _success = false;
   String? _autoBackupPath;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadLocalBackups();
+  }
+
+  Future<void> _loadLocalBackups() async {
+    setState(() {
+      _loadingBackups = true;
+      _backupListError = null;
+    });
+
+    try {
+      final response = await GetIt.I.get<OrchestratorRPC>().wallet.listWalletBackups();
+      if (!mounted) return;
+      setState(() {
+        _localBackups = response.backups;
+        _loadingBackups = false;
+      });
+    } catch (e) {
+      log.e('Failed to load wallet backups: $e');
+      if (!mounted) return;
+      setState(() {
+        _backupListError = 'Failed to load local wallet backups: $e';
+        _loadingBackups = false;
+      });
+    }
+  }
 
   Future<void> _selectBackupFile() async {
     try {
@@ -624,6 +663,7 @@ class _RestoreWalletPageState extends State<RestoreWalletPage> {
       if (result != null && result.files.single.path != null) {
         setState(() {
           _selectedFile = File(result.files.single.path!);
+          _selectedBackup = null;
           _error = null;
         });
       }
@@ -634,10 +674,22 @@ class _RestoreWalletPageState extends State<RestoreWalletPage> {
     }
   }
 
-  void _initializeSteps(bool hasAutoBackup) {
+  void _selectLocalBackup(wmpb.WalletBackup backup) {
+    if (!backup.valid) return;
+    setState(() {
+      _selectedBackup = backup;
+      _selectedFile = null;
+      _error = null;
+    });
+  }
+
+  void _initializeSteps({
+    required bool hasAutoBackup,
+    required bool validateFile,
+  }) {
     final stepNames = [
       if (hasAutoBackup) 'Backing up current wallet',
-      'Validating backup file',
+      if (validateFile) 'Validating backup file',
       'Restoring wallet files',
       'Stopping binaries',
       'Waiting for processes to stop',
@@ -654,6 +706,8 @@ class _RestoreWalletPageState extends State<RestoreWalletPage> {
           (name) => RestoreProgressStep(name: name, startTime: DateTime.now()),
         ),
       );
+      _currentStepIndex = -1;
+      _success = false;
     });
   }
 
@@ -670,9 +724,14 @@ class _RestoreWalletPageState extends State<RestoreWalletPage> {
   }
 
   Future<void> _startRestore() async {
+    if (_selectedBackup != null) {
+      await _startLocalRestore(_selectedBackup!);
+      return;
+    }
+
     if (_selectedFile == null) {
       setState(() {
-        _error = 'Please select a backup file first';
+        _error = 'Please select a backup first';
       });
       return;
     }
@@ -680,6 +739,7 @@ class _RestoreWalletPageState extends State<RestoreWalletPage> {
     // Check if current wallet exists
     final hasCurrent = await hasCurrentWallet(walletProvider);
 
+    _autoBackupPath = null;
     if (hasCurrent) {
       final timestamp = DateFormat(
         'yyyy-MM-dd_HH-mm-ss',
@@ -690,7 +750,7 @@ class _RestoreWalletPageState extends State<RestoreWalletPage> {
       );
     }
 
-    _initializeSteps(hasCurrent);
+    _initializeSteps(hasAutoBackup: hasCurrent, validateFile: true);
 
     setState(() {
       _isRestoring = true;
@@ -764,6 +824,323 @@ class _RestoreWalletPageState extends State<RestoreWalletPage> {
     }
   }
 
+  Future<void> _startLocalRestore(wmpb.WalletBackup backup) async {
+    var password = '';
+    if (backup.encrypted) {
+      final entered = await _promptBackupPassword(backup);
+      if (entered == null) return;
+      password = entered;
+    }
+
+    _autoBackupPath = null;
+    setState(() {
+      _steps.clear();
+      _currentStepIndex = -1;
+      _isRestoring = true;
+      _error = null;
+      _success = false;
+    });
+
+    try {
+      await for (final progress in GetIt.I.get<OrchestratorRPC>().wallet.restoreWalletBackupStream(
+        backupId: backup.backupId,
+        password: password,
+      )) {
+        if (!mounted) return;
+        if (progress.steps.isNotEmpty) {
+          _applyBackendRestorePlan(progress.steps);
+        }
+        if (progress.hasStatus()) {
+          _applyBackendRestoreStatus(progress.status);
+        }
+      }
+      log.i('Wallet restore completed via orchestrator backup RPC');
+    } catch (e) {
+      log.e('Restore failed: $e');
+      setState(() {
+        _error = e.toString();
+        _isRestoring = true;
+      });
+    }
+  }
+
+  void _applyBackendRestorePlan(List<wmpb.RestoreWalletBackupStep> steps) {
+    setState(() {
+      _steps.clear();
+      _steps.addAll(
+        steps.map(
+          (step) => RestoreProgressStep(
+            id: step.stepId,
+            name: step.name,
+            startTime: DateTime.now(),
+          ),
+        ),
+      );
+      _currentStepIndex = -1;
+    });
+  }
+
+  void _applyBackendRestoreStatus(wmpb.RestoreWalletBackupProgressStatus status) {
+    setState(() {
+      if (status.stepId.isNotEmpty) {
+        final index = _steps.indexWhere((step) => step.id == status.stepId);
+        if (index >= 0) {
+          final step = _steps[index];
+          switch (status.state) {
+            case wmpb.RestoreWalletBackupStepState.RESTORE_WALLET_BACKUP_STEP_STATE_STARTED:
+              step.startTime = DateTime.now();
+              step.endTime = null;
+              _currentStepIndex = index;
+              break;
+            case wmpb.RestoreWalletBackupStepState.RESTORE_WALLET_BACKUP_STEP_STATE_COMPLETED:
+              step.endTime ??= DateTime.now();
+              _currentStepIndex = index;
+              break;
+            case wmpb.RestoreWalletBackupStepState.RESTORE_WALLET_BACKUP_STEP_STATE_FAILED:
+              step.endTime ??= DateTime.now();
+              _currentStepIndex = index;
+              _error = status.error.isNotEmpty ? status.error : 'Restore failed';
+              break;
+            default:
+              break;
+          }
+        }
+      }
+      if (status.error.isNotEmpty) {
+        _error = status.error;
+      }
+      if (status.complete) {
+        if (_currentStepIndex >= 0 && _currentStepIndex < _steps.length) {
+          _steps[_currentStepIndex].endTime ??= DateTime.now();
+        }
+        _success = true;
+        _isRestoring = false;
+      }
+    });
+  }
+
+  Future<String?> _promptBackupPassword(wmpb.WalletBackup backup) async {
+    final controller = TextEditingController();
+    try {
+      return await showDialog<String>(
+        context: context,
+        builder: (context) {
+          final theme = SailTheme.of(context);
+          return Dialog(
+            backgroundColor: theme.colors.background,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            child: Container(
+              constraints: const BoxConstraints(maxWidth: 400),
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SailText.primary20('Encrypted wallet backup', bold: true),
+                  const SizedBox(height: 16),
+                  SailText.secondary13(_formatBackupDate(backup)),
+                  const SizedBox(height: 20),
+                  SailText.primary13('Password', bold: true),
+                  const SizedBox(height: 8),
+                  SailTextField(
+                    controller: controller,
+                    hintText: 'Enter wallet password',
+                    obscureText: true,
+                    autofocus: true,
+                    onSubmitted: (value) => Navigator.of(context).pop(value),
+                  ),
+                  const SizedBox(height: 24),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      TextButton(
+                        onPressed: () => Navigator.of(context).pop(),
+                        child: SailText.primary13('Cancel'),
+                      ),
+                      const SizedBox(width: 8),
+                      SailButton(
+                        label: 'Restore',
+                        variant: ButtonVariant.primary,
+                        onPressed: () async {
+                          Navigator.of(context).pop(controller.text);
+                        },
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      );
+    } finally {
+      controller.dispose();
+    }
+  }
+
+  String _formatBackupDate(wmpb.WalletBackup backup) {
+    if (backup.hasCreatedAt()) {
+      return DateFormat('yyyy-MM-dd HH:mm').format(backup.createdAt.toDateTime().toLocal());
+    }
+    if (backup.sourceName.isNotEmpty) return backup.sourceName;
+    return backup.backupId;
+  }
+
+  String _formatBackupBalance(wmpb.WalletBackup backup) {
+    if (backup.latestKnownBalance.isEmpty) return 'Balance unavailable';
+
+    final confirmedSats = backup.latestKnownBalance.fold<int>(
+      0,
+      (total, balance) => total + balance.confirmedSats.toInt(),
+    );
+    final pendingSats = backup.latestKnownBalance.fold<int>(
+      0,
+      (total, balance) => total + balance.pendingSats.toInt(),
+    );
+    final confirmed = formatBitcoin(satoshiToBTC(confirmedSats));
+    if (pendingSats == 0) return confirmed;
+
+    final pending = formatBitcoin(satoshiToBTC(pendingSats));
+    return '$confirmed + $pending pending';
+  }
+
+  String _formatBalanceBreakdown(wmpb.WalletBackup backup) {
+    if (backup.latestKnownBalance.isEmpty) return 'No latestKnownBalance metadata';
+    return backup.latestKnownBalance
+        .map((balance) {
+          final name = balance.displayName.isNotEmpty ? balance.displayName : _binaryDisplayName(balance.binary);
+          final confirmed = formatBitcoin(satoshiToBTC(balance.confirmedSats.toInt()));
+          if (balance.pendingSats.toInt() == 0) return '$name: $confirmed';
+
+          final pending = formatBitcoin(satoshiToBTC(balance.pendingSats.toInt()));
+          return '$name: $confirmed + $pending pending';
+        })
+        .join('  ');
+  }
+
+  String _binaryDisplayName(BinaryType binary) {
+    return switch (binary) {
+      BinaryType.BINARY_TYPE_BITCOIND => 'Bitcoin Core',
+      BinaryType.BINARY_TYPE_THUNDER => 'Thunder',
+      BinaryType.BINARY_TYPE_ZSIDE => 'ZSide',
+      BinaryType.BINARY_TYPE_BITNAMES => 'BitNames',
+      BinaryType.BINARY_TYPE_BITASSETS => 'BitAssets',
+      BinaryType.BINARY_TYPE_TRUTHCOIN => 'Truthcoin',
+      BinaryType.BINARY_TYPE_PHOTON => 'Photon',
+      BinaryType.BINARY_TYPE_COINSHIFT => 'CoinShift',
+      _ => binary.name,
+    };
+  }
+
+  Widget _buildLocalBackups(SailThemeData theme) {
+    if (_loadingBackups) {
+      return Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          border: Border.all(color: theme.colors.border),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Row(
+          children: [
+            SizedBox(
+              width: 16,
+              height: 16,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                valueColor: AlwaysStoppedAnimation<Color>(theme.colors.primary),
+              ),
+            ),
+            const SizedBox(width: 12),
+            SailText.secondary13('Loading local wallet backups...'),
+          ],
+        ),
+      );
+    }
+
+    if (_backupListError != null) {
+      return Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: theme.colors.error.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: SailText.primary13(
+          _backupListError!,
+          color: theme.colors.error,
+        ),
+      );
+    }
+
+    if (_localBackups.isEmpty) {
+      return Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          border: Border.all(color: theme.colors.border),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: SailText.secondary13('No local wallet backups found'),
+      );
+    }
+
+    return Column(
+      children: _localBackups.map((backup) {
+        final selected = _selectedBackup?.backupId == backup.backupId;
+        final selectable = backup.valid;
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 8),
+          child: GestureDetector(
+            onTap: selectable ? () => _selectLocalBackup(backup) : null,
+            child: Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: selected ? theme.colors.primary.withValues(alpha: 0.08) : theme.colors.background,
+                border: Border.all(
+                  color: selected ? theme.colors.primary : theme.colors.border,
+                ),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(
+                        backup.encrypted ? Icons.lock_outline : Icons.wallet_outlined,
+                        color: selected ? theme.colors.primary : theme.colors.textSecondary,
+                        size: 18,
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: SailText.primary13(
+                          _formatBackupDate(backup),
+                          bold: true,
+                          color: selectable ? null : theme.colors.textSecondary,
+                        ),
+                      ),
+                      Flexible(
+                        child: SailText.primary13(
+                          _formatBackupBalance(backup),
+                          monospace: true,
+                          color: selectable ? null : theme.colors.textSecondary,
+                          textAlign: TextAlign.right,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  SailText.secondary12(
+                    backup.valid ? _formatBalanceBreakdown(backup) : backup.errorMessage,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      }).toList(),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = SailTheme.of(context);
@@ -792,7 +1169,7 @@ class _RestoreWalletPageState extends State<RestoreWalletPage> {
                 _PageTitle(
                   title: 'Restore from backup',
                   subtitle:
-                      'Restore your wallet from a backup file. This will restore your master seed and all sidechain wallets. Your current wallet will be backed up automatically.',
+                      'Restore your wallet from a local backup or a backup file. This will restore your master seed and all sidechain wallets.',
                 ),
                 Expanded(
                   child: SingleChildScrollView(
@@ -823,6 +1200,11 @@ class _RestoreWalletPageState extends State<RestoreWalletPage> {
                             ],
                           ),
                         ),
+                        const SizedBox(height: 24),
+
+                        SailText.primary13('Local wallet backups:', bold: true),
+                        const SizedBox(height: 8),
+                        _buildLocalBackups(theme),
                         const SizedBox(height: 24),
 
                         // File selection
@@ -888,7 +1270,7 @@ class _RestoreWalletPageState extends State<RestoreWalletPage> {
                     SailButton(
                       label: 'Restore Wallet',
                       variant: ButtonVariant.primary,
-                      disabled: _selectedFile == null,
+                      disabled: _selectedFile == null && _selectedBackup == null,
                       onPressed: _startRestore,
                     ),
                   ],
@@ -921,163 +1303,77 @@ class _RestoreProgressScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = SailTheme.of(context);
+    final isCompleted = success;
 
     return Scaffold(
       backgroundColor: theme.colors.background,
       body: Center(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 32.0),
-          child: SizedBox(
-            width: 600,
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                _PageTitle(
-                  title: success ? 'Restore complete!' : 'Restoring your wallet',
-                  subtitle: success
-                      ? 'Your wallet has been restored successfully.'
-                      : 'Please wait while your wallet is being restored...',
-                ),
-                Expanded(
-                  child: SingleChildScrollView(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        ...steps.asMap().entries.map((entry) {
-                          final index = entry.key;
-                          final step = entry.value;
-                          final isActive = index == currentStepIndex && !step.isCompleted;
-                          return _RestoreStepRow(
-                            step: step,
-                            isActive: isActive,
-                          );
-                        }),
-                        if (success && autoBackupPath != null) ...[
-                          const SizedBox(height: 24),
-                          Container(
-                            padding: const EdgeInsets.all(16),
-                            decoration: BoxDecoration(
-                              color: theme.colors.backgroundSecondary,
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                SailText.primary13(
-                                  'Previous wallet backed up to:',
-                                  bold: true,
-                                ),
-                                const SizedBox(height: 8),
-                                SelectableText(
-                                  autoBackupPath!,
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: theme.colors.textSecondary,
-                                    fontFamily: 'IBMPlexMono',
-                                  ),
-                                ),
-                              ],
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 550, maxHeight: 650),
+          child: SailCard(
+            title: 'Restoring Wallet',
+            subtitle: isCompleted
+                ? 'Wallet restored successfully!'
+                : error != null
+                ? 'Restore failed: $error'
+                : 'Please wait while your wallet is restored...',
+            withCloseButton: true,
+            child: SingleChildScrollView(
+              child: SailColumn(
+                spacing: SailStyleValues.padding08,
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  ...steps.asMap().entries.map((entry) {
+                    final index = entry.key;
+                    final step = entry.value;
+                    final isActive = index == currentStepIndex && !step.isCompleted;
+                    return ProgressStepTile(
+                      name: step.name,
+                      isCompleted: step.isCompleted,
+                      duration: step.duration,
+                      isActive: isActive,
+                    );
+                  }),
+                  if (isCompleted && autoBackupPath != null) ...[
+                    const SailSpacing(SailStyleValues.padding16),
+                    Container(
+                      padding: const EdgeInsets.all(SailStyleValues.padding12),
+                      decoration: BoxDecoration(
+                        color: theme.colors.backgroundSecondary,
+                        borderRadius: SailStyleValues.borderRadiusSmall,
+                        border: Border.all(color: theme.colors.border),
+                      ),
+                      child: SailColumn(
+                        spacing: SailStyleValues.padding08,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          SailText.primary13('Previous wallet backed up to:'),
+                          SelectableText(
+                            autoBackupPath!,
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: theme.colors.textSecondary,
+                              fontFamily: 'IBMPlexMono',
                             ),
                           ),
                         ],
-                        if (error != null) ...[
-                          const SizedBox(height: 16),
-                          Container(
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              color: theme.colors.error.withValues(alpha: 0.1),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: SailText.primary13(
-                              error!,
-                              color: theme.colors.error,
-                            ),
-                          ),
-                        ],
-                      ],
+                      ),
                     ),
-                  ),
-                ),
-                const SizedBox(height: 24),
-                if (success || error != null)
-                  SailButton(
-                    label: 'Done',
-                    variant: ButtonVariant.primary,
-                    onPressed: () async {
-                      await context.router.maybePop();
-                    },
-                  ),
-                const SizedBox(height: 32),
-              ],
+                  ],
+                  if (isCompleted || error != null) const SailSpacing(SailStyleValues.padding08),
+                  if (isCompleted || error != null)
+                    SailButton(
+                      label: 'Close',
+                      variant: isCompleted ? ButtonVariant.primary : ButtonVariant.secondary,
+                      onPressed: () async {
+                        await context.router.maybePop();
+                      },
+                    ),
+                ],
+              ),
             ),
           ),
         ),
-      ),
-    );
-  }
-}
-
-class _RestoreStepRow extends StatelessWidget {
-  final RestoreProgressStep step;
-  final bool isActive;
-
-  const _RestoreStepRow({required this.step, required this.isActive});
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = SailTheme.of(context);
-    Widget iconWidget;
-    String timeText = '';
-
-    if (step.isCompleted) {
-      iconWidget = Icon(
-        Icons.check_circle,
-        color: SailColorScheme.green,
-        size: 20,
-      );
-      if (step.duration != null) {
-        final duration = step.duration!;
-        if (duration.inSeconds > 0) {
-          timeText = '${duration.inSeconds}.${(duration.inMilliseconds % 1000).toString().padLeft(3, '0')}s';
-        } else {
-          timeText = '${duration.inMilliseconds}ms';
-        }
-      }
-    } else if (isActive) {
-      iconWidget = SizedBox(
-        width: 20,
-        height: 20,
-        child: CircularProgressIndicator(
-          strokeWidth: 2,
-          valueColor: AlwaysStoppedAnimation<Color>(theme.colors.primary),
-        ),
-      );
-    } else {
-      iconWidget = Icon(
-        Icons.circle_outlined,
-        color: theme.colors.textSecondary,
-        size: 20,
-      );
-    }
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Row(
-        children: [
-          iconWidget,
-          const SizedBox(width: 12),
-          Expanded(
-            child: SailText.primary13(
-              step.name,
-              color: isActive
-                  ? theme.colors.primary
-                  : step.isCompleted
-                  ? SailColorScheme.green
-                  : theme.colors.textSecondary,
-            ),
-          ),
-          if (timeText.isNotEmpty) SailText.secondary12(timeText, color: SailColorScheme.green),
-        ],
       ),
     );
   }

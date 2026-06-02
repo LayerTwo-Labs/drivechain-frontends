@@ -134,6 +134,10 @@ class OrchestratorRPC {
     return _unaryClient.getMainchainBalance(GetMainchainBalanceRequest());
   }
 
+  Future<GetSidechainBalanceResponse> getSidechainBalance(BinaryType sidechain) {
+    return _unaryClient.getSidechainBalance(GetSidechainBalanceRequest(sidechain: sidechain));
+  }
+
   Future<GetCoreMempoolInfoResponse> getCoreMempoolInfo() {
     return _unaryClient.getCoreMempoolInfo(GetCoreMempoolInfoRequest());
   }

@@ -109,6 +109,21 @@ func (s *Service) Subscribe(ctx context.Context) <-chan struct{} {
 // directory could be touched: deletion is irreversible, but a renamed copy
 // is always a `mv` away from recovery.
 func (s *Service) moveToBackup(path string) (string, error) {
+	parent := filepath.Dir(path)
+	return s.moveToBackupRoot(path, filepath.Join(parent, "wallet_backups", time.Now().UTC().Format("20060102-150405")))
+}
+
+func (s *Service) moveMasterWalletFilesToBackup() error {
+	backupRoot := filepath.Join(s.bitwindowDir, "wallet_backups", time.Now().UTC().Format("20060102-150405"))
+	for _, p := range s.MasterWalletPaths() {
+		if _, err := s.moveToBackupRoot(p, backupRoot); err != nil {
+			return fmt.Errorf("back up current wallet path %s: %w", p, err)
+		}
+	}
+	return nil
+}
+
+func (s *Service) moveToBackupRoot(path, backupRoot string) (string, error) {
 	if path == "" {
 		return "", nil
 	}
@@ -118,8 +133,6 @@ func (s *Service) moveToBackup(path string) (string, error) {
 		return "", fmt.Errorf("stat %s: %w", path, err)
 	}
 
-	parent := filepath.Dir(path)
-	backupRoot := filepath.Join(parent, "wallet_backups", time.Now().UTC().Format("20060102-150405"))
 	if err := os.MkdirAll(backupRoot, 0o700); err != nil {
 		return "", fmt.Errorf("create backup root: %w", err)
 	}
@@ -150,9 +163,9 @@ func (s *Service) BackupPath(path string) (string, error) {
 }
 
 // MasterWalletPaths returns the shared bitwindow wallet files (wallet.json +
-// wallet_encryption.json) at their flat <bitwindowDir> location.
+// wallet_encryption.json + metadata.json) at their flat <bitwindowDir> location.
 func (s *Service) MasterWalletPaths() []string {
-	return []string{s.walletFilePath(), s.metadataFilePath()}
+	return []string{s.walletFilePath(), s.metadataFilePath(), s.WalletMetadataFilePath()}
 }
 
 // ClearInMemoryState drops the loaded wallet set so the service reflects a
@@ -1128,14 +1141,11 @@ func (s *Service) DeleteAllWallets(onStatusUpdate func(string), beforeBoot func(
 		onStatusUpdate("Backing up wallet files")
 	}
 
-	// Soft-delete wallet.json + wallet_encryption.json by moving them under
-	// <bitwindowDir>/wallet_backups/<ts>/. Keys here are recoverable via a
-	// `mv` on disk; an os.Remove would not be.
-	if _, err := s.moveToBackup(s.walletFilePath()); err != nil {
-		s.log.Error().Err(err).Msg("could not back up wallet.json")
-	}
-	if _, err := s.moveToBackup(s.metadataFilePath()); err != nil {
-		s.log.Error().Err(err).Msg("could not back up wallet_encryption.json")
+	// Soft-delete wallet.json + wallet_encryption.json + metadata.json under
+	// one <bitwindowDir>/wallet_backups/<ts>/ directory. Keeping the three
+	// master wallet files together is what makes the restore listing reliable.
+	if err := s.moveMasterWalletFilesToBackup(); err != nil {
+		s.log.Error().Err(err).Msg("could not back up master wallet files")
 	}
 
 	// Soft-delete per-binary wallet paths the same way: each lands under

@@ -82,6 +82,9 @@ service OrchestratorService {
   // Get wallet balance from Bitcoin Core (proxied via orchestrator).
   rpc GetMainchainBalance(GetMainchainBalanceRequest) returns (GetMainchainBalanceResponse);
 
+  // Get wallet balance from a sidechain daemon (proxied via orchestrator).
+  rpc GetSidechainBalance(GetSidechainBalanceRequest) returns (GetSidechainBalanceResponse);
+
   // Gather the files/dirs that would be deleted for a per-binary deletion spec
   // (no side effects). Shared by the single-binary wipe and the full reset page.
   rpc GatherFilesToDelete(GatherFilesToDeleteRequest) returns (GatherFilesToDeleteResponse);
@@ -391,6 +394,17 @@ message GetMainchainBalanceRequest {}
 message GetMainchainBalanceResponse {
   double confirmed = 1;
   double unconfirmed = 2;
+}
+
+// GetSidechainBalance
+
+message GetSidechainBalanceRequest {
+  BinaryType sidechain = 1;
+}
+
+message GetSidechainBalanceResponse {
+  uint64 confirmed_sats = 1;
+  uint64 pending_sats = 2;
 }
 
 // GatherFilesToDelete

@@ -17,6 +17,10 @@ import 'package:protobuf/protobuf.dart' as $pb;
 
 import '../../google/protobuf/empty.pb.dart' as $13;
 import '../../google/protobuf/timestamp.pb.dart' as $12;
+import '../../orchestrator/v1/orchestrator.pbenum.dart' as $5;
+import 'walletmanager.pbenum.dart';
+
+export 'walletmanager.pbenum.dart';
 
 class GetWalletStatusRequest extends $pb.GeneratedMessage {
   factory GetWalletStatusRequest() => create();
@@ -1369,6 +1373,746 @@ class DeleteAllWalletsResponse extends $pb.GeneratedMessage {
   @$core.pragma('dart2js:noInline')
   static DeleteAllWalletsResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<DeleteAllWalletsResponse>(create);
   static DeleteAllWalletsResponse? _defaultInstance;
+}
+
+class BalanceSnapshot extends $pb.GeneratedMessage {
+  factory BalanceSnapshot({
+    $5.BinaryType? binary,
+    $core.String? displayName,
+    $fixnum.Int64? confirmedSats,
+    $fixnum.Int64? pendingSats,
+    $12.Timestamp? updatedAt,
+  }) {
+    final $result = create();
+    if (binary != null) {
+      $result.binary = binary;
+    }
+    if (displayName != null) {
+      $result.displayName = displayName;
+    }
+    if (confirmedSats != null) {
+      $result.confirmedSats = confirmedSats;
+    }
+    if (pendingSats != null) {
+      $result.pendingSats = pendingSats;
+    }
+    if (updatedAt != null) {
+      $result.updatedAt = updatedAt;
+    }
+    return $result;
+  }
+  BalanceSnapshot._() : super();
+  factory BalanceSnapshot.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory BalanceSnapshot.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'BalanceSnapshot', package: const $pb.PackageName(_omitMessageNames ? '' : 'walletmanager.v1'), createEmptyInstance: create)
+    ..e<$5.BinaryType>(1, _omitFieldNames ? '' : 'binary', $pb.PbFieldType.OE, defaultOrMaker: $5.BinaryType.BINARY_TYPE_UNSPECIFIED, valueOf: $5.BinaryType.valueOf, enumValues: $5.BinaryType.values)
+    ..aOS(2, _omitFieldNames ? '' : 'displayName')
+    ..a<$fixnum.Int64>(3, _omitFieldNames ? '' : 'confirmedSats', $pb.PbFieldType.OU6, defaultOrMaker: $fixnum.Int64.ZERO)
+    ..a<$fixnum.Int64>(4, _omitFieldNames ? '' : 'pendingSats', $pb.PbFieldType.OU6, defaultOrMaker: $fixnum.Int64.ZERO)
+    ..aOM<$12.Timestamp>(5, _omitFieldNames ? '' : 'updatedAt', subBuilder: $12.Timestamp.create)
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  BalanceSnapshot clone() => BalanceSnapshot()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  BalanceSnapshot copyWith(void Function(BalanceSnapshot) updates) => super.copyWith((message) => updates(message as BalanceSnapshot)) as BalanceSnapshot;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static BalanceSnapshot create() => BalanceSnapshot._();
+  BalanceSnapshot createEmptyInstance() => create();
+  static $pb.PbList<BalanceSnapshot> createRepeated() => $pb.PbList<BalanceSnapshot>();
+  @$core.pragma('dart2js:noInline')
+  static BalanceSnapshot getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<BalanceSnapshot>(create);
+  static BalanceSnapshot? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $5.BinaryType get binary => $_getN(0);
+  @$pb.TagNumber(1)
+  set binary($5.BinaryType v) { setField(1, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasBinary() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearBinary() => clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.String get displayName => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set displayName($core.String v) { $_setString(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasDisplayName() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearDisplayName() => clearField(2);
+
+  @$pb.TagNumber(3)
+  $fixnum.Int64 get confirmedSats => $_getI64(2);
+  @$pb.TagNumber(3)
+  set confirmedSats($fixnum.Int64 v) { $_setInt64(2, v); }
+  @$pb.TagNumber(3)
+  $core.bool hasConfirmedSats() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearConfirmedSats() => clearField(3);
+
+  @$pb.TagNumber(4)
+  $fixnum.Int64 get pendingSats => $_getI64(3);
+  @$pb.TagNumber(4)
+  set pendingSats($fixnum.Int64 v) { $_setInt64(3, v); }
+  @$pb.TagNumber(4)
+  $core.bool hasPendingSats() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearPendingSats() => clearField(4);
+
+  @$pb.TagNumber(5)
+  $12.Timestamp get updatedAt => $_getN(4);
+  @$pb.TagNumber(5)
+  set updatedAt($12.Timestamp v) { setField(5, v); }
+  @$pb.TagNumber(5)
+  $core.bool hasUpdatedAt() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearUpdatedAt() => clearField(5);
+  @$pb.TagNumber(5)
+  $12.Timestamp ensureUpdatedAt() => $_ensure(4);
+}
+
+class BackupWalletSummary extends $pb.GeneratedMessage {
+  factory BackupWalletSummary({
+    $core.String? id,
+    $core.String? name,
+    $core.String? walletType,
+  }) {
+    final $result = create();
+    if (id != null) {
+      $result.id = id;
+    }
+    if (name != null) {
+      $result.name = name;
+    }
+    if (walletType != null) {
+      $result.walletType = walletType;
+    }
+    return $result;
+  }
+  BackupWalletSummary._() : super();
+  factory BackupWalletSummary.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory BackupWalletSummary.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'BackupWalletSummary', package: const $pb.PackageName(_omitMessageNames ? '' : 'walletmanager.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'id')
+    ..aOS(2, _omitFieldNames ? '' : 'name')
+    ..aOS(3, _omitFieldNames ? '' : 'walletType')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  BackupWalletSummary clone() => BackupWalletSummary()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  BackupWalletSummary copyWith(void Function(BackupWalletSummary) updates) => super.copyWith((message) => updates(message as BackupWalletSummary)) as BackupWalletSummary;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static BackupWalletSummary create() => BackupWalletSummary._();
+  BackupWalletSummary createEmptyInstance() => create();
+  static $pb.PbList<BackupWalletSummary> createRepeated() => $pb.PbList<BackupWalletSummary>();
+  @$core.pragma('dart2js:noInline')
+  static BackupWalletSummary getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<BackupWalletSummary>(create);
+  static BackupWalletSummary? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get id => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set id($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearId() => clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.String get name => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set name($core.String v) { $_setString(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasName() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearName() => clearField(2);
+
+  @$pb.TagNumber(3)
+  $core.String get walletType => $_getSZ(2);
+  @$pb.TagNumber(3)
+  set walletType($core.String v) { $_setString(2, v); }
+  @$pb.TagNumber(3)
+  $core.bool hasWalletType() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearWalletType() => clearField(3);
+}
+
+class WalletBackup extends $pb.GeneratedMessage {
+  factory WalletBackup({
+    $core.String? backupId,
+    $12.Timestamp? createdAt,
+    $core.String? sourceName,
+    $core.bool? encrypted,
+    $core.bool? hasMetadata,
+    $core.String? activeWalletId,
+    $core.Iterable<BackupWalletSummary>? wallets,
+    $core.Iterable<BalanceSnapshot>? latestKnownBalance,
+    $core.bool? valid,
+    $core.String? errorMessage,
+  }) {
+    final $result = create();
+    if (backupId != null) {
+      $result.backupId = backupId;
+    }
+    if (createdAt != null) {
+      $result.createdAt = createdAt;
+    }
+    if (sourceName != null) {
+      $result.sourceName = sourceName;
+    }
+    if (encrypted != null) {
+      $result.encrypted = encrypted;
+    }
+    if (hasMetadata != null) {
+      $result.hasMetadata = hasMetadata;
+    }
+    if (activeWalletId != null) {
+      $result.activeWalletId = activeWalletId;
+    }
+    if (wallets != null) {
+      $result.wallets.addAll(wallets);
+    }
+    if (latestKnownBalance != null) {
+      $result.latestKnownBalance.addAll(latestKnownBalance);
+    }
+    if (valid != null) {
+      $result.valid = valid;
+    }
+    if (errorMessage != null) {
+      $result.errorMessage = errorMessage;
+    }
+    return $result;
+  }
+  WalletBackup._() : super();
+  factory WalletBackup.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory WalletBackup.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'WalletBackup', package: const $pb.PackageName(_omitMessageNames ? '' : 'walletmanager.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'backupId')
+    ..aOM<$12.Timestamp>(2, _omitFieldNames ? '' : 'createdAt', subBuilder: $12.Timestamp.create)
+    ..aOS(3, _omitFieldNames ? '' : 'sourceName')
+    ..aOB(4, _omitFieldNames ? '' : 'encrypted')
+    ..aOB(5, _omitFieldNames ? '' : 'hasMetadata')
+    ..aOS(6, _omitFieldNames ? '' : 'activeWalletId')
+    ..pc<BackupWalletSummary>(7, _omitFieldNames ? '' : 'wallets', $pb.PbFieldType.PM, subBuilder: BackupWalletSummary.create)
+    ..pc<BalanceSnapshot>(8, _omitFieldNames ? '' : 'latestKnownBalance', $pb.PbFieldType.PM, subBuilder: BalanceSnapshot.create)
+    ..aOB(9, _omitFieldNames ? '' : 'valid')
+    ..aOS(10, _omitFieldNames ? '' : 'errorMessage')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  WalletBackup clone() => WalletBackup()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  WalletBackup copyWith(void Function(WalletBackup) updates) => super.copyWith((message) => updates(message as WalletBackup)) as WalletBackup;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static WalletBackup create() => WalletBackup._();
+  WalletBackup createEmptyInstance() => create();
+  static $pb.PbList<WalletBackup> createRepeated() => $pb.PbList<WalletBackup>();
+  @$core.pragma('dart2js:noInline')
+  static WalletBackup getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<WalletBackup>(create);
+  static WalletBackup? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get backupId => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set backupId($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasBackupId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearBackupId() => clearField(1);
+
+  @$pb.TagNumber(2)
+  $12.Timestamp get createdAt => $_getN(1);
+  @$pb.TagNumber(2)
+  set createdAt($12.Timestamp v) { setField(2, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasCreatedAt() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearCreatedAt() => clearField(2);
+  @$pb.TagNumber(2)
+  $12.Timestamp ensureCreatedAt() => $_ensure(1);
+
+  @$pb.TagNumber(3)
+  $core.String get sourceName => $_getSZ(2);
+  @$pb.TagNumber(3)
+  set sourceName($core.String v) { $_setString(2, v); }
+  @$pb.TagNumber(3)
+  $core.bool hasSourceName() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearSourceName() => clearField(3);
+
+  @$pb.TagNumber(4)
+  $core.bool get encrypted => $_getBF(3);
+  @$pb.TagNumber(4)
+  set encrypted($core.bool v) { $_setBool(3, v); }
+  @$pb.TagNumber(4)
+  $core.bool hasEncrypted() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearEncrypted() => clearField(4);
+
+  @$pb.TagNumber(5)
+  $core.bool get hasMetadata => $_getBF(4);
+  @$pb.TagNumber(5)
+  set hasMetadata($core.bool v) { $_setBool(4, v); }
+  @$pb.TagNumber(5)
+  $core.bool hasHasMetadata() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearHasMetadata() => clearField(5);
+
+  @$pb.TagNumber(6)
+  $core.String get activeWalletId => $_getSZ(5);
+  @$pb.TagNumber(6)
+  set activeWalletId($core.String v) { $_setString(5, v); }
+  @$pb.TagNumber(6)
+  $core.bool hasActiveWalletId() => $_has(5);
+  @$pb.TagNumber(6)
+  void clearActiveWalletId() => clearField(6);
+
+  @$pb.TagNumber(7)
+  $core.List<BackupWalletSummary> get wallets => $_getList(6);
+
+  @$pb.TagNumber(8)
+  $core.List<BalanceSnapshot> get latestKnownBalance => $_getList(7);
+
+  @$pb.TagNumber(9)
+  $core.bool get valid => $_getBF(8);
+  @$pb.TagNumber(9)
+  set valid($core.bool v) { $_setBool(8, v); }
+  @$pb.TagNumber(9)
+  $core.bool hasValid() => $_has(8);
+  @$pb.TagNumber(9)
+  void clearValid() => clearField(9);
+
+  @$pb.TagNumber(10)
+  $core.String get errorMessage => $_getSZ(9);
+  @$pb.TagNumber(10)
+  set errorMessage($core.String v) { $_setString(9, v); }
+  @$pb.TagNumber(10)
+  $core.bool hasErrorMessage() => $_has(9);
+  @$pb.TagNumber(10)
+  void clearErrorMessage() => clearField(10);
+}
+
+class ListWalletBackupsRequest extends $pb.GeneratedMessage {
+  factory ListWalletBackupsRequest() => create();
+  ListWalletBackupsRequest._() : super();
+  factory ListWalletBackupsRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory ListWalletBackupsRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ListWalletBackupsRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'walletmanager.v1'), createEmptyInstance: create)
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  ListWalletBackupsRequest clone() => ListWalletBackupsRequest()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  ListWalletBackupsRequest copyWith(void Function(ListWalletBackupsRequest) updates) => super.copyWith((message) => updates(message as ListWalletBackupsRequest)) as ListWalletBackupsRequest;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ListWalletBackupsRequest create() => ListWalletBackupsRequest._();
+  ListWalletBackupsRequest createEmptyInstance() => create();
+  static $pb.PbList<ListWalletBackupsRequest> createRepeated() => $pb.PbList<ListWalletBackupsRequest>();
+  @$core.pragma('dart2js:noInline')
+  static ListWalletBackupsRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<ListWalletBackupsRequest>(create);
+  static ListWalletBackupsRequest? _defaultInstance;
+}
+
+class ListWalletBackupsResponse extends $pb.GeneratedMessage {
+  factory ListWalletBackupsResponse({
+    $core.Iterable<WalletBackup>? backups,
+  }) {
+    final $result = create();
+    if (backups != null) {
+      $result.backups.addAll(backups);
+    }
+    return $result;
+  }
+  ListWalletBackupsResponse._() : super();
+  factory ListWalletBackupsResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory ListWalletBackupsResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ListWalletBackupsResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'walletmanager.v1'), createEmptyInstance: create)
+    ..pc<WalletBackup>(1, _omitFieldNames ? '' : 'backups', $pb.PbFieldType.PM, subBuilder: WalletBackup.create)
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  ListWalletBackupsResponse clone() => ListWalletBackupsResponse()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  ListWalletBackupsResponse copyWith(void Function(ListWalletBackupsResponse) updates) => super.copyWith((message) => updates(message as ListWalletBackupsResponse)) as ListWalletBackupsResponse;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ListWalletBackupsResponse create() => ListWalletBackupsResponse._();
+  ListWalletBackupsResponse createEmptyInstance() => create();
+  static $pb.PbList<ListWalletBackupsResponse> createRepeated() => $pb.PbList<ListWalletBackupsResponse>();
+  @$core.pragma('dart2js:noInline')
+  static ListWalletBackupsResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<ListWalletBackupsResponse>(create);
+  static ListWalletBackupsResponse? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.List<WalletBackup> get backups => $_getList(0);
+}
+
+class RestoreWalletBackupRequest extends $pb.GeneratedMessage {
+  factory RestoreWalletBackupRequest({
+    $core.String? backupId,
+    $core.String? password,
+  }) {
+    final $result = create();
+    if (backupId != null) {
+      $result.backupId = backupId;
+    }
+    if (password != null) {
+      $result.password = password;
+    }
+    return $result;
+  }
+  RestoreWalletBackupRequest._() : super();
+  factory RestoreWalletBackupRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory RestoreWalletBackupRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'RestoreWalletBackupRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'walletmanager.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'backupId')
+    ..aOS(2, _omitFieldNames ? '' : 'password')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  RestoreWalletBackupRequest clone() => RestoreWalletBackupRequest()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  RestoreWalletBackupRequest copyWith(void Function(RestoreWalletBackupRequest) updates) => super.copyWith((message) => updates(message as RestoreWalletBackupRequest)) as RestoreWalletBackupRequest;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static RestoreWalletBackupRequest create() => RestoreWalletBackupRequest._();
+  RestoreWalletBackupRequest createEmptyInstance() => create();
+  static $pb.PbList<RestoreWalletBackupRequest> createRepeated() => $pb.PbList<RestoreWalletBackupRequest>();
+  @$core.pragma('dart2js:noInline')
+  static RestoreWalletBackupRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<RestoreWalletBackupRequest>(create);
+  static RestoreWalletBackupRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get backupId => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set backupId($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasBackupId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearBackupId() => clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.String get password => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set password($core.String v) { $_setString(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasPassword() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearPassword() => clearField(2);
+}
+
+class RestoreWalletBackupResponse extends $pb.GeneratedMessage {
+  factory RestoreWalletBackupResponse() => create();
+  RestoreWalletBackupResponse._() : super();
+  factory RestoreWalletBackupResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory RestoreWalletBackupResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'RestoreWalletBackupResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'walletmanager.v1'), createEmptyInstance: create)
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  RestoreWalletBackupResponse clone() => RestoreWalletBackupResponse()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  RestoreWalletBackupResponse copyWith(void Function(RestoreWalletBackupResponse) updates) => super.copyWith((message) => updates(message as RestoreWalletBackupResponse)) as RestoreWalletBackupResponse;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static RestoreWalletBackupResponse create() => RestoreWalletBackupResponse._();
+  RestoreWalletBackupResponse createEmptyInstance() => create();
+  static $pb.PbList<RestoreWalletBackupResponse> createRepeated() => $pb.PbList<RestoreWalletBackupResponse>();
+  @$core.pragma('dart2js:noInline')
+  static RestoreWalletBackupResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<RestoreWalletBackupResponse>(create);
+  static RestoreWalletBackupResponse? _defaultInstance;
+}
+
+class RestoreWalletBackupStep extends $pb.GeneratedMessage {
+  factory RestoreWalletBackupStep({
+    $core.String? stepId,
+    $core.String? name,
+  }) {
+    final $result = create();
+    if (stepId != null) {
+      $result.stepId = stepId;
+    }
+    if (name != null) {
+      $result.name = name;
+    }
+    return $result;
+  }
+  RestoreWalletBackupStep._() : super();
+  factory RestoreWalletBackupStep.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory RestoreWalletBackupStep.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'RestoreWalletBackupStep', package: const $pb.PackageName(_omitMessageNames ? '' : 'walletmanager.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'stepId')
+    ..aOS(2, _omitFieldNames ? '' : 'name')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  RestoreWalletBackupStep clone() => RestoreWalletBackupStep()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  RestoreWalletBackupStep copyWith(void Function(RestoreWalletBackupStep) updates) => super.copyWith((message) => updates(message as RestoreWalletBackupStep)) as RestoreWalletBackupStep;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static RestoreWalletBackupStep create() => RestoreWalletBackupStep._();
+  RestoreWalletBackupStep createEmptyInstance() => create();
+  static $pb.PbList<RestoreWalletBackupStep> createRepeated() => $pb.PbList<RestoreWalletBackupStep>();
+  @$core.pragma('dart2js:noInline')
+  static RestoreWalletBackupStep getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<RestoreWalletBackupStep>(create);
+  static RestoreWalletBackupStep? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get stepId => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set stepId($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasStepId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearStepId() => clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.String get name => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set name($core.String v) { $_setString(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasName() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearName() => clearField(2);
+}
+
+class RestoreWalletBackupProgressStatus extends $pb.GeneratedMessage {
+  factory RestoreWalletBackupProgressStatus({
+    $core.String? stepId,
+    RestoreWalletBackupStepState? state,
+    $core.String? error,
+    $core.bool? complete,
+  }) {
+    final $result = create();
+    if (stepId != null) {
+      $result.stepId = stepId;
+    }
+    if (state != null) {
+      $result.state = state;
+    }
+    if (error != null) {
+      $result.error = error;
+    }
+    if (complete != null) {
+      $result.complete = complete;
+    }
+    return $result;
+  }
+  RestoreWalletBackupProgressStatus._() : super();
+  factory RestoreWalletBackupProgressStatus.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory RestoreWalletBackupProgressStatus.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'RestoreWalletBackupProgressStatus', package: const $pb.PackageName(_omitMessageNames ? '' : 'walletmanager.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'stepId')
+    ..e<RestoreWalletBackupStepState>(2, _omitFieldNames ? '' : 'state', $pb.PbFieldType.OE, defaultOrMaker: RestoreWalletBackupStepState.RESTORE_WALLET_BACKUP_STEP_STATE_UNSPECIFIED, valueOf: RestoreWalletBackupStepState.valueOf, enumValues: RestoreWalletBackupStepState.values)
+    ..aOS(3, _omitFieldNames ? '' : 'error')
+    ..aOB(4, _omitFieldNames ? '' : 'complete')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  RestoreWalletBackupProgressStatus clone() => RestoreWalletBackupProgressStatus()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  RestoreWalletBackupProgressStatus copyWith(void Function(RestoreWalletBackupProgressStatus) updates) => super.copyWith((message) => updates(message as RestoreWalletBackupProgressStatus)) as RestoreWalletBackupProgressStatus;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static RestoreWalletBackupProgressStatus create() => RestoreWalletBackupProgressStatus._();
+  RestoreWalletBackupProgressStatus createEmptyInstance() => create();
+  static $pb.PbList<RestoreWalletBackupProgressStatus> createRepeated() => $pb.PbList<RestoreWalletBackupProgressStatus>();
+  @$core.pragma('dart2js:noInline')
+  static RestoreWalletBackupProgressStatus getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<RestoreWalletBackupProgressStatus>(create);
+  static RestoreWalletBackupProgressStatus? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get stepId => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set stepId($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasStepId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearStepId() => clearField(1);
+
+  @$pb.TagNumber(2)
+  RestoreWalletBackupStepState get state => $_getN(1);
+  @$pb.TagNumber(2)
+  set state(RestoreWalletBackupStepState v) { setField(2, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasState() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearState() => clearField(2);
+
+  @$pb.TagNumber(3)
+  $core.String get error => $_getSZ(2);
+  @$pb.TagNumber(3)
+  set error($core.String v) { $_setString(2, v); }
+  @$pb.TagNumber(3)
+  $core.bool hasError() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearError() => clearField(3);
+
+  @$pb.TagNumber(4)
+  $core.bool get complete => $_getBF(3);
+  @$pb.TagNumber(4)
+  set complete($core.bool v) { $_setBool(3, v); }
+  @$pb.TagNumber(4)
+  $core.bool hasComplete() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearComplete() => clearField(4);
+}
+
+class RestoreWalletBackupProgressResponse extends $pb.GeneratedMessage {
+  factory RestoreWalletBackupProgressResponse({
+    $core.Iterable<RestoreWalletBackupStep>? steps,
+    RestoreWalletBackupProgressStatus? status,
+  }) {
+    final $result = create();
+    if (steps != null) {
+      $result.steps.addAll(steps);
+    }
+    if (status != null) {
+      $result.status = status;
+    }
+    return $result;
+  }
+  RestoreWalletBackupProgressResponse._() : super();
+  factory RestoreWalletBackupProgressResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory RestoreWalletBackupProgressResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'RestoreWalletBackupProgressResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'walletmanager.v1'), createEmptyInstance: create)
+    ..pc<RestoreWalletBackupStep>(1, _omitFieldNames ? '' : 'steps', $pb.PbFieldType.PM, subBuilder: RestoreWalletBackupStep.create)
+    ..aOM<RestoreWalletBackupProgressStatus>(2, _omitFieldNames ? '' : 'status', subBuilder: RestoreWalletBackupProgressStatus.create)
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  RestoreWalletBackupProgressResponse clone() => RestoreWalletBackupProgressResponse()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  RestoreWalletBackupProgressResponse copyWith(void Function(RestoreWalletBackupProgressResponse) updates) => super.copyWith((message) => updates(message as RestoreWalletBackupProgressResponse)) as RestoreWalletBackupProgressResponse;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static RestoreWalletBackupProgressResponse create() => RestoreWalletBackupProgressResponse._();
+  RestoreWalletBackupProgressResponse createEmptyInstance() => create();
+  static $pb.PbList<RestoreWalletBackupProgressResponse> createRepeated() => $pb.PbList<RestoreWalletBackupProgressResponse>();
+  @$core.pragma('dart2js:noInline')
+  static RestoreWalletBackupProgressResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<RestoreWalletBackupProgressResponse>(create);
+  static RestoreWalletBackupProgressResponse? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.List<RestoreWalletBackupStep> get steps => $_getList(0);
+
+  @$pb.TagNumber(2)
+  RestoreWalletBackupProgressStatus get status => $_getN(1);
+  @$pb.TagNumber(2)
+  set status(RestoreWalletBackupProgressStatus v) { setField(2, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasStatus() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearStatus() => clearField(2);
+  @$pb.TagNumber(2)
+  RestoreWalletBackupProgressStatus ensureStatus() => $_ensure(1);
 }
 
 class CreateWatchOnlyWalletRequest extends $pb.GeneratedMessage {
@@ -4566,6 +5310,15 @@ class WalletManagerServiceApi {
   ;
   $async.Future<DeleteAllWalletsResponse> deleteAllWallets($pb.ClientContext? ctx, DeleteAllWalletsRequest request) =>
     _client.invoke<DeleteAllWalletsResponse>(ctx, 'WalletManagerService', 'DeleteAllWallets', request, DeleteAllWalletsResponse())
+  ;
+  $async.Future<ListWalletBackupsResponse> listWalletBackups($pb.ClientContext? ctx, ListWalletBackupsRequest request) =>
+    _client.invoke<ListWalletBackupsResponse>(ctx, 'WalletManagerService', 'ListWalletBackups', request, ListWalletBackupsResponse())
+  ;
+  $async.Future<RestoreWalletBackupResponse> restoreWalletBackup($pb.ClientContext? ctx, RestoreWalletBackupRequest request) =>
+    _client.invoke<RestoreWalletBackupResponse>(ctx, 'WalletManagerService', 'RestoreWalletBackup', request, RestoreWalletBackupResponse())
+  ;
+  $async.Future<RestoreWalletBackupProgressResponse> restoreWalletBackupStream($pb.ClientContext? ctx, RestoreWalletBackupRequest request) =>
+    _client.invoke<RestoreWalletBackupProgressResponse>(ctx, 'WalletManagerService', 'RestoreWalletBackupStream', request, RestoreWalletBackupProgressResponse())
   ;
   $async.Future<CreateWatchOnlyWalletResponse> createWatchOnlyWallet($pb.ClientContext? ctx, CreateWatchOnlyWalletRequest request) =>
     _client.invoke<CreateWatchOnlyWalletResponse>(ctx, 'WalletManagerService', 'CreateWatchOnlyWallet', request, CreateWatchOnlyWalletResponse())

@@ -38,6 +38,7 @@ abstract class OrchestratorServiceBase extends $pb.GeneratedService {
   $async.Future<$5.GetSyncStatusResponse> getSyncStatus($pb.ServerContext ctx, $5.GetSyncStatusRequest request);
   $async.Future<$5.GetDownloadStatusResponse> getDownloadStatus($pb.ServerContext ctx, $5.GetDownloadStatusRequest request);
   $async.Future<$5.GetMainchainBalanceResponse> getMainchainBalance($pb.ServerContext ctx, $5.GetMainchainBalanceRequest request);
+  $async.Future<$5.GetSidechainBalanceResponse> getSidechainBalance($pb.ServerContext ctx, $5.GetSidechainBalanceRequest request);
   $async.Future<$5.GatherFilesToDeleteResponse> gatherFilesToDelete($pb.ServerContext ctx, $5.GatherFilesToDeleteRequest request);
   $async.Future<$5.DeleteFilesResponse> deleteFiles($pb.ServerContext ctx, $5.DeleteFilesRequest request);
   $async.Future<$5.GetCoreMempoolInfoResponse> getCoreMempoolInfo($pb.ServerContext ctx, $5.GetCoreMempoolInfoRequest request);
@@ -62,6 +63,7 @@ abstract class OrchestratorServiceBase extends $pb.GeneratedService {
       case 'GetSyncStatus': return $5.GetSyncStatusRequest();
       case 'GetDownloadStatus': return $5.GetDownloadStatusRequest();
       case 'GetMainchainBalance': return $5.GetMainchainBalanceRequest();
+      case 'GetSidechainBalance': return $5.GetSidechainBalanceRequest();
       case 'GatherFilesToDelete': return $5.GatherFilesToDeleteRequest();
       case 'DeleteFiles': return $5.DeleteFilesRequest();
       case 'GetCoreMempoolInfo': return $5.GetCoreMempoolInfoRequest();
@@ -89,6 +91,7 @@ abstract class OrchestratorServiceBase extends $pb.GeneratedService {
       case 'GetSyncStatus': return this.getSyncStatus(ctx, request as $5.GetSyncStatusRequest);
       case 'GetDownloadStatus': return this.getDownloadStatus(ctx, request as $5.GetDownloadStatusRequest);
       case 'GetMainchainBalance': return this.getMainchainBalance(ctx, request as $5.GetMainchainBalanceRequest);
+      case 'GetSidechainBalance': return this.getSidechainBalance(ctx, request as $5.GetSidechainBalanceRequest);
       case 'GatherFilesToDelete': return this.gatherFilesToDelete(ctx, request as $5.GatherFilesToDeleteRequest);
       case 'DeleteFiles': return this.deleteFiles(ctx, request as $5.DeleteFilesRequest);
       case 'GetCoreMempoolInfo': return this.getCoreMempoolInfo(ctx, request as $5.GetCoreMempoolInfoRequest);

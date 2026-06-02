@@ -174,6 +174,14 @@ abstract final class OrchestratorService {
     orchestratorv1orchestrator.GetMainchainBalanceResponse.new,
   );
 
+  /// Get wallet balance from a sidechain daemon (proxied via orchestrator).
+  static const getSidechainBalance = connect.Spec(
+    '/$name/GetSidechainBalance',
+    connect.StreamType.unary,
+    orchestratorv1orchestrator.GetSidechainBalanceRequest.new,
+    orchestratorv1orchestrator.GetSidechainBalanceResponse.new,
+  );
+
   /// Gather the files/dirs that would be deleted for a per-binary deletion spec
   /// (no side effects). Shared by the single-binary wipe and the full reset page.
   static const gatherFilesToDelete = connect.Spec(

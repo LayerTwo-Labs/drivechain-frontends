@@ -96,6 +96,27 @@ abstract final class WalletManagerService {
     walletmanagerv1walletmanager.DeleteAllWalletsResponse.new,
   );
 
+  static const listWalletBackups = connect.Spec(
+    '/$name/ListWalletBackups',
+    connect.StreamType.unary,
+    walletmanagerv1walletmanager.ListWalletBackupsRequest.new,
+    walletmanagerv1walletmanager.ListWalletBackupsResponse.new,
+  );
+
+  static const restoreWalletBackup = connect.Spec(
+    '/$name/RestoreWalletBackup',
+    connect.StreamType.unary,
+    walletmanagerv1walletmanager.RestoreWalletBackupRequest.new,
+    walletmanagerv1walletmanager.RestoreWalletBackupResponse.new,
+  );
+
+  static const restoreWalletBackupStream = connect.Spec(
+    '/$name/RestoreWalletBackupStream',
+    connect.StreamType.server,
+    walletmanagerv1walletmanager.RestoreWalletBackupRequest.new,
+    walletmanagerv1walletmanager.RestoreWalletBackupProgressResponse.new,
+  );
+
   static const createWatchOnlyWallet = connect.Spec(
     '/$name/CreateWatchOnlyWallet',
     connect.StreamType.unary,

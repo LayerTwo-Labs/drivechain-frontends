@@ -34,6 +34,9 @@ abstract class WalletManagerServiceBase extends $pb.GeneratedService {
   $async.Future<$14.UpdateWalletMetadataResponse> updateWalletMetadata($pb.ServerContext ctx, $14.UpdateWalletMetadataRequest request);
   $async.Future<$14.DeleteWalletResponse> deleteWallet($pb.ServerContext ctx, $14.DeleteWalletRequest request);
   $async.Future<$14.DeleteAllWalletsResponse> deleteAllWallets($pb.ServerContext ctx, $14.DeleteAllWalletsRequest request);
+  $async.Future<$14.ListWalletBackupsResponse> listWalletBackups($pb.ServerContext ctx, $14.ListWalletBackupsRequest request);
+  $async.Future<$14.RestoreWalletBackupResponse> restoreWalletBackup($pb.ServerContext ctx, $14.RestoreWalletBackupRequest request);
+  $async.Future<$14.RestoreWalletBackupProgressResponse> restoreWalletBackupStream($pb.ServerContext ctx, $14.RestoreWalletBackupRequest request);
   $async.Future<$14.CreateWatchOnlyWalletResponse> createWatchOnlyWallet($pb.ServerContext ctx, $14.CreateWatchOnlyWalletRequest request);
   $async.Future<$14.CreateBitcoinCoreWalletResponse> createBitcoinCoreWallet($pb.ServerContext ctx, $14.CreateBitcoinCoreWalletRequest request);
   $async.Future<$14.EnsureCoreWalletsResponse> ensureCoreWallets($pb.ServerContext ctx, $14.EnsureCoreWalletsRequest request);
@@ -68,6 +71,9 @@ abstract class WalletManagerServiceBase extends $pb.GeneratedService {
       case 'UpdateWalletMetadata': return $14.UpdateWalletMetadataRequest();
       case 'DeleteWallet': return $14.DeleteWalletRequest();
       case 'DeleteAllWallets': return $14.DeleteAllWalletsRequest();
+      case 'ListWalletBackups': return $14.ListWalletBackupsRequest();
+      case 'RestoreWalletBackup': return $14.RestoreWalletBackupRequest();
+      case 'RestoreWalletBackupStream': return $14.RestoreWalletBackupRequest();
       case 'CreateWatchOnlyWallet': return $14.CreateWatchOnlyWalletRequest();
       case 'CreateBitcoinCoreWallet': return $14.CreateBitcoinCoreWalletRequest();
       case 'EnsureCoreWallets': return $14.EnsureCoreWalletsRequest();
@@ -105,6 +111,9 @@ abstract class WalletManagerServiceBase extends $pb.GeneratedService {
       case 'UpdateWalletMetadata': return this.updateWalletMetadata(ctx, request as $14.UpdateWalletMetadataRequest);
       case 'DeleteWallet': return this.deleteWallet(ctx, request as $14.DeleteWalletRequest);
       case 'DeleteAllWallets': return this.deleteAllWallets(ctx, request as $14.DeleteAllWalletsRequest);
+      case 'ListWalletBackups': return this.listWalletBackups(ctx, request as $14.ListWalletBackupsRequest);
+      case 'RestoreWalletBackup': return this.restoreWalletBackup(ctx, request as $14.RestoreWalletBackupRequest);
+      case 'RestoreWalletBackupStream': return this.restoreWalletBackupStream(ctx, request as $14.RestoreWalletBackupRequest);
       case 'CreateWatchOnlyWallet': return this.createWatchOnlyWallet(ctx, request as $14.CreateWatchOnlyWalletRequest);
       case 'CreateBitcoinCoreWallet': return this.createBitcoinCoreWallet(ctx, request as $14.CreateBitcoinCoreWalletRequest);
       case 'EnsureCoreWallets': return this.ensureCoreWallets(ctx, request as $14.EnsureCoreWalletsRequest);

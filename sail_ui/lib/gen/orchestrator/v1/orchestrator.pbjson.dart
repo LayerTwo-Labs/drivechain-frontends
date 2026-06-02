@@ -629,6 +629,33 @@ final $typed_data.Uint8List getMainchainBalanceResponseDescriptor = $convert.bas
     'ChtHZXRNYWluY2hhaW5CYWxhbmNlUmVzcG9uc2USHAoJY29uZmlybWVkGAEgASgBUgljb25maX'
     'JtZWQSIAoLdW5jb25maXJtZWQYAiABKAFSC3VuY29uZmlybWVk');
 
+@$core.Deprecated('Use getSidechainBalanceRequestDescriptor instead')
+const GetSidechainBalanceRequest$json = {
+  '1': 'GetSidechainBalanceRequest',
+  '2': [
+    {'1': 'sidechain', '3': 1, '4': 1, '5': 14, '6': '.orchestrator.v1.BinaryType', '10': 'sidechain'},
+  ],
+};
+
+/// Descriptor for `GetSidechainBalanceRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List getSidechainBalanceRequestDescriptor = $convert.base64Decode(
+    'ChpHZXRTaWRlY2hhaW5CYWxhbmNlUmVxdWVzdBI5CglzaWRlY2hhaW4YASABKA4yGy5vcmNoZX'
+    'N0cmF0b3IudjEuQmluYXJ5VHlwZVIJc2lkZWNoYWlu');
+
+@$core.Deprecated('Use getSidechainBalanceResponseDescriptor instead')
+const GetSidechainBalanceResponse$json = {
+  '1': 'GetSidechainBalanceResponse',
+  '2': [
+    {'1': 'confirmed_sats', '3': 1, '4': 1, '5': 4, '10': 'confirmedSats'},
+    {'1': 'pending_sats', '3': 2, '4': 1, '5': 4, '10': 'pendingSats'},
+  ],
+};
+
+/// Descriptor for `GetSidechainBalanceResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List getSidechainBalanceResponseDescriptor = $convert.base64Decode(
+    'ChtHZXRTaWRlY2hhaW5CYWxhbmNlUmVzcG9uc2USJQoOY29uZmlybWVkX3NhdHMYASABKARSDW'
+    'NvbmZpcm1lZFNhdHMSIQoMcGVuZGluZ19zYXRzGAIgASgEUgtwZW5kaW5nU2F0cw==');
+
 @$core.Deprecated('Use singleDeletionDescriptor instead')
 const SingleDeletion$json = {
   '1': 'SingleDeletion',
@@ -819,6 +846,7 @@ const $core.Map<$core.String, $core.dynamic> OrchestratorServiceBase$json = {
     {'1': 'GetSyncStatus', '2': '.orchestrator.v1.GetSyncStatusRequest', '3': '.orchestrator.v1.GetSyncStatusResponse'},
     {'1': 'GetDownloadStatus', '2': '.orchestrator.v1.GetDownloadStatusRequest', '3': '.orchestrator.v1.GetDownloadStatusResponse'},
     {'1': 'GetMainchainBalance', '2': '.orchestrator.v1.GetMainchainBalanceRequest', '3': '.orchestrator.v1.GetMainchainBalanceResponse'},
+    {'1': 'GetSidechainBalance', '2': '.orchestrator.v1.GetSidechainBalanceRequest', '3': '.orchestrator.v1.GetSidechainBalanceResponse'},
     {'1': 'GatherFilesToDelete', '2': '.orchestrator.v1.GatherFilesToDeleteRequest', '3': '.orchestrator.v1.GatherFilesToDeleteResponse'},
     {'1': 'DeleteFiles', '2': '.orchestrator.v1.DeleteFilesRequest', '3': '.orchestrator.v1.DeleteFilesResponse', '6': true},
     {'1': 'GetCoreMempoolInfo', '2': '.orchestrator.v1.GetCoreMempoolInfoRequest', '3': '.orchestrator.v1.GetCoreMempoolInfoResponse'},
@@ -869,6 +897,8 @@ const $core.Map<$core.String, $core.Map<$core.String, $core.dynamic>> Orchestrat
   '.orchestrator.v1.DownloadStatus': DownloadStatus$json,
   '.orchestrator.v1.GetMainchainBalanceRequest': GetMainchainBalanceRequest$json,
   '.orchestrator.v1.GetMainchainBalanceResponse': GetMainchainBalanceResponse$json,
+  '.orchestrator.v1.GetSidechainBalanceRequest': GetSidechainBalanceRequest$json,
+  '.orchestrator.v1.GetSidechainBalanceResponse': GetSidechainBalanceResponse$json,
   '.orchestrator.v1.GatherFilesToDeleteRequest': GatherFilesToDeleteRequest$json,
   '.orchestrator.v1.SingleDeletion': SingleDeletion$json,
   '.orchestrator.v1.GatherFilesToDeleteResponse': GatherFilesToDeleteResponse$json,
@@ -913,12 +943,15 @@ final $typed_data.Uint8List orchestratorServiceDescriptor = $convert.base64Decod
     'VzEikub3JjaGVzdHJhdG9yLnYxLkdldERvd25sb2FkU3RhdHVzUmVxdWVzdBoqLm9yY2hlc3Ry'
     'YXRvci52MS5HZXREb3dubG9hZFN0YXR1c1Jlc3BvbnNlEnAKE0dldE1haW5jaGFpbkJhbGFuY2'
     'USKy5vcmNoZXN0cmF0b3IudjEuR2V0TWFpbmNoYWluQmFsYW5jZVJlcXVlc3QaLC5vcmNoZXN0'
-    'cmF0b3IudjEuR2V0TWFpbmNoYWluQmFsYW5jZVJlc3BvbnNlEnAKE0dhdGhlckZpbGVzVG9EZW'
-    'xldGUSKy5vcmNoZXN0cmF0b3IudjEuR2F0aGVyRmlsZXNUb0RlbGV0ZVJlcXVlc3QaLC5vcmNo'
-    'ZXN0cmF0b3IudjEuR2F0aGVyRmlsZXNUb0RlbGV0ZVJlc3BvbnNlEloKC0RlbGV0ZUZpbGVzEi'
-    'Mub3JjaGVzdHJhdG9yLnYxLkRlbGV0ZUZpbGVzUmVxdWVzdBokLm9yY2hlc3RyYXRvci52MS5E'
-    'ZWxldGVGaWxlc1Jlc3BvbnNlMAESbQoSR2V0Q29yZU1lbXBvb2xJbmZvEioub3JjaGVzdHJhdG'
-    '9yLnYxLkdldENvcmVNZW1wb29sSW5mb1JlcXVlc3QaKy5vcmNoZXN0cmF0b3IudjEuR2V0Q29y'
-    'ZU1lbXBvb2xJbmZvUmVzcG9uc2USWAoLQ29yZVJhd0NhbGwSIy5vcmNoZXN0cmF0b3IudjEuQ2'
-    '9yZVJhd0NhbGxSZXF1ZXN0GiQub3JjaGVzdHJhdG9yLnYxLkNvcmVSYXdDYWxsUmVzcG9uc2U=');
+    'cmF0b3IudjEuR2V0TWFpbmNoYWluQmFsYW5jZVJlc3BvbnNlEnAKE0dldFNpZGVjaGFpbkJhbG'
+    'FuY2USKy5vcmNoZXN0cmF0b3IudjEuR2V0U2lkZWNoYWluQmFsYW5jZVJlcXVlc3QaLC5vcmNo'
+    'ZXN0cmF0b3IudjEuR2V0U2lkZWNoYWluQmFsYW5jZVJlc3BvbnNlEnAKE0dhdGhlckZpbGVzVG'
+    '9EZWxldGUSKy5vcmNoZXN0cmF0b3IudjEuR2F0aGVyRmlsZXNUb0RlbGV0ZVJlcXVlc3QaLC5v'
+    'cmNoZXN0cmF0b3IudjEuR2F0aGVyRmlsZXNUb0RlbGV0ZVJlc3BvbnNlEloKC0RlbGV0ZUZpbG'
+    'VzEiMub3JjaGVzdHJhdG9yLnYxLkRlbGV0ZUZpbGVzUmVxdWVzdBokLm9yY2hlc3RyYXRvci52'
+    'MS5EZWxldGVGaWxlc1Jlc3BvbnNlMAESbQoSR2V0Q29yZU1lbXBvb2xJbmZvEioub3JjaGVzdH'
+    'JhdG9yLnYxLkdldENvcmVNZW1wb29sSW5mb1JlcXVlc3QaKy5vcmNoZXN0cmF0b3IudjEuR2V0'
+    'Q29yZU1lbXBvb2xJbmZvUmVzcG9uc2USWAoLQ29yZVJhd0NhbGwSIy5vcmNoZXN0cmF0b3Iudj'
+    'EuQ29yZVJhd0NhbGxSZXF1ZXN0GiQub3JjaGVzdHJhdG9yLnYxLkNvcmVSYXdDYWxsUmVzcG9u'
+    'c2U=');
 

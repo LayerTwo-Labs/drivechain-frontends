@@ -2,6 +2,7 @@ syntax = "proto3";
 
 package walletmanager.v1;
 
+import "orchestrator/v1/orchestrator.proto";
 import "google/protobuf/empty.proto";
 import "google/protobuf/timestamp.proto";
 
@@ -19,6 +20,9 @@ service WalletManagerService {
   rpc UpdateWalletMetadata(UpdateWalletMetadataRequest) returns (UpdateWalletMetadataResponse);
   rpc DeleteWallet(DeleteWalletRequest) returns (DeleteWalletResponse);
   rpc DeleteAllWallets(DeleteAllWalletsRequest) returns (DeleteAllWalletsResponse);
+  rpc ListWalletBackups(ListWalletBackupsRequest) returns (ListWalletBackupsResponse);
+  rpc RestoreWalletBackup(RestoreWalletBackupRequest) returns (RestoreWalletBackupResponse);
+  rpc RestoreWalletBackupStream(RestoreWalletBackupRequest) returns (stream RestoreWalletBackupProgressResponse);
   rpc CreateWatchOnlyWallet(CreateWatchOnlyWalletRequest) returns (CreateWatchOnlyWalletResponse);
 
   // Core wallet management
@@ -178,6 +182,70 @@ message DeleteWalletResponse {}
 message DeleteAllWalletsRequest {}
 
 message DeleteAllWalletsResponse {}
+
+message BalanceSnapshot {
+  orchestrator.v1.BinaryType binary = 1;
+  string display_name = 2;
+  uint64 confirmed_sats = 3;
+  uint64 pending_sats = 4;
+  google.protobuf.Timestamp updated_at = 5;
+}
+
+message BackupWalletSummary {
+  string id = 1;
+  string name = 2;
+  string wallet_type = 3;
+}
+
+message WalletBackup {
+  string backup_id = 1;
+  google.protobuf.Timestamp created_at = 2;
+  string source_name = 3;
+  bool encrypted = 4;
+  bool has_metadata = 5;
+  string active_wallet_id = 6;
+  repeated BackupWalletSummary wallets = 7;
+  repeated BalanceSnapshot latest_known_balance = 8;
+  bool valid = 9;
+  string error_message = 10;
+}
+
+message ListWalletBackupsRequest {}
+
+message ListWalletBackupsResponse {
+  repeated WalletBackup backups = 1;
+}
+
+message RestoreWalletBackupRequest {
+  string backup_id = 1;
+  string password = 2;
+}
+
+message RestoreWalletBackupResponse {}
+
+message RestoreWalletBackupStep {
+  string step_id = 1;
+  string name = 2;
+}
+
+enum RestoreWalletBackupStepState {
+  RESTORE_WALLET_BACKUP_STEP_STATE_UNSPECIFIED = 0;
+  RESTORE_WALLET_BACKUP_STEP_STATE_STARTED = 1;
+  RESTORE_WALLET_BACKUP_STEP_STATE_COMPLETED = 2;
+  RESTORE_WALLET_BACKUP_STEP_STATE_FAILED = 3;
+}
+
+message RestoreWalletBackupProgressStatus {
+  string step_id = 1;
+  RestoreWalletBackupStepState state = 2;
+  string error = 3;
+  bool complete = 4;
+}
+
+message RestoreWalletBackupProgressResponse {
+  repeated RestoreWalletBackupStep steps = 1;
+  RestoreWalletBackupProgressStatus status = 2;
+}
 
 // ============================================================================
 // Watch-Only Wallet
