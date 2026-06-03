@@ -1579,11 +1579,17 @@ class DownloadConfig {
   final Map<BitcoinNetwork, Map<OS, String>>? extractSubfolder;
   final Map<BitcoinNetwork, String> _baseUrls;
 
+  /// Per-OS download files keyed by variant id (e.g. 'core', 'patched',
+  /// 'knots'). Only set for variant-aware binaries (Bitcoin Core); the active
+  /// variant is chosen by the orchestrator and surfaced via CoreVariantProvider.
+  final Map<String, Map<OS, String>> variants;
+
   const DownloadConfig({
     required this.binary,
     required this.files,
     this.extractSubfolder,
     this._baseUrls = const {},
+    this.variants = const {},
   });
 
   /// Get the base URL for a network. Falls back to first available URL.
@@ -1893,13 +1899,21 @@ extension DownloadConfigJson on DownloadConfig {
   static DownloadConfig fromJson(Map<String, dynamic> json) {
     // `files` is absent for variant-aware binaries (bitcoincore), where the
     // per-OS download list lives under `download.variants.<id>.files`
-    // instead. The orchestrator resolves the active variant at download
-    // time, so the Dart side just needs to not crash on the missing key.
+    // instead. The orchestrator picks the active variant; the Dart side
+    // resolves the matching files via CoreVariantProvider.activeId.
     final filesJson = json['files'] as Map<String, dynamic>? ?? const {};
 
     // Extract per-network base_url from files entries, or fall back to top-level base_url
     final topLevelBaseUrl = json['base_url'] as String?;
     final baseUrls = _baseUrlsFromFilesJson(filesJson, topLevelBaseUrl ?? '');
+
+    final variantsJson = json['variants'] as Map<String, dynamic>? ?? const {};
+    final variants = <String, Map<OS, String>>{
+      for (final entry in variantsJson.entries)
+        entry.key: _osMapFromJson(
+          (entry.value as Map<String, dynamic>)['files'] as Map<String, dynamic>? ?? const {},
+        ),
+    };
 
     return DownloadConfig(
       baseUrls: baseUrls,
@@ -1908,6 +1922,7 @@ extension DownloadConfigJson on DownloadConfig {
       extractSubfolder: json.containsKey('extract_subfolder') && json['extract_subfolder'] != null
           ? _filesFromJson(json['extract_subfolder'] as Map<String, dynamic>)
           : null,
+      variants: variants,
     );
   }
 }

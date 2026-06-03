@@ -126,9 +126,16 @@ class _ChainSettingsModalState extends State<ChainSettingsModal> {
       builder: (context, viewModel, child) {
         final theme = SailTheme.of(context);
 
-        final baseDir = viewModel.binary.directories.binary[GetIt.I.get<BitcoinConfProvider>().network]?[viewModel.os];
-        final downloadFile =
-            viewModel.binary.metadata.downloadConfig.files[GetIt.I.get<BitcoinConfProvider>().network]![viewModel.os];
+        final network = GetIt.I.get<BitcoinConfProvider>().network;
+        final baseDir = viewModel.binary.directories.binary[network]?[viewModel.os];
+        // Variant-aware binaries (Bitcoin Core) carry no top-level files; the
+        // per-OS file lives under the variant the orchestrator has selected.
+        final downloadConfig = viewModel.binary.metadata.downloadConfig;
+        var downloadFile = downloadConfig.files[network]?[viewModel.os];
+        if (downloadFile == null && downloadConfig.variants.isNotEmpty && GetIt.I.isRegistered<CoreVariantProvider>()) {
+          final activeId = GetIt.I.get<CoreVariantProvider>().activeId;
+          downloadFile = (downloadConfig.variants[activeId] ?? downloadConfig.variants.values.first)[viewModel.os];
+        }
 
         return Dialog(
           backgroundColor: Colors.transparent,

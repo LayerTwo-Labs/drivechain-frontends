@@ -20,13 +20,14 @@ const _assetsPrefix = 'packages/sail_ui/assets';
 /// ## Migration system
 ///
 /// Migration files live in `assets/migrations/` as numbered JSON files:
-/// `001_chains_config.json`, `002_chains_config.json`, etc.
+/// `001_chains_config.json`, `002_chains_config.json`, etc. The highest number
+/// is the current config and must mirror the bundled `chains_config.json`
+/// (same `version`, same content).
 ///
-/// On startup, if the user's config version is behind the latest migration:
-/// - Compare user's config (minus hashes/computed data) against the previous
-///   migration baseline.
-/// - If they match → user hasn't customized → safe to replace with new version.
-/// - If they differ → user has customized → bump version only, keep their values.
+/// On startup, if the on-disk config version is behind the latest migration,
+/// the latest config is adopted wholesale. Bump `version` and add a matching
+/// migration file whenever the bundled config changes. Paranoid mode skips
+/// this so manual edits survive.
 class ChainsConfigProvider extends ChangeNotifier {
   final log = Logger(level: Level.info);
   final File configFile;
@@ -106,12 +107,19 @@ class ChainsConfigProvider extends ChangeNotifier {
   }
 
   /// Run pending migrations on the user's config file.
+  ///
+  /// Pre-1.0, chains_config.json is app-owned: when the bundled config is
+  /// newer than the on-disk one, we adopt it wholesale. Anyone who wants to
+  /// keep manual edits enables paranoid mode, which skips this entirely (see
+  /// [create]). The previous "replace only if it matches a baseline" scheme
+  /// could never fire once the asset changed without a matching version bump,
+  /// which left installs frozen on stale config.
   static Future<void> _runMigrations(File configFile) async {
     final log = Logger(level: Level.info);
 
     try {
       final contents = await configFile.readAsString();
-      var userConfig = json.decode(contents) as Map<String, dynamic>;
+      final userConfig = json.decode(contents) as Map<String, dynamic>;
       final currentVersion = userConfig['version'] as int? ?? 0;
 
       final available = await _discoverMigrations();
@@ -120,72 +128,14 @@ class ChainsConfigProvider extends ChangeNotifier {
       final latestVersion = available.last;
       if (currentVersion >= latestVersion) return;
 
-      log.i(
-        'Config version $currentVersion → $latestVersion: checking migrations',
-      );
+      log.i('Config version $currentVersion → $latestVersion: adopting latest config');
 
-      for (final migrationNum in available) {
-        if (migrationNum <= currentVersion) continue;
-
-        final newConfig = await _loadMigration(migrationNum);
-
-        // Load the previous migration as baseline (what the user SHOULD have
-        // if they haven't customized anything).
-        Map<String, dynamic>? baseline;
-        if (migrationNum > 1 && available.contains(migrationNum - 1)) {
-          baseline = await _loadMigration(migrationNum - 1);
-        }
-
-        if (baseline != null && _configsEqual(userConfig, baseline)) {
-          // User hasn't customized — safe to replace entirely
-          log.i(
-            'Migration $migrationNum: config unchanged from baseline, replacing',
-          );
-          userConfig = newConfig;
-        } else {
-          // User has customized — just bump the version, keep their values
-          log.i(
-            'Migration $migrationNum: config was customized, bumping version only',
-          );
-          userConfig['version'] = migrationNum;
-        }
-      }
-
+      final latest = await _loadMigration(latestVersion);
       final encoder = const JsonEncoder.withIndent('  ');
-      await configFile.writeAsString(encoder.convert(userConfig));
+      await configFile.writeAsString(encoder.convert(latest));
     } catch (e) {
       log.w('Migration failed (config unchanged): $e');
     }
-  }
-
-  /// Compare two configs for equality, ignoring computed/runtime fields
-  /// (hashes, sizes) that the app writes back.
-  static bool _configsEqual(Map<String, dynamic> a, Map<String, dynamic> b) {
-    final strippedA = _stripComputedFields(a);
-    final strippedB = _stripComputedFields(b);
-    return json.encode(strippedA) == json.encode(strippedB);
-  }
-
-  /// Deep-copy a config, removing fields that are computed at runtime
-  /// (hashes, download sizes) so they don't block migrations.
-  static Map<String, dynamic> _stripComputedFields(
-    Map<String, dynamic> config,
-  ) {
-    final copy = json.decode(json.encode(config)) as Map<String, dynamic>;
-
-    final binaries = copy['binaries'] as Map<String, dynamic>?;
-    if (binaries != null) {
-      for (final entry in binaries.values) {
-        if (entry is Map<String, dynamic>) {
-          entry.remove('hashes');
-        }
-      }
-    }
-
-    // Ignore version field for comparison
-    copy.remove('version');
-
-    return copy;
   }
 
   // ---------------------------------------------------------------------------
