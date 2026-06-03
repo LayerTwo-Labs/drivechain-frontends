@@ -1,5 +1,9 @@
 import 'dart:io';
 
+import 'package:bip39_mnemonic/bip39_mnemonic.dart';
+import 'package:convert/convert.dart' show hex;
+import 'package:crypto/crypto.dart' show sha256;
+import 'package:dart_bip32_bip44/dart_bip32_bip44.dart';
 import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
@@ -95,13 +99,68 @@ class WalletWriterProvider extends ChangeNotifier {
 
   Future<Map<String, dynamic>> generateWalletFromEntropy(
     List<int> entropy, {
+    String? name,
     String? passphrase,
     bool doNotSave = false,
   }) async {
-    _logger.w(
-      'generateWalletFromEntropy: delegating to generateWallet',
+    final walletData = _walletDataFromEntropy(entropy, passphrase: passphrase);
+
+    if (doNotSave) {
+      return walletData;
+    }
+
+    final walletName = name?.trim().isNotEmpty == true ? name!.trim() : 'Enforcer Wallet';
+    final result = await generateWallet(
+      name: walletName,
+      customMnemonic: walletData['mnemonic'] as String,
+      passphrase: passphrase,
     );
-    return generateWallet(name: 'Enforcer Wallet', passphrase: passphrase);
+
+    return {
+      ...walletData,
+      ...result,
+    };
+  }
+
+  Map<String, dynamic> _walletDataFromEntropy(
+    List<int> entropy, {
+    String? passphrase,
+  }) {
+    final mnemonic = Mnemonic(
+      entropy,
+      Language.english,
+      passphrase: passphrase ?? '',
+    );
+    final seedHex = hex.encode(mnemonic.seed);
+    final masterKey = Chain.seed(seedHex).forPath('m') as ExtendedPrivateKey;
+    final bip39Checksum = _bip39Checksum(entropy);
+
+    return {
+      'mnemonic': mnemonic.sentence,
+      'seed_hex': seedHex,
+      'master_key': masterKey.privateKeyHex(),
+      'chain_code': hex.encode(masterKey.chainCode!),
+      'bip39_binary': _bytesToBinary(entropy),
+      'bip39_checksum': bip39Checksum,
+      'bip39_checksum_hex': _checksumHex(bip39Checksum),
+    };
+  }
+
+  String _bytesToBinary(List<int> bytes) {
+    return bytes.map((byte) => byte.toRadixString(2).padLeft(8, '0')).join();
+  }
+
+  String _bip39Checksum(List<int> entropy) {
+    final checksumSize = (entropy.length * 8) ~/ 32;
+    return _bytesToBinary(sha256.convert(entropy).bytes).substring(0, checksumSize);
+  }
+
+  String _checksumHex(String checksumBits) {
+    var checksumByte = 0;
+    for (final bit in checksumBits.codeUnits) {
+      checksumByte = (checksumByte << 1) | (bit == 49 ? 1 : 0);
+    }
+    return hex.encode([checksumByte]);
   }
 
   Future<void> saveMasterWallet(

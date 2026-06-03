@@ -1,6 +1,7 @@
 import 'package:auto_route/auto_route.dart';
 import 'package:sail_ui/pages/router.gr.dart';
 import 'package:sail_ui/sail_ui.dart';
+import 'package:thunder/main.dart' show bootBinaries;
 import 'package:thunder/pages/tabs/home_page.dart';
 import 'package:thunder/pages/tabs/settings_page.dart';
 import 'package:thunder/pages/tabs/thunder_configure_homepage_page.dart';
@@ -40,6 +41,10 @@ class AppRouter extends RootStackRouter {
           createWalletRoute: (onWalletCreated) => SailCreateWalletRoute(
             homeRoute: const HomeRoute(),
             onWalletCreated: onWalletCreated,
+            additionalRestoreOptionsBuilder: (context) => WalletBackupRestoreOptions(
+              bootBinaries: (log) async => bootBinaries(log),
+              binariesToStop: [BitcoinCore(), Enforcer(), Thunder()],
+            ),
           ),
         ),
         PasswordGuard(),

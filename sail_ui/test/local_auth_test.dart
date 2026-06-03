@@ -1,7 +1,10 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:connectrpc/connect.dart' as crpc;
 import 'package:flutter_test/flutter_test.dart';
+import 'package:http/http.dart' as http;
+import 'package:http/testing.dart';
 import 'package:sail_ui/auth/local_auth.dart';
 
 void main() {
@@ -97,6 +100,39 @@ void main() {
 
     expect(calls, 2);
     expect((resp as crpc.UnaryResponse<String, String>).message, 'ok');
+    expect(await LocalAuth.token(), 'new');
+  });
+
+  test('raw JSON posts retry after token rejection', () async {
+    writeCookie('old');
+
+    var calls = 0;
+    final client = MockClient((request) async {
+      calls++;
+      if (calls == 1) {
+        expect(request.headers['authorization'], 'Bearer old');
+        writeCookie('new');
+        return http.Response(
+          jsonEncode({
+            'code': 'unauthenticated',
+            'message': LocalAuth.tokenRejectedMessage,
+          }),
+          401,
+        );
+      }
+
+      expect(request.headers['authorization'], 'Bearer new');
+      return http.Response('ok', 200);
+    });
+
+    final resp = await LocalAuth.postJsonWithAuth(
+      Uri.parse('http://example.invalid/cusf.mainchain.v1.ValidatorService/GetChainTip'),
+      body: '{}',
+      client: client,
+    );
+
+    expect(calls, 2);
+    expect(resp.body, 'ok');
     expect(await LocalAuth.token(), 'new');
   });
 }

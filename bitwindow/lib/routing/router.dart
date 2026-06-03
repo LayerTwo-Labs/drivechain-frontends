@@ -1,5 +1,6 @@
 import 'package:auto_route/auto_route.dart';
 import 'package:bitwindow/dialogs/network_statistics_dialog.dart';
+import 'package:bitwindow/main.dart' show rebootBitwindowBackend;
 import 'package:bitwindow/pages/chat_page.dart';
 import 'package:bitwindow/pages/configure_homepage.dart';
 import 'package:bitwindow/pages/console_page.dart';
@@ -93,6 +94,10 @@ class AppRouter extends RootStackRouter {
           createWalletRoute: (onWalletCreated) => SailCreateWalletRoute(
             homeRoute: const RootRoute(),
             onWalletCreated: onWalletCreated,
+            additionalRestoreOptionsBuilder: (context) => WalletBackupRestoreOptions(
+              bootBinaries: (log) async => rebootBitwindowBackend(log),
+              binariesToStop: [BitcoinCore(), Enforcer(), BitWindow()],
+            ),
           ),
         ),
         PasswordGuard(),

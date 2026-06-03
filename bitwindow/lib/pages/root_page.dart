@@ -164,13 +164,6 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
         onSelected: () => GetIt.I.get<AppRouter>().push(CreateAnotherWalletRoute()),
       ),
       CommandItem(
-        label: 'Restore My Wallet',
-        category: 'Your Wallet',
-        onSelected: () => GetIt.I.get<AppRouter>().push(
-          SailCreateWalletRoute(homeRoute: const RootRoute(), initialScreen: WelcomeScreen.restore),
-        ),
-      ),
-      CommandItem(
         label: 'Address Book',
         category: 'Your Wallet',
         onSelected: () => GetIt.I.get<WindowProvider>().open(SubWindowTypes.addressbook),
@@ -189,9 +182,13 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
         label: 'Restore Wallet',
         category: 'Your Wallet',
         onSelected: () => GetIt.I.get<AppRouter>().push(
-          RestoreWalletRoute(
-            bootBinaries: (log) async => rebootBitwindowBackend(log),
-            binariesToStop: [BitcoinCore(), Enforcer(), BitWindow()],
+          SailCreateWalletRoute(
+            homeRoute: const RootRoute(),
+            initialScreen: WelcomeScreen.restore,
+            additionalRestoreOptionsBuilder: (context) => WalletBackupRestoreOptions(
+              bootBinaries: (log) async => rebootBitwindowBackend(log),
+              binariesToStop: [BitcoinCore(), Enforcer(), BitWindow()],
+            ),
           ),
         ),
       ),
@@ -471,17 +468,6 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
                         );
                       },
                     ),
-                    PlatformMenuItem(
-                      label: 'Restore My Wallet',
-                      onSelected: () async {
-                        await GetIt.I.get<AppRouter>().push(
-                          SailCreateWalletRoute(
-                            homeRoute: const RootRoute(),
-                            initialScreen: WelcomeScreen.restore,
-                          ),
-                        );
-                      },
-                    ),
                   ],
                 ),
                 PlatformMenuItemGroup(
@@ -539,9 +525,13 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
                       label: 'Restore Wallet',
                       onSelected: () async {
                         await GetIt.I.get<AppRouter>().push(
-                          RestoreWalletRoute(
-                            bootBinaries: (log) async => rebootBitwindowBackend(log),
-                            binariesToStop: [BitcoinCore(), Enforcer(), BitWindow()],
+                          SailCreateWalletRoute(
+                            homeRoute: const RootRoute(),
+                            initialScreen: WelcomeScreen.restore,
+                            additionalRestoreOptionsBuilder: (context) => WalletBackupRestoreOptions(
+                              bootBinaries: (log) async => rebootBitwindowBackend(log),
+                              binariesToStop: [BitcoinCore(), Enforcer(), BitWindow()],
+                            ),
                           ),
                         );
                       },

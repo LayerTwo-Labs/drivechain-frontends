@@ -13,6 +13,7 @@ import (
 	"time"
 	"unicode"
 
+	codec "github.com/LayerTwo-Labs/sidesail/coinnews/codec"
 	sq "github.com/Masterminds/squirrel"
 	"github.com/btcsuite/btcd/btcutil"
 	"github.com/rs/zerolog"
@@ -52,6 +53,10 @@ func invalidateCaches(db *sql.DB) {
 	delete(listCacheEntries, db)
 	listCacheMu.Unlock()
 
+	InvalidateCoinNewsCache(db)
+}
+
+func InvalidateCoinNewsCache(db *sql.DB) {
 	coinNewsCacheMu.Lock()
 	delete(coinNewsCacheEntries, db)
 	coinNewsCacheMu.Unlock()
@@ -86,8 +91,12 @@ func Persist(
 	builder = builder.Suffix(
 		`ON CONFLICT (txid, vout) DO UPDATE SET 
 			op_return_data = excluded.op_return_data, 
-			height = excluded.height, 
-			fee_sats = excluded.fee_sats`,
+			height = COALESCE(excluded.height, op_returns.height), 
+			fee_sats = excluded.fee_sats,
+			created_at = CASE
+				WHEN excluded.height IS NOT NULL THEN excluded.created_at
+				ELSE op_returns.created_at
+			END`,
 	)
 
 	sql, args := builder.MustSql()
@@ -422,16 +431,49 @@ func EncodeTopicCreationMessage(topic TopicID, name string, retentionDays int32)
 	)
 }
 
+// EncodeNewsMessageNewFormat produces the current CoinNews Story wire
+// format used by BroadcastNews and decoded by the cn_* block parser.
+func EncodeNewsMessageNewFormat(topic TopicID, headline string, content string) ([]byte, error) {
+	var t codec.Topic
+	copy(t[:], topic[:])
+	story := codec.Story{Topic: t, Headline: headline}
+	if content != "" {
+		story.TLVs = append(story.TLVs, codec.TLV{
+			Tag:   codec.TLVBody,
+			Value: []byte(content),
+		})
+	}
+	return codec.EncodeStory(story)
+}
+
+// EncodeTopicCreationMessageNewFormat produces the current CoinNews
+// TopicCreation wire format. Retention days are clamped to the
+// single-byte field.
+func EncodeTopicCreationMessageNewFormat(topic TopicID, name string, retentionDays int32) ([]byte, error) {
+	if retentionDays < 0 {
+		retentionDays = 0
+	}
+	if retentionDays > 255 {
+		retentionDays = 255
+	}
+	var t codec.Topic
+	copy(t[:], topic[:])
+	return codec.EncodeTopicCreation(codec.TopicCreation{
+		Topic:         t,
+		RetentionDays: byte(retentionDays),
+		Name:          name,
+	})
+}
+
 type TopicID [TopicIdLength]byte
 
 func (t TopicID) String() string {
 	return hex.EncodeToString(t[:])
 }
 
-// ListCoinNews returns OP_RETURNs that match a known topic, with the
-// per-topic retention cutoff applied. Topic match (first 4 bytes /
-// 8 hex chars of op_return_data) and retention are done in SQL; the Go
-// pass only strips topic-creation rows and empty payloads.
+// ListCoinNews returns articles from the canonical CoinNews tables.
+// Legacy wire-format payloads are translated into cn_* by the block
+// parser before they reach this reader.
 func ListCoinNews(ctx context.Context, db *sql.DB) ([]CoinNews, error) {
 	coinNewsCacheMu.RLock()
 	cached, hit := coinNewsCacheEntries[db]
@@ -442,91 +484,11 @@ func ListCoinNews(ctx context.Context, db *sql.DB) ([]CoinNews, error) {
 		return out, nil
 	}
 
-	// retention_days = 0 means keep forever.
-	rows, err := db.QueryContext(ctx, `
-		SELECT
-			o.id, o.txid, o.vout, unhex(o.op_return_data), o.fee_sats, o.height, o.created_at,
-			t.id, t.topic, t.name, t.confirmed, COALESCE(t.txid, ''), COALESCE(t.retention_days, 7), t.created_at
-		FROM op_returns o
-		INNER JOIN coin_news_topics t
-			ON SUBSTR(o.op_return_data, 1, 8) = t.topic
-		WHERE
-			t.retention_days = 0
-			OR o.created_at >= datetime('now', '-' || t.retention_days || ' days')
-		ORDER BY o.created_at DESC
-	`)
+	coinNews, err := listCoinNewsNewFormat(ctx, db)
 	if err != nil {
-		return nil, fmt.Errorf("list coin news: query: %w", err)
+		return nil, err
 	}
-	defer rows.Close()
-
-	var coinNews []CoinNews
-	for rows.Next() {
-		var (
-			opReturn   OPReturn
-			topic      Topic
-			rawTopicID string
-		)
-		err := rows.Scan(
-			&opReturn.ID, &opReturn.TxID, &opReturn.Vout,
-			&opReturn.Data, &opReturn.Fee, &opReturn.Height, &opReturn.CreatedAt,
-			&topic.ID, &rawTopicID, &topic.Name, &topic.Confirmed, &topic.Txid, &topic.RetentionDays, &topic.CreatedAt,
-		)
-		if err != nil {
-			return nil, fmt.Errorf("list coin news: scan: %w", err)
-		}
-
-		topicID, err := ValidNewsTopicID(rawTopicID)
-		if err != nil {
-			return nil, fmt.Errorf("list coin news: invalid topic ID: %w", err)
-		}
-		topic.Topic = topicID
-
-		if len(opReturn.Data) < TopicIdLength {
-			continue
-		}
-		// Topic-creation rows match the prefix but aren't news.
-		if _, ok := IsCreateTopic(opReturn.Data); ok {
-			continue
-		}
-
-		var (
-			headline string
-			content  string
-		)
-		headlineEnd := TopicIdLength + 64
-		switch {
-		case len(opReturn.Data) >= headlineEnd:
-			headline = strings.TrimRight(string(opReturn.Data[TopicIdLength:headlineEnd]), " ")
-			content = string(opReturn.Data[headlineEnd:])
-
-		default:
-			headline = strings.TrimRight(string(opReturn.Data[TopicIdLength:]), " ")
-		}
-
-		// Remove all the whitespace padding
-		headline = strings.TrimRight(headline, string([]byte{0}))
-		content = strings.TrimRight(content, string([]byte{0}))
-
-		// Skip empty entries — junk posts where the payload is just a
-		// space+null padding (headline blank, content blank).
-		if strings.TrimSpace(headline) == "" && strings.TrimSpace(content) == "" {
-			continue
-		}
-
-		coinNews = append(coinNews, CoinNews{
-			ID:        opReturn.ID,
-			Topic:     topic.Topic,
-			TopicName: topic.Name,
-			Headline:  headline,
-			Content:   content,
-			Fee:       opReturn.Fee,
-			CreatedAt: opReturn.CreatedAt,
-		})
-	}
-	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("list coin news: iterate: %w", err)
-	}
+	sortCoinNewsByCreatedAtDesc(coinNews)
 
 	snapshot := make([]CoinNews, len(coinNews))
 	copy(snapshot, coinNews)
@@ -535,4 +497,96 @@ func ListCoinNews(ctx context.Context, db *sql.DB) ([]CoinNews, error) {
 	coinNewsCacheMu.Unlock()
 
 	return coinNews, nil
+}
+
+func listCoinNewsNewFormat(ctx context.Context, db *sql.DB) ([]CoinNews, error) {
+	rows, err := db.QueryContext(ctx, `
+		SELECT
+			i.rowid,
+			s.topic,
+			COALESCE(ct.name, lt.name, ''),
+			s.headline,
+			COALESCE(s.body, ''),
+			COALESCE(o.fee_sats, 0),
+			i.block_time
+		FROM cn_stories s
+		JOIN cn_items i ON i.item_id = s.item_id
+		LEFT JOIN cn_topics ct ON ct.topic = s.topic
+		LEFT JOIN coin_news_topics lt ON lt.topic = lower(hex(s.topic))
+		LEFT JOIN op_returns o ON o.txid = i.txid AND o.vout = i.vout
+		WHERE
+			trim(s.headline) != ''
+			AND
+			CASE
+				WHEN ct.topic IS NOT NULL THEN
+					ct.retention_days = 0
+					OR i.block_time >= datetime('now', '-' || ct.retention_days || ' days')
+				WHEN lt.topic IS NOT NULL THEN
+					lt.retention_days = 0
+					OR i.block_time >= datetime('now', '-' || lt.retention_days || ' days')
+				ELSE 1
+			END
+	`)
+	if err != nil {
+		return nil, fmt.Errorf("list coin news: query new-format stories: %w", err)
+	}
+	defer rows.Close()
+
+	var out []CoinNews
+	for rows.Next() {
+		var (
+			id        int64
+			rawTopic  []byte
+			topicName string
+			headline  string
+			content   string
+			fee       btcutil.Amount
+			blockTime time.Time
+		)
+		if err := rows.Scan(&id, &rawTopic, &topicName, &headline, &content, &fee, &blockTime); err != nil {
+			return nil, fmt.Errorf("list coin news: scan new-format story: %w", err)
+		}
+		if len(rawTopic) != TopicIdLength {
+			return nil, fmt.Errorf("list coin news: invalid new-format topic length: %d", len(rawTopic))
+		}
+		if strings.TrimSpace(headline) == "" {
+			continue
+		}
+		var topic TopicID
+		copy(topic[:], rawTopic)
+		out = append(out, CoinNews{
+			ID:        id,
+			Topic:     topic,
+			TopicName: topicName,
+			Headline:  headline,
+			Content:   content,
+			Fee:       fee,
+			CreatedAt: &blockTime,
+		})
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("list coin news: iterate new-format stories: %w", err)
+	}
+	return out, nil
+}
+
+func sortCoinNewsByCreatedAtDesc(news []CoinNews) {
+	slices.SortFunc(news, func(a, b CoinNews) int {
+		aTime := time.Time{}
+		if a.CreatedAt != nil {
+			aTime = *a.CreatedAt
+		}
+		bTime := time.Time{}
+		if b.CreatedAt != nil {
+			bTime = *b.CreatedAt
+		}
+		switch {
+		case aTime.After(bTime):
+			return -1
+		case aTime.Before(bTime):
+			return 1
+		default:
+			return 0
+		}
+	})
 }

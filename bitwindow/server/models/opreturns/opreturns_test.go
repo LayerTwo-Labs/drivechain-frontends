@@ -10,10 +10,13 @@ package opreturns
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"testing"
 	"time"
 
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/database"
+	cnstore "github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/coinnews"
+	codec "github.com/LayerTwo-Labs/sidesail/coinnews/codec"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -29,20 +32,68 @@ func seedTopicAndNews(t *testing.T, topic TopicID, topicName, headline, content 
 	t.Helper()
 	ctx := context.Background()
 	db := database.Test(t)
-	require.NoError(t, CreateTopic(ctx, db, topic, topicName, "topic_txid", true, 7))
+	seedCurrentTopic(t, ctx, db, topic, topicName, 7, 99)
+	seedCurrentNews(t, ctx, db, topic, headline, content, "news_txid", 0, 100, time.Now())
+	return db
+}
 
-	height := uint32(100)
-	now := time.Now()
-	require.NoError(t, Persist(ctx, db, []OPReturn{
-		{
-			Height:    &height,
-			TxID:      "news_txid",
-			Vout:      0,
-			Data:      EncodeNewsMessage(topic, headline, content),
-			CreatedAt: &now,
+func seedCurrentTopic(
+	t *testing.T, ctx context.Context, db *sql.DB,
+	topic TopicID, name string, retentionDays int32, height uint32,
+) {
+	t.Helper()
+	var ct codec.Topic
+	copy(ct[:], topic[:])
+	require.NoError(t, cnstore.Index(ctx, db, cnstore.IndexEnv{
+		Pos: cnstore.BlockPos{
+			BlockHeight: height,
+			TxIndex:     0,
+			VoutIndex:   0,
+			BlockTime:   time.Now(),
+			TxID:        fmt.Sprintf("%064x", height),
+		},
+		TypeTag: codec.TypeTopicCreation,
+		Msg: &codec.TopicCreation{
+			Topic:         ct,
+			RetentionDays: byte(retentionDays),
+			Name:          name,
 		},
 	}))
-	return db
+}
+
+func seedCurrentNews(
+	t *testing.T, ctx context.Context, db *sql.DB,
+	topic TopicID, headline, content, txid string, vout, height uint32, blockTime time.Time,
+) {
+	t.Helper()
+	var ct codec.Topic
+	copy(ct[:], topic[:])
+	story := &codec.Story{Topic: ct, Headline: headline}
+	if content != "" {
+		story.TLVs = append(story.TLVs, codec.TLV{Tag: codec.TLVBody, Value: []byte(content)})
+	}
+	require.NoError(t, cnstore.Index(ctx, db, cnstore.IndexEnv{
+		Pos: cnstore.BlockPos{
+			BlockHeight: height,
+			TxIndex:     0,
+			VoutIndex:   vout,
+			BlockTime:   blockTime,
+			TxID:        canonicalTxID(txid),
+		},
+		TypeTag: codec.TypeStory,
+		Msg:     story,
+	}))
+}
+
+func canonicalTxID(label string) string {
+	if len(label) == 64 {
+		return label
+	}
+	var sum byte
+	for i := 0; i < len(label); i++ {
+		sum += label[i]
+	}
+	return fmt.Sprintf("%064x", sum)
 }
 
 // TestEncodeNewsMessage_Layout pins the on-wire byte layout so a future
@@ -132,64 +183,40 @@ func TestListCoinNews_HeadlineStartingWithNewIsNotTopicCreation(t *testing.T) {
 	assert.Equal(t, headline, news[0].Headline)
 }
 
-// TestListCoinNews_WhitespaceOnlyHeadline documents a UX footgun that
-// matches the "blank title" screenshot: a headline of only ASCII
-// spaces (e.g. user hit space a few times) survives decoding as 3
-// literal spaces. The Dart UI renders those in the Title column and
-// they appear as a blank cell. TrimRight(" ") does NOT run effectively
-// because the encoded payload is <spaces><nulls>, so TrimRight stops
-// at the first non-space (null) from the right. The separate
-// TrimRight("\x00") step then strips only the nulls.
-//
-// Fix direction: either (a) reject whitespace-only headlines in
-// BroadcastNews validation, or (b) TrimSpace after decode so stored
-// rows with inadvertent whitespace-only payloads surface as empty
-// instead of lying about content. Both need product input.
+// TestListCoinNews_WhitespaceOnlyHeadline documents the defensive read
+// filter: current broadcasts reject these, and the legacy adapter
+// avoids inserting them, but a hand-written canonical row still must
+// not render as a blank title.
 func TestListCoinNews_WhitespaceOnlyHeadline(t *testing.T) {
 	topic := mustTopicID(t, "deadbeef")
 	db := seedTopicAndNews(t, topic, "Test Topic", "   ", "body")
 
 	news, err := ListCoinNews(context.Background(), db)
 	require.NoError(t, err)
-	require.Len(t, news, 1)
-	assert.Equal(t, "   ", news[0].Headline,
-		"decode currently preserves literal spaces; UI renders them as an empty cell — likely source of the reported 'blank title' rows")
+	assert.Empty(t, news)
 }
 
-// TestListCoinNews_EmptyHeadline mirrors the above for the case where
-// the encoded headline is 64 NULL bytes — decode must produce "" so
-// callers can detect and suppress.
+// TestListCoinNews_EmptyHeadline mirrors the above for empty headline
+// rows. They are invalid for normal broadcasts and hidden on read.
 func TestListCoinNews_EmptyHeadline(t *testing.T) {
 	topic := mustTopicID(t, "deadbeef")
 	db := seedTopicAndNews(t, topic, "Test Topic", "", "body")
 
 	news, err := ListCoinNews(context.Background(), db)
 	require.NoError(t, err)
-	require.Len(t, news, 1)
-	assert.Empty(t, news[0].Headline)
+	assert.Empty(t, news)
 }
 
-// TestListCoinNews_ShortMessageBelowHeadlineEnd exercises the default
-// branch of ListCoinNews where data < 68 bytes (no full headline
-// block). Decode must not panic and must yield whatever fits.
+// TestListCoinNews_ShortHeadline keeps the reader honest for a compact
+// current-format Story.
 func TestListCoinNews_ShortMessageBelowHeadlineEnd(t *testing.T) {
 	topic := mustTopicID(t, "deadbeef")
-	ctx := context.Background()
-	db := database.Test(t)
-	require.NoError(t, CreateTopic(ctx, db, topic, "Test Topic", "topic_txid", true, 7))
+	db := seedTopicAndNews(t, topic, "Test Topic", "short!!!", "")
 
-	// topic + 10 bytes of headline-ish data, no content, no padding.
-	data := append([]byte{}, topic[:]...)
-	data = append(data, []byte("short!!!  ")...) // 10 bytes, trailing spaces
-	height := uint32(100)
-	require.NoError(t, Persist(ctx, db, []OPReturn{
-		{Height: &height, TxID: "short_txid", Vout: 0, Data: data},
-	}))
-
-	news, err := ListCoinNews(ctx, db)
+	news, err := ListCoinNews(context.Background(), db)
 	require.NoError(t, err)
 	require.Len(t, news, 1)
-	assert.Equal(t, "short!!!", news[0].Headline, "trailing spaces stripped, no panic")
+	assert.Equal(t, "short!!!", news[0].Headline)
 }
 
 // TestIsCreateTopic_RejectsNewsMessage makes sure the topic classifier
@@ -302,4 +329,57 @@ func TestBackfillCoinNewsBlockTime(t *testing.T) {
 		"row without a matching processed_blocks entry must be left alone")
 	assert.WithinDuration(t, syncTime, got("mempool"), time.Second,
 		"mempool row (NULL height) must be left alone")
+}
+
+func TestPersistConfirmedConflictUpdatesCreateTimeToBlockTime(t *testing.T) {
+	ctx := context.Background()
+	db := database.Test(t)
+
+	height := uint32(800000)
+	syncTime := time.Date(2026, 4, 25, 8, 0, 0, 0, time.UTC)
+	blockTime := time.Date(2024, 1, 1, 12, 0, 0, 0, time.UTC)
+	laterMempoolTime := time.Date(2026, 4, 26, 8, 0, 0, 0, time.UTC)
+
+	require.NoError(t, Persist(ctx, db, []OPReturn{{
+		Height:    nil,
+		TxID:      "same-txid",
+		Vout:      0,
+		Data:      []byte{0xa1, 0xa1, 0xa1, 0xa1},
+		CreatedAt: &syncTime,
+	}}))
+	require.NoError(t, Persist(ctx, db, []OPReturn{{
+		Height:    &height,
+		TxID:      "same-txid",
+		Vout:      0,
+		Data:      []byte{0xa1, 0xa1, 0xa1, 0xa1},
+		CreatedAt: &blockTime,
+	}}))
+
+	var gotCreatedAt time.Time
+	var gotHeight sql.NullInt64
+	require.NoError(t, db.QueryRowContext(ctx,
+		`SELECT created_at, height FROM op_returns WHERE txid = ? AND vout = ?`,
+		"same-txid", 0,
+	).Scan(&gotCreatedAt, &gotHeight))
+	assert.WithinDuration(t, blockTime, gotCreatedAt, time.Second,
+		"confirmed conflict must adopt the timestamp extracted from the block")
+	require.True(t, gotHeight.Valid)
+	assert.Equal(t, int64(height), gotHeight.Int64)
+
+	require.NoError(t, Persist(ctx, db, []OPReturn{{
+		Height:    nil,
+		TxID:      "same-txid",
+		Vout:      0,
+		Data:      []byte{0xa1, 0xa1, 0xa1, 0xa1},
+		CreatedAt: &laterMempoolTime,
+	}}))
+
+	require.NoError(t, db.QueryRowContext(ctx,
+		`SELECT created_at, height FROM op_returns WHERE txid = ? AND vout = ?`,
+		"same-txid", 0,
+	).Scan(&gotCreatedAt, &gotHeight))
+	assert.WithinDuration(t, blockTime, gotCreatedAt, time.Second,
+		"mempool replay must not overwrite a confirmed block timestamp")
+	require.True(t, gotHeight.Valid)
+	assert.Equal(t, int64(height), gotHeight.Int64)
 }

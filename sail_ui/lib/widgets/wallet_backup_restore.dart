@@ -593,7 +593,7 @@ class RestoreProgressStep {
 
 /// Page for restoring wallet from backup - matches CreateWalletPage style
 @RoutePage()
-class RestoreWalletPage extends StatefulWidget {
+class RestoreWalletPage extends StatelessWidget {
   final Future<void> Function(Logger log) bootBinaries;
   final List<Binary> binariesToStop;
 
@@ -604,10 +604,38 @@ class RestoreWalletPage extends StatefulWidget {
   });
 
   @override
-  State<RestoreWalletPage> createState() => _RestoreWalletPageState();
+  Widget build(BuildContext context) {
+    return WalletBackupRestoreOptions(
+      bootBinaries: bootBinaries,
+      binariesToStop: binariesToStop,
+      showScaffold: true,
+      showTitle: true,
+      showBackButton: true,
+    );
+  }
 }
 
-class _RestoreWalletPageState extends State<RestoreWalletPage> {
+class WalletBackupRestoreOptions extends StatefulWidget {
+  final Future<void> Function(Logger log) bootBinaries;
+  final List<Binary> binariesToStop;
+  final bool showScaffold;
+  final bool showTitle;
+  final bool showBackButton;
+
+  const WalletBackupRestoreOptions({
+    super.key,
+    required this.bootBinaries,
+    required this.binariesToStop,
+    this.showScaffold = false,
+    this.showTitle = false,
+    this.showBackButton = false,
+  });
+
+  @override
+  State<WalletBackupRestoreOptions> createState() => _WalletBackupRestoreOptionsState();
+}
+
+class _WalletBackupRestoreOptionsState extends State<WalletBackupRestoreOptions> {
   Logger get log => GetIt.I.get<Logger>();
   WalletWriterProvider get walletProvider => GetIt.I.get<WalletWriterProvider>();
 
@@ -1146,13 +1174,30 @@ class _RestoreWalletPageState extends State<RestoreWalletPage> {
     final theme = SailTheme.of(context);
 
     if (_isRestoring || _success) {
-      return _RestoreProgressScreen(
+      final progress = _RestoreProgressCard(
         success: _success,
         steps: _steps,
         currentStepIndex: _currentStepIndex,
         autoBackupPath: _autoBackupPath,
         error: _error,
+        onClose: () async {
+          await context.router.maybePop();
+        },
       );
+
+      if (!widget.showScaffold) {
+        return progress;
+      }
+
+      return Scaffold(
+        backgroundColor: theme.colors.background,
+        body: Center(child: progress),
+      );
+    }
+
+    final options = _buildRestoreOptions(theme);
+    if (!widget.showScaffold) {
+      return options;
     }
 
     return Scaffold(
@@ -1160,142 +1205,153 @@ class _RestoreWalletPageState extends State<RestoreWalletPage> {
       body: Center(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 32.0),
-          child: SizedBox(
-            width: 600,
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                _PageTitle(
-                  title: 'Restore from backup',
-                  subtitle:
-                      'Restore your wallet from a local backup or a backup file. This will restore your master seed and all sidechain wallets.',
-                ),
-                Expanded(
-                  child: SingleChildScrollView(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        // Supported formats
-                        Container(
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            color: theme.colors.backgroundSecondary,
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              SailText.primary13(
-                                'Supported formats:',
-                                bold: true,
-                              ),
-                              const SizedBox(height: 12),
-                              const BulletPoint(
-                                '.zip - Full backup (wallet, multisig, transactions)',
-                              ),
-                              const BulletPoint(
-                                '.json - Just wallet.json (master seed only)',
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: 24),
-
-                        SailText.primary13('Local wallet backups:', bold: true),
-                        const SizedBox(height: 8),
-                        _buildLocalBackups(theme),
-                        const SizedBox(height: 24),
-
-                        // File selection
-                        SailText.primary13('Select backup file:', bold: true),
-                        const SizedBox(height: 8),
-                        GestureDetector(
-                          onTap: _selectBackupFile,
-                          child: Container(
-                            padding: const EdgeInsets.all(16),
-                            decoration: BoxDecoration(
-                              border: Border.all(
-                                color: _selectedFile != null ? theme.colors.primary : theme.colors.border,
-                              ),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Row(
-                              children: [
-                                Expanded(
-                                  child: SailText.secondary13(
-                                    _selectedFile?.path ?? 'Click to choose backup file...',
-                                  ),
-                                ),
-                                Icon(
-                                  Icons.file_open,
-                                  color: theme.colors.textSecondary,
-                                  size: 20,
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-
-                        if (_error != null) ...[
-                          const SizedBox(height: 16),
-                          Container(
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              color: theme.colors.error.withValues(alpha: 0.1),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: SailText.primary13(
-                              _error!,
-                              color: theme.colors.error,
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 24),
-                // Navigation buttons
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    SailButton(
-                      label: '\u2190 Back',
-                      variant: ButtonVariant.secondary,
-                      onPressed: () async {
-                        await context.router.maybePop();
-                      },
-                    ),
-                    SailButton(
-                      label: 'Restore Wallet',
-                      variant: ButtonVariant.primary,
-                      disabled: _selectedFile == null && _selectedBackup == null,
-                      onPressed: _startRestore,
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 32),
-              ],
-            ),
-          ),
+          child: SizedBox(width: 600, child: options),
         ),
       ),
     );
   }
+
+  Widget _buildRestoreOptions(SailThemeData theme) {
+    return Column(
+      mainAxisAlignment: widget.showScaffold ? MainAxisAlignment.center : MainAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      mainAxisSize: widget.showScaffold ? MainAxisSize.max : MainAxisSize.min,
+      children: [
+        if (widget.showTitle)
+          _PageTitle(
+            title: 'Restore from backup',
+            subtitle:
+                'Restore your wallet from a local backup or a backup file. This will restore your master seed and all sidechain wallets.',
+          ),
+        if (widget.showScaffold)
+          Expanded(
+            child: SingleChildScrollView(
+              child: _buildRestoreOptionsBody(theme),
+            ),
+          )
+        else
+          _buildRestoreOptionsBody(theme),
+        const SizedBox(height: 24),
+        Row(
+          mainAxisAlignment: widget.showBackButton ? MainAxisAlignment.spaceBetween : MainAxisAlignment.end,
+          children: [
+            if (widget.showBackButton)
+              SailButton(
+                label: '\u2190 Back',
+                variant: ButtonVariant.secondary,
+                onPressed: () async {
+                  await context.router.maybePop();
+                },
+              ),
+            SailButton(
+              label: 'Restore selected backup',
+              variant: ButtonVariant.primary,
+              disabled: _selectedFile == null && _selectedBackup == null,
+              onPressed: _startRestore,
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildRestoreOptionsBody(SailThemeData theme) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        // Supported formats
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: theme.colors.backgroundSecondary,
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              SailText.primary13(
+                'Backup restore',
+                bold: true,
+              ),
+              const SizedBox(height: 12),
+              const BulletPoint(
+                '.zip - Full backup (wallet, multisig, transactions)',
+              ),
+              const BulletPoint(
+                '.json - Just wallet.json (master seed only)',
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 24),
+
+        SailText.primary13('Local wallet backups:', bold: true),
+        const SizedBox(height: 8),
+        _buildLocalBackups(theme),
+        const SizedBox(height: 24),
+
+        // File selection
+        SailText.primary13('Select backup file:', bold: true),
+        const SizedBox(height: 8),
+        GestureDetector(
+          onTap: _selectBackupFile,
+          child: Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              border: Border.all(
+                color: _selectedFile != null ? theme.colors.primary : theme.colors.border,
+              ),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: SailText.secondary13(
+                    _selectedFile?.path ?? 'Click to choose backup file...',
+                  ),
+                ),
+                Icon(
+                  Icons.file_open,
+                  color: theme.colors.textSecondary,
+                  size: 20,
+                ),
+              ],
+            ),
+          ),
+        ),
+
+        if (_error != null) ...[
+          const SizedBox(height: 16),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: theme.colors.error.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: SailText.primary13(
+              _error!,
+              color: theme.colors.error,
+            ),
+          ),
+        ],
+      ],
+    );
+  }
 }
 
-class _RestoreProgressScreen extends StatelessWidget {
+class _RestoreProgressCard extends StatelessWidget {
   final bool success;
   final List<RestoreProgressStep> steps;
   final int currentStepIndex;
   final String? autoBackupPath;
   final String? error;
+  final Future<void> Function() onClose;
 
-  const _RestoreProgressScreen({
+  const _RestoreProgressCard({
     required this.success,
     required this.steps,
     required this.currentStepIndex,
+    required this.onClose,
     this.autoBackupPath,
     this.error,
   });
@@ -1305,73 +1361,66 @@ class _RestoreProgressScreen extends StatelessWidget {
     final theme = SailTheme.of(context);
     final isCompleted = success;
 
-    return Scaffold(
-      backgroundColor: theme.colors.background,
-      body: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 550, maxHeight: 650),
-          child: SailCard(
-            title: 'Restoring Wallet',
-            subtitle: isCompleted
-                ? 'Wallet restored successfully!'
-                : error != null
-                ? 'Restore failed: $error'
-                : 'Please wait while your wallet is restored...',
-            withCloseButton: true,
-            child: SingleChildScrollView(
-              child: SailColumn(
-                spacing: SailStyleValues.padding08,
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  ...steps.asMap().entries.map((entry) {
-                    final index = entry.key;
-                    final step = entry.value;
-                    final isActive = index == currentStepIndex && !step.isCompleted;
-                    return ProgressStepTile(
-                      name: step.name,
-                      isCompleted: step.isCompleted,
-                      duration: step.duration,
-                      isActive: isActive,
-                    );
-                  }),
-                  if (isCompleted && autoBackupPath != null) ...[
-                    const SailSpacing(SailStyleValues.padding16),
-                    Container(
-                      padding: const EdgeInsets.all(SailStyleValues.padding12),
-                      decoration: BoxDecoration(
-                        color: theme.colors.backgroundSecondary,
-                        borderRadius: SailStyleValues.borderRadiusSmall,
-                        border: Border.all(color: theme.colors.border),
+    return ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: 550, maxHeight: 650),
+      child: SailCard(
+        title: 'Restoring Wallet',
+        subtitle: isCompleted
+            ? 'Wallet restored successfully!'
+            : error != null
+            ? 'Restore failed: $error'
+            : 'Please wait while your wallet is restored...',
+        withCloseButton: true,
+        child: SingleChildScrollView(
+          child: SailColumn(
+            spacing: SailStyleValues.padding08,
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              ...steps.asMap().entries.map((entry) {
+                final index = entry.key;
+                final step = entry.value;
+                final isActive = index == currentStepIndex && !step.isCompleted;
+                return ProgressStepTile(
+                  name: step.name,
+                  isCompleted: step.isCompleted,
+                  duration: step.duration,
+                  isActive: isActive,
+                );
+              }),
+              if (isCompleted && autoBackupPath != null) ...[
+                const SailSpacing(SailStyleValues.padding16),
+                Container(
+                  padding: const EdgeInsets.all(SailStyleValues.padding12),
+                  decoration: BoxDecoration(
+                    color: theme.colors.backgroundSecondary,
+                    borderRadius: SailStyleValues.borderRadiusSmall,
+                    border: Border.all(color: theme.colors.border),
+                  ),
+                  child: SailColumn(
+                    spacing: SailStyleValues.padding08,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      SailText.primary13('Previous wallet backed up to:'),
+                      SelectableText(
+                        autoBackupPath!,
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: theme.colors.textSecondary,
+                          fontFamily: 'IBMPlexMono',
+                        ),
                       ),
-                      child: SailColumn(
-                        spacing: SailStyleValues.padding08,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          SailText.primary13('Previous wallet backed up to:'),
-                          SelectableText(
-                            autoBackupPath!,
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: theme.colors.textSecondary,
-                              fontFamily: 'IBMPlexMono',
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                  if (isCompleted || error != null) const SailSpacing(SailStyleValues.padding08),
-                  if (isCompleted || error != null)
-                    SailButton(
-                      label: 'Close',
-                      variant: isCompleted ? ButtonVariant.primary : ButtonVariant.secondary,
-                      onPressed: () async {
-                        await context.router.maybePop();
-                      },
-                    ),
-                ],
-              ),
-            ),
+                    ],
+                  ),
+                ),
+              ],
+              if (isCompleted || error != null) const SailSpacing(SailStyleValues.padding08),
+              if (isCompleted || error != null)
+                SailButton(
+                  label: 'Close',
+                  variant: isCompleted ? ButtonVariant.primary : ButtonVariant.secondary,
+                  onPressed: onClose,
+                ),
+            ],
           ),
         ),
       ),

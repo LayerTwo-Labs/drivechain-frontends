@@ -5,6 +5,7 @@ import (
 	"slices"
 	"strings"
 	"testing"
+	"time"
 
 	"connectrpc.com/connect"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/database"
@@ -104,6 +105,10 @@ func TestOpReturnHandling(t *testing.T) {
 	// 3. Created the brand new topic
 	// 4. Persisted coin news for the new topic
 	require.NoError(t, parser.opReturnForTXID(ctx, tx, nil, nil))
+	require.NoError(t, parser.indexCoinNewsForBlock(ctx, 100, &wire.MsgBlock{
+		Header:       wire.BlockHeader{Timestamp: time.Now()},
+		Transactions: []*wire.MsgTx{tx},
+	}))
 
 	assert.Len(t, parser.topics, 2)
 
@@ -159,12 +164,11 @@ func TestOpReturnHandling_HeadlineEdgeCases(t *testing.T) {
 	}
 
 	cases := []struct {
-		name          string
-		headline      string
-		content       string
-		wantHeadline  string
-		expectListed  bool
-		expectCreates bool // true if engine treats as topic creation
+		name         string
+		headline     string
+		content      string
+		wantHeadline string
+		expectListed bool
 	}{
 		{
 			name:         "standard headline",
@@ -188,11 +192,11 @@ func TestOpReturnHandling_HeadlineEdgeCases(t *testing.T) {
 			expectListed: true,
 		},
 		{
-			name:          "headline starts with 'new' (known false-positive)",
-			headline:      "new protocol launched",
-			content:       "body",
-			expectListed:  false, // KNOWN BUG: IsCreateTopic eats this
-			expectCreates: true,
+			name:         "headline starts with 'new'",
+			headline:     "new protocol launched",
+			content:      "body",
+			wantHeadline: "new protocol launched",
+			expectListed: true,
 		},
 	}
 
@@ -217,6 +221,10 @@ func TestOpReturnHandling_HeadlineEdgeCases(t *testing.T) {
 				Times(1)
 
 			require.NoError(t, parser.opReturnForTXID(ctx, tx, nil, nil))
+			require.NoError(t, parser.indexCoinNewsForBlock(ctx, uint32(200+i), &wire.MsgBlock{
+				Header:       wire.BlockHeader{Timestamp: time.Now()},
+				Transactions: []*wire.MsgTx{tx},
+			}))
 
 			news, err := opreturns.ListCoinNews(ctx, db)
 			require.NoError(t, err)
@@ -234,18 +242,15 @@ func TestOpReturnHandling_HeadlineEdgeCases(t *testing.T) {
 				require.NotNil(t, matched, "news item not found in ListCoinNews output (headline=%q)", tc.headline)
 				assert.Equal(t, btcutil.Amount(100_000), matched.Fee)
 			} else {
-				assert.Nil(t, matched,
-					"news item unexpectedly listed (known bug: 'new'-prefixed headlines are dropped as topic creations)")
+				assert.Nil(t, matched, "news item unexpectedly listed")
 			}
 		})
 	}
 }
 
-// TestOpReturnHandling_WhitespaceHeadlineLooksBlank simulates the
-// live-reported screenshot: every row's title cell appears empty.
-// A whitespace-only headline round-trips to a whitespace string the
-// UI can't distinguish from empty. This test locks in the footgun so
-// a future validation/trim fix has a reproducer.
+// TestOpReturnHandling_WhitespaceHeadlineLooksBlank covers the old
+// wire format's blank-title footgun. The compatibility adapter should
+// drop these instead of inserting canonical rows with invisible titles.
 func TestOpReturnHandling_WhitespaceHeadlineLooksBlank(t *testing.T) {
 	t.Parallel()
 
@@ -280,10 +285,12 @@ func TestOpReturnHandling_WhitespaceHeadlineLooksBlank(t *testing.T) {
 		Return(connect.NewResponse(&corepb.GetRawTransactionResponse{Fee: 0.001}), nil)
 
 	require.NoError(t, parser.opReturnForTXID(ctx, tx, nil, nil))
+	require.NoError(t, parser.indexCoinNewsForBlock(ctx, 300, &wire.MsgBlock{
+		Header:       wire.BlockHeader{Timestamp: time.Now()},
+		Transactions: []*wire.MsgTx{tx},
+	}))
 
 	news, err := opreturns.ListCoinNews(ctx, db)
 	require.NoError(t, err)
-	require.Len(t, news, 1)
-	assert.Equal(t, "   ", news[0].Headline,
-		"whitespace-only broadcast produces a row whose Title cell renders as blank — validation or TrimSpace needed")
+	assert.Empty(t, news, "legacy whitespace-only headlines should not be adapted into canonical stories")
 }

@@ -1,16 +1,16 @@
--- CoinNews v2 (BIP-coinnews) tables.
+-- CoinNews current-format (BIP-coinnews) tables.
 --
 -- The legacy `coin_news_topics` + `op_returns` tables continue to serve
--- the v1 (pre-BIP) wire format. v2 lives in its own `cn_*` namespace so
--- the two indexers don't fight over rows; queries that want a unified
--- view UNION across both.
+-- the pre-BIP wire format for raw OP_RETURN browsing. Coin News article
+-- storage and queries use `cn_*`; the parser adapts old wire-format
+-- payloads into these tables.
 --
 -- All `BLOB(N)` columns store raw bytes — ItemIDs are 12 B truncated
 -- SHA-256 (spec §4), topic IDs 4 B, x-only pubkeys 32 B, media hashes
 -- 32 B, schnorr sigs 64 B. SQLite ignores the size hint but it is
 -- documentation against schema drift.
 
--- Universal index of every accepted CoinNews v2 Item, addressed by
+-- Universal index of every accepted current-format CoinNews Item, addressed by
 -- ItemID. Anything keyed by ItemID elsewhere has a foreign key here.
 -- The `(block_height, tx_index, vout_index)` triple matches the
 -- canonical scan order in spec §4.2.

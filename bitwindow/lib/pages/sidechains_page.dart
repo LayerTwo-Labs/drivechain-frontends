@@ -1231,13 +1231,17 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
 
   @override
   void dispose() {
-    super.dispose();
     _sidechainProvider.removeListener(_onChange);
     addressController.removeListener(_onChange);
     depositAmountController.removeListener(_onChange);
     feeController.removeListener(_onChange);
     _binaryProvider.removeListener(_onChange);
+    _binaryProvider.removeListener(notifyListeners);
+    _syncProvider.removeListener(_onChange);
+    _syncProvider.removeListener(notifyListeners);
     _downloadProvider?.removeListener(_onChange);
+    _downloadProvider?.removeListener(notifyListeners);
+    super.dispose();
   }
 
   void _onChange() {

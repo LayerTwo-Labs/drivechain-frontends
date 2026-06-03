@@ -132,36 +132,23 @@ func TestListCache_PerDBIsolation(t *testing.T) {
 	assert.Empty(t, gotB, "dbB must not see dbA's rows via shared cache")
 }
 
-// Only rows whose topic prefix matches a known topic are returned.
-func TestListCoinNews_TopicSQLJoin(t *testing.T) {
+// ListCoinNews reads from the canonical CoinNews tables, not raw
+// op_returns rows.
+func TestListCoinNews_ReadsCanonicalStories(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
 	db := database.Test(t)
 
-	known := mustTopicID(t, "a1a1a1a1")
-	unknown := mustTopicID(t, "deadbeef")
-	require.NoError(t, CreateTopic(ctx, db, known, "Known", "topic_txid", true, 0))
-
-	now := time.Now()
-	h := uint32(1)
-	require.NoError(t, Persist(ctx, db, []OPReturn{
-		{
-			Height: &h, TxID: "matching", Vout: 0,
-			Data:      EncodeNewsMessage(known, "headline", "body"),
-			CreatedAt: &now,
-		},
-		{
-			Height: &h, TxID: "non-matching", Vout: 1,
-			Data:      EncodeNewsMessage(unknown, "headline", "body"),
-			CreatedAt: &now,
-		},
-	}))
+	topic := mustTopicID(t, "a1a1a1a1")
+	seedCurrentTopic(t, ctx, db, topic, "Known", 0, 1)
+	seedCurrentNews(t, ctx, db, topic, "headline", "body", "matching", 0, 2, time.Now())
 
 	got, err := ListCoinNews(ctx, db)
 	require.NoError(t, err)
-	require.Len(t, got, 1, "only the known-topic row should come back")
+	require.Len(t, got, 1)
 	assert.Equal(t, "headline", got[0].Headline)
 	assert.Equal(t, "body", got[0].Content)
+	assert.Equal(t, "Known", got[0].TopicName)
 }
 
 // Per-topic retention is applied at SQL time; rows past the cutoff drop.
@@ -172,23 +159,12 @@ func TestListCoinNews_RetentionFilteredAtSQL(t *testing.T) {
 
 	topic := mustTopicID(t, "b2b2b2b2")
 	// 7-day retention.
-	require.NoError(t, CreateTopic(ctx, db, topic, "Weekly", "topic_txid", true, 7))
+	seedCurrentTopic(t, ctx, db, topic, "Weekly", 7, 1)
 
 	old := time.Now().AddDate(0, 0, -30) // way past the 7-day cutoff
 	fresh := time.Now()
-	h := uint32(1)
-	require.NoError(t, Persist(ctx, db, []OPReturn{
-		{
-			Height: &h, TxID: "old-news", Vout: 0,
-			Data:      EncodeNewsMessage(topic, "stale", "stale"),
-			CreatedAt: &old,
-		},
-		{
-			Height: &h, TxID: "fresh-news", Vout: 1,
-			Data:      EncodeNewsMessage(topic, "fresh", "fresh"),
-			CreatedAt: &fresh,
-		},
-	}))
+	seedCurrentNews(t, ctx, db, topic, "stale", "stale", "old-news", 0, 2, old)
+	seedCurrentNews(t, ctx, db, topic, "fresh", "fresh", "fresh-news", 1, 3, fresh)
 
 	got, err := ListCoinNews(ctx, db)
 	require.NoError(t, err)
@@ -229,15 +205,8 @@ func TestListCoinNews_CallerCannotPoisonCache(t *testing.T) {
 	db := database.Test(t)
 
 	topic := mustTopicID(t, "d4d4d4d4")
-	require.NoError(t, CreateTopic(ctx, db, topic, "T", "topic_txid", true, 0))
-
-	h := uint32(1)
-	now := time.Now()
-	require.NoError(t, Persist(ctx, db, []OPReturn{{
-		Height: &h, TxID: "tx", Vout: 0,
-		Data:      EncodeNewsMessage(topic, "real-headline", "real-body"),
-		CreatedAt: &now,
-	}}))
+	seedCurrentTopic(t, ctx, db, topic, "T", 0, 1)
+	seedCurrentNews(t, ctx, db, topic, "real-headline", "real-body", "tx", 0, 2, time.Now())
 
 	first, err := ListCoinNews(ctx, db)
 	require.NoError(t, err)
@@ -252,34 +221,16 @@ func TestListCoinNews_CallerCannotPoisonCache(t *testing.T) {
 	assert.Equal(t, "real-headline", second[0].Headline)
 }
 
-// A topic-creation OP_RETURN matches the topic prefix in SQL (it starts
-// with the same 4 bytes) but isn't news — it's the announcement of the
-// topic itself. The Go pass strips these via IsCreateTopic; without
-// that filter a brand-new topic would surface as its own first item.
+// Topic creations live in cn_topics, not cn_stories, so they never
+// surface as articles.
 func TestListCoinNews_TopicCreationRowFiltered(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
 	db := database.Test(t)
 
 	topic := mustTopicID(t, "e5e5e5e5")
-	require.NoError(t, CreateTopic(ctx, db, topic, "T", "topic_txid", true, 0))
-
-	now := time.Now()
-	h := uint32(1)
-	require.NoError(t, Persist(ctx, db, []OPReturn{
-		// Topic-creation message: <topic><"new"><retention><name>.
-		{
-			Height: &h, TxID: "create-row", Vout: 0,
-			Data:      EncodeTopicCreationMessage(topic, "T", 0),
-			CreatedAt: &now,
-		},
-		// Real news under the same topic.
-		{
-			Height: &h, TxID: "news-row", Vout: 1,
-			Data:      EncodeNewsMessage(topic, "real", "real"),
-			CreatedAt: &now,
-		},
-	}))
+	seedCurrentTopic(t, ctx, db, topic, "T", 0, 1)
+	seedCurrentNews(t, ctx, db, topic, "real", "real", "news-row", 1, 2, time.Now())
 
 	got, err := ListCoinNews(ctx, db)
 	require.NoError(t, err)
@@ -296,15 +247,10 @@ func TestListCoinNews_ZeroRetentionKeepsForever(t *testing.T) {
 	db := database.Test(t)
 
 	topic := mustTopicID(t, "f6f6f6f6")
-	require.NoError(t, CreateTopic(ctx, db, topic, "Forever", "topic_txid", true, 0))
+	seedCurrentTopic(t, ctx, db, topic, "Forever", 0, 1)
 
 	ancient := time.Now().AddDate(-5, 0, 0)
-	h := uint32(1)
-	require.NoError(t, Persist(ctx, db, []OPReturn{{
-		Height: &h, TxID: "ancient", Vout: 0,
-		Data:      EncodeNewsMessage(topic, "old", "old"),
-		CreatedAt: &ancient,
-	}}))
+	seedCurrentNews(t, ctx, db, topic, "old", "old", "ancient", 0, 2, ancient)
 
 	got, err := ListCoinNews(ctx, db)
 	require.NoError(t, err)
@@ -312,33 +258,16 @@ func TestListCoinNews_ZeroRetentionKeepsForever(t *testing.T) {
 	assert.Equal(t, "old", got[0].Headline)
 }
 
-// Junk rows where headline + content are both blank-or-padding-only
-// must not surface — they pass the SQL filter (right topic prefix,
-// within retention) but the Go pass drops them.
+// Junk rows where headline is blank-or-padding-only must not surface.
 func TestListCoinNews_EmptyPayloadFiltered(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
 	db := database.Test(t)
 
 	topic := mustTopicID(t, "07070707")
-	require.NoError(t, CreateTopic(ctx, db, topic, "T", "topic_txid", true, 0))
-
-	now := time.Now()
-	h := uint32(1)
-	require.NoError(t, Persist(ctx, db, []OPReturn{
-		// All padding — no real headline, no real content.
-		{
-			Height: &h, TxID: "junk", Vout: 0,
-			Data:      EncodeNewsMessage(topic, "", ""),
-			CreatedAt: &now,
-		},
-		// Real entry for contrast.
-		{
-			Height: &h, TxID: "real", Vout: 1,
-			Data:      EncodeNewsMessage(topic, "real", "real"),
-			CreatedAt: &now,
-		},
-	}))
+	seedCurrentTopic(t, ctx, db, topic, "T", 0, 1)
+	seedCurrentNews(t, ctx, db, topic, "", "", "junk", 0, 2, time.Now())
+	seedCurrentNews(t, ctx, db, topic, "real", "real", "real", 1, 3, time.Now())
 
 	got, err := ListCoinNews(ctx, db)
 	require.NoError(t, err)
@@ -356,15 +285,11 @@ func TestListCoinNews_TopicNameMatchesEachRow(t *testing.T) {
 
 	topicA := mustTopicID(t, "aaaaaaaa")
 	topicB := mustTopicID(t, "bbbbbbbb")
-	require.NoError(t, CreateTopic(ctx, db, topicA, "A name", "atxid", true, 0))
-	require.NoError(t, CreateTopic(ctx, db, topicB, "B name", "btxid", true, 0))
+	seedCurrentTopic(t, ctx, db, topicA, "A name", 0, 1)
+	seedCurrentTopic(t, ctx, db, topicB, "B name", 0, 2)
 
-	now := time.Now()
-	h := uint32(1)
-	require.NoError(t, Persist(ctx, db, []OPReturn{
-		{Height: &h, TxID: "txA", Vout: 0, Data: EncodeNewsMessage(topicA, "ha", "ba"), CreatedAt: &now},
-		{Height: &h, TxID: "txB", Vout: 1, Data: EncodeNewsMessage(topicB, "hb", "bb"), CreatedAt: &now},
-	}))
+	seedCurrentNews(t, ctx, db, topicA, "ha", "ba", "txA", 0, 3, time.Now())
+	seedCurrentNews(t, ctx, db, topicB, "hb", "bb", "txB", 1, 4, time.Now())
 
 	got, err := ListCoinNews(ctx, db)
 	require.NoError(t, err)
@@ -379,33 +304,26 @@ func TestListCoinNews_TopicNameMatchesEachRow(t *testing.T) {
 	assert.Equal(t, topicB, byHeadline["hb"].Topic)
 }
 
-// CreateTopic must invalidate ListCoinNews — without that, an op_return
-// inserted before its topic existed would stay invisible after the topic
-// is added.
+// CreateTopic must invalidate ListCoinNews because the legacy topic
+// table is still used as a display-name fallback for canonical stories.
 func TestListCoinNews_CreateTopicInvalidatesCache(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
 	db := database.Test(t)
 
 	topic := mustTopicID(t, "c3c3c3c3")
-	now := time.Now()
-	h := uint32(1)
-	// Op_return inserted before the topic exists — first ListCoinNews
-	// will see no match, populate the cache with empty.
-	require.NoError(t, Persist(ctx, db, []OPReturn{{
-		Height: &h, TxID: "tx", Vout: 0,
-		Data:      EncodeNewsMessage(topic, "headline", "body"),
-		CreatedAt: &now,
-	}}))
+	seedCurrentNews(t, ctx, db, topic, "headline", "body", "tx", 0, 1, time.Now())
 
 	first, err := ListCoinNews(ctx, db)
 	require.NoError(t, err)
-	require.Empty(t, first)
+	require.Len(t, first, 1)
+	assert.Empty(t, first[0].TopicName)
 
-	// Creating the topic must drop the empty-result cache.
+	// Creating the fallback topic must drop the cached no-name result.
 	require.NoError(t, CreateTopic(ctx, db, topic, "T", "topic_txid", true, 0))
 
 	second, err := ListCoinNews(ctx, db)
 	require.NoError(t, err)
-	require.Len(t, second, 1, "CreateTopic must invalidate ListCoinNews cache")
+	require.Len(t, second, 1)
+	assert.Equal(t, "T", second[0].TopicName, "CreateTopic must invalidate ListCoinNews cache")
 }

@@ -1,4 +1,5 @@
 import 'package:auto_route/auto_route.dart';
+import 'package:bitassets/main.dart' show bootBinaries;
 import 'package:bitassets/pages/tabs/amm_page.dart';
 import 'package:bitassets/pages/tabs/asset_explorer_page.dart';
 import 'package:bitassets/pages/tabs/auction_browser_page.dart';
@@ -44,6 +45,10 @@ class AppRouter extends RootStackRouter {
           createWalletRoute: (onWalletCreated) => SailCreateWalletRoute(
             homeRoute: const HomeRoute(),
             onWalletCreated: onWalletCreated,
+            additionalRestoreOptionsBuilder: (context) => WalletBackupRestoreOptions(
+              bootBinaries: (log) async => bootBinaries(log),
+              binariesToStop: [BitcoinCore(), Enforcer(), BitAssets()],
+            ),
           ),
         ),
         PasswordGuard(),

@@ -1,6 +1,8 @@
+import 'dart:convert';
 import 'dart:io' as io;
 
 import 'package:connectrpc/connect.dart';
+import 'package:http/http.dart' as http;
 
 /// Local-auth cookie support shared by every frontend. Mirrors the Go
 /// `localauth` package: the orchestrator writes a random token to
@@ -71,6 +73,59 @@ class LocalAuth {
       return false;
     }
     return e.message == tokenRejectedMessage || e.toString().endsWith(tokenRejectedMessage);
+  }
+
+  /// True for the raw Connect/HTTP form of the same stale-token rejection.
+  static bool isTokenRejectedHttpResponse(int statusCode, String body) {
+    if (statusCode != 401) return false;
+
+    final trimmed = body.trim();
+    if (trimmed == tokenRejectedMessage) return true;
+
+    try {
+      final decoded = jsonDecode(trimmed);
+      if (decoded is! Map<String, dynamic>) return false;
+      return decoded['code'] == 'unauthenticated' && decoded['message'] == tokenRejectedMessage;
+    } catch (_) {
+      return trimmed.endsWith(tokenRejectedMessage);
+    }
+  }
+
+  /// POST JSON to a local Connect endpoint with the cached bearer token. Raw
+  /// console calls bypass the generated Connect transport, so they need the
+  /// same stale-cookie retry behavior as [interceptor].
+  static Future<http.Response> postJsonWithAuth(
+    Uri uri, {
+    required String body,
+    http.Client? client,
+  }) async {
+    final httpClient = client ?? http.Client();
+    try {
+      var response = await _postJsonOnce(httpClient, uri, body);
+      if (isTokenRejectedHttpResponse(response.statusCode, response.body)) {
+        reset();
+        response = await _postJsonOnce(httpClient, uri, body);
+      }
+      return response;
+    } finally {
+      if (client == null) httpClient.close();
+    }
+  }
+
+  static Future<http.Response> _postJsonOnce(
+    http.Client client,
+    Uri uri,
+    String body,
+  ) async {
+    final tok = await token();
+    return client.post(
+      uri,
+      headers: {
+        'content-type': 'application/json',
+        if (tok != null) 'authorization': 'Bearer $tok',
+      },
+      body: body,
+    );
   }
 
   /// A connectrpc interceptor that attaches the cached cookie token and, on the

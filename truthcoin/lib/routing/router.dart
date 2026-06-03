@@ -2,6 +2,7 @@ import 'package:auto_route/auto_route.dart';
 import 'package:flutter/widgets.dart';
 import 'package:sail_ui/pages/router.gr.dart';
 import 'package:sail_ui/sail_ui.dart';
+import 'package:truthcoin/main.dart' show bootBinaries;
 import 'package:truthcoin/pages/market_creation_page.dart';
 import 'package:truthcoin/pages/market_detail_page.dart';
 import 'package:truthcoin/pages/market_explorer_page.dart';
@@ -45,6 +46,10 @@ class AppRouter extends RootStackRouter {
           createWalletRoute: (onWalletCreated) => SailCreateWalletRoute(
             homeRoute: const HomeRoute(),
             onWalletCreated: onWalletCreated,
+            additionalRestoreOptionsBuilder: (context) => WalletBackupRestoreOptions(
+              bootBinaries: (log) async => bootBinaries(log),
+              binariesToStop: [BitcoinCore(), Enforcer(), Truthcoin()],
+            ),
           ),
         ),
         PasswordGuard(),

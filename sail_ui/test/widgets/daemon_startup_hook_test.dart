@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
+import 'package:sail_ui/pages/router.dart';
 import 'package:sail_ui/sail_ui.dart';
 
 /// Minimal RPCConnection stub — we only care about the state-flip surface
@@ -92,6 +93,28 @@ void main() {
 
     final logs = provider.binaries.firstWhere((b) => b.type == BinaryType.BINARY_TYPE_ORCHESTRATORD).startupLogs;
     expect(logs.last.message, 'Waiting for orchestratord...');
+  });
+
+  test('shutdown disabled returns before running shutdown options', () async {
+    final provider = BinaryProvider.test(
+      appDir: Directory.systemTemp,
+      binaries: [BitWindow(), Orchestratord()],
+      shutdownEnabled: false,
+    );
+    provider.markBackendOriginator();
+
+    var completed = false;
+    final result = await provider.onShutdown(
+      shutdownOptions: ShutdownOptions(
+        router: AppRouter(),
+        onComplete: () => completed = true,
+        showShutdownPage: false,
+      ),
+    );
+
+    expect(result, isTrue);
+    expect(completed, isFalse);
+    expect(provider.isBackendOriginator, isTrue);
   });
 
   test(

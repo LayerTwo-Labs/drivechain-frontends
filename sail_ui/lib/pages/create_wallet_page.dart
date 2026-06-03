@@ -159,11 +159,7 @@ class _SailCreateWalletPageState extends State<SailCreateWalletPage> {
       if (entropyHex.length > 64) {
         return false;
       }
-      final paddedHex = entropyHex.padRight(
-        ((entropyHex.length + 31) ~/ 32) * 32,
-        '0',
-      );
-      hex.decode(paddedHex);
+      _entropyFromHexInput(entropyHex);
       return true;
     } catch (e) {
       return false;
@@ -201,11 +197,7 @@ class _SailCreateWalletPageState extends State<SailCreateWalletPage> {
 
   Future<void> _generateWalletFromEntropy(String entropyHex) async {
     try {
-      final paddedHex = entropyHex.trim().padRight(
-        ((entropyHex.length + 31) ~/ 32) * 32,
-        '0',
-      );
-      final entropy = hex.decode(paddedHex);
+      final entropy = _entropyFromHexInput(entropyHex);
       if (entropy.isEmpty) {
         _clearWalletData();
         return;
@@ -233,11 +225,18 @@ class _SailCreateWalletPageState extends State<SailCreateWalletPage> {
   Future<void> _handleAdvancedCreate() async {
     if (mounted) setState(() => _error = null);
     if (!_isValidInput) return;
+
+    final walletName = _walletNameController.text.trim();
+    if (hasExistingWallet && walletName.isEmpty) {
+      if (mounted) setState(() => _error = 'Please enter a wallet name');
+      return;
+    }
+
     try {
       final entropyHex = _mnemonicController.text.trim();
       List<int> entropy;
       if (_isHexMode) {
-        entropy = hex.decode(entropyHex);
+        entropy = _entropyFromHexInput(entropyHex);
         if (entropy.length < 16 || entropy.length > 32 || entropy.length % 4 != 0) {
           if (mounted) {
             setState(() => _error = 'Invalid entropy length. Must be 16-32 bytes and a multiple of 4.');
@@ -258,6 +257,7 @@ class _SailCreateWalletPageState extends State<SailCreateWalletPage> {
 
       final wallet = await _walletProvider.generateWalletFromEntropy(
         entropy,
+        name: walletName.isEmpty ? 'Enforcer Wallet' : walletName,
         passphrase: null,
       );
       _currentWalletData = Map<String, dynamic>.from(wallet);
@@ -266,6 +266,14 @@ class _SailCreateWalletPageState extends State<SailCreateWalletPage> {
     } catch (e) {
       if (mounted) setState(() => _error = 'Error creating wallet: $e');
     }
+  }
+
+  List<int> _entropyFromHexInput(String entropyHex) {
+    final paddedHex = entropyHex.trim().padRight(
+      ((entropyHex.length + 31) ~/ 32) * 32,
+      '0',
+    );
+    return hex.decode(paddedHex);
   }
 
   Future<void> _awaitBackendReady() async {
@@ -554,6 +562,18 @@ class _SailCreateWalletPageState extends State<SailCreateWalletPage> {
                       subtitle:
                           'Generate a wallet by providing your own entropy. Or leave the generation to us, but stay hooked in to all the nitty gritty byte-details. This is used to create your seed.',
                     ),
+                    if (hasExistingWallet) ...[
+                      const SizedBox(height: 16),
+                      SizedBox(
+                        width: 400,
+                        child: SailTextField(
+                          controller: _walletNameController,
+                          hintText: 'Wallet name (required)',
+                          textFieldType: TextFieldType.text,
+                          size: TextFieldSize.regular,
+                        ),
+                      ),
+                    ],
                     const SizedBox(height: 50), // Spacing after title
                     SailCard(
                       padding: true,
@@ -802,7 +822,7 @@ class _SailCreateWalletPageState extends State<SailCreateWalletPage> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   SailButton(
-                    label: 'Restore from backup',
+                    label: 'Restore Wallet',
                     variant: ButtonVariant.ghost,
                     onPressed: () async => _setScreen(WelcomeScreen.restore),
                   ),
@@ -842,7 +862,7 @@ class _SailCreateWalletPageState extends State<SailCreateWalletPage> {
               BootTitle(
                 title: 'Restore your wallet',
                 subtitle:
-                    'Restore your mainchain wallet and all sidechain wallets from a seed backup. This can also be used to create a wallet with a custom seed of yours.',
+                    'Restore your mainchain wallet and all sidechain wallets from a seed phrase, local wallet backup, or backup file.',
               ),
               Expanded(
                 child: SingleChildScrollView(
