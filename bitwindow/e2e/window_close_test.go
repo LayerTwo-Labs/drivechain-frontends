@@ -22,10 +22,11 @@ func TestWindowCloseShutsDownDaemons(t *testing.T) {
 
 	const bootDeadline = 9 * time.Minute
 	const bootPoll = 2 * time.Second
-	// 3m: onWindowClose acks fast but orchestratord finishes a ~90s graceful
-	// bitcoind drain in the background before exiting (see RootPage.onWindowClose).
-	// A cold macOS runner pushes that past 90s, so wait well clear of it.
-	const shutdownDeadline = 3 * time.Minute
+	// 5m: onWindowClose acks fast but orchestratord finishes a graceful bitcoind
+	// drain in the background before exiting (see RootPage.onWindowClose). On a
+	// cold macOS runner that drain is slow and variable (observed 160-250s), so
+	// wait well clear of it. The test's own go-test timeout is 15m.
+	const shutdownDeadline = 5 * time.Minute
 	const shutdownPoll = 500 * time.Millisecond
 
 	t.Logf("window-close shutdown test on %s", runtime.GOOS)
