@@ -19,7 +19,7 @@ func TestJustRunBootsDaemons(t *testing.T) {
 	// and bitwindowd was intermittently not appearing within 6m.
 	const bootDeadline = 9 * time.Minute
 	const pollInterval = 2 * time.Second
-	const rpcDeadline = 30 * time.Second
+	const rpcDeadline = 90 * time.Second // cold macOS/Windows CI runners are slow to make orchestratord RPC-ready
 
 	t.Logf("Issue 1 / boot: launching `just run` on %s", runtime.GOOS)
 

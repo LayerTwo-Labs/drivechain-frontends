@@ -22,7 +22,7 @@ func TestJustRunRestart(t *testing.T) {
 
 	const bootDeadline = 9 * time.Minute
 	const bootPoll = 2 * time.Second
-	const rpcDeadline = 30 * time.Second
+	const rpcDeadline = 90 * time.Second // cold macOS/Windows CI runners are slow to make orchestratord RPC-ready
 	const shutdownDeadline = 90 * time.Second
 	const shutdownPoll = 500 * time.Millisecond
 
