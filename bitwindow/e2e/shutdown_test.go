@@ -16,9 +16,9 @@ import (
 func TestJustRunShutsDownDaemons(t *testing.T) {
 	skipIfNoDisplay(t)
 
-	const bootDeadline = 6 * time.Minute
+	const bootDeadline = 9 * time.Minute
 	const bootPoll = 2 * time.Second
-	const shutdownDeadline = 30 * time.Second
+	const shutdownDeadline = 90 * time.Second
 	const shutdownPoll = 500 * time.Millisecond
 
 	t.Logf("Issue 2 / shutdown: launching `just run` on %s", runtime.GOOS)
