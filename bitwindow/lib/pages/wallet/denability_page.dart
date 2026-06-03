@@ -608,6 +608,13 @@ class DeniabilityViewModel extends BaseViewModel {
     transactionProvider.addListener(errorListener);
   }
 
+  @override
+  void dispose() {
+    transactionProvider.removeListener(notifyListeners);
+    transactionProvider.removeListener(errorListener);
+    super.dispose();
+  }
+
   void init() {
     // Set busy state to show loading indicator
     setBusy(true);

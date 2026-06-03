@@ -139,18 +139,6 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver, Window
     return [
       // Your Wallet menu
       CommandItem(
-        label: 'Restore My Wallet',
-        category: 'Your Wallet',
-        onSelected: () async {
-          await router.push(
-            SailCreateWalletRoute(
-              homeRoute: const HomeRoute(),
-              initialScreen: WelcomeScreen.restore,
-            ),
-          );
-        },
-      ),
-      CommandItem(
         label: 'Backup Wallet',
         category: 'Your Wallet',
         onSelected: () async {
@@ -162,9 +150,13 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver, Window
         category: 'Your Wallet',
         onSelected: () async {
           await router.push(
-            RestoreWalletRoute(
-              bootBinaries: (log) async => bootBinaries(log),
-              binariesToStop: [BitcoinCore(), Enforcer(), Thunder()],
+            SailCreateWalletRoute(
+              homeRoute: const HomeRoute(),
+              initialScreen: WelcomeScreen.restore,
+              additionalRestoreOptionsBuilder: (context) => WalletBackupRestoreOptions(
+                bootBinaries: (log) async => bootBinaries(log),
+                binariesToStop: [BitcoinCore(), Enforcer(), Thunder()],
+              ),
             ),
           );
         },
@@ -336,21 +328,6 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver, Window
             PlatformMenuItemGroup(
               members: [
                 PlatformMenuItem(
-                  label: 'Restore My Wallet',
-                  onSelected: () async {
-                    await GetIt.I.get<AppRouter>().push(
-                      SailCreateWalletRoute(
-                        homeRoute: const HomeRoute(),
-                        initialScreen: WelcomeScreen.restore,
-                      ),
-                    );
-                  },
-                ),
-              ],
-            ),
-            PlatformMenuItemGroup(
-              members: [
-                PlatformMenuItem(
                   label: 'Backup Wallet',
                   onSelected: () async {
                     await GetIt.I.get<AppRouter>().push(
@@ -362,9 +339,13 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver, Window
                   label: 'Restore Wallet',
                   onSelected: () async {
                     await GetIt.I.get<AppRouter>().push(
-                      RestoreWalletRoute(
-                        bootBinaries: (log) async => bootBinaries(log),
-                        binariesToStop: [BitcoinCore(), Enforcer(), Thunder()],
+                      SailCreateWalletRoute(
+                        homeRoute: const HomeRoute(),
+                        initialScreen: WelcomeScreen.restore,
+                        additionalRestoreOptionsBuilder: (context) => WalletBackupRestoreOptions(
+                          bootBinaries: (log) async => bootBinaries(log),
+                          binariesToStop: [BitcoinCore(), Enforcer(), Thunder()],
+                        ),
                       ),
                     );
                   },

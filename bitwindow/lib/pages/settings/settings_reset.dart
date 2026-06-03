@@ -109,15 +109,13 @@ class _SettingsResetState extends State<SettingsReset> {
                 subtitle: 'Backup your seed phrase first!',
                 isDestructive: true,
               ),
-              ResetOptionTile(
+              SailCheckbox(
                 value: _alsoResetSidechains,
                 onChanged: (v) => setState(() {
                   _alsoResetSidechains = v;
                   _updateObliterate();
                 }),
-                title: 'Reset Sidechain Data',
-                subtitle: 'Also wipes all data for Thunder, BitNames, BitAssets and ZSide',
-                isDestructive: true,
+                label: 'Also wipe this data for sidechains',
               ),
               ResetOptionTile(
                 value: _obliterateEverything,

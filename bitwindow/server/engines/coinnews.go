@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"sort"
+	"strings"
 
 	"github.com/btcsuite/btcd/txscript"
 	"github.com/btcsuite/btcd/wire"
@@ -11,6 +12,7 @@ import (
 	"github.com/samber/lo"
 
 	cnstore "github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/coinnews"
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/opreturns"
 	codec "github.com/LayerTwo-Labs/sidesail/coinnews/codec"
 )
 
@@ -70,7 +72,10 @@ func (p *Parser) indexCoinNewsForBlock(ctx context.Context, height uint32, block
 func (p *Parser) indexCoinNewsPayload(ctx context.Context, data []byte, pos cnstore.BlockPos) error {
 	tag, msg, err := codec.DecodeMessage(data)
 	if err != nil {
-		if errors.Is(err, codec.ErrNotCoinNews) || errors.Is(err, codec.ErrUnknownTypeTag) {
+		if errors.Is(err, codec.ErrNotCoinNews) {
+			return p.indexLegacyCoinNewsPayload(ctx, data, pos)
+		}
+		if errors.Is(err, codec.ErrUnknownTypeTag) {
 			return nil
 		}
 		// Magic matched but parsing failed — malformed CoinNews payload.
@@ -92,7 +97,110 @@ func (p *Parser) indexCoinNewsPayload(ctx context.Context, data []byte, pos cnst
 		}
 	}
 
-	return cnstore.Index(ctx, p.db, cnstore.IndexEnv{Pos: pos, TypeTag: tag, Msg: msg})
+	if err := cnstore.Index(ctx, p.db, cnstore.IndexEnv{Pos: pos, TypeTag: tag, Msg: msg}); err != nil {
+		return err
+	}
+	opreturns.InvalidateCoinNewsCache(p.db)
+	return nil
+}
+
+func (p *Parser) indexLegacyCoinNewsPayload(ctx context.Context, data []byte, pos cnstore.BlockPos) error {
+	if info, ok := opreturns.IsCreateTopic(data); ok {
+		var topic codec.Topic
+		copy(topic[:], info.ID[:])
+		retentionDays := info.RetentionDays
+		if retentionDays < 0 {
+			retentionDays = 0
+		}
+		if retentionDays > 255 {
+			retentionDays = 255
+		}
+		if err := cnstore.Index(ctx, p.db, cnstore.IndexEnv{
+			Pos:     pos,
+			TypeTag: codec.TypeTopicCreation,
+			Msg: &codec.TopicCreation{
+				Topic:         topic,
+				RetentionDays: byte(retentionDays),
+				Name:          info.Name,
+			},
+		}); err != nil {
+			return err
+		}
+		p.rememberLegacyCoinNewsTopic(info)
+		opreturns.InvalidateCoinNewsCache(p.db)
+		return nil
+	}
+
+	story, ok := p.legacyCoinNewsStory(data)
+	if !ok {
+		return nil
+	}
+	if err := cnstore.Index(ctx, p.db, cnstore.IndexEnv{
+		Pos:     pos,
+		TypeTag: codec.TypeStory,
+		Msg:     story,
+	}); err != nil {
+		return err
+	}
+	opreturns.InvalidateCoinNewsCache(p.db)
+	return nil
+}
+
+func (p *Parser) legacyCoinNewsStory(data []byte) (*codec.Story, bool) {
+	if len(data) < opreturns.TopicIdLength {
+		return nil, false
+	}
+
+	var topicID opreturns.TopicID
+	copy(topicID[:], data[:opreturns.TopicIdLength])
+	if !p.isKnownLegacyCoinNewsTopic(topicID) {
+		return nil, false
+	}
+
+	headlineEnd := opreturns.TopicIdLength + 64
+	if headlineEnd > len(data) {
+		headlineEnd = len(data)
+	}
+
+	headline := strings.TrimRight(string(data[opreturns.TopicIdLength:headlineEnd]), "\x00 ")
+	if strings.TrimSpace(headline) == "" {
+		return nil, false
+	}
+
+	content := ""
+	if len(data) > opreturns.TopicIdLength+64 {
+		content = strings.TrimRight(string(data[opreturns.TopicIdLength+64:]), "\x00")
+	}
+
+	var topic codec.Topic
+	copy(topic[:], topicID[:])
+	story := &codec.Story{Topic: topic, Headline: headline}
+	if content != "" {
+		story.TLVs = append(story.TLVs, codec.TLV{
+			Tag:   codec.TLVBody,
+			Value: []byte(content),
+		})
+	}
+	return story, true
+}
+
+func (p *Parser) isKnownLegacyCoinNewsTopic(topic opreturns.TopicID) bool {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	return lo.ContainsBy(p.topics, func(info opreturns.TopicInfo) bool {
+		return info.ID == topic
+	})
+}
+
+func (p *Parser) rememberLegacyCoinNewsTopic(info opreturns.TopicInfo) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	if lo.ContainsBy(p.topics, func(existing opreturns.TopicInfo) bool {
+		return existing.ID == info.ID
+	}) {
+		return
+	}
+	p.topics = append(p.topics, info)
 }
 
 // coinNewsPayload extracts the bytes pushed by a single-push OP_RETURN

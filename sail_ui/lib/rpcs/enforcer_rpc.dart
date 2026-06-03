@@ -211,11 +211,10 @@ class EnforcerLive extends EnforcerRPC {
   @override
   Future<dynamic> callRAW(String url, [String body = '{}']) async {
     try {
-      final response = await http.post(
+      final response = await LocalAuth.postJsonWithAuth(
         // 30301 is correct! raw http requests must go through bitwindowd, because
         // the enforcer does not have a http-server, only a grpc-server
         Uri.parse('http://localhost:30301/$url'),
-        headers: {'content-type': 'application/json'},
         body: body,
       );
 

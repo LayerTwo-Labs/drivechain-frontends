@@ -5,7 +5,6 @@ import 'package:connectrpc/protobuf.dart';
 import 'package:connectrpc/protocol/connect.dart' as connect;
 import 'package:fixnum/fixnum.dart';
 import 'package:get_it/get_it.dart';
-import 'package:http/http.dart' as http;
 import 'package:logger/logger.dart';
 import 'package:sail_ui/gen/bitdrive/v1/bitdrive.pb.dart' as bitdrivepb;
 import 'package:sail_ui/gen/multisig/v1/multisig.pb.dart' as multisigpb;
@@ -153,13 +152,8 @@ class BitwindowRPCLive extends BitwindowRPC {
   @override
   Future<dynamic> callRAW(String url, [String body = '{}']) async {
     try {
-      final token = await LocalAuth.token();
-      final response = await http.post(
+      final response = await LocalAuth.postJsonWithAuth(
         Uri.parse('http://localhost:30301/$url'),
-        headers: {
-          'content-type': 'application/json',
-          if (token != null) 'authorization': 'Bearer $token',
-        },
         body: body,
       );
 

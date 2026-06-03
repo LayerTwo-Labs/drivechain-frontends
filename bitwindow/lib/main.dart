@@ -175,6 +175,7 @@ Future<(Directory, File, Logger)> init(String arguments) async {
   final binaryProvider = await BinaryProvider.create(
     appDir: applicationDir,
     initialBinaries: initalBinaries(),
+    shutdownEnabled: !isSubWindow,
   );
   GetIt.I.registerSingleton<BinaryProvider>(binaryProvider);
   GetIt.I.registerSingleton<BitcoindConnection>(BitcoindConnection());
@@ -275,10 +276,12 @@ Future<(Directory, File, Logger)> init(String arguments) async {
       log: log,
       binaryType: BinaryType.BINARY_TYPE_BITWINDOWD,
       currentVersion: AppVersion.version,
-      onBeforeUpdate: () async {
-        final binaryProvider = GetIt.I.get<BinaryProvider>();
-        await binaryProvider.onShutdown();
-      },
+      onBeforeUpdate: isSubWindow
+          ? null
+          : () async {
+              final binaryProvider = GetIt.I.get<BinaryProvider>();
+              await binaryProvider.onShutdown();
+            },
     ),
   );
 

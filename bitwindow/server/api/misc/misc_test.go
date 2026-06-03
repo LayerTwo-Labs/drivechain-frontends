@@ -4,14 +4,18 @@ import (
 	"bytes"
 	"context"
 	"crypto/rand"
+	"database/sql"
 	"encoding/hex"
+	"fmt"
 	"strings"
 	"testing"
+	"time"
 
 	"connectrpc.com/connect"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/database"
 	miscv1 "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/misc/v1"
 	miscv1connect "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/misc/v1/miscv1connect"
+	cnstore "github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/coinnews"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/opreturns"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/tests"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/tests/apitests"
@@ -472,40 +476,17 @@ func TestService_ListCoinNews(t *testing.T) {
 		t.Parallel()
 
 		database := database.Test(t)
-		// First create topics
 		ctx := context.Background()
 		topicID1 := validTopicID()
-		err := opreturns.CreateTopic(ctx, database, topicID1, "Test Topic 1", "topic_txid1", true, 7)
-		require.NoError(t, err)
+		seedCurrentTopic(t, ctx, database, topicID1, "Test Topic 1", 7, 1)
 		topicID2 := validTopicID()
-		require.NoError(t, err)
-		err = opreturns.CreateTopic(ctx, database, topicID2, "Test Topic 2", "topic_txid2", true, 7)
-		require.NoError(t, err)
+		seedCurrentTopic(t, ctx, database, topicID2, "Test Topic 2", 7, 2)
 
-		// Insert coin news as OP_RETURN data
-		// Format: 8-byte topic + 64-byte headline (padded) + content
 		headline1 := "News Headline 1"
-		height := uint32(100)
-		err = opreturns.Persist(ctx, database, []opreturns.OPReturn{
-			{
-				Height: &height,
-				TxID:   "news_txid1",
-				Vout:   0,
-				Data:   opreturns.EncodeNewsMessage(topicID1, headline1, "Content for news 1"),
-			},
-		})
-		require.NoError(t, err)
+		seedCurrentNews(t, ctx, database, topicID1, headline1, "Content for news 1", 3, time.Now())
 
 		headline2 := "News Headline 2"
-		err = opreturns.Persist(ctx, database, []opreturns.OPReturn{
-			{
-				Height: &height,
-				TxID:   "news_txid2",
-				Vout:   0,
-				Data:   opreturns.EncodeNewsMessage(topicID2, headline2, "Content for news 2"),
-			},
-		})
-		require.NoError(t, err)
+		seedCurrentNews(t, ctx, database, topicID2, headline2, "Content for news 2", 4, time.Now().Add(time.Second))
 
 		cli := miscv1connect.NewMiscServiceClient(apitests.API(t, database))
 
@@ -526,41 +507,19 @@ func TestService_ListCoinNews(t *testing.T) {
 		t.Parallel()
 
 		database := database.Test(t)
-		// First create topics
 		ctx := context.Background()
 
 		firstTopicID := validTopicID()
-		err := opreturns.CreateTopic(ctx, database, firstTopicID, "Test Topic 1", "topic_txid1", true, 7)
-		require.NoError(t, err)
+		seedCurrentTopic(t, ctx, database, firstTopicID, "Test Topic 1", 7, 1)
 
 		secondTopicID := validTopicID()
-		require.NoError(t, err)
-		err = opreturns.CreateTopic(ctx, database, secondTopicID, "Test Topic 2", "topic_txid2", true, 7)
-		require.NoError(t, err)
+		seedCurrentTopic(t, ctx, database, secondTopicID, "Test Topic 2", 7, 2)
 
-		// Insert coin news for both topics
 		headline1 := "News Headline 1"
-		height := uint32(100)
-		err = opreturns.Persist(ctx, database, []opreturns.OPReturn{
-			{
-				Height: &height,
-				TxID:   "news_txid1",
-				Vout:   0,
-				Data:   opreturns.EncodeNewsMessage(firstTopicID, headline1, "Content for news 1"),
-			},
-		})
-		require.NoError(t, err)
+		seedCurrentNews(t, ctx, database, firstTopicID, headline1, "Content for news 1", 3, time.Now())
 
 		headline2 := "News Headline 2"
-		err = opreturns.Persist(ctx, database, []opreturns.OPReturn{
-			{
-				Height: &height,
-				TxID:   "news_txid2",
-				Vout:   0,
-				Data:   opreturns.EncodeNewsMessage(secondTopicID, headline2, "Content for news 2"),
-			},
-		})
-		require.NoError(t, err)
+		seedCurrentNews(t, ctx, database, secondTopicID, headline2, "Content for news 2", 4, time.Now().Add(time.Second))
 
 		cli := miscv1connect.NewMiscServiceClient(apitests.API(t, database))
 
@@ -579,49 +538,20 @@ func TestService_ListCoinNews(t *testing.T) {
 		t.Parallel()
 
 		database := database.Test(t)
-		// First create topics
 		ctx := context.Background()
 		firstTopicID := validTopicID()
-		err := opreturns.CreateTopic(ctx, database, firstTopicID, "Test Topic 1", "topic_txid1", true, 7)
-		require.NoError(t, err)
+		seedCurrentTopic(t, ctx, database, firstTopicID, "Test Topic 1", 7, 1)
 		secondTopicID := validTopicID()
-		err = opreturns.CreateTopic(ctx, database, secondTopicID, "Test Topic 2", "topic_txid2", true, 7)
-		require.NoError(t, err)
+		seedCurrentTopic(t, ctx, database, secondTopicID, "Test Topic 2", 7, 2)
 
-		// Insert coin news with specific timestamps
 		headline1 := "Old News"
-		height := uint32(100)
-		err = opreturns.Persist(ctx, database, []opreturns.OPReturn{
-			{
-				Height: &height,
-				TxID:   "news_txid1",
-				Vout:   0,
-				Data:   opreturns.EncodeNewsMessage(firstTopicID, headline1, "Content for old news"),
-			},
-		})
-		require.NoError(t, err)
+		seedCurrentNews(t, ctx, database, firstTopicID, headline1, "Content for old news", 3, time.Now())
 
 		headline2 := "Recent News"
-		err = opreturns.Persist(ctx, database, []opreturns.OPReturn{
-			{
-				Height: &height,
-				TxID:   "news_txid2",
-				Vout:   0,
-				Data:   opreturns.EncodeNewsMessage(secondTopicID, headline2, "Content for recent news"),
-			},
-		})
-		require.NoError(t, err)
+		seedCurrentNews(t, ctx, database, secondTopicID, headline2, "Content for recent news", 4, time.Now().Add(time.Second))
 
 		headline3 := "Latest News"
-		err = opreturns.Persist(ctx, database, []opreturns.OPReturn{
-			{
-				Height: &height,
-				TxID:   "news_txid3",
-				Vout:   0,
-				Data:   opreturns.EncodeNewsMessage(firstTopicID, headline3, "Content for latest news"),
-			},
-		})
-		require.NoError(t, err)
+		seedCurrentNews(t, ctx, database, firstTopicID, headline3, "Content for latest news", 5, time.Now().Add(2*time.Second))
 
 		cli := miscv1connect.NewMiscServiceClient(apitests.API(t, database))
 
@@ -639,29 +569,16 @@ func TestService_ListCoinNews(t *testing.T) {
 		t.Parallel()
 
 		database := database.Test(t)
-		// First create topics
 		ctx := context.Background()
 		firstTopicID := validTopicID()
-		err := opreturns.CreateTopic(ctx, database, firstTopicID, "Test Topic 1", "topic_txid1", true, 7)
-		require.NoError(t, err)
+		seedCurrentTopic(t, ctx, database, firstTopicID, "Test Topic 1", 7, 1)
 
 		secondTopicID := validTopicID()
-		err = opreturns.CreateTopic(ctx, database, secondTopicID, "Test Topic 2", "topic_txid2", true, 7)
-		require.NoError(t, err)
+		seedCurrentTopic(t, ctx, database, secondTopicID, "Test Topic 2", 7, 2)
 
-		// Insert 105 coin news entries
 		for i := range 105 {
 			headline := "News"
-			height := uint32(100)
-			err = opreturns.Persist(ctx, database, []opreturns.OPReturn{
-				{
-					Height: &height,
-					TxID:   "news_txid",
-					Vout:   int32(i),
-					Data:   opreturns.EncodeNewsMessage(firstTopicID, headline, "Content for news"),
-				},
-			})
-			require.NoError(t, err)
+			seedCurrentNews(t, ctx, database, firstTopicID, headline, "Content for news", 3+i, time.Now().Add(time.Duration(i)*time.Second))
 		}
 
 		cli := miscv1connect.NewMiscServiceClient(apitests.API(t, database))
@@ -673,37 +590,72 @@ func TestService_ListCoinNews(t *testing.T) {
 	})
 }
 
+func seedCurrentTopic(
+	t *testing.T, ctx context.Context, db *sql.DB,
+	topic opreturns.TopicID, name string, retentionDays int32, height int,
+) {
+	t.Helper()
+	var ct coinnews.Topic
+	copy(ct[:], topic[:])
+	require.NoError(t, cnstore.Index(ctx, db, cnstore.IndexEnv{
+		Pos: cnstore.BlockPos{
+			BlockHeight: uint32(height),
+			TxIndex:     0,
+			VoutIndex:   0,
+			BlockTime:   time.Now(),
+			TxID:        fmt.Sprintf("%064x", height),
+		},
+		TypeTag: coinnews.TypeTopicCreation,
+		Msg: &coinnews.TopicCreation{
+			Topic:         ct,
+			RetentionDays: byte(retentionDays),
+			Name:          name,
+		},
+	}))
+}
+
+func seedCurrentNews(
+	t *testing.T, ctx context.Context, db *sql.DB,
+	topic opreturns.TopicID, headline, content string, order int, blockTime time.Time,
+) {
+	t.Helper()
+	var ct coinnews.Topic
+	copy(ct[:], topic[:])
+	story := &coinnews.Story{Topic: ct, Headline: headline}
+	if content != "" {
+		story.TLVs = append(story.TLVs, coinnews.TLV{Tag: coinnews.TLVBody, Value: []byte(content)})
+	}
+	require.NoError(t, cnstore.Index(ctx, db, cnstore.IndexEnv{
+		Pos: cnstore.BlockPos{
+			BlockHeight: uint32(100 + order),
+			TxIndex:     uint32(order),
+			VoutIndex:   0,
+			BlockTime:   blockTime,
+			TxID:        fmt.Sprintf("%064x", 1000+order),
+		},
+		TypeTag: coinnews.TypeStory,
+		Msg:     story,
+	}))
+}
+
 // encodeTopicCreationHex builds the expected SendTransaction OpReturn for a
-// topic creation using the same coinnews codec the production handler uses, so
-// the expectation tracks the real wire format instead of a stale hand-rolled
-// one. topicHex is the hex topic ID; retention is days (0 = infinite).
+// topic creation using the same current-format encoder the production handler
+// uses. topicHex is the hex topic ID; retention is days (0 = infinite).
 func encodeTopicCreationHex(t *testing.T, topicHex, name string, retention byte) string {
 	t.Helper()
-	raw, err := hex.DecodeString(topicHex)
+	topic, err := opreturns.ValidNewsTopicID(topicHex)
 	require.NoError(t, err)
-	var topic coinnews.Topic
-	copy(topic[:], raw)
-	b, err := coinnews.EncodeTopicCreation(coinnews.TopicCreation{
-		Topic:         topic,
-		RetentionDays: retention,
-		Name:          name,
-	})
+	b, err := opreturns.EncodeTopicCreationMessageNewFormat(topic, name, int32(retention))
 	require.NoError(t, err)
 	return hex.EncodeToString(b)
 }
 
 // encodeStoryHex builds the expected SendTransaction OpReturn for a story
-// (headline + optional body TLV) via the coinnews codec, mirroring the
+// (headline + optional body TLV) via the current encoder, mirroring the
 // production encoder.
 func encodeStoryHex(t *testing.T, topicID opreturns.TopicID, headline, content string) string {
 	t.Helper()
-	var topic coinnews.Topic
-	copy(topic[:], topicID[:])
-	story := coinnews.Story{Topic: topic, Headline: headline}
-	if content != "" {
-		story.TLVs = append(story.TLVs, coinnews.TLV{Tag: coinnews.TLVBody, Value: []byte(content)})
-	}
-	b, err := coinnews.EncodeStory(story)
+	b, err := opreturns.EncodeNewsMessageNewFormat(topicID, headline, content)
 	require.NoError(t, err)
 	return hex.EncodeToString(b)
 }

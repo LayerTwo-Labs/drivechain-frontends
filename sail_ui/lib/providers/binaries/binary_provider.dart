@@ -25,6 +25,9 @@ class BinaryProvider extends ChangeNotifier {
   /// orchestrator boots the rust backend, not another .app bundle.
   final bool isSidechainApp;
 
+  /// True only for windows/apps that are allowed to initiate backend shutdown.
+  final bool shutdownEnabled;
+
   /// Manages daemon processes spawned directly by Flutter.
   late final ProcessManager _processManager;
 
@@ -33,6 +36,7 @@ class BinaryProvider extends ChangeNotifier {
     required this.binaries,
     required this._processManager,
     required this.isSidechainApp,
+    required this.shutdownEnabled,
   }) {
     _processManager.addListener(notifyListeners);
     _startMetadataRefreshTimer();
@@ -92,6 +96,7 @@ class BinaryProvider extends ChangeNotifier {
     required Directory appDir,
     required List<Binary> initialBinaries,
     bool isSidechainApp = false,
+    bool shutdownEnabled = true,
   }) async {
     final binaries = await loadBinaryCreationTimestamp(initialBinaries, appDir);
     final pidDir = Directory(path.join(appDir.path, 'pids'));
@@ -104,6 +109,7 @@ class BinaryProvider extends ChangeNotifier {
       binaries: binaries,
       processManager: processManager,
       isSidechainApp: isSidechainApp,
+      shutdownEnabled: shutdownEnabled,
     );
 
     // Adopt any processes from a previous session via PID files.
@@ -117,6 +123,7 @@ class BinaryProvider extends ChangeNotifier {
     required this.appDir,
     required this.binaries,
     this.isSidechainApp = false,
+    this.shutdownEnabled = true,
   });
 
   OrchestratorRPC get _orchestrator => GetIt.I.get<OrchestratorRPC>();
@@ -304,6 +311,11 @@ class BinaryProvider extends ChangeNotifier {
   }
 
   Future<bool> onShutdown({ShutdownOptions? shutdownOptions}) async {
+    if (!shutdownEnabled) {
+      log.i('BinaryProvider: ignoring shutdown request because shutdown is disabled for this window');
+      return true;
+    }
+
     _shuttingDown = true;
 
     // Only the Flutter app that originally spawned the backend stack is

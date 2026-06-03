@@ -19,6 +19,7 @@ import (
 	"go.uber.org/mock/gomock"
 
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/database"
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/opreturns"
 	service "github.com/LayerTwo-Labs/sidesail/bitwindow/server/service"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/tests/mocks"
 	codec "github.com/LayerTwo-Labs/sidesail/coinnews/codec"
@@ -191,6 +192,32 @@ func TestCoinNewsIndexer_SkipsNonCoinNewsTraffic(t *testing.T) {
 	var rowCount int
 	require.NoError(t, p.db.QueryRowContext(ctx, `SELECT COUNT(*) FROM cn_items`).Scan(&rowCount))
 	assert.Zero(t, rowCount, "non-CoinNews OP_RETURN must not pollute cn_items")
+}
+
+func TestCoinNewsIndexer_BroadcastBytesListAsCoinNews(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	p := newCoinNewsParser(t)
+
+	topicID, err := opreturns.ValidNewsTopicID("a1a1a1a1")
+	require.NoError(t, err)
+	require.NoError(t, opreturns.CreateTopic(ctx, p.db, topicID, "US Weekly", "topic_txid", true, 0))
+
+	payload, err := opreturns.EncodeNewsMessageNewFormat(topicID, "Broadcast headline", "Broadcast body")
+	require.NoError(t, err)
+	block := blockOf(t, [][]byte{payload}, time.Now().UTC())
+
+	require.NoError(t, p.indexCoinNewsBlocks(ctx, []lo.Tuple2[uint32, *wire.MsgBlock]{
+		lo.T2(uint32(900_005), block),
+	}))
+
+	news, err := opreturns.ListCoinNews(ctx, p.db)
+	require.NoError(t, err)
+	require.Len(t, news, 1)
+	assert.Equal(t, topicID, news[0].Topic)
+	assert.Equal(t, "US Weekly", news[0].TopicName)
+	assert.Equal(t, "Broadcast headline", news[0].Headline)
+	assert.Equal(t, "Broadcast body", news[0].Content)
 }
 
 // TestCoinNewsIndexer_PurgeAtOrAbove proves the reorg purge wipes

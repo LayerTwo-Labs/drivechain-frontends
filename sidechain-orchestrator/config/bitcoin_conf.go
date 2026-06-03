@@ -104,8 +104,8 @@ func (m *BitcoinConfManager) GetRPCPort() int {
 // GetDefaultConfig generates the default bitcoin.conf content.
 // Port of getDefaultConfig() from bitcoin_conf_provider.dart.
 //
-// One unified template across all networks: a common settings block (datadir,
-// RPC, ZMQ, perf knobs, uacomment) that's identical everywhere, plus per-network
+// One unified template across all networks: a common settings block (RPC,
+// ZMQ, perf knobs, uacomment) that's identical everywhere, plus per-network
 // [main]/[signet]/[test]/[regtest] sections for the actual differences. The
 // enforcer is now expected to run on mainnet too, so it gets the same perf
 // settings (rpcthreads, rpcworkqueue) and ZMQ wiring as the other networks.
@@ -144,18 +144,12 @@ fallbackfee=0.00021
 `
 	}
 
-	// Pin datadir explicitly so bitcoind doesn't silently fall back to
-	// ~/.bitcoin/Bitcoin/etc. Mainnet → Bitcoin Core's standard datadir;
-	// every other network → Drivechain dir.
-	datadir := m.rootDirNetwork(m.Network)
-
 	return fmt.Sprintf(`%s%d
 
 # Generated code. Any changes to this file *will* get overwritten.
 # source: bitwindow bitcoin config settings
 
 # Common settings for all networks
-datadir=%s
 rpcuser=user
 rpcpassword=password
 server=1
@@ -197,7 +191,7 @@ fallbackfee=0.00021
 # Regtest-specific settings
 [regtest]
 fallbackfee=0.00021
-`, bitcoinConfVersionCommentPrefix, BitcoinConfMigrationsVersion, datadir, currentNetwork, mainSection)
+`, bitcoinConfVersionCommentPrefix, BitcoinConfMigrationsVersion, currentNetwork, mainSection)
 }
 
 // SaveConfig writes the current config to disk.
@@ -346,10 +340,4 @@ func (m *BitcoinConfManager) getConfigFileInfo() configFileInfo {
 
 func (m *BitcoinConfManager) getBitWindowConfigPath() string {
 	return filepath.Join(m.BitwindowDir, bitwindowBitcoinConfFilename)
-}
-
-// rootDirNetwork returns the root data directory for a network.
-// Dart: BitcoinCore().rootDirNetwork(network)
-func (m *BitcoinConfManager) rootDirNetwork(n Network) string {
-	return BitcoinCoreDirs.RootDirNetwork(n)
 }

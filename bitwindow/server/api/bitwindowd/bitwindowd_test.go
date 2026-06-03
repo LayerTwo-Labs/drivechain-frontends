@@ -12,15 +12,16 @@ import (
 	v1 "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/bitwindowd/v1"
 	v1connect "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/bitwindowd/v1/bitwindowdv1connect"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/blocks"
+	cnstore "github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/coinnews"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/deniability"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/opreturns"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/tests/apitests"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/tests/mocks"
+	coinnews "github.com/LayerTwo-Labs/sidesail/coinnews/codec"
 	commonv1 "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/common/v1"
 	mainchainv1 "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1"
 	corepb "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha"
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
-	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
@@ -1094,47 +1095,46 @@ func TestService_GetFireplaceStats(t *testing.T) {
 
 	topicID, err := opreturns.ValidNewsTopicID("deadbeef")
 	require.NoError(t, err)
-	require.NoError(t, opreturns.CreateTopic(ctx, database, topicID, "Test Topic", "topic_txid1", true, 7))
-
-	unknownTopicID, err := opreturns.ValidNewsTopicID("12345678")
-	require.NoError(t, err)
-
-	// one old coin news entry
-	require.NoError(t, opreturns.Persist(ctx, database, []opreturns.OPReturn{
-		// coins new topic creation
-		{
-			Height:    lo.ToPtr(uint32(10)),
-			TxID:      "topic_txid1",
-			Vout:      0,
-			Data:      opreturns.EncodeTopicCreationMessage(topicID, "Test Topic", 7),
-			CreatedAt: lo.ToPtr(time.Now()),
+	var topic coinnews.Topic
+	copy(topic[:], topicID[:])
+	require.NoError(t, cnstore.Index(ctx, database, cnstore.IndexEnv{
+		Pos: cnstore.BlockPos{
+			BlockHeight: 8,
+			TxIndex:     0,
+			VoutIndex:   0,
+			BlockTime:   time.Now(),
+			TxID:        fmt.Sprintf("%064x", 801),
 		},
-		// looks like a coin news entry, but we don't know about the topic
-		// should NOT be included
-		{
-			Height:    lo.ToPtr(uint32(10)),
-			TxID:      "news_txid4",
-			Vout:      0,
-			Data:      opreturns.EncodeNewsMessage(unknownTopicID, "Test Topic", "Test Content"),
-			CreatedAt: lo.ToPtr(time.Now()),
+		TypeTag: coinnews.TypeTopicCreation,
+		Msg: &coinnews.TopicCreation{
+			Topic:         topic,
+			RetentionDays: 7,
+			Name:          "Test Topic",
 		},
-		// one new coin news entry
-		{
-			Height:    lo.ToPtr(uint32(9)),
-			TxID:      "news_txid2",
-			Vout:      0,
-			Data:      opreturns.EncodeNewsMessage(topicID, "Test Topic", "Test Content"),
-			CreatedAt: lo.ToPtr(time.Now()),
-		},
-		{
-			Height:    lo.ToPtr(uint32(10)),
-			TxID:      "news_txid3",
-			Vout:      0,
-			Data:      opreturns.EncodeNewsMessage(topicID, "Test Topic", "Test Content"),
-			CreatedAt: lo.ToPtr(time.Now().AddDate(-1, 0, 0)),
-		},
-		// one old coin news entry
 	}))
+	seedStory := func(height uint32, txid int, headline string, blockTime time.Time) {
+		t.Helper()
+		require.NoError(t, cnstore.Index(ctx, database, cnstore.IndexEnv{
+			Pos: cnstore.BlockPos{
+				BlockHeight: height,
+				TxIndex:     0,
+				VoutIndex:   0,
+				BlockTime:   blockTime,
+				TxID:        fmt.Sprintf("%064x", txid),
+			},
+			TypeTag: coinnews.TypeStory,
+			Msg: &coinnews.Story{
+				Topic:    topic,
+				Headline: headline,
+				TLVs: []coinnews.TLV{{
+					Tag:   coinnews.TLVBody,
+					Value: []byte("Test Content"),
+				}},
+			},
+		}))
+	}
+	seedStory(9, 902, "Fresh CoinNews", time.Now())
+	seedStory(10, 903, "Old CoinNews", time.Now().AddDate(-1, 0, 0))
 
 	resp, err = cli.GetFireplaceStats(ctx, connect.NewRequest(&emptypb.Empty{}))
 	require.NoError(t, err)

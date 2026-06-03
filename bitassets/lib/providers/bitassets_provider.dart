@@ -47,7 +47,15 @@ class BitAssetsProvider extends ChangeNotifier {
 
     List<BitAssetEntry>? newEntries;
     List<DutchAuctionEntry>? newAuctions;
+    HashNameMappingSetting? newHashNameMapping;
     bool newInitialized = initialized;
+
+    try {
+      final loaded = await clientSettings.getValue(HashNameMappingSetting());
+      newHashNameMapping = HashNameMappingSetting(newValue: loaded.value);
+    } catch (e) {
+      // Keep the in-memory mapping if settings are unavailable.
+    }
 
     // Try to fetch BitAssets
     try {
@@ -64,7 +72,10 @@ class BitAssetsProvider extends ChangeNotifier {
       // Handle auction error independently
     }
 
-    if (_dataHasChanged(newEntries, newAuctions, newInitialized)) {
+    if (_dataHasChanged(newEntries, newAuctions, newHashNameMapping, newInitialized)) {
+      if (newHashNameMapping != null) {
+        hashNameMapping = newHashNameMapping;
+      }
       if (newEntries != null) {
         entries = newEntries;
         initialized = newInitialized;
@@ -82,6 +93,7 @@ class BitAssetsProvider extends ChangeNotifier {
   bool _dataHasChanged(
     List<BitAssetEntry>? newEntries,
     List<DutchAuctionEntry>? newAuctions,
+    HashNameMappingSetting? newHashNameMapping,
     bool newInitialized,
   ) {
     if (newInitialized != initialized) {
@@ -96,7 +108,29 @@ class BitAssetsProvider extends ChangeNotifier {
       return true;
     }
 
+    if (newHashNameMapping != null && !_hashNameMappingsEqual(hashNameMapping.value, newHashNameMapping.value)) {
+      return true;
+    }
+
     return false;
+  }
+
+  bool _hashNameMappingsEqual(
+    Map<String, HashMapping> left,
+    Map<String, HashMapping> right,
+  ) {
+    if (left.length != right.length) {
+      return false;
+    }
+
+    for (final entry in left.entries) {
+      final other = right[entry.key];
+      if (other == null || other.name != entry.value.name || other.isMine != entry.value.isMine) {
+        return false;
+      }
+    }
+
+    return true;
   }
 
   bool get isLoadingAuctions => _isLoadingAuctions;
@@ -104,7 +138,8 @@ class BitAssetsProvider extends ChangeNotifier {
   /// Save a new hash-name mapping
   Future<void> saveHashNameMapping(String name, {bool isMine = false}) async {
     final hash = blake3Hex(utf8.encode(name));
-    final newMappings = Map<String, HashMapping>.from(hashNameMapping.value);
+    final current = await clientSettings.getValue(HashNameMappingSetting());
+    final newMappings = Map<String, HashMapping>.from(current.value);
     newMappings[hash] = HashMapping(name: name, isMine: isMine);
     hashNameMapping = HashNameMappingSetting(newValue: newMappings);
     await clientSettings.setValue(hashNameMapping);

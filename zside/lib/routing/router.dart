@@ -1,6 +1,7 @@
 import 'package:auto_route/auto_route.dart';
 import 'package:sail_ui/pages/router.gr.dart';
 import 'package:sail_ui/sail_ui.dart';
+import 'package:zside/main.dart' show bootBinaries;
 import 'package:zside/pages/tabs/home_page.dart';
 import 'package:zside/pages/tabs/settings/settings_tab.dart';
 import 'package:zside/pages/tabs/zside/zside_bill_page.dart';
@@ -43,6 +44,10 @@ class AppRouter extends RootStackRouter {
           createWalletRoute: (onWalletCreated) => SailCreateWalletRoute(
             homeRoute: const HomeRoute(),
             onWalletCreated: onWalletCreated,
+            additionalRestoreOptionsBuilder: (context) => WalletBackupRestoreOptions(
+              bootBinaries: (log) async => bootBinaries(log),
+              binariesToStop: [BitcoinCore(), Enforcer(), ZSide()],
+            ),
           ),
         ),
         PasswordGuard(),

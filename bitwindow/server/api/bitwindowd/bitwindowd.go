@@ -613,18 +613,10 @@ func (s *Server) getCoinnewsCount7d(ctx context.Context) (int64, error) {
 	var count int64
 	err := s.db.QueryRowContext(ctx, `
 		SELECT COUNT(*)
-		FROM op_returns o
-		-- created in the last 7 days
-		WHERE o.created_at >= ?
-		AND LENGTH(o.op_return_data) >= 16
-		-- filter out all all topic creation operations
-		-- 6e6577 is hex for "new"
-		AND NOT(SUBSTR(o.op_return_data, 9, 6) = '6e6577')
-		-- and is a valid coin news entry (topic is 4 bytes = 8 hex chars)
-		AND EXISTS (
-			SELECT 1 FROM coin_news_topics t
-			WHERE t.topic = SUBSTR(o.op_return_data, 1, 8)
-		)
+		FROM cn_stories s
+		JOIN cn_items i ON i.item_id = s.item_id
+		WHERE i.block_time >= ?
+		  AND trim(s.headline) != ''
 	`, cutoffTime).Scan(&count)
 
 	if err != nil {
