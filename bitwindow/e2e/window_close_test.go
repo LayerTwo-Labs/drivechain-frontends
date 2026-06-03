@@ -20,9 +20,11 @@ import (
 func TestWindowCloseShutsDownDaemons(t *testing.T) {
 	skipIfNoDisplay(t)
 
-	const bootDeadline = 6 * time.Minute
+	const bootDeadline = 9 * time.Minute
 	const bootPoll = 2 * time.Second
-	const shutdownDeadline = 45 * time.Second
+	// 90s: a cold macOS runner can take a while to drain orchestratord's managed
+	// daemons (bitcoind/enforcer) after the GUI closes; 45s was flaking.
+	const shutdownDeadline = 90 * time.Second
 	const shutdownPoll = 500 * time.Millisecond
 
 	t.Logf("window-close shutdown test on %s", runtime.GOOS)

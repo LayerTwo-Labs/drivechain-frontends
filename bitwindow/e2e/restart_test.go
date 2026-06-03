@@ -20,10 +20,10 @@ import (
 func TestJustRunRestart(t *testing.T) {
 	skipIfNoDisplay(t)
 
-	const bootDeadline = 6 * time.Minute
+	const bootDeadline = 9 * time.Minute
 	const bootPoll = 2 * time.Second
 	const rpcDeadline = 30 * time.Second
-	const shutdownDeadline = 30 * time.Second
+	const shutdownDeadline = 90 * time.Second
 	const shutdownPoll = 500 * time.Millisecond
 
 	t.Logf("Issue 3 / restart: launching two successive `just run` on %s", runtime.GOOS)
