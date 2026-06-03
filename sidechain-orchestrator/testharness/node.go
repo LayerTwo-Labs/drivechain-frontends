@@ -239,13 +239,15 @@ func (n *Node) close() {
 func waitForBitcoind(t *testing.T, rpcClient *wallet.CoreRPCClient, nodeName string) {
 	t.Helper()
 
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	// 90s, not 30s: the Windows CI runners are slow to bring bitcoind's RPC up
+	// and were flaking the integration suite on the readiness wait.
+	ctx, cancel := context.WithTimeout(context.Background(), 90*time.Second)
 	defer cancel()
 
 	for {
 		select {
 		case <-ctx.Done():
-			t.Fatalf("testharness[%s]: bitcoind did not become ready within 30s", nodeName)
+			t.Fatalf("testharness[%s]: bitcoind did not become ready within 90s", nodeName)
 		default:
 		}
 		if result, err := rpcClient.GetBlockchainInfo(ctx); err == nil && result != nil {
