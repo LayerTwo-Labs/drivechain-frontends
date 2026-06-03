@@ -37,6 +37,14 @@ class SidechainProvider extends ChangeNotifier {
     fetch();
   }
 
+  void clear() {
+    sidechains = List.filled(256, null);
+    sidechainProposals = [];
+    _lastWalletId = _walletReader.activeWalletId;
+    error = null;
+    notifyListeners();
+  }
+
   void _onSync() {
     if (_syncProvider.isSynced) {
       fetch();

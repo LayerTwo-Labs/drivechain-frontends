@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"slices"
 	"sort"
 	"strconv"
@@ -1695,6 +1696,9 @@ func (o *Orchestrator) SwapNetwork(ctx context.Context, n config.Network) error 
 	if config.Network(o.Network) == n {
 		return nil
 	}
+	if !o.BitcoinConf.HasDatadirForNetwork(n) {
+		return fmt.Errorf("datadir not configured for %s", n)
+	}
 
 	bitcoindWasRunning := o.process.IsRunning("bitcoind")
 	enforcerWasRunning := o.process.IsRunning("enforcer")
@@ -1722,6 +1726,10 @@ func (o *Orchestrator) SwapNetwork(ctx context.Context, n config.Network) error 
 		}
 	}
 
+	if err := o.purgeNetworkSwapState(n); err != nil {
+		return err
+	}
+
 	if err := o.BitcoinConf.UpdateNetwork(n); err != nil {
 		return fmt.Errorf("persist network: %w", err)
 	}
@@ -1729,6 +1737,7 @@ func (o *Orchestrator) SwapNetwork(ctx context.Context, n config.Network) error 
 		return fmt.Errorf("reload config: %w", err)
 	}
 	o.Network = string(n)
+	o.clearNetworkSwapCaches()
 
 	if !bitcoindWasRunning && !enforcerWasRunning {
 		return nil
@@ -1751,6 +1760,72 @@ func (o *Orchestrator) SwapNetwork(ctx context.Context, n config.Network) error 
 		}
 	}()
 	return nil
+}
+
+func (o *Orchestrator) purgeNetworkSwapState(target config.Network) error {
+	paths := make(map[string]bool)
+
+	for _, path := range enforcerNetworkSwapStatePaths(config.EnforcerDirs.RootDir()) {
+		paths[path] = true
+	}
+
+	bitcoinOverride := ""
+	if o.BitcoinConf != nil {
+		bitcoinOverride = o.BitcoinConf.DetectedDataDir
+	}
+	for _, c := range o.Configs() {
+		if c.ChainLayer != 2 {
+			continue
+		}
+		dc, ok := config.DirConfigByName(c.Name)
+		if !ok {
+			continue
+		}
+		for _, network := range []config.Network{config.Network(o.Network), target} {
+			networkDir := dc.DatadirNetwork(network, bitcoinOverride)
+			for _, path := range dc.GetBlockchainDataPaths(networkDir, network, o.log) {
+				paths[path] = true
+			}
+		}
+	}
+
+	for path := range paths {
+		if err := os.RemoveAll(path); err != nil && !os.IsNotExist(err) {
+			return fmt.Errorf("wipe network-swap state %s: %w", path, err)
+		}
+		o.log.Info().Str("path", path).Msg("wiped network-swap state")
+	}
+	return nil
+}
+
+func enforcerNetworkSwapStatePaths(root string) []string {
+	return []string{
+		filepath.Join(root, "validator"),
+		filepath.Join(root, "wallet"),
+		filepath.Join(root, "bitcoin"),
+		filepath.Join(root, "mainnet"),
+		filepath.Join(root, "forknet"),
+		filepath.Join(root, "signet"),
+		filepath.Join(root, "testnet"),
+		filepath.Join(root, "regtest"),
+	}
+}
+
+func (o *Orchestrator) clearNetworkSwapCaches() {
+	o.syncConnMu.Lock()
+	o.explorerHeightsCache = nil
+	o.bitcoindInfo = nil
+	o.bitcoindSync = nil
+	o.enforcerSync = nil
+	o.sidechainSyncs = nil
+	o.syncConnMu.Unlock()
+
+	o.httpClientsMu.Lock()
+	o.coreStatusClient = nil
+	o.coreStatusClientKey = ""
+	o.enforcerHTTPClient = nil
+	o.explorerHTTPClient = nil
+	o.httpClientsMu.Unlock()
 }
 
 // RestartL1 stops the L1 stack (enforcer + bitcoind) and boots it again on

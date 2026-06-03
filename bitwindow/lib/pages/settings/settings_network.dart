@@ -1,4 +1,3 @@
-import 'package:bitwindow/pages/settings/datadir_select_page.dart';
 import 'package:bitwindow/pages/settings/network_swap_page.dart';
 import 'package:bitwindow/routing/router.dart';
 import 'package:file_picker/file_picker.dart';
@@ -304,11 +303,9 @@ class _SettingsNetworkState extends State<SettingsNetwork> {
   }
 }
 
-/// Pushes the full-page network swap flow. When the target network has no
-/// datadir configured yet, this first pushes [DataDirSelectPage] to capture
-/// one (mirroring the wallet-guard full-page pattern), then pushes
-/// [NetworkSwapPage] which performs "shut down → save → boot back up" with
-/// progress UI matching the reset flow.
+/// Pushes the full-page network swap flow. The shared Sail UI datadir
+/// precondition runs first; only a configured target network reaches
+/// [NetworkSwapPage], which performs the stop/save/boot progress flow.
 Future<void> swapNetworkWithDatadirPrompt(
   BuildContext context,
   BitcoinConfProvider provider,
@@ -316,14 +313,8 @@ Future<void> swapNetworkWithDatadirPrompt(
 ) async {
   if (provider.network == network) return;
 
-  if (_networkNeedsDatadir(network) && provider.dataDirFor(network) == null) {
-    final selected = await Navigator.of(context).push<String>(
-      MaterialPageRoute(builder: (_) => DataDirSelectPage(network: network)),
-    );
-    if (selected == null || selected.isEmpty) return;
-    if (!context.mounted) return;
-    await provider.updateDataDir(selected, forNetwork: network);
-  }
+  final ready = await provider.ensureDataDirForNetwork(context, network);
+  if (!ready) return;
 
   if (!context.mounted) return;
   await Navigator.of(context).push<bool>(
@@ -335,6 +326,3 @@ Future<void> swapNetworkWithDatadirPrompt(
     ),
   );
 }
-
-bool _networkNeedsDatadir(BitcoinNetwork network) =>
-    network == BitcoinNetwork.BITCOIN_NETWORK_MAINNET || network == BitcoinNetwork.BITCOIN_NETWORK_FORKNET;

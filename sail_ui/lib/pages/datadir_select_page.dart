@@ -1,10 +1,19 @@
 import 'package:file_picker/file_picker.dart';
-import 'package:flutter/material.dart' show AppBar, Scaffold;
+import 'package:flutter/material.dart' show AppBar, MaterialPageRoute, Scaffold;
 import 'package:flutter/widgets.dart';
 import 'package:sail_ui/sail_ui.dart';
 
-/// Full-page picker for the Bitcoin Core data directory. Pushed when a
-/// network switch needs a datadir but none is configured.
+Future<String?> promptForBitcoinDataDir(
+  BuildContext context,
+  BitcoinNetwork network,
+) {
+  return Navigator.of(context).push<String>(
+    MaterialPageRoute(builder: (_) => DataDirSelectPage(network: network)),
+  );
+}
+
+/// Full-page picker for the Bitcoin Core data directory. This only returns a
+/// path; callers decide whether and when to commit a network change.
 class DataDirSelectPage extends StatefulWidget {
   final BitcoinNetwork? network;
 
@@ -91,7 +100,9 @@ class _DataDirSelectPageState extends State<DataDirSelectPage> {
                         ),
                         const SizedBox(height: 32),
                         Container(
-                          padding: const EdgeInsets.all(SailStyleValues.padding12),
+                          padding: const EdgeInsets.all(
+                            SailStyleValues.padding12,
+                          ),
                           decoration: BoxDecoration(
                             border: Border.all(color: theme.colors.border),
                             borderRadius: SailStyleValues.borderRadiusSmall,

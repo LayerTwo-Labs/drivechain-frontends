@@ -12,22 +12,21 @@ class DataDirGuard extends AutoRouteGuard {
     final network = confProvider.network;
 
     // Only mainnet and forknet require an explicit datadir.
-    if (network != BitcoinNetwork.BITCOIN_NETWORK_MAINNET && network != BitcoinNetwork.BITCOIN_NETWORK_FORKNET) {
+    if (!confProvider.networkRequiresDataDir(network)) {
       resolver.next(true);
       return;
     }
 
     // detectedDataDir is now the per-section value only — null means the
     // user hasn't picked one for this network yet.
-    if (confProvider.detectedDataDir != null && confProvider.detectedDataDir!.isNotEmpty) {
+    if (confProvider.hasDataDirFor(network)) {
       resolver.next(true);
       return;
     }
 
     await router.push(DataDirSetupRoute(network: network));
 
-    final after = confProvider.detectedDataDir;
-    if (after != null && after.isNotEmpty) {
+    if (confProvider.hasDataDirFor(network)) {
       resolver.next(true);
     } else {
       resolver.next(false);

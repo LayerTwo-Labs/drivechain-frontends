@@ -1,6 +1,7 @@
 import 'package:bitwindow/providers/address_book_provider.dart';
 import 'package:bitwindow/providers/blockchain_provider.dart';
 import 'package:bitwindow/providers/hd_wallet_provider.dart';
+import 'package:bitwindow/providers/sidechain_provider.dart';
 import 'package:bitwindow/providers/transactions_provider.dart';
 import 'package:flutter/material.dart' show AppBar, Icon, Icons, Scaffold;
 import 'package:flutter/widgets.dart';
@@ -72,6 +73,9 @@ class _NetworkSwapPageState extends State<NetworkSwapPage> {
     }
     if (GetIt.I.isRegistered<AddressBookProvider>()) {
       GetIt.I.get<AddressBookProvider>().clear();
+    }
+    if (GetIt.I.isRegistered<SidechainProvider>()) {
+      GetIt.I.get<SidechainProvider>().clear();
     }
     if (GetIt.I.isRegistered<BalanceProvider>()) {
       GetIt.I.get<BalanceProvider>().clear();
