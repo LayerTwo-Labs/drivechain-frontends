@@ -22,8 +22,8 @@ func TestJustRunRestart(t *testing.T) {
 
 	const bootDeadline = 9 * time.Minute
 	const bootPoll = 2 * time.Second
-	const rpcDeadline = 90 * time.Second // cold macOS/Windows CI runners are slow to make orchestratord RPC-ready
-	const shutdownDeadline = 90 * time.Second
+	const rpcDeadline = 90 * time.Second     // cold macOS/Windows CI runners are slow to make orchestratord RPC-ready
+	const shutdownDeadline = 3 * time.Minute // orchestratord finishes a ~90s graceful bitcoind drain; slow macOS runners exceed 90s
 	const shutdownPoll = 500 * time.Millisecond
 
 	t.Logf("Issue 3 / restart: launching two successive `just run` on %s", runtime.GOOS)
