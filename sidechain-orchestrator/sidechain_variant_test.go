@@ -438,6 +438,99 @@ func TestOrchestrator_ForceBackend_AdoptsProdPidWhenTestSidechainsEnabled(t *tes
 	assert.Equal(t, BinaryPath(dataDir, "sleep"), status.BinaryPath)
 }
 
+func TestOrchestrator_StopStopsManagedSidechainGUICompanion(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("uses symlinked system sleep binary")
+	}
+
+	dataDir := t.TempDir()
+	bwDir := t.TempDir()
+	log := testLogger(t)
+
+	symlinkSystemBinary(t, dataDir, "sleep")
+	cfg := makeSidechainConfig("http://example.invalid/")
+	cfg.BinaryName = "sleep"
+	cfg.AltBinaryName = "sleep"
+
+	o := New(dataDir, "signet", bwDir, []BinaryConfig{cfg}, log)
+	guiName := sidechainGUIProcessName(cfg.Name)
+
+	_, err := o.process.StartWithOptions(
+		context.Background(),
+		cfg,
+		[]string{"30"},
+		nil,
+		ProcessStartOptions{
+			ForceBackend: true,
+			ProcessName:  guiName,
+			PidName:      guiName,
+			WorkDir:      dataDir,
+		},
+	)
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = o.process.Stop(context.Background(), guiName, true) })
+
+	assert.True(t, o.process.IsRunning(guiName))
+	assert.False(t, o.process.IsRunning(cfg.Name), "GUI companion must not occupy the backend daemon slot")
+
+	_, err = o.process.StartWithOptions(
+		context.Background(),
+		cfg,
+		[]string{"30"},
+		nil,
+		ProcessStartOptions{ForceBackend: true},
+	)
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = o.process.Stop(context.Background(), cfg.Name, true) })
+
+	require.NoError(t, o.Stop(context.Background(), cfg.Name, false))
+	assert.False(t, o.process.IsRunning(guiName), "Stop(sidechain) must stop the managed GUI companion")
+	assert.False(t, o.process.IsRunning(cfg.Name), "Stop(sidechain) must stop the backend daemon")
+}
+
+func TestOrchestrator_AdoptsGUICompanionUnderGUISlot(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("uses symlinked system sleep binary")
+	}
+
+	dataDir := t.TempDir()
+	log := testLogger(t)
+
+	symlinkSystemBinary(t, dataDir, "sleep")
+	cfg := makeSidechainConfig("http://example.invalid/")
+	cfg.Name = "sleep"
+	cfg.BinaryName = "sleep"
+	cfg.AltBinaryName = "sleep"
+	guiName := sidechainGUIProcessName(cfg.Name)
+
+	origin := New(dataDir, "signet", t.TempDir(), []BinaryConfig{cfg}, log)
+	_, err := origin.process.StartWithOptions(
+		context.Background(),
+		cfg,
+		[]string{"30"},
+		nil,
+		ProcessStartOptions{
+			ForceBackend: true,
+			ProcessName:  guiName,
+			PidName:      guiName,
+			WorkDir:      dataDir,
+		},
+	)
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = origin.process.Stop(context.Background(), guiName, true) })
+
+	next := New(dataDir, "signet", t.TempDir(), []BinaryConfig{cfg}, log)
+	require.NoError(t, next.AdoptOrphans(context.Background()))
+
+	assert.True(t, next.process.IsRunning(guiName), "GUI PID must be adopted under the GUI companion slot")
+	assert.False(t, next.process.IsRunning(cfg.Name), "adopted GUI must not occupy the backend daemon slot")
+
+	require.NoError(t, next.Stop(context.Background(), cfg.Name, false))
+	assert.False(t, next.process.IsRunning(guiName))
+	_, err = next.pidManager.ReadPidFile(guiName)
+	assert.True(t, os.IsNotExist(err), "stopping adopted GUI companion must remove its PID file")
+}
+
 func TestOrchestrator_SidechainVariantResolver_ReturnsAltOnlyWhenEnabled(t *testing.T) {
 	dataDir := t.TempDir()
 	bwDir := t.TempDir()

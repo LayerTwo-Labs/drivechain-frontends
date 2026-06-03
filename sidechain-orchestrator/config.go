@@ -3,7 +3,6 @@ package orchestrator
 import (
 	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -247,30 +246,6 @@ func TestSidechainBinaryPath(dataDir, binaryName string) string {
 	default:
 		return filepath.Join(dir, binaryName)
 	}
-}
-
-// launchTestSidechainGUI launches a test sidechain's Flutter app bundle as a
-// detached GUI process. It is deliberately NOT routed through the process
-// manager: the GUI must not occupy the config.Name process slot, or its
-// follow-up StartWithL1(ForceBackend=true) callback would see IsRunning==true
-// and never spawn the real rust daemon — stranding the chain on "initializing".
-// macOS gets this for free via `open -a` (Launch Services detaches it); Linux
-// and Windows launch the bundle's executable directly without waiting.
-func launchTestSidechainGUI(dataDir, binaryName string) error {
-	if runtime.GOOS == "darwin" {
-		appBundle := TestSidechainAppBundle(dataDir, binaryName)
-		if appBundle == "" {
-			return fmt.Errorf("no .app bundle found for %s", binaryName)
-		}
-		return exec.Command("open", "-a", appBundle).Run()
-	}
-
-	// Linux/Windows: the Flutter bundle's launchable binary sits next to its
-	// lib/data trees. Start it detached and don't wait — it's a long-lived GUI.
-	binPath := TestSidechainBinaryPath(dataDir, binaryName)
-	cmd := exec.Command(binPath)
-	cmd.Dir = filepath.Dir(binPath)
-	return cmd.Start()
 }
 
 // PidDir returns the directory where PID files are stored.
