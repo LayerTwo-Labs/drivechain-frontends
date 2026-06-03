@@ -40,12 +40,6 @@ import 'package:sail_ui/sail_ui.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:window_manager/window_manager.dart';
 
-/// Call this before navigating away from RootPage to prevent shutdown during navigation.
-/// This is used by the reset flow to avoid triggering app shutdown when switching routes.
-void setRootPageNavigatingAway(bool value) {
-  _RootPageState.isNavigatingAway = value;
-}
-
 @RoutePage()
 class RootPage extends StatefulWidget {
   const RootPage({super.key});
@@ -55,10 +49,6 @@ class RootPage extends StatefulWidget {
 }
 
 class _RootPageState extends State<RootPage> with WidgetsBindingObserver, WindowListener {
-  /// Set this to true before navigating away from RootPage to prevent shutdown.
-  /// Reset code sets this before router.replaceAll to avoid triggering shutdown.
-  static bool isNavigatingAway = false;
-
   final NewsProvider _newsProvider = GetIt.I.get<NewsProvider>();
   final HomepageProvider _homepageProvider = GetIt.I.get<HomepageProvider>();
   final BitwindowSettingsProvider _bitwindowSettingsProvider = GetIt.I.get<BitwindowSettingsProvider>();
@@ -1157,20 +1147,12 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
     _walletReader.removeListener(_onProviderChanged);
     _bitnamesRPC.removeListener(_onProviderChanged);
     _confProvider.removeListener(_onNetworkChange);
-    // Only trigger shutdown if we're not navigating away (e.g., during reset).
-    // If isNavigatingAway is true, we're just changing routes, not closing the app.
-    if (!isNavigatingAway) {
-      GetIt.I.get<BinaryProvider>().onShutdown(
-        shutdownOptions: ShutdownOptions(
-          router: GetIt.I.get<AppRouter>(),
-          onComplete: () async {
-            await windowManager.destroy();
-          },
-          showShutdownPage: true,
-        ),
-      );
-    }
-    isNavigatingAway = false; // Reset the flag
+    // dispose() must NOT shut the app down. It runs on any unmount — a rebuild
+    // that replaces RootPage, an inline widget-error swap, a route change — and
+    // tearing down the backend here is what turned a single component failure
+    // into a full app crash. Shutdown is driven solely by onWindowClose() (the
+    // real OS close, intercepted via setPreventClose) and the signal handlers
+    // in main().
     windowManager.removeListener(this);
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();

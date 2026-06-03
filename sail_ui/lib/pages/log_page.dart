@@ -364,16 +364,21 @@ class _FileLogsTabState extends State<_FileLogsTab> {
 
         _lastPosition = length;
 
-        // Only auto-scroll if we were already at the bottom
-        if (wasAtBottom && _scrollController.hasClients) {
+        // Only auto-scroll if we were already at the bottom. hasClients must
+        // be re-checked inside the post-frame callback: the view can detach
+        // (tab switch / rebuild) between scheduling and execution, and reading
+        // _scrollController.position while detached throws.
+        if (wasAtBottom) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (!_scrollController.hasClients) return;
             _scrollController.jumpTo(
               _scrollController.position.maxScrollExtent,
             );
           });
-        } else if (_scrollController.hasClients) {
+        } else {
           // Restore previous scroll position
           WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (!_scrollController.hasClients) return;
             _scrollController.jumpTo(previousOffset.toDouble());
           });
         }
