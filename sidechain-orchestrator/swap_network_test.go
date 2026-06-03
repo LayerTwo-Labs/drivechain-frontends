@@ -2,6 +2,7 @@ package orchestrator
 
 import (
 	"context"
+	"path/filepath"
 	"sync/atomic"
 	"testing"
 
@@ -112,6 +113,24 @@ func TestSwapNetwork_SameNetworkIsNoOp(t *testing.T) {
 	assert.Equal(t, string(config.NetworkSignet), o.Network)
 }
 
+func TestSwapNetwork_MissingDatadirStopsBeforeNetworkChange(t *testing.T) {
+	o := newTestOrchestrator(t)
+	require.NotNil(t, o.BitcoinConf)
+
+	var called int32
+	o.BitcoinConf.OnNetworkChanged = func() {
+		atomic.AddInt32(&called, 1)
+	}
+
+	err := o.SwapNetwork(context.Background(), config.NetworkForknet)
+
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "datadir not configured for forknet")
+	assert.Equal(t, int32(0), atomic.LoadInt32(&called), "OnNetworkChanged must not fire without target datadir")
+	assert.Equal(t, string(config.NetworkSignet), o.Network)
+	assert.Equal(t, config.NetworkSignet, o.BitcoinConf.Network)
+}
+
 // TestSwapNetwork_MultipleSwapsFireCallbackEachTime guards against e.g. a
 // future "fire-once" optimization that would break repeated network changes
 // in the same session. Every actual change must fire the callback so the
@@ -129,4 +148,15 @@ func TestSwapNetwork_MultipleSwapsFireCallbackEachTime(t *testing.T) {
 	require.NoError(t, o.SwapNetwork(context.Background(), config.NetworkRegtest))
 
 	assert.Equal(t, int32(3), atomic.LoadInt32(&called), "OnNetworkChanged must fire on each actual network change")
+}
+
+func TestEnforcerNetworkSwapStatePathsCoverCheckpointStores(t *testing.T) {
+	root := t.TempDir()
+	paths := enforcerNetworkSwapStatePaths(root)
+
+	assert.Contains(t, paths, filepath.Join(root, "validator"))
+	assert.Contains(t, paths, filepath.Join(root, "wallet"))
+	assert.Contains(t, paths, filepath.Join(root, "bitcoin"))
+	assert.Contains(t, paths, filepath.Join(root, "signet"))
+	assert.Contains(t, paths, filepath.Join(root, "forknet"))
 }

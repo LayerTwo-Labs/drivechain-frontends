@@ -129,10 +129,15 @@ class BitcoinConfProvider extends ChangeNotifier {
   }
 
   void _onNetworkChanged() {
-    try {
-      final syncProvider = GetIt.I.get<SyncProvider>();
-      syncProvider.clearState();
-    } catch (_) {}
+    if (GetIt.I.isRegistered<BalanceProvider>()) {
+      GetIt.I.get<BalanceProvider>().clear();
+    }
+    if (GetIt.I.isRegistered<SyncProvider>()) {
+      GetIt.I.get<SyncProvider>().reset();
+    }
+    if (GetIt.I.isRegistered<WalletReaderProvider>()) {
+      GetIt.I.get<WalletReaderProvider>().clearState();
+    }
   }
 
   Future<void> updateNetwork(BitcoinNetwork newNetwork) async {
@@ -159,7 +164,51 @@ class BitcoinConfProvider extends ChangeNotifier {
   ) async {
     if (hasPrivateBitcoinConf) return;
     if (network == newNetwork) return;
-    await updateNetwork(newNetwork);
+
+    if (!await ensureDataDirForNetwork(context, newNetwork)) {
+      throw MissingDatadirException(newNetwork);
+    }
+
+    try {
+      await updateNetwork(newNetwork);
+    } on MissingDatadirException {
+      await loadConfig();
+      if (!context.mounted) {
+        throw MissingDatadirException(newNetwork);
+      }
+      if (!await ensureDataDirForNetwork(context, newNetwork)) {
+        throw MissingDatadirException(newNetwork);
+      }
+      await updateNetwork(newNetwork);
+    }
+  }
+
+  Future<bool> ensureDataDirForNetwork(
+    BuildContext context,
+    BitcoinNetwork targetNetwork,
+  ) async {
+    if (!networkRequiresDataDir(targetNetwork) || hasDataDirFor(targetNetwork)) {
+      return true;
+    }
+
+    if (!context.mounted) return false;
+
+    final selected = await promptForBitcoinDataDir(context, targetNetwork);
+    if (selected == null || selected.isEmpty) return false;
+    if (!context.mounted) return false;
+
+    await updateDataDir(selected, forNetwork: targetNetwork);
+    await loadConfig();
+    return hasDataDirFor(targetNetwork);
+  }
+
+  bool hasDataDirFor(BitcoinNetwork network) {
+    final dataDir = dataDirFor(network);
+    return dataDir != null && dataDir.isNotEmpty;
+  }
+
+  bool networkRequiresDataDir(BitcoinNetwork network) {
+    return network == BitcoinNetwork.BITCOIN_NETWORK_MAINNET || network == BitcoinNetwork.BITCOIN_NETWORK_FORKNET;
   }
 
   Future<void> updateDataDir(
