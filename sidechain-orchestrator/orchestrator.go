@@ -489,7 +489,14 @@ func (o *Orchestrator) Stop(ctx context.Context, name string, force bool) error 
 	}
 	o.monitorsMu.Unlock()
 
-	err := o.process.Stop(ctx, name, force)
+	guiStopped, guiErr := o.stopSidechainGUI(ctx, name, force)
+
+	var err error
+	if o.process.IsRunning(name) {
+		err = o.process.Stop(ctx, name, force)
+	} else if !guiStopped {
+		err = fmt.Errorf("%s is not running", name)
+	}
 
 	// Always mark the monitor as stopped, even if process.Stop failed
 	// (e.g. "not running"). This ensures the restart timer won't
@@ -500,7 +507,26 @@ func (o *Orchestrator) Stop(ctx context.Context, name string, force bool) error 
 	}
 	o.monitorsMu.Unlock()
 
-	return err
+	if err != nil {
+		return err
+	}
+	return guiErr
+}
+
+func (o *Orchestrator) stopSidechainGUI(ctx context.Context, name string, force bool) (bool, error) {
+	guiName := sidechainGUIProcessName(name)
+	if !o.process.IsRunning(guiName) {
+		return false, nil
+	}
+	adopted := o.process.IsAdopted(guiName)
+	if err := o.process.Stop(ctx, guiName, force || adopted); err != nil {
+		return true, fmt.Errorf("stop %s GUI: %w", name, err)
+	}
+	if adopted {
+		o.process.Remove(guiName)
+		_ = o.pidManager.DeletePidFile(guiName)
+	}
+	return true, nil
 }
 
 // Status returns the current status of a binary.
@@ -1225,18 +1251,31 @@ func (o *Orchestrator) startTargetOnly(ctx context.Context, config BinaryConfig,
 	}
 
 	// GUI bundle (test sidechain): launch the sidechain's own Flutter app as a
-	// detached GUI and stop here. Orchestratord never manages the GUI as a
-	// daemon — the app calls back through StartWithL1 with ForceBackend=true to
-	// start its own rust daemon. Launching it outside the process manager is
-	// essential: if it occupied the config.Name slot, that callback would see
-	// IsRunning==true and skip the real daemon, stranding the chain on
-	// "initializing" (this was the Linux/Windows-only sync hang).
+	// managed GUI companion and stop here. It intentionally uses a separate
+	// process slot, so the app's StartWithL1(ForceBackend=true) callback can
+	// still start the real backend daemon under config.Name while BitWindow's
+	// Stop(config.Name) can also close the GUI.
 	if !opts.ForceBackend && config.ChainLayer == 2 && o.process.SidechainVariant != nil {
 		if sv, ok := o.process.SidechainVariant(config); ok {
-			o.log.Info().Str("binary", config.Name).Msg("launching test sidechain GUI")
-			if err := launchTestSidechainGUI(o.DataDir, sv.BinaryName); err != nil {
-				failBoot(targetMon, ch, "open "+config.Name, err)
-				return
+			guiName := sidechainGUIProcessName(config.Name)
+			if !o.process.IsRunning(guiName) {
+				binPath := TestSidechainBinaryPath(o.DataDir, sv.BinaryName)
+				o.log.Info().Str("binary", config.Name).Str("gui", guiName).Msg("launching test sidechain GUI")
+				_, err := o.process.StartWithOptions(
+					ctx,
+					config,
+					nil,
+					nil,
+					ProcessStartOptions{
+						ProcessName: guiName,
+						PidName:     guiName,
+						WorkDir:     filepath.Dir(binPath),
+					},
+				)
+				if err != nil {
+					failBoot(targetMon, ch, "open "+config.Name, err)
+					return
+				}
 			}
 			targetMon.SetInitializing(false)
 			ch <- StartupProgress{Stage: "done", Message: fmt.Sprintf("%s opened", config.DisplayName), Done: true}
@@ -1298,6 +1337,10 @@ func (o *Orchestrator) startTargetOnly(ctx context.Context, config BinaryConfig,
 	}
 
 	ch <- StartupProgress{Stage: "done", Message: fmt.Sprintf("%s started", config.DisplayName), Done: true}
+}
+
+func sidechainGUIProcessName(name string) string {
+	return name + "-gui"
 }
 
 // waitForConnectedOrExit blocks until the monitor reports connected, the
@@ -1533,13 +1576,18 @@ func (o *Orchestrator) AdoptOrphans(ctx context.Context) error {
 		// Test PID files are only meaningful while the test-sidechains toggle is
 		// active. Prod PID files are always eligible: sidechain Flutter apps use
 		// --force-backend to run prod backends even when the global toggle is on.
+		// GUI companion PID files are adopted regardless of the toggle so Stop()
+		// can clean up a frontend the orchestrator previously opened.
 		isTestPid := strings.HasSuffix(pidName, "-test")
+		isGUIPid := strings.HasSuffix(pidName, "-gui")
 		if isTestPid && !useTest {
 			continue
 		}
 
 		realBinaryName := pidName
-		if isTestPid {
+		if isGUIPid {
+			realBinaryName = strings.TrimSuffix(pidName, "-gui")
+		} else if isTestPid {
 			realBinaryName = strings.TrimSuffix(pidName, "-test")
 		}
 
@@ -1557,7 +1605,14 @@ func (o *Orchestrator) AdoptOrphans(ctx context.Context) error {
 		}
 
 		binPath := BinaryPath(o.DataDir, config.BinaryName)
-		if isTestPid {
+		if isGUIPid {
+			config.Name = sidechainGUIProcessName(config.Name)
+			if config.AltBinaryName != "" {
+				binPath = TestSidechainBinaryPath(o.DataDir, config.AltBinaryName)
+			} else {
+				binPath = TestSidechainBinaryPath(o.DataDir, realBinaryName)
+			}
+		} else if isTestPid {
 			binPath = TestSidechainBinaryPath(o.DataDir, realBinaryName)
 		} else if config.IsBitcoinCore && o.process.CoreVariant != nil {
 			if v, ok := o.process.CoreVariant(config); ok {
@@ -2819,7 +2874,7 @@ func (o *Orchestrator) findConfigByBinaryName(binaryName string) (BinaryConfig, 
 	defer o.mu.RUnlock()
 
 	for _, config := range o.configs {
-		if processNameMatches(config.BinaryName, binaryName) {
+		if processNameMatches(config.BinaryName, binaryName) || processNameMatches(config.Name, binaryName) {
 			return config, true
 		}
 	}

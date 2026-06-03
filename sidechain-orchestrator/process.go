@@ -215,14 +215,25 @@ func (pm *ProcessManager) resolvePaths(config BinaryConfig, forceBackend bool) (
 	return binPath, pidName
 }
 
-// ProcessStartOptions tweaks process.Start behaviour per-call. Currently a
-// single flag, but the struct keeps the door open for future per-call
-// overrides without churning every callsite.
+// ProcessStartOptions tweaks process.Start behaviour per-call.
 type ProcessStartOptions struct {
 	// ForceBackend skips the SidechainVariant resolver so the prod-download
 	// binary is launched even when UseTestSidechains is on. Set by sidechain
 	// Flutter frontends self-booting their backend.
 	ForceBackend bool
+
+	// ProcessName overrides the in-memory process slot. Used for managed GUI
+	// companions so they don't occupy the backend daemon's slot.
+	ProcessName string
+
+	// PidName overrides the PID-file name. Keep GUI companion PID files
+	// distinct from backend/test-daemon PID files so orphan adoption cannot
+	// confuse the frontend with the daemon.
+	PidName string
+
+	// WorkDir overrides the child process working directory. Flutter GUI
+	// bundles expect to run beside their lib/data trees.
+	WorkDir string
 }
 
 // Start launches a binary and returns its PID.
@@ -232,21 +243,29 @@ func (pm *ProcessManager) Start(ctx context.Context, config BinaryConfig, args [
 
 // StartWithOptions is Start with per-call overrides (see ProcessStartOptions).
 func (pm *ProcessManager) StartWithOptions(_ context.Context, config BinaryConfig, args []string, env map[string]string, opts ProcessStartOptions) (int, error) {
+	processName := opts.ProcessName
+	if processName == "" {
+		processName = config.Name
+	}
+
 	pm.mu.Lock()
-	if _, exists := pm.processes[config.Name]; exists {
+	if _, exists := pm.processes[processName]; exists {
 		pm.mu.Unlock()
-		return 0, fmt.Errorf("%s is already running", config.Name)
+		return 0, fmt.Errorf("%s is already running", processName)
 	}
 	pm.mu.Unlock()
 
 	binPath, pidName := pm.resolvePaths(config, opts.ForceBackend)
+	if opts.PidName != "" {
+		pidName = opts.PidName
+	}
 	if _, err := os.Stat(binPath); err != nil {
 		return 0, fmt.Errorf("binary not found at %s: %w", binPath, err)
 	}
 	_ = pidName // referenced below for PID file ops
 
 	if err := chmod(binPath); err != nil {
-		pm.log.Warn().Err(err).Str("binary", config.Name).Msg("chmod")
+		pm.log.Warn().Err(err).Str("binary", processName).Msg("chmod")
 	}
 
 	// Raise file descriptor limit for child processes (bitcoind needs many)
@@ -256,6 +275,9 @@ func (pm *ProcessManager) StartWithOptions(_ context.Context, config BinaryConfi
 	// The orchestrator manages process lifecycle via Stop/StopAll, not via context.
 	cmd := exec.Command(binPath, args...)
 	cmd.Dir = pm.dataDir
+	if opts.WorkDir != "" {
+		cmd.Dir = opts.WorkDir
+	}
 
 	// Set environment
 	cmd.Env = os.Environ()
@@ -275,11 +297,13 @@ func (pm *ProcessManager) StartWithOptions(_ context.Context, config BinaryConfi
 	}
 
 	if err := cmd.Start(); err != nil {
-		return 0, fmt.Errorf("start %s: %w", config.Name, err)
+		return 0, fmt.Errorf("start %s: %w", processName, err)
 	}
 
+	runtimeConfig := config
+	runtimeConfig.Name = processName
 	proc := &ManagedProcess{
-		Config:       config,
+		Config:       runtimeConfig,
 		Pid:          cmd.Process.Pid,
 		Cmd:          cmd,
 		BinPath:      binPath,
@@ -291,19 +315,19 @@ func (pm *ProcessManager) StartWithOptions(_ context.Context, config BinaryConfi
 	}
 
 	pm.mu.Lock()
-	pm.processes[config.Name] = proc
+	pm.processes[processName] = proc
 	pm.mu.Unlock()
 
 	// Write PID file
 	if err := pm.pidManager.WritePidFile(pidName, cmd.Process.Pid); err != nil {
-		pm.log.Warn().Err(err).Str("binary", config.Name).Msg("write PID file")
+		pm.log.Warn().Err(err).Str("binary", processName).Msg("write PID file")
 	}
 
 	// Add startup marker
 	proc.addLog(LogEntry{
 		Timestamp: time.Now(),
 		Stream:    "marker",
-		Line:      fmt.Sprintf("=== %s started (pid %d) ===", config.Name, cmd.Process.Pid),
+		Line:      fmt.Sprintf("=== %s started (pid %d) ===", processName, cmd.Process.Pid),
 	})
 
 	// Compile startup log patterns once for pattern-matching process output.
@@ -323,7 +347,7 @@ func (pm *ProcessManager) StartWithOptions(_ context.Context, config BinaryConfi
 		for _, re := range startupLogPatterns {
 			if re.MatchString(line) {
 				pm.OnStartupLog(StartupLogEntry{
-					Name:      config.Name,
+					Name:      processName,
 					Timestamp: extractLogTimestamp(line),
 					Message:   cleanLogMessage(line),
 				})
@@ -388,12 +412,12 @@ func (pm *ProcessManager) StartWithOptions(_ context.Context, config BinaryConfi
 		select {
 		case <-stdoutDone:
 		case <-drainTimeout:
-			pm.log.Warn().Str("binary", config.Name).Msg("timed out waiting for stdout to drain")
+			pm.log.Warn().Str("binary", processName).Msg("timed out waiting for stdout to drain")
 		}
 		select {
 		case <-stderrDone:
 		case <-drainTimeout:
-			pm.log.Warn().Str("binary", config.Name).Msg("timed out waiting for stderr to drain")
+			pm.log.Warn().Str("binary", processName).Msg("timed out waiting for stderr to drain")
 		}
 
 		proc.mu.Lock()
@@ -458,19 +482,19 @@ func (pm *ProcessManager) StartWithOptions(_ context.Context, config BinaryConfi
 		proc.addLog(LogEntry{
 			Timestamp: time.Now(),
 			Stream:    "marker",
-			Line:      fmt.Sprintf("=== %s exited (code %d) ===", config.Name, exitCode),
+			Line:      fmt.Sprintf("=== %s exited (code %d) ===", processName, exitCode),
 		})
 
 		close(proc.exitCh)
 
 		pm.mu.Lock()
-		delete(pm.processes, config.Name)
+		delete(pm.processes, processName)
 		pm.mu.Unlock()
 
 		_ = pm.pidManager.DeletePidFile(pidName)
 
 		pm.log.Info().
-			Str("binary", config.Name).
+			Str("binary", processName).
 			Int("pid", proc.Pid).
 			Int("exit_code", exitCode).
 			Msg("process exited")
@@ -478,7 +502,7 @@ func (pm *ProcessManager) StartWithOptions(_ context.Context, config BinaryConfi
 		// Notify the orchestrator so it can update ConnectionMonitor
 		if pm.OnExit != nil {
 			pm.OnExit(ProcessExitInfo{
-				Name:     config.Name,
+				Name:     processName,
 				ExitCode: exitCode,
 				ErrMsg:   errMsg,
 			})
@@ -486,7 +510,7 @@ func (pm *ProcessManager) StartWithOptions(_ context.Context, config BinaryConfi
 	}()
 
 	pm.log.Info().
-		Str("binary", config.Name).
+		Str("binary", processName).
 		Int("pid", cmd.Process.Pid).
 		Msg("started process")
 
@@ -507,7 +531,7 @@ func (pm *ProcessManager) StartWithOptions(_ context.Context, config BinaryConfi
 			}
 		}
 
-		errMsg := fmt.Sprintf("%s exited immediately (code %d)", config.Name, exitCode)
+		errMsg := fmt.Sprintf("%s exited immediately (code %d)", processName, exitCode)
 		if exitErr != "" {
 			errMsg += ": " + exitErr
 		}
