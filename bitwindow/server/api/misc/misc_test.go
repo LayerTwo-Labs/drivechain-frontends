@@ -478,9 +478,9 @@ func TestService_ListCoinNews(t *testing.T) {
 		database := database.Test(t)
 		ctx := context.Background()
 		topicID1 := validTopicID()
-		seedCurrentTopic(t, ctx, database, topicID1, "Test Topic 1", 7, 1)
+		seedCurrentTopic(t, ctx, database, topicID1, "Test Topic 1", 1)
 		topicID2 := validTopicID()
-		seedCurrentTopic(t, ctx, database, topicID2, "Test Topic 2", 7, 2)
+		seedCurrentTopic(t, ctx, database, topicID2, "Test Topic 2", 2)
 
 		headline1 := "News Headline 1"
 		seedCurrentNews(t, ctx, database, topicID1, headline1, "Content for news 1", 3, time.Now())
@@ -510,10 +510,10 @@ func TestService_ListCoinNews(t *testing.T) {
 		ctx := context.Background()
 
 		firstTopicID := validTopicID()
-		seedCurrentTopic(t, ctx, database, firstTopicID, "Test Topic 1", 7, 1)
+		seedCurrentTopic(t, ctx, database, firstTopicID, "Test Topic 1", 1)
 
 		secondTopicID := validTopicID()
-		seedCurrentTopic(t, ctx, database, secondTopicID, "Test Topic 2", 7, 2)
+		seedCurrentTopic(t, ctx, database, secondTopicID, "Test Topic 2", 2)
 
 		headline1 := "News Headline 1"
 		seedCurrentNews(t, ctx, database, firstTopicID, headline1, "Content for news 1", 3, time.Now())
@@ -540,9 +540,9 @@ func TestService_ListCoinNews(t *testing.T) {
 		database := database.Test(t)
 		ctx := context.Background()
 		firstTopicID := validTopicID()
-		seedCurrentTopic(t, ctx, database, firstTopicID, "Test Topic 1", 7, 1)
+		seedCurrentTopic(t, ctx, database, firstTopicID, "Test Topic 1", 1)
 		secondTopicID := validTopicID()
-		seedCurrentTopic(t, ctx, database, secondTopicID, "Test Topic 2", 7, 2)
+		seedCurrentTopic(t, ctx, database, secondTopicID, "Test Topic 2", 2)
 
 		headline1 := "Old News"
 		seedCurrentNews(t, ctx, database, firstTopicID, headline1, "Content for old news", 3, time.Now())
@@ -571,10 +571,10 @@ func TestService_ListCoinNews(t *testing.T) {
 		database := database.Test(t)
 		ctx := context.Background()
 		firstTopicID := validTopicID()
-		seedCurrentTopic(t, ctx, database, firstTopicID, "Test Topic 1", 7, 1)
+		seedCurrentTopic(t, ctx, database, firstTopicID, "Test Topic 1", 1)
 
 		secondTopicID := validTopicID()
-		seedCurrentTopic(t, ctx, database, secondTopicID, "Test Topic 2", 7, 2)
+		seedCurrentTopic(t, ctx, database, secondTopicID, "Test Topic 2", 2)
 
 		for i := range 105 {
 			headline := "News"
@@ -592,7 +592,7 @@ func TestService_ListCoinNews(t *testing.T) {
 
 func seedCurrentTopic(
 	t *testing.T, ctx context.Context, db *sql.DB,
-	topic opreturns.TopicID, name string, retentionDays int32, height int,
+	topic opreturns.TopicID, name string, height int,
 ) {
 	t.Helper()
 	var ct coinnews.Topic
@@ -608,7 +608,7 @@ func seedCurrentTopic(
 		TypeTag: coinnews.TypeTopicCreation,
 		Msg: &coinnews.TopicCreation{
 			Topic:         ct,
-			RetentionDays: byte(retentionDays),
+			RetentionDays: 7,
 			Name:          name,
 		},
 	}))
