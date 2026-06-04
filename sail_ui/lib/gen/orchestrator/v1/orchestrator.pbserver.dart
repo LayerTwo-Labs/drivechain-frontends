@@ -23,6 +23,7 @@ export 'orchestrator.pb.dart';
 abstract class OrchestratorServiceBase extends $pb.GeneratedService {
   $async.Future<$5.ListBinariesResponse> listBinaries($pb.ServerContext ctx, $5.ListBinariesRequest request);
   $async.Future<$5.GetBinaryStatusResponse> getBinaryStatus($pb.ServerContext ctx, $5.GetBinaryStatusRequest request);
+  $async.Future<$5.GetBinaryVersionResponse> getBinaryVersion($pb.ServerContext ctx, $5.GetBinaryVersionRequest request);
   $async.Future<$5.DownloadBinaryResponse> downloadBinary($pb.ServerContext ctx, $5.DownloadBinaryRequest request);
   $async.Future<$5.StartBinaryResponse> startBinary($pb.ServerContext ctx, $5.StartBinaryRequest request);
   $async.Future<$5.StopBinaryResponse> stopBinary($pb.ServerContext ctx, $5.StopBinaryRequest request);
@@ -48,6 +49,7 @@ abstract class OrchestratorServiceBase extends $pb.GeneratedService {
     switch (methodName) {
       case 'ListBinaries': return $5.ListBinariesRequest();
       case 'GetBinaryStatus': return $5.GetBinaryStatusRequest();
+      case 'GetBinaryVersion': return $5.GetBinaryVersionRequest();
       case 'DownloadBinary': return $5.DownloadBinaryRequest();
       case 'StartBinary': return $5.StartBinaryRequest();
       case 'StopBinary': return $5.StopBinaryRequest();
@@ -76,6 +78,7 @@ abstract class OrchestratorServiceBase extends $pb.GeneratedService {
     switch (methodName) {
       case 'ListBinaries': return this.listBinaries(ctx, request as $5.ListBinariesRequest);
       case 'GetBinaryStatus': return this.getBinaryStatus(ctx, request as $5.GetBinaryStatusRequest);
+      case 'GetBinaryVersion': return this.getBinaryVersion(ctx, request as $5.GetBinaryVersionRequest);
       case 'DownloadBinary': return this.downloadBinary(ctx, request as $5.DownloadBinaryRequest);
       case 'StartBinary': return this.startBinary(ctx, request as $5.StartBinaryRequest);
       case 'StopBinary': return this.stopBinary(ctx, request as $5.StopBinaryRequest);

@@ -9,6 +9,12 @@ service OrchestratorService {
   // Get the status of a single binary.
   rpc GetBinaryStatus(GetBinaryStatusRequest) returns (GetBinaryStatusResponse);
 
+  // Resolve a binary's on-disk path the same way the launcher does (variant-
+  // and test-build aware, honoring force_backend) and return its --version
+  // output. The frontend must never re-derive the path or shell out itself;
+  // this RPC is the single source of truth for "which binary, what version".
+  rpc GetBinaryVersion(GetBinaryVersionRequest) returns (GetBinaryVersionResponse);
+
   // Download a binary with streaming progress.
   // Kicks off a download in a background goroutine and returns
   // immediately. Progress (MB downloaded / total, is_downloading) is
@@ -158,6 +164,23 @@ message GetBinaryStatusRequest {
 
 message GetBinaryStatusResponse {
   BinaryStatusMsg status = 1;
+}
+
+// GetBinaryVersion
+
+message GetBinaryVersionRequest {
+  string name = 1;
+  // Same lever as launch: when true, skip the UseTestSidechains resolver and
+  // resolve the prod (Rust) backend. Sidechain callers pass true so the modal
+  // reports the real node version, not the Flutter test build (which has no
+  // --version).
+  bool force_backend = 2;
+}
+
+message GetBinaryVersionResponse {
+  string version = 1;      // parsed --version output, or an error/status string
+  string binary_path = 2;  // the path that was actually resolved + run
+  bool is_test_build = 3;  // resolved a Flutter test build (no --version available)
 }
 
 // DownloadBinary

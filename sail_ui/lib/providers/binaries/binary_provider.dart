@@ -142,7 +142,7 @@ class BinaryProvider extends ChangeNotifier {
       return;
     }
 
-    final name = _orchestratorName(binary);
+    final name = orchestratorName(binary);
     if (name == null) {
       log.e('BinaryProvider: unknown binary ${binary.name}');
       return;
@@ -175,7 +175,7 @@ class BinaryProvider extends ChangeNotifier {
       return;
     }
 
-    final name = _orchestratorName(binary);
+    final name = orchestratorName(binary);
     if (name == null) {
       log.e('BinaryProvider: unknown binary ${binary.name}');
       return;
@@ -200,7 +200,7 @@ class BinaryProvider extends ChangeNotifier {
       return;
     }
 
-    final name = _orchestratorName(binary);
+    final name = orchestratorName(binary);
     if (name == null) {
       log.e('BinaryProvider: unknown binary ${binary.name}');
       return;
@@ -211,7 +211,7 @@ class BinaryProvider extends ChangeNotifier {
   }
 
   Future<void> download(Binary binary, {bool shouldUpdate = false}) async {
-    final name = _orchestratorName(binary);
+    final name = orchestratorName(binary);
     if (name == null) {
       log.i('BinaryProvider: skipping download for ${binary.name} (not orchestrator-managed)');
       return;
@@ -239,7 +239,7 @@ class BinaryProvider extends ChangeNotifier {
   ///   4. restarts the daemon (only if it was running before) so it picks
   ///      up the new executable
   Future<void> update(Binary binary) async {
-    final name = _orchestratorName(binary);
+    final name = orchestratorName(binary);
     if (name == null) {
       log.i('BinaryProvider: skipping update for ${binary.name} (not orchestrator-managed)');
       return;
@@ -570,7 +570,7 @@ class BinaryProvider extends ChangeNotifier {
     return GetIt.I.isRegistered<T>() ? GetIt.I.get<T>() : null;
   }
 
-  String? _orchestratorName(Binary binary) {
+  String? orchestratorName(Binary binary) {
     return switch (binary) {
       BitcoinCore() => 'bitcoind',
       Enforcer() => 'enforcer',

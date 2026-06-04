@@ -44,6 +44,27 @@ extension type OrchestratorServiceClient (connect.Transport _transport) {
     );
   }
 
+  /// Resolve a binary's on-disk path the same way the launcher does (variant-
+  /// and test-build aware, honoring force_backend) and return its --version
+  /// output. The frontend must never re-derive the path or shell out itself;
+  /// this RPC is the single source of truth for "which binary, what version".
+  Future<orchestratorv1orchestrator.GetBinaryVersionResponse> getBinaryVersion(
+    orchestratorv1orchestrator.GetBinaryVersionRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.OrchestratorService.getBinaryVersion,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
   /// Download a binary with streaming progress.
   /// Kicks off a download in a background goroutine and returns
   /// immediately. Progress (MB downloaded / total, is_downloading) is

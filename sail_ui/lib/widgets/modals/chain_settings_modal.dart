@@ -23,6 +23,7 @@ class ChainSettingsModal extends StatefulWidget {
 class _ChainSettingsModalState extends State<ChainSettingsModal> {
   List<String> args = [];
   String? _binaryVersion;
+  String? _resolvedBinaryPath;
   bool _loadingVersion = true;
 
   @override
@@ -51,26 +52,32 @@ class _ChainSettingsModalState extends State<ChainSettingsModal> {
 
     try {
       final binaryProvider = GetIt.I.get<BinaryProvider>();
-      final settingsProvider = GetIt.I.get<SettingsProvider>();
+      final binary = widget.connection.binary;
 
-      // Skip version check for test sidechains (Flutter apps don't support --version)
-      if (settingsProvider.useTestSidechains && widget.connection.binary.chainLayer == 2) {
+      // The orchestrator owns path resolution and runs --version; the frontend
+      // never guesses. Sidechains (L2) pass forceBackend so we read the real
+      // Rust node version, not the Flutter test build (which has no --version).
+      final name = binaryProvider.orchestratorName(binary);
+      if (name != null) {
+        final resp = await GetIt.I.get<OrchestratorRPC>().getBinaryVersion(
+          name,
+          forceBackend: binary.chainLayer == 2,
+        );
         if (mounted) {
           setState(() {
-            _binaryVersion = 'Test Sidechain';
+            _binaryVersion = resp.isTestBuild ? 'Test Sidechain' : resp.version;
+            _resolvedBinaryPath = resp.binaryPath.isEmpty ? null : resp.binaryPath;
             _loadingVersion = false;
           });
         }
         return;
       }
 
-      final version = await widget.connection.binary.binaryVersion(
-        binaryProvider.appDir,
-      );
-
+      // Daemons without an orchestrator name (none today) fall back to the
+      // configured version string.
       if (mounted) {
         setState(() {
-          _binaryVersion = version;
+          _binaryVersion = binary.version;
           _loadingVersion = false;
         });
       }
@@ -236,7 +243,10 @@ class _ChainSettingsModalState extends State<ChainSettingsModal> {
                   ),
                   StaticField(
                     label: 'Binary Asset Path',
-                    value: viewModel.binary.metadata.binaryPath?.path ?? 'N/A',
+                    // Prefer the path the orchestrator actually resolved (and
+                    // ran --version against); fall back to the reported status
+                    // path while that's still loading.
+                    value: _resolvedBinaryPath ?? viewModel.binary.metadata.binaryPath?.path ?? 'N/A',
                     copyable: true,
                   ),
                   if (downloadFile != null)

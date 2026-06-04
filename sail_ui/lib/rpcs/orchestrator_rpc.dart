@@ -94,6 +94,15 @@ class OrchestratorRPC {
     return _unaryClient.getBinaryStatus(GetBinaryStatusRequest(name: name));
   }
 
+  /// Resolve a binary's path + --version server-side. The orchestrator owns
+  /// path resolution (variant- and test-build aware), so the frontend never
+  /// guesses. Sidechains pass forceBackend: true to read the prod Rust node.
+  Future<GetBinaryVersionResponse> getBinaryVersion(String name, {bool forceBackend = false}) {
+    return _unaryClient.getBinaryVersion(
+      GetBinaryVersionRequest(name: name, forceBackend: forceBackend),
+    );
+  }
+
   Future<StartBinaryResponse> startBinary(
     String name, {
     List<String>? extraArgs,
