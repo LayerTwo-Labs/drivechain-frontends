@@ -616,6 +616,152 @@ class GetBinaryStatusResponse extends $pb.GeneratedMessage {
   BinaryStatusMsg ensureStatus() => $_ensure(0);
 }
 
+class GetBinaryVersionRequest extends $pb.GeneratedMessage {
+  factory GetBinaryVersionRequest({
+    $core.String? name,
+    $core.bool? forceBackend,
+  }) {
+    final $result = create();
+    if (name != null) {
+      $result.name = name;
+    }
+    if (forceBackend != null) {
+      $result.forceBackend = forceBackend;
+    }
+    return $result;
+  }
+  GetBinaryVersionRequest._() : super();
+  factory GetBinaryVersionRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory GetBinaryVersionRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'GetBinaryVersionRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'orchestrator.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'name')
+    ..aOB(2, _omitFieldNames ? '' : 'forceBackend')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  GetBinaryVersionRequest clone() => GetBinaryVersionRequest()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  GetBinaryVersionRequest copyWith(void Function(GetBinaryVersionRequest) updates) => super.copyWith((message) => updates(message as GetBinaryVersionRequest)) as GetBinaryVersionRequest;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static GetBinaryVersionRequest create() => GetBinaryVersionRequest._();
+  GetBinaryVersionRequest createEmptyInstance() => create();
+  static $pb.PbList<GetBinaryVersionRequest> createRepeated() => $pb.PbList<GetBinaryVersionRequest>();
+  @$core.pragma('dart2js:noInline')
+  static GetBinaryVersionRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<GetBinaryVersionRequest>(create);
+  static GetBinaryVersionRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get name => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set name($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasName() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearName() => clearField(1);
+
+  /// Same lever as launch: when true, skip the UseTestSidechains resolver and
+  /// resolve the prod (Rust) backend. Sidechain callers pass true so the modal
+  /// reports the real node version, not the Flutter test build (which has no
+  /// --version).
+  @$pb.TagNumber(2)
+  $core.bool get forceBackend => $_getBF(1);
+  @$pb.TagNumber(2)
+  set forceBackend($core.bool v) { $_setBool(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasForceBackend() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearForceBackend() => clearField(2);
+}
+
+class GetBinaryVersionResponse extends $pb.GeneratedMessage {
+  factory GetBinaryVersionResponse({
+    $core.String? version,
+    $core.String? binaryPath,
+    $core.bool? isTestBuild,
+  }) {
+    final $result = create();
+    if (version != null) {
+      $result.version = version;
+    }
+    if (binaryPath != null) {
+      $result.binaryPath = binaryPath;
+    }
+    if (isTestBuild != null) {
+      $result.isTestBuild = isTestBuild;
+    }
+    return $result;
+  }
+  GetBinaryVersionResponse._() : super();
+  factory GetBinaryVersionResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory GetBinaryVersionResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'GetBinaryVersionResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'orchestrator.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'version')
+    ..aOS(2, _omitFieldNames ? '' : 'binaryPath')
+    ..aOB(3, _omitFieldNames ? '' : 'isTestBuild')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  GetBinaryVersionResponse clone() => GetBinaryVersionResponse()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  GetBinaryVersionResponse copyWith(void Function(GetBinaryVersionResponse) updates) => super.copyWith((message) => updates(message as GetBinaryVersionResponse)) as GetBinaryVersionResponse;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static GetBinaryVersionResponse create() => GetBinaryVersionResponse._();
+  GetBinaryVersionResponse createEmptyInstance() => create();
+  static $pb.PbList<GetBinaryVersionResponse> createRepeated() => $pb.PbList<GetBinaryVersionResponse>();
+  @$core.pragma('dart2js:noInline')
+  static GetBinaryVersionResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<GetBinaryVersionResponse>(create);
+  static GetBinaryVersionResponse? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get version => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set version($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasVersion() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearVersion() => clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.String get binaryPath => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set binaryPath($core.String v) { $_setString(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasBinaryPath() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearBinaryPath() => clearField(2);
+
+  @$pb.TagNumber(3)
+  $core.bool get isTestBuild => $_getBF(2);
+  @$pb.TagNumber(3)
+  set isTestBuild($core.bool v) { $_setBool(2, v); }
+  @$pb.TagNumber(3)
+  $core.bool hasIsTestBuild() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearIsTestBuild() => clearField(3);
+}
+
 class DownloadBinaryRequest extends $pb.GeneratedMessage {
   factory DownloadBinaryRequest({
     $core.String? name,
@@ -3429,6 +3575,9 @@ class OrchestratorServiceApi {
   ;
   $async.Future<GetBinaryStatusResponse> getBinaryStatus($pb.ClientContext? ctx, GetBinaryStatusRequest request) =>
     _client.invoke<GetBinaryStatusResponse>(ctx, 'OrchestratorService', 'GetBinaryStatus', request, GetBinaryStatusResponse())
+  ;
+  $async.Future<GetBinaryVersionResponse> getBinaryVersion($pb.ClientContext? ctx, GetBinaryVersionRequest request) =>
+    _client.invoke<GetBinaryVersionResponse>(ctx, 'OrchestratorService', 'GetBinaryVersion', request, GetBinaryVersionResponse())
   ;
   $async.Future<DownloadBinaryResponse> downloadBinary($pb.ClientContext? ctx, DownloadBinaryRequest request) =>
     _client.invoke<DownloadBinaryResponse>(ctx, 'OrchestratorService', 'DownloadBinary', request, DownloadBinaryResponse())

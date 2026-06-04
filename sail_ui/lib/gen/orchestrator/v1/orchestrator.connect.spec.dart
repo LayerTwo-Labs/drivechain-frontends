@@ -26,6 +26,17 @@ abstract final class OrchestratorService {
     orchestratorv1orchestrator.GetBinaryStatusResponse.new,
   );
 
+  /// Resolve a binary's on-disk path the same way the launcher does (variant-
+  /// and test-build aware, honoring force_backend) and return its --version
+  /// output. The frontend must never re-derive the path or shell out itself;
+  /// this RPC is the single source of truth for "which binary, what version".
+  static const getBinaryVersion = connect.Spec(
+    '/$name/GetBinaryVersion',
+    connect.StreamType.unary,
+    orchestratorv1orchestrator.GetBinaryVersionRequest.new,
+    orchestratorv1orchestrator.GetBinaryVersionResponse.new,
+  );
+
   /// Download a binary with streaming progress.
   /// Kicks off a download in a background goroutine and returns
   /// immediately. Progress (MB downloaded / total, is_downloading) is

@@ -52,6 +52,24 @@ func (h *Handler) GetBinaryStatus(ctx context.Context, req *connect.Request[pb.G
 	}), nil
 }
 
+func (h *Handler) GetBinaryVersion(ctx context.Context, req *connect.Request[pb.GetBinaryVersionRequest]) (*connect.Response[pb.GetBinaryVersionResponse], error) {
+	version, binPath, isTest, err := h.orch.BinaryVersion(req.Msg.Name, req.Msg.ForceBackend)
+	if err != nil {
+		// Not-installed-yet is the common case for sidechains the user hasn't
+		// downloaded; surface it as a value, not a transport error, so the
+		// modal can render it plainly.
+		return connect.NewResponse(&pb.GetBinaryVersionResponse{
+			Version:    fmt.Sprintf("Error: %v", err),
+			BinaryPath: binPath,
+		}), nil
+	}
+	return connect.NewResponse(&pb.GetBinaryVersionResponse{
+		Version:     version,
+		BinaryPath:  binPath,
+		IsTestBuild: isTest,
+	}), nil
+}
+
 // DownloadBinary dispatches a download in a background goroutine and
 // returns immediately. Mirrors StartWithL1's fire-and-forget shape so a
 // transport blip / client disconnect can't cancel an in-flight download.

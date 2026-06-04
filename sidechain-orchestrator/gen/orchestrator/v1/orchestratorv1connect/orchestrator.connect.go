@@ -39,6 +39,9 @@ const (
 	// OrchestratorServiceGetBinaryStatusProcedure is the fully-qualified name of the
 	// OrchestratorService's GetBinaryStatus RPC.
 	OrchestratorServiceGetBinaryStatusProcedure = "/orchestrator.v1.OrchestratorService/GetBinaryStatus"
+	// OrchestratorServiceGetBinaryVersionProcedure is the fully-qualified name of the
+	// OrchestratorService's GetBinaryVersion RPC.
+	OrchestratorServiceGetBinaryVersionProcedure = "/orchestrator.v1.OrchestratorService/GetBinaryVersion"
 	// OrchestratorServiceDownloadBinaryProcedure is the fully-qualified name of the
 	// OrchestratorService's DownloadBinary RPC.
 	OrchestratorServiceDownloadBinaryProcedure = "/orchestrator.v1.OrchestratorService/DownloadBinary"
@@ -107,6 +110,11 @@ type OrchestratorServiceClient interface {
 	ListBinaries(context.Context, *connect.Request[v1.ListBinariesRequest]) (*connect.Response[v1.ListBinariesResponse], error)
 	// Get the status of a single binary.
 	GetBinaryStatus(context.Context, *connect.Request[v1.GetBinaryStatusRequest]) (*connect.Response[v1.GetBinaryStatusResponse], error)
+	// Resolve a binary's on-disk path the same way the launcher does (variant-
+	// and test-build aware, honoring force_backend) and return its --version
+	// output. The frontend must never re-derive the path or shell out itself;
+	// this RPC is the single source of truth for "which binary, what version".
+	GetBinaryVersion(context.Context, *connect.Request[v1.GetBinaryVersionRequest]) (*connect.Response[v1.GetBinaryVersionResponse], error)
 	// Download a binary with streaming progress.
 	// Kicks off a download in a background goroutine and returns
 	// immediately. Progress (MB downloaded / total, is_downloading) is
@@ -202,6 +210,12 @@ func NewOrchestratorServiceClient(httpClient connect.HTTPClient, baseURL string,
 			httpClient,
 			baseURL+OrchestratorServiceGetBinaryStatusProcedure,
 			connect.WithSchema(orchestratorServiceMethods.ByName("GetBinaryStatus")),
+			connect.WithClientOptions(opts...),
+		),
+		getBinaryVersion: connect.NewClient[v1.GetBinaryVersionRequest, v1.GetBinaryVersionResponse](
+			httpClient,
+			baseURL+OrchestratorServiceGetBinaryVersionProcedure,
+			connect.WithSchema(orchestratorServiceMethods.ByName("GetBinaryVersion")),
 			connect.WithClientOptions(opts...),
 		),
 		downloadBinary: connect.NewClient[v1.DownloadBinaryRequest, v1.DownloadBinaryResponse](
@@ -331,6 +345,7 @@ func NewOrchestratorServiceClient(httpClient connect.HTTPClient, baseURL string,
 type orchestratorServiceClient struct {
 	listBinaries               *connect.Client[v1.ListBinariesRequest, v1.ListBinariesResponse]
 	getBinaryStatus            *connect.Client[v1.GetBinaryStatusRequest, v1.GetBinaryStatusResponse]
+	getBinaryVersion           *connect.Client[v1.GetBinaryVersionRequest, v1.GetBinaryVersionResponse]
 	downloadBinary             *connect.Client[v1.DownloadBinaryRequest, v1.DownloadBinaryResponse]
 	startBinary                *connect.Client[v1.StartBinaryRequest, v1.StartBinaryResponse]
 	stopBinary                 *connect.Client[v1.StopBinaryRequest, v1.StopBinaryResponse]
@@ -361,6 +376,11 @@ func (c *orchestratorServiceClient) ListBinaries(ctx context.Context, req *conne
 // GetBinaryStatus calls orchestrator.v1.OrchestratorService.GetBinaryStatus.
 func (c *orchestratorServiceClient) GetBinaryStatus(ctx context.Context, req *connect.Request[v1.GetBinaryStatusRequest]) (*connect.Response[v1.GetBinaryStatusResponse], error) {
 	return c.getBinaryStatus.CallUnary(ctx, req)
+}
+
+// GetBinaryVersion calls orchestrator.v1.OrchestratorService.GetBinaryVersion.
+func (c *orchestratorServiceClient) GetBinaryVersion(ctx context.Context, req *connect.Request[v1.GetBinaryVersionRequest]) (*connect.Response[v1.GetBinaryVersionResponse], error) {
+	return c.getBinaryVersion.CallUnary(ctx, req)
 }
 
 // DownloadBinary calls orchestrator.v1.OrchestratorService.DownloadBinary.
@@ -470,6 +490,11 @@ type OrchestratorServiceHandler interface {
 	ListBinaries(context.Context, *connect.Request[v1.ListBinariesRequest]) (*connect.Response[v1.ListBinariesResponse], error)
 	// Get the status of a single binary.
 	GetBinaryStatus(context.Context, *connect.Request[v1.GetBinaryStatusRequest]) (*connect.Response[v1.GetBinaryStatusResponse], error)
+	// Resolve a binary's on-disk path the same way the launcher does (variant-
+	// and test-build aware, honoring force_backend) and return its --version
+	// output. The frontend must never re-derive the path or shell out itself;
+	// this RPC is the single source of truth for "which binary, what version".
+	GetBinaryVersion(context.Context, *connect.Request[v1.GetBinaryVersionRequest]) (*connect.Response[v1.GetBinaryVersionResponse], error)
 	// Download a binary with streaming progress.
 	// Kicks off a download in a background goroutine and returns
 	// immediately. Progress (MB downloaded / total, is_downloading) is
@@ -561,6 +586,12 @@ func NewOrchestratorServiceHandler(svc OrchestratorServiceHandler, opts ...conne
 		OrchestratorServiceGetBinaryStatusProcedure,
 		svc.GetBinaryStatus,
 		connect.WithSchema(orchestratorServiceMethods.ByName("GetBinaryStatus")),
+		connect.WithHandlerOptions(opts...),
+	)
+	orchestratorServiceGetBinaryVersionHandler := connect.NewUnaryHandler(
+		OrchestratorServiceGetBinaryVersionProcedure,
+		svc.GetBinaryVersion,
+		connect.WithSchema(orchestratorServiceMethods.ByName("GetBinaryVersion")),
 		connect.WithHandlerOptions(opts...),
 	)
 	orchestratorServiceDownloadBinaryHandler := connect.NewUnaryHandler(
@@ -689,6 +720,8 @@ func NewOrchestratorServiceHandler(svc OrchestratorServiceHandler, opts ...conne
 			orchestratorServiceListBinariesHandler.ServeHTTP(w, r)
 		case OrchestratorServiceGetBinaryStatusProcedure:
 			orchestratorServiceGetBinaryStatusHandler.ServeHTTP(w, r)
+		case OrchestratorServiceGetBinaryVersionProcedure:
+			orchestratorServiceGetBinaryVersionHandler.ServeHTTP(w, r)
 		case OrchestratorServiceDownloadBinaryProcedure:
 			orchestratorServiceDownloadBinaryHandler.ServeHTTP(w, r)
 		case OrchestratorServiceStartBinaryProcedure:
@@ -744,6 +777,10 @@ func (UnimplementedOrchestratorServiceHandler) ListBinaries(context.Context, *co
 
 func (UnimplementedOrchestratorServiceHandler) GetBinaryStatus(context.Context, *connect.Request[v1.GetBinaryStatusRequest]) (*connect.Response[v1.GetBinaryStatusResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("orchestrator.v1.OrchestratorService.GetBinaryStatus is not implemented"))
+}
+
+func (UnimplementedOrchestratorServiceHandler) GetBinaryVersion(context.Context, *connect.Request[v1.GetBinaryVersionRequest]) (*connect.Response[v1.GetBinaryVersionResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("orchestrator.v1.OrchestratorService.GetBinaryVersion is not implemented"))
 }
 
 func (UnimplementedOrchestratorServiceHandler) DownloadBinary(context.Context, *connect.Request[v1.DownloadBinaryRequest]) (*connect.Response[v1.DownloadBinaryResponse], error) {
