@@ -47,11 +47,9 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> with WidgetsBindingObserver, WindowListener {
-  NotificationProvider get _notificationProvider => GetIt.I.get<NotificationProvider>();
   BitcoinConfProvider get _confProvider => GetIt.I.get<BitcoinConfProvider>();
   ThunderRPC get thunderRPC => GetIt.I.get<ThunderRPC>();
 
-  final ValueNotifier<List<Widget>> notificationsNotifier = ValueNotifier([]);
   bool _shutdownInProgress = false;
   DateTime? _lastShiftPress;
   final CodeSearchService _codeSearchService = CodeSearchService();
@@ -60,7 +58,6 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver, Window
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    _notificationProvider.addListener(rebuildNotifications);
     _initializeWindowManager();
     HardwareKeyboard.instance.addHandler(_handleGlobalKeyEvent);
     _codeSearchService.loadFiles();
@@ -284,245 +281,242 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver, Window
     await windowManager.setPreventClose(true);
   }
 
-  void rebuildNotifications() {
-    notificationsNotifier.value = _notificationProvider.notifications;
-
-    // call notifyListeners manually coz == on List<Widget> doesn't work..
-    // ignore: invalid_use_of_protected_member,invalid_use_of_visible_for_testing_member
-    notificationsNotifier.notifyListeners();
-  }
-
   @override
   Widget build(BuildContext context) {
     final theme = SailTheme.of(context);
 
-    return CrossPlatformMenuBar(
-      menus: [
-        PlatformMenu(
-          label: thunderRPC.chain.name,
+    return Stack(
+      children: [
+        CrossPlatformMenuBar(
           menus: [
-            PlatformMenuItemGroup(
-              members: [
-                PlatformMenuItem(
-                  label: 'About ${thunderRPC.chain.name}',
-                  onSelected: null,
+            PlatformMenu(
+              label: thunderRPC.chain.name,
+              menus: [
+                PlatformMenuItemGroup(
+                  members: [
+                    PlatformMenuItem(
+                      label: 'About ${thunderRPC.chain.name}',
+                      onSelected: null,
+                    ),
+                  ],
+                ),
+                PlatformMenuItemGroup(
+                  members: [
+                    PlatformMenuItem(
+                      label: 'Quit ${thunderRPC.chain.name}',
+                      shortcut: const SingleActivator(LogicalKeyboardKey.keyQ, meta: true),
+                      onSelected: () => didRequestAppExit(),
+                    ),
+                  ],
                 ),
               ],
             ),
-            PlatformMenuItemGroup(
-              members: [
-                PlatformMenuItem(
-                  label: 'Quit ${thunderRPC.chain.name}',
-                  shortcut: const SingleActivator(LogicalKeyboardKey.keyQ, meta: true),
-                  onSelected: () => didRequestAppExit(),
-                ),
-              ],
-            ),
-          ],
-        ),
 
-        // Your Wallet menu
-        PlatformMenu(
-          label: 'Your Wallet',
-          menus: [
-            PlatformMenuItemGroup(
-              members: [
-                PlatformMenuItem(
-                  label: 'Backup Wallet',
-                  onSelected: () async {
-                    await GetIt.I.get<AppRouter>().push(
-                      BackupWalletRoute(appName: 'thunder'),
-                    );
-                  },
-                ),
-                PlatformMenuItem(
-                  label: 'Restore Wallet',
-                  onSelected: () async {
-                    await GetIt.I.get<AppRouter>().push(
-                      SailCreateWalletRoute(
-                        homeRoute: const HomeRoute(),
-                        initialScreen: WelcomeScreen.restore,
-                        additionalRestoreOptionsBuilder: (context) => WalletBackupRestoreOptions(
-                          bootBinaries: (log) async => bootBinaries(log),
-                          binariesToStop: [BitcoinCore(), Enforcer(), Thunder()],
-                        ),
-                      ),
-                    );
-                  },
-                ),
-              ],
-            ),
-          ],
-        ),
-
-        // This Node menu
-        PlatformMenu(
-          label: 'This Node',
-          menus: [
-            PlatformMenuItemGroup(
-              members: [
-                PlatformMenuItem(
-                  label: 'Debug Window',
-                  onSelected: () async {
-                    final windowProvider = GetIt.I.get<WindowProvider>();
-                    await windowProvider.open(SubWindowTypes.debug);
-                  },
-                ),
-                PlatformMenuItem(
-                  label: 'View Logs',
-                  onSelected: GetIt.I.get<WindowProvider>().logFile.existsSync()
-                      ? () async {
-                          final windowProvider = GetIt.I.get<WindowProvider>();
-                          await windowProvider.open(SubWindowTypes.logs);
-                        }
-                      : null,
-                ),
-              ],
-            ),
-          ],
-        ),
-
-        // Help menu
-        PlatformMenu(
-          label: 'Help',
-          menus: [
-            PlatformMenuItemGroup(
-              members: [
-                PlatformMenuItem(
-                  label: 'Search Commands...',
-                  shortcut: SingleActivator(
-                    LogicalKeyboardKey.keyK,
-                    meta: Platform.isMacOS,
-                    control: !Platform.isMacOS,
-                  ),
-                  onSelected: () => _openCommandPalette(),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ],
-      child: Scaffold(
-        backgroundColor: theme.colors.background,
-        body: auto_router.AutoTabsRouter.builder(
-          homeIndex: Tabs.ThunderHomepage.index,
-          routes: [
-            // parent chain routes
-            ParentChainRoute(),
-            // thunder configurable homepage
-            ThunderHomepageRoute(),
-            // sidechain console route
-            ConsoleTabRoute(),
-            // trailing common routes
-            SettingsTabRoute(),
-          ],
-          builder: (context, children, tabsRouter) {
-            return ViewModelBuilder.reactive(
-              viewModelBuilder: () => HomePageViewModel(),
-              fireOnViewModelReadyOnce: true,
-              builder: (context, model, child) {
-                return Scaffold(
-                  backgroundColor: theme.colors.background,
-                  appBar: TopNav(
-                    routes: [
-                      TopNavRoute(
-                        label: 'Parent Chain',
-                        onTap: () {
-                          tabsRouter.setActiveIndex(Tabs.ParentChainPeg.index);
-                        },
-                      ),
-                      TopNavRoute(
-                        label: 'Overview',
-                        optionalKey: Tabs.ThunderHomepage.index,
-                        onTap: () {
-                          tabsRouter.setActiveIndex(Tabs.ThunderHomepage.index);
-                        },
-                      ),
-                      TopNavRoute(
-                        label: 'Console',
-                        optionalKey: Tabs.Console.index,
-                        onTap: () {
-                          tabsRouter.setActiveIndex(Tabs.Console.index);
-                        },
-                      ),
-                      TopNavRoute(
-                        icon: SailSVGAsset.settings,
-                      ),
-                    ],
-                    endWidget: SailRow(
-                      spacing: SailStyleValues.padding08,
-                      children: [
-                        SailDropdownButton<BitcoinNetwork>(
-                          value: _confProvider.network,
-                          items: [
-                            SailDropdownItem<BitcoinNetwork>(
-                              value: BitcoinNetwork.BITCOIN_NETWORK_FORKNET,
-                              label: 'Forknet',
+            // Your Wallet menu
+            PlatformMenu(
+              label: 'Your Wallet',
+              menus: [
+                PlatformMenuItemGroup(
+                  members: [
+                    PlatformMenuItem(
+                      label: 'Backup Wallet',
+                      onSelected: () async {
+                        await GetIt.I.get<AppRouter>().push(
+                          BackupWalletRoute(appName: 'thunder'),
+                        );
+                      },
+                    ),
+                    PlatformMenuItem(
+                      label: 'Restore Wallet',
+                      onSelected: () async {
+                        await GetIt.I.get<AppRouter>().push(
+                          SailCreateWalletRoute(
+                            homeRoute: const HomeRoute(),
+                            initialScreen: WelcomeScreen.restore,
+                            additionalRestoreOptionsBuilder: (context) => WalletBackupRestoreOptions(
+                              bootBinaries: (log) async => bootBinaries(log),
+                              binariesToStop: [BitcoinCore(), Enforcer(), Thunder()],
                             ),
-                            SailDropdownItem<BitcoinNetwork>(
-                              value: BitcoinNetwork.BITCOIN_NETWORK_SIGNET,
-                              label: 'Signet',
+                          ),
+                        );
+                      },
+                    ),
+                  ],
+                ),
+              ],
+            ),
+
+            // This Node menu
+            PlatformMenu(
+              label: 'This Node',
+              menus: [
+                PlatformMenuItemGroup(
+                  members: [
+                    PlatformMenuItem(
+                      label: 'Debug Window',
+                      onSelected: () async {
+                        final windowProvider = GetIt.I.get<WindowProvider>();
+                        await windowProvider.open(SubWindowTypes.debug);
+                      },
+                    ),
+                    PlatformMenuItem(
+                      label: 'View Logs',
+                      onSelected: GetIt.I.get<WindowProvider>().logFile.existsSync()
+                          ? () async {
+                              final windowProvider = GetIt.I.get<WindowProvider>();
+                              await windowProvider.open(SubWindowTypes.logs);
+                            }
+                          : null,
+                    ),
+                  ],
+                ),
+              ],
+            ),
+
+            // Help menu
+            PlatformMenu(
+              label: 'Help',
+              menus: [
+                PlatformMenuItemGroup(
+                  members: [
+                    PlatformMenuItem(
+                      label: 'Search Commands...',
+                      shortcut: SingleActivator(
+                        LogicalKeyboardKey.keyK,
+                        meta: Platform.isMacOS,
+                        control: !Platform.isMacOS,
+                      ),
+                      onSelected: () => _openCommandPalette(),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ],
+          child: Scaffold(
+            backgroundColor: theme.colors.background,
+            body: auto_router.AutoTabsRouter.builder(
+              homeIndex: Tabs.ThunderHomepage.index,
+              routes: [
+                // parent chain routes
+                ParentChainRoute(),
+                // thunder configurable homepage
+                ThunderHomepageRoute(),
+                // sidechain console route
+                ConsoleTabRoute(),
+                // trailing common routes
+                SettingsTabRoute(),
+              ],
+              builder: (context, children, tabsRouter) {
+                return ViewModelBuilder.reactive(
+                  viewModelBuilder: () => HomePageViewModel(),
+                  fireOnViewModelReadyOnce: true,
+                  builder: (context, model, child) {
+                    return Scaffold(
+                      backgroundColor: theme.colors.background,
+                      appBar: TopNav(
+                        routes: [
+                          TopNavRoute(
+                            label: 'Parent Chain',
+                            onTap: () {
+                              tabsRouter.setActiveIndex(Tabs.ParentChainPeg.index);
+                            },
+                          ),
+                          TopNavRoute(
+                            label: 'Overview',
+                            optionalKey: Tabs.ThunderHomepage.index,
+                            onTap: () {
+                              tabsRouter.setActiveIndex(Tabs.ThunderHomepage.index);
+                            },
+                          ),
+                          TopNavRoute(
+                            label: 'Console',
+                            optionalKey: Tabs.Console.index,
+                            onTap: () {
+                              tabsRouter.setActiveIndex(Tabs.Console.index);
+                            },
+                          ),
+                          TopNavRoute(
+                            icon: SailSVGAsset.settings,
+                          ),
+                        ],
+                        endWidget: SailRow(
+                          spacing: SailStyleValues.padding08,
+                          children: [
+                            SailDropdownButton<BitcoinNetwork>(
+                              value: _confProvider.network,
+                              items: [
+                                SailDropdownItem<BitcoinNetwork>(
+                                  value: BitcoinNetwork.BITCOIN_NETWORK_FORKNET,
+                                  label: 'Forknet',
+                                ),
+                                SailDropdownItem<BitcoinNetwork>(
+                                  value: BitcoinNetwork.BITCOIN_NETWORK_SIGNET,
+                                  label: 'Signet',
+                                ),
+                                SailDropdownItem<BitcoinNetwork>(
+                                  value: BitcoinNetwork.BITCOIN_NETWORK_REGTEST,
+                                  label: 'Regtest',
+                                ),
+                              ],
+                              onChanged: (BitcoinNetwork? network) async {
+                                if (network == null || _confProvider.hasPrivateBitcoinConf) return;
+                                await _confProvider.swapNetwork(context, network);
+                              },
                             ),
-                            SailDropdownItem<BitcoinNetwork>(
-                              value: BitcoinNetwork.BITCOIN_NETWORK_REGTEST,
-                              label: 'Regtest',
+                            SailButton(
+                              label: 'Configure Homepage',
+                              small: true,
+                              onPressed: () async {
+                                await GetIt.I.get<AppRouter>().push(ThunderConfigureHomepageRoute());
+                              },
                             ),
                           ],
-                          onChanged: (BitcoinNetwork? network) async {
-                            if (network == null || _confProvider.hasPrivateBitcoinConf) return;
-                            await _confProvider.swapNetwork(context, network);
-                          },
                         ),
-                        SailButton(
-                          label: 'Configure Homepage',
-                          small: true,
-                          onPressed: () async {
-                            await GetIt.I.get<AppRouter>().push(ThunderConfigureHomepageRoute());
-                          },
-                        ),
-                      ],
-                    ),
-                  ),
-                  body: Column(
-                    children: [
-                      Expanded(child: children[tabsRouter.activeIndex]),
-                      BottomNav(
-                        mainchainInfo: false,
-                        additionalConnection: ConnectionMonitor(
-                          rpc: thunderRPC,
-                          name: thunderRPC.chain.name,
-                        ),
-                        navigateToLogs: (title, logPath, binaryType) {
-                          GetIt.I.get<AppRouter>().push(
-                            LogRoute(
-                              title: title,
-                              logPath: logPath,
-                              binaryType: binaryType,
-                            ),
-                          );
-                        },
-                        onOpenConfConfigurator: () {
-                          GetIt.I.get<AppRouter>().push(BitcoinConfEditorRoute());
-                        },
-                        onOpenEnforcerConfConfigurator: () {
-                          GetIt.I.get<AppRouter>().push(EnforcerConfEditorRoute());
-                        },
-                        onOpenAdditionalConfConfigurator: () {
-                          GetIt.I.get<AppRouter>().push(ThunderConfEditorRoute());
-                        },
-                        endWidgets: const [
-                          ResetButton(),
-                        ],
-                        onlyShowAdditional: true,
                       ),
-                    ],
-                  ),
+                      body: Column(
+                        children: [
+                          Expanded(child: children[tabsRouter.activeIndex]),
+                          BottomNav(
+                            mainchainInfo: false,
+                            additionalConnection: ConnectionMonitor(
+                              rpc: thunderRPC,
+                              name: thunderRPC.chain.name,
+                            ),
+                            navigateToLogs: (title, logPath, binaryType) {
+                              GetIt.I.get<AppRouter>().push(
+                                LogRoute(
+                                  title: title,
+                                  logPath: logPath,
+                                  binaryType: binaryType,
+                                ),
+                              );
+                            },
+                            onOpenConfConfigurator: () {
+                              GetIt.I.get<AppRouter>().push(BitcoinConfEditorRoute());
+                            },
+                            onOpenEnforcerConfConfigurator: () {
+                              GetIt.I.get<AppRouter>().push(EnforcerConfEditorRoute());
+                            },
+                            onOpenAdditionalConfConfigurator: () {
+                              GetIt.I.get<AppRouter>().push(ThunderConfEditorRoute());
+                            },
+                            endWidgets: const [
+                              ResetButton(),
+                            ],
+                            onlyShowAdditional: true,
+                          ),
+                        ],
+                      ),
+                    );
+                  },
                 );
               },
-            );
-          },
+            ),
+          ),
         ),
-      ),
+        const NotificationToastOverlay(),
+      ],
     );
   }
 
