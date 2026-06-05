@@ -1,0 +1,20 @@
+version: v2
+
+managed:
+  enabled: true
+  override:
+    - file_option: go_package_prefix
+      value: github.com/LayerTwo-Labs/sidesail/ecash-broadcaster/gen
+
+plugins:
+  # Base message/enum types for Go.
+  - remote: buf.build/protocolbuffers/go
+    out: gen
+    opt:
+      - paths=source_relative
+
+  # Client + server stubs for connectrpc.com/connect.
+  - remote: buf.build/connectrpc/go
+    out: gen
+    opt:
+      - paths=source_relative

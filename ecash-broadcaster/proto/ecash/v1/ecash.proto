@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+package ecash.v1;
+
+// ECashBroadcastService broadcasts signed eCash transactions to the node.
+service ECashBroadcastService {
+  rpc BroadcastECashTx(BroadcastECashTxRequest) returns (BroadcastECashTxResponse);
+}
+
+message BroadcastECashTxRequest {
+  // The signed transaction, hex-encoded.
+  string signed_hex = 1;
+}
+
+message BroadcastECashTxResponse {
+  // The broadcast transaction's id.
+  string txid = 1;
+}
