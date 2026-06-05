@@ -20,7 +20,6 @@ import 'package:get_it/get_it.dart';
 import 'package:sail_ui/providers/price_provider.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:stacked/stacked.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 @RoutePage()
 class OverviewPage extends StatefulWidget {
@@ -1252,7 +1251,7 @@ class NewGraffitiViewModel extends BaseViewModel {
         title: 'Graffiti broadcast',
         content: txid,
         dialogType: DialogType.success,
-        onPressed: () => launchUrl(Uri.parse(mempoolTxUrl(txid, network))),
+        links: [NotificationLink(text: 'View transaction', url: mempoolTxUrl(txid, network))],
       );
 
       if (!context.mounted) return;

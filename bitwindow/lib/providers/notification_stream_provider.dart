@@ -4,6 +4,7 @@ import 'package:fixnum/fixnum.dart';
 import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
+import 'package:bitwindow/utils/explorer_url.dart';
 import 'package:sail_ui/gen/notification/v1/notification.pb.dart';
 import 'package:sail_ui/sail_ui.dart';
 
@@ -82,10 +83,19 @@ class NotificationStreamProvider extends ChangeNotifier {
         return;
     }
 
+    final txid = event.txid;
     notificationProvider.add(
       title: title,
       content: content,
       dialogType: DialogType.info,
+      links: txid.isEmpty
+          ? const []
+          : [
+              NotificationLink(
+                text: 'View transaction',
+                url: mempoolTxUrl(txid, GetIt.I.get<BitcoinConfProvider>().network),
+              ),
+            ],
     );
   }
 
