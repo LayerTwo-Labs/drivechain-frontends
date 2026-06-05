@@ -6,9 +6,8 @@ import 'package:sail_ui/rpcs/orchestrator_rpc.dart';
 
 /// Surfaces the orchestrator's Bitcoin Core variant picker.
 ///
-/// The backend filters by current network (and returns an empty list on
-/// mainnet), so the provider is intentionally dumb — it forwards calls and
-/// caches the latest list/active value.
+/// The backend filters by current network, so the provider is intentionally
+/// dumb — it forwards calls and caches the latest list/active value.
 class CoreVariantProvider extends ChangeNotifier {
   final Logger _logger = GetIt.I.get<Logger>();
   OrchestratorRPC get _orch => GetIt.I.get<OrchestratorRPC>();
@@ -23,8 +22,8 @@ class CoreVariantProvider extends ChangeNotifier {
   bool get busy => _busy;
   String? get lastError => _lastError;
 
-  /// True when the picker should be visible. Backend hides it on mainnet by
-  /// returning an empty list.
+  /// True when the picker should be visible. Backend returns an empty list on
+  /// networks with no selectable variants.
   bool get isVisible => _variants.isNotEmpty;
 
   CoreVariantProvider() {

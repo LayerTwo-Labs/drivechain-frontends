@@ -1679,9 +1679,6 @@ func (o *Orchestrator) SetCoreVariant(ctx context.Context, id string) error {
 	if o.Settings == nil {
 		return fmt.Errorf("orchestrator settings not initialised")
 	}
-	if o.Network == "mainnet" {
-		return fmt.Errorf("core variant switching is disabled on mainnet")
-	}
 
 	coreCfg, ok := o.configs["bitcoind"]
 	if !ok {
