@@ -2357,8 +2357,11 @@ type SendTransactionRequest struct {
 	FixedFeeSats int64 `protobuf:"varint,6,opt,name=fixed_fee_sats,json=fixedFeeSats,proto3" json:"fixed_fee_sats,omitempty"`
 	// Explicit wallet inputs to spend.
 	RequiredInputs []*UnspentOutput `protobuf:"bytes,7,rep,name=required_inputs,json=requiredInputs,proto3" json:"required_inputs,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+	// Build an eCash replay-protected transaction (magic version + extra byte so
+	// Bitcoin Core can't deserialize it). Core wallets only.
+	ReplayProtect bool `protobuf:"varint,8,opt,name=replay_protect,json=replayProtect,proto3" json:"replay_protect,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *SendTransactionRequest) Reset() {
@@ -2438,6 +2441,13 @@ func (x *SendTransactionRequest) GetRequiredInputs() []*UnspentOutput {
 		return x.RequiredInputs
 	}
 	return nil
+}
+
+func (x *SendTransactionRequest) GetReplayProtect() bool {
+	if x != nil {
+		return x.ReplayProtect
+	}
+	return false
 }
 
 type SendTransactionResponse struct {
@@ -4542,7 +4552,7 @@ const file_walletmanager_v1_walletmanager_proto_rawDesc = "" +
 	"\twallet_id\x18\x01 \x01(\tR\bwalletId\"G\n" +
 	"\x15GetNewAddressResponse\x12\x18\n" +
 	"\aaddress\x18\x01 \x01(\tR\aaddress\x12\x14\n" +
-	"\x05index\x18\x02 \x01(\x05R\x05index\"\xd7\x03\n" +
+	"\x05index\x18\x02 \x01(\x05R\x05index\"\xfe\x03\n" +
 	"\x16SendTransactionRequest\x12\x1b\n" +
 	"\twallet_id\x18\x01 \x01(\tR\bwalletId\x12^\n" +
 	"\fdestinations\x18\x02 \x03(\v2:.walletmanager.v1.SendTransactionRequest.DestinationsEntryR\fdestinations\x122\n" +
@@ -4550,7 +4560,8 @@ const file_walletmanager_v1_walletmanager_proto_rawDesc = "" +
 	"\x18subtract_fee_from_amount\x18\x04 \x01(\bR\x15subtractFeeFromAmount\x12\"\n" +
 	"\rop_return_hex\x18\x05 \x01(\tR\vopReturnHex\x12$\n" +
 	"\x0efixed_fee_sats\x18\x06 \x01(\x03R\ffixedFeeSats\x12H\n" +
-	"\x0frequired_inputs\x18\a \x03(\v2\x1f.walletmanager.v1.UnspentOutputR\x0erequiredInputs\x1a?\n" +
+	"\x0frequired_inputs\x18\a \x03(\v2\x1f.walletmanager.v1.UnspentOutputR\x0erequiredInputs\x12%\n" +
+	"\x0ereplay_protect\x18\b \x01(\bR\rreplayProtect\x1a?\n" +
 	"\x11DestinationsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\x03R\x05value:\x028\x01\"-\n" +

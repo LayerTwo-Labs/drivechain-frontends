@@ -125,6 +125,14 @@ class OrchestratorRPC {
     return _unaryClient.getMainchainBlockchainInfo(GetMainchainBlockchainInfoRequest());
   }
 
+  /// Canonical eCash fork state from the orchestrator's ForkEngine — the single
+  /// source of truth. Carries the heights, the claim-before-countdown gate, and
+  /// the per-wallet claimable UTXOs. The frontend renders this verbatim and does
+  /// no fork math of its own; the sweep spends the UTXOs listed here.
+  Future<GetForkStatusResponse> getForkStatus() {
+    return _unaryClient.getForkStatus(GetForkStatusRequest());
+  }
+
   /// Atomic snapshot of mainchain + enforcer + every known sidechain.
   /// Each ChainSync also reports download progress: when `is_downloading`
   /// is true, blocks/headers carry MB downloaded / MB total.

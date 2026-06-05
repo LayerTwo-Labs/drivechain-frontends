@@ -21,6 +21,7 @@ import (
 	"golang.org/x/net/http2"
 
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/fork"
 	enforcerpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1"
 	enforcerrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1/mainchainv1connect"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain"
@@ -115,6 +116,12 @@ type Orchestrator struct {
 	WalletSvc      *wallet.Service // for seed injection into sidechain/enforcer args
 	WalletEngine   *WalletEngine   // manages wallet→Core mapping, sync, backend routing
 	Settings       *SettingsStore
+
+	// forkEngine is the single source of truth for eCash fork state; wired by
+	// InitForkEngine once Core RPC is up. forkEnforcerWallet lets its scan reach
+	// the enforcer wallet's UTXOs (set later, once the enforcer client exists).
+	forkEngine         *fork.Engine
+	forkEnforcerWallet enforcerrpc.WalletServiceClient
 
 	configs    map[string]BinaryConfig
 	download   *DownloadManager

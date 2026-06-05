@@ -13,6 +13,7 @@ import 'package:bitwindow/pages/wallet/wallet_receive.dart';
 import 'package:bitwindow/pages/wallet/wallet_send.dart';
 import 'package:bitwindow/pages/wallet/wallet_utxos.dart';
 import 'package:bitwindow/providers/transactions_provider.dart';
+import 'package:bitwindow/widgets/fork_mode_banner.dart';
 import 'package:bitwindow/utils/bitcoin_uri.dart';
 import 'package:bitwindow/utils/explorer_url.dart';
 import 'package:dio/dio.dart';
@@ -169,10 +170,18 @@ class WalletPage extends StatelessWidget {
                 ),
               ];
 
-              return InlineTabBar(
-                key: tabKey,
-                tabs: allTabs,
-                initialIndex: 0,
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const ForkModeBanner(),
+                  Expanded(
+                    child: InlineTabBar(
+                      key: tabKey,
+                      tabs: allTabs,
+                      initialIndex: 0,
+                    ),
+                  ),
+                ],
               );
             },
           );

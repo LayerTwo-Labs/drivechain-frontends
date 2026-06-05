@@ -44,6 +44,7 @@ abstract class OrchestratorServiceBase extends $pb.GeneratedService {
   $async.Future<$5.DeleteFilesResponse> deleteFiles($pb.ServerContext ctx, $5.DeleteFilesRequest request);
   $async.Future<$5.GetCoreMempoolInfoResponse> getCoreMempoolInfo($pb.ServerContext ctx, $5.GetCoreMempoolInfoRequest request);
   $async.Future<$5.CoreRawCallResponse> coreRawCall($pb.ServerContext ctx, $5.CoreRawCallRequest request);
+  $async.Future<$5.GetForkStatusResponse> getForkStatus($pb.ServerContext ctx, $5.GetForkStatusRequest request);
 
   $pb.GeneratedMessage createRequest($core.String methodName) {
     switch (methodName) {
@@ -70,6 +71,7 @@ abstract class OrchestratorServiceBase extends $pb.GeneratedService {
       case 'DeleteFiles': return $5.DeleteFilesRequest();
       case 'GetCoreMempoolInfo': return $5.GetCoreMempoolInfoRequest();
       case 'CoreRawCall': return $5.CoreRawCallRequest();
+      case 'GetForkStatus': return $5.GetForkStatusRequest();
       default: throw $core.ArgumentError('Unknown method: $methodName');
     }
   }
@@ -99,6 +101,7 @@ abstract class OrchestratorServiceBase extends $pb.GeneratedService {
       case 'DeleteFiles': return this.deleteFiles(ctx, request as $5.DeleteFilesRequest);
       case 'GetCoreMempoolInfo': return this.getCoreMempoolInfo(ctx, request as $5.GetCoreMempoolInfoRequest);
       case 'CoreRawCall': return this.coreRawCall(ctx, request as $5.CoreRawCallRequest);
+      case 'GetForkStatus': return this.getForkStatus(ctx, request as $5.GetForkStatusRequest);
       default: throw $core.ArgumentError('Unknown method: $methodName');
     }
   }

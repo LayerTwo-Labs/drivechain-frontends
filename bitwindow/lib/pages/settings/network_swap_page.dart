@@ -1,5 +1,6 @@
 import 'package:bitwindow/providers/address_book_provider.dart';
 import 'package:bitwindow/providers/blockchain_provider.dart';
+import 'package:bitwindow/providers/fork_provider.dart';
 import 'package:bitwindow/providers/hd_wallet_provider.dart';
 import 'package:bitwindow/providers/sidechain_provider.dart';
 import 'package:bitwindow/providers/transactions_provider.dart';
@@ -79,6 +80,9 @@ class _NetworkSwapPageState extends State<NetworkSwapPage> {
     }
     if (GetIt.I.isRegistered<BalanceProvider>()) {
       GetIt.I.get<BalanceProvider>().clear();
+    }
+    if (GetIt.I.isRegistered<ForkProvider>()) {
+      GetIt.I.get<ForkProvider>().clear();
     }
     if (GetIt.I.isRegistered<SyncProvider>()) {
       GetIt.I.get<SyncProvider>().reset();

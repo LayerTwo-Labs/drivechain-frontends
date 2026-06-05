@@ -228,4 +228,18 @@ abstract final class OrchestratorService {
     orchestratorv1orchestrator.CoreRawCallRequest.new,
     orchestratorv1orchestrator.CoreRawCallResponse.new,
   );
+
+  /// ─── eCash fork ───────────────────────────────────────────────────────────
+  /// Report where the mainchain tip sits relative to the eCash fork height.
+  /// The orchestrator is the single source of truth for the fork height; the
+  /// frontend renders "fork mode" (the claim card) off fork_active. Per-wallet
+  /// pre-fork coin detection and the sweep itself stay in the frontend via the
+  /// existing WalletManagerService (listUnspent / sendTransaction), one call
+  /// per wallet — this RPC only supplies the height.
+  static const getForkStatus = connect.Spec(
+    '/$name/GetForkStatus',
+    connect.StreamType.unary,
+    orchestratorv1orchestrator.GetForkStatusRequest.new,
+    orchestratorv1orchestrator.GetForkStatusResponse.new,
+  );
 }

@@ -57,18 +57,9 @@ class SidechainsPage extends StatelessWidget {
                 : null,
             key: ValueKey('sidechains_page'),
             tabs: [
-              TabItem(
-                label: 'Overview',
-                child: SidechainsTab(),
-              ),
-              TabItem(
-                label: 'Fast Withdrawal',
-                child: FastWithdrawalTab(),
-              ),
-              TabItem(
-                label: 'Starters',
-                child: StartersTab(),
-              ),
+              TabItem(label: 'Overview', child: SidechainsTab()),
+              TabItem(label: 'Fast Withdrawal', child: FastWithdrawalTab()),
+              TabItem(label: 'Starters', child: StartersTab()),
             ],
             initialIndex: 0,
           );
@@ -90,17 +81,9 @@ class SidechainsTab extends ViewModelWidget<SidechainsViewModel> {
     final mainContent = Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Expanded(
-          flex: 6,
-          child: SidechainsList(
-            smallVersion: false,
-          ),
-        ),
+        Expanded(flex: 6, child: SidechainsList(smallVersion: false)),
         const SizedBox(width: SailStyleValues.padding08),
-        Expanded(
-          flex: 4,
-          child: const DepositWithdrawView(),
-        ),
+        Expanded(flex: 4, child: const DepositWithdrawView()),
       ],
     );
 
@@ -181,10 +164,7 @@ class _HashMismatchBanner extends StatelessWidget {
 class SidechainsList extends ViewModelWidget<SidechainsViewModel> {
   final bool smallVersion;
 
-  const SidechainsList({
-    super.key,
-    required this.smallVersion,
-  });
+  const SidechainsList({super.key, required this.smallVersion});
 
   @override
   Widget build(BuildContext context, SidechainsViewModel viewModel) {
@@ -298,30 +278,15 @@ class OnlyFilledTable extends ViewModelWidget<SidechainsViewModel> {
         key: ValueKey('sidechains_table_filled'),
         getRowId: (index) => filledSlots[index].toString(),
         headerBuilder: (context) => [
+          SailTableHeaderCell(name: 'Slot', onSort: () => viewModel.sortSidechains('slot')),
+          SailTableHeaderCell(name: 'Name', onSort: () => viewModel.sortSidechains('name')),
           SailTableHeaderCell(
-            name: 'Slot',
-            onSort: () => viewModel.sortSidechains('slot'),
-          ),
-          SailTableHeaderCell(
-            name: 'Name',
-            onSort: () => viewModel.sortSidechains('name'),
-          ),
-          SailTableHeaderCell(
-            name: 'Balance',
+            name: 'Sidechain Balance',
             onSort: () => viewModel.sortSidechains('balance'),
           ),
-          SailTableHeaderCell(
-            name: 'Action',
-            onSort: () => viewModel.sortSidechains('action'),
-          ),
-          SailTableHeaderCell(
-            name: 'Deposit',
-            onSort: () => viewModel.sortSidechains('deposit'),
-          ),
-          SailTableHeaderCell(
-            name: 'Settings',
-            onSort: () => viewModel.sortSidechains('update'),
-          ),
+          SailTableHeaderCell(name: 'Action', onSort: () => viewModel.sortSidechains('action')),
+          SailTableHeaderCell(name: 'Deposit', onSort: () => viewModel.sortSidechains('deposit')),
+          SailTableHeaderCell(name: 'Settings', onSort: () => viewModel.sortSidechains('update')),
         ],
         rowBuilder: (context, row, selected) {
           final slot = filledSlots[row]; // Get the actual slot number from filtered list
@@ -361,10 +326,7 @@ class OnlyFilledTable extends ViewModelWidget<SidechainsViewModel> {
               SailTableCell(
                 value: '    ',
                 child: Container(
-                  constraints: BoxConstraints(
-                    maxWidth: 40,
-                    maxHeight: 40,
-                  ),
+                  constraints: BoxConstraints(maxWidth: 40, maxHeight: 40),
                   child: Align(
                     alignment: Alignment.center,
                     child: SizedBox(
@@ -415,7 +377,14 @@ class OnlyFilledTable extends ViewModelWidget<SidechainsViewModel> {
         rowCount: filledSlots.length, // Only show filled slots
         emptyPlaceholder: 'No active sidechains',
         sortAscending: viewModel.sortAscending,
-        sortColumnIndex: ['slot', 'name', 'balance', 'action', 'deposit', 'update'].indexOf(viewModel.sortColumn),
+        sortColumnIndex: [
+          'slot',
+          'name',
+          'balance',
+          'action',
+          'deposit',
+          'update',
+        ].indexOf(viewModel.sortColumn),
         onSort: (columnIndex, ascending) => viewModel.sortSidechains(viewModel.sortColumn),
         selectedRowId: viewModel.selectedIndex?.toString(),
         // rowId is the SLOT NUMBER (e.g., "2", "4", "98") from getRowId
@@ -506,30 +475,15 @@ class FullTable extends ViewModelWidget<SidechainsViewModel> {
         key: ValueKey('sidechains_table_full'),
         getRowId: (index) => index.toString(),
         headerBuilder: (context) => [
+          SailTableHeaderCell(name: 'Slot', onSort: () => viewModel.sortSidechains('slot')),
+          SailTableHeaderCell(name: 'Name', onSort: () => viewModel.sortSidechains('name')),
           SailTableHeaderCell(
-            name: 'Slot',
-            onSort: () => viewModel.sortSidechains('slot'),
-          ),
-          SailTableHeaderCell(
-            name: 'Name',
-            onSort: () => viewModel.sortSidechains('name'),
-          ),
-          SailTableHeaderCell(
-            name: 'Balance',
+            name: 'Sidechain Balance',
             onSort: () => viewModel.sortSidechains('balance'),
           ),
-          SailTableHeaderCell(
-            name: 'Action',
-            onSort: () => viewModel.sortSidechains('action'),
-          ),
-          SailTableHeaderCell(
-            name: 'Deposit',
-            onSort: () => viewModel.sortSidechains('deposit'),
-          ),
-          SailTableHeaderCell(
-            name: 'Settings',
-            onSort: () => viewModel.sortSidechains('update'),
-          ),
+          SailTableHeaderCell(name: 'Action', onSort: () => viewModel.sortSidechains('action')),
+          SailTableHeaderCell(name: 'Deposit', onSort: () => viewModel.sortSidechains('deposit')),
+          SailTableHeaderCell(name: 'Settings', onSort: () => viewModel.sortSidechains('update')),
         ],
         rowBuilder: (context, row, selected) {
           final slot = row; // This is now the slot number (0-255)
@@ -580,9 +534,7 @@ class FullTable extends ViewModelWidget<SidechainsViewModel> {
                           : () async {
                               await showThemedDialog(
                                 context: context,
-                                builder: (context) => ChainSettingsModal(
-                                  connection: viewModel.rpcForSlot(slot)!,
-                                ),
+                                builder: (context) => ChainSettingsModal(connection: viewModel.rpcForSlot(slot)!),
                               );
                             },
                     ),
@@ -593,10 +545,7 @@ class FullTable extends ViewModelWidget<SidechainsViewModel> {
                         child: Container(
                           width: 4,
                           height: 4,
-                          decoration: BoxDecoration(
-                            color: Colors.red,
-                            shape: BoxShape.circle,
-                          ),
+                          decoration: BoxDecoration(color: Colors.red, shape: BoxShape.circle),
                         ),
                       ),
                   ],
@@ -608,7 +557,14 @@ class FullTable extends ViewModelWidget<SidechainsViewModel> {
         },
         rowCount: 256, // Show all slots
         sortAscending: viewModel.sortAscending,
-        sortColumnIndex: ['slot', 'name', 'balance', 'action', 'deposit', 'update'].indexOf(viewModel.sortColumn),
+        sortColumnIndex: [
+          'slot',
+          'name',
+          'balance',
+          'action',
+          'deposit',
+          'update',
+        ].indexOf(viewModel.sortColumn),
         onSort: (columnIndex, ascending) => viewModel.sortSidechains(viewModel.sortColumn),
         selectedRowId: viewModel.selectedIndex?.toString(),
         onSelectedRow: (rowId) => viewModel.toggleSelection(int.parse(rowId ?? '0')),
@@ -1023,7 +979,12 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
 
     return SailTooltip(
       message: tooltipMessage,
-      child: SailSVG.fromAsset(SailSVGAsset.iconConnectionStatus, color: color, width: 16, height: 13),
+      child: SailSVG.fromAsset(
+        SailSVGAsset.iconConnectionStatus,
+        color: color,
+        width: 16,
+        height: 13,
+      ),
     );
   }
 
@@ -1399,14 +1360,8 @@ class MakeDepositsView extends ViewModelWidget<SidechainsViewModel> {
                     enabled: !isDisabled,
                   ),
                 ),
-                UnitDropdown(
-                  value: Unit.BTC,
-                  onChanged: (_) => {},
-                  enabled: false,
-                ),
-                Expanded(
-                  child: Container(),
-                ),
+                UnitDropdown(value: Unit.BTC, onChanged: (_) => {}, enabled: false),
+                Expanded(child: Container()),
               ],
             ),
             Padding(
@@ -1471,18 +1426,9 @@ class RecentDepositsTable extends ViewModelWidget<SidechainsViewModel> {
       builder: (context, child) => SailTable(
         getRowId: (index) => viewModel.sortedDeposits[index].txid,
         headerBuilder: (context) => [
-          SailTableHeaderCell(
-            name: 'Txid',
-            onSort: () => viewModel.sortDeposits('txid'),
-          ),
-          SailTableHeaderCell(
-            name: 'Amount',
-            onSort: () => viewModel.sortDeposits('amount'),
-          ),
-          SailTableHeaderCell(
-            name: 'Fee',
-            onSort: () => viewModel.sortDeposits('fee'),
-          ),
+          SailTableHeaderCell(name: 'Txid', onSort: () => viewModel.sortDeposits('txid')),
+          SailTableHeaderCell(name: 'Amount', onSort: () => viewModel.sortDeposits('amount')),
+          SailTableHeaderCell(name: 'Fee', onSort: () => viewModel.sortDeposits('fee')),
           SailTableHeaderCell(
             name: 'Confirmations',
             onSort: () => viewModel.sortDeposits('confirmations'),
@@ -1491,10 +1437,7 @@ class RecentDepositsTable extends ViewModelWidget<SidechainsViewModel> {
         rowBuilder: (context, row, selected) {
           final deposit = viewModel.sortedDeposits[row];
           return [
-            SailTableCell(
-              value: '${deposit.txid.substring(0, 10)}..',
-              copyValue: deposit.txid,
-            ),
+            SailTableCell(value: '${deposit.txid.substring(0, 10)}..', copyValue: deposit.txid),
             SailTableCell(value: formatter.formatSats(deposit.amount.toInt())),
             SailTableCell(value: formatter.formatSats(deposit.fee.toInt())),
             SailTableCell(value: deposit.confirmations.toString()),
@@ -1504,7 +1447,12 @@ class RecentDepositsTable extends ViewModelWidget<SidechainsViewModel> {
         emptyPlaceholder: 'No deposits yet',
         drawGrid: true,
         sortAscending: viewModel.depositSortAscending,
-        sortColumnIndex: ['txid', 'amount', 'fee', 'confirmations'].indexOf(viewModel.depositSortColumn),
+        sortColumnIndex: [
+          'txid',
+          'amount',
+          'fee',
+          'confirmations',
+        ].indexOf(viewModel.depositSortColumn),
         onSort: (columnIndex, ascending) => viewModel.sortDeposits(viewModel.depositSortColumn),
         onDoubleTap: (rowId) => showTransactionDetails(context, rowId),
         contextMenuItems: (rowId) {
@@ -1526,9 +1474,7 @@ class RecentWithdrawalsTable extends ViewModelWidget<SidechainsViewModel> {
   @override
   Widget build(BuildContext context, SidechainsViewModel viewModel) {
     if (viewModel.sortedWithdrawals.isEmpty) {
-      return Center(
-        child: SailText.secondary13('No withdrawal bundles found for this sidechain'),
-      );
+      return Center(child: SailText.secondary13('No withdrawal bundles found for this sidechain'));
     }
 
     return SailTable(
@@ -1548,7 +1494,9 @@ class RecentWithdrawalsTable extends ViewModelWidget<SidechainsViewModel> {
           ),
           SailTableCell(value: withdrawal.status),
           SailTableCell(value: withdrawal.blockHeight.toString()),
-          SailTableCell(value: withdrawal.sequenceNumber.toInt() > 0 ? withdrawal.sequenceNumber.toString() : '-'),
+          SailTableCell(
+            value: withdrawal.sequenceNumber.toInt() > 0 ? withdrawal.sequenceNumber.toString() : '-',
+          ),
         ];
       },
       rowCount: viewModel.sortedWithdrawals.length,
@@ -1572,11 +1520,7 @@ class DepositModal extends StatefulWidget {
   final int slot;
   final String sidechainName;
 
-  const DepositModal({
-    super.key,
-    required this.slot,
-    required this.sidechainName,
-  });
+  const DepositModal({super.key, required this.slot, required this.sidechainName});
 
   @override
   State<DepositModal> createState() => _DepositModalState();
@@ -1782,11 +1726,7 @@ class _DepositModalState extends State<DepositModal> {
                       hintText: '0.00',
                     ),
                   ),
-                  UnitDropdown(
-                    value: Unit.BTC,
-                    onChanged: (_) {},
-                    enabled: false,
-                  ),
+                  UnitDropdown(value: Unit.BTC, onChanged: (_) {}, enabled: false),
                   Expanded(child: Container()),
                 ],
               ),

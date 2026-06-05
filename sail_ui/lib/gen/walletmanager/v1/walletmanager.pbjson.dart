@@ -643,6 +643,7 @@ const SendTransactionRequest$json = {
     {'1': 'op_return_hex', '3': 5, '4': 1, '5': 9, '10': 'opReturnHex'},
     {'1': 'fixed_fee_sats', '3': 6, '4': 1, '5': 3, '10': 'fixedFeeSats'},
     {'1': 'required_inputs', '3': 7, '4': 3, '5': 11, '6': '.walletmanager.v1.UnspentOutput', '10': 'requiredInputs'},
+    {'1': 'replay_protect', '3': 8, '4': 1, '5': 8, '10': 'replayProtect'},
   ],
   '3': [SendTransactionRequest_DestinationsEntry$json],
 };
@@ -666,8 +667,9 @@ final $typed_data.Uint8List sendTransactionRequestDescriptor = $convert.base64De
     'X2Ftb3VudBgEIAEoCFIVc3VidHJhY3RGZWVGcm9tQW1vdW50EiIKDW9wX3JldHVybl9oZXgYBS'
     'ABKAlSC29wUmV0dXJuSGV4EiQKDmZpeGVkX2ZlZV9zYXRzGAYgASgDUgxmaXhlZEZlZVNhdHMS'
     'SAoPcmVxdWlyZWRfaW5wdXRzGAcgAygLMh8ud2FsbGV0bWFuYWdlci52MS5VbnNwZW50T3V0cH'
-    'V0Ug5yZXF1aXJlZElucHV0cxo/ChFEZXN0aW5hdGlvbnNFbnRyeRIQCgNrZXkYASABKAlSA2tl'
-    'eRIUCgV2YWx1ZRgCIAEoA1IFdmFsdWU6AjgB');
+    'V0Ug5yZXF1aXJlZElucHV0cxIlCg5yZXBsYXlfcHJvdGVjdBgIIAEoCFINcmVwbGF5UHJvdGVj'
+    'dBo/ChFEZXN0aW5hdGlvbnNFbnRyeRIQCgNrZXkYASABKAlSA2tleRIUCgV2YWx1ZRgCIAEoA1'
+    'IFdmFsdWU6AjgB');
 
 @$core.Deprecated('Use sendTransactionResponseDescriptor instead')
 const SendTransactionResponse$json = {

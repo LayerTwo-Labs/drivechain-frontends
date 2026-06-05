@@ -22,6 +22,7 @@ import (
 	orchestratorpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/orchestrator/v1"
 	pb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1"
 	rpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1/walletmanagerv1connect"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/replay"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/wallet"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/wallet/bip47state"
 )
@@ -509,6 +510,13 @@ func (h *WalletHandler) SendTransaction(ctx context.Context, req *connect.Reques
 		_ = notifTxID
 	}
 
+	if req.Msg.ReplayProtect && wType == walletTypeEnforcer {
+		return nil, connect.NewError(
+			connect.CodeInvalidArgument,
+			errors.New("replay protection is only supported for Bitcoin Core wallets"),
+		)
+	}
+
 	if wType == walletTypeEnforcer {
 		if err := h.requireEnforcerWallet(); err != nil {
 			return nil, connect.NewError(connect.CodeFailedPrecondition, err)
@@ -576,7 +584,8 @@ func (h *WalletHandler) SendTransaction(ctx context.Context, req *connect.Reques
 	needsAdvancedSend := req.Msg.OpReturnHex != "" ||
 		req.Msg.FeeRateSatPerVbyte > 0 ||
 		req.Msg.FixedFeeSats > 0 ||
-		len(req.Msg.RequiredInputs) > 0
+		len(req.Msg.RequiredInputs) > 0 ||
+		req.Msg.ReplayProtect // custom serialization needs the raw-tx path
 
 	if needsAdvancedSend {
 		txid, err := h.sendAdvancedTransaction(ctx, coreName, req.Msg)
@@ -666,7 +675,7 @@ func (h *WalletHandler) sendAdvancedTransaction(
 			return "", fmt.Errorf("create raw transaction: %w", err)
 		}
 
-		return h.signAndBroadcastRawTransaction(ctx, coreName, rawHex)
+		return h.signAndBroadcastRawTransaction(ctx, coreName, rawHex, req.ReplayProtect)
 	}
 
 	rawHex, err := h.engine.CoreRPC().CreateRawTransaction(ctx, inputs, outputs)
@@ -694,7 +703,7 @@ func (h *WalletHandler) sendAdvancedTransaction(
 		return "", fmt.Errorf("fund raw transaction: %w", err)
 	}
 
-	return h.signAndBroadcastRawTransaction(ctx, coreName, funded.Hex)
+	return h.signAndBroadcastRawTransaction(ctx, coreName, funded.Hex, req.ReplayProtect)
 }
 
 func (h *WalletHandler) selectInputsForFixedFee(
@@ -751,7 +760,18 @@ func buildRawOutputs(req *pb.SendTransactionRequest) ([]map[string]interface{}, 
 func (h *WalletHandler) signAndBroadcastRawTransaction(
 	ctx context.Context,
 	coreName, rawHex string,
+	replayProtect bool,
 ) (string, error) {
+	// Set the magic version BEFORE signing so the signature commits to it
+	// (the fork's sighash is computed over this version).
+	if replayProtect {
+		var err error
+		rawHex, err = replay.SetVersion(rawHex)
+		if err != nil {
+			return "", fmt.Errorf("set replay version: %w", err)
+		}
+	}
+
 	signed, err := h.engine.CoreRPC().SignRawTransactionWithWallet(ctx, coreName, rawHex)
 	if err != nil {
 		return "", fmt.Errorf("sign raw transaction: %w", err)
@@ -760,7 +780,17 @@ func (h *WalletHandler) signAndBroadcastRawTransaction(
 		return "", errors.New("transaction signing incomplete")
 	}
 
-	txid, err := h.engine.CoreRPC().SendRawTransaction(ctx, signed.Hex)
+	hexToSend := signed.Hex
+	// Inject the extra byte AFTER signing — it's a serialization marker, not
+	// part of the sighash, and it makes the tx un-deserializable by Bitcoin.
+	if replayProtect {
+		hexToSend, err = replay.InjectReplayByte(hexToSend)
+		if err != nil {
+			return "", fmt.Errorf("inject replay byte: %w", err)
+		}
+	}
+
+	txid, err := h.engine.CoreRPC().SendRawTransaction(ctx, hexToSend)
 	if err != nil {
 		return "", fmt.Errorf("broadcast raw transaction: %w", err)
 	}

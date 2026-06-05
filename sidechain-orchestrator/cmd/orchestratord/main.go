@@ -286,6 +286,10 @@ func run(cctx *cli.Context) error {
 		walletEngine := wallet.NewWalletEngine(walletSvc, coreRPC, netParams, log)
 		walletHandler.SetEngine(walletEngine)
 
+		// Fork engine: single source of truth for eCash fork state, needs the
+		// same Core RPC + wallet access for its claimable scan.
+		orch.InitForkEngine(walletEngine)
+
 		log.Info().Int("rpc_port", port).Msg("wallet engine initialized with Core RPC")
 
 		// BIP47 receive engine: watches each Core wallet's notification address
@@ -315,6 +319,7 @@ func run(cctx *cli.Context) error {
 		}
 		enforcerClient := enforcerrpc.NewWalletServiceClient(httpClient, enforcerURL, connect.WithGRPC())
 		walletHandler.SetEnforcerWallet(enforcerClient)
+		orch.SetForkEnforcerWallet(enforcerClient)
 		log.Info().Int("enforcer_port", enforcerCfg.Port).Msg("enforcer wallet client registered")
 	}
 

@@ -838,6 +838,78 @@ const CoreRawCallResponse$json = {
 final $typed_data.Uint8List coreRawCallResponseDescriptor = $convert.base64Decode(
     'ChNDb3JlUmF3Q2FsbFJlc3BvbnNlEh8KC3Jlc3VsdF9qc29uGAEgASgJUgpyZXN1bHRKc29u');
 
+@$core.Deprecated('Use getForkStatusRequestDescriptor instead')
+const GetForkStatusRequest$json = {
+  '1': 'GetForkStatusRequest',
+};
+
+/// Descriptor for `GetForkStatusRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List getForkStatusRequestDescriptor = $convert.base64Decode(
+    'ChRHZXRGb3JrU3RhdHVzUmVxdWVzdA==');
+
+@$core.Deprecated('Use getForkStatusResponseDescriptor instead')
+const GetForkStatusResponse$json = {
+  '1': 'GetForkStatusResponse',
+  '2': [
+    {'1': 'fork_height', '3': 1, '4': 1, '5': 5, '10': 'forkHeight'},
+    {'1': 'current_height', '3': 2, '4': 1, '5': 5, '10': 'currentHeight'},
+    {'1': 'current_headers', '3': 4, '4': 1, '5': 5, '10': 'currentHeaders'},
+    {'1': 'claim_boundary', '3': 5, '4': 1, '5': 5, '10': 'claimBoundary'},
+    {'1': 'simulated', '3': 6, '4': 1, '5': 8, '10': 'simulated'},
+    {'1': 'has_funds_to_claim', '3': 7, '4': 1, '5': 8, '10': 'hasFundsToClaim'},
+    {'1': 'show_countdown', '3': 8, '4': 1, '5': 8, '10': 'showCountdown'},
+    {'1': 'claims', '3': 9, '4': 3, '5': 11, '6': '.orchestrator.v1.ForkWalletClaim', '10': 'claims'},
+  ],
+  '9': [
+    {'1': 3, '2': 4},
+  ],
+};
+
+/// Descriptor for `GetForkStatusResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List getForkStatusResponseDescriptor = $convert.base64Decode(
+    'ChVHZXRGb3JrU3RhdHVzUmVzcG9uc2USHwoLZm9ya19oZWlnaHQYASABKAVSCmZvcmtIZWlnaH'
+    'QSJQoOY3VycmVudF9oZWlnaHQYAiABKAVSDWN1cnJlbnRIZWlnaHQSJwoPY3VycmVudF9oZWFk'
+    'ZXJzGAQgASgFUg5jdXJyZW50SGVhZGVycxIlCg5jbGFpbV9ib3VuZGFyeRgFIAEoBVINY2xhaW'
+    '1Cb3VuZGFyeRIcCglzaW11bGF0ZWQYBiABKAhSCXNpbXVsYXRlZBIrChJoYXNfZnVuZHNfdG9f'
+    'Y2xhaW0YByABKAhSD2hhc0Z1bmRzVG9DbGFpbRIlCg5zaG93X2NvdW50ZG93bhgIIAEoCFINc2'
+    'hvd0NvdW50ZG93bhI4CgZjbGFpbXMYCSADKAsyIC5vcmNoZXN0cmF0b3IudjEuRm9ya1dhbGxl'
+    'dENsYWltUgZjbGFpbXNKBAgDEAQ=');
+
+@$core.Deprecated('Use forkWalletClaimDescriptor instead')
+const ForkWalletClaim$json = {
+  '1': 'ForkWalletClaim',
+  '2': [
+    {'1': 'wallet_id', '3': 1, '4': 1, '5': 9, '10': 'walletId'},
+    {'1': 'wallet_name', '3': 2, '4': 1, '5': 9, '10': 'walletName'},
+    {'1': 'claimable_sats', '3': 3, '4': 1, '5': 4, '10': 'claimableSats'},
+    {'1': 'utxos', '3': 4, '4': 3, '5': 11, '6': '.orchestrator.v1.ForkClaimUtxo', '10': 'utxos'},
+    {'1': 'replay_protectable', '3': 5, '4': 1, '5': 8, '10': 'replayProtectable'},
+  ],
+};
+
+/// Descriptor for `ForkWalletClaim`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List forkWalletClaimDescriptor = $convert.base64Decode(
+    'Cg9Gb3JrV2FsbGV0Q2xhaW0SGwoJd2FsbGV0X2lkGAEgASgJUgh3YWxsZXRJZBIfCgt3YWxsZX'
+    'RfbmFtZRgCIAEoCVIKd2FsbGV0TmFtZRIlCg5jbGFpbWFibGVfc2F0cxgDIAEoBFINY2xhaW1h'
+    'YmxlU2F0cxI0CgV1dHhvcxgEIAMoCzIeLm9yY2hlc3RyYXRvci52MS5Gb3JrQ2xhaW1VdHhvUg'
+    'V1dHhvcxItChJyZXBsYXlfcHJvdGVjdGFibGUYBSABKAhSEXJlcGxheVByb3RlY3RhYmxl');
+
+@$core.Deprecated('Use forkClaimUtxoDescriptor instead')
+const ForkClaimUtxo$json = {
+  '1': 'ForkClaimUtxo',
+  '2': [
+    {'1': 'outpoint', '3': 1, '4': 1, '5': 9, '10': 'outpoint'},
+    {'1': 'address', '3': 2, '4': 1, '5': 9, '10': 'address'},
+    {'1': 'sats', '3': 3, '4': 1, '5': 4, '10': 'sats'},
+    {'1': 'label', '3': 4, '4': 1, '5': 9, '10': 'label'},
+  ],
+};
+
+/// Descriptor for `ForkClaimUtxo`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List forkClaimUtxoDescriptor = $convert.base64Decode(
+    'Cg1Gb3JrQ2xhaW1VdHhvEhoKCG91dHBvaW50GAEgASgJUghvdXRwb2ludBIYCgdhZGRyZXNzGA'
+    'IgASgJUgdhZGRyZXNzEhIKBHNhdHMYAyABKARSBHNhdHMSFAoFbGFiZWwYBCABKAlSBWxhYmVs');
+
 @$core.Deprecated('Use shutdownRequestDescriptor instead')
 const ShutdownRequest$json = {
   '1': 'ShutdownRequest',
@@ -882,6 +954,7 @@ const $core.Map<$core.String, $core.dynamic> OrchestratorServiceBase$json = {
     {'1': 'DeleteFiles', '2': '.orchestrator.v1.DeleteFilesRequest', '3': '.orchestrator.v1.DeleteFilesResponse', '6': true},
     {'1': 'GetCoreMempoolInfo', '2': '.orchestrator.v1.GetCoreMempoolInfoRequest', '3': '.orchestrator.v1.GetCoreMempoolInfoResponse'},
     {'1': 'CoreRawCall', '2': '.orchestrator.v1.CoreRawCallRequest', '3': '.orchestrator.v1.CoreRawCallResponse'},
+    {'1': 'GetForkStatus', '2': '.orchestrator.v1.GetForkStatusRequest', '3': '.orchestrator.v1.GetForkStatusResponse'},
   ],
 };
 
@@ -942,6 +1015,10 @@ const $core.Map<$core.String, $core.Map<$core.String, $core.dynamic>> Orchestrat
   '.orchestrator.v1.GetCoreMempoolInfoResponse': GetCoreMempoolInfoResponse$json,
   '.orchestrator.v1.CoreRawCallRequest': CoreRawCallRequest$json,
   '.orchestrator.v1.CoreRawCallResponse': CoreRawCallResponse$json,
+  '.orchestrator.v1.GetForkStatusRequest': GetForkStatusRequest$json,
+  '.orchestrator.v1.GetForkStatusResponse': GetForkStatusResponse$json,
+  '.orchestrator.v1.ForkWalletClaim': ForkWalletClaim$json,
+  '.orchestrator.v1.ForkClaimUtxo': ForkClaimUtxo$json,
 };
 
 /// Descriptor for `OrchestratorService`. Decode as a `google.protobuf.ServiceDescriptorProto`.
@@ -987,5 +1064,7 @@ final $typed_data.Uint8List orchestratorServiceDescriptor = $convert.base64Decod
     'dGVGaWxlc1Jlc3BvbnNlMAESbQoSR2V0Q29yZU1lbXBvb2xJbmZvEioub3JjaGVzdHJhdG9yLn'
     'YxLkdldENvcmVNZW1wb29sSW5mb1JlcXVlc3QaKy5vcmNoZXN0cmF0b3IudjEuR2V0Q29yZU1l'
     'bXBvb2xJbmZvUmVzcG9uc2USWAoLQ29yZVJhd0NhbGwSIy5vcmNoZXN0cmF0b3IudjEuQ29yZV'
-    'Jhd0NhbGxSZXF1ZXN0GiQub3JjaGVzdHJhdG9yLnYxLkNvcmVSYXdDYWxsUmVzcG9uc2U=');
+    'Jhd0NhbGxSZXF1ZXN0GiQub3JjaGVzdHJhdG9yLnYxLkNvcmVSYXdDYWxsUmVzcG9uc2USXgoN'
+    'R2V0Rm9ya1N0YXR1cxIlLm9yY2hlc3RyYXRvci52MS5HZXRGb3JrU3RhdHVzUmVxdWVzdBomLm'
+    '9yY2hlc3RyYXRvci52MS5HZXRGb3JrU3RhdHVzUmVzcG9uc2U=');
 

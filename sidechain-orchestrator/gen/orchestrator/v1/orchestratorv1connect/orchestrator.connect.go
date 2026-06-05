@@ -102,6 +102,9 @@ const (
 	// OrchestratorServiceCoreRawCallProcedure is the fully-qualified name of the OrchestratorService's
 	// CoreRawCall RPC.
 	OrchestratorServiceCoreRawCallProcedure = "/orchestrator.v1.OrchestratorService/CoreRawCall"
+	// OrchestratorServiceGetForkStatusProcedure is the fully-qualified name of the
+	// OrchestratorService's GetForkStatus RPC.
+	OrchestratorServiceGetForkStatusProcedure = "/orchestrator.v1.OrchestratorService/GetForkStatus"
 )
 
 // OrchestratorServiceClient is a client for the orchestrator.v1.OrchestratorService service.
@@ -187,6 +190,14 @@ type OrchestratorServiceClient interface {
 	// Generic raw bitcoind RPC. Optional `wallet` field routes the call to
 	// /wallet/{name} on bitcoind for wallet-scoped RPCs.
 	CoreRawCall(context.Context, *connect.Request[v1.CoreRawCallRequest]) (*connect.Response[v1.CoreRawCallResponse], error)
+	// ─── eCash fork ───────────────────────────────────────────────────────────
+	// Report where the mainchain tip sits relative to the eCash fork height.
+	// The orchestrator is the single source of truth for the fork height; the
+	// frontend renders "fork mode" (the claim card) off fork_active. Per-wallet
+	// pre-fork coin detection and the sweep itself stay in the frontend via the
+	// existing WalletManagerService (listUnspent / sendTransaction), one call
+	// per wallet — this RPC only supplies the height.
+	GetForkStatus(context.Context, *connect.Request[v1.GetForkStatusRequest]) (*connect.Response[v1.GetForkStatusResponse], error)
 }
 
 // NewOrchestratorServiceClient constructs a client for the orchestrator.v1.OrchestratorService
@@ -338,6 +349,12 @@ func NewOrchestratorServiceClient(httpClient connect.HTTPClient, baseURL string,
 			connect.WithSchema(orchestratorServiceMethods.ByName("CoreRawCall")),
 			connect.WithClientOptions(opts...),
 		),
+		getForkStatus: connect.NewClient[v1.GetForkStatusRequest, v1.GetForkStatusResponse](
+			httpClient,
+			baseURL+OrchestratorServiceGetForkStatusProcedure,
+			connect.WithSchema(orchestratorServiceMethods.ByName("GetForkStatus")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -366,6 +383,7 @@ type orchestratorServiceClient struct {
 	deleteFiles                *connect.Client[v1.DeleteFilesRequest, v1.DeleteFilesResponse]
 	getCoreMempoolInfo         *connect.Client[v1.GetCoreMempoolInfoRequest, v1.GetCoreMempoolInfoResponse]
 	coreRawCall                *connect.Client[v1.CoreRawCallRequest, v1.CoreRawCallResponse]
+	getForkStatus              *connect.Client[v1.GetForkStatusRequest, v1.GetForkStatusResponse]
 }
 
 // ListBinaries calls orchestrator.v1.OrchestratorService.ListBinaries.
@@ -483,6 +501,11 @@ func (c *orchestratorServiceClient) CoreRawCall(ctx context.Context, req *connec
 	return c.coreRawCall.CallUnary(ctx, req)
 }
 
+// GetForkStatus calls orchestrator.v1.OrchestratorService.GetForkStatus.
+func (c *orchestratorServiceClient) GetForkStatus(ctx context.Context, req *connect.Request[v1.GetForkStatusRequest]) (*connect.Response[v1.GetForkStatusResponse], error) {
+	return c.getForkStatus.CallUnary(ctx, req)
+}
+
 // OrchestratorServiceHandler is an implementation of the orchestrator.v1.OrchestratorService
 // service.
 type OrchestratorServiceHandler interface {
@@ -567,6 +590,14 @@ type OrchestratorServiceHandler interface {
 	// Generic raw bitcoind RPC. Optional `wallet` field routes the call to
 	// /wallet/{name} on bitcoind for wallet-scoped RPCs.
 	CoreRawCall(context.Context, *connect.Request[v1.CoreRawCallRequest]) (*connect.Response[v1.CoreRawCallResponse], error)
+	// ─── eCash fork ───────────────────────────────────────────────────────────
+	// Report where the mainchain tip sits relative to the eCash fork height.
+	// The orchestrator is the single source of truth for the fork height; the
+	// frontend renders "fork mode" (the claim card) off fork_active. Per-wallet
+	// pre-fork coin detection and the sweep itself stay in the frontend via the
+	// existing WalletManagerService (listUnspent / sendTransaction), one call
+	// per wallet — this RPC only supplies the height.
+	GetForkStatus(context.Context, *connect.Request[v1.GetForkStatusRequest]) (*connect.Response[v1.GetForkStatusResponse], error)
 }
 
 // NewOrchestratorServiceHandler builds an HTTP handler from the service implementation. It returns
@@ -714,6 +745,12 @@ func NewOrchestratorServiceHandler(svc OrchestratorServiceHandler, opts ...conne
 		connect.WithSchema(orchestratorServiceMethods.ByName("CoreRawCall")),
 		connect.WithHandlerOptions(opts...),
 	)
+	orchestratorServiceGetForkStatusHandler := connect.NewUnaryHandler(
+		OrchestratorServiceGetForkStatusProcedure,
+		svc.GetForkStatus,
+		connect.WithSchema(orchestratorServiceMethods.ByName("GetForkStatus")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/orchestrator.v1.OrchestratorService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case OrchestratorServiceListBinariesProcedure:
@@ -762,6 +799,8 @@ func NewOrchestratorServiceHandler(svc OrchestratorServiceHandler, opts ...conne
 			orchestratorServiceGetCoreMempoolInfoHandler.ServeHTTP(w, r)
 		case OrchestratorServiceCoreRawCallProcedure:
 			orchestratorServiceCoreRawCallHandler.ServeHTTP(w, r)
+		case OrchestratorServiceGetForkStatusProcedure:
+			orchestratorServiceGetForkStatusHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -861,4 +900,8 @@ func (UnimplementedOrchestratorServiceHandler) GetCoreMempoolInfo(context.Contex
 
 func (UnimplementedOrchestratorServiceHandler) CoreRawCall(context.Context, *connect.Request[v1.CoreRawCallRequest]) (*connect.Response[v1.CoreRawCallResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("orchestrator.v1.OrchestratorService.CoreRawCall is not implemented"))
+}
+
+func (UnimplementedOrchestratorServiceHandler) GetForkStatus(context.Context, *connect.Request[v1.GetForkStatusRequest]) (*connect.Response[v1.GetForkStatusResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("orchestrator.v1.OrchestratorService.GetForkStatus is not implemented"))
 }

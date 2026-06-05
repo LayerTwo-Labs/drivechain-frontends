@@ -280,6 +280,42 @@ func (h *Handler) GetMainchainBlockchainInfo(ctx context.Context, req *connect.R
 	}), nil
 }
 
+func (h *Handler) GetForkStatus(ctx context.Context, req *connect.Request[pb.GetForkStatusRequest]) (*connect.Response[pb.GetForkStatusResponse], error) {
+	s, err := h.orch.ForkState(ctx)
+	if err != nil {
+		return nil, err
+	}
+	claims := make([]*pb.ForkWalletClaim, len(s.Claims))
+	for i, c := range s.Claims {
+		utxos := make([]*pb.ForkClaimUtxo, len(c.UTXOs))
+		for j, u := range c.UTXOs {
+			utxos[j] = &pb.ForkClaimUtxo{
+				Outpoint: u.Outpoint,
+				Address:  u.Address,
+				Sats:     u.Sats,
+				Label:    u.Label,
+			}
+		}
+		claims[i] = &pb.ForkWalletClaim{
+			WalletId:          c.WalletID,
+			WalletName:        c.WalletName,
+			ClaimableSats:     c.ClaimableSats,
+			ReplayProtectable: c.ReplayProtectable,
+			Utxos:             utxos,
+		}
+	}
+	return connect.NewResponse(&pb.GetForkStatusResponse{
+		ForkHeight:      int32(s.ForkHeight),
+		CurrentHeight:   int32(s.CurrentHeight),
+		CurrentHeaders:  int32(s.CurrentHeaders),
+		ClaimBoundary:   int32(s.ClaimBoundary),
+		Simulated:       s.Simulated,
+		HasFundsToClaim: s.HasFundsToClaim,
+		ShowCountdown:   s.ShowCountdown,
+		Claims:          claims,
+	}), nil
+}
+
 // GetEnforcerBlockchainInfo is a thin compatibility shim over the new
 // GetSyncStatus path. Frontends should migrate to GetSyncStatus directly.
 func (h *Handler) GetEnforcerBlockchainInfo(ctx context.Context, req *connect.Request[pb.GetEnforcerBlockchainInfoRequest]) (*connect.Response[pb.GetEnforcerBlockchainInfoResponse], error) {

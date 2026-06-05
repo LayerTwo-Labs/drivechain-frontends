@@ -21,6 +21,7 @@ import 'package:bitwindow/pages/merchants/chain_merchants_dialog.dart';
 import 'package:bitwindow/pages/overview_page.dart';
 import 'package:bitwindow/pages/wallet/bitcoin_uri_dialog.dart';
 import 'package:bitwindow/providers/transactions_provider.dart';
+import 'package:bitwindow/widgets/fork_countdown_timer.dart';
 import 'package:bitwindow/widgets/proof_of_funds_modal.dart';
 import 'package:bitwindow/widgets/reset_button.dart';
 import 'package:bitwindow/providers/bitwindow_settings_provider.dart';
@@ -1099,7 +1100,9 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
                       ),
                       body: Column(
                         children: [
-                          Expanded(child: child),
+                          Expanded(
+                            child: ForkCountdownHeader(child: child),
+                          ),
                           const StatusBar(),
                         ],
                       ),

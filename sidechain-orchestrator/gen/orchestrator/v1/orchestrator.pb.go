@@ -3112,6 +3112,302 @@ func (x *CoreRawCallResponse) GetResultJson() string {
 	return ""
 }
 
+type GetForkStatusRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetForkStatusRequest) Reset() {
+	*x = GetForkStatusRequest{}
+	mi := &file_orchestrator_v1_orchestrator_proto_msgTypes[51]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetForkStatusRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetForkStatusRequest) ProtoMessage() {}
+
+func (x *GetForkStatusRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_orchestrator_v1_orchestrator_proto_msgTypes[51]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetForkStatusRequest.ProtoReflect.Descriptor instead.
+func (*GetForkStatusRequest) Descriptor() ([]byte, []int) {
+	return file_orchestrator_v1_orchestrator_proto_rawDescGZIP(), []int{51}
+}
+
+// Canonical fork snapshot produced by the orchestrator's single ForkEngine.
+// The frontend renders this verbatim — it does no fork math of its own.
+type GetForkStatusResponse struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Next fork height (countdown target). Fixed per network, or the next
+	// 144-block boundary on signet's simulated daily fork.
+	ForkHeight int32 `protobuf:"varint,1,opt,name=fork_height,json=forkHeight,proto3" json:"fork_height,omitempty"`
+	// Current mainchain tip height.
+	CurrentHeight int32 `protobuf:"varint,2,opt,name=current_height,json=currentHeight,proto3" json:"current_height,omitempty"`
+	// Current mainchain header height. Runs ahead of `current_height` during
+	// sync; the time-to-fork countdown is driven off this.
+	CurrentHeaders int32 `protobuf:"varint,4,opt,name=current_headers,json=currentHeaders,proto3" json:"current_headers,omitempty"`
+	// Coins confirmed at/before this height are claimable. Equals fork_height on
+	// fixed-height networks; the last 144-boundary on signet.
+	ClaimBoundary int32 `protobuf:"varint,5,opt,name=claim_boundary,json=claimBoundary,proto3" json:"claim_boundary,omitempty"`
+	// True on signet, where the fork recurs every 144 blocks.
+	Simulated bool `protobuf:"varint,6,opt,name=simulated,proto3" json:"simulated,omitempty"`
+	// Any wallet holds un-swept pre-fork coins.
+	HasFundsToClaim bool `protobuf:"varint,7,opt,name=has_funds_to_claim,json=hasFundsToClaim,proto3" json:"has_funds_to_claim,omitempty"`
+	// Whether to show the next-fork countdown. False while coins are unclaimed
+	// (claim-before-countdown).
+	ShowCountdown bool `protobuf:"varint,8,opt,name=show_countdown,json=showCountdown,proto3" json:"show_countdown,omitempty"`
+	// Per-wallet claimable coins, with the exact UTXOs the sweep spends.
+	Claims        []*ForkWalletClaim `protobuf:"bytes,9,rep,name=claims,proto3" json:"claims,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetForkStatusResponse) Reset() {
+	*x = GetForkStatusResponse{}
+	mi := &file_orchestrator_v1_orchestrator_proto_msgTypes[52]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetForkStatusResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetForkStatusResponse) ProtoMessage() {}
+
+func (x *GetForkStatusResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_orchestrator_v1_orchestrator_proto_msgTypes[52]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetForkStatusResponse.ProtoReflect.Descriptor instead.
+func (*GetForkStatusResponse) Descriptor() ([]byte, []int) {
+	return file_orchestrator_v1_orchestrator_proto_rawDescGZIP(), []int{52}
+}
+
+func (x *GetForkStatusResponse) GetForkHeight() int32 {
+	if x != nil {
+		return x.ForkHeight
+	}
+	return 0
+}
+
+func (x *GetForkStatusResponse) GetCurrentHeight() int32 {
+	if x != nil {
+		return x.CurrentHeight
+	}
+	return 0
+}
+
+func (x *GetForkStatusResponse) GetCurrentHeaders() int32 {
+	if x != nil {
+		return x.CurrentHeaders
+	}
+	return 0
+}
+
+func (x *GetForkStatusResponse) GetClaimBoundary() int32 {
+	if x != nil {
+		return x.ClaimBoundary
+	}
+	return 0
+}
+
+func (x *GetForkStatusResponse) GetSimulated() bool {
+	if x != nil {
+		return x.Simulated
+	}
+	return false
+}
+
+func (x *GetForkStatusResponse) GetHasFundsToClaim() bool {
+	if x != nil {
+		return x.HasFundsToClaim
+	}
+	return false
+}
+
+func (x *GetForkStatusResponse) GetShowCountdown() bool {
+	if x != nil {
+		return x.ShowCountdown
+	}
+	return false
+}
+
+func (x *GetForkStatusResponse) GetClaims() []*ForkWalletClaim {
+	if x != nil {
+		return x.Claims
+	}
+	return nil
+}
+
+type ForkWalletClaim struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	WalletId      string                 `protobuf:"bytes,1,opt,name=wallet_id,json=walletId,proto3" json:"wallet_id,omitempty"`
+	WalletName    string                 `protobuf:"bytes,2,opt,name=wallet_name,json=walletName,proto3" json:"wallet_name,omitempty"`
+	ClaimableSats uint64                 `protobuf:"varint,3,opt,name=claimable_sats,json=claimableSats,proto3" json:"claimable_sats,omitempty"`
+	Utxos         []*ForkClaimUtxo       `protobuf:"bytes,4,rep,name=utxos,proto3" json:"utxos,omitempty"`
+	// False when this wallet's claim can't be replay-protected (enforcer wallet);
+	// such coins are shown but not swept.
+	ReplayProtectable bool `protobuf:"varint,5,opt,name=replay_protectable,json=replayProtectable,proto3" json:"replay_protectable,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
+}
+
+func (x *ForkWalletClaim) Reset() {
+	*x = ForkWalletClaim{}
+	mi := &file_orchestrator_v1_orchestrator_proto_msgTypes[53]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ForkWalletClaim) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ForkWalletClaim) ProtoMessage() {}
+
+func (x *ForkWalletClaim) ProtoReflect() protoreflect.Message {
+	mi := &file_orchestrator_v1_orchestrator_proto_msgTypes[53]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ForkWalletClaim.ProtoReflect.Descriptor instead.
+func (*ForkWalletClaim) Descriptor() ([]byte, []int) {
+	return file_orchestrator_v1_orchestrator_proto_rawDescGZIP(), []int{53}
+}
+
+func (x *ForkWalletClaim) GetWalletId() string {
+	if x != nil {
+		return x.WalletId
+	}
+	return ""
+}
+
+func (x *ForkWalletClaim) GetWalletName() string {
+	if x != nil {
+		return x.WalletName
+	}
+	return ""
+}
+
+func (x *ForkWalletClaim) GetClaimableSats() uint64 {
+	if x != nil {
+		return x.ClaimableSats
+	}
+	return 0
+}
+
+func (x *ForkWalletClaim) GetUtxos() []*ForkClaimUtxo {
+	if x != nil {
+		return x.Utxos
+	}
+	return nil
+}
+
+func (x *ForkWalletClaim) GetReplayProtectable() bool {
+	if x != nil {
+		return x.ReplayProtectable
+	}
+	return false
+}
+
+type ForkClaimUtxo struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Outpoint      string                 `protobuf:"bytes,1,opt,name=outpoint,proto3" json:"outpoint,omitempty"` // "txid:vout"
+	Address       string                 `protobuf:"bytes,2,opt,name=address,proto3" json:"address,omitempty"`
+	Sats          uint64                 `protobuf:"varint,3,opt,name=sats,proto3" json:"sats,omitempty"`
+	Label         string                 `protobuf:"bytes,4,opt,name=label,proto3" json:"label,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ForkClaimUtxo) Reset() {
+	*x = ForkClaimUtxo{}
+	mi := &file_orchestrator_v1_orchestrator_proto_msgTypes[54]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ForkClaimUtxo) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ForkClaimUtxo) ProtoMessage() {}
+
+func (x *ForkClaimUtxo) ProtoReflect() protoreflect.Message {
+	mi := &file_orchestrator_v1_orchestrator_proto_msgTypes[54]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ForkClaimUtxo.ProtoReflect.Descriptor instead.
+func (*ForkClaimUtxo) Descriptor() ([]byte, []int) {
+	return file_orchestrator_v1_orchestrator_proto_rawDescGZIP(), []int{54}
+}
+
+func (x *ForkClaimUtxo) GetOutpoint() string {
+	if x != nil {
+		return x.Outpoint
+	}
+	return ""
+}
+
+func (x *ForkClaimUtxo) GetAddress() string {
+	if x != nil {
+		return x.Address
+	}
+	return ""
+}
+
+func (x *ForkClaimUtxo) GetSats() uint64 {
+	if x != nil {
+		return x.Sats
+	}
+	return 0
+}
+
+func (x *ForkClaimUtxo) GetLabel() string {
+	if x != nil {
+		return x.Label
+	}
+	return ""
+}
+
 type ShutdownRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
@@ -3120,7 +3416,7 @@ type ShutdownRequest struct {
 
 func (x *ShutdownRequest) Reset() {
 	*x = ShutdownRequest{}
-	mi := &file_orchestrator_v1_orchestrator_proto_msgTypes[51]
+	mi := &file_orchestrator_v1_orchestrator_proto_msgTypes[55]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3132,7 +3428,7 @@ func (x *ShutdownRequest) String() string {
 func (*ShutdownRequest) ProtoMessage() {}
 
 func (x *ShutdownRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_orchestrator_v1_orchestrator_proto_msgTypes[51]
+	mi := &file_orchestrator_v1_orchestrator_proto_msgTypes[55]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3145,7 +3441,7 @@ func (x *ShutdownRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ShutdownRequest.ProtoReflect.Descriptor instead.
 func (*ShutdownRequest) Descriptor() ([]byte, []int) {
-	return file_orchestrator_v1_orchestrator_proto_rawDescGZIP(), []int{51}
+	return file_orchestrator_v1_orchestrator_proto_rawDescGZIP(), []int{55}
 }
 
 type ShutdownResponse struct {
@@ -3156,7 +3452,7 @@ type ShutdownResponse struct {
 
 func (x *ShutdownResponse) Reset() {
 	*x = ShutdownResponse{}
-	mi := &file_orchestrator_v1_orchestrator_proto_msgTypes[52]
+	mi := &file_orchestrator_v1_orchestrator_proto_msgTypes[56]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3168,7 +3464,7 @@ func (x *ShutdownResponse) String() string {
 func (*ShutdownResponse) ProtoMessage() {}
 
 func (x *ShutdownResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_orchestrator_v1_orchestrator_proto_msgTypes[52]
+	mi := &file_orchestrator_v1_orchestrator_proto_msgTypes[56]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3181,7 +3477,7 @@ func (x *ShutdownResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ShutdownResponse.ProtoReflect.Descriptor instead.
 func (*ShutdownResponse) Descriptor() ([]byte, []int) {
-	return file_orchestrator_v1_orchestrator_proto_rawDescGZIP(), []int{52}
+	return file_orchestrator_v1_orchestrator_proto_rawDescGZIP(), []int{56}
 }
 
 var File_orchestrator_v1_orchestrator_proto protoreflect.FileDescriptor
@@ -3392,7 +3688,30 @@ const file_orchestrator_v1_orchestrator_proto_rawDesc = "" +
 	"\x06wallet\x18\x03 \x01(\tR\x06wallet\"6\n" +
 	"\x13CoreRawCallResponse\x12\x1f\n" +
 	"\vresult_json\x18\x01 \x01(\tR\n" +
-	"resultJson\"\x11\n" +
+	"resultJson\"\x16\n" +
+	"\x14GetForkStatusRequest\"\xe1\x02\n" +
+	"\x15GetForkStatusResponse\x12\x1f\n" +
+	"\vfork_height\x18\x01 \x01(\x05R\n" +
+	"forkHeight\x12%\n" +
+	"\x0ecurrent_height\x18\x02 \x01(\x05R\rcurrentHeight\x12'\n" +
+	"\x0fcurrent_headers\x18\x04 \x01(\x05R\x0ecurrentHeaders\x12%\n" +
+	"\x0eclaim_boundary\x18\x05 \x01(\x05R\rclaimBoundary\x12\x1c\n" +
+	"\tsimulated\x18\x06 \x01(\bR\tsimulated\x12+\n" +
+	"\x12has_funds_to_claim\x18\a \x01(\bR\x0fhasFundsToClaim\x12%\n" +
+	"\x0eshow_countdown\x18\b \x01(\bR\rshowCountdown\x128\n" +
+	"\x06claims\x18\t \x03(\v2 .orchestrator.v1.ForkWalletClaimR\x06claimsJ\x04\b\x03\x10\x04\"\xdb\x01\n" +
+	"\x0fForkWalletClaim\x12\x1b\n" +
+	"\twallet_id\x18\x01 \x01(\tR\bwalletId\x12\x1f\n" +
+	"\vwallet_name\x18\x02 \x01(\tR\n" +
+	"walletName\x12%\n" +
+	"\x0eclaimable_sats\x18\x03 \x01(\x04R\rclaimableSats\x124\n" +
+	"\x05utxos\x18\x04 \x03(\v2\x1e.orchestrator.v1.ForkClaimUtxoR\x05utxos\x12-\n" +
+	"\x12replay_protectable\x18\x05 \x01(\bR\x11replayProtectable\"o\n" +
+	"\rForkClaimUtxo\x12\x1a\n" +
+	"\boutpoint\x18\x01 \x01(\tR\boutpoint\x12\x18\n" +
+	"\aaddress\x18\x02 \x01(\tR\aaddress\x12\x12\n" +
+	"\x04sats\x18\x03 \x01(\x04R\x04sats\x12\x14\n" +
+	"\x05label\x18\x04 \x01(\tR\x05label\"\x11\n" +
 	"\x0fShutdownRequest\"\x12\n" +
 	"\x10ShutdownResponse*\xf7\x01\n" +
 	"\rSidechainType\x12\x1e\n" +
@@ -3427,7 +3746,7 @@ const file_orchestrator_v1_orchestrator_proto_rawDesc = "" +
 	"\x14DELETION_TYPE_WALLET\x10\x02\x12\x1a\n" +
 	"\x16DELETION_TYPE_SETTINGS\x10\x03\x12\x16\n" +
 	"\x12DELETION_TYPE_LOGS\x10\x04\x12\x1a\n" +
-	"\x16DELETION_TYPE_SOFTWARE\x10\x052\x97\x12\n" +
+	"\x16DELETION_TYPE_SOFTWARE\x10\x052\xf7\x12\n" +
 	"\x13OrchestratorService\x12[\n" +
 	"\fListBinaries\x12$.orchestrator.v1.ListBinariesRequest\x1a%.orchestrator.v1.ListBinariesResponse\x12d\n" +
 	"\x0fGetBinaryStatus\x12'.orchestrator.v1.GetBinaryStatusRequest\x1a(.orchestrator.v1.GetBinaryStatusResponse\x12g\n" +
@@ -3453,7 +3772,8 @@ const file_orchestrator_v1_orchestrator_proto_rawDesc = "" +
 	"\x13GatherFilesToDelete\x12+.orchestrator.v1.GatherFilesToDeleteRequest\x1a,.orchestrator.v1.GatherFilesToDeleteResponse\x12Z\n" +
 	"\vDeleteFiles\x12#.orchestrator.v1.DeleteFilesRequest\x1a$.orchestrator.v1.DeleteFilesResponse0\x01\x12m\n" +
 	"\x12GetCoreMempoolInfo\x12*.orchestrator.v1.GetCoreMempoolInfoRequest\x1a+.orchestrator.v1.GetCoreMempoolInfoResponse\x12X\n" +
-	"\vCoreRawCall\x12#.orchestrator.v1.CoreRawCallRequest\x1a$.orchestrator.v1.CoreRawCallResponseB\xe2\x01\n" +
+	"\vCoreRawCall\x12#.orchestrator.v1.CoreRawCallRequest\x1a$.orchestrator.v1.CoreRawCallResponse\x12^\n" +
+	"\rGetForkStatus\x12%.orchestrator.v1.GetForkStatusRequest\x1a&.orchestrator.v1.GetForkStatusResponseB\xe2\x01\n" +
 	"\x13com.orchestrator.v1B\x11OrchestratorProtoP\x01Z[github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/orchestrator/v1;orchestratorv1\xa2\x02\x03OXX\xaa\x02\x0fOrchestrator.V1\xca\x02\x0fOrchestrator\\V1\xe2\x02\x1bOrchestrator\\V1\\GPBMetadata\xea\x02\x10Orchestrator::V1b\x06proto3"
 
 var (
@@ -3469,7 +3789,7 @@ func file_orchestrator_v1_orchestrator_proto_rawDescGZIP() []byte {
 }
 
 var file_orchestrator_v1_orchestrator_proto_enumTypes = make([]protoimpl.EnumInfo, 3)
-var file_orchestrator_v1_orchestrator_proto_msgTypes = make([]protoimpl.MessageInfo, 55)
+var file_orchestrator_v1_orchestrator_proto_msgTypes = make([]protoimpl.MessageInfo, 59)
 var file_orchestrator_v1_orchestrator_proto_goTypes = []any{
 	(SidechainType)(0),                         // 0: orchestrator.v1.SidechainType
 	(BinaryType)(0),                            // 1: orchestrator.v1.BinaryType
@@ -3525,17 +3845,21 @@ var file_orchestrator_v1_orchestrator_proto_goTypes = []any{
 	(*GetCoreMempoolInfoResponse)(nil),         // 51: orchestrator.v1.GetCoreMempoolInfoResponse
 	(*CoreRawCallRequest)(nil),                 // 52: orchestrator.v1.CoreRawCallRequest
 	(*CoreRawCallResponse)(nil),                // 53: orchestrator.v1.CoreRawCallResponse
-	(*ShutdownRequest)(nil),                    // 54: orchestrator.v1.ShutdownRequest
-	(*ShutdownResponse)(nil),                   // 55: orchestrator.v1.ShutdownResponse
-	nil,                                        // 56: orchestrator.v1.StartBinaryRequest.EnvEntry
-	nil,                                        // 57: orchestrator.v1.StartWithL1Request.TargetEnvEntry
+	(*GetForkStatusRequest)(nil),               // 54: orchestrator.v1.GetForkStatusRequest
+	(*GetForkStatusResponse)(nil),              // 55: orchestrator.v1.GetForkStatusResponse
+	(*ForkWalletClaim)(nil),                    // 56: orchestrator.v1.ForkWalletClaim
+	(*ForkClaimUtxo)(nil),                      // 57: orchestrator.v1.ForkClaimUtxo
+	(*ShutdownRequest)(nil),                    // 58: orchestrator.v1.ShutdownRequest
+	(*ShutdownResponse)(nil),                   // 59: orchestrator.v1.ShutdownResponse
+	nil,                                        // 60: orchestrator.v1.StartBinaryRequest.EnvEntry
+	nil,                                        // 61: orchestrator.v1.StartWithL1Request.TargetEnvEntry
 }
 var file_orchestrator_v1_orchestrator_proto_depIdxs = []int32{
 	4,  // 0: orchestrator.v1.BinaryStatusMsg.startup_logs:type_name -> orchestrator.v1.StartupLogEntryMsg
 	3,  // 1: orchestrator.v1.ListBinariesResponse.binaries:type_name -> orchestrator.v1.BinaryStatusMsg
 	3,  // 2: orchestrator.v1.GetBinaryStatusResponse.status:type_name -> orchestrator.v1.BinaryStatusMsg
-	56, // 3: orchestrator.v1.StartBinaryRequest.env:type_name -> orchestrator.v1.StartBinaryRequest.EnvEntry
-	57, // 4: orchestrator.v1.StartWithL1Request.target_env:type_name -> orchestrator.v1.StartWithL1Request.TargetEnvEntry
+	60, // 3: orchestrator.v1.StartBinaryRequest.env:type_name -> orchestrator.v1.StartBinaryRequest.EnvEntry
+	61, // 4: orchestrator.v1.StartWithL1Request.target_env:type_name -> orchestrator.v1.StartWithL1Request.TargetEnvEntry
 	36, // 5: orchestrator.v1.GetSyncStatusResponse.mainchain:type_name -> orchestrator.v1.ChainSync
 	36, // 6: orchestrator.v1.GetSyncStatusResponse.enforcer:type_name -> orchestrator.v1.ChainSync
 	35, // 7: orchestrator.v1.GetSyncStatusResponse.sidechains:type_name -> orchestrator.v1.SidechainStatus
@@ -3551,57 +3875,61 @@ var file_orchestrator_v1_orchestrator_proto_depIdxs = []int32{
 	2,  // 17: orchestrator.v1.ResetFileInfo.deletion_type:type_name -> orchestrator.v1.DeletionType
 	1,  // 18: orchestrator.v1.ResetFileInfo.binary:type_name -> orchestrator.v1.BinaryType
 	44, // 19: orchestrator.v1.DeleteFilesRequest.items:type_name -> orchestrator.v1.SingleDeletion
-	5,  // 20: orchestrator.v1.OrchestratorService.ListBinaries:input_type -> orchestrator.v1.ListBinariesRequest
-	7,  // 21: orchestrator.v1.OrchestratorService.GetBinaryStatus:input_type -> orchestrator.v1.GetBinaryStatusRequest
-	9,  // 22: orchestrator.v1.OrchestratorService.GetBinaryVersion:input_type -> orchestrator.v1.GetBinaryVersionRequest
-	11, // 23: orchestrator.v1.OrchestratorService.DownloadBinary:input_type -> orchestrator.v1.DownloadBinaryRequest
-	13, // 24: orchestrator.v1.OrchestratorService.StartBinary:input_type -> orchestrator.v1.StartBinaryRequest
-	15, // 25: orchestrator.v1.OrchestratorService.StopBinary:input_type -> orchestrator.v1.StopBinaryRequest
-	17, // 26: orchestrator.v1.OrchestratorService.StreamLogs:input_type -> orchestrator.v1.StreamLogsRequest
-	19, // 27: orchestrator.v1.OrchestratorService.StartWithL1:input_type -> orchestrator.v1.StartWithL1Request
-	21, // 28: orchestrator.v1.OrchestratorService.RestartDaemon:input_type -> orchestrator.v1.RestartDaemonRequest
-	23, // 29: orchestrator.v1.OrchestratorService.RestartL1:input_type -> orchestrator.v1.RestartL1Request
-	25, // 30: orchestrator.v1.OrchestratorService.ShutdownAll:input_type -> orchestrator.v1.ShutdownAllRequest
-	54, // 31: orchestrator.v1.OrchestratorService.Shutdown:input_type -> orchestrator.v1.ShutdownRequest
-	27, // 32: orchestrator.v1.OrchestratorService.GetBTCPrice:input_type -> orchestrator.v1.GetBTCPriceRequest
-	29, // 33: orchestrator.v1.OrchestratorService.GetMainchainBlockchainInfo:input_type -> orchestrator.v1.GetMainchainBlockchainInfoRequest
-	31, // 34: orchestrator.v1.OrchestratorService.GetEnforcerBlockchainInfo:input_type -> orchestrator.v1.GetEnforcerBlockchainInfoRequest
-	33, // 35: orchestrator.v1.OrchestratorService.GetSyncStatus:input_type -> orchestrator.v1.GetSyncStatusRequest
-	37, // 36: orchestrator.v1.OrchestratorService.GetDownloadStatus:input_type -> orchestrator.v1.GetDownloadStatusRequest
-	40, // 37: orchestrator.v1.OrchestratorService.GetMainchainBalance:input_type -> orchestrator.v1.GetMainchainBalanceRequest
-	42, // 38: orchestrator.v1.OrchestratorService.GetSidechainBalance:input_type -> orchestrator.v1.GetSidechainBalanceRequest
-	45, // 39: orchestrator.v1.OrchestratorService.GatherFilesToDelete:input_type -> orchestrator.v1.GatherFilesToDeleteRequest
-	48, // 40: orchestrator.v1.OrchestratorService.DeleteFiles:input_type -> orchestrator.v1.DeleteFilesRequest
-	50, // 41: orchestrator.v1.OrchestratorService.GetCoreMempoolInfo:input_type -> orchestrator.v1.GetCoreMempoolInfoRequest
-	52, // 42: orchestrator.v1.OrchestratorService.CoreRawCall:input_type -> orchestrator.v1.CoreRawCallRequest
-	6,  // 43: orchestrator.v1.OrchestratorService.ListBinaries:output_type -> orchestrator.v1.ListBinariesResponse
-	8,  // 44: orchestrator.v1.OrchestratorService.GetBinaryStatus:output_type -> orchestrator.v1.GetBinaryStatusResponse
-	10, // 45: orchestrator.v1.OrchestratorService.GetBinaryVersion:output_type -> orchestrator.v1.GetBinaryVersionResponse
-	12, // 46: orchestrator.v1.OrchestratorService.DownloadBinary:output_type -> orchestrator.v1.DownloadBinaryResponse
-	14, // 47: orchestrator.v1.OrchestratorService.StartBinary:output_type -> orchestrator.v1.StartBinaryResponse
-	16, // 48: orchestrator.v1.OrchestratorService.StopBinary:output_type -> orchestrator.v1.StopBinaryResponse
-	18, // 49: orchestrator.v1.OrchestratorService.StreamLogs:output_type -> orchestrator.v1.StreamLogsResponse
-	20, // 50: orchestrator.v1.OrchestratorService.StartWithL1:output_type -> orchestrator.v1.StartWithL1Response
-	22, // 51: orchestrator.v1.OrchestratorService.RestartDaemon:output_type -> orchestrator.v1.RestartDaemonResponse
-	24, // 52: orchestrator.v1.OrchestratorService.RestartL1:output_type -> orchestrator.v1.RestartL1Response
-	26, // 53: orchestrator.v1.OrchestratorService.ShutdownAll:output_type -> orchestrator.v1.ShutdownAllResponse
-	55, // 54: orchestrator.v1.OrchestratorService.Shutdown:output_type -> orchestrator.v1.ShutdownResponse
-	28, // 55: orchestrator.v1.OrchestratorService.GetBTCPrice:output_type -> orchestrator.v1.GetBTCPriceResponse
-	30, // 56: orchestrator.v1.OrchestratorService.GetMainchainBlockchainInfo:output_type -> orchestrator.v1.GetMainchainBlockchainInfoResponse
-	32, // 57: orchestrator.v1.OrchestratorService.GetEnforcerBlockchainInfo:output_type -> orchestrator.v1.GetEnforcerBlockchainInfoResponse
-	34, // 58: orchestrator.v1.OrchestratorService.GetSyncStatus:output_type -> orchestrator.v1.GetSyncStatusResponse
-	38, // 59: orchestrator.v1.OrchestratorService.GetDownloadStatus:output_type -> orchestrator.v1.GetDownloadStatusResponse
-	41, // 60: orchestrator.v1.OrchestratorService.GetMainchainBalance:output_type -> orchestrator.v1.GetMainchainBalanceResponse
-	43, // 61: orchestrator.v1.OrchestratorService.GetSidechainBalance:output_type -> orchestrator.v1.GetSidechainBalanceResponse
-	46, // 62: orchestrator.v1.OrchestratorService.GatherFilesToDelete:output_type -> orchestrator.v1.GatherFilesToDeleteResponse
-	49, // 63: orchestrator.v1.OrchestratorService.DeleteFiles:output_type -> orchestrator.v1.DeleteFilesResponse
-	51, // 64: orchestrator.v1.OrchestratorService.GetCoreMempoolInfo:output_type -> orchestrator.v1.GetCoreMempoolInfoResponse
-	53, // 65: orchestrator.v1.OrchestratorService.CoreRawCall:output_type -> orchestrator.v1.CoreRawCallResponse
-	43, // [43:66] is the sub-list for method output_type
-	20, // [20:43] is the sub-list for method input_type
-	20, // [20:20] is the sub-list for extension type_name
-	20, // [20:20] is the sub-list for extension extendee
-	0,  // [0:20] is the sub-list for field type_name
+	56, // 20: orchestrator.v1.GetForkStatusResponse.claims:type_name -> orchestrator.v1.ForkWalletClaim
+	57, // 21: orchestrator.v1.ForkWalletClaim.utxos:type_name -> orchestrator.v1.ForkClaimUtxo
+	5,  // 22: orchestrator.v1.OrchestratorService.ListBinaries:input_type -> orchestrator.v1.ListBinariesRequest
+	7,  // 23: orchestrator.v1.OrchestratorService.GetBinaryStatus:input_type -> orchestrator.v1.GetBinaryStatusRequest
+	9,  // 24: orchestrator.v1.OrchestratorService.GetBinaryVersion:input_type -> orchestrator.v1.GetBinaryVersionRequest
+	11, // 25: orchestrator.v1.OrchestratorService.DownloadBinary:input_type -> orchestrator.v1.DownloadBinaryRequest
+	13, // 26: orchestrator.v1.OrchestratorService.StartBinary:input_type -> orchestrator.v1.StartBinaryRequest
+	15, // 27: orchestrator.v1.OrchestratorService.StopBinary:input_type -> orchestrator.v1.StopBinaryRequest
+	17, // 28: orchestrator.v1.OrchestratorService.StreamLogs:input_type -> orchestrator.v1.StreamLogsRequest
+	19, // 29: orchestrator.v1.OrchestratorService.StartWithL1:input_type -> orchestrator.v1.StartWithL1Request
+	21, // 30: orchestrator.v1.OrchestratorService.RestartDaemon:input_type -> orchestrator.v1.RestartDaemonRequest
+	23, // 31: orchestrator.v1.OrchestratorService.RestartL1:input_type -> orchestrator.v1.RestartL1Request
+	25, // 32: orchestrator.v1.OrchestratorService.ShutdownAll:input_type -> orchestrator.v1.ShutdownAllRequest
+	58, // 33: orchestrator.v1.OrchestratorService.Shutdown:input_type -> orchestrator.v1.ShutdownRequest
+	27, // 34: orchestrator.v1.OrchestratorService.GetBTCPrice:input_type -> orchestrator.v1.GetBTCPriceRequest
+	29, // 35: orchestrator.v1.OrchestratorService.GetMainchainBlockchainInfo:input_type -> orchestrator.v1.GetMainchainBlockchainInfoRequest
+	31, // 36: orchestrator.v1.OrchestratorService.GetEnforcerBlockchainInfo:input_type -> orchestrator.v1.GetEnforcerBlockchainInfoRequest
+	33, // 37: orchestrator.v1.OrchestratorService.GetSyncStatus:input_type -> orchestrator.v1.GetSyncStatusRequest
+	37, // 38: orchestrator.v1.OrchestratorService.GetDownloadStatus:input_type -> orchestrator.v1.GetDownloadStatusRequest
+	40, // 39: orchestrator.v1.OrchestratorService.GetMainchainBalance:input_type -> orchestrator.v1.GetMainchainBalanceRequest
+	42, // 40: orchestrator.v1.OrchestratorService.GetSidechainBalance:input_type -> orchestrator.v1.GetSidechainBalanceRequest
+	45, // 41: orchestrator.v1.OrchestratorService.GatherFilesToDelete:input_type -> orchestrator.v1.GatherFilesToDeleteRequest
+	48, // 42: orchestrator.v1.OrchestratorService.DeleteFiles:input_type -> orchestrator.v1.DeleteFilesRequest
+	50, // 43: orchestrator.v1.OrchestratorService.GetCoreMempoolInfo:input_type -> orchestrator.v1.GetCoreMempoolInfoRequest
+	52, // 44: orchestrator.v1.OrchestratorService.CoreRawCall:input_type -> orchestrator.v1.CoreRawCallRequest
+	54, // 45: orchestrator.v1.OrchestratorService.GetForkStatus:input_type -> orchestrator.v1.GetForkStatusRequest
+	6,  // 46: orchestrator.v1.OrchestratorService.ListBinaries:output_type -> orchestrator.v1.ListBinariesResponse
+	8,  // 47: orchestrator.v1.OrchestratorService.GetBinaryStatus:output_type -> orchestrator.v1.GetBinaryStatusResponse
+	10, // 48: orchestrator.v1.OrchestratorService.GetBinaryVersion:output_type -> orchestrator.v1.GetBinaryVersionResponse
+	12, // 49: orchestrator.v1.OrchestratorService.DownloadBinary:output_type -> orchestrator.v1.DownloadBinaryResponse
+	14, // 50: orchestrator.v1.OrchestratorService.StartBinary:output_type -> orchestrator.v1.StartBinaryResponse
+	16, // 51: orchestrator.v1.OrchestratorService.StopBinary:output_type -> orchestrator.v1.StopBinaryResponse
+	18, // 52: orchestrator.v1.OrchestratorService.StreamLogs:output_type -> orchestrator.v1.StreamLogsResponse
+	20, // 53: orchestrator.v1.OrchestratorService.StartWithL1:output_type -> orchestrator.v1.StartWithL1Response
+	22, // 54: orchestrator.v1.OrchestratorService.RestartDaemon:output_type -> orchestrator.v1.RestartDaemonResponse
+	24, // 55: orchestrator.v1.OrchestratorService.RestartL1:output_type -> orchestrator.v1.RestartL1Response
+	26, // 56: orchestrator.v1.OrchestratorService.ShutdownAll:output_type -> orchestrator.v1.ShutdownAllResponse
+	59, // 57: orchestrator.v1.OrchestratorService.Shutdown:output_type -> orchestrator.v1.ShutdownResponse
+	28, // 58: orchestrator.v1.OrchestratorService.GetBTCPrice:output_type -> orchestrator.v1.GetBTCPriceResponse
+	30, // 59: orchestrator.v1.OrchestratorService.GetMainchainBlockchainInfo:output_type -> orchestrator.v1.GetMainchainBlockchainInfoResponse
+	32, // 60: orchestrator.v1.OrchestratorService.GetEnforcerBlockchainInfo:output_type -> orchestrator.v1.GetEnforcerBlockchainInfoResponse
+	34, // 61: orchestrator.v1.OrchestratorService.GetSyncStatus:output_type -> orchestrator.v1.GetSyncStatusResponse
+	38, // 62: orchestrator.v1.OrchestratorService.GetDownloadStatus:output_type -> orchestrator.v1.GetDownloadStatusResponse
+	41, // 63: orchestrator.v1.OrchestratorService.GetMainchainBalance:output_type -> orchestrator.v1.GetMainchainBalanceResponse
+	43, // 64: orchestrator.v1.OrchestratorService.GetSidechainBalance:output_type -> orchestrator.v1.GetSidechainBalanceResponse
+	46, // 65: orchestrator.v1.OrchestratorService.GatherFilesToDelete:output_type -> orchestrator.v1.GatherFilesToDeleteResponse
+	49, // 66: orchestrator.v1.OrchestratorService.DeleteFiles:output_type -> orchestrator.v1.DeleteFilesResponse
+	51, // 67: orchestrator.v1.OrchestratorService.GetCoreMempoolInfo:output_type -> orchestrator.v1.GetCoreMempoolInfoResponse
+	53, // 68: orchestrator.v1.OrchestratorService.CoreRawCall:output_type -> orchestrator.v1.CoreRawCallResponse
+	55, // 69: orchestrator.v1.OrchestratorService.GetForkStatus:output_type -> orchestrator.v1.GetForkStatusResponse
+	46, // [46:70] is the sub-list for method output_type
+	22, // [22:46] is the sub-list for method input_type
+	22, // [22:22] is the sub-list for extension type_name
+	22, // [22:22] is the sub-list for extension extendee
+	0,  // [0:22] is the sub-list for field type_name
 }
 
 func init() { file_orchestrator_v1_orchestrator_proto_init() }
@@ -3615,7 +3943,7 @@ func file_orchestrator_v1_orchestrator_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_orchestrator_v1_orchestrator_proto_rawDesc), len(file_orchestrator_v1_orchestrator_proto_rawDesc)),
 			NumEnums:      3,
-			NumMessages:   55,
+			NumMessages:   59,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

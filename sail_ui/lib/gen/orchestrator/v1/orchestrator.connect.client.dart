@@ -456,4 +456,28 @@ extension type OrchestratorServiceClient (connect.Transport _transport) {
       onTrailer: onTrailer,
     );
   }
+
+  /// ─── eCash fork ───────────────────────────────────────────────────────────
+  /// Report where the mainchain tip sits relative to the eCash fork height.
+  /// The orchestrator is the single source of truth for the fork height; the
+  /// frontend renders "fork mode" (the claim card) off fork_active. Per-wallet
+  /// pre-fork coin detection and the sweep itself stay in the frontend via the
+  /// existing WalletManagerService (listUnspent / sendTransaction), one call
+  /// per wallet — this RPC only supplies the height.
+  Future<orchestratorv1orchestrator.GetForkStatusResponse> getForkStatus(
+    orchestratorv1orchestrator.GetForkStatusRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.OrchestratorService.getForkStatus,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
 }
