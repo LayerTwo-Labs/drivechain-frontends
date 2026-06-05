@@ -32,9 +32,9 @@ func makeBitcoindCoreConfig(baseURL string) BinaryConfig {
 		IsBitcoinCore:  true,
 		DownloadSource: DownloadSourceDirect,
 		Variants: map[string]CoreVariantSpec{
-			"core":    mkVariant("core", "bitcoin", []string{"signet", "testnet", "regtest"}),
+			"core":    mkVariant("core", "bitcoin", []string{"mainnet", "signet", "testnet", "regtest"}),
 			"patched": mkVariant("patched", "drivechain-patched", []string{"mainnet", "signet", "testnet", "regtest", "forknet"}),
-			"knots":   mkVariant("knots", "knots", []string{"signet", "testnet", "regtest"}),
+			"knots":   mkVariant("knots", "knots", []string{"mainnet", "signet", "testnet", "regtest"}),
 		},
 	}
 }
@@ -65,7 +65,7 @@ func TestFilterVariantsForNetwork(t *testing.T) {
 	cfg := makeBitcoindCoreConfig("http://example/").Variants
 
 	mainnet := variantIDs(FilterVariantsForNetwork(cfg, "mainnet"))
-	assert.ElementsMatch(t, []string{"patched"}, mainnet)
+	assert.ElementsMatch(t, []string{"core", "patched", "knots"}, mainnet)
 
 	signet := variantIDs(FilterVariantsForNetwork(cfg, "signet"))
 	assert.ElementsMatch(t, []string{"core", "patched", "knots"}, signet)
@@ -109,6 +109,8 @@ func TestParseConfigJSON_BitcoincoreVariants(t *testing.T) {
 
 	assert.True(t, core.Variants["patched"].AvailableOn("forknet"))
 	assert.True(t, core.Variants["patched"].AvailableOn("mainnet"))
+	assert.True(t, core.Variants["core"].AvailableOn("mainnet"))
+	assert.True(t, core.Variants["knots"].AvailableOn("mainnet"))
 	assert.True(t, core.Variants["core"].AvailableOn("signet"))
 	assert.True(t, core.Variants["knots"].AvailableOn("signet"))
 	assert.False(t, core.Variants["core"].AvailableOn("forknet"))
@@ -201,9 +203,8 @@ func TestOrchestrator_ListCoreVariants(t *testing.T) {
 		want    []string
 	}{
 		// "patched" (drivechain.info L1-bitcoin-patched-latest) is available on
-		// every chain — including mainnet — so the dropdown always has at least
-		// one option.
-		{"mainnet", []string{"patched"}},
+		// every chain. core + knots are available everywhere except forknet.
+		{"mainnet", []string{"core", "knots", "patched"}},
 		{"signet", []string{"core", "knots", "patched"}},
 		{"testnet", []string{"core", "knots", "patched"}},
 		{"regtest", []string{"core", "knots", "patched"}},
