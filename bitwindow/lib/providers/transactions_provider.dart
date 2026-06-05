@@ -108,7 +108,11 @@ class TransactionProvider extends ChangeNotifier {
                     note: '',
                     confirmationTime: Confirmation(
                       height: tx.confirmations,
-                      timestamp: Timestamp(seconds: tx.blockTime),
+                      // Unconfirmed txs have blockTime 0, which would sink them
+                      // to the bottom of the list (off-screen) until a block
+                      // lands. Fall back to the wallet tx time so pending txs
+                      // sort to the top and show immediately.
+                      timestamp: Timestamp(seconds: tx.blockTime != Int64.ZERO ? tx.blockTime : tx.time),
                     ),
                   ),
                 )

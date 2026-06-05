@@ -312,6 +312,9 @@ message SendTransactionRequest {
   int64 fixed_fee_sats = 6;
   // Explicit wallet inputs to spend.
   repeated UnspentOutput required_inputs = 7;
+  // Build an eCash replay-protected transaction (magic version + extra byte so
+  // Bitcoin Core can't deserialize it). Core wallets only.
+  bool replay_protect = 8;
 }
 
 message SendTransactionResponse {

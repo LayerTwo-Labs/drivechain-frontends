@@ -112,6 +112,15 @@ service OrchestratorService {
   // Generic raw bitcoind RPC. Optional `wallet` field routes the call to
   // /wallet/{name} on bitcoind for wallet-scoped RPCs.
   rpc CoreRawCall(CoreRawCallRequest) returns (CoreRawCallResponse);
+
+  // ─── eCash fork ───────────────────────────────────────────────────────────
+  // Report where the mainchain tip sits relative to the eCash fork height.
+  // The orchestrator is the single source of truth for the fork height; the
+  // frontend renders "fork mode" (the claim card) off fork_active. Per-wallet
+  // pre-fork coin detection and the sweep itself stay in the frontend via the
+  // existing WalletManagerService (listUnspent / sendTransaction), one call
+  // per wallet — this RPC only supplies the height.
+  rpc GetForkStatus(GetForkStatusRequest) returns (GetForkStatusResponse);
 }
 
 message BinaryStatusMsg {
@@ -523,6 +532,53 @@ message CoreRawCallRequest {
 message CoreRawCallResponse {
   // JSON-encoded result. Caller decodes to its expected shape.
   string result_json = 1;
+}
+
+// ─── eCash fork ─────────────────────────────────────────────────────────────
+
+message GetForkStatusRequest {}
+
+// Canonical fork snapshot produced by the orchestrator's single ForkEngine.
+// The frontend renders this verbatim — it does no fork math of its own.
+message GetForkStatusResponse {
+  // Next fork height (countdown target). Fixed per network, or the next
+  // 144-block boundary on signet's simulated daily fork.
+  int32 fork_height = 1;
+  // Current mainchain tip height.
+  int32 current_height = 2;
+  reserved 3; // was fork_active
+  // Current mainchain header height. Runs ahead of `current_height` during
+  // sync; the time-to-fork countdown is driven off this.
+  int32 current_headers = 4;
+  // Coins confirmed at/before this height are claimable. Equals fork_height on
+  // fixed-height networks; the last 144-boundary on signet.
+  int32 claim_boundary = 5;
+  // True on signet, where the fork recurs every 144 blocks.
+  bool simulated = 6;
+  // Any wallet holds un-swept pre-fork coins.
+  bool has_funds_to_claim = 7;
+  // Whether to show the next-fork countdown. False while coins are unclaimed
+  // (claim-before-countdown).
+  bool show_countdown = 8;
+  // Per-wallet claimable coins, with the exact UTXOs the sweep spends.
+  repeated ForkWalletClaim claims = 9;
+}
+
+message ForkWalletClaim {
+  string wallet_id = 1;
+  string wallet_name = 2;
+  uint64 claimable_sats = 3;
+  repeated ForkClaimUtxo utxos = 4;
+  // False when this wallet's claim can't be replay-protected (enforcer wallet);
+  // such coins are shown but not swept.
+  bool replay_protectable = 5;
+}
+
+message ForkClaimUtxo {
+  string outpoint = 1; // "txid:vout"
+  string address = 2;
+  uint64 sats = 3;
+  string label = 4;
 }
 
 // ─── Detached-daemon lifecycle ──────────────────────────────────────────────

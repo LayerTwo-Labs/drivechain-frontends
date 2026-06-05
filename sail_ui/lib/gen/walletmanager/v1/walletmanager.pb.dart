@@ -2662,6 +2662,7 @@ class SendTransactionRequest extends $pb.GeneratedMessage {
     $core.String? opReturnHex,
     $fixnum.Int64? fixedFeeSats,
     $core.Iterable<UnspentOutput>? requiredInputs,
+    $core.bool? replayProtect,
   }) {
     final $result = create();
     if (walletId != null) {
@@ -2685,6 +2686,9 @@ class SendTransactionRequest extends $pb.GeneratedMessage {
     if (requiredInputs != null) {
       $result.requiredInputs.addAll(requiredInputs);
     }
+    if (replayProtect != null) {
+      $result.replayProtect = replayProtect;
+    }
     return $result;
   }
   SendTransactionRequest._() : super();
@@ -2699,6 +2703,7 @@ class SendTransactionRequest extends $pb.GeneratedMessage {
     ..aOS(5, _omitFieldNames ? '' : 'opReturnHex')
     ..aInt64(6, _omitFieldNames ? '' : 'fixedFeeSats')
     ..pc<UnspentOutput>(7, _omitFieldNames ? '' : 'requiredInputs', $pb.PbFieldType.PM, subBuilder: UnspentOutput.create)
+    ..aOB(8, _omitFieldNames ? '' : 'replayProtect')
     ..hasRequiredFields = false
   ;
 
@@ -2776,6 +2781,17 @@ class SendTransactionRequest extends $pb.GeneratedMessage {
   /// Explicit wallet inputs to spend.
   @$pb.TagNumber(7)
   $core.List<UnspentOutput> get requiredInputs => $_getList(6);
+
+  /// Build an eCash replay-protected transaction (magic version + extra byte so
+  /// Bitcoin Core can't deserialize it). Core wallets only.
+  @$pb.TagNumber(8)
+  $core.bool get replayProtect => $_getBF(7);
+  @$pb.TagNumber(8)
+  set replayProtect($core.bool v) { $_setBool(7, v); }
+  @$pb.TagNumber(8)
+  $core.bool hasReplayProtect() => $_has(7);
+  @$pb.TagNumber(8)
+  void clearReplayProtect() => clearField(8);
 }
 
 class SendTransactionResponse extends $pb.GeneratedMessage {

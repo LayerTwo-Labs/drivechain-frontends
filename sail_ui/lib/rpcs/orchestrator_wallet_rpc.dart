@@ -167,6 +167,7 @@ class OrchestratorWalletRPC {
     String? opReturnMessage,
     String? opReturnHex,
     List<bwpb.UnspentOutput>? requiredInputs,
+    bool replayProtect = false,
   }) {
     final resolvedOpReturnHex =
         opReturnHex ?? (opReturnMessage == null ? null : _bytesToHex(utf8.encode(opReturnMessage)));
@@ -180,6 +181,7 @@ class OrchestratorWalletRPC {
         opReturnHex: resolvedOpReturnHex ?? '',
         fixedFeeSats: Int64(fixedFeeSats ?? 0),
         requiredInputs: requiredInputs?.map(_mapRequiredInput).toList() ?? [],
+        replayProtect: replayProtect,
       ),
     );
   }

@@ -3502,6 +3502,388 @@ class CoreRawCallResponse extends $pb.GeneratedMessage {
   void clearResultJson() => clearField(1);
 }
 
+class GetForkStatusRequest extends $pb.GeneratedMessage {
+  factory GetForkStatusRequest() => create();
+  GetForkStatusRequest._() : super();
+  factory GetForkStatusRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory GetForkStatusRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'GetForkStatusRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'orchestrator.v1'), createEmptyInstance: create)
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  GetForkStatusRequest clone() => GetForkStatusRequest()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  GetForkStatusRequest copyWith(void Function(GetForkStatusRequest) updates) => super.copyWith((message) => updates(message as GetForkStatusRequest)) as GetForkStatusRequest;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static GetForkStatusRequest create() => GetForkStatusRequest._();
+  GetForkStatusRequest createEmptyInstance() => create();
+  static $pb.PbList<GetForkStatusRequest> createRepeated() => $pb.PbList<GetForkStatusRequest>();
+  @$core.pragma('dart2js:noInline')
+  static GetForkStatusRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<GetForkStatusRequest>(create);
+  static GetForkStatusRequest? _defaultInstance;
+}
+
+/// Canonical fork snapshot produced by the orchestrator's single ForkEngine.
+/// The frontend renders this verbatim — it does no fork math of its own.
+class GetForkStatusResponse extends $pb.GeneratedMessage {
+  factory GetForkStatusResponse({
+    $core.int? forkHeight,
+    $core.int? currentHeight,
+    $core.int? currentHeaders,
+    $core.int? claimBoundary,
+    $core.bool? simulated,
+    $core.bool? hasFundsToClaim,
+    $core.bool? showCountdown,
+    $core.Iterable<ForkWalletClaim>? claims,
+  }) {
+    final $result = create();
+    if (forkHeight != null) {
+      $result.forkHeight = forkHeight;
+    }
+    if (currentHeight != null) {
+      $result.currentHeight = currentHeight;
+    }
+    if (currentHeaders != null) {
+      $result.currentHeaders = currentHeaders;
+    }
+    if (claimBoundary != null) {
+      $result.claimBoundary = claimBoundary;
+    }
+    if (simulated != null) {
+      $result.simulated = simulated;
+    }
+    if (hasFundsToClaim != null) {
+      $result.hasFundsToClaim = hasFundsToClaim;
+    }
+    if (showCountdown != null) {
+      $result.showCountdown = showCountdown;
+    }
+    if (claims != null) {
+      $result.claims.addAll(claims);
+    }
+    return $result;
+  }
+  GetForkStatusResponse._() : super();
+  factory GetForkStatusResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory GetForkStatusResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'GetForkStatusResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'orchestrator.v1'), createEmptyInstance: create)
+    ..a<$core.int>(1, _omitFieldNames ? '' : 'forkHeight', $pb.PbFieldType.O3)
+    ..a<$core.int>(2, _omitFieldNames ? '' : 'currentHeight', $pb.PbFieldType.O3)
+    ..a<$core.int>(4, _omitFieldNames ? '' : 'currentHeaders', $pb.PbFieldType.O3)
+    ..a<$core.int>(5, _omitFieldNames ? '' : 'claimBoundary', $pb.PbFieldType.O3)
+    ..aOB(6, _omitFieldNames ? '' : 'simulated')
+    ..aOB(7, _omitFieldNames ? '' : 'hasFundsToClaim')
+    ..aOB(8, _omitFieldNames ? '' : 'showCountdown')
+    ..pc<ForkWalletClaim>(9, _omitFieldNames ? '' : 'claims', $pb.PbFieldType.PM, subBuilder: ForkWalletClaim.create)
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  GetForkStatusResponse clone() => GetForkStatusResponse()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  GetForkStatusResponse copyWith(void Function(GetForkStatusResponse) updates) => super.copyWith((message) => updates(message as GetForkStatusResponse)) as GetForkStatusResponse;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static GetForkStatusResponse create() => GetForkStatusResponse._();
+  GetForkStatusResponse createEmptyInstance() => create();
+  static $pb.PbList<GetForkStatusResponse> createRepeated() => $pb.PbList<GetForkStatusResponse>();
+  @$core.pragma('dart2js:noInline')
+  static GetForkStatusResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<GetForkStatusResponse>(create);
+  static GetForkStatusResponse? _defaultInstance;
+
+  /// Next fork height (countdown target). Fixed per network, or the next
+  /// 144-block boundary on signet's simulated daily fork.
+  @$pb.TagNumber(1)
+  $core.int get forkHeight => $_getIZ(0);
+  @$pb.TagNumber(1)
+  set forkHeight($core.int v) { $_setSignedInt32(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasForkHeight() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearForkHeight() => clearField(1);
+
+  /// Current mainchain tip height.
+  @$pb.TagNumber(2)
+  $core.int get currentHeight => $_getIZ(1);
+  @$pb.TagNumber(2)
+  set currentHeight($core.int v) { $_setSignedInt32(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasCurrentHeight() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearCurrentHeight() => clearField(2);
+
+  /// Current mainchain header height. Runs ahead of `current_height` during
+  /// sync; the time-to-fork countdown is driven off this.
+  @$pb.TagNumber(4)
+  $core.int get currentHeaders => $_getIZ(2);
+  @$pb.TagNumber(4)
+  set currentHeaders($core.int v) { $_setSignedInt32(2, v); }
+  @$pb.TagNumber(4)
+  $core.bool hasCurrentHeaders() => $_has(2);
+  @$pb.TagNumber(4)
+  void clearCurrentHeaders() => clearField(4);
+
+  /// Coins confirmed at/before this height are claimable. Equals fork_height on
+  /// fixed-height networks; the last 144-boundary on signet.
+  @$pb.TagNumber(5)
+  $core.int get claimBoundary => $_getIZ(3);
+  @$pb.TagNumber(5)
+  set claimBoundary($core.int v) { $_setSignedInt32(3, v); }
+  @$pb.TagNumber(5)
+  $core.bool hasClaimBoundary() => $_has(3);
+  @$pb.TagNumber(5)
+  void clearClaimBoundary() => clearField(5);
+
+  /// True on signet, where the fork recurs every 144 blocks.
+  @$pb.TagNumber(6)
+  $core.bool get simulated => $_getBF(4);
+  @$pb.TagNumber(6)
+  set simulated($core.bool v) { $_setBool(4, v); }
+  @$pb.TagNumber(6)
+  $core.bool hasSimulated() => $_has(4);
+  @$pb.TagNumber(6)
+  void clearSimulated() => clearField(6);
+
+  /// Any wallet holds un-swept pre-fork coins.
+  @$pb.TagNumber(7)
+  $core.bool get hasFundsToClaim => $_getBF(5);
+  @$pb.TagNumber(7)
+  set hasFundsToClaim($core.bool v) { $_setBool(5, v); }
+  @$pb.TagNumber(7)
+  $core.bool hasHasFundsToClaim() => $_has(5);
+  @$pb.TagNumber(7)
+  void clearHasFundsToClaim() => clearField(7);
+
+  /// Whether to show the next-fork countdown. False while coins are unclaimed
+  /// (claim-before-countdown).
+  @$pb.TagNumber(8)
+  $core.bool get showCountdown => $_getBF(6);
+  @$pb.TagNumber(8)
+  set showCountdown($core.bool v) { $_setBool(6, v); }
+  @$pb.TagNumber(8)
+  $core.bool hasShowCountdown() => $_has(6);
+  @$pb.TagNumber(8)
+  void clearShowCountdown() => clearField(8);
+
+  /// Per-wallet claimable coins, with the exact UTXOs the sweep spends.
+  @$pb.TagNumber(9)
+  $core.List<ForkWalletClaim> get claims => $_getList(7);
+}
+
+class ForkWalletClaim extends $pb.GeneratedMessage {
+  factory ForkWalletClaim({
+    $core.String? walletId,
+    $core.String? walletName,
+    $fixnum.Int64? claimableSats,
+    $core.Iterable<ForkClaimUtxo>? utxos,
+    $core.bool? replayProtectable,
+  }) {
+    final $result = create();
+    if (walletId != null) {
+      $result.walletId = walletId;
+    }
+    if (walletName != null) {
+      $result.walletName = walletName;
+    }
+    if (claimableSats != null) {
+      $result.claimableSats = claimableSats;
+    }
+    if (utxos != null) {
+      $result.utxos.addAll(utxos);
+    }
+    if (replayProtectable != null) {
+      $result.replayProtectable = replayProtectable;
+    }
+    return $result;
+  }
+  ForkWalletClaim._() : super();
+  factory ForkWalletClaim.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory ForkWalletClaim.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ForkWalletClaim', package: const $pb.PackageName(_omitMessageNames ? '' : 'orchestrator.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'walletId')
+    ..aOS(2, _omitFieldNames ? '' : 'walletName')
+    ..a<$fixnum.Int64>(3, _omitFieldNames ? '' : 'claimableSats', $pb.PbFieldType.OU6, defaultOrMaker: $fixnum.Int64.ZERO)
+    ..pc<ForkClaimUtxo>(4, _omitFieldNames ? '' : 'utxos', $pb.PbFieldType.PM, subBuilder: ForkClaimUtxo.create)
+    ..aOB(5, _omitFieldNames ? '' : 'replayProtectable')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  ForkWalletClaim clone() => ForkWalletClaim()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  ForkWalletClaim copyWith(void Function(ForkWalletClaim) updates) => super.copyWith((message) => updates(message as ForkWalletClaim)) as ForkWalletClaim;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ForkWalletClaim create() => ForkWalletClaim._();
+  ForkWalletClaim createEmptyInstance() => create();
+  static $pb.PbList<ForkWalletClaim> createRepeated() => $pb.PbList<ForkWalletClaim>();
+  @$core.pragma('dart2js:noInline')
+  static ForkWalletClaim getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<ForkWalletClaim>(create);
+  static ForkWalletClaim? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get walletId => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set walletId($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasWalletId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearWalletId() => clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.String get walletName => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set walletName($core.String v) { $_setString(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasWalletName() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearWalletName() => clearField(2);
+
+  @$pb.TagNumber(3)
+  $fixnum.Int64 get claimableSats => $_getI64(2);
+  @$pb.TagNumber(3)
+  set claimableSats($fixnum.Int64 v) { $_setInt64(2, v); }
+  @$pb.TagNumber(3)
+  $core.bool hasClaimableSats() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearClaimableSats() => clearField(3);
+
+  @$pb.TagNumber(4)
+  $core.List<ForkClaimUtxo> get utxos => $_getList(3);
+
+  /// False when this wallet's claim can't be replay-protected (enforcer wallet);
+  /// such coins are shown but not swept.
+  @$pb.TagNumber(5)
+  $core.bool get replayProtectable => $_getBF(4);
+  @$pb.TagNumber(5)
+  set replayProtectable($core.bool v) { $_setBool(4, v); }
+  @$pb.TagNumber(5)
+  $core.bool hasReplayProtectable() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearReplayProtectable() => clearField(5);
+}
+
+class ForkClaimUtxo extends $pb.GeneratedMessage {
+  factory ForkClaimUtxo({
+    $core.String? outpoint,
+    $core.String? address,
+    $fixnum.Int64? sats,
+    $core.String? label,
+  }) {
+    final $result = create();
+    if (outpoint != null) {
+      $result.outpoint = outpoint;
+    }
+    if (address != null) {
+      $result.address = address;
+    }
+    if (sats != null) {
+      $result.sats = sats;
+    }
+    if (label != null) {
+      $result.label = label;
+    }
+    return $result;
+  }
+  ForkClaimUtxo._() : super();
+  factory ForkClaimUtxo.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory ForkClaimUtxo.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ForkClaimUtxo', package: const $pb.PackageName(_omitMessageNames ? '' : 'orchestrator.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'outpoint')
+    ..aOS(2, _omitFieldNames ? '' : 'address')
+    ..a<$fixnum.Int64>(3, _omitFieldNames ? '' : 'sats', $pb.PbFieldType.OU6, defaultOrMaker: $fixnum.Int64.ZERO)
+    ..aOS(4, _omitFieldNames ? '' : 'label')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  ForkClaimUtxo clone() => ForkClaimUtxo()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  ForkClaimUtxo copyWith(void Function(ForkClaimUtxo) updates) => super.copyWith((message) => updates(message as ForkClaimUtxo)) as ForkClaimUtxo;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ForkClaimUtxo create() => ForkClaimUtxo._();
+  ForkClaimUtxo createEmptyInstance() => create();
+  static $pb.PbList<ForkClaimUtxo> createRepeated() => $pb.PbList<ForkClaimUtxo>();
+  @$core.pragma('dart2js:noInline')
+  static ForkClaimUtxo getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<ForkClaimUtxo>(create);
+  static ForkClaimUtxo? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get outpoint => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set outpoint($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasOutpoint() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearOutpoint() => clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.String get address => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set address($core.String v) { $_setString(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasAddress() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearAddress() => clearField(2);
+
+  @$pb.TagNumber(3)
+  $fixnum.Int64 get sats => $_getI64(2);
+  @$pb.TagNumber(3)
+  set sats($fixnum.Int64 v) { $_setInt64(2, v); }
+  @$pb.TagNumber(3)
+  $core.bool hasSats() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearSats() => clearField(3);
+
+  @$pb.TagNumber(4)
+  $core.String get label => $_getSZ(3);
+  @$pb.TagNumber(4)
+  set label($core.String v) { $_setString(3, v); }
+  @$pb.TagNumber(4)
+  $core.bool hasLabel() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearLabel() => clearField(4);
+}
+
 class ShutdownRequest extends $pb.GeneratedMessage {
   factory ShutdownRequest() => create();
   ShutdownRequest._() : super();
@@ -3638,6 +4020,9 @@ class OrchestratorServiceApi {
   ;
   $async.Future<CoreRawCallResponse> coreRawCall($pb.ClientContext? ctx, CoreRawCallRequest request) =>
     _client.invoke<CoreRawCallResponse>(ctx, 'OrchestratorService', 'CoreRawCall', request, CoreRawCallResponse())
+  ;
+  $async.Future<GetForkStatusResponse> getForkStatus($pb.ClientContext? ctx, GetForkStatusRequest request) =>
+    _client.invoke<GetForkStatusResponse>(ctx, 'OrchestratorService', 'GetForkStatus', request, GetForkStatusResponse())
   ;
 }
 
