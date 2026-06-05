@@ -21,7 +21,6 @@ import 'package:sail_ui/gen/wallet/v1/wallet.pb.dart' as pb;
 import 'package:sail_ui/gen/wallet/v1/wallet.pbserver.dart' hide CoinSelectionStrategy;
 import 'package:sail_ui/sail_ui.dart';
 import 'package:stacked/stacked.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 class SendTab extends ViewModelWidget<SendPageViewModel> {
   const SendTab({super.key});
@@ -588,7 +587,7 @@ class SendPageViewModel extends BaseViewModel {
         title: 'Transaction sent',
         content: txid,
         dialogType: DialogType.info,
-        onPressed: () => launchUrl(Uri.parse(mempoolTxUrl(txid, network))),
+        links: [NotificationLink(text: 'View transaction', url: mempoolTxUrl(txid, network))],
       );
     } catch (error) {
       log.e('Error sending transaction: $error');

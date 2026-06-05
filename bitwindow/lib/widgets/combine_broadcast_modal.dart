@@ -6,7 +6,6 @@ import 'package:flutter/material.dart' show Colors, Dialog, Icon, IconButton, Ic
 import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 class CombineBroadcastModal extends StatefulWidget {
   final Function() onSuccess;
@@ -190,7 +189,7 @@ class _CombineBroadcastModalState extends State<CombineBroadcastModal> {
         title: 'Transaction broadcast',
         content: txid,
         dialogType: DialogType.success,
-        onPressed: () => launchUrl(Uri.parse(mempoolTxUrl(txid, network))),
+        links: [NotificationLink(text: 'View transaction', url: mempoolTxUrl(txid, network))],
       );
       if (mounted) {
         Navigator.of(context).pop();
