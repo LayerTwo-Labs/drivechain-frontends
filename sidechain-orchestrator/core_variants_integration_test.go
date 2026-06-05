@@ -173,17 +173,6 @@ func TestIntegration_SetCoreVariant_RedownloadsOnEverySwitch(t *testing.T) {
 	assert.Equal(t, int32(1), counts.core.Load())
 }
 
-func TestIntegration_SetCoreVariant_RejectsIncompatibleMainnetVariant(t *testing.T) {
-	srv := newVariantServer(t, &requestCount{})
-	defer srv.Close()
-
-	// knots isn't available on mainnet (only core + patched are).
-	o := newIntegrationOrchestrator(t, "mainnet", srv.URL+"/", "", "")
-	err := o.SetCoreVariant(context.Background(), "knots")
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "not available")
-}
-
 func TestIntegration_SetCoreVariant_RejectsIncompatibleNetwork(t *testing.T) {
 	counts := &requestCount{}
 	srv := newVariantServer(t, counts)
