@@ -1,0 +1,11 @@
+gen:
+    buf generate --template buf.go.gen.yaml
+
+build:
+    go build -o bin/ecash-broadcaster .
+
+run *ARGS:
+    go run . {{ARGS}}
+
+tidy:
+    go mod tidy
