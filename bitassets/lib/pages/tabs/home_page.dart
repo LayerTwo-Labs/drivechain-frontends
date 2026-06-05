@@ -65,11 +65,9 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> with WidgetsBindingObserver, WindowListener {
-  NotificationProvider get _notificationProvider => GetIt.I.get<NotificationProvider>();
   BitcoinConfProvider get _confProvider => GetIt.I.get<BitcoinConfProvider>();
   BitAssetsRPC get _rpc => GetIt.I.get<BitAssetsRPC>();
 
-  final ValueNotifier<List<Widget>> notificationsNotifier = ValueNotifier([]);
   bool _shutdownInProgress = false;
   DateTime? _lastShiftPress;
   final CodeSearchService _codeSearchService = CodeSearchService();
@@ -78,7 +76,6 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver, Window
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    _notificationProvider.addListener(rebuildNotifications);
     _initializeWindowManager();
     HardwareKeyboard.instance.addHandler(_handleGlobalKeyEvent);
     _codeSearchService.loadFiles();
@@ -298,14 +295,6 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver, Window
   Future<void> _initializeWindowManager() async {
     windowManager.addListener(this);
     await windowManager.setPreventClose(true);
-  }
-
-  void rebuildNotifications() {
-    notificationsNotifier.value = _notificationProvider.notifications;
-
-    // call notifyListeners manually coz == on List<Widget> doesn't work..
-    // ignore: invalid_use_of_protected_member,invalid_use_of_visible_for_testing_member
-    notificationsNotifier.notifyListeners();
   }
 
   @override
@@ -597,21 +586,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver, Window
             ),
           ),
         ),
-        // Notification stack overlay
-        Positioned(
-          right: 24,
-          bottom: 24,
-          child: ValueListenableBuilder<List<Widget>>(
-            valueListenable: notificationsNotifier,
-            builder: (context, notifications, _) {
-              return Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: notifications,
-              );
-            },
-          ),
-        ),
+        const NotificationToastOverlay(),
       ],
     );
   }

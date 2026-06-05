@@ -58,8 +58,6 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
   final _clientSettings = GetIt.I<ClientSettings>();
 
   WalletReaderProvider get _walletReader => GetIt.I.get<WalletReaderProvider>();
-  NotificationProvider get _notificationProvider => GetIt.I.get<NotificationProvider>();
-  final ValueNotifier<List<Widget>> notificationsNotifier = ValueNotifier([]);
   bool _isWalletSwitching = false;
   bool _isWalletEncrypted = false;
   List<PlatformMenuItem>? _cachedMenuList;
@@ -73,7 +71,6 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    _notificationProvider.addListener(rebuildNotifications);
     _homepageProvider.addListener(_onProviderChanged);
     _bitwindowSettingsProvider.addListener(_onProviderChanged);
     _walletReader.addListener(_onProviderChanged);
@@ -130,14 +127,6 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
         _isWalletEncrypted = encrypted;
       });
     }
-  }
-
-  void rebuildNotifications() {
-    notificationsNotifier.value = _notificationProvider.notifications;
-
-    // call notifyListeners manually coz == on List<Widget> doesn't work..
-    // ignore: invalid_use_of_protected_member,invalid_use_of_visible_for_testing_member
-    notificationsNotifier.notifyListeners();
   }
 
   Future<void> _initializeWindowManager() async {
@@ -1121,20 +1110,7 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
             ),
           ),
         ),
-        Positioned(
-          right: 24,
-          bottom: 24,
-          child: ValueListenableBuilder<List<Widget>>(
-            valueListenable: notificationsNotifier,
-            builder: (context, notifications, _) {
-              return Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: notifications,
-              );
-            },
-          ),
-        ),
+        const NotificationToastOverlay(),
       ],
     );
   }

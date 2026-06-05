@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:sail_ui/sail_ui.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class SailNotification extends StatelessWidget {
   final String title;
   final String content;
   final DialogType dialogType;
   final Function(String content) removeNotification;
+  final List<NotificationLink> links;
   final Future<void> Function()? onPressed;
 
   const SailNotification({
@@ -14,6 +16,7 @@ class SailNotification extends StatelessWidget {
     required this.content,
     required this.dialogType,
     required this.removeNotification,
+    this.links = const [],
     this.onPressed,
   });
 
@@ -63,6 +66,10 @@ class SailNotification extends StatelessWidget {
                   children: [
                     SailText.primary13(title, color: theme.colors.text),
                     SailText.primary12(content, color: theme.colors.text),
+                    for (final link in links) ...[
+                      const SizedBox(height: 4),
+                      NotificationLinkText(link: link),
+                    ],
                   ],
                 ),
                 const SizedBox(width: 8),
@@ -90,5 +97,24 @@ class SailNotification extends StatelessWidget {
       case DialogType.success:
         return SailColorScheme.green;
     }
+  }
+}
+
+/// Tappable notification link rendered in the chain's primary color, underlined.
+class NotificationLinkText extends StatelessWidget {
+  final NotificationLink link;
+
+  const NotificationLinkText({super.key, required this.link});
+
+  @override
+  Widget build(BuildContext context) {
+    final primary = SailTheme.of(context).colors.primary;
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      child: GestureDetector(
+        onTap: () => launchUrl(Uri.parse(link.url)),
+        child: SailText.primary12(link.text, color: primary, decoration: TextDecoration.underline),
+      ),
+    );
   }
 }
