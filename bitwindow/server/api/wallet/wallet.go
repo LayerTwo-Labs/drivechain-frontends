@@ -2199,6 +2199,13 @@ func (s *Server) SweepCheque(ctx context.Context, c *connect.Request[pb.SweepChe
 		return nil, connect.NewError(connect.CodeUnavailable, fmt.Errorf("bitcoind not available: %w", err))
 	}
 
+	// Import the cheque address into the watch wallet (rescanning for funds)
+	// before querying, so any funded WIF is claimable — even one this node never
+	// derived, or whose seed-derived descriptor import didn't cover it. Idempotent.
+	if err := s.importSweepAddress(ctx, bitcoind, addressStr); err != nil {
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("import cheque address: %w", err))
+	}
+
 	// Query UTXOs for this address
 	log.Debug().
 		Str("address", addressStr).
@@ -2273,6 +2280,40 @@ func (s *Server) SweepCheque(ctx context.Context, c *connect.Request[pb.SweepChe
 		Txid:       res.Msg.Txid,
 		AmountSats: totalAmount,
 	}), nil
+}
+
+// importSweepAddress imports a watch-only addr() descriptor for the cheque
+// address into the cheque wallet, rescanning from genesis so coins funded before
+// the import are discovered. This makes SweepCheque self-contained: it can claim
+// any funded WIF without depending on the wallet's seed-derived descriptor import
+// (which only covers derived ranges and needs the wallet unlocked). Idempotent.
+func (s *Server) importSweepAddress(ctx context.Context, bitcoind corerpc.BitcoinServiceClient, address string) error {
+	descInfo, err := bitcoind.GetDescriptorInfo(ctx, connect.NewRequest(&corepb.GetDescriptorInfoRequest{
+		Descriptor_: fmt.Sprintf("addr(%s)", address),
+	}))
+	if err != nil {
+		return fmt.Errorf("get descriptor info: %w", err)
+	}
+
+	resp, err := bitcoind.ImportDescriptors(ctx, connect.NewRequest(&corepb.ImportDescriptorsRequest{
+		Wallet: engines.ChequeWalletName,
+		Requests: []*corepb.ImportDescriptorsRequest_Request{
+			{
+				Descriptor_: descInfo.Msg.Descriptor_,
+				// Rescan from genesis; btc-buf maps nil → "now" (no rescan), which
+				// would leave already-funded outputs invisible.
+				Timestamp: timestamppb.New(time.Unix(0, 0)),
+				Internal:  false,
+			},
+		},
+	}))
+	if err != nil {
+		return fmt.Errorf("import descriptors: %w", err)
+	}
+	if len(resp.Msg.Responses) > 0 && !resp.Msg.Responses[0].Success && resp.Msg.Responses[0].Error != nil {
+		return fmt.Errorf("import failed: %s", resp.Msg.Responses[0].Error.Message)
+	}
+	return nil
 }
 
 // DeleteCheque implements walletv1connect.WalletServiceHandler.
