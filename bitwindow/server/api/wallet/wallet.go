@@ -2511,7 +2511,7 @@ func (s *Server) ensureWatchWallet(ctx context.Context) error {
 				_, loadErr := bitcoind.LoadWallet(ctx, connect.NewRequest(&corepb.LoadWalletRequest{
 					Filename: engines.ChequeWalletName,
 				}))
-				if loadErr != nil {
+				if loadErr != nil && !engines.IsWalletAlreadyLoadedErr(loadErr) {
 					log.Error().Err(loadErr).Msg("Failed to load existing cheque wallet")
 					return fmt.Errorf("load cheque wallet: %w", loadErr)
 				}

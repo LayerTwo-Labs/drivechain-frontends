@@ -29,6 +29,13 @@ const (
 	ChequeWalletName = "cheque_watch"
 )
 
+// IsWalletAlreadyLoadedErr reports whether err is bitcoind's "-35 wallet already
+// loaded" response. It's benign — the wallet IS loaded — so callers that loaded
+// the wallet only to use it must treat it as success, not abort.
+func IsWalletAlreadyLoadedErr(err error) bool {
+	return err != nil && strings.Contains(err.Error(), "already loaded")
+}
+
 // ChequeRecovery represents a recovered cheque with funds
 type ChequeRecovery struct {
 	Index   uint32
@@ -330,7 +337,7 @@ func (e *ChequeEngine) importChequeDescriptor(ctx context.Context) {
 				_, loadErr := bitcoind.LoadWallet(ctx, connect.NewRequest(&corepb.LoadWalletRequest{
 					Filename: ChequeWalletName,
 				}))
-				if loadErr != nil {
+				if loadErr != nil && !IsWalletAlreadyLoadedErr(loadErr) {
 					log.Error().Err(loadErr).Msg("cannot import cheque descriptors: failed to load cheque wallet")
 					return
 				}
