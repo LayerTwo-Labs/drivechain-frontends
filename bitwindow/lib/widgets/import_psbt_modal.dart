@@ -214,15 +214,18 @@ class _ImportPSBTModalState extends State<ImportPSBTModal> {
         final outputs = tx['vout'] as List<dynamic>;
         final inputs = tx['vin'] as List<dynamic>? ?? [];
 
+        // Summarize every output, not just the first, so a multi-output PSBT
+        // cannot hide a payment to another address behind output 0. Show the
+        // total leaving and all destination addresses.
         double amount = 0.0;
-        String destination = '';
-
-        if (outputs.isNotEmpty) {
-          final firstOutput = outputs.first as Map<String, dynamic>;
-          amount = (firstOutput['value'] as num).toDouble();
-          final scriptPubKey = firstOutput['scriptPubKey'] as Map<String, dynamic>;
-          destination = scriptPubKey['address'] as String? ?? 'Unknown';
+        final destinations = <String>[];
+        for (final output in outputs) {
+          final out = output as Map<String, dynamic>;
+          amount += (out['value'] as num?)?.toDouble() ?? 0.0;
+          final scriptPubKey = out['scriptPubKey'] as Map<String, dynamic>?;
+          destinations.add(scriptPubKey?['address'] as String? ?? 'Unknown');
         }
+        final destination = destinations.isEmpty ? 'Unknown' : destinations.join(', ');
 
         final keyPSBTs = group.keys
             .map(
@@ -244,7 +247,7 @@ class _ImportPSBTModalState extends State<ImportPSBTModal> {
           created: DateTime.now(),
           amount: amount,
           destination: destination,
-          fee: 0.0001,
+          fee: (decodedPsbt['fee'] as num?)?.toDouble() ?? 0.0,
           inputs: inputs
               .map(
                 (input) => UtxoInfo(
