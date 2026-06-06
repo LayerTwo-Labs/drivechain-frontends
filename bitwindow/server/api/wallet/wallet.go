@@ -2311,7 +2311,12 @@ func (s *Server) importSweepAddress(ctx context.Context, bitcoind corerpc.Bitcoi
 		return fmt.Errorf("import descriptors: %w", err)
 	}
 	if len(resp.Msg.Responses) > 0 && !resp.Msg.Responses[0].Success && resp.Msg.Responses[0].Error != nil {
-		return fmt.Errorf("import failed: %s", resp.Msg.Responses[0].Error.Message)
+		// A descriptor already imported by a prior sweep attempt is benign: it's
+		// still watched, so ListUnspent sees the (now-funded) cheque. Only a
+		// genuine import failure should abort.
+		if msg := resp.Msg.Responses[0].Error.Message; !strings.Contains(msg, "already") {
+			return fmt.Errorf("import failed: %s", msg)
+		}
 	}
 	return nil
 }
