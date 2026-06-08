@@ -2,14 +2,14 @@
 // @generated from file explorer/v1/explorer.proto (package explorer.v1, syntax proto3)
 /* eslint-disable */
 
-import { fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2";
+import { enumDesc, fileDesc, messageDesc, serviceDesc, tsEnum } from "@bufbuild/protobuf/codegenv2";
 import { file_google_protobuf_timestamp } from "@bufbuild/protobuf/wkt";
 
 /**
  * Describes the file explorer/v1/explorer.proto.
  */
 export const file_explorer_v1_explorer = /*@__PURE__*/
-  fileDesc("ChpleHBsb3Jlci92MS9leHBsb3Jlci5wcm90bxILZXhwbG9yZXIudjEiFQoTR2V0Q2hhaW5UaXBzUmVxdWVzdCJXCghDaGFpblRpcBIMCgRoYXNoGAEgASgJEg4KBmhlaWdodBgCIAEoBBItCgl0aW1lc3RhbXAYAyABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wItwCChRHZXRDaGFpblRpcHNSZXNwb25zZRIoCgltYWluY2hhaW4YASABKAsyFS5leHBsb3Jlci52MS5DaGFpblRpcBImCgd0aHVuZGVyGAIgASgLMhUuZXhwbG9yZXIudjEuQ2hhaW5UaXASKAoJYml0YXNzZXRzGAMgASgLMhUuZXhwbG9yZXIudjEuQ2hhaW5UaXASJwoIYml0bmFtZXMYBCABKAsyFS5leHBsb3Jlci52MS5DaGFpblRpcBIkCgV6c2lkZRgFIAEoCzIVLmV4cGxvcmVyLnYxLkNoYWluVGlwEigKCWNvaW5zaGlmdBgGIAEoCzIVLmV4cGxvcmVyLnYxLkNoYWluVGlwEiUKBnBob3RvbhgHIAEoCzIVLmV4cGxvcmVyLnYxLkNoYWluVGlwEigKCXRydXRoY29pbhgIIAEoCzIVLmV4cGxvcmVyLnYxLkNoYWluVGlwMmgKD0V4cGxvcmVyU2VydmljZRJVCgxHZXRDaGFpblRpcHMSIC5leHBsb3Jlci52MS5HZXRDaGFpblRpcHNSZXF1ZXN0GiEuZXhwbG9yZXIudjEuR2V0Q2hhaW5UaXBzUmVzcG9uc2UiAGIGcHJvdG8z", [file_google_protobuf_timestamp]);
+  fileDesc("ChpleHBsb3Jlci92MS9leHBsb3Jlci5wcm90bxILZXhwbG9yZXIudjEiFQoTR2V0Q2hhaW5UaXBzUmVxdWVzdCKEAQoIQ2hhaW5UaXASDAoEaGFzaBgBIAEoCRIOCgZoZWlnaHQYAiABKAQSLQoJdGltZXN0YW1wGAMgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIrCgZzdGF0dXMYBCABKA4yGy5leHBsb3Jlci52MS5DaGFpblRpcFN0YXR1cyLcAgoUR2V0Q2hhaW5UaXBzUmVzcG9uc2USKAoJbWFpbmNoYWluGAEgASgLMhUuZXhwbG9yZXIudjEuQ2hhaW5UaXASJgoHdGh1bmRlchgCIAEoCzIVLmV4cGxvcmVyLnYxLkNoYWluVGlwEigKCWJpdGFzc2V0cxgDIAEoCzIVLmV4cGxvcmVyLnYxLkNoYWluVGlwEicKCGJpdG5hbWVzGAQgASgLMhUuZXhwbG9yZXIudjEuQ2hhaW5UaXASJAoFenNpZGUYBSABKAsyFS5leHBsb3Jlci52MS5DaGFpblRpcBIoCgljb2luc2hpZnQYBiABKAsyFS5leHBsb3Jlci52MS5DaGFpblRpcBIlCgZwaG90b24YByABKAsyFS5leHBsb3Jlci52MS5DaGFpblRpcBIoCgl0cnV0aGNvaW4YCCABKAsyFS5leHBsb3Jlci52MS5DaGFpblRpcCqVAQoOQ2hhaW5UaXBTdGF0dXMSIAocQ0hBSU5fVElQX1NUQVRVU19VTlNQRUNJRklFRBAAEhsKF0NIQUlOX1RJUF9TVEFUVVNfQUNUSVZFEAESIgoeQ0hBSU5fVElQX1NUQVRVU19OT1RfQUNUSVZBVEVEEAISIAocQ0hBSU5fVElQX1NUQVRVU19VTlJFQUNIQUJMRRADMmgKD0V4cGxvcmVyU2VydmljZRJVCgxHZXRDaGFpblRpcHMSIC5leHBsb3Jlci52MS5HZXRDaGFpblRpcHNSZXF1ZXN0GiEuZXhwbG9yZXIudjEuR2V0Q2hhaW5UaXBzUmVzcG9uc2UiAGIGcHJvdG8z", [file_google_protobuf_timestamp]);
 
 /**
  * Describes the message explorer.v1.GetChainTipsRequest.
@@ -31,6 +31,18 @@ export const ChainTipSchema = /*@__PURE__*/
  */
 export const GetChainTipsResponseSchema = /*@__PURE__*/
   messageDesc(file_explorer_v1_explorer, 2);
+
+/**
+ * Describes the enum explorer.v1.ChainTipStatus.
+ */
+export const ChainTipStatusSchema = /*@__PURE__*/
+  enumDesc(file_explorer_v1_explorer, 0);
+
+/**
+ * @generated from enum explorer.v1.ChainTipStatus
+ */
+export const ChainTipStatus = /*@__PURE__*/
+  tsEnum(ChainTipStatusSchema);
 
 /**
  * @generated from service explorer.v1.ExplorerService

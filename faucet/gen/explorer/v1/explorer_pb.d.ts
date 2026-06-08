@@ -2,7 +2,7 @@
 // @generated from file explorer/v1/explorer.proto (package explorer.v1, syntax proto3)
 /* eslint-disable */
 
-import type { GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegenv2";
+import type { GenEnum, GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegenv2";
 import type { Message } from "@bufbuild/protobuf";
 import type { Timestamp, TimestampJson } from "@bufbuild/protobuf/wkt";
 
@@ -47,6 +47,11 @@ export declare type ChainTip = Message<"explorer.v1.ChainTip"> & {
    * @generated from field: google.protobuf.Timestamp timestamp = 3;
    */
   timestamp?: Timestamp;
+
+  /**
+   * @generated from field: explorer.v1.ChainTipStatus status = 4;
+   */
+  status: ChainTipStatus;
 };
 
 /**
@@ -67,6 +72,11 @@ export declare type ChainTipJson = {
    * @generated from field: google.protobuf.Timestamp timestamp = 3;
    */
   timestamp?: TimestampJson;
+
+  /**
+   * @generated from field: explorer.v1.ChainTipStatus status = 4;
+   */
+  status?: ChainTipStatusJson;
 };
 
 /**
@@ -202,6 +212,45 @@ export declare type GetChainTipsResponseJson = {
  * Use `create(GetChainTipsResponseSchema)` to create a new message.
  */
 export declare const GetChainTipsResponseSchema: GenMessage<GetChainTipsResponse, {jsonType: GetChainTipsResponseJson}>;
+
+/**
+ * @generated from enum explorer.v1.ChainTipStatus
+ */
+export enum ChainTipStatus {
+  /**
+   * @generated from enum value: CHAIN_TIP_STATUS_UNSPECIFIED = 0;
+   */
+  UNSPECIFIED = 0,
+
+  /**
+   * @generated from enum value: CHAIN_TIP_STATUS_ACTIVE = 1;
+   */
+  ACTIVE = 1,
+
+  /**
+   * The sidechain slot is not activated on L1
+   *
+   * @generated from enum value: CHAIN_TIP_STATUS_NOT_ACTIVATED = 2;
+   */
+  NOT_ACTIVATED = 2,
+
+  /**
+   * The chain node could not be reached at all.
+   *
+   * @generated from enum value: CHAIN_TIP_STATUS_UNREACHABLE = 3;
+   */
+  UNREACHABLE = 3,
+}
+
+/**
+ * @generated from enum explorer.v1.ChainTipStatus
+ */
+export declare type ChainTipStatusJson = "CHAIN_TIP_STATUS_UNSPECIFIED" | "CHAIN_TIP_STATUS_ACTIVE" | "CHAIN_TIP_STATUS_NOT_ACTIVATED" | "CHAIN_TIP_STATUS_UNREACHABLE";
+
+/**
+ * Describes the enum explorer.v1.ChainTipStatus.
+ */
+export declare const ChainTipStatusSchema: GenEnum<ChainTipStatus, ChainTipStatusJson>;
 
 /**
  * @generated from service explorer.v1.ExplorerService

@@ -215,7 +215,7 @@ var File_cusf_mainchain_v1_common_proto protoreflect.FileDescriptor
 
 const file_cusf_mainchain_v1_common_proto_rawDesc = "" +
 	"\n" +
-	"\x1ecusf/mainchain/v1/common.proto\x12\x11cusf.mainchain.v1\x1a\x1egoogle/protobuf/wrappers.proto\x1a\x1bcusf/common/v1/common.proto\"l\n" +
+	"\x1ecusf/mainchain/v1/common.proto\x12\x11cusf.mainchain.v1\x1a\x1bcusf/common/v1/common.proto\x1a\x1egoogle/protobuf/wrappers.proto\"l\n" +
 	"\bOutPoint\x12.\n" +
 	"\x04txid\x18\x01 \x01(\v2\x1a.cusf.common.v1.ReverseHexR\x04txid\x120\n" +
 	"\x04vout\x18\x02 \x01(\v2\x1c.google.protobuf.UInt32ValueR\x04vout\"\xd3\x02\n" +

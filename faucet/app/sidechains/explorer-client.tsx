@@ -11,6 +11,7 @@ import { Console } from "@/components/console";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   type ChainTip,
+  ChainTipStatus,
   ExplorerService,
   type GetChainTipsResponseJson,
   GetChainTipsResponseSchema,
@@ -165,14 +166,35 @@ function MempoolIcon({ className }: { className?: string }) {
   );
 }
 
-type ChainStatus = "synced" | "behind" | "unreachable";
+type ChainStatus = "synced" | "behind" | "unreachable" | "not-activated";
+
+const STATUS_COLORS: Record<ChainStatus, string> = {
+  synced: "bg-emerald-400/80",
+  behind: "bg-amber-400",
+  unreachable: "bg-red-400",
+  "not-activated": "bg-slate-400",
+};
+
+const STATUS_LABELS: Record<ChainStatus, string> = {
+  synced: "In sync with mainchain",
+  behind: "Behind mainchain",
+  unreachable: "Unable to connect",
+  "not-activated": "Not activated yet",
+};
+
+const MAINCHAIN_STATUS_LABELS: Record<ChainStatus, string> = {
+  ...STATUS_LABELS,
+  synced: "Blocks arriving at expected intervals",
+  behind: "Longer than usual since last block",
+};
 
 function getChainStatus(
   block?: ChainTip,
   mainchainTimestamp?: Timestamp,
   staleThresholdMs?: number
 ): ChainStatus {
-  if (!block) return "unreachable";
+  if (!block || block.status === ChainTipStatus.UNREACHABLE) return "unreachable";
+  if (block.status === ChainTipStatus.NOT_ACTIVATED) return "not-activated";
   if (staleThresholdMs && block.timestamp) {
     const blockTimeMs = Number(block.timestamp.seconds) * 1000;
     return Date.now() - blockTimeMs > staleThresholdMs ? "behind" : "synced";
@@ -184,24 +206,8 @@ function getChainStatus(
 }
 
 function StatusDot({ status, isMainchain }: { status: ChainStatus; isMainchain?: boolean }) {
-  const labels = isMainchain
-    ? {
-        synced: "Blocks arriving at expected intervals",
-        behind: "Longer than usual since last block",
-        unreachable: "Unable to connect",
-      }
-    : {
-        synced: "In sync with mainchain",
-        behind: "Behind mainchain",
-        unreachable: "Unable to connect",
-      };
-  const colors = {
-    synced: "bg-emerald-400/80",
-    behind: "bg-amber-400",
-    unreachable: "bg-red-400",
-  };
-  const color = colors[status];
-  const label = labels[status];
+  const color = STATUS_COLORS[status];
+  const label = (isMainchain ? MAINCHAIN_STATUS_LABELS : STATUS_LABELS)[status];
   return (
     <span className="relative group/dot shrink-0 flex items-center justify-center h-4 w-4">
       <span className={`inline-block h-2.5 w-2.5 rounded-full ${color}`} />
@@ -246,7 +252,7 @@ function BlockCard({
     </>
   );
 
-  if (status === "unreachable") {
+  if (status === "unreachable" || status === "not-activated") {
     return (
       <Card>
         <CardHeader>
@@ -258,7 +264,13 @@ function BlockCard({
           <CardDescription className="text-xs">{subtitle}</CardDescription>
         </CardHeader>
         <CardContent>
-          <p className="text-sm font-bold text-destructive">Unable to connect</p>
+          <p
+            className={`text-sm font-bold ${
+              status === "unreachable" ? "text-destructive" : "text-muted-foreground"
+            }`}
+          >
+            {STATUS_LABELS[status]}
+          </p>
         </CardContent>
       </Card>
     );

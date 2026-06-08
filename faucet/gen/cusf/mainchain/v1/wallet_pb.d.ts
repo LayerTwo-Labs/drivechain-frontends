@@ -632,7 +632,7 @@ export declare type CreateWalletRequest = Message<"cusf.mainchain.v1.CreateWalle
   mnemonicWords: string[];
 
   /**
-   * Path to a file containing the mnemonic. 
+   * Path to a file containing the mnemonic.
    *
    * @generated from field: string mnemonic_path = 2;
    */
@@ -659,7 +659,7 @@ export declare type CreateWalletRequestJson = {
   mnemonicWords?: string[];
 
   /**
-   * Path to a file containing the mnemonic. 
+   * Path to a file containing the mnemonic.
    *
    * @generated from field: string mnemonic_path = 2;
    */
@@ -1150,15 +1150,15 @@ export declare const UnlockWalletResponseSchema: GenMessage<UnlockWalletResponse
  */
 export declare type GenerateBlocksRequest = Message<"cusf.mainchain.v1.GenerateBlocksRequest"> & {
   /**
-   * Number of blocks to generate. 
+   * Number of blocks to generate.
    *
    * @generated from field: google.protobuf.UInt32Value blocks = 1;
    */
   blocks?: number;
 
   /**
-   * ACK all sidechain proposals, irregardless of if they are already 
-   * in the wallet DB. 
+   * ACK all sidechain proposals, irregardless of if they are already
+   * in the wallet DB.
    *
    * @generated from field: bool ack_all_proposals = 2;
    */
@@ -1170,15 +1170,15 @@ export declare type GenerateBlocksRequest = Message<"cusf.mainchain.v1.GenerateB
  */
 export declare type GenerateBlocksRequestJson = {
   /**
-   * Number of blocks to generate. 
+   * Number of blocks to generate.
    *
    * @generated from field: google.protobuf.UInt32Value blocks = 1;
    */
   blocks?: UInt32ValueJson;
 
   /**
-   * ACK all sidechain proposals, irregardless of if they are already 
-   * in the wallet DB. 
+   * ACK all sidechain proposals, irregardless of if they are already
+   * in the wallet DB.
    *
    * @generated from field: bool ack_all_proposals = 2;
    */
@@ -1266,7 +1266,7 @@ export declare type GetInfoResponse = Message<"cusf.mainchain.v1.GetInfoResponse
   descriptors: { [key: string]: string };
 
   /**
-   * The chain tip the wallet is synced to. 
+   * The chain tip the wallet is synced to.
    *
    * @generated from field: cusf.mainchain.v1.GetInfoResponse.Tip tip = 5;
    */
@@ -1304,7 +1304,7 @@ export declare type GetInfoResponseJson = {
   descriptors?: { [key: string]: string };
 
   /**
-   * The chain tip the wallet is synced to. 
+   * The chain tip the wallet is synced to.
    *
    * @generated from field: cusf.mainchain.v1.GetInfoResponse.Tip tip = 5;
    */
@@ -1458,8 +1458,8 @@ export declare type ListUnspentOutputsResponse_Output = Message<"cusf.mainchain.
   unconfirmedLastSeen?: Timestamp;
 
   /**
-   * The address corresponding to this output. Empty if we're unable 
-   * to represent it as an address. 
+   * The address corresponding to this output. Empty if we're unable
+   * to represent it as an address.
    *
    * @generated from field: google.protobuf.StringValue address = 10;
    */
@@ -1519,8 +1519,8 @@ export declare type ListUnspentOutputsResponse_OutputJson = {
   unconfirmedLastSeen?: TimestampJson;
 
   /**
-   * The address corresponding to this output. Empty if we're unable 
-   * to represent it as an address. 
+   * The address corresponding to this output. Empty if we're unable
+   * to represent it as an address.
    *
    * @generated from field: google.protobuf.StringValue address = 10;
    */
