@@ -118,78 +118,91 @@ func NewValidatorServiceClient(httpClient connect.HTTPClient, baseURL string, op
 			httpClient,
 			baseURL+ValidatorServiceGetBlockHeaderInfoProcedure,
 			connect.WithSchema(validatorServiceMethods.ByName("GetBlockHeaderInfo")),
+			connect.WithIdempotency(connect.IdempotencyNoSideEffects),
 			connect.WithClientOptions(opts...),
 		),
 		getBlockInfo: connect.NewClient[v1.GetBlockInfoRequest, v1.GetBlockInfoResponse](
 			httpClient,
 			baseURL+ValidatorServiceGetBlockInfoProcedure,
 			connect.WithSchema(validatorServiceMethods.ByName("GetBlockInfo")),
+			connect.WithIdempotency(connect.IdempotencyNoSideEffects),
 			connect.WithClientOptions(opts...),
 		),
 		getBmmHStarCommitment: connect.NewClient[v1.GetBmmHStarCommitmentRequest, v1.GetBmmHStarCommitmentResponse](
 			httpClient,
 			baseURL+ValidatorServiceGetBmmHStarCommitmentProcedure,
 			connect.WithSchema(validatorServiceMethods.ByName("GetBmmHStarCommitment")),
+			connect.WithIdempotency(connect.IdempotencyNoSideEffects),
 			connect.WithClientOptions(opts...),
 		),
 		getChainInfo: connect.NewClient[v1.GetChainInfoRequest, v1.GetChainInfoResponse](
 			httpClient,
 			baseURL+ValidatorServiceGetChainInfoProcedure,
 			connect.WithSchema(validatorServiceMethods.ByName("GetChainInfo")),
+			connect.WithIdempotency(connect.IdempotencyNoSideEffects),
 			connect.WithClientOptions(opts...),
 		),
 		getChainTip: connect.NewClient[v1.GetChainTipRequest, v1.GetChainTipResponse](
 			httpClient,
 			baseURL+ValidatorServiceGetChainTipProcedure,
 			connect.WithSchema(validatorServiceMethods.ByName("GetChainTip")),
+			connect.WithIdempotency(connect.IdempotencyNoSideEffects),
 			connect.WithClientOptions(opts...),
 		),
 		getCoinbasePSBT: connect.NewClient[v1.GetCoinbasePSBTRequest, v1.GetCoinbasePSBTResponse](
 			httpClient,
 			baseURL+ValidatorServiceGetCoinbasePSBTProcedure,
 			connect.WithSchema(validatorServiceMethods.ByName("GetCoinbasePSBT")),
+			connect.WithIdempotency(connect.IdempotencyNoSideEffects),
 			connect.WithClientOptions(opts...),
 		),
 		getCtip: connect.NewClient[v1.GetCtipRequest, v1.GetCtipResponse](
 			httpClient,
 			baseURL+ValidatorServiceGetCtipProcedure,
 			connect.WithSchema(validatorServiceMethods.ByName("GetCtip")),
+			connect.WithIdempotency(connect.IdempotencyNoSideEffects),
 			connect.WithClientOptions(opts...),
 		),
 		getSidechainProposals: connect.NewClient[v1.GetSidechainProposalsRequest, v1.GetSidechainProposalsResponse](
 			httpClient,
 			baseURL+ValidatorServiceGetSidechainProposalsProcedure,
 			connect.WithSchema(validatorServiceMethods.ByName("GetSidechainProposals")),
+			connect.WithIdempotency(connect.IdempotencyNoSideEffects),
 			connect.WithClientOptions(opts...),
 		),
 		getSidechains: connect.NewClient[v1.GetSidechainsRequest, v1.GetSidechainsResponse](
 			httpClient,
 			baseURL+ValidatorServiceGetSidechainsProcedure,
 			connect.WithSchema(validatorServiceMethods.ByName("GetSidechains")),
+			connect.WithIdempotency(connect.IdempotencyNoSideEffects),
 			connect.WithClientOptions(opts...),
 		),
 		getTwoWayPegData: connect.NewClient[v1.GetTwoWayPegDataRequest, v1.GetTwoWayPegDataResponse](
 			httpClient,
 			baseURL+ValidatorServiceGetTwoWayPegDataProcedure,
 			connect.WithSchema(validatorServiceMethods.ByName("GetTwoWayPegData")),
+			connect.WithIdempotency(connect.IdempotencyNoSideEffects),
 			connect.WithClientOptions(opts...),
 		),
 		subscribeEvents: connect.NewClient[v1.SubscribeEventsRequest, v1.SubscribeEventsResponse](
 			httpClient,
 			baseURL+ValidatorServiceSubscribeEventsProcedure,
 			connect.WithSchema(validatorServiceMethods.ByName("SubscribeEvents")),
+			connect.WithIdempotency(connect.IdempotencyNoSideEffects),
 			connect.WithClientOptions(opts...),
 		),
 		subscribeHeaderSyncProgress: connect.NewClient[v1.SubscribeHeaderSyncProgressRequest, v1.SubscribeHeaderSyncProgressResponse](
 			httpClient,
 			baseURL+ValidatorServiceSubscribeHeaderSyncProgressProcedure,
 			connect.WithSchema(validatorServiceMethods.ByName("SubscribeHeaderSyncProgress")),
+			connect.WithIdempotency(connect.IdempotencyNoSideEffects),
 			connect.WithClientOptions(opts...),
 		),
 		stop: connect.NewClient[v1.StopRequest, v1.StopResponse](
 			httpClient,
 			baseURL+ValidatorServiceStopProcedure,
 			connect.WithSchema(validatorServiceMethods.ByName("Stop")),
+			connect.WithIdempotency(connect.IdempotencyIdempotent),
 			connect.WithClientOptions(opts...),
 		),
 	}
@@ -316,78 +329,91 @@ func NewValidatorServiceHandler(svc ValidatorServiceHandler, opts ...connect.Han
 		ValidatorServiceGetBlockHeaderInfoProcedure,
 		svc.GetBlockHeaderInfo,
 		connect.WithSchema(validatorServiceMethods.ByName("GetBlockHeaderInfo")),
+		connect.WithIdempotency(connect.IdempotencyNoSideEffects),
 		connect.WithHandlerOptions(opts...),
 	)
 	validatorServiceGetBlockInfoHandler := connect.NewUnaryHandler(
 		ValidatorServiceGetBlockInfoProcedure,
 		svc.GetBlockInfo,
 		connect.WithSchema(validatorServiceMethods.ByName("GetBlockInfo")),
+		connect.WithIdempotency(connect.IdempotencyNoSideEffects),
 		connect.WithHandlerOptions(opts...),
 	)
 	validatorServiceGetBmmHStarCommitmentHandler := connect.NewUnaryHandler(
 		ValidatorServiceGetBmmHStarCommitmentProcedure,
 		svc.GetBmmHStarCommitment,
 		connect.WithSchema(validatorServiceMethods.ByName("GetBmmHStarCommitment")),
+		connect.WithIdempotency(connect.IdempotencyNoSideEffects),
 		connect.WithHandlerOptions(opts...),
 	)
 	validatorServiceGetChainInfoHandler := connect.NewUnaryHandler(
 		ValidatorServiceGetChainInfoProcedure,
 		svc.GetChainInfo,
 		connect.WithSchema(validatorServiceMethods.ByName("GetChainInfo")),
+		connect.WithIdempotency(connect.IdempotencyNoSideEffects),
 		connect.WithHandlerOptions(opts...),
 	)
 	validatorServiceGetChainTipHandler := connect.NewUnaryHandler(
 		ValidatorServiceGetChainTipProcedure,
 		svc.GetChainTip,
 		connect.WithSchema(validatorServiceMethods.ByName("GetChainTip")),
+		connect.WithIdempotency(connect.IdempotencyNoSideEffects),
 		connect.WithHandlerOptions(opts...),
 	)
 	validatorServiceGetCoinbasePSBTHandler := connect.NewUnaryHandler(
 		ValidatorServiceGetCoinbasePSBTProcedure,
 		svc.GetCoinbasePSBT,
 		connect.WithSchema(validatorServiceMethods.ByName("GetCoinbasePSBT")),
+		connect.WithIdempotency(connect.IdempotencyNoSideEffects),
 		connect.WithHandlerOptions(opts...),
 	)
 	validatorServiceGetCtipHandler := connect.NewUnaryHandler(
 		ValidatorServiceGetCtipProcedure,
 		svc.GetCtip,
 		connect.WithSchema(validatorServiceMethods.ByName("GetCtip")),
+		connect.WithIdempotency(connect.IdempotencyNoSideEffects),
 		connect.WithHandlerOptions(opts...),
 	)
 	validatorServiceGetSidechainProposalsHandler := connect.NewUnaryHandler(
 		ValidatorServiceGetSidechainProposalsProcedure,
 		svc.GetSidechainProposals,
 		connect.WithSchema(validatorServiceMethods.ByName("GetSidechainProposals")),
+		connect.WithIdempotency(connect.IdempotencyNoSideEffects),
 		connect.WithHandlerOptions(opts...),
 	)
 	validatorServiceGetSidechainsHandler := connect.NewUnaryHandler(
 		ValidatorServiceGetSidechainsProcedure,
 		svc.GetSidechains,
 		connect.WithSchema(validatorServiceMethods.ByName("GetSidechains")),
+		connect.WithIdempotency(connect.IdempotencyNoSideEffects),
 		connect.WithHandlerOptions(opts...),
 	)
 	validatorServiceGetTwoWayPegDataHandler := connect.NewUnaryHandler(
 		ValidatorServiceGetTwoWayPegDataProcedure,
 		svc.GetTwoWayPegData,
 		connect.WithSchema(validatorServiceMethods.ByName("GetTwoWayPegData")),
+		connect.WithIdempotency(connect.IdempotencyNoSideEffects),
 		connect.WithHandlerOptions(opts...),
 	)
 	validatorServiceSubscribeEventsHandler := connect.NewServerStreamHandler(
 		ValidatorServiceSubscribeEventsProcedure,
 		svc.SubscribeEvents,
 		connect.WithSchema(validatorServiceMethods.ByName("SubscribeEvents")),
+		connect.WithIdempotency(connect.IdempotencyNoSideEffects),
 		connect.WithHandlerOptions(opts...),
 	)
 	validatorServiceSubscribeHeaderSyncProgressHandler := connect.NewServerStreamHandler(
 		ValidatorServiceSubscribeHeaderSyncProgressProcedure,
 		svc.SubscribeHeaderSyncProgress,
 		connect.WithSchema(validatorServiceMethods.ByName("SubscribeHeaderSyncProgress")),
+		connect.WithIdempotency(connect.IdempotencyNoSideEffects),
 		connect.WithHandlerOptions(opts...),
 	)
 	validatorServiceStopHandler := connect.NewUnaryHandler(
 		ValidatorServiceStopProcedure,
 		svc.Stop,
 		connect.WithSchema(validatorServiceMethods.ByName("Stop")),
+		connect.WithIdempotency(connect.IdempotencyIdempotent),
 		connect.WithHandlerOptions(opts...),
 	)
 	return "/cusf.mainchain.v1.ValidatorService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

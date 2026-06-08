@@ -10,10 +10,23 @@ service ExplorerService {
 
 message GetChainTipsRequest {}
 
+enum ChainTipStatus {
+  CHAIN_TIP_STATUS_UNSPECIFIED = 0;
+
+  CHAIN_TIP_STATUS_ACTIVE = 1;
+
+  // The sidechain slot is not activated on L1
+  CHAIN_TIP_STATUS_NOT_ACTIVATED = 2;
+
+  // The chain node could not be reached at all.
+  CHAIN_TIP_STATUS_UNREACHABLE = 3;
+}
+
 message ChainTip {
   string hash = 1;
   uint64 height = 2;
   google.protobuf.Timestamp timestamp = 3;
+  ChainTipStatus status = 4;
 }
 
 message GetChainTipsResponse {

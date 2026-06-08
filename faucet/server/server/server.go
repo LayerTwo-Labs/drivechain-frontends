@@ -53,7 +53,7 @@ func New(
 	)
 	Register(
 		srv, explorerrpc.NewExplorerServiceHandler,
-		explorerrpc.ExplorerServiceHandler(api_explorer.New(bitcoind, rpcClients)),
+		explorerrpc.ExplorerServiceHandler(api_explorer.New(bitcoind, rpcClients, validatorSvc)),
 	)
 	Register(
 		srv, validatordrpc.NewValidatorServiceHandler,

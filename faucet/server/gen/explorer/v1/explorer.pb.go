@@ -22,6 +22,60 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+type ChainTipStatus int32
+
+const (
+	ChainTipStatus_CHAIN_TIP_STATUS_UNSPECIFIED ChainTipStatus = 0
+	ChainTipStatus_CHAIN_TIP_STATUS_ACTIVE      ChainTipStatus = 1
+	// The sidechain slot is not activated on L1
+	ChainTipStatus_CHAIN_TIP_STATUS_NOT_ACTIVATED ChainTipStatus = 2
+	// The chain node could not be reached at all.
+	ChainTipStatus_CHAIN_TIP_STATUS_UNREACHABLE ChainTipStatus = 3
+)
+
+// Enum value maps for ChainTipStatus.
+var (
+	ChainTipStatus_name = map[int32]string{
+		0: "CHAIN_TIP_STATUS_UNSPECIFIED",
+		1: "CHAIN_TIP_STATUS_ACTIVE",
+		2: "CHAIN_TIP_STATUS_NOT_ACTIVATED",
+		3: "CHAIN_TIP_STATUS_UNREACHABLE",
+	}
+	ChainTipStatus_value = map[string]int32{
+		"CHAIN_TIP_STATUS_UNSPECIFIED":   0,
+		"CHAIN_TIP_STATUS_ACTIVE":        1,
+		"CHAIN_TIP_STATUS_NOT_ACTIVATED": 2,
+		"CHAIN_TIP_STATUS_UNREACHABLE":   3,
+	}
+)
+
+func (x ChainTipStatus) Enum() *ChainTipStatus {
+	p := new(ChainTipStatus)
+	*p = x
+	return p
+}
+
+func (x ChainTipStatus) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (ChainTipStatus) Descriptor() protoreflect.EnumDescriptor {
+	return file_explorer_v1_explorer_proto_enumTypes[0].Descriptor()
+}
+
+func (ChainTipStatus) Type() protoreflect.EnumType {
+	return &file_explorer_v1_explorer_proto_enumTypes[0]
+}
+
+func (x ChainTipStatus) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use ChainTipStatus.Descriptor instead.
+func (ChainTipStatus) EnumDescriptor() ([]byte, []int) {
+	return file_explorer_v1_explorer_proto_rawDescGZIP(), []int{0}
+}
+
 type GetChainTipsRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
@@ -63,6 +117,7 @@ type ChainTip struct {
 	Hash          string                 `protobuf:"bytes,1,opt,name=hash,proto3" json:"hash,omitempty"`
 	Height        uint64                 `protobuf:"varint,2,opt,name=height,proto3" json:"height,omitempty"`
 	Timestamp     *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
+	Status        ChainTipStatus         `protobuf:"varint,4,opt,name=status,proto3,enum=explorer.v1.ChainTipStatus" json:"status,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -116,6 +171,13 @@ func (x *ChainTip) GetTimestamp() *timestamppb.Timestamp {
 		return x.Timestamp
 	}
 	return nil
+}
+
+func (x *ChainTip) GetStatus() ChainTipStatus {
+	if x != nil {
+		return x.Status
+	}
+	return ChainTipStatus_CHAIN_TIP_STATUS_UNSPECIFIED
 }
 
 type GetChainTipsResponse struct {
@@ -223,11 +285,12 @@ var File_explorer_v1_explorer_proto protoreflect.FileDescriptor
 const file_explorer_v1_explorer_proto_rawDesc = "" +
 	"\n" +
 	"\x1aexplorer/v1/explorer.proto\x12\vexplorer.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"\x15\n" +
-	"\x13GetChainTipsRequest\"p\n" +
+	"\x13GetChainTipsRequest\"\xa5\x01\n" +
 	"\bChainTip\x12\x12\n" +
 	"\x04hash\x18\x01 \x01(\tR\x04hash\x12\x16\n" +
 	"\x06height\x18\x02 \x01(\x04R\x06height\x128\n" +
-	"\ttimestamp\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\ttimestamp\"\xaa\x03\n" +
+	"\ttimestamp\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\ttimestamp\x123\n" +
+	"\x06status\x18\x04 \x01(\x0e2\x1b.explorer.v1.ChainTipStatusR\x06status\"\xaa\x03\n" +
 	"\x14GetChainTipsResponse\x123\n" +
 	"\tmainchain\x18\x01 \x01(\v2\x15.explorer.v1.ChainTipR\tmainchain\x12/\n" +
 	"\athunder\x18\x02 \x01(\v2\x15.explorer.v1.ChainTipR\athunder\x123\n" +
@@ -236,7 +299,12 @@ const file_explorer_v1_explorer_proto_rawDesc = "" +
 	"\x05zside\x18\x05 \x01(\v2\x15.explorer.v1.ChainTipR\x05zside\x123\n" +
 	"\tcoinshift\x18\x06 \x01(\v2\x15.explorer.v1.ChainTipR\tcoinshift\x12-\n" +
 	"\x06photon\x18\a \x01(\v2\x15.explorer.v1.ChainTipR\x06photon\x123\n" +
-	"\ttruthcoin\x18\b \x01(\v2\x15.explorer.v1.ChainTipR\ttruthcoin2h\n" +
+	"\ttruthcoin\x18\b \x01(\v2\x15.explorer.v1.ChainTipR\ttruthcoin*\x95\x01\n" +
+	"\x0eChainTipStatus\x12 \n" +
+	"\x1cCHAIN_TIP_STATUS_UNSPECIFIED\x10\x00\x12\x1b\n" +
+	"\x17CHAIN_TIP_STATUS_ACTIVE\x10\x01\x12\"\n" +
+	"\x1eCHAIN_TIP_STATUS_NOT_ACTIVATED\x10\x02\x12 \n" +
+	"\x1cCHAIN_TIP_STATUS_UNREACHABLE\x10\x032h\n" +
 	"\x0fExplorerService\x12U\n" +
 	"\fGetChainTips\x12 .explorer.v1.GetChainTipsRequest\x1a!.explorer.v1.GetChainTipsResponse\"\x00B\xb9\x01\n" +
 	"\x0fcom.explorer.v1B\rExplorerProtoP\x01ZJgithub.com/LayerTwo-Labs/sidesail/faucet/server/gen/explorer/v1;explorerv1\xa2\x02\x03EXX\xaa\x02\vExplorer.V1\xca\x02\vExplorer\\V1\xe2\x02\x17Explorer\\V1\\GPBMetadata\xea\x02\fExplorer::V1b\x06proto3"
@@ -253,30 +321,33 @@ func file_explorer_v1_explorer_proto_rawDescGZIP() []byte {
 	return file_explorer_v1_explorer_proto_rawDescData
 }
 
+var file_explorer_v1_explorer_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
 var file_explorer_v1_explorer_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
 var file_explorer_v1_explorer_proto_goTypes = []any{
-	(*GetChainTipsRequest)(nil),   // 0: explorer.v1.GetChainTipsRequest
-	(*ChainTip)(nil),              // 1: explorer.v1.ChainTip
-	(*GetChainTipsResponse)(nil),  // 2: explorer.v1.GetChainTipsResponse
-	(*timestamppb.Timestamp)(nil), // 3: google.protobuf.Timestamp
+	(ChainTipStatus)(0),           // 0: explorer.v1.ChainTipStatus
+	(*GetChainTipsRequest)(nil),   // 1: explorer.v1.GetChainTipsRequest
+	(*ChainTip)(nil),              // 2: explorer.v1.ChainTip
+	(*GetChainTipsResponse)(nil),  // 3: explorer.v1.GetChainTipsResponse
+	(*timestamppb.Timestamp)(nil), // 4: google.protobuf.Timestamp
 }
 var file_explorer_v1_explorer_proto_depIdxs = []int32{
-	3,  // 0: explorer.v1.ChainTip.timestamp:type_name -> google.protobuf.Timestamp
-	1,  // 1: explorer.v1.GetChainTipsResponse.mainchain:type_name -> explorer.v1.ChainTip
-	1,  // 2: explorer.v1.GetChainTipsResponse.thunder:type_name -> explorer.v1.ChainTip
-	1,  // 3: explorer.v1.GetChainTipsResponse.bitassets:type_name -> explorer.v1.ChainTip
-	1,  // 4: explorer.v1.GetChainTipsResponse.bitnames:type_name -> explorer.v1.ChainTip
-	1,  // 5: explorer.v1.GetChainTipsResponse.zside:type_name -> explorer.v1.ChainTip
-	1,  // 6: explorer.v1.GetChainTipsResponse.coinshift:type_name -> explorer.v1.ChainTip
-	1,  // 7: explorer.v1.GetChainTipsResponse.photon:type_name -> explorer.v1.ChainTip
-	1,  // 8: explorer.v1.GetChainTipsResponse.truthcoin:type_name -> explorer.v1.ChainTip
-	0,  // 9: explorer.v1.ExplorerService.GetChainTips:input_type -> explorer.v1.GetChainTipsRequest
-	2,  // 10: explorer.v1.ExplorerService.GetChainTips:output_type -> explorer.v1.GetChainTipsResponse
-	10, // [10:11] is the sub-list for method output_type
-	9,  // [9:10] is the sub-list for method input_type
-	9,  // [9:9] is the sub-list for extension type_name
-	9,  // [9:9] is the sub-list for extension extendee
-	0,  // [0:9] is the sub-list for field type_name
+	4,  // 0: explorer.v1.ChainTip.timestamp:type_name -> google.protobuf.Timestamp
+	0,  // 1: explorer.v1.ChainTip.status:type_name -> explorer.v1.ChainTipStatus
+	2,  // 2: explorer.v1.GetChainTipsResponse.mainchain:type_name -> explorer.v1.ChainTip
+	2,  // 3: explorer.v1.GetChainTipsResponse.thunder:type_name -> explorer.v1.ChainTip
+	2,  // 4: explorer.v1.GetChainTipsResponse.bitassets:type_name -> explorer.v1.ChainTip
+	2,  // 5: explorer.v1.GetChainTipsResponse.bitnames:type_name -> explorer.v1.ChainTip
+	2,  // 6: explorer.v1.GetChainTipsResponse.zside:type_name -> explorer.v1.ChainTip
+	2,  // 7: explorer.v1.GetChainTipsResponse.coinshift:type_name -> explorer.v1.ChainTip
+	2,  // 8: explorer.v1.GetChainTipsResponse.photon:type_name -> explorer.v1.ChainTip
+	2,  // 9: explorer.v1.GetChainTipsResponse.truthcoin:type_name -> explorer.v1.ChainTip
+	1,  // 10: explorer.v1.ExplorerService.GetChainTips:input_type -> explorer.v1.GetChainTipsRequest
+	3,  // 11: explorer.v1.ExplorerService.GetChainTips:output_type -> explorer.v1.GetChainTipsResponse
+	11, // [11:12] is the sub-list for method output_type
+	10, // [10:11] is the sub-list for method input_type
+	10, // [10:10] is the sub-list for extension type_name
+	10, // [10:10] is the sub-list for extension extendee
+	0,  // [0:10] is the sub-list for field type_name
 }
 
 func init() { file_explorer_v1_explorer_proto_init() }
@@ -289,13 +360,14 @@ func file_explorer_v1_explorer_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_explorer_v1_explorer_proto_rawDesc), len(file_explorer_v1_explorer_proto_rawDesc)),
-			NumEnums:      0,
+			NumEnums:      1,
 			NumMessages:   3,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
 		GoTypes:           file_explorer_v1_explorer_proto_goTypes,
 		DependencyIndexes: file_explorer_v1_explorer_proto_depIdxs,
+		EnumInfos:         file_explorer_v1_explorer_proto_enumTypes,
 		MessageInfos:      file_explorer_v1_explorer_proto_msgTypes,
 	}.Build()
 	File_explorer_v1_explorer_proto = out.File
