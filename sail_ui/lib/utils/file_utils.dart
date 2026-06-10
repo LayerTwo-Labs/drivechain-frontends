@@ -43,6 +43,18 @@ String? diagnoseUncreatablePath(String? path) {
   return null;
 }
 
+/// True on an Apple Silicon Mac without Rosetta 2, which the bundled x86_64
+/// node binaries (bitcoind, enforcer, orchestratord, …) need to run.
+Future<bool> missingRosetta() async {
+  if (!Platform.isMacOS) return false;
+  try {
+    final result = await Process.run('/usr/bin/arch', ['-x86_64', '/usr/bin/true']);
+    return result.exitCode != 0;
+  } catch (_) {
+    return false;
+  }
+}
+
 Future<void> openDir(Directory dir) async {
   final os = getOS();
 
