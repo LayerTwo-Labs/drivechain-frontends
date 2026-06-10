@@ -138,6 +138,15 @@ Future<(Directory, File, Logger)> init(String arguments) async {
 
   Environment.validateAtRuntime();
 
+  if (!isSubWindow && await missingRosetta()) {
+    log.e('Rosetta 2 is not installed; node binaries cannot run');
+    throw StateError(
+      "This Mac needs Rosetta 2 to run BitWindow's node software (bitcoind, enforcer, ...).\n\n"
+      'Install it by running this in Terminal, then relaunch BitWindow:\n\n'
+      '    softwareupdate --install-rosetta --agree-to-license',
+    );
+  }
+
   final storage = await KeyValueStore.create(dir: applicationDir);
 
   // Register the logger
