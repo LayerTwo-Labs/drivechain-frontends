@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:sail_ui/sail_ui.dart';
+import 'package:window_manager/window_manager.dart';
 
 class CrossPlatformMenuBar extends StatelessWidget {
   final List<PlatformMenuItem> menus;
@@ -57,9 +58,12 @@ class CrossPlatformMenuBar extends StatelessWidget {
     return PlatformMenuItem(
       label: label,
       shortcut: SingleActivator(key, meta: true, shift: shift),
-      onSelected: () {
+      onSelected: () async {
+        // The menu bar is app-wide but onSelected runs in this engine. When a
+        // sub-window is key, dispatching here would edit a hidden field.
+        if (!await windowManager.isFocused()) return;
         final context = primaryFocus?.context;
-        if (context != null) Actions.maybeInvoke(context, intent);
+        if (context != null && context.mounted) Actions.maybeInvoke(context, intent);
       },
     );
   }
