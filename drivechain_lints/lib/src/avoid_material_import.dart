@@ -1,34 +1,39 @@
+import 'package:analyzer/error/error.dart' show ErrorSeverity;
 import 'package:analyzer/error/listener.dart';
 import 'package:custom_lint_builder/custom_lint_builder.dart';
 
-/// Discourages importing `package:flutter/material.dart` outside of the
-/// design-system layer. Migrating the project onto sail_ui's self-hosted
-/// shadcn-style primitives means consumers should not reach for Material
-/// directly — they should use `SailButton`, `SailCard`, `SailDialog`, etc.
+/// Forbids importing `package:flutter/material.dart` outside the design-system
+/// layer — consumers use sail_ui primitives (`SailButton`, `SailCard`,
+/// `SailDialog`, …) so the whole UI themes through `SailTheme`.
 ///
-/// Phase 0 of the design-system migration: this rule is informational
-/// only — it surfaces the existing Material surface area so each
-/// subsequent phase can be measured. Future phases promote the severity
-/// per package as that package hits zero violations.
-///
-/// Allowed exceptions:
-/// - Files inside `sail_ui/lib/` itself (the design system layer wraps
-///   Material primitives by definition; this rule disabled for the
-///   wrapper sources via `// ignore_for_file: avoid_material_import`).
-/// - Anywhere the comment `// ignore: avoid_material_import` is applied
-///   inline.
+/// Severity is configurable per package in analysis_options.yaml
+/// (`custom_lint: rules: - avoid_material_import: severity: error`);
+/// defaults to info. Exceptions:
+/// - `sail_ui/lib/` (the wrapper layer, via `// ignore_for_file:`)
+/// - test files (Material is legitimate harness scaffolding there)
+/// - inline `// ignore: avoid_material_import` with a stated reason
 class AvoidMaterialImport extends DartLintRule {
-  AvoidMaterialImport() : super(code: _code);
+  AvoidMaterialImport.fromConfigs(CustomLintConfigs configs)
+    : super(code: _codeFor(configs));
 
-  static const _code = LintCode(
-    name: 'avoid_material_import',
-    problemMessage:
-        'Avoid importing package:flutter/material.dart — prefer sail_ui primitives.',
-    correctionMessage:
-        'Replace Material widgets with their Sail equivalents (Button → SailButton, '
-        'Card → SailCard, Dialog → SailDialog, etc.). If the import is unavoidable, '
-        'add an ignore comment and explain why.',
-  );
+  static LintCode _codeFor(CustomLintConfigs configs) {
+    final severity =
+        switch (configs.rules['avoid_material_import']?.json['severity']) {
+          'error' => ErrorSeverity.ERROR,
+          'warning' => ErrorSeverity.WARNING,
+          _ => ErrorSeverity.INFO,
+        };
+    return LintCode(
+      name: 'avoid_material_import',
+      problemMessage:
+          'Avoid importing package:flutter/material.dart — prefer sail_ui primitives.',
+      correctionMessage:
+          'Replace Material widgets with their Sail equivalents (Button → SailButton, '
+          'Card → SailCard, Dialog → SailDialog, etc.). If the import is unavoidable, '
+          'add an ignore comment and explain why.',
+      errorSeverity: severity,
+    );
+  }
 
   @override
   void run(
@@ -36,10 +41,12 @@ class AvoidMaterialImport extends DartLintRule {
     ErrorReporter reporter,
     CustomLintContext context,
   ) {
+    if (resolver.path.contains('/test/')) return;
+
     context.registry.addImportDirective((node) {
       final uri = node.uri.stringValue;
       if (uri == 'package:flutter/material.dart') {
-        reporter.atNode(node, _code);
+        reporter.atNode(node, code);
       }
     });
   }

@@ -2,8 +2,6 @@ import 'package:auto_route/auto_route.dart' hide AutoRouterX;
 import 'package:bitwindow/providers/check_provider.dart';
 import 'package:bitwindow/providers/transactions_provider.dart';
 import 'package:bitwindow/utils/explorer_url.dart';
-import 'package:flutter/material.dart'
-    show AlertDialog, AppBar, Colors, MaterialTapTargetSize, Scaffold, SelectableText, TextButton;
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
@@ -62,13 +60,13 @@ class CheckDetailViewModel extends BaseViewModel {
   void copyAddress(BuildContext context) {
     if (_check != null) {
       Clipboard.setData(ClipboardData(text: _check!.address));
-      showSnackBar(context, 'Address copied to clipboard');
+      showSailToast(context, 'Address copied to clipboard');
     }
   }
 
   void copyTxid(BuildContext context, String txid) {
     Clipboard.setData(ClipboardData(text: txid));
-    showSnackBar(context, 'Transaction ID copied to clipboard');
+    showSailToast(context, 'Transaction ID copied to clipboard');
   }
 
   Future<void> fundWithWallet(BuildContext context) async {
@@ -99,7 +97,7 @@ class CheckDetailViewModel extends BaseViewModel {
     } catch (e) {
       if (!context.mounted) return;
 
-      showSnackBar(
+      showSailToast(
         context,
         'Failed to fund check: $e',
       );
@@ -112,14 +110,14 @@ class CheckDetailViewModel extends BaseViewModel {
     final destinationAddress = _transactionProvider.address;
     if (destinationAddress.isEmpty) {
       if (context.mounted) {
-        showSnackBar(context, 'No receive address available');
+        showSailToast(context, 'No receive address available');
       }
       return;
     }
 
     if (!_check!.hasPrivateKeyWif() || _check!.privateKeyWif.isEmpty) {
       if (context.mounted) {
-        showSnackBar(context, 'Private key not available - wallet may be locked');
+        showSailToast(context, 'Private key not available - wallet may be locked');
       }
       return;
     }
@@ -133,7 +131,7 @@ class CheckDetailViewModel extends BaseViewModel {
 
       if (!context.mounted) return;
 
-      showSnackBar(
+      showSailToast(
         context,
         'Check swept! TXID: ${txid.substring(0, 10)}...',
       );
@@ -152,10 +150,10 @@ class CheckDetailViewModel extends BaseViewModel {
             await sweepCheck(context);
           }
         } else {
-          showSnackBar(context, 'Backend wallet not initialized. Please restart the app.');
+          showSailToast(context, 'Backend wallet not initialized. Please restart the app.');
         }
       } else {
-        showSnackBar(context, 'Failed to sweep check: $e');
+        showSailToast(context, 'Failed to sweep check: $e');
       }
     }
   }
@@ -167,25 +165,8 @@ class CheckDetailViewModel extends BaseViewModel {
     await showThemedDialog(
       context: context,
       builder: (context) => StatefulBuilder(
-        builder: (context, setState) => AlertDialog(
-          backgroundColor: SailTheme.of(context).colors.background,
-          title: SailText.primary15('Unlock Wallet'),
-          content: SizedBox(
-            width: 400,
-            child: SailColumn(
-              spacing: SailStyleValues.padding12,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                SailText.secondary13('Enter your wallet password to sweep checks'),
-                SailTextField(
-                  controller: passwordController,
-                  hintText: 'Password',
-                  obscureText: true,
-                  maxLines: 1,
-                ),
-              ],
-            ),
-          ),
+        builder: (context, setState) => SailDialog(
+          title: 'Unlock Wallet',
           actions: [
             SailButton(
               label: 'Cancel',
@@ -204,12 +185,28 @@ class CheckDetailViewModel extends BaseViewModel {
                 } else {
                   setState(() => isUnlocking = false);
                   if (context.mounted) {
-                    showSnackBar(context, 'Incorrect password');
+                    showSailToast(context, 'Incorrect password');
                   }
                 }
               },
             ),
           ],
+          child: SizedBox(
+            width: 400,
+            child: SailColumn(
+              spacing: SailStyleValues.padding12,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                SailText.secondary13('Enter your wallet password to sweep checks'),
+                SailTextField(
+                  controller: passwordController,
+                  hintText: 'Password',
+                  obscureText: true,
+                  maxLines: 1,
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );
@@ -236,13 +233,9 @@ class CheckDetailPage extends StatelessWidget {
             ? (model.check!.expectedAmountSats.toInt() / 100000000).toStringAsFixed(8)
             : '0.00000000';
 
-        return Scaffold(
+        return SailScaffold(
           backgroundColor: SailTheme.of(context).colors.background,
-          appBar: AppBar(
-            backgroundColor: SailTheme.of(context).colors.background,
-            foregroundColor: SailTheme.of(context).colors.text,
-            title: SailText.primary20('Check for $amountBTC BTC'),
-          ),
+          appBar: SailAppBar.build(context, title: SailText.primary20('Check for $amountBTC BTC')),
           body: Builder(
             builder: (context) {
               if (model.isLoading) {
@@ -392,7 +385,7 @@ class CheckDetailPage extends StatelessWidget {
                                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                     children: [
                                       Flexible(
-                                        child: SelectableText(
+                                        child: SailSelectableText(
                                           check.privateKeyWif,
                                           style: TextStyle(
                                             fontFamily: 'IBMPlexMono',
@@ -422,25 +415,23 @@ class CheckDetailPage extends StatelessWidget {
                                     end: Alignment.bottomRight,
                                   ),
                                   borderRadius: BorderRadius.circular(8),
-                                  boxShadow: const [
+                                  boxShadow: [
                                     BoxShadow(
-                                      color: Colors.black12,
+                                      color: context.sailTheme.colors.shadow,
                                       blurRadius: 4,
-                                      offset: Offset(0, 2),
+                                      offset: const Offset(0, 2),
                                     ),
                                   ],
                                 ),
-                                child: TextButton(
-                                  onPressed: () => model.fundWithWallet(context),
-                                  style: TextButton.styleFrom(
-                                    padding: EdgeInsets.zero,
-                                    minimumSize: Size.zero,
-                                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                                  ),
-                                  child: SailText.primary15(
-                                    'Fund with Wallet',
-                                    color: Colors.white,
-                                    bold: true,
+                                child: SailTappable(
+                                  onTap: () async => model.fundWithWallet(context),
+                                  borderRadius: BorderRadius.circular(8),
+                                  child: Center(
+                                    child: SailText.primary15(
+                                      'Fund with Wallet',
+                                      color: context.sailTheme.colors.primaryButtonText,
+                                      bold: true,
+                                    ),
                                   ),
                                 ),
                               ),
@@ -460,25 +451,23 @@ class CheckDetailPage extends StatelessWidget {
                                     end: Alignment.bottomRight,
                                   ),
                                   borderRadius: BorderRadius.circular(8),
-                                  boxShadow: const [
+                                  boxShadow: [
                                     BoxShadow(
-                                      color: Colors.black12,
+                                      color: context.sailTheme.colors.shadow,
                                       blurRadius: 4,
-                                      offset: Offset(0, 2),
+                                      offset: const Offset(0, 2),
                                     ),
                                   ],
                                 ),
-                                child: TextButton(
-                                  onPressed: () => model.sweepCheck(context),
-                                  style: TextButton.styleFrom(
-                                    padding: EdgeInsets.zero,
-                                    minimumSize: Size.zero,
-                                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                                  ),
-                                  child: SailText.primary15(
-                                    'Sweep Check to Wallet',
-                                    color: Colors.white,
-                                    bold: true,
+                                child: SailTappable(
+                                  onTap: () async => model.sweepCheck(context),
+                                  borderRadius: BorderRadius.circular(8),
+                                  child: Center(
+                                    child: SailText.primary15(
+                                      'Sweep Check to Wallet',
+                                      color: context.sailTheme.colors.primaryButtonText,
+                                      bold: true,
+                                    ),
                                   ),
                                 ),
                               ),

@@ -54,6 +54,35 @@ class _SettingsAppearanceState extends State<SettingsAppearance> {
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            SailText.primary15('Theme Style'),
+            const SailSpacing(SailStyleValues.padding08),
+            SailDropdownButton<SailThemeStyle>(
+              value: sailBundleForId(_settingsProvider.bitwindowSettings.themeStyle).style,
+              items: sailThemeBundles.values
+                  .map(
+                    (b) => SailDropdownItem<SailThemeStyle>(
+                      value: b.style,
+                      label: b.displayName,
+                    ),
+                  )
+                  .toList(),
+              onChanged: (SailThemeStyle? newValue) async {
+                if (newValue != null) {
+                  await _settingsProvider.updateThemeStyle(newValue);
+                  if (context.mounted) {
+                    final app = SailApp.of(context);
+                    await app.loadStyle(newValue);
+                  }
+                }
+              },
+            ),
+            const SailSpacing(4),
+            SailText.secondary12('Applies to all clients'),
+          ],
+        ),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
             SailText.primary15('Font'),
             const SailSpacing(SailStyleValues.padding08),
             SailDropdownButton<SailFontValues>(

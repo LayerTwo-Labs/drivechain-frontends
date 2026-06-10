@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:math';
 
 import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart' show Colors, Dialog;
 import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
@@ -749,24 +748,21 @@ class _TransactionTableState extends State<TransactionTable> {
     final formatter = GetIt.I<FormatterProvider>();
     showThemedDialog(
       context: context,
-      builder: (context) => Dialog(
-        backgroundColor: Colors.transparent,
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 800),
-          child: SailCard(
-            title: 'Transaction Details',
-            subtitle: 'Details of the selected transaction',
-            child: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  DetailRow(label: 'TxID', value: utxo.txid),
-                  DetailRow(label: 'Amount', value: formatter.formatBTC(satoshiToBTC(utxo.amount.toInt()))),
-                  DetailRow(label: 'Date', value: utxo.time.toLocal().format()),
-                  DetailRow(label: 'Confirmation Height', value: utxo.confirmations.toString()),
-                ],
-              ),
+      builder: (context) => SailModal(
+        constraints: const BoxConstraints(maxWidth: 800),
+        child: SailCard(
+          title: 'Transaction Details',
+          subtitle: 'Details of the selected transaction',
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                DetailRow(label: 'TxID', value: utxo.txid),
+                DetailRow(label: 'Amount', value: formatter.formatBTC(satoshiToBTC(utxo.amount.toInt()))),
+                DetailRow(label: 'Date', value: utxo.time.toLocal().format()),
+                DetailRow(label: 'Confirmation Height', value: utxo.confirmations.toString()),
+              ],
             ),
           ),
         ),

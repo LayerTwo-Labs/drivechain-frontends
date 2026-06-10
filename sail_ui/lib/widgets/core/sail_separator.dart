@@ -31,16 +31,38 @@ class SailSeparator extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final lineColor = color ?? SailTheme.of(context).colors.divider;
-    final line = axis == Axis.horizontal
-        ? SizedBox(
-            height: thickness,
-            child: ColoredBox(color: lineColor),
-          )
-        : SizedBox(
-            width: thickness,
-            child: ColoredBox(color: lineColor),
-          );
+    final theme = SailTheme.of(context);
+    final lineColor = color ?? theme.colors.divider;
+    final bevel = theme.chrome.bevel;
+    final Widget line;
+    if (bevel != null) {
+      // win95 groove: dark band with a light band beneath/beside it
+      line = axis == Axis.horizontal
+          ? Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                SizedBox(height: 1, child: ColoredBox(color: bevel.dark)),
+                SizedBox(height: 1, child: ColoredBox(color: bevel.light)),
+              ],
+            )
+          : Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                SizedBox(width: 1, child: ColoredBox(color: bevel.dark)),
+                SizedBox(width: 1, child: ColoredBox(color: bevel.light)),
+              ],
+            );
+    } else {
+      line = axis == Axis.horizontal
+          ? SizedBox(
+              height: thickness,
+              child: ColoredBox(color: lineColor),
+            )
+          : SizedBox(
+              width: thickness,
+              child: ColoredBox(color: lineColor),
+            );
+    }
     if (padding == null) return line;
     return Padding(padding: padding!, child: line);
   }

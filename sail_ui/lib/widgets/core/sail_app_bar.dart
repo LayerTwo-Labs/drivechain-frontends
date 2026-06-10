@@ -2,7 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:sail_ui/sail_ui.dart';
 
 class SailAppBar {
-  static PreferredSizeWidget build(BuildContext context, {required title}) {
+  static PreferredSizeWidget build(
+    BuildContext context, {
+    title,
+    Widget? leading,
+    bool automaticallyImplyLeading = true,
+  }) {
     final colors = SailTheme.of(context).colors;
 
     return AppBar(
@@ -11,16 +16,18 @@ class SailAppBar {
       foregroundColor: colors.icon,
       centerTitle: false,
       title: title,
-      leading: Navigator.canPop(context)
-          ? SailButton(
-              variant: ButtonVariant.icon,
-              icon: SailSVGAsset.chevronLeft,
-              onPressed: () async => Navigator.pop(context),
-              iconHeight: 14,
-              iconWidth: 14,
-              small: true,
-            )
-          : null,
+      leading:
+          leading ??
+          (automaticallyImplyLeading && Navigator.canPop(context)
+              ? SailButton(
+                  variant: ButtonVariant.icon,
+                  icon: SailSVGAsset.chevronLeft,
+                  onPressed: () async => Navigator.pop(context),
+                  iconHeight: 14,
+                  iconWidth: 14,
+                  small: true,
+                )
+              : null),
       toolbarHeight: 25,
     );
   }

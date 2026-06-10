@@ -1,8 +1,6 @@
 import 'package:auto_route/auto_route.dart';
 import 'package:bitwindow/providers/m4_provider.dart';
 import 'package:bitwindow/providers/sidechain_provider.dart';
-import 'package:flutter/material.dart'
-    show AppBar, ExpansionTile, Icon, Icons, InkWell, LinearProgressIndicator, ListTile, Scaffold, SelectableText;
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
@@ -29,13 +27,9 @@ class _M4ExplorerPageState extends State<M4ExplorerPage> {
     final theme = SailTheme.of(context);
 
     if (!confProvider.networkSupportsSidechains) {
-      return Scaffold(
+      return SailScaffold(
         backgroundColor: theme.colors.background,
-        appBar: AppBar(
-          backgroundColor: theme.colors.background,
-          foregroundColor: theme.colors.text,
-          title: SailText.primary20('Sidechain Withdrawal Admin'),
-        ),
+        appBar: SailAppBar.build(context, title: SailText.primary20('Sidechain Withdrawal Admin')),
         body: Padding(
           padding: const EdgeInsets.all(SailStyleValues.padding16),
           child: SailCard(
@@ -77,13 +71,9 @@ class _M4ExplorerPageState extends State<M4ExplorerPage> {
       );
     }
 
-    return Scaffold(
+    return SailScaffold(
       backgroundColor: theme.colors.background,
-      appBar: AppBar(
-        backgroundColor: theme.colors.background,
-        foregroundColor: theme.colors.text,
-        title: SailText.primary20('Sidechain Withdrawal Admin'),
-      ),
+      appBar: SailAppBar.build(context, title: SailText.primary20('Sidechain Withdrawal Admin')),
       body: ListenableBuilder(
         listenable: Listenable.merge([_sidechainProvider, _m4Provider]),
         builder: (context, child) {
@@ -193,7 +183,7 @@ class _M4ExplorerPageState extends State<M4ExplorerPage> {
                                                             bundle: bundle,
                                                             onCopy: () {
                                                               Clipboard.setData(ClipboardData(text: bundle.m6id));
-                                                              showSnackBar(context, 'Copied M6 Bundle Hash');
+                                                              showSailToast(context, 'Copied M6 Bundle Hash');
                                                             },
                                                           ),
                                                         )
@@ -334,11 +324,11 @@ class _M4ExplorerPageState extends State<M4ExplorerPage> {
                         );
                         if (context.mounted) {
                           Navigator.of(context).pop();
-                          showSnackBar(context, 'Vote preference updated');
+                          showSailToast(context, 'Vote preference updated');
                         }
                       } catch (e) {
                         if (context.mounted) {
-                          showSnackBar(context, 'Failed to set vote: $e');
+                          showSailToast(context, 'Failed to set vote: $e');
                         }
                       }
                     },
@@ -355,7 +345,7 @@ class _M4ExplorerPageState extends State<M4ExplorerPage> {
   Future<void> _showGenerateM4BytesDialog() async {
     final result = await _m4Provider.generateM4Bytes();
     if (result == null) {
-      if (mounted) showSnackBar(context, 'Failed to generate M4 bytes');
+      if (mounted) showSailToast(context, 'Failed to generate M4 bytes');
       return;
     }
 
@@ -381,7 +371,7 @@ class _M4ExplorerPageState extends State<M4ExplorerPage> {
               children: [
                 SailText.secondary12('Hex'),
                 const SizedBox(height: 4),
-                SelectableText(
+                SailSelectableText(
                   result.hex,
                   style: TextStyle(
                     fontFamily: 'IBM Plex Mono',
@@ -412,7 +402,7 @@ class _M4ExplorerPageState extends State<M4ExplorerPage> {
                 variant: ButtonVariant.secondary,
                 onPressed: () async {
                   await Clipboard.setData(ClipboardData(text: result.hex));
-                  if (mounted) showSnackBar(context, 'Copied to clipboard');
+                  if (mounted) showSailToast(context, 'Copied to clipboard');
                 },
               ),
             ],
@@ -451,8 +441,8 @@ class _BundleRow extends StatelessWidget {
     final isPending = bundle.status.toLowerCase() == 'pending';
     final progress = isPending && bundle.maxAge > 0 ? (bundle.age / bundle.maxAge).clamp(0.0, 1.0) : 0.0;
 
-    return InkWell(
-      onTap: onCopy,
+    return SailTappable(
+      onTap: () async => onCopy(),
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
         child: Column(
@@ -490,13 +480,12 @@ class _BundleRow extends StatelessWidget {
               // Progress bar
               ClipRRect(
                 borderRadius: BorderRadius.circular(2),
-                child: LinearProgressIndicator(
-                  value: progress,
-                  backgroundColor: theme.colors.backgroundSecondary,
-                  valueColor: AlwaysStoppedAnimation<Color>(
-                    progress > 0.8 ? theme.colors.error : theme.colors.orange,
-                  ),
-                  minHeight: 4,
+                child: ProgressBar(
+                  current: progress,
+                  goal: 1,
+                  small: true,
+                  hideProgressInside: true,
+                  color: progress > 0.8 ? theme.colors.error : theme.colors.orange,
                 ),
               ),
             ] else
@@ -524,20 +513,29 @@ class _HistoryEntry extends StatelessWidget {
     // Filter votes to only show ones for the selected sidechain
     final relevantVotes = entry.votes.where((v) => v.sidechainSlot == selectedSidechainSlot).toList();
 
-    return ExpansionTile(
-      title: SailText.primary13('Block #${entry.blockHeight}'),
-      subtitle: SailText.secondary12(
-        relevantVotes.isEmpty ? 'No votes for this sidechain' : '${relevantVotes.length} vote(s)',
+    return SailCollapsible(
+      trigger: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SailText.primary13('Block #${entry.blockHeight}'),
+            SailText.secondary12(
+              relevantVotes.isEmpty ? 'No votes for this sidechain' : '${relevantVotes.length} vote(s)',
+            ),
+          ],
+        ),
       ),
-      initiallyExpanded: false,
-      children: relevantVotes.isEmpty
-          ? [
-              Padding(
-                padding: const EdgeInsets.all(16),
-                child: SailText.secondary12('No withdrawal votes recorded in this block'),
-              ),
-            ]
-          : relevantVotes.map((vote) => _VoteEntry(vote: vote)).toList(),
+      child: Column(
+        children: relevantVotes.isEmpty
+            ? [
+                Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: SailText.secondary12('No withdrawal votes recorded in this block'),
+                ),
+              ]
+            : relevantVotes.map((vote) => _VoteEntry(vote: vote)).toList(),
+      ),
     );
   }
 }
@@ -554,40 +552,51 @@ class _VoteEntry extends StatelessWidget {
 
     Color voteColor;
     String voteLabel;
-    IconData voteIcon;
+    SailSVGAsset voteIcon;
 
     switch (vote.voteType.toLowerCase()) {
       case 'upvote':
         voteColor = theme.colors.success;
         voteLabel = 'Upvote';
-        voteIcon = Icons.arrow_upward;
+        voteIcon = SailSVGAsset.arrowUp;
       case 'alarm':
       case 'downvote':
         voteColor = theme.colors.error;
         voteLabel = 'Alarm';
-        voteIcon = Icons.warning;
+        voteIcon = SailSVGAsset.triangleAlert;
       default:
         voteColor = theme.colors.textSecondary;
         voteLabel = 'Abstain';
-        voteIcon = Icons.remove;
+        voteIcon = SailSVGAsset.minus;
     }
 
-    return ListTile(
-      leading: Container(
-        padding: const EdgeInsets.all(8),
-        decoration: BoxDecoration(
-          color: voteColor.withValues(alpha: 0.1),
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Icon(voteIcon, color: voteColor, size: 16),
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      child: SailRow(
+        spacing: SailStyleValues.padding12,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: voteColor.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: SailSVG.fromAsset(voteIcon, color: voteColor, width: 16),
+          ),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SailText.primary13(voteLabel, color: voteColor),
+                if (vote.hasBundleHash())
+                  SailText.secondary12(
+                    'Bundle: ${vote.bundleHash.length > 16 ? '${vote.bundleHash.substring(0, 16)}...' : vote.bundleHash}',
+                  ),
+              ],
+            ),
+          ),
+        ],
       ),
-      title: SailText.primary13(voteLabel, color: voteColor),
-      subtitle: vote.hasBundleHash()
-          ? SailText.secondary12(
-              'Bundle: ${vote.bundleHash.length > 16 ? '${vote.bundleHash.substring(0, 16)}...' : vote.bundleHash}',
-            )
-          : null,
-      dense: true,
     );
   }
 }

@@ -32,6 +32,10 @@ class SailTextField extends StatelessWidget {
   final LoadingDetails? loading;
   final bool obscureText;
 
+  /// Fills the parent's height; requires a bounded-height ancestor.
+  final bool expands;
+  final bool monospace;
+
   const SailTextField({
     super.key,
     required this.controller,
@@ -58,6 +62,8 @@ class SailTextField extends StatelessWidget {
     this.inputFormatters,
     this.loading,
     this.obscureText = false,
+    this.expands = false,
+    this.monospace = false,
   });
 
   @override
@@ -66,106 +72,110 @@ class SailTextField extends StatelessWidget {
     final padding = EdgeInsets.symmetric(vertical: 11.5, horizontal: 12);
     final textSize = size == TextFieldSize.regular ? 13.0 : 10.0;
 
+    final field = Theme(
+      data: Theme.of(context).copyWith(
+        textSelectionTheme: TextSelectionThemeData(
+          selectionColor: theme.colors.primary.withValues(alpha: 0.2),
+        ),
+      ),
+      child: TextField(
+        autofocus: autofocus,
+        enabled: enabled,
+        obscureText: obscureText,
+        mouseCursor: enabled ? WidgetStateMouseCursor.textable : SystemMouseCursors.forbidden,
+        cursorColor: theme.colors.primary,
+        controller: controller,
+        focusNode: focusNode,
+        onSubmitted: onSubmitted,
+        onChanged: onChanged,
+        readOnly: readOnly,
+        style: SailStyleValues.thirteen.copyWith(
+          color: SailTheme.of(context).colors.text,
+          fontSize: textSize,
+          fontFamily: theme.chrome.fontFamily ?? (monospace ? 'IBMPlexMono' : null),
+        ),
+        inputFormatters: [
+          if (textFieldType == TextFieldType.number) FilteringTextInputFormatter.allow(RegExp(r'^\d+$')),
+          if (textFieldType == TextFieldType.bitcoin) FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,8}')),
+          ...?inputFormatters,
+        ],
+        expands: expands,
+        minLines: expands ? null : minLines,
+        maxLines: expands ? null : maxLines ?? (minLines != null ? null : 1),
+        decoration: InputDecoration(
+          isDense: true, // This helps reduce the minimum height
+          errorBorder: InputBorder.none,
+          disabledBorder: InputBorder.none,
+          enabledBorder: OutlineInputBorder(
+            borderRadius: theme.chrome.radius,
+            borderSide: BorderSide(color: theme.colors.border),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: theme.chrome.radius,
+            borderSide: BorderSide(color: theme.colors.text),
+          ),
+          suffixStyle: TextStyle(
+            color: SailTheme.of(context).colors.inactiveNavText,
+            fontSize: textSize,
+          ),
+          suffixText: suffix,
+          border: OutlineInputBorder(
+            borderRadius: theme.chrome.radius,
+            borderSide: BorderSide(color: theme.colors.border),
+          ),
+          suffixIcon: loading != null && loading!.enabled
+              ? Tooltip(
+                  message: loading!.description,
+                  child: Padding(
+                    padding: EdgeInsets.all(SailStyleValues.padding08),
+                    child: LoadingIndicator(),
+                  ),
+                )
+              : suffixWidget != null
+              ? Align(
+                  alignment: Alignment.center,
+                  widthFactor: 1.0,
+                  child: Padding(
+                    padding: EdgeInsets.only(
+                      top: 1,
+                      bottom: 1,
+                      left: 1,
+                      right: 8,
+                    ),
+                    child: suffixWidget,
+                  ),
+                )
+              : null,
+          prefixStyle: TextStyle(
+            color: SailTheme.of(context).colors.inactiveNavText,
+            fontSize: textSize,
+          ),
+          prefixText: prefix,
+          prefix: prefixWidget,
+          prefixIcon: prefixIcon,
+          prefixIconConstraints: prefixIconConstraints,
+          fillColor: theme.chrome.fieldsSunken ? theme.colors.formField : theme.colors.background,
+          filled: true,
+          contentPadding: padding,
+          helperText: helperText,
+          hintText: hintText,
+          helperStyle: SailStyleValues.thirteen.copyWith(
+            color: SailTheme.of(context).colors.inactiveNavText,
+            fontSize: textSize,
+          ),
+          hintStyle: SailStyleValues.thirteen.copyWith(
+            color: SailTheme.of(context).colors.inactiveNavText,
+            fontSize: textSize,
+          ),
+        ),
+      ),
+    );
+
     return SailColumn(
       spacing: SailStyleValues.padding08,
       children: [
         if (label != null) SailText.primary13(label!, bold: true),
-        Theme(
-          data: Theme.of(context).copyWith(
-            textSelectionTheme: TextSelectionThemeData(
-              selectionColor: theme.colors.primary.withValues(alpha: 0.2),
-            ),
-          ),
-          child: TextField(
-            autofocus: autofocus,
-            enabled: enabled,
-            obscureText: obscureText,
-            mouseCursor: enabled ? WidgetStateMouseCursor.textable : SystemMouseCursors.forbidden,
-            cursorColor: theme.colors.primary,
-            controller: controller,
-            focusNode: focusNode,
-            onSubmitted: onSubmitted,
-            onChanged: onChanged,
-            readOnly: readOnly,
-            style: SailStyleValues.thirteen.copyWith(
-              color: SailTheme.of(context).colors.text,
-              fontSize: textSize,
-            ),
-            inputFormatters: [
-              if (textFieldType == TextFieldType.number) FilteringTextInputFormatter.allow(RegExp(r'^\d+$')),
-              if (textFieldType == TextFieldType.bitcoin) FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,8}')),
-              ...?inputFormatters,
-            ],
-            minLines: minLines,
-            maxLines: maxLines ?? (minLines != null ? null : 1),
-            decoration: InputDecoration(
-              isDense: true, // This helps reduce the minimum height
-              errorBorder: InputBorder.none,
-              disabledBorder: InputBorder.none,
-              enabledBorder: OutlineInputBorder(
-                borderRadius: SailStyleValues.borderRadius,
-                borderSide: BorderSide(color: theme.colors.border),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: SailStyleValues.borderRadius,
-                borderSide: BorderSide(color: theme.colors.text),
-              ),
-              suffixStyle: TextStyle(
-                color: SailTheme.of(context).colors.inactiveNavText,
-                fontSize: textSize,
-              ),
-              suffixText: suffix,
-              border: OutlineInputBorder(
-                borderRadius: SailStyleValues.borderRadius,
-                borderSide: BorderSide(color: theme.colors.border),
-              ),
-              suffixIcon: loading != null && loading!.enabled
-                  ? Tooltip(
-                      message: loading!.description,
-                      child: Padding(
-                        padding: EdgeInsets.all(SailStyleValues.padding08),
-                        child: LoadingIndicator(),
-                      ),
-                    )
-                  : suffixWidget != null
-                  ? Align(
-                      alignment: Alignment.center,
-                      widthFactor: 1.0,
-                      child: Padding(
-                        padding: EdgeInsets.only(
-                          top: 1,
-                          bottom: 1,
-                          left: 1,
-                          right: 8,
-                        ),
-                        child: suffixWidget,
-                      ),
-                    )
-                  : null,
-              prefixStyle: TextStyle(
-                color: SailTheme.of(context).colors.inactiveNavText,
-                fontSize: textSize,
-              ),
-              prefixText: prefix,
-              prefix: prefixWidget,
-              prefixIcon: prefixIcon,
-              prefixIconConstraints: prefixIconConstraints,
-              fillColor: SailTheme.of(context).colors.background,
-              filled: true,
-              contentPadding: padding,
-              helperText: helperText,
-              hintText: hintText,
-              helperStyle: SailStyleValues.thirteen.copyWith(
-                color: SailTheme.of(context).colors.inactiveNavText,
-                fontSize: textSize,
-              ),
-              hintStyle: SailStyleValues.thirteen.copyWith(
-                color: SailTheme.of(context).colors.inactiveNavText,
-                fontSize: textSize,
-              ),
-            ),
-          ),
-        ),
+        if (expands) Expanded(child: field) else field,
       ],
     );
   }

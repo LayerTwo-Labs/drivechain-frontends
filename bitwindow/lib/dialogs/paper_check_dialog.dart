@@ -1,6 +1,6 @@
 import 'package:bitwindow/providers/transactions_provider.dart';
 import 'package:bitwindow/utils/paper_wallet_generator.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter/services.dart';
 import 'package:get_it/get_it.dart';
 import 'package:pdf/pdf.dart';
@@ -128,9 +128,7 @@ class _PaperCheckDialogState extends State<PaperCheckDialog> {
 
   void _copyToClipboard(String text, String label) {
     Clipboard.setData(ClipboardData(text: text));
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('$label copied to clipboard')),
-    );
+    showSailToast(context, '$label copied to clipboard');
   }
 
   Future<void> _printPaperCheck() async {
@@ -313,15 +311,15 @@ class _PaperCheckDialogState extends State<PaperCheckDialog> {
   Widget build(BuildContext context) {
     final theme = SailTheme.of(context);
 
-    return Dialog(
-      backgroundColor: theme.colors.backgroundSecondary,
-      shape: RoundedRectangleBorder(
-        borderRadius: SailStyleValues.borderRadiusSmall,
-        side: BorderSide(color: theme.colors.border, width: 1),
-      ),
+    return SailModal(
       child: Container(
         width: 900,
         constraints: const BoxConstraints(maxHeight: 750),
+        decoration: BoxDecoration(
+          color: theme.colors.backgroundSecondary,
+          borderRadius: SailStyleValues.borderRadiusSmall,
+          border: Border.all(color: theme.colors.border, width: 1),
+        ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -337,9 +335,13 @@ class _PaperCheckDialogState extends State<PaperCheckDialog> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   SailText.primary20('Write a Check'),
-                  IconButton(
-                    icon: Icon(Icons.close, color: theme.colors.text),
-                    onPressed: () => Navigator.of(context).pop(),
+                  SailTappable(
+                    onTap: () async => Navigator.of(context).pop(),
+                    borderRadius: SailStyleValues.borderRadiusSmall,
+                    child: Padding(
+                      padding: const EdgeInsets.all(6),
+                      child: SailSVG.fromAsset(SailSVGAsset.x, color: theme.colors.text),
+                    ),
                   ),
                 ],
               ),
@@ -362,7 +364,7 @@ class _PaperCheckDialogState extends State<PaperCheckDialog> {
                       ),
                       child: Row(
                         children: [
-                          Icon(Icons.info_outline, color: theme.colors.primary, size: 20),
+                          SailSVG.fromAsset(SailSVGAsset.info, width: 20, color: theme.colors.primary),
                           const SizedBox(width: 12),
                           Expanded(
                             child: SailText.secondary12(
@@ -380,32 +382,14 @@ class _PaperCheckDialogState extends State<PaperCheckDialog> {
                     if (_txid == null) ...[
                       SailText.primary13('Check Amount (BTC):'),
                       const SizedBox(height: 8),
-                      TextField(
+                      SailTextField(
                         controller: _amountController,
-                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                        style: TextStyle(
-                          fontFamily: 'IBMPlexMono',
-                          fontSize: 14,
-                          color: theme.colors.text,
-                        ),
-                        decoration: InputDecoration(
-                          hintText: '0.001',
-                          hintStyle: TextStyle(color: theme.colors.textTertiary),
-                          prefixIcon: Icon(Icons.account_balance, color: theme.colors.primary),
-                          filled: true,
-                          fillColor: theme.colors.background,
-                          border: OutlineInputBorder(
-                            borderRadius: SailStyleValues.borderRadiusSmall,
-                            borderSide: BorderSide(color: theme.colors.border),
-                          ),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: SailStyleValues.borderRadiusSmall,
-                            borderSide: BorderSide(color: theme.colors.border),
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: SailStyleValues.borderRadiusSmall,
-                            borderSide: BorderSide(color: theme.colors.primary, width: 2),
-                          ),
+                        hintText: '0.001',
+                        textFieldType: TextFieldType.bitcoin,
+                        monospace: true,
+                        prefixIcon: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 8),
+                          child: SailSVG.fromAsset(SailSVGAsset.landmark, color: theme.colors.primary),
                         ),
                       ),
                       const SizedBox(height: 24),
@@ -413,22 +397,10 @@ class _PaperCheckDialogState extends State<PaperCheckDialog> {
 
                     // Error display
                     if (_error != null) ...[
-                      Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: theme.colors.error.withValues(alpha: 0.1),
-                          borderRadius: SailStyleValues.borderRadiusSmall,
-                          border: Border.all(color: theme.colors.error),
-                        ),
-                        child: Row(
-                          children: [
-                            Icon(Icons.error_outline, color: theme.colors.error, size: 20),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: SailText.secondary12(_error!, color: theme.colors.error),
-                            ),
-                          ],
-                        ),
+                      SailAlert(
+                        variant: SailAlertVariant.destructive,
+                        icon: SailSVG.fromAsset(SailSVGAsset.circleAlert, width: 20, color: theme.colors.error),
+                        description: _error!,
                       ),
                       const SizedBox(height: 24),
                     ],
@@ -439,7 +411,7 @@ class _PaperCheckDialogState extends State<PaperCheckDialog> {
                           padding: const EdgeInsets.all(48),
                           child: Column(
                             children: [
-                              CircularProgressIndicator(color: theme.colors.primary),
+                              SailCircularProgressIndicator(color: theme.colors.primary),
                               const SizedBox(height: 16),
                               SailText.secondary13('Generating check address...'),
                             ],
@@ -464,7 +436,11 @@ class _PaperCheckDialogState extends State<PaperCheckDialog> {
                                 children: [
                                   Row(
                                     children: [
-                                      Icon(Icons.check_circle, color: theme.colors.success, size: 24),
+                                      SailSVG.fromAsset(
+                                        SailSVGAsset.circleCheck,
+                                        width: 24,
+                                        color: theme.colors.success,
+                                      ),
                                       const SizedBox(width: 12),
                                       SailText.primary15('Check Created Successfully!', bold: true),
                                     ],
@@ -472,7 +448,7 @@ class _PaperCheckDialogState extends State<PaperCheckDialog> {
                                   const SizedBox(height: 12),
                                   SailText.secondary12('Transaction ID:'),
                                   const SizedBox(height: 4),
-                                  SelectableText(
+                                  SailSelectableText(
                                     _txid!,
                                     style: TextStyle(
                                       fontFamily: 'IBMPlexMono',
@@ -501,7 +477,7 @@ class _PaperCheckDialogState extends State<PaperCheckDialog> {
                               ),
                               child: Row(
                                 children: [
-                                  Icon(Icons.account_balance_wallet, color: theme.colors.primary, size: 32),
+                                  SailSVG.fromAsset(SailSVGAsset.wallet, width: 32, color: theme.colors.primary),
                                   const SizedBox(width: 16),
                                   Column(
                                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -655,7 +631,7 @@ class _RecipientPanel extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.qr_code_2, color: theme.colors.primary, size: 24),
+              SailSVG.fromAsset(SailSVGAsset.qrCode, width: 24, color: theme.colors.primary),
               const SizedBox(width: 8),
               SailText.primary15('RECIPIENT', bold: true),
             ],
@@ -690,7 +666,7 @@ class _RecipientPanel extends StatelessWidget {
           const SizedBox(height: 16),
 
           // Address text
-          SelectableText(
+          SailSelectableText(
             keypair.publicAddress,
             style: TextStyle(
               fontFamily: 'IBMPlexMono',
@@ -752,18 +728,24 @@ class _RedemptionPanel extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.key, color: theme.colors.error, size: 24),
+              SailSVG.fromAsset(SailSVGAsset.key, width: 24, color: theme.colors.error),
               const SizedBox(width: 8),
               SailText.primary15('REDEEM', bold: true),
               const Spacer(),
-              IconButton(
-                icon: Icon(
-                  showPrivateKey ? Icons.visibility_off : Icons.visibility,
-                  color: theme.colors.text,
-                  size: 20,
+              SailTooltip(
+                message: showPrivateKey ? 'Hide private key' : 'Show private key',
+                child: SailTappable(
+                  onTap: () async => onToggleVisibility(),
+                  borderRadius: SailStyleValues.borderRadiusSmall,
+                  child: Padding(
+                    padding: const EdgeInsets.all(6),
+                    child: SailSVG.fromAsset(
+                      showPrivateKey ? SailSVGAsset.eyeOff : SailSVGAsset.eye,
+                      width: 20,
+                      color: theme.colors.text,
+                    ),
+                  ),
                 ),
-                onPressed: onToggleVisibility,
-                tooltip: showPrivateKey ? 'Hide private key' : 'Show private key',
               ),
             ],
           ),
@@ -798,7 +780,7 @@ class _RedemptionPanel extends StatelessWidget {
             const SizedBox(height: 16),
 
             // Private key text
-            SelectableText(
+            SailSelectableText(
               keypair.privateKeyWIF,
               style: TextStyle(
                 fontFamily: 'IBMPlexMono',
@@ -819,7 +801,7 @@ class _RedemptionPanel extends StatelessWidget {
             Column(
               children: [
                 const SizedBox(height: 40),
-                Icon(Icons.visibility_off, size: 80, color: theme.colors.textTertiary),
+                SailSVG.fromAsset(SailSVGAsset.eyeOff, width: 80, color: theme.colors.textTertiary),
                 const SizedBox(height: 16),
                 SailText.secondary12(
                   'Click the eye icon to reveal',
@@ -833,18 +815,9 @@ class _RedemptionPanel extends StatelessWidget {
           const SizedBox(height: 16),
 
           // Warning
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: theme.colors.error.withValues(alpha: 0.1),
-              borderRadius: SailStyleValues.borderRadiusSmall,
-              border: Border.all(color: theme.colors.error),
-            ),
-            child: SailText.secondary12(
-              'Recipient needs this private key to redeem the check',
-              color: theme.colors.error,
-              textAlign: TextAlign.center,
-            ),
+          SailAlert(
+            variant: SailAlertVariant.destructive,
+            description: 'Recipient needs this private key to redeem the check',
           ),
         ],
       ),

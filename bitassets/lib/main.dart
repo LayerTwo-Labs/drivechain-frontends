@@ -15,8 +15,10 @@ import 'package:bitassets/providers/price_alert_provider.dart';
 import 'package:bitassets/routing/router.dart';
 import 'package:collection/collection.dart';
 import 'package:desktop_multi_window/desktop_multi_window.dart';
+// App shell needs MaterialApp + ThemeData; everything below uses sail_ui.
 // ignore: avoid_material_import
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' show ColorScheme, MaterialApp, ThemeData;
+import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:sail_ui/config/backend_sidechain_runtime.dart';
@@ -266,7 +268,7 @@ class _BitAssetsAppContent extends StatelessWidget {
       routeInformationParser: router.defaultRouteParser(),
       title: bitassets.chain.name,
       theme: ThemeData(
-        fontFamily: font == SailFontValues.ibmMono ? 'IBMPlexMono' : 'Inter',
+        fontFamily: theme.chrome.fontFamily ?? (font == SailFontValues.ibmMono ? 'IBMPlexMono' : 'Inter'),
         colorScheme: ColorScheme.fromSwatch().copyWith(secondary: bitassets.chain.color),
       ),
     );

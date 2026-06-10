@@ -1,5 +1,4 @@
 import 'package:auto_route/auto_route.dart';
-import 'package:flutter/material.dart' show Colors, Step, Stepper, StepState;
 import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
@@ -55,12 +54,10 @@ class _StepperContent extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SailCard(
-      child: Stepper(
-        currentStep: model.currentStep,
-        onStepContinue: model.canContinue ? () => model.nextStep(context) : null,
-        onStepCancel: model.currentStep > 0 ? model.previousStep : null,
-        controlsBuilder: (context, details) {
-          return Padding(
+      child: SingleChildScrollView(
+        child: SailStepper(
+          currentStep: model.currentStep,
+          controls: Padding(
             padding: const EdgeInsets.only(top: 16),
             child: SailRow(
               spacing: SailStyleValues.padding08,
@@ -68,55 +65,45 @@ class _StepperContent extends StatelessWidget {
                 if (model.currentStep > 0)
                   SailButton(
                     label: 'Back',
-                    onPressed: () async => details.onStepCancel?.call(),
+                    onPressed: () async => model.previousStep(),
                   ),
                 SailButton(
                   label: model.currentStep == 4 ? 'Create Market' : 'Continue',
-                  onPressed: model.canContinue ? () async => details.onStepContinue?.call() : null,
+                  onPressed: model.canContinue ? () async => model.nextStep(context) : null,
                   disabled: !model.canContinue,
                   loading: model.isCreating,
                 ),
               ],
             ),
-          );
-        },
-        steps: [
-          Step(
-            title: const Text('Basic Info'),
-            subtitle: const Text('Title and description'),
-            content: _BasicInfoStep(model: model),
-            isActive: model.currentStep >= 0,
-            state: model.currentStep > 0 ? StepState.complete : StepState.indexed,
           ),
-          Step(
-            title: const Text('Dimensions'),
-            subtitle: const Text('Market outcomes'),
-            content: _DimensionsStep(model: model),
-            isActive: model.currentStep >= 1,
-            state: model.currentStep > 1 ? StepState.complete : StepState.indexed,
-          ),
-          Step(
-            title: const Text('Liquidity'),
-            subtitle: const Text('LMSR parameters'),
-            content: _LiquidityStep(model: model),
-            isActive: model.currentStep >= 2,
-            state: model.currentStep > 2 ? StepState.complete : StepState.indexed,
-          ),
-          Step(
-            title: const Text('Trading Fee'),
-            subtitle: const Text('Fee percentage'),
-            content: _TradingFeeStep(model: model),
-            isActive: model.currentStep >= 3,
-            state: model.currentStep > 3 ? StepState.complete : StepState.indexed,
-          ),
-          Step(
-            title: const Text('Review'),
-            subtitle: const Text('Confirm and create'),
-            content: _ReviewStep(model: model),
-            isActive: model.currentStep >= 4,
-            state: StepState.indexed,
-          ),
-        ],
+          steps: [
+            SailStep(
+              title: 'Basic Info',
+              subtitle: 'Title and description',
+              content: _BasicInfoStep(model: model),
+            ),
+            SailStep(
+              title: 'Dimensions',
+              subtitle: 'Market outcomes',
+              content: _DimensionsStep(model: model),
+            ),
+            SailStep(
+              title: 'Liquidity',
+              subtitle: 'LMSR parameters',
+              content: _LiquidityStep(model: model),
+            ),
+            SailStep(
+              title: 'Trading Fee',
+              subtitle: 'Fee percentage',
+              content: _TradingFeeStep(model: model),
+            ),
+            SailStep(
+              title: 'Review',
+              subtitle: 'Confirm and create',
+              content: _ReviewStep(model: model),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -465,7 +452,7 @@ class _TypeButton extends StatelessWidget {
             color: isSelected ? theme.colors.primary.withValues(alpha: 0.1) : theme.colors.backgroundSecondary,
             borderRadius: BorderRadius.circular(8),
             border: Border.all(
-              color: isSelected ? theme.colors.primary : Colors.transparent,
+              color: isSelected ? theme.colors.primary : SailColorScheme.transparent,
               width: 2,
             ),
           ),
@@ -506,7 +493,7 @@ class _MethodButton extends StatelessWidget {
           color: isSelected ? theme.colors.primary.withValues(alpha: 0.1) : theme.colors.backgroundSecondary,
           borderRadius: BorderRadius.circular(8),
           border: Border.all(
-            color: isSelected ? theme.colors.primary : Colors.transparent,
+            color: isSelected ? theme.colors.primary : SailColorScheme.transparent,
             width: 2,
           ),
         ),
@@ -544,7 +531,7 @@ class _FeePreset extends StatelessWidget {
           color: isSelected ? theme.colors.primary.withValues(alpha: 0.2) : theme.colors.backgroundSecondary,
           borderRadius: BorderRadius.circular(8),
           border: Border.all(
-            color: isSelected ? theme.colors.primary : Colors.transparent,
+            color: isSelected ? theme.colors.primary : SailColorScheme.transparent,
           ),
         ),
         child: SailText.primary13(label, bold: isSelected),

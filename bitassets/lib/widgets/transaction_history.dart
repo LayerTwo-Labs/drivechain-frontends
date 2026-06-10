@@ -1,5 +1,4 @@
 import 'package:bitassets/providers/bitassets_provider.dart';
-import 'package:flutter/material.dart' show IconButton;
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
@@ -187,13 +186,14 @@ class _TransactionRow extends StatelessWidget {
                     ],
                   ),
                 ),
-                IconButton(
-                  icon: SailSVG.icon(SailSVGAsset.iconCopy, width: 12),
-                  onPressed: onCopyId,
-                  tooltip: 'Copy TX ID',
-                  iconSize: 12,
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(minWidth: 20, minHeight: 20),
+                SailTooltip(
+                  message: 'Copy TX ID',
+                  child: SailButton(
+                    variant: ButtonVariant.icon,
+                    icon: SailSVGAsset.iconCopy,
+                    iconWidth: 12,
+                    onPressed: () async => onCopyId(),
+                  ),
                 ),
               ],
             ),

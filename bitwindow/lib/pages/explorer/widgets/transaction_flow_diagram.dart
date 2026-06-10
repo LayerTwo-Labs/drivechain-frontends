@@ -1,6 +1,5 @@
 import 'dart:math' as math;
 
-import 'package:flutter/material.dart' show Colors, Material;
 import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/gen/wallet/v1/wallet.pb.dart';
@@ -40,10 +39,7 @@ class _TransactionFlowDiagramState extends State<TransactionFlowDiagram> {
       builder: (context) => Positioned(
         left: globalPosition.dx + 15,
         top: globalPosition.dy + 15,
-        child: Material(
-          color: Colors.transparent,
-          child: content,
-        ),
+        child: content,
       ),
     );
     overlay.insert(_tooltipOverlay!);
@@ -444,7 +440,7 @@ class _TooltipContent extends StatelessWidget {
         border: Border.all(color: theme.colors.divider),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.2),
+            color: theme.colors.shadow,
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),

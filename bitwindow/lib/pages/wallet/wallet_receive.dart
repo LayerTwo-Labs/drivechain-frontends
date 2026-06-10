@@ -3,7 +3,6 @@ import 'package:bitwindow/providers/hd_wallet_provider.dart';
 import 'package:bitwindow/providers/transactions_provider.dart';
 import 'package:bitwindow/utils/explorer_url.dart';
 import 'package:fixnum/fixnum.dart';
-import 'package:flutter/material.dart' show Colors, Dialog;
 import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:qr_flutter/qr_flutter.dart';
@@ -263,24 +262,19 @@ class _ReceiveAddressesTableState extends State<ReceiveAddressesTable> {
                             if (!context.mounted) return;
                             await showThemedDialog(
                               context: context,
-                              builder: (context) => Dialog(
-                                backgroundColor: Colors.transparent,
-                                shadowColor: Colors.transparent,
-                                surfaceTintColor: Colors.transparent,
-                                child: ConstrainedBox(
-                                  constraints: const BoxConstraints(maxWidth: 400),
-                                  child: SailCardEditValues(
-                                    title: entry.label.isEmpty ? 'Add Label' : 'Edit Label',
-                                    subtitle:
-                                        "${entry.label.isEmpty ? "Set a" : "Update the"} label and click Save when you're done",
-                                    fields: [
-                                      EditField(name: 'Label', currentValue: entry.label),
-                                    ],
-                                    onSave: (updatedFields) async {
-                                      final newLabel = updatedFields.firstWhere((f) => f.name == 'Label').currentValue;
-                                      await widget.model.saveLabel(context, entry.address, newLabel);
-                                    },
-                                  ),
+                              builder: (context) => SailModal(
+                                constraints: const BoxConstraints(maxWidth: 400),
+                                child: SailCardEditValues(
+                                  title: entry.label.isEmpty ? 'Add Label' : 'Edit Label',
+                                  subtitle:
+                                      "${entry.label.isEmpty ? "Set a" : "Update the"} label and click Save when you're done",
+                                  fields: [
+                                    EditField(name: 'Label', currentValue: entry.label),
+                                  ],
+                                  onSave: (updatedFields) async {
+                                    final newLabel = updatedFields.firstWhere((f) => f.name == 'Label').currentValue;
+                                    await widget.model.saveLabel(context, entry.address, newLabel);
+                                  },
                                 ),
                               ),
                             );

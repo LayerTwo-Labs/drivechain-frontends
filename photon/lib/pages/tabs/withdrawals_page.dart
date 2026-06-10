@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:auto_route/auto_route.dart';
-import 'package:flutter/material.dart' show Icon, Icons;
 import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
@@ -39,9 +38,9 @@ class WithdrawalsPage extends StatelessWidget {
                 ),
                 child: Row(
                   children: [
-                    Icon(
-                      model.bundle != null ? Icons.pending_actions : Icons.hourglass_empty,
-                      size: 20,
+                    SailSVG.fromAsset(
+                      model.bundle != null ? SailSVGAsset.clipboardList : SailSVGAsset.hourglass,
+                      width: 20,
                       color: model.bundle != null ? theme.colors.success : theme.colors.orange,
                     ),
                     const SizedBox(width: 8),
@@ -59,7 +58,7 @@ class WithdrawalsPage extends StatelessWidget {
                             const SizedBox(height: 4),
                             Row(
                               children: [
-                                Icon(Icons.error_outline, size: 16, color: theme.colors.error),
+                                SailSVG.fromAsset(SailSVGAsset.circleAlert, width: 16, color: theme.colors.error),
                                 const SizedBox(width: 4),
                                 SailText.primary12(
                                   'Last failed bundle at height: ${model.lastFailedHeight}',

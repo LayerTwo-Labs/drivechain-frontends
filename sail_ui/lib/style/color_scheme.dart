@@ -3,6 +3,7 @@ import 'dart:ui';
 /// References the color scheme
 abstract class SailColorScheme {
   // both theme colors
+  static const transparent = Color(0x00000000);
   static const blue = Color(0xff0D7FFF);
   static const blueDark = Color(0xff0A5CBF);
   static const blueLight = Color(0xffE6F2FF);

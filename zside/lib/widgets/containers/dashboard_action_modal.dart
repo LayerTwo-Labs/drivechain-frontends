@@ -1,4 +1,3 @@
-import 'package:flutter/material.dart' show Dialog;
 import 'package:flutter/widgets.dart';
 import 'package:sail_ui/sail_ui.dart';
 
@@ -18,7 +17,7 @@ class DashboardActionModal extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = SailTheme.of(context);
 
-    return Dialog(
+    return SailModal(
       backgroundColor: theme.colors.actionHeader,
       child: SailCard(
         child: SailColumn(

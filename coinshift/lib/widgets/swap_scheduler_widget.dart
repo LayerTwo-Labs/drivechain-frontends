@@ -1,5 +1,4 @@
 import 'package:coinshift/providers/swap_provider.dart';
-import 'package:flutter/material.dart' show Icon, Icons, InkWell;
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
@@ -240,14 +239,14 @@ class _AdvancedOptions extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         // Collapsible advanced section
-        InkWell(
-          onTap: model.toggleAdvanced,
+        SailTappable(
+          onTap: () async => model.toggleAdvanced(),
           child: SailRow(
             spacing: SailStyleValues.padding08,
             children: [
-              Icon(
-                model.showAdvanced ? Icons.expand_less : Icons.expand_more,
-                size: 20,
+              SailSVG.fromAsset(
+                model.showAdvanced ? SailSVGAsset.chevronUp : SailSVGAsset.chevronDown,
+                width: 20,
                 color: theme.colors.textSecondary,
               ),
               SailText.secondary13('Advanced Options'),

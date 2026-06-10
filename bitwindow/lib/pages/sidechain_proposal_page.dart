@@ -1,6 +1,5 @@
 import 'package:auto_route/auto_route.dart';
 import 'package:bitwindow/providers/sidechain_provider.dart';
-import 'package:flutter/material.dart' show Material;
 import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
@@ -227,7 +226,7 @@ class SidechainProposalViewModel extends BaseViewModel {
       );
 
       if (context.mounted) {
-        showSnackBar(context, response.message);
+        showSailToast(context, response.message);
         Navigator.of(context).pop();
       }
 
@@ -240,7 +239,7 @@ class SidechainProposalViewModel extends BaseViewModel {
       commitHashController.clear();
     } catch (e) {
       if (context.mounted) {
-        showSnackBar(context, 'Failed to propose sidechain: $e');
+        showSailToast(context, 'Failed to propose sidechain: $e');
       }
       setErrorForObject('proposal', e);
     } finally {
@@ -270,8 +269,7 @@ Future<void> showSidechainProposalModal(BuildContext context) {
           horizontal: MediaQuery.of(context).size.width * 0.2,
           vertical: MediaQuery.of(context).size.height * 0.01,
         ),
-        child: Material(
-          clipBehavior: Clip.antiAlias,
+        child: ClipRRect(
           borderRadius: SailStyleValues.borderRadius,
           child: const SidechainProposalPage(),
         ),

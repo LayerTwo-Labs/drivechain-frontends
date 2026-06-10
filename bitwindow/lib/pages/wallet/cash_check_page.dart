@@ -1,6 +1,5 @@
 import 'package:auto_route/auto_route.dart';
 import 'package:bitwindow/routing/router.dart';
-import 'package:flutter/material.dart' show AlertDialog, AppBar, Scaffold;
 import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
@@ -28,13 +27,9 @@ class _CashCheckPageState extends State<CashCheckPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return SailScaffold(
       backgroundColor: SailTheme.of(context).colors.background,
-      appBar: AppBar(
-        backgroundColor: SailTheme.of(context).colors.background,
-        foregroundColor: SailTheme.of(context).colors.text,
-        title: SailText.primary20('Cash Check'),
-      ),
+      appBar: SailAppBar.build(context, title: SailText.primary20('Cash Check')),
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
@@ -84,7 +79,7 @@ class _CashCheckPageState extends State<CashCheckPage> {
   Future<void> _cashCheck() async {
     final wif = _wifController.text.trim();
     if (wif.isEmpty) {
-      showSnackBar(context, 'Please enter a private key');
+      showSailToast(context, 'Please enter a private key');
       return;
     }
 
@@ -126,10 +121,10 @@ class _CashCheckPageState extends State<CashCheckPage> {
             await _cashCheck();
           }
         } else {
-          showSnackBar(context, 'Backend wallet not initialized. Please restart the app.');
+          showSailToast(context, 'Backend wallet not initialized. Please restart the app.');
         }
       } else {
-        showSnackBar(context, 'Failed to cash check: $e');
+        showSailToast(context, 'Failed to cash check: $e');
       }
     } finally {
       if (mounted) {
@@ -147,25 +142,8 @@ class _CashCheckPageState extends State<CashCheckPage> {
     await showThemedDialog(
       context: context,
       builder: (context) => StatefulBuilder(
-        builder: (context, setState) => AlertDialog(
-          backgroundColor: SailTheme.of(context).colors.background,
-          title: SailText.primary15('Unlock Wallet'),
-          content: SizedBox(
-            width: 400,
-            child: SailColumn(
-              spacing: SailStyleValues.padding12,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                SailText.secondary13('Enter your wallet password to cash checks'),
-                SailTextField(
-                  controller: passwordController,
-                  hintText: 'Password',
-                  obscureText: true,
-                  maxLines: 1,
-                ),
-              ],
-            ),
-          ),
+        builder: (context, setState) => SailDialog(
+          title: 'Unlock Wallet',
           actions: [
             SailButton(
               label: 'Cancel',
@@ -184,12 +162,28 @@ class _CashCheckPageState extends State<CashCheckPage> {
                 } else {
                   setState(() => isUnlocking = false);
                   if (context.mounted) {
-                    showSnackBar(context, 'Incorrect password');
+                    showSailToast(context, 'Incorrect password');
                   }
                 }
               },
             ),
           ],
+          child: SizedBox(
+            width: 400,
+            child: SailColumn(
+              spacing: SailStyleValues.padding12,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                SailText.secondary13('Enter your wallet password to cash checks'),
+                SailTextField(
+                  controller: passwordController,
+                  hintText: 'Password',
+                  obscureText: true,
+                  maxLines: 1,
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );

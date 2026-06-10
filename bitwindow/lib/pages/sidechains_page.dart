@@ -11,7 +11,6 @@ import 'package:bitwindow/widgets/homepage_widget_catalog.dart';
 import 'package:bitwindow/widgets/starters_tab.dart';
 import 'package:collection/collection.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart' show Colors, Icon, Icons, Material;
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
@@ -39,18 +38,14 @@ class SidechainsPage extends StatelessWidget {
                     child: Container(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFD97706).withValues(alpha: 0.15),
+                        color: context.sailTheme.colors.warning.withValues(alpha: 0.15),
                         borderRadius: BorderRadius.circular(4),
-                        border: Border.all(color: const Color(0xFFD97706).withValues(alpha: 0.3)),
+                        border: Border.all(color: context.sailTheme.colors.warning.withValues(alpha: 0.3)),
                       ),
-                      child: const Text(
+                      child: SailText.primary10(
                         'THIS COULD BE BITCOIN',
-                        style: TextStyle(
-                          color: Color(0xFFD97706),
-                          fontSize: 10,
-                          fontWeight: FontWeight.w600,
-                          letterSpacing: 0.5,
-                        ),
+                        bold: true,
+                        color: context.sailTheme.colors.warning,
                       ),
                     ),
                   )
@@ -146,7 +141,7 @@ class _HashMismatchBanner extends StatelessWidget {
         ),
         child: Row(
           children: [
-            Icon(Icons.warning_amber_rounded, color: theme.colors.error, size: 18),
+            SailSVG.fromAsset(SailSVGAsset.triangleAlert, width: 18, color: theme.colors.error),
             const SizedBox(width: SailStyleValues.padding08),
             Expanded(
               child: SailText.primary13(
@@ -359,7 +354,7 @@ class OnlyFilledTable extends ViewModelWidget<SidechainsViewModel> {
                                 width: 4,
                                 height: 4,
                                 decoration: BoxDecoration(
-                                  color: Colors.red,
+                                  color: context.sailTheme.colors.error,
                                   shape: BoxShape.circle,
                                 ),
                               ),
@@ -545,7 +540,7 @@ class FullTable extends ViewModelWidget<SidechainsViewModel> {
                         child: Container(
                           width: 4,
                           height: 4,
-                          decoration: BoxDecoration(color: Colors.red, shape: BoxShape.circle),
+                          decoration: BoxDecoration(color: context.sailTheme.colors.error, shape: BoxShape.circle),
                         ),
                       ),
                   ],
@@ -1154,11 +1149,11 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
 
   void deposit(BuildContext context) async {
     if (double.tryParse(depositAmountController.text) == null) {
-      showSnackBar(context, 'Invalid amount, enter a number');
+      showSailToast(context, 'Invalid amount, enter a number');
       return;
     }
     if (double.tryParse(feeController.text) == null) {
-      showSnackBar(context, 'Invalid fee, enter a number');
+      showSailToast(context, 'Invalid fee, enter a number');
       return;
     }
 
@@ -1176,7 +1171,7 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
       );
     } catch (e) {
       if (context.mounted) {
-        showSnackBar(context, 'Could not create deposit:\n$e');
+        showSailToast(context, 'Could not create deposit:\n$e');
       }
     } finally {
       setBusy(false);
@@ -1330,7 +1325,7 @@ class MakeDepositsView extends ViewModelWidget<SidechainsViewModel> {
                             }
                           } catch (e) {
                             if (!context.mounted) return;
-                            showSnackBar(context, 'Error accessing clipboard');
+                            showSailToast(context, 'Error accessing clipboard');
                           }
                         },
                   icon: SailSVGAsset.iconCopy,
@@ -1615,15 +1610,15 @@ class _DepositModalState extends State<DepositModal> {
 
   Future<void> _deposit() async {
     if (depositAddress == null) {
-      showSnackBar(context, 'No deposit address available');
+      showSailToast(context, 'No deposit address available');
       return;
     }
     if (double.tryParse(amountController.text) == null) {
-      showSnackBar(context, 'Invalid amount, enter a number');
+      showSailToast(context, 'Invalid amount, enter a number');
       return;
     }
     if (double.tryParse(feeController.text) == null) {
-      showSnackBar(context, 'Invalid fee, enter a number');
+      showSailToast(context, 'Invalid fee, enter a number');
       return;
     }
 
@@ -1649,7 +1644,7 @@ class _DepositModalState extends State<DepositModal> {
 
       if (mounted) {
         Navigator.of(context).pop();
-        showSnackBar(context, 'Deposited in txid: $txid');
+        showSailToast(context, 'Deposited in txid: $txid');
       }
 
       // Refresh data
@@ -1658,7 +1653,7 @@ class _DepositModalState extends State<DepositModal> {
       await sidechainProvider.fetch();
     } catch (e) {
       if (mounted) {
-        showSnackBar(context, 'Could not create deposit:\n$e');
+        showSailToast(context, 'Could not create deposit:\n$e');
       }
     } finally {
       if (mounted) {
@@ -1674,9 +1669,7 @@ class _DepositModalState extends State<DepositModal> {
         horizontal: MediaQuery.of(context).size.width * 0.25,
         vertical: MediaQuery.of(context).size.height * 0.2,
       ),
-      child: Material(
-        color: Colors.transparent,
-        clipBehavior: Clip.antiAlias,
+      child: ClipRRect(
         borderRadius: SailStyleValues.borderRadius,
         child: SailCard(
           title: 'Deposit to ${widget.sidechainName}',

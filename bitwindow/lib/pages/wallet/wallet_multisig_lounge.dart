@@ -15,7 +15,6 @@ import 'package:bitwindow/widgets/psbt_coordinator_modal.dart';
 import 'package:bitwindow/widgets/sign_preview_modal.dart';
 import 'package:bitwindow/providers/hd_wallet_provider.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:flutter/material.dart' show Colors, Dialog;
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
@@ -1232,137 +1231,186 @@ class MultisigLoungeViewModel extends BaseViewModel {
 
     await showThemedDialog<void>(
       context: context,
-      builder: (context) => Dialog(
-        backgroundColor: Colors.transparent,
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 800, maxHeight: 600),
-          child: SailCard(
-            title: 'Transaction Details',
-            subtitle: 'ID: ${transaction.id}',
-            child: SingleChildScrollView(
-              child: SailColumn(
-                spacing: SailStyleValues.padding16,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  SailRow(
-                    children: [
-                      SailText.primary15('Status:'),
-                      const SizedBox(width: 16),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 4,
-                        ),
-                        decoration: BoxDecoration(
-                          color: _getStatusColor(transaction.status),
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        child: SailText.primary12(
-                          _getStatusText(transaction.status),
-                          color: Colors.white,
-                        ),
+      builder: (context) => SailModal(
+        constraints: const BoxConstraints(maxWidth: 800, maxHeight: 600),
+        child: SailCard(
+          title: 'Transaction Details',
+          subtitle: 'ID: ${transaction.id}',
+          child: SingleChildScrollView(
+            child: SailColumn(
+              spacing: SailStyleValues.padding16,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SailRow(
+                  children: [
+                    SailText.primary15('Status:'),
+                    const SizedBox(width: 16),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
                       ),
+                      decoration: BoxDecoration(
+                        color: _getStatusColor(transaction.status, SailTheme.of(context).colors),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: SailText.primary12(
+                        _getStatusText(transaction.status),
+                        color: SailTheme.of(context).colors.primaryButtonText,
+                      ),
+                    ),
+                  ],
+                ),
+                DetailRow(label: 'Group:', value: group.name),
+                DetailRow(
+                  label: 'Amount:',
+                  value: '${transaction.amount.toStringAsFixed(8)} BTC',
+                ),
+                DetailRow(
+                  label: 'Fee:',
+                  value: '${transaction.fee.toStringAsFixed(8)} BTC',
+                ),
+                DetailRow(label: 'Destination:', value: transaction.destination),
+                DetailRow(
+                  label: 'Created:',
+                  value: _formatDateTime(transaction.created),
+                ),
+                if (transaction.txid != null) DetailRow(label: 'Transaction ID:', value: transaction.txid!),
+                if (transaction.confirmations > 0)
+                  DetailRow(
+                    label: 'Confirmations:',
+                    value: transaction.confirmations.toString(),
+                  ),
+                if (transaction.broadcastTime != null)
+                  DetailRow(
+                    label: 'Broadcasted:',
+                    value: _formatDateTime(transaction.broadcastTime!),
+                  ),
+                const SizedBox(height: 32),
+                SailText.primary15('Signing Status:'),
+                const SizedBox(height: 8),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    border: Border.all(color: SailTheme.of(context).colors.border),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: SailColumn(
+                    spacing: SailStyleValues.padding08,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      SailText.secondary12(
+                        'Required signatures: ${transaction.requiredSignatures}',
+                      ),
+                      SailText.secondary12(
+                        'Current signatures: ${transaction.keyPSBTs.where((k) => k.isSigned).length}',
+                      ),
+                      const SizedBox(height: 8),
+                      ...transaction.keyPSBTs.map((keyPSBT) {
+                        final keyName = group.keys
+                            .firstWhere(
+                              (k) => k.xpub == keyPSBT.keyId,
+                              orElse: () => MultisigKey(
+                                xpub: keyPSBT.keyId,
+                                owner: 'Unknown',
+                                derivationPath: '',
+                                isWallet: false,
+                              ),
+                            )
+                            .owner;
+
+                        return SailRow(
+                          children: [
+                            SailText.secondary12(keyName),
+                            const SizedBox(width: 16),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 6,
+                                vertical: 2,
+                              ),
+                              decoration: BoxDecoration(
+                                color: keyPSBT.isSigned
+                                    ? SailTheme.of(context).colors.success
+                                    : SailTheme.of(context).colors.textSecondary,
+                                borderRadius: BorderRadius.circular(3),
+                              ),
+                              child: SailText.primary10(
+                                keyPSBT.isSigned ? 'Signed' : 'Pending',
+                                color: SailTheme.of(context).colors.primaryButtonText,
+                              ),
+                            ),
+                          ],
+                        );
+                      }),
                     ],
                   ),
-                  DetailRow(label: 'Group:', value: group.name),
-                  DetailRow(
-                    label: 'Amount:',
-                    value: '${transaction.amount.toStringAsFixed(8)} BTC',
+                ),
+                const SizedBox(height: 32),
+                SailText.primary15('Export PSBTs:'),
+                const SizedBox(height: 8),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    border: Border.all(color: SailTheme.of(context).colors.border),
+                    borderRadius: BorderRadius.circular(8),
                   ),
-                  DetailRow(
-                    label: 'Fee:',
-                    value: '${transaction.fee.toStringAsFixed(8)} BTC',
-                  ),
-                  DetailRow(label: 'Destination:', value: transaction.destination),
-                  DetailRow(
-                    label: 'Created:',
-                    value: _formatDateTime(transaction.created),
-                  ),
-                  if (transaction.txid != null) DetailRow(label: 'Transaction ID:', value: transaction.txid!),
-                  if (transaction.confirmations > 0)
-                    DetailRow(
-                      label: 'Confirmations:',
-                      value: transaction.confirmations.toString(),
-                    ),
-                  if (transaction.broadcastTime != null)
-                    DetailRow(
-                      label: 'Broadcasted:',
-                      value: _formatDateTime(transaction.broadcastTime!),
-                    ),
-                  const SizedBox(height: 32),
-                  SailText.primary15('Signing Status:'),
-                  const SizedBox(height: 8),
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      border: Border.all(color: Colors.grey.shade300),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: SailColumn(
-                      spacing: SailStyleValues.padding08,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        SailText.secondary12(
-                          'Required signatures: ${transaction.requiredSignatures}',
-                        ),
-                        SailText.secondary12(
-                          'Current signatures: ${transaction.keyPSBTs.where((k) => k.isSigned).length}',
-                        ),
-                        const SizedBox(height: 8),
-                        ...transaction.keyPSBTs.map((keyPSBT) {
-                          final keyName = group.keys
-                              .firstWhere(
-                                (k) => k.xpub == keyPSBT.keyId,
-                                orElse: () => MultisigKey(
-                                  xpub: keyPSBT.keyId,
-                                  owner: 'Unknown',
-                                  derivationPath: '',
-                                  isWallet: false,
-                                ),
-                              )
-                              .owner;
-
-                          return SailRow(
-                            children: [
-                              SailText.secondary12(keyName),
-                              const SizedBox(width: 16),
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 6,
-                                  vertical: 2,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: keyPSBT.isSigned ? Colors.green : Colors.grey,
-                                  borderRadius: BorderRadius.circular(3),
-                                ),
-                                child: SailText.primary10(
-                                  keyPSBT.isSigned ? 'Signed' : 'Pending',
-                                  color: Colors.white,
-                                ),
+                  child: SailColumn(
+                    spacing: SailStyleValues.padding08,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      SailRow(
+                        children: [
+                          Expanded(
+                            child: SailText.secondary12('Initial PSBT (unsigned)'),
+                          ),
+                          const SizedBox(width: 16),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: SailTheme.of(context).colors.textSecondary,
+                              borderRadius: BorderRadius.circular(3),
+                            ),
+                            child: SailText.primary10(
+                              'Unsigned',
+                              color: SailTheme.of(context).colors.primaryButtonText,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          SailButton(
+                            label: 'Export',
+                            variant: ButtonVariant.ghost,
+                            small: true,
+                            onPressed: () async => _exportPSBTToFile(
+                              context,
+                              transaction.initialPSBT,
+                              transaction,
+                              group,
+                              'Initial',
+                              false,
+                            ),
+                          ),
+                        ],
+                      ),
+                      ...transaction.keyPSBTs.map((keyPSBT) {
+                        final keyName = group.keys
+                            .firstWhere(
+                              (k) => k.xpub == keyPSBT.keyId,
+                              orElse: () => MultisigKey(
+                                xpub: keyPSBT.keyId,
+                                owner: 'Unknown',
+                                derivationPath: '',
+                                isWallet: false,
                               ),
-                            ],
-                          );
-                        }),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 32),
-                  SailText.primary15('Export PSBTs:'),
-                  const SizedBox(height: 8),
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      border: Border.all(color: Colors.grey.shade300),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: SailColumn(
-                      spacing: SailStyleValues.padding08,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        SailRow(
+                            )
+                            .owner;
+
+                        return SailRow(
                           children: [
                             Expanded(
-                              child: SailText.secondary12('Initial PSBT (unsigned)'),
+                              child: SailText.secondary12('$keyName PSBT'),
                             ),
                             const SizedBox(width: 16),
                             Container(
@@ -1371,12 +1419,14 @@ class MultisigLoungeViewModel extends BaseViewModel {
                                 vertical: 2,
                               ),
                               decoration: BoxDecoration(
-                                color: Colors.grey,
+                                color: keyPSBT.isSigned
+                                    ? SailTheme.of(context).colors.success
+                                    : SailTheme.of(context).colors.textSecondary,
                                 borderRadius: BorderRadius.circular(3),
                               ),
                               child: SailText.primary10(
-                                'Unsigned',
-                                color: Colors.white,
+                                keyPSBT.isSigned ? 'Signed' : 'Unsigned',
+                                color: SailTheme.of(context).colors.primaryButtonText,
                               ),
                             ),
                             const SizedBox(width: 8),
@@ -1384,80 +1434,30 @@ class MultisigLoungeViewModel extends BaseViewModel {
                               label: 'Export',
                               variant: ButtonVariant.ghost,
                               small: true,
-                              onPressed: () async => _exportPSBTToFile(
-                                context,
-                                transaction.initialPSBT,
-                                transaction,
-                                group,
-                                'Initial',
-                                false,
-                              ),
+                              onPressed: (keyPSBT.psbt?.isNotEmpty ?? false)
+                                  ? () async => _exportPSBTToFile(
+                                      context,
+                                      keyPSBT.psbt!,
+                                      transaction,
+                                      group,
+                                      keyName,
+                                      keyPSBT.isSigned,
+                                    )
+                                  : null,
                             ),
                           ],
-                        ),
-                        ...transaction.keyPSBTs.map((keyPSBT) {
-                          final keyName = group.keys
-                              .firstWhere(
-                                (k) => k.xpub == keyPSBT.keyId,
-                                orElse: () => MultisigKey(
-                                  xpub: keyPSBT.keyId,
-                                  owner: 'Unknown',
-                                  derivationPath: '',
-                                  isWallet: false,
-                                ),
-                              )
-                              .owner;
-
-                          return SailRow(
-                            children: [
-                              Expanded(
-                                child: SailText.secondary12('$keyName PSBT'),
-                              ),
-                              const SizedBox(width: 16),
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 6,
-                                  vertical: 2,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: keyPSBT.isSigned ? Colors.green : Colors.grey,
-                                  borderRadius: BorderRadius.circular(3),
-                                ),
-                                child: SailText.primary10(
-                                  keyPSBT.isSigned ? 'Signed' : 'Unsigned',
-                                  color: Colors.white,
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              SailButton(
-                                label: 'Export',
-                                variant: ButtonVariant.ghost,
-                                small: true,
-                                onPressed: (keyPSBT.psbt?.isNotEmpty ?? false)
-                                    ? () async => _exportPSBTToFile(
-                                        context,
-                                        keyPSBT.psbt!,
-                                        transaction,
-                                        group,
-                                        keyName,
-                                        keyPSBT.isSigned,
-                                      )
-                                    : null,
-                              ),
-                            ],
-                          );
-                        }),
-                      ],
-                    ),
+                        );
+                      }),
+                    ],
                   ),
-                  const SizedBox(height: 16),
-                  SailButton(
-                    label: 'Close',
-                    onPressed: () async => Navigator.of(context).pop(),
-                    variant: ButtonVariant.secondary,
-                  ),
-                ],
-              ),
+                ),
+                const SizedBox(height: 16),
+                SailButton(
+                  label: 'Close',
+                  onPressed: () async => Navigator.of(context).pop(),
+                  variant: ButtonVariant.secondary,
+                ),
+              ],
             ),
           ),
         ),
@@ -1465,24 +1465,24 @@ class MultisigLoungeViewModel extends BaseViewModel {
     );
   }
 
-  Color _getStatusColor(TxStatus status) {
+  Color _getStatusColor(TxStatus status, SailColor colors) {
     switch (status) {
       case TxStatus.needsSignatures:
-        return Colors.orange;
+        return colors.warning;
       case TxStatus.awaitingSignedPSBTs:
-        return Colors.amber;
+        return colors.chartPalette[3];
       case TxStatus.readyToCombine:
-        return Colors.lightBlue;
+        return colors.chartPalette[1];
       case TxStatus.readyForBroadcast:
-        return Colors.blue;
+        return colors.info;
       case TxStatus.broadcasted:
-        return Colors.purple;
+        return colors.chartPalette[0];
       case TxStatus.confirmed:
-        return Colors.green;
+        return colors.success;
       case TxStatus.completed:
-        return Colors.teal;
+        return colors.chartPalette[2];
       case TxStatus.voided:
-        return Colors.red;
+        return colors.error;
     }
   }
 

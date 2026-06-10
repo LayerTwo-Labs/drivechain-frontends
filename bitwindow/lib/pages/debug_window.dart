@@ -1,6 +1,5 @@
 import 'package:bitwindow/pages/bitwindow_console_tab.dart';
 import 'package:fixnum/fixnum.dart';
-import 'package:flutter/material.dart' show Dialog, Icon, Icons;
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
@@ -409,7 +408,7 @@ class PeerDetailsDialog extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = context.sailTheme;
 
-    return Dialog(
+    return SailModal(
       backgroundColor: theme.colors.background,
       child: Container(
         constraints: const BoxConstraints(maxWidth: 700),
@@ -661,8 +660,8 @@ class _HashVerificationIcon extends StatelessWidget {
     final theme = context.sailTheme;
 
     return switch (hashMatch) {
-      true => Icon(Icons.check_circle, color: theme.colors.success, size: 18),
-      false => Icon(Icons.cancel, color: theme.colors.error, size: 24),
+      true => SailSVG.fromAsset(SailSVGAsset.circleCheck, width: 18, color: theme.colors.success),
+      false => SailSVG.fromAsset(SailSVGAsset.circleX, width: 24, color: theme.colors.error),
       null => SailText.secondary13('-'),
     };
   }

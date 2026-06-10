@@ -2,8 +2,6 @@ import 'package:bitwindow/dialogs/merkle_tree_dialog.dart';
 import 'package:bitwindow/pages/explorer/widgets/transaction_flow_diagram.dart';
 import 'package:bitwindow/providers/blockchain_provider.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart'
-    show Colors, Dialog, Icon, Icons, SelectableText, Tab, TabBar, TabBarView, TabController;
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
@@ -119,94 +117,91 @@ class BlockExplorerDialog extends StatelessWidget {
   Future<void> _showBlockDetails(BuildContext context, Block block) async {
     await showThemedDialog(
       context: context,
-      builder: (context) => Dialog(
-        backgroundColor: Colors.transparent,
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 800),
-          child: SailCard(
-            title: 'Block Details',
-            subtitle: '',
-            child: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  DetailRow(label: 'Height', value: block.height.toString()),
-                  DetailRow(label: 'Hash', value: block.hash),
-                  DetailRow(label: 'Confirmations', value: block.confirmations.toString()),
-                  DetailRow(label: 'Block Version', value: block.version.toString()),
-                  SailSpacing(SailStyleValues.padding16),
-                  Container(
-                    padding: const EdgeInsets.only(
-                      left: SailStyleValues.padding16,
-                      right: SailStyleValues.padding16,
-                      top: SailStyleValues.padding04,
-                      bottom: SailStyleValues.padding08,
+      builder: (context) => SailModal(
+        constraints: const BoxConstraints(maxWidth: 800),
+        child: SailCard(
+          title: 'Block Details',
+          subtitle: '',
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                DetailRow(label: 'Height', value: block.height.toString()),
+                DetailRow(label: 'Hash', value: block.hash),
+                DetailRow(label: 'Confirmations', value: block.confirmations.toString()),
+                DetailRow(label: 'Block Version', value: block.version.toString()),
+                SailSpacing(SailStyleValues.padding16),
+                Container(
+                  padding: const EdgeInsets.only(
+                    left: SailStyleValues.padding16,
+                    right: SailStyleValues.padding16,
+                    top: SailStyleValues.padding04,
+                    bottom: SailStyleValues.padding08,
+                  ),
+                  decoration: BoxDecoration(
+                    color: context.sailTheme.colors.backgroundSecondary,
+                    borderRadius: SailStyleValues.borderRadius,
+                    border: Border.all(
+                      color: context.sailTheme.colors.divider,
+                      width: 1,
                     ),
-                    decoration: BoxDecoration(
-                      color: context.sailTheme.colors.backgroundSecondary,
-                      borderRadius: SailStyleValues.borderRadius,
-                      border: Border.all(
-                        color: context.sailTheme.colors.divider,
-                        width: 1,
+                    boxShadow: [
+                      BoxShadow(
+                        color: context.sailTheme.colors.shadow.withValues(alpha: 0.1),
+                        offset: const Offset(0, 1),
+                        blurRadius: 1,
+                        spreadRadius: 1,
                       ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: context.sailTheme.colors.shadow.withValues(alpha: 0.1),
-                          offset: const Offset(0, 1),
-                          blurRadius: 1,
-                          spreadRadius: 1,
-                        ),
-                        BoxShadow(
-                          color: context.sailTheme.colors.shadow.withValues(alpha: 0.1),
-                          offset: const Offset(0, -1),
-                          blurRadius: 1,
-                          spreadRadius: 1,
-                        ),
-                      ],
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        SailText.primary13('Block Header'),
-                        SailSpacing(SailStyleValues.padding08),
-                        DetailRow(label: 'Version', value: block.version.toString()),
-                        DetailRow(label: 'Previous Block Hash', value: block.previousBlockHash),
-                        DetailRow(label: 'Merkle Root', value: block.merkleRoot),
-                        DetailRow(label: 'Time', value: block.blockTime.seconds.toString()),
-                        DetailRow(label: 'Bits', value: '0x${block.bits}'),
-                        DetailRow(label: 'Nonce', value: block.nonce.toString()),
-                      ],
-                    ),
+                      BoxShadow(
+                        color: context.sailTheme.colors.shadow.withValues(alpha: 0.1),
+                        offset: const Offset(0, -1),
+                        blurRadius: 1,
+                        spreadRadius: 1,
+                      ),
+                    ],
                   ),
-                  const SailSpacing(SailStyleValues.padding16),
-                  DetailRow(label: 'Median time', value: block.blockTime.seconds.toString()),
-                  DetailRow(label: 'Next Block Hash', value: '0' * 64),
-                  DetailRow(label: 'Chain Work', value: '${block.difficulty}'),
-                  const SailSpacing(SailStyleValues.padding16),
-                  SizedBox(
-                    height: 300,
-                    child: TXIDTransactionTable(
-                      transactions: block.txids,
-                      onTransactionSelected: (txid) => showTransactionDetails(context, txid),
-                    ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      SailText.primary13('Block Header'),
+                      SailSpacing(SailStyleValues.padding08),
+                      DetailRow(label: 'Version', value: block.version.toString()),
+                      DetailRow(label: 'Previous Block Hash', value: block.previousBlockHash),
+                      DetailRow(label: 'Merkle Root', value: block.merkleRoot),
+                      DetailRow(label: 'Time', value: block.blockTime.seconds.toString()),
+                      DetailRow(label: 'Bits', value: '0x${block.bits}'),
+                      DetailRow(label: 'Nonce', value: block.nonce.toString()),
+                    ],
                   ),
-                  const SailSpacing(SailStyleValues.padding16),
-                  // Merkle Tree Viewer Button
-                  SailButton(
-                    label: 'View Merkle Tree',
-                    onPressed: () async {
-                      await showThemedDialog(
-                        context: context,
-                        builder: (context) => MerkleTreeDialog(
-                          initialTxids: block.txids,
-                          expectedRoot: block.merkleRoot,
-                        ),
-                      );
-                    },
+                ),
+                const SailSpacing(SailStyleValues.padding16),
+                DetailRow(label: 'Median time', value: block.blockTime.seconds.toString()),
+                DetailRow(label: 'Next Block Hash', value: '0' * 64),
+                DetailRow(label: 'Chain Work', value: '${block.difficulty}'),
+                const SailSpacing(SailStyleValues.padding16),
+                SizedBox(
+                  height: 300,
+                  child: TXIDTransactionTable(
+                    transactions: block.txids,
+                    onTransactionSelected: (txid) => showTransactionDetails(context, txid),
                   ),
-                ],
-              ),
+                ),
+                const SailSpacing(SailStyleValues.padding16),
+                // Merkle Tree Viewer Button
+                SailButton(
+                  label: 'View Merkle Tree',
+                  onPressed: () async {
+                    await showThemedDialog(
+                      context: context,
+                      builder: (context) => MerkleTreeDialog(
+                        initialTxids: block.txids,
+                        expectedRoot: block.merkleRoot,
+                      ),
+                    );
+                  },
+                ),
+              ],
             ),
           ),
         ),
@@ -463,12 +458,11 @@ class TransactionDetailsDialog extends StatefulWidget {
   State<TransactionDetailsDialog> createState() => _TransactionDetailsDialogState();
 }
 
-class _TransactionDetailsDialogState extends State<TransactionDetailsDialog> with SingleTickerProviderStateMixin {
+class _TransactionDetailsDialogState extends State<TransactionDetailsDialog> {
   OrchestratorWalletRPC get orchestratorWallet => GetIt.I.get<OrchestratorRPC>().wallet;
   WalletReaderProvider get walletReader => GetIt.I.get<WalletReaderProvider>();
   Logger get log => GetIt.I.get<Logger>();
 
-  late TabController _tabController;
   GetTransactionDetailsResponse? _details;
   String? error;
   bool _isLoading = true;
@@ -476,14 +470,7 @@ class _TransactionDetailsDialogState extends State<TransactionDetailsDialog> wit
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 4, vsync: this);
     _loadTransaction();
-  }
-
-  @override
-  void dispose() {
-    _tabController.dispose();
-    super.dispose();
   }
 
   Future<void> _loadTransaction() async {
@@ -524,70 +511,59 @@ class _TransactionDetailsDialogState extends State<TransactionDetailsDialog> wit
 
   @override
   Widget build(BuildContext context) {
-    final theme = context.sailTheme;
-
-    return Dialog(
-      backgroundColor: Colors.transparent,
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 900, maxHeight: 700),
-        child: SailCard(
-          title: 'Transaction Details',
-          subtitle: widget.txid,
-          error: error,
-          child: _isLoading
-              ? const Center(
-                  child: Padding(
-                    padding: EdgeInsets.all(SailStyleValues.padding16),
-                    child: LoadingIndicator(),
-                  ),
-                )
-              : _details == null
-              ? Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(SailStyleValues.padding16),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        SailText.primary13('Failed to load transaction details'),
-                        if (error != null) SailText.secondary13(error!),
-                        const SailSpacing(SailStyleValues.padding08),
-                        SailButton(
-                          onPressed: _loadTransaction,
-                          label: 'Retry',
-                          variant: ButtonVariant.primary,
-                        ),
-                      ],
-                    ),
-                  ),
-                )
-              : Column(
-                  children: [
-                    TabBar(
-                      controller: _tabController,
-                      labelColor: theme.colors.text,
-                      unselectedLabelColor: theme.colors.textTertiary,
-                      indicatorColor: theme.colors.info,
-                      tabs: [
-                        const Tab(text: 'Overview'),
-                        Tab(text: 'Inputs (${_details!.inputs.length})'),
-                        Tab(text: 'Outputs (${_details!.outputs.length})'),
-                        const Tab(text: 'Hex'),
-                      ],
-                    ),
-                    Expanded(
-                      child: TabBarView(
-                        controller: _tabController,
-                        children: [
-                          _OverviewTab(details: _details!),
-                          _InputsTab(inputs: _details!.inputs),
-                          _OutputsTab(outputs: _details!.outputs),
-                          _HexTab(hex: _details!.hex),
-                        ],
-                      ),
-                    ),
-                  ],
+    return SailModal(
+      constraints: const BoxConstraints(maxWidth: 900, maxHeight: 700),
+      child: SailCard(
+        title: 'Transaction Details',
+        subtitle: widget.txid,
+        error: error,
+        child: _isLoading
+            ? const Center(
+                child: Padding(
+                  padding: EdgeInsets.all(SailStyleValues.padding16),
+                  child: LoadingIndicator(),
                 ),
-        ),
+              )
+            : _details == null
+            ? Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(SailStyleValues.padding16),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      SailText.primary13('Failed to load transaction details'),
+                      if (error != null) SailText.secondary13(error!),
+                      const SailSpacing(SailStyleValues.padding08),
+                      SailButton(
+                        onPressed: _loadTransaction,
+                        label: 'Retry',
+                        variant: ButtonVariant.primary,
+                      ),
+                    ],
+                  ),
+                ),
+              )
+            : InlineTabBar(
+                tabs: [
+                  TabItem(
+                    label: 'Overview',
+                    child: _OverviewTab(details: _details!),
+                  ),
+                  TabItem(
+                    label: 'Inputs (${_details!.inputs.length})',
+                    child: _InputsTab(inputs: _details!.inputs),
+                  ),
+                  TabItem(
+                    label: 'Outputs (${_details!.outputs.length})',
+                    child: _OutputsTab(outputs: _details!.outputs),
+                  ),
+                  TabItem(
+                    label: 'Hex',
+                    child: _HexTab(hex: _details!.hex),
+                  ),
+                ],
+                initialIndex: 0,
+              ),
       ),
     );
   }
@@ -790,7 +766,7 @@ class _HexTab extends StatelessWidget {
                 onPressed: () async {
                   await Clipboard.setData(ClipboardData(text: hex));
                   if (context.mounted) {
-                    showSnackBar(context, 'Copied to clipboard');
+                    showSailToast(context, 'Copied to clipboard');
                   }
                 },
                 label: 'Copy',
@@ -807,13 +783,9 @@ class _HexTab extends StatelessWidget {
               borderRadius: SailStyleValues.borderRadius,
               border: Border.all(color: context.sailTheme.colors.divider),
             ),
-            child: SelectableText(
+            child: SailSelectableText(
               hex.isEmpty ? 'No hex data available' : hex,
-              style: TextStyle(
-                fontFamily: 'monospace',
-                fontSize: 12,
-                color: context.sailTheme.colors.text,
-              ),
+              monospace: true,
             ),
           ),
         ],
@@ -958,11 +930,7 @@ class _BlockConnector extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: SailStyleValues.padding04),
-      child: Icon(
-        Icons.chevron_left,
-        size: 20,
-        color: context.sailTheme.colors.textTertiary,
-      ),
+      child: SailSVG.fromAsset(SailSVGAsset.chevronLeft, width: 20, color: context.sailTheme.colors.textTertiary),
     );
   }
 }

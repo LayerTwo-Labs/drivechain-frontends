@@ -1,6 +1,5 @@
 import 'package:auto_route/auto_route.dart';
 import 'package:bitwindow/routing/router.dart';
-import 'package:flutter/material.dart' show AppBar, Scaffold;
 import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
@@ -21,13 +20,9 @@ class CashCheckSuccessPage extends StatelessWidget {
     final theme = SailTheme.of(context);
     final btcAmount = amountSats != null ? (amountSats! / 100000000).toStringAsFixed(8) : '0.00000000';
 
-    return Scaffold(
+    return SailScaffold(
       backgroundColor: theme.colors.background,
-      appBar: AppBar(
-        backgroundColor: theme.colors.background,
-        foregroundColor: theme.colors.text,
-        automaticallyImplyLeading: false,
-      ),
+      appBar: SailAppBar.build(context, automaticallyImplyLeading: false),
       body: SafeArea(
         child: Center(
           child: Padding(

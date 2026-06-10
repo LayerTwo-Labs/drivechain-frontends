@@ -3,7 +3,6 @@ import 'dart:io';
 import 'package:bitwindow/providers/hd_wallet_provider.dart';
 import 'package:bitwindow/providers/multisig_provider.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:flutter/material.dart' show Colors, Dialog;
 import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:path/path.dart' as path;
@@ -19,123 +18,121 @@ class MultisigKeyModal extends StatelessWidget {
       viewModelBuilder: () => MultisigKeyModalViewModel(),
       onViewModelReady: (model) => model.init(),
       builder: (context, viewModel, child) {
-        return Dialog(
-          backgroundColor: Colors.transparent,
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 600, maxHeight: 500),
-            child: SailCard(
-              title: 'Get Multisig Key',
-              subtitle: 'Your next available key for multisig wallet creation',
-              error: viewModel.modalError,
-              child: SingleChildScrollView(
-                child: SailColumn(
-                  spacing: SailStyleValues.padding16,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    if (viewModel.isBusy)
-                      const Center(child: LoadingIndicator())
-                    else if (viewModel.keyInfo != null) ...[
-                      SailText.primary15('Your Multisig Key Information:'),
-                      const SizedBox(height: 16),
-                      SailTextField(
-                        label: 'Key Index',
-                        hintText: 'Key index',
-                        controller: TextEditingController(text: viewModel.keyInfo!['index'].toString()),
-                        readOnly: true,
-                        suffixWidget: CopyButton(
-                          text: viewModel.keyInfo!['index'].toString(),
-                        ),
-                      ),
-                      SailTextField(
-                        label: 'Derivation Path',
-                        hintText: 'Derivation path',
-                        controller: TextEditingController(text: viewModel.keyInfo!['path']),
-                        readOnly: true,
-                        suffixWidget: CopyButton(
-                          text: viewModel.keyInfo!['path'],
-                        ),
-                      ),
-                      SailTextField(
-                        label: 'Extended Public Key (xpub)',
-                        hintText: 'Extended public key',
-                        controller: TextEditingController(text: viewModel.keyInfo!['xpub']),
-                        readOnly: true,
-                        suffixWidget: CopyButton(
-                          text: viewModel.keyInfo!['xpub'],
-                        ),
-                      ),
-                      if (viewModel.keyInfo!['fingerprint'] != null)
-                        SailTextField(
-                          label: 'Key Fingerprint',
-                          hintText: 'Key fingerprint',
-                          controller: TextEditingController(text: viewModel.keyInfo!['fingerprint']),
-                          readOnly: true,
-                          suffixWidget: CopyButton(
-                            text: viewModel.keyInfo!['fingerprint'],
-                          ),
-                        ),
-                      if (viewModel.keyInfo!['originPath'] != null)
-                        SailTextField(
-                          label: 'Origin Path',
-                          hintText: 'Origin path',
-                          controller: TextEditingController(text: viewModel.keyInfo!['originPath']),
-                          readOnly: true,
-                          suffixWidget: CopyButton(
-                            text: viewModel.keyInfo!['originPath'],
-                          ),
-                        ),
-                      const SizedBox(height: 16),
-                      SailTextField(
-                        label: 'Key Name',
-                        hintText: 'Enter a name for this key (e.g., "Alice-Key1", "MyWalletKey")',
-                        controller: viewModel.keyNameController,
-                      ),
-                      const SizedBox(height: 16),
-                      Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: Colors.blue.shade50,
-                          border: Border.all(color: Colors.blue.shade200),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: SailColumn(
-                          spacing: SailStyleValues.padding08,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            SailText.primary13('Instructions:', color: Colors.blue.shade800),
-                            SailText.secondary12(
-                              '1. Give your key a meaningful name above\n'
-                              '2. Share this information with other multisig participants\n'
-                              '3. Use the derivation path when creating the multisig wallet\n'
-                              '4. Each participant needs their own unique key and path\n'
-                              '5. Keep your private keys secure - never share them!',
-                              color: Colors.blue.shade700,
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
+        final theme = SailTheme.of(context);
+        return SailModal(
+          constraints: const BoxConstraints(maxWidth: 600, maxHeight: 500),
+          child: SailCard(
+            title: 'Get Multisig Key',
+            subtitle: 'Your next available key for multisig wallet creation',
+            error: viewModel.modalError,
+            child: SingleChildScrollView(
+              child: SailColumn(
+                spacing: SailStyleValues.padding16,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (viewModel.isBusy)
+                    const Center(child: LoadingIndicator())
+                  else if (viewModel.keyInfo != null) ...[
+                    SailText.primary15('Your Multisig Key Information:'),
                     const SizedBox(height: 16),
-                    SailRow(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        if (viewModel.keyInfo != null)
-                          SailButton(
-                            label: 'Save Key',
-                            onPressed: () async => viewModel.saveKey(context),
-                            variant: ButtonVariant.primary,
-                          )
-                        else
-                          const SizedBox(),
-                        SailButton(
-                          label: 'Close',
-                          onPressed: () async => Navigator.of(context).pop(),
-                          variant: ButtonVariant.secondary,
+                    SailTextField(
+                      label: 'Key Index',
+                      hintText: 'Key index',
+                      controller: TextEditingController(text: viewModel.keyInfo!['index'].toString()),
+                      readOnly: true,
+                      suffixWidget: CopyButton(
+                        text: viewModel.keyInfo!['index'].toString(),
+                      ),
+                    ),
+                    SailTextField(
+                      label: 'Derivation Path',
+                      hintText: 'Derivation path',
+                      controller: TextEditingController(text: viewModel.keyInfo!['path']),
+                      readOnly: true,
+                      suffixWidget: CopyButton(
+                        text: viewModel.keyInfo!['path'],
+                      ),
+                    ),
+                    SailTextField(
+                      label: 'Extended Public Key (xpub)',
+                      hintText: 'Extended public key',
+                      controller: TextEditingController(text: viewModel.keyInfo!['xpub']),
+                      readOnly: true,
+                      suffixWidget: CopyButton(
+                        text: viewModel.keyInfo!['xpub'],
+                      ),
+                    ),
+                    if (viewModel.keyInfo!['fingerprint'] != null)
+                      SailTextField(
+                        label: 'Key Fingerprint',
+                        hintText: 'Key fingerprint',
+                        controller: TextEditingController(text: viewModel.keyInfo!['fingerprint']),
+                        readOnly: true,
+                        suffixWidget: CopyButton(
+                          text: viewModel.keyInfo!['fingerprint'],
                         ),
-                      ],
+                      ),
+                    if (viewModel.keyInfo!['originPath'] != null)
+                      SailTextField(
+                        label: 'Origin Path',
+                        hintText: 'Origin path',
+                        controller: TextEditingController(text: viewModel.keyInfo!['originPath']),
+                        readOnly: true,
+                        suffixWidget: CopyButton(
+                          text: viewModel.keyInfo!['originPath'],
+                        ),
+                      ),
+                    const SizedBox(height: 16),
+                    SailTextField(
+                      label: 'Key Name',
+                      hintText: 'Enter a name for this key (e.g., "Alice-Key1", "MyWalletKey")',
+                      controller: viewModel.keyNameController,
+                    ),
+                    const SizedBox(height: 16),
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: theme.colors.info.withValues(alpha: 0.1),
+                        border: Border.all(color: theme.colors.info.withValues(alpha: 0.3)),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: SailColumn(
+                        spacing: SailStyleValues.padding08,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          SailText.primary13('Instructions:', color: theme.colors.info),
+                          SailText.secondary12(
+                            '1. Give your key a meaningful name above\n'
+                            '2. Share this information with other multisig participants\n'
+                            '3. Use the derivation path when creating the multisig wallet\n'
+                            '4. Each participant needs their own unique key and path\n'
+                            '5. Keep your private keys secure - never share them!',
+                            color: theme.colors.info,
+                          ),
+                        ],
+                      ),
                     ),
                   ],
-                ),
+                  const SizedBox(height: 16),
+                  SailRow(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      if (viewModel.keyInfo != null)
+                        SailButton(
+                          label: 'Save Key',
+                          onPressed: () async => viewModel.saveKey(context),
+                          variant: ButtonVariant.primary,
+                        )
+                      else
+                        const SizedBox(),
+                      SailButton(
+                        label: 'Close',
+                        onPressed: () async => Navigator.of(context).pop(),
+                        variant: ButtonVariant.secondary,
+                      ),
+                    ],
+                  ),
+                ],
               ),
             ),
           ),

@@ -11,7 +11,6 @@ import 'package:bitwindow/widgets/mempool_widget.dart';
 import 'package:bitwindow/widgets/network_stats_widget.dart';
 import 'package:bitwindow/widgets/peers_table_widget.dart';
 import 'package:bitwindow/widgets/traffic_graph_widget.dart';
-import 'package:flutter/material.dart' show Colors;
 import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/pages/router.gr.dart';
@@ -253,15 +252,20 @@ class HomepageWidgetCatalog {
   static Widget buildWidget(String id, {Map<String, dynamic> settings = const {}}) {
     final widgetInfo = getWidget(id);
     if (widgetInfo == null) {
-      return Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          border: Border.all(color: Colors.red),
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Center(
-          child: Text('Widget not found: $id'),
-        ),
+      return Builder(
+        builder: (context) {
+          final theme = SailTheme.of(context);
+          return Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              border: Border.all(color: theme.colors.error),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Center(
+              child: SailText.primary13('Widget not found: $id'),
+            ),
+          );
+        },
       );
     }
 

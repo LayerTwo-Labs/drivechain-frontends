@@ -2,7 +2,6 @@ import 'package:bitwindow/models/multisig_group.dart';
 import 'package:bitwindow/providers/hd_wallet_provider.dart';
 import 'package:bitwindow/providers/multisig_provider.dart';
 import 'package:bitwindow/widgets/create_multisig_modal.dart';
-import 'package:flutter/material.dart' show Colors, Dialog;
 import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
@@ -23,9 +22,7 @@ class FundGroupModal extends StatelessWidget {
       onViewModelReady: (model) => model.init(),
       builder: (context, viewModel, child) {
         if (viewModel.selectedGroup != null && viewModel.currentAddress.isNotEmpty) {
-          return Dialog(
-            backgroundColor: Colors.transparent,
-            insetPadding: const EdgeInsets.all(24),
+          return SailModal(
             child: IntrinsicHeight(
               child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 600),
@@ -57,55 +54,52 @@ class FundGroupModal extends StatelessWidget {
           );
         }
 
-        return Dialog(
-          backgroundColor: Colors.transparent,
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 600, maxHeight: 500),
-            child: SailCard(
-              title: 'Select Multisig Group to Fund',
-              subtitle: 'Choose which group you want to generate a funding address for',
-              error: viewModel.modalError,
-              child: SingleChildScrollView(
-                child: SailColumn(
-                  spacing: SailStyleValues.padding16,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    if (viewModel.groups.isEmpty)
-                      SailText.secondary12('No multisig groups available')
-                    else
-                      ...viewModel.groups.map(
-                        (group) => SailCard(
-                          shadowSize: ShadowSize.none,
-                          child: SailRow(
-                            children: [
-                              Expanded(
-                                child: SailColumn(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  spacing: SailStyleValues.padding04,
-                                  children: [
-                                    SailText.primary13(group.name),
-                                    SailText.secondary12('${group.m} of ${group.n} multisig'),
-                                    SailText.secondary12('Balance: ${group.balance.toStringAsFixed(8)} BTC'),
-                                  ],
-                                ),
+        return SailModal(
+          constraints: const BoxConstraints(maxWidth: 600, maxHeight: 500),
+          child: SailCard(
+            title: 'Select Multisig Group to Fund',
+            subtitle: 'Choose which group you want to generate a funding address for',
+            error: viewModel.modalError,
+            child: SingleChildScrollView(
+              child: SailColumn(
+                spacing: SailStyleValues.padding16,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (viewModel.groups.isEmpty)
+                    SailText.secondary12('No multisig groups available')
+                  else
+                    ...viewModel.groups.map(
+                      (group) => SailCard(
+                        shadowSize: ShadowSize.none,
+                        child: SailRow(
+                          children: [
+                            Expanded(
+                              child: SailColumn(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                spacing: SailStyleValues.padding04,
+                                children: [
+                                  SailText.primary13(group.name),
+                                  SailText.secondary12('${group.m} of ${group.n} multisig'),
+                                  SailText.secondary12('Balance: ${group.balance.toStringAsFixed(8)} BTC'),
+                                ],
                               ),
-                              const SizedBox(width: SailStyleValues.padding16),
-                              SailButton(
-                                label: 'Fund This Group',
-                                onPressed: () async => viewModel.selectGroup(group),
-                                variant: ButtonVariant.primary,
-                              ),
-                            ],
-                          ),
+                            ),
+                            const SizedBox(width: SailStyleValues.padding16),
+                            SailButton(
+                              label: 'Fund This Group',
+                              onPressed: () async => viewModel.selectGroup(group),
+                              variant: ButtonVariant.primary,
+                            ),
+                          ],
                         ),
                       ),
-                    SailButton(
-                      label: 'Close',
-                      onPressed: () async => Navigator.of(context).pop(),
-                      variant: ButtonVariant.ghost,
                     ),
-                  ],
-                ),
+                  SailButton(
+                    label: 'Close',
+                    onPressed: () async => Navigator.of(context).pop(),
+                    variant: ButtonVariant.ghost,
+                  ),
+                ],
               ),
             ),
           ),

@@ -44,6 +44,7 @@ dependencies:
       url: https://github.com/octobocto/flutter-plugins.git
       ref: 252f3f7910288500039c39ae2b944622a0e55152
       path: packages/desktop_multi_window
+  auto_updater: ^1.0.0
   window_manager: ^0.5.1
   web: ^1.1.1
   thirds: ^0.2.0-alpha.1
@@ -68,3 +69,7 @@ flutter:
     - assets/chains_config.json
     - assets/quotes.json
     - assets/migrations/
+  fonts:
+    - family: VT323
+      fonts:
+        - asset: assets/fonts/VT323-Regular.ttf

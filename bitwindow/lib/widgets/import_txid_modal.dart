@@ -3,7 +3,6 @@ import 'dart:convert';
 import 'package:bitwindow/models/multisig_group.dart';
 import 'package:bitwindow/providers/hd_wallet_provider.dart';
 import 'package:bitwindow/providers/multisig_provider.dart';
-import 'package:flutter/material.dart' show Colors, Dialog;
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
@@ -19,109 +18,107 @@ class ImportTxidModal extends StatelessWidget {
     return ViewModelBuilder<ImportTxidModalViewModel>.reactive(
       viewModelBuilder: () => ImportTxidModalViewModel(),
       builder: (context, viewModel, child) {
-        return Dialog(
-          backgroundColor: Colors.transparent,
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 600, maxHeight: 400),
-            child: SailCard(
-              title: 'Import Multisig from TXID',
-              subtitle: 'Import multisig group data from transaction OP_RETURN',
-              error: viewModel.modalError,
-              child: SingleChildScrollView(
-                child: SailColumn(
-                  spacing: SailStyleValues.padding16,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    SailText.primary13('Enter the transaction ID containing the multisig data:'),
-                    const SizedBox(height: 8),
-                    SailTextField(
-                      label: 'Transaction ID (TXID)',
-                      hintText: 'Enter or paste transaction ID',
-                      controller: viewModel.txidController,
-                      enabled: !viewModel.isBusy,
-                      suffixWidget: SailButton(
-                        label: 'Paste',
-                        variant: ButtonVariant.ghost,
-                        small: true,
-                        onPressed: viewModel.isBusy
-                            ? null
-                            : () async {
-                                await viewModel.pasteFromClipboard();
-                              },
-                      ),
+        final theme = SailTheme.of(context);
+        return SailModal(
+          constraints: const BoxConstraints(maxWidth: 600, maxHeight: 400),
+          child: SailCard(
+            title: 'Import Multisig from TXID',
+            subtitle: 'Import multisig group data from transaction OP_RETURN',
+            error: viewModel.modalError,
+            child: SingleChildScrollView(
+              child: SailColumn(
+                spacing: SailStyleValues.padding16,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SailText.primary13('Enter the transaction ID containing the multisig data:'),
+                  const SizedBox(height: 8),
+                  SailTextField(
+                    label: 'Transaction ID (TXID)',
+                    hintText: 'Enter or paste transaction ID',
+                    controller: viewModel.txidController,
+                    enabled: !viewModel.isBusy,
+                    suffixWidget: SailButton(
+                      label: 'Paste',
+                      variant: ButtonVariant.ghost,
+                      small: true,
+                      onPressed: viewModel.isBusy
+                          ? null
+                          : () async {
+                              await viewModel.pasteFromClipboard();
+                            },
                     ),
+                  ),
+                  const SizedBox(height: 16),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: theme.colors.info.withValues(alpha: 0.1),
+                      border: Border.all(color: theme.colors.info.withValues(alpha: 0.3)),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: SailColumn(
+                      spacing: SailStyleValues.padding08,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        SailText.primary13('Note:', color: theme.colors.info),
+                        SailText.secondary12(
+                          'This will scan the transaction for OP_RETURN data containing multisig configuration. '
+                          'If the data was encrypted, it cannot be imported this way. '
+                          'Only unencrypted (base64 encoded) multisig data can be imported.',
+                          color: theme.colors.info,
+                        ),
+                      ],
+                    ),
+                  ),
+                  if (viewModel.loadingStatus != null) ...[
                     const SizedBox(height: 16),
                     Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: Colors.blue.shade50,
-                        border: Border.all(color: Colors.blue.shade200),
+                        color: theme.colors.warning.withValues(alpha: 0.1),
+                        border: Border.all(color: theme.colors.warning.withValues(alpha: 0.3)),
                         borderRadius: BorderRadius.circular(8),
                       ),
-                      child: SailColumn(
-                        spacing: SailStyleValues.padding08,
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                      child: SailRow(
                         children: [
-                          SailText.primary13('Note:', color: Colors.blue.shade800),
-                          SailText.secondary12(
-                            'This will scan the transaction for OP_RETURN data containing multisig configuration. '
-                            'If the data was encrypted, it cannot be imported this way. '
-                            'Only unencrypted (base64 encoded) multisig data can be imported.',
-                            color: Colors.blue.shade700,
+                          SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: LoadingIndicator(color: theme.colors.warning),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: SailText.secondary13(
+                              viewModel.loadingStatus!,
+                              color: theme.colors.warning,
+                            ),
                           ),
                         ],
                       ),
                     ),
-                    if (viewModel.loadingStatus != null) ...[
-                      const SizedBox(height: 16),
-                      Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: Colors.orange.withValues(alpha: 0.1),
-                          border: Border.all(color: Colors.orange.withValues(alpha: 0.3)),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: SailRow(
-                          children: [
-                            const SizedBox(
-                              width: 16,
-                              height: 16,
-                              child: LoadingIndicator(color: Colors.orange),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: SailText.secondary13(
-                                viewModel.loadingStatus!,
-                                color: Colors.orange.shade700,
-                              ),
-                            ),
-                          ],
-                        ),
+                  ],
+                  const SizedBox(height: 16),
+                  SailRow(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      SailButton(
+                        label: 'Import',
+                        onPressed: viewModel.isBusy || viewModel.txidController.text.trim().isEmpty
+                            ? null
+                            : () async {
+                                await viewModel.importFromTxid(context);
+                              },
+                        variant: ButtonVariant.primary,
+                        loading: viewModel.isBusy,
+                      ),
+                      SailButton(
+                        label: 'Cancel',
+                        onPressed: viewModel.isBusy ? null : () async => Navigator.of(context).pop(),
+                        variant: ButtonVariant.secondary,
                       ),
                     ],
-                    const SizedBox(height: 16),
-                    SailRow(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        SailButton(
-                          label: 'Import',
-                          onPressed: viewModel.isBusy || viewModel.txidController.text.trim().isEmpty
-                              ? null
-                              : () async {
-                                  await viewModel.importFromTxid(context);
-                                },
-                          variant: ButtonVariant.primary,
-                          loading: viewModel.isBusy,
-                        ),
-                        SailButton(
-                          label: 'Cancel',
-                          onPressed: viewModel.isBusy ? null : () async => Navigator.of(context).pop(),
-                          variant: ButtonVariant.secondary,
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
           ),

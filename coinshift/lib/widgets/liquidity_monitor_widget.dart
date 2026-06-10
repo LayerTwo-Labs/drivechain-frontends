@@ -1,6 +1,5 @@
 import 'package:coinshift/providers/analytics_provider.dart';
 import 'package:coinshift/providers/swap_provider.dart';
-import 'package:flutter/material.dart' show Icon, Icons;
 import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
@@ -69,10 +68,10 @@ class _OverallHealthSummary extends StatelessWidget {
         child: SailRow(
           spacing: SailStyleValues.padding16,
           children: [
-            Icon(
-              allHealthy ? Icons.check_circle : Icons.warning,
+            SailSVG.fromAsset(
+              allHealthy ? SailSVGAsset.circleCheck : SailSVGAsset.triangleAlert,
+              width: 32,
               color: allHealthy ? theme.colors.success : theme.colors.orange,
-              size: 32,
             ),
             Expanded(
               child: SailColumn(
@@ -190,18 +189,18 @@ class _ChainIcon extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = SailTheme.of(context);
 
-    IconData icon;
+    SailSVGAsset icon;
     switch (chain) {
       case ParentChainType.btc:
-        icon = Icons.currency_bitcoin;
+        icon = SailSVGAsset.bitcoin;
       case ParentChainType.bch:
-        icon = Icons.currency_bitcoin;
+        icon = SailSVGAsset.bitcoin;
       case ParentChainType.ltc:
-        icon = Icons.attach_money;
+        icon = SailSVGAsset.dollarSign;
       case ParentChainType.signet:
-        icon = Icons.science;
+        icon = SailSVGAsset.flaskConical;
       case ParentChainType.regtest:
-        icon = Icons.bug_report;
+        icon = SailSVGAsset.bug;
     }
 
     return Container(
@@ -210,7 +209,7 @@ class _ChainIcon extends StatelessWidget {
         color: theme.colors.backgroundSecondary,
         borderRadius: SailStyleValues.borderRadius,
       ),
-      child: Icon(icon, size: 20, color: theme.colors.text),
+      child: SailSVG.fromAsset(icon, width: 20, color: theme.colors.text),
     );
   }
 }

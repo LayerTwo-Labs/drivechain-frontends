@@ -1,7 +1,6 @@
 import 'package:bitwindow/providers/check_provider.dart';
 import 'package:bitwindow/routing/router.dart';
 import 'package:bitwindow/utils/explorer_url.dart';
-import 'package:flutter/material.dart' show AlertDialog;
 import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:intl/intl.dart';
@@ -281,16 +280,27 @@ class ChecksTable extends StatelessWidget {
 
   Future<void> _deleteCheck(BuildContext context, Cheque check) async {
     if (check.fundedTxids.isNotEmpty && !check.hasSweptTxid()) {
-      showSnackBar(context, 'Cannot delete funded check. Sweep the funds first.');
+      showSailToast(context, 'Cannot delete funded check. Sweep the funds first.');
       return;
     }
 
     final confirmed = await showThemedDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: SailTheme.of(context).colors.background,
-        title: SailText.primary15('Delete Check'),
-        content: SailColumn(
+      builder: (context) => SailDialog(
+        title: 'Delete Check',
+        actions: [
+          SailButton(
+            label: 'Cancel',
+            variant: ButtonVariant.ghost,
+            onPressed: () async => Navigator.of(context).pop(false),
+          ),
+          SailButton(
+            label: 'Delete',
+            variant: ButtonVariant.destructive,
+            onPressed: () async => Navigator.of(context).pop(true),
+          ),
+        ],
+        child: SailColumn(
           spacing: SailStyleValues.padding12,
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -320,18 +330,6 @@ class ChecksTable extends StatelessWidget {
               ),
           ],
         ),
-        actions: [
-          SailButton(
-            label: 'Cancel',
-            variant: ButtonVariant.ghost,
-            onPressed: () async => Navigator.of(context).pop(false),
-          ),
-          SailButton(
-            label: 'Delete',
-            variant: ButtonVariant.destructive,
-            onPressed: () async => Navigator.of(context).pop(true),
-          ),
-        ],
       ),
     );
 
@@ -342,9 +340,9 @@ class ChecksTable extends StatelessWidget {
       if (!context.mounted) return;
 
       if (success) {
-        showSnackBar(context, 'Check deleted successfully');
+        showSailToast(context, 'Check deleted successfully');
       } else {
-        showSnackBar(context, checkProvider.modelError ?? 'Failed to delete check');
+        showSailToast(context, checkProvider.modelError ?? 'Failed to delete check');
       }
     }
   }

@@ -9,15 +9,19 @@ import 'package:sail_ui/sail_ui.dart';
 // magic
 class BitwindowSettings {
   final bool paranoidMode;
+  final String themeStyle;
 
-  BitwindowSettings({this.paranoidMode = false});
+  BitwindowSettings({this.paranoidMode = false, this.themeStyle = 'sail'});
 
   Map<String, dynamic> toMap() {
-    return {'paranoidMode': paranoidMode};
+    return {'paranoidMode': paranoidMode, 'themeStyle': themeStyle};
   }
 
   factory BitwindowSettings.fromMap(Map<String, dynamic> map) {
-    return BitwindowSettings(paranoidMode: map['paranoidMode'] ?? false);
+    return BitwindowSettings(
+      paranoidMode: map['paranoidMode'] ?? false,
+      themeStyle: map['themeStyle'] ?? 'sail',
+    );
   }
 
   String toJson() => json.encode(toMap());
@@ -31,8 +35,11 @@ class BitwindowSettings {
     }
   }
 
-  BitwindowSettings copyWith({bool? paranoidMode}) {
-    return BitwindowSettings(paranoidMode: paranoidMode ?? this.paranoidMode);
+  BitwindowSettings copyWith({bool? paranoidMode, String? themeStyle}) {
+    return BitwindowSettings(
+      paranoidMode: paranoidMode ?? this.paranoidMode,
+      themeStyle: themeStyle ?? this.themeStyle,
+    );
   }
 }
 

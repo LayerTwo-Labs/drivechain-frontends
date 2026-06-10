@@ -3,7 +3,6 @@ import 'dart:io';
 import 'package:auto_route/auto_route.dart';
 import 'package:bitwindow/providers/timestamp_provider.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:flutter/material.dart' show AppBar, Scaffold;
 import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:intl/intl.dart';
@@ -71,13 +70,9 @@ class VerifyTimestampPage extends StatelessWidget {
     return ViewModelBuilder<VerifyTimestampViewModel>.reactive(
       viewModelBuilder: () => VerifyTimestampViewModel(),
       builder: (context, model, child) {
-        return Scaffold(
+        return SailScaffold(
           backgroundColor: SailTheme.of(context).colors.background,
-          appBar: AppBar(
-            backgroundColor: SailTheme.of(context).colors.background,
-            foregroundColor: SailTheme.of(context).colors.text,
-            title: SailText.primary20('Verify a Timestamp'),
-          ),
+          appBar: SailAppBar.build(context, title: SailText.primary20('Verify a Timestamp')),
           body: SafeArea(
             child: Center(
               child: SingleChildScrollView(

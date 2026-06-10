@@ -4,7 +4,6 @@ import 'dart:ui';
 
 import 'package:auto_route/auto_route.dart' as auto_router;
 import 'package:auto_route/auto_route.dart';
-import 'package:flutter/material.dart' show Scaffold;
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
@@ -12,14 +11,10 @@ import 'package:logger/logger.dart';
 import 'package:sail_ui/pages/router.gr.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:stacked/stacked.dart';
-import 'package:coinshift/dialogs/command_palette_dialog.dart';
 import 'package:coinshift/main.dart';
 import 'package:coinshift/pages/tabs/settings_page.dart';
 import 'package:coinshift/routing/router.dart';
-import 'package:coinshift/services/code_search_service.dart';
-import 'package:coinshift/utils/menu_commands.dart';
 import 'package:coinshift/utils/navigation_registry.dart';
-import 'package:coinshift/widgets/reset_button.dart';
 import 'package:window_manager/window_manager.dart';
 
 // IMPORTANT: Update router.dart AND routes in HomePage further down
@@ -109,10 +104,22 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver, Window
   void _openCommandPalette() {
     showThemedDialog(
       context: context,
-      builder: (dialogContext) => CommandPaletteDialog(
-        commands: _getMenuCommands(dialogContext),
-        codeSearchService: _codeSearchService,
-        onCodeResultSelected: (filePath, matchedLine) => _navigateToFileContext(filePath, matchedLine),
+      builder: (dialogContext) => SailCommandPalette(
+        commands: [
+          for (final cmd in _getMenuCommands(dialogContext))
+            SailCommandPaletteItem(label: cmd.label, category: cmd.category, onSelected: cmd.onSelected),
+        ],
+        matches: (item, query) =>
+            item.label.toLowerCase().contains(query) || item.category.toLowerCase().contains(query),
+        searchResults: (query) => [
+          for (final result in _codeSearchService.search(query))
+            SailCommandPaletteItem(
+              label: result.matchedLine,
+              category: result.fileName,
+              subtitle: 'Line ${result.lineNumber}',
+              onSelected: () => _navigateToFileContext(result.filePath, result.matchedLine),
+            ),
+        ],
       ),
     );
   }
@@ -404,7 +411,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver, Window
               ],
             ),
           ],
-          child: Scaffold(
+          child: SailScaffold(
             backgroundColor: theme.colors.background,
             body: auto_router.AutoTabsRouter.builder(
               homeIndex: Tabs.CoinShiftHomepage.index,
@@ -425,7 +432,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver, Window
                   viewModelBuilder: () => HomePageViewModel(),
                   fireOnViewModelReadyOnce: true,
                   builder: (context, model, child) {
-                    return Scaffold(
+                    return SailScaffold(
                       backgroundColor: theme.colors.background,
                       appBar: TopNav(
                         routes: [
@@ -521,8 +528,13 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver, Window
                             onOpenAdditionalConfConfigurator: () {
                               GetIt.I.get<AppRouter>().push(CoinShiftConfEditorRoute());
                             },
-                            endWidgets: const [
-                              ResetButton(),
+                            endWidgets: [
+                              ResetButton(
+                                onTap: () async {
+                                  SettingsTabPage.setSection(1);
+                                  tabsRouter.setActiveIndex(Tabs.SettingsHome.index);
+                                },
+                              ),
                             ],
                             onlyShowAdditional: true,
                           ),

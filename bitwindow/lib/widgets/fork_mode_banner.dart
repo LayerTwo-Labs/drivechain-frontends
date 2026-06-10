@@ -95,11 +95,11 @@ class _ClaimEcashCard extends StatelessWidget {
     try {
       final txids = await fork.claimAll();
       if (context.mounted) {
-        showSnackBar(context, 'Claimed eCash in ${txids.length} transaction(s).');
+        showSailToast(context, 'Claimed eCash in ${txids.length} transaction(s).');
       }
     } catch (e) {
       if (context.mounted) {
-        showSnackBar(context, 'Could not claim eCash: $e', duration: 5);
+        showSailToast(context, 'Could not claim eCash: $e', duration: const Duration(seconds: 5));
       }
     }
   }

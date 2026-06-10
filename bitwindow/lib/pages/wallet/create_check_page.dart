@@ -1,7 +1,6 @@
 import 'package:auto_route/auto_route.dart';
 import 'package:bitwindow/providers/check_provider.dart';
 import 'package:bitwindow/routing/router.dart';
-import 'package:flutter/material.dart' show AlertDialog, AppBar, Scaffold;
 import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
@@ -28,13 +27,9 @@ class _CreateCheckPageState extends State<CreateCheckPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return SailScaffold(
       backgroundColor: SailTheme.of(context).colors.background,
-      appBar: AppBar(
-        backgroundColor: SailTheme.of(context).colors.background,
-        foregroundColor: SailTheme.of(context).colors.text,
-        title: SailText.primary20('Create Check'),
-      ),
+      appBar: SailAppBar.build(context, title: SailText.primary20('Create Check')),
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
@@ -80,13 +75,13 @@ class _CreateCheckPageState extends State<CreateCheckPage> {
   Future<void> _createCheck() async {
     final amountText = _amountController.text.trim();
     if (amountText.isEmpty) {
-      showSnackBar(context, 'Please enter an amount');
+      showSailToast(context, 'Please enter an amount');
       return;
     }
 
     final btcAmount = double.tryParse(amountText);
     if (btcAmount == null || btcAmount <= 0) {
-      showSnackBar(context, 'Please enter a valid amount');
+      showSailToast(context, 'Please enter a valid amount');
       return;
     }
 
@@ -113,10 +108,10 @@ class _CreateCheckPageState extends State<CreateCheckPage> {
             await _createCheck();
           }
         } else {
-          showSnackBar(context, 'Backend wallet not initialized. Please restart the app.');
+          showSailToast(context, 'Backend wallet not initialized. Please restart the app.');
         }
       } else {
-        showSnackBar(context, e.toString());
+        showSailToast(context, e.toString());
       }
     } finally {
       if (mounted) {
@@ -134,25 +129,8 @@ class _CreateCheckPageState extends State<CreateCheckPage> {
     await showThemedDialog(
       context: context,
       builder: (context) => StatefulBuilder(
-        builder: (context, setState) => AlertDialog(
-          backgroundColor: SailTheme.of(context).colors.background,
-          title: SailText.primary15('Unlock Wallet'),
-          content: SizedBox(
-            width: 400,
-            child: SailColumn(
-              spacing: SailStyleValues.padding12,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                SailText.secondary13('Enter your wallet password to create checks'),
-                SailTextField(
-                  controller: passwordController,
-                  hintText: 'Password',
-                  obscureText: true,
-                  maxLines: 1,
-                ),
-              ],
-            ),
-          ),
+        builder: (context, setState) => SailDialog(
+          title: 'Unlock Wallet',
           actions: [
             SailButton(
               label: 'Cancel',
@@ -171,12 +149,28 @@ class _CreateCheckPageState extends State<CreateCheckPage> {
                 } else {
                   setState(() => isUnlocking = false);
                   if (context.mounted) {
-                    showSnackBar(context, 'Incorrect password');
+                    showSailToast(context, 'Incorrect password');
                   }
                 }
               },
             ),
           ],
+          child: SizedBox(
+            width: 400,
+            child: SailColumn(
+              spacing: SailStyleValues.padding12,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                SailText.secondary13('Enter your wallet password to create checks'),
+                SailTextField(
+                  controller: passwordController,
+                  hintText: 'Password',
+                  obscureText: true,
+                  maxLines: 1,
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );

@@ -1,6 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:sail_ui/sail_ui.dart';
 
+// Ordered categorical palette shared by both themes; index into it for chart series.
+const List<Color> _chartPalette = [
+  Color(0xff5400AA), // purple
+  Color(0xff0D9488), // teal
+  Color(0xff4F46E5), // indigo
+  Color(0xffF59E0B), // amber
+  Color(0xff2AB517), // green
+  Color(0xffF7931E), // orange
+  Color(0xffFF0000), // red
+];
+
 class SailColor {
   final Color background;
   final Color backgroundSecondary;
@@ -21,9 +32,14 @@ class SailColor {
   final Color error;
   final Color success;
   final Color info;
+  final Color warning;
+  final Color warningLight;
   final Color orange;
   final Color orangeLight;
   final Color disabledBackground;
+
+  // Categorical series colors for charts and analytics
+  final List<Color> chartPalette;
 
   final Color actionHeader;
   final Color chip;
@@ -75,6 +91,9 @@ class SailColor {
     required this.error,
     required this.success,
     required this.info,
+    required this.warning,
+    required this.warningLight,
+    required this.chartPalette,
     required this.orange,
     required this.orangeLight,
     required this.actionHeader,
@@ -120,6 +139,9 @@ class SailColor {
       error: SailColorScheme.red,
       success: SailColorScheme.green,
       info: SailColorScheme.blue,
+      warning: SailColorScheme.orange,
+      warningLight: SailColorScheme.orangeLight,
+      chartPalette: _chartPalette,
       orange: SailColorScheme.orange,
       orangeLight: SailColorScheme.orangeLight,
       actionHeader: SailColorScheme.whiteDark,
@@ -166,6 +188,9 @@ class SailColor {
       error: SailColorScheme.red,
       success: SailColorScheme.green,
       info: SailColorScheme.blue,
+      warning: SailColorScheme.orange,
+      warningLight: SailColorScheme.orangeLight,
+      chartPalette: _chartPalette,
       orange: SailColorScheme.orange,
       orangeLight: SailColorScheme.orangeLight,
       actionHeader: SailColorScheme.blackLightest,

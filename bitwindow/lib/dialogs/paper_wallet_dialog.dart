@@ -1,5 +1,5 @@
 import 'package:bitwindow/utils/paper_wallet_generator.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter/services.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
@@ -47,9 +47,7 @@ class _PaperWalletDialogState extends State<PaperWalletDialog> {
 
   void _copyToClipboard(String text, String label) {
     Clipboard.setData(ClipboardData(text: text));
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('$label copied to clipboard')),
-    );
+    showSailToast(context, '$label copied to clipboard');
   }
 
   Future<void> _printPaperWallet() async {
@@ -242,15 +240,15 @@ class _PaperWalletDialogState extends State<PaperWalletDialog> {
     final theme = SailTheme.of(context);
 
     // Qt dialog size: 1847x931, but we'll use something more reasonable
-    return Dialog(
-      backgroundColor: theme.colors.backgroundSecondary,
-      shape: RoundedRectangleBorder(
-        borderRadius: SailStyleValues.borderRadiusSmall,
-        side: BorderSide(color: theme.colors.border, width: 1),
-      ),
+    return SailModal(
       child: Container(
         width: 900, // Reasonable width for modern displays
         constraints: const BoxConstraints(maxHeight: 700),
+        decoration: BoxDecoration(
+          color: theme.colors.backgroundSecondary,
+          borderRadius: SailStyleValues.borderRadiusSmall,
+          border: Border.all(color: theme.colors.border, width: 1),
+        ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -266,9 +264,13 @@ class _PaperWalletDialogState extends State<PaperWalletDialog> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   SailText.primary20('Paper Wallet'), // Qt windowTitle
-                  IconButton(
-                    icon: Icon(Icons.close, color: theme.colors.text),
-                    onPressed: () => Navigator.of(context).pop(),
+                  SailTappable(
+                    onTap: () async => Navigator.of(context).pop(),
+                    borderRadius: SailStyleValues.borderRadiusSmall,
+                    child: Padding(
+                      padding: const EdgeInsets.all(6),
+                      child: SailSVG.fromAsset(SailSVGAsset.x, color: theme.colors.text),
+                    ),
                   ),
                 ],
               ),
@@ -291,7 +293,7 @@ class _PaperWalletDialogState extends State<PaperWalletDialog> {
                       ),
                       child: Row(
                         children: [
-                          Icon(Icons.warning_amber, color: theme.colors.orange, size: 20),
+                          SailSVG.fromAsset(SailSVGAsset.triangleAlert, width: 20, color: theme.colors.orange),
                           const SizedBox(width: 12),
                           Expanded(
                             child: SailText.secondary12(
@@ -311,7 +313,7 @@ class _PaperWalletDialogState extends State<PaperWalletDialog> {
                           padding: const EdgeInsets.all(48),
                           child: Column(
                             children: [
-                              CircularProgressIndicator(color: theme.colors.primary),
+                              SailCircularProgressIndicator(color: theme.colors.primary),
                               const SizedBox(height: 16),
                               SailText.secondary13('Generating secure keypair...'),
                             ],
@@ -423,7 +425,7 @@ class _AddressPanel extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.account_balance_wallet, color: theme.colors.success, size: 24),
+              SailSVG.fromAsset(SailSVGAsset.wallet, width: 24, color: theme.colors.success),
               const SizedBox(width: 8),
               SailText.primary15('LOAD & VERIFY', bold: true),
             ],
@@ -458,7 +460,7 @@ class _AddressPanel extends StatelessWidget {
           const SizedBox(height: 16),
 
           // Address text
-          SelectableText(
+          SailSelectableText(
             keypair.publicAddress,
             style: TextStyle(
               fontFamily: 'IBMPlexMono',
@@ -520,18 +522,24 @@ class _PrivateKeyPanel extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.key, color: theme.colors.error, size: 24),
+              SailSVG.fromAsset(SailSVGAsset.key, width: 24, color: theme.colors.error),
               const SizedBox(width: 8),
               SailText.primary15('SPEND', bold: true),
               const Spacer(),
-              IconButton(
-                icon: Icon(
-                  showPrivateKey ? Icons.visibility_off : Icons.visibility,
-                  color: theme.colors.text,
-                  size: 20,
+              SailTooltip(
+                message: showPrivateKey ? 'Hide private key' : 'Show private key',
+                child: SailTappable(
+                  onTap: () async => onToggleVisibility(),
+                  borderRadius: SailStyleValues.borderRadiusSmall,
+                  child: Padding(
+                    padding: const EdgeInsets.all(6),
+                    child: SailSVG.fromAsset(
+                      showPrivateKey ? SailSVGAsset.eyeOff : SailSVGAsset.eye,
+                      width: 20,
+                      color: theme.colors.text,
+                    ),
+                  ),
                 ),
-                onPressed: onToggleVisibility,
-                tooltip: showPrivateKey ? 'Hide private key' : 'Show private key',
               ),
             ],
           ),
@@ -566,7 +574,7 @@ class _PrivateKeyPanel extends StatelessWidget {
             const SizedBox(height: 16),
 
             // Private key text
-            SelectableText(
+            SailSelectableText(
               keypair.privateKeyWIF,
               style: TextStyle(
                 fontFamily: 'IBMPlexMono',
@@ -587,7 +595,7 @@ class _PrivateKeyPanel extends StatelessWidget {
             Column(
               children: [
                 const SizedBox(height: 40),
-                Icon(Icons.visibility_off, size: 80, color: theme.colors.textTertiary),
+                SailSVG.fromAsset(SailSVGAsset.eyeOff, width: 80, color: theme.colors.textTertiary),
                 const SizedBox(height: 16),
                 SailText.secondary12(
                   'Click the eye icon to reveal',
@@ -601,18 +609,9 @@ class _PrivateKeyPanel extends StatelessWidget {
           const SizedBox(height: 16),
 
           // Warning
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: theme.colors.error.withValues(alpha: 0.1),
-              borderRadius: SailStyleValues.borderRadiusSmall,
-              border: Border.all(color: theme.colors.error),
-            ),
-            child: SailText.secondary12(
-              'KEEP SECRET: Anyone with this private key can spend your Bitcoin',
-              color: theme.colors.error,
-              textAlign: TextAlign.center,
-            ),
+          SailAlert(
+            variant: SailAlertVariant.destructive,
+            description: 'KEEP SECRET: Anyone with this private key can spend your Bitcoin',
           ),
         ],
       ),

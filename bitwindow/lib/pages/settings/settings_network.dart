@@ -1,7 +1,6 @@
 import 'package:bitwindow/pages/settings/network_swap_page.dart';
 import 'package:bitwindow/routing/router.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:flutter/material.dart' show AlertDialog, MaterialPageRoute, TextButton;
 import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/pages/router.gr.dart';
@@ -73,7 +72,7 @@ class _SettingsNetworkState extends State<SettingsNetwork> {
         await _confProvider.updateDataDir(result, forNetwork: _confProvider.network);
         if (!mounted) return;
         await Navigator.of(context).push<bool>(
-          MaterialPageRoute(
+          sailRoute(
             builder: (_) => const L1RestartPage(
               reason:
                   'Bitcoin Core needs to restart for the new data directory to take effect. The new chain data will be written to the path you just chose.',
@@ -107,21 +106,22 @@ class _SettingsNetworkState extends State<SettingsNetwork> {
 
     final confirmed = await showThemedDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Switch Bitcoin Core variant?'),
-        content: const Text(
-          'Bitcoin Core will be stopped, the new build downloaded if needed, and then restarted.',
-        ),
+      builder: (ctx) => SailDialog(
+        title: 'Switch Bitcoin Core variant?',
         actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('Cancel'),
+          SailButton(
+            label: 'Cancel',
+            variant: ButtonVariant.ghost,
+            onPressed: () async => Navigator.of(ctx).pop(false),
           ),
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(true),
-            child: const Text('Switch'),
+          SailButton(
+            label: 'Switch',
+            onPressed: () async => Navigator.of(ctx).pop(true),
           ),
         ],
+        child: SailText.secondary13(
+          'Bitcoin Core will be stopped, the new build downloaded if needed, and then restarted.',
+        ),
       ),
     );
     if (confirmed != true) return;
@@ -318,7 +318,7 @@ Future<void> swapNetworkWithDatadirPrompt(
 
   if (!context.mounted) return;
   await Navigator.of(context).push<bool>(
-    MaterialPageRoute(
+    sailRoute(
       builder: (_) => NetworkSwapPage(
         fromNetwork: provider.network,
         toNetwork: network,

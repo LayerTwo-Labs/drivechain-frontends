@@ -230,8 +230,10 @@ class _SailPopoverState extends State<SailPopover> {
                   child: DecoratedBox(
                     decoration: BoxDecoration(
                       color: theme.colors.popoverBackground,
-                      borderRadius: BorderRadius.circular(6),
-                      border: Border.all(color: theme.colors.border),
+                      borderRadius: theme.chrome.beveled ? BorderRadius.zero : BorderRadius.circular(6),
+                      border: theme.chrome.beveled
+                          ? theme.chrome.bevel!.raised
+                          : Border.all(color: theme.colors.border),
                       boxShadow: [
                         BoxShadow(
                           color: theme.colors.shadow,

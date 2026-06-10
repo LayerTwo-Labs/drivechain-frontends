@@ -1,6 +1,5 @@
 import 'package:auto_route/auto_route.dart';
 import 'package:bitwindow/providers/mining_provider.dart';
-import 'package:flutter/material.dart' show AppBar, Scaffold;
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
@@ -67,14 +66,14 @@ class _CpuMiningPageState extends State<CpuMiningPage> {
   Future<void> _startMiner() async {
     await _miningProvider.startMining();
     if (mounted && _miningProvider.error != null) {
-      showSnackBar(context, 'Failed to start mining: ${_miningProvider.error}');
+      showSailToast(context, 'Failed to start mining: ${_miningProvider.error}');
     }
   }
 
   Future<void> _stopMiner() async {
     await _miningProvider.stopMining();
     if (mounted && _miningProvider.error != null) {
-      showSnackBar(context, 'Failed to stop mining: ${_miningProvider.error}');
+      showSailToast(context, 'Failed to stop mining: ${_miningProvider.error}');
     }
   }
 
@@ -89,13 +88,9 @@ class _CpuMiningPageState extends State<CpuMiningPage> {
     final theme = SailTheme.of(context);
     final isRunning = _miningProvider.isMining;
 
-    return Scaffold(
+    return SailScaffold(
       backgroundColor: theme.colors.background,
-      appBar: AppBar(
-        backgroundColor: theme.colors.background,
-        foregroundColor: theme.colors.text,
-        title: SailText.primary20('CPU Miner', bold: true),
-      ),
+      appBar: SailAppBar.build(context, title: SailText.primary20('CPU Miner', bold: true)),
       body: SafeArea(
         child: Center(
           child: ConstrainedBox(

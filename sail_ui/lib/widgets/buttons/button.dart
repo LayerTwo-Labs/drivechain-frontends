@@ -452,6 +452,7 @@ class __SailScaleButtonState extends State<_SailScaleButton> with SingleTickerPr
 
   @override
   Widget build(BuildContext context) {
+    final theme = SailTheme.of(context);
     // Calculate the current color based on state
     Color currentColor = widget.color;
     if (_isHovered && widget.hoverColor != null) {
@@ -478,32 +479,44 @@ class __SailScaleButtonState extends State<_SailScaleButton> with SingleTickerPr
                   onExit: (_) => setState(
                     () => widget.disabled ? _isHovered = _isHovered : _isHovered = false,
                   ),
-                  child: Stack(
-                    children: [
-                      // Bottom shadow layer
-                      Container(
-                        decoration: BoxDecoration(
-                          color: widget.variant != ButtonVariant.link ? currentColor.darken(0.2) : Colors.transparent,
-                          borderRadius: widget.variant != ButtonVariant.link ? SailStyleValues.borderRadius : null,
+                  child: theme.chrome.bevel != null && widget.variant != ButtonVariant.link
+                      ? DecoratedBox(
+                          decoration: BoxDecoration(
+                            color: currentColor,
+                            border: _isPressed ? theme.chrome.bevel!.sunken : theme.chrome.bevel!.raised,
+                          ),
+                          child: widget.child,
+                        )
+                      : Stack(
+                          children: [
+                            // Bottom shadow layer
+                            Container(
+                              decoration: BoxDecoration(
+                                color: widget.variant != ButtonVariant.link
+                                    ? currentColor.darken(0.2)
+                                    : Colors.transparent,
+                                borderRadius: widget.variant != ButtonVariant.link ? theme.chrome.radius : null,
+                              ),
+                              margin: widget.variant != ButtonVariant.link
+                                  ? const EdgeInsets.only(top: 3)
+                                  : EdgeInsets.zero,
+                              child: Opacity(opacity: 0, child: widget.child),
+                            ),
+                            // Top button layer
+                            Container(
+                              transform: Matrix4.translationValues(
+                                0,
+                                widget.variant != ButtonVariant.link ? _controller.value * 1.5 : 0.0,
+                                0,
+                              ),
+                              decoration: BoxDecoration(
+                                color: widget.variant != ButtonVariant.link ? currentColor : Colors.transparent,
+                                borderRadius: widget.variant != ButtonVariant.link ? theme.chrome.radius : null,
+                              ),
+                              child: widget.child,
+                            ),
+                          ],
                         ),
-                        margin: widget.variant != ButtonVariant.link ? const EdgeInsets.only(top: 3) : EdgeInsets.zero,
-                        child: Opacity(opacity: 0, child: widget.child),
-                      ),
-                      // Top button layer
-                      Container(
-                        transform: Matrix4.translationValues(
-                          0,
-                          widget.variant != ButtonVariant.link ? _controller.value * 1.5 : 0.0,
-                          0,
-                        ),
-                        decoration: BoxDecoration(
-                          color: widget.variant != ButtonVariant.link ? currentColor : Colors.transparent,
-                          borderRadius: widget.variant != ButtonVariant.link ? SailStyleValues.borderRadius : null,
-                        ),
-                        child: widget.child,
-                      ),
-                    ],
-                  ),
                 );
               },
             ),

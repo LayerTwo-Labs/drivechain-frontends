@@ -1,6 +1,5 @@
 import 'dart:io';
 
-import 'package:flutter/material.dart' show SelectionArea;
 import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
@@ -60,7 +59,7 @@ class SailCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = SailTheme.of(context);
-    final radius = borderRadius ?? SailStyleValues.borderRadiusLarge;
+    final radius = borderRadius ?? theme.chrome.radiusLarge;
 
     return SelectionArea(
       child: SailShadow(
@@ -68,57 +67,130 @@ class SailCard extends StatelessWidget {
         child: ClipRRect(
           borderRadius: radius,
           child: DecoratedBox(
-            decoration: BoxDecoration(
-              border: Border.all(color: theme.colors.border, width: 1.0),
-              borderRadius: radius,
-              color: color ?? theme.colors.background,
-            ),
+            decoration: theme.chrome.bevel != null
+                ? theme.chrome.panel(theme.colors)
+                : BoxDecoration(
+                    border: Border.all(color: theme.colors.border, width: 1.0),
+                    borderRadius: radius,
+                    color: color ?? theme.colors.background,
+                  ),
             child: SizedBox(
               width: width,
-              child: Padding(
-                padding: padding
-                    ? EdgeInsets.only(
-                        top: inSeparateWindow ? SailStyleValues.padding32 : SailStyleValues.padding16,
-                        left: SailStyleValues.padding16,
-                        right: SailStyleValues.padding16,
-                        bottom: bottomPadding ? SailStyleValues.padding16 : 0,
-                      )
-                    : EdgeInsets.zero,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    if (title != null)
-                      SizedBox(
-                        width: double.infinity,
-                        child: SailRow(
-                          spacing: 0,
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Flexible(
-                              child: CardHeader(
-                                title: title!,
-                                titleTooltip: titleTooltip,
-                                subtitle: subtitle,
-                                error: error,
-                              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // win95-style window header: full-width gradient bar
+                  if (theme.chrome.beveled && title != null)
+                    Container(
+                      height: 33,
+                      padding: const EdgeInsets.only(left: 8),
+                      decoration: theme.chrome.titleBar(theme.colors),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: SailText.primary15(
+                              title!,
+                              bold: true,
+                              color: const Color(0xFFFFFFFF),
                             ),
-                            SailRow(
+                          ),
+                          if (widgetHeaderEnd != null) widgetHeaderEnd!,
+                          if (newWindow != null)
+                            SailButton(
+                              variant: ButtonVariant.icon,
+                              icon: SailSVGAsset.iconNewWindow,
+                              onPressed: () async {
+                                final windowProvider = GetIt.I.get<WindowProvider>();
+                                await windowProvider.open(newWindow!);
+                              },
+                            ),
+                          if (withCloseButton)
+                            SailButton(
+                              variant: ButtonVariant.icon,
+                              icon: SailSVGAsset.iconClose,
+                              onPressed: () async => Navigator.of(context).pop(),
+                            ),
+                          const SizedBox(width: 4),
+                        ],
+                      ),
+                    ),
+                  Padding(
+                    padding: padding
+                        ? EdgeInsets.only(
+                            top: inSeparateWindow ? SailStyleValues.padding32 : SailStyleValues.padding16,
+                            left: SailStyleValues.padding16,
+                            right: SailStyleValues.padding16,
+                            bottom: bottomPadding ? SailStyleValues.padding16 : 0,
+                          )
+                        : EdgeInsets.zero,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (theme.chrome.beveled && title != null && (subtitle != null || error != null))
+                          SailText.primary12(
+                            error ?? subtitle!,
+                            color: error != null ? theme.colors.error : theme.colors.inactiveNavText,
+                            overflow: TextOverflow.visible,
+                          ),
+                        if (title != null && !theme.chrome.beveled)
+                          SizedBox(
+                            width: double.infinity,
+                            child: SailRow(
+                              spacing: 0,
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Flexible(
+                                  child: CardHeader(
+                                    title: title!,
+                                    titleTooltip: titleTooltip,
+                                    subtitle: subtitle,
+                                    error: error,
+                                  ),
+                                ),
+                                SailRow(
+                                  spacing: SailStyleValues.padding08,
+                                  children: [
+                                    if (widgetHeaderEnd != null) widgetHeaderEnd!,
+                                    if (newWindow != null)
+                                      SailTooltip(
+                                        message: 'Open in a new window',
+                                        child: SailButton(
+                                          variant: ButtonVariant.icon,
+                                          icon: SailSVGAsset.iconNewWindow,
+                                          onPressed: () async {
+                                            final windowProvider = GetIt.I.get<WindowProvider>();
+                                            await windowProvider.open(newWindow!);
+                                          },
+                                        ),
+                                      ),
+                                    if (withCloseButton)
+                                      SailButton(
+                                        variant: ButtonVariant.icon,
+                                        icon: SailSVGAsset.iconClose,
+                                        onPressed: () async => Navigator.of(context).pop(),
+                                      ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          )
+                        else if ((withCloseButton || newWindow != null) && !(theme.chrome.beveled && title != null))
+                          Align(
+                            alignment: Alignment.centerRight,
+                            child: SailRow(
                               spacing: SailStyleValues.padding08,
                               children: [
-                                if (widgetHeaderEnd != null) widgetHeaderEnd!,
                                 if (newWindow != null)
-                                  SailTooltip(
-                                    message: 'Open in a new window',
-                                    child: SailButton(
-                                      variant: ButtonVariant.icon,
-                                      icon: SailSVGAsset.iconNewWindow,
-                                      onPressed: () async {
-                                        final windowProvider = GetIt.I.get<WindowProvider>();
-                                        await windowProvider.open(newWindow!);
-                                      },
-                                    ),
+                                  SailButton(
+                                    variant: ButtonVariant.icon,
+                                    icon: SailSVGAsset.iconNewWindow,
+                                    onPressed: () async {
+                                      final windowProvider = GetIt.I.get<WindowProvider>();
+                                      await windowProvider.open(newWindow!);
+                                    },
                                   ),
                                 if (withCloseButton)
                                   SailButton(
@@ -128,37 +200,13 @@ class SailCard extends StatelessWidget {
                                   ),
                               ],
                             ),
-                          ],
-                        ),
-                      )
-                    else if (withCloseButton || newWindow != null)
-                      Align(
-                        alignment: Alignment.centerRight,
-                        child: SailRow(
-                          spacing: SailStyleValues.padding08,
-                          children: [
-                            if (newWindow != null)
-                              SailButton(
-                                variant: ButtonVariant.icon,
-                                icon: SailSVGAsset.iconNewWindow,
-                                onPressed: () async {
-                                  final windowProvider = GetIt.I.get<WindowProvider>();
-                                  await windowProvider.open(newWindow!);
-                                },
-                              ),
-                            if (withCloseButton)
-                              SailButton(
-                                variant: ButtonVariant.icon,
-                                icon: SailSVGAsset.iconClose,
-                                onPressed: () async => Navigator.of(context).pop(),
-                              ),
-                          ],
-                        ),
-                      ),
-                    if (title != null) const SailSpacing(SailStyleValues.padding08),
-                    Flexible(child: child),
-                  ],
-                ),
+                          ),
+                        if (title != null) const SailSpacing(SailStyleValues.padding08),
+                        Flexible(child: child),
+                      ],
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
@@ -190,10 +238,11 @@ class SailCardSmall extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = SailTheme.of(context);
     return SelectionArea(
       child: SailShadow(
         child: ClipRRect(
-          borderRadius: SailStyleValues.borderRadius,
+          borderRadius: theme.chrome.radius,
           child: SizedBox(
             child: Padding(
               padding: EdgeInsets.only(
@@ -326,11 +375,11 @@ class SailCardStats extends StatelessWidget {
       child: SailShadow(
         shadowSize: ShadowSize.regular,
         child: ClipRRect(
-          borderRadius: SailStyleValues.borderRadiusLarge,
+          borderRadius: theme.chrome.radiusLarge,
           child: DecoratedBox(
             decoration: BoxDecoration(
               border: Border.all(color: theme.colors.border, width: 1.0),
-              borderRadius: SailStyleValues.borderRadiusLarge,
+              borderRadius: theme.chrome.radiusLarge,
               color: theme.colors.background,
             ),
             child: SizedBox(

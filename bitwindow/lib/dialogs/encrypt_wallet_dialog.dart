@@ -1,5 +1,4 @@
 import 'package:sail_ui/sail_ui.dart';
-import 'package:flutter/material.dart' show Icon, Icons;
 import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 
@@ -127,8 +126,8 @@ class _EncryptWalletDialogState extends State<EncryptWalletDialog> {
             maxLines: 1,
             suffixWidget: GestureDetector(
               onTap: () => setState(() => _obscurePassword = !_obscurePassword),
-              child: Icon(
-                _obscurePassword ? Icons.visibility : Icons.visibility_off,
+              child: SailSVG.fromAsset(
+                _obscurePassword ? SailSVGAsset.eye : SailSVGAsset.eyeOff,
                 color: theme.colors.text,
               ),
             ),
@@ -144,8 +143,8 @@ class _EncryptWalletDialogState extends State<EncryptWalletDialog> {
             onSubmitted: (_) => _encrypt(),
             suffixWidget: GestureDetector(
               onTap: () => setState(() => _obscureConfirmPassword = !_obscureConfirmPassword),
-              child: Icon(
-                _obscureConfirmPassword ? Icons.visibility : Icons.visibility_off,
+              child: SailSVG.fromAsset(
+                _obscureConfirmPassword ? SailSVGAsset.eye : SailSVGAsset.eyeOff,
                 color: theme.colors.text,
               ),
             ),

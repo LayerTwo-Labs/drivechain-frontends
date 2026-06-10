@@ -1,6 +1,5 @@
 import 'package:auto_route/auto_route.dart';
 import 'package:coinshift/providers/analytics_provider.dart';
-import 'package:flutter/material.dart' show Icon, Icons;
 import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
@@ -325,7 +324,7 @@ class _SwapsNeedingAttentionCard extends StatelessWidget {
                 spacing: SailStyleValues.padding08,
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.check_circle, color: theme.colors.success, size: 48),
+                  SailSVG.fromAsset(SailSVGAsset.circleCheck, width: 48, color: theme.colors.success),
                   SailText.primary15('All swaps are healthy'),
                   SailText.secondary13('No swaps require attention at this time'),
                 ],
@@ -377,7 +376,7 @@ class _SwapAttentionRow extends StatelessWidget {
       child: SailRow(
         spacing: SailStyleValues.padding16,
         children: [
-          Icon(Icons.warning_amber, color: issueColor, size: 20),
+          SailSVG.fromAsset(SailSVGAsset.triangleAlert, width: 20, color: issueColor),
           Expanded(
             child: SailColumn(
               spacing: SailStyleValues.padding04,

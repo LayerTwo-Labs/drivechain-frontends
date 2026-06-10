@@ -1,5 +1,4 @@
 import 'package:auto_route/auto_route.dart';
-import 'package:flutter/material.dart' show SelectableText;
 import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
@@ -141,12 +140,9 @@ class _BlockDetails extends StatelessWidget {
                 color: SailTheme.of(context).colors.backgroundSecondary,
                 borderRadius: SailStyleValues.borderRadiusSmall,
               ),
-              child: SelectableText(
+              child: SailSelectableText(
                 block['utreexo_accumulator'].toString(),
-                style: SailStyleValues.twelve.copyWith(
-                  fontFamily: 'monospace',
-                  color: SailTheme.of(context).colors.text,
-                ),
+                monospace: true,
               ),
             ),
           ],
@@ -201,12 +197,9 @@ class _BlockInfoRow extends StatelessWidget {
               ? Row(
                   children: [
                     Expanded(
-                      child: SelectableText(
+                      child: SailSelectableText(
                         value,
-                        style: SailStyleValues.thirteen.copyWith(
-                          fontFamily: 'monospace',
-                          color: SailTheme.of(context).colors.text,
-                        ),
+                        monospace: true,
                       ),
                     ),
                     if (value != '-') CopyButton(text: value),

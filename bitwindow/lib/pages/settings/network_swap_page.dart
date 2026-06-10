@@ -4,7 +4,6 @@ import 'package:bitwindow/providers/fork_provider.dart';
 import 'package:bitwindow/providers/hd_wallet_provider.dart';
 import 'package:bitwindow/providers/sidechain_provider.dart';
 import 'package:bitwindow/providers/transactions_provider.dart';
-import 'package:flutter/material.dart' show AppBar, Icon, Icons, Scaffold;
 import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
@@ -112,11 +111,10 @@ class _NetworkSwapPageState extends State<NetworkSwapPage> {
           Navigator.of(context).pop(_swapComplete);
         }
       },
-      child: Scaffold(
+      child: SailScaffold(
         backgroundColor: theme.colors.background,
-        appBar: AppBar(
-          backgroundColor: theme.colors.background,
-          foregroundColor: theme.colors.text,
+        appBar: SailAppBar.build(
+          context,
           leading: SailAppBarBackButton(
             onPressed: _isSwapping && !_swapComplete && _error == null ? null : _handleBack,
           ),
@@ -140,9 +138,9 @@ class _NetworkSwapPageState extends State<NetworkSwapPage> {
                             spacing: SailStyleValues.padding12,
                             children: [
                               if (_swapComplete)
-                                Icon(Icons.check_circle, color: theme.colors.success, size: 32)
+                                SailSVG.fromAsset(SailSVGAsset.circleCheck, width: 32, color: theme.colors.success)
                               else if (_error != null)
-                                Icon(Icons.error, color: theme.colors.error, size: 32)
+                                SailSVG.fromAsset(SailSVGAsset.circleAlert, width: 32, color: theme.colors.error)
                               else
                                 SailSVG.fromAsset(
                                   SailSVGAsset.iconRestart,

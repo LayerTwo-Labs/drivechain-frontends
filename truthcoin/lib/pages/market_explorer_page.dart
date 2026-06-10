@@ -1,5 +1,4 @@
 import 'package:auto_route/auto_route.dart';
-import 'package:flutter/material.dart' show Icon, Icons;
 import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
@@ -50,7 +49,7 @@ class HeaderSection extends StatelessWidget {
             controller: model.searchController,
             hintText: 'Search markets...',
             onChanged: model.onSearchChanged,
-            prefixIcon: const Icon(Icons.search, size: 16),
+            prefixIcon: SailSVG.fromAsset(SailSVGAsset.search, width: 16, color: SailTheme.of(context).colors.icon),
           ),
         ),
         SizedBox(

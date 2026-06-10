@@ -66,6 +66,7 @@ class InlineTabBarState extends State<InlineTabBar> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = SailTheme.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -78,7 +79,7 @@ class InlineTabBarState extends State<InlineTabBar> {
                 color: widget.secondary
                     ? context.sailTheme.colors.backgroundSecondary
                     : context.sailTheme.colors.background,
-                borderRadius: SailStyleValues.borderRadius,
+                borderRadius: theme.chrome.radius,
               ),
               child: SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
@@ -106,7 +107,7 @@ class InlineTabBarState extends State<InlineTabBar> {
                           elevation: const WidgetStatePropertyAll(4),
                           shape: WidgetStatePropertyAll(
                             RoundedRectangleBorder(
-                              borderRadius: SailStyleValues.borderRadius,
+                              borderRadius: theme.chrome.radius,
                               side: BorderSide(
                                 color: context.sailTheme.colors.border,
                               ),
@@ -218,6 +219,7 @@ class _TabItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = SailTheme.of(context);
     return InkWell(
       onTap: onTap,
       child: Container(
@@ -229,7 +231,7 @@ class _TabItem extends StatelessWidget {
           color: isSelected
               ? (secondary ? context.sailTheme.colors.background : context.sailTheme.colors.backgroundSecondary)
               : Colors.transparent,
-          borderRadius: SailStyleValues.borderRadius,
+          borderRadius: theme.chrome.radius,
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,

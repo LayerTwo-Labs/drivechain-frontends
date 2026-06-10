@@ -222,4 +222,25 @@ class SettingsProvider extends ChangeNotifier {
       rethrow;
     }
   }
+
+  /// Update the global theme style. Written to BitwindowSettings so every
+  /// client (bitwindow + all sidechains) follows it; applied live here.
+  Future<void> updateThemeStyle(SailThemeStyle style) async {
+    if (bitwindowSettings.themeStyle == style.id) {
+      return;
+    }
+
+    final old = bitwindowSettings;
+    try {
+      bitwindowSettings = bitwindowSettings.copyWith(themeStyle: style.id);
+      notifyListeners();
+      final setting = BitwindowSettingValue(newValue: bitwindowSettings);
+      await bitwindowClientSettings.setValue(setting);
+    } catch (e) {
+      bitwindowSettings = old;
+      notifyListeners();
+      log.e('Failed to update theme style', error: e);
+      rethrow;
+    }
+  }
 }

@@ -8,6 +8,7 @@ class ProgressBar extends StatelessWidget {
   final bool small;
   final bool justPercent;
   final bool hideProgressInside;
+  final Color? color;
 
   const ProgressBar({
     super.key,
@@ -16,6 +17,7 @@ class ProgressBar extends StatelessWidget {
     this.small = false,
     this.hideProgressInside = false,
     this.justPercent = false,
+    this.color,
   });
 
   @override
@@ -45,24 +47,27 @@ class ProgressBar extends StatelessWidget {
                     color: theme.colors.backgroundSecondary.withValues(
                       alpha: 0.5,
                     ),
-                    borderRadius: BorderRadius.circular(999),
+                    borderRadius: theme.chrome.beveled ? BorderRadius.zero : BorderRadius.circular(999),
+                    border: theme.chrome.beveled ? theme.chrome.bevel!.sunken : null,
                   ),
                 ),
                 // Progress indicator
                 ClipRRect(
-                  borderRadius: BorderRadius.circular(999),
+                  borderRadius: theme.chrome.beveled ? BorderRadius.zero : BorderRadius.circular(999),
                   child: FractionallySizedBox(
                     alignment: Alignment.centerLeft,
                     widthFactor: progress,
                     child: Container(
                       decoration: BoxDecoration(
-                        color: theme.colors.text,
-                        borderRadius: BorderRadius.horizontal(
-                          left: const Radius.circular(999),
-                          right: Radius.circular(
-                            current / goal > 0.99 ? 999 : 0,
-                          ),
-                        ),
+                        color: color ?? (theme.chrome.beveled ? theme.colors.primary : theme.colors.text),
+                        borderRadius: theme.chrome.beveled
+                            ? BorderRadius.zero
+                            : BorderRadius.horizontal(
+                                left: const Radius.circular(999),
+                                right: Radius.circular(
+                                  current / goal > 0.99 ? 999 : 0,
+                                ),
+                              ),
                       ),
                     ),
                   ),

@@ -1,7 +1,6 @@
 import 'dart:io';
 
 import 'package:bitwindow/routing/router.dart';
-import 'package:flutter/material.dart' show MaterialPageRoute;
 import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
@@ -180,7 +179,7 @@ class _SettingsResetState extends State<SettingsReset> {
 
     // Confirmation page gathers the concrete file list and performs deletion.
     final confirmed = await Navigator.of(context).push<bool>(
-      MaterialPageRoute(
+      sailRoute(
         builder: (_) => ResetConfirmationPage(
           request: request,
           appDir: appDir,

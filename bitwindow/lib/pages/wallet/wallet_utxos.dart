@@ -4,7 +4,6 @@ import 'package:bitwindow/providers/transactions_provider.dart';
 import 'package:bitwindow/providers/coin_selection_provider.dart';
 import 'package:bitwindow/utils/explorer_url.dart';
 
-import 'package:flutter/material.dart' show Colors, Dialog, Icon, Icons, InkWell;
 import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/gen/wallet/v1/wallet.pb.dart';
@@ -59,7 +58,7 @@ class _UTXOsTabState extends State<UTXOsTab> {
           ],
           SailMenuItem(
             onSelected: () {
-              showSnackBar(context, 'Selected ${bucket.count} UTXO(s) for sending - go to Send tab');
+              showSailToast(context, 'Selected ${bucket.count} UTXO(s) for sending - go to Send tab');
             },
             child: SailText.primary12(
               isSingleUtxo ? 'Send This UTXO' : 'Send These ${bucket.count} UTXOs',
@@ -399,7 +398,7 @@ class _UTXOTableState extends State<UTXOTable> {
               if (_coinSelection.isFrozen(utxo.output)) {
                 return theme.colors.divider.withValues(alpha: 0.3);
               }
-              return isDenied(utxo) ? Colors.green.withValues(alpha: 0.1) : null;
+              return isDenied(utxo) ? theme.colors.success.withValues(alpha: 0.1) : null;
             },
             getRowId: (index) => sortedEntries[index].output,
             headerBuilder: (context) => [
@@ -419,7 +418,9 @@ class _UTXOTableState extends State<UTXOTable> {
               return [
                 SailTableCell(
                   value: '',
-                  child: isFrozen ? Icon(Icons.ac_unit, size: 14, color: theme.colors.info) : const SizedBox(width: 14),
+                  child: isFrozen
+                      ? SailSVG.fromAsset(SailSVGAsset.snowflake, width: 14, color: theme.colors.info)
+                      : const SizedBox(width: 14),
                 ),
                 SailTableCell(
                   value: utxo.hasReceivedAt() ? formatDate(utxo.receivedAt.toDateTime().toLocal()) : '—',
@@ -623,7 +624,7 @@ class _ConsolidateDialogState extends State<_ConsolidateDialog> {
 
   Future<void> _consolidate() async {
     if (_selectedOutpoints.length < 2) {
-      showSnackBar(context, 'Select at least 2 UTXOs to consolidate');
+      showSailToast(context, 'Select at least 2 UTXOs to consolidate');
       return;
     }
 
@@ -658,7 +659,7 @@ class _ConsolidateDialogState extends State<_ConsolidateDialog> {
       }
     } catch (e) {
       if (mounted) {
-        showSnackBar(context, 'Consolidation failed: $e');
+        showSailToast(context, 'Consolidation failed: $e');
         setState(() => _isLoading = false);
       }
     }
@@ -669,157 +670,156 @@ class _ConsolidateDialogState extends State<_ConsolidateDialog> {
     final theme = SailTheme.of(context);
     final utxosBelowThreshold = _utxosBelowThreshold;
 
-    return Dialog(
-      backgroundColor: Colors.transparent,
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 600, maxHeight: 500),
-        child: SailCard(
-          title: 'Consolidate UTXOs',
-          subtitle: 'Combine multiple small UTXOs into one',
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Threshold selector
-              SailRow(
-                spacing: SailStyleValues.padding12,
+    return SailModal(
+      constraints: const BoxConstraints(maxWidth: 600, maxHeight: 500),
+      child: SailCard(
+        title: 'Consolidate UTXOs',
+        subtitle: 'Combine multiple small UTXOs into one',
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Threshold selector
+            SailRow(
+              spacing: SailStyleValues.padding12,
+              children: [
+                SailText.primary13('Include UTXOs smaller than:'),
+                SailDropdownButton<int>(
+                  value: _selectedThreshold,
+                  items: _thresholdOptions.map((sats) {
+                    return SailDropdownItem<int>(
+                      value: sats,
+                      label: _formatter.formatSats(sats),
+                    );
+                  }).toList(),
+                  onChanged: (value) {
+                    if (value != null) {
+                      _selectedThreshold = value;
+                      _updateSelectionFromThreshold();
+                    }
+                  },
+                ),
+              ],
+            ),
+
+            const SailSpacing(SailStyleValues.padding12),
+
+            // Summary
+            Container(
+              padding: const EdgeInsets.all(SailStyleValues.padding12),
+              decoration: BoxDecoration(
+                color: theme.colors.backgroundSecondary,
+                borderRadius: SailStyleValues.borderRadiusSmall,
+              ),
+              child: SailRow(
+                spacing: SailStyleValues.padding16,
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  SailText.primary13('Include UTXOs smaller than:'),
-                  SailDropdownButton<int>(
-                    value: _selectedThreshold,
-                    items: _thresholdOptions.map((sats) {
-                      return SailDropdownItem<int>(
-                        value: sats,
-                        label: _formatter.formatSats(sats),
-                      );
-                    }).toList(),
-                    onChanged: (value) {
-                      if (value != null) {
-                        _selectedThreshold = value;
-                        _updateSelectionFromThreshold();
-                      }
-                    },
-                  ),
+                  SailText.secondary13('${_selectedOutpoints.length} UTXOs selected'),
+                  SailText.primary13(_formatter.formatSats(_totalSelectedSats)),
                 ],
               ),
+            ),
 
-              const SailSpacing(SailStyleValues.padding12),
+            const SailSpacing(SailStyleValues.padding12),
 
-              // Summary
-              Container(
-                padding: const EdgeInsets.all(SailStyleValues.padding12),
+            // UTXO list
+            SailText.secondary12('Select UTXOs to consolidate:'),
+            const SailSpacing(SailStyleValues.padding08),
+
+            Expanded(
+              child: DecoratedBox(
                 decoration: BoxDecoration(
-                  color: theme.colors.backgroundSecondary,
+                  border: Border.all(color: theme.colors.divider),
                   borderRadius: SailStyleValues.borderRadiusSmall,
                 ),
-                child: SailRow(
-                  spacing: SailStyleValues.padding16,
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    SailText.secondary13('${_selectedOutpoints.length} UTXOs selected'),
-                    SailText.primary13(_formatter.formatSats(_totalSelectedSats)),
-                  ],
-                ),
-              ),
+                child: utxosBelowThreshold.isEmpty
+                    ? Center(
+                        child: SailText.secondary12('No UTXOs below threshold'),
+                      )
+                    : ListView.builder(
+                        itemCount: utxosBelowThreshold.length,
+                        itemBuilder: (context, index) {
+                          final utxo = utxosBelowThreshold[index];
+                          final isSelected = _selectedOutpoints.contains(utxo.output);
 
-              const SailSpacing(SailStyleValues.padding12),
-
-              // UTXO list
-              SailText.secondary12('Select UTXOs to consolidate:'),
-              const SailSpacing(SailStyleValues.padding08),
-
-              Expanded(
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    border: Border.all(color: theme.colors.divider),
-                    borderRadius: SailStyleValues.borderRadiusSmall,
-                  ),
-                  child: utxosBelowThreshold.isEmpty
-                      ? Center(
-                          child: SailText.secondary12('No UTXOs below threshold'),
-                        )
-                      : ListView.builder(
-                          itemCount: utxosBelowThreshold.length,
-                          itemBuilder: (context, index) {
-                            final utxo = utxosBelowThreshold[index];
-                            final isSelected = _selectedOutpoints.contains(utxo.output);
-
-                            return InkWell(
-                              onTap: () {
-                                setState(() {
-                                  if (isSelected) {
-                                    _selectedOutpoints.remove(utxo.output);
-                                  } else {
-                                    _selectedOutpoints.add(utxo.output);
-                                  }
-                                });
-                              },
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: SailStyleValues.padding12,
-                                  vertical: SailStyleValues.padding08,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: isSelected ? theme.colors.info.withValues(alpha: 0.1) : Colors.transparent,
-                                  border: Border(
-                                    bottom: BorderSide(color: theme.colors.divider, width: 0.5),
-                                  ),
-                                ),
-                                child: SailRow(
-                                  spacing: SailStyleValues.padding12,
-                                  children: [
-                                    SailCheckbox(
-                                      value: isSelected,
-                                      onChanged: (value) {
-                                        setState(() {
-                                          if (value) {
-                                            _selectedOutpoints.add(utxo.output);
-                                          } else {
-                                            _selectedOutpoints.remove(utxo.output);
-                                          }
-                                        });
-                                      },
-                                    ),
-                                    Expanded(
-                                      child: SailText.secondary12(
-                                        '${utxo.output.substring(0, 8)}...:${utxo.output.split(':').last}',
-                                        monospace: true,
-                                      ),
-                                    ),
-                                    SailText.primary12(
-                                      _formatter.formatSats(utxo.valueSats.toInt()),
-                                      monospace: true,
-                                    ),
-                                  ],
+                          return SailTappable(
+                            onTap: () async {
+                              setState(() {
+                                if (isSelected) {
+                                  _selectedOutpoints.remove(utxo.output);
+                                } else {
+                                  _selectedOutpoints.add(utxo.output);
+                                }
+                              });
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: SailStyleValues.padding12,
+                                vertical: SailStyleValues.padding08,
+                              ),
+                              decoration: BoxDecoration(
+                                color: isSelected
+                                    ? theme.colors.info.withValues(alpha: 0.1)
+                                    : SailColorScheme.transparent,
+                                border: Border(
+                                  bottom: BorderSide(color: theme.colors.divider, width: 0.5),
                                 ),
                               ),
-                            );
-                          },
-                        ),
+                              child: SailRow(
+                                spacing: SailStyleValues.padding12,
+                                children: [
+                                  SailCheckbox(
+                                    value: isSelected,
+                                    onChanged: (value) {
+                                      setState(() {
+                                        if (value) {
+                                          _selectedOutpoints.add(utxo.output);
+                                        } else {
+                                          _selectedOutpoints.remove(utxo.output);
+                                        }
+                                      });
+                                    },
+                                  ),
+                                  Expanded(
+                                    child: SailText.secondary12(
+                                      '${utxo.output.substring(0, 8)}...:${utxo.output.split(':').last}',
+                                      monospace: true,
+                                    ),
+                                  ),
+                                  SailText.primary12(
+                                    _formatter.formatSats(utxo.valueSats.toInt()),
+                                    monospace: true,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+              ),
+            ),
+
+            const SailSpacing(SailStyleValues.padding16),
+
+            // Actions
+            SailRow(
+              spacing: SailStyleValues.padding08,
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                SailButton(
+                  label: 'Cancel',
+                  variant: ButtonVariant.ghost,
+                  onPressed: () async => Navigator.pop(context),
                 ),
-              ),
-
-              const SailSpacing(SailStyleValues.padding16),
-
-              // Actions
-              SailRow(
-                spacing: SailStyleValues.padding08,
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  SailButton(
-                    label: 'Cancel',
-                    variant: ButtonVariant.ghost,
-                    onPressed: () async => Navigator.pop(context),
-                  ),
-                  SailButton(
-                    label: 'Consolidate ${_selectedOutpoints.length} UTXOs',
-                    disabled: _selectedOutpoints.length < 2,
-                    loading: _isLoading,
-                    onPressed: _consolidate,
-                  ),
-                ],
-              ),
-            ],
-          ),
+                SailButton(
+                  label: 'Consolidate ${_selectedOutpoints.length} UTXOs',
+                  disabled: _selectedOutpoints.length < 2,
+                  loading: _isLoading,
+                  onPressed: _consolidate,
+                ),
+              ],
+            ),
+          ],
         ),
       ),
     );

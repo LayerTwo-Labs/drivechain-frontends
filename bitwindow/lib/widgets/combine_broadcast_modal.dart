@@ -2,7 +2,6 @@ import 'package:bitwindow/models/multisig_group.dart';
 import 'package:bitwindow/models/multisig_transaction.dart';
 import 'package:bitwindow/providers/multisig_provider.dart';
 import 'package:bitwindow/utils/explorer_url.dart';
-import 'package:flutter/material.dart' show Colors, Dialog, Icon, IconButton, Icons, Radio;
 import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
@@ -227,40 +226,100 @@ class _CombineBroadcastModalState extends State<CombineBroadcastModal> {
 
   @override
   Widget build(BuildContext context) {
-    return Dialog(
-      backgroundColor: Colors.transparent,
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 600, maxHeight: 500),
-        child: SailCard(
-          title: 'Combine & Broadcast',
-          subtitle: _isLoading
-              ? 'Loading transactions...'
-              : _eligibleTransactions.isEmpty
-              ? 'No transactions ready for processing'
-              : 'Select transaction to combine PSBTs and broadcast',
-          error: _error,
-          widgetHeaderEnd: !_isLoading
-              ? IconButton(
-                  icon: const Icon(Icons.refresh),
-                  onPressed: _loadData,
-                  tooltip: 'Refresh transactions',
-                )
-              : null,
-          child: _isLoading
-              ? const Center(
-                  child: Padding(
-                    padding: EdgeInsets.all(48.0),
-                    child: LoadingIndicator(),
-                  ),
-                )
-              : SailColumn(
-                  spacing: SailStyleValues.padding16,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    if (_eligibleTransactions.isEmpty) ...[
-                      SailText.secondary13('No transactions ready for processing found.'),
-                      SailText.secondary12('Complete signing for transactions before processing.'),
-                    ] else if (_eligibleTransactions.length == 1) ...[
+    return SailModal(
+      constraints: const BoxConstraints(maxWidth: 600, maxHeight: 500),
+      child: SailCard(
+        title: 'Combine & Broadcast',
+        subtitle: _isLoading
+            ? 'Loading transactions...'
+            : _eligibleTransactions.isEmpty
+            ? 'No transactions ready for processing'
+            : 'Select transaction to combine PSBTs and broadcast',
+        error: _error,
+        widgetHeaderEnd: !_isLoading
+            ? SailTooltip(
+                message: 'Refresh transactions',
+                child: SailButton(
+                  variant: ButtonVariant.icon,
+                  icon: SailSVGAsset.refreshCw,
+                  onPressed: () async => _loadData(),
+                ),
+              )
+            : null,
+        child: _isLoading
+            ? const Center(
+                child: Padding(
+                  padding: EdgeInsets.all(48.0),
+                  child: LoadingIndicator(),
+                ),
+              )
+            : SailColumn(
+                spacing: SailStyleValues.padding16,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (_eligibleTransactions.isEmpty) ...[
+                    SailText.secondary13('No transactions ready for processing found.'),
+                    SailText.secondary12('Complete signing for transactions before processing.'),
+                  ] else if (_eligibleTransactions.length == 1) ...[
+                    _TransactionDetails(
+                      transaction: _selectedTransaction!,
+                      group: _multisigGroups.firstWhere(
+                        (g) => g.id == _selectedTransaction!.groupId,
+                        orElse: () => throw Exception('Group not found'),
+                      ),
+                    ),
+                  ] else ...[
+                    SailText.primary13('Available Transactions (${_eligibleTransactions.length})'),
+                    SailSpacing(SailStyleValues.padding08),
+                    Expanded(
+                      child: ListView.builder(
+                        itemCount: _eligibleTransactions.length,
+                        itemBuilder: (context, index) {
+                          final tx = _eligibleTransactions[index];
+                          final group = _multisigGroups.firstWhere(
+                            (g) => g.id == tx.groupId,
+                            orElse: () => throw Exception('Group not found'),
+                          );
+
+                          return Container(
+                            margin: const EdgeInsets.only(bottom: 8),
+                            child: GestureDetector(
+                              onTap: () => setState(() => _selectedTransaction = tx),
+                              child: SailCard(
+                                shadowSize: ShadowSize.none,
+                                child: SailRow(
+                                  children: [
+                                    SailRadioButton<String>(
+                                      value: tx.id,
+                                      groupValue: _selectedTransaction?.id ?? '',
+                                      onChanged: (String value) {
+                                        if (_isProcessing) return;
+                                        final tx = _eligibleTransactions.firstWhere((t) => t.id == value);
+                                        setState(() => _selectedTransaction = tx);
+                                      },
+                                    ),
+                                    Expanded(
+                                      child: SailColumn(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        spacing: SailStyleValues.padding04,
+                                        children: [
+                                          SailText.primary13('${tx.id} (${group.name})'),
+                                          SailText.secondary12(
+                                            '${tx.signatureCount}/${group.m} signatures • ${tx.amount.toStringAsFixed(8)} BTC',
+                                          ),
+                                          SailText.secondary12('To: ${tx.destination}'),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                    if (_selectedTransaction != null)
                       _TransactionDetails(
                         transaction: _selectedTransaction!,
                         group: _multisigGroups.firstWhere(
@@ -268,86 +327,26 @@ class _CombineBroadcastModalState extends State<CombineBroadcastModal> {
                           orElse: () => throw Exception('Group not found'),
                         ),
                       ),
-                    ] else ...[
-                      SailText.primary13('Available Transactions (${_eligibleTransactions.length})'),
-                      SailSpacing(SailStyleValues.padding08),
-                      Expanded(
-                        child: ListView.builder(
-                          itemCount: _eligibleTransactions.length,
-                          itemBuilder: (context, index) {
-                            final tx = _eligibleTransactions[index];
-                            final group = _multisigGroups.firstWhere(
-                              (g) => g.id == tx.groupId,
-                              orElse: () => throw Exception('Group not found'),
-                            );
-
-                            return Container(
-                              margin: const EdgeInsets.only(bottom: 8),
-                              child: GestureDetector(
-                                onTap: () => setState(() => _selectedTransaction = tx),
-                                child: SailCard(
-                                  shadowSize: ShadowSize.none,
-                                  child: SailRow(
-                                    children: [
-                                      RadioGroup<String>(
-                                        groupValue: _selectedTransaction?.id,
-                                        onChanged: (String? value) {
-                                          if (_isProcessing) return;
-                                          final tx = _eligibleTransactions.firstWhere((t) => t.id == value);
-                                          setState(() => _selectedTransaction = tx);
-                                        },
-                                        child: Radio<String>(value: tx.id),
-                                      ),
-                                      Expanded(
-                                        child: SailColumn(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                          spacing: SailStyleValues.padding04,
-                                          children: [
-                                            SailText.primary13('${tx.id} (${group.name})'),
-                                            SailText.secondary12(
-                                              '${tx.signatureCount}/${group.m} signatures • ${tx.amount.toStringAsFixed(8)} BTC',
-                                            ),
-                                            SailText.secondary12('To: ${tx.destination}'),
-                                          ],
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            );
-                          },
-                        ),
+                  ],
+                  SailRow(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      SailButton(
+                        label: 'Cancel',
+                        onPressed: _isProcessing ? null : () async => Navigator.of(context).pop(),
+                        variant: ButtonVariant.secondary,
                       ),
-                      if (_selectedTransaction != null)
-                        _TransactionDetails(
-                          transaction: _selectedTransaction!,
-                          group: _multisigGroups.firstWhere(
-                            (g) => g.id == _selectedTransaction!.groupId,
-                            orElse: () => throw Exception('Group not found'),
-                          ),
+                      if (_eligibleTransactions.isNotEmpty)
+                        SailButton(
+                          label: _actionButtonLabel,
+                          onPressed: _isProcessing || _selectedTransaction == null ? null : _processTransaction,
+                          loading: _isProcessing,
+                          variant: ButtonVariant.primary,
                         ),
                     ],
-                    SailRow(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        SailButton(
-                          label: 'Cancel',
-                          onPressed: _isProcessing ? null : () async => Navigator.of(context).pop(),
-                          variant: ButtonVariant.secondary,
-                        ),
-                        if (_eligibleTransactions.isNotEmpty)
-                          SailButton(
-                            label: _actionButtonLabel,
-                            onPressed: _isProcessing || _selectedTransaction == null ? null : _processTransaction,
-                            loading: _isProcessing,
-                            variant: ButtonVariant.primary,
-                          ),
-                      ],
-                    ),
-                  ],
-                ),
-        ),
+                  ),
+                ],
+              ),
       ),
     );
   }
@@ -367,9 +366,9 @@ class _TransactionDetails extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.blue.withValues(alpha: 0.05),
+        color: context.sailTheme.colors.info.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.blue.withValues(alpha: 0.2)),
+        border: Border.all(color: context.sailTheme.colors.info.withValues(alpha: 0.2)),
       ),
       child: SailColumn(
         spacing: SailStyleValues.padding08,

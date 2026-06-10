@@ -1,5 +1,4 @@
 import 'package:fl_chart/fl_chart.dart';
-import 'package:flutter/material.dart' show Colors;
 import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/gen/wallet/v1/wallet.pb.dart';
@@ -182,16 +181,7 @@ class _UTXODistributionChartState extends State<UTXODistributionChart> {
     double totalValue,
     SailThemeData theme,
   ) {
-    final colors = [
-      theme.colors.info,
-      theme.colors.success,
-      theme.colors.orange,
-      theme.colors.error,
-      const Color(0xFF9C27B0), // purple
-      const Color(0xFF00BCD4), // cyan
-      const Color(0xFFFF9800), // amber
-      const Color(0xFF795548), // brown
-    ];
+    final colors = theme.colors.chartPalette;
 
     return buckets.asMap().entries.map((entry) {
       final index = entry.key;
@@ -207,7 +197,7 @@ class _UTXODistributionChartState extends State<UTXODistributionChart> {
         titleStyle: TextStyle(
           fontSize: 11,
           fontWeight: FontWeight.bold,
-          color: Colors.white,
+          color: theme.colors.primaryButtonText,
         ),
         titlePositionPercentageOffset: 0.6,
       );
@@ -235,16 +225,7 @@ class _Legend extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = SailTheme.of(context);
-    final colors = [
-      theme.colors.info,
-      theme.colors.success,
-      theme.colors.orange,
-      theme.colors.error,
-      const Color(0xFF9C27B0),
-      const Color(0xFF00BCD4),
-      const Color(0xFFFF9800),
-      const Color(0xFF795548),
-    ];
+    final colors = theme.colors.chartPalette;
 
     return ListView.builder(
       shrinkWrap: true,
@@ -269,7 +250,7 @@ class _Legend extends StatelessWidget {
             child: Container(
               padding: const EdgeInsets.symmetric(vertical: 3, horizontal: 6),
               decoration: BoxDecoration(
-                color: isHovered ? theme.colors.backgroundSecondary : Colors.transparent,
+                color: isHovered ? theme.colors.backgroundSecondary : SailColorScheme.transparent,
                 borderRadius: SailStyleValues.borderRadiusSmall,
               ),
               child: Row(

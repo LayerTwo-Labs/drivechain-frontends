@@ -37,8 +37,11 @@ import 'package:bitwindow/providers/coin_selection_provider.dart';
 import 'package:bitwindow/routing/router.dart';
 import 'package:bitwindow/widgets/address_list.dart';
 import 'package:bitwindow/widgets/hash_calculator_modal.dart';
+// App shell needs MaterialApp + ThemeData; Colors/Scaffold serve the
+// ancestor-independent error boundary. Everything below uses sail_ui.
 // ignore: avoid_material_import
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' show Colors, MaterialApp, Scaffold, ThemeData, VisualDensity;
+import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:intl/intl_standalone.dart';
@@ -521,7 +524,7 @@ class _BitwindowAppContent extends StatelessWidget {
       title: 'Bitcoin Core + CUSF BIP 300/301 Enforcer',
       theme: ThemeData(
         visualDensity: VisualDensity.compact,
-        fontFamily: font == SailFontValues.ibmMono ? 'IBMPlexMono' : 'Inter',
+        fontFamily: theme.chrome.fontFamily ?? (font == SailFontValues.ibmMono ? 'IBMPlexMono' : 'Inter'),
         scaffoldBackgroundColor: theme.colors.background,
       ),
       builder: (context, child) {

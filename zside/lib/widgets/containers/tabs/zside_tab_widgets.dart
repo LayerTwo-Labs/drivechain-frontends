@@ -1110,10 +1110,10 @@ bool isCastAmount(double amount) {
   return (satAmount & (satAmount - 1)) == 0;
 }
 
-Color? getCastColor(double amount) {
+Color? getCastColor(double amount, SailColor colors) {
   final isCasted = isCastAmount(amount);
 
-  return isCasted ? SailColorScheme.green : null;
+  return isCasted ? colors.success : null;
 }
 
 /// Consolidates all transparent UTXOs to a single new transparent address
