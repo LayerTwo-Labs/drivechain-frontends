@@ -52,6 +52,16 @@ abstract final class WalletService {
     cusfmainchainv1wallet.CreateSidechainProposalResponse.new,
   );
 
+  /// Unary variant of `CreateSidechainProposal`. Creates a new sidechain
+  /// proposal (M1 in BIP300) and persists it to the local database for further
+  /// processing, returning immediately once the proposal has been created.
+  static const submitSidechainProposal = connect.Spec(
+    '/$name/SubmitSidechainProposal',
+    connect.StreamType.unary,
+    cusfmainchainv1wallet.SubmitSidechainProposalRequest.new,
+    cusfmainchainv1wallet.SubmitSidechainProposalResponse.new,
+  );
+
   static const createWallet = connect.Spec(
     '/$name/CreateWallet',
     connect.StreamType.unary,

@@ -128,10 +128,16 @@ message RemoveEncryptionResponse {}
 // List/Switch/Update/Delete Wallets
 // ============================================================================
 
+enum WalletType {
+  WALLET_TYPE_UNSPECIFIED = 0;
+  WALLET_TYPE_BITCOIN_CORE = 1;
+  WALLET_TYPE_ENFORCER = 2;
+}
+
 message WalletMetadata {
   string id = 1;
   string name = 2;
-  string wallet_type = 3;
+  WalletType wallet_type = 3;
   string gradient_json = 4;
   string created_at = 5; // ISO 8601
   // BIP47 v3 payment code derived from the wallet's master pubkey.
@@ -144,6 +150,9 @@ message WalletMetadata {
   string master_mnemonic = 7;
   string l1_mnemonic = 8;
   repeated SidechainStarter sidechains = 9;
+
+  // Watch-only wallets track an external xpub/descriptor; no spending key.
+  bool watch_only = 10;
 }
 
 message SidechainStarter {

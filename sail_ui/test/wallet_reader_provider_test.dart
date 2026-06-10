@@ -68,7 +68,7 @@ WalletData _wallet({
   required BinaryType type,
   String l1 = '',
   List<SidechainWallet> sidechains = const [],
-  String? walletTypeRaw,
+  bool isWatchOnly = false,
   String masterMnemonic = '',
 }) {
   return WalletData(
@@ -81,7 +81,7 @@ WalletData _wallet({
     gradient: WalletGradient.fromWalletId(id),
     createdAt: DateTime.utc(2026, 1, 1),
     walletType: type,
-    walletTypeRaw: walletTypeRaw ?? type.name,
+    isWatchOnly: isWatchOnly,
   );
 }
 
@@ -150,7 +150,7 @@ void main() {
     // was rejected — user landed on a blank screen.
     final fake = _FakeWalletRPC()
       ..walletsToReturn = [
-        wmpb.WalletMetadata(id: 'core-1', name: 'Core', walletType: 'bitcoind'),
+        wmpb.WalletMetadata(id: 'core-1', name: 'Core', walletType: wmpb.WalletType.WALLET_TYPE_BITCOIN_CORE),
       ]
       ..activeWalletIdToReturn = 'core-1';
     GetIt.I.registerSingleton<OrchestratorRPC>(_FakeOrchestratorRPC(fake));
@@ -193,20 +193,15 @@ void main() {
     expect(provider.unlockedPassword, isNull);
   });
 
-  test('isWatchOnly is driven by raw proto walletType, not BinaryType', () {
-    // The proto's "watchOnly" string has no BinaryType counterpart, so the
-    // enum field gets a junk fallback. The raw string is the only signal
-    // the receive-tab can trust to swap the indefinite BIP47 spinner for
-    // the "not available" message.
+  test('isWatchOnly is carried as its own flag, independent of walletType', () {
     final watchOnly = _wallet(
       id: 'wo',
-      type: BinaryType.BINARY_TYPE_ENFORCER, // junk fallback the proto parser produces
-      walletTypeRaw: 'watchOnly',
+      type: BinaryType.BINARY_TYPE_BITCOIND,
+      isWatchOnly: true,
     );
     final hot = _wallet(
       id: 'hot',
       type: BinaryType.BINARY_TYPE_ENFORCER,
-      walletTypeRaw: 'enforcer',
     );
     expect(watchOnly.isWatchOnly, isTrue);
     expect(hot.isWatchOnly, isFalse);

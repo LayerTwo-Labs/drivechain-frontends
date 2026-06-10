@@ -716,7 +716,7 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
   bool get isUsingBitcoinCoreWallet {
     final activeWallet = _walletReader.activeWallet;
     if (activeWallet == null) return false;
-    return activeWallet.walletType != BinaryType.BINARY_TYPE_ENFORCER;
+    return activeWallet.walletType == BinaryType.BINARY_TYPE_BITCOIND && !activeWallet.isWatchOnly;
   }
 
   List<SidechainOverview?> get sidechains => _sidechainProvider.sidechains;

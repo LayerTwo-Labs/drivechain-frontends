@@ -26,6 +26,7 @@ abstract class WalletServiceBase extends $pb.GeneratedService {
   $async.Future<$6.CreateDepositTransactionResponse> createDepositTransaction($pb.ServerContext ctx, $6.CreateDepositTransactionRequest request);
   $async.Future<$6.CreateNewAddressResponse> createNewAddress($pb.ServerContext ctx, $6.CreateNewAddressRequest request);
   $async.Future<$6.CreateSidechainProposalResponse> createSidechainProposal($pb.ServerContext ctx, $6.CreateSidechainProposalRequest request);
+  $async.Future<$6.SubmitSidechainProposalResponse> submitSidechainProposal($pb.ServerContext ctx, $6.SubmitSidechainProposalRequest request);
   $async.Future<$6.CreateWalletResponse> createWallet($pb.ServerContext ctx, $6.CreateWalletRequest request);
   $async.Future<$6.GetBalanceResponse> getBalance($pb.ServerContext ctx, $6.GetBalanceRequest request);
   $async.Future<$6.ListSidechainDepositTransactionsResponse> listSidechainDepositTransactions($pb.ServerContext ctx, $6.ListSidechainDepositTransactionsRequest request);
@@ -43,6 +44,7 @@ abstract class WalletServiceBase extends $pb.GeneratedService {
       case 'CreateDepositTransaction': return $6.CreateDepositTransactionRequest();
       case 'CreateNewAddress': return $6.CreateNewAddressRequest();
       case 'CreateSidechainProposal': return $6.CreateSidechainProposalRequest();
+      case 'SubmitSidechainProposal': return $6.SubmitSidechainProposalRequest();
       case 'CreateWallet': return $6.CreateWalletRequest();
       case 'GetBalance': return $6.GetBalanceRequest();
       case 'ListSidechainDepositTransactions': return $6.ListSidechainDepositTransactionsRequest();
@@ -63,6 +65,7 @@ abstract class WalletServiceBase extends $pb.GeneratedService {
       case 'CreateDepositTransaction': return this.createDepositTransaction(ctx, request as $6.CreateDepositTransactionRequest);
       case 'CreateNewAddress': return this.createNewAddress(ctx, request as $6.CreateNewAddressRequest);
       case 'CreateSidechainProposal': return this.createSidechainProposal(ctx, request as $6.CreateSidechainProposalRequest);
+      case 'SubmitSidechainProposal': return this.submitSidechainProposal(ctx, request as $6.SubmitSidechainProposalRequest);
       case 'CreateWallet': return this.createWallet(ctx, request as $6.CreateWalletRequest);
       case 'GetBalance': return this.getBalance(ctx, request as $6.GetBalanceRequest);
       case 'ListSidechainDepositTransactions': return this.listSidechainDepositTransactions(ctx, request as $6.ListSidechainDepositTransactionsRequest);

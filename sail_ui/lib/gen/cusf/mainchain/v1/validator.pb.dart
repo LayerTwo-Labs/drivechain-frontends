@@ -1414,13 +1414,149 @@ class GetChainInfoRequest extends $pb.GeneratedMessage {
   static GetChainInfoRequest? _defaultInstance;
 }
 
+class GetChainInfoResponse_Bip300Constants extends $pb.GeneratedMessage {
+  factory GetChainInfoResponse_Bip300Constants({
+    $core.int? withdrawalBundleMaxAge,
+    $core.int? withdrawalBundleInclusionThreshold,
+    $core.int? usedSidechainSlotProposalMaxAge,
+    $core.int? usedSidechainSlotActivationThreshold,
+    $core.int? unusedSidechainSlotProposalMaxAge,
+    $core.int? unusedSidechainSlotActivationThreshold,
+  }) {
+    final $result = create();
+    if (withdrawalBundleMaxAge != null) {
+      $result.withdrawalBundleMaxAge = withdrawalBundleMaxAge;
+    }
+    if (withdrawalBundleInclusionThreshold != null) {
+      $result.withdrawalBundleInclusionThreshold = withdrawalBundleInclusionThreshold;
+    }
+    if (usedSidechainSlotProposalMaxAge != null) {
+      $result.usedSidechainSlotProposalMaxAge = usedSidechainSlotProposalMaxAge;
+    }
+    if (usedSidechainSlotActivationThreshold != null) {
+      $result.usedSidechainSlotActivationThreshold = usedSidechainSlotActivationThreshold;
+    }
+    if (unusedSidechainSlotProposalMaxAge != null) {
+      $result.unusedSidechainSlotProposalMaxAge = unusedSidechainSlotProposalMaxAge;
+    }
+    if (unusedSidechainSlotActivationThreshold != null) {
+      $result.unusedSidechainSlotActivationThreshold = unusedSidechainSlotActivationThreshold;
+    }
+    return $result;
+  }
+  GetChainInfoResponse_Bip300Constants._() : super();
+  factory GetChainInfoResponse_Bip300Constants.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory GetChainInfoResponse_Bip300Constants.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'GetChainInfoResponse.Bip300Constants', package: const $pb.PackageName(_omitMessageNames ? '' : 'cusf.mainchain.v1'), createEmptyInstance: create)
+    ..a<$core.int>(1, _omitFieldNames ? '' : 'withdrawalBundleMaxAge', $pb.PbFieldType.OU3)
+    ..a<$core.int>(2, _omitFieldNames ? '' : 'withdrawalBundleInclusionThreshold', $pb.PbFieldType.OU3)
+    ..a<$core.int>(3, _omitFieldNames ? '' : 'usedSidechainSlotProposalMaxAge', $pb.PbFieldType.OU3)
+    ..a<$core.int>(4, _omitFieldNames ? '' : 'usedSidechainSlotActivationThreshold', $pb.PbFieldType.OU3)
+    ..a<$core.int>(5, _omitFieldNames ? '' : 'unusedSidechainSlotProposalMaxAge', $pb.PbFieldType.OU3)
+    ..a<$core.int>(6, _omitFieldNames ? '' : 'unusedSidechainSlotActivationThreshold', $pb.PbFieldType.OU3)
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  GetChainInfoResponse_Bip300Constants clone() => GetChainInfoResponse_Bip300Constants()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  GetChainInfoResponse_Bip300Constants copyWith(void Function(GetChainInfoResponse_Bip300Constants) updates) => super.copyWith((message) => updates(message as GetChainInfoResponse_Bip300Constants)) as GetChainInfoResponse_Bip300Constants;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static GetChainInfoResponse_Bip300Constants create() => GetChainInfoResponse_Bip300Constants._();
+  GetChainInfoResponse_Bip300Constants createEmptyInstance() => create();
+  static $pb.PbList<GetChainInfoResponse_Bip300Constants> createRepeated() => $pb.PbList<GetChainInfoResponse_Bip300Constants>();
+  @$core.pragma('dart2js:noInline')
+  static GetChainInfoResponse_Bip300Constants getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<GetChainInfoResponse_Bip300Constants>(create);
+  static GetChainInfoResponse_Bip300Constants? _defaultInstance;
+
+  /// Maximum age (in mainchain blocks) of a withdrawal bundle before it is
+  /// considered failed.
+  @$pb.TagNumber(1)
+  $core.int get withdrawalBundleMaxAge => $_getIZ(0);
+  @$pb.TagNumber(1)
+  set withdrawalBundleMaxAge($core.int v) { $_setUnsignedInt32(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasWithdrawalBundleMaxAge() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearWithdrawalBundleMaxAge() => clearField(1);
+
+  /// Number of mainchain blocks within `withdrawal_bundle_max_age` that a
+  /// withdrawal bundle must be included in to succeed.
+  @$pb.TagNumber(2)
+  $core.int get withdrawalBundleInclusionThreshold => $_getIZ(1);
+  @$pb.TagNumber(2)
+  set withdrawalBundleInclusionThreshold($core.int v) { $_setUnsignedInt32(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasWithdrawalBundleInclusionThreshold() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearWithdrawalBundleInclusionThreshold() => clearField(2);
+
+  /// Maximum age (in mainchain blocks) of a proposal for an already-used
+  /// sidechain slot before it expires.
+  @$pb.TagNumber(3)
+  $core.int get usedSidechainSlotProposalMaxAge => $_getIZ(2);
+  @$pb.TagNumber(3)
+  set usedSidechainSlotProposalMaxAge($core.int v) { $_setUnsignedInt32(2, v); }
+  @$pb.TagNumber(3)
+  $core.bool hasUsedSidechainSlotProposalMaxAge() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearUsedSidechainSlotProposalMaxAge() => clearField(3);
+
+  /// Number of votes required to activate a proposal for an already-used
+  /// sidechain slot.
+  @$pb.TagNumber(4)
+  $core.int get usedSidechainSlotActivationThreshold => $_getIZ(3);
+  @$pb.TagNumber(4)
+  set usedSidechainSlotActivationThreshold($core.int v) { $_setUnsignedInt32(3, v); }
+  @$pb.TagNumber(4)
+  $core.bool hasUsedSidechainSlotActivationThreshold() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearUsedSidechainSlotActivationThreshold() => clearField(4);
+
+  /// Maximum age (in mainchain blocks) of a proposal for an unused sidechain
+  /// slot before it expires.
+  @$pb.TagNumber(5)
+  $core.int get unusedSidechainSlotProposalMaxAge => $_getIZ(4);
+  @$pb.TagNumber(5)
+  set unusedSidechainSlotProposalMaxAge($core.int v) { $_setUnsignedInt32(4, v); }
+  @$pb.TagNumber(5)
+  $core.bool hasUnusedSidechainSlotProposalMaxAge() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearUnusedSidechainSlotProposalMaxAge() => clearField(5);
+
+  /// Number of votes required to activate a proposal for an unused sidechain
+  /// slot.
+  @$pb.TagNumber(6)
+  $core.int get unusedSidechainSlotActivationThreshold => $_getIZ(5);
+  @$pb.TagNumber(6)
+  set unusedSidechainSlotActivationThreshold($core.int v) { $_setUnsignedInt32(5, v); }
+  @$pb.TagNumber(6)
+  $core.bool hasUnusedSidechainSlotActivationThreshold() => $_has(5);
+  @$pb.TagNumber(6)
+  void clearUnusedSidechainSlotActivationThreshold() => clearField(6);
+}
+
 class GetChainInfoResponse extends $pb.GeneratedMessage {
   factory GetChainInfoResponse({
     Network? network,
+    GetChainInfoResponse_Bip300Constants? bip300Constants,
   }) {
     final $result = create();
     if (network != null) {
       $result.network = network;
+    }
+    if (bip300Constants != null) {
+      $result.bip300Constants = bip300Constants;
     }
     return $result;
   }
@@ -1430,6 +1566,7 @@ class GetChainInfoResponse extends $pb.GeneratedMessage {
 
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'GetChainInfoResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'cusf.mainchain.v1'), createEmptyInstance: create)
     ..e<Network>(1, _omitFieldNames ? '' : 'network', $pb.PbFieldType.OE, defaultOrMaker: Network.NETWORK_UNSPECIFIED, valueOf: Network.valueOf, enumValues: Network.values)
+    ..aOM<GetChainInfoResponse_Bip300Constants>(2, _omitFieldNames ? '' : 'bip300Constants', subBuilder: GetChainInfoResponse_Bip300Constants.create)
     ..hasRequiredFields = false
   ;
 
@@ -1462,6 +1599,18 @@ class GetChainInfoResponse extends $pb.GeneratedMessage {
   $core.bool hasNetwork() => $_has(0);
   @$pb.TagNumber(1)
   void clearNetwork() => clearField(1);
+
+  /// BIP300 consensus constants for the active network.
+  @$pb.TagNumber(2)
+  GetChainInfoResponse_Bip300Constants get bip300Constants => $_getN(1);
+  @$pb.TagNumber(2)
+  set bip300Constants(GetChainInfoResponse_Bip300Constants v) { setField(2, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasBip300Constants() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearBip300Constants() => clearField(2);
+  @$pb.TagNumber(2)
+  GetChainInfoResponse_Bip300Constants ensureBip300Constants() => $_ensure(1);
 }
 
 class GetChainTipRequest extends $pb.GeneratedMessage {

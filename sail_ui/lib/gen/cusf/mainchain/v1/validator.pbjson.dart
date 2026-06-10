@@ -346,13 +346,39 @@ const GetChainInfoResponse$json = {
   '1': 'GetChainInfoResponse',
   '2': [
     {'1': 'network', '3': 1, '4': 1, '5': 14, '6': '.cusf.mainchain.v1.Network', '10': 'network'},
+    {'1': 'bip300_constants', '3': 2, '4': 1, '5': 11, '6': '.cusf.mainchain.v1.GetChainInfoResponse.Bip300Constants', '10': 'bip300Constants'},
+  ],
+  '3': [GetChainInfoResponse_Bip300Constants$json],
+};
+
+@$core.Deprecated('Use getChainInfoResponseDescriptor instead')
+const GetChainInfoResponse_Bip300Constants$json = {
+  '1': 'Bip300Constants',
+  '2': [
+    {'1': 'withdrawal_bundle_max_age', '3': 1, '4': 1, '5': 13, '10': 'withdrawalBundleMaxAge'},
+    {'1': 'withdrawal_bundle_inclusion_threshold', '3': 2, '4': 1, '5': 13, '10': 'withdrawalBundleInclusionThreshold'},
+    {'1': 'used_sidechain_slot_proposal_max_age', '3': 3, '4': 1, '5': 13, '10': 'usedSidechainSlotProposalMaxAge'},
+    {'1': 'used_sidechain_slot_activation_threshold', '3': 4, '4': 1, '5': 13, '10': 'usedSidechainSlotActivationThreshold'},
+    {'1': 'unused_sidechain_slot_proposal_max_age', '3': 5, '4': 1, '5': 13, '10': 'unusedSidechainSlotProposalMaxAge'},
+    {'1': 'unused_sidechain_slot_activation_threshold', '3': 6, '4': 1, '5': 13, '10': 'unusedSidechainSlotActivationThreshold'},
   ],
 };
 
 /// Descriptor for `GetChainInfoResponse`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List getChainInfoResponseDescriptor = $convert.base64Decode(
     'ChRHZXRDaGFpbkluZm9SZXNwb25zZRI0CgduZXR3b3JrGAEgASgOMhouY3VzZi5tYWluY2hhaW'
-    '4udjEuTmV0d29ya1IHbmV0d29yaw==');
+    '4udjEuTmV0d29ya1IHbmV0d29yaxJiChBiaXAzMDBfY29uc3RhbnRzGAIgASgLMjcuY3VzZi5t'
+    'YWluY2hhaW4udjEuR2V0Q2hhaW5JbmZvUmVzcG9uc2UuQmlwMzAwQ29uc3RhbnRzUg9iaXAzMD'
+    'BDb25zdGFudHMa9QMKD0JpcDMwMENvbnN0YW50cxI5Chl3aXRoZHJhd2FsX2J1bmRsZV9tYXhf'
+    'YWdlGAEgASgNUhZ3aXRoZHJhd2FsQnVuZGxlTWF4QWdlElEKJXdpdGhkcmF3YWxfYnVuZGxlX2'
+    'luY2x1c2lvbl90aHJlc2hvbGQYAiABKA1SIndpdGhkcmF3YWxCdW5kbGVJbmNsdXNpb25UaHJl'
+    'c2hvbGQSTQokdXNlZF9zaWRlY2hhaW5fc2xvdF9wcm9wb3NhbF9tYXhfYWdlGAMgASgNUh91c2'
+    'VkU2lkZWNoYWluU2xvdFByb3Bvc2FsTWF4QWdlElYKKHVzZWRfc2lkZWNoYWluX3Nsb3RfYWN0'
+    'aXZhdGlvbl90aHJlc2hvbGQYBCABKA1SJHVzZWRTaWRlY2hhaW5TbG90QWN0aXZhdGlvblRocm'
+    'VzaG9sZBJRCiZ1bnVzZWRfc2lkZWNoYWluX3Nsb3RfcHJvcG9zYWxfbWF4X2FnZRgFIAEoDVIh'
+    'dW51c2VkU2lkZWNoYWluU2xvdFByb3Bvc2FsTWF4QWdlEloKKnVudXNlZF9zaWRlY2hhaW5fc2'
+    'xvdF9hY3RpdmF0aW9uX3RocmVzaG9sZBgGIAEoDVImdW51c2VkU2lkZWNoYWluU2xvdEFjdGl2'
+    'YXRpb25UaHJlc2hvbGQ=');
 
 @$core.Deprecated('Use getChainTipRequestDescriptor instead')
 const GetChainTipRequest$json = {
@@ -902,6 +928,7 @@ const $core.Map<$core.String, $core.Map<$core.String, $core.dynamic>> ValidatorS
   '.cusf.mainchain.v1.GetBmmHStarCommitmentResponse.OptionalCommitment': GetBmmHStarCommitmentResponse_OptionalCommitment$json,
   '.cusf.mainchain.v1.GetChainInfoRequest': GetChainInfoRequest$json,
   '.cusf.mainchain.v1.GetChainInfoResponse': GetChainInfoResponse$json,
+  '.cusf.mainchain.v1.GetChainInfoResponse.Bip300Constants': GetChainInfoResponse_Bip300Constants$json,
   '.cusf.mainchain.v1.GetChainTipRequest': GetChainTipRequest$json,
   '.cusf.mainchain.v1.GetChainTipResponse': GetChainTipResponse$json,
   '.cusf.mainchain.v1.GetCoinbasePSBTRequest': GetCoinbasePSBTRequest$json,

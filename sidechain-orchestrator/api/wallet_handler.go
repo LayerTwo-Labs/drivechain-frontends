@@ -46,7 +46,24 @@ func allSidechainSlots() []wallet.SidechainSlot {
 
 var _ rpc.WalletManagerServiceHandler = new(WalletHandler)
 
-const walletTypeEnforcer = "enforcer"
+const (
+	walletTypeEnforcer    = "enforcer"
+	walletTypeBitcoinCore = "bitcoinCore"
+	walletTypeWatchOnly   = "watchOnly"
+)
+
+// walletTypeToProto maps the engine's internal wallet-type string onto the
+// typed wire enum; watch-only is a flag, not a type, on the wire.
+func walletTypeToProto(t string) pb.WalletType {
+	switch t {
+	case walletTypeEnforcer:
+		return pb.WalletType_WALLET_TYPE_ENFORCER
+	case walletTypeBitcoinCore, walletTypeWatchOnly:
+		return pb.WalletType_WALLET_TYPE_BITCOIN_CORE
+	default:
+		return pb.WalletType_WALLET_TYPE_UNSPECIFIED
+	}
+}
 
 // WalletHandler implements the WalletManagerService gRPC handler.
 type WalletHandler struct {
@@ -203,7 +220,8 @@ func (h *WalletHandler) ListWallets(ctx context.Context, req *connect.Request[pb
 		pbWallets[i] = &pb.WalletMetadata{
 			Id:               w.ID,
 			Name:             w.Name,
-			WalletType:       w.WalletType,
+			WalletType:       walletTypeToProto(w.WalletType),
+			WatchOnly:        w.WalletType == walletTypeWatchOnly,
 			GradientJson:     gradientJSON,
 			CreatedAt:        w.CreatedAt.Format(time.RFC3339),
 			Bip47PaymentCode: bip47Code,
@@ -1417,7 +1435,8 @@ func buildWatchWalletDataResponse(wallets []wallet.WalletData, activeID string, 
 		md := &pb.WalletMetadata{
 			Id:               w.ID,
 			Name:             w.Name,
-			WalletType:       w.WalletType,
+			WalletType:       walletTypeToProto(w.WalletType),
+			WatchOnly:        w.WalletType == walletTypeWatchOnly,
 			GradientJson:     gradientJSON,
 			CreatedAt:        w.CreatedAt.Format(time.RFC3339),
 			Bip47PaymentCode: bip47Code,

@@ -234,6 +234,31 @@ final $typed_data.Uint8List createSidechainProposalResponseDescriptor = $convert
     'MzJWYWx1ZVIGaGVpZ2h0EkIKD3ByZXZfYmxvY2tfaGFzaBgDIAEoCzIaLmN1c2YuY29tbW9uLn'
     'YxLlJldmVyc2VIZXhSDXByZXZCbG9ja0hhc2hCBwoFZXZlbnQ=');
 
+@$core.Deprecated('Use submitSidechainProposalRequestDescriptor instead')
+const SubmitSidechainProposalRequest$json = {
+  '1': 'SubmitSidechainProposalRequest',
+  '2': [
+    {'1': 'sidechain_id', '3': 1, '4': 1, '5': 11, '6': '.google.protobuf.UInt32Value', '10': 'sidechainId'},
+    {'1': 'declaration', '3': 2, '4': 1, '5': 11, '6': '.cusf.mainchain.v1.SidechainDeclaration', '10': 'declaration'},
+  ],
+};
+
+/// Descriptor for `SubmitSidechainProposalRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List submitSidechainProposalRequestDescriptor = $convert.base64Decode(
+    'Ch5TdWJtaXRTaWRlY2hhaW5Qcm9wb3NhbFJlcXVlc3QSPwoMc2lkZWNoYWluX2lkGAEgASgLMh'
+    'wuZ29vZ2xlLnByb3RvYnVmLlVJbnQzMlZhbHVlUgtzaWRlY2hhaW5JZBJJCgtkZWNsYXJhdGlv'
+    'bhgCIAEoCzInLmN1c2YubWFpbmNoYWluLnYxLlNpZGVjaGFpbkRlY2xhcmF0aW9uUgtkZWNsYX'
+    'JhdGlvbg==');
+
+@$core.Deprecated('Use submitSidechainProposalResponseDescriptor instead')
+const SubmitSidechainProposalResponse$json = {
+  '1': 'SubmitSidechainProposalResponse',
+};
+
+/// Descriptor for `SubmitSidechainProposalResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List submitSidechainProposalResponseDescriptor = $convert.base64Decode(
+    'Ch9TdWJtaXRTaWRlY2hhaW5Qcm9wb3NhbFJlc3BvbnNl');
+
 @$core.Deprecated('Use createWalletRequestDescriptor instead')
 const CreateWalletRequest$json = {
   '1': 'CreateWalletRequest',
@@ -584,6 +609,7 @@ const $core.Map<$core.String, $core.dynamic> WalletServiceBase$json = {
     {'1': 'CreateDepositTransaction', '2': '.cusf.mainchain.v1.CreateDepositTransactionRequest', '3': '.cusf.mainchain.v1.CreateDepositTransactionResponse'},
     {'1': 'CreateNewAddress', '2': '.cusf.mainchain.v1.CreateNewAddressRequest', '3': '.cusf.mainchain.v1.CreateNewAddressResponse'},
     {'1': 'CreateSidechainProposal', '2': '.cusf.mainchain.v1.CreateSidechainProposalRequest', '3': '.cusf.mainchain.v1.CreateSidechainProposalResponse', '6': true},
+    {'1': 'SubmitSidechainProposal', '2': '.cusf.mainchain.v1.SubmitSidechainProposalRequest', '3': '.cusf.mainchain.v1.SubmitSidechainProposalResponse'},
     {'1': 'CreateWallet', '2': '.cusf.mainchain.v1.CreateWalletRequest', '3': '.cusf.mainchain.v1.CreateWalletResponse'},
     {
       '1': 'GetBalance',
@@ -650,6 +676,8 @@ const $core.Map<$core.String, $core.Map<$core.String, $core.dynamic>> WalletServ
   '.cusf.mainchain.v1.CreateSidechainProposalResponse.Confirmed': CreateSidechainProposalResponse_Confirmed$json,
   '.cusf.mainchain.v1.OutPoint': $3.OutPoint$json,
   '.cusf.mainchain.v1.CreateSidechainProposalResponse.NotConfirmed': CreateSidechainProposalResponse_NotConfirmed$json,
+  '.cusf.mainchain.v1.SubmitSidechainProposalRequest': SubmitSidechainProposalRequest$json,
+  '.cusf.mainchain.v1.SubmitSidechainProposalResponse': SubmitSidechainProposalResponse$json,
   '.cusf.mainchain.v1.CreateWalletRequest': CreateWalletRequest$json,
   '.cusf.mainchain.v1.CreateWalletResponse': CreateWalletResponse$json,
   '.cusf.mainchain.v1.GetBalanceRequest': GetBalanceRequest$json,
@@ -694,23 +722,25 @@ final $typed_data.Uint8List walletServiceDescriptor = $convert.base64Decode(
     'FkZHJlc3NSZXF1ZXN0GisuY3VzZi5tYWluY2hhaW4udjEuQ3JlYXRlTmV3QWRkcmVzc1Jlc3Bv'
     'bnNlEoIBChdDcmVhdGVTaWRlY2hhaW5Qcm9wb3NhbBIxLmN1c2YubWFpbmNoYWluLnYxLkNyZW'
     'F0ZVNpZGVjaGFpblByb3Bvc2FsUmVxdWVzdBoyLmN1c2YubWFpbmNoYWluLnYxLkNyZWF0ZVNp'
-    'ZGVjaGFpblByb3Bvc2FsUmVzcG9uc2UwARJfCgxDcmVhdGVXYWxsZXQSJi5jdXNmLm1haW5jaG'
-    'Fpbi52MS5DcmVhdGVXYWxsZXRSZXF1ZXN0GicuY3VzZi5tYWluY2hhaW4udjEuQ3JlYXRlV2Fs'
-    'bGV0UmVzcG9uc2USXgoKR2V0QmFsYW5jZRIkLmN1c2YubWFpbmNoYWluLnYxLkdldEJhbGFuY2'
-    'VSZXF1ZXN0GiUuY3VzZi5tYWluY2hhaW4udjEuR2V0QmFsYW5jZVJlc3BvbnNlIgOQAgESoAEK'
-    'IExpc3RTaWRlY2hhaW5EZXBvc2l0VHJhbnNhY3Rpb25zEjouY3VzZi5tYWluY2hhaW4udjEuTG'
-    'lzdFNpZGVjaGFpbkRlcG9zaXRUcmFuc2FjdGlvbnNSZXF1ZXN0GjsuY3VzZi5tYWluY2hhaW4u'
-    'djEuTGlzdFNpZGVjaGFpbkRlcG9zaXRUcmFuc2FjdGlvbnNSZXNwb25zZSIDkAIBEnAKEExpc3'
-    'RUcmFuc2FjdGlvbnMSKi5jdXNmLm1haW5jaGFpbi52MS5MaXN0VHJhbnNhY3Rpb25zUmVxdWVz'
-    'dBorLmN1c2YubWFpbmNoYWluLnYxLkxpc3RUcmFuc2FjdGlvbnNSZXNwb25zZSIDkAIBEnYKEk'
-    'xpc3RVbnNwZW50T3V0cHV0cxIsLmN1c2YubWFpbmNoYWluLnYxLkxpc3RVbnNwZW50T3V0cHV0'
-    'c1JlcXVlc3QaLS5jdXNmLm1haW5jaGFpbi52MS5MaXN0VW5zcGVudE91dHB1dHNSZXNwb25zZS'
-    'IDkAIBElUKB0dldEluZm8SIS5jdXNmLm1haW5jaGFpbi52MS5HZXRJbmZvUmVxdWVzdBoiLmN1'
-    'c2YubWFpbmNoYWluLnYxLkdldEluZm9SZXNwb25zZSIDkAIBEmgKD1NlbmRUcmFuc2FjdGlvbh'
-    'IpLmN1c2YubWFpbmNoYWluLnYxLlNlbmRUcmFuc2FjdGlvblJlcXVlc3QaKi5jdXNmLm1haW5j'
-    'aGFpbi52MS5TZW5kVHJhbnNhY3Rpb25SZXNwb25zZRJkCgxVbmxvY2tXYWxsZXQSJi5jdXNmLm'
-    '1haW5jaGFpbi52MS5VbmxvY2tXYWxsZXRSZXF1ZXN0GicuY3VzZi5tYWluY2hhaW4udjEuVW5s'
-    'b2NrV2FsbGV0UmVzcG9uc2UiA5ACAhJnCg5HZW5lcmF0ZUJsb2NrcxIoLmN1c2YubWFpbmNoYW'
-    'luLnYxLkdlbmVyYXRlQmxvY2tzUmVxdWVzdBopLmN1c2YubWFpbmNoYWluLnYxLkdlbmVyYXRl'
-    'QmxvY2tzUmVzcG9uc2UwAQ==');
+    'ZGVjaGFpblByb3Bvc2FsUmVzcG9uc2UwARKAAQoXU3VibWl0U2lkZWNoYWluUHJvcG9zYWwSMS'
+    '5jdXNmLm1haW5jaGFpbi52MS5TdWJtaXRTaWRlY2hhaW5Qcm9wb3NhbFJlcXVlc3QaMi5jdXNm'
+    'Lm1haW5jaGFpbi52MS5TdWJtaXRTaWRlY2hhaW5Qcm9wb3NhbFJlc3BvbnNlEl8KDENyZWF0ZV'
+    'dhbGxldBImLmN1c2YubWFpbmNoYWluLnYxLkNyZWF0ZVdhbGxldFJlcXVlc3QaJy5jdXNmLm1h'
+    'aW5jaGFpbi52MS5DcmVhdGVXYWxsZXRSZXNwb25zZRJeCgpHZXRCYWxhbmNlEiQuY3VzZi5tYW'
+    'luY2hhaW4udjEuR2V0QmFsYW5jZVJlcXVlc3QaJS5jdXNmLm1haW5jaGFpbi52MS5HZXRCYWxh'
+    'bmNlUmVzcG9uc2UiA5ACARKgAQogTGlzdFNpZGVjaGFpbkRlcG9zaXRUcmFuc2FjdGlvbnMSOi'
+    '5jdXNmLm1haW5jaGFpbi52MS5MaXN0U2lkZWNoYWluRGVwb3NpdFRyYW5zYWN0aW9uc1JlcXVl'
+    'c3QaOy5jdXNmLm1haW5jaGFpbi52MS5MaXN0U2lkZWNoYWluRGVwb3NpdFRyYW5zYWN0aW9uc1'
+    'Jlc3BvbnNlIgOQAgEScAoQTGlzdFRyYW5zYWN0aW9ucxIqLmN1c2YubWFpbmNoYWluLnYxLkxp'
+    'c3RUcmFuc2FjdGlvbnNSZXF1ZXN0GisuY3VzZi5tYWluY2hhaW4udjEuTGlzdFRyYW5zYWN0aW'
+    '9uc1Jlc3BvbnNlIgOQAgESdgoSTGlzdFVuc3BlbnRPdXRwdXRzEiwuY3VzZi5tYWluY2hhaW4u'
+    'djEuTGlzdFVuc3BlbnRPdXRwdXRzUmVxdWVzdBotLmN1c2YubWFpbmNoYWluLnYxLkxpc3RVbn'
+    'NwZW50T3V0cHV0c1Jlc3BvbnNlIgOQAgESVQoHR2V0SW5mbxIhLmN1c2YubWFpbmNoYWluLnYx'
+    'LkdldEluZm9SZXF1ZXN0GiIuY3VzZi5tYWluY2hhaW4udjEuR2V0SW5mb1Jlc3BvbnNlIgOQAg'
+    'ESaAoPU2VuZFRyYW5zYWN0aW9uEikuY3VzZi5tYWluY2hhaW4udjEuU2VuZFRyYW5zYWN0aW9u'
+    'UmVxdWVzdBoqLmN1c2YubWFpbmNoYWluLnYxLlNlbmRUcmFuc2FjdGlvblJlc3BvbnNlEmQKDF'
+    'VubG9ja1dhbGxldBImLmN1c2YubWFpbmNoYWluLnYxLlVubG9ja1dhbGxldFJlcXVlc3QaJy5j'
+    'dXNmLm1haW5jaGFpbi52MS5VbmxvY2tXYWxsZXRSZXNwb25zZSIDkAICEmcKDkdlbmVyYXRlQm'
+    'xvY2tzEiguY3VzZi5tYWluY2hhaW4udjEuR2VuZXJhdGVCbG9ja3NSZXF1ZXN0GikuY3VzZi5t'
+    'YWluY2hhaW4udjEuR2VuZXJhdGVCbG9ja3NSZXNwb25zZTAB');
 

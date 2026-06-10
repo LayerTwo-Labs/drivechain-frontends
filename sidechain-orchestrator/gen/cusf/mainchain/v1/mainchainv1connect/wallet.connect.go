@@ -50,6 +50,9 @@ const (
 	// WalletServiceCreateSidechainProposalProcedure is the fully-qualified name of the WalletService's
 	// CreateSidechainProposal RPC.
 	WalletServiceCreateSidechainProposalProcedure = "/cusf.mainchain.v1.WalletService/CreateSidechainProposal"
+	// WalletServiceSubmitSidechainProposalProcedure is the fully-qualified name of the WalletService's
+	// SubmitSidechainProposal RPC.
+	WalletServiceSubmitSidechainProposalProcedure = "/cusf.mainchain.v1.WalletService/SubmitSidechainProposal"
 	// WalletServiceCreateWalletProcedure is the fully-qualified name of the WalletService's
 	// CreateWallet RPC.
 	WalletServiceCreateWalletProcedure = "/cusf.mainchain.v1.WalletService/CreateWallet"
@@ -91,6 +94,10 @@ type WalletServiceClient interface {
 	// been able to generate a new block.
 	// Returns a stream of (non-)confirmation events for the sidechain proposal.
 	CreateSidechainProposal(context.Context, *connect.Request[v1.CreateSidechainProposalRequest]) (*connect.ServerStreamForClient[v1.CreateSidechainProposalResponse], error)
+	// Unary variant of `CreateSidechainProposal`. Creates a new sidechain
+	// proposal (M1 in BIP300) and persists it to the local database for further
+	// processing, returning immediately once the proposal has been created.
+	SubmitSidechainProposal(context.Context, *connect.Request[v1.SubmitSidechainProposalRequest]) (*connect.Response[v1.SubmitSidechainProposalResponse], error)
 	CreateWallet(context.Context, *connect.Request[v1.CreateWalletRequest]) (*connect.Response[v1.CreateWalletResponse], error)
 	GetBalance(context.Context, *connect.Request[v1.GetBalanceRequest]) (*connect.Response[v1.GetBalanceResponse], error)
 	ListSidechainDepositTransactions(context.Context, *connect.Request[v1.ListSidechainDepositTransactionsRequest]) (*connect.Response[v1.ListSidechainDepositTransactionsResponse], error)
@@ -143,6 +150,12 @@ func NewWalletServiceClient(httpClient connect.HTTPClient, baseURL string, opts 
 			httpClient,
 			baseURL+WalletServiceCreateSidechainProposalProcedure,
 			connect.WithSchema(walletServiceMethods.ByName("CreateSidechainProposal")),
+			connect.WithClientOptions(opts...),
+		),
+		submitSidechainProposal: connect.NewClient[v1.SubmitSidechainProposalRequest, v1.SubmitSidechainProposalResponse](
+			httpClient,
+			baseURL+WalletServiceSubmitSidechainProposalProcedure,
+			connect.WithSchema(walletServiceMethods.ByName("SubmitSidechainProposal")),
 			connect.WithClientOptions(opts...),
 		),
 		createWallet: connect.NewClient[v1.CreateWalletRequest, v1.CreateWalletResponse](
@@ -215,6 +228,7 @@ type walletServiceClient struct {
 	createDepositTransaction         *connect.Client[v1.CreateDepositTransactionRequest, v1.CreateDepositTransactionResponse]
 	createNewAddress                 *connect.Client[v1.CreateNewAddressRequest, v1.CreateNewAddressResponse]
 	createSidechainProposal          *connect.Client[v1.CreateSidechainProposalRequest, v1.CreateSidechainProposalResponse]
+	submitSidechainProposal          *connect.Client[v1.SubmitSidechainProposalRequest, v1.SubmitSidechainProposalResponse]
 	createWallet                     *connect.Client[v1.CreateWalletRequest, v1.CreateWalletResponse]
 	getBalance                       *connect.Client[v1.GetBalanceRequest, v1.GetBalanceResponse]
 	listSidechainDepositTransactions *connect.Client[v1.ListSidechainDepositTransactionsRequest, v1.ListSidechainDepositTransactionsResponse]
@@ -250,6 +264,11 @@ func (c *walletServiceClient) CreateNewAddress(ctx context.Context, req *connect
 // CreateSidechainProposal calls cusf.mainchain.v1.WalletService.CreateSidechainProposal.
 func (c *walletServiceClient) CreateSidechainProposal(ctx context.Context, req *connect.Request[v1.CreateSidechainProposalRequest]) (*connect.ServerStreamForClient[v1.CreateSidechainProposalResponse], error) {
 	return c.createSidechainProposal.CallServerStream(ctx, req)
+}
+
+// SubmitSidechainProposal calls cusf.mainchain.v1.WalletService.SubmitSidechainProposal.
+func (c *walletServiceClient) SubmitSidechainProposal(ctx context.Context, req *connect.Request[v1.SubmitSidechainProposalRequest]) (*connect.Response[v1.SubmitSidechainProposalResponse], error) {
+	return c.submitSidechainProposal.CallUnary(ctx, req)
 }
 
 // CreateWallet calls cusf.mainchain.v1.WalletService.CreateWallet.
@@ -311,6 +330,10 @@ type WalletServiceHandler interface {
 	// been able to generate a new block.
 	// Returns a stream of (non-)confirmation events for the sidechain proposal.
 	CreateSidechainProposal(context.Context, *connect.Request[v1.CreateSidechainProposalRequest], *connect.ServerStream[v1.CreateSidechainProposalResponse]) error
+	// Unary variant of `CreateSidechainProposal`. Creates a new sidechain
+	// proposal (M1 in BIP300) and persists it to the local database for further
+	// processing, returning immediately once the proposal has been created.
+	SubmitSidechainProposal(context.Context, *connect.Request[v1.SubmitSidechainProposalRequest]) (*connect.Response[v1.SubmitSidechainProposalResponse], error)
 	CreateWallet(context.Context, *connect.Request[v1.CreateWalletRequest]) (*connect.Response[v1.CreateWalletResponse], error)
 	GetBalance(context.Context, *connect.Request[v1.GetBalanceRequest]) (*connect.Response[v1.GetBalanceResponse], error)
 	ListSidechainDepositTransactions(context.Context, *connect.Request[v1.ListSidechainDepositTransactionsRequest]) (*connect.Response[v1.ListSidechainDepositTransactionsResponse], error)
@@ -359,6 +382,12 @@ func NewWalletServiceHandler(svc WalletServiceHandler, opts ...connect.HandlerOp
 		WalletServiceCreateSidechainProposalProcedure,
 		svc.CreateSidechainProposal,
 		connect.WithSchema(walletServiceMethods.ByName("CreateSidechainProposal")),
+		connect.WithHandlerOptions(opts...),
+	)
+	walletServiceSubmitSidechainProposalHandler := connect.NewUnaryHandler(
+		WalletServiceSubmitSidechainProposalProcedure,
+		svc.SubmitSidechainProposal,
+		connect.WithSchema(walletServiceMethods.ByName("SubmitSidechainProposal")),
 		connect.WithHandlerOptions(opts...),
 	)
 	walletServiceCreateWalletHandler := connect.NewUnaryHandler(
@@ -433,6 +462,8 @@ func NewWalletServiceHandler(svc WalletServiceHandler, opts ...connect.HandlerOp
 			walletServiceCreateNewAddressHandler.ServeHTTP(w, r)
 		case WalletServiceCreateSidechainProposalProcedure:
 			walletServiceCreateSidechainProposalHandler.ServeHTTP(w, r)
+		case WalletServiceSubmitSidechainProposalProcedure:
+			walletServiceSubmitSidechainProposalHandler.ServeHTTP(w, r)
 		case WalletServiceCreateWalletProcedure:
 			walletServiceCreateWalletHandler.ServeHTTP(w, r)
 		case WalletServiceGetBalanceProcedure:
@@ -478,6 +509,10 @@ func (UnimplementedWalletServiceHandler) CreateNewAddress(context.Context, *conn
 
 func (UnimplementedWalletServiceHandler) CreateSidechainProposal(context.Context, *connect.Request[v1.CreateSidechainProposalRequest], *connect.ServerStream[v1.CreateSidechainProposalResponse]) error {
 	return connect.NewError(connect.CodeUnimplemented, errors.New("cusf.mainchain.v1.WalletService.CreateSidechainProposal is not implemented"))
+}
+
+func (UnimplementedWalletServiceHandler) SubmitSidechainProposal(context.Context, *connect.Request[v1.SubmitSidechainProposalRequest]) (*connect.Response[v1.SubmitSidechainProposalResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("cusf.mainchain.v1.WalletService.SubmitSidechainProposal is not implemented"))
 }
 
 func (UnimplementedWalletServiceHandler) CreateWallet(context.Context, *connect.Request[v1.CreateWalletRequest]) (*connect.Response[v1.CreateWalletResponse], error) {

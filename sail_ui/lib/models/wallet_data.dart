@@ -13,11 +13,9 @@ class WalletData {
   final WalletGradient gradient;
   final DateTime createdAt;
   final BinaryType walletType;
-  // Raw wallet_type string from the proto. The BinaryType enum can't represent
-  // "watchOnly" (it's not a binary), so the [walletType] above falls back to
-  // an arbitrary enum value for those — useless when the UI needs to gate
-  // watch-only-specific copy. Keep the literal string for that.
-  final String walletTypeRaw;
+
+  /// True iff this is a watch-only wallet — no spending key, no BIP47.
+  final bool isWatchOnly;
   // BIP47 v3 payment code from orchestrator's WatchWalletData stream.
   // Not persisted — populated only from the proto, not from wallet.json.
   final String bip47PaymentCode;
@@ -32,12 +30,9 @@ class WalletData {
     required this.gradient,
     required this.createdAt,
     required this.walletType,
-    this.walletTypeRaw = '',
+    this.isWatchOnly = false,
     this.bip47PaymentCode = '',
   });
-
-  /// True iff this is a watch-only wallet — no spending key, no BIP47.
-  bool get isWatchOnly => walletTypeRaw == 'watchOnly';
 
   Map<String, dynamic> toJson() {
     return {
