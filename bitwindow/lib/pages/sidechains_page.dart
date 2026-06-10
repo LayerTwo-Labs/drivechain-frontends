@@ -715,13 +715,14 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
     final network = _confProvider.network;
     return network == BitcoinNetwork.BITCOIN_NETWORK_FORKNET ||
         network == BitcoinNetwork.BITCOIN_NETWORK_SIGNET ||
+        network == BitcoinNetwork.BITCOIN_NETWORK_LOCAL_SIGNET ||
         network == BitcoinNetwork.BITCOIN_NETWORK_REGTEST;
   }
 
   bool get isUsingBitcoinCoreWallet {
     final activeWallet = _walletReader.activeWallet;
     if (activeWallet == null) return false;
-    return activeWallet.walletType != BinaryType.BINARY_TYPE_ENFORCER;
+    return activeWallet.walletTypeRaw == 'bitcoinCore';
   }
 
   List<SidechainOverview?> get sidechains => _sidechainProvider.sidechains;

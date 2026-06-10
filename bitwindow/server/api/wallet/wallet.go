@@ -124,6 +124,20 @@ type Server struct {
 	walletDir    string
 }
 
+func isStaleWalletTransactionError(err error) bool {
+	return err != nil && strings.Contains(err.Error(), "No such mempool or blockchain transaction")
+}
+
+func isNonFinalTransactionError(err error) bool {
+	return err != nil && strings.Contains(err.Error(), "non-final")
+}
+
+func isInsufficientReplacementFeeError(err error) bool {
+	return err != nil &&
+		strings.Contains(err.Error(), "insufficient fee") &&
+		strings.Contains(err.Error(), "rejecting replacement")
+}
+
 // CreateBitcoinCoreWallet implements walletv1connect.WalletServiceHandler.
 // Test endpoint to verify descriptor import to Bitcoin Core.
 func (s *Server) CreateBitcoinCoreWallet(ctx context.Context, c *connect.Request[pb.CreateBitcoinCoreWalletRequest]) (*connect.Response[pb.CreateBitcoinCoreWalletResponse], error) {
@@ -864,6 +878,9 @@ func (s *Server) ListTransactions(ctx context.Context, c *connect.Request[pb.Lis
 
 		txs, err := wallet.ListTransactions(ctx, connect.NewRequest(&validatorpb.ListTransactionsRequest{}))
 		if err != nil {
+			if isStaleWalletTransactionError(err) {
+				return connect.NewResponse(&pb.ListTransactionsResponse{}), nil
+			}
 			return nil, fmt.Errorf("enforcer/wallet: could not list transactions: %w", err)
 		}
 
@@ -1125,6 +1142,16 @@ func (s *Server) ListSidechainDeposits(ctx context.Context, c *connect.Request[p
 
 	deposits, err := wallet.ListSidechainDepositTransactions(ctx, connect.NewRequest(&validatorpb.ListSidechainDepositTransactionsRequest{}))
 	if err != nil {
+		// No treasury UTXO indexed yet for an active slot (common on fresh signet).
+		if strings.Contains(err.Error(), "Missing value from db") {
+			return connect.NewResponse(&pb.ListSidechainDepositsResponse{}), nil
+		}
+		// The enforcer can remember a deposit txid after Bitcoin Core has dropped
+		// it from both the mempool and chain. Keep the sidechains UI usable while
+		// the wallet history is stale.
+		if isStaleWalletTransactionError(err) {
+			return connect.NewResponse(&pb.ListSidechainDepositsResponse{}), nil
+		}
 		return nil, fmt.Errorf("enforcer/wallet: could not list sidechain deposits: %w", err)
 	}
 
@@ -1200,6 +1227,12 @@ func (s *Server) CreateSidechainDeposit(ctx context.Context, c *connect.Request[
 		FeeSats:     &wrapperspb.UInt64Value{Value: uint64(fee)},
 	}))
 	if err != nil {
+		if isNonFinalTransactionError(err) {
+			return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("deposit transaction is not final yet; wait for the next mainchain block, then check deposits or retry"))
+		}
+		if isInsufficientReplacementFeeError(err) {
+			return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("a deposit from this wallet is already waiting in the mainchain mempool; wait for the next mainchain block, then check deposits or retry"))
+		}
 		return nil, fmt.Errorf("enforcer/wallet: could not create deposit transaction: %w", err)
 	}
 
@@ -1792,7 +1825,11 @@ func (s *Server) GetStats(ctx context.Context, c *connect.Request[pb.GetStatsReq
 	// 2. Get all wallet transactions and count them
 	txs, err := wallet.ListTransactions(ctx, connect.NewRequest(&validatorpb.ListTransactionsRequest{}))
 	if err != nil {
-		return nil, err
+		if isStaleWalletTransactionError(err) {
+			txs = connect.NewResponse(&validatorpb.ListTransactionsResponse{})
+		} else {
+			return nil, err
+		}
 	}
 	transactionCount := int64(len(txs.Msg.Transactions))
 
@@ -1822,7 +1859,11 @@ func (s *Server) GetStats(ctx context.Context, c *connect.Request[pb.GetStatsReq
 	// 3. Get all sidechain deposit transactions and sum their amounts
 	sidechainDeposits, err := wallet.ListSidechainDepositTransactions(ctx, connect.NewRequest(&validatorpb.ListSidechainDepositTransactionsRequest{}))
 	if err != nil {
-		return nil, err
+		if isStaleWalletTransactionError(err) || strings.Contains(err.Error(), "Missing value from db") {
+			sidechainDeposits = connect.NewResponse(&validatorpb.ListSidechainDepositTransactionsResponse{})
+		} else {
+			return nil, err
+		}
 	}
 	var depositSum int64
 	var depositSumLast30Days int64
