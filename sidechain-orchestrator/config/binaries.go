@@ -339,7 +339,7 @@ func (b BinaryDirConfig) GetBlockchainDataPaths(networkDir string, network Netwo
 	case "bip300301-enforcer":
 		rootdir := b.RootDir()
 		networkName := strings.ReplaceAll(strings.ReplaceAll(network.ReadableName(), "mainnet", "bitcoin"), "forknet", "bitcoin")
-		return GetExistingFilesInDir(rootdir, []string{"validator", "bitwindow-enforcer.conf", networkName}, log)
+		return GetExistingFilesInDir(rootdir, []string{filepath.Join("validator", networkName), networkName}, log)
 
 	case "bitwindowd":
 		return GetExistingFilesInDir(networkDir, []string{"bitdrive", "bitwindow.db"}, log)
@@ -349,6 +349,16 @@ func (b BinaryDirConfig) GetBlockchainDataPaths(networkDir string, network Netwo
 
 	default:
 		return nil
+	}
+}
+
+// WipeChainData deletes on-disk chain state for network across all known
+// binaries. Wallet files are preserved. bitcoinDatadirOverride is the user's
+// datadir= setting for bitcoind, empty for the platform default.
+func WipeChainData(network Network, bitcoinDatadirOverride string, log zerolog.Logger) {
+	for _, dc := range AllDirConfigs() {
+		networkDir := dc.DatadirNetwork(network, bitcoinDatadirOverride)
+		DeleteFilesWithRetry(dc.GetBlockchainDataPaths(networkDir, network, log), log)
 	}
 }
 
@@ -410,6 +420,9 @@ func (b BinaryDirConfig) GetSettingsPaths(networkDir string, network Network, lo
 		paths = append(paths, GetExistingFilesInDir(rootDir, []string{
 			"bitwindow-bitcoin.conf", "bitcoin.conf", "drivechain.conf",
 		}, log)...)
+
+	case "bip300301-enforcer":
+		paths = append(paths, GetExistingFilesInDir(b.RootDir(), []string{"bitwindow-enforcer.conf"}, log)...)
 
 	case "bitwindowd":
 		paths = append(paths, GetExistingFilesInDir(networkDir, []string{"server.log"}, log)...)

@@ -179,7 +179,7 @@ chain=%s # current network
 [signet]
 addnode=172.105.148.135:38333
 signetblocktime=600
-signetchallenge=a91484fa7c2460891fe5212cb08432e21a4207909aa987
+signetchallenge=00148835832e28c816b7acd8fdb19772ab2199603a56
 acceptnonstdtxn=1
 fallbackfee=0.00021
 
@@ -265,7 +265,8 @@ func (m *BitcoinConfManager) loadOrCreateConfigContent() (string, error) {
 		content := string(data)
 		config := ParseBitcoinConfig(content)
 
-		if RunBitcoinConfMigrations(config) {
+		if migrated, wipeNetworks := RunBitcoinConfMigrations(config); migrated {
+			m.wipeStaleChainData(config, wipeNetworks)
 			content = config.Serialize()
 			if err := os.WriteFile(confPath, []byte(content), 0644); err != nil {
 				m.log.Error().Err(err).Msg("failed to write migrated config")
@@ -312,6 +313,25 @@ func (m *BitcoinConfManager) loadOrCreateConfigContent() (string, error) {
 	}
 
 	return content, nil
+}
+
+// wipeStaleChainData deletes chain state invalidated by a migration. Runs
+// before the bumped config version is persisted, so a crash mid-wipe retries
+// the migration (and wipe) on the next boot.
+func (m *BitcoinConfManager) wipeStaleChainData(config *BitcoinConfig, networks []Network) {
+	if len(networks) == 0 {
+		return
+	}
+	if m.getConfigFileInfo().hasPrivateConf {
+		// That user's chain data follows their own bitcoin.conf, not ours.
+		m.log.Warn().Msg("skipping chain data wipe - user bitcoin.conf takes precedence")
+		return
+	}
+	for _, n := range networks {
+		override := config.GetEffectiveSetting("datadir", CoreSectionForNetwork(n))
+		m.log.Info().Str("network", string(n)).Msg("migration invalidated chain data, wiping")
+		WipeChainData(n, override, m.log)
+	}
 }
 
 type configFileInfo struct {

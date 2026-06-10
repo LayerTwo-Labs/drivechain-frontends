@@ -18,7 +18,7 @@ import (
 
 func TestRunBitcoinConfMigrationsFresh(t *testing.T) {
 	config := NewBitcoinConfig()
-	migrated := RunBitcoinConfMigrations(config)
+	migrated, wipeNetworks := RunBitcoinConfMigrations(config)
 
 	if !migrated {
 		t.Fatal("expected migrations to run on fresh config")
@@ -35,7 +35,7 @@ func TestRunBitcoinConfMigrationsFresh(t *testing.T) {
 	if signet["signetblocktime"] != "600" {
 		t.Errorf("signet signetblocktime = %q, want 600", signet["signetblocktime"])
 	}
-	if signet["signetchallenge"] != "a91484fa7c2460891fe5212cb08432e21a4207909aa987" {
+	if signet["signetchallenge"] != "00148835832e28c816b7acd8fdb19772ab2199603a56" {
 		t.Errorf("signet signetchallenge = %q", signet["signetchallenge"])
 	}
 
@@ -43,15 +43,23 @@ func TestRunBitcoinConfMigrationsFresh(t *testing.T) {
 	if config.GlobalSettings["uacomment"] != "BitWindow-0.2" {
 		t.Errorf("uacomment = %q, want BitWindow-0.2", config.GlobalSettings["uacomment"])
 	}
+
+	// Migration 10 changed the signet challenge, so signet data is stale
+	if len(wipeNetworks) != 1 || wipeNetworks[0] != NetworkSignet {
+		t.Errorf("wipeNetworks = %v, want [signet]", wipeNetworks)
+	}
 }
 
 func TestRunBitcoinConfMigrationsSkipsApplied(t *testing.T) {
 	config := NewBitcoinConfig()
 	config.ConfigVersion = BitcoinConfMigrationsVersion
 
-	migrated := RunBitcoinConfMigrations(config)
+	migrated, wipeNetworks := RunBitcoinConfMigrations(config)
 	if migrated {
 		t.Error("should not migrate when already at current version")
+	}
+	if len(wipeNetworks) != 0 {
+		t.Errorf("wipeNetworks = %v, want none", wipeNetworks)
 	}
 }
 
@@ -59,7 +67,7 @@ func TestRunBitcoinConfMigrationsPartial(t *testing.T) {
 	config := NewBitcoinConfig()
 	config.ConfigVersion = 2 // skip migrations 1 and 2
 
-	migrated := RunBitcoinConfMigrations(config)
+	migrated, _ := RunBitcoinConfMigrations(config)
 	if !migrated {
 		t.Fatal("expected migrations 3+ to run")
 	}
@@ -69,6 +77,90 @@ func TestRunBitcoinConfMigrationsPartial(t *testing.T) {
 
 	if config.NetworkSettings["signet"]["signetblocktime"] != "600" {
 		t.Errorf("signetblocktime = %q, want 600", config.NetworkSettings["signet"]["signetblocktime"])
+	}
+}
+
+// A config that was live on the old signet challenge must get its signet
+// chain data wiped — the network was reset, the old blocks are dead.
+func TestRunBitcoinConfMigrationsWipesOnChallengeChange(t *testing.T) {
+	config := NewBitcoinConfig()
+	config.ConfigVersion = 9
+	config.SetSetting("signetchallenge", "a91484fa7c2460891fe5212cb08432e21a4207909aa987", "signet")
+
+	migrated, wipeNetworks := RunBitcoinConfMigrations(config)
+	if !migrated {
+		t.Fatal("expected migration 10 to run on a v9 config")
+	}
+	if len(wipeNetworks) != 1 || wipeNetworks[0] != NetworkSignet {
+		t.Errorf("wipeNetworks = %v, want [signet]", wipeNetworks)
+	}
+	if got := config.GetSetting("signetchallenge", "signet"); got != "00148835832e28c816b7acd8fdb19772ab2199603a56" {
+		t.Errorf("signetchallenge = %q", got)
+	}
+}
+
+// WipeChainData must remove chain state but leave wallets alone.
+func TestWipeChainDataPreservesWallets(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
+
+	bcNet := BitcoinCoreDirs.DatadirNetwork(NetworkSignet, "")
+	seed := func(path string) {
+		require.NoError(t, os.MkdirAll(filepath.Dir(path), 0o755))
+		require.NoError(t, os.WriteFile(path, []byte("stub"), 0o644))
+	}
+	seed(filepath.Join(bcNet, "blocks", "blk00000.dat"))
+	seed(filepath.Join(bcNet, "chainstate", "CURRENT"))
+	seed(filepath.Join(bcNet, "indexes", "txindex", "CURRENT"))
+	seed(filepath.Join(bcNet, "mempool.dat"))
+	seed(filepath.Join(bcNet, "fee_estimates.dat"))
+	seed(filepath.Join(bcNet, "peers.dat"))
+	seed(filepath.Join(bcNet, "wallets", "wallet.dat"))
+
+	WipeChainData(NetworkSignet, "", zerolog.Nop())
+
+	for _, gone := range []string{"blocks", "chainstate", "indexes", "mempool.dat", "fee_estimates.dat", "peers.dat"} {
+		if _, err := os.Stat(filepath.Join(bcNet, gone)); !os.IsNotExist(err) {
+			t.Errorf("%s should be deleted", gone)
+		}
+	}
+	if _, err := os.Stat(filepath.Join(bcNet, "wallets", "wallet.dat")); err != nil {
+		t.Error("wallets must survive a chain data wipe")
+	}
+}
+
+// A user-set datadir= must be honoured so the wipe hits the real chain data.
+func TestWipeChainDataHonoursDatadirOverride(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
+
+	custom := t.TempDir()
+	blocks := filepath.Join(custom, "signet", "blocks", "blk00000.dat")
+	require.NoError(t, os.MkdirAll(filepath.Dir(blocks), 0o755))
+	require.NoError(t, os.WriteFile(blocks, []byte("stub"), 0o644))
+
+	WipeChainData(NetworkSignet, custom, zerolog.Nop())
+
+	if _, err := os.Stat(filepath.Join(custom, "signet", "blocks")); !os.IsNotExist(err) {
+		t.Error("blocks under the overridden datadir should be deleted")
+	}
+}
+
+// A config that already carries the new challenge gets the version bump but
+// no wipe — nothing on disk is invalidated.
+func TestRunBitcoinConfMigrationsNoWipeWhenChallengeCurrent(t *testing.T) {
+	config := NewBitcoinConfig()
+	config.ConfigVersion = 9
+	config.SetSetting("signetchallenge", "00148835832e28c816b7acd8fdb19772ab2199603a56", "signet")
+
+	migrated, wipeNetworks := RunBitcoinConfMigrations(config)
+	if !migrated {
+		t.Fatal("expected version bump to 10")
+	}
+	if len(wipeNetworks) != 0 {
+		t.Errorf("wipeNetworks = %v, want none", wipeNetworks)
 	}
 }
 
@@ -86,7 +178,7 @@ func TestRunBitcoinConfMigrationsBackfillsRest(t *testing.T) {
 	config.GlobalSettings["txindex"] = "1"
 	config.GlobalSettings["chain"] = "main"
 
-	migrated := RunBitcoinConfMigrations(config)
+	migrated, _ := RunBitcoinConfMigrations(config)
 	if !migrated {
 		t.Fatal("expected migration 5 to run on a v4 config")
 	}
