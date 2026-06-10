@@ -24,7 +24,7 @@ $ drivechaind \
   -server \
   -signet \
   -signetblocktime=600 \
-  -signetchallenge=a91484fa7c2460891fe5212cb08432e21a4207909aa987 \
+  -signetchallenge=00148835832e28c816b7acd8fdb19772ab2199603a56 \
   -listen
 
 #

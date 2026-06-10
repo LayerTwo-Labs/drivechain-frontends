@@ -11,6 +11,7 @@
 package orchestrator
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -151,13 +152,13 @@ func bootedLayout(t *testing.T, home, network string) []string {
 	)
 
 	// --- enforcer: simulate it ran on `network`. -----------------------------
-	writeDir(t, filepath.Join(enfRoot, "validator"))
-	writeStub(t, filepath.Join(enfRoot, "bitwindow-enforcer.conf"))
 	// networkName: collect logic replaces mainnet/forknet with "bitcoin".
 	networkName := network
 	if network == "mainnet" || network == "forknet" {
 		networkName = "bitcoin"
 	}
+	writeDir(t, filepath.Join(enfRoot, "validator", networkName))
+	writeStub(t, filepath.Join(enfRoot, "bitwindow-enforcer.conf"))
 	writeDir(t, filepath.Join(enfRoot, networkName))
 	writeDir(t, filepath.Join(enfRoot, "wallet", networkName))
 	// GetLogPaths for enforcer checks <rootdir> (no network subdir) so
@@ -166,7 +167,7 @@ func bootedLayout(t *testing.T, home, network string) []string {
 	writeDir(t, filepath.Join(enfRoot, "logs"))
 
 	add(
-		filepath.Join(enfRoot, "validator"),
+		filepath.Join(enfRoot, "validator", networkName),
 		filepath.Join(enfRoot, "bitwindow-enforcer.conf"),
 		filepath.Join(enfRoot, networkName),
 		filepath.Join(enfRoot, "wallet", networkName),
@@ -182,11 +183,17 @@ func bootedLayout(t *testing.T, home, network string) []string {
 	writeDir(t, filepath.Join(bwNet, "bitdrive"))
 
 	for _, f := range []string{
-		"bitwindow-bitcoin.conf", "debug.log", "settings.json",
+		"debug.log", "settings.json",
 		"wallet.json", "wallet_encryption.json",
 	} {
 		writeStub(t, filepath.Join(bwRoot, f))
 	}
+	// The master conf must carry the current version, else booting the
+	// orchestrator runs migrations and wipes the layout we just seeded.
+	confPath := filepath.Join(bwRoot, "bitwindow-bitcoin.conf")
+	require.NoError(t, os.MkdirAll(filepath.Dir(confPath), 0o755))
+	require.NoError(t, os.WriteFile(confPath,
+		fmt.Appendf(nil, "# bitwindow-bitcoin-conf-version=%d\nchain=%s\n", config.BitcoinConfMigrationsVersion, network), 0o644))
 	writeDir(t, filepath.Join(bwRoot, "assets"))
 	writeDir(t, filepath.Join(bwRoot, "downloads"))
 	writeDir(t, filepath.Join(bwRoot, "pids"))

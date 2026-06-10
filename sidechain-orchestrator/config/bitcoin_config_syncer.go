@@ -16,6 +16,10 @@ import (
 type BitcoinConfMigration struct {
 	Version int
 	Changes map[string]map[string]string
+	// WipeChainData lists networks whose on-disk chain state this migration
+	// invalidates (e.g. a signetchallenge change). Wiped only when the
+	// migration actually changes a value in an existing config.
+	WipeChainData []Network
 }
 
 var bitcoinConfMigrations = []BitcoinConfMigration{
@@ -130,28 +134,51 @@ var bitcoinConfMigrations = []BitcoinConfMigration{
 			},
 		},
 	},
+	{
+		// The signet network was reset under a new challenge. Configs that
+		// were live on the old challenge hold chain data for a dead network,
+		// so this migration also wipes signet's on-disk state.
+		Version: 10,
+		Changes: map[string]map[string]string{
+			"signet": {
+				"signetchallenge": "00148835832e28c816b7acd8fdb19772ab2199603a56",
+			},
+		},
+		WipeChainData: []Network{NetworkSignet},
+	},
 }
 
 // BitcoinConfMigrationsVersion is the highest migration version.
-var BitcoinConfMigrationsVersion = 9
+var BitcoinConfMigrationsVersion = 10
 
 // RunBitcoinConfMigrations applies pending migrations to a BitcoinConfig.
-// Returns true if any migration was applied.
-func RunBitcoinConfMigrations(config *BitcoinConfig) bool {
+// Returns whether any migration was applied, plus the networks whose chain
+// data must be wiped. A wipe fires only when a migration carrying
+// WipeChainData actually changed a value — a config that already matches
+// (or a fresh default, which never runs migrations) is left alone.
+func RunBitcoinConfMigrations(config *BitcoinConfig) (bool, []Network) {
 	migrated := false
+	var wipeNetworks []Network
 	for _, m := range bitcoinConfMigrations {
 		if m.Version <= config.ConfigVersion {
 			continue
 		}
+		changed := false
 		for section, settings := range m.Changes {
 			for key, value := range settings {
+				if config.GetSetting(key, section) != value {
+					changed = true
+				}
 				config.SetSetting(key, value, section)
 			}
+		}
+		if changed {
+			wipeNetworks = append(wipeNetworks, m.WipeChainData...)
 		}
 		config.ConfigVersion = m.Version
 		migrated = true
 	}
-	return migrated
+	return migrated, wipeNetworks
 }
 
 // ---------------------------------------------------------------------------

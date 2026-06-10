@@ -188,7 +188,7 @@ class BitcoinConfigEditorViewModel extends ChangeNotifier {
         workingConfig!.setSetting('signetblocktime', '600', section: 'signet');
         workingConfig!.setSetting(
           'signetchallenge',
-          '00141551188e5153533b4fdd555449e640d9cc129456',
+          '00148835832e28c816b7acd8fdb19772ab2199603a56',
           section: 'signet',
         );
         workingConfig!.setSetting('acceptnonstdtxn', '1', section: 'signet');
