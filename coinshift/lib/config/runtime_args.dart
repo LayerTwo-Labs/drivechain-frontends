@@ -1,6 +1,6 @@
 import 'dart:io';
 
-import 'package:path_provider/path_provider.dart';
+import 'package:sail_ui/sail_ui.dart';
 
 // A class where you should put runtime arguments
 // The build-time variables can only be looked up with
@@ -15,7 +15,7 @@ abstract class RuntimeArgs {
       return dir;
     }
 
-    return await getApplicationSupportDirectory();
+    return await applicationSupportDir();
   }
 
   static bool consoleLog = Platform.environment['COINSHIFT_LOG_CONSOLE']?.isNotEmpty ?? false;
