@@ -214,6 +214,286 @@ export declare type GetChainTipsResponseJson = {
 export declare const GetChainTipsResponseSchema: GenMessage<GetChainTipsResponse, {jsonType: GetChainTipsResponseJson}>;
 
 /**
+ * @generated from message explorer.v1.ListSidechainsRequest
+ */
+export declare type ListSidechainsRequest = Message<"explorer.v1.ListSidechainsRequest"> & {
+};
+
+/**
+ * @generated from message explorer.v1.ListSidechainsRequest
+ */
+export declare type ListSidechainsRequestJson = {
+};
+
+/**
+ * Describes the message explorer.v1.ListSidechainsRequest.
+ * Use `create(ListSidechainsRequestSchema)` to create a new message.
+ */
+export declare const ListSidechainsRequestSchema: GenMessage<ListSidechainsRequest, {jsonType: ListSidechainsRequestJson}>;
+
+/**
+ * A BIP300 sidechain slot proposal that has not yet activated. Proposals
+ * accumulate miner ACKs (votes) over a voting window until they reach the
+ * activation threshold.
+ *
+ * @generated from message explorer.v1.SidechainProposal
+ */
+export declare type SidechainProposal = Message<"explorer.v1.SidechainProposal"> & {
+  /**
+   * The proposed BIP300 sidechain slot number.
+   *
+   * @generated from field: uint32 sidechain_number = 1;
+   */
+  sidechainNumber: number;
+
+  /**
+   * Human-readable title from the M1 declaration. May be empty if the proposal
+   * uses an unknown declaration version.
+   *
+   * @generated from field: string title = 2;
+   */
+  title: string;
+
+  /**
+   * Description from the M1 declaration. May be empty.
+   *
+   * @generated from field: string description = 3;
+   */
+  description: string;
+
+  /**
+   * sha256d hash (hex) of the raw proposal description. This is the stable
+   * identity of a proposal: a re-proposal of the same slot with different data
+   * has a different hash.
+   *
+   * @generated from field: string description_hash = 4;
+   */
+  descriptionHash: string;
+
+  /**
+   * Number of ACKs (votes) the proposal has accumulated so far.
+   *
+   * @generated from field: uint32 vote_count = 5;
+   */
+  voteCount: number;
+
+  /**
+   * Mainchain height at which the proposal first appeared.
+   *
+   * @generated from field: uint32 proposal_height = 6;
+   */
+  proposalHeight: number;
+
+  /**
+   * Number of mainchain blocks since the proposal first appeared.
+   *
+   * @generated from field: uint32 proposal_age = 7;
+   */
+  proposalAge: number;
+
+  /**
+   * Number of ACKs required for this proposal to activate. Depends on whether
+   * the target slot is currently occupied (used) or empty (unused), per the
+   * enforcer's network-specific consensus constants. Zero if the enforcer did
+   * not report consensus constants (e.g. an older enforcer build).
+   *
+   * @generated from field: uint32 activation_threshold = 8;
+   */
+  activationThreshold: number;
+};
+
+/**
+ * A BIP300 sidechain slot proposal that has not yet activated. Proposals
+ * accumulate miner ACKs (votes) over a voting window until they reach the
+ * activation threshold.
+ *
+ * @generated from message explorer.v1.SidechainProposal
+ */
+export declare type SidechainProposalJson = {
+  /**
+   * The proposed BIP300 sidechain slot number.
+   *
+   * @generated from field: uint32 sidechain_number = 1;
+   */
+  sidechainNumber?: number;
+
+  /**
+   * Human-readable title from the M1 declaration. May be empty if the proposal
+   * uses an unknown declaration version.
+   *
+   * @generated from field: string title = 2;
+   */
+  title?: string;
+
+  /**
+   * Description from the M1 declaration. May be empty.
+   *
+   * @generated from field: string description = 3;
+   */
+  description?: string;
+
+  /**
+   * sha256d hash (hex) of the raw proposal description. This is the stable
+   * identity of a proposal: a re-proposal of the same slot with different data
+   * has a different hash.
+   *
+   * @generated from field: string description_hash = 4;
+   */
+  descriptionHash?: string;
+
+  /**
+   * Number of ACKs (votes) the proposal has accumulated so far.
+   *
+   * @generated from field: uint32 vote_count = 5;
+   */
+  voteCount?: number;
+
+  /**
+   * Mainchain height at which the proposal first appeared.
+   *
+   * @generated from field: uint32 proposal_height = 6;
+   */
+  proposalHeight?: number;
+
+  /**
+   * Number of mainchain blocks since the proposal first appeared.
+   *
+   * @generated from field: uint32 proposal_age = 7;
+   */
+  proposalAge?: number;
+
+  /**
+   * Number of ACKs required for this proposal to activate. Depends on whether
+   * the target slot is currently occupied (used) or empty (unused), per the
+   * enforcer's network-specific consensus constants. Zero if the enforcer did
+   * not report consensus constants (e.g. an older enforcer build).
+   *
+   * @generated from field: uint32 activation_threshold = 8;
+   */
+  activationThreshold?: number;
+};
+
+/**
+ * Describes the message explorer.v1.SidechainProposal.
+ * Use `create(SidechainProposalSchema)` to create a new message.
+ */
+export declare const SidechainProposalSchema: GenMessage<SidechainProposal, {jsonType: SidechainProposalJson}>;
+
+/**
+ * A sidechain slot that is currently activated on L1.
+ *
+ * @generated from message explorer.v1.ActiveSidechain
+ */
+export declare type ActiveSidechain = Message<"explorer.v1.ActiveSidechain"> & {
+  /**
+   * @generated from field: uint32 sidechain_number = 1;
+   */
+  sidechainNumber: number;
+
+  /**
+   * @generated from field: string title = 2;
+   */
+  title: string;
+
+  /**
+   * @generated from field: uint32 proposal_height = 3;
+   */
+  proposalHeight: number;
+
+  /**
+   * @generated from field: uint32 activation_height = 4;
+   */
+  activationHeight: number;
+
+  /**
+   * @generated from field: uint32 vote_count = 5;
+   */
+  voteCount: number;
+};
+
+/**
+ * A sidechain slot that is currently activated on L1.
+ *
+ * @generated from message explorer.v1.ActiveSidechain
+ */
+export declare type ActiveSidechainJson = {
+  /**
+   * @generated from field: uint32 sidechain_number = 1;
+   */
+  sidechainNumber?: number;
+
+  /**
+   * @generated from field: string title = 2;
+   */
+  title?: string;
+
+  /**
+   * @generated from field: uint32 proposal_height = 3;
+   */
+  proposalHeight?: number;
+
+  /**
+   * @generated from field: uint32 activation_height = 4;
+   */
+  activationHeight?: number;
+
+  /**
+   * @generated from field: uint32 vote_count = 5;
+   */
+  voteCount?: number;
+};
+
+/**
+ * Describes the message explorer.v1.ActiveSidechain.
+ * Use `create(ActiveSidechainSchema)` to create a new message.
+ */
+export declare const ActiveSidechainSchema: GenMessage<ActiveSidechain, {jsonType: ActiveSidechainJson}>;
+
+/**
+ * @generated from message explorer.v1.ListSidechainsResponse
+ */
+export declare type ListSidechainsResponse = Message<"explorer.v1.ListSidechainsResponse"> & {
+  /**
+   * Proposals still being voted on (not yet activated).
+   *
+   * @generated from field: repeated explorer.v1.SidechainProposal proposals = 1;
+   */
+  proposals: SidechainProposal[];
+
+  /**
+   * Sidechains currently activated on L1.
+   *
+   * @generated from field: repeated explorer.v1.ActiveSidechain active = 2;
+   */
+  active: ActiveSidechain[];
+};
+
+/**
+ * @generated from message explorer.v1.ListSidechainsResponse
+ */
+export declare type ListSidechainsResponseJson = {
+  /**
+   * Proposals still being voted on (not yet activated).
+   *
+   * @generated from field: repeated explorer.v1.SidechainProposal proposals = 1;
+   */
+  proposals?: SidechainProposalJson[];
+
+  /**
+   * Sidechains currently activated on L1.
+   *
+   * @generated from field: repeated explorer.v1.ActiveSidechain active = 2;
+   */
+  active?: ActiveSidechainJson[];
+};
+
+/**
+ * Describes the message explorer.v1.ListSidechainsResponse.
+ * Use `create(ListSidechainsResponseSchema)` to create a new message.
+ */
+export declare const ListSidechainsResponseSchema: GenMessage<ListSidechainsResponse, {jsonType: ListSidechainsResponseJson}>;
+
+/**
  * @generated from enum explorer.v1.ChainTipStatus
  */
 export enum ChainTipStatus {
@@ -263,6 +543,16 @@ export declare const ExplorerService: GenService<{
     methodKind: "unary";
     input: typeof GetChainTipsRequestSchema;
     output: typeof GetChainTipsResponseSchema;
+  },
+  /**
+   * Lists active and proposed side chains.
+   *
+   * @generated from rpc explorer.v1.ExplorerService.ListSidechains
+   */
+  listSidechains: {
+    methodKind: "unary";
+    input: typeof ListSidechainsRequestSchema;
+    output: typeof ListSidechainsResponseSchema;
   },
 }>;
 

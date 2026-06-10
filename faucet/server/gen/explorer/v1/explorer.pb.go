@@ -280,6 +280,290 @@ func (x *GetChainTipsResponse) GetTruthcoin() *ChainTip {
 	return nil
 }
 
+type ListSidechainsRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListSidechainsRequest) Reset() {
+	*x = ListSidechainsRequest{}
+	mi := &file_explorer_v1_explorer_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListSidechainsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListSidechainsRequest) ProtoMessage() {}
+
+func (x *ListSidechainsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_explorer_v1_explorer_proto_msgTypes[3]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListSidechainsRequest.ProtoReflect.Descriptor instead.
+func (*ListSidechainsRequest) Descriptor() ([]byte, []int) {
+	return file_explorer_v1_explorer_proto_rawDescGZIP(), []int{3}
+}
+
+// A BIP300 sidechain slot proposal that has not yet activated. Proposals
+// accumulate miner ACKs (votes) over a voting window until they reach the
+// activation threshold.
+type SidechainProposal struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The proposed BIP300 sidechain slot number.
+	SidechainNumber uint32 `protobuf:"varint,1,opt,name=sidechain_number,json=sidechainNumber,proto3" json:"sidechain_number,omitempty"`
+	// Human-readable title from the M1 declaration. May be empty if the proposal
+	// uses an unknown declaration version.
+	Title string `protobuf:"bytes,2,opt,name=title,proto3" json:"title,omitempty"`
+	// Description from the M1 declaration. May be empty.
+	Description string `protobuf:"bytes,3,opt,name=description,proto3" json:"description,omitempty"`
+	// sha256d hash (hex) of the raw proposal description. This is the stable
+	// identity of a proposal: a re-proposal of the same slot with different data
+	// has a different hash.
+	DescriptionHash string `protobuf:"bytes,4,opt,name=description_hash,json=descriptionHash,proto3" json:"description_hash,omitempty"`
+	// Number of ACKs (votes) the proposal has accumulated so far.
+	VoteCount uint32 `protobuf:"varint,5,opt,name=vote_count,json=voteCount,proto3" json:"vote_count,omitempty"`
+	// Mainchain height at which the proposal first appeared.
+	ProposalHeight uint32 `protobuf:"varint,6,opt,name=proposal_height,json=proposalHeight,proto3" json:"proposal_height,omitempty"`
+	// Number of mainchain blocks since the proposal first appeared.
+	ProposalAge uint32 `protobuf:"varint,7,opt,name=proposal_age,json=proposalAge,proto3" json:"proposal_age,omitempty"`
+	// Number of ACKs required for this proposal to activate. Depends on whether
+	// the target slot is currently occupied (used) or empty (unused), per the
+	// enforcer's network-specific consensus constants. Zero if the enforcer did
+	// not report consensus constants (e.g. an older enforcer build).
+	ActivationThreshold uint32 `protobuf:"varint,8,opt,name=activation_threshold,json=activationThreshold,proto3" json:"activation_threshold,omitempty"`
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
+}
+
+func (x *SidechainProposal) Reset() {
+	*x = SidechainProposal{}
+	mi := &file_explorer_v1_explorer_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SidechainProposal) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SidechainProposal) ProtoMessage() {}
+
+func (x *SidechainProposal) ProtoReflect() protoreflect.Message {
+	mi := &file_explorer_v1_explorer_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SidechainProposal.ProtoReflect.Descriptor instead.
+func (*SidechainProposal) Descriptor() ([]byte, []int) {
+	return file_explorer_v1_explorer_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *SidechainProposal) GetSidechainNumber() uint32 {
+	if x != nil {
+		return x.SidechainNumber
+	}
+	return 0
+}
+
+func (x *SidechainProposal) GetTitle() string {
+	if x != nil {
+		return x.Title
+	}
+	return ""
+}
+
+func (x *SidechainProposal) GetDescription() string {
+	if x != nil {
+		return x.Description
+	}
+	return ""
+}
+
+func (x *SidechainProposal) GetDescriptionHash() string {
+	if x != nil {
+		return x.DescriptionHash
+	}
+	return ""
+}
+
+func (x *SidechainProposal) GetVoteCount() uint32 {
+	if x != nil {
+		return x.VoteCount
+	}
+	return 0
+}
+
+func (x *SidechainProposal) GetProposalHeight() uint32 {
+	if x != nil {
+		return x.ProposalHeight
+	}
+	return 0
+}
+
+func (x *SidechainProposal) GetProposalAge() uint32 {
+	if x != nil {
+		return x.ProposalAge
+	}
+	return 0
+}
+
+func (x *SidechainProposal) GetActivationThreshold() uint32 {
+	if x != nil {
+		return x.ActivationThreshold
+	}
+	return 0
+}
+
+// A sidechain slot that is currently activated on L1.
+type ActiveSidechain struct {
+	state            protoimpl.MessageState `protogen:"open.v1"`
+	SidechainNumber  uint32                 `protobuf:"varint,1,opt,name=sidechain_number,json=sidechainNumber,proto3" json:"sidechain_number,omitempty"`
+	Title            string                 `protobuf:"bytes,2,opt,name=title,proto3" json:"title,omitempty"`
+	ProposalHeight   uint32                 `protobuf:"varint,3,opt,name=proposal_height,json=proposalHeight,proto3" json:"proposal_height,omitempty"`
+	ActivationHeight uint32                 `protobuf:"varint,4,opt,name=activation_height,json=activationHeight,proto3" json:"activation_height,omitempty"`
+	VoteCount        uint32                 `protobuf:"varint,5,opt,name=vote_count,json=voteCount,proto3" json:"vote_count,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
+}
+
+func (x *ActiveSidechain) Reset() {
+	*x = ActiveSidechain{}
+	mi := &file_explorer_v1_explorer_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ActiveSidechain) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ActiveSidechain) ProtoMessage() {}
+
+func (x *ActiveSidechain) ProtoReflect() protoreflect.Message {
+	mi := &file_explorer_v1_explorer_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ActiveSidechain.ProtoReflect.Descriptor instead.
+func (*ActiveSidechain) Descriptor() ([]byte, []int) {
+	return file_explorer_v1_explorer_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *ActiveSidechain) GetSidechainNumber() uint32 {
+	if x != nil {
+		return x.SidechainNumber
+	}
+	return 0
+}
+
+func (x *ActiveSidechain) GetTitle() string {
+	if x != nil {
+		return x.Title
+	}
+	return ""
+}
+
+func (x *ActiveSidechain) GetProposalHeight() uint32 {
+	if x != nil {
+		return x.ProposalHeight
+	}
+	return 0
+}
+
+func (x *ActiveSidechain) GetActivationHeight() uint32 {
+	if x != nil {
+		return x.ActivationHeight
+	}
+	return 0
+}
+
+func (x *ActiveSidechain) GetVoteCount() uint32 {
+	if x != nil {
+		return x.VoteCount
+	}
+	return 0
+}
+
+type ListSidechainsResponse struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Proposals still being voted on (not yet activated).
+	Proposals []*SidechainProposal `protobuf:"bytes,1,rep,name=proposals,proto3" json:"proposals,omitempty"`
+	// Sidechains currently activated on L1.
+	Active        []*ActiveSidechain `protobuf:"bytes,2,rep,name=active,proto3" json:"active,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListSidechainsResponse) Reset() {
+	*x = ListSidechainsResponse{}
+	mi := &file_explorer_v1_explorer_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListSidechainsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListSidechainsResponse) ProtoMessage() {}
+
+func (x *ListSidechainsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_explorer_v1_explorer_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListSidechainsResponse.ProtoReflect.Descriptor instead.
+func (*ListSidechainsResponse) Descriptor() ([]byte, []int) {
+	return file_explorer_v1_explorer_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *ListSidechainsResponse) GetProposals() []*SidechainProposal {
+	if x != nil {
+		return x.Proposals
+	}
+	return nil
+}
+
+func (x *ListSidechainsResponse) GetActive() []*ActiveSidechain {
+	if x != nil {
+		return x.Active
+	}
+	return nil
+}
+
 var File_explorer_v1_explorer_proto protoreflect.FileDescriptor
 
 const file_explorer_v1_explorer_proto_rawDesc = "" +
@@ -299,14 +583,36 @@ const file_explorer_v1_explorer_proto_rawDesc = "" +
 	"\x05zside\x18\x05 \x01(\v2\x15.explorer.v1.ChainTipR\x05zside\x123\n" +
 	"\tcoinshift\x18\x06 \x01(\v2\x15.explorer.v1.ChainTipR\tcoinshift\x12-\n" +
 	"\x06photon\x18\a \x01(\v2\x15.explorer.v1.ChainTipR\x06photon\x123\n" +
-	"\ttruthcoin\x18\b \x01(\v2\x15.explorer.v1.ChainTipR\ttruthcoin*\x95\x01\n" +
+	"\ttruthcoin\x18\b \x01(\v2\x15.explorer.v1.ChainTipR\ttruthcoin\"\x17\n" +
+	"\x15ListSidechainsRequest\"\xbf\x02\n" +
+	"\x11SidechainProposal\x12)\n" +
+	"\x10sidechain_number\x18\x01 \x01(\rR\x0fsidechainNumber\x12\x14\n" +
+	"\x05title\x18\x02 \x01(\tR\x05title\x12 \n" +
+	"\vdescription\x18\x03 \x01(\tR\vdescription\x12)\n" +
+	"\x10description_hash\x18\x04 \x01(\tR\x0fdescriptionHash\x12\x1d\n" +
+	"\n" +
+	"vote_count\x18\x05 \x01(\rR\tvoteCount\x12'\n" +
+	"\x0fproposal_height\x18\x06 \x01(\rR\x0eproposalHeight\x12!\n" +
+	"\fproposal_age\x18\a \x01(\rR\vproposalAge\x121\n" +
+	"\x14activation_threshold\x18\b \x01(\rR\x13activationThreshold\"\xc7\x01\n" +
+	"\x0fActiveSidechain\x12)\n" +
+	"\x10sidechain_number\x18\x01 \x01(\rR\x0fsidechainNumber\x12\x14\n" +
+	"\x05title\x18\x02 \x01(\tR\x05title\x12'\n" +
+	"\x0fproposal_height\x18\x03 \x01(\rR\x0eproposalHeight\x12+\n" +
+	"\x11activation_height\x18\x04 \x01(\rR\x10activationHeight\x12\x1d\n" +
+	"\n" +
+	"vote_count\x18\x05 \x01(\rR\tvoteCount\"\x8c\x01\n" +
+	"\x16ListSidechainsResponse\x12<\n" +
+	"\tproposals\x18\x01 \x03(\v2\x1e.explorer.v1.SidechainProposalR\tproposals\x124\n" +
+	"\x06active\x18\x02 \x03(\v2\x1c.explorer.v1.ActiveSidechainR\x06active*\x95\x01\n" +
 	"\x0eChainTipStatus\x12 \n" +
 	"\x1cCHAIN_TIP_STATUS_UNSPECIFIED\x10\x00\x12\x1b\n" +
 	"\x17CHAIN_TIP_STATUS_ACTIVE\x10\x01\x12\"\n" +
 	"\x1eCHAIN_TIP_STATUS_NOT_ACTIVATED\x10\x02\x12 \n" +
-	"\x1cCHAIN_TIP_STATUS_UNREACHABLE\x10\x032h\n" +
+	"\x1cCHAIN_TIP_STATUS_UNREACHABLE\x10\x032\xc5\x01\n" +
 	"\x0fExplorerService\x12U\n" +
-	"\fGetChainTips\x12 .explorer.v1.GetChainTipsRequest\x1a!.explorer.v1.GetChainTipsResponse\"\x00B\xb9\x01\n" +
+	"\fGetChainTips\x12 .explorer.v1.GetChainTipsRequest\x1a!.explorer.v1.GetChainTipsResponse\"\x00\x12[\n" +
+	"\x0eListSidechains\x12\".explorer.v1.ListSidechainsRequest\x1a#.explorer.v1.ListSidechainsResponse\"\x00B\xb9\x01\n" +
 	"\x0fcom.explorer.v1B\rExplorerProtoP\x01ZJgithub.com/LayerTwo-Labs/sidesail/faucet/server/gen/explorer/v1;explorerv1\xa2\x02\x03EXX\xaa\x02\vExplorer.V1\xca\x02\vExplorer\\V1\xe2\x02\x17Explorer\\V1\\GPBMetadata\xea\x02\fExplorer::V1b\x06proto3"
 
 var (
@@ -322,16 +628,20 @@ func file_explorer_v1_explorer_proto_rawDescGZIP() []byte {
 }
 
 var file_explorer_v1_explorer_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_explorer_v1_explorer_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
+var file_explorer_v1_explorer_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
 var file_explorer_v1_explorer_proto_goTypes = []any{
-	(ChainTipStatus)(0),           // 0: explorer.v1.ChainTipStatus
-	(*GetChainTipsRequest)(nil),   // 1: explorer.v1.GetChainTipsRequest
-	(*ChainTip)(nil),              // 2: explorer.v1.ChainTip
-	(*GetChainTipsResponse)(nil),  // 3: explorer.v1.GetChainTipsResponse
-	(*timestamppb.Timestamp)(nil), // 4: google.protobuf.Timestamp
+	(ChainTipStatus)(0),            // 0: explorer.v1.ChainTipStatus
+	(*GetChainTipsRequest)(nil),    // 1: explorer.v1.GetChainTipsRequest
+	(*ChainTip)(nil),               // 2: explorer.v1.ChainTip
+	(*GetChainTipsResponse)(nil),   // 3: explorer.v1.GetChainTipsResponse
+	(*ListSidechainsRequest)(nil),  // 4: explorer.v1.ListSidechainsRequest
+	(*SidechainProposal)(nil),      // 5: explorer.v1.SidechainProposal
+	(*ActiveSidechain)(nil),        // 6: explorer.v1.ActiveSidechain
+	(*ListSidechainsResponse)(nil), // 7: explorer.v1.ListSidechainsResponse
+	(*timestamppb.Timestamp)(nil),  // 8: google.protobuf.Timestamp
 }
 var file_explorer_v1_explorer_proto_depIdxs = []int32{
-	4,  // 0: explorer.v1.ChainTip.timestamp:type_name -> google.protobuf.Timestamp
+	8,  // 0: explorer.v1.ChainTip.timestamp:type_name -> google.protobuf.Timestamp
 	0,  // 1: explorer.v1.ChainTip.status:type_name -> explorer.v1.ChainTipStatus
 	2,  // 2: explorer.v1.GetChainTipsResponse.mainchain:type_name -> explorer.v1.ChainTip
 	2,  // 3: explorer.v1.GetChainTipsResponse.thunder:type_name -> explorer.v1.ChainTip
@@ -341,13 +651,17 @@ var file_explorer_v1_explorer_proto_depIdxs = []int32{
 	2,  // 7: explorer.v1.GetChainTipsResponse.coinshift:type_name -> explorer.v1.ChainTip
 	2,  // 8: explorer.v1.GetChainTipsResponse.photon:type_name -> explorer.v1.ChainTip
 	2,  // 9: explorer.v1.GetChainTipsResponse.truthcoin:type_name -> explorer.v1.ChainTip
-	1,  // 10: explorer.v1.ExplorerService.GetChainTips:input_type -> explorer.v1.GetChainTipsRequest
-	3,  // 11: explorer.v1.ExplorerService.GetChainTips:output_type -> explorer.v1.GetChainTipsResponse
-	11, // [11:12] is the sub-list for method output_type
-	10, // [10:11] is the sub-list for method input_type
-	10, // [10:10] is the sub-list for extension type_name
-	10, // [10:10] is the sub-list for extension extendee
-	0,  // [0:10] is the sub-list for field type_name
+	5,  // 10: explorer.v1.ListSidechainsResponse.proposals:type_name -> explorer.v1.SidechainProposal
+	6,  // 11: explorer.v1.ListSidechainsResponse.active:type_name -> explorer.v1.ActiveSidechain
+	1,  // 12: explorer.v1.ExplorerService.GetChainTips:input_type -> explorer.v1.GetChainTipsRequest
+	4,  // 13: explorer.v1.ExplorerService.ListSidechains:input_type -> explorer.v1.ListSidechainsRequest
+	3,  // 14: explorer.v1.ExplorerService.GetChainTips:output_type -> explorer.v1.GetChainTipsResponse
+	7,  // 15: explorer.v1.ExplorerService.ListSidechains:output_type -> explorer.v1.ListSidechainsResponse
+	14, // [14:16] is the sub-list for method output_type
+	12, // [12:14] is the sub-list for method input_type
+	12, // [12:12] is the sub-list for extension type_name
+	12, // [12:12] is the sub-list for extension extendee
+	0,  // [0:12] is the sub-list for field type_name
 }
 
 func init() { file_explorer_v1_explorer_proto_init() }
@@ -361,7 +675,7 @@ func file_explorer_v1_explorer_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_explorer_v1_explorer_proto_rawDesc), len(file_explorer_v1_explorer_proto_rawDesc)),
 			NumEnums:      1,
-			NumMessages:   3,
+			NumMessages:   7,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

@@ -156,6 +156,92 @@ func (s *Server) GetChainTips(ctx context.Context, req *connect.Request[pb.GetCh
 	return connect.NewResponse(res), nil
 }
 
+// ListSidechains reports BIP300 sidechain slot proposals that are still being
+// voted on, plus the sidechains that are currently activated. Everything is
+// sourced from the CUSF mainchain enforcer.
+func (s *Server) ListSidechains(ctx context.Context, req *connect.Request[pb.ListSidechainsRequest]) (*connect.Response[pb.ListSidechainsResponse], error) {
+	validator, err := s.validator.Get(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("connect to enforcer: %w", err)
+	}
+
+	// Consensus constants (activation thresholds) are network-specific and the
+	// enforcer is the source of truth. Older enforcer builds don't report them;
+	// in that case we leave the threshold as zero ("unknown") rather than
+	// guessing.
+	var consts *validatorpb.GetChainInfoResponse_Bip300Constants
+	if info, err := validator.GetChainInfo(ctx, connect.NewRequest(&validatorpb.GetChainInfoRequest{})); err != nil {
+		return nil, fmt.Errorf("get chain info from enforcer: %w", err)
+	} else {
+		consts = info.Msg.GetBip300Constants()
+	}
+
+	activeResp, err := validator.GetSidechains(ctx, connect.NewRequest(&validatorpb.GetSidechainsRequest{}))
+	if err != nil {
+		return nil, fmt.Errorf("list active sidechains from enforcer: %w", err)
+	}
+
+	proposalsResp, err := validator.GetSidechainProposals(ctx, connect.NewRequest(&validatorpb.GetSidechainProposalsRequest{}))
+	if err != nil {
+		return nil, fmt.Errorf("list sidechain proposals from enforcer: %w", err)
+	}
+
+	res := &pb.ListSidechainsResponse{}
+
+	activeSlots := make(map[uint32]bool, len(activeResp.Msg.GetSidechains()))
+	for _, sc := range activeResp.Msg.GetSidechains() {
+		slot := sc.GetSidechainNumber().GetValue()
+		activeSlots[slot] = true
+		res.Active = append(res.Active, &pb.ActiveSidechain{
+			SidechainNumber:  slot,
+			Title:            declarationTitle(sc.GetDeclaration()),
+			ProposalHeight:   sc.GetProposalHeight().GetValue(),
+			ActivationHeight: sc.GetActivationHeight().GetValue(),
+			VoteCount:        sc.GetVoteCount().GetValue(),
+		})
+	}
+
+	for _, p := range proposalsResp.Msg.GetSidechainProposals() {
+		slot := p.GetSidechainNumber().GetValue()
+		var description string
+		if v0 := p.GetDeclaration().GetV0(); v0 != nil {
+			description = v0.GetDescription().GetValue()
+		}
+		res.Proposals = append(res.Proposals, &pb.SidechainProposal{
+			SidechainNumber:     slot,
+			Title:               declarationTitle(p.GetDeclaration()),
+			Description:         description,
+			DescriptionHash:     p.GetDescriptionSha256DHash().GetHex().GetValue(),
+			VoteCount:           p.GetVoteCount().GetValue(),
+			ProposalHeight:      p.GetProposalHeight().GetValue(),
+			ProposalAge:         p.GetProposalAge().GetValue(),
+			ActivationThreshold: activationThreshold(consts, activeSlots[slot]),
+		})
+	}
+
+	return connect.NewResponse(res), nil
+}
+
+// activationThreshold returns the number of ACKs a proposal needs to activate.
+// A proposal for a slot that is currently occupied (a replacement) uses the
+// "used slot" threshold; a proposal for an empty slot uses the "unused slot"
+// threshold. Returns 0 if the enforcer didn't report consensus constants.
+func activationThreshold(consts *validatorpb.GetChainInfoResponse_Bip300Constants, slotInUse bool) uint32 {
+	if consts == nil {
+		return 0
+	}
+	if slotInUse {
+		return consts.GetUsedSidechainSlotActivationThreshold()
+	}
+	return consts.GetUnusedSidechainSlotActivationThreshold()
+}
+
+// declarationTitle pulls the human-readable title out of an M1 declaration,
+// tolerating nil declarations and unknown declaration versions.
+func declarationTitle(d *validatorpb.SidechainDeclaration) string {
+	return d.GetV0().GetTitle().GetValue()
+}
+
 // sidechainActivation asks the enforcer which sidechain slots are currently
 // activated on L1 and returns a predicate reporting activation per slot.
 func (s *Server) sidechainActivation(ctx context.Context) (func(slot uint32) bool, error) {

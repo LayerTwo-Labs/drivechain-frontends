@@ -6,6 +6,9 @@ import "google/protobuf/timestamp.proto";
 
 service ExplorerService {
   rpc GetChainTips(GetChainTipsRequest) returns (GetChainTipsResponse) {}
+
+  // Lists active and proposed side chains.
+  rpc ListSidechains(ListSidechainsRequest) returns (ListSidechainsResponse) {}
 }
 
 message GetChainTipsRequest {}
@@ -38,4 +41,58 @@ message GetChainTipsResponse {
   ChainTip coinshift = 6; // L2-S255
   ChainTip photon = 7; // L2-S99
   ChainTip truthcoin = 8; // L2-S13
+}
+
+message ListSidechainsRequest {}
+
+// A BIP300 sidechain slot proposal that has not yet activated. Proposals
+// accumulate miner ACKs (votes) over a voting window until they reach the
+// activation threshold.
+message SidechainProposal {
+  // The proposed BIP300 sidechain slot number.
+  uint32 sidechain_number = 1;
+
+  // Human-readable title from the M1 declaration. May be empty if the proposal
+  // uses an unknown declaration version.
+  string title = 2;
+
+  // Description from the M1 declaration. May be empty.
+  string description = 3;
+
+  // sha256d hash (hex) of the raw proposal description. This is the stable
+  // identity of a proposal: a re-proposal of the same slot with different data
+  // has a different hash.
+  string description_hash = 4;
+
+  // Number of ACKs (votes) the proposal has accumulated so far.
+  uint32 vote_count = 5;
+
+  // Mainchain height at which the proposal first appeared.
+  uint32 proposal_height = 6;
+
+  // Number of mainchain blocks since the proposal first appeared.
+  uint32 proposal_age = 7;
+
+  // Number of ACKs required for this proposal to activate. Depends on whether
+  // the target slot is currently occupied (used) or empty (unused), per the
+  // enforcer's network-specific consensus constants. Zero if the enforcer did
+  // not report consensus constants (e.g. an older enforcer build).
+  uint32 activation_threshold = 8;
+}
+
+// A sidechain slot that is currently activated on L1.
+message ActiveSidechain {
+  uint32 sidechain_number = 1;
+  string title = 2;
+  uint32 proposal_height = 3;
+  uint32 activation_height = 4;
+  uint32 vote_count = 5;
+}
+
+message ListSidechainsResponse {
+  // Proposals still being voted on (not yet activated).
+  repeated SidechainProposal proposals = 1;
+
+  // Sidechains currently activated on L1.
+  repeated ActiveSidechain active = 2;
 }
