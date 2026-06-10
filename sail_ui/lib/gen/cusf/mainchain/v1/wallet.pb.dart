@@ -1090,6 +1090,106 @@ class CreateSidechainProposalResponse extends $pb.GeneratedMessage {
   CreateSidechainProposalResponse_NotConfirmed ensureNotConfirmed() => $_ensure(1);
 }
 
+class SubmitSidechainProposalRequest extends $pb.GeneratedMessage {
+  factory SubmitSidechainProposalRequest({
+    $0.UInt32Value? sidechainId,
+    $3.SidechainDeclaration? declaration,
+  }) {
+    final $result = create();
+    if (sidechainId != null) {
+      $result.sidechainId = sidechainId;
+    }
+    if (declaration != null) {
+      $result.declaration = declaration;
+    }
+    return $result;
+  }
+  SubmitSidechainProposalRequest._() : super();
+  factory SubmitSidechainProposalRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory SubmitSidechainProposalRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'SubmitSidechainProposalRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'cusf.mainchain.v1'), createEmptyInstance: create)
+    ..aOM<$0.UInt32Value>(1, _omitFieldNames ? '' : 'sidechainId', subBuilder: $0.UInt32Value.create)
+    ..aOM<$3.SidechainDeclaration>(2, _omitFieldNames ? '' : 'declaration', subBuilder: $3.SidechainDeclaration.create)
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  SubmitSidechainProposalRequest clone() => SubmitSidechainProposalRequest()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  SubmitSidechainProposalRequest copyWith(void Function(SubmitSidechainProposalRequest) updates) => super.copyWith((message) => updates(message as SubmitSidechainProposalRequest)) as SubmitSidechainProposalRequest;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static SubmitSidechainProposalRequest create() => SubmitSidechainProposalRequest._();
+  SubmitSidechainProposalRequest createEmptyInstance() => create();
+  static $pb.PbList<SubmitSidechainProposalRequest> createRepeated() => $pb.PbList<SubmitSidechainProposalRequest>();
+  @$core.pragma('dart2js:noInline')
+  static SubmitSidechainProposalRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<SubmitSidechainProposalRequest>(create);
+  static SubmitSidechainProposalRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $0.UInt32Value get sidechainId => $_getN(0);
+  @$pb.TagNumber(1)
+  set sidechainId($0.UInt32Value v) { setField(1, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasSidechainId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearSidechainId() => clearField(1);
+  @$pb.TagNumber(1)
+  $0.UInt32Value ensureSidechainId() => $_ensure(0);
+
+  @$pb.TagNumber(2)
+  $3.SidechainDeclaration get declaration => $_getN(1);
+  @$pb.TagNumber(2)
+  set declaration($3.SidechainDeclaration v) { setField(2, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasDeclaration() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearDeclaration() => clearField(2);
+  @$pb.TagNumber(2)
+  $3.SidechainDeclaration ensureDeclaration() => $_ensure(1);
+}
+
+class SubmitSidechainProposalResponse extends $pb.GeneratedMessage {
+  factory SubmitSidechainProposalResponse() => create();
+  SubmitSidechainProposalResponse._() : super();
+  factory SubmitSidechainProposalResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory SubmitSidechainProposalResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'SubmitSidechainProposalResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'cusf.mainchain.v1'), createEmptyInstance: create)
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  SubmitSidechainProposalResponse clone() => SubmitSidechainProposalResponse()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  SubmitSidechainProposalResponse copyWith(void Function(SubmitSidechainProposalResponse) updates) => super.copyWith((message) => updates(message as SubmitSidechainProposalResponse)) as SubmitSidechainProposalResponse;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static SubmitSidechainProposalResponse create() => SubmitSidechainProposalResponse._();
+  SubmitSidechainProposalResponse createEmptyInstance() => create();
+  static $pb.PbList<SubmitSidechainProposalResponse> createRepeated() => $pb.PbList<SubmitSidechainProposalResponse>();
+  @$core.pragma('dart2js:noInline')
+  static SubmitSidechainProposalResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<SubmitSidechainProposalResponse>(create);
+  static SubmitSidechainProposalResponse? _defaultInstance;
+}
+
 class CreateWalletRequest extends $pb.GeneratedMessage {
   factory CreateWalletRequest({
     $core.Iterable<$core.String>? mnemonicWords,
@@ -2529,6 +2629,9 @@ class WalletServiceApi {
   ;
   $async.Future<CreateSidechainProposalResponse> createSidechainProposal($pb.ClientContext? ctx, CreateSidechainProposalRequest request) =>
     _client.invoke<CreateSidechainProposalResponse>(ctx, 'WalletService', 'CreateSidechainProposal', request, CreateSidechainProposalResponse())
+  ;
+  $async.Future<SubmitSidechainProposalResponse> submitSidechainProposal($pb.ClientContext? ctx, SubmitSidechainProposalRequest request) =>
+    _client.invoke<SubmitSidechainProposalResponse>(ctx, 'WalletService', 'SubmitSidechainProposal', request, SubmitSidechainProposalResponse())
   ;
   $async.Future<CreateWalletResponse> createWallet($pb.ClientContext? ctx, CreateWalletRequest request) =>
     _client.invoke<CreateWalletResponse>(ctx, 'WalletService', 'CreateWallet', request, CreateWalletResponse())

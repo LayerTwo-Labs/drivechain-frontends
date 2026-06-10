@@ -99,6 +99,26 @@ extension type WalletServiceClient (connect.Transport _transport) {
     );
   }
 
+  /// Unary variant of `CreateSidechainProposal`. Creates a new sidechain
+  /// proposal (M1 in BIP300) and persists it to the local database for further
+  /// processing, returning immediately once the proposal has been created.
+  Future<cusfmainchainv1wallet.SubmitSidechainProposalResponse> submitSidechainProposal(
+    cusfmainchainv1wallet.SubmitSidechainProposalRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.WalletService.submitSidechainProposal,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
   Future<cusfmainchainv1wallet.CreateWalletResponse> createWallet(
     cusfmainchainv1wallet.CreateWalletRequest input, {
     connect.Headers? headers,

@@ -16,6 +16,21 @@ import 'dart:typed_data' as $typed_data;
 import '../../google/protobuf/empty.pbjson.dart' as $13;
 import '../../google/protobuf/timestamp.pbjson.dart' as $12;
 
+@$core.Deprecated('Use walletTypeDescriptor instead')
+const WalletType$json = {
+  '1': 'WalletType',
+  '2': [
+    {'1': 'WALLET_TYPE_UNSPECIFIED', '2': 0},
+    {'1': 'WALLET_TYPE_BITCOIN_CORE', '2': 1},
+    {'1': 'WALLET_TYPE_ENFORCER', '2': 2},
+  ],
+};
+
+/// Descriptor for `WalletType`. Decode as a `google.protobuf.EnumDescriptorProto`.
+final $typed_data.Uint8List walletTypeDescriptor = $convert.base64Decode(
+    'CgpXYWxsZXRUeXBlEhsKF1dBTExFVF9UWVBFX1VOU1BFQ0lGSUVEEAASHAoYV0FMTEVUX1RZUE'
+    'VfQklUQ09JTl9DT1JFEAESGAoUV0FMTEVUX1RZUEVfRU5GT1JDRVIQAg==');
+
 @$core.Deprecated('Use restoreWalletBackupStepStateDescriptor instead')
 const RestoreWalletBackupStepState$json = {
   '1': 'RestoreWalletBackupStepState',
@@ -202,25 +217,27 @@ const WalletMetadata$json = {
   '2': [
     {'1': 'id', '3': 1, '4': 1, '5': 9, '10': 'id'},
     {'1': 'name', '3': 2, '4': 1, '5': 9, '10': 'name'},
-    {'1': 'wallet_type', '3': 3, '4': 1, '5': 9, '10': 'walletType'},
+    {'1': 'wallet_type', '3': 3, '4': 1, '5': 14, '6': '.walletmanager.v1.WalletType', '10': 'walletType'},
     {'1': 'gradient_json', '3': 4, '4': 1, '5': 9, '10': 'gradientJson'},
     {'1': 'created_at', '3': 5, '4': 1, '5': 9, '10': 'createdAt'},
     {'1': 'bip47_payment_code', '3': 6, '4': 1, '5': 9, '10': 'bip47PaymentCode'},
     {'1': 'master_mnemonic', '3': 7, '4': 1, '5': 9, '10': 'masterMnemonic'},
     {'1': 'l1_mnemonic', '3': 8, '4': 1, '5': 9, '10': 'l1Mnemonic'},
     {'1': 'sidechains', '3': 9, '4': 3, '5': 11, '6': '.walletmanager.v1.SidechainStarter', '10': 'sidechains'},
+    {'1': 'watch_only', '3': 10, '4': 1, '5': 8, '10': 'watchOnly'},
   ],
 };
 
 /// Descriptor for `WalletMetadata`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List walletMetadataDescriptor = $convert.base64Decode(
-    'Cg5XYWxsZXRNZXRhZGF0YRIOCgJpZBgBIAEoCVICaWQSEgoEbmFtZRgCIAEoCVIEbmFtZRIfCg'
-    't3YWxsZXRfdHlwZRgDIAEoCVIKd2FsbGV0VHlwZRIjCg1ncmFkaWVudF9qc29uGAQgASgJUgxn'
-    'cmFkaWVudEpzb24SHQoKY3JlYXRlZF9hdBgFIAEoCVIJY3JlYXRlZEF0EiwKEmJpcDQ3X3BheW'
-    '1lbnRfY29kZRgGIAEoCVIQYmlwNDdQYXltZW50Q29kZRInCg9tYXN0ZXJfbW5lbW9uaWMYByAB'
-    'KAlSDm1hc3Rlck1uZW1vbmljEh8KC2wxX21uZW1vbmljGAggASgJUgpsMU1uZW1vbmljEkIKCn'
-    'NpZGVjaGFpbnMYCSADKAsyIi53YWxsZXRtYW5hZ2VyLnYxLlNpZGVjaGFpblN0YXJ0ZXJSCnNp'
-    'ZGVjaGFpbnM=');
+    'Cg5XYWxsZXRNZXRhZGF0YRIOCgJpZBgBIAEoCVICaWQSEgoEbmFtZRgCIAEoCVIEbmFtZRI9Cg'
+    't3YWxsZXRfdHlwZRgDIAEoDjIcLndhbGxldG1hbmFnZXIudjEuV2FsbGV0VHlwZVIKd2FsbGV0'
+    'VHlwZRIjCg1ncmFkaWVudF9qc29uGAQgASgJUgxncmFkaWVudEpzb24SHQoKY3JlYXRlZF9hdB'
+    'gFIAEoCVIJY3JlYXRlZEF0EiwKEmJpcDQ3X3BheW1lbnRfY29kZRgGIAEoCVIQYmlwNDdQYXlt'
+    'ZW50Q29kZRInCg9tYXN0ZXJfbW5lbW9uaWMYByABKAlSDm1hc3Rlck1uZW1vbmljEh8KC2wxX2'
+    '1uZW1vbmljGAggASgJUgpsMU1uZW1vbmljEkIKCnNpZGVjaGFpbnMYCSADKAsyIi53YWxsZXRt'
+    'YW5hZ2VyLnYxLlNpZGVjaGFpblN0YXJ0ZXJSCnNpZGVjaGFpbnMSHQoKd2F0Y2hfb25seRgKIA'
+    'EoCFIJd2F0Y2hPbmx5');
 
 @$core.Deprecated('Use sidechainStarterDescriptor instead')
 const SidechainStarter$json = {

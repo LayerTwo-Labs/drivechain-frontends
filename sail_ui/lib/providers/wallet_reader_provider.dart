@@ -138,11 +138,10 @@ class WalletReaderProvider extends ChangeNotifier {
         name: protoWallet.name,
         gradient: gradient,
         createdAt: createdAt,
-        walletType: BinaryType.values.firstWhere(
-          (t) => t.name == protoWallet.walletType,
-          orElse: () => BinaryType.BINARY_TYPE_ENFORCER,
-        ),
-        walletTypeRaw: protoWallet.walletType,
+        walletType: protoWallet.walletType == wmpb.WalletType.WALLET_TYPE_ENFORCER
+            ? BinaryType.BINARY_TYPE_ENFORCER
+            : BinaryType.BINARY_TYPE_BITCOIND,
+        isWatchOnly: protoWallet.watchOnly,
         bip47PaymentCode: protoWallet.bip47PaymentCode,
       );
     }).toList();

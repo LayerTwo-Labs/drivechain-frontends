@@ -13,6 +13,23 @@ import 'dart:core' as $core;
 
 import 'package:protobuf/protobuf.dart' as $pb;
 
+class WalletType extends $pb.ProtobufEnum {
+  static const WalletType WALLET_TYPE_UNSPECIFIED = WalletType._(0, _omitEnumNames ? '' : 'WALLET_TYPE_UNSPECIFIED');
+  static const WalletType WALLET_TYPE_BITCOIN_CORE = WalletType._(1, _omitEnumNames ? '' : 'WALLET_TYPE_BITCOIN_CORE');
+  static const WalletType WALLET_TYPE_ENFORCER = WalletType._(2, _omitEnumNames ? '' : 'WALLET_TYPE_ENFORCER');
+
+  static const $core.List<WalletType> values = <WalletType> [
+    WALLET_TYPE_UNSPECIFIED,
+    WALLET_TYPE_BITCOIN_CORE,
+    WALLET_TYPE_ENFORCER,
+  ];
+
+  static final $core.Map<$core.int, WalletType> _byValue = $pb.ProtobufEnum.initByValue(values);
+  static WalletType? valueOf($core.int value) => _byValue[value];
+
+  const WalletType._($core.int v, $core.String n) : super(v, n);
+}
+
 class RestoreWalletBackupStepState extends $pb.ProtobufEnum {
   static const RestoreWalletBackupStepState RESTORE_WALLET_BACKUP_STEP_STATE_UNSPECIFIED = RestoreWalletBackupStepState._(0, _omitEnumNames ? '' : 'RESTORE_WALLET_BACKUP_STEP_STATE_UNSPECIFIED');
   static const RestoreWalletBackupStepState RESTORE_WALLET_BACKUP_STEP_STATE_STARTED = RestoreWalletBackupStepState._(1, _omitEnumNames ? '' : 'RESTORE_WALLET_BACKUP_STEP_STATE_STARTED');

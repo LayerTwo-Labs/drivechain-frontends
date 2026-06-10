@@ -712,13 +712,14 @@ class WalletMetadata extends $pb.GeneratedMessage {
   factory WalletMetadata({
     $core.String? id,
     $core.String? name,
-    $core.String? walletType,
+    WalletType? walletType,
     $core.String? gradientJson,
     $core.String? createdAt,
     $core.String? bip47PaymentCode,
     $core.String? masterMnemonic,
     $core.String? l1Mnemonic,
     $core.Iterable<SidechainStarter>? sidechains,
+    $core.bool? watchOnly,
   }) {
     final $result = create();
     if (id != null) {
@@ -748,6 +749,9 @@ class WalletMetadata extends $pb.GeneratedMessage {
     if (sidechains != null) {
       $result.sidechains.addAll(sidechains);
     }
+    if (watchOnly != null) {
+      $result.watchOnly = watchOnly;
+    }
     return $result;
   }
   WalletMetadata._() : super();
@@ -757,13 +761,14 @@ class WalletMetadata extends $pb.GeneratedMessage {
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'WalletMetadata', package: const $pb.PackageName(_omitMessageNames ? '' : 'walletmanager.v1'), createEmptyInstance: create)
     ..aOS(1, _omitFieldNames ? '' : 'id')
     ..aOS(2, _omitFieldNames ? '' : 'name')
-    ..aOS(3, _omitFieldNames ? '' : 'walletType')
+    ..e<WalletType>(3, _omitFieldNames ? '' : 'walletType', $pb.PbFieldType.OE, defaultOrMaker: WalletType.WALLET_TYPE_UNSPECIFIED, valueOf: WalletType.valueOf, enumValues: WalletType.values)
     ..aOS(4, _omitFieldNames ? '' : 'gradientJson')
     ..aOS(5, _omitFieldNames ? '' : 'createdAt')
     ..aOS(6, _omitFieldNames ? '' : 'bip47PaymentCode')
     ..aOS(7, _omitFieldNames ? '' : 'masterMnemonic')
     ..aOS(8, _omitFieldNames ? '' : 'l1Mnemonic')
     ..pc<SidechainStarter>(9, _omitFieldNames ? '' : 'sidechains', $pb.PbFieldType.PM, subBuilder: SidechainStarter.create)
+    ..aOB(10, _omitFieldNames ? '' : 'watchOnly')
     ..hasRequiredFields = false
   ;
 
@@ -807,9 +812,9 @@ class WalletMetadata extends $pb.GeneratedMessage {
   void clearName() => clearField(2);
 
   @$pb.TagNumber(3)
-  $core.String get walletType => $_getSZ(2);
+  WalletType get walletType => $_getN(2);
   @$pb.TagNumber(3)
-  set walletType($core.String v) { $_setString(2, v); }
+  set walletType(WalletType v) { setField(3, v); }
   @$pb.TagNumber(3)
   $core.bool hasWalletType() => $_has(2);
   @$pb.TagNumber(3)
@@ -867,6 +872,16 @@ class WalletMetadata extends $pb.GeneratedMessage {
 
   @$pb.TagNumber(9)
   $core.List<SidechainStarter> get sidechains => $_getList(8);
+
+  /// Watch-only wallets track an external xpub/descriptor; no spending key.
+  @$pb.TagNumber(10)
+  $core.bool get watchOnly => $_getBF(9);
+  @$pb.TagNumber(10)
+  set watchOnly($core.bool v) { $_setBool(9, v); }
+  @$pb.TagNumber(10)
+  $core.bool hasWatchOnly() => $_has(9);
+  @$pb.TagNumber(10)
+  void clearWatchOnly() => clearField(10);
 }
 
 class SidechainStarter extends $pb.GeneratedMessage {
