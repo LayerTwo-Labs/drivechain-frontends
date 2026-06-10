@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:path_provider/path_provider.dart';
+import 'package:sail_ui/utils/file_utils.dart';
 
 abstract class KeyValueStore {
   Future<String?> getString(String key);
@@ -10,7 +10,7 @@ abstract class KeyValueStore {
 
   static Future<KeyValueStore> create({Directory? dir}) async {
     return FileStorage.fromDirectory(
-      dir ?? await getApplicationSupportDirectory(),
+      dir ?? await applicationSupportDir(),
     );
   }
 }
