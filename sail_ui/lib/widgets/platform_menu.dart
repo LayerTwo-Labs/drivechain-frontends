@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:sail_ui/sail_ui.dart';
 
 class CrossPlatformMenuBar extends StatelessWidget {
@@ -13,10 +14,60 @@ class CrossPlatformMenuBar extends StatelessWidget {
     required this.child,
   });
 
+  /// PlatformMenuBar replaces the entire native macOS menu bar, dropping the
+  /// system Edit menu that delivers Cmd+X/C/V/A to text fields. Re-add one
+  /// that dispatches the standard text-editing intents to the focused widget.
+  static List<PlatformMenuItem> _withEditMenu(List<PlatformMenuItem> menus) {
+    final edit = PlatformMenu(
+      label: 'Edit',
+      menus: [
+        PlatformMenuItemGroup(
+          members: [
+            _editMenuItem('Undo', LogicalKeyboardKey.keyZ, const UndoTextIntent(SelectionChangedCause.keyboard)),
+            _editMenuItem(
+              'Redo',
+              LogicalKeyboardKey.keyZ,
+              const RedoTextIntent(SelectionChangedCause.keyboard),
+              shift: true,
+            ),
+          ],
+        ),
+        PlatformMenuItemGroup(
+          members: [
+            _editMenuItem(
+              'Cut',
+              LogicalKeyboardKey.keyX,
+              const CopySelectionTextIntent.cut(SelectionChangedCause.keyboard),
+            ),
+            _editMenuItem('Copy', LogicalKeyboardKey.keyC, CopySelectionTextIntent.copy),
+            _editMenuItem('Paste', LogicalKeyboardKey.keyV, const PasteTextIntent(SelectionChangedCause.keyboard)),
+            _editMenuItem(
+              'Select All',
+              LogicalKeyboardKey.keyA,
+              const SelectAllTextIntent(SelectionChangedCause.keyboard),
+            ),
+          ],
+        ),
+      ],
+    );
+    return [if (menus.isNotEmpty) menus.first, edit, ...menus.skip(1)];
+  }
+
+  static PlatformMenuItem _editMenuItem(String label, LogicalKeyboardKey key, Intent intent, {bool shift = false}) {
+    return PlatformMenuItem(
+      label: label,
+      shortcut: SingleActivator(key, meta: true, shift: shift),
+      onSelected: () {
+        final context = primaryFocus?.context;
+        if (context != null) Actions.maybeInvoke(context, intent);
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     if (Platform.isMacOS) {
-      return PlatformMenuBar(menus: menus, child: child);
+      return PlatformMenuBar(menus: _withEditMenu(menus), child: child);
     }
 
     return Column(
