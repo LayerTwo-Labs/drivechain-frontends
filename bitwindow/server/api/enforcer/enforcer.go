@@ -125,6 +125,15 @@ func (s *Server) CreateSidechainProposal(ctx context.Context, c *connect.Request
 	return clientStream.Err()
 }
 
+// SubmitSidechainProposal implements mainchainv1connect.WalletServiceHandler.
+func (s *Server) SubmitSidechainProposal(ctx context.Context, c *connect.Request[mainchainv1.SubmitSidechainProposalRequest]) (*connect.Response[mainchainv1.SubmitSidechainProposalResponse], error) {
+	wallet, err := s.wallet.Get(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return wallet.SubmitSidechainProposal(ctx, c)
+}
+
 // CreateWallet implements mainchainv1connect.WalletServiceHandler.
 func (s *Server) CreateWallet(ctx context.Context, c *connect.Request[mainchainv1.CreateWalletRequest]) (*connect.Response[mainchainv1.CreateWalletResponse], error) {
 	wallet, err := s.wallet.Get(ctx)

@@ -61,6 +61,12 @@ class SailCard extends StatelessWidget {
     final theme = SailTheme.of(context);
     final radius = borderRadius ?? theme.chrome.radiusLarge;
 
+    return LayoutBuilder(
+      builder: (context, constraints) => _build(context, theme, radius, constraints.hasBoundedHeight),
+    );
+  }
+
+  Widget _build(BuildContext context, SailThemeData theme, BorderRadius radius, bool boundedHeight) {
     return SelectionArea(
       child: SailShadow(
         shadowSize: shadowSize,
@@ -202,7 +208,9 @@ class SailCard extends StatelessWidget {
                             ),
                           ),
                         if (title != null) const SailSpacing(SailStyleValues.padding08),
-                        Flexible(child: child),
+                        // A flex child in an unbounded-height context (e.g. a
+                        // card inside a scrollview) is a layout error.
+                        if (boundedHeight) Flexible(child: child) else child,
                       ],
                     ),
                   ),
@@ -239,6 +247,12 @@ class SailCardSmall extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = SailTheme.of(context);
+    return LayoutBuilder(
+      builder: (context, constraints) => _build(context, theme, constraints.hasBoundedHeight),
+    );
+  }
+
+  Widget _build(BuildContext context, SailThemeData theme, bool boundedHeight) {
     return SelectionArea(
       child: SailShadow(
         child: ClipRRect(
@@ -275,7 +289,7 @@ class SailCardSmall extends StatelessWidget {
                     ),
                   ),
                   const SailSpacing(32),
-                  Flexible(child: child),
+                  if (boundedHeight) Flexible(child: child) else child,
                 ],
               ),
             ),
