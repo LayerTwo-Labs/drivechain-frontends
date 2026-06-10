@@ -4,7 +4,6 @@ import 'dart:convert';
 import 'package:auto_route/auto_route.dart';
 import 'package:bitnames/providers/bitnames_provider.dart';
 import 'package:collection/collection.dart';
-import 'package:flutter/material.dart' show Colors, Dialog;
 import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
@@ -334,34 +333,31 @@ Future<void> showBitnameDetails(BuildContext context, BitnameEntry entry) async 
       builder: (BuildContext dialogContext) {
         return PopScope(
           canPop: true,
-          child: Dialog(
-            backgroundColor: Colors.transparent,
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 800),
-              child: SailCard(
-                title: 'Bitname Details',
-                subtitle: entry.hash,
-                child: SingleChildScrollView(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      DetailRow(label: 'Hash', value: entry.hash),
-                      DetailRow(label: 'Sequence ID', value: entry.details.seqId),
-                      if (entry.details.commitment != null)
-                        DetailRow(label: 'Commitment', value: entry.details.commitment!),
-                      if (entry.details.socketAddrV4 != null)
-                        DetailRow(label: 'Socket Address (IPv4)', value: entry.details.socketAddrV4!),
-                      if (entry.details.socketAddrV6 != null)
-                        DetailRow(label: 'Socket Address (IPv6)', value: entry.details.socketAddrV6!),
-                      if (entry.details.encryptionPubkey != null)
-                        DetailRow(label: 'Encryption Public Key', value: entry.details.encryptionPubkey!),
-                      if (entry.details.signingPubkey != null)
-                        DetailRow(label: 'Signing Public Key', value: entry.details.signingPubkey!),
-                      if (entry.details.paymailFeeSats != null)
-                        DetailRow(label: 'Paymail Fee (sats)', value: entry.details.paymailFeeSats!.toString()),
-                    ],
-                  ),
+          child: SailModal(
+            constraints: const BoxConstraints(maxWidth: 800),
+            child: SailCard(
+              title: 'Bitname Details',
+              subtitle: entry.hash,
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    DetailRow(label: 'Hash', value: entry.hash),
+                    DetailRow(label: 'Sequence ID', value: entry.details.seqId),
+                    if (entry.details.commitment != null)
+                      DetailRow(label: 'Commitment', value: entry.details.commitment!),
+                    if (entry.details.socketAddrV4 != null)
+                      DetailRow(label: 'Socket Address (IPv4)', value: entry.details.socketAddrV4!),
+                    if (entry.details.socketAddrV6 != null)
+                      DetailRow(label: 'Socket Address (IPv6)', value: entry.details.socketAddrV6!),
+                    if (entry.details.encryptionPubkey != null)
+                      DetailRow(label: 'Encryption Public Key', value: entry.details.encryptionPubkey!),
+                    if (entry.details.signingPubkey != null)
+                      DetailRow(label: 'Signing Public Key', value: entry.details.signingPubkey!),
+                    if (entry.details.paymailFeeSats != null)
+                      DetailRow(label: 'Paymail Fee (sats)', value: entry.details.paymailFeeSats!.toString()),
+                  ],
                 ),
               ),
             ),

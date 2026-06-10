@@ -3,7 +3,6 @@ import 'package:bitwindow/pages/explorer/block_explorer_dialog.dart';
 import 'package:bitwindow/pages/sidechain_proposal_page.dart';
 import 'package:bitwindow/providers/sidechain_provider.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart' show AppBar, Colors, Dialog, Scaffold;
 import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
@@ -19,13 +18,9 @@ class SidechainActivationManagementPage extends StatelessWidget {
     final theme = SailTheme.of(context);
 
     if (!confProvider.networkSupportsSidechains) {
-      return Scaffold(
+      return SailScaffold(
         backgroundColor: theme.colors.background,
-        appBar: AppBar(
-          backgroundColor: theme.colors.background,
-          foregroundColor: theme.colors.text,
-          title: SailText.primary20('Sidechain Activation'),
-        ),
+        appBar: SailAppBar.build(context, title: SailText.primary20('Sidechain Activation')),
         body: Padding(
           padding: const EdgeInsets.all(SailStyleValues.padding16),
           child: SailCard(
@@ -67,13 +62,9 @@ class SidechainActivationManagementPage extends StatelessWidget {
       );
     }
 
-    return Scaffold(
+    return SailScaffold(
       backgroundColor: theme.colors.background,
-      appBar: AppBar(
-        backgroundColor: theme.colors.background,
-        foregroundColor: theme.colors.text,
-        title: SailText.primary20('Sidechain Activation'),
-      ),
+      appBar: SailAppBar.build(context, title: SailText.primary20('Sidechain Activation')),
       body: ViewModelBuilder<SidechainActivationManagementViewModel>.reactive(
         viewModelBuilder: () => SidechainActivationManagementViewModel(),
         builder: (context, model, child) => const SidechainActivationManagementView(),
@@ -294,15 +285,12 @@ Future<void> showSidechainActivationManagementModal(BuildContext context) {
     context: context,
     builder: (BuildContext context) {
       return Center(
-        child: Dialog(
-          backgroundColor: Colors.transparent,
-          child: ConstrainedBox(
-            constraints: BoxConstraints(
-              maxWidth: size.width * 0.8,
-              maxHeight: size.height * 0.8,
-            ),
-            child: const SidechainActivationManagementPage(),
+        child: SailModal(
+          constraints: BoxConstraints(
+            maxWidth: size.width * 0.8,
+            maxHeight: size.height * 0.8,
           ),
+          child: const SidechainActivationManagementPage(),
         ),
       );
     },

@@ -1,4 +1,3 @@
-import 'package:flutter/material.dart' show ListTile;
 import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
@@ -250,21 +249,31 @@ class _ActiveSwapsWidget extends StatelessWidget {
                     itemCount: model.activeSwaps.length,
                     itemBuilder: (context, index) {
                       final swap = model.activeSwaps[index];
-                      return ListTile(
-                        leading: SwapStatusBadge(state: swap.state),
-                        title: SailText.primary13(
-                          '${swap.direction == SwapDirection.l2ToL1 ? 'L2→L1' : 'L1→L2'} - ${formatter.formatSats(swap.l2Amount)}',
-                        ),
-                        subtitle: SailText.secondary12(
-                          'Chain: ${swap.parentChain.value}',
-                        ),
-                        trailing: swap.state.isReadyToClaim
-                            ? SailButton(
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        child: SailRow(
+                          spacing: SailStyleValues.padding12,
+                          children: [
+                            SwapStatusBadge(state: swap.state),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  SailText.primary13(
+                                    '${swap.direction == SwapDirection.l2ToL1 ? 'L2→L1' : 'L1→L2'} - ${formatter.formatSats(swap.l2Amount)}',
+                                  ),
+                                  SailText.secondary12('Chain: ${swap.parentChain.value}'),
+                                ],
+                              ),
+                            ),
+                            if (swap.state.isReadyToClaim)
+                              SailButton(
                                 label: 'Claim',
                                 small: true,
                                 onPressed: () async => await model.claimSwap(context, swap),
-                              )
-                            : null,
+                              ),
+                          ],
+                        ),
                       );
                     },
                   ),

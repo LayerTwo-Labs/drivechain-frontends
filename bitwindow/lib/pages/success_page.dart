@@ -1,6 +1,5 @@
 import 'package:auto_route/auto_route.dart';
 import 'package:bitwindow/routing/router.dart';
-import 'package:flutter/material.dart' show Scaffold;
 import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
@@ -84,7 +83,7 @@ class SuccessPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = SailTheme.of(context);
 
-    return Scaffold(
+    return SailScaffold(
       backgroundColor: theme.colors.background,
       body: SafeArea(
         child: SuccessScreen(

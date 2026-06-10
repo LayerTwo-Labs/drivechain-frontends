@@ -5,8 +5,6 @@ import 'package:bitassets/providers/favorites_provider.dart';
 import 'package:bitassets/providers/price_alert_provider.dart';
 import 'package:bitassets/routing/router.dart';
 import 'package:bitassets/settings/price_alerts_settings.dart';
-import 'package:flutter/material.dart'
-    show AlertDialog, Colors, Icon, IconButton, Icons, InkWell, LinearProgressIndicator, TextButton;
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
@@ -228,13 +226,13 @@ class _FilterTab extends StatelessWidget {
     final theme = SailTheme.of(context);
     final tabColor = color ?? theme.colors.primary;
 
-    return InkWell(
-      onTap: onTap,
+    return SailTappable(
+      onTap: () async => onTap(),
       borderRadius: SailStyleValues.borderRadius,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         decoration: BoxDecoration(
-          color: isActive ? tabColor.withValues(alpha: 0.1) : Colors.transparent,
+          color: isActive ? tabColor.withValues(alpha: 0.1) : SailColorScheme.transparent,
           borderRadius: SailStyleValues.borderRadius,
           border: Border.all(
             color: isActive ? tabColor : theme.colors.divider,
@@ -256,7 +254,7 @@ class _FilterTab extends StatelessWidget {
               ),
               child: SailText.secondary12(
                 count.toString(),
-                color: isActive ? Colors.white : null,
+                color: isActive ? theme.colors.primaryButtonText : null,
               ),
             ),
           ],
@@ -314,16 +312,20 @@ class _AuctionRow extends StatelessWidget {
       child: Row(
         children: [
           // Favorite star
-          IconButton(
-            icon: Icon(
-              isFavorite ? Icons.star : Icons.star_border,
-              color: isFavorite ? theme.colors.orange : theme.colors.textSecondary,
-              size: 18,
+          SailTooltip(
+            message: isFavorite ? 'Remove from favorites' : 'Add to favorites',
+            child: SailTappable(
+              onTap: () async => onToggleFavorite(),
+              borderRadius: SailStyleValues.borderRadiusSmall,
+              child: Padding(
+                padding: const EdgeInsets.all(5),
+                child: SailSVG.fromAsset(
+                  SailSVGAsset.star,
+                  color: isFavorite ? theme.colors.orange : theme.colors.textSecondary,
+                  width: 18,
+                ),
+              ),
             ),
-            onPressed: onToggleFavorite,
-            tooltip: isFavorite ? 'Remove from favorites' : 'Add to favorites',
-            padding: EdgeInsets.zero,
-            constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
           ),
 
           // Status
@@ -344,13 +346,14 @@ class _AuctionRow extends StatelessWidget {
                     monospace: true,
                   ),
                 ),
-                IconButton(
-                  icon: SailSVG.icon(SailSVGAsset.iconCopy, width: 14),
-                  onPressed: onCopyId,
-                  tooltip: 'Copy ID',
-                  iconSize: 14,
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(minWidth: 24, minHeight: 24),
+                SailTooltip(
+                  message: 'Copy ID',
+                  child: SailButton(
+                    variant: ButtonVariant.icon,
+                    icon: SailSVGAsset.iconCopy,
+                    iconWidth: 14,
+                    onPressed: () async => onCopyId(),
+                  ),
                 ),
               ],
             ),
@@ -402,10 +405,12 @@ class _AuctionRow extends StatelessWidget {
               children: [
                 SailText.secondary12('${auction.duration} blocks'),
                 if (status == 'Active')
-                  LinearProgressIndicator(
-                    value: progress,
-                    backgroundColor: theme.colors.divider,
-                    valueColor: AlwaysStoppedAnimation(statusColor),
+                  ProgressBar(
+                    current: progress,
+                    goal: 1,
+                    small: true,
+                    hideProgressInside: true,
+                    color: statusColor,
                   ),
               ],
             ),
@@ -420,16 +425,20 @@ class _AuctionRow extends StatelessWidget {
               children: [
                 // Alert button
                 if (onSetAlert != null)
-                  IconButton(
-                    icon: Icon(
-                      hasAlert ? Icons.notifications_active : Icons.notifications_none,
-                      color: hasAlert ? theme.colors.orange : theme.colors.textSecondary,
-                      size: 18,
+                  SailTooltip(
+                    message: hasAlert ? 'Edit price alert' : 'Set price alert',
+                    child: SailTappable(
+                      onTap: () async => onSetAlert!(),
+                      borderRadius: SailStyleValues.borderRadiusSmall,
+                      child: Padding(
+                        padding: const EdgeInsets.all(5),
+                        child: SailSVG.fromAsset(
+                          hasAlert ? SailSVGAsset.bell : SailSVGAsset.bellOff,
+                          color: hasAlert ? theme.colors.orange : theme.colors.textSecondary,
+                          width: 18,
+                        ),
+                      ),
                     ),
-                    onPressed: onSetAlert,
-                    tooltip: hasAlert ? 'Edit price alert' : 'Set price alert',
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
                   ),
                 // Bid button
                 if (onBid != null)
@@ -600,15 +609,59 @@ class AuctionBrowserViewModel extends BaseViewModel {
 
   void showBidDialog(BuildContext context, DutchAuctionEntry auction) {
     final bidController = TextEditingController();
-    final theme = SailTheme.of(context);
 
     showThemedDialog(
       context: context,
       builder: (dialogContext) {
-        return AlertDialog(
-          backgroundColor: theme.colors.background,
-          title: SailText.primary15('Bid on Auction'),
-          content: SizedBox(
+        return SailDialog(
+          title: 'Bid on Auction',
+          actions: [
+            SailButton(
+              label: 'Cancel',
+              variant: ButtonVariant.ghost,
+              onPressed: () async => Navigator.of(dialogContext).pop(),
+            ),
+            SailButton(
+              label: 'Place Bid',
+              onPressed: () async {
+                final bidAmount = int.tryParse(bidController.text);
+                if (bidAmount == null || bidAmount <= 0) {
+                  notificationProvider.add(
+                    title: 'Invalid Bid',
+                    content: 'Please enter a valid bid amount',
+                    dialogType: DialogType.error,
+                  );
+                  return;
+                }
+
+                try {
+                  final received = await rpc.dutchAuctionBid(
+                    dutchAuctionId: auction.id,
+                    bidSize: bidAmount,
+                  );
+
+                  if (dialogContext.mounted) {
+                    Navigator.of(dialogContext).pop();
+                  }
+
+                  notificationProvider.add(
+                    title: 'Bid Successful',
+                    content: 'Received $received ${getAssetName(auction.baseAsset)}',
+                    dialogType: DialogType.success,
+                  );
+
+                  await refresh();
+                } catch (e) {
+                  notificationProvider.add(
+                    title: 'Bid Failed',
+                    content: e.toString(),
+                    dialogType: DialogType.error,
+                  );
+                }
+              },
+            ),
+          ],
+          child: SizedBox(
             width: 400,
             child: SailColumn(
               spacing: SailStyleValues.padding16,
@@ -654,58 +707,12 @@ class AuctionBrowserViewModel extends BaseViewModel {
               ],
             ),
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(),
-              child: SailText.primary13('Cancel'),
-            ),
-            SailButton(
-              label: 'Place Bid',
-              onPressed: () async {
-                final bidAmount = int.tryParse(bidController.text);
-                if (bidAmount == null || bidAmount <= 0) {
-                  notificationProvider.add(
-                    title: 'Invalid Bid',
-                    content: 'Please enter a valid bid amount',
-                    dialogType: DialogType.error,
-                  );
-                  return;
-                }
-
-                try {
-                  final received = await rpc.dutchAuctionBid(
-                    dutchAuctionId: auction.id,
-                    bidSize: bidAmount,
-                  );
-
-                  if (dialogContext.mounted) {
-                    Navigator.of(dialogContext).pop();
-                  }
-
-                  notificationProvider.add(
-                    title: 'Bid Successful',
-                    content: 'Received $received ${getAssetName(auction.baseAsset)}',
-                    dialogType: DialogType.success,
-                  );
-
-                  await refresh();
-                } catch (e) {
-                  notificationProvider.add(
-                    title: 'Bid Failed',
-                    content: e.toString(),
-                    dialogType: DialogType.error,
-                  );
-                }
-              },
-            ),
-          ],
         );
       },
     );
   }
 
   void showAlertDialog(BuildContext context, DutchAuctionEntry auction) {
-    final theme = SailTheme.of(context);
     final priceController = TextEditingController();
     final existingAlert = priceAlertProvider.getAlertsForAuction(auction.id).firstOrNull;
     bool alertWhenBelow = existingAlert?.alertWhenBelow ?? true;
@@ -719,10 +726,67 @@ class AuctionBrowserViewModel extends BaseViewModel {
       builder: (dialogContext) {
         return StatefulBuilder(
           builder: (context, setState) {
-            return AlertDialog(
-              backgroundColor: theme.colors.background,
-              title: SailText.primary15(existingAlert != null ? 'Edit Price Alert' : 'Set Price Alert'),
-              content: SizedBox(
+            return SailDialog(
+              title: existingAlert != null ? 'Edit Price Alert' : 'Set Price Alert',
+              actions: [
+                if (existingAlert != null)
+                  SailButton(
+                    label: 'Remove Alert',
+                    variant: ButtonVariant.destructive,
+                    onPressed: () async {
+                      await priceAlertProvider.removeAlert(auction.id);
+                      if (dialogContext.mounted) Navigator.of(dialogContext).pop();
+                      notificationProvider.add(
+                        title: 'Alert Removed',
+                        content: 'Price alert has been removed',
+                        dialogType: DialogType.success,
+                      );
+                    },
+                  ),
+                SailButton(
+                  label: 'Cancel',
+                  variant: ButtonVariant.ghost,
+                  onPressed: () async => Navigator.of(dialogContext).pop(),
+                ),
+                SailButton(
+                  label: existingAlert != null ? 'Update Alert' : 'Set Alert',
+                  onPressed: () async {
+                    final targetPrice = int.tryParse(priceController.text);
+                    if (targetPrice == null || targetPrice <= 0) {
+                      notificationProvider.add(
+                        title: 'Invalid Price',
+                        content: 'Please enter a valid target price',
+                        dialogType: DialogType.error,
+                      );
+                      return;
+                    }
+
+                    final alert = PriceAlert(
+                      auctionId: auction.id,
+                      assetId: auction.baseAsset,
+                      targetPrice: targetPrice,
+                      alertWhenBelow: alertWhenBelow,
+                      enabled: true,
+                      createdAt: DateTime.now(),
+                    );
+
+                    if (existingAlert != null) {
+                      await priceAlertProvider.updateAlert(alert);
+                    } else {
+                      await priceAlertProvider.addAlert(alert);
+                    }
+
+                    if (dialogContext.mounted) Navigator.of(dialogContext).pop();
+                    notificationProvider.add(
+                      title: 'Alert Set',
+                      content:
+                          'You will be notified when price ${alertWhenBelow ? "drops below" : "rises above"} $targetPrice sats',
+                      dialogType: DialogType.success,
+                    );
+                  },
+                ),
+              ],
+              child: SizedBox(
                 width: 400,
                 child: SailColumn(
                   spacing: SailStyleValues.padding16,
@@ -775,62 +839,6 @@ class AuctionBrowserViewModel extends BaseViewModel {
                   ],
                 ),
               ),
-              actions: [
-                if (existingAlert != null)
-                  TextButton(
-                    onPressed: () async {
-                      await priceAlertProvider.removeAlert(auction.id);
-                      if (dialogContext.mounted) Navigator.of(dialogContext).pop();
-                      notificationProvider.add(
-                        title: 'Alert Removed',
-                        content: 'Price alert has been removed',
-                        dialogType: DialogType.success,
-                      );
-                    },
-                    child: SailText.primary13('Remove Alert', color: theme.colors.error),
-                  ),
-                TextButton(
-                  onPressed: () => Navigator.of(dialogContext).pop(),
-                  child: SailText.primary13('Cancel'),
-                ),
-                SailButton(
-                  label: existingAlert != null ? 'Update Alert' : 'Set Alert',
-                  onPressed: () async {
-                    final targetPrice = int.tryParse(priceController.text);
-                    if (targetPrice == null || targetPrice <= 0) {
-                      notificationProvider.add(
-                        title: 'Invalid Price',
-                        content: 'Please enter a valid target price',
-                        dialogType: DialogType.error,
-                      );
-                      return;
-                    }
-
-                    final alert = PriceAlert(
-                      auctionId: auction.id,
-                      assetId: auction.baseAsset,
-                      targetPrice: targetPrice,
-                      alertWhenBelow: alertWhenBelow,
-                      enabled: true,
-                      createdAt: DateTime.now(),
-                    );
-
-                    if (existingAlert != null) {
-                      await priceAlertProvider.updateAlert(alert);
-                    } else {
-                      await priceAlertProvider.addAlert(alert);
-                    }
-
-                    if (dialogContext.mounted) Navigator.of(dialogContext).pop();
-                    notificationProvider.add(
-                      title: 'Alert Set',
-                      content:
-                          'You will be notified when price ${alertWhenBelow ? "drops below" : "rises above"} $targetPrice sats',
-                      dialogType: DialogType.success,
-                    );
-                  },
-                ),
-              ],
             );
           },
         );
@@ -865,8 +873,8 @@ class _AlertTypeButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = SailTheme.of(context);
 
-    return InkWell(
-      onTap: onTap,
+    return SailTappable(
+      onTap: () async => onTap(),
       borderRadius: SailStyleValues.borderRadius,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
@@ -879,7 +887,7 @@ class _AlertTypeButton extends StatelessWidget {
         ),
         child: SailText.primary12(
           label,
-          color: isSelected ? Colors.white : null,
+          color: isSelected ? theme.colors.primaryButtonText : null,
         ),
       ),
     );

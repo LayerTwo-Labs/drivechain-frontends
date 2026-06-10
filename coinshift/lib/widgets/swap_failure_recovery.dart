@@ -1,6 +1,5 @@
 import 'package:coinshift/providers/analytics_provider.dart';
 import 'package:coinshift/providers/swap_provider.dart';
-import 'package:flutter/material.dart' show Colors, Icon, IconData, Icons, InkWell;
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
@@ -49,9 +48,9 @@ class _NoProblemsView extends StatelessWidget {
         spacing: SailStyleValues.padding12,
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
-            Icons.check_circle_outline,
-            size: 48,
+          SailSVG.fromAsset(
+            SailSVGAsset.circleCheck,
+            width: 48,
             color: theme.colors.success,
           ),
           SailText.primary15('No Recovery Needed'),
@@ -81,7 +80,7 @@ class _RecoverySummary extends StatelessWidget {
       child: SailRow(
         spacing: SailStyleValues.padding12,
         children: [
-          Icon(Icons.warning_amber, color: theme.colors.orange, size: 24),
+          SailSVG.fromAsset(SailSVGAsset.triangleAlert, width: 24, color: theme.colors.orange),
           Expanded(
             child: SailText.primary13(
               '${model.problemSwaps.length} swap(s) may need attention',
@@ -140,13 +139,9 @@ class _SwapRecoveryCard extends StatelessWidget {
                       'Swap ${swap.idHex.substring(0, 12)}...',
                       monospace: true,
                     ),
-                    InkWell(
-                      onTap: () => _copySwapId(context, swap.idHex),
-                      child: Icon(
-                        Icons.copy,
-                        size: 14,
-                        color: theme.colors.textSecondary,
-                      ),
+                    SailTappable(
+                      onTap: () async => _copySwapId(context, swap.idHex),
+                      child: SailSVG.fromAsset(SailSVGAsset.copy, width: 14, color: theme.colors.textSecondary),
                     ),
                   ],
                 ),
@@ -175,7 +170,7 @@ class _SwapRecoveryCard extends StatelessWidget {
               child: SailRow(
                 spacing: SailStyleValues.padding08,
                 children: [
-                  Icon(issue.icon, size: 16, color: issue.color),
+                  SailSVG.fromAsset(issue.icon, width: 16, color: issue.color),
                   Expanded(
                     child: SailText.secondary12(issue.description, color: issue.color),
                   ),
@@ -207,8 +202,8 @@ class _SwapRecoveryCard extends StatelessWidget {
   SwapIssue _getSwapIssue(CoinShiftSwap swap) {
     if (swap.state.isPending) {
       return SwapIssue(
-        icon: Icons.hourglass_empty,
-        color: Colors.orange,
+        icon: SailSVGAsset.hourglass,
+        color: SailColorScheme.orange,
         description: 'Pending - Waiting for L1 payment to be detected',
       );
     }
@@ -217,15 +212,15 @@ class _SwapRecoveryCard extends StatelessWidget {
       final required = swap.state.requiredConfirmations ?? 1;
       if (current < required / 2) {
         return SwapIssue(
-          icon: Icons.sync,
-          color: Colors.blue,
+          icon: SailSVGAsset.refreshCw,
+          color: SailColorScheme.blue,
           description: 'Slow confirmations - $current/$required confirmed',
         );
       }
     }
     return SwapIssue(
-      icon: Icons.help_outline,
-      color: Colors.grey,
+      icon: SailSVGAsset.circleHelp,
+      color: SailColorScheme.greyMiddle,
       description: 'Unknown issue - ${swap.state.state}',
     );
   }
@@ -241,7 +236,7 @@ class _SwapRecoveryCard extends StatelessWidget {
 }
 
 class SwapIssue {
-  final IconData icon;
+  final SailSVGAsset icon;
   final Color color;
   final String description;
 

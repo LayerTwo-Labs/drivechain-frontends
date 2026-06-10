@@ -1,6 +1,5 @@
 import 'package:bitwindow/providers/address_book_provider.dart';
 import 'package:fixnum/fixnum.dart' show Int64;
-import 'package:flutter/material.dart' show Colors, Dialog;
 import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
@@ -341,44 +340,41 @@ class _AddressBookContentState extends State<AddressBookContent> {
   void _showDeleteConfirmation(BuildContext context, AddressBookEntry entry) {
     showThemedDialog(
       context: context,
-      builder: (context) => Dialog(
-        backgroundColor: Colors.transparent,
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 400),
-          child: SailCard(
-            title: 'Delete Address',
-            subtitle: '',
-            error: widget.viewModel.error('delete'),
-            child: SailColumn(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              spacing: SailStyleValues.padding16,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                SailText.secondary13('Are you sure you want to delete "${entry.label}"?'),
-                SailRow(
-                  spacing: SailStyleValues.padding08,
-                  children: [
-                    SailButton(
-                      label: 'Delete',
-                      onPressed: () async {
-                        try {
-                          await widget.viewModel.deleteEntry(entry.id);
-                          if (context.mounted) {
-                            Navigator.pop(context);
-                          }
-                        } catch (e) {
-                          // Error is handled by the model
+      builder: (context) => SailModal(
+        constraints: const BoxConstraints(maxWidth: 400),
+        child: SailCard(
+          title: 'Delete Address',
+          subtitle: '',
+          error: widget.viewModel.error('delete'),
+          child: SailColumn(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            spacing: SailStyleValues.padding16,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              SailText.secondary13('Are you sure you want to delete "${entry.label}"?'),
+              SailRow(
+                spacing: SailStyleValues.padding08,
+                children: [
+                  SailButton(
+                    label: 'Delete',
+                    onPressed: () async {
+                      try {
+                        await widget.viewModel.deleteEntry(entry.id);
+                        if (context.mounted) {
+                          Navigator.pop(context);
                         }
-                      },
-                    ),
-                    SailButton(
-                      label: 'Cancel',
-                      onPressed: () async => Navigator.pop(context),
-                    ),
-                  ],
-                ),
-              ],
-            ),
+                      } catch (e) {
+                        // Error is handled by the model
+                      }
+                    },
+                  ),
+                  SailButton(
+                    label: 'Cancel',
+                    onPressed: () async => Navigator.pop(context),
+                  ),
+                ],
+              ),
+            ],
           ),
         ),
       ),
@@ -418,45 +414,40 @@ class _CreateDialogState extends State<_CreateDialog> {
 
   @override
   Widget build(BuildContext context) {
-    return Dialog(
-      backgroundColor: Colors.transparent,
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 400),
-        child: SailCard(
-          title: widget.viewModel.direction == Direction.DIRECTION_SEND
-              ? 'New Sending Address'
-              : 'New Receiving Address',
-          subtitle: '',
-          withCloseButton: true,
-          error: widget.viewModel.error('create'),
-          child: SailColumn(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            spacing: SailStyleValues.padding16,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              SailTextField(
-                label: 'Address',
-                controller: widget.viewModel.addressController,
-                hintText: 'Enter a Bitcoin address',
-                size: TextFieldSize.small,
-              ),
-              SailTextField(
-                label: 'Label',
-                controller: widget.viewModel.labelController,
-                hintText: 'Enter a label for this address',
-                size: TextFieldSize.small,
-              ),
-              SailButton(
-                label: 'Create',
-                onPressed: () async {
-                  await widget.viewModel.createEntry();
-                  if (context.mounted) Navigator.pop(context);
-                },
-                disabled:
-                    widget.viewModel.labelController.text.isEmpty || widget.viewModel.addressController.text.isEmpty,
-              ),
-            ],
-          ),
+    return SailModal(
+      constraints: const BoxConstraints(maxWidth: 400),
+      child: SailCard(
+        title: widget.viewModel.direction == Direction.DIRECTION_SEND ? 'New Sending Address' : 'New Receiving Address',
+        subtitle: '',
+        withCloseButton: true,
+        error: widget.viewModel.error('create'),
+        child: SailColumn(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          spacing: SailStyleValues.padding16,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            SailTextField(
+              label: 'Address',
+              controller: widget.viewModel.addressController,
+              hintText: 'Enter a Bitcoin address',
+              size: TextFieldSize.small,
+            ),
+            SailTextField(
+              label: 'Label',
+              controller: widget.viewModel.labelController,
+              hintText: 'Enter a label for this address',
+              size: TextFieldSize.small,
+            ),
+            SailButton(
+              label: 'Create',
+              onPressed: () async {
+                await widget.viewModel.createEntry();
+                if (context.mounted) Navigator.pop(context);
+              },
+              disabled:
+                  widget.viewModel.labelController.text.isEmpty || widget.viewModel.addressController.text.isEmpty,
+            ),
+          ],
         ),
       ),
     );
@@ -495,42 +486,39 @@ class _EditDialogState extends State<_EditDialog> {
 
   @override
   Widget build(BuildContext context) {
-    return Dialog(
-      backgroundColor: Colors.transparent,
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 400),
-        child: SailCard(
-          title: 'Edit Label',
-          subtitle: '',
-          withCloseButton: true,
-          error: widget.viewModel.error('edit'),
-          child: SailColumn(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            spacing: SailStyleValues.padding16,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              SailTextField(
-                label: 'Label',
-                controller: widget.viewModel.editLabelController,
-                hintText: 'Enter a new label',
-                size: TextFieldSize.small,
-              ),
-              SailButton(
-                label: 'Update',
-                onPressed: () async {
-                  try {
-                    await widget.viewModel.updateLabel(widget.entry.id);
-                    if (context.mounted) {
-                      Navigator.pop(context);
-                    }
-                  } catch (e) {
-                    // Error is handled by the model
+    return SailModal(
+      constraints: const BoxConstraints(maxWidth: 400),
+      child: SailCard(
+        title: 'Edit Label',
+        subtitle: '',
+        withCloseButton: true,
+        error: widget.viewModel.error('edit'),
+        child: SailColumn(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          spacing: SailStyleValues.padding16,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            SailTextField(
+              label: 'Label',
+              controller: widget.viewModel.editLabelController,
+              hintText: 'Enter a new label',
+              size: TextFieldSize.small,
+            ),
+            SailButton(
+              label: 'Update',
+              onPressed: () async {
+                try {
+                  await widget.viewModel.updateLabel(widget.entry.id);
+                  if (context.mounted) {
+                    Navigator.pop(context);
                   }
-                },
-                disabled: widget.viewModel.editLabelController.text.isEmpty,
-              ),
-            ],
-          ),
+                } catch (e) {
+                  // Error is handled by the model
+                }
+              },
+              disabled: widget.viewModel.editLabelController.text.isEmpty,
+            ),
+          ],
         ),
       ),
     );

@@ -8,7 +8,6 @@ import 'package:bs58/bs58.dart';
 import 'package:convert/convert.dart';
 import 'package:crypto/crypto.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:flutter/material.dart' show Colors, Dialog, Icon, Icons;
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
@@ -92,331 +91,324 @@ class CreateMultisigModal extends StatelessWidget {
       viewModelBuilder: () => CreateMultisigModalViewModel(),
       onViewModelReady: (model) => model.init(),
       builder: (context, viewModel, child) {
-        return Dialog(
-          backgroundColor: Colors.transparent,
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 600, maxHeight: 700),
-            child: SailCard(
-              title: viewModel.currentStep == 0 ? 'Create Multisig Group' : 'Import Public Keys',
-              subtitle: viewModel.currentStep == 0
-                  ? 'Set up your multisig parameters'
-                  : 'Add public keys to your multisig group (${viewModel.keys.length}/${viewModel.n})',
-              error: viewModel.modalError,
-              child: SingleChildScrollView(
-                child: SailColumn(
-                  spacing: SailStyleValues.padding16,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    if (viewModel.currentStep == 0) ...[
-                      SailTextField(
-                        label: 'Multisig Group Name',
-                        controller: viewModel.nameController,
-                        hintText: 'Enter a name for your multisig group',
-                        size: TextFieldSize.small,
-                      ),
-                      SailRow(
-                        spacing: SailStyleValues.padding08,
-                        children: [
-                          Expanded(
-                            child: SailTextField(
-                              label: 'Required Signatures (m)',
-                              controller: viewModel.mController,
-                              hintText: '2',
-                              size: TextFieldSize.small,
-                              textFieldType: TextFieldType.number,
-                            ),
-                          ),
-                          Expanded(
-                            child: SailTextField(
-                              label: 'Total Keys (n)',
-                              controller: viewModel.nController,
-                              hintText: '3',
-                              size: TextFieldSize.small,
-                              textFieldType: TextFieldType.number,
-                            ),
-                          ),
-                        ],
-                      ),
-                      if (viewModel.parameterError != null)
-                        SailText.secondary12(
-                          viewModel.parameterError!,
-                          color: context.sailTheme.colors.error,
-                        ),
-                      SailCheckbox(
-                        label: 'Do not store on chain (Not recommended)',
-                        value: viewModel.shouldNotBroadcast,
-                        onChanged: (value) => viewModel.setShouldNotBroadcast(value),
-                      ),
-                      if (viewModel.shouldNotBroadcast)
-                        SailCard(
-                          shadowSize: ShadowSize.none,
-                          child: Container(
-                            padding: const EdgeInsets.all(SailStyleValues.padding12),
-                            decoration: BoxDecoration(
-                              color: context.sailTheme.colors.orange.withValues(alpha: 0.1),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: SailRow(
-                              spacing: SailStyleValues.padding08,
-                              children: [
-                                Icon(
-                                  Icons.info_outlined,
-                                  color: context.sailTheme.colors.orange,
-                                  size: 16,
-                                ),
-                                Expanded(
-                                  child: SailText.secondary12(
-                                    'If you check this box, you must manually back up the multisig configuration. This is very risky but in some situations has a privacy benefit',
-                                    color: context.sailTheme.colors.orange,
-                                  ),
-                                ),
-                              ],
-                            ),
+        return SailModal(
+          constraints: const BoxConstraints(maxWidth: 600, maxHeight: 700),
+          child: SailCard(
+            title: viewModel.currentStep == 0 ? 'Create Multisig Group' : 'Import Public Keys',
+            subtitle: viewModel.currentStep == 0
+                ? 'Set up your multisig parameters'
+                : 'Add public keys to your multisig group (${viewModel.keys.length}/${viewModel.n})',
+            error: viewModel.modalError,
+            child: SingleChildScrollView(
+              child: SailColumn(
+                spacing: SailStyleValues.padding16,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (viewModel.currentStep == 0) ...[
+                    SailTextField(
+                      label: 'Multisig Group Name',
+                      controller: viewModel.nameController,
+                      hintText: 'Enter a name for your multisig group',
+                      size: TextFieldSize.small,
+                    ),
+                    SailRow(
+                      spacing: SailStyleValues.padding08,
+                      children: [
+                        Expanded(
+                          child: SailTextField(
+                            label: 'Required Signatures (m)',
+                            controller: viewModel.mController,
+                            hintText: '2',
+                            size: TextFieldSize.small,
+                            textFieldType: TextFieldType.number,
                           ),
                         ),
-                    ] else ...[
+                        Expanded(
+                          child: SailTextField(
+                            label: 'Total Keys (n)',
+                            controller: viewModel.nController,
+                            hintText: '3',
+                            size: TextFieldSize.small,
+                            textFieldType: TextFieldType.number,
+                          ),
+                        ),
+                      ],
+                    ),
+                    if (viewModel.parameterError != null)
+                      SailText.secondary12(
+                        viewModel.parameterError!,
+                        color: context.sailTheme.colors.error,
+                      ),
+                    SailCheckbox(
+                      label: 'Do not store on chain (Not recommended)',
+                      value: viewModel.shouldNotBroadcast,
+                      onChanged: (value) => viewModel.setShouldNotBroadcast(value),
+                    ),
+                    if (viewModel.shouldNotBroadcast)
                       SailCard(
                         shadowSize: ShadowSize.none,
-                        child: SailColumn(
-                          spacing: SailStyleValues.padding08,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            SailRow(
-                              mainAxisAlignment: MainAxisAlignment.start,
-                              children: [
-                                SailText.primary15(viewModel.nameController.text),
-                                SailSpacing(SailStyleValues.padding16),
-                                SailText.secondary12('${viewModel.m}-of-${viewModel.n} multisig'),
-                              ],
-                            ),
-                            SailSpacing(SailStyleValues.padding04),
-                            SailText.secondary12('Keys added: ${viewModel.keys.length}/${viewModel.n}'),
-                            if (viewModel.keys.length >= viewModel.n)
-                              SailText.secondary12(
-                                'Maximum keys reached',
-                                color: context.sailTheme.colors.orange,
-                              ),
-                          ],
-                        ),
-                      ),
-                      if (viewModel.keys.length != viewModel.n)
-                        SailCard(
-                          shadowSize: ShadowSize.none,
-                          child: SailColumn(
-                            spacing: SailStyleValues.padding12,
-                            crossAxisAlignment: CrossAxisAlignment.start,
+                        child: Container(
+                          padding: const EdgeInsets.all(SailStyleValues.padding12),
+                          decoration: BoxDecoration(
+                            color: context.sailTheme.colors.orange.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: SailRow(
+                            spacing: SailStyleValues.padding08,
                             children: [
-                              SailText.primary15('Add Public Key'),
-                              SailRow(
-                                spacing: SailStyleValues.padding08,
-                                children: [
-                                  Expanded(
-                                    child: SailTextField(
-                                      label: 'Owner Name',
-                                      controller: viewModel.ownerController,
-                                      hintText: 'Key owner name',
-                                      size: TextFieldSize.small,
-                                    ),
-                                  ),
-                                  Expanded(
-                                    child: SailTextField(
-                                      label: 'Derivation Path',
-                                      controller: viewModel.pathController,
-                                      hintText: "m/84'/1'/0'/0/0",
-                                      size: TextFieldSize.small,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              SailTextField(
-                                label: 'Extended Public Key (xPub)',
-                                controller: viewModel.pubkeyController,
-                                hintText: 'Paste xPub or generate wallet xPub',
-                                size: TextFieldSize.small,
-                                minLines: 2,
-                                suffixWidget: SailButton(
-                                  label: 'Paste',
-                                  variant: ButtonVariant.ghost,
-                                  small: true,
-                                  onPressed: viewModel.keys.length < viewModel.n
-                                      ? () async => await viewModel.pastePublicKey()
-                                      : null,
+                              SailSVG.fromAsset(SailSVGAsset.info, width: 16, color: context.sailTheme.colors.orange),
+                              Expanded(
+                                child: SailText.secondary12(
+                                  'If you check this box, you must manually back up the multisig configuration. This is very risky but in some situations has a privacy benefit',
+                                  color: context.sailTheme.colors.orange,
                                 ),
-                              ),
-                              SailRow(
-                                spacing: SailStyleValues.padding08,
-                                children: [
-                                  Expanded(
-                                    child: SailTextField(
-                                      label: 'Master Fingerprint (Optional)',
-                                      controller: viewModel.fingerprintController,
-                                      hintText: 'e.g., d34db33f',
-                                      size: TextFieldSize.small,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              SailRow(
-                                spacing: SailStyleValues.padding08,
-                                children: [
-                                  SailButton(
-                                    label: 'Generate Wallet xPub',
-                                    onPressed: viewModel.canGenerateKey && viewModel.keys.length < viewModel.n
-                                        ? () async => await viewModel.generatePublicKey()
-                                        : null,
-                                    variant: ButtonVariant.secondary,
-                                  ),
-                                  SailButton(
-                                    label: 'Import Key',
-                                    onPressed: viewModel.keys.length < viewModel.n
-                                        ? () async => await viewModel.importKeyFromFile(context)
-                                        : null,
-                                    variant: ButtonVariant.secondary,
-                                  ),
-                                ],
-                              ),
-                              SailButton(
-                                label: 'Save Key',
-                                onPressed: viewModel.canSaveKey ? () async => viewModel.saveKey() : null,
-                                disabled: !viewModel.canSaveKey,
                               ),
                             ],
                           ),
                         ),
-                      if (viewModel.keys.isNotEmpty) ...[
-                        SailRow(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      ),
+                  ] else ...[
+                    SailCard(
+                      shadowSize: ShadowSize.none,
+                      child: SailColumn(
+                        spacing: SailStyleValues.padding08,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          SailRow(
+                            mainAxisAlignment: MainAxisAlignment.start,
+                            children: [
+                              SailText.primary15(viewModel.nameController.text),
+                              SailSpacing(SailStyleValues.padding16),
+                              SailText.secondary12('${viewModel.m}-of-${viewModel.n} multisig'),
+                            ],
+                          ),
+                          SailSpacing(SailStyleValues.padding04),
+                          SailText.secondary12('Keys added: ${viewModel.keys.length}/${viewModel.n}'),
+                          if (viewModel.keys.length >= viewModel.n)
+                            SailText.secondary12(
+                              'Maximum keys reached',
+                              color: context.sailTheme.colors.orange,
+                            ),
+                        ],
+                      ),
+                    ),
+                    if (viewModel.keys.length != viewModel.n)
+                      SailCard(
+                        shadowSize: ShadowSize.none,
+                        child: SailColumn(
+                          spacing: SailStyleValues.padding12,
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            SailText.primary15('Saved Keys (${viewModel.keys.length})'),
-                            if (viewModel.keys.length == viewModel.n)
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                decoration: BoxDecoration(
-                                  color: context.sailTheme.colors.primary.withValues(alpha: 0.1),
-                                  borderRadius: BorderRadius.circular(4),
-                                ),
-                                child: SailText.secondary12(
-                                  'Ready to save',
-                                  color: context.sailTheme.colors.primary,
-                                ),
-                              )
-                            else
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                decoration: BoxDecoration(
-                                  color: context.sailTheme.colors.orange.withValues(alpha: 0.1),
-                                  borderRadius: BorderRadius.circular(4),
-                                ),
-                                child: SailText.secondary12(
-                                  'Need ${viewModel.n - viewModel.keys.length} more',
-                                  color: context.sailTheme.colors.orange,
-                                ),
-                              ),
-                          ],
-                        ),
-                        ...viewModel.keys.asMap().entries.map((entry) {
-                          final index = entry.key;
-                          final key = entry.value;
-                          return SailCard(
-                            shadowSize: ShadowSize.none,
-                            child: SailColumn(
+                            SailText.primary15('Add Public Key'),
+                            SailRow(
                               spacing: SailStyleValues.padding08,
-                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                SailRow(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                  crossAxisAlignment: CrossAxisAlignment.center,
-                                  children: [
-                                    Expanded(
-                                      child: SailColumn(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        spacing: SailStyleValues.padding04,
-                                        children: [
-                                          SailText.primary13('${index + 1}. ${key.owner}'),
-                                          SailRow(
-                                            spacing: SailStyleValues.padding04,
-                                            children: [
-                                              Container(
-                                                padding: const EdgeInsets.symmetric(
-                                                  horizontal: 6,
-                                                  vertical: 2,
-                                                ),
-                                                decoration: BoxDecoration(
-                                                  color: key.isWallet
-                                                      ? context.sailTheme.colors.primary.withValues(alpha: 0.1)
-                                                      : context.sailTheme.colors.orange.withValues(alpha: 0.1),
-                                                  borderRadius: BorderRadius.circular(4),
-                                                ),
-                                                child: SailText.secondary12(
-                                                  key.isWallet ? 'Wallet Key' : 'External Key',
-                                                  color: key.isWallet
-                                                      ? context.sailTheme.colors.primary
-                                                      : context.sailTheme.colors.orange,
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                    SailButton(
-                                      label: 'Remove',
-                                      onPressed: () async => viewModel.removeKey(index),
-                                      variant: ButtonVariant.ghost,
-                                    ),
-                                  ],
+                                Expanded(
+                                  child: SailTextField(
+                                    label: 'Owner Name',
+                                    controller: viewModel.ownerController,
+                                    hintText: 'Key owner name',
+                                    size: TextFieldSize.small,
+                                  ),
                                 ),
-                                SailText.secondary12('Path: ${key.derivationPath}'),
-                                SailText.secondary12('xPub: ${key.xpub.substring(0, 20)}...'),
+                                Expanded(
+                                  child: SailTextField(
+                                    label: 'Derivation Path',
+                                    controller: viewModel.pathController,
+                                    hintText: "m/84'/1'/0'/0/0",
+                                    size: TextFieldSize.small,
+                                  ),
+                                ),
                               ],
                             ),
-                          );
-                        }),
-                      ],
-                    ],
-                    SailRow(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        if (viewModel.currentStep > 0)
-                          SailButton(
-                            label: 'Back',
-                            onPressed: () async => viewModel.goBack(),
-                            variant: ButtonVariant.ghost,
-                          )
-                        else
-                          Container(),
-                        SailRow(
-                          spacing: SailStyleValues.padding08,
-                          children: [
-                            SailButton(
-                              label: 'Cancel',
-                              onPressed: () async => Navigator.of(context).pop(false),
-                              variant: ButtonVariant.ghost,
-                            ),
-                            if (viewModel.currentStep == 0)
-                              SailButton(
-                                label: 'Next',
-                                onPressed: viewModel.canProceed ? () async => await viewModel.nextStep() : null,
-                                disabled: !viewModel.canProceed,
-                              )
-                            else if (viewModel.canSaveGroup)
-                              SailButton(
-                                label: 'Save Multisig Group',
-                                onPressed: () => viewModel.saveMultisigGroup(context),
-                                loading: viewModel.isBusy,
-                              )
-                            else
-                              SailButton(
-                                label: 'Need ${viewModel.m - viewModel.keys.length} more key(s)',
-                                onPressed: null,
-                                disabled: true,
+                            SailTextField(
+                              label: 'Extended Public Key (xPub)',
+                              controller: viewModel.pubkeyController,
+                              hintText: 'Paste xPub or generate wallet xPub',
+                              size: TextFieldSize.small,
+                              minLines: 2,
+                              suffixWidget: SailButton(
+                                label: 'Paste',
+                                variant: ButtonVariant.ghost,
+                                small: true,
+                                onPressed: viewModel.keys.length < viewModel.n
+                                    ? () async => await viewModel.pastePublicKey()
+                                    : null,
                               ),
+                            ),
+                            SailRow(
+                              spacing: SailStyleValues.padding08,
+                              children: [
+                                Expanded(
+                                  child: SailTextField(
+                                    label: 'Master Fingerprint (Optional)',
+                                    controller: viewModel.fingerprintController,
+                                    hintText: 'e.g., d34db33f',
+                                    size: TextFieldSize.small,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            SailRow(
+                              spacing: SailStyleValues.padding08,
+                              children: [
+                                SailButton(
+                                  label: 'Generate Wallet xPub',
+                                  onPressed: viewModel.canGenerateKey && viewModel.keys.length < viewModel.n
+                                      ? () async => await viewModel.generatePublicKey()
+                                      : null,
+                                  variant: ButtonVariant.secondary,
+                                ),
+                                SailButton(
+                                  label: 'Import Key',
+                                  onPressed: viewModel.keys.length < viewModel.n
+                                      ? () async => await viewModel.importKeyFromFile(context)
+                                      : null,
+                                  variant: ButtonVariant.secondary,
+                                ),
+                              ],
+                            ),
+                            SailButton(
+                              label: 'Save Key',
+                              onPressed: viewModel.canSaveKey ? () async => viewModel.saveKey() : null,
+                              disabled: !viewModel.canSaveKey,
+                            ),
                           ],
                         ),
-                      ],
-                    ),
+                      ),
+                    if (viewModel.keys.isNotEmpty) ...[
+                      SailRow(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          SailText.primary15('Saved Keys (${viewModel.keys.length})'),
+                          if (viewModel.keys.length == viewModel.n)
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: context.sailTheme.colors.primary.withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: SailText.secondary12(
+                                'Ready to save',
+                                color: context.sailTheme.colors.primary,
+                              ),
+                            )
+                          else
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: context.sailTheme.colors.orange.withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: SailText.secondary12(
+                                'Need ${viewModel.n - viewModel.keys.length} more',
+                                color: context.sailTheme.colors.orange,
+                              ),
+                            ),
+                        ],
+                      ),
+                      ...viewModel.keys.asMap().entries.map((entry) {
+                        final index = entry.key;
+                        final key = entry.value;
+                        return SailCard(
+                          shadowSize: ShadowSize.none,
+                          child: SailColumn(
+                            spacing: SailStyleValues.padding08,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              SailRow(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                crossAxisAlignment: CrossAxisAlignment.center,
+                                children: [
+                                  Expanded(
+                                    child: SailColumn(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      spacing: SailStyleValues.padding04,
+                                      children: [
+                                        SailText.primary13('${index + 1}. ${key.owner}'),
+                                        SailRow(
+                                          spacing: SailStyleValues.padding04,
+                                          children: [
+                                            Container(
+                                              padding: const EdgeInsets.symmetric(
+                                                horizontal: 6,
+                                                vertical: 2,
+                                              ),
+                                              decoration: BoxDecoration(
+                                                color: key.isWallet
+                                                    ? context.sailTheme.colors.primary.withValues(alpha: 0.1)
+                                                    : context.sailTheme.colors.orange.withValues(alpha: 0.1),
+                                                borderRadius: BorderRadius.circular(4),
+                                              ),
+                                              child: SailText.secondary12(
+                                                key.isWallet ? 'Wallet Key' : 'External Key',
+                                                color: key.isWallet
+                                                    ? context.sailTheme.colors.primary
+                                                    : context.sailTheme.colors.orange,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  SailButton(
+                                    label: 'Remove',
+                                    onPressed: () async => viewModel.removeKey(index),
+                                    variant: ButtonVariant.ghost,
+                                  ),
+                                ],
+                              ),
+                              SailText.secondary12('Path: ${key.derivationPath}'),
+                              SailText.secondary12('xPub: ${key.xpub.substring(0, 20)}...'),
+                            ],
+                          ),
+                        );
+                      }),
+                    ],
                   ],
-                ),
+                  SailRow(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      if (viewModel.currentStep > 0)
+                        SailButton(
+                          label: 'Back',
+                          onPressed: () async => viewModel.goBack(),
+                          variant: ButtonVariant.ghost,
+                        )
+                      else
+                        Container(),
+                      SailRow(
+                        spacing: SailStyleValues.padding08,
+                        children: [
+                          SailButton(
+                            label: 'Cancel',
+                            onPressed: () async => Navigator.of(context).pop(false),
+                            variant: ButtonVariant.ghost,
+                          ),
+                          if (viewModel.currentStep == 0)
+                            SailButton(
+                              label: 'Next',
+                              onPressed: viewModel.canProceed ? () async => await viewModel.nextStep() : null,
+                              disabled: !viewModel.canProceed,
+                            )
+                          else if (viewModel.canSaveGroup)
+                            SailButton(
+                              label: 'Save Multisig Group',
+                              onPressed: () => viewModel.saveMultisigGroup(context),
+                              loading: viewModel.isBusy,
+                            )
+                          else
+                            SailButton(
+                              label: 'Need ${viewModel.m - viewModel.keys.length} more key(s)',
+                              onPressed: null,
+                              disabled: true,
+                            ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ],
               ),
             ),
           ),
@@ -963,115 +955,112 @@ class ImportMultisigModal extends StatelessWidget {
     return ViewModelBuilder<ImportMultisigModalViewModel>.reactive(
       viewModelBuilder: () => ImportMultisigModalViewModel(),
       builder: (context, viewModel, child) {
-        return Dialog(
-          backgroundColor: Colors.transparent,
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 600, maxHeight: 700),
-            child: SailCard(
-              title: 'Import Multisig from TXID',
-              subtitle: 'Import a multisig group by providing the transaction ID',
-              error: viewModel.modalError,
-              child: SingleChildScrollView(
-                child: SailColumn(
-                  spacing: SailStyleValues.padding16,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    if (!viewModel.hasFoundGroup) ...[
-                      SailTextField(
-                        label: 'Transaction ID',
-                        controller: viewModel.txidController,
-                        hintText: 'Paste the transaction ID containing the multisig data',
-                        size: TextFieldSize.small,
-                      ),
-                      SailButton(
-                        label: 'Fetch Multisig Data',
-                        onPressed: viewModel.canFetch ? () => viewModel.fetchMultisigData() : null,
-                        loading: viewModel.isBusy,
-                      ),
-                    ] else ...[
-                      SailText.primary15('Detected Keys'),
-                      SailText.secondary12(
-                        'The wallet has automatically detected which keys belong to you.',
-                      ),
-                      SailSpacing(SailStyleValues.padding08),
-                      if (viewModel.processedKeys != null)
-                        ...viewModel.processedKeys!.asMap().entries.map((entry) {
-                          final index = entry.key;
-                          final key = entry.value;
-                          return SailCard(
-                            shadowSize: ShadowSize.none,
-                            child: SailColumn(
-                              spacing: SailStyleValues.padding08,
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                SailRow(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    SailText.primary13('${index + 1}. ${key.owner}'),
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                      decoration: BoxDecoration(
-                                        color: key.isWallet
-                                            ? context.sailTheme.colors.primary.withValues(alpha: 0.1)
-                                            : context.sailTheme.colors.text.withValues(alpha: 0.1),
-                                        borderRadius: BorderRadius.circular(4),
-                                      ),
-                                      child: SailText.secondary12(
-                                        key.isWallet ? 'Wallet Key' : 'External Key',
-                                        color: key.isWallet
-                                            ? context.sailTheme.colors.primary
-                                            : context.sailTheme.colors.text,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                SailText.secondary12('Path: ${key.derivationPath}'),
-                                SailText.secondary12('xPub: ${key.xpub.substring(0, 20)}...'),
-                              ],
-                            ),
-                          );
-                        }),
-                      SailSpacing(SailStyleValues.padding16),
-                      SailText.primary13('Group Info:'),
-                      SailText.secondary12('Name: ${viewModel.importedGroup?.name}'),
-                      SailText.secondary12('ID: ${viewModel.importedGroup?.id.toUpperCase()}'),
-                      SailText.secondary12('Required: ${viewModel.importedGroup?.m} of ${viewModel.importedGroup?.n}'),
-                      if (viewModel.processedKeys != null)
-                        SailText.secondary12(
-                          'Wallet controls ${viewModel.processedKeys!.where((k) => k.isWallet).length} of ${viewModel.processedKeys!.length} keys',
-                        ),
-                    ],
-                    SailRow(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        if (viewModel.hasFoundGroup)
-                          SailButton(
-                            label: 'Back',
-                            onPressed: () async => viewModel.goBack(),
-                            variant: ButtonVariant.ghost,
-                          )
-                        else
-                          Container(),
-                        SailRow(
-                          spacing: SailStyleValues.padding08,
-                          children: [
-                            SailButton(
-                              label: 'Cancel',
-                              onPressed: () async => Navigator.of(context).pop(false),
-                              variant: ButtonVariant.ghost,
-                            ),
-                            if (viewModel.hasFoundGroup)
-                              SailButton(
-                                label: 'Import Group',
-                                onPressed: () async => await viewModel.importGroup(context),
-                                loading: viewModel.isBusy,
-                              ),
-                          ],
-                        ),
-                      ],
+        return SailModal(
+          constraints: const BoxConstraints(maxWidth: 600, maxHeight: 700),
+          child: SailCard(
+            title: 'Import Multisig from TXID',
+            subtitle: 'Import a multisig group by providing the transaction ID',
+            error: viewModel.modalError,
+            child: SingleChildScrollView(
+              child: SailColumn(
+                spacing: SailStyleValues.padding16,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (!viewModel.hasFoundGroup) ...[
+                    SailTextField(
+                      label: 'Transaction ID',
+                      controller: viewModel.txidController,
+                      hintText: 'Paste the transaction ID containing the multisig data',
+                      size: TextFieldSize.small,
                     ),
+                    SailButton(
+                      label: 'Fetch Multisig Data',
+                      onPressed: viewModel.canFetch ? () => viewModel.fetchMultisigData() : null,
+                      loading: viewModel.isBusy,
+                    ),
+                  ] else ...[
+                    SailText.primary15('Detected Keys'),
+                    SailText.secondary12(
+                      'The wallet has automatically detected which keys belong to you.',
+                    ),
+                    SailSpacing(SailStyleValues.padding08),
+                    if (viewModel.processedKeys != null)
+                      ...viewModel.processedKeys!.asMap().entries.map((entry) {
+                        final index = entry.key;
+                        final key = entry.value;
+                        return SailCard(
+                          shadowSize: ShadowSize.none,
+                          child: SailColumn(
+                            spacing: SailStyleValues.padding08,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              SailRow(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  SailText.primary13('${index + 1}. ${key.owner}'),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                    decoration: BoxDecoration(
+                                      color: key.isWallet
+                                          ? context.sailTheme.colors.primary.withValues(alpha: 0.1)
+                                          : context.sailTheme.colors.text.withValues(alpha: 0.1),
+                                      borderRadius: BorderRadius.circular(4),
+                                    ),
+                                    child: SailText.secondary12(
+                                      key.isWallet ? 'Wallet Key' : 'External Key',
+                                      color: key.isWallet
+                                          ? context.sailTheme.colors.primary
+                                          : context.sailTheme.colors.text,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              SailText.secondary12('Path: ${key.derivationPath}'),
+                              SailText.secondary12('xPub: ${key.xpub.substring(0, 20)}...'),
+                            ],
+                          ),
+                        );
+                      }),
+                    SailSpacing(SailStyleValues.padding16),
+                    SailText.primary13('Group Info:'),
+                    SailText.secondary12('Name: ${viewModel.importedGroup?.name}'),
+                    SailText.secondary12('ID: ${viewModel.importedGroup?.id.toUpperCase()}'),
+                    SailText.secondary12('Required: ${viewModel.importedGroup?.m} of ${viewModel.importedGroup?.n}'),
+                    if (viewModel.processedKeys != null)
+                      SailText.secondary12(
+                        'Wallet controls ${viewModel.processedKeys!.where((k) => k.isWallet).length} of ${viewModel.processedKeys!.length} keys',
+                      ),
                   ],
-                ),
+                  SailRow(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      if (viewModel.hasFoundGroup)
+                        SailButton(
+                          label: 'Back',
+                          onPressed: () async => viewModel.goBack(),
+                          variant: ButtonVariant.ghost,
+                        )
+                      else
+                        Container(),
+                      SailRow(
+                        spacing: SailStyleValues.padding08,
+                        children: [
+                          SailButton(
+                            label: 'Cancel',
+                            onPressed: () async => Navigator.of(context).pop(false),
+                            variant: ButtonVariant.ghost,
+                          ),
+                          if (viewModel.hasFoundGroup)
+                            SailButton(
+                              label: 'Import Group',
+                              onPressed: () async => await viewModel.importGroup(context),
+                              loading: viewModel.isBusy,
+                            ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ],
               ),
             ),
           ),

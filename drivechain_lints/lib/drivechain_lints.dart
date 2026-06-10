@@ -10,6 +10,6 @@ class _DrivechainLints extends PluginBase {
   @override
   List<LintRule> getLintRules(CustomLintConfigs configs) => [
     AvoidBuildMethods(),
-    AvoidMaterialImport(),
+    AvoidMaterialImport.fromConfigs(configs),
   ];
 }

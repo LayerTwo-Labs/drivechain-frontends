@@ -4,7 +4,6 @@ import 'package:bitwindow/models/multisig_transaction.dart';
 import 'package:bitwindow/providers/hd_wallet_provider.dart';
 import 'package:bitwindow/providers/multisig_provider.dart';
 import 'package:crypto/crypto.dart';
-import 'package:flutter/material.dart' show Colors, Dialog;
 import 'package:flutter/widgets.dart';
 import 'package:flutter/services.dart';
 import 'package:get_it/get_it.dart';
@@ -30,66 +29,63 @@ class PSBTCoordinatorModal extends StatelessWidget {
     return ViewModelBuilder<CreateTransactionViewModel>.reactive(
       viewModelBuilder: () => CreateTransactionViewModel(group: group!),
       builder: (context, viewModel, child) {
-        return Dialog(
-          backgroundColor: Colors.transparent,
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 600, maxHeight: 500),
-            child: SailCard(
-              title: 'Create Transaction',
-              subtitle: 'Spend from ${group!.name} (${group!.m} of ${group!.n})',
-              error: viewModel.modalError,
-              withCloseButton: true,
-              child: SailColumn(
-                spacing: SailStyleValues.padding16,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  SailText.primary13(
-                    'Available Balance: ${group!.balance.toStringAsFixed(8)} BTC (${group!.utxos} UTXOs)',
+        return SailModal(
+          constraints: const BoxConstraints(maxWidth: 600, maxHeight: 500),
+          child: SailCard(
+            title: 'Create Transaction',
+            subtitle: 'Spend from ${group!.name} (${group!.m} of ${group!.n})',
+            error: viewModel.modalError,
+            withCloseButton: true,
+            child: SailColumn(
+              spacing: SailStyleValues.padding16,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SailText.primary13(
+                  'Available Balance: ${group!.balance.toStringAsFixed(8)} BTC (${group!.utxos} UTXOs)',
+                ),
+                SailTextField(
+                  label: 'Destination Address',
+                  controller: viewModel.destinationController,
+                  hintText: 'Enter destination address',
+                  size: TextFieldSize.small,
+                ),
+                NumericField(
+                  label: 'Amount (BTC)',
+                  controller: viewModel.amountController,
+                  suffixWidget: SailButton(
+                    label: 'MAX',
+                    variant: ButtonVariant.link,
+                    onPressed: () async => viewModel.useMaxAmount(),
+                    padding: EdgeInsets.zero,
                   ),
-                  SailTextField(
-                    label: 'Destination Address',
-                    controller: viewModel.destinationController,
-                    hintText: 'Enter destination address',
-                    size: TextFieldSize.small,
-                  ),
-                  NumericField(
-                    label: 'Amount (BTC)',
-                    controller: viewModel.amountController,
-                    suffixWidget: SailButton(
-                      label: 'MAX',
-                      variant: ButtonVariant.link,
-                      onPressed: () async => viewModel.useMaxAmount(),
-                      padding: EdgeInsets.zero,
+                ),
+                SailText.secondary12(
+                  'Transaction fee will be automatically calculated and deducted from the amount.',
+                ),
+                SailRow(
+                  spacing: SailStyleValues.padding12,
+                  children: [
+                    SailButton(
+                      label: 'Create Transaction',
+                      onPressed: viewModel.canCreateTransaction ? () => viewModel.createTransaction(context) : null,
+                      loading: viewModel.isCreating,
+                      variant: ButtonVariant.primary,
                     ),
-                  ),
-                  SailText.secondary12(
-                    'Transaction fee will be automatically calculated and deducted from the amount.',
-                  ),
-                  SailRow(
-                    spacing: SailStyleValues.padding12,
-                    children: [
+                    if (viewModel.hasWalletKeys && viewModel.createdPSBT != null)
                       SailButton(
-                        label: 'Create Transaction',
-                        onPressed: viewModel.canCreateTransaction ? () => viewModel.createTransaction(context) : null,
-                        loading: viewModel.isCreating,
-                        variant: ButtonVariant.primary,
+                        label: 'Sign with My Keys',
+                        onPressed: () => viewModel.signWithWalletKeys(context),
+                        loading: viewModel.isSigning,
+                        variant: ButtonVariant.secondary,
                       ),
-                      if (viewModel.hasWalletKeys && viewModel.createdPSBT != null)
-                        SailButton(
-                          label: 'Sign with My Keys',
-                          onPressed: () => viewModel.signWithWalletKeys(context),
-                          loading: viewModel.isSigning,
-                          variant: ButtonVariant.secondary,
-                        ),
-                      SailButton(
-                        label: 'Cancel',
-                        onPressed: () async => Navigator.of(context).pop(),
-                        variant: ButtonVariant.ghost,
-                      ),
-                    ],
-                  ),
-                ],
-              ),
+                    SailButton(
+                      label: 'Cancel',
+                      onPressed: () async => Navigator.of(context).pop(),
+                      variant: ButtonVariant.ghost,
+                    ),
+                  ],
+                ),
+              ],
             ),
           ),
         );
@@ -107,66 +103,63 @@ class _GroupSelectionModal extends StatelessWidget {
   Widget build(BuildContext context) {
     final fundedGroups = availableGroups?.where((g) => g.balance > 0).toList() ?? [];
 
-    return Dialog(
-      backgroundColor: Colors.transparent,
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 600, maxHeight: 500),
-        child: SailCard(
-          title: 'Select Multisig Group',
-          subtitle: 'Choose a funded group to create a transaction',
-          withCloseButton: true,
-          child: SailColumn(
-            spacing: SailStyleValues.padding16,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              if (fundedGroups.isEmpty) ...[
-                SailText.secondary13('No funded multisig groups available.'),
-                SailText.secondary12('Fund a group first to create transactions.'),
-              ] else ...[
-                SailText.primary13('Funded Groups (${fundedGroups.length})'),
-                SailSpacing(SailStyleValues.padding08),
-                Expanded(
-                  child: ListView.builder(
-                    itemCount: fundedGroups.length,
-                    itemBuilder: (context, index) {
-                      final group = fundedGroups[index];
-                      return SailCard(
-                        shadowSize: ShadowSize.none,
-                        child: SailRow(
-                          children: [
-                            Expanded(
-                              child: SailColumn(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                spacing: SailStyleValues.padding04,
-                                children: [
-                                  SailText.primary13(group.name),
-                                  SailText.secondary12('${group.m} of ${group.n} multisig'),
-                                  SailText.secondary12('Balance: ${group.balance.toStringAsFixed(8)} BTC'),
-                                  SailText.secondary12('UTXOs: ${group.utxos}'),
-                                ],
-                              ),
+    return SailModal(
+      constraints: const BoxConstraints(maxWidth: 600, maxHeight: 500),
+      child: SailCard(
+        title: 'Select Multisig Group',
+        subtitle: 'Choose a funded group to create a transaction',
+        withCloseButton: true,
+        child: SailColumn(
+          spacing: SailStyleValues.padding16,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (fundedGroups.isEmpty) ...[
+              SailText.secondary13('No funded multisig groups available.'),
+              SailText.secondary12('Fund a group first to create transactions.'),
+            ] else ...[
+              SailText.primary13('Funded Groups (${fundedGroups.length})'),
+              SailSpacing(SailStyleValues.padding08),
+              Expanded(
+                child: ListView.builder(
+                  itemCount: fundedGroups.length,
+                  itemBuilder: (context, index) {
+                    final group = fundedGroups[index];
+                    return SailCard(
+                      shadowSize: ShadowSize.none,
+                      child: SailRow(
+                        children: [
+                          Expanded(
+                            child: SailColumn(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              spacing: SailStyleValues.padding04,
+                              children: [
+                                SailText.primary13(group.name),
+                                SailText.secondary12('${group.m} of ${group.n} multisig'),
+                                SailText.secondary12('Balance: ${group.balance.toStringAsFixed(8)} BTC'),
+                                SailText.secondary12('UTXOs: ${group.utxos}'),
+                              ],
                             ),
-                            const SizedBox(width: SailStyleValues.padding16),
-                            SailButton(
-                              label: 'Select Group',
-                              onPressed: () async {
-                                Navigator.of(context).pop();
-                                await showThemedDialog(
-                                  context: context,
-                                  builder: (context) => PSBTCoordinatorModal(group: group),
-                                );
-                              },
-                              variant: ButtonVariant.primary,
-                            ),
-                          ],
-                        ),
-                      );
-                    },
-                  ),
+                          ),
+                          const SizedBox(width: SailStyleValues.padding16),
+                          SailButton(
+                            label: 'Select Group',
+                            onPressed: () async {
+                              Navigator.of(context).pop();
+                              await showThemedDialog(
+                                context: context,
+                                builder: (context) => PSBTCoordinatorModal(group: group),
+                              );
+                            },
+                            variant: ButtonVariant.primary,
+                          ),
+                        ],
+                      ),
+                    );
+                  },
                 ),
-              ],
+              ),
             ],
-          ),
+          ],
         ),
       ),
     );

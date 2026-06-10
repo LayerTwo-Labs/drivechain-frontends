@@ -1,4 +1,3 @@
-import 'package:flutter/material.dart' show Icon, IconButton, Icons, InkWell, LinearProgressIndicator, SelectableText;
 import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
@@ -191,13 +190,15 @@ class _SuccessMessage extends StatelessWidget {
       child: SailRow(
         spacing: SailStyleValues.padding08,
         children: [
-          Icon(Icons.check_circle, color: theme.colors.success, size: 16),
+          SailSVG.fromAsset(SailSVGAsset.circleCheck, width: 16, color: theme.colors.success),
           Expanded(child: SailText.primary13(message, color: theme.colors.success)),
-          IconButton(
-            icon: Icon(Icons.close, size: 16, color: theme.colors.success),
-            onPressed: onDismiss,
-            padding: EdgeInsets.zero,
-            constraints: const BoxConstraints(),
+          SailTappable(
+            onTap: () async => onDismiss(),
+            borderRadius: SailStyleValues.borderRadiusSmall,
+            child: Padding(
+              padding: const EdgeInsets.all(4),
+              child: SailSVG.fromAsset(SailSVGAsset.x, width: 16, color: theme.colors.success),
+            ),
           ),
         ],
       ),
@@ -224,7 +225,7 @@ class _ErrorMessage extends StatelessWidget {
       child: SailRow(
         spacing: SailStyleValues.padding08,
         children: [
-          Icon(Icons.error, color: theme.colors.error, size: 16),
+          SailSVG.fromAsset(SailSVGAsset.circleAlert, width: 16, color: theme.colors.error),
           Expanded(child: SailText.primary13(message, color: theme.colors.error)),
         ],
       ),
@@ -398,8 +399,8 @@ class _SwapRow extends StatelessWidget {
     return Column(
       children: [
         // Main row
-        InkWell(
-          onTap: onTap,
+        SailTappable(
+          onTap: () async => onTap(),
           child: Container(
             padding: const EdgeInsets.symmetric(
               horizontal: SailStyleValues.padding12,
@@ -412,9 +413,9 @@ class _SwapRow extends StatelessWidget {
               spacing: SailStyleValues.padding16,
               children: [
                 // Expand icon
-                Icon(
-                  isExpanded ? Icons.expand_less : Icons.expand_more,
-                  size: 20,
+                SailSVG.fromAsset(
+                  isExpanded ? SailSVGAsset.chevronUp : SailSVGAsset.chevronDown,
+                  width: 20,
                   color: theme.colors.textSecondary,
                 ),
 
@@ -501,12 +502,12 @@ class _ConfirmationProgress extends StatelessWidget {
     return SailColumn(
       spacing: SailStyleValues.padding04,
       children: [
-        LinearProgressIndicator(
-          value: progress,
-          backgroundColor: theme.colors.backgroundSecondary,
-          valueColor: AlwaysStoppedAnimation<Color>(theme.colors.info),
-          minHeight: 4,
-          borderRadius: BorderRadius.circular(2),
+        ProgressBar(
+          current: progress,
+          goal: 1,
+          small: true,
+          hideProgressInside: true,
+          color: theme.colors.info,
         ),
         SailText.secondary12('$current / $required'),
       ],
@@ -542,7 +543,7 @@ class _SwapDetails extends StatelessWidget {
               child: SailRow(
                 spacing: SailStyleValues.padding08,
                 children: [
-                  Icon(Icons.warning, color: theme.colors.error, size: 16),
+                  SailSVG.fromAsset(SailSVGAsset.triangleAlert, width: 16, color: theme.colors.error),
                   Expanded(
                     child: SailText.secondary12(
                       'PENDING (in mempool, not yet in block). '
@@ -644,20 +645,12 @@ class _DetailItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = SailTheme.of(context);
     return SailColumn(
       spacing: SailStyleValues.padding04,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         SailText.secondary12(label),
-        SelectableText(
-          value,
-          style: TextStyle(
-            fontSize: 12,
-            color: theme.colors.text,
-            fontFamily: 'SourceCodePro',
-          ),
-        ),
+        SailSelectableText(value, monospace: true),
       ],
     );
   }

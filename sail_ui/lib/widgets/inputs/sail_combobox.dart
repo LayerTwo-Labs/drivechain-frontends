@@ -5,11 +5,13 @@ import 'package:sail_ui/sail_ui.dart';
 class SailComboboxItem<T> {
   final T value;
   final String label;
+  final String? subtitle;
   final String? searchValue;
 
   const SailComboboxItem({
     required this.value,
     required this.label,
+    this.subtitle,
     this.searchValue,
   });
 
@@ -26,6 +28,9 @@ class SailCombobox<T> extends StatefulWidget {
   final double? width;
   final double maxPopoverHeight;
 
+  /// Custom match predicate; defaults to substring match on the item's matchKey.
+  final bool Function(SailComboboxItem<T> item, String query)? filter;
+
   const SailCombobox({
     super.key,
     required this.items,
@@ -36,6 +41,7 @@ class SailCombobox<T> extends StatefulWidget {
     this.noResultsText = 'No results.',
     this.width,
     this.maxPopoverHeight = 240,
+    this.filter,
   });
 
   @override
@@ -79,6 +85,9 @@ class _SailComboboxState<T> extends State<SailCombobox<T>> {
   List<SailComboboxItem<T>> get _filtered {
     if (_query.isEmpty) return widget.items;
     final q = _query.toLowerCase();
+    if (widget.filter != null) {
+      return widget.items.where((i) => widget.filter!(i, q)).toList();
+    }
     return widget.items.where((i) => i.matchKey.contains(q)).toList();
   }
 
@@ -180,6 +189,7 @@ class _SailComboboxState<T> extends State<SailCombobox<T>> {
                           final highlighted = i == _highlighted;
                           return _ComboboxRow(
                             label: item.label,
+                            subtitle: item.subtitle,
                             selected: selected,
                             highlighted: highlighted,
                             onTap: () => _select(item),
@@ -198,7 +208,7 @@ class _SailComboboxState<T> extends State<SailCombobox<T>> {
         decoration: BoxDecoration(
           color: theme.colors.background,
           border: Border.all(color: theme.colors.border),
-          borderRadius: BorderRadius.circular(6),
+          borderRadius: theme.chrome.radius,
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -262,6 +272,7 @@ class _SearchField extends StatelessWidget {
 
 class _ComboboxRow extends StatefulWidget {
   final String label;
+  final String? subtitle;
   final bool selected;
   final bool highlighted;
   final VoidCallback onTap;
@@ -269,6 +280,7 @@ class _ComboboxRow extends StatefulWidget {
 
   const _ComboboxRow({
     required this.label,
+    this.subtitle,
     required this.selected,
     required this.highlighted,
     required this.onTap,
@@ -305,12 +317,26 @@ class _ComboboxRowState extends State<_ComboboxRow> {
               ),
               const SizedBox(width: 4),
               Expanded(
-                child: Text(
-                  widget.label,
-                  overflow: TextOverflow.ellipsis,
-                  style: SailStyleValues.thirteen.copyWith(
-                    color: theme.colors.text,
-                  ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      widget.label,
+                      overflow: TextOverflow.ellipsis,
+                      style: SailStyleValues.thirteen.copyWith(
+                        color: theme.colors.text,
+                      ),
+                    ),
+                    if (widget.subtitle != null)
+                      Text(
+                        widget.subtitle!,
+                        overflow: TextOverflow.ellipsis,
+                        style: SailStyleValues.twelve.copyWith(
+                          color: theme.colors.textTertiary,
+                        ),
+                      ),
+                  ],
                 ),
               ),
             ],

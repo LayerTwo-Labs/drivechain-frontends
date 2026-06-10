@@ -85,27 +85,12 @@ class _RemoveEncryptionDialogState extends State<RemoveEncryptionDialog> {
         spacing: SailStyleValues.padding16,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            padding: const EdgeInsets.all(SailStyleValues.padding12),
-            decoration: BoxDecoration(
-              color: theme.colors.orange.withValues(alpha: 0.1),
-              borderRadius: SailStyleValues.borderRadiusSmall,
-              border: Border.all(
-                color: theme.colors.orange.withValues(alpha: 0.3),
-              ),
-            ),
-            child: Row(
-              children: [
-                SailSVG.icon(SailSVGAsset.iconWarning, width: 20),
-                const SizedBox(width: SailStyleValues.padding12),
-                Expanded(
-                  child: SailText.secondary13(
-                    'Your wallet will be stored without encryption. '
-                    'Anyone with access to your device could access your funds.',
-                  ),
-                ),
-              ],
-            ),
+          SailAlert(
+            variant: SailAlertVariant.warning,
+            icon: SailSVG.icon(SailSVGAsset.iconWarning, width: 20),
+            description:
+                'Your wallet will be stored without encryption. '
+                'Anyone with access to your device could access your funds.',
           ),
           SailTextField(
             controller: _passwordController,
@@ -116,10 +101,11 @@ class _RemoveEncryptionDialogState extends State<RemoveEncryptionDialog> {
             autofocus: true,
             maxLines: 1,
             onSubmitted: (_) => _removeEncryption(),
-            suffixWidget: GestureDetector(
-              onTap: () => setState(() => _obscurePassword = !_obscurePassword),
-              child: Icon(
-                _obscurePassword ? Icons.visibility : Icons.visibility_off,
+            suffixWidget: SailTappable(
+              onTap: () async => setState(() => _obscurePassword = !_obscurePassword),
+              child: SailSVG.fromAsset(
+                _obscurePassword ? SailSVGAsset.eye : SailSVGAsset.eyeOff,
+                width: 16,
                 color: theme.colors.text,
               ),
             ),

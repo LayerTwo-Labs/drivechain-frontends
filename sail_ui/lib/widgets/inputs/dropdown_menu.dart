@@ -100,7 +100,7 @@ class _SailDropdownButtonState<T> extends State<SailDropdownButton<T>> {
               color: context.sailTheme.colors.border,
               width: 1,
             ),
-            borderRadius: SailStyleValues.borderRadius,
+            borderRadius: theme.chrome.radius,
             color: widget.value == null ? theme.colors.primary : Colors.transparent,
           ),
           child: Padding(
@@ -213,7 +213,7 @@ class SailDropdownItem<T> extends StatelessWidget {
               displayLabel,
               style: SailStyleValues.thirteen.copyWith(
                 color: SailTheme.of(context).colors.text,
-                fontFamily: monospace ? 'IBMPlexMono' : 'Inter',
+                fontFamily: SailTheme.of(context).chrome.fontFamily ?? (monospace ? 'IBMPlexMono' : 'Inter'),
               ),
             ),
       ),
@@ -312,7 +312,7 @@ class _SailMultiSelectDropdownState extends State<SailMultiSelectDropdown> {
             border: widget.buttonVariant == ButtonVariant.outline
                 ? Border.all(color: theme.colors.border, width: 1)
                 : null,
-            borderRadius: SailStyleValues.borderRadius,
+            borderRadius: theme.chrome.radius,
           ),
           child: Padding(
             padding: const EdgeInsets.symmetric(vertical: 9, horizontal: 12),
@@ -617,7 +617,7 @@ class _MultiSelectDropdownState extends State<MultiSelectDropdown> {
             child: DecoratedBox(
               decoration: BoxDecoration(
                 border: Border.all(color: theme.colors.border, width: 1),
-                borderRadius: SailStyleValues.borderRadius,
+                borderRadius: theme.chrome.radius,
               ),
               child: Padding(
                 padding: const EdgeInsets.symmetric(

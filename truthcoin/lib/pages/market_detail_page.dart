@@ -1,5 +1,4 @@
 import 'package:auto_route/auto_route.dart';
-import 'package:flutter/material.dart' show Colors, LinearProgressIndicator;
 import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
@@ -387,7 +386,7 @@ class _OutcomeBar extends StatelessWidget {
           color: isSelected ? theme.colors.primary.withValues(alpha: 0.1) : theme.colors.backgroundSecondary,
           borderRadius: BorderRadius.circular(8),
           border: Border.all(
-            color: isSelected ? theme.colors.primary : Colors.transparent,
+            color: isSelected ? theme.colors.primary : SailColorScheme.transparent,
             width: 2,
           ),
         ),
@@ -404,11 +403,12 @@ class _OutcomeBar extends StatelessWidget {
             const SizedBox(height: 8),
             ClipRRect(
               borderRadius: BorderRadius.circular(4),
-              child: LinearProgressIndicator(
-                value: probability,
-                backgroundColor: theme.colors.background,
-                valueColor: AlwaysStoppedAnimation<Color>(theme.colors.primary),
-                minHeight: 8,
+              child: ProgressBar(
+                current: probability,
+                goal: 1,
+                small: true,
+                hideProgressInside: true,
+                color: theme.colors.primary,
               ),
             ),
           ],

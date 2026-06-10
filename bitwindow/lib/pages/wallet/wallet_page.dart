@@ -70,7 +70,7 @@ class WalletPageViewModel extends BaseViewModel {
     if (bip47PaymentCode.isNotEmpty) {
       await Clipboard.setData(ClipboardData(text: bip47PaymentCode));
       if (context.mounted) {
-        showSnackBar(context, 'BIP47 Payment Code copied to clipboard');
+        showSailToast(context, 'BIP47 Payment Code copied to clipboard');
       }
     }
   }
@@ -274,7 +274,7 @@ class _GetCoinsButtonState extends State<GetCoinsButton> {
         log.e('faucet claim failed', error: error, stackTrace: stackTrace);
       }
       if (mounted) {
-        showSnackBar(context, 'Failed to claim from faucet: $userMessage');
+        showSailToast(context, 'Failed to claim from faucet: $userMessage');
       }
     } finally {
       if (mounted) {

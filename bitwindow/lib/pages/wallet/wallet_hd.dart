@@ -559,14 +559,14 @@ class HDWalletViewModel extends BaseViewModel {
   Future<void> copyMnemonic(BuildContext context) async {
     await Clipboard.setData(ClipboardData(text: mnemonicController.text));
     if (context.mounted) {
-      showSnackBar(context, 'Mnemonic copied to clipboard');
+      showSailToast(context, 'Mnemonic copied to clipboard');
     }
   }
 
   Future<void> copyToClipboard(BuildContext context, String text, String label) async {
     await Clipboard.setData(ClipboardData(text: text));
     if (context.mounted) {
-      showSnackBar(context, '${label.replaceAll(':', '')} copied to clipboard');
+      showSailToast(context, '${label.replaceAll(':', '')} copied to clipboard');
     }
   }
 

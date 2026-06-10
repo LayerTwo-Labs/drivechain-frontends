@@ -5,8 +5,6 @@ import 'package:auto_route/auto_route.dart';
 import 'package:bitwindow/models/chat_models.dart';
 import 'package:bitwindow/pages/sidechains_page.dart';
 import 'package:bitwindow/providers/chat_provider.dart';
-import 'package:flutter/material.dart'
-    show AlertDialog, InkWell, InputBorder, InputDecoration, MenuAnchor, MenuStyle, TextField;
 import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
@@ -160,8 +158,8 @@ class ChatPage extends StatelessWidget {
                                   final contact = model.contacts[index];
                                   final isSelected = model.selectedContact?.id == contact.id;
 
-                                  return InkWell(
-                                    onTap: () => model.selectContact(contact),
+                                  return SailTappable(
+                                    onTap: () async => model.selectContact(contact),
                                     child: Container(
                                       padding: const EdgeInsets.all(SailStyleValues.padding12),
                                       decoration: BoxDecoration(
@@ -517,7 +515,7 @@ class _AddContactDialogState extends State<_AddContactDialog> {
   Future<void> _addContact(BitnameEntry entry) async {
     // Check if BitName has encryption pubkey (required for chat)
     if (entry.details.encryptionPubkey == null) {
-      showSnackBar(context, 'This BitName has no encryption key set - cannot chat');
+      showSailToast(context, 'This BitName has no encryption key set - cannot chat');
       return;
     }
 
@@ -539,10 +537,16 @@ class _AddContactDialogState extends State<_AddContactDialog> {
     final theme = SailTheme.of(context);
     final filtered = filteredBitNames;
 
-    return AlertDialog(
-      backgroundColor: theme.colors.background,
-      title: SailText.primary15('Add Contact', bold: true),
-      content: SizedBox(
+    return SailDialog(
+      title: 'Add Contact',
+      actions: [
+        SailButton(
+          label: 'Cancel',
+          variant: ButtonVariant.secondary,
+          onPressed: () async => Navigator.of(context).pop(),
+        ),
+      ],
+      child: SizedBox(
         width: 500,
         height: 400,
         child: Column(
@@ -598,8 +602,8 @@ class _AddContactDialogState extends State<_AddContactDialog> {
                   itemBuilder: (context, index) {
                     final entry = filtered[index];
                     final isMatch = selectedBitName?.hash == entry.hash;
-                    return InkWell(
-                      onTap: () => _addContact(entry),
+                    return SailTappable(
+                      onTap: () async => _addContact(entry),
                       child: Container(
                         padding: const EdgeInsets.all(SailStyleValues.padding12),
                         decoration: BoxDecoration(
@@ -637,13 +641,6 @@ class _AddContactDialogState extends State<_AddContactDialog> {
           ],
         ),
       ),
-      actions: [
-        SailButton(
-          label: 'Cancel',
-          variant: ButtonVariant.secondary,
-          onPressed: () async => Navigator.of(context).pop(),
-        ),
-      ],
     );
   }
 }
@@ -681,30 +678,8 @@ class _RegisterBitNameDialogState extends State<_RegisterBitNameDialog> {
   Widget build(BuildContext context) {
     final theme = SailTheme.of(context);
 
-    return AlertDialog(
-      backgroundColor: theme.colors.background,
-      title: SailText.primary15('Register BitName', bold: true),
-      content: SizedBox(
-        width: 400,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            SailText.secondary13('Enter a name to register as your identity'),
-            const SizedBox(height: SailStyleValues.padding12),
-            SailTextField(
-              controller: controller,
-              hintText: 'e.g., alice',
-              label: 'BitName',
-            ),
-            const SizedBox(height: SailStyleValues.padding08),
-            SailText.secondary12(
-              'This will reserve and register the name on the BitNames sidechain.',
-              color: theme.colors.textTertiary,
-            ),
-          ],
-        ),
-      ),
+    return SailDialog(
+      title: 'Register BitName',
       actions: [
         SailButton(
           label: 'Cancel',
@@ -725,6 +700,27 @@ class _RegisterBitNameDialogState extends State<_RegisterBitNameDialog> {
           },
         ),
       ],
+      child: SizedBox(
+        width: 400,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SailText.secondary13('Enter a name to register as your identity'),
+            const SizedBox(height: SailStyleValues.padding12),
+            SailTextField(
+              controller: controller,
+              hintText: 'e.g., alice',
+              label: 'BitName',
+            ),
+            const SizedBox(height: SailStyleValues.padding08),
+            SailText.secondary12(
+              'This will reserve and register the name on the BitNames sidechain.',
+              color: theme.colors.textTertiary,
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -855,185 +851,43 @@ class _SearchableIdentityDropdown extends StatefulWidget {
 }
 
 class _SearchableIdentityDropdownState extends State<_SearchableIdentityDropdown> {
-  late MenuController _menuController;
-  final TextEditingController _searchController = TextEditingController();
-  final FocusNode _focusNode = FocusNode();
-
-  @override
-  void initState() {
-    super.initState();
-    _menuController = MenuController();
-    _searchController.addListener(() {
-      setState(() {});
-    });
-  }
-
-  @override
-  void dispose() {
-    _searchController.dispose();
-    _focusNode.dispose();
-    super.dispose();
-  }
-
-  List<BitnameEntry> get filteredIdentities {
-    final query = _searchController.text.toLowerCase();
-    if (query.isEmpty) return widget.identities;
-
-    // Try to compute Blake3 hash of the search query
-    String? searchHash;
-    try {
-      searchHash = blake3Hex(utf8.encode(query));
-    } catch (e) {
-      searchHash = null;
-    }
-
-    return widget.identities.where((entry) {
-      // Check if search hash matches entry hash
-      if (searchHash != null && entry.hash.toLowerCase() == searchHash.toLowerCase()) {
-        return true;
-      }
-      // Check plaintext name match
-      if (entry.plaintextName?.toLowerCase().contains(query) ?? false) {
-        return true;
-      }
-      // Check hash prefix match
-      if (entry.hash.toLowerCase().contains(query)) {
-        return true;
-      }
-      return false;
-    }).toList();
-  }
-
-  String _getDisplayName(BitnameEntry entry) {
+  String _displayName(BitnameEntry entry) {
     return entry.plaintextName ?? '${entry.hash.substring(0, 8)}...';
   }
 
   @override
   Widget build(BuildContext context) {
-    final theme = SailTheme.of(context);
-
-    // Display the currently selected identity
-    final selectedDisplay = widget.selectedIdentity != null
-        ? _getDisplayName(widget.selectedIdentity!)
-        : 'Select identity';
-
-    final button = MouseRegion(
-      cursor: SystemMouseCursors.click,
-      child: InkWell(
-        onTap: () {
-          if (_menuController.isOpen) {
-            _menuController.close();
-          } else {
-            _menuController.open();
-            _searchController.clear();
-            _focusNode.requestFocus();
-          }
-        },
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-            border: Border.all(color: theme.colors.border, width: 1),
-            borderRadius: SailStyleValues.borderRadius,
-          ),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 12),
-            child: SailRow(
-              spacing: SailStyleValues.padding08,
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                SailText.primary13(selectedDisplay),
-                SailSVG.fromAsset(
-                  _menuController.isOpen ? SailSVGAsset.chevronUp : SailSVGAsset.chevronDown,
-                  color: theme.colors.text,
-                  width: 13,
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-
-    return MenuAnchor(
-      controller: _menuController,
-      style: MenuStyle(
-        backgroundColor: WidgetStatePropertyAll(theme.colors.background),
-        padding: const WidgetStatePropertyAll(EdgeInsets.zero),
-      ),
-      builder: (context, controller, child) => button,
-      menuChildren: [
-        // Search field at the top
-        Padding(
-          padding: const EdgeInsets.all(8),
-          child: Row(
-            children: [
-              SailSVG.fromAsset(SailSVGAsset.search, height: 13, color: theme.colors.textSecondary),
-              const SizedBox(width: 8),
-              SizedBox(
-                width: 200,
-                child: TextField(
-                  cursorColor: theme.colors.primary,
-                  controller: _searchController,
-                  focusNode: _focusNode,
-                  decoration: InputDecoration(
-                    hintText: 'Search by name or hash...',
-                    hintStyle: SailStyleValues.thirteen.copyWith(color: theme.colors.textSecondary, fontSize: 13),
-                    isDense: true,
-                    contentPadding: EdgeInsets.zero,
-                    border: InputBorder.none,
-                    enabledBorder: InputBorder.none,
-                    focusedBorder: InputBorder.none,
-                    filled: false,
-                  ),
-                  style: SailStyleValues.thirteen.copyWith(color: theme.colors.text, fontSize: 13),
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SailSeparator(),
-        // Identity list
-        if (filteredIdentities.isEmpty)
-          Padding(
-            padding: const EdgeInsets.all(12),
-            child: SailText.secondary13('No matching identities found'),
-          )
-        else
-          SelectionContainer.disabled(
-            child: SailMenu(
-              items: filteredIdentities.map((entry) {
-                final isSelected = widget.selectedIdentity?.hash == entry.hash;
-                return SailMenuItem(
-                  onSelected: () {
-                    widget.onIdentitySelected(entry);
-                    _menuController.close();
-                  },
-                  child: SailRow(
-                    spacing: SailStyleValues.padding08,
-                    children: [
-                      if (isSelected)
-                        SailSVG.fromAsset(SailSVGAsset.check, color: theme.colors.text, height: 8)
-                      else
-                        const SizedBox(width: 13),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            SailText.primary13(_getDisplayName(entry)),
-                            SailText.secondary12(
-                              '${entry.hash.substring(0, 16)}...',
-                              color: theme.colors.textTertiary,
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                );
-              }).toList(),
-            ),
+    return SailCombobox<BitnameEntry>(
+      items: [
+        for (final entry in widget.identities)
+          SailComboboxItem(
+            value: entry,
+            label: _displayName(entry),
+            subtitle: '${entry.hash.substring(0, 16)}...',
           ),
       ],
+      value: widget.selectedIdentity,
+      placeholder: 'Select identity',
+      searchPlaceholder: 'Search by name or hash...',
+      noResultsText: 'No matching identities found',
+      filter: (item, query) {
+        // Plaintext queries also match their Blake3 hash.
+        String? searchHash;
+        try {
+          searchHash = blake3Hex(utf8.encode(query));
+        } catch (_) {
+          searchHash = null;
+        }
+        final entry = item.value;
+        if (searchHash != null && entry.hash.toLowerCase() == searchHash.toLowerCase()) {
+          return true;
+        }
+        if (entry.plaintextName?.toLowerCase().contains(query) ?? false) {
+          return true;
+        }
+        return entry.hash.toLowerCase().contains(query);
+      },
+      onChanged: widget.onIdentitySelected,
     );
   }
 }

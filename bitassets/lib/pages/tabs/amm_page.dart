@@ -1,8 +1,6 @@
 import 'package:auto_route/auto_route.dart';
 import 'package:bitassets/providers/bitassets_provider.dart';
 import 'package:bitassets/settings/amm_settings.dart';
-import 'package:flutter/material.dart'
-    show Colors, ExpansionTile, IconButton, InkWell, MaterialTapTargetSize, TextButton;
 import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
@@ -63,10 +61,14 @@ class AmmTabPage extends StatelessWidget {
 
                         // Swap direction button
                         Center(
-                          child: IconButton(
-                            icon: SailSVG.icon(SailSVGAsset.iconArrow, width: 24),
-                            onPressed: model.swapAssets,
-                            tooltip: 'Swap direction',
+                          child: SailTooltip(
+                            message: 'Swap direction',
+                            child: SailButton(
+                              variant: ButtonVariant.icon,
+                              icon: SailSVGAsset.iconArrow,
+                              iconWidth: 24,
+                              onPressed: () async => model.swapAssets(),
+                            ),
                           ),
                         ),
 
@@ -143,52 +145,58 @@ class AmmTabPage extends StatelessWidget {
                           ),
 
                         // Advanced settings
-                        ExpansionTile(
-                          title: SailText.secondary13('Advanced Settings'),
-                          tilePadding: EdgeInsets.zero,
-                          childrenPadding: const EdgeInsets.only(bottom: 8),
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(12),
-                              decoration: BoxDecoration(
-                                color: context.sailTheme.colors.backgroundSecondary,
-                                borderRadius: SailStyleValues.borderRadius,
-                              ),
-                              child: SailColumn(
-                                spacing: SailStyleValues.padding08,
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  SailText.secondary12('Slippage Tolerance'),
-                                  Wrap(
-                                    spacing: 8,
-                                    runSpacing: 8,
+                        SailCollapsible(
+                          trigger: Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 8),
+                            child: SailText.secondary13('Advanced Settings'),
+                          ),
+                          child: Padding(
+                            padding: const EdgeInsets.only(bottom: 8),
+                            child: Column(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(12),
+                                  decoration: BoxDecoration(
+                                    color: context.sailTheme.colors.backgroundSecondary,
+                                    borderRadius: SailStyleValues.borderRadius,
+                                  ),
+                                  child: SailColumn(
+                                    spacing: SailStyleValues.padding08,
+                                    crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
-                                      _SlippageButton(
-                                        value: 0.1,
-                                        selected: model.slippageTolerance == 0.1,
-                                        onTap: () => model.setSlippage(0.1),
-                                      ),
-                                      _SlippageButton(
-                                        value: 0.5,
-                                        selected: model.slippageTolerance == 0.5,
-                                        onTap: () => model.setSlippage(0.5),
-                                      ),
-                                      _SlippageButton(
-                                        value: 1.0,
-                                        selected: model.slippageTolerance == 1.0,
-                                        onTap: () => model.setSlippage(1.0),
-                                      ),
-                                      _SlippageButton(
-                                        value: 2.0,
-                                        selected: model.slippageTolerance == 2.0,
-                                        onTap: () => model.setSlippage(2.0),
+                                      SailText.secondary12('Slippage Tolerance'),
+                                      Wrap(
+                                        spacing: 8,
+                                        runSpacing: 8,
+                                        children: [
+                                          _SlippageButton(
+                                            value: 0.1,
+                                            selected: model.slippageTolerance == 0.1,
+                                            onTap: () => model.setSlippage(0.1),
+                                          ),
+                                          _SlippageButton(
+                                            value: 0.5,
+                                            selected: model.slippageTolerance == 0.5,
+                                            onTap: () => model.setSlippage(0.5),
+                                          ),
+                                          _SlippageButton(
+                                            value: 1.0,
+                                            selected: model.slippageTolerance == 1.0,
+                                            onTap: () => model.setSlippage(1.0),
+                                          ),
+                                          _SlippageButton(
+                                            value: 2.0,
+                                            selected: model.slippageTolerance == 2.0,
+                                            onTap: () => model.setSlippage(2.0),
+                                          ),
+                                        ],
                                       ),
                                     ],
                                   ),
-                                ],
-                              ),
+                                ),
+                              ],
                             ),
-                          ],
+                          ),
                         ),
                       ],
                     ),
@@ -209,20 +217,16 @@ class AmmTabPage extends StatelessWidget {
                           boxShadow: model.canSwap
                               ? [
                                   BoxShadow(
-                                    color: Colors.black12,
+                                    color: context.sailTheme.colors.shadow,
                                     blurRadius: 4,
-                                    offset: Offset(0, 2),
+                                    offset: const Offset(0, 2),
                                   ),
                                 ]
                               : null,
                         ),
-                        child: TextButton(
-                          onPressed: model.canSwap && !model.swapLoading ? () => model.executeSwap(context) : null,
-                          style: TextButton.styleFrom(
-                            padding: EdgeInsets.zero,
-                            minimumSize: Size.zero,
-                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                          ),
+                        child: SailTappable(
+                          onTap: model.canSwap && !model.swapLoading ? () async => model.executeSwap(context) : null,
+                          borderRadius: BorderRadius.circular(8),
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
@@ -233,13 +237,13 @@ class AmmTabPage extends StatelessWidget {
                                     width: 18,
                                     height: 18,
                                     child: LoadingIndicator(
-                                      color: Colors.white,
+                                      color: context.sailTheme.colors.primaryButtonText,
                                     ),
                                   ),
                                 ),
                               SailText.primary15(
                                 model.swapLoading ? 'Swapping...' : 'Swap',
-                                color: Colors.white,
+                                color: context.sailTheme.colors.primaryButtonText,
                                 bold: true,
                               ),
                             ],
@@ -273,8 +277,8 @@ class _SlippageButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = SailTheme.of(context);
 
-    return InkWell(
-      onTap: onTap,
+    return SailTappable(
+      onTap: () async => onTap(),
       borderRadius: SailStyleValues.borderRadius,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
@@ -287,7 +291,7 @@ class _SlippageButton extends StatelessWidget {
         ),
         child: SailText.primary12(
           '$value%',
-          color: selected ? Colors.white : null,
+          color: selected ? theme.colors.primaryButtonText : null,
         ),
       ),
     );

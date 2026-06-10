@@ -42,6 +42,7 @@ class SailAppState extends State<SailApp> with WidgetsBindingObserver {
   ClientSettings get settings => GetIt.I.get<ClientSettings>();
 
   late SailThemeData theme;
+  SailThemeStyle _style = SailThemeStyle.sail;
 
   @override
   void initState() {
@@ -62,7 +63,7 @@ class SailAppState extends State<SailApp> with WidgetsBindingObserver {
 
     // Rebuild theme if accent color changed
     if (oldWidget.accentColor != widget.accentColor) {
-      theme = _themeDataFromTheme(theme.type, widget.dense, theme.font);
+      theme = _themeDataFromTheme(theme.type, widget.dense, theme.font, _style);
       setState(() {});
     }
   }
@@ -81,7 +82,8 @@ class SailAppState extends State<SailApp> with WidgetsBindingObserver {
     final fontSetting = await settings.getValue(FontSetting());
     final font = fontSetting.value;
 
-    theme = _themeDataFromTheme(resolvedTheme, widget.dense, font);
+    _style = await _resolveStyle();
+    theme = _themeDataFromTheme(resolvedTheme, widget.dense, font, _style);
 
     setState(() {});
     // Save the original theme preference, not the resolved one
@@ -94,24 +96,48 @@ class SailAppState extends State<SailApp> with WidgetsBindingObserver {
     fontToLoad ??= (await settings.getValue(FontSetting())).value;
 
     // Rebuild theme with new font but keep current theme type
-    theme = _themeDataFromTheme(theme.type, widget.dense, fontToLoad);
+    theme = _themeDataFromTheme(theme.type, widget.dense, fontToLoad, _style);
 
     setState(() {});
     await settings.setValue(FontSetting(newValue: fontToLoad));
+  }
+
+  /// Apply a theme style. With no argument, resolves the global style from
+  /// BitwindowSettings (so sidechains follow what bitwindow set).
+  Future<void> loadStyle([SailThemeStyle? styleToLoad]) async {
+    _style = styleToLoad ?? await _resolveStyle();
+    theme = _themeDataFromTheme(theme.type, widget.dense, theme.font, _style);
+    setState(() {});
+  }
+
+  /// Read the global theme style from bitwindow's app-dir settings; falls back
+  /// to 'sail' when bitwindow's settings are unreachable.
+  Future<SailThemeStyle> _resolveStyle() async {
+    try {
+      if (GetIt.I.isRegistered<BitwindowClientSettings>()) {
+        final bitwindowSettings = GetIt.I.get<BitwindowClientSettings>();
+        final loaded = await bitwindowSettings.getValue(BitwindowSettingValue());
+        return sailBundleForId(loaded.value.themeStyle).style;
+      }
+    } catch (_) {
+      // Fall through to the default below.
+    }
+    return SailThemeStyle.sail;
   }
 
   SailThemeData _themeDataFromTheme(
     SailThemeValues themeType,
     bool dense,
     SailFontValues font, [
+    SailThemeStyle style = SailThemeStyle.sail,
     Color? accentColor,
   ]) {
     final color = accentColor ?? widget.accentColor;
     switch (themeType) {
       case SailThemeValues.light:
-        return SailThemeData.lightTheme(color, dense, font);
+        return SailThemeData.lightTheme(color, dense, font, style);
       case SailThemeValues.dark:
-        return SailThemeData.darkTheme(color, dense, font);
+        return SailThemeData.darkTheme(color, dense, font, style);
       default:
         throw Exception('Could not get theme');
     }

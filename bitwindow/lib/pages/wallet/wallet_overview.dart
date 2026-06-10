@@ -6,8 +6,6 @@ import 'package:bitwindow/providers/transactions_provider.dart';
 import 'package:csv/csv.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:fixnum/fixnum.dart';
-import 'package:flutter/material.dart'
-    show ColorScheme, Colors, DateTimeRange, Dialog, Icon, Icons, Theme, showDateRangePicker;
 import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:intl/intl.dart';
@@ -319,26 +317,19 @@ class _TransactionTableState extends State<TransactionTable> {
                                 if (!context.mounted) return;
                                 await showThemedDialog(
                                   context: context,
-                                  builder: (context) => Dialog(
-                                    backgroundColor: Colors.transparent,
-                                    shadowColor: Colors.transparent,
-                                    surfaceTintColor: Colors.transparent,
-                                    child: ConstrainedBox(
-                                      constraints: const BoxConstraints(maxWidth: 400),
-                                      child: SailCardEditValues(
-                                        title: entry.note.isEmpty ? 'Add Note' : 'Edit Note',
-                                        subtitle:
-                                            "${entry.note.isEmpty ? "Set a" : "Update the"} note and click Save when you're done",
-                                        fields: [
-                                          EditField(name: 'Note', currentValue: entry.note),
-                                        ],
-                                        onSave: (updatedFields) async {
-                                          final newNote = updatedFields
-                                              .firstWhere((f) => f.name == 'Note')
-                                              .currentValue;
-                                          await widget.model.saveNote(context, entry.txid, newNote);
-                                        },
-                                      ),
+                                  builder: (context) => SailModal(
+                                    constraints: const BoxConstraints(maxWidth: 400),
+                                    child: SailCardEditValues(
+                                      title: entry.note.isEmpty ? 'Add Note' : 'Edit Note',
+                                      subtitle:
+                                          "${entry.note.isEmpty ? "Set a" : "Update the"} note and click Save when you're done",
+                                      fields: [
+                                        EditField(name: 'Note', currentValue: entry.note),
+                                      ],
+                                      onSave: (updatedFields) async {
+                                        final newNote = updatedFields.firstWhere((f) => f.name == 'Note').currentValue;
+                                        await widget.model.saveNote(context, entry.txid, newNote);
+                                      },
                                     ),
                                   ),
                                 );
@@ -401,7 +392,7 @@ class OverviewViewModel extends BaseViewModel with ChangeTrackingMixin {
   final BalanceProvider _balanceProvider = GetIt.I<BalanceProvider>();
   WalletReaderProvider get _walletReader => GetIt.I<WalletReaderProvider>();
 
-  DateTimeRange? dateRange;
+  ({DateTime start, DateTime end})? dateRange;
 
   List<WalletTransaction> get entries {
     if (loading) {
@@ -517,7 +508,7 @@ class OverviewViewModel extends BaseViewModel with ChangeTrackingMixin {
     notifyIfChanged();
   }
 
-  void setDateRange(DateTimeRange? range) {
+  void setDateRange(({DateTime start, DateTime end})? range) {
     dateRange = range;
     notifyListeners();
   }
@@ -571,7 +562,7 @@ class OverviewViewModel extends BaseViewModel with ChangeTrackingMixin {
 
       if (transactions.isEmpty) {
         if (context.mounted) {
-          showSnackBar(context, 'No transactions to export');
+          showSailToast(context, 'No transactions to export');
         }
         return;
       }
@@ -594,11 +585,11 @@ class OverviewViewModel extends BaseViewModel with ChangeTrackingMixin {
       await file.writeAsString(csvData);
 
       if (context.mounted) {
-        showSnackBar(context, 'Transactions exported successfully to $result');
+        showSailToast(context, 'Transactions exported successfully to $result');
       }
     } catch (error) {
       if (context.mounted) {
-        showSnackBar(context, 'Export failed: $error');
+        showSailToast(context, 'Export failed: $error');
       }
       modelError = error.toString();
       notifyListeners();
@@ -622,12 +613,12 @@ class OverviewViewModel extends BaseViewModel with ChangeTrackingMixin {
       log.i('RBF transaction broadcast: ${result.newTxid} (replaced ${tx.txid})');
 
       if (context.mounted) {
-        showSnackBar(context, 'Fee bumped! New txid: ${result.newTxid}');
+        showSailToast(context, 'Fee bumped! New txid: ${result.newTxid}');
       }
     } catch (e) {
       log.e('Failed to bump fee: $e');
       if (context.mounted) {
-        showSnackBar(context, 'Failed to bump fee: $e');
+        showSailToast(context, 'Failed to bump fee: $e');
       }
     }
   }
@@ -726,24 +717,11 @@ class DateRangeFilterWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: () async {
-        final pickedRange = await showDateRangePicker(
+        final pickedRange = await showSailDateRangePicker(
           context: context,
           firstDate: DateTime(2009, 1, 3),
           lastDate: DateTime.now().add(const Duration(days: 365)),
-          initialDateRange: model.dateRange,
-          builder: (context, child) {
-            return Theme(
-              data: Theme.of(context).copyWith(
-                colorScheme: ColorScheme.dark(
-                  primary: context.sailTheme.colors.primary,
-                  onPrimary: context.sailTheme.colors.background,
-                  surface: context.sailTheme.colors.backgroundSecondary,
-                  onSurface: context.sailTheme.colors.text,
-                ),
-              ),
-              child: child!,
-            );
-          },
+          initialRange: model.dateRange,
         );
 
         if (pickedRange != null) {
@@ -774,15 +752,12 @@ class DateRangeFilterWidget extends StatelessWidget {
             ),
             if (model.dateRange != null) ...[
               const SizedBox(width: SailStyleValues.padding08),
-              GestureDetector(
-                onTap: () => model.clearDateFilter(),
-                child: MouseRegion(
-                  cursor: SystemMouseCursors.click,
-                  child: Icon(
-                    Icons.close,
-                    size: 16,
-                    color: context.sailTheme.colors.text,
-                  ),
+              SailTappable(
+                onTap: () async => model.clearDateFilter(),
+                child: SailSVG.fromAsset(
+                  SailSVGAsset.x,
+                  width: 16,
+                  color: context.sailTheme.colors.text,
                 ),
               ),
             ],

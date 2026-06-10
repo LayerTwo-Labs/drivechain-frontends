@@ -1,5 +1,4 @@
 import 'package:sail_ui/sail_ui.dart';
-import 'package:flutter/material.dart' show Icon, Icons;
 import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 
@@ -121,8 +120,8 @@ class _ChangePasswordDialogState extends State<ChangePasswordDialog> {
             maxLines: 1,
             suffixWidget: GestureDetector(
               onTap: () => setState(() => _obscureOldPassword = !_obscureOldPassword),
-              child: Icon(
-                _obscureOldPassword ? Icons.visibility : Icons.visibility_off,
+              child: SailSVG.fromAsset(
+                _obscureOldPassword ? SailSVGAsset.eye : SailSVGAsset.eyeOff,
                 color: theme.colors.text,
               ),
             ),
@@ -136,8 +135,8 @@ class _ChangePasswordDialogState extends State<ChangePasswordDialog> {
             maxLines: 1,
             suffixWidget: GestureDetector(
               onTap: () => setState(() => _obscureNewPassword = !_obscureNewPassword),
-              child: Icon(
-                _obscureNewPassword ? Icons.visibility : Icons.visibility_off,
+              child: SailSVG.fromAsset(
+                _obscureNewPassword ? SailSVGAsset.eye : SailSVGAsset.eyeOff,
                 color: theme.colors.text,
               ),
             ),
@@ -152,8 +151,8 @@ class _ChangePasswordDialogState extends State<ChangePasswordDialog> {
             onSubmitted: (_) => _changePassword(),
             suffixWidget: GestureDetector(
               onTap: () => setState(() => _obscureConfirmPassword = !_obscureConfirmPassword),
-              child: Icon(
-                _obscureConfirmPassword ? Icons.visibility : Icons.visibility_off,
+              child: SailSVG.fromAsset(
+                _obscureConfirmPassword ? SailSVGAsset.eye : SailSVGAsset.eyeOff,
                 color: theme.colors.text,
               ),
             ),

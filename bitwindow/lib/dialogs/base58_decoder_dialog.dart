@@ -1,5 +1,5 @@
 import 'package:bitwindow/utils/base58.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter/services.dart';
 import 'package:sail_ui/sail_ui.dart';
 
@@ -14,8 +14,7 @@ class Base58DecoderDialog extends StatefulWidget {
   State<Base58DecoderDialog> createState() => _Base58DecoderDialogState();
 }
 
-class _Base58DecoderDialogState extends State<Base58DecoderDialog> with SingleTickerProviderStateMixin {
-  late TabController _tabController;
+class _Base58DecoderDialogState extends State<Base58DecoderDialog> {
   final TextEditingController _decodeInputController = TextEditingController();
   final TextEditingController _encodePayloadController = TextEditingController();
   final TextEditingController _encodeResultController = TextEditingController();
@@ -38,12 +37,10 @@ class _Base58DecoderDialogState extends State<Base58DecoderDialog> with SingleTi
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
   }
 
   @override
   void dispose() {
-    _tabController.dispose();
     _decodeInputController.dispose();
     _encodePayloadController.dispose();
     _encodeResultController.dispose();
@@ -120,9 +117,7 @@ class _Base58DecoderDialogState extends State<Base58DecoderDialog> with SingleTi
 
   void _copyToClipboard(String text, String label) {
     Clipboard.setData(ClipboardData(text: text));
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('$label copied to clipboard')),
-    );
+    showSailToast(context, '$label copied to clipboard');
   }
 
   @override
@@ -130,15 +125,15 @@ class _Base58DecoderDialogState extends State<Base58DecoderDialog> with SingleTi
     final theme = SailTheme.of(context);
 
     // Qt dialog structure: Header → Content → Footer
-    return Dialog(
-      backgroundColor: theme.colors.backgroundSecondary,
-      shape: RoundedRectangleBorder(
-        borderRadius: SailStyleValues.borderRadiusSmall,
-        side: BorderSide(color: theme.colors.border, width: 1),
-      ),
+    return SailModal(
       child: Container(
         width: 800,
         constraints: const BoxConstraints(maxHeight: 700),
+        decoration: BoxDecoration(
+          color: theme.colors.backgroundSecondary,
+          borderRadius: SailStyleValues.borderRadiusSmall,
+          border: Border.all(color: theme.colors.border, width: 1),
+        ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -154,73 +149,64 @@ class _Base58DecoderDialogState extends State<Base58DecoderDialog> with SingleTi
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   SailText.primary20('Base58Check Decoder'), // Qt windowTitle
-                  IconButton(
-                    icon: Icon(Icons.close, color: theme.colors.text),
-                    onPressed: () => Navigator.of(context).pop(),
+                  SailTappable(
+                    onTap: () async => Navigator.of(context).pop(),
+                    borderRadius: SailStyleValues.borderRadiusSmall,
+                    child: Padding(
+                      padding: const EdgeInsets.all(6),
+                      child: SailSVG.fromAsset(SailSVGAsset.x, color: theme.colors.text),
+                    ),
                   ),
-                ],
-              ),
-            ),
-
-            // Tab bar
-            DecoratedBox(
-              decoration: BoxDecoration(
-                border: Border(
-                  bottom: BorderSide(color: theme.colors.border),
-                ),
-              ),
-              child: TabBar(
-                controller: _tabController,
-                labelColor: theme.colors.primary,
-                unselectedLabelColor: theme.colors.textTertiary,
-                indicatorColor: theme.colors.primary,
-                tabs: const [
-                  Tab(text: 'Decode'),
-                  Tab(text: 'Encode'),
                 ],
               ),
             ),
 
             // Content - Qt QVBoxLayout with tabs
             Expanded(
-              child: TabBarView(
-                controller: _tabController,
-                children: [
-                  _DecodeTab(
-                    controller: _decodeInputController,
-                    decodeResult: _decodeResult,
-                    decodeError: _decodeError,
-                    onDecode: _decode,
-                    onInputChanged: () {
-                      if (_decodeResult != null || _decodeError != null) {
-                        setState(() {
-                          _decodeResult = null;
-                          _decodeError = null;
-                        });
-                      }
-                    },
+              child: InlineTabBar(
+                initialIndex: 0,
+                tabs: [
+                  TabItem(
+                    label: 'Decode',
+                    child: _DecodeTab(
+                      controller: _decodeInputController,
+                      decodeResult: _decodeResult,
+                      decodeError: _decodeError,
+                      onDecode: _decode,
+                      onInputChanged: () {
+                        if (_decodeResult != null || _decodeError != null) {
+                          setState(() {
+                            _decodeResult = null;
+                            _decodeError = null;
+                          });
+                        }
+                      },
+                    ),
                   ),
-                  _EncodeTab(
-                    payloadController: _encodePayloadController,
-                    resultController: _encodeResultController,
-                    selectedVersionByte: _selectedVersionByte,
-                    versionBytes: _versionBytes,
-                    encodeError: _encodeError,
-                    onEncode: _encode,
-                    onVersionChanged: (value) {
-                      if (value != null) {
-                        setState(() => _selectedVersionByte = value);
-                      }
-                    },
-                    onInputChanged: () {
-                      if (_encodeResultController.text.isNotEmpty || _encodeError != null) {
-                        setState(() {
-                          _encodeResultController.clear();
-                          _encodeError = null;
-                        });
-                      }
-                    },
-                    onCopy: _copyToClipboard,
+                  TabItem(
+                    label: 'Encode',
+                    child: _EncodeTab(
+                      payloadController: _encodePayloadController,
+                      resultController: _encodeResultController,
+                      selectedVersionByte: _selectedVersionByte,
+                      versionBytes: _versionBytes,
+                      encodeError: _encodeError,
+                      onEncode: _encode,
+                      onVersionChanged: (value) {
+                        if (value != null) {
+                          setState(() => _selectedVersionByte = value);
+                        }
+                      },
+                      onInputChanged: () {
+                        if (_encodeResultController.text.isNotEmpty || _encodeError != null) {
+                          setState(() {
+                            _encodeResultController.clear();
+                            _encodeError = null;
+                          });
+                        }
+                      },
+                      onCopy: _copyToClipboard,
+                    ),
                   ),
                 ],
               ),
@@ -289,7 +275,7 @@ class _DecodeTab extends StatelessWidget {
               children: [
                 Row(
                   children: [
-                    Icon(Icons.input, color: theme.colors.primary, size: 20),
+                    SailSVG.fromAsset(SailSVGAsset.cornerDownRight, width: 20, color: theme.colors.primary),
                     const SizedBox(width: 8),
                     SailText.primary15('Base58 Input', bold: true),
                   ],
@@ -299,31 +285,11 @@ class _DecodeTab extends StatelessWidget {
                   'Enter a Base58Check encoded string (Bitcoin address or WIF private key)',
                 ),
                 const SizedBox(height: 16),
-                TextField(
+                SailTextField(
                   controller: controller,
-                  style: TextStyle(
-                    fontFamily: 'IBMPlexMono',
-                    fontSize: 13,
-                    color: theme.colors.text,
-                  ),
-                  decoration: InputDecoration(
-                    hintText: 'e.g., 1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa',
-                    hintStyle: TextStyle(color: theme.colors.textTertiary),
-                    filled: true,
-                    fillColor: theme.colors.backgroundSecondary,
-                    border: OutlineInputBorder(
-                      borderRadius: SailStyleValues.borderRadiusSmall,
-                      borderSide: BorderSide(color: theme.colors.border),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: SailStyleValues.borderRadiusSmall,
-                      borderSide: BorderSide(color: theme.colors.border),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: SailStyleValues.borderRadiusSmall,
-                      borderSide: BorderSide(color: theme.colors.primary, width: 2),
-                    ),
-                  ),
+                  hintText: 'e.g., 1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa',
+                  monospace: true,
+                  minLines: 3,
                   maxLines: 3,
                   onChanged: (_) => onInputChanged(),
                 ),
@@ -339,22 +305,10 @@ class _DecodeTab extends StatelessWidget {
 
           // Error display
           if (decodeError != null) ...[
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: theme.colors.error.withValues(alpha: 0.1),
-                borderRadius: SailStyleValues.borderRadiusSmall,
-                border: Border.all(color: theme.colors.error),
-              ),
-              child: Row(
-                children: [
-                  Icon(Icons.error_outline, color: theme.colors.error, size: 24),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: SailText.secondary13(decodeError!, color: theme.colors.error),
-                  ),
-                ],
-              ),
+            SailAlert(
+              variant: SailAlertVariant.destructive,
+              icon: SailSVG.fromAsset(SailSVGAsset.circleAlert, width: 24, color: theme.colors.error),
+              description: decodeError!,
             ),
             const SizedBox(height: 24),
           ],
@@ -376,10 +330,10 @@ class _DecodeTab extends StatelessWidget {
                 children: [
                   Row(
                     children: [
-                      Icon(
-                        decodeResult!.checksumValid ? Icons.check_circle : Icons.error,
+                      SailSVG.fromAsset(
+                        decodeResult!.checksumValid ? SailSVGAsset.circleCheck : SailSVGAsset.circleAlert,
+                        width: 24,
                         color: decodeResult!.checksumValid ? theme.colors.success : theme.colors.error,
-                        size: 24,
                       ),
                       const SizedBox(width: 8),
                       SailText.primary15('Decode Results', bold: true),
@@ -464,7 +418,7 @@ class _EncodeTab extends StatelessWidget {
               children: [
                 Row(
                   children: [
-                    Icon(Icons.settings_input_component, color: theme.colors.primary, size: 20),
+                    SailSVG.fromAsset(SailSVGAsset.slidersHorizontal, width: 20, color: theme.colors.primary),
                     const SizedBox(width: 8),
                     SailText.primary15('Encode Parameters', bold: true),
                   ],
@@ -476,36 +430,12 @@ class _EncodeTab extends StatelessWidget {
                 // Version byte selector
                 SailText.primary13('Version Byte:'),
                 const SizedBox(height: 8),
-                DropdownButtonFormField<int>(
-                  initialValue: selectedVersionByte,
-                  dropdownColor: theme.colors.backgroundSecondary,
-                  style: TextStyle(
-                    color: theme.colors.text,
-                    fontSize: 13,
-                    fontFamily: 'IBMPlexMono',
-                  ),
-                  decoration: InputDecoration(
-                    filled: true,
-                    fillColor: theme.colors.backgroundSecondary,
-                    border: OutlineInputBorder(
-                      borderRadius: SailStyleValues.borderRadiusSmall,
-                      borderSide: BorderSide(color: theme.colors.border),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: SailStyleValues.borderRadiusSmall,
-                      borderSide: BorderSide(color: theme.colors.border),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: SailStyleValues.borderRadiusSmall,
-                      borderSide: BorderSide(color: theme.colors.primary, width: 2),
-                    ),
-                  ),
-                  items: versionBytes.entries.map((entry) {
-                    return DropdownMenuItem(
-                      value: entry.key,
-                      child: Text(entry.value),
-                    );
-                  }).toList(),
+                SailDropdownButton<int>(
+                  value: selectedVersionByte,
+                  items: [
+                    for (final entry in versionBytes.entries)
+                      SailDropdownItem<int>(value: entry.key, label: entry.value),
+                  ],
                   onChanged: onVersionChanged,
                 ),
                 const SizedBox(height: 16),
@@ -513,31 +443,11 @@ class _EncodeTab extends StatelessWidget {
                 // Payload input
                 SailText.primary13('Payload (Hex):'),
                 const SizedBox(height: 8),
-                TextField(
+                SailTextField(
                   controller: payloadController,
-                  style: TextStyle(
-                    fontFamily: 'IBMPlexMono',
-                    fontSize: 13,
-                    color: theme.colors.text,
-                  ),
-                  decoration: InputDecoration(
-                    hintText: 'e.g., 62e907b15cbf27d5425399ebf6f0fb50ebb88f18',
-                    hintStyle: TextStyle(color: theme.colors.textTertiary),
-                    filled: true,
-                    fillColor: theme.colors.backgroundSecondary,
-                    border: OutlineInputBorder(
-                      borderRadius: SailStyleValues.borderRadiusSmall,
-                      borderSide: BorderSide(color: theme.colors.border),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: SailStyleValues.borderRadiusSmall,
-                      borderSide: BorderSide(color: theme.colors.border),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: SailStyleValues.borderRadiusSmall,
-                      borderSide: BorderSide(color: theme.colors.primary, width: 2),
-                    ),
-                  ),
+                  hintText: 'e.g., 62e907b15cbf27d5425399ebf6f0fb50ebb88f18',
+                  monospace: true,
+                  minLines: 3,
                   maxLines: 3,
                   onChanged: (_) => onInputChanged(),
                 ),
@@ -553,22 +463,10 @@ class _EncodeTab extends StatelessWidget {
 
           // Error display
           if (encodeError != null) ...[
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: theme.colors.error.withValues(alpha: 0.1),
-                borderRadius: SailStyleValues.borderRadiusSmall,
-                border: Border.all(color: theme.colors.error),
-              ),
-              child: Row(
-                children: [
-                  Icon(Icons.error_outline, color: theme.colors.error, size: 24),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: SailText.secondary13(encodeError!, color: theme.colors.error),
-                  ),
-                ],
-              ),
+            SailAlert(
+              variant: SailAlertVariant.destructive,
+              icon: SailSVG.fromAsset(SailSVGAsset.circleAlert, width: 24, color: theme.colors.error),
+              description: encodeError!,
             ),
             const SizedBox(height: 24),
           ],
@@ -587,7 +485,7 @@ class _EncodeTab extends StatelessWidget {
                 children: [
                   Row(
                     children: [
-                      Icon(Icons.check_circle, color: theme.colors.success, size: 24),
+                      SailSVG.fromAsset(SailSVGAsset.circleCheck, width: 24, color: theme.colors.success),
                       const SizedBox(width: 8),
                       SailText.primary15('Base58 Result', bold: true),
                     ],
@@ -602,7 +500,7 @@ class _EncodeTab extends StatelessWidget {
                     child: Row(
                       children: [
                         Expanded(
-                          child: SelectableText(
+                          child: SailSelectableText(
                             resultController.text,
                             style: TextStyle(
                               fontFamily: 'IBMPlexMono',
@@ -612,9 +510,13 @@ class _EncodeTab extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(width: 12),
-                        IconButton(
-                          icon: Icon(Icons.copy, color: theme.colors.primary),
-                          onPressed: () => onCopy(resultController.text, 'Base58 result'),
+                        SailTappable(
+                          onTap: () async => onCopy(resultController.text, 'Base58 result'),
+                          borderRadius: SailStyleValues.borderRadiusSmall,
+                          child: Padding(
+                            padding: const EdgeInsets.all(6),
+                            child: SailSVG.fromAsset(SailSVGAsset.copy, color: theme.colors.primary),
+                          ),
                         ),
                       ],
                     ),

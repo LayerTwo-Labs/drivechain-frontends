@@ -1,6 +1,5 @@
 import 'package:auto_route/auto_route.dart';
 import 'package:bitwindow/routing/router.dart';
-import 'package:flutter/material.dart' show AppBar, Icon, Icons, Scaffold;
 import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
@@ -58,12 +57,9 @@ class _RemoveEncryptionPageState extends State<RemoveEncryptionPage> {
   Widget build(BuildContext context) {
     final theme = SailTheme.of(context);
 
-    return Scaffold(
+    return SailScaffold(
       backgroundColor: theme.colors.background,
-      appBar: AppBar(
-        backgroundColor: theme.colors.background,
-        foregroundColor: theme.colors.text,
-      ),
+      appBar: SailAppBar.build(context),
       body: SafeArea(
         child: Center(
           child: ConstrainedBox(
@@ -96,8 +92,8 @@ class _RemoveEncryptionPageState extends State<RemoveEncryptionPage> {
                   onSubmitted: (_) => _removeEncryption(),
                   suffixWidget: GestureDetector(
                     onTap: () => setState(() => _obscurePassword = !_obscurePassword),
-                    child: Icon(
-                      _obscurePassword ? Icons.visibility : Icons.visibility_off,
+                    child: SailSVG.fromAsset(
+                      _obscurePassword ? SailSVGAsset.eye : SailSVGAsset.eyeOff,
                       color: theme.colors.text,
                     ),
                   ),

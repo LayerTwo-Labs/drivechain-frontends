@@ -7,7 +7,6 @@ import 'package:bitwindow/providers/hd_wallet_provider.dart';
 import 'package:bitwindow/providers/multisig_provider.dart';
 import 'package:bitwindow/widgets/create_multisig_modal.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:flutter/material.dart' show Colors, Dialog, Icon, Icons;
 import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
@@ -358,26 +357,179 @@ class _ImportPSBTModalState extends State<ImportPSBTModal> {
   Widget build(BuildContext context) {
     if (_selectedGroupId != null) {
       final selectedGroup = widget.availableGroups.firstWhere((g) => g.id == _selectedGroupId);
-      return Dialog(
-        backgroundColor: Colors.transparent,
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 600, maxHeight: 600),
-          child: SailCard(
-            title: 'Import PSBT',
-            subtitle: 'Import a partially signed Bitcoin transaction for ${selectedGroup.name}',
-            error: _modalError,
-            child: SingleChildScrollView(
-              child: SailColumn(
-                spacing: SailStyleValues.padding16,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
+      return SailModal(
+        constraints: const BoxConstraints(maxWidth: 600, maxHeight: 600),
+        child: SailCard(
+          title: 'Import PSBT',
+          subtitle: 'Import a partially signed Bitcoin transaction for ${selectedGroup.name}',
+          error: _modalError,
+          child: SingleChildScrollView(
+            child: SailColumn(
+              spacing: SailStyleValues.padding16,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: context.sailTheme.colors.info.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: context.sailTheme.colors.info.withValues(alpha: 0.3)),
+                  ),
+                  child: SailRow(
+                    children: [
+                      Expanded(
+                        child: SailColumn(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          spacing: SailStyleValues.padding04,
+                          children: [
+                            SailText.primary13(
+                              'Selected Group: ${selectedGroup.name}',
+                            ),
+                            SailText.secondary12(
+                              '${selectedGroup.m} of ${selectedGroup.n} multisig',
+                            ),
+                          ],
+                        ),
+                      ),
+                      SailButton(
+                        label: 'Change',
+                        onPressed: () async {
+                          setState(() => _selectedGroupId = null);
+                        },
+                        variant: ButtonVariant.ghost,
+                        small: true,
+                      ),
+                    ],
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    border: Border.all(
+                      color: _selectedFileName != null
+                          ? context.sailTheme.colors.success.withValues(alpha: 0.5)
+                          : context.sailTheme.colors.textSecondary.withValues(alpha: 0.3),
+                    ),
+                    borderRadius: BorderRadius.circular(8),
+                    color: _selectedFileName != null ? context.sailTheme.colors.success.withValues(alpha: 0.05) : null,
+                  ),
+                  child: SailColumn(
+                    spacing: SailStyleValues.padding12,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      SailRow(
+                        children: [
+                          SailSVG.fromAsset(
+                            _selectedFileName != null ? SailSVGAsset.circleCheck : SailSVGAsset.upload,
+                            width: 24,
+                            color: _selectedFileName != null
+                                ? context.sailTheme.colors.success
+                                : context.sailTheme.colors.textSecondary,
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: SailColumn(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              spacing: SailStyleValues.padding04,
+                              children: [
+                                SailText.primary13(
+                                  _selectedFileName ?? 'No file selected',
+                                ),
+                                if (_selectedFileName == null)
+                                  SailText.secondary12(
+                                    'Select a JSON file containing the PSBT export',
+                                  )
+                                else if (_importedData != null) ...[
+                                  SailText.secondary12(
+                                    'Transaction: ${_importedData!['transaction_id']}',
+                                  ),
+                                  SailText.secondary12(
+                                    'Status: ${_importedData!['is_signed'] == true ? 'Signed' : 'Unsigned'}',
+                                  ),
+                                  if (_importedData!['key_owner'] != null)
+                                    SailText.secondary12(
+                                      'Key: ${_importedData!['key_owner']}',
+                                    ),
+                                ],
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                      SailButton(
+                        label: _selectedFileName != null ? 'Choose Different File' : 'Choose File',
+                        onPressed: _isImporting ? null : _pickAndLoadPSBTFile,
+                        variant: _selectedFileName != null ? ButtonVariant.secondary : ButtonVariant.primary,
+                      ),
+                    ],
+                  ),
+                ),
+                if (_importedData != null) ...[
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: Colors.blue.withValues(alpha: 0.1),
+                      color: context.sailTheme.colors.info.withValues(alpha: 0.05),
                       borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.blue.withValues(alpha: 0.3)),
+                      border: Border.all(color: context.sailTheme.colors.info.withValues(alpha: 0.2)),
                     ),
+                    child: SailColumn(
+                      spacing: SailStyleValues.padding08,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        SailText.primary12('Import Details:'),
+                        if (_importedData!['exported_at'] != null)
+                          SailText.secondary12(
+                            'Exported: ${_importedData!['exported_at']}',
+                          ),
+                      ],
+                    ),
+                  ),
+                ],
+                SailRow(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  spacing: SailStyleValues.padding08,
+                  children: [
+                    SailButton(
+                      label: 'Cancel',
+                      onPressed: _isImporting
+                          ? null
+                          : () async {
+                              Navigator.of(context).pop(false);
+                            },
+                      variant: ButtonVariant.ghost,
+                    ),
+                    SailButton(
+                      label: 'Import',
+                      onPressed: _isImporting || _importedData == null ? null : _importPSBT,
+                      loading: _isImporting,
+                      disabled: _importedData == null,
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
+    return SailModal(
+      constraints: const BoxConstraints(maxWidth: 600, maxHeight: 500),
+      child: SailCard(
+        title: 'Select Multisig Group',
+        subtitle: 'Choose which group this PSBT belongs to',
+        error: _modalError,
+        child: SingleChildScrollView(
+          child: SailColumn(
+            spacing: SailStyleValues.padding16,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (widget.availableGroups.isEmpty)
+                SailText.secondary12('No multisig groups available')
+              else
+                ...widget.availableGroups.map(
+                  (group) => SailCard(
+                    shadowSize: ShadowSize.none,
                     child: SailRow(
                       children: [
                         Expanded(
@@ -385,193 +537,34 @@ class _ImportPSBTModalState extends State<ImportPSBTModal> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             spacing: SailStyleValues.padding04,
                             children: [
-                              SailText.primary13(
-                                'Selected Group: ${selectedGroup.name}',
+                              SailText.primary13(group.name),
+                              SailText.secondary12(
+                                '${group.m} of ${group.n} multisig',
                               ),
                               SailText.secondary12(
-                                '${selectedGroup.m} of ${selectedGroup.n} multisig',
+                                'Balance: ${group.balance.toStringAsFixed(8)} BTC',
                               ),
                             ],
                           ),
                         ),
+                        const SizedBox(width: SailStyleValues.padding16),
                         SailButton(
-                          label: 'Change',
-                          onPressed: () async {
-                            setState(() => _selectedGroupId = null);
-                          },
-                          variant: ButtonVariant.ghost,
-                          small: true,
+                          label: 'Select Group',
+                          onPressed: () async => setState(() => _selectedGroupId = group.id),
+                          variant: ButtonVariant.primary,
                         ),
                       ],
                     ),
                   ),
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      border: Border.all(
-                        color: _selectedFileName != null
-                            ? Colors.green.withValues(alpha: 0.5)
-                            : Colors.grey.withValues(alpha: 0.3),
-                      ),
-                      borderRadius: BorderRadius.circular(8),
-                      color: _selectedFileName != null ? Colors.green.withValues(alpha: 0.05) : null,
-                    ),
-                    child: SailColumn(
-                      spacing: SailStyleValues.padding12,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        SailRow(
-                          children: [
-                            Icon(
-                              _selectedFileName != null ? Icons.check_circle : Icons.upload_file,
-                              color: _selectedFileName != null
-                                  ? context.sailTheme.colors.success
-                                  : context.sailTheme.colors.textSecondary,
-                              size: 24,
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: SailColumn(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                spacing: SailStyleValues.padding04,
-                                children: [
-                                  SailText.primary13(
-                                    _selectedFileName ?? 'No file selected',
-                                  ),
-                                  if (_selectedFileName == null)
-                                    SailText.secondary12(
-                                      'Select a JSON file containing the PSBT export',
-                                    )
-                                  else if (_importedData != null) ...[
-                                    SailText.secondary12(
-                                      'Transaction: ${_importedData!['transaction_id']}',
-                                    ),
-                                    SailText.secondary12(
-                                      'Status: ${_importedData!['is_signed'] == true ? 'Signed' : 'Unsigned'}',
-                                    ),
-                                    if (_importedData!['key_owner'] != null)
-                                      SailText.secondary12(
-                                        'Key: ${_importedData!['key_owner']}',
-                                      ),
-                                  ],
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                        SailButton(
-                          label: _selectedFileName != null ? 'Choose Different File' : 'Choose File',
-                          onPressed: _isImporting ? null : _pickAndLoadPSBTFile,
-                          variant: _selectedFileName != null ? ButtonVariant.secondary : ButtonVariant.primary,
-                        ),
-                      ],
-                    ),
-                  ),
-                  if (_importedData != null) ...[
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: Colors.blue.withValues(alpha: 0.05),
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: Colors.blue.withValues(alpha: 0.2)),
-                      ),
-                      child: SailColumn(
-                        spacing: SailStyleValues.padding08,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          SailText.primary12('Import Details:'),
-                          if (_importedData!['exported_at'] != null)
-                            SailText.secondary12(
-                              'Exported: ${_importedData!['exported_at']}',
-                            ),
-                        ],
-                      ),
-                    ),
-                  ],
-                  SailRow(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    spacing: SailStyleValues.padding08,
-                    children: [
-                      SailButton(
-                        label: 'Cancel',
-                        onPressed: _isImporting
-                            ? null
-                            : () async {
-                                Navigator.of(context).pop(false);
-                              },
-                        variant: ButtonVariant.ghost,
-                      ),
-                      SailButton(
-                        label: 'Import',
-                        onPressed: _isImporting || _importedData == null ? null : _importPSBT,
-                        loading: _isImporting,
-                        disabled: _importedData == null,
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      );
-    }
-
-    return Dialog(
-      backgroundColor: Colors.transparent,
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 600, maxHeight: 500),
-        child: SailCard(
-          title: 'Select Multisig Group',
-          subtitle: 'Choose which group this PSBT belongs to',
-          error: _modalError,
-          child: SingleChildScrollView(
-            child: SailColumn(
-              spacing: SailStyleValues.padding16,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                if (widget.availableGroups.isEmpty)
-                  SailText.secondary12('No multisig groups available')
-                else
-                  ...widget.availableGroups.map(
-                    (group) => SailCard(
-                      shadowSize: ShadowSize.none,
-                      child: SailRow(
-                        children: [
-                          Expanded(
-                            child: SailColumn(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              spacing: SailStyleValues.padding04,
-                              children: [
-                                SailText.primary13(group.name),
-                                SailText.secondary12(
-                                  '${group.m} of ${group.n} multisig',
-                                ),
-                                SailText.secondary12(
-                                  'Balance: ${group.balance.toStringAsFixed(8)} BTC',
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(width: SailStyleValues.padding16),
-                          SailButton(
-                            label: 'Select Group',
-                            onPressed: () async => setState(() => _selectedGroupId = group.id),
-                            variant: ButtonVariant.primary,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                SailButton(
-                  label: 'Cancel',
-                  onPressed: () async {
-                    Navigator.of(context).pop(false);
-                  },
-                  variant: ButtonVariant.ghost,
                 ),
-              ],
-            ),
+              SailButton(
+                label: 'Cancel',
+                onPressed: () async {
+                  Navigator.of(context).pop(false);
+                },
+                variant: ButtonVariant.ghost,
+              ),
+            ],
           ),
         ),
       ),

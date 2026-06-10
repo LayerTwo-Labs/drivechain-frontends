@@ -1,6 +1,5 @@
 import 'package:auto_route/auto_route.dart';
 import 'package:bitnames/viewmodels/bitnames_config_editor_viewmodel.dart';
-import 'package:flutter/material.dart' show BorderSide, InputDecoration, OutlineInputBorder, SelectableText, TextField;
 import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
@@ -200,8 +199,6 @@ class _EditableConfigPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = SailTheme.of(context);
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -212,32 +209,11 @@ class _EditableConfigPanel extends StatelessWidget {
         Expanded(
           child: Padding(
             padding: const EdgeInsets.all(12),
-            child: TextField(
+            child: SailTextField(
               controller: TextEditingController(text: viewModel.workingConfigText),
-              maxLines: null,
+              hintText: '',
               expands: true,
-              style: TextStyle(
-                fontFamily: 'IBMPlexMono',
-                fontSize: 12,
-                color: theme.colors.text,
-              ),
-              decoration: InputDecoration(
-                border: OutlineInputBorder(
-                  borderRadius: SailStyleValues.borderRadius,
-                  borderSide: BorderSide(color: theme.colors.border),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: SailStyleValues.borderRadius,
-                  borderSide: BorderSide(color: theme.colors.border),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: SailStyleValues.borderRadius,
-                  borderSide: BorderSide(color: theme.colors.primary),
-                ),
-                filled: true,
-                fillColor: theme.colors.background,
-                contentPadding: const EdgeInsets.all(12),
-              ),
+              monospace: true,
               onChanged: viewModel.updateFromRawText,
             ),
           ),
@@ -456,13 +432,9 @@ class _CliPreview extends StatelessWidget {
           SailText.secondary12('CLI Preview:', bold: true),
           const SailSpacing(SailStyleValues.padding08),
           Expanded(
-            child: SelectableText(
+            child: SailSelectableText(
               cliArgs.isEmpty ? '(no args)' : 'bitnames ${cliArgs.join(' ')}',
-              style: TextStyle(
-                fontFamily: 'IBMPlexMono',
-                fontSize: 12,
-                color: theme.colors.text,
-              ),
+              monospace: true,
             ),
           ),
         ],

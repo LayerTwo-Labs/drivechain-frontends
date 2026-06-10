@@ -3,7 +3,6 @@ import 'package:bitassets/providers/asset_analytics_provider.dart';
 import 'package:bitassets/providers/bitassets_provider.dart';
 import 'package:bitassets/providers/favorites_provider.dart';
 import 'package:bitassets/routing/router.dart';
-import 'package:flutter/material.dart' show Colors, Icon, Icons, IconButton, InkWell;
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
@@ -87,7 +86,7 @@ class AssetExplorerTabPage extends StatelessWidget {
                     label: 'Favorites',
                     isActive: model.showFavoritesOnly,
                     onTap: () => model.setShowFavoritesOnly(true),
-                    icon: Icons.star,
+                    icon: SailSVGAsset.star,
                   ),
                 ],
               ),
@@ -252,7 +251,7 @@ class _FilterTab extends StatelessWidget {
   final String label;
   final bool isActive;
   final VoidCallback onTap;
-  final IconData? icon;
+  final SailSVGAsset? icon;
 
   const _FilterTab({
     required this.label,
@@ -265,13 +264,13 @@ class _FilterTab extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = SailTheme.of(context);
 
-    return InkWell(
-      onTap: onTap,
+    return SailTappable(
+      onTap: () async => onTap(),
       borderRadius: SailStyleValues.borderRadius,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         decoration: BoxDecoration(
-          color: isActive ? theme.colors.primary.withValues(alpha: 0.1) : Colors.transparent,
+          color: isActive ? theme.colors.primary.withValues(alpha: 0.1) : SailColorScheme.transparent,
           borderRadius: SailStyleValues.borderRadius,
           border: Border.all(
             color: isActive ? theme.colors.primary : theme.colors.divider,
@@ -281,9 +280,9 @@ class _FilterTab extends StatelessWidget {
           spacing: SailStyleValues.padding08,
           children: [
             if (icon != null)
-              Icon(
-                icon,
-                size: 14,
+              SailSVG.fromAsset(
+                icon!,
+                width: 14,
                 color: isActive ? theme.colors.primary : theme.colors.textSecondary,
               ),
             SailText.primary13(
@@ -322,15 +321,15 @@ class _AssetRow extends StatelessWidget {
     final hasSigning = asset.details.signingPubkey != null;
     final hasNetwork = asset.details.socketAddrV4 != null || asset.details.socketAddrV6 != null;
 
-    return InkWell(
-      onTap: onTap,
+    return SailTappable(
+      onTap: () async => onTap(),
       child: Container(
         padding: const EdgeInsets.symmetric(
           horizontal: SailStyleValues.padding16,
           vertical: SailStyleValues.padding12,
         ),
         decoration: BoxDecoration(
-          color: isExpanded ? theme.colors.backgroundSecondary.withValues(alpha: 0.5) : Colors.transparent,
+          color: isExpanded ? theme.colors.backgroundSecondary.withValues(alpha: 0.5) : SailColorScheme.transparent,
           border: Border(
             bottom: BorderSide(color: theme.colors.divider, width: 1),
           ),
@@ -338,16 +337,20 @@ class _AssetRow extends StatelessWidget {
         child: Row(
           children: [
             // Favorite star
-            IconButton(
-              icon: Icon(
-                isFavorite ? Icons.star : Icons.star_border,
-                color: isFavorite ? theme.colors.orange : theme.colors.textSecondary,
-                size: 20,
+            SailTooltip(
+              message: isFavorite ? 'Remove from favorites' : 'Add to favorites',
+              child: SailTappable(
+                onTap: () async => onToggleFavorite(),
+                borderRadius: SailStyleValues.borderRadiusSmall,
+                child: Padding(
+                  padding: const EdgeInsets.all(6),
+                  child: SailSVG.fromAsset(
+                    SailSVGAsset.star,
+                    color: isFavorite ? theme.colors.orange : theme.colors.textSecondary,
+                    width: 20,
+                  ),
+                ),
               ),
-              onPressed: onToggleFavorite,
-              tooltip: isFavorite ? 'Remove from favorites' : 'Add to favorites',
-              padding: EdgeInsets.zero,
-              constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
             ),
 
             // Sequence ID
@@ -378,13 +381,14 @@ class _AssetRow extends StatelessWidget {
                       ],
                     ),
                   ),
-                  IconButton(
-                    icon: SailSVG.icon(SailSVGAsset.iconCopy, width: 14),
-                    onPressed: onCopyHash,
-                    tooltip: 'Copy hash',
-                    iconSize: 14,
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(minWidth: 24, minHeight: 24),
+                  SailTooltip(
+                    message: 'Copy hash',
+                    child: SailButton(
+                      variant: ButtonVariant.icon,
+                      icon: SailSVGAsset.iconCopy,
+                      iconWidth: 14,
+                      onPressed: () async => onCopyHash(),
+                    ),
                   ),
                 ],
               ),
@@ -428,9 +432,9 @@ class _AssetRow extends StatelessWidget {
                           : theme.colors.backgroundSecondary,
                       borderRadius: BorderRadius.circular(4),
                     ),
-                    child: Icon(
-                      isExpanded ? Icons.expand_less : Icons.expand_more,
-                      size: 20,
+                    child: SailSVG.fromAsset(
+                      isExpanded ? SailSVGAsset.chevronUp : SailSVGAsset.chevronDown,
+                      width: 20,
                       color: isExpanded ? theme.colors.primary : theme.colors.textSecondary,
                     ),
                   ),
@@ -588,13 +592,14 @@ class _DetailRow extends StatelessWidget {
             monospace: true,
           ),
         ),
-        IconButton(
-          icon: SailSVG.icon(SailSVGAsset.iconCopy, width: 12),
-          onPressed: onCopy,
-          tooltip: 'Copy',
-          iconSize: 12,
-          padding: EdgeInsets.zero,
-          constraints: const BoxConstraints(minWidth: 20, minHeight: 20),
+        SailTooltip(
+          message: 'Copy',
+          child: SailButton(
+            variant: ButtonVariant.icon,
+            icon: SailSVGAsset.iconCopy,
+            iconWidth: 12,
+            onPressed: () async => onCopy(),
+          ),
         ),
       ],
     );

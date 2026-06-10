@@ -1,5 +1,4 @@
 import 'package:bitwindow/providers/fast_withdrawal_provider.dart';
-import 'package:flutter/material.dart' show Icon, Icons;
 import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
@@ -322,17 +321,18 @@ class _SuccessSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = SailTheme.of(context);
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: SailColorScheme.green.withValues(alpha: 0.1),
+        color: theme.colors.success.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: SailColorScheme.green),
+        border: Border.all(color: theme.colors.success),
       ),
       child: SailColumn(
         spacing: SailStyleValues.padding08,
         children: [
-          Icon(Icons.check_circle, color: SailColorScheme.green, size: 48),
+          SailSVG.fromAsset(SailSVGAsset.circleCheck, width: 48, color: theme.colors.success),
           SailText.primary24('Withdrawal Completed'),
           const SizedBox(height: 8),
           SailText.secondary13(

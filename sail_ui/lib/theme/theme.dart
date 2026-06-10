@@ -35,6 +35,8 @@ class _InheritedTheme extends InheritedWidget {
 
   @override
   bool updateShouldNotify(covariant _InheritedTheme oldWidget) {
-    return theme.data.colors != oldWidget.theme.data.colors || theme.data.font != oldWidget.theme.data.font;
+    return theme.data.colors != oldWidget.theme.data.colors ||
+        theme.data.font != oldWidget.theme.data.font ||
+        theme.data.style != oldWidget.theme.data.style;
   }
 }

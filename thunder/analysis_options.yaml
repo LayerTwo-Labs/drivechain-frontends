@@ -37,8 +37,11 @@ analyzer:
     - "**/*.pbgrpc.dart"
     - "build/**"
     - "lib/gen/**"
-  errors:
-    undefined_identifier: ignore
+
+custom_lint:
+  rules:
+    - avoid_material_import:
+      severity: error
 
 formatter:
   trailing_commas: preserve

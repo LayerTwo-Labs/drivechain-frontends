@@ -31,9 +31,12 @@ analyzer:
   exclude:
     - "lib/gen**"
     - "build/**"
-  errors:
-    undefined_identifier: ignore
 
 formatter:
   trailing_commas: preserve
   page_width: 120
+
+custom_lint:
+  rules:
+    - avoid_material_import:
+      severity: error

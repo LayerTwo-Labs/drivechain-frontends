@@ -12,6 +12,7 @@ Future<T?> showSailSheet<T>({
   bool barrierDismissible = true,
   Duration transitionDuration = const Duration(milliseconds: 220),
   Color? barrierColor,
+  double? size,
 }) {
   return Navigator.of(context).push<T>(
     PageRouteBuilder<T>(
@@ -24,6 +25,7 @@ Future<T?> showSailSheet<T>({
       pageBuilder: (ctx, anim, secondary) {
         return SailSheet(
           side: side,
+          size: size,
           child: Builder(builder: builder),
         );
       },
@@ -97,7 +99,7 @@ class SailSheet extends StatelessWidget {
         height: isHorizontal ? double.infinity : extent,
         decoration: BoxDecoration(
           color: theme.colors.background,
-          border: Border.all(color: theme.colors.border),
+          border: theme.chrome.beveled ? theme.chrome.bevel!.raised : Border.all(color: theme.colors.border),
           boxShadow: [
             BoxShadow(
               color: theme.colors.shadow,

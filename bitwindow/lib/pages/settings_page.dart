@@ -12,10 +12,9 @@ import 'package:bitwindow/pages/settings/settings_advanced.dart';
 import 'package:bitwindow/pages/settings/settings_appearance.dart';
 import 'package:bitwindow/pages/settings/settings_network.dart';
 import 'package:bitwindow/pages/settings/settings_reset.dart';
-import 'package:sail_ui/sail_ui.dart';
+import 'package:sail_ui/sail_ui.dart' hide SettingsReset;
 import 'package:bitwindow/routing/router.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:flutter/material.dart' show Colors, Dialog, Icon, Icons, SelectionArea;
 import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:intl/intl.dart';
@@ -387,7 +386,7 @@ class _SecuritySettingsContentState extends State<_SecuritySettingsContent> {
                 ),
                 child: Row(
                   children: [
-                    Icon(Icons.lock, color: theme.colors.success, size: 16),
+                    SailSVG.fromAsset(SailSVGAsset.lock, width: 16, color: theme.colors.success),
                     const SizedBox(width: 8),
                     SailText.primary13(
                       'Wallet is encrypted',
@@ -538,87 +537,84 @@ class _BackupWalletDialogState extends State<BackupWalletDialog> {
   Widget build(BuildContext context) {
     final theme = SailTheme.of(context);
 
-    return Dialog(
-      backgroundColor: Colors.transparent,
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 600, maxHeight: 500),
-        child: SailCard(
-          title: 'Backup Wallet',
-          subtitle: 'Create a backup of your wallet and multisig data',
-          error: _error,
-          child: SingleChildScrollView(
-            child: SailColumn(
-              spacing: SailStyleValues.padding16,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Info section
-                Container(
-                  padding: const EdgeInsets.all(SailStyleValues.padding12),
-                  decoration: BoxDecoration(
-                    color: theme.colors.backgroundSecondary,
-                    borderRadius: SailStyleValues.borderRadiusSmall,
-                    border: Border.all(color: theme.colors.border),
-                  ),
-                  child: SailColumn(
-                    spacing: SailStyleValues.padding08,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      SailText.primary13('What will be backed up:'),
-                      SailText.secondary12('• Master wallet and all derived wallets'),
-                      SailText.secondary12('• Multisig group configurations'),
-                      SailText.secondary12('• Transaction history'),
-                    ],
-                  ),
+    return SailModal(
+      constraints: const BoxConstraints(maxWidth: 600, maxHeight: 500),
+      child: SailCard(
+        title: 'Backup Wallet',
+        subtitle: 'Create a backup of your wallet and multisig data',
+        error: _error,
+        child: SingleChildScrollView(
+          child: SailColumn(
+            spacing: SailStyleValues.padding16,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Info section
+              Container(
+                padding: const EdgeInsets.all(SailStyleValues.padding12),
+                decoration: BoxDecoration(
+                  color: theme.colors.backgroundSecondary,
+                  borderRadius: SailStyleValues.borderRadiusSmall,
+                  border: Border.all(color: theme.colors.border),
                 ),
-
-                // File selection
-                Column(
+                child: SailColumn(
+                  spacing: SailStyleValues.padding08,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    SailText.primary15('Save Location'),
-                    const SailSpacing(SailStyleValues.padding08),
-                    Container(
-                      padding: const EdgeInsets.all(SailStyleValues.padding12),
-                      decoration: BoxDecoration(
-                        border: Border.all(color: theme.colors.border),
-                        borderRadius: SailStyleValues.borderRadiusSmall,
-                      ),
-                      child: SailText.secondary13(
-                        _selectedPath ?? 'No location selected',
-                      ),
-                    ),
-                    const SailSpacing(SailStyleValues.padding08),
-                    SailButton(
-                      label: _selectedPath == null ? 'Choose Location' : 'Change Location',
-                      onPressed: _isCreatingBackup ? null : () async => await _selectSaveLocation(),
-                    ),
+                    SailText.primary13('What will be backed up:'),
+                    SailText.secondary12('• Master wallet and all derived wallets'),
+                    SailText.secondary12('• Multisig group configurations'),
+                    SailText.secondary12('• Transaction history'),
                   ],
                 ),
+              ),
 
-                // Action buttons
-                SailRow(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  spacing: SailStyleValues.padding08,
-                  children: [
-                    SailButton(
-                      label: 'Cancel',
-                      variant: ButtonVariant.secondary,
-                      onPressed: _isCreatingBackup
-                          ? null
-                          : () async {
-                              Navigator.of(context).pop();
-                            },
+              // File selection
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SailText.primary15('Save Location'),
+                  const SailSpacing(SailStyleValues.padding08),
+                  Container(
+                    padding: const EdgeInsets.all(SailStyleValues.padding12),
+                    decoration: BoxDecoration(
+                      border: Border.all(color: theme.colors.border),
+                      borderRadius: SailStyleValues.borderRadiusSmall,
                     ),
-                    SailButton(
-                      label: 'Create Backup',
-                      loading: _isCreatingBackup,
-                      disabled: _selectedPath == null,
-                      onPressed: () async => await _createBackup(),
+                    child: SailText.secondary13(
+                      _selectedPath ?? 'No location selected',
                     ),
-                  ],
-                ),
-              ],
-            ),
+                  ),
+                  const SailSpacing(SailStyleValues.padding08),
+                  SailButton(
+                    label: _selectedPath == null ? 'Choose Location' : 'Change Location',
+                    onPressed: _isCreatingBackup ? null : () async => await _selectSaveLocation(),
+                  ),
+                ],
+              ),
+
+              // Action buttons
+              SailRow(
+                mainAxisAlignment: MainAxisAlignment.end,
+                spacing: SailStyleValues.padding08,
+                children: [
+                  SailButton(
+                    label: 'Cancel',
+                    variant: ButtonVariant.secondary,
+                    onPressed: _isCreatingBackup
+                        ? null
+                        : () async {
+                            Navigator.of(context).pop();
+                          },
+                  ),
+                  SailButton(
+                    label: 'Create Backup',
+                    loading: _isCreatingBackup,
+                    disabled: _selectedPath == null,
+                    onPressed: () async => await _createBackup(),
+                  ),
+                ],
+              ),
+            ],
           ),
         ),
       ),
@@ -939,65 +935,61 @@ class _DataDirSelectionDialogState extends State<DataDirSelectionDialog> {
 
   @override
   Widget build(BuildContext context) {
-    return Dialog(
-      backgroundColor: Colors.transparent,
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 600, maxHeight: 350),
-
-        child: SailCard(
-          title: 'Select Bitcoin Data Directory',
-          subtitle:
-              'Bitcoin mainnet requires substantial storage space (approximately 2.5TB). '
-              'Please select a directory with enough free space to store the Bitcoin data files.\n\n'
-              'This directory will be used for all Bitcoin data including blocks, chainstate, and wallet data',
-          withCloseButton: true,
-          child: SailColumn(
-            spacing: SailStyleValues.padding16,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              SailText.primary15('Selected Directory:'),
-              SailRow(
-                mainAxisSize: MainAxisSize.min,
-                spacing: SailStyleValues.padding08,
-                children: [
-                  Expanded(
-                    child: Container(
-                      padding: const EdgeInsets.all(SailStyleValues.padding12),
-                      decoration: BoxDecoration(
-                        border: Border.all(color: SailTheme.of(context).colors.border),
-                        borderRadius: SailStyleValues.borderRadiusSmall,
-                      ),
-                      child: SailText.secondary13(
-                        selectedPath ?? 'No directory selected',
-                      ),
+    return SailModal(
+      constraints: const BoxConstraints(maxWidth: 600, maxHeight: 350),
+      child: SailCard(
+        title: 'Select Bitcoin Data Directory',
+        subtitle:
+            'Bitcoin mainnet requires substantial storage space (approximately 2.5TB). '
+            'Please select a directory with enough free space to store the Bitcoin data files.\n\n'
+            'This directory will be used for all Bitcoin data including blocks, chainstate, and wallet data',
+        withCloseButton: true,
+        child: SailColumn(
+          spacing: SailStyleValues.padding16,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SailText.primary15('Selected Directory:'),
+            SailRow(
+              mainAxisSize: MainAxisSize.min,
+              spacing: SailStyleValues.padding08,
+              children: [
+                Expanded(
+                  child: Container(
+                    padding: const EdgeInsets.all(SailStyleValues.padding12),
+                    decoration: BoxDecoration(
+                      border: Border.all(color: SailTheme.of(context).colors.border),
+                      borderRadius: SailStyleValues.borderRadiusSmall,
+                    ),
+                    child: SailText.secondary13(
+                      selectedPath ?? 'No directory selected',
                     ),
                   ),
-                  SailButton(
-                    label: 'Browse Directories',
-                    loading: isSelecting,
-                    onPressed: () async => await _selectDirectory(),
-                  ),
-                ],
-              ),
-              Expanded(child: Container()),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  SailButton(
-                    label: 'Cancel',
-                    variant: ButtonVariant.secondary,
-                    onPressed: () async => Navigator.of(context).pop(),
-                  ),
-                  const SailSpacing(SailStyleValues.padding12),
-                  SailButton(
-                    label: 'Confirm',
-                    variant: ButtonVariant.primary,
-                    onPressed: selectedPath != null ? () async => Navigator.of(context).pop(selectedPath) : null,
-                  ),
-                ],
-              ),
-            ],
-          ),
+                ),
+                SailButton(
+                  label: 'Browse Directories',
+                  loading: isSelecting,
+                  onPressed: () async => await _selectDirectory(),
+                ),
+              ],
+            ),
+            Expanded(child: Container()),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                SailButton(
+                  label: 'Cancel',
+                  variant: ButtonVariant.secondary,
+                  onPressed: () async => Navigator.of(context).pop(),
+                ),
+                const SailSpacing(SailStyleValues.padding12),
+                SailButton(
+                  label: 'Confirm',
+                  variant: ButtonVariant.primary,
+                  onPressed: selectedPath != null ? () async => Navigator.of(context).pop(selectedPath) : null,
+                ),
+              ],
+            ),
+          ],
         ),
       ),
     );
@@ -1106,54 +1098,51 @@ class _NetworkSwapProgressDialogState extends State<NetworkSwapProgressDialog> {
     final fromNetworkName = widget.fromNetwork.toDisplayName();
     final toNetworkName = widget.toNetwork.toDisplayName();
 
-    return Dialog(
-      backgroundColor: Colors.transparent,
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 550, maxHeight: 650),
-        child: SailCard(
-          title: 'Switching Network',
-          subtitle: _isCompleted
-              ? 'Successfully switched from $fromNetworkName to $toNetworkName!'
-              : _error != null
-              ? 'Network swap failed: $_error'
-              : 'Switching from $fromNetworkName to $toNetworkName...',
-          withCloseButton: true,
-          child: SingleChildScrollView(
-            child: SailColumn(
-              spacing: SailStyleValues.padding08,
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                ..._steps.asMap().entries.map((entry) {
-                  final index = entry.key;
-                  final step = entry.value;
-                  final isActive = index == _currentStepIndex && !step.isCompleted;
-                  return ProgressStepTile(
-                    name: step.name,
-                    isCompleted: step.isCompleted,
-                    duration: step.duration,
-                    isActive: isActive,
-                  );
-                }),
-                if (_isCompleted) const SailSpacing(SailStyleValues.padding08),
-                if (_isCompleted)
-                  SailButton(
-                    label: 'Close',
-                    variant: ButtonVariant.primary,
-                    onPressed: () async {
-                      Navigator.of(context).pop();
-                    },
-                  ),
-                if (_error != null) const SailSpacing(SailStyleValues.padding08),
-                if (_error != null)
-                  SailButton(
-                    label: 'Close',
-                    variant: ButtonVariant.secondary,
-                    onPressed: () async {
-                      Navigator.of(context).pop();
-                    },
-                  ),
-              ],
-            ),
+    return SailModal(
+      constraints: const BoxConstraints(maxWidth: 550, maxHeight: 650),
+      child: SailCard(
+        title: 'Switching Network',
+        subtitle: _isCompleted
+            ? 'Successfully switched from $fromNetworkName to $toNetworkName!'
+            : _error != null
+            ? 'Network swap failed: $_error'
+            : 'Switching from $fromNetworkName to $toNetworkName...',
+        withCloseButton: true,
+        child: SingleChildScrollView(
+          child: SailColumn(
+            spacing: SailStyleValues.padding08,
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              ..._steps.asMap().entries.map((entry) {
+                final index = entry.key;
+                final step = entry.value;
+                final isActive = index == _currentStepIndex && !step.isCompleted;
+                return ProgressStepTile(
+                  name: step.name,
+                  isCompleted: step.isCompleted,
+                  duration: step.duration,
+                  isActive: isActive,
+                );
+              }),
+              if (_isCompleted) const SailSpacing(SailStyleValues.padding08),
+              if (_isCompleted)
+                SailButton(
+                  label: 'Close',
+                  variant: ButtonVariant.primary,
+                  onPressed: () async {
+                    Navigator.of(context).pop();
+                  },
+                ),
+              if (_error != null) const SailSpacing(SailStyleValues.padding08),
+              if (_error != null)
+                SailButton(
+                  label: 'Close',
+                  variant: ButtonVariant.secondary,
+                  onPressed: () async {
+                    Navigator.of(context).pop();
+                  },
+                ),
+            ],
           ),
         ),
       ),

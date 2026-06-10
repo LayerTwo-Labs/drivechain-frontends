@@ -1,7 +1,6 @@
 import 'package:auto_route/auto_route.dart';
 import 'package:bitwindow/providers/timestamp_provider.dart';
 import 'package:bitwindow/routing/router.dart';
-import 'package:flutter/material.dart' show IconButton;
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
@@ -53,14 +52,14 @@ class TimestampDetailViewModel extends BaseViewModel {
   void copyHash(BuildContext context) {
     if (timestamp != null) {
       Clipboard.setData(ClipboardData(text: timestamp!.fileHash));
-      showSnackBar(context, 'Hash copied to clipboard');
+      showSailToast(context, 'Hash copied to clipboard');
     }
   }
 
   void copyTxid(BuildContext context) {
     if (timestamp != null && timestamp!.hasTxid()) {
       Clipboard.setData(ClipboardData(text: timestamp!.txid));
-      showSnackBar(context, 'Transaction ID copied to clipboard');
+      showSailToast(context, 'Transaction ID copied to clipboard');
     }
   }
 }
@@ -213,10 +212,11 @@ class CopyRow extends StatelessWidget {
           ),
         ),
         const SizedBox(width: SailStyleValues.padding12),
-        IconButton(
-          icon: SailSVG.icon(SailSVGAsset.iconCopy),
-          onPressed: onCopy,
-          iconSize: 16,
+        SailButton(
+          variant: ButtonVariant.icon,
+          icon: SailSVGAsset.iconCopy,
+          iconWidth: 16,
+          onPressed: () async => onCopy(),
         ),
       ],
     );

@@ -17,6 +17,8 @@ class SailTextarea extends StatefulWidget {
   final bool readOnly;
   final FocusNode? focusNode;
   final List<TextInputFormatter>? inputFormatters;
+  final bool expands;
+  final bool monospace;
 
   const SailTextarea({
     super.key,
@@ -34,6 +36,8 @@ class SailTextarea extends StatefulWidget {
     this.readOnly = false,
     this.focusNode,
     this.inputFormatters,
+    this.expands = false,
+    this.monospace = false,
   }) : assert(
          controller == null || value == null,
          'Provide either controller or value, not both',
@@ -81,6 +85,8 @@ class _SailTextareaState extends State<SailTextarea> {
       onChanged: widget.onChanged,
       onSubmitted: widget.onSubmitted,
       inputFormatters: widget.inputFormatters,
+      expands: widget.expands,
+      monospace: widget.monospace,
     );
   }
 }

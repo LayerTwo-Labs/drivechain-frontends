@@ -100,9 +100,11 @@ class _SailTooltipState extends State<SailTooltip> {
               child: Container(
                 padding: widget.padding,
                 decoration: BoxDecoration(
-                  color: theme.colors.popoverBackground,
-                  borderRadius: BorderRadius.circular(4),
-                  border: Border.all(color: theme.colors.border),
+                  color: theme.chrome.tooltipBackground ?? theme.colors.popoverBackground,
+                  borderRadius: theme.chrome.beveled ? BorderRadius.zero : BorderRadius.circular(4),
+                  border: theme.chrome.beveled
+                      ? Border.all(color: theme.colors.text, width: 1)
+                      : Border.all(color: theme.colors.border),
                   boxShadow: [
                     BoxShadow(
                       color: theme.colors.shadow,

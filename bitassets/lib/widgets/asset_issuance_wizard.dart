@@ -1,5 +1,4 @@
 import 'package:bitassets/providers/bitassets_provider.dart';
-import 'package:flutter/material.dart' show Colors, Icon, Icons, InkWell;
 import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
@@ -142,7 +141,7 @@ class _StepIndicator extends StatelessWidget {
                 ),
                 child: Center(
                   child: isCompleted
-                      ? SailSVG.icon(SailSVGAsset.iconCheck, width: 16, color: Colors.white)
+                      ? SailSVG.icon(SailSVGAsset.iconCheck, width: 16, color: theme.colors.primaryButtonText)
                       : SailText.primary13(
                           '${stepIndex + 1}',
                           color: isActive ? theme.colors.primary : theme.colors.textSecondary,
@@ -293,14 +292,14 @@ class _RegisterAssetStep extends StatelessWidget {
         ),
 
         // Advanced options toggle
-        InkWell(
-          onTap: model.toggleAdvancedOptions,
+        SailTappable(
+          onTap: () async => model.toggleAdvancedOptions(),
           child: SailRow(
             spacing: SailStyleValues.padding08,
             children: [
-              Icon(
-                model.showAdvancedOptions ? Icons.expand_less : Icons.expand_more,
-                size: 20,
+              SailSVG.fromAsset(
+                model.showAdvancedOptions ? SailSVGAsset.chevronUp : SailSVGAsset.chevronDown,
+                width: 20,
                 color: theme.colors.textSecondary,
               ),
               SailText.secondary13('Advanced Options'),

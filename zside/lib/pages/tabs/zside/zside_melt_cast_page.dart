@@ -1,6 +1,5 @@
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/foundation.dart' as foundation;
-import 'package:flutter/material.dart' show Colors, Dialog, InkWell;
 import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
@@ -37,7 +36,7 @@ class ZSideMeltCastTabPage extends StatelessWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             MeltButton(
-                              onPressed: () => model.melt(context),
+                              onPressed: () async => model.melt(context),
                             ),
                             const SizedBox(height: SailStyleValues.padding16),
                             SailCard(
@@ -472,16 +471,14 @@ class _PendingMeltTableState extends State<PendingMeltTable> {
               children: [
                 SailSVG.icon(SailSVGAsset.iconSearch, width: 16),
                 const SizedBox(width: 8),
-                const Text('View Details'),
+                SailText.primary13('View Details'),
               ],
             ),
             onSelected: () {
               final entry = widget.entries.firstWhere((e) => e.utxo.raw == rowId);
               showThemedDialog(
                 context: context,
-                builder: (context) => Dialog(
-                  child: PendingMeltView(tx: entry),
-                ),
+                builder: (context) => PendingMeltView(tx: entry),
               );
             },
           ),
@@ -637,24 +634,21 @@ class _PendingCastsTableState extends State<PendingCastsTable> {
     final formatter = GetIt.I<FormatterProvider>();
     showThemedDialog(
       context: context,
-      builder: (context) => Dialog(
-        backgroundColor: Colors.transparent,
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 800),
-          child: SailCard(
-            title: 'Cast Bill Details',
-            subtitle: 'Details of the selected cast bill',
-            child: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  DetailRow(label: 'Amount', value: formatter.formatBTC(bill.castAmount.toDouble())),
-                  DetailRow(label: 'Execute Time', value: bill.executeTime.toLocal().format()),
-                  DetailRow(label: 'Power', value: bill.powerOf.toString()),
-                  DetailRow(label: 'ETA', value: formatExecuteIn(bill.executeIn)),
-                ],
-              ),
+      builder: (context) => SailModal(
+        constraints: const BoxConstraints(maxWidth: 800),
+        child: SailCard(
+          title: 'Cast Bill Details',
+          subtitle: 'Details of the selected cast bill',
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                DetailRow(label: 'Amount', value: formatter.formatBTC(bill.castAmount.toDouble())),
+                DetailRow(label: 'Execute Time', value: bill.executeTime.toLocal().format()),
+                DetailRow(label: 'Power', value: bill.powerOf.toString()),
+                DetailRow(label: 'ETA', value: formatExecuteIn(bill.executeIn)),
+              ],
             ),
           ),
         ),
@@ -683,7 +677,7 @@ class _PendingCastsTableState extends State<PendingCastsTable> {
 }
 
 class MeltButton extends StatelessWidget {
-  final VoidCallback onPressed;
+  final Future<void> Function() onPressed;
 
   const MeltButton({
     super.key,
@@ -694,8 +688,9 @@ class MeltButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = SailTheme.of(context);
 
-    return InkWell(
+    return SailTappable(
       onTap: onPressed,
+      borderRadius: SailStyleValues.borderRadius,
       child: Container(
         width: double.infinity,
         padding: const EdgeInsets.symmetric(vertical: 24),
@@ -751,8 +746,9 @@ class CastButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = SailTheme.of(context);
 
-    return InkWell(
+    return SailTappable(
       onTap: onPressed,
+      borderRadius: SailStyleValues.borderRadius,
       child: Container(
         width: double.infinity,
         padding: const EdgeInsets.symmetric(vertical: 24),
@@ -895,7 +891,7 @@ class _UTXOsTableState extends State<UTXOsTable> {
           final amount = isUnshielded ? entry.amount : entry.amount;
           final confirmations = isUnshielded ? entry.confirmations : entry.confirmations;
           final isSafeAmount = isCastAmount(amount);
-          final color = getCastColor(amount);
+          final color = getCastColor(amount, SailTheme.of(context).colors);
 
           return [
             SailTableCell(
@@ -991,36 +987,33 @@ class _UTXOsTableState extends State<UTXOsTable> {
     final container = GetIt.I.get<ZSideRPC>();
     showThemedDialog(
       context: context,
-      builder: (context) => Dialog(
-        backgroundColor: Colors.transparent,
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 800),
-          child: SailCard(
-            title: 'UTXO Details',
-            subtitle: 'Details of the selected UTXO',
-            child: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  DetailRow(
-                    label: 'Amount',
-                    value: '${formatter.formatBTC(utxo.amount)} ${container.chain.ticker}',
-                  ),
-                  DetailRow(
-                    label: 'Type',
-                    value: utxo is UnshieldedUTXO ? 'Unshielded' : 'Shielded',
-                  ),
-                  DetailRow(
-                    label: utxo is UnshieldedUTXO ? 'Address' : 'TxID',
-                    value: utxo is UnshieldedUTXO ? utxo.address : utxo.txid,
-                  ),
-                  DetailRow(
-                    label: 'Confirmations',
-                    value: utxo.confirmations.toString(),
-                  ),
-                ],
-              ),
+      builder: (context) => SailModal(
+        constraints: const BoxConstraints(maxWidth: 800),
+        child: SailCard(
+          title: 'UTXO Details',
+          subtitle: 'Details of the selected UTXO',
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                DetailRow(
+                  label: 'Amount',
+                  value: '${formatter.formatBTC(utxo.amount)} ${container.chain.ticker}',
+                ),
+                DetailRow(
+                  label: 'Type',
+                  value: utxo is UnshieldedUTXO ? 'Unshielded' : 'Shielded',
+                ),
+                DetailRow(
+                  label: utxo is UnshieldedUTXO ? 'Address' : 'TxID',
+                  value: utxo is UnshieldedUTXO ? utxo.address : utxo.txid,
+                ),
+                DetailRow(
+                  label: 'Confirmations',
+                  value: utxo.confirmations.toString(),
+                ),
+              ],
             ),
           ),
         ),
@@ -1042,40 +1035,37 @@ class PendingMeltView extends StatelessWidget {
     final container = GetIt.I.get<ZSideRPC>();
     final formatter = GetIt.I<FormatterProvider>();
 
-    return Dialog(
-      backgroundColor: Colors.transparent,
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 800),
-        child: SailCard(
-          title: 'Pending Melt Details',
-          subtitle: 'Details of the selected pending melt',
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                DetailRow(
-                  label: 'Amount',
-                  value: '${formatter.formatBTC(tx.utxo.amount)} ${container.chain.ticker}',
-                ),
-                DetailRow(
-                  label: 'From Address',
-                  value: tx.utxo.address,
-                ),
-                DetailRow(
-                  label: 'Execute Time',
-                  value: tx.executeTime.format(),
-                ),
-                DetailRow(
-                  label: 'Confirmations',
-                  value: tx.utxo.confirmations.toString(),
-                ),
-                DetailRow(
-                  label: 'Raw Transaction',
-                  value: tx.utxo.raw,
-                ),
-              ],
-            ),
+    return SailModal(
+      constraints: const BoxConstraints(maxWidth: 800),
+      child: SailCard(
+        title: 'Pending Melt Details',
+        subtitle: 'Details of the selected pending melt',
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              DetailRow(
+                label: 'Amount',
+                value: '${formatter.formatBTC(tx.utxo.amount)} ${container.chain.ticker}',
+              ),
+              DetailRow(
+                label: 'From Address',
+                value: tx.utxo.address,
+              ),
+              DetailRow(
+                label: 'Execute Time',
+                value: tx.executeTime.format(),
+              ),
+              DetailRow(
+                label: 'Confirmations',
+                value: tx.utxo.confirmations.toString(),
+              ),
+              DetailRow(
+                label: 'Raw Transaction',
+                value: tx.utxo.raw,
+              ),
+            ],
           ),
         ),
       ),

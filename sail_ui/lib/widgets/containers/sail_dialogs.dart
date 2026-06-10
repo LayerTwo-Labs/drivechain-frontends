@@ -210,6 +210,23 @@ class DialogButtons extends StatelessWidget {
   }
 }
 
+/// Bare modal container; the child supplies its own card/chrome.
+class SailModal extends StatelessWidget {
+  final Widget child;
+  final Color? backgroundColor;
+  final BoxConstraints? constraints;
+
+  const SailModal({super.key, required this.child, this.backgroundColor, this.constraints});
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      backgroundColor: backgroundColor ?? SailColorScheme.transparent,
+      child: constraints != null ? ConstrainedBox(constraints: constraints!, child: child) : child,
+    );
+  }
+}
+
 /// A standardized dialog widget using Dialog + SailCard pattern
 /// This provides consistent styling for dialogs across all applications
 class SailDialog extends StatelessWidget {
@@ -220,6 +237,8 @@ class SailDialog extends StatelessWidget {
   final List<Widget>? actions;
   final double maxWidth;
   final double maxHeight;
+  final bool withCloseButton;
+  final Color? color;
 
   const SailDialog({
     super.key,
@@ -230,6 +249,8 @@ class SailDialog extends StatelessWidget {
     this.actions,
     this.maxWidth = 600,
     this.maxHeight = 600,
+    this.withCloseButton = false,
+    this.color,
   });
 
   @override
@@ -242,6 +263,8 @@ class SailDialog extends StatelessWidget {
           title: title,
           subtitle: subtitle,
           error: error,
+          withCloseButton: withCloseButton,
+          color: color,
           child: SingleChildScrollView(
             child: SailColumn(
               spacing: SailStyleValues.padding16,

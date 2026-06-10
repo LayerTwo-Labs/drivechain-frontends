@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:auto_route/auto_route.dart';
-import 'package:flutter/material.dart' show Icon, Icons;
 import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
@@ -33,7 +32,7 @@ class MempoolExplorerPage extends StatelessWidget {
                 ),
                 child: Row(
                   children: [
-                    Icon(Icons.info_outline, size: 20, color: theme.colors.info),
+                    SailSVG.fromAsset(SailSVGAsset.info, width: 20, color: theme.colors.info),
                     const SizedBox(width: 8),
                     Expanded(
                       child: SailText.primary13(

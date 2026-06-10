@@ -1,7 +1,6 @@
 import 'package:bitwindow/models/multisig_group.dart';
 import 'package:bitwindow/models/multisig_transaction.dart';
 import 'package:bitwindow/widgets/create_multisig_modal.dart';
-import 'package:flutter/material.dart' show Colors, Dialog, Icon, Icons;
 import 'package:flutter/widgets.dart';
 import 'package:sail_ui/sail_ui.dart';
 
@@ -50,46 +49,43 @@ class _SignPreviewModalState extends State<SignPreviewModal> {
         )
         .toList();
 
-    return Dialog(
-      backgroundColor: Colors.transparent,
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 600, maxHeight: 600),
-        child: SailCard(
-          title: 'Sign Transaction Preview',
-          subtitle: 'Review transaction details before signing',
-          withCloseButton: true,
-          child: SingleChildScrollView(
-            child: SailColumn(
-              spacing: SailStyleValues.padding16,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _TransactionDetails(transaction: tx, group: group),
-                _SigningDetails(
-                  transaction: tx,
-                  group: group,
-                  walletKeys: walletKeys,
-                  unsignedWalletKeys: unsignedWalletKeys,
-                ),
-                _KeyStatus(transaction: tx, group: group),
-                SailRow(
-                  spacing: SailStyleValues.padding12,
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    SailButton(
-                      label: 'Cancel',
-                      onPressed: _isSigning ? null : () async => Navigator.of(context).pop(),
-                      variant: ButtonVariant.ghost,
-                    ),
-                    SailButton(
-                      label: 'Sign Transaction',
-                      onPressed: _isSigning || unsignedWalletKeys.isEmpty ? null : _handleSign,
-                      loading: _isSigning,
-                      variant: ButtonVariant.primary,
-                    ),
-                  ],
-                ),
-              ],
-            ),
+    return SailModal(
+      constraints: const BoxConstraints(maxWidth: 600, maxHeight: 600),
+      child: SailCard(
+        title: 'Sign Transaction Preview',
+        subtitle: 'Review transaction details before signing',
+        withCloseButton: true,
+        child: SingleChildScrollView(
+          child: SailColumn(
+            spacing: SailStyleValues.padding16,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _TransactionDetails(transaction: tx, group: group),
+              _SigningDetails(
+                transaction: tx,
+                group: group,
+                walletKeys: walletKeys,
+                unsignedWalletKeys: unsignedWalletKeys,
+              ),
+              _KeyStatus(transaction: tx, group: group),
+              SailRow(
+                spacing: SailStyleValues.padding12,
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  SailButton(
+                    label: 'Cancel',
+                    onPressed: _isSigning ? null : () async => Navigator.of(context).pop(),
+                    variant: ButtonVariant.ghost,
+                  ),
+                  SailButton(
+                    label: 'Sign Transaction',
+                    onPressed: _isSigning || unsignedWalletKeys.isEmpty ? null : _handleSign,
+                    loading: _isSigning,
+                    variant: ButtonVariant.primary,
+                  ),
+                ],
+              ),
+            ],
           ),
         ),
       ),
@@ -108,6 +104,7 @@ class _TransactionDetails extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = SailTheme.of(context);
     return SailCard(
       shadowSize: ShadowSize.none,
       child: SailColumn(
@@ -118,9 +115,9 @@ class _TransactionDetails extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: Colors.blue.withValues(alpha: 0.05),
+              color: theme.colors.info.withValues(alpha: 0.05),
               borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: Colors.blue.withValues(alpha: 0.2)),
+              border: Border.all(color: theme.colors.info.withValues(alpha: 0.2)),
             ),
             child: SailColumn(
               spacing: SailStyleValues.padding08,
@@ -210,6 +207,7 @@ class _SigningDetails extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = SailTheme.of(context);
     return SailCard(
       shadowSize: ShadowSize.none,
       child: SailColumn(
@@ -220,9 +218,9 @@ class _SigningDetails extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: Colors.orange.withValues(alpha: 0.05),
+              color: theme.colors.warning.withValues(alpha: 0.05),
               borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: Colors.orange.withValues(alpha: 0.3)),
+              border: Border.all(color: theme.colors.warning.withValues(alpha: 0.3)),
             ),
             child: SailColumn(
               spacing: SailStyleValues.padding08,
@@ -257,11 +255,7 @@ class _SigningDetails extends StatelessWidget {
                       padding: const EdgeInsets.only(left: 8, top: 4),
                       child: SailRow(
                         children: [
-                          Icon(
-                            Icons.key,
-                            size: 16,
-                            color: Colors.orange.shade600,
-                          ),
+                          SailSVG.fromAsset(SailSVGAsset.key, width: 16, color: theme.colors.warning),
                           const SizedBox(width: 8),
                           SailText.primary12(key.owner),
                         ],
@@ -289,6 +283,7 @@ class _KeyStatus extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = SailTheme.of(context);
     return SailCard(
       shadowSize: ShadowSize.none,
       child: SailColumn(
@@ -314,24 +309,24 @@ class _KeyStatus extends StatelessWidget {
               final isWalletKey = key.isWallet;
 
               Color statusColor;
-              IconData statusIcon;
+              SailSVGAsset statusIcon;
               String statusText;
 
               if (isSigned) {
-                statusColor = Colors.green;
-                statusIcon = Icons.check_circle;
+                statusColor = theme.colors.success;
+                statusIcon = SailSVGAsset.circleCheck;
                 statusText = 'Signed';
               } else if (hasUnsignedPSBT && isWalletKey) {
-                statusColor = Colors.orange;
-                statusIcon = Icons.pending;
+                statusColor = theme.colors.warning;
+                statusIcon = SailSVGAsset.iconPending;
                 statusText = 'Ready to sign';
               } else if (hasUnsignedPSBT) {
-                statusColor = Colors.grey;
-                statusIcon = Icons.schedule;
+                statusColor = theme.colors.textSecondary;
+                statusIcon = SailSVGAsset.clock8;
                 statusText = 'Awaiting external signature';
               } else {
-                statusColor = Colors.grey;
-                statusIcon = Icons.help_outline;
+                statusColor = theme.colors.textSecondary;
+                statusIcon = SailSVGAsset.circleHelp;
                 statusText = 'No PSBT available';
               }
 
@@ -344,9 +339,9 @@ class _KeyStatus extends StatelessWidget {
                 ),
                 child: SailRow(
                   children: [
-                    Icon(
+                    SailSVG.fromAsset(
                       statusIcon,
-                      size: 16,
+                      width: 16,
                       color: statusColor,
                     ),
                     const SizedBox(width: 8),
@@ -364,7 +359,7 @@ class _KeyStatus extends StatelessWidget {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                         decoration: BoxDecoration(
-                          color: Colors.blue.withValues(alpha: 0.2),
+                          color: theme.colors.info.withValues(alpha: 0.2),
                           borderRadius: BorderRadius.circular(4),
                         ),
                         child: SailText.secondary12('Wallet Key'),

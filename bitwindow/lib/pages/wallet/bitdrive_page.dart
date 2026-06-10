@@ -3,7 +3,6 @@ import 'dart:io';
 import 'package:bitwindow/providers/bitdrive_provider.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart' show Icon, Icons;
 import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:intl/intl.dart';
@@ -143,9 +142,9 @@ class _StoreTab extends StatelessWidget {
                           child: SailRow(
                             spacing: SailStyleValues.padding04,
                             children: [
-                              Icon(
-                                model.showAdvancedSettings ? Icons.keyboard_arrow_down : Icons.keyboard_arrow_right,
-                                size: 16,
+                              SailSVG.fromAsset(
+                                model.showAdvancedSettings ? SailSVGAsset.chevronDown : SailSVGAsset.chevronRight,
+                                width: 16,
                                 color: context.sailTheme.colors.textSecondary,
                               ),
                               SailText.secondary12('Advanced settings'),
@@ -472,7 +471,7 @@ class BitDriveViewModel extends BaseViewModel {
         final file = result.files.first;
         if (file.size > 1024 * 1024) {
           if (context.mounted) {
-            showSnackBar(context, 'File size must be less than 1MB');
+            showSailToast(context, 'File size must be less than 1MB');
           }
           return;
         }
@@ -486,7 +485,7 @@ class BitDriveViewModel extends BaseViewModel {
           } catch (e) {
             Logger().e('Error reading file: $e');
             if (context.mounted) {
-              showSnackBar(context, 'Error reading file: $e');
+              showSailToast(context, 'Error reading file: $e');
             }
             return;
           }
@@ -504,14 +503,14 @@ class BitDriveViewModel extends BaseViewModel {
           notifyListeners();
         } else {
           if (context.mounted) {
-            showSnackBar(context, 'Could not read file contents');
+            showSailToast(context, 'Could not read file contents');
           }
         }
       }
     } catch (e) {
       Logger().e('Error picking file: $e');
       if (context.mounted) {
-        showSnackBar(context, 'Error picking file: $e');
+        showSailToast(context, 'Error picking file: $e');
       }
     }
   }
@@ -521,7 +520,7 @@ class BitDriveViewModel extends BaseViewModel {
     try {
       await provider.store();
       if (context.mounted) {
-        showSnackBar(context, 'Content stored on Bitcoin!');
+        showSailToast(context, 'Content stored on Bitcoin!');
         textController.clear();
         selectedFileName = null;
         selectedFileContent = null;
@@ -529,7 +528,7 @@ class BitDriveViewModel extends BaseViewModel {
     } catch (e) {
       setError(e.toString());
       if (context.mounted) {
-        showSnackBar(context, 'Failed to store content: $e');
+        showSailToast(context, 'Failed to store content: $e');
       }
     } finally {
       setBusy(false);

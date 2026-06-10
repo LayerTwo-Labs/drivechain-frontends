@@ -1,4 +1,3 @@
-import 'package:flutter/material.dart' show Icon, Icons;
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
@@ -66,11 +65,7 @@ class _RevealSeedWarningDialogState extends State<RevealSeedWarningDialog> {
               children: [
                 Row(
                   children: [
-                    Icon(
-                      Icons.warning_rounded,
-                      color: theme.colors.orange,
-                      size: 20,
-                    ),
+                    SailSVG.fromAsset(SailSVGAsset.triangleAlert, width: 20, color: theme.colors.orange),
                     const SizedBox(width: SailStyleValues.padding08),
                     SailText.primary15(
                       'CRITICAL SECURITY WARNING',

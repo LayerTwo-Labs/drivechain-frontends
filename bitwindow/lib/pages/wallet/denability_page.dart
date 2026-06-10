@@ -2,7 +2,6 @@ import 'package:bitwindow/pages/explorer/block_explorer_dialog.dart';
 import 'package:bitwindow/pages/wallet/denial_dialog.dart';
 import 'package:bitwindow/providers/transactions_provider.dart';
 import 'package:fixnum/fixnum.dart';
-import 'package:flutter/material.dart' show Colors, Dialog, InkWell;
 import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/gen/wallet/v1/wallet.pb.dart';
@@ -91,8 +90,9 @@ class DenyAllButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = SailTheme.of(context);
 
-    return InkWell(
-      onTap: utxoCount > 0 ? onPressed : null,
+    return SailTappable(
+      onTap: utxoCount > 0 ? () async => onPressed() : null,
+      borderRadius: SailStyleValues.borderRadius,
       child: Container(
         width: double.infinity,
         padding: const EdgeInsets.symmetric(vertical: 24),
@@ -157,8 +157,9 @@ class ConsolidateButton extends StatelessWidget {
     final theme = SailTheme.of(context);
     final canConsolidate = utxoCount > 1;
 
-    return InkWell(
-      onTap: canConsolidate ? onPressed : null,
+    return SailTappable(
+      onTap: canConsolidate ? () async => onPressed() : null,
+      borderRadius: SailStyleValues.borderRadius,
       child: Container(
         width: double.infinity,
         padding: const EdgeInsets.symmetric(vertical: 24),
@@ -502,64 +503,61 @@ class _DeniabilityTableState extends State<DeniabilityTable> {
 
     showThemedDialog(
       context: context,
-      builder: (context) => Dialog(
-        backgroundColor: Colors.transparent,
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 800),
-          child: SailCard(
-            title: 'UTXO Details',
-            subtitle: 'UTXO and Deniability Information',
-            child: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  DetailRow(label: 'TxID', value: utxo.output.split(':').first),
-                  DetailRow(label: 'Output Index', value: utxo.output.split(':').last),
-                  DetailRow(label: 'Amount', value: formatter.formatSats(utxo.valueSats.toInt())),
-                  if (utxo.hasDenialInfo()) ...[
-                    const SailSpacing(SailStyleValues.padding16),
-                    BorderedSection(
-                      title: 'Deniability Info',
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          DetailRow(label: 'Status', value: _getDeniabilityStatus(utxo)),
-                          DetailRow(label: 'Completed Hops', value: '${utxo.denialInfo.executions.length}'),
-                          DetailRow(label: 'Total Hops', value: '${utxo.denialInfo.numHops}'),
-                          if (denialHasScheduledNextExecution(utxo.denialInfo))
-                            DetailRow(
-                              label: 'Next Execution',
-                              value: formatDate(utxo.denialInfo.nextExecutionTime.toDateTime()),
-                            ),
-                          if (utxo.denialInfo.hasCancelTime())
-                            DetailRow(
-                              label: 'Cancel Reason',
-                              value: utxo.denialInfo.cancelReason,
-                            ),
-                        ],
-                      ),
-                    ),
-                    if (utxo.denialInfo.executions.isNotEmpty) ...[
-                      const SailSpacing(SailStyleValues.padding16),
-                      SailText.primary13('Deniability Transactions:'),
-                      const SailSpacing(SailStyleValues.padding08),
-                      SizedBox(
-                        height: 300,
-                        child: SelectionContainer.disabled(
-                          child: TXIDTransactionTable(
-                            transactions: utxo.denialInfo.executions
-                                .map((e) => e.fromTxid)
-                                .where((txid) => txid.isNotEmpty)
-                                .toList(),
-                            onTransactionSelected: (txid) => _showTransactionDetails(context, txid),
+      builder: (context) => SailModal(
+        constraints: const BoxConstraints(maxWidth: 800),
+        child: SailCard(
+          title: 'UTXO Details',
+          subtitle: 'UTXO and Deniability Information',
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                DetailRow(label: 'TxID', value: utxo.output.split(':').first),
+                DetailRow(label: 'Output Index', value: utxo.output.split(':').last),
+                DetailRow(label: 'Amount', value: formatter.formatSats(utxo.valueSats.toInt())),
+                if (utxo.hasDenialInfo()) ...[
+                  const SailSpacing(SailStyleValues.padding16),
+                  BorderedSection(
+                    title: 'Deniability Info',
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        DetailRow(label: 'Status', value: _getDeniabilityStatus(utxo)),
+                        DetailRow(label: 'Completed Hops', value: '${utxo.denialInfo.executions.length}'),
+                        DetailRow(label: 'Total Hops', value: '${utxo.denialInfo.numHops}'),
+                        if (denialHasScheduledNextExecution(utxo.denialInfo))
+                          DetailRow(
+                            label: 'Next Execution',
+                            value: formatDate(utxo.denialInfo.nextExecutionTime.toDateTime()),
                           ),
+                        if (utxo.denialInfo.hasCancelTime())
+                          DetailRow(
+                            label: 'Cancel Reason',
+                            value: utxo.denialInfo.cancelReason,
+                          ),
+                      ],
+                    ),
+                  ),
+                  if (utxo.denialInfo.executions.isNotEmpty) ...[
+                    const SailSpacing(SailStyleValues.padding16),
+                    SailText.primary13('Deniability Transactions:'),
+                    const SailSpacing(SailStyleValues.padding08),
+                    SizedBox(
+                      height: 300,
+                      child: SelectionContainer.disabled(
+                        child: TXIDTransactionTable(
+                          transactions: utxo.denialInfo.executions
+                              .map((e) => e.fromTxid)
+                              .where((txid) => txid.isNotEmpty)
+                              .toList(),
+                          onTransactionSelected: (txid) => _showTransactionDetails(context, txid),
                         ),
                       ),
-                    ],
+                    ),
                   ],
                 ],
-              ),
+              ],
             ),
           ),
         ),

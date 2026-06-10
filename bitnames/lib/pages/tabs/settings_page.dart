@@ -1,8 +1,5 @@
 import 'package:auto_route/auto_route.dart';
-import 'package:bitnames/pages/settings/settings_general.dart';
-import 'package:bitnames/pages/settings/settings_info.dart';
-import 'package:bitnames/pages/settings/settings_reset.dart';
-import 'package:flutter/material.dart' show SelectionArea;
+import 'package:bitnames/gen/version.dart';
 import 'package:flutter/widgets.dart';
 import 'package:sail_ui/sail_ui.dart';
 
@@ -102,8 +99,14 @@ class SettingsTabPageState extends State<SettingsTabPage> {
                   Expanded(
                     child: [
                       const SettingsGeneral(),
-                      const SettingsReset(),
-                      const SettingsInfo(),
+                      SettingsReset(binary: BitNames(), appName: 'BitNames'),
+                      SettingsInfo(
+                        appName: 'BitNames',
+                        versionString: AppVersion.versionString,
+                        buildDate: AppVersion.buildDate,
+                        commitFull: AppVersion.commitFull,
+                        applicationName: AppVersion.appName,
+                      ),
                     ][_selectedIndex],
                   ),
                 ],

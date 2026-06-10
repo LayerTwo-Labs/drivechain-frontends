@@ -9,7 +9,6 @@ import 'package:convert/convert.dart';
 import 'package:bitwindow/env.dart';
 import 'package:bitwindow/providers/hd_wallet_provider.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:flutter/material.dart' show Colors, Dialog, Icon, Icons, Switch;
 import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
@@ -21,31 +20,28 @@ class ProofOfFundsModal extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Dialog(
-      backgroundColor: Colors.transparent,
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 800, maxHeight: 700),
-        child: SailCard(
-          title: 'Proof of Funds',
-          subtitle: 'Generate or verify cryptographically signed reports proving ownership of UTXOs',
-          child: SingleChildScrollView(
-            child: SizedBox(
-              height: 600,
-              child: InlineTabBar(
-                tabs: const [
-                  TabItem(
-                    label: 'Generate Report',
-                    icon: SailSVGAsset.iconPen,
-                    child: GenerateReportTab(),
-                  ),
-                  TabItem(
-                    label: 'Verify Report',
-                    icon: SailSVGAsset.iconCheck,
-                    child: VerifyReportTab(),
-                  ),
-                ],
-                initialIndex: 0,
-              ),
+    return SailModal(
+      constraints: const BoxConstraints(maxWidth: 800, maxHeight: 700),
+      child: SailCard(
+        title: 'Proof of Funds',
+        subtitle: 'Generate or verify cryptographically signed reports proving ownership of UTXOs',
+        child: SingleChildScrollView(
+          child: SizedBox(
+            height: 600,
+            child: InlineTabBar(
+              tabs: const [
+                TabItem(
+                  label: 'Generate Report',
+                  icon: SailSVGAsset.iconPen,
+                  child: GenerateReportTab(),
+                ),
+                TabItem(
+                  label: 'Verify Report',
+                  icon: SailSVGAsset.iconCheck,
+                  child: VerifyReportTab(),
+                ),
+              ],
+              initialIndex: 0,
             ),
           ),
         ),
@@ -186,7 +182,7 @@ class _GenerateReportTabState extends State<GenerateReportTab> {
                     children: [
                       Row(
                         children: [
-                          Switch(
+                          SailSwitch(
                             value: _useRandomMessage,
                             onChanged: (value) {
                               setState(() {
@@ -300,7 +296,7 @@ class _GenerateReportTabState extends State<GenerateReportTab> {
                 ),
                 child: Row(
                   children: [
-                    Icon(Icons.error, color: theme.colors.error, size: 20),
+                    SailSVG.fromAsset(SailSVGAsset.circleAlert, width: 20, color: theme.colors.error),
                     const SizedBox(width: 8),
                     Expanded(
                       child: SailText.primary13(
@@ -321,7 +317,7 @@ class _GenerateReportTabState extends State<GenerateReportTab> {
                 ),
                 child: Row(
                   children: [
-                    Icon(Icons.check_circle, color: theme.colors.success, size: 20),
+                    SailSVG.fromAsset(SailSVGAsset.circleCheck, width: 20, color: theme.colors.success),
                     const SizedBox(width: 8),
                     Expanded(
                       child: SailText.primary13(
@@ -503,7 +499,7 @@ class _VerifyReportTabState extends State<VerifyReportTab> {
                   ),
                   child: Row(
                     children: [
-                      Icon(Icons.error, color: theme.colors.error, size: 20),
+                      SailSVG.fromAsset(SailSVGAsset.circleAlert, width: 20, color: theme.colors.error),
                       const SizedBox(width: 8),
                       Expanded(
                         child: SailText.primary13(
@@ -534,10 +530,10 @@ class _VerifyReportTabState extends State<VerifyReportTab> {
                             children: [
                               Row(
                                 children: [
-                                  Icon(
-                                    isValid ? Icons.verified : Icons.warning_rounded,
+                                  SailSVG.fromAsset(
+                                    isValid ? SailSVGAsset.badgeCheck : SailSVGAsset.triangleAlert,
+                                    width: 28,
                                     color: color,
-                                    size: 28,
                                   ),
                                   const SizedBox(width: 12),
                                   Column(
@@ -637,10 +633,10 @@ class _VerifyReportTabState extends State<VerifyReportTab> {
                                                 child: Row(
                                                   mainAxisAlignment: MainAxisAlignment.end,
                                                   children: [
-                                                    Icon(
-                                                      detail.isValid ? Icons.check_circle : Icons.cancel,
+                                                    SailSVG.fromAsset(
+                                                      detail.isValid ? SailSVGAsset.circleCheck : SailSVGAsset.circleX,
+                                                      width: 16,
                                                       color: detail.isValid ? theme.colors.success : theme.colors.error,
-                                                      size: 16,
                                                     ),
                                                     const SizedBox(width: 4),
                                                     SailText.secondary12(

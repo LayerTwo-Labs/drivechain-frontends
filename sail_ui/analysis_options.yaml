@@ -31,8 +31,6 @@ analyzer:
   exclude:
     - "lib/gen**"
     - "build/**"
-  errors:
-    undefined_identifier: ignore
 
 formatter:
   trailing_commas: preserve

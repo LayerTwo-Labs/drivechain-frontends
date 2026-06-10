@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:math';
 
@@ -6,7 +7,6 @@ import 'package:bitwindow/pages/overview_page.dart';
 import 'package:bitwindow/providers/news_provider.dart';
 import 'package:bitwindow/widgets/pagination.dart';
 import 'package:collection/collection.dart';
-import 'package:flutter/material.dart' show Colors, SelectionArea, showModalBottomSheet;
 import 'package:flutter/widgets.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -863,7 +863,7 @@ class _CoinNewsEntryState extends State<CoinNewsEntry> {
         child: Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: isHovered ? context.sailTheme.colors.backgroundSecondary : Colors.transparent,
+            color: isHovered ? context.sailTheme.colors.backgroundSecondary : SailColorScheme.transparent,
             borderRadius: SailStyleValues.borderRadius,
           ),
           child: SailRow(
@@ -1019,23 +1019,23 @@ class CoinNewsTable extends StatelessWidget {
 }
 
 void showCoinNewsArticle(BuildContext context, CoinNews news) {
-  final theme = SailTheme.of(context);
-
-  showModalBottomSheet(
-    context: context,
-    isScrollControlled: true,
-    backgroundColor: theme.colors.backgroundSecondary,
-    useSafeArea: true,
-    constraints: BoxConstraints(
-      maxHeight: MediaQuery.of(context).size.height * 0.9,
-      maxWidth: 700,
+  unawaited(
+    showSailSheet(
+      context: context,
+      side: SailSheetSide.bottom,
+      size: MediaQuery.of(context).size.height * 0.9,
+      builder: (context) {
+        return Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 700),
+            child: CoinNewsArticlePanel(
+              news: news,
+              onClose: () => Navigator.of(context).pop(),
+            ),
+          ),
+        );
+      },
     ),
-    builder: (context) {
-      return CoinNewsArticlePanel(
-        news: news,
-        onClose: () => Navigator.of(context).pop(),
-      );
-    },
   );
 }
 
@@ -1110,15 +1110,15 @@ class CoinNewsArticlePanel extends StatelessWidget {
                             listBullet: SailStyleValues.thirteen.copyWith(color: theme.colors.text),
                             pPadding: const EdgeInsets.only(bottom: 12),
                             blockquoteDecoration: BoxDecoration(
-                              color: Colors.transparent,
+                              color: SailColorScheme.transparent,
                               borderRadius: SailStyleValues.borderRadius,
                             ),
                             codeblockDecoration: BoxDecoration(
-                              color: SailColorScheme.blackLighter,
+                              color: theme.colors.backgroundSecondary,
                               borderRadius: SailStyleValues.borderRadius,
                             ),
                             code: SailStyleValues.thirteen.copyWith(
-                              color: SailColorScheme.white,
+                              color: theme.colors.text,
                               fontFamily: 'IBMPlexMono',
                             ),
                             codeblockPadding: const EdgeInsets.all(12),

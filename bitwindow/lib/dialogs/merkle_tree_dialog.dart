@@ -1,5 +1,5 @@
 import 'package:bitwindow/utils/merkle_tree.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter/services.dart';
 import 'package:sail_ui/sail_ui.dart';
 
@@ -22,8 +22,7 @@ class MerkleTreeDialog extends StatefulWidget {
   State<MerkleTreeDialog> createState() => _MerkleTreeDialogState();
 }
 
-class _MerkleTreeDialogState extends State<MerkleTreeDialog> with SingleTickerProviderStateMixin {
-  late TabController _tabController;
+class _MerkleTreeDialogState extends State<MerkleTreeDialog> {
   final TextEditingController _txidsController = TextEditingController();
 
   List<List<String>>? _tree;
@@ -34,8 +33,6 @@ class _MerkleTreeDialogState extends State<MerkleTreeDialog> with SingleTickerPr
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
-
     // Auto-populate if initial TxIDs provided
     if (widget.initialTxids != null && widget.initialTxids!.isNotEmpty) {
       _txidsController.text = widget.initialTxids!.join('\n');
@@ -48,7 +45,6 @@ class _MerkleTreeDialogState extends State<MerkleTreeDialog> with SingleTickerPr
 
   @override
   void dispose() {
-    _tabController.dispose();
     _txidsController.dispose();
     super.dispose();
   }
@@ -95,9 +91,7 @@ class _MerkleTreeDialogState extends State<MerkleTreeDialog> with SingleTickerPr
 
   void _copyToClipboard(String text, String label) {
     Clipboard.setData(ClipboardData(text: text));
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('$label copied to clipboard')),
-    );
+    showSailToast(context, '$label copied to clipboard');
   }
 
   @override
@@ -105,15 +99,15 @@ class _MerkleTreeDialogState extends State<MerkleTreeDialog> with SingleTickerPr
     final theme = SailTheme.of(context);
 
     // Qt dialog size: 1213x780
-    return Dialog(
-      backgroundColor: theme.colors.backgroundSecondary,
-      shape: RoundedRectangleBorder(
-        borderRadius: SailStyleValues.borderRadiusSmall,
-        side: BorderSide(color: theme.colors.border, width: 1),
-      ),
+    return SailModal(
       child: Container(
         width: 1200,
         constraints: const BoxConstraints(maxHeight: 800),
+        decoration: BoxDecoration(
+          color: theme.colors.backgroundSecondary,
+          borderRadius: SailStyleValues.borderRadiusSmall,
+          border: Border.all(color: theme.colors.border, width: 1),
+        ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -129,57 +123,46 @@ class _MerkleTreeDialogState extends State<MerkleTreeDialog> with SingleTickerPr
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   SailText.primary20('Merkle Tree'), // Qt windowTitle
-                  IconButton(
-                    icon: Icon(Icons.close, color: theme.colors.text),
-                    onPressed: () => Navigator.of(context).pop(),
+                  SailTappable(
+                    onTap: () async => Navigator.of(context).pop(),
+                    borderRadius: SailStyleValues.borderRadiusSmall,
+                    child: Padding(
+                      padding: const EdgeInsets.all(6),
+                      child: SailSVG.fromAsset(SailSVGAsset.x, color: theme.colors.text),
+                    ),
                   ),
                 ],
               ),
             ),
 
             // Tab bar
-            DecoratedBox(
-              decoration: BoxDecoration(
-                border: Border(
-                  bottom: BorderSide(color: theme.colors.border),
-                ),
-              ),
-              child: TabBar(
-                controller: _tabController,
-                labelColor: theme.colors.primary,
-                unselectedLabelColor: theme.colors.textTertiary,
-                indicatorColor: theme.colors.primary,
-                tabs: const [
-                  Tab(text: 'Merkle Tree'),
-                  Tab(text: 'Help'),
-                ],
-              ),
-            ),
-
             // Content - Qt QVBoxLayout with tabs
             Expanded(
-              child: TabBarView(
-                controller: _tabController,
-                children: [
-                  _TreeTab(
-                    txidsController: _txidsController,
-                    tree: _tree,
-                    rcbTree: _rcbTree,
-                    error: _error,
-                    expectedRoot: widget.expectedRoot,
-                    onCalculate: _calculateTree,
-                    onCopy: _copyToClipboard,
-                    onInputChanged: () {
-                      if (_tree != null || _error != null) {
-                        setState(() {
-                          _tree = null;
-                          _rcbTree = null;
-                          _error = null;
-                        });
-                      }
-                    },
+              child: InlineTabBar(
+                initialIndex: 0,
+                tabs: [
+                  TabItem(
+                    label: 'Merkle Tree',
+                    child: _TreeTab(
+                      txidsController: _txidsController,
+                      tree: _tree,
+                      rcbTree: _rcbTree,
+                      error: _error,
+                      expectedRoot: widget.expectedRoot,
+                      onCalculate: _calculateTree,
+                      onCopy: _copyToClipboard,
+                      onInputChanged: () {
+                        if (_tree != null || _error != null) {
+                          setState(() {
+                            _tree = null;
+                            _rcbTree = null;
+                            _error = null;
+                          });
+                        }
+                      },
+                    ),
                   ),
-                  const _HelpTab(),
+                  const TabItem(label: 'Help', child: _HelpTab()),
                 ],
               ),
             ),
@@ -197,11 +180,11 @@ class _MerkleTreeDialogState extends State<MerkleTreeDialog> with SingleTickerPr
                 children: [
                   Row(
                     children: [
-                      Checkbox(
+                      SailCheckbox(
                         value: _showRCB,
                         onChanged: (value) {
                           setState(() {
-                            _showRCB = value ?? true;
+                            _showRCB = value;
                             if (_tree != null) {
                               _rcbTree = _showRCB
                                   ? MerkleTree.calculateRCB(
@@ -215,25 +198,15 @@ class _MerkleTreeDialogState extends State<MerkleTreeDialog> with SingleTickerPr
                             }
                           });
                         },
-                        fillColor: WidgetStateProperty.resolveWith((states) {
-                          if (states.contains(WidgetState.selected)) {
-                            return theme.colors.primary;
-                          }
-                          return theme.colors.border;
-                        }),
                       ),
                       const SizedBox(width: 8),
                       SailText.secondary13('Display RCB'),
                       const SizedBox(width: 8),
-                      Tooltip(
+                      SailTooltip(
                         message:
                             'Reversed & Concatenated Bytes\n'
                             'Used for manual verification with hash calculators',
-                        child: Icon(
-                          Icons.info_outline,
-                          size: 16,
-                          color: theme.colors.textSecondary,
-                        ),
+                        child: SailSVG.fromAsset(SailSVGAsset.info, width: 16, color: theme.colors.textSecondary),
                       ),
                     ],
                   ),
@@ -295,7 +268,7 @@ class _TreeTab extends StatelessWidget {
               children: [
                 Row(
                   children: [
-                    Icon(Icons.account_tree, color: theme.colors.primary, size: 20),
+                    SailSVG.fromAsset(SailSVGAsset.folderTree, width: 20, color: theme.colors.primary),
                     const SizedBox(width: 8),
                     SailText.primary15('Transaction IDs', bold: true),
                   ],
@@ -305,33 +278,13 @@ class _TreeTab extends StatelessWidget {
                   'Enter transaction IDs (TxIDs) one per line - 64 hex characters each',
                 ),
                 const SizedBox(height: 16),
-                TextField(
+                SailTextField(
                   controller: txidsController,
-                  style: TextStyle(
-                    fontFamily: 'IBMPlexMono',
-                    fontSize: 12,
-                    color: theme.colors.text,
-                  ),
-                  decoration: InputDecoration(
-                    hintText:
-                        'bd3a498beaca2b118b90f372c03ddf926cf167c3d97db260f4be32e3973a4ac1\n'
-                        '7c1a4b6f9a2e3d8c5b4a3f2e1d9c8b7a6f5e4d3c2b1a0f9e8d7c6b5a4f3e2d1c',
-                    hintStyle: TextStyle(color: theme.colors.textTertiary, fontSize: 11),
-                    filled: true,
-                    fillColor: theme.colors.backgroundSecondary,
-                    border: OutlineInputBorder(
-                      borderRadius: SailStyleValues.borderRadiusSmall,
-                      borderSide: BorderSide(color: theme.colors.border),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: SailStyleValues.borderRadiusSmall,
-                      borderSide: BorderSide(color: theme.colors.border),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: SailStyleValues.borderRadiusSmall,
-                      borderSide: BorderSide(color: theme.colors.primary, width: 2),
-                    ),
-                  ),
+                  hintText:
+                      'bd3a498beaca2b118b90f372c03ddf926cf167c3d97db260f4be32e3973a4ac1\n'
+                      '7c1a4b6f9a2e3d8c5b4a3f2e1d9c8b7a6f5e4d3c2b1a0f9e8d7c6b5a4f3e2d1c',
+                  monospace: true,
+                  minLines: 8,
                   maxLines: 8,
                   onChanged: (_) => onInputChanged(),
                 ),
@@ -347,22 +300,10 @@ class _TreeTab extends StatelessWidget {
 
           // Error display
           if (error != null) ...[
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: theme.colors.error.withValues(alpha: 0.1),
-                borderRadius: SailStyleValues.borderRadiusSmall,
-                border: Border.all(color: theme.colors.error),
-              ),
-              child: Row(
-                children: [
-                  Icon(Icons.error_outline, color: theme.colors.error, size: 24),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: SailText.secondary13(error!, color: theme.colors.error),
-                  ),
-                ],
-              ),
+            SailAlert(
+              variant: SailAlertVariant.destructive,
+              icon: SailSVG.fromAsset(SailSVGAsset.circleAlert, width: 24, color: theme.colors.error),
+              description: error!,
             ),
             const SizedBox(height: 24),
           ],
@@ -384,18 +325,24 @@ class _TreeTab extends StatelessWidget {
                     children: [
                       Row(
                         children: [
-                          Icon(Icons.check_circle, color: theme.colors.success, size: 24),
+                          SailSVG.fromAsset(SailSVGAsset.circleCheck, width: 24, color: theme.colors.success),
                           const SizedBox(width: 8),
                           SailText.primary15('Merkle Tree', bold: true),
                         ],
                       ),
-                      IconButton(
-                        icon: Icon(Icons.copy, color: theme.colors.primary),
-                        onPressed: () {
-                          final treeText = MerkleTree.formatTreeText(tree!, rcbTree: rcbTree);
-                          onCopy(treeText, 'Merkle tree');
-                        },
-                        tooltip: 'Copy tree to clipboard',
+                      SailTooltip(
+                        message: 'Copy tree to clipboard',
+                        child: SailTappable(
+                          onTap: () async => () {
+                            final treeText = MerkleTree.formatTreeText(tree!, rcbTree: rcbTree);
+                            onCopy(treeText, 'Merkle tree');
+                          }(),
+                          borderRadius: SailStyleValues.borderRadiusSmall,
+                          child: Padding(
+                            padding: const EdgeInsets.all(6),
+                            child: SailSVG.fromAsset(SailSVGAsset.copy, color: theme.colors.primary),
+                          ),
+                        ),
                       ),
                     ],
                   ),
@@ -414,7 +361,7 @@ class _TreeTab extends StatelessWidget {
                       children: [
                         SailText.primary13('Merkle Root:', bold: true),
                         const SizedBox(height: 8),
-                        SelectableText(
+                        SailSelectableText(
                           tree!.last.first,
                           style: TextStyle(
                             fontFamily: 'IBMPlexMono',
@@ -450,10 +397,10 @@ class _TreeTab extends StatelessWidget {
                             children: [
                               Row(
                                 children: [
-                                  Icon(
-                                    isValid ? Icons.check_circle : Icons.error,
+                                  SailSVG.fromAsset(
+                                    isValid ? SailSVGAsset.circleCheck : SailSVGAsset.circleAlert,
+                                    width: 24,
                                     color: isValid ? theme.colors.success : theme.colors.error,
-                                    size: 24,
                                   ),
                                   const SizedBox(width: 8),
                                   SailText.primary15(
@@ -467,7 +414,7 @@ class _TreeTab extends StatelessWidget {
                                 const SizedBox(height: 16),
                                 SailText.primary13('Expected:', bold: true),
                                 const SizedBox(height: 4),
-                                SelectableText(
+                                SailSelectableText(
                                   expectedRoot!,
                                   style: TextStyle(
                                     fontFamily: 'IBMPlexMono',
@@ -478,7 +425,7 @@ class _TreeTab extends StatelessWidget {
                                 const SizedBox(height: 12),
                                 SailText.primary13('Calculated:', bold: true),
                                 const SizedBox(height: 4),
-                                SelectableText(
+                                SailSelectableText(
                                   calculatedRoot,
                                   style: TextStyle(
                                     fontFamily: 'IBMPlexMono',
@@ -504,7 +451,7 @@ class _TreeTab extends StatelessWidget {
                     ),
                     child: SingleChildScrollView(
                       scrollDirection: Axis.horizontal,
-                      child: SelectableText(
+                      child: SailSelectableText(
                         MerkleTree.formatTreeText(tree!, rcbTree: rcbTree),
                         style: TextStyle(
                           fontFamily: 'IBMPlexMono',
@@ -546,14 +493,14 @@ class _HelpTab extends StatelessWidget {
           children: [
             Row(
               children: [
-                Icon(Icons.help_outline, color: theme.colors.primary, size: 24),
+                SailSVG.fromAsset(SailSVGAsset.circleHelp, width: 24, color: theme.colors.primary),
                 const SizedBox(width: 8),
                 SailText.primary15('How to Use the Merkle Tree Visualizer', bold: true),
               ],
             ),
             const SizedBox(height: 20),
 
-            SelectableText(
+            SailSelectableText(
               'This window allows you to audit the "hashMerkleRoot" field. '
               'You can see each step of the process yourself.\n\n'
               '         MerkleRoot = hashZ\n\n'
@@ -586,7 +533,7 @@ class _HelpTab extends StatelessWidget {
 
             SailText.primary15('What is RCB?', bold: true),
             const SizedBox(height: 12),
-            SelectableText(
+            SailSelectableText(
               'Computers sometimes have a crazy way of reading from their computer memory, '
               'related to something called "endianness".\n\n'
               'For whatever reason, Bitcoin merkle root hash calculations run like this:\n\n'
@@ -609,7 +556,7 @@ class _HelpTab extends StatelessWidget {
 
             SailText.primary15('Further Reading', bold: true),
             const SizedBox(height: 12),
-            SelectableText(
+            SailSelectableText(
               '• https://en.bitcoinwiki.org/wiki/Merkle_tree\n'
               '• https://www.investopedia.com/terms/m/merkle-tree.asp\n'
               '• https://www.geeksforgeeks.org/introduction-to-merkle-tree/',

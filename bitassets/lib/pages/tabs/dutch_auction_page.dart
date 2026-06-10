@@ -1,7 +1,6 @@
 import 'package:auto_route/auto_route.dart';
 import 'package:bitassets/providers/bitassets_provider.dart';
 import 'package:collection/collection.dart';
-import 'package:flutter/material.dart' show Colors, Dialog;
 import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
@@ -236,31 +235,28 @@ Future<void> showAuctionDetails(BuildContext context, DutchAuctionEntry auction)
       builder: (BuildContext dialogContext) {
         return PopScope(
           canPop: true,
-          child: Dialog(
-            backgroundColor: Colors.transparent,
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 800),
-              child: SailCard(
-                title: 'Dutch Auction Details',
-                subtitle: auction.id,
-                child: SingleChildScrollView(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      DetailRow(label: 'ID', value: auction.id),
-                      DetailRow(label: 'Base Asset', value: auction.baseAsset),
-                      DetailRow(label: 'Quote Asset', value: auction.quoteAsset),
-                      DetailRow(label: 'Base Amount', value: auction.baseAmount.toString()),
-                      DetailRow(label: 'Initial Price', value: auction.initialPrice.toString()),
-                      DetailRow(label: 'Final Price', value: auction.finalPrice.toString()),
-                      DetailRow(label: 'Start Block', value: auction.startBlock.toString()),
-                      DetailRow(label: 'Duration', value: auction.duration.toString()),
-                      DetailRow(label: 'Status', value: auction.status),
-                      if (auction.currentPrice != null)
-                        DetailRow(label: 'Current Price', value: auction.currentPrice.toString()),
-                    ],
-                  ),
+          child: SailModal(
+            constraints: const BoxConstraints(maxWidth: 800),
+            child: SailCard(
+              title: 'Dutch Auction Details',
+              subtitle: auction.id,
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    DetailRow(label: 'ID', value: auction.id),
+                    DetailRow(label: 'Base Asset', value: auction.baseAsset),
+                    DetailRow(label: 'Quote Asset', value: auction.quoteAsset),
+                    DetailRow(label: 'Base Amount', value: auction.baseAmount.toString()),
+                    DetailRow(label: 'Initial Price', value: auction.initialPrice.toString()),
+                    DetailRow(label: 'Final Price', value: auction.finalPrice.toString()),
+                    DetailRow(label: 'Start Block', value: auction.startBlock.toString()),
+                    DetailRow(label: 'Duration', value: auction.duration.toString()),
+                    DetailRow(label: 'Status', value: auction.status),
+                    if (auction.currentPrice != null)
+                      DetailRow(label: 'Current Price', value: auction.currentPrice.toString()),
+                  ],
                 ),
               ),
             ),
@@ -277,48 +273,45 @@ Future<void> showBidDialog(BuildContext context, DutchAuctionEntry auction, Dutc
   await showThemedDialog<void>(
     context: context,
     builder: (BuildContext dialogContext) {
-      return Dialog(
-        backgroundColor: Colors.transparent,
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 400),
-          child: SailCard(
-            title: 'Place Bid',
-            subtitle: 'Auction: ${auction.id.substring(0, 10)}...',
-            child: SailColumn(
-              spacing: SailStyleValues.padding16,
-              children: [
-                SailTextField(
-                  label: 'Bid Size',
-                  hintText: 'Amount to bid',
-                  controller: bidController,
-                ),
-                SailRow(
-                  spacing: SailStyleValues.padding08,
-                  children: [
-                    Expanded(
-                      child: SailButton(
-                        label: 'Cancel',
-                        onPressed: () async {
+      return SailModal(
+        constraints: const BoxConstraints(maxWidth: 400),
+        child: SailCard(
+          title: 'Place Bid',
+          subtitle: 'Auction: ${auction.id.substring(0, 10)}...',
+          child: SailColumn(
+            spacing: SailStyleValues.padding16,
+            children: [
+              SailTextField(
+                label: 'Bid Size',
+                hintText: 'Amount to bid',
+                controller: bidController,
+              ),
+              SailRow(
+                spacing: SailStyleValues.padding08,
+                children: [
+                  Expanded(
+                    child: SailButton(
+                      label: 'Cancel',
+                      onPressed: () async {
+                        Navigator.of(dialogContext).pop();
+                      },
+                    ),
+                  ),
+                  Expanded(
+                    child: SailButton(
+                      label: 'Place Bid',
+                      onPressed: () async {
+                        final bidSize = int.tryParse(bidController.text);
+                        if (bidSize != null) {
                           Navigator.of(dialogContext).pop();
-                        },
-                      ),
+                          await model.placeBid(context, auction.id, bidSize);
+                        }
+                      },
                     ),
-                    Expanded(
-                      child: SailButton(
-                        label: 'Place Bid',
-                        onPressed: () async {
-                          final bidSize = int.tryParse(bidController.text);
-                          if (bidSize != null) {
-                            Navigator.of(dialogContext).pop();
-                            await model.placeBid(context, auction.id, bidSize);
-                          }
-                        },
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
+                  ),
+                ],
+              ),
+            ],
           ),
         ),
       );

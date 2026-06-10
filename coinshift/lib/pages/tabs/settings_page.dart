@@ -1,10 +1,7 @@
 import 'package:auto_route/auto_route.dart';
-import 'package:flutter/material.dart' show SelectionArea;
+import 'package:coinshift/gen/version.dart';
 import 'package:flutter/widgets.dart';
 import 'package:sail_ui/sail_ui.dart';
-import 'package:coinshift/pages/settings/settings_general.dart';
-import 'package:coinshift/pages/settings/settings_info.dart';
-import 'package:coinshift/pages/settings/settings_reset.dart';
 
 @RoutePage()
 class SettingsTabPage extends StatefulWidget {
@@ -102,8 +99,14 @@ class SettingsTabPageState extends State<SettingsTabPage> {
                   Expanded(
                     child: [
                       const SettingsGeneral(),
-                      const SettingsReset(),
-                      const SettingsInfo(),
+                      SettingsReset(binary: CoinShift(), appName: 'CoinShift'),
+                      SettingsInfo(
+                        appName: 'CoinShift',
+                        versionString: AppVersion.versionString,
+                        buildDate: AppVersion.buildDate,
+                        commitFull: AppVersion.commitFull,
+                        applicationName: AppVersion.appName,
+                      ),
                     ][_selectedIndex],
                   ),
                 ],

@@ -12,8 +12,6 @@ import 'package:bitwindow/providers/news_provider.dart';
 import 'package:bitwindow/utils/explorer_url.dart';
 import 'package:bitwindow/widgets/headline_highlight_text_field.dart';
 import 'package:bitwindow/widgets/homepage_widget_catalog.dart';
-import 'package:flutter/material.dart'
-    show AlertDialog, ColorScheme, Colors, Dialog, DialogThemeData, InkWell, TextButton, Theme, showDatePicker;
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
@@ -246,6 +244,7 @@ class QtSeparator extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = SailTheme.of(context);
     return ConstrainedBox(
       constraints: BoxConstraints(
         maxWidth: width,
@@ -258,10 +257,10 @@ class QtSeparator extends StatelessWidget {
             end: Alignment.bottomCenter,
             stops: const [0.0, 0.35, 0.36, 1.0],
             colors: [
-              Colors.grey,
-              Colors.grey.withValues(alpha: 0.3),
-              Colors.white,
-              Colors.white,
+              theme.colors.divider,
+              theme.colors.divider.withValues(alpha: 0.3),
+              theme.colors.background,
+              theme.colors.background,
             ],
           ),
         ),
@@ -508,7 +507,7 @@ Future<void> displayCreateTopicDialog(BuildContext context) async {
 Future<void> displayGraffitiExplorerDialog(BuildContext context) async {
   await showThemedDialog(
     context: context,
-    builder: (context) => const Dialog(
+    builder: (context) => const SailModal(
       child: SizedBox(
         width: 900,
         height: 700,
@@ -521,9 +520,16 @@ Future<void> displayGraffitiExplorerDialog(BuildContext context) async {
 void _showNewsHelp(BuildContext context) {
   showThemedDialog(
     context: context,
-    builder: (context) => AlertDialog(
-      title: const Text('News Help'),
-      content: const Text(
+    builder: (context) => SailDialog(
+      title: 'News Help',
+      actions: [
+        SailButton(
+          label: 'OK',
+          variant: ButtonVariant.ghost,
+          onPressed: () async => Navigator.of(context).pop(),
+        ),
+      ],
+      child: SailText.secondary13(
         'With this page you can pay a fee to broadcast news on any topic. '
         'Clicking "Broadcast" will create a transaction with an OP_RETURN '
         'output that encodes the text you have entered.\n\n'
@@ -532,12 +538,6 @@ void _showNewsHelp(BuildContext context) {
         'Anyone subscribed to the topic will see posts filtered by time and '
         'sorted by fee amount.',
       ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: const Text('OK'),
-        ),
-      ],
     ),
   );
 }
@@ -747,7 +747,7 @@ class BroadcastNewsViewModel extends BaseViewModel {
       if (!context.mounted) return;
       Navigator.of(context).pop();
     } catch (e) {
-      showSnackBar(context, 'could not broadcast news: $e');
+      showSailToast(context, 'could not broadcast news: $e');
     }
   }
 
@@ -957,8 +957,9 @@ class _CreateTopicTab extends StatelessWidget {
             const SailSpacing(SailStyleValues.padding08),
             SailText.secondary13('Pending Topics (awaiting confirmation)'),
             ...pendingTopics.map(
-              (topic) => InkWell(
-                onDoubleTap: () => showTransactionDetails(context, topic.txid),
+              (topic) => SailTappable(
+                onDoubleTap: () async => showTransactionDetails(context, topic.txid),
+                borderRadius: SailStyleValues.borderRadius,
                 child: Container(
                   padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
                   decoration: BoxDecoration(
@@ -1014,21 +1015,21 @@ class ManageNewsSubscriptionsViewModel extends BaseViewModel {
       return;
     }
     if (identifierController.text.length != 8) {
-      showSnackBar(context, 'Identifier must be exactly 8 hex characters');
+      showSailToast(context, 'Identifier must be exactly 8 hex characters');
       return;
     }
     final hexRegex = RegExp(r'^[0-9A-Fa-f]+$');
     if (!hexRegex.hasMatch(identifierController.text)) {
-      showSnackBar(context, 'Identifier must contain only valid hex characters (0-9, A-F)');
+      showSailToast(context, 'Identifier must contain only valid hex characters (0-9, A-F)');
       return;
     }
     if (nameController.text.length > 20) {
-      showSnackBar(context, 'Name must be 20 characters or less');
+      showSailToast(context, 'Name must be 20 characters or less');
       return;
     }
     final retentionDays = int.tryParse(retentionDaysController.text) ?? 7;
     if (retentionDays < 0 || retentionDays > 255) {
-      showSnackBar(context, 'Retention days must be between 0 and 255 (0 = infinite)');
+      showSailToast(context, 'Retention days must be between 0 and 255 (0 = infinite)');
       return;
     }
 
@@ -1040,12 +1041,12 @@ class ManageNewsSubscriptionsViewModel extends BaseViewModel {
       );
       await _newsProvider.fetch();
       if (!context.mounted) return;
-      showSnackBar(context, 'Topic created! txid: ${response.txid.substring(0, 8)}...');
+      showSailToast(context, 'Topic created! txid: ${response.txid.substring(0, 8)}...');
       identifierController.clear();
       nameController.clear();
       retentionDaysController.text = '7';
     } catch (e) {
-      showSnackBar(context, 'Could not create topic: $e');
+      showSailToast(context, 'Could not create topic: $e');
     }
   }
 
@@ -1066,7 +1067,7 @@ class ManageNewsSubscriptionsViewModel extends BaseViewModel {
     final match = regex.firstMatch(url);
 
     if (match == null) {
-      showSnackBar(context, 'Invalid URL format. Expected: {days}{identifier}Name');
+      showSailToast(context, 'Invalid URL format. Expected: {days}{identifier}Name');
       return;
     }
 
@@ -1078,10 +1079,10 @@ class ManageNewsSubscriptionsViewModel extends BaseViewModel {
       final response = await _api.misc.createTopic(identifier, name, retentionDays: days);
       await _newsProvider.fetch();
       if (!context.mounted) return;
-      showSnackBar(context, 'Subscribed to "$name"! txid: ${response.txid.substring(0, 8)}...');
+      showSailToast(context, 'Subscribed to "$name"! txid: ${response.txid.substring(0, 8)}...');
       urlController.clear();
     } catch (e) {
-      showSnackBar(context, 'Could not subscribe: $e');
+      showSailToast(context, 'Could not subscribe: $e');
     }
   }
 
@@ -1089,14 +1090,14 @@ class ManageNewsSubscriptionsViewModel extends BaseViewModel {
     final urls = topics.map((t) => '${t.retentionDays}{${t.topic}}${t.name}').join('\n');
     await Clipboard.setData(ClipboardData(text: urls));
     if (!context.mounted) return;
-    showSnackBar(context, 'Topics exported to clipboard');
+    showSailToast(context, 'Topics exported to clipboard');
   }
 
   Future<void> importTopics(BuildContext context) async {
     final data = await Clipboard.getData(Clipboard.kTextPlain);
     if (data?.text == null || data!.text!.isEmpty) {
       if (!context.mounted) return;
-      showSnackBar(context, 'Clipboard is empty');
+      showSailToast(context, 'Clipboard is empty');
       return;
     }
 
@@ -1133,11 +1134,11 @@ class ManageNewsSubscriptionsViewModel extends BaseViewModel {
     if (!context.mounted) return;
 
     if (imported > 0) {
-      showSnackBar(context, 'Imported $imported topic(s)${failed > 0 ? ', $failed failed' : ''}');
+      showSailToast(context, 'Imported $imported topic(s)${failed > 0 ? ', $failed failed' : ''}');
     } else if (failed > 0) {
-      showSnackBar(context, 'Failed to import $failed topic(s)');
+      showSailToast(context, 'Failed to import $failed topic(s)');
     } else {
-      showSnackBar(context, 'No new topics to import');
+      showSailToast(context, 'No new topics to import');
     }
   }
 
@@ -1165,9 +1166,9 @@ class ManageNewsSubscriptionsViewModel extends BaseViewModel {
     if (!context.mounted) return;
 
     if (restored > 0) {
-      showSnackBar(context, 'Restored $restored default topic(s)');
+      showSailToast(context, 'Restored $restored default topic(s)');
     } else {
-      showSnackBar(context, 'All default topics already exist');
+      showSailToast(context, 'All default topics already exist');
     }
   }
 
@@ -1258,7 +1259,7 @@ class NewGraffitiViewModel extends BaseViewModel {
       messageController.clear();
     } catch (e) {
       if (!context.mounted) return;
-      showSnackBar(context, 'could not broadcast graffiti: $e');
+      showSailToast(context, 'could not broadcast graffiti: $e');
     }
   }
 
@@ -1387,27 +1388,13 @@ class _DatePickerField extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = SailTheme.of(context);
 
-    return InkWell(
+    return SailTappable(
       onTap: () async {
-        final picked = await showDatePicker(
+        final picked = await showSailDatePicker(
           context: context,
           initialDate: value ?? DateTime.now(),
           firstDate: firstDate ?? DateTime(2009),
           lastDate: lastDate ?? DateTime.now(),
-          builder: (context, child) {
-            return Theme(
-              data: Theme.of(context).copyWith(
-                colorScheme: ColorScheme.dark(
-                  primary: theme.colors.primary,
-                  onPrimary: theme.colors.text,
-                  surface: theme.colors.background,
-                  onSurface: theme.colors.text,
-                ),
-                dialogTheme: DialogThemeData(backgroundColor: theme.colors.background),
-              ),
-              child: child!,
-            );
-          },
         );
         onChanged(picked);
       },

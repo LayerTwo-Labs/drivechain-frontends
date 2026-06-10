@@ -1,6 +1,5 @@
 import 'package:auto_route/auto_route.dart';
 import 'package:bitwindow/providers/content_provider.dart';
-import 'package:flutter/material.dart' show Colors, Icon, Icons, InkWell, Material;
 import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
@@ -296,19 +295,14 @@ class StoryCard extends StatefulWidget {
 class _StoryCardState extends State<StoryCard> {
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: Colors.transparent,
+    return SailTappable(
+      onTap: () async => widget.onPressed(),
       borderRadius: SailStyleValues.borderRadiusLarge,
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: widget.onPressed,
-        borderRadius: SailStyleValues.borderRadiusLarge,
-        child: _StoryCardContent(
-          title: widget.title,
-          subtitle: widget.subtitle,
-          largeIcon: widget.largeIcon,
-          background: widget.background,
-        ),
+      child: _StoryCardContent(
+        title: widget.title,
+        subtitle: widget.subtitle,
+        largeIcon: widget.largeIcon,
+        background: widget.background,
       ),
     );
   }
@@ -366,10 +360,7 @@ class _StoryCardContent extends StatelessWidget {
                     ],
                   ),
                 ),
-                Icon(
-                  Icons.keyboard_arrow_right_rounded,
-                  color: SailTheme.of(context).colors.icon,
-                ),
+                SailSVG.fromAsset(SailSVGAsset.chevronRight, color: SailTheme.of(context).colors.icon),
               ],
             ),
           ),
@@ -390,20 +381,23 @@ class _ScrollButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: Colors.black,
-      borderRadius: SailStyleValues.borderRadius,
-      child: InkWell(
-        onTap: onPressed,
+    final theme = SailTheme.of(context);
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: theme.colors.text,
+        borderRadius: SailStyleValues.borderRadius,
+      ),
+      child: SailTappable(
+        onTap: () async => onPressed(),
         borderRadius: SailStyleValues.borderRadius,
         child: Container(
           width: 32,
           height: 32,
           alignment: Alignment.center,
-          child: Icon(
-            isLeft ? Icons.arrow_back_ios_rounded : Icons.arrow_forward_ios_rounded,
-            color: Colors.white,
-            size: 16,
+          child: SailSVG.fromAsset(
+            isLeft ? SailSVGAsset.chevronLeft : SailSVGAsset.chevronRight,
+            width: 16,
+            color: theme.colors.background,
           ),
         ),
       ),

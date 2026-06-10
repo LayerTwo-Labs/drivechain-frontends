@@ -1,4 +1,3 @@
-import 'package:flutter/material.dart' show Icon, Icons;
 import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
@@ -77,9 +76,9 @@ class TradingPositionWidget extends StatelessWidget {
                           SailRow(
                             spacing: SailStyleValues.padding04,
                             children: [
-                              Icon(
-                                holdings.hasProfits ? Icons.arrow_upward : Icons.arrow_downward,
-                                size: 16,
+                              SailSVG.fromAsset(
+                                holdings.hasProfits ? SailSVGAsset.arrowUp : SailSVGAsset.arrowDown,
+                                width: 16,
                                 color: holdings.hasProfits ? theme.colors.success : theme.colors.error,
                               ),
                               SailText.primary15(
@@ -130,9 +129,9 @@ class TradingPositionWidget extends StatelessWidget {
                             child: SailRow(
                               spacing: SailStyleValues.padding04,
                               children: [
-                                Icon(
-                                  position.isProfit ? Icons.arrow_upward : Icons.arrow_downward,
-                                  size: 12,
+                                SailSVG.fromAsset(
+                                  position.isProfit ? SailSVGAsset.arrowUp : SailSVGAsset.arrowDown,
+                                  width: 12,
                                   color: position.isProfit ? theme.colors.success : theme.colors.error,
                                 ),
                                 SailText.secondary12(

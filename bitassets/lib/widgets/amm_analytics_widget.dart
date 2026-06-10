@@ -3,7 +3,6 @@ import 'dart:math';
 import 'package:bitassets/providers/asset_analytics_provider.dart';
 import 'package:bitassets/providers/bitassets_provider.dart';
 import 'package:bitassets/routing/router.dart';
-import 'package:flutter/material.dart' show IconButton, InkWell;
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
@@ -364,13 +363,14 @@ class _PoolRow extends StatelessWidget {
                     ],
                   ),
                 ),
-                IconButton(
-                  icon: SailSVG.icon(SailSVGAsset.iconCopy, width: 12),
-                  onPressed: onCopyPairName,
-                  tooltip: 'Copy pool pair',
-                  iconSize: 12,
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(minWidth: 20, minHeight: 20),
+                SailTooltip(
+                  message: 'Copy pool pair',
+                  child: SailButton(
+                    variant: ButtonVariant.icon,
+                    icon: SailSVGAsset.iconCopy,
+                    iconWidth: 12,
+                    onPressed: () async => onCopyPairName(),
+                  ),
                 ),
               ],
             ),
@@ -449,8 +449,8 @@ class _QuickButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = SailTheme.of(context);
 
-    return InkWell(
-      onTap: onTap,
+    return SailTappable(
+      onTap: () async => onTap(),
       borderRadius: SailStyleValues.borderRadius,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),

@@ -1,5 +1,4 @@
 import 'package:auto_route/auto_route.dart';
-import 'package:flutter/material.dart' show Colors, Icon, Icons;
 import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
@@ -303,7 +302,7 @@ class _DecisionCard extends StatelessWidget {
         color: hasVote ? theme.colors.primary.withValues(alpha: 0.05) : theme.colors.backgroundSecondary,
         borderRadius: BorderRadius.circular(8),
         border: Border.all(
-          color: hasVote ? theme.colors.primary : Colors.transparent,
+          color: hasVote ? theme.colors.primary : SailColorScheme.transparent,
           width: 1,
         ),
       ),
@@ -329,12 +328,7 @@ class _DecisionCard extends StatelessWidget {
                     ),
                     child: SailText.secondary12(decision.isScaled ? 'Scaled' : 'Binary'),
                   ),
-                  if (hasVote)
-                    Icon(
-                      Icons.check_circle,
-                      size: 16,
-                      color: theme.colors.success,
-                    ),
+                  if (hasVote) SailSVG.fromAsset(SailSVGAsset.circleCheck, width: 16, color: theme.colors.success),
                 ],
               ),
             ],
@@ -491,7 +485,7 @@ class _VoteButton extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 12),
         decoration: BoxDecoration(
-          color: isSelected ? color.withValues(alpha: 0.2) : Colors.transparent,
+          color: isSelected ? color.withValues(alpha: 0.2) : SailColorScheme.transparent,
           borderRadius: BorderRadius.circular(8),
           border: Border.all(
             color: isSelected ? color : color.withValues(alpha: 0.3),

@@ -12,7 +12,6 @@ import 'package:bitwindow/utils/coin_selection.dart';
 import 'package:bitwindow/utils/explorer_url.dart';
 import 'package:collection/collection.dart';
 import 'package:fixnum/fixnum.dart';
-import 'package:flutter/material.dart' show Dialog;
 import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
@@ -539,7 +538,7 @@ class SendPageViewModel extends BaseViewModel {
     // Check if all recipients have an address
     final missingAddress = recipients.indexWhere((r) => r.addressController.text.trim().isEmpty);
     if (missingAddress != -1) {
-      showSnackBar(context, 'Please enter an address for all recipients.');
+      showSailToast(context, 'Please enter an address for all recipients.');
       setBusy(false);
       return;
     }
@@ -547,14 +546,14 @@ class SendPageViewModel extends BaseViewModel {
     // Check if all recipients have an amount
     final missingAmount = recipients.indexWhere((r) => r.amountController.text.trim().isEmpty);
     if (missingAmount != -1) {
-      showSnackBar(context, 'Please enter an amount for all recipients.');
+      showSailToast(context, 'Please enter an amount for all recipients.');
       setBusy(false);
       return;
     }
 
     final feeSats = parseAmountToSatoshis(feeController.text, currentUnit);
     if (feeSats <= 0) {
-      showSnackBar(context, 'Please enter a valid fee.');
+      showSailToast(context, 'Please enter a valid fee.');
       setBusy(false);
       return;
     }
@@ -592,7 +591,7 @@ class SendPageViewModel extends BaseViewModel {
     } catch (error) {
       log.e('Error sending transaction: $error');
       if (context.mounted) {
-        showSnackBar(context, 'Could not send transaction $error', duration: 5);
+        showSailToast(context, 'Could not send transaction $error', duration: const Duration(seconds: 5));
       }
     } finally {
       setBusy(false);
@@ -839,60 +838,58 @@ class _SaveToAddressBookDialogState extends State<_SaveToAddressBookDialog> {
 
   @override
   Widget build(BuildContext context) {
-    return Dialog(
+    return SailModal(
       backgroundColor: const Color(0x00000000),
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 400),
-        child: SailCard(
-          title: 'Save to Address Book',
-          subtitle: '',
-          withCloseButton: true,
-          child: SailColumn(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            spacing: SailStyleValues.padding16,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              SailTextField(
-                label: 'Address',
-                controller: TextEditingController(text: widget.address),
-                hintText: widget.address,
-                readOnly: true,
-                size: TextFieldSize.small,
-                suffixWidget: CopyButton(
-                  text: widget.address,
-                ),
+      constraints: const BoxConstraints(maxWidth: 400),
+      child: SailCard(
+        title: 'Save to Address Book',
+        subtitle: '',
+        withCloseButton: true,
+        child: SailColumn(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          spacing: SailStyleValues.padding16,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            SailTextField(
+              label: 'Address',
+              controller: TextEditingController(text: widget.address),
+              hintText: widget.address,
+              readOnly: true,
+              size: TextFieldSize.small,
+              suffixWidget: CopyButton(
+                text: widget.address,
               ),
-              SailTextField(
-                label: 'Label',
-                controller: labelController,
-                hintText: 'Enter a label for this address',
-                size: TextFieldSize.small,
-              ),
-              SailButton(
-                label: 'Save',
-                onPressed: () async {
-                  if (labelController.text.isEmpty) return;
-                  try {
-                    await widget.addressBookProvider.createEntry(
-                      labelController.text,
-                      widget.address,
-                      Direction.DIRECTION_SEND,
-                    );
-                    if (context.mounted) {
-                      Navigator.pop(context);
-                      showSnackBar(context, 'Address saved to address book');
-                    }
-                  } catch (e) {
-                    widget.log.e('Error saving to address book: $e');
-                    if (context.mounted) {
-                      showSnackBar(context, 'Failed to save address: $e');
-                    }
+            ),
+            SailTextField(
+              label: 'Label',
+              controller: labelController,
+              hintText: 'Enter a label for this address',
+              size: TextFieldSize.small,
+            ),
+            SailButton(
+              label: 'Save',
+              onPressed: () async {
+                if (labelController.text.isEmpty) return;
+                try {
+                  await widget.addressBookProvider.createEntry(
+                    labelController.text,
+                    widget.address,
+                    Direction.DIRECTION_SEND,
+                  );
+                  if (context.mounted) {
+                    Navigator.pop(context);
+                    showSailToast(context, 'Address saved to address book');
                   }
-                },
-                disabled: labelController.text.isEmpty,
-              ),
-            ],
-          ),
+                } catch (e) {
+                  widget.log.e('Error saving to address book: $e');
+                  if (context.mounted) {
+                    showSailToast(context, 'Failed to save address: $e');
+                  }
+                }
+              },
+              disabled: labelController.text.isEmpty,
+            ),
+          ],
         ),
       ),
     );

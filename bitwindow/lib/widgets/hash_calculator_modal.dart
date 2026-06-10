@@ -1,7 +1,6 @@
 import 'dart:convert';
 
 import 'package:crypto/crypto.dart';
-import 'package:flutter/material.dart' show Dialog;
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:pointycastle/export.dart' as pc;
@@ -681,7 +680,7 @@ class _HashCalculatorState extends State<HashCalculator> {
     final theme = SailTheme.of(context);
     showThemedDialog(
       context: context,
-      builder: (context) => Dialog(
+      builder: (context) => SailModal(
         backgroundColor: theme.colors.backgroundSecondary,
         child: IntrinsicWidth(
           child: SailCard(

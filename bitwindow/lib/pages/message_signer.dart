@@ -1,4 +1,3 @@
-import 'package:flutter/material.dart' show Dialog, Icon, Icons;
 import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
@@ -8,7 +7,7 @@ class MessageSigner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Dialog(
+    return SailModal(
       child: SizedBox(
         width: 800,
         height: 600,
@@ -116,7 +115,7 @@ class _SignMessageTabState extends State<SignMessageTab> {
             const SizedBox(height: 16),
             Row(
               children: [
-                Icon(Icons.error, color: theme.colors.error),
+                SailSVG.fromAsset(SailSVGAsset.circleAlert, color: theme.colors.error),
                 const SizedBox(width: 8),
                 Expanded(
                   child: SailText.primary13(
@@ -219,7 +218,7 @@ class _VerifyMessageTabState extends State<VerifyMessageTab> {
               if (_error != null) ...[
                 Row(
                   children: [
-                    Icon(Icons.error, color: theme.colors.error),
+                    SailSVG.fromAsset(SailSVGAsset.circleAlert, color: theme.colors.error),
                     const SizedBox(width: 8),
                     Expanded(
                       child: SailText.primary13(
@@ -232,8 +231,8 @@ class _VerifyMessageTabState extends State<VerifyMessageTab> {
               ],
               if (_isValid != null && _error == null) ...[
                 const SizedBox(width: 16),
-                Icon(
-                  _isValid! ? Icons.check_circle : Icons.error,
+                SailSVG.fromAsset(
+                  _isValid! ? SailSVGAsset.circleCheck : SailSVGAsset.circleAlert,
                   color: _isValid! ? theme.colors.success : theme.colors.error,
                 ),
                 const SizedBox(width: 8),

@@ -41,36 +41,48 @@ class _SailCheckboxState extends State<SailCheckbox> {
         color = context.sailTheme.colors.disabledBackground;
       }
 
+      final chrome = context.sailTheme.chrome;
       visual = Container(
         width: widget.size,
         height: widget.size,
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.all(Radius.circular(widget.cornerRadius)),
-          color: color,
-          boxShadow: enabled ? sailBoxShadow(context) : null,
-        ),
+        decoration: chrome.beveled
+            ? BoxDecoration(
+                color: context.sailTheme.colors.formField,
+                border: chrome.bevel!.sunken,
+              )
+            : BoxDecoration(
+                borderRadius: BorderRadius.all(Radius.circular(widget.cornerRadius)),
+                color: color,
+                boxShadow: enabled ? sailBoxShadow(context) : null,
+              ),
         child: Icon(
           Icons.check,
           size: widget.size - 2,
-          color: context.sailTheme.colors.background,
+          color: chrome.beveled ? context.sailTheme.colors.text : context.sailTheme.colors.background,
         ),
       );
     } else {
       var color = context.sailTheme.colors.backgroundSecondary;
       if (_pressed) color = Color.lerp(color, Colors.black, 0.2)!;
 
+      final chrome = context.sailTheme.chrome;
       visual = Container(
         width: widget.size,
         height: widget.size,
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.all(Radius.circular(widget.cornerRadius)),
-          color: color,
-          border: Border.all(
-            color: context.sailTheme.colors.border,
-            width: 0.5,
-          ),
-          boxShadow: sailBoxShadow(context),
-        ),
+        decoration: chrome.beveled
+            ? BoxDecoration(
+                color: context.sailTheme.colors.formField,
+                border: chrome.bevel!.sunken,
+              )
+            : BoxDecoration(
+                borderRadius: BorderRadius.all(Radius.circular(widget.cornerRadius)),
+                color: color,
+                border: Border.all(
+                  color: context.sailTheme.colors.border,
+                  width: 0.5,
+                ),
+                boxShadow: sailBoxShadow(context),
+              ),
       );
     }
 

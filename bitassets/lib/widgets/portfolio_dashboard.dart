@@ -4,7 +4,6 @@ import 'package:bitassets/providers/asset_analytics_provider.dart';
 import 'package:bitassets/providers/bitassets_provider.dart';
 import 'package:bitassets/routing/router.dart';
 import 'package:bitassets/widgets/transaction_history.dart';
-import 'package:flutter/material.dart' show Colors, IconButton;
 import 'package:flutter/widgets.dart';
 import 'package:flutter/services.dart';
 import 'package:get_it/get_it.dart';
@@ -170,7 +169,7 @@ class PortfolioDashboard extends StatelessWidget {
                               ...model.holdings.map(
                                 (holding) => _HoldingRow(
                                   holding: holding,
-                                  color: model.getColorForAsset(holding.assetId),
+                                  color: model.getColorForAsset(holding.assetId, SailTheme.of(context).colors),
                                   assetName: model.getAssetName(holding.assetId),
                                   onCopyAssetId: () => model.copyToClipboard(holding.assetId, context),
                                 ),
@@ -268,6 +267,7 @@ class _AllocationChart extends StatelessWidget {
               painter: _PieChartPainter(
                 holdings: holdings,
                 colors: _getColors(holdings.length, context),
+                borderColor: SailTheme.of(context).colors.background,
               ),
             ),
           ),
@@ -277,18 +277,7 @@ class _AllocationChart extends StatelessWidget {
   }
 
   List<Color> _getColors(int count, BuildContext context) {
-    final theme = SailTheme.of(context);
-    final baseColors = [
-      theme.colors.primary,
-      theme.colors.success,
-      theme.colors.orange,
-      theme.colors.error,
-      Colors.purple,
-      Colors.teal,
-      Colors.indigo,
-      Colors.amber,
-    ];
-
+    final baseColors = SailTheme.of(context).colors.chartPalette;
     final colors = <Color>[];
     for (int i = 0; i < count; i++) {
       colors.add(baseColors[i % baseColors.length]);
@@ -300,8 +289,9 @@ class _AllocationChart extends StatelessWidget {
 class _PieChartPainter extends CustomPainter {
   final List<AssetHolding> holdings;
   final List<Color> colors;
+  final Color borderColor;
 
-  _PieChartPainter({required this.holdings, required this.colors});
+  _PieChartPainter({required this.holdings, required this.colors, required this.borderColor});
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -329,7 +319,7 @@ class _PieChartPainter extends CustomPainter {
       // Draw segment border
       final borderPaint = Paint()
         ..style = PaintingStyle.stroke
-        ..color = Colors.white.withValues(alpha: 0.3)
+        ..color = borderColor.withValues(alpha: 0.3)
         ..strokeWidth = 1;
 
       canvas.drawArc(
@@ -346,7 +336,7 @@ class _PieChartPainter extends CustomPainter {
     // Draw center hole for donut effect
     final holePaint = Paint()
       ..style = PaintingStyle.fill
-      ..color = Colors.transparent;
+      ..color = SailColorScheme.transparent;
 
     canvas.drawCircle(center, radius * 0.5, holePaint);
   }
@@ -418,13 +408,14 @@ class _HoldingRow extends StatelessWidget {
                   ),
                 ),
                 if (!holding.isBtc)
-                  IconButton(
-                    icon: SailSVG.icon(SailSVGAsset.iconCopy, width: 12),
-                    onPressed: onCopyAssetId,
-                    tooltip: 'Copy asset ID',
-                    iconSize: 12,
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(minWidth: 20, minHeight: 20),
+                  SailTooltip(
+                    message: 'Copy asset ID',
+                    child: SailButton(
+                      variant: ButtonVariant.icon,
+                      icon: SailSVGAsset.iconCopy,
+                      iconWidth: 12,
+                      onPressed: () async => onCopyAssetId(),
+                    ),
                   ),
               ],
             ),
@@ -507,19 +498,10 @@ class PortfolioDashboardViewModel extends BaseViewModel {
 
   int get totalHoldingsCount => holdings.length;
 
-  Color getColorForAsset(String assetId) {
+  Color getColorForAsset(String assetId, SailColor colors) {
     final index = holdings.indexWhere((h) => h.assetId == assetId);
-    final colors = [
-      Colors.blue,
-      Colors.green,
-      Colors.orange,
-      Colors.red,
-      Colors.purple,
-      Colors.teal,
-      Colors.indigo,
-      Colors.amber,
-    ];
-    return colors[index % colors.length];
+    final palette = colors.chartPalette;
+    return palette[index % palette.length];
   }
 
   String getAssetName(String assetId) {

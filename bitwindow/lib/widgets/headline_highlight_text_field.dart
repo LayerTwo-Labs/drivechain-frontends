@@ -24,7 +24,7 @@ class HeadlineHighlightController extends TextEditingController {
       children: [
         TextSpan(
           text: headlinePart,
-          style: TextStyle(backgroundColor: SailColorScheme.green.withValues(alpha: 0.3)),
+          style: TextStyle(backgroundColor: SailTheme.of(context).colors.success.withValues(alpha: 0.3)),
         ),
         if (restPart.isNotEmpty) TextSpan(text: restPart),
       ],

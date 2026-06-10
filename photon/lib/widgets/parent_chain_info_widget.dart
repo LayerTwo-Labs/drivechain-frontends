@@ -1,4 +1,3 @@
-import 'package:flutter/material.dart' show SelectableText;
 import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
@@ -76,15 +75,7 @@ class _InfoRow extends StatelessWidget {
           child: SailSkeletonizer(
             enabled: loading,
             description: 'Loading...',
-            child: selectable
-                ? SelectableText(
-                    value,
-                    style: SailStyleValues.thirteen.copyWith(
-                      fontFamily: 'monospace',
-                      color: SailTheme.of(context).colors.text,
-                    ),
-                  )
-                : SailText.primary13(value, monospace: true),
+            child: selectable ? SailSelectableText(value, monospace: true) : SailText.primary13(value, monospace: true),
           ),
         ),
       ],
