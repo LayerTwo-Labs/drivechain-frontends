@@ -8,3 +8,9 @@ import { ExplorerService } from "./explorer_pb";
  * @generated from rpc explorer.v1.ExplorerService.GetChainTips
  */
 export const getChainTips: typeof ExplorerService["method"]["getChainTips"];
+/**
+ * Lists active and proposed side chains.
+ *
+ * @generated from rpc explorer.v1.ExplorerService.ListSidechains
+ */
+export const listSidechains: typeof ExplorerService["method"]["listSidechains"];

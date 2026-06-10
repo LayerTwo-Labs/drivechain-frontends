@@ -841,6 +841,13 @@ export declare type GetChainInfoResponse = Message<"cusf.mainchain.v1.GetChainIn
    * @generated from field: cusf.mainchain.v1.Network network = 1;
    */
   network: Network;
+
+  /**
+   * BIP300 consensus constants for the active network.
+   *
+   * @generated from field: cusf.mainchain.v1.GetChainInfoResponse.Bip300Constants bip300_constants = 2;
+   */
+  bip300Constants?: GetChainInfoResponse_Bip300Constants;
 };
 
 /**
@@ -851,6 +858,13 @@ export declare type GetChainInfoResponseJson = {
    * @generated from field: cusf.mainchain.v1.Network network = 1;
    */
   network?: NetworkJson;
+
+  /**
+   * BIP300 consensus constants for the active network.
+   *
+   * @generated from field: cusf.mainchain.v1.GetChainInfoResponse.Bip300Constants bip300_constants = 2;
+   */
+  bip300Constants?: GetChainInfoResponse_Bip300ConstantsJson;
 };
 
 /**
@@ -858,6 +872,118 @@ export declare type GetChainInfoResponseJson = {
  * Use `create(GetChainInfoResponseSchema)` to create a new message.
  */
 export declare const GetChainInfoResponseSchema: GenMessage<GetChainInfoResponse, {jsonType: GetChainInfoResponseJson}>;
+
+/**
+ * @generated from message cusf.mainchain.v1.GetChainInfoResponse.Bip300Constants
+ */
+export declare type GetChainInfoResponse_Bip300Constants = Message<"cusf.mainchain.v1.GetChainInfoResponse.Bip300Constants"> & {
+  /**
+   * Maximum age (in mainchain blocks) of a withdrawal bundle before it is
+   * considered failed.
+   *
+   * @generated from field: uint32 withdrawal_bundle_max_age = 1;
+   */
+  withdrawalBundleMaxAge: number;
+
+  /**
+   * Number of mainchain blocks within `withdrawal_bundle_max_age` that a
+   * withdrawal bundle must be included in to succeed.
+   *
+   * @generated from field: uint32 withdrawal_bundle_inclusion_threshold = 2;
+   */
+  withdrawalBundleInclusionThreshold: number;
+
+  /**
+   * Maximum age (in mainchain blocks) of a proposal for an already-used
+   * sidechain slot before it expires.
+   *
+   * @generated from field: uint32 used_sidechain_slot_proposal_max_age = 3;
+   */
+  usedSidechainSlotProposalMaxAge: number;
+
+  /**
+   * Number of votes required to activate a proposal for an already-used
+   * sidechain slot.
+   *
+   * @generated from field: uint32 used_sidechain_slot_activation_threshold = 4;
+   */
+  usedSidechainSlotActivationThreshold: number;
+
+  /**
+   * Maximum age (in mainchain blocks) of a proposal for an unused sidechain
+   * slot before it expires.
+   *
+   * @generated from field: uint32 unused_sidechain_slot_proposal_max_age = 5;
+   */
+  unusedSidechainSlotProposalMaxAge: number;
+
+  /**
+   * Number of votes required to activate a proposal for an unused sidechain
+   * slot.
+   *
+   * @generated from field: uint32 unused_sidechain_slot_activation_threshold = 6;
+   */
+  unusedSidechainSlotActivationThreshold: number;
+};
+
+/**
+ * @generated from message cusf.mainchain.v1.GetChainInfoResponse.Bip300Constants
+ */
+export declare type GetChainInfoResponse_Bip300ConstantsJson = {
+  /**
+   * Maximum age (in mainchain blocks) of a withdrawal bundle before it is
+   * considered failed.
+   *
+   * @generated from field: uint32 withdrawal_bundle_max_age = 1;
+   */
+  withdrawalBundleMaxAge?: number;
+
+  /**
+   * Number of mainchain blocks within `withdrawal_bundle_max_age` that a
+   * withdrawal bundle must be included in to succeed.
+   *
+   * @generated from field: uint32 withdrawal_bundle_inclusion_threshold = 2;
+   */
+  withdrawalBundleInclusionThreshold?: number;
+
+  /**
+   * Maximum age (in mainchain blocks) of a proposal for an already-used
+   * sidechain slot before it expires.
+   *
+   * @generated from field: uint32 used_sidechain_slot_proposal_max_age = 3;
+   */
+  usedSidechainSlotProposalMaxAge?: number;
+
+  /**
+   * Number of votes required to activate a proposal for an already-used
+   * sidechain slot.
+   *
+   * @generated from field: uint32 used_sidechain_slot_activation_threshold = 4;
+   */
+  usedSidechainSlotActivationThreshold?: number;
+
+  /**
+   * Maximum age (in mainchain blocks) of a proposal for an unused sidechain
+   * slot before it expires.
+   *
+   * @generated from field: uint32 unused_sidechain_slot_proposal_max_age = 5;
+   */
+  unusedSidechainSlotProposalMaxAge?: number;
+
+  /**
+   * Number of votes required to activate a proposal for an unused sidechain
+   * slot.
+   *
+   * @generated from field: uint32 unused_sidechain_slot_activation_threshold = 6;
+   */
+  unusedSidechainSlotActivationThreshold?: number;
+};
+
+/**
+ * Describes the message cusf.mainchain.v1.GetChainInfoResponse.Bip300Constants.
+ * Use `create(GetChainInfoResponse_Bip300ConstantsSchema)` to create a new message.
+ */
+export declare const GetChainInfoResponse_Bip300ConstantsSchema: GenMessage<GetChainInfoResponse_Bip300Constants, {jsonType: GetChainInfoResponse_Bip300ConstantsJson}>;
 
 /**
  * @generated from message cusf.mainchain.v1.GetChainTipRequest

@@ -36,11 +36,16 @@ const (
 	// ExplorerServiceGetChainTipsProcedure is the fully-qualified name of the ExplorerService's
 	// GetChainTips RPC.
 	ExplorerServiceGetChainTipsProcedure = "/explorer.v1.ExplorerService/GetChainTips"
+	// ExplorerServiceListSidechainsProcedure is the fully-qualified name of the ExplorerService's
+	// ListSidechains RPC.
+	ExplorerServiceListSidechainsProcedure = "/explorer.v1.ExplorerService/ListSidechains"
 )
 
 // ExplorerServiceClient is a client for the explorer.v1.ExplorerService service.
 type ExplorerServiceClient interface {
 	GetChainTips(context.Context, *connect.Request[v1.GetChainTipsRequest]) (*connect.Response[v1.GetChainTipsResponse], error)
+	// Lists active and proposed side chains.
+	ListSidechains(context.Context, *connect.Request[v1.ListSidechainsRequest]) (*connect.Response[v1.ListSidechainsResponse], error)
 }
 
 // NewExplorerServiceClient constructs a client for the explorer.v1.ExplorerService service. By
@@ -60,12 +65,19 @@ func NewExplorerServiceClient(httpClient connect.HTTPClient, baseURL string, opt
 			connect.WithSchema(explorerServiceMethods.ByName("GetChainTips")),
 			connect.WithClientOptions(opts...),
 		),
+		listSidechains: connect.NewClient[v1.ListSidechainsRequest, v1.ListSidechainsResponse](
+			httpClient,
+			baseURL+ExplorerServiceListSidechainsProcedure,
+			connect.WithSchema(explorerServiceMethods.ByName("ListSidechains")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
 // explorerServiceClient implements ExplorerServiceClient.
 type explorerServiceClient struct {
-	getChainTips *connect.Client[v1.GetChainTipsRequest, v1.GetChainTipsResponse]
+	getChainTips   *connect.Client[v1.GetChainTipsRequest, v1.GetChainTipsResponse]
+	listSidechains *connect.Client[v1.ListSidechainsRequest, v1.ListSidechainsResponse]
 }
 
 // GetChainTips calls explorer.v1.ExplorerService.GetChainTips.
@@ -73,9 +85,16 @@ func (c *explorerServiceClient) GetChainTips(ctx context.Context, req *connect.R
 	return c.getChainTips.CallUnary(ctx, req)
 }
 
+// ListSidechains calls explorer.v1.ExplorerService.ListSidechains.
+func (c *explorerServiceClient) ListSidechains(ctx context.Context, req *connect.Request[v1.ListSidechainsRequest]) (*connect.Response[v1.ListSidechainsResponse], error) {
+	return c.listSidechains.CallUnary(ctx, req)
+}
+
 // ExplorerServiceHandler is an implementation of the explorer.v1.ExplorerService service.
 type ExplorerServiceHandler interface {
 	GetChainTips(context.Context, *connect.Request[v1.GetChainTipsRequest]) (*connect.Response[v1.GetChainTipsResponse], error)
+	// Lists active and proposed side chains.
+	ListSidechains(context.Context, *connect.Request[v1.ListSidechainsRequest]) (*connect.Response[v1.ListSidechainsResponse], error)
 }
 
 // NewExplorerServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -91,10 +110,18 @@ func NewExplorerServiceHandler(svc ExplorerServiceHandler, opts ...connect.Handl
 		connect.WithSchema(explorerServiceMethods.ByName("GetChainTips")),
 		connect.WithHandlerOptions(opts...),
 	)
+	explorerServiceListSidechainsHandler := connect.NewUnaryHandler(
+		ExplorerServiceListSidechainsProcedure,
+		svc.ListSidechains,
+		connect.WithSchema(explorerServiceMethods.ByName("ListSidechains")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/explorer.v1.ExplorerService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case ExplorerServiceGetChainTipsProcedure:
 			explorerServiceGetChainTipsHandler.ServeHTTP(w, r)
+		case ExplorerServiceListSidechainsProcedure:
+			explorerServiceListSidechainsHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -106,4 +133,8 @@ type UnimplementedExplorerServiceHandler struct{}
 
 func (UnimplementedExplorerServiceHandler) GetChainTips(context.Context, *connect.Request[v1.GetChainTipsRequest]) (*connect.Response[v1.GetChainTipsResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("explorer.v1.ExplorerService.GetChainTips is not implemented"))
+}
+
+func (UnimplementedExplorerServiceHandler) ListSidechains(context.Context, *connect.Request[v1.ListSidechainsRequest]) (*connect.Response[v1.ListSidechainsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("explorer.v1.ExplorerService.ListSidechains is not implemented"))
 }
