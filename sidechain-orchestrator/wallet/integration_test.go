@@ -327,7 +327,7 @@ func TestWalletIntegration(t *testing.T) {
 		require.NoError(t, err)
 		var coreWalletID string
 		for _, w := range list.Msg.Wallets {
-			if w.WalletType == "bitcoinCore" && w.Id != wallet2ID {
+			if w.WalletType == pb.WalletType_WALLET_TYPE_BITCOIN_CORE && w.Id != wallet2ID {
 				coreWalletID = w.Id
 				break
 			}
@@ -395,7 +395,7 @@ func TestWalletIntegration(t *testing.T) {
 		require.NoError(t, err)
 		var fundedID string
 		for _, w := range list.Msg.Wallets {
-			if w.WalletType == "bitcoinCore" {
+			if w.WalletType == pb.WalletType_WALLET_TYPE_BITCOIN_CORE {
 				fundedID = w.Id
 				break
 			}
@@ -443,7 +443,7 @@ func TestWalletIntegration(t *testing.T) {
 		require.NoError(t, err)
 		var fundedID string
 		for _, w := range list.Msg.Wallets {
-			if w.WalletType == "bitcoinCore" {
+			if w.WalletType == pb.WalletType_WALLET_TYPE_BITCOIN_CORE {
 				fundedID = w.Id
 				break
 			}

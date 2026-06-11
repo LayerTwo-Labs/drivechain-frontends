@@ -257,7 +257,7 @@ func TestBitwindowWalletIntegration(t *testing.T) {
 		require.NoError(t, err)
 		var fundedID string
 		for _, w := range list.Msg.Wallets {
-			if w.WalletType == "bitcoinCore" {
+			if w.WalletType == pb.WalletType_WALLET_TYPE_BITCOIN_CORE {
 				fundedID = w.Id
 				break
 			}
@@ -429,7 +429,7 @@ func TestBitwindowWalletIntegration(t *testing.T) {
 		require.NoError(t, err)
 		var coreWalletID string
 		for _, w := range listWallets.Msg.Wallets {
-			if w.WalletType == "bitcoinCore" {
+			if w.WalletType == pb.WalletType_WALLET_TYPE_BITCOIN_CORE {
 				coreWalletID = w.Id
 				break
 			}
