@@ -61,10 +61,12 @@ class SailCard extends StatelessWidget {
     final theme = SailTheme.of(context);
     final radius = borderRadius ?? theme.chrome.radiusLarge;
 
-    return _build(context, theme, radius);
+    return LayoutBuilder(
+      builder: (context, constraints) => _build(context, theme, radius, constraints.hasBoundedHeight),
+    );
   }
 
-  Widget _build(BuildContext context, SailThemeData theme, BorderRadius radius) {
+  Widget _build(BuildContext context, SailThemeData theme, BorderRadius radius, bool boundedHeight) {
     return SelectionArea(
       child: SailShadow(
         shadowSize: shadowSize,
@@ -80,153 +82,145 @@ class SailCard extends StatelessWidget {
                   ),
             child: SizedBox(
               width: width,
-              // A flex child (the Flexible content below) is illegal under an
-              // unbounded height, e.g. inside a SingleChildScrollView. The
-              // LimitedBox bounds the column for the flex algorithm; loose flex
-              // + MainAxisSize.min still shrink-wraps to the natural height, so
-              // the limit only has to exceed any real content. Replaces a
-              // LayoutBuilder, which threw when SailCard sat in IntrinsicHeight.
-              child: LimitedBox(
-                maxHeight: double.maxFinite,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    // win95-style window header: full-width gradient bar
-                    if (theme.chrome.beveled && title != null)
-                      Container(
-                        height: 33,
-                        padding: const EdgeInsets.only(left: 8),
-                        decoration: theme.chrome.titleBar(theme.colors),
-                        child: Row(
-                          children: [
-                            Expanded(
-                              child: SailText.primary15(
-                                title!,
-                                bold: true,
-                                color: const Color(0xFFFFFFFF),
-                              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // win95-style window header: full-width gradient bar
+                  if (theme.chrome.beveled && title != null)
+                    Container(
+                      height: 33,
+                      padding: const EdgeInsets.only(left: 8),
+                      decoration: theme.chrome.titleBar(theme.colors),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: SailText.primary15(
+                              title!,
+                              bold: true,
+                              color: const Color(0xFFFFFFFF),
                             ),
-                            if (widgetHeaderEnd != null) widgetHeaderEnd!,
-                            if (newWindow != null)
-                              SailButton(
-                                variant: ButtonVariant.icon,
-                                icon: SailSVGAsset.iconNewWindow,
-                                onPressed: () async {
-                                  final windowProvider = GetIt.I.get<WindowProvider>();
-                                  await windowProvider.open(newWindow!);
-                                },
-                              ),
-                            if (withCloseButton)
-                              SailButton(
-                                variant: ButtonVariant.icon,
-                                icon: SailSVGAsset.iconClose,
-                                onPressed: () async => Navigator.of(context).pop(),
-                              ),
-                            const SizedBox(width: 4),
-                          ],
-                        ),
-                      ),
-                    // The outer min-height Column hands non-flex children
-                    // unbounded max height, so the content section must be a
-                    // flex child for the card's own bounds to reach the inner
-                    // Column. Loose fit keeps the card shrink-wrapping its content.
-                    Flexible(
-                      fit: FlexFit.loose,
-                      child: Padding(
-                        padding: padding
-                            ? EdgeInsets.only(
-                                top: inSeparateWindow ? SailStyleValues.padding32 : SailStyleValues.padding16,
-                                left: SailStyleValues.padding16,
-                                right: SailStyleValues.padding16,
-                                bottom: bottomPadding ? SailStyleValues.padding16 : 0,
-                              )
-                            : EdgeInsets.zero,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            if (theme.chrome.beveled && title != null && (subtitle != null || error != null))
-                              SailText.primary12(
-                                error ?? subtitle!,
-                                color: error != null ? theme.colors.error : theme.colors.inactiveNavText,
-                                overflow: TextOverflow.visible,
-                              ),
-                            if (title != null && !theme.chrome.beveled)
-                              SizedBox(
-                                width: double.infinity,
-                                child: SailRow(
-                                  spacing: 0,
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Flexible(
-                                      child: CardHeader(
-                                        title: title!,
-                                        titleTooltip: titleTooltip,
-                                        subtitle: subtitle,
-                                        error: error,
-                                      ),
-                                    ),
-                                    SailRow(
-                                      spacing: SailStyleValues.padding08,
-                                      children: [
-                                        if (widgetHeaderEnd != null) widgetHeaderEnd!,
-                                        if (newWindow != null)
-                                          SailTooltip(
-                                            message: 'Open in a new window',
-                                            child: SailButton(
-                                              variant: ButtonVariant.icon,
-                                              icon: SailSVGAsset.iconNewWindow,
-                                              onPressed: () async {
-                                                final windowProvider = GetIt.I.get<WindowProvider>();
-                                                await windowProvider.open(newWindow!);
-                                              },
-                                            ),
-                                          ),
-                                        if (withCloseButton)
-                                          SailButton(
-                                            variant: ButtonVariant.icon,
-                                            icon: SailSVGAsset.iconClose,
-                                            onPressed: () async => Navigator.of(context).pop(),
-                                          ),
-                                      ],
-                                    ),
-                                  ],
-                                ),
-                              )
-                            else if ((withCloseButton || newWindow != null) && !(theme.chrome.beveled && title != null))
-                              Align(
-                                alignment: Alignment.centerRight,
-                                child: SailRow(
-                                  spacing: SailStyleValues.padding08,
-                                  children: [
-                                    if (newWindow != null)
-                                      SailButton(
-                                        variant: ButtonVariant.icon,
-                                        icon: SailSVGAsset.iconNewWindow,
-                                        onPressed: () async {
-                                          final windowProvider = GetIt.I.get<WindowProvider>();
-                                          await windowProvider.open(newWindow!);
-                                        },
-                                      ),
-                                    if (withCloseButton)
-                                      SailButton(
-                                        variant: ButtonVariant.icon,
-                                        icon: SailSVGAsset.iconClose,
-                                        onPressed: () async => Navigator.of(context).pop(),
-                                      ),
-                                  ],
-                                ),
-                              ),
-                            if (title != null) const SailSpacing(SailStyleValues.padding08),
-                            Flexible(fit: FlexFit.loose, child: child),
-                          ],
-                        ),
+                          ),
+                          if (widgetHeaderEnd != null) widgetHeaderEnd!,
+                          if (newWindow != null)
+                            SailButton(
+                              variant: ButtonVariant.icon,
+                              icon: SailSVGAsset.iconNewWindow,
+                              onPressed: () async {
+                                final windowProvider = GetIt.I.get<WindowProvider>();
+                                await windowProvider.open(newWindow!);
+                              },
+                            ),
+                          if (withCloseButton)
+                            SailButton(
+                              variant: ButtonVariant.icon,
+                              icon: SailSVGAsset.iconClose,
+                              onPressed: () async => Navigator.of(context).pop(),
+                            ),
+                          const SizedBox(width: 4),
+                        ],
                       ),
                     ),
-                  ],
-                ),
+                  // The outer min-height Column hands non-flex children
+                  // unbounded max height, so the content section must be a
+                  // flex child for the card's own bounds to reach the inner
+                  // Column. Under genuinely unbounded height (scrollviews)
+                  // flex children are a layout error, so fall back to plain.
+                  _flexibleWhenBounded(
+                    boundedHeight,
+                    Padding(
+                      padding: padding
+                          ? EdgeInsets.only(
+                              top: inSeparateWindow ? SailStyleValues.padding32 : SailStyleValues.padding16,
+                              left: SailStyleValues.padding16,
+                              right: SailStyleValues.padding16,
+                              bottom: bottomPadding ? SailStyleValues.padding16 : 0,
+                            )
+                          : EdgeInsets.zero,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (theme.chrome.beveled && title != null && (subtitle != null || error != null))
+                            SailText.primary12(
+                              error ?? subtitle!,
+                              color: error != null ? theme.colors.error : theme.colors.inactiveNavText,
+                              overflow: TextOverflow.visible,
+                            ),
+                          if (title != null && !theme.chrome.beveled)
+                            SizedBox(
+                              width: double.infinity,
+                              child: SailRow(
+                                spacing: 0,
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Flexible(
+                                    child: CardHeader(
+                                      title: title!,
+                                      titleTooltip: titleTooltip,
+                                      subtitle: subtitle,
+                                      error: error,
+                                    ),
+                                  ),
+                                  SailRow(
+                                    spacing: SailStyleValues.padding08,
+                                    children: [
+                                      if (widgetHeaderEnd != null) widgetHeaderEnd!,
+                                      if (newWindow != null)
+                                        SailTooltip(
+                                          message: 'Open in a new window',
+                                          child: SailButton(
+                                            variant: ButtonVariant.icon,
+                                            icon: SailSVGAsset.iconNewWindow,
+                                            onPressed: () async {
+                                              final windowProvider = GetIt.I.get<WindowProvider>();
+                                              await windowProvider.open(newWindow!);
+                                            },
+                                          ),
+                                        ),
+                                      if (withCloseButton)
+                                        SailButton(
+                                          variant: ButtonVariant.icon,
+                                          icon: SailSVGAsset.iconClose,
+                                          onPressed: () async => Navigator.of(context).pop(),
+                                        ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            )
+                          else if ((withCloseButton || newWindow != null) && !(theme.chrome.beveled && title != null))
+                            Align(
+                              alignment: Alignment.centerRight,
+                              child: SailRow(
+                                spacing: SailStyleValues.padding08,
+                                children: [
+                                  if (newWindow != null)
+                                    SailButton(
+                                      variant: ButtonVariant.icon,
+                                      icon: SailSVGAsset.iconNewWindow,
+                                      onPressed: () async {
+                                        final windowProvider = GetIt.I.get<WindowProvider>();
+                                        await windowProvider.open(newWindow!);
+                                      },
+                                    ),
+                                  if (withCloseButton)
+                                    SailButton(
+                                      variant: ButtonVariant.icon,
+                                      icon: SailSVGAsset.iconClose,
+                                      onPressed: () async => Navigator.of(context).pop(),
+                                    ),
+                                ],
+                              ),
+                            ),
+                          if (title != null) const SailSpacing(SailStyleValues.padding08),
+                          _flexibleWhenBounded(boundedHeight, child),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
@@ -234,6 +228,10 @@ class SailCard extends StatelessWidget {
       ),
     );
   }
+}
+
+Widget _flexibleWhenBounded(bool boundedHeight, Widget child) {
+  return boundedHeight ? Flexible(child: child) : child;
 }
 
 class SailCardSmall extends StatelessWidget {
@@ -259,10 +257,12 @@ class SailCardSmall extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = SailTheme.of(context);
-    return _build(context, theme);
+    return LayoutBuilder(
+      builder: (context, constraints) => _build(context, theme, constraints.hasBoundedHeight),
+    );
   }
 
-  Widget _build(BuildContext context, SailThemeData theme) {
+  Widget _build(BuildContext context, SailThemeData theme, bool boundedHeight) {
     return SelectionArea(
       child: SailShadow(
         child: ClipRRect(
@@ -275,37 +275,32 @@ class SailCardSmall extends StatelessWidget {
                 right: SailStyleValues.padding16,
                 bottom: SailStyleValues.padding16,
               ),
-              // See SailCard._build: bounds the column so the Flexible content
-              // is legal under unbounded height while still shrink-wrapping.
-              child: LimitedBox(
-                maxHeight: double.maxFinite,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    SizedBox(
-                      width: double.infinity,
-                      child: SailRow(
-                        spacing: 0,
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Flexible(
-                            child: CardHeader(
-                              title: title!,
-                              titleTooltip: titleTooltip,
-                              subtitle: subtitle,
-                              error: error,
-                            ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  SizedBox(
+                    width: double.infinity,
+                    child: SailRow(
+                      spacing: 0,
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Flexible(
+                          child: CardHeader(
+                            title: title!,
+                            titleTooltip: titleTooltip,
+                            subtitle: subtitle,
+                            error: error,
                           ),
-                          if (headerEnd != null) headerEnd!,
-                        ],
-                      ),
+                        ),
+                        if (headerEnd != null) headerEnd!,
+                      ],
                     ),
-                    const SailSpacing(32),
-                    Flexible(fit: FlexFit.loose, child: child),
-                  ],
-                ),
+                  ),
+                  const SailSpacing(32),
+                  _flexibleWhenBounded(boundedHeight, child),
+                ],
               ),
             ),
           ),

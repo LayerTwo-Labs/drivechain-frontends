@@ -14,38 +14,43 @@ Widget _wrap(Widget child) {
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  // fund_group_modal.dart wraps SailCard in IntrinsicHeight.
-  testWidgets('SailCard inside IntrinsicHeight', (tester) async {
+  // Dialogs (fund_group_modal etc.) hand the card bounded screen height. The
+  // card must shrink-wrap to its content there, not fill the screen — so the
+  // modals don't need to wrap it in IntrinsicHeight.
+  testWidgets('SailCard shrink-wraps to content under bounded height', (tester) async {
     await tester.pumpWidget(
       _wrap(
-        IntrinsicHeight(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 600),
-            child: SailCard(
-              title: 'Fund',
-              subtitle: 'sub',
-              child: const SizedBox(height: 80, width: 400),
-            ),
-          ),
-        ),
-      ),
-    );
-    expect(tester.takeException(), isNull);
-  });
-
-  // hash_calculator_modal.dart wraps SailCard in IntrinsicWidth.
-  testWidgets('SailCard inside IntrinsicWidth', (tester) async {
-    await tester.pumpWidget(
-      _wrap(
-        IntrinsicWidth(
+        ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 600),
           child: SailCard(
-            title: 'Help',
-            withCloseButton: true,
+            title: 'Fund',
+            subtitle: 'sub',
             child: const SizedBox(height: 80, width: 400),
           ),
         ),
       ),
     );
     expect(tester.takeException(), isNull);
+    // Content is 80px tall; with header + padding the card stays well under the
+    // full ~600px screen. If it filled, this would be ~600.
+    expect(tester.getSize(find.byType(SailCard).first).height, lessThan(300));
+  });
+
+  // hash_calculator_modal gives the help card an explicit width instead of
+  // IntrinsicWidth (the card's internal title row is width:infinity, so it
+  // can't hug content on its own).
+  testWidgets('SailCard renders at an explicit width in a dialog', (tester) async {
+    await tester.pumpWidget(
+      _wrap(
+        SailCard(
+          width: 500,
+          title: 'Help',
+          withCloseButton: true,
+          child: const SizedBox(height: 80, width: 400),
+        ),
+      ),
+    );
+    expect(tester.takeException(), isNull);
+    expect(tester.getSize(find.byType(SailCard).first).width, 500);
   });
 }

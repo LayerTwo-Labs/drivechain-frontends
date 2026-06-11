@@ -682,46 +682,45 @@ class _HashCalculatorState extends State<HashCalculator> {
       context: context,
       builder: (context) => SailModal(
         backgroundColor: theme.colors.backgroundSecondary,
-        child: IntrinsicWidth(
-          child: SailCard(
-            title: 'Hash Calculator Help',
-            subtitle: '',
-            padding: true,
-            withCloseButton: true,
-            child: SailColumn(
-              spacing: SailStyleValues.padding08,
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                SailText.primary13(
-                  "SHA256D: 256 bit output from Bitcoin's SHA-256D [sha256(sha256())] hash function. Outputs in Little-Endian byte order.",
-                ),
-                SailText.primary13(
-                  "Hash160: 160 bit output from Bitcoin's Hash160 [RIPEMD160(sha256())] hash function. Outputs in Little-Endian byte order.",
-                ),
-                SailText.primary13(
-                  'RIPEMD160: 160 bit RIPE Message Digest.',
-                ),
-                SailText.primary13(
-                  'SHA256: 256 bit output from the Secure Hash Algorithm 2 hash function.',
-                ),
-                SailText.primary13(
-                  'SHA512: 512 bit output from the Secure Hash Algorithm 2 hash function.',
-                ),
-                SailText.primary13(
-                  'Decode: Shows the input text or decoded hex bytes as text.',
-                ),
-                SailText.primary13(
-                  'Hex: The hexadecimal (base 16) representation.',
-                ),
-                SailText.primary13(
-                  'Bin: The binary (base 2) representation.',
-                ),
-                SailText.primary13(
-                  'HMAC: Hash-based Message Authentication Code using SHA256 or SHA512 with a provided key.',
-                ),
-              ],
-            ),
+        child: SailCard(
+          width: 600,
+          title: 'Hash Calculator Help',
+          subtitle: '',
+          padding: true,
+          withCloseButton: true,
+          child: SailColumn(
+            spacing: SailStyleValues.padding08,
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              SailText.primary13(
+                "SHA256D: 256 bit output from Bitcoin's SHA-256D [sha256(sha256())] hash function. Outputs in Little-Endian byte order.",
+              ),
+              SailText.primary13(
+                "Hash160: 160 bit output from Bitcoin's Hash160 [RIPEMD160(sha256())] hash function. Outputs in Little-Endian byte order.",
+              ),
+              SailText.primary13(
+                'RIPEMD160: 160 bit RIPE Message Digest.',
+              ),
+              SailText.primary13(
+                'SHA256: 256 bit output from the Secure Hash Algorithm 2 hash function.',
+              ),
+              SailText.primary13(
+                'SHA512: 512 bit output from the Secure Hash Algorithm 2 hash function.',
+              ),
+              SailText.primary13(
+                'Decode: Shows the input text or decoded hex bytes as text.',
+              ),
+              SailText.primary13(
+                'Hex: The hexadecimal (base 16) representation.',
+              ),
+              SailText.primary13(
+                'Bin: The binary (base 2) representation.',
+              ),
+              SailText.primary13(
+                'HMAC: Hash-based Message Authentication Code using SHA256 or SHA512 with a provided key.',
+              ),
+            ],
           ),
         ),
       ),
