@@ -282,48 +282,61 @@ List<Binary> _initialBinaries(
   return binaries;
 }
 
+/// Embedded Go daemons that ship as separate per-arch binaries on macOS
+/// (suffixed `-arm64` / `-x86_64`); the host-arch one is selected at launch.
+const _perArchDaemons = {'bitwindowd', 'orchestratord', 'orchestratorctl'};
+
+/// The asset filename to load from the bundle for [canonical]. On macOS the
+/// embedded daemons ship per-arch, so the host [arch] is appended; everywhere
+/// else there is a single binary under the canonical name.
+String embeddedAssetName(String canonical, {required bool isMacOS, required String arch}) =>
+    isMacOS && _perArchDaemons.contains(canonical) ? '$canonical-$arch' : canonical;
+
 Future<void> copyBinariesFromAssets(Logger log, Directory appDir) async {
   final fileDir = binDir(appDir.path);
   await fileDir.create(recursive: true);
 
   for (final binary in allBinaries) {
-    try {
-      final binaryName = binary.binary + (Platform.isWindows && !binary.binary.endsWith('.exe') ? '.exe' : '');
-      final assetPath = 'assets/bin/$binaryName';
-
-      final binResource = await rootBundle.load(assetPath);
-      final file = File(path.join(fileDir.path, binaryName));
-
-      log.d('Writing binary ${binary.name} to: ${file.path}');
-
-      final buffer = binResource.buffer;
-      await file.writeAsBytes(
-        buffer.asUint8List(
-          binResource.offsetInBytes,
-          binResource.lengthInBytes,
-        ),
-      );
-
-      // Ensure the copied binary is executable. bitwindowd spawns
-      // orchestratord via Go's exec.Command which does NOT chmod, so without
-      // this orchestratord fails with "permission denied" on fresh installs.
-      if (!Platform.isWindows) {
-        await Process.run('chmod', ['+x', file.path]);
-        log.d('chmoded ${file.path}');
-      }
-
-      log.d('Successfully wrote binary: ${binary.name}');
-    } catch (e) {
-      // Most binaries aren't bundled into assets/bin (only bitwindowd and
-      // orchestratord are) — Flutter's "Unable to load asset" error is
-      // expected for everything else. Silence it; surface anything else.
-      if (!e.toString().contains('Unable to load asset')) {
-        log.w('Failed to copy binary ${binary.name}: $e');
-      }
-    }
+    await _copyEmbeddedBinary(log, fileDir, binary.binary, label: binary.name);
   }
+  // orchestratorctl is a CLI (not a launchable Binary in allBinaries), but the
+  // console execs it from bin/, so it has to be staged here too.
+  await _copyEmbeddedBinary(log, fileDir, 'orchestratorctl');
 
   log.d('Finished copying all available binaries to assets/bin');
+}
+
+Future<void> _copyEmbeddedBinary(Logger log, Directory fileDir, String canonical, {String? label}) async {
+  final name = label ?? canonical;
+  final exe = Platform.isWindows && !canonical.endsWith('.exe') ? '.exe' : '';
+  final destName = '$canonical$exe';
+  final assetName = '${embeddedAssetName(canonical, isMacOS: Platform.isMacOS, arch: currentArch())}$exe';
+
+  try {
+    final binResource = await rootBundle.load('assets/bin/$assetName');
+    final file = File(path.join(fileDir.path, destName));
+
+    final buffer = binResource.buffer;
+    await file.writeAsBytes(
+      buffer.asUint8List(binResource.offsetInBytes, binResource.lengthInBytes),
+    );
+
+    // Ensure the copied binary is executable. bitwindowd spawns orchestratord
+    // via Go's exec.Command which does NOT chmod, so without this orchestratord
+    // fails with "permission denied" on fresh installs.
+    if (!Platform.isWindows) {
+      await Process.run('chmod', ['+x', file.path]);
+    }
+
+    log.d('Wrote binary $name from $assetName to ${file.path}');
+  } catch (e) {
+    // Most binaries aren't bundled into assets/bin (only the embedded daemons
+    // are) — Flutter's "Unable to load asset" error is expected for everything
+    // else. Silence it; surface anything else.
+    if (!e.toString().contains('Unable to load asset')) {
+      log.w('Failed to copy binary $name: $e');
+    }
+  }
 }
 
 /// Build the full list of binaries, preferring JSON config if available.
