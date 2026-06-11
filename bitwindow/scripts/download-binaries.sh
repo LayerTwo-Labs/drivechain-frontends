@@ -19,32 +19,49 @@ if [[ "$os" == "windows" ]]; then
     exe=".exe"
 fi
 
-cd server
-server_cwd=$(pwd)
-
-echo "Building bitwindowd in $server_cwd"
-
-# Force amd64 on macOS so binaries run on both Apple Silicon (via Rosetta) and Intel.
+# The macOS app ships ONE frontend that must boot its embedded Go daemons
+# natively on both Apple Silicon and Intel. So on darwin each daemon is built
+# for both arches, suffixed `-arm64` / `-x86_64`; copyBinariesFromAssets picks
+# the host-arch one at launch. Other OSes build a single host-arch binary.
+# Suffix tokens match Dart's currentArch() (arm64 / x86_64), not GOARCH.
 if [[ "$os" == "darwin" ]]; then
-    echo "Forcing amd64 GOARCH"
-    export GOARCH=amd64
+    targets=("arm64:arm64" "amd64:x86_64")
+else
+    targets=(":")
 fi
 
-just build-go
+build_bitwindowd() {
+    local goarch="$1" out="$2"
+    (
+        cd "$original_cwd/server"
+        [[ -n "$goarch" ]] && export GOARCH="$goarch"
+        just build-go
+        mv bin/bitwindowd "$out"
+    )
+}
 
-echo "moved bin/bitwindowd to $assets_dir/bitwindowd$exe"
-mv bin/bitwindowd $assets_dir/bitwindowd$exe
+build_orch_tool() {
+    local goarch="$1" cmd="$2" out="$3"
+    (
+        cd "$original_cwd/../sidechain-orchestrator"
+        [[ -n "$goarch" ]] && export GOARCH="$goarch"
+        # CGO must stay on when cross-compiling amd64 on an arm host (Go defaults
+        # it off for cross builds); macOS clang handles -arch from GOARCH.
+        export CGO_ENABLED=1
+        go build -o "$out" "./cmd/$cmd"
+    )
+}
 
-echo "bitwindowd has been built and moved to $assets_dir"
+for target in "${targets[@]}"; do
+    goarch="${target%%:*}"
+    token="${target##*:}"
+    sfx=""
+    [[ -n "$token" ]] && sfx="-$token"
 
-cd $original_cwd/../sidechain-orchestrator
+    echo "Building embedded daemons (GOARCH=${goarch:-host}) -> *${sfx}${exe}"
+    build_bitwindowd "$goarch" "$assets_dir/bitwindowd${sfx}${exe}"
+    build_orch_tool  "$goarch" orchestratord   "$assets_dir/orchestratord${sfx}${exe}"
+    build_orch_tool  "$goarch" orchestratorctl "$assets_dir/orchestratorctl${sfx}${exe}"
+done
 
-echo "Building orchestratord"
-go build -o "$assets_dir/orchestratord$exe" ./cmd/orchestratord
-echo "orchestratord has been built and moved to $assets_dir"
-
-echo "Building orchestratorctl"
-go build -o "$assets_dir/orchestratorctl$exe" ./cmd/orchestratorctl
-echo "orchestratorctl has been built and moved to $assets_dir"
-
-cd $original_cwd
+echo "embedded daemons built into $assets_dir"
