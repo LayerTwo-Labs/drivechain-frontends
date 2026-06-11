@@ -33,7 +33,7 @@ func TestGetDownloadStatus_EmptyWhenNothingInFlight(t *testing.T) {
 		BinaryName:     "streamtest",
 		DownloadSource: orchestrator.DownloadSourceDirect,
 		DownloadURLs:   map[string]string{"default": "http://example.invalid/"},
-		Files:          map[string]string{currentOS(): "streamtest.zip"},
+		Files:          map[string]string{currentPlatform(): "streamtest.zip"},
 	})
 	client, stop := startTestOrchService(t, orch)
 	defer stop()
@@ -84,7 +84,7 @@ func TestGetDownloadStatus_ReportsInFlightDownload(t *testing.T) {
 		BinaryName:     "streamtest",
 		DownloadSource: orchestrator.DownloadSourceDirect,
 		DownloadURLs:   map[string]string{"default": binarySrv.URL + "/"},
-		Files:          map[string]string{currentOS(): "streamtest.zip"},
+		Files:          map[string]string{currentPlatform(): "streamtest.zip"},
 	})
 	client, stop := startTestOrchService(t, orch)
 	defer stop()
@@ -150,7 +150,7 @@ func TestGetDownloadStatus_KnownBinaryReportsTypedEnum(t *testing.T) {
 		BinaryName:     "thunder",
 		DownloadSource: orchestrator.DownloadSourceDirect,
 		DownloadURLs:   map[string]string{"default": binarySrv.URL + "/"},
-		Files:          map[string]string{currentOS(): "thunder.zip"},
+		Files:          map[string]string{currentPlatform(): "thunder.zip"},
 	})
 	client, stop := startTestOrchService(t, orch)
 	defer stop()

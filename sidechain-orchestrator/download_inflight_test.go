@@ -58,7 +58,7 @@ func TestDownload_InFlightClearsOnCtxCancel(t *testing.T) {
 		Name:           "wedgetest",
 		BinaryName:     "wedgetest",
 		DownloadSource: DownloadSourceDirect,
-		Files:          map[string]string{currentOS(): "wedgetest.bin"},
+		Files:          map[string]string{currentPlatform(): "wedgetest.bin"},
 		DownloadURLs:   map[string]string{"default": srv.URL + "/"},
 	}
 

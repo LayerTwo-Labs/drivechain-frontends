@@ -94,17 +94,43 @@ func currentOS() string {
 	}
 }
 
-// Downloadable returns true if this binary has download URLs configured.
-func (c BinaryConfig) Downloadable() bool {
-	f, _ := c.FileForOS()
-	return f != "" && c.BaseURL("default") != ""
+func currentArch() string {
+	if runtime.GOARCH == "arm64" {
+		return "arm64"
+	}
+	return "x86_64"
 }
 
-// FileForOS returns the download filename for the current platform.
-func (c BinaryConfig) FileForOS() (string, error) {
-	f, ok := c.Files[currentOS()]
-	if !ok || f == "" {
-		return "", fmt.Errorf("no download file for %s on %s", c.Name, currentOS())
+// currentPlatform is the os-arch token used to key download filenames,
+// e.g. "macos-arm64", "linux-x86_64".
+func currentPlatform() string {
+	return currentOS() + "-" + currentArch()
+}
+
+// fileForPlatform resolves a download filename from an os-arch keyed map.
+// On Apple Silicon it falls back to the macOS x86_64 build (run under Rosetta)
+// when no native arm64 entry exists, so binaries that lack an arm release
+// still launch instead of failing the download.
+func fileForPlatform(files map[string]string) string {
+	if f := files[currentPlatform()]; f != "" {
+		return f
+	}
+	if currentOS() == "macos" && currentArch() == "arm64" {
+		return files["macos-x86_64"]
+	}
+	return ""
+}
+
+// Downloadable returns true if this binary has download URLs configured.
+func (c BinaryConfig) Downloadable() bool {
+	return fileForPlatform(c.Files) != "" && c.BaseURL("default") != ""
+}
+
+// FileForPlatform returns the download filename for the current os-arch.
+func (c BinaryConfig) FileForPlatform() (string, error) {
+	f := fileForPlatform(c.Files)
+	if f == "" {
+		return "", fmt.Errorf("no download file for %s on %s", c.Name, currentPlatform())
 	}
 	return f, nil
 }
@@ -147,11 +173,11 @@ type CoreVariantSpec struct {
 	AvailableNetworks []string
 }
 
-// FileForOS returns the variant's download filename for the current platform.
-func (v CoreVariantSpec) FileForOS() (string, error) {
-	f, ok := v.Files[currentOS()]
-	if !ok || f == "" {
-		return "", fmt.Errorf("no download file for variant %s on %s", v.ID, currentOS())
+// FileForPlatform returns the variant's download filename for the current os-arch.
+func (v CoreVariantSpec) FileForPlatform() (string, error) {
+	f := fileForPlatform(v.Files)
+	if f == "" {
+		return "", fmt.Errorf("no download file for variant %s on %s", v.ID, currentPlatform())
 	}
 	return f, nil
 }

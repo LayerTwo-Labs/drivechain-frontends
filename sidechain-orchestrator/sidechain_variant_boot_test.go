@@ -71,7 +71,7 @@ func TestSidechainVariant_DownloadAndBoot(t *testing.T) {
 		return sidechainVariantSpec{
 			BinaryName: c.AltBinaryName,
 			BaseURL:    c.AltBaseURL("default"),
-			FileName:   c.AltFiles[currentOS()],
+			FileName:   fileForPlatform(c.AltFiles),
 		}, true
 	}
 	dm.SidechainVariant = resolver
@@ -192,4 +192,3 @@ func main() {
 	require.NoError(t, err)
 	return data
 }
-

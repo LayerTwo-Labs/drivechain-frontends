@@ -157,7 +157,7 @@ func TestDownload_ConcurrentProtection(t *testing.T) {
 		BinaryName:     "test-binary",
 		DownloadSource: DownloadSourceDirect,
 		DownloadURLs:   map[string]string{"default": srv.URL + "/"},
-		Files:          map[string]string{currentOS(): "test-binary.zip"},
+		Files:          map[string]string{currentPlatform(): "test-binary.zip"},
 	}
 
 	// First download should succeed (start)
@@ -186,14 +186,14 @@ func TestDownload_ConcurrentProtection_DifferentBinaries(t *testing.T) {
 		BinaryName:     "binary-a",
 		DownloadSource: DownloadSourceDirect,
 		DownloadURLs:   map[string]string{"default": srv.URL + "/"},
-		Files:          map[string]string{currentOS(): "binary-a.zip"},
+		Files:          map[string]string{currentPlatform(): "binary-a.zip"},
 	}
 	config2 := BinaryConfig{
 		Name:           "binary-b",
 		BinaryName:     "binary-b",
 		DownloadSource: DownloadSourceDirect,
 		DownloadURLs:   map[string]string{"default": srv.URL + "/"},
-		Files:          map[string]string{currentOS(): "binary-b.zip"},
+		Files:          map[string]string{currentPlatform(): "binary-b.zip"},
 	}
 
 	// Different binaries should be downloadable concurrently
@@ -331,7 +331,7 @@ func TestDownload_ClearsInFlightOnCompletion(t *testing.T) {
 		BinaryName:     "test-binary",
 		DownloadSource: DownloadSourceDirect,
 		DownloadURLs:   map[string]string{"default": srv2.URL + "/"},
-		Files:          map[string]string{currentOS(): "test-binary.zip"},
+		Files:          map[string]string{currentPlatform(): "test-binary.zip"},
 	}
 
 	// First download
@@ -419,7 +419,7 @@ func TestDownload_StateReflectsByteProgress(t *testing.T) {
 		BinaryName:     "state-mirror",
 		DownloadSource: DownloadSourceDirect,
 		DownloadURLs:   map[string]string{"default": srv.URL + "/"},
-		Files:          map[string]string{currentOS(): "state-mirror"},
+		Files:          map[string]string{currentPlatform(): "state-mirror"},
 	}
 
 	ch, err := dm.Download(context.Background(), config, "default", true)

@@ -47,7 +47,7 @@ func TestDownloadBinary_DispatchesAndCompletes(t *testing.T) {
 		BinaryName:     "streamtest",
 		DownloadSource: orchestrator.DownloadSourceDirect,
 		DownloadURLs:   map[string]string{"default": binarySrv.URL + "/"},
-		Files:          map[string]string{currentOS(): "streamtest.zip"},
+		Files:          map[string]string{currentPlatform(): "streamtest.zip"},
 	})
 
 	mux := http.NewServeMux()
@@ -93,7 +93,7 @@ func TestDownloadBinary_RejectsUnknownBinary(t *testing.T) {
 		BinaryName:     "streamtest",
 		DownloadSource: orchestrator.DownloadSourceDirect,
 		DownloadURLs:   map[string]string{"default": "http://example.invalid/"},
-		Files:          map[string]string{currentOS(): "streamtest.zip"},
+		Files:          map[string]string{currentPlatform(): "streamtest.zip"},
 	})
 	mux := http.NewServeMux()
 	path, h := rpc.NewOrchestratorServiceHandler(NewHandler(orch))
@@ -118,18 +118,24 @@ func newTestOrchHandlerWithBinary(t *testing.T, cfg orchestrator.BinaryConfig) *
 	return o
 }
 
-// currentOS mirrors orchestrator.currentOS — duplicated because the helper
-// is unexported in the orchestrator package and we need the same key
-// shape in BinaryConfig.Files for the orch's download lookup to match.
-func currentOS() string {
+// currentPlatform mirrors orchestrator.currentPlatform — duplicated because
+// the helper is unexported in the orchestrator package and we need the same
+// os-arch key shape in BinaryConfig.Files for the orch's download lookup to match.
+func currentPlatform() string {
+	var os string
 	switch runtime.GOOS {
 	case "darwin":
-		return "macos"
+		os = "macos"
 	case "windows":
-		return "windows"
+		os = "windows"
 	default:
-		return "linux"
+		os = "linux"
 	}
+	arch := "x86_64"
+	if runtime.GOARCH == "arm64" {
+		arch = "arm64"
+	}
+	return os + "-" + arch
 }
 
 // makeZipBytes builds an in-memory zip archive — duplicated from the

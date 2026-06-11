@@ -150,7 +150,7 @@ func (d *DownloadManager) DownloadWithOptions(ctx context.Context, config Binary
 	var baseURL string
 	switch {
 	case hasVariant:
-		f, err := variant.FileForOS()
+		f, err := variant.FileForPlatform()
 		if err != nil {
 			return nil, err
 		}
@@ -160,7 +160,7 @@ func (d *DownloadManager) DownloadWithOptions(ctx context.Context, config Binary
 		fileName = scVariant.FileName
 		baseURL = scVariant.BaseURL
 	default:
-		f, err := config.FileForOS()
+		f, err := config.FileForPlatform()
 		if err != nil {
 			return nil, err
 		}
@@ -169,7 +169,7 @@ func (d *DownloadManager) DownloadWithOptions(ctx context.Context, config Binary
 	}
 
 	if fileName == "" || baseURL == "" {
-		return nil, fmt.Errorf("no download available for %s on %s", config.Name, currentOS())
+		return nil, fmt.Errorf("no download available for %s on %s", config.Name, currentPlatform())
 	}
 
 	inFlightKey := config.Name
@@ -286,7 +286,7 @@ func (d *DownloadManager) DownloadWithOptions(ctx context.Context, config Binary
 		} else {
 			d.log.Info().Str("hash", archiveHash).Int64("size", archiveSize).Str("binary", config.Name).Msg("archive hash")
 			if d.configFilePath != "" {
-				if err := writeHashToConfig(d.configFilePath, config.Name, currentOS(), archiveHash, archiveSize); err != nil {
+				if err := writeHashToConfig(d.configFilePath, config.Name, currentPlatform(), archiveHash, archiveSize); err != nil {
 					d.log.Warn().Err(err).Msg("failed to write hash to config")
 				}
 			}
@@ -971,11 +971,15 @@ func writeHashToConfig(configPath, binaryName, osName, hash string, size int64) 
 // Platform/architecture suffixes to strip from extracted filenames.
 var platformSuffixes = []string{
 	"-x86_64-apple-darwin",
+	"-arm64-apple-darwin",
+	"-aarch64-apple-darwin",
 	"-x86_64-unknown-linux-gnu",
+	"-aarch64-unknown-linux-gnu",
 	"-x86_64-pc-windows-gnu",
 	"-x86_64-w64-msvc",
 	"_linux_x86_64",
 	"_osx_x86_64",
+	"_osx_arm64",
 	"_windows_x86_64",
 }
 
