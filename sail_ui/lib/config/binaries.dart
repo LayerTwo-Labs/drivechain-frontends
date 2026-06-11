@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:ffi' show Abi;
 import 'dart:io';
 
 import 'package:crypto/crypto.dart';
@@ -1768,14 +1769,15 @@ String colorToString(Color color) {
 
 /// Parse a directory map from JSON. The JSON uses "default" for all-networks
 /// and specific network names for overrides.
-Map<BitcoinNetwork, Map<OS, String>> _directoryBinaryFromJson(
+Map<BitcoinNetwork, Map<OS, String>> _networkMapFromJson(
   Map<String, dynamic> json,
+  Map<OS, String> Function(Map<String, dynamic>) leaf,
 ) {
   final result = <BitcoinNetwork, Map<OS, String>>{};
 
   // "default" key spreads to all networks
   if (json.containsKey('default')) {
-    final defaultMap = _osMapFromJson(json['default'] as Map<String, dynamic>);
+    final defaultMap = leaf(json['default'] as Map<String, dynamic>);
     for (final network in BitcoinNetwork.values) {
       result[network] = Map.of(defaultMap);
     }
@@ -1785,12 +1787,17 @@ Map<BitcoinNetwork, Map<OS, String>> _directoryBinaryFromJson(
   for (final entry in json.entries) {
     if (entry.key == 'default') continue;
     final network = _networkFromJsonKey(entry.key);
-    result[network] = _osMapFromJson(entry.value as Map<String, dynamic>);
+    result[network] = leaf(entry.value as Map<String, dynamic>);
   }
 
   return result;
 }
 
+Map<BitcoinNetwork, Map<OS, String>> _directoryBinaryFromJson(Map<String, dynamic> json) =>
+    _networkMapFromJson(json, _osMapFromJson);
+
+/// Parse an OS-keyed (`linux`/`macos`/`windows`) leaf map. Used for directory
+/// and extract-subfolder maps, which are CPU-arch independent.
 Map<OS, String> _osMapFromJson(Map<String, dynamic> json) {
   return {
     for (final entry in json.entries)
@@ -1799,10 +1806,48 @@ Map<OS, String> _osMapFromJson(Map<String, dynamic> json) {
   };
 }
 
-/// Parse files map from JSON - same structure as directory binary map.
-Map<BitcoinNetwork, Map<OS, String>> _filesFromJson(Map<String, dynamic> json) {
-  return _directoryBinaryFromJson(json);
+String _osJsonKey(OS os) => switch (os) {
+  OS.linux => 'linux',
+  OS.macos => 'macos',
+  OS.windows => 'windows',
+};
+
+/// The running machine's CPU architecture token used in os-arch download keys.
+String currentArch() => Abi.current().toString().toLowerCase().contains('arm64') ? 'arm64' : 'x86_64';
+
+// CPU arch only varies for the OS we're running on; other OSes default to x86_64.
+String _archForOS(OS os) => os == getOS() ? currentArch() : 'x86_64';
+
+/// Resolves the download filename for [os]/[arch] from a raw os-arch keyed JSON
+/// map (e.g. `macos-arm64`). On macOS arm64 with no native entry it falls back
+/// to the x86_64 build, which runs under Rosetta.
+String? fileForPlatform(Map<String, dynamic> json, OS os, String arch) {
+  final direct = json['${_osJsonKey(os)}-$arch'];
+  if (direct is String && direct.isNotEmpty) return direct;
+  if (os == OS.macos && arch == 'arm64') {
+    final x86 = json['macos-x86_64'];
+    if (x86 is String && x86.isNotEmpty) return x86;
+  }
+  return null;
 }
+
+/// Parse an os-arch-keyed download `files` leaf into an OS-keyed map holding
+/// the arch-correct filename for the running machine (Rosetta fallback applied).
+Map<OS, String> _platformMapFromJson(Map<String, dynamic> json) {
+  final result = <OS, String>{};
+  for (final os in OS.values) {
+    final file = fileForPlatform(json, os, _archForOS(os));
+    if (file != null && file.isNotEmpty) result[os] = file;
+  }
+  return result;
+}
+
+/// Parse a download `files` block (arch-aware leaf, network-spread).
+Map<BitcoinNetwork, Map<OS, String>> _platformFilesFromJson(Map<String, dynamic> json) =>
+    _networkMapFromJson(json, _platformMapFromJson);
+
+/// Parse an OS-keyed network map (e.g. `extract_subfolder`).
+Map<BitcoinNetwork, Map<OS, String>> _filesFromJson(Map<String, dynamic> json) => _directoryBinaryFromJson(json);
 
 extension DirectoryConfigJson on DirectoryConfig {
   static DirectoryConfig fromJson(Map<String, dynamic> json) {
@@ -1830,7 +1875,7 @@ extension DownloadConfigJson on DownloadConfig {
     final variantsJson = json['variants'] as Map<String, dynamic>? ?? const {};
     final variants = <String, Map<OS, String>>{
       for (final entry in variantsJson.entries)
-        entry.key: _osMapFromJson(
+        entry.key: _platformMapFromJson(
           (entry.value as Map<String, dynamic>)['files'] as Map<String, dynamic>? ?? const {},
         ),
     };
@@ -1838,7 +1883,7 @@ extension DownloadConfigJson on DownloadConfig {
     return DownloadConfig(
       baseUrls: baseUrls,
       binary: json['binary'] as String,
-      files: _filesFromJson(filesJson),
+      files: _platformFilesFromJson(filesJson),
       extractSubfolder: json.containsKey('extract_subfolder') && json['extract_subfolder'] != null
           ? _filesFromJson(json['extract_subfolder'] as Map<String, dynamic>)
           : null,

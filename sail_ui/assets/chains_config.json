@@ -54,9 +54,10 @@
             "subfolder": "bitcoin",
             "base_url": "https://bitcoincore.org/bin/bitcoin-core-30.2/",
             "files": {
-              "linux": "bitcoin-30.2-x86_64-linux-gnu.tar.gz",
-              "macos": "bitcoin-30.2-x86_64-apple-darwin.tar.gz",
-              "windows": "bitcoin-30.2-win64.zip"
+              "linux-x86_64": "bitcoin-30.2-x86_64-linux-gnu.tar.gz",
+              "macos-x86_64": "bitcoin-30.2-x86_64-apple-darwin.tar.gz",
+              "macos-arm64": "bitcoin-30.2-arm64-apple-darwin.tar.gz",
+              "windows-x86_64": "bitcoin-30.2-win64.zip"
             },
             "available_networks": ["mainnet", "signet", "testnet", "regtest"]
           },
@@ -64,9 +65,10 @@
             "subfolder": "drivechain-patched",
             "base_url": "https://releases.drivechain.info/",
             "files": {
-              "linux": "L1-bitcoin-patched-latest-x86_64-unknown-linux-gnu.zip",
-              "macos": "L1-bitcoin-patched-latest-x86_64-apple-darwin.zip",
-              "windows": "L1-bitcoin-patched-latest-x86_64-w64-msvc.zip"
+              "linux-x86_64": "L1-bitcoin-patched-latest-x86_64-unknown-linux-gnu.zip",
+              "macos-x86_64": "L1-bitcoin-patched-latest-x86_64-apple-darwin.zip",
+              "macos-arm64": "L1-bitcoin-patched-v30.2-aarch64-apple-darwin.zip",
+              "windows-x86_64": "L1-bitcoin-patched-latest-x86_64-w64-msvc.zip"
             },
             "available_networks": ["mainnet", "signet", "testnet", "regtest", "forknet"]
           },
@@ -74,9 +76,10 @@
             "subfolder": "knots",
             "base_url": "https://bitcoinknots.org/files/29.x/29.3.knots20260210/",
             "files": {
-              "linux": "bitcoin-29.3.knots20260210-x86_64-linux-gnu.tar.gz",
-              "macos": "bitcoin-29.3.knots20260210-x86_64-apple-darwin.tar.gz",
-              "windows": "bitcoin-29.3.knots20260210-win64-pgpverifiable.zip"
+              "linux-x86_64": "bitcoin-29.3.knots20260210-x86_64-linux-gnu.tar.gz",
+              "macos-x86_64": "bitcoin-29.3.knots20260210-x86_64-apple-darwin.tar.gz",
+              "macos-arm64": "bitcoin-29.3.knots20260210-arm64-apple-darwin.tar.gz",
+              "windows-x86_64": "bitcoin-29.3.knots20260210-win64-pgpverifiable.zip"
             },
             "available_networks": ["mainnet", "signet", "testnet", "regtest"]
           }
@@ -117,9 +120,9 @@
         "files": {
           "default": {
             "base_url": "",
-            "linux": "",
-            "macos": "",
-            "windows": ""
+            "linux-x86_64": "",
+            "macos-x86_64": "",
+            "windows-x86_64": ""
           }
         }
       },
@@ -182,9 +185,10 @@
         "files": {
           "default": {
             "base_url": "https://releases.drivechain.info/",
-            "linux": "bip300301-enforcer-latest-x86_64-unknown-linux-gnu.zip",
-            "macos": "bip300301-enforcer-latest-x86_64-apple-darwin.zip",
-            "windows": "bip300301-enforcer-latest-x86_64-pc-windows-gnu.zip"
+            "linux-x86_64": "bip300301-enforcer-latest-x86_64-unknown-linux-gnu.zip",
+            "macos-x86_64": "bip300301-enforcer-latest-x86_64-apple-darwin.zip",
+            "macos-arm64": "bip300301-enforcer-latest-aarch64-apple-darwin.zip",
+            "windows-x86_64": "bip300301-enforcer-latest-x86_64-pc-windows-gnu.zip"
           }
         }
       },
@@ -223,9 +227,10 @@
         "files": {
           "default": {
             "base_url": "https://api.github.com/repos/fullstorydev/grpcurl/releases/latest",
-            "linux": "grpcurl_\\d+\\.\\d+\\.\\d+_linux_x86_64\\.tar\\.gz",
-            "macos": "grpcurl_\\d+\\.\\d+\\.\\d+_osx_x86_64\\.tar\\.gz",
-            "windows": "grpcurl_\\d+\\.\\d+\\.\\d+_windows_x86_64\\.zip"
+            "linux-x86_64": "grpcurl_\\d+\\.\\d+\\.\\d+_linux_x86_64\\.tar\\.gz",
+            "macos-x86_64": "grpcurl_\\d+\\.\\d+\\.\\d+_osx_x86_64\\.tar\\.gz",
+            "macos-arm64": "grpcurl_\\d+\\.\\d+\\.\\d+_osx_arm64\\.tar\\.gz",
+            "windows-x86_64": "grpcurl_\\d+\\.\\d+\\.\\d+_windows_x86_64\\.zip"
           }
         }
       },
@@ -264,9 +269,9 @@
         "files": {
           "default": {
             "base_url": "",
-            "linux": "",
-            "macos": "",
-            "windows": ""
+            "linux-x86_64": "",
+            "macos-x86_64": "",
+            "windows-x86_64": ""
           }
         }
       },
@@ -305,9 +310,9 @@
         "files": {
           "default": {
             "base_url": "",
-            "linux": "",
-            "macos": "",
-            "windows": ""
+            "linux-x86_64": "",
+            "macos-x86_64": "",
+            "windows-x86_64": ""
           }
         }
       },
@@ -347,9 +352,9 @@
         "files": {
           "default": {
             "base_url": "https://releases.drivechain.info/",
-            "linux": "L2-S9-Thunder-latest-x86_64-unknown-linux-gnu.zip",
-            "macos": "L2-S9-Thunder-latest-x86_64-apple-darwin.zip",
-            "windows": "L2-S9-Thunder-latest-x86_64-pc-windows-gnu.zip"
+            "linux-x86_64": "L2-S9-Thunder-latest-x86_64-unknown-linux-gnu.zip",
+            "macos-x86_64": "L2-S9-Thunder-latest-x86_64-apple-darwin.zip",
+            "windows-x86_64": "L2-S9-Thunder-latest-x86_64-pc-windows-gnu.zip"
           }
         }
       },
@@ -358,9 +363,9 @@
         "files": {
           "default": {
             "base_url": "https://releases.drivechain.info/",
-            "linux": "test-thunder-x86_64-unknown-linux-gnu.zip",
-            "macos": "test-thunder-x86_64-apple-darwin.zip",
-            "windows": "test-thunder-x86_64-windows.exe"
+            "linux-x86_64": "test-thunder-x86_64-unknown-linux-gnu.zip",
+            "macos-x86_64": "test-thunder-x86_64-apple-darwin.zip",
+            "windows-x86_64": "test-thunder-x86_64-windows.exe"
           }
         },
         "extract_subfolder": {
@@ -407,9 +412,10 @@
         "files": {
           "default": {
             "base_url": "https://releases.drivechain.info/",
-            "linux": "L2-S2-BitNames-latest-x86_64-unknown-linux-gnu.zip",
-            "macos": "L2-S2-BitNames-latest-x86_64-apple-darwin.zip",
-            "windows": "L2-S2-BitNames-latest-x86_64-pc-windows-gnu.zip"
+            "linux-x86_64": "L2-S2-BitNames-latest-x86_64-unknown-linux-gnu.zip",
+            "macos-x86_64": "L2-S2-BitNames-latest-x86_64-apple-darwin.zip",
+            "macos-arm64": "L2-S2-BitNames-latest-aarch64-apple-darwin.zip",
+            "windows-x86_64": "L2-S2-BitNames-latest-x86_64-pc-windows-gnu.zip"
           }
         }
       },
@@ -418,9 +424,9 @@
         "files": {
           "default": {
             "base_url": "https://releases.drivechain.info/",
-            "linux": "test-bitnames-x86_64-unknown-linux-gnu.zip",
-            "macos": "test-bitnames-x86_64-apple-darwin.zip",
-            "windows": "test-bitnames-x86_64-windows.exe"
+            "linux-x86_64": "test-bitnames-x86_64-unknown-linux-gnu.zip",
+            "macos-x86_64": "test-bitnames-x86_64-apple-darwin.zip",
+            "windows-x86_64": "test-bitnames-x86_64-windows.exe"
           }
         },
         "extract_subfolder": {
@@ -467,9 +473,10 @@
         "files": {
           "default": {
             "base_url": "https://releases.drivechain.info/",
-            "linux": "L2-S4-BitAssets-latest-x86_64-unknown-linux-gnu.zip",
-            "macos": "L2-S4-BitAssets-latest-x86_64-apple-darwin.zip",
-            "windows": "L2-S4-BitAssets-latest-x86_64-pc-windows-gnu.zip"
+            "linux-x86_64": "L2-S4-BitAssets-latest-x86_64-unknown-linux-gnu.zip",
+            "macos-x86_64": "L2-S4-BitAssets-latest-x86_64-apple-darwin.zip",
+            "macos-arm64": "L2-S4-BitAssets-latest-aarch64-apple-darwin.zip",
+            "windows-x86_64": "L2-S4-BitAssets-latest-x86_64-pc-windows-gnu.zip"
           }
         }
       },
@@ -478,9 +485,9 @@
         "files": {
           "default": {
             "base_url": "https://releases.drivechain.info/",
-            "linux": "test-bitassets-x86_64-unknown-linux-gnu.zip",
-            "macos": "test-bitassets-x86_64-apple-darwin.zip",
-            "windows": "test-bitassets-x86_64-windows.exe"
+            "linux-x86_64": "test-bitassets-x86_64-unknown-linux-gnu.zip",
+            "macos-x86_64": "test-bitassets-x86_64-apple-darwin.zip",
+            "windows-x86_64": "test-bitassets-x86_64-windows.exe"
           }
         },
         "extract_subfolder": {
@@ -527,9 +534,9 @@
         "files": {
           "default": {
             "base_url": "https://releases.drivechain.info/",
-            "linux": "L2-S13-Truthcoin-latest-x86_64-unknown-linux-gnu.zip",
-            "macos": "L2-S13-Truthcoin-latest-x86_64-apple-darwin.zip",
-            "windows": "L2-S13-Truthcoin-latest-x86_64-pc-windows-gnu.zip"
+            "linux-x86_64": "L2-S13-Truthcoin-latest-x86_64-unknown-linux-gnu.zip",
+            "macos-x86_64": "L2-S13-Truthcoin-latest-x86_64-apple-darwin.zip",
+            "windows-x86_64": "L2-S13-Truthcoin-latest-x86_64-pc-windows-gnu.zip"
           }
         }
       },
@@ -538,9 +545,9 @@
         "files": {
           "default": {
             "base_url": "https://releases.drivechain.info/",
-            "linux": "test-truthcoin-x86_64-unknown-linux-gnu.zip",
-            "macos": "test-truthcoin-x86_64-apple-darwin.zip",
-            "windows": "test-truthcoin-x86_64-windows.exe"
+            "linux-x86_64": "test-truthcoin-x86_64-unknown-linux-gnu.zip",
+            "macos-x86_64": "test-truthcoin-x86_64-apple-darwin.zip",
+            "windows-x86_64": "test-truthcoin-x86_64-windows.exe"
           }
         },
         "extract_subfolder": {
@@ -587,9 +594,10 @@
         "files": {
           "default": {
             "base_url": "https://releases.drivechain.info/",
-            "linux": "L2-S99-Photon-latest-x86_64-unknown-linux-gnu.zip",
-            "macos": "L2-S99-Photon-latest-x86_64-apple-darwin.zip",
-            "windows": "L2-S99-Photon-latest-x86_64-pc-windows-gnu.zip"
+            "linux-x86_64": "L2-S99-Photon-latest-x86_64-unknown-linux-gnu.zip",
+            "macos-x86_64": "L2-S99-Photon-latest-x86_64-apple-darwin.zip",
+            "macos-arm64": "L2-S99-Photon-latest-aarch64-apple-darwin.zip",
+            "windows-x86_64": "L2-S99-Photon-latest-x86_64-pc-windows-gnu.zip"
           }
         }
       },
@@ -598,9 +606,9 @@
         "files": {
           "default": {
             "base_url": "https://releases.drivechain.info/",
-            "linux": "test-photon-x86_64-unknown-linux-gnu.zip",
-            "macos": "test-photon-x86_64-apple-darwin.zip",
-            "windows": "test-photon-x86_64-windows.exe"
+            "linux-x86_64": "test-photon-x86_64-unknown-linux-gnu.zip",
+            "macos-x86_64": "test-photon-x86_64-apple-darwin.zip",
+            "windows-x86_64": "test-photon-x86_64-windows.exe"
           }
         },
         "extract_subfolder": {
@@ -647,9 +655,9 @@
         "files": {
           "default": {
             "base_url": "https://releases.drivechain.info/",
-            "linux": "L2-S255-Coinshift-latest-x86_64-unknown-linux-gnu.zip",
-            "macos": "L2-S255-Coinshift-latest-x86_64-apple-darwin.zip",
-            "windows": "L2-S255-Coinshift-latest-x86_64-pc-windows-gnu.zip"
+            "linux-x86_64": "L2-S255-Coinshift-latest-x86_64-unknown-linux-gnu.zip",
+            "macos-x86_64": "L2-S255-Coinshift-latest-x86_64-apple-darwin.zip",
+            "windows-x86_64": "L2-S255-Coinshift-latest-x86_64-pc-windows-gnu.zip"
           }
         }
       },
@@ -658,9 +666,9 @@
         "files": {
           "default": {
             "base_url": "https://releases.drivechain.info/",
-            "linux": "test-coinshift-x86_64-unknown-linux-gnu.zip",
-            "macos": "test-coinshift-x86_64-apple-darwin.zip",
-            "windows": "test-coinshift-x86_64-windows.exe"
+            "linux-x86_64": "test-coinshift-x86_64-unknown-linux-gnu.zip",
+            "macos-x86_64": "test-coinshift-x86_64-apple-darwin.zip",
+            "windows-x86_64": "test-coinshift-x86_64-windows.exe"
           }
         },
         "extract_subfolder": {
@@ -707,9 +715,9 @@
         "files": {
           "default": {
             "base_url": "https://api.github.com/repos/iwakura-rein/thunder-orchard/releases/latest",
-            "linux": "thunder-orchard-\\d+\\.\\d+\\.\\d+-x86_64-unknown-linux-gnu",
-            "macos": "thunder-orchard-\\d+\\.\\d+\\.\\d+-x86_64-apple-darwin",
-            "windows": ""
+            "linux-x86_64": "thunder-orchard-\\d+\\.\\d+\\.\\d+-x86_64-unknown-linux-gnu",
+            "macos-x86_64": "thunder-orchard-\\d+\\.\\d+\\.\\d+-x86_64-apple-darwin",
+            "windows-x86_64": ""
           }
         }
       },
@@ -718,9 +726,9 @@
         "files": {
           "default": {
             "base_url": "https://releases.drivechain.info/",
-            "linux": "test-zside-x86_64-unknown-linux-gnu.zip",
-            "macos": "test-zside-x86_64-apple-darwin.zip",
-            "windows": ""
+            "linux-x86_64": "test-zside-x86_64-unknown-linux-gnu.zip",
+            "macos-x86_64": "test-zside-x86_64-apple-darwin.zip",
+            "windows-x86_64": ""
           }
         },
         "extract_subfolder": {

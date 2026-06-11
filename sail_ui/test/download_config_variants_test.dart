@@ -22,10 +22,18 @@ void main() {
     'binary': 'bitcoind',
     'variants': {
       'core': {
-        'files': {'linux': 'core-linux.tar.gz', 'macos': 'core-mac.tar.gz', 'windows': 'core-win.zip'},
+        'files': {
+          'linux-x86_64': 'core-linux.tar.gz',
+          'macos-x86_64': 'core-mac.tar.gz',
+          'windows-x86_64': 'core-win.zip',
+        },
       },
       'knots': {
-        'files': {'linux': 'knots-linux.tar.gz', 'macos': 'knots-mac.tar.gz', 'windows': 'knots-win.zip'},
+        'files': {
+          'linux-x86_64': 'knots-linux.tar.gz',
+          'macos-x86_64': 'knots-mac.tar.gz',
+          'windows-x86_64': 'knots-win.zip',
+        },
       },
     },
   });
@@ -56,6 +64,27 @@ void main() {
         'does-not-exist',
       );
       expect(file, 'core-linux.tar.gz');
+    });
+  });
+
+  group('fileForPlatform arch selection', () {
+    test('prefers the native arm64 build', () {
+      final files = {'macos-x86_64': 'mac-x86.zip', 'macos-arm64': 'mac-arm.zip'};
+      expect(fileForPlatform(files, OS.macos, 'arm64'), 'mac-arm.zip');
+    });
+
+    test('macOS arm64 falls back to x86_64 (Rosetta) when no native build', () {
+      final files = {'macos-x86_64': 'mac-x86.zip'};
+      expect(fileForPlatform(files, OS.macos, 'arm64'), 'mac-x86.zip');
+    });
+
+    test('x86_64 resolves the x86_64 build', () {
+      final files = {'macos-x86_64': 'mac-x86.zip', 'macos-arm64': 'mac-arm.zip'};
+      expect(fileForPlatform(files, OS.macos, 'x86_64'), 'mac-x86.zip');
+    });
+
+    test('missing platform resolves null (no cross-arch Linux fallback)', () {
+      expect(fileForPlatform({'linux-x86_64': 'lin.zip'}, OS.linux, 'arm64'), isNull);
     });
   });
 }
