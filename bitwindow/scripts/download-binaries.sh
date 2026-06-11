@@ -20,12 +20,20 @@ if [[ "$os" == "windows" ]]; then
 fi
 
 # The macOS app ships ONE frontend that must boot its embedded Go daemons
-# natively on both Apple Silicon and Intel. So on darwin each daemon is built
-# for both arches, suffixed `-arm64` / `-x86_64`; copyBinariesFromAssets picks
-# the host-arch one at launch. Other OSes build a single host-arch binary.
-# Suffix tokens match Dart's currentArch() (arm64 / x86_64), not GOARCH.
+# natively on both Apple Silicon and Intel. So in CI (the distributed build)
+# each darwin daemon is built for both arches, suffixed `-arm64` / `-x86_64`;
+# copyBinariesFromAssets picks the host-arch one at launch. Local `just run`
+# only needs the host arch, so build that alone for fast iteration. Other OSes
+# build a single host-arch binary. Suffix tokens match Dart's currentArch()
+# (arm64 / x86_64), not GOARCH.
 if [[ "$os" == "darwin" ]]; then
-    targets=("arm64:arm64" "amd64:x86_64")
+    if [[ -n "${CI:-}" ]]; then
+        targets=("arm64:arm64" "amd64:x86_64")
+    elif [[ "$(uname -m)" == "arm64" ]]; then
+        targets=("arm64:arm64")
+    else
+        targets=("amd64:x86_64")
+    fi
 else
     targets=(":")
 fi
