@@ -35,4 +35,28 @@ void main() {
     expect(tester.takeException(), isNull);
     expect(find.text('Latest Transactions'), findsOneWidget);
   });
+
+  testWidgets('SailCard still bounds its child under bounded height', (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: SailTheme(
+          data: SailThemeData.lightTheme(
+            SailColorScheme.orange,
+            true,
+            SailFontValues.inter,
+          ),
+          child: Scaffold(
+            body: SizedBox(
+              height: 200,
+              child: SailCard(
+                title: 'Bounded',
+                child: ListView(children: const [SizedBox(height: 500)]),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    expect(tester.takeException(), isNull);
+  });
 }
