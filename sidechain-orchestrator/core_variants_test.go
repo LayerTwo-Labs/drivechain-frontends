@@ -22,7 +22,7 @@ func makeBitcoindCoreConfig(baseURL string) BinaryConfig {
 			ID:                id,
 			Subfolder:         sub,
 			BaseURL:           baseURL,
-			Files:             map[string]string{currentOS(): id + ".zip"},
+			Files:             map[string]string{currentPlatform(): id + ".zip"},
 			AvailableNetworks: networks,
 		}
 	}

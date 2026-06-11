@@ -44,7 +44,7 @@ func TestIntegrationLive_TestSidechains_DownloadAlt(t *testing.T) {
 		if cfg.ChainLayer != 2 || cfg.AltBinaryName == "" {
 			continue
 		}
-		if cfg.AltFiles[currentOS()] == "" {
+		if fileForPlatform(cfg.AltFiles) == "" {
 			t.Logf("skip %s: no alt file for %s", cfg.Name, currentOS())
 			continue
 		}

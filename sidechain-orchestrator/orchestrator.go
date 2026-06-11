@@ -282,7 +282,7 @@ func New(dataDir, network, bitwindowDir string, configs []BinaryConfig, log zero
 		if !orch.Settings.UseTestSidechains() {
 			return sidechainVariantSpec{}, false
 		}
-		fileName := c.AltFiles[currentOS()]
+		fileName := fileForPlatform(c.AltFiles)
 		if fileName == "" {
 			return sidechainVariantSpec{}, false
 		}

@@ -27,10 +27,10 @@ func makeSidechainConfig(baseURL string) BinaryConfig {
 		Slot:            9,
 		DownloadSource:  DownloadSourceDirect,
 		DownloadURLs:    map[string]string{"default": baseURL},
-		Files:           map[string]string{currentOS(): prodFile},
+		Files:           map[string]string{currentPlatform(): prodFile},
 		AltBinaryName:   binName,
 		AltDownloadURLs: map[string]string{"default": baseURL},
-		AltFiles:        map[string]string{currentOS(): altFile},
+		AltFiles:        map[string]string{currentPlatform(): altFile},
 	}
 }
 
@@ -66,7 +66,7 @@ func TestDownload_SidechainVariant_HitsAltURL(t *testing.T) {
 		return sidechainVariantSpec{
 			BinaryName: c.AltBinaryName,
 			BaseURL:    c.AltBaseURL("default"),
-			FileName:   c.AltFiles[currentOS()],
+			FileName:   fileForPlatform(c.AltFiles),
 		}, true
 	}
 
@@ -158,7 +158,7 @@ func TestDownload_SidechainVariant_CoexistsWithProd(t *testing.T) {
 		return sidechainVariantSpec{
 			BinaryName: c.AltBinaryName,
 			BaseURL:    c.AltBaseURL("default"),
-			FileName:   c.AltFiles[currentOS()],
+			FileName:   fileForPlatform(c.AltFiles),
 		}, true
 	}
 	ch2, err := dm.Download(context.Background(), cfg, "default", true)
@@ -283,10 +283,10 @@ func TestIntegration_TestSidechains_FreshSwitchHitsAltURL(t *testing.T) {
 		Slot:            9,
 		DownloadSource:  DownloadSourceDirect,
 		DownloadURLs:    map[string]string{"default": srv.URL + "/prod/"},
-		Files:           map[string]string{currentOS(): "thunder.zip"},
+		Files:           map[string]string{currentPlatform(): "thunder.zip"},
 		AltBinaryName:   "thunder",
 		AltDownloadURLs: map[string]string{"default": srv.URL + "/test/"},
-		AltFiles:        map[string]string{currentOS(): "thunder.zip"},
+		AltFiles:        map[string]string{currentPlatform(): "thunder.zip"},
 	}
 	o := New(dataDir, "signet", bwDir, []BinaryConfig{cfg}, testLogger(t))
 
@@ -362,7 +362,7 @@ func TestDownload_ForceBackend_BypassesVariant(t *testing.T) {
 		return sidechainVariantSpec{
 			BinaryName: c.AltBinaryName,
 			BaseURL:    c.AltBaseURL("default"),
-			FileName:   c.AltFiles[currentOS()],
+			FileName:   fileForPlatform(c.AltFiles),
 		}, true
 	}
 
@@ -539,7 +539,7 @@ func TestOrchestrator_SidechainVariantResolver_ReturnsAltOnlyWhenEnabled(t *test
 	// Pick the first layer-2 chain that has alt fields.
 	var sample BinaryConfig
 	for _, c := range o.Configs() {
-		if c.ChainLayer == 2 && c.AltBinaryName != "" && c.AltFiles[currentOS()] != "" {
+		if c.ChainLayer == 2 && c.AltBinaryName != "" && fileForPlatform(c.AltFiles) != "" {
 			sample = c
 			break
 		}
@@ -555,7 +555,7 @@ func TestOrchestrator_SidechainVariantResolver_ReturnsAltOnlyWhenEnabled(t *test
 	spec, ok := o.process.SidechainVariant(sample)
 	require.True(t, ok)
 	assert.Equal(t, sample.AltBinaryName, spec.BinaryName)
-	assert.Equal(t, sample.AltFiles[currentOS()], spec.FileName)
+	assert.Equal(t, fileForPlatform(sample.AltFiles), spec.FileName)
 	assert.Equal(t, sample.AltBaseURL(o.Network), spec.BaseURL)
 
 	// Toggle on, but bitcoind (layer 1) must still be ineligible.

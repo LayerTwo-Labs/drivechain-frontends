@@ -74,7 +74,7 @@ func TestExtractTarGz(t *testing.T) {
 	archivePath := filepath.Join(dir, "test.tar.gz")
 	makeTarGzFile(t, archivePath, map[string][]byte{
 		"grpcurl_1.9.1_linux_x86_64/grpcurl": []byte("binary"),
-		"grpcurl_1.9.1_linux_x86_64/LICENSE":  []byte("MIT"),
+		"grpcurl_1.9.1_linux_x86_64/LICENSE": []byte("MIT"),
 	})
 
 	hasCLI, err := dm.extractTarGz(archivePath, BinDir(dir), "grpcurl")
@@ -123,7 +123,7 @@ func TestDownload_Direct(t *testing.T) {
 		BinaryName:     "test-binary",
 		DownloadSource: DownloadSourceDirect,
 		DownloadURLs:   map[string]string{"default": srv.URL + "/"},
-		Files:          map[string]string{currentOS(): "test-binary.zip"},
+		Files:          map[string]string{currentPlatform(): "test-binary.zip"},
 	}, "default", true)
 	require.NoError(t, err)
 
@@ -164,7 +164,7 @@ func TestDownload_GitHub(t *testing.T) {
 		BinaryName:     "grpcurl",
 		DownloadSource: DownloadSourceGitHub,
 		DownloadURLs:   map[string]string{"default": srv.URL + "/releases/latest"},
-		Files:          map[string]string{currentOS(): `grpcurl_\d+\.\d+\.\d+_` + osPattern + `_x86_64\.zip`},
+		Files:          map[string]string{currentPlatform(): `grpcurl_\d+\.\d+\.\d+_` + osPattern + `_x86_64\.zip`},
 	}, "default", true)
 	require.NoError(t, err)
 
