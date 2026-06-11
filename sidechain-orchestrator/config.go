@@ -107,18 +107,12 @@ func currentPlatform() string {
 	return currentOS() + "-" + currentArch()
 }
 
-// fileForPlatform resolves a download filename from an os-arch keyed map.
-// On Apple Silicon it falls back to the macOS x86_64 build (run under Rosetta)
-// when no native arm64 entry exists, so binaries that lack an arm release
-// still launch instead of failing the download.
+// fileForPlatform resolves the download filename for the current os-arch from
+// an os-arch keyed map. Every platform is spelled out explicitly in the config
+// (binaries with no native arm build hardcode the x86_64 file under macos-arm64),
+// so this is a direct lookup with no fallback substitution.
 func fileForPlatform(files map[string]string) string {
-	if f := files[currentPlatform()]; f != "" {
-		return f
-	}
-	if currentOS() == "macos" && currentArch() == "arm64" {
-		return files["macos-x86_64"]
-	}
-	return ""
+	return files[currentPlatform()]
 }
 
 // Downloadable returns true if this binary has download URLs configured.

@@ -1819,20 +1819,15 @@ String currentArch() => Abi.current().toString().toLowerCase().contains('arm64')
 String _archForOS(OS os) => os == getOS() ? currentArch() : 'x86_64';
 
 /// Resolves the download filename for [os]/[arch] from a raw os-arch keyed JSON
-/// map (e.g. `macos-arm64`). On macOS arm64 with no native entry it falls back
-/// to the x86_64 build, which runs under Rosetta.
+/// map (e.g. `macos-arm64`). Direct lookup — every platform is spelled out
+/// explicitly in the config, so there is no fallback substitution.
 String? fileForPlatform(Map<String, dynamic> json, OS os, String arch) {
-  final direct = json['${_osJsonKey(os)}-$arch'];
-  if (direct is String && direct.isNotEmpty) return direct;
-  if (os == OS.macos && arch == 'arm64') {
-    final x86 = json['macos-x86_64'];
-    if (x86 is String && x86.isNotEmpty) return x86;
-  }
-  return null;
+  final file = json['${_osJsonKey(os)}-$arch'];
+  return file is String && file.isNotEmpty ? file : null;
 }
 
 /// Parse an os-arch-keyed download `files` leaf into an OS-keyed map holding
-/// the arch-correct filename for the running machine (Rosetta fallback applied).
+/// the arch-correct filename for the running machine.
 Map<OS, String> _platformMapFromJson(Map<String, dynamic> json) {
   final result = <OS, String>{};
   for (final os in OS.values) {

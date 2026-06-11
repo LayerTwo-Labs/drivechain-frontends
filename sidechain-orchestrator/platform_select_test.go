@@ -18,14 +18,18 @@ func TestFileForPlatform_PicksArchKey(t *testing.T) {
 	assert.NotEmpty(t, got, "current platform %s must resolve", currentPlatform())
 }
 
-// On Apple Silicon a binary with no native arm64 entry falls back to the
-// macOS x86_64 build (Rosetta) rather than failing the download.
-func TestFileForPlatform_MacArmFallsBackToX86(t *testing.T) {
-	if currentPlatform() != "macos-arm64" {
-		t.Skipf("fallback path only exercised on macos-arm64, got %s", currentPlatform())
+// Resolution is a direct lookup with no fallback: a map missing the current
+// platform's key resolves empty even when a sibling-arch entry is present.
+// (Binaries with no native arm build hardcode the x86_64 file under
+// macos-arm64 in the config instead of relying on a runtime swap.)
+func TestFileForPlatform_NoSiblingArchFallback(t *testing.T) {
+	files := map[string]string{}
+	for _, p := range []string{"linux-x86_64", "macos-x86_64", "macos-arm64", "windows-x86_64"} {
+		if p != currentPlatform() {
+			files[p] = p + ".zip"
+		}
 	}
-	files := map[string]string{"macos-x86_64": "mac-x86.zip"}
-	assert.Equal(t, "mac-x86.zip", fileForPlatform(files))
+	assert.Empty(t, fileForPlatform(files), "no key for %s must resolve empty, not swap", currentPlatform())
 }
 
 func TestFileForPlatform_MissingIsEmpty(t *testing.T) {
