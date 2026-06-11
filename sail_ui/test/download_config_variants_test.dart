@@ -25,6 +25,7 @@ void main() {
         'files': {
           'linux-x86_64': 'core-linux.tar.gz',
           'macos-x86_64': 'core-mac.tar.gz',
+          'macos-arm64': 'core-mac.tar.gz',
           'windows-x86_64': 'core-win.zip',
         },
       },
@@ -32,6 +33,7 @@ void main() {
         'files': {
           'linux-x86_64': 'knots-linux.tar.gz',
           'macos-x86_64': 'knots-mac.tar.gz',
+          'macos-arm64': 'knots-mac.tar.gz',
           'windows-x86_64': 'knots-win.zip',
         },
       },
@@ -73,9 +75,9 @@ void main() {
       expect(fileForPlatform(files, OS.macos, 'arm64'), 'mac-arm.zip');
     });
 
-    test('macOS arm64 falls back to x86_64 (Rosetta) when no native build', () {
+    test('macOS arm64 with no native entry resolves null (no swap to x86_64)', () {
       final files = {'macos-x86_64': 'mac-x86.zip'};
-      expect(fileForPlatform(files, OS.macos, 'arm64'), 'mac-x86.zip');
+      expect(fileForPlatform(files, OS.macos, 'arm64'), isNull);
     });
 
     test('x86_64 resolves the x86_64 build', () {
