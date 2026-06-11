@@ -23,31 +23,29 @@ class FundGroupModal extends StatelessWidget {
       builder: (context, viewModel, child) {
         if (viewModel.selectedGroup != null && viewModel.currentAddress.isNotEmpty) {
           return SailModal(
-            child: IntrinsicHeight(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 600),
-                child: SailCard(
-                  title: 'Fund ${viewModel.selectedGroup!.name}',
-                  subtitle: 'Send Bitcoin to this address to fund the multisig group',
-                  child: SailColumn(
-                    spacing: SailStyleValues.padding16,
-                    children: [
-                      SailTextField(
-                        label: 'Funding Address',
-                        hintText: 'Funding address',
-                        controller: TextEditingController(text: viewModel.currentAddress),
-                        readOnly: true,
-                        suffixWidget: CopyButton(
-                          text: viewModel.currentAddress,
-                        ),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 600),
+              child: SailCard(
+                title: 'Fund ${viewModel.selectedGroup!.name}',
+                subtitle: 'Send Bitcoin to this address to fund the multisig group',
+                child: SailColumn(
+                  spacing: SailStyleValues.padding16,
+                  children: [
+                    SailTextField(
+                      label: 'Funding Address',
+                      hintText: 'Funding address',
+                      controller: TextEditingController(text: viewModel.currentAddress),
+                      readOnly: true,
+                      suffixWidget: CopyButton(
+                        text: viewModel.currentAddress,
                       ),
-                      SailButton(
-                        label: 'Close',
-                        onPressed: () async => Navigator.of(context).pop(),
-                        variant: ButtonVariant.secondary,
-                      ),
-                    ],
-                  ),
+                    ),
+                    SailButton(
+                      label: 'Close',
+                      onPressed: () async => Navigator.of(context).pop(),
+                      variant: ButtonVariant.secondary,
+                    ),
+                  ],
                 ),
               ),
             ),
