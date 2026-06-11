@@ -610,11 +610,17 @@ func (o *Orchestrator) Status(name string) BinaryStatus {
 // ListAll returns the status of every configured binary,
 // sorted by chain layer (L1 first) then name.
 func (o *Orchestrator) ListAll() []BinaryStatus {
+	// Snapshot names and release before Status: it re-acquires o.mu via
+	// getConfig, and a queued writer would deadlock the nested read lock.
 	o.mu.RLock()
-	defer o.mu.RUnlock()
-
-	statuses := make([]BinaryStatus, 0, len(o.configs))
+	names := make([]string, 0, len(o.configs))
 	for name := range o.configs {
+		names = append(names, name)
+	}
+	o.mu.RUnlock()
+
+	statuses := make([]BinaryStatus, 0, len(names))
+	for _, name := range names {
 		statuses = append(statuses, o.Status(name))
 	}
 	sort.Slice(statuses, func(i, j int) bool {
