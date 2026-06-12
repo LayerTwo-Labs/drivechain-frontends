@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"math/big"
 
+	"github.com/btcsuite/btcd/btcutil"
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/tyler-smith/go-bip32"
 	"golang.org/x/crypto/ripemd160" //nolint:staticcheck // Bitcoin protocol requires RIPEMD160
@@ -34,6 +35,49 @@ func serializeKeyForNetwork(key *bip32.Key, network *chaincfg.Params) string {
 	raw := serialized[:78]
 	copy(raw[0:4], network.HDPrivateKeyID[:])
 	return base58CheckEncode(raw)
+}
+
+// DeriveBIP84Addresses derives external-chain P2WPKH receive addresses
+// (m/84'/coin'/0'/0/i) from a BIP32 seed, locally, without any backend.
+func DeriveBIP84Addresses(seedHex string, net *chaincfg.Params, start, count int) ([]string, error) {
+	seed, err := hex.DecodeString(seedHex)
+	if err != nil {
+		return nil, fmt.Errorf("decode seed hex: %w", err)
+	}
+	masterKey, err := bip32.NewMasterKey(seed)
+	if err != nil {
+		return nil, fmt.Errorf("create master key: %w", err)
+	}
+	purpose, err := masterKey.NewChildKey(bip32.FirstHardenedChild + 84)
+	if err != nil {
+		return nil, fmt.Errorf("derive purpose: %w", err)
+	}
+	coin, err := purpose.NewChildKey(bip32.FirstHardenedChild + net.HDCoinType)
+	if err != nil {
+		return nil, fmt.Errorf("derive coin: %w", err)
+	}
+	account, err := coin.NewChildKey(bip32.FirstHardenedChild + 0)
+	if err != nil {
+		return nil, fmt.Errorf("derive account: %w", err)
+	}
+	external, err := account.NewChildKey(0)
+	if err != nil {
+		return nil, fmt.Errorf("derive external chain: %w", err)
+	}
+
+	addrs := make([]string, 0, count)
+	for i := start; i < start+count; i++ {
+		child, err := external.NewChildKey(uint32(i))
+		if err != nil {
+			return nil, fmt.Errorf("derive index %d: %w", i, err)
+		}
+		addr, err := btcutil.NewAddressWitnessPubKeyHash(hash160(child.PublicKey().Key), net)
+		if err != nil {
+			return nil, fmt.Errorf("address at index %d: %w", i, err)
+		}
+		addrs = append(addrs, addr.EncodeAddress())
+	}
+	return addrs, nil
 }
 
 // masterFingerprint computes the master fingerprint from a BIP32 key.

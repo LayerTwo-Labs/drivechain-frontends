@@ -37,10 +37,6 @@ type Service struct {
 	// Callbacks
 	// Dart: restartEnforcer (WalletWriterProvider L115) — called after wallet generation
 	OnWalletGenerated func()
-	// Called when a non-enforcer (bitcoinCore) wallet is created.
-	// The orchestrator wires this to create the wallet in Bitcoin Core via RPC.
-	// Receives walletName and the master seedHex for BIP84 descriptor derivation.
-	OnCreateCoreWallet func(walletName string, seedHex string) error
 	// Dart: deleteAllWallets stops all binaries before wiping (L560-575)
 	OnStopAllBinaries func() error
 	// Dart: deleteAllWallets deletes per-binary wallet paths (L600-608)
@@ -724,23 +720,8 @@ func (s *Service) GenerateWallet(name, customMnemonic, passphrase string, slots 
 		Str("file", s.walletFilePath()).
 		Msg("wallet generated and saved successfully")
 
-	// For bitcoinCore wallets, create the wallet in Bitcoin Core via RPC
-	if walletType == "bitcoinCore" && s.OnCreateCoreWallet != nil {
-		if err := s.OnCreateCoreWallet(name, wallet.Master.SeedHex); err != nil {
-			// Roll back: remove the wallet we just saved since Core creation failed
-			s.wallets = s.wallets[:len(s.wallets)-1]
-			if s.activeWalletID == wallet.ID {
-				if len(s.wallets) > 0 {
-					s.activeWalletID = s.wallets[len(s.wallets)-1].ID
-				} else {
-					s.activeWalletID = ""
-				}
-			}
-			_ = s.saveWalletFile()
-			return nil, fmt.Errorf("create wallet in Bitcoin Core: %w", err)
-		}
-		s.log.Info().Str("name", name).Msg("created wallet in Bitcoin Core")
-	}
+	// bitcoinCore wallets are created lazily by the provider on first access
+	// (Provider.Ensure).
 
 	// Dart L88-89: restart enforcer to pick up the new wallet
 	if walletType == "enforcer" && s.OnWalletGenerated != nil {

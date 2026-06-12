@@ -147,16 +147,16 @@ func (h *WalletHandler) buildBip47NotificationTx(
 			fmt.Errorf("no spendable UTXO ≥ %d sats available for BIP47 notification tx", minRequired))
 	}
 
-	info, err := h.engine.Provider().AddressInfo(ctx, walletID, picked.Address)
+	hdPath, err := h.engine.Provider().AddressHDPath(ctx, walletID, picked.Address)
 	if err != nil {
-		return "", "", connect.NewError(connect.CodeInternal, fmt.Errorf("getaddressinfo: %w", err))
+		return "", "", connect.NewError(connect.CodeInternal, fmt.Errorf("address hd path: %w", err))
 	}
-	if info.HDKeyPath == "" {
+	if hdPath == "" {
 		return "", "", connect.NewError(connect.CodeInternal,
 			fmt.Errorf("no HD key path for address %s; cannot derive privkey for BIP47 blinding", picked.Address))
 	}
 
-	desigPriv, err := bip47send.DerivePrivKeyFromHDPath(seedHex, info.HDKeyPath)
+	desigPriv, err := bip47send.DerivePrivKeyFromHDPath(seedHex, hdPath)
 	if err != nil {
 		return "", "", connect.NewError(connect.CodeInternal, fmt.Errorf("derive designated input privkey: %w", err))
 	}
@@ -180,7 +180,7 @@ func (h *WalletHandler) buildBip47NotificationTx(
 		Vout:       uint32(picked.Vout),
 		AmountSats: int64(math.Round(picked.Amount * 1e8)),
 		Address:    picked.Address,
-		HDKeyPath:  info.HDKeyPath,
+		HDKeyPath:  hdPath,
 	}
 
 	rawHex, _, err := bip47send.BuildNotificationTx(

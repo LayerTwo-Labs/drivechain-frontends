@@ -2,7 +2,6 @@ package wallet
 
 import (
 	"context"
-	"encoding/json"
 )
 
 // Provider serves the wallets in wallet.json from some chain backend:
@@ -24,25 +23,23 @@ type Provider interface {
 	ListTransactions(ctx context.Context, walletID string, count int) ([]WalletTransaction, error)
 	ListTransactionsRange(ctx context.Context, walletID string, count, skip int) ([]WalletTransaction, error)
 	ListReceivedByAddress(ctx context.Context, walletID string) ([]ReceivedByAddress, error)
-	// GetWalletTransaction returns the wallet's view of a tx (gettransaction
-	// shape: amount, fee, confirmations, timereceived, hex).
-	GetWalletTransaction(ctx context.Context, walletID, txid string) (json.RawMessage, error)
-	AddressInfo(ctx context.Context, walletID, address string) (*AddressInfo, error)
+	GetWalletTransaction(ctx context.Context, walletID, txid string) (*WalletTx, error)
+	// AddressHDPath returns the BIP32 derivation path of a wallet address.
+	AddressHDPath(ctx context.Context, walletID, address string) (string, error)
 
 	// NextReceiveAddress returns an unused receive address, minting one only
 	// when every existing address has received funds.
 	NextReceiveAddress(ctx context.Context, walletID string) (string, error)
 	NextChangeAddress(ctx context.Context, walletID string) (string, error)
 
-	// WatchDescriptors registers extra output descriptors to track (BIP47
-	// notification key + per-sender payment windows).
-	WatchDescriptors(ctx context.Context, walletID string, descriptors []ImportDescriptor) ([]ImportDescriptorResult, error)
+	// WatchKeys registers extra keys whose addresses the wallet must track
+	// (BIP47 per-sender payment windows).
+	WatchKeys(ctx context.Context, walletID string, keys []WatchKey) error
 
 	SendToAddress(ctx context.Context, walletID, address string, amount float64, subtractFee bool) (string, error)
 	SendMany(ctx context.Context, walletID string, amounts map[string]float64) (string, error)
-	// FundTransaction completes a raw tx with inputs and change at the
-	// requested fee (fundrawtransaction options shape).
-	FundTransaction(ctx context.Context, walletID, rawHex string, options map[string]interface{}) (*FundRawTransactionResult, error)
+	// FundTransaction completes a raw tx with wallet inputs and change.
+	FundTransaction(ctx context.Context, walletID, rawHex string, opts FundOptions) (*FundRawTransactionResult, error)
 	SignTransaction(ctx context.Context, walletID, rawHex string) (*SignRawTransactionResult, error)
 	BumpFee(ctx context.Context, walletID, txid string, newFeeRate int64) (string, error)
 
@@ -52,8 +49,31 @@ type Provider interface {
 // ChainSource is wallet-agnostic chain access shared by all providers.
 type ChainSource interface {
 	GetRawTransaction(ctx context.Context, txid string) (*RawTransaction, error)
-	CreateRawTransaction(ctx context.Context, inputs []RawInput, outputs []map[string]interface{}) (string, error)
 	// Broadcast submits a raw tx to the network and returns its txid.
 	Broadcast(ctx context.Context, rawHex string) (string, error)
-	DeriveAddresses(ctx context.Context, descriptor string, rangeStart, rangeEnd int) ([]string, error)
+}
+
+// WalletTx is the wallet's view of one of its own transactions.
+type WalletTx struct {
+	TxID          string  `json:"txid"`
+	Amount        float64 `json:"amount"`
+	Fee           float64 `json:"fee"`
+	Confirmations int32   `json:"confirmations"`
+	BlockTime     int64   `json:"blocktime"`
+	Time          int64   `json:"time"`
+	TimeReceived  int64   `json:"timereceived"`
+	Hex           string  `json:"hex"`
+}
+
+// FundOptions controls how a provider completes an unsigned transaction.
+type FundOptions struct {
+	AddInputs              bool  // select additional wallet inputs as needed
+	FeeRateSatPerVB        int64 // 0 = provider's own fee estimation
+	SubtractFeeFromOutputs []int // output indices that pay the fee
+}
+
+// WatchKey is one private key whose address the provider must track.
+type WatchKey struct {
+	WIF        string // compressed-pubkey WIF private key
+	RescanFrom int64  // unix time to scan from; 0 = genesis
 }
