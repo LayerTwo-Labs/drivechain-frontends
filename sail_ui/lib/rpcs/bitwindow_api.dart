@@ -59,7 +59,13 @@ class BitwindowRPCLive extends BitwindowRPC {
   @override
   late UtilsAPI utils;
 
-  BitwindowRPCLive({required String host, required int port}) : super(binaryType: BinaryType.BINARY_TYPE_BITWINDOWD) {
+  final String _host;
+  final int _port;
+
+  BitwindowRPCLive({required String host, required int port})
+    : _host = host,
+      _port = port,
+      super(binaryType: BinaryType.BINARY_TYPE_BITWINDOWD) {
     _initializeConnection(host: host, port: port);
   }
 
@@ -153,7 +159,7 @@ class BitwindowRPCLive extends BitwindowRPC {
   Future<dynamic> callRAW(String url, [String body = '{}']) async {
     try {
       final response = await LocalAuth.postJsonWithAuth(
-        Uri.parse('http://localhost:30301/$url'),
+        Uri.parse('http://$_host:$_port/$url'),
         body: body,
       );
 
@@ -320,7 +326,7 @@ class BitwindowRPCLive extends BitwindowRPC {
 
   void _recreateConnection() {
     log.w('Recreating HTTP/2 connection for bitwindowd');
-    _initializeConnection(host: '127.0.0.1', port: binary.port);
+    _initializeConnection(host: _host, port: _port);
   }
 
   Future<T> _withRecreate<T>(Future<T> Function() operation) async {

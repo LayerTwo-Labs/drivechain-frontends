@@ -17,6 +17,13 @@ import 'package:sail_ui/rpcs/orchestrator_wallet_rpc.dart';
 ///   HTTP/2 is the connectrpc-Dart well-trodden path with PING-based
 ///   liveness, paired with [StreamSupervisor] for application-level
 ///   reconnect / heartbeat.
+/// The orchestratord endpoint, overridable via --dart-define.
+class OrchestratorEndpoint {
+  static const host = String.fromEnvironment('ORCHESTRATOR_HOST', defaultValue: '127.0.0.1');
+  static const port = int.fromEnvironment('ORCHESTRATOR_PORT', defaultValue: 30400);
+  static String get url => 'http://$host:$port';
+}
+
 class OrchestratorRPC {
   late OrchestratorServiceClient _unaryClient;
   late OrchestratorServiceClient _streamClient;

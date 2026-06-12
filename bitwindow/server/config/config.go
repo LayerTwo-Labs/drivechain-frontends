@@ -29,8 +29,16 @@ const (
 type Config struct {
 	Version bool `long:"version" short:"v" description:"Print version information and exit"`
 
-	EnforcerHost     string `long:"enforcer.host" description:"host:port for connecting to the enforcer server" default:"localhost:50051"`
-	OrchestratorAddr string `long:"orchestrator.addr" description:"URL for connecting to the orchestrator daemon" default:"http://localhost:30400"`
+	EnforcerHost        string `long:"enforcer.host" description:"host:port for connecting to the enforcer server" default:"localhost:50051"`
+	EnforcerJSONRPCAddr string `long:"enforcer.jsonrpc.addr" description:"host:port for the enforcer's JSON-RPC endpoint" default:"localhost:8122"`
+	OrchestratorAddr    string `long:"orchestrator.addr" description:"URL for connecting to the orchestrator daemon" default:"http://localhost:30400"`
+
+	ThunderAddr   string `long:"thunder.addr" description:"host:port for connecting to the thunder sidechain" default:"localhost:6009"`
+	BitnamesAddr  string `long:"bitnames.addr" description:"host:port for connecting to the bitnames sidechain" default:"localhost:6002"`
+	BitassetsAddr string `long:"bitassets.addr" description:"host:port for connecting to the bitassets sidechain" default:"localhost:6004"`
+	TruthcoinAddr string `long:"truthcoin.addr" description:"host:port for connecting to the truthcoin sidechain" default:"localhost:6013"`
+	PhotonAddr    string `long:"photon.addr" description:"host:port for connecting to the photon sidechain" default:"localhost:6099"`
+	CoinshiftAddr string `long:"coinshift.addr" description:"host:port for connecting to the coinshift sidechain" default:"localhost:6255"`
 
 	APIHost string `long:"api.host" env:"API_HOST" description:"public address for the connect server" default:"localhost:30301"`
 	Datadir string `long:"datadir" env:"BITWINDOWD_DATADIR" description:"Path to the data directory"`

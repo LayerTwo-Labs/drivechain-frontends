@@ -36,6 +36,7 @@ type BinaryConfig struct {
 	Description string // Dart: Binary.description
 	RepoURL     string // Dart: Binary.repoUrl
 	Port        int    // Dart: Binary.port
+	Host        string // RPC host; empty = 127.0.0.1
 	ChainLayer  int    // Dart: Binary.chainLayer (0=utility, 1=L1, 2=sidechain)
 	Slot        int    // Dart: Sidechain.slot (0 for non-sidechains)
 
@@ -81,6 +82,24 @@ type BinaryConfig struct {
 
 	// Dependencies: names of binaries that must be running before this one
 	Dependencies []string
+}
+
+// RPCHost returns the host the binary's RPC is reached on.
+func (c BinaryConfig) RPCHost() string {
+	if c.Host != "" {
+		return c.Host
+	}
+	return "127.0.0.1"
+}
+
+// RPCAddr returns the host:port of the binary's RPC endpoint.
+func (c BinaryConfig) RPCAddr() string {
+	return fmt.Sprintf("%s:%d", c.RPCHost(), c.Port)
+}
+
+// RPCURL returns the http URL of the binary's RPC endpoint.
+func (c BinaryConfig) RPCURL() string {
+	return "http://" + c.RPCAddr()
 }
 
 func currentOS() string {

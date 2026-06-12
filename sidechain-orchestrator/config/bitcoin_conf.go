@@ -101,6 +101,17 @@ func (m *BitcoinConfManager) GetRPCPort() int {
 	return RPCPortForNetwork(m.Network)
 }
 
+// GetRPCHost returns the effective RPC host (rpcconnect or local default).
+func (m *BitcoinConfManager) GetRPCHost() string {
+	if m.Config != nil {
+		section := CoreSectionForNetwork(m.Network)
+		if host := m.Config.GetEffectiveSetting("rpcconnect", section); host != "" {
+			return host
+		}
+	}
+	return "127.0.0.1"
+}
+
 // GetDefaultConfig generates the default bitcoin.conf content.
 // Port of getDefaultConfig() from bitcoin_conf_provider.dart.
 //

@@ -63,7 +63,7 @@ class ThunderLive extends ThunderRPC {
 
   ThunderLive() : super(binaryType: BinaryType.BINARY_TYPE_THUNDER) {
     final transport = connect.Transport(
-      baseUrl: 'http://localhost:30400',
+      baseUrl: OrchestratorEndpoint.url,
       codec: const ProtoCodec(),
       httpClient: unaryHttpClient(),
       interceptors: [LocalAuth.interceptor()],

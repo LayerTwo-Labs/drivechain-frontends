@@ -69,7 +69,7 @@ class PhotonLive extends PhotonRPC {
 
   PhotonLive() : super(binaryType: BinaryType.BINARY_TYPE_PHOTON) {
     final transport = connect.Transport(
-      baseUrl: 'http://localhost:30400',
+      baseUrl: OrchestratorEndpoint.url,
       codec: const ProtoCodec(),
       httpClient: unaryHttpClient(),
       interceptors: [LocalAuth.interceptor()],

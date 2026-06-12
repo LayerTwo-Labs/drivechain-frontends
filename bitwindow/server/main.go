@@ -14,6 +14,7 @@ import (
 	"os/signal"
 	"path/filepath"
 	"runtime"
+	"strconv"
 	"strings"
 	"time"
 
@@ -164,22 +165,46 @@ func realMain(ctx context.Context, cancelCtx context.CancelFunc) error {
 
 	// Sidechain connectors
 	thunderConnector := func(ctx context.Context) (*thunder.Client, error) {
-		return dial.Thunder(ctx, "localhost", 6009)
+		host, port, err := splitAddr(conf.ThunderAddr)
+		if err != nil {
+			return nil, fmt.Errorf("thunder.addr: %w", err)
+		}
+		return dial.Thunder(ctx, host, port)
 	}
 	bitnamesConnector := func(ctx context.Context) (*bitnames.Client, error) {
-		return dial.BitNames(ctx, "localhost", 6002)
+		host, port, err := splitAddr(conf.BitnamesAddr)
+		if err != nil {
+			return nil, fmt.Errorf("bitnames.addr: %w", err)
+		}
+		return dial.BitNames(ctx, host, port)
 	}
 	bitassetsConnector := func(ctx context.Context) (*bitassets.Client, error) {
-		return dial.BitAssets(ctx, "localhost", 6004)
+		host, port, err := splitAddr(conf.BitassetsAddr)
+		if err != nil {
+			return nil, fmt.Errorf("bitassets.addr: %w", err)
+		}
+		return dial.BitAssets(ctx, host, port)
 	}
 	truthcoinConnector := func(ctx context.Context) (*truthcoin.Client, error) {
-		return dial.Truthcoin(ctx, "localhost", 6013)
+		host, port, err := splitAddr(conf.TruthcoinAddr)
+		if err != nil {
+			return nil, fmt.Errorf("truthcoin.addr: %w", err)
+		}
+		return dial.Truthcoin(ctx, host, port)
 	}
 	photonConnector := func(ctx context.Context) (*photon.Client, error) {
-		return dial.Photon(ctx, "localhost", 6099)
+		host, port, err := splitAddr(conf.PhotonAddr)
+		if err != nil {
+			return nil, fmt.Errorf("photon.addr: %w", err)
+		}
+		return dial.Photon(ctx, host, port)
 	}
 	coinshiftConnector := func(ctx context.Context) (*coinshift.Client, error) {
-		return dial.CoinShift(ctx, "localhost", 6255)
+		host, port, err := splitAddr(conf.CoinshiftAddr)
+		if err != nil {
+			return nil, fmt.Errorf("coinshift.addr: %w", err)
+		}
+		return dial.CoinShift(ctx, host, port)
 	}
 
 	services := api.Services{
@@ -196,8 +221,9 @@ func realMain(ctx context.Context, cancelCtx context.CancelFunc) error {
 		PhotonConnector:    photonConnector,
 		CoinShiftConnector: coinshiftConnector,
 
-		OrchestratorAddr: conf.OrchestratorAddr,
-		BitwindowDir:     bitwindowDir,
+		OrchestratorAddr:    conf.OrchestratorAddr,
+		EnforcerJSONRPCAddr: conf.EnforcerJSONRPCAddr,
+		BitwindowDir:        bitwindowDir,
 	}
 
 	// api.New builds the long-lived service connectors, then constructs the
@@ -553,4 +579,17 @@ func waitForOrchestratorNetwork(ctx context.Context, addr, bitwindowDir string, 
 		}
 	}
 	return "", fmt.Errorf("orchestratord did not become ready in time")
+}
+
+// splitAddr parses a host:port flag value.
+func splitAddr(addr string) (string, int, error) {
+	host, portStr, err := net.SplitHostPort(addr)
+	if err != nil {
+		return "", 0, err
+	}
+	port, err := strconv.Atoi(portStr)
+	if err != nil {
+		return "", 0, fmt.Errorf("invalid port %q: %w", portStr, err)
+	}
+	return host, port, nil
 }
