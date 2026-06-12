@@ -49,6 +49,7 @@ import (
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/utils/v1/utilsv1connect"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/wallet/v1/walletv1connect"
 
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/enforcerproxy"
 	cryptorpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/crypto/v1/cryptov1connect"
 	validatorrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1/mainchainv1connect"
 	orchrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1/walletmanagerv1connect"
@@ -293,7 +294,7 @@ func (s *Server) buildRuntime(ctx context.Context, conf config.Config) (*Runtime
 		path, h := cryptorpc.NewCryptoServiceHandler(enforcerSvc, stdOpts...)
 		register(path, h)
 	}
-	rt.mux.Handle("/enforcer/jsonrpc", localauth.Middleware(s.svcs.BitwindowDir, enforcerJSONRPCProxy(s.svcs.EnforcerJSONRPCAddr)))
+	rt.mux.Handle("/enforcer/jsonrpc", localauth.Middleware(s.svcs.BitwindowDir, enforcerproxy.JSONRPC(s.svcs.EnforcerJSONRPCAddr)))
 
 	// gRPC reflection. Each runtime mux gets its own reflector so listing
 	// stays accurate after a recycle (set is identical across runtimes,

@@ -32,16 +32,12 @@ class EnforcerLive extends EnforcerRPC {
 
   final String _host;
   final int _port;
-  final String _jsonRpcUrl;
   String get _baseUrl => 'http://$_host:$_port';
 
-  /// In bitwindow [host]/[port] point at bitwindowd, which bridges the
-  /// enforcer services; sidechain apps pass the enforcer's own address.
-  /// [jsonRpcUrl] is where getblocktemplate goes: bitwindowd's passthrough
-  /// when bridged, the enforcer's JSON-RPC server when direct.
-  EnforcerLive({required this._host, required this._port, String? jsonRpcUrl})
-    : _jsonRpcUrl = jsonRpcUrl ?? 'http://$_host:$_port/enforcer/jsonrpc',
-      super(binaryType: BinaryType.BINARY_TYPE_ENFORCER) {
+  /// [host]/[port] point at the app's local daemon, which bridges all
+  /// enforcer traffic: bitwindowd in bitwindow, orchestratord in sidechain
+  /// apps. The enforcer itself is never dialed directly.
+  EnforcerLive({required this._host, required this._port}) : super(binaryType: BinaryType.BINARY_TYPE_ENFORCER) {
     _initializeConnection();
   }
 
@@ -180,7 +176,7 @@ class EnforcerLive extends EnforcerRPC {
   @override
   Future<Map<String, dynamic>> getBlockTemplate() async {
     final response = await LocalAuth.postJsonWithAuth(
-      Uri.parse(_jsonRpcUrl),
+      Uri.parse('$_baseUrl/enforcer/jsonrpc'),
       body: jsonEncode({
         'jsonrpc': '2.0',
         'method': 'getblocktemplate',

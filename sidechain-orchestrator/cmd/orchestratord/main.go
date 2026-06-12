@@ -25,10 +25,12 @@ import (
 	orchestrator "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/api"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/enforcerproxy"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/engines"
 	bitassetsrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/bitassets/v1/bitassetsv1connect"
 	bitnamesrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/bitnames/v1/bitnamesv1connect"
 	coinshiftrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/coinshift/v1/coinshiftv1connect"
+	cryptorpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/crypto/v1/cryptov1connect"
 	enforcerrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1/mainchainv1connect"
 	rpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/orchestrator/v1/orchestratorv1connect"
 	photonrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/photon/v1/photonv1connect"
@@ -180,8 +182,10 @@ func run(cctx *cli.Context) error {
 	// authIC is added to every handler below, so all endpoints are authed
 	// uniformly.
 	authIC := localauth.Interceptor("")
+	authDir := ""
 	if localAuth {
 		authIC = localauth.Interceptor(bitwindowDir)
+		authDir = bitwindowDir
 	} else if err := localauth.RemoveCookie(bitwindowDir); err != nil {
 		log.Warn().Err(err).Msg("could not clear stale local auth cookie")
 	}
@@ -306,6 +310,21 @@ func run(cctx *cli.Context) error {
 		enforcerProvider = wallet.NewEnforcerProvider(enforcerClient)
 		orch.SetForkEnforcerWallet(enforcerClient)
 		log.Info().Int("enforcer_port", enforcerCfg.Port).Msg("enforcer wallet provider registered")
+
+		// Enforcer passthrough: sidechain apps funnel all enforcer traffic
+		// through orchestratord instead of dialing the enforcer directly.
+		enforcerBridge, err := enforcerproxy.Connect(enforcerCfg.RPCURL())
+		if err != nil {
+			return fmt.Errorf("enforcer bridge: %w", err)
+		}
+		for _, svc := range []string{
+			enforcerrpc.ValidatorServiceName,
+			enforcerrpc.WalletServiceName,
+			cryptorpc.CryptoServiceName,
+		} {
+			mux.Handle("/"+svc+"/", localauth.Middleware(authDir, enforcerBridge))
+		}
+		mux.Handle("/enforcer/jsonrpc", localauth.Middleware(authDir, enforcerproxy.JSONRPC(enforcerproxy.DefaultJSONRPCAddr)))
 	}
 
 	router := wallet.NewRoutingProvider(walletSvc, enforcerProvider, chainProvider)
