@@ -189,7 +189,7 @@ func TestSubstituteBip47Destination_PassthroughForNonBip47(t *testing.T) {
 func TestSubstituteBip47Destination_RejectsMultiDestination(t *testing.T) {
 	reserver := &fakeReserver{}
 	dest := map[string]int64{
-		bobPM: 100_000,
+		bobPM:                                100_000,
 		"1BoatSLRHtKNngkdXEeobR76b53LETtpyT": 50_000,
 	}
 	_, err := SubstituteBip47Destination(aliceSeedHex, "w1", dest, &chaincfg.MainNetParams, reserver)
@@ -206,7 +206,7 @@ func TestSubstituteBip47Destination_RejectsSelfSend(t *testing.T) {
 }
 
 func TestNetworkParams(t *testing.T) {
-	for _, net := range []string{"mainnet", "signet", "regtest"} {
+	for _, net := range []string{"mainnet", "signet", "regtest", "forknet"} {
 		t.Run(net, func(t *testing.T) {
 			p, err := NetworkParams(net)
 			require.NoError(t, err)
@@ -214,6 +214,13 @@ func TestNetworkParams(t *testing.T) {
 		})
 	}
 
-	_, err := NetworkParams("testnet")
+	// Forknet is a mainnet fork: same params, same key derivation.
+	forknet, err := NetworkParams("forknet")
+	require.NoError(t, err)
+	mainnet, err := NetworkParams("mainnet")
+	require.NoError(t, err)
+	assert.Same(t, mainnet, forknet)
+
+	_, err = NetworkParams("testnet")
 	assert.Error(t, err)
 }
