@@ -138,6 +138,19 @@ func VerifyChallengeResponse(token, nonce, response string) bool {
 //	connect.WithInterceptors(ic) // on NewXxxServiceClient and NewXxxServiceHandler
 func Interceptor(dir string) connect.Interceptor { return interceptor{dir: dir} }
 
+// Middleware applies the same bearer-token check as the server side of
+// Interceptor to a raw http.Handler (non-Connect routes). Empty dir is the
+// explicit no-op mode; a missing or mismatched token fails closed with 401.
+func Middleware(dir string, next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if _, err := verify(r.Context(), r.Header, dir); err != nil {
+			http.Error(w, "unauthorized", http.StatusUnauthorized)
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
+}
+
 type interceptor struct{ dir string }
 
 func (i interceptor) WrapUnary(next connect.UnaryFunc) connect.UnaryFunc {

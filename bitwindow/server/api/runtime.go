@@ -293,7 +293,7 @@ func (s *Server) buildRuntime(ctx context.Context, conf config.Config) (*Runtime
 		path, h := cryptorpc.NewCryptoServiceHandler(enforcerSvc, stdOpts...)
 		register(path, h)
 	}
-	rt.mux.Handle("/enforcer/jsonrpc", enforcerJSONRPCProxy(s.svcs.EnforcerJSONRPCAddr))
+	rt.mux.Handle("/enforcer/jsonrpc", localauth.Middleware(s.svcs.BitwindowDir, enforcerJSONRPCProxy(s.svcs.EnforcerJSONRPCAddr)))
 
 	// gRPC reflection. Each runtime mux gets its own reflector so listing
 	// stays accurate after a recycle (set is identical across runtimes,
