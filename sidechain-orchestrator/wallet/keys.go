@@ -40,6 +40,9 @@ func serializeKeyForNetwork(key *bip32.Key, network *chaincfg.Params) string {
 // DeriveBIP84Addresses derives external-chain P2WPKH receive addresses
 // (m/84'/coin'/0'/0/i) from a BIP32 seed, locally, without any backend.
 func DeriveBIP84Addresses(seedHex string, net *chaincfg.Params, start, count int) ([]string, error) {
+	if net == nil {
+		return nil, fmt.Errorf("no chain params for this network; cannot derive addresses")
+	}
 	seed, err := hex.DecodeString(seedHex)
 	if err != nil {
 		return nil, fmt.Errorf("decode seed hex: %w", err)

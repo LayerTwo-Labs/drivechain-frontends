@@ -579,6 +579,9 @@ func (p *CoreProvider) ensureBip47NotificationDescriptor(ctx context.Context, wa
 
 // createBitcoinCoreWallet creates a Bitcoin Core descriptor wallet from a seed.
 func (p *CoreProvider) createBitcoinCoreWallet(ctx context.Context, walletName, seedHex string) error {
+	if p.network == nil {
+		return fmt.Errorf("no chain params for this network; cannot derive wallet descriptors")
+	}
 	seed, err := hex.DecodeString(seedHex)
 	if err != nil {
 		return fmt.Errorf("decode seed hex: %w", err)

@@ -176,6 +176,24 @@ func TestCoreProviderEnsureCreatesDescriptorWallet(t *testing.T) {
 	assert.Equal(t, before, len(fake.callsFor("listwallets")))
 }
 
+// A provider constructed without chain params (unrecognized network) must
+// fail wallet creation with an error, not panic on the nil deref.
+func TestCoreProviderEnsureNilNetworkFailsClosed(t *testing.T) {
+	svc := newTestService(t)
+	_, err := svc.GenerateWallet("Enforcer", "", "", testSlots)
+	require.NoError(t, err)
+	core, err := svc.GenerateWallet("Core", "", "", testSlots)
+	require.NoError(t, err)
+
+	fake := newFakeBitcoind(t)
+	fake.stubEnsureFlow()
+	log := zerolog.New(zerolog.NewTestWriter(t))
+	provider := NewCoreProvider(svc, fake.client(t), nil, log)
+
+	_, err = provider.Ensure(context.Background(), core.ID)
+	require.ErrorContains(t, err, "no chain params")
+}
+
 func TestCoreProviderEnsureTransientBackoff(t *testing.T) {
 	provider, fake, coreID := newCoreProviderFixture(t)
 	fake.handle("listwallets", func(bitcoindCall) (any, string) {
