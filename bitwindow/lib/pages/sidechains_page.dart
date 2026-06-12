@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'dart:math';
 
 import 'package:auto_route/auto_route.dart';
@@ -1580,6 +1581,36 @@ class _DepositModalState extends State<DepositModal> {
     return null;
   }
 
+  bool _isLiquidSignetRunning() {
+    final binaryProvider = GetIt.I<BinaryProvider>();
+    final sidechain = binaryProvider.binaries.firstWhereOrNull(
+      (b) => b is LiquidSignet && b.slot == widget.slot,
+    );
+    return sidechain != null && binaryProvider.isConnected(sidechain);
+  }
+
+  Future<String> _getLiquidDepositAddress() async {
+    final home = Platform.environment['HOME'];
+    if (home == null || home.isEmpty) {
+      throw Exception('Could not resolve home directory for Elements data dir');
+    }
+
+    final bin = filePath([home, 'Library/Application Support/bitwindow/assets/bin/elements-cli']);
+    final datadir = filePath([home, 'Library/Application Support/bitwindow/liquid-signet']);
+    final result = await Process.run(bin, [
+      '-regtest',
+      '-datadir=$datadir',
+      '-rpcport=18443',
+      'getnewaddress',
+    ]);
+    if (result.exitCode != 0) {
+      final stderrText = result.stderr.toString().trim();
+      throw Exception(stderrText.isEmpty ? 'elements-cli getnewaddress failed' : stderrText);
+    }
+
+    return formatDepositAddress(result.stdout.toString().trim(), widget.slot);
+  }
+
   Future<void> _fetchDepositAddress() async {
     setState(() {
       isFetchingAddress = true;
@@ -1587,6 +1618,17 @@ class _DepositModalState extends State<DepositModal> {
     });
 
     try {
+      if (_isLiquidSignetRunning()) {
+        final address = await _getLiquidDepositAddress();
+        if (mounted) {
+          setState(() {
+            depositAddress = address;
+            isFetchingAddress = false;
+          });
+        }
+        return;
+      }
+
       final sidechainRPC = _getSidechainRPC(widget.slot);
       if (sidechainRPC == null) {
         throw Exception('Sidechain is not running. Start it first to deposit.');
