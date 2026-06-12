@@ -707,7 +707,7 @@
       "dependencies": ["bitcoind", "enforcer"],
       "startup_log_patterns": ["Done loading"],
       "directories": {"binary": {"default": {"linux": "liquid-signet", "macos": "liquid-signet", "windows": "liquid-signet"}}, "flutter_frontend": {}},
-      "download": {"binary": "liquid-signet", "files": {"default": {"base_url": "", "linux-x86_64": "", "macos-x86_64": "", "macos-arm64": "", "windows-x86_64": ""}}},
+      "download": {"binary": "liquid-signet", "files": {"default": {"base_url": "", "linux-x86_64": "liquid-signet", "macos-x86_64": "liquid-signet", "macos-arm64": "liquid-signet", "windows-x86_64": "liquid-signet.exe"}}},
       "hashes": {}
     },
     "zside": {
