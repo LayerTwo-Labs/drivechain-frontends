@@ -1929,6 +1929,7 @@ BinaryType _binaryTypeFromJsonKey(String key) {
     'truthcoin' => BinaryType.BINARY_TYPE_TRUTHCOIN,
     'photon' => BinaryType.BINARY_TYPE_PHOTON,
     'coinshift' => BinaryType.BINARY_TYPE_COINSHIFT,
+    'liquid-signet' => BinaryType.BINARY_TYPE_LIQUID_SIGNET,
     'zside' => BinaryType.BINARY_TYPE_ZSIDE,
     _ => throw ArgumentError('Unknown binary key: $key'),
   };
@@ -1948,6 +1949,7 @@ String binaryTypeToJsonKey(BinaryType type) {
     BinaryType.BINARY_TYPE_TRUTHCOIN => 'truthcoin',
     BinaryType.BINARY_TYPE_PHOTON => 'photon',
     BinaryType.BINARY_TYPE_COINSHIFT => 'coinshift',
+    BinaryType.BINARY_TYPE_LIQUID_SIGNET => 'liquid-signet',
     BinaryType.BINARY_TYPE_ZSIDE => 'zside',
     BinaryType.BINARY_TYPE_UNSPECIFIED => _unsupportedBinaryType(type),
     _ => _unsupportedBinaryType(type),
