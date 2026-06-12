@@ -114,7 +114,6 @@ type Orchestrator struct {
 	EnforcerConf   *config.EnforcerConfManager
 	SidechainConfs map[string]*config.SidechainConfManager
 	WalletSvc      *wallet.Service // for seed injection into sidechain/enforcer args
-	WalletEngine   *WalletEngine   // manages wallet→Core mapping, sync, backend routing
 	Settings       *SettingsStore
 
 	// forkEngine is the single source of truth for eCash fork state; wired by

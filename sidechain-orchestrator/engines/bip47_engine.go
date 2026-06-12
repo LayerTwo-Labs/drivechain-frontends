@@ -92,15 +92,14 @@ func (e *BIP47Engine) tick(ctx context.Context) {
 		if seedHex == "" {
 			continue
 		}
-		coreName, err := e.engine.GetCoreWalletName(ctx, w.ID)
-		if err != nil {
-			// Wallet may still be warming up in Core; retry next tick.
+		if _, err := e.engine.Provider().Ensure(ctx, w.ID); err != nil {
+			// Wallet may still be warming up on the backend; retry next tick.
 			continue
 		}
-		if err := e.scanWallet(ctx, w.ID, coreName, seedHex, net); err != nil {
+		if err := e.scanWallet(ctx, w.ID, seedHex, net); err != nil {
 			e.log.Warn().Err(err).Str("wallet", w.ID).Msg("scan failed")
 		}
-		if err := e.extendImports(ctx, w.ID, coreName, seedHex, net); err != nil {
+		if err := e.extendImports(ctx, w.ID, seedHex, net); err != nil {
 			e.log.Warn().Err(err).Str("wallet", w.ID).Msg("extend imports failed")
 		}
 	}
@@ -110,7 +109,7 @@ func (e *BIP47Engine) tick(ctx context.Context) {
 // for receives at this wallet's BIP47 notification address. For each one, it
 // fetches the full tx, extracts the OP_RETURN payload + first input's pubkey,
 // decodes the sender's payment code, and records the inbound notification.
-func (e *BIP47Engine) scanWallet(ctx context.Context, walletID, coreName, seedHex string, net *chaincfg.Params) error {
+func (e *BIP47Engine) scanWallet(ctx context.Context, walletID, seedHex string, net *chaincfg.Params) error {
 	notifPriv, notifAddr, err := bip47.DeriveOwnNotificationKey(seedHex, net)
 	if err != nil {
 		return fmt.Errorf("derive own notification key: %w", err)
@@ -123,7 +122,7 @@ func (e *BIP47Engine) scanWallet(ctx context.Context, walletID, coreName, seedHe
 	}
 
 	for {
-		batch, err := e.engine.CoreRPC().ListTransactionsRange(ctx, coreName, bip47ListTxBatchSize, cursor)
+		batch, err := e.engine.Provider().ListTransactionsRange(ctx, walletID, bip47ListTxBatchSize, cursor)
 		if err != nil {
 			return fmt.Errorf("listtransactions: %w", err)
 		}
@@ -172,7 +171,7 @@ func (e *BIP47Engine) scanWallet(ctx context.Context, walletID, coreName, seedHe
 // blinded payload using the receiver's notification privkey. Returns the
 // sender's payment code base58 and the block time (0 if unconfirmed).
 func (e *BIP47Engine) decodeNotificationTx(ctx context.Context, txid string, notifPriv *btcec.PrivateKey) (string, int64, error) {
-	raw, err := e.engine.CoreRPC().GetRawTransaction(ctx, txid)
+	raw, err := e.engine.Provider().Chain().GetRawTransaction(ctx, txid)
 	if err != nil {
 		return "", 0, fmt.Errorf("getrawtransaction: %w", err)
 	}
@@ -241,7 +240,7 @@ func (e *BIP47Engine) decodeNotificationTx(ctx context.Context, txid string, not
 // pass, and afterwards only extends the window further once the trailing
 // probe address (see bip47TrailingBuffer) has received coins. Core ignores
 // already-known descriptors.
-func (e *BIP47Engine) extendImports(ctx context.Context, walletID, coreName, seedHex string, net *chaincfg.Params) error {
+func (e *BIP47Engine) extendImports(ctx context.Context, walletID, seedHex string, net *chaincfg.Params) error {
 	inbound, err := e.inbound.ListByWallet(walletID)
 	if err != nil {
 		return err
@@ -249,7 +248,7 @@ func (e *BIP47Engine) extendImports(ctx context.Context, walletID, coreName, see
 	if len(inbound) == 0 {
 		return nil
 	}
-	received, err := e.engine.CoreRPC().ListReceivedByAddress(ctx, coreName)
+	received, err := e.engine.Provider().ListReceivedByAddress(ctx, walletID)
 	if err != nil {
 		return fmt.Errorf("listreceivedbyaddress: %w", err)
 	}
@@ -260,14 +259,14 @@ func (e *BIP47Engine) extendImports(ctx context.Context, walletID, coreName, see
 		}
 	}
 	for _, n := range inbound {
-		if err := e.extendImportsForSender(ctx, walletID, coreName, seedHex, n, net, usedAddrs); err != nil {
+		if err := e.extendImportsForSender(ctx, walletID, seedHex, n, net, usedAddrs); err != nil {
 			e.log.Warn().Err(err).Str("wallet", walletID).Str("sender", n.SenderPaymentCode).Msg("extend imports for sender failed")
 		}
 	}
 	return nil
 }
 
-func (e *BIP47Engine) extendImportsForSender(ctx context.Context, walletID, coreName, seedHex string, n *bip47state.InboundNotification, net *chaincfg.Params, usedAddrs map[string]bool) error {
+func (e *BIP47Engine) extendImportsForSender(ctx context.Context, walletID, seedHex string, n *bip47state.InboundNotification, net *chaincfg.Params, usedAddrs map[string]bool) error {
 	sender, err := bip47.ParsePaymentCode(n.SenderPaymentCode)
 	if err != nil {
 		return fmt.Errorf("parse sender payment code: %w", err)
@@ -319,7 +318,7 @@ func (e *BIP47Engine) extendImportsForSender(ctx context.Context, walletID, core
 	if len(descriptors) == 0 {
 		return nil
 	}
-	results, err := e.engine.CoreRPC().ImportDescriptors(ctx, coreName, descriptors)
+	results, err := e.engine.Provider().WatchDescriptors(ctx, walletID, descriptors)
 	if err != nil {
 		return fmt.Errorf("importdescriptors: %w", err)
 	}

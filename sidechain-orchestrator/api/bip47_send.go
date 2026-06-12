@@ -121,12 +121,7 @@ func (h *WalletHandler) buildBip47NotificationTx(
 	recipient *bip47.PaymentCode,
 	netParams *chaincfg.Params,
 ) (string, string, error) {
-	coreName, err := h.engine.GetCoreWalletName(ctx, walletID)
-	if err != nil {
-		return "", "", connect.NewError(connect.CodeInternal, err)
-	}
-
-	utxos, err := h.engine.CoreRPC().ListUnspent(ctx, coreName)
+	utxos, err := h.engine.Provider().ListUnspent(ctx, walletID)
 	if err != nil {
 		return "", "", connect.NewError(connect.CodeInternal, fmt.Errorf("list unspent: %w", err))
 	}
@@ -135,7 +130,7 @@ func (h *WalletHandler) buildBip47NotificationTx(
 	feeSats := bip47send.EstimateNotificationFee(2)
 	minRequired := dustSats + feeSats + dustSats
 
-	var picked *wallet.CoreUTXO
+	var picked *wallet.UTXO
 	for i, u := range utxos {
 		if !u.Spendable {
 			continue
@@ -152,7 +147,7 @@ func (h *WalletHandler) buildBip47NotificationTx(
 			fmt.Errorf("no spendable UTXO ≥ %d sats available for BIP47 notification tx", minRequired))
 	}
 
-	info, err := h.engine.CoreRPC().GetAddressInfo(ctx, coreName, picked.Address)
+	info, err := h.engine.Provider().AddressInfo(ctx, walletID, picked.Address)
 	if err != nil {
 		return "", "", connect.NewError(connect.CodeInternal, fmt.Errorf("getaddressinfo: %w", err))
 	}
@@ -171,7 +166,7 @@ func (h *WalletHandler) buildBip47NotificationTx(
 		return "", "", connect.NewError(connect.CodeInternal, fmt.Errorf("recipient notification address: %w", err))
 	}
 
-	changeAddrStr, err := h.engine.CoreRPC().GetRawChangeAddress(ctx, coreName)
+	changeAddrStr, err := h.engine.Provider().NextChangeAddress(ctx, walletID)
 	if err != nil {
 		return "", "", connect.NewError(connect.CodeInternal, fmt.Errorf("get change address: %w", err))
 	}
@@ -209,18 +204,14 @@ func (h *WalletHandler) buildBip47NotificationTx(
 // the wallet's Core RPC, then marks the recipient as notified. Returns the
 // notification txid.
 func (h *WalletHandler) broadcastBip47Notification(ctx context.Context, walletID, recipientCode, rawHex string) (string, error) {
-	coreName, err := h.engine.GetCoreWalletName(ctx, walletID)
-	if err != nil {
-		return "", fmt.Errorf("get core wallet: %w", err)
-	}
-	signed, err := h.engine.CoreRPC().SignRawTransactionWithWallet(ctx, coreName, rawHex)
+	signed, err := h.engine.Provider().SignTransaction(ctx, walletID, rawHex)
 	if err != nil {
 		return "", fmt.Errorf("sign notification tx: %w", err)
 	}
 	if !signed.Complete {
 		return "", errors.New("notification tx signing incomplete")
 	}
-	txid, err := h.engine.CoreRPC().SendRawTransaction(ctx, signed.Hex)
+	txid, err := h.engine.Provider().Chain().Broadcast(ctx, signed.Hex)
 	if err != nil {
 		return "", fmt.Errorf("broadcast notification tx: %w", err)
 	}

@@ -259,8 +259,8 @@ func (c *CoreRPCClient) SendMany(ctx context.Context, walletName string, amounts
 	return txid, nil
 }
 
-// CoreTransaction represents a transaction from listtransactions.
-type CoreTransaction struct {
+// WalletTransaction represents a transaction from listtransactions.
+type WalletTransaction struct {
 	Address       string  `json:"address"`
 	Category      string  `json:"category"`
 	Amount        float64 `json:"amount"`
@@ -274,14 +274,14 @@ type CoreTransaction struct {
 }
 
 // ListTransactions returns recent transactions.
-func (c *CoreRPCClient) ListTransactions(ctx context.Context, walletName string, count int) ([]CoreTransaction, error) {
+func (c *CoreRPCClient) ListTransactions(ctx context.Context, walletName string, count int) ([]WalletTransaction, error) {
 	return c.ListTransactionsRange(ctx, walletName, count, 0)
 }
 
 // ListTransactionsRange returns wallet transactions in a sliding window,
 // skipping the first `skip` entries (cursor-based scan). Use to incrementally
 // process new wallet activity without re-walking the entire history each tick.
-func (c *CoreRPCClient) ListTransactionsRange(ctx context.Context, walletName string, count, skip int) ([]CoreTransaction, error) {
+func (c *CoreRPCClient) ListTransactionsRange(ctx context.Context, walletName string, count, skip int) ([]WalletTransaction, error) {
 	if count <= 0 {
 		count = 100
 	}
@@ -292,15 +292,15 @@ func (c *CoreRPCClient) ListTransactionsRange(ctx context.Context, walletName st
 	if err != nil {
 		return nil, err
 	}
-	var txs []CoreTransaction
+	var txs []WalletTransaction
 	if err := json.Unmarshal(result, &txs); err != nil {
 		return nil, fmt.Errorf("decode listtransactions: %w", err)
 	}
 	return txs, nil
 }
 
-// CoreUTXO represents an unspent output from listunspent.
-type CoreUTXO struct {
+// UTXO represents an unspent output from listunspent.
+type UTXO struct {
 	TxID          string  `json:"txid"`
 	Vout          int     `json:"vout"`
 	Address       string  `json:"address"`
@@ -312,19 +312,19 @@ type CoreUTXO struct {
 }
 
 // ListUnspent returns unspent outputs.
-func (c *CoreRPCClient) ListUnspent(ctx context.Context, walletName string) ([]CoreUTXO, error) {
+func (c *CoreRPCClient) ListUnspent(ctx context.Context, walletName string) ([]UTXO, error) {
 	result, err := c.call(ctx, walletName, "listunspent")
 	if err != nil {
 		return nil, err
 	}
-	var utxos []CoreUTXO
+	var utxos []UTXO
 	if err := json.Unmarshal(result, &utxos); err != nil {
 		return nil, fmt.Errorf("decode listunspent: %w", err)
 	}
 	return utxos, nil
 }
 
-type CoreRawInput struct {
+type RawInput struct {
 	TxID string `json:"txid"`
 	Vout int    `json:"vout"`
 }
@@ -340,7 +340,7 @@ type SignRawTransactionResult struct {
 	Complete bool   `json:"complete"`
 }
 
-type CoreRawTransaction struct {
+type RawTransaction struct {
 	TxID          string `json:"txid"`
 	Hash          string `json:"hash"`
 	Hex           string `json:"hex"`
@@ -378,7 +378,7 @@ type CoreRawTransaction struct {
 
 func (c *CoreRPCClient) CreateRawTransaction(
 	ctx context.Context,
-	inputs []CoreRawInput,
+	inputs []RawInput,
 	outputs []map[string]interface{},
 ) (string, error) {
 	result, err := c.call(ctx, "", "createrawtransaction", inputs, outputs)
@@ -447,20 +447,20 @@ func (c *CoreRPCClient) GetRawChangeAddress(ctx context.Context, walletName stri
 	return address, nil
 }
 
-func (c *CoreRPCClient) GetRawTransaction(ctx context.Context, txid string) (*CoreRawTransaction, error) {
+func (c *CoreRPCClient) GetRawTransaction(ctx context.Context, txid string) (*RawTransaction, error) {
 	result, err := c.call(ctx, "", "getrawtransaction", txid, 2)
 	if err != nil {
 		return nil, err
 	}
-	var tx CoreRawTransaction
+	var tx RawTransaction
 	if err := json.Unmarshal(result, &tx); err != nil {
 		return nil, fmt.Errorf("decode getrawtransaction: %w", err)
 	}
 	return &tx, nil
 }
 
-// CoreReceivedByAddress represents a result from listreceivedbyaddress.
-type CoreReceivedByAddress struct {
+// ReceivedByAddress represents a result from listreceivedbyaddress.
+type ReceivedByAddress struct {
 	Address       string   `json:"address"`
 	Amount        float64  `json:"amount"`
 	Confirmations int      `json:"confirmations"`
@@ -469,13 +469,13 @@ type CoreReceivedByAddress struct {
 }
 
 // ListReceivedByAddress returns addresses that have received funds.
-func (c *CoreRPCClient) ListReceivedByAddress(ctx context.Context, walletName string) ([]CoreReceivedByAddress, error) {
+func (c *CoreRPCClient) ListReceivedByAddress(ctx context.Context, walletName string) ([]ReceivedByAddress, error) {
 	// listreceivedbyaddress minconf include_empty include_watchonly
 	result, err := c.call(ctx, walletName, "listreceivedbyaddress", 0, true)
 	if err != nil {
 		return nil, err
 	}
-	var addrs []CoreReceivedByAddress
+	var addrs []ReceivedByAddress
 	if err := json.Unmarshal(result, &addrs); err != nil {
 		return nil, fmt.Errorf("decode listreceivedbyaddress: %w", err)
 	}
@@ -551,10 +551,10 @@ func (c *CoreRPCClient) GetBlockCount(ctx context.Context) (int, error) {
 	return count, nil
 }
 
-// CoreAddressInfo is a subset of getaddressinfo's response. We only need the
+// AddressInfo is a subset of getaddressinfo's response. We only need the
 // HD derivation path so the orchestrator can rebuild the privkey from its
 // seed for BIP47 ECDH blinding.
-type CoreAddressInfo struct {
+type AddressInfo struct {
 	Address    string `json:"address"`
 	HDKeyPath  string `json:"hdkeypath"`
 	HDSeedID   string `json:"hdseedid"`
@@ -568,12 +568,12 @@ type CoreAddressInfo struct {
 
 // GetAddressInfo returns information about an address in the wallet, including
 // the HD derivation path when known.
-func (c *CoreRPCClient) GetAddressInfo(ctx context.Context, walletName, address string) (*CoreAddressInfo, error) {
+func (c *CoreRPCClient) GetAddressInfo(ctx context.Context, walletName, address string) (*AddressInfo, error) {
 	result, err := c.call(ctx, walletName, "getaddressinfo", address)
 	if err != nil {
 		return nil, err
 	}
-	var info CoreAddressInfo
+	var info AddressInfo
 	if err := json.Unmarshal(result, &info); err != nil {
 		return nil, fmt.Errorf("decode getaddressinfo: %w", err)
 	}

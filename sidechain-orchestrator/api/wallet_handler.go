@@ -364,7 +364,7 @@ func (h *WalletHandler) CreateBitcoinCoreWallet(ctx context.Context, req *connec
 		return nil, connect.NewError(connect.CodeFailedPrecondition, err)
 	}
 
-	name, err := h.engine.EnsureCoreWallet(ctx, req.Msg.WalletId)
+	name, err := h.engine.Provider().Ensure(ctx, req.Msg.WalletId)
 	if err != nil {
 		// Bitcoin Core mid-startup (-28) or already loading the wallet (-4) is
 		// not an internal failure — it's "try again in a few seconds". Return
@@ -385,7 +385,7 @@ func (h *WalletHandler) EnsureCoreWallets(ctx context.Context, req *connect.Requ
 		return nil, connect.NewError(connect.CodeFailedPrecondition, err)
 	}
 
-	count, err := h.engine.EnsureCoreWallets(ctx)
+	count, err := h.engine.Provider().EnsureAll(ctx)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
@@ -423,17 +423,7 @@ func (h *WalletHandler) GetBalance(ctx context.Context, req *connect.Request[pb.
 		return nil, connect.NewError(connect.CodeFailedPrecondition, err)
 	}
 
-	coreName, err := h.engine.GetCoreWalletName(ctx, walletID)
-	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
-	}
-
-	confirmed, err := h.engine.CoreRPC().GetBalance(ctx, coreName)
-	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
-	}
-
-	unconfirmed, err := h.engine.CoreRPC().GetUnconfirmedBalance(ctx, coreName)
+	confirmed, unconfirmed, err := h.engine.Provider().Balance(ctx, walletID)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
@@ -471,12 +461,7 @@ func (h *WalletHandler) GetNewAddress(ctx context.Context, req *connect.Request[
 		return nil, connect.NewError(connect.CodeFailedPrecondition, err)
 	}
 
-	coreName, err := h.engine.GetCoreWalletName(ctx, walletID)
-	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
-	}
-
-	addr, err := h.engine.PickReceiveAddress(ctx, coreName)
+	addr, err := h.engine.Provider().NextReceiveAddress(ctx, walletID)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
@@ -594,11 +579,6 @@ func (h *WalletHandler) SendTransaction(ctx context.Context, req *connect.Reques
 		return nil, connect.NewError(connect.CodeFailedPrecondition, err)
 	}
 
-	coreName, err := h.engine.GetCoreWalletName(ctx, walletID)
-	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
-	}
-
 	needsAdvancedSend := req.Msg.OpReturnHex != "" ||
 		req.Msg.FeeRateSatPerVbyte > 0 ||
 		req.Msg.FixedFeeSats > 0 ||
@@ -606,7 +586,7 @@ func (h *WalletHandler) SendTransaction(ctx context.Context, req *connect.Reques
 		req.Msg.ReplayProtect // custom serialization needs the raw-tx path
 
 	if needsAdvancedSend {
-		txid, err := h.sendAdvancedTransaction(ctx, coreName, req.Msg)
+		txid, err := h.sendAdvancedTransaction(ctx, walletID, req.Msg)
 		if err != nil {
 			return nil, connect.NewError(connect.CodeInternal, err)
 		}
@@ -626,11 +606,11 @@ func (h *WalletHandler) SendTransaction(ctx context.Context, req *connect.Reques
 	if len(destinations) == 1 {
 		// Use sendtoaddress for single destination
 		for addr, amount := range destinations {
-			txid, err = h.engine.CoreRPC().SendToAddress(ctx, coreName, addr, amount, req.Msg.SubtractFeeFromAmount)
+			txid, err = h.engine.Provider().SendToAddress(ctx, walletID, addr, amount, req.Msg.SubtractFeeFromAmount)
 			break
 		}
 	} else {
-		txid, err = h.engine.CoreRPC().SendMany(ctx, coreName, destinations)
+		txid, err = h.engine.Provider().SendMany(ctx, walletID, destinations)
 	}
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)
@@ -643,15 +623,15 @@ func (h *WalletHandler) SendTransaction(ctx context.Context, req *connect.Reques
 
 func (h *WalletHandler) sendAdvancedTransaction(
 	ctx context.Context,
-	coreName string,
+	walletID string,
 	req *pb.SendTransactionRequest,
 ) (string, error) {
 	outputs, totalDestinationSats := buildRawOutputs(req)
-	inputs := make([]wallet.CoreRawInput, 0, len(req.RequiredInputs))
+	inputs := make([]wallet.RawInput, 0, len(req.RequiredInputs))
 	selectedInputAmountSats := int64(0)
 
 	for _, input := range req.RequiredInputs {
-		inputs = append(inputs, wallet.CoreRawInput{
+		inputs = append(inputs, wallet.RawInput{
 			TxID: input.Txid,
 			Vout: int(input.Vout),
 		})
@@ -663,7 +643,7 @@ func (h *WalletHandler) sendAdvancedTransaction(
 		if len(inputs) == 0 {
 			inputs, selectedInputAmountSats, err = h.selectInputsForFixedFee(
 				ctx,
-				coreName,
+				walletID,
 				totalDestinationSats+req.FixedFeeSats,
 			)
 			if err != nil {
@@ -681,22 +661,22 @@ func (h *WalletHandler) sendAdvancedTransaction(
 		}
 
 		if changeSats >= 546 {
-			changeAddress, err := h.engine.CoreRPC().GetRawChangeAddress(ctx, coreName)
+			changeAddress, err := h.engine.Provider().NextChangeAddress(ctx, walletID)
 			if err != nil {
 				return "", fmt.Errorf("get raw change address: %w", err)
 			}
 			outputs = append(outputs, map[string]interface{}{changeAddress: satsToBtc(changeSats)})
 		}
 
-		rawHex, err := h.engine.CoreRPC().CreateRawTransaction(ctx, inputs, outputs)
+		rawHex, err := h.engine.Provider().Chain().CreateRawTransaction(ctx, inputs, outputs)
 		if err != nil {
 			return "", fmt.Errorf("create raw transaction: %w", err)
 		}
 
-		return h.signAndBroadcastRawTransaction(ctx, coreName, rawHex, req.ReplayProtect)
+		return h.signAndBroadcastRawTransaction(ctx, walletID, rawHex, req.ReplayProtect)
 	}
 
-	rawHex, err := h.engine.CoreRPC().CreateRawTransaction(ctx, inputs, outputs)
+	rawHex, err := h.engine.Provider().Chain().CreateRawTransaction(ctx, inputs, outputs)
 	if err != nil {
 		return "", fmt.Errorf("create raw transaction: %w", err)
 	}
@@ -716,20 +696,20 @@ func (h *WalletHandler) sendAdvancedTransaction(
 		fundOptions["subtractFeeFromOutputs"] = subtractFeeFromOutputs
 	}
 
-	funded, err := h.engine.CoreRPC().FundRawTransaction(ctx, coreName, rawHex, fundOptions)
+	funded, err := h.engine.Provider().FundTransaction(ctx, walletID, rawHex, fundOptions)
 	if err != nil {
 		return "", fmt.Errorf("fund raw transaction: %w", err)
 	}
 
-	return h.signAndBroadcastRawTransaction(ctx, coreName, funded.Hex, req.ReplayProtect)
+	return h.signAndBroadcastRawTransaction(ctx, walletID, funded.Hex, req.ReplayProtect)
 }
 
 func (h *WalletHandler) selectInputsForFixedFee(
 	ctx context.Context,
-	coreName string,
+	walletID string,
 	requiredSats int64,
-) ([]wallet.CoreRawInput, int64, error) {
-	utxos, err := h.engine.CoreRPC().ListUnspent(ctx, coreName)
+) ([]wallet.RawInput, int64, error) {
+	utxos, err := h.engine.Provider().ListUnspent(ctx, walletID)
 	if err != nil {
 		return nil, 0, fmt.Errorf("list unspent: %w", err)
 	}
@@ -738,14 +718,14 @@ func (h *WalletHandler) selectInputsForFixedFee(
 		return utxos[i].Amount > utxos[j].Amount
 	})
 
-	selected := make([]wallet.CoreRawInput, 0)
+	selected := make([]wallet.RawInput, 0)
 	totalSats := int64(0)
 	for _, utxo := range utxos {
 		if !utxo.Spendable {
 			continue
 		}
 
-		selected = append(selected, wallet.CoreRawInput{
+		selected = append(selected, wallet.RawInput{
 			TxID: utxo.TxID,
 			Vout: utxo.Vout,
 		})
@@ -777,7 +757,7 @@ func buildRawOutputs(req *pb.SendTransactionRequest) ([]map[string]interface{}, 
 
 func (h *WalletHandler) signAndBroadcastRawTransaction(
 	ctx context.Context,
-	coreName, rawHex string,
+	walletID, rawHex string,
 	replayProtect bool,
 ) (string, error) {
 	// Set the magic version BEFORE signing so the signature commits to it
@@ -790,7 +770,7 @@ func (h *WalletHandler) signAndBroadcastRawTransaction(
 		}
 	}
 
-	signed, err := h.engine.CoreRPC().SignRawTransactionWithWallet(ctx, coreName, rawHex)
+	signed, err := h.engine.Provider().SignTransaction(ctx, walletID, rawHex)
 	if err != nil {
 		return "", fmt.Errorf("sign raw transaction: %w", err)
 	}
@@ -808,7 +788,7 @@ func (h *WalletHandler) signAndBroadcastRawTransaction(
 		}
 	}
 
-	txid, err := h.engine.CoreRPC().SendRawTransaction(ctx, hexToSend)
+	txid, err := h.engine.Provider().Chain().Broadcast(ctx, hexToSend)
 	if err != nil {
 		return "", fmt.Errorf("broadcast raw transaction: %w", err)
 	}
@@ -861,17 +841,12 @@ func (h *WalletHandler) ListTransactions(ctx context.Context, req *connect.Reque
 		return nil, connect.NewError(connect.CodeFailedPrecondition, err)
 	}
 
-	coreName, err := h.engine.GetCoreWalletName(ctx, walletID)
-	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
-	}
-
 	count := int(req.Msg.Count)
 	if count <= 0 {
 		count = 100
 	}
 
-	txs, err := h.engine.CoreRPC().ListTransactions(ctx, coreName, count)
+	txs, err := h.engine.Provider().ListTransactions(ctx, walletID, count)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
@@ -941,17 +916,12 @@ func (h *WalletHandler) ListUnspent(ctx context.Context, req *connect.Request[pb
 		return nil, connect.NewError(connect.CodeFailedPrecondition, err)
 	}
 
-	coreName, err := h.engine.GetCoreWalletName(ctx, walletID)
+	utxos, err := h.engine.Provider().ListUnspent(ctx, walletID)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
 
-	utxos, err := h.engine.CoreRPC().ListUnspent(ctx, coreName)
-	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
-	}
-
-	txTimes := h.fetchCoreTxTimes(ctx, coreName, utxos)
+	txTimes := h.fetchCoreTxTimes(ctx, walletID, utxos)
 
 	pbUTXOs := make([]*pb.UnspentOutput, len(utxos))
 	for i, u := range utxos {
@@ -999,7 +969,7 @@ func enforcerReceivedAt(u *enforcerpb.ListUnspentOutputsResponse_Output) *timest
 // fetchCoreTxTimes returns, for each unique txid in utxos, the wallet's
 // time_received (when it first saw the tx) falling back to blocktime
 // then time. Best-effort: failures are logged and the txid is omitted.
-func (h *WalletHandler) fetchCoreTxTimes(ctx context.Context, walletName string, utxos []wallet.CoreUTXO) map[string]*timestamppb.Timestamp {
+func (h *WalletHandler) fetchCoreTxTimes(ctx context.Context, walletID string, utxos []wallet.UTXO) map[string]*timestamppb.Timestamp {
 	seen := make(map[string]struct{}, len(utxos))
 	out := make(map[string]*timestamppb.Timestamp, len(utxos))
 	for _, u := range utxos {
@@ -1008,7 +978,7 @@ func (h *WalletHandler) fetchCoreTxTimes(ctx context.Context, walletName string,
 		}
 		seen[u.TxID] = struct{}{}
 
-		rawJSON, err := h.engine.CoreRPC().GetTransaction(ctx, walletName, u.TxID)
+		rawJSON, err := h.engine.Provider().GetWalletTransaction(ctx, walletID, u.TxID)
 		if err != nil {
 			continue
 		}
@@ -1082,12 +1052,7 @@ func (h *WalletHandler) ListReceiveAddresses(ctx context.Context, req *connect.R
 		return nil, connect.NewError(connect.CodeFailedPrecondition, err)
 	}
 
-	coreName, err := h.engine.GetCoreWalletName(ctx, walletID)
-	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
-	}
-
-	addrs, err := h.engine.CoreRPC().ListReceivedByAddress(ctx, coreName)
+	addrs, err := h.engine.Provider().ListReceivedByAddress(ctx, walletID)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
@@ -1118,12 +1083,7 @@ func (h *WalletHandler) GetTransactionDetails(ctx context.Context, req *connect.
 		return nil, connect.NewError(connect.CodeInvalidArgument, err)
 	}
 
-	coreName, err := h.engine.GetCoreWalletName(ctx, walletID)
-	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
-	}
-
-	rawJSON, err := h.engine.CoreRPC().GetTransaction(ctx, coreName, req.Msg.Txid)
+	rawJSON, err := h.engine.Provider().GetWalletTransaction(ctx, walletID, req.Msg.Txid)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
@@ -1141,7 +1101,7 @@ func (h *WalletHandler) GetTransactionDetails(ctx context.Context, req *connect.
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("decode gettransaction: %w", err))
 	}
 
-	rawTx, err := h.engine.CoreRPC().GetRawTransaction(ctx, req.Msg.Txid)
+	rawTx, err := h.engine.Provider().Chain().GetRawTransaction(ctx, req.Msg.Txid)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("getrawtransaction: %w", err))
 	}
@@ -1163,7 +1123,7 @@ func (h *WalletHandler) GetTransactionDetails(ctx context.Context, req *connect.
 		}
 
 		if !input.IsCoinbase && vin.TxID != "" {
-			prevTx, err := h.engine.CoreRPC().GetRawTransaction(ctx, vin.TxID)
+			prevTx, err := h.engine.Provider().Chain().GetRawTransaction(ctx, vin.TxID)
 			if err == nil && vin.Vout >= 0 && vin.Vout < len(prevTx.Vout) {
 				prevOut := prevTx.Vout[vin.Vout]
 				input.ValueSats = int64(math.Round(prevOut.Value * 1e8))
@@ -1239,12 +1199,7 @@ func (h *WalletHandler) BumpFee(ctx context.Context, req *connect.Request[pb.Bum
 		return nil, connect.NewError(connect.CodeInvalidArgument, err)
 	}
 
-	coreName, err := h.engine.GetCoreWalletName(ctx, walletID)
-	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
-	}
-
-	newTxID, err := h.engine.CoreRPC().BumpFee(ctx, coreName, req.Msg.Txid, req.Msg.NewFeeRate)
+	newTxID, err := h.engine.Provider().BumpFee(ctx, walletID, req.Msg.Txid, req.Msg.NewFeeRate)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
@@ -1286,7 +1241,7 @@ func (h *WalletHandler) DeriveAddresses(ctx context.Context, req *connect.Reques
 		return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("wallet %s seed not found", walletID))
 	}
 
-	addrs, err := h.engine.CoreRPC().DeriveAddresses(ctx, "", start, end)
+	addrs, err := h.engine.Provider().Chain().DeriveAddresses(ctx, "", start, end)
 	if err != nil {
 		// Fallback: derive addresses without Core RPC by generating from wallet
 		return nil, connect.NewError(connect.CodeInternal, err)
