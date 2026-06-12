@@ -43,10 +43,9 @@ type Provider interface {
 	// (BIP47 per-sender payment windows).
 	WatchKeys(ctx context.Context, walletID string, keys []WatchKey) error
 
-	SendToAddress(ctx context.Context, walletID, address string, amount float64, subtractFee bool) (string, error)
-	SendMany(ctx context.Context, walletID string, amounts map[string]float64) (string, error)
-	// FundTransaction completes a raw tx with wallet inputs and change.
-	FundTransaction(ctx context.Context, walletID, rawHex string, opts FundOptions) (*FundRawTransactionResult, error)
+	// Send pays req's destinations, handling coin selection, fees, change,
+	// signing, and broadcast however the backend does it.
+	Send(ctx context.Context, walletID string, req SendRequest) (string, error)
 	SignTransaction(ctx context.Context, walletID, rawHex string) (*SignRawTransactionResult, error)
 	BumpFee(ctx context.Context, walletID, txid string, newFeeRate int64) (string, error)
 
