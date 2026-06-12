@@ -143,10 +143,12 @@ Future<void> initSidechainDependencies({
   if (!GetIt.I.isRegistered<BitcoindConnection>()) {
     GetIt.I.registerLazySingleton<BitcoindConnection>(() => mainchainRPC);
   }
-  // Sidechain apps have no bitwindowd; the enforcer is a local daemon here.
+  // Sidechain apps have no bitwindowd; the enforcer is a local daemon here,
+  // dialed directly — gRPC on its main port, getblocktemplate on its
+  // JSON-RPC port.
   final enforcer = GetIt.I.isRegistered<EnforcerRPC>()
       ? GetIt.I.get<EnforcerRPC>()
-      : EnforcerLive(host: 'localhost', port: Enforcer().port);
+      : EnforcerLive(host: 'localhost', port: Enforcer().port, jsonRpcUrl: 'http://127.0.0.1:8122/');
   if (!GetIt.I.isRegistered<EnforcerRPC>()) {
     GetIt.I.registerSingleton<EnforcerRPC>(enforcer);
   }

@@ -3,7 +3,6 @@ import 'dart:convert';
 import 'package:connectrpc/protobuf.dart';
 import 'package:connectrpc/protocol/grpc.dart' as grpc;
 import 'package:get_it/get_it.dart';
-import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
 import 'package:sail_ui/gen/cusf/mainchain/v1/wallet.connect.client.dart';
 import 'package:sail_ui/gen/cusf/mainchain/v1/wallet.pb.dart';
@@ -33,11 +32,16 @@ class EnforcerLive extends EnforcerRPC {
 
   final String _host;
   final int _port;
+  final String _jsonRpcUrl;
   String get _baseUrl => 'http://$_host:$_port';
 
   /// In bitwindow [host]/[port] point at bitwindowd, which bridges the
   /// enforcer services; sidechain apps pass the enforcer's own address.
-  EnforcerLive({required this._host, required this._port}) : super(binaryType: BinaryType.BINARY_TYPE_ENFORCER) {
+  /// [jsonRpcUrl] is where getblocktemplate goes: bitwindowd's passthrough
+  /// when bridged, the enforcer's JSON-RPC server when direct.
+  EnforcerLive({required this._host, required this._port, String? jsonRpcUrl})
+    : _jsonRpcUrl = jsonRpcUrl ?? 'http://$_host:$_port/enforcer/jsonrpc',
+      super(binaryType: BinaryType.BINARY_TYPE_ENFORCER) {
     _initializeConnection();
   }
 
@@ -175,10 +179,8 @@ class EnforcerLive extends EnforcerRPC {
 
   @override
   Future<Map<String, dynamic>> getBlockTemplate() async {
-    // bitwindowd forwards this to the enforcer's JSON-RPC server.
-    final response = await http.post(
-      Uri.parse('$_baseUrl/enforcer/jsonrpc'),
-      headers: {'content-type': 'application/json'},
+    final response = await LocalAuth.postJsonWithAuth(
+      Uri.parse(_jsonRpcUrl),
       body: jsonEncode({
         'jsonrpc': '2.0',
         'method': 'getblocktemplate',
