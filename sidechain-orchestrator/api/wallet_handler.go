@@ -1144,7 +1144,3 @@ func restoreStepStatusToProto(status wallet.RestoreWalletBackupStepStatus) pb.Re
 func btcToSats(btc float64) float64 {
 	return math.Round(btc * 1e8)
 }
-
-func satsToBtc(sats int64) float64 {
-	return float64(sats) / 1e8
-}

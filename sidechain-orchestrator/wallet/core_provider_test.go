@@ -1,9 +1,7 @@
 package wallet
 
 import (
-	"bytes"
 	"context"
-	"encoding/hex"
 	"encoding/json"
 	"net"
 	"net/http"
@@ -14,7 +12,6 @@ import (
 	"testing"
 
 	"github.com/btcsuite/btcd/chaincfg"
-	"github.com/btcsuite/btcd/wire"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -232,10 +229,10 @@ func TestCoreProviderSendFeeRatePath(t *testing.T) {
 	provider, fake, coreID := newCoreProviderFixture(t)
 	fake.stubEnsureFlow()
 
-	var fundedHex string
+	const builtHex = "deadbeef00112233"
+	fake.handle("createrawtransaction", func(bitcoindCall) (any, string) { return builtHex, "" })
 	fake.handle("fundrawtransaction", func(c bitcoindCall) (any, string) {
-		fundedHex = mustString(t, c.Params[0])
-		return map[string]any{"hex": fundedHex, "fee": 0.00001, "changepos": 1}, ""
+		return map[string]any{"hex": mustString(t, c.Params[0]) + "ff", "fee": 0.00001, "changepos": 1}, ""
 	})
 	fake.handle("signrawtransactionwithwallet", func(c bitcoindCall) (any, string) {
 		return map[string]any{"hex": mustString(t, c.Params[0]), "complete": true}, ""
@@ -253,21 +250,30 @@ func TestCoreProviderSendFeeRatePath(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, "txid-funded", txid)
 
+	// Core builds the unsigned tx: destination + OP_RETURN, no inputs.
+	creates := fake.callsFor("createrawtransaction")
+	require.Len(t, creates, 1)
+	var inputs []RawInput
+	require.NoError(t, json.Unmarshal(creates[0].Params[0], &inputs))
+	assert.Empty(t, inputs)
+	var outputs []map[string]any
+	require.NoError(t, json.Unmarshal(creates[0].Params[1], &outputs))
+	require.Len(t, outputs, 2)
+	assert.Equal(t, 0.0003, outputs[0][dest])
+	assert.Equal(t, "cafe", outputs[1]["data"])
+
+	// The built hex flows through fund → sign → broadcast.
 	funds := fake.callsFor("fundrawtransaction")
 	require.Len(t, funds, 1)
+	assert.Equal(t, builtHex, mustString(t, funds[0].Params[0]))
 	var opts map[string]any
 	require.NoError(t, json.Unmarshal(funds[0].Params[1], &opts))
-	assert.Equal(t, true, opts["add_inputs"])
+	assert.NotContains(t, opts, "add_inputs", "absent when Core selects inputs, like master")
 	assert.Equal(t, float64(5), opts["fee_rate"])
 
-	// The hex handed to fundrawtransaction is our locally-built tx:
-	// destination + OP_RETURN, no inputs yet.
-	tx := decodeTxHex(t, fundedHex)
-	assert.Empty(t, tx.TxIn)
-	require.Len(t, tx.TxOut, 2)
-	assert.Equal(t, int64(30_000), tx.TxOut[0].Value)
-	assert.Equal(t, int64(0), tx.TxOut[1].Value)
-	assert.Equal(t, byte(0x6a), tx.TxOut[1].PkScript[0], "second output is OP_RETURN")
+	signs := fake.callsFor("signrawtransactionwithwallet")
+	require.Len(t, signs, 1)
+	assert.Equal(t, builtHex+"ff", mustString(t, signs[0].Params[0]))
 }
 
 func TestCoreProviderSendFixedFeeSelectsInputsAndChange(t *testing.T) {
@@ -286,10 +292,10 @@ func TestCoreProviderSendFixedFeeSelectsInputsAndChange(t *testing.T) {
 		}, ""
 	})
 	fake.handle("getrawchangeaddress", func(bitcoindCall) (any, string) { return change, "" })
-	var signedInputHex string
+	const builtHex = "deadbeef00112233"
+	fake.handle("createrawtransaction", func(bitcoindCall) (any, string) { return builtHex, "" })
 	fake.handle("signrawtransactionwithwallet", func(c bitcoindCall) (any, string) {
-		signedInputHex = mustString(t, c.Params[0])
-		return map[string]any{"hex": signedInputHex, "complete": true}, ""
+		return map[string]any{"hex": mustString(t, c.Params[0]), "complete": true}, ""
 	})
 	fake.handle("sendrawtransaction", func(bitcoindCall) (any, string) { return "txid-fixed", "" })
 
@@ -300,20 +306,30 @@ func TestCoreProviderSendFixedFeeSelectsInputsAndChange(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, "txid-fixed", txid)
 
-	// The raw path builds locally: no createrawtransaction, no fundrawtransaction.
-	assert.Empty(t, fake.callsFor("createrawtransaction"))
+	// Fixed-fee path selects inputs itself and skips fundrawtransaction.
 	assert.Empty(t, fake.callsFor("fundrawtransaction"))
 
+	creates := fake.callsFor("createrawtransaction")
+	require.Len(t, creates, 1)
+
 	// Largest-first selection skips the unspendable 90k UTXO, picks 40k+20k.
-	tx := decodeTxHex(t, signedInputHex)
-	require.Len(t, tx.TxIn, 2)
-	assert.Equal(t, strings.Repeat("22", 32), tx.TxIn[0].PreviousOutPoint.Hash.String())
-	assert.Equal(t, strings.Repeat("11", 32), tx.TxIn[1].PreviousOutPoint.Hash.String())
+	var inputs []RawInput
+	require.NoError(t, json.Unmarshal(creates[0].Params[0], &inputs))
+	require.Len(t, inputs, 2)
+	assert.Equal(t, strings.Repeat("22", 32), inputs[0].TxID)
+	assert.Equal(t, 1, inputs[0].Vout)
+	assert.Equal(t, strings.Repeat("11", 32), inputs[1].TxID)
 
 	// Outputs: destination 50k + change 60k-50k-1k = 9k.
-	require.Len(t, tx.TxOut, 2)
-	assert.Equal(t, int64(50_000), tx.TxOut[0].Value)
-	assert.Equal(t, int64(9_000), tx.TxOut[1].Value)
+	var outputs []map[string]any
+	require.NoError(t, json.Unmarshal(creates[0].Params[1], &outputs))
+	require.Len(t, outputs, 2)
+	assert.Equal(t, 0.0005, outputs[0][dest])
+	assert.Equal(t, 0.00009, outputs[1][change])
+
+	signs := fake.callsFor("signrawtransactionwithwallet")
+	require.Len(t, signs, 1)
+	assert.Equal(t, builtHex, mustString(t, signs[0].Params[0]))
 }
 
 func TestCoreProviderSendReplayProtect(t *testing.T) {
@@ -331,6 +347,7 @@ func TestCoreProviderSendReplayProtect(t *testing.T) {
 	fake.handle("getrawchangeaddress", func(bitcoindCall) (any, string) {
 		return p2wpkhAddr(t, fixedKey(0xBB), net), ""
 	})
+	fake.handle("createrawtransaction", func(bitcoindCall) (any, string) { return "01000000aabbccdd", "" })
 	var signInputHex, broadcastHex string
 	fake.handle("signrawtransactionwithwallet", func(c bitcoindCall) (any, string) {
 		signInputHex = mustString(t, c.Params[0])
@@ -348,12 +365,12 @@ func TestCoreProviderSendReplayProtect(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	// The magic version is set BEFORE signing (the signature commits to it)…
-	tx := decodeTxHex(t, signInputHex)
-	assert.Equal(t, int32(12566463), tx.Version)
+	// The magic version replaces the original BEFORE signing (the signature
+	// commits to it)…
+	assert.Equal(t, "bfbfbf00aabbccdd", signInputHex)
 	// …and the replay byte is injected AFTER, making the broadcast hex start
 	// with version bfbfbf00 followed by the 0x3f marker.
-	assert.True(t, strings.HasPrefix(broadcastHex, "bfbfbf003f"), "broadcast hex %s", broadcastHex[:12])
+	assert.Equal(t, "bfbfbf003faabbccdd", broadcastHex)
 }
 
 func TestCoreProviderWatchKeys(t *testing.T) {
@@ -416,19 +433,4 @@ func asFloat(t *testing.T, v any) float64 {
 	f, ok := v.(float64)
 	require.True(t, ok, "expected numeric value, got %T", v)
 	return f
-}
-
-func decodeTxHex(t *testing.T, rawHex string) *wire.MsgTx {
-	t.Helper()
-	raw, err := hex.DecodeString(rawHex)
-	require.NoError(t, err)
-	var tx wire.MsgTx
-	if tx.Deserialize(bytes.NewReader(raw)) == nil {
-		return &tx
-	}
-	// A zero-input unsigned tx is ambiguous with the segwit marker; retry
-	// with the legacy encoding, like Core's decoder does.
-	tx = wire.MsgTx{}
-	require.NoError(t, tx.DeserializeNoWitness(bytes.NewReader(raw)))
-	return &tx
 }

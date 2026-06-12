@@ -299,6 +299,24 @@ func (c *CoreRPCClient) ListUnspent(ctx context.Context, walletName string) ([]U
 	return utxos, nil
 }
 
+// CreateRawTransaction builds an unsigned transaction node-side. Outputs
+// keep their given order; each entry is {address: btc} or {"data": hex}.
+func (c *CoreRPCClient) CreateRawTransaction(
+	ctx context.Context,
+	inputs []RawInput,
+	outputs []map[string]interface{},
+) (string, error) {
+	result, err := c.call(ctx, "", "createrawtransaction", inputs, outputs)
+	if err != nil {
+		return "", err
+	}
+	var hex string
+	if err := json.Unmarshal(result, &hex); err != nil {
+		return "", fmt.Errorf("decode createrawtransaction: %w", err)
+	}
+	return hex, nil
+}
+
 func (c *CoreRPCClient) FundRawTransaction(
 	ctx context.Context,
 	walletName, hexString string,
