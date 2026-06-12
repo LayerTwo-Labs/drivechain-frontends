@@ -283,7 +283,10 @@ func run(cctx *cli.Context) error {
 		if perr != nil {
 			log.Warn().Err(perr).Str("network", network).Msg("unrecognised network; BIP47 features will be disabled")
 		}
-		walletEngine := wallet.NewWalletEngine(walletSvc, coreRPC, netParams, log)
+		// Provider selection happens here: CoreProvider today, electrum/btcd
+		// providers slot in behind the same wallet.Provider interface.
+		provider := wallet.NewCoreProvider(walletSvc, coreRPC, netParams, log)
+		walletEngine := wallet.NewWalletEngine(walletSvc, provider, netParams, log)
 		walletHandler.SetEngine(walletEngine)
 
 		// Fork engine: single source of truth for eCash fork state, needs the

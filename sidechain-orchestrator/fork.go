@@ -96,11 +96,7 @@ func (s *forkWalletScanner) coreUnspent(ctx context.Context, walletID string, ti
 	if s.engine == nil {
 		return nil, nil
 	}
-	name, err := s.engine.GetCoreWalletName(ctx, walletID)
-	if err != nil {
-		return nil, err
-	}
-	coreUTXOs, err := s.engine.CoreRPC().ListUnspent(ctx, name)
+	coreUTXOs, err := s.engine.Provider().ListUnspent(ctx, walletID)
 	if err != nil {
 		return nil, err
 	}
