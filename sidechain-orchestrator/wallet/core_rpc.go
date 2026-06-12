@@ -376,22 +376,6 @@ type RawTransaction struct {
 	} `json:"vout"`
 }
 
-func (c *CoreRPCClient) CreateRawTransaction(
-	ctx context.Context,
-	inputs []RawInput,
-	outputs []map[string]interface{},
-) (string, error) {
-	result, err := c.call(ctx, "", "createrawtransaction", inputs, outputs)
-	if err != nil {
-		return "", err
-	}
-	var hex string
-	if err := json.Unmarshal(result, &hex); err != nil {
-		return "", fmt.Errorf("decode createrawtransaction: %w", err)
-	}
-	return hex, nil
-}
-
 func (c *CoreRPCClient) FundRawTransaction(
 	ctx context.Context,
 	walletName, hexString string,
@@ -578,17 +562,4 @@ func (c *CoreRPCClient) GetAddressInfo(ctx context.Context, walletName, address 
 		return nil, fmt.Errorf("decode getaddressinfo: %w", err)
 	}
 	return &info, nil
-}
-
-// DeriveAddresses derives addresses from a descriptor.
-func (c *CoreRPCClient) DeriveAddresses(ctx context.Context, descriptor string, rangeStart, rangeEnd int) ([]string, error) {
-	result, err := c.call(ctx, "", "deriveaddresses", descriptor, []int{rangeStart, rangeEnd})
-	if err != nil {
-		return nil, err
-	}
-	var addresses []string
-	if err := json.Unmarshal(result, &addresses); err != nil {
-		return nil, fmt.Errorf("decode deriveaddresses: %w", err)
-	}
-	return addresses, nil
 }

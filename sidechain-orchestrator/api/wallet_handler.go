@@ -665,10 +665,10 @@ func (h *WalletHandler) sendAdvancedTransaction(
 			if err != nil {
 				return "", fmt.Errorf("get raw change address: %w", err)
 			}
-			outputs = append(outputs, map[string]interface{}{changeAddress: satsToBtc(changeSats)})
+			outputs = append(outputs, wallet.TxOutSpec{Address: changeAddress, AmountBTC: satsToBtc(changeSats)})
 		}
 
-		rawHex, err := h.engine.Provider().Chain().CreateRawTransaction(ctx, inputs, outputs)
+		rawHex, err := wallet.BuildUnsignedTransaction(inputs, outputs, h.engine.Network())
 		if err != nil {
 			return "", fmt.Errorf("create raw transaction: %w", err)
 		}
@@ -676,24 +676,21 @@ func (h *WalletHandler) sendAdvancedTransaction(
 		return h.signAndBroadcastRawTransaction(ctx, walletID, rawHex, req.ReplayProtect)
 	}
 
-	rawHex, err := h.engine.Provider().Chain().CreateRawTransaction(ctx, inputs, outputs)
+	rawHex, err := wallet.BuildUnsignedTransaction(inputs, outputs, h.engine.Network())
 	if err != nil {
 		return "", fmt.Errorf("create raw transaction: %w", err)
 	}
 
-	fundOptions := map[string]interface{}{}
-	if len(inputs) > 0 {
-		fundOptions["add_inputs"] = false
-	}
-	if req.FeeRateSatPerVbyte > 0 {
-		fundOptions["fee_rate"] = req.FeeRateSatPerVbyte
+	fundOptions := wallet.FundOptions{
+		AddInputs:       len(inputs) == 0,
+		FeeRateSatPerVB: req.FeeRateSatPerVbyte,
 	}
 	if req.SubtractFeeFromAmount && len(req.Destinations) > 0 {
 		subtractFeeFromOutputs := make([]int, 0, len(req.Destinations))
 		for i := 0; i < len(req.Destinations); i++ {
 			subtractFeeFromOutputs = append(subtractFeeFromOutputs, i)
 		}
-		fundOptions["subtractFeeFromOutputs"] = subtractFeeFromOutputs
+		fundOptions.SubtractFeeFromOutputs = subtractFeeFromOutputs
 	}
 
 	funded, err := h.engine.Provider().FundTransaction(ctx, walletID, rawHex, fundOptions)
@@ -742,15 +739,15 @@ func (h *WalletHandler) selectInputsForFixedFee(
 	return selected, totalSats, nil
 }
 
-func buildRawOutputs(req *pb.SendTransactionRequest) ([]map[string]interface{}, int64) {
-	outputs := make([]map[string]interface{}, 0, len(req.Destinations)+1)
+func buildRawOutputs(req *pb.SendTransactionRequest) ([]wallet.TxOutSpec, int64) {
+	outputs := make([]wallet.TxOutSpec, 0, len(req.Destinations)+1)
 	totalDestinationSats := int64(0)
 	for address, sats := range req.Destinations {
-		outputs = append(outputs, map[string]interface{}{address: satsToBtc(sats)})
+		outputs = append(outputs, wallet.TxOutSpec{Address: address, AmountBTC: satsToBtc(sats)})
 		totalDestinationSats += sats
 	}
 	if req.OpReturnHex != "" {
-		outputs = append(outputs, map[string]interface{}{"data": req.OpReturnHex})
+		outputs = append(outputs, wallet.TxOutSpec{OpReturnHex: req.OpReturnHex})
 	}
 	return outputs, totalDestinationSats
 }
@@ -978,16 +975,8 @@ func (h *WalletHandler) fetchCoreTxTimes(ctx context.Context, walletID string, u
 		}
 		seen[u.TxID] = struct{}{}
 
-		rawJSON, err := h.engine.Provider().GetWalletTransaction(ctx, walletID, u.TxID)
+		tx, err := h.engine.Provider().GetWalletTransaction(ctx, walletID, u.TxID)
 		if err != nil {
-			continue
-		}
-		var tx struct {
-			TimeReceived int64 `json:"timereceived"`
-			BlockTime    int64 `json:"blocktime"`
-			Time         int64 `json:"time"`
-		}
-		if err := json.Unmarshal(rawJSON, &tx); err != nil {
 			continue
 		}
 		switch {
@@ -1083,22 +1072,9 @@ func (h *WalletHandler) GetTransactionDetails(ctx context.Context, req *connect.
 		return nil, connect.NewError(connect.CodeInvalidArgument, err)
 	}
 
-	rawJSON, err := h.engine.Provider().GetWalletTransaction(ctx, walletID, req.Msg.Txid)
+	tx, err := h.engine.Provider().GetWalletTransaction(ctx, walletID, req.Msg.Txid)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)
-	}
-
-	var tx struct {
-		TxID          string  `json:"txid"`
-		Amount        float64 `json:"amount"`
-		Fee           float64 `json:"fee"`
-		Confirmations int     `json:"confirmations"`
-		BlockTime     int64   `json:"blocktime"`
-		Time          int64   `json:"time"`
-		Hex           string  `json:"hex"`
-	}
-	if err := json.Unmarshal(rawJSON, &tx); err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("decode gettransaction: %w", err))
 	}
 
 	rawTx, err := h.engine.Provider().Chain().GetRawTransaction(ctx, req.Msg.Txid)
@@ -1220,9 +1196,7 @@ func (h *WalletHandler) DeriveAddresses(ctx context.Context, req *connect.Reques
 	}
 
 	start := int(req.Msg.StartIndex)
-	end := start + count - 1
 
-	// Build a descriptor for the wallet
 	walletID, err := h.engine.ResolveWalletID(req.Msg.WalletId)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInvalidArgument, err)
@@ -1241,9 +1215,8 @@ func (h *WalletHandler) DeriveAddresses(ctx context.Context, req *connect.Reques
 		return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("wallet %s seed not found", walletID))
 	}
 
-	addrs, err := h.engine.Provider().Chain().DeriveAddresses(ctx, "", start, end)
+	addrs, err := wallet.DeriveBIP84Addresses(seedHex, h.engine.Network(), start, count)
 	if err != nil {
-		// Fallback: derive addresses without Core RPC by generating from wallet
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
 

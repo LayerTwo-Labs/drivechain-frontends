@@ -205,20 +205,32 @@ func (p *CoreProvider) ListReceivedByAddress(ctx context.Context, walletID strin
 	return p.rpc.ListReceivedByAddress(ctx, name)
 }
 
-func (p *CoreProvider) GetWalletTransaction(ctx context.Context, walletID, txid string) (json.RawMessage, error) {
+func (p *CoreProvider) GetWalletTransaction(ctx context.Context, walletID, txid string) (*WalletTx, error) {
 	name, err := p.walletName(ctx, walletID)
 	if err != nil {
 		return nil, err
 	}
-	return p.rpc.GetTransaction(ctx, name, txid)
+	raw, err := p.rpc.GetTransaction(ctx, name, txid)
+	if err != nil {
+		return nil, err
+	}
+	var tx WalletTx
+	if err := json.Unmarshal(raw, &tx); err != nil {
+		return nil, fmt.Errorf("decode gettransaction: %w", err)
+	}
+	return &tx, nil
 }
 
-func (p *CoreProvider) AddressInfo(ctx context.Context, walletID, address string) (*AddressInfo, error) {
+func (p *CoreProvider) AddressHDPath(ctx context.Context, walletID, address string) (string, error) {
 	name, err := p.walletName(ctx, walletID)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
-	return p.rpc.GetAddressInfo(ctx, name, address)
+	info, err := p.rpc.GetAddressInfo(ctx, name, address)
+	if err != nil {
+		return "", err
+	}
+	return info.HDKeyPath, nil
 }
 
 // NextReceiveAddress returns an existing unused address from the wallet, or
@@ -261,12 +273,36 @@ func (p *CoreProvider) NextChangeAddress(ctx context.Context, walletID string) (
 	return p.rpc.GetRawChangeAddress(ctx, name)
 }
 
-func (p *CoreProvider) WatchDescriptors(ctx context.Context, walletID string, descriptors []ImportDescriptor) ([]ImportDescriptorResult, error) {
+// WatchKeys imports each key as a pkh() descriptor. Per-key import failures
+// are logged, not fatal — matching how Core treats already-known descriptors.
+func (p *CoreProvider) WatchKeys(ctx context.Context, walletID string, keys []WatchKey) error {
 	name, err := p.walletName(ctx, walletID)
 	if err != nil {
-		return nil, err
+		return err
 	}
-	return p.rpc.ImportDescriptors(ctx, name, descriptors)
+	descriptors := make([]ImportDescriptor, 0, len(keys))
+	for _, k := range keys {
+		descriptors = append(descriptors, ImportDescriptor{
+			Desc:      mustAddChecksum(fmt.Sprintf("pkh(%s)", k.WIF)),
+			Active:    false,
+			Timestamp: k.RescanFrom,
+		})
+	}
+	results, err := p.rpc.ImportDescriptors(ctx, name, descriptors)
+	if err != nil {
+		return err
+	}
+	for i, r := range results {
+		if r.Success {
+			continue
+		}
+		msg := "unknown"
+		if r.Error != nil {
+			msg = r.Error.Message
+		}
+		p.log.Warn().Int("descriptor_index", i).Str("error", msg).Msg("watch key import failed")
+	}
+	return nil
 }
 
 func (p *CoreProvider) SendToAddress(ctx context.Context, walletID, address string, amount float64, subtractFee bool) (string, error) {
@@ -285,10 +321,17 @@ func (p *CoreProvider) SendMany(ctx context.Context, walletID string, amounts ma
 	return p.rpc.SendMany(ctx, name, amounts)
 }
 
-func (p *CoreProvider) FundTransaction(ctx context.Context, walletID, rawHex string, options map[string]interface{}) (*FundRawTransactionResult, error) {
+func (p *CoreProvider) FundTransaction(ctx context.Context, walletID, rawHex string, opts FundOptions) (*FundRawTransactionResult, error) {
 	name, err := p.walletName(ctx, walletID)
 	if err != nil {
 		return nil, err
+	}
+	options := map[string]interface{}{"add_inputs": opts.AddInputs}
+	if opts.FeeRateSatPerVB > 0 {
+		options["fee_rate"] = opts.FeeRateSatPerVB
+	}
+	if len(opts.SubtractFeeFromOutputs) > 0 {
+		options["subtractFeeFromOutputs"] = opts.SubtractFeeFromOutputs
 	}
 	return p.rpc.FundRawTransaction(ctx, name, rawHex, options)
 }
@@ -323,16 +366,8 @@ func (c coreChain) GetRawTransaction(ctx context.Context, txid string) (*RawTran
 	return c.rpc.GetRawTransaction(ctx, txid)
 }
 
-func (c coreChain) CreateRawTransaction(ctx context.Context, inputs []RawInput, outputs []map[string]interface{}) (string, error) {
-	return c.rpc.CreateRawTransaction(ctx, inputs, outputs)
-}
-
 func (c coreChain) Broadcast(ctx context.Context, rawHex string) (string, error) {
 	return c.rpc.SendRawTransaction(ctx, rawHex)
-}
-
-func (c coreChain) DeriveAddresses(ctx context.Context, descriptor string, rangeStart, rangeEnd int) ([]string, error) {
-	return c.rpc.DeriveAddresses(ctx, descriptor, rangeStart, rangeEnd)
 }
 
 // ============================================================================

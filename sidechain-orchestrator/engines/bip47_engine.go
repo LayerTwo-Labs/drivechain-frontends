@@ -292,8 +292,7 @@ func (e *BIP47Engine) extendImportsForSender(ctx context.Context, walletID, seed
 
 	start := n.ImportedThroughIndex
 	end := start + bip47GapLimit
-	descriptors := make([]wallet.ImportDescriptor, 0, end-start)
-	timestamp := pickRescanTimestamp(n.FirstSeenBlockTime)
+	keys := make([]wallet.WatchKey, 0, end-start)
 	for i := start; i < end; i++ {
 		_, priv, err := bip47.DeriveReceivedPaymentAddress(seedHex, senderNotifPub, i, net, bip47.AddressP2PKH)
 		if err != nil {
@@ -305,32 +304,19 @@ func (e *BIP47Engine) extendImportsForSender(ctx context.Context, walletID, seed
 		if err != nil {
 			return fmt.Errorf("encode wif index %d: %w", i, err)
 		}
-		desc, err := wallet.AddDescriptorChecksum(fmt.Sprintf("pkh(%s)", wif.String()))
-		if err != nil {
-			return fmt.Errorf("checksum index %d: %w", i, err)
-		}
-		descriptors = append(descriptors, wallet.ImportDescriptor{
-			Desc:      desc,
-			Active:    false,
-			Timestamp: timestamp,
+		// If we know the notification block time the provider only scans
+		// forward from there (tight, fast); 0 requests a full rescan so the
+		// eventual payment to an unconfirmed notification is picked up.
+		keys = append(keys, wallet.WatchKey{
+			WIF:        wif.String(),
+			RescanFrom: n.FirstSeenBlockTime,
 		})
 	}
-	if len(descriptors) == 0 {
+	if len(keys) == 0 {
 		return nil
 	}
-	results, err := e.engine.Provider().WatchDescriptors(ctx, walletID, descriptors)
-	if err != nil {
-		return fmt.Errorf("importdescriptors: %w", err)
-	}
-	for i, r := range results {
-		if r.Success {
-			continue
-		}
-		msg := "unknown"
-		if r.Error != nil {
-			msg = r.Error.Message
-		}
-		e.log.Warn().Int("descriptor_index", i).Str("error", msg).Msg("per-payment descriptor import failed")
+	if err := e.engine.Provider().WatchKeys(ctx, walletID, keys); err != nil {
+		return fmt.Errorf("watch keys: %w", err)
 	}
 	if err := e.inbound.BumpImportedIndex(walletID, n.SenderPaymentCode, end); err != nil {
 		return fmt.Errorf("bump imported index: %w", err)
@@ -342,17 +328,6 @@ func (e *BIP47Engine) extendImportsForSender(ctx context.Context, walletID, seed
 		Uint32("to", end).
 		Msg("imported per-payment descriptors")
 	return nil
-}
-
-// pickRescanTimestamp converts a notification block time into a Core
-// importdescriptors timestamp value. If we know the block time, Core only
-// rescans forward from there (tight, fast). For unconfirmed notifications we
-// pass int64(0) so a full rescan picks up the eventual payment.
-func pickRescanTimestamp(firstSeenBlockTime int64) any {
-	if firstSeenBlockTime > 0 {
-		return firstSeenBlockTime
-	}
-	return int64(0)
 }
 
 // extractInputPubKey recovers the spending pubkey from a transaction input.
