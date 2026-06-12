@@ -25,9 +25,10 @@ type TxOutSpec struct {
 	OpReturnHex string
 }
 
-// BuildUnsignedTransaction assembles a raw unsigned transaction with Core's
-// createrawtransaction defaults: version 2, locktime 0, BIP125 sequence.
-// Outputs keep their given order.
+// BuildUnsignedTransaction assembles a raw unsigned transaction in-process,
+// for providers with no node to delegate to (electrum) — CoreProvider uses
+// createrawtransaction instead. Matches Core's defaults: version 2,
+// locktime 0, BIP125 sequence. Outputs keep their given order.
 func BuildUnsignedTransaction(inputs []RawInput, outputs []TxOutSpec, net *chaincfg.Params) (string, error) {
 	tx := wire.NewMsgTx(2)
 

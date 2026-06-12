@@ -373,19 +373,22 @@ func (p *CoreProvider) Send(ctx context.Context, walletID string, req SendReques
 			outputs = append(outputs, TxOutSpec{Address: changeAddress, AmountBTC: float64(changeSats) / 1e8})
 		}
 
-		rawHex, err := BuildUnsignedTransaction(inputs, outputs, p.network)
+		rawHex, err := p.rpc.CreateRawTransaction(ctx, inputs, rpcOutputs(outputs))
 		if err != nil {
 			return "", fmt.Errorf("create raw transaction: %w", err)
 		}
 		return p.signAndBroadcast(ctx, name, rawHex, req.ReplayProtect)
 	}
 
-	rawHex, err := BuildUnsignedTransaction(inputs, outputs, p.network)
+	rawHex, err := p.rpc.CreateRawTransaction(ctx, inputs, rpcOutputs(outputs))
 	if err != nil {
 		return "", fmt.Errorf("create raw transaction: %w", err)
 	}
 
-	options := map[string]interface{}{"add_inputs": len(inputs) == 0}
+	options := map[string]interface{}{}
+	if len(inputs) > 0 {
+		options["add_inputs"] = false
+	}
 	if req.FeeRateSatPerVB > 0 {
 		options["fee_rate"] = req.FeeRateSatPerVB
 	}
@@ -402,6 +405,19 @@ func (p *CoreProvider) Send(ctx context.Context, walletID string, req SendReques
 		return "", fmt.Errorf("fund raw transaction: %w", err)
 	}
 	return p.signAndBroadcast(ctx, name, funded.Hex, req.ReplayProtect)
+}
+
+// rpcOutputs maps outputs onto createrawtransaction's wire shape.
+func rpcOutputs(outputs []TxOutSpec) []map[string]interface{} {
+	out := make([]map[string]interface{}, 0, len(outputs))
+	for _, o := range outputs {
+		if o.OpReturnHex != "" {
+			out = append(out, map[string]interface{}{"data": o.OpReturnHex})
+			continue
+		}
+		out = append(out, map[string]interface{}{o.Address: o.AmountBTC})
+	}
+	return out
 }
 
 // buildSendOutputs maps the request's destinations (plus optional OP_RETURN)
