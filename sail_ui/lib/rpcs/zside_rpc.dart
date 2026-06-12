@@ -96,7 +96,7 @@ class ZSideLive extends ZSideRPC {
 
   ZSideLive() : super(binaryType: BinaryType.BINARY_TYPE_ZSIDE) {
     final transport = connect.Transport(
-      baseUrl: 'http://localhost:30400',
+      baseUrl: OrchestratorEndpoint.url,
       codec: const ProtoCodec(),
       httpClient: unaryHttpClient(),
       interceptors: [LocalAuth.interceptor()],

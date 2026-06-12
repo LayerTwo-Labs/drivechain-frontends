@@ -162,7 +162,7 @@ func (m *EnforcerConfManager) SaveConfig() error {
 // GetExpectedNodeRpcSettings derives RPC credentials from bitcoin config.
 // Dart: getExpectedNodeRpcSettings (L71)
 func (m *EnforcerConfManager) GetExpectedNodeRpcSettings() map[string]string {
-	const host = "127.0.0.1"
+	host := m.bitcoinConf.GetRPCHost()
 	const defaultZmqSequence = "tcp://127.0.0.1:29000"
 
 	port := m.bitcoinConf.GetRPCPort()

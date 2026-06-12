@@ -192,7 +192,13 @@ Future<(Directory, File, Logger)> init(String arguments) async {
   );
   GetIt.I.registerSingleton<BinaryProvider>(binaryProvider);
   GetIt.I.registerSingleton<BitcoindConnection>(BitcoindConnection());
-  GetIt.I.registerSingleton<EnforcerRPC>(EnforcerLive());
+  // Enforcer services are bridged by bitwindowd — same endpoint as BitwindowRPC.
+  GetIt.I.registerSingleton<EnforcerRPC>(
+    EnforcerLive(
+      host: Environment.bitwindowdHost.value,
+      port: Environment.bitwindowdPort.value,
+    ),
+  );
   // Shared system boundary for runtime and wallet flows used across apps.
   final orchestrator = OrchestratorRPC(
     host: Environment.orchestratorHost.value,

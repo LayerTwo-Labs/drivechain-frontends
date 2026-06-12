@@ -60,7 +60,7 @@ class BackendSidechainConfProvider extends GenericSidechainConfProvider {
 
   void _initClient() {
     final transport = connect.Transport(
-      baseUrl: 'http://localhost:30400',
+      baseUrl: OrchestratorEndpoint.url,
       codec: const ProtoCodec(),
       httpClient: keepaliveHttpClient(),
       interceptors: [LocalAuth.interceptor()],

@@ -278,7 +278,7 @@ func run(cctx *cli.Context) error {
 			password = orch.BitcoinConf.Config.GetEffectiveSetting("rpcpassword", section)
 		}
 
-		coreRPC := wallet.NewCoreRPCClient("localhost", port, user, password)
+		coreRPC := wallet.NewCoreRPCClient(orch.BitcoinConf.GetRPCHost(), port, user, password)
 		netParams, perr := bip47send.NetworkParams(network)
 		if perr != nil {
 			log.Warn().Err(perr).Str("network", network).Msg("unrecognised network; BIP47 features will be disabled")
@@ -307,7 +307,7 @@ func run(cctx *cli.Context) error {
 
 	// Lazy enforcer wallet client — used for enforcer-type wallets.
 	if enforcerCfg, ok := orch.Configs()["enforcer"]; ok {
-		enforcerURL := fmt.Sprintf("http://127.0.0.1:%d", enforcerCfg.Port)
+		enforcerURL := enforcerCfg.RPCURL()
 		httpClient := &http.Client{
 			Transport: &http2.Transport{
 				AllowHTTP: true,
@@ -384,7 +384,7 @@ func run(cctx *cli.Context) error {
 
 	// Per-sidechain typed RPC services (proxy to sidechain binary JSON-RPC)
 	for name, cfg := range orch.Configs() {
-		proxy := sidechain.NewJSONRPCProxy("127.0.0.1", cfg.Port)
+		proxy := sidechain.NewJSONRPCProxy(cfg.RPCHost(), cfg.Port)
 		switch name {
 		case "thunder":
 			h := thundersvc.NewHandler(proxy)
@@ -552,7 +552,7 @@ func startCoreProxy(ctx context.Context, orch *orchestrator.Orchestrator, log ze
 		password = orch.BitcoinConf.Config.GetEffectiveSetting("rpcpassword", section)
 	}
 
-	host := fmt.Sprintf("localhost:%d", port)
+	host := fmt.Sprintf("%s:%d", orch.BitcoinConf.GetRPCHost(), port)
 	log.Info().Str("host", host).Str("user", user).Msg("starting Bitcoin Core proxy")
 
 	// Quiet the proxy's connection logs — its rpcclient retries on a tight

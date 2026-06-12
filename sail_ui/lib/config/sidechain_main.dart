@@ -143,7 +143,10 @@ Future<void> initSidechainDependencies({
   if (!GetIt.I.isRegistered<BitcoindConnection>()) {
     GetIt.I.registerLazySingleton<BitcoindConnection>(() => mainchainRPC);
   }
-  final enforcer = GetIt.I.isRegistered<EnforcerRPC>() ? GetIt.I.get<EnforcerRPC>() : EnforcerLive();
+  // Sidechain apps have no bitwindowd; the enforcer is a local daemon here.
+  final enforcer = GetIt.I.isRegistered<EnforcerRPC>()
+      ? GetIt.I.get<EnforcerRPC>()
+      : EnforcerLive(host: 'localhost', port: Enforcer().port);
   if (!GetIt.I.isRegistered<EnforcerRPC>()) {
     GetIt.I.registerSingleton<EnforcerRPC>(enforcer);
   }
@@ -162,7 +165,7 @@ Future<void> initSidechainDependencies({
   // runs. initBackendManagedSidechainRuntime guards against double-registration.
   if (!GetIt.I.isRegistered<OrchestratorRPC>()) {
     GetIt.I.registerSingleton<OrchestratorRPC>(
-      OrchestratorRPC(host: 'localhost', port: 30400),
+      OrchestratorRPC(host: OrchestratorEndpoint.host, port: OrchestratorEndpoint.port),
     );
   }
 

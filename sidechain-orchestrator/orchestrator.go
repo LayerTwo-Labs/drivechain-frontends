@@ -583,7 +583,7 @@ func (o *Orchestrator) Status(name string) BinaryStatus {
 
 	// Quick port probe if not already known to be running.
 	if config.Port > 0 && !status.Running {
-		conn, err := net.DialTimeout("tcp", fmt.Sprintf("localhost:%d", config.Port), 200*time.Millisecond)
+		conn, err := net.DialTimeout("tcp", config.RPCAddr(), 200*time.Millisecond)
 		if err == nil {
 			_ = conn.Close()
 			status.PortInUse = true
@@ -1013,7 +1013,7 @@ func (o *Orchestrator) startEnforcerWhenReady(ctx context.Context, opts StartOpt
 	client, err := o.CoreStatusClient()
 	if err == nil {
 		o.log.Info().
-			Str("core_rpc", fmt.Sprintf("localhost:%d", o.BitcoinConf.GetRPCPort())).
+			Str("core_rpc", fmt.Sprintf("%s:%d", o.BitcoinConf.GetRPCHost(), o.BitcoinConf.GetRPCPort())).
 			Msg("waiting for header sync before starting enforcer")
 		var lastErr error
 		var errCount int
@@ -1538,7 +1538,7 @@ func (o *Orchestrator) callBitcoindStopRPC() error {
 }
 
 func (o *Orchestrator) callSidechainStopRPC(cfg BinaryConfig) error {
-	proxy := sidechain.NewJSONRPCProxy("127.0.0.1", cfg.Port)
+	proxy := sidechain.NewJSONRPCProxy(cfg.RPCHost(), cfg.Port)
 	rpcCtx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
 	return proxy.Stop(rpcCtx)
@@ -1560,7 +1560,7 @@ func (o *Orchestrator) callEnforcerStopRPC() error {
 	}
 	client := enforcerrpc.NewValidatorServiceClient(
 		httpClient,
-		fmt.Sprintf("http://127.0.0.1:%d", cfg.Port),
+		cfg.RPCURL(),
 		connect.WithGRPC(),
 	)
 	rpcCtx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
@@ -2258,7 +2258,7 @@ func (c *enforcerSyncConnection) Fetch(ctx context.Context) (*ChainSyncResult, e
 	}
 	client := enforcerrpc.NewValidatorServiceClient(
 		c.o.enforcerHTTP(),
-		fmt.Sprintf("http://127.0.0.1:%d", cfg.Port),
+		cfg.RPCURL(),
 		connect.WithGRPC(),
 	)
 	rpcCtx, cancel := context.WithTimeout(ctx, 2*time.Second)
@@ -2285,7 +2285,7 @@ func (c *sidechainSyncConnection) Fetch(ctx context.Context) (*ChainSyncResult, 
 	if !ok {
 		return nil, fmt.Errorf("unknown sidechain: %s", c.name)
 	}
-	proxy := sidechain.NewJSONRPCProxy("127.0.0.1", cfg.Port)
+	proxy := sidechain.NewJSONRPCProxy(cfg.RPCHost(), cfg.Port)
 	count, err := proxy.GetBlockCount(ctx)
 	if err != nil {
 		return nil, err
@@ -2724,15 +2724,16 @@ func (o *Orchestrator) CoreStatusClient() (*CoreStatusClient, error) {
 	// Cache the client (and therefore its underlying http.Client + connection
 	// pool) so back-to-back getblockchaininfo / getbalance calls reuse the
 	// same TCP connection instead of dialling a fresh one every time. The
-	// key is rebuilt only when port/user/password actually change — a
+	// key is rebuilt only when host/port/user/password actually change — a
 	// SetCoreVariant or auth swap will invalidate it cleanly.
-	key := fmt.Sprintf("%d|%s|%s", port, user, password)
+	host := o.BitcoinConf.GetRPCHost()
+	key := fmt.Sprintf("%s|%d|%s|%s", host, port, user, password)
 	o.httpClientsMu.Lock()
 	defer o.httpClientsMu.Unlock()
 	if o.coreStatusClient != nil && o.coreStatusClientKey == key {
 		return o.coreStatusClient, nil
 	}
-	o.coreStatusClient = NewCoreStatusClient("localhost", port, user, password)
+	o.coreStatusClient = NewCoreStatusClient(host, port, user, password)
 	o.coreStatusClientKey = key
 	return o.coreStatusClient, nil
 }

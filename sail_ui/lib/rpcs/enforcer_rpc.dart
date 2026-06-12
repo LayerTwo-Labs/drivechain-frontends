@@ -31,19 +31,25 @@ class EnforcerLive extends EnforcerRPC {
   late WalletServiceClient wallet;
   late grpc.Transport _grpcTransport;
 
-  EnforcerLive() : super(binaryType: BinaryType.BINARY_TYPE_ENFORCER) {
+  final String _host;
+  final int _port;
+  String get _baseUrl => 'http://$_host:$_port';
+
+  /// In bitwindow [host]/[port] point at bitwindowd, which bridges the
+  /// enforcer services; sidechain apps pass the enforcer's own address.
+  EnforcerLive({required this._host, required this._port}) : super(binaryType: BinaryType.BINARY_TYPE_ENFORCER) {
     _initializeConnection();
   }
 
   void _initializeConnection() {
     // Create new HTTP/2 transport and client
     final httpClient = unaryHttpClient();
-    final baseUrl = 'http://localhost:${binary.port}';
     _grpcTransport = grpc.Transport(
-      baseUrl: baseUrl,
+      baseUrl: _baseUrl,
       codec: const ProtoCodec(),
       httpClient: httpClient,
       statusParser: const StatusParser(),
+      interceptors: [LocalAuth.interceptor()],
     );
 
     validator = ValidatorServiceClient(_grpcTransport);
@@ -169,10 +175,9 @@ class EnforcerLive extends EnforcerRPC {
 
   @override
   Future<Map<String, dynamic>> getBlockTemplate() async {
-    // Call the enforcer's JSON-RPC server for getblocktemplate
-    // Port 8122 serves RPCs like getblocktemplate (not 8123 which serves other JSON-RPC methods)
+    // bitwindowd forwards this to the enforcer's JSON-RPC server.
     final response = await http.post(
-      Uri.parse('http://127.0.0.1:8122/'),
+      Uri.parse('$_baseUrl/enforcer/jsonrpc'),
       headers: {'content-type': 'application/json'},
       body: jsonEncode({
         'jsonrpc': '2.0',
@@ -212,9 +217,8 @@ class EnforcerLive extends EnforcerRPC {
   Future<dynamic> callRAW(String url, [String body = '{}']) async {
     try {
       final response = await LocalAuth.postJsonWithAuth(
-        // 30301 is correct! raw http requests must go through bitwindowd, because
-        // the enforcer does not have a http-server, only a grpc-server
-        Uri.parse('http://localhost:30301/$url'),
+        // Raw http requests go through bitwindowd's enforcer bridge.
+        Uri.parse('$_baseUrl/$url'),
         body: body,
       );
 

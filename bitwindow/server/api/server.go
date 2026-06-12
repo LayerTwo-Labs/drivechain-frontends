@@ -48,6 +48,10 @@ type Services struct {
 
 	OrchestratorAddr string // e.g. "http://localhost:30400"
 
+	// EnforcerJSONRPCAddr is the enforcer's JSON-RPC endpoint (host:port),
+	// served to the frontend via the /enforcer/jsonrpc passthrough.
+	EnforcerJSONRPCAddr string
+
 	// BitwindowDir is the base data dir (pre-network-suffix) holding wallet.json
 	// and .auth.cookie. Used to build the local-auth interceptor for both the
 	// inbound handlers and the orchestrator (WalletManager) client. Empty ⇒
