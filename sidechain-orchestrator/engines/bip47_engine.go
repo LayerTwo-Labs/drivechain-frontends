@@ -335,10 +335,7 @@ func (e *BIP47Engine) extendImportsForSender(ctx context.Context, walletID, seed
 // last element. For P2PKH the scriptSig is "<sig> <pubkey>" pushed sequentially
 // — return the last data push. Other input shapes (multisig, P2SH, taproot)
 // are not valid BIP47 designated inputs per the spec and return an error.
-func extractInputPubKey(witness []string, scriptSig *struct {
-	Asm string `json:"asm"`
-	Hex string `json:"hex"`
-}) (*btcec.PublicKey, error) {
+func extractInputPubKey(witness []string, scriptSig *wallet.ScriptSig) (*btcec.PublicKey, error) {
 	if len(witness) >= 2 {
 		// Witness stack: signature, pubkey. P2WPKH.
 		pubHex := witness[len(witness)-1]
