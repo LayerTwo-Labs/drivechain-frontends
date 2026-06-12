@@ -654,6 +654,8 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
   final SyncProvider _syncProvider = GetIt.I.get<SyncProvider>();
   DownloadProvider? get _downloadProvider =>
       GetIt.I.isRegistered<DownloadProvider>() ? GetIt.I.get<DownloadProvider>() : null;
+  BackendStateProvider? get _backendStateProvider =>
+      GetIt.I.isRegistered<BackendStateProvider>() ? GetIt.I.get<BackendStateProvider>() : null;
   WalletReaderProvider get _walletReader => GetIt.I<WalletReaderProvider>();
 
   // Resolve a Sidechain Binary to its SidechainType enum (key into
@@ -699,6 +701,8 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
     _binaryProvider.addListener(notifyListeners);
     _syncProvider.addListener(_onChange);
     _syncProvider.addListener(notifyListeners);
+    _backendStateProvider?.addListener(_onChange);
+    _backendStateProvider?.addListener(notifyListeners);
     // DownloadProvider polls every 100ms while downloads are active. Without
     // this listener the table never rebuilds during a download, so progress
     // never advances and the button doesn't flip from "Download" → "Start"
@@ -1197,6 +1201,8 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
     _binaryProvider.removeListener(notifyListeners);
     _syncProvider.removeListener(_onChange);
     _syncProvider.removeListener(notifyListeners);
+    _backendStateProvider?.removeListener(_onChange);
+    _backendStateProvider?.removeListener(notifyListeners);
     _downloadProvider?.removeListener(_onChange);
     _downloadProvider?.removeListener(notifyListeners);
     super.dispose();
