@@ -1602,11 +1602,13 @@ class _DepositModalState extends State<DepositModal> {
     }
 
     final bin = filePath([home, 'Library/Application Support/bitwindow/assets/bin/elements-cli']);
-    final datadir = filePath([home, 'Library/Application Support/bitwindow/liquid-signet']);
+    final datadir = Platform.environment['LIQUID_SIGNET_DATADIR'] ??
+        filePath([home, 'Library/Application Support/bitwindow/liquid-signet-layer2labs']);
+    final chain = Platform.environment['LIQUID_SIGNET_CHAIN'] ?? 'liquid-signet';
     final result = await Process.run(bin, [
-      '-regtest',
+      '-chain=$chain',
       '-datadir=$datadir',
-      '-rpcport=18443',
+      '-rpcport=28443',
       'getnewaddress',
     ]);
     if (result.exitCode != 0) {

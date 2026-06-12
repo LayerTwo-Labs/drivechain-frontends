@@ -173,7 +173,7 @@ class LiquidSignet extends Sidechain {
     super.repoUrl = 'https://github.com/ekulkisnek/liquid-drivechain-signet-adaptation',
     DirectoryConfig? directories,
     MetadataConfig? metadata,
-    super.port = 18443,
+    super.port = 28443,
     super.chainLayer = 2,
     super.downloadInfo = const DownloadInfo(),
     super.extraBootArgs = const [],

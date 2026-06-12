@@ -1,10 +1,16 @@
 package api_drivechain
 
 import (
+	"bytes"
 	"context"
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"io"
+	"net/http"
+	"os"
+	"path/filepath"
+	"strings"
 	"sync"
 
 	"connectrpc.com/connect"
@@ -16,6 +22,7 @@ import (
 	commonpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/common/v1"
 	validatorpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1"
 	validatorrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1/mainchainv1connect"
+	"github.com/btcsuite/btcd/btcutil"
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
 	"github.com/rs/zerolog"
 	"github.com/samber/lo"
@@ -23,6 +30,8 @@ import (
 )
 
 var _ rpc.DrivechainServiceHandler = new(Server)
+
+const liquidSignetSlot uint32 = 24
 
 // withdrawalCache stores cached withdrawal data per sidechain
 type withdrawalCache struct {
@@ -200,8 +209,9 @@ func (s *Server) ListSidechains(ctx context.Context, _ *connect.Request[pb.ListS
 	s.sidechainsCacheMu.RUnlock()
 
 	if cache != nil && cache.lastBlockHash == currentBlockHash {
+		sidechains := s.withLiquidSignetNodeBalances(ctx, cache.sidechains)
 		return connect.NewResponse(&pb.ListSidechainsResponse{
-			Sidechains: cache.sidechains,
+			Sidechains: sidechains,
 		}), nil
 	}
 
@@ -254,9 +264,160 @@ func (s *Server) ListSidechains(ctx context.Context, _ *connect.Request[pb.ListS
 	}
 	s.sidechainsCacheMu.Unlock()
 
+	sidechainList = s.withLiquidSignetNodeBalances(ctx, sidechainList)
+
 	return connect.NewResponse(&pb.ListSidechainsResponse{
 		Sidechains: sidechainList,
 	}), nil
+}
+
+func (s *Server) withLiquidSignetNodeBalances(ctx context.Context, sidechains []*pb.ListSidechainsResponse_Sidechain) []*pb.ListSidechainsResponse_Sidechain {
+	updated := make([]*pb.ListSidechainsResponse_Sidechain, len(sidechains))
+	for i, sidechain := range sidechains {
+		if sidechain == nil {
+			continue
+		}
+		clone := *sidechain
+		updated[i] = &clone
+	}
+
+	balanceSats, err := liquidSignetNodeBalanceSats(ctx)
+	if err != nil {
+		zerolog.Ctx(ctx).Warn().Err(err).Msg("could not fetch Liquid Signet wallet balance")
+		return updated
+	}
+	for _, sidechain := range updated {
+		if sidechain != nil && sidechain.Slot == liquidSignetSlot {
+			zerolog.Ctx(ctx).Info().
+				Uint32("slot", sidechain.Slot).
+				Int64("ctip_balance_sats", sidechain.BalanceSatoshi).
+				Int64("wallet_balance_sats", balanceSats).
+				Msg("using Liquid Signet wallet balance for sidechain")
+			sidechain.BalanceSatoshi = balanceSats
+			break
+		}
+	}
+	return updated
+}
+
+func liquidSignetNodeBalanceSats(ctx context.Context) (int64, error) {
+	var balance struct {
+		TotalSats int64 `json:"total_sats"`
+	}
+	if err := callLiquidSignetRPC(ctx, "balance", []any{}, &balance); err == nil {
+		return balance.TotalSats, nil
+	}
+
+	var walletInfo struct {
+		Balance            map[string]float64 `json:"balance"`
+		UnconfirmedBalance map[string]float64 `json:"unconfirmed_balance"`
+		ImmatureBalance    map[string]float64 `json:"immature_balance"`
+	}
+	if err := callLiquidSignetRPC(ctx, "getwalletinfo", []any{}, &walletInfo); err != nil {
+		return 0, err
+	}
+
+	amount, err := btcutil.NewAmount(walletInfo.Balance["bitcoin"] + walletInfo.UnconfirmedBalance["bitcoin"] + walletInfo.ImmatureBalance["bitcoin"])
+	if err != nil {
+		return 0, fmt.Errorf("parse Liquid Signet wallet balance: %w", err)
+	}
+	return int64(amount), nil
+}
+
+func callLiquidSignetRPC(ctx context.Context, method string, params any, out any) error {
+	endpoint, user, password, err := liquidSignetRPCConfig()
+	if err != nil {
+		return err
+	}
+
+	reqBody, err := json.Marshal(struct {
+		JSONRPC string `json:"jsonrpc"`
+		Method  string `json:"method"`
+		Params  any    `json:"params"`
+		ID      int    `json:"id"`
+	}{
+		JSONRPC: "2.0",
+		Method:  method,
+		Params:  params,
+		ID:      1,
+	})
+	if err != nil {
+		return fmt.Errorf("marshal Liquid Signet RPC request: %w", err)
+	}
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, endpoint, bytes.NewReader(reqBody))
+	if err != nil {
+		return fmt.Errorf("create Liquid Signet RPC request: %w", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.SetBasicAuth(user, password)
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return fmt.Errorf("post Liquid Signet RPC request: %w", err)
+	}
+	defer func() { _ = resp.Body.Close() }()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return fmt.Errorf("read Liquid Signet RPC response: %w", err)
+	}
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return fmt.Errorf("Liquid Signet RPC HTTP %d: %s", resp.StatusCode, strings.TrimSpace(string(body)))
+	}
+
+	var rpcResp struct {
+		Result json.RawMessage `json:"result"`
+		Error  *struct {
+			Code    int    `json:"code"`
+			Message string `json:"message"`
+		} `json:"error"`
+	}
+	if err := json.Unmarshal(body, &rpcResp); err != nil {
+		return fmt.Errorf("decode Liquid Signet RPC response: %w", err)
+	}
+	if rpcResp.Error != nil {
+		return fmt.Errorf("Liquid Signet RPC %s error %d: %s", method, rpcResp.Error.Code, rpcResp.Error.Message)
+	}
+	if out != nil {
+		if err := json.Unmarshal(rpcResp.Result, out); err != nil {
+			return fmt.Errorf("decode Liquid Signet RPC %s result: %w", method, err)
+		}
+	}
+	return nil
+}
+
+func liquidSignetRPCConfig() (endpoint string, user string, password string, err error) {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return "", "", "", fmt.Errorf("resolve home directory: %w", err)
+	}
+	if home == "" {
+		return "", "", "", fmt.Errorf("resolve home directory: empty HOME")
+	}
+
+	datadir := os.Getenv("LIQUID_SIGNET_DATADIR")
+	if datadir == "" {
+		datadir = filepath.Join(home, "Library", "Application Support", "bitwindow", "liquid-signet-layer2labs")
+	}
+	rpcPort := os.Getenv("LIQUID_SIGNET_RPCPORT")
+	if rpcPort == "" {
+		rpcPort = "28443"
+	}
+	chain := os.Getenv("LIQUID_SIGNET_CHAIN")
+	if chain == "" {
+		chain = "liquid-signet"
+	}
+
+	cookie, err := os.ReadFile(filepath.Join(datadir, chain, ".cookie"))
+	if err != nil {
+		return "", "", "", fmt.Errorf("read Liquid Signet RPC cookie: %w", err)
+	}
+	auth := strings.SplitN(strings.TrimSpace(string(cookie)), ":", 2)
+	if len(auth) != 2 {
+		return "", "", "", fmt.Errorf("read Liquid Signet RPC cookie: invalid cookie format")
+	}
+	return "http://127.0.0.1:" + rpcPort + "/", auth[0], auth[1], nil
 }
 
 // ProposeSidechain implements drivechainv1connect.DrivechainServiceHandler.

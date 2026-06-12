@@ -700,7 +700,7 @@
       "version": "latest",
       "description": "Elements/Liquid sidechain in slot 24.",
       "repo_url": "https://github.com/ekulkisnek/liquid-drivechain-signet-adaptation",
-      "port": 18443,
+      "port": 28443,
       "chain_layer": 2,
       "color": "blue",
       "health_check": {"type": "tcp"},
