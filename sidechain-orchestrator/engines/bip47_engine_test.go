@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"testing"
 
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/wallet"
 	"github.com/stretchr/testify/require"
 )
 
@@ -88,10 +89,7 @@ func TestExtractInputPubKey_P2PKH(t *testing.T) {
 	script = append(script, 0x21)
 	script = append(script, pub...)
 
-	scriptSig := &struct {
-		Asm string `json:"asm"`
-		Hex string `json:"hex"`
-	}{Hex: hex.EncodeToString(script)}
+	scriptSig := &wallet.ScriptSig{Hex: hex.EncodeToString(script)}
 
 	pk, err := extractInputPubKey(nil, scriptSig)
 	require.NoError(t, err)

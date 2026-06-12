@@ -260,19 +260,6 @@ func (c *CoreRPCClient) SendMany(ctx context.Context, walletName string, amounts
 }
 
 // WalletTransaction represents a transaction from listtransactions.
-type WalletTransaction struct {
-	Address       string  `json:"address"`
-	Category      string  `json:"category"`
-	Amount        float64 `json:"amount"`
-	Vout          int     `json:"vout"`
-	Fee           float64 `json:"fee"`
-	Confirmations int     `json:"confirmations"`
-	BlockTime     int64   `json:"blocktime"`
-	Time          int64   `json:"time"`
-	TxID          string  `json:"txid"`
-	Label         string  `json:"label"`
-}
-
 // ListTransactions returns recent transactions.
 func (c *CoreRPCClient) ListTransactions(ctx context.Context, walletName string, count int) ([]WalletTransaction, error) {
 	return c.ListTransactionsRange(ctx, walletName, count, 0)
@@ -299,18 +286,6 @@ func (c *CoreRPCClient) ListTransactionsRange(ctx context.Context, walletName st
 	return txs, nil
 }
 
-// UTXO represents an unspent output from listunspent.
-type UTXO struct {
-	TxID          string  `json:"txid"`
-	Vout          int     `json:"vout"`
-	Address       string  `json:"address"`
-	Label         string  `json:"label"`
-	Amount        float64 `json:"amount"`
-	Confirmations int     `json:"confirmations"`
-	Spendable     bool    `json:"spendable"`
-	Solvable      bool    `json:"solvable"`
-}
-
 // ListUnspent returns unspent outputs.
 func (c *CoreRPCClient) ListUnspent(ctx context.Context, walletName string) ([]UTXO, error) {
 	result, err := c.call(ctx, walletName, "listunspent")
@@ -322,58 +297,6 @@ func (c *CoreRPCClient) ListUnspent(ctx context.Context, walletName string) ([]U
 		return nil, fmt.Errorf("decode listunspent: %w", err)
 	}
 	return utxos, nil
-}
-
-type RawInput struct {
-	TxID string `json:"txid"`
-	Vout int    `json:"vout"`
-}
-
-type FundRawTransactionResult struct {
-	Hex       string  `json:"hex"`
-	Fee       float64 `json:"fee"`
-	ChangePos int     `json:"changepos"`
-}
-
-type SignRawTransactionResult struct {
-	Hex      string `json:"hex"`
-	Complete bool   `json:"complete"`
-}
-
-type RawTransaction struct {
-	TxID          string `json:"txid"`
-	Hash          string `json:"hash"`
-	Hex           string `json:"hex"`
-	Size          int32  `json:"size"`
-	Vsize         int32  `json:"vsize"`
-	Weight        int32  `json:"weight"`
-	Version       int32  `json:"version"`
-	Locktime      int32  `json:"locktime"`
-	Blockhash     string `json:"blockhash,omitempty"`
-	Confirmations int32  `json:"confirmations"`
-	BlockTime     int64  `json:"blocktime,omitempty"`
-	Time          int64  `json:"time,omitempty"`
-	Vin           []struct {
-		TxID      string `json:"txid,omitempty"`
-		Vout      int    `json:"vout,omitempty"`
-		Coinbase  string `json:"coinbase,omitempty"`
-		ScriptSig *struct {
-			Asm string `json:"asm"`
-			Hex string `json:"hex"`
-		} `json:"scriptSig,omitempty"`
-		Witness  []string `json:"txinwitness,omitempty"`
-		Sequence int64    `json:"sequence"`
-	} `json:"vin"`
-	Vout []struct {
-		Value        float64 `json:"value"`
-		N            int     `json:"n"`
-		ScriptPubKey struct {
-			Asm     string `json:"asm"`
-			Hex     string `json:"hex"`
-			Type    string `json:"type"`
-			Address string `json:"address,omitempty"`
-		} `json:"scriptPubKey"`
-	} `json:"vout"`
 }
 
 func (c *CoreRPCClient) FundRawTransaction(
@@ -441,15 +364,6 @@ func (c *CoreRPCClient) GetRawTransaction(ctx context.Context, txid string) (*Ra
 		return nil, fmt.Errorf("decode getrawtransaction: %w", err)
 	}
 	return &tx, nil
-}
-
-// ReceivedByAddress represents a result from listreceivedbyaddress.
-type ReceivedByAddress struct {
-	Address       string   `json:"address"`
-	Amount        float64  `json:"amount"`
-	Confirmations int      `json:"confirmations"`
-	Label         string   `json:"label"`
-	TxIDs         []string `json:"txids"`
 }
 
 // ListReceivedByAddress returns addresses that have received funds.

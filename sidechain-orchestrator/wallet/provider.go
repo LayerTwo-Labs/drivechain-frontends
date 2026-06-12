@@ -9,6 +9,13 @@ import (
 // the orchestrator wallet ID; resolving it to backend-specific state is the
 // provider's job. Implementations: CoreProvider (Bitcoin Core descriptor
 // wallets); electrum/btcd providers slot in behind the same interface.
+//
+// Providers that sign in-process instead of delegating to a node build on
+// the shared local primitives: DeriveBIP84Addresses (address derivation),
+// BuildUnsignedTransaction (tx assembly), and SignTransactionLocal with a
+// KeySource (P2WPKH/P2PKH signing). Type contracts for everything crossing
+// this interface live in provider_types.go. Wiring happens at one place,
+// cmd/orchestratord, by swapping the constructor.
 type Provider interface {
 	// Ensure makes walletID usable on the backend, creating backend state
 	// if needed, and returns the provider's handle for it (Core: the Core
@@ -51,29 +58,4 @@ type ChainSource interface {
 	GetRawTransaction(ctx context.Context, txid string) (*RawTransaction, error)
 	// Broadcast submits a raw tx to the network and returns its txid.
 	Broadcast(ctx context.Context, rawHex string) (string, error)
-}
-
-// WalletTx is the wallet's view of one of its own transactions.
-type WalletTx struct {
-	TxID          string  `json:"txid"`
-	Amount        float64 `json:"amount"`
-	Fee           float64 `json:"fee"`
-	Confirmations int32   `json:"confirmations"`
-	BlockTime     int64   `json:"blocktime"`
-	Time          int64   `json:"time"`
-	TimeReceived  int64   `json:"timereceived"`
-	Hex           string  `json:"hex"`
-}
-
-// FundOptions controls how a provider completes an unsigned transaction.
-type FundOptions struct {
-	AddInputs              bool  // select additional wallet inputs as needed
-	FeeRateSatPerVB        int64 // 0 = provider's own fee estimation
-	SubtractFeeFromOutputs []int // output indices that pay the fee
-}
-
-// WatchKey is one private key whose address the provider must track.
-type WatchKey struct {
-	WIF        string // compressed-pubkey WIF private key
-	RescanFrom int64  // unix time to scan from; 0 = genesis
 }
