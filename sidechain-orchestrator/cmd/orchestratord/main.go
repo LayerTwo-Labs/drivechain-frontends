@@ -268,7 +268,14 @@ func run(cctx *cli.Context) error {
 	walletHandler.SetOrchestrator(orch)
 	walletHandler.SetBip47StateStore(bip47state.NewStore(bitwindowDir))
 
-	// Set up wallet engine for Core RPC operations if bitcoin config is available
+	netParams, perr := bip47send.NetworkParams(network)
+	if perr != nil {
+		log.Warn().Err(perr).Str("network", network).Msg("unrecognised network; BIP47 features will be disabled")
+	}
+
+	// Chain wallet provider — CoreProvider today; electrum/btcd providers
+	// slot in behind the same wallet.Provider interface.
+	var chainProvider wallet.Provider
 	if orch.BitcoinConf != nil {
 		port := orch.BitcoinConf.GetRPCPort()
 		var user, password string
@@ -277,23 +284,38 @@ func run(cctx *cli.Context) error {
 			user = orch.BitcoinConf.Config.GetEffectiveSetting("rpcuser", section)
 			password = orch.BitcoinConf.Config.GetEffectiveSetting("rpcpassword", section)
 		}
-
 		coreRPC := wallet.NewCoreRPCClient(orch.BitcoinConf.GetRPCHost(), port, user, password)
-		netParams, perr := bip47send.NetworkParams(network)
-		if perr != nil {
-			log.Warn().Err(perr).Str("network", network).Msg("unrecognised network; BIP47 features will be disabled")
+		chainProvider = wallet.NewCoreProvider(walletSvc, coreRPC, netParams, log)
+		log.Info().Int("rpc_port", port).Msg("core wallet provider initialized")
+	}
+
+	// Enforcer wallet provider — relays the enforcer-type wallet to the
+	// enforcer daemon's wallet service.
+	var enforcerProvider wallet.Provider
+	if enforcerCfg, ok := orch.Configs()["enforcer"]; ok {
+		httpClient := &http.Client{
+			Transport: &http2.Transport{
+				AllowHTTP: true,
+				DialTLSContext: func(ctx context.Context, network, addr string, _ *tls.Config) (net.Conn, error) {
+					var d net.Dialer
+					return d.DialContext(ctx, network, addr)
+				},
+			},
 		}
-		// Provider selection happens here: CoreProvider today, electrum/btcd
-		// providers slot in behind the same wallet.Provider interface.
-		provider := wallet.NewCoreProvider(walletSvc, coreRPC, netParams, log)
-		walletEngine := wallet.NewWalletEngine(walletSvc, provider, netParams, log)
-		walletHandler.SetEngine(walletEngine)
+		enforcerClient := enforcerrpc.NewWalletServiceClient(httpClient, enforcerCfg.RPCURL(), connect.WithGRPC())
+		enforcerProvider = wallet.NewEnforcerProvider(enforcerClient)
+		orch.SetForkEnforcerWallet(enforcerClient)
+		log.Info().Int("enforcer_port", enforcerCfg.Port).Msg("enforcer wallet provider registered")
+	}
 
-		// Fork engine: single source of truth for eCash fork state, needs the
-		// same Core RPC + wallet access for its claimable scan.
+	router := wallet.NewRoutingProvider(walletSvc, enforcerProvider, chainProvider)
+	walletEngine := wallet.NewWalletEngine(walletSvc, router, netParams, log)
+	walletHandler.SetEngine(walletEngine)
+
+	if chainProvider != nil {
+		// Fork engine: single source of truth for eCash fork state, needs
+		// Core-backed wallet access for its claimable scan.
 		orch.InitForkEngine(walletEngine)
-
-		log.Info().Int("rpc_port", port).Msg("wallet engine initialized with Core RPC")
 
 		// BIP47 receive engine: watches each Core wallet's notification address
 		// for incoming notification txs, decodes their OP_RETURN payload to
@@ -306,24 +328,6 @@ func run(cctx *cli.Context) error {
 				log.Error().Err(err).Msg("bip47 engine exited")
 			}
 		}()
-	}
-
-	// Lazy enforcer wallet client — used for enforcer-type wallets.
-	if enforcerCfg, ok := orch.Configs()["enforcer"]; ok {
-		enforcerURL := enforcerCfg.RPCURL()
-		httpClient := &http.Client{
-			Transport: &http2.Transport{
-				AllowHTTP: true,
-				DialTLSContext: func(ctx context.Context, network, addr string, _ *tls.Config) (net.Conn, error) {
-					var d net.Dialer
-					return d.DialContext(ctx, network, addr)
-				},
-			},
-		}
-		enforcerClient := enforcerrpc.NewWalletServiceClient(httpClient, enforcerURL, connect.WithGRPC())
-		walletHandler.SetEnforcerWallet(enforcerClient)
-		orch.SetForkEnforcerWallet(enforcerClient)
-		log.Info().Int("enforcer_port", enforcerCfg.Port).Msg("enforcer wallet client registered")
 	}
 
 	walletPath, walletH := walletrpc.NewWalletManagerServiceHandler(walletHandler, connect.WithInterceptors(authIC))

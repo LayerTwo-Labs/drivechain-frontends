@@ -4,7 +4,10 @@ import (
 	"context"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"math"
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -14,6 +17,7 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/tyler-smith/go-bip32"
 
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/replay"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/wallet/bip47"
 )
 
@@ -305,35 +309,179 @@ func (p *CoreProvider) WatchKeys(ctx context.Context, walletID string, keys []Wa
 	return nil
 }
 
-func (p *CoreProvider) SendToAddress(ctx context.Context, walletID, address string, amount float64, subtractFee bool) (string, error) {
+// Send routes simple sends through Core's own coin selection
+// (sendtoaddress/sendmany) and everything else — fee control, OP_RETURN,
+// pinned inputs, replay protection — through the raw-tx path: build, fund,
+// sign, broadcast.
+func (p *CoreProvider) Send(ctx context.Context, walletID string, req SendRequest) (string, error) {
 	name, err := p.walletName(ctx, walletID)
 	if err != nil {
 		return "", err
 	}
-	return p.rpc.SendToAddress(ctx, name, address, amount, subtractFee)
+
+	needsRawPath := req.OpReturnHex != "" ||
+		req.FeeRateSatPerVB > 0 ||
+		req.FixedFeeSats > 0 ||
+		len(req.RequiredInputs) > 0 ||
+		req.ReplayProtect // custom serialization needs the raw-tx path
+
+	if !needsRawPath {
+		destinations := make(map[string]float64, len(req.DestinationsSats))
+		for addr, sats := range req.DestinationsSats {
+			destinations[addr] = float64(sats) / 1e8
+		}
+		if len(destinations) == 1 {
+			for addr, amount := range destinations {
+				return p.rpc.SendToAddress(ctx, name, addr, amount, req.SubtractFeeFromAmount)
+			}
+		}
+		return p.rpc.SendMany(ctx, name, destinations)
+	}
+
+	outputs, totalDestinationSats := buildSendOutputs(req)
+	inputs := make([]RawInput, 0, len(req.RequiredInputs))
+	selectedInputAmountSats := int64(0)
+	for _, in := range req.RequiredInputs {
+		inputs = append(inputs, RawInput{TxID: in.TxID, Vout: in.Vout})
+		selectedInputAmountSats += in.AmountSats
+	}
+
+	if req.FixedFeeSats > 0 {
+		if len(inputs) == 0 {
+			inputs, selectedInputAmountSats, err = p.selectInputsForFixedFee(
+				ctx, walletID, totalDestinationSats+req.FixedFeeSats,
+			)
+			if err != nil {
+				return "", err
+			}
+		}
+
+		changeSats := selectedInputAmountSats - totalDestinationSats - req.FixedFeeSats
+		if changeSats < 0 {
+			return "", fmt.Errorf(
+				"insufficient selected inputs: need %d sats, have %d sats",
+				totalDestinationSats+req.FixedFeeSats,
+				selectedInputAmountSats,
+			)
+		}
+
+		if changeSats >= 546 {
+			changeAddress, err := p.NextChangeAddress(ctx, walletID)
+			if err != nil {
+				return "", fmt.Errorf("get raw change address: %w", err)
+			}
+			outputs = append(outputs, TxOutSpec{Address: changeAddress, AmountBTC: float64(changeSats) / 1e8})
+		}
+
+		rawHex, err := BuildUnsignedTransaction(inputs, outputs, p.network)
+		if err != nil {
+			return "", fmt.Errorf("create raw transaction: %w", err)
+		}
+		return p.signAndBroadcast(ctx, name, rawHex, req.ReplayProtect)
+	}
+
+	rawHex, err := BuildUnsignedTransaction(inputs, outputs, p.network)
+	if err != nil {
+		return "", fmt.Errorf("create raw transaction: %w", err)
+	}
+
+	options := map[string]interface{}{"add_inputs": len(inputs) == 0}
+	if req.FeeRateSatPerVB > 0 {
+		options["fee_rate"] = req.FeeRateSatPerVB
+	}
+	if req.SubtractFeeFromAmount && len(req.DestinationsSats) > 0 {
+		subtractFeeFromOutputs := make([]int, 0, len(req.DestinationsSats))
+		for i := 0; i < len(req.DestinationsSats); i++ {
+			subtractFeeFromOutputs = append(subtractFeeFromOutputs, i)
+		}
+		options["subtractFeeFromOutputs"] = subtractFeeFromOutputs
+	}
+
+	funded, err := p.rpc.FundRawTransaction(ctx, name, rawHex, options)
+	if err != nil {
+		return "", fmt.Errorf("fund raw transaction: %w", err)
+	}
+	return p.signAndBroadcast(ctx, name, funded.Hex, req.ReplayProtect)
 }
 
-func (p *CoreProvider) SendMany(ctx context.Context, walletID string, amounts map[string]float64) (string, error) {
-	name, err := p.walletName(ctx, walletID)
-	if err != nil {
-		return "", err
+// buildSendOutputs maps the request's destinations (plus optional OP_RETURN)
+// to ordered outputs and returns the destination total in sats.
+func buildSendOutputs(req SendRequest) ([]TxOutSpec, int64) {
+	outputs := make([]TxOutSpec, 0, len(req.DestinationsSats)+1)
+	totalDestinationSats := int64(0)
+	for address, sats := range req.DestinationsSats {
+		outputs = append(outputs, TxOutSpec{Address: address, AmountBTC: float64(sats) / 1e8})
+		totalDestinationSats += sats
 	}
-	return p.rpc.SendMany(ctx, name, amounts)
+	if req.OpReturnHex != "" {
+		outputs = append(outputs, TxOutSpec{OpReturnHex: req.OpReturnHex})
+	}
+	return outputs, totalDestinationSats
 }
 
-func (p *CoreProvider) FundTransaction(ctx context.Context, walletID, rawHex string, opts FundOptions) (*FundRawTransactionResult, error) {
-	name, err := p.walletName(ctx, walletID)
+// selectInputsForFixedFee picks spendable UTXOs largest-first until they
+// cover requiredSats.
+func (p *CoreProvider) selectInputsForFixedFee(ctx context.Context, walletID string, requiredSats int64) ([]RawInput, int64, error) {
+	utxos, err := p.ListUnspent(ctx, walletID)
 	if err != nil {
-		return nil, err
+		return nil, 0, fmt.Errorf("list unspent: %w", err)
 	}
-	options := map[string]interface{}{"add_inputs": opts.AddInputs}
-	if opts.FeeRateSatPerVB > 0 {
-		options["fee_rate"] = opts.FeeRateSatPerVB
+
+	sort.Slice(utxos, func(i, j int) bool {
+		return utxos[i].Amount > utxos[j].Amount
+	})
+
+	selected := make([]RawInput, 0)
+	totalSats := int64(0)
+	for _, utxo := range utxos {
+		if !utxo.Spendable {
+			continue
+		}
+		selected = append(selected, RawInput{TxID: utxo.TxID, Vout: utxo.Vout})
+		totalSats += int64(math.Round(utxo.Amount * 1e8))
+		if totalSats >= requiredSats {
+			break
+		}
 	}
-	if len(opts.SubtractFeeFromOutputs) > 0 {
-		options["subtractFeeFromOutputs"] = opts.SubtractFeeFromOutputs
+
+	if totalSats < requiredSats {
+		return nil, 0, fmt.Errorf("insufficient funds: need %d sats, have %d sats", requiredSats, totalSats)
 	}
-	return p.rpc.FundRawTransaction(ctx, name, rawHex, options)
+	return selected, totalSats, nil
+}
+
+// signAndBroadcast signs via Core and broadcasts, applying the eCash fork's
+// replay protection around the signature when requested.
+func (p *CoreProvider) signAndBroadcast(ctx context.Context, name, rawHex string, replayProtect bool) (string, error) {
+	// Set the magic version BEFORE signing so the signature commits to it
+	// (the fork's sighash is computed over this version).
+	if replayProtect {
+		var err error
+		rawHex, err = replay.SetVersion(rawHex)
+		if err != nil {
+			return "", fmt.Errorf("set replay version: %w", err)
+		}
+	}
+
+	signed, err := p.rpc.SignRawTransactionWithWallet(ctx, name, rawHex)
+	if err != nil {
+		return "", fmt.Errorf("sign raw transaction: %w", err)
+	}
+	if !signed.Complete {
+		return "", errors.New("transaction signing incomplete")
+	}
+
+	hexToSend := signed.Hex
+	// Inject the extra byte AFTER signing — it's a serialization marker, not
+	// part of the sighash, and it makes the tx un-deserializable by Bitcoin.
+	if replayProtect {
+		hexToSend, err = replay.InjectReplayByte(hexToSend)
+		if err != nil {
+			return "", fmt.Errorf("inject replay byte: %w", err)
+		}
+	}
+
+	return p.rpc.SendRawTransaction(ctx, hexToSend)
 }
 
 func (p *CoreProvider) SignTransaction(ctx context.Context, walletID, rawHex string) (*SignRawTransactionResult, error) {

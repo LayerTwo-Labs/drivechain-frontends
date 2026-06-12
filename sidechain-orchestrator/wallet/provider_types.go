@@ -4,7 +4,9 @@ package wallet
 // Bitcoin Core's wallet RPC conventions and every provider must honor them:
 // amounts are BTC floats, send amounts and fees are negative.
 
-// UTXO is one unspent wallet output (listunspent shape).
+// UTXO is one unspent wallet output (listunspent shape). ReceivedAt is the
+// unix time the wallet first saw or confirmed the output when the provider
+// knows it directly; 0 means callers resolve it via GetWalletTransaction.
 type UTXO struct {
 	TxID          string  `json:"txid"`
 	Vout          int     `json:"vout"`
@@ -14,6 +16,7 @@ type UTXO struct {
 	Confirmations int     `json:"confirmations"`
 	Spendable     bool    `json:"spendable"`
 	Solvable      bool    `json:"solvable"`
+	ReceivedAt    int64   `json:"-"`
 }
 
 // WalletTransaction is one listtransactions entry: one row per affected
@@ -132,11 +135,24 @@ type SignRawTransactionResult struct {
 	Complete bool   `json:"complete"`
 }
 
-// FundOptions controls how a provider completes an unsigned transaction.
-type FundOptions struct {
-	AddInputs              bool  // select additional wallet inputs as needed
-	FeeRateSatPerVB        int64 // 0 = provider's own fee estimation
-	SubtractFeeFromOutputs []int // output indices that pay the fee
+// SendRequest is everything a provider needs to pay destinations: amounts,
+// fee control (rate or fixed), an optional OP_RETURN payload, pinned inputs,
+// and replay protection. Providers reject fields they cannot honor.
+type SendRequest struct {
+	DestinationsSats      map[string]int64
+	FeeRateSatPerVB       int64 // 0 = provider's own fee estimation
+	FixedFeeSats          int64 // mutually exclusive with FeeRateSatPerVB
+	OpReturnHex           string
+	RequiredInputs        []RequiredInput
+	SubtractFeeFromAmount bool
+	ReplayProtect         bool
+}
+
+// RequiredInput pins one outpoint that the transaction must spend.
+type RequiredInput struct {
+	TxID       string
+	Vout       int
+	AmountSats int64
 }
 
 // WatchKey is one private key whose address the provider must track.
