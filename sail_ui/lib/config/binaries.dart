@@ -37,6 +37,7 @@ Binary defaultBinaryFor(BinaryType type) => switch (type) {
   BinaryType.BINARY_TYPE_GRPCURL => GRPCurl(),
   BinaryType.BINARY_TYPE_ORCHESTRATORD => Orchestratord(),
   BinaryType.BINARY_TYPE_ZSIDED => ZSided(),
+  BinaryType.BINARY_TYPE_LIQUID_SIGNET => LiquidSignet(),
   _ => _unsupportedBinaryType(type),
 };
 
@@ -1273,6 +1274,7 @@ extension BinaryPaths on Binary {
       case BinaryType.BINARY_TYPE_TRUTHCOIN:
       case BinaryType.BINARY_TYPE_PHOTON:
       case BinaryType.BINARY_TYPE_COINSHIFT:
+      case BinaryType.BINARY_TYPE_LIQUID_SIGNET:
         if (GetIt.I.isRegistered<GenericSidechainConfProvider>()) {
           final provider = GetIt.I<GenericSidechainConfProvider>();
           final customDir = provider.currentConfig?.getSetting('datadir');
@@ -1317,6 +1319,7 @@ extension BinaryPaths on Binary {
       case BinaryType.BINARY_TYPE_TRUTHCOIN:
       case BinaryType.BINARY_TYPE_PHOTON:
       case BinaryType.BINARY_TYPE_COINSHIFT:
+      case BinaryType.BINARY_TYPE_LIQUID_SIGNET:
       case BinaryType.BINARY_TYPE_GRPCURL:
       case BinaryType.BINARY_TYPE_ORCHESTRATORD:
       case BinaryType.BINARY_TYPE_ZSIDED:

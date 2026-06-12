@@ -182,6 +182,10 @@ class BackendStateProvider extends ChangeNotifier {
         return BinaryType.BINARY_TYPE_PHOTON;
       case 'coinshift':
         return BinaryType.BINARY_TYPE_COINSHIFT;
+      case 'liquid-signet':
+      case 'liquid':
+      case 'elements':
+        return BinaryType.BINARY_TYPE_LIQUID_SIGNET;
       default:
         return null;
     }

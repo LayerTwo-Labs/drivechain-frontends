@@ -42,6 +42,11 @@ abstract class Sidechain extends Binary {
 
       case 'coinshift':
         return CoinShift();
+
+      case 'liquid-signet':
+      case 'liquid':
+      case 'elements':
+        return LiquidSignet();
     }
     return null;
   }
@@ -142,9 +147,95 @@ abstract class Sidechain extends Binary {
           port: binary.port,
           chainLayer: binary.chainLayer,
         );
+      case 'Liquid Signet':
+      case 'liquid-signet':
+        return LiquidSignet(
+          name: binary.name,
+          version: binary.version,
+          description: binary.description,
+          repoUrl: binary.repoUrl,
+          directories: binary.directories,
+          metadata: binary.metadata,
+          port: binary.port,
+          chainLayer: binary.chainLayer,
+        );
       default:
         throw Exception('Unknown sidechain binary type: ${binary.runtimeType}');
     }
+  }
+}
+
+class LiquidSignet extends Sidechain {
+  LiquidSignet({
+    super.name = 'Liquid Signet',
+    super.version = 'latest',
+    super.description = 'Elements/Liquid sidechain',
+    super.repoUrl = 'https://github.com/ekulkisnek/liquid-drivechain-signet-adaptation',
+    DirectoryConfig? directories,
+    MetadataConfig? metadata,
+    super.port = 18443,
+    super.chainLayer = 2,
+    super.downloadInfo = const DownloadInfo(),
+    super.extraBootArgs = const [],
+  }) : super(
+         directories:
+             directories ??
+             DirectoryConfig(
+               binary: allNetworks({
+                 OS.linux: 'liquid-signet',
+                 OS.macos: 'liquid-signet',
+                 OS.windows: 'liquid-signet',
+               }),
+               flutterFrontend: const {},
+             ),
+         metadata:
+             metadata ??
+             MetadataConfig(
+               downloadConfig: DownloadConfig(
+                 binary: 'liquid-signet',
+                 files: allNetworks({OS.linux: '', OS.macos: '', OS.windows: ''}),
+               ),
+               remoteTimestamp: null,
+               downloadedTimestamp: null,
+               binaryPath: null,
+               updateable: false,
+             ),
+       );
+
+  @override
+  int get slot => 24;
+
+  @override
+  BinaryType get type => BinaryType.BINARY_TYPE_LIQUID_SIGNET;
+
+  @override
+  Color get color => Colors.blue;
+
+  @override
+  LiquidSignet copyWith({
+    String? version,
+    String? description,
+    String? repoUrl,
+    DirectoryConfig? directories,
+    MetadataConfig? metadata,
+    String? binary,
+    int? port,
+    int? chainLayer,
+    DownloadInfo? downloadInfo,
+    List<String>? extraBootArgs,
+  }) {
+    return LiquidSignet(
+      name: name,
+      version: version ?? this.version,
+      description: description ?? this.description,
+      repoUrl: repoUrl ?? this.repoUrl,
+      directories: directories ?? this.directories,
+      metadata: metadata ?? this.metadata,
+      port: port ?? this.port,
+      chainLayer: chainLayer ?? this.chainLayer,
+      downloadInfo: downloadInfo ?? this.downloadInfo,
+      extraBootArgs: extraBootArgs ?? this.extraBootArgs,
+    );
   }
 }
 

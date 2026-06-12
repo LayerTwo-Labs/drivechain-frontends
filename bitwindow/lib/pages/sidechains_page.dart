@@ -442,7 +442,10 @@ class OnlyFilledTable extends ViewModelWidget<SidechainsViewModel> {
       variant: ButtonVariant.primary,
       insideTable: true,
       disabled: isDisabled,
-      onPressed: () => showDepositModal(context, slot, sidechain.info.title),
+      onPressed: () {
+        viewModel.selectSidechain(slot);
+        return showDepositModal(context, slot, sidechain.info.title);
+      },
     );
 
     if (!isDisabled) return button;
@@ -628,7 +631,10 @@ class FullTable extends ViewModelWidget<SidechainsViewModel> {
       variant: ButtonVariant.primary,
       insideTable: true,
       disabled: !viewModel.isSidechainRunning(slot) || viewModel.isUsingBitcoinCoreWallet,
-      onPressed: () => showDepositModal(context, slot, sidechain.info.title),
+      onPressed: () {
+        viewModel.selectSidechain(slot);
+        return showDepositModal(context, slot, sidechain.info.title);
+      },
     );
 
     if (tooltipMessage == null) return button;
@@ -660,6 +666,7 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
     Truthcoin() => SidechainType.SIDECHAIN_TYPE_TRUTHCOIN,
     Photon() => SidechainType.SIDECHAIN_TYPE_PHOTON,
     CoinShift() => SidechainType.SIDECHAIN_TYPE_COINSHIFT,
+    LiquidSignet() => SidechainType.SIDECHAIN_TYPE_LIQUID_SIGNET,
     _ => null,
   };
 
@@ -780,19 +787,7 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
       return false;
     }
 
-    return switch (sidechain) {
-      var b when b is Thunder => (GetIt.I.isRegistered<ThunderRPC>() ? GetIt.I.get<ThunderRPC>().connected : false),
-      var b when b is BitNames => (GetIt.I.isRegistered<BitnamesRPC>() ? GetIt.I.get<BitnamesRPC>().connected : false),
-      var b when b is BitAssets =>
-        (GetIt.I.isRegistered<BitAssetsRPC>() ? GetIt.I.get<BitAssetsRPC>().connected : false),
-      var b when b is ZSide => (GetIt.I.isRegistered<ZSideRPC>() ? GetIt.I.get<ZSideRPC>().connected : false),
-      var b when b is Truthcoin =>
-        (GetIt.I.isRegistered<TruthcoinRPC>() ? GetIt.I.get<TruthcoinRPC>().connected : false),
-      var b when b is Photon => (GetIt.I.isRegistered<PhotonRPC>() ? GetIt.I.get<PhotonRPC>().connected : false),
-      var b when b is CoinShift =>
-        (GetIt.I.isRegistered<CoinShiftRPC>() ? GetIt.I.get<CoinShiftRPC>().connected : false),
-      _ => false,
-    };
+    return _binaryProvider.isConnected(sidechain);
   }
 
   Widget? sidechainWidget(int slot) {
@@ -1045,6 +1040,12 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
   int? _selectedIndex;
 
   int? get selectedIndex => _selectedIndex;
+
+  void selectSidechain(int index) {
+    if (_selectedIndex == index) return;
+    _selectedIndex = index;
+    notifyListeners();
+  }
 
   void toggleSelection(int index) {
     if (_selectedIndex == index) {

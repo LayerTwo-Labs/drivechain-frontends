@@ -560,6 +560,9 @@ func (o *Orchestrator) Status(name string) BinaryStatus {
 	}
 	_, statErr := os.Stat(binPath)
 	downloaded := statErr == nil
+	if config.Name == "liquid-signet" {
+		downloaded = liquidSignetInstalled(o.DataDir, config.BinaryName)
+	}
 	status := BinaryStatus{
 		Name:         config.Name,
 		DisplayName:  config.DisplayName,

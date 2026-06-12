@@ -138,6 +138,12 @@ func (d *DownloadManager) DownloadWithOptions(ctx context.Context, config Binary
 	}
 
 	if !force {
+		if config.Name == "liquid-signet" && liquidSignetInstalled(d.dataDir, config.BinaryName) {
+			ch := make(chan DownloadProgress, 1)
+			ch <- DownloadProgress{Message: binPath, Done: true}
+			close(ch)
+			return ch, nil
+		}
 		if _, err := os.Stat(binPath); err == nil {
 			ch := make(chan DownloadProgress, 1)
 			ch <- DownloadProgress{Message: binPath, Done: true}
@@ -160,6 +166,9 @@ func (d *DownloadManager) DownloadWithOptions(ctx context.Context, config Binary
 		fileName = scVariant.FileName
 		baseURL = scVariant.BaseURL
 	default:
+		if config.Name == "liquid-signet" {
+			return d.setupLocalLiquidSignet(ctx, config, binPath)
+		}
 		f, err := config.FileForPlatform()
 		if err != nil {
 			return nil, err
@@ -376,6 +385,134 @@ func (d *DownloadManager) States() map[string]DownloadState {
 		return true
 	})
 	return out
+}
+
+func (d *DownloadManager) setupLocalLiquidSignet(ctx context.Context, config BinaryConfig, binPath string) (<-chan DownloadProgress, error) {
+	ch := make(chan DownloadProgress, 8)
+	if _, loaded := d.inFlight.LoadOrStore(config.Name, true); loaded {
+		return nil, fmt.Errorf("%s is already being downloaded", config.Name)
+	}
+	d.state.Store(config.Name, DownloadState{Running: true, Message: "installing local Elements node..."})
+
+	go func() {
+		defer d.inFlight.Delete(config.Name)
+		defer d.state.Delete(config.Name)
+		defer close(ch)
+
+		send := func(p DownloadProgress) bool {
+			if p.Error == nil && !p.Done {
+				d.state.Store(config.Name, DownloadState{Running: true, Message: p.Message})
+			}
+			select {
+			case ch <- p:
+				return true
+			case <-ctx.Done():
+				return false
+			}
+		}
+
+		elementsd, err := findLocalLiquidBinary("elementsd")
+		if err != nil {
+			send(DownloadProgress{Error: err})
+			return
+		}
+		elementsCli, _ := findLocalLiquidBinary("elements-cli")
+		if err := os.MkdirAll(filepath.Dir(binPath), 0o755); err != nil {
+			send(DownloadProgress{Error: err})
+			return
+		}
+		if err := copyFileMode(elementsd, filepath.Join(filepath.Dir(binPath), "elementsd"), 0o755); err != nil {
+			send(DownloadProgress{Error: err})
+			return
+		}
+		if elementsCli != "" {
+			_ = copyFileMode(elementsCli, filepath.Join(filepath.Dir(binPath), "elements-cli"), 0o755)
+		}
+		if err := writeLiquidSignetLauncher(binPath); err != nil {
+			send(DownloadProgress{Error: err})
+			return
+		}
+		send(DownloadProgress{Message: binPath, Done: true})
+	}()
+	return ch, nil
+}
+
+func liquidSignetInstalled(dataDir, binaryName string) bool {
+	binPath := BinaryPath(dataDir, binaryName)
+	if _, err := os.Stat(binPath); err != nil {
+		return false
+	}
+	if _, err := os.Stat(filepath.Join(filepath.Dir(binPath), "elementsd")); err != nil {
+		return false
+	}
+	return true
+}
+
+func findLocalLiquidBinary(name string) (string, error) {
+	candidates := []string{
+		filepath.Join("/Volumes/T705/code/liquid-drivechain-signet-adaptation/src", name),
+		filepath.Join("/Volumes/T705/code/liquid-signet-sidechain/src", name),
+		filepath.Join(os.Getenv("HOME"), "code/liquid-drivechain-signet-adaptation/src", name),
+	}
+	for _, p := range candidates {
+		if st, err := os.Stat(p); err == nil && !st.IsDir() {
+			return p, nil
+		}
+	}
+	return "", fmt.Errorf("could not find local %s binary; build liquid-drivechain-signet-adaptation first", name)
+}
+
+func copyFileMode(src, dst string, mode os.FileMode) error {
+	in, err := os.Open(src)
+	if err != nil {
+		return err
+	}
+	defer in.Close() //nolint:errcheck
+	out, err := os.OpenFile(dst, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, mode)
+	if err != nil {
+		return err
+	}
+	if _, err := io.Copy(out, in); err != nil {
+		_ = out.Close()
+		return err
+	}
+	return out.Close()
+}
+
+func writeLiquidSignetLauncher(path string) error {
+	script := `#!/usr/bin/env bash
+set -euo pipefail
+BIN_DIR="$(cd "$(dirname "$0")" && pwd)"
+DATADIR="${LIQUID_SIGNET_DATADIR:-$HOME/Library/Application Support/bitwindow/liquid-signet}"
+RPCPORT="${LIQUID_SIGNET_RPCPORT:-18443}"
+P2PPORT="${LIQUID_SIGNET_P2PPORT:-18444}"
+MAINCHAIN_RPC_PORT="${LIQUID_SIGNET_MAINCHAIN_RPC_PORT:-38332}"
+MAINCHAIN_RPC_USER="${LIQUID_SIGNET_MAINCHAIN_RPC_USER:-user}"
+MAINCHAIN_RPC_PASSWORD="${LIQUID_SIGNET_MAINCHAIN_RPC_PASSWORD:-password}"
+PARENT_GENESIS="${LIQUID_SIGNET_PARENT_GENESIS:-00000008819873e925422c1ff0f99f7cc9bbb232af63a077a480a3633bee1ef6}"
+PASS=()
+port_from_addr() { echo "${1##*:}"; }
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --datadir|-datadir) DATADIR="$2"; shift 2;;
+    --datadir=*|-datadir=*) DATADIR="${1#*=}"; shift;;
+    --rpc-addr|-rpc-addr) RPCPORT="$(port_from_addr "$2")"; shift 2;;
+    --rpc-addr=*|-rpc-addr=*) RPCPORT="$(port_from_addr "${1#*=}")"; shift;;
+    --net-addr|-net-addr) P2PPORT="$(port_from_addr "$2")"; shift 2;;
+    --net-addr=*|-net-addr=*) P2PPORT="$(port_from_addr "${1#*=}")"; shift;;
+    --mainchain-grpc-url|-mainchain-grpc-url) shift 2;;
+    --mainchain-grpc-url=*|-mainchain-grpc-url=*) shift;;
+    --log-level|--log-level-file|-log-level|-log-level-file|--network|-network) shift 2;;
+    --log-level=*|--log-level-file=*|-log-level=*|-log-level-file=*|--network=*|-network=*) shift;;
+    --headless|-headless|--mnemonic-seed-phrase-path=*|-mnemonic-seed-phrase-path=*) shift;;
+    --mnemonic-seed-phrase-path|-mnemonic-seed-phrase-path) shift 2;;
+    *) PASS+=("$1"); shift;;
+  esac
+done
+mkdir -p "$DATADIR"
+exec "$BIN_DIR/elementsd" -regtest -datadir="$DATADIR" -rpcbind=127.0.0.1 -rpcport="$RPCPORT" -rpcallowip=127.0.0.1 -port="$P2PPORT" -bind=127.0.0.1 -listen=1 -server=1 -txindex=1 -validatepegin=1 -con_has_parent_chain=1 -parentgenesisblockhash="$PARENT_GENESIS" -parentpubkeyprefix=111 -parentscriptprefix=196 -parent_bech32_hrp=tb -mainchainrpcport="$MAINCHAIN_RPC_PORT" -mainchainrpcuser="$MAINCHAIN_RPC_USER" -mainchainrpcpassword="$MAINCHAIN_RPC_PASSWORD" "${PASS[@]}"
+`
+	return os.WriteFile(path, []byte(script), 0o755)
 }
 
 // resolveGitHubURL queries the GitHub releases API and finds the asset
