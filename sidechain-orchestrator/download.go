@@ -487,6 +487,8 @@ DATADIR="${LIQUID_SIGNET_DATADIR:-$HOME/Library/Application Support/bitwindow/li
 RPCPORT="${LIQUID_SIGNET_RPCPORT:-18443}"
 P2PPORT="${LIQUID_SIGNET_P2PPORT:-18444}"
 SIDECHAIN_ID="${LIQUID_SIGNET_SIDECHAIN_ID:-24}"
+CHAIN="${LIQUID_SIGNET_CHAIN:-signet}"
+SIGNET_CHALLENGE="${LIQUID_SIGNET_SIGNET_CHALLENGE:-00148835832e28c816b7acd8fdb19772ab2199603a56}"
 MAINCHAIN_RPC_PORT="${LIQUID_SIGNET_MAINCHAIN_RPC_PORT:-38332}"
 MAINCHAIN_RPC_USER="${LIQUID_SIGNET_MAINCHAIN_RPC_USER:-user}"
 MAINCHAIN_RPC_PASSWORD="${LIQUID_SIGNET_MAINCHAIN_RPC_PASSWORD:-password}"
@@ -512,7 +514,7 @@ while [[ $# -gt 0 ]]; do
 done
 mkdir -p "$DATADIR"
 export ELEMENTS_DRIVECHAIN_SIDECHAIN_ID="$SIDECHAIN_ID"
-exec "$BIN_DIR/elementsd" -regtest -datadir="$DATADIR" -rpcbind=127.0.0.1 -rpcport="$RPCPORT" -rpcallowip=127.0.0.1 -port="$P2PPORT" -bind=127.0.0.1 -listen=1 -server=1 -txindex=1 -validatepegin=1 -con_has_parent_chain=1 -parentgenesisblockhash="$PARENT_GENESIS" -parentpubkeyprefix=111 -parentscriptprefix=196 -parent_bech32_hrp=tb -mainchainrpcport="$MAINCHAIN_RPC_PORT" -mainchainrpcuser="$MAINCHAIN_RPC_USER" -mainchainrpcpassword="$MAINCHAIN_RPC_PASSWORD" "${PASS[@]}"
+exec "$BIN_DIR/elementsd" -chain="$CHAIN" -signetchallenge="$SIGNET_CHALLENGE" -datadir="$DATADIR" -rpcbind=127.0.0.1 -rpcport="$RPCPORT" -rpcallowip=127.0.0.1 -port="$P2PPORT" -bind=127.0.0.1 -listen=1 -listenonion=0 -server=1 -txindex=1 -validatepegin=1 -con_has_parent_chain=1 -parentgenesisblockhash="$PARENT_GENESIS" -parentpubkeyprefix=111 -parentscriptprefix=196 -parent_bech32_hrp=tb -mainchainrpcport="$MAINCHAIN_RPC_PORT" -mainchainrpcuser="$MAINCHAIN_RPC_USER" -mainchainrpcpassword="$MAINCHAIN_RPC_PASSWORD" "${PASS[@]}"
 `
 	return os.WriteFile(path, []byte(script), 0o755)
 }
