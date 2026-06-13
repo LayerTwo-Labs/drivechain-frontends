@@ -529,6 +529,14 @@ func (s *Server) GetNewAddress(ctx context.Context, c *connect.Request[pb.GetNew
 			return nil, err
 		}
 
+	case engines.WalletTypeElectrum:
+		// Electrum path — orchestrator derives the address and serves chain
+		// data over Esplora.
+		address, err = s.walletEngine.GetElectrumReceiveAddress(ctx, walletId)
+		if err != nil {
+			return nil, err
+		}
+
 	default:
 		return nil, fmt.Errorf("unknown wallet type: %s", walletType)
 	}
@@ -831,6 +839,16 @@ func (s *Server) GetBalance(ctx context.Context, c *connect.Request[pb.GetBalanc
 		confirmedSats := uint64(balancesResp.Msg.Watchonly.Trusted * 100_000_000)
 		pendingSats := uint64(balancesResp.Msg.Watchonly.UntrustedPending * 100_000_000)
 
+		return connect.NewResponse(&pb.GetBalanceResponse{
+			ConfirmedSatoshi: confirmedSats,
+			PendingSatoshi:   pendingSats,
+		}), nil
+
+	case engines.WalletTypeElectrum:
+		confirmedSats, pendingSats, err := s.walletEngine.GetElectrumBalance(ctx, walletId)
+		if err != nil {
+			return nil, err
+		}
 		return connect.NewResponse(&pb.GetBalanceResponse{
 			ConfirmedSatoshi: confirmedSats,
 			PendingSatoshi:   pendingSats,

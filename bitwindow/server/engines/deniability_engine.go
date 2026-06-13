@@ -297,6 +297,8 @@ func (e *DeniabilityEngine) ProcessUTXO(ctx context.Context, utxo *pb.ListUnspen
 		txid, err = e.sendBitcoinCoreTransaction(ctx, walletId, destinations)
 	case WalletTypeWatchOnly:
 		return fmt.Errorf("cannot send transactions from watch-only wallet")
+	case WalletTypeElectrum:
+		return fmt.Errorf("deniability is not supported for electrum wallets")
 	default:
 		return fmt.Errorf("unknown wallet type: %s", walletType)
 	}
@@ -539,6 +541,8 @@ func (e *DeniabilityEngine) simpleSplit(
 		address, err = e.getBitcoinCoreNewAddress(ctx, walletId)
 	case WalletTypeWatchOnly:
 		return nil, fmt.Errorf("deniability not supported for watch-only wallets")
+	case WalletTypeElectrum:
+		return nil, fmt.Errorf("deniability not supported for electrum wallets")
 	default:
 		return nil, fmt.Errorf("unsupported wallet type for deniability: %s", walletType)
 	}
@@ -587,6 +591,8 @@ func (e *DeniabilityEngine) targetAmountSplit(
 		address, err = e.getBitcoinCoreNewAddress(ctx, walletId)
 	case WalletTypeWatchOnly:
 		return nil, fmt.Errorf("deniability not supported for watch-only wallets")
+	case WalletTypeElectrum:
+		return nil, fmt.Errorf("deniability not supported for electrum wallets")
 	default:
 		return nil, fmt.Errorf("unsupported wallet type for deniability: %s", walletType)
 	}
@@ -693,6 +699,9 @@ func (e *DeniabilityEngine) listUTXOsForWallet(ctx context.Context, walletId str
 
 	case WalletTypeWatchOnly:
 		return nil, fmt.Errorf("deniability not supported for watch-only wallets")
+
+	case WalletTypeElectrum:
+		return nil, fmt.Errorf("deniability not supported for electrum wallets")
 
 	default:
 		return nil, fmt.Errorf("unknown wallet type: %s", walletType)
