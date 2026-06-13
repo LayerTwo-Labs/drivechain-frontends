@@ -285,6 +285,13 @@ message CreateElectrumWalletRequest {
   string gradient_json = 2;
   // Optional sidechain slots to provision starter material for. Empty = all.
   repeated uint32 slots = 3;
+  // Optional BIP39 mnemonic to import an existing seed. Empty = generate a
+  // new seed. Mutually exclusive with xpub_or_descriptor.
+  string custom_mnemonic = 4;
+  // Optional xpub or output descriptor for a watch-only electrum wallet
+  // (no private keys; cannot sign or send). Mutually exclusive with
+  // custom_mnemonic.
+  string xpub_or_descriptor = 5;
 }
 
 message CreateElectrumWalletResponse {

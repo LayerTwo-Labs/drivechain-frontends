@@ -2263,6 +2263,8 @@ class CreateElectrumWalletRequest extends $pb.GeneratedMessage {
     $core.String? name,
     $core.String? gradientJson,
     $core.Iterable<$core.int>? slots,
+    $core.String? customMnemonic,
+    $core.String? xpubOrDescriptor,
   }) {
     final $result = create();
     if (name != null) {
@@ -2274,6 +2276,12 @@ class CreateElectrumWalletRequest extends $pb.GeneratedMessage {
     if (slots != null) {
       $result.slots.addAll(slots);
     }
+    if (customMnemonic != null) {
+      $result.customMnemonic = customMnemonic;
+    }
+    if (xpubOrDescriptor != null) {
+      $result.xpubOrDescriptor = xpubOrDescriptor;
+    }
     return $result;
   }
   CreateElectrumWalletRequest._() : super();
@@ -2284,6 +2292,8 @@ class CreateElectrumWalletRequest extends $pb.GeneratedMessage {
     ..aOS(1, _omitFieldNames ? '' : 'name')
     ..aOS(2, _omitFieldNames ? '' : 'gradientJson')
     ..p<$core.int>(3, _omitFieldNames ? '' : 'slots', $pb.PbFieldType.KU3)
+    ..aOS(4, _omitFieldNames ? '' : 'customMnemonic')
+    ..aOS(5, _omitFieldNames ? '' : 'xpubOrDescriptor')
     ..hasRequiredFields = false
   ;
 
@@ -2329,6 +2339,29 @@ class CreateElectrumWalletRequest extends $pb.GeneratedMessage {
   /// Optional sidechain slots to provision starter material for. Empty = all.
   @$pb.TagNumber(3)
   $core.List<$core.int> get slots => $_getList(2);
+
+  /// Optional BIP39 mnemonic to import an existing seed. Empty = generate a
+  /// new seed. Mutually exclusive with xpub_or_descriptor.
+  @$pb.TagNumber(4)
+  $core.String get customMnemonic => $_getSZ(3);
+  @$pb.TagNumber(4)
+  set customMnemonic($core.String v) { $_setString(3, v); }
+  @$pb.TagNumber(4)
+  $core.bool hasCustomMnemonic() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearCustomMnemonic() => clearField(4);
+
+  /// Optional xpub or output descriptor for a watch-only electrum wallet
+  /// (no private keys; cannot sign or send). Mutually exclusive with
+  /// custom_mnemonic.
+  @$pb.TagNumber(5)
+  $core.String get xpubOrDescriptor => $_getSZ(4);
+  @$pb.TagNumber(5)
+  set xpubOrDescriptor($core.String v) { $_setString(4, v); }
+  @$pb.TagNumber(5)
+  $core.bool hasXpubOrDescriptor() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearXpubOrDescriptor() => clearField(5);
 }
 
 class CreateElectrumWalletResponse extends $pb.GeneratedMessage {
