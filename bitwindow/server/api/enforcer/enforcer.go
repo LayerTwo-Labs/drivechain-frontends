@@ -5,6 +5,7 @@ import (
 
 	"connectrpc.com/connect"
 	service "github.com/LayerTwo-Labs/sidesail/bitwindow/server/service"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/datasource"
 	cryptov1 "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/crypto/v1"
 	cryptorpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/crypto/v1/cryptov1connect"
 	mainchainv1 "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1"
@@ -18,11 +19,13 @@ var _ validatorrpc.WalletServiceHandler = new(Server)
 
 // New creates a new Server
 func New(
+	data datasource.DataSource,
 	validator *service.Service[validatorrpc.ValidatorServiceClient],
 	wallet *service.Service[validatorrpc.WalletServiceClient],
 	crypto *service.Service[cryptorpc.CryptoServiceClient],
 ) *Server {
 	s := &Server{
+		data:      data,
 		validator: validator,
 		wallet:    wallet,
 		crypto:    crypto,
@@ -32,6 +35,7 @@ func New(
 }
 
 type Server struct {
+	data      datasource.DataSource
 	validator *service.Service[validatorrpc.ValidatorServiceClient]
 	wallet    *service.Service[validatorrpc.WalletServiceClient]
 	crypto    *service.Service[cryptorpc.CryptoServiceClient]
@@ -166,47 +170,47 @@ func (s *Server) GenerateBlocks(ctx context.Context, c *connect.Request[mainchai
 
 // GetBalance implements mainchainv1connect.WalletServiceHandler.
 func (s *Server) GetBalance(ctx context.Context, c *connect.Request[mainchainv1.GetBalanceRequest]) (*connect.Response[mainchainv1.GetBalanceResponse], error) {
-	wallet, err := s.wallet.Get(ctx)
+	resp, err := s.data.Balance(ctx, c.Msg)
 	if err != nil {
 		return nil, err
 	}
-	return wallet.GetBalance(ctx, c)
+	return connect.NewResponse(resp), nil
 }
 
 // GetInfo implements mainchainv1connect.WalletServiceHandler.
 func (s *Server) GetInfo(ctx context.Context, c *connect.Request[mainchainv1.GetInfoRequest]) (*connect.Response[mainchainv1.GetInfoResponse], error) {
-	wallet, err := s.wallet.Get(ctx)
+	resp, err := s.data.WalletInfo(ctx, c.Msg)
 	if err != nil {
 		return nil, err
 	}
-	return wallet.GetInfo(ctx, c)
+	return connect.NewResponse(resp), nil
 }
 
 // ListSidechainDepositTransactions implements mainchainv1connect.WalletServiceHandler.
 func (s *Server) ListSidechainDepositTransactions(ctx context.Context, c *connect.Request[mainchainv1.ListSidechainDepositTransactionsRequest]) (*connect.Response[mainchainv1.ListSidechainDepositTransactionsResponse], error) {
-	wallet, err := s.wallet.Get(ctx)
+	resp, err := s.data.ListSidechainDeposits(ctx, c.Msg)
 	if err != nil {
 		return nil, err
 	}
-	return wallet.ListSidechainDepositTransactions(ctx, c)
+	return connect.NewResponse(resp), nil
 }
 
 // ListTransactions implements mainchainv1connect.WalletServiceHandler.
 func (s *Server) ListTransactions(ctx context.Context, c *connect.Request[mainchainv1.ListTransactionsRequest]) (*connect.Response[mainchainv1.ListTransactionsResponse], error) {
-	wallet, err := s.wallet.Get(ctx)
+	resp, err := s.data.ListTransactions(ctx, c.Msg)
 	if err != nil {
 		return nil, err
 	}
-	return wallet.ListTransactions(ctx, c)
+	return connect.NewResponse(resp), nil
 }
 
 // ListUnspentOutputs implements mainchainv1connect.WalletServiceHandler.
 func (s *Server) ListUnspentOutputs(ctx context.Context, c *connect.Request[mainchainv1.ListUnspentOutputsRequest]) (*connect.Response[mainchainv1.ListUnspentOutputsResponse], error) {
-	wallet, err := s.wallet.Get(ctx)
+	resp, err := s.data.ListUnspentOutputs(ctx, c.Msg)
 	if err != nil {
 		return nil, err
 	}
-	return wallet.ListUnspentOutputs(ctx, c)
+	return connect.NewResponse(resp), nil
 }
 
 // SendTransaction implements mainchainv1connect.WalletServiceHandler.
@@ -229,47 +233,47 @@ func (s *Server) UnlockWallet(ctx context.Context, c *connect.Request[mainchainv
 
 // GetBlockHeaderInfo implements mainchainv1connect.ValidatorServiceHandler.
 func (s *Server) GetBlockHeaderInfo(ctx context.Context, c *connect.Request[mainchainv1.GetBlockHeaderInfoRequest]) (*connect.Response[mainchainv1.GetBlockHeaderInfoResponse], error) {
-	validator, err := s.validator.Get(ctx)
+	resp, err := s.data.BlockHeaderInfo(ctx, c.Msg)
 	if err != nil {
 		return nil, err
 	}
-	return validator.GetBlockHeaderInfo(ctx, c)
+	return connect.NewResponse(resp), nil
 }
 
 // GetBlockInfo implements mainchainv1connect.ValidatorServiceHandler.
 func (s *Server) GetBlockInfo(ctx context.Context, c *connect.Request[mainchainv1.GetBlockInfoRequest]) (*connect.Response[mainchainv1.GetBlockInfoResponse], error) {
-	validator, err := s.validator.Get(ctx)
+	resp, err := s.data.BlockInfo(ctx, c.Msg)
 	if err != nil {
 		return nil, err
 	}
-	return validator.GetBlockInfo(ctx, c)
+	return connect.NewResponse(resp), nil
 }
 
 // GetBmmHStarCommitment implements mainchainv1connect.ValidatorServiceHandler.
 func (s *Server) GetBmmHStarCommitment(ctx context.Context, c *connect.Request[mainchainv1.GetBmmHStarCommitmentRequest]) (*connect.Response[mainchainv1.GetBmmHStarCommitmentResponse], error) {
-	validator, err := s.validator.Get(ctx)
+	resp, err := s.data.BmmHStarCommitment(ctx, c.Msg)
 	if err != nil {
 		return nil, err
 	}
-	return validator.GetBmmHStarCommitment(ctx, c)
+	return connect.NewResponse(resp), nil
 }
 
 // GetChainInfo implements mainchainv1connect.ValidatorServiceHandler.
 func (s *Server) GetChainInfo(ctx context.Context, c *connect.Request[mainchainv1.GetChainInfoRequest]) (*connect.Response[mainchainv1.GetChainInfoResponse], error) {
-	validator, err := s.validator.Get(ctx)
+	resp, err := s.data.ChainInfo(ctx, c.Msg)
 	if err != nil {
 		return nil, err
 	}
-	return validator.GetChainInfo(ctx, c)
+	return connect.NewResponse(resp), nil
 }
 
 // GetChainTip implements mainchainv1connect.ValidatorServiceHandler.
 func (s *Server) GetChainTip(ctx context.Context, c *connect.Request[mainchainv1.GetChainTipRequest]) (*connect.Response[mainchainv1.GetChainTipResponse], error) {
-	validator, err := s.validator.Get(ctx)
+	resp, err := s.data.ChainTip(ctx, c.Msg)
 	if err != nil {
 		return nil, err
 	}
-	return validator.GetChainTip(ctx, c)
+	return connect.NewResponse(resp), nil
 }
 
 // GetCoinbasePSBT implements mainchainv1connect.ValidatorServiceHandler.
@@ -283,38 +287,38 @@ func (s *Server) GetCoinbasePSBT(ctx context.Context, c *connect.Request[maincha
 
 // GetCtip implements mainchainv1connect.ValidatorServiceHandler.
 func (s *Server) GetCtip(ctx context.Context, c *connect.Request[mainchainv1.GetCtipRequest]) (*connect.Response[mainchainv1.GetCtipResponse], error) {
-	validator, err := s.validator.Get(ctx)
+	resp, err := s.data.Ctip(ctx, c.Msg)
 	if err != nil {
 		return nil, err
 	}
-	return validator.GetCtip(ctx, c)
+	return connect.NewResponse(resp), nil
 }
 
 // GetSidechainProposals implements mainchainv1connect.ValidatorServiceHandler.
 func (s *Server) GetSidechainProposals(ctx context.Context, c *connect.Request[mainchainv1.GetSidechainProposalsRequest]) (*connect.Response[mainchainv1.GetSidechainProposalsResponse], error) {
-	validator, err := s.validator.Get(ctx)
+	resp, err := s.data.SidechainProposals(ctx, c.Msg)
 	if err != nil {
 		return nil, err
 	}
-	return validator.GetSidechainProposals(ctx, c)
+	return connect.NewResponse(resp), nil
 }
 
 // GetSidechains implements mainchainv1connect.ValidatorServiceHandler.
 func (s *Server) GetSidechains(ctx context.Context, c *connect.Request[mainchainv1.GetSidechainsRequest]) (*connect.Response[mainchainv1.GetSidechainsResponse], error) {
-	validator, err := s.validator.Get(ctx)
+	resp, err := s.data.Sidechains(ctx, c.Msg)
 	if err != nil {
 		return nil, err
 	}
-	return validator.GetSidechains(ctx, c)
+	return connect.NewResponse(resp), nil
 }
 
 // GetTwoWayPegData implements mainchainv1connect.ValidatorServiceHandler.
 func (s *Server) GetTwoWayPegData(ctx context.Context, c *connect.Request[mainchainv1.GetTwoWayPegDataRequest]) (*connect.Response[mainchainv1.GetTwoWayPegDataResponse], error) {
-	validator, err := s.validator.Get(ctx)
+	resp, err := s.data.TwoWayPegData(ctx, c.Msg)
 	if err != nil {
 		return nil, err
 	}
-	return validator.GetTwoWayPegData(ctx, c)
+	return connect.NewResponse(resp), nil
 }
 
 // SubscribeEvents implements mainchainv1connect.ValidatorServiceHandler.

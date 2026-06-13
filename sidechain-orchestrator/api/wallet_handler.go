@@ -45,6 +45,7 @@ const (
 	walletTypeEnforcer    = "enforcer"
 	walletTypeBitcoinCore = "bitcoinCore"
 	walletTypeWatchOnly   = "watchOnly"
+	walletTypeElectrum    = "electrum"
 )
 
 // walletTypeToProto maps the engine's internal wallet-type string onto the
@@ -53,6 +54,8 @@ func walletTypeToProto(t string) pb.WalletType {
 	switch t {
 	case walletTypeEnforcer:
 		return pb.WalletType_WALLET_TYPE_ENFORCER
+	case walletTypeElectrum:
+		return pb.WalletType_WALLET_TYPE_ELECTRUM
 	case walletTypeBitcoinCore, walletTypeWatchOnly:
 		return pb.WalletType_WALLET_TYPE_BITCOIN_CORE
 	default:
@@ -310,6 +313,16 @@ func (h *WalletHandler) CreateWatchOnlyWallet(ctx context.Context, req *connect.
 	}
 	return connect.NewResponse(&pb.CreateWatchOnlyWalletResponse{
 		WalletId: h.svc.ActiveWalletID(),
+	}), nil
+}
+
+func (h *WalletHandler) CreateElectrumWallet(ctx context.Context, req *connect.Request[pb.CreateElectrumWalletRequest]) (*connect.Response[pb.CreateElectrumWalletResponse], error) {
+	w, err := h.svc.CreateElectrumWallet(req.Msg.Name, json.RawMessage(req.Msg.GradientJson), req.Msg.Slots, req.Msg.CustomMnemonic, req.Msg.XpubOrDescriptor)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+	return connect.NewResponse(&pb.CreateElectrumWalletResponse{
+		WalletId: w.ID,
 	}), nil
 }
 

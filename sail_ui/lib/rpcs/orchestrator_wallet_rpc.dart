@@ -96,6 +96,28 @@ class OrchestratorWalletRPC {
     );
   }
 
+  /// Creates an electrum wallet. With no [customMnemonic] or
+  /// [xpubOrDescriptor] a new seed is generated. [customMnemonic] imports an
+  /// existing seed; [xpubOrDescriptor] instead creates a watch-only wallet
+  /// (no private keys). The two import inputs are mutually exclusive.
+  Future<wmpb.CreateElectrumWalletResponse> createElectrumWallet({
+    required String name,
+    required String gradientJson,
+    List<int> slots = const [],
+    String? customMnemonic,
+    String? xpubOrDescriptor,
+  }) {
+    return _unaryClient.createElectrumWallet(
+      wmpb.CreateElectrumWalletRequest(
+        name: name,
+        gradientJson: gradientJson,
+        slots: slots,
+        customMnemonic: customMnemonic ?? '',
+        xpubOrDescriptor: xpubOrDescriptor ?? '',
+      ),
+    );
+  }
+
   Future<wmpb.SwitchWalletResponse> switchWallet(String walletId) {
     return _unaryClient.switchWallet(wmpb.SwitchWalletRequest(walletId: walletId));
   }

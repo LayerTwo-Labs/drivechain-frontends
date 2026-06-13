@@ -73,6 +73,34 @@ class WalletWriterProvider extends ChangeNotifier {
     }
   }
 
+  /// Creates an electrum wallet. With no [customMnemonic] or
+  /// [xpubOrDescriptor] a new seed is generated. [customMnemonic] imports an
+  /// existing seed; [xpubOrDescriptor] instead creates a watch-only wallet
+  /// (no private keys). The two import inputs are mutually exclusive.
+  Future<void> createElectrumWallet({
+    required String name,
+    required WalletGradient gradient,
+    String? customMnemonic,
+    String? xpubOrDescriptor,
+  }) async {
+    try {
+      final resp = await _client.createElectrumWallet(
+        name: name,
+        gradientJson: gradient.toJsonString(),
+        customMnemonic: customMnemonic,
+        xpubOrDescriptor: xpubOrDescriptor,
+      );
+
+      _logger.i('createElectrumWallet: created via backend, id=${resp.walletId}');
+
+      await _walletReader.init();
+      notifyListeners();
+    } catch (e) {
+      _logger.e('createElectrumWallet: failed: $e');
+      rethrow;
+    }
+  }
+
   Future<void> createWatchOnlyWallet({
     required String name,
     required String xpubOrDescriptor,

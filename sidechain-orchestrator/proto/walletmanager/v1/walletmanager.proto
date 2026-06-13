@@ -24,6 +24,9 @@ service WalletManagerService {
   rpc RestoreWalletBackup(RestoreWalletBackupRequest) returns (RestoreWalletBackupResponse);
   rpc RestoreWalletBackupStream(RestoreWalletBackupRequest) returns (stream RestoreWalletBackupProgressResponse);
   rpc CreateWatchOnlyWallet(CreateWatchOnlyWalletRequest) returns (CreateWatchOnlyWalletResponse);
+  // Create an electrum wallet: keys are generated locally, but no local Bitcoin
+  // Core or enforcer runs — chain data is served remotely via the datasource.
+  rpc CreateElectrumWallet(CreateElectrumWalletRequest) returns (CreateElectrumWalletResponse);
 
   // Core wallet management
   rpc CreateBitcoinCoreWallet(CreateBitcoinCoreWalletRequest) returns (CreateBitcoinCoreWalletResponse);
@@ -132,6 +135,9 @@ enum WalletType {
   WALLET_TYPE_UNSPECIFIED = 0;
   WALLET_TYPE_BITCOIN_CORE = 1;
   WALLET_TYPE_ENFORCER = 2;
+  // Electrum wallet — keys are local, but it runs neither Bitcoin Core nor the
+  // enforcer locally; chain/wallet read data is served via the datasource layer.
+  WALLET_TYPE_ELECTRUM = 3;
 }
 
 message WalletMetadata {
@@ -267,6 +273,28 @@ message CreateWatchOnlyWalletRequest {
 }
 
 message CreateWatchOnlyWalletResponse {
+  string wallet_id = 1;
+}
+
+// ============================================================================
+// Electrum Wallet
+// ============================================================================
+
+message CreateElectrumWalletRequest {
+  string name = 1;
+  string gradient_json = 2;
+  // Optional sidechain slots to provision starter material for. Empty = all.
+  repeated uint32 slots = 3;
+  // Optional BIP39 mnemonic to import an existing seed. Empty = generate a
+  // new seed. Mutually exclusive with xpub_or_descriptor.
+  string custom_mnemonic = 4;
+  // Optional xpub or output descriptor for a watch-only electrum wallet
+  // (no private keys; cannot sign or send). Mutually exclusive with
+  // custom_mnemonic.
+  string xpub_or_descriptor = 5;
+}
+
+message CreateElectrumWalletResponse {
   string wallet_id = 1;
 }
 

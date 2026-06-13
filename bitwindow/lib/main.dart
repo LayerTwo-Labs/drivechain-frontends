@@ -794,8 +794,14 @@ Future<void> bootBitwindowBackend(Logger log) async {
   //    can lag long enough that the wallet dropdown, BIP47 card and
   //    starters tab render empty against an already-loaded wallet.
   if (orchestratorReady && GetIt.I.isRegistered<WalletReaderProvider>()) {
-    unawaited(GetIt.I.get<WalletReaderProvider>().init());
+    await GetIt.I.get<WalletReaderProvider>().init();
   }
+
+  // Electrum wallets serve chain data remotely and run no local Bitcoin Core or
+  // enforcer, so skip booting and waiting on the L1 stack entirely.
+  final needsBitcoinBackends =
+      !GetIt.I.isRegistered<WalletReaderProvider>() ||
+      GetIt.I.get<WalletReaderProvider>().activeWalletNeedsBitcoinBackends;
 
   // 4. Stream binary logs and start watching state.
   _streamBinaryLogs(orchestrator, 'bitcoind', BinaryType.BINARY_TYPE_BITCOIND, log);
@@ -813,7 +819,7 @@ Future<void> bootBitwindowBackend(Logger log) async {
   //    starting the fresh stack — caller-side glue not needed. Download
   //    bytes come via SyncProvider's polled GetSyncStatus; connection state
   //    via BackendStateProvider's polled ListBinaries.
-  if (orchestratorReady) {
+  if (orchestratorReady && needsBitcoinBackends) {
     unawaited(() async {
       try {
         await orchestrator.startWithL1('enforcer');
@@ -821,6 +827,8 @@ Future<void> bootBitwindowBackend(Logger log) async {
         log.w('STARTUP: L1 stack dispatch failed (non-fatal): $e');
       }
     }());
+  } else if (!needsBitcoinBackends) {
+    log.i('STARTUP: active wallet is electrum; skipping L1 stack boot');
   }
 
   log.i('STARTUP: BitWindow backend boot task initialized');

@@ -15,9 +15,17 @@ class CreateAnotherWalletPage extends StatefulWidget {
 
 enum WalletCreationType {
   bitcoinCore,
+  electrum,
   watchOnly,
   restoreFromBackup,
   customEntropy,
+}
+
+/// How an electrum wallet's keys are sourced.
+enum ElectrumMethod {
+  generate,
+  importSeed,
+  importDescriptor,
 }
 
 class _CreateAnotherWalletPageState extends State<CreateAnotherWalletPage> {
@@ -26,13 +34,16 @@ class _CreateAnotherWalletPageState extends State<CreateAnotherWalletPage> {
 
   // State preservation
   WalletCreationType? _selectedType;
+  ElectrumMethod? _electrumMethod;
   String _walletName = '';
   WalletGradient? _selectedGradient;
   String _xpubOrDescriptor = '';
+  String _mnemonic = '';
   bool _isCreating = false;
 
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _xpubController = TextEditingController();
+  final TextEditingController _mnemonicController = TextEditingController();
 
   @override
   void initState() {
@@ -44,12 +55,12 @@ class _CreateAnotherWalletPageState extends State<CreateAnotherWalletPage> {
     _pageController.dispose();
     _nameController.dispose();
     _xpubController.dispose();
+    _mnemonicController.dispose();
     super.dispose();
   }
 
   void _nextStep() {
-    // Calculate max steps based on wallet type
-    final maxSteps = _selectedType == WalletCreationType.watchOnly ? 3 : 2;
+    final maxSteps = _buildPages().length - 1;
 
     if (_currentStep < maxSteps) {
       setState(() {
@@ -62,6 +73,15 @@ class _CreateAnotherWalletPageState extends State<CreateAnotherWalletPage> {
       );
     }
   }
+
+  /// Whether the active electrum sub-flow collects a descriptor/xpub.
+  bool get _needsXpubStep =>
+      _selectedType == WalletCreationType.watchOnly ||
+      (_selectedType == WalletCreationType.electrum && _electrumMethod == ElectrumMethod.importDescriptor);
+
+  /// Whether the active electrum sub-flow collects a seed phrase.
+  bool get _needsSeedStep =>
+      _selectedType == WalletCreationType.electrum && _electrumMethod == ElectrumMethod.importSeed;
 
   void _previousStep() {
     if (_currentStep > 0) {
@@ -87,6 +107,14 @@ class _CreateAnotherWalletPageState extends State<CreateAnotherWalletPage> {
           await walletProvider.createBitcoinCoreWallet(
             name: _walletName,
             gradient: _selectedGradient!,
+          );
+          break;
+        case WalletCreationType.electrum:
+          await walletProvider.createElectrumWallet(
+            name: _walletName,
+            gradient: _selectedGradient!,
+            customMnemonic: _electrumMethod == ElectrumMethod.importSeed ? _mnemonic : null,
+            xpubOrDescriptor: _electrumMethod == ElectrumMethod.importDescriptor ? _xpubOrDescriptor : null,
           );
           break;
         case WalletCreationType.watchOnly:
@@ -132,12 +160,8 @@ class _CreateAnotherWalletPageState extends State<CreateAnotherWalletPage> {
     }
   }
 
-  @override
-  Widget build(BuildContext context) {
-    final theme = SailTheme.of(context);
-
-    // Build page list based on wallet type
-    final List<Widget> pages = [
+  List<Widget> _buildPages() {
+    return [
       _TypeSelectionStep(
         selectedType: _selectedType,
         onTypeSelected: (type) {
@@ -149,6 +173,14 @@ class _CreateAnotherWalletPageState extends State<CreateAnotherWalletPage> {
           }
         },
       ),
+      if (_selectedType == WalletCreationType.electrum)
+        _ElectrumMethodStep(
+          selectedMethod: _electrumMethod,
+          onMethodSelected: (method) {
+            setState(() => _electrumMethod = method);
+            _nextStep();
+          },
+        ),
       _NameStep(
         nameController: _nameController,
         onNext: () {
@@ -158,12 +190,22 @@ class _CreateAnotherWalletPageState extends State<CreateAnotherWalletPage> {
           _nextStep();
         },
       ),
-      if (_selectedType == WalletCreationType.watchOnly)
+      if (_needsXpubStep)
         _XpubStep(
           xpubController: _xpubController,
           onNext: () {
             setState(() {
               _xpubOrDescriptor = _xpubController.text.trim();
+            });
+            _nextStep();
+          },
+        ),
+      if (_needsSeedStep)
+        _SeedStep(
+          mnemonicController: _mnemonicController,
+          onNext: () {
+            setState(() {
+              _mnemonic = _mnemonicController.text.trim();
             });
             _nextStep();
           },
@@ -179,6 +221,13 @@ class _CreateAnotherWalletPageState extends State<CreateAnotherWalletPage> {
         onCreateWallet: _createWallet,
       ),
     ];
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = SailTheme.of(context);
+
+    final List<Widget> pages = _buildPages();
 
     return SailScaffold(
       backgroundColor: theme.colors.background,
@@ -238,6 +287,14 @@ class _TypeSelectionStep extends StatelessWidget {
                     icon: SailSVGAsset.iconWallet,
                     isSelected: selectedType == WalletCreationType.bitcoinCore,
                     onTap: () => onTypeSelected(WalletCreationType.bitcoinCore),
+                  ),
+                  _WalletTypeCard(
+                    type: WalletCreationType.electrum,
+                    title: 'Electrum',
+                    description: 'Lightweight — no local Bitcoin Core or enforcer; chain data from a remote server',
+                    icon: SailSVGAsset.iconWallet,
+                    isSelected: selectedType == WalletCreationType.electrum,
+                    onTap: () => onTypeSelected(WalletCreationType.electrum),
                   ),
                   _WalletTypeCard(
                     type: WalletCreationType.watchOnly,
@@ -435,6 +492,225 @@ class _XpubStepState extends State<_XpubStep> {
                     onPressed: () async => widget.onNext(),
                   ),
                 ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ElectrumMethodStep extends StatelessWidget {
+  final ElectrumMethod? selectedMethod;
+  final Function(ElectrumMethod) onMethodSelected;
+
+  const _ElectrumMethodStep({
+    required this.selectedMethod,
+    required this.onMethodSelected,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 32.0),
+        child: SizedBox(
+          width: 900,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              SailText.primary24('How do you want to set up the wallet?', bold: true),
+              const SizedBox(height: 48),
+              Wrap(
+                spacing: 16,
+                runSpacing: 16,
+                children: [
+                  _MethodCard(
+                    title: 'Generate a new wallet',
+                    description: 'Create a fresh seed locally',
+                    icon: SailSVGAsset.iconWallet,
+                    isSelected: selectedMethod == ElectrumMethod.generate,
+                    onTap: () => onMethodSelected(ElectrumMethod.generate),
+                  ),
+                  _MethodCard(
+                    title: 'Import a seed phrase',
+                    description: 'Restore an existing wallet from its mnemonic',
+                    icon: SailSVGAsset.iconRestart,
+                    isSelected: selectedMethod == ElectrumMethod.importSeed,
+                    onTap: () => onMethodSelected(ElectrumMethod.importSeed),
+                  ),
+                  _MethodCard(
+                    title: 'Import a descriptor',
+                    description: 'Watch-only from an xpub or descriptor — cannot sign or send',
+                    icon: SailSVGAsset.iconSearch,
+                    isSelected: selectedMethod == ElectrumMethod.importDescriptor,
+                    onTap: () => onMethodSelected(ElectrumMethod.importDescriptor),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// True for a BIP39-shaped mnemonic: a whitespace-separated word list whose
+/// length is one of the standard 12/15/18/21/24. The backend validates the
+/// checksum; this only catches obvious garbage at the form layer.
+bool isPlausibleMnemonic(String input) {
+  final words = input.trim().split(RegExp(r'\s+')).where((w) => w.isNotEmpty).toList();
+  return const {12, 15, 18, 21, 24}.contains(words.length);
+}
+
+class _SeedStep extends StatefulWidget {
+  final TextEditingController mnemonicController;
+  final VoidCallback onNext;
+
+  const _SeedStep({
+    required this.mnemonicController,
+    required this.onNext,
+  });
+
+  @override
+  State<_SeedStep> createState() => _SeedStepState();
+}
+
+class _SeedStepState extends State<_SeedStep> {
+  @override
+  void initState() {
+    super.initState();
+    widget.mnemonicController.addListener(() => setState(() {}));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final trimmed = widget.mnemonicController.text.trim();
+    final showError = trimmed.isNotEmpty && !isPlausibleMnemonic(trimmed);
+
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 32.0),
+        child: SizedBox(
+          width: 600,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              SailText.primary24('Enter your seed phrase', bold: true),
+              const SizedBox(height: 8),
+              SailText.secondary13('12 or 24 words, separated by spaces'),
+              const SizedBox(height: 48),
+              SailTextField(
+                controller: widget.mnemonicController,
+                hintText: 'word1 word2 word3 ...',
+                textFieldType: TextFieldType.text,
+                maxLines: 3,
+              ),
+              if (showError) ...[
+                const SizedBox(height: 8),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: SailText.secondary12(
+                    "That doesn't look like a 12/24-word seed phrase.",
+                    color: SailTheme.of(context).colors.error,
+                  ),
+                ),
+              ],
+              const SizedBox(height: 48),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  SailButton(
+                    label: 'Next',
+                    disabled: !isPlausibleMnemonic(trimmed),
+                    onPressed: () async => widget.onNext(),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _MethodCard extends StatefulWidget {
+  final String title;
+  final String description;
+  final SailSVGAsset icon;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  const _MethodCard({
+    required this.title,
+    required this.description,
+    required this.icon,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  @override
+  State<_MethodCard> createState() => _MethodCardState();
+}
+
+class _MethodCardState extends State<_MethodCard> {
+  bool _isHovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = SailTheme.of(context);
+
+    return MouseRegion(
+      onEnter: (_) => setState(() => _isHovered = true),
+      onExit: (_) => setState(() => _isHovered = false),
+      cursor: SystemMouseCursors.click,
+      child: GestureDetector(
+        onTap: widget.onTap,
+        child: Container(
+          width: 420,
+          height: 140,
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: theme.colors.background,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: widget.isSelected || _isHovered ? theme.colors.primary : theme.colors.border,
+              width: widget.isSelected ? 3 : 2,
+            ),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 64,
+                height: 64,
+                decoration: BoxDecoration(
+                  color: theme.colors.backgroundSecondary,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Center(
+                  child: SailSVG.icon(
+                    widget.icon,
+                    width: 32,
+                    height: 32,
+                    color: widget.isSelected ? theme.colors.primary : theme.colors.text,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    SailText.primary15(widget.title, bold: true),
+                    const SizedBox(height: 4),
+                    SailText.secondary13(widget.description),
+                  ],
+                ),
               ),
             ],
           ),

@@ -2258,6 +2258,162 @@ class CreateWatchOnlyWalletResponse extends $pb.GeneratedMessage {
   void clearWalletId() => clearField(1);
 }
 
+class CreateElectrumWalletRequest extends $pb.GeneratedMessage {
+  factory CreateElectrumWalletRequest({
+    $core.String? name,
+    $core.String? gradientJson,
+    $core.Iterable<$core.int>? slots,
+    $core.String? customMnemonic,
+    $core.String? xpubOrDescriptor,
+  }) {
+    final $result = create();
+    if (name != null) {
+      $result.name = name;
+    }
+    if (gradientJson != null) {
+      $result.gradientJson = gradientJson;
+    }
+    if (slots != null) {
+      $result.slots.addAll(slots);
+    }
+    if (customMnemonic != null) {
+      $result.customMnemonic = customMnemonic;
+    }
+    if (xpubOrDescriptor != null) {
+      $result.xpubOrDescriptor = xpubOrDescriptor;
+    }
+    return $result;
+  }
+  CreateElectrumWalletRequest._() : super();
+  factory CreateElectrumWalletRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory CreateElectrumWalletRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'CreateElectrumWalletRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'walletmanager.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'name')
+    ..aOS(2, _omitFieldNames ? '' : 'gradientJson')
+    ..p<$core.int>(3, _omitFieldNames ? '' : 'slots', $pb.PbFieldType.KU3)
+    ..aOS(4, _omitFieldNames ? '' : 'customMnemonic')
+    ..aOS(5, _omitFieldNames ? '' : 'xpubOrDescriptor')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  CreateElectrumWalletRequest clone() => CreateElectrumWalletRequest()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  CreateElectrumWalletRequest copyWith(void Function(CreateElectrumWalletRequest) updates) => super.copyWith((message) => updates(message as CreateElectrumWalletRequest)) as CreateElectrumWalletRequest;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static CreateElectrumWalletRequest create() => CreateElectrumWalletRequest._();
+  CreateElectrumWalletRequest createEmptyInstance() => create();
+  static $pb.PbList<CreateElectrumWalletRequest> createRepeated() => $pb.PbList<CreateElectrumWalletRequest>();
+  @$core.pragma('dart2js:noInline')
+  static CreateElectrumWalletRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<CreateElectrumWalletRequest>(create);
+  static CreateElectrumWalletRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get name => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set name($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasName() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearName() => clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.String get gradientJson => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set gradientJson($core.String v) { $_setString(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasGradientJson() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearGradientJson() => clearField(2);
+
+  /// Optional sidechain slots to provision starter material for. Empty = all.
+  @$pb.TagNumber(3)
+  $core.List<$core.int> get slots => $_getList(2);
+
+  /// Optional BIP39 mnemonic to import an existing seed. Empty = generate a
+  /// new seed. Mutually exclusive with xpub_or_descriptor.
+  @$pb.TagNumber(4)
+  $core.String get customMnemonic => $_getSZ(3);
+  @$pb.TagNumber(4)
+  set customMnemonic($core.String v) { $_setString(3, v); }
+  @$pb.TagNumber(4)
+  $core.bool hasCustomMnemonic() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearCustomMnemonic() => clearField(4);
+
+  /// Optional xpub or output descriptor for a watch-only electrum wallet
+  /// (no private keys; cannot sign or send). Mutually exclusive with
+  /// custom_mnemonic.
+  @$pb.TagNumber(5)
+  $core.String get xpubOrDescriptor => $_getSZ(4);
+  @$pb.TagNumber(5)
+  set xpubOrDescriptor($core.String v) { $_setString(4, v); }
+  @$pb.TagNumber(5)
+  $core.bool hasXpubOrDescriptor() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearXpubOrDescriptor() => clearField(5);
+}
+
+class CreateElectrumWalletResponse extends $pb.GeneratedMessage {
+  factory CreateElectrumWalletResponse({
+    $core.String? walletId,
+  }) {
+    final $result = create();
+    if (walletId != null) {
+      $result.walletId = walletId;
+    }
+    return $result;
+  }
+  CreateElectrumWalletResponse._() : super();
+  factory CreateElectrumWalletResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory CreateElectrumWalletResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'CreateElectrumWalletResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'walletmanager.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'walletId')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  CreateElectrumWalletResponse clone() => CreateElectrumWalletResponse()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  CreateElectrumWalletResponse copyWith(void Function(CreateElectrumWalletResponse) updates) => super.copyWith((message) => updates(message as CreateElectrumWalletResponse)) as CreateElectrumWalletResponse;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static CreateElectrumWalletResponse create() => CreateElectrumWalletResponse._();
+  CreateElectrumWalletResponse createEmptyInstance() => create();
+  static $pb.PbList<CreateElectrumWalletResponse> createRepeated() => $pb.PbList<CreateElectrumWalletResponse>();
+  @$core.pragma('dart2js:noInline')
+  static CreateElectrumWalletResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<CreateElectrumWalletResponse>(create);
+  static CreateElectrumWalletResponse? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get walletId => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set walletId($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasWalletId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearWalletId() => clearField(1);
+}
+
 class CreateBitcoinCoreWalletRequest extends $pb.GeneratedMessage {
   factory CreateBitcoinCoreWalletRequest({
     $core.String? walletId,
@@ -5353,6 +5509,9 @@ class WalletManagerServiceApi {
   ;
   $async.Future<CreateWatchOnlyWalletResponse> createWatchOnlyWallet($pb.ClientContext? ctx, CreateWatchOnlyWalletRequest request) =>
     _client.invoke<CreateWatchOnlyWalletResponse>(ctx, 'WalletManagerService', 'CreateWatchOnlyWallet', request, CreateWatchOnlyWalletResponse())
+  ;
+  $async.Future<CreateElectrumWalletResponse> createElectrumWallet($pb.ClientContext? ctx, CreateElectrumWalletRequest request) =>
+    _client.invoke<CreateElectrumWalletResponse>(ctx, 'WalletManagerService', 'CreateElectrumWallet', request, CreateElectrumWalletResponse())
   ;
   $async.Future<CreateBitcoinCoreWalletResponse> createBitcoinCoreWallet($pb.ClientContext? ctx, CreateBitcoinCoreWalletRequest request) =>
     _client.invoke<CreateBitcoinCoreWalletResponse>(ctx, 'WalletManagerService', 'CreateBitcoinCoreWallet', request, CreateBitcoinCoreWalletResponse())

@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math"
 	"os"
 	"path/filepath"
 	"strings"
@@ -36,6 +37,7 @@ const (
 	WalletTypeEnforcer    WalletType = "enforcer"
 	WalletTypeBitcoinCore WalletType = "bitcoinCore"
 	WalletTypeWatchOnly   WalletType = "watchOnly"
+	WalletTypeElectrum    WalletType = "electrum"
 )
 
 // WalletInfo contains information about a wallet from wallet.json
@@ -691,6 +693,37 @@ func (e *WalletEngine) CreateBitcoinCoreWalletFromSeed(
 // GetBitcoinCoreWalletName returns the Bitcoin Core wallet name for a walletId
 func (e *WalletEngine) GetBitcoinCoreWalletName(ctx context.Context, walletId string) (string, error) {
 	return e.EnsureBitcoinCoreWallet(ctx, walletId)
+}
+
+// GetElectrumReceiveAddress returns a fresh receive address for an electrum
+// wallet from the orchestrator, which derives it locally and serves chain
+// data over Esplora (no Bitcoin Core).
+func (e *WalletEngine) GetElectrumReceiveAddress(ctx context.Context, walletId string) (string, error) {
+	if e.orchClient == nil {
+		return "", fmt.Errorf("orchestrator wallet client not connected")
+	}
+	resp, err := e.orchClient.GetNewAddress(ctx, connect.NewRequest(&orchpb.GetNewAddressRequest{
+		WalletId: walletId,
+	}))
+	if err != nil {
+		return "", fmt.Errorf("electrum: get new address: %w", err)
+	}
+	return resp.Msg.Address, nil
+}
+
+// GetElectrumBalance returns the confirmed and pending balance (in sats) for
+// an electrum wallet from the orchestrator's Esplora-backed provider.
+func (e *WalletEngine) GetElectrumBalance(ctx context.Context, walletId string) (confirmed, pending uint64, err error) {
+	if e.orchClient == nil {
+		return 0, 0, fmt.Errorf("orchestrator wallet client not connected")
+	}
+	resp, err := e.orchClient.GetBalance(ctx, connect.NewRequest(&orchpb.GetBalanceRequest{
+		WalletId: walletId,
+	}))
+	if err != nil {
+		return 0, 0, fmt.Errorf("electrum: get balance: %w", err)
+	}
+	return uint64(math.Round(resp.Msg.ConfirmedSats)), uint64(math.Round(resp.Msg.UnconfirmedSats)), nil
 }
 
 // EnsureWatchOnlyWallet ensures a watch-only wallet exists in Bitcoin Core

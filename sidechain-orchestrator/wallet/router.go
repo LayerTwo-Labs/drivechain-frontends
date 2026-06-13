@@ -6,21 +6,23 @@ import (
 )
 
 // RoutingProvider dispatches each call by the wallet's type: the enforcer
-// wallet is served by the enforcer daemon, bitcoinCore/watchOnly wallets by
-// the chain wallet provider (Core today, electrum later). Either side may
-// be absent — calls for its wallets then fail with a clear error.
+// wallet is served by the enforcer daemon, electrum wallets by the Esplora-
+// backed provider, bitcoinCore/watchOnly wallets by the chain wallet
+// provider. Any side may be absent — calls for its wallets then fail with a
+// clear error.
 type RoutingProvider struct {
 	svc      *Service
 	enforcer Provider
 	chain    Provider
+	electrum Provider
 }
 
 var _ Provider = (*RoutingProvider)(nil)
 
 // NewRoutingProvider wires the per-type providers. Pass nil for a side
 // that isn't configured.
-func NewRoutingProvider(svc *Service, enforcer, chain Provider) *RoutingProvider {
-	return &RoutingProvider{svc: svc, enforcer: enforcer, chain: chain}
+func NewRoutingProvider(svc *Service, enforcer, chain, electrum Provider) *RoutingProvider {
+	return &RoutingProvider{svc: svc, enforcer: enforcer, chain: chain, electrum: electrum}
 }
 
 func (r *RoutingProvider) pick(walletID string) (Provider, error) {
@@ -33,6 +35,12 @@ func (r *RoutingProvider) pick(walletID string) (Provider, error) {
 			return nil, errors.New("enforcer wallet client not connected")
 		}
 		return r.enforcer, nil
+	}
+	if w.WalletType == "electrum" {
+		if r.electrum == nil {
+			return nil, errors.New("electrum wallet provider not configured")
+		}
+		return r.electrum, nil
 	}
 	if r.chain == nil {
 		return nil, errors.New("bitcoin Core RPC not configured")

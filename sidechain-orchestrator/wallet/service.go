@@ -336,6 +336,20 @@ func (s *Service) ActiveWallet() *WalletData {
 	return s.activeWallet()
 }
 
+// ActiveWalletNeedsBitcoinBackends reports whether the active wallet relies on
+// local Bitcoin backends (Bitcoin Core / enforcer). Electrum wallets run
+// neither locally, so this returns false for them; it returns true otherwise
+// (including when there is no active wallet).
+func (s *Service) ActiveWalletNeedsBitcoinBackends() bool {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	w := s.activeWallet()
+	if w == nil {
+		return true
+	}
+	return w.WalletType != "electrum"
+}
+
 // EnforcerWallet returns the wallet with type "enforcer", or nil.
 // Dart: WalletReaderProvider.enforcerWallet (L31-33)
 func (s *Service) EnforcerWallet() *WalletData {
@@ -585,6 +599,76 @@ func (s *Service) CreateBitcoinCoreWallet(name string, gradientJSON json.RawMess
 	return s.UpdateWalletMetadata(wallet.ID, name, gradientJSON)
 }
 
+// CreateElectrumWallet creates an electrum wallet — chain data comes from a
+// remote Esplora backend, but it runs neither Bitcoin Core nor the enforcer
+// locally, so no local daemon callbacks fire. The new wallet becomes active.
+//
+// customMnemonic imports an existing seed (empty = generate a new one).
+// xpubOrDescriptor instead creates a watch-only electrum wallet with no
+// private keys; it is mutually exclusive with customMnemonic.
+func (s *Service) CreateElectrumWallet(name string, gradient json.RawMessage, slots []uint32, customMnemonic, xpubOrDescriptor string) (*WalletData, error) {
+	if xpubOrDescriptor != "" {
+		return s.createElectrumWatchOnly(name, gradient, xpubOrDescriptor)
+	}
+
+	sidechainSlots := make([]SidechainSlot, len(slots))
+	for i, slot := range slots {
+		sidechainSlots[i] = SidechainSlot{Slot: int(slot)}
+	}
+
+	s.mu.Lock()
+	wallet, err := s.generateWalletOfType(name, customMnemonic, "", sidechainSlots, "electrum")
+	s.mu.Unlock()
+	if err != nil {
+		return nil, err
+	}
+
+	if len(gradient) > 0 {
+		if err := s.UpdateWalletMetadata(wallet.ID, name, gradient); err != nil {
+			return nil, err
+		}
+	}
+	return wallet, nil
+}
+
+// createElectrumWatchOnly creates a watch-only electrum wallet from an xpub or
+// descriptor. Addresses derive from the public key material; with no seed the
+// ElectrumProvider can read balances/history but cannot sign or send.
+func (s *Service) createElectrumWatchOnly(name string, gradient json.RawMessage, xpubOrDescriptor string) (*WalletData, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	walletID := generateWalletID()
+	watchOnly := map[string]string{}
+	if strings.Contains(xpubOrDescriptor, "(") && strings.Contains(xpubOrDescriptor, ")") {
+		watchOnly["descriptor"] = xpubOrDescriptor
+	} else {
+		watchOnly["xpub"] = xpubOrDescriptor
+	}
+	watchOnlyJSON, _ := json.Marshal(watchOnly)
+
+	wallet := WalletData{
+		Version:    1,
+		Master:     MasterWallet{SeedHex: ""},
+		L1:         L1Wallet{Mnemonic: ""},
+		Sidechains: []SidechainWallet{},
+		ID:         walletID,
+		Name:       name,
+		Gradient:   gradient,
+		CreatedAt:  time.Now(),
+		WalletType: "electrum",
+		WatchOnly:  json.RawMessage(watchOnlyJSON),
+	}
+
+	s.wallets = append(s.wallets, wallet)
+	s.activeWalletID = walletID
+	if err := s.saveWalletFile(); err != nil {
+		return nil, fmt.Errorf("save watch-only electrum wallet: %w", err)
+	}
+	s.log.Info().Str("id", walletID).Msg("watch-only electrum wallet created")
+	return &wallet, nil
+}
+
 // CreateWatchOnlyWallet creates a watch-only wallet from an xpub or descriptor.
 // Dart: WalletWriterProvider.createWatchOnlyWallet (L156-214)
 func (s *Service) CreateWatchOnlyWallet(name, xpubOrDescriptor, gradientJSON string) error {
@@ -659,13 +743,6 @@ func (s *Service) GenerateWallet(name, customMnemonic, passphrase string, slots 
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	s.log.Info().
-		Str("name", name).
-		Bool("custom_mnemonic", customMnemonic != "").
-		Bool("has_passphrase", passphrase != "").
-		Int("slot_count", len(slots)).
-		Msg("generating wallet")
-
 	// Determine wallet type: first wallet is enforcer, subsequent are bitcoinCore.
 	// Constraint: AT MOST 1 enforcer wallet. All extra wallets go through Bitcoin Core.
 	walletType := "bitcoinCore"
@@ -684,7 +761,23 @@ func (s *Service) GenerateWallet(name, customMnemonic, passphrase string, slots 
 			walletType = "enforcer"
 		}
 	}
-	s.log.Debug().Str("wallet_type", walletType).Int("existing_wallets", len(s.wallets)).Msg("determined wallet type")
+
+	return s.generateWalletOfType(name, customMnemonic, passphrase, slots, walletType)
+}
+
+// generateWalletOfType derives a full local wallet of the given type, appends
+// it as the new active wallet, and persists. Keys are always generated locally;
+// walletType only controls which daemon callbacks fire afterwards. Must be
+// called with mu held.
+func (s *Service) generateWalletOfType(name, customMnemonic, passphrase string, slots []SidechainSlot, walletType string) (*WalletData, error) {
+	s.log.Info().
+		Str("name", name).
+		Str("wallet_type", walletType).
+		Bool("custom_mnemonic", customMnemonic != "").
+		Bool("has_passphrase", passphrase != "").
+		Int("slot_count", len(slots)).
+		Int("existing_wallets", len(s.wallets)).
+		Msg("generating wallet")
 
 	wallet, err := GenerateFullWallet(name, customMnemonic, passphrase, slots, walletType)
 	if err != nil {
@@ -720,11 +813,12 @@ func (s *Service) GenerateWallet(name, customMnemonic, passphrase string, slots 
 		Str("file", s.walletFilePath()).
 		Msg("wallet generated and saved successfully")
 
-	// bitcoinCore wallets are created lazily by the provider on first access
-	// (Provider.Ensure).
-
-	// Dart L88-89: restart enforcer to pick up the new wallet
+	// electrum wallets run no local Bitcoin Core or enforcer — there's no
+	// daemon to set up or restart, so neither OnCreateCoreWallet nor
+	// OnWalletGenerated fire. bitcoinCore wallets are created lazily by the
+	// provider on first access (Provider.Ensure).
 	if walletType == "enforcer" && s.OnWalletGenerated != nil {
+		// Dart L88-89: restart enforcer to pick up the new wallet
 		go s.OnWalletGenerated()
 	}
 
