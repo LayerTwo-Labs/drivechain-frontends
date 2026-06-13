@@ -261,6 +261,8 @@ func (s *Server) CreateDenial(
 		utxoExists, err = s.checkBitcoinCoreUTXO(ctx, activeWallet.ID, req.Msg.Txid, req.Msg.Vout)
 	case engines.WalletTypeWatchOnly:
 		err = fmt.Errorf("deniability is not supported for watch-only wallets")
+	case engines.WalletTypeElectrum:
+		err = fmt.Errorf("deniability is not supported for electrum wallets")
 	default:
 		err = fmt.Errorf("unknown wallet type: %s", activeWallet.WalletType)
 	}
@@ -933,6 +935,10 @@ func (s *Server) getCoinbaseAddress(ctx context.Context) (string, error) {
 			return "", err
 		}
 		return addr.Msg.Address, nil
+
+	case engines.WalletTypeElectrum:
+		// Electrum derives the address in the orchestrator (Esplora-backed).
+		return s.walletEngine.GetElectrumReceiveAddress(ctx, activeWallet.ID)
 
 	default:
 		return "", fmt.Errorf("unsupported wallet type: %s", walletType)
