@@ -13,13 +13,6 @@ import (
 	"github.com/btcsuite/btcd/wire"
 )
 
-type mapKeySource map[string]*btcec.PrivateKey
-
-func (m mapKeySource) PrivKeyForAddress(address string) (*btcec.PrivateKey, bool) {
-	k, ok := m[address]
-	return k, ok
-}
-
 // fixedKey derives a deterministic private key for tests.
 func fixedKey(b byte) *btcec.PrivateKey {
 	var seed [32]byte

@@ -327,7 +327,15 @@ func run(cctx *cli.Context) error {
 		mux.Handle("/enforcer/jsonrpc", localauth.Middleware(authDir, enforcerproxy.JSONRPC(enforcerproxy.DefaultJSONRPCAddr)))
 	}
 
-	router := wallet.NewRoutingProvider(walletSvc, enforcerProvider, chainProvider)
+	// Electrum wallet provider — derives BIP84 keys locally and reads/broadcasts
+	// chain state over the Esplora REST API. No local Core/enforcer needed.
+	var electrumProvider wallet.Provider
+	if esploraURL := config.EsploraURLForNetwork(config.NetworkFromString(network)); esploraURL != "" && netParams != nil {
+		electrumProvider = wallet.NewElectrumProvider(walletSvc, wallet.NewEsploraClient(esploraURL), netParams, log)
+		log.Info().Str("esplora_url", esploraURL).Msg("electrum wallet provider initialized")
+	}
+
+	router := wallet.NewRoutingProvider(walletSvc, enforcerProvider, chainProvider, electrumProvider)
 	walletEngine := wallet.NewWalletEngine(walletSvc, router, netParams, log)
 	walletHandler.SetEngine(walletEngine)
 
