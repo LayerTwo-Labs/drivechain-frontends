@@ -218,21 +218,26 @@ func (s *Server) buildRuntime(ctx context.Context, conf config.Config) (*Runtime
 	// every handler). Disabled automatically when no cookie exists.
 	stdOpts := []connect.HandlerOption{connect.WithInterceptors(logInterceptor(), localauth.Interceptor(s.svcs.BitwindowDir))}
 
+	// Read-only data source: every handler reads chain/drivechain data through
+	// this interface instead of the raw clients. Today it's the local Core +
+	// enforcer source; a future PR swaps in a remote source for electrum wallets.
+	dataSource := datasource.NewLocal(s.Bitcoind.Get, s.Enforcer.Get, s.Wallet.Get)
+
 	// bitwindowd — UpdateNetwork captured here calls back into Server.Recycle,
 	// which builds a fresh Runtime. Method value is bound to s, late-binds
 	// to current runtime via s.current at call time.
 	{
-		bwSvc := api_bitwindowd.New(s.onShutdown, rt.db, s.Enforcer, s.Wallet, s.Bitcoind, rt.walletEngine, conf, s.Recycle)
+		bwSvc := api_bitwindowd.New(dataSource, s.onShutdown, rt.db, s.Enforcer, s.Wallet, s.Bitcoind, rt.walletEngine, conf, s.Recycle)
 		path, h := bitwindowdv1connect.NewBitwindowdServiceHandler(bwSvc, stdOpts...)
 		register(path, h)
 	}
 	{
-		drivechainSvc := api_drivechain.New(datasource.NewEnforcerSource(s.Enforcer.Get, s.Wallet.Get), s.Wallet, rt.db, conf)
+		drivechainSvc := api_drivechain.New(dataSource, s.Wallet, rt.db, conf)
 		path, h := drivechainv1connect.NewDrivechainServiceHandler(drivechainSvc, stdOpts...)
 		register(path, h)
 	}
 	{
-		walletSvcImpl := api_wallet.New(ctx, rt.db, s.Bitcoind, s.Wallet, s.Crypto, rt.chequeEngine, rt.walletEngine, rt.walletDir)
+		walletSvcImpl := api_wallet.New(ctx, rt.db, dataSource, s.Bitcoind, s.Wallet, s.Crypto, rt.chequeEngine, rt.walletEngine, rt.walletDir)
 		path, h := walletv1connect.NewWalletServiceHandler(walletSvcImpl, stdOpts...)
 		register(path, h)
 	}

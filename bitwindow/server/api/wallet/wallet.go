@@ -28,6 +28,7 @@ import (
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/utxometadata"
 	service "github.com/LayerTwo-Labs/sidesail/bitwindow/server/service"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/wallet"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/datasource"
 	commonv1 "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/common/v1"
 	cryptov1 "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/crypto/v1"
 	cryptorpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/crypto/v1/cryptov1connect"
@@ -54,6 +55,7 @@ var _ rpc.WalletServiceHandler = new(Server)
 func New(
 	ctx context.Context,
 	database *sql.DB,
+	data datasource.DataSource,
 	bitcoind *service.Service[corerpc.BitcoinServiceClient],
 	wallet *service.Service[validatorrpc.WalletServiceClient],
 	crypto *service.Service[cryptorpc.CryptoServiceClient],
@@ -63,6 +65,7 @@ func New(
 ) *Server {
 	s := &Server{
 		database:     database,
+		data:         data,
 		bitcoind:     bitcoind,
 		wallet:       wallet,
 		crypto:       crypto,
@@ -115,6 +118,7 @@ func New(
 
 type Server struct {
 	database     *sql.DB
+	data         datasource.DataSource
 	bitcoind     *service.Service[corerpc.BitcoinServiceClient]
 	wallet       *service.Service[validatorrpc.WalletServiceClient]
 	crypto       *service.Service[cryptorpc.CryptoServiceClient]
@@ -607,28 +611,23 @@ func (s *Server) deriveAndCheckAddresses(ctx context.Context, walletId string) (
 		return "", nil, fmt.Errorf("derive external chain: %w", err)
 	}
 
-	bitcoind, err := s.bitcoind.Get(ctx)
-	if err != nil {
-		return "", nil, err
-	}
-
 	walletName, err := s.walletEngine.GetBitcoinCoreWalletName(ctx, walletId)
 	if err != nil {
 		return "", nil, fmt.Errorf("get wallet name: %w", err)
 	}
 
 	// Get all transactions once to avoid repeated RPC calls
-	txResp, err := bitcoind.ListTransactions(ctx, connect.NewRequest(&corepb.ListTransactionsRequest{
+	txResp, err := s.data.ListWalletTransactions(ctx, &corepb.ListTransactionsRequest{
 		Wallet: walletName,
 		Count:  1000, // Check recent transactions
-	}))
+	})
 	if err != nil {
 		return "", nil, fmt.Errorf("list transactions: %w", err)
 	}
 
 	// Build a map of used addresses for fast lookup
 	usedAddresses := make(map[string]bool)
-	for _, tx := range txResp.Msg.Transactions {
+	for _, tx := range txResp.Transactions {
 		for _, detail := range tx.Details {
 			usedAddresses[detail.Address] = true
 		}
@@ -775,18 +774,14 @@ func (s *Server) GetBalance(ctx context.Context, c *connect.Request[pb.GetBalanc
 	switch walletType {
 	case engines.WalletTypeEnforcer:
 		// Enforcer path
-		wallet, err := s.wallet.Get(ctx)
-		if err != nil {
-			return nil, err
-		}
-		balance, err := wallet.GetBalance(ctx, connect.NewRequest(&validatorpb.GetBalanceRequest{}))
+		balance, err := s.data.Balance(ctx, &validatorpb.GetBalanceRequest{})
 		if err != nil {
 			return nil, fmt.Errorf("enforcer/wallet: could not get balance: %w", err)
 		}
 
 		return connect.NewResponse(&pb.GetBalanceResponse{
-			ConfirmedSatoshi: balance.Msg.ConfirmedSats,
-			PendingSatoshi:   balance.Msg.PendingSats,
+			ConfirmedSatoshi: balance.ConfirmedSats,
+			PendingSatoshi:   balance.PendingSats,
 		}), nil
 
 	case engines.WalletTypeBitcoinCore:
@@ -857,12 +852,7 @@ func (s *Server) ListTransactions(ctx context.Context, c *connect.Request[pb.Lis
 
 	if walletType == engines.WalletTypeEnforcer {
 		// Enforcer path
-		wallet, err := s.wallet.Get(ctx)
-		if err != nil {
-			return nil, err
-		}
-
-		txs, err := wallet.ListTransactions(ctx, connect.NewRequest(&validatorpb.ListTransactionsRequest{}))
+		txs, err := s.data.ListTransactions(ctx, &validatorpb.ListTransactionsRequest{})
 		if err != nil {
 			return nil, fmt.Errorf("enforcer/wallet: could not list transactions: %w", err)
 		}
@@ -884,7 +874,7 @@ func (s *Server) ListTransactions(ctx context.Context, c *connect.Request[pb.Lis
 
 		// Use logpool to fetch info for all transaction info in parallel
 		pool := logpool.NewWithResults[*pb.WalletTransaction](ctx, "wallet/ListTransactions")
-		for _, tx := range txs.Msg.Transactions {
+		for _, tx := range txs.Transactions {
 			txid := tx.Txid.Hex.Value
 			// For sent transactions, try to extract the destination address from the outputs
 			pool.Go(txid, func(ctx context.Context) (*pb.WalletTransaction, error) {
@@ -938,15 +928,10 @@ func (s *Server) ListTransactions(ctx context.Context, c *connect.Request[pb.Lis
 		return nil, fmt.Errorf("get Bitcoin Core wallet: %w", err)
 	}
 
-	bitcoind, err := s.bitcoind.Get(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("get bitcoind client: %w", err)
-	}
-
-	txsResp, err := bitcoind.ListTransactions(ctx, connect.NewRequest(&corepb.ListTransactionsRequest{
+	txsResp, err := s.data.ListWalletTransactions(ctx, &corepb.ListTransactionsRequest{
 		Wallet: coreWalletName,
 		Count:  1000, // Get last 1000 transactions
-	}))
+	})
 	if err != nil {
 		return nil, fmt.Errorf("bitcoin core list transactions: %w", err)
 	}
@@ -977,7 +962,7 @@ func (s *Server) ListTransactions(ctx context.Context, c *connect.Request[pb.Lis
 
 	// Group transactions by txid to combine amounts
 	txMap := make(map[string]*pb.WalletTransaction)
-	for _, tx := range txsResp.Msg.Transactions {
+	for _, tx := range txsResp.Transactions {
 		existing, found := txMap[tx.Txid]
 		if !found {
 			var confirmation *pb.Confirmation
@@ -1113,29 +1098,19 @@ func (s *Server) ListSidechainDeposits(ctx context.Context, c *connect.Request[p
 		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("sidechain operations only supported with enforcer wallet"))
 	}
 
-	wallet, err := s.wallet.Get(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	bitcoind, err := s.bitcoind.Get(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("enforcer/wallet: could not get bitcoind: %w", err)
-	}
-
-	deposits, err := wallet.ListSidechainDepositTransactions(ctx, connect.NewRequest(&validatorpb.ListSidechainDepositTransactionsRequest{}))
+	deposits, err := s.data.ListSidechainDeposits(ctx, &validatorpb.ListSidechainDepositTransactionsRequest{})
 	if err != nil {
 		return nil, fmt.Errorf("enforcer/wallet: could not list sidechain deposits: %w", err)
 	}
 
 	// Fetch current height from bitcoind
-	chainInfo, err := bitcoind.GetBlockchainInfo(ctx, connect.NewRequest(&corepb.GetBlockchainInfoRequest{}))
+	chainInfo, err := s.data.BlockchainInfo(ctx, &corepb.GetBlockchainInfoRequest{})
 	if err != nil {
 		return nil, fmt.Errorf("enforcer/wallet: could not get block chain info: %w", err)
 	}
 
 	var response pb.ListSidechainDepositsResponse
-	for _, tx := range deposits.Msg.Transactions {
+	for _, tx := range deposits.Transactions {
 		if c.Msg.Slot != 0 && tx.SidechainNumber.Value != uint32(c.Msg.Slot) {
 			continue
 		}
@@ -1144,7 +1119,7 @@ func (s *Server) ListSidechainDeposits(ctx context.Context, c *connect.Request[p
 			Txid:          tx.Tx.Txid.Hex.Value,
 			Amount:        int64(tx.Tx.SentSats),
 			Fee:           int64(tx.Tx.FeeSats),
-			Confirmations: int32(chainInfo.Msg.Blocks - tx.Tx.ConfirmationInfo.Height),
+			Confirmations: int32(chainInfo.Blocks - tx.Tx.ConfirmationInfo.Height),
 		})
 	}
 
@@ -1311,12 +1286,7 @@ func (s *Server) ListUnspent(ctx context.Context, c *connect.Request[pb.ListUnsp
 }
 
 func (s *Server) listUnspentEnforcer(ctx context.Context, getLabel func(string) string) ([]*pb.UnspentOutput, error) {
-	wallet, err := s.wallet.Get(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	utxos, err := wallet.ListUnspentOutputs(ctx, connect.NewRequest(&validatorpb.ListUnspentOutputsRequest{}))
+	utxos, err := s.data.ListUnspentOutputs(ctx, &validatorpb.ListUnspentOutputsRequest{})
 	if err != nil {
 		return nil, fmt.Errorf("enforcer/wallet: could not list unspent outputs: %w", err)
 	}
@@ -1327,7 +1297,7 @@ func (s *Server) listUnspentEnforcer(ctx context.Context, getLabel func(string) 
 	}
 
 	var utxosWithInfo []*pb.UnspentOutput
-	for _, utxo := range utxos.Msg.Outputs {
+	for _, utxo := range utxos.Outputs {
 		utxosWithInfo = append(utxosWithInfo, &pb.UnspentOutput{
 			Output:     fmt.Sprintf("%s:%d", utxo.Txid.Hex.Value, utxo.Vout),
 			Address:    utxo.Address.Value,
@@ -1621,12 +1591,7 @@ func (s *Server) ListReceiveAddresses(ctx context.Context, c *connect.Request[pb
 		}), nil
 	}
 
-	wallet, err := s.wallet.Get(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	utxos, err := wallet.ListUnspentOutputs(ctx, connect.NewRequest(&validatorpb.ListUnspentOutputsRequest{}))
+	utxos, err := s.data.ListUnspentOutputs(ctx, &validatorpb.ListUnspentOutputsRequest{})
 	if err != nil {
 		return nil, fmt.Errorf("enforcer/wallet: could not list unspent outputs: %w", err)
 	}
@@ -1654,7 +1619,7 @@ func (s *Server) ListReceiveAddresses(ctx context.Context, c *connect.Request[pb
 	// Use a map[string]*pb.ListReceiveAddressesResponse_ReceiveAddress to accumulate results
 	addressMap := make(map[string]*pb.ReceiveAddress)
 
-	for _, utxo := range utxos.Msg.Outputs {
+	for _, utxo := range utxos.Outputs {
 
 		utxoTimestamp := utxo.UnconfirmedLastSeen
 		if utxoTimestamp == nil {
@@ -1770,11 +1735,6 @@ func (s *Server) GetStats(ctx context.Context, c *connect.Request[pb.GetStatsReq
 		}), nil
 	}
 
-	wallet, err := s.wallet.Get(ctx)
-	if err != nil {
-		return nil, err
-	}
-
 	// 1. Get all UTXOs and count them
 	utxos, err := s.ListUnspent(ctx, connect.NewRequest(&pb.ListUnspentRequest{WalletId: walletId}))
 	if err != nil {
@@ -1790,11 +1750,11 @@ func (s *Server) GetStats(ctx context.Context, c *connect.Request[pb.GetStatsReq
 	uniqueAddressCount := uint64(len(addressSet))
 
 	// 2. Get all wallet transactions and count them
-	txs, err := wallet.ListTransactions(ctx, connect.NewRequest(&validatorpb.ListTransactionsRequest{}))
+	txs, err := s.data.ListTransactions(ctx, &validatorpb.ListTransactionsRequest{})
 	if err != nil {
 		return nil, err
 	}
-	transactionCount := int64(len(txs.Msg.Transactions))
+	transactionCount := int64(len(txs.Transactions))
 
 	// Count transactions since the start of the current month, sum
 	// lifetime fees paid, and find the most recent confirmed tx.
@@ -1805,7 +1765,7 @@ func (s *Server) GetStats(ctx context.Context, c *connect.Request[pb.GetStatsReq
 	var totalFees int64
 	var lastTxAt *timestamppb.Timestamp
 	var lastTxBlockHeight uint32
-	for _, tx := range txs.Msg.Transactions {
+	for _, tx := range txs.Transactions {
 		totalFees += int64(tx.FeeSats)
 		if tx.ConfirmationInfo != nil && tx.ConfirmationInfo.Timestamp != nil {
 			t := tx.ConfirmationInfo.Timestamp.AsTime()
@@ -1820,7 +1780,7 @@ func (s *Server) GetStats(ctx context.Context, c *connect.Request[pb.GetStatsReq
 	}
 
 	// 3. Get all sidechain deposit transactions and sum their amounts
-	sidechainDeposits, err := wallet.ListSidechainDepositTransactions(ctx, connect.NewRequest(&validatorpb.ListSidechainDepositTransactionsRequest{}))
+	sidechainDeposits, err := s.data.ListSidechainDeposits(ctx, &validatorpb.ListSidechainDepositTransactionsRequest{})
 	if err != nil {
 		return nil, err
 	}
@@ -1828,7 +1788,7 @@ func (s *Server) GetStats(ctx context.Context, c *connect.Request[pb.GetStatsReq
 	var depositSumLast30Days int64
 	// Calculate 30 days ago from now
 	thirtyDaysAgo := now.AddDate(0, 0, -30)
-	for _, dep := range sidechainDeposits.Msg.Transactions {
+	for _, dep := range sidechainDeposits.Transactions {
 		if dep.Tx != nil {
 			amt := int64(dep.Tx.SentSats)
 			depositSum += amt
@@ -2527,12 +2487,12 @@ func (s *Server) ensureWatchWallet(ctx context.Context) error {
 	}
 
 	// Check if wallet already exists by listing wallets
-	wallets, err := bitcoind.ListWallets(ctx, connect.NewRequest(&emptypb.Empty{}))
+	wallets, err := s.data.ListWallets(ctx, &emptypb.Empty{})
 	if err != nil {
 		return fmt.Errorf("failed to list wallets: %w", err)
 	}
 
-	walletExists := lo.Contains(wallets.Msg.Wallets, engines.ChequeWalletName)
+	walletExists := lo.Contains(wallets.Wallets, engines.ChequeWalletName)
 
 	// Create or load wallet if it doesn't exist in memory
 	if !walletExists {
@@ -2979,14 +2939,14 @@ func (s *Server) BumpFee(ctx context.Context, c *connect.Request[pb.BumpFeeReque
 	}
 
 	// Get the list of loaded wallets to find one that owns this transaction
-	listResp, err := bitcoind.ListWallets(ctx, connect.NewRequest(&emptypb.Empty{}))
+	listResp, err := s.data.ListWallets(ctx, &emptypb.Empty{})
 	if err != nil {
 		return nil, fmt.Errorf("list wallets: %w", err)
 	}
 
 	// Try each wallet until one successfully bumps the fee
 	var bumpResp *connect.Response[corepb.BumpFeeResponse]
-	for _, walletName := range listResp.Msg.Wallets {
+	for _, walletName := range listResp.Wallets {
 		resp, err := bitcoind.BumpFee(ctx, connect.NewRequest(&corepb.BumpFeeRequest{
 			Wallet: walletName,
 			Txid:   txid,
