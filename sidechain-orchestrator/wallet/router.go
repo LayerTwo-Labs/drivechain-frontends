@@ -3,6 +3,7 @@ package wallet
 import (
 	"context"
 	"errors"
+	"fmt"
 )
 
 // RoutingProvider dispatches each call by the wallet's type: the enforcer
@@ -33,6 +34,12 @@ func (r *RoutingProvider) pick(walletID string) (Provider, error) {
 			return nil, errors.New("enforcer wallet client not connected")
 		}
 		return r.enforcer, nil
+	}
+	// Electrum wallets run no local Core or enforcer. Their read data flows
+	// through the bitwindow datasource layer, not this provider, so there is
+	// no local wallet-RPC backend to dispatch to yet.
+	if w.WalletType == "electrum" {
+		return nil, fmt.Errorf("electrum wallets are not yet supported via wallet RPC")
 	}
 	if r.chain == nil {
 		return nil, errors.New("bitcoin Core RPC not configured")

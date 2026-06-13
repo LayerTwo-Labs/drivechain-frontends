@@ -45,6 +45,7 @@ const (
 	walletTypeEnforcer    = "enforcer"
 	walletTypeBitcoinCore = "bitcoinCore"
 	walletTypeWatchOnly   = "watchOnly"
+	walletTypeElectrum    = "electrum"
 )
 
 // walletTypeToProto maps the engine's internal wallet-type string onto the
@@ -53,6 +54,8 @@ func walletTypeToProto(t string) pb.WalletType {
 	switch t {
 	case walletTypeEnforcer:
 		return pb.WalletType_WALLET_TYPE_ENFORCER
+	case walletTypeElectrum:
+		return pb.WalletType_WALLET_TYPE_ELECTRUM
 	case walletTypeBitcoinCore, walletTypeWatchOnly:
 		return pb.WalletType_WALLET_TYPE_BITCOIN_CORE
 	default:
