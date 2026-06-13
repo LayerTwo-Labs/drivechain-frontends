@@ -493,6 +493,13 @@ MAINCHAIN_RPC_PORT="${LIQUID_SIGNET_MAINCHAIN_RPC_PORT:-38332}"
 MAINCHAIN_RPC_USER="${LIQUID_SIGNET_MAINCHAIN_RPC_USER:-user}"
 MAINCHAIN_RPC_PASSWORD="${LIQUID_SIGNET_MAINCHAIN_RPC_PASSWORD:-password}"
 PARENT_GENESIS="${LIQUID_SIGNET_PARENT_GENESIS:-00000008819873e925422c1ff0f99f7cc9bbb232af63a077a480a3633bee1ef6}"
+L1_BLOCK_SYNC="${LIQUID_SIGNET_L1_BLOCK_SYNC:-1}"
+L1_BLOCK_SYNC_INTERVAL="${LIQUID_SIGNET_L1_BLOCK_SYNC_INTERVAL:-10}"
+L1_BLOCK_SYNC_MAX_CATCHUP="${LIQUID_SIGNET_L1_BLOCK_SYNC_MAX_CATCHUP:-100}"
+BMM_ENABLED="${LIQUID_SIGNET_BMM_ENABLED:-1}"
+BMM_GRPC_ENABLED="${LIQUID_SIGNET_BMM_GRPC_ENABLED:-1}"
+BMM_GRPC_ADDR="${LIQUID_SIGNET_BMM_GRPC_ADDR:-127.0.0.1:50051}"
+BMM_GRPCURL="${LIQUID_SIGNET_BMM_GRPCURL:-$(command -v grpcurl || echo grpcurl)}"
 PASS=()
 port_from_addr() { echo "${1##*:}"; }
 while [[ $# -gt 0 ]]; do
@@ -514,7 +521,7 @@ while [[ $# -gt 0 ]]; do
 done
 mkdir -p "$DATADIR"
 export ELEMENTS_DRIVECHAIN_SIDECHAIN_ID="$SIDECHAIN_ID"
-exec "$BIN_DIR/elementsd" -chain="$CHAIN" -signetchallenge="$SIGNET_CHALLENGE" -datadir="$DATADIR" -rpcbind=127.0.0.1 -rpcport="$RPCPORT" -rpcallowip=127.0.0.1 -port="$P2PPORT" -bind=127.0.0.1 -listen=1 -listenonion=0 -server=1 -txindex=1 -validatepegin=1 -con_elementsmode=1 -con_has_parent_chain=1 -parentgenesisblockhash="$PARENT_GENESIS" -parentpubkeyprefix=111 -parentscriptprefix=196 -parent_bech32_hrp=tb -parent_blech32_hrp=tb -mainchainrpcport="$MAINCHAIN_RPC_PORT" -mainchainrpcuser="$MAINCHAIN_RPC_USER" -mainchainrpcpassword="$MAINCHAIN_RPC_PASSWORD" ${PASS[@]+"${PASS[@]}"}
+exec "$BIN_DIR/elementsd" -chain="$CHAIN" -signetchallenge="$SIGNET_CHALLENGE" -datadir="$DATADIR" -rpcbind=127.0.0.1 -rpcport="$RPCPORT" -rpcallowip=127.0.0.1 -port="$P2PPORT" -bind=127.0.0.1 -listen=1 -listenonion=0 -server=1 -txindex=1 -validatepegin=1 -con_elementsmode=1 -con_has_parent_chain=1 -parentgenesisblockhash="$PARENT_GENESIS" -parentpubkeyprefix=111 -parentscriptprefix=196 -parent_bech32_hrp=tb -parent_blech32_hrp=tb -mainchainrpcport="$MAINCHAIN_RPC_PORT" -mainchainrpcuser="$MAINCHAIN_RPC_USER" -mainchainrpcpassword="$MAINCHAIN_RPC_PASSWORD" -drivechainl1blocksync="$L1_BLOCK_SYNC" -drivechainl1blocksyncinterval="$L1_BLOCK_SYNC_INTERVAL" -drivechainl1blocksyncmaxcatchup="$L1_BLOCK_SYNC_MAX_CATCHUP" -drivechainbmm="$BMM_ENABLED" -drivechainbmmslot="$SIDECHAIN_ID" -drivechainbmmgrpc="$BMM_GRPC_ENABLED" -drivechainbmmgrpcaddr="$BMM_GRPC_ADDR" -drivechainbmmgrpcurl="$BMM_GRPCURL" ${PASS[@]+"${PASS[@]}"}
 `
 	return os.WriteFile(path, []byte(script), 0o755)
 }
