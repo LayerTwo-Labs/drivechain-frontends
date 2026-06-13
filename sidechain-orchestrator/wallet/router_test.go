@@ -51,7 +51,7 @@ func newRouterFixture(t *testing.T) (*RoutingProvider, *fakeProvider, *fakeProvi
 
 	enfFake := &fakeProvider{name: "enforcer"}
 	chainFake := &fakeProvider{name: "chain"}
-	return NewRoutingProvider(svc, enfFake, chainFake), enfFake, chainFake, enf.ID, core.ID
+	return NewRoutingProvider(svc, enfFake, chainFake, nil), enfFake, chainFake, enf.ID, core.ID
 }
 
 func TestRoutingProviderDispatchesByWalletType(t *testing.T) {
@@ -81,13 +81,19 @@ func TestRoutingProviderMissingSides(t *testing.T) {
 	core, err := svc.GenerateWallet("Core", "", "", testSlots)
 	require.NoError(t, err)
 
-	router := NewRoutingProvider(svc, nil, nil)
+	elec, err := svc.CreateElectrumWallet("Electrum", nil, nil)
+	require.NoError(t, err)
+	require.Equal(t, "electrum", elec.WalletType)
+
+	router := NewRoutingProvider(svc, nil, nil, nil)
 	ctx := context.Background()
 
 	_, _, err = router.Balance(ctx, enf.ID)
 	require.ErrorContains(t, err, "enforcer wallet client not connected")
 	_, _, err = router.Balance(ctx, core.ID)
 	require.ErrorContains(t, err, "bitcoin Core RPC not configured")
+	_, _, err = router.Balance(ctx, elec.ID)
+	require.ErrorContains(t, err, "electrum wallet provider not configured")
 
 	_, err = router.Chain().Broadcast(ctx, "00")
 	require.ErrorContains(t, err, "bitcoin Core RPC not configured")

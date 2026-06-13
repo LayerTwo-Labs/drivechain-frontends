@@ -53,7 +53,7 @@ func newRoutedHandler(t *testing.T) (*WalletHandler, *recordingProvider, *record
 
 	enfFake := &recordingProvider{}
 	chainFake := &recordingProvider{}
-	router := wallet.NewRoutingProvider(svc, enfFake, chainFake)
+	router := wallet.NewRoutingProvider(svc, enfFake, chainFake, nil)
 	engine := wallet.NewWalletEngine(svc, router, nil, log)
 
 	h := NewWalletHandler(svc)
