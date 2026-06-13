@@ -17,11 +17,13 @@ class WalletType extends $pb.ProtobufEnum {
   static const WalletType WALLET_TYPE_UNSPECIFIED = WalletType._(0, _omitEnumNames ? '' : 'WALLET_TYPE_UNSPECIFIED');
   static const WalletType WALLET_TYPE_BITCOIN_CORE = WalletType._(1, _omitEnumNames ? '' : 'WALLET_TYPE_BITCOIN_CORE');
   static const WalletType WALLET_TYPE_ENFORCER = WalletType._(2, _omitEnumNames ? '' : 'WALLET_TYPE_ENFORCER');
+  static const WalletType WALLET_TYPE_ELECTRUM = WalletType._(3, _omitEnumNames ? '' : 'WALLET_TYPE_ELECTRUM');
 
   static const $core.List<WalletType> values = <WalletType> [
     WALLET_TYPE_UNSPECIFIED,
     WALLET_TYPE_BITCOIN_CORE,
     WALLET_TYPE_ENFORCER,
+    WALLET_TYPE_ELECTRUM,
   ];
 
   static final $core.Map<$core.int, WalletType> _byValue = $pb.ProtobufEnum.initByValue(values);

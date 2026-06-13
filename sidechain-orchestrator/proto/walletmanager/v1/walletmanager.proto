@@ -24,6 +24,9 @@ service WalletManagerService {
   rpc RestoreWalletBackup(RestoreWalletBackupRequest) returns (RestoreWalletBackupResponse);
   rpc RestoreWalletBackupStream(RestoreWalletBackupRequest) returns (stream RestoreWalletBackupProgressResponse);
   rpc CreateWatchOnlyWallet(CreateWatchOnlyWalletRequest) returns (CreateWatchOnlyWalletResponse);
+  // Create an electrum wallet: keys are generated locally, but no local Bitcoin
+  // Core or enforcer runs — chain data is served remotely via the datasource.
+  rpc CreateElectrumWallet(CreateElectrumWalletRequest) returns (CreateElectrumWalletResponse);
 
   // Core wallet management
   rpc CreateBitcoinCoreWallet(CreateBitcoinCoreWalletRequest) returns (CreateBitcoinCoreWalletResponse);
@@ -270,6 +273,21 @@ message CreateWatchOnlyWalletRequest {
 }
 
 message CreateWatchOnlyWalletResponse {
+  string wallet_id = 1;
+}
+
+// ============================================================================
+// Electrum Wallet
+// ============================================================================
+
+message CreateElectrumWalletRequest {
+  string name = 1;
+  string gradient_json = 2;
+  // Optional sidechain slots to provision starter material for. Empty = all.
+  repeated uint32 slots = 3;
+}
+
+message CreateElectrumWalletResponse {
   string wallet_id = 1;
 }
 

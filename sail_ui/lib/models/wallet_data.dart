@@ -12,7 +12,14 @@ class WalletData {
   final String name;
   final WalletGradient gradient;
   final DateTime createdAt;
+
+  /// Local backend binary this wallet runs against. `BINARY_TYPE_UNSPECIFIED`
+  /// for electrum wallets, which run no local Bitcoin Core or enforcer.
   final BinaryType walletType;
+
+  /// True iff this is an electrum wallet — keys are local but no local Bitcoin
+  /// Core or enforcer runs; chain data is served remotely.
+  final bool isElectrum;
 
   /// True iff this is a watch-only wallet — no spending key, no BIP47.
   final bool isWatchOnly;
@@ -30,6 +37,7 @@ class WalletData {
     required this.gradient,
     required this.createdAt,
     required this.walletType,
+    this.isElectrum = false,
     this.isWatchOnly = false,
     this.bip47PaymentCode = '',
   });
@@ -44,19 +52,20 @@ class WalletData {
       'name': name,
       'gradient': gradient.toJson(),
       'created_at': createdAt.toIso8601String(),
-      'wallet_type': walletType.name,
+      'wallet_type': isElectrum ? 'electrum' : walletType.name,
     };
   }
 
   factory WalletData.fromJson(Map<String, dynamic> json) {
     final walletId = json['id'] as String? ?? _generateId();
     final walletTypeStr = json['wallet_type'] as String?;
-    final walletType = walletTypeStr != null
+    final isElectrum = walletTypeStr == 'electrum';
+    final walletType = (walletTypeStr != null && !isElectrum)
         ? BinaryType.values.firstWhere(
             (e) => e.name == walletTypeStr,
             orElse: () => BinaryType.BINARY_TYPE_BITCOIND,
           )
-        : BinaryType.BINARY_TYPE_BITCOIND;
+        : (isElectrum ? BinaryType.BINARY_TYPE_UNSPECIFIED : BinaryType.BINARY_TYPE_BITCOIND);
 
     return WalletData(
       version: json['version'] as int? ?? 1,
@@ -74,6 +83,7 @@ class WalletData {
           : WalletGradient.fromWalletId(walletId),
       createdAt: DateTime.parse(json['created_at'] as String),
       walletType: walletType,
+      isElectrum: isElectrum,
     );
   }
 

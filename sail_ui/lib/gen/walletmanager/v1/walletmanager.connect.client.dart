@@ -282,6 +282,25 @@ extension type WalletManagerServiceClient (connect.Transport _transport) {
     );
   }
 
+  /// Create an electrum wallet: keys are generated locally, but no local Bitcoin
+  /// Core or enforcer runs — chain data is served remotely via the datasource.
+  Future<walletmanagerv1walletmanager.CreateElectrumWalletResponse> createElectrumWallet(
+    walletmanagerv1walletmanager.CreateElectrumWalletRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.WalletManagerService.createElectrumWallet,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
   /// Core wallet management
   Future<walletmanagerv1walletmanager.CreateBitcoinCoreWalletResponse> createBitcoinCoreWallet(
     walletmanagerv1walletmanager.CreateBitcoinCoreWalletRequest input, {

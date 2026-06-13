@@ -34,6 +34,12 @@ class WalletReaderProvider extends ChangeNotifier {
   WalletData? get activeWallet => wallets.where((w) => w.id == activeWalletId).firstOrNull;
   WalletData? get enforcerWallet => wallets.where((w) => w.walletType == BinaryType.BINARY_TYPE_ENFORCER).firstOrNull;
 
+  /// False when the active wallet is electrum — it serves chain data remotely
+  /// and runs no local Bitcoin Core or enforcer. Used to skip the L1 backend
+  /// boot/wait. Defaults to true when no wallet is loaded yet so a fresh
+  /// install still boots the backends.
+  bool get activeWalletNeedsBitcoinBackends => !(activeWallet?.isElectrum ?? false);
+
   List<WalletMetadata> get availableWallets => wallets
       .map(
         (w) => WalletMetadata(
@@ -138,9 +144,13 @@ class WalletReaderProvider extends ChangeNotifier {
         name: protoWallet.name,
         gradient: gradient,
         createdAt: createdAt,
-        walletType: protoWallet.walletType == wmpb.WalletType.WALLET_TYPE_ENFORCER
-            ? BinaryType.BINARY_TYPE_ENFORCER
-            : BinaryType.BINARY_TYPE_BITCOIND,
+        walletType: switch (protoWallet.walletType) {
+          wmpb.WalletType.WALLET_TYPE_ENFORCER => BinaryType.BINARY_TYPE_ENFORCER,
+          // Electrum runs no local backend binary.
+          wmpb.WalletType.WALLET_TYPE_ELECTRUM => BinaryType.BINARY_TYPE_UNSPECIFIED,
+          _ => BinaryType.BINARY_TYPE_BITCOIND,
+        },
+        isElectrum: protoWallet.walletType == wmpb.WalletType.WALLET_TYPE_ELECTRUM,
         isWatchOnly: protoWallet.watchOnly,
         bip47PaymentCode: protoWallet.bip47PaymentCode,
       );

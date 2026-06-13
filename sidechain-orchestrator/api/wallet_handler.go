@@ -316,6 +316,16 @@ func (h *WalletHandler) CreateWatchOnlyWallet(ctx context.Context, req *connect.
 	}), nil
 }
 
+func (h *WalletHandler) CreateElectrumWallet(ctx context.Context, req *connect.Request[pb.CreateElectrumWalletRequest]) (*connect.Response[pb.CreateElectrumWalletResponse], error) {
+	w, err := h.svc.CreateElectrumWallet(req.Msg.Name, json.RawMessage(req.Msg.GradientJson), req.Msg.Slots)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+	return connect.NewResponse(&pb.CreateElectrumWalletResponse{
+		WalletId: w.ID,
+	}), nil
+}
+
 // ============================================================================
 // Core wallet management RPCs
 // ============================================================================
