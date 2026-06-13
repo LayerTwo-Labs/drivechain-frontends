@@ -599,18 +599,25 @@ func (s *Service) CreateBitcoinCoreWallet(name string, gradientJSON json.RawMess
 	return s.UpdateWalletMetadata(wallet.ID, name, gradientJSON)
 }
 
-// CreateElectrumWallet creates a new electrum wallet. Keys (seed + L1 mnemonic)
-// are generated locally exactly like a Bitcoin Core wallet — only the chain
-// data is remote — but it runs neither Bitcoin Core nor the enforcer locally,
-// so no local daemon callbacks fire. The new wallet becomes the active wallet.
-func (s *Service) CreateElectrumWallet(name string, gradient json.RawMessage, slots []uint32) (*WalletData, error) {
+// CreateElectrumWallet creates an electrum wallet — chain data comes from a
+// remote Esplora backend, but it runs neither Bitcoin Core nor the enforcer
+// locally, so no local daemon callbacks fire. The new wallet becomes active.
+//
+// customMnemonic imports an existing seed (empty = generate a new one).
+// xpubOrDescriptor instead creates a watch-only electrum wallet with no
+// private keys; it is mutually exclusive with customMnemonic.
+func (s *Service) CreateElectrumWallet(name string, gradient json.RawMessage, slots []uint32, customMnemonic, xpubOrDescriptor string) (*WalletData, error) {
+	if xpubOrDescriptor != "" {
+		return s.createElectrumWatchOnly(name, gradient, xpubOrDescriptor)
+	}
+
 	sidechainSlots := make([]SidechainSlot, len(slots))
 	for i, slot := range slots {
 		sidechainSlots[i] = SidechainSlot{Slot: int(slot)}
 	}
 
 	s.mu.Lock()
-	wallet, err := s.generateWalletOfType(name, "", "", sidechainSlots, "electrum")
+	wallet, err := s.generateWalletOfType(name, customMnemonic, "", sidechainSlots, "electrum")
 	s.mu.Unlock()
 	if err != nil {
 		return nil, err
@@ -622,6 +629,44 @@ func (s *Service) CreateElectrumWallet(name string, gradient json.RawMessage, sl
 		}
 	}
 	return wallet, nil
+}
+
+// createElectrumWatchOnly creates a watch-only electrum wallet from an xpub or
+// descriptor. Addresses derive from the public key material; with no seed the
+// ElectrumProvider can read balances/history but cannot sign or send.
+func (s *Service) createElectrumWatchOnly(name string, gradient json.RawMessage, xpubOrDescriptor string) (*WalletData, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	walletID := generateWalletID()
+	watchOnly := map[string]string{}
+	if strings.Contains(xpubOrDescriptor, "(") && strings.Contains(xpubOrDescriptor, ")") {
+		watchOnly["descriptor"] = xpubOrDescriptor
+	} else {
+		watchOnly["xpub"] = xpubOrDescriptor
+	}
+	watchOnlyJSON, _ := json.Marshal(watchOnly)
+
+	wallet := WalletData{
+		Version:    1,
+		Master:     MasterWallet{SeedHex: ""},
+		L1:         L1Wallet{Mnemonic: ""},
+		Sidechains: []SidechainWallet{},
+		ID:         walletID,
+		Name:       name,
+		Gradient:   gradient,
+		CreatedAt:  time.Now(),
+		WalletType: "electrum",
+		WatchOnly:  json.RawMessage(watchOnlyJSON),
+	}
+
+	s.wallets = append(s.wallets, wallet)
+	s.activeWalletID = walletID
+	if err := s.saveWalletFile(); err != nil {
+		return nil, fmt.Errorf("save watch-only electrum wallet: %w", err)
+	}
+	s.log.Info().Str("id", walletID).Msg("watch-only electrum wallet created")
+	return &wallet, nil
 }
 
 // CreateWatchOnlyWallet creates a watch-only wallet from an xpub or descriptor.

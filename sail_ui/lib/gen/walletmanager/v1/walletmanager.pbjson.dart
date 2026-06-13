@@ -558,13 +558,17 @@ const CreateElectrumWalletRequest$json = {
     {'1': 'name', '3': 1, '4': 1, '5': 9, '10': 'name'},
     {'1': 'gradient_json', '3': 2, '4': 1, '5': 9, '10': 'gradientJson'},
     {'1': 'slots', '3': 3, '4': 3, '5': 13, '10': 'slots'},
+    {'1': 'custom_mnemonic', '3': 4, '4': 1, '5': 9, '10': 'customMnemonic'},
+    {'1': 'xpub_or_descriptor', '3': 5, '4': 1, '5': 9, '10': 'xpubOrDescriptor'},
   ],
 };
 
 /// Descriptor for `CreateElectrumWalletRequest`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List createElectrumWalletRequestDescriptor = $convert.base64Decode(
     'ChtDcmVhdGVFbGVjdHJ1bVdhbGxldFJlcXVlc3QSEgoEbmFtZRgBIAEoCVIEbmFtZRIjCg1ncm'
-    'FkaWVudF9qc29uGAIgASgJUgxncmFkaWVudEpzb24SFAoFc2xvdHMYAyADKA1SBXNsb3Rz');
+    'FkaWVudF9qc29uGAIgASgJUgxncmFkaWVudEpzb24SFAoFc2xvdHMYAyADKA1SBXNsb3RzEicK'
+    'D2N1c3RvbV9tbmVtb25pYxgEIAEoCVIOY3VzdG9tTW5lbW9uaWMSLAoSeHB1Yl9vcl9kZXNjcm'
+    'lwdG9yGAUgASgJUhB4cHViT3JEZXNjcmlwdG9y');
 
 @$core.Deprecated('Use createElectrumWalletResponseDescriptor instead')
 const CreateElectrumWalletResponse$json = {

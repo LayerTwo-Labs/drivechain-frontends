@@ -13,12 +13,35 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/btcsuite/btcd/btcutil/hdkeychain"
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/btcsuite/btcd/wire"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+const testMnemonic = "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about"
+
+// accountXpub derives the BIP84 account xpub (m/84'/coin'/0') for a seed —
+// what a user would paste to import a watch-only electrum wallet.
+func accountXpub(t *testing.T, seedHex string, net *chaincfg.Params) string {
+	t.Helper()
+	seed, err := hex.DecodeString(seedHex)
+	require.NoError(t, err)
+	master, err := hdkeychain.NewMaster(seed, net)
+	require.NoError(t, err)
+	const h = hdkeychain.HardenedKeyStart
+	purpose, err := master.Derive(h + 84)
+	require.NoError(t, err)
+	coin, err := purpose.Derive(h + net.HDCoinType)
+	require.NoError(t, err)
+	acc, err := coin.Derive(h + 0)
+	require.NoError(t, err)
+	pub, err := acc.Neuter()
+	require.NoError(t, err)
+	return pub.String()
+}
 
 // fakeEsplora is an in-memory Esplora REST backend driven by per-address
 // fixtures, enough to exercise scan/balance/send end to end.
@@ -80,7 +103,7 @@ func (f *fakeEsplora) server(t *testing.T) *EsploraClient {
 func newElectrumFixture(t *testing.T) (*ElectrumProvider, *fakeEsplora, *WalletData, string) {
 	t.Helper()
 	svc := newTestService(t)
-	w, err := svc.CreateElectrumWallet("Electrum", nil, nil)
+	w, err := svc.CreateElectrumWallet("Electrum", nil, nil, "", "")
 	require.NoError(t, err)
 	require.Equal(t, "electrum", w.WalletType)
 
@@ -215,6 +238,58 @@ func TestElectrumSendInsufficientFunds(t *testing.T) {
 		FeeRateSatPerVB:  2,
 	})
 	require.ErrorContains(t, err, "insufficient funds")
+}
+
+func TestElectrumImportSeedIsDeterministic(t *testing.T) {
+	svc := newTestService(t)
+	w, err := svc.CreateElectrumWallet("Imported", nil, nil, testMnemonic, "")
+	require.NoError(t, err)
+	require.Equal(t, "electrum", w.WalletType)
+
+	expected := hex.EncodeToString(MnemonicToSeed(testMnemonic, ""))
+	assert.Equal(t, expected, w.Master.SeedHex, "imported mnemonic must produce its own seed")
+	assert.Equal(t, testMnemonic, w.Master.Mnemonic)
+}
+
+func TestElectrumWatchOnlyDerivesSameAddressesAndCannotSend(t *testing.T) {
+	svc := newTestService(t)
+	ctx := context.Background()
+
+	seedWallet, err := svc.CreateElectrumWallet("Seed", nil, nil, testMnemonic, "")
+	require.NoError(t, err)
+	xpub := accountXpub(t, seedWallet.Master.SeedHex, &chaincfg.SigNetParams)
+
+	woWallet, err := svc.CreateElectrumWallet("Watch", nil, nil, "", xpub)
+	require.NoError(t, err)
+	require.Equal(t, "electrum", woWallet.WalletType)
+	require.Empty(t, woWallet.Master.SeedHex, "watch-only wallet stores no seed")
+
+	// The address the watch-only xpub derives must equal the seed wallet's.
+	seedAddrs, err := DeriveBIP84Addresses(seedWallet.Master.SeedHex, &chaincfg.SigNetParams, 0, 1)
+	require.NoError(t, err)
+	addr := seedAddrs[0]
+
+	fake := newFakeEsplora()
+	p := NewElectrumProvider(svc, fake.server(t), &chaincfg.SigNetParams, zerolog.New(zerolog.NewTestWriter(t)))
+	fake.stats[addr] = EsploraAddressStats{
+		Address:    addr,
+		ChainStats: EsploraTxoStats{FundedTxoCount: 1, FundedTxoSum: 70_000, TxCount: 1},
+	}
+
+	confirmed, _, err := p.Balance(ctx, woWallet.ID)
+	require.NoError(t, err)
+	assert.InDelta(t, 0.0007, confirmed, 1e-9, "watch-only must derive the same address as the seed")
+
+	_, err = p.Send(ctx, woWallet.ID, SendRequest{
+		DestinationsSats: map[string]int64{"tb1qw508d6qejxtdg4y5r3zarvary0c5xw7kxpjzsx": 10_000},
+	})
+	require.ErrorContains(t, err, "watch-only")
+}
+
+func TestExtractXpubToken(t *testing.T) {
+	desc := "wpkh([abcd1234/84'/1'/0']tpubDEADBEEF/0/*)#checksum"
+	assert.Equal(t, "tpubDEADBEEF", extractXpubToken(desc))
+	assert.Equal(t, "", extractXpubToken("addr(tb1qxyz)"))
 }
 
 func TestEstimateFeeSats(t *testing.T) {

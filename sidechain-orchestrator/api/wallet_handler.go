@@ -317,7 +317,7 @@ func (h *WalletHandler) CreateWatchOnlyWallet(ctx context.Context, req *connect.
 }
 
 func (h *WalletHandler) CreateElectrumWallet(ctx context.Context, req *connect.Request[pb.CreateElectrumWalletRequest]) (*connect.Response[pb.CreateElectrumWalletResponse], error) {
-	w, err := h.svc.CreateElectrumWallet(req.Msg.Name, json.RawMessage(req.Msg.GradientJson), req.Msg.Slots)
+	w, err := h.svc.CreateElectrumWallet(req.Msg.Name, json.RawMessage(req.Msg.GradientJson), req.Msg.Slots, req.Msg.CustomMnemonic, req.Msg.XpubOrDescriptor)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}

@@ -4,14 +4,17 @@ import (
 	"bytes"
 	"context"
 	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"math"
 	"sort"
+	"strings"
 	"sync"
 
 	"github.com/btcsuite/btcd/btcec/v2"
 	"github.com/btcsuite/btcd/btcutil"
+	"github.com/btcsuite/btcd/btcutil/hdkeychain"
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
 	"github.com/btcsuite/btcd/wire"
@@ -70,9 +73,10 @@ type scannedAddr struct {
 }
 
 type electrumScan struct {
-	addrs  []scannedAddr
-	byAddr map[string]scannedAddr
-	keys   mapKeySource
+	addrs     []scannedAddr
+	byAddr    map[string]scannedAddr
+	keys      mapKeySource
+	watchOnly bool // no seed: addresses derive from an xpub, cannot sign
 }
 
 func (s *electrumScan) owns(address string) bool {
@@ -321,11 +325,15 @@ func (p *ElectrumProvider) nextUnused(ctx context.Context, walletID string, chan
 	if w == nil {
 		return "", fmt.Errorf("wallet %s not found", walletID)
 	}
-	account, err := deriveBIP84Account(w.Master.SeedHex, p.network)
+	derivers, _, err := p.chainDerivers(w)
 	if err != nil {
 		return "", err
 	}
-	a, err := deriveBIP84At(account, change, uint32(highest+1), p.network)
+	chainIdx := 0
+	if change {
+		chainIdx = 1
+	}
+	a, err := derivers[chainIdx](uint32(highest + 1))
 	if err != nil {
 		return "", err
 	}
@@ -362,6 +370,9 @@ func (p *ElectrumProvider) Send(ctx context.Context, walletID string, req SendRe
 	scan, err := p.scanWallet(ctx, walletID)
 	if err != nil {
 		return "", err
+	}
+	if scan.watchOnly {
+		return "", errors.New("watch-only electrum wallet cannot sign or send")
 	}
 
 	outputs, totalOutSats := buildSendOutputs(req)
@@ -593,18 +604,6 @@ func deriveBIP84Account(seedHex string, net *chaincfg.Params) (*bip32.Key, error
 	return account, nil
 }
 
-func deriveBIP84At(account *bip32.Key, change bool, index uint32, net *chaincfg.Params) (scannedAddr, error) {
-	chainIdx := uint32(0)
-	if change {
-		chainIdx = 1
-	}
-	chainKey, err := account.NewChildKey(chainIdx)
-	if err != nil {
-		return scannedAddr{}, fmt.Errorf("derive chain %d: %w", chainIdx, err)
-	}
-	return deriveBIP84Child(chainKey, change, index, net)
-}
-
 func deriveBIP84Child(chainKey *bip32.Key, change bool, index uint32, net *chaincfg.Params) (scannedAddr, error) {
 	child, err := chainKey.NewChildKey(index)
 	if err != nil {
@@ -633,17 +632,19 @@ func (p *ElectrumProvider) scanWallet(ctx context.Context, walletID string) (*el
 	if w == nil {
 		return nil, fmt.Errorf("wallet %s not found", walletID)
 	}
-	account, err := deriveBIP84Account(w.Master.SeedHex, p.network)
-	if err != nil {
-		return nil, err
-	}
 
 	scan := &electrumScan{
 		byAddr: make(map[string]scannedAddr),
 		keys:   make(mapKeySource),
 	}
-	for _, change := range []bool{false, true} {
-		addrs, err := p.scanChain(ctx, account, change)
+
+	derivers, watchOnly, err := p.chainDerivers(w)
+	if err != nil {
+		return nil, err
+	}
+	scan.watchOnly = watchOnly
+	for _, d := range derivers {
+		addrs, err := p.scanChain(ctx, d)
 		if err != nil {
 			return nil, err
 		}
@@ -671,20 +672,71 @@ func (p *ElectrumProvider) scanWallet(ctx context.Context, walletID string) (*el
 	return scan, nil
 }
 
-func (p *ElectrumProvider) scanChain(ctx context.Context, account *bip32.Key, change bool) ([]scannedAddr, error) {
-	chainIdx := uint32(0)
-	if change {
-		chainIdx = 1
-	}
-	chainKey, err := account.NewChildKey(chainIdx)
-	if err != nil {
-		return nil, fmt.Errorf("derive chain %d: %w", chainIdx, err)
+// chainDeriver derives the address+key at an index of one BIP84 chain.
+type chainDeriver func(index uint32) (scannedAddr, error)
+
+// chainDerivers returns the external+change derivers for a wallet, deriving
+// from its seed when present, or from its watch-only xpub otherwise. The
+// second return is true for watch-only (no private keys).
+func (p *ElectrumProvider) chainDerivers(w *WalletData) ([]chainDeriver, bool, error) {
+	if p.network == nil {
+		return nil, false, errors.New("no chain params for this network; cannot derive electrum wallet")
 	}
 
+	if w.Master.SeedHex != "" {
+		account, err := deriveBIP84Account(w.Master.SeedHex, p.network)
+		if err != nil {
+			return nil, false, err
+		}
+		var out []chainDeriver
+		for _, change := range []bool{false, true} {
+			chainIdx := uint32(0)
+			if change {
+				chainIdx = 1
+			}
+			chainKey, err := account.NewChildKey(chainIdx)
+			if err != nil {
+				return nil, false, fmt.Errorf("derive chain %d: %w", chainIdx, err)
+			}
+			change := change
+			out = append(out, func(i uint32) (scannedAddr, error) {
+				return deriveBIP84Child(chainKey, change, i, p.network)
+			})
+		}
+		return out, false, nil
+	}
+
+	xpub, err := watchOnlyXpub(w)
+	if err != nil {
+		return nil, false, err
+	}
+	accKey, err := hdkeychain.NewKeyFromString(xpub)
+	if err != nil {
+		return nil, false, fmt.Errorf("parse watch-only xpub: %w", err)
+	}
+	var out []chainDeriver
+	for _, change := range []bool{false, true} {
+		chainIdx := uint32(0)
+		if change {
+			chainIdx = 1
+		}
+		chainKey, err := accKey.Derive(chainIdx)
+		if err != nil {
+			return nil, false, fmt.Errorf("derive watch-only chain %d: %w", chainIdx, err)
+		}
+		change := change
+		out = append(out, func(i uint32) (scannedAddr, error) {
+			return deriveWatchOnlyChild(chainKey, change, i, p.network)
+		})
+	}
+	return out, true, nil
+}
+
+func (p *ElectrumProvider) scanChain(ctx context.Context, derive chainDeriver) ([]scannedAddr, error) {
 	var out []scannedAddr
 	consecutiveUnused := 0
 	for i := uint32(0); consecutiveUnused < electrumGapLimit && i < electrumMaxScan; i++ {
-		a, err := deriveBIP84Child(chainKey, change, i, p.network)
+		a, err := derive(i)
 		if err != nil {
 			return nil, err
 		}
@@ -701,6 +753,67 @@ func (p *ElectrumProvider) scanChain(ctx context.Context, account *bip32.Key, ch
 		}
 	}
 	return out, nil
+}
+
+// deriveWatchOnlyChild derives a P2WPKH address from a chain-level xpub with
+// no private key (watch-only).
+func deriveWatchOnlyChild(chainKey *hdkeychain.ExtendedKey, change bool, index uint32, net *chaincfg.Params) (scannedAddr, error) {
+	child, err := chainKey.Derive(index)
+	if err != nil {
+		return scannedAddr{}, fmt.Errorf("derive index %d: %w", index, err)
+	}
+	pub, err := child.ECPubKey()
+	if err != nil {
+		return scannedAddr{}, fmt.Errorf("pubkey at index %d: %w", index, err)
+	}
+	addr, err := btcutil.NewAddressWitnessPubKeyHash(hash160(pub.SerializeCompressed()), net)
+	if err != nil {
+		return scannedAddr{}, fmt.Errorf("address at index %d: %w", index, err)
+	}
+	chainIdx := 0
+	if change {
+		chainIdx = 1
+	}
+	return scannedAddr{
+		address: addr.EncodeAddress(),
+		change:  change,
+		index:   index,
+		hdPath:  fmt.Sprintf("m/%d/%d", chainIdx, index),
+	}, nil
+}
+
+// watchOnlyXpub extracts the account xpub from a watch-only wallet's stored
+// {xpub} or {descriptor} payload. For descriptors it pulls the first xpub/
+// tpub/.../zpub token out of the script expression.
+func watchOnlyXpub(w *WalletData) (string, error) {
+	var stored struct {
+		Xpub       string `json:"xpub"`
+		Descriptor string `json:"descriptor"`
+	}
+	if len(w.WatchOnly) > 0 {
+		if err := json.Unmarshal(w.WatchOnly, &stored); err != nil {
+			return "", fmt.Errorf("parse watch-only data: %w", err)
+		}
+	}
+	if stored.Xpub != "" {
+		return stored.Xpub, nil
+	}
+	if x := extractXpubToken(stored.Descriptor); x != "" {
+		return x, nil
+	}
+	return "", errors.New("watch-only electrum wallet has no xpub")
+}
+
+// extractXpubToken returns the first extended-public-key token in a descriptor.
+func extractXpubToken(desc string) string {
+	for _, field := range strings.FieldsFunc(desc, func(r rune) bool {
+		return r == '(' || r == ')' || r == ',' || r == '/' || r == '[' || r == ']' || r == ' '
+	}) {
+		if len(field) > 4 && strings.HasSuffix(field[1:4], "pub") {
+			return field
+		}
+	}
+	return ""
 }
 
 func (p *ElectrumProvider) watchKeyAddr(ctx context.Context, k WatchKey) (scannedAddr, error) {

@@ -2053,9 +2053,16 @@ type CreateElectrumWalletRequest struct {
 	Name         string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	GradientJson string                 `protobuf:"bytes,2,opt,name=gradient_json,json=gradientJson,proto3" json:"gradient_json,omitempty"`
 	// Optional sidechain slots to provision starter material for. Empty = all.
-	Slots         []uint32 `protobuf:"varint,3,rep,packed,name=slots,proto3" json:"slots,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	Slots []uint32 `protobuf:"varint,3,rep,packed,name=slots,proto3" json:"slots,omitempty"`
+	// Optional BIP39 mnemonic to import an existing seed. Empty = generate a
+	// new seed. Mutually exclusive with xpub_or_descriptor.
+	CustomMnemonic string `protobuf:"bytes,4,opt,name=custom_mnemonic,json=customMnemonic,proto3" json:"custom_mnemonic,omitempty"`
+	// Optional xpub or output descriptor for a watch-only electrum wallet
+	// (no private keys; cannot sign or send). Mutually exclusive with
+	// custom_mnemonic.
+	XpubOrDescriptor string `protobuf:"bytes,5,opt,name=xpub_or_descriptor,json=xpubOrDescriptor,proto3" json:"xpub_or_descriptor,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
 }
 
 func (x *CreateElectrumWalletRequest) Reset() {
@@ -2107,6 +2114,20 @@ func (x *CreateElectrumWalletRequest) GetSlots() []uint32 {
 		return x.Slots
 	}
 	return nil
+}
+
+func (x *CreateElectrumWalletRequest) GetCustomMnemonic() string {
+	if x != nil {
+		return x.CustomMnemonic
+	}
+	return ""
+}
+
+func (x *CreateElectrumWalletRequest) GetXpubOrDescriptor() string {
+	if x != nil {
+		return x.XpubOrDescriptor
+	}
+	return ""
 }
 
 type CreateElectrumWalletResponse struct {
@@ -4706,11 +4727,13 @@ const file_walletmanager_v1_walletmanager_proto_rawDesc = "" +
 	"\x12xpub_or_descriptor\x18\x02 \x01(\tR\x10xpubOrDescriptor\x12#\n" +
 	"\rgradient_json\x18\x03 \x01(\tR\fgradientJson\"<\n" +
 	"\x1dCreateWatchOnlyWalletResponse\x12\x1b\n" +
-	"\twallet_id\x18\x01 \x01(\tR\bwalletId\"l\n" +
+	"\twallet_id\x18\x01 \x01(\tR\bwalletId\"\xc3\x01\n" +
 	"\x1bCreateElectrumWalletRequest\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12#\n" +
 	"\rgradient_json\x18\x02 \x01(\tR\fgradientJson\x12\x14\n" +
-	"\x05slots\x18\x03 \x03(\rR\x05slots\";\n" +
+	"\x05slots\x18\x03 \x03(\rR\x05slots\x12'\n" +
+	"\x0fcustom_mnemonic\x18\x04 \x01(\tR\x0ecustomMnemonic\x12,\n" +
+	"\x12xpub_or_descriptor\x18\x05 \x01(\tR\x10xpubOrDescriptor\";\n" +
 	"\x1cCreateElectrumWalletResponse\x12\x1b\n" +
 	"\twallet_id\x18\x01 \x01(\tR\bwalletId\"=\n" +
 	"\x1eCreateBitcoinCoreWalletRequest\x12\x1b\n" +
