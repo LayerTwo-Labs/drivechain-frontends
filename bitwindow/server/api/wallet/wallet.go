@@ -8,6 +8,9 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"os"
+	"os/exec"
+	"path/filepath"
 	"sort"
 	"strconv"
 	"strings"
@@ -49,6 +52,8 @@ import (
 )
 
 var _ rpc.WalletServiceHandler = new(Server)
+
+const liquidSignetSlot int64 = 24
 
 // New creates a new Server and starts the balance update loop
 func New(
@@ -1205,9 +1210,98 @@ func (s *Server) CreateSidechainDeposit(ctx context.Context, c *connect.Request[
 
 	zerolog.Ctx(ctx).Info().Msgf("create deposit tx: broadcast transaction: %s", created.Msg.Txid)
 
+	if *slot == liquidSignetSlot {
+		txid := created.Msg.Txid.Hex.Value
+		depositValueSats, err := s.sidechainDepositValueSats(ctx, txid, uint32(*slot))
+		if err != nil {
+			return nil, fmt.Errorf("deposit transaction %s was broadcast, but its Liquid sidechain amount could not be resolved: %w", txid, err)
+		}
+		if err := importLiquidSignetDeposit(ctx, txid, depositAddress, depositValueSats); err != nil {
+			return nil, fmt.Errorf("deposit transaction %s was broadcast, but the Liquid sidechain wallet could not import it: %w", txid, err)
+		}
+	}
+
 	return connect.NewResponse(&pb.CreateSidechainDepositResponse{
 		Txid: created.Msg.Txid.Hex.Value,
 	}), nil
+}
+
+func (s *Server) sidechainDepositValueSats(ctx context.Context, txid string, slot uint32) (int64, error) {
+	bitcoind, err := s.bitcoind.Get(ctx)
+	if err != nil {
+		return 0, err
+	}
+	tx, err := bitcoind.GetRawTransaction(ctx, connect.NewRequest(&corepb.GetRawTransactionRequest{
+		Txid:      txid,
+		Verbosity: corepb.GetRawTransactionRequest_VERBOSITY_TX_INFO,
+	}))
+	if err != nil {
+		return 0, fmt.Errorf("get raw transaction: %w", err)
+	}
+	for _, out := range tx.Msg.Outputs {
+		spk := out.GetScriptPubKey()
+		if spk.GetType() != "drivechain" {
+			continue
+		}
+		if !strings.HasPrefix(spk.GetAsm(), fmt.Sprintf("OP_NOP5 %d ", slot)) {
+			continue
+		}
+		amount, err := btcutil.NewAmount(out.GetAmount())
+		if err != nil {
+			return 0, fmt.Errorf("parse drivechain output amount: %w", err)
+		}
+		if amount <= 0 {
+			return 0, fmt.Errorf("drivechain output amount must be greater than zero")
+		}
+		return int64(amount), nil
+	}
+	return 0, fmt.Errorf("no drivechain output found for slot %d", slot)
+}
+
+func importLiquidSignetDeposit(ctx context.Context, mainchainTxid, liquidAddress string, valueSats int64) error {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return fmt.Errorf("resolve home directory: %w", err)
+	}
+	if home == "" {
+		return errors.New("resolve home directory: empty HOME")
+	}
+
+	bin := filepath.Join(home, "Library", "Application Support", "bitwindow", "assets", "bin", "elements-cli")
+	datadir := os.Getenv("LIQUID_SIGNET_DATADIR")
+	if datadir == "" {
+		datadir = filepath.Join(home, "Library", "Application Support", "bitwindow", "liquid-signet-layer2labs")
+	}
+	rpcPort := os.Getenv("LIQUID_SIGNET_RPCPORT")
+	if rpcPort == "" {
+		rpcPort = "28443"
+	}
+	chain := os.Getenv("LIQUID_SIGNET_CHAIN")
+	if chain == "" {
+		chain = "liquid-signet"
+	}
+
+	importFeeSats := os.Getenv("LIQUID_SIGNET_IMPORT_FEE_SATS")
+	if importFeeSats == "" {
+		importFeeSats = "1000"
+	}
+
+	args := []string{
+		"-chain=" + chain,
+		"-datadir=" + datadir,
+		"-rpcport=" + rpcPort,
+		"importdrivechaindeposit",
+		mainchainTxid,
+		liquidAddress,
+		strconv.FormatInt(valueSats, 10),
+		importFeeSats,
+	}
+	cmd := exec.CommandContext(ctx, bin, args...)
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("run elements-cli importdrivechaindeposit: %w: %s", err, strings.TrimSpace(string(out)))
+	}
+	return nil
 }
 
 // SignMessage implements walletv1connect.WalletServiceHandler.

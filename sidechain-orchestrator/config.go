@@ -136,6 +136,9 @@ func fileForPlatform(files map[string]string) string {
 
 // Downloadable returns true if this binary has download URLs configured.
 func (c BinaryConfig) Downloadable() bool {
+	if c.Name == "liquid-signet" {
+		return true
+	}
 	return fileForPlatform(c.Files) != "" && c.BaseURL("default") != ""
 }
 

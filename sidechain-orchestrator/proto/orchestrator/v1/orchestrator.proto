@@ -353,6 +353,7 @@ enum SidechainType {
   SIDECHAIN_TYPE_TRUTHCOIN = 5;
   SIDECHAIN_TYPE_PHOTON = 6;
   SIDECHAIN_TYPE_COINSHIFT = 7;
+  SIDECHAIN_TYPE_LIQUID_SIGNET = 8;
 }
 
 // BinaryType is the single typed identifier for any binary the system tracks.
@@ -375,6 +376,7 @@ enum BinaryType {
   BINARY_TYPE_GRPCURL = 11;
   BINARY_TYPE_ORCHESTRATORD = 12;
   BINARY_TYPE_ZSIDED = 13;
+  BINARY_TYPE_LIQUID_SIGNET = 14;
 }
 
 message SidechainStatus {

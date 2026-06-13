@@ -89,10 +89,16 @@ class SidechainProvider extends ChangeNotifier {
         updatedSidechains[sidechain.slot] = SidechainOverview(sidechain, deposits, withdrawals);
       }
 
-      if (_dataHasChanged(sidechains, updatedSidechains) ||
-          _dataHasChanged(sidechainProposals, newSidechainProposals)) {
+      final dataChanged =
+          _dataHasChanged(sidechains, updatedSidechains) || _dataHasChanged(sidechainProposals, newSidechainProposals);
+      final hadError = error != null;
+
+      if (dataChanged) {
         sidechains = updatedSidechains;
         sidechainProposals = newSidechainProposals;
+      }
+
+      if (dataChanged || hadError) {
         error = null;
         notifyListeners();
       }

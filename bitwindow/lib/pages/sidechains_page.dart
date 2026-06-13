@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'dart:math';
 
 import 'package:auto_route/auto_route.dart';
@@ -442,7 +443,10 @@ class OnlyFilledTable extends ViewModelWidget<SidechainsViewModel> {
       variant: ButtonVariant.primary,
       insideTable: true,
       disabled: isDisabled,
-      onPressed: () => showDepositModal(context, slot, sidechain.info.title),
+      onPressed: () {
+        viewModel.selectSidechain(slot);
+        return showDepositModal(context, slot, sidechain.info.title);
+      },
     );
 
     if (!isDisabled) return button;
@@ -628,7 +632,10 @@ class FullTable extends ViewModelWidget<SidechainsViewModel> {
       variant: ButtonVariant.primary,
       insideTable: true,
       disabled: !viewModel.isSidechainRunning(slot) || viewModel.isUsingBitcoinCoreWallet,
-      onPressed: () => showDepositModal(context, slot, sidechain.info.title),
+      onPressed: () {
+        viewModel.selectSidechain(slot);
+        return showDepositModal(context, slot, sidechain.info.title);
+      },
     );
 
     if (tooltipMessage == null) return button;
@@ -647,6 +654,8 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
   final SyncProvider _syncProvider = GetIt.I.get<SyncProvider>();
   DownloadProvider? get _downloadProvider =>
       GetIt.I.isRegistered<DownloadProvider>() ? GetIt.I.get<DownloadProvider>() : null;
+  BackendStateProvider? get _backendStateProvider =>
+      GetIt.I.isRegistered<BackendStateProvider>() ? GetIt.I.get<BackendStateProvider>() : null;
   WalletReaderProvider get _walletReader => GetIt.I<WalletReaderProvider>();
 
   // Resolve a Sidechain Binary to its SidechainType enum (key into
@@ -660,6 +669,7 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
     Truthcoin() => SidechainType.SIDECHAIN_TYPE_TRUTHCOIN,
     Photon() => SidechainType.SIDECHAIN_TYPE_PHOTON,
     CoinShift() => SidechainType.SIDECHAIN_TYPE_COINSHIFT,
+    LiquidSignet() => SidechainType.SIDECHAIN_TYPE_LIQUID_SIGNET,
     _ => null,
   };
 
@@ -691,6 +701,8 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
     _binaryProvider.addListener(notifyListeners);
     _syncProvider.addListener(_onChange);
     _syncProvider.addListener(notifyListeners);
+    _backendStateProvider?.addListener(_onChange);
+    _backendStateProvider?.addListener(notifyListeners);
     // DownloadProvider polls every 100ms while downloads are active. Without
     // this listener the table never rebuilds during a download, so progress
     // never advances and the button doesn't flip from "Download" → "Start"
@@ -780,19 +792,7 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
       return false;
     }
 
-    return switch (sidechain) {
-      var b when b is Thunder => (GetIt.I.isRegistered<ThunderRPC>() ? GetIt.I.get<ThunderRPC>().connected : false),
-      var b when b is BitNames => (GetIt.I.isRegistered<BitnamesRPC>() ? GetIt.I.get<BitnamesRPC>().connected : false),
-      var b when b is BitAssets =>
-        (GetIt.I.isRegistered<BitAssetsRPC>() ? GetIt.I.get<BitAssetsRPC>().connected : false),
-      var b when b is ZSide => (GetIt.I.isRegistered<ZSideRPC>() ? GetIt.I.get<ZSideRPC>().connected : false),
-      var b when b is Truthcoin =>
-        (GetIt.I.isRegistered<TruthcoinRPC>() ? GetIt.I.get<TruthcoinRPC>().connected : false),
-      var b when b is Photon => (GetIt.I.isRegistered<PhotonRPC>() ? GetIt.I.get<PhotonRPC>().connected : false),
-      var b when b is CoinShift =>
-        (GetIt.I.isRegistered<CoinShiftRPC>() ? GetIt.I.get<CoinShiftRPC>().connected : false),
-      _ => false,
-    };
+    return _binaryProvider.isConnected(sidechain);
   }
 
   Widget? sidechainWidget(int slot) {
@@ -1046,6 +1046,12 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
 
   int? get selectedIndex => _selectedIndex;
 
+  void selectSidechain(int index) {
+    if (_selectedIndex == index) return;
+    _selectedIndex = index;
+    notifyListeners();
+  }
+
   void toggleSelection(int index) {
     if (_selectedIndex == index) {
       _selectedIndex = null; // Deselect if the same item is selected again
@@ -1195,6 +1201,8 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
     _binaryProvider.removeListener(notifyListeners);
     _syncProvider.removeListener(_onChange);
     _syncProvider.removeListener(notifyListeners);
+    _backendStateProvider?.removeListener(_onChange);
+    _backendStateProvider?.removeListener(notifyListeners);
     _downloadProvider?.removeListener(_onChange);
     _downloadProvider?.removeListener(notifyListeners);
     super.dispose();
@@ -1579,6 +1587,38 @@ class _DepositModalState extends State<DepositModal> {
     return null;
   }
 
+  bool _isLiquidSignetRunning() {
+    final binaryProvider = GetIt.I<BinaryProvider>();
+    final sidechain = binaryProvider.binaries.firstWhereOrNull(
+      (b) => b is LiquidSignet && b.slot == widget.slot,
+    );
+    return sidechain != null && binaryProvider.isConnected(sidechain);
+  }
+
+  Future<String> _getLiquidDepositAddress() async {
+    final home = Platform.environment['HOME'];
+    if (home == null || home.isEmpty) {
+      throw Exception('Could not resolve home directory for Elements data dir');
+    }
+
+    final bin = filePath([home, 'Library/Application Support/bitwindow/assets/bin/elements-cli']);
+    final datadir = Platform.environment['LIQUID_SIGNET_DATADIR'] ??
+        filePath([home, 'Library/Application Support/bitwindow/liquid-signet-layer2labs']);
+    final chain = Platform.environment['LIQUID_SIGNET_CHAIN'] ?? 'liquid-signet';
+    final result = await Process.run(bin, [
+      '-chain=$chain',
+      '-datadir=$datadir',
+      '-rpcport=28443',
+      'getnewaddress',
+    ]);
+    if (result.exitCode != 0) {
+      final stderrText = result.stderr.toString().trim();
+      throw Exception(stderrText.isEmpty ? 'elements-cli getnewaddress failed' : stderrText);
+    }
+
+    return formatDepositAddress(result.stdout.toString().trim(), widget.slot);
+  }
+
   Future<void> _fetchDepositAddress() async {
     setState(() {
       isFetchingAddress = true;
@@ -1586,6 +1626,17 @@ class _DepositModalState extends State<DepositModal> {
     });
 
     try {
+      if (_isLiquidSignetRunning()) {
+        final address = await _getLiquidDepositAddress();
+        if (mounted) {
+          setState(() {
+            depositAddress = address;
+            isFetchingAddress = false;
+          });
+        }
+        return;
+      }
+
       final sidechainRPC = _getSidechainRPC(widget.slot);
       if (sidechainRPC == null) {
         throw Exception('Sidechain is not running. Start it first to deposit.');

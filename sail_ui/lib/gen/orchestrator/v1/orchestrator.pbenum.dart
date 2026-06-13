@@ -26,6 +26,7 @@ class SidechainType extends $pb.ProtobufEnum {
   static const SidechainType SIDECHAIN_TYPE_TRUTHCOIN = SidechainType._(5, _omitEnumNames ? '' : 'SIDECHAIN_TYPE_TRUTHCOIN');
   static const SidechainType SIDECHAIN_TYPE_PHOTON = SidechainType._(6, _omitEnumNames ? '' : 'SIDECHAIN_TYPE_PHOTON');
   static const SidechainType SIDECHAIN_TYPE_COINSHIFT = SidechainType._(7, _omitEnumNames ? '' : 'SIDECHAIN_TYPE_COINSHIFT');
+  static const SidechainType SIDECHAIN_TYPE_LIQUID_SIGNET = SidechainType._(8, _omitEnumNames ? '' : 'SIDECHAIN_TYPE_LIQUID_SIGNET');
 
   static const $core.List<SidechainType> values = <SidechainType> [
     SIDECHAIN_TYPE_UNSPECIFIED,
@@ -36,6 +37,7 @@ class SidechainType extends $pb.ProtobufEnum {
     SIDECHAIN_TYPE_TRUTHCOIN,
     SIDECHAIN_TYPE_PHOTON,
     SIDECHAIN_TYPE_COINSHIFT,
+    SIDECHAIN_TYPE_LIQUID_SIGNET,
   ];
 
   static final $core.Map<$core.int, SidechainType> _byValue = $pb.ProtobufEnum.initByValue(values);
@@ -64,6 +66,7 @@ class BinaryType extends $pb.ProtobufEnum {
   static const BinaryType BINARY_TYPE_GRPCURL = BinaryType._(11, _omitEnumNames ? '' : 'BINARY_TYPE_GRPCURL');
   static const BinaryType BINARY_TYPE_ORCHESTRATORD = BinaryType._(12, _omitEnumNames ? '' : 'BINARY_TYPE_ORCHESTRATORD');
   static const BinaryType BINARY_TYPE_ZSIDED = BinaryType._(13, _omitEnumNames ? '' : 'BINARY_TYPE_ZSIDED');
+  static const BinaryType BINARY_TYPE_LIQUID_SIGNET = BinaryType._(14, _omitEnumNames ? '' : 'BINARY_TYPE_LIQUID_SIGNET');
 
   static const $core.List<BinaryType> values = <BinaryType> [
     BINARY_TYPE_UNSPECIFIED,
@@ -80,6 +83,7 @@ class BinaryType extends $pb.ProtobufEnum {
     BINARY_TYPE_GRPCURL,
     BINARY_TYPE_ORCHESTRATORD,
     BINARY_TYPE_ZSIDED,
+    BINARY_TYPE_LIQUID_SIGNET,
   ];
 
   static final $core.Map<$core.int, BinaryType> _byValue = $pb.ProtobufEnum.initByValue(values);

@@ -559,6 +559,9 @@ func (o *Orchestrator) Status(name string) BinaryStatus {
 	}
 	_, statErr := os.Stat(binPath)
 	downloaded := statErr == nil
+	if config.Name == "liquid-signet" {
+		downloaded = liquidSignetInstalled(o.DataDir, config.BinaryName)
+	}
 	status := BinaryStatus{
 		Name:         config.Name,
 		DisplayName:  config.DisplayName,
@@ -603,7 +606,26 @@ func (o *Orchestrator) Status(name string) BinaryStatus {
 	}
 	o.monitorsMu.Unlock()
 
+	if config.Name == "liquid-signet" && status.Port > 0 && liquidSignetPortReachable(status.Port) {
+		status.Running = true
+		status.Connected = true
+		status.Healthy = true
+		status.PortInUse = true
+		status.StartupError = ""
+		status.ConnectionError = ""
+		status.Initializing = false
+	}
+
 	return status
+}
+
+func liquidSignetPortReachable(port int) bool {
+	conn, err := net.DialTimeout("tcp", fmt.Sprintf("127.0.0.1:%d", port), 200*time.Millisecond)
+	if err != nil {
+		return false
+	}
+	_ = conn.Close()
+	return true
 }
 
 // ListAll returns the status of every configured binary,

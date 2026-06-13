@@ -443,4 +443,12 @@ var KnownSidechainSpecs = map[string]SidechainConfSpec{
 		PortStyle:      "grpc",
 		DirKey:         "coinshift",
 	},
+	"liquid-signet": {
+		Name:           "Liquid Signet",
+		ConfigFilename: "liquid-signet.conf",
+		BasePort:       28443,
+		SkippedCliKeys: []string{"network"},
+		PortStyle:      "grpc",
+		DirKey:         "liquid-signet",
+	},
 }
