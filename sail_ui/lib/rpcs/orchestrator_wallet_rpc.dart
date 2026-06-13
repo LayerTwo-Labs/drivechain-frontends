@@ -96,6 +96,20 @@ class OrchestratorWalletRPC {
     );
   }
 
+  Future<wmpb.CreateElectrumWalletResponse> createElectrumWallet({
+    required String name,
+    required String gradientJson,
+    List<int> slots = const [],
+  }) {
+    return _unaryClient.createElectrumWallet(
+      wmpb.CreateElectrumWalletRequest(
+        name: name,
+        gradientJson: gradientJson,
+        slots: slots,
+      ),
+    );
+  }
+
   Future<wmpb.SwitchWalletResponse> switchWallet(String walletId) {
     return _unaryClient.switchWallet(wmpb.SwitchWalletRequest(walletId: walletId));
   }

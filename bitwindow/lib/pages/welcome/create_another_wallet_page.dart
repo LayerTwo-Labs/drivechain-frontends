@@ -15,6 +15,7 @@ class CreateAnotherWalletPage extends StatefulWidget {
 
 enum WalletCreationType {
   bitcoinCore,
+  electrum,
   watchOnly,
   restoreFromBackup,
   customEntropy,
@@ -85,6 +86,12 @@ class _CreateAnotherWalletPageState extends State<CreateAnotherWalletPage> {
       switch (_selectedType!) {
         case WalletCreationType.bitcoinCore:
           await walletProvider.createBitcoinCoreWallet(
+            name: _walletName,
+            gradient: _selectedGradient!,
+          );
+          break;
+        case WalletCreationType.electrum:
+          await walletProvider.createElectrumWallet(
             name: _walletName,
             gradient: _selectedGradient!,
           );
@@ -238,6 +245,14 @@ class _TypeSelectionStep extends StatelessWidget {
                     icon: SailSVGAsset.iconWallet,
                     isSelected: selectedType == WalletCreationType.bitcoinCore,
                     onTap: () => onTypeSelected(WalletCreationType.bitcoinCore),
+                  ),
+                  _WalletTypeCard(
+                    type: WalletCreationType.electrum,
+                    title: 'Electrum',
+                    description: 'Lightweight — no local Bitcoin Core or enforcer; chain data from a remote server',
+                    icon: SailSVGAsset.iconWallet,
+                    isSelected: selectedType == WalletCreationType.electrum,
+                    onTap: () => onTypeSelected(WalletCreationType.electrum),
                   ),
                   _WalletTypeCard(
                     type: WalletCreationType.watchOnly,

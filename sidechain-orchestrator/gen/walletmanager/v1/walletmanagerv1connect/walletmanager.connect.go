@@ -82,6 +82,9 @@ const (
 	// WalletManagerServiceCreateWatchOnlyWalletProcedure is the fully-qualified name of the
 	// WalletManagerService's CreateWatchOnlyWallet RPC.
 	WalletManagerServiceCreateWatchOnlyWalletProcedure = "/walletmanager.v1.WalletManagerService/CreateWatchOnlyWallet"
+	// WalletManagerServiceCreateElectrumWalletProcedure is the fully-qualified name of the
+	// WalletManagerService's CreateElectrumWallet RPC.
+	WalletManagerServiceCreateElectrumWalletProcedure = "/walletmanager.v1.WalletManagerService/CreateElectrumWallet"
 	// WalletManagerServiceCreateBitcoinCoreWalletProcedure is the fully-qualified name of the
 	// WalletManagerService's CreateBitcoinCoreWallet RPC.
 	WalletManagerServiceCreateBitcoinCoreWalletProcedure = "/walletmanager.v1.WalletManagerService/CreateBitcoinCoreWallet"
@@ -157,6 +160,9 @@ type WalletManagerServiceClient interface {
 	RestoreWalletBackup(context.Context, *connect.Request[v1.RestoreWalletBackupRequest]) (*connect.Response[v1.RestoreWalletBackupResponse], error)
 	RestoreWalletBackupStream(context.Context, *connect.Request[v1.RestoreWalletBackupRequest]) (*connect.ServerStreamForClient[v1.RestoreWalletBackupProgressResponse], error)
 	CreateWatchOnlyWallet(context.Context, *connect.Request[v1.CreateWatchOnlyWalletRequest]) (*connect.Response[v1.CreateWatchOnlyWalletResponse], error)
+	// Create an electrum wallet: keys are generated locally, but no local Bitcoin
+	// Core or enforcer runs — chain data is served remotely via the datasource.
+	CreateElectrumWallet(context.Context, *connect.Request[v1.CreateElectrumWalletRequest]) (*connect.Response[v1.CreateElectrumWalletResponse], error)
 	// Core wallet management
 	CreateBitcoinCoreWallet(context.Context, *connect.Request[v1.CreateBitcoinCoreWalletRequest]) (*connect.Response[v1.CreateBitcoinCoreWalletResponse], error)
 	EnsureCoreWallets(context.Context, *connect.Request[v1.EnsureCoreWalletsRequest]) (*connect.Response[v1.EnsureCoreWalletsResponse], error)
@@ -292,6 +298,12 @@ func NewWalletManagerServiceClient(httpClient connect.HTTPClient, baseURL string
 			connect.WithSchema(walletManagerServiceMethods.ByName("CreateWatchOnlyWallet")),
 			connect.WithClientOptions(opts...),
 		),
+		createElectrumWallet: connect.NewClient[v1.CreateElectrumWalletRequest, v1.CreateElectrumWalletResponse](
+			httpClient,
+			baseURL+WalletManagerServiceCreateElectrumWalletProcedure,
+			connect.WithSchema(walletManagerServiceMethods.ByName("CreateElectrumWallet")),
+			connect.WithClientOptions(opts...),
+		),
 		createBitcoinCoreWallet: connect.NewClient[v1.CreateBitcoinCoreWalletRequest, v1.CreateBitcoinCoreWalletResponse](
 			httpClient,
 			baseURL+WalletManagerServiceCreateBitcoinCoreWalletProcedure,
@@ -421,6 +433,7 @@ type walletManagerServiceClient struct {
 	restoreWalletBackup       *connect.Client[v1.RestoreWalletBackupRequest, v1.RestoreWalletBackupResponse]
 	restoreWalletBackupStream *connect.Client[v1.RestoreWalletBackupRequest, v1.RestoreWalletBackupProgressResponse]
 	createWatchOnlyWallet     *connect.Client[v1.CreateWatchOnlyWalletRequest, v1.CreateWatchOnlyWalletResponse]
+	createElectrumWallet      *connect.Client[v1.CreateElectrumWalletRequest, v1.CreateElectrumWalletResponse]
 	createBitcoinCoreWallet   *connect.Client[v1.CreateBitcoinCoreWalletRequest, v1.CreateBitcoinCoreWalletResponse]
 	ensureCoreWallets         *connect.Client[v1.EnsureCoreWalletsRequest, v1.EnsureCoreWalletsResponse]
 	getBalance                *connect.Client[v1.GetBalanceRequest, v1.GetBalanceResponse]
@@ -519,6 +532,11 @@ func (c *walletManagerServiceClient) RestoreWalletBackupStream(ctx context.Conte
 // CreateWatchOnlyWallet calls walletmanager.v1.WalletManagerService.CreateWatchOnlyWallet.
 func (c *walletManagerServiceClient) CreateWatchOnlyWallet(ctx context.Context, req *connect.Request[v1.CreateWatchOnlyWalletRequest]) (*connect.Response[v1.CreateWatchOnlyWalletResponse], error) {
 	return c.createWatchOnlyWallet.CallUnary(ctx, req)
+}
+
+// CreateElectrumWallet calls walletmanager.v1.WalletManagerService.CreateElectrumWallet.
+func (c *walletManagerServiceClient) CreateElectrumWallet(ctx context.Context, req *connect.Request[v1.CreateElectrumWalletRequest]) (*connect.Response[v1.CreateElectrumWalletResponse], error) {
+	return c.createElectrumWallet.CallUnary(ctx, req)
 }
 
 // CreateBitcoinCoreWallet calls walletmanager.v1.WalletManagerService.CreateBitcoinCoreWallet.
@@ -631,6 +649,9 @@ type WalletManagerServiceHandler interface {
 	RestoreWalletBackup(context.Context, *connect.Request[v1.RestoreWalletBackupRequest]) (*connect.Response[v1.RestoreWalletBackupResponse], error)
 	RestoreWalletBackupStream(context.Context, *connect.Request[v1.RestoreWalletBackupRequest], *connect.ServerStream[v1.RestoreWalletBackupProgressResponse]) error
 	CreateWatchOnlyWallet(context.Context, *connect.Request[v1.CreateWatchOnlyWalletRequest]) (*connect.Response[v1.CreateWatchOnlyWalletResponse], error)
+	// Create an electrum wallet: keys are generated locally, but no local Bitcoin
+	// Core or enforcer runs — chain data is served remotely via the datasource.
+	CreateElectrumWallet(context.Context, *connect.Request[v1.CreateElectrumWalletRequest]) (*connect.Response[v1.CreateElectrumWalletResponse], error)
 	// Core wallet management
 	CreateBitcoinCoreWallet(context.Context, *connect.Request[v1.CreateBitcoinCoreWalletRequest]) (*connect.Response[v1.CreateBitcoinCoreWalletResponse], error)
 	EnsureCoreWallets(context.Context, *connect.Request[v1.EnsureCoreWalletsRequest]) (*connect.Response[v1.EnsureCoreWalletsResponse], error)
@@ -760,6 +781,12 @@ func NewWalletManagerServiceHandler(svc WalletManagerServiceHandler, opts ...con
 		WalletManagerServiceCreateWatchOnlyWalletProcedure,
 		svc.CreateWatchOnlyWallet,
 		connect.WithSchema(walletManagerServiceMethods.ByName("CreateWatchOnlyWallet")),
+		connect.WithHandlerOptions(opts...),
+	)
+	walletManagerServiceCreateElectrumWalletHandler := connect.NewUnaryHandler(
+		WalletManagerServiceCreateElectrumWalletProcedure,
+		svc.CreateElectrumWallet,
+		connect.WithSchema(walletManagerServiceMethods.ByName("CreateElectrumWallet")),
 		connect.WithHandlerOptions(opts...),
 	)
 	walletManagerServiceCreateBitcoinCoreWalletHandler := connect.NewUnaryHandler(
@@ -904,6 +931,8 @@ func NewWalletManagerServiceHandler(svc WalletManagerServiceHandler, opts ...con
 			walletManagerServiceRestoreWalletBackupStreamHandler.ServeHTTP(w, r)
 		case WalletManagerServiceCreateWatchOnlyWalletProcedure:
 			walletManagerServiceCreateWatchOnlyWalletHandler.ServeHTTP(w, r)
+		case WalletManagerServiceCreateElectrumWalletProcedure:
+			walletManagerServiceCreateElectrumWalletHandler.ServeHTTP(w, r)
 		case WalletManagerServiceCreateBitcoinCoreWalletProcedure:
 			walletManagerServiceCreateBitcoinCoreWalletHandler.ServeHTTP(w, r)
 		case WalletManagerServiceEnsureCoreWalletsProcedure:
@@ -1011,6 +1040,10 @@ func (UnimplementedWalletManagerServiceHandler) RestoreWalletBackupStream(contex
 
 func (UnimplementedWalletManagerServiceHandler) CreateWatchOnlyWallet(context.Context, *connect.Request[v1.CreateWatchOnlyWalletRequest]) (*connect.Response[v1.CreateWatchOnlyWalletResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("walletmanager.v1.WalletManagerService.CreateWatchOnlyWallet is not implemented"))
+}
+
+func (UnimplementedWalletManagerServiceHandler) CreateElectrumWallet(context.Context, *connect.Request[v1.CreateElectrumWalletRequest]) (*connect.Response[v1.CreateElectrumWalletResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("walletmanager.v1.WalletManagerService.CreateElectrumWallet is not implemented"))
 }
 
 func (UnimplementedWalletManagerServiceHandler) CreateBitcoinCoreWallet(context.Context, *connect.Request[v1.CreateBitcoinCoreWalletRequest]) (*connect.Response[v1.CreateBitcoinCoreWalletResponse], error) {

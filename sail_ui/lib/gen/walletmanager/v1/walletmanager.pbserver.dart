@@ -38,6 +38,7 @@ abstract class WalletManagerServiceBase extends $pb.GeneratedService {
   $async.Future<$14.RestoreWalletBackupResponse> restoreWalletBackup($pb.ServerContext ctx, $14.RestoreWalletBackupRequest request);
   $async.Future<$14.RestoreWalletBackupProgressResponse> restoreWalletBackupStream($pb.ServerContext ctx, $14.RestoreWalletBackupRequest request);
   $async.Future<$14.CreateWatchOnlyWalletResponse> createWatchOnlyWallet($pb.ServerContext ctx, $14.CreateWatchOnlyWalletRequest request);
+  $async.Future<$14.CreateElectrumWalletResponse> createElectrumWallet($pb.ServerContext ctx, $14.CreateElectrumWalletRequest request);
   $async.Future<$14.CreateBitcoinCoreWalletResponse> createBitcoinCoreWallet($pb.ServerContext ctx, $14.CreateBitcoinCoreWalletRequest request);
   $async.Future<$14.EnsureCoreWalletsResponse> ensureCoreWallets($pb.ServerContext ctx, $14.EnsureCoreWalletsRequest request);
   $async.Future<$14.GetBalanceResponse> getBalance($pb.ServerContext ctx, $14.GetBalanceRequest request);
@@ -75,6 +76,7 @@ abstract class WalletManagerServiceBase extends $pb.GeneratedService {
       case 'RestoreWalletBackup': return $14.RestoreWalletBackupRequest();
       case 'RestoreWalletBackupStream': return $14.RestoreWalletBackupRequest();
       case 'CreateWatchOnlyWallet': return $14.CreateWatchOnlyWalletRequest();
+      case 'CreateElectrumWallet': return $14.CreateElectrumWalletRequest();
       case 'CreateBitcoinCoreWallet': return $14.CreateBitcoinCoreWalletRequest();
       case 'EnsureCoreWallets': return $14.EnsureCoreWalletsRequest();
       case 'GetBalance': return $14.GetBalanceRequest();
@@ -115,6 +117,7 @@ abstract class WalletManagerServiceBase extends $pb.GeneratedService {
       case 'RestoreWalletBackup': return this.restoreWalletBackup(ctx, request as $14.RestoreWalletBackupRequest);
       case 'RestoreWalletBackupStream': return this.restoreWalletBackupStream(ctx, request as $14.RestoreWalletBackupRequest);
       case 'CreateWatchOnlyWallet': return this.createWatchOnlyWallet(ctx, request as $14.CreateWatchOnlyWalletRequest);
+      case 'CreateElectrumWallet': return this.createElectrumWallet(ctx, request as $14.CreateElectrumWalletRequest);
       case 'CreateBitcoinCoreWallet': return this.createBitcoinCoreWallet(ctx, request as $14.CreateBitcoinCoreWalletRequest);
       case 'EnsureCoreWallets': return this.ensureCoreWallets(ctx, request as $14.EnsureCoreWalletsRequest);
       case 'GetBalance': return this.getBalance(ctx, request as $14.GetBalanceRequest);

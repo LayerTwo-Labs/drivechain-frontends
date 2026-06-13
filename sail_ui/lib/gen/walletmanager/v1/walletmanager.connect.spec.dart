@@ -124,6 +124,15 @@ abstract final class WalletManagerService {
     walletmanagerv1walletmanager.CreateWatchOnlyWalletResponse.new,
   );
 
+  /// Create an electrum wallet: keys are generated locally, but no local Bitcoin
+  /// Core or enforcer runs — chain data is served remotely via the datasource.
+  static const createElectrumWallet = connect.Spec(
+    '/$name/CreateElectrumWallet',
+    connect.StreamType.unary,
+    walletmanagerv1walletmanager.CreateElectrumWalletRequest.new,
+    walletmanagerv1walletmanager.CreateElectrumWalletResponse.new,
+  );
+
   /// Core wallet management
   static const createBitcoinCoreWallet = connect.Spec(
     '/$name/CreateBitcoinCoreWallet',

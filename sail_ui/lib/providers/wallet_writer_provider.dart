@@ -73,6 +73,26 @@ class WalletWriterProvider extends ChangeNotifier {
     }
   }
 
+  Future<void> createElectrumWallet({
+    required String name,
+    required WalletGradient gradient,
+  }) async {
+    try {
+      final resp = await _client.createElectrumWallet(
+        name: name,
+        gradientJson: gradient.toJsonString(),
+      );
+
+      _logger.i('createElectrumWallet: created via backend, id=${resp.walletId}');
+
+      await _walletReader.init();
+      notifyListeners();
+    } catch (e) {
+      _logger.e('createElectrumWallet: failed: $e');
+      rethrow;
+    }
+  }
+
   Future<void> createWatchOnlyWallet({
     required String name,
     required String xpubOrDescriptor,
