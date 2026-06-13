@@ -13,6 +13,7 @@ import (
 	pb "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/drivechain/v1"
 	rpc "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/drivechain/v1/drivechainv1connect"
 	service "github.com/LayerTwo-Labs/sidesail/bitwindow/server/service"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/datasource"
 	commonpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/common/v1"
 	validatorpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1"
 	validatorrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1/mainchainv1connect"
@@ -46,13 +47,13 @@ type proposalsCache struct {
 
 // New creates a new Server
 func New(
-	validator *service.Service[validatorrpc.ValidatorServiceClient],
+	data datasource.DrivechainReader,
 	wallet *service.Service[validatorrpc.WalletServiceClient],
 	db *sql.DB,
 	conf config.Config,
 ) *Server {
 	s := &Server{
-		validator:        validator,
+		data:             data,
 		wallet:           wallet,
 		db:               db,
 		conf:             conf,
@@ -62,10 +63,10 @@ func New(
 }
 
 type Server struct {
-	validator *service.Service[validatorrpc.ValidatorServiceClient]
-	wallet    *service.Service[validatorrpc.WalletServiceClient]
-	db        *sql.DB
-	conf      config.Config
+	data   datasource.DrivechainReader
+	wallet *service.Service[validatorrpc.WalletServiceClient]
+	db     *sql.DB
+	conf   config.Config
 
 	// Cache for withdrawal bundles per sidechain ID
 	withdrawalCacheMu sync.RWMutex
@@ -84,26 +85,22 @@ type Server struct {
 // Uses caching to avoid repeated enforcer calls.
 func (s *Server) ListSidechainProposals(ctx context.Context, c *connect.Request[pb.ListSidechainProposalsRequest]) (*connect.Response[pb.ListSidechainProposalsResponse], error) {
 	log := zerolog.Ctx(ctx)
-	validator, err := s.validator.Get(ctx)
-	if err != nil {
-		return nil, err
-	}
 
 	// Get current block hash to check cache validity
-	chainTipResp, err := validator.GetChainTip(ctx, connect.NewRequest(&validatorpb.GetChainTipRequest{}))
+	chainTipResp, err := s.data.ChainTip(ctx, &validatorpb.GetChainTipRequest{})
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal,
 			fmt.Errorf("get chain tip: %w", err))
 	}
 
-	if chainTipResp.Msg.BlockHeaderInfo == nil ||
-		chainTipResp.Msg.BlockHeaderInfo.BlockHash == nil ||
-		chainTipResp.Msg.BlockHeaderInfo.BlockHash.Hex == nil {
+	if chainTipResp.BlockHeaderInfo == nil ||
+		chainTipResp.BlockHeaderInfo.BlockHash == nil ||
+		chainTipResp.BlockHeaderInfo.BlockHash.Hex == nil {
 		return nil, connect.NewError(connect.CodeInternal,
 			fmt.Errorf("chain tip missing block hash"))
 	}
 
-	currentBlockHash := chainTipResp.Msg.BlockHeaderInfo.BlockHash.Hex.Value
+	currentBlockHash := chainTipResp.BlockHeaderInfo.BlockHash.Hex.Value
 
 	// Check if we have a valid cache
 	s.proposalsCacheMu.RLock()
@@ -118,14 +115,14 @@ func (s *Server) ListSidechainProposals(ctx context.Context, c *connect.Request[
 	}
 
 	// Cache miss - fetch fresh data
-	sidechainProposals, err := validator.GetSidechainProposals(ctx, connect.NewRequest(&validatorpb.GetSidechainProposalsRequest{}))
+	sidechainProposals, err := s.data.SidechainProposals(ctx, &validatorpb.GetSidechainProposalsRequest{})
 	if err != nil {
 		err = fmt.Errorf("enforcer/validator: could not get sidechain proposals: %w", err)
 		log.Error().Err(err).Msg("could not get sidechain proposals")
 		return nil, err
 	}
 
-	proposals := lo.Map(sidechainProposals.Msg.SidechainProposals, func(proposal *validatorpb.GetSidechainProposalsResponse_SidechainProposal, _ int) *pb.SidechainProposal {
+	proposals := lo.Map(sidechainProposals.SidechainProposals, func(proposal *validatorpb.GetSidechainProposalsResponse_SidechainProposal, _ int) *pb.SidechainProposal {
 		return &pb.SidechainProposal{
 			Slot:           proposal.SidechainNumber.Value,
 			Data:           []byte(proposal.Description.Hex.Value),
@@ -172,27 +169,22 @@ func (s *Server) ListSidechains(ctx context.Context, _ *connect.Request[pb.ListS
 		}), nil
 	}
 
-	validator, err := s.validator.Get(ctx)
-	if err != nil {
-		return nil, err
-	}
-
 	// Get current block hash to check cache validity
-	chainTipResp, err := validator.GetChainTip(ctx, connect.NewRequest(&validatorpb.GetChainTipRequest{}))
+	chainTipResp, err := s.data.ChainTip(ctx, &validatorpb.GetChainTipRequest{})
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal,
 			fmt.Errorf("get chain tip: %w", err))
 	}
 
-	if chainTipResp.Msg.BlockHeaderInfo == nil ||
-		chainTipResp.Msg.BlockHeaderInfo.BlockHash == nil ||
-		chainTipResp.Msg.BlockHeaderInfo.BlockHash.Hex == nil {
+	if chainTipResp.BlockHeaderInfo == nil ||
+		chainTipResp.BlockHeaderInfo.BlockHash == nil ||
+		chainTipResp.BlockHeaderInfo.BlockHash.Hex == nil {
 		log.Error().Msg("chain tip missing block hash")
 		return nil, connect.NewError(connect.CodeInternal,
 			fmt.Errorf("chain tip missing block hash"))
 	}
 
-	currentBlockHash := chainTipResp.Msg.BlockHeaderInfo.BlockHash.Hex.Value
+	currentBlockHash := chainTipResp.BlockHeaderInfo.BlockHash.Hex.Value
 
 	// Check if we have a valid cache
 	s.sidechainsCacheMu.RLock()
@@ -205,7 +197,7 @@ func (s *Server) ListSidechains(ctx context.Context, _ *connect.Request[pb.ListS
 		}), nil
 	}
 
-	sidechains, err := validator.GetSidechains(ctx, connect.NewRequest(&validatorpb.GetSidechainsRequest{}))
+	sidechains, err := s.data.Sidechains(ctx, &validatorpb.GetSidechainsRequest{})
 	if err != nil {
 		err = fmt.Errorf("enforcer/validator: could not get sidechains: %w", err)
 		log.Error().Err(err).Msg("could not get sidechains")
@@ -213,8 +205,8 @@ func (s *Server) ListSidechains(ctx context.Context, _ *connect.Request[pb.ListS
 	}
 
 	// Loop over all sidechains and get their chaintip if available
-	sidechainList := make([]*pb.ListSidechainsResponse_Sidechain, 0, len(sidechains.Msg.Sidechains))
-	for _, sidechain := range sidechains.Msg.Sidechains {
+	sidechainList := make([]*pb.ListSidechainsResponse_Sidechain, 0, len(sidechains.Sidechains))
+	for _, sidechain := range sidechains.Sidechains {
 		declaration := sidechain.Declaration.GetV0()
 
 		sc := &pb.ListSidechainsResponse_Sidechain{
@@ -230,16 +222,16 @@ func (s *Server) ListSidechains(ctx context.Context, _ *connect.Request[pb.ListS
 		}
 
 		// Try to get ctip (may not exist if no deposits yet)
-		ctipResponse, err := validator.GetCtip(ctx, connect.NewRequest(
+		ctipResponse, err := s.data.Ctip(ctx,
 			&validatorpb.GetCtipRequest{SidechainNumber: wrapperspb.UInt32(sidechain.SidechainNumber.Value)},
-		))
-		if err == nil && ctipResponse.Msg.Ctip != nil && ctipResponse.Msg.Ctip.Txid != nil {
-			txidHash, err := chainhash.NewHashFromStr(ctipResponse.Msg.Ctip.Txid.Hex.Value)
+		)
+		if err == nil && ctipResponse.Ctip != nil && ctipResponse.Ctip.Txid != nil {
+			txidHash, err := chainhash.NewHashFromStr(ctipResponse.Ctip.Txid.Hex.Value)
 			if err == nil {
-				sc.Nversion = uint32(ctipResponse.Msg.Ctip.SequenceNumber)
-				sc.BalanceSatoshi = int64(ctipResponse.Msg.Ctip.Value)
+				sc.Nversion = uint32(ctipResponse.Ctip.SequenceNumber)
+				sc.BalanceSatoshi = int64(ctipResponse.Ctip.Value)
 				sc.ChaintipTxid = txidHash.String()
-				sc.ChaintipVout = ctipResponse.Msg.Ctip.Vout
+				sc.ChaintipVout = ctipResponse.Ctip.Vout
 			}
 		}
 
@@ -353,30 +345,25 @@ func (s *Server) ListWithdrawals(
 	c *connect.Request[pb.ListWithdrawalsRequest],
 ) (*connect.Response[pb.ListWithdrawalsResponse], error) {
 	log := zerolog.Ctx(ctx)
-	validator, err := s.validator.Get(ctx)
-	if err != nil {
-		return nil, connect.NewError(connect.CodeUnavailable,
-			fmt.Errorf("validator unavailable: %w", err))
-	}
 
 	sidechainId := c.Msg.SidechainId
 
 	// Get chain tip
-	chainTipResp, err := validator.GetChainTip(ctx, connect.NewRequest(&validatorpb.GetChainTipRequest{}))
+	chainTipResp, err := s.data.ChainTip(ctx, &validatorpb.GetChainTipRequest{})
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal,
 			fmt.Errorf("get chain tip: %w", err))
 	}
 
-	if chainTipResp.Msg.BlockHeaderInfo == nil ||
-		chainTipResp.Msg.BlockHeaderInfo.BlockHash == nil ||
-		chainTipResp.Msg.BlockHeaderInfo.BlockHash.Hex == nil {
+	if chainTipResp.BlockHeaderInfo == nil ||
+		chainTipResp.BlockHeaderInfo.BlockHash == nil ||
+		chainTipResp.BlockHeaderInfo.BlockHash.Hex == nil {
 		return nil, connect.NewError(connect.CodeInternal,
 			fmt.Errorf("chain tip missing block hash"))
 	}
 
-	currentHeight := chainTipResp.Msg.BlockHeaderInfo.Height
-	currentBlockHash := chainTipResp.Msg.BlockHeaderInfo.BlockHash.Hex.Value
+	currentHeight := chainTipResp.BlockHeaderInfo.Height
+	currentBlockHash := chainTipResp.BlockHeaderInfo.BlockHash.Hex.Value
 
 	// Check if we have a valid cache
 	s.withdrawalCacheMu.RLock()
@@ -395,14 +382,14 @@ func (s *Server) ListWithdrawals(
 	}
 
 	// Get sidechains to find activation height
-	sidechainsResp, err := validator.GetSidechains(ctx, connect.NewRequest(&validatorpb.GetSidechainsRequest{}))
+	sidechainsResp, err := s.data.Sidechains(ctx, &validatorpb.GetSidechainsRequest{})
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal,
 			fmt.Errorf("get sidechains: %w", err))
 	}
 
 	// Find the sidechain we're looking for
-	sidechain, found := lo.Find(sidechainsResp.Msg.Sidechains, func(sc *validatorpb.GetSidechainsResponse_SidechainInfo) bool {
+	sidechain, found := lo.Find(sidechainsResp.Sidechains, func(sc *validatorpb.GetSidechainsResponse_SidechainInfo) bool {
 		return sc.SidechainNumber != nil && sc.SidechainNumber.Value == sidechainId
 	})
 
@@ -437,16 +424,16 @@ func (s *Server) ListWithdrawals(
 		// No cache or activation height changed - need full fetch from activation
 		// Get the activation block hash
 		ancestorsNeeded := currentHeight - activationHeight
-		activationBlockResp, err := validator.GetBlockHeaderInfo(ctx, connect.NewRequest(&validatorpb.GetBlockHeaderInfoRequest{
-			BlockHash:    chainTipResp.Msg.BlockHeaderInfo.BlockHash,
+		activationBlockResp, err := s.data.BlockHeaderInfo(ctx, &validatorpb.GetBlockHeaderInfoRequest{
+			BlockHash:    chainTipResp.BlockHeaderInfo.BlockHash,
 			MaxAncestors: &ancestorsNeeded,
-		}))
+		})
 		if err != nil {
 			return nil, connect.NewError(connect.CodeInternal,
 				fmt.Errorf("get activation block header: %w", err))
 		}
 
-		activationBlock, found := lo.Find(activationBlockResp.Msg.HeaderInfos, func(headerInfo *validatorpb.BlockHeaderInfo) bool {
+		activationBlock, found := lo.Find(activationBlockResp.HeaderInfos, func(headerInfo *validatorpb.BlockHeaderInfo) bool {
 			return headerInfo.Height == activationHeight
 		})
 
@@ -465,11 +452,11 @@ func (s *Server) ListWithdrawals(
 	}
 
 	// Fetch peg data from start to current tip
-	pegData, err := validator.GetTwoWayPegData(ctx, connect.NewRequest(&validatorpb.GetTwoWayPegDataRequest{
+	pegData, err := s.data.TwoWayPegData(ctx, &validatorpb.GetTwoWayPegDataRequest{
 		SidechainId:    wrapperspb.UInt32(sidechainId),
 		StartBlockHash: &commonpb.ReverseHex{Hex: wrapperspb.String(startBlockHash)},
 		EndBlockHash:   &commonpb.ReverseHex{Hex: wrapperspb.String(currentBlockHash)},
-	}))
+	})
 	if err != nil {
 		log.Error().Err(err).Msg("could not get two-way peg data")
 		return nil, connect.NewError(connect.CodeInternal,
@@ -477,7 +464,7 @@ func (s *Server) ListWithdrawals(
 	}
 
 	// Process new blocks and extract withdrawal bundle events
-	newBundles := s.processPegDataBlocks(pegData.Msg.Blocks, sidechainId)
+	newBundles := s.processPegDataBlocks(pegData.Blocks, sidechainId)
 
 	// Merge existing and new bundles
 	allBundles := s.mergeBundles(existingBundles, newBundles)
