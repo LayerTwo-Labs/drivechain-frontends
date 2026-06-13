@@ -49,6 +49,7 @@ import (
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/utils/v1/utilsv1connect"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/wallet/v1/walletv1connect"
 
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/datasource"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/enforcerproxy"
 	cryptorpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/crypto/v1/cryptov1connect"
 	validatorrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1/mainchainv1connect"
@@ -226,7 +227,7 @@ func (s *Server) buildRuntime(ctx context.Context, conf config.Config) (*Runtime
 		register(path, h)
 	}
 	{
-		drivechainSvc := api_drivechain.New(s.Enforcer, s.Wallet, rt.db, conf)
+		drivechainSvc := api_drivechain.New(datasource.NewEnforcerSource(s.Enforcer.Get, s.Wallet.Get), s.Wallet, rt.db, conf)
 		path, h := drivechainv1connect.NewDrivechainServiceHandler(drivechainSvc, stdOpts...)
 		register(path, h)
 	}
