@@ -32,6 +32,7 @@ type Config struct {
 	EnforcerHost        string `long:"enforcer.host" description:"host:port for connecting to the enforcer server" default:"localhost:50051"`
 	EnforcerJSONRPCAddr string `long:"enforcer.jsonrpc.addr" description:"host:port for the enforcer's JSON-RPC endpoint" default:"localhost:8122"`
 	OrchestratorAddr    string `long:"orchestrator.addr" description:"URL for connecting to the orchestrator daemon" default:"http://localhost:30400"`
+	RemoteDataURL       string `long:"remote.data.url" description:"URL of a remote server serving read-only chain/drivechain data (Connect, same services as Core+enforcer); used when the active wallet is electrum" default:""`
 
 	ThunderAddr   string `long:"thunder.addr" description:"host:port for connecting to the thunder sidechain" default:"localhost:6009"`
 	BitnamesAddr  string `long:"bitnames.addr" description:"host:port for connecting to the bitnames sidechain" default:"localhost:6002"`

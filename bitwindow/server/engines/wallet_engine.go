@@ -36,6 +36,7 @@ const (
 	WalletTypeEnforcer    WalletType = "enforcer"
 	WalletTypeBitcoinCore WalletType = "bitcoinCore"
 	WalletTypeWatchOnly   WalletType = "watchOnly"
+	WalletTypeElectrum    WalletType = "electrum"
 )
 
 // WalletInfo contains information about a wallet from wallet.json

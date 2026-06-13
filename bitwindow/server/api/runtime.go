@@ -219,9 +219,41 @@ func (s *Server) buildRuntime(ctx context.Context, conf config.Config) (*Runtime
 	stdOpts := []connect.HandlerOption{connect.WithInterceptors(logInterceptor(), localauth.Interceptor(s.svcs.BitwindowDir))}
 
 	// Read-only data source: every handler reads chain/drivechain data through
-	// this interface instead of the raw clients. Today it's the local Core +
-	// enforcer source; a future PR swaps in a remote source for electrum wallets.
-	dataSource := datasource.NewLocal(s.Bitcoind.Get, s.Enforcer.Get, s.Wallet.Get)
+	// this interface instead of the raw clients. When the active wallet is
+	// electrum (no local Core/enforcer), reads are served by a remote server
+	// speaking the same Connect services. The selection happens inside the
+	// client getters, so no handler has to know about it.
+	bitcoindGet := s.Bitcoind.Get
+	validatorGet := s.Enforcer.Get
+	walletGet := s.Wallet.Get
+	if conf.RemoteDataURL != "" {
+		remoteBitcoind := corerpc.NewBitcoinServiceClient(http.DefaultClient, conf.RemoteDataURL)
+		remoteValidator := validatorrpc.NewValidatorServiceClient(http.DefaultClient, conf.RemoteDataURL)
+		remoteWallet := validatorrpc.NewWalletServiceClient(http.DefaultClient, conf.RemoteDataURL)
+		useRemote := func(ctx context.Context) bool {
+			info, err := rt.walletEngine.GetActiveWalletInfo(ctx)
+			return err == nil && info != nil && info.WalletType == engines.WalletTypeElectrum
+		}
+		bitcoindGet = func(ctx context.Context) (corerpc.BitcoinServiceClient, error) {
+			if useRemote(ctx) {
+				return remoteBitcoind, nil
+			}
+			return s.Bitcoind.Get(ctx)
+		}
+		validatorGet = func(ctx context.Context) (validatorrpc.ValidatorServiceClient, error) {
+			if useRemote(ctx) {
+				return remoteValidator, nil
+			}
+			return s.Enforcer.Get(ctx)
+		}
+		walletGet = func(ctx context.Context) (validatorrpc.WalletServiceClient, error) {
+			if useRemote(ctx) {
+				return remoteWallet, nil
+			}
+			return s.Wallet.Get(ctx)
+		}
+	}
+	dataSource := datasource.NewLocal(bitcoindGet, validatorGet, walletGet)
 
 	// bitwindowd — UpdateNetwork captured here calls back into Server.Recycle,
 	// which builds a fresh Runtime. Method value is bound to s, late-binds

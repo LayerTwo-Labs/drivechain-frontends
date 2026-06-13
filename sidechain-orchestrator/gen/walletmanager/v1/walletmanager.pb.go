@@ -30,6 +30,9 @@ const (
 	WalletType_WALLET_TYPE_UNSPECIFIED  WalletType = 0
 	WalletType_WALLET_TYPE_BITCOIN_CORE WalletType = 1
 	WalletType_WALLET_TYPE_ENFORCER     WalletType = 2
+	// Electrum wallet — keys are local, but it runs neither Bitcoin Core nor the
+	// enforcer locally; chain/wallet read data is served via the datasource layer.
+	WalletType_WALLET_TYPE_ELECTRUM WalletType = 3
 )
 
 // Enum value maps for WalletType.
@@ -38,11 +41,13 @@ var (
 		0: "WALLET_TYPE_UNSPECIFIED",
 		1: "WALLET_TYPE_BITCOIN_CORE",
 		2: "WALLET_TYPE_ENFORCER",
+		3: "WALLET_TYPE_ELECTRUM",
 	}
 	WalletType_value = map[string]int32{
 		"WALLET_TYPE_UNSPECIFIED":  0,
 		"WALLET_TYPE_BITCOIN_CORE": 1,
 		"WALLET_TYPE_ENFORCER":     2,
+		"WALLET_TYPE_ELECTRUM":     3,
 	}
 )
 
@@ -4775,12 +4780,13 @@ const file_walletmanager_v1_walletmanager_proto_rawDesc = "" +
 	"\x0econfirmed_sats\x18\x06 \x01(\x01R\rconfirmedSats\x12)\n" +
 	"\x10unconfirmed_sats\x18\a \x01(\x01R\x0funconfirmedSats\x12\x10\n" +
 	"\x03seq\x18\b \x01(\x03R\x03seq\x12\x1c\n" +
-	"\theartbeat\x18\t \x01(\bR\theartbeat*a\n" +
+	"\theartbeat\x18\t \x01(\bR\theartbeat*{\n" +
 	"\n" +
 	"WalletType\x12\x1b\n" +
 	"\x17WALLET_TYPE_UNSPECIFIED\x10\x00\x12\x1c\n" +
 	"\x18WALLET_TYPE_BITCOIN_CORE\x10\x01\x12\x18\n" +
-	"\x14WALLET_TYPE_ENFORCER\x10\x02*\xdb\x01\n" +
+	"\x14WALLET_TYPE_ENFORCER\x10\x02\x12\x18\n" +
+	"\x14WALLET_TYPE_ELECTRUM\x10\x03*\xdb\x01\n" +
 	"\x1cRestoreWalletBackupStepState\x120\n" +
 	",RESTORE_WALLET_BACKUP_STEP_STATE_UNSPECIFIED\x10\x00\x12,\n" +
 	"(RESTORE_WALLET_BACKUP_STEP_STATE_STARTED\x10\x01\x12.\n" +
