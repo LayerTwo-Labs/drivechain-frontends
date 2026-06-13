@@ -287,7 +287,7 @@ func (s *Server) buildRuntime(ctx context.Context, conf config.Config) (*Runtime
 		register(path, h)
 	}
 	// Enforcer bridge — single impl serves three separate services
-	enforcerSvc := api_enforcer.New(s.Enforcer, s.Wallet, s.Crypto)
+	enforcerSvc := api_enforcer.New(dataSource, s.Enforcer, s.Wallet, s.Crypto)
 	{
 		path, h := validatorrpc.NewValidatorServiceHandler(enforcerSvc, stdOpts...)
 		register(path, h)
