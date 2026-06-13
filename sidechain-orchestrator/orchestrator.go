@@ -21,6 +21,7 @@ import (
 	"golang.org/x/net/http2"
 
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/datasource"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/fork"
 	enforcerpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1"
 	enforcerrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1/mainchainv1connect"
@@ -2255,19 +2256,20 @@ func (c *enforcerSyncConnection) Fetch(ctx context.Context) (*ChainSyncResult, e
 	if !ok || cfg.Port == 0 {
 		return nil, fmt.Errorf("enforcer not configured")
 	}
-	client := enforcerrpc.NewValidatorServiceClient(
-		c.o.enforcerHTTP(),
-		cfg.RPCURL(),
-		connect.WithGRPC(),
+	src := datasource.NewEnforcerSource(
+		func(context.Context) (enforcerrpc.ValidatorServiceClient, error) {
+			return enforcerrpc.NewValidatorServiceClient(c.o.enforcerHTTP(), cfg.RPCURL(), connect.WithGRPC()), nil
+		},
+		nil,
 	)
 	rpcCtx, cancel := context.WithTimeout(ctx, 2*time.Second)
 	defer cancel()
-	resp, err := client.GetChainTip(rpcCtx, connect.NewRequest(&enforcerpb.GetChainTipRequest{}))
+	resp, err := src.ChainTip(rpcCtx, &enforcerpb.GetChainTipRequest{})
 	if err != nil {
 		return nil, err
 	}
 	return &ChainSyncResult{
-		Blocks: int64(resp.Msg.GetBlockHeaderInfo().GetHeight()),
+		Blocks: int64(resp.GetBlockHeaderInfo().GetHeight()),
 	}, nil
 }
 
