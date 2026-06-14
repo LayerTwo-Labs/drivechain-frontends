@@ -250,6 +250,43 @@ func TestElectrumSendMaxSubtractsFee(t *testing.T) {
 	assert.Equal(t, int64(100_000-220), tx.TxOut[0].Value)
 }
 
+// TestElectrumSubtractFeeReturnsChange: a partial subtract-fee send reduces only
+// the recipient by the fee and returns the remainder as change — it must not
+// sweep the whole UTXO to the recipient.
+func TestElectrumSubtractFeeReturnsChange(t *testing.T) {
+	p, fake, w, addr := newElectrumFixture(t)
+	ctx := context.Background()
+
+	fake.stats[addr] = EsploraAddressStats{
+		Address:    addr,
+		ChainStats: EsploraTxoStats{FundedTxoCount: 1, FundedTxoSum: 1_000_000, TxCount: 1},
+	}
+	fake.utxos[addr] = []EsploraUTXO{{
+		TxID: "4444444444444444444444444444444444444444444444444444444444444444",
+		Vout: 0, Value: 1_000_000, Status: EsploraStatus{Confirmed: true, BlockHeight: 100},
+	}}
+
+	dest := "tb1qw508d6qejxtdg4y5r3zarvary0c5xw7kxpjzsx"
+	_, err := p.Send(ctx, w.ID, SendRequest{
+		DestinationsSats:      map[string]int64{dest: 50_000},
+		FeeRateSatPerVB:       2,
+		SubtractFeeFromAmount: true,
+	})
+	require.NoError(t, err)
+	require.Len(t, fake.broadcast, 1)
+
+	raw, err := hex.DecodeString(fake.broadcast[0])
+	require.NoError(t, err)
+	var tx wire.MsgTx
+	require.NoError(t, tx.Deserialize(bytes.NewReader(raw)))
+
+	require.Len(t, tx.TxOut, 2, "partial subtract-fee keeps a change output")
+	// 1-in 2-out native segwit = 141 vB at 2 sat/vB = 282 fee, taken from the
+	// recipient; the rest of the UTXO returns as change.
+	assert.Equal(t, int64(50_000-282), tx.TxOut[0].Value, "recipient reduced by fee only")
+	assert.Equal(t, int64(950_000), tx.TxOut[1].Value, "remainder returned as change")
+}
+
 func TestElectrumSendInsufficientFunds(t *testing.T) {
 	p, fake, w, addr := newElectrumFixture(t)
 	fake.stats[addr] = EsploraAddressStats{

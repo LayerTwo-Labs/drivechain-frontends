@@ -486,11 +486,8 @@ func (p *ElectrumBackend) buildSendPSBT(ctx context.Context, walletID string, sc
 		}
 	}
 
-	// Send-max has no change output; a normal send assumes one.
+	// Assume a change output; subtract-fee sends still return change.
 	nOut := len(outputs) + 1
-	if req.SubtractFeeFromAmount {
-		nOut = len(outputs)
-	}
 	// All of a wallet's inputs share its script kind, which sets the input vsize.
 	inputKind := ScriptNativeSegwit
 	if w := p.svc.GetWalletByID(walletID); w != nil {
@@ -503,23 +500,14 @@ func (p *ElectrumBackend) buildSendPSBT(ctx context.Context, walletID string, sc
 		return estimateFeeSats(nIn, nOut, feeRate, inputKind)
 	}
 
-	// For subtract-fee sends, the first output absorbs the fee; precompute the
-	// other outputs' total so the selection loop can guarantee the absorbing
-	// output stays above dust.
-	var sffaOtherOut int64
-	if req.SubtractFeeFromAmount && len(outputs) > 0 {
-		sffaOtherOut = totalOutSats - int64(math.Round(outputs[0].AmountBTC*1e8))
-	}
-
 	i := 0
 	for {
 		fee := feeSats(len(selected))
+		// Subtract-fee sends take the fee out of the first output, so they only
+		// need to cover the output total; change (if any) returns as normal.
 		target := totalOutSats + fee
 		if req.SubtractFeeFromAmount {
-			// Need enough to cover the requested outputs and leave the
-			// absorbing output >= dust after the fee; otherwise a valid send
-			// would fail while spendable UTXOs remain.
-			target = max(totalOutSats, sffaOtherOut+fee+dustSats)
+			target = totalOutSats
 		}
 		if len(selected) > 0 && selectedSats >= target {
 			break
@@ -532,19 +520,25 @@ func (p *ElectrumBackend) buildSendPSBT(ctx context.Context, walletID string, sc
 		i++
 	}
 
+	// Subtract-fee change is known before the fee (its selection target ignores
+	// fee), so drop the assumed change output when none will clear dust.
+	if req.SubtractFeeFromAmount && selectedSats-totalOutSats < dustSats {
+		nOut = len(outputs)
+	}
 	fee := feeSats(len(selected))
 	var changeSats int64
 	if req.SubtractFeeFromAmount {
 		if len(outputs) == 0 || outputs[0].OpReturnHex != "" {
 			return nil, nil, errors.New("subtractFeeFromAmount requires a payable first output")
 		}
-		// Spend everything selected: outputs[0] absorbs all leftover value
-		// minus the fee, so there is no change output.
-		reduced := selectedSats - sffaOtherOut - fee
+		// Take the fee out of the first output; the rest of the selected value
+		// returns as change, matching Bitcoin Core's subtract-fee semantics.
+		reduced := int64(math.Round(outputs[0].AmountBTC*1e8)) - fee
 		if reduced < dustSats {
 			return nil, nil, fmt.Errorf("fee %d sats exceeds first output", fee)
 		}
 		outputs[0].AmountBTC = float64(reduced) / 1e8
+		changeSats = selectedSats - totalOutSats
 	} else {
 		changeSats = selectedSats - totalOutSats - fee
 	}

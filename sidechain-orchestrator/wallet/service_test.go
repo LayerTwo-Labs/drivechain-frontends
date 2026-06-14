@@ -2,6 +2,7 @@ package wallet
 
 import (
 	"encoding/base64"
+	"encoding/hex"
 	"encoding/json"
 	"os"
 	"path/filepath"
@@ -9,6 +10,7 @@ import (
 	"testing"
 
 	orchestratorpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/orchestrator/v1"
+	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -694,6 +696,23 @@ func TestServiceCreateWatchOnlyWalletWithDescriptor(t *testing.T) {
 	require.NoError(t, json.Unmarshal(wf.Wallets[0].WatchOnly, &watchOnly))
 	assert.Equal(t, descriptor, watchOnly["descriptor"])
 	assert.Empty(t, watchOnly["xpub"])
+}
+
+// TestServiceCreateElectrumWatchOnlyRejectsPrivateKey: importing a descriptor
+// that carries a private extended key must fail so a watch-only wallet can
+// never store or sign with private material.
+func TestServiceCreateElectrumWatchOnlyRejectsPrivateKey(t *testing.T) {
+	svc := newTestService(t)
+
+	seedHex := hex.EncodeToString(MnemonicToSeed(testMnemonic, ""))
+	acct, err := accountKeyFromSeed(seedHex, ScriptNativeSegwit, &chaincfg.MainNetParams)
+	require.NoError(t, err)
+	require.True(t, acct.IsPrivate())
+
+	desc := "wpkh(" + acct.String() + "/0/*)"
+	_, err = svc.CreateElectrumWallet("Leaky", nil, nil, "", desc, "")
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "private key")
 }
 
 func TestServiceCreateWatchOnlyWalletAlongsideRegular(t *testing.T) {
