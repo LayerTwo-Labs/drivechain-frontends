@@ -43,6 +43,15 @@ service WalletManagerService {
   rpc BumpFee(BumpFeeRequest) returns (BumpFeeResponse);
   rpc DeriveAddresses(DeriveAddressesRequest) returns (DeriveAddressesResponse);
 
+  // PSBT (BIP174). CreatePsbt builds an unsigned PSBT for a send (works for
+  // watch-only wallets); SignPsbt adds this wallet's signatures; CombinePsbt
+  // merges cosigner PSBTs; FinalizePsbt extracts the raw transaction. Electrum
+  // wallets only.
+  rpc CreatePsbt(CreatePsbtRequest) returns (CreatePsbtResponse);
+  rpc SignPsbt(SignPsbtRequest) returns (SignPsbtResponse);
+  rpc CombinePsbt(CombinePsbtRequest) returns (CombinePsbtResponse);
+  rpc FinalizePsbt(FinalizePsbtRequest) returns (FinalizePsbtResponse);
+
   // Seed access for cheque engine
   rpc GetWalletSeed(GetWalletSeedRequest) returns (GetWalletSeedResponse);
 
@@ -356,6 +365,45 @@ message SendTransactionRequest {
 
 message SendTransactionResponse {
   string txid = 1;
+}
+
+message CreatePsbtRequest {
+  string wallet_id = 1;  // empty = active wallet
+  map<string, int64> destinations = 2;  // address -> satoshis
+  int64 fee_rate_sat_per_vbyte = 3;     // 0 = use default
+  bool subtract_fee_from_amount = 4;
+  string op_return_hex = 5;
+  int64 fixed_fee_sats = 6;
+  repeated UnspentOutput required_inputs = 7;
+}
+
+message CreatePsbtResponse {
+  string psbt_base64 = 1;
+}
+
+message SignPsbtRequest {
+  string wallet_id = 1;  // empty = active wallet
+  string psbt_base64 = 2;
+}
+
+message SignPsbtResponse {
+  string psbt_base64 = 1;
+}
+
+message CombinePsbtRequest {
+  repeated string psbt_base64 = 1;
+}
+
+message CombinePsbtResponse {
+  string psbt_base64 = 1;
+}
+
+message FinalizePsbtRequest {
+  string psbt_base64 = 1;
+}
+
+message FinalizePsbtResponse {
+  string raw_tx_hex = 1;
 }
 
 message ListTransactionsRequest {

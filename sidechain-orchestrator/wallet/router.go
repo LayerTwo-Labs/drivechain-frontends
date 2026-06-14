@@ -32,6 +32,13 @@ func (r *BackendRouter) ElectrumConfigured() bool {
 	return r.electrum != nil
 }
 
+// ElectrumBackend returns the configured electrum backend, if any. PSBT
+// operations are electrum-specific and dispatch through it.
+func (r *BackendRouter) ElectrumBackend() (*ElectrumBackend, bool) {
+	eb, ok := r.electrum.(*ElectrumBackend)
+	return eb, ok
+}
+
 func (r *BackendRouter) pick(walletID string) (Backend, error) {
 	w := r.svc.GetWalletByID(walletID)
 	if w == nil {

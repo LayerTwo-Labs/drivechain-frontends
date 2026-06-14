@@ -1172,3 +1172,67 @@ func restoreStepStatusToProto(status wallet.RestoreWalletBackupStepStatus) pb.Re
 func btcToSats(btc float64) float64 {
 	return math.Round(btc * 1e8)
 }
+
+func (h *WalletHandler) CreatePsbt(ctx context.Context, req *connect.Request[pb.CreatePsbtRequest]) (*connect.Response[pb.CreatePsbtResponse], error) {
+	if err := h.requireEngine(); err != nil {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, err)
+	}
+	walletID, err := h.engine.ResolveWalletID(req.Msg.WalletId)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+	}
+	sendReq := wallet.SendRequest{
+		DestinationsSats:      req.Msg.Destinations,
+		FeeRateSatPerVB:       req.Msg.FeeRateSatPerVbyte,
+		FixedFeeSats:          req.Msg.FixedFeeSats,
+		OpReturnHex:           req.Msg.OpReturnHex,
+		SubtractFeeFromAmount: req.Msg.SubtractFeeFromAmount,
+	}
+	for _, u := range req.Msg.RequiredInputs {
+		sendReq.RequiredInputs = append(sendReq.RequiredInputs, wallet.RequiredInput{
+			TxID: u.Txid, Vout: int(u.Vout), AmountSats: u.AmountSats,
+		})
+	}
+	b64, err := h.engine.CreatePSBT(ctx, walletID, sendReq)
+	if err != nil {
+		return nil, rpcError(err)
+	}
+	return connect.NewResponse(&pb.CreatePsbtResponse{PsbtBase64: b64}), nil
+}
+
+func (h *WalletHandler) SignPsbt(ctx context.Context, req *connect.Request[pb.SignPsbtRequest]) (*connect.Response[pb.SignPsbtResponse], error) {
+	if err := h.requireEngine(); err != nil {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, err)
+	}
+	walletID, err := h.engine.ResolveWalletID(req.Msg.WalletId)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+	}
+	out, err := h.engine.SignPSBT(ctx, walletID, req.Msg.PsbtBase64)
+	if err != nil {
+		return nil, rpcError(err)
+	}
+	return connect.NewResponse(&pb.SignPsbtResponse{PsbtBase64: out}), nil
+}
+
+func (h *WalletHandler) CombinePsbt(ctx context.Context, req *connect.Request[pb.CombinePsbtRequest]) (*connect.Response[pb.CombinePsbtResponse], error) {
+	if err := h.requireEngine(); err != nil {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, err)
+	}
+	out, err := h.engine.CombinePSBT(req.Msg.PsbtBase64)
+	if err != nil {
+		return nil, rpcError(err)
+	}
+	return connect.NewResponse(&pb.CombinePsbtResponse{PsbtBase64: out}), nil
+}
+
+func (h *WalletHandler) FinalizePsbt(ctx context.Context, req *connect.Request[pb.FinalizePsbtRequest]) (*connect.Response[pb.FinalizePsbtResponse], error) {
+	if err := h.requireEngine(); err != nil {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, err)
+	}
+	rawHex, err := h.engine.FinalizePSBT(req.Msg.PsbtBase64)
+	if err != nil {
+		return nil, rpcError(err)
+	}
+	return connect.NewResponse(&pb.FinalizePsbtResponse{RawTxHex: rawHex}), nil
+}
