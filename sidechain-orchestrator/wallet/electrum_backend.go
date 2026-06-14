@@ -61,17 +61,19 @@ func NewElectrumBackend(svc *Service, client Esplora, network *chaincfg.Params, 
 // scannedAddr is one derived (or watched) address with its key and current
 // funding stats.
 type scannedAddr struct {
-	address      string
-	priv         *btcec.PrivateKey
-	pub          *btcec.PublicKey
-	scriptPubKey []byte
-	redeem       []byte           // P2SH-P2WPKH redeem (nested segwit)
-	tapInternal  *btcec.PublicKey // taproot internal key
-	kind         ScriptKind
-	change       bool
-	index        uint32
-	hdPath       string
-	stats        EsploraAddressStats
+	address       string
+	priv          *btcec.PrivateKey
+	pub           *btcec.PublicKey
+	scriptPubKey  []byte
+	redeem        []byte              // P2SH-P2WPKH redeem (nested segwit)
+	witnessScript []byte              // P2WSH multisig script
+	multisigPrivs []*btcec.PrivateKey // multisig: the keys this wallet holds
+	tapInternal   *btcec.PublicKey    // taproot internal key
+	kind          ScriptKind
+	change        bool
+	index         uint32
+	hdPath        string
+	stats         EsploraAddressStats
 }
 
 type electrumScan struct {
@@ -672,7 +674,18 @@ func (p *ElectrumBackend) deriveAddr(d *Descriptor, change bool, index uint32) (
 		index:        index,
 		hdPath:       descriptorHDPath(d.Kind, p.network, change, index),
 	}
-	if d.Kind != ScriptMultisig {
+	if d.Kind == ScriptMultisig {
+		a.witnessScript = ds.witnessScript
+		for _, k := range d.Keys {
+			priv, ok, err := deriveChildPrivIfPossible(k.Account, chainIndex(change), index)
+			if err != nil {
+				return scannedAddr{}, err
+			}
+			if ok {
+				a.multisigPrivs = append(a.multisigPrivs, priv)
+			}
+		}
+	} else {
 		priv, ok, err := deriveChildPrivIfPossible(d.Keys[0].Account, chainIndex(change), index)
 		if err != nil {
 			return scannedAddr{}, err
