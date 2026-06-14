@@ -121,7 +121,7 @@ func (c *EsploraClient) do(ctx context.Context, method, path string, reqBody io.
 	if err != nil {
 		return nil, fmt.Errorf("esplora %s %s: %w", method, path, err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, fmt.Errorf("read %s: %w", path, err)
@@ -162,22 +162,22 @@ func (c *EsploraClient) AddressTxs(ctx context.Context, address string) ([]Esplo
 			return nil, err
 		}
 		all = append(all, page...)
-		// First call returns mempool txs + the first confirmed page; only
-		// confirmed history paginates, and a short page means we're done.
-		if lastSeen == "" {
-			confirmed := 0
-			for _, tx := range page {
-				if tx.Status.Confirmed {
-					confirmed++
-				}
+		// Only confirmed history paginates. Advance the cursor by the oldest
+		// confirmed tx in this page — the chain endpoint rejects a mempool
+		// txid, so we can't blindly use the last element. A short confirmed
+		// batch means we've reached the end.
+		confirmed := 0
+		cursor := ""
+		for _, tx := range page {
+			if tx.Status.Confirmed {
+				confirmed++
+				cursor = tx.TxID
 			}
-			if confirmed < 25 {
-				break
-			}
-		} else if len(page) < 25 {
+		}
+		if confirmed < 25 || cursor == "" {
 			break
 		}
-		lastSeen = all[len(all)-1].TxID
+		lastSeen = cursor
 	}
 	return all, nil
 }

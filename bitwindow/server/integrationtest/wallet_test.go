@@ -19,6 +19,7 @@ import (
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/engines"
 	walletpb "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/wallet/v1"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/service"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/datasource"
 	pb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/testharness"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/wallet"
@@ -374,7 +375,7 @@ func TestBitwindowWalletIntegration(t *testing.T) {
 
 		// Create bitwindow wallet Server.
 		serverA := api_wallet.New(
-			ctx, dbA, bitcoindSvcA,
+			ctx, dbA, datasource.NewLocal(bitcoindSvcA.Get, nil, nil), bitcoindSvcA,
 			nil, // no enforcer wallet service
 			nil, // no crypto service
 			chequeEngineA, walletEngineA, walletDirA,
@@ -544,7 +545,7 @@ func TestBitwindowWalletIntegration(t *testing.T) {
 		dbB := database.Test(t)
 
 		serverB := api_wallet.New(
-			ctx, dbB, bitcoindSvcB,
+			ctx, dbB, datasource.NewLocal(bitcoindSvcB.Get, nil, nil), bitcoindSvcB,
 			nil, nil,
 			chequeEngineB, walletEngineB, walletDirB,
 		)
