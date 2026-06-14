@@ -333,6 +333,24 @@ func TestElectrumBalanceMempoolSpendStaysNonNegative(t *testing.T) {
 	assert.InDelta(t, 0.0003, pending, 1e-9) // 30k of mempool inflow (change)
 }
 
+// TestElectrumBalanceSpendingUnconfirmedReceive covers spending an unconfirmed
+// receive: mempoolSpent exceeds the confirmed balance, so pending must be the
+// net wallet total (the change), not the gross mempool inflow.
+func TestElectrumBalanceSpendingUnconfirmedReceive(t *testing.T) {
+	p, fake, w, addr := newElectrumFixture(t)
+	// No confirmed coins. In the mempool: received 1 BTC, then spent it leaving
+	// 0.5 BTC change — funded 1.5, spent 1.0. The real wallet total is 0.5.
+	fake.stats[addr] = EsploraAddressStats{
+		Address:      addr,
+		MempoolStats: EsploraTxoStats{FundedTxoSum: 150_000_000, SpentTxoSum: 100_000_000, TxCount: 2},
+	}
+
+	confirmed, pending, err := p.Balance(context.Background(), w.ID)
+	require.NoError(t, err)
+	assert.InDelta(t, 0.0, confirmed, 1e-9)
+	assert.InDelta(t, 0.5, pending, 1e-9, "pending must be the net 0.5 BTC, not gross 1.5 BTC")
+}
+
 // TestElectrumWatchOnlyNextReceiveAdvances guards address reuse: a watch-only
 // wallet has no private keys, but its derived chain addresses must still
 // advance past used ones instead of always handing out index 0.

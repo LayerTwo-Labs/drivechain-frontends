@@ -121,19 +121,21 @@ func (p *ElectrumBackend) Balance(ctx context.Context, walletID string) (float64
 	if err != nil {
 		return 0, 0, err
 	}
-	// Split the mempool delta into gross incoming (funded) and gross spent so
-	// both returned values stay non-negative: spending confirmed coins makes the
-	// net mempool delta negative, which would wrap when cast to uint64 downstream.
-	// confirmed = confirmed coins not yet being spent; pending = all mempool
-	// inflow (incl. our own change). confirmed+pending preserves the true total.
+	// confirmed = confirmed coins not yet being spent in the mempool; pending =
+	// everything else, derived from the true total so it accounts for spending
+	// unconfirmed coins (e.g. spending an unconfirmed receive, where mempoolSpent
+	// exceeds the confirmed balance). Both stay non-negative and
+	// confirmed+pending == the real wallet total = chainNet + mempoolNet.
 	var confirmedNet, mempoolFunded, mempoolSpent int64
 	for _, a := range scan.addrs {
 		confirmedNet += a.stats.ChainStats.FundedTxoSum - a.stats.ChainStats.SpentTxoSum
 		mempoolFunded += a.stats.MempoolStats.FundedTxoSum
 		mempoolSpent += a.stats.MempoolStats.SpentTxoSum
 	}
+	total := confirmedNet + mempoolFunded - mempoolSpent
 	confirmed := max(confirmedNet-mempoolSpent, 0)
-	return float64(confirmed) / 1e8, float64(mempoolFunded) / 1e8, nil
+	pending := total - confirmed
+	return float64(confirmed) / 1e8, float64(pending) / 1e8, nil
 }
 
 func (p *ElectrumBackend) ListUnspent(ctx context.Context, walletID string) ([]UTXO, error) {
