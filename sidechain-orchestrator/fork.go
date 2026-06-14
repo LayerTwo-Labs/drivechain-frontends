@@ -96,7 +96,7 @@ func (s *forkWalletScanner) coreUnspent(ctx context.Context, walletID string, ti
 	if s.engine == nil {
 		return nil, nil
 	}
-	coreUTXOs, err := s.engine.Provider().ListUnspent(ctx, walletID)
+	coreUTXOs, err := s.engine.Backend().ListUnspent(ctx, walletID)
 	if err != nil {
 		return nil, err
 	}

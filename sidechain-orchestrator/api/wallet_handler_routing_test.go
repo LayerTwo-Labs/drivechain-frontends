@@ -17,7 +17,7 @@ import (
 // recordingProvider captures Send/Balance calls; the embedded nil interface
 // panics on anything the test doesn't expect.
 type recordingProvider struct {
-	wallet.Provider
+	wallet.Backend
 	lastSendWallet string
 	lastSend       wallet.SendRequest
 	sendErr        error
@@ -36,7 +36,7 @@ func (f *recordingProvider) Balance(ctx context.Context, walletID string) (float
 	return 1.5, 0.25, nil
 }
 
-// newRoutedHandler builds the real Service + RoutingProvider + WalletEngine
+// newRoutedHandler builds the real Service + BackendRouter + WalletEngine
 // stack over recording fakes — the exact production wiring minus daemons.
 func newRoutedHandler(t *testing.T) (*WalletHandler, *recordingProvider, *recordingProvider, string, string) {
 	t.Helper()
@@ -53,7 +53,7 @@ func newRoutedHandler(t *testing.T) (*WalletHandler, *recordingProvider, *record
 
 	enfFake := &recordingProvider{}
 	chainFake := &recordingProvider{}
-	router := wallet.NewRoutingProvider(svc, enfFake, chainFake, nil)
+	router := wallet.NewBackendRouter(svc, enfFake, chainFake, nil)
 	engine := wallet.NewWalletEngine(svc, router, nil, log)
 
 	h := NewWalletHandler(svc)

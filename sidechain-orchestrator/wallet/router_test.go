@@ -8,36 +8,36 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// fakeProvider records which walletIDs reached it. Unimplemented Provider
+// fakeBackend records which walletIDs reached it. Unimplemented Backend
 // methods panic via the embedded nil interface.
-type fakeProvider struct {
-	Provider
+type fakeBackend struct {
+	Backend
 	name  string
 	calls []string
 }
 
-func (f *fakeProvider) Balance(ctx context.Context, walletID string) (float64, float64, error) {
+func (f *fakeBackend) Balance(ctx context.Context, walletID string) (float64, float64, error) {
 	f.calls = append(f.calls, "Balance:"+walletID)
 	return 1, 2, nil
 }
 
-func (f *fakeProvider) Send(ctx context.Context, walletID string, req SendRequest) (string, error) {
+func (f *fakeBackend) Send(ctx context.Context, walletID string, req SendRequest) (string, error) {
 	f.calls = append(f.calls, "Send:"+walletID)
 	return "txid-" + f.name, nil
 }
 
-func (f *fakeProvider) EnsureAll(ctx context.Context) (int, error) {
+func (f *fakeBackend) EnsureAll(ctx context.Context) (int, error) {
 	f.calls = append(f.calls, "EnsureAll")
 	return 7, nil
 }
 
-func (f *fakeProvider) Chain() ChainSource {
+func (f *fakeBackend) Chain() ChainSource {
 	return unavailableChain{reason: "fake " + f.name}
 }
 
 // newRouterFixture builds a Service holding an enforcer wallet (first) and a
 // bitcoinCore wallet (second) — the real type-assignment logic — plus fakes.
-func newRouterFixture(t *testing.T) (*RoutingProvider, *fakeProvider, *fakeProvider, string, string) {
+func newRouterFixture(t *testing.T) (*BackendRouter, *fakeBackend, *fakeBackend, string, string) {
 	t.Helper()
 	svc := newTestService(t)
 
@@ -49,12 +49,12 @@ func newRouterFixture(t *testing.T) (*RoutingProvider, *fakeProvider, *fakeProvi
 	require.NoError(t, err)
 	require.Equal(t, "bitcoinCore", core.WalletType)
 
-	enfFake := &fakeProvider{name: "enforcer"}
-	chainFake := &fakeProvider{name: "chain"}
-	return NewRoutingProvider(svc, enfFake, chainFake, nil), enfFake, chainFake, enf.ID, core.ID
+	enfFake := &fakeBackend{name: "enforcer"}
+	chainFake := &fakeBackend{name: "chain"}
+	return NewBackendRouter(svc, enfFake, chainFake, nil), enfFake, chainFake, enf.ID, core.ID
 }
 
-func TestRoutingProviderDispatchesByWalletType(t *testing.T) {
+func TestBackendRouterDispatchesByWalletType(t *testing.T) {
 	router, enfFake, chainFake, enfID, coreID := newRouterFixture(t)
 	ctx := context.Background()
 
@@ -67,14 +67,14 @@ func TestRoutingProviderDispatchesByWalletType(t *testing.T) {
 	assert.Equal(t, []string{"Send:" + coreID}, chainFake.calls)
 }
 
-func TestRoutingProviderUnknownWallet(t *testing.T) {
+func TestBackendRouterUnknownWallet(t *testing.T) {
 	router, _, _, _, _ := newRouterFixture(t)
 
 	_, _, err := router.Balance(context.Background(), "nope")
 	require.ErrorContains(t, err, "not found")
 }
 
-func TestRoutingProviderMissingSides(t *testing.T) {
+func TestBackendRouterMissingSides(t *testing.T) {
 	svc := newTestService(t)
 	enf, err := svc.GenerateWallet("Enforcer", "", "", testSlots)
 	require.NoError(t, err)
@@ -85,7 +85,7 @@ func TestRoutingProviderMissingSides(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, "electrum", elec.WalletType)
 
-	router := NewRoutingProvider(svc, nil, nil, nil)
+	router := NewBackendRouter(svc, nil, nil, nil)
 	ctx := context.Background()
 
 	_, _, err = router.Balance(ctx, enf.ID)
@@ -93,18 +93,18 @@ func TestRoutingProviderMissingSides(t *testing.T) {
 	_, _, err = router.Balance(ctx, core.ID)
 	require.ErrorContains(t, err, "bitcoin Core RPC not configured")
 	_, _, err = router.Balance(ctx, elec.ID)
-	require.ErrorContains(t, err, "electrum wallet provider not configured")
+	require.ErrorContains(t, err, "electrum wallet backend not configured")
 
 	_, err = router.Chain().Broadcast(ctx, "00")
-	require.ErrorContains(t, err, "bitcoin Core RPC not configured")
+	require.ErrorContains(t, err, "no chain source configured")
 
-	// EnsureAll without a chain provider is a no-op, not an error.
+	// EnsureAll without a chain backend is a no-op, not an error.
 	n, err := router.EnsureAll(ctx)
 	require.NoError(t, err)
 	assert.Equal(t, 0, n)
 }
 
-func TestRoutingProviderEnsureAllOnlyChain(t *testing.T) {
+func TestBackendRouterEnsureAllOnlyChain(t *testing.T) {
 	router, enfFake, chainFake, _, _ := newRouterFixture(t)
 
 	n, err := router.EnsureAll(context.Background())

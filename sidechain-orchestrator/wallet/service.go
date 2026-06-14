@@ -633,8 +633,12 @@ func (s *Service) CreateElectrumWallet(name string, gradient json.RawMessage, sl
 
 // createElectrumWatchOnly creates a watch-only electrum wallet from an xpub or
 // descriptor. Addresses derive from the public key material; with no seed the
-// ElectrumProvider can read balances/history but cannot sign or send.
+// ElectrumBackend can read balances/history but cannot sign or send.
 func (s *Service) createElectrumWatchOnly(name string, gradient json.RawMessage, xpubOrDescriptor string) (*WalletData, error) {
+	if err := electrumWatchOnlySupported(xpubOrDescriptor); err != nil {
+		return nil, err
+	}
+
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -816,7 +820,7 @@ func (s *Service) generateWalletOfType(name, customMnemonic, passphrase string, 
 	// electrum wallets run no local Bitcoin Core or enforcer — there's no
 	// daemon to set up or restart, so neither OnCreateCoreWallet nor
 	// OnWalletGenerated fire. bitcoinCore wallets are created lazily by the
-	// provider on first access (Provider.Ensure).
+	// backend on first access (Backend.Ensure).
 	if walletType == "enforcer" && s.OnWalletGenerated != nil {
 		// Dart L88-89: restart enforcer to pick up the new wallet
 		go s.OnWalletGenerated()

@@ -14,33 +14,33 @@ import (
 	enforcerrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1/mainchainv1connect"
 )
 
-// EnforcerProvider serves the enforcer-type wallet by relaying to the
+// EnforcerBackend serves the enforcer-type wallet by relaying to the
 // BIP300/301 enforcer daemon's wallet service (BDK). The enforcer selects
 // coins and signs itself, so the local raw-tx primitives are unsupported.
-type EnforcerProvider struct {
+type EnforcerBackend struct {
 	client enforcerrpc.WalletServiceClient
 }
 
-var _ Provider = (*EnforcerProvider)(nil)
+var _ Backend = (*EnforcerBackend)(nil)
 
-// NewEnforcerProvider wraps the enforcer's wallet service client.
-func NewEnforcerProvider(client enforcerrpc.WalletServiceClient) *EnforcerProvider {
-	return &EnforcerProvider{client: client}
+// NewEnforcerBackend wraps the enforcer's wallet service client.
+func NewEnforcerBackend(client enforcerrpc.WalletServiceClient) *EnforcerBackend {
+	return &EnforcerBackend{client: client}
 }
 
-func (p *EnforcerProvider) unsupported(op string) error {
+func (p *EnforcerBackend) unsupported(op string) error {
 	return fmt.Errorf("enforcer wallet: %s is not supported", op)
 }
 
-func (p *EnforcerProvider) Ensure(ctx context.Context, walletID string) (string, error) {
-	return "", errors.New("enforcer wallet has no provider-managed state")
+func (p *EnforcerBackend) Ensure(ctx context.Context, walletID string) (string, error) {
+	return "", errors.New("enforcer wallet has no backend-managed state")
 }
 
-func (p *EnforcerProvider) EnsureAll(ctx context.Context) (int, error) {
+func (p *EnforcerBackend) EnsureAll(ctx context.Context) (int, error) {
 	return 0, nil
 }
 
-func (p *EnforcerProvider) Balance(ctx context.Context, walletID string) (float64, float64, error) {
+func (p *EnforcerBackend) Balance(ctx context.Context, walletID string) (float64, float64, error) {
 	resp, err := p.client.GetBalance(ctx, connect.NewRequest(&enforcerpb.GetBalanceRequest{}))
 	if err != nil {
 		return 0, 0, fmt.Errorf("enforcer/wallet: get balance: %w", err)
@@ -48,7 +48,7 @@ func (p *EnforcerProvider) Balance(ctx context.Context, walletID string) (float6
 	return float64(resp.Msg.ConfirmedSats) / 1e8, float64(resp.Msg.PendingSats) / 1e8, nil
 }
 
-func (p *EnforcerProvider) ListUnspent(ctx context.Context, walletID string) ([]UTXO, error) {
+func (p *EnforcerBackend) ListUnspent(ctx context.Context, walletID string) ([]UTXO, error) {
 	resp, err := p.client.ListUnspentOutputs(ctx, connect.NewRequest(&enforcerpb.ListUnspentOutputsRequest{}))
 	if err != nil {
 		return nil, fmt.Errorf("enforcer/wallet: list unspent: %w", err)
@@ -85,7 +85,7 @@ func bdkReceivedAt(u *enforcerpb.ListUnspentOutputsResponse_Output) int64 {
 	return 0
 }
 
-func (p *EnforcerProvider) listAll(ctx context.Context) ([]WalletTransaction, error) {
+func (p *EnforcerBackend) listAll(ctx context.Context) ([]WalletTransaction, error) {
 	resp, err := p.client.ListTransactions(ctx, connect.NewRequest(&enforcerpb.ListTransactionsRequest{}))
 	if err != nil {
 		return nil, fmt.Errorf("enforcer/wallet: list transactions: %w", err)
@@ -113,11 +113,11 @@ func (p *EnforcerProvider) listAll(ctx context.Context) ([]WalletTransaction, er
 	return txs, nil
 }
 
-func (p *EnforcerProvider) ListTransactions(ctx context.Context, walletID string, count int) ([]WalletTransaction, error) {
+func (p *EnforcerBackend) ListTransactions(ctx context.Context, walletID string, count int) ([]WalletTransaction, error) {
 	return p.listAll(ctx)
 }
 
-func (p *EnforcerProvider) ListTransactionsRange(ctx context.Context, walletID string, count, skip int) ([]WalletTransaction, error) {
+func (p *EnforcerBackend) ListTransactionsRange(ctx context.Context, walletID string, count, skip int) ([]WalletTransaction, error) {
 	txs, err := p.listAll(ctx)
 	if err != nil {
 		return nil, err
@@ -135,7 +135,7 @@ func (p *EnforcerProvider) ListTransactionsRange(ctx context.Context, walletID s
 // ListReceivedByAddress aggregates the wallet's UTXOs per address and mints
 // one fresh address so an unused entry is always available — BDK has no
 // native listreceivedbyaddress.
-func (p *EnforcerProvider) ListReceivedByAddress(ctx context.Context, walletID string) ([]ReceivedByAddress, error) {
+func (p *EnforcerBackend) ListReceivedByAddress(ctx context.Context, walletID string) ([]ReceivedByAddress, error) {
 	resp, err := p.client.ListUnspentOutputs(ctx, connect.NewRequest(&enforcerpb.ListUnspentOutputsRequest{}))
 	if err != nil {
 		return nil, fmt.Errorf("enforcer/wallet: list unspent outputs: %w", err)
@@ -166,7 +166,7 @@ func (p *EnforcerProvider) ListReceivedByAddress(ctx context.Context, walletID s
 
 // GetWalletTransaction resolves a txid through the wallet's transaction
 // list — the enforcer exposes no per-tx lookup.
-func (p *EnforcerProvider) GetWalletTransaction(ctx context.Context, walletID, txid string) (*WalletTx, error) {
+func (p *EnforcerBackend) GetWalletTransaction(ctx context.Context, walletID, txid string) (*WalletTx, error) {
 	txs, err := p.listAll(ctx)
 	if err != nil {
 		return nil, err
@@ -187,11 +187,11 @@ func (p *EnforcerProvider) GetWalletTransaction(ctx context.Context, walletID, t
 	return nil, fmt.Errorf("transaction %s not found in enforcer wallet", txid)
 }
 
-func (p *EnforcerProvider) AddressHDPath(ctx context.Context, walletID, address string) (string, error) {
+func (p *EnforcerBackend) AddressHDPath(ctx context.Context, walletID, address string) (string, error) {
 	return "", p.unsupported("address hd path lookup")
 }
 
-func (p *EnforcerProvider) NextReceiveAddress(ctx context.Context, walletID string) (string, error) {
+func (p *EnforcerBackend) NextReceiveAddress(ctx context.Context, walletID string) (string, error) {
 	resp, err := p.client.CreateNewAddress(ctx, connect.NewRequest(&enforcerpb.CreateNewAddressRequest{}))
 	if err != nil {
 		return "", fmt.Errorf("enforcer/wallet: create new address: %w", err)
@@ -199,17 +199,17 @@ func (p *EnforcerProvider) NextReceiveAddress(ctx context.Context, walletID stri
 	return resp.Msg.Address, nil
 }
 
-func (p *EnforcerProvider) NextChangeAddress(ctx context.Context, walletID string) (string, error) {
+func (p *EnforcerBackend) NextChangeAddress(ctx context.Context, walletID string) (string, error) {
 	return p.NextReceiveAddress(ctx, walletID)
 }
 
-func (p *EnforcerProvider) WatchKeys(ctx context.Context, walletID string, keys []WatchKey) error {
+func (p *EnforcerBackend) WatchKeys(ctx context.Context, walletID string, keys []WatchKey) error {
 	return p.unsupported("watching extra keys")
 }
 
 // Send relays to the enforcer's all-in-one SendTransaction: the daemon does
 // coin selection, change, signing, and broadcast.
-func (p *EnforcerProvider) Send(ctx context.Context, walletID string, req SendRequest) (string, error) {
+func (p *EnforcerBackend) Send(ctx context.Context, walletID string, req SendRequest) (string, error) {
 	if req.ReplayProtect {
 		return "", connect.NewError(
 			connect.CodeInvalidArgument,
@@ -264,17 +264,17 @@ func (p *EnforcerProvider) Send(ctx context.Context, walletID string, req SendRe
 	return resp.Msg.Txid.GetHex().GetValue(), nil
 }
 
-func (p *EnforcerProvider) SignTransaction(ctx context.Context, walletID, rawHex string) (*SignRawTransactionResult, error) {
+func (p *EnforcerBackend) SignTransaction(ctx context.Context, walletID, rawHex string) (*SignRawTransactionResult, error) {
 	return nil, p.unsupported("raw transaction signing")
 }
 
-func (p *EnforcerProvider) BumpFee(ctx context.Context, walletID, txid string, newFeeRate int64) (string, error) {
+func (p *EnforcerBackend) BumpFee(ctx context.Context, walletID, txid string, newFeeRate int64) (string, error) {
 	return "", p.unsupported("fee bumping")
 }
 
 // Chain is unavailable on the enforcer wallet service; chain-level lookups
-// route to the chain wallet provider via the router.
-func (p *EnforcerProvider) Chain() ChainSource {
+// route to the chain wallet backend via the router.
+func (p *EnforcerBackend) Chain() ChainSource {
 	return unavailableChain{reason: "enforcer wallet has no chain source"}
 }
 

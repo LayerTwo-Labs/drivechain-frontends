@@ -125,7 +125,7 @@ func (h *WalletHandler) buildBip47NotificationTx(
 	recipient *bip47.PaymentCode,
 	netParams *chaincfg.Params,
 ) (string, string, error) {
-	utxos, err := h.engine.Provider().ListUnspent(ctx, walletID)
+	utxos, err := h.engine.Backend().ListUnspent(ctx, walletID)
 	if err != nil {
 		return "", "", connect.NewError(connect.CodeInternal, fmt.Errorf("list unspent: %w", err))
 	}
@@ -151,7 +151,7 @@ func (h *WalletHandler) buildBip47NotificationTx(
 			fmt.Errorf("no spendable UTXO ≥ %d sats available for BIP47 notification tx", minRequired))
 	}
 
-	hdPath, err := h.engine.Provider().AddressHDPath(ctx, walletID, picked.Address)
+	hdPath, err := h.engine.Backend().AddressHDPath(ctx, walletID, picked.Address)
 	if err != nil {
 		return "", "", connect.NewError(connect.CodeInternal, fmt.Errorf("address hd path: %w", err))
 	}
@@ -170,7 +170,7 @@ func (h *WalletHandler) buildBip47NotificationTx(
 		return "", "", connect.NewError(connect.CodeInternal, fmt.Errorf("recipient notification address: %w", err))
 	}
 
-	changeAddrStr, err := h.engine.Provider().NextChangeAddress(ctx, walletID)
+	changeAddrStr, err := h.engine.Backend().NextChangeAddress(ctx, walletID)
 	if err != nil {
 		return "", "", connect.NewError(connect.CodeInternal, fmt.Errorf("get change address: %w", err))
 	}
@@ -208,14 +208,14 @@ func (h *WalletHandler) buildBip47NotificationTx(
 // the wallet's Core RPC, then marks the recipient as notified. Returns the
 // notification txid.
 func (h *WalletHandler) broadcastBip47Notification(ctx context.Context, walletID, recipientCode, rawHex string) (string, error) {
-	signed, err := h.engine.Provider().SignTransaction(ctx, walletID, rawHex)
+	signed, err := h.engine.Backend().SignTransaction(ctx, walletID, rawHex)
 	if err != nil {
 		return "", fmt.Errorf("sign notification tx: %w", err)
 	}
 	if !signed.Complete {
 		return "", errors.New("notification tx signing incomplete")
 	}
-	txid, err := h.engine.Provider().Chain().Broadcast(ctx, signed.Hex)
+	txid, err := h.engine.ChainForWallet(walletID).Broadcast(ctx, signed.Hex)
 	if err != nil {
 		return "", fmt.Errorf("broadcast notification tx: %w", err)
 	}

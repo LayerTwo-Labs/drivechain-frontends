@@ -35,10 +35,10 @@ const (
 	dustSats = 546
 )
 
-// ElectrumProvider serves a wallet with no local Core or enforcer: it derives
+// ElectrumBackend serves a wallet with no local Core or enforcer: it derives
 // BIP84 keys from the wallet seed, reads chain state from an Esplora REST
 // backend, and builds/signs/broadcasts transactions in-process.
-type ElectrumProvider struct {
+type ElectrumBackend struct {
 	svc     *Service
 	client  *EsploraClient
 	network *chaincfg.Params
@@ -48,15 +48,15 @@ type ElectrumProvider struct {
 	watchKeys map[string][]WatchKey // walletID -> extra keys to track
 }
 
-var _ Provider = (*ElectrumProvider)(nil)
+var _ Backend = (*ElectrumBackend)(nil)
 
-// NewElectrumProvider creates an Esplora-backed wallet provider.
-func NewElectrumProvider(svc *Service, client *EsploraClient, network *chaincfg.Params, log zerolog.Logger) *ElectrumProvider {
-	return &ElectrumProvider{
+// NewElectrumBackend creates an Esplora-backed wallet backend.
+func NewElectrumBackend(svc *Service, client *EsploraClient, network *chaincfg.Params, log zerolog.Logger) *ElectrumBackend {
+	return &ElectrumBackend{
 		svc:       svc,
 		client:    client,
 		network:   network,
-		log:       log.With().Str("component", "electrum-provider").Logger(),
+		log:       log.With().Str("component", "electrum-backend").Logger(),
 		watchKeys: make(map[string][]WatchKey),
 	}
 }
@@ -92,14 +92,14 @@ func (m mapKeySource) PrivKeyForAddress(address string) (*btcec.PrivateKey, bool
 	return k, ok
 }
 
-func (p *ElectrumProvider) Ensure(ctx context.Context, walletID string) (string, error) {
+func (p *ElectrumBackend) Ensure(ctx context.Context, walletID string) (string, error) {
 	if p.svc.GetWalletByID(walletID) == nil {
 		return "", fmt.Errorf("wallet %s not found", walletID)
 	}
 	return walletID, nil
 }
 
-func (p *ElectrumProvider) EnsureAll(ctx context.Context) (int, error) {
+func (p *ElectrumBackend) EnsureAll(ctx context.Context) (int, error) {
 	n := 0
 	for _, w := range p.svc.GetAllWallets() {
 		if w.WalletType == "electrum" {
@@ -109,7 +109,7 @@ func (p *ElectrumProvider) EnsureAll(ctx context.Context) (int, error) {
 	return n, nil
 }
 
-func (p *ElectrumProvider) Balance(ctx context.Context, walletID string) (float64, float64, error) {
+func (p *ElectrumBackend) Balance(ctx context.Context, walletID string) (float64, float64, error) {
 	scan, err := p.scanWallet(ctx, walletID)
 	if err != nil {
 		return 0, 0, err
@@ -129,7 +129,7 @@ func (p *ElectrumProvider) Balance(ctx context.Context, walletID string) (float6
 	return float64(confirmed) / 1e8, float64(mempoolFunded) / 1e8, nil
 }
 
-func (p *ElectrumProvider) ListUnspent(ctx context.Context, walletID string) ([]UTXO, error) {
+func (p *ElectrumBackend) ListUnspent(ctx context.Context, walletID string) ([]UTXO, error) {
 	scan, err := p.scanWallet(ctx, walletID)
 	if err != nil {
 		return nil, err
@@ -163,11 +163,11 @@ func (p *ElectrumProvider) ListUnspent(ctx context.Context, walletID string) ([]
 	return out, nil
 }
 
-func (p *ElectrumProvider) ListTransactions(ctx context.Context, walletID string, count int) ([]WalletTransaction, error) {
+func (p *ElectrumBackend) ListTransactions(ctx context.Context, walletID string, count int) ([]WalletTransaction, error) {
 	return p.ListTransactionsRange(ctx, walletID, count, 0)
 }
 
-func (p *ElectrumProvider) ListTransactionsRange(ctx context.Context, walletID string, count, skip int) ([]WalletTransaction, error) {
+func (p *ElectrumBackend) ListTransactionsRange(ctx context.Context, walletID string, count, skip int) ([]WalletTransaction, error) {
 	scan, err := p.scanWallet(ctx, walletID)
 	if err != nil {
 		return nil, err
@@ -212,7 +212,7 @@ func (p *ElectrumProvider) ListTransactionsRange(ctx context.Context, walletID s
 	return rows, nil
 }
 
-func (p *ElectrumProvider) ListReceivedByAddress(ctx context.Context, walletID string) ([]ReceivedByAddress, error) {
+func (p *ElectrumBackend) ListReceivedByAddress(ctx context.Context, walletID string) ([]ReceivedByAddress, error) {
 	scan, err := p.scanWallet(ctx, walletID)
 	if err != nil {
 		return nil, err
@@ -256,7 +256,7 @@ func (p *ElectrumProvider) ListReceivedByAddress(ctx context.Context, walletID s
 	return out, nil
 }
 
-func (p *ElectrumProvider) GetWalletTransaction(ctx context.Context, walletID, txid string) (*WalletTx, error) {
+func (p *ElectrumBackend) GetWalletTransaction(ctx context.Context, walletID, txid string) (*WalletTx, error) {
 	scan, err := p.scanWallet(ctx, walletID)
 	if err != nil {
 		return nil, err
@@ -290,7 +290,7 @@ func (p *ElectrumProvider) GetWalletTransaction(ctx context.Context, walletID, t
 	}, nil
 }
 
-func (p *ElectrumProvider) AddressHDPath(ctx context.Context, walletID, address string) (string, error) {
+func (p *ElectrumBackend) AddressHDPath(ctx context.Context, walletID, address string) (string, error) {
 	scan, err := p.scanWallet(ctx, walletID)
 	if err != nil {
 		return "", err
@@ -302,15 +302,15 @@ func (p *ElectrumProvider) AddressHDPath(ctx context.Context, walletID, address 
 	return a.hdPath, nil
 }
 
-func (p *ElectrumProvider) NextReceiveAddress(ctx context.Context, walletID string) (string, error) {
+func (p *ElectrumBackend) NextReceiveAddress(ctx context.Context, walletID string) (string, error) {
 	return p.nextUnused(ctx, walletID, false)
 }
 
-func (p *ElectrumProvider) NextChangeAddress(ctx context.Context, walletID string) (string, error) {
+func (p *ElectrumBackend) NextChangeAddress(ctx context.Context, walletID string) (string, error) {
 	return p.nextUnused(ctx, walletID, true)
 }
 
-func (p *ElectrumProvider) nextUnused(ctx context.Context, walletID string, change bool) (string, error) {
+func (p *ElectrumBackend) nextUnused(ctx context.Context, walletID string, change bool) (string, error) {
 	scan, err := p.scanWallet(ctx, walletID)
 	if err != nil {
 		return "", err
@@ -320,7 +320,7 @@ func (p *ElectrumProvider) nextUnused(ctx context.Context, walletID string, chan
 
 // nextUnusedFromScan picks the next unused address on a chain from an existing
 // scan, avoiding a second full wallet scan on the send path.
-func (p *ElectrumProvider) nextUnusedFromScan(walletID string, scan *electrumScan, change bool) (string, error) {
+func (p *ElectrumBackend) nextUnusedFromScan(walletID string, scan *electrumScan, change bool) (string, error) {
 	highest := -1
 	for _, a := range scan.addrs {
 		// Skip BIP47 watch keys (empty hdPath); they aren't part of the
@@ -358,7 +358,7 @@ func (p *ElectrumProvider) nextUnusedFromScan(walletID string, scan *electrumSca
 
 // WatchKeys records extra keys (BIP47 per-sender payment windows) so their
 // P2PKH addresses are scanned and spendable.
-func (p *ElectrumProvider) WatchKeys(ctx context.Context, walletID string, keys []WatchKey) error {
+func (p *ElectrumBackend) WatchKeys(ctx context.Context, walletID string, keys []WatchKey) error {
 	if len(keys) == 0 {
 		return nil
 	}
@@ -379,7 +379,7 @@ func (p *ElectrumProvider) WatchKeys(ctx context.Context, walletID string, keys 
 	return nil
 }
 
-func (p *ElectrumProvider) Send(ctx context.Context, walletID string, req SendRequest) (string, error) {
+func (p *ElectrumBackend) Send(ctx context.Context, walletID string, req SendRequest) (string, error) {
 	if req.FeeRateSatPerVB > 0 && req.FixedFeeSats > 0 {
 		return "", errors.New("fee rate and fixed fee are mutually exclusive")
 	}
@@ -536,7 +536,7 @@ func (p *ElectrumProvider) Send(ctx context.Context, walletID string, req SendRe
 	return p.client.Broadcast(ctx, hexToSend)
 }
 
-func (p *ElectrumProvider) SignTransaction(ctx context.Context, walletID, rawHex string) (*SignRawTransactionResult, error) {
+func (p *ElectrumBackend) SignTransaction(ctx context.Context, walletID, rawHex string) (*SignRawTransactionResult, error) {
 	scan, err := p.scanWallet(ctx, walletID)
 	if err != nil {
 		return nil, err
@@ -566,11 +566,11 @@ func (p *ElectrumProvider) SignTransaction(ctx context.Context, walletID, rawHex
 	return SignTransactionLocal(rawHex, prevOuts, scan.keys, p.network)
 }
 
-func (p *ElectrumProvider) BumpFee(ctx context.Context, walletID, txid string, newFeeRate int64) (string, error) {
+func (p *ElectrumBackend) BumpFee(ctx context.Context, walletID, txid string, newFeeRate int64) (string, error) {
 	return "", errors.New("fee bumping is not supported for electrum wallets")
 }
 
-func (p *ElectrumProvider) Chain() ChainSource {
+func (p *ElectrumBackend) Chain() ChainSource {
 	return esploraChain{client: p.client}
 }
 
@@ -653,7 +653,7 @@ func deriveBIP84Child(chainKey *bip32.Key, change bool, index uint32, net *chain
 	}, nil
 }
 
-func (p *ElectrumProvider) scanWallet(ctx context.Context, walletID string) (*electrumScan, error) {
+func (p *ElectrumBackend) scanWallet(ctx context.Context, walletID string) (*electrumScan, error) {
 	w := p.svc.GetWalletByID(walletID)
 	if w == nil {
 		return nil, fmt.Errorf("wallet %s not found", walletID)
@@ -704,7 +704,7 @@ type chainDeriver func(index uint32) (scannedAddr, error)
 // chainDerivers returns the external+change derivers for a wallet, deriving
 // from its seed when present, or from its watch-only xpub otherwise. The
 // second return is true for watch-only (no private keys).
-func (p *ElectrumProvider) chainDerivers(w *WalletData) ([]chainDeriver, bool, error) {
+func (p *ElectrumBackend) chainDerivers(w *WalletData) ([]chainDeriver, bool, error) {
 	if p.network == nil {
 		return nil, false, errors.New("no chain params for this network; cannot derive electrum wallet")
 	}
@@ -758,7 +758,7 @@ func (p *ElectrumProvider) chainDerivers(w *WalletData) ([]chainDeriver, bool, e
 	return out, true, nil
 }
 
-func (p *ElectrumProvider) scanChain(ctx context.Context, derive chainDeriver) ([]scannedAddr, error) {
+func (p *ElectrumBackend) scanChain(ctx context.Context, derive chainDeriver) ([]scannedAddr, error) {
 	var out []scannedAddr
 	consecutiveUnused := 0
 	for i := uint32(0); consecutiveUnused < electrumGapLimit && i < electrumMaxScan; i++ {
@@ -808,6 +808,26 @@ func deriveWatchOnlyChild(chainKey *hdkeychain.ExtendedKey, change bool, index u
 	}, nil
 }
 
+// electrumWatchOnlySupported reports whether an imported xpub/descriptor can be
+// served by the electrum backend, which derives only single-sig native segwit
+// (P2WPKH) addresses. A bare extended pubkey or a wpkh(...) descriptor is fine;
+// multisig, taproot, legacy, and nested scripts are not — importing one would
+// scan addresses that differ from the descriptor and hide funds.
+func electrumWatchOnlySupported(xpubOrDescriptor string) error {
+	s := strings.TrimSpace(xpubOrDescriptor)
+	if s == "" {
+		return errors.New("empty xpub or descriptor")
+	}
+	if !strings.Contains(s, "(") {
+		return nil // bare extended key (optionally with an [origin] prefix)
+	}
+	if !strings.HasPrefix(s, "wpkh(") {
+		return errors.New("electrum watch-only supports only a bare xpub or a wpkh(...) descriptor; " +
+			"multisig, taproot, and legacy/nested scripts are not supported")
+	}
+	return nil
+}
+
 // watchOnlyXpub extracts the account xpub from a watch-only wallet's stored
 // {xpub} or {descriptor} payload. For descriptors it pulls the first xpub/
 // tpub/.../zpub token out of the script expression.
@@ -842,7 +862,7 @@ func extractXpubToken(desc string) string {
 	return ""
 }
 
-func (p *ElectrumProvider) watchKeyAddr(ctx context.Context, k WatchKey) (scannedAddr, error) {
+func (p *ElectrumBackend) watchKeyAddr(ctx context.Context, k WatchKey) (scannedAddr, error) {
 	wif, err := btcutil.DecodeWIF(k.WIF)
 	if err != nil {
 		return scannedAddr{}, fmt.Errorf("decode watch WIF: %w", err)
@@ -872,7 +892,7 @@ type electrumUTXO struct {
 	confirmed  bool
 }
 
-func (p *ElectrumProvider) spendableUTXOs(ctx context.Context, scan *electrumScan) ([]electrumUTXO, error) {
+func (p *ElectrumBackend) spendableUTXOs(ctx context.Context, scan *electrumScan) ([]electrumUTXO, error) {
 	var out []electrumUTXO
 	for _, a := range scan.addrs {
 		if !a.stats.Used() {

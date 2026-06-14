@@ -16,7 +16,7 @@ import (
 	enforcerrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1/mainchainv1connect"
 )
 
-// fakeEnforcerClient overrides the wallet-service methods the provider uses;
+// fakeEnforcerClient overrides the wallet-service methods the backend uses;
 // anything else panics via the embedded nil interface.
 type fakeEnforcerClient struct {
 	enforcerrpc.WalletServiceClient
@@ -55,8 +55,8 @@ func reverseHex(s string) *commonv1.ReverseHex {
 	return &commonv1.ReverseHex{Hex: &wrapperspb.StringValue{Value: s}}
 }
 
-func TestEnforcerProviderBalance(t *testing.T) {
-	p := NewEnforcerProvider(&fakeEnforcerClient{
+func TestEnforcerBackendBalance(t *testing.T) {
+	p := NewEnforcerBackend(&fakeEnforcerClient{
 		balance: &enforcerpb.GetBalanceResponse{ConfirmedSats: 150_000_000, PendingSats: 25_000_000},
 	})
 
@@ -66,10 +66,10 @@ func TestEnforcerProviderBalance(t *testing.T) {
 	assert.Equal(t, 0.25, unconfirmed)
 }
 
-func TestEnforcerProviderListUnspent(t *testing.T) {
+func TestEnforcerBackendListUnspent(t *testing.T) {
 	confirmedAt := time.Unix(1_700_000_000, 0)
 	firstSeen := time.Unix(1_700_000_500, 0)
-	p := NewEnforcerProvider(&fakeEnforcerClient{
+	p := NewEnforcerBackend(&fakeEnforcerClient{
 		unspent: &enforcerpb.ListUnspentOutputsResponse{
 			Outputs: []*enforcerpb.ListUnspentOutputsResponse_Output{
 				{
@@ -107,9 +107,9 @@ func TestEnforcerProviderListUnspent(t *testing.T) {
 	assert.Equal(t, firstSeen.Unix(), utxos[1].ReceivedAt)
 }
 
-func TestEnforcerProviderListTransactions(t *testing.T) {
+func TestEnforcerBackendListTransactions(t *testing.T) {
 	blockTime := time.Unix(1_700_000_000, 0)
-	p := NewEnforcerProvider(&fakeEnforcerClient{
+	p := NewEnforcerBackend(&fakeEnforcerClient{
 		txs: &enforcerpb.ListTransactionsResponse{
 			Transactions: []*enforcerpb.WalletTransaction{
 				{
@@ -156,8 +156,8 @@ func TestEnforcerProviderListTransactions(t *testing.T) {
 	assert.Empty(t, past)
 }
 
-func TestEnforcerProviderListReceivedByAddress(t *testing.T) {
-	p := NewEnforcerProvider(&fakeEnforcerClient{
+func TestEnforcerBackendListReceivedByAddress(t *testing.T) {
+	p := NewEnforcerBackend(&fakeEnforcerClient{
 		unspent: &enforcerpb.ListUnspentOutputsResponse{
 			Outputs: []*enforcerpb.ListUnspentOutputsResponse_Output{
 				{Txid: reverseHex("a"), ValueSats: 10_000, Address: &wrapperspb.StringValue{Value: "addrB"}},
@@ -180,8 +180,8 @@ func TestEnforcerProviderListReceivedByAddress(t *testing.T) {
 	assert.Equal(t, "addrC", addrs[2].Address)
 }
 
-func TestEnforcerProviderGetWalletTransaction(t *testing.T) {
-	p := NewEnforcerProvider(&fakeEnforcerClient{
+func TestEnforcerBackendGetWalletTransaction(t *testing.T) {
+	p := NewEnforcerBackend(&fakeEnforcerClient{
 		txs: &enforcerpb.ListTransactionsResponse{
 			Transactions: []*enforcerpb.WalletTransaction{
 				{Txid: reverseHex("known"), ReceivedSats: 1_000},
@@ -198,9 +198,9 @@ func TestEnforcerProviderGetWalletTransaction(t *testing.T) {
 	require.ErrorContains(t, err, "not found")
 }
 
-func TestEnforcerProviderSend(t *testing.T) {
+func TestEnforcerBackendSend(t *testing.T) {
 	fake := &fakeEnforcerClient{}
-	p := NewEnforcerProvider(fake)
+	p := NewEnforcerBackend(fake)
 	ctx := context.Background()
 
 	txid, err := p.Send(ctx, "w", SendRequest{
@@ -240,8 +240,8 @@ func TestEnforcerProviderSend(t *testing.T) {
 	assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
 }
 
-func TestEnforcerProviderUnsupportedOps(t *testing.T) {
-	p := NewEnforcerProvider(&fakeEnforcerClient{})
+func TestEnforcerBackendUnsupportedOps(t *testing.T) {
+	p := NewEnforcerBackend(&fakeEnforcerClient{})
 	ctx := context.Background()
 
 	_, err := p.SignTransaction(ctx, "w", "00")

@@ -277,9 +277,9 @@ func run(cctx *cli.Context) error {
 		log.Warn().Err(perr).Str("network", network).Msg("unrecognised network; BIP47 features will be disabled")
 	}
 
-	// Chain wallet provider — CoreProvider today; electrum/btcd providers
-	// slot in behind the same wallet.Provider interface.
-	var chainProvider wallet.Provider
+	// Chain wallet provider — CoreBackend today; electrum/btcd providers
+	// slot in behind the same wallet.Backend interface.
+	var chainBackend wallet.Backend
 	if orch.BitcoinConf != nil {
 		port := orch.BitcoinConf.GetRPCPort()
 		var user, password string
@@ -289,13 +289,13 @@ func run(cctx *cli.Context) error {
 			password = orch.BitcoinConf.Config.GetEffectiveSetting("rpcpassword", section)
 		}
 		coreRPC := wallet.NewCoreRPCClient(orch.BitcoinConf.GetRPCHost(), port, user, password)
-		chainProvider = wallet.NewCoreProvider(walletSvc, coreRPC, netParams, log)
+		chainBackend = wallet.NewCoreBackend(walletSvc, coreRPC, netParams, log)
 		log.Info().Int("rpc_port", port).Msg("core wallet provider initialized")
 	}
 
 	// Enforcer wallet provider — relays the enforcer-type wallet to the
 	// enforcer daemon's wallet service.
-	var enforcerProvider wallet.Provider
+	var enforcerBackend wallet.Backend
 	if enforcerCfg, ok := orch.Configs()["enforcer"]; ok {
 		httpClient := &http.Client{
 			Transport: &http2.Transport{
@@ -307,7 +307,7 @@ func run(cctx *cli.Context) error {
 			},
 		}
 		enforcerClient := enforcerrpc.NewWalletServiceClient(httpClient, enforcerCfg.RPCURL(), connect.WithGRPC())
-		enforcerProvider = wallet.NewEnforcerProvider(enforcerClient)
+		enforcerBackend = wallet.NewEnforcerBackend(enforcerClient)
 		orch.SetForkEnforcerWallet(enforcerClient)
 		log.Info().Int("enforcer_port", enforcerCfg.Port).Msg("enforcer wallet provider registered")
 
@@ -329,17 +329,17 @@ func run(cctx *cli.Context) error {
 
 	// Electrum wallet provider — derives BIP84 keys locally and reads/broadcasts
 	// chain state over the Esplora REST API. No local Core/enforcer needed.
-	var electrumProvider wallet.Provider
+	var electrumBackend wallet.Backend
 	if esploraURL := config.EsploraURLForNetwork(config.NetworkFromString(network)); esploraURL != "" && netParams != nil {
-		electrumProvider = wallet.NewElectrumProvider(walletSvc, wallet.NewEsploraClient(esploraURL), netParams, log)
+		electrumBackend = wallet.NewElectrumBackend(walletSvc, wallet.NewEsploraClient(esploraURL), netParams, log)
 		log.Info().Str("esplora_url", esploraURL).Msg("electrum wallet provider initialized")
 	}
 
-	router := wallet.NewRoutingProvider(walletSvc, enforcerProvider, chainProvider, electrumProvider)
+	router := wallet.NewBackendRouter(walletSvc, enforcerBackend, chainBackend, electrumBackend)
 	walletEngine := wallet.NewWalletEngine(walletSvc, router, netParams, log)
 	walletHandler.SetEngine(walletEngine)
 
-	if chainProvider != nil {
+	if chainBackend != nil {
 		// Fork engine: single source of truth for eCash fork state, needs
 		// Core-backed wallet access for its claimable scan.
 		orch.InitForkEngine(walletEngine)

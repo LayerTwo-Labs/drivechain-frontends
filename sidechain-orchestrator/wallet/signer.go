@@ -13,7 +13,7 @@ import (
 )
 
 // KeySource resolves the private key controlling a wallet address.
-// Providers that sign locally implement this from their derivation state.
+// Backends that sign locally implement this from their derivation state.
 type KeySource interface {
 	PrivKeyForAddress(address string) (*btcec.PrivateKey, bool)
 }
