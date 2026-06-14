@@ -932,6 +932,63 @@ func (s *Server) ListTransactions(ctx context.Context, c *connect.Request[pb.Lis
 		return connect.NewResponse(res), nil
 	}
 
+	if walletType == engines.WalletTypeElectrum {
+		entries, err := s.walletEngine.GetElectrumTransactions(ctx, walletId)
+		if err != nil {
+			return nil, err
+		}
+
+		addressBookEntries, err := addressbook.List(ctx, s.database)
+		if err != nil {
+			return nil, fmt.Errorf("electrum: could not list addressbook: %w", err)
+		}
+		label := func(addr string) string {
+			for _, e := range addressBookEntries {
+				if e.Address == addr {
+					return e.Label
+				}
+			}
+			return ""
+		}
+		notes, err := transactions.List(ctx, s.database)
+		if err != nil {
+			return nil, fmt.Errorf("electrum: could not list notes: %w", err)
+		}
+		noteMap := make(map[string]string, len(notes))
+		for _, n := range notes {
+			noteMap[n.TxID] = n.Note
+		}
+
+		out := make([]*pb.WalletTransaction, 0, len(entries))
+		for _, t := range entries {
+			var received, sent uint64
+			if t.AmountSats >= 0 {
+				received = uint64(t.AmountSats)
+			} else {
+				sent = uint64(-t.AmountSats)
+			}
+			var confirmation *pb.Confirmation
+			if t.Confirmations > 0 {
+				confirmation = &pb.Confirmation{Timestamp: &timestamppb.Timestamp{Seconds: t.BlockTime}}
+			}
+			lbl := t.Label
+			if lbl == "" {
+				lbl = label(t.Address)
+			}
+			out = append(out, &pb.WalletTransaction{
+				Txid:             t.Txid,
+				FeeSats:          uint64(math.Round(math.Abs(t.Fee) * 1e8)),
+				ReceivedSatoshi:  received,
+				SentSatoshi:      sent,
+				Address:          t.Address,
+				AddressLabel:     lbl,
+				Note:             noteMap[t.Txid],
+				ConfirmationTime: confirmation,
+			})
+		}
+		return connect.NewResponse(&pb.ListTransactionsResponse{Transactions: out}), nil
+	}
+
 	// Bitcoin Core path
 	coreWalletName, err := s.walletEngine.GetBitcoinCoreWalletName(ctx, walletId)
 	if err != nil {
@@ -1283,10 +1340,15 @@ func (s *Server) ListUnspent(ctx context.Context, c *connect.Request[pb.ListUnsp
 	}
 
 	var utxos []*pb.UnspentOutput
-	if walletType == engines.WalletTypeEnforcer {
+	switch walletType {
+	case engines.WalletTypeEnforcer:
 		utxos, err = s.listUnspentEnforcer(ctx, getLabel)
-	} else {
+	case engines.WalletTypeElectrum:
+		utxos, err = s.listUnspentElectrum(ctx, walletId, getLabel)
+	case engines.WalletTypeBitcoinCore:
 		utxos, err = s.listUnspentBitcoinCore(ctx, walletId, getLabel)
+	default:
+		err = fmt.Errorf("unknown wallet type: %s", walletType)
 	}
 	if err != nil {
 		return nil, err
@@ -1319,6 +1381,23 @@ func (s *Server) listUnspentEnforcer(ctx context.Context, getLabel func(string) 
 	}
 
 	return utxosWithInfo, nil
+}
+
+func (s *Server) listUnspentElectrum(ctx context.Context, walletId string, getLabel func(string) string) ([]*pb.UnspentOutput, error) {
+	raw, err := s.walletEngine.GetElectrumUnspent(ctx, walletId)
+	if err != nil {
+		return nil, err
+	}
+	utxos := make([]*pb.UnspentOutput, 0, len(raw))
+	for _, u := range raw {
+		utxos = append(utxos, &pb.UnspentOutput{
+			Output:    fmt.Sprintf("%s:%d", u.Txid, u.Vout),
+			Address:   u.Address,
+			Label:     getLabel(u.Address),
+			ValueSats: uint64(u.AmountSats),
+		})
+	}
+	return utxos, nil
 }
 
 func (s *Server) listUnspentBitcoinCore(ctx context.Context, walletId string, getLabel func(string) string) ([]*pb.UnspentOutput, error) {
@@ -2769,10 +2848,15 @@ func (s *Server) GetUTXODistribution(ctx context.Context, c *connect.Request[pb.
 	getLabel := func(addr string) string { return "" }
 
 	var utxos []*pb.UnspentOutput
-	if walletType == engines.WalletTypeEnforcer {
+	switch walletType {
+	case engines.WalletTypeEnforcer:
 		utxos, err = s.listUnspentEnforcer(ctx, getLabel)
-	} else {
+	case engines.WalletTypeElectrum:
+		utxos, err = s.listUnspentElectrum(ctx, walletId, getLabel)
+	case engines.WalletTypeBitcoinCore:
 		utxos, err = s.listUnspentBitcoinCore(ctx, walletId, getLabel)
+	default:
+		err = fmt.Errorf("unknown wallet type: %s", walletType)
 	}
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("list unspent: %w", err))

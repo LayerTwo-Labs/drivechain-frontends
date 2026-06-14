@@ -745,6 +745,36 @@ func (e *WalletEngine) GetElectrumBalance(ctx context.Context, walletId string) 
 	return uint64(math.Round(resp.Msg.ConfirmedSats)), uint64(math.Round(resp.Msg.UnconfirmedSats)), nil
 }
 
+// GetElectrumUnspent returns an electrum wallet's UTXOs from the orchestrator,
+// which serves them over Esplora.
+func (e *WalletEngine) GetElectrumUnspent(ctx context.Context, walletId string) ([]*orchpb.UnspentOutput, error) {
+	if e.orchClient == nil {
+		return nil, fmt.Errorf("orchestrator wallet client not connected")
+	}
+	resp, err := e.orchClient.ListUnspent(ctx, connect.NewRequest(&orchpb.ListUnspentRequest{
+		WalletId: walletId,
+	}))
+	if err != nil {
+		return nil, fmt.Errorf("electrum: list unspent: %w", err)
+	}
+	return resp.Msg.Utxos, nil
+}
+
+// GetElectrumTransactions returns an electrum wallet's transactions from the
+// orchestrator, which serves them over Esplora.
+func (e *WalletEngine) GetElectrumTransactions(ctx context.Context, walletId string) ([]*orchpb.TransactionEntry, error) {
+	if e.orchClient == nil {
+		return nil, fmt.Errorf("orchestrator wallet client not connected")
+	}
+	resp, err := e.orchClient.ListTransactions(ctx, connect.NewRequest(&orchpb.ListTransactionsRequest{
+		WalletId: walletId,
+	}))
+	if err != nil {
+		return nil, fmt.Errorf("electrum: list transactions: %w", err)
+	}
+	return resp.Msg.Transactions, nil
+}
+
 // EnsureWatchOnlyWallet ensures a watch-only wallet exists in Bitcoin Core
 func (e *WalletEngine) EnsureWatchOnlyWallet(ctx context.Context, walletId string) (string, error) {
 	// Try orchestrator first (it handles full and watch-only Core wallets)
