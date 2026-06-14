@@ -595,3 +595,51 @@ func TestCreateElectrumHotWalletScriptTypes(t *testing.T) {
 		})
 	}
 }
+
+// TestElectrumGetWalletTransactionSentAmountExcludesFee: a send's Amount is the
+// payment only (fee reported separately), not payment+fee.
+func TestElectrumGetWalletTransactionSentAmountExcludesFee(t *testing.T) {
+	p, fake, w, addr := newElectrumFixture(t)
+	fake.stats[addr] = EsploraAddressStats{Address: addr, ChainStats: EsploraTxoStats{FundedTxoCount: 1, FundedTxoSum: 100_000, TxCount: 1}}
+	// Spend 100k from addr → 50k to external + 40k change back, 10k fee.
+	tx := EsploraTx{
+		TxID:   "dd",
+		Fee:    10_000,
+		Vin:    []EsploraVin{{Prevout: &EsploraVout{ScriptPubKeyAddress: addr, Value: 100_000}}},
+		Vout:   []EsploraVout{{ScriptPubKeyAddress: "external", Value: 50_000}, {ScriptPubKeyAddress: addr, Value: 40_000}},
+		Status: EsploraStatus{Confirmed: true, BlockHeight: 100},
+	}
+	fake.txByID["dd"] = tx
+	fake.hexByID["dd"] = "00"
+
+	wt, err := p.GetWalletTransaction(context.Background(), w.ID, "dd")
+	require.NoError(t, err)
+	assert.InDelta(t, -0.0005, wt.Amount, 1e-9, "Amount is the 50k payment, excluding the 10k fee")
+	assert.InDelta(t, -0.0001, wt.Fee, 1e-9)
+}
+
+// TestElectrumListReceivedExcludesChange: the receive-address list must not
+// expose internal change addresses.
+func TestElectrumListReceivedExcludesChange(t *testing.T) {
+	net := &chaincfg.SigNetParams
+	p, fake, w, addr := newElectrumFixture(t)
+
+	acct, err := accountKeyFromSeed(w.Master.SeedHex, ScriptNativeSegwit, net)
+	require.NoError(t, err)
+	d := &Descriptor{Kind: ScriptNativeSegwit, Threshold: 1, Keys: []DescriptorKey{{Account: acct}}}
+	chg, _, err := d.DeriveScript(true, 0, net)
+	require.NoError(t, err)
+	chgAddr := chg.address.EncodeAddress()
+
+	fake.stats[addr] = EsploraAddressStats{Address: addr, ChainStats: EsploraTxoStats{TxCount: 1}}
+	fake.stats[chgAddr] = EsploraAddressStats{Address: chgAddr, ChainStats: EsploraTxoStats{TxCount: 1}}
+
+	recv, err := p.ListReceivedByAddress(context.Background(), w.ID)
+	require.NoError(t, err)
+	listed := map[string]bool{}
+	for _, r := range recv {
+		listed[r.Address] = true
+	}
+	assert.True(t, listed[addr], "external receive address must be listed")
+	assert.False(t, listed[chgAddr], "change address must not appear in the receive list")
+}
