@@ -40,7 +40,7 @@ const (
 // backend, and builds/signs/broadcasts transactions in-process.
 type ElectrumBackend struct {
 	svc     *Service
-	client  *EsploraClient
+	client  Esplora
 	network *chaincfg.Params
 	log     zerolog.Logger
 
@@ -51,7 +51,7 @@ type ElectrumBackend struct {
 var _ Backend = (*ElectrumBackend)(nil)
 
 // NewElectrumBackend creates an Esplora-backed wallet backend.
-func NewElectrumBackend(svc *Service, client *EsploraClient, network *chaincfg.Params, log zerolog.Logger) *ElectrumBackend {
+func NewElectrumBackend(svc *Service, client Esplora, network *chaincfg.Params, log zerolog.Logger) *ElectrumBackend {
 	return &ElectrumBackend{
 		svc:       svc,
 		client:    client,
@@ -574,9 +574,9 @@ func (p *ElectrumBackend) Chain() ChainSource {
 	return esploraChain{client: p.client}
 }
 
-// esploraChain adapts EsploraClient to the wallet-agnostic ChainSource.
+// esploraChain adapts an Esplora backend to the wallet-agnostic ChainSource.
 type esploraChain struct {
-	client *EsploraClient
+	client Esplora
 }
 
 func (c esploraChain) GetRawTransaction(ctx context.Context, txid string) (*RawTransaction, error) {

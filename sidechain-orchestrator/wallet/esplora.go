@@ -12,6 +12,20 @@ import (
 	"time"
 )
 
+// Esplora is the chain-data surface an electrum wallet needs. ElectrumBackend
+// depends on this interface so tests can supply an in-memory backend instead of
+// a live REST endpoint; *EsploraClient is the production implementation.
+type Esplora interface {
+	AddressStats(ctx context.Context, address string) (EsploraAddressStats, error)
+	AddressUTXOs(ctx context.Context, address string) ([]EsploraUTXO, error)
+	AddressTxs(ctx context.Context, address string) ([]EsploraTx, error)
+	Tx(ctx context.Context, txid string) (EsploraTx, error)
+	TxHex(ctx context.Context, txid string) (string, error)
+	Broadcast(ctx context.Context, rawHex string) (string, error)
+	TipHeight(ctx context.Context) (int, error)
+	FeeRateForTarget(ctx context.Context, target int, fallback float64) float64
+}
+
 // EsploraClient talks to a Blockstream-style Esplora REST API. It serves the
 // Bitcoin chain data an electrum wallet needs — address history, UTXOs, raw
 // transactions, fee estimates, broadcast — without a local Core or enforcer.
@@ -19,6 +33,8 @@ type EsploraClient struct {
 	baseURL string
 	client  *http.Client
 }
+
+var _ Esplora = (*EsploraClient)(nil)
 
 // NewEsploraClient creates an Esplora REST client. baseURL is the API root
 // (e.g. https://explorer.signet.drivechain.info/api), trailing slash optional.
