@@ -118,3 +118,28 @@ func TestWalletNeedsL1(t *testing.T) {
 	require.False(t, h.walletNeedsL1(elec.ID), "electrum wallet does not need L1")
 	require.False(t, h.walletNeedsL1("nonexistent"), "unknown wallet does not need L1")
 }
+
+// TestListWalletsElectrumHasNoBip47Code: hot electrum wallets must not advertise
+// a BIP47 payment code, since inbound BIP47 only watches bitcoinCore wallets.
+func TestListWalletsElectrumHasNoBip47Code(t *testing.T) {
+	log := zerolog.New(zerolog.NewTestWriter(t))
+	svc := wallet.NewService(t.TempDir(), log)
+	require.NoError(t, svc.Init())
+	t.Cleanup(func() { svc.Close() })
+
+	w, err := svc.CreateElectrumWallet("E", nil, nil, "", "", "")
+	require.NoError(t, err)
+
+	h := NewWalletHandler(svc)
+	resp, err := h.ListWallets(context.Background(), connect.NewRequest(&pb.ListWalletsRequest{}))
+	require.NoError(t, err)
+
+	found := false
+	for _, mw := range resp.Msg.Wallets {
+		if mw.Id == w.ID {
+			found = true
+			require.Empty(t, mw.Bip47PaymentCode, "electrum wallet must not advertise a BIP47 code")
+		}
+	}
+	require.True(t, found)
+}

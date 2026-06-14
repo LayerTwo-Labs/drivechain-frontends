@@ -488,7 +488,7 @@ func TestCreateElectrumWatchOnlyRejectsBadDescriptor(t *testing.T) {
 
 func TestEstimateFeeSats(t *testing.T) {
 	// 1 input, 2 outputs: 11 + 68 + 62 = 141 vB at 2 sat/vB = 282.
-	assert.Equal(t, int64(282), estimateFeeSats(1, 2, 2))
+	assert.Equal(t, int64(282), estimateFeeSats(1, 2, 2, ScriptNativeSegwit))
 }
 
 func TestConfsFor(t *testing.T) {
@@ -642,4 +642,56 @@ func TestElectrumListReceivedExcludesChange(t *testing.T) {
 	}
 	assert.True(t, listed[addr], "external receive address must be listed")
 	assert.False(t, listed[chgAddr], "change address must not appear in the receive list")
+}
+
+// TestElectrumWatchOnlyUTXOsNotSpendable: a watch-only wallet's coins are
+// solvable (we know the script) but not spendable (no keys).
+func TestElectrumWatchOnlyUTXOsNotSpendable(t *testing.T) {
+	net := &chaincfg.SigNetParams
+	svc := newTestService(t)
+	seedWallet, err := svc.CreateElectrumWallet("Seed", nil, nil, testMnemonic, "", "")
+	require.NoError(t, err)
+	xpub := accountXpub(t, seedWallet.Master.SeedHex, net)
+	wo, err := svc.CreateElectrumWallet("Watch", nil, nil, "", xpub, "")
+	require.NoError(t, err)
+	addrs, err := DeriveBIP84Addresses(seedWallet.Master.SeedHex, net, 0, 1)
+	require.NoError(t, err)
+	addr := addrs[0]
+
+	fake := newFakeEsplora()
+	p := NewElectrumBackend(svc, fake, net, zerolog.New(zerolog.NewTestWriter(t)))
+	fake.stats[addr] = EsploraAddressStats{Address: addr, ChainStats: EsploraTxoStats{FundedTxoCount: 1, FundedTxoSum: 100_000, TxCount: 1}}
+	fake.utxos[addr] = []EsploraUTXO{{TxID: "aa", Vout: 0, Value: 100_000, Status: EsploraStatus{Confirmed: true, BlockHeight: 100}}}
+
+	utxos, err := p.ListUnspent(context.Background(), wo.ID)
+	require.NoError(t, err)
+	require.Len(t, utxos, 1)
+	assert.False(t, utxos[0].Spendable, "watch-only UTXO must not be spendable")
+	assert.True(t, utxos[0].Solvable)
+}
+
+// TestElectrumSendRejectsMultiOutputSubtractFee: subtract-fee with more than one
+// recipient is rejected (the fee-absorbing output would be nondeterministic).
+func TestElectrumSendRejectsMultiOutputSubtractFee(t *testing.T) {
+	p, fake, w, addr := newElectrumFixture(t)
+	fake.stats[addr] = EsploraAddressStats{Address: addr, ChainStats: EsploraTxoStats{FundedTxoCount: 1, FundedTxoSum: 200_000, TxCount: 1}}
+	fake.utxos[addr] = []EsploraUTXO{{TxID: "55", Vout: 0, Value: 200_000, Status: EsploraStatus{Confirmed: true, BlockHeight: 100}}}
+
+	_, err := p.Send(context.Background(), w.ID, SendRequest{
+		DestinationsSats: map[string]int64{
+			"tb1qw508d6qejxtdg4y5r3zarvary0c5xw7kxpjzsx":                     50_000,
+			"tb1qrp33g0q5c5txsp9arysrx4k6zdkfs4nce4xj0gdcccefvpysxf3qccfmv3": 50_000,
+		},
+		FeeRateSatPerVB:       2,
+		SubtractFeeFromAmount: true,
+	})
+	require.ErrorContains(t, err, "single destination")
+}
+
+// TestEstimateFeeSatsByScriptKind: input vsize (and thus fee) scales with the
+// wallet's address type — a legacy input is far larger than native segwit.
+func TestEstimateFeeSatsByScriptKind(t *testing.T) {
+	assert.Equal(t, int64(282), estimateFeeSats(1, 2, 2, ScriptNativeSegwit)) // 11+68+62 = 141 vB
+	assert.Equal(t, int64(442), estimateFeeSats(1, 2, 2, ScriptLegacy))       // 11+148+62 = 221 vB
+	assert.Greater(t, estimateFeeSats(1, 2, 2, ScriptLegacy), estimateFeeSats(1, 2, 2, ScriptTaproot))
 }
