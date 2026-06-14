@@ -114,12 +114,19 @@ func (p *ElectrumProvider) Balance(ctx context.Context, walletID string) (float6
 	if err != nil {
 		return 0, 0, err
 	}
-	var confirmed, unconfirmed int64
+	// Split the mempool delta into gross incoming (funded) and gross spent so
+	// both returned values stay non-negative: spending confirmed coins makes the
+	// net mempool delta negative, which would wrap when cast to uint64 downstream.
+	// confirmed = confirmed coins not yet being spent; pending = all mempool
+	// inflow (incl. our own change). confirmed+pending preserves the true total.
+	var confirmedNet, mempoolFunded, mempoolSpent int64
 	for _, a := range scan.addrs {
-		confirmed += a.stats.ChainStats.FundedTxoSum - a.stats.ChainStats.SpentTxoSum
-		unconfirmed += a.stats.MempoolStats.FundedTxoSum - a.stats.MempoolStats.SpentTxoSum
+		confirmedNet += a.stats.ChainStats.FundedTxoSum - a.stats.ChainStats.SpentTxoSum
+		mempoolFunded += a.stats.MempoolStats.FundedTxoSum
+		mempoolSpent += a.stats.MempoolStats.SpentTxoSum
 	}
-	return float64(confirmed) / 1e8, float64(unconfirmed) / 1e8, nil
+	confirmed := max(confirmedNet-mempoolSpent, 0)
+	return float64(confirmed) / 1e8, float64(mempoolFunded) / 1e8, nil
 }
 
 func (p *ElectrumProvider) ListUnspent(ctx context.Context, walletID string) ([]UTXO, error) {
@@ -308,9 +315,18 @@ func (p *ElectrumProvider) nextUnused(ctx context.Context, walletID string, chan
 	if err != nil {
 		return "", err
 	}
+	return p.nextUnusedFromScan(walletID, scan, change)
+}
+
+// nextUnusedFromScan picks the next unused address on a chain from an existing
+// scan, avoiding a second full wallet scan on the send path.
+func (p *ElectrumProvider) nextUnusedFromScan(walletID string, scan *electrumScan, change bool) (string, error) {
 	highest := -1
 	for _, a := range scan.addrs {
-		if a.change != change || a.priv == nil {
+		// Skip BIP47 watch keys (empty hdPath); they aren't part of the
+		// derivation chain. Watch-only chain addresses have no priv key but
+		// still advance the chain, so the chain marker is hdPath, not priv.
+		if a.hdPath == "" || a.change != change {
 			continue
 		}
 		if int(a.index) > highest {
@@ -424,12 +440,23 @@ func (p *ElectrumProvider) Send(ctx context.Context, walletID string, req SendRe
 		return estimateFeeSats(nIn, nOut, feeRate)
 	}
 
+	// For subtract-fee sends, the first output absorbs the fee; precompute the
+	// other outputs' total so the selection loop can guarantee the absorbing
+	// output stays above dust.
+	var sffaOtherOut int64
+	if req.SubtractFeeFromAmount && len(outputs) > 0 {
+		sffaOtherOut = totalOutSats - int64(math.Round(outputs[0].AmountBTC*1e8))
+	}
+
 	i := 0
 	for {
 		fee := feeSats(len(selected))
 		target := totalOutSats + fee
 		if req.SubtractFeeFromAmount {
-			target = totalOutSats
+			// Need enough to cover the requested outputs and leave the
+			// absorbing output >= dust after the fee; otherwise a valid send
+			// would fail while spendable UTXOs remain.
+			target = max(totalOutSats, sffaOtherOut+fee+dustSats)
 		}
 		if len(selected) > 0 && selectedSats >= target {
 			break
@@ -450,8 +477,7 @@ func (p *ElectrumProvider) Send(ctx context.Context, walletID string, req SendRe
 		}
 		// Spend everything selected: outputs[0] absorbs all leftover value
 		// minus the fee, so there is no change output.
-		otherOutSats := totalOutSats - int64(math.Round(outputs[0].AmountBTC*1e8))
-		reduced := selectedSats - otherOutSats - fee
+		reduced := selectedSats - sffaOtherOut - fee
 		if reduced < dustSats {
 			return "", fmt.Errorf("fee %d sats exceeds first output", fee)
 		}
@@ -463,7 +489,7 @@ func (p *ElectrumProvider) Send(ctx context.Context, walletID string, req SendRe
 		return "", fmt.Errorf("insufficient funds: short %d sats", -changeSats)
 	}
 	if changeSats >= dustSats {
-		changeAddr, err := p.NextChangeAddress(ctx, walletID)
+		changeAddr, err := p.nextUnusedFromScan(walletID, scan, true)
 		if err != nil {
 			return "", fmt.Errorf("derive change address: %w", err)
 		}
@@ -923,6 +949,25 @@ func walletRowsForTx(tx EsploraTx, scan *electrumScan, tip int) []WalletTransact
 				feeApplied = true
 			}
 			rows = append(rows, row)
+		}
+		if len(rows) == 0 {
+			// Self-send / consolidation: every output returns to the wallet, so
+			// there's no external payment row. Emit one so the tx and its fee
+			// still appear in history.
+			var addr string
+			if len(tx.Vout) > 0 {
+				addr = tx.Vout[0].ScriptPubKeyAddress
+			}
+			rows = append(rows, WalletTransaction{
+				Address:       addr,
+				Category:      "send",
+				Amount:        0,
+				Fee:           -float64(tx.Fee) / 1e8,
+				Confirmations: confs,
+				BlockTime:     tx.Status.BlockTime,
+				Time:          tx.Status.BlockTime,
+				TxID:          tx.TxID,
+			})
 		}
 		return rows
 	}

@@ -75,7 +75,7 @@ func (f *fakeEsplora) server(t *testing.T) *EsploraClient {
 			f.broadcast = append(f.broadcast, string(body))
 			_, _ = io.WriteString(w, "broadcasttxid")
 		case path == "/api/blocks/tip/height":
-			fmt.Fprintf(w, "%d", f.tip)
+			_, _ = fmt.Fprintf(w, "%d", f.tip)
 		case path == "/api/fee-estimates":
 			_ = json.NewEncoder(w).Encode(map[string]float64{"6": 1.0, "1": 2.0})
 		case strings.HasSuffix(path, "/utxo"):
