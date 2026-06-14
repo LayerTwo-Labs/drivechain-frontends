@@ -1,6 +1,8 @@
 package wallet
 
 import (
+	"context"
+	"errors"
 	"fmt"
 
 	"github.com/btcsuite/btcd/chaincfg"
@@ -48,6 +50,54 @@ func (e *WalletEngine) ChainForWallet(walletID string) ChainSource {
 		return r.ChainForWallet(walletID)
 	}
 	return e.backend.Chain()
+}
+
+func (e *WalletEngine) electrumBackend() (*ElectrumBackend, error) {
+	r, ok := e.backend.(*BackendRouter)
+	if !ok {
+		return nil, errors.New("backend router unavailable")
+	}
+	eb, ok := r.ElectrumBackend()
+	if !ok {
+		return nil, errors.New("electrum backend not configured")
+	}
+	return eb, nil
+}
+
+// CreatePSBT builds an unsigned PSBT for a send from an electrum wallet.
+func (e *WalletEngine) CreatePSBT(ctx context.Context, walletID string, req SendRequest) (string, error) {
+	eb, err := e.electrumBackend()
+	if err != nil {
+		return "", err
+	}
+	return eb.CreatePSBT(ctx, walletID, req)
+}
+
+// SignPSBT adds an electrum wallet's signatures to a base64 PSBT.
+func (e *WalletEngine) SignPSBT(ctx context.Context, walletID, psbtBase64 string) (string, error) {
+	eb, err := e.electrumBackend()
+	if err != nil {
+		return "", err
+	}
+	return eb.SignPSBT(ctx, walletID, psbtBase64)
+}
+
+// CombinePSBT merges cosigner PSBTs of the same transaction.
+func (e *WalletEngine) CombinePSBT(psbtsBase64 []string) (string, error) {
+	eb, err := e.electrumBackend()
+	if err != nil {
+		return "", err
+	}
+	return eb.CombinePSBT(psbtsBase64)
+}
+
+// FinalizePSBT extracts the raw transaction from a fully-signed PSBT.
+func (e *WalletEngine) FinalizePSBT(psbtBase64 string) (string, error) {
+	eb, err := e.electrumBackend()
+	if err != nil {
+		return "", err
+	}
+	return eb.FinalizePSBT(psbtBase64)
 }
 
 // Network returns the chain parameters this engine was constructed against.

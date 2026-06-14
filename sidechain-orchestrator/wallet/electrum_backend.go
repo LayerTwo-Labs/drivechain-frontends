@@ -559,8 +559,22 @@ func (p *ElectrumBackend) buildSendPSBT(ctx context.Context, walletID string, sc
 	return packet, psbtInputs, nil
 }
 
+func (p *ElectrumBackend) requireElectrum(walletID string) error {
+	w := p.svc.GetWalletByID(walletID)
+	if w == nil {
+		return fmt.Errorf("wallet %s not found", walletID)
+	}
+	if w.WalletType != "electrum" {
+		return fmt.Errorf("wallet %s is not an electrum wallet", walletID)
+	}
+	return nil
+}
+
 // CreatePSBT builds an unsigned PSBT for a send and returns it base64-encoded.
 func (p *ElectrumBackend) CreatePSBT(ctx context.Context, walletID string, req SendRequest) (string, error) {
+	if err := p.requireElectrum(walletID); err != nil {
+		return "", err
+	}
 	scan, err := p.scanWallet(ctx, walletID)
 	if err != nil {
 		return "", err
@@ -575,6 +589,9 @@ func (p *ElectrumBackend) CreatePSBT(ctx context.Context, walletID string, req S
 // SignPSBT adds this wallet's signatures to a base64 PSBT and returns the
 // updated PSBT. Inputs whose keys it doesn't hold are left for other signers.
 func (p *ElectrumBackend) SignPSBT(ctx context.Context, walletID, psbtBase64 string) (string, error) {
+	if err := p.requireElectrum(walletID); err != nil {
+		return "", err
+	}
 	packet, err := decodePSBTBase64(psbtBase64)
 	if err != nil {
 		return "", err

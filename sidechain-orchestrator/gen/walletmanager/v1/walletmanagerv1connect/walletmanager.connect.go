@@ -118,6 +118,18 @@ const (
 	// WalletManagerServiceDeriveAddressesProcedure is the fully-qualified name of the
 	// WalletManagerService's DeriveAddresses RPC.
 	WalletManagerServiceDeriveAddressesProcedure = "/walletmanager.v1.WalletManagerService/DeriveAddresses"
+	// WalletManagerServiceCreatePsbtProcedure is the fully-qualified name of the WalletManagerService's
+	// CreatePsbt RPC.
+	WalletManagerServiceCreatePsbtProcedure = "/walletmanager.v1.WalletManagerService/CreatePsbt"
+	// WalletManagerServiceSignPsbtProcedure is the fully-qualified name of the WalletManagerService's
+	// SignPsbt RPC.
+	WalletManagerServiceSignPsbtProcedure = "/walletmanager.v1.WalletManagerService/SignPsbt"
+	// WalletManagerServiceCombinePsbtProcedure is the fully-qualified name of the
+	// WalletManagerService's CombinePsbt RPC.
+	WalletManagerServiceCombinePsbtProcedure = "/walletmanager.v1.WalletManagerService/CombinePsbt"
+	// WalletManagerServiceFinalizePsbtProcedure is the fully-qualified name of the
+	// WalletManagerService's FinalizePsbt RPC.
+	WalletManagerServiceFinalizePsbtProcedure = "/walletmanager.v1.WalletManagerService/FinalizePsbt"
 	// WalletManagerServiceGetWalletSeedProcedure is the fully-qualified name of the
 	// WalletManagerService's GetWalletSeed RPC.
 	WalletManagerServiceGetWalletSeedProcedure = "/walletmanager.v1.WalletManagerService/GetWalletSeed"
@@ -176,6 +188,14 @@ type WalletManagerServiceClient interface {
 	GetTransactionDetails(context.Context, *connect.Request[v1.GetTransactionDetailsRequest]) (*connect.Response[v1.GetTransactionDetailsResponse], error)
 	BumpFee(context.Context, *connect.Request[v1.BumpFeeRequest]) (*connect.Response[v1.BumpFeeResponse], error)
 	DeriveAddresses(context.Context, *connect.Request[v1.DeriveAddressesRequest]) (*connect.Response[v1.DeriveAddressesResponse], error)
+	// PSBT (BIP174). CreatePsbt builds an unsigned PSBT for a send (works for
+	// watch-only wallets); SignPsbt adds this wallet's signatures; CombinePsbt
+	// merges cosigner PSBTs; FinalizePsbt extracts the raw transaction. Electrum
+	// wallets only.
+	CreatePsbt(context.Context, *connect.Request[v1.CreatePsbtRequest]) (*connect.Response[v1.CreatePsbtResponse], error)
+	SignPsbt(context.Context, *connect.Request[v1.SignPsbtRequest]) (*connect.Response[v1.SignPsbtResponse], error)
+	CombinePsbt(context.Context, *connect.Request[v1.CombinePsbtRequest]) (*connect.Response[v1.CombinePsbtResponse], error)
+	FinalizePsbt(context.Context, *connect.Request[v1.FinalizePsbtRequest]) (*connect.Response[v1.FinalizePsbtResponse], error)
 	// Seed access for cheque engine
 	GetWalletSeed(context.Context, *connect.Request[v1.GetWalletSeedRequest]) (*connect.Response[v1.GetWalletSeedResponse], error)
 	// Bitcoin Core variant selection (untouched / touched / knots).
@@ -370,6 +390,30 @@ func NewWalletManagerServiceClient(httpClient connect.HTTPClient, baseURL string
 			connect.WithSchema(walletManagerServiceMethods.ByName("DeriveAddresses")),
 			connect.WithClientOptions(opts...),
 		),
+		createPsbt: connect.NewClient[v1.CreatePsbtRequest, v1.CreatePsbtResponse](
+			httpClient,
+			baseURL+WalletManagerServiceCreatePsbtProcedure,
+			connect.WithSchema(walletManagerServiceMethods.ByName("CreatePsbt")),
+			connect.WithClientOptions(opts...),
+		),
+		signPsbt: connect.NewClient[v1.SignPsbtRequest, v1.SignPsbtResponse](
+			httpClient,
+			baseURL+WalletManagerServiceSignPsbtProcedure,
+			connect.WithSchema(walletManagerServiceMethods.ByName("SignPsbt")),
+			connect.WithClientOptions(opts...),
+		),
+		combinePsbt: connect.NewClient[v1.CombinePsbtRequest, v1.CombinePsbtResponse](
+			httpClient,
+			baseURL+WalletManagerServiceCombinePsbtProcedure,
+			connect.WithSchema(walletManagerServiceMethods.ByName("CombinePsbt")),
+			connect.WithClientOptions(opts...),
+		),
+		finalizePsbt: connect.NewClient[v1.FinalizePsbtRequest, v1.FinalizePsbtResponse](
+			httpClient,
+			baseURL+WalletManagerServiceFinalizePsbtProcedure,
+			connect.WithSchema(walletManagerServiceMethods.ByName("FinalizePsbt")),
+			connect.WithClientOptions(opts...),
+		),
 		getWalletSeed: connect.NewClient[v1.GetWalletSeedRequest, v1.GetWalletSeedResponse](
 			httpClient,
 			baseURL+WalletManagerServiceGetWalletSeedProcedure,
@@ -445,6 +489,10 @@ type walletManagerServiceClient struct {
 	getTransactionDetails     *connect.Client[v1.GetTransactionDetailsRequest, v1.GetTransactionDetailsResponse]
 	bumpFee                   *connect.Client[v1.BumpFeeRequest, v1.BumpFeeResponse]
 	deriveAddresses           *connect.Client[v1.DeriveAddressesRequest, v1.DeriveAddressesResponse]
+	createPsbt                *connect.Client[v1.CreatePsbtRequest, v1.CreatePsbtResponse]
+	signPsbt                  *connect.Client[v1.SignPsbtRequest, v1.SignPsbtResponse]
+	combinePsbt               *connect.Client[v1.CombinePsbtRequest, v1.CombinePsbtResponse]
+	finalizePsbt              *connect.Client[v1.FinalizePsbtRequest, v1.FinalizePsbtResponse]
 	getWalletSeed             *connect.Client[v1.GetWalletSeedRequest, v1.GetWalletSeedResponse]
 	listCoreVariants          *connect.Client[v1.ListCoreVariantsRequest, v1.ListCoreVariantsResponse]
 	getCoreVariant            *connect.Client[v1.GetCoreVariantRequest, v1.GetCoreVariantResponse]
@@ -594,6 +642,26 @@ func (c *walletManagerServiceClient) DeriveAddresses(ctx context.Context, req *c
 	return c.deriveAddresses.CallUnary(ctx, req)
 }
 
+// CreatePsbt calls walletmanager.v1.WalletManagerService.CreatePsbt.
+func (c *walletManagerServiceClient) CreatePsbt(ctx context.Context, req *connect.Request[v1.CreatePsbtRequest]) (*connect.Response[v1.CreatePsbtResponse], error) {
+	return c.createPsbt.CallUnary(ctx, req)
+}
+
+// SignPsbt calls walletmanager.v1.WalletManagerService.SignPsbt.
+func (c *walletManagerServiceClient) SignPsbt(ctx context.Context, req *connect.Request[v1.SignPsbtRequest]) (*connect.Response[v1.SignPsbtResponse], error) {
+	return c.signPsbt.CallUnary(ctx, req)
+}
+
+// CombinePsbt calls walletmanager.v1.WalletManagerService.CombinePsbt.
+func (c *walletManagerServiceClient) CombinePsbt(ctx context.Context, req *connect.Request[v1.CombinePsbtRequest]) (*connect.Response[v1.CombinePsbtResponse], error) {
+	return c.combinePsbt.CallUnary(ctx, req)
+}
+
+// FinalizePsbt calls walletmanager.v1.WalletManagerService.FinalizePsbt.
+func (c *walletManagerServiceClient) FinalizePsbt(ctx context.Context, req *connect.Request[v1.FinalizePsbtRequest]) (*connect.Response[v1.FinalizePsbtResponse], error) {
+	return c.finalizePsbt.CallUnary(ctx, req)
+}
+
 // GetWalletSeed calls walletmanager.v1.WalletManagerService.GetWalletSeed.
 func (c *walletManagerServiceClient) GetWalletSeed(ctx context.Context, req *connect.Request[v1.GetWalletSeedRequest]) (*connect.Response[v1.GetWalletSeedResponse], error) {
 	return c.getWalletSeed.CallUnary(ctx, req)
@@ -665,6 +733,14 @@ type WalletManagerServiceHandler interface {
 	GetTransactionDetails(context.Context, *connect.Request[v1.GetTransactionDetailsRequest]) (*connect.Response[v1.GetTransactionDetailsResponse], error)
 	BumpFee(context.Context, *connect.Request[v1.BumpFeeRequest]) (*connect.Response[v1.BumpFeeResponse], error)
 	DeriveAddresses(context.Context, *connect.Request[v1.DeriveAddressesRequest]) (*connect.Response[v1.DeriveAddressesResponse], error)
+	// PSBT (BIP174). CreatePsbt builds an unsigned PSBT for a send (works for
+	// watch-only wallets); SignPsbt adds this wallet's signatures; CombinePsbt
+	// merges cosigner PSBTs; FinalizePsbt extracts the raw transaction. Electrum
+	// wallets only.
+	CreatePsbt(context.Context, *connect.Request[v1.CreatePsbtRequest]) (*connect.Response[v1.CreatePsbtResponse], error)
+	SignPsbt(context.Context, *connect.Request[v1.SignPsbtRequest]) (*connect.Response[v1.SignPsbtResponse], error)
+	CombinePsbt(context.Context, *connect.Request[v1.CombinePsbtRequest]) (*connect.Response[v1.CombinePsbtResponse], error)
+	FinalizePsbt(context.Context, *connect.Request[v1.FinalizePsbtRequest]) (*connect.Response[v1.FinalizePsbtResponse], error)
 	// Seed access for cheque engine
 	GetWalletSeed(context.Context, *connect.Request[v1.GetWalletSeedRequest]) (*connect.Response[v1.GetWalletSeedResponse], error)
 	// Bitcoin Core variant selection (untouched / touched / knots).
@@ -855,6 +931,30 @@ func NewWalletManagerServiceHandler(svc WalletManagerServiceHandler, opts ...con
 		connect.WithSchema(walletManagerServiceMethods.ByName("DeriveAddresses")),
 		connect.WithHandlerOptions(opts...),
 	)
+	walletManagerServiceCreatePsbtHandler := connect.NewUnaryHandler(
+		WalletManagerServiceCreatePsbtProcedure,
+		svc.CreatePsbt,
+		connect.WithSchema(walletManagerServiceMethods.ByName("CreatePsbt")),
+		connect.WithHandlerOptions(opts...),
+	)
+	walletManagerServiceSignPsbtHandler := connect.NewUnaryHandler(
+		WalletManagerServiceSignPsbtProcedure,
+		svc.SignPsbt,
+		connect.WithSchema(walletManagerServiceMethods.ByName("SignPsbt")),
+		connect.WithHandlerOptions(opts...),
+	)
+	walletManagerServiceCombinePsbtHandler := connect.NewUnaryHandler(
+		WalletManagerServiceCombinePsbtProcedure,
+		svc.CombinePsbt,
+		connect.WithSchema(walletManagerServiceMethods.ByName("CombinePsbt")),
+		connect.WithHandlerOptions(opts...),
+	)
+	walletManagerServiceFinalizePsbtHandler := connect.NewUnaryHandler(
+		WalletManagerServiceFinalizePsbtProcedure,
+		svc.FinalizePsbt,
+		connect.WithSchema(walletManagerServiceMethods.ByName("FinalizePsbt")),
+		connect.WithHandlerOptions(opts...),
+	)
 	walletManagerServiceGetWalletSeedHandler := connect.NewUnaryHandler(
 		WalletManagerServiceGetWalletSeedProcedure,
 		svc.GetWalletSeed,
@@ -955,6 +1055,14 @@ func NewWalletManagerServiceHandler(svc WalletManagerServiceHandler, opts ...con
 			walletManagerServiceBumpFeeHandler.ServeHTTP(w, r)
 		case WalletManagerServiceDeriveAddressesProcedure:
 			walletManagerServiceDeriveAddressesHandler.ServeHTTP(w, r)
+		case WalletManagerServiceCreatePsbtProcedure:
+			walletManagerServiceCreatePsbtHandler.ServeHTTP(w, r)
+		case WalletManagerServiceSignPsbtProcedure:
+			walletManagerServiceSignPsbtHandler.ServeHTTP(w, r)
+		case WalletManagerServiceCombinePsbtProcedure:
+			walletManagerServiceCombinePsbtHandler.ServeHTTP(w, r)
+		case WalletManagerServiceFinalizePsbtProcedure:
+			walletManagerServiceFinalizePsbtHandler.ServeHTTP(w, r)
 		case WalletManagerServiceGetWalletSeedProcedure:
 			walletManagerServiceGetWalletSeedHandler.ServeHTTP(w, r)
 		case WalletManagerServiceListCoreVariantsProcedure:
@@ -1088,6 +1196,22 @@ func (UnimplementedWalletManagerServiceHandler) BumpFee(context.Context, *connec
 
 func (UnimplementedWalletManagerServiceHandler) DeriveAddresses(context.Context, *connect.Request[v1.DeriveAddressesRequest]) (*connect.Response[v1.DeriveAddressesResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("walletmanager.v1.WalletManagerService.DeriveAddresses is not implemented"))
+}
+
+func (UnimplementedWalletManagerServiceHandler) CreatePsbt(context.Context, *connect.Request[v1.CreatePsbtRequest]) (*connect.Response[v1.CreatePsbtResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("walletmanager.v1.WalletManagerService.CreatePsbt is not implemented"))
+}
+
+func (UnimplementedWalletManagerServiceHandler) SignPsbt(context.Context, *connect.Request[v1.SignPsbtRequest]) (*connect.Response[v1.SignPsbtResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("walletmanager.v1.WalletManagerService.SignPsbt is not implemented"))
+}
+
+func (UnimplementedWalletManagerServiceHandler) CombinePsbt(context.Context, *connect.Request[v1.CombinePsbtRequest]) (*connect.Response[v1.CombinePsbtResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("walletmanager.v1.WalletManagerService.CombinePsbt is not implemented"))
+}
+
+func (UnimplementedWalletManagerServiceHandler) FinalizePsbt(context.Context, *connect.Request[v1.FinalizePsbtRequest]) (*connect.Response[v1.FinalizePsbtResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("walletmanager.v1.WalletManagerService.FinalizePsbt is not implemented"))
 }
 
 func (UnimplementedWalletManagerServiceHandler) GetWalletSeed(context.Context, *connect.Request[v1.GetWalletSeedRequest]) (*connect.Response[v1.GetWalletSeedResponse], error) {
