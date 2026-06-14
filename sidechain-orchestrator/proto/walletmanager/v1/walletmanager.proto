@@ -301,6 +301,10 @@ message CreateElectrumWalletRequest {
   // (no private keys; cannot sign or send). Mutually exclusive with
   // custom_mnemonic.
   string xpub_or_descriptor = 5;
+  // Address type for a hot wallet: "legacy", "nested-segwit",
+  // "native-segwit" (default), or "taproot". Ignored for watch-only imports
+  // (the descriptor's own type wins).
+  string script_type = 6;
 }
 
 message CreateElectrumWalletResponse {

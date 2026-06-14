@@ -10,6 +10,7 @@ import (
 
 	"github.com/btcsuite/btcd/btcutil/hdkeychain"
 	"github.com/btcsuite/btcd/chaincfg"
+	"github.com/btcsuite/btcd/txscript"
 	"github.com/btcsuite/btcd/wire"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
@@ -131,7 +132,7 @@ func (f *fakeEsplora) FeeRateForTarget(_ context.Context, _ int, fallback float6
 func newElectrumFixture(t *testing.T) (*ElectrumBackend, *fakeEsplora, *WalletData, string) {
 	t.Helper()
 	svc := newTestService(t)
-	w, err := svc.CreateElectrumWallet("Electrum", nil, nil, "", "")
+	w, err := svc.CreateElectrumWallet("Electrum", nil, nil, "", "", "")
 	require.NoError(t, err)
 	require.Equal(t, "electrum", w.WalletType)
 
@@ -269,7 +270,7 @@ func TestElectrumSendInsufficientFunds(t *testing.T) {
 
 func TestElectrumImportSeedIsDeterministic(t *testing.T) {
 	svc := newTestService(t)
-	w, err := svc.CreateElectrumWallet("Imported", nil, nil, testMnemonic, "")
+	w, err := svc.CreateElectrumWallet("Imported", nil, nil, testMnemonic, "", "")
 	require.NoError(t, err)
 	require.Equal(t, "electrum", w.WalletType)
 
@@ -282,11 +283,11 @@ func TestElectrumWatchOnlyDerivesSameAddressesAndCannotSend(t *testing.T) {
 	svc := newTestService(t)
 	ctx := context.Background()
 
-	seedWallet, err := svc.CreateElectrumWallet("Seed", nil, nil, testMnemonic, "")
+	seedWallet, err := svc.CreateElectrumWallet("Seed", nil, nil, testMnemonic, "", "")
 	require.NoError(t, err)
 	xpub := accountXpub(t, seedWallet.Master.SeedHex, &chaincfg.SigNetParams)
 
-	woWallet, err := svc.CreateElectrumWallet("Watch", nil, nil, "", xpub)
+	woWallet, err := svc.CreateElectrumWallet("Watch", nil, nil, "", xpub, "")
 	require.NoError(t, err)
 	require.Equal(t, "electrum", woWallet.WalletType)
 	require.Empty(t, woWallet.Master.SeedHex, "watch-only wallet stores no seed")
@@ -339,10 +340,10 @@ func TestElectrumWatchOnlyNextReceiveAdvances(t *testing.T) {
 	svc := newTestService(t)
 	ctx := context.Background()
 
-	seedWallet, err := svc.CreateElectrumWallet("Seed", nil, nil, testMnemonic, "")
+	seedWallet, err := svc.CreateElectrumWallet("Seed", nil, nil, testMnemonic, "", "")
 	require.NoError(t, err)
 	xpub := accountXpub(t, seedWallet.Master.SeedHex, &chaincfg.SigNetParams)
-	wo, err := svc.CreateElectrumWallet("Watch", nil, nil, "", xpub)
+	wo, err := svc.CreateElectrumWallet("Watch", nil, nil, "", xpub, "")
 	require.NoError(t, err)
 
 	addrs, err := DeriveBIP84Addresses(seedWallet.Master.SeedHex, &chaincfg.SigNetParams, 0, 2)
@@ -393,12 +394,12 @@ func TestElectrumWatchOnlyDescriptorWatchesCorrectAddress(t *testing.T) {
 	svc := newTestService(t)
 	ctx := context.Background()
 
-	seedWallet, err := svc.CreateElectrumWallet("Seed", nil, nil, testMnemonic, "")
+	seedWallet, err := svc.CreateElectrumWallet("Seed", nil, nil, testMnemonic, "", "")
 	require.NoError(t, err)
 	xpub := accountXpub(t, seedWallet.Master.SeedHex, &chaincfg.SigNetParams)
 
 	descriptor := "wpkh([abcd1234/84h/0h/0h]" + xpub + "/0/*)"
-	wo, err := svc.CreateElectrumWallet("WatchDesc", nil, nil, "", descriptor)
+	wo, err := svc.CreateElectrumWallet("WatchDesc", nil, nil, "", descriptor, "")
 	require.NoError(t, err)
 	require.Equal(t, "electrum", wo.WalletType)
 
@@ -439,7 +440,7 @@ func TestElectrumWatchOnlyAllScriptTypesScanCorrectly(t *testing.T) {
 			require.NoError(t, err)
 
 			svc := newTestService(t)
-			wo, err := svc.CreateElectrumWallet("WO-"+kind.String(), nil, nil, "", descStr)
+			wo, err := svc.CreateElectrumWallet("WO-"+kind.String(), nil, nil, "", descStr, "")
 			require.NoError(t, err)
 			require.Equal(t, kind.String(), wo.ScriptType)
 
@@ -463,7 +464,7 @@ func TestElectrumWatchOnlyAllScriptTypesScanCorrectly(t *testing.T) {
 
 func TestCreateElectrumWatchOnlyRejectsBadDescriptor(t *testing.T) {
 	svc := newTestService(t)
-	_, err := svc.CreateElectrumWallet("WO", nil, nil, "", "combo(xpubA)")
+	_, err := svc.CreateElectrumWallet("WO", nil, nil, "", "combo(xpubA)", "")
 	require.ErrorContains(t, err, "invalid watch-only descriptor")
 }
 
@@ -516,4 +517,63 @@ func TestElectrumPSBTRoundTrip(t *testing.T) {
 	require.Len(t, tx.TxIn, 1)
 	require.NotEmpty(t, tx.TxIn[0].Witness, "finalized input must carry a witness")
 	require.Len(t, tx.TxOut, 2) // recipient + change
+}
+
+// TestCreateElectrumHotWalletScriptTypes creates a hot wallet of each address
+// type and proves it derives the right address AND can build→sign→finalize a
+// spend that passes txscript.Engine — i.e. hot wallets of every type can sign.
+func TestCreateElectrumHotWalletScriptTypes(t *testing.T) {
+	net := &chaincfg.SigNetParams
+	ctx := context.Background()
+	const amount = int64(200_000)
+	const dest = "tb1qw508d6qejxtdg4y5r3zarvary0c5xw7kxpjzsx"
+
+	for _, st := range []string{"legacy", "nested-segwit", "taproot"} {
+		t.Run(st, func(t *testing.T) {
+			svc := newTestService(t)
+			w, err := svc.CreateElectrumWallet("Hot-"+st, nil, nil, testMnemonic, "", st)
+			require.NoError(t, err)
+			require.Equal(t, st, w.ScriptType)
+
+			acct, err := accountKeyFromSeed(w.Master.SeedHex, w.scriptKind(), net)
+			require.NoError(t, err)
+			d := &Descriptor{Kind: w.scriptKind(), Threshold: 1, Keys: []DescriptorKey{{Account: acct}}}
+			ds, _, err := d.DeriveScript(false, 0, net)
+			require.NoError(t, err)
+			addr := ds.address.EncodeAddress()
+
+			// Funding prev tx (also serves the legacy non-witness UTXO).
+			prevTx := wire.NewMsgTx(2)
+			prevTx.AddTxIn(wire.NewTxIn(&wire.OutPoint{Index: 0xffffffff}, []byte{0x00}, nil))
+			prevTx.AddTxOut(wire.NewTxOut(amount, ds.scriptPubKey))
+			var buf bytes.Buffer
+			require.NoError(t, prevTx.Serialize(&buf))
+			prevHash := prevTx.TxHash().String()
+
+			fake := newFakeEsplora()
+			fake.stats[addr] = EsploraAddressStats{Address: addr, ChainStats: EsploraTxoStats{FundedTxoCount: 1, FundedTxoSum: amount, TxCount: 1}}
+			fake.utxos[addr] = []EsploraUTXO{{TxID: prevHash, Vout: 0, Value: amount, Status: EsploraStatus{Confirmed: true, BlockHeight: 100}}}
+			fake.hexByID[prevHash] = hex.EncodeToString(buf.Bytes())
+
+			p := NewElectrumBackend(svc, fake, net, zerolog.New(zerolog.NewTestWriter(t)))
+			req := SendRequest{DestinationsSats: map[string]int64{dest: 50_000}, FeeRateSatPerVB: 2}
+
+			unsigned, err := p.CreatePSBT(ctx, w.ID, req)
+			require.NoError(t, err)
+			signed, err := p.SignPSBT(ctx, w.ID, unsigned)
+			require.NoError(t, err)
+			rawHex, err := p.FinalizePSBT(signed)
+			require.NoError(t, err)
+
+			var final wire.MsgTx
+			raw, err := hex.DecodeString(rawHex)
+			require.NoError(t, err)
+			require.NoError(t, final.Deserialize(bytes.NewReader(raw)))
+			fetcher := txscript.NewCannedPrevOutputFetcher(ds.scriptPubKey, amount)
+			sh := txscript.NewTxSigHashes(&final, fetcher)
+			vm, err := txscript.NewEngine(ds.scriptPubKey, &final, 0, txscript.StandardVerifyFlags|txscript.ScriptVerifyTaproot, nil, sh, amount, fetcher)
+			require.NoError(t, err)
+			require.NoError(t, vm.Execute(), "%s hot wallet spend must verify", st)
+		})
+	}
 }

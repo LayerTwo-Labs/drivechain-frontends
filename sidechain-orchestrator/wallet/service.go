@@ -606,9 +606,14 @@ func (s *Service) CreateBitcoinCoreWallet(name string, gradientJSON json.RawMess
 // customMnemonic imports an existing seed (empty = generate a new one).
 // xpubOrDescriptor instead creates a watch-only electrum wallet with no
 // private keys; it is mutually exclusive with customMnemonic.
-func (s *Service) CreateElectrumWallet(name string, gradient json.RawMessage, slots []uint32, customMnemonic, xpubOrDescriptor string) (*WalletData, error) {
+func (s *Service) CreateElectrumWallet(name string, gradient json.RawMessage, slots []uint32, customMnemonic, xpubOrDescriptor, scriptType string) (*WalletData, error) {
 	if xpubOrDescriptor != "" {
 		return s.createElectrumWatchOnly(name, gradient, xpubOrDescriptor)
+	}
+
+	st, err := validateHotScriptType(scriptType)
+	if err != nil {
+		return nil, err
 	}
 
 	sidechainSlots := make([]SidechainSlot, len(slots))
@@ -618,6 +623,16 @@ func (s *Service) CreateElectrumWallet(name string, gradient json.RawMessage, sl
 
 	s.mu.Lock()
 	wallet, err := s.generateWalletOfType(name, customMnemonic, "", sidechainSlots, "electrum")
+	if err == nil && st != "" {
+		for i := range s.wallets {
+			if s.wallets[i].ID == wallet.ID {
+				s.wallets[i].ScriptType = st
+				wallet.ScriptType = st
+				break
+			}
+		}
+		err = s.saveWalletFile()
+	}
 	s.mu.Unlock()
 	if err != nil {
 		return nil, err
@@ -629,6 +644,19 @@ func (s *Service) CreateElectrumWallet(name string, gradient json.RawMessage, sl
 		}
 	}
 	return wallet, nil
+}
+
+// validateHotScriptType normalizes a requested hot-wallet address type, mapping
+// the default to "" (native segwit). Multisig is created through its own path.
+func validateHotScriptType(s string) (string, error) {
+	switch s {
+	case "", "native-segwit":
+		return "", nil
+	case "legacy", "nested-segwit", "taproot":
+		return s, nil
+	default:
+		return "", fmt.Errorf("unsupported electrum script type %q", s)
+	}
 }
 
 // createElectrumWatchOnly creates a watch-only electrum wallet from an xpub or

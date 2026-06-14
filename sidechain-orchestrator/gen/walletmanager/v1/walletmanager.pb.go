@@ -2061,8 +2061,12 @@ type CreateElectrumWalletRequest struct {
 	// (no private keys; cannot sign or send). Mutually exclusive with
 	// custom_mnemonic.
 	XpubOrDescriptor string `protobuf:"bytes,5,opt,name=xpub_or_descriptor,json=xpubOrDescriptor,proto3" json:"xpub_or_descriptor,omitempty"`
-	unknownFields    protoimpl.UnknownFields
-	sizeCache        protoimpl.SizeCache
+	// Address type for a hot wallet: "legacy", "nested-segwit",
+	// "native-segwit" (default), or "taproot". Ignored for watch-only imports
+	// (the descriptor's own type wins).
+	ScriptType    string `protobuf:"bytes,6,opt,name=script_type,json=scriptType,proto3" json:"script_type,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *CreateElectrumWalletRequest) Reset() {
@@ -2126,6 +2130,13 @@ func (x *CreateElectrumWalletRequest) GetCustomMnemonic() string {
 func (x *CreateElectrumWalletRequest) GetXpubOrDescriptor() string {
 	if x != nil {
 		return x.XpubOrDescriptor
+	}
+	return ""
+}
+
+func (x *CreateElectrumWalletRequest) GetScriptType() string {
+	if x != nil {
+		return x.ScriptType
 	}
 	return ""
 }
@@ -5135,13 +5146,15 @@ const file_walletmanager_v1_walletmanager_proto_rawDesc = "" +
 	"\x12xpub_or_descriptor\x18\x02 \x01(\tR\x10xpubOrDescriptor\x12#\n" +
 	"\rgradient_json\x18\x03 \x01(\tR\fgradientJson\"<\n" +
 	"\x1dCreateWatchOnlyWalletResponse\x12\x1b\n" +
-	"\twallet_id\x18\x01 \x01(\tR\bwalletId\"\xc3\x01\n" +
+	"\twallet_id\x18\x01 \x01(\tR\bwalletId\"\xe4\x01\n" +
 	"\x1bCreateElectrumWalletRequest\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12#\n" +
 	"\rgradient_json\x18\x02 \x01(\tR\fgradientJson\x12\x14\n" +
 	"\x05slots\x18\x03 \x03(\rR\x05slots\x12'\n" +
 	"\x0fcustom_mnemonic\x18\x04 \x01(\tR\x0ecustomMnemonic\x12,\n" +
-	"\x12xpub_or_descriptor\x18\x05 \x01(\tR\x10xpubOrDescriptor\";\n" +
+	"\x12xpub_or_descriptor\x18\x05 \x01(\tR\x10xpubOrDescriptor\x12\x1f\n" +
+	"\vscript_type\x18\x06 \x01(\tR\n" +
+	"scriptType\";\n" +
 	"\x1cCreateElectrumWalletResponse\x12\x1b\n" +
 	"\twallet_id\x18\x01 \x01(\tR\bwalletId\"=\n" +
 	"\x1eCreateBitcoinCoreWalletRequest\x12\x1b\n" +
