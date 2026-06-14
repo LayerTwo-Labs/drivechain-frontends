@@ -745,6 +745,61 @@ func (e *WalletEngine) GetElectrumBalance(ctx context.Context, walletId string) 
 	return uint64(math.Round(resp.Msg.ConfirmedSats)), uint64(math.Round(resp.Msg.UnconfirmedSats)), nil
 }
 
+// CreatePsbt builds an unsigned PSBT for an electrum-wallet send via the
+// orchestrator and returns it base64-encoded.
+func (e *WalletEngine) CreatePsbt(ctx context.Context, req *orchpb.CreatePsbtRequest) (string, error) {
+	if e.orchClient == nil {
+		return "", fmt.Errorf("orchestrator wallet client not connected")
+	}
+	resp, err := e.orchClient.CreatePsbt(ctx, connect.NewRequest(req))
+	if err != nil {
+		return "", fmt.Errorf("electrum: create psbt: %w", err)
+	}
+	return resp.Msg.PsbtBase64, nil
+}
+
+// SignPsbt adds an electrum wallet's signatures to a base64 PSBT.
+func (e *WalletEngine) SignPsbt(ctx context.Context, walletId, psbtBase64 string) (string, error) {
+	if e.orchClient == nil {
+		return "", fmt.Errorf("orchestrator wallet client not connected")
+	}
+	resp, err := e.orchClient.SignPsbt(ctx, connect.NewRequest(&orchpb.SignPsbtRequest{
+		WalletId: walletId, PsbtBase64: psbtBase64,
+	}))
+	if err != nil {
+		return "", fmt.Errorf("electrum: sign psbt: %w", err)
+	}
+	return resp.Msg.PsbtBase64, nil
+}
+
+// CombinePsbt merges cosigner PSBTs of the same transaction.
+func (e *WalletEngine) CombinePsbt(ctx context.Context, psbtsBase64 []string) (string, error) {
+	if e.orchClient == nil {
+		return "", fmt.Errorf("orchestrator wallet client not connected")
+	}
+	resp, err := e.orchClient.CombinePsbt(ctx, connect.NewRequest(&orchpb.CombinePsbtRequest{
+		PsbtBase64: psbtsBase64,
+	}))
+	if err != nil {
+		return "", fmt.Errorf("electrum: combine psbt: %w", err)
+	}
+	return resp.Msg.PsbtBase64, nil
+}
+
+// FinalizePsbt extracts the raw transaction from a fully-signed PSBT.
+func (e *WalletEngine) FinalizePsbt(ctx context.Context, psbtBase64 string) (string, error) {
+	if e.orchClient == nil {
+		return "", fmt.Errorf("orchestrator wallet client not connected")
+	}
+	resp, err := e.orchClient.FinalizePsbt(ctx, connect.NewRequest(&orchpb.FinalizePsbtRequest{
+		PsbtBase64: psbtBase64,
+	}))
+	if err != nil {
+		return "", fmt.Errorf("electrum: finalize psbt: %w", err)
+	}
+	return resp.Msg.RawTxHex, nil
+}
+
 // GetElectrumUnspent returns an electrum wallet's UTXOs from the orchestrator,
 // which serves them over Esplora.
 func (e *WalletEngine) GetElectrumUnspent(ctx context.Context, walletId string) ([]*orchpb.UnspentOutput, error) {
