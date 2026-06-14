@@ -3,6 +3,7 @@ package wallet
 import (
 	"bytes"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"math"
 
@@ -71,6 +72,11 @@ func buildPSBT(inputs []psbtInput, outputs []TxOutSpec, net *chaincfg.Params, pr
 
 		if in.addr.redeem != nil {
 			if err := updater.AddInRedeemScript(in.addr.redeem, i); err != nil {
+				return nil, err
+			}
+		}
+		if in.addr.witnessScript != nil {
+			if err := updater.AddInWitnessScript(in.addr.witnessScript, i); err != nil {
 				return nil, err
 			}
 		}
@@ -202,17 +208,87 @@ func finalizeAndExtract(packet *psbt.Packet) (string, error) {
 	return hex.EncodeToString(buf.Bytes()), nil
 }
 
-// signMultisigInput adds this wallet's partial signature to a P2WSH multisig
-// input. Implemented for 2-of-3 sorted multisig.
+// signMultisigInput adds this wallet's partial signature(s) to a P2WSH multisig
+// input. Returns 1 if it contributed a signature, 0 if it holds none of the
+// input's keys (a cosigner will sign). Finalization happens once the threshold
+// of partial sigs is reached.
 func signMultisigInput(
 	packet *psbt.Packet,
 	i int,
 	in psbtInput,
 	tx *wire.MsgTx,
 	sigHashes *txscript.TxSigHashes,
-	net *chaincfg.Params,
+	_ *chaincfg.Params,
 ) (int, error) {
-	return 0, fmt.Errorf("multisig signing not yet implemented")
+	if in.addr.witnessScript == nil {
+		return 0, errors.New("multisig input missing witness script")
+	}
+	if len(in.addr.multisigPrivs) == 0 {
+		return 0, nil
+	}
+	packet.Inputs[i].WitnessScript = in.addr.witnessScript
+
+	added := false
+	for _, priv := range in.addr.multisigPrivs {
+		pub := priv.PubKey().SerializeCompressed()
+		if hasPartialSig(packet.Inputs[i].PartialSigs, pub) {
+			continue
+		}
+		sig, err := txscript.RawTxInWitnessSignature(tx, sigHashes, i, in.amount, in.addr.witnessScript, txscript.SigHashAll, priv)
+		if err != nil {
+			return 0, err
+		}
+		packet.Inputs[i].PartialSigs = append(packet.Inputs[i].PartialSigs, &psbt.PartialSig{
+			PubKey:    pub,
+			Signature: sig,
+		})
+		added = true
+	}
+	if added {
+		return 1, nil
+	}
+	return 0, nil
+}
+
+func hasPartialSig(sigs []*psbt.PartialSig, pub []byte) bool {
+	for _, s := range sigs {
+		if bytes.Equal(s.PubKey, pub) {
+			return true
+		}
+	}
+	return false
+}
+
+// combinePSBT merges partial signatures and scripts from cosigner packets into
+// base. All packets must describe the same unsigned transaction.
+func combinePSBT(base *psbt.Packet, others ...*psbt.Packet) error {
+	for _, o := range others {
+		if len(o.Inputs) != len(base.Inputs) {
+			return errors.New("psbt input count mismatch")
+		}
+		for i := range base.Inputs {
+			bi := &base.Inputs[i]
+			oi := o.Inputs[i]
+			if bi.WitnessScript == nil {
+				bi.WitnessScript = oi.WitnessScript
+			}
+			if bi.RedeemScript == nil {
+				bi.RedeemScript = oi.RedeemScript
+			}
+			if bi.WitnessUtxo == nil {
+				bi.WitnessUtxo = oi.WitnessUtxo
+			}
+			if bi.NonWitnessUtxo == nil {
+				bi.NonWitnessUtxo = oi.NonWitnessUtxo
+			}
+			for _, ps := range oi.PartialSigs {
+				if !hasPartialSig(bi.PartialSigs, ps.PubKey) {
+					bi.PartialSigs = append(bi.PartialSigs, ps)
+				}
+			}
+		}
+	}
+	return nil
 }
 
 func outputToTxOut(out TxOutSpec, net *chaincfg.Params) (*wire.TxOut, error) {

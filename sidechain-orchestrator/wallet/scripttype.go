@@ -63,10 +63,11 @@ func (k ScriptKind) String() string {
 // derivedScript is the fully resolved output for one address: its encoded
 // address, scriptPubKey, and the auxiliary scripts/keys a signer needs.
 type derivedScript struct {
-	address      btcutil.Address
-	scriptPubKey []byte
-	redeemScript []byte // P2SH-P2WPKH: the witness program wrapped by the P2SH
-	tapInternal  *btcec.PublicKey
+	address       btcutil.Address
+	scriptPubKey  []byte
+	redeemScript  []byte // P2SH-P2WPKH: the witness program wrapped by the P2SH
+	witnessScript []byte // P2WSH multisig: the k-of-n script
+	tapInternal   *btcec.PublicKey
 }
 
 // singleSigOutput builds the address and scripts for one compressed pubkey
@@ -163,7 +164,7 @@ func multisigOutput(threshold int, pubs []*btcec.PublicKey, net *chaincfg.Params
 	if err != nil {
 		return derivedScript{}, nil, err
 	}
-	return derivedScript{address: addr, scriptPubKey: script}, witnessScript, nil
+	return derivedScript{address: addr, scriptPubKey: script, witnessScript: witnessScript}, witnessScript, nil
 }
 
 func bytesLess(a, b []byte) bool {
