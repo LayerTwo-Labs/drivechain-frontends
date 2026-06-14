@@ -141,10 +141,11 @@ func parseKeyExpr(expr string) (DescriptorKey, error) {
 }
 
 // validateBranchSuffix accepts only the standard wallet layouts so we never
-// silently mis-derive: /0/*, /1/*, or the multipath /<0;1>/*.
+// silently mis-derive: /0/*, /1/*, or the multipath /<0;1>/*. A bare /* is
+// rejected because derivation always appends the external/change branch.
 func validateBranchSuffix(suffix string) error {
 	switch suffix {
-	case "/0/*", "/1/*", "/<0;1>/*", "/*":
+	case "/0/*", "/1/*", "/<0;1>/*":
 		return nil
 	default:
 		return fmt.Errorf("unsupported derivation branch %q (expected /0/*, /1/*, or /<0;1>/*)", suffix)
@@ -265,16 +266,12 @@ func deriveChild(account *hdkeychain.ExtendedKey, chain, index uint32) (*hdkeych
 // parseMultisig parses wsh(sortedmulti(k,KEY,...)) and the legacy
 // sh(sortedmulti(...)) form into a multisig descriptor.
 func parseMultisig(body string) (*Descriptor, error) {
-	var wrapper string
-	switch {
-	case strings.HasPrefix(body, "wsh("):
-		wrapper = "wsh("
-	case strings.HasPrefix(body, "sh("):
-		wrapper = "sh("
-	default:
-		return nil, errors.New("unsupported multisig descriptor")
+	// Only wsh(sortedmulti(...)) is supported; the multisig builder emits P2WSH,
+	// so a legacy sh(sortedmulti(...)) would scan the wrong (P2SH) addresses.
+	if !strings.HasPrefix(body, "wsh(") {
+		return nil, errors.New("only wsh(sortedmulti(...)) multisig is supported")
 	}
-	inner, err := unwrap(body, wrapper)
+	inner, err := unwrap(body, "wsh(")
 	if err != nil {
 		return nil, err
 	}

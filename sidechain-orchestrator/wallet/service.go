@@ -7,6 +7,7 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -668,6 +669,13 @@ func (s *Service) createElectrumWatchOnly(name string, gradient json.RawMessage,
 	desc, err := ParseDescriptor(xpubOrDescriptor)
 	if err != nil {
 		return nil, fmt.Errorf("invalid watch-only descriptor: %w", err)
+	}
+	// Watch-only stays public-only; reject any private extended key so the
+	// wallet can never store or sign with private material.
+	for _, k := range desc.Keys {
+		if k.Account.IsPrivate() {
+			return nil, errors.New("watch-only import must not contain private keys")
+		}
 	}
 
 	s.mu.Lock()

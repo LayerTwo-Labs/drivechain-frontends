@@ -110,8 +110,10 @@ func TestParseDescriptorForms(t *testing.T) {
 
 	// Rejections.
 	for _, bad := range []string{
-		"tr(" + xpub + ",{pk(" + xpub + ")})", // script tree
-		"wpkh(" + xpub + "/2/*)",              // non-standard branch
+		"tr(" + xpub + ",{pk(" + xpub + ")})",          // script tree
+		"wpkh(" + xpub + "/2/*)",                       // non-standard branch
+		"wpkh(" + xpub + "/*)",                         // branchless wildcard
+		"sh(sortedmulti(2," + xpub + "," + xpub + "))", // legacy P2SH multisig
 		"combo(" + xpub + ")",
 		"raw(deadbeef)",
 		"",
