@@ -151,6 +151,48 @@ func validateBranchSuffix(suffix string) error {
 	}
 }
 
+// String renders the descriptor in canonical form with a checksum, using the
+// multipath /<0;1>/* branch and neutering any private account keys.
+func (d *Descriptor) String() (string, error) {
+	exprs := make([]string, len(d.Keys))
+	for i, k := range d.Keys {
+		acct := k.Account
+		if acct.IsPrivate() {
+			pub, err := acct.Neuter()
+			if err != nil {
+				return "", err
+			}
+			acct = pub
+		}
+		expr := acct.String()
+		if k.Origin != "" {
+			expr = "[" + k.Origin + "]" + expr
+		}
+		exprs[i] = expr + "/<0;1>/*"
+	}
+
+	var body string
+	switch d.Kind {
+	case ScriptLegacy:
+		body = "pkh(" + exprs[0] + ")"
+	case ScriptNativeSegwit:
+		body = "wpkh(" + exprs[0] + ")"
+	case ScriptNestedSegwit:
+		body = "sh(wpkh(" + exprs[0] + "))"
+	case ScriptTaproot:
+		body = "tr(" + exprs[0] + ")"
+	case ScriptMultisig:
+		body = fmt.Sprintf("wsh(sortedmulti(%d,%s))", d.Threshold, strings.Join(exprs, ","))
+	default:
+		return "", fmt.Errorf("cannot serialize script kind %s", d.Kind)
+	}
+	sum, err := DescriptorChecksum(body)
+	if err != nil {
+		return "", err
+	}
+	return body + "#" + sum, nil
+}
+
 // DeriveScript resolves the address + scripts at (change, index). For single-sig
 // it also returns the child public key; for multisig the per-key pubkeys are
 // resolved internally and the returned pubkey is nil.
@@ -188,6 +230,24 @@ func deriveChildPub(account *hdkeychain.ExtendedKey, chain, index uint32) (*btce
 		return nil, err
 	}
 	return child.ECPubKey()
+}
+
+// deriveChildPrivIfPossible derives the child private key at account/chain/index
+// when the account key is private (hot wallet); returns ok=false for a public
+// account key (watch-only).
+func deriveChildPrivIfPossible(account *hdkeychain.ExtendedKey, chain, index uint32) (*btcec.PrivateKey, bool, error) {
+	if !account.IsPrivate() {
+		return nil, false, nil
+	}
+	child, err := deriveChild(account, chain, index)
+	if err != nil {
+		return nil, false, err
+	}
+	priv, err := child.ECPrivKey()
+	if err != nil {
+		return nil, false, err
+	}
+	return priv, true, nil
 }
 
 func deriveChild(account *hdkeychain.ExtendedKey, chain, index uint32) (*hdkeychain.ExtendedKey, error) {

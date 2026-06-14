@@ -635,8 +635,11 @@ func (s *Service) CreateElectrumWallet(name string, gradient json.RawMessage, sl
 // descriptor. Addresses derive from the public key material; with no seed the
 // ElectrumBackend can read balances/history but cannot sign or send.
 func (s *Service) createElectrumWatchOnly(name string, gradient json.RawMessage, xpubOrDescriptor string) (*WalletData, error) {
-	if err := electrumWatchOnlySupported(xpubOrDescriptor); err != nil {
-		return nil, err
+	// Parse-validate the descriptor and record its script kind so derivation
+	// scans the addresses the descriptor actually owns.
+	desc, err := ParseDescriptor(xpubOrDescriptor)
+	if err != nil {
+		return nil, fmt.Errorf("invalid watch-only descriptor: %w", err)
 	}
 
 	s.mu.Lock()
@@ -662,6 +665,7 @@ func (s *Service) createElectrumWatchOnly(name string, gradient json.RawMessage,
 		CreatedAt:  time.Now(),
 		WalletType: "electrum",
 		WatchOnly:  json.RawMessage(watchOnlyJSON),
+		ScriptType: desc.Kind.String(),
 	}
 
 	s.wallets = append(s.wallets, wallet)

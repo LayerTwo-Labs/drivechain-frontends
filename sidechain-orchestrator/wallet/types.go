@@ -24,6 +24,26 @@ type WalletData struct {
 	CreatedAt  time.Time         `json:"-"`
 	WalletType string            `json:"wallet_type"`
 	WatchOnly  json.RawMessage   `json:"watch_only,omitempty"`
+	// ScriptType is the electrum address kind (legacy/nested-segwit/
+	// native-segwit/taproot/multisig). Empty means native segwit (BIP84).
+	ScriptType string `json:"script_type,omitempty"`
+}
+
+// scriptKind maps the wallet's stored script type to a ScriptKind, defaulting
+// to native segwit (BIP84) for wallets created before the field existed.
+func (w *WalletData) scriptKind() ScriptKind {
+	switch w.ScriptType {
+	case "legacy":
+		return ScriptLegacy
+	case "nested-segwit":
+		return ScriptNestedSegwit
+	case "taproot":
+		return ScriptTaproot
+	case "multisig":
+		return ScriptMultisig
+	default:
+		return ScriptNativeSegwit
+	}
 }
 
 // IsWatchOnly reports whether the wallet holds no signing key. Watch-only is an

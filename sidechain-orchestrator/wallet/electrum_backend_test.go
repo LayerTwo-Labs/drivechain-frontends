@@ -422,25 +422,49 @@ func TestElectrumWatchOnlyDescriptorWatchesCorrectAddress(t *testing.T) {
 	assert.NotEqual(t, addrs[0], next, "must skip the used address")
 }
 
-func TestElectrumWatchOnlySupported(t *testing.T) {
-	require.NoError(t, electrumWatchOnlySupported("xpub6CUGRUonZSQ4abc"))
-	require.NoError(t, electrumWatchOnlySupported("wpkh([abcd/84'/1'/0']tpubDEAD/0/*)"))
-	require.Error(t, electrumWatchOnlySupported("wsh(multi(2,xpubA,xpubB))"))
-	require.Error(t, electrumWatchOnlySupported("sh(wpkh(xpubA))"))
-	require.Error(t, electrumWatchOnlySupported("tr(xpubA)"))
-	require.Error(t, electrumWatchOnlySupported(""))
+// TestElectrumWatchOnlyAllScriptTypesScanCorrectly imports a watch-only
+// descriptor of each address type and proves the descriptor-driven backend
+// scans the exact address that type derives.
+func TestElectrumWatchOnlyAllScriptTypesScanCorrectly(t *testing.T) {
+	seedHex := hex.EncodeToString(MnemonicToSeed(testMnemonic, ""))
+	net := &chaincfg.SigNetParams
+	ctx := context.Background()
+
+	for _, kind := range []ScriptKind{ScriptLegacy, ScriptNestedSegwit, ScriptNativeSegwit, ScriptTaproot} {
+		t.Run(kind.String(), func(t *testing.T) {
+			acct, err := accountKeyFromSeed(seedHex, kind, net)
+			require.NoError(t, err)
+			d := &Descriptor{Kind: kind, Threshold: 1, Keys: []DescriptorKey{{Account: acct}}}
+			descStr, err := d.String()
+			require.NoError(t, err)
+
+			svc := newTestService(t)
+			wo, err := svc.CreateElectrumWallet("WO-"+kind.String(), nil, nil, "", descStr)
+			require.NoError(t, err)
+			require.Equal(t, kind.String(), wo.ScriptType)
+
+			ds, _, err := d.DeriveScript(false, 0, net)
+			require.NoError(t, err)
+			addr := ds.address.EncodeAddress()
+
+			fake := newFakeEsplora()
+			p := NewElectrumBackend(svc, fake, net, zerolog.New(zerolog.NewTestWriter(t)))
+			fake.stats[addr] = EsploraAddressStats{
+				Address:    addr,
+				ChainStats: EsploraTxoStats{FundedTxoCount: 1, FundedTxoSum: 42_000, TxCount: 1},
+			}
+
+			confirmed, _, err := p.Balance(ctx, wo.ID)
+			require.NoError(t, err)
+			assert.InDelta(t, 0.00042, confirmed, 1e-9, "%s descriptor must scan its derived address", kind)
+		})
+	}
 }
 
-func TestCreateElectrumWatchOnlyRejectsMultisig(t *testing.T) {
+func TestCreateElectrumWatchOnlyRejectsBadDescriptor(t *testing.T) {
 	svc := newTestService(t)
-	_, err := svc.CreateElectrumWallet("WO", nil, nil, "", "wsh(multi(2,xpubA,xpubB))")
-	require.ErrorContains(t, err, "wpkh")
-}
-
-func TestExtractXpubToken(t *testing.T) {
-	desc := "wpkh([abcd1234/84'/1'/0']tpubDEADBEEF/0/*)#checksum"
-	assert.Equal(t, "tpubDEADBEEF", extractXpubToken(desc))
-	assert.Equal(t, "", extractXpubToken("addr(tb1qxyz)"))
+	_, err := svc.CreateElectrumWallet("WO", nil, nil, "", "combo(xpubA)")
+	require.ErrorContains(t, err, "invalid watch-only descriptor")
 }
 
 func TestEstimateFeeSats(t *testing.T) {
