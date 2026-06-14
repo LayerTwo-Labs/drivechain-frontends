@@ -663,7 +663,9 @@ List<int>? entropyBytesFromInput(String input, {required bool hexMode}) {
   final trimmed = input.trim();
   if (trimmed.isEmpty) return null;
   if (hexMode) {
-    if (!RegExp(r'^[0-9a-fA-F]+$').hasMatch(trimmed)) return null;
+    // Reject non-hex and odd-length input before decoding — hex.decode throws a
+    // FormatException on an odd number of nibbles, which would crash build().
+    if (!RegExp(r'^[0-9a-fA-F]+$').hasMatch(trimmed) || trimmed.length.isOdd) return null;
     final bytes = hex.decode(trimmed);
     if (bytes.length < 16 || bytes.length > 32 || bytes.length % 4 != 0) return null;
     return bytes;
