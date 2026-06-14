@@ -477,3 +477,43 @@ func TestConfsFor(t *testing.T) {
 	assert.Equal(t, 11, confsFor(EsploraStatus{Confirmed: true, BlockHeight: 100}, 110))
 	assert.Equal(t, 1, confsFor(EsploraStatus{Confirmed: true, BlockHeight: 110}, 110))
 }
+
+// TestElectrumPSBTRoundTrip exercises the exposed PSBT surface end to end:
+// create an unsigned PSBT, sign it with the wallet, finalize to a raw tx.
+func TestElectrumPSBTRoundTrip(t *testing.T) {
+	p, fake, w, addr := newElectrumFixture(t)
+	ctx := context.Background()
+
+	fake.stats[addr] = EsploraAddressStats{
+		Address:    addr,
+		ChainStats: EsploraTxoStats{FundedTxoCount: 1, FundedTxoSum: 200_000, TxCount: 1},
+	}
+	fake.utxos[addr] = []EsploraUTXO{{
+		TxID: "4444444444444444444444444444444444444444444444444444444444444444",
+		Vout: 0, Value: 200_000,
+		Status: EsploraStatus{Confirmed: true, BlockHeight: 100},
+	}}
+
+	req := SendRequest{
+		DestinationsSats: map[string]int64{"tb1qw508d6qejxtdg4y5r3zarvary0c5xw7kxpjzsx": 50_000},
+		FeeRateSatPerVB:  2,
+	}
+
+	unsigned, err := p.CreatePSBT(ctx, w.ID, req)
+	require.NoError(t, err)
+	require.NotEmpty(t, unsigned)
+
+	signed, err := p.SignPSBT(ctx, w.ID, unsigned)
+	require.NoError(t, err)
+
+	rawHex, err := p.FinalizePSBT(signed)
+	require.NoError(t, err)
+
+	var tx wire.MsgTx
+	raw, err := hex.DecodeString(rawHex)
+	require.NoError(t, err)
+	require.NoError(t, tx.Deserialize(bytes.NewReader(raw)))
+	require.Len(t, tx.TxIn, 1)
+	require.NotEmpty(t, tx.TxIn[0].Witness, "finalized input must carry a witness")
+	require.Len(t, tx.TxOut, 2) // recipient + change
+}
