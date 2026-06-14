@@ -30,13 +30,13 @@ import (
 	"google.golang.org/protobuf/types/known/emptypb"
 )
 
-// WalletType represents the type of wallet backend
+// WalletType is a wallet's provider backend. Watch-only is an orthogonal
+// capability (the watch_only payload), not a provider.
 type WalletType string
 
 const (
 	WalletTypeEnforcer    WalletType = "enforcer"
 	WalletTypeBitcoinCore WalletType = "bitcoinCore"
-	WalletTypeWatchOnly   WalletType = "watchOnly"
 	WalletTypeElectrum    WalletType = "electrum"
 )
 
@@ -55,6 +55,12 @@ type WalletInfo struct {
 		Descriptor string `json:"descriptor"`
 		Xpub       string `json:"xpub"`
 	} `json:"watch_only,omitempty"`
+}
+
+// IsWatchOnly reports whether the wallet holds no signing key — it carries an
+// xpub/descriptor payload instead of a seed. Orthogonal to the provider type.
+func (w *WalletInfo) IsWatchOnly() bool {
+	return w.WatchOnly != nil
 }
 
 // WalletEngine handles wallet unlock/lock, backend routing, and Bitcoin Core sync.
@@ -456,6 +462,19 @@ func (e *WalletEngine) GetWalletBackendType(ctx context.Context, walletId string
 	return wallet.WalletType, nil
 }
 
+// IsWatchOnly reports whether the wallet has no signing key (watch-only),
+// orthogonal to its provider type.
+func (e *WalletEngine) IsWatchOnly(ctx context.Context, walletId string) (bool, error) {
+	if walletId == "" {
+		return false, fmt.Errorf("wallet_id required")
+	}
+	wallet, err := e.GetWalletInfo(ctx, walletId)
+	if err != nil {
+		return false, err
+	}
+	return wallet.IsWatchOnly(), nil
+}
+
 // ============================================================================
 // Bitcoin Core Wallet Management
 // ============================================================================
@@ -728,7 +747,7 @@ func (e *WalletEngine) GetElectrumBalance(ctx context.Context, walletId string) 
 
 // EnsureWatchOnlyWallet ensures a watch-only wallet exists in Bitcoin Core
 func (e *WalletEngine) EnsureWatchOnlyWallet(ctx context.Context, walletId string) (string, error) {
-	// Try orchestrator first (it handles both bitcoinCore and watchOnly)
+	// Try orchestrator first (it handles full and watch-only Core wallets)
 	if e.orchClient != nil {
 		resp, err := e.orchClient.CreateBitcoinCoreWallet(ctx, connect.NewRequest(&orchpb.CreateBitcoinCoreWalletRequest{
 			WalletId: walletId,
@@ -756,12 +775,8 @@ func (e *WalletEngine) EnsureWatchOnlyWallet(ctx context.Context, walletId strin
 		return "", err
 	}
 
-	if wallet.WalletType != WalletTypeWatchOnly {
+	if !wallet.IsWatchOnly() {
 		return "", fmt.Errorf("wallet %s is not a watch-only wallet", walletId)
-	}
-
-	if wallet.WatchOnly == nil {
-		return "", fmt.Errorf("wallet %s missing watch_only data", walletId)
 	}
 
 	// Generate wallet name from wallet ID

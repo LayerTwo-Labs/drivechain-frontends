@@ -138,9 +138,10 @@ func TestBuildWatchWalletDataResponseBip47Populated(t *testing.T) {
 	watchOnly := wallet.WalletData{
 		ID:         "watch-id",
 		Name:       "Watch",
-		WalletType: "watchOnly",
+		WalletType: "bitcoinCore",
 		CreatedAt:  now,
 		Master:     wallet.MasterWallet{SeedHex: ""},
+		WatchOnly:  []byte(`{"xpub":"x"}`),
 	}
 
 	resp := buildWatchWalletDataResponse(

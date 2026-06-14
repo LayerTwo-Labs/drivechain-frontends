@@ -34,6 +34,13 @@ func (e *WalletEngine) Provider() Provider {
 	return e.provider
 }
 
+// ElectrumConfigured reports whether an electrum (Esplora) backend is wired,
+// so callers can refuse to create electrum wallets that could never sync.
+func (e *WalletEngine) ElectrumConfigured() bool {
+	r, ok := e.provider.(*RoutingProvider)
+	return ok && r.ElectrumConfigured()
+}
+
 // Network returns the chain parameters this engine was constructed against.
 func (e *WalletEngine) Network() *chaincfg.Params {
 	return e.network

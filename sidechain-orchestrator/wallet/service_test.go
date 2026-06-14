@@ -642,7 +642,7 @@ func TestServiceCreateWatchOnlyWalletWithXpub(t *testing.T) {
 	wallets := svc.ListWallets()
 	require.Len(t, wallets, 1)
 	assert.Equal(t, "Watch Only Test", wallets[0].Name)
-	assert.Equal(t, "watchOnly", wallets[0].WalletType)
+	assert.Equal(t, "bitcoinCore", wallets[0].WalletType)
 
 	// Verify active wallet is set
 	assert.NotEmpty(t, svc.ActiveWalletID())
@@ -657,7 +657,8 @@ func TestServiceCreateWatchOnlyWalletWithXpub(t *testing.T) {
 	require.Len(t, wf.Wallets, 1)
 
 	wallet := wf.Wallets[0]
-	assert.Equal(t, "watchOnly", wallet.WalletType)
+	assert.Equal(t, "bitcoinCore", wallet.WalletType)
+	assert.True(t, wallet.IsWatchOnly(), "watch-only payload should be set")
 	assert.Equal(t, 1, wallet.Version)
 	assert.Empty(t, wallet.Master.SeedHex)
 	assert.Empty(t, wallet.L1.Mnemonic)
@@ -711,7 +712,7 @@ func TestServiceCreateWatchOnlyWalletAlongsideRegular(t *testing.T) {
 	wallets := svc.ListWallets()
 	require.Len(t, wallets, 2)
 	assert.Equal(t, "enforcer", wallets[0].WalletType)
-	assert.Equal(t, "watchOnly", wallets[1].WalletType)
+	assert.Equal(t, "bitcoinCore", wallets[1].WalletType)
 
 	// Watch-only should now be active
 	assert.Equal(t, wallets[1].ID, svc.ActiveWalletID())
@@ -741,7 +742,7 @@ func TestServiceCreateWatchOnlyWalletPersistence(t *testing.T) {
 
 	wallets := svc2.ListWallets()
 	require.Len(t, wallets, 1)
-	assert.Equal(t, "watchOnly", wallets[0].WalletType)
+	assert.Equal(t, "bitcoinCore", wallets[0].WalletType)
 }
 
 func TestServiceDeleteWatchOnlyWallet(t *testing.T) {
@@ -799,10 +800,10 @@ func TestServiceLegacyWalletTypeBackfill(t *testing.T) {
 	// Hand-write a wallet.json that omits wallet_type — mirrors what users
 	// generated before the field existed. Both shapes need a fix-up on load:
 	// a wallet with a master mnemonic should land as "enforcer", a wallet
-	// without one should land as "watchOnly". Without the backfill, the
-	// receive-tab BIP47 spinner and the Starters tab both stay blank for
-	// these legacy installs because every code path that branches on
-	// wallet_type defaults to "not enforcer".
+	// without one as "bitcoinCore". Without the backfill, the receive-tab
+	// BIP47 spinner and the Starters tab both stay blank for these legacy
+	// installs because every code path that branches on wallet_type defaults
+	// to "not enforcer".
 	legacyJSON := []byte(`{
 		"version": 1,
 		"activeWalletId": "LEGACY1",
@@ -841,7 +842,7 @@ func TestServiceLegacyWalletTypeBackfill(t *testing.T) {
 		byID[w.ID] = w.WalletType
 	}
 	assert.Equal(t, "enforcer", byID["LEGACY1"], "wallet with mnemonic should backfill to enforcer")
-	assert.Equal(t, "watchOnly", byID["LEGACY2"], "wallet without mnemonic should backfill to watchOnly")
+	assert.Equal(t, "bitcoinCore", byID["LEGACY2"], "wallet without mnemonic should backfill to bitcoinCore")
 
 	// Reload to confirm the backfill persisted to disk — otherwise the
 	// receive-tab spinner would come back next launch.

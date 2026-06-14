@@ -470,7 +470,7 @@ func (s *Server) GetNewAddress(ctx context.Context, c *connect.Request[pb.GetNew
 
 	// For Bitcoin Core wallets, derive addresses and find the first unused one
 	// This prevents address reuse and gaps in the derivation path
-	if walletType == engines.WalletTypeBitcoinCore || walletType == engines.WalletTypeWatchOnly {
+	if walletType == engines.WalletTypeBitcoinCore {
 		unusedAddress, derivedAddresses, err := s.deriveAndCheckAddresses(ctx, walletId)
 		if err != nil {
 			zerolog.Ctx(ctx).Warn().Err(err).Msg("derive addresses failed, will generate new")
@@ -516,15 +516,17 @@ func (s *Server) GetNewAddress(ctx context.Context, c *connect.Request[pb.GetNew
 		address = resp.Msg.Address
 
 	case engines.WalletTypeBitcoinCore:
-		// Bitcoin Core path
-		address, err = s.getBitcoinCoreAddress(ctx, walletId, s.walletEngine.GetBitcoinCoreWalletName)
+		// Watch-only Core wallets import a descriptor; full wallets use the
+		// seed-derived wallet. Both serve addresses from Bitcoin Core.
+		ensure := s.walletEngine.GetBitcoinCoreWalletName
+		watchOnly, err := s.walletEngine.IsWatchOnly(ctx, walletId)
 		if err != nil {
 			return nil, err
 		}
-
-	case engines.WalletTypeWatchOnly:
-		// Watch-only wallet path
-		address, err = s.getBitcoinCoreAddress(ctx, walletId, s.walletEngine.EnsureWatchOnlyWallet)
+		if watchOnly {
+			ensure = s.walletEngine.EnsureWatchOnlyWallet
+		}
+		address, err = s.getBitcoinCoreAddress(ctx, walletId, ensure)
 		if err != nil {
 			return nil, err
 		}
@@ -693,7 +695,7 @@ func (s *Server) syncCoreAddresses(ctx context.Context) error {
 
 	// Sync addresses for each Bitcoin Core wallet
 	for _, wallet := range wallets {
-		if wallet.WalletType != engines.WalletTypeBitcoinCore && wallet.WalletType != engines.WalletTypeWatchOnly {
+		if wallet.WalletType != engines.WalletTypeBitcoinCore {
 			continue
 		}
 
@@ -793,9 +795,17 @@ func (s *Server) GetBalance(ctx context.Context, c *connect.Request[pb.GetBalanc
 		}), nil
 
 	case engines.WalletTypeBitcoinCore:
-		coreWalletName, err := s.walletEngine.GetBitcoinCoreWalletName(ctx, walletId)
+		watchOnly, err := s.walletEngine.IsWatchOnly(ctx, walletId)
 		if err != nil {
-			return nil, fmt.Errorf("get bitcoin core wallet: %w", err)
+			return nil, err
+		}
+		ensure := s.walletEngine.GetBitcoinCoreWalletName
+		if watchOnly {
+			ensure = s.walletEngine.EnsureWatchOnlyWallet
+		}
+		coreWalletName, err := ensure(ctx, walletId)
+		if err != nil {
+			return nil, fmt.Errorf("ensure core wallet: %w", err)
 		}
 
 		bitcoindClient, err := s.bitcoind.Get(ctx)
@@ -810,34 +820,16 @@ func (s *Server) GetBalance(ctx context.Context, c *connect.Request[pb.GetBalanc
 			return nil, fmt.Errorf("get balances from bitcoin core: %w", err)
 		}
 
-		confirmedSats := uint64(balancesResp.Msg.Mine.Trusted * 100_000_000)
-		pendingSats := uint64(balancesResp.Msg.Mine.UntrustedPending * 100_000_000)
-
-		return connect.NewResponse(&pb.GetBalanceResponse{
-			ConfirmedSatoshi: confirmedSats,
-			PendingSatoshi:   pendingSats,
-		}), nil
-
-	case engines.WalletTypeWatchOnly:
-		watchWalletName, err := s.walletEngine.EnsureWatchOnlyWallet(ctx, walletId)
-		if err != nil {
-			return nil, fmt.Errorf("get watch-only wallet: %w", err)
+		// An imported descriptor's funds report under `watchonly`; a
+		// seed-derived wallet's under `mine`.
+		var confirmedSats, pendingSats uint64
+		if watchOnly {
+			confirmedSats = uint64(balancesResp.Msg.Watchonly.Trusted * 100_000_000)
+			pendingSats = uint64(balancesResp.Msg.Watchonly.UntrustedPending * 100_000_000)
+		} else {
+			confirmedSats = uint64(balancesResp.Msg.Mine.Trusted * 100_000_000)
+			pendingSats = uint64(balancesResp.Msg.Mine.UntrustedPending * 100_000_000)
 		}
-
-		bitcoindClient, err := s.bitcoind.Get(ctx)
-		if err != nil {
-			return nil, fmt.Errorf("get bitcoind client: %w", err)
-		}
-
-		balancesResp, err := bitcoindClient.GetBalances(ctx, connect.NewRequest(&corepb.GetBalancesRequest{
-			Wallet: watchWalletName,
-		}))
-		if err != nil {
-			return nil, fmt.Errorf("get balances from bitcoin core: %w", err)
-		}
-
-		confirmedSats := uint64(balancesResp.Msg.Watchonly.Trusted * 100_000_000)
-		pendingSats := uint64(balancesResp.Msg.Watchonly.UntrustedPending * 100_000_000)
 
 		return connect.NewResponse(&pb.GetBalanceResponse{
 			ConfirmedSatoshi: confirmedSats,

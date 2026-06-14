@@ -41,22 +41,22 @@ func allSidechainSlots() []wallet.SidechainSlot {
 
 var _ rpc.WalletManagerServiceHandler = new(WalletHandler)
 
+// Provider type for a wallet: which backend serves it. Watch-only is an
+// orthogonal capability (the wallet's watch-only payload), not a provider.
 const (
 	walletTypeEnforcer    = "enforcer"
 	walletTypeBitcoinCore = "bitcoinCore"
-	walletTypeWatchOnly   = "watchOnly"
 	walletTypeElectrum    = "electrum"
 )
 
-// walletTypeToProto maps the engine's internal wallet-type string onto the
-// typed wire enum; watch-only is a flag, not a type, on the wire.
+// walletTypeToProto maps the wallet's provider type onto the typed wire enum.
 func walletTypeToProto(t string) pb.WalletType {
 	switch t {
 	case walletTypeEnforcer:
 		return pb.WalletType_WALLET_TYPE_ENFORCER
 	case walletTypeElectrum:
 		return pb.WalletType_WALLET_TYPE_ELECTRUM
-	case walletTypeBitcoinCore, walletTypeWatchOnly:
+	case walletTypeBitcoinCore:
 		return pb.WalletType_WALLET_TYPE_BITCOIN_CORE
 	default:
 		return pb.WalletType_WALLET_TYPE_UNSPECIFIED
@@ -181,15 +181,21 @@ func (h *WalletHandler) ListWallets(ctx context.Context, req *connect.Request[pb
 		if w.Gradient != nil {
 			gradientJSON = string(w.Gradient)
 		}
-		bip47Code, err := wallet.Bip47PaymentCodeFromSeed(w.Master.SeedHex, h.bip47NetParams())
-		if err != nil {
-			h.svc.Log().Error().Err(err).Str("wallet_id", w.ID).Msg("ListWallets: bip47 derivation failed")
+		// Watch-only wallets hold no seed, so BIP47 derivation is both pointless
+		// and noisy (it errors on the empty seed); skip it.
+		var bip47Code string
+		if !w.IsWatchOnly() {
+			code, err := wallet.Bip47PaymentCodeFromSeed(w.Master.SeedHex, h.bip47NetParams())
+			if err != nil {
+				h.svc.Log().Error().Err(err).Str("wallet_id", w.ID).Msg("ListWallets: bip47 derivation failed")
+			}
+			bip47Code = code
 		}
 		pbWallets[i] = &pb.WalletMetadata{
 			Id:               w.ID,
 			Name:             w.Name,
 			WalletType:       walletTypeToProto(w.WalletType),
-			WatchOnly:        w.WalletType == walletTypeWatchOnly,
+			WatchOnly:        w.IsWatchOnly(),
 			GradientJson:     gradientJSON,
 			CreatedAt:        w.CreatedAt.Format(time.RFC3339),
 			Bip47PaymentCode: bip47Code,
@@ -317,6 +323,10 @@ func (h *WalletHandler) CreateWatchOnlyWallet(ctx context.Context, req *connect.
 }
 
 func (h *WalletHandler) CreateElectrumWallet(ctx context.Context, req *connect.Request[pb.CreateElectrumWalletRequest]) (*connect.Response[pb.CreateElectrumWalletResponse], error) {
+	if h.engine == nil || !h.engine.ElectrumConfigured() {
+		return nil, connect.NewError(connect.CodeFailedPrecondition,
+			errors.New("electrum wallets are not supported on this network: no Esplora backend configured"))
+	}
 	w, err := h.svc.CreateElectrumWallet(req.Msg.Name, json.RawMessage(req.Msg.GradientJson), req.Msg.Slots, req.Msg.CustomMnemonic, req.Msg.XpubOrDescriptor)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)
@@ -950,15 +960,20 @@ func buildWatchWalletDataResponse(wallets []wallet.WalletData, activeID string, 
 		if w.Gradient != nil {
 			gradientJSON = string(w.Gradient)
 		}
-		bip47Code, err := wallet.Bip47PaymentCodeFromSeed(w.Master.SeedHex, netParams)
-		if err != nil && onBip47Err != nil {
-			onBip47Err(w.ID, err)
+		// Watch-only wallets hold no seed; skip BIP47 derivation on them.
+		var bip47Code string
+		if !w.IsWatchOnly() {
+			code, err := wallet.Bip47PaymentCodeFromSeed(w.Master.SeedHex, netParams)
+			if err != nil && onBip47Err != nil {
+				onBip47Err(w.ID, err)
+			}
+			bip47Code = code
 		}
 		md := &pb.WalletMetadata{
 			Id:               w.ID,
 			Name:             w.Name,
 			WalletType:       walletTypeToProto(w.WalletType),
-			WatchOnly:        w.WalletType == walletTypeWatchOnly,
+			WatchOnly:        w.IsWatchOnly(),
 			GradientJson:     gradientJSON,
 			CreatedAt:        w.CreatedAt.Format(time.RFC3339),
 			Bip47PaymentCode: bip47Code,

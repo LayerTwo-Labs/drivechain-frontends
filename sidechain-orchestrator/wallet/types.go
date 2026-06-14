@@ -26,6 +26,13 @@ type WalletData struct {
 	WatchOnly  json.RawMessage   `json:"watch_only,omitempty"`
 }
 
+// IsWatchOnly reports whether the wallet holds no signing key. Watch-only is an
+// orthogonal capability to the provider type (Core or electrum): a wallet is
+// watch-only iff it carries an xpub/descriptor payload instead of a seed.
+func (w *WalletData) IsWatchOnly() bool {
+	return len(w.WatchOnly) > 0
+}
+
 // Custom JSON marshal/unmarshal for WalletData to handle time format
 func (w WalletData) MarshalJSON() ([]byte, error) {
 	type Alias WalletData

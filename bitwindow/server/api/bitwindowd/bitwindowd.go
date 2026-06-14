@@ -245,8 +245,8 @@ func (s *Server) CreateDenial(
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("could not get active wallet: %w", err))
 	}
 
-	// Check if wallet type supports deniability
-	if activeWallet.WalletType == engines.WalletTypeWatchOnly {
+	// Deniability requires spending, which a watch-only wallet cannot do.
+	if activeWallet.IsWatchOnly() {
 		err := fmt.Errorf("deniability is not supported for watch-only wallets")
 		zerolog.Ctx(ctx).Error().Err(err).Msg("unsupported wallet type")
 		return nil, connect.NewError(connect.CodeFailedPrecondition, err)
@@ -259,8 +259,6 @@ func (s *Server) CreateDenial(
 		utxoExists, err = s.checkEnforcerUTXO(ctx, req.Msg.Txid, req.Msg.Vout)
 	case engines.WalletTypeBitcoinCore:
 		utxoExists, err = s.checkBitcoinCoreUTXO(ctx, activeWallet.ID, req.Msg.Txid, req.Msg.Vout)
-	case engines.WalletTypeWatchOnly:
-		err = fmt.Errorf("deniability is not supported for watch-only wallets")
 	case engines.WalletTypeElectrum:
 		err = fmt.Errorf("deniability is not supported for electrum wallets")
 	default:
@@ -908,25 +906,17 @@ func (s *Server) getCoinbaseAddress(ctx context.Context) (string, error) {
 		return resp.Msg.Address, nil
 
 	case engines.WalletTypeBitcoinCore:
-
-		// Get address from Bitcoin Core wallet
-		walletName, err := s.walletEngine.GetBitcoinCoreWalletName(ctx, activeWallet.ID)
-		if err != nil {
-			return "", fmt.Errorf("get bitcoin core wallet name: %w", err)
+		// Watch-only Core wallets import a descriptor; full wallets use the
+		// seed-derived wallet. Both serve addresses from Bitcoin Core.
+		var walletName string
+		var err error
+		if activeWallet.IsWatchOnly() {
+			walletName, err = s.walletEngine.EnsureWatchOnlyWallet(ctx, activeWallet.ID)
+		} else {
+			walletName, err = s.walletEngine.GetBitcoinCoreWalletName(ctx, activeWallet.ID)
 		}
-		addr, err := bitcoind.GetNewAddress(ctx, connect.NewRequest(&corepb.GetNewAddressRequest{
-			Wallet: walletName,
-		}))
 		if err != nil {
-			return "", err
-		}
-		return addr.Msg.Address, nil
-
-	case engines.WalletTypeWatchOnly:
-		// Get address from watch-only wallet
-		walletName, err := s.walletEngine.EnsureWatchOnlyWallet(ctx, activeWallet.ID)
-		if err != nil {
-			return "", fmt.Errorf("ensure watch-only wallet: %w", err)
+			return "", fmt.Errorf("ensure core wallet: %w", err)
 		}
 		addr, err := bitcoind.GetNewAddress(ctx, connect.NewRequest(&corepb.GetNewAddressRequest{
 			Wallet: walletName,
