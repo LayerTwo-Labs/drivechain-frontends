@@ -9,12 +9,15 @@ import (
 	"fmt"
 	"math"
 	"sort"
+	"strings"
 	"sync"
 
 	"github.com/btcsuite/btcd/btcec/v2"
 	"github.com/btcsuite/btcd/btcutil"
+	"github.com/btcsuite/btcd/btcutil/psbt"
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
+	"github.com/btcsuite/btcd/txscript"
 	"github.com/btcsuite/btcd/wire"
 	"github.com/rs/zerolog"
 
@@ -384,9 +387,6 @@ func (p *ElectrumBackend) WatchKeys(ctx context.Context, walletID string, keys [
 }
 
 func (p *ElectrumBackend) Send(ctx context.Context, walletID string, req SendRequest) (string, error) {
-	if req.FeeRateSatPerVB > 0 && req.FixedFeeSats > 0 {
-		return "", errors.New("fee rate and fixed fee are mutually exclusive")
-	}
 	scan, err := p.scanWallet(ctx, walletID)
 	if err != nil {
 		return "", err
@@ -394,12 +394,47 @@ func (p *ElectrumBackend) Send(ctx context.Context, walletID string, req SendReq
 	if scan.watchOnly {
 		return "", errors.New("watch-only electrum wallet cannot sign or send")
 	}
+	packet, psbtInputs, err := p.buildSendPSBT(ctx, walletID, scan, req)
+	if err != nil {
+		return "", err
+	}
+	// Replay protection sets the magic tx version before signing (the signature
+	// commits to it) and appends the replay byte after extraction.
+	if req.ReplayProtect {
+		packet.UnsignedTx.Version = replay.TxReplayVersion
+	}
+	signedCount, err := signPSBT(packet, psbtInputs, p.network)
+	if err != nil {
+		return "", fmt.Errorf("sign psbt: %w", err)
+	}
+	if signedCount < len(psbtInputs) {
+		return "", errors.New("transaction signing incomplete")
+	}
+	hexToSend, err := finalizeAndExtract(packet)
+	if err != nil {
+		return "", err
+	}
+	if req.ReplayProtect {
+		hexToSend, err = replay.InjectReplayByte(hexToSend)
+		if err != nil {
+			return "", fmt.Errorf("inject replay byte: %w", err)
+		}
+	}
+	return p.client.Broadcast(ctx, hexToSend)
+}
 
+// buildSendPSBT performs coin selection and builds an unsigned PSBT for a send.
+// It does not require signing keys, so it serves both Send and CreatePSBT
+// (including watch-only wallets, which produce a PSBT for an external signer).
+func (p *ElectrumBackend) buildSendPSBT(ctx context.Context, walletID string, scan *electrumScan, req SendRequest) (*psbt.Packet, []psbtInput, error) {
+	if req.FeeRateSatPerVB > 0 && req.FixedFeeSats > 0 {
+		return nil, nil, errors.New("fee rate and fixed fee are mutually exclusive")
+	}
 	outputs, totalOutSats := buildSendOutputs(req)
 
 	pool, err := p.spendableUTXOs(ctx, scan)
 	if err != nil {
-		return "", err
+		return nil, nil, err
 	}
 
 	// Pin required inputs, then fill from the remaining pool largest-first.
@@ -411,7 +446,7 @@ func (p *ElectrumBackend) Send(ctx context.Context, walletID string, req SendReq
 		required[key] = true
 		u, ok := findUTXO(pool, ri.TxID, ri.Vout)
 		if !ok {
-			return "", fmt.Errorf("required input %s not found among wallet UTXOs", key)
+			return nil, nil, fmt.Errorf("required input %s not found among wallet UTXOs", key)
 		}
 		selected = append(selected, u)
 		selectedSats += u.amountSats
@@ -466,7 +501,7 @@ func (p *ElectrumBackend) Send(ctx context.Context, walletID string, req SendReq
 			break
 		}
 		if i >= len(remaining) {
-			return "", fmt.Errorf("insufficient funds: need %d sats, have %d sats", target, selectedSats)
+			return nil, nil, fmt.Errorf("insufficient funds: need %d sats, have %d sats", target, selectedSats)
 		}
 		selected = append(selected, remaining[i])
 		selectedSats += remaining[i].amountSats
@@ -477,25 +512,25 @@ func (p *ElectrumBackend) Send(ctx context.Context, walletID string, req SendReq
 	var changeSats int64
 	if req.SubtractFeeFromAmount {
 		if len(outputs) == 0 || outputs[0].OpReturnHex != "" {
-			return "", errors.New("subtractFeeFromAmount requires a payable first output")
+			return nil, nil, errors.New("subtractFeeFromAmount requires a payable first output")
 		}
 		// Spend everything selected: outputs[0] absorbs all leftover value
 		// minus the fee, so there is no change output.
 		reduced := selectedSats - sffaOtherOut - fee
 		if reduced < dustSats {
-			return "", fmt.Errorf("fee %d sats exceeds first output", fee)
+			return nil, nil, fmt.Errorf("fee %d sats exceeds first output", fee)
 		}
 		outputs[0].AmountBTC = float64(reduced) / 1e8
 	} else {
 		changeSats = selectedSats - totalOutSats - fee
 	}
 	if changeSats < 0 {
-		return "", fmt.Errorf("insufficient funds: short %d sats", -changeSats)
+		return nil, nil, fmt.Errorf("insufficient funds: short %d sats", -changeSats)
 	}
 	if changeSats >= dustSats {
 		changeAddr, err := p.nextUnusedFromScan(walletID, scan, true)
 		if err != nil {
-			return "", fmt.Errorf("derive change address: %w", err)
+			return nil, nil, fmt.Errorf("derive change address: %w", err)
 		}
 		outputs = append(outputs, TxOutSpec{Address: changeAddr, AmountBTC: float64(changeSats) / 1e8})
 	}
@@ -504,11 +539,11 @@ func (p *ElectrumBackend) Send(ctx context.Context, walletID string, req SendReq
 	for idx, u := range selected {
 		sa, ok := scan.byAddr[u.address]
 		if !ok {
-			return "", fmt.Errorf("no derivation info for input address %s", u.address)
+			return nil, nil, fmt.Errorf("no derivation info for input address %s", u.address)
 		}
 		h, err := chainhash.NewHashFromStr(u.txid)
 		if err != nil {
-			return "", fmt.Errorf("parse input txid %q: %w", u.txid, err)
+			return nil, nil, fmt.Errorf("parse input txid %q: %w", u.txid, err)
 		}
 		psbtInputs[idx] = psbtInput{
 			outpoint: wire.OutPoint{Hash: *h, Index: uint32(u.vout)},
@@ -519,33 +554,109 @@ func (p *ElectrumBackend) Send(ctx context.Context, walletID string, req SendReq
 
 	packet, err := buildPSBT(psbtInputs, outputs, p.network, p.prevTxFetcher(ctx))
 	if err != nil {
-		return "", fmt.Errorf("build psbt: %w", err)
+		return nil, nil, fmt.Errorf("build psbt: %w", err)
 	}
-	// Replay protection sets the magic tx version before signing (the signature
-	// commits to it) and appends the replay byte after extraction.
-	if req.ReplayProtect {
-		packet.UnsignedTx.Version = replay.TxReplayVersion
-	}
+	return packet, psbtInputs, nil
+}
 
-	signedCount, err := signPSBT(packet, psbtInputs, p.network)
-	if err != nil {
-		return "", fmt.Errorf("sign psbt: %w", err)
-	}
-	if signedCount < len(psbtInputs) {
-		return "", errors.New("transaction signing incomplete")
-	}
-
-	hexToSend, err := finalizeAndExtract(packet)
+// CreatePSBT builds an unsigned PSBT for a send and returns it base64-encoded.
+func (p *ElectrumBackend) CreatePSBT(ctx context.Context, walletID string, req SendRequest) (string, error) {
+	scan, err := p.scanWallet(ctx, walletID)
 	if err != nil {
 		return "", err
 	}
-	if req.ReplayProtect {
-		hexToSend, err = replay.InjectReplayByte(hexToSend)
+	packet, _, err := p.buildSendPSBT(ctx, walletID, scan, req)
+	if err != nil {
+		return "", err
+	}
+	return packet.B64Encode()
+}
+
+// SignPSBT adds this wallet's signatures to a base64 PSBT and returns the
+// updated PSBT. Inputs whose keys it doesn't hold are left for other signers.
+func (p *ElectrumBackend) SignPSBT(ctx context.Context, walletID, psbtBase64 string) (string, error) {
+	packet, err := decodePSBTBase64(psbtBase64)
+	if err != nil {
+		return "", err
+	}
+	scan, err := p.scanWallet(ctx, walletID)
+	if err != nil {
+		return "", err
+	}
+	inputs, err := p.psbtInputsFromPacket(packet, scan)
+	if err != nil {
+		return "", err
+	}
+	if _, err := signPSBT(packet, inputs, p.network); err != nil {
+		return "", err
+	}
+	return packet.B64Encode()
+}
+
+// CombinePSBT merges signatures from several base64 PSBTs of the same tx.
+func (p *ElectrumBackend) CombinePSBT(psbtsBase64 []string) (string, error) {
+	if len(psbtsBase64) == 0 {
+		return "", errors.New("no psbts to combine")
+	}
+	base, err := decodePSBTBase64(psbtsBase64[0])
+	if err != nil {
+		return "", err
+	}
+	others := make([]*psbt.Packet, 0, len(psbtsBase64)-1)
+	for _, b := range psbtsBase64[1:] {
+		o, err := decodePSBTBase64(b)
 		if err != nil {
-			return "", fmt.Errorf("inject replay byte: %w", err)
+			return "", err
+		}
+		others = append(others, o)
+	}
+	if err := combinePSBT(base, others...); err != nil {
+		return "", err
+	}
+	return base.B64Encode()
+}
+
+// FinalizePSBT finalizes a fully-signed base64 PSBT and returns the raw tx hex.
+func (p *ElectrumBackend) FinalizePSBT(psbtBase64 string) (string, error) {
+	packet, err := decodePSBTBase64(psbtBase64)
+	if err != nil {
+		return "", err
+	}
+	return finalizeAndExtract(packet)
+}
+
+// psbtInputsFromPacket reconstructs the per-input signing metadata for a PSBT by
+// scanning the wallet and matching each input's prevout to a derived address.
+func (p *ElectrumBackend) psbtInputsFromPacket(packet *psbt.Packet, scan *electrumScan) ([]psbtInput, error) {
+	inputs := make([]psbtInput, len(packet.Inputs))
+	for i := range packet.Inputs {
+		out := prevOutForInput(packet, i)
+		if out == nil {
+			return nil, fmt.Errorf("psbt input %d missing prevout", i)
+		}
+		_, addrs, _, err := txscript.ExtractPkScriptAddrs(out.PkScript, p.network)
+		if err != nil || len(addrs) == 0 {
+			return nil, fmt.Errorf("psbt input %d: cannot resolve address", i)
+		}
+		sa, ok := scan.byAddr[addrs[0].EncodeAddress()]
+		if !ok {
+			return nil, fmt.Errorf("psbt input %d address %s is not in this wallet", i, addrs[0].EncodeAddress())
+		}
+		inputs[i] = psbtInput{
+			outpoint: packet.UnsignedTx.TxIn[i].PreviousOutPoint,
+			amount:   out.Value,
+			addr:     sa,
 		}
 	}
-	return p.client.Broadcast(ctx, hexToSend)
+	return inputs, nil
+}
+
+func decodePSBTBase64(b64 string) (*psbt.Packet, error) {
+	packet, err := psbt.NewFromRawBytes(strings.NewReader(b64), true)
+	if err != nil {
+		return nil, fmt.Errorf("decode psbt: %w", err)
+	}
+	return packet, nil
 }
 
 // prevTxFetcher returns a function that fetches and decodes a previous
