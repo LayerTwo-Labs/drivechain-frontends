@@ -211,7 +211,31 @@ func (h *WalletHandler) SwitchWallet(ctx context.Context, req *connect.Request[p
 	if err := h.svc.SwitchWallet(req.Msg.WalletId); err != nil {
 		return nil, connect.NewError(connect.CodeNotFound, err)
 	}
+	h.ensureL1ForWallet(req.Msg.WalletId)
 	return connect.NewResponse(&pb.SwitchWalletResponse{}), nil
+}
+
+// ensureL1ForWallet starts the local L1 stack when switching to a wallet that
+// needs it (anything but electrum). Booting on an electrum wallet skips L1, so
+// a later switch to a Core/enforcer wallet would otherwise find bitcoind down.
+// StartWithL1 is idempotent — it adopts a running stack and boots one
+// otherwise — so this is safe to call on every switch.
+func (h *WalletHandler) ensureL1ForWallet(walletID string) {
+	if h.orch == nil || !h.walletNeedsL1(walletID) {
+		return
+	}
+	go func() {
+		if _, err := h.orch.StartWithL1(context.Background(), "enforcer", orchestrator.StartOpts{}); err != nil {
+			h.svc.Log().Warn().Err(err).Str("wallet_id", walletID).Msg("ensure L1 after wallet switch failed")
+		}
+	}()
+}
+
+// walletNeedsL1 reports whether a wallet requires the local L1 stack: every
+// type except electrum (which serves chain data remotely).
+func (h *WalletHandler) walletNeedsL1(walletID string) bool {
+	w := h.svc.GetWalletByID(walletID)
+	return w != nil && w.WalletType != "electrum"
 }
 
 func (h *WalletHandler) UpdateWalletMetadata(ctx context.Context, req *connect.Request[pb.UpdateWalletMetadataRequest]) (*connect.Response[pb.UpdateWalletMetadataResponse], error) {

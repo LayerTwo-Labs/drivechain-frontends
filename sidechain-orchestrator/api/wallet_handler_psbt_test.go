@@ -99,3 +99,22 @@ func TestWalletHandlerPSBTRoundTrip(t *testing.T) {
 	require.NoError(t, err)
 	require.NotEmpty(t, final.Msg.RawTxHex)
 }
+
+// TestWalletNeedsL1 covers the switch-time L1 decision: only electrum wallets
+// skip the local Bitcoin backends.
+func TestWalletNeedsL1(t *testing.T) {
+	log := zerolog.New(zerolog.NewTestWriter(t))
+	svc := wallet.NewService(t.TempDir(), log)
+	require.NoError(t, svc.Init())
+	t.Cleanup(func() { svc.Close() })
+
+	full, err := svc.GenerateWallet("Full", "", "", nil)
+	require.NoError(t, err)
+	elec, err := svc.CreateElectrumWallet("E", nil, nil, "", "", "")
+	require.NoError(t, err)
+
+	h := NewWalletHandler(svc)
+	require.True(t, h.walletNeedsL1(full.ID), "non-electrum wallet needs L1")
+	require.False(t, h.walletNeedsL1(elec.ID), "electrum wallet does not need L1")
+	require.False(t, h.walletNeedsL1("nonexistent"), "unknown wallet does not need L1")
+}
