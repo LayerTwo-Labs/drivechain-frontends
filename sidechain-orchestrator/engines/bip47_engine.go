@@ -133,7 +133,7 @@ func (e *BIP47Engine) scanWallet(ctx context.Context, walletID, seedHex string, 
 			if tx.Category != "receive" || tx.Address != wantAddr {
 				continue
 			}
-			senderCode, blockTime, err := e.decodeNotificationTx(ctx, tx.TxID, notifPriv)
+			senderCode, blockTime, err := e.decodeNotificationTx(ctx, walletID, tx.TxID, notifPriv)
 			if err != nil {
 				e.log.Debug().Err(err).Str("txid", tx.TxID).Msg("skip non-bip47 receive at notification address")
 				continue
@@ -170,8 +170,8 @@ func (e *BIP47Engine) scanWallet(ctx context.Context, walletID, seedHex string, 
 // OP_RETURN payload and the first input's pubkey + outpoint, and decodes the
 // blinded payload using the receiver's notification privkey. Returns the
 // sender's payment code base58 and the block time (0 if unconfirmed).
-func (e *BIP47Engine) decodeNotificationTx(ctx context.Context, txid string, notifPriv *btcec.PrivateKey) (string, int64, error) {
-	raw, err := e.engine.Backend().Chain().GetRawTransaction(ctx, txid)
+func (e *BIP47Engine) decodeNotificationTx(ctx context.Context, walletID, txid string, notifPriv *btcec.PrivateKey) (string, int64, error) {
+	raw, err := e.engine.ChainForWallet(walletID).GetRawTransaction(ctx, txid)
 	if err != nil {
 		return "", 0, fmt.Errorf("getrawtransaction: %w", err)
 	}

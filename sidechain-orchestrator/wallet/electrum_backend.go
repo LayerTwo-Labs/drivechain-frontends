@@ -233,6 +233,11 @@ func (p *ElectrumBackend) ListReceivedByAddress(ctx context.Context, walletID st
 
 	out := make([]ReceivedByAddress, 0, len(scan.addrs))
 	for _, a := range scan.addrs {
+		// Internal change addresses are not receive addresses; skip them so the
+		// list mirrors Core's external-only receive view.
+		if a.change {
+			continue
+		}
 		entry := ReceivedByAddress{Address: a.address}
 		if a.stats.Used() {
 			txs, err := p.client.AddressTxs(ctx, a.address)
@@ -285,12 +290,17 @@ func (p *ElectrumBackend) GetWalletTransaction(ctx context.Context, walletID, tx
 
 	ownIn, ownOut := walletFlow(tx, scan)
 	fee := 0.0
+	amountSats := ownOut - ownIn
 	if ownIn > 0 {
+		// We funded the tx, so the fee left our wallet inside ownIn; add it back
+		// so Amount is the payment only (the fee is reported separately), matching
+		// Core's listtransactions semantics.
 		fee = -float64(tx.Fee) / 1e8
+		amountSats += tx.Fee
 	}
 	return &WalletTx{
 		TxID:          tx.TxID,
-		Amount:        float64(ownOut-ownIn) / 1e8,
+		Amount:        float64(amountSats) / 1e8,
 		Fee:           fee,
 		Confirmations: int32(confsFor(tx.Status, tip)),
 		BlockTime:     tx.Status.BlockTime,
