@@ -699,7 +699,7 @@ func (s *Service) CreateWatchOnlyWallet(name, xpubOrDescriptor, gradientJSON str
 		Name:       name,
 		Gradient:   json.RawMessage(gradientJSON),
 		CreatedAt:  time.Now(),
-		WalletType: "watchOnly",
+		WalletType: "bitcoinCore",
 		WatchOnly:  json.RawMessage(watchOnlyJSON),
 	}
 
@@ -1464,7 +1464,7 @@ func (s *Service) loadWalletFile() error {
 		if s.wallets[i].Master.Mnemonic != "" {
 			s.wallets[i].WalletType = "enforcer"
 		} else {
-			s.wallets[i].WalletType = "watchOnly"
+			s.wallets[i].WalletType = "bitcoinCore"
 		}
 		migrated = true
 	}

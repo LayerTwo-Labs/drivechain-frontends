@@ -97,9 +97,13 @@ func (p *CoreProvider) Ensure(ctx context.Context, walletID string) (string, err
 	var err error
 	switch targetWallet.WalletType {
 	case "bitcoinCore":
-		err = p.createBitcoinCoreWallet(ctx, walletName, targetWallet.Master.SeedHex)
-	case "watchOnly":
-		err = p.createWatchOnlyWallet(ctx, walletName, targetWallet)
+		// Watch-only Core wallets import a descriptor; full wallets create from
+		// the seed. Both run on the same Core backend.
+		if targetWallet.IsWatchOnly() {
+			err = p.createWatchOnlyWallet(ctx, walletName, targetWallet)
+		} else {
+			err = p.createBitcoinCoreWallet(ctx, walletName, targetWallet.Master.SeedHex)
+		}
 	default:
 		return "", fmt.Errorf("wallet type %s does not use Bitcoin Core", targetWallet.WalletType)
 	}
@@ -117,7 +121,7 @@ func (p *CoreProvider) Ensure(ctx context.Context, walletID string) (string, err
 	// lands on first boot post-engine-deploy. Idempotent in Core, and a
 	// failure here shouldn't break wallet loading — the provider will retry
 	// next time Ensure runs.
-	if targetWallet.WalletType == "bitcoinCore" {
+	if targetWallet.WalletType == "bitcoinCore" && !targetWallet.IsWatchOnly() {
 		if perr := p.ensureBip47NotificationDescriptor(ctx, walletName, targetWallet.Master.SeedHex); perr != nil {
 			p.log.Warn().Err(perr).Str("wallet", walletName).Msg("could not ensure bip47 notification descriptor")
 		}
@@ -130,13 +134,13 @@ func (p *CoreProvider) Ensure(ctx context.Context, walletID string) (string, err
 	return walletName, nil
 }
 
-// EnsureAll syncs all bitcoinCore/watchOnly wallets to Bitcoin Core.
+// EnsureAll syncs all bitcoinCore wallets (full and watch-only) to Bitcoin Core.
 func (p *CoreProvider) EnsureAll(ctx context.Context) (int, error) {
 	wallets := p.svc.GetAllWallets()
 	synced := 0
 
 	for _, w := range wallets {
-		if w.WalletType != "bitcoinCore" && w.WalletType != "watchOnly" {
+		if w.WalletType != "bitcoinCore" {
 			continue
 		}
 		if _, err := p.Ensure(ctx, w.ID); err != nil {

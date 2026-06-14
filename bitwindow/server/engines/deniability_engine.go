@@ -294,9 +294,10 @@ func (e *DeniabilityEngine) ProcessUTXO(ctx context.Context, utxo *pb.ListUnspen
 	case WalletTypeEnforcer:
 		txid, err = e.sendEnforcerTransaction(ctx, utxo, destinations, fee)
 	case WalletTypeBitcoinCore:
+		if werr := e.rejectWatchOnly(ctx, walletId); werr != nil {
+			return werr
+		}
 		txid, err = e.sendBitcoinCoreTransaction(ctx, walletId, destinations)
-	case WalletTypeWatchOnly:
-		return fmt.Errorf("cannot send transactions from watch-only wallet")
 	case WalletTypeElectrum:
 		return fmt.Errorf("deniability is not supported for electrum wallets")
 	default:
@@ -488,6 +489,19 @@ func (e *DeniabilityEngine) waitForUTXOsToAppear(
 	}
 }
 
+// rejectWatchOnly returns an error if the wallet has no signing key.
+// Deniability requires spending, which a watch-only wallet cannot do.
+func (e *DeniabilityEngine) rejectWatchOnly(ctx context.Context, walletId string) error {
+	watchOnly, err := e.walletEngine.IsWatchOnly(ctx, walletId)
+	if err != nil {
+		return fmt.Errorf("check watch-only: %w", err)
+	}
+	if watchOnly {
+		return fmt.Errorf("deniability is not supported for watch-only wallets")
+	}
+	return nil
+}
+
 func (e *DeniabilityEngine) chooseDenialStrategy(
 	ctx context.Context,
 	denial deniability.Denial,
@@ -538,9 +552,10 @@ func (e *DeniabilityEngine) simpleSplit(
 	case WalletTypeEnforcer:
 		address, err = e.getEnforcerNewAddress(ctx)
 	case WalletTypeBitcoinCore:
+		if werr := e.rejectWatchOnly(ctx, walletId); werr != nil {
+			return nil, werr
+		}
 		address, err = e.getBitcoinCoreNewAddress(ctx, walletId)
-	case WalletTypeWatchOnly:
-		return nil, fmt.Errorf("deniability not supported for watch-only wallets")
 	case WalletTypeElectrum:
 		return nil, fmt.Errorf("deniability not supported for electrum wallets")
 	default:
@@ -588,9 +603,10 @@ func (e *DeniabilityEngine) targetAmountSplit(
 	case WalletTypeEnforcer:
 		address, err = e.getEnforcerNewAddress(ctx)
 	case WalletTypeBitcoinCore:
+		if werr := e.rejectWatchOnly(ctx, walletId); werr != nil {
+			return nil, werr
+		}
 		address, err = e.getBitcoinCoreNewAddress(ctx, walletId)
-	case WalletTypeWatchOnly:
-		return nil, fmt.Errorf("deniability not supported for watch-only wallets")
 	case WalletTypeElectrum:
 		return nil, fmt.Errorf("deniability not supported for electrum wallets")
 	default:
@@ -695,10 +711,10 @@ func (e *DeniabilityEngine) listUTXOsForWallet(ctx context.Context, walletId str
 		return e.listEnforcerUTXOs(ctx)
 
 	case WalletTypeBitcoinCore:
+		if werr := e.rejectWatchOnly(ctx, walletId); werr != nil {
+			return nil, werr
+		}
 		return e.listBitcoinCoreUTXOs(ctx, walletId)
-
-	case WalletTypeWatchOnly:
-		return nil, fmt.Errorf("deniability not supported for watch-only wallets")
 
 	case WalletTypeElectrum:
 		return nil, fmt.Errorf("deniability not supported for electrum wallets")

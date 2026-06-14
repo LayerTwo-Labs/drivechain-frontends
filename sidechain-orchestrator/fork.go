@@ -62,7 +62,7 @@ func (s *forkWalletScanner) Wallets() []fork.WalletMeta {
 		// Watch-only has no key, so it can't be swept. Core and enforcer
 		// wallets both hold spendable L1 BTC, but only Core claims can be
 		// replay-protected (the custom-serialized tx path is Core-only).
-		if w.WalletType == "watchOnly" {
+		if w.IsWatchOnly() {
 			continue
 		}
 		out = append(out, fork.WalletMeta{

@@ -5,11 +5,11 @@ import (
 	"errors"
 )
 
-// RoutingProvider dispatches each call by the wallet's type: the enforcer
-// wallet is served by the enforcer daemon, electrum wallets by the Esplora-
-// backed provider, bitcoinCore/watchOnly wallets by the chain wallet
-// provider. Any side may be absent — calls for its wallets then fail with a
-// clear error.
+// RoutingProvider dispatches each call by the wallet's provider type: the
+// enforcer wallet is served by the enforcer daemon, electrum wallets by the
+// Esplora-backed provider, bitcoinCore wallets by the chain wallet provider.
+// Watch-only is an orthogonal capability handled within each provider. Any
+// side may be absent — calls for its wallets then fail with a clear error.
 type RoutingProvider struct {
 	svc      *Service
 	enforcer Provider
@@ -23,6 +23,13 @@ var _ Provider = (*RoutingProvider)(nil)
 // that isn't configured.
 func NewRoutingProvider(svc *Service, enforcer, chain, electrum Provider) *RoutingProvider {
 	return &RoutingProvider{svc: svc, enforcer: enforcer, chain: chain, electrum: electrum}
+}
+
+// ElectrumConfigured reports whether an electrum (Esplora-backed) provider is
+// wired. Networks without an Esplora backend leave it nil; callers use this to
+// refuse creating electrum wallets that could never sync.
+func (r *RoutingProvider) ElectrumConfigured() bool {
+	return r.electrum != nil
 }
 
 func (r *RoutingProvider) pick(walletID string) (Provider, error) {
