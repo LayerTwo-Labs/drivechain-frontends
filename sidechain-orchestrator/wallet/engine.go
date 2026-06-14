@@ -8,37 +8,46 @@ import (
 )
 
 // WalletEngine is the mode-agnostic façade consumers hold: it resolves
-// wallet IDs and hands out the active Provider. All chain/wallet data flows
-// through the Provider so backends are swappable at the wiring site.
+// wallet IDs and hands out the active Backend. All chain/wallet data flows
+// through the Backend so backends are swappable at the wiring site.
 type WalletEngine struct {
-	svc      *Service
-	provider Provider
-	log      zerolog.Logger
-	network  *chaincfg.Params
+	svc     *Service
+	backend Backend
+	log     zerolog.Logger
+	network *chaincfg.Params
 }
 
-// NewWalletEngine wires a Provider to the wallet service. Callers convert
+// NewWalletEngine wires a Backend to the wallet service. Callers convert
 // the CLI network string via bip47send.NetworkParams (or equivalent) before
 // passing — the engine never sees the network name as a free-form string.
-func NewWalletEngine(svc *Service, provider Provider, network *chaincfg.Params, log zerolog.Logger) *WalletEngine {
+func NewWalletEngine(svc *Service, backend Backend, network *chaincfg.Params, log zerolog.Logger) *WalletEngine {
 	return &WalletEngine{
-		svc:      svc,
-		provider: provider,
-		log:      log.With().Str("component", "wallet-engine").Logger(),
-		network:  network,
+		svc:     svc,
+		backend: backend,
+		log:     log.With().Str("component", "wallet-engine").Logger(),
+		network: network,
 	}
 }
 
-// Provider returns the active wallet backend.
-func (e *WalletEngine) Provider() Provider {
-	return e.provider
+// Backend returns the active wallet backend.
+func (e *WalletEngine) Backend() Backend {
+	return e.backend
 }
 
 // ElectrumConfigured reports whether an electrum (Esplora) backend is wired,
 // so callers can refuse to create electrum wallets that could never sync.
 func (e *WalletEngine) ElectrumConfigured() bool {
-	r, ok := e.provider.(*RoutingProvider)
+	r, ok := e.backend.(*BackendRouter)
 	return ok && r.ElectrumConfigured()
+}
+
+// ChainForWallet returns the chain source for a wallet's backend, dispatching
+// by wallet type so electrum wallets read/broadcast over Esplora.
+func (e *WalletEngine) ChainForWallet(walletID string) ChainSource {
+	if r, ok := e.backend.(*BackendRouter); ok {
+		return r.ChainForWallet(walletID)
+	}
+	return e.backend.Chain()
 }
 
 // Network returns the chain parameters this engine was constructed against.

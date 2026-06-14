@@ -1,11 +1,11 @@
 package wallet
 
-// Shared types crossing the Provider interface. Field semantics follow
-// Bitcoin Core's wallet RPC conventions and every provider must honor them:
+// Shared types crossing the Backend interface. Field semantics follow
+// Bitcoin Core's wallet RPC conventions and every backend must honor them:
 // amounts are BTC floats, send amounts and fees are negative.
 
 // UTXO is one unspent wallet output (listunspent shape). ReceivedAt is the
-// unix time the wallet first saw or confirmed the output when the provider
+// unix time the wallet first saw or confirmed the output when the backend
 // knows it directly; 0 means callers resolve it via GetWalletTransaction.
 type UTXO struct {
 	TxID          string  `json:"txid"`
@@ -135,12 +135,12 @@ type SignRawTransactionResult struct {
 	Complete bool   `json:"complete"`
 }
 
-// SendRequest is everything a provider needs to pay destinations: amounts,
+// SendRequest is everything a backend needs to pay destinations: amounts,
 // fee control (rate or fixed), an optional OP_RETURN payload, pinned inputs,
-// and replay protection. Providers reject fields they cannot honor.
+// and replay protection. Backends reject fields they cannot honor.
 type SendRequest struct {
 	DestinationsSats      map[string]int64
-	FeeRateSatPerVB       int64 // 0 = provider's own fee estimation
+	FeeRateSatPerVB       int64 // 0 = backend's own fee estimation
 	FixedFeeSats          int64 // mutually exclusive with FeeRateSatPerVB
 	OpReturnHex           string
 	RequiredInputs        []RequiredInput
@@ -155,7 +155,7 @@ type RequiredInput struct {
 	AmountSats int64
 }
 
-// WatchKey is one private key whose address the provider must track.
+// WatchKey is one private key whose address the backend must track.
 type WatchKey struct {
 	WIF        string // compressed-pubkey WIF private key
 	RescanFrom int64  // unix time to scan from; 0 = genesis

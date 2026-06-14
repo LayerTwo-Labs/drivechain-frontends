@@ -5,34 +5,34 @@ import (
 	"errors"
 )
 
-// RoutingProvider dispatches each call by the wallet's provider type: the
+// BackendRouter dispatches each call by the wallet's backend type: the
 // enforcer wallet is served by the enforcer daemon, electrum wallets by the
-// Esplora-backed provider, bitcoinCore wallets by the chain wallet provider.
-// Watch-only is an orthogonal capability handled within each provider. Any
+// Esplora-backed backend, bitcoinCore wallets by the chain wallet backend.
+// Watch-only is an orthogonal capability handled within each backend. Any
 // side may be absent — calls for its wallets then fail with a clear error.
-type RoutingProvider struct {
+type BackendRouter struct {
 	svc      *Service
-	enforcer Provider
-	chain    Provider
-	electrum Provider
+	enforcer Backend
+	chain    Backend
+	electrum Backend
 }
 
-var _ Provider = (*RoutingProvider)(nil)
+var _ Backend = (*BackendRouter)(nil)
 
-// NewRoutingProvider wires the per-type providers. Pass nil for a side
+// NewBackendRouter wires the per-type backends. Pass nil for a side
 // that isn't configured.
-func NewRoutingProvider(svc *Service, enforcer, chain, electrum Provider) *RoutingProvider {
-	return &RoutingProvider{svc: svc, enforcer: enforcer, chain: chain, electrum: electrum}
+func NewBackendRouter(svc *Service, enforcer, chain, electrum Backend) *BackendRouter {
+	return &BackendRouter{svc: svc, enforcer: enforcer, chain: chain, electrum: electrum}
 }
 
-// ElectrumConfigured reports whether an electrum (Esplora-backed) provider is
+// ElectrumConfigured reports whether an electrum (Esplora-backed) backend is
 // wired. Networks without an Esplora backend leave it nil; callers use this to
 // refuse creating electrum wallets that could never sync.
-func (r *RoutingProvider) ElectrumConfigured() bool {
+func (r *BackendRouter) ElectrumConfigured() bool {
 	return r.electrum != nil
 }
 
-func (r *RoutingProvider) pick(walletID string) (Provider, error) {
+func (r *BackendRouter) pick(walletID string) (Backend, error) {
 	w := r.svc.GetWalletByID(walletID)
 	if w == nil {
 		return nil, errors.New("wallet " + walletID + " not found")
@@ -45,7 +45,7 @@ func (r *RoutingProvider) pick(walletID string) (Provider, error) {
 	}
 	if w.WalletType == "electrum" {
 		if r.electrum == nil {
-			return nil, errors.New("electrum wallet provider not configured")
+			return nil, errors.New("electrum wallet backend not configured")
 		}
 		return r.electrum, nil
 	}
@@ -55,7 +55,7 @@ func (r *RoutingProvider) pick(walletID string) (Provider, error) {
 	return r.chain, nil
 }
 
-func (r *RoutingProvider) Ensure(ctx context.Context, walletID string) (string, error) {
+func (r *BackendRouter) Ensure(ctx context.Context, walletID string) (string, error) {
 	p, err := r.pick(walletID)
 	if err != nil {
 		return "", err
@@ -63,14 +63,14 @@ func (r *RoutingProvider) Ensure(ctx context.Context, walletID string) (string, 
 	return p.Ensure(ctx, walletID)
 }
 
-func (r *RoutingProvider) EnsureAll(ctx context.Context) (int, error) {
+func (r *BackendRouter) EnsureAll(ctx context.Context) (int, error) {
 	if r.chain == nil {
 		return 0, nil
 	}
 	return r.chain.EnsureAll(ctx)
 }
 
-func (r *RoutingProvider) Balance(ctx context.Context, walletID string) (float64, float64, error) {
+func (r *BackendRouter) Balance(ctx context.Context, walletID string) (float64, float64, error) {
 	p, err := r.pick(walletID)
 	if err != nil {
 		return 0, 0, err
@@ -78,7 +78,7 @@ func (r *RoutingProvider) Balance(ctx context.Context, walletID string) (float64
 	return p.Balance(ctx, walletID)
 }
 
-func (r *RoutingProvider) ListUnspent(ctx context.Context, walletID string) ([]UTXO, error) {
+func (r *BackendRouter) ListUnspent(ctx context.Context, walletID string) ([]UTXO, error) {
 	p, err := r.pick(walletID)
 	if err != nil {
 		return nil, err
@@ -86,7 +86,7 @@ func (r *RoutingProvider) ListUnspent(ctx context.Context, walletID string) ([]U
 	return p.ListUnspent(ctx, walletID)
 }
 
-func (r *RoutingProvider) ListTransactions(ctx context.Context, walletID string, count int) ([]WalletTransaction, error) {
+func (r *BackendRouter) ListTransactions(ctx context.Context, walletID string, count int) ([]WalletTransaction, error) {
 	p, err := r.pick(walletID)
 	if err != nil {
 		return nil, err
@@ -94,7 +94,7 @@ func (r *RoutingProvider) ListTransactions(ctx context.Context, walletID string,
 	return p.ListTransactions(ctx, walletID, count)
 }
 
-func (r *RoutingProvider) ListTransactionsRange(ctx context.Context, walletID string, count, skip int) ([]WalletTransaction, error) {
+func (r *BackendRouter) ListTransactionsRange(ctx context.Context, walletID string, count, skip int) ([]WalletTransaction, error) {
 	p, err := r.pick(walletID)
 	if err != nil {
 		return nil, err
@@ -102,7 +102,7 @@ func (r *RoutingProvider) ListTransactionsRange(ctx context.Context, walletID st
 	return p.ListTransactionsRange(ctx, walletID, count, skip)
 }
 
-func (r *RoutingProvider) ListReceivedByAddress(ctx context.Context, walletID string) ([]ReceivedByAddress, error) {
+func (r *BackendRouter) ListReceivedByAddress(ctx context.Context, walletID string) ([]ReceivedByAddress, error) {
 	p, err := r.pick(walletID)
 	if err != nil {
 		return nil, err
@@ -110,7 +110,7 @@ func (r *RoutingProvider) ListReceivedByAddress(ctx context.Context, walletID st
 	return p.ListReceivedByAddress(ctx, walletID)
 }
 
-func (r *RoutingProvider) GetWalletTransaction(ctx context.Context, walletID, txid string) (*WalletTx, error) {
+func (r *BackendRouter) GetWalletTransaction(ctx context.Context, walletID, txid string) (*WalletTx, error) {
 	p, err := r.pick(walletID)
 	if err != nil {
 		return nil, err
@@ -118,7 +118,7 @@ func (r *RoutingProvider) GetWalletTransaction(ctx context.Context, walletID, tx
 	return p.GetWalletTransaction(ctx, walletID, txid)
 }
 
-func (r *RoutingProvider) AddressHDPath(ctx context.Context, walletID, address string) (string, error) {
+func (r *BackendRouter) AddressHDPath(ctx context.Context, walletID, address string) (string, error) {
 	p, err := r.pick(walletID)
 	if err != nil {
 		return "", err
@@ -126,7 +126,7 @@ func (r *RoutingProvider) AddressHDPath(ctx context.Context, walletID, address s
 	return p.AddressHDPath(ctx, walletID, address)
 }
 
-func (r *RoutingProvider) NextReceiveAddress(ctx context.Context, walletID string) (string, error) {
+func (r *BackendRouter) NextReceiveAddress(ctx context.Context, walletID string) (string, error) {
 	p, err := r.pick(walletID)
 	if err != nil {
 		return "", err
@@ -134,7 +134,7 @@ func (r *RoutingProvider) NextReceiveAddress(ctx context.Context, walletID strin
 	return p.NextReceiveAddress(ctx, walletID)
 }
 
-func (r *RoutingProvider) NextChangeAddress(ctx context.Context, walletID string) (string, error) {
+func (r *BackendRouter) NextChangeAddress(ctx context.Context, walletID string) (string, error) {
 	p, err := r.pick(walletID)
 	if err != nil {
 		return "", err
@@ -142,7 +142,7 @@ func (r *RoutingProvider) NextChangeAddress(ctx context.Context, walletID string
 	return p.NextChangeAddress(ctx, walletID)
 }
 
-func (r *RoutingProvider) WatchKeys(ctx context.Context, walletID string, keys []WatchKey) error {
+func (r *BackendRouter) WatchKeys(ctx context.Context, walletID string, keys []WatchKey) error {
 	p, err := r.pick(walletID)
 	if err != nil {
 		return err
@@ -150,7 +150,7 @@ func (r *RoutingProvider) WatchKeys(ctx context.Context, walletID string, keys [
 	return p.WatchKeys(ctx, walletID, keys)
 }
 
-func (r *RoutingProvider) Send(ctx context.Context, walletID string, req SendRequest) (string, error) {
+func (r *BackendRouter) Send(ctx context.Context, walletID string, req SendRequest) (string, error) {
 	p, err := r.pick(walletID)
 	if err != nil {
 		return "", err
@@ -158,7 +158,7 @@ func (r *RoutingProvider) Send(ctx context.Context, walletID string, req SendReq
 	return p.Send(ctx, walletID, req)
 }
 
-func (r *RoutingProvider) SignTransaction(ctx context.Context, walletID, rawHex string) (*SignRawTransactionResult, error) {
+func (r *BackendRouter) SignTransaction(ctx context.Context, walletID, rawHex string) (*SignRawTransactionResult, error) {
 	p, err := r.pick(walletID)
 	if err != nil {
 		return nil, err
@@ -166,7 +166,7 @@ func (r *RoutingProvider) SignTransaction(ctx context.Context, walletID, rawHex 
 	return p.SignTransaction(ctx, walletID, rawHex)
 }
 
-func (r *RoutingProvider) BumpFee(ctx context.Context, walletID, txid string, newFeeRate int64) (string, error) {
+func (r *BackendRouter) BumpFee(ctx context.Context, walletID, txid string, newFeeRate int64) (string, error) {
 	p, err := r.pick(walletID)
 	if err != nil {
 		return "", err
@@ -174,11 +174,25 @@ func (r *RoutingProvider) BumpFee(ctx context.Context, walletID, txid string, ne
 	return p.BumpFee(ctx, walletID, txid, newFeeRate)
 }
 
-// Chain returns the chain wallet provider's chain source — chain lookups
-// are wallet-agnostic, so they don't dispatch per wallet.
-func (r *RoutingProvider) Chain() ChainSource {
-	if r.chain == nil {
-		return unavailableChain{reason: "bitcoin Core RPC not configured"}
+// Chain returns a chain source without a wallet context, preferring Core and
+// falling back to electrum (Esplora) so electrum-only deployments still work.
+// Prefer ChainForWallet when a wallet ID is available.
+func (r *BackendRouter) Chain() ChainSource {
+	if r.chain != nil {
+		return r.chain.Chain()
 	}
-	return r.chain.Chain()
+	if r.electrum != nil {
+		return r.electrum.Chain()
+	}
+	return unavailableChain{reason: "no chain source configured"}
+}
+
+// ChainForWallet returns the chain source for a specific wallet's backend, so
+// electrum wallets read/broadcast over Esplora even when Core is configured.
+func (r *BackendRouter) ChainForWallet(walletID string) ChainSource {
+	b, err := r.pick(walletID)
+	if err != nil {
+		return unavailableChain{reason: err.Error()}
+	}
+	return b.Chain()
 }

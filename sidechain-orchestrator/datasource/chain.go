@@ -190,7 +190,7 @@ func (c *CoreSource) ListWalletTransactions(ctx context.Context, req *corepb.Lis
 var _ ChainReader = (*CoreSource)(nil)
 
 // Local is the full DataSource backed by live Core + enforcer clients. Composes
-// the Core and enforcer readers; this is what the Provider returns today.
+// the Core and enforcer readers; this is what the getters return today.
 type Local struct {
 	*CoreSource
 	*EnforcerSource

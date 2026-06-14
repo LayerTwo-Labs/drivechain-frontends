@@ -29,10 +29,10 @@ import (
 // the same way until Core is past startup.
 const walletLoadingBackoff = 5 * time.Second
 
-// CoreProvider serves wallets from Bitcoin Core descriptor wallets: it
+// CoreBackend serves wallets from Bitcoin Core descriptor wallets: it
 // derives BIP84 descriptors from wallet.json seeds, lazily creates the Core
 // wallets, and proxies all wallet operations to Core RPC.
-type CoreProvider struct {
+type CoreBackend struct {
 	svc     *Service
 	rpc     *CoreRPCClient
 	log     zerolog.Logger
@@ -49,14 +49,14 @@ type CoreProvider struct {
 	loadingErr   error
 }
 
-var _ Provider = (*CoreProvider)(nil)
+var _ Backend = (*CoreBackend)(nil)
 
-// NewCoreProvider creates the Bitcoin Core wallet provider.
-func NewCoreProvider(svc *Service, rpc *CoreRPCClient, network *chaincfg.Params, log zerolog.Logger) *CoreProvider {
-	return &CoreProvider{
+// NewCoreBackend creates the Bitcoin Core wallet backend.
+func NewCoreBackend(svc *Service, rpc *CoreRPCClient, network *chaincfg.Params, log zerolog.Logger) *CoreBackend {
+	return &CoreBackend{
 		svc:         svc,
 		rpc:         rpc,
-		log:         log.With().Str("component", "core-provider").Logger(),
+		log:         log.With().Str("component", "core-backend").Logger(),
 		network:     network,
 		coreWallets: make(map[string]string),
 	}
@@ -64,7 +64,7 @@ func NewCoreProvider(svc *Service, rpc *CoreRPCClient, network *chaincfg.Params,
 
 // Ensure ensures a Bitcoin Core wallet exists for a wallet.json wallet.
 // Returns the Core wallet name.
-func (p *CoreProvider) Ensure(ctx context.Context, walletID string) (string, error) {
+func (p *CoreBackend) Ensure(ctx context.Context, walletID string) (string, error) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 
@@ -119,7 +119,7 @@ func (p *CoreProvider) Ensure(ctx context.Context, walletID string) (string, err
 	// Ensure the wallet's BIP47 notification descriptor is imported. Runs
 	// both for newly-created wallets and existing ones so the descriptor
 	// lands on first boot post-engine-deploy. Idempotent in Core, and a
-	// failure here shouldn't break wallet loading — the provider will retry
+	// failure here shouldn't break wallet loading — the backend will retry
 	// next time Ensure runs.
 	if targetWallet.WalletType == "bitcoinCore" && !targetWallet.IsWatchOnly() {
 		if perr := p.ensureBip47NotificationDescriptor(ctx, walletName, targetWallet.Master.SeedHex); perr != nil {
@@ -135,7 +135,7 @@ func (p *CoreProvider) Ensure(ctx context.Context, walletID string) (string, err
 }
 
 // EnsureAll syncs all bitcoinCore wallets (full and watch-only) to Bitcoin Core.
-func (p *CoreProvider) EnsureAll(ctx context.Context) (int, error) {
+func (p *CoreBackend) EnsureAll(ctx context.Context) (int, error) {
 	wallets := p.svc.GetAllWallets()
 	synced := 0
 
@@ -154,7 +154,7 @@ func (p *CoreProvider) EnsureAll(ctx context.Context) (int, error) {
 }
 
 // walletName returns the Core wallet name for a wallet ID, ensuring it exists.
-func (p *CoreProvider) walletName(ctx context.Context, walletID string) (string, error) {
+func (p *CoreBackend) walletName(ctx context.Context, walletID string) (string, error) {
 	p.mu.Lock()
 	if name, ok := p.coreWallets[walletID]; ok {
 		p.mu.Unlock()
@@ -165,7 +165,7 @@ func (p *CoreProvider) walletName(ctx context.Context, walletID string) (string,
 	return p.Ensure(ctx, walletID)
 }
 
-func (p *CoreProvider) Balance(ctx context.Context, walletID string) (float64, float64, error) {
+func (p *CoreBackend) Balance(ctx context.Context, walletID string) (float64, float64, error) {
 	name, err := p.walletName(ctx, walletID)
 	if err != nil {
 		return 0, 0, err
@@ -181,7 +181,7 @@ func (p *CoreProvider) Balance(ctx context.Context, walletID string) (float64, f
 	return confirmed, unconfirmed, nil
 }
 
-func (p *CoreProvider) ListUnspent(ctx context.Context, walletID string) ([]UTXO, error) {
+func (p *CoreBackend) ListUnspent(ctx context.Context, walletID string) ([]UTXO, error) {
 	name, err := p.walletName(ctx, walletID)
 	if err != nil {
 		return nil, err
@@ -189,7 +189,7 @@ func (p *CoreProvider) ListUnspent(ctx context.Context, walletID string) ([]UTXO
 	return p.rpc.ListUnspent(ctx, name)
 }
 
-func (p *CoreProvider) ListTransactions(ctx context.Context, walletID string, count int) ([]WalletTransaction, error) {
+func (p *CoreBackend) ListTransactions(ctx context.Context, walletID string, count int) ([]WalletTransaction, error) {
 	name, err := p.walletName(ctx, walletID)
 	if err != nil {
 		return nil, err
@@ -197,7 +197,7 @@ func (p *CoreProvider) ListTransactions(ctx context.Context, walletID string, co
 	return p.rpc.ListTransactions(ctx, name, count)
 }
 
-func (p *CoreProvider) ListTransactionsRange(ctx context.Context, walletID string, count, skip int) ([]WalletTransaction, error) {
+func (p *CoreBackend) ListTransactionsRange(ctx context.Context, walletID string, count, skip int) ([]WalletTransaction, error) {
 	name, err := p.walletName(ctx, walletID)
 	if err != nil {
 		return nil, err
@@ -205,7 +205,7 @@ func (p *CoreProvider) ListTransactionsRange(ctx context.Context, walletID strin
 	return p.rpc.ListTransactionsRange(ctx, name, count, skip)
 }
 
-func (p *CoreProvider) ListReceivedByAddress(ctx context.Context, walletID string) ([]ReceivedByAddress, error) {
+func (p *CoreBackend) ListReceivedByAddress(ctx context.Context, walletID string) ([]ReceivedByAddress, error) {
 	name, err := p.walletName(ctx, walletID)
 	if err != nil {
 		return nil, err
@@ -213,7 +213,7 @@ func (p *CoreProvider) ListReceivedByAddress(ctx context.Context, walletID strin
 	return p.rpc.ListReceivedByAddress(ctx, name)
 }
 
-func (p *CoreProvider) GetWalletTransaction(ctx context.Context, walletID, txid string) (*WalletTx, error) {
+func (p *CoreBackend) GetWalletTransaction(ctx context.Context, walletID, txid string) (*WalletTx, error) {
 	name, err := p.walletName(ctx, walletID)
 	if err != nil {
 		return nil, err
@@ -229,7 +229,7 @@ func (p *CoreProvider) GetWalletTransaction(ctx context.Context, walletID, txid 
 	return &tx, nil
 }
 
-func (p *CoreProvider) AddressHDPath(ctx context.Context, walletID, address string) (string, error) {
+func (p *CoreBackend) AddressHDPath(ctx context.Context, walletID, address string) (string, error) {
 	name, err := p.walletName(ctx, walletID)
 	if err != nil {
 		return "", err
@@ -251,7 +251,7 @@ func (p *CoreProvider) AddressHDPath(ctx context.Context, walletID, address stri
 // also imports P2PKH addresses for BIP47 (the notification address + per-sender
 // derived payment addresses) — those must never leak into the regular receive
 // flow.
-func (p *CoreProvider) NextReceiveAddress(ctx context.Context, walletID string) (string, error) {
+func (p *CoreBackend) NextReceiveAddress(ctx context.Context, walletID string) (string, error) {
 	name, err := p.walletName(ctx, walletID)
 	if err != nil {
 		return "", err
@@ -273,7 +273,7 @@ func (p *CoreProvider) NextReceiveAddress(ctx context.Context, walletID string) 
 	return p.rpc.GetNewAddress(ctx, name, "", "bech32")
 }
 
-func (p *CoreProvider) NextChangeAddress(ctx context.Context, walletID string) (string, error) {
+func (p *CoreBackend) NextChangeAddress(ctx context.Context, walletID string) (string, error) {
 	name, err := p.walletName(ctx, walletID)
 	if err != nil {
 		return "", err
@@ -283,7 +283,7 @@ func (p *CoreProvider) NextChangeAddress(ctx context.Context, walletID string) (
 
 // WatchKeys imports each key as a pkh() descriptor. Per-key import failures
 // are logged, not fatal — matching how Core treats already-known descriptors.
-func (p *CoreProvider) WatchKeys(ctx context.Context, walletID string, keys []WatchKey) error {
+func (p *CoreBackend) WatchKeys(ctx context.Context, walletID string, keys []WatchKey) error {
 	name, err := p.walletName(ctx, walletID)
 	if err != nil {
 		return err
@@ -317,7 +317,7 @@ func (p *CoreProvider) WatchKeys(ctx context.Context, walletID string, keys []Wa
 // (sendtoaddress/sendmany) and everything else — fee control, OP_RETURN,
 // pinned inputs, replay protection — through the raw-tx path: build, fund,
 // sign, broadcast.
-func (p *CoreProvider) Send(ctx context.Context, walletID string, req SendRequest) (string, error) {
+func (p *CoreBackend) Send(ctx context.Context, walletID string, req SendRequest) (string, error) {
 	name, err := p.walletName(ctx, walletID)
 	if err != nil {
 		return "", err
@@ -441,7 +441,7 @@ func buildSendOutputs(req SendRequest) ([]TxOutSpec, int64) {
 
 // selectInputsForFixedFee picks spendable UTXOs largest-first until they
 // cover requiredSats.
-func (p *CoreProvider) selectInputsForFixedFee(ctx context.Context, walletID string, requiredSats int64) ([]RawInput, int64, error) {
+func (p *CoreBackend) selectInputsForFixedFee(ctx context.Context, walletID string, requiredSats int64) ([]RawInput, int64, error) {
 	utxos, err := p.ListUnspent(ctx, walletID)
 	if err != nil {
 		return nil, 0, fmt.Errorf("list unspent: %w", err)
@@ -472,7 +472,7 @@ func (p *CoreProvider) selectInputsForFixedFee(ctx context.Context, walletID str
 
 // signAndBroadcast signs via Core and broadcasts, applying the eCash fork's
 // replay protection around the signature when requested.
-func (p *CoreProvider) signAndBroadcast(ctx context.Context, name, rawHex string, replayProtect bool) (string, error) {
+func (p *CoreBackend) signAndBroadcast(ctx context.Context, name, rawHex string, replayProtect bool) (string, error) {
 	// Set the magic version BEFORE signing so the signature commits to it
 	// (the fork's sighash is computed over this version).
 	if replayProtect {
@@ -504,7 +504,7 @@ func (p *CoreProvider) signAndBroadcast(ctx context.Context, name, rawHex string
 	return p.rpc.SendRawTransaction(ctx, hexToSend)
 }
 
-func (p *CoreProvider) SignTransaction(ctx context.Context, walletID, rawHex string) (*SignRawTransactionResult, error) {
+func (p *CoreBackend) SignTransaction(ctx context.Context, walletID, rawHex string) (*SignRawTransactionResult, error) {
 	name, err := p.walletName(ctx, walletID)
 	if err != nil {
 		return nil, err
@@ -512,7 +512,7 @@ func (p *CoreProvider) SignTransaction(ctx context.Context, walletID, rawHex str
 	return p.rpc.SignRawTransactionWithWallet(ctx, name, rawHex)
 }
 
-func (p *CoreProvider) BumpFee(ctx context.Context, walletID, txid string, newFeeRate int64) (string, error) {
+func (p *CoreBackend) BumpFee(ctx context.Context, walletID, txid string, newFeeRate int64) (string, error) {
 	name, err := p.walletName(ctx, walletID)
 	if err != nil {
 		return "", err
@@ -521,7 +521,7 @@ func (p *CoreProvider) BumpFee(ctx context.Context, walletID, txid string, newFe
 }
 
 // Chain returns the Core-backed chain source.
-func (p *CoreProvider) Chain() ChainSource {
+func (p *CoreBackend) Chain() ChainSource {
 	return coreChain{rpc: p.rpc}
 }
 
@@ -547,7 +547,7 @@ func (c coreChain) Broadcast(ctx context.Context, rawHex string) (string, error)
 // timestamp=0 so the first import rescans the chain from genesis and picks
 // up historic notification txs; subsequent imports are no-ops because Core
 // recognizes the descriptor as already known.
-func (p *CoreProvider) ensureBip47NotificationDescriptor(ctx context.Context, walletName, seedHex string) error {
+func (p *CoreBackend) ensureBip47NotificationDescriptor(ctx context.Context, walletName, seedHex string) error {
 	if p.network == nil {
 		return nil
 	}
@@ -582,7 +582,7 @@ func (p *CoreProvider) ensureBip47NotificationDescriptor(ctx context.Context, wa
 }
 
 // createBitcoinCoreWallet creates a Bitcoin Core descriptor wallet from a seed.
-func (p *CoreProvider) createBitcoinCoreWallet(ctx context.Context, walletName, seedHex string) error {
+func (p *CoreBackend) createBitcoinCoreWallet(ctx context.Context, walletName, seedHex string) error {
 	if p.network == nil {
 		return fmt.Errorf("no chain params for this network; cannot derive wallet descriptors")
 	}
@@ -638,7 +638,7 @@ func (p *CoreProvider) createBitcoinCoreWallet(ctx context.Context, walletName, 
 }
 
 // createWatchOnlyWallet creates a watch-only Bitcoin Core wallet.
-func (p *CoreProvider) createWatchOnlyWallet(ctx context.Context, walletName string, w *WalletData) error {
+func (p *CoreBackend) createWatchOnlyWallet(ctx context.Context, walletName string, w *WalletData) error {
 	if w.WatchOnly == nil {
 		return fmt.Errorf("watch-only wallet missing watch_only data")
 	}
@@ -691,7 +691,7 @@ func (p *CoreProvider) createWatchOnlyWallet(ctx context.Context, walletName str
 }
 
 // createAndImport creates a Core wallet and imports descriptors.
-func (p *CoreProvider) createAndImport(ctx context.Context, walletName string, disablePrivateKeys bool, descriptors []ImportDescriptor) error {
+func (p *CoreBackend) createAndImport(ctx context.Context, walletName string, disablePrivateKeys bool, descriptors []ImportDescriptor) error {
 	existing, err := p.rpc.ListWallets(ctx)
 	if err != nil {
 		return fmt.Errorf("list wallets: %w", err)
@@ -740,7 +740,7 @@ func (p *CoreProvider) createAndImport(ctx context.Context, walletName string, d
 // bech32Prefix returns the HRP-with-separator prefix that any BIP84 receive
 // address on this network must start with — read directly off the typed
 // chaincfg.Params instead of remapping a network name string.
-func (p *CoreProvider) bech32Prefix() string {
+func (p *CoreBackend) bech32Prefix() string {
 	if p.network == nil {
 		return ""
 	}
@@ -748,6 +748,6 @@ func (p *CoreProvider) bech32Prefix() string {
 }
 
 // coinType returns the BIP44 coin type for the network.
-func (p *CoreProvider) coinType() uint32 {
+func (p *CoreBackend) coinType() uint32 {
 	return p.network.HDCoinType
 }

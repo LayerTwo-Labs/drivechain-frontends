@@ -118,9 +118,9 @@ func (f *fakeBitcoind) stubEnsureFlow() {
 	})
 }
 
-// newCoreProviderFixture wires a real Service (enforcer + bitcoinCore
-// wallets) to a CoreProvider talking to the fake bitcoind on regtest.
-func newCoreProviderFixture(t *testing.T) (*CoreProvider, *fakeBitcoind, string) {
+// newCoreBackendFixture wires a real Service (enforcer + bitcoinCore
+// wallets) to a CoreBackend talking to the fake bitcoind on regtest.
+func newCoreBackendFixture(t *testing.T) (*CoreBackend, *fakeBitcoind, string) {
 	t.Helper()
 	svc := newTestService(t)
 	_, err := svc.GenerateWallet("Enforcer", "", "", testSlots)
@@ -131,15 +131,15 @@ func newCoreProviderFixture(t *testing.T) (*CoreProvider, *fakeBitcoind, string)
 
 	fake := newFakeBitcoind(t)
 	log := zerolog.New(zerolog.NewTestWriter(t))
-	provider := NewCoreProvider(svc, fake.client(t), &chaincfg.RegressionNetParams, log)
-	return provider, fake, core.ID
+	backend := NewCoreBackend(svc, fake.client(t), &chaincfg.RegressionNetParams, log)
+	return backend, fake, core.ID
 }
 
-func TestCoreProviderEnsureCreatesDescriptorWallet(t *testing.T) {
-	provider, fake, coreID := newCoreProviderFixture(t)
+func TestCoreBackendEnsureCreatesDescriptorWallet(t *testing.T) {
+	backend, fake, coreID := newCoreBackendFixture(t)
 	fake.stubEnsureFlow()
 
-	name, err := provider.Ensure(context.Background(), coreID)
+	name, err := backend.Ensure(context.Background(), coreID)
 	require.NoError(t, err)
 	assert.Equal(t, "wallet_"+coreID[:8], name)
 
@@ -171,14 +171,14 @@ func TestCoreProviderEnsureCreatesDescriptorWallet(t *testing.T) {
 
 	// Second Ensure hits the cache — no further RPC traffic.
 	before := len(fake.callsFor("listwallets"))
-	_, err = provider.Ensure(context.Background(), coreID)
+	_, err = backend.Ensure(context.Background(), coreID)
 	require.NoError(t, err)
 	assert.Equal(t, before, len(fake.callsFor("listwallets")))
 }
 
-// A provider constructed without chain params (unrecognized network) must
+// A backend constructed without chain params (unrecognized network) must
 // fail wallet creation with an error, not panic on the nil deref.
-func TestCoreProviderEnsureNilNetworkFailsClosed(t *testing.T) {
+func TestCoreBackendEnsureNilNetworkFailsClosed(t *testing.T) {
 	svc := newTestService(t)
 	_, err := svc.GenerateWallet("Enforcer", "", "", testSlots)
 	require.NoError(t, err)
@@ -188,37 +188,37 @@ func TestCoreProviderEnsureNilNetworkFailsClosed(t *testing.T) {
 	fake := newFakeBitcoind(t)
 	fake.stubEnsureFlow()
 	log := zerolog.New(zerolog.NewTestWriter(t))
-	provider := NewCoreProvider(svc, fake.client(t), nil, log)
+	backend := NewCoreBackend(svc, fake.client(t), nil, log)
 
-	_, err = provider.Ensure(context.Background(), core.ID)
+	_, err = backend.Ensure(context.Background(), core.ID)
 	require.ErrorContains(t, err, "no chain params")
 }
 
-func TestCoreProviderEnsureTransientBackoff(t *testing.T) {
-	provider, fake, coreID := newCoreProviderFixture(t)
+func TestCoreBackendEnsureTransientBackoff(t *testing.T) {
+	backend, fake, coreID := newCoreBackendFixture(t)
 	fake.handle("listwallets", func(bitcoindCall) (any, string) {
 		return nil, "-28: Verifying blocks"
 	})
 	ctx := context.Background()
 
-	_, err := provider.Ensure(ctx, coreID)
+	_, err := backend.Ensure(ctx, coreID)
 	require.ErrorContains(t, err, "Verifying blocks")
 	require.Len(t, fake.callsFor("listwallets"), 1)
 
 	// Within the backoff window the cached error returns without new RPCs.
-	_, err = provider.Ensure(ctx, coreID)
+	_, err = backend.Ensure(ctx, coreID)
 	require.ErrorContains(t, err, "Verifying blocks")
 	assert.Len(t, fake.callsFor("listwallets"), 1)
 }
 
-func TestCoreProviderSendSimple(t *testing.T) {
-	provider, fake, coreID := newCoreProviderFixture(t)
+func TestCoreBackendSendSimple(t *testing.T) {
+	backend, fake, coreID := newCoreBackendFixture(t)
 	fake.stubEnsureFlow()
 	fake.handle("sendtoaddress", func(bitcoindCall) (any, string) { return "txid-single", "" })
 	fake.handle("sendmany", func(bitcoindCall) (any, string) { return "txid-many", "" })
 	ctx := context.Background()
 
-	txid, err := provider.Send(ctx, coreID, SendRequest{
+	txid, err := backend.Send(ctx, coreID, SendRequest{
 		DestinationsSats:      map[string]int64{"bcrt1qdest": 25_000},
 		SubtractFeeFromAmount: true,
 	})
@@ -235,7 +235,7 @@ func TestCoreProviderSendSimple(t *testing.T) {
 	require.NoError(t, json.Unmarshal(sends[0].Params[4], &subtract))
 	assert.True(t, subtract)
 
-	txid, err = provider.Send(ctx, coreID, SendRequest{
+	txid, err = backend.Send(ctx, coreID, SendRequest{
 		DestinationsSats: map[string]int64{"bcrt1qa": 1_000, "bcrt1qb": 2_000},
 	})
 	require.NoError(t, err)
@@ -243,8 +243,8 @@ func TestCoreProviderSendSimple(t *testing.T) {
 	require.Len(t, fake.callsFor("sendmany"), 1)
 }
 
-func TestCoreProviderSendFeeRatePath(t *testing.T) {
-	provider, fake, coreID := newCoreProviderFixture(t)
+func TestCoreBackendSendFeeRatePath(t *testing.T) {
+	backend, fake, coreID := newCoreBackendFixture(t)
 	fake.stubEnsureFlow()
 
 	const builtHex = "deadbeef00112233"
@@ -260,7 +260,7 @@ func TestCoreProviderSendFeeRatePath(t *testing.T) {
 	net := &chaincfg.RegressionNetParams
 	dest := p2wpkhAddr(t, fixedKey(0x77), net)
 
-	txid, err := provider.Send(context.Background(), coreID, SendRequest{
+	txid, err := backend.Send(context.Background(), coreID, SendRequest{
 		DestinationsSats: map[string]int64{dest: 30_000},
 		FeeRateSatPerVB:  5,
 		OpReturnHex:      "cafe",
@@ -294,8 +294,8 @@ func TestCoreProviderSendFeeRatePath(t *testing.T) {
 	assert.Equal(t, builtHex+"ff", mustString(t, signs[0].Params[0]))
 }
 
-func TestCoreProviderSendFixedFeeSelectsInputsAndChange(t *testing.T) {
-	provider, fake, coreID := newCoreProviderFixture(t)
+func TestCoreBackendSendFixedFeeSelectsInputsAndChange(t *testing.T) {
+	backend, fake, coreID := newCoreBackendFixture(t)
 	fake.stubEnsureFlow()
 
 	net := &chaincfg.RegressionNetParams
@@ -317,7 +317,7 @@ func TestCoreProviderSendFixedFeeSelectsInputsAndChange(t *testing.T) {
 	})
 	fake.handle("sendrawtransaction", func(bitcoindCall) (any, string) { return "txid-fixed", "" })
 
-	txid, err := provider.Send(context.Background(), coreID, SendRequest{
+	txid, err := backend.Send(context.Background(), coreID, SendRequest{
 		DestinationsSats: map[string]int64{dest: 50_000},
 		FixedFeeSats:     1_000,
 	})
@@ -350,8 +350,8 @@ func TestCoreProviderSendFixedFeeSelectsInputsAndChange(t *testing.T) {
 	assert.Equal(t, builtHex, mustString(t, signs[0].Params[0]))
 }
 
-func TestCoreProviderSendReplayProtect(t *testing.T) {
-	provider, fake, coreID := newCoreProviderFixture(t)
+func TestCoreBackendSendReplayProtect(t *testing.T) {
+	backend, fake, coreID := newCoreBackendFixture(t)
 	fake.stubEnsureFlow()
 
 	net := &chaincfg.RegressionNetParams
@@ -376,7 +376,7 @@ func TestCoreProviderSendReplayProtect(t *testing.T) {
 		return "txid-replay", ""
 	})
 
-	_, err := provider.Send(context.Background(), coreID, SendRequest{
+	_, err := backend.Send(context.Background(), coreID, SendRequest{
 		DestinationsSats: map[string]int64{dest: 50_000},
 		FixedFeeSats:     1_000,
 		ReplayProtect:    true,
@@ -391,11 +391,11 @@ func TestCoreProviderSendReplayProtect(t *testing.T) {
 	assert.Equal(t, "bfbfbf003faabbccdd", broadcastHex)
 }
 
-func TestCoreProviderWatchKeys(t *testing.T) {
-	provider, fake, coreID := newCoreProviderFixture(t)
+func TestCoreBackendWatchKeys(t *testing.T) {
+	backend, fake, coreID := newCoreBackendFixture(t)
 	fake.stubEnsureFlow()
 
-	err := provider.WatchKeys(context.Background(), coreID, []WatchKey{
+	err := backend.WatchKeys(context.Background(), coreID, []WatchKey{
 		{WIF: "cMahea7zqjxrtgAbB7LSGbcQUr1uX1ojuat9jZodMN8rFTv2sfUK", RescanFrom: 1_700_000_000},
 	})
 	require.NoError(t, err)
@@ -410,8 +410,8 @@ func TestCoreProviderWatchKeys(t *testing.T) {
 	assert.Equal(t, float64(1_700_000_000), asFloat(t, descs[0].Timestamp))
 }
 
-func TestCoreProviderNextReceiveAddress(t *testing.T) {
-	provider, fake, coreID := newCoreProviderFixture(t)
+func TestCoreBackendNextReceiveAddress(t *testing.T) {
+	backend, fake, coreID := newCoreBackendFixture(t)
 	fake.stubEnsureFlow()
 	ctx := context.Background()
 
@@ -424,7 +424,7 @@ func TestCoreProviderNextReceiveAddress(t *testing.T) {
 			{"address": "bcrt1qunused", "amount": 0.0, "txids": []string{}},
 		}, ""
 	})
-	addr, err := provider.NextReceiveAddress(ctx, coreID)
+	addr, err := backend.NextReceiveAddress(ctx, coreID)
 	require.NoError(t, err)
 	assert.Equal(t, "bcrt1qunused", addr)
 	assert.Empty(t, fake.callsFor("getnewaddress"))
@@ -434,7 +434,7 @@ func TestCoreProviderNextReceiveAddress(t *testing.T) {
 		return []map[string]any{{"address": "bcrt1qused", "amount": 0.5, "txids": []string{"a"}}}, ""
 	})
 	fake.handle("getnewaddress", func(bitcoindCall) (any, string) { return "bcrt1qminted", "" })
-	addr, err = provider.NextReceiveAddress(ctx, coreID)
+	addr, err = backend.NextReceiveAddress(ctx, coreID)
 	require.NoError(t, err)
 	assert.Equal(t, "bcrt1qminted", addr)
 }

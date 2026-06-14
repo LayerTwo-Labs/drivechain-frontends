@@ -41,7 +41,7 @@ func allSidechainSlots() []wallet.SidechainSlot {
 
 var _ rpc.WalletManagerServiceHandler = new(WalletHandler)
 
-// Provider type for a wallet: which backend serves it. Watch-only is an
+// Backend type for a wallet: which backend serves it. Watch-only is an
 // orthogonal capability (the wallet's watch-only payload), not a provider.
 const (
 	walletTypeEnforcer    = "enforcer"
@@ -362,7 +362,7 @@ func (h *WalletHandler) CreateBitcoinCoreWallet(ctx context.Context, req *connec
 		return nil, connect.NewError(connect.CodeFailedPrecondition, err)
 	}
 
-	name, err := h.engine.Provider().Ensure(ctx, req.Msg.WalletId)
+	name, err := h.engine.Backend().Ensure(ctx, req.Msg.WalletId)
 	if err != nil {
 		// Bitcoin Core mid-startup (-28) or already loading the wallet (-4) is
 		// not an internal failure — it's "try again in a few seconds". Return
@@ -383,7 +383,7 @@ func (h *WalletHandler) EnsureCoreWallets(ctx context.Context, req *connect.Requ
 		return nil, connect.NewError(connect.CodeFailedPrecondition, err)
 	}
 
-	count, err := h.engine.Provider().EnsureAll(ctx)
+	count, err := h.engine.Backend().EnsureAll(ctx)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
@@ -406,7 +406,7 @@ func (h *WalletHandler) GetBalance(ctx context.Context, req *connect.Request[pb.
 		return nil, connect.NewError(connect.CodeInvalidArgument, err)
 	}
 
-	confirmed, unconfirmed, err := h.engine.Provider().Balance(ctx, walletID)
+	confirmed, unconfirmed, err := h.engine.Backend().Balance(ctx, walletID)
 	if err != nil {
 		return nil, rpcError(err)
 	}
@@ -431,7 +431,7 @@ func (h *WalletHandler) GetNewAddress(ctx context.Context, req *connect.Request[
 		return nil, connect.NewError(connect.CodeInvalidArgument, err)
 	}
 
-	addr, err := h.engine.Provider().NextReceiveAddress(ctx, walletID)
+	addr, err := h.engine.Backend().NextReceiveAddress(ctx, walletID)
 	if err != nil {
 		return nil, rpcError(err)
 	}
@@ -503,7 +503,7 @@ func (h *WalletHandler) SendTransaction(ctx context.Context, req *connect.Reques
 		})
 	}
 
-	txid, err := h.engine.Provider().Send(ctx, walletID, sendReq)
+	txid, err := h.engine.Backend().Send(ctx, walletID, sendReq)
 	if err != nil {
 		return nil, rpcError(err)
 	}
@@ -528,7 +528,7 @@ func (h *WalletHandler) ListTransactions(ctx context.Context, req *connect.Reque
 		count = 100
 	}
 
-	txs, err := h.engine.Provider().ListTransactions(ctx, walletID, count)
+	txs, err := h.engine.Backend().ListTransactions(ctx, walletID, count)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
@@ -566,7 +566,7 @@ func (h *WalletHandler) ListUnspent(ctx context.Context, req *connect.Request[pb
 		return nil, connect.NewError(connect.CodeInvalidArgument, err)
 	}
 
-	utxos, err := h.engine.Provider().ListUnspent(ctx, walletID)
+	utxos, err := h.engine.Backend().ListUnspent(ctx, walletID)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
@@ -619,7 +619,7 @@ func (h *WalletHandler) fetchCoreTxTimes(ctx context.Context, walletID string, u
 		}
 		seen[u.TxID] = struct{}{}
 
-		tx, err := h.engine.Provider().GetWalletTransaction(ctx, walletID, u.TxID)
+		tx, err := h.engine.Backend().GetWalletTransaction(ctx, walletID, u.TxID)
 		if err != nil {
 			continue
 		}
@@ -645,7 +645,7 @@ func (h *WalletHandler) ListReceiveAddresses(ctx context.Context, req *connect.R
 		return nil, connect.NewError(connect.CodeInvalidArgument, err)
 	}
 
-	addrs, err := h.engine.Provider().ListReceivedByAddress(ctx, walletID)
+	addrs, err := h.engine.Backend().ListReceivedByAddress(ctx, walletID)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
@@ -676,12 +676,12 @@ func (h *WalletHandler) GetTransactionDetails(ctx context.Context, req *connect.
 		return nil, connect.NewError(connect.CodeInvalidArgument, err)
 	}
 
-	tx, err := h.engine.Provider().GetWalletTransaction(ctx, walletID, req.Msg.Txid)
+	tx, err := h.engine.Backend().GetWalletTransaction(ctx, walletID, req.Msg.Txid)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
 
-	rawTx, err := h.engine.Provider().Chain().GetRawTransaction(ctx, req.Msg.Txid)
+	rawTx, err := h.engine.ChainForWallet(walletID).GetRawTransaction(ctx, req.Msg.Txid)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("getrawtransaction: %w", err))
 	}
@@ -703,7 +703,7 @@ func (h *WalletHandler) GetTransactionDetails(ctx context.Context, req *connect.
 		}
 
 		if !input.IsCoinbase && vin.TxID != "" {
-			prevTx, err := h.engine.Provider().Chain().GetRawTransaction(ctx, vin.TxID)
+			prevTx, err := h.engine.ChainForWallet(walletID).GetRawTransaction(ctx, vin.TxID)
 			if err == nil && vin.Vout >= 0 && vin.Vout < len(prevTx.Vout) {
 				prevOut := prevTx.Vout[vin.Vout]
 				input.ValueSats = int64(math.Round(prevOut.Value * 1e8))
@@ -779,7 +779,7 @@ func (h *WalletHandler) BumpFee(ctx context.Context, req *connect.Request[pb.Bum
 		return nil, connect.NewError(connect.CodeInvalidArgument, err)
 	}
 
-	newTxID, err := h.engine.Provider().BumpFee(ctx, walletID, req.Msg.Txid, req.Msg.NewFeeRate)
+	newTxID, err := h.engine.Backend().BumpFee(ctx, walletID, req.Msg.Txid, req.Msg.NewFeeRate)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}

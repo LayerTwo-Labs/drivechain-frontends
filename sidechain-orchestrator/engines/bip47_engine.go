@@ -92,7 +92,7 @@ func (e *BIP47Engine) tick(ctx context.Context) {
 		if seedHex == "" {
 			continue
 		}
-		if _, err := e.engine.Provider().Ensure(ctx, w.ID); err != nil {
+		if _, err := e.engine.Backend().Ensure(ctx, w.ID); err != nil {
 			// Wallet may still be warming up on the backend; retry next tick.
 			continue
 		}
@@ -122,7 +122,7 @@ func (e *BIP47Engine) scanWallet(ctx context.Context, walletID, seedHex string, 
 	}
 
 	for {
-		batch, err := e.engine.Provider().ListTransactionsRange(ctx, walletID, bip47ListTxBatchSize, cursor)
+		batch, err := e.engine.Backend().ListTransactionsRange(ctx, walletID, bip47ListTxBatchSize, cursor)
 		if err != nil {
 			return fmt.Errorf("listtransactions: %w", err)
 		}
@@ -171,7 +171,7 @@ func (e *BIP47Engine) scanWallet(ctx context.Context, walletID, seedHex string, 
 // blinded payload using the receiver's notification privkey. Returns the
 // sender's payment code base58 and the block time (0 if unconfirmed).
 func (e *BIP47Engine) decodeNotificationTx(ctx context.Context, txid string, notifPriv *btcec.PrivateKey) (string, int64, error) {
-	raw, err := e.engine.Provider().Chain().GetRawTransaction(ctx, txid)
+	raw, err := e.engine.Backend().Chain().GetRawTransaction(ctx, txid)
 	if err != nil {
 		return "", 0, fmt.Errorf("getrawtransaction: %w", err)
 	}
@@ -248,7 +248,7 @@ func (e *BIP47Engine) extendImports(ctx context.Context, walletID, seedHex strin
 	if len(inbound) == 0 {
 		return nil
 	}
-	received, err := e.engine.Provider().ListReceivedByAddress(ctx, walletID)
+	received, err := e.engine.Backend().ListReceivedByAddress(ctx, walletID)
 	if err != nil {
 		return fmt.Errorf("listreceivedbyaddress: %w", err)
 	}
@@ -315,7 +315,7 @@ func (e *BIP47Engine) extendImportsForSender(ctx context.Context, walletID, seed
 	if len(keys) == 0 {
 		return nil
 	}
-	if err := e.engine.Provider().WatchKeys(ctx, walletID, keys); err != nil {
+	if err := e.engine.Backend().WatchKeys(ctx, walletID, keys); err != nil {
 		return fmt.Errorf("watch keys: %w", err)
 	}
 	if err := e.inbound.BumpImportedIndex(walletID, n.SenderPaymentCode, end); err != nil {

@@ -100,7 +100,7 @@ func (f *fakeEsplora) server(t *testing.T) *EsploraClient {
 	return NewEsploraClient(srv.URL + "/api")
 }
 
-func newElectrumFixture(t *testing.T) (*ElectrumProvider, *fakeEsplora, *WalletData, string) {
+func newElectrumFixture(t *testing.T) (*ElectrumBackend, *fakeEsplora, *WalletData, string) {
 	t.Helper()
 	svc := newTestService(t)
 	w, err := svc.CreateElectrumWallet("Electrum", nil, nil, "", "")
@@ -113,7 +113,7 @@ func newElectrumFixture(t *testing.T) (*ElectrumProvider, *fakeEsplora, *WalletD
 
 	fake := newFakeEsplora()
 	client := fake.server(t)
-	p := NewElectrumProvider(svc, client, &chaincfg.SigNetParams, zerolog.New(zerolog.NewTestWriter(t)))
+	p := NewElectrumBackend(svc, client, &chaincfg.SigNetParams, zerolog.New(zerolog.NewTestWriter(t)))
 	return p, fake, w, firstAddr
 }
 
@@ -270,7 +270,7 @@ func TestElectrumWatchOnlyDerivesSameAddressesAndCannotSend(t *testing.T) {
 	addr := seedAddrs[0]
 
 	fake := newFakeEsplora()
-	p := NewElectrumProvider(svc, fake.server(t), &chaincfg.SigNetParams, zerolog.New(zerolog.NewTestWriter(t)))
+	p := NewElectrumBackend(svc, fake.server(t), &chaincfg.SigNetParams, zerolog.New(zerolog.NewTestWriter(t)))
 	fake.stats[addr] = EsploraAddressStats{
 		Address:    addr,
 		ChainStats: EsploraTxoStats{FundedTxoCount: 1, FundedTxoSum: 70_000, TxCount: 1},
