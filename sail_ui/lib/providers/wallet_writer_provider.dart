@@ -62,11 +62,14 @@ class WalletWriterProvider extends ChangeNotifier {
     }
   }
 
+  /// Creates a Bitcoin Core wallet. With no [customMnemonic] the backend
+  /// generates a fresh seed; [customMnemonic] imports an existing one.
   Future<void> createBitcoinCoreWallet({
     required String name,
     required WalletGradient gradient,
+    String? customMnemonic,
   }) async {
-    final result = await generateWallet(name: name);
+    final result = await generateWallet(name: name, customMnemonic: customMnemonic);
     final walletId = result['wallet_id'] as String?;
     if (walletId != null) {
       await updateWalletMetadata(walletId, name, gradient);
