@@ -54,6 +54,7 @@ require (
 )
 
 require (
+	github.com/btcsuite/btcd/btcutil/psbt v1.2.0 // indirect
 	github.com/btcsuite/btcd/chainhash/v2 v2.0.0 // indirect
 	github.com/kcalvinalvin/anet v0.0.0-20251112173137-d8ddc1f6dbee // indirect
 )
