@@ -498,37 +498,45 @@ func (p *ElectrumBackend) Send(ctx context.Context, walletID string, req SendReq
 		outputs = append(outputs, TxOutSpec{Address: changeAddr, AmountBTC: float64(changeSats) / 1e8})
 	}
 
-	inputs := make([]RawInput, len(selected))
-	prevOuts := make(map[wire.OutPoint]PrevOut, len(selected))
+	psbtInputs := make([]psbtInput, len(selected))
 	for idx, u := range selected {
-		inputs[idx] = RawInput{TxID: u.txid, Vout: u.vout}
+		sa, ok := scan.byAddr[u.address]
+		if !ok {
+			return "", fmt.Errorf("no derivation info for input address %s", u.address)
+		}
 		h, err := chainhash.NewHashFromStr(u.txid)
 		if err != nil {
 			return "", fmt.Errorf("parse input txid %q: %w", u.txid, err)
 		}
-		prevOuts[wire.OutPoint{Hash: *h, Index: uint32(u.vout)}] = PrevOut{Address: u.address, AmountSats: u.amountSats}
-	}
-
-	rawHex, err := BuildUnsignedTransaction(inputs, outputs, p.network)
-	if err != nil {
-		return "", fmt.Errorf("build transaction: %w", err)
-	}
-	if req.ReplayProtect {
-		rawHex, err = replay.SetVersion(rawHex)
-		if err != nil {
-			return "", fmt.Errorf("set replay version: %w", err)
+		psbtInputs[idx] = psbtInput{
+			outpoint: wire.OutPoint{Hash: *h, Index: uint32(u.vout)},
+			amount:   u.amountSats,
+			addr:     sa,
 		}
 	}
 
-	signed, err := SignTransactionLocal(rawHex, prevOuts, scan.keys, p.network)
+	packet, err := buildPSBT(psbtInputs, outputs, p.network, p.prevTxFetcher(ctx))
 	if err != nil {
-		return "", fmt.Errorf("sign transaction: %w", err)
+		return "", fmt.Errorf("build psbt: %w", err)
 	}
-	if !signed.Complete {
+	// Replay protection sets the magic tx version before signing (the signature
+	// commits to it) and appends the replay byte after extraction.
+	if req.ReplayProtect {
+		packet.UnsignedTx.Version = replay.TxReplayVersion
+	}
+
+	signedCount, err := signPSBT(packet, psbtInputs, p.network)
+	if err != nil {
+		return "", fmt.Errorf("sign psbt: %w", err)
+	}
+	if signedCount < len(psbtInputs) {
 		return "", errors.New("transaction signing incomplete")
 	}
 
-	hexToSend := signed.Hex
+	hexToSend, err := finalizeAndExtract(packet)
+	if err != nil {
+		return "", err
+	}
 	if req.ReplayProtect {
 		hexToSend, err = replay.InjectReplayByte(hexToSend)
 		if err != nil {
@@ -536,6 +544,26 @@ func (p *ElectrumBackend) Send(ctx context.Context, walletID string, req SendReq
 		}
 	}
 	return p.client.Broadcast(ctx, hexToSend)
+}
+
+// prevTxFetcher returns a function that fetches and decodes a previous
+// transaction by txid, for populating the non-witness UTXO of legacy inputs.
+func (p *ElectrumBackend) prevTxFetcher(ctx context.Context) prevTxFunc {
+	return func(txid string) (*wire.MsgTx, error) {
+		rawHex, err := p.client.TxHex(ctx, txid)
+		if err != nil {
+			return nil, err
+		}
+		b, err := hex.DecodeString(rawHex)
+		if err != nil {
+			return nil, fmt.Errorf("decode prev tx hex: %w", err)
+		}
+		var tx wire.MsgTx
+		if err := tx.Deserialize(bytes.NewReader(b)); err != nil {
+			return nil, fmt.Errorf("deserialize prev tx: %w", err)
+		}
+		return &tx, nil
+	}
 }
 
 func (p *ElectrumBackend) SignTransaction(ctx context.Context, walletID, rawHex string) (*SignRawTransactionResult, error) {

@@ -1,0 +1,239 @@
+package wallet
+
+import (
+	"bytes"
+	"encoding/hex"
+	"fmt"
+	"math"
+
+	"github.com/btcsuite/btcd/btcec/v2/schnorr"
+	"github.com/btcsuite/btcd/btcutil"
+	"github.com/btcsuite/btcd/btcutil/psbt"
+	"github.com/btcsuite/btcd/chaincfg"
+	"github.com/btcsuite/btcd/txscript"
+	"github.com/btcsuite/btcd/wire"
+)
+
+// psbtInput is one input to spend: its outpoint, amount, and the wallet
+// derivation/signing metadata (scriptPubKey, redeem/tap material, keys, kind).
+type psbtInput struct {
+	outpoint wire.OutPoint
+	amount   int64
+	addr     scannedAddr
+}
+
+// prevTxFunc fetches a previous transaction by txid — needed to populate the
+// non-witness UTXO for legacy (P2PKH) inputs.
+type prevTxFunc func(txid string) (*wire.MsgTx, error)
+
+// buildPSBT assembles an unsigned PSBT spending the given inputs to the given
+// outputs, populated with the witness/non-witness UTXO, redeem/witness scripts,
+// taproot internal keys, and sighash type each input needs to be signed.
+func buildPSBT(inputs []psbtInput, outputs []TxOutSpec, net *chaincfg.Params, prevTx prevTxFunc) (*psbt.Packet, error) {
+	tx := wire.NewMsgTx(2)
+	for _, in := range inputs {
+		txIn := wire.NewTxIn(&in.outpoint, nil, nil)
+		txIn.Sequence = bip125Sequence
+		tx.AddTxIn(txIn)
+	}
+	for _, out := range outputs {
+		txOut, err := outputToTxOut(out, net)
+		if err != nil {
+			return nil, err
+		}
+		tx.AddTxOut(txOut)
+	}
+
+	packet, err := psbt.NewFromUnsignedTx(tx)
+	if err != nil {
+		return nil, fmt.Errorf("new psbt: %w", err)
+	}
+	updater, err := psbt.NewUpdater(packet)
+	if err != nil {
+		return nil, fmt.Errorf("psbt updater: %w", err)
+	}
+
+	for i, in := range inputs {
+		if in.addr.kind == ScriptLegacy {
+			if prevTx == nil {
+				return nil, fmt.Errorf("legacy input %d needs the previous transaction", i)
+			}
+			pt, err := prevTx(in.outpoint.Hash.String())
+			if err != nil {
+				return nil, fmt.Errorf("fetch prev tx for input %d: %w", i, err)
+			}
+			if err := updater.AddInNonWitnessUtxo(pt, i); err != nil {
+				return nil, err
+			}
+		} else if err := updater.AddInWitnessUtxo(wire.NewTxOut(in.amount, in.addr.scriptPubKey), i); err != nil {
+			return nil, err
+		}
+
+		if in.addr.redeem != nil {
+			if err := updater.AddInRedeemScript(in.addr.redeem, i); err != nil {
+				return nil, err
+			}
+		}
+		if in.addr.kind == ScriptTaproot {
+			packet.Inputs[i].TaprootInternalKey = schnorr.SerializePubKey(in.addr.tapInternal)
+		} else if err := updater.AddInSighashType(txscript.SigHashAll, i); err != nil {
+			return nil, err
+		}
+	}
+	return packet, nil
+}
+
+// signPSBT signs each input the wallet holds the key for, in place. inputs is
+// aligned by index with packet.Inputs and carries the per-input key + script
+// kind. It returns the number of inputs signed; inputs without a private key
+// (a cosigner's, or watch-only) are left for another signer.
+func signPSBT(packet *psbt.Packet, inputs []psbtInput, net *chaincfg.Params) (int, error) {
+	tx := packet.UnsignedTx
+	fetcher := txscript.NewMultiPrevOutFetcher(nil)
+	for i := range packet.Inputs {
+		out := prevOutForInput(packet, i)
+		if out == nil {
+			return 0, fmt.Errorf("input %d missing prevout", i)
+		}
+		fetcher.AddPrevOut(tx.TxIn[i].PreviousOutPoint, out)
+	}
+	sigHashes := txscript.NewTxSigHashes(tx, fetcher)
+
+	updater, err := psbt.NewUpdater(packet)
+	if err != nil {
+		return 0, err
+	}
+
+	signed := 0
+	for i := range inputs {
+		n, err := signPSBTInput(packet, updater, i, inputs[i], tx, sigHashes, net)
+		if err != nil {
+			return signed, fmt.Errorf("sign input %d: %w", i, err)
+		}
+		signed += n
+	}
+	return signed, nil
+}
+
+func signPSBTInput(
+	packet *psbt.Packet,
+	updater *psbt.Updater,
+	i int,
+	in psbtInput,
+	tx *wire.MsgTx,
+	sigHashes *txscript.TxSigHashes,
+	net *chaincfg.Params,
+) (int, error) {
+	if in.addr.kind == ScriptMultisig {
+		return signMultisigInput(packet, i, in, tx, sigHashes, net)
+	}
+	priv := in.addr.priv
+	if priv == nil {
+		return 0, nil // key not held here
+	}
+	pub := in.addr.pub.SerializeCompressed()
+
+	switch in.addr.kind {
+	case ScriptLegacy:
+		sig, err := txscript.RawTxInSignature(tx, i, in.addr.scriptPubKey, txscript.SigHashAll, priv)
+		if err != nil {
+			return 0, err
+		}
+		if _, err := updater.Sign(i, sig, pub, nil, nil); err != nil {
+			return 0, err
+		}
+	case ScriptNativeSegwit:
+		sig, err := txscript.RawTxInWitnessSignature(tx, sigHashes, i, in.amount, in.addr.scriptPubKey, txscript.SigHashAll, priv)
+		if err != nil {
+			return 0, err
+		}
+		if _, err := updater.Sign(i, sig, pub, nil, nil); err != nil {
+			return 0, err
+		}
+	case ScriptNestedSegwit:
+		// The P2SH redeem script is the P2WPKH witness program; the BIP143
+		// sighash derives the P2PKH scriptCode from it internally.
+		sig, err := txscript.RawTxInWitnessSignature(tx, sigHashes, i, in.amount, in.addr.redeem, txscript.SigHashAll, priv)
+		if err != nil {
+			return 0, err
+		}
+		if _, err := updater.Sign(i, sig, pub, in.addr.redeem, nil); err != nil {
+			return 0, err
+		}
+	case ScriptTaproot:
+		witness, err := txscript.TaprootWitnessSignature(tx, sigHashes, i, in.amount, in.addr.scriptPubKey, txscript.SigHashDefault, priv)
+		if err != nil {
+			return 0, err
+		}
+		packet.Inputs[i].TaprootKeySpendSig = witness[0]
+	default:
+		return 0, fmt.Errorf("cannot sign script kind %s", in.addr.kind)
+	}
+	return 1, nil
+}
+
+func prevOutForInput(packet *psbt.Packet, i int) *wire.TxOut {
+	in := packet.Inputs[i]
+	if in.WitnessUtxo != nil {
+		return in.WitnessUtxo
+	}
+	if in.NonWitnessUtxo != nil {
+		vout := packet.UnsignedTx.TxIn[i].PreviousOutPoint.Index
+		if int(vout) < len(in.NonWitnessUtxo.TxOut) {
+			return in.NonWitnessUtxo.TxOut[int(vout)]
+		}
+	}
+	return nil
+}
+
+// finalizeAndExtract finalizes a fully-signed PSBT and returns the raw tx hex.
+func finalizeAndExtract(packet *psbt.Packet) (string, error) {
+	if err := psbt.MaybeFinalizeAll(packet); err != nil {
+		return "", fmt.Errorf("finalize psbt: %w", err)
+	}
+	final, err := psbt.Extract(packet)
+	if err != nil {
+		return "", fmt.Errorf("extract psbt: %w", err)
+	}
+	var buf bytes.Buffer
+	if err := final.Serialize(&buf); err != nil {
+		return "", fmt.Errorf("serialize final tx: %w", err)
+	}
+	return hex.EncodeToString(buf.Bytes()), nil
+}
+
+// signMultisigInput adds this wallet's partial signature to a P2WSH multisig
+// input. Implemented for 2-of-3 sorted multisig.
+func signMultisigInput(
+	packet *psbt.Packet,
+	i int,
+	in psbtInput,
+	tx *wire.MsgTx,
+	sigHashes *txscript.TxSigHashes,
+	net *chaincfg.Params,
+) (int, error) {
+	return 0, fmt.Errorf("multisig signing not yet implemented")
+}
+
+func outputToTxOut(out TxOutSpec, net *chaincfg.Params) (*wire.TxOut, error) {
+	if out.OpReturnHex != "" {
+		data, err := hex.DecodeString(out.OpReturnHex)
+		if err != nil {
+			return nil, fmt.Errorf("decode op_return hex: %w", err)
+		}
+		script, err := txscript.NewScriptBuilder().AddOp(txscript.OP_RETURN).AddData(data).Script()
+		if err != nil {
+			return nil, fmt.Errorf("build op_return script: %w", err)
+		}
+		return wire.NewTxOut(0, script), nil
+	}
+	addr, err := btcutil.DecodeAddress(out.Address, net)
+	if err != nil {
+		return nil, fmt.Errorf("decode address %q: %w", out.Address, err)
+	}
+	script, err := txscript.PayToAddrScript(addr)
+	if err != nil {
+		return nil, fmt.Errorf("script for %q: %w", out.Address, err)
+	}
+	return wire.NewTxOut(int64(math.Round(out.AmountBTC*1e8)), script), nil
+}
