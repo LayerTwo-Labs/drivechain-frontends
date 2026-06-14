@@ -163,9 +163,11 @@ func (p *ElectrumBackend) ListUnspent(ctx context.Context, walletID string) ([]U
 				Address:       a.address,
 				Amount:        float64(u.Value) / 1e8,
 				Confirmations: confsFor(u.Status, tip),
-				Spendable:     true,
-				Solvable:      true,
-				ReceivedAt:    u.Status.BlockTime,
+				// Watch-only wallets hold no keys, so their coins are solvable
+				// (we know the script) but not spendable.
+				Spendable:  !scan.watchOnly,
+				Solvable:   true,
+				ReceivedAt: u.Status.BlockTime,
 			})
 		}
 	}
@@ -442,6 +444,11 @@ func (p *ElectrumBackend) buildSendPSBT(ctx context.Context, walletID string, sc
 	if req.FeeRateSatPerVB > 0 && req.FixedFeeSats > 0 {
 		return nil, nil, errors.New("fee rate and fixed fee are mutually exclusive")
 	}
+	// Destinations come from a map, so the first output is not stable; only a
+	// single-recipient subtract-fee send has a well-defined output to reduce.
+	if req.SubtractFeeFromAmount && len(req.DestinationsSats) > 1 {
+		return nil, nil, errors.New("subtractFeeFromAmount requires a single destination")
+	}
 	outputs, totalOutSats := buildSendOutputs(req)
 
 	pool, err := p.spendableUTXOs(ctx, scan)
@@ -484,11 +491,16 @@ func (p *ElectrumBackend) buildSendPSBT(ctx context.Context, walletID string, sc
 	if req.SubtractFeeFromAmount {
 		nOut = len(outputs)
 	}
+	// All of a wallet's inputs share its script kind, which sets the input vsize.
+	inputKind := ScriptNativeSegwit
+	if w := p.svc.GetWalletByID(walletID); w != nil {
+		inputKind = w.scriptKind()
+	}
 	feeSats := func(nIn int) int64 {
 		if req.FixedFeeSats > 0 {
 			return req.FixedFeeSats
 		}
-		return estimateFeeSats(nIn, nOut, feeRate)
+		return estimateFeeSats(nIn, nOut, feeRate, inputKind)
 	}
 
 	// For subtract-fee sends, the first output absorbs the fee; precompute the
@@ -1161,7 +1173,27 @@ func confsFor(status EsploraStatus, tip int) int {
 
 // estimateFeeSats approximates the fee for a P2WPKH tx with nIn inputs and
 // nOut outputs at feeRate sat/vB (~68 vB/input, ~31 vB/output, 11 vB base).
-func estimateFeeSats(nIn, nOut int, feeRate float64) int64 {
-	vsize := 11 + nIn*68 + nOut*31
+// estimateFeeSats estimates the fee for a tx with nIn inputs of the given script
+// kind and nOut outputs. Input vsize varies sharply by type (legacy P2PKH ~148
+// vB vs native segwit ~68), so a fixed P2WPKH estimate would mis-fee legacy /
+// nested / taproot / multisig wallets.
+func estimateFeeSats(nIn, nOut int, feeRate float64, inputKind ScriptKind) int64 {
+	vsize := 11 + nIn*inputVsize(inputKind) + nOut*31
 	return int64(math.Ceil(float64(vsize) * feeRate))
+}
+
+// inputVsize is the approximate vbytes a spend of one input of this kind adds.
+func inputVsize(kind ScriptKind) int {
+	switch kind {
+	case ScriptLegacy:
+		return 148
+	case ScriptNestedSegwit:
+		return 91
+	case ScriptTaproot:
+		return 58
+	case ScriptMultisig:
+		return 105 // P2WSH 2-of-3
+	default: // native segwit
+		return 68
+	}
 }

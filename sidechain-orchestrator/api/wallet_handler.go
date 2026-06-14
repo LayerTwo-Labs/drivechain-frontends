@@ -184,7 +184,10 @@ func (h *WalletHandler) ListWallets(ctx context.Context, req *connect.Request[pb
 		// Watch-only wallets hold no seed, so BIP47 derivation is both pointless
 		// and noisy (it errors on the empty seed); skip it.
 		var bip47Code string
-		if !w.IsWatchOnly() {
+		// Electrum wallets advertise no BIP47 code: inbound BIP47 (BIP47Engine)
+		// only watches bitcoinCore wallets, so a published code would receive
+		// payments the wallet never discovers.
+		if !w.IsWatchOnly() && w.WalletType != "electrum" {
 			code, err := wallet.Bip47PaymentCodeFromSeed(w.Master.SeedHex, h.bip47NetParams())
 			if err != nil {
 				h.svc.Log().Error().Err(err).Str("wallet_id", w.ID).Msg("ListWallets: bip47 derivation failed")
@@ -986,7 +989,10 @@ func buildWatchWalletDataResponse(wallets []wallet.WalletData, activeID string, 
 		}
 		// Watch-only wallets hold no seed; skip BIP47 derivation on them.
 		var bip47Code string
-		if !w.IsWatchOnly() {
+		// Electrum wallets advertise no BIP47 code: inbound BIP47 (BIP47Engine)
+		// only watches bitcoinCore wallets, so a published code would receive
+		// payments the wallet never discovers.
+		if !w.IsWatchOnly() && w.WalletType != "electrum" {
 			code, err := wallet.Bip47PaymentCodeFromSeed(w.Master.SeedHex, netParams)
 			if err != nil && onBip47Err != nil {
 				onBip47Err(w.ID, err)
