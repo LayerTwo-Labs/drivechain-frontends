@@ -4,12 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/hex"
-	"encoding/json"
 	"fmt"
-	"io"
-	"net/http"
-	"net/http/httptest"
-	"strings"
 	"sync"
 	"testing"
 
@@ -43,61 +38,94 @@ func accountXpub(t *testing.T, seedHex string, net *chaincfg.Params) string {
 	return pub.String()
 }
 
-// fakeEsplora is an in-memory Esplora REST backend driven by per-address
-// fixtures, enough to exercise scan/balance/send end to end.
+// fakeEsplora is an in-memory implementation of the Esplora interface driven by
+// per-address fixtures — the same interface ElectrumBackend uses in production,
+// so tests exercise the real backend logic without a REST endpoint.
 type fakeEsplora struct {
 	mu        sync.Mutex
 	stats     map[string]EsploraAddressStats
 	utxos     map[string][]EsploraUTXO
 	txs       map[string][]EsploraTx
+	txByID    map[string]EsploraTx
+	hexByID   map[string]string
 	tip       int
+	feeRate   float64
 	broadcast []string
 }
 
+var _ Esplora = (*fakeEsplora)(nil)
+
 func newFakeEsplora() *fakeEsplora {
 	return &fakeEsplora{
-		stats: map[string]EsploraAddressStats{},
-		utxos: map[string][]EsploraUTXO{},
-		txs:   map[string][]EsploraTx{},
-		tip:   110,
+		stats:   map[string]EsploraAddressStats{},
+		utxos:   map[string][]EsploraUTXO{},
+		txs:     map[string][]EsploraTx{},
+		txByID:  map[string]EsploraTx{},
+		hexByID: map[string]string{},
+		tip:     110,
+		feeRate: 1,
 	}
 }
 
-func (f *fakeEsplora) server(t *testing.T) *EsploraClient {
-	t.Helper()
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		f.mu.Lock()
-		defer f.mu.Unlock()
-		path := r.URL.Path
-		switch {
-		case r.Method == http.MethodPost && path == "/api/tx":
-			body, _ := io.ReadAll(r.Body)
-			f.broadcast = append(f.broadcast, string(body))
-			_, _ = io.WriteString(w, "broadcasttxid")
-		case path == "/api/blocks/tip/height":
-			_, _ = fmt.Fprintf(w, "%d", f.tip)
-		case path == "/api/fee-estimates":
-			_ = json.NewEncoder(w).Encode(map[string]float64{"6": 1.0, "1": 2.0})
-		case strings.HasSuffix(path, "/utxo"):
-			addr := strings.TrimSuffix(strings.TrimPrefix(path, "/api/address/"), "/utxo")
-			_ = json.NewEncoder(w).Encode(f.utxos[addr])
-		case strings.Contains(path, "/txs"):
-			addr := strings.TrimPrefix(path, "/api/address/")
-			addr = strings.SplitN(addr, "/txs", 2)[0]
-			_ = json.NewEncoder(w).Encode(f.txs[addr])
-		case strings.HasPrefix(path, "/api/address/"):
-			addr := strings.TrimPrefix(path, "/api/address/")
-			s, ok := f.stats[addr]
-			if !ok {
-				s = EsploraAddressStats{Address: addr}
-			}
-			_ = json.NewEncoder(w).Encode(s)
-		default:
-			http.Error(w, "not found: "+path, http.StatusNotFound)
-		}
-	}))
-	t.Cleanup(srv.Close)
-	return NewEsploraClient(srv.URL + "/api")
+func (f *fakeEsplora) AddressStats(_ context.Context, address string) (EsploraAddressStats, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	if s, ok := f.stats[address]; ok {
+		return s, nil
+	}
+	return EsploraAddressStats{Address: address}, nil
+}
+
+func (f *fakeEsplora) AddressUTXOs(_ context.Context, address string) ([]EsploraUTXO, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return f.utxos[address], nil
+}
+
+func (f *fakeEsplora) AddressTxs(_ context.Context, address string) ([]EsploraTx, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return f.txs[address], nil
+}
+
+func (f *fakeEsplora) Tx(_ context.Context, txid string) (EsploraTx, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	if tx, ok := f.txByID[txid]; ok {
+		return tx, nil
+	}
+	return EsploraTx{}, fmt.Errorf("tx %s not found", txid)
+}
+
+func (f *fakeEsplora) TxHex(_ context.Context, txid string) (string, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	if h, ok := f.hexByID[txid]; ok {
+		return h, nil
+	}
+	return "", fmt.Errorf("tx %s not found", txid)
+}
+
+func (f *fakeEsplora) Broadcast(_ context.Context, rawHex string) (string, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.broadcast = append(f.broadcast, rawHex)
+	return "broadcasttxid", nil
+}
+
+func (f *fakeEsplora) TipHeight(_ context.Context) (int, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return f.tip, nil
+}
+
+func (f *fakeEsplora) FeeRateForTarget(_ context.Context, _ int, fallback float64) float64 {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	if f.feeRate > 0 {
+		return f.feeRate
+	}
+	return fallback
 }
 
 func newElectrumFixture(t *testing.T) (*ElectrumBackend, *fakeEsplora, *WalletData, string) {
@@ -112,8 +140,7 @@ func newElectrumFixture(t *testing.T) (*ElectrumBackend, *fakeEsplora, *WalletDa
 	firstAddr := addrs[0]
 
 	fake := newFakeEsplora()
-	client := fake.server(t)
-	p := NewElectrumBackend(svc, client, &chaincfg.SigNetParams, zerolog.New(zerolog.NewTestWriter(t)))
+	p := NewElectrumBackend(svc, fake, &chaincfg.SigNetParams, zerolog.New(zerolog.NewTestWriter(t)))
 	return p, fake, w, firstAddr
 }
 
@@ -270,7 +297,7 @@ func TestElectrumWatchOnlyDerivesSameAddressesAndCannotSend(t *testing.T) {
 	addr := seedAddrs[0]
 
 	fake := newFakeEsplora()
-	p := NewElectrumBackend(svc, fake.server(t), &chaincfg.SigNetParams, zerolog.New(zerolog.NewTestWriter(t)))
+	p := NewElectrumBackend(svc, fake, &chaincfg.SigNetParams, zerolog.New(zerolog.NewTestWriter(t)))
 	fake.stats[addr] = EsploraAddressStats{
 		Address:    addr,
 		ChainStats: EsploraTxoStats{FundedTxoCount: 1, FundedTxoSum: 70_000, TxCount: 1},
@@ -284,6 +311,130 @@ func TestElectrumWatchOnlyDerivesSameAddressesAndCannotSend(t *testing.T) {
 		DestinationsSats: map[string]int64{"tb1qw508d6qejxtdg4y5r3zarvary0c5xw7kxpjzsx": 10_000},
 	})
 	require.ErrorContains(t, err, "watch-only")
+}
+
+// TestElectrumBalanceMempoolSpendStaysNonNegative covers an unconfirmed spend
+// of confirmed coins: the net mempool delta is negative, which previously made
+// Balance return a negative value that wrapped to a huge uint64 downstream.
+func TestElectrumBalanceMempoolSpendStaysNonNegative(t *testing.T) {
+	p, fake, w, addr := newElectrumFixture(t)
+	fake.stats[addr] = EsploraAddressStats{
+		Address:      addr,
+		ChainStats:   EsploraTxoStats{FundedTxoCount: 1, FundedTxoSum: 100_000, TxCount: 1},
+		MempoolStats: EsploraTxoStats{FundedTxoSum: 30_000, SpentTxoSum: 100_000, TxCount: 1},
+	}
+
+	confirmed, pending, err := p.Balance(context.Background(), w.ID)
+	require.NoError(t, err)
+	assert.GreaterOrEqual(t, confirmed, 0.0, "confirmed must never be negative")
+	assert.GreaterOrEqual(t, pending, 0.0, "pending must never be negative")
+	assert.InDelta(t, 0.0, confirmed, 1e-9)  // 100k confirmed, all being spent in mempool
+	assert.InDelta(t, 0.0003, pending, 1e-9) // 30k of mempool inflow (change)
+}
+
+// TestElectrumWatchOnlyNextReceiveAdvances guards address reuse: a watch-only
+// wallet has no private keys, but its derived chain addresses must still
+// advance past used ones instead of always handing out index 0.
+func TestElectrumWatchOnlyNextReceiveAdvances(t *testing.T) {
+	svc := newTestService(t)
+	ctx := context.Background()
+
+	seedWallet, err := svc.CreateElectrumWallet("Seed", nil, nil, testMnemonic, "")
+	require.NoError(t, err)
+	xpub := accountXpub(t, seedWallet.Master.SeedHex, &chaincfg.SigNetParams)
+	wo, err := svc.CreateElectrumWallet("Watch", nil, nil, "", xpub)
+	require.NoError(t, err)
+
+	addrs, err := DeriveBIP84Addresses(seedWallet.Master.SeedHex, &chaincfg.SigNetParams, 0, 2)
+	require.NoError(t, err)
+	used, next := addrs[0], addrs[1]
+
+	fake := newFakeEsplora()
+	p := NewElectrumBackend(svc, fake, &chaincfg.SigNetParams, zerolog.New(zerolog.NewTestWriter(t)))
+	fake.stats[used] = EsploraAddressStats{Address: used, ChainStats: EsploraTxoStats{TxCount: 1}}
+
+	got, err := p.NextReceiveAddress(ctx, wo.ID)
+	require.NoError(t, err)
+	assert.NotEqual(t, used, got, "watch-only must not reuse a used address")
+	assert.Equal(t, next, got)
+}
+
+// TestElectrumListTransactionsSelfSend covers a consolidation where every input
+// and output belongs to the wallet: there's no external payment row, but the
+// transaction (and its fee) must still appear in history.
+func TestElectrumListTransactionsSelfSend(t *testing.T) {
+	p, fake, w, addr := newElectrumFixture(t)
+	fake.stats[addr] = EsploraAddressStats{
+		Address:    addr,
+		ChainStats: EsploraTxoStats{FundedTxoCount: 1, FundedTxoSum: 100_000, TxCount: 1},
+	}
+	fake.txs[addr] = []EsploraTx{{
+		TxID:   "cc",
+		Fee:    1_000,
+		Vin:    []EsploraVin{{Prevout: &EsploraVout{ScriptPubKeyAddress: addr, Value: 100_000}}},
+		Vout:   []EsploraVout{{ScriptPubKeyAddress: addr, Value: 99_000}},
+		Status: EsploraStatus{Confirmed: true, BlockHeight: 100, BlockTime: 1700000000},
+	}}
+
+	rows, err := p.ListTransactions(context.Background(), w.ID, 0)
+	require.NoError(t, err)
+	require.Len(t, rows, 1, "self-send must still appear in history")
+	assert.Equal(t, "cc", rows[0].TxID)
+	assert.Equal(t, "send", rows[0].Category)
+	assert.InDelta(t, -0.00001, rows[0].Fee, 1e-9) // -1000 sats
+}
+
+// TestElectrumWatchOnlyDescriptorWatchesCorrectAddress imports a real wpkh
+// descriptor (origin prefix + /0/* branch) and proves the wallet scans exactly
+// the address that descriptor derives — i.e. the balance lands on the same
+// address the originating seed produces, and the receive address it hands out
+// is one the descriptor genuinely owns.
+func TestElectrumWatchOnlyDescriptorWatchesCorrectAddress(t *testing.T) {
+	svc := newTestService(t)
+	ctx := context.Background()
+
+	seedWallet, err := svc.CreateElectrumWallet("Seed", nil, nil, testMnemonic, "")
+	require.NoError(t, err)
+	xpub := accountXpub(t, seedWallet.Master.SeedHex, &chaincfg.SigNetParams)
+
+	descriptor := "wpkh([abcd1234/84h/0h/0h]" + xpub + "/0/*)"
+	wo, err := svc.CreateElectrumWallet("WatchDesc", nil, nil, "", descriptor)
+	require.NoError(t, err)
+	require.Equal(t, "electrum", wo.WalletType)
+
+	addrs, err := DeriveBIP84Addresses(seedWallet.Master.SeedHex, &chaincfg.SigNetParams, 0, 5)
+	require.NoError(t, err)
+
+	fake := newFakeEsplora()
+	p := NewElectrumBackend(svc, fake, &chaincfg.SigNetParams, zerolog.New(zerolog.NewTestWriter(t)))
+	fake.stats[addrs[0]] = EsploraAddressStats{
+		Address:    addrs[0],
+		ChainStats: EsploraTxoStats{FundedTxoCount: 1, FundedTxoSum: 55_000, TxCount: 1},
+	}
+
+	confirmed, _, err := p.Balance(ctx, wo.ID)
+	require.NoError(t, err)
+	assert.InDelta(t, 0.00055, confirmed, 1e-9, "descriptor must watch the address it derives")
+
+	next, err := p.NextReceiveAddress(ctx, wo.ID)
+	require.NoError(t, err)
+	assert.Contains(t, addrs, next, "receive address must be one the descriptor owns")
+	assert.NotEqual(t, addrs[0], next, "must skip the used address")
+}
+
+func TestElectrumWatchOnlySupported(t *testing.T) {
+	require.NoError(t, electrumWatchOnlySupported("xpub6CUGRUonZSQ4abc"))
+	require.NoError(t, electrumWatchOnlySupported("wpkh([abcd/84'/1'/0']tpubDEAD/0/*)"))
+	require.Error(t, electrumWatchOnlySupported("wsh(multi(2,xpubA,xpubB))"))
+	require.Error(t, electrumWatchOnlySupported("sh(wpkh(xpubA))"))
+	require.Error(t, electrumWatchOnlySupported("tr(xpubA)"))
+	require.Error(t, electrumWatchOnlySupported(""))
+}
+
+func TestCreateElectrumWatchOnlyRejectsMultisig(t *testing.T) {
+	svc := newTestService(t)
+	_, err := svc.CreateElectrumWallet("WO", nil, nil, "", "wsh(multi(2,xpubA,xpubB))")
+	require.ErrorContains(t, err, "wpkh")
 }
 
 func TestExtractXpubToken(t *testing.T) {
