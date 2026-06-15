@@ -525,8 +525,8 @@ func TestCreateElectrumWatchOnlyRejectsBadDescriptor(t *testing.T) {
 }
 
 func TestEstimateFeeSats(t *testing.T) {
-	// 1 input, 2 outputs: 11 + 68 + 62 = 141 vB at 2 sat/vB = 282.
-	assert.Equal(t, int64(282), estimateFeeSats(1, 2, 2, ScriptNativeSegwit))
+	// 1 native-segwit input (68 vB) + 62 vB of outputs: 11+68+62 = 141 vB at 2 sat/vB.
+	assert.Equal(t, int64(282), estimateFeeSats(1, inputVsize(ScriptNativeSegwit), 62, 2))
 }
 
 func TestConfsFor(t *testing.T) {
@@ -729,9 +729,21 @@ func TestElectrumSendRejectsMultiOutputSubtractFee(t *testing.T) {
 // TestEstimateFeeSatsByScriptKind: input vsize (and thus fee) scales with the
 // wallet's address type — a legacy input is far larger than native segwit.
 func TestEstimateFeeSatsByScriptKind(t *testing.T) {
-	assert.Equal(t, int64(282), estimateFeeSats(1, 2, 2, ScriptNativeSegwit)) // 11+68+62 = 141 vB
-	assert.Equal(t, int64(442), estimateFeeSats(1, 2, 2, ScriptLegacy))       // 11+148+62 = 221 vB
-	assert.Greater(t, estimateFeeSats(1, 2, 2, ScriptLegacy), estimateFeeSats(1, 2, 2, ScriptTaproot))
+	// 1 input + 2 outputs (62 vB total) at 2 sat/vB.
+	nativeIn, legacyIn, taprootIn := inputVsize(ScriptNativeSegwit), inputVsize(ScriptLegacy), inputVsize(ScriptTaproot)
+	assert.Equal(t, int64(2*(11+68+62)), estimateFeeSats(1, nativeIn, 62, 2))
+	assert.Equal(t, int64(2*(11+148+62)), estimateFeeSats(1, legacyIn, 62, 2))
+	assert.Greater(t, estimateFeeSats(1, legacyIn, 62, 2), estimateFeeSats(1, taprootIn, 62, 2))
+}
+
+// TestDustThresholdByType: dust scales with the output's script type — the
+// classic 546 only applies to legacy P2PKH; segwit outputs are lower.
+func TestDustThresholdByType(t *testing.T) {
+	assert.Equal(t, int64(546), dustThreshold(ScriptLegacy))       // 3*(34+148)
+	assert.Equal(t, int64(297), dustThreshold(ScriptNativeSegwit)) // 3*(31+68)
+	assert.Equal(t, int64(333), dustThreshold(ScriptTaproot))      // 3*(43+68)
+	assert.Equal(t, int64(540), dustThreshold(ScriptNestedSegwit)) // 3*(32+148)
+	assert.Less(t, dustThreshold(ScriptNativeSegwit), dustThreshold(ScriptLegacy))
 }
 
 // countingEsplora wraps an Esplora and counts AddressStats calls, to prove a

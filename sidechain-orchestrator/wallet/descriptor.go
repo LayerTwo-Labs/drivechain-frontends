@@ -119,8 +119,8 @@ func unwrap(body, prefix string) (string, error) {
 }
 
 // parseKeyExpr parses "[origin]xpub[/branch/*]". The branch suffix is validated
-// to be a standard external/change layout (/0/*, /1/*, or /<0;1>/*) but the
-// chains are always derived as account/0 and account/1 per BIP.
+// to be /0/* or /<0;1>/*; derivation always produces both account/0 and
+// account/1 chains per BIP.
 func parseKeyExpr(expr string) (DescriptorKey, error) {
 	key, _, _, err := parseKeyExprKind(expr)
 	return key, err
@@ -161,14 +161,16 @@ func parseKeyExprKind(expr string) (DescriptorKey, ScriptKind, bool, error) {
 }
 
 // validateBranchSuffix accepts only the standard wallet layouts so we never
-// silently mis-derive: /0/*, /1/*, or the multipath /<0;1>/*. A bare /* is
+// silently mis-derive: /0/*, or the multipath /<0;1>/*. A bare /* is
 // rejected because derivation always appends the external/change branch.
+// /1/* (change-only) is rejected: derivation always produces both chains,
+// so receive addresses would come from account/0 — outside the descriptor.
 func validateBranchSuffix(suffix string) error {
 	switch suffix {
-	case "/0/*", "/1/*", "/<0;1>/*":
+	case "/0/*", "/<0;1>/*":
 		return nil
 	default:
-		return fmt.Errorf("unsupported derivation branch %q (expected /0/*, /1/*, or /<0;1>/*)", suffix)
+		return fmt.Errorf("unsupported derivation branch %q (expected /0/* or /<0;1>/*)", suffix)
 	}
 }
 
