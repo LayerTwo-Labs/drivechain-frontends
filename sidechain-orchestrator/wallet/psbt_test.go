@@ -296,3 +296,107 @@ func TestPSBTMultisigWrappers(t *testing.T) {
 		})
 	}
 }
+
+// TestPSBTSignSidechainDeposit builds a BIP300/301 M5 deposit: it spends the
+// previous treasury (CTIP) output — an anyone-can-spend drivechain output,
+// OP_DRIVECHAIN(=OP_NOP5) OP_PUSHBYTES_1 <S> OP_TRUE — together with an electrum
+// wallet input, and creates the new larger treasury at index 0 plus wallet
+// change. Only the wallet input is signed; the spend of both inputs must verify
+// through txscript.Engine.
+func TestPSBTSignSidechainDeposit(t *testing.T) {
+	seedHex := hex.EncodeToString(MnemonicToSeed(testMnemonic, ""))
+	net := &chaincfg.SigNetParams
+	const (
+		walletAmount  = int64(1_000_000)
+		oldCtip       = int64(500_000)
+		depositAmount = int64(400_000)
+		fee           = int64(1_000)
+	)
+	const sidechainNum = byte(1)
+
+	acct, err := accountKeyFromSeed(seedHex, ScriptNativeSegwit, net)
+	require.NoError(t, err)
+	d := &Descriptor{Kind: ScriptNativeSegwit, Threshold: 1, Keys: []DescriptorKey{{Account: acct}}}
+	ds, pub, err := d.DeriveScript(false, 0, net)
+	require.NoError(t, err)
+	priv, ok, err := deriveChildPrivIfPossible(acct, 0, 0)
+	require.NoError(t, err)
+	require.True(t, ok)
+
+	// Treasury scriptPubKey, byte-for-byte per the enforcer's create_m5_deposit_output:
+	// OP_DRIVECHAIN OP_PUSHBYTES_1 <S> OP_TRUE.
+	drivechainScript := []byte{txscript.OP_NOP5, txscript.OP_DATA_1, sidechainNum, txscript.OP_TRUE}
+
+	// Previous treasury (CTIP) UTXO, and the wallet's funding UTXO.
+	treasuryPrev := wire.NewMsgTx(2)
+	treasuryPrev.AddTxIn(wire.NewTxIn(&wire.OutPoint{Index: 0xffffffff}, []byte{0x00}, nil))
+	treasuryPrev.AddTxOut(wire.NewTxOut(oldCtip, drivechainScript))
+
+	walletPrev := wire.NewMsgTx(2)
+	walletPrev.AddTxIn(wire.NewTxIn(&wire.OutPoint{Index: 0xffffffff}, []byte{0x01}, nil))
+	walletPrev.AddTxOut(wire.NewTxOut(walletAmount, ds.scriptPubKey))
+
+	// M5 deposit: in0 = old treasury, in1 = wallet UTXO; out0 = new treasury
+	// (old + deposit), out1 = wallet change.
+	newCtip := oldCtip + depositAmount
+	change := walletAmount - depositAmount - fee
+	tx := wire.NewMsgTx(2)
+	tx.AddTxIn(wire.NewTxIn(&wire.OutPoint{Hash: treasuryPrev.TxHash(), Index: 0}, nil, nil))
+	tx.AddTxIn(wire.NewTxIn(&wire.OutPoint{Hash: walletPrev.TxHash(), Index: 0}, nil, nil))
+	tx.AddTxOut(wire.NewTxOut(newCtip, drivechainScript))
+	tx.AddTxOut(wire.NewTxOut(change, ds.scriptPubKey))
+
+	packet, err := psbt.NewFromUnsignedTx(tx)
+	require.NoError(t, err)
+	updater, err := psbt.NewUpdater(packet)
+	require.NoError(t, err)
+
+	// Treasury input: bare anyone-can-spend, no signature — pre-finalize empty.
+	require.NoError(t, updater.AddInNonWitnessUtxo(treasuryPrev, 0))
+	packet.Inputs[0].FinalScriptSig = []byte{}
+
+	// Wallet input: signed by the electrum wallet.
+	require.NoError(t, updater.AddInWitnessUtxo(wire.NewTxOut(walletAmount, ds.scriptPubKey), 1))
+	require.NoError(t, updater.AddInSighashType(txscript.SigHashAll, 1))
+
+	inputs := []psbtInput{
+		{outpoint: tx.TxIn[0].PreviousOutPoint, amount: oldCtip, addr: scannedAddr{scriptPubKey: drivechainScript}},
+		{outpoint: tx.TxIn[1].PreviousOutPoint, amount: walletAmount, addr: scannedAddr{
+			address: ds.address.EncodeAddress(), priv: priv, pub: pub,
+			scriptPubKey: ds.scriptPubKey, kind: ScriptNativeSegwit,
+		}},
+	}
+	n, err := signPSBT(packet, inputs, net)
+	require.NoError(t, err)
+	require.Equal(t, 1, n, "only the wallet input is signed")
+
+	rawHex, err := finalizeAndExtract(packet)
+	require.NoError(t, err)
+	var final wire.MsgTx
+	raw, err := hex.DecodeString(rawHex)
+	require.NoError(t, err)
+	require.NoError(t, final.Deserialize(bytes.NewReader(raw)))
+
+	// New treasury sits at index 0 with the increased value.
+	require.Equal(t, drivechainScript, final.TxOut[0].PkScript)
+	require.Equal(t, newCtip, final.TxOut[0].Value)
+
+	prevOuts := txscript.NewMultiPrevOutFetcher(map[wire.OutPoint]*wire.TxOut{
+		final.TxIn[0].PreviousOutPoint: wire.NewTxOut(oldCtip, drivechainScript),
+		final.TxIn[1].PreviousOutPoint: wire.NewTxOut(walletAmount, ds.scriptPubKey),
+	})
+	sigHashes := txscript.NewTxSigHashes(&final, prevOuts)
+
+	// Treasury input: OP_DRIVECHAIN is a NOP under base script rules, so the
+	// output is anyone-can-spend; verify without the upgradable-NOP/cleanstack
+	// policy flags (the drivechain node enforces BIP300 separately).
+	vmTreasury, err := txscript.NewEngine(drivechainScript, &final, 0, txscript.ScriptBip16, nil, sigHashes, oldCtip, prevOuts)
+	require.NoError(t, err)
+	require.NoError(t, vmTreasury.Execute(), "treasury input must be spendable")
+
+	// Wallet input: the electrum signature must verify.
+	vmWallet, err := txscript.NewEngine(ds.scriptPubKey, &final, 1,
+		txscript.StandardVerifyFlags|txscript.ScriptVerifyTaproot, nil, sigHashes, walletAmount, prevOuts)
+	require.NoError(t, err)
+	require.NoError(t, vmWallet.Execute(), "wallet must validly sign the sidechain deposit")
+}
