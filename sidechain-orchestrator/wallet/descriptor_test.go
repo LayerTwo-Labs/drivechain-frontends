@@ -186,3 +186,56 @@ func TestParseMultisigDerivesP2WSH(t *testing.T) {
 	_, ok := ds.address.(*btcutil.AddressWitnessScriptHash)
 	assert.True(t, ok, "multisig must derive a P2WSH address, got %T", ds.address)
 }
+
+// TestDescriptorAcceptsMultisigSLIP132: Zpub cosigner keys (Sparrow multisig
+// exports) are accepted inside wsh(sortedmulti) and derive the same P2WSH
+// address as the canonical xpub form.
+func TestDescriptorAcceptsMultisigSLIP132(t *testing.T) {
+	seedHex := hex.EncodeToString(MnemonicToSeed(testMnemonic, ""))
+	net := &chaincfg.MainNetParams
+	acct, err := accountKeyFromSeed(seedHex, ScriptNativeSegwit, net)
+	require.NoError(t, err)
+	xpub := neuter(t, acct)
+	zpub := reencodeVersion(t, xpub, 0x02AA7ED3) // Zpub (P2WSH multisig)
+
+	zDesc := "wsh(sortedmulti(2," + zpub + "/0/*," + zpub + "/0/*))"
+	d, err := ParseDescriptor(zDesc)
+	require.NoError(t, err)
+	require.Equal(t, ScriptMultisig, d.Kind, "wrapper sets the kind, not the Zpub header")
+	zScript, _, err := d.DeriveScript(false, 0, net)
+	require.NoError(t, err)
+
+	xDesc := "wsh(sortedmulti(2," + xpub + "/0/*," + xpub + "/0/*))"
+	dx, err := ParseDescriptor(xDesc)
+	require.NoError(t, err)
+	xScript, _, err := dx.DeriveScript(false, 0, net)
+	require.NoError(t, err)
+	assert.Equal(t, xScript.address.EncodeAddress(), zScript.address.EncodeAddress(),
+		"Zpub remaps to the same key as xpub")
+}
+
+// TestHotWalletOriginPath: a seeded wallet's PSBT derivation carries the real
+// master fingerprint and full BIP path (purpose'/coin'/0'/change/index), not the
+// account key's own fingerprint, so Sparrow/hardware signers match the key.
+func TestHotWalletOriginPath(t *testing.T) {
+	seedHex := hex.EncodeToString(MnemonicToSeed(testMnemonic, ""))
+	net := &chaincfg.MainNetParams
+	acct, origin, err := accountKeyAndOrigin(seedHex, ScriptNativeSegwit, net)
+	require.NoError(t, err)
+	assert.Regexp(t, `^[0-9a-f]{8}/84h/0h/0h$`, origin)
+
+	d := &Descriptor{Kind: ScriptNativeSegwit, Threshold: 1, Keys: []DescriptorKey{{Origin: origin, Account: acct}}}
+	derivs, err := d.derivations(false, 7)
+	require.NoError(t, err)
+	require.Len(t, derivs, 1)
+
+	h := uint32(hdkeychain.HardenedKeyStart)
+	assert.Equal(t, []uint32{84 + h, 0 + h, 0 + h, 0, 7}, derivs[0].path)
+
+	seed, _ := hex.DecodeString(seedHex)
+	master, _ := hdkeychain.NewMaster(seed, net)
+	masterPub, _ := master.ECPubKey()
+	wantFp := binary.LittleEndian.Uint32(btcutil.Hash160(masterPub.SerializeCompressed())[:4])
+	assert.Equal(t, wantFp, derivs[0].fingerprint, "uses the master fingerprint")
+	assert.NotEqual(t, keyFingerprint(acct), derivs[0].fingerprint, "not the account fingerprint")
+}
