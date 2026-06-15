@@ -23,6 +23,9 @@ type TxOutSpec struct {
 	Address     string
 	AmountBTC   float64
 	OpReturnHex string
+	// Set for an owned change output so the PSBT carries its derivation records.
+	Kind        ScriptKind
+	Derivations []keyDerivation
 }
 
 // BuildUnsignedTransaction assembles a raw unsigned transaction in-process,

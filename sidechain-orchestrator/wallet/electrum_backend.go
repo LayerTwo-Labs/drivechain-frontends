@@ -76,6 +76,7 @@ type scannedAddr struct {
 	change        bool
 	index         uint32
 	hdPath        string
+	derivations   []keyDerivation // PSBT key-derivation records (signer key matching)
 	stats         EsploraAddressStats
 }
 
@@ -342,6 +343,16 @@ func (p *ElectrumBackend) nextUnused(ctx context.Context, walletID string, chang
 // nextUnusedFromScan picks the next unused address on a chain from an existing
 // scan, avoiding a second full wallet scan on the send path.
 func (p *ElectrumBackend) nextUnusedFromScan(walletID string, scan *electrumScan, change bool) (string, error) {
+	a, err := p.nextUnusedAddrFromScan(walletID, scan, change)
+	if err != nil {
+		return "", err
+	}
+	return a.address, nil
+}
+
+// nextUnusedAddrFromScan is nextUnusedFromScan but returns the full scannedAddr
+// (with derivation records), for callers that build a change output.
+func (p *ElectrumBackend) nextUnusedAddrFromScan(walletID string, scan *electrumScan, change bool) (scannedAddr, error) {
 	highest := -1
 	for _, a := range scan.addrs {
 		// Skip BIP47 watch keys (empty hdPath); they aren't part of the
@@ -354,17 +365,17 @@ func (p *ElectrumBackend) nextUnusedFromScan(walletID string, scan *electrumScan
 			highest = int(a.index)
 		}
 		if !a.stats.Used() {
-			return a.address, nil
+			return a, nil
 		}
 	}
 	// Every scanned address is used — derive the next index past the scan.
 	w := p.svc.GetWalletByID(walletID)
 	if w == nil {
-		return "", fmt.Errorf("wallet %s not found", walletID)
+		return scannedAddr{}, fmt.Errorf("wallet %s not found", walletID)
 	}
 	derivers, _, err := p.chainDerivers(w)
 	if err != nil {
-		return "", err
+		return scannedAddr{}, err
 	}
 	chainIdx := 0
 	if change {
@@ -372,9 +383,9 @@ func (p *ElectrumBackend) nextUnusedFromScan(walletID string, scan *electrumScan
 	}
 	a, err := derivers[chainIdx](uint32(highest + 1))
 	if err != nil {
-		return "", err
+		return scannedAddr{}, err
 	}
-	return a.address, nil
+	return a, nil
 }
 
 // WatchKeys records extra keys (BIP47 per-sender payment windows) so their
@@ -546,11 +557,16 @@ func (p *ElectrumBackend) buildSendPSBT(ctx context.Context, walletID string, sc
 		return nil, nil, fmt.Errorf("insufficient funds: short %d sats", -changeSats)
 	}
 	if changeSats >= dustSats {
-		changeAddr, err := p.nextUnusedFromScan(walletID, scan, true)
+		changeAddr, err := p.nextUnusedAddrFromScan(walletID, scan, true)
 		if err != nil {
 			return nil, nil, fmt.Errorf("derive change address: %w", err)
 		}
-		outputs = append(outputs, TxOutSpec{Address: changeAddr, AmountBTC: float64(changeSats) / 1e8})
+		outputs = append(outputs, TxOutSpec{
+			Address:     changeAddr.address,
+			AmountBTC:   float64(changeSats) / 1e8,
+			Kind:        changeAddr.kind,
+			Derivations: changeAddr.derivations,
+		})
 	}
 
 	psbtInputs := make([]psbtInput, len(selected))
@@ -809,6 +825,10 @@ func (p *ElectrumBackend) deriveAddr(d *Descriptor, change bool, index uint32) (
 	if err != nil {
 		return scannedAddr{}, err
 	}
+	derivations, err := d.derivations(change, index)
+	if err != nil {
+		return scannedAddr{}, err
+	}
 	a := scannedAddr{
 		address:      ds.address.EncodeAddress(),
 		pub:          pub,
@@ -819,6 +839,7 @@ func (p *ElectrumBackend) deriveAddr(d *Descriptor, change bool, index uint32) (
 		change:       change,
 		index:        index,
 		hdPath:       descriptorHDPath(d.Kind, p.network, change, index),
+		derivations:  derivations,
 	}
 	if d.Kind == ScriptMultisig {
 		a.witnessScript = ds.witnessScript
