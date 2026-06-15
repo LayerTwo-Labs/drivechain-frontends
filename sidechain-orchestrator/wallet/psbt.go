@@ -97,7 +97,7 @@ func buildPSBT(inputs []psbtInput, outputs []TxOutSpec, net *chaincfg.Params, pr
 	}
 
 	for i, in := range inputs {
-		if in.addr.kind == ScriptLegacy {
+		if in.addr.kind.isNonWitness() {
 			if prevTx == nil {
 				return nil, fmt.Errorf("legacy input %d needs the previous transaction", i)
 			}
@@ -178,7 +178,7 @@ func signPSBTInput(
 	sigHashes *txscript.TxSigHashes,
 	net *chaincfg.Params,
 ) (int, error) {
-	if in.addr.kind == ScriptMultisig {
+	if in.addr.kind.isMultisig() {
 		return signMultisigInput(packet, i, in, tx, sigHashes, net)
 	}
 	priv := in.addr.priv
@@ -268,13 +268,19 @@ func signMultisigInput(
 	sigHashes *txscript.TxSigHashes,
 	_ *chaincfg.Params,
 ) (int, error) {
-	if in.addr.witnessScript == nil {
-		return 0, errors.New("multisig input missing witness script")
+	// The k-of-n script is the scriptCode signed over: the redeem script for
+	// legacy P2SH, the witness script for P2WSH and P2SH-P2WSH.
+	legacy := in.addr.kind == ScriptMultisigP2SH
+	script := in.addr.witnessScript
+	if legacy {
+		script = in.addr.redeem
+	}
+	if script == nil {
+		return 0, errors.New("multisig input missing its k-of-n script")
 	}
 	if len(in.addr.multisigPrivs) == 0 {
 		return 0, nil
 	}
-	packet.Inputs[i].WitnessScript = in.addr.witnessScript
 
 	added := false
 	for _, priv := range in.addr.multisigPrivs {
@@ -282,7 +288,13 @@ func signMultisigInput(
 		if hasPartialSig(packet.Inputs[i].PartialSigs, pub) {
 			continue
 		}
-		sig, err := txscript.RawTxInWitnessSignature(tx, sigHashes, i, in.amount, in.addr.witnessScript, txscript.SigHashAll, priv)
+		var sig []byte
+		var err error
+		if legacy {
+			sig, err = txscript.RawTxInSignature(tx, i, script, txscript.SigHashAll, priv)
+		} else {
+			sig, err = txscript.RawTxInWitnessSignature(tx, sigHashes, i, in.amount, script, txscript.SigHashAll, priv)
+		}
 		if err != nil {
 			return 0, err
 		}

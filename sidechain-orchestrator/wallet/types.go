@@ -41,6 +41,10 @@ func (w *WalletData) scriptKind() ScriptKind {
 		return ScriptTaproot
 	case "multisig":
 		return ScriptMultisig
+	case "multisig-p2sh":
+		return ScriptMultisigP2SH
+	case "multisig-nested":
+		return ScriptMultisigNested
 	default:
 		return ScriptNativeSegwit
 	}

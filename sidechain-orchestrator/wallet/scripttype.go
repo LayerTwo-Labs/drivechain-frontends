@@ -19,13 +19,26 @@ import (
 type ScriptKind int
 
 const (
-	ScriptUnknown      ScriptKind = iota
-	ScriptLegacy                  // P2PKH, BIP44 (purpose 44')
-	ScriptNestedSegwit            // P2SH-P2WPKH, BIP49 (purpose 49')
-	ScriptNativeSegwit            // P2WPKH, BIP84 (purpose 84')
-	ScriptTaproot                 // P2TR key-path, BIP86 (purpose 86')
-	ScriptMultisig                // P2WSH sortedmulti
+	ScriptUnknown        ScriptKind = iota
+	ScriptLegacy                    // P2PKH, BIP44 (purpose 44')
+	ScriptNestedSegwit              // P2SH-P2WPKH, BIP49 (purpose 49')
+	ScriptNativeSegwit              // P2WPKH, BIP84 (purpose 84')
+	ScriptTaproot                   // P2TR key-path, BIP86 (purpose 86')
+	ScriptMultisig                  // wsh(sortedmulti): P2WSH
+	ScriptMultisigP2SH              // sh(sortedmulti): legacy P2SH
+	ScriptMultisigNested            // sh(wsh(sortedmulti)): P2SH-P2WSH
 )
+
+// isMultisig reports whether the kind is one of the sortedmulti wrappers.
+func (k ScriptKind) isMultisig() bool {
+	return k == ScriptMultisig || k == ScriptMultisigP2SH || k == ScriptMultisigNested
+}
+
+// isNonWitness reports whether spending an input of this kind needs the full
+// previous transaction (legacy P2PKH and legacy P2SH multisig).
+func (k ScriptKind) isNonWitness() bool {
+	return k == ScriptLegacy || k == ScriptMultisigP2SH
+}
 
 // Purpose returns the BIP-standard derivation purpose for a single-sig kind.
 func (k ScriptKind) Purpose() (uint32, bool) {
@@ -55,6 +68,10 @@ func (k ScriptKind) String() string {
 		return "taproot"
 	case ScriptMultisig:
 		return "multisig"
+	case ScriptMultisigP2SH:
+		return "multisig-p2sh"
+	case ScriptMultisigNested:
+		return "multisig-nested"
 	default:
 		return "unknown"
 	}
@@ -149,22 +166,63 @@ func multisigWitnessScript(threshold int, pubs []*btcec.PublicKey, net *chaincfg
 	return txscript.MultiSigScript(addrPubs, threshold)
 }
 
-// multisigOutput builds the P2WSH address + scripts for a sorted k-of-n policy.
-func multisigOutput(threshold int, pubs []*btcec.PublicKey, net *chaincfg.Params) (derivedScript, []byte, error) {
-	witnessScript, err := multisigWitnessScript(threshold, pubs, net)
+// multisigOutput builds the address + scripts for a sorted k-of-n policy under
+// the given multisig kind: P2WSH (native), P2SH (legacy), or P2SH-P2WSH (nested).
+// The k-of-n script is the witness/redeem script depending on the wrapper.
+func multisigOutput(kind ScriptKind, threshold int, pubs []*btcec.PublicKey, net *chaincfg.Params) (derivedScript, error) {
+	ms, err := multisigWitnessScript(threshold, pubs, net)
 	if err != nil {
-		return derivedScript{}, nil, err
+		return derivedScript{}, err
 	}
-	wsh := sha256.Sum256(witnessScript)
-	addr, err := btcutil.NewAddressWitnessScriptHash(wsh[:], net)
-	if err != nil {
-		return derivedScript{}, nil, err
+
+	switch kind {
+	case ScriptMultisigP2SH:
+		// Legacy P2SH: the k-of-n script is the redeem script.
+		addr, err := btcutil.NewAddressScriptHash(ms, net)
+		if err != nil {
+			return derivedScript{}, err
+		}
+		script, err := txscript.PayToAddrScript(addr)
+		if err != nil {
+			return derivedScript{}, err
+		}
+		return derivedScript{address: addr, scriptPubKey: script, redeemScript: ms}, nil
+
+	case ScriptMultisigNested:
+		// P2SH-P2WSH: the P2WSH program is the redeem script, the k-of-n script
+		// is the witness script.
+		wsh := sha256.Sum256(ms)
+		wshAddr, err := btcutil.NewAddressWitnessScriptHash(wsh[:], net)
+		if err != nil {
+			return derivedScript{}, err
+		}
+		redeem, err := txscript.PayToAddrScript(wshAddr)
+		if err != nil {
+			return derivedScript{}, err
+		}
+		addr, err := btcutil.NewAddressScriptHash(redeem, net)
+		if err != nil {
+			return derivedScript{}, err
+		}
+		script, err := txscript.PayToAddrScript(addr)
+		if err != nil {
+			return derivedScript{}, err
+		}
+		return derivedScript{address: addr, scriptPubKey: script, redeemScript: redeem, witnessScript: ms}, nil
+
+	default:
+		// Native P2WSH.
+		wsh := sha256.Sum256(ms)
+		addr, err := btcutil.NewAddressWitnessScriptHash(wsh[:], net)
+		if err != nil {
+			return derivedScript{}, err
+		}
+		script, err := txscript.PayToAddrScript(addr)
+		if err != nil {
+			return derivedScript{}, err
+		}
+		return derivedScript{address: addr, scriptPubKey: script, witnessScript: ms}, nil
 	}
-	script, err := txscript.PayToAddrScript(addr)
-	if err != nil {
-		return derivedScript{}, nil, err
-	}
-	return derivedScript{address: addr, scriptPubKey: script, witnessScript: witnessScript}, witnessScript, nil
 }
 
 func bytesLess(a, b []byte) bool {

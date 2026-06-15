@@ -235,3 +235,64 @@ func TestPSBTBip32Derivations(t *testing.T) {
 		})
 	}
 }
+
+// TestPSBTMultisigWrappers: each sortedmulti wrapper — P2WSH, P2SH-P2WSH, and
+// legacy P2SH — builds, signs with 2 of 3 keys, finalizes, and the spend
+// verifies through txscript.Engine.
+func TestPSBTMultisigWrappers(t *testing.T) {
+	net := &chaincfg.SigNetParams
+	const amount = int64(100_000)
+	const dest = "tb1qw508d6qejxtdg4y5r3zarvary0c5xw7kxpjzsx"
+
+	acct := func(pass string) *hdkeychain.ExtendedKey {
+		acct, err := accountKeyFromSeed(hex.EncodeToString(MnemonicToSeed(testMnemonic, pass)), ScriptNativeSegwit, net)
+		require.NoError(t, err)
+		return acct
+	}
+	priv := func(a *hdkeychain.ExtendedKey) *btcec.PrivateKey {
+		p, ok, err := deriveChildPrivIfPossible(a, 0, 0)
+		require.NoError(t, err)
+		require.True(t, ok)
+		return p
+	}
+	a, b, c := acct("a"), acct("b"), acct("c")
+
+	for _, kind := range []ScriptKind{ScriptMultisig, ScriptMultisigNested, ScriptMultisigP2SH} {
+		t.Run(kind.String(), func(t *testing.T) {
+			d := &Descriptor{Kind: kind, Threshold: 2, Keys: []DescriptorKey{{Account: a}, {Account: b}, {Account: c}}}
+			ds, _, err := d.DeriveScript(false, 0, net)
+			require.NoError(t, err)
+
+			prevTx := wire.NewMsgTx(2)
+			prevTx.AddTxIn(wire.NewTxIn(&wire.OutPoint{Index: 0xffffffff}, []byte{0x00}, nil))
+			prevTx.AddTxOut(wire.NewTxOut(amount, ds.scriptPubKey))
+			in := psbtInput{
+				outpoint: wire.OutPoint{Hash: prevTx.TxHash(), Index: 0},
+				amount:   amount,
+				addr: scannedAddr{
+					scriptPubKey: ds.scriptPubKey, redeem: ds.redeemScript, witnessScript: ds.witnessScript,
+					kind: kind, multisigPrivs: []*btcec.PrivateKey{priv(a), priv(b)},
+				},
+			}
+			out := []TxOutSpec{{Address: dest, AmountBTC: float64(amount-1000) / 1e8}}
+
+			packet, err := buildPSBT([]psbtInput{in}, out, net,
+				func(string) (*wire.MsgTx, error) { return prevTx, nil })
+			require.NoError(t, err)
+			_, err = signPSBT(packet, []psbtInput{in}, net)
+			require.NoError(t, err)
+			rawHex, err := finalizeAndExtract(packet)
+			require.NoError(t, err)
+
+			var final wire.MsgTx
+			raw, err := hex.DecodeString(rawHex)
+			require.NoError(t, err)
+			require.NoError(t, final.Deserialize(bytes.NewReader(raw)))
+			fetcher := txscript.NewCannedPrevOutputFetcher(ds.scriptPubKey, amount)
+			sigHashes := txscript.NewTxSigHashes(&final, fetcher)
+			vm, err := txscript.NewEngine(ds.scriptPubKey, &final, 0, txscript.StandardVerifyFlags, nil, sigHashes, amount, fetcher)
+			require.NoError(t, err)
+			require.NoError(t, vm.Execute(), "%s 2-of-3 spend must verify", kind)
+		})
+	}
+}

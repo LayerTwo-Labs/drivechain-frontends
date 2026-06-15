@@ -148,13 +148,15 @@ func TestParseDescriptorForms(t *testing.T) {
 	mustKind(t, "wpkh("+xpub+"/1/*)", ScriptNativeSegwit)
 	mustKind(t, "sh(wpkh("+xpub+"/0/*))", ScriptNestedSegwit)
 	mustKind(t, "tr("+xpub+"/<0;1>/*)", ScriptTaproot)
+	mustKind(t, "wsh(sortedmulti(2,"+xpub+"/0/*,"+xpub+"/0/*))", ScriptMultisig)
+	mustKind(t, "sh(wsh(sortedmulti(2,"+xpub+"/0/*,"+xpub+"/0/*)))", ScriptMultisigNested)
+	mustKind(t, "sh(sortedmulti(2,"+xpub+"/0/*,"+xpub+"/0/*))", ScriptMultisigP2SH)
 
 	// Rejections.
 	for _, bad := range []string{
-		"tr(" + xpub + ",{pk(" + xpub + ")})",          // script tree
-		"wpkh(" + xpub + "/2/*)",                       // non-standard branch
-		"wpkh(" + xpub + "/*)",                         // branchless wildcard
-		"sh(sortedmulti(2," + xpub + "," + xpub + "))", // legacy P2SH multisig
+		"tr(" + xpub + ",{pk(" + xpub + ")})", // script tree
+		"wpkh(" + xpub + "/2/*)",              // non-standard branch
+		"wpkh(" + xpub + "/*)",                // branchless wildcard
 		"combo(" + xpub + ")",
 		"raw(deadbeef)",
 		"",
