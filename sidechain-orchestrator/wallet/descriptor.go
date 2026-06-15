@@ -86,7 +86,9 @@ func ParseDescriptor(s string) (*Descriptor, error) {
 			return nil, err
 		}
 		return &Descriptor{Kind: ScriptTaproot, Threshold: 1, Keys: []DescriptorKey{key}}, nil
-	case strings.HasPrefix(body, "wsh(sortedmulti(") || strings.HasPrefix(body, "sh(sortedmulti("):
+	case strings.HasPrefix(body, "wsh(sortedmulti(") ||
+		strings.HasPrefix(body, "sh(wsh(sortedmulti(") ||
+		strings.HasPrefix(body, "sh(sortedmulti("):
 		return parseMultisig(body)
 	case strings.HasPrefix(body, "wsh(") || strings.HasPrefix(body, "multi(") || strings.HasPrefix(body, "combo("):
 		return nil, errors.New("unsupported descriptor: only single-sig and sortedmulti are supported")
@@ -202,6 +204,10 @@ func (d *Descriptor) String() (string, error) {
 		body = "tr(" + exprs[0] + ")"
 	case ScriptMultisig:
 		body = fmt.Sprintf("wsh(sortedmulti(%d,%s))", d.Threshold, strings.Join(exprs, ","))
+	case ScriptMultisigP2SH:
+		body = fmt.Sprintf("sh(sortedmulti(%d,%s))", d.Threshold, strings.Join(exprs, ","))
+	case ScriptMultisigNested:
+		body = fmt.Sprintf("sh(wsh(sortedmulti(%d,%s)))", d.Threshold, strings.Join(exprs, ","))
 	default:
 		return "", fmt.Errorf("cannot serialize script kind %s", d.Kind)
 	}
@@ -221,7 +227,7 @@ func (d *Descriptor) DeriveScript(change bool, index uint32, net *chaincfg.Param
 		chain = 1
 	}
 
-	if d.Kind == ScriptMultisig {
+	if d.Kind.isMultisig() {
 		pubs := make([]*btcec.PublicKey, len(d.Keys))
 		for i, k := range d.Keys {
 			pub, err := deriveChildPub(k.Account, chain, index)
@@ -230,7 +236,7 @@ func (d *Descriptor) DeriveScript(change bool, index uint32, net *chaincfg.Param
 			}
 			pubs[i] = pub
 		}
-		ds, _, err := multisigOutput(d.Threshold, pubs, net)
+		ds, err := multisigOutput(d.Kind, d.Threshold, pubs, net)
 		return ds, nil, err
 	}
 
@@ -351,15 +357,28 @@ func deriveChild(account *hdkeychain.ExtendedKey, chain, index uint32) (*hdkeych
 	return child, nil
 }
 
-// parseMultisig parses wsh(sortedmulti(k,KEY,...)) and the legacy
-// sh(sortedmulti(...)) form into a multisig descriptor.
+// parseMultisig parses the sortedmulti wrappers — wsh (P2WSH), sh(wsh (P2SH-P2WSH),
+// and sh (legacy P2SH) — into a multisig descriptor with the matching kind.
 func parseMultisig(body string) (*Descriptor, error) {
-	// Only wsh(sortedmulti(...)) is supported; the multisig builder emits P2WSH,
-	// so a legacy sh(sortedmulti(...)) would scan the wrong (P2SH) addresses.
-	if !strings.HasPrefix(body, "wsh(") {
-		return nil, errors.New("only wsh(sortedmulti(...)) multisig is supported")
+	var kind ScriptKind
+	var inner string
+	var err error
+	switch {
+	case strings.HasPrefix(body, "wsh(sortedmulti("):
+		kind = ScriptMultisig
+		inner, err = unwrap(body, "wsh(")
+	case strings.HasPrefix(body, "sh(wsh(sortedmulti("):
+		kind = ScriptMultisigNested
+		inner, err = unwrap(body, "sh(")
+		if err == nil {
+			inner, err = unwrap(inner, "wsh(")
+		}
+	case strings.HasPrefix(body, "sh(sortedmulti("):
+		kind = ScriptMultisigP2SH
+		inner, err = unwrap(body, "sh(")
+	default:
+		return nil, errors.New("unsupported multisig descriptor")
 	}
-	inner, err := unwrap(body, "wsh(")
 	if err != nil {
 		return nil, err
 	}
@@ -386,7 +405,7 @@ func parseMultisig(body string) (*Descriptor, error) {
 	if threshold < 1 || threshold > len(keys) {
 		return nil, fmt.Errorf("multisig threshold %d out of range for %d keys", threshold, len(keys))
 	}
-	return &Descriptor{Kind: ScriptMultisig, Threshold: threshold, Keys: keys}, nil
+	return &Descriptor{Kind: kind, Threshold: threshold, Keys: keys}, nil
 }
 
 // accountKeyFromSeed derives the BIP-standard account extended key

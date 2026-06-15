@@ -841,7 +841,7 @@ func (p *ElectrumBackend) deriveAddr(d *Descriptor, change bool, index uint32) (
 		hdPath:       descriptorHDPath(d.Kind, p.network, change, index),
 		derivations:  derivations,
 	}
-	if d.Kind == ScriptMultisig {
+	if d.Kind.isMultisig() {
 		a.witnessScript = ds.witnessScript
 		for _, k := range d.Keys {
 			priv, ok, err := deriveChildPrivIfPossible(k.Account, chainIndex(change), index)
@@ -1208,6 +1208,10 @@ func inputVsize(kind ScriptKind) int {
 		return 58
 	case ScriptMultisig:
 		return 105 // P2WSH 2-of-3
+	case ScriptMultisigNested:
+		return 140 // P2SH-P2WSH 2-of-3
+	case ScriptMultisigP2SH:
+		return 297 // legacy P2SH 2-of-3
 	default: // native segwit
 		return 68
 	}
