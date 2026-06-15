@@ -46,6 +46,8 @@ type ElectrumBackend struct {
 
 	mu        sync.Mutex
 	watchKeys map[string][]WatchKey // walletID -> extra keys to track
+	warm      map[string]bool       // walletID -> a live scan has run this process
+	lastScan  map[string][]byte     // walletID -> last persisted scan bytes (skip rewrites)
 }
 
 var _ Backend = (*ElectrumBackend)(nil)
@@ -58,6 +60,8 @@ func NewElectrumBackend(svc *Service, client Esplora, network *chaincfg.Params, 
 		network:   network,
 		log:       log.With().Str("component", "electrum-backend").Logger(),
 		watchKeys: make(map[string][]WatchKey),
+		warm:      make(map[string]bool),
+		lastScan:  make(map[string][]byte),
 	}
 }
 
@@ -886,6 +890,11 @@ func (p *ElectrumBackend) scanWallet(ctx context.Context, walletID string) (*ele
 		return nil, fmt.Errorf("wallet %s not found", walletID)
 	}
 
+	// Cold-boot fast path: rebuild the previous scan from disk with no network.
+	if scan, ok := p.loadColdScan(walletID, w); ok {
+		return scan, nil
+	}
+
 	scan := &electrumScan{
 		byAddr: make(map[string]scannedAddr),
 		keys:   make(mapKeySource),
@@ -916,13 +925,94 @@ func (p *ElectrumBackend) scanWallet(ctx context.Context, walletID string) (*ele
 		scan.addrs = append(scan.addrs, a)
 	}
 
+	finalizeScan(scan)
+	p.persistScan(walletID, scan)
+	p.mu.Lock()
+	p.warm[walletID] = true
+	p.mu.Unlock()
+	return scan, nil
+}
+
+// loadColdScan rebuilds a wallet's scan from its persisted cache without any
+// network calls, used once per process before the first live scan. Keys and
+// scripts are re-derived from the descriptor; only the Esplora stats come from
+// disk. ok is false when warm, when no cache exists, or on any derive error.
+func (p *ElectrumBackend) loadColdScan(walletID string, w *WalletData) (*electrumScan, bool) {
+	p.mu.Lock()
+	warm := p.warm[walletID]
+	p.mu.Unlock()
+	if warm {
+		return nil, false
+	}
+	ps, ok := p.svc.loadElectrumScan(walletID)
+	if !ok {
+		return nil, false
+	}
+	d, err := p.walletDescriptor(w)
+	if err != nil {
+		return nil, false
+	}
+	scan := &electrumScan{
+		byAddr:    make(map[string]scannedAddr),
+		keys:      make(mapKeySource),
+		watchOnly: w.IsWatchOnly(),
+	}
+	for _, pa := range ps.Addrs {
+		a, err := p.deriveAddr(d, pa.Change, pa.Index)
+		if err != nil || a.address != pa.Address {
+			return nil, false // cache drift — fall back to a live scan
+		}
+		a.stats = pa.Stats
+		scan.addrs = append(scan.addrs, a)
+	}
+	finalizeScan(scan)
+	p.mu.Lock()
+	p.warm[walletID] = true
+	p.lastScan[walletID], _ = json.Marshal(ps)
+	p.mu.Unlock()
+	p.log.Debug().Str("wallet", walletID).Int("addrs", len(scan.addrs)).Msg("electrum scan loaded from cache")
+	return scan, true
+}
+
+// finalizeScan builds the by-address and key lookups from a scan's addresses.
+func finalizeScan(scan *electrumScan) {
 	for _, a := range scan.addrs {
 		scan.byAddr[a.address] = a
 		if a.priv != nil {
 			scan.keys[a.address] = a.priv
 		}
 	}
-	return scan, nil
+}
+
+// persistScan writes the wallet's chain scan to disk, skipping the write when
+// nothing changed since the last persist. BIP47 watch keys (no hdPath) are not
+// part of the derivation chain and are excluded.
+func (p *ElectrumBackend) persistScan(walletID string, scan *electrumScan) {
+	ps := persistedScan{Version: persistedScanVersion, WalletID: walletID}
+	for _, a := range scan.addrs {
+		if a.hdPath == "" {
+			continue
+		}
+		ps.Addrs = append(ps.Addrs, persistedAddr{
+			Change: a.change, Index: a.index, Address: a.address, Stats: a.stats,
+		})
+	}
+	data, err := json.Marshal(ps)
+	if err != nil {
+		return
+	}
+	p.mu.Lock()
+	unchanged := bytes.Equal(p.lastScan[walletID], data)
+	if !unchanged {
+		p.lastScan[walletID] = data
+	}
+	p.mu.Unlock()
+	if unchanged {
+		return
+	}
+	if err := p.svc.saveElectrumScan(walletID, data); err != nil {
+		p.log.Warn().Err(err).Str("wallet", walletID).Msg("persist electrum scan failed")
+	}
 }
 
 // chainDeriver derives the address+key at an index of one derivation chain.

@@ -1230,6 +1230,7 @@ func (s *Service) DeleteWallet(walletID string) error {
 		}
 	}
 
+	s.deleteElectrumScan(walletID)
 	s.log.Info().Str("wallet_id", walletID).Int("remaining", len(s.wallets)).Msg("wallet deleted")
 	return s.saveWalletFile()
 }
@@ -1304,6 +1305,7 @@ func (s *Service) DeleteAllWallets(onStatusUpdate func(string), beforeBoot func(
 	s.encryptionKey = nil
 	s.unlockedPass = ""
 	s.mu.Unlock()
+	_ = os.RemoveAll(s.electrumCacheDir())
 
 	// Dart L642-648: beforeBoot callback
 	if beforeBoot != nil {
