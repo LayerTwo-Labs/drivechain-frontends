@@ -130,6 +130,9 @@ const (
 	// WalletManagerServiceFinalizePsbtProcedure is the fully-qualified name of the
 	// WalletManagerService's FinalizePsbt RPC.
 	WalletManagerServiceFinalizePsbtProcedure = "/walletmanager.v1.WalletManagerService/FinalizePsbt"
+	// WalletManagerServiceWatchWalletSyncProcedure is the fully-qualified name of the
+	// WalletManagerService's WatchWalletSync RPC.
+	WalletManagerServiceWatchWalletSyncProcedure = "/walletmanager.v1.WalletManagerService/WatchWalletSync"
 	// WalletManagerServiceGetWalletSeedProcedure is the fully-qualified name of the
 	// WalletManagerService's GetWalletSeed RPC.
 	WalletManagerServiceGetWalletSeedProcedure = "/walletmanager.v1.WalletManagerService/GetWalletSeed"
@@ -196,6 +199,9 @@ type WalletManagerServiceClient interface {
 	SignPsbt(context.Context, *connect.Request[v1.SignPsbtRequest]) (*connect.Response[v1.SignPsbtResponse], error)
 	CombinePsbt(context.Context, *connect.Request[v1.CombinePsbtRequest]) (*connect.Response[v1.CombinePsbtResponse], error)
 	FinalizePsbt(context.Context, *connect.Request[v1.FinalizePsbtRequest]) (*connect.Response[v1.FinalizePsbtResponse], error)
+	// Stream an electrum wallet's scan progress (which chain, addresses checked,
+	// used found) so the GUI can show what syncing is doing. Electrum wallets only.
+	WatchWalletSync(context.Context, *connect.Request[v1.WatchWalletSyncRequest]) (*connect.ServerStreamForClient[v1.WalletSyncProgress], error)
 	// Seed access for cheque engine
 	GetWalletSeed(context.Context, *connect.Request[v1.GetWalletSeedRequest]) (*connect.Response[v1.GetWalletSeedResponse], error)
 	// Bitcoin Core variant selection (untouched / touched / knots).
@@ -414,6 +420,12 @@ func NewWalletManagerServiceClient(httpClient connect.HTTPClient, baseURL string
 			connect.WithSchema(walletManagerServiceMethods.ByName("FinalizePsbt")),
 			connect.WithClientOptions(opts...),
 		),
+		watchWalletSync: connect.NewClient[v1.WatchWalletSyncRequest, v1.WalletSyncProgress](
+			httpClient,
+			baseURL+WalletManagerServiceWatchWalletSyncProcedure,
+			connect.WithSchema(walletManagerServiceMethods.ByName("WatchWalletSync")),
+			connect.WithClientOptions(opts...),
+		),
 		getWalletSeed: connect.NewClient[v1.GetWalletSeedRequest, v1.GetWalletSeedResponse](
 			httpClient,
 			baseURL+WalletManagerServiceGetWalletSeedProcedure,
@@ -493,6 +505,7 @@ type walletManagerServiceClient struct {
 	signPsbt                  *connect.Client[v1.SignPsbtRequest, v1.SignPsbtResponse]
 	combinePsbt               *connect.Client[v1.CombinePsbtRequest, v1.CombinePsbtResponse]
 	finalizePsbt              *connect.Client[v1.FinalizePsbtRequest, v1.FinalizePsbtResponse]
+	watchWalletSync           *connect.Client[v1.WatchWalletSyncRequest, v1.WalletSyncProgress]
 	getWalletSeed             *connect.Client[v1.GetWalletSeedRequest, v1.GetWalletSeedResponse]
 	listCoreVariants          *connect.Client[v1.ListCoreVariantsRequest, v1.ListCoreVariantsResponse]
 	getCoreVariant            *connect.Client[v1.GetCoreVariantRequest, v1.GetCoreVariantResponse]
@@ -662,6 +675,11 @@ func (c *walletManagerServiceClient) FinalizePsbt(ctx context.Context, req *conn
 	return c.finalizePsbt.CallUnary(ctx, req)
 }
 
+// WatchWalletSync calls walletmanager.v1.WalletManagerService.WatchWalletSync.
+func (c *walletManagerServiceClient) WatchWalletSync(ctx context.Context, req *connect.Request[v1.WatchWalletSyncRequest]) (*connect.ServerStreamForClient[v1.WalletSyncProgress], error) {
+	return c.watchWalletSync.CallServerStream(ctx, req)
+}
+
 // GetWalletSeed calls walletmanager.v1.WalletManagerService.GetWalletSeed.
 func (c *walletManagerServiceClient) GetWalletSeed(ctx context.Context, req *connect.Request[v1.GetWalletSeedRequest]) (*connect.Response[v1.GetWalletSeedResponse], error) {
 	return c.getWalletSeed.CallUnary(ctx, req)
@@ -741,6 +759,9 @@ type WalletManagerServiceHandler interface {
 	SignPsbt(context.Context, *connect.Request[v1.SignPsbtRequest]) (*connect.Response[v1.SignPsbtResponse], error)
 	CombinePsbt(context.Context, *connect.Request[v1.CombinePsbtRequest]) (*connect.Response[v1.CombinePsbtResponse], error)
 	FinalizePsbt(context.Context, *connect.Request[v1.FinalizePsbtRequest]) (*connect.Response[v1.FinalizePsbtResponse], error)
+	// Stream an electrum wallet's scan progress (which chain, addresses checked,
+	// used found) so the GUI can show what syncing is doing. Electrum wallets only.
+	WatchWalletSync(context.Context, *connect.Request[v1.WatchWalletSyncRequest], *connect.ServerStream[v1.WalletSyncProgress]) error
 	// Seed access for cheque engine
 	GetWalletSeed(context.Context, *connect.Request[v1.GetWalletSeedRequest]) (*connect.Response[v1.GetWalletSeedResponse], error)
 	// Bitcoin Core variant selection (untouched / touched / knots).
@@ -955,6 +976,12 @@ func NewWalletManagerServiceHandler(svc WalletManagerServiceHandler, opts ...con
 		connect.WithSchema(walletManagerServiceMethods.ByName("FinalizePsbt")),
 		connect.WithHandlerOptions(opts...),
 	)
+	walletManagerServiceWatchWalletSyncHandler := connect.NewServerStreamHandler(
+		WalletManagerServiceWatchWalletSyncProcedure,
+		svc.WatchWalletSync,
+		connect.WithSchema(walletManagerServiceMethods.ByName("WatchWalletSync")),
+		connect.WithHandlerOptions(opts...),
+	)
 	walletManagerServiceGetWalletSeedHandler := connect.NewUnaryHandler(
 		WalletManagerServiceGetWalletSeedProcedure,
 		svc.GetWalletSeed,
@@ -1063,6 +1090,8 @@ func NewWalletManagerServiceHandler(svc WalletManagerServiceHandler, opts ...con
 			walletManagerServiceCombinePsbtHandler.ServeHTTP(w, r)
 		case WalletManagerServiceFinalizePsbtProcedure:
 			walletManagerServiceFinalizePsbtHandler.ServeHTTP(w, r)
+		case WalletManagerServiceWatchWalletSyncProcedure:
+			walletManagerServiceWatchWalletSyncHandler.ServeHTTP(w, r)
 		case WalletManagerServiceGetWalletSeedProcedure:
 			walletManagerServiceGetWalletSeedHandler.ServeHTTP(w, r)
 		case WalletManagerServiceListCoreVariantsProcedure:
@@ -1212,6 +1241,10 @@ func (UnimplementedWalletManagerServiceHandler) CombinePsbt(context.Context, *co
 
 func (UnimplementedWalletManagerServiceHandler) FinalizePsbt(context.Context, *connect.Request[v1.FinalizePsbtRequest]) (*connect.Response[v1.FinalizePsbtResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("walletmanager.v1.WalletManagerService.FinalizePsbt is not implemented"))
+}
+
+func (UnimplementedWalletManagerServiceHandler) WatchWalletSync(context.Context, *connect.Request[v1.WatchWalletSyncRequest], *connect.ServerStream[v1.WalletSyncProgress]) error {
+	return connect.NewError(connect.CodeUnimplemented, errors.New("walletmanager.v1.WalletManagerService.WatchWalletSync is not implemented"))
 }
 
 func (UnimplementedWalletManagerServiceHandler) GetWalletSeed(context.Context, *connect.Request[v1.GetWalletSeedRequest]) (*connect.Response[v1.GetWalletSeedResponse], error) {
