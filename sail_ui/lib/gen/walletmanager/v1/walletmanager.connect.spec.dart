@@ -212,6 +212,38 @@ abstract final class WalletManagerService {
     walletmanagerv1walletmanager.DeriveAddressesResponse.new,
   );
 
+  /// PSBT (BIP174). CreatePsbt builds an unsigned PSBT for a send (works for
+  /// watch-only wallets); SignPsbt adds this wallet's signatures; CombinePsbt
+  /// merges cosigner PSBTs; FinalizePsbt extracts the raw transaction. Electrum
+  /// wallets only.
+  static const createPsbt = connect.Spec(
+    '/$name/CreatePsbt',
+    connect.StreamType.unary,
+    walletmanagerv1walletmanager.CreatePsbtRequest.new,
+    walletmanagerv1walletmanager.CreatePsbtResponse.new,
+  );
+
+  static const signPsbt = connect.Spec(
+    '/$name/SignPsbt',
+    connect.StreamType.unary,
+    walletmanagerv1walletmanager.SignPsbtRequest.new,
+    walletmanagerv1walletmanager.SignPsbtResponse.new,
+  );
+
+  static const combinePsbt = connect.Spec(
+    '/$name/CombinePsbt',
+    connect.StreamType.unary,
+    walletmanagerv1walletmanager.CombinePsbtRequest.new,
+    walletmanagerv1walletmanager.CombinePsbtResponse.new,
+  );
+
+  static const finalizePsbt = connect.Spec(
+    '/$name/FinalizePsbt',
+    connect.StreamType.unary,
+    walletmanagerv1walletmanager.FinalizePsbtRequest.new,
+    walletmanagerv1walletmanager.FinalizePsbtResponse.new,
+  );
+
   /// Seed access for cheque engine
   static const getWalletSeed = connect.Spec(
     '/$name/GetWalletSeed',

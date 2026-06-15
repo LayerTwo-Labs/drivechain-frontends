@@ -2139,6 +2139,7 @@ class GetSyncStatusResponse extends $pb.GeneratedMessage {
     ChainSync? mainchain,
     ChainSync? enforcer,
     $core.Iterable<SidechainStatus>? sidechains,
+    $core.String? walletSyncStatus,
   }) {
     final $result = create();
     if (mainchain != null) {
@@ -2150,6 +2151,9 @@ class GetSyncStatusResponse extends $pb.GeneratedMessage {
     if (sidechains != null) {
       $result.sidechains.addAll(sidechains);
     }
+    if (walletSyncStatus != null) {
+      $result.walletSyncStatus = walletSyncStatus;
+    }
     return $result;
   }
   GetSyncStatusResponse._() : super();
@@ -2160,6 +2164,7 @@ class GetSyncStatusResponse extends $pb.GeneratedMessage {
     ..aOM<ChainSync>(1, _omitFieldNames ? '' : 'mainchain', subBuilder: ChainSync.create)
     ..aOM<ChainSync>(2, _omitFieldNames ? '' : 'enforcer', subBuilder: ChainSync.create)
     ..pc<SidechainStatus>(3, _omitFieldNames ? '' : 'sidechains', $pb.PbFieldType.PM, subBuilder: SidechainStatus.create)
+    ..aOS(4, _omitFieldNames ? '' : 'walletSyncStatus')
     ..hasRequiredFields = false
   ;
 
@@ -2213,6 +2218,18 @@ class GetSyncStatusResponse extends $pb.GeneratedMessage {
   /// blocks/headers are MB downloaded / MB total.
   @$pb.TagNumber(3)
   $core.List<SidechainStatus> get sidechains => $_getList(2);
+
+  /// Non-empty while the active electrum wallet is scanning, e.g.
+  /// "Scanning external addresses — 12 checked, 3 used". The bottom-nav sync
+  /// display shows it alongside daemon sync status.
+  @$pb.TagNumber(4)
+  $core.String get walletSyncStatus => $_getSZ(3);
+  @$pb.TagNumber(4)
+  set walletSyncStatus($core.String v) { $_setString(3, v); }
+  @$pb.TagNumber(4)
+  $core.bool hasWalletSyncStatus() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearWalletSyncStatus() => clearField(4);
 }
 
 class SidechainStatus extends $pb.GeneratedMessage {

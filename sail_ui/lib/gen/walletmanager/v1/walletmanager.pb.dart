@@ -2265,6 +2265,7 @@ class CreateElectrumWalletRequest extends $pb.GeneratedMessage {
     $core.Iterable<$core.int>? slots,
     $core.String? customMnemonic,
     $core.String? xpubOrDescriptor,
+    $core.String? scriptType,
   }) {
     final $result = create();
     if (name != null) {
@@ -2282,6 +2283,9 @@ class CreateElectrumWalletRequest extends $pb.GeneratedMessage {
     if (xpubOrDescriptor != null) {
       $result.xpubOrDescriptor = xpubOrDescriptor;
     }
+    if (scriptType != null) {
+      $result.scriptType = scriptType;
+    }
     return $result;
   }
   CreateElectrumWalletRequest._() : super();
@@ -2294,6 +2298,7 @@ class CreateElectrumWalletRequest extends $pb.GeneratedMessage {
     ..p<$core.int>(3, _omitFieldNames ? '' : 'slots', $pb.PbFieldType.KU3)
     ..aOS(4, _omitFieldNames ? '' : 'customMnemonic')
     ..aOS(5, _omitFieldNames ? '' : 'xpubOrDescriptor')
+    ..aOS(6, _omitFieldNames ? '' : 'scriptType')
     ..hasRequiredFields = false
   ;
 
@@ -2362,6 +2367,18 @@ class CreateElectrumWalletRequest extends $pb.GeneratedMessage {
   $core.bool hasXpubOrDescriptor() => $_has(4);
   @$pb.TagNumber(5)
   void clearXpubOrDescriptor() => clearField(5);
+
+  /// Address type for a hot wallet: "legacy", "nested-segwit",
+  /// "native-segwit" (default), or "taproot". Ignored for watch-only imports
+  /// (the descriptor's own type wins).
+  @$pb.TagNumber(6)
+  $core.String get scriptType => $_getSZ(5);
+  @$pb.TagNumber(6)
+  set scriptType($core.String v) { $_setString(5, v); }
+  @$pb.TagNumber(6)
+  $core.bool hasScriptType() => $_has(5);
+  @$pb.TagNumber(6)
+  void clearScriptType() => clearField(6);
 }
 
 class CreateElectrumWalletResponse extends $pb.GeneratedMessage {
@@ -3013,6 +3030,486 @@ class SendTransactionResponse extends $pb.GeneratedMessage {
   $core.bool hasTxid() => $_has(0);
   @$pb.TagNumber(1)
   void clearTxid() => clearField(1);
+}
+
+class CreatePsbtRequest extends $pb.GeneratedMessage {
+  factory CreatePsbtRequest({
+    $core.String? walletId,
+    $core.Map<$core.String, $fixnum.Int64>? destinations,
+    $fixnum.Int64? feeRateSatPerVbyte,
+    $core.bool? subtractFeeFromAmount,
+    $core.String? opReturnHex,
+    $fixnum.Int64? fixedFeeSats,
+    $core.Iterable<UnspentOutput>? requiredInputs,
+  }) {
+    final $result = create();
+    if (walletId != null) {
+      $result.walletId = walletId;
+    }
+    if (destinations != null) {
+      $result.destinations.addAll(destinations);
+    }
+    if (feeRateSatPerVbyte != null) {
+      $result.feeRateSatPerVbyte = feeRateSatPerVbyte;
+    }
+    if (subtractFeeFromAmount != null) {
+      $result.subtractFeeFromAmount = subtractFeeFromAmount;
+    }
+    if (opReturnHex != null) {
+      $result.opReturnHex = opReturnHex;
+    }
+    if (fixedFeeSats != null) {
+      $result.fixedFeeSats = fixedFeeSats;
+    }
+    if (requiredInputs != null) {
+      $result.requiredInputs.addAll(requiredInputs);
+    }
+    return $result;
+  }
+  CreatePsbtRequest._() : super();
+  factory CreatePsbtRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory CreatePsbtRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'CreatePsbtRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'walletmanager.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'walletId')
+    ..m<$core.String, $fixnum.Int64>(2, _omitFieldNames ? '' : 'destinations', entryClassName: 'CreatePsbtRequest.DestinationsEntry', keyFieldType: $pb.PbFieldType.OS, valueFieldType: $pb.PbFieldType.O6, packageName: const $pb.PackageName('walletmanager.v1'))
+    ..aInt64(3, _omitFieldNames ? '' : 'feeRateSatPerVbyte')
+    ..aOB(4, _omitFieldNames ? '' : 'subtractFeeFromAmount')
+    ..aOS(5, _omitFieldNames ? '' : 'opReturnHex')
+    ..aInt64(6, _omitFieldNames ? '' : 'fixedFeeSats')
+    ..pc<UnspentOutput>(7, _omitFieldNames ? '' : 'requiredInputs', $pb.PbFieldType.PM, subBuilder: UnspentOutput.create)
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  CreatePsbtRequest clone() => CreatePsbtRequest()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  CreatePsbtRequest copyWith(void Function(CreatePsbtRequest) updates) => super.copyWith((message) => updates(message as CreatePsbtRequest)) as CreatePsbtRequest;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static CreatePsbtRequest create() => CreatePsbtRequest._();
+  CreatePsbtRequest createEmptyInstance() => create();
+  static $pb.PbList<CreatePsbtRequest> createRepeated() => $pb.PbList<CreatePsbtRequest>();
+  @$core.pragma('dart2js:noInline')
+  static CreatePsbtRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<CreatePsbtRequest>(create);
+  static CreatePsbtRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get walletId => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set walletId($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasWalletId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearWalletId() => clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.Map<$core.String, $fixnum.Int64> get destinations => $_getMap(1);
+
+  @$pb.TagNumber(3)
+  $fixnum.Int64 get feeRateSatPerVbyte => $_getI64(2);
+  @$pb.TagNumber(3)
+  set feeRateSatPerVbyte($fixnum.Int64 v) { $_setInt64(2, v); }
+  @$pb.TagNumber(3)
+  $core.bool hasFeeRateSatPerVbyte() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearFeeRateSatPerVbyte() => clearField(3);
+
+  @$pb.TagNumber(4)
+  $core.bool get subtractFeeFromAmount => $_getBF(3);
+  @$pb.TagNumber(4)
+  set subtractFeeFromAmount($core.bool v) { $_setBool(3, v); }
+  @$pb.TagNumber(4)
+  $core.bool hasSubtractFeeFromAmount() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearSubtractFeeFromAmount() => clearField(4);
+
+  @$pb.TagNumber(5)
+  $core.String get opReturnHex => $_getSZ(4);
+  @$pb.TagNumber(5)
+  set opReturnHex($core.String v) { $_setString(4, v); }
+  @$pb.TagNumber(5)
+  $core.bool hasOpReturnHex() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearOpReturnHex() => clearField(5);
+
+  @$pb.TagNumber(6)
+  $fixnum.Int64 get fixedFeeSats => $_getI64(5);
+  @$pb.TagNumber(6)
+  set fixedFeeSats($fixnum.Int64 v) { $_setInt64(5, v); }
+  @$pb.TagNumber(6)
+  $core.bool hasFixedFeeSats() => $_has(5);
+  @$pb.TagNumber(6)
+  void clearFixedFeeSats() => clearField(6);
+
+  @$pb.TagNumber(7)
+  $core.List<UnspentOutput> get requiredInputs => $_getList(6);
+}
+
+class CreatePsbtResponse extends $pb.GeneratedMessage {
+  factory CreatePsbtResponse({
+    $core.String? psbtBase64,
+  }) {
+    final $result = create();
+    if (psbtBase64 != null) {
+      $result.psbtBase64 = psbtBase64;
+    }
+    return $result;
+  }
+  CreatePsbtResponse._() : super();
+  factory CreatePsbtResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory CreatePsbtResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'CreatePsbtResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'walletmanager.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'psbtBase64')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  CreatePsbtResponse clone() => CreatePsbtResponse()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  CreatePsbtResponse copyWith(void Function(CreatePsbtResponse) updates) => super.copyWith((message) => updates(message as CreatePsbtResponse)) as CreatePsbtResponse;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static CreatePsbtResponse create() => CreatePsbtResponse._();
+  CreatePsbtResponse createEmptyInstance() => create();
+  static $pb.PbList<CreatePsbtResponse> createRepeated() => $pb.PbList<CreatePsbtResponse>();
+  @$core.pragma('dart2js:noInline')
+  static CreatePsbtResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<CreatePsbtResponse>(create);
+  static CreatePsbtResponse? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get psbtBase64 => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set psbtBase64($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasPsbtBase64() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearPsbtBase64() => clearField(1);
+}
+
+class SignPsbtRequest extends $pb.GeneratedMessage {
+  factory SignPsbtRequest({
+    $core.String? walletId,
+    $core.String? psbtBase64,
+  }) {
+    final $result = create();
+    if (walletId != null) {
+      $result.walletId = walletId;
+    }
+    if (psbtBase64 != null) {
+      $result.psbtBase64 = psbtBase64;
+    }
+    return $result;
+  }
+  SignPsbtRequest._() : super();
+  factory SignPsbtRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory SignPsbtRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'SignPsbtRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'walletmanager.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'walletId')
+    ..aOS(2, _omitFieldNames ? '' : 'psbtBase64')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  SignPsbtRequest clone() => SignPsbtRequest()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  SignPsbtRequest copyWith(void Function(SignPsbtRequest) updates) => super.copyWith((message) => updates(message as SignPsbtRequest)) as SignPsbtRequest;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static SignPsbtRequest create() => SignPsbtRequest._();
+  SignPsbtRequest createEmptyInstance() => create();
+  static $pb.PbList<SignPsbtRequest> createRepeated() => $pb.PbList<SignPsbtRequest>();
+  @$core.pragma('dart2js:noInline')
+  static SignPsbtRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<SignPsbtRequest>(create);
+  static SignPsbtRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get walletId => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set walletId($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasWalletId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearWalletId() => clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.String get psbtBase64 => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set psbtBase64($core.String v) { $_setString(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasPsbtBase64() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearPsbtBase64() => clearField(2);
+}
+
+class SignPsbtResponse extends $pb.GeneratedMessage {
+  factory SignPsbtResponse({
+    $core.String? psbtBase64,
+  }) {
+    final $result = create();
+    if (psbtBase64 != null) {
+      $result.psbtBase64 = psbtBase64;
+    }
+    return $result;
+  }
+  SignPsbtResponse._() : super();
+  factory SignPsbtResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory SignPsbtResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'SignPsbtResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'walletmanager.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'psbtBase64')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  SignPsbtResponse clone() => SignPsbtResponse()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  SignPsbtResponse copyWith(void Function(SignPsbtResponse) updates) => super.copyWith((message) => updates(message as SignPsbtResponse)) as SignPsbtResponse;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static SignPsbtResponse create() => SignPsbtResponse._();
+  SignPsbtResponse createEmptyInstance() => create();
+  static $pb.PbList<SignPsbtResponse> createRepeated() => $pb.PbList<SignPsbtResponse>();
+  @$core.pragma('dart2js:noInline')
+  static SignPsbtResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<SignPsbtResponse>(create);
+  static SignPsbtResponse? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get psbtBase64 => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set psbtBase64($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasPsbtBase64() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearPsbtBase64() => clearField(1);
+}
+
+class CombinePsbtRequest extends $pb.GeneratedMessage {
+  factory CombinePsbtRequest({
+    $core.Iterable<$core.String>? psbtBase64,
+  }) {
+    final $result = create();
+    if (psbtBase64 != null) {
+      $result.psbtBase64.addAll(psbtBase64);
+    }
+    return $result;
+  }
+  CombinePsbtRequest._() : super();
+  factory CombinePsbtRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory CombinePsbtRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'CombinePsbtRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'walletmanager.v1'), createEmptyInstance: create)
+    ..pPS(1, _omitFieldNames ? '' : 'psbtBase64')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  CombinePsbtRequest clone() => CombinePsbtRequest()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  CombinePsbtRequest copyWith(void Function(CombinePsbtRequest) updates) => super.copyWith((message) => updates(message as CombinePsbtRequest)) as CombinePsbtRequest;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static CombinePsbtRequest create() => CombinePsbtRequest._();
+  CombinePsbtRequest createEmptyInstance() => create();
+  static $pb.PbList<CombinePsbtRequest> createRepeated() => $pb.PbList<CombinePsbtRequest>();
+  @$core.pragma('dart2js:noInline')
+  static CombinePsbtRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<CombinePsbtRequest>(create);
+  static CombinePsbtRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.List<$core.String> get psbtBase64 => $_getList(0);
+}
+
+class CombinePsbtResponse extends $pb.GeneratedMessage {
+  factory CombinePsbtResponse({
+    $core.String? psbtBase64,
+  }) {
+    final $result = create();
+    if (psbtBase64 != null) {
+      $result.psbtBase64 = psbtBase64;
+    }
+    return $result;
+  }
+  CombinePsbtResponse._() : super();
+  factory CombinePsbtResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory CombinePsbtResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'CombinePsbtResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'walletmanager.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'psbtBase64')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  CombinePsbtResponse clone() => CombinePsbtResponse()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  CombinePsbtResponse copyWith(void Function(CombinePsbtResponse) updates) => super.copyWith((message) => updates(message as CombinePsbtResponse)) as CombinePsbtResponse;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static CombinePsbtResponse create() => CombinePsbtResponse._();
+  CombinePsbtResponse createEmptyInstance() => create();
+  static $pb.PbList<CombinePsbtResponse> createRepeated() => $pb.PbList<CombinePsbtResponse>();
+  @$core.pragma('dart2js:noInline')
+  static CombinePsbtResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<CombinePsbtResponse>(create);
+  static CombinePsbtResponse? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get psbtBase64 => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set psbtBase64($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasPsbtBase64() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearPsbtBase64() => clearField(1);
+}
+
+class FinalizePsbtRequest extends $pb.GeneratedMessage {
+  factory FinalizePsbtRequest({
+    $core.String? psbtBase64,
+  }) {
+    final $result = create();
+    if (psbtBase64 != null) {
+      $result.psbtBase64 = psbtBase64;
+    }
+    return $result;
+  }
+  FinalizePsbtRequest._() : super();
+  factory FinalizePsbtRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory FinalizePsbtRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'FinalizePsbtRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'walletmanager.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'psbtBase64')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  FinalizePsbtRequest clone() => FinalizePsbtRequest()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  FinalizePsbtRequest copyWith(void Function(FinalizePsbtRequest) updates) => super.copyWith((message) => updates(message as FinalizePsbtRequest)) as FinalizePsbtRequest;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static FinalizePsbtRequest create() => FinalizePsbtRequest._();
+  FinalizePsbtRequest createEmptyInstance() => create();
+  static $pb.PbList<FinalizePsbtRequest> createRepeated() => $pb.PbList<FinalizePsbtRequest>();
+  @$core.pragma('dart2js:noInline')
+  static FinalizePsbtRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<FinalizePsbtRequest>(create);
+  static FinalizePsbtRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get psbtBase64 => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set psbtBase64($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasPsbtBase64() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearPsbtBase64() => clearField(1);
+}
+
+class FinalizePsbtResponse extends $pb.GeneratedMessage {
+  factory FinalizePsbtResponse({
+    $core.String? rawTxHex,
+  }) {
+    final $result = create();
+    if (rawTxHex != null) {
+      $result.rawTxHex = rawTxHex;
+    }
+    return $result;
+  }
+  FinalizePsbtResponse._() : super();
+  factory FinalizePsbtResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory FinalizePsbtResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'FinalizePsbtResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'walletmanager.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'rawTxHex')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  FinalizePsbtResponse clone() => FinalizePsbtResponse()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  FinalizePsbtResponse copyWith(void Function(FinalizePsbtResponse) updates) => super.copyWith((message) => updates(message as FinalizePsbtResponse)) as FinalizePsbtResponse;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static FinalizePsbtResponse create() => FinalizePsbtResponse._();
+  FinalizePsbtResponse createEmptyInstance() => create();
+  static $pb.PbList<FinalizePsbtResponse> createRepeated() => $pb.PbList<FinalizePsbtResponse>();
+  @$core.pragma('dart2js:noInline')
+  static FinalizePsbtResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<FinalizePsbtResponse>(create);
+  static FinalizePsbtResponse? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get rawTxHex => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set rawTxHex($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasRawTxHex() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearRawTxHex() => clearField(1);
 }
 
 class ListTransactionsRequest extends $pb.GeneratedMessage {
@@ -5545,6 +6042,18 @@ class WalletManagerServiceApi {
   ;
   $async.Future<DeriveAddressesResponse> deriveAddresses($pb.ClientContext? ctx, DeriveAddressesRequest request) =>
     _client.invoke<DeriveAddressesResponse>(ctx, 'WalletManagerService', 'DeriveAddresses', request, DeriveAddressesResponse())
+  ;
+  $async.Future<CreatePsbtResponse> createPsbt($pb.ClientContext? ctx, CreatePsbtRequest request) =>
+    _client.invoke<CreatePsbtResponse>(ctx, 'WalletManagerService', 'CreatePsbt', request, CreatePsbtResponse())
+  ;
+  $async.Future<SignPsbtResponse> signPsbt($pb.ClientContext? ctx, SignPsbtRequest request) =>
+    _client.invoke<SignPsbtResponse>(ctx, 'WalletManagerService', 'SignPsbt', request, SignPsbtResponse())
+  ;
+  $async.Future<CombinePsbtResponse> combinePsbt($pb.ClientContext? ctx, CombinePsbtRequest request) =>
+    _client.invoke<CombinePsbtResponse>(ctx, 'WalletManagerService', 'CombinePsbt', request, CombinePsbtResponse())
+  ;
+  $async.Future<FinalizePsbtResponse> finalizePsbt($pb.ClientContext? ctx, FinalizePsbtRequest request) =>
+    _client.invoke<FinalizePsbtResponse>(ctx, 'WalletManagerService', 'FinalizePsbt', request, FinalizePsbtResponse())
   ;
   $async.Future<GetWalletSeedResponse> getWalletSeed($pb.ClientContext? ctx, GetWalletSeedRequest request) =>
     _client.invoke<GetWalletSeedResponse>(ctx, 'WalletManagerService', 'GetWalletSeed', request, GetWalletSeedResponse())

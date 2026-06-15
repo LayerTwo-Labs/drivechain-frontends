@@ -50,6 +50,10 @@ abstract class WalletManagerServiceBase extends $pb.GeneratedService {
   $async.Future<$14.GetTransactionDetailsResponse> getTransactionDetails($pb.ServerContext ctx, $14.GetTransactionDetailsRequest request);
   $async.Future<$14.BumpFeeResponse> bumpFee($pb.ServerContext ctx, $14.BumpFeeRequest request);
   $async.Future<$14.DeriveAddressesResponse> deriveAddresses($pb.ServerContext ctx, $14.DeriveAddressesRequest request);
+  $async.Future<$14.CreatePsbtResponse> createPsbt($pb.ServerContext ctx, $14.CreatePsbtRequest request);
+  $async.Future<$14.SignPsbtResponse> signPsbt($pb.ServerContext ctx, $14.SignPsbtRequest request);
+  $async.Future<$14.CombinePsbtResponse> combinePsbt($pb.ServerContext ctx, $14.CombinePsbtRequest request);
+  $async.Future<$14.FinalizePsbtResponse> finalizePsbt($pb.ServerContext ctx, $14.FinalizePsbtRequest request);
   $async.Future<$14.GetWalletSeedResponse> getWalletSeed($pb.ServerContext ctx, $14.GetWalletSeedRequest request);
   $async.Future<$14.ListCoreVariantsResponse> listCoreVariants($pb.ServerContext ctx, $14.ListCoreVariantsRequest request);
   $async.Future<$14.GetCoreVariantResponse> getCoreVariant($pb.ServerContext ctx, $14.GetCoreVariantRequest request);
@@ -88,6 +92,10 @@ abstract class WalletManagerServiceBase extends $pb.GeneratedService {
       case 'GetTransactionDetails': return $14.GetTransactionDetailsRequest();
       case 'BumpFee': return $14.BumpFeeRequest();
       case 'DeriveAddresses': return $14.DeriveAddressesRequest();
+      case 'CreatePsbt': return $14.CreatePsbtRequest();
+      case 'SignPsbt': return $14.SignPsbtRequest();
+      case 'CombinePsbt': return $14.CombinePsbtRequest();
+      case 'FinalizePsbt': return $14.FinalizePsbtRequest();
       case 'GetWalletSeed': return $14.GetWalletSeedRequest();
       case 'ListCoreVariants': return $14.ListCoreVariantsRequest();
       case 'GetCoreVariant': return $14.GetCoreVariantRequest();
@@ -129,6 +137,10 @@ abstract class WalletManagerServiceBase extends $pb.GeneratedService {
       case 'GetTransactionDetails': return this.getTransactionDetails(ctx, request as $14.GetTransactionDetailsRequest);
       case 'BumpFee': return this.bumpFee(ctx, request as $14.BumpFeeRequest);
       case 'DeriveAddresses': return this.deriveAddresses(ctx, request as $14.DeriveAddressesRequest);
+      case 'CreatePsbt': return this.createPsbt(ctx, request as $14.CreatePsbtRequest);
+      case 'SignPsbt': return this.signPsbt(ctx, request as $14.SignPsbtRequest);
+      case 'CombinePsbt': return this.combinePsbt(ctx, request as $14.CombinePsbtRequest);
+      case 'FinalizePsbt': return this.finalizePsbt(ctx, request as $14.FinalizePsbtRequest);
       case 'GetWalletSeed': return this.getWalletSeed(ctx, request as $14.GetWalletSeedRequest);
       case 'ListCoreVariants': return this.listCoreVariants(ctx, request as $14.ListCoreVariantsRequest);
       case 'GetCoreVariant': return this.getCoreVariant(ctx, request as $14.GetCoreVariantRequest);

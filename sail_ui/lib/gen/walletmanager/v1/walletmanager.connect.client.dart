@@ -490,6 +490,78 @@ extension type WalletManagerServiceClient (connect.Transport _transport) {
     );
   }
 
+  /// PSBT (BIP174). CreatePsbt builds an unsigned PSBT for a send (works for
+  /// watch-only wallets); SignPsbt adds this wallet's signatures; CombinePsbt
+  /// merges cosigner PSBTs; FinalizePsbt extracts the raw transaction. Electrum
+  /// wallets only.
+  Future<walletmanagerv1walletmanager.CreatePsbtResponse> createPsbt(
+    walletmanagerv1walletmanager.CreatePsbtRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.WalletManagerService.createPsbt,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
+  Future<walletmanagerv1walletmanager.SignPsbtResponse> signPsbt(
+    walletmanagerv1walletmanager.SignPsbtRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.WalletManagerService.signPsbt,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
+  Future<walletmanagerv1walletmanager.CombinePsbtResponse> combinePsbt(
+    walletmanagerv1walletmanager.CombinePsbtRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.WalletManagerService.combinePsbt,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
+  Future<walletmanagerv1walletmanager.FinalizePsbtResponse> finalizePsbt(
+    walletmanagerv1walletmanager.FinalizePsbtRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.WalletManagerService.finalizePsbt,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
   /// Seed access for cheque engine
   Future<walletmanagerv1walletmanager.GetWalletSeedResponse> getWalletSeed(
     walletmanagerv1walletmanager.GetWalletSeedRequest input, {

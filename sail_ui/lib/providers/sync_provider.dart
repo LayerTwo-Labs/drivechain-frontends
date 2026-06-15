@@ -138,6 +138,10 @@ class SyncProvider extends ChangeNotifier {
   SyncInfo? bitwindowdSyncInfo;
   String? bitwindowdError;
 
+  /// Non-empty while the active electrum wallet is scanning, e.g.
+  /// "Scanning external addresses — 12 checked, 3 used". Shown in the bottom nav.
+  String walletSyncStatus = '';
+
   Timer? _timer;
   bool _isFetching = false;
   Duration _currentInterval = AGGRESSIVE_INTERVAL;
@@ -284,6 +288,11 @@ class SyncProvider extends ChangeNotifier {
           !_sidechainMapEquals(sidechainErrors, newSidechainErrors)) {
         sidechains = newSidechains;
         sidechainErrors = newSidechainErrors;
+        changed = true;
+      }
+
+      if (walletSyncStatus != resp.walletSyncStatus) {
+        walletSyncStatus = resp.walletSyncStatus;
         changed = true;
       }
     } else {
