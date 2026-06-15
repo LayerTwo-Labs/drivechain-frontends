@@ -411,27 +411,42 @@ func parseMultisig(body string) (*Descriptor, error) {
 // accountKeyFromSeed derives the BIP-standard account extended key
 // (m/purpose'/coin'/0') for a script kind from a hex seed, via hdkeychain.
 func accountKeyFromSeed(seedHex string, kind ScriptKind, net *chaincfg.Params) (*hdkeychain.ExtendedKey, error) {
+	acct, _, err := accountKeyAndOrigin(seedHex, kind, net)
+	return acct, err
+}
+
+// accountKeyAndOrigin derives the account extended key and the matching key
+// origin ("masterFingerprint/purpose'/coin'/0'"), so a hot wallet's PSBTs carry
+// the real master fingerprint and full derivation path for external signers.
+func accountKeyAndOrigin(seedHex string, kind ScriptKind, net *chaincfg.Params) (*hdkeychain.ExtendedKey, string, error) {
 	if net == nil {
-		return nil, errors.New("no chain params for this network; cannot derive electrum wallet")
+		return nil, "", errors.New("no chain params for this network; cannot derive electrum wallet")
 	}
 	purpose, ok := kind.Purpose()
 	if !ok {
-		return nil, fmt.Errorf("no derivation purpose for kind %s", kind)
+		return nil, "", fmt.Errorf("no derivation purpose for kind %s", kind)
 	}
 	seed, err := hex.DecodeString(seedHex)
 	if err != nil {
-		return nil, fmt.Errorf("decode seed hex: %w", err)
+		return nil, "", fmt.Errorf("decode seed hex: %w", err)
 	}
 	master, err := hdkeychain.NewMaster(seed, net)
 	if err != nil {
-		return nil, fmt.Errorf("create master key: %w", err)
+		return nil, "", fmt.Errorf("create master key: %w", err)
 	}
+	masterPub, err := master.ECPubKey()
+	if err != nil {
+		return nil, "", err
+	}
+	fingerprint := hex.EncodeToString(btcutil.Hash160(masterPub.SerializeCompressed())[:4])
+
 	const h = hdkeychain.HardenedKeyStart
 	acct, err := deriveHardened(master, h+purpose, h+net.HDCoinType, h+0)
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
-	return acct, nil
+	origin := fmt.Sprintf("%s/%dh/%dh/0h", fingerprint, purpose, net.HDCoinType)
+	return acct, origin, nil
 }
 
 func deriveHardened(key *hdkeychain.ExtendedKey, path ...uint32) (*hdkeychain.ExtendedKey, error) {

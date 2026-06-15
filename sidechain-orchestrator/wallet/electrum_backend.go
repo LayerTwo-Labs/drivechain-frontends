@@ -337,7 +337,7 @@ func (p *ElectrumBackend) NextChangeAddress(ctx context.Context, walletID string
 }
 
 func (p *ElectrumBackend) nextUnused(ctx context.Context, walletID string, change bool) (string, error) {
-	scan, err := p.scanWallet(ctx, walletID)
+	scan, err := p.scanWalletLive(ctx, walletID)
 	if err != nil {
 		return "", err
 	}
@@ -416,7 +416,7 @@ func (p *ElectrumBackend) WatchKeys(ctx context.Context, walletID string, keys [
 }
 
 func (p *ElectrumBackend) Send(ctx context.Context, walletID string, req SendRequest) (string, error) {
-	scan, err := p.scanWallet(ctx, walletID)
+	scan, err := p.scanWalletLive(ctx, walletID)
 	if err != nil {
 		return "", err
 	}
@@ -613,7 +613,7 @@ func (p *ElectrumBackend) CreatePSBT(ctx context.Context, walletID string, req S
 	if err := p.requireElectrum(walletID); err != nil {
 		return "", err
 	}
-	scan, err := p.scanWallet(ctx, walletID)
+	scan, err := p.scanWalletLive(ctx, walletID)
 	if err != nil {
 		return "", err
 	}
@@ -809,11 +809,11 @@ func (p *ElectrumBackend) walletDescriptor(w *WalletData) (*Descriptor, error) {
 		return nil, errors.New("no chain params for this network; cannot derive electrum wallet")
 	}
 	if w.Master.SeedHex != "" {
-		acct, err := accountKeyFromSeed(w.Master.SeedHex, w.scriptKind(), p.network)
+		acct, origin, err := accountKeyAndOrigin(w.Master.SeedHex, w.scriptKind(), p.network)
 		if err != nil {
 			return nil, err
 		}
-		return &Descriptor{Kind: w.scriptKind(), Threshold: 1, Keys: []DescriptorKey{{Account: acct}}}, nil
+		return &Descriptor{Kind: w.scriptKind(), Threshold: 1, Keys: []DescriptorKey{{Origin: origin, Account: acct}}}, nil
 	}
 	desc, err := watchOnlyDescriptorString(w)
 	if err != nil {
@@ -884,15 +884,29 @@ func chainIndex(change bool) uint32 {
 	return 0
 }
 
+// scanWallet returns a wallet scan, served from the persisted cache on the
+// first call after boot. Use it for passive reads (balance, history).
 func (p *ElectrumBackend) scanWallet(ctx context.Context, walletID string) (*electrumScan, error) {
+	return p.scan(ctx, walletID, true)
+}
+
+// scanWalletLive forces a fresh network scan, bypassing the cold cache. Use it
+// for address allocation and spends, where stale data risks reuse or misspend.
+func (p *ElectrumBackend) scanWalletLive(ctx context.Context, walletID string) (*electrumScan, error) {
+	return p.scan(ctx, walletID, false)
+}
+
+func (p *ElectrumBackend) scan(ctx context.Context, walletID string, allowCache bool) (*electrumScan, error) {
 	w := p.svc.GetWalletByID(walletID)
 	if w == nil {
 		return nil, fmt.Errorf("wallet %s not found", walletID)
 	}
 
 	// Cold-boot fast path: rebuild the previous scan from disk with no network.
-	if scan, ok := p.loadColdScan(walletID, w); ok {
-		return scan, nil
+	if allowCache {
+		if scan, ok := p.loadColdScan(walletID, w); ok {
+			return scan, nil
+		}
 	}
 
 	scan := &electrumScan{
@@ -1010,16 +1024,17 @@ func (p *ElectrumBackend) persistScan(walletID string, scan *electrumScan) {
 	}
 	p.mu.Lock()
 	unchanged := bytes.Equal(p.lastScan[walletID], data)
-	if !unchanged {
-		p.lastScan[walletID] = data
-	}
 	p.mu.Unlock()
 	if unchanged {
 		return
 	}
 	if err := p.svc.saveElectrumScan(walletID, data); err != nil {
 		p.log.Warn().Err(err).Str("wallet", walletID).Msg("persist electrum scan failed")
+		return // don't record the write as done — retry on the next scan
 	}
+	p.mu.Lock()
+	p.lastScan[walletID] = data
+	p.mu.Unlock()
 }
 
 // chainDeriver derives the address+key at an index of one derivation chain.

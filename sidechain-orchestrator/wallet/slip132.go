@@ -35,6 +35,16 @@ var slip132Headers = []slip132Header{
 	{0x044A5262, ScriptNestedSegwit, false, false}, // upub
 	{0x045F18BC, ScriptNativeSegwit, true, false},  // vprv
 	{0x045F1CF6, ScriptNativeSegwit, false, false}, // vpub
+	// Multisig cosigner headers (Sparrow exports these inside sortedmulti). The
+	// wrapper sets the script kind, so these only need byte remapping.
+	{0x0295B005, ScriptMultisigNested, true, true},   // Yprv (P2SH-P2WSH)
+	{0x0295B43F, ScriptMultisigNested, false, true},  // Ypub
+	{0x02AA7A99, ScriptMultisig, true, true},         // Zprv (P2WSH)
+	{0x02AA7ED3, ScriptMultisig, false, true},        // Zpub
+	{0x024285B5, ScriptMultisigNested, true, false},  // Uprv
+	{0x024289EF, ScriptMultisigNested, false, false}, // Upub
+	{0x02575048, ScriptMultisig, true, false},        // Vprv
+	{0x02575483, ScriptMultisig, false, false},       // Vpub
 }
 
 // normalizeExtendedKey rewrites a SLIP-0132 extended key to its canonical
@@ -71,6 +81,11 @@ func normalizeExtendedKey(key string) (canonical string, kind ScriptKind, hasKin
 	target := canonicalVersion(hdr.mainnet, hdr.private)
 	binary.BigEndian.PutUint32(raw[:4], target)
 	copy(raw[78:82], chainhash.DoubleHashB(raw[:78])[:4])
+	// Multisig-header keys are cosigners: remap the bytes, but let the descriptor
+	// wrapper (wsh/sh) set the kind rather than inferring it here.
+	if hdr.kind.isMultisig() {
+		return base58.Encode(raw), 0, false, nil
+	}
 	return base58.Encode(raw), hdr.kind, true, nil
 }
 
