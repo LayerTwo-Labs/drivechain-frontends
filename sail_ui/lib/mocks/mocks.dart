@@ -1715,6 +1715,9 @@ class MockSyncProvider implements SyncProvider {
   Map<SidechainType, String?> sidechainErrors = const {};
 
   @override
+  String walletSyncStatus = '';
+
+  @override
   SyncInfo? bitwindowdSyncInfo;
 
   @override

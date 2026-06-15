@@ -63,6 +63,7 @@ class BottomNav extends StatelessWidget {
               ...balanceEndWidgets,
             ],
             Expanded(child: Container()),
+            const ElectrumScanStatus(),
             ViewModelBuilder.reactive(
               viewModelBuilder: () => BottomNavViewModel(
                 additionalConnection: additionalConnection,
@@ -794,6 +795,50 @@ class UpdateIndicator extends StatelessWidget {
           await updateProvider.performUpdate();
         },
       ),
+    );
+  }
+}
+
+/// ElectrumScanStatus shows the active electrum wallet's scan progress in the
+/// bottom nav, alongside the daemon sync statuses. Hidden unless a scan is
+/// running, driven by [SyncProvider.walletSyncStatus].
+class ElectrumScanStatus extends StatelessWidget {
+  const ElectrumScanStatus({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final syncProvider = GetIt.I.get<SyncProvider>();
+    return ListenableBuilder(
+      listenable: syncProvider,
+      builder: (context, _) {
+        final status = syncProvider.walletSyncStatus;
+        if (status.isEmpty) return const SizedBox.shrink();
+        return Padding(
+          padding: const EdgeInsets.only(right: SailStyleValues.padding08),
+          child: Tooltip(
+            message: status,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const SizedBox(
+                  width: 12,
+                  height: 12,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+                const SizedBox(width: SailStyleValues.padding08),
+                ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 280),
+                  child: SailText.secondary12(
+                    status,
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 1,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 }

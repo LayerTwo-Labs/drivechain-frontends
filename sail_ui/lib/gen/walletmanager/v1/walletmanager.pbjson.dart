@@ -560,6 +560,7 @@ const CreateElectrumWalletRequest$json = {
     {'1': 'slots', '3': 3, '4': 3, '5': 13, '10': 'slots'},
     {'1': 'custom_mnemonic', '3': 4, '4': 1, '5': 9, '10': 'customMnemonic'},
     {'1': 'xpub_or_descriptor', '3': 5, '4': 1, '5': 9, '10': 'xpubOrDescriptor'},
+    {'1': 'script_type', '3': 6, '4': 1, '5': 9, '10': 'scriptType'},
   ],
 };
 
@@ -568,7 +569,8 @@ final $typed_data.Uint8List createElectrumWalletRequestDescriptor = $convert.bas
     'ChtDcmVhdGVFbGVjdHJ1bVdhbGxldFJlcXVlc3QSEgoEbmFtZRgBIAEoCVIEbmFtZRIjCg1ncm'
     'FkaWVudF9qc29uGAIgASgJUgxncmFkaWVudEpzb24SFAoFc2xvdHMYAyADKA1SBXNsb3RzEicK'
     'D2N1c3RvbV9tbmVtb25pYxgEIAEoCVIOY3VzdG9tTW5lbW9uaWMSLAoSeHB1Yl9vcl9kZXNjcm'
-    'lwdG9yGAUgASgJUhB4cHViT3JEZXNjcmlwdG9y');
+    'lwdG9yGAUgASgJUhB4cHViT3JEZXNjcmlwdG9yEh8KC3NjcmlwdF90eXBlGAYgASgJUgpzY3Jp'
+    'cHRUeXBl');
 
 @$core.Deprecated('Use createElectrumWalletResponseDescriptor instead')
 const CreateElectrumWalletResponse$json = {
@@ -733,6 +735,129 @@ const SendTransactionResponse$json = {
 /// Descriptor for `SendTransactionResponse`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List sendTransactionResponseDescriptor = $convert.base64Decode(
     'ChdTZW5kVHJhbnNhY3Rpb25SZXNwb25zZRISCgR0eGlkGAEgASgJUgR0eGlk');
+
+@$core.Deprecated('Use createPsbtRequestDescriptor instead')
+const CreatePsbtRequest$json = {
+  '1': 'CreatePsbtRequest',
+  '2': [
+    {'1': 'wallet_id', '3': 1, '4': 1, '5': 9, '10': 'walletId'},
+    {'1': 'destinations', '3': 2, '4': 3, '5': 11, '6': '.walletmanager.v1.CreatePsbtRequest.DestinationsEntry', '10': 'destinations'},
+    {'1': 'fee_rate_sat_per_vbyte', '3': 3, '4': 1, '5': 3, '10': 'feeRateSatPerVbyte'},
+    {'1': 'subtract_fee_from_amount', '3': 4, '4': 1, '5': 8, '10': 'subtractFeeFromAmount'},
+    {'1': 'op_return_hex', '3': 5, '4': 1, '5': 9, '10': 'opReturnHex'},
+    {'1': 'fixed_fee_sats', '3': 6, '4': 1, '5': 3, '10': 'fixedFeeSats'},
+    {'1': 'required_inputs', '3': 7, '4': 3, '5': 11, '6': '.walletmanager.v1.UnspentOutput', '10': 'requiredInputs'},
+  ],
+  '3': [CreatePsbtRequest_DestinationsEntry$json],
+};
+
+@$core.Deprecated('Use createPsbtRequestDescriptor instead')
+const CreatePsbtRequest_DestinationsEntry$json = {
+  '1': 'DestinationsEntry',
+  '2': [
+    {'1': 'key', '3': 1, '4': 1, '5': 9, '10': 'key'},
+    {'1': 'value', '3': 2, '4': 1, '5': 3, '10': 'value'},
+  ],
+  '7': {'7': true},
+};
+
+/// Descriptor for `CreatePsbtRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List createPsbtRequestDescriptor = $convert.base64Decode(
+    'ChFDcmVhdGVQc2J0UmVxdWVzdBIbCgl3YWxsZXRfaWQYASABKAlSCHdhbGxldElkElkKDGRlc3'
+    'RpbmF0aW9ucxgCIAMoCzI1LndhbGxldG1hbmFnZXIudjEuQ3JlYXRlUHNidFJlcXVlc3QuRGVz'
+    'dGluYXRpb25zRW50cnlSDGRlc3RpbmF0aW9ucxIyChZmZWVfcmF0ZV9zYXRfcGVyX3ZieXRlGA'
+    'MgASgDUhJmZWVSYXRlU2F0UGVyVmJ5dGUSNwoYc3VidHJhY3RfZmVlX2Zyb21fYW1vdW50GAQg'
+    'ASgIUhVzdWJ0cmFjdEZlZUZyb21BbW91bnQSIgoNb3BfcmV0dXJuX2hleBgFIAEoCVILb3BSZX'
+    'R1cm5IZXgSJAoOZml4ZWRfZmVlX3NhdHMYBiABKANSDGZpeGVkRmVlU2F0cxJICg9yZXF1aXJl'
+    'ZF9pbnB1dHMYByADKAsyHy53YWxsZXRtYW5hZ2VyLnYxLlVuc3BlbnRPdXRwdXRSDnJlcXVpcm'
+    'VkSW5wdXRzGj8KEURlc3RpbmF0aW9uc0VudHJ5EhAKA2tleRgBIAEoCVIDa2V5EhQKBXZhbHVl'
+    'GAIgASgDUgV2YWx1ZToCOAE=');
+
+@$core.Deprecated('Use createPsbtResponseDescriptor instead')
+const CreatePsbtResponse$json = {
+  '1': 'CreatePsbtResponse',
+  '2': [
+    {'1': 'psbt_base64', '3': 1, '4': 1, '5': 9, '10': 'psbtBase64'},
+  ],
+};
+
+/// Descriptor for `CreatePsbtResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List createPsbtResponseDescriptor = $convert.base64Decode(
+    'ChJDcmVhdGVQc2J0UmVzcG9uc2USHwoLcHNidF9iYXNlNjQYASABKAlSCnBzYnRCYXNlNjQ=');
+
+@$core.Deprecated('Use signPsbtRequestDescriptor instead')
+const SignPsbtRequest$json = {
+  '1': 'SignPsbtRequest',
+  '2': [
+    {'1': 'wallet_id', '3': 1, '4': 1, '5': 9, '10': 'walletId'},
+    {'1': 'psbt_base64', '3': 2, '4': 1, '5': 9, '10': 'psbtBase64'},
+  ],
+};
+
+/// Descriptor for `SignPsbtRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List signPsbtRequestDescriptor = $convert.base64Decode(
+    'Cg9TaWduUHNidFJlcXVlc3QSGwoJd2FsbGV0X2lkGAEgASgJUgh3YWxsZXRJZBIfCgtwc2J0X2'
+    'Jhc2U2NBgCIAEoCVIKcHNidEJhc2U2NA==');
+
+@$core.Deprecated('Use signPsbtResponseDescriptor instead')
+const SignPsbtResponse$json = {
+  '1': 'SignPsbtResponse',
+  '2': [
+    {'1': 'psbt_base64', '3': 1, '4': 1, '5': 9, '10': 'psbtBase64'},
+  ],
+};
+
+/// Descriptor for `SignPsbtResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List signPsbtResponseDescriptor = $convert.base64Decode(
+    'ChBTaWduUHNidFJlc3BvbnNlEh8KC3BzYnRfYmFzZTY0GAEgASgJUgpwc2J0QmFzZTY0');
+
+@$core.Deprecated('Use combinePsbtRequestDescriptor instead')
+const CombinePsbtRequest$json = {
+  '1': 'CombinePsbtRequest',
+  '2': [
+    {'1': 'psbt_base64', '3': 1, '4': 3, '5': 9, '10': 'psbtBase64'},
+  ],
+};
+
+/// Descriptor for `CombinePsbtRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List combinePsbtRequestDescriptor = $convert.base64Decode(
+    'ChJDb21iaW5lUHNidFJlcXVlc3QSHwoLcHNidF9iYXNlNjQYASADKAlSCnBzYnRCYXNlNjQ=');
+
+@$core.Deprecated('Use combinePsbtResponseDescriptor instead')
+const CombinePsbtResponse$json = {
+  '1': 'CombinePsbtResponse',
+  '2': [
+    {'1': 'psbt_base64', '3': 1, '4': 1, '5': 9, '10': 'psbtBase64'},
+  ],
+};
+
+/// Descriptor for `CombinePsbtResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List combinePsbtResponseDescriptor = $convert.base64Decode(
+    'ChNDb21iaW5lUHNidFJlc3BvbnNlEh8KC3BzYnRfYmFzZTY0GAEgASgJUgpwc2J0QmFzZTY0');
+
+@$core.Deprecated('Use finalizePsbtRequestDescriptor instead')
+const FinalizePsbtRequest$json = {
+  '1': 'FinalizePsbtRequest',
+  '2': [
+    {'1': 'psbt_base64', '3': 1, '4': 1, '5': 9, '10': 'psbtBase64'},
+  ],
+};
+
+/// Descriptor for `FinalizePsbtRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List finalizePsbtRequestDescriptor = $convert.base64Decode(
+    'ChNGaW5hbGl6ZVBzYnRSZXF1ZXN0Eh8KC3BzYnRfYmFzZTY0GAEgASgJUgpwc2J0QmFzZTY0');
+
+@$core.Deprecated('Use finalizePsbtResponseDescriptor instead')
+const FinalizePsbtResponse$json = {
+  '1': 'FinalizePsbtResponse',
+  '2': [
+    {'1': 'raw_tx_hex', '3': 1, '4': 1, '5': 9, '10': 'rawTxHex'},
+  ],
+};
+
+/// Descriptor for `FinalizePsbtResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List finalizePsbtResponseDescriptor = $convert.base64Decode(
+    'ChRGaW5hbGl6ZVBzYnRSZXNwb25zZRIcCgpyYXdfdHhfaGV4GAEgASgJUghyYXdUeEhleA==');
 
 @$core.Deprecated('Use listTransactionsRequestDescriptor instead')
 const ListTransactionsRequest$json = {
@@ -1247,6 +1372,10 @@ const $core.Map<$core.String, $core.dynamic> WalletManagerServiceBase$json = {
     {'1': 'GetTransactionDetails', '2': '.walletmanager.v1.GetTransactionDetailsRequest', '3': '.walletmanager.v1.GetTransactionDetailsResponse'},
     {'1': 'BumpFee', '2': '.walletmanager.v1.BumpFeeRequest', '3': '.walletmanager.v1.BumpFeeResponse'},
     {'1': 'DeriveAddresses', '2': '.walletmanager.v1.DeriveAddressesRequest', '3': '.walletmanager.v1.DeriveAddressesResponse'},
+    {'1': 'CreatePsbt', '2': '.walletmanager.v1.CreatePsbtRequest', '3': '.walletmanager.v1.CreatePsbtResponse'},
+    {'1': 'SignPsbt', '2': '.walletmanager.v1.SignPsbtRequest', '3': '.walletmanager.v1.SignPsbtResponse'},
+    {'1': 'CombinePsbt', '2': '.walletmanager.v1.CombinePsbtRequest', '3': '.walletmanager.v1.CombinePsbtResponse'},
+    {'1': 'FinalizePsbt', '2': '.walletmanager.v1.FinalizePsbtRequest', '3': '.walletmanager.v1.FinalizePsbtResponse'},
     {'1': 'GetWalletSeed', '2': '.walletmanager.v1.GetWalletSeedRequest', '3': '.walletmanager.v1.GetWalletSeedResponse'},
     {'1': 'ListCoreVariants', '2': '.walletmanager.v1.ListCoreVariantsRequest', '3': '.walletmanager.v1.ListCoreVariantsResponse'},
     {'1': 'GetCoreVariant', '2': '.walletmanager.v1.GetCoreVariantRequest', '3': '.walletmanager.v1.GetCoreVariantResponse'},
@@ -1328,6 +1457,15 @@ const $core.Map<$core.String, $core.Map<$core.String, $core.dynamic>> WalletMana
   '.walletmanager.v1.BumpFeeResponse': BumpFeeResponse$json,
   '.walletmanager.v1.DeriveAddressesRequest': DeriveAddressesRequest$json,
   '.walletmanager.v1.DeriveAddressesResponse': DeriveAddressesResponse$json,
+  '.walletmanager.v1.CreatePsbtRequest': CreatePsbtRequest$json,
+  '.walletmanager.v1.CreatePsbtRequest.DestinationsEntry': CreatePsbtRequest_DestinationsEntry$json,
+  '.walletmanager.v1.CreatePsbtResponse': CreatePsbtResponse$json,
+  '.walletmanager.v1.SignPsbtRequest': SignPsbtRequest$json,
+  '.walletmanager.v1.SignPsbtResponse': SignPsbtResponse$json,
+  '.walletmanager.v1.CombinePsbtRequest': CombinePsbtRequest$json,
+  '.walletmanager.v1.CombinePsbtResponse': CombinePsbtResponse$json,
+  '.walletmanager.v1.FinalizePsbtRequest': FinalizePsbtRequest$json,
+  '.walletmanager.v1.FinalizePsbtResponse': FinalizePsbtResponse$json,
   '.walletmanager.v1.GetWalletSeedRequest': GetWalletSeedRequest$json,
   '.walletmanager.v1.GetWalletSeedResponse': GetWalletSeedResponse$json,
   '.walletmanager.v1.ListCoreVariantsRequest': ListCoreVariantsRequest$json,
@@ -1400,18 +1538,25 @@ final $typed_data.Uint8List walletManagerServiceDescriptor = $convert.base64Deco
     'dGlvbkRldGFpbHNSZXNwb25zZRJOCgdCdW1wRmVlEiAud2FsbGV0bWFuYWdlci52MS5CdW1wRm'
     'VlUmVxdWVzdBohLndhbGxldG1hbmFnZXIudjEuQnVtcEZlZVJlc3BvbnNlEmYKD0Rlcml2ZUFk'
     'ZHJlc3NlcxIoLndhbGxldG1hbmFnZXIudjEuRGVyaXZlQWRkcmVzc2VzUmVxdWVzdBopLndhbG'
-    'xldG1hbmFnZXIudjEuRGVyaXZlQWRkcmVzc2VzUmVzcG9uc2USYAoNR2V0V2FsbGV0U2VlZBIm'
-    'LndhbGxldG1hbmFnZXIudjEuR2V0V2FsbGV0U2VlZFJlcXVlc3QaJy53YWxsZXRtYW5hZ2VyLn'
-    'YxLkdldFdhbGxldFNlZWRSZXNwb25zZRJpChBMaXN0Q29yZVZhcmlhbnRzEikud2FsbGV0bWFu'
-    'YWdlci52MS5MaXN0Q29yZVZhcmlhbnRzUmVxdWVzdBoqLndhbGxldG1hbmFnZXIudjEuTGlzdE'
-    'NvcmVWYXJpYW50c1Jlc3BvbnNlEmMKDkdldENvcmVWYXJpYW50Eicud2FsbGV0bWFuYWdlci52'
-    'MS5HZXRDb3JlVmFyaWFudFJlcXVlc3QaKC53YWxsZXRtYW5hZ2VyLnYxLkdldENvcmVWYXJpYW'
-    '50UmVzcG9uc2USYwoOU2V0Q29yZVZhcmlhbnQSJy53YWxsZXRtYW5hZ2VyLnYxLlNldENvcmVW'
-    'YXJpYW50UmVxdWVzdBooLndhbGxldG1hbmFnZXIudjEuU2V0Q29yZVZhcmlhbnRSZXNwb25zZR'
-    'JsChFHZXRUZXN0U2lkZWNoYWlucxIqLndhbGxldG1hbmFnZXIudjEuR2V0VGVzdFNpZGVjaGFp'
-    'bnNSZXF1ZXN0Gisud2FsbGV0bWFuYWdlci52MS5HZXRUZXN0U2lkZWNoYWluc1Jlc3BvbnNlEm'
-    'wKEVNldFRlc3RTaWRlY2hhaW5zEioud2FsbGV0bWFuYWdlci52MS5TZXRUZXN0U2lkZWNoYWlu'
-    'c1JlcXVlc3QaKy53YWxsZXRtYW5hZ2VyLnYxLlNldFRlc3RTaWRlY2hhaW5zUmVzcG9uc2USVg'
-    'oPV2F0Y2hXYWxsZXREYXRhEhYuZ29vZ2xlLnByb3RvYnVmLkVtcHR5Gikud2FsbGV0bWFuYWdl'
-    'ci52MS5XYXRjaFdhbGxldERhdGFSZXNwb25zZTAB');
+    'xldG1hbmFnZXIudjEuRGVyaXZlQWRkcmVzc2VzUmVzcG9uc2USVwoKQ3JlYXRlUHNidBIjLndh'
+    'bGxldG1hbmFnZXIudjEuQ3JlYXRlUHNidFJlcXVlc3QaJC53YWxsZXRtYW5hZ2VyLnYxLkNyZW'
+    'F0ZVBzYnRSZXNwb25zZRJRCghTaWduUHNidBIhLndhbGxldG1hbmFnZXIudjEuU2lnblBzYnRS'
+    'ZXF1ZXN0GiIud2FsbGV0bWFuYWdlci52MS5TaWduUHNidFJlc3BvbnNlEloKC0NvbWJpbmVQc2'
+    'J0EiQud2FsbGV0bWFuYWdlci52MS5Db21iaW5lUHNidFJlcXVlc3QaJS53YWxsZXRtYW5hZ2Vy'
+    'LnYxLkNvbWJpbmVQc2J0UmVzcG9uc2USXQoMRmluYWxpemVQc2J0EiUud2FsbGV0bWFuYWdlci'
+    '52MS5GaW5hbGl6ZVBzYnRSZXF1ZXN0GiYud2FsbGV0bWFuYWdlci52MS5GaW5hbGl6ZVBzYnRS'
+    'ZXNwb25zZRJgCg1HZXRXYWxsZXRTZWVkEiYud2FsbGV0bWFuYWdlci52MS5HZXRXYWxsZXRTZW'
+    'VkUmVxdWVzdBonLndhbGxldG1hbmFnZXIudjEuR2V0V2FsbGV0U2VlZFJlc3BvbnNlEmkKEExp'
+    'c3RDb3JlVmFyaWFudHMSKS53YWxsZXRtYW5hZ2VyLnYxLkxpc3RDb3JlVmFyaWFudHNSZXF1ZX'
+    'N0Gioud2FsbGV0bWFuYWdlci52MS5MaXN0Q29yZVZhcmlhbnRzUmVzcG9uc2USYwoOR2V0Q29y'
+    'ZVZhcmlhbnQSJy53YWxsZXRtYW5hZ2VyLnYxLkdldENvcmVWYXJpYW50UmVxdWVzdBooLndhbG'
+    'xldG1hbmFnZXIudjEuR2V0Q29yZVZhcmlhbnRSZXNwb25zZRJjCg5TZXRDb3JlVmFyaWFudBIn'
+    'LndhbGxldG1hbmFnZXIudjEuU2V0Q29yZVZhcmlhbnRSZXF1ZXN0Gigud2FsbGV0bWFuYWdlci'
+    '52MS5TZXRDb3JlVmFyaWFudFJlc3BvbnNlEmwKEUdldFRlc3RTaWRlY2hhaW5zEioud2FsbGV0'
+    'bWFuYWdlci52MS5HZXRUZXN0U2lkZWNoYWluc1JlcXVlc3QaKy53YWxsZXRtYW5hZ2VyLnYxLk'
+    'dldFRlc3RTaWRlY2hhaW5zUmVzcG9uc2USbAoRU2V0VGVzdFNpZGVjaGFpbnMSKi53YWxsZXRt'
+    'YW5hZ2VyLnYxLlNldFRlc3RTaWRlY2hhaW5zUmVxdWVzdBorLndhbGxldG1hbmFnZXIudjEuU2'
+    'V0VGVzdFNpZGVjaGFpbnNSZXNwb25zZRJWCg9XYXRjaFdhbGxldERhdGESFi5nb29nbGUucHJv'
+    'dG9idWYuRW1wdHkaKS53YWxsZXRtYW5hZ2VyLnYxLldhdGNoV2FsbGV0RGF0YVJlc3BvbnNlMA'
+    'E=');
 
