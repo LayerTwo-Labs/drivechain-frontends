@@ -46,13 +46,17 @@ func ParseDescriptor(s string) (*Descriptor, error) {
 		return nil, errors.New("empty descriptor")
 	}
 
-	// Bare extended key — no script wrapper. Treat as native segwit (BIP84).
+	// Bare extended key — no script wrapper. A SLIP-0132 header (ypub/zpub/…)
+	// sets the kind; a plain xpub/tpub defaults to native segwit (BIP84).
 	if !strings.Contains(body, "(") {
-		key, err := parseKeyExpr(body)
+		key, kind, hasKind, err := parseKeyExprKind(body)
 		if err != nil {
 			return nil, err
 		}
-		return &Descriptor{Kind: ScriptNativeSegwit, Threshold: 1, Keys: []DescriptorKey{key}}, nil
+		if !hasKind {
+			kind = ScriptNativeSegwit
+		}
+		return &Descriptor{Kind: kind, Threshold: 1, Keys: []DescriptorKey{key}}, nil
 	}
 
 	switch {
@@ -114,12 +118,20 @@ func unwrap(body, prefix string) (string, error) {
 // to be a standard external/change layout (/0/*, /1/*, or /<0;1>/*) but the
 // chains are always derived as account/0 and account/1 per BIP.
 func parseKeyExpr(expr string) (DescriptorKey, error) {
+	key, _, _, err := parseKeyExprKind(expr)
+	return key, err
+}
+
+// parseKeyExprKind parses "[origin]xpub[/branch/*]", normalizing SLIP-0132
+// extended keys, and additionally reports the script kind a SLIP-0132 header
+// implies (hasKind=false for plain xpub/tpub, where the caller keeps its default).
+func parseKeyExprKind(expr string) (DescriptorKey, ScriptKind, bool, error) {
 	expr = strings.TrimSpace(expr)
 	var origin string
 	if strings.HasPrefix(expr, "[") {
 		end := strings.Index(expr, "]")
 		if end < 0 {
-			return DescriptorKey{}, fmt.Errorf("unterminated key origin in %q", expr)
+			return DescriptorKey{}, 0, false, fmt.Errorf("unterminated key origin in %q", expr)
 		}
 		origin = expr[1:end]
 		expr = expr[end+1:]
@@ -129,15 +141,19 @@ func parseKeyExpr(expr string) (DescriptorKey, error) {
 	if i := strings.Index(expr, "/"); i >= 0 {
 		keyToken = expr[:i]
 		if err := validateBranchSuffix(expr[i:]); err != nil {
-			return DescriptorKey{}, err
+			return DescriptorKey{}, 0, false, err
 		}
 	}
 
-	acct, err := hdkeychain.NewKeyFromString(keyToken)
+	canonical, kind, hasKind, err := normalizeExtendedKey(keyToken)
 	if err != nil {
-		return DescriptorKey{}, fmt.Errorf("parse extended key %q: %w", keyToken, err)
+		return DescriptorKey{}, 0, false, err
 	}
-	return DescriptorKey{Origin: origin, Account: acct}, nil
+	acct, err := hdkeychain.NewKeyFromString(canonical)
+	if err != nil {
+		return DescriptorKey{}, 0, false, fmt.Errorf("parse extended key %q: %w", keyToken, err)
+	}
+	return DescriptorKey{Origin: origin, Account: acct}, kind, hasKind, nil
 }
 
 // validateBranchSuffix accepts only the standard wallet layouts so we never

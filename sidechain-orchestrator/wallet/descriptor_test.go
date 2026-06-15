@@ -1,16 +1,57 @@
 package wallet
 
 import (
+	"encoding/binary"
 	"encoding/hex"
 	"testing"
 
 	"github.com/btcsuite/btcd/btcutil"
+	"github.com/btcsuite/btcd/btcutil/base58"
 	"github.com/btcsuite/btcd/btcutil/hdkeychain"
 	"github.com/btcsuite/btcd/chaincfg"
+	"github.com/btcsuite/btcd/chaincfg/chainhash"
 	"github.com/btcsuite/btcd/txscript"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+// reencodeVersion rewrites an extended key's 4-byte version (for SLIP-0132 test
+// vectors), recomputing the base58check checksum.
+func reencodeVersion(t *testing.T, xkey string, version uint32) string {
+	t.Helper()
+	raw := base58.Decode(xkey)
+	require.Len(t, raw, 82)
+	binary.BigEndian.PutUint32(raw[:4], version)
+	copy(raw[78:82], chainhash.DoubleHashB(raw[:78])[:4])
+	return base58.Encode(raw)
+}
+
+// TestDescriptorAcceptsSLIP132: a bare ypub/zpub account key is accepted, infers
+// its script kind from the header, and derives the same address as the xpub form.
+func TestDescriptorAcceptsSLIP132(t *testing.T) {
+	seedHex := hex.EncodeToString(MnemonicToSeed(testMnemonic, ""))
+	net := &chaincfg.MainNetParams
+
+	acct84, err := accountKeyFromSeed(seedHex, ScriptNativeSegwit, net)
+	require.NoError(t, err)
+	zpub := reencodeVersion(t, neuter(t, acct84), 0x04B24746)
+	d, err := ParseDescriptor(zpub)
+	require.NoError(t, err)
+	assert.Equal(t, ScriptNativeSegwit, d.Kind, "zpub must infer native segwit")
+	ds, _, err := d.DeriveScript(false, 0, net)
+	require.NoError(t, err)
+	assert.Equal(t, "bc1qcr8te4kr609gcawutmrza0j4xv80jy8z306fyu", ds.address.EncodeAddress())
+
+	acct49, err := accountKeyFromSeed(seedHex, ScriptNestedSegwit, net)
+	require.NoError(t, err)
+	ypub := reencodeVersion(t, neuter(t, acct49), 0x049D7CB2)
+	d2, err := ParseDescriptor(ypub)
+	require.NoError(t, err)
+	assert.Equal(t, ScriptNestedSegwit, d2.Kind, "ypub must infer nested segwit")
+	ds2, _, err := d2.DeriveScript(false, 0, net)
+	require.NoError(t, err)
+	assert.Equal(t, "37VucYSaXLCAsxYyAPfbSi9eh4iEcbShgf", ds2.address.EncodeAddress())
+}
 
 func neuter(t *testing.T, k *hdkeychain.ExtendedKey) string {
 	t.Helper()
