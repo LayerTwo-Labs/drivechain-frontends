@@ -990,7 +990,15 @@ func (s *Server) ListTransactions(ctx context.Context, c *connect.Request[pb.Lis
 	}
 
 	// Bitcoin Core path
-	coreWalletName, err := s.walletEngine.GetBitcoinCoreWalletName(ctx, walletId)
+	ensure := s.walletEngine.GetBitcoinCoreWalletName
+	watchOnly, err := s.walletEngine.IsWatchOnly(ctx, walletId)
+	if err != nil {
+		return nil, err
+	}
+	if watchOnly {
+		ensure = s.walletEngine.EnsureWatchOnlyWallet
+	}
+	coreWalletName, err := ensure(ctx, walletId)
 	if err != nil {
 		return nil, fmt.Errorf("get Bitcoin Core wallet: %w", err)
 	}

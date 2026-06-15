@@ -31,8 +31,6 @@ const (
 	// electrumMaxScan caps per-chain derivation so a misbehaving backend
 	// can't drive an unbounded scan.
 	electrumMaxScan = 1000
-	// dustSats is the minimum a change output must hold to be worth creating.
-	dustSats = 546
 )
 
 // ElectrumBackend serves a wallet with no local Core or enforcer: it derives
@@ -501,18 +499,32 @@ func (p *ElectrumBackend) buildSendPSBT(ctx context.Context, walletID string, sc
 		}
 	}
 
-	// Assume a change output; subtract-fee sends still return change.
-	nOut := len(outputs) + 1
-	// All of a wallet's inputs share its script kind, which sets the input vsize.
-	inputKind := ScriptNativeSegwit
-	if w := p.svc.GetWalletByID(walletID); w != nil {
-		inputKind = w.scriptKind()
+	// Per-type sizing: input vsize from the wallet descriptor (accurate for
+	// m-of-n multisig), output vsize per recipient script type, plus the change
+	// output (the wallet's own type) unless a send leaves none.
+	w := p.svc.GetWalletByID(walletID)
+	if w == nil {
+		return nil, nil, fmt.Errorf("wallet %s not found", walletID)
 	}
+	d, err := p.walletDescriptor(w)
+	if err != nil {
+		return nil, nil, err
+	}
+	inVsize := walletInputVsize(d)
+	changeDust := dustThreshold(d.Kind)
+	withChange := true
 	feeSats := func(nIn int) int64 {
 		if req.FixedFeeSats > 0 {
 			return req.FixedFeeSats
 		}
-		return estimateFeeSats(nIn, nOut, feeRate, inputKind)
+		outVsize := 0
+		for _, o := range outputs {
+			outVsize += outputVsize(o, p.network)
+		}
+		if withChange {
+			outVsize += outputVsizeForKind(d.Kind)
+		}
+		return estimateFeeSats(nIn, inVsize, outVsize, feeRate)
 	}
 
 	i := 0
@@ -537,8 +549,8 @@ func (p *ElectrumBackend) buildSendPSBT(ctx context.Context, walletID string, sc
 
 	// Subtract-fee change is known before the fee (its selection target ignores
 	// fee), so drop the assumed change output when none will clear dust.
-	if req.SubtractFeeFromAmount && selectedSats-totalOutSats < dustSats {
-		nOut = len(outputs)
+	if req.SubtractFeeFromAmount && selectedSats-totalOutSats < changeDust {
+		withChange = false
 	}
 	fee := feeSats(len(selected))
 	var changeSats int64
@@ -549,7 +561,7 @@ func (p *ElectrumBackend) buildSendPSBT(ctx context.Context, walletID string, sc
 		// Take the fee out of the first output; the rest of the selected value
 		// returns as change, matching Bitcoin Core's subtract-fee semantics.
 		reduced := int64(math.Round(outputs[0].AmountBTC*1e8)) - fee
-		if reduced < dustSats {
+		if reduced < dustForOutput(outputs[0], p.network) {
 			return nil, nil, fmt.Errorf("fee %d sats exceeds first output", fee)
 		}
 		outputs[0].AmountBTC = float64(reduced) / 1e8
@@ -560,7 +572,7 @@ func (p *ElectrumBackend) buildSendPSBT(ctx context.Context, walletID string, sc
 	if changeSats < 0 {
 		return nil, nil, fmt.Errorf("insufficient funds: short %d sats", -changeSats)
 	}
-	if changeSats >= dustSats {
+	if changeSats >= changeDust {
 		changeAddr, err := p.nextUnusedAddrFromScan(walletID, scan, true)
 		if err != nil {
 			return nil, nil, fmt.Errorf("derive change address: %w", err)
@@ -1303,31 +1315,3 @@ func confsFor(status EsploraStatus, tip int) int {
 
 // estimateFeeSats approximates the fee for a P2WPKH tx with nIn inputs and
 // nOut outputs at feeRate sat/vB (~68 vB/input, ~31 vB/output, 11 vB base).
-// estimateFeeSats estimates the fee for a tx with nIn inputs of the given script
-// kind and nOut outputs. Input vsize varies sharply by type (legacy P2PKH ~148
-// vB vs native segwit ~68), so a fixed P2WPKH estimate would mis-fee legacy /
-// nested / taproot / multisig wallets.
-func estimateFeeSats(nIn, nOut int, feeRate float64, inputKind ScriptKind) int64 {
-	vsize := 11 + nIn*inputVsize(inputKind) + nOut*31
-	return int64(math.Ceil(float64(vsize) * feeRate))
-}
-
-// inputVsize is the approximate vbytes a spend of one input of this kind adds.
-func inputVsize(kind ScriptKind) int {
-	switch kind {
-	case ScriptLegacy:
-		return 148
-	case ScriptNestedSegwit:
-		return 91
-	case ScriptTaproot:
-		return 58
-	case ScriptMultisig:
-		return 105 // P2WSH 2-of-3
-	case ScriptMultisigNested:
-		return 140 // P2SH-P2WSH 2-of-3
-	case ScriptMultisigP2SH:
-		return 297 // legacy P2SH 2-of-3
-	default: // native segwit
-		return 68
-	}
-}

@@ -145,7 +145,6 @@ func TestParseDescriptorForms(t *testing.T) {
 	}
 	mustKind(t, xpub, ScriptNativeSegwit) // bare key
 	mustKind(t, "pkh("+xpub+"/0/*)", ScriptLegacy)
-	mustKind(t, "wpkh("+xpub+"/1/*)", ScriptNativeSegwit)
 	mustKind(t, "sh(wpkh("+xpub+"/0/*))", ScriptNestedSegwit)
 	mustKind(t, "tr("+xpub+"/<0;1>/*)", ScriptTaproot)
 	mustKind(t, "wsh(sortedmulti(2,"+xpub+"/0/*,"+xpub+"/0/*))", ScriptMultisig)
@@ -155,6 +154,7 @@ func TestParseDescriptorForms(t *testing.T) {
 	// Rejections.
 	for _, bad := range []string{
 		"tr(" + xpub + ",{pk(" + xpub + ")})", // script tree
+		"wpkh(" + xpub + "/1/*)",              // change-only branch: derivation ignores it, receive addresses would be from chain 0
 		"wpkh(" + xpub + "/2/*)",              // non-standard branch
 		"wpkh(" + xpub + "/*)",                // branchless wildcard
 		"combo(" + xpub + ")",

@@ -346,6 +346,9 @@ func combinePSBT(base *psbt.Packet, others ...*psbt.Packet) error {
 					bi.PartialSigs = append(bi.PartialSigs, ps)
 				}
 			}
+			if bi.TaprootKeySpendSig == nil && len(oi.TaprootKeySpendSig) > 0 {
+				bi.TaprootKeySpendSig = oi.TaprootKeySpendSig
+			}
 		}
 	}
 	return nil

@@ -827,7 +827,7 @@ Future<void> bootBitwindowBackend(Logger log) async {
         log.w('STARTUP: L1 stack dispatch failed (non-fatal): $e');
       }
     }());
-  } else if (!needsBitcoinBackends) {
+  } else if (orchestratorReady && !needsBitcoinBackends) {
     log.i('STARTUP: active wallet is electrum; skipping L1 stack boot');
   }
 
