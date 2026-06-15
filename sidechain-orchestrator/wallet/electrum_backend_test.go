@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"sync"
+	"sync/atomic"
 	"testing"
 
 	"github.com/btcsuite/btcd/btcutil/hdkeychain"
@@ -731,4 +732,50 @@ func TestEstimateFeeSatsByScriptKind(t *testing.T) {
 	assert.Equal(t, int64(282), estimateFeeSats(1, 2, 2, ScriptNativeSegwit)) // 11+68+62 = 141 vB
 	assert.Equal(t, int64(442), estimateFeeSats(1, 2, 2, ScriptLegacy))       // 11+148+62 = 221 vB
 	assert.Greater(t, estimateFeeSats(1, 2, 2, ScriptLegacy), estimateFeeSats(1, 2, 2, ScriptTaproot))
+}
+
+// countingEsplora wraps an Esplora and counts AddressStats calls, to prove a
+// cold-boot scan is served from the persisted cache with no network.
+type countingEsplora struct {
+	Esplora
+	statsCalls int32
+}
+
+func (c *countingEsplora) AddressStats(ctx context.Context, address string) (EsploraAddressStats, error) {
+	atomic.AddInt32(&c.statsCalls, 1)
+	return c.Esplora.AddressStats(ctx, address)
+}
+
+// TestElectrumScanPersistsAcrossRestart: a live scan persists to disk, and a
+// fresh backend on the same datadir (a simulated restart) rebuilds the balance
+// from the cache without querying Esplora.
+func TestElectrumScanPersistsAcrossRestart(t *testing.T) {
+	p, fake, w, addr := newElectrumFixture(t)
+	ctx := context.Background()
+
+	fake.stats[addr] = EsploraAddressStats{
+		Address:    addr,
+		ChainStats: EsploraTxoStats{FundedTxoCount: 1, FundedTxoSum: 250_000, TxCount: 1},
+	}
+
+	confirmed, _, err := p.Balance(ctx, w.ID) // live scan → persists to disk
+	require.NoError(t, err)
+	require.InDelta(t, 0.0025, confirmed, 1e-9)
+
+	// Simulated restart: a new backend on the same Service, backed by an Esplora
+	// with no data that counts every AddressStats call.
+	counting := &countingEsplora{Esplora: newFakeEsplora()}
+	p2 := NewElectrumBackend(p.svc, counting, &chaincfg.SigNetParams, zerolog.New(zerolog.NewTestWriter(t)))
+
+	confirmed2, _, err := p2.Balance(ctx, w.ID)
+	require.NoError(t, err)
+	assert.InDelta(t, 0.0025, confirmed2, 1e-9, "cold boot returns the cached balance")
+	assert.Zero(t, atomic.LoadInt32(&counting.statsCalls), "cold boot must not query Esplora")
+
+	// The next call this session is live again: the empty backend now re-scans
+	// and sees no funds.
+	confirmed3, _, err := p2.Balance(ctx, w.ID)
+	require.NoError(t, err)
+	assert.Zero(t, confirmed3, "second call re-scans live")
+	assert.Positive(t, atomic.LoadInt32(&counting.statsCalls), "second call queries Esplora")
 }
