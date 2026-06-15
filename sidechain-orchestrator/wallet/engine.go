@@ -73,6 +73,26 @@ func (e *WalletEngine) CreatePSBT(ctx context.Context, walletID string, req Send
 	return eb.CreatePSBT(ctx, walletID, req)
 }
 
+// WatchSync subscribes to an electrum wallet's scan progress; the returned func
+// cancels the subscription.
+func (e *WalletEngine) WatchSync(walletID string) (<-chan SyncProgress, func(), error) {
+	eb, err := e.electrumBackend()
+	if err != nil {
+		return nil, nil, err
+	}
+	ch, cancel := eb.WatchSync(walletID)
+	return ch, cancel, nil
+}
+
+// SyncSnapshot returns an electrum wallet's latest scan progress.
+func (e *WalletEngine) SyncSnapshot(walletID string) (SyncProgress, error) {
+	eb, err := e.electrumBackend()
+	if err != nil {
+		return SyncProgress{}, err
+	}
+	return eb.SyncSnapshot(walletID), nil
+}
+
 // SignPSBT adds an electrum wallet's signatures to a base64 PSBT.
 func (e *WalletEngine) SignPSBT(ctx context.Context, walletID, psbtBase64 string) (string, error) {
 	eb, err := e.electrumBackend()

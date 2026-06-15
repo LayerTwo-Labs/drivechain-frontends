@@ -894,6 +894,55 @@ func (h *WalletHandler) GetWalletSeed(ctx context.Context, req *connect.Request[
 // Watch Wallet Data (server-streaming)
 // ============================================================================
 
+// WatchWalletSync streams an electrum wallet's scan progress until the client
+// disconnects, so the GUI can show what syncing is doing.
+func (h *WalletHandler) WatchWalletSync(ctx context.Context, req *connect.Request[pb.WatchWalletSyncRequest], stream *connect.ServerStream[pb.WalletSyncProgress]) error {
+	if err := h.requireEngine(); err != nil {
+		return connect.NewError(connect.CodeFailedPrecondition, err)
+	}
+	walletID, err := h.engine.ResolveWalletID(req.Msg.WalletId)
+	if err != nil {
+		return connect.NewError(connect.CodeInvalidArgument, err)
+	}
+	ch, cancel, err := h.engine.WatchSync(walletID)
+	if err != nil {
+		return connect.NewError(connect.CodeFailedPrecondition, err)
+	}
+	defer cancel()
+
+	// Send the current state immediately so a fresh subscriber isn't blank.
+	if snap, err := h.engine.SyncSnapshot(walletID); err == nil {
+		if err := stream.Send(syncProgressProto(snap)); err != nil {
+			return err
+		}
+	}
+
+	for {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case pg, ok := <-ch:
+			if !ok {
+				return nil
+			}
+			if err := stream.Send(syncProgressProto(pg)); err != nil {
+				return err
+			}
+		}
+	}
+}
+
+func syncProgressProto(p wallet.SyncProgress) *pb.WalletSyncProgress {
+	return &pb.WalletSyncProgress{
+		Scanning:         p.Scanning,
+		Phase:            string(p.Phase),
+		Chain:            p.Chain,
+		AddressesScanned: int32(p.Scanned),
+		UsedFound:        int32(p.Found),
+		Message:          p.Message,
+	}
+}
+
 func (h *WalletHandler) WatchWalletData(ctx context.Context, req *connect.Request[emptypb.Empty], stream *connect.ServerStream[pb.WatchWalletDataResponse]) error {
 	var seq int64
 
