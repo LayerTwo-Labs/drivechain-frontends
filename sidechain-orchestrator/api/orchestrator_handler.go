@@ -353,10 +353,19 @@ func (h *Handler) GetSyncStatus(ctx context.Context, req *connect.Request[pb.Get
 			Sync: chainSyncToProto(cs),
 		})
 	}
+	// Surface the active electrum wallet's scan progress (empty unless scanning).
+	walletSyncStatus := ""
+	if h.orch.WalletSvc != nil {
+		if snap := h.orch.WalletSvc.ActiveSyncStatus(); snap.Scanning {
+			walletSyncStatus = snap.Message
+		}
+	}
+
 	return connect.NewResponse(&pb.GetSyncStatusResponse{
-		Mainchain:  chainSyncToProto(s.Mainchain),
-		Enforcer:   chainSyncToProto(s.Enforcer),
-		Sidechains: sidechains,
+		Mainchain:        chainSyncToProto(s.Mainchain),
+		Enforcer:         chainSyncToProto(s.Enforcer),
+		Sidechains:       sidechains,
+		WalletSyncStatus: walletSyncStatus,
 	}), nil
 }
 

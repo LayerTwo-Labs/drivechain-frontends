@@ -52,10 +52,6 @@ service WalletManagerService {
   rpc CombinePsbt(CombinePsbtRequest) returns (CombinePsbtResponse);
   rpc FinalizePsbt(FinalizePsbtRequest) returns (FinalizePsbtResponse);
 
-  // Stream an electrum wallet's scan progress (which chain, addresses checked,
-  // used found) so the GUI can show what syncing is doing. Electrum wallets only.
-  rpc WatchWalletSync(WatchWalletSyncRequest) returns (stream WalletSyncProgress);
-
   // Seed access for cheque engine
   rpc GetWalletSeed(GetWalletSeedRequest) returns (GetWalletSeedResponse);
 
@@ -414,19 +410,7 @@ message FinalizePsbtResponse {
   string raw_tx_hex = 1;
 }
 
-message WatchWalletSyncRequest {
-  string wallet_id = 1;
-}
 
-// WalletSyncProgress describes what an electrum wallet's scan is doing right now.
-message WalletSyncProgress {
-  bool scanning = 1;         // a scan is in progress
-  string phase = 2;          // idle | scanning | done
-  string chain = 3;          // external | change while scanning
-  int32 addresses_scanned = 4;
-  int32 used_found = 5;
-  string message = 6;        // human-readable description
-}
 
 message ListTransactionsRequest {
   string wallet_id = 1;

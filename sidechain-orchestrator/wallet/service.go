@@ -57,6 +57,9 @@ type Service struct {
 	// e.g. multiple WatchWalletData streams would steal each other's events.
 	subsMu sync.Mutex
 	subs   map[chan struct{}]struct{}
+
+	// Electrum scan progress, surfaced to the GUI via GetSyncStatus.
+	syncReporter *syncReporter
 }
 
 // NewService creates a new wallet service.
@@ -66,7 +69,18 @@ func NewService(bitwindowDir string, log zerolog.Logger) *Service {
 		log:          log.With().Str("component", "wallet").Logger(),
 		done:         make(chan struct{}),
 		subs:         make(map[chan struct{}]struct{}),
+		syncReporter: newSyncReporter(),
 	}
+}
+
+// SyncSnapshot returns the latest electrum scan progress for a wallet.
+func (s *Service) SyncSnapshot(walletID string) SyncProgress {
+	return s.syncReporter.snapshot(walletID)
+}
+
+// ActiveSyncStatus returns the active wallet's scan progress, for GetSyncStatus.
+func (s *Service) ActiveSyncStatus() SyncProgress {
+	return s.syncReporter.snapshot(s.ActiveWalletID())
 }
 
 // Subscribe returns a per-caller channel that receives a notification every
