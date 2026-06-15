@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"math"
 
+	"github.com/btcsuite/btcd/btcec/v2"
 	"github.com/btcsuite/btcd/btcec/v2/schnorr"
 	"github.com/btcsuite/btcd/btcutil"
 	"github.com/btcsuite/btcd/btcutil/psbt"
@@ -21,6 +22,47 @@ type psbtInput struct {
 	outpoint wire.OutPoint
 	amount   int64
 	addr     scannedAddr
+}
+
+// keyDerivation is a PSBT BIP32/taproot derivation record: a pubkey, the master
+// key fingerprint, and the full path to it, so an external signer (Sparrow,
+// hardware) can match the key it holds to this input or output.
+type keyDerivation struct {
+	pub         *btcec.PublicKey
+	fingerprint uint32
+	path        []uint32
+}
+
+// addBip32Derivations writes a script kind's derivation records onto a PSBT
+// input or output; taproot uses the dedicated taproot field. Exactly one of
+// in/out is non-nil.
+func addBip32Derivations(in *psbt.PInput, out *psbt.POutput, kind ScriptKind, ds []keyDerivation) {
+	for _, kd := range ds {
+		if kind == ScriptTaproot {
+			tap := &psbt.TaprootBip32Derivation{
+				XOnlyPubKey:          schnorr.SerializePubKey(kd.pub),
+				LeafHashes:           [][]byte{},
+				MasterKeyFingerprint: kd.fingerprint,
+				Bip32Path:            kd.path,
+			}
+			if in != nil {
+				in.TaprootBip32Derivation = append(in.TaprootBip32Derivation, tap)
+			} else {
+				out.TaprootBip32Derivation = append(out.TaprootBip32Derivation, tap)
+			}
+			continue
+		}
+		bip32 := &psbt.Bip32Derivation{
+			PubKey:               kd.pub.SerializeCompressed(),
+			MasterKeyFingerprint: kd.fingerprint,
+			Bip32Path:            kd.path,
+		}
+		if in != nil {
+			in.Bip32Derivation = append(in.Bip32Derivation, bip32)
+		} else {
+			out.Bip32Derivation = append(out.Bip32Derivation, bip32)
+		}
+	}
 }
 
 // prevTxFunc fetches a previous transaction by txid — needed to populate the
@@ -85,6 +127,12 @@ func buildPSBT(inputs []psbtInput, outputs []TxOutSpec, net *chaincfg.Params, pr
 		} else if err := updater.AddInSighashType(txscript.SigHashAll, i); err != nil {
 			return nil, err
 		}
+		addBip32Derivations(&packet.Inputs[i], nil, in.addr.kind, in.addr.derivations)
+	}
+
+	// Mark owned change outputs so a signer can verify them as its own.
+	for i, out := range outputs {
+		addBip32Derivations(nil, &packet.Outputs[i], out.Kind, out.Derivations)
 	}
 	return packet, nil
 }

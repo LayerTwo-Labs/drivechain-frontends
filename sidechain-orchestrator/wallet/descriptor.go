@@ -1,6 +1,7 @@
 package wallet
 
 import (
+	"encoding/binary"
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -8,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/btcsuite/btcd/btcec/v2"
+	"github.com/btcsuite/btcd/btcutil"
 	"github.com/btcsuite/btcd/btcutil/hdkeychain"
 	"github.com/btcsuite/btcd/chaincfg"
 )
@@ -241,6 +243,76 @@ func (d *Descriptor) DeriveScript(change bool, index uint32, net *chaincfg.Param
 }
 
 // deriveChildPub derives account/chain/index and returns the child public key.
+// derivations returns the PSBT key-derivation records for the address at
+// (change, index): one per descriptor key, each with the child pubkey, master
+// fingerprint, and full path. Keys with no parseable origin fall back to the
+// account key's own fingerprint and a path of just [chain, index].
+func (d *Descriptor) derivations(change bool, index uint32) ([]keyDerivation, error) {
+	chain := chainIndex(change)
+	out := make([]keyDerivation, 0, len(d.Keys))
+	for _, k := range d.Keys {
+		pub, err := deriveChildPub(k.Account, chain, index)
+		if err != nil {
+			return nil, err
+		}
+		fp, path, ok := parseOrigin(k.Origin)
+		if ok {
+			path = append(path, chain, index)
+		} else {
+			fp = keyFingerprint(k.Account)
+			path = []uint32{chain, index}
+		}
+		out = append(out, keyDerivation{pub: pub, fingerprint: fp, path: path})
+	}
+	return out, nil
+}
+
+// parseOrigin parses a descriptor key origin "fingerprint/path", e.g.
+// "abcd1234/84h/0h/0h", into the master fingerprint (as the little-endian uint32
+// the PSBT layer serializes) and the hardened-aware account path.
+func parseOrigin(origin string) (uint32, []uint32, bool) {
+	if origin == "" {
+		return 0, nil, false
+	}
+	parts := strings.Split(origin, "/")
+	fpBytes, err := hex.DecodeString(parts[0])
+	if err != nil || len(fpBytes) != 4 {
+		return 0, nil, false
+	}
+	path := make([]uint32, 0, len(parts)-1)
+	for _, seg := range parts[1:] {
+		if seg == "" {
+			continue
+		}
+		hardened := false
+		if s := seg[len(seg)-1]; s == 'h' || s == 'H' || s == '\'' {
+			hardened = true
+			seg = seg[:len(seg)-1]
+		}
+		n, err := strconv.ParseUint(seg, 10, 32)
+		if err != nil {
+			return 0, nil, false
+		}
+		v := uint32(n)
+		if hardened {
+			v += hdkeychain.HardenedKeyStart
+		}
+		path = append(path, v)
+	}
+	return binary.LittleEndian.Uint32(fpBytes), path, true
+}
+
+// keyFingerprint computes an extended key's own fingerprint (hash160 of its
+// compressed pubkey, first 4 bytes) as the little-endian uint32 the PSBT layer
+// serializes. Used as the master fingerprint when a key carries no origin.
+func keyFingerprint(key *hdkeychain.ExtendedKey) uint32 {
+	pub, err := key.ECPubKey()
+	if err != nil {
+		return 0
+	}
+	return binary.LittleEndian.Uint32(btcutil.Hash160(pub.SerializeCompressed())[:4])
+}
+
 func deriveChildPub(account *hdkeychain.ExtendedKey, chain, index uint32) (*btcec.PublicKey, error) {
 	child, err := deriveChild(account, chain, index)
 	if err != nil {

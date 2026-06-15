@@ -2,15 +2,19 @@ package wallet
 
 import (
 	"bytes"
+	"encoding/binary"
 	"encoding/hex"
+	"fmt"
 	"testing"
 
 	"github.com/btcsuite/btcd/btcec/v2"
+	"github.com/btcsuite/btcd/btcec/v2/schnorr"
 	"github.com/btcsuite/btcd/btcutil/hdkeychain"
 	"github.com/btcsuite/btcd/btcutil/psbt"
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/btcsuite/btcd/txscript"
 	"github.com/btcsuite/btcd/wire"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -156,4 +160,78 @@ func TestPSBTMultisig2of3SignCombineFinalize(t *testing.T) {
 	vm, err := txscript.NewEngine(ds.scriptPubKey, &final, 0, txscript.StandardVerifyFlags, nil, sigHashes, amount, fetcher)
 	require.NoError(t, err)
 	require.NoError(t, vm.Execute(), "2-of-3 multisig spend must verify")
+}
+
+// TestPSBTBip32Derivations: the PSBT carries per-input (and change-output)
+// BIP32/taproot derivation records — master fingerprint, full path, pubkey —
+// so an external signer (Sparrow/hardware) can match its keys. Asserts they
+// survive a serialize→reparse round-trip with the correct little-endian
+// fingerprint and hardened path.
+func TestPSBTBip32Derivations(t *testing.T) {
+	seedHex := hex.EncodeToString(MnemonicToSeed(testMnemonic, ""))
+	net := &chaincfg.SigNetParams
+	const amount = int64(100_000)
+	const dest = "tb1qw508d6qejxtdg4y5r3zarvary0c5xw7kxpjzsx"
+	hard := uint32(hdkeychain.HardenedKeyStart)
+	wantFp := binary.LittleEndian.Uint32([]byte{0xab, 0xcd, 0x12, 0x34})
+
+	for _, tc := range []struct {
+		kind    ScriptKind
+		purpose uint32
+	}{
+		{ScriptNativeSegwit, 84},
+		{ScriptTaproot, 86},
+	} {
+		t.Run(tc.kind.String(), func(t *testing.T) {
+			acct, err := accountKeyFromSeed(seedHex, tc.kind, net)
+			require.NoError(t, err)
+			origin := fmt.Sprintf("abcd1234/%dh/1h/0h", tc.purpose)
+			d := &Descriptor{Kind: tc.kind, Threshold: 1, Keys: []DescriptorKey{{Origin: origin, Account: acct}}}
+
+			ds, _, err := d.DeriveScript(false, 3, net)
+			require.NoError(t, err)
+			derivs, err := d.derivations(false, 3)
+			require.NoError(t, err)
+			childPub, err := deriveChildPub(acct, 0, 3)
+			require.NoError(t, err)
+
+			prevTx := wire.NewMsgTx(2)
+			prevTx.AddTxIn(wire.NewTxIn(&wire.OutPoint{Index: 0xffffffff}, []byte{0x00}, nil))
+			prevTx.AddTxOut(wire.NewTxOut(amount, ds.scriptPubKey))
+			in := psbtInput{
+				outpoint: wire.OutPoint{Hash: prevTx.TxHash(), Index: 0},
+				amount:   amount,
+				addr: scannedAddr{
+					address: ds.address.EncodeAddress(), pub: childPub,
+					scriptPubKey: ds.scriptPubKey, tapInternal: ds.tapInternal,
+					kind: tc.kind, derivations: derivs,
+				},
+			}
+			out := TxOutSpec{Address: dest, AmountBTC: float64(amount-1000) / 1e8}
+
+			packet, err := buildPSBT([]psbtInput{in}, []TxOutSpec{out}, net,
+				func(string) (*wire.MsgTx, error) { return prevTx, nil })
+			require.NoError(t, err)
+
+			var buf bytes.Buffer
+			require.NoError(t, packet.Serialize(&buf))
+			parsed, err := psbt.NewFromRawBytes(&buf, false)
+			require.NoError(t, err)
+
+			wantPath := []uint32{tc.purpose + hard, 1 + hard, 0 + hard, 0, 3}
+			if tc.kind == ScriptTaproot {
+				require.Len(t, parsed.Inputs[0].TaprootBip32Derivation, 1)
+				der := parsed.Inputs[0].TaprootBip32Derivation[0]
+				assert.Equal(t, wantFp, der.MasterKeyFingerprint)
+				assert.Equal(t, wantPath, der.Bip32Path)
+				assert.Equal(t, schnorr.SerializePubKey(childPub), der.XOnlyPubKey)
+			} else {
+				require.Len(t, parsed.Inputs[0].Bip32Derivation, 1)
+				der := parsed.Inputs[0].Bip32Derivation[0]
+				assert.Equal(t, wantFp, der.MasterKeyFingerprint)
+				assert.Equal(t, wantPath, der.Bip32Path)
+				assert.Equal(t, childPub.SerializeCompressed(), der.PubKey)
+			}
+		})
+	}
 }
