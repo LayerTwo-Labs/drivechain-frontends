@@ -338,6 +338,10 @@ message GetSyncStatusResponse {
   // sidechain is downloading, its sync.is_downloading is true and
   // blocks/headers are MB downloaded / MB total.
   repeated SidechainStatus sidechains = 3;
+  // Non-empty while the active electrum wallet is scanning, e.g.
+  // "Scanning external addresses — 12 checked, 3 used". The bottom-nav sync
+  // display shows it alongside daemon sync status.
+  string wallet_sync_status = 4;
 }
 
 // SidechainType keeps the response strongly-typed so callers don't have to

@@ -48,7 +48,6 @@ type ElectrumBackend struct {
 	watchKeys map[string][]WatchKey // walletID -> extra keys to track
 	warm      map[string]bool       // walletID -> a live scan has run this process
 	lastScan  map[string][]byte     // walletID -> last persisted scan bytes (skip rewrites)
-	sync      *syncReporter         // surfaces scan progress to the GUI
 }
 
 var _ Backend = (*ElectrumBackend)(nil)
@@ -63,18 +62,7 @@ func NewElectrumBackend(svc *Service, client Esplora, network *chaincfg.Params, 
 		watchKeys: make(map[string][]WatchKey),
 		warm:      make(map[string]bool),
 		lastScan:  make(map[string][]byte),
-		sync:      newSyncReporter(),
 	}
-}
-
-// WatchSync subscribes to a wallet's scan progress; the returned func cancels.
-func (p *ElectrumBackend) WatchSync(walletID string) (<-chan SyncProgress, func()) {
-	return p.sync.subscribe(walletID)
-}
-
-// SyncSnapshot returns a wallet's latest scan progress.
-func (p *ElectrumBackend) SyncSnapshot(walletID string) SyncProgress {
-	return p.sync.snapshot(walletID)
 }
 
 // scannedAddr is one derived (or watched) address with its key and current
@@ -918,7 +906,7 @@ func (p *ElectrumBackend) scanWallet(ctx context.Context, walletID string) (*ele
 	}
 	scan.watchOnly = watchOnly
 	chainNames := []string{"external", "change"}
-	defer p.sync.publish(walletID, SyncProgress{Phase: SyncIdle, Message: "Idle"})
+	defer p.svc.syncReporter.publish(walletID, SyncProgress{Phase: SyncIdle, Message: "Idle"})
 	for i, d := range derivers {
 		chain := "external"
 		if i < len(chainNames) {
@@ -930,7 +918,7 @@ func (p *ElectrumBackend) scanWallet(ctx context.Context, walletID string) (*ele
 		}
 		scan.addrs = append(scan.addrs, addrs...)
 	}
-	p.sync.publish(walletID, SyncProgress{Phase: SyncDone, Message: "Up to date"})
+	p.svc.syncReporter.publish(walletID, SyncProgress{Phase: SyncDone, Message: "Up to date"})
 
 	p.mu.Lock()
 	watch := append([]WatchKey(nil), p.watchKeys[walletID]...)
@@ -1059,7 +1047,7 @@ func (p *ElectrumBackend) scanChain(ctx context.Context, walletID, chain string,
 	consecutiveUnused := 0
 	found := 0
 	for i := uint32(0); consecutiveUnused < electrumGapLimit && i < electrumMaxScan; i++ {
-		p.sync.publish(walletID, scanProgress(chain, len(out), found))
+		p.svc.syncReporter.publish(walletID, scanProgress(chain, len(out), found))
 		a, err := derive(i)
 		if err != nil {
 			return nil, err
