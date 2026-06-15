@@ -779,3 +779,48 @@ func TestElectrumScanPersistsAcrossRestart(t *testing.T) {
 	assert.Zero(t, confirmed3, "second call re-scans live")
 	assert.Positive(t, atomic.LoadInt32(&counting.statsCalls), "second call queries Esplora")
 }
+
+// TestElectrumScanReportsProgress: a scan publishes descriptive progress — which
+// chain it's walking, how many addresses checked/used — and a terminal state.
+func TestElectrumScanReportsProgress(t *testing.T) {
+	p, fake, w, addr := newElectrumFixture(t)
+	ctx := context.Background()
+	fake.stats[addr] = EsploraAddressStats{
+		Address:    addr,
+		ChainStats: EsploraTxoStats{FundedTxoCount: 1, FundedTxoSum: 100_000, TxCount: 1},
+	}
+
+	ch, cancel := p.WatchSync(w.ID)
+	var frames []SyncProgress
+	done := make(chan struct{})
+	go func() {
+		for pg := range ch {
+			frames = append(frames, pg)
+		}
+		close(done)
+	}()
+
+	_, _, err := p.Balance(ctx, w.ID) // live scan → publishes progress
+	require.NoError(t, err)
+	cancel()
+	<-done
+
+	var sawExternal, sawChange, sawDone bool
+	for _, f := range frames {
+		if f.Phase == SyncScanning && f.Chain == "external" {
+			sawExternal = true
+			assert.Contains(t, f.Message, "Scanning external addresses")
+		}
+		if f.Phase == SyncScanning && f.Chain == "change" {
+			sawChange = true
+		}
+		if f.Phase == SyncDone {
+			sawDone = true
+			assert.Equal(t, "Up to date", f.Message)
+		}
+	}
+	assert.True(t, sawExternal, "reports scanning the external chain")
+	assert.True(t, sawChange, "reports scanning the change chain")
+	assert.True(t, sawDone, "reports a terminal done")
+	assert.Equal(t, SyncIdle, p.SyncSnapshot(w.ID).Phase, "settles to idle")
+}
