@@ -481,7 +481,7 @@ func TestService_CreateTopic(t *testing.T) {
 func TestService_ListTopics(t *testing.T) {
 	t.Parallel()
 
-	t.Run("list empty topics", func(t *testing.T) {
+	t.Run("list default topics", func(t *testing.T) {
 		t.Parallel()
 
 		database := database.Test(t)
@@ -489,7 +489,10 @@ func TestService_ListTopics(t *testing.T) {
 
 		resp, err := cli.ListTopics(context.Background(), connect.NewRequest(&emptypb.Empty{}))
 		require.NoError(t, err)
-		require.Empty(t, resp.Msg.Topics)
+		// A fresh DB ships the two bootstrap default topics.
+		require.Len(t, resp.Msg.Topics, 2)
+		assert.True(t, lo.ContainsBy(resp.Msg.Topics, func(tp *miscv1.Topic) bool { return tp.Name == "US Weekly" }))
+		assert.True(t, lo.ContainsBy(resp.Msg.Topics, func(tp *miscv1.Topic) bool { return tp.Name == "Japan Weekly" }))
 	})
 
 	t.Run("list topics with data", func(t *testing.T) {
@@ -506,7 +509,7 @@ func TestService_ListTopics(t *testing.T) {
 
 		resp, err := cli.ListTopics(context.Background(), connect.NewRequest(&emptypb.Empty{}))
 		require.NoError(t, err)
-		require.Len(t, resp.Msg.Topics, 2)
+		require.Len(t, resp.Msg.Topics, 4) // 2 seeded + 2 bootstrap defaults
 
 		assert.True(t, lo.ContainsBy(resp.Msg.Topics, func(topic *miscv1.Topic) bool {
 			return topic.Topic == topicID1.String()
