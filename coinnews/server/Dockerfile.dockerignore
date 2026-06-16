@@ -1,0 +1,9 @@
+# BuildKit prefers `<dockerfile>.dockerignore` over the context-root
+# `.dockerignore`. The root one excludes `server` and `codec` (it's
+# tuned for the frontend image). This one keeps exactly those two and
+# drops everything else, plus any local build artifacts inside them.
+*
+!codec
+!server
+server/coinnewsd
+**/*.db
