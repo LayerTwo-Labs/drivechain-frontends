@@ -64,12 +64,14 @@ class WalletWriterProvider extends ChangeNotifier {
 
   /// Creates a Bitcoin Core wallet. With no [customMnemonic] the backend
   /// generates a fresh seed; [customMnemonic] imports an existing one.
+  /// [passphrase] is the optional BIP39 passphrase applied to the seed.
   Future<void> createBitcoinCoreWallet({
     required String name,
     required WalletGradient gradient,
     String? customMnemonic,
+    String? passphrase,
   }) async {
-    final result = await generateWallet(name: name, customMnemonic: customMnemonic);
+    final result = await generateWallet(name: name, customMnemonic: customMnemonic, passphrase: passphrase);
     final walletId = result['wallet_id'] as String?;
     if (walletId != null) {
       await updateWalletMetadata(walletId, name, gradient);

@@ -778,7 +778,7 @@ class _SailCreateWalletPageState extends State<SailCreateWalletPage> {
                     const SailSpacing(SailStyleValues.padding08),
                     SailDropdownButton<InitialWalletProvider>(
                       value: _selectedProvider,
-                      items: InitialWalletProvider.values
+                      items: _availableProviders
                           .map(
                             (p) => SailDropdownItem<InitialWalletProvider>(
                               value: p,
@@ -993,6 +993,13 @@ class _SailCreateWalletPageState extends State<SailCreateWalletPage> {
 
   String get _defaultWalletName => '${_selectedProvider.label} Wallet';
 
+  /// Bitcoin Core can't be the first wallet: the backend forces the first (and
+  /// any no-enforcer) wallet to the enforcer type, so a Core choice would
+  /// silently create an enforcer wallet. Offer it only once a wallet exists.
+  List<InitialWalletProvider> get _availableProviders => hasExistingWallet
+      ? InitialWalletProvider.values
+      : InitialWalletProvider.values.where((p) => p != InitialWalletProvider.bitcoinCore).toList();
+
   /// Creates the first wallet of the chosen [InitialWalletProvider]. The seed
   /// always comes from the master flow — the backend generates it, or imports
   /// [customMnemonic] — so the user's backup is identical across providers.
@@ -1014,8 +1021,15 @@ class _SailCreateWalletPageState extends State<SailCreateWalletPage> {
           name: name,
           gradient: WalletGradient.fromWalletId(name),
           customMnemonic: customMnemonic,
+          passphrase: passphrase,
         );
       case InitialWalletProvider.electrum:
+        // The electrum create RPC carries no passphrase field, so importing a
+        // passphrase-protected seed would silently derive the wrong wallet.
+        // Refuse rather than create an unrecoverable wallet.
+        if (passphrase != null && passphrase.isNotEmpty) {
+          throw Exception('BIP39 passphrases are not yet supported for Electrum wallets');
+        }
         await _walletProvider.createElectrumWallet(
           name: name,
           gradient: WalletGradient.fromWalletId(name),
