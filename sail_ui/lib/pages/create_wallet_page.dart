@@ -40,8 +40,22 @@ class SailCreateWalletPage extends StatefulWidget {
 
 enum WelcomeScreen { initial, restore, advanced, success }
 
+/// Which backend serves the first wallet. The seed comes from the same master
+/// flow regardless; the provider only picks the wallet type and which backend
+/// serves chain data. Electrum needs no local Bitcoin Core or enforcer.
+enum InitialWalletProvider {
+  enforcer('Enforcer', 'Full drivechain node — runs Bitcoin Core and the enforcer locally'),
+  bitcoinCore('Bitcoin Core', 'Served by your local Bitcoin Core node'),
+  electrum('Electrum', 'Lightweight — chain data from a remote server, no local node');
+
+  const InitialWalletProvider(this.label, this.description);
+  final String label;
+  final String description;
+}
+
 class _SailCreateWalletPageState extends State<SailCreateWalletPage> {
   late WelcomeScreen _currentScreen;
+  InitialWalletProvider _selectedProvider = InitialWalletProvider.enforcer;
   final TextEditingController _mnemonicController = TextEditingController();
   final TextEditingController _passphraseController = TextEditingController();
   final TextEditingController _walletNameController = TextEditingController();
@@ -255,10 +269,15 @@ class _SailCreateWalletPageState extends State<SailCreateWalletPage> {
         return;
       }
 
+      // Derive the master seed from the entropy without committing it, then
+      // import the same mnemonic into the chosen provider's wallet.
       final wallet = await _walletProvider.generateWalletFromEntropy(
         entropy,
-        name: walletName.isEmpty ? 'Enforcer Wallet' : walletName,
-        passphrase: null,
+        doNotSave: true,
+      );
+      await _createForProvider(
+        name: walletName.isEmpty ? _defaultWalletName : walletName,
+        customMnemonic: wallet['mnemonic'] as String?,
       );
       _currentWalletData = Map<String, dynamic>.from(wallet);
       _isValidInput = true;
@@ -749,6 +768,33 @@ class _SailCreateWalletPageState extends State<SailCreateWalletPage> {
                   ),
                 ),
               ],
+              const SizedBox(height: 32),
+              SizedBox(
+                width: 400,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    SailText.primary13('Provider', bold: true),
+                    const SailSpacing(SailStyleValues.padding08),
+                    SailDropdownButton<InitialWalletProvider>(
+                      value: _selectedProvider,
+                      items: InitialWalletProvider.values
+                          .map(
+                            (p) => SailDropdownItem<InitialWalletProvider>(
+                              value: p,
+                              label: p.label,
+                            ),
+                          )
+                          .toList(),
+                      onChanged: (p) {
+                        if (p != null) setState(() => _selectedProvider = p);
+                      },
+                    ),
+                    const SailSpacing(4),
+                    SailText.secondary12(_selectedProvider.description),
+                  ],
+                ),
+              ),
               Spacer(),
               SizedBox(
                 width: 400,
@@ -945,6 +991,39 @@ class _SailCreateWalletPageState extends State<SailCreateWalletPage> {
     );
   }
 
+  String get _defaultWalletName => '${_selectedProvider.label} Wallet';
+
+  /// Creates the first wallet of the chosen [InitialWalletProvider]. The seed
+  /// always comes from the master flow — the backend generates it, or imports
+  /// [customMnemonic] — so the user's backup is identical across providers.
+  /// The provider only selects the wallet type and chain-data backend.
+  Future<void> _createForProvider({
+    required String name,
+    String? customMnemonic,
+    String? passphrase,
+  }) async {
+    switch (_selectedProvider) {
+      case InitialWalletProvider.enforcer:
+        await _walletProvider.generateWallet(
+          name: name,
+          customMnemonic: customMnemonic,
+          passphrase: passphrase,
+        );
+      case InitialWalletProvider.bitcoinCore:
+        await _walletProvider.createBitcoinCoreWallet(
+          name: name,
+          gradient: WalletGradient.fromWalletId(name),
+          customMnemonic: customMnemonic,
+        );
+      case InitialWalletProvider.electrum:
+        await _walletProvider.createElectrumWallet(
+          name: name,
+          gradient: WalletGradient.fromWalletId(name),
+          customMnemonic: customMnemonic,
+        );
+    }
+  }
+
   Future<void> _handleFastMode() async {
     if (mounted) setState(() => _error = null);
     try {
@@ -966,9 +1045,9 @@ class _SailCreateWalletPageState extends State<SailCreateWalletPage> {
         return;
       }
 
-      final finalWalletName = walletName.isEmpty ? 'Enforcer Wallet' : walletName;
+      final finalWalletName = walletName.isEmpty ? _defaultWalletName : walletName;
 
-      await _walletProvider.generateWallet(name: finalWalletName);
+      await _createForProvider(name: finalWalletName);
       if (mounted) {
         _setScreen(WelcomeScreen.success);
       }
@@ -1006,9 +1085,9 @@ class _SailCreateWalletPageState extends State<SailCreateWalletPage> {
     }
 
     try {
-      final finalWalletName = walletName.isEmpty ? 'Enforcer Wallet' : walletName;
+      final finalWalletName = walletName.isEmpty ? _defaultWalletName : walletName;
 
-      await _walletProvider.generateWallet(
+      await _createForProvider(
         name: finalWalletName,
         customMnemonic: _mnemonicController.text,
         passphrase: _passphraseController.text.isNotEmpty ? _passphraseController.text : null,
