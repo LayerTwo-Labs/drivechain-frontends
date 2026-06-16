@@ -12,6 +12,7 @@ import (
 	"database/sql"
 	"encoding/hex"
 	"fmt"
+	"strings"
 	"testing"
 	"time"
 
@@ -106,6 +107,53 @@ func seedVote(
 		TypeTag: kind,
 		Msg:     &codec.Vote{Kind: kind, Target: target, AuthorXPK: xpk},
 	}))
+}
+
+// TestListCoinNews_ReassemblesContinuationBody proves spec §9: a head
+// Story with no in-line body plus Continuation chunks carrying a long
+// body TLV is rendered with the full reassembled body.
+func TestListCoinNews_ReassemblesContinuationBody(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	topic := mustTopicID(t, "a1a1a1a1")
+	db := database.Test(t)
+	seedCurrentTopic(t, ctx, db, topic, "Topic", 0, 99)
+	// Head story: headline only, no body.
+	seedCurrentNews(t, ctx, db, topic, "Headline", "", "story1", 0, 100, time.Now())
+
+	var itemID []byte
+	require.NoError(t, db.QueryRowContext(ctx, `SELECT item_id FROM cn_stories`).Scan(&itemID))
+	var head codec.ItemID
+	copy(head[:], itemID)
+
+	longBody := strings.Repeat("the full body that did not fit in eighty bytes. ", 4)
+	tlvBytes, err := codec.SerialiseTLVs([]codec.TLV{{Tag: codec.TLVBody, Value: []byte(longBody)}})
+	require.NoError(t, err)
+
+	// Split into ≤63-byte chunks, indexed in seq order, same block as
+	// the head, at increasing scan positions.
+	for seq, off := 0, 0; off < len(tlvBytes); seq, off = seq+1, off+codec.ContinuationChunk {
+		end := off + codec.ContinuationChunk
+		if end > len(tlvBytes) {
+			end = len(tlvBytes)
+		}
+		require.NoError(t, cnstore.Index(ctx, db, cnstore.IndexEnv{
+			Pos: cnstore.BlockPos{
+				BlockHeight: 100,
+				TxIndex:     0,
+				VoutIndex:   uint32(seq + 1),
+				BlockTime:   time.Now(),
+				TxID:        fmt.Sprintf("%064x", 5000+seq),
+			},
+			TypeTag: codec.TypeContinuation,
+			Msg:     &codec.Continuation{Head: head, Seq: byte(seq), Chunk: tlvBytes[off:end]},
+		}))
+	}
+
+	news, err := ListCoinNews(ctx, db)
+	require.NoError(t, err)
+	require.Len(t, news, 1)
+	assert.Equal(t, longBody, news[0].Content, "continuation chunks reassemble into the full body")
 }
 
 // TestListCoinNews_CountsUpvotes proves upvotes (kind=4) are tallied per

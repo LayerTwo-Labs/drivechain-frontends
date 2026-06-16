@@ -84,15 +84,49 @@ func (p *Parser) indexCoinNewsPayload(ctx context.Context, data []byte, pos cnst
 		return nil
 	}
 
+	self := cnstore.ItemRef{BlockHeight: pos.BlockHeight, TxIndex: pos.TxIndex, VoutIndex: pos.VoutIndex}
+
 	switch m := msg.(type) {
 	case *codec.Comment:
 		if err := codec.VerifyComment(m); err != nil {
 			dropMsg(ctx, pos, "comment sig invalid", err)
 			return nil
 		}
+		// §7: drop Comments whose parent is unresolvable. §4.2: the
+		// parent must be earlier than the comment in scan order.
+		parent, ok, err := cnstore.ResolveItem(ctx, p.db, m.Parent)
+		if err != nil {
+			return err
+		}
+		if !ok || !parent.Before(self) {
+			dropMsg(ctx, pos, "comment parent unresolvable", nil)
+			return nil
+		}
 	case *codec.Vote:
 		if err := codec.VerifyVote(m); err != nil {
 			dropMsg(ctx, pos, "vote sig invalid", err)
+			return nil
+		}
+		// §8: drop Votes against an unresolvable target. §4.2: a vote
+		// against a same-tx target must sit at a higher vout_index —
+		// covered by requiring the target to be strictly earlier.
+		target, ok, err := cnstore.ResolveItem(ctx, p.db, m.Target)
+		if err != nil {
+			return err
+		}
+		if !ok || !target.Before(self) {
+			dropMsg(ctx, pos, "vote target unresolvable", nil)
+			return nil
+		}
+	case *codec.Continuation:
+		// §9: continuations live in the head's tx or a later tx in the
+		// same block, after the head in scan order.
+		head, ok, err := cnstore.ResolveItem(ctx, p.db, m.Head)
+		if err != nil {
+			return err
+		}
+		if !ok || head.BlockHeight != pos.BlockHeight || !head.Before(self) {
+			dropMsg(ctx, pos, "continuation head unresolvable", nil)
 			return nil
 		}
 	}

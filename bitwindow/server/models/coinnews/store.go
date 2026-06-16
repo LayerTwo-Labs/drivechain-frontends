@@ -36,12 +36,53 @@ type IndexEnv struct {
 	Msg     any // *codec.TopicCreation | *codec.Story | *codec.Comment | *codec.Vote | *codec.Continuation
 }
 
+// ItemRef is an indexed Item's canonical scan position (spec §4.2):
+// (block_height, tx_index, vout_index).
+type ItemRef struct {
+	BlockHeight uint32
+	TxIndex     uint32
+	VoutIndex   uint32
+}
+
+// Before reports whether a is strictly earlier than b in canonical scan
+// order. This is the spec's only notion of "earlier" (spec §4.2).
+func (a ItemRef) Before(b ItemRef) bool {
+	if a.BlockHeight != b.BlockHeight {
+		return a.BlockHeight < b.BlockHeight
+	}
+	if a.TxIndex != b.TxIndex {
+		return a.TxIndex < b.TxIndex
+	}
+	return a.VoutIndex < b.VoutIndex
+}
+
+// ResolveItem looks up an ItemID in the index (items_by_id, spec §4.1)
+// and returns its scan position plus whether it is present. References
+// to absent ItemIDs are unresolvable and the referring Message MUST be
+// dropped (spec §4.1, §7, §8).
+func ResolveItem(ctx context.Context, db *sql.DB, id codec.ItemID) (ItemRef, bool, error) {
+	var ref ItemRef
+	err := db.QueryRowContext(ctx,
+		`SELECT block_height, tx_index, vout_index FROM cn_items WHERE item_id = ?`,
+		id[:],
+	).Scan(&ref.BlockHeight, &ref.TxIndex, &ref.VoutIndex)
+	switch err {
+	case nil:
+		return ref, true, nil
+	case sql.ErrNoRows:
+		return ItemRef{}, false, nil
+	default:
+		return ItemRef{}, false, fmt.Errorf("coinnews: resolve item: %w", err)
+	}
+}
+
 // Index dispatches one decoded CoinNews Message into the right
 // table(s). Idempotent on `(txid, vout)` collisions: re-running over
 // the same block leaves the DB unchanged (engine resync safety).
 //
-// Caller MUST have already verified Comment and Vote signatures via
-// codec.VerifyComment / codec.VerifyVote — Index trusts what it gets.
+// Caller MUST have already verified Comment and Vote signatures, and
+// the resolvability of any parent/target/head reference (spec §4.1),
+// via the engine — Index trusts what it gets.
 func Index(ctx context.Context, db *sql.DB, env IndexEnv) error {
 	tx, err := db.BeginTx(ctx, nil)
 	if err != nil {
@@ -179,13 +220,83 @@ func indexVote(ctx context.Context, tx *sql.Tx, pos BlockPos, v *codec.Vote) err
 func indexContinuation(ctx context.Context, tx *sql.Tx, pos BlockPos, c *codec.Continuation) error {
 	_, err := tx.ExecContext(ctx, `
 		INSERT OR IGNORE INTO cn_continuations
-			(head_id, seq, chunk, block_height)
-		VALUES (?, ?, ?, ?)
-	`, c.Head[:], c.Seq, c.Chunk, pos.BlockHeight)
+			(head_id, seq, chunk, block_height, tx_index, vout_index)
+		VALUES (?, ?, ?, ?, ?, ?)
+	`, c.Head[:], c.Seq, c.Chunk, pos.BlockHeight, pos.TxIndex, pos.VoutIndex)
 	if err != nil {
 		return fmt.Errorf("coinnews: insert cn_continuations: %w", err)
 	}
 	return nil
+}
+
+// ReassembleTLVs returns the full TLV list for a head Item, splicing in
+// any Continuation chunks (spec §9). headRawTLV is the head's on-chain
+// trailing TLV bytes; chunks are appended in seq order to form the
+// complete TLV byte stream, which is re-parsed.
+//
+// The chunk set is accepted only if it conforms to §9: seq 0-indexed
+// and contiguous, chunks in strictly increasing scan order (so they
+// physically appear in seq order on chain), and the reassembled TLV
+// section ≤ 8 KiB. A non-conforming or unparseable set is ignored and
+// the head's own TLVs are returned unchanged. (Same-block placement and
+// after-head ordering are enforced at index time before a chunk is
+// stored, so they are not re-checked here.)
+func ReassembleTLVs(ctx context.Context, db *sql.DB, headID codec.ItemID, headRawTLV []byte) ([]codec.TLV, error) {
+	headTLVs, err := codec.DecodeTLVs(headRawTLV)
+	if err != nil {
+		return nil, fmt.Errorf("coinnews: decode head tlv: %w", err)
+	}
+
+	rows, err := db.QueryContext(ctx, `
+		SELECT seq, chunk, tx_index, vout_index
+		FROM cn_continuations WHERE head_id = ? ORDER BY seq
+	`, headID[:])
+	if err != nil {
+		return nil, fmt.Errorf("coinnews: query continuations: %w", err)
+	}
+	defer rows.Close()
+
+	full := append([]byte{}, headRawTLV...)
+	var (
+		wantSeq  int
+		havePrev bool
+		prevPos  ItemRef
+	)
+	for rows.Next() {
+		var (
+			seq   int
+			chunk []byte
+			pos   ItemRef
+		)
+		if err := rows.Scan(&seq, &chunk, &pos.TxIndex, &pos.VoutIndex); err != nil {
+			return nil, fmt.Errorf("coinnews: scan continuation: %w", err)
+		}
+		if seq != wantSeq {
+			return headTLVs, nil // gap or non-zero start ⇒ drop the chunk set
+		}
+		if havePrev && !prevPos.Before(pos) {
+			return headTLVs, nil // not in physical seq order ⇒ drop
+		}
+		full = append(full, chunk...)
+		if len(full) > codec.MaxReassembledLen {
+			return headTLVs, nil // exceeds the 8 KiB reassembly cap ⇒ drop
+		}
+		wantSeq++
+		havePrev = true
+		prevPos = pos
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("coinnews: iterate continuations: %w", err)
+	}
+	if wantSeq == 0 {
+		return headTLVs, nil // no continuations
+	}
+
+	tlvs, err := codec.DecodeTLVs(full)
+	if err != nil {
+		return headTLVs, nil // reassembled bytes aren't valid TLVs ⇒ drop
+	}
+	return tlvs, nil
 }
 
 // extractStoryTLV pulls the columns we hoist out of the Story TLV blob
