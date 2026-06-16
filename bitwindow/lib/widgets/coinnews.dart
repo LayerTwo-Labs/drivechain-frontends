@@ -1304,7 +1304,9 @@ class _CommentsSectionState extends State<_CommentsSection> {
   bool _posting = false;
   String? _error;
   String? _replyTo; // item_id being replied to; null = top-level
-  final TextEditingController _controller = TextEditingController();
+  final Set<String> _voted = {}; // items voted on this session (§8 dedup)
+  final TextEditingController _controller = TextEditingController(); // top-level composer
+  final TextEditingController _replyController = TextEditingController(); // inline reply composer
 
   @override
   void initState() {
@@ -1315,6 +1317,7 @@ class _CommentsSectionState extends State<_CommentsSection> {
   @override
   void dispose() {
     _controller.dispose();
+    _replyController.dispose();
     super.dispose();
   }
 
@@ -1336,13 +1339,15 @@ class _CommentsSectionState extends State<_CommentsSection> {
   }
 
   Future<void> _post() async {
-    final body = _controller.text.trim();
+    final replying = _replyTo != null;
+    final controller = replying ? _replyController : _controller;
+    final body = controller.text.trim();
     if (body.isEmpty || _posting) return;
     setState(() => _posting = true);
     try {
       await api.misc.commentNews(_replyTo ?? widget.itemId, body);
       if (!mounted) return;
-      _controller.clear();
+      controller.clear();
       setState(() => _replyTo = null);
       await _load();
     } catch (e) {
@@ -1354,8 +1359,12 @@ class _CommentsSectionState extends State<_CommentsSection> {
   }
 
   /// Broadcasts a signed vote on a comment and optimistically bumps its
-  /// count. The confirmed tally updates once the vote is mined.
+  /// count. The confirmed tally updates once the vote is mined. A given
+  /// (author, target) counts at most once on-chain (§8), so we vote — and
+  /// bump — at most once per item per session.
   Future<void> _vote(Comment comment, {required bool up}) async {
+    if (_voted.contains(comment.itemId)) return;
+    _voted.add(comment.itemId);
     try {
       if (up) {
         await api.misc.upvoteNews(comment.itemId);
@@ -1374,6 +1383,7 @@ class _CommentsSectionState extends State<_CommentsSection> {
         setState(() => _comments[idx] = updated);
       }
     } catch (e) {
+      _voted.remove(comment.itemId); // allow retry on failure
       if (mounted) setState(() => _error = e.toString());
     }
   }
@@ -1390,7 +1400,7 @@ class _CommentsSectionState extends State<_CommentsSection> {
         const SailSpacing(SailStyleValues.padding12),
         SailText.primary15('Comments (${_comments.length})', bold: true),
         const SailSpacing(SailStyleValues.padding12),
-        _composer(context, parentLabel: null),
+        _composer(context, parentLabel: null, controller: _controller),
         const SailSpacing(SailStyleValues.padding16),
         if (_loading)
           SailText.secondary12('Loading comments…')
@@ -1456,20 +1466,21 @@ class _CommentsSectionState extends State<_CommentsSection> {
           SailButton(
             label: _replyTo == comment.itemId ? 'Cancel reply' : 'Reply',
             variant: ButtonVariant.ghost,
-            onPressed: () async => setState(
-              () => _replyTo = _replyTo == comment.itemId ? null : comment.itemId,
-            ),
+            onPressed: () async {
+              _replyController.clear();
+              setState(() => _replyTo = _replyTo == comment.itemId ? null : comment.itemId);
+            },
           ),
           if (_replyTo == comment.itemId) ...[
             const SailSpacing(SailStyleValues.padding08),
-            _composer(context, parentLabel: author),
+            _composer(context, parentLabel: author, controller: _replyController),
           ],
         ],
       ),
     );
   }
 
-  Widget _composer(BuildContext context, {required String? parentLabel}) {
+  Widget _composer(BuildContext context, {required String? parentLabel, required TextEditingController controller}) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1477,7 +1488,7 @@ class _CommentsSectionState extends State<_CommentsSection> {
           SailText.secondary12('Replying to $parentLabel', color: SailTheme.of(context).colors.textTertiary),
         SailTextField(
           hintText: parentLabel == null ? 'Add a comment…' : 'Write a reply…',
-          controller: _controller,
+          controller: controller,
         ),
         const SailSpacing(SailStyleValues.padding08),
         SailButton(
