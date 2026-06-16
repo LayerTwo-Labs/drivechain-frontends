@@ -221,15 +221,11 @@ func (s *Server) buildRuntime(ctx context.Context, conf config.Config) (*Runtime
 	stdOpts := []connect.HandlerOption{connect.WithInterceptors(logInterceptor(), localauth.Interceptor(s.svcs.BitwindowDir))}
 
 	// Read-only data source: every handler reads chain/drivechain data through
-	// this interface instead of the raw clients. Local-backed for Core/enforcer
-	// wallets; for an electrum wallet (no local Core or enforcer) it dials a
-	// hosted, read-only orchestrator instead, so every read handler works
-	// unchanged. Rebuilt on Recycle, so a wallet-type switch re-selects.
-	var dataSource datasource.DataSource = datasource.NewLocal(s.Bitcoind.Get, s.Enforcer.Get, s.Wallet.Get)
-	if remote := remoteDataSourceForElectrum(ctx, s.svcs, conf.BitcoinCoreNetwork); remote != nil {
-		dataSource = remote
-		log.Info().Msg("electrum wallet active: routing bitwindow reads through remote orchestrator")
-	}
+	// this interface instead of the raw clients. The per-call getters pick local
+	// Core/enforcer clients, or — when the active wallet is electrum (no local
+	// Core or enforcer) — a hosted, read-only orchestrator. Because the choice
+	// is per call, switching wallet type re-routes without rebuilding the runtime.
+	dataSource := s.buildDataSource(conf)
 
 	// bitwindowd — UpdateNetwork captured here calls back into Server.Recycle,
 	// which builds a fresh Runtime. Method value is bound to s, late-binds
@@ -426,34 +422,78 @@ func (rt *Runtime) runZMQ(ctx context.Context, log *zerolog.Logger) {
 	}
 }
 
-// remoteDataSourceForElectrum returns a DataSource dialing the hosted,
-// read-only orchestrator for network when the active wallet is electrum (which
-// runs no local Core or enforcer), or nil to keep the local source. A missing
-// hosted instance or any lookup error falls back to local.
-func remoteDataSourceForElectrum(ctx context.Context, svcs Services, network config.Network) datasource.DataSource {
-	remoteURL := orchconfig.RemoteOrchestratorURLForNetwork(orchconfig.NetworkFromString(string(network)))
-	if remoteURL == "" || svcs.OrchestratorAddr == "" {
-		return nil
+// buildDataSource wires the read-only DataSource. When the network has a hosted
+// orchestrator, the getters route per call to it for electrum wallets and to
+// the local clients otherwise; without a hosted instance they're always local.
+func (s *Server) buildDataSource(conf config.Config) datasource.DataSource {
+	remoteURL := orchconfig.RemoteOrchestratorURLForNetwork(orchconfig.NetworkFromString(string(conf.BitcoinCoreNetwork)))
+	if remoteURL == "" || s.svcs.OrchestratorAddr == "" {
+		return datasource.NewLocal(s.Bitcoind.Get, s.Enforcer.Get, s.Wallet.Get)
 	}
-	c := orchrpc.NewWalletManagerServiceClient(
-		http.DefaultClient,
-		svcs.OrchestratorAddr,
-		connect.WithInterceptors(localauth.Interceptor(svcs.BitwindowDir)),
+
+	probe := newElectrumProbe(s.svcs.OrchestratorAddr, s.svcs.BitwindowDir)
+	hc := &http.Client{Timeout: 30 * time.Second}
+	return datasource.NewLocal(
+		func(ctx context.Context) (corerpc.BitcoinServiceClient, error) {
+			if probe.isElectrum(ctx) {
+				return corerpc.NewBitcoinServiceClient(hc, remoteURL), nil
+			}
+			return s.Bitcoind.Get(ctx)
+		},
+		func(ctx context.Context) (validatorrpc.ValidatorServiceClient, error) {
+			if probe.isElectrum(ctx) {
+				return validatorrpc.NewValidatorServiceClient(hc, remoteURL), nil
+			}
+			return s.Enforcer.Get(ctx)
+		},
+		func(ctx context.Context) (validatorrpc.WalletServiceClient, error) {
+			if probe.isElectrum(ctx) {
+				return validatorrpc.NewWalletServiceClient(hc, remoteURL), nil
+			}
+			return s.Wallet.Get(ctx)
+		},
 	)
-	resp, err := c.ListWallets(ctx, connect.NewRequest(&orchpb.ListWalletsRequest{}))
+}
+
+// electrumProbe reports whether the active wallet is electrum, caching the
+// answer briefly so per-call data-source routing doesn't hammer the
+// orchestrator. Safe for concurrent use; keeps the last-known value on error.
+type electrumProbe struct {
+	client orchrpc.WalletManagerServiceClient
+	mu     sync.Mutex
+	cached bool
+	at     time.Time
+}
+
+func newElectrumProbe(orchestratorAddr, cookieDir string) *electrumProbe {
+	return &electrumProbe{
+		client: orchrpc.NewWalletManagerServiceClient(
+			http.DefaultClient,
+			orchestratorAddr,
+			connect.WithInterceptors(localauth.Interceptor(cookieDir)),
+		),
+	}
+}
+
+func (p *electrumProbe) isElectrum(ctx context.Context) bool {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	if !p.at.IsZero() && time.Since(p.at) < 3*time.Second {
+		return p.cached
+	}
+	resp, err := p.client.ListWallets(ctx, connect.NewRequest(&orchpb.ListWalletsRequest{}))
 	if err != nil {
-		return nil
+		return p.cached
 	}
+	p.cached = false
 	for _, w := range resp.Msg.Wallets {
-		if w.Id != resp.Msg.ActiveWalletId {
-			continue
+		if w.Id == resp.Msg.ActiveWalletId {
+			p.cached = w.WalletType == orchpb.WalletType_WALLET_TYPE_ELECTRUM
+			break
 		}
-		if w.WalletType == orchpb.WalletType_WALLET_TYPE_ELECTRUM {
-			return datasource.NewRemote(remoteURL)
-		}
-		return nil
 	}
-	return nil
+	p.at = time.Now()
+	return p.cached
 }
 
 func dialZmqEngine(ctx context.Context, conf config.Config) (*engines.ZMQ, error) {
