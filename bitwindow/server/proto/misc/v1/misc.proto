@@ -8,6 +8,8 @@ import "google/protobuf/timestamp.proto";
 service MiscService {
   rpc ListOPReturn(google.protobuf.Empty) returns (ListOPReturnResponse);
   rpc BroadcastNews(BroadcastNewsRequest) returns (BroadcastNewsResponse);
+  // Broadcasts a signed upvote (CoinNews Vote, kind=0x04) targeting a story.
+  rpc UpvoteNews(UpvoteNewsRequest) returns (UpvoteNewsResponse);
   rpc CreateTopic(CreateTopicRequest) returns (CreateTopicResponse);
   rpc ListTopics(google.protobuf.Empty) returns (ListTopicsResponse);
   rpc ListCoinNews(ListCoinNewsRequest) returns (ListCoinNewsResponse);
@@ -42,6 +44,18 @@ message BroadcastNewsRequest {
 }
 
 message BroadcastNewsResponse {
+  string txid = 1;
+}
+
+message UpvoteNewsRequest {
+  // Hex-encoded 12-byte ItemID of the story to upvote.
+  string item_id = 1;
+  // Fee options - exactly one should be set (0 = use Core's estimate)
+  uint64 fee_sat_per_vbyte = 2; // Fee rate in sat/vB
+  uint64 fee_sats = 3; // Total fee in satoshis
+}
+
+message UpvoteNewsResponse {
   string txid = 1;
 }
 
@@ -87,6 +101,11 @@ message CoinNews {
   int64 fee_sats = 5;
 
   google.protobuf.Timestamp create_time = 6;
+
+  // Hex-encoded 12-byte ItemID; the target for upvotes.
+  string item_id = 7;
+  // Count of confirmed on-chain upvotes (CoinNews Vote, kind=0x04).
+  int64 upvotes = 8;
 }
 
 message ListCoinNewsResponse {

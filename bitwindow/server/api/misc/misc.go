@@ -13,14 +13,17 @@ import (
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/engines"
 	miscv1 "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/misc/v1"
 	rpc "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/misc/v1/miscv1connect"
+	cnstore "github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/coinnews"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/opreturns"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/timestamps"
 	service "github.com/LayerTwo-Labs/sidesail/bitwindow/server/service"
+	codec "github.com/LayerTwo-Labs/sidesail/coinnews/codec"
 	commonv1 "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/common/v1"
 	validatorpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1"
 	validatorrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1/mainchainv1connect"
 	corepb "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha"
 	corerpc "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha/bitcoindv1alphaconnect"
+	"github.com/btcsuite/btcd/btcec/v2/schnorr"
 	"github.com/rs/zerolog"
 	"github.com/samber/lo"
 	"google.golang.org/protobuf/types/known/emptypb"
@@ -159,6 +162,77 @@ func (s *Server) BroadcastNews(ctx context.Context, req *connect.Request[miscv1.
 		Msg("broadcast news transaction")
 
 	return connect.NewResponse(&miscv1.BroadcastNewsResponse{
+		Txid: resp.Msg.Txid.Hex.Value,
+	}), nil
+}
+
+// UpvoteNews implements miscv1connect.MiscServiceHandler. It signs a
+// CoinNews Vote (kind=0x04) over the target story with this node's
+// identity key and broadcasts it as an OP_RETURN.
+func (s *Server) UpvoteNews(ctx context.Context, req *connect.Request[miscv1.UpvoteNewsRequest]) (*connect.Response[miscv1.UpvoteNewsResponse], error) {
+	raw, err := hex.DecodeString(req.Msg.ItemId)
+	if err != nil || len(raw) != codec.ItemIDLen {
+		err := fmt.Errorf("item_id must be %d-byte hex", codec.ItemIDLen)
+		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+	}
+	var target codec.ItemID
+	copy(target[:], raw)
+
+	priv, xpk, err := cnstore.LoadOrCreateIdentity(ctx, s.database)
+	if err != nil {
+		return nil, fmt.Errorf("upvote news: load identity: %w", err)
+	}
+
+	digest := codec.VoteSigHash(codec.TypeUpvote, target)
+	sig, err := schnorr.Sign(priv, digest[:])
+	if err != nil {
+		return nil, fmt.Errorf("upvote news: sign vote: %w", err)
+	}
+
+	vote := codec.Vote{Kind: codec.TypeUpvote, Target: target, AuthorXPK: xpk}
+	copy(vote.Sig[:], sig.Serialize())
+	voteBytes, err := codec.EncodeVote(vote)
+	if err != nil {
+		return nil, fmt.Errorf("upvote news: encode vote: %w", err)
+	}
+
+	wallet, err := s.wallet.Get(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	sendReq := &validatorpb.SendTransactionRequest{
+		OpReturnMessage: &commonv1.Hex{
+			Hex: &wrapperspb.StringValue{
+				Value: hex.EncodeToString(voteBytes),
+			},
+		},
+	}
+	if req.Msg.FeeSatPerVbyte > 0 {
+		sendReq.FeeRate = &validatorpb.SendTransactionRequest_FeeRate{
+			Fee: &validatorpb.SendTransactionRequest_FeeRate_SatPerVbyte{
+				SatPerVbyte: req.Msg.FeeSatPerVbyte,
+			},
+		}
+	} else if req.Msg.FeeSats > 0 {
+		sendReq.FeeRate = &validatorpb.SendTransactionRequest_FeeRate{
+			Fee: &validatorpb.SendTransactionRequest_FeeRate_Sats{
+				Sats: req.Msg.FeeSats,
+			},
+		}
+	}
+
+	resp, err := wallet.SendTransaction(ctx, connect.NewRequest(sendReq))
+	if err != nil {
+		return nil, fmt.Errorf("upvote news: %w", err)
+	}
+
+	zerolog.Ctx(ctx).Info().
+		Str("item_id", req.Msg.ItemId).
+		Str("txid", resp.Msg.Txid.String()).
+		Msg("broadcast upvote transaction")
+
+	return connect.NewResponse(&miscv1.UpvoteNewsResponse{
 		Txid: resp.Msg.Txid.Hex.Value,
 	}), nil
 }
@@ -313,6 +387,8 @@ func coinNewsToProto(coinNews opreturns.CoinNews, _ int) *miscv1.CoinNews {
 		Content:    content,
 		FeeSats:    int64(coinNews.Fee),
 		CreateTime: timestamppb.New(lo.FromPtr(coinNews.CreatedAt)),
+		ItemId:     coinNews.ItemID,
+		Upvotes:    coinNews.Upvotes,
 	}
 }
 
