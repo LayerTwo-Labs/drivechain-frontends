@@ -99,17 +99,6 @@ func RemoteBitwindowURLForNetwork(n Network) string {
 	}
 }
 
-// ElectrumChainURLForNetwork returns the chain-data API endpoint an electrum
-// wallet reads from. When a hosted read-only orchestrator exists for the
-// network the wallet routes through it; otherwise it falls back to the public
-// Esplora API. Returns "" when neither is available.
-func ElectrumChainURLForNetwork(n Network) string {
-	if remote := RemoteOrchestratorURLForNetwork(n); remote != "" {
-		return strings.TrimRight(remote, "/") + "/api"
-	}
-	return EsploraURLForNetwork(n)
-}
-
 // CoreSection returns the Bitcoin Core config section name for this network.
 func (n Network) CoreSection() string {
 	return CoreSectionForNetwork(n)

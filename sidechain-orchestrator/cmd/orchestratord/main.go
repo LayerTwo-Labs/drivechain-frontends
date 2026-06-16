@@ -328,12 +328,13 @@ func run(cctx *cli.Context) error {
 	}
 
 	// Electrum wallet provider — derives BIP84 keys locally and reads/broadcasts
-	// chain state from a hosted, read-only orchestrator (orchestrator.<network>.
-	// drivechain.info). No local Core/enforcer needed.
+	// chain state over the Esplora REST API. The wallet backend speaks Esplora,
+	// so it needs an Esplora endpoint; bitwindow's higher-level reads route
+	// through the hosted orchestrator separately (see Server.buildDataSource).
 	var electrumBackend wallet.Backend
-	if chainURL := config.ElectrumChainURLForNetwork(config.NetworkFromString(network)); chainURL != "" && netParams != nil {
-		electrumBackend = wallet.NewElectrumBackend(walletSvc, wallet.NewEsploraClient(chainURL), netParams, log)
-		log.Info().Str("chain_url", chainURL).Msg("electrum wallet provider initialized")
+	if esploraURL := config.EsploraURLForNetwork(config.NetworkFromString(network)); esploraURL != "" && netParams != nil {
+		electrumBackend = wallet.NewElectrumBackend(walletSvc, wallet.NewEsploraClient(esploraURL), netParams, log)
+		log.Info().Str("esplora_url", esploraURL).Msg("electrum wallet provider initialized")
 	}
 
 	router := wallet.NewBackendRouter(walletSvc, enforcerBackend, chainBackend, electrumBackend)

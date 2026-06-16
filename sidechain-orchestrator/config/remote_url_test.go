@@ -2,23 +2,12 @@ package config
 
 import "testing"
 
-func TestElectrumChainURLPrefersHostedOrchestrator(t *testing.T) {
-	// Signet has a hosted orchestrator → route through it, not public esplora.
-	got := ElectrumChainURLForNetwork(NetworkSignet)
-	want := "https://orchestrator.signet.drivechain.info/api"
-	if got != want {
-		t.Fatalf("signet electrum chain URL = %q, want %q", got, want)
+func TestRemoteOrchestratorURLForHostedNetworks(t *testing.T) {
+	if got, want := RemoteOrchestratorURLForNetwork(NetworkSignet), "https://orchestrator.signet.drivechain.info"; got != want {
+		t.Fatalf("signet orchestrator URL = %q, want %q", got, want)
 	}
-}
-
-func TestElectrumChainURLFallsBackToEsplora(t *testing.T) {
-	// Mainnet has no hosted orchestrator yet → fall back to the esplora URL.
-	if RemoteOrchestratorURLForNetwork(NetworkMainnet) != "" {
-		t.Skip("mainnet now has a hosted orchestrator; update this test")
-	}
-	got := ElectrumChainURLForNetwork(NetworkMainnet)
-	if got != EsploraURLForNetwork(NetworkMainnet) {
-		t.Fatalf("mainnet electrum chain URL = %q, want esplora fallback %q", got, EsploraURLForNetwork(NetworkMainnet))
+	if got, want := RemoteBitwindowURLForNetwork(NetworkSignet), "https://bitwindow.signet.drivechain.info"; got != want {
+		t.Fatalf("signet bitwindow URL = %q, want %q", got, want)
 	}
 }
 
