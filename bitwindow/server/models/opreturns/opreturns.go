@@ -370,9 +370,18 @@ type CoinNews struct {
 }
 
 func ListTopics(ctx context.Context, db *sql.DB) ([]Topic, error) {
+	// Local/pending topics live in coin_news_topics (written by our own
+	// CreateTopic for instant feedback); chain-indexed topics — including
+	// ones created by other wallets — live in cn_topics. Surface both,
+	// preferring the local row when a topic is in both tables.
 	rows, err := db.QueryContext(ctx, `
 	SELECT id, topic, name, confirmed, COALESCE(txid, ''), COALESCE(retention_days, 7), created_at
 	FROM coin_news_topics
+	UNION ALL
+	SELECT 0, lower(hex(t.topic)), t.name, 1, COALESCE(t.txid, ''), t.retention_days,
+		COALESCE((SELECT MIN(i.block_time) FROM cn_items i WHERE i.txid = t.txid), CURRENT_TIMESTAMP)
+	FROM cn_topics t
+	WHERE lower(hex(t.topic)) NOT IN (SELECT topic FROM coin_news_topics)
 	ORDER BY created_at ASC
 `)
 	if err != nil {
@@ -408,8 +417,12 @@ func ListTopics(ctx context.Context, db *sql.DB) ([]Topic, error) {
 func TopicExists(ctx context.Context, db *sql.DB, topic TopicID) (bool, error) {
 	var exists bool
 	err := db.QueryRowContext(ctx, `
-		SELECT EXISTS(SELECT 1 FROM coin_news_topics WHERE topic = ?)
-	`, topic.String()).Scan(&exists)
+		SELECT EXISTS(
+			SELECT 1 FROM coin_news_topics WHERE topic = ?
+			UNION ALL
+			SELECT 1 FROM cn_topics WHERE lower(hex(topic)) = ?
+		)
+	`, topic.String(), topic.String()).Scan(&exists)
 	if err != nil {
 		return false, fmt.Errorf("topic exists: %w", err)
 	}
