@@ -91,6 +91,7 @@ class CoinNewsView extends ViewModelWidget<CoinNewsViewModel> {
                   loading: viewModel.loading,
                   allTopics: viewModel.topics,
                   onArticleSelected: (news) => showCoinNewsArticle(context, news),
+                  onUpvote: viewModel.upvote,
                 ),
                 const SizedBox(height: 16),
                 Pagination(
@@ -157,6 +158,7 @@ class CoinNewsLargeView extends ViewModelWidget<CoinNewsLargeViewModel> {
                       shrinkWrap: false,
                       condensed: true,
                       onArticleSelected: (news) => showCoinNewsArticle(context, news),
+                      onUpvote: viewModel.upvote,
                     ),
                   ),
                 ],
@@ -218,6 +220,7 @@ class CoinNewsLargeView extends ViewModelWidget<CoinNewsLargeViewModel> {
                       shrinkWrap: false,
                       condensed: true,
                       onArticleSelected: (news) => showCoinNewsArticle(context, news),
+                      onUpvote: viewModel.upvote,
                     ),
                   ),
                 ],
@@ -262,6 +265,8 @@ class CoinNewsLargeViewModel extends BaseViewModel {
     notifyListeners();
   }
 
+  Future<void> upvote(CoinNews news) => _newsProvider.upvote(news);
+
   bool get loading => !_newsProvider.initialized;
   List<Topic> get topics => _newsProvider.topics;
 
@@ -301,6 +306,10 @@ class CoinNewsLargeViewModel extends BaseViewModel {
           aValue = expectedReadTime(a.content);
           bValue = expectedReadTime(b.content);
           break;
+        case 'upvotes':
+          aValue = a.upvotes.toInt();
+          bValue = b.upvotes.toInt();
+          break;
       }
 
       return _sortLeftAscending ? aValue.compareTo(bValue) : bValue.compareTo(aValue);
@@ -339,6 +348,10 @@ class CoinNewsLargeViewModel extends BaseViewModel {
         case 'readtime':
           aValue = expectedReadTime(a.content);
           bValue = expectedReadTime(b.content);
+          break;
+        case 'upvotes':
+          aValue = a.upvotes.toInt();
+          bValue = b.upvotes.toInt();
           break;
       }
 
@@ -453,6 +466,8 @@ class CoinNewsViewModel extends BaseViewModel {
     notifyListeners();
   }
 
+  Future<void> upvote(CoinNews news) => _newsProvider.upvote(news);
+
   bool get loading {
     return !_newsProvider.initialized;
   }
@@ -543,6 +558,10 @@ class CoinNewsViewModel extends BaseViewModel {
         case 'readtime':
           aValue = expectedReadTime(a.content);
           bValue = expectedReadTime(b.content);
+          break;
+        case 'upvotes':
+          aValue = a.upvotes.toInt();
+          bValue = b.upvotes.toInt();
           break;
       }
 
@@ -921,6 +940,59 @@ class _CoinNewsEntryState extends State<CoinNewsEntry> {
   }
 }
 
+class _UpvoteCell extends StatefulWidget {
+  final int count;
+  final Future<void> Function()? onUpvote;
+
+  const _UpvoteCell({required this.count, this.onUpvote});
+
+  @override
+  State<_UpvoteCell> createState() => _UpvoteCellState();
+}
+
+class _UpvoteCellState extends State<_UpvoteCell> {
+  bool _hovered = false;
+  bool _inFlight = false;
+
+  Future<void> _handleTap() async {
+    if (_inFlight || widget.onUpvote == null) return;
+    setState(() => _inFlight = true);
+    try {
+      await widget.onUpvote!();
+    } finally {
+      if (mounted) setState(() => _inFlight = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.sailTheme.colors;
+    final enabled = widget.onUpvote != null && !_inFlight;
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        MouseRegion(
+          cursor: enabled ? SystemMouseCursors.click : SystemMouseCursors.basic,
+          onEnter: (_) => setState(() => _hovered = true),
+          onExit: (_) => setState(() => _hovered = false),
+          child: GestureDetector(
+            onTap: enabled ? _handleTap : null,
+            child: SailSVG.fromAsset(
+              SailSVGAsset.thumbsUp,
+              width: 16,
+              height: 16,
+              color: _hovered && enabled ? colors.primary : colors.icon,
+            ),
+          ),
+        ),
+        const SailSpacing(SailStyleValues.padding08),
+        SailText.primary12(widget.count.toString()),
+      ],
+    );
+  }
+}
+
 class CoinNewsTable extends StatelessWidget {
   final List<CoinNews> entries;
   final Function(String) onSort;
@@ -929,6 +1001,7 @@ class CoinNewsTable extends StatelessWidget {
   final bool shrinkWrap;
   final bool condensed;
   final void Function(CoinNews news)? onArticleSelected;
+  final Future<void> Function(CoinNews news)? onUpvote;
   final String? selectedRowId;
 
   const CoinNewsTable({
@@ -940,6 +1013,7 @@ class CoinNewsTable extends StatelessWidget {
     this.shrinkWrap = true,
     this.condensed = false,
     this.onArticleSelected,
+    this.onUpvote,
     this.selectedRowId,
   });
 
@@ -962,11 +1036,13 @@ class CoinNewsTable extends StatelessWidget {
               const SailTableHeaderCell(name: 'Date'),
               const SailTableHeaderCell(name: 'Fee'),
               const SailTableHeaderCell(name: 'Title'),
+              const SailTableHeaderCell(name: 'Upvotes'),
             ] else ...[
               const SailTableHeaderCell(name: 'Date'),
               const SailTableHeaderCell(name: 'Topic'),
               const SailTableHeaderCell(name: 'Title'),
               const SailTableHeaderCell(name: 'Read time'),
+              const SailTableHeaderCell(name: 'Upvotes'),
             ],
           ],
           rowBuilder: (context, row, selected) {
@@ -978,11 +1054,25 @@ class CoinNewsTable extends StatelessWidget {
                 SailTableCell(value: formatDate(entry.createTime.toDateTime())),
                 SailTableCell(value: formatter.formatSats(entry.feeSats.toInt())),
                 SailTableCell(value: entry.headline),
+                SailTableCell(
+                  value: entry.upvotes.toString(),
+                  child: _UpvoteCell(
+                    count: entry.upvotes.toInt(),
+                    onUpvote: onUpvote == null ? null : () => onUpvote!(entry),
+                  ),
+                ),
               ] else ...[
                 SailTableCell(value: formatDate(entry.createTime.toDateTime())),
                 SailTableCell(value: matchingTopic?.name ?? entry.topic),
                 SailTableCell(value: entry.headline),
                 SailTableCell(value: expectedReadTime(entry.content)),
+                SailTableCell(
+                  value: entry.upvotes.toString(),
+                  child: _UpvoteCell(
+                    count: entry.upvotes.toInt(),
+                    onUpvote: onUpvote == null ? null : () => onUpvote!(entry),
+                  ),
+                ),
               ],
             ];
           },
@@ -990,7 +1080,10 @@ class CoinNewsTable extends StatelessWidget {
           emptyPlaceholder: 'No news articles yet',
           drawGrid: true,
           onSort: (columnIndex, ascending) {
-            onSort(['date', 'topic', 'title', 'readtime'][columnIndex]);
+            final columns = condensed
+                ? ['date', 'topic', 'title', 'upvotes']
+                : ['date', 'topic', 'title', 'readtime', 'upvotes'];
+            onSort(columns[columnIndex]);
           },
           onSelectedRow: (rowId) {
             if (rowId == null || onArticleSelected == null) return;
