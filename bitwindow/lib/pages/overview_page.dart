@@ -579,6 +579,32 @@ class BroadcastNewsView extends StatelessWidget {
                 minLines: 10,
               ),
               SailTextField(
+                controller: viewModel.urlController,
+                hintText: 'Link URL (optional)',
+              ),
+              SailRow(
+                spacing: SailStyleValues.padding16,
+                children: [
+                  SailDropdownButton<int>(
+                    items: const [
+                      SailDropdownItem(value: 0, label: 'Link'),
+                      SailDropdownItem(value: 1, label: 'Text'),
+                      SailDropdownItem(value: 2, label: 'Ask'),
+                      SailDropdownItem(value: 3, label: 'Show'),
+                      SailDropdownItem(value: 4, label: 'Poll'),
+                      SailDropdownItem(value: 5, label: 'Job'),
+                    ],
+                    value: viewModel.subtype,
+                    onChanged: viewModel.setSubtype,
+                  ),
+                  SailCheckbox(
+                    value: viewModel.nsfw,
+                    onChanged: viewModel.setNsfw,
+                    label: 'NSFW',
+                  ),
+                ],
+              ),
+              SailTextField(
                 controller: viewModel.feeController,
                 hintText: 'Fee (optional)',
                 suffixWidget: Padding(
@@ -644,6 +670,22 @@ class BroadcastNewsViewModel extends BaseViewModel {
   // Single unified controller for headline + content
   final HeadlineHighlightController messageController = HeadlineHighlightController();
   final TextEditingController feeController = TextEditingController();
+  final TextEditingController urlController = TextEditingController();
+
+  // Story subtype (spec §10): 0=link, 1=text, 2=ask, 3=show, 4=poll, 5=job.
+  int subtype = 1;
+  bool nsfw = false;
+
+  void setSubtype(int? value) {
+    if (value == null) return;
+    subtype = value;
+    notifyListeners();
+  }
+
+  void setNsfw(bool value) {
+    nsfw = value;
+    notifyListeners();
+  }
 
   BitcoinUnit get feeUnit => GetIt.I.get<SettingsProvider>().bitcoinUnit;
 
@@ -725,6 +767,9 @@ class BroadcastNewsViewModel extends BaseViewModel {
         topic!.topic,
         headline,
         content,
+        url: urlController.text.trim().isEmpty ? null : urlController.text.trim(),
+        subtype: subtype,
+        nsfw: nsfw,
         feeSats: feeSats,
       );
 
@@ -757,6 +802,7 @@ class BroadcastNewsViewModel extends BaseViewModel {
     messageController.dispose();
     feeController.removeListener(notifyListeners);
     feeController.dispose();
+    urlController.dispose();
     super.dispose();
   }
 }
