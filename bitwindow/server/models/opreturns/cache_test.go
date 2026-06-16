@@ -139,7 +139,7 @@ func TestListCoinNews_ReadsCanonicalStories(t *testing.T) {
 	ctx := context.Background()
 	db := database.Test(t)
 
-	topic := mustTopicID(t, "a1a1a1a1")
+	topic := mustTopicID(t, "abcd1234") // non-default so the seeded name wins
 	seedCurrentTopic(t, ctx, db, topic, "Known", 0, 1)
 	seedCurrentNews(t, ctx, db, topic, "headline", "body", "matching", 0, 2, time.Now())
 
