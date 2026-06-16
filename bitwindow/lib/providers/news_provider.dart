@@ -4,6 +4,7 @@ import 'package:bitwindow/providers/blockchain_provider.dart';
 import 'package:fixnum/fixnum.dart';
 import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
+import 'package:protobuf/protobuf.dart';
 import 'package:sail_ui/gen/misc/v1/misc.pb.dart';
 import 'package:sail_ui/rpcs/bitwindow_api.dart';
 
@@ -96,6 +97,23 @@ class NewsProvider extends ChangeNotifier {
   void addOptimistic(CoinNews entry) {
     news = [entry, ...news];
     notifyListeners();
+  }
+
+  /// Broadcasts a signed upvote for [entry] and optimistically bumps its
+  /// count. The confirmed on-chain tally only updates once the vote is
+  /// mined and indexed.
+  Future<void> upvote(CoinNews entry) async {
+    if (entry.itemId.isEmpty) {
+      return;
+    }
+    await api.misc.upvoteNews(entry.itemId);
+
+    final idx = news.indexWhere((n) => n.itemId == entry.itemId);
+    if (idx != -1) {
+      final updated = news[idx].deepCopy()..upvotes = news[idx].upvotes + Int64(1);
+      news = [...news]..[idx] = updated;
+      notifyListeners();
+    }
   }
 
   @override

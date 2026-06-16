@@ -407,6 +407,15 @@ class MockMiscAPI implements MiscAPI {
   }
 
   @override
+  Future<UpvoteNewsResponse> upvoteNews(
+    String itemId, {
+    int? feeSatPerVbyte,
+    int? feeSats,
+  }) async {
+    return UpvoteNewsResponse();
+  }
+
+  @override
   Future<CreateTopicResponse> createTopic(String topic, String name, {int retentionDays = 7}) async {
     return CreateTopicResponse();
   }

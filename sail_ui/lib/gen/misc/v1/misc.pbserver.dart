@@ -24,6 +24,7 @@ export 'misc.pb.dart';
 abstract class MiscServiceBase extends $pb.GeneratedService {
   $async.Future<$8.ListOPReturnResponse> listOPReturn($pb.ServerContext ctx, $1.Empty request);
   $async.Future<$8.BroadcastNewsResponse> broadcastNews($pb.ServerContext ctx, $8.BroadcastNewsRequest request);
+  $async.Future<$8.UpvoteNewsResponse> upvoteNews($pb.ServerContext ctx, $8.UpvoteNewsRequest request);
   $async.Future<$8.CreateTopicResponse> createTopic($pb.ServerContext ctx, $8.CreateTopicRequest request);
   $async.Future<$8.ListTopicsResponse> listTopics($pb.ServerContext ctx, $1.Empty request);
   $async.Future<$8.ListCoinNewsResponse> listCoinNews($pb.ServerContext ctx, $8.ListCoinNewsRequest request);
@@ -35,6 +36,7 @@ abstract class MiscServiceBase extends $pb.GeneratedService {
     switch (methodName) {
       case 'ListOPReturn': return $1.Empty();
       case 'BroadcastNews': return $8.BroadcastNewsRequest();
+      case 'UpvoteNews': return $8.UpvoteNewsRequest();
       case 'CreateTopic': return $8.CreateTopicRequest();
       case 'ListTopics': return $1.Empty();
       case 'ListCoinNews': return $8.ListCoinNewsRequest();
@@ -49,6 +51,7 @@ abstract class MiscServiceBase extends $pb.GeneratedService {
     switch (methodName) {
       case 'ListOPReturn': return this.listOPReturn(ctx, request as $1.Empty);
       case 'BroadcastNews': return this.broadcastNews(ctx, request as $8.BroadcastNewsRequest);
+      case 'UpvoteNews': return this.upvoteNews(ctx, request as $8.UpvoteNewsRequest);
       case 'CreateTopic': return this.createTopic(ctx, request as $8.CreateTopicRequest);
       case 'ListTopics': return this.listTopics(ctx, request as $1.Empty);
       case 'ListCoinNews': return this.listCoinNews(ctx, request as $8.ListCoinNewsRequest);

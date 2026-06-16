@@ -83,6 +83,34 @@ const BroadcastNewsResponse$json = {
 final $typed_data.Uint8List broadcastNewsResponseDescriptor = $convert.base64Decode(
     'ChVCcm9hZGNhc3ROZXdzUmVzcG9uc2USEgoEdHhpZBgBIAEoCVIEdHhpZA==');
 
+@$core.Deprecated('Use upvoteNewsRequestDescriptor instead')
+const UpvoteNewsRequest$json = {
+  '1': 'UpvoteNewsRequest',
+  '2': [
+    {'1': 'item_id', '3': 1, '4': 1, '5': 9, '10': 'itemId'},
+    {'1': 'fee_sat_per_vbyte', '3': 2, '4': 1, '5': 4, '10': 'feeSatPerVbyte'},
+    {'1': 'fee_sats', '3': 3, '4': 1, '5': 4, '10': 'feeSats'},
+  ],
+};
+
+/// Descriptor for `UpvoteNewsRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List upvoteNewsRequestDescriptor = $convert.base64Decode(
+    'ChFVcHZvdGVOZXdzUmVxdWVzdBIXCgdpdGVtX2lkGAEgASgJUgZpdGVtSWQSKQoRZmVlX3NhdF'
+    '9wZXJfdmJ5dGUYAiABKARSDmZlZVNhdFBlclZieXRlEhkKCGZlZV9zYXRzGAMgASgEUgdmZWVT'
+    'YXRz');
+
+@$core.Deprecated('Use upvoteNewsResponseDescriptor instead')
+const UpvoteNewsResponse$json = {
+  '1': 'UpvoteNewsResponse',
+  '2': [
+    {'1': 'txid', '3': 1, '4': 1, '5': 9, '10': 'txid'},
+  ],
+};
+
+/// Descriptor for `UpvoteNewsResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List upvoteNewsResponseDescriptor = $convert.base64Decode(
+    'ChJVcHZvdGVOZXdzUmVzcG9uc2USEgoEdHhpZBgBIAEoCVIEdHhpZA==');
+
 @$core.Deprecated('Use createTopicRequestDescriptor instead')
 const CreateTopicRequest$json = {
   '1': 'CreateTopicRequest',
@@ -170,6 +198,8 @@ const CoinNews$json = {
     {'1': 'content', '3': 4, '4': 1, '5': 9, '10': 'content'},
     {'1': 'fee_sats', '3': 5, '4': 1, '5': 3, '10': 'feeSats'},
     {'1': 'create_time', '3': 6, '4': 1, '5': 11, '6': '.google.protobuf.Timestamp', '10': 'createTime'},
+    {'1': 'item_id', '3': 7, '4': 1, '5': 9, '10': 'itemId'},
+    {'1': 'upvotes', '3': 8, '4': 1, '5': 3, '10': 'upvotes'},
   ],
 };
 
@@ -178,7 +208,8 @@ final $typed_data.Uint8List coinNewsDescriptor = $convert.base64Decode(
     'CghDb2luTmV3cxIOCgJpZBgBIAEoA1ICaWQSFAoFdG9waWMYAiABKAlSBXRvcGljEhoKCGhlYW'
     'RsaW5lGAMgASgJUghoZWFkbGluZRIYCgdjb250ZW50GAQgASgJUgdjb250ZW50EhkKCGZlZV9z'
     'YXRzGAUgASgDUgdmZWVTYXRzEjsKC2NyZWF0ZV90aW1lGAYgASgLMhouZ29vZ2xlLnByb3RvYn'
-    'VmLlRpbWVzdGFtcFIKY3JlYXRlVGltZQ==');
+    'VmLlRpbWVzdGFtcFIKY3JlYXRlVGltZRIXCgdpdGVtX2lkGAcgASgJUgZpdGVtSWQSGAoHdXB2'
+    'b3RlcxgIIAEoA1IHdXB2b3Rlcw==');
 
 @$core.Deprecated('Use listCoinNewsResponseDescriptor instead')
 const ListCoinNewsResponse$json = {
@@ -302,6 +333,7 @@ const $core.Map<$core.String, $core.dynamic> MiscServiceBase$json = {
   '2': [
     {'1': 'ListOPReturn', '2': '.google.protobuf.Empty', '3': '.misc.v1.ListOPReturnResponse'},
     {'1': 'BroadcastNews', '2': '.misc.v1.BroadcastNewsRequest', '3': '.misc.v1.BroadcastNewsResponse'},
+    {'1': 'UpvoteNews', '2': '.misc.v1.UpvoteNewsRequest', '3': '.misc.v1.UpvoteNewsResponse'},
     {'1': 'CreateTopic', '2': '.misc.v1.CreateTopicRequest', '3': '.misc.v1.CreateTopicResponse'},
     {'1': 'ListTopics', '2': '.google.protobuf.Empty', '3': '.misc.v1.ListTopicsResponse'},
     {'1': 'ListCoinNews', '2': '.misc.v1.ListCoinNewsRequest', '3': '.misc.v1.ListCoinNewsResponse'},
@@ -319,6 +351,8 @@ const $core.Map<$core.String, $core.Map<$core.String, $core.dynamic>> MiscServic
   '.google.protobuf.Timestamp': $0.Timestamp$json,
   '.misc.v1.BroadcastNewsRequest': BroadcastNewsRequest$json,
   '.misc.v1.BroadcastNewsResponse': BroadcastNewsResponse$json,
+  '.misc.v1.UpvoteNewsRequest': UpvoteNewsRequest$json,
+  '.misc.v1.UpvoteNewsResponse': UpvoteNewsResponse$json,
   '.misc.v1.CreateTopicRequest': CreateTopicRequest$json,
   '.misc.v1.CreateTopicResponse': CreateTopicResponse$json,
   '.misc.v1.ListTopicsResponse': ListTopicsResponse$json,
@@ -338,14 +372,15 @@ const $core.Map<$core.String, $core.Map<$core.String, $core.dynamic>> MiscServic
 final $typed_data.Uint8List miscServiceDescriptor = $convert.base64Decode(
     'CgtNaXNjU2VydmljZRJFCgxMaXN0T1BSZXR1cm4SFi5nb29nbGUucHJvdG9idWYuRW1wdHkaHS'
     '5taXNjLnYxLkxpc3RPUFJldHVyblJlc3BvbnNlEk4KDUJyb2FkY2FzdE5ld3MSHS5taXNjLnYx'
-    'LkJyb2FkY2FzdE5ld3NSZXF1ZXN0Gh4ubWlzYy52MS5Ccm9hZGNhc3ROZXdzUmVzcG9uc2USSA'
-    'oLQ3JlYXRlVG9waWMSGy5taXNjLnYxLkNyZWF0ZVRvcGljUmVxdWVzdBocLm1pc2MudjEuQ3Jl'
-    'YXRlVG9waWNSZXNwb25zZRJBCgpMaXN0VG9waWNzEhYuZ29vZ2xlLnByb3RvYnVmLkVtcHR5Gh'
-    'subWlzYy52MS5MaXN0VG9waWNzUmVzcG9uc2USSwoMTGlzdENvaW5OZXdzEhwubWlzYy52MS5M'
-    'aXN0Q29pbk5ld3NSZXF1ZXN0Gh0ubWlzYy52MS5MaXN0Q29pbk5ld3NSZXNwb25zZRJOCg1UaW'
-    '1lc3RhbXBGaWxlEh0ubWlzYy52MS5UaW1lc3RhbXBGaWxlUmVxdWVzdBoeLm1pc2MudjEuVGlt'
-    'ZXN0YW1wRmlsZVJlc3BvbnNlEkkKDkxpc3RUaW1lc3RhbXBzEhYuZ29vZ2xlLnByb3RvYnVmLk'
-    'VtcHR5Gh8ubWlzYy52MS5MaXN0VGltZXN0YW1wc1Jlc3BvbnNlElQKD1ZlcmlmeVRpbWVzdGFt'
-    'cBIfLm1pc2MudjEuVmVyaWZ5VGltZXN0YW1wUmVxdWVzdBogLm1pc2MudjEuVmVyaWZ5VGltZX'
-    'N0YW1wUmVzcG9uc2U=');
+    'LkJyb2FkY2FzdE5ld3NSZXF1ZXN0Gh4ubWlzYy52MS5Ccm9hZGNhc3ROZXdzUmVzcG9uc2USRQ'
+    'oKVXB2b3RlTmV3cxIaLm1pc2MudjEuVXB2b3RlTmV3c1JlcXVlc3QaGy5taXNjLnYxLlVwdm90'
+    'ZU5ld3NSZXNwb25zZRJICgtDcmVhdGVUb3BpYxIbLm1pc2MudjEuQ3JlYXRlVG9waWNSZXF1ZX'
+    'N0GhwubWlzYy52MS5DcmVhdGVUb3BpY1Jlc3BvbnNlEkEKCkxpc3RUb3BpY3MSFi5nb29nbGUu'
+    'cHJvdG9idWYuRW1wdHkaGy5taXNjLnYxLkxpc3RUb3BpY3NSZXNwb25zZRJLCgxMaXN0Q29pbk'
+    '5ld3MSHC5taXNjLnYxLkxpc3RDb2luTmV3c1JlcXVlc3QaHS5taXNjLnYxLkxpc3RDb2luTmV3'
+    'c1Jlc3BvbnNlEk4KDVRpbWVzdGFtcEZpbGUSHS5taXNjLnYxLlRpbWVzdGFtcEZpbGVSZXF1ZX'
+    'N0Gh4ubWlzYy52MS5UaW1lc3RhbXBGaWxlUmVzcG9uc2USSQoOTGlzdFRpbWVzdGFtcHMSFi5n'
+    'b29nbGUucHJvdG9idWYuRW1wdHkaHy5taXNjLnYxLkxpc3RUaW1lc3RhbXBzUmVzcG9uc2USVA'
+    'oPVmVyaWZ5VGltZXN0YW1wEh8ubWlzYy52MS5WZXJpZnlUaW1lc3RhbXBSZXF1ZXN0GiAubWlz'
+    'Yy52MS5WZXJpZnlUaW1lc3RhbXBSZXNwb25zZQ==');
 
