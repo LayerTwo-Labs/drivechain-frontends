@@ -121,7 +121,12 @@ func (s *Server) BroadcastNews(ctx context.Context, req *connect.Request[miscv1.
 		return nil, err
 	}
 
-	storyBytes, err := opreturns.EncodeNewsMessageNewFormat(topicID, req.Msg.Headline, req.Msg.Content)
+	storyBytes, err := opreturns.EncodeNewsMessageWithOptions(topicID, req.Msg.Headline, req.Msg.Content, opreturns.StoryOptions{
+		URL:     req.Msg.Url,
+		Lang:    req.Msg.Lang,
+		Subtype: req.Msg.Subtype,
+		NSFW:    req.Msg.Nsfw,
+	})
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInvalidArgument, err)
 	}
@@ -399,6 +404,9 @@ func coinNewsToProto(coinNews opreturns.CoinNews, _ int) *miscv1.CoinNews {
 		Upvotes:    coinNews.Upvotes,
 		Downvotes:  coinNews.Downvotes,
 		Score:      coinNews.Score,
+		Url:        coinNews.URL,
+		Subtype:    coinNews.Subtype,
+		Nsfw:       coinNews.NSFW,
 	}
 }
 

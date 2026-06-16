@@ -191,6 +191,10 @@ class BroadcastNewsRequest extends $pb.GeneratedMessage {
     $core.String? content,
     $fixnum.Int64? feeSatPerVbyte,
     $fixnum.Int64? feeSats,
+    $core.String? url,
+    $core.String? lang,
+    $core.int? subtype,
+    $core.bool? nsfw,
   }) {
     final $result = create();
     if (topic != null) {
@@ -208,6 +212,18 @@ class BroadcastNewsRequest extends $pb.GeneratedMessage {
     if (feeSats != null) {
       $result.feeSats = feeSats;
     }
+    if (url != null) {
+      $result.url = url;
+    }
+    if (lang != null) {
+      $result.lang = lang;
+    }
+    if (subtype != null) {
+      $result.subtype = subtype;
+    }
+    if (nsfw != null) {
+      $result.nsfw = nsfw;
+    }
     return $result;
   }
   BroadcastNewsRequest._() : super();
@@ -220,6 +236,10 @@ class BroadcastNewsRequest extends $pb.GeneratedMessage {
     ..aOS(3, _omitFieldNames ? '' : 'content')
     ..a<$fixnum.Int64>(4, _omitFieldNames ? '' : 'feeSatPerVbyte', $pb.PbFieldType.OU6, defaultOrMaker: $fixnum.Int64.ZERO)
     ..a<$fixnum.Int64>(5, _omitFieldNames ? '' : 'feeSats', $pb.PbFieldType.OU6, defaultOrMaker: $fixnum.Int64.ZERO)
+    ..aOS(6, _omitFieldNames ? '' : 'url')
+    ..aOS(7, _omitFieldNames ? '' : 'lang')
+    ..a<$core.int>(8, _omitFieldNames ? '' : 'subtype', $pb.PbFieldType.O3)
+    ..aOB(9, _omitFieldNames ? '' : 'nsfw')
     ..hasRequiredFields = false
   ;
 
@@ -289,6 +309,44 @@ class BroadcastNewsRequest extends $pb.GeneratedMessage {
   $core.bool hasFeeSats() => $_has(4);
   @$pb.TagNumber(5)
   void clearFeeSats() => clearField(5);
+
+  /// Optional Story TLVs (spec §6, §10).
+  @$pb.TagNumber(6)
+  $core.String get url => $_getSZ(5);
+  @$pb.TagNumber(6)
+  set url($core.String v) { $_setString(5, v); }
+  @$pb.TagNumber(6)
+  $core.bool hasUrl() => $_has(5);
+  @$pb.TagNumber(6)
+  void clearUrl() => clearField(6);
+
+  @$pb.TagNumber(7)
+  $core.String get lang => $_getSZ(6);
+  @$pb.TagNumber(7)
+  set lang($core.String v) { $_setString(6, v); }
+  @$pb.TagNumber(7)
+  $core.bool hasLang() => $_has(6);
+  @$pb.TagNumber(7)
+  void clearLang() => clearField(7);
+
+  /// 0=link, 1=text, 2=ask, 3=show, 4=poll, 5=job
+  @$pb.TagNumber(8)
+  $core.int get subtype => $_getIZ(7);
+  @$pb.TagNumber(8)
+  set subtype($core.int v) { $_setSignedInt32(7, v); }
+  @$pb.TagNumber(8)
+  $core.bool hasSubtype() => $_has(7);
+  @$pb.TagNumber(8)
+  void clearSubtype() => clearField(8);
+
+  @$pb.TagNumber(9)
+  $core.bool get nsfw => $_getBF(8);
+  @$pb.TagNumber(9)
+  set nsfw($core.bool v) { $_setBool(8, v); }
+  @$pb.TagNumber(9)
+  $core.bool hasNsfw() => $_has(8);
+  @$pb.TagNumber(9)
+  void clearNsfw() => clearField(9);
 }
 
 class BroadcastNewsResponse extends $pb.GeneratedMessage {
@@ -845,6 +903,9 @@ class CoinNews extends $pb.GeneratedMessage {
     $fixnum.Int64? upvotes,
     $fixnum.Int64? downvotes,
     $core.double? score,
+    $core.String? url,
+    $core.int? subtype,
+    $core.bool? nsfw,
   }) {
     final $result = create();
     if (id != null) {
@@ -877,6 +938,15 @@ class CoinNews extends $pb.GeneratedMessage {
     if (score != null) {
       $result.score = score;
     }
+    if (url != null) {
+      $result.url = url;
+    }
+    if (subtype != null) {
+      $result.subtype = subtype;
+    }
+    if (nsfw != null) {
+      $result.nsfw = nsfw;
+    }
     return $result;
   }
   CoinNews._() : super();
@@ -894,6 +964,9 @@ class CoinNews extends $pb.GeneratedMessage {
     ..aInt64(8, _omitFieldNames ? '' : 'upvotes')
     ..aInt64(9, _omitFieldNames ? '' : 'downvotes')
     ..a<$core.double>(10, _omitFieldNames ? '' : 'score', $pb.PbFieldType.OD)
+    ..aOS(11, _omitFieldNames ? '' : 'url')
+    ..a<$core.int>(12, _omitFieldNames ? '' : 'subtype', $pb.PbFieldType.O3)
+    ..aOB(13, _omitFieldNames ? '' : 'nsfw')
     ..hasRequiredFields = false
   ;
 
@@ -1013,6 +1086,35 @@ class CoinNews extends $pb.GeneratedMessage {
   $core.bool hasScore() => $_has(9);
   @$pb.TagNumber(10)
   void clearScore() => clearField(10);
+
+  /// Optional Story TLVs (spec §10).
+  @$pb.TagNumber(11)
+  $core.String get url => $_getSZ(10);
+  @$pb.TagNumber(11)
+  set url($core.String v) { $_setString(10, v); }
+  @$pb.TagNumber(11)
+  $core.bool hasUrl() => $_has(10);
+  @$pb.TagNumber(11)
+  void clearUrl() => clearField(11);
+
+  /// 0=link, 1=text, 2=ask, 3=show, 4=poll, 5=job
+  @$pb.TagNumber(12)
+  $core.int get subtype => $_getIZ(11);
+  @$pb.TagNumber(12)
+  set subtype($core.int v) { $_setSignedInt32(11, v); }
+  @$pb.TagNumber(12)
+  $core.bool hasSubtype() => $_has(11);
+  @$pb.TagNumber(12)
+  void clearSubtype() => clearField(12);
+
+  @$pb.TagNumber(13)
+  $core.bool get nsfw => $_getBF(12);
+  @$pb.TagNumber(13)
+  set nsfw($core.bool v) { $_setBool(12, v); }
+  @$pb.TagNumber(13)
+  $core.bool hasNsfw() => $_has(12);
+  @$pb.TagNumber(13)
+  void clearNsfw() => clearField(13);
 }
 
 class ListCoinNewsResponse extends $pb.GeneratedMessage {

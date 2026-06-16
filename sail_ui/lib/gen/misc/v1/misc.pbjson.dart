@@ -61,6 +61,10 @@ const BroadcastNewsRequest$json = {
     {'1': 'content', '3': 3, '4': 1, '5': 9, '10': 'content'},
     {'1': 'fee_sat_per_vbyte', '3': 4, '4': 1, '5': 4, '10': 'feeSatPerVbyte'},
     {'1': 'fee_sats', '3': 5, '4': 1, '5': 4, '10': 'feeSats'},
+    {'1': 'url', '3': 6, '4': 1, '5': 9, '10': 'url'},
+    {'1': 'lang', '3': 7, '4': 1, '5': 9, '10': 'lang'},
+    {'1': 'subtype', '3': 8, '4': 1, '5': 5, '10': 'subtype'},
+    {'1': 'nsfw', '3': 9, '4': 1, '5': 8, '10': 'nsfw'},
   ],
 };
 
@@ -69,7 +73,8 @@ final $typed_data.Uint8List broadcastNewsRequestDescriptor = $convert.base64Deco
     'ChRCcm9hZGNhc3ROZXdzUmVxdWVzdBIUCgV0b3BpYxgBIAEoCVIFdG9waWMSGgoIaGVhZGxpbm'
     'UYAiABKAlSCGhlYWRsaW5lEhgKB2NvbnRlbnQYAyABKAlSB2NvbnRlbnQSKQoRZmVlX3NhdF9w'
     'ZXJfdmJ5dGUYBCABKARSDmZlZVNhdFBlclZieXRlEhkKCGZlZV9zYXRzGAUgASgEUgdmZWVTYX'
-    'Rz');
+    'RzEhAKA3VybBgGIAEoCVIDdXJsEhIKBGxhbmcYByABKAlSBGxhbmcSGAoHc3VidHlwZRgIIAEo'
+    'BVIHc3VidHlwZRISCgRuc2Z3GAkgASgIUgRuc2Z3');
 
 @$core.Deprecated('Use broadcastNewsResponseDescriptor instead')
 const BroadcastNewsResponse$json = {
@@ -202,6 +207,9 @@ const CoinNews$json = {
     {'1': 'upvotes', '3': 8, '4': 1, '5': 3, '10': 'upvotes'},
     {'1': 'downvotes', '3': 9, '4': 1, '5': 3, '10': 'downvotes'},
     {'1': 'score', '3': 10, '4': 1, '5': 1, '10': 'score'},
+    {'1': 'url', '3': 11, '4': 1, '5': 9, '10': 'url'},
+    {'1': 'subtype', '3': 12, '4': 1, '5': 5, '10': 'subtype'},
+    {'1': 'nsfw', '3': 13, '4': 1, '5': 8, '10': 'nsfw'},
   ],
 };
 
@@ -212,7 +220,8 @@ final $typed_data.Uint8List coinNewsDescriptor = $convert.base64Decode(
     'YXRzGAUgASgDUgdmZWVTYXRzEjsKC2NyZWF0ZV90aW1lGAYgASgLMhouZ29vZ2xlLnByb3RvYn'
     'VmLlRpbWVzdGFtcFIKY3JlYXRlVGltZRIXCgdpdGVtX2lkGAcgASgJUgZpdGVtSWQSGAoHdXB2'
     'b3RlcxgIIAEoA1IHdXB2b3RlcxIcCglkb3dudm90ZXMYCSABKANSCWRvd252b3RlcxIUCgVzY2'
-    '9yZRgKIAEoAVIFc2NvcmU=');
+    '9yZRgKIAEoAVIFc2NvcmUSEAoDdXJsGAsgASgJUgN1cmwSGAoHc3VidHlwZRgMIAEoBVIHc3Vi'
+    'dHlwZRISCgRuc2Z3GA0gASgIUgRuc2Z3');
 
 @$core.Deprecated('Use listCoinNewsResponseDescriptor instead')
 const ListCoinNewsResponse$json = {

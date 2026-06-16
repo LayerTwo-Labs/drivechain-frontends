@@ -400,6 +400,10 @@ class MockMiscAPI implements MiscAPI {
     String topic,
     String headline,
     String content, {
+    String? url,
+    String? lang,
+    int? subtype,
+    bool? nsfw,
     int? feeSatPerVbyte,
     int? feeSats,
   }) async {

@@ -59,6 +59,9 @@ func EncodeComment(c Comment) ([]byte, error) {
 	if err := EncodeTLVs(&buf, c.TLVs); err != nil {
 		return nil, err
 	}
+	if buf.Len() < CommentEnvelopeLen {
+		return nil, fmt.Errorf("coinnews: comment encoding produced %d bytes, want >= %d", buf.Len(), CommentEnvelopeLen)
+	}
 	return buf.Bytes(), nil
 }
 
