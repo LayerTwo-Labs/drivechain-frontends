@@ -2,6 +2,7 @@ package engines
 
 import (
 	"context"
+	"fmt"
 	"slices"
 	"strings"
 	"testing"
@@ -9,21 +10,41 @@ import (
 
 	"connectrpc.com/connect"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/database"
+	cnstore "github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/coinnews"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/opreturns"
 	service "github.com/LayerTwo-Labs/sidesail/bitwindow/server/service"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/tests"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/tests/mocks"
+	codec "github.com/LayerTwo-Labs/sidesail/coinnews/codec"
 	corepb "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha"
 	corerpc "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha/bitcoindv1alphaconnect"
 	"github.com/btcsuite/btcd/btcutil"
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
 	"github.com/btcsuite/btcd/txscript"
 	"github.com/btcsuite/btcd/wire"
-	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
 )
+
+// seedTopic indexes a TopicCreation directly into cn_topics so stories
+// for it carry a topic name through ListCoinNews.
+func seedTopic(t *testing.T, ctx context.Context, parser *Parser, topic opreturns.TopicID, name string, height uint32) {
+	t.Helper()
+	var ct codec.Topic
+	copy(ct[:], topic[:])
+	require.NoError(t, cnstore.Index(ctx, parser.db, cnstore.IndexEnv{
+		Pos: cnstore.BlockPos{
+			BlockHeight: height,
+			TxIndex:     0,
+			VoutIndex:   0,
+			BlockTime:   time.Now(),
+			TxID:        fmt.Sprintf("%064x", height),
+		},
+		TypeTag: codec.TypeTopicCreation,
+		Msg:     &codec.TopicCreation{Topic: ct, RetentionDays: 7, Name: name},
+	}))
+}
 
 func TestOpReturnHandling(t *testing.T) {
 	t.Parallel()
@@ -35,14 +56,6 @@ func TestOpReturnHandling(t *testing.T) {
 	knownTopicID, err := opreturns.ValidNewsTopicID("deadbeef")
 	require.NoError(t, err)
 
-	require.NoError(t, opreturns.CreateTopic(ctx, db, knownTopicID, "The Known Topic", "txid", true, 7))
-
-	unknownTopicID, err := opreturns.ValidNewsTopicID("12345678")
-	require.NoError(t, err)
-
-	newTopicID, err := opreturns.ValidNewsTopicID("87654321")
-	require.NoError(t, err)
-
 	core := mocks.NewMockBitcoinServiceClient(gomock.NewController(t))
 
 	parser := &Parser{
@@ -50,14 +63,11 @@ func TestOpReturnHandling(t *testing.T) {
 		bitcoind: service.New("bitcoind", func(ctx context.Context) (corerpc.BitcoinServiceClient, error) {
 			return core, nil
 		}),
-		topics: []opreturns.TopicInfo{
-			// One known topic
-			{
-				ID:   knownTopicID,
-				Name: "The Known Topic",
-			},
-		},
 	}
+	seedTopic(t, ctx, parser, knownTopicID, "The Known Topic", 50)
+
+	knownStory, err := opreturns.EncodeNewsMessageNewFormat(knownTopicID, "The Known Topic", "The Known Content")
+	require.NoError(t, err)
 
 	tx := &wire.MsgTx{
 		// have to have at least one input, otherwise it's a coinbase transaction
@@ -73,19 +83,7 @@ func TestOpReturnHandling(t *testing.T) {
 		TxOut: []*wire.TxOut{
 			{
 				Value:    0,
-				PkScript: pkScript(t, opreturns.EncodeNewsMessage(knownTopicID, "The Known Topic", "The Known Content")),
-			},
-			{
-				Value:    0,
-				PkScript: pkScript(t, opreturns.EncodeNewsMessage(unknownTopicID, "The Unknown Topic", "The Unknown Content")),
-			},
-			{
-				Value:    0,
-				PkScript: pkScript(t, opreturns.EncodeTopicCreationMessage(newTopicID, "The New Topic", 7)),
-			},
-			{
-				Value:    0,
-				PkScript: pkScript(t, opreturns.EncodeNewsMessage(newTopicID, "The New Topic", "The New Content")),
+				PkScript: pkScript(t, knownStory),
 			},
 		},
 	}
@@ -99,39 +97,23 @@ func TestOpReturnHandling(t *testing.T) {
 			Fee: 0.001,
 		}), nil)
 
-	// Verify that we:
-	// 1. Persisted coin news for the known topic
-	// 2. Skipped coins news for an unknown topic
-	// 3. Created the brand new topic
-	// 4. Persisted coin news for the new topic
 	require.NoError(t, parser.opReturnForTXID(ctx, tx, nil, nil))
 	require.NoError(t, parser.indexCoinNewsForBlock(ctx, 100, &wire.MsgBlock{
 		Header:       wire.BlockHeader{Timestamp: time.Now()},
 		Transactions: []*wire.MsgTx{tx},
 	}))
 
-	assert.Len(t, parser.topics, 2)
-
-	assert.True(t, lo.ContainsBy(parser.topics, func(t opreturns.TopicInfo) bool {
-		return t.ID.String() == knownTopicID.String()
-	}))
-	assert.True(t, lo.ContainsBy(parser.topics, func(t opreturns.TopicInfo) bool {
-		return t.ID.String() == newTopicID.String()
-	}))
-
 	news, err := opreturns.ListCoinNews(ctx, db)
 	require.NoError(t, err)
-	require.Len(t, news, 2)
+	require.Len(t, news, 1)
 
 	slices.SortFunc(news, func(a, b opreturns.CoinNews) int {
 		return strings.Compare(a.Headline, b.Headline)
 	})
 
 	assert.Equal(t, btcutil.Amount(100_000), news[0].Fee)
-	assert.Equal(t, btcutil.Amount(100_000), news[1].Fee)
-
 	assert.Equal(t, "The Known Topic", news[0].Headline)
-	assert.Equal(t, "The New Topic", news[1].Headline)
+	assert.Equal(t, "The Known Topic", news[0].TopicName)
 }
 
 func pkScript(t *testing.T, data []byte) []byte {
@@ -152,7 +134,6 @@ func TestOpReturnHandling_HeadlineEdgeCases(t *testing.T) {
 
 	topicID, err := opreturns.ValidNewsTopicID("a1a1a1a1")
 	require.NoError(t, err)
-	require.NoError(t, opreturns.CreateTopic(ctx, db, topicID, "US Weekly", "topic_txid", true, 7))
 
 	core := mocks.NewMockBitcoinServiceClient(gomock.NewController(t))
 	parser := &Parser{
@@ -160,8 +141,8 @@ func TestOpReturnHandling_HeadlineEdgeCases(t *testing.T) {
 		bitcoind: service.New("bitcoind", func(ctx context.Context) (corerpc.BitcoinServiceClient, error) {
 			return core, nil
 		}),
-		topics: []opreturns.TopicInfo{{ID: topicID, Name: "US Weekly"}},
 	}
+	seedTopic(t, ctx, parser, topicID, "US Weekly", 50)
 
 	cases := []struct {
 		name         string
@@ -204,11 +185,14 @@ func TestOpReturnHandling_HeadlineEdgeCases(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			txid := chainhash.Hash{byte(i + 1)}
 
+			story, err := opreturns.EncodeNewsMessageNewFormat(topicID, tc.headline, tc.content)
+			require.NoError(t, err)
+
 			tx := &wire.MsgTx{
 				TxIn: []*wire.TxIn{{PreviousOutPoint: wire.OutPoint{Hash: txid, Index: 0}}},
 				TxOut: []*wire.TxOut{{
 					Value:    0,
-					PkScript: pkScript(t, opreturns.EncodeNewsMessage(topicID, tc.headline, tc.content)),
+					PkScript: pkScript(t, story),
 				}},
 			}
 
@@ -248,9 +232,9 @@ func TestOpReturnHandling_HeadlineEdgeCases(t *testing.T) {
 	}
 }
 
-// TestOpReturnHandling_WhitespaceHeadlineLooksBlank covers the old
-// wire format's blank-title footgun. The compatibility adapter should
-// drop these instead of inserting canonical rows with invisible titles.
+// TestOpReturnHandling_WhitespaceHeadlineLooksBlank covers the
+// blank-title footgun: a whitespace-only headline must not surface as a
+// canonical story with an invisible title.
 func TestOpReturnHandling_WhitespaceHeadlineLooksBlank(t *testing.T) {
 	t.Parallel()
 
@@ -259,7 +243,6 @@ func TestOpReturnHandling_WhitespaceHeadlineLooksBlank(t *testing.T) {
 
 	topicID, err := opreturns.ValidNewsTopicID("a1a1a1a1")
 	require.NoError(t, err)
-	require.NoError(t, opreturns.CreateTopic(ctx, db, topicID, "US Weekly", "topic_txid", true, 7))
 
 	core := mocks.NewMockBitcoinServiceClient(gomock.NewController(t))
 	parser := &Parser{
@@ -267,14 +250,17 @@ func TestOpReturnHandling_WhitespaceHeadlineLooksBlank(t *testing.T) {
 		bitcoind: service.New("bitcoind", func(ctx context.Context) (corerpc.BitcoinServiceClient, error) {
 			return core, nil
 		}),
-		topics: []opreturns.TopicInfo{{ID: topicID, Name: "US Weekly"}},
 	}
+	seedTopic(t, ctx, parser, topicID, "US Weekly", 50)
+
+	story, err := opreturns.EncodeNewsMessageNewFormat(topicID, "   ", "body")
+	require.NoError(t, err)
 
 	tx := &wire.MsgTx{
 		TxIn: []*wire.TxIn{{PreviousOutPoint: wire.OutPoint{Hash: chainhash.Hash{9}, Index: 0}}},
 		TxOut: []*wire.TxOut{{
 			Value:    0,
-			PkScript: pkScript(t, opreturns.EncodeNewsMessage(topicID, "   ", "body")),
+			PkScript: pkScript(t, story),
 		}},
 	}
 	core.EXPECT().
@@ -292,5 +278,5 @@ func TestOpReturnHandling_WhitespaceHeadlineLooksBlank(t *testing.T) {
 
 	news, err := opreturns.ListCoinNews(ctx, db)
 	require.NoError(t, err)
-	assert.Empty(t, news, "legacy whitespace-only headlines should not be adapted into canonical stories")
+	assert.Empty(t, news, "whitespace-only headlines must not surface as canonical stories")
 }

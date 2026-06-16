@@ -303,27 +303,3 @@ func TestListCoinNews_TopicNameMatchesEachRow(t *testing.T) {
 	assert.Equal(t, topicA, byHeadline["ha"].Topic)
 	assert.Equal(t, topicB, byHeadline["hb"].Topic)
 }
-
-// CreateTopic must invalidate ListCoinNews because the legacy topic
-// table is still used as a display-name fallback for canonical stories.
-func TestListCoinNews_CreateTopicInvalidatesCache(t *testing.T) {
-	t.Parallel()
-	ctx := context.Background()
-	db := database.Test(t)
-
-	topic := mustTopicID(t, "c3c3c3c3")
-	seedCurrentNews(t, ctx, db, topic, "headline", "body", "tx", 0, 1, time.Now())
-
-	first, err := ListCoinNews(ctx, db)
-	require.NoError(t, err)
-	require.Len(t, first, 1)
-	assert.Empty(t, first[0].TopicName)
-
-	// Creating the fallback topic must drop the cached no-name result.
-	require.NoError(t, CreateTopic(ctx, db, topic, "T", "topic_txid", true, 0))
-
-	second, err := ListCoinNews(ctx, db)
-	require.NoError(t, err)
-	require.Len(t, second, 1)
-	assert.Equal(t, "T", second[0].TopicName, "CreateTopic must invalidate ListCoinNews cache")
-}

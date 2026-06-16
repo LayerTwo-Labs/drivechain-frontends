@@ -109,10 +109,9 @@ func seedVote(
 	}))
 }
 
-// TestListTopics_SurfacesChainIndexedTopics reproduces the bug where a
-// topic created by another wallet (indexed into cn_topics, never written
-// to coin_news_topics) didn't appear in bitwindow. ListTopics and
-// TopicExists must surface chain-indexed topics too.
+// TestListTopics_SurfacesChainIndexedTopics proves a chain-indexed topic
+// (cn_topics) — including ones created by other wallets — appears in
+// ListTopics and satisfies TopicExists.
 func TestListTopics_SurfacesChainIndexedTopics(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
@@ -306,27 +305,6 @@ func canonicalTxID(label string) string {
 	return fmt.Sprintf("%064x", sum)
 }
 
-// TestEncodeNewsMessage_Layout pins the on-wire byte layout so a future
-// refactor can't silently shift the headline slice and blank out the
-// UI column.
-func TestEncodeNewsMessage_Layout(t *testing.T) {
-	topic := mustTopicID(t, "a1a1a1a1")
-	headline := "Hello"
-	content := "body"
-
-	data := EncodeNewsMessage(topic, headline, content)
-	require.Len(t, data, TopicIdLength+64+len(content),
-		"wire format must be <4 topic><64 headline><N content>")
-	assert.Equal(t, topic[:], data[:TopicIdLength])
-	assert.Equal(t, []byte(headline), data[TopicIdLength:TopicIdLength+len(headline)])
-	// Padding must be NULL bytes — not spaces — because decoders trim
-	// trailing \x00 explicitly.
-	for i := TopicIdLength + len(headline); i < TopicIdLength+64; i++ {
-		assert.Equal(t, byte(0), data[i], "expected NULL padding at byte %d", i)
-	}
-	assert.Equal(t, []byte(content), data[TopicIdLength+64:])
-}
-
 func TestListCoinNews_RoundTripHeadlines(t *testing.T) {
 	cases := []struct {
 		name     string
@@ -427,43 +405,6 @@ func TestListCoinNews_ShortMessageBelowHeadlineEnd(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, news, 1)
 	assert.Equal(t, "short!!!", news[0].Headline)
-}
-
-// TestIsCreateTopic_RejectsNewsMessage makes sure the topic classifier
-// doesn't false-positive on a standard news message. The 64-byte
-// NULL-padded headline slot means a news message with any headline
-// shorter than 64 bytes always has NULLs in the headline region —
-// which the classifier now treats as the news signal.
-func TestIsCreateTopic_RejectsNewsMessage(t *testing.T) {
-	topic := mustTopicID(t, "a1a1a1a1")
-	headlines := []string{
-		"Hello",
-		"",
-		"   ",
-		"news flash",
-		"new coin launched",
-		"newly launched protocol",
-	}
-	for _, h := range headlines {
-		t.Run(h, func(t *testing.T) {
-			data := EncodeNewsMessage(topic, h, "content")
-			_, isTopic := IsCreateTopic(data)
-			assert.False(t, isTopic, "news must not be classified as topic creation (headline=%q)", h)
-		})
-	}
-}
-
-// TestIsCreateTopic_RecognizesRealTopicCreation is the positive twin
-// of the above: real topic-creation OP_RETURNs must still be picked up.
-func TestIsCreateTopic_RecognizesRealTopicCreation(t *testing.T) {
-	topic := mustTopicID(t, "cafebabe")
-	data := EncodeTopicCreationMessage(topic, "Test Topic Name", 14)
-
-	info, ok := IsCreateTopic(data)
-	require.True(t, ok)
-	assert.Equal(t, topic, info.ID)
-	assert.Equal(t, "Test Topic Name", info.Name)
-	assert.Equal(t, int32(14), info.RetentionDays)
 }
 
 // TestListCoinNews_NewPrefixedHeadlineSurvivesDecode locks in the

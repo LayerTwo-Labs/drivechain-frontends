@@ -307,13 +307,6 @@ func (s *Server) CreateTopic(ctx context.Context, req *connect.Request[miscv1.Cr
 	}
 	txid := resp.Msg.Txid.Hex.Value
 
-	// Insert topic into database immediately so it's available in the UI
-	// before the transaction is mined
-	if err := opreturns.CreateTopic(ctx, s.database, topicID, req.Msg.Name, txid, false, retentionDays); err != nil {
-		// Log but don't fail - topic will also be created when block is processed
-		zerolog.Ctx(ctx).Warn().Err(err).Msg("failed to insert topic immediately")
-	}
-
 	log := zerolog.Ctx(ctx)
 	log.Info().
 		Stringer("topic", topicID).

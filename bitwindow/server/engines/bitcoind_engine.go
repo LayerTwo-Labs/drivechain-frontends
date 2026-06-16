@@ -9,7 +9,6 @@ import (
 	"errors"
 	"fmt"
 	"strings"
-	"sync"
 	"time"
 
 	"connectrpc.com/connect"
@@ -48,8 +47,6 @@ type Parser struct {
 	db       *sql.DB
 	conf     config.Config
 
-	mu       sync.Mutex
-	topics   []opreturns.TopicInfo
 	m4Engine *M4Engine
 
 	// Dedicated sink for coinnews sync events. Nil => logging disabled.
@@ -69,18 +66,6 @@ func (p *Parser) SetCoinnewsLogger(logger *zerolog.Logger) {
 func (p *Parser) Run(ctx context.Context) error {
 	alertTicker := time.NewTicker(2 * time.Second)
 	defer alertTicker.Stop()
-
-	topics, err := opreturns.ListTopics(ctx, p.db)
-	if err != nil {
-		return fmt.Errorf("list topics: %w", err)
-	}
-	p.topics = lo.Map(topics, func(t opreturns.Topic, _ int) opreturns.TopicInfo {
-		return opreturns.TopicInfo{
-			ID:            t.Topic,
-			Name:          t.Name,
-			RetentionDays: t.RetentionDays,
-		}
-	})
 
 	zerolog.Ctx(ctx).Info().
 		Msgf("bitcoind_engine/parser: started parser ticker")
@@ -372,31 +357,6 @@ func (p *Parser) opReturnForTXID(
 	return nil
 }
 
-func (p *Parser) handleCreateTopic(
-	ctx context.Context, info opreturns.TopicInfo, txid string,
-) error {
-
-	zerolog.Ctx(ctx).Info().
-		Msgf("bitcoind_engine/parser: found create topic: %s", info.Name)
-
-	if err := opreturns.CreateTopic(
-		ctx, p.db, info.ID, info.Name, txid, true, info.RetentionDays,
-	); err != nil {
-		return fmt.Errorf("persist create topic: %w", err)
-	}
-
-	p.mu.Lock()
-	defer p.mu.Unlock()
-
-	p.topics = append(p.topics, opreturns.TopicInfo{
-		ID:            info.ID,
-		Name:          info.Name,
-		RetentionDays: info.RetentionDays,
-	})
-
-	return nil
-}
-
 func (p *Parser) handleTimestamp(
 	ctx context.Context, data []byte, txid string, height *uint32,
 ) error {
@@ -617,12 +577,6 @@ func (p *Parser) handleOpReturns(
 			continue
 		}
 
-		if info, ok := opreturns.IsCreateTopic(data); ok {
-			if err := p.handleCreateTopic(ctx, info, txid); err != nil {
-				return nil, err
-			}
-		}
-
 		// Check if this is a timestamp with STAMP prefix
 		if err := p.handleTimestamp(ctx, data, txid, height); err != nil {
 			zerolog.Ctx(ctx).Warn().
@@ -636,7 +590,7 @@ func (p *Parser) handleOpReturns(
 			Int("vout", vout).
 			Msgf("bitcoind_engine/parser: found OP_RETURN")
 
-		p.logCoinnews(txid, vout, data, height)
+		p.logCoinnews(ctx, txid, vout, data, height)
 
 		// CoinNews indexing happens elsewhere — we cannot do it here
 		// because handleOpReturns runs concurrently across blocks in
@@ -684,23 +638,20 @@ func (p *Parser) handleOpReturns(
 }
 
 // logCoinnews emits a detailed line to the dedicated coinnews-sync log when
-// the OP_RETURN's first 4 bytes match a known coin_news_topics entry.
+// the OP_RETURN's first 4 bytes match a known cn_topics entry.
 // No-op if no logger is attached (SetCoinnewsLogger not called).
-func (p *Parser) logCoinnews(txid string, vout int, data []byte, height *uint32) {
+func (p *Parser) logCoinnews(ctx context.Context, txid string, vout int, data []byte, height *uint32) {
 	if p.coinnewsLog == nil || len(data) < 4 {
 		return
 	}
 
-	p.mu.Lock()
 	topicHex := hex.EncodeToString(data[:4])
 	var topicName string
-	for _, t := range p.topics {
-		if t.ID.String() == topicHex {
-			topicName = t.Name
-			break
-		}
+	if err := p.db.QueryRowContext(ctx,
+		`SELECT name FROM cn_topics WHERE lower(hex(topic)) = ?`, topicHex,
+	).Scan(&topicName); err != nil {
+		return // not a known topic, or lookup failed
 	}
-	p.mu.Unlock()
 
 	if topicName == "" {
 		return // not a coinnews entry
