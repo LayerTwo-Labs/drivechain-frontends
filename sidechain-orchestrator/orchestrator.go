@@ -691,6 +691,16 @@ func (o *Orchestrator) StartWithL1(ctx context.Context, target string, opts Star
 	go func() {
 		defer close(ch)
 
+		// Electrum (and any future remote-backed) wallets serve chain data with
+		// no local Bitcoin Core or enforcer. When such a wallet is active, every
+		// L1 boot path is a no-op. The gate lives here so no frontend can force
+		// the local stack up for a remote wallet — the backend owns the decision.
+		if o.WalletSvc != nil && !o.WalletSvc.ActiveWalletNeedsBitcoinBackends() {
+			o.log.Info().Str("target", target).Msg("active wallet is electrum; skipping local Bitcoin backends")
+			ch <- StartupProgress{Stage: "skipped-l1", Message: "electrum wallet active — no local Bitcoin backends needed", Done: true}
+			return
+		}
+
 		// If a previous bitwindowd's drain is still in flight, adopt it:
 		// flip the will-exit bit off and block until the drained stops
 		// finish. UI surfacing happens via per-binary startup logs inside
