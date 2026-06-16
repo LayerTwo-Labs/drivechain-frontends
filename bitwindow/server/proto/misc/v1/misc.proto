@@ -47,6 +47,12 @@ message BroadcastNewsRequest {
   // Fee options - exactly one should be set (0 = use Core's estimate)
   uint64 fee_sat_per_vbyte = 4; // Fee rate in sat/vB
   uint64 fee_sats = 5; // Total fee in satoshis
+  // Optional Story TLVs (spec §6, §10).
+  string url = 6;
+  string lang = 7;
+  // 0=link, 1=text, 2=ask, 3=show, 4=poll, 5=job
+  int32 subtype = 8;
+  bool nsfw = 9;
 }
 
 message BroadcastNewsResponse {
@@ -116,6 +122,11 @@ message CoinNews {
   int64 downvotes = 9;
   // Hacker-News rank score (spec §13), the canonical feed ordering.
   double score = 10;
+  // Optional Story TLVs (spec §10).
+  string url = 11;
+  // 0=link, 1=text, 2=ask, 3=show, 4=poll, 5=job
+  int32 subtype = 12;
+  bool nsfw = 13;
 }
 
 message ListCoinNewsResponse {

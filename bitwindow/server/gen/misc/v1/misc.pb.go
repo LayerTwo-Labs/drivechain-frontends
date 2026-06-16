@@ -159,8 +159,14 @@ type BroadcastNewsRequest struct {
 	// Fee options - exactly one should be set (0 = use Core's estimate)
 	FeeSatPerVbyte uint64 `protobuf:"varint,4,opt,name=fee_sat_per_vbyte,json=feeSatPerVbyte,proto3" json:"fee_sat_per_vbyte,omitempty"` // Fee rate in sat/vB
 	FeeSats        uint64 `protobuf:"varint,5,opt,name=fee_sats,json=feeSats,proto3" json:"fee_sats,omitempty"`                          // Total fee in satoshis
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+	// Optional Story TLVs (spec §6, §10).
+	Url  string `protobuf:"bytes,6,opt,name=url,proto3" json:"url,omitempty"`
+	Lang string `protobuf:"bytes,7,opt,name=lang,proto3" json:"lang,omitempty"`
+	// 0=link, 1=text, 2=ask, 3=show, 4=poll, 5=job
+	Subtype       int32 `protobuf:"varint,8,opt,name=subtype,proto3" json:"subtype,omitempty"`
+	Nsfw          bool  `protobuf:"varint,9,opt,name=nsfw,proto3" json:"nsfw,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *BroadcastNewsRequest) Reset() {
@@ -226,6 +232,34 @@ func (x *BroadcastNewsRequest) GetFeeSats() uint64 {
 		return x.FeeSats
 	}
 	return 0
+}
+
+func (x *BroadcastNewsRequest) GetUrl() string {
+	if x != nil {
+		return x.Url
+	}
+	return ""
+}
+
+func (x *BroadcastNewsRequest) GetLang() string {
+	if x != nil {
+		return x.Lang
+	}
+	return ""
+}
+
+func (x *BroadcastNewsRequest) GetSubtype() int32 {
+	if x != nil {
+		return x.Subtype
+	}
+	return 0
+}
+
+func (x *BroadcastNewsRequest) GetNsfw() bool {
+	if x != nil {
+		return x.Nsfw
+	}
+	return false
 }
 
 type BroadcastNewsResponse struct {
@@ -681,7 +715,12 @@ type CoinNews struct {
 	// Count of confirmed on-chain downvotes (CoinNews Vote, kind=0x05).
 	Downvotes int64 `protobuf:"varint,9,opt,name=downvotes,proto3" json:"downvotes,omitempty"`
 	// Hacker-News rank score (spec §13), the canonical feed ordering.
-	Score         float64 `protobuf:"fixed64,10,opt,name=score,proto3" json:"score,omitempty"`
+	Score float64 `protobuf:"fixed64,10,opt,name=score,proto3" json:"score,omitempty"`
+	// Optional Story TLVs (spec §10).
+	Url string `protobuf:"bytes,11,opt,name=url,proto3" json:"url,omitempty"`
+	// 0=link, 1=text, 2=ask, 3=show, 4=poll, 5=job
+	Subtype       int32 `protobuf:"varint,12,opt,name=subtype,proto3" json:"subtype,omitempty"`
+	Nsfw          bool  `protobuf:"varint,13,opt,name=nsfw,proto3" json:"nsfw,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -784,6 +823,27 @@ func (x *CoinNews) GetScore() float64 {
 		return x.Score
 	}
 	return 0
+}
+
+func (x *CoinNews) GetUrl() string {
+	if x != nil {
+		return x.Url
+	}
+	return ""
+}
+
+func (x *CoinNews) GetSubtype() int32 {
+	if x != nil {
+		return x.Subtype
+	}
+	return 0
+}
+
+func (x *CoinNews) GetNsfw() bool {
+	if x != nil {
+		return x.Nsfw
+	}
+	return false
 }
 
 type ListCoinNewsResponse struct {
@@ -1570,13 +1630,17 @@ const file_misc_v1_misc_proto_rawDesc = "" +
 	"\x06height\x18\x05 \x01(\x05H\x00R\x06height\x88\x01\x01\x12;\n" +
 	"\vcreate_time\x18\a \x01(\v2\x1a.google.protobuf.TimestampR\n" +
 	"createTimeB\t\n" +
-	"\a_height\"\xa8\x01\n" +
+	"\a_height\"\xfc\x01\n" +
 	"\x14BroadcastNewsRequest\x12\x14\n" +
 	"\x05topic\x18\x01 \x01(\tR\x05topic\x12\x1a\n" +
 	"\bheadline\x18\x02 \x01(\tR\bheadline\x12\x18\n" +
 	"\acontent\x18\x03 \x01(\tR\acontent\x12)\n" +
 	"\x11fee_sat_per_vbyte\x18\x04 \x01(\x04R\x0efeeSatPerVbyte\x12\x19\n" +
-	"\bfee_sats\x18\x05 \x01(\x04R\afeeSats\"+\n" +
+	"\bfee_sats\x18\x05 \x01(\x04R\afeeSats\x12\x10\n" +
+	"\x03url\x18\x06 \x01(\tR\x03url\x12\x12\n" +
+	"\x04lang\x18\a \x01(\tR\x04lang\x12\x18\n" +
+	"\asubtype\x18\b \x01(\x05R\asubtype\x12\x12\n" +
+	"\x04nsfw\x18\t \x01(\bR\x04nsfw\"+\n" +
 	"\x15BroadcastNewsResponse\x12\x12\n" +
 	"\x04txid\x18\x01 \x01(\tR\x04txid\"r\n" +
 	"\x11UpvoteNewsRequest\x12\x17\n" +
@@ -1604,7 +1668,7 @@ const file_misc_v1_misc_proto_rawDesc = "" +
 	"\x06topics\x18\x01 \x03(\v2\x0e.misc.v1.TopicR\x06topics\":\n" +
 	"\x13ListCoinNewsRequest\x12\x19\n" +
 	"\x05topic\x18\x01 \x01(\tH\x00R\x05topic\x88\x01\x01B\b\n" +
-	"\x06_topic\"\xa5\x02\n" +
+	"\x06_topic\"\xe5\x02\n" +
 	"\bCoinNews\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\x03R\x02id\x12\x14\n" +
 	"\x05topic\x18\x02 \x01(\tR\x05topic\x12\x1a\n" +
@@ -1617,7 +1681,10 @@ const file_misc_v1_misc_proto_rawDesc = "" +
 	"\aupvotes\x18\b \x01(\x03R\aupvotes\x12\x1c\n" +
 	"\tdownvotes\x18\t \x01(\x03R\tdownvotes\x12\x14\n" +
 	"\x05score\x18\n" +
-	" \x01(\x01R\x05score\"F\n" +
+	" \x01(\x01R\x05score\x12\x10\n" +
+	"\x03url\x18\v \x01(\tR\x03url\x12\x18\n" +
+	"\asubtype\x18\f \x01(\x05R\asubtype\x12\x12\n" +
+	"\x04nsfw\x18\r \x01(\bR\x04nsfw\"F\n" +
 	"\x14ListCoinNewsResponse\x12.\n" +
 	"\tcoin_news\x18\x01 \x03(\v2\x11.misc.v1.CoinNewsR\bcoinNews\"\xd2\x01\n" +
 	"\x12CommentNewsRequest\x12\x1b\n" +

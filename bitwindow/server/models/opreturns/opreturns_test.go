@@ -109,6 +109,38 @@ func seedVote(
 	}))
 }
 
+// TestListCoinNews_SurfacesStoryTLVs proves a Story's url/subtype/nsfw
+// TLVs (spec §10) round-trip through ListCoinNews.
+func TestListCoinNews_SurfacesStoryTLVs(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	topic := mustTopicID(t, "a1a1a1a1")
+	db := database.Test(t)
+	seedCurrentTopic(t, ctx, db, topic, "Topic", 0, 99)
+
+	var ct codec.Topic
+	copy(ct[:], topic[:])
+	require.NoError(t, cnstore.Index(ctx, db, cnstore.IndexEnv{
+		Pos: cnstore.BlockPos{
+			BlockHeight: 100, TxIndex: 0, VoutIndex: 0,
+			BlockTime: time.Now(), TxID: fmt.Sprintf("%064x", 100),
+		},
+		TypeTag: codec.TypeStory,
+		Msg: &codec.Story{Topic: ct, Headline: "Link post", TLVs: []codec.TLV{
+			{Tag: codec.TLVURL, Value: []byte("https://example.com")},
+			{Tag: codec.TLVSubtype, Value: []byte{byte(codec.SubtypeLink)}},
+			{Tag: codec.TLVNSFW, Value: []byte{0x01}},
+		}},
+	}))
+
+	news, err := ListCoinNews(ctx, db)
+	require.NoError(t, err)
+	require.Len(t, news, 1)
+	assert.Equal(t, "https://example.com", news[0].URL)
+	assert.Equal(t, int32(codec.SubtypeLink), news[0].Subtype)
+	assert.True(t, news[0].NSFW)
+}
+
 // TestListCoinNews_ReassemblesContinuationBody proves spec §9: a head
 // Story with no in-line body plus Continuation chunks carrying a long
 // body TLV is rendered with the full reassembled body.

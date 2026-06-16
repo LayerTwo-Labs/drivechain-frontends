@@ -1287,6 +1287,10 @@ abstract class MiscAPI {
     String topic,
     String headline,
     String content, {
+    String? url,
+    String? lang,
+    int? subtype,
+    bool? nsfw,
     int? feeSatPerVbyte,
     int? feeSats,
   });
@@ -1343,6 +1347,10 @@ class _MiscAPILive implements MiscAPI {
     String topic,
     String headline,
     String content, {
+    String? url,
+    String? lang,
+    int? subtype,
+    bool? nsfw,
     int? feeSatPerVbyte,
     int? feeSats,
   }) async {
@@ -1351,6 +1359,10 @@ class _MiscAPILive implements MiscAPI {
         ..topic = topic
         ..headline = headline
         ..content = content;
+      if (url != null) request.url = url;
+      if (lang != null) request.lang = lang;
+      if (subtype != null) request.subtype = subtype;
+      if (nsfw != null) request.nsfw = nsfw;
 
       if (feeSatPerVbyte != null) {
         request.feeSatPerVbyte = Int64(feeSatPerVbyte);

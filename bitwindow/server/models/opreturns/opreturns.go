@@ -362,6 +362,9 @@ type CoinNews struct {
 	Upvotes   int64
 	Downvotes int64
 	Score     float64 // Hacker-News rank (spec §13)
+	URL       string  // optional link (TLV §10)
+	Subtype   int32   // 0=link,1=text,2=ask,3=show,4=poll,5=job
+	NSFW      bool
 
 	CreatedAt *time.Time
 }
@@ -439,14 +442,39 @@ func EncodeTopicCreationMessage(topic TopicID, name string, retentionDays int32)
 // EncodeNewsMessageNewFormat produces the current CoinNews Story wire
 // format used by BroadcastNews and decoded by the cn_* block parser.
 func EncodeNewsMessageNewFormat(topic TopicID, headline string, content string) ([]byte, error) {
+	return EncodeNewsMessageWithOptions(topic, headline, content, StoryOptions{})
+}
+
+// StoryOptions carries the optional Story TLVs (spec §6, §10): a link
+// URL, language, content subtype, and the NSFW flag.
+type StoryOptions struct {
+	URL     string
+	Lang    string
+	Subtype int32
+	NSFW    bool
+}
+
+// EncodeNewsMessageWithOptions builds a Story payload with the body and
+// any provided optional TLVs, in the canonical order body, url, lang,
+// subtype, nsfw.
+func EncodeNewsMessageWithOptions(topic TopicID, headline, content string, opts StoryOptions) ([]byte, error) {
 	var t codec.Topic
 	copy(t[:], topic[:])
 	story := codec.Story{Topic: t, Headline: headline}
 	if content != "" {
-		story.TLVs = append(story.TLVs, codec.TLV{
-			Tag:   codec.TLVBody,
-			Value: []byte(content),
-		})
+		story.TLVs = append(story.TLVs, codec.TLV{Tag: codec.TLVBody, Value: []byte(content)})
+	}
+	if opts.URL != "" {
+		story.TLVs = append(story.TLVs, codec.TLV{Tag: codec.TLVURL, Value: []byte(opts.URL)})
+	}
+	if opts.Lang != "" {
+		story.TLVs = append(story.TLVs, codec.TLV{Tag: codec.TLVLang, Value: []byte(opts.Lang)})
+	}
+	if opts.Subtype != 0 {
+		story.TLVs = append(story.TLVs, codec.TLV{Tag: codec.TLVSubtype, Value: []byte{byte(opts.Subtype)}})
+	}
+	if opts.NSFW {
+		story.TLVs = append(story.TLVs, codec.TLV{Tag: codec.TLVNSFW, Value: []byte{0x01}})
 	}
 	return codec.EncodeStory(story)
 }
@@ -517,7 +545,10 @@ func listCoinNewsNewFormat(ctx context.Context, db *sql.DB) ([]CoinNews, error) 
 			lower(hex(s.item_id)),
 			COALESCE(v.upvotes, 0),
 			COALESCE(v.downvotes, 0),
-			COALESCE(s.raw_tlv, x'')
+			COALESCE(s.raw_tlv, x''),
+			COALESCE(s.url, ''),
+			s.subtype,
+			s.nsfw
 		FROM cn_stories s
 		JOIN cn_items i ON i.item_id = s.item_id
 		LEFT JOIN cn_topics ct ON ct.topic = s.topic
@@ -566,8 +597,11 @@ func listCoinNewsNewFormat(ctx context.Context, db *sql.DB) ([]CoinNews, error) 
 			upvotes   int64
 			downvotes int64
 			rawTLV    []byte
+			url       string
+			subtype   int32
+			nsfw      bool
 		)
-		if err := rows.Scan(&id, &rawTopic, &topicName, &headline, &content, &fee, &blockTime, &itemID, &upvotes, &downvotes, &rawTLV); err != nil {
+		if err := rows.Scan(&id, &rawTopic, &topicName, &headline, &content, &fee, &blockTime, &itemID, &upvotes, &downvotes, &rawTLV, &url, &subtype, &nsfw); err != nil {
 			return nil, fmt.Errorf("list coin news: scan new-format story: %w", err)
 		}
 		if len(rawTopic) != TopicIdLength {
@@ -596,6 +630,9 @@ func listCoinNewsNewFormat(ctx context.Context, db *sql.DB) ([]CoinNews, error) 
 			Upvotes:   upvotes,
 			Downvotes: downvotes,
 			Score:     cnstore.HNScore(upvotes, downvotes, blockTime),
+			URL:       url,
+			Subtype:   subtype,
+			NSFW:      nsfw,
 			CreatedAt: &blockTime,
 		})
 	}

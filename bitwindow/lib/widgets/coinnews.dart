@@ -1229,6 +1229,13 @@ class CoinNewsArticlePanel extends StatelessWidget {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
+                            if (news.url.isNotEmpty) ...[
+                              GestureDetector(
+                                onTap: () async => launchUrl(Uri.parse(news.url)),
+                                child: SailText.primary13(news.url, color: theme.colors.primary),
+                              ),
+                              const SailSpacing(SailStyleValues.padding12),
+                            ],
                             MarkdownBody(
                               data: news.content,
                               styleSheet: MarkdownStyleSheet(
