@@ -301,6 +301,79 @@ func TestService_BroadcastNews(t *testing.T) {
 	})
 }
 
+func TestService_VotesAndComments(t *testing.T) {
+	t.Parallel()
+
+	const validItemID = "0123456789abcdef01234567" // 12-byte hex
+
+	walletReturningTxid := func(t *testing.T) *mocks.MockWalletServiceClient {
+		t.Helper()
+		mockWallet := mocks.NewMockWalletServiceClient(gomock.NewController(t))
+		mockWallet.EXPECT().
+			SendTransaction(gomock.Any(), gomock.Any()).
+			Return(&connect.Response[pb.SendTransactionResponse]{
+				Msg: &pb.SendTransactionResponse{
+					Txid: &commonv1.ReverseHex{Hex: &wrapperspb.StringValue{Value: "test-txid"}},
+				},
+			}, nil).AnyTimes()
+		return mockWallet
+	}
+
+	t.Run("upvote success", func(t *testing.T) {
+		t.Parallel()
+		cli := miscv1connect.NewMiscServiceClient(apitests.API(t, database.Test(t), apitests.WithWallet(walletReturningTxid(t))))
+		resp, err := cli.UpvoteNews(context.Background(), connect.NewRequest(&miscv1.UpvoteNewsRequest{ItemId: validItemID}))
+		require.NoError(t, err)
+		assert.NotEmpty(t, resp.Msg.Txid)
+	})
+
+	t.Run("downvote success", func(t *testing.T) {
+		t.Parallel()
+		cli := miscv1connect.NewMiscServiceClient(apitests.API(t, database.Test(t), apitests.WithWallet(walletReturningTxid(t))))
+		resp, err := cli.DownvoteNews(context.Background(), connect.NewRequest(&miscv1.UpvoteNewsRequest{ItemId: validItemID}))
+		require.NoError(t, err)
+		assert.NotEmpty(t, resp.Msg.Txid)
+	})
+
+	t.Run("vote rejects malformed item_id", func(t *testing.T) {
+		t.Parallel()
+		cli := miscv1connect.NewMiscServiceClient(apitests.API(t, database.Test(t)))
+		_, err := cli.UpvoteNews(context.Background(), connect.NewRequest(&miscv1.UpvoteNewsRequest{ItemId: "nothex"}))
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "item_id must be")
+	})
+
+	t.Run("comment success", func(t *testing.T) {
+		t.Parallel()
+		cli := miscv1connect.NewMiscServiceClient(apitests.API(t, database.Test(t), apitests.WithWallet(walletReturningTxid(t))))
+		resp, err := cli.CommentNews(context.Background(), connect.NewRequest(&miscv1.CommentNewsRequest{
+			ParentId: validItemID,
+			Body:     "great article",
+		}))
+		require.NoError(t, err)
+		assert.NotEmpty(t, resp.Msg.Txid)
+	})
+
+	t.Run("comment rejects empty body and url", func(t *testing.T) {
+		t.Parallel()
+		cli := miscv1connect.NewMiscServiceClient(apitests.API(t, database.Test(t)))
+		_, err := cli.CommentNews(context.Background(), connect.NewRequest(&miscv1.CommentNewsRequest{
+			ParentId: validItemID,
+			Body:     "  ",
+		}))
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "body or url")
+	})
+
+	t.Run("list comments empty", func(t *testing.T) {
+		t.Parallel()
+		cli := miscv1connect.NewMiscServiceClient(apitests.API(t, database.Test(t)))
+		resp, err := cli.ListComments(context.Background(), connect.NewRequest(&miscv1.ListCommentsRequest{ItemId: validItemID}))
+		require.NoError(t, err)
+		assert.Empty(t, resp.Msg.Comments)
+	})
+}
+
 func TestService_CreateTopic(t *testing.T) {
 	t.Parallel()
 

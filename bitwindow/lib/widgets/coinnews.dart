@@ -7,8 +7,10 @@ import 'package:bitwindow/pages/overview_page.dart';
 import 'package:bitwindow/providers/news_provider.dart';
 import 'package:bitwindow/widgets/pagination.dart';
 import 'package:collection/collection.dart';
+import 'package:fixnum/fixnum.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
+import 'package:protobuf/protobuf.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/gen/google/protobuf/timestamp.pb.dart';
@@ -977,8 +979,9 @@ class _VoteButton extends StatefulWidget {
   final SailSVGAsset asset;
   final int count;
   final Future<void> Function()? onTap;
+  final double size;
 
-  const _VoteButton({required this.asset, required this.count, this.onTap});
+  const _VoteButton({required this.asset, required this.count, this.onTap, this.size = 16});
 
   @override
   State<_VoteButton> createState() => _VoteButtonState();
@@ -1014,8 +1017,8 @@ class _VoteButtonState extends State<_VoteButton> {
             onTap: enabled ? _handleTap : null,
             child: SailSVG.fromAsset(
               widget.asset,
-              width: 16,
-              height: 16,
+              width: widget.size,
+              height: widget.size,
               color: _hovered && enabled ? colors.primary : colors.icon,
             ),
           ),
@@ -1350,6 +1353,31 @@ class _CommentsSectionState extends State<_CommentsSection> {
     }
   }
 
+  /// Broadcasts a signed vote on a comment and optimistically bumps its
+  /// count. The confirmed tally updates once the vote is mined.
+  Future<void> _vote(Comment comment, {required bool up}) async {
+    try {
+      if (up) {
+        await api.misc.upvoteNews(comment.itemId);
+      } else {
+        await api.misc.downvoteNews(comment.itemId);
+      }
+      if (!mounted) return;
+      final idx = _comments.indexWhere((c) => c.itemId == comment.itemId);
+      if (idx != -1) {
+        final updated = _comments[idx].deepCopy();
+        if (up) {
+          updated.upvotes += Int64(1);
+        } else {
+          updated.downvotes += Int64(1);
+        }
+        setState(() => _comments[idx] = updated);
+      }
+    } catch (e) {
+      if (mounted) setState(() => _error = e.toString());
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = SailTheme.of(context);
@@ -1405,10 +1433,19 @@ class _CommentsSectionState extends State<_CommentsSection> {
           Row(
             children: [
               SailText.secondary12(author, color: theme.colors.textTertiary),
+              const SailSpacing(SailStyleValues.padding12),
+              _VoteButton(
+                asset: SailSVGAsset.thumbsUp,
+                count: comment.upvotes.toInt(),
+                size: 12,
+                onTap: () => _vote(comment, up: true),
+              ),
               const SailSpacing(SailStyleValues.padding08),
-              SailText.secondary12(
-                '▲ ${comment.upvotes}  ▼ ${comment.downvotes}',
-                color: theme.colors.textTertiary,
+              _VoteButton(
+                asset: SailSVGAsset.thumbsDown,
+                count: comment.downvotes.toInt(),
+                size: 12,
+                onTap: () => _vote(comment, up: false),
               ),
             ],
           ),
