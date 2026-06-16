@@ -156,6 +156,47 @@ func TestListCoinNews_ReassemblesContinuationBody(t *testing.T) {
 	assert.Equal(t, longBody, news[0].Content, "continuation chunks reassemble into the full body")
 }
 
+// TestListCoinNews_RanksByScoreAndCountsDownvotes proves spec §13: the
+// feed is ordered by HN score, and downvotes (kind=5) are tallied.
+func TestListCoinNews_RanksByScoreAndCountsDownvotes(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	topic := mustTopicID(t, "a1a1a1a1")
+	db := database.Test(t)
+	seedCurrentTopic(t, ctx, db, topic, "Topic", 0, 99)
+	now := time.Now()
+	seedCurrentNews(t, ctx, db, topic, "Upvoted", "", "storyA", 0, 100, now)
+	seedCurrentNews(t, ctx, db, topic, "Downvoted", "", "storyB", 0, 100, now)
+
+	itemIDs := map[string]codec.ItemID{}
+	rows, err := db.QueryContext(ctx, `SELECT headline, item_id FROM cn_stories`)
+	require.NoError(t, err)
+	for rows.Next() {
+		var headline string
+		var id []byte
+		require.NoError(t, rows.Scan(&headline, &id))
+		var item codec.ItemID
+		copy(item[:], id)
+		itemIDs[headline] = item
+	}
+	require.NoError(t, rows.Close())
+
+	seedVote(t, ctx, db, itemIDs["Upvoted"], codec.TypeUpvote, 0x10, 200)
+	seedVote(t, ctx, db, itemIDs["Upvoted"], codec.TypeUpvote, 0x11, 201)
+	seedVote(t, ctx, db, itemIDs["Upvoted"], codec.TypeUpvote, 0x12, 202)
+	seedVote(t, ctx, db, itemIDs["Downvoted"], codec.TypeDownvote, 0x20, 203)
+	seedVote(t, ctx, db, itemIDs["Downvoted"], codec.TypeDownvote, 0x21, 204)
+
+	news, err := ListCoinNews(ctx, db)
+	require.NoError(t, err)
+	require.Len(t, news, 2)
+	assert.Equal(t, "Upvoted", news[0].Headline, "higher-scored story ranks first")
+	assert.Equal(t, int64(3), news[0].Upvotes)
+	assert.Equal(t, "Downvoted", news[1].Headline)
+	assert.Equal(t, int64(2), news[1].Downvotes)
+	assert.Greater(t, news[0].Score, news[1].Score)
+}
+
 // TestListCoinNews_CountsUpvotes proves upvotes (kind=4) are tallied per
 // story while downvotes are excluded, and the story's ItemID round-trips
 // to the hex column the UI votes against.

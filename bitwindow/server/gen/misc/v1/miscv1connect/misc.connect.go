@@ -42,6 +42,9 @@ const (
 	MiscServiceBroadcastNewsProcedure = "/misc.v1.MiscService/BroadcastNews"
 	// MiscServiceUpvoteNewsProcedure is the fully-qualified name of the MiscService's UpvoteNews RPC.
 	MiscServiceUpvoteNewsProcedure = "/misc.v1.MiscService/UpvoteNews"
+	// MiscServiceDownvoteNewsProcedure is the fully-qualified name of the MiscService's DownvoteNews
+	// RPC.
+	MiscServiceDownvoteNewsProcedure = "/misc.v1.MiscService/DownvoteNews"
 	// MiscServiceCreateTopicProcedure is the fully-qualified name of the MiscService's CreateTopic RPC.
 	MiscServiceCreateTopicProcedure = "/misc.v1.MiscService/CreateTopic"
 	// MiscServiceListTopicsProcedure is the fully-qualified name of the MiscService's ListTopics RPC.
@@ -66,6 +69,8 @@ type MiscServiceClient interface {
 	BroadcastNews(context.Context, *connect.Request[v1.BroadcastNewsRequest]) (*connect.Response[v1.BroadcastNewsResponse], error)
 	// Broadcasts a signed upvote (CoinNews Vote, kind=0x04) targeting a story.
 	UpvoteNews(context.Context, *connect.Request[v1.UpvoteNewsRequest]) (*connect.Response[v1.UpvoteNewsResponse], error)
+	// Broadcasts a signed downvote (CoinNews Vote, kind=0x05) targeting a story.
+	DownvoteNews(context.Context, *connect.Request[v1.UpvoteNewsRequest]) (*connect.Response[v1.UpvoteNewsResponse], error)
 	CreateTopic(context.Context, *connect.Request[v1.CreateTopicRequest]) (*connect.Response[v1.CreateTopicResponse], error)
 	ListTopics(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.ListTopicsResponse], error)
 	ListCoinNews(context.Context, *connect.Request[v1.ListCoinNewsRequest]) (*connect.Response[v1.ListCoinNewsResponse], error)
@@ -102,6 +107,12 @@ func NewMiscServiceClient(httpClient connect.HTTPClient, baseURL string, opts ..
 			httpClient,
 			baseURL+MiscServiceUpvoteNewsProcedure,
 			connect.WithSchema(miscServiceMethods.ByName("UpvoteNews")),
+			connect.WithClientOptions(opts...),
+		),
+		downvoteNews: connect.NewClient[v1.UpvoteNewsRequest, v1.UpvoteNewsResponse](
+			httpClient,
+			baseURL+MiscServiceDownvoteNewsProcedure,
+			connect.WithSchema(miscServiceMethods.ByName("DownvoteNews")),
 			connect.WithClientOptions(opts...),
 		),
 		createTopic: connect.NewClient[v1.CreateTopicRequest, v1.CreateTopicResponse](
@@ -148,6 +159,7 @@ type miscServiceClient struct {
 	listOPReturn    *connect.Client[emptypb.Empty, v1.ListOPReturnResponse]
 	broadcastNews   *connect.Client[v1.BroadcastNewsRequest, v1.BroadcastNewsResponse]
 	upvoteNews      *connect.Client[v1.UpvoteNewsRequest, v1.UpvoteNewsResponse]
+	downvoteNews    *connect.Client[v1.UpvoteNewsRequest, v1.UpvoteNewsResponse]
 	createTopic     *connect.Client[v1.CreateTopicRequest, v1.CreateTopicResponse]
 	listTopics      *connect.Client[emptypb.Empty, v1.ListTopicsResponse]
 	listCoinNews    *connect.Client[v1.ListCoinNewsRequest, v1.ListCoinNewsResponse]
@@ -169,6 +181,11 @@ func (c *miscServiceClient) BroadcastNews(ctx context.Context, req *connect.Requ
 // UpvoteNews calls misc.v1.MiscService.UpvoteNews.
 func (c *miscServiceClient) UpvoteNews(ctx context.Context, req *connect.Request[v1.UpvoteNewsRequest]) (*connect.Response[v1.UpvoteNewsResponse], error) {
 	return c.upvoteNews.CallUnary(ctx, req)
+}
+
+// DownvoteNews calls misc.v1.MiscService.DownvoteNews.
+func (c *miscServiceClient) DownvoteNews(ctx context.Context, req *connect.Request[v1.UpvoteNewsRequest]) (*connect.Response[v1.UpvoteNewsResponse], error) {
+	return c.downvoteNews.CallUnary(ctx, req)
 }
 
 // CreateTopic calls misc.v1.MiscService.CreateTopic.
@@ -207,6 +224,8 @@ type MiscServiceHandler interface {
 	BroadcastNews(context.Context, *connect.Request[v1.BroadcastNewsRequest]) (*connect.Response[v1.BroadcastNewsResponse], error)
 	// Broadcasts a signed upvote (CoinNews Vote, kind=0x04) targeting a story.
 	UpvoteNews(context.Context, *connect.Request[v1.UpvoteNewsRequest]) (*connect.Response[v1.UpvoteNewsResponse], error)
+	// Broadcasts a signed downvote (CoinNews Vote, kind=0x05) targeting a story.
+	DownvoteNews(context.Context, *connect.Request[v1.UpvoteNewsRequest]) (*connect.Response[v1.UpvoteNewsResponse], error)
 	CreateTopic(context.Context, *connect.Request[v1.CreateTopicRequest]) (*connect.Response[v1.CreateTopicResponse], error)
 	ListTopics(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.ListTopicsResponse], error)
 	ListCoinNews(context.Context, *connect.Request[v1.ListCoinNewsRequest]) (*connect.Response[v1.ListCoinNewsResponse], error)
@@ -239,6 +258,12 @@ func NewMiscServiceHandler(svc MiscServiceHandler, opts ...connect.HandlerOption
 		MiscServiceUpvoteNewsProcedure,
 		svc.UpvoteNews,
 		connect.WithSchema(miscServiceMethods.ByName("UpvoteNews")),
+		connect.WithHandlerOptions(opts...),
+	)
+	miscServiceDownvoteNewsHandler := connect.NewUnaryHandler(
+		MiscServiceDownvoteNewsProcedure,
+		svc.DownvoteNews,
+		connect.WithSchema(miscServiceMethods.ByName("DownvoteNews")),
 		connect.WithHandlerOptions(opts...),
 	)
 	miscServiceCreateTopicHandler := connect.NewUnaryHandler(
@@ -285,6 +310,8 @@ func NewMiscServiceHandler(svc MiscServiceHandler, opts ...connect.HandlerOption
 			miscServiceBroadcastNewsHandler.ServeHTTP(w, r)
 		case MiscServiceUpvoteNewsProcedure:
 			miscServiceUpvoteNewsHandler.ServeHTTP(w, r)
+		case MiscServiceDownvoteNewsProcedure:
+			miscServiceDownvoteNewsHandler.ServeHTTP(w, r)
 		case MiscServiceCreateTopicProcedure:
 			miscServiceCreateTopicHandler.ServeHTTP(w, r)
 		case MiscServiceListTopicsProcedure:
@@ -316,6 +343,10 @@ func (UnimplementedMiscServiceHandler) BroadcastNews(context.Context, *connect.R
 
 func (UnimplementedMiscServiceHandler) UpvoteNews(context.Context, *connect.Request[v1.UpvoteNewsRequest]) (*connect.Response[v1.UpvoteNewsResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("misc.v1.MiscService.UpvoteNews is not implemented"))
+}
+
+func (UnimplementedMiscServiceHandler) DownvoteNews(context.Context, *connect.Request[v1.UpvoteNewsRequest]) (*connect.Response[v1.UpvoteNewsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("misc.v1.MiscService.DownvoteNews is not implemented"))
 }
 
 func (UnimplementedMiscServiceHandler) CreateTopic(context.Context, *connect.Request[v1.CreateTopicRequest]) (*connect.Response[v1.CreateTopicResponse], error) {

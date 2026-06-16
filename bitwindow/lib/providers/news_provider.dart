@@ -116,6 +116,23 @@ class NewsProvider extends ChangeNotifier {
     }
   }
 
+  /// Broadcasts a signed downvote for [entry] and optimistically bumps
+  /// its count. The confirmed on-chain tally only updates once the vote
+  /// is mined and indexed.
+  Future<void> downvote(CoinNews entry) async {
+    if (entry.itemId.isEmpty) {
+      return;
+    }
+    await api.misc.downvoteNews(entry.itemId);
+
+    final idx = news.indexWhere((n) => n.itemId == entry.itemId);
+    if (idx != -1) {
+      final updated = news[idx].deepCopy()..downvotes = news[idx].downvotes + Int64(1);
+      news = [...news]..[idx] = updated;
+      notifyListeners();
+    }
+  }
+
   @override
   void dispose() {
     blockchainProvider.removeListener(fetch);

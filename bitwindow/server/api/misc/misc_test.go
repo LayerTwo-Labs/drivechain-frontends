@@ -483,10 +483,10 @@ func TestService_ListCoinNews(t *testing.T) {
 		seedCurrentTopic(t, ctx, database, topicID2, "Test Topic 2", 2)
 
 		headline1 := "News Headline 1"
-		seedCurrentNews(t, ctx, database, topicID1, headline1, "Content for news 1", 3, time.Now())
+		seedCurrentNews(t, ctx, database, topicID1, headline1, "Content for news 1", 3, time.Now().Add(-2*time.Hour))
 
 		headline2 := "News Headline 2"
-		seedCurrentNews(t, ctx, database, topicID2, headline2, "Content for news 2", 4, time.Now().Add(time.Second))
+		seedCurrentNews(t, ctx, database, topicID2, headline2, "Content for news 2", 4, time.Now().Add(-1*time.Hour))
 
 		cli := miscv1connect.NewMiscServiceClient(apitests.API(t, database))
 
@@ -494,13 +494,14 @@ func TestService_ListCoinNews(t *testing.T) {
 		require.NoError(t, err)
 		require.Len(t, resp.Msg.CoinNews, 2)
 
-		// Should be sorted by most recent first
-		assert.Equal(t, topicID2.String(), resp.Msg.CoinNews[0].Topic)
-		assert.Equal(t, "News Headline 2", resp.Msg.CoinNews[0].Headline)
-		assert.Equal(t, "Content for news 2", resp.Msg.CoinNews[0].Content)
-		assert.Equal(t, topicID1.String(), resp.Msg.CoinNews[1].Topic)
-		assert.Equal(t, "News Headline 1", resp.Msg.CoinNews[1].Headline)
-		assert.Equal(t, "Content for news 1", resp.Msg.CoinNews[1].Content)
+		// Ranked by §13 score: with no votes the older story scores
+		// higher (numerator −1 over a larger age denominator).
+		assert.Equal(t, topicID1.String(), resp.Msg.CoinNews[0].Topic)
+		assert.Equal(t, "News Headline 1", resp.Msg.CoinNews[0].Headline)
+		assert.Equal(t, "Content for news 1", resp.Msg.CoinNews[0].Content)
+		assert.Equal(t, topicID2.String(), resp.Msg.CoinNews[1].Topic)
+		assert.Equal(t, "News Headline 2", resp.Msg.CoinNews[1].Headline)
+		assert.Equal(t, "Content for news 2", resp.Msg.CoinNews[1].Content)
 	})
 
 	t.Run("list coin news filtered by topic", func(t *testing.T) {
@@ -534,7 +535,7 @@ func TestService_ListCoinNews(t *testing.T) {
 		assert.Equal(t, "News Headline 1", resp.Msg.CoinNews[0].Headline)
 	})
 
-	t.Run("list coin news sorted by recency", func(t *testing.T) {
+	t.Run("list coin news ranked by score", func(t *testing.T) {
 		t.Parallel()
 
 		database := database.Test(t)
@@ -545,13 +546,13 @@ func TestService_ListCoinNews(t *testing.T) {
 		seedCurrentTopic(t, ctx, database, secondTopicID, "Test Topic 2", 2)
 
 		headline1 := "Old News"
-		seedCurrentNews(t, ctx, database, firstTopicID, headline1, "Content for old news", 3, time.Now())
+		seedCurrentNews(t, ctx, database, firstTopicID, headline1, "Content for old news", 3, time.Now().Add(-3*time.Hour))
 
 		headline2 := "Recent News"
-		seedCurrentNews(t, ctx, database, secondTopicID, headline2, "Content for recent news", 4, time.Now().Add(time.Second))
+		seedCurrentNews(t, ctx, database, secondTopicID, headline2, "Content for recent news", 4, time.Now().Add(-2*time.Hour))
 
 		headline3 := "Latest News"
-		seedCurrentNews(t, ctx, database, firstTopicID, headline3, "Content for latest news", 5, time.Now().Add(2*time.Second))
+		seedCurrentNews(t, ctx, database, firstTopicID, headline3, "Content for latest news", 5, time.Now().Add(-1*time.Hour))
 
 		cli := miscv1connect.NewMiscServiceClient(apitests.API(t, database))
 
@@ -559,10 +560,10 @@ func TestService_ListCoinNews(t *testing.T) {
 		require.NoError(t, err)
 		require.Len(t, resp.Msg.CoinNews, 3)
 
-		// Check that news is sorted by recency (most recent first)
-		assert.Equal(t, "Latest News", resp.Msg.CoinNews[0].Headline)
+		// §13 ranking: with no votes, older stories score higher.
+		assert.Equal(t, "Old News", resp.Msg.CoinNews[0].Headline)
 		assert.Equal(t, "Recent News", resp.Msg.CoinNews[1].Headline)
-		assert.Equal(t, "Old News", resp.Msg.CoinNews[2].Headline)
+		assert.Equal(t, "Latest News", resp.Msg.CoinNews[2].Headline)
 	})
 
 	t.Run("list coin news limited to 100 entries", func(t *testing.T) {

@@ -674,10 +674,14 @@ type CoinNews struct {
 	Content    string                 `protobuf:"bytes,4,opt,name=content,proto3" json:"content,omitempty"`
 	FeeSats    int64                  `protobuf:"varint,5,opt,name=fee_sats,json=feeSats,proto3" json:"fee_sats,omitempty"`
 	CreateTime *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=create_time,json=createTime,proto3" json:"create_time,omitempty"`
-	// Hex-encoded 12-byte ItemID; the target for upvotes.
+	// Hex-encoded 12-byte ItemID; the target for votes.
 	ItemId string `protobuf:"bytes,7,opt,name=item_id,json=itemId,proto3" json:"item_id,omitempty"`
 	// Count of confirmed on-chain upvotes (CoinNews Vote, kind=0x04).
-	Upvotes       int64 `protobuf:"varint,8,opt,name=upvotes,proto3" json:"upvotes,omitempty"`
+	Upvotes int64 `protobuf:"varint,8,opt,name=upvotes,proto3" json:"upvotes,omitempty"`
+	// Count of confirmed on-chain downvotes (CoinNews Vote, kind=0x05).
+	Downvotes int64 `protobuf:"varint,9,opt,name=downvotes,proto3" json:"downvotes,omitempty"`
+	// Hacker-News rank score (spec §13), the canonical feed ordering.
+	Score         float64 `protobuf:"fixed64,10,opt,name=score,proto3" json:"score,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -764,6 +768,20 @@ func (x *CoinNews) GetItemId() string {
 func (x *CoinNews) GetUpvotes() int64 {
 	if x != nil {
 		return x.Upvotes
+	}
+	return 0
+}
+
+func (x *CoinNews) GetDownvotes() int64 {
+	if x != nil {
+		return x.Downvotes
+	}
+	return 0
+}
+
+func (x *CoinNews) GetScore() float64 {
+	if x != nil {
+		return x.Score
 	}
 	return 0
 }
@@ -1231,7 +1249,7 @@ const file_misc_v1_misc_proto_rawDesc = "" +
 	"\x06topics\x18\x01 \x03(\v2\x0e.misc.v1.TopicR\x06topics\":\n" +
 	"\x13ListCoinNewsRequest\x12\x19\n" +
 	"\x05topic\x18\x01 \x01(\tH\x00R\x05topic\x88\x01\x01B\b\n" +
-	"\x06_topic\"\xf1\x01\n" +
+	"\x06_topic\"\xa5\x02\n" +
 	"\bCoinNews\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\x03R\x02id\x12\x14\n" +
 	"\x05topic\x18\x02 \x01(\tR\x05topic\x12\x1a\n" +
@@ -1241,7 +1259,10 @@ const file_misc_v1_misc_proto_rawDesc = "" +
 	"\vcreate_time\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\n" +
 	"createTime\x12\x17\n" +
 	"\aitem_id\x18\a \x01(\tR\x06itemId\x12\x18\n" +
-	"\aupvotes\x18\b \x01(\x03R\aupvotes\"F\n" +
+	"\aupvotes\x18\b \x01(\x03R\aupvotes\x12\x1c\n" +
+	"\tdownvotes\x18\t \x01(\x03R\tdownvotes\x12\x14\n" +
+	"\x05score\x18\n" +
+	" \x01(\x01R\x05score\"F\n" +
 	"\x14ListCoinNewsResponse\x12.\n" +
 	"\tcoin_news\x18\x01 \x03(\v2\x11.misc.v1.CoinNewsR\bcoinNews\"O\n" +
 	"\x14TimestampFileRequest\x12\x1a\n" +
@@ -1275,12 +1296,13 @@ const file_misc_v1_misc_proto_rawDesc = "" +
 	"\t_filename\"i\n" +
 	"\x17VerifyTimestampResponse\x124\n" +
 	"\ttimestamp\x18\x01 \x01(\v2\x16.misc.v1.FileTimestampR\ttimestamp\x12\x18\n" +
-	"\amessage\x18\x02 \x01(\tR\amessage2\xb6\x05\n" +
+	"\amessage\x18\x02 \x01(\tR\amessage2\xff\x05\n" +
 	"\vMiscService\x12E\n" +
 	"\fListOPReturn\x12\x16.google.protobuf.Empty\x1a\x1d.misc.v1.ListOPReturnResponse\x12N\n" +
 	"\rBroadcastNews\x12\x1d.misc.v1.BroadcastNewsRequest\x1a\x1e.misc.v1.BroadcastNewsResponse\x12E\n" +
 	"\n" +
-	"UpvoteNews\x12\x1a.misc.v1.UpvoteNewsRequest\x1a\x1b.misc.v1.UpvoteNewsResponse\x12H\n" +
+	"UpvoteNews\x12\x1a.misc.v1.UpvoteNewsRequest\x1a\x1b.misc.v1.UpvoteNewsResponse\x12G\n" +
+	"\fDownvoteNews\x12\x1a.misc.v1.UpvoteNewsRequest\x1a\x1b.misc.v1.UpvoteNewsResponse\x12H\n" +
 	"\vCreateTopic\x12\x1b.misc.v1.CreateTopicRequest\x1a\x1c.misc.v1.CreateTopicResponse\x12A\n" +
 	"\n" +
 	"ListTopics\x12\x16.google.protobuf.Empty\x1a\x1b.misc.v1.ListTopicsResponse\x12K\n" +
@@ -1340,23 +1362,25 @@ var file_misc_v1_misc_proto_depIdxs = []int32{
 	20, // 10: misc.v1.MiscService.ListOPReturn:input_type -> google.protobuf.Empty
 	2,  // 11: misc.v1.MiscService.BroadcastNews:input_type -> misc.v1.BroadcastNewsRequest
 	4,  // 12: misc.v1.MiscService.UpvoteNews:input_type -> misc.v1.UpvoteNewsRequest
-	6,  // 13: misc.v1.MiscService.CreateTopic:input_type -> misc.v1.CreateTopicRequest
-	20, // 14: misc.v1.MiscService.ListTopics:input_type -> google.protobuf.Empty
-	10, // 15: misc.v1.MiscService.ListCoinNews:input_type -> misc.v1.ListCoinNewsRequest
-	13, // 16: misc.v1.MiscService.TimestampFile:input_type -> misc.v1.TimestampFileRequest
-	20, // 17: misc.v1.MiscService.ListTimestamps:input_type -> google.protobuf.Empty
-	17, // 18: misc.v1.MiscService.VerifyTimestamp:input_type -> misc.v1.VerifyTimestampRequest
-	0,  // 19: misc.v1.MiscService.ListOPReturn:output_type -> misc.v1.ListOPReturnResponse
-	3,  // 20: misc.v1.MiscService.BroadcastNews:output_type -> misc.v1.BroadcastNewsResponse
-	5,  // 21: misc.v1.MiscService.UpvoteNews:output_type -> misc.v1.UpvoteNewsResponse
-	7,  // 22: misc.v1.MiscService.CreateTopic:output_type -> misc.v1.CreateTopicResponse
-	9,  // 23: misc.v1.MiscService.ListTopics:output_type -> misc.v1.ListTopicsResponse
-	12, // 24: misc.v1.MiscService.ListCoinNews:output_type -> misc.v1.ListCoinNewsResponse
-	14, // 25: misc.v1.MiscService.TimestampFile:output_type -> misc.v1.TimestampFileResponse
-	16, // 26: misc.v1.MiscService.ListTimestamps:output_type -> misc.v1.ListTimestampsResponse
-	18, // 27: misc.v1.MiscService.VerifyTimestamp:output_type -> misc.v1.VerifyTimestampResponse
-	19, // [19:28] is the sub-list for method output_type
-	10, // [10:19] is the sub-list for method input_type
+	4,  // 13: misc.v1.MiscService.DownvoteNews:input_type -> misc.v1.UpvoteNewsRequest
+	6,  // 14: misc.v1.MiscService.CreateTopic:input_type -> misc.v1.CreateTopicRequest
+	20, // 15: misc.v1.MiscService.ListTopics:input_type -> google.protobuf.Empty
+	10, // 16: misc.v1.MiscService.ListCoinNews:input_type -> misc.v1.ListCoinNewsRequest
+	13, // 17: misc.v1.MiscService.TimestampFile:input_type -> misc.v1.TimestampFileRequest
+	20, // 18: misc.v1.MiscService.ListTimestamps:input_type -> google.protobuf.Empty
+	17, // 19: misc.v1.MiscService.VerifyTimestamp:input_type -> misc.v1.VerifyTimestampRequest
+	0,  // 20: misc.v1.MiscService.ListOPReturn:output_type -> misc.v1.ListOPReturnResponse
+	3,  // 21: misc.v1.MiscService.BroadcastNews:output_type -> misc.v1.BroadcastNewsResponse
+	5,  // 22: misc.v1.MiscService.UpvoteNews:output_type -> misc.v1.UpvoteNewsResponse
+	5,  // 23: misc.v1.MiscService.DownvoteNews:output_type -> misc.v1.UpvoteNewsResponse
+	7,  // 24: misc.v1.MiscService.CreateTopic:output_type -> misc.v1.CreateTopicResponse
+	9,  // 25: misc.v1.MiscService.ListTopics:output_type -> misc.v1.ListTopicsResponse
+	12, // 26: misc.v1.MiscService.ListCoinNews:output_type -> misc.v1.ListCoinNewsResponse
+	14, // 27: misc.v1.MiscService.TimestampFile:output_type -> misc.v1.TimestampFileResponse
+	16, // 28: misc.v1.MiscService.ListTimestamps:output_type -> misc.v1.ListTimestampsResponse
+	18, // 29: misc.v1.MiscService.VerifyTimestamp:output_type -> misc.v1.VerifyTimestampResponse
+	20, // [20:30] is the sub-list for method output_type
+	10, // [10:20] is the sub-list for method input_type
 	10, // [10:10] is the sub-list for extension type_name
 	10, // [10:10] is the sub-list for extension extendee
 	0,  // [0:10] is the sub-list for field type_name
