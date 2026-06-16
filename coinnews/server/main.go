@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -26,18 +27,34 @@ import (
 
 func main() {
 	var (
-		listen       = flag.String("listen", envOr("COINNEWS_LISTEN", "0.0.0.0:8080"), "HTTP listen address")
-		dbPath       = flag.String("db", envOr("COINNEWS_DB", "./coinnews.db"), "SQLite path")
-		bitcoindURL  = flag.String("bitcoind-url", envOr("COINNEWS_BITCOIND_URL", "http://127.0.0.1:38332"), "Bitcoin Core RPC URL")
-		bitcoindUser = flag.String("bitcoind-user", envOr("COINNEWS_BITCOIND_USER", "user"), "Bitcoin Core RPC user")
-		bitcoindPass = flag.String("bitcoind-pass", envOr("COINNEWS_BITCOIND_PASS", "password"), "Bitcoin Core RPC password")
-		network      = flag.String("network", envOr("COINNEWS_NETWORK", "signet"), "Network label (mainnet/signet/testnet/regtest) — informational")
-		scan         = flag.Bool("scan", envBool("COINNEWS_SCAN", true), "Run the block scanner; set false for read-only API mode")
+		listen         = flag.String("listen", envOr("COINNEWS_LISTEN", "0.0.0.0:8080"), "HTTP listen address")
+		dbPath         = flag.String("db", envOr("COINNEWS_DB", "./coinnews.db"), "SQLite path")
+		bitcoindURL    = flag.String("bitcoind-url", envOr("COINNEWS_BITCOIND_URL", "http://127.0.0.1:38332"), "Bitcoin Core RPC URL")
+		bitcoindUser   = flag.String("bitcoind-user", envOr("COINNEWS_BITCOIND_USER", "user"), "Bitcoin Core RPC user")
+		bitcoindPass   = flag.String("bitcoind-pass", envOr("COINNEWS_BITCOIND_PASS", "password"), "Bitcoin Core RPC password")
+		bitcoindCookie = flag.String("bitcoind-cookie", envOr("COINNEWS_BITCOIND_COOKIE", ""), "Path to a Bitcoin Core .cookie file (contents: user:password); overrides -bitcoind-user/-bitcoind-pass when set")
+		network        = flag.String("network", envOr("COINNEWS_NETWORK", "signet"), "Network label (mainnet/signet/testnet/regtest) — informational")
+		scan           = flag.Bool("scan", envBool("COINNEWS_SCAN", true), "Run the block scanner; set false for read-only API mode")
 	)
 	flag.Parse()
 
 	log := zerolog.New(zerolog.ConsoleWriter{Out: os.Stderr, TimeFormat: time.RFC3339}).
 		With().Timestamp().Str("network", *network).Logger()
+
+	// A cookie file lets us share Bitcoin Core's auto-generated
+	// `__cookie__:<pass>` credentials (e.g. a mounted Docker secret)
+	// instead of hardcoding a static rpcauth user/pass.
+	if *bitcoindCookie != "" {
+		raw, err := os.ReadFile(*bitcoindCookie)
+		if err != nil {
+			log.Fatal().Err(err).Str("file", *bitcoindCookie).Msg("read bitcoind cookie file")
+		}
+		user, pass, ok := strings.Cut(strings.TrimSpace(string(raw)), ":")
+		if !ok {
+			log.Fatal().Str("file", *bitcoindCookie).Msg("malformed bitcoind cookie file: expected user:password")
+		}
+		*bitcoindUser, *bitcoindPass = user, pass
+	}
 
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer cancel()
