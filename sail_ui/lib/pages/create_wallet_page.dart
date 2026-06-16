@@ -993,10 +993,11 @@ class _SailCreateWalletPageState extends State<SailCreateWalletPage> {
 
   String get _defaultWalletName => '${_selectedProvider.label} Wallet';
 
-  /// Bitcoin Core can't be the first wallet: the backend forces the first (and
-  /// any no-enforcer) wallet to the enforcer type, so a Core choice would
-  /// silently create an enforcer wallet. Offer it only once a wallet exists.
-  List<InitialWalletProvider> get _availableProviders => hasExistingWallet
+  /// Bitcoin Core needs an existing enforcer wallet. The backend turns any
+  /// wallet set that has no enforcer into an enforcer wallet, so offering Core
+  /// before one exists would silently create an enforcer wallet — and "has any
+  /// wallet" isn't enough, since an Electrum-only set still has no enforcer.
+  List<InitialWalletProvider> get _availableProviders => GetIt.I.get<WalletReaderProvider>().enforcerWallet != null
       ? InitialWalletProvider.values
       : InitialWalletProvider.values.where((p) => p != InitialWalletProvider.bitcoinCore).toList();
 
