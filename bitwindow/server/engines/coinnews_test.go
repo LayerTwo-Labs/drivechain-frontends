@@ -3,6 +3,7 @@ package engines
 import (
 	"context"
 	"crypto/rand"
+	"fmt"
 	"testing"
 	"time"
 
@@ -19,6 +20,7 @@ import (
 	"go.uber.org/mock/gomock"
 
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/database"
+	cnstore "github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/coinnews"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/opreturns"
 	service "github.com/LayerTwo-Labs/sidesail/bitwindow/server/service"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/tests/mocks"
@@ -277,7 +279,16 @@ func TestCoinNewsIndexer_BroadcastBytesListAsCoinNews(t *testing.T) {
 
 	topicID, err := opreturns.ValidNewsTopicID("a1a1a1a1")
 	require.NoError(t, err)
-	require.NoError(t, opreturns.CreateTopic(ctx, p.db, topicID, "US Weekly", "topic_txid", true, 0))
+	var ct codec.Topic
+	copy(ct[:], topicID[:])
+	require.NoError(t, cnstore.Index(ctx, p.db, cnstore.IndexEnv{
+		Pos: cnstore.BlockPos{
+			BlockHeight: 900_004, TxIndex: 0, VoutIndex: 0,
+			BlockTime: time.Now(), TxID: fmt.Sprintf("%064x", 900_004),
+		},
+		TypeTag: codec.TypeTopicCreation,
+		Msg:     &codec.TopicCreation{Topic: ct, RetentionDays: 0, Name: "US Weekly"},
+	}))
 
 	payload, err := opreturns.EncodeNewsMessageNewFormat(topicID, "Broadcast headline", "Broadcast body")
 	require.NoError(t, err)
