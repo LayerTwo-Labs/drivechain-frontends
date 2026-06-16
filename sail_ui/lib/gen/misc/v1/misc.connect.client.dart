@@ -61,6 +61,24 @@ extension type MiscServiceClient (connect.Transport _transport) {
     );
   }
 
+  /// Broadcasts a signed downvote (CoinNews Vote, kind=0x05) targeting a story.
+  Future<miscv1misc.UpvoteNewsResponse> downvoteNews(
+    miscv1misc.UpvoteNewsRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.MiscService.downvoteNews,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
   Future<miscv1misc.CreateTopicResponse> createTopic(
     miscv1misc.CreateTopicRequest input, {
     connect.Headers? headers,

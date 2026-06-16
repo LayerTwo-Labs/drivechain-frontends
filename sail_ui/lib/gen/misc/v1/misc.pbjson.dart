@@ -200,6 +200,8 @@ const CoinNews$json = {
     {'1': 'create_time', '3': 6, '4': 1, '5': 11, '6': '.google.protobuf.Timestamp', '10': 'createTime'},
     {'1': 'item_id', '3': 7, '4': 1, '5': 9, '10': 'itemId'},
     {'1': 'upvotes', '3': 8, '4': 1, '5': 3, '10': 'upvotes'},
+    {'1': 'downvotes', '3': 9, '4': 1, '5': 3, '10': 'downvotes'},
+    {'1': 'score', '3': 10, '4': 1, '5': 1, '10': 'score'},
   ],
 };
 
@@ -209,7 +211,8 @@ final $typed_data.Uint8List coinNewsDescriptor = $convert.base64Decode(
     'RsaW5lGAMgASgJUghoZWFkbGluZRIYCgdjb250ZW50GAQgASgJUgdjb250ZW50EhkKCGZlZV9z'
     'YXRzGAUgASgDUgdmZWVTYXRzEjsKC2NyZWF0ZV90aW1lGAYgASgLMhouZ29vZ2xlLnByb3RvYn'
     'VmLlRpbWVzdGFtcFIKY3JlYXRlVGltZRIXCgdpdGVtX2lkGAcgASgJUgZpdGVtSWQSGAoHdXB2'
-    'b3RlcxgIIAEoA1IHdXB2b3Rlcw==');
+    'b3RlcxgIIAEoA1IHdXB2b3RlcxIcCglkb3dudm90ZXMYCSABKANSCWRvd252b3RlcxIUCgVzY2'
+    '9yZRgKIAEoAVIFc2NvcmU=');
 
 @$core.Deprecated('Use listCoinNewsResponseDescriptor instead')
 const ListCoinNewsResponse$json = {
@@ -334,6 +337,7 @@ const $core.Map<$core.String, $core.dynamic> MiscServiceBase$json = {
     {'1': 'ListOPReturn', '2': '.google.protobuf.Empty', '3': '.misc.v1.ListOPReturnResponse'},
     {'1': 'BroadcastNews', '2': '.misc.v1.BroadcastNewsRequest', '3': '.misc.v1.BroadcastNewsResponse'},
     {'1': 'UpvoteNews', '2': '.misc.v1.UpvoteNewsRequest', '3': '.misc.v1.UpvoteNewsResponse'},
+    {'1': 'DownvoteNews', '2': '.misc.v1.UpvoteNewsRequest', '3': '.misc.v1.UpvoteNewsResponse'},
     {'1': 'CreateTopic', '2': '.misc.v1.CreateTopicRequest', '3': '.misc.v1.CreateTopicResponse'},
     {'1': 'ListTopics', '2': '.google.protobuf.Empty', '3': '.misc.v1.ListTopicsResponse'},
     {'1': 'ListCoinNews', '2': '.misc.v1.ListCoinNewsRequest', '3': '.misc.v1.ListCoinNewsResponse'},
@@ -374,13 +378,14 @@ final $typed_data.Uint8List miscServiceDescriptor = $convert.base64Decode(
     '5taXNjLnYxLkxpc3RPUFJldHVyblJlc3BvbnNlEk4KDUJyb2FkY2FzdE5ld3MSHS5taXNjLnYx'
     'LkJyb2FkY2FzdE5ld3NSZXF1ZXN0Gh4ubWlzYy52MS5Ccm9hZGNhc3ROZXdzUmVzcG9uc2USRQ'
     'oKVXB2b3RlTmV3cxIaLm1pc2MudjEuVXB2b3RlTmV3c1JlcXVlc3QaGy5taXNjLnYxLlVwdm90'
-    'ZU5ld3NSZXNwb25zZRJICgtDcmVhdGVUb3BpYxIbLm1pc2MudjEuQ3JlYXRlVG9waWNSZXF1ZX'
-    'N0GhwubWlzYy52MS5DcmVhdGVUb3BpY1Jlc3BvbnNlEkEKCkxpc3RUb3BpY3MSFi5nb29nbGUu'
-    'cHJvdG9idWYuRW1wdHkaGy5taXNjLnYxLkxpc3RUb3BpY3NSZXNwb25zZRJLCgxMaXN0Q29pbk'
-    '5ld3MSHC5taXNjLnYxLkxpc3RDb2luTmV3c1JlcXVlc3QaHS5taXNjLnYxLkxpc3RDb2luTmV3'
-    'c1Jlc3BvbnNlEk4KDVRpbWVzdGFtcEZpbGUSHS5taXNjLnYxLlRpbWVzdGFtcEZpbGVSZXF1ZX'
-    'N0Gh4ubWlzYy52MS5UaW1lc3RhbXBGaWxlUmVzcG9uc2USSQoOTGlzdFRpbWVzdGFtcHMSFi5n'
-    'b29nbGUucHJvdG9idWYuRW1wdHkaHy5taXNjLnYxLkxpc3RUaW1lc3RhbXBzUmVzcG9uc2USVA'
-    'oPVmVyaWZ5VGltZXN0YW1wEh8ubWlzYy52MS5WZXJpZnlUaW1lc3RhbXBSZXF1ZXN0GiAubWlz'
-    'Yy52MS5WZXJpZnlUaW1lc3RhbXBSZXNwb25zZQ==');
+    'ZU5ld3NSZXNwb25zZRJHCgxEb3dudm90ZU5ld3MSGi5taXNjLnYxLlVwdm90ZU5ld3NSZXF1ZX'
+    'N0GhsubWlzYy52MS5VcHZvdGVOZXdzUmVzcG9uc2USSAoLQ3JlYXRlVG9waWMSGy5taXNjLnYx'
+    'LkNyZWF0ZVRvcGljUmVxdWVzdBocLm1pc2MudjEuQ3JlYXRlVG9waWNSZXNwb25zZRJBCgpMaX'
+    'N0VG9waWNzEhYuZ29vZ2xlLnByb3RvYnVmLkVtcHR5GhsubWlzYy52MS5MaXN0VG9waWNzUmVz'
+    'cG9uc2USSwoMTGlzdENvaW5OZXdzEhwubWlzYy52MS5MaXN0Q29pbk5ld3NSZXF1ZXN0Gh0ubW'
+    'lzYy52MS5MaXN0Q29pbk5ld3NSZXNwb25zZRJOCg1UaW1lc3RhbXBGaWxlEh0ubWlzYy52MS5U'
+    'aW1lc3RhbXBGaWxlUmVxdWVzdBoeLm1pc2MudjEuVGltZXN0YW1wRmlsZVJlc3BvbnNlEkkKDk'
+    'xpc3RUaW1lc3RhbXBzEhYuZ29vZ2xlLnByb3RvYnVmLkVtcHR5Gh8ubWlzYy52MS5MaXN0VGlt'
+    'ZXN0YW1wc1Jlc3BvbnNlElQKD1ZlcmlmeVRpbWVzdGFtcBIfLm1pc2MudjEuVmVyaWZ5VGltZX'
+    'N0YW1wUmVxdWVzdBogLm1pc2MudjEuVmVyaWZ5VGltZXN0YW1wUmVzcG9uc2U=');
 

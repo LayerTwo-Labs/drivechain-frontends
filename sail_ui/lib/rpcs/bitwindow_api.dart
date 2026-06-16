@@ -198,6 +198,7 @@ class BitwindowRPCLive extends BitwindowRPC {
       'drivechain.v1.DrivechainService/ProposeSidechain',
       'misc.v1.MiscService/BroadcastNews',
       'misc.v1.MiscService/UpvoteNews',
+      'misc.v1.MiscService/DownvoteNews',
       'misc.v1.MiscService/CreateTopic',
       'misc.v1.MiscService/ListCoinNews',
       'misc.v1.MiscService/ListOPReturn',
@@ -1292,6 +1293,11 @@ abstract class MiscAPI {
     int? feeSatPerVbyte,
     int? feeSats,
   });
+  Future<UpvoteNewsResponse> downvoteNews(
+    String itemId, {
+    int? feeSatPerVbyte,
+    int? feeSats,
+  });
   Future<TimestampFileResponse> timestampFile(
     String filename,
     List<int> fileData,
@@ -1367,6 +1373,29 @@ class _MiscAPILive implements MiscAPI {
       return response;
     } catch (e) {
       final error = 'could not upvote news: ${extractConnectException(e)}';
+      throw BitcoindException(error);
+    }
+  }
+
+  @override
+  Future<UpvoteNewsResponse> downvoteNews(
+    String itemId, {
+    int? feeSatPerVbyte,
+    int? feeSats,
+  }) async {
+    try {
+      final request = UpvoteNewsRequest()..itemId = itemId;
+
+      if (feeSatPerVbyte != null) {
+        request.feeSatPerVbyte = Int64(feeSatPerVbyte);
+      } else if (feeSats != null) {
+        request.feeSats = Int64(feeSats);
+      }
+
+      final response = await _client.downvoteNews(request);
+      return response;
+    } catch (e) {
+      final error = 'could not downvote news: ${extractConnectException(e)}';
       throw BitcoindException(error);
     }
   }

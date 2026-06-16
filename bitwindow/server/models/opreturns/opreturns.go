@@ -7,6 +7,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"math"
 	"slices"
 	"strings"
 	"sync"
@@ -360,6 +361,8 @@ type CoinNews struct {
 	Fee       btcutil.Amount
 	ItemID    string // hex-encoded 12-byte ItemID; vote target
 	Upvotes   int64
+	Downvotes int64
+	Score     float64 // Hacker-News rank (spec §13)
 
 	CreatedAt *time.Time
 }
@@ -491,7 +494,7 @@ func ListCoinNews(ctx context.Context, db *sql.DB) ([]CoinNews, error) {
 	if err != nil {
 		return nil, err
 	}
-	sortCoinNewsByCreatedAtDesc(coinNews)
+	rankCoinNews(coinNews)
 
 	snapshot := make([]CoinNews, len(coinNews))
 	copy(snapshot, coinNews)
@@ -514,6 +517,7 @@ func listCoinNewsNewFormat(ctx context.Context, db *sql.DB) ([]CoinNews, error) 
 			i.block_time,
 			lower(hex(s.item_id)),
 			COALESCE(v.upvotes, 0),
+			COALESCE(v.downvotes, 0),
 			COALESCE(s.raw_tlv, x'')
 		FROM cn_stories s
 		JOIN cn_items i ON i.item_id = s.item_id
@@ -521,8 +525,10 @@ func listCoinNewsNewFormat(ctx context.Context, db *sql.DB) ([]CoinNews, error) 
 		LEFT JOIN coin_news_topics lt ON lt.topic = lower(hex(s.topic))
 		LEFT JOIN op_returns o ON o.txid = i.txid AND o.vout = i.vout
 		LEFT JOIN (
-			SELECT target_id, COUNT(*) AS upvotes
-			FROM cn_votes WHERE kind = 4 GROUP BY target_id
+			SELECT target_id,
+				SUM(CASE WHEN kind = 4 THEN 1 ELSE 0 END) AS upvotes,
+				SUM(CASE WHEN kind = 5 THEN 1 ELSE 0 END) AS downvotes
+			FROM cn_votes GROUP BY target_id
 		) v ON v.target_id = s.item_id
 		WHERE
 			trim(s.headline) != ''
@@ -559,9 +565,10 @@ func listCoinNewsNewFormat(ctx context.Context, db *sql.DB) ([]CoinNews, error) 
 			blockTime time.Time
 			itemID    string
 			upvotes   int64
+			downvotes int64
 			rawTLV    []byte
 		)
-		if err := rows.Scan(&id, &rawTopic, &topicName, &headline, &content, &fee, &blockTime, &itemID, &upvotes, &rawTLV); err != nil {
+		if err := rows.Scan(&id, &rawTopic, &topicName, &headline, &content, &fee, &blockTime, &itemID, &upvotes, &downvotes, &rawTLV); err != nil {
 			return nil, fmt.Errorf("list coin news: scan new-format story: %w", err)
 		}
 		if len(rawTopic) != TopicIdLength {
@@ -588,6 +595,8 @@ func listCoinNewsNewFormat(ctx context.Context, db *sql.DB) ([]CoinNews, error) 
 			Fee:       fee,
 			ItemID:    itemID,
 			Upvotes:   upvotes,
+			Downvotes: downvotes,
+			Score:     coinNewsScore(upvotes, downvotes, blockTime),
 			CreatedAt: &blockTime,
 		})
 	}
@@ -626,20 +635,41 @@ func reassembledBody(ctx context.Context, db *sql.DB, itemIDHex string, rawTLV [
 	return "", false
 }
 
-func sortCoinNewsByCreatedAtDesc(news []CoinNews) {
+// coinNewsScore is the spec §13 Hacker-News rank:
+//
+//	score = (upvotes − downvotes − 1) / (age_hours + 2)^1.8
+//
+// age_hours = max(0, (now − block_time)/3600). Making the formula part
+// of the spec is what lets independent indexers agree on feed order.
+func coinNewsScore(upvotes, downvotes int64, blockTime time.Time) float64 {
+	ageHours := time.Since(blockTime).Hours()
+	if ageHours < 0 {
+		ageHours = 0
+	}
+	return float64(upvotes-downvotes-1) / math.Pow(ageHours+2, 1.8)
+}
+
+// rankCoinNews orders the feed by descending §13 score, breaking ties
+// with the newer item first.
+func rankCoinNews(news []CoinNews) {
 	slices.SortFunc(news, func(a, b CoinNews) int {
-		aTime := time.Time{}
-		if a.CreatedAt != nil {
-			aTime = *a.CreatedAt
+		if a.Score != b.Score {
+			if a.Score > b.Score {
+				return -1
+			}
+			return 1
 		}
-		bTime := time.Time{}
+		at, bt := time.Time{}, time.Time{}
+		if a.CreatedAt != nil {
+			at = *a.CreatedAt
+		}
 		if b.CreatedAt != nil {
-			bTime = *b.CreatedAt
+			bt = *b.CreatedAt
 		}
 		switch {
-		case aTime.After(bTime):
+		case at.After(bt):
 			return -1
-		case aTime.Before(bTime):
+		case bt.After(at):
 			return 1
 		default:
 			return 0

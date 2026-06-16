@@ -6,7 +6,6 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"sort"
 	"strings"
 
 	"connectrpc.com/connect"
@@ -170,7 +169,19 @@ func (s *Server) BroadcastNews(ctx context.Context, req *connect.Request[miscv1.
 // CoinNews Vote (kind=0x04) over the target story with this node's
 // identity key and broadcasts it as an OP_RETURN.
 func (s *Server) UpvoteNews(ctx context.Context, req *connect.Request[miscv1.UpvoteNewsRequest]) (*connect.Response[miscv1.UpvoteNewsResponse], error) {
-	raw, err := hex.DecodeString(req.Msg.ItemId)
+	return s.broadcastVote(ctx, req.Msg, codec.TypeUpvote)
+}
+
+// DownvoteNews implements miscv1connect.MiscServiceHandler. Same as
+// UpvoteNews but signs a downvote (kind=0x05).
+func (s *Server) DownvoteNews(ctx context.Context, req *connect.Request[miscv1.UpvoteNewsRequest]) (*connect.Response[miscv1.UpvoteNewsResponse], error) {
+	return s.broadcastVote(ctx, req.Msg, codec.TypeDownvote)
+}
+
+// broadcastVote signs a CoinNews Vote of the given kind over the target
+// story with this node's identity key and broadcasts it as an OP_RETURN.
+func (s *Server) broadcastVote(ctx context.Context, req *miscv1.UpvoteNewsRequest, kind codec.TypeTag) (*connect.Response[miscv1.UpvoteNewsResponse], error) {
+	raw, err := hex.DecodeString(req.ItemId)
 	if err != nil || len(raw) != codec.ItemIDLen {
 		err := fmt.Errorf("item_id must be %d-byte hex", codec.ItemIDLen)
 		return nil, connect.NewError(connect.CodeInvalidArgument, err)
@@ -180,20 +191,20 @@ func (s *Server) UpvoteNews(ctx context.Context, req *connect.Request[miscv1.Upv
 
 	priv, xpk, err := cnstore.LoadOrCreateIdentity(ctx, s.database)
 	if err != nil {
-		return nil, fmt.Errorf("upvote news: load identity: %w", err)
+		return nil, fmt.Errorf("vote news: load identity: %w", err)
 	}
 
-	digest := codec.VoteSigHash(codec.TypeUpvote, target)
+	digest := codec.VoteSigHash(kind, target)
 	sig, err := schnorr.Sign(priv, digest[:])
 	if err != nil {
-		return nil, fmt.Errorf("upvote news: sign vote: %w", err)
+		return nil, fmt.Errorf("vote news: sign vote: %w", err)
 	}
 
-	vote := codec.Vote{Kind: codec.TypeUpvote, Target: target, AuthorXPK: xpk}
+	vote := codec.Vote{Kind: kind, Target: target, AuthorXPK: xpk}
 	copy(vote.Sig[:], sig.Serialize())
 	voteBytes, err := codec.EncodeVote(vote)
 	if err != nil {
-		return nil, fmt.Errorf("upvote news: encode vote: %w", err)
+		return nil, fmt.Errorf("vote news: encode vote: %w", err)
 	}
 
 	wallet, err := s.wallet.Get(ctx)
@@ -208,29 +219,30 @@ func (s *Server) UpvoteNews(ctx context.Context, req *connect.Request[miscv1.Upv
 			},
 		},
 	}
-	if req.Msg.FeeSatPerVbyte > 0 {
+	if req.FeeSatPerVbyte > 0 {
 		sendReq.FeeRate = &validatorpb.SendTransactionRequest_FeeRate{
 			Fee: &validatorpb.SendTransactionRequest_FeeRate_SatPerVbyte{
-				SatPerVbyte: req.Msg.FeeSatPerVbyte,
+				SatPerVbyte: req.FeeSatPerVbyte,
 			},
 		}
-	} else if req.Msg.FeeSats > 0 {
+	} else if req.FeeSats > 0 {
 		sendReq.FeeRate = &validatorpb.SendTransactionRequest_FeeRate{
 			Fee: &validatorpb.SendTransactionRequest_FeeRate_Sats{
-				Sats: req.Msg.FeeSats,
+				Sats: req.FeeSats,
 			},
 		}
 	}
 
 	resp, err := wallet.SendTransaction(ctx, connect.NewRequest(sendReq))
 	if err != nil {
-		return nil, fmt.Errorf("upvote news: %w", err)
+		return nil, fmt.Errorf("vote news: %w", err)
 	}
 
 	zerolog.Ctx(ctx).Info().
-		Str("item_id", req.Msg.ItemId).
+		Str("item_id", req.ItemId).
+		Uint8("kind", uint8(kind)).
 		Str("txid", resp.Msg.Txid.String()).
-		Msg("broadcast upvote transaction")
+		Msg("broadcast vote transaction")
 
 	return connect.NewResponse(&miscv1.UpvoteNewsResponse{
 		Txid: resp.Msg.Txid.Hex.Value,
@@ -360,12 +372,8 @@ func (s *Server) ListCoinNews(ctx context.Context, req *connect.Request[miscv1.L
 		})
 	}
 
-	// Sort all news by recency (most recent first)
-	sort.Slice(news, func(i, j int) bool {
-		return lo.FromPtr(news[i].CreatedAt).After(lo.FromPtr(news[j].CreatedAt))
-	})
-
-	// Take up to 100 entries
+	// news is already ranked by the spec §13 score in ListCoinNews;
+	// preserve that order and take the top 100.
 	if len(news) > 100 {
 		news = news[:100]
 	}
@@ -389,6 +397,8 @@ func coinNewsToProto(coinNews opreturns.CoinNews, _ int) *miscv1.CoinNews {
 		CreateTime: timestamppb.New(lo.FromPtr(coinNews.CreatedAt)),
 		ItemId:     coinNews.ItemID,
 		Upvotes:    coinNews.Upvotes,
+		Downvotes:  coinNews.Downvotes,
+		Score:      coinNews.Score,
 	}
 }
 
