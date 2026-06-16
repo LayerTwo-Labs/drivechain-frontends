@@ -843,6 +843,8 @@ class CoinNews extends $pb.GeneratedMessage {
     $0.Timestamp? createTime,
     $core.String? itemId,
     $fixnum.Int64? upvotes,
+    $fixnum.Int64? downvotes,
+    $core.double? score,
   }) {
     final $result = create();
     if (id != null) {
@@ -869,6 +871,12 @@ class CoinNews extends $pb.GeneratedMessage {
     if (upvotes != null) {
       $result.upvotes = upvotes;
     }
+    if (downvotes != null) {
+      $result.downvotes = downvotes;
+    }
+    if (score != null) {
+      $result.score = score;
+    }
     return $result;
   }
   CoinNews._() : super();
@@ -884,6 +892,8 @@ class CoinNews extends $pb.GeneratedMessage {
     ..aOM<$0.Timestamp>(6, _omitFieldNames ? '' : 'createTime', subBuilder: $0.Timestamp.create)
     ..aOS(7, _omitFieldNames ? '' : 'itemId')
     ..aInt64(8, _omitFieldNames ? '' : 'upvotes')
+    ..aInt64(9, _omitFieldNames ? '' : 'downvotes')
+    ..a<$core.double>(10, _omitFieldNames ? '' : 'score', $pb.PbFieldType.OD)
     ..hasRequiredFields = false
   ;
 
@@ -964,7 +974,7 @@ class CoinNews extends $pb.GeneratedMessage {
   @$pb.TagNumber(6)
   $0.Timestamp ensureCreateTime() => $_ensure(5);
 
-  /// Hex-encoded 12-byte ItemID; the target for upvotes.
+  /// Hex-encoded 12-byte ItemID; the target for votes.
   @$pb.TagNumber(7)
   $core.String get itemId => $_getSZ(6);
   @$pb.TagNumber(7)
@@ -983,6 +993,26 @@ class CoinNews extends $pb.GeneratedMessage {
   $core.bool hasUpvotes() => $_has(7);
   @$pb.TagNumber(8)
   void clearUpvotes() => clearField(8);
+
+  /// Count of confirmed on-chain downvotes (CoinNews Vote, kind=0x05).
+  @$pb.TagNumber(9)
+  $fixnum.Int64 get downvotes => $_getI64(8);
+  @$pb.TagNumber(9)
+  set downvotes($fixnum.Int64 v) { $_setInt64(8, v); }
+  @$pb.TagNumber(9)
+  $core.bool hasDownvotes() => $_has(8);
+  @$pb.TagNumber(9)
+  void clearDownvotes() => clearField(9);
+
+  /// Hacker-News rank score (spec §13), the canonical feed ordering.
+  @$pb.TagNumber(10)
+  $core.double get score => $_getN(9);
+  @$pb.TagNumber(10)
+  set score($core.double v) { $_setDouble(9, v); }
+  @$pb.TagNumber(10)
+  $core.bool hasScore() => $_has(9);
+  @$pb.TagNumber(10)
+  void clearScore() => clearField(10);
 }
 
 class ListCoinNewsResponse extends $pb.GeneratedMessage {
@@ -1524,6 +1554,9 @@ class MiscServiceApi {
   ;
   $async.Future<UpvoteNewsResponse> upvoteNews($pb.ClientContext? ctx, UpvoteNewsRequest request) =>
     _client.invoke<UpvoteNewsResponse>(ctx, 'MiscService', 'UpvoteNews', request, UpvoteNewsResponse())
+  ;
+  $async.Future<UpvoteNewsResponse> downvoteNews($pb.ClientContext? ctx, UpvoteNewsRequest request) =>
+    _client.invoke<UpvoteNewsResponse>(ctx, 'MiscService', 'DownvoteNews', request, UpvoteNewsResponse())
   ;
   $async.Future<CreateTopicResponse> createTopic($pb.ClientContext? ctx, CreateTopicRequest request) =>
     _client.invoke<CreateTopicResponse>(ctx, 'MiscService', 'CreateTopic', request, CreateTopicResponse())

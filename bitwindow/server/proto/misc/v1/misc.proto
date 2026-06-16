@@ -10,6 +10,8 @@ service MiscService {
   rpc BroadcastNews(BroadcastNewsRequest) returns (BroadcastNewsResponse);
   // Broadcasts a signed upvote (CoinNews Vote, kind=0x04) targeting a story.
   rpc UpvoteNews(UpvoteNewsRequest) returns (UpvoteNewsResponse);
+  // Broadcasts a signed downvote (CoinNews Vote, kind=0x05) targeting a story.
+  rpc DownvoteNews(UpvoteNewsRequest) returns (UpvoteNewsResponse);
   rpc CreateTopic(CreateTopicRequest) returns (CreateTopicResponse);
   rpc ListTopics(google.protobuf.Empty) returns (ListTopicsResponse);
   rpc ListCoinNews(ListCoinNewsRequest) returns (ListCoinNewsResponse);
@@ -102,10 +104,14 @@ message CoinNews {
 
   google.protobuf.Timestamp create_time = 6;
 
-  // Hex-encoded 12-byte ItemID; the target for upvotes.
+  // Hex-encoded 12-byte ItemID; the target for votes.
   string item_id = 7;
   // Count of confirmed on-chain upvotes (CoinNews Vote, kind=0x04).
   int64 upvotes = 8;
+  // Count of confirmed on-chain downvotes (CoinNews Vote, kind=0x05).
+  int64 downvotes = 9;
+  // Hacker-News rank score (spec §13), the canonical feed ordering.
+  double score = 10;
 }
 
 message ListCoinNewsResponse {

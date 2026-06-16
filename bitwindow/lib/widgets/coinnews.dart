@@ -92,6 +92,7 @@ class CoinNewsView extends ViewModelWidget<CoinNewsViewModel> {
                   allTopics: viewModel.topics,
                   onArticleSelected: (news) => showCoinNewsArticle(context, news),
                   onUpvote: viewModel.upvote,
+                  onDownvote: viewModel.downvote,
                 ),
                 const SizedBox(height: 16),
                 Pagination(
@@ -159,6 +160,7 @@ class CoinNewsLargeView extends ViewModelWidget<CoinNewsLargeViewModel> {
                       condensed: true,
                       onArticleSelected: (news) => showCoinNewsArticle(context, news),
                       onUpvote: viewModel.upvote,
+                      onDownvote: viewModel.downvote,
                     ),
                   ),
                 ],
@@ -221,6 +223,7 @@ class CoinNewsLargeView extends ViewModelWidget<CoinNewsLargeViewModel> {
                       condensed: true,
                       onArticleSelected: (news) => showCoinNewsArticle(context, news),
                       onUpvote: viewModel.upvote,
+                      onDownvote: viewModel.downvote,
                     ),
                   ),
                 ],
@@ -266,6 +269,7 @@ class CoinNewsLargeViewModel extends BaseViewModel {
   }
 
   Future<void> upvote(CoinNews news) => _newsProvider.upvote(news);
+  Future<void> downvote(CoinNews news) => _newsProvider.downvote(news);
 
   bool get loading => !_newsProvider.initialized;
   List<Topic> get topics => _newsProvider.topics;
@@ -467,6 +471,7 @@ class CoinNewsViewModel extends BaseViewModel {
   }
 
   Future<void> upvote(CoinNews news) => _newsProvider.upvote(news);
+  Future<void> downvote(CoinNews news) => _newsProvider.downvote(news);
 
   bool get loading {
     return !_newsProvider.initialized;
@@ -940,25 +945,54 @@ class _CoinNewsEntryState extends State<CoinNewsEntry> {
   }
 }
 
-class _UpvoteCell extends StatefulWidget {
-  final int count;
+// _VotesCell renders the up/down vote buttons with their on-chain
+// tallies (spec §8). Each tap broadcasts a signed Vote.
+class _VotesCell extends StatelessWidget {
+  final int upvotes;
+  final int downvotes;
   final Future<void> Function()? onUpvote;
+  final Future<void> Function()? onDownvote;
 
-  const _UpvoteCell({required this.count, this.onUpvote});
+  const _VotesCell({
+    required this.upvotes,
+    required this.downvotes,
+    this.onUpvote,
+    this.onDownvote,
+  });
 
   @override
-  State<_UpvoteCell> createState() => _UpvoteCellState();
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        _VoteButton(asset: SailSVGAsset.thumbsUp, count: upvotes, onTap: onUpvote),
+        const SailSpacing(SailStyleValues.padding12),
+        _VoteButton(asset: SailSVGAsset.thumbsDown, count: downvotes, onTap: onDownvote),
+      ],
+    );
+  }
 }
 
-class _UpvoteCellState extends State<_UpvoteCell> {
+class _VoteButton extends StatefulWidget {
+  final SailSVGAsset asset;
+  final int count;
+  final Future<void> Function()? onTap;
+
+  const _VoteButton({required this.asset, required this.count, this.onTap});
+
+  @override
+  State<_VoteButton> createState() => _VoteButtonState();
+}
+
+class _VoteButtonState extends State<_VoteButton> {
   bool _hovered = false;
   bool _inFlight = false;
 
   Future<void> _handleTap() async {
-    if (_inFlight || widget.onUpvote == null) return;
+    if (_inFlight || widget.onTap == null) return;
     setState(() => _inFlight = true);
     try {
-      await widget.onUpvote!();
+      await widget.onTap!();
     } finally {
       if (mounted) setState(() => _inFlight = false);
     }
@@ -967,7 +1001,7 @@ class _UpvoteCellState extends State<_UpvoteCell> {
   @override
   Widget build(BuildContext context) {
     final colors = context.sailTheme.colors;
-    final enabled = widget.onUpvote != null && !_inFlight;
+    final enabled = widget.onTap != null && !_inFlight;
 
     return Row(
       mainAxisSize: MainAxisSize.min,
@@ -979,14 +1013,14 @@ class _UpvoteCellState extends State<_UpvoteCell> {
           child: GestureDetector(
             onTap: enabled ? _handleTap : null,
             child: SailSVG.fromAsset(
-              SailSVGAsset.thumbsUp,
+              widget.asset,
               width: 16,
               height: 16,
               color: _hovered && enabled ? colors.primary : colors.icon,
             ),
           ),
         ),
-        const SailSpacing(SailStyleValues.padding08),
+        const SailSpacing(SailStyleValues.padding04),
         SailText.primary12(widget.count.toString()),
       ],
     );
@@ -1002,6 +1036,7 @@ class CoinNewsTable extends StatelessWidget {
   final bool condensed;
   final void Function(CoinNews news)? onArticleSelected;
   final Future<void> Function(CoinNews news)? onUpvote;
+  final Future<void> Function(CoinNews news)? onDownvote;
   final String? selectedRowId;
 
   const CoinNewsTable({
@@ -1014,6 +1049,7 @@ class CoinNewsTable extends StatelessWidget {
     this.condensed = false,
     this.onArticleSelected,
     this.onUpvote,
+    this.onDownvote,
     this.selectedRowId,
   });
 
@@ -1036,43 +1072,40 @@ class CoinNewsTable extends StatelessWidget {
               const SailTableHeaderCell(name: 'Date'),
               const SailTableHeaderCell(name: 'Fee'),
               const SailTableHeaderCell(name: 'Title'),
-              const SailTableHeaderCell(name: 'Upvotes'),
+              const SailTableHeaderCell(name: 'Votes'),
             ] else ...[
               const SailTableHeaderCell(name: 'Date'),
               const SailTableHeaderCell(name: 'Topic'),
               const SailTableHeaderCell(name: 'Title'),
               const SailTableHeaderCell(name: 'Read time'),
-              const SailTableHeaderCell(name: 'Upvotes'),
+              const SailTableHeaderCell(name: 'Votes'),
             ],
           ],
           rowBuilder: (context, row, selected) {
             final entry = entries[row];
             final matchingTopic = allTopics.firstWhereOrNull((t) => t.topic == entry.topic);
+            final votesCell = SailTableCell(
+              value: '${entry.upvotes} / ${entry.downvotes}',
+              child: _VotesCell(
+                upvotes: entry.upvotes.toInt(),
+                downvotes: entry.downvotes.toInt(),
+                onUpvote: onUpvote == null ? null : () => onUpvote!(entry),
+                onDownvote: onDownvote == null ? null : () => onDownvote!(entry),
+              ),
+            );
 
             return [
               if (condensed) ...[
                 SailTableCell(value: formatDate(entry.createTime.toDateTime())),
                 SailTableCell(value: formatter.formatSats(entry.feeSats.toInt())),
                 SailTableCell(value: entry.headline),
-                SailTableCell(
-                  value: entry.upvotes.toString(),
-                  child: _UpvoteCell(
-                    count: entry.upvotes.toInt(),
-                    onUpvote: onUpvote == null ? null : () => onUpvote!(entry),
-                  ),
-                ),
+                votesCell,
               ] else ...[
                 SailTableCell(value: formatDate(entry.createTime.toDateTime())),
                 SailTableCell(value: matchingTopic?.name ?? entry.topic),
                 SailTableCell(value: entry.headline),
                 SailTableCell(value: expectedReadTime(entry.content)),
-                SailTableCell(
-                  value: entry.upvotes.toString(),
-                  child: _UpvoteCell(
-                    count: entry.upvotes.toInt(),
-                    onUpvote: onUpvote == null ? null : () => onUpvote!(entry),
-                  ),
-                ),
+                votesCell,
               ],
             ];
           },

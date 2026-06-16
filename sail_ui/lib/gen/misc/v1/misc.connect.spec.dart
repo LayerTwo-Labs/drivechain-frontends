@@ -33,6 +33,14 @@ abstract final class MiscService {
     miscv1misc.UpvoteNewsResponse.new,
   );
 
+  /// Broadcasts a signed downvote (CoinNews Vote, kind=0x05) targeting a story.
+  static const downvoteNews = connect.Spec(
+    '/$name/DownvoteNews',
+    connect.StreamType.unary,
+    miscv1misc.UpvoteNewsRequest.new,
+    miscv1misc.UpvoteNewsResponse.new,
+  );
+
   static const createTopic = connect.Spec(
     '/$name/CreateTopic',
     connect.StreamType.unary,
