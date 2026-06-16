@@ -128,6 +128,16 @@ type Server struct {
 	walletDir    string
 }
 
+func isNonFinalTransactionError(err error) bool {
+	return err != nil && strings.Contains(err.Error(), "non-final")
+}
+
+func isInsufficientReplacementFeeError(err error) bool {
+	return err != nil &&
+		strings.Contains(err.Error(), "insufficient fee") &&
+		strings.Contains(err.Error(), "rejecting replacement")
+}
+
 // CreateBitcoinCoreWallet implements walletv1connect.WalletServiceHandler.
 // Test endpoint to verify descriptor import to Bitcoin Core.
 func (s *Server) CreateBitcoinCoreWallet(ctx context.Context, c *connect.Request[pb.CreateBitcoinCoreWalletRequest]) (*connect.Response[pb.CreateBitcoinCoreWalletResponse], error) {
@@ -1175,6 +1185,10 @@ func (s *Server) ListSidechainDeposits(ctx context.Context, c *connect.Request[p
 
 	deposits, err := s.data.ListSidechainDeposits(ctx, &validatorpb.ListSidechainDepositTransactionsRequest{})
 	if err != nil {
+		// No treasury UTXO indexed yet for an active slot (common on fresh signet).
+		if strings.Contains(err.Error(), "Missing value from db") {
+			return connect.NewResponse(&pb.ListSidechainDepositsResponse{}), nil
+		}
 		return nil, fmt.Errorf("enforcer/wallet: could not list sidechain deposits: %w", err)
 	}
 
@@ -1250,6 +1264,12 @@ func (s *Server) CreateSidechainDeposit(ctx context.Context, c *connect.Request[
 		FeeSats:     &wrapperspb.UInt64Value{Value: uint64(fee)},
 	}))
 	if err != nil {
+		if isNonFinalTransactionError(err) {
+			return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("deposit transaction is not final yet; wait for the next mainchain block, then check deposits or retry"))
+		}
+		if isInsufficientReplacementFeeError(err) {
+			return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("a deposit from this wallet is already waiting in the mainchain mempool; wait for the next mainchain block, then check deposits or retry"))
+		}
 		return nil, fmt.Errorf("enforcer/wallet: could not create deposit transaction: %w", err)
 	}
 
@@ -1879,7 +1899,11 @@ func (s *Server) GetStats(ctx context.Context, c *connect.Request[pb.GetStatsReq
 	// 3. Get all sidechain deposit transactions and sum their amounts
 	sidechainDeposits, err := s.data.ListSidechainDeposits(ctx, &validatorpb.ListSidechainDepositTransactionsRequest{})
 	if err != nil {
-		return nil, err
+		if strings.Contains(err.Error(), "Missing value from db") {
+			sidechainDeposits = &validatorpb.ListSidechainDepositTransactionsResponse{}
+		} else {
+			return nil, err
+		}
 	}
 	var depositSum int64
 	var depositSumLast30Days int64
