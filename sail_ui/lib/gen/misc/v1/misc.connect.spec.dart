@@ -62,6 +62,22 @@ abstract final class MiscService {
     miscv1misc.ListCoinNewsResponse.new,
   );
 
+  /// Broadcasts a signed Comment (CoinNews Comment, 0x03) on an Item.
+  static const commentNews = connect.Spec(
+    '/$name/CommentNews',
+    connect.StreamType.unary,
+    miscv1misc.CommentNewsRequest.new,
+    miscv1misc.CommentNewsResponse.new,
+  );
+
+  /// Returns the full reply thread rooted at an Item, ranked per §13.
+  static const listComments = connect.Spec(
+    '/$name/ListComments',
+    connect.StreamType.unary,
+    miscv1misc.ListCommentsRequest.new,
+    miscv1misc.ListCommentsResponse.new,
+  );
+
   /// File timestamping
   static const timestampFile = connect.Spec(
     '/$name/TimestampFile',

@@ -830,6 +830,361 @@ func (x *ListCoinNewsResponse) GetCoinNews() []*CoinNews {
 	return nil
 }
 
+type CommentNewsRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Hex-encoded 12-byte ItemID of the parent (a story or another comment).
+	ParentId string `protobuf:"bytes,1,opt,name=parent_id,json=parentId,proto3" json:"parent_id,omitempty"`
+	Body     string `protobuf:"bytes,2,opt,name=body,proto3" json:"body,omitempty"`
+	// Optional TLVs (spec §10).
+	Url        string `protobuf:"bytes,3,opt,name=url,proto3" json:"url,omitempty"`
+	Lang       string `protobuf:"bytes,4,opt,name=lang,proto3" json:"lang,omitempty"`
+	ReplyQuote string `protobuf:"bytes,5,opt,name=reply_quote,json=replyQuote,proto3" json:"reply_quote,omitempty"`
+	// Fee options - exactly one should be set (0 = use Core's estimate)
+	FeeSatPerVbyte uint64 `protobuf:"varint,6,opt,name=fee_sat_per_vbyte,json=feeSatPerVbyte,proto3" json:"fee_sat_per_vbyte,omitempty"`
+	FeeSats        uint64 `protobuf:"varint,7,opt,name=fee_sats,json=feeSats,proto3" json:"fee_sats,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *CommentNewsRequest) Reset() {
+	*x = CommentNewsRequest{}
+	mi := &file_misc_v1_misc_proto_msgTypes[13]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CommentNewsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CommentNewsRequest) ProtoMessage() {}
+
+func (x *CommentNewsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_misc_v1_misc_proto_msgTypes[13]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CommentNewsRequest.ProtoReflect.Descriptor instead.
+func (*CommentNewsRequest) Descriptor() ([]byte, []int) {
+	return file_misc_v1_misc_proto_rawDescGZIP(), []int{13}
+}
+
+func (x *CommentNewsRequest) GetParentId() string {
+	if x != nil {
+		return x.ParentId
+	}
+	return ""
+}
+
+func (x *CommentNewsRequest) GetBody() string {
+	if x != nil {
+		return x.Body
+	}
+	return ""
+}
+
+func (x *CommentNewsRequest) GetUrl() string {
+	if x != nil {
+		return x.Url
+	}
+	return ""
+}
+
+func (x *CommentNewsRequest) GetLang() string {
+	if x != nil {
+		return x.Lang
+	}
+	return ""
+}
+
+func (x *CommentNewsRequest) GetReplyQuote() string {
+	if x != nil {
+		return x.ReplyQuote
+	}
+	return ""
+}
+
+func (x *CommentNewsRequest) GetFeeSatPerVbyte() uint64 {
+	if x != nil {
+		return x.FeeSatPerVbyte
+	}
+	return 0
+}
+
+func (x *CommentNewsRequest) GetFeeSats() uint64 {
+	if x != nil {
+		return x.FeeSats
+	}
+	return 0
+}
+
+type CommentNewsResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Txid          string                 `protobuf:"bytes,1,opt,name=txid,proto3" json:"txid,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CommentNewsResponse) Reset() {
+	*x = CommentNewsResponse{}
+	mi := &file_misc_v1_misc_proto_msgTypes[14]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CommentNewsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CommentNewsResponse) ProtoMessage() {}
+
+func (x *CommentNewsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_misc_v1_misc_proto_msgTypes[14]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CommentNewsResponse.ProtoReflect.Descriptor instead.
+func (*CommentNewsResponse) Descriptor() ([]byte, []int) {
+	return file_misc_v1_misc_proto_rawDescGZIP(), []int{14}
+}
+
+func (x *CommentNewsResponse) GetTxid() string {
+	if x != nil {
+		return x.Txid
+	}
+	return ""
+}
+
+type ListCommentsRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Hex-encoded 12-byte ItemID whose reply thread to return.
+	ItemId        string `protobuf:"bytes,1,opt,name=item_id,json=itemId,proto3" json:"item_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListCommentsRequest) Reset() {
+	*x = ListCommentsRequest{}
+	mi := &file_misc_v1_misc_proto_msgTypes[15]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListCommentsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListCommentsRequest) ProtoMessage() {}
+
+func (x *ListCommentsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_misc_v1_misc_proto_msgTypes[15]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListCommentsRequest.ProtoReflect.Descriptor instead.
+func (*ListCommentsRequest) Descriptor() ([]byte, []int) {
+	return file_misc_v1_misc_proto_rawDescGZIP(), []int{15}
+}
+
+func (x *ListCommentsRequest) GetItemId() string {
+	if x != nil {
+		return x.ItemId
+	}
+	return ""
+}
+
+type Comment struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Hex-encoded 12-byte ItemID of this comment.
+	ItemId string `protobuf:"bytes,1,opt,name=item_id,json=itemId,proto3" json:"item_id,omitempty"`
+	// Hex-encoded 12-byte ItemID of the parent Item.
+	ParentId string `protobuf:"bytes,2,opt,name=parent_id,json=parentId,proto3" json:"parent_id,omitempty"`
+	// Hex-encoded 32-byte x-only author pubkey (spec §12).
+	Author        string                 `protobuf:"bytes,3,opt,name=author,proto3" json:"author,omitempty"`
+	Body          string                 `protobuf:"bytes,4,opt,name=body,proto3" json:"body,omitempty"`
+	Url           string                 `protobuf:"bytes,5,opt,name=url,proto3" json:"url,omitempty"`
+	Lang          string                 `protobuf:"bytes,6,opt,name=lang,proto3" json:"lang,omitempty"`
+	ReplyQuote    string                 `protobuf:"bytes,7,opt,name=reply_quote,json=replyQuote,proto3" json:"reply_quote,omitempty"`
+	CreateTime    *timestamppb.Timestamp `protobuf:"bytes,8,opt,name=create_time,json=createTime,proto3" json:"create_time,omitempty"`
+	Upvotes       int64                  `protobuf:"varint,9,opt,name=upvotes,proto3" json:"upvotes,omitempty"`
+	Downvotes     int64                  `protobuf:"varint,10,opt,name=downvotes,proto3" json:"downvotes,omitempty"`
+	Score         float64                `protobuf:"fixed64,11,opt,name=score,proto3" json:"score,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *Comment) Reset() {
+	*x = Comment{}
+	mi := &file_misc_v1_misc_proto_msgTypes[16]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Comment) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Comment) ProtoMessage() {}
+
+func (x *Comment) ProtoReflect() protoreflect.Message {
+	mi := &file_misc_v1_misc_proto_msgTypes[16]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Comment.ProtoReflect.Descriptor instead.
+func (*Comment) Descriptor() ([]byte, []int) {
+	return file_misc_v1_misc_proto_rawDescGZIP(), []int{16}
+}
+
+func (x *Comment) GetItemId() string {
+	if x != nil {
+		return x.ItemId
+	}
+	return ""
+}
+
+func (x *Comment) GetParentId() string {
+	if x != nil {
+		return x.ParentId
+	}
+	return ""
+}
+
+func (x *Comment) GetAuthor() string {
+	if x != nil {
+		return x.Author
+	}
+	return ""
+}
+
+func (x *Comment) GetBody() string {
+	if x != nil {
+		return x.Body
+	}
+	return ""
+}
+
+func (x *Comment) GetUrl() string {
+	if x != nil {
+		return x.Url
+	}
+	return ""
+}
+
+func (x *Comment) GetLang() string {
+	if x != nil {
+		return x.Lang
+	}
+	return ""
+}
+
+func (x *Comment) GetReplyQuote() string {
+	if x != nil {
+		return x.ReplyQuote
+	}
+	return ""
+}
+
+func (x *Comment) GetCreateTime() *timestamppb.Timestamp {
+	if x != nil {
+		return x.CreateTime
+	}
+	return nil
+}
+
+func (x *Comment) GetUpvotes() int64 {
+	if x != nil {
+		return x.Upvotes
+	}
+	return 0
+}
+
+func (x *Comment) GetDownvotes() int64 {
+	if x != nil {
+		return x.Downvotes
+	}
+	return 0
+}
+
+func (x *Comment) GetScore() float64 {
+	if x != nil {
+		return x.Score
+	}
+	return 0
+}
+
+type ListCommentsResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Comments      []*Comment             `protobuf:"bytes,1,rep,name=comments,proto3" json:"comments,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListCommentsResponse) Reset() {
+	*x = ListCommentsResponse{}
+	mi := &file_misc_v1_misc_proto_msgTypes[17]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListCommentsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListCommentsResponse) ProtoMessage() {}
+
+func (x *ListCommentsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_misc_v1_misc_proto_msgTypes[17]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListCommentsResponse.ProtoReflect.Descriptor instead.
+func (*ListCommentsResponse) Descriptor() ([]byte, []int) {
+	return file_misc_v1_misc_proto_rawDescGZIP(), []int{17}
+}
+
+func (x *ListCommentsResponse) GetComments() []*Comment {
+	if x != nil {
+		return x.Comments
+	}
+	return nil
+}
+
 // File timestamp messages
 type TimestampFileRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
@@ -841,7 +1196,7 @@ type TimestampFileRequest struct {
 
 func (x *TimestampFileRequest) Reset() {
 	*x = TimestampFileRequest{}
-	mi := &file_misc_v1_misc_proto_msgTypes[13]
+	mi := &file_misc_v1_misc_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -853,7 +1208,7 @@ func (x *TimestampFileRequest) String() string {
 func (*TimestampFileRequest) ProtoMessage() {}
 
 func (x *TimestampFileRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_misc_v1_misc_proto_msgTypes[13]
+	mi := &file_misc_v1_misc_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -866,7 +1221,7 @@ func (x *TimestampFileRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TimestampFileRequest.ProtoReflect.Descriptor instead.
 func (*TimestampFileRequest) Descriptor() ([]byte, []int) {
-	return file_misc_v1_misc_proto_rawDescGZIP(), []int{13}
+	return file_misc_v1_misc_proto_rawDescGZIP(), []int{18}
 }
 
 func (x *TimestampFileRequest) GetFilename() string {
@@ -894,7 +1249,7 @@ type TimestampFileResponse struct {
 
 func (x *TimestampFileResponse) Reset() {
 	*x = TimestampFileResponse{}
-	mi := &file_misc_v1_misc_proto_msgTypes[14]
+	mi := &file_misc_v1_misc_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -906,7 +1261,7 @@ func (x *TimestampFileResponse) String() string {
 func (*TimestampFileResponse) ProtoMessage() {}
 
 func (x *TimestampFileResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_misc_v1_misc_proto_msgTypes[14]
+	mi := &file_misc_v1_misc_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -919,7 +1274,7 @@ func (x *TimestampFileResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TimestampFileResponse.ProtoReflect.Descriptor instead.
 func (*TimestampFileResponse) Descriptor() ([]byte, []int) {
-	return file_misc_v1_misc_proto_rawDescGZIP(), []int{14}
+	return file_misc_v1_misc_proto_rawDescGZIP(), []int{19}
 }
 
 func (x *TimestampFileResponse) GetId() int64 {
@@ -960,7 +1315,7 @@ type FileTimestamp struct {
 
 func (x *FileTimestamp) Reset() {
 	*x = FileTimestamp{}
-	mi := &file_misc_v1_misc_proto_msgTypes[15]
+	mi := &file_misc_v1_misc_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -972,7 +1327,7 @@ func (x *FileTimestamp) String() string {
 func (*FileTimestamp) ProtoMessage() {}
 
 func (x *FileTimestamp) ProtoReflect() protoreflect.Message {
-	mi := &file_misc_v1_misc_proto_msgTypes[15]
+	mi := &file_misc_v1_misc_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -985,7 +1340,7 @@ func (x *FileTimestamp) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use FileTimestamp.ProtoReflect.Descriptor instead.
 func (*FileTimestamp) Descriptor() ([]byte, []int) {
-	return file_misc_v1_misc_proto_rawDescGZIP(), []int{15}
+	return file_misc_v1_misc_proto_rawDescGZIP(), []int{20}
 }
 
 func (x *FileTimestamp) GetId() int64 {
@@ -1060,7 +1415,7 @@ type ListTimestampsResponse struct {
 
 func (x *ListTimestampsResponse) Reset() {
 	*x = ListTimestampsResponse{}
-	mi := &file_misc_v1_misc_proto_msgTypes[16]
+	mi := &file_misc_v1_misc_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1072,7 +1427,7 @@ func (x *ListTimestampsResponse) String() string {
 func (*ListTimestampsResponse) ProtoMessage() {}
 
 func (x *ListTimestampsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_misc_v1_misc_proto_msgTypes[16]
+	mi := &file_misc_v1_misc_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1085,7 +1440,7 @@ func (x *ListTimestampsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListTimestampsResponse.ProtoReflect.Descriptor instead.
 func (*ListTimestampsResponse) Descriptor() ([]byte, []int) {
-	return file_misc_v1_misc_proto_rawDescGZIP(), []int{16}
+	return file_misc_v1_misc_proto_rawDescGZIP(), []int{21}
 }
 
 func (x *ListTimestampsResponse) GetTimestamps() []*FileTimestamp {
@@ -1105,7 +1460,7 @@ type VerifyTimestampRequest struct {
 
 func (x *VerifyTimestampRequest) Reset() {
 	*x = VerifyTimestampRequest{}
-	mi := &file_misc_v1_misc_proto_msgTypes[17]
+	mi := &file_misc_v1_misc_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1117,7 +1472,7 @@ func (x *VerifyTimestampRequest) String() string {
 func (*VerifyTimestampRequest) ProtoMessage() {}
 
 func (x *VerifyTimestampRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_misc_v1_misc_proto_msgTypes[17]
+	mi := &file_misc_v1_misc_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1130,7 +1485,7 @@ func (x *VerifyTimestampRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use VerifyTimestampRequest.ProtoReflect.Descriptor instead.
 func (*VerifyTimestampRequest) Descriptor() ([]byte, []int) {
-	return file_misc_v1_misc_proto_rawDescGZIP(), []int{17}
+	return file_misc_v1_misc_proto_rawDescGZIP(), []int{22}
 }
 
 func (x *VerifyTimestampRequest) GetFileData() []byte {
@@ -1157,7 +1512,7 @@ type VerifyTimestampResponse struct {
 
 func (x *VerifyTimestampResponse) Reset() {
 	*x = VerifyTimestampResponse{}
-	mi := &file_misc_v1_misc_proto_msgTypes[18]
+	mi := &file_misc_v1_misc_proto_msgTypes[23]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1169,7 +1524,7 @@ func (x *VerifyTimestampResponse) String() string {
 func (*VerifyTimestampResponse) ProtoMessage() {}
 
 func (x *VerifyTimestampResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_misc_v1_misc_proto_msgTypes[18]
+	mi := &file_misc_v1_misc_proto_msgTypes[23]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1182,7 +1537,7 @@ func (x *VerifyTimestampResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use VerifyTimestampResponse.ProtoReflect.Descriptor instead.
 func (*VerifyTimestampResponse) Descriptor() ([]byte, []int) {
-	return file_misc_v1_misc_proto_rawDescGZIP(), []int{18}
+	return file_misc_v1_misc_proto_rawDescGZIP(), []int{23}
 }
 
 func (x *VerifyTimestampResponse) GetTimestamp() *FileTimestamp {
@@ -1264,7 +1619,37 @@ const file_misc_v1_misc_proto_rawDesc = "" +
 	"\x05score\x18\n" +
 	" \x01(\x01R\x05score\"F\n" +
 	"\x14ListCoinNewsResponse\x12.\n" +
-	"\tcoin_news\x18\x01 \x03(\v2\x11.misc.v1.CoinNewsR\bcoinNews\"O\n" +
+	"\tcoin_news\x18\x01 \x03(\v2\x11.misc.v1.CoinNewsR\bcoinNews\"\xd2\x01\n" +
+	"\x12CommentNewsRequest\x12\x1b\n" +
+	"\tparent_id\x18\x01 \x01(\tR\bparentId\x12\x12\n" +
+	"\x04body\x18\x02 \x01(\tR\x04body\x12\x10\n" +
+	"\x03url\x18\x03 \x01(\tR\x03url\x12\x12\n" +
+	"\x04lang\x18\x04 \x01(\tR\x04lang\x12\x1f\n" +
+	"\vreply_quote\x18\x05 \x01(\tR\n" +
+	"replyQuote\x12)\n" +
+	"\x11fee_sat_per_vbyte\x18\x06 \x01(\x04R\x0efeeSatPerVbyte\x12\x19\n" +
+	"\bfee_sats\x18\a \x01(\x04R\afeeSats\")\n" +
+	"\x13CommentNewsResponse\x12\x12\n" +
+	"\x04txid\x18\x01 \x01(\tR\x04txid\".\n" +
+	"\x13ListCommentsRequest\x12\x17\n" +
+	"\aitem_id\x18\x01 \x01(\tR\x06itemId\"\xbd\x02\n" +
+	"\aComment\x12\x17\n" +
+	"\aitem_id\x18\x01 \x01(\tR\x06itemId\x12\x1b\n" +
+	"\tparent_id\x18\x02 \x01(\tR\bparentId\x12\x16\n" +
+	"\x06author\x18\x03 \x01(\tR\x06author\x12\x12\n" +
+	"\x04body\x18\x04 \x01(\tR\x04body\x12\x10\n" +
+	"\x03url\x18\x05 \x01(\tR\x03url\x12\x12\n" +
+	"\x04lang\x18\x06 \x01(\tR\x04lang\x12\x1f\n" +
+	"\vreply_quote\x18\a \x01(\tR\n" +
+	"replyQuote\x12;\n" +
+	"\vcreate_time\x18\b \x01(\v2\x1a.google.protobuf.TimestampR\n" +
+	"createTime\x12\x18\n" +
+	"\aupvotes\x18\t \x01(\x03R\aupvotes\x12\x1c\n" +
+	"\tdownvotes\x18\n" +
+	" \x01(\x03R\tdownvotes\x12\x14\n" +
+	"\x05score\x18\v \x01(\x01R\x05score\"D\n" +
+	"\x14ListCommentsResponse\x12,\n" +
+	"\bcomments\x18\x01 \x03(\v2\x10.misc.v1.CommentR\bcomments\"O\n" +
 	"\x14TimestampFileRequest\x12\x1a\n" +
 	"\bfilename\x18\x01 \x01(\tR\bfilename\x12\x1b\n" +
 	"\tfile_data\x18\x02 \x01(\fR\bfileData\"X\n" +
@@ -1296,7 +1681,7 @@ const file_misc_v1_misc_proto_rawDesc = "" +
 	"\t_filename\"i\n" +
 	"\x17VerifyTimestampResponse\x124\n" +
 	"\ttimestamp\x18\x01 \x01(\v2\x16.misc.v1.FileTimestampR\ttimestamp\x12\x18\n" +
-	"\amessage\x18\x02 \x01(\tR\amessage2\xff\x05\n" +
+	"\amessage\x18\x02 \x01(\tR\amessage2\x96\a\n" +
 	"\vMiscService\x12E\n" +
 	"\fListOPReturn\x12\x16.google.protobuf.Empty\x1a\x1d.misc.v1.ListOPReturnResponse\x12N\n" +
 	"\rBroadcastNews\x12\x1d.misc.v1.BroadcastNewsRequest\x1a\x1e.misc.v1.BroadcastNewsResponse\x12E\n" +
@@ -1306,7 +1691,9 @@ const file_misc_v1_misc_proto_rawDesc = "" +
 	"\vCreateTopic\x12\x1b.misc.v1.CreateTopicRequest\x1a\x1c.misc.v1.CreateTopicResponse\x12A\n" +
 	"\n" +
 	"ListTopics\x12\x16.google.protobuf.Empty\x1a\x1b.misc.v1.ListTopicsResponse\x12K\n" +
-	"\fListCoinNews\x12\x1c.misc.v1.ListCoinNewsRequest\x1a\x1d.misc.v1.ListCoinNewsResponse\x12N\n" +
+	"\fListCoinNews\x12\x1c.misc.v1.ListCoinNewsRequest\x1a\x1d.misc.v1.ListCoinNewsResponse\x12H\n" +
+	"\vCommentNews\x12\x1b.misc.v1.CommentNewsRequest\x1a\x1c.misc.v1.CommentNewsResponse\x12K\n" +
+	"\fListComments\x12\x1c.misc.v1.ListCommentsRequest\x1a\x1d.misc.v1.ListCommentsResponse\x12N\n" +
 	"\rTimestampFile\x12\x1d.misc.v1.TimestampFileRequest\x1a\x1e.misc.v1.TimestampFileResponse\x12I\n" +
 	"\x0eListTimestamps\x12\x16.google.protobuf.Empty\x1a\x1f.misc.v1.ListTimestampsResponse\x12T\n" +
 	"\x0fVerifyTimestamp\x12\x1f.misc.v1.VerifyTimestampRequest\x1a .misc.v1.VerifyTimestampResponseB\x9c\x01\n" +
@@ -1324,7 +1711,7 @@ func file_misc_v1_misc_proto_rawDescGZIP() []byte {
 	return file_misc_v1_misc_proto_rawDescData
 }
 
-var file_misc_v1_misc_proto_msgTypes = make([]protoimpl.MessageInfo, 19)
+var file_misc_v1_misc_proto_msgTypes = make([]protoimpl.MessageInfo, 24)
 var file_misc_v1_misc_proto_goTypes = []any{
 	(*ListOPReturnResponse)(nil),    // 0: misc.v1.ListOPReturnResponse
 	(*OPReturn)(nil),                // 1: misc.v1.OPReturn
@@ -1339,51 +1726,62 @@ var file_misc_v1_misc_proto_goTypes = []any{
 	(*ListCoinNewsRequest)(nil),     // 10: misc.v1.ListCoinNewsRequest
 	(*CoinNews)(nil),                // 11: misc.v1.CoinNews
 	(*ListCoinNewsResponse)(nil),    // 12: misc.v1.ListCoinNewsResponse
-	(*TimestampFileRequest)(nil),    // 13: misc.v1.TimestampFileRequest
-	(*TimestampFileResponse)(nil),   // 14: misc.v1.TimestampFileResponse
-	(*FileTimestamp)(nil),           // 15: misc.v1.FileTimestamp
-	(*ListTimestampsResponse)(nil),  // 16: misc.v1.ListTimestampsResponse
-	(*VerifyTimestampRequest)(nil),  // 17: misc.v1.VerifyTimestampRequest
-	(*VerifyTimestampResponse)(nil), // 18: misc.v1.VerifyTimestampResponse
-	(*timestamppb.Timestamp)(nil),   // 19: google.protobuf.Timestamp
-	(*emptypb.Empty)(nil),           // 20: google.protobuf.Empty
+	(*CommentNewsRequest)(nil),      // 13: misc.v1.CommentNewsRequest
+	(*CommentNewsResponse)(nil),     // 14: misc.v1.CommentNewsResponse
+	(*ListCommentsRequest)(nil),     // 15: misc.v1.ListCommentsRequest
+	(*Comment)(nil),                 // 16: misc.v1.Comment
+	(*ListCommentsResponse)(nil),    // 17: misc.v1.ListCommentsResponse
+	(*TimestampFileRequest)(nil),    // 18: misc.v1.TimestampFileRequest
+	(*TimestampFileResponse)(nil),   // 19: misc.v1.TimestampFileResponse
+	(*FileTimestamp)(nil),           // 20: misc.v1.FileTimestamp
+	(*ListTimestampsResponse)(nil),  // 21: misc.v1.ListTimestampsResponse
+	(*VerifyTimestampRequest)(nil),  // 22: misc.v1.VerifyTimestampRequest
+	(*VerifyTimestampResponse)(nil), // 23: misc.v1.VerifyTimestampResponse
+	(*timestamppb.Timestamp)(nil),   // 24: google.protobuf.Timestamp
+	(*emptypb.Empty)(nil),           // 25: google.protobuf.Empty
 }
 var file_misc_v1_misc_proto_depIdxs = []int32{
 	1,  // 0: misc.v1.ListOPReturnResponse.op_returns:type_name -> misc.v1.OPReturn
-	19, // 1: misc.v1.OPReturn.create_time:type_name -> google.protobuf.Timestamp
-	19, // 2: misc.v1.Topic.create_time:type_name -> google.protobuf.Timestamp
+	24, // 1: misc.v1.OPReturn.create_time:type_name -> google.protobuf.Timestamp
+	24, // 2: misc.v1.Topic.create_time:type_name -> google.protobuf.Timestamp
 	8,  // 3: misc.v1.ListTopicsResponse.topics:type_name -> misc.v1.Topic
-	19, // 4: misc.v1.CoinNews.create_time:type_name -> google.protobuf.Timestamp
+	24, // 4: misc.v1.CoinNews.create_time:type_name -> google.protobuf.Timestamp
 	11, // 5: misc.v1.ListCoinNewsResponse.coin_news:type_name -> misc.v1.CoinNews
-	19, // 6: misc.v1.FileTimestamp.created_at:type_name -> google.protobuf.Timestamp
-	19, // 7: misc.v1.FileTimestamp.confirmed_at:type_name -> google.protobuf.Timestamp
-	15, // 8: misc.v1.ListTimestampsResponse.timestamps:type_name -> misc.v1.FileTimestamp
-	15, // 9: misc.v1.VerifyTimestampResponse.timestamp:type_name -> misc.v1.FileTimestamp
-	20, // 10: misc.v1.MiscService.ListOPReturn:input_type -> google.protobuf.Empty
-	2,  // 11: misc.v1.MiscService.BroadcastNews:input_type -> misc.v1.BroadcastNewsRequest
-	4,  // 12: misc.v1.MiscService.UpvoteNews:input_type -> misc.v1.UpvoteNewsRequest
-	4,  // 13: misc.v1.MiscService.DownvoteNews:input_type -> misc.v1.UpvoteNewsRequest
-	6,  // 14: misc.v1.MiscService.CreateTopic:input_type -> misc.v1.CreateTopicRequest
-	20, // 15: misc.v1.MiscService.ListTopics:input_type -> google.protobuf.Empty
-	10, // 16: misc.v1.MiscService.ListCoinNews:input_type -> misc.v1.ListCoinNewsRequest
-	13, // 17: misc.v1.MiscService.TimestampFile:input_type -> misc.v1.TimestampFileRequest
-	20, // 18: misc.v1.MiscService.ListTimestamps:input_type -> google.protobuf.Empty
-	17, // 19: misc.v1.MiscService.VerifyTimestamp:input_type -> misc.v1.VerifyTimestampRequest
-	0,  // 20: misc.v1.MiscService.ListOPReturn:output_type -> misc.v1.ListOPReturnResponse
-	3,  // 21: misc.v1.MiscService.BroadcastNews:output_type -> misc.v1.BroadcastNewsResponse
-	5,  // 22: misc.v1.MiscService.UpvoteNews:output_type -> misc.v1.UpvoteNewsResponse
-	5,  // 23: misc.v1.MiscService.DownvoteNews:output_type -> misc.v1.UpvoteNewsResponse
-	7,  // 24: misc.v1.MiscService.CreateTopic:output_type -> misc.v1.CreateTopicResponse
-	9,  // 25: misc.v1.MiscService.ListTopics:output_type -> misc.v1.ListTopicsResponse
-	12, // 26: misc.v1.MiscService.ListCoinNews:output_type -> misc.v1.ListCoinNewsResponse
-	14, // 27: misc.v1.MiscService.TimestampFile:output_type -> misc.v1.TimestampFileResponse
-	16, // 28: misc.v1.MiscService.ListTimestamps:output_type -> misc.v1.ListTimestampsResponse
-	18, // 29: misc.v1.MiscService.VerifyTimestamp:output_type -> misc.v1.VerifyTimestampResponse
-	20, // [20:30] is the sub-list for method output_type
-	10, // [10:20] is the sub-list for method input_type
-	10, // [10:10] is the sub-list for extension type_name
-	10, // [10:10] is the sub-list for extension extendee
-	0,  // [0:10] is the sub-list for field type_name
+	24, // 6: misc.v1.Comment.create_time:type_name -> google.protobuf.Timestamp
+	16, // 7: misc.v1.ListCommentsResponse.comments:type_name -> misc.v1.Comment
+	24, // 8: misc.v1.FileTimestamp.created_at:type_name -> google.protobuf.Timestamp
+	24, // 9: misc.v1.FileTimestamp.confirmed_at:type_name -> google.protobuf.Timestamp
+	20, // 10: misc.v1.ListTimestampsResponse.timestamps:type_name -> misc.v1.FileTimestamp
+	20, // 11: misc.v1.VerifyTimestampResponse.timestamp:type_name -> misc.v1.FileTimestamp
+	25, // 12: misc.v1.MiscService.ListOPReturn:input_type -> google.protobuf.Empty
+	2,  // 13: misc.v1.MiscService.BroadcastNews:input_type -> misc.v1.BroadcastNewsRequest
+	4,  // 14: misc.v1.MiscService.UpvoteNews:input_type -> misc.v1.UpvoteNewsRequest
+	4,  // 15: misc.v1.MiscService.DownvoteNews:input_type -> misc.v1.UpvoteNewsRequest
+	6,  // 16: misc.v1.MiscService.CreateTopic:input_type -> misc.v1.CreateTopicRequest
+	25, // 17: misc.v1.MiscService.ListTopics:input_type -> google.protobuf.Empty
+	10, // 18: misc.v1.MiscService.ListCoinNews:input_type -> misc.v1.ListCoinNewsRequest
+	13, // 19: misc.v1.MiscService.CommentNews:input_type -> misc.v1.CommentNewsRequest
+	15, // 20: misc.v1.MiscService.ListComments:input_type -> misc.v1.ListCommentsRequest
+	18, // 21: misc.v1.MiscService.TimestampFile:input_type -> misc.v1.TimestampFileRequest
+	25, // 22: misc.v1.MiscService.ListTimestamps:input_type -> google.protobuf.Empty
+	22, // 23: misc.v1.MiscService.VerifyTimestamp:input_type -> misc.v1.VerifyTimestampRequest
+	0,  // 24: misc.v1.MiscService.ListOPReturn:output_type -> misc.v1.ListOPReturnResponse
+	3,  // 25: misc.v1.MiscService.BroadcastNews:output_type -> misc.v1.BroadcastNewsResponse
+	5,  // 26: misc.v1.MiscService.UpvoteNews:output_type -> misc.v1.UpvoteNewsResponse
+	5,  // 27: misc.v1.MiscService.DownvoteNews:output_type -> misc.v1.UpvoteNewsResponse
+	7,  // 28: misc.v1.MiscService.CreateTopic:output_type -> misc.v1.CreateTopicResponse
+	9,  // 29: misc.v1.MiscService.ListTopics:output_type -> misc.v1.ListTopicsResponse
+	12, // 30: misc.v1.MiscService.ListCoinNews:output_type -> misc.v1.ListCoinNewsResponse
+	14, // 31: misc.v1.MiscService.CommentNews:output_type -> misc.v1.CommentNewsResponse
+	17, // 32: misc.v1.MiscService.ListComments:output_type -> misc.v1.ListCommentsResponse
+	19, // 33: misc.v1.MiscService.TimestampFile:output_type -> misc.v1.TimestampFileResponse
+	21, // 34: misc.v1.MiscService.ListTimestamps:output_type -> misc.v1.ListTimestampsResponse
+	23, // 35: misc.v1.MiscService.VerifyTimestamp:output_type -> misc.v1.VerifyTimestampResponse
+	24, // [24:36] is the sub-list for method output_type
+	12, // [12:24] is the sub-list for method input_type
+	12, // [12:12] is the sub-list for extension type_name
+	12, // [12:12] is the sub-list for extension extendee
+	0,  // [0:12] is the sub-list for field type_name
 }
 
 func init() { file_misc_v1_misc_proto_init() }
@@ -1393,15 +1791,15 @@ func file_misc_v1_misc_proto_init() {
 	}
 	file_misc_v1_misc_proto_msgTypes[1].OneofWrappers = []any{}
 	file_misc_v1_misc_proto_msgTypes[10].OneofWrappers = []any{}
-	file_misc_v1_misc_proto_msgTypes[15].OneofWrappers = []any{}
-	file_misc_v1_misc_proto_msgTypes[17].OneofWrappers = []any{}
+	file_misc_v1_misc_proto_msgTypes[20].OneofWrappers = []any{}
+	file_misc_v1_misc_proto_msgTypes[22].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_misc_v1_misc_proto_rawDesc), len(file_misc_v1_misc_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   19,
+			NumMessages:   24,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

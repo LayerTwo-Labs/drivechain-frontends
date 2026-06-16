@@ -402,6 +402,137 @@ func coinNewsToProto(coinNews opreturns.CoinNews, _ int) *miscv1.CoinNews {
 	}
 }
 
+// CommentNews implements miscv1connect.MiscServiceHandler. It signs a
+// CoinNews Comment (0x03) on the parent Item with this node's identity
+// key and broadcasts it as an OP_RETURN. The body and optional url/lang/
+// reply_quote ride in the trailing TLV section (spec §7, §10).
+func (s *Server) CommentNews(ctx context.Context, req *connect.Request[miscv1.CommentNewsRequest]) (*connect.Response[miscv1.CommentNewsResponse], error) {
+	raw, err := hex.DecodeString(req.Msg.ParentId)
+	if err != nil || len(raw) != codec.ItemIDLen {
+		err := fmt.Errorf("parent_id must be %d-byte hex", codec.ItemIDLen)
+		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+	}
+	var parent codec.ItemID
+	copy(parent[:], raw)
+
+	if strings.TrimSpace(req.Msg.Body) == "" && req.Msg.Url == "" {
+		err := errors.New("comment must have a body or url")
+		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+	}
+
+	priv, xpk, err := cnstore.LoadOrCreateIdentity(ctx, s.database)
+	if err != nil {
+		return nil, fmt.Errorf("comment news: load identity: %w", err)
+	}
+
+	tlvs := commentTLVs(req.Msg)
+	blob, err := codec.SerialiseTLVs(tlvs)
+	if err != nil {
+		return nil, fmt.Errorf("comment news: serialise tlvs: %w", err)
+	}
+	digest := codec.CommentSigHash(parent, blob)
+	sig, err := schnorr.Sign(priv, digest[:])
+	if err != nil {
+		return nil, fmt.Errorf("comment news: sign comment: %w", err)
+	}
+
+	comment := codec.Comment{Parent: parent, AuthorXPK: xpk, TLVs: tlvs}
+	copy(comment.Sig[:], sig.Serialize())
+	commentBytes, err := codec.EncodeComment(comment)
+	if err != nil {
+		return nil, fmt.Errorf("comment news: encode comment: %w", err)
+	}
+
+	wallet, err := s.wallet.Get(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	sendReq := &validatorpb.SendTransactionRequest{
+		OpReturnMessage: &commonv1.Hex{
+			Hex: &wrapperspb.StringValue{Value: hex.EncodeToString(commentBytes)},
+		},
+	}
+	if req.Msg.FeeSatPerVbyte > 0 {
+		sendReq.FeeRate = &validatorpb.SendTransactionRequest_FeeRate{
+			Fee: &validatorpb.SendTransactionRequest_FeeRate_SatPerVbyte{SatPerVbyte: req.Msg.FeeSatPerVbyte},
+		}
+	} else if req.Msg.FeeSats > 0 {
+		sendReq.FeeRate = &validatorpb.SendTransactionRequest_FeeRate{
+			Fee: &validatorpb.SendTransactionRequest_FeeRate_Sats{Sats: req.Msg.FeeSats},
+		}
+	}
+
+	resp, err := wallet.SendTransaction(ctx, connect.NewRequest(sendReq))
+	if err != nil {
+		return nil, fmt.Errorf("comment news: %w", err)
+	}
+
+	zerolog.Ctx(ctx).Info().
+		Str("parent_id", req.Msg.ParentId).
+		Str("txid", resp.Msg.Txid.String()).
+		Msg("broadcast comment transaction")
+
+	return connect.NewResponse(&miscv1.CommentNewsResponse{
+		Txid: resp.Msg.Txid.Hex.Value,
+	}), nil
+}
+
+// commentTLVs builds the trailing TLV section for a comment from the
+// request's optional fields, in a stable order (the signature covers
+// these exact bytes).
+func commentTLVs(req *miscv1.CommentNewsRequest) []codec.TLV {
+	var tlvs []codec.TLV
+	if body := strings.TrimSpace(req.Body); body != "" {
+		tlvs = append(tlvs, codec.TLV{Tag: codec.TLVBody, Value: []byte(body)})
+	}
+	if req.Url != "" {
+		tlvs = append(tlvs, codec.TLV{Tag: codec.TLVURL, Value: []byte(req.Url)})
+	}
+	if req.Lang != "" {
+		tlvs = append(tlvs, codec.TLV{Tag: codec.TLVLang, Value: []byte(req.Lang)})
+	}
+	if req.ReplyQuote != "" {
+		tlvs = append(tlvs, codec.TLV{Tag: codec.TLVReplyQuote, Value: []byte(req.ReplyQuote)})
+	}
+	return tlvs
+}
+
+// ListComments implements miscv1connect.MiscServiceHandler.
+func (s *Server) ListComments(ctx context.Context, req *connect.Request[miscv1.ListCommentsRequest]) (*connect.Response[miscv1.ListCommentsResponse], error) {
+	raw, err := hex.DecodeString(req.Msg.ItemId)
+	if err != nil || len(raw) != codec.ItemIDLen {
+		err := fmt.Errorf("item_id must be %d-byte hex", codec.ItemIDLen)
+		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+	}
+	var root codec.ItemID
+	copy(root[:], raw)
+
+	comments, err := cnstore.ListThread(ctx, s.database, root)
+	if err != nil {
+		return nil, fmt.Errorf("list comments: %w", err)
+	}
+	return connect.NewResponse(&miscv1.ListCommentsResponse{
+		Comments: lo.Map(comments, commentToProto),
+	}), nil
+}
+
+func commentToProto(c cnstore.Comment, _ int) *miscv1.Comment {
+	return &miscv1.Comment{
+		ItemId:     c.ItemID,
+		ParentId:   c.ParentID,
+		Author:     c.Author,
+		Body:       strings.ToValidUTF8(c.Body, ""),
+		Url:        c.URL,
+		Lang:       c.Lang,
+		ReplyQuote: strings.ToValidUTF8(c.ReplyQuote, ""),
+		CreateTime: timestamppb.New(c.CreatedAt),
+		Upvotes:    c.Upvotes,
+		Downvotes:  c.Downvotes,
+		Score:      c.Score,
+	}
+}
+
 // TimestampFile implements miscv1connect.MiscServiceHandler.
 func (s *Server) TimestampFile(ctx context.Context, req *connect.Request[miscv1.TimestampFileRequest]) (*connect.Response[miscv1.TimestampFileResponse], error) {
 	if req.Msg.Filename == "" {

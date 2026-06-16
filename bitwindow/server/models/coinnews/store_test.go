@@ -3,6 +3,7 @@ package coinnews
 import (
 	"context"
 	"crypto/rand"
+	"database/sql"
 	"testing"
 	"time"
 
@@ -24,6 +25,58 @@ func pos(height, txIdx, voutIdx uint32) BlockPos {
 		BlockTime:   time.Date(2026, 4, 27, 12, 0, 0, 0, time.UTC),
 		TxID:        "1111111111111111111111111111111111111111111111111111111111111111",
 	}
+}
+
+// TestStore_ListThread builds a story → comment → reply chain and proves
+// ListThread returns the full transitive thread rooted at the story.
+func TestStore_ListThread(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	db := database.Test(t)
+
+	require.NoError(t, Index(ctx, db, IndexEnv{
+		Pos: pos(100, 0, 0), TypeTag: codec.TypeStory,
+		Msg: &codec.Story{Topic: codec.Topic{1, 2, 3, 4}, Headline: "Head"},
+	}))
+	story := itemIDOf(t, ctx, db, "cn_stories")
+
+	var a1, a2 codec.XOnlyPubKey
+	_, _ = rand.Read(a1[:])
+	_, _ = rand.Read(a2[:])
+
+	require.NoError(t, Index(ctx, db, IndexEnv{
+		Pos: pos(100, 0, 1), TypeTag: codec.TypeComment,
+		Msg: &codec.Comment{Parent: story, AuthorXPK: a1, TLVs: []codec.TLV{{Tag: codec.TLVBody, Value: []byte("first")}}},
+	}))
+	comment1 := itemIDOf(t, ctx, db, "cn_comments")
+
+	require.NoError(t, Index(ctx, db, IndexEnv{
+		Pos: pos(100, 0, 2), TypeTag: codec.TypeComment,
+		Msg: &codec.Comment{Parent: comment1, AuthorXPK: a2, TLVs: []codec.TLV{{Tag: codec.TLVBody, Value: []byte("reply")}}},
+	}))
+
+	thread, err := ListThread(ctx, db, story)
+	require.NoError(t, err)
+	require.Len(t, thread, 2, "story thread includes the comment and its nested reply")
+
+	bodies := map[string]bool{}
+	for _, c := range thread {
+		bodies[c.Body] = true
+	}
+	assert.True(t, bodies["first"])
+	assert.True(t, bodies["reply"])
+}
+
+// itemIDOf returns the most recently inserted item_id in the given cn_*
+// table.
+func itemIDOf(t *testing.T, ctx context.Context, db *sql.DB, table string) codec.ItemID {
+	t.Helper()
+	var id []byte
+	require.NoError(t, db.QueryRowContext(ctx,
+		`SELECT item_id FROM `+table+` ORDER BY rowid DESC LIMIT 1`).Scan(&id))
+	var item codec.ItemID
+	copy(item[:], id)
+	return item
 }
 
 // TestStore_TopicCreation_EarliestWins guards spec §5: when two

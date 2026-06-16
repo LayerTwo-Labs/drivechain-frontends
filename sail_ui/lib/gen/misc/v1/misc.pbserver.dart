@@ -29,6 +29,8 @@ abstract class MiscServiceBase extends $pb.GeneratedService {
   $async.Future<$8.CreateTopicResponse> createTopic($pb.ServerContext ctx, $8.CreateTopicRequest request);
   $async.Future<$8.ListTopicsResponse> listTopics($pb.ServerContext ctx, $1.Empty request);
   $async.Future<$8.ListCoinNewsResponse> listCoinNews($pb.ServerContext ctx, $8.ListCoinNewsRequest request);
+  $async.Future<$8.CommentNewsResponse> commentNews($pb.ServerContext ctx, $8.CommentNewsRequest request);
+  $async.Future<$8.ListCommentsResponse> listComments($pb.ServerContext ctx, $8.ListCommentsRequest request);
   $async.Future<$8.TimestampFileResponse> timestampFile($pb.ServerContext ctx, $8.TimestampFileRequest request);
   $async.Future<$8.ListTimestampsResponse> listTimestamps($pb.ServerContext ctx, $1.Empty request);
   $async.Future<$8.VerifyTimestampResponse> verifyTimestamp($pb.ServerContext ctx, $8.VerifyTimestampRequest request);
@@ -42,6 +44,8 @@ abstract class MiscServiceBase extends $pb.GeneratedService {
       case 'CreateTopic': return $8.CreateTopicRequest();
       case 'ListTopics': return $1.Empty();
       case 'ListCoinNews': return $8.ListCoinNewsRequest();
+      case 'CommentNews': return $8.CommentNewsRequest();
+      case 'ListComments': return $8.ListCommentsRequest();
       case 'TimestampFile': return $8.TimestampFileRequest();
       case 'ListTimestamps': return $1.Empty();
       case 'VerifyTimestamp': return $8.VerifyTimestampRequest();
@@ -58,6 +62,8 @@ abstract class MiscServiceBase extends $pb.GeneratedService {
       case 'CreateTopic': return this.createTopic(ctx, request as $8.CreateTopicRequest);
       case 'ListTopics': return this.listTopics(ctx, request as $1.Empty);
       case 'ListCoinNews': return this.listCoinNews(ctx, request as $8.ListCoinNewsRequest);
+      case 'CommentNews': return this.commentNews(ctx, request as $8.CommentNewsRequest);
+      case 'ListComments': return this.listComments(ctx, request as $8.ListCommentsRequest);
       case 'TimestampFile': return this.timestampFile(ctx, request as $8.TimestampFileRequest);
       case 'ListTimestamps': return this.listTimestamps(ctx, request as $1.Empty);
       case 'VerifyTimestamp': return this.verifyTimestamp(ctx, request as $8.VerifyTimestampRequest);
