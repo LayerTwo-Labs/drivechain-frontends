@@ -28,4 +28,16 @@ void main() {
     );
     ready.dispose();
   });
+
+  test('InitialWalletProvider offers all three backends with enforcer first', () {
+    expect(InitialWalletProvider.values, [
+      InitialWalletProvider.enforcer,
+      InitialWalletProvider.bitcoinCore,
+      InitialWalletProvider.electrum,
+    ]);
+    for (final p in InitialWalletProvider.values) {
+      expect(p.label, isNotEmpty);
+      expect(p.description, isNotEmpty);
+    }
+  });
 }
