@@ -1,7 +1,6 @@
 package opreturns
 
 import (
-	"bytes"
 	"context"
 	"database/sql"
 	"encoding/hex"
@@ -21,8 +20,7 @@ import (
 )
 
 // Backstop TTL for cached List / ListCoinNews — the contract is that
-// Persist and CreateTopic invalidate; TTL only matters if a query
-// races a write.
+// Persist invalidates; TTL only matters if a query races a write.
 const listCacheTTL = 2 * time.Second
 
 // Caches are keyed by *sql.DB so parallel tests with their own DBs
@@ -48,7 +46,7 @@ var (
 )
 
 // invalidateCaches drops cached List / ListCoinNews entries for db.
-// Called from Persist and CreateTopic.
+// Called from Persist.
 func invalidateCaches(db *sql.DB) {
 	listCacheMu.Lock()
 	delete(listCacheEntries, db)
@@ -237,108 +235,7 @@ func ValidNewsTopicID(topic string) (TopicID, error) {
 	return TopicID(decode), nil
 }
 
-type TopicInfo struct {
-	ID            TopicID
-	Name          string
-	RetentionDays int32
-}
-
-var newTopicTag = []byte("new")
-
 const TopicIdLength = 4
-
-func IsCreateTopic(data []byte) (TopicInfo, bool) {
-	if len(data) < TopicIdLength+len(newTopicTag) {
-		return TopicInfo{}, false
-	}
-
-	// First 4 bytes are the topic ID
-	topicID, err := ValidNewsTopicID(hex.EncodeToString(data[:TopicIdLength]))
-	if err != nil {
-		return TopicInfo{}, false
-	}
-
-	// Check if "new" follows the topic ID
-	rest := data[TopicIdLength:]
-	if !bytes.HasPrefix(rest, newTopicTag) {
-		return TopicInfo{}, false
-	}
-
-	// Disambiguate from news messages that happen to start with "new".
-	// News wire format is <4 topic><64 NULL-padded headline><content>, so
-	// any NULL in the 64-byte headline slot marks this as news, not a
-	// topic creation. Topic-creation names are user-entered text and
-	// contain no NULL bytes. Skip byte 7 (retention) which may legitimately
-	// be 0x00 in the new format.
-	nameStart := TopicIdLength + len(newTopicTag) + 1 // skip retention byte
-	headlineEnd := TopicIdLength + 64
-	if headlineEnd > len(data) {
-		headlineEnd = len(data)
-	}
-	for i := nameStart; i < headlineEnd; i++ {
-		if data[i] == 0 {
-			return TopicInfo{}, false
-		}
-	}
-
-	afterNew := rest[len(newTopicTag):]
-
-	// New format: <retention_1byte><name>
-	// Old format (legacy): <name> directly
-	//
-	// Detection: Old topic names always start with printable ASCII (>= 32).
-	// New format uses first byte as retention (0-255).
-	// If first byte < 32 (control char) or > 127 (non-ASCII), it's the new format.
-	// Otherwise it's the legacy format (name starts directly).
-	var name string
-	var retentionDays int32 = 7 // default for legacy topics
-
-	if len(afterNew) > 0 {
-		firstByte := afterNew[0]
-		if firstByte >= 32 && firstByte <= 127 {
-			// Legacy format - first byte is printable ASCII, entire thing is name
-			name = string(afterNew)
-		} else {
-			// New format - first byte is retention days (0-31 or 128-255)
-			retentionDays = int32(firstByte)
-			if len(afterNew) > 1 {
-				name = string(afterNew[1:])
-			}
-		}
-	}
-
-	// Legacy topic created without double "new" prefix
-	if name == "sflashbitcoinsucks" {
-		name = "newsflashbitcoinsucks"
-	}
-
-	return TopicInfo{
-		ID:            topicID,
-		Name:          name,
-		RetentionDays: retentionDays,
-	}, true
-}
-
-func CreateTopic(ctx context.Context, db *sql.DB, topic TopicID, name string, txid string, confirmed bool, retentionDays int32) error {
-	_, err := db.ExecContext(ctx, `
-		INSERT INTO coin_news_topics (
-			topic,
-			name,
-			txid,
-			confirmed,
-			retention_days
-		) VALUES (?, ?, ?, ?, ?)
-		ON CONFLICT (topic) DO UPDATE SET confirmed = excluded.confirmed OR coin_news_topics.confirmed
-	`, topic.String(), name, txid, confirmed, retentionDays)
-	if err != nil {
-		return fmt.Errorf("create topic: %w", err)
-	}
-
-	// Topic changes alter which rows the ListCoinNews JOIN matches.
-	invalidateCaches(db)
-
-	return nil
-}
 
 type Topic struct {
 	ID            int64
@@ -370,18 +267,10 @@ type CoinNews struct {
 }
 
 func ListTopics(ctx context.Context, db *sql.DB) ([]Topic, error) {
-	// Local/pending topics live in coin_news_topics (written by our own
-	// CreateTopic for instant feedback); chain-indexed topics — including
-	// ones created by other wallets — live in cn_topics. Surface both,
-	// preferring the local row when a topic is in both tables.
 	rows, err := db.QueryContext(ctx, `
-	SELECT id, topic, name, confirmed, COALESCE(txid, ''), COALESCE(retention_days, 7), created_at
-	FROM coin_news_topics
-	UNION ALL
-	SELECT 0, lower(hex(t.topic)), t.name, 1, COALESCE(t.txid, ''), t.retention_days,
-		COALESCE((SELECT MIN(i.block_time) FROM cn_items i WHERE i.txid = t.txid), CURRENT_TIMESTAMP)
-	FROM cn_topics t
-	WHERE lower(hex(t.topic)) NOT IN (SELECT topic FROM coin_news_topics)
+	SELECT 0, lower(hex(topic)), name, 1, COALESCE(txid, ''), retention_days,
+		(SELECT i.block_time FROM cn_items i WHERE i.txid = cn_topics.txid ORDER BY i.block_time ASC LIMIT 1) AS created_at
+	FROM cn_topics
 	ORDER BY created_at ASC
 `)
 	if err != nil {
@@ -393,9 +282,15 @@ func ListTopics(ctx context.Context, db *sql.DB) ([]Topic, error) {
 	for rows.Next() {
 		var topic Topic
 		var rawTopicID string
-		err := rows.Scan(&topic.ID, &rawTopicID, &topic.Name, &topic.Confirmed, &topic.Txid, &topic.RetentionDays, &topic.CreatedAt)
+		var createdAt sql.NullTime
+		err := rows.Scan(&topic.ID, &rawTopicID, &topic.Name, &topic.Confirmed, &topic.Txid, &topic.RetentionDays, &createdAt)
 		if err != nil {
 			return nil, fmt.Errorf("list topics: scan: %w", err)
+		}
+		if createdAt.Valid {
+			topic.CreatedAt = createdAt.Time
+		} else {
+			topic.CreatedAt = time.Now()
 		}
 
 		topicID, err := ValidNewsTopicID(rawTopicID)
@@ -417,39 +312,12 @@ func ListTopics(ctx context.Context, db *sql.DB) ([]Topic, error) {
 func TopicExists(ctx context.Context, db *sql.DB, topic TopicID) (bool, error) {
 	var exists bool
 	err := db.QueryRowContext(ctx, `
-		SELECT EXISTS(
-			SELECT 1 FROM coin_news_topics WHERE topic = ?
-			UNION ALL
-			SELECT 1 FROM cn_topics WHERE lower(hex(topic)) = ?
-		)
-	`, topic.String(), topic.String()).Scan(&exists)
+		SELECT EXISTS(SELECT 1 FROM cn_topics WHERE lower(hex(topic)) = ?)
+	`, topic.String()).Scan(&exists)
 	if err != nil {
 		return false, fmt.Errorf("topic exists: %w", err)
 	}
 	return exists, nil
-}
-
-// Format for OP_RETURN message: <topic (4 bytes)><headline (64 bytes)><message (arbitrary length)>
-func EncodeNewsMessage(topic TopicID, headline string, content string) []byte {
-	paddedHeadline := headline + string(make([]byte, 64-len(headline)))
-	return slices.Concat(
-		topic[:], []byte(paddedHeadline), []byte(content),
-	)
-}
-
-// Format for OP_RETURN message: <topic>new<retention_days_1byte><title>
-// retention_days is stored as a single byte (0-255, where 0 = infinite)
-func EncodeTopicCreationMessage(topic TopicID, name string, retentionDays int32) []byte {
-	// Clamp retention days to 0-255
-	if retentionDays < 0 {
-		retentionDays = 0
-	}
-	if retentionDays > 255 {
-		retentionDays = 255
-	}
-	return slices.Concat(
-		topic[:], newTopicTag, []byte{byte(retentionDays)}, []byte(name),
-	)
 }
 
 // EncodeNewsMessageNewFormat produces the current CoinNews Story wire
@@ -518,8 +386,6 @@ func (t TopicID) String() string {
 }
 
 // ListCoinNews returns articles from the canonical CoinNews tables.
-// Legacy wire-format payloads are translated into cn_* by the block
-// parser before they reach this reader.
 func ListCoinNews(ctx context.Context, db *sql.DB) ([]CoinNews, error) {
 	coinNewsCacheMu.RLock()
 	cached, hit := coinNewsCacheEntries[db]
@@ -550,7 +416,7 @@ func listCoinNewsNewFormat(ctx context.Context, db *sql.DB) ([]CoinNews, error) 
 		SELECT
 			i.rowid,
 			s.topic,
-			COALESCE(ct.name, lt.name, ''),
+			COALESCE(ct.name, ''),
 			s.headline,
 			COALESCE(s.body, ''),
 			COALESCE(o.fee_sats, 0),
@@ -565,7 +431,6 @@ func listCoinNewsNewFormat(ctx context.Context, db *sql.DB) ([]CoinNews, error) 
 		FROM cn_stories s
 		JOIN cn_items i ON i.item_id = s.item_id
 		LEFT JOIN cn_topics ct ON ct.topic = s.topic
-		LEFT JOIN coin_news_topics lt ON lt.topic = lower(hex(s.topic))
 		LEFT JOIN op_returns o ON o.txid = i.txid AND o.vout = i.vout
 		LEFT JOIN (
 			SELECT target_id,
@@ -580,9 +445,6 @@ func listCoinNewsNewFormat(ctx context.Context, db *sql.DB) ([]CoinNews, error) 
 				WHEN ct.topic IS NOT NULL THEN
 					ct.retention_days = 0
 					OR i.block_time >= datetime('now', '-' || ct.retention_days || ' days')
-				WHEN lt.topic IS NOT NULL THEN
-					lt.retention_days = 0
-					OR i.block_time >= datetime('now', '-' || lt.retention_days || ' days')
 				ELSE 1
 			END
 	`)
