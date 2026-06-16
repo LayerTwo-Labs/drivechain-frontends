@@ -68,6 +68,48 @@ func EsploraURLForNetwork(n Network) string {
 	}
 }
 
+// RemoteOrchestratorURLForNetwork returns the URL of a hosted, read-only
+// orchestrator for a given network. Electrum wallets run no local Core or
+// enforcer, so they read chain/BIP300 state from this remote instance while
+// signing and broadcasting locally. Mirrors node.<network>.drivechain.info.
+// Networks without a hosted instance return "".
+func RemoteOrchestratorURLForNetwork(n Network) string {
+	switch n {
+	case NetworkSignet:
+		return "https://orchestrator.signet.drivechain.info"
+	case NetworkForknet:
+		return "https://orchestrator.forknet.drivechain.info"
+	default:
+		return ""
+	}
+}
+
+// RemoteBitwindowURLForNetwork returns the URL of a hosted, read-only
+// bitwindowd for a given network. Companion to
+// RemoteOrchestratorURLForNetwork for the bitwindow-side read RPCs (news,
+// explorer, address book, stats). Networks without a hosted instance return "".
+func RemoteBitwindowURLForNetwork(n Network) string {
+	switch n {
+	case NetworkSignet:
+		return "https://bitwindow.signet.drivechain.info"
+	case NetworkForknet:
+		return "https://bitwindow.forknet.drivechain.info"
+	default:
+		return ""
+	}
+}
+
+// ElectrumChainURLForNetwork returns the chain-data API endpoint an electrum
+// wallet reads from. When a hosted read-only orchestrator exists for the
+// network the wallet routes through it; otherwise it falls back to the public
+// Esplora API. Returns "" when neither is available.
+func ElectrumChainURLForNetwork(n Network) string {
+	if remote := RemoteOrchestratorURLForNetwork(n); remote != "" {
+		return strings.TrimRight(remote, "/") + "/api"
+	}
+	return EsploraURLForNetwork(n)
+}
+
 // CoreSection returns the Bitcoin Core config section name for this network.
 func (n Network) CoreSection() string {
 	return CoreSectionForNetwork(n)
