@@ -109,6 +109,45 @@ func seedVote(
 	}))
 }
 
+// TestListTopics_SurfacesChainIndexedTopics reproduces the bug where a
+// topic created by another wallet (indexed into cn_topics, never written
+// to coin_news_topics) didn't appear in bitwindow. ListTopics and
+// TopicExists must surface chain-indexed topics too.
+func TestListTopics_SurfacesChainIndexedTopics(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	db := database.Test(t)
+
+	external := mustTopicID(t, "beefbeef")
+	var ct codec.Topic
+	copy(ct[:], external[:])
+	require.NoError(t, cnstore.Index(ctx, db, cnstore.IndexEnv{
+		Pos: cnstore.BlockPos{
+			BlockHeight: 100, TxIndex: 0, VoutIndex: 0,
+			BlockTime: time.Now(), TxID: fmt.Sprintf("%064x", 100),
+		},
+		TypeTag: codec.TypeTopicCreation,
+		Msg:     &codec.TopicCreation{Topic: ct, RetentionDays: 7, Name: "Foreign Topic"},
+	}))
+
+	topics, err := ListTopics(ctx, db)
+	require.NoError(t, err)
+	var found *Topic
+	for i := range topics {
+		if topics[i].Topic == external {
+			found = &topics[i]
+			break
+		}
+	}
+	require.NotNil(t, found, "chain-indexed topic must appear in ListTopics")
+	assert.Equal(t, "Foreign Topic", found.Name)
+	assert.True(t, found.Confirmed)
+
+	exists, err := TopicExists(ctx, db, external)
+	require.NoError(t, err)
+	assert.True(t, exists, "chain-indexed topic must satisfy TopicExists so stories can target it")
+}
+
 // TestListCoinNews_SurfacesStoryTLVs proves a Story's url/subtype/nsfw
 // TLVs (spec §10) round-trip through ListCoinNews.
 func TestListCoinNews_SurfacesStoryTLVs(t *testing.T) {
