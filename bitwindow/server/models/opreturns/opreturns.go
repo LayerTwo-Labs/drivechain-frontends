@@ -357,6 +357,8 @@ type CoinNews struct {
 	Headline  string
 	Content   string
 	Fee       btcutil.Amount
+	ItemID    string // hex-encoded 12-byte ItemID; vote target
+	Upvotes   int64
 
 	CreatedAt *time.Time
 }
@@ -508,12 +510,18 @@ func listCoinNewsNewFormat(ctx context.Context, db *sql.DB) ([]CoinNews, error) 
 			s.headline,
 			COALESCE(s.body, ''),
 			COALESCE(o.fee_sats, 0),
-			i.block_time
+			i.block_time,
+			lower(hex(s.item_id)),
+			COALESCE(v.upvotes, 0)
 		FROM cn_stories s
 		JOIN cn_items i ON i.item_id = s.item_id
 		LEFT JOIN cn_topics ct ON ct.topic = s.topic
 		LEFT JOIN coin_news_topics lt ON lt.topic = lower(hex(s.topic))
 		LEFT JOIN op_returns o ON o.txid = i.txid AND o.vout = i.vout
+		LEFT JOIN (
+			SELECT target_id, COUNT(*) AS upvotes
+			FROM cn_votes WHERE kind = 4 GROUP BY target_id
+		) v ON v.target_id = s.item_id
 		WHERE
 			trim(s.headline) != ''
 			AND
@@ -542,8 +550,10 @@ func listCoinNewsNewFormat(ctx context.Context, db *sql.DB) ([]CoinNews, error) 
 			content   string
 			fee       btcutil.Amount
 			blockTime time.Time
+			itemID    string
+			upvotes   int64
 		)
-		if err := rows.Scan(&id, &rawTopic, &topicName, &headline, &content, &fee, &blockTime); err != nil {
+		if err := rows.Scan(&id, &rawTopic, &topicName, &headline, &content, &fee, &blockTime, &itemID, &upvotes); err != nil {
 			return nil, fmt.Errorf("list coin news: scan new-format story: %w", err)
 		}
 		if len(rawTopic) != TopicIdLength {
@@ -561,6 +571,8 @@ func listCoinNewsNewFormat(ctx context.Context, db *sql.DB) ([]CoinNews, error) 
 			Headline:  headline,
 			Content:   content,
 			Fee:       fee,
+			ItemID:    itemID,
+			Upvotes:   upvotes,
 			CreatedAt: &blockTime,
 		})
 	}

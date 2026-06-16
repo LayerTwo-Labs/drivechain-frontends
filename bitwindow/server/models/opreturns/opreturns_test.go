@@ -10,6 +10,7 @@ package opreturns
 import (
 	"context"
 	"database/sql"
+	"encoding/hex"
 	"fmt"
 	"testing"
 	"time"
@@ -83,6 +84,55 @@ func seedCurrentNews(
 		TypeTag: codec.TypeStory,
 		Msg:     story,
 	}))
+}
+
+func seedVote(
+	t *testing.T, ctx context.Context, db *sql.DB,
+	target codec.ItemID, kind codec.TypeTag, authorSeed byte, height uint32,
+) {
+	t.Helper()
+	var xpk codec.XOnlyPubKey
+	for i := range xpk {
+		xpk[i] = authorSeed
+	}
+	require.NoError(t, cnstore.Index(ctx, db, cnstore.IndexEnv{
+		Pos: cnstore.BlockPos{
+			BlockHeight: height,
+			TxIndex:     0,
+			VoutIndex:   0,
+			BlockTime:   time.Now(),
+			TxID:        fmt.Sprintf("%064x", height),
+		},
+		TypeTag: kind,
+		Msg:     &codec.Vote{Kind: kind, Target: target, AuthorXPK: xpk},
+	}))
+}
+
+// TestListCoinNews_CountsUpvotes proves upvotes (kind=4) are tallied per
+// story while downvotes are excluded, and the story's ItemID round-trips
+// to the hex column the UI votes against.
+func TestListCoinNews_CountsUpvotes(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	topic := mustTopicID(t, "a1a1a1a1")
+	db := database.Test(t)
+	seedCurrentTopic(t, ctx, db, topic, "Topic", 0, 99)
+	seedCurrentNews(t, ctx, db, topic, "Headline", "body", "story1", 0, 100, time.Now())
+
+	var itemID []byte
+	require.NoError(t, db.QueryRowContext(ctx, `SELECT item_id FROM cn_stories`).Scan(&itemID))
+	var target codec.ItemID
+	copy(target[:], itemID)
+
+	seedVote(t, ctx, db, target, codec.TypeUpvote, 0xaa, 200)
+	seedVote(t, ctx, db, target, codec.TypeUpvote, 0xbb, 201)
+	seedVote(t, ctx, db, target, codec.TypeDownvote, 0xcc, 202) // must not count
+
+	news, err := ListCoinNews(ctx, db)
+	require.NoError(t, err)
+	require.Len(t, news, 1)
+	assert.Equal(t, int64(2), news[0].Upvotes)
+	assert.Equal(t, hex.EncodeToString(itemID), news[0].ItemID)
 }
 
 func canonicalTxID(label string) string {
