@@ -49,10 +49,12 @@ import (
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/utils/v1/utilsv1connect"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/wallet/v1/walletv1connect"
 
+	orchconfig "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/datasource"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/enforcerproxy"
 	cryptorpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/crypto/v1/cryptov1connect"
 	validatorrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1/mainchainv1connect"
+	orchpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1"
 	orchrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1/walletmanagerv1connect"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/localauth"
 	corepb "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha"
@@ -219,11 +221,15 @@ func (s *Server) buildRuntime(ctx context.Context, conf config.Config) (*Runtime
 	stdOpts := []connect.HandlerOption{connect.WithInterceptors(logInterceptor(), localauth.Interceptor(s.svcs.BitwindowDir))}
 
 	// Read-only data source: every handler reads chain/drivechain data through
-	// this interface instead of the raw clients. Backed by the local Core +
-	// enforcer clients. The getters are the seam: a future change can return a
-	// remote-dialed client (e.g. when the active wallet is electrum) without
-	// touching any handler. No remote implementation exists yet.
-	dataSource := datasource.NewLocal(s.Bitcoind.Get, s.Enforcer.Get, s.Wallet.Get)
+	// this interface instead of the raw clients. Local-backed for Core/enforcer
+	// wallets; for an electrum wallet (no local Core or enforcer) it dials a
+	// hosted, read-only orchestrator instead, so every read handler works
+	// unchanged. Rebuilt on Recycle, so a wallet-type switch re-selects.
+	var dataSource datasource.DataSource = datasource.NewLocal(s.Bitcoind.Get, s.Enforcer.Get, s.Wallet.Get)
+	if remote := remoteDataSourceForElectrum(ctx, s.svcs, conf.BitcoinCoreNetwork); remote != nil {
+		dataSource = remote
+		log.Info().Msg("electrum wallet active: routing bitwindow reads through remote orchestrator")
+	}
 
 	// bitwindowd — UpdateNetwork captured here calls back into Server.Recycle,
 	// which builds a fresh Runtime. Method value is bound to s, late-binds
@@ -418,6 +424,36 @@ func (rt *Runtime) runZMQ(ctx context.Context, log *zerolog.Logger) {
 	if err := zmqEngine.Run(ctx); err != nil && ctx.Err() == nil {
 		log.Error().Err(err).Msg("ZMQ engine exited with error")
 	}
+}
+
+// remoteDataSourceForElectrum returns a DataSource dialing the hosted,
+// read-only orchestrator for network when the active wallet is electrum (which
+// runs no local Core or enforcer), or nil to keep the local source. A missing
+// hosted instance or any lookup error falls back to local.
+func remoteDataSourceForElectrum(ctx context.Context, svcs Services, network config.Network) datasource.DataSource {
+	remoteURL := orchconfig.RemoteOrchestratorURLForNetwork(orchconfig.NetworkFromString(string(network)))
+	if remoteURL == "" || svcs.OrchestratorAddr == "" {
+		return nil
+	}
+	c := orchrpc.NewWalletManagerServiceClient(
+		http.DefaultClient,
+		svcs.OrchestratorAddr,
+		connect.WithInterceptors(localauth.Interceptor(svcs.BitwindowDir)),
+	)
+	resp, err := c.ListWallets(ctx, connect.NewRequest(&orchpb.ListWalletsRequest{}))
+	if err != nil {
+		return nil
+	}
+	for _, w := range resp.Msg.Wallets {
+		if w.Id != resp.Msg.ActiveWalletId {
+			continue
+		}
+		if w.WalletType == orchpb.WalletType_WALLET_TYPE_ELECTRUM {
+			return datasource.NewRemote(remoteURL)
+		}
+		return nil
+	}
+	return nil
 }
 
 func dialZmqEngine(ctx context.Context, conf config.Config) (*engines.ZMQ, error) {
