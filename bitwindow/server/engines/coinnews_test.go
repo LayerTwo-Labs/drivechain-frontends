@@ -175,6 +175,82 @@ func TestCoinNewsIndexer_DropsBadSignature(t *testing.T) {
 	assert.Zero(t, rowCount, "no cn_items row for a dropped Vote")
 }
 
+// TestCoinNewsIndexer_DropsUnresolvableVote: a validly-signed Vote
+// against a target that was never indexed MUST be dropped (spec §4.1,
+// §8) — no cn_votes row, no cn_items row.
+func TestCoinNewsIndexer_DropsUnresolvableVote(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	p := newCoinNewsParser(t)
+
+	var target codec.ItemID
+	_, _ = rand.Read(target[:]) // never indexed
+
+	priv, err := btcec.NewPrivateKey()
+	require.NoError(t, err)
+	digest := codec.VoteSigHash(codec.TypeUpvote, target)
+	sig, err := schnorr.Sign(priv, digest[:])
+	require.NoError(t, err)
+
+	var v codec.Vote
+	v.Kind = codec.TypeUpvote
+	v.Target = target
+	copy(v.AuthorXPK[:], schnorr.SerializePubKey(priv.PubKey()))
+	copy(v.Sig[:], sig.Serialize())
+	voteBytes, err := codec.EncodeVote(v)
+	require.NoError(t, err)
+
+	block := blockOf(t, [][]byte{voteBytes}, time.Now().UTC())
+	require.NoError(t, p.indexCoinNewsBlocks(ctx, []lo.Tuple2[uint32, *wire.MsgBlock]{
+		lo.T2(uint32(910_000), block),
+	}))
+
+	var rowCount int
+	require.NoError(t, p.db.QueryRowContext(ctx, `SELECT COUNT(*) FROM cn_votes`).Scan(&rowCount))
+	assert.Zero(t, rowCount, "vote against unresolvable target MUST NOT persist")
+	require.NoError(t, p.db.QueryRowContext(ctx, `SELECT COUNT(*) FROM cn_items`).Scan(&rowCount))
+	assert.Zero(t, rowCount, "no cn_items row for a dropped vote")
+}
+
+// TestCoinNewsIndexer_DropsUnresolvableComment: a validly-signed Comment
+// whose parent_id was never indexed MUST be dropped (spec §4.1, §7).
+func TestCoinNewsIndexer_DropsUnresolvableComment(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	p := newCoinNewsParser(t)
+
+	var parent codec.ItemID
+	_, _ = rand.Read(parent[:]) // never indexed
+
+	priv, err := btcec.NewPrivateKey()
+	require.NoError(t, err)
+	tlvs := []codec.TLV{{Tag: codec.TLVBody, Value: []byte("reply")}}
+	blob, err := codec.SerialiseTLVs(tlvs)
+	require.NoError(t, err)
+	digest := codec.CommentSigHash(parent, blob)
+	sig, err := schnorr.Sign(priv, digest[:])
+	require.NoError(t, err)
+
+	var c codec.Comment
+	c.Parent = parent
+	copy(c.AuthorXPK[:], schnorr.SerializePubKey(priv.PubKey()))
+	copy(c.Sig[:], sig.Serialize())
+	c.TLVs = tlvs
+	commentBytes, err := codec.EncodeComment(c)
+	require.NoError(t, err)
+
+	block := blockOf(t, [][]byte{commentBytes}, time.Now().UTC())
+	require.NoError(t, p.indexCoinNewsBlocks(ctx, []lo.Tuple2[uint32, *wire.MsgBlock]{
+		lo.T2(uint32(910_001), block),
+	}))
+
+	var rowCount int
+	require.NoError(t, p.db.QueryRowContext(ctx, `SELECT COUNT(*) FROM cn_comments`).Scan(&rowCount))
+	assert.Zero(t, rowCount, "comment with unresolvable parent MUST NOT persist")
+	require.NoError(t, p.db.QueryRowContext(ctx, `SELECT COUNT(*) FROM cn_items`).Scan(&rowCount))
+	assert.Zero(t, rowCount, "no cn_items row for a dropped comment")
+}
+
 // TestCoinNewsIndexer_SkipsNonCoinNewsTraffic: random OP_RETURN bytes
 // don't pollute cn_*; the legacy News Message path keeps working.
 func TestCoinNewsIndexer_SkipsNonCoinNewsTraffic(t *testing.T) {

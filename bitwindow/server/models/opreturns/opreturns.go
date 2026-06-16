@@ -13,6 +13,7 @@ import (
 	"time"
 	"unicode"
 
+	cnstore "github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/coinnews"
 	codec "github.com/LayerTwo-Labs/sidesail/coinnews/codec"
 	sq "github.com/Masterminds/squirrel"
 	"github.com/btcsuite/btcd/btcutil"
@@ -512,7 +513,8 @@ func listCoinNewsNewFormat(ctx context.Context, db *sql.DB) ([]CoinNews, error) 
 			COALESCE(o.fee_sats, 0),
 			i.block_time,
 			lower(hex(s.item_id)),
-			COALESCE(v.upvotes, 0)
+			COALESCE(v.upvotes, 0),
+			COALESCE(s.raw_tlv, x'')
 		FROM cn_stories s
 		JOIN cn_items i ON i.item_id = s.item_id
 		LEFT JOIN cn_topics ct ON ct.topic = s.topic
@@ -540,6 +542,11 @@ func listCoinNewsNewFormat(ctx context.Context, db *sql.DB) ([]CoinNews, error) 
 	}
 	defer rows.Close()
 
+	hasContinuations, err := anyContinuations(ctx, db)
+	if err != nil {
+		return nil, err
+	}
+
 	var out []CoinNews
 	for rows.Next() {
 		var (
@@ -552,8 +559,9 @@ func listCoinNewsNewFormat(ctx context.Context, db *sql.DB) ([]CoinNews, error) 
 			blockTime time.Time
 			itemID    string
 			upvotes   int64
+			rawTLV    []byte
 		)
-		if err := rows.Scan(&id, &rawTopic, &topicName, &headline, &content, &fee, &blockTime, &itemID, &upvotes); err != nil {
+		if err := rows.Scan(&id, &rawTopic, &topicName, &headline, &content, &fee, &blockTime, &itemID, &upvotes, &rawTLV); err != nil {
 			return nil, fmt.Errorf("list coin news: scan new-format story: %w", err)
 		}
 		if len(rawTopic) != TopicIdLength {
@@ -561,6 +569,13 @@ func listCoinNewsNewFormat(ctx context.Context, db *sql.DB) ([]CoinNews, error) 
 		}
 		if strings.TrimSpace(headline) == "" {
 			continue
+		}
+		// §9: splice in any Continuation chunks to recover a long body
+		// that didn't fit in the head's 80-byte OP_RETURN.
+		if hasContinuations {
+			if body, ok := reassembledBody(ctx, db, itemID, rawTLV); ok {
+				content = body
+			}
 		}
 		var topic TopicID
 		copy(topic[:], rawTopic)
@@ -580,6 +595,35 @@ func listCoinNewsNewFormat(ctx context.Context, db *sql.DB) ([]CoinNews, error) 
 		return nil, fmt.Errorf("list coin news: iterate new-format stories: %w", err)
 	}
 	return out, nil
+}
+
+func anyContinuations(ctx context.Context, db *sql.DB) (bool, error) {
+	var exists bool
+	if err := db.QueryRowContext(ctx, `SELECT EXISTS(SELECT 1 FROM cn_continuations)`).Scan(&exists); err != nil {
+		return false, fmt.Errorf("list coin news: check continuations: %w", err)
+	}
+	return exists, nil
+}
+
+// reassembledBody returns the spec §9 reassembled body for a story when
+// continuations extend it, and ok=false when there's nothing to splice
+// (no continuations, or no body TLV in the reassembled section).
+func reassembledBody(ctx context.Context, db *sql.DB, itemIDHex string, rawTLV []byte) (string, bool) {
+	raw, err := hex.DecodeString(itemIDHex)
+	if err != nil || len(raw) != codec.ItemIDLen {
+		return "", false
+	}
+	var headID codec.ItemID
+	copy(headID[:], raw)
+
+	tlvs, err := cnstore.ReassembleTLVs(ctx, db, headID, rawTLV)
+	if err != nil {
+		return "", false
+	}
+	if t := codec.FindFirst(tlvs, codec.TLVBody); t != nil {
+		return string(t.Value), true
+	}
+	return "", false
 }
 
 func sortCoinNewsByCreatedAtDesc(news []CoinNews) {
