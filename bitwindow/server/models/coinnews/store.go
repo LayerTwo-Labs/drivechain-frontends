@@ -9,11 +9,107 @@ import (
 	"database/sql"
 	"encoding/hex"
 	"fmt"
+	"math"
 	"slices"
 	"time"
 
 	codec "github.com/LayerTwo-Labs/sidesail/coinnews/codec"
 )
+
+// HNScore is the spec §13 Hacker-News rank:
+//
+//	score = (upvotes − downvotes − 1) / (age_hours + 2)^1.8
+//
+// age_hours = max(0, (now − block_time)/3600). Making the formula part
+// of the spec is what lets independent indexers agree on ordering.
+func HNScore(upvotes, downvotes int64, blockTime time.Time) float64 {
+	ageHours := time.Since(blockTime).Hours()
+	if ageHours < 0 {
+		ageHours = 0
+	}
+	return float64(upvotes-downvotes-1) / math.Pow(ageHours+2, 1.8)
+}
+
+// Comment is one node in a reply thread (spec §7), with its on-chain
+// vote tally and §13 score.
+type Comment struct {
+	ItemID     string // hex 12-byte ItemID
+	ParentID   string // hex 12-byte parent ItemID
+	Author     string // hex 32-byte x-only pubkey
+	Body       string
+	URL        string
+	Lang       string
+	ReplyQuote string
+	Upvotes    int64
+	Downvotes  int64
+	Score      float64
+	CreatedAt  time.Time
+}
+
+// ListThread returns every Comment transitively rooted at `root` (a
+// story or comment ItemID), ranked by descending §13 score. Callers
+// build the reply tree from each Comment's ParentID.
+func ListThread(ctx context.Context, db *sql.DB, root codec.ItemID) ([]Comment, error) {
+	rows, err := db.QueryContext(ctx, `
+		WITH RECURSIVE thread(item_id) AS (
+			SELECT item_id FROM cn_comments WHERE parent_id = ?
+			UNION
+			SELECT c.item_id FROM cn_comments c JOIN thread t ON c.parent_id = t.item_id
+		)
+		SELECT
+			lower(hex(cm.item_id)),
+			lower(hex(cm.parent_id)),
+			lower(hex(cm.author_xpk)),
+			COALESCE(cm.body, ''),
+			COALESCE(cm.url, ''),
+			COALESCE(cm.lang, ''),
+			COALESCE(cm.reply_quote, ''),
+			i.block_time,
+			COALESCE(v.upvotes, 0),
+			COALESCE(v.downvotes, 0)
+		FROM thread t
+		JOIN cn_comments cm ON cm.item_id = t.item_id
+		JOIN cn_items i ON i.item_id = cm.item_id
+		LEFT JOIN (
+			SELECT target_id,
+				SUM(CASE WHEN kind = 4 THEN 1 ELSE 0 END) AS upvotes,
+				SUM(CASE WHEN kind = 5 THEN 1 ELSE 0 END) AS downvotes
+			FROM cn_votes GROUP BY target_id
+		) v ON v.target_id = cm.item_id
+	`, root[:])
+	if err != nil {
+		return nil, fmt.Errorf("coinnews: query thread: %w", err)
+	}
+	defer rows.Close()
+
+	var out []Comment
+	for rows.Next() {
+		var c Comment
+		if err := rows.Scan(
+			&c.ItemID, &c.ParentID, &c.Author,
+			&c.Body, &c.URL, &c.Lang, &c.ReplyQuote,
+			&c.CreatedAt, &c.Upvotes, &c.Downvotes,
+		); err != nil {
+			return nil, fmt.Errorf("coinnews: scan comment: %w", err)
+		}
+		c.Score = HNScore(c.Upvotes, c.Downvotes, c.CreatedAt)
+		out = append(out, c)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("coinnews: iterate thread: %w", err)
+	}
+	slices.SortFunc(out, func(a, b Comment) int {
+		switch {
+		case a.Score > b.Score:
+			return -1
+		case a.Score < b.Score:
+			return 1
+		default:
+			return 0
+		}
+	})
+	return out, nil
+}
 
 // BlockPos locates an Item in canonical scan order (spec §4.2). Always
 // fully populated when an Item is being indexed — making this a value

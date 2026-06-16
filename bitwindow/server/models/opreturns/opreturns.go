@@ -7,7 +7,6 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"math"
 	"slices"
 	"strings"
 	"sync"
@@ -596,7 +595,7 @@ func listCoinNewsNewFormat(ctx context.Context, db *sql.DB) ([]CoinNews, error) 
 			ItemID:    itemID,
 			Upvotes:   upvotes,
 			Downvotes: downvotes,
-			Score:     coinNewsScore(upvotes, downvotes, blockTime),
+			Score:     cnstore.HNScore(upvotes, downvotes, blockTime),
 			CreatedAt: &blockTime,
 		})
 	}
@@ -633,20 +632,6 @@ func reassembledBody(ctx context.Context, db *sql.DB, itemIDHex string, rawTLV [
 		return string(t.Value), true
 	}
 	return "", false
-}
-
-// coinNewsScore is the spec §13 Hacker-News rank:
-//
-//	score = (upvotes − downvotes − 1) / (age_hours + 2)^1.8
-//
-// age_hours = max(0, (now − block_time)/3600). Making the formula part
-// of the spec is what lets independent indexers agree on feed order.
-func coinNewsScore(upvotes, downvotes int64, blockTime time.Time) float64 {
-	ageHours := time.Since(blockTime).Hours()
-	if ageHours < 0 {
-		ageHours = 0
-	}
-	return float64(upvotes-downvotes-1) / math.Pow(ageHours+2, 1.8)
 }
 
 // rankCoinNews orders the feed by descending §13 score, breaking ties

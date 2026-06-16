@@ -199,6 +199,8 @@ class BitwindowRPCLive extends BitwindowRPC {
       'misc.v1.MiscService/BroadcastNews',
       'misc.v1.MiscService/UpvoteNews',
       'misc.v1.MiscService/DownvoteNews',
+      'misc.v1.MiscService/CommentNews',
+      'misc.v1.MiscService/ListComments',
       'misc.v1.MiscService/CreateTopic',
       'misc.v1.MiscService/ListCoinNews',
       'misc.v1.MiscService/ListOPReturn',
@@ -1298,6 +1300,16 @@ abstract class MiscAPI {
     int? feeSatPerVbyte,
     int? feeSats,
   });
+  Future<CommentNewsResponse> commentNews(
+    String parentId,
+    String body, {
+    String? url,
+    String? lang,
+    String? replyQuote,
+    int? feeSatPerVbyte,
+    int? feeSats,
+  });
+  Future<List<Comment>> listComments(String itemId);
   Future<TimestampFileResponse> timestampFile(
     String filename,
     List<int> fileData,
@@ -1396,6 +1408,49 @@ class _MiscAPILive implements MiscAPI {
       return response;
     } catch (e) {
       final error = 'could not downvote news: ${extractConnectException(e)}';
+      throw BitcoindException(error);
+    }
+  }
+
+  @override
+  Future<CommentNewsResponse> commentNews(
+    String parentId,
+    String body, {
+    String? url,
+    String? lang,
+    String? replyQuote,
+    int? feeSatPerVbyte,
+    int? feeSats,
+  }) async {
+    try {
+      final request = CommentNewsRequest()
+        ..parentId = parentId
+        ..body = body;
+      if (url != null) request.url = url;
+      if (lang != null) request.lang = lang;
+      if (replyQuote != null) request.replyQuote = replyQuote;
+
+      if (feeSatPerVbyte != null) {
+        request.feeSatPerVbyte = Int64(feeSatPerVbyte);
+      } else if (feeSats != null) {
+        request.feeSats = Int64(feeSats);
+      }
+
+      final response = await _client.commentNews(request);
+      return response;
+    } catch (e) {
+      final error = 'could not comment on news: ${extractConnectException(e)}';
+      throw BitcoindException(error);
+    }
+  }
+
+  @override
+  Future<List<Comment>> listComments(String itemId) async {
+    try {
+      final response = await _client.listComments(ListCommentsRequest()..itemId = itemId);
+      return response.comments;
+    } catch (e) {
+      final error = 'could not list comments: ${extractConnectException(e)}';
       throw BitcoindException(error);
     }
   }

@@ -1059,6 +1059,483 @@ class ListCoinNewsResponse extends $pb.GeneratedMessage {
   $core.List<CoinNews> get coinNews => $_getList(0);
 }
 
+class CommentNewsRequest extends $pb.GeneratedMessage {
+  factory CommentNewsRequest({
+    $core.String? parentId,
+    $core.String? body,
+    $core.String? url,
+    $core.String? lang,
+    $core.String? replyQuote,
+    $fixnum.Int64? feeSatPerVbyte,
+    $fixnum.Int64? feeSats,
+  }) {
+    final $result = create();
+    if (parentId != null) {
+      $result.parentId = parentId;
+    }
+    if (body != null) {
+      $result.body = body;
+    }
+    if (url != null) {
+      $result.url = url;
+    }
+    if (lang != null) {
+      $result.lang = lang;
+    }
+    if (replyQuote != null) {
+      $result.replyQuote = replyQuote;
+    }
+    if (feeSatPerVbyte != null) {
+      $result.feeSatPerVbyte = feeSatPerVbyte;
+    }
+    if (feeSats != null) {
+      $result.feeSats = feeSats;
+    }
+    return $result;
+  }
+  CommentNewsRequest._() : super();
+  factory CommentNewsRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory CommentNewsRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'CommentNewsRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'misc.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'parentId')
+    ..aOS(2, _omitFieldNames ? '' : 'body')
+    ..aOS(3, _omitFieldNames ? '' : 'url')
+    ..aOS(4, _omitFieldNames ? '' : 'lang')
+    ..aOS(5, _omitFieldNames ? '' : 'replyQuote')
+    ..a<$fixnum.Int64>(6, _omitFieldNames ? '' : 'feeSatPerVbyte', $pb.PbFieldType.OU6, defaultOrMaker: $fixnum.Int64.ZERO)
+    ..a<$fixnum.Int64>(7, _omitFieldNames ? '' : 'feeSats', $pb.PbFieldType.OU6, defaultOrMaker: $fixnum.Int64.ZERO)
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  CommentNewsRequest clone() => CommentNewsRequest()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  CommentNewsRequest copyWith(void Function(CommentNewsRequest) updates) => super.copyWith((message) => updates(message as CommentNewsRequest)) as CommentNewsRequest;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static CommentNewsRequest create() => CommentNewsRequest._();
+  CommentNewsRequest createEmptyInstance() => create();
+  static $pb.PbList<CommentNewsRequest> createRepeated() => $pb.PbList<CommentNewsRequest>();
+  @$core.pragma('dart2js:noInline')
+  static CommentNewsRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<CommentNewsRequest>(create);
+  static CommentNewsRequest? _defaultInstance;
+
+  /// Hex-encoded 12-byte ItemID of the parent (a story or another comment).
+  @$pb.TagNumber(1)
+  $core.String get parentId => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set parentId($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasParentId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearParentId() => clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.String get body => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set body($core.String v) { $_setString(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasBody() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearBody() => clearField(2);
+
+  /// Optional TLVs (spec §10).
+  @$pb.TagNumber(3)
+  $core.String get url => $_getSZ(2);
+  @$pb.TagNumber(3)
+  set url($core.String v) { $_setString(2, v); }
+  @$pb.TagNumber(3)
+  $core.bool hasUrl() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearUrl() => clearField(3);
+
+  @$pb.TagNumber(4)
+  $core.String get lang => $_getSZ(3);
+  @$pb.TagNumber(4)
+  set lang($core.String v) { $_setString(3, v); }
+  @$pb.TagNumber(4)
+  $core.bool hasLang() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearLang() => clearField(4);
+
+  @$pb.TagNumber(5)
+  $core.String get replyQuote => $_getSZ(4);
+  @$pb.TagNumber(5)
+  set replyQuote($core.String v) { $_setString(4, v); }
+  @$pb.TagNumber(5)
+  $core.bool hasReplyQuote() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearReplyQuote() => clearField(5);
+
+  /// Fee options - exactly one should be set (0 = use Core's estimate)
+  @$pb.TagNumber(6)
+  $fixnum.Int64 get feeSatPerVbyte => $_getI64(5);
+  @$pb.TagNumber(6)
+  set feeSatPerVbyte($fixnum.Int64 v) { $_setInt64(5, v); }
+  @$pb.TagNumber(6)
+  $core.bool hasFeeSatPerVbyte() => $_has(5);
+  @$pb.TagNumber(6)
+  void clearFeeSatPerVbyte() => clearField(6);
+
+  @$pb.TagNumber(7)
+  $fixnum.Int64 get feeSats => $_getI64(6);
+  @$pb.TagNumber(7)
+  set feeSats($fixnum.Int64 v) { $_setInt64(6, v); }
+  @$pb.TagNumber(7)
+  $core.bool hasFeeSats() => $_has(6);
+  @$pb.TagNumber(7)
+  void clearFeeSats() => clearField(7);
+}
+
+class CommentNewsResponse extends $pb.GeneratedMessage {
+  factory CommentNewsResponse({
+    $core.String? txid,
+  }) {
+    final $result = create();
+    if (txid != null) {
+      $result.txid = txid;
+    }
+    return $result;
+  }
+  CommentNewsResponse._() : super();
+  factory CommentNewsResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory CommentNewsResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'CommentNewsResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'misc.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'txid')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  CommentNewsResponse clone() => CommentNewsResponse()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  CommentNewsResponse copyWith(void Function(CommentNewsResponse) updates) => super.copyWith((message) => updates(message as CommentNewsResponse)) as CommentNewsResponse;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static CommentNewsResponse create() => CommentNewsResponse._();
+  CommentNewsResponse createEmptyInstance() => create();
+  static $pb.PbList<CommentNewsResponse> createRepeated() => $pb.PbList<CommentNewsResponse>();
+  @$core.pragma('dart2js:noInline')
+  static CommentNewsResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<CommentNewsResponse>(create);
+  static CommentNewsResponse? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get txid => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set txid($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasTxid() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearTxid() => clearField(1);
+}
+
+class ListCommentsRequest extends $pb.GeneratedMessage {
+  factory ListCommentsRequest({
+    $core.String? itemId,
+  }) {
+    final $result = create();
+    if (itemId != null) {
+      $result.itemId = itemId;
+    }
+    return $result;
+  }
+  ListCommentsRequest._() : super();
+  factory ListCommentsRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory ListCommentsRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ListCommentsRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'misc.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'itemId')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  ListCommentsRequest clone() => ListCommentsRequest()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  ListCommentsRequest copyWith(void Function(ListCommentsRequest) updates) => super.copyWith((message) => updates(message as ListCommentsRequest)) as ListCommentsRequest;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ListCommentsRequest create() => ListCommentsRequest._();
+  ListCommentsRequest createEmptyInstance() => create();
+  static $pb.PbList<ListCommentsRequest> createRepeated() => $pb.PbList<ListCommentsRequest>();
+  @$core.pragma('dart2js:noInline')
+  static ListCommentsRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<ListCommentsRequest>(create);
+  static ListCommentsRequest? _defaultInstance;
+
+  /// Hex-encoded 12-byte ItemID whose reply thread to return.
+  @$pb.TagNumber(1)
+  $core.String get itemId => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set itemId($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasItemId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearItemId() => clearField(1);
+}
+
+class Comment extends $pb.GeneratedMessage {
+  factory Comment({
+    $core.String? itemId,
+    $core.String? parentId,
+    $core.String? author,
+    $core.String? body,
+    $core.String? url,
+    $core.String? lang,
+    $core.String? replyQuote,
+    $0.Timestamp? createTime,
+    $fixnum.Int64? upvotes,
+    $fixnum.Int64? downvotes,
+    $core.double? score,
+  }) {
+    final $result = create();
+    if (itemId != null) {
+      $result.itemId = itemId;
+    }
+    if (parentId != null) {
+      $result.parentId = parentId;
+    }
+    if (author != null) {
+      $result.author = author;
+    }
+    if (body != null) {
+      $result.body = body;
+    }
+    if (url != null) {
+      $result.url = url;
+    }
+    if (lang != null) {
+      $result.lang = lang;
+    }
+    if (replyQuote != null) {
+      $result.replyQuote = replyQuote;
+    }
+    if (createTime != null) {
+      $result.createTime = createTime;
+    }
+    if (upvotes != null) {
+      $result.upvotes = upvotes;
+    }
+    if (downvotes != null) {
+      $result.downvotes = downvotes;
+    }
+    if (score != null) {
+      $result.score = score;
+    }
+    return $result;
+  }
+  Comment._() : super();
+  factory Comment.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory Comment.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'Comment', package: const $pb.PackageName(_omitMessageNames ? '' : 'misc.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'itemId')
+    ..aOS(2, _omitFieldNames ? '' : 'parentId')
+    ..aOS(3, _omitFieldNames ? '' : 'author')
+    ..aOS(4, _omitFieldNames ? '' : 'body')
+    ..aOS(5, _omitFieldNames ? '' : 'url')
+    ..aOS(6, _omitFieldNames ? '' : 'lang')
+    ..aOS(7, _omitFieldNames ? '' : 'replyQuote')
+    ..aOM<$0.Timestamp>(8, _omitFieldNames ? '' : 'createTime', subBuilder: $0.Timestamp.create)
+    ..aInt64(9, _omitFieldNames ? '' : 'upvotes')
+    ..aInt64(10, _omitFieldNames ? '' : 'downvotes')
+    ..a<$core.double>(11, _omitFieldNames ? '' : 'score', $pb.PbFieldType.OD)
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  Comment clone() => Comment()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  Comment copyWith(void Function(Comment) updates) => super.copyWith((message) => updates(message as Comment)) as Comment;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static Comment create() => Comment._();
+  Comment createEmptyInstance() => create();
+  static $pb.PbList<Comment> createRepeated() => $pb.PbList<Comment>();
+  @$core.pragma('dart2js:noInline')
+  static Comment getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<Comment>(create);
+  static Comment? _defaultInstance;
+
+  /// Hex-encoded 12-byte ItemID of this comment.
+  @$pb.TagNumber(1)
+  $core.String get itemId => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set itemId($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasItemId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearItemId() => clearField(1);
+
+  /// Hex-encoded 12-byte ItemID of the parent Item.
+  @$pb.TagNumber(2)
+  $core.String get parentId => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set parentId($core.String v) { $_setString(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasParentId() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearParentId() => clearField(2);
+
+  /// Hex-encoded 32-byte x-only author pubkey (spec §12).
+  @$pb.TagNumber(3)
+  $core.String get author => $_getSZ(2);
+  @$pb.TagNumber(3)
+  set author($core.String v) { $_setString(2, v); }
+  @$pb.TagNumber(3)
+  $core.bool hasAuthor() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearAuthor() => clearField(3);
+
+  @$pb.TagNumber(4)
+  $core.String get body => $_getSZ(3);
+  @$pb.TagNumber(4)
+  set body($core.String v) { $_setString(3, v); }
+  @$pb.TagNumber(4)
+  $core.bool hasBody() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearBody() => clearField(4);
+
+  @$pb.TagNumber(5)
+  $core.String get url => $_getSZ(4);
+  @$pb.TagNumber(5)
+  set url($core.String v) { $_setString(4, v); }
+  @$pb.TagNumber(5)
+  $core.bool hasUrl() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearUrl() => clearField(5);
+
+  @$pb.TagNumber(6)
+  $core.String get lang => $_getSZ(5);
+  @$pb.TagNumber(6)
+  set lang($core.String v) { $_setString(5, v); }
+  @$pb.TagNumber(6)
+  $core.bool hasLang() => $_has(5);
+  @$pb.TagNumber(6)
+  void clearLang() => clearField(6);
+
+  @$pb.TagNumber(7)
+  $core.String get replyQuote => $_getSZ(6);
+  @$pb.TagNumber(7)
+  set replyQuote($core.String v) { $_setString(6, v); }
+  @$pb.TagNumber(7)
+  $core.bool hasReplyQuote() => $_has(6);
+  @$pb.TagNumber(7)
+  void clearReplyQuote() => clearField(7);
+
+  @$pb.TagNumber(8)
+  $0.Timestamp get createTime => $_getN(7);
+  @$pb.TagNumber(8)
+  set createTime($0.Timestamp v) { setField(8, v); }
+  @$pb.TagNumber(8)
+  $core.bool hasCreateTime() => $_has(7);
+  @$pb.TagNumber(8)
+  void clearCreateTime() => clearField(8);
+  @$pb.TagNumber(8)
+  $0.Timestamp ensureCreateTime() => $_ensure(7);
+
+  @$pb.TagNumber(9)
+  $fixnum.Int64 get upvotes => $_getI64(8);
+  @$pb.TagNumber(9)
+  set upvotes($fixnum.Int64 v) { $_setInt64(8, v); }
+  @$pb.TagNumber(9)
+  $core.bool hasUpvotes() => $_has(8);
+  @$pb.TagNumber(9)
+  void clearUpvotes() => clearField(9);
+
+  @$pb.TagNumber(10)
+  $fixnum.Int64 get downvotes => $_getI64(9);
+  @$pb.TagNumber(10)
+  set downvotes($fixnum.Int64 v) { $_setInt64(9, v); }
+  @$pb.TagNumber(10)
+  $core.bool hasDownvotes() => $_has(9);
+  @$pb.TagNumber(10)
+  void clearDownvotes() => clearField(10);
+
+  @$pb.TagNumber(11)
+  $core.double get score => $_getN(10);
+  @$pb.TagNumber(11)
+  set score($core.double v) { $_setDouble(10, v); }
+  @$pb.TagNumber(11)
+  $core.bool hasScore() => $_has(10);
+  @$pb.TagNumber(11)
+  void clearScore() => clearField(11);
+}
+
+class ListCommentsResponse extends $pb.GeneratedMessage {
+  factory ListCommentsResponse({
+    $core.Iterable<Comment>? comments,
+  }) {
+    final $result = create();
+    if (comments != null) {
+      $result.comments.addAll(comments);
+    }
+    return $result;
+  }
+  ListCommentsResponse._() : super();
+  factory ListCommentsResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory ListCommentsResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ListCommentsResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'misc.v1'), createEmptyInstance: create)
+    ..pc<Comment>(1, _omitFieldNames ? '' : 'comments', $pb.PbFieldType.PM, subBuilder: Comment.create)
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  ListCommentsResponse clone() => ListCommentsResponse()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  ListCommentsResponse copyWith(void Function(ListCommentsResponse) updates) => super.copyWith((message) => updates(message as ListCommentsResponse)) as ListCommentsResponse;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ListCommentsResponse create() => ListCommentsResponse._();
+  ListCommentsResponse createEmptyInstance() => create();
+  static $pb.PbList<ListCommentsResponse> createRepeated() => $pb.PbList<ListCommentsResponse>();
+  @$core.pragma('dart2js:noInline')
+  static ListCommentsResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<ListCommentsResponse>(create);
+  static ListCommentsResponse? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.List<Comment> get comments => $_getList(0);
+}
+
 /// File timestamp messages
 class TimestampFileRequest extends $pb.GeneratedMessage {
   factory TimestampFileRequest({
@@ -1566,6 +2043,12 @@ class MiscServiceApi {
   ;
   $async.Future<ListCoinNewsResponse> listCoinNews($pb.ClientContext? ctx, ListCoinNewsRequest request) =>
     _client.invoke<ListCoinNewsResponse>(ctx, 'MiscService', 'ListCoinNews', request, ListCoinNewsResponse())
+  ;
+  $async.Future<CommentNewsResponse> commentNews($pb.ClientContext? ctx, CommentNewsRequest request) =>
+    _client.invoke<CommentNewsResponse>(ctx, 'MiscService', 'CommentNews', request, CommentNewsResponse())
+  ;
+  $async.Future<ListCommentsResponse> listComments($pb.ClientContext? ctx, ListCommentsRequest request) =>
+    _client.invoke<ListCommentsResponse>(ctx, 'MiscService', 'ListComments', request, ListCommentsResponse())
   ;
   $async.Future<TimestampFileResponse> timestampFile($pb.ClientContext? ctx, TimestampFileRequest request) =>
     _client.invoke<TimestampFileResponse>(ctx, 'MiscService', 'TimestampFile', request, TimestampFileResponse())

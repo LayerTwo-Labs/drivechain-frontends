@@ -425,6 +425,24 @@ class MockMiscAPI implements MiscAPI {
   }
 
   @override
+  Future<CommentNewsResponse> commentNews(
+    String parentId,
+    String body, {
+    String? url,
+    String? lang,
+    String? replyQuote,
+    int? feeSatPerVbyte,
+    int? feeSats,
+  }) async {
+    return CommentNewsResponse();
+  }
+
+  @override
+  Future<List<Comment>> listComments(String itemId) async {
+    return [];
+  }
+
+  @override
   Future<CreateTopicResponse> createTopic(String topic, String name, {int retentionDays = 7}) async {
     return CreateTopicResponse();
   }

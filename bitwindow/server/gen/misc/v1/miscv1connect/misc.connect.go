@@ -52,6 +52,11 @@ const (
 	// MiscServiceListCoinNewsProcedure is the fully-qualified name of the MiscService's ListCoinNews
 	// RPC.
 	MiscServiceListCoinNewsProcedure = "/misc.v1.MiscService/ListCoinNews"
+	// MiscServiceCommentNewsProcedure is the fully-qualified name of the MiscService's CommentNews RPC.
+	MiscServiceCommentNewsProcedure = "/misc.v1.MiscService/CommentNews"
+	// MiscServiceListCommentsProcedure is the fully-qualified name of the MiscService's ListComments
+	// RPC.
+	MiscServiceListCommentsProcedure = "/misc.v1.MiscService/ListComments"
 	// MiscServiceTimestampFileProcedure is the fully-qualified name of the MiscService's TimestampFile
 	// RPC.
 	MiscServiceTimestampFileProcedure = "/misc.v1.MiscService/TimestampFile"
@@ -74,6 +79,10 @@ type MiscServiceClient interface {
 	CreateTopic(context.Context, *connect.Request[v1.CreateTopicRequest]) (*connect.Response[v1.CreateTopicResponse], error)
 	ListTopics(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.ListTopicsResponse], error)
 	ListCoinNews(context.Context, *connect.Request[v1.ListCoinNewsRequest]) (*connect.Response[v1.ListCoinNewsResponse], error)
+	// Broadcasts a signed Comment (CoinNews Comment, 0x03) on an Item.
+	CommentNews(context.Context, *connect.Request[v1.CommentNewsRequest]) (*connect.Response[v1.CommentNewsResponse], error)
+	// Returns the full reply thread rooted at an Item, ranked per §13.
+	ListComments(context.Context, *connect.Request[v1.ListCommentsRequest]) (*connect.Response[v1.ListCommentsResponse], error)
 	// File timestamping
 	TimestampFile(context.Context, *connect.Request[v1.TimestampFileRequest]) (*connect.Response[v1.TimestampFileResponse], error)
 	ListTimestamps(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.ListTimestampsResponse], error)
@@ -133,6 +142,18 @@ func NewMiscServiceClient(httpClient connect.HTTPClient, baseURL string, opts ..
 			connect.WithSchema(miscServiceMethods.ByName("ListCoinNews")),
 			connect.WithClientOptions(opts...),
 		),
+		commentNews: connect.NewClient[v1.CommentNewsRequest, v1.CommentNewsResponse](
+			httpClient,
+			baseURL+MiscServiceCommentNewsProcedure,
+			connect.WithSchema(miscServiceMethods.ByName("CommentNews")),
+			connect.WithClientOptions(opts...),
+		),
+		listComments: connect.NewClient[v1.ListCommentsRequest, v1.ListCommentsResponse](
+			httpClient,
+			baseURL+MiscServiceListCommentsProcedure,
+			connect.WithSchema(miscServiceMethods.ByName("ListComments")),
+			connect.WithClientOptions(opts...),
+		),
 		timestampFile: connect.NewClient[v1.TimestampFileRequest, v1.TimestampFileResponse](
 			httpClient,
 			baseURL+MiscServiceTimestampFileProcedure,
@@ -163,6 +184,8 @@ type miscServiceClient struct {
 	createTopic     *connect.Client[v1.CreateTopicRequest, v1.CreateTopicResponse]
 	listTopics      *connect.Client[emptypb.Empty, v1.ListTopicsResponse]
 	listCoinNews    *connect.Client[v1.ListCoinNewsRequest, v1.ListCoinNewsResponse]
+	commentNews     *connect.Client[v1.CommentNewsRequest, v1.CommentNewsResponse]
+	listComments    *connect.Client[v1.ListCommentsRequest, v1.ListCommentsResponse]
 	timestampFile   *connect.Client[v1.TimestampFileRequest, v1.TimestampFileResponse]
 	listTimestamps  *connect.Client[emptypb.Empty, v1.ListTimestampsResponse]
 	verifyTimestamp *connect.Client[v1.VerifyTimestampRequest, v1.VerifyTimestampResponse]
@@ -203,6 +226,16 @@ func (c *miscServiceClient) ListCoinNews(ctx context.Context, req *connect.Reque
 	return c.listCoinNews.CallUnary(ctx, req)
 }
 
+// CommentNews calls misc.v1.MiscService.CommentNews.
+func (c *miscServiceClient) CommentNews(ctx context.Context, req *connect.Request[v1.CommentNewsRequest]) (*connect.Response[v1.CommentNewsResponse], error) {
+	return c.commentNews.CallUnary(ctx, req)
+}
+
+// ListComments calls misc.v1.MiscService.ListComments.
+func (c *miscServiceClient) ListComments(ctx context.Context, req *connect.Request[v1.ListCommentsRequest]) (*connect.Response[v1.ListCommentsResponse], error) {
+	return c.listComments.CallUnary(ctx, req)
+}
+
 // TimestampFile calls misc.v1.MiscService.TimestampFile.
 func (c *miscServiceClient) TimestampFile(ctx context.Context, req *connect.Request[v1.TimestampFileRequest]) (*connect.Response[v1.TimestampFileResponse], error) {
 	return c.timestampFile.CallUnary(ctx, req)
@@ -229,6 +262,10 @@ type MiscServiceHandler interface {
 	CreateTopic(context.Context, *connect.Request[v1.CreateTopicRequest]) (*connect.Response[v1.CreateTopicResponse], error)
 	ListTopics(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.ListTopicsResponse], error)
 	ListCoinNews(context.Context, *connect.Request[v1.ListCoinNewsRequest]) (*connect.Response[v1.ListCoinNewsResponse], error)
+	// Broadcasts a signed Comment (CoinNews Comment, 0x03) on an Item.
+	CommentNews(context.Context, *connect.Request[v1.CommentNewsRequest]) (*connect.Response[v1.CommentNewsResponse], error)
+	// Returns the full reply thread rooted at an Item, ranked per §13.
+	ListComments(context.Context, *connect.Request[v1.ListCommentsRequest]) (*connect.Response[v1.ListCommentsResponse], error)
 	// File timestamping
 	TimestampFile(context.Context, *connect.Request[v1.TimestampFileRequest]) (*connect.Response[v1.TimestampFileResponse], error)
 	ListTimestamps(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.ListTimestampsResponse], error)
@@ -284,6 +321,18 @@ func NewMiscServiceHandler(svc MiscServiceHandler, opts ...connect.HandlerOption
 		connect.WithSchema(miscServiceMethods.ByName("ListCoinNews")),
 		connect.WithHandlerOptions(opts...),
 	)
+	miscServiceCommentNewsHandler := connect.NewUnaryHandler(
+		MiscServiceCommentNewsProcedure,
+		svc.CommentNews,
+		connect.WithSchema(miscServiceMethods.ByName("CommentNews")),
+		connect.WithHandlerOptions(opts...),
+	)
+	miscServiceListCommentsHandler := connect.NewUnaryHandler(
+		MiscServiceListCommentsProcedure,
+		svc.ListComments,
+		connect.WithSchema(miscServiceMethods.ByName("ListComments")),
+		connect.WithHandlerOptions(opts...),
+	)
 	miscServiceTimestampFileHandler := connect.NewUnaryHandler(
 		MiscServiceTimestampFileProcedure,
 		svc.TimestampFile,
@@ -318,6 +367,10 @@ func NewMiscServiceHandler(svc MiscServiceHandler, opts ...connect.HandlerOption
 			miscServiceListTopicsHandler.ServeHTTP(w, r)
 		case MiscServiceListCoinNewsProcedure:
 			miscServiceListCoinNewsHandler.ServeHTTP(w, r)
+		case MiscServiceCommentNewsProcedure:
+			miscServiceCommentNewsHandler.ServeHTTP(w, r)
+		case MiscServiceListCommentsProcedure:
+			miscServiceListCommentsHandler.ServeHTTP(w, r)
 		case MiscServiceTimestampFileProcedure:
 			miscServiceTimestampFileHandler.ServeHTTP(w, r)
 		case MiscServiceListTimestampsProcedure:
@@ -359,6 +412,14 @@ func (UnimplementedMiscServiceHandler) ListTopics(context.Context, *connect.Requ
 
 func (UnimplementedMiscServiceHandler) ListCoinNews(context.Context, *connect.Request[v1.ListCoinNewsRequest]) (*connect.Response[v1.ListCoinNewsResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("misc.v1.MiscService.ListCoinNews is not implemented"))
+}
+
+func (UnimplementedMiscServiceHandler) CommentNews(context.Context, *connect.Request[v1.CommentNewsRequest]) (*connect.Response[v1.CommentNewsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("misc.v1.MiscService.CommentNews is not implemented"))
+}
+
+func (UnimplementedMiscServiceHandler) ListComments(context.Context, *connect.Request[v1.ListCommentsRequest]) (*connect.Response[v1.ListCommentsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("misc.v1.MiscService.ListComments is not implemented"))
 }
 
 func (UnimplementedMiscServiceHandler) TimestampFile(context.Context, *connect.Request[v1.TimestampFileRequest]) (*connect.Response[v1.TimestampFileResponse], error) {

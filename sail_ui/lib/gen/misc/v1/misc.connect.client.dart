@@ -130,6 +130,42 @@ extension type MiscServiceClient (connect.Transport _transport) {
     );
   }
 
+  /// Broadcasts a signed Comment (CoinNews Comment, 0x03) on an Item.
+  Future<miscv1misc.CommentNewsResponse> commentNews(
+    miscv1misc.CommentNewsRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.MiscService.commentNews,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
+  /// Returns the full reply thread rooted at an Item, ranked per §13.
+  Future<miscv1misc.ListCommentsResponse> listComments(
+    miscv1misc.ListCommentsRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.MiscService.listComments,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
   /// File timestamping
   Future<miscv1misc.TimestampFileResponse> timestampFile(
     miscv1misc.TimestampFileRequest input, {
