@@ -67,6 +67,45 @@ func TestStore_ListThread(t *testing.T) {
 	assert.True(t, bodies["reply"])
 }
 
+// TestStore_ListThread_CountsCommentVotes proves a comment's on-chain
+// votes (spec §8) are tallied and ranked in ListThread (spec §13).
+func TestStore_ListThread_CountsCommentVotes(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	db := database.Test(t)
+
+	require.NoError(t, Index(ctx, db, IndexEnv{
+		Pos: pos(100, 0, 0), TypeTag: codec.TypeStory,
+		Msg: &codec.Story{Topic: codec.Topic{1, 2, 3, 4}, Headline: "Head"},
+	}))
+	story := itemIDOf(t, ctx, db, "cn_stories")
+
+	var author codec.XOnlyPubKey
+	_, _ = rand.Read(author[:])
+	require.NoError(t, Index(ctx, db, IndexEnv{
+		Pos: pos(100, 0, 1), TypeTag: codec.TypeComment,
+		Msg: &codec.Comment{Parent: story, AuthorXPK: author, TLVs: []codec.TLV{{Tag: codec.TLVBody, Value: []byte("hi")}}},
+	}))
+	comment := itemIDOf(t, ctx, db, "cn_comments")
+
+	// Two distinct upvoters + one downvoter target the comment.
+	for i, kind := range []codec.TypeTag{codec.TypeUpvote, codec.TypeUpvote, codec.TypeDownvote} {
+		var voter codec.XOnlyPubKey
+		voter[0] = byte(0xc0 + i)
+		require.NoError(t, Index(ctx, db, IndexEnv{
+			Pos:     pos(101, 0, uint32(i)),
+			TypeTag: kind,
+			Msg:     &codec.Vote{Kind: kind, Target: comment, AuthorXPK: voter},
+		}))
+	}
+
+	thread, err := ListThread(ctx, db, story)
+	require.NoError(t, err)
+	require.Len(t, thread, 1)
+	assert.Equal(t, int64(2), thread[0].Upvotes)
+	assert.Equal(t, int64(1), thread[0].Downvotes)
+}
+
 // itemIDOf returns the most recently inserted item_id in the given cn_*
 // table.
 func itemIDOf(t *testing.T, ctx context.Context, db *sql.DB, table string) codec.ItemID {
