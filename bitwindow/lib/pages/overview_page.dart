@@ -673,7 +673,7 @@ class BroadcastNewsViewModel extends BaseViewModel {
   final TextEditingController urlController = TextEditingController();
 
   // Story subtype (spec §10): 0=link, 1=text, 2=ask, 3=show, 4=poll, 5=job.
-  int subtype = 1;
+  int subtype = 0;
   bool nsfw = false;
 
   void setSubtype(int? value) {

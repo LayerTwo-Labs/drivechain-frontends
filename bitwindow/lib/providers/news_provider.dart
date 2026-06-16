@@ -99,14 +99,26 @@ class NewsProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  // Items this node has voted on this session. A given (author, target)
+  // counts at most once on-chain (§8), so repeat/flip votes are no-ops —
+  // we suppress both the broadcast and the optimistic bump to avoid a
+  // count that snaps back on the next refresh.
+  final Set<String> _voted = {};
+
   /// Broadcasts a signed upvote for [entry] and optimistically bumps its
   /// count. The confirmed on-chain tally only updates once the vote is
   /// mined and indexed.
   Future<void> upvote(CoinNews entry) async {
-    if (entry.itemId.isEmpty) {
+    if (entry.itemId.isEmpty || _voted.contains(entry.itemId)) {
       return;
     }
-    await api.misc.upvoteNews(entry.itemId);
+    _voted.add(entry.itemId);
+    try {
+      await api.misc.upvoteNews(entry.itemId);
+    } catch (e) {
+      _voted.remove(entry.itemId);
+      rethrow;
+    }
 
     final idx = news.indexWhere((n) => n.itemId == entry.itemId);
     if (idx != -1) {
@@ -120,10 +132,16 @@ class NewsProvider extends ChangeNotifier {
   /// its count. The confirmed on-chain tally only updates once the vote
   /// is mined and indexed.
   Future<void> downvote(CoinNews entry) async {
-    if (entry.itemId.isEmpty) {
+    if (entry.itemId.isEmpty || _voted.contains(entry.itemId)) {
       return;
     }
-    await api.misc.downvoteNews(entry.itemId);
+    _voted.add(entry.itemId);
+    try {
+      await api.misc.downvoteNews(entry.itemId);
+    } catch (e) {
+      _voted.remove(entry.itemId);
+      rethrow;
+    }
 
     final idx = news.indexWhere((n) => n.itemId == entry.itemId);
     if (idx != -1) {

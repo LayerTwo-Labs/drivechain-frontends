@@ -264,11 +264,6 @@ func (s *Server) CreateTopic(ctx context.Context, req *connect.Request[miscv1.Cr
 		err := errors.New("title must be set")
 		return nil, connect.NewError(connect.CodeInvalidArgument, err)
 	}
-	if req.Msg.Name == "" {
-		err := errors.New("title must be set")
-		zerolog.Ctx(ctx).Error().Err(err).Msg("could not create topic: title must be set")
-		return nil, connect.NewError(connect.CodeInvalidArgument, err)
-	}
 	if len([]byte(req.Msg.Name)) > 64 {
 		err := errors.New("title cannot be longer than 64 bytes")
 		return nil, connect.NewError(connect.CodeInvalidArgument, err)
