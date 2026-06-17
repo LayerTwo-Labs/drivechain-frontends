@@ -964,13 +964,20 @@ class _VotesCell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        _VoteButton(asset: SailSVGAsset.thumbsUp, count: upvotes, onTap: onUpvote),
-        const SailSpacing(SailStyleValues.padding12),
-        _VoteButton(asset: SailSVGAsset.thumbsDown, count: downvotes, onTap: onDownvote),
-      ],
+    // FittedBox so the up/down buttons never overflow a narrow Votes column
+    // (e.g. the condensed dashboard table); it renders at natural size when
+    // there is room and scales down only when the cell is too tight.
+    return FittedBox(
+      fit: BoxFit.scaleDown,
+      alignment: Alignment.centerLeft,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _VoteButton(asset: SailSVGAsset.thumbsUp, count: upvotes, onTap: onUpvote),
+          const SailSpacing(SailStyleValues.padding12),
+          _VoteButton(asset: SailSVGAsset.thumbsDown, count: downvotes, onTap: onDownvote),
+        ],
+      ),
     );
   }
 }
