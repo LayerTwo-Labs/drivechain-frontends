@@ -1,5 +1,5 @@
 {
-  "version": 3,
+  "version": 4,
   "binaries": {
     "bitcoincore": {
       "type": "core",
@@ -697,7 +697,7 @@
       "type": "sidechain",
       "slot": 24,
       "name": "Liquid Signet",
-      "version": "ede73821a1167540522823c1490a724ddd243c2a",
+      "version": "b7da9f75ea1d3da7a0b761cd7f18d81500bb1011",
       "description": "Elements/Liquid sidechain in slot 24.",
       "repo_url": "https://github.com/ekulkisnek/liquid-drivechain-signet-adaptation",
       "port": 29443,
