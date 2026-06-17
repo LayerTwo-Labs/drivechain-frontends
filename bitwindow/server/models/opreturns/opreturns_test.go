@@ -244,6 +244,7 @@ func TestListCoinNews_RanksByScoreAndCountsDownvotes(t *testing.T) {
 		copy(item[:], id)
 		itemIDs[headline] = item
 	}
+	require.NoError(t, rows.Err())
 	require.NoError(t, rows.Close())
 
 	seedVote(t, ctx, db, itemIDs["Upvoted"], codec.TypeUpvote, 0x10, 200)
