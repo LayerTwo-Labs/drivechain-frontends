@@ -19,6 +19,7 @@ import (
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/database"
 	cnstore "github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/coinnews"
 	codec "github.com/LayerTwo-Labs/sidesail/coinnews/codec"
+	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -131,14 +132,8 @@ func TestListTopics_SurfacesChainIndexedTopics(t *testing.T) {
 
 	topics, err := ListTopics(ctx, db)
 	require.NoError(t, err)
-	var found *Topic
-	for i := range topics {
-		if topics[i].Topic == external {
-			found = &topics[i]
-			break
-		}
-	}
-	require.NotNil(t, found, "chain-indexed topic must appear in ListTopics")
+	found, ok := lo.Find(topics, func(tp Topic) bool { return tp.Topic == external })
+	require.True(t, ok, "chain-indexed topic must appear in ListTopics")
 	assert.Equal(t, "Foreign Topic", found.Name)
 	assert.True(t, found.Confirmed)
 
@@ -249,6 +244,7 @@ func TestListCoinNews_RanksByScoreAndCountsDownvotes(t *testing.T) {
 		copy(item[:], id)
 		itemIDs[headline] = item
 	}
+	require.NoError(t, rows.Err())
 	require.NoError(t, rows.Close())
 
 	seedVote(t, ctx, db, itemIDs["Upvoted"], codec.TypeUpvote, 0x10, 200)
