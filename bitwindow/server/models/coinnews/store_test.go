@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -59,12 +60,8 @@ func TestStore_ListThread(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, thread, 2, "story thread includes the comment and its nested reply")
 
-	bodies := map[string]bool{}
-	for _, c := range thread {
-		bodies[c.Body] = true
-	}
-	assert.True(t, bodies["first"])
-	assert.True(t, bodies["reply"])
+	assert.True(t, lo.ContainsBy(thread, func(c Comment) bool { return c.Body == "first" }))
+	assert.True(t, lo.ContainsBy(thread, func(c Comment) bool { return c.Body == "reply" }))
 }
 
 // TestStore_ListThread_CountsCommentVotes proves a comment's on-chain
