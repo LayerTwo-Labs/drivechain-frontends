@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'dart:math';
 
 import 'package:auto_route/auto_route.dart';
@@ -12,6 +13,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
+import 'package:path/path.dart' as path;
 import 'package:sail_ui/gen/wallet/v1/wallet.pb.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:stacked/stacked.dart';
@@ -245,6 +247,7 @@ class OnlyFilledTable extends ViewModelWidget<SidechainsViewModel> {
           final statusIcon = viewModel.sidechainStatusIcon(context, slot);
           final updateAvailable = viewModel.updateAvailable(slot);
           final binary = viewModel.sidechainForSlot(slot);
+          final rpc = viewModel.rpcForSlot(slot);
 
           return [
             SailTableCell(value: '$slot:', textColor: textColor),
@@ -271,7 +274,7 @@ class OnlyFilledTable extends ViewModelWidget<SidechainsViewModel> {
               value: '        ',
               child: sidechain != null ? _buildDepositButton(context, viewModel, slot, sidechain) : null,
             ),
-            if (binary != null)
+            if (binary != null && rpc != null)
               SailTableCell(
                 value: '    ',
                 child: Container(
@@ -294,9 +297,7 @@ class OnlyFilledTable extends ViewModelWidget<SidechainsViewModel> {
                                 : () async {
                                     await showThemedDialog(
                                       context: context,
-                                      builder: (context) => ChainSettingsModal(
-                                        connection: viewModel.rpcForSlot(slot)!,
-                                      ),
+                                      builder: (context) => ChainSettingsModal(connection: rpc),
                                     );
                                   },
                           ),
@@ -421,6 +422,7 @@ class FullTable extends ViewModelWidget<SidechainsViewModel> {
           final statusIcon = viewModel.sidechainStatusIcon(context, slot);
           final updateAvailable = viewModel.updateAvailable(slot);
           final binary = viewModel.sidechainForSlot(slot);
+          final rpc = viewModel.rpcForSlot(slot);
 
           return [
             SailTableCell(value: '$slot:', textColor: textColor),
@@ -447,7 +449,7 @@ class FullTable extends ViewModelWidget<SidechainsViewModel> {
               value: '        ',
               child: sidechain != null ? _buildFullTableDepositButton(context, viewModel, slot, sidechain) : null,
             ),
-            if (binary != null)
+            if (binary != null && rpc != null)
               SailTableCell(
                 value: '    ', // Use spaces to represent the width needed for the settings button
                 child: Stack(
@@ -462,7 +464,7 @@ class FullTable extends ViewModelWidget<SidechainsViewModel> {
                           : () async {
                               await showThemedDialog(
                                 context: context,
-                                builder: (context) => ChainSettingsModal(connection: viewModel.rpcForSlot(slot)!),
+                                builder: (context) => ChainSettingsModal(connection: rpc),
                               );
                             },
                     ),
@@ -480,7 +482,7 @@ class FullTable extends ViewModelWidget<SidechainsViewModel> {
                 ),
               )
             else
-              Container(),
+              SailTableCell(value: ''),
           ];
         },
         rowCount: 256, // Show all slots
@@ -559,6 +561,8 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
   final SyncProvider _syncProvider = GetIt.I.get<SyncProvider>();
   DownloadProvider? get _downloadProvider =>
       GetIt.I.isRegistered<DownloadProvider>() ? GetIt.I.get<DownloadProvider>() : null;
+  BackendStateProvider? get _backendStateProvider =>
+      GetIt.I.isRegistered<BackendStateProvider>() ? GetIt.I.get<BackendStateProvider>() : null;
   WalletReaderProvider get _walletReader => GetIt.I<WalletReaderProvider>();
 
   // Resolve a Sidechain Binary to its SidechainType enum (key into
@@ -603,6 +607,7 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
     _binaryProvider.addListener(notifyListeners);
     _syncProvider.addListener(_onChange);
     _syncProvider.addListener(notifyListeners);
+    _backendStateProvider?.addListener(_onChange);
     // DownloadProvider polls every 100ms while downloads are active. Without
     // this listener the table never rebuilds during a download, so progress
     // never advances and the button doesn't flip from "Download" → "Start"
@@ -692,19 +697,7 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
       return false;
     }
 
-    return switch (sidechain) {
-      var b when b is Thunder => (GetIt.I.isRegistered<ThunderRPC>() ? GetIt.I.get<ThunderRPC>().connected : false),
-      var b when b is BitNames => (GetIt.I.isRegistered<BitnamesRPC>() ? GetIt.I.get<BitnamesRPC>().connected : false),
-      var b when b is BitAssets =>
-        (GetIt.I.isRegistered<BitAssetsRPC>() ? GetIt.I.get<BitAssetsRPC>().connected : false),
-      var b when b is ZSide => (GetIt.I.isRegistered<ZSideRPC>() ? GetIt.I.get<ZSideRPC>().connected : false),
-      var b when b is Truthcoin =>
-        (GetIt.I.isRegistered<TruthcoinRPC>() ? GetIt.I.get<TruthcoinRPC>().connected : false),
-      var b when b is Photon => (GetIt.I.isRegistered<PhotonRPC>() ? GetIt.I.get<PhotonRPC>().connected : false),
-      var b when b is CoinShift =>
-        (GetIt.I.isRegistered<CoinShiftRPC>() ? GetIt.I.get<CoinShiftRPC>().connected : false),
-      _ => false,
-    };
+    return _binaryProvider.isConnected(sidechain);
   }
 
   Widget? sidechainWidget(int slot) {
@@ -833,13 +826,12 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
 
     final theme = SailTheme.of(context);
     final rpc = rpcForSlot(slot);
-    if (rpc == null) return null;
 
     final isRunning = _binaryProvider.isConnected(sidechain);
     final isInitializing = _binaryProvider.isInitializing(sidechain);
     final downloading = _isDownloadingFor(sidechain);
     final error = _binaryProvider.connectionError(sidechain);
-    final startupErr = rpc.startupError;
+    final startupErr = rpc?.startupError;
 
     // Don't show icon if binary is not active at all
     if (!isRunning && !isInitializing && !downloading && error == null) {
@@ -1087,6 +1079,7 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
     _binaryProvider.removeListener(notifyListeners);
     _syncProvider.removeListener(_onChange);
     _syncProvider.removeListener(notifyListeners);
+    _backendStateProvider?.removeListener(_onChange);
     _downloadProvider?.removeListener(_onChange);
     _downloadProvider?.removeListener(notifyListeners);
     super.dispose();
@@ -1471,6 +1464,44 @@ class _DepositModalState extends State<DepositModal> {
     return null;
   }
 
+  Future<String?> _getLiquidDepositAddress(int slot) async {
+    final binaryProvider = GetIt.I<BinaryProvider>();
+    final sidechain = binaryProvider.binaries.firstWhereOrNull(
+      (b) => b is LiquidSignet && b.slot == slot,
+    );
+    if (sidechain == null) return null;
+    if (!binaryProvider.isConnected(sidechain)) {
+      throw Exception('Sidechain is not running. Start it first to deposit.');
+    }
+
+    final launcherPath =
+        sidechain.metadata.binaryPath?.path ?? path.join(binDir(binaryProvider.appDir.path).path, sidechain.binaryName);
+    final elementsCli = File(path.join(path.dirname(launcherPath), 'elements-cli'));
+    if (!elementsCli.existsSync()) {
+      throw Exception('Liquid node is missing elements-cli. Download the node again.');
+    }
+
+    final datadir =
+        Platform.environment['LIQUID_SIGNET_DATADIR'] ??
+        path.join(binaryProvider.appDir.path, 'liquid-signet-layer2labs');
+    final result = await Process.run(elementsCli.path, [
+      '-chain=liquid-signet',
+      '-datadir=$datadir',
+      '-rpcport=${sidechain.port}',
+      'getnewaddress',
+    ]);
+    if (result.exitCode != 0) {
+      final error = result.stderr.toString().trim();
+      throw Exception(error.isEmpty ? 'Could not get Liquid deposit address.' : error);
+    }
+
+    final address = result.stdout.toString().trim();
+    if (address.isEmpty) {
+      throw Exception('Liquid node returned an empty deposit address.');
+    }
+    return formatDepositAddress(address, slot);
+  }
+
   Future<void> _fetchDepositAddress() async {
     setState(() {
       isFetchingAddress = true;
@@ -1478,6 +1509,17 @@ class _DepositModalState extends State<DepositModal> {
     });
 
     try {
+      final liquidAddress = await _getLiquidDepositAddress(widget.slot);
+      if (liquidAddress != null) {
+        if (mounted) {
+          setState(() {
+            depositAddress = liquidAddress;
+            isFetchingAddress = false;
+          });
+        }
+        return;
+      }
+
       final sidechainRPC = _getSidechainRPC(widget.slot);
       if (sidechainRPC == null) {
         throw Exception('Sidechain is not running. Start it first to deposit.');
