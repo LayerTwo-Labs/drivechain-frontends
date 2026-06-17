@@ -64,6 +64,7 @@ class BinaryType extends $pb.ProtobufEnum {
   static const BinaryType BINARY_TYPE_GRPCURL = BinaryType._(11, _omitEnumNames ? '' : 'BINARY_TYPE_GRPCURL');
   static const BinaryType BINARY_TYPE_ORCHESTRATORD = BinaryType._(12, _omitEnumNames ? '' : 'BINARY_TYPE_ORCHESTRATORD');
   static const BinaryType BINARY_TYPE_ZSIDED = BinaryType._(13, _omitEnumNames ? '' : 'BINARY_TYPE_ZSIDED');
+  static const BinaryType BINARY_TYPE_LIQUID_SIGNET = BinaryType._(14, _omitEnumNames ? '' : 'BINARY_TYPE_LIQUID_SIGNET');
 
   static const $core.List<BinaryType> values = <BinaryType> [
     BINARY_TYPE_UNSPECIFIED,
@@ -80,6 +81,7 @@ class BinaryType extends $pb.ProtobufEnum {
     BINARY_TYPE_GRPCURL,
     BINARY_TYPE_ORCHESTRATORD,
     BINARY_TYPE_ZSIDED,
+    BINARY_TYPE_LIQUID_SIGNET,
   ];
 
   static final $core.Map<$core.int, BinaryType> _byValue = $pb.ProtobufEnum.initByValue(values);
