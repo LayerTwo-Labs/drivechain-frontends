@@ -497,6 +497,8 @@ class BinaryProvider extends ChangeNotifier {
   // =========================================================================
 
   bool isConnected(Binary binary) {
+    final orch = _orchestratorState(binary);
+    if (orch != null) return orch.connected || (binary is LiquidSignet && orch.running);
     if (_isDaemonBinary(binary)) {
       return _processManager.isRunning(binary);
     }
@@ -504,15 +506,27 @@ class BinaryProvider extends ChangeNotifier {
   }
 
   bool isInitializing(Binary binary) {
+    final orch = _orchestratorState(binary);
+    if (orch != null) return orch.initializing;
     return _rpcFor(binary)?.initializingBinary ?? false;
   }
 
   bool isStopping(Binary binary) {
+    final orch = _orchestratorState(binary);
+    if (orch != null) return orch.stopping;
     return _rpcFor(binary)?.stoppingBinary ?? false;
   }
 
   String? connectionError(Binary binary) {
+    final orch = _orchestratorState(binary);
+    if (orch != null) return orch.connectionError.isEmpty ? null : orch.connectionError;
     return _rpcFor(binary)?.connectionError;
+  }
+
+  BinaryStatusMsg? _orchestratorState(Binary binary) {
+    final name = orchestratorName(binary);
+    if (name == null || !GetIt.I.isRegistered<BackendStateProvider>()) return null;
+    return GetIt.I.get<BackendStateProvider>().binaries[name];
   }
 
   // =========================================================================
