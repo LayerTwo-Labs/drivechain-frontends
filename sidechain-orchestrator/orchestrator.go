@@ -704,6 +704,13 @@ func (o *Orchestrator) StartWithL1(ctx context.Context, target string, opts Star
 			return
 		}
 
+		// A sidechain under an electrum wallet has no local enforcer at :50051,
+		// so rewire it to the hosted orchestrator's mainchain service (or fail
+		// cleanly if none exists) before any start path below launches it.
+		if skipLocalL1 && !o.pointSidechainAtRemoteMainchain(config, &opts, ch) {
+			return
+		}
+
 		// If a previous bitwindowd's drain is still in flight, adopt it:
 		// flip the will-exit bit off and block until the drained stops
 		// finish. UI surfacing happens via per-binary startup logs inside
@@ -804,6 +811,38 @@ func (o *Orchestrator) injectSidechainStarter(config BinaryConfig, opts *StartOp
 	}
 	opts.TargetArgs = append(opts.TargetArgs, fmt.Sprintf("--mnemonic-seed-phrase-path=%s", scPath))
 	o.log.Info().Str("path", scPath).Int("slot", config.Slot).Msg("injected sidechain starter")
+}
+
+// pointSidechainAtRemoteMainchain rewires a ChainLayer-2 target to a hosted
+// orchestrator's CUSF mainchain service when the active wallet is electrum,
+// which runs no local enforcer. The --mainchain-grpc-url CLI flag overrides the
+// localhost:50051 value persisted in the sidechain's conf; without it the
+// daemon dials a dead port and exits with an opaque "tcp connect error".
+// Returns false — boot already failed on ch — when the sidechain has no remote
+// mainchain to reach, so we never launch a daemon that cannot work.
+func (o *Orchestrator) pointSidechainAtRemoteMainchain(cfg BinaryConfig, opts *StartOpts, ch chan<- StartupProgress) bool {
+	fail := func(msg string) bool {
+		mon := o.getOrCreateMonitor(cfg.Name, NewHealthChecker(cfg), nil)
+		failBoot(mon, ch, "start "+cfg.Name, fmt.Errorf("%s", msg))
+		return false
+	}
+
+	// zmq-style sidechains (bitnames, bitassets) carry no mainchain-grpc-url and
+	// have no way to reach a remote enforcer.
+	scm := o.SidechainConfs[cfg.Name]
+	if scm == nil || scm.Spec.PortStyle != "grpc" {
+		return fail(fmt.Sprintf("%s needs a local enforcer and cannot run with an electrum wallet", cfg.DisplayName))
+	}
+
+	remote := config.RemoteOrchestratorURLForNetwork(config.Network(o.Network))
+	if remote == "" {
+		return fail(fmt.Sprintf("no hosted orchestrator for %s; cannot run %s with an electrum wallet", o.Network, cfg.DisplayName))
+	}
+
+	opts.TargetArgs = append(opts.TargetArgs, "--mainchain-grpc-url="+remote)
+	o.log.Info().Str("binary", cfg.Name).Str("mainchain-grpc-url", remote).
+		Msg("electrum wallet active — pointing sidechain at remote mainchain")
+	return true
 }
 
 // injectHeadlessForForcedBackend appends --headless to opts.TargetArgs when a
