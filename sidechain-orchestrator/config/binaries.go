@@ -352,14 +352,65 @@ func (b BinaryDirConfig) GetBlockchainDataPaths(networkDir string, network Netwo
 	}
 }
 
+// wipingSuffix marks a chain-data path that has been renamed aside and is being
+// deleted in the background.
+const wipingSuffix = ".wiping"
+
 // WipeChainData deletes on-disk chain state for network across all known
 // binaries. Wallet files are preserved. bitcoinDatadirOverride is the user's
 // datadir= setting for bitcoind, empty for the platform default.
+//
+// The whole operation runs in the background and returns immediately. It must
+// never block the caller: the chain datadir can be large, slow, or on an
+// unresponsive volume (e.g. an external disk that's asleep or unplugged), and
+// even a readdir or rename against a stalled mount hangs indefinitely. This
+// runs inside orchestrator startup, before the RPC listener binds, so a stall
+// here surfaced to the frontend as "backend not ready". Doomed paths are
+// renamed aside first — atomic and O(1) on the same filesystem — so a freshly
+// started bitcoind never sees half-deleted data, then deleted; leftover
+// ".wiping" siblings from an interrupted prior wipe are swept into the delete.
 func WipeChainData(network Network, bitcoinDatadirOverride string, log zerolog.Logger) {
-	for _, dc := range AllDirConfigs() {
-		networkDir := dc.DatadirNetwork(network, bitcoinDatadirOverride)
-		DeleteFilesWithRetry(dc.GetBlockchainDataPaths(networkDir, network, log), log)
+	go func() {
+		var doomed []string
+		for _, dc := range AllDirConfigs() {
+			networkDir := dc.DatadirNetwork(network, bitcoinDatadirOverride)
+			for _, p := range dc.GetBlockchainDataPaths(networkDir, network, log) {
+				orphans, _ := filepath.Glob(p + wipingSuffix + "*")
+				doomed = append(doomed, orphans...)
+				if aside := renameAside(p, log); aside != "" {
+					doomed = append(doomed, aside)
+				}
+			}
+		}
+		DeleteFilesWithRetry(doomed, log)
+	}()
+}
+
+// renameAside moves a doomed chain path to a unique sibling so the delete can
+// run off the startup critical path. Returns the new path, "" if p was already
+// gone, or p itself when a rename can't cross filesystems (still deleted in the
+// background). A collision means an orphaned wipe still owns that name, so the
+// next free suffix is used rather than blocking on a synchronous delete.
+func renameAside(p string, log zerolog.Logger) string {
+	for i := 0; i < 1000; i++ {
+		aside := p + wipingSuffix
+		if i > 0 {
+			aside = fmt.Sprintf("%s%d", aside, i)
+		}
+		if _, err := os.Lstat(aside); err == nil {
+			continue
+		}
+		if err := os.Rename(p, aside); err != nil {
+			if os.IsNotExist(err) {
+				return ""
+			}
+			log.Warn().Err(err).Str("path", p).Msg("rename-aside failed; deleting in place")
+			return p
+		}
+		return aside
 	}
+	log.Warn().Str("path", p).Msg("too many orphaned wipes; deleting in place")
+	return p
 }
 
 // GetWalletPaths returns wallet file paths for a binary.

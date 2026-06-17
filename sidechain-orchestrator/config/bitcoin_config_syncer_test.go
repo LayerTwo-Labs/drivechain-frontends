@@ -120,14 +120,42 @@ func TestWipeChainDataPreservesWallets(t *testing.T) {
 
 	WipeChainData(NetworkSignet, "", zerolog.Nop())
 
-	for _, gone := range []string{"blocks", "chainstate", "indexes", "mempool.dat", "fee_estimates.dat", "peers.dat"} {
-		if _, err := os.Stat(filepath.Join(bcNet, gone)); !os.IsNotExist(err) {
-			t.Errorf("%s should be deleted", gone)
+	require.Eventually(t, func() bool {
+		for _, gone := range []string{"blocks", "chainstate", "indexes", "mempool.dat", "fee_estimates.dat", "peers.dat"} {
+			if _, err := os.Stat(filepath.Join(bcNet, gone)); !os.IsNotExist(err) {
+				return false
+			}
 		}
-	}
+		return true
+	}, 5*time.Second, 20*time.Millisecond)
+
 	if _, err := os.Stat(filepath.Join(bcNet, "wallets", "wallet.dat")); err != nil {
 		t.Error("wallets must survive a chain data wipe")
 	}
+}
+
+// The wipe runs entirely in the background and returns immediately so a large,
+// slow, or unresponsive datadir can't block orchestrator startup — that stall
+// is what kept the RPC listener down past the frontend's readiness timeout. The
+// data (and any renamed-aside .wiping copy) is gone once the background work
+// completes.
+func TestWipeChainDataDeletesInBackground(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
+
+	bcNet := BitcoinCoreDirs.DatadirNetwork(NetworkSignet, "")
+	blocks := filepath.Join(bcNet, "blocks", "blk00000.dat")
+	require.NoError(t, os.MkdirAll(filepath.Dir(blocks), 0o755))
+	require.NoError(t, os.WriteFile(blocks, []byte("stub"), 0o644))
+
+	WipeChainData(NetworkSignet, "", zerolog.Nop())
+
+	require.Eventually(t, func() bool {
+		_, err := os.Stat(filepath.Join(bcNet, "blocks"))
+		_, wErr := os.Stat(filepath.Join(bcNet, "blocks"+wipingSuffix))
+		return os.IsNotExist(err) && os.IsNotExist(wErr)
+	}, 5*time.Second, 20*time.Millisecond)
 }
 
 // A user-set datadir= must be honoured so the wipe hits the real chain data.
@@ -143,9 +171,10 @@ func TestWipeChainDataHonoursDatadirOverride(t *testing.T) {
 
 	WipeChainData(NetworkSignet, custom, zerolog.Nop())
 
-	if _, err := os.Stat(filepath.Join(custom, "signet", "blocks")); !os.IsNotExist(err) {
-		t.Error("blocks under the overridden datadir should be deleted")
-	}
+	require.Eventually(t, func() bool {
+		_, err := os.Stat(filepath.Join(custom, "signet", "blocks"))
+		return os.IsNotExist(err)
+	}, 5*time.Second, 20*time.Millisecond)
 }
 
 // A config that already carries the new challenge gets the version bump but
