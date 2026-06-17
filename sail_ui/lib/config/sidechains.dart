@@ -42,6 +42,9 @@ abstract class Sidechain extends Binary {
 
       case 'coinshift':
         return CoinShift();
+
+      case 'liquid-signet':
+        return LiquidSignet();
     }
     return null;
   }
@@ -142,10 +145,85 @@ abstract class Sidechain extends Binary {
           port: binary.port,
           chainLayer: binary.chainLayer,
         );
+
+      case 'Liquid Signet':
+        return LiquidSignet(
+          name: binary.name,
+          version: binary.version,
+          description: binary.description,
+          repoUrl: binary.repoUrl,
+          directories: binary.directories,
+          metadata: binary.metadata,
+          port: binary.port,
+          chainLayer: binary.chainLayer,
+        );
       default:
         throw Exception('Unknown sidechain binary type: ${binary.runtimeType}');
     }
   }
+}
+
+class LiquidSignet extends Sidechain {
+  LiquidSignet({
+    super.name = 'Liquid Signet',
+    super.version = 'ede73821a1167540522823c1490a724ddd243c2a',
+    super.description = 'Elements/Liquid sidechain',
+    super.repoUrl = 'https://github.com/ekulkisnek/liquid-drivechain-signet-adaptation',
+    DirectoryConfig? directories,
+    MetadataConfig? metadata,
+    super.port = 29443,
+    super.chainLayer = 2,
+    super.downloadInfo = const DownloadInfo(),
+    super.extraBootArgs = const [],
+  }) : super(
+         directories:
+             directories ??
+             DirectoryConfig(binary: allPlatforms('liquid-signet'), flutterFrontend: const {}),
+         metadata:
+             metadata ??
+             MetadataConfig(
+               downloadConfig: DownloadConfig(
+                 binary: 'liquid-signet',
+                 files: allPlatforms(''),
+               ),
+               remoteTimestamp: null,
+               downloadedTimestamp: null,
+               binaryPath: null,
+               updateable: false,
+             ),
+       );
+
+  @override
+  int get slot => 24;
+
+  @override
+  BinaryType get type => BinaryType.BINARY_TYPE_LIQUID_SIGNET;
+
+  @override
+  Color get color => Colors.blue;
+
+  @override
+  LiquidSignet copyWith({
+    String? version,
+    String? description,
+    String? repoUrl,
+    DirectoryConfig? directories,
+    MetadataConfig? metadata,
+    int? port,
+    int? chainLayer,
+    DownloadInfo? downloadInfo,
+  }) => LiquidSignet(
+    name: name,
+    version: version ?? this.version,
+    description: description ?? this.description,
+    repoUrl: repoUrl ?? this.repoUrl,
+    directories: directories ?? this.directories,
+    metadata: metadata ?? this.metadata,
+    port: port ?? this.port,
+    chainLayer: chainLayer ?? this.chainLayer,
+    downloadInfo: downloadInfo ?? this.downloadInfo,
+    extraBootArgs: extraBootArgs,
+  );
 }
 
 File? getWalletFile(Directory appDir) {

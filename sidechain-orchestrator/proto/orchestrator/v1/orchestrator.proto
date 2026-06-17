@@ -379,6 +379,7 @@ enum BinaryType {
   BINARY_TYPE_GRPCURL = 11;
   BINARY_TYPE_ORCHESTRATORD = 12;
   BINARY_TYPE_ZSIDED = 13;
+  BINARY_TYPE_LIQUID_SIGNET = 14;
 }
 
 message SidechainStatus {
