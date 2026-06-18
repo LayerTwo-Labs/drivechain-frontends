@@ -10,6 +10,7 @@
 
 // ignore_for_file: no_leading_underscores_for_library_prefixes
 import 'dart:async' as _i18;
+import 'dart:io' as _i22;
 
 import 'package:auto_route/auto_route.dart' as _i15;
 import 'package:collection/collection.dart' as _i20;
@@ -423,6 +424,7 @@ class SailCreateWalletRoute
     _i21.VoidCallback? onBack,
     bool showFileRestore = false,
     _i16.Widget Function(_i16.BuildContext)? additionalRestoreOptionsBuilder,
+    _i18.Future<void> Function(_i22.File)? onRestoreFromFile,
     _i16.Widget Function(_i16.BuildContext, _i21.VoidCallback)?
     successActionsBuilder,
     _i10.WelcomeScreen initialScreen = _i10.WelcomeScreen.initial,
@@ -437,6 +439,7 @@ class SailCreateWalletRoute
            onBack: onBack,
            showFileRestore: showFileRestore,
            additionalRestoreOptionsBuilder: additionalRestoreOptionsBuilder,
+           onRestoreFromFile: onRestoreFromFile,
            successActionsBuilder: successActionsBuilder,
            initialScreen: initialScreen,
            homeRoute: homeRoute,
@@ -457,6 +460,7 @@ class SailCreateWalletRoute
         onBack: args.onBack,
         showFileRestore: args.showFileRestore,
         additionalRestoreOptionsBuilder: args.additionalRestoreOptionsBuilder,
+        onRestoreFromFile: args.onRestoreFromFile,
         successActionsBuilder: args.successActionsBuilder,
         initialScreen: args.initialScreen,
         homeRoute: args.homeRoute,
@@ -473,6 +477,7 @@ class SailCreateWalletRouteArgs {
     this.onBack,
     this.showFileRestore = false,
     this.additionalRestoreOptionsBuilder,
+    this.onRestoreFromFile,
     this.successActionsBuilder,
     this.initialScreen = _i10.WelcomeScreen.initial,
     required this.homeRoute,
@@ -491,6 +496,8 @@ class SailCreateWalletRouteArgs {
   final _i16.Widget Function(_i16.BuildContext)?
   additionalRestoreOptionsBuilder;
 
+  final _i18.Future<void> Function(_i22.File)? onRestoreFromFile;
+
   final _i16.Widget Function(_i16.BuildContext, _i21.VoidCallback)?
   successActionsBuilder;
 
@@ -500,7 +507,7 @@ class SailCreateWalletRouteArgs {
 
   @override
   String toString() {
-    return 'SailCreateWalletRouteArgs{key: $key, appName: $appName, onWalletCreated: $onWalletCreated, onBack: $onBack, showFileRestore: $showFileRestore, additionalRestoreOptionsBuilder: $additionalRestoreOptionsBuilder, successActionsBuilder: $successActionsBuilder, initialScreen: $initialScreen, homeRoute: $homeRoute}';
+    return 'SailCreateWalletRouteArgs{key: $key, appName: $appName, onWalletCreated: $onWalletCreated, onBack: $onBack, showFileRestore: $showFileRestore, additionalRestoreOptionsBuilder: $additionalRestoreOptionsBuilder, onRestoreFromFile: $onRestoreFromFile, successActionsBuilder: $successActionsBuilder, initialScreen: $initialScreen, homeRoute: $homeRoute}';
   }
 
   @override

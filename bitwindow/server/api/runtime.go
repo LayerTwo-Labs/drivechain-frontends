@@ -54,6 +54,8 @@ import (
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/enforcerproxy"
 	cryptorpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/crypto/v1/cryptov1connect"
 	validatorrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1/mainchainv1connect"
+	orchctlpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/orchestrator/v1"
+	orchctlrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/orchestrator/v1/orchestratorv1connect"
 	orchpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1"
 	orchrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1/walletmanagerv1connect"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/localauth"
@@ -241,7 +243,22 @@ func (s *Server) buildRuntime(ctx context.Context, conf config.Config) (*Runtime
 		register(path, h)
 	}
 	{
-		walletSvcImpl := api_wallet.New(ctx, rt.db, dataSource, s.Bitcoind, s.Wallet, s.Crypto, rt.chequeEngine, rt.walletEngine, rt.walletDir)
+		var restartL1 func(context.Context) error
+		if s.svcs.OrchestratorAddr != "" {
+			orchAddr := s.svcs.OrchestratorAddr
+			orchDir := s.svcs.BitwindowDir
+			restartL1 = func(ctx context.Context) error {
+				client := orchctlrpc.NewOrchestratorServiceClient(
+					http.DefaultClient,
+					orchAddr,
+					connect.WithGRPC(),
+					connect.WithInterceptors(localauth.Interceptor(orchDir)),
+				)
+				_, err := client.RestartL1(ctx, connect.NewRequest(&orchctlpb.RestartL1Request{}))
+				return err
+			}
+		}
+		walletSvcImpl := api_wallet.New(ctx, rt.db, dataSource, s.Bitcoind, s.Wallet, s.Crypto, rt.chequeEngine, rt.walletEngine, rt.walletDir, restartL1)
 		path, h := walletv1connect.NewWalletServiceHandler(walletSvcImpl, stdOpts...)
 		register(path, h)
 	}

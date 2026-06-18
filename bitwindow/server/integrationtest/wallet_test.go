@@ -379,6 +379,7 @@ func TestBitwindowWalletIntegration(t *testing.T) {
 			nil, // no enforcer wallet service
 			nil, // no crypto service
 			chequeEngineA, walletEngineA, walletDirA,
+			nil, // no L1 restart in tests
 		)
 
 		// --- Step 1: CreateCheque ---
@@ -548,6 +549,7 @@ func TestBitwindowWalletIntegration(t *testing.T) {
 			ctx, dbB, datasource.NewLocal(bitcoindSvcB.Get, nil, nil), bitcoindSvcB,
 			nil, nil,
 			chequeEngineB, walletEngineB, walletDirB,
+			nil, // no L1 restart in tests
 		)
 
 		// Ensure the cheque_watch wallet exists on B's Bitcoin Core too.

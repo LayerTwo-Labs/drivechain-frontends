@@ -159,10 +159,7 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
           SailCreateWalletRoute(
             homeRoute: const RootRoute(),
             initialScreen: WelcomeScreen.restore,
-            additionalRestoreOptionsBuilder: (context) => WalletBackupRestoreOptions(
-              bootBinaries: (log) async => rebootBitwindowBackend(log),
-              binariesToStop: [BitcoinCore(), Enforcer(), BitWindow()],
-            ),
+            onRestoreFromFile: restoreBitwindowWalletFromFile,
           ),
         ),
       ),
@@ -514,10 +511,7 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
                           SailCreateWalletRoute(
                             homeRoute: const RootRoute(),
                             initialScreen: WelcomeScreen.restore,
-                            additionalRestoreOptionsBuilder: (context) => WalletBackupRestoreOptions(
-                              bootBinaries: (log) async => rebootBitwindowBackend(log),
-                              binariesToStop: [BitcoinCore(), Enforcer(), BitWindow()],
-                            ),
+                            onRestoreFromFile: restoreBitwindowWalletFromFile,
                           ),
                         );
                       },

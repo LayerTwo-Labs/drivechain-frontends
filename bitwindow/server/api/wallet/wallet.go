@@ -62,6 +62,7 @@ func New(
 	chequeEngine *engines.ChequeEngine,
 	walletEngine *engines.WalletEngine,
 	walletDir string,
+	restartL1 func(context.Context) error,
 ) *Server {
 	s := &Server{
 		database:     database,
@@ -73,6 +74,7 @@ func New(
 		walletEngine: walletEngine,
 		backupEngine: engines.NewBackupEngine(database, walletDir),
 		walletDir:    walletDir,
+		restartL1:    restartL1,
 	}
 
 	// Initialize watch wallet in background. bitwindowd kicks off
@@ -126,6 +128,9 @@ type Server struct {
 	walletEngine *engines.WalletEngine
 	backupEngine *engines.BackupEngine
 	walletDir    string
+	// restartL1 reboots the L1 stack (bitcoind + enforcer) via orchestratord;
+	// nil when no orchestrator is configured. Called after a backup restore.
+	restartL1 func(context.Context) error
 }
 
 // CreateBitcoinCoreWallet implements walletv1connect.WalletServiceHandler.
@@ -3155,6 +3160,16 @@ func (s *Server) RestoreBackup(ctx context.Context, c *connect.Request[pb.Restor
 
 	if err := s.backupEngine.RestoreBackup(ctx, c.Msg.BackupData, c.Msg.Filename); err != nil {
 		return nil, fmt.Errorf("restore backup: %w", err)
+	}
+
+	// Reboot the L1 stack so the enforcer picks up the restored wallet. On
+	// first launch nothing is running yet, so this boots it from scratch; on a
+	// live wallet it restarts. Owning this here means the frontend just calls
+	// RestoreBackup — it doesn't hand-sequence binary stops/starts.
+	if s.restartL1 != nil {
+		if err := s.restartL1(ctx); err != nil {
+			return nil, fmt.Errorf("restore backup: restart L1 stack: %w", err)
+		}
 	}
 
 	return connect.NewResponse(&emptypb.Empty{}), nil

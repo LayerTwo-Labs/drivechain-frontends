@@ -1,10 +1,12 @@
 import 'dart:async';
 import 'dart:convert' show utf8;
+import 'dart:io';
 import 'dart:math';
 
 import 'package:auto_route/auto_route.dart';
 import 'package:convert/convert.dart' show hex;
 import 'package:crypto/crypto.dart' show sha256;
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -18,6 +20,10 @@ class SailCreateWalletPage extends StatefulWidget {
   final VoidCallback? onBack;
   final bool showFileRestore;
   final Widget Function(BuildContext context)? additionalRestoreOptionsBuilder;
+  // Restores the wallet from a chosen backup file. When set, the restore screen
+  // shows an "Upload wallet backup" option alongside the seed phrase, and the
+  // Restore button uses the file when one is selected.
+  final Future<void> Function(File backupFile)? onRestoreFromFile;
   final Widget Function(BuildContext context, VoidCallback defaultContinue)? successActionsBuilder;
   final WelcomeScreen initialScreen;
   final PageRouteInfo homeRoute;
@@ -29,6 +35,7 @@ class SailCreateWalletPage extends StatefulWidget {
     this.onBack,
     this.showFileRestore = false,
     this.additionalRestoreOptionsBuilder,
+    this.onRestoreFromFile,
     this.successActionsBuilder,
     this.initialScreen = WelcomeScreen.initial,
     required this.homeRoute,
@@ -59,6 +66,7 @@ class _SailCreateWalletPageState extends State<SailCreateWalletPage> {
   final TextEditingController _mnemonicController = TextEditingController();
   final TextEditingController _passphraseController = TextEditingController();
   final TextEditingController _walletNameController = TextEditingController();
+  File? _selectedBackupFile;
   WalletWriterProvider get _walletProvider => GetIt.I.get<WalletWriterProvider>();
   bool _isHexMode = false;
   bool _isValidInput = false;
@@ -253,7 +261,9 @@ class _SailCreateWalletPageState extends State<SailCreateWalletPage> {
         entropy = _entropyFromHexInput(entropyHex);
         if (entropy.length < 16 || entropy.length > 32 || entropy.length % 4 != 0) {
           if (mounted) {
-            setState(() => _error = 'Invalid entropy length. Must be 16-32 bytes and a multiple of 4.');
+            setState(
+              () => _error = 'Invalid entropy length. Must be 16-32 bytes and a multiple of 4.',
+            );
           }
           return;
         }
@@ -271,10 +281,7 @@ class _SailCreateWalletPageState extends State<SailCreateWalletPage> {
 
       // Derive the master seed from the entropy without committing it, then
       // import the same mnemonic into the chosen provider's wallet.
-      final wallet = await _walletProvider.generateWalletFromEntropy(
-        entropy,
-        doNotSave: true,
-      );
+      final wallet = await _walletProvider.generateWalletFromEntropy(entropy, doNotSave: true);
       await _createForProvider(
         name: walletName.isEmpty ? _defaultWalletName : walletName,
         customMnemonic: wallet['mnemonic'] as String?,
@@ -288,10 +295,7 @@ class _SailCreateWalletPageState extends State<SailCreateWalletPage> {
   }
 
   List<int> _entropyFromHexInput(String entropyHex) {
-    final paddedHex = entropyHex.trim().padRight(
-      ((entropyHex.length + 31) ~/ 32) * 32,
-      '0',
-    );
+    final paddedHex = entropyHex.trim().padRight(((entropyHex.length + 31) ~/ 32) * 32, '0');
     return hex.decode(paddedHex);
   }
 
@@ -372,9 +376,7 @@ class _SailCreateWalletPageState extends State<SailCreateWalletPage> {
           ),
           for (int row = 0; row < (words.length / 6).ceil(); row++)
             Padding(
-              padding: EdgeInsets.only(
-                bottom: row < (words.length / 6).ceil() - 1 ? 4 : 0,
-              ),
+              padding: EdgeInsets.only(bottom: row < (words.length / 6).ceil() - 1 ? 4 : 0),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.start,
                 children: [
@@ -385,10 +387,7 @@ class _SailCreateWalletPageState extends State<SailCreateWalletPage> {
                         child: SailColumn(
                           spacing: 2,
                           children: [
-                            SailText.primary10(
-                              words[row * 6 + col],
-                              bold: true,
-                            ),
+                            SailText.primary10(words[row * 6 + col], bold: true),
                             if (row * 6 + col < binaryStrings.length)
                               row * 6 + col == words.length - 1
                                   ? RichText(
@@ -435,16 +434,12 @@ class _SailCreateWalletPageState extends State<SailCreateWalletPage> {
                     label: 'Copy Mnemonic',
                     variant: ButtonVariant.secondary,
                     onPressed: () async {
-                      await Clipboard.setData(
-                        ClipboardData(text: _currentWalletData['mnemonic']),
-                      );
+                      await Clipboard.setData(ClipboardData(text: _currentWalletData['mnemonic']));
                       if (mounted) {
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
                             content: Text('Mnemonic copied to clipboard'),
-                            backgroundColor: SailTheme.of(
-                              context,
-                            ).colors.success,
+                            backgroundColor: SailTheme.of(context).colors.success,
                           ),
                         );
                       }
@@ -473,25 +468,14 @@ class _SailCreateWalletPageState extends State<SailCreateWalletPage> {
           SailRow(
             spacing: SailStyleValues.padding08,
             children: [
-              SizedBox(
-                width: 100,
-                child: SailText.primary10('BIP39 Binary:', bold: true),
-              ),
-              Expanded(
-                child: SailText.primary10(
-                  binaryString,
-                  color: theme.colors.textSecondary,
-                ),
-              ),
+              SizedBox(width: 100, child: SailText.primary10('BIP39 Binary:', bold: true)),
+              Expanded(child: SailText.primary10(binaryString, color: theme.colors.textSecondary)),
             ],
           ),
           SailRow(
             spacing: SailStyleValues.padding08,
             children: [
-              SizedBox(
-                width: 100,
-                child: SailText.primary10('Checksum:', bold: true),
-              ),
+              SizedBox(width: 100, child: SailText.primary10('Checksum:', bold: true)),
               SailText.primary10(checksumBinary, color: theme.colors.success),
               const SizedBox(width: SailStyleValues.padding16),
               SailText.primary10('Hex:', bold: true),
@@ -630,9 +614,9 @@ class _SailCreateWalletPageState extends State<SailCreateWalletPage> {
                                                   : 'Valid hex input')),
                                   color: _mnemonicController.text.isEmpty
                                       ? theme.colors.textSecondary
-                                      : (!RegExp(r'^[0-9a-fA-F]+$').hasMatch(
-                                                  _mnemonicController.text,
-                                                ) ||
+                                      : (!RegExp(
+                                                  r'^[0-9a-fA-F]+$',
+                                                ).hasMatch(_mnemonicController.text) ||
                                                 _mnemonicController.text.length > 64
                                             ? theme.colors.error
                                             : theme.colors.success),
@@ -769,91 +753,64 @@ class _SailCreateWalletPageState extends State<SailCreateWalletPage> {
                 ),
               ],
               const SizedBox(height: 32),
-              SizedBox(
-                width: 400,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    SailText.primary13('Provider', bold: true),
-                    const SailSpacing(SailStyleValues.padding08),
-                    SailDropdownButton<InitialWalletProvider>(
-                      value: _selectedProvider,
-                      items: _availableProviders
-                          .map(
-                            (p) => SailDropdownItem<InitialWalletProvider>(
-                              value: p,
-                              label: p.label,
-                            ),
-                          )
-                          .toList(),
-                      onChanged: (p) {
-                        if (p != null) setState(() => _selectedProvider = p);
-                      },
-                    ),
-                    const SailSpacing(4),
-                    SailText.secondary12(_selectedProvider.description),
-                  ],
-                ),
-              ),
               Spacer(),
               SizedBox(
                 width: 400,
                 height: 64,
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [theme.colors.primary, theme.colors.primary],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                    borderRadius: BorderRadius.circular(8),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black12,
-                        blurRadius: 4,
-                        offset: Offset(0, 2),
+                child: MouseRegion(
+                  cursor: (_isGenerating || _awaitingBackend) ? SystemMouseCursors.basic : SystemMouseCursors.click,
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [theme.colors.primary, theme.colors.primary],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
                       ),
-                    ],
-                  ),
-                  child: TextButton(
-                    onPressed: (_isGenerating || _awaitingBackend)
-                        ? null
-                        : () {
-                            setState(() => _isGenerating = true);
-                            // Schedule the wallet generation to run after this frame
-                            WidgetsBinding.instance.addPostFrameCallback((_) {
-                              _handleFastMode();
-                            });
-                          },
-                    style: TextButton.styleFrom(
-                      padding: EdgeInsets.zero,
-                      minimumSize: Size.zero,
-                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 16),
-                          child: SailText.primary15(
-                            _awaitingBackend
-                                ? 'Connecting to bitwindowd…'
-                                : _isGenerating
-                                ? 'Generating Your Wallet'
-                                : hasExistingWallet
-                                ? 'Create Another Wallet'
-                                : 'Generate Wallet',
-                            color: Colors.white,
-                            bold: true,
-                          ),
-                        ),
-                        if (_awaitingBackend || _isGenerating)
-                          SizedBox(
-                            width: 15,
-                            height: 15,
-                            child: LoadingIndicator.insideButton(Colors.white),
-                          ),
+                      borderRadius: BorderRadius.circular(8),
+                      boxShadow: [
+                        BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0, 2)),
                       ],
+                    ),
+                    child: TextButton(
+                      onPressed: (_isGenerating || _awaitingBackend)
+                          ? null
+                          : () {
+                              setState(() => _isGenerating = true);
+                              // Schedule the wallet generation to run after this frame
+                              WidgetsBinding.instance.addPostFrameCallback((_) {
+                                _handleFastMode();
+                              });
+                            },
+                      style: TextButton.styleFrom(
+                        padding: EdgeInsets.zero,
+                        minimumSize: Size.zero,
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                            child: SailText.primary15(
+                              _awaitingBackend
+                                  ? 'Connecting to bitwindowd…'
+                                  : _isGenerating
+                                  ? 'Generating Your Wallet'
+                                  : hasExistingWallet
+                                  ? 'Create Another Wallet'
+                                  : 'Generate Wallet',
+                              color: Colors.white,
+                              bold: true,
+                            ),
+                          ),
+                          if (_awaitingBackend || _isGenerating)
+                            SizedBox(
+                              width: 15,
+                              height: 15,
+                              child: LoadingIndicator.insideButton(Colors.white),
+                            ),
+                        ],
+                      ),
                     ),
                   ),
                 ),
@@ -880,6 +837,21 @@ class _SailCreateWalletPageState extends State<SailCreateWalletPage> {
                     variant: ButtonVariant.ghost,
                     onPressed: () async => _setScreen(WelcomeScreen.advanced),
                   ),
+                  const SizedBox(width: 24),
+                  SailText.secondary15('·'),
+                  const SizedBox(width: 24),
+                  SailDropdownButton<InitialWalletProvider>(
+                    variant: ButtonVariant.ghost,
+                    value: _selectedProvider,
+                    items: _availableProviders
+                        .map(
+                          (p) => SailDropdownItem<InitialWalletProvider>(value: p, label: p.label),
+                        )
+                        .toList(),
+                    onChanged: (p) {
+                      if (p != null) setState(() => _selectedProvider = p);
+                    },
+                  ),
                 ],
               ),
               const Spacer(),
@@ -895,97 +867,154 @@ class _SailCreateWalletPageState extends State<SailCreateWalletPage> {
   // ignore: avoid_build_methods
   Widget _buildRestoreScreen() {
     final theme = SailTheme.of(context);
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 32.0),
-        child: SizedBox(
-          width: 800,
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.center,
-            mainAxisSize: MainAxisSize.max,
-            children: [
-              BootTitle(
-                title: 'Restore your wallet',
-                subtitle:
-                    'Restore your mainchain wallet and all sidechain wallets from a seed phrase, local wallet backup, or backup file.',
-              ),
-              Expanded(
-                child: SingleChildScrollView(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      if (hasExistingWallet) ...[
-                        SailTextField(
-                          controller: _walletNameController,
-                          hintText: 'Wallet name (required)',
-                          textFieldType: TextFieldType.text,
-                          size: TextFieldSize.regular,
-                        ),
-                        const SizedBox(height: 16),
-                      ],
-                      SailTextField(
-                        controller: _mnemonicController,
-                        hintText: 'Enter BIP39 mnemonic (12 or 24 words)',
-                        maxLines: 3,
-                        textFieldType: TextFieldType.text,
-                        size: TextFieldSize.regular,
-                      ),
-                      const SizedBox(height: 16),
-                      SailTextField(
-                        controller: _passphraseController,
-                        hintText: 'Optional passphrase',
-                        textFieldType: TextFieldType.text,
-                        size: TextFieldSize.regular,
-                      ),
-                      // Additional restore options (e.g., file restore for BitWindow)
-                      if (widget.additionalRestoreOptionsBuilder != null) ...[
-                        const SizedBox(height: 24),
-                        widget.additionalRestoreOptionsBuilder!(context),
-                      ],
-                    ],
-                  ),
+    return SingleChildScrollView(
+      child: Center(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 32.0),
+          child: SizedBox(
+            width: 800,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const SizedBox(height: 32),
+                BootTitle(
+                  title: 'Restore your wallet',
+                  subtitle:
+                      'Restore your mainchain wallet and all sidechain wallets from a seed phrase, local wallet backup, or backup file.',
                 ),
-              ),
-              const SizedBox(height: 24),
-              if (_error != null)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: SailStyleValues.padding08),
-                  child: SailText.primary13(_error!, color: theme.colors.error),
-                ),
-              // Navigation buttons
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  SailButton(
-                    label: '← Back',
-                    variant: ButtonVariant.secondary,
-                    onPressed: () async {
-                      // If we started on this screen and haven't navigated internally, pop the route
-                      if (widget.initialScreen == _currentScreen && !_hasNavigatedInternally) {
-                        if (widget.onBack != null) {
-                          widget.onBack!();
-                        } else {
-                          await context.router.maybePop();
-                        }
-                      } else {
-                        _setScreen(WelcomeScreen.initial);
-                      }
-                    },
+                const SizedBox(height: 24),
+                if (hasExistingWallet) ...[
+                  SailTextField(
+                    controller: _walletNameController,
+                    hintText: 'Wallet name (required)',
+                    textFieldType: TextFieldType.text,
+                    size: TextFieldSize.regular,
                   ),
-                  SailButton(
-                    label: 'Restore',
-                    variant: ButtonVariant.primary,
-                    disabled: _awaitingBackend,
-                    loading: _awaitingBackend,
-                    onPressed: _handleRestore,
-                    loadingLabel: _awaitingBackend ? 'Connecting to bitwindowd…' : 'Restoring your wallet',
-                  ),
+                  const SizedBox(height: 16),
                 ],
-              ),
-              const SizedBox(height: 32),
-            ],
+                SailTextField(
+                  controller: _mnemonicController,
+                  hintText: 'Enter BIP39 mnemonic (12 or 24 words)',
+                  maxLines: 3,
+                  textFieldType: TextFieldType.text,
+                  size: TextFieldSize.regular,
+                ),
+                const SizedBox(height: 16),
+                SailTextField(
+                  controller: _passphraseController,
+                  hintText: 'Optional passphrase',
+                  textFieldType: TextFieldType.text,
+                  size: TextFieldSize.regular,
+                ),
+                // Upload a wallet backup file as an alternative to the seed.
+                if (widget.onRestoreFromFile != null) ...[
+                  const SizedBox(height: 24),
+                  _orDivider(theme),
+                  const SizedBox(height: 24),
+                  _buildFileRestoreField(theme),
+                ],
+                // Additional restore options (e.g., file restore for BitWindow)
+                if (widget.additionalRestoreOptionsBuilder != null) ...[
+                  const SizedBox(height: 24),
+                  widget.additionalRestoreOptionsBuilder!(context),
+                ],
+                const SizedBox(height: 24),
+                if (_error != null)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: SailStyleValues.padding08),
+                    child: SailText.primary13(_error!, color: theme.colors.error),
+                  ),
+                // Navigation buttons
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    SailButton(
+                      label: '← Back',
+                      variant: ButtonVariant.secondary,
+                      onPressed: () async {
+                        // If we started on this screen and haven't navigated internally, pop the route
+                        if (widget.initialScreen == _currentScreen && !_hasNavigatedInternally) {
+                          if (widget.onBack != null) {
+                            widget.onBack!();
+                          } else {
+                            await context.router.maybePop();
+                          }
+                        } else {
+                          _setScreen(WelcomeScreen.initial);
+                        }
+                      },
+                    ),
+                    SailButton(
+                      label: 'Restore',
+                      variant: ButtonVariant.primary,
+                      disabled: _awaitingBackend,
+                      loading: _awaitingBackend,
+                      onPressed: _handleRestore,
+                      loadingLabel: _awaitingBackend ? 'Connecting to bitwindowd…' : 'Restoring your wallet',
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 32),
+              ],
+            ),
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _orDivider(SailThemeData theme) {
+    return Row(
+      children: [
+        Expanded(child: Divider(color: theme.colors.divider)),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          child: SailText.secondary13('or'),
+        ),
+        Expanded(child: Divider(color: theme.colors.divider)),
+      ],
+    );
+  }
+
+  Widget _buildFileRestoreField(SailThemeData theme) {
+    final selected = _selectedBackupFile;
+    return GestureDetector(
+      onTap: () async {
+        final result = await FilePicker.pickFiles(
+          dialogTitle: 'Upload wallet backup',
+          type: FileType.custom,
+          allowedExtensions: ['zip', 'json'],
+        );
+        final pickedPath = result?.files.single.path;
+        if (pickedPath != null) {
+          setState(() {
+            _selectedBackupFile = File(pickedPath);
+            _error = null;
+          });
+        }
+      },
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          border: Border.all(color: selected != null ? theme.colors.primary : theme.colors.border),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Row(
+          children: [
+            Icon(Icons.upload_file, color: theme.colors.textSecondary, size: 20),
+            const SizedBox(width: 12),
+            Expanded(
+              child: SailText.secondary13(
+                selected != null ? selected.uri.pathSegments.last : 'Upload wallet backup (.zip or .json)',
+              ),
+            ),
+            if (selected != null)
+              GestureDetector(
+                onTap: () => setState(() => _selectedBackupFile = null),
+                child: Icon(Icons.close, color: theme.colors.textSecondary, size: 18),
+              ),
+          ],
         ),
       ),
     );
@@ -1079,6 +1108,22 @@ class _SailCreateWalletPageState extends State<SailCreateWalletPage> {
 
   Future<void> _handleRestore() async {
     if (mounted) setState(() => _error = null);
+
+    // A chosen backup file takes precedence over the seed phrase.
+    final backupFile = _selectedBackupFile;
+    if (backupFile != null && widget.onRestoreFromFile != null) {
+      if (mounted) setState(() => _awaitingBackend = true);
+      try {
+        await widget.onRestoreFromFile!(backupFile);
+        if (mounted) _setScreen(WelcomeScreen.success);
+      } catch (e) {
+        if (mounted) setState(() => _error = 'Failed to restore from backup file: $e');
+      } finally {
+        if (mounted) setState(() => _awaitingBackend = false);
+      }
+      return;
+    }
+
     if (!_isValidMnemonic(_mnemonicController.text)) {
       if (mounted) {
         setState(() => _error = 'Invalid mnemonic format. Please enter 12 or 24 words.');
