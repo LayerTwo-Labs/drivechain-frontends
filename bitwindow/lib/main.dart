@@ -866,6 +866,21 @@ Future<void> rebootBitwindowBackend(Logger log) async {
   await bootBitwindowBackend(log);
 }
 
+// Restores a wallet from a backup file (.zip/.json). The backend RestoreBackup
+// RPC writes the wallet and reboots the L1 stack so the enforcer picks it up —
+// the frontend just hands over the file.
+Future<void> restoreBitwindowWalletFromFile(File backupFile) async {
+  final walletApi = GetIt.I.get<BitwindowRPC>().wallet;
+  final bytes = await backupFile.readAsBytes();
+  final filename = backupFile.uri.pathSegments.last;
+
+  final validation = await walletApi.validateBackup(bytes, filename);
+  if (!validation.valid) {
+    throw Exception(validation.errorMessage.isNotEmpty ? validation.errorMessage : 'Invalid backup file');
+  }
+  await walletApi.restoreBackup(bytes, filename);
+}
+
 Future<void> setupSignalHandlers(Logger log) async {
   // SIGINT and SIGTERM are not properly supported on Windows
   if (Platform.isWindows) {

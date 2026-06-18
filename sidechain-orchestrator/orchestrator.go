@@ -496,13 +496,14 @@ func (o *Orchestrator) Stop(ctx context.Context, name string, force bool) error 
 	}
 	o.monitorsMu.Unlock()
 
-	guiStopped, guiErr := o.stopSidechainGUI(ctx, name, force)
+	_, guiErr := o.stopSidechainGUI(ctx, name, force)
 
+	// Stopping a daemon that isn't running is a no-op success, not an error:
+	// first-launch wallet restore stops the L1 stack before rebooting, and on
+	// first launch those daemons were never started.
 	var err error
 	if o.process.IsRunning(name) {
 		err = o.process.Stop(ctx, name, force)
-	} else if !guiStopped {
-		err = fmt.Errorf("%s is not running", name)
 	}
 
 	// Always mark the monitor as stopped, even if process.Stop failed
