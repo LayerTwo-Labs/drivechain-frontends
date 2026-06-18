@@ -22,6 +22,8 @@ class SailButton extends StatefulWidget {
   final bool disabled;
   final SailSVGAsset? icon;
   final SailSVGAsset? endIcon;
+  // Icon rendered after the label, tinted with the variant's foreground color.
+  final SailSVGAsset? trailingIcon;
   final EdgeInsets? padding;
   final double? iconHeight;
   final double? iconWidth;
@@ -40,6 +42,7 @@ class SailButton extends StatefulWidget {
     this.disabled = false,
     this.icon,
     this.endIcon,
+    this.trailingIcon,
     this.iconHeight,
     this.iconWidth,
     this.padding,
@@ -95,6 +98,7 @@ class _SailButtonState extends State<SailButton> {
       loadingLabel: widget.loadingLabel,
       icon: widget.icon,
       endIcon: widget.endIcon,
+      trailingIcon: widget.trailingIcon,
       iconHeight: widget.iconHeight,
       iconWidth: widget.iconWidth,
       label: widget.label,
@@ -138,6 +142,7 @@ class _ButtonContent extends StatelessWidget {
   final String? loadingLabel;
   final SailSVGAsset? icon;
   final SailSVGAsset? endIcon;
+  final SailSVGAsset? trailingIcon;
   final double? iconHeight;
   final double? iconWidth;
   final String? label;
@@ -151,6 +156,7 @@ class _ButtonContent extends StatelessWidget {
     this.loadingLabel,
     this.icon,
     this.endIcon,
+    this.trailingIcon,
     this.iconHeight,
     this.iconWidth,
     this.label,
@@ -204,6 +210,14 @@ class _ButtonContent extends StatelessWidget {
                   bold: true,
                   decoration: variant == ButtonVariant.link ? TextDecoration.underline : null,
                 ),
+        if (trailingIcon != null) ...[
+          if (label != null || icon != null || endIcon != null) const SizedBox(width: 6),
+          SailSVG.fromAsset(
+            trailingIcon!,
+            color: foregroundColor,
+            width: 10,
+          ),
+        ],
       ],
     );
   }
