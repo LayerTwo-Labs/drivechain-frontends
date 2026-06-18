@@ -74,32 +74,160 @@ class CrossPlatformMenuBar extends StatelessWidget {
       return PlatformMenuBar(menus: _withEditMenu(menus), child: child);
     }
 
+    return _CustomMenuBar(menus: menus, child: child);
+  }
+}
+
+// _CustomMenuBar renders the top menu bar on Linux/Windows (macOS uses the
+// native PlatformMenuBar). It owns a _MenuAimController so an open dropdown
+// isn't stolen by a sibling button while the pointer moves diagonally toward
+// it — the "safety triangle" / menu-aim behaviour.
+class _CustomMenuBar extends StatefulWidget {
+  final List<PlatformMenuItem> menus;
+  final Widget child;
+
+  const _CustomMenuBar({required this.menus, required this.child});
+
+  @override
+  State<_CustomMenuBar> createState() => _CustomMenuBarState();
+}
+
+class _CustomMenuBarState extends State<_CustomMenuBar> {
+  final _MenuAimController _aim = _MenuAimController();
+
+  @override
+  Widget build(BuildContext context) {
     return Column(
       children: [
-        Container(
-          color: context.sailTheme.colors.background,
-          height: 28,
-          child: Row(
-            children: [
-              const SizedBox(width: 8),
-              for (final menu in menus)
-                if (menu is PlatformMenu) ...[
-                  _MenuButton(menu: menu),
-                  const SizedBox(width: 4),
-                ],
-            ],
+        MouseRegion(
+          onHover: (event) => _aim.updatePointer(event.position),
+          child: Container(
+            color: context.sailTheme.colors.background,
+            height: 28,
+            child: Row(
+              children: [
+                const SizedBox(width: 8),
+                for (final menu in widget.menus)
+                  if (menu is PlatformMenu) ...[
+                    _MenuButton(menu: menu, aim: _aim),
+                    const SizedBox(width: 4),
+                  ],
+              ],
+            ),
           ),
         ),
-        Expanded(child: child),
+        Expanded(child: widget.child),
       ],
     );
   }
 }
 
+// _MenuAimController coordinates hover-opening across the sibling _MenuButtons.
+// When a dropdown is open and the pointer is moving toward it, hovering a
+// neighbouring button is deferred instead of immediately switching menus, so a
+// diagonal path into the open dropdown doesn't snap it shut.
+class _MenuAimController {
+  // Lift the cone's base slightly above the panel so pointer samples in the gap
+  // between the bar and the dropdown still count as "aiming".
+  static const double _edgeTolerance = 6;
+  // Movement below this (logical px between samples) reads as "stopped", which
+  // ends the aim gesture so a rested-on sibling opens.
+  static const double _moveThreshold = 2.5;
+
+  Object? _openId;
+  Rect? _openRect;
+  Offset? _loc;
+  Offset? _prevLoc;
+
+  Object? _pendingId;
+  Rect? _pendingButtonRect;
+  VoidCallback? _pendingOpen;
+
+  void updatePointer(Offset position) {
+    _prevLoc = _loc ?? position;
+    _loc = position;
+    _maybeReleasePending();
+  }
+
+  void notifyOpened(Object id, Rect panelRect) {
+    _openId = id;
+    _openRect = panelRect;
+  }
+
+  void notifyClosed(Object id) {
+    if (_openId == id) {
+      _openId = null;
+      _openRect = null;
+    }
+    if (_pendingId == id) _clearPending();
+  }
+
+  // Decide whether a freshly-hovered button may open now. If another dropdown
+  // is open and the pointer is aiming at it, defer until the aim gesture ends;
+  // otherwise open immediately.
+  void requestOpen({required Object id, required Rect buttonRect, required VoidCallback open}) {
+    if (_openId == null || _openId == id || !_isAiming()) {
+      open();
+      return;
+    }
+    _pendingId = id;
+    _pendingButtonRect = buttonRect;
+    _pendingOpen = open;
+  }
+
+  void cancelRequest(Object id) {
+    if (_pendingId == id) _clearPending();
+  }
+
+  void _maybeReleasePending() {
+    final rect = _pendingButtonRect;
+    final loc = _loc;
+    if (_pendingId == null || rect == null || loc == null) return;
+    if (!rect.contains(loc)) {
+      _clearPending(); // pointer left the pending button — it was a pass-through
+      return;
+    }
+    if (!_isAiming()) {
+      final open = _pendingOpen;
+      _clearPending();
+      open?.call(); // aim gesture ended over the button — open it
+    }
+  }
+
+  void _clearPending() {
+    _pendingId = null;
+    _pendingButtonRect = null;
+    _pendingOpen = null;
+  }
+
+  // True when the pointer is moving into the triangle whose apex is the prior
+  // pointer sample and whose base is the open dropdown's near (top) edge.
+  bool _isAiming() {
+    final rect = _openRect;
+    final loc = _loc;
+    final prev = _prevLoc;
+    if (rect == null || rect.isEmpty || loc == null || prev == null) return false;
+    if ((loc - prev).distance < _moveThreshold) return false;
+    final base = rect.top - _edgeTolerance;
+    return _pointInTriangle(loc, prev, Offset(rect.left, base), Offset(rect.right, base));
+  }
+
+  static bool _pointInTriangle(Offset p, Offset a, Offset b, Offset c) {
+    double cross(Offset u, Offset v, Offset w) => (u.dx - w.dx) * (v.dy - w.dy) - (v.dx - w.dx) * (u.dy - w.dy);
+    final d1 = cross(p, a, b);
+    final d2 = cross(p, b, c);
+    final d3 = cross(p, c, a);
+    final hasNeg = d1 < 0 || d2 < 0 || d3 < 0;
+    final hasPos = d1 > 0 || d2 > 0 || d3 > 0;
+    return !(hasNeg && hasPos);
+  }
+}
+
 class _MenuButton extends StatefulWidget {
   final PlatformMenu menu;
+  final _MenuAimController aim;
 
-  const _MenuButton({required this.menu});
+  const _MenuButton({required this.menu, required this.aim});
 
   @override
   State<_MenuButton> createState() => _MenuButtonState();
@@ -107,6 +235,7 @@ class _MenuButton extends StatefulWidget {
 
 class _MenuButtonState extends State<_MenuButton> {
   late final MenuController _controller;
+  final GlobalKey _menuKey = GlobalKey();
   bool _isInButton = false;
   bool _isInMenu = false;
 
@@ -120,9 +249,35 @@ class _MenuButtonState extends State<_MenuButton> {
     // Add delay to make menu more forgiving when moving between areas
     Future.delayed(const Duration(milliseconds: 150), () {
       if (mounted && !_isInButton && !_isInMenu) {
-        _controller.close();
+        _close();
       }
     });
+  }
+
+  void _open() {
+    if (!_controller.isOpen) _controller.open();
+    // Capture the dropdown's rect once it has laid out so the aim controller
+    // can test the safety triangle against it.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      widget.aim.notifyOpened(this, _panelRect());
+    });
+  }
+
+  void _close() {
+    if (_controller.isOpen) _controller.close();
+    widget.aim.notifyClosed(this);
+  }
+
+  Rect _panelRect() {
+    final box = _menuKey.currentContext?.findRenderObject() as RenderBox?;
+    if (box == null || !box.hasSize) return Rect.zero;
+    return box.localToGlobal(Offset.zero) & box.size;
+  }
+
+  Rect _buttonRect() {
+    final box = context.findRenderObject() as RenderBox?;
+    if (box == null || !box.hasSize) return Rect.zero;
+    return box.localToGlobal(Offset.zero) & box.size;
   }
 
   @override
@@ -130,10 +285,11 @@ class _MenuButtonState extends State<_MenuButton> {
     return MouseRegion(
       onEnter: (_) => setState(() {
         _isInButton = true;
-        _controller.open();
+        widget.aim.requestOpen(id: this, buttonRect: _buttonRect(), open: _open);
       }),
       onExit: (_) => setState(() {
         _isInButton = false;
+        widget.aim.cancelRequest(this);
         _checkShouldClose();
       }),
       child: MenuAnchor(
@@ -153,9 +309,9 @@ class _MenuButtonState extends State<_MenuButton> {
             ),
             onPressed: () {
               if (controller.isOpen) {
-                controller.close();
+                _close();
               } else {
-                controller.open();
+                _open();
               }
             },
             child: SailText.primary13(widget.menu.label),
@@ -163,12 +319,20 @@ class _MenuButtonState extends State<_MenuButton> {
         },
         menuChildren: [
           MouseRegion(
-            onEnter: (_) => setState(() => _isInMenu = true),
+            onEnter: (_) {
+              setState(() => _isInMenu = true);
+              // Refresh the rect now that the panel is laid out, so later aim
+              // decisions use accurate bounds.
+              widget.aim.notifyOpened(this, _panelRect());
+            },
             onExit: (_) => setState(() {
               _isInMenu = false;
               _checkShouldClose();
             }),
-            child: SailMenu(items: _buildMenuItems(context, widget.menu)),
+            child: KeyedSubtree(
+              key: _menuKey,
+              child: SailMenu(items: _buildMenuItems(context, widget.menu)),
+            ),
           ),
         ],
       ),

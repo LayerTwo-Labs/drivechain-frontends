@@ -151,6 +151,26 @@ func (p *Parser) handleBlockTick(ctx context.Context) error {
 		return fmt.Errorf("fetch current height: %w", err)
 	}
 
+	// A node shorter than our processed tip means the chain was wiped (or
+	// rolled back deeper than the rewind-20 path below handles). A healthy
+	// node — and a fresh install (processed tip 0) — is never shorter than
+	// what we've already processed, so this only fires on a real wipe, not on
+	// the pruning/reindex/restart blips that keep the tip high. Left stale,
+	// the scanner reprocesses against blocks the node no longer has and pins
+	// bitcoind, which starves getblockchaininfo and the wallet readiness probe
+	// ("Backend not ready after 60s"). Drop the stale state and re-scan the
+	// node's actual chain from scratch.
+	if currentHeight < lastProcessedHeight {
+		zerolog.Ctx(ctx).Warn().
+			Uint32("processed_tip", lastProcessedHeight).
+			Uint32("node_tip", currentHeight).
+			Msg("bitcoind_engine/parser: node is behind our processed tip — chain wiped, resetting processed_blocks")
+		if err := blocks.WipeProcessedBlocks(ctx, p.db); err != nil {
+			return fmt.Errorf("wipe processed blocks on chain wipe: %w", err)
+		}
+		return nil
+	}
+
 	// While Core is still doing initial block download on a *full* chain
 	// (mainnet / forknet), skip the OP_RETURN scan entirely. Each scan
 	// fans out a parallel batch of blocks and issues per-tx
