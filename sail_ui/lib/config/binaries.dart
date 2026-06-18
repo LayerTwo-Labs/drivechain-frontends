@@ -2112,6 +2112,16 @@ Binary binaryFromJson(String key, Map<String, dynamic> json) {
       port: port,
       chainLayer: chainLayer,
     ),
+    BinaryType.BINARY_TYPE_LIQUID_SIGNET => LiquidSignet(
+      name: name,
+      version: version,
+      description: description,
+      repoUrl: repoUrl,
+      directories: directories,
+      metadata: metadata,
+      port: port,
+      chainLayer: chainLayer,
+    ),
     BinaryType.BINARY_TYPE_ZSIDE => ZSide(
       name: name,
       version: version,
