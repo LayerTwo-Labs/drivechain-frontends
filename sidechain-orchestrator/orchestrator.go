@@ -487,6 +487,13 @@ func (o *Orchestrator) Start(ctx context.Context, name string, args []string, en
 // Stop stops a running binary and marks its monitor as stopped so
 // the restart timer won't automatically bring it back.
 func (o *Orchestrator) Stop(ctx context.Context, name string, force bool) error {
+	// Validate the target up front so stopping an unknown/typo'd binary is a
+	// real error rather than a silent no-op success. A known-but-not-running
+	// binary still passes here and is handled as a no-op below.
+	if _, err := o.getConfig(name); err != nil {
+		return err
+	}
+
 	// Flip "stopping" before sending the signal so the frontend shows
 	// a stopping badge during the graceful-shutdown window. MarkStopped
 	// below clears the flag once the process has actually exited.

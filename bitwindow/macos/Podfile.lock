@@ -10,8 +10,6 @@ PODS:
     - CocoaAsyncSocket (~> 7.6)
     - Flutter
     - FlutterMacOS
-  - printing (1.0.0):
-    - FlutterMacOS
   - screen_retriever_macos (0.0.1):
     - FlutterMacOS
   - Sparkle (2.9.1)
@@ -21,7 +19,6 @@ DEPENDENCIES:
   - desktop_multi_window (from `Flutter/ephemeral/.symlinks/plugins/desktop_multi_window/macos`)
   - FlutterMacOS (from `Flutter/ephemeral`)
   - patrol (from `Flutter/ephemeral/.symlinks/plugins/patrol/darwin`)
-  - printing (from `Flutter/ephemeral/.symlinks/plugins/printing/macos`)
   - screen_retriever_macos (from `Flutter/ephemeral/.symlinks/plugins/screen_retriever_macos/macos`)
 
 SPEC REPOS:
@@ -38,8 +35,6 @@ EXTERNAL SOURCES:
     :path: Flutter/ephemeral
   patrol:
     :path: Flutter/ephemeral/.symlinks/plugins/patrol/darwin
-  printing:
-    :path: Flutter/ephemeral/.symlinks/plugins/printing/macos
   screen_retriever_macos:
     :path: Flutter/ephemeral/.symlinks/plugins/screen_retriever_macos/macos
 
@@ -49,7 +44,6 @@ SPEC CHECKSUMS:
   desktop_multi_window: 93667594ccc4b88d91a97972fd3b1b89667fa80a
   FlutterMacOS: d0db08ddef1a9af05a5ec4b724367152bb0500b1
   patrol: cea8074f183a2a4232d0ebd10569ae05149ada42
-  printing: c4cf83c78fd684f9bc318e6aadc18972aa48f617
   screen_retriever_macos: 452e51764a9e1cdb74b3c541238795849f21557f
   Sparkle: a4115cd9a339b297a61163256e6954d9e35297ce
 

@@ -964,13 +964,17 @@ class _VotesCell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        _VoteButton(asset: SailSVGAsset.thumbsUp, count: upvotes, onTap: onUpvote),
-        const SailSpacing(SailStyleValues.padding12),
-        _VoteButton(asset: SailSVGAsset.thumbsDown, count: downvotes, onTap: onDownvote),
-      ],
+    return FittedBox(
+      fit: BoxFit.scaleDown,
+      alignment: Alignment.centerLeft,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _VoteButton(asset: SailSVGAsset.thumbsUp, count: upvotes, onTap: onUpvote),
+          const SailSpacing(SailStyleValues.padding12),
+          _VoteButton(asset: SailSVGAsset.thumbsDown, count: downvotes, onTap: onDownvote),
+        ],
+      ),
     );
   }
 }
@@ -1089,6 +1093,7 @@ class CoinNewsTable extends StatelessWidget {
             final matchingTopic = allTopics.firstWhereOrNull((t) => t.topic == entry.topic);
             final votesCell = SailTableCell(
               value: '${entry.upvotes} / ${entry.downvotes}',
+              width: 110,
               child: _VotesCell(
                 upvotes: entry.upvotes.toInt(),
                 downvotes: entry.downvotes.toInt(),
