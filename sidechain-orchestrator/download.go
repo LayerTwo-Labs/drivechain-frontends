@@ -138,12 +138,6 @@ func (d *DownloadManager) DownloadWithOptions(ctx context.Context, config Binary
 	}
 
 	if !force {
-		if config.Name == "liquid-signet" && liquidSignetInstalled(d.dataDir, config.BinaryName) {
-			ch := make(chan DownloadProgress, 1)
-			ch <- DownloadProgress{Message: binPath, Done: true}
-			close(ch)
-			return ch, nil
-		}
 		if _, err := os.Stat(binPath); err == nil {
 			ch := make(chan DownloadProgress, 1)
 			ch <- DownloadProgress{Message: binPath, Done: true}
@@ -382,13 +376,6 @@ func (d *DownloadManager) States() map[string]DownloadState {
 		return true
 	})
 	return out
-}
-
-func liquidSignetInstalled(dataDir, binaryName string) bool {
-	binPath := BinaryPath(dataDir, binaryName)
-	_, launcherErr := os.Stat(binPath)
-	_, nodeErr := os.Stat(filepath.Join(filepath.Dir(binPath), "elementsd"))
-	return launcherErr == nil && nodeErr == nil
 }
 
 // resolveGitHubURL queries the GitHub releases API and finds the asset
