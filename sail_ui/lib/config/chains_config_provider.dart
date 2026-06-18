@@ -20,14 +20,13 @@ const _assetsPrefix = 'packages/sail_ui/assets';
 /// ## Migration system
 ///
 /// Migration files live in `assets/migrations/` as numbered JSON files:
-/// `001_chains_config.json`, `002_chains_config.json`, etc. The highest number
-/// is the current config and must mirror the bundled `chains_config.json`
-/// (same `version`, same content).
+/// `001_chains_config.json`, `002_chains_config.json`, etc. A migration can be
+/// a full replacement config or a compact patch with `"migration": "patch"`.
 ///
 /// On startup, if the on-disk config version is behind the latest migration,
-/// the latest config is adopted wholesale. Bump `version` and add a matching
-/// migration file whenever the bundled config changes. Paranoid mode skips
-/// this so manual edits survive.
+/// pending migrations are applied in order. Full migrations replace the config;
+/// patch migrations deep-merge into it. Paranoid mode skips this so manual
+/// edits survive.
 class ChainsConfigProvider extends ChangeNotifier {
   final log = Logger(level: Level.info);
   final File configFile;
@@ -108,12 +107,10 @@ class ChainsConfigProvider extends ChangeNotifier {
 
   /// Run pending migrations on the user's config file.
   ///
-  /// Pre-1.0, chains_config.json is app-owned: when the bundled config is
-  /// newer than the on-disk one, we adopt it wholesale. Anyone who wants to
-  /// keep manual edits enables paranoid mode, which skips this entirely (see
-  /// [create]). The previous "replace only if it matches a baseline" scheme
-  /// could never fire once the asset changed without a matching version bump,
-  /// which left installs frozen on stale config.
+  /// Pre-1.0, chains_config.json is app-owned. Full migrations still replace
+  /// the config; patch migrations keep the diff small for targeted additions.
+  /// Anyone who wants to keep manual edits enables paranoid mode, which skips
+  /// this entirely (see [create]).
   static Future<void> _runMigrations(File configFile) async {
     final log = Logger(level: Level.info);
 
@@ -125,16 +122,36 @@ class ChainsConfigProvider extends ChangeNotifier {
       final available = await _discoverMigrations();
       if (available.isEmpty) return;
 
-      final latestVersion = available.last;
-      if (currentVersion >= latestVersion) return;
+      final pending = available.where((version) => version > currentVersion).toList();
+      if (pending.isEmpty) return;
 
-      log.i('Config version $currentVersion → $latestVersion: adopting latest config');
+      log.i('Config version $currentVersion → ${pending.last}: applying migrations');
 
-      final latest = await _loadMigration(latestVersion);
+      var migrated = userConfig;
+      for (final version in pending) {
+        final migration = await _loadMigration(version);
+        if (migration['migration'] == 'patch') {
+          final patch = Map<String, dynamic>.from(migration)..remove('migration');
+          _deepMerge(migrated, patch);
+        } else {
+          migrated = migration;
+        }
+      }
       final encoder = const JsonEncoder.withIndent('  ');
-      await configFile.writeAsString(encoder.convert(latest));
+      await configFile.writeAsString(encoder.convert(migrated));
     } catch (e) {
       log.w('Migration failed (config unchanged): $e');
+    }
+  }
+
+  static void _deepMerge(Map<String, dynamic> target, Map<String, dynamic> patch) {
+    for (final entry in patch.entries) {
+      final existing = target[entry.key];
+      if (existing is Map && entry.value is Map) {
+        _deepMerge(existing.cast<String, dynamic>(), (entry.value as Map).cast<String, dynamic>());
+      } else {
+        target[entry.key] = entry.value;
+      }
     }
   }
 

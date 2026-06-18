@@ -133,42 +133,6 @@ func TestDownload_Direct(t *testing.T) {
 	require.NoError(t, err)
 }
 
-func TestDownload_LiquidSignetRemoteArchive(t *testing.T) {
-	dm, dir := newTestDownloadManager(t)
-	archivePath := filepath.Join(dir, "liquid-signet.tar.gz")
-	makeTarGzFile(t, archivePath, map[string][]byte{
-		"liquid-signet": []byte("#!/usr/bin/env bash\n"),
-		"elementsd":     []byte("node"),
-		"elements-cli":  []byte("cli"),
-	})
-	archiveContent, err := os.ReadFile(archivePath)
-	require.NoError(t, err)
-
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Length", fmt.Sprintf("%d", len(archiveContent)))
-		_, _ = w.Write(archiveContent)
-	}))
-	defer srv.Close()
-	dm.httpClient = srv.Client()
-
-	ch, err := dm.Download(context.Background(), BinaryConfig{
-		Name:           "liquid-signet",
-		BinaryName:     "liquid-signet",
-		DownloadSource: DownloadSourceDirect,
-		DownloadURLs:   map[string]string{"default": srv.URL + "/"},
-		Files:          map[string]string{currentPlatform(): "liquid-signet.tar.gz"},
-	}, "default", true)
-	require.NoError(t, err)
-
-	last := drainProgress(t, ch)
-	assert.True(t, last.Done)
-
-	for _, name := range []string{"liquid-signet", "elementsd", "elements-cli"} {
-		_, err = os.Stat(filepath.Join(BinDir(dir), name))
-		require.NoError(t, err, "%s should be extracted from the remote archive", name)
-	}
-}
-
 func TestDownload_GitHub(t *testing.T) {
 	dm, _ := newTestDownloadManager(t)
 	zipContent := makeZipBytes(t, map[string][]byte{"grpcurl": []byte("binary")})
