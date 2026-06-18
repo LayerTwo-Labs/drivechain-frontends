@@ -223,6 +223,26 @@ func addToZip(zw *zip.Writer, name string, data []byte) error {
 	return err
 }
 
+// caps decompressed size of a backup zip entry to stop zip bombs (var for tests)
+var maxBackupEntrySize int64 = 50 << 20 // 50 MiB
+
+// readZipEntry reads a zip entry, rejecting ones larger than maxBackupEntrySize
+func readZipEntry(f *zip.File) ([]byte, error) {
+	rc, err := f.Open()
+	if err != nil {
+		return nil, err
+	}
+	defer rc.Close()
+	data, err := io.ReadAll(io.LimitReader(rc, maxBackupEntrySize+1))
+	if err != nil {
+		return nil, err
+	}
+	if int64(len(data)) > maxBackupEntrySize {
+		return nil, fmt.Errorf("backup entry %q exceeds %d byte limit", f.Name, maxBackupEntrySize)
+	}
+	return data, nil
+}
+
 func (e *BackupEngine) exportMultisigJSON(ctx context.Context) ([]byte, error) {
 	groups, err := e.multisigStore.ListGroups(ctx)
 	if err != nil {
@@ -437,12 +457,7 @@ func (e *BackupEngine) validateZIP(data []byte) (*BackupContents, error) {
 	for _, f := range r.File {
 		switch f.Name {
 		case "wallet.json":
-			rc, err := f.Open()
-			if err != nil {
-				return nil, fmt.Errorf("open wallet.json in zip: %w", err)
-			}
-			walletData, err := io.ReadAll(rc)
-			rc.Close()
+			walletData, err := readZipEntry(f)
 			if err != nil {
 				return nil, fmt.Errorf("read wallet.json in zip: %w", err)
 			}
@@ -451,12 +466,7 @@ func (e *BackupEngine) validateZIP(data []byte) (*BackupContents, error) {
 			}
 			contents.HasWallet = true
 		case "multisig/multisig.json", "multisig\\multisig.json":
-			rc, err := f.Open()
-			if err != nil {
-				continue
-			}
-			msData, err := io.ReadAll(rc)
-			rc.Close()
+			msData, err := readZipEntry(f)
 			if err != nil {
 				continue
 			}
@@ -465,12 +475,7 @@ func (e *BackupEngine) validateZIP(data []byte) (*BackupContents, error) {
 				contents.HasMultisig = true
 			}
 		case "transactions.json":
-			rc, err := f.Open()
-			if err != nil {
-				continue
-			}
-			txData, err := io.ReadAll(rc)
-			rc.Close()
+			txData, err := readZipEntry(f)
 			if err != nil {
 				continue
 			}
@@ -495,26 +500,24 @@ func extractZIP(data []byte) (walletJSON, metadataJSON, multisigJSON, txJSON []b
 	}
 
 	for _, f := range r.File {
-		rc, err := f.Open()
-		if err != nil {
-			continue
-		}
-		content, err := io.ReadAll(rc)
-		rc.Close()
-		if err != nil {
-			continue
-		}
-
+		var dst *[]byte
 		switch f.Name {
 		case "wallet.json":
-			walletJSON = content
+			dst = &walletJSON
 		case "metadata.json":
-			metadataJSON = content
+			dst = &metadataJSON
 		case "multisig/multisig.json", "multisig\\multisig.json":
-			multisigJSON = content
+			dst = &multisigJSON
 		case "transactions.json":
-			txJSON = content
+			dst = &txJSON
+		default:
+			continue
 		}
+		content, rerr := readZipEntry(f)
+		if rerr != nil {
+			return nil, nil, nil, nil, fmt.Errorf("read %s in zip: %w", f.Name, rerr)
+		}
+		*dst = content
 	}
 
 	return
