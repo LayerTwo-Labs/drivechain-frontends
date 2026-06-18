@@ -12,6 +12,9 @@ class SailDropdownButton<T> extends StatefulWidget {
   final bool openOnHover;
   final List<Widget>? menuChildren;
   final bool hideCurrentlySelectedFromList;
+  // When set, the trigger renders as a SailButton of this variant with a
+  // trailing chevron, matching that button style exactly.
+  final ButtonVariant? variant;
 
   const SailDropdownButton({
     required this.items,
@@ -24,6 +27,7 @@ class SailDropdownButton<T> extends StatefulWidget {
     this.openOnHover = false,
     this.menuChildren,
     this.hideCurrentlySelectedFromList = false,
+    this.variant,
     super.key,
   });
 
@@ -35,6 +39,7 @@ class _SailDropdownButtonState<T> extends State<SailDropdownButton<T>> {
   late final MenuController _controller;
   bool _isInButton = false;
   bool _isInMenu = false;
+  bool _open = false;
 
   @override
   void initState() {
@@ -84,47 +89,67 @@ class _SailDropdownButtonState<T> extends State<SailDropdownButton<T>> {
       currentDisplay = widget.hint != null ? SailText.primary12(widget.hint!, color: Colors.white) : const SizedBox();
     }
 
-    final button = MouseRegion(
-      cursor: SystemMouseCursors.click,
-      child: InkWell(
-        onTap: () async {
-          if (_controller.isOpen) {
-            _controller.close();
-          } else {
-            _controller.open();
-          }
-        },
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-            border: Border.all(
-              color: context.sailTheme.colors.border,
-              width: 1,
+    void toggleMenu() {
+      if (_controller.isOpen) {
+        _controller.close();
+      } else {
+        _controller.open();
+      }
+    }
+
+    final Widget button;
+    if (widget.variant != null) {
+      final selectedIndex = widget.items.indexWhere((e) => e.value == widget.value);
+      final buttonLabel = selectedIndex >= 0 ? widget.items[selectedIndex].displayLabel : (widget.hint ?? '');
+      button = SailButton(
+        label: buttonLabel,
+        variant: widget.variant!,
+        onPressed: () async => toggleMenu(),
+        trailingIcon: _open ? SailSVGAsset.chevronUp : SailSVGAsset.chevronDown,
+      );
+    } else {
+      button = MouseRegion(
+        cursor: SystemMouseCursors.click,
+        child: InkWell(
+          onTap: () async => toggleMenu(),
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              border: Border.all(
+                color: context.sailTheme.colors.border,
+                width: 1,
+              ),
+              borderRadius: theme.chrome.radius,
+              color: widget.value == null ? theme.colors.primary : Colors.transparent,
             ),
-            borderRadius: theme.chrome.radius,
-            color: widget.value == null ? theme.colors.primary : Colors.transparent,
-          ),
-          child: Padding(
-            padding: EdgeInsets.symmetric(vertical: 6, horizontal: 12),
-            child: SailRow(
-              spacing: SailStyleValues.padding08,
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                currentDisplay,
-                SailSVG.fromAsset(
-                  _controller.isOpen ? SailSVGAsset.chevronUp : SailSVGAsset.chevronDown,
-                  color: widget.value == null ? Colors.white : theme.colors.text,
-                  width: 13,
-                ),
-              ],
+            child: Padding(
+              padding: EdgeInsets.symmetric(vertical: 6, horizontal: 12),
+              child: SailRow(
+                spacing: SailStyleValues.padding08,
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  currentDisplay,
+                  SailSVG.fromAsset(
+                    _open ? SailSVGAsset.chevronUp : SailSVGAsset.chevronDown,
+                    color: widget.value == null ? Colors.white : theme.colors.text,
+                    width: 13,
+                  ),
+                ],
+              ),
             ),
           ),
         ),
-      ),
-    );
+      );
+    }
 
     final menuAnchor = MenuAnchor(
       controller: _controller,
+      onOpen: () {
+        if (mounted) setState(() => _open = true);
+      },
+      onClose: () {
+        if (mounted) setState(() => _open = false);
+      },
       style: MenuStyle(
         backgroundColor: WidgetStatePropertyAll(
           context.sailTheme.colors.background,
