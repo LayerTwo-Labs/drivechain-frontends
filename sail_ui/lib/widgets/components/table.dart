@@ -629,7 +629,7 @@ class _TableRowState extends State<_TableRow> {
       onEnter: (_) => setState(() => isHovered = true),
       onExit: (_) => setState(() => isHovered = false),
       child: GestureDetector(
-        onLongPressDown: (_) {
+        onTap: () {
           widget.onPressed();
         },
         onDoubleTapDown: widget.onDoubleTap == null

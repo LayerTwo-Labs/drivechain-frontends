@@ -1152,23 +1152,18 @@ void showCoinNewsArticle(BuildContext context, CoinNews news) {
     showSailSheet(
       context: context,
       side: SailSheetSide.bottom,
-      size: MediaQuery.of(context).size.height * 0.9,
+      size: MediaQuery.of(context).size.height * 0.95,
       builder: (context) {
-        return Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 700),
-            child: CoinNewsArticlePanel(
-              news: news,
-              onClose: () => Navigator.of(context).pop(),
-            ),
-          ),
+        return CoinNewsArticlePanel(
+          news: news,
+          onClose: () => Navigator.of(context).pop(),
         );
       },
     ),
   );
 }
 
-class CoinNewsArticlePanel extends StatelessWidget {
+class CoinNewsArticlePanel extends StatefulWidget {
   final CoinNews news;
   final VoidCallback onClose;
 
@@ -1179,124 +1174,10 @@ class CoinNewsArticlePanel extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
-    final currentTheme = SailTheme.of(context);
-
-    // Use the opposite theme for the article panel
-    final oppositeThemeData = currentTheme.isLightMode()
-        ? SailThemeData.darkTheme(currentTheme.colors.primary, currentTheme.dense, currentTheme.font)
-        : SailThemeData.lightTheme(currentTheme.colors.primary, currentTheme.dense, currentTheme.font);
-
-    return SailTheme(
-      data: oppositeThemeData,
-      child: Builder(
-        builder: (context) {
-          final theme = SailTheme.of(context);
-
-          return SailCard(
-            padding: false,
-            color: theme.colors.background,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: SailStyleValues.padding16,
-                    vertical: SailStyleValues.padding10,
-                  ),
-                  decoration: BoxDecoration(
-                    color: theme.colors.background,
-                    border: Border(
-                      bottom: BorderSide(color: theme.colors.divider, width: 1),
-                    ),
-                  ),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: SailText.primary13(news.headline, bold: true),
-                      ),
-                      SailButton(
-                        label: 'Close',
-                        variant: ButtonVariant.ghost,
-                        onPressed: () async => onClose(),
-                      ),
-                    ],
-                  ),
-                ),
-                Expanded(
-                  child: Container(
-                    color: theme.colors.background,
-                    child: SelectionArea(
-                      child: SingleChildScrollView(
-                        padding: const EdgeInsets.all(SailStyleValues.padding16),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            if (news.url.isNotEmpty) ...[
-                              GestureDetector(
-                                onTap: () async => launchUrl(Uri.parse(news.url)),
-                                child: SailText.primary13(news.url, color: theme.colors.primary),
-                              ),
-                              const SailSpacing(SailStyleValues.padding12),
-                            ],
-                            MarkdownBody(
-                              data: news.content,
-                              styleSheet: MarkdownStyleSheet(
-                                p: SailStyleValues.thirteen.copyWith(color: theme.colors.text),
-                                h1: SailStyleValues.twenty.copyWith(color: theme.colors.text),
-                                h2: SailStyleValues.twenty.copyWith(color: theme.colors.text),
-                                h3: SailStyleValues.fifteen.copyWith(color: theme.colors.text),
-                                listBullet: SailStyleValues.thirteen.copyWith(color: theme.colors.text),
-                                pPadding: const EdgeInsets.only(bottom: 12),
-                                blockquoteDecoration: BoxDecoration(
-                                  color: SailColorScheme.transparent,
-                                  borderRadius: SailStyleValues.borderRadius,
-                                ),
-                                codeblockDecoration: BoxDecoration(
-                                  color: theme.colors.backgroundSecondary,
-                                  borderRadius: SailStyleValues.borderRadius,
-                                ),
-                                code: SailStyleValues.thirteen.copyWith(
-                                  color: theme.colors.text,
-                                  fontFamily: 'IBMPlexMono',
-                                ),
-                                codeblockPadding: const EdgeInsets.all(12),
-                              ),
-                              onTapLink: (_, href, _) async {
-                                if (href == null) return;
-                                await launchUrl(Uri.parse(href));
-                              },
-                            ),
-                            const SailSpacing(SailStyleValues.padding20),
-                            if (news.itemId.isNotEmpty) _CommentsSection(itemId: news.itemId),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          );
-        },
-      ),
-    );
-  }
+  State<CoinNewsArticlePanel> createState() => _CoinNewsArticlePanelState();
 }
 
-/// _CommentsSection renders the reply thread for an Item (spec §7) and a
-/// compose box to post a new comment. Replies nest under their parent;
-/// siblings are ordered by §13 score.
-class _CommentsSection extends StatefulWidget {
-  final String itemId;
-
-  const _CommentsSection({required this.itemId});
-
-  @override
-  State<_CommentsSection> createState() => _CommentsSectionState();
-}
-
-class _CommentsSectionState extends State<_CommentsSection> {
+class _CoinNewsArticlePanelState extends State<CoinNewsArticlePanel> {
   BitwindowRPC get api => GetIt.I.get<BitwindowRPC>();
 
   List<Comment> _comments = [];
@@ -1305,26 +1186,30 @@ class _CommentsSectionState extends State<_CommentsSection> {
   String? _error;
   String? _replyTo; // item_id being replied to; null = top-level
   final Set<String> _voted = {}; // items voted on this session (§8 dedup)
-  final TextEditingController _controller = TextEditingController(); // top-level composer
-  final TextEditingController _replyController = TextEditingController(); // inline reply composer
+  final TextEditingController _controller = TextEditingController();
+
+  String get _itemId => widget.news.itemId;
 
   @override
   void initState() {
     super.initState();
-    _load();
+    if (_itemId.isNotEmpty) {
+      _load();
+    } else {
+      _loading = false;
+    }
   }
 
   @override
   void dispose() {
     _controller.dispose();
-    _replyController.dispose();
     super.dispose();
   }
 
   Future<void> _load() async {
     setState(() => _loading = true);
     try {
-      final comments = await api.misc.listComments(widget.itemId);
+      final comments = await api.misc.listComments(_itemId);
       if (!mounted) return;
       setState(() {
         _comments = comments;
@@ -1339,15 +1224,13 @@ class _CommentsSectionState extends State<_CommentsSection> {
   }
 
   Future<void> _post() async {
-    final replying = _replyTo != null;
-    final controller = replying ? _replyController : _controller;
-    final body = controller.text.trim();
+    final body = _controller.text.trim();
     if (body.isEmpty || _posting) return;
     setState(() => _posting = true);
     try {
-      await api.misc.commentNews(_replyTo ?? widget.itemId, body);
+      await api.misc.commentNews(_replyTo ?? _itemId, body);
       if (!mounted) return;
-      controller.clear();
+      _controller.clear();
       setState(() => _replyTo = null);
       await _load();
     } catch (e) {
@@ -1390,8 +1273,123 @@ class _CommentsSectionState extends State<_CommentsSection> {
 
   @override
   Widget build(BuildContext context) {
+    final currentTheme = SailTheme.of(context);
+
+    // Use the opposite theme for the article panel
+    final oppositeThemeData = currentTheme.isLightMode()
+        ? SailThemeData.darkTheme(currentTheme.colors.primary, currentTheme.dense, currentTheme.font)
+        : SailThemeData.lightTheme(currentTheme.colors.primary, currentTheme.dense, currentTheme.font);
+
+    return SailTheme(
+      data: oppositeThemeData,
+      child: Builder(
+        builder: (context) {
+          final theme = SailTheme.of(context);
+
+          return SailCard(
+            padding: false,
+            color: theme.colors.background,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: Padding(
+                    padding: const EdgeInsets.all(SailStyleValues.padding08),
+                    child: SailButton(
+                      label: 'Close',
+                      variant: ButtonVariant.ghost,
+                      onPressed: () async => widget.onClose(),
+                    ),
+                  ),
+                ),
+                Expanded(
+                  child: SelectionArea(
+                    child: SingleChildScrollView(
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(
+                          SailStyleValues.padding40,
+                          SailStyleValues.padding08,
+                          SailStyleValues.padding40,
+                          SailStyleValues.padding40,
+                        ),
+                        child: ConstrainedBox(
+                          constraints: const BoxConstraints(maxWidth: 860),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              SailText.primary24(widget.news.headline, bold: true),
+                              const SailSpacing(SailStyleValues.padding12),
+                              SailText.secondary13(
+                                widget.news.topic.isEmpty
+                                    ? formatDate(widget.news.createTime.toDateTime())
+                                    : '${widget.news.topic}  ·  ${formatDate(widget.news.createTime.toDateTime())}',
+                                color: theme.colors.textTertiary,
+                              ),
+                              const SailSpacing(SailStyleValues.padding16),
+                              Container(height: 1, color: theme.colors.divider),
+                              const SailSpacing(SailStyleValues.padding20),
+                              if (widget.news.url.isNotEmpty) ...[
+                                GestureDetector(
+                                  onTap: () async => launchUrl(Uri.parse(widget.news.url)),
+                                  child: SailText.primary13(widget.news.url, color: theme.colors.primary),
+                                ),
+                                const SailSpacing(SailStyleValues.padding16),
+                              ],
+                              MarkdownBody(
+                                data: widget.news.content,
+                                styleSheet: MarkdownStyleSheet(
+                                  p: SailStyleValues.fifteen.copyWith(color: theme.colors.text, height: 1.6),
+                                  h1: SailStyleValues.twentyTwo.copyWith(color: theme.colors.text),
+                                  h2: SailStyleValues.twenty.copyWith(color: theme.colors.text),
+                                  h3: SailStyleValues.fifteen.copyWith(
+                                    color: theme.colors.text,
+                                    fontWeight: SailStyleValues.boldWeight,
+                                  ),
+                                  listBullet: SailStyleValues.fifteen.copyWith(color: theme.colors.text, height: 1.6),
+                                  pPadding: const EdgeInsets.only(bottom: 16),
+                                  blockquoteDecoration: BoxDecoration(
+                                    color: SailColorScheme.transparent,
+                                    borderRadius: SailStyleValues.borderRadius,
+                                  ),
+                                  codeblockDecoration: BoxDecoration(
+                                    color: theme.colors.backgroundSecondary,
+                                    borderRadius: SailStyleValues.borderRadius,
+                                  ),
+                                  code: SailStyleValues.thirteen.copyWith(
+                                    color: theme.colors.text,
+                                    fontFamily: 'IBMPlexMono',
+                                  ),
+                                  codeblockPadding: const EdgeInsets.all(12),
+                                ),
+                                onTapLink: (_, href, _) async {
+                                  if (href == null) return;
+                                  await launchUrl(Uri.parse(href));
+                                },
+                              ),
+                              const SailSpacing(SailStyleValues.padding32),
+                              if (_itemId.isNotEmpty) _commentsThread(context),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                if (_itemId.isNotEmpty) _composerFooter(context),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  /// The comment thread (spec §7). Replies nest under their parent;
+  /// siblings are ordered by §13 score.
+  Widget _commentsThread(BuildContext context) {
     final theme = SailTheme.of(context);
-    final roots = _comments.where((c) => c.parentId == widget.itemId).toList();
+    final roots = _comments.where((c) => c.parentId == _itemId).toList();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1400,8 +1398,6 @@ class _CommentsSectionState extends State<_CommentsSection> {
         const SailSpacing(SailStyleValues.padding12),
         SailText.primary15('Comments (${_comments.length})', bold: true),
         const SailSpacing(SailStyleValues.padding12),
-        _composer(context, parentLabel: null, controller: _controller),
-        const SailSpacing(SailStyleValues.padding16),
         if (_loading)
           SailText.secondary12('Loading comments…')
         else if (_error != null)
@@ -1467,36 +1463,76 @@ class _CommentsSectionState extends State<_CommentsSection> {
             label: _replyTo == comment.itemId ? 'Cancel reply' : 'Reply',
             variant: ButtonVariant.ghost,
             onPressed: () async {
-              _replyController.clear();
               setState(() => _replyTo = _replyTo == comment.itemId ? null : comment.itemId);
             },
           ),
-          if (_replyTo == comment.itemId) ...[
-            const SailSpacing(SailStyleValues.padding08),
-            _composer(context, parentLabel: author, controller: _replyController),
-          ],
         ],
       ),
     );
   }
 
-  Widget _composer(BuildContext context, {required String? parentLabel, required TextEditingController controller}) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        if (parentLabel != null)
-          SailText.secondary12('Replying to $parentLabel', color: SailTheme.of(context).colors.textTertiary),
-        SailTextField(
-          hintText: parentLabel == null ? 'Add a comment…' : 'Write a reply…',
-          controller: controller,
-        ),
-        const SailSpacing(SailStyleValues.padding08),
-        SailButton(
-          label: 'Comment',
-          loading: _posting,
-          onPressed: () async => _post(),
-        ),
-      ],
+  /// Pinned composer at the bottom of the panel so posting the first
+  /// comment never requires scrolling past the article. Tapping a
+  /// comment's Reply re-targets this same box; otherwise it posts a
+  /// top-level comment.
+  Widget _composerFooter(BuildContext context) {
+    final theme = SailTheme.of(context);
+    final replying = _replyTo != null;
+
+    String? replyAuthor;
+    if (replying) {
+      final idx = _comments.indexWhere((c) => c.itemId == _replyTo);
+      if (idx != -1) {
+        final a = _comments[idx].author;
+        replyAuthor = a.length > 10 ? '${a.substring(0, 10)}…' : a;
+      }
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: SailStyleValues.padding40,
+        vertical: SailStyleValues.padding12,
+      ),
+      decoration: BoxDecoration(
+        color: theme.colors.background,
+        border: Border(top: BorderSide(color: theme.colors.divider, width: 1)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (replyAuthor != null) ...[
+            Row(
+              children: [
+                SailText.secondary12('Replying to $replyAuthor', color: theme.colors.textTertiary),
+                const SailSpacing(SailStyleValues.padding08),
+                SailButton(
+                  label: 'Cancel',
+                  variant: ButtonVariant.ghost,
+                  onPressed: () async => setState(() => _replyTo = null),
+                ),
+              ],
+            ),
+            const SailSpacing(SailStyleValues.padding04),
+          ],
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: SailTextField(
+                  hintText: replying ? 'Write a reply…' : 'Add a comment…',
+                  controller: _controller,
+                ),
+              ),
+              const SailSpacing(SailStyleValues.padding08),
+              SailButton(
+                label: 'Comment',
+                loading: _posting,
+                onPressed: () async => _post(),
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 }
