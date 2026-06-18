@@ -365,6 +365,9 @@ class _SailTableState extends State<SailTable> {
     TextStyle? textStyle;
 
     if (widget is SailTableCell) {
+      if (widget.width != null) {
+        return widget.width!;
+      }
       text = widget.value;
       textStyle = SailStyleValues.twelve.copyWith(
         fontFamily: widget.monospace ? 'IBMPlexMono' : 'Inter',
@@ -649,6 +652,7 @@ class SailTableCell extends StatelessWidget {
     required this.value,
     this.copyValue,
     this.child,
+    this.width,
     this.alignment = Alignment.centerLeft,
     this.padding = const EdgeInsets.symmetric(horizontal: 8),
     this.plainIconTheme,
@@ -663,6 +667,8 @@ class SailTableCell extends StatelessWidget {
   final String value;
   final String? copyValue;
   final Widget? child;
+  // Width override for cells whose child is wider than the value text.
+  final double? width;
   final Alignment alignment;
   final EdgeInsets padding;
   final SailSVGAsset? plainIconTheme;
