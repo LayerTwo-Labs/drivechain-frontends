@@ -15,6 +15,7 @@ import (
 	"syscall"
 	"time"
 
+	"connectrpc.com/grpcreflect"
 	"github.com/rs/zerolog"
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/h2c"
@@ -87,6 +88,12 @@ func main() {
 	mux := http.NewServeMux()
 	path, handler := connectrpc.NewCoinNewsServiceHandler(&api.Handler{DB: db})
 	mux.Handle(path, handler)
+
+	// Server reflection lets grpcurl/buf curl and other generic
+	// clients discover the service without a local copy of the proto.
+	reflector := grpcreflect.NewStaticReflector(connectrpc.CoinNewsServiceName)
+	mux.Handle(grpcreflect.NewHandlerV1(reflector))
+	mux.Handle(grpcreflect.NewHandlerV1Alpha(reflector))
 	mux.HandleFunc("/healthz", func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write([]byte("ok\n"))

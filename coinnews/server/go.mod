@@ -4,6 +4,7 @@ go 1.25.0
 
 require (
 	connectrpc.com/connect v1.19.0
+	connectrpc.com/grpcreflect v1.3.0
 	github.com/LayerTwo-Labs/sidesail/coinnews/codec v0.0.0
 	github.com/mattn/go-sqlite3 v1.14.32
 	github.com/rs/zerolog v1.34.0
