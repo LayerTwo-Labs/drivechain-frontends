@@ -1186,7 +1186,8 @@ const file_coinnews_v1_coinnews_proto_rawDesc = "" +
 	"\fListByAuthor\x12 .coinnews.v1.ListByAuthorRequest\x1a!.coinnews.v1.ListByAuthorResponse\x12P\n" +
 	"\vListByTopic\x12\x1f.coinnews.v1.ListByTopicRequest\x1a .coinnews.v1.ListByTopicResponse\x12E\n" +
 	"\n" +
-	"ListTopics\x12\x16.google.protobuf.Empty\x1a\x1f.coinnews.v1.ListTopicsResponseBNZLgithub.com/LayerTwo-Labs/sidesail/coinnews/server/gen/coinnews/v1;coinnewsv1b\x06proto3"
+	"ListTopics\x12\x16.google.protobuf.Empty\x1a\x1f.coinnews.v1.ListTopicsResponseB\xbb\x01\n" +
+	"\x0fcom.coinnews.v1B\rCoinnewsProtoP\x01ZLgithub.com/LayerTwo-Labs/sidesail/coinnews/server/gen/coinnews/v1;coinnewsv1\xa2\x02\x03CXX\xaa\x02\vCoinnews.V1\xca\x02\vCoinnews\\V1\xe2\x02\x17Coinnews\\V1\\GPBMetadata\xea\x02\fCoinnews::V1b\x06proto3"
 
 var (
 	file_coinnews_v1_coinnews_proto_rawDescOnce sync.Once

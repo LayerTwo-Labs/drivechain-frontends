@@ -1,5 +1,7 @@
-gen:
+gen: gen-server
     buf generate --template buf.web.gen.yaml server
+
+gen-server:
     cd server && buf generate --template buf.go.gen.yaml .
 
 build-client:
