@@ -453,12 +453,13 @@ func listCoinNewsNewFormat(ctx context.Context, db *sql.DB) ([]CoinNews, error) 
 	}
 	defer rows.Close()
 
-	hasContinuations, err := anyContinuations(ctx, db)
-	if err != nil {
-		return nil, err
+	type continuationTarget struct {
+		idx    int
+		itemID string
+		rawTLV []byte
 	}
-
 	var out []CoinNews
+	var toReassemble []continuationTarget
 	for rows.Next() {
 		var (
 			id        int64
@@ -485,13 +486,6 @@ func listCoinNewsNewFormat(ctx context.Context, db *sql.DB) ([]CoinNews, error) 
 		if strings.TrimSpace(headline) == "" {
 			continue
 		}
-		// §9: splice in any Continuation chunks to recover a long body
-		// that didn't fit in the head's 80-byte OP_RETURN.
-		if hasContinuations {
-			if body, ok := reassembledBody(ctx, db, itemID, rawTLV); ok {
-				content = body
-			}
-		}
 		var topic TopicID
 		copy(topic[:], rawTopic)
 		out = append(out, CoinNews{
@@ -510,9 +504,29 @@ func listCoinNewsNewFormat(ctx context.Context, db *sql.DB) ([]CoinNews, error) 
 			NSFW:      nsfw,
 			CreatedAt: &blockTime,
 		})
+		toReassemble = append(toReassemble, continuationTarget{idx: len(out) - 1, itemID: itemID, rawTLV: rawTLV})
 	}
 	if err := rows.Err(); err != nil {
 		return nil, fmt.Errorf("list coin news: iterate new-format stories: %w", err)
+	}
+	// Release the single DB connection this result set holds before issuing
+	// any follow-up query. The pool is MaxOpenConns(1): querying continuations
+	// while these rows are still open deadlocks — the follow-up waits forever
+	// for the one connection this result set is holding.
+	rows.Close()
+
+	// §9: splice in any Continuation chunks to recover long bodies that didn't
+	// fit in the head's 80-byte OP_RETURN.
+	hasContinuations, err := anyContinuations(ctx, db)
+	if err != nil {
+		return nil, err
+	}
+	if hasContinuations {
+		for _, t := range toReassemble {
+			if body, ok := reassembledBody(ctx, db, t.itemID, t.rawTLV); ok {
+				out[t.idx].Content = body
+			}
+		}
 	}
 	return out, nil
 }
