@@ -72,4 +72,20 @@ for target in "${targets[@]}"; do
     build_orch_tool  "$goarch" orchestratorctl "$assets_dir/orchestratorctl${sfx}${exe}"
 done
 
+# On macOS the loop above only writes arch-suffixed names. The release build
+# (build-app.sh) bundles those and resolves the host-arch one at launch via
+# embeddedAssetName. But `just run` execs the daemon straight from the source
+# tree under its plain (no-suffix) name — binaries.dart resolves
+# binDir(Directory.current)/<canonical> — so without a fresh no-suffix copy it
+# silently launches a stale leftover. Stage host-arch copies under the plain
+# names for that dev path. Gated on STAGE_PLAIN_BINARIES (set only by `just
+# run`) rather than CI: the release build calls this script too, and must NOT
+# get a duplicate plain binary bloating the bundle, CI or not.
+if [[ "$os" == "darwin" && "${STAGE_PLAIN_BINARIES:-}" == "1" ]]; then
+    host_token="$(uname -m)" # arm64 | x86_64, matches the suffix tokens above
+    for daemon in bitwindowd orchestratord orchestratorctl; do
+        cp -f "$assets_dir/${daemon}-${host_token}" "$assets_dir/${daemon}"
+    done
+fi
+
 echo "embedded daemons built into $assets_dir"

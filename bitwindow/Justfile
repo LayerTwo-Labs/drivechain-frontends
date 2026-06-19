@@ -20,11 +20,13 @@ gen-bitwindow-client:
 clean:
     rm assets/bin/*
 
-download:
-    bash scripts/download-binaries.sh
+download stage_plain="":
+    STAGE_PLAIN_BINARIES={{stage_plain}} bash scripts/download-binaries.sh
     flutter pub get
 
-run: download
+# `just run` execs the daemons from the source tree under their plain
+# (no-suffix) names, so stage fresh plain copies (see download-binaries.sh).
+run: (download "1")
     #!/usr/bin/env bash
     extra="${FLUTTER_RUN_ARGS:-}"
     case "$(uname -s)" in
