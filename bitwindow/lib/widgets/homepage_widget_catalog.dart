@@ -6,6 +6,7 @@ import 'package:bitwindow/pages/wallet/denability_page.dart';
 import 'package:bitwindow/providers/network_provider.dart';
 import 'package:bitwindow/routing/router.dart';
 import 'package:bitwindow/widgets/coinnews.dart';
+import 'package:bitwindow/widgets/fee_coinnews.dart';
 import 'package:bitwindow/widgets/fast_withdrawal_tab.dart';
 import 'package:bitwindow/widgets/mempool_widget.dart';
 import 'package:bitwindow/widgets/network_stats_widget.dart';
@@ -38,7 +39,33 @@ class HomepageWidgetCatalog {
     'coin_news': HomepageWidgetInfo(
       id: 'coin_news',
       name: 'Coin News',
-      description: 'Latest news from the blockchain',
+      description: 'Latest news, ranked by fee',
+      size: WidgetSize.half,
+      icon: SailSVGAsset.newspaper,
+      builder: (_) => ViewModelBuilder<FeeCoinNewsViewModel>.reactive(
+        viewModelBuilder: () => FeeCoinNewsViewModel(),
+        builder: (context, newsModel, child) {
+          return const FeeCoinNewsView();
+        },
+      ),
+    ),
+    'coin_news_large': HomepageWidgetInfo(
+      id: 'coin_news_large',
+      name: 'Coin News (Large)',
+      description: 'Dual-column news, ranked by fee',
+      size: WidgetSize.full,
+      icon: SailSVGAsset.newspaper,
+      builder: (_) => ViewModelBuilder<FeeCoinNewsLargeViewModel>.reactive(
+        viewModelBuilder: () => FeeCoinNewsLargeViewModel(),
+        builder: (context, newsModel, child) {
+          return const FeeCoinNewsLargeView();
+        },
+      ),
+    ),
+    'hacker_coin_news': HomepageWidgetInfo(
+      id: 'hacker_coin_news',
+      name: 'Hacker Coin News',
+      description: 'Coin news ranked Hacker-News style (votes + recency)',
       size: WidgetSize.half,
       icon: SailSVGAsset.newspaper,
       builder: (_) => ViewModelBuilder<CoinNewsViewModel>.reactive(
@@ -48,10 +75,10 @@ class HomepageWidgetCatalog {
         },
       ),
     ),
-    'coin_news_large': HomepageWidgetInfo(
-      id: 'coin_news_large',
-      name: 'Coin News (Large)',
-      description: 'Dual-column news display',
+    'hacker_coin_news_large': HomepageWidgetInfo(
+      id: 'hacker_coin_news_large',
+      name: 'Hacker Coin News (Large)',
+      description: 'Dual-column Hacker-News-style display',
       size: WidgetSize.full,
       icon: SailSVGAsset.newspaper,
       builder: (_) => ViewModelBuilder<CoinNewsLargeViewModel>.reactive(
