@@ -16,3 +16,11 @@ type BalanceResponse struct {
 	TotalSats     int64 `json:"total_sats"`
 	AvailableSats int64 `json:"available_sats"`
 }
+
+// PeginAddress is the result of `getpeginaddress`. A deposit (peg-in) funds
+// MainchainAddress on L1; ClaimScript is needed later to `claimpegin` the funds
+// onto the sidechain. For the deposit UI, MainchainAddress is what the user funds.
+type PeginAddress struct {
+	MainchainAddress string `json:"mainchain_address"`
+	ClaimScript      string `json:"claim_script"`
+}

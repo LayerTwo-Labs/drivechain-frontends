@@ -96,13 +96,17 @@ The deposit modal calls `sidechainRPC.getDepositAddress()`
 (`bitwindow/lib/pages/sidechains_page.dart`, `_fetchDepositAddress`).
 
 Add an orchestrator RPC (e.g. `GetSidechainDepositAddress`, or extend an existing
-one) that, for Liquid, calls `elements.Client.GetNewAddress` and returns the
-address. Wire the frontend deposit path to call it for slot 24. Apply
-`formatDepositAddress(address, slot)` on the frontend as the other chains do.
+one) that, for Liquid, calls `elements.Client.GetPeginAddress` and returns
+`MainchainAddress` — that's the L1 address the user funds to move BTC onto the
+sidechain. Wire the frontend deposit path to call it for slot 24.
 
-> Note: a Liquid peg-in is **not** a CUSF-style sidechain deposit. Confirm
-> whether `getnewaddress` is the correct peg-in destination for your
-> liquid-drivechain-signet build, or whether it needs a peg-in/claim script.
+> A Liquid peg-in is **not** a CUSF-style sidechain deposit. The flow is:
+> `getpeginaddress` → user funds the returned mainchain address → `claimpegin`
+> (with the claim script + funding-tx proof) credits the sidechain. The client
+> exposes `GetPeginAddress` (deposit address) and `SendToMainchain` (peg-out);
+> `claimpegin` still needs wiring (it requires the L1 funding tx + proof) and is
+> the next step after the address is shown. Do **not** use `getnewaddress` for
+> deposits — that returns a Liquid-side receive address, not a peg-in address.
 
 ## Task 3 — Connection status in the UI
 

@@ -99,7 +99,9 @@ func (c *Client) call(ctx context.Context, method string, params []json.RawMessa
 	return rpcResp.Result, nil
 }
 
-// GetNewAddress returns a fresh wallet address for a Liquid deposit.
+// GetNewAddress returns a fresh Liquid-side wallet address (for receiving L-BTC
+// on the sidechain). This is NOT the deposit/peg-in address — use
+// GetPeginAddress for moving BTC from L1 onto the sidechain.
 func (c *Client) GetNewAddress(ctx context.Context) (string, error) {
 	raw, err := c.call(ctx, "getnewaddress", nil)
 	if err != nil {
@@ -110,6 +112,56 @@ func (c *Client) GetNewAddress(ctx context.Context) (string, error) {
 		return "", fmt.Errorf("decode getnewaddress result: %w", err)
 	}
 	return addr, nil
+}
+
+// GetPeginAddress returns a peg-in (deposit) address. The user funds
+// MainchainAddress on L1; the funds are later claimed onto the sidechain with
+// `claimpegin` using ClaimScript. This is the address the deposit UI should show.
+func (c *Client) GetPeginAddress(ctx context.Context) (*PeginAddress, error) {
+	raw, err := c.call(ctx, "getpeginaddress", nil)
+	if err != nil {
+		return nil, err
+	}
+	var addr PeginAddress
+	if err := json.Unmarshal(raw, &addr); err != nil {
+		return nil, fmt.Errorf("decode getpeginaddress result: %w", err)
+	}
+	return &addr, nil
+}
+
+// SendToMainchain initiates a peg-out: it sends amountBTC of L-BTC back to a
+// mainchain Bitcoin address. Returns the sidechain txid.
+//
+// Mirrors `elements-cli sendtomainchain "<addr>" <amount> false true`
+// (subtractfeefromamount=false, verbose=true).
+func (c *Client) SendToMainchain(ctx context.Context, mainchainAddress string, amountBTC float64) (string, error) {
+	addrJSON, err := json.Marshal(mainchainAddress)
+	if err != nil {
+		return "", err
+	}
+	amtJSON, err := json.Marshal(amountBTC)
+	if err != nil {
+		return "", err
+	}
+	// subtractfeefromamount=false, verbose=true
+	params := []json.RawMessage{addrJSON, amtJSON, json.RawMessage("false"), json.RawMessage("true")}
+	raw, err := c.call(ctx, "sendtomainchain", params)
+	if err != nil {
+		return "", err
+	}
+	// verbose=true returns {"txid": "...", "bitcoin_address": "..."}; older
+	// nodes return a bare txid string. Handle both.
+	var verbose struct {
+		Txid string `json:"txid"`
+	}
+	if err := json.Unmarshal(raw, &verbose); err == nil && verbose.Txid != "" {
+		return verbose.Txid, nil
+	}
+	var txid string
+	if err := json.Unmarshal(raw, &txid); err != nil {
+		return "", fmt.Errorf("decode sendtomainchain result: %w", err)
+	}
+	return txid, nil
 }
 
 // GetBlockCount returns the node's current block height.
