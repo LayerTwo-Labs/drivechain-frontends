@@ -84,6 +84,14 @@ func RemoteOrchestratorURLForNetwork(n Network) string {
 	}
 }
 
+// ElectrumSupportedForNetwork reports whether a network can run electrum
+// wallets end to end. Electrum needs an Esplora backend (local signing +
+// broadcast) AND a hosted orchestrator (bitwindow's chain/BIP300 reads).
+// Mainnet has Esplora but no hosted orchestrator, so it can't.
+func ElectrumSupportedForNetwork(n Network) bool {
+	return EsploraURLForNetwork(n) != "" && RemoteOrchestratorURLForNetwork(n) != ""
+}
+
 // RemoteBitwindowURLForNetwork returns the URL of a hosted, read-only
 // bitwindowd for a given network. Companion to
 // RemoteOrchestratorURLForNetwork for the bitwindow-side read RPCs (news,

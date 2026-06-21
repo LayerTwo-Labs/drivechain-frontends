@@ -352,7 +352,7 @@ func (h *WalletHandler) CreateWatchOnlyWallet(ctx context.Context, req *connect.
 func (h *WalletHandler) CreateElectrumWallet(ctx context.Context, req *connect.Request[pb.CreateElectrumWalletRequest]) (*connect.Response[pb.CreateElectrumWalletResponse], error) {
 	if h.engine == nil || !h.engine.ElectrumConfigured() {
 		return nil, connect.NewError(connect.CodeFailedPrecondition,
-			errors.New("electrum wallets are not supported on this network: no Esplora backend configured"))
+			errors.New("electrum wallets are not supported on this network"))
 	}
 	w, err := h.svc.CreateElectrumWallet(req.Msg.Name, json.RawMessage(req.Msg.GradientJson), req.Msg.Slots, req.Msg.CustomMnemonic, req.Msg.XpubOrDescriptor, req.Msg.ScriptType)
 	if err != nil {
