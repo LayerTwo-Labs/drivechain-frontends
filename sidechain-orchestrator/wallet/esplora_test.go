@@ -8,6 +8,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/require"
 )
 
@@ -41,7 +42,7 @@ func TestEsploraAddressTxsPaginationUsesConfirmedCursor(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	client := NewEsploraClient(srv.URL + "/api")
+	client := NewEsploraClient(srv.URL+"/api", zerolog.Nop())
 	txs, err := client.AddressTxs(context.Background(), "A")
 	require.NoError(t, err)
 	require.Len(t, txs, 27, "all pages must be fetched via the confirmed cursor")
