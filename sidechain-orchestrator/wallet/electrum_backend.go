@@ -43,9 +43,11 @@ type ElectrumBackend struct {
 	log     zerolog.Logger
 
 	mu        sync.Mutex
-	watchKeys map[string][]WatchKey // walletID -> extra keys to track
-	warm      map[string]bool       // walletID -> a live scan has run this process
-	lastScan  map[string][]byte     // walletID -> last persisted scan bytes (skip rewrites)
+	watchKeys map[string][]WatchKey    // walletID -> extra keys to track
+	warm      map[string]bool          // walletID -> a live scan has run this process
+	warmScan  map[string]*electrumScan // walletID -> cached scan, served between blocks
+	tipAt     map[string]int           // walletID -> chain tip the cached scan reflects
+	lastScan  map[string][]byte        // walletID -> last persisted scan bytes (skip rewrites)
 }
 
 var _ Backend = (*ElectrumBackend)(nil)
@@ -59,6 +61,8 @@ func NewElectrumBackend(svc *Service, client Esplora, network *chaincfg.Params, 
 		log:       log.With().Str("component", "electrum-backend").Logger(),
 		watchKeys: make(map[string][]WatchKey),
 		warm:      make(map[string]bool),
+		warmScan:  make(map[string]*electrumScan),
+		tipAt:     make(map[string]int),
 		lastScan:  make(map[string][]byte),
 	}
 }
@@ -403,13 +407,22 @@ func (p *ElectrumBackend) WatchKeys(ctx context.Context, walletID string, keys [
 	for _, k := range existing {
 		seen[k.WIF] = true
 	}
+	added := false
 	for _, k := range keys {
 		if !seen[k.WIF] {
 			existing = append(existing, k)
 			seen[k.WIF] = true
+			added = true
 		}
 	}
 	p.watchKeys[walletID] = existing
+	if added {
+		// The cache is keyed on a fixed address set + chain tip. BIP47 grows the
+		// address set mid-session without a new block, so tip-gating alone would
+		// keep serving the stale scan and never see payments to the new
+		// addresses. Drop the cache to force a re-walk on the next read.
+		delete(p.warmScan, walletID)
+	}
 	return nil
 }
 
@@ -914,9 +927,17 @@ func (p *ElectrumBackend) scan(ctx context.Context, walletID string, allowCache 
 		return nil, fmt.Errorf("wallet %s not found", walletID)
 	}
 
-	// Cold-boot fast path: rebuild the previous scan from disk with no network.
 	if allowCache {
+		// Sparrow-style: scan a wallet once, then serve from an in-memory cache
+		// between blocks. A wallet's balance/history can't change without a new
+		// block, so reads do a single cheap tip check instead of re-deriving the
+		// whole chain over Esplora on every poll.
+		if scan := p.cachedScan(ctx, walletID); scan != nil {
+			return scan, nil
+		}
+		// Cold-boot fast path: rebuild the previous scan from disk with no network.
 		if scan, ok := p.loadColdScan(walletID, w); ok {
+			p.cacheScan(ctx, walletID, scan)
 			return scan, nil
 		}
 	}
@@ -969,7 +990,45 @@ func (p *ElectrumBackend) scan(ctx context.Context, walletID string, allowCache 
 	p.mu.Lock()
 	p.warm[walletID] = true
 	p.mu.Unlock()
+	p.cacheScan(ctx, walletID, scan)
 	return scan, nil
+}
+
+// cachedScan returns the in-memory scan when it still reflects the current chain
+// tip. Between blocks a wallet's funds can't change, so a read is served from
+// cache after one cheap TipHeight call instead of a full re-walk. Returns nil
+// when there is no cache or a new block has arrived (the caller re-walks once
+// and refreshes the cache).
+func (p *ElectrumBackend) cachedScan(ctx context.Context, walletID string) *electrumScan {
+	p.mu.Lock()
+	scan := p.warmScan[walletID]
+	at, hasTip := p.tipAt[walletID]
+	p.mu.Unlock()
+	if scan == nil {
+		return nil
+	}
+	tip, err := p.client.TipHeight(ctx)
+	if err != nil {
+		return scan // network blip: serve cache rather than re-walk or fail the read
+	}
+	if hasTip && tip == at {
+		return scan // no new block → nothing changed
+	}
+	return nil // new block (or unknown tip): re-walk once to refresh
+}
+
+// cacheScan stores a completed scan as the in-memory cache, tagged with the
+// chain tip it reflects so cachedScan can detect staleness on the next block.
+func (p *ElectrumBackend) cacheScan(ctx context.Context, walletID string, scan *electrumScan) {
+	tip, err := p.client.TipHeight(ctx)
+	p.mu.Lock()
+	p.warmScan[walletID] = scan
+	if err == nil {
+		p.tipAt[walletID] = tip
+	} else {
+		delete(p.tipAt, walletID) // unknown tip → force a refresh on the next read
+	}
+	p.mu.Unlock()
 }
 
 // loadColdScan rebuilds a wallet's scan from its persisted cache without any
