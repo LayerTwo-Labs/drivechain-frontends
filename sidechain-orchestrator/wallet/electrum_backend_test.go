@@ -784,12 +784,13 @@ func TestElectrumScanPersistsAcrossRestart(t *testing.T) {
 	assert.InDelta(t, 0.0025, confirmed2, 1e-9, "cold boot returns the cached balance")
 	assert.Zero(t, atomic.LoadInt32(&counting.statsCalls), "cold boot must not query Esplora")
 
-	// The next call this session is live again: the empty backend now re-scans
-	// and sees no funds.
+	// The next call this session is served from the in-memory cache: no new
+	// block has arrived, so it does not re-query Esplora and returns the same
+	// balance (Sparrow-style scan-once-refresh-on-block).
 	confirmed3, _, err := p2.Balance(ctx, w.ID)
 	require.NoError(t, err)
-	assert.Zero(t, confirmed3, "second call re-scans live")
-	assert.Positive(t, atomic.LoadInt32(&counting.statsCalls), "second call queries Esplora")
+	assert.InDelta(t, 0.0025, confirmed3, 1e-9, "served from warm cache while tip unchanged")
+	assert.Zero(t, atomic.LoadInt32(&counting.statsCalls), "no re-query without a new block")
 }
 
 // recordingEsplora captures the wallet's sync snapshot at each AddressStats
