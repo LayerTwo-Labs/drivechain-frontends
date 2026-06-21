@@ -290,7 +290,11 @@ var walletCreateCommand = &cli.Command{
 		&cli.StringFlag{
 			Name:  "name",
 			Usage: "wallet name",
-			Value: "Enforcer Wallet",
+		},
+		&cli.StringFlag{
+			Name:  "type",
+			Usage: "wallet provider: enforcer or electrum",
+			Value: "enforcer",
 		},
 		&cli.StringFlag{
 			Name:  "mnemonic",
@@ -298,23 +302,54 @@ var walletCreateCommand = &cli.Command{
 		},
 		&cli.StringFlag{
 			Name:  "passphrase",
-			Usage: "BIP39 passphrase (optional)",
+			Usage: "BIP39 passphrase (enforcer only)",
+		},
+		&cli.StringFlag{
+			Name:  "script-type",
+			Usage: "address script type for electrum wallets (optional)",
 		},
 	},
 	Action: func(cctx *cli.Context) error {
 		client := newWalletClient(cctx)
-		resp, err := client.GenerateWallet(cctx.Context, connect.NewRequest(&pb.GenerateWalletRequest{
-			Name:           cctx.String("name"),
-			CustomMnemonic: cctx.String("mnemonic"),
-			Passphrase:     cctx.String("passphrase"),
-		}))
-		if err != nil {
-			return err
+		switch cctx.String("type") {
+		case "enforcer":
+			name := cctx.String("name")
+			if name == "" {
+				name = "Enforcer Wallet"
+			}
+			resp, err := client.GenerateWallet(cctx.Context, connect.NewRequest(&pb.GenerateWalletRequest{
+				Name:           name,
+				CustomMnemonic: cctx.String("mnemonic"),
+				Passphrase:     cctx.String("passphrase"),
+			}))
+			if err != nil {
+				return err
+			}
+			fmt.Printf("wallet created: %s\n", resp.Msg.WalletId)
+			fmt.Printf("\n⚠️  BACK UP YOUR MNEMONIC:\n\n  %s\n\n", resp.Msg.Mnemonic)
+			return nil
+		case "electrum":
+			if cctx.String("passphrase") != "" {
+				return fmt.Errorf("electrum wallets do not support a BIP39 passphrase")
+			}
+			name := cctx.String("name")
+			if name == "" {
+				name = "Electrum Wallet"
+			}
+			resp, err := client.CreateElectrumWallet(cctx.Context, connect.NewRequest(&pb.CreateElectrumWalletRequest{
+				Name:           name,
+				CustomMnemonic: cctx.String("mnemonic"),
+				ScriptType:     cctx.String("script-type"),
+			}))
+			if err != nil {
+				return err
+			}
+			fmt.Printf("electrum wallet created: %s\n", resp.Msg.WalletId)
+			fmt.Printf("\n⚠️  Reveal + back up the seed with: wallet seed %s\n\n", resp.Msg.WalletId)
+			return nil
+		default:
+			return fmt.Errorf("unknown wallet type %q (want enforcer or electrum)", cctx.String("type"))
 		}
-
-		fmt.Printf("wallet created: %s\n", resp.Msg.WalletId)
-		fmt.Printf("\n⚠️  BACK UP YOUR MNEMONIC:\n\n  %s\n\n", resp.Msg.Mnemonic)
-		return nil
 	},
 }
 
