@@ -111,6 +111,7 @@ const (
 	BinaryType_BINARY_TYPE_GRPCURL       BinaryType = 11
 	BinaryType_BINARY_TYPE_ORCHESTRATORD BinaryType = 12
 	BinaryType_BINARY_TYPE_ZSIDED        BinaryType = 13
+	BinaryType_BINARY_TYPE_LIQUID_SIGNET BinaryType = 14
 )
 
 // Enum value maps for BinaryType.
@@ -130,6 +131,7 @@ var (
 		11: "BINARY_TYPE_GRPCURL",
 		12: "BINARY_TYPE_ORCHESTRATORD",
 		13: "BINARY_TYPE_ZSIDED",
+		14: "BINARY_TYPE_LIQUID_SIGNET",
 	}
 	BinaryType_value = map[string]int32{
 		"BINARY_TYPE_UNSPECIFIED":   0,
@@ -146,6 +148,7 @@ var (
 		"BINARY_TYPE_GRPCURL":       11,
 		"BINARY_TYPE_ORCHESTRATORD": 12,
 		"BINARY_TYPE_ZSIDED":        13,
+		"BINARY_TYPE_LIQUID_SIGNET": 14,
 	}
 )
 
@@ -3734,7 +3737,7 @@ const file_orchestrator_v1_orchestrator_proto_rawDesc = "" +
 	"\x18SIDECHAIN_TYPE_BITASSETS\x10\x04\x12\x1c\n" +
 	"\x18SIDECHAIN_TYPE_TRUTHCOIN\x10\x05\x12\x19\n" +
 	"\x15SIDECHAIN_TYPE_PHOTON\x10\x06\x12\x1c\n" +
-	"\x18SIDECHAIN_TYPE_COINSHIFT\x10\a*\xfc\x02\n" +
+	"\x18SIDECHAIN_TYPE_COINSHIFT\x10\a*\x9b\x03\n" +
 	"\n" +
 	"BinaryType\x12\x1b\n" +
 	"\x17BINARY_TYPE_UNSPECIFIED\x10\x00\x12\x18\n" +
@@ -3751,7 +3754,8 @@ const file_orchestrator_v1_orchestrator_proto_rawDesc = "" +
 	"\x12\x17\n" +
 	"\x13BINARY_TYPE_GRPCURL\x10\v\x12\x1d\n" +
 	"\x19BINARY_TYPE_ORCHESTRATORD\x10\f\x12\x16\n" +
-	"\x12BINARY_TYPE_ZSIDED\x10\r*\xaf\x01\n" +
+	"\x12BINARY_TYPE_ZSIDED\x10\r\x12\x1d\n" +
+	"\x19BINARY_TYPE_LIQUID_SIGNET\x10\x0e*\xaf\x01\n" +
 	"\fDeletionType\x12\x1d\n" +
 	"\x19DELETION_TYPE_UNSPECIFIED\x10\x00\x12\x16\n" +
 	"\x12DELETION_TYPE_DATA\x10\x01\x12\x18\n" +
