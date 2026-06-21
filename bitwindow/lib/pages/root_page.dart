@@ -62,6 +62,26 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
 
   List<Topic> get topics => _newsProvider.topics;
 
+  // Single source of truth for the nav tabs, in display order. The Sidechains
+  // tab is omitted when the network has no drivechain backend (mainnet runs a
+  // wallet-only electrum mode), so the router routes and the TopNav routes stay
+  // index-aligned and navigation resolves by logical id, never a fixed literal.
+  List<({int id, PageRouteInfo route, TopNavRoute nav})> get _navTabs => [
+    (id: TabIndices.overview, route: OverviewRoute(), nav: TopNavRoute(label: 'Overview')),
+    (id: TabIndices.wallet, route: WalletRoute(), nav: TopNavRoute(label: 'Wallet')),
+    if (_confProvider.drivechainFeaturesAvailable)
+      (id: TabIndices.sidechains, route: SidechainsRoute(), nav: TopNavRoute(label: 'Sidechains')),
+    (id: TabIndices.learn, route: LearnRoute(), nav: TopNavRoute(label: 'Learn')),
+    (id: TabIndices.console, route: ConsoleRoute(), nav: TopNavRoute(label: 'Console')),
+    (id: TabIndices.chat, route: ChatRoute(), nav: TopNavRoute(label: 'Chat')),
+    (id: TabIndices.settings, route: SettingsRoute(), nav: TopNavRoute(icon: SailSVGAsset.settings)),
+  ];
+
+  int _tabIndex(int id) {
+    final i = _navTabs.indexWhere((t) => t.id == id);
+    return i < 0 ? 0 : i;
+  }
+
   @override
   void initState() {
     super.initState();
@@ -252,14 +272,15 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
         category: 'Use Bitcoin',
         onSelected: () => GetIt.I.get<WindowProvider>().open(SubWindowTypes.messageSigner),
       ),
-      CommandItem(
-        label: 'Sidechains',
-        category: 'Use Bitcoin',
-        onSelected: () {
-          final tabsRouter = _routerKey.currentState?.controller;
-          tabsRouter?.setActiveIndex(2);
-        },
-      ),
+      if (_confProvider.drivechainFeaturesAvailable)
+        CommandItem(
+          label: 'Sidechains',
+          category: 'Use Bitcoin',
+          onSelected: () {
+            final tabsRouter = _routerKey.currentState?.controller;
+            tabsRouter?.setActiveIndex(_tabIndex(TabIndices.sidechains));
+          },
+        ),
 
       // Crypto Tools
       CommandItem(
@@ -289,7 +310,7 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
         category: 'This Node',
         onSelected: () {
           final tabsRouter = _routerKey.currentState?.controller;
-          tabsRouter?.setActiveIndex(6);
+          tabsRouter?.setActiveIndex(_tabIndex(TabIndices.settings));
         },
       ),
       CommandItem(
@@ -342,7 +363,7 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
 
     if (target == null) return;
 
-    tabsRouter?.setActiveIndex(target.tabIndex);
+    tabsRouter?.setActiveIndex(_tabIndex(target.tabIndex));
 
     if (target.sectionIndex != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -708,13 +729,14 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
                         );
                       },
                     ),
-                    PlatformMenuItem(
-                      label: 'Sidechains',
-                      onSelected: () {
-                        final tabsRouter = _routerKey.currentState?.controller;
-                        tabsRouter?.setActiveIndex(2);
-                      },
-                    ),
+                    if (_confProvider.drivechainFeaturesAvailable)
+                      PlatformMenuItem(
+                        label: 'Sidechains',
+                        onSelected: () {
+                          final tabsRouter = _routerKey.currentState?.controller;
+                          tabsRouter?.setActiveIndex(_tabIndex(TabIndices.sidechains));
+                        },
+                      ),
                   ],
                 ),
               ],
@@ -848,7 +870,7 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
                       label: 'Options',
                       onSelected: () {
                         final tabsRouter = _routerKey.currentState?.controller;
-                        tabsRouter?.setActiveIndex(6);
+                        tabsRouter?.setActiveIndex(_tabIndex(TabIndices.settings));
                       },
                     ),
                     PlatformMenuItem(
@@ -912,19 +934,11 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
             ),
           ],
           child: KeyedSubtree(
-            key: ValueKey('router_${_confProvider.networkSupportsSidechains}'),
+            key: ValueKey('router_${_confProvider.drivechainFeaturesAvailable}'),
             child: AutoTabsRouter.tabBar(
               key: _routerKey,
               duration: const Duration(milliseconds: 0),
-              routes: [
-                OverviewRoute(),
-                WalletRoute(),
-                SidechainsRoute(),
-                LearnRoute(),
-                ConsoleRoute(),
-                ChatRoute(),
-                SettingsRoute(),
-              ],
+              routes: [for (final t in _navTabs) t.route],
               builder: (context, child, controller) {
                 final theme = SailTheme.of(context);
 
@@ -1027,29 +1041,7 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
                                 }
                               },
                             ),
-                      routes: [
-                        TopNavRoute(
-                          label: 'Overview',
-                        ),
-                        TopNavRoute(
-                          label: 'Wallet',
-                        ),
-                        TopNavRoute(
-                          label: 'Sidechains',
-                        ),
-                        TopNavRoute(
-                          label: 'Learn',
-                        ),
-                        TopNavRoute(
-                          label: 'Console',
-                        ),
-                        TopNavRoute(
-                          label: 'Chat',
-                        ),
-                        TopNavRoute(
-                          icon: SailSVGAsset.settings,
-                        ),
-                      ],
+                      routes: [for (final t in _navTabs) t.nav],
                       endWidget: SailRow(
                         children: [
                           SailDropdownButton<BitcoinNetwork>(

@@ -225,7 +225,7 @@ class HomepageWidgetCatalog {
     ),
   };
 
-  static const _sidechainWidgetIds = {'fast_withdrawal', 'sidechains_compact'};
+  static const _sidechainWidgetIds = {'fast_withdrawal', 'sidechains_compact', 'recent_actions'};
 
   static bool get _supportsSidechains => GetIt.I.get<BitcoinConfProvider>().networkSupportsSidechains;
 

@@ -5,6 +5,7 @@ import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:sail_ui/gen/drivechain/v1/drivechain.pb.dart';
 import 'package:sail_ui/gen/wallet/v1/wallet.pb.dart';
+import 'package:sail_ui/providers/bitcoin_conf_provider.dart';
 import 'package:sail_ui/providers/sync_provider.dart';
 import 'package:sail_ui/providers/wallet_reader_provider.dart';
 import 'package:sail_ui/rpcs/bitwindow_api.dart';
@@ -67,6 +68,9 @@ class SidechainProvider extends ChangeNotifier {
 
   // call this function from anywhere to refetch sidechain info
   Future<void> fetch() async {
+    if (!GetIt.I.get<BitcoinConfProvider>().drivechainFeaturesAvailable) {
+      return;
+    }
     if (_isFetching) {
       return;
     }

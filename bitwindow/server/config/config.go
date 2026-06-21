@@ -122,12 +122,6 @@ func (c *Config) Finalize(network Network) error {
 	return nil
 }
 
-// IsDemoMode returns true when running on mainnet, enabling demo mode
-// with simulated sidechain data instead of requiring an enforcer connection.
-func (c *Config) IsDemoMode() bool {
-	return c.BitcoinCoreNetwork == NetworkMainnet
-}
-
 // IsFullChainNetwork reports whether the network has full mainnet-scale
 // block volume (mainnet / forknet). Callers gate IBD-only RPC throttling
 // on this — signet / testnet / regtest blocks are small or empty so
