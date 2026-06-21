@@ -370,8 +370,17 @@ class BottomNavViewModel extends BaseViewModel with ChangeTrackingMixin {
     notifyIfChanged(); // Use change tracking for normal updates
   }
 
+  // Electrum wallets run no local Core/enforcer, so the L1 daemons must not
+  // gate the bottom-nav connection status — otherwise it sticks on "Waiting
+  // for Bitcoin Core" forever. True for enforcer/core wallets and when no
+  // wallet is loaded yet.
+  bool get _needsBackends =>
+      !GetIt.I.isRegistered<WalletReaderProvider>() ||
+      GetIt.I.get<WalletReaderProvider>().activeWalletNeedsBitcoinBackends;
+
   // Connection status
-  bool get allConnected => mainchain.connected && enforcer.connected && additionalConnection.connected;
+  bool get allConnected =>
+      (!_needsBackends || (mainchain.connected && enforcer.connected)) && additionalConnection.connected;
   bool get initializingAny =>
       mainchain.initializingBinary || enforcer.initializingBinary || additionalConnection.initializingBinary;
   bool get downloadingAny => downloadProvider?.hasActiveDownloads ?? false;
@@ -386,8 +395,7 @@ class BottomNavViewModel extends BaseViewModel with ChangeTrackingMixin {
     //
     // `connected` is the authoritative "healthy" signal — stale startupError /
     // initializingBinary on an already-connected daemon are ignored.
-    if (mainchain.connectionError != null ||
-        enforcer.connectionError != null ||
+    if ((_needsBackends && (mainchain.connectionError != null || enforcer.connectionError != null)) ||
         additionalConnection.connectionError != null) {
       return SailColorScheme.red;
     }
@@ -400,11 +408,11 @@ class BottomNavViewModel extends BaseViewModel with ChangeTrackingMixin {
       return SailColorScheme.orange;
     }
 
-    if (!(syncProvider.mainchainSyncInfo?.isSynced ?? false)) {
+    if (_needsBackends && !(syncProvider.mainchainSyncInfo?.isSynced ?? false)) {
       return SailColorScheme.orange;
     }
 
-    if (!(syncProvider.enforcerSyncInfo?.isSynced ?? false)) {
+    if (_needsBackends && !(syncProvider.enforcerSyncInfo?.isSynced ?? false)) {
       return SailColorScheme.orange;
     }
 
@@ -445,17 +453,19 @@ class BottomNavViewModel extends BaseViewModel with ChangeTrackingMixin {
     // Precedence per service: connectionError (hard fail) > startupError (warmup message,
     // primary signal during boot per orchestrator design) > initializingBinary > !connected.
     // Bitcoin Core first because nothing else can make progress without it.
-    final mainchainLine = _statusLineFor(
-      rpc: mainchain,
-      binaryLabel: 'Bitcoin Core',
-    );
-    if (mainchainLine != null) return mainchainLine;
+    if (_needsBackends) {
+      final mainchainLine = _statusLineFor(
+        rpc: mainchain,
+        binaryLabel: 'Bitcoin Core',
+      );
+      if (mainchainLine != null) return mainchainLine;
 
-    final enforcerLine = _statusLineFor(
-      rpc: enforcer,
-      binaryLabel: 'Enforcer',
-    );
-    if (enforcerLine != null) return enforcerLine;
+      final enforcerLine = _statusLineFor(
+        rpc: enforcer,
+        binaryLabel: 'Enforcer',
+      );
+      if (enforcerLine != null) return enforcerLine;
+    }
 
     final additionalLine = _statusLineFor(
       rpc: additionalConnection.rpc,
@@ -463,11 +473,11 @@ class BottomNavViewModel extends BaseViewModel with ChangeTrackingMixin {
     );
     if (additionalLine != null) return additionalLine;
 
-    if (!(syncProvider.mainchainSyncInfo?.isSynced ?? false)) {
+    if (_needsBackends && !(syncProvider.mainchainSyncInfo?.isSynced ?? false)) {
       return 'Syncing mainchain blocks';
     }
 
-    if (!(syncProvider.enforcerSyncInfo?.isSynced ?? false)) {
+    if (_needsBackends && !(syncProvider.enforcerSyncInfo?.isSynced ?? false)) {
       return 'Syncing enforcer blocks';
     }
 
