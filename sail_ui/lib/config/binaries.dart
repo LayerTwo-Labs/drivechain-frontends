@@ -76,6 +76,10 @@ abstract class Binary {
   String get binaryName => binary;
   bool get isDownloaded => metadata.binaryPath != null;
 
+  // Whether Layer Two Labs develops and vets this binary. Override to false for
+  // third-party binaries so the UI can warn before downloading them.
+  bool get developedByLayerTwoLabs => true;
+
   bool get updateAvailable =>
       isDownloaded &&
       metadata.remoteTimestamp != null &&

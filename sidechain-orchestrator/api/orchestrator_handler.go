@@ -455,6 +455,8 @@ func binaryTypeFromName(name string) pb.BinaryType {
 		return pb.BinaryType_BINARY_TYPE_PHOTON
 	case "coinshift":
 		return pb.BinaryType_BINARY_TYPE_COINSHIFT
+	case "liquid-signet":
+		return pb.BinaryType_BINARY_TYPE_LIQUID_SIGNET
 	case "grpcurl":
 		return pb.BinaryType_BINARY_TYPE_GRPCURL
 	case "orchestratord":

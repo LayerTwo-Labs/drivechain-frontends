@@ -176,9 +176,7 @@ class LiquidSignet extends Sidechain {
     super.downloadInfo = const DownloadInfo(),
     super.extraBootArgs = const [],
   }) : super(
-         directories:
-             directories ??
-             DirectoryConfig(binary: allPlatforms('liquid-signet'), flutterFrontend: const {}),
+         directories: directories ?? DirectoryConfig(binary: allPlatforms('liquid-signet'), flutterFrontend: const {}),
          metadata:
              metadata ??
              MetadataConfig(
@@ -201,6 +199,9 @@ class LiquidSignet extends Sidechain {
 
   @override
   Color get color => Colors.blue;
+
+  @override
+  bool get developedByLayerTwoLabs => false;
 
   @override
   LiquidSignet copyWith({
