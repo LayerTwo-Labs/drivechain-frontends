@@ -332,7 +332,7 @@ func run(cctx *cli.Context) error {
 	// so it needs an Esplora endpoint; bitwindow's higher-level reads route
 	// through the hosted orchestrator separately (see Server.buildDataSource).
 	var electrumBackend wallet.Backend
-	if net := config.NetworkFromString(network); config.ElectrumSupportedForNetwork(net) && netParams != nil {
+	if net := config.NetworkFromString(network); config.ElectrumWalletSupportedForNetwork(net) && netParams != nil {
 		esploraURL := config.EsploraURLForNetwork(net)
 		electrumBackend = wallet.NewElectrumBackend(walletSvc, wallet.NewEsploraClient(esploraURL), netParams, log)
 		log.Info().Str("esplora_url", esploraURL).Msg("electrum wallet provider initialized")

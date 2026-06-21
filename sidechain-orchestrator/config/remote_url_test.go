@@ -22,18 +22,22 @@ func TestRemoteURLsEmptyForUnhostedNetworks(t *testing.T) {
 	}
 }
 
-func TestElectrumSupportedRequiresEsploraAndOrchestrator(t *testing.T) {
-	supported := map[Network]bool{
+func TestElectrumWalletSupportedNeedsOnlyEsplora(t *testing.T) {
+	// Mainnet runs electrum wallet-only: it has Esplora (mempool.space) but no
+	// hosted orchestrator, so the wallet works while drivechain reads are gated off.
+	wallet := map[Network]bool{
 		NetworkSignet:  true,
 		NetworkForknet: true,
-		// Mainnet has Esplora (mempool.space) but no hosted orchestrator.
-		NetworkMainnet: false,
+		NetworkMainnet: true,
 		NetworkTestnet: false,
 		NetworkRegtest: false,
 	}
-	for n, want := range supported {
-		if got := ElectrumSupportedForNetwork(n); got != want {
-			t.Errorf("ElectrumSupportedForNetwork(%s) = %v, want %v", n, got, want)
+	for n, want := range wallet {
+		if got := ElectrumWalletSupportedForNetwork(n); got != want {
+			t.Errorf("ElectrumWalletSupportedForNetwork(%s) = %v, want %v", n, got, want)
+		}
+		if got, hasOrch := RemoteOrchestratorURLForNetwork(n) != "", (n == NetworkSignet || n == NetworkForknet); got != hasOrch {
+			t.Errorf("RemoteOrchestratorURLForNetwork(%s) present = %v, want %v", n, got, hasOrch)
 		}
 	}
 }

@@ -84,12 +84,13 @@ func RemoteOrchestratorURLForNetwork(n Network) string {
 	}
 }
 
-// ElectrumSupportedForNetwork reports whether a network can run electrum
-// wallets end to end. Electrum needs an Esplora backend (local signing +
-// broadcast) AND a hosted orchestrator (bitwindow's chain/BIP300 reads).
-// Mainnet has Esplora but no hosted orchestrator, so it can't.
-func ElectrumSupportedForNetwork(n Network) bool {
-	return EsploraURLForNetwork(n) != "" && RemoteOrchestratorURLForNetwork(n) != ""
+// ElectrumWalletSupportedForNetwork reports whether a network can run electrum
+// wallets. The wallet signs and broadcasts over Esplora, so an Esplora backend
+// is all it needs. Drivechain reads (sidechains/BIP300) additionally require a
+// hosted orchestrator (RemoteOrchestratorURLForNetwork) and are gated
+// separately; mainnet has Esplora but no orchestrator, so it runs wallet-only.
+func ElectrumWalletSupportedForNetwork(n Network) bool {
+	return EsploraURLForNetwork(n) != ""
 }
 
 // RemoteBitwindowURLForNetwork returns the URL of a hosted, read-only
