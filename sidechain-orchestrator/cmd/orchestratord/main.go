@@ -272,9 +272,17 @@ func run(cctx *cli.Context) error {
 	walletHandler.SetOrchestrator(orch)
 	walletHandler.SetBip47StateStore(bip47state.NewStore(bitwindowDir))
 
-	netParams, perr := bip47send.NetworkParams(network)
+	// Wallet derivation must follow the resolved/persisted network: bitwindow-
+	// bitcoin.conf wins over the --network flag (orchestratord is usually
+	// launched without --network). Using the raw flag derives signet/testnet
+	// addresses while the user is on mainnet.
+	resolvedNetwork := network
+	if orch.Network != "" {
+		resolvedNetwork = orch.Network
+	}
+	netParams, perr := bip47send.NetworkParams(resolvedNetwork)
 	if perr != nil {
-		log.Warn().Err(perr).Str("network", network).Msg("unrecognised network; BIP47 features will be disabled")
+		log.Warn().Err(perr).Str("network", resolvedNetwork).Msg("unrecognised network; BIP47 features will be disabled")
 	}
 
 	// Chain wallet provider — CoreBackend today; electrum/btcd providers
@@ -332,7 +340,7 @@ func run(cctx *cli.Context) error {
 	// so it needs an Esplora endpoint; bitwindow's higher-level reads route
 	// through the hosted orchestrator separately (see Server.buildDataSource).
 	var electrumBackend wallet.Backend
-	if net := config.NetworkFromString(network); config.ElectrumWalletSupportedForNetwork(net) && netParams != nil {
+	if net := config.NetworkFromString(resolvedNetwork); config.ElectrumWalletSupportedForNetwork(net) && netParams != nil {
 		esploraURL := config.EsploraURLForNetwork(net)
 		electrumBackend = wallet.NewElectrumBackend(walletSvc, wallet.NewEsploraClient(esploraURL), netParams, log)
 		log.Info().Str("esplora_url", esploraURL).Msg("electrum wallet provider initialized")
