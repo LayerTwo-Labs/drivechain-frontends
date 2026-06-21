@@ -449,7 +449,9 @@ func (s *Server) buildDataSource(conf config.Config) datasource.DataSource {
 	}
 
 	probe := newElectrumProbe(s.svcs.OrchestratorAddr, s.svcs.BitwindowDir)
-	hc := &http.Client{Timeout: 30 * time.Second}
+	// Short timeout: when the hosted orchestrator is down, polled reads must
+	// fail fast and surface as an error rather than freezing the UI for 30s.
+	hc := &http.Client{Timeout: 8 * time.Second}
 	return datasource.NewLocal(
 		func(ctx context.Context) (corerpc.BitcoinServiceClient, error) {
 			if probe.isElectrum(ctx) {
