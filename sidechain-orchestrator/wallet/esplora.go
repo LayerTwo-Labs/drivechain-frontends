@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -32,16 +33,31 @@ type Esplora interface {
 type EsploraClient struct {
 	baseURL string
 	client  *http.Client
+
+	// Pacing keeps a gap-limit scan under public rate limits (mempool.space
+	// 429s a fast sequential burst). nextReq is the earliest the next request
+	// may start; guarded by mu so concurrent callers serialise their slots.
+	mu          sync.Mutex
+	nextReq     time.Time
+	minInterval time.Duration
 }
 
 var _ Esplora = (*EsploraClient)(nil)
+
+const (
+	esploraMaxAttempts = 6
+	esploraBackoffBase = 500 * time.Millisecond
+	esploraBackoffMax  = 8 * time.Second
+	esploraMinInterval = 120 * time.Millisecond
+)
 
 // NewEsploraClient creates an Esplora REST client. baseURL is the API root
 // (e.g. https://explorer.signet.drivechain.info/api), trailing slash optional.
 func NewEsploraClient(baseURL string) *EsploraClient {
 	return &EsploraClient{
-		baseURL: strings.TrimRight(baseURL, "/"),
-		client:  &http.Client{Timeout: 30 * time.Second},
+		baseURL:     strings.TrimRight(baseURL, "/"),
+		client:      &http.Client{Timeout: 30 * time.Second},
+		minInterval: esploraMinInterval,
 	}
 }
 
@@ -129,23 +145,118 @@ func (c *EsploraClient) get(ctx context.Context, path string, out interface{}) e
 }
 
 func (c *EsploraClient) do(ctx context.Context, method, path string, reqBody io.Reader) ([]byte, error) {
-	req, err := http.NewRequestWithContext(ctx, method, c.baseURL+path, reqBody)
-	if err != nil {
-		return nil, fmt.Errorf("build request %s: %w", path, err)
+	// Buffer the body so each retry can resend it (broadcast POSTs a body).
+	var bodyBytes []byte
+	if reqBody != nil {
+		b, err := io.ReadAll(reqBody)
+		if err != nil {
+			return nil, fmt.Errorf("read request body %s: %w", path, err)
+		}
+		bodyBytes = b
 	}
-	resp, err := c.client.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("esplora %s %s: %w", method, path, err)
+
+	var lastErr error
+	for attempt := 0; attempt < esploraMaxAttempts; attempt++ {
+		if err := c.pace(ctx); err != nil {
+			return nil, err
+		}
+
+		var rdr io.Reader
+		if bodyBytes != nil {
+			rdr = bytes.NewReader(bodyBytes)
+		}
+		req, err := http.NewRequestWithContext(ctx, method, c.baseURL+path, rdr)
+		if err != nil {
+			return nil, fmt.Errorf("build request %s: %w", path, err)
+		}
+
+		resp, err := c.client.Do(req)
+		if err != nil {
+			lastErr = fmt.Errorf("esplora %s %s: %w", method, path, err)
+			if !backoff(ctx, attempt, 0) {
+				return nil, lastErr
+			}
+			continue
+		}
+		body, readErr := io.ReadAll(resp.Body)
+		_ = resp.Body.Close()
+		if readErr != nil {
+			return nil, fmt.Errorf("read %s: %w", path, readErr)
+		}
+
+		if resp.StatusCode == http.StatusOK {
+			return body, nil
+		}
+
+		lastErr = fmt.Errorf("esplora %s %s: %s: %s", method, path, resp.Status, strings.TrimSpace(string(body)))
+		if !retryableStatus(resp.StatusCode) {
+			return nil, lastErr
+		}
+		if !backoff(ctx, attempt, parseRetryAfter(resp.Header.Get("Retry-After"))) {
+			return nil, lastErr
+		}
 	}
-	defer func() { _ = resp.Body.Close() }()
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, fmt.Errorf("read %s: %w", path, err)
+	return nil, fmt.Errorf("esplora %s %s: exhausted retries: %w", method, path, lastErr)
+}
+
+// pace reserves the next request slot so sequential calls stay minInterval
+// apart, keeping a gap-limit scan under public Esplora rate limits.
+func (c *EsploraClient) pace(ctx context.Context) error {
+	if c.minInterval <= 0 {
+		return nil
 	}
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("esplora %s %s: %s: %s", method, path, resp.Status, strings.TrimSpace(string(body)))
+	c.mu.Lock()
+	now := time.Now()
+	wait := time.Duration(0)
+	if c.nextReq.After(now) {
+		wait = c.nextReq.Sub(now)
 	}
-	return body, nil
+	c.nextReq = now.Add(wait).Add(c.minInterval)
+	c.mu.Unlock()
+
+	if wait <= 0 {
+		return nil
+	}
+	select {
+	case <-time.After(wait):
+		return nil
+	case <-ctx.Done():
+		return ctx.Err()
+	}
+}
+
+func retryableStatus(code int) bool {
+	switch code {
+	case http.StatusTooManyRequests, http.StatusBadGateway, http.StatusServiceUnavailable, http.StatusGatewayTimeout:
+		return true
+	default:
+		return false
+	}
+}
+
+func parseRetryAfter(h string) time.Duration {
+	if secs, err := strconv.Atoi(strings.TrimSpace(h)); err == nil && secs >= 0 {
+		return time.Duration(secs) * time.Second
+	}
+	return 0
+}
+
+// backoff waits before the next attempt (honouring Retry-After when set, else
+// exponential), returning false if ctx is cancelled first.
+func backoff(ctx context.Context, attempt int, retryAfter time.Duration) bool {
+	wait := retryAfter
+	if wait <= 0 {
+		wait = esploraBackoffBase << attempt
+		if wait > esploraBackoffMax {
+			wait = esploraBackoffMax
+		}
+	}
+	select {
+	case <-time.After(wait):
+		return true
+	case <-ctx.Done():
+		return false
+	}
 }
 
 // AddressStats returns funded/spent totals for an address.
