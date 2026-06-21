@@ -374,13 +374,13 @@ class BottomNavViewModel extends BaseViewModel with ChangeTrackingMixin {
   // gate the bottom-nav connection status — otherwise it sticks on "Waiting
   // for Bitcoin Core" forever. True for enforcer/core wallets and when no
   // wallet is loaded yet.
-  bool get _needsBackends =>
+  bool get needsBackends =>
       !GetIt.I.isRegistered<WalletReaderProvider>() ||
       GetIt.I.get<WalletReaderProvider>().activeWalletNeedsBitcoinBackends;
 
   // Connection status
   bool get allConnected =>
-      (!_needsBackends || (mainchain.connected && enforcer.connected)) && additionalConnection.connected;
+      (!needsBackends || (mainchain.connected && enforcer.connected)) && additionalConnection.connected;
   bool get initializingAny =>
       mainchain.initializingBinary || enforcer.initializingBinary || additionalConnection.initializingBinary;
   bool get downloadingAny => downloadProvider?.hasActiveDownloads ?? false;
@@ -395,7 +395,7 @@ class BottomNavViewModel extends BaseViewModel with ChangeTrackingMixin {
     //
     // `connected` is the authoritative "healthy" signal — stale startupError /
     // initializingBinary on an already-connected daemon are ignored.
-    if ((_needsBackends && (mainchain.connectionError != null || enforcer.connectionError != null)) ||
+    if ((needsBackends && (mainchain.connectionError != null || enforcer.connectionError != null)) ||
         additionalConnection.connectionError != null) {
       return SailColorScheme.red;
     }
@@ -408,15 +408,15 @@ class BottomNavViewModel extends BaseViewModel with ChangeTrackingMixin {
       return SailColorScheme.orange;
     }
 
-    if (_needsBackends && !(syncProvider.mainchainSyncInfo?.isSynced ?? false)) {
+    if (needsBackends && !(syncProvider.mainchainSyncInfo?.isSynced ?? false)) {
       return SailColorScheme.orange;
     }
 
-    if (_needsBackends && !(syncProvider.enforcerSyncInfo?.isSynced ?? false)) {
+    if (needsBackends && !(syncProvider.enforcerSyncInfo?.isSynced ?? false)) {
       return SailColorScheme.orange;
     }
 
-    if (!(additionalSyncInfo?.isSynced ?? false)) {
+    if (needsBackends && !(additionalSyncInfo?.isSynced ?? false)) {
       return SailColorScheme.orange;
     }
 
@@ -453,7 +453,7 @@ class BottomNavViewModel extends BaseViewModel with ChangeTrackingMixin {
     // Precedence per service: connectionError (hard fail) > startupError (warmup message,
     // primary signal during boot per orchestrator design) > initializingBinary > !connected.
     // Bitcoin Core first because nothing else can make progress without it.
-    if (_needsBackends) {
+    if (needsBackends) {
       final mainchainLine = _statusLineFor(
         rpc: mainchain,
         binaryLabel: 'Bitcoin Core',
@@ -473,15 +473,15 @@ class BottomNavViewModel extends BaseViewModel with ChangeTrackingMixin {
     );
     if (additionalLine != null) return additionalLine;
 
-    if (_needsBackends && !(syncProvider.mainchainSyncInfo?.isSynced ?? false)) {
+    if (needsBackends && !(syncProvider.mainchainSyncInfo?.isSynced ?? false)) {
       return 'Syncing mainchain blocks';
     }
 
-    if (_needsBackends && !(syncProvider.enforcerSyncInfo?.isSynced ?? false)) {
+    if (needsBackends && !(syncProvider.enforcerSyncInfo?.isSynced ?? false)) {
       return 'Syncing enforcer blocks';
     }
 
-    if (!(additionalSyncInfo?.isSynced ?? false)) {
+    if (needsBackends && !(additionalSyncInfo?.isSynced ?? false)) {
       return 'Syncing ${additionalConnection.name} blocks';
     }
 
@@ -524,6 +524,9 @@ class ChainLoaders extends ViewModelWidget<BottomNavViewModel> {
 
   @override
   Widget build(BuildContext context, BottomNavViewModel viewModel) {
+    // Electrum wallets run no L1 daemons, so there are no block-sync bars to
+    // show — the electrum scan status is rendered separately.
+    if (!viewModel.needsBackends) return const SizedBox.shrink();
     final mainchainConnected = viewModel.syncProvider.mainchainSyncInfo != null;
     final enforcerConnected = viewModel.syncProvider.enforcerSyncInfo != null;
     final additionalConnected = viewModel.additionalSyncInfo != null;
