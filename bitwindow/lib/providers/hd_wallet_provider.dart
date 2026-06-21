@@ -97,7 +97,12 @@ class HDWalletProvider extends ChangeNotifier {
       log.i('HDWalletProvider: getL1Starter returned len=${l1Mnemonic?.length ?? -1}');
 
       if (l1Mnemonic == null || l1Mnemonic.isEmpty) {
-        throw Exception('Could not load L1 wallet mnemonic');
+        // Electrum wallets have no L1 (enforcer) seed, so the HD Explorer has
+        // nothing to derive — leave it uninitialized without surfacing an error.
+        _seedHex = _masterKey = _mnemonic = null;
+        _initialized = false;
+        _error = null;
+        return;
       }
 
       _mnemonic = l1Mnemonic.trim();
