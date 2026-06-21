@@ -169,6 +169,8 @@ func (c *EsploraClient) do(ctx context.Context, method, path string, reqBody io.
 		if err != nil {
 			return nil, fmt.Errorf("build request %s: %w", path, err)
 		}
+		// Public Esplora hosts commonly drop requests without a User-Agent.
+		req.Header.Set("User-Agent", "bitwindow-orchestratord")
 
 		resp, err := c.client.Do(req)
 		if err != nil {

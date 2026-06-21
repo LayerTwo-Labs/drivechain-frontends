@@ -60,7 +60,10 @@ func EsploraURLForNetwork(n Network) string {
 	case NetworkSignet:
 		return "https://explorer.signet.drivechain.info/api"
 	case NetworkMainnet:
-		return "https://mempool.space/api"
+		// blockstream.info is the reference Esplora REST API, built for
+		// programmatic access. mempool.space's /api drops non-browser clients
+		// (requests hang until timeout), which stalls the gap-limit scan.
+		return "https://blockstream.info/api"
 	case NetworkForknet:
 		return "https://explorer.forknet.drivechain.info/api"
 	default:
