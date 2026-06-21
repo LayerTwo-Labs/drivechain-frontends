@@ -21,3 +21,19 @@ func TestRemoteURLsEmptyForUnhostedNetworks(t *testing.T) {
 		}
 	}
 }
+
+func TestElectrumSupportedRequiresEsploraAndOrchestrator(t *testing.T) {
+	supported := map[Network]bool{
+		NetworkSignet:  true,
+		NetworkForknet: true,
+		// Mainnet has Esplora (mempool.space) but no hosted orchestrator.
+		NetworkMainnet: false,
+		NetworkTestnet: false,
+		NetworkRegtest: false,
+	}
+	for n, want := range supported {
+		if got := ElectrumSupportedForNetwork(n); got != want {
+			t.Errorf("ElectrumSupportedForNetwork(%s) = %v, want %v", n, got, want)
+		}
+	}
+}
