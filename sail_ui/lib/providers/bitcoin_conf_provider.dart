@@ -56,7 +56,10 @@ class BitcoinConfProvider extends ChangeNotifier {
         network == BitcoinNetwork.BITCOIN_NETWORK_REGTEST;
   }
 
-  bool get isDemoMode => network == BitcoinNetwork.BITCOIN_NETWORK_MAINNET;
+  /// Whether the drivechain tier (sidechains, deposits, BMM, two-way-peg) has a
+  /// backend on this network. Mainnet runs a wallet-only electrum mode with no
+  /// enforcer/orchestrator, so it returns false there.
+  bool get drivechainFeaturesAvailable => networkSupportsSidechains;
 
   int rpcPort = 38332;
 
