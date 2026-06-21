@@ -366,12 +366,6 @@ func (rt *Runtime) Start(parent context.Context) {
 	rt.runEngine("notification", rt.notificationEngine.Run, log)
 	rt.runEngine("sidechain-monitor", rt.sidechainMonitor.Run, log)
 
-	if rt.conf.IsDemoMode() {
-		demoEngine := engines.NewDemoEngine(rt.db)
-		rt.runEngine("demo", demoEngine.Run, log)
-		log.Info().Msg("demo mode enabled: simulating sidechain activity")
-	}
-
 	// ZMQ engine acquires its endpoint from bitcoind dynamically; retry
 	// loop tolerates bitcoind startup. Lives on rt.ctx so it stops on
 	// recycle.

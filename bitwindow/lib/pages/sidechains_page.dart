@@ -5,9 +5,7 @@ import 'package:bitwindow/pages/explorer/block_explorer_dialog.dart';
 import 'package:bitwindow/pages/sidechain_activation_management_page.dart';
 import 'package:bitwindow/providers/sidechain_provider.dart';
 import 'package:bitwindow/providers/transactions_provider.dart';
-import 'package:bitwindow/routing/router.dart';
 import 'package:bitwindow/widgets/fast_withdrawal_tab.dart';
-import 'package:bitwindow/widgets/homepage_widget_catalog.dart';
 import 'package:bitwindow/widgets/starters_tab.dart';
 import 'package:collection/collection.dart';
 import 'package:flutter/foundation.dart';
@@ -15,14 +13,11 @@ import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/gen/wallet/v1/wallet.pb.dart';
-import 'package:sail_ui/pages/router.gr.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:stacked/stacked.dart';
 
 @RoutePage()
 class SidechainsPage extends StatelessWidget {
-  BitcoinConfProvider get confProvider => GetIt.I.get<BitcoinConfProvider>();
-
   const SidechainsPage({super.key});
 
   @override
@@ -32,24 +27,6 @@ class SidechainsPage extends StatelessWidget {
         viewModelBuilder: () => SidechainsViewModel(),
         builder: (context, model, child) {
           return InlineTabBar(
-            endWidget: confProvider.isDemoMode
-                ? SailTooltip(
-                    message: 'This tab is just a demo, sidechains are simulated on mainnet',
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: context.sailTheme.colors.warning.withValues(alpha: 0.15),
-                        borderRadius: BorderRadius.circular(4),
-                        border: Border.all(color: context.sailTheme.colors.warning.withValues(alpha: 0.3)),
-                      ),
-                      child: SailText.primary10(
-                        'THIS COULD BE BITCOIN',
-                        bold: true,
-                        color: context.sailTheme.colors.warning,
-                      ),
-                    ),
-                  )
-                : null,
             key: ValueKey('sidechains_page'),
             tabs: [
               TabItem(label: 'Overview', child: SidechainsTab()),
@@ -69,8 +46,6 @@ class SidechainsTab extends ViewModelWidget<SidechainsViewModel> {
 
   @override
   Widget build(BuildContext context, SidechainsViewModel viewModel) {
-    final isDemoMode = GetIt.I.get<BitcoinConfProvider>().isDemoMode;
-
     final hashWarning = viewModel.hashMismatchWarning;
 
     final mainContent = Row(
@@ -82,36 +57,15 @@ class SidechainsTab extends ViewModelWidget<SidechainsViewModel> {
       ],
     );
 
-    if (!isDemoMode && hashWarning == null) {
+    if (hashWarning == null) {
       return mainContent;
-    }
-
-    if (!isDemoMode) {
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          if (hashWarning != null) _HashMismatchBanner(names: hashWarning),
-          Expanded(child: mainContent),
-        ],
-      );
     }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        if (hashWarning != null) _HashMismatchBanner(names: hashWarning),
+        _HashMismatchBanner(names: hashWarning),
         Expanded(child: mainContent),
-        const SizedBox(height: SailStyleValues.padding16),
-        ViewModelBuilder<RecentActionsViewModel>.reactive(
-          viewModelBuilder: () => RecentActionsViewModel(),
-          builder: (context, actionsModel, child) {
-            return RecentActionsCard(
-              title: 'Recent Actions',
-              subtitle: actionsModel.subtitle,
-              actions: actionsModel.actions,
-            );
-          },
-        ),
       ],
     );
   }
@@ -415,27 +369,6 @@ class OnlyFilledTable extends ViewModelWidget<SidechainsViewModel> {
     int slot,
     SidechainOverview sidechain,
   ) {
-    final confProvider = GetIt.I.get<BitcoinConfProvider>();
-
-    // Demo mode: redirect to coming soon page
-    if (confProvider.isDemoMode) {
-      return SailButton(
-        label: 'Deposit',
-        variant: ButtonVariant.primary,
-        insideTable: true,
-        onPressed: () async {
-          final router = GetIt.I.get<AppRouter>();
-          await router.push(
-            ComingSoonRoute(
-              router: router,
-              message:
-                  "It would be nice to deposit real coins to ${Sidechain.fromSlot(slot)?.name ?? 'sidechains'}, wouldn't it? We think so too.",
-            ),
-          );
-        },
-      );
-    }
-
     final isDisabled = viewModel.isUsingBitcoinCoreWallet || !viewModel.isSidechainRunning(slot);
     final button = SailButton(
       label: 'Deposit',
@@ -594,27 +527,6 @@ class FullTable extends ViewModelWidget<SidechainsViewModel> {
     int slot,
     SidechainOverview sidechain,
   ) {
-    final confProvider = GetIt.I.get<BitcoinConfProvider>();
-
-    // Demo mode: redirect to coming soon page
-    if (confProvider.isDemoMode) {
-      return SailButton(
-        label: 'Deposit',
-        variant: ButtonVariant.primary,
-        insideTable: true,
-        onPressed: () async {
-          final router = GetIt.I.get<AppRouter>();
-          await router.push(
-            ComingSoonRoute(
-              router: router,
-              message:
-                  "It would be nice to deposit real coins to ${Sidechain.fromSlot(slot)?.name ?? 'sidechains'}, wouldn't it? We think so too.",
-            ),
-          );
-        },
-      );
-    }
-
     final tooltipMessage = !viewModel.isSidechainRunning(slot) && viewModel.isUsingBitcoinCoreWallet
         ? 'Switch to your enforcer wallet and start the sidechain before depositing'
         : viewModel.isUsingBitcoinCoreWallet
@@ -895,26 +807,6 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
     }
 
     if (sidechain.isDownloaded) {
-      // Demo mode: redirect to coming soon page instead of starting
-      if (_confProvider.isDemoMode) {
-        return SailButton(
-          key: ValueKey('preview_slot_${sidechain.slot}_${sidechain.name}'),
-          label: 'Preview',
-          variant: ButtonVariant.outline,
-          onPressed: () async {
-            final router = GetIt.I.get<AppRouter>();
-            await router.push(
-              ComingSoonRoute(
-                router: router,
-                message:
-                    "We're afraid sidechains aren't available on mainnet yet. But you can take a spin on signet by clicking the button below.",
-              ),
-            );
-          },
-          insideTable: true,
-        );
-      }
-
       return SailButton(
         key: ValueKey('start_slot_${sidechain.slot}_${sidechain.name}'),
         label: 'Start',

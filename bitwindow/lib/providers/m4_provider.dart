@@ -6,6 +6,7 @@ import 'package:logger/logger.dart';
 import 'package:sail_ui/classes/rpc_connection.dart';
 import 'package:sail_ui/gen/drivechain/v1/drivechain.pb.dart' as drivechainpb;
 import 'package:sail_ui/gen/m4/v1/m4.pb.dart' as m4pb;
+import 'package:sail_ui/providers/bitcoin_conf_provider.dart';
 import 'package:sail_ui/providers/sync_provider.dart';
 import 'package:sail_ui/rpcs/bitwindow_api.dart';
 
@@ -52,6 +53,7 @@ class M4Provider extends ChangeNotifier {
   // Fetch M4 data for all active sidechains
   Future<void> fetchAll() async {
     if (_disposed || _settingVote) return;
+    if (!GetIt.I.get<BitcoinConfProvider>().drivechainFeaturesAvailable) return;
 
     isLoading = true;
     modelError = null;

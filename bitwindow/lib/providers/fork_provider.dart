@@ -107,6 +107,7 @@ class ForkProvider extends ChangeNotifier {
   }
 
   Future<void> fetch() async {
+    if (!GetIt.I.get<BitcoinConfProvider>().drivechainFeaturesAvailable) return;
     if (_fetching) return;
     _fetching = true;
     try {

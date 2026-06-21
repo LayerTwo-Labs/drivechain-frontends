@@ -9,7 +9,6 @@ import (
 
 	"connectrpc.com/connect"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/config"
-	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/demo"
 	pb "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/drivechain/v1"
 	rpc "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/drivechain/v1/drivechainv1connect"
 	service "github.com/LayerTwo-Labs/sidesail/bitwindow/server/service"
@@ -152,22 +151,8 @@ func (s *Server) ListSidechainProposals(ctx context.Context, c *connect.Request[
 
 // ListSidechains implements drivechainv1connect.DrivechainServiceHandler.
 // Uses caching to avoid repeated enforcer calls for GetCtip on every sidechain.
-// In demo mode (mainnet), returns simulated sidechain data instead.
 func (s *Server) ListSidechains(ctx context.Context, _ *connect.Request[pb.ListSidechainsRequest]) (*connect.Response[pb.ListSidechainsResponse], error) {
 	log := zerolog.Ctx(ctx)
-
-	// Demo mode: return simulated sidechain data
-	if s.conf.IsDemoMode() {
-		log.Debug().Msg("ListSidechains: returning demo data (mainnet mode)")
-		sidechains, err := demo.GetDemoSidechains(ctx, s.db)
-		if err != nil {
-			return nil, connect.NewError(connect.CodeInternal,
-				fmt.Errorf("get demo sidechains: %w", err))
-		}
-		return connect.NewResponse(&pb.ListSidechainsResponse{
-			Sidechains: sidechains,
-		}), nil
-	}
 
 	// Get current block hash to check cache validity
 	chainTipResp, err := s.data.ChainTip(ctx, &validatorpb.GetChainTipRequest{})
@@ -605,46 +590,9 @@ func (s *Server) updateBundleAges(bundles []*pb.WithdrawalBundle, currentHeight 
 }
 
 // ListRecentActions implements drivechainv1connect.DrivechainServiceHandler.
-// Returns recent sidechain activity for display in the UI.
-// In demo mode (mainnet), returns simulated action data.
 func (s *Server) ListRecentActions(
 	ctx context.Context,
-	c *connect.Request[pb.ListRecentActionsRequest],
+	_ *connect.Request[pb.ListRecentActionsRequest],
 ) (*connect.Response[pb.ListRecentActionsResponse], error) {
-	log := zerolog.Ctx(ctx)
-
-	// Only available in demo mode
-	if !s.conf.IsDemoMode() {
-		log.Debug().Msg("ListRecentActions: not in demo mode, returning empty")
-		return connect.NewResponse(&pb.ListRecentActionsResponse{
-			Actions:  nil,
-			Subtitle: "",
-		}), nil
-	}
-
-	limit := c.Msg.Limit
-	if limit == 0 {
-		limit = 10
-	}
-
-	actions, err := demo.GetRecentActions(ctx, s.db, limit)
-	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal,
-			fmt.Errorf("get recent actions: %w", err))
-	}
-
-	subtitle, err := demo.GetActionStats(ctx, s.db)
-	if err != nil {
-		log.Warn().Err(err).Msg("failed to get action stats")
-		subtitle = ""
-	}
-
-	log.Debug().
-		Int("count", len(actions)).
-		Msg("ListRecentActions: returning demo actions")
-
-	return connect.NewResponse(&pb.ListRecentActionsResponse{
-		Actions:  actions,
-		Subtitle: subtitle,
-	}), nil
+	return connect.NewResponse(&pb.ListRecentActionsResponse{}), nil
 }
