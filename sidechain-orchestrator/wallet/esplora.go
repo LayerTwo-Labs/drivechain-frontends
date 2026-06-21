@@ -11,6 +11,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/rs/zerolog"
 )
 
 // Esplora is the chain-data surface an electrum wallet needs. ElectrumBackend
@@ -33,6 +35,7 @@ type Esplora interface {
 type EsploraClient struct {
 	baseURL string
 	client  *http.Client
+	log     zerolog.Logger
 
 	// Pacing keeps a gap-limit scan under public rate limits (mempool.space
 	// 429s a fast sequential burst). nextReq is the earliest the next request
@@ -40,6 +43,13 @@ type EsploraClient struct {
 	mu          sync.Mutex
 	nextReq     time.Time
 	minInterval time.Duration
+
+	// TipHeight is read on every wallet poll (balance, utxos, txs, stats), so
+	// cache it briefly — otherwise each read makes its own /blocks/tip/height
+	// call and the combined rate alone trips public Esplora 429 limits.
+	tipMu      sync.Mutex
+	tipVal     int
+	tipFetched time.Time
 }
 
 var _ Esplora = (*EsploraClient)(nil)
@@ -49,14 +59,16 @@ const (
 	esploraBackoffBase = 500 * time.Millisecond
 	esploraBackoffMax  = 8 * time.Second
 	esploraMinInterval = 120 * time.Millisecond
+	esploraTipTTL      = 30 * time.Second
 )
 
 // NewEsploraClient creates an Esplora REST client. baseURL is the API root
 // (e.g. https://explorer.signet.drivechain.info/api), trailing slash optional.
-func NewEsploraClient(baseURL string) *EsploraClient {
+func NewEsploraClient(baseURL string, log zerolog.Logger) *EsploraClient {
 	return &EsploraClient{
 		baseURL:     strings.TrimRight(baseURL, "/"),
 		client:      &http.Client{Timeout: 30 * time.Second},
+		log:         log.With().Str("component", "esplora").Logger(),
 		minInterval: esploraMinInterval,
 	}
 }
@@ -171,6 +183,7 @@ func (c *EsploraClient) do(ctx context.Context, method, path string, reqBody io.
 		}
 		// Public Esplora hosts commonly drop requests without a User-Agent.
 		req.Header.Set("User-Agent", "bitwindow-orchestratord")
+		c.log.Info().Str("method", method).Str("path", path).Int("attempt", attempt).Msg("esplora request")
 
 		resp, err := c.client.Do(req)
 		if err != nil {
@@ -338,6 +351,14 @@ func (c *EsploraClient) Broadcast(ctx context.Context, rawHex string) (string, e
 
 // TipHeight returns the height of the chain tip.
 func (c *EsploraClient) TipHeight(ctx context.Context) (int, error) {
+	c.tipMu.Lock()
+	if !c.tipFetched.IsZero() && time.Since(c.tipFetched) < esploraTipTTL {
+		v := c.tipVal
+		c.tipMu.Unlock()
+		return v, nil
+	}
+	c.tipMu.Unlock()
+
 	body, err := c.do(ctx, http.MethodGet, "/blocks/tip/height", nil)
 	if err != nil {
 		return 0, err
@@ -346,6 +367,10 @@ func (c *EsploraClient) TipHeight(ctx context.Context) (int, error) {
 	if err != nil {
 		return 0, fmt.Errorf("parse tip height %q: %w", body, err)
 	}
+	c.tipMu.Lock()
+	c.tipVal = h
+	c.tipFetched = time.Now()
+	c.tipMu.Unlock()
 	return h, nil
 }
 

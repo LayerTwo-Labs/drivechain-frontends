@@ -48,6 +48,12 @@ type ElectrumBackend struct {
 	warmScan  map[string]*electrumScan // walletID -> cached scan, served between blocks
 	tipAt     map[string]int           // walletID -> chain tip the cached scan reflects
 	lastScan  map[string][]byte        // walletID -> last persisted scan bytes (skip rewrites)
+
+	// scanLocks serialises live scans per wallet so concurrent readers
+	// (balance, txs, utxos, stats all poll at once) collapse into a single
+	// gap-walk instead of each firing its own burst of Esplora requests.
+	scanMu    sync.Mutex
+	scanLocks map[string]*sync.Mutex
 }
 
 var _ Backend = (*ElectrumBackend)(nil)
@@ -64,6 +70,7 @@ func NewElectrumBackend(svc *Service, client Esplora, network *chaincfg.Params, 
 		warmScan:  make(map[string]*electrumScan),
 		tipAt:     make(map[string]int),
 		lastScan:  make(map[string][]byte),
+		scanLocks: make(map[string]*sync.Mutex),
 	}
 }
 
@@ -935,6 +942,18 @@ func (p *ElectrumBackend) scan(ctx context.Context, walletID string, allowCache 
 		if scan := p.cachedScan(ctx, walletID); scan != nil {
 			return scan, nil
 		}
+	}
+
+	// Serialise scans per wallet: when several readers miss the cache at once
+	// (cold boot, or just after a new block), only one walks the chain; the
+	// rest wait and then get the cache it just populated.
+	unlock := p.lockScan(walletID)
+	defer unlock()
+
+	if allowCache {
+		if scan := p.cachedScan(ctx, walletID); scan != nil {
+			return scan, nil
+		}
 		// Cold-boot fast path: rebuild the previous scan from disk with no network.
 		if scan, ok := p.loadColdScan(walletID, w); ok {
 			p.cacheScan(ctx, walletID, scan)
@@ -992,6 +1011,20 @@ func (p *ElectrumBackend) scan(ctx context.Context, walletID string, allowCache 
 	p.mu.Unlock()
 	p.cacheScan(ctx, walletID, scan)
 	return scan, nil
+}
+
+// lockScan returns the per-wallet scan mutex (creating it on first use), locked.
+// Call the returned func to unlock.
+func (p *ElectrumBackend) lockScan(walletID string) func() {
+	p.scanMu.Lock()
+	m := p.scanLocks[walletID]
+	if m == nil {
+		m = &sync.Mutex{}
+		p.scanLocks[walletID] = m
+	}
+	p.scanMu.Unlock()
+	m.Lock()
+	return m.Unlock
 }
 
 // cachedScan returns the in-memory scan when it still reflects the current chain

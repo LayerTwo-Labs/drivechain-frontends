@@ -342,7 +342,7 @@ func run(cctx *cli.Context) error {
 	var electrumBackend wallet.Backend
 	if net := config.NetworkFromString(resolvedNetwork); config.ElectrumWalletSupportedForNetwork(net) && netParams != nil {
 		esploraURL := config.EsploraURLForNetwork(net)
-		electrumBackend = wallet.NewElectrumBackend(walletSvc, wallet.NewEsploraClient(esploraURL), netParams, log)
+		electrumBackend = wallet.NewElectrumBackend(walletSvc, wallet.NewEsploraClient(esploraURL, log), netParams, log)
 		log.Info().Str("esplora_url", esploraURL).Msg("electrum wallet provider initialized")
 	}
 

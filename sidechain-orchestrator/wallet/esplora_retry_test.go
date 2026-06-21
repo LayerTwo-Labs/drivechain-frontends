@@ -7,6 +7,7 @@ import (
 	"sync/atomic"
 	"testing"
 
+	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/require"
 )
 
@@ -24,7 +25,7 @@ func TestEsploraRetriesOn429(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	c := NewEsploraClient(srv.URL + "/api")
+	c := NewEsploraClient(srv.URL+"/api", zerolog.Nop())
 	c.minInterval = 0
 
 	stats, err := c.AddressStats(context.Background(), "abc")
@@ -42,7 +43,7 @@ func TestEsploraDoesNotRetryClientError(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	c := NewEsploraClient(srv.URL + "/api")
+	c := NewEsploraClient(srv.URL+"/api", zerolog.Nop())
 	c.minInterval = 0
 
 	_, err := c.AddressStats(context.Background(), "abc")
