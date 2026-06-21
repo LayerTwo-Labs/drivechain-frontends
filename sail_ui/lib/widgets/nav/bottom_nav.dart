@@ -157,6 +157,9 @@ class BottomNav extends StatelessWidget {
         ),
         builder: ((context, model, child) {
           final binaryProvider = GetIt.I.get<BinaryProvider>();
+          // Electrum wallets run no local Core or enforcer by design, so their
+          // cards would sit at a misleading "Not connected" — omit them.
+          final needsBitcoinBackends = GetIt.I.get<WalletReaderProvider>().activeWalletNeedsBitcoinBackends;
 
           return SailColumn(
             spacing: SailStyleValues.padding20,
@@ -168,9 +171,10 @@ class BottomNav extends StatelessWidget {
                 spacing: SailStyleValues.padding12,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  if (!model.mainchain.connected ||
-                      !(model.syncProvider.mainchainSyncInfo?.isSynced ?? false) ||
-                      !onlyShowAdditional)
+                  if (needsBitcoinBackends &&
+                      (!model.mainchain.connected ||
+                          !(model.syncProvider.mainchainSyncInfo?.isSynced ?? false) ||
+                          !onlyShowAdditional))
                     DaemonConnectionCard(
                       connection: model.mainchain,
                       syncInfo: model.syncProvider.mainchainSyncInfo,
@@ -188,9 +192,10 @@ class BottomNav extends StatelessWidget {
                       navigateToLogs: model.navigateToLogs,
                       onOpenConfConfigurator: onOpenConfConfigurator,
                     ),
-                  if (!model.enforcer.connected ||
-                      !(model.syncProvider.enforcerSyncInfo?.isSynced ?? false) ||
-                      !onlyShowAdditional)
+                  if (needsBitcoinBackends &&
+                      (!model.enforcer.connected ||
+                          !(model.syncProvider.enforcerSyncInfo?.isSynced ?? false) ||
+                          !onlyShowAdditional))
                     DaemonConnectionCard(
                       connection: model.enforcer,
                       syncInfo: model.syncProvider.enforcerSyncInfo,
