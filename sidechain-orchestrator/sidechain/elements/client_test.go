@@ -42,6 +42,29 @@ func TestGetNewAddress(t *testing.T) {
 	assert.Equal(t, "el1qexampleaddr", addr)
 }
 
+func TestGetPeginAddress(t *testing.T) {
+	srv := fakeRPC(t, map[string]json.RawMessage{
+		"getpeginaddress": json.RawMessage(`{"mainchain_address":"tb1qmain","claim_script":"0014abcd"}`),
+	})
+	defer srv.Close()
+
+	pa, err := clientFromServer(srv).GetPeginAddress(context.Background())
+	require.NoError(t, err)
+	assert.Equal(t, "tb1qmain", pa.MainchainAddress)
+	assert.Equal(t, "0014abcd", pa.ClaimScript)
+}
+
+func TestSendToMainchain(t *testing.T) {
+	srv := fakeRPC(t, map[string]json.RawMessage{
+		"sendtomainchain": json.RawMessage(`{"txid":"deadbeef","bitcoin_address":"tb1qmain"}`),
+	})
+	defer srv.Close()
+
+	txid, err := clientFromServer(srv).SendToMainchain(context.Background(), "tb1qmain", 0.01)
+	require.NoError(t, err)
+	assert.Equal(t, "deadbeef", txid)
+}
+
 func TestGetBlockCount(t *testing.T) {
 	srv := fakeRPC(t, map[string]json.RawMessage{"getblockcount": json.RawMessage("1234")})
 	defer srv.Close()
