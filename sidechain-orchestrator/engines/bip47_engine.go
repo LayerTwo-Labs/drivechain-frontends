@@ -85,7 +85,7 @@ func (e *BIP47Engine) tick(ctx context.Context) {
 	wallets := e.svc.GetAllWallets()
 	for i := range wallets {
 		w := &wallets[i]
-		if w.WalletType != "bitcoinCore" {
+		if w.WalletType == wallet.WalletTypeEnforcer {
 			continue
 		}
 		seedHex := w.Master.SeedHex

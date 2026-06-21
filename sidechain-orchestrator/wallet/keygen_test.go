@@ -174,7 +174,7 @@ func TestGenerateFullWallet(t *testing.T) {
 	assert.Equal(t, 9, wallet.Sidechains[0].Slot)
 	assert.Equal(t, "Thunder", wallet.Sidechains[0].Name)
 	assert.NotEmpty(t, wallet.Sidechains[0].Mnemonic)
-	assert.Equal(t, "enforcer", wallet.WalletType)
+	assert.Equal(t, WalletTypeEnforcer, wallet.WalletType)
 
 	// Master mnemonic is 12 words
 	assert.Equal(t, 12, len(strings.Fields(wallet.Master.Mnemonic)))
@@ -208,7 +208,7 @@ func TestGenerateFullWalletWithCustomMnemonic(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.Equal(t, mnemonic, wallet.Master.Mnemonic)
-	assert.Equal(t, "bitcoinCore", wallet.WalletType)
+	assert.Equal(t, WalletTypeBitcoinCore, wallet.WalletType)
 
 	// Verify known seed hex for "abandon" mnemonic with no passphrase
 	expectedSeedHex := "5eb00bbddcf069084889a8ab9155568165f5c453ccb85e70811aaed6f6da5fc19a5ac40b389cd370d086206dec8aa6c43daea6690f20ad3d8d48b2d2ce9e38e4"

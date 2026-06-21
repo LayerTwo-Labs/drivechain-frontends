@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"connectrpc.com/connect"
+	"github.com/samber/lo"
 
 	orchestrator "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator"
 	pb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/orchestrator/v1"
@@ -35,11 +36,9 @@ func NewHandler(orch *orchestrator.Orchestrator) *Handler {
 }
 
 func (h *Handler) ListBinaries(ctx context.Context, req *connect.Request[pb.ListBinariesRequest]) (*connect.Response[pb.ListBinariesResponse], error) {
-	statuses := h.orch.ListAll()
-	pbStatuses := make([]*pb.BinaryStatusMsg, len(statuses))
-	for i, s := range statuses {
-		pbStatuses[i] = statusToProto(s)
-	}
+	pbStatuses := lo.Map(h.orch.ListAll(), func(s orchestrator.BinaryStatus, _ int) *pb.BinaryStatusMsg {
+		return statusToProto(s)
+	})
 	return connect.NewResponse(&pb.ListBinariesResponse{
 		Binaries: pbStatuses,
 	}), nil
@@ -699,21 +698,16 @@ func binaryTypeFromResetBinary(binary orchestrator.ResetBinary) pb.BinaryType {
 // orchestrator gather specs. Shared by GatherFilesToDelete and DeleteFiles so
 // both resolve the exact same set of paths from an identical request.
 func specsFromItems(items []*pb.SingleDeletion) []orchestrator.GatherSpec {
-	var specs []orchestrator.GatherSpec
-	for _, item := range items {
+	return lo.FilterMap(items, func(item *pb.SingleDeletion, _ int) (orchestrator.GatherSpec, bool) {
 		binary := resetBinaryFromType(item.Binary)
 		if binary == orchestrator.ResetBinaryUnknown {
-			continue
+			return orchestrator.GatherSpec{}, false
 		}
-		var cats []orchestrator.ResetCategory
-		for _, dt := range item.Deletions {
-			if c, ok := deletionTypeToCategory(dt); ok {
-				cats = append(cats, c)
-			}
-		}
-		specs = append(specs, orchestrator.GatherSpec{Binary: binary, Categories: cats})
-	}
-	return specs
+		cats := lo.FilterMap(item.Deletions, func(dt pb.DeletionType, _ int) (orchestrator.ResetCategory, bool) {
+			return deletionTypeToCategory(dt)
+		})
+		return orchestrator.GatherSpec{Binary: binary, Categories: cats}, true
+	})
 }
 
 func (h *Handler) GatherFilesToDelete(ctx context.Context, req *connect.Request[pb.GatherFilesToDeleteRequest]) (*connect.Response[pb.GatherFilesToDeleteResponse], error) {
@@ -722,15 +716,16 @@ func (h *Handler) GatherFilesToDelete(ctx context.Context, req *connect.Request[
 		return nil, err
 	}
 
-	resp := &pb.GatherFilesToDeleteResponse{}
-	for _, f := range files {
-		resp.Files = append(resp.Files, &pb.ResetFileInfo{
-			Path:         f.Path,
-			DeletionType: categoryToDeletionType(f.Category),
-			Binary:       binaryTypeFromResetBinary(f.Binary),
-			SizeBytes:    f.SizeBytes,
-			IsDirectory:  f.IsDirectory,
-		})
+	resp := &pb.GatherFilesToDeleteResponse{
+		Files: lo.Map(files, func(f orchestrator.ResetFileInfo, _ int) *pb.ResetFileInfo {
+			return &pb.ResetFileInfo{
+				Path:         f.Path,
+				DeletionType: categoryToDeletionType(f.Category),
+				Binary:       binaryTypeFromResetBinary(f.Binary),
+				SizeBytes:    f.SizeBytes,
+				IsDirectory:  f.IsDirectory,
+			}
+		}),
 	}
 	return connect.NewResponse(resp), nil
 }
@@ -739,18 +734,10 @@ func (h *Handler) GatherFilesToDelete(ctx context.Context, req *connect.Request[
 // only — a path that wasn't gathered is ignored, so a client can't reach a path
 // outside the gather set.
 func deletablePaths(files []orchestrator.ResetFileInfo, except []string) []string {
-	skip := make(map[string]bool, len(except))
-	for _, p := range except {
-		skip[p] = true
-	}
-	paths := make([]string, 0, len(files))
-	for _, f := range files {
-		if skip[f.Path] {
-			continue
-		}
-		paths = append(paths, f.Path)
-	}
-	return paths
+	skip := lo.SliceToMap(except, func(p string) (string, bool) { return p, true })
+	return lo.FilterMap(files, func(f orchestrator.ResetFileInfo, _ int) (string, bool) {
+		return f.Path, !skip[f.Path]
+	})
 }
 
 func (h *Handler) DeleteFiles(ctx context.Context, req *connect.Request[pb.DeleteFilesRequest], stream *connect.ServerStream[pb.DeleteFilesResponse]) error {
@@ -776,13 +763,12 @@ func (h *Handler) DeleteFiles(ctx context.Context, req *connect.Request[pb.Delet
 }
 
 func statusToProto(s orchestrator.BinaryStatus) *pb.BinaryStatusMsg {
-	startupLogs := make([]*pb.StartupLogEntryMsg, len(s.StartupLogs))
-	for i, l := range s.StartupLogs {
-		startupLogs[i] = &pb.StartupLogEntryMsg{
+	startupLogs := lo.Map(s.StartupLogs, func(l orchestrator.StartupLogLine, _ int) *pb.StartupLogEntryMsg {
+		return &pb.StartupLogEntryMsg{
 			TimestampUnix: l.Timestamp.Unix(),
 			Message:       l.Message,
 		}
-	}
+	})
 
 	return &pb.BinaryStatusMsg{
 		Name:            s.Name,

@@ -15,6 +15,7 @@ import (
 	"github.com/btcsuite/btcd/btcutil"
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/rs/zerolog"
+	"github.com/samber/lo"
 	"github.com/tyler-smith/go-bip32"
 
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/replay"
@@ -96,7 +97,7 @@ func (p *CoreBackend) Ensure(ctx context.Context, walletID string) (string, erro
 
 	var err error
 	switch targetWallet.WalletType {
-	case "bitcoinCore":
+	case WalletTypeBitcoinCore:
 		// Watch-only Core wallets import a descriptor; full wallets create from
 		// the seed. Both run on the same Core backend.
 		if targetWallet.IsWatchOnly() {
@@ -121,7 +122,7 @@ func (p *CoreBackend) Ensure(ctx context.Context, walletID string) (string, erro
 	// lands on first boot post-engine-deploy. Idempotent in Core, and a
 	// failure here shouldn't break wallet loading — the backend will retry
 	// next time Ensure runs.
-	if targetWallet.WalletType == "bitcoinCore" && !targetWallet.IsWatchOnly() {
+	if targetWallet.WalletType == WalletTypeBitcoinCore && !targetWallet.IsWatchOnly() {
 		if perr := p.ensureBip47NotificationDescriptor(ctx, walletName, targetWallet.Master.SeedHex); perr != nil {
 			p.log.Warn().Err(perr).Str("wallet", walletName).Msg("could not ensure bip47 notification descriptor")
 		}
@@ -140,7 +141,7 @@ func (p *CoreBackend) EnsureAll(ctx context.Context) (int, error) {
 	synced := 0
 
 	for _, w := range wallets {
-		if w.WalletType != "bitcoinCore" {
+		if w.WalletType != WalletTypeBitcoinCore {
 			continue
 		}
 		if _, err := p.Ensure(ctx, w.ID); err != nil {
@@ -288,14 +289,13 @@ func (p *CoreBackend) WatchKeys(ctx context.Context, walletID string, keys []Wat
 	if err != nil {
 		return err
 	}
-	descriptors := make([]ImportDescriptor, 0, len(keys))
-	for _, k := range keys {
-		descriptors = append(descriptors, ImportDescriptor{
+	descriptors := lo.Map(keys, func(k WatchKey, _ int) ImportDescriptor {
+		return ImportDescriptor{
 			Desc:      mustAddChecksum(fmt.Sprintf("pkh(%s)", k.WIF)),
 			Active:    false,
 			Timestamp: k.RescanFrom,
-		})
-	}
+		}
+	})
 	results, err := p.rpc.ImportDescriptors(ctx, name, descriptors)
 	if err != nil {
 		return err
@@ -330,10 +330,9 @@ func (p *CoreBackend) Send(ctx context.Context, walletID string, req SendRequest
 		req.ReplayProtect // custom serialization needs the raw-tx path
 
 	if !needsRawPath {
-		destinations := make(map[string]float64, len(req.DestinationsSats))
-		for addr, sats := range req.DestinationsSats {
-			destinations[addr] = float64(sats) / 1e8
-		}
+		destinations := lo.MapValues(req.DestinationsSats, func(sats int64, _ string) float64 {
+			return float64(sats) / 1e8
+		})
 		if len(destinations) == 1 {
 			for addr, amount := range destinations {
 				return p.rpc.SendToAddress(ctx, name, addr, amount, req.SubtractFeeFromAmount)
@@ -397,11 +396,7 @@ func (p *CoreBackend) Send(ctx context.Context, walletID string, req SendRequest
 		options["fee_rate"] = req.FeeRateSatPerVB
 	}
 	if req.SubtractFeeFromAmount && len(req.DestinationsSats) > 0 {
-		subtractFeeFromOutputs := make([]int, 0, len(req.DestinationsSats))
-		for i := 0; i < len(req.DestinationsSats); i++ {
-			subtractFeeFromOutputs = append(subtractFeeFromOutputs, i)
-		}
-		options["subtractFeeFromOutputs"] = subtractFeeFromOutputs
+		options["subtractFeeFromOutputs"] = lo.Range(len(req.DestinationsSats))
 	}
 
 	funded, err := p.rpc.FundRawTransaction(ctx, name, rawHex, options)
@@ -413,15 +408,12 @@ func (p *CoreBackend) Send(ctx context.Context, walletID string, req SendRequest
 
 // rpcOutputs maps outputs onto createrawtransaction's wire shape.
 func rpcOutputs(outputs []TxOutSpec) []map[string]interface{} {
-	out := make([]map[string]interface{}, 0, len(outputs))
-	for _, o := range outputs {
+	return lo.Map(outputs, func(o TxOutSpec, _ int) map[string]interface{} {
 		if o.OpReturnHex != "" {
-			out = append(out, map[string]interface{}{"data": o.OpReturnHex})
-			continue
+			return map[string]interface{}{"data": o.OpReturnHex}
 		}
-		out = append(out, map[string]interface{}{o.Address: o.AmountBTC})
-	}
-	return out
+		return map[string]interface{}{o.Address: o.AmountBTC}
+	})
 }
 
 // buildSendOutputs maps the request's destinations (plus optional OP_RETURN)
@@ -697,15 +689,7 @@ func (p *CoreBackend) createAndImport(ctx context.Context, walletName string, di
 		return fmt.Errorf("list wallets: %w", err)
 	}
 
-	found := false
-	for _, w := range existing {
-		if w == walletName {
-			found = true
-			break
-		}
-	}
-
-	if !found {
+	if !lo.Contains(existing, walletName) {
 		if err := p.rpc.CreateWallet(ctx, walletName, disablePrivateKeys, true); err != nil {
 			if strings.Contains(err.Error(), "already exists") {
 				if loadErr := p.rpc.LoadWallet(ctx, walletName); loadErr != nil {

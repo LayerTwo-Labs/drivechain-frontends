@@ -12,6 +12,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/samber/lo"
+
 	orchestratorpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/orchestrator/v1"
 )
 
@@ -26,9 +28,9 @@ type BalanceSnapshot struct {
 }
 
 type WalletSummary struct {
-	ID         string `json:"id"`
-	Name       string `json:"name"`
-	WalletType string `json:"walletType"`
+	ID         string     `json:"id"`
+	Name       string     `json:"name"`
+	WalletType WalletType `json:"walletType"`
 }
 
 type WalletMetadataFile struct {
@@ -416,11 +418,9 @@ func (s *Service) readWalletBackupInfo(dir string) WalletBackupInfo {
 }
 
 func walletSummaries(wallets []WalletData) []WalletSummary {
-	out := make([]WalletSummary, 0, len(wallets))
-	for _, w := range wallets {
-		out = append(out, WalletSummary{ID: w.ID, Name: w.Name, WalletType: w.WalletType})
-	}
-	return out
+	return lo.Map(wallets, func(w WalletData, _ int) WalletSummary {
+		return WalletSummary{ID: w.ID, Name: w.Name, WalletType: w.WalletType}
+	})
 }
 
 func walletSummariesEqual(a, b []WalletSummary) bool {

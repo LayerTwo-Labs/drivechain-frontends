@@ -20,6 +20,7 @@ import (
 	"github.com/btcsuite/btcd/txscript"
 	"github.com/btcsuite/btcd/wire"
 	"github.com/rs/zerolog"
+	"github.com/samber/lo"
 
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/replay"
 )
@@ -121,13 +122,9 @@ func (p *ElectrumBackend) Ensure(ctx context.Context, walletID string) (string, 
 }
 
 func (p *ElectrumBackend) EnsureAll(ctx context.Context) (int, error) {
-	n := 0
-	for _, w := range p.svc.GetAllWallets() {
-		if w.WalletType == "electrum" {
-			n++
-		}
-	}
-	return n, nil
+	return lo.CountBy(p.svc.GetAllWallets(), func(w WalletData) bool {
+		return w.WalletType == WalletTypeElectrum
+	}), nil
 }
 
 func (p *ElectrumBackend) Balance(ctx context.Context, walletID string) (float64, float64, error) {
@@ -503,12 +500,9 @@ func (p *ElectrumBackend) buildSendPSBT(ctx context.Context, walletID string, sc
 		selected = append(selected, u)
 		selectedSats += u.amountSats
 	}
-	remaining := make([]electrumUTXO, 0, len(pool))
-	for _, u := range pool {
-		if !required[fmt.Sprintf("%s:%d", u.txid, u.vout)] {
-			remaining = append(remaining, u)
-		}
-	}
+	remaining := lo.Filter(pool, func(u electrumUTXO, _ int) bool {
+		return !required[fmt.Sprintf("%s:%d", u.txid, u.vout)]
+	})
 	sort.Slice(remaining, func(i, j int) bool { return remaining[i].amountSats > remaining[j].amountSats })
 
 	feeRate := float64(req.FeeRateSatPerVB)
@@ -634,7 +628,7 @@ func (p *ElectrumBackend) requireElectrum(walletID string) error {
 	if w == nil {
 		return fmt.Errorf("wallet %s not found", walletID)
 	}
-	if w.WalletType != "electrum" {
+	if w.WalletType != WalletTypeElectrum {
 		return fmt.Errorf("wallet %s is not an electrum wallet", walletID)
 	}
 	return nil
@@ -1120,14 +1114,14 @@ func finalizeScan(scan *electrumScan) {
 // part of the derivation chain and are excluded.
 func (p *ElectrumBackend) persistScan(walletID string, scan *electrumScan) {
 	ps := persistedScan{Version: persistedScanVersion, WalletID: walletID}
-	for _, a := range scan.addrs {
+	ps.Addrs = lo.FilterMap(scan.addrs, func(a scannedAddr, _ int) (persistedAddr, bool) {
 		if a.hdPath == "" {
-			continue
+			return persistedAddr{}, false
 		}
-		ps.Addrs = append(ps.Addrs, persistedAddr{
+		return persistedAddr{
 			Change: a.change, Index: a.index, Address: a.address, Stats: a.stats,
-		})
-	}
+		}, true
+	})
 	data, err := json.Marshal(ps)
 	if err != nil {
 		return
@@ -1270,12 +1264,9 @@ func (p *ElectrumBackend) spendableUTXOs(ctx context.Context, scan *electrumScan
 }
 
 func findUTXO(pool []electrumUTXO, txid string, vout int) (electrumUTXO, bool) {
-	for _, u := range pool {
-		if u.txid == txid && u.vout == vout {
-			return u, true
-		}
-	}
-	return electrumUTXO{}, false
+	return lo.Find(pool, func(u electrumUTXO) bool {
+		return u.txid == txid && u.vout == vout
+	})
 }
 
 // walletFlow returns the sats flowing out of and into the wallet for a tx:

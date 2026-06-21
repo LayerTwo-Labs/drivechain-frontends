@@ -7,6 +7,8 @@ import (
 	"runtime"
 	"strings"
 
+	"github.com/samber/lo"
+
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config"
 )
 
@@ -197,12 +199,7 @@ func (v CoreVariantSpec) FileForPlatform() (string, error) {
 
 // AvailableOn reports whether the variant is offered for the given network.
 func (v CoreVariantSpec) AvailableOn(network string) bool {
-	for _, n := range v.AvailableNetworks {
-		if n == network {
-			return true
-		}
-	}
-	return false
+	return lo.Contains(v.AvailableNetworks, network)
 }
 
 // DefaultCoreVariantID is the variant used when no settings file exists.
@@ -332,35 +329,25 @@ func AllDefaults() []BinaryConfig {
 // AllSidechains returns configs for all sidechain binaries (ChainLayer == 2).
 // Dart: Sidechain.all (sidechains.dart L49-57)
 func AllSidechains() []BinaryConfig {
-	var sidechains []BinaryConfig
-	for _, c := range AllDefaults() {
-		if c.ChainLayer == 2 {
-			sidechains = append(sidechains, c)
-		}
-	}
-	return sidechains
+	return lo.Filter(AllDefaults(), func(c BinaryConfig, _ int) bool {
+		return c.ChainLayer == 2
+	})
 }
 
 // BinaryConfigByName returns the default config for a binary by name.
 // Dart: Sidechain.fromString (sidechains.dart L23-47)
 func BinaryConfigByName(name string) (BinaryConfig, bool) {
-	for _, c := range AllDefaults() {
-		if c.Name == name || c.BinaryName == name || c.DisplayName == name {
-			return c, true
-		}
-	}
-	return BinaryConfig{}, false
+	return lo.Find(AllDefaults(), func(c BinaryConfig) bool {
+		return c.Name == name || c.BinaryName == name || c.DisplayName == name
+	})
 }
 
 // BinaryConfigBySlot returns the sidechain config for a given slot number.
 // Dart: Sidechain.fromSlot (sidechains.dart L59-66)
 func BinaryConfigBySlot(slot int) (BinaryConfig, bool) {
-	for _, c := range AllDefaults() {
-		if c.Slot == slot && c.ChainLayer == 2 {
-			return c, true
-		}
-	}
-	return BinaryConfig{}, false
+	return lo.Find(AllDefaults(), func(c BinaryConfig) bool {
+		return c.Slot == slot && c.ChainLayer == 2
+	})
 }
 
 // IsSidechain returns true if this binary is a sidechain (ChainLayer == 2).

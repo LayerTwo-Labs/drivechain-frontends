@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
+	"github.com/samber/lo"
 
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/fork"
 	enforcerpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1"
@@ -57,31 +58,29 @@ func (s *forkWalletScanner) Wallets() []fork.WalletMeta {
 	if s.o.WalletSvc == nil {
 		return nil
 	}
-	var out []fork.WalletMeta
-	for _, w := range s.o.WalletSvc.GetAllWallets() {
-		// Watch-only has no key, so it can't be swept. Core and enforcer
-		// wallets both hold spendable L1 BTC, but only Core claims can be
-		// replay-protected (the custom-serialized tx path is Core-only).
+	// Watch-only has no key, so it can't be swept. Core and enforcer
+	// wallets both hold spendable L1 BTC, but only Core claims can be
+	// replay-protected (the custom-serialized tx path is Core-only).
+	return lo.FilterMap(s.o.WalletSvc.GetAllWallets(), func(w wallet.WalletData, _ int) (fork.WalletMeta, bool) {
 		if w.IsWatchOnly() {
-			continue
+			return fork.WalletMeta{}, false
 		}
-		out = append(out, fork.WalletMeta{
+		return fork.WalletMeta{
 			ID:                w.ID,
 			Name:              w.Name,
-			ReplayProtectable: w.WalletType != "enforcer",
-		})
-	}
-	return out
+			ReplayProtectable: w.WalletType != wallet.WalletTypeEnforcer,
+		}, true
+	})
 }
 
 func (s *forkWalletScanner) Unspent(ctx context.Context, walletID string, tipHeight int) ([]fork.Utxo, error) {
-	if s.walletType(walletID) == "enforcer" {
+	if s.walletType(walletID) == wallet.WalletTypeEnforcer {
 		return s.enforcerUnspent(ctx)
 	}
 	return s.coreUnspent(ctx, walletID, tipHeight)
 }
 
-func (s *forkWalletScanner) walletType(walletID string) string {
+func (s *forkWalletScanner) walletType(walletID string) wallet.WalletType {
 	for _, w := range s.o.WalletSvc.GetAllWallets() {
 		if w.ID == walletID {
 			return w.WalletType
@@ -100,22 +99,20 @@ func (s *forkWalletScanner) coreUnspent(ctx context.Context, walletID string, ti
 	if err != nil {
 		return nil, err
 	}
-	out := make([]fork.Utxo, 0, len(coreUTXOs))
-	for _, u := range coreUTXOs {
+	return lo.Map(coreUTXOs, func(u wallet.UTXO, _ int) fork.Utxo {
 		height := 0
 		if u.Confirmations > 0 {
 			height = tipHeight - u.Confirmations + 1
 		}
-		out = append(out, fork.Utxo{
+		return fork.Utxo{
 			Outpoint:  fork.Outpoint(u.TxID, u.Vout),
 			Address:   u.Address,
 			Label:     u.Label,
 			Sats:      fork.BTCToSats(u.Amount),
 			Height:    height,
 			Spendable: u.Spendable,
-		})
-	}
-	return out, nil
+		}
+	}), nil
 }
 
 // enforcerUnspent reads the enforcer wallet's UTXOs; the enforcer exposes the
@@ -128,19 +125,17 @@ func (s *forkWalletScanner) enforcerUnspent(ctx context.Context) ([]fork.Utxo, e
 	if err != nil {
 		return nil, err
 	}
-	out := make([]fork.Utxo, 0, len(resp.Msg.Outputs))
-	for _, u := range resp.Msg.Outputs {
+	return lo.Map(resp.Msg.Outputs, func(u *enforcerpb.ListUnspentOutputsResponse_Output, _ int) fork.Utxo {
 		height := 0
 		if u.IsConfirmed {
 			height = int(u.ConfirmedAtBlock)
 		}
-		out = append(out, fork.Utxo{
+		return fork.Utxo{
 			Outpoint:  fork.Outpoint(u.Txid.GetHex().GetValue(), int(u.Vout)),
 			Address:   u.Address.GetValue(),
 			Sats:      u.ValueSats,
 			Height:    height,
 			Spendable: true,
-		})
-	}
-	return out, nil
+		}
+	}), nil
 }

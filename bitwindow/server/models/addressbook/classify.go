@@ -5,6 +5,7 @@ import (
 
 	"github.com/btcsuite/btcd/btcutil"
 	"github.com/btcsuite/btcd/chaincfg"
+	"github.com/samber/lo"
 
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/drivechain"
 	pb "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/bitwindowd/v1"
@@ -56,10 +57,8 @@ func ClassifyAddress(s string) pb.AddressType {
 }
 
 func decodeL1Any(s string) bool {
-	for _, p := range allChainParams {
-		if _, err := btcutil.DecodeAddress(s, p); err == nil {
-			return true
-		}
-	}
-	return false
+	return lo.ContainsBy(allChainParams, func(p *chaincfg.Params) bool {
+		_, err := btcutil.DecodeAddress(s, p)
+		return err == nil
+	})
 }

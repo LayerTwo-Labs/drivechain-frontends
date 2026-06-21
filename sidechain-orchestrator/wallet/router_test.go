@@ -43,11 +43,11 @@ func newRouterFixture(t *testing.T) (*BackendRouter, *fakeBackend, *fakeBackend,
 
 	enf, err := svc.GenerateWallet("Enforcer", "", "", testSlots)
 	require.NoError(t, err)
-	require.Equal(t, "enforcer", enf.WalletType)
+	require.Equal(t, WalletTypeEnforcer, enf.WalletType)
 
 	core, err := svc.GenerateWallet("Core", "", "", testSlots)
 	require.NoError(t, err)
-	require.Equal(t, "bitcoinCore", core.WalletType)
+	require.Equal(t, WalletTypeBitcoinCore, core.WalletType)
 
 	enfFake := &fakeBackend{name: "enforcer"}
 	chainFake := &fakeBackend{name: "chain"}
@@ -83,7 +83,7 @@ func TestBackendRouterMissingSides(t *testing.T) {
 
 	elec, err := svc.CreateElectrumWallet("Electrum", nil, nil, "", "", "")
 	require.NoError(t, err)
-	require.Equal(t, "electrum", elec.WalletType)
+	require.Equal(t, WalletTypeElectrum, elec.WalletType)
 
 	router := NewBackendRouter(svc, nil, nil, nil)
 	ctx := context.Background()

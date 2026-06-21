@@ -133,7 +133,7 @@ func calculateChecksumBits(entropy []byte) string {
 }
 
 // GenerateFullWallet generates a complete wallet with master, L1, and sidechain starters.
-func GenerateFullWallet(name string, customMnemonic string, passphrase string, slots []SidechainSlot, walletType string) (*WalletData, error) {
+func GenerateFullWallet(name string, customMnemonic string, passphrase string, slots []SidechainSlot, walletType WalletType) (*WalletData, error) {
 	var mnemonic string
 	var err error
 

@@ -10,6 +10,7 @@ import (
 
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/engines"
 	m4pb "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/m4/v1"
+	"github.com/samber/lo"
 )
 
 type Server struct {
@@ -75,8 +76,7 @@ func (s *Server) GetVotePreferences(
 		return nil, fmt.Errorf("get vote preferences: %w", err)
 	}
 
-	pbPrefs := make([]*m4pb.M4Vote, len(prefs))
-	for i, pref := range prefs {
+	pbPrefs := lo.Map(prefs, func(pref m4models.VotePreference, _ int) *m4pb.M4Vote {
 		pbPref := &m4pb.M4Vote{
 			SidechainSlot: uint32(pref.SidechainSlot),
 			VoteType:      string(pref.VoteType),
@@ -84,8 +84,8 @@ func (s *Server) GetVotePreferences(
 		if pref.BundleHash != nil {
 			pbPref.BundleHash = pref.BundleHash
 		}
-		pbPrefs[i] = pbPref
-	}
+		return pbPref
+	})
 
 	return connect.NewResponse(&m4pb.GetVotePreferencesResponse{
 		Preferences: pbPrefs,
@@ -158,10 +158,9 @@ func (s *Server) GenerateM4Bytes(
 	}
 
 	// Build preference map for quick lookup
-	prefMap := make(map[uint8]m4models.VotePreference)
-	for _, p := range prefs {
-		prefMap[p.SidechainSlot] = p
-	}
+	prefMap := lo.KeyBy(prefs, func(p m4models.VotePreference) uint8 {
+		return p.SidechainSlot
+	})
 
 	// Generate M4 bytes using version 0x02 (2 bytes per sidechain)
 	// Only include sidechains that have pending bundles
