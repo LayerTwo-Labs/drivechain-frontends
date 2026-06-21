@@ -167,7 +167,7 @@ func New(
 	if err != nil {
 		return nil, fmt.Errorf("build initial runtime: %w", err)
 	}
-	srv.topSwap.swap(rt.mux)
+	srv.topSwap.swap(rt.Handler())
 	srv.current.Store(rt)
 	rt.Start(ctx)
 
@@ -205,7 +205,7 @@ func (s *Server) Recycle(ctx context.Context, network config.Network) error {
 	}
 
 	s.conf = newConf
-	s.topSwap.swap(rt.mux)
+	s.topSwap.swap(rt.Handler())
 	s.current.Store(rt)
 	rt.Start(s.rootCtx)
 

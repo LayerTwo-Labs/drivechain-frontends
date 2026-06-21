@@ -98,6 +98,11 @@ type Runtime struct {
 	cancel context.CancelFunc
 	wg     sync.WaitGroup
 
+	// inflight counts in-flight request handlers so Close drains them before
+	// closing the DB — otherwise a network swap closes db out from under a
+	// running handler ("sql: database is closed").
+	inflight sync.WaitGroup
+
 	db       *sql.DB
 	mux      *http.ServeMux
 	services []string // service paths registered on mux, for grpcreflect
@@ -563,13 +568,36 @@ func (rt *Runtime) autoUnlockWallet(ctx context.Context) {
 	log.Info().Msg("wallet engine auto-unlocked successfully")
 }
 
-// Close cancels engines, waits for goroutines, and closes the DB.
-// Safe to call once. Subsequent calls are no-ops.
+// Handler wraps the runtime mux so in-flight requests are tracked in
+// rt.inflight; Close drains them before closing the DB.
+func (rt *Runtime) Handler() http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		rt.inflight.Add(1)
+		defer rt.inflight.Done()
+		rt.mux.ServeHTTP(w, r)
+	})
+}
+
+// Close cancels engines, waits for goroutines, drains in-flight request
+// handlers, then closes the DB. Safe to call once. Subsequent calls are no-ops.
 func (rt *Runtime) Close() {
 	if rt.cancel != nil {
 		rt.cancel()
 	}
 	rt.wg.Wait()
+
+	// Wait for in-flight handlers so none queries the DB after it closes.
+	// Bounded so a hung handler can't block teardown forever.
+	drained := make(chan struct{})
+	go func() {
+		rt.inflight.Wait()
+		close(drained)
+	}()
+	select {
+	case <-drained:
+	case <-time.After(10 * time.Second):
+	}
+
 	if rt.db != nil {
 		_ = rt.db.Close()
 	}
