@@ -183,7 +183,7 @@ func (e *WalletEngine) Unlock(walletData map[string]any) error {
 		}
 
 		// Track enforcer wallet as preferred fallback
-		if walletType == "enforcer" {
+		if WalletType(walletType) == WalletTypeEnforcer {
 			enforcerWallet = wallet
 			enforcerWalletId = walletId
 		}

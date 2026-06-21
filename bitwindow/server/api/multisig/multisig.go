@@ -10,6 +10,7 @@ import (
 	pb "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/multisig/v1"
 	rpc "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/multisig/v1/multisigv1connect"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/multisig"
+	"github.com/samber/lo"
 	"google.golang.org/protobuf/types/known/emptypb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
@@ -82,9 +83,8 @@ func (s *Server) SaveGroup(
 	}
 
 	// Build keys
-	var keys []multisig.Key
-	for i, k := range pg.Keys {
-		keys = append(keys, multisig.Key{
+	keys := lo.Map(pg.Keys, func(k *pb.MultisigKey, i int) multisig.Key {
+		return multisig.Key{
 			GroupID:        pg.Id,
 			Owner:          k.Owner,
 			Xpub:           k.Xpub,
@@ -93,8 +93,8 @@ func (s *Server) SaveGroup(
 			OriginPath:     k.OriginPath,
 			IsWallet:       k.IsWallet,
 			SortOrder:      i,
-		})
-	}
+		}
+	})
 
 	// Build key PSBTs indexed by xpub (key ID resolved inside atomic op)
 	xpubToPSBTs := make(map[string][]multisig.KeyPSBT)
@@ -131,9 +131,8 @@ func (s *Server) SaveGroup(
 	}
 
 	// Build UTXO details
-	var utxos []multisig.UtxoDetail
-	for _, u := range pg.UtxoDetails {
-		utxos = append(utxos, multisig.UtxoDetail{
+	utxos := lo.Map(pg.UtxoDetails, func(u *pb.UtxoDetail, _ int) multisig.UtxoDetail {
+		return multisig.UtxoDetail{
 			GroupID:       pg.Id,
 			Txid:          u.Txid,
 			Vout:          int(u.Vout),
@@ -144,8 +143,8 @@ func (s *Server) SaveGroup(
 			Spendable:     u.Spendable,
 			Solvable:      u.Solvable,
 			Safe:          u.Safe,
-		})
-	}
+		}
+	})
 
 	// Persist everything atomically
 	if err := s.store.SaveGroupAtomic(ctx, multisig.SaveGroupAtomicParams{
@@ -338,16 +337,15 @@ func (s *Server) ListSoloKeys(
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
 
-	var pbKeys []*pb.SoloKey
-	for _, k := range keys {
-		pbKeys = append(pbKeys, &pb.SoloKey{
+	pbKeys := lo.Map(keys, func(k multisig.SoloKey, _ int) *pb.SoloKey {
+		return &pb.SoloKey{
 			Xpub:           k.Xpub,
 			DerivationPath: k.DerivationPath,
 			Fingerprint:    k.Fingerprint,
 			OriginPath:     k.OriginPath,
 			Owner:          k.Owner,
-		})
-	}
+		}
+	})
 
 	return connect.NewResponse(&pb.ListSoloKeysResponse{Keys: pbKeys}), nil
 }
@@ -380,10 +378,9 @@ func (s *Server) GetNextAccountIndex(
 	ctx context.Context,
 	req *connect.Request[pb.GetNextAccountIndexRequest],
 ) (*connect.Response[pb.GetNextAccountIndexResponse], error) {
-	var additional []int
-	for _, idx := range req.Msg.AdditionalUsedIndices {
-		additional = append(additional, int(idx))
-	}
+	additional := lo.Map(req.Msg.AdditionalUsedIndices, func(idx int32, _ int) int {
+		return int(idx)
+	})
 
 	next, err := s.store.GetNextAccountIndex(ctx, additional)
 	if err != nil {
@@ -478,8 +475,8 @@ func (s *Server) groupToProto(ctx context.Context, g multisig.Group) (*pb.Multis
 	if err != nil {
 		return nil, fmt.Errorf("list utxos for %s: %w", g.ID, err)
 	}
-	for _, u := range utxos {
-		pg.UtxoDetails = append(pg.UtxoDetails, &pb.UtxoDetail{
+	pg.UtxoDetails = lo.Map(utxos, func(u multisig.UtxoDetail, _ int) *pb.UtxoDetail {
+		return &pb.UtxoDetail{
 			Txid:          u.Txid,
 			Vout:          int32(u.Vout),
 			Address:       u.Address,
@@ -489,8 +486,8 @@ func (s *Server) groupToProto(ctx context.Context, g multisig.Group) (*pb.Multis
 			Spendable:     u.Spendable,
 			Solvable:      u.Solvable,
 			Safe:          u.Safe,
-		})
-	}
+		}
+	})
 
 	// Load transaction IDs
 	txIDs, err := s.store.ListGroupTransactionIDs(ctx, g.ID)
@@ -531,7 +528,7 @@ func (s *Server) txToProto(ctx context.Context, t multisig.Transaction) (*pb.Mul
 	if err != nil {
 		return nil, fmt.Errorf("list key psbts for tx %s: %w", t.ID, err)
 	}
-	for _, kp := range keyPSBTs {
+	pt.KeyPsbts = lo.Map(keyPSBTs, func(kp multisig.TxKeyPSBT, _ int) *pb.KeyPSBTStatus {
 		pbKP := &pb.KeyPSBTStatus{
 			KeyId:    kp.KeyID,
 			Psbt:     kp.PSBT,
@@ -540,23 +537,23 @@ func (s *Server) txToProto(ctx context.Context, t multisig.Transaction) (*pb.Mul
 		if kp.SignedAt != nil {
 			pbKP.SignedAt = timestamppb.New(timeFromUnix(*kp.SignedAt))
 		}
-		pt.KeyPsbts = append(pt.KeyPsbts, pbKP)
-	}
+		return pbKP
+	})
 
 	// Load inputs
 	inputs, err := s.store.ListTxInputs(ctx, t.ID)
 	if err != nil {
 		return nil, fmt.Errorf("list inputs for tx %s: %w", t.ID, err)
 	}
-	for _, inp := range inputs {
-		pt.Inputs = append(pt.Inputs, &pb.UtxoDetail{
+	pt.Inputs = lo.Map(inputs, func(inp multisig.TxInput, _ int) *pb.UtxoDetail {
+		return &pb.UtxoDetail{
 			Txid:          inp.Txid,
 			Vout:          int32(inp.Vout),
 			Address:       inp.Address,
 			Amount:        inp.Amount,
 			Confirmations: int32(inp.Confirmations),
-		})
-	}
+		}
+	})
 
 	return pt, nil
 }

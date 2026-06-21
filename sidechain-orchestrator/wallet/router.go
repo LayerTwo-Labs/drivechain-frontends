@@ -44,13 +44,13 @@ func (r *BackendRouter) pick(walletID string) (Backend, error) {
 	if w == nil {
 		return nil, errors.New("wallet " + walletID + " not found")
 	}
-	if w.WalletType == "enforcer" {
+	if w.WalletType == WalletTypeEnforcer {
 		if r.enforcer == nil {
 			return nil, errors.New("enforcer wallet client not connected")
 		}
 		return r.enforcer, nil
 	}
-	if w.WalletType == "electrum" {
+	if w.WalletType == WalletTypeElectrum {
 		if r.electrum == nil {
 			return nil, errors.New("electrum wallet backend not configured")
 		}

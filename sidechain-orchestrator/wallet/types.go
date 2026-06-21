@@ -12,6 +12,15 @@ type WalletFile struct {
 	Wallets        []WalletData `json:"wallets"`
 }
 
+// WalletType identifies which backend a wallet is bound to.
+type WalletType string
+
+const (
+	WalletTypeBitcoinCore WalletType = "bitcoinCore"
+	WalletTypeElectrum    WalletType = "electrum"
+	WalletTypeEnforcer    WalletType = "enforcer"
+)
+
 // WalletData contains all information for a single wallet.
 type WalletData struct {
 	Version    int               `json:"version"`
@@ -22,7 +31,7 @@ type WalletData struct {
 	Name       string            `json:"name"`
 	Gradient   json.RawMessage   `json:"gradient"`
 	CreatedAt  time.Time         `json:"-"`
-	WalletType string            `json:"wallet_type"`
+	WalletType WalletType        `json:"wallet_type"`
 	WatchOnly  json.RawMessage   `json:"watch_only,omitempty"`
 	// ScriptType is the electrum address kind (legacy/nested-segwit/
 	// native-segwit/taproot/multisig). Empty means native segwit (BIP84).
@@ -136,7 +145,7 @@ type SidechainSlot struct {
 type WalletMetadata struct {
 	ID         string
 	Name       string
-	WalletType string
+	WalletType WalletType
 	Gradient   json.RawMessage
 	CreatedAt  time.Time
 }

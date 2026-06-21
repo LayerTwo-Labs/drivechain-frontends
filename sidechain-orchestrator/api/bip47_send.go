@@ -53,11 +53,11 @@ func (h *WalletHandler) expandBip47Destinations(
 		return &bip47Expansion{destinations: destinations}, nil
 	}
 
-	walletType := ""
+	var walletType wallet.WalletType
 	if w := h.svc.GetWalletByID(walletID); w != nil {
 		walletType = w.WalletType
 	}
-	if walletType != "bitcoinCore" {
+	if walletType != wallet.WalletTypeBitcoinCore {
 		return nil, connect.NewError(connect.CodeFailedPrecondition,
 			fmt.Errorf("BIP47 send for %s wallets is not yet supported: orchestrator can only blind ECDH for bitcoinCore wallets, where the master seed is locally derivable", walletType))
 	}

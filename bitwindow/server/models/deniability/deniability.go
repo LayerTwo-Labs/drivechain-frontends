@@ -47,10 +47,9 @@ func encodeTargetSizes(sizes []int64) *string {
 	if len(sizes) == 0 {
 		return nil
 	}
-	parts := make([]string, len(sizes))
-	for i, s := range sizes {
-		parts[i] = strconv.FormatInt(s, 10)
-	}
+	parts := lo.Map(sizes, func(s int64, _ int) string {
+		return strconv.FormatInt(s, 10)
+	})
 	result := strings.Join(parts, ",")
 	return &result
 }

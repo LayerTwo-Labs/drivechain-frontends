@@ -19,6 +19,7 @@ import (
 	corepb "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha"
 	corerpc "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha/bitcoindv1alphaconnect"
 	"github.com/rs/zerolog"
+	"github.com/samber/lo"
 	"google.golang.org/protobuf/types/known/emptypb"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 )
@@ -108,10 +109,9 @@ func (s *Server) Watch(ctx context.Context, _ *connect.Request[emptypb.Empty], s
 		return err
 	}
 
-	statusMap := make(map[string]*healthv1.CheckResponse_ServiceStatus)
-	for _, st := range statuses {
-		statusMap[st.ServiceName] = st
-	}
+	statusMap := lo.KeyBy(statuses, func(st *healthv1.CheckResponse_ServiceStatus) string {
+		return st.ServiceName
+	})
 
 	for {
 		select {

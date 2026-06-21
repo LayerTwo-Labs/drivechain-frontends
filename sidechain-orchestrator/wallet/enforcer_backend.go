@@ -7,6 +7,7 @@ import (
 	"sort"
 
 	"connectrpc.com/connect"
+	"github.com/samber/lo"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	commonv1 "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/common/v1"
@@ -53,13 +54,12 @@ func (p *EnforcerBackend) ListUnspent(ctx context.Context, walletID string) ([]U
 	if err != nil {
 		return nil, fmt.Errorf("enforcer/wallet: list unspent: %w", err)
 	}
-	utxos := make([]UTXO, 0, len(resp.Msg.Outputs))
-	for _, u := range resp.Msg.Outputs {
+	return lo.Map(resp.Msg.Outputs, func(u *enforcerpb.ListUnspentOutputsResponse_Output, _ int) UTXO {
 		confirmations := 0
 		if u.IsConfirmed {
 			confirmations = 1
 		}
-		utxos = append(utxos, UTXO{
+		return UTXO{
 			TxID:          u.Txid.GetHex().GetValue(),
 			Vout:          int(u.Vout),
 			Address:       u.Address.GetValue(),
@@ -68,9 +68,8 @@ func (p *EnforcerBackend) ListUnspent(ctx context.Context, walletID string) ([]U
 			Spendable:     true,
 			Solvable:      true,
 			ReceivedAt:    bdkReceivedAt(u),
-		})
-	}
-	return utxos, nil
+		}
+	}), nil
 }
 
 // bdkReceivedAt picks the best timestamp for a BDK UTXO row: the wallet's
@@ -90,8 +89,7 @@ func (p *EnforcerBackend) listAll(ctx context.Context) ([]WalletTransaction, err
 	if err != nil {
 		return nil, fmt.Errorf("enforcer/wallet: list transactions: %w", err)
 	}
-	txs := make([]WalletTransaction, 0, len(resp.Msg.Transactions))
-	for _, tx := range resp.Msg.Transactions {
+	return lo.Map(resp.Msg.Transactions, func(tx *enforcerpb.WalletTransaction, _ int) WalletTransaction {
 		amountSats := int64(tx.ReceivedSats) - int64(tx.SentSats)
 		var confirmations int
 		var blockTime int64
@@ -101,16 +99,15 @@ func (p *EnforcerBackend) listAll(ctx context.Context) ([]WalletTransaction, err
 				blockTime = tx.ConfirmationInfo.Timestamp.Seconds
 			}
 		}
-		txs = append(txs, WalletTransaction{
+		return WalletTransaction{
 			TxID:          tx.Txid.GetHex().GetValue(),
 			Amount:        float64(amountSats) / 1e8,
 			Fee:           float64(tx.FeeSats) / 1e8,
 			Confirmations: confirmations,
 			BlockTime:     blockTime,
 			Time:          blockTime,
-		})
-	}
-	return txs, nil
+		}
+	}), nil
 }
 
 func (p *EnforcerBackend) ListTransactions(ctx context.Context, walletID string, count int) ([]WalletTransaction, error) {
@@ -153,13 +150,12 @@ func (p *EnforcerBackend) ListReceivedByAddress(ctx context.Context, walletID st
 		byAddr[addrResp.Msg.Address] = 0
 	}
 
-	addrs := make([]ReceivedByAddress, 0, len(byAddr))
-	for addr, sats := range byAddr {
-		addrs = append(addrs, ReceivedByAddress{
+	addrs := lo.MapToSlice(byAddr, func(addr string, sats int64) ReceivedByAddress {
+		return ReceivedByAddress{
 			Address: addr,
 			Amount:  float64(sats) / 1e8,
-		})
-	}
+		}
+	})
 	sort.Slice(addrs, func(i, j int) bool { return addrs[i].Address < addrs[j].Address })
 	return addrs, nil
 }
@@ -236,21 +232,19 @@ func (p *EnforcerBackend) Send(ctx context.Context, walletID string, req SendReq
 		}
 	}
 
-	destinations := make(map[string]uint64, len(req.DestinationsSats))
-	for addr, sats := range req.DestinationsSats {
-		destinations[addr] = uint64(sats)
-	}
+	destinations := lo.MapValues(req.DestinationsSats, func(sats int64, _ string) uint64 {
+		return uint64(sats)
+	})
 
-	requiredUtxos := make([]*enforcerpb.SendTransactionRequest_RequiredUtxo, 0, len(req.RequiredInputs))
-	for _, u := range req.RequiredInputs {
+	requiredUtxos := lo.FilterMap(req.RequiredInputs, func(u RequiredInput, _ int) (*enforcerpb.SendTransactionRequest_RequiredUtxo, bool) {
 		if u.TxID == "" {
-			continue
+			return nil, false
 		}
-		requiredUtxos = append(requiredUtxos, &enforcerpb.SendTransactionRequest_RequiredUtxo{
+		return &enforcerpb.SendTransactionRequest_RequiredUtxo{
 			Txid: &commonv1.ReverseHex{Hex: &wrapperspb.StringValue{Value: u.TxID}},
 			Vout: uint32(u.Vout),
-		})
-	}
+		}, true
+	})
 
 	resp, err := p.client.SendTransaction(ctx, connect.NewRequest(&enforcerpb.SendTransactionRequest{
 		Destinations:    destinations,

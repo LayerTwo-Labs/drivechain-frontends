@@ -127,7 +127,7 @@ func newCoreBackendFixture(t *testing.T) (*CoreBackend, *fakeBitcoind, string) {
 	require.NoError(t, err)
 	core, err := svc.GenerateWallet("Core", "", "", testSlots)
 	require.NoError(t, err)
-	require.Equal(t, "bitcoinCore", core.WalletType)
+	require.Equal(t, WalletTypeBitcoinCore, core.WalletType)
 
 	fake := newFakeBitcoind(t)
 	log := zerolog.New(zerolog.NewTestWriter(t))

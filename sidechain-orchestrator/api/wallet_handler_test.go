@@ -13,7 +13,7 @@ func TestBuildWatchWalletDataResponseStartersAttachToEnforcer(t *testing.T) {
 	enforcer := wallet.WalletData{
 		ID:         "enf-id",
 		Name:       "Enforcer",
-		WalletType: walletTypeEnforcer,
+		WalletType: wallet.WalletTypeEnforcer,
 		CreatedAt:  now,
 		Master:     wallet.MasterWallet{Mnemonic: "enforcer master mnemonic", SeedHex: ""},
 		L1:         wallet.L1Wallet{Mnemonic: "enforcer l1 mnemonic"},
@@ -95,7 +95,7 @@ func TestBuildWatchWalletDataResponseEnforcerSidechainsRoundTrip(t *testing.T) {
 	now := time.Now().UTC()
 	enforcer := wallet.WalletData{
 		ID:         "enf",
-		WalletType: walletTypeEnforcer,
+		WalletType: wallet.WalletTypeEnforcer,
 		CreatedAt:  now,
 		Sidechains: []wallet.SidechainWallet{
 			{Slot: 9, Name: "Thunder", Mnemonic: "thunder"},
@@ -128,7 +128,7 @@ func TestBuildWatchWalletDataResponseBip47Populated(t *testing.T) {
 	hot := wallet.WalletData{
 		ID:         "hot-id",
 		Name:       "Hot",
-		WalletType: walletTypeEnforcer,
+		WalletType: wallet.WalletTypeEnforcer,
 		CreatedAt:  now,
 		// 64-byte seed (deterministic test vector).
 		Master: wallet.MasterWallet{
@@ -176,7 +176,7 @@ func TestBuildWatchWalletDataResponseBip47Populated(t *testing.T) {
 func TestBuildWatchWalletDataResponseBip47ErrorSurfaces(t *testing.T) {
 	bad := wallet.WalletData{
 		ID:         "bad-id",
-		WalletType: walletTypeEnforcer,
+		WalletType: wallet.WalletTypeEnforcer,
 		Master:     wallet.MasterWallet{SeedHex: "not-hex-zzz"},
 	}
 	var seenID string
@@ -208,7 +208,7 @@ func TestBuildWatchWalletDataResponseBip47ErrorSurfaces(t *testing.T) {
 func TestBuildWatchWalletDataResponseLegacyWalletTypeStarters(t *testing.T) {
 	legacy := wallet.WalletData{
 		ID:         "legacy",
-		WalletType: walletTypeEnforcer, // post-backfill
+		WalletType: wallet.WalletTypeEnforcer, // post-backfill
 		Master:     wallet.MasterWallet{Mnemonic: "legacy master"},
 		L1:         wallet.L1Wallet{Mnemonic: "legacy l1"},
 		Sidechains: []wallet.SidechainWallet{{Slot: 9, Name: "Thunder", Mnemonic: "legacy-side"}},

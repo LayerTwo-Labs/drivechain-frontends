@@ -1253,13 +1253,9 @@ func (s *Server) checkEnforcerUTXO(ctx context.Context, txid string, vout uint32
 		return false, fmt.Errorf("list enforcer utxos: %w", err)
 	}
 
-	for _, utxo := range utxos.Msg.Outputs {
-		if utxo.Txid.Hex.Value == txid && utxo.Vout == vout {
-			return true, nil
-		}
-	}
-
-	return false, nil
+	return lo.ContainsBy(utxos.Msg.Outputs, func(utxo *validatorpb.ListUnspentOutputsResponse_Output) bool {
+		return utxo.Txid.Hex.Value == txid && utxo.Vout == vout
+	}), nil
 }
 
 // checkBitcoinCoreUTXO checks if a UTXO exists in a Bitcoin Core wallet
@@ -1276,11 +1272,7 @@ func (s *Server) checkBitcoinCoreUTXO(ctx context.Context, walletID string, txid
 		return false, fmt.Errorf("list bitcoin core utxos: %w", err)
 	}
 
-	for _, utxo := range utxos.Unspent {
-		if utxo.Txid == txid && utxo.Vout == vout {
-			return true, nil
-		}
-	}
-
-	return false, nil
+	return lo.ContainsBy(utxos.Unspent, func(utxo *corepb.UnspentOutput) bool {
+		return utxo.Txid == txid && utxo.Vout == vout
+	}), nil
 }

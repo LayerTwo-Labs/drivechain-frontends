@@ -44,7 +44,7 @@ func TestServiceGenerateWallet(t *testing.T) {
 
 	assert.NotEmpty(t, w.ID)
 	assert.Equal(t, "Test Wallet", w.Name)
-	assert.Equal(t, "enforcer", w.WalletType) // first wallet should be enforcer
+	assert.Equal(t, WalletTypeEnforcer, w.WalletType) // first wallet should be enforcer
 	assert.NotEmpty(t, w.Master.Mnemonic)
 	assert.NotEmpty(t, w.Master.SeedHex)
 	assert.NotEmpty(t, w.Master.MasterKey)
@@ -70,11 +70,11 @@ func TestServiceGenerateSecondWalletIsBitcoinCore(t *testing.T) {
 
 	w1, err := svc.GenerateWallet("First", "", "", testSlots)
 	require.NoError(t, err)
-	assert.Equal(t, "enforcer", w1.WalletType)
+	assert.Equal(t, WalletTypeEnforcer, w1.WalletType)
 
 	w2, err := svc.GenerateWallet("Second", "", "", testSlots)
 	require.NoError(t, err)
-	assert.Equal(t, "bitcoinCore", w2.WalletType)
+	assert.Equal(t, WalletTypeBitcoinCore, w2.WalletType)
 
 	wallets := svc.ListWallets()
 	assert.Len(t, wallets, 2)
@@ -352,7 +352,7 @@ func TestServiceWalletJSONFormat(t *testing.T) {
 	assert.NotEmpty(t, wallet.L1.Mnemonic)
 	assert.Equal(t, "Bitcoin Core (Patched)", wallet.L1.Name)
 	assert.Len(t, wallet.Sidechains, 2)
-	assert.Equal(t, "enforcer", wallet.WalletType)
+	assert.Equal(t, WalletTypeEnforcer, wallet.WalletType)
 	assert.NotEmpty(t, wallet.ID)
 	assert.NotEmpty(t, wallet.Name)
 	assert.False(t, wallet.CreatedAt.IsZero())
@@ -644,7 +644,7 @@ func TestServiceCreateWatchOnlyWalletWithXpub(t *testing.T) {
 	wallets := svc.ListWallets()
 	require.Len(t, wallets, 1)
 	assert.Equal(t, "Watch Only Test", wallets[0].Name)
-	assert.Equal(t, "bitcoinCore", wallets[0].WalletType)
+	assert.Equal(t, WalletTypeBitcoinCore, wallets[0].WalletType)
 
 	// Verify active wallet is set
 	assert.NotEmpty(t, svc.ActiveWalletID())
@@ -659,7 +659,7 @@ func TestServiceCreateWatchOnlyWalletWithXpub(t *testing.T) {
 	require.Len(t, wf.Wallets, 1)
 
 	wallet := wf.Wallets[0]
-	assert.Equal(t, "bitcoinCore", wallet.WalletType)
+	assert.Equal(t, WalletTypeBitcoinCore, wallet.WalletType)
 	assert.True(t, wallet.IsWatchOnly(), "watch-only payload should be set")
 	assert.Equal(t, 1, wallet.Version)
 	assert.Empty(t, wallet.Master.SeedHex)
@@ -721,7 +721,7 @@ func TestServiceCreateWatchOnlyWalletAlongsideRegular(t *testing.T) {
 	// Create a regular wallet first
 	w1, err := svc.GenerateWallet("Regular Wallet", "", "", testSlots)
 	require.NoError(t, err)
-	assert.Equal(t, "enforcer", w1.WalletType)
+	assert.Equal(t, WalletTypeEnforcer, w1.WalletType)
 
 	// Create a watch-only wallet
 	xpub := "xpub6CUGRUonZSQ4TWtTMmzXdrXDtypWKiKrhko4egpiMZbpiaQL2jkwSB1icqYh2cfDfVxdx4df189oLKnC5fSwqPfgyP3hooxujYzAu3fDVmz"
@@ -730,8 +730,8 @@ func TestServiceCreateWatchOnlyWalletAlongsideRegular(t *testing.T) {
 
 	wallets := svc.ListWallets()
 	require.Len(t, wallets, 2)
-	assert.Equal(t, "enforcer", wallets[0].WalletType)
-	assert.Equal(t, "bitcoinCore", wallets[1].WalletType)
+	assert.Equal(t, WalletTypeEnforcer, wallets[0].WalletType)
+	assert.Equal(t, WalletTypeBitcoinCore, wallets[1].WalletType)
 
 	// Watch-only should now be active
 	assert.Equal(t, wallets[1].ID, svc.ActiveWalletID())
@@ -761,7 +761,7 @@ func TestServiceCreateWatchOnlyWalletPersistence(t *testing.T) {
 
 	wallets := svc2.ListWallets()
 	require.Len(t, wallets, 1)
-	assert.Equal(t, "bitcoinCore", wallets[0].WalletType)
+	assert.Equal(t, WalletTypeBitcoinCore, wallets[0].WalletType)
 }
 
 func TestServiceDeleteWatchOnlyWallet(t *testing.T) {
@@ -856,12 +856,12 @@ func TestServiceLegacyWalletTypeBackfill(t *testing.T) {
 	wallets := svc.ListWallets()
 	require.Len(t, wallets, 2)
 
-	byID := map[string]string{}
+	byID := map[string]WalletType{}
 	for _, w := range wallets {
 		byID[w.ID] = w.WalletType
 	}
-	assert.Equal(t, "enforcer", byID["LEGACY1"], "wallet with mnemonic should backfill to enforcer")
-	assert.Equal(t, "bitcoinCore", byID["LEGACY2"], "wallet without mnemonic should backfill to bitcoinCore")
+	assert.Equal(t, WalletTypeEnforcer, byID["LEGACY1"], "wallet with mnemonic should backfill to enforcer")
+	assert.Equal(t, WalletTypeBitcoinCore, byID["LEGACY2"], "wallet without mnemonic should backfill to bitcoinCore")
 
 	// Reload to confirm the backfill persisted to disk — otherwise the
 	// receive-tab spinner would come back next launch.

@@ -13,6 +13,7 @@ import (
 	pb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1"
 	rpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1/walletmanagerv1connect"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/localauth"
+	"github.com/samber/lo"
 	"github.com/urfave/cli/v2"
 )
 
@@ -250,8 +251,7 @@ func formatBackupWallets(wallets []*pb.BackupWalletSummary) string {
 	if len(wallets) == 0 {
 		return "-"
 	}
-	parts := make([]string, 0, len(wallets))
-	for _, wallet := range wallets {
+	parts := lo.Map(wallets, func(wallet *pb.BackupWalletSummary, _ int) string {
 		name := wallet.Name
 		if name == "" {
 			name = wallet.Id
@@ -259,8 +259,8 @@ func formatBackupWallets(wallets []*pb.BackupWalletSummary) string {
 		if wallet.WalletType != "" {
 			name = fmt.Sprintf("%s (%s)", name, wallet.WalletType)
 		}
-		parts = append(parts, name)
-	}
+		return name
+	})
 	return strings.Join(parts, ", ")
 }
 
@@ -268,8 +268,7 @@ func formatBackupBalances(balances []*pb.BalanceSnapshot) string {
 	if len(balances) == 0 {
 		return "-"
 	}
-	parts := make([]string, 0, len(balances))
-	for _, balance := range balances {
+	parts := lo.Map(balances, func(balance *pb.BalanceSnapshot, _ int) string {
 		name := balance.DisplayName
 		if name == "" {
 			name = strings.TrimPrefix(balance.Binary.String(), "BINARY_TYPE_")
@@ -278,8 +277,8 @@ func formatBackupBalances(balances []*pb.BalanceSnapshot) string {
 		if balance.PendingSats > 0 {
 			value = fmt.Sprintf("%s (+%s pending)", value, satsToBtcUint(balance.PendingSats))
 		}
-		parts = append(parts, value)
-	}
+		return value
+	})
 	return strings.Join(parts, ", ")
 }
 

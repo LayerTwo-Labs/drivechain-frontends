@@ -18,6 +18,7 @@ import (
 
 	"github.com/fsnotify/fsnotify"
 	"github.com/rs/zerolog"
+	"github.com/samber/lo"
 	"github.com/tyler-smith/go-bip32"
 	"github.com/tyler-smith/go-bip39"
 )
@@ -362,7 +363,7 @@ func (s *Service) ActiveWalletNeedsBitcoinBackends() bool {
 	if w == nil {
 		return true
 	}
-	return w.WalletType != "electrum"
+	return w.WalletType != WalletTypeElectrum
 }
 
 // EnforcerWallet returns the wallet with type "enforcer", or nil.
@@ -385,7 +386,7 @@ func (s *Service) Log() *zerolog.Logger {
 // enforcerWallet returns the enforcer wallet without locking. Must be called with mu held.
 func (s *Service) enforcerWallet() *WalletData {
 	for i := range s.wallets {
-		if s.wallets[i].WalletType == "enforcer" {
+		if s.wallets[i].WalletType == WalletTypeEnforcer {
 			return &s.wallets[i]
 		}
 	}
@@ -637,7 +638,7 @@ func (s *Service) CreateElectrumWallet(name string, gradient json.RawMessage, sl
 	}
 
 	s.mu.Lock()
-	wallet, err := s.generateWalletOfType(name, customMnemonic, "", sidechainSlots, "electrum")
+	wallet, err := s.generateWalletOfType(name, customMnemonic, "", sidechainSlots, WalletTypeElectrum)
 	if err == nil && st != "" {
 		for i := range s.wallets {
 			if s.wallets[i].ID == wallet.ID {
@@ -713,7 +714,7 @@ func (s *Service) createElectrumWatchOnly(name string, gradient json.RawMessage,
 		Name:       name,
 		Gradient:   gradient,
 		CreatedAt:  time.Now(),
-		WalletType: "electrum",
+		WalletType: WalletTypeElectrum,
 		WatchOnly:  json.RawMessage(watchOnlyJSON),
 		ScriptType: desc.Kind.String(),
 	}
@@ -757,7 +758,7 @@ func (s *Service) CreateWatchOnlyWallet(name, xpubOrDescriptor, gradientJSON str
 		Name:       name,
 		Gradient:   json.RawMessage(gradientJSON),
 		CreatedAt:  time.Now(),
-		WalletType: "bitcoinCore",
+		WalletType: WalletTypeBitcoinCore,
 		WatchOnly:  json.RawMessage(watchOnlyJSON),
 	}
 
@@ -803,21 +804,12 @@ func (s *Service) GenerateWallet(name, customMnemonic, passphrase string, slots 
 
 	// Determine wallet type: first wallet is enforcer, subsequent are bitcoinCore.
 	// Constraint: AT MOST 1 enforcer wallet. All extra wallets go through Bitcoin Core.
-	walletType := "bitcoinCore"
+	walletType := WalletTypeBitcoinCore
 	if len(s.wallets) == 0 {
-		walletType = "enforcer"
-	} else {
-		// Verify there's already an enforcer — if not, this becomes the enforcer
-		hasEnforcer := false
-		for _, w := range s.wallets {
-			if w.WalletType == "enforcer" {
-				hasEnforcer = true
-				break
-			}
-		}
-		if !hasEnforcer {
-			walletType = "enforcer"
-		}
+		walletType = WalletTypeEnforcer
+	} else if !lo.ContainsBy(s.wallets, func(w WalletData) bool { return w.WalletType == WalletTypeEnforcer }) {
+		// No enforcer yet — this one becomes it.
+		walletType = WalletTypeEnforcer
 	}
 
 	return s.generateWalletOfType(name, customMnemonic, passphrase, slots, walletType)
@@ -827,10 +819,10 @@ func (s *Service) GenerateWallet(name, customMnemonic, passphrase string, slots 
 // it as the new active wallet, and persists. Keys are always generated locally;
 // walletType only controls which daemon callbacks fire afterwards. Must be
 // called with mu held.
-func (s *Service) generateWalletOfType(name, customMnemonic, passphrase string, slots []SidechainSlot, walletType string) (*WalletData, error) {
+func (s *Service) generateWalletOfType(name, customMnemonic, passphrase string, slots []SidechainSlot, walletType WalletType) (*WalletData, error) {
 	s.log.Info().
 		Str("name", name).
-		Str("wallet_type", walletType).
+		Str("wallet_type", string(walletType)).
 		Bool("custom_mnemonic", customMnemonic != "").
 		Bool("has_passphrase", passphrase != "").
 		Int("slot_count", len(slots)).
@@ -867,7 +859,7 @@ func (s *Service) generateWalletOfType(name, customMnemonic, passphrase string, 
 	s.log.Info().
 		Str("id", wallet.ID).
 		Str("name", name).
-		Str("type", walletType).
+		Str("type", string(walletType)).
 		Str("file", s.walletFilePath()).
 		Msg("wallet generated and saved successfully")
 
@@ -875,7 +867,7 @@ func (s *Service) generateWalletOfType(name, customMnemonic, passphrase string, 
 	// daemon to set up or restart, so neither OnCreateCoreWallet nor
 	// OnWalletGenerated fire. bitcoinCore wallets are created lazily by the
 	// backend on first access (Backend.Ensure).
-	if walletType == "enforcer" && s.OnWalletGenerated != nil {
+	if walletType == WalletTypeEnforcer && s.OnWalletGenerated != nil {
 		// Dart L88-89: restart enforcer to pick up the new wallet
 		go s.OnWalletGenerated()
 	}
@@ -1165,16 +1157,15 @@ func (s *Service) ListWallets() []WalletMetadata {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
-	out := make([]WalletMetadata, len(s.wallets))
-	for i, w := range s.wallets {
-		out[i] = WalletMetadata{
+	out := lo.Map(s.wallets, func(w WalletData, _ int) WalletMetadata {
+		return WalletMetadata{
 			ID:         w.ID,
 			Name:       w.Name,
 			WalletType: w.WalletType,
 			Gradient:   w.Gradient,
 			CreatedAt:  w.CreatedAt,
 		}
-	}
+	})
 	s.log.Debug().Int("count", len(out)).Msg("listed wallets")
 	return out
 }
@@ -1185,14 +1176,7 @@ func (s *Service) SwitchWallet(walletID string) error {
 
 	s.log.Info().Str("wallet_id", walletID).Msg("switching wallet")
 
-	found := false
-	for _, w := range s.wallets {
-		if w.ID == walletID {
-			found = true
-			break
-		}
-	}
-	if !found {
+	if !lo.ContainsBy(s.wallets, func(w WalletData) bool { return w.ID == walletID }) {
 		s.log.Warn().Str("wallet_id", walletID).Msg("switch failed: wallet not found")
 		return fmt.Errorf("wallet %s not found", walletID)
 	}
@@ -1349,7 +1333,7 @@ func (s *Service) WriteL1Starter() (string, error) {
 	// Find enforcer wallet
 	var mnemonic string
 	for _, w := range s.wallets {
-		if w.WalletType == "enforcer" {
+		if w.WalletType == WalletTypeEnforcer {
 			mnemonic = w.L1.Mnemonic
 			s.log.Debug().Str("wallet_id", w.ID).Msg("found enforcer wallet for L1 starter")
 			break
@@ -1522,9 +1506,9 @@ func (s *Service) loadWalletFile() error {
 			continue
 		}
 		if s.wallets[i].Master.Mnemonic != "" {
-			s.wallets[i].WalletType = "enforcer"
+			s.wallets[i].WalletType = WalletTypeEnforcer
 		} else {
-			s.wallets[i].WalletType = "bitcoinCore"
+			s.wallets[i].WalletType = WalletTypeBitcoinCore
 		}
 		migrated = true
 	}

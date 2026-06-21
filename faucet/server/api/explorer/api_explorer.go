@@ -255,10 +255,9 @@ func (s *Server) sidechainActivation(ctx context.Context) (func(slot uint32) boo
 		return nil, fmt.Errorf("list active sidechains from enforcer: %w", err)
 	}
 
-	active := make(map[uint32]bool, len(sidechains.Msg.Sidechains))
-	for _, sc := range sidechains.Msg.Sidechains {
-		active[sc.GetSidechainNumber().GetValue()] = true
-	}
+	active := lo.SliceToMap(sidechains.Msg.Sidechains, func(sc *validatorpb.GetSidechainsResponse_SidechainInfo) (uint32, bool) {
+		return sc.GetSidechainNumber().GetValue(), true
+	})
 
 	return func(slot uint32) bool { return active[slot] }, nil
 }

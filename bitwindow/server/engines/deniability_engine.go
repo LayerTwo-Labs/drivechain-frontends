@@ -162,10 +162,7 @@ func (e *DeniabilityEngine) CleanupDenials(ctx context.Context) ([]*pb.ListUnspe
 	}
 
 	// Flatten all UTXOs for ExecuteDenial (which will also re-verify)
-	var allUTXOs []*pb.ListUnspentOutputsResponse_Output
-	for _, utxos := range walletUTXOs {
-		allUTXOs = append(allUTXOs, utxos...)
-	}
+	allUTXOs := lo.Flatten(lo.Values(walletUTXOs))
 
 	return allUTXOs, denials, nil
 }
@@ -206,12 +203,9 @@ func (e *DeniabilityEngine) cancelIfUTXOIsGone(ctx context.Context, walletUTXOs 
 }
 
 func (e *DeniabilityEngine) ExecuteDenial(ctx context.Context, utxos []*pb.ListUnspentOutputsResponse_Output, denial deniability.Denial) error {
-	var tipUTXOs []*pb.ListUnspentOutputsResponse_Output
-	for _, utxo := range utxos {
-		if utxo.Txid.Hex.Value == denial.TipTXID && int32(utxo.Vout) == denial.TipVout {
-			tipUTXOs = append(tipUTXOs, utxo)
-		}
-	}
+	tipUTXOs := lo.Filter(utxos, func(utxo *pb.ListUnspentOutputsResponse_Output, _ int) bool {
+		return utxo.Txid.Hex.Value == denial.TipTXID && int32(utxo.Vout) == denial.TipVout
+	})
 	if len(tipUTXOs) == 0 {
 		return fmt.Errorf("no matching utxos found for tip %s:%d", denial.TipTXID, denial.TipVout)
 	}
@@ -396,10 +390,9 @@ func (e *DeniabilityEngine) sendBitcoinCoreTransaction(
 	}
 
 	// Convert satoshi amounts to BTC (Bitcoin Core uses BTC, not satoshis)
-	btcDestinations := make(map[string]float64)
-	for addr, sats := range destinations {
-		btcDestinations[addr] = float64(sats) / 1e8
-	}
+	btcDestinations := lo.MapValues(destinations, func(sats uint64, _ string) float64 {
+		return float64(sats) / 1e8
+	})
 
 	resp, err := bitcoind.Send(ctx, connect.NewRequest(&corepb.SendRequest{
 		Destinations: btcDestinations,
@@ -761,18 +754,17 @@ func (e *DeniabilityEngine) listBitcoinCoreUTXOs(ctx context.Context, walletId s
 	}
 
 	// Convert Bitcoin Core UTXOs to the enforcer format for compatibility
-	var outputs []*pb.ListUnspentOutputsResponse_Output
-	for _, utxo := range resp.Msg.Unspent {
+	outputs := lo.Map(resp.Msg.Unspent, func(utxo *corepb.UnspentOutput, _ int) *pb.ListUnspentOutputsResponse_Output {
 		valueSats := uint64(utxo.Amount * 100000000)
-		outputs = append(outputs, &pb.ListUnspentOutputsResponse_Output{
+		return &pb.ListUnspentOutputsResponse_Output{
 			Txid: &commonv1.ReverseHex{
 				Hex: &wrapperspb.StringValue{Value: utxo.Txid},
 			},
 			Vout:      utxo.Vout,
 			Address:   &wrapperspb.StringValue{Value: utxo.Address},
 			ValueSats: valueSats,
-		})
-	}
+		}
+	})
 
 	return outputs, nil
 }

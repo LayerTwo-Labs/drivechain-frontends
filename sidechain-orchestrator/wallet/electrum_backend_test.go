@@ -135,7 +135,7 @@ func newElectrumFixture(t *testing.T) (*ElectrumBackend, *fakeEsplora, *WalletDa
 	svc := newTestService(t)
 	w, err := svc.CreateElectrumWallet("Electrum", nil, nil, "", "", "")
 	require.NoError(t, err)
-	require.Equal(t, "electrum", w.WalletType)
+	require.Equal(t, WalletTypeElectrum, w.WalletType)
 
 	addrs, err := DeriveBIP84Addresses(w.Master.SeedHex, &chaincfg.SigNetParams, 0, 1)
 	require.NoError(t, err)
@@ -310,7 +310,7 @@ func TestElectrumImportSeedIsDeterministic(t *testing.T) {
 	svc := newTestService(t)
 	w, err := svc.CreateElectrumWallet("Imported", nil, nil, testMnemonic, "", "")
 	require.NoError(t, err)
-	require.Equal(t, "electrum", w.WalletType)
+	require.Equal(t, WalletTypeElectrum, w.WalletType)
 
 	expected := hex.EncodeToString(MnemonicToSeed(testMnemonic, ""))
 	assert.Equal(t, expected, w.Master.SeedHex, "imported mnemonic must produce its own seed")
@@ -327,7 +327,7 @@ func TestElectrumWatchOnlyDerivesSameAddressesAndCannotSend(t *testing.T) {
 
 	woWallet, err := svc.CreateElectrumWallet("Watch", nil, nil, "", xpub, "")
 	require.NoError(t, err)
-	require.Equal(t, "electrum", woWallet.WalletType)
+	require.Equal(t, WalletTypeElectrum, woWallet.WalletType)
 	require.Empty(t, woWallet.Master.SeedHex, "watch-only wallet stores no seed")
 
 	// The address the watch-only xpub derives must equal the seed wallet's.
@@ -457,7 +457,7 @@ func TestElectrumWatchOnlyDescriptorWatchesCorrectAddress(t *testing.T) {
 	descriptor := "wpkh([abcd1234/84h/0h/0h]" + xpub + "/0/*)"
 	wo, err := svc.CreateElectrumWallet("WatchDesc", nil, nil, "", descriptor, "")
 	require.NoError(t, err)
-	require.Equal(t, "electrum", wo.WalletType)
+	require.Equal(t, WalletTypeElectrum, wo.WalletType)
 
 	addrs, err := DeriveBIP84Addresses(seedWallet.Master.SeedHex, &chaincfg.SigNetParams, 0, 5)
 	require.NoError(t, err)

@@ -20,6 +20,7 @@ import (
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/thunder"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/truthcoin"
 	"github.com/rs/zerolog"
+	"github.com/samber/lo"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -160,12 +161,7 @@ func (e *SidechainMonitorEngine) GetDetectedWithdrawals(ctx context.Context) ([]
 	e.mu.RLock()
 	defer e.mu.RUnlock()
 
-	withdrawals := make([]DetectedWithdrawal, 0, len(e.detectedWithdrawals))
-	for _, withdrawal := range e.detectedWithdrawals {
-		withdrawals = append(withdrawals, withdrawal)
-	}
-
-	return withdrawals, nil
+	return lo.Values(e.detectedWithdrawals), nil
 }
 
 // GetWithdrawalByTxid returns a specific withdrawal by transaction ID
@@ -202,12 +198,7 @@ func (e *SidechainMonitorEngine) GetPendingFastWithdrawals(ctx context.Context) 
 	e.mu.RLock()
 	defer e.mu.RUnlock()
 
-	withdrawals := make([]PendingFastWithdrawal, 0, len(e.pendingFastWithdrawals))
-	for _, withdrawal := range e.pendingFastWithdrawals {
-		withdrawals = append(withdrawals, withdrawal)
-	}
-
-	return withdrawals, nil
+	return lo.Values(e.pendingFastWithdrawals), nil
 }
 
 // checkFastWithdrawalPayments checks if any pending fast withdrawals have been paid

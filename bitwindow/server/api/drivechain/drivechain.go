@@ -531,10 +531,9 @@ func (s *Server) mergeBundles(existing, new []*pb.WithdrawalBundle) []*pb.Withdr
 	}
 
 	// Create a map of existing bundles by M6Id for quick lookup
-	bundleMap := make(map[string]*pb.WithdrawalBundle)
-	for _, b := range existing {
-		bundleMap[b.M6Id] = b
-	}
+	bundleMap := lo.KeyBy(existing, func(b *pb.WithdrawalBundle) string {
+		return b.M6Id
+	})
 
 	// Update or add new bundles
 	for _, b := range new {

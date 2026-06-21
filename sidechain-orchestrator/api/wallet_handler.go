@@ -11,6 +11,7 @@ import (
 
 	"connectrpc.com/connect"
 	"github.com/btcsuite/btcd/chaincfg"
+	"github.com/samber/lo"
 	"google.golang.org/protobuf/types/known/emptypb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
@@ -27,36 +28,25 @@ import (
 // starters only appear after a sidechain is launched, and the Starters tab
 // shows blanks.
 func allSidechainSlots() []wallet.SidechainSlot {
-	cfgs := orchestrator.AllSidechains()
-	slots := make([]wallet.SidechainSlot, len(cfgs))
-	for i, c := range cfgs {
+	return lo.Map(orchestrator.AllSidechains(), func(c orchestrator.BinaryConfig, _ int) wallet.SidechainSlot {
 		name := c.DisplayName
 		if name == "" {
 			name = c.Name
 		}
-		slots[i] = wallet.SidechainSlot{Slot: c.Slot, Name: name}
-	}
-	return slots
+		return wallet.SidechainSlot{Slot: c.Slot, Name: name}
+	})
 }
 
 var _ rpc.WalletManagerServiceHandler = new(WalletHandler)
 
-// Backend type for a wallet: which backend serves it. Watch-only is an
-// orthogonal capability (the wallet's watch-only payload), not a provider.
-const (
-	walletTypeEnforcer    = "enforcer"
-	walletTypeBitcoinCore = "bitcoinCore"
-	walletTypeElectrum    = "electrum"
-)
-
 // walletTypeToProto maps the wallet's provider type onto the typed wire enum.
-func walletTypeToProto(t string) pb.WalletType {
+func walletTypeToProto(t wallet.WalletType) pb.WalletType {
 	switch t {
-	case walletTypeEnforcer:
+	case wallet.WalletTypeEnforcer:
 		return pb.WalletType_WALLET_TYPE_ENFORCER
-	case walletTypeElectrum:
+	case wallet.WalletTypeElectrum:
 		return pb.WalletType_WALLET_TYPE_ELECTRUM
-	case walletTypeBitcoinCore:
+	case wallet.WalletTypeBitcoinCore:
 		return pb.WalletType_WALLET_TYPE_BITCOIN_CORE
 	default:
 		return pb.WalletType_WALLET_TYPE_UNSPECIFIED
@@ -187,7 +177,7 @@ func (h *WalletHandler) ListWallets(ctx context.Context, req *connect.Request[pb
 		// Electrum wallets advertise no BIP47 code: inbound BIP47 (BIP47Engine)
 		// only watches bitcoinCore wallets, so a published code would receive
 		// payments the wallet never discovers.
-		if !w.IsWatchOnly() && w.WalletType != "electrum" {
+		if !w.IsWatchOnly() && w.WalletType != wallet.WalletTypeElectrum {
 			code, err := wallet.Bip47PaymentCodeFromSeed(w.Master.SeedHex, h.bip47NetParams())
 			if err != nil {
 				h.svc.Log().Error().Err(err).Str("wallet_id", w.ID).Msg("ListWallets: bip47 derivation failed")
@@ -238,7 +228,7 @@ func (h *WalletHandler) ensureL1ForWallet(walletID string) {
 // type except electrum (which serves chain data remotely).
 func (h *WalletHandler) walletNeedsL1(walletID string) bool {
 	w := h.svc.GetWalletByID(walletID)
-	return w != nil && w.WalletType != "electrum"
+	return w != nil && w.WalletType != wallet.WalletTypeElectrum
 }
 
 func (h *WalletHandler) UpdateWalletMetadata(ctx context.Context, req *connect.Request[pb.UpdateWalletMetadataRequest]) (*connect.Response[pb.UpdateWalletMetadataResponse], error) {
@@ -272,9 +262,10 @@ func (h *WalletHandler) ListWalletBackups(ctx context.Context, req *connect.Requ
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
 
-	resp := &pb.ListWalletBackupsResponse{Backups: make([]*pb.WalletBackup, 0, len(backups))}
-	for _, backup := range backups {
-		resp.Backups = append(resp.Backups, walletBackupToProto(backup))
+	resp := &pb.ListWalletBackupsResponse{
+		Backups: lo.Map(backups, func(backup wallet.WalletBackupInfo, _ int) *pb.WalletBackup {
+			return walletBackupToProto(backup)
+		}),
 	}
 	return connect.NewResponse(resp), nil
 }
@@ -292,13 +283,12 @@ func (h *WalletHandler) RestoreWalletBackupStream(ctx context.Context, req *conn
 		return connect.NewError(connect.CodeInvalidArgument, err)
 	}
 
-	planned := make([]*pb.RestoreWalletBackupStep, 0, len(steps))
-	for _, step := range steps {
-		planned = append(planned, &pb.RestoreWalletBackupStep{
+	planned := lo.Map(steps, func(step wallet.RestoreWalletBackupStep, _ int) *pb.RestoreWalletBackupStep {
+		return &pb.RestoreWalletBackupStep{
 			StepId: step.ID,
 			Name:   step.Name,
-		})
-	}
+		}
+	})
 	if err := stream.Send(&pb.RestoreWalletBackupProgressResponse{Steps: planned}); err != nil {
 		return err
 	}
@@ -522,13 +512,13 @@ func (h *WalletHandler) SendTransaction(ctx context.Context, req *connect.Reques
 		SubtractFeeFromAmount: req.Msg.SubtractFeeFromAmount,
 		ReplayProtect:         req.Msg.ReplayProtect,
 	}
-	for _, u := range req.Msg.RequiredInputs {
-		sendReq.RequiredInputs = append(sendReq.RequiredInputs, wallet.RequiredInput{
+	sendReq.RequiredInputs = lo.Map(req.Msg.RequiredInputs, func(u *pb.UnspentOutput, _ int) wallet.RequiredInput {
+		return wallet.RequiredInput{
 			TxID:       u.Txid,
 			Vout:       int(u.Vout),
 			AmountSats: u.AmountSats,
-		})
-	}
+		}
+	})
 
 	txid, err := h.engine.Backend().Send(ctx, walletID, sendReq)
 	if err != nil {
@@ -560,9 +550,8 @@ func (h *WalletHandler) ListTransactions(ctx context.Context, req *connect.Reque
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
 
-	pbTxs := make([]*pb.TransactionEntry, len(txs))
-	for i, tx := range txs {
-		pbTxs[i] = &pb.TransactionEntry{
+	pbTxs := lo.Map(txs, func(tx wallet.WalletTransaction, _ int) *pb.TransactionEntry {
+		return &pb.TransactionEntry{
 			Txid:          tx.TxID,
 			Vout:          int32(tx.Vout),
 			Address:       tx.Address,
@@ -576,7 +565,7 @@ func (h *WalletHandler) ListTransactions(ctx context.Context, req *connect.Reque
 			Fee:           tx.Fee,
 			WalletId:      walletID,
 		}
-	}
+	})
 
 	return connect.NewResponse(&pb.ListTransactionsResponse{
 		Transactions: pbTxs,
@@ -600,9 +589,8 @@ func (h *WalletHandler) ListUnspent(ctx context.Context, req *connect.Request[pb
 
 	txTimes := h.fetchCoreTxTimes(ctx, walletID, utxos)
 
-	pbUTXOs := make([]*pb.UnspentOutput, len(utxos))
-	for i, u := range utxos {
-		pbUTXOs[i] = &pb.UnspentOutput{
+	pbUTXOs := lo.Map(utxos, func(u wallet.UTXO, _ int) *pb.UnspentOutput {
+		return &pb.UnspentOutput{
 			Txid:          u.TxID,
 			Vout:          int32(u.Vout),
 			Address:       u.Address,
@@ -615,7 +603,7 @@ func (h *WalletHandler) ListUnspent(ctx context.Context, req *connect.Request[pb
 			WalletId:      walletID,
 			ReceivedAt:    receivedAt(u, txTimes),
 		}
-	}
+	})
 
 	return connect.NewResponse(&pb.ListUnspentResponse{
 		Utxos: pbUTXOs,
@@ -677,16 +665,15 @@ func (h *WalletHandler) ListReceiveAddresses(ctx context.Context, req *connect.R
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
 
-	pbAddrs := make([]*pb.ReceiveAddress, len(addrs))
-	for i, a := range addrs {
-		pbAddrs[i] = &pb.ReceiveAddress{
+	pbAddrs := lo.Map(addrs, func(a wallet.ReceivedByAddress, _ int) *pb.ReceiveAddress {
+		return &pb.ReceiveAddress{
 			Address:    a.Address,
 			Amount:     a.Amount,
 			AmountSats: int64(math.Round(a.Amount * 1e8)),
 			Label:      a.Label,
 			TxCount:    int32(len(a.TxIDs)),
 		}
-	}
+	})
 
 	return connect.NewResponse(&pb.ListReceiveAddressesResponse{
 		Addresses: pbAddrs,
@@ -868,7 +855,7 @@ func (h *WalletHandler) GetWalletSeed(ctx context.Context, req *connect.Request[
 	if walletID == "" {
 		// Return enforcer wallet seed
 		for _, w := range wallets {
-			if w.WalletType == "enforcer" {
+			if w.WalletType == wallet.WalletTypeEnforcer {
 				return connect.NewResponse(&pb.GetWalletSeedResponse{
 					SeedHex:  w.Master.SeedHex,
 					Mnemonic: w.Master.Mnemonic,
@@ -992,7 +979,7 @@ func buildWatchWalletDataResponse(wallets []wallet.WalletData, activeID string, 
 		// Electrum wallets advertise no BIP47 code: inbound BIP47 (BIP47Engine)
 		// only watches bitcoinCore wallets, so a published code would receive
 		// payments the wallet never discovers.
-		if !w.IsWatchOnly() && w.WalletType != "electrum" {
+		if !w.IsWatchOnly() && w.WalletType != wallet.WalletTypeElectrum {
 			code, err := wallet.Bip47PaymentCodeFromSeed(w.Master.SeedHex, netParams)
 			if err != nil && onBip47Err != nil {
 				onBip47Err(w.ID, err)
@@ -1012,17 +999,16 @@ func buildWatchWalletDataResponse(wallets []wallet.WalletData, activeID string, 
 		// sidechain starters are derived from its seed). Attach it to that
 		// wallet's metadata so the Dart side can find it whether or not the
 		// active wallet happens to be the enforcer.
-		if w.WalletType == walletTypeEnforcer {
+		if w.WalletType == wallet.WalletTypeEnforcer {
 			md.MasterMnemonic = w.Master.Mnemonic
 			md.L1Mnemonic = w.L1.Mnemonic
-			md.Sidechains = make([]*pb.SidechainStarter, len(w.Sidechains))
-			for j, sc := range w.Sidechains {
-				md.Sidechains[j] = &pb.SidechainStarter{
+			md.Sidechains = lo.Map(w.Sidechains, func(sc wallet.SidechainWallet, _ int) *pb.SidechainStarter {
+				return &pb.SidechainStarter{
 					Slot:     int32(sc.Slot),
 					Name:     sc.Name,
 					Mnemonic: sc.Mnemonic,
 				}
-			}
+			})
 		}
 		pbWallets[i] = md
 	}
@@ -1043,15 +1029,13 @@ func (h *WalletHandler) ListCoreVariants(ctx context.Context, req *connect.Reque
 	if h.orch == nil {
 		return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("orchestrator not configured"))
 	}
-	specs := h.orch.ListCoreVariants()
-	out := make([]*pb.CoreVariant, 0, len(specs))
-	for _, v := range specs {
-		out = append(out, &pb.CoreVariant{
+	out := lo.Map(h.orch.ListCoreVariants(), func(v orchestrator.CoreVariantSpec, _ int) *pb.CoreVariant {
+		return &pb.CoreVariant{
 			Id:          v.ID,
 			DisplayName: coreVariantDisplayName(v.ID),
 			Installed:   orchestrator.CoreVariantInstalled(h.orch.DataDir, v, "bitcoind"),
-		})
-	}
+		}
+	})
 	// Display order: Patched first (default), Core second, Knots third.
 	// Anything else sorts alphabetically after.
 	sort.Slice(out, func(i, j int) bool {
@@ -1062,14 +1046,7 @@ func (h *WalletHandler) ListCoreVariants(ctx context.Context, req *connect.Reque
 	// on disk — but the UI dropdown will throw when given a value that isn't
 	// one of its items, so an out-of-list active surfaces as "".
 	activeID := h.orch.CoreVariant()
-	visible := false
-	for _, v := range out {
-		if v.Id == activeID {
-			visible = true
-			break
-		}
-	}
-	if !visible {
+	if !lo.ContainsBy(out, func(v *pb.CoreVariant) bool { return v.Id == activeID }) {
 		activeID = ""
 	}
 	return connect.NewResponse(&pb.ListCoreVariantsResponse{
@@ -1161,24 +1138,25 @@ func walletBackupToProto(backup wallet.WalletBackupInfo) *pb.WalletBackup {
 	if !backup.CreatedAt.IsZero() {
 		out.CreatedAt = timestamppb.New(backup.CreatedAt)
 	}
-	for _, w := range backup.Wallets {
-		out.Wallets = append(out.Wallets, &pb.BackupWalletSummary{
+	out.Wallets = lo.Map(backup.Wallets, func(w wallet.WalletSummary, _ int) *pb.BackupWalletSummary {
+		return &pb.BackupWalletSummary{
 			Id:         w.ID,
 			Name:       w.Name,
-			WalletType: w.WalletType,
-		})
-	}
-	for _, b := range backup.LatestKnownBalance {
-		out.LatestKnownBalance = append(out.LatestKnownBalance, &pb.BalanceSnapshot{
+			WalletType: string(w.WalletType),
+		}
+	})
+	out.LatestKnownBalance = lo.Map(backup.LatestKnownBalance, func(b wallet.BalanceSnapshot, _ int) *pb.BalanceSnapshot {
+		snap := &pb.BalanceSnapshot{
 			Binary:        b.Binary,
 			DisplayName:   b.DisplayName,
 			ConfirmedSats: b.ConfirmedSats,
 			PendingSats:   b.PendingSats,
-		})
-		if !b.UpdatedAt.IsZero() {
-			out.LatestKnownBalance[len(out.LatestKnownBalance)-1].UpdatedAt = timestamppb.New(b.UpdatedAt)
 		}
-	}
+		if !b.UpdatedAt.IsZero() {
+			snap.UpdatedAt = timestamppb.New(b.UpdatedAt)
+		}
+		return snap
+	})
 	return out
 }
 
@@ -1218,11 +1196,11 @@ func (h *WalletHandler) CreatePsbt(ctx context.Context, req *connect.Request[pb.
 		OpReturnHex:           req.Msg.OpReturnHex,
 		SubtractFeeFromAmount: req.Msg.SubtractFeeFromAmount,
 	}
-	for _, u := range req.Msg.RequiredInputs {
-		sendReq.RequiredInputs = append(sendReq.RequiredInputs, wallet.RequiredInput{
+	sendReq.RequiredInputs = lo.Map(req.Msg.RequiredInputs, func(u *pb.UnspentOutput, _ int) wallet.RequiredInput {
+		return wallet.RequiredInput{
 			TxID: u.Txid, Vout: int(u.Vout), AmountSats: u.AmountSats,
-		})
-	}
+		}
+	})
 	b64, err := h.engine.CreatePSBT(ctx, walletID, sendReq)
 	if err != nil {
 		return nil, rpcError(err)

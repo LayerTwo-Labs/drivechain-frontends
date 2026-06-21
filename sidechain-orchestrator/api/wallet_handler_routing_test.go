@@ -49,7 +49,7 @@ func newRoutedHandler(t *testing.T) (*WalletHandler, *recordingProvider, *record
 	require.NoError(t, err)
 	core, err := svc.GenerateWallet("Core", "", "", nil)
 	require.NoError(t, err)
-	require.Equal(t, "bitcoinCore", core.WalletType)
+	require.Equal(t, wallet.WalletTypeBitcoinCore, core.WalletType)
 
 	enfFake := &recordingProvider{}
 	chainFake := &recordingProvider{}
