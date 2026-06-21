@@ -932,13 +932,19 @@ func (p *ElectrumBackend) scan(ctx context.Context, walletID string, allowCache 
 	}
 	scan.watchOnly = watchOnly
 	chainNames := []string{"external", "change"}
+	// Only stream per-address progress on a wallet's first scan this process
+	// (the initial sync). Warm wallets re-scan on routine balance polls, and
+	// streaming those would spin the bottom-nav "Scanning…" status forever.
+	p.mu.Lock()
+	initial := !p.warm[walletID]
+	p.mu.Unlock()
 	defer p.svc.syncReporter.publish(walletID, SyncProgress{Phase: SyncIdle, Message: "Idle"})
 	for i, d := range derivers {
 		chain := "external"
 		if i < len(chainNames) {
 			chain = chainNames[i]
 		}
-		addrs, err := p.scanChain(ctx, walletID, chain, d)
+		addrs, err := p.scanChain(ctx, walletID, chain, d, initial)
 		if err != nil {
 			return nil, err
 		}
@@ -1069,12 +1075,14 @@ func (p *ElectrumBackend) chainDerivers(w *WalletData) ([]chainDeriver, bool, er
 	return out, w.IsWatchOnly(), nil
 }
 
-func (p *ElectrumBackend) scanChain(ctx context.Context, walletID, chain string, derive chainDeriver) ([]scannedAddr, error) {
+func (p *ElectrumBackend) scanChain(ctx context.Context, walletID, chain string, derive chainDeriver, initial bool) ([]scannedAddr, error) {
 	var out []scannedAddr
 	consecutiveUnused := 0
 	found := 0
 	for i := uint32(0); consecutiveUnused < electrumGapLimit && i < electrumMaxScan; i++ {
-		p.svc.syncReporter.publish(walletID, scanProgress(chain, len(out), found))
+		if initial {
+			p.svc.syncReporter.publish(walletID, scanProgress(chain, len(out), found))
+		}
 		a, err := derive(i)
 		if err != nil {
 			return nil, err
