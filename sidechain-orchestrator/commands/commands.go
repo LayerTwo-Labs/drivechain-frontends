@@ -122,6 +122,10 @@ var downloadCommand = &cli.Command{
 			Name:  "force",
 			Usage: "force re-download even if binary exists",
 		},
+		&cli.BoolFlag{
+			Name:  "wait",
+			Usage: "block until the download completes",
+		},
 	},
 	Action: func(cctx *cli.Context) error {
 		if cctx.NArg() < 1 {
@@ -147,7 +151,7 @@ var downloadCommand = &cli.Command{
 		}
 
 		client := newClient(cctx)
-		return runDownload(cctx.Context, client, cctx.Args().First(), cctx.Bool("force"))
+		return runDownload(cctx.Context, client, cctx.Args().First(), cctx.Bool("force"), cctx.Bool("wait"))
 	},
 }
 
@@ -215,7 +219,7 @@ var startCommand = &cli.Command{
 				}
 			}
 
-			if err := runDownload(cctx.Context, client, bin, false); err != nil {
+			if err := runDownload(cctx.Context, client, bin, false, false); err != nil {
 				return err
 			}
 			fmt.Println()
@@ -666,7 +670,7 @@ var updateCommand = &cli.Command{
 			}
 		}
 
-		return runDownload(cctx.Context, client, name, true)
+		return runDownload(cctx.Context, client, name, true, false)
 	},
 }
 
@@ -749,11 +753,9 @@ func formatBytes(b int64) string {
 }
 
 // runDownload streams a binary download with a progress bar.
-func runDownload(ctx context.Context, client rpc.OrchestratorServiceClient, name string, force bool) error {
-	// DownloadBinary is fire-and-forget on the server now — kick it off
-	// and poll GetSyncStatus until the binary's slot reports
-	// is_downloading=false. Tickless waiting (1 s cadence) is plenty here;
-	// the orch's DownloadManager.state map drives the numbers regardless.
+func runDownload(ctx context.Context, client rpc.OrchestratorServiceClient, name string, force, wait bool) error {
+	// DownloadBinary is fire-and-forget on the server — it returns before the
+	// file lands on disk.
 	if _, err := client.DownloadBinary(ctx, connect.NewRequest(&pb.DownloadBinaryRequest{
 		Name:  name,
 		Force: force,
@@ -761,8 +763,34 @@ func runDownload(ctx context.Context, client rpc.OrchestratorServiceClient, name
 		return err
 	}
 
-	fmt.Printf("downloading %s — poll status with `orchestratorctl status` for progress\n", name)
-	return nil
+	if !wait {
+		fmt.Printf("downloading %s — poll status with `orchestratorctl status` for progress\n", name)
+		return nil
+	}
+
+	// Block until the binary is on disk so callers can use it immediately.
+	ctx, cancel := context.WithTimeout(ctx, 12*time.Minute)
+	defer cancel()
+	fmt.Printf("downloading %s (waiting for completion)...\n", name)
+	for {
+		resp, err := client.GetBinaryStatus(ctx, connect.NewRequest(&pb.GetBinaryStatusRequest{Name: name}))
+		if err != nil {
+			return fmt.Errorf("poll %s status: %w", name, err)
+		}
+		s := resp.Msg.Status
+		if s.Downloaded {
+			fmt.Printf("%s downloaded\n", name)
+			return nil
+		}
+		if s.Error != "" {
+			return fmt.Errorf("download %s failed: %s", name, s.Error)
+		}
+		select {
+		case <-ctx.Done():
+			return fmt.Errorf("timed out waiting for %s download", name)
+		case <-time.After(2 * time.Second):
+		}
+	}
 }
 
 // confirmYes reads a line from stdin and returns true for "y", "Y", or empty (default yes).
@@ -1120,7 +1148,7 @@ func ensureSidechainDownloaded(cctx *cli.Context, client rpc.OrchestratorService
 		}
 
 		// Download the binary
-		if err := runDownload(cctx.Context, client, sidechainName, false); err != nil {
+		if err := runDownload(cctx.Context, client, sidechainName, false, false); err != nil {
 			return fmt.Errorf("failed to download %s: %w", sidechainName, err)
 		}
 		fmt.Println()
