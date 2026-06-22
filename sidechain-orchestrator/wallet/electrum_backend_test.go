@@ -793,6 +793,53 @@ func TestElectrumScanPersistsAcrossRestart(t *testing.T) {
 	assert.Zero(t, atomic.LoadInt32(&counting.statsCalls), "no re-query without a new block")
 }
 
+// TestElectrumScanPersistsUTXOsAndTxs proves a wallet's UTXOs and transactions
+// survive a restart by reconstructing from electrum.db, not by re-querying
+// Esplora: a cold-boot backend returns the same utxos/history with zero network
+// calls.
+func TestElectrumScanPersistsUTXOsAndTxs(t *testing.T) {
+	p, fake, w, addr := newElectrumFixture(t)
+	ctx := context.Background()
+
+	fake.stats[addr] = EsploraAddressStats{
+		Address:    addr,
+		ChainStats: EsploraTxoStats{FundedTxoCount: 1, FundedTxoSum: 250_000, TxCount: 1},
+	}
+	fake.utxos[addr] = []EsploraUTXO{{
+		TxID:   "aa",
+		Vout:   0,
+		Value:  250_000,
+		Status: EsploraStatus{Confirmed: true, BlockHeight: 100, BlockHash: "hash", BlockTime: 1_700_000_000},
+	}}
+	fake.txs[addr] = []EsploraTx{{
+		TxID:   "aa",
+		Vout:   []EsploraVout{{ScriptPubKeyAddress: addr, Value: 250_000}},
+		Status: EsploraStatus{Confirmed: true, BlockHeight: 100, BlockTime: 1_700_000_000},
+	}}
+
+	utxos, err := p.ListUnspent(ctx, w.ID) // live scan → persists to electrum.db
+	require.NoError(t, err)
+	require.Len(t, utxos, 1)
+
+	// Cold boot: a fresh backend whose Esplora holds no data and counts stats
+	// calls. UTXOs and history must come entirely from the database.
+	counting := &countingEsplora{Esplora: newFakeEsplora()}
+	p2 := NewElectrumBackend(p.svc, counting, &chaincfg.SigNetParams, zerolog.New(zerolog.NewTestWriter(t)))
+
+	utxos2, err := p2.ListUnspent(ctx, w.ID)
+	require.NoError(t, err)
+	require.Len(t, utxos2, 1, "utxos reconstructed from electrum.db")
+	assert.Equal(t, "aa", utxos2[0].TxID)
+	assert.InDelta(t, 0.0025, utxos2[0].Amount, 1e-9)
+
+	txs2, err := p2.ListTransactions(ctx, w.ID, 0)
+	require.NoError(t, err)
+	require.Len(t, txs2, 1, "transactions reconstructed from electrum.db")
+	assert.Equal(t, "aa", txs2[0].TxID)
+
+	assert.Zero(t, atomic.LoadInt32(&counting.statsCalls), "cold boot must not query Esplora")
+}
+
 // recordingEsplora captures the wallet's sync snapshot at each AddressStats
 // call, so a test can prove the polled status reflects scan progress.
 type recordingEsplora struct {

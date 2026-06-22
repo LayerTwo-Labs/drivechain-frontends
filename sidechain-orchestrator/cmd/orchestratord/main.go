@@ -341,9 +341,9 @@ func run(cctx *cli.Context) error {
 	// through the hosted orchestrator separately (see Server.buildDataSource).
 	var electrumBackend wallet.Backend
 	if net := config.NetworkFromString(resolvedNetwork); config.ElectrumWalletSupportedForNetwork(net) && netParams != nil {
-		esploraURL := config.EsploraURLForNetwork(net)
-		electrumBackend = wallet.NewElectrumBackend(walletSvc, wallet.NewEsploraClient(esploraURL, log), netParams, log)
-		log.Info().Str("esplora_url", esploraURL).Msg("electrum wallet provider initialized")
+		esploraURLs := config.EsploraURLsForNetwork(net)
+		electrumBackend = wallet.NewElectrumBackend(walletSvc, wallet.NewEsploraClient(esploraURLs, log), netParams, log)
+		log.Info().Strs("esplora_urls", esploraURLs).Msg("electrum wallet provider initialized")
 	}
 
 	router := wallet.NewBackendRouter(walletSvc, enforcerBackend, chainBackend, electrumBackend)

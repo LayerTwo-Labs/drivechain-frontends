@@ -1,69 +1,228 @@
 package wallet
 
 import (
+	"context"
 	"encoding/json"
-	"os"
-	"path/filepath"
 )
 
-// persistedScanVersion guards the on-disk format; a mismatch is treated as no
-// cache (the wallet re-scans live).
-const persistedScanVersion = 1
+// electrumScanTables are the per-wallet chain-state tables, cleared together
+// when a wallet's scan is rewritten or removed.
+var electrumScanTables = []string{"electrum_addresses", "electrum_utxos", "electrum_txs"}
 
 // persistedAddr is one scanned chain address and the Esplora data fetched for
-// it — the same EsploraAddressStats the live scan stored. Keys and scripts are
-// re-derived from the seed on load, so only fetched data is persisted.
+// it: stats plus the UTXOs and transactions that back balance/history reads.
+// Keys and scripts are re-derived from the seed on load, so only fetched data
+// is persisted.
 type persistedAddr struct {
-	Change  bool                `json:"change"`
-	Index   uint32              `json:"index"`
-	Address string              `json:"address"`
-	Stats   EsploraAddressStats `json:"stats"`
+	Change  bool
+	Index   uint32
+	Address string
+	Stats   EsploraAddressStats
+	UTXOs   []EsploraUTXO
+	Txs     []EsploraTx
 }
 
-// persistedScan is a wallet's scan as written to disk, so a cold boot rebuilds
-// it without re-querying Esplora.
+// persistedScan is a wallet's scan as stored in electrum.db, so a cold boot
+// rebuilds it without re-querying Esplora.
 type persistedScan struct {
-	Version  int             `json:"version"`
-	WalletID string          `json:"wallet_id"`
-	Addrs    []persistedAddr `json:"addrs"`
+	WalletID string
+	Addrs    []persistedAddr
 }
 
-func (s *Service) electrumCacheDir() string {
-	return filepath.Join(s.bitwindowDir, "electrum-cache")
-}
-
-func (s *Service) electrumScanPath(walletID string) string {
-	return filepath.Join(s.electrumCacheDir(), walletID+".json")
-}
-
-// loadElectrumScan reads a wallet's persisted scan; ok is false if absent or
-// written by a different format version.
+// loadElectrumScan reads a wallet's persisted scan from electrum.db; ok is false
+// when the wallet has no stored addresses (or the db is unavailable). Reads run
+// sequentially — the db is MaxOpenConns(1), so a query must not be issued while
+// another's rows are still open.
 func (s *Service) loadElectrumScan(walletID string) (*persistedScan, bool) {
-	data, err := os.ReadFile(s.electrumScanPath(walletID))
+	if s.electrumDB == nil {
+		return nil, false
+	}
+	ctx := context.Background()
+
+	byAddr, order, ok := s.loadElectrumAddrs(ctx, walletID)
+	if !ok || len(order) == 0 {
+		return nil, false
+	}
+	if !s.loadElectrumUTXOs(ctx, walletID, byAddr) {
+		return nil, false
+	}
+	if !s.loadElectrumTxs(ctx, walletID, byAddr) {
+		return nil, false
+	}
+
+	ps := &persistedScan{WalletID: walletID}
+	for _, addr := range order {
+		ps.Addrs = append(ps.Addrs, *byAddr[addr])
+	}
+	return ps, true
+}
+
+func (s *Service) loadElectrumAddrs(ctx context.Context, walletID string) (map[string]*persistedAddr, []string, bool) {
+	rows, err := s.electrumDB.QueryContext(ctx, `
+		SELECT address, change, idx,
+		       chain_funded_count, chain_funded_sum, chain_spent_count, chain_spent_sum, chain_tx_count,
+		       mempool_funded_count, mempool_funded_sum, mempool_spent_count, mempool_spent_sum, mempool_tx_count
+		FROM electrum_addresses WHERE wallet_id = ? ORDER BY change, idx`, walletID)
 	if err != nil {
-		return nil, false
+		s.log.Warn().Err(err).Msg("load electrum addresses failed")
+		return nil, nil, false
 	}
-	var ps persistedScan
-	if err := json.Unmarshal(data, &ps); err != nil || ps.Version != persistedScanVersion {
-		return nil, false
+	defer rows.Close() //nolint:errcheck
+
+	byAddr := map[string]*persistedAddr{}
+	var order []string
+	for rows.Next() {
+		var a persistedAddr
+		cs, ms := &a.Stats.ChainStats, &a.Stats.MempoolStats
+		if err := rows.Scan(&a.Address, &a.Change, &a.Index,
+			&cs.FundedTxoCount, &cs.FundedTxoSum, &cs.SpentTxoCount, &cs.SpentTxoSum, &cs.TxCount,
+			&ms.FundedTxoCount, &ms.FundedTxoSum, &ms.SpentTxoCount, &ms.SpentTxoSum, &ms.TxCount); err != nil {
+			s.log.Warn().Err(err).Msg("scan electrum address failed")
+			return nil, nil, false
+		}
+		a.Stats.Address = a.Address
+		byAddr[a.Address] = &a
+		order = append(order, a.Address)
 	}
-	return &ps, true
+	return byAddr, order, rows.Err() == nil
 }
 
-// saveElectrumScan writes a wallet's scan atomically (temp file + rename).
-func (s *Service) saveElectrumScan(walletID string, data []byte) error {
-	if err := os.MkdirAll(s.electrumCacheDir(), 0o700); err != nil {
-		return err
+func (s *Service) loadElectrumUTXOs(ctx context.Context, walletID string, byAddr map[string]*persistedAddr) bool {
+	rows, err := s.electrumDB.QueryContext(ctx, `
+		SELECT address, txid, vout, value, confirmed, block_height, block_hash, block_time
+		FROM electrum_utxos WHERE wallet_id = ?`, walletID)
+	if err != nil {
+		s.log.Warn().Err(err).Msg("load electrum utxos failed")
+		return false
 	}
-	path := s.electrumScanPath(walletID)
-	tmp := path + ".tmp"
-	if err := os.WriteFile(tmp, data, 0o600); err != nil {
-		return err
+	defer rows.Close() //nolint:errcheck
+
+	for rows.Next() {
+		var addr string
+		var u EsploraUTXO
+		var confirmed int
+		if err := rows.Scan(&addr, &u.TxID, &u.Vout, &u.Value,
+			&confirmed, &u.Status.BlockHeight, &u.Status.BlockHash, &u.Status.BlockTime); err != nil {
+			s.log.Warn().Err(err).Msg("scan electrum utxo failed")
+			return false
+		}
+		u.Status.Confirmed = confirmed != 0
+		if a, ok := byAddr[addr]; ok {
+			a.UTXOs = append(a.UTXOs, u)
+		}
 	}
-	return os.Rename(tmp, path)
+	return rows.Err() == nil
 }
 
-// deleteElectrumScan removes a wallet's persisted scan.
+func (s *Service) loadElectrumTxs(ctx context.Context, walletID string, byAddr map[string]*persistedAddr) bool {
+	rows, err := s.electrumDB.QueryContext(ctx, `
+		SELECT address, raw FROM electrum_txs WHERE wallet_id = ?`, walletID)
+	if err != nil {
+		s.log.Warn().Err(err).Msg("load electrum txs failed")
+		return false
+	}
+	defer rows.Close() //nolint:errcheck
+
+	for rows.Next() {
+		var addr, raw string
+		if err := rows.Scan(&addr, &raw); err != nil {
+			s.log.Warn().Err(err).Msg("scan electrum tx failed")
+			return false
+		}
+		var tx EsploraTx
+		if err := json.Unmarshal([]byte(raw), &tx); err != nil {
+			s.log.Warn().Err(err).Msg("decode electrum tx failed")
+			return false
+		}
+		if a, ok := byAddr[addr]; ok {
+			a.Txs = append(a.Txs, tx)
+		}
+	}
+	return rows.Err() == nil
+}
+
+// saveElectrumScan replaces a wallet's stored scan with ps in a single
+// transaction.
+func (s *Service) saveElectrumScan(walletID string, ps *persistedScan) error {
+	if s.electrumDB == nil {
+		return nil
+	}
+	ctx := context.Background()
+	tx, err := s.electrumDB.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback() //nolint:errcheck // rolled back unless Commit succeeds
+
+	for _, table := range electrumScanTables {
+		if _, err := tx.ExecContext(ctx, "DELETE FROM "+table+" WHERE wallet_id = ?", walletID); err != nil {
+			return err
+		}
+	}
+	for _, a := range ps.Addrs {
+		cs, ms := a.Stats.ChainStats, a.Stats.MempoolStats
+		if _, err := tx.ExecContext(ctx, `INSERT INTO electrum_addresses
+			(wallet_id, change, idx, address,
+			 chain_funded_count, chain_funded_sum, chain_spent_count, chain_spent_sum, chain_tx_count,
+			 mempool_funded_count, mempool_funded_sum, mempool_spent_count, mempool_spent_sum, mempool_tx_count)
+			VALUES (?,?,?,?, ?,?,?,?,?, ?,?,?,?,?)`,
+			walletID, a.Change, a.Index, a.Address,
+			cs.FundedTxoCount, cs.FundedTxoSum, cs.SpentTxoCount, cs.SpentTxoSum, cs.TxCount,
+			ms.FundedTxoCount, ms.FundedTxoSum, ms.SpentTxoCount, ms.SpentTxoSum, ms.TxCount); err != nil {
+			return err
+		}
+		for _, u := range a.UTXOs {
+			if _, err := tx.ExecContext(ctx, `INSERT INTO electrum_utxos
+				(wallet_id, address, txid, vout, value, confirmed, block_height, block_hash, block_time)
+				VALUES (?,?,?,?,?,?,?,?,?)`,
+				walletID, a.Address, u.TxID, u.Vout, u.Value, boolToInt(u.Status.Confirmed),
+				u.Status.BlockHeight, u.Status.BlockHash, u.Status.BlockTime); err != nil {
+				return err
+			}
+		}
+		for _, t := range a.Txs {
+			raw, err := json.Marshal(t)
+			if err != nil {
+				return err
+			}
+			if _, err := tx.ExecContext(ctx, `INSERT INTO electrum_txs (wallet_id, address, txid, raw) VALUES (?,?,?,?)`,
+				walletID, a.Address, t.TxID, string(raw)); err != nil {
+				return err
+			}
+		}
+	}
+	return tx.Commit()
+}
+
+// deleteElectrumScan removes a single wallet's stored scan.
 func (s *Service) deleteElectrumScan(walletID string) {
-	_ = os.Remove(s.electrumScanPath(walletID))
+	if s.electrumDB == nil {
+		return
+	}
+	ctx := context.Background()
+	for _, table := range electrumScanTables {
+		if _, err := s.electrumDB.ExecContext(ctx, "DELETE FROM "+table+" WHERE wallet_id = ?", walletID); err != nil {
+			s.log.Warn().Err(err).Str("table", table).Msg("delete electrum scan failed")
+		}
+	}
+}
+
+// wipeElectrumScans clears every wallet's stored scan, used on a full reset.
+func (s *Service) wipeElectrumScans() {
+	if s.electrumDB == nil {
+		return
+	}
+	ctx := context.Background()
+	for _, table := range electrumScanTables {
+		if _, err := s.electrumDB.ExecContext(ctx, "DELETE FROM "+table); err != nil {
+			s.log.Warn().Err(err).Str("table", table).Msg("wipe electrum scans failed")
+		}
+	}
+}
+
+func boolToInt(b bool) int {
+	if b {
+		return 1
+	}
+	return 0
 }

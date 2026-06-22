@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/rand"
 	"crypto/sha256"
+	"database/sql"
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
@@ -29,6 +30,11 @@ type Service struct {
 
 	bitwindowDir string
 	log          zerolog.Logger
+
+	// electrumDB stores electrum wallet chain state (addresses, UTXOs, txs) so
+	// reads serve from disk and only deltas hit Esplora. Owned solely by the
+	// orchestrator; nil when it could not be opened.
+	electrumDB *sql.DB
 
 	// In-memory state
 	wallets        []WalletData
@@ -269,8 +275,14 @@ func (s *Service) Init() error {
 		return fmt.Errorf("create bitwindow dir: %w", err)
 	}
 
+	db, err := OpenElectrumDB(context.Background(), filepath.Join(s.bitwindowDir, "electrum.db"))
+	if err != nil {
+		return fmt.Errorf("open electrum db: %w", err)
+	}
+	s.electrumDB = db
+
 	s.mu.Lock()
-	err := s.loadWalletFile()
+	err = s.loadWalletFile()
 	s.mu.Unlock()
 	if err != nil {
 		s.log.Warn().Err(err).Msg("initial wallet load failed (may not exist yet)")
@@ -293,6 +305,9 @@ func (s *Service) Close() {
 		close(s.done)
 		if s.watcher != nil {
 			_ = s.watcher.Close()
+		}
+		if s.electrumDB != nil {
+			_ = s.electrumDB.Close()
 		}
 		s.CleanupStarterFiles()
 	})
@@ -1303,7 +1318,7 @@ func (s *Service) DeleteAllWallets(onStatusUpdate func(string), beforeBoot func(
 	s.encryptionKey = nil
 	s.unlockedPass = ""
 	s.mu.Unlock()
-	_ = os.RemoveAll(s.electrumCacheDir())
+	s.wipeElectrumScans()
 
 	// Dart L642-648: beforeBoot callback
 	if beforeBoot != nil {

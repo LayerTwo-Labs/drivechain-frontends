@@ -11,6 +11,7 @@ require (
 	github.com/btcsuite/btcd/btcutil/psbt v1.2.0
 	github.com/btcsuite/btcd/chaincfg/chainhash v1.1.0
 	github.com/fsnotify/fsnotify v1.9.0
+	github.com/mattn/go-sqlite3 v1.14.45
 	github.com/rs/zerolog v1.34.0
 	github.com/samber/lo v1.52.0
 	github.com/stretchr/testify v1.11.1
@@ -27,6 +28,7 @@ require (
 	connectrpc.com/grpcreflect v1.3.0 // indirect
 	github.com/FactomProject/basen v0.0.0-20150613233007-fe3947df716e // indirect
 	github.com/FactomProject/btcutilecc v0.0.0-20130527213604-d3a63a5752ec // indirect
+	github.com/LayerTwo-Labs/sidesail/sqlitemigrate v0.0.0
 	github.com/btcsuite/btclog v1.0.0 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.7 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
@@ -44,3 +46,5 @@ require (
 	golang.org/x/text v0.34.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
+
+replace github.com/LayerTwo-Labs/sidesail/sqlitemigrate => ../sqlitemigrate

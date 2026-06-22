@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/rs/zerolog"
+	"github.com/samber/lo"
 )
 
 // Esplora is the chain-data surface an electrum wallet needs. ElectrumBackend
@@ -33,9 +34,13 @@ type Esplora interface {
 // Bitcoin chain data an electrum wallet needs — address history, UTXOs, raw
 // transactions, fee estimates, broadcast — without a local Core or enforcer.
 type EsploraClient struct {
-	baseURL string
-	client  *http.Client
-	log     zerolog.Logger
+	// baseURLs is an ordered provider list, primary first. A request rotates to
+	// the next provider on each retry, so a rate-limited or unreachable primary
+	// (e.g. mempool.space 429s) fails over to the fallback (e.g. blockstream.info)
+	// on the very next attempt instead of stalling on one host.
+	baseURLs []string
+	client   *http.Client
+	log      zerolog.Logger
 
 	// Pacing keeps a gap-limit scan under public rate limits (mempool.space
 	// 429s a fast sequential burst). nextReq is the earliest the next request
@@ -60,13 +65,19 @@ const (
 	esploraBackoffMax  = 8 * time.Second
 	esploraMinInterval = 120 * time.Millisecond
 	esploraTipTTL      = 30 * time.Second
+	// esploraUserAgent presents a browser identity so providers that reject
+	// non-browser clients (mempool.space) still serve us.
+	esploraUserAgent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36"
 )
 
-// NewEsploraClient creates an Esplora REST client. baseURL is the API root
-// (e.g. https://explorer.signet.drivechain.info/api), trailing slash optional.
-func NewEsploraClient(baseURL string, log zerolog.Logger) *EsploraClient {
+// NewEsploraClient creates an Esplora REST client over an ordered list of API
+// roots (e.g. https://mempool.space/api, https://blockstream.info/api), primary
+// first; trailing slashes optional. Requests rotate to the next root on retry,
+// so a single rate-limited host fails over instead of stalling the wallet.
+func NewEsploraClient(baseURLs []string, log zerolog.Logger) *EsploraClient {
+	roots := lo.Map(baseURLs, func(u string, _ int) string { return strings.TrimRight(u, "/") })
 	return &EsploraClient{
-		baseURL:     strings.TrimRight(baseURL, "/"),
+		baseURLs:    roots,
 		client:      &http.Client{Timeout: 30 * time.Second},
 		log:         log.With().Str("component", "esplora").Logger(),
 		minInterval: esploraMinInterval,
@@ -177,13 +188,18 @@ func (c *EsploraClient) do(ctx context.Context, method, path string, reqBody io.
 		if bodyBytes != nil {
 			rdr = bytes.NewReader(bodyBytes)
 		}
-		req, err := http.NewRequestWithContext(ctx, method, c.baseURL+path, rdr)
+		// Rotate providers across retries: attempt 0 hits the primary, and each
+		// retry advances to the next root so a 429/outage on one host fails over
+		// to the next instead of backing off against the same dead provider.
+		base := c.baseURLs[attempt%len(c.baseURLs)]
+		req, err := http.NewRequestWithContext(ctx, method, base+path, rdr)
 		if err != nil {
 			return nil, fmt.Errorf("build request %s: %w", path, err)
 		}
-		// Public Esplora hosts commonly drop requests without a User-Agent.
-		req.Header.Set("User-Agent", "bitwindow-orchestratord")
-		c.log.Info().Str("method", method).Str("path", path).Int("attempt", attempt).Msg("esplora request")
+		// mempool.space drops requests from non-browser clients, so present a
+		// browser User-Agent; other public Esplora hosts accept it too.
+		req.Header.Set("User-Agent", esploraUserAgent)
+		c.log.Info().Str("method", method).Str("path", path).Str("base", base).Int("attempt", attempt).Msg("esplora request")
 
 		resp, err := c.client.Do(req)
 		if err != nil {
