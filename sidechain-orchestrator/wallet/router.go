@@ -39,6 +39,18 @@ func (r *BackendRouter) ElectrumBackend() (*ElectrumBackend, bool) {
 	return eb, ok
 }
 
+// Bip47BackendFor returns the wallet's backend as a Bip47Backend when it is
+// BIP47-capable (Core and electrum are; the enforcer is not). ok is false for a
+// non-capable or unconfigured backend, so the caller skips BIP47 for it.
+func (r *BackendRouter) Bip47BackendFor(walletID string) (Bip47Backend, bool) {
+	p, err := r.pick(walletID)
+	if err != nil {
+		return nil, false
+	}
+	b, ok := p.(Bip47Backend)
+	return b, ok
+}
+
 func (r *BackendRouter) pick(walletID string) (Backend, error) {
 	w := r.svc.GetWalletByID(walletID)
 	if w == nil {

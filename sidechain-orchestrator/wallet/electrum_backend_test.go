@@ -175,6 +175,9 @@ func TestElectrumNextReceiveSkipsUsed(t *testing.T) {
 	p, fake, w, addr := newElectrumFixture(t)
 	fake.stats[addr] = EsploraAddressStats{Address: addr, ChainStats: EsploraTxoStats{TxCount: 1}}
 
+	_, _, err := p.Balance(context.Background(), w.ID) // warm the scan so usage is known
+	require.NoError(t, err)
+
 	next, err := p.NextReceiveAddress(context.Background(), w.ID)
 	require.NoError(t, err)
 	assert.NotEqual(t, addr, next, "used address must not be offered for receive")
@@ -409,6 +412,9 @@ func TestElectrumWatchOnlyNextReceiveAdvances(t *testing.T) {
 	fake := newFakeEsplora()
 	p := NewElectrumBackend(svc, fake, &chaincfg.SigNetParams, zerolog.New(zerolog.NewTestWriter(t)))
 	fake.stats[used] = EsploraAddressStats{Address: used, ChainStats: EsploraTxoStats{TxCount: 1}}
+
+	_, _, err = p.Balance(ctx, wo.ID) // warm the scan so usage is known
+	require.NoError(t, err)
 
 	got, err := p.NextReceiveAddress(ctx, wo.ID)
 	require.NoError(t, err)
@@ -671,6 +677,9 @@ func TestElectrumListReceivedExcludesChange(t *testing.T) {
 
 	fake.stats[addr] = EsploraAddressStats{Address: addr, ChainStats: EsploraTxoStats{TxCount: 1}}
 	fake.stats[chgAddr] = EsploraAddressStats{Address: chgAddr, ChainStats: EsploraTxoStats{TxCount: 1}}
+
+	_, _, err = p.Balance(context.Background(), w.ID) // warm the scan so addresses are known
+	require.NoError(t, err)
 
 	recv, err := p.ListReceivedByAddress(context.Background(), w.ID)
 	require.NoError(t, err)

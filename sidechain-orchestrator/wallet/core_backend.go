@@ -50,7 +50,10 @@ type CoreBackend struct {
 	loadingErr   error
 }
 
-var _ Backend = (*CoreBackend)(nil)
+var (
+	_ Backend      = (*CoreBackend)(nil)
+	_ Bip47Backend = (*CoreBackend)(nil)
+)
 
 // NewCoreBackend creates the Bitcoin Core wallet backend.
 func NewCoreBackend(svc *Service, rpc *CoreRPCClient, network *chaincfg.Params, log zerolog.Logger) *CoreBackend {
@@ -311,6 +314,13 @@ func (p *CoreBackend) WatchKeys(ctx context.Context, walletID string, keys []Wat
 		p.log.Warn().Int("descriptor_index", i).Str("error", msg).Msg("watch key import failed")
 	}
 	return nil
+}
+
+// EnsureNotificationWatched imports the wallet's own BIP47 notification key as a
+// pkh() descriptor so Core's listtransactions surfaces inbound notification
+// txs. Idempotent — Core ignores already-known descriptors.
+func (p *CoreBackend) EnsureNotificationWatched(ctx context.Context, walletID string, notifKey WatchKey) error {
+	return p.WatchKeys(ctx, walletID, []WatchKey{notifKey})
 }
 
 // Send routes simple sends through Core's own coin selection

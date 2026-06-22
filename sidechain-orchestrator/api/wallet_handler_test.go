@@ -8,6 +8,10 @@ import (
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/wallet"
 )
 
+// bip47CapableAll marks every wallet BIP47-capable, exercising the response
+// builder's payment-code branch independently of backend wiring.
+func bip47CapableAll(string) bool { return true }
+
 func TestBuildWatchWalletDataResponseStartersAttachToEnforcer(t *testing.T) {
 	now := time.Now().UTC()
 	enforcer := wallet.WalletData{
@@ -37,7 +41,7 @@ func TestBuildWatchWalletDataResponseStartersAttachToEnforcer(t *testing.T) {
 	resp := buildWatchWalletDataResponse(
 		[]wallet.WalletData{enforcer, core},
 		core.ID, // active wallet is the Core wallet, NOT the enforcer
-		true, false, true, nil, nil,
+		true, false, true, nil, bip47CapableAll, nil,
 	)
 
 	if got := resp.GetActiveWalletId(); got != core.ID {
@@ -104,7 +108,7 @@ func TestBuildWatchWalletDataResponseEnforcerSidechainsRoundTrip(t *testing.T) {
 	}
 
 	resp := buildWatchWalletDataResponse(
-		[]wallet.WalletData{enforcer}, enforcer.ID, true, false, true, nil, nil,
+		[]wallet.WalletData{enforcer}, enforcer.ID, true, false, true, nil, bip47CapableAll, nil,
 	)
 
 	w := resp.GetWallets()[0]
@@ -146,7 +150,7 @@ func TestBuildWatchWalletDataResponseBip47Populated(t *testing.T) {
 
 	resp := buildWatchWalletDataResponse(
 		[]wallet.WalletData{hot, watchOnly},
-		hot.ID, true, false, true, nil, nil,
+		hot.ID, true, false, true, nil, bip47CapableAll, nil,
 	)
 
 	var hotMd, watchMd string
@@ -184,7 +188,7 @@ func TestBuildWatchWalletDataResponseBip47ErrorSurfaces(t *testing.T) {
 	cb := func(id string, err error) { seenID = id; seenErr = err }
 
 	resp := buildWatchWalletDataResponse(
-		[]wallet.WalletData{bad}, bad.ID, true, false, true, nil, cb,
+		[]wallet.WalletData{bad}, bad.ID, true, false, true, nil, bip47CapableAll, cb,
 	)
 
 	if resp.GetWallets()[0].GetBip47PaymentCode() != "" {
@@ -214,7 +218,7 @@ func TestBuildWatchWalletDataResponseLegacyWalletTypeStarters(t *testing.T) {
 		Sidechains: []wallet.SidechainWallet{{Slot: 9, Name: "Thunder", Mnemonic: "legacy-side"}},
 	}
 	resp := buildWatchWalletDataResponse(
-		[]wallet.WalletData{legacy}, legacy.ID, true, false, true, nil, nil,
+		[]wallet.WalletData{legacy}, legacy.ID, true, false, true, nil, bip47CapableAll, nil,
 	)
 	w := resp.GetWallets()[0]
 	if w.GetMasterMnemonic() != "legacy master" {

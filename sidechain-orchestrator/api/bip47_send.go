@@ -53,17 +53,15 @@ func (h *WalletHandler) expandBip47Destinations(
 		return &bip47Expansion{destinations: destinations}, nil
 	}
 
-	var walletType wallet.WalletType
-	if w := h.svc.GetWalletByID(walletID); w != nil {
-		walletType = w.WalletType
-	}
-	if walletType != wallet.WalletTypeBitcoinCore {
-		return nil, connect.NewError(connect.CodeFailedPrecondition,
-			fmt.Errorf("BIP47 send for %s wallets is not yet supported: orchestrator can only blind ECDH for bitcoinCore wallets, where the master seed is locally derivable", walletType))
-	}
-
 	if h.engine == nil {
-		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("bitcoin Core RPC not configured"))
+		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("wallet backend not configured"))
+	}
+	// BIP47 send works for any backend that can sign the notification tx and
+	// hold the seed for ECDH blinding — Core and electrum both qualify. The
+	// enforcer (no spendable wallet) does not implement Bip47Backend.
+	if _, ok := h.engine.Bip47BackendFor(walletID); !ok {
+		return nil, connect.NewError(connect.CodeFailedPrecondition,
+			fmt.Errorf("BIP47 send is not supported for wallet %s: its backend cannot build the notification transaction", walletID))
 	}
 	if h.bip47State == nil {
 		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("bip47 state store not configured"))

@@ -57,7 +57,10 @@ type ElectrumBackend struct {
 	scanLocks map[string]*sync.Mutex
 }
 
-var _ Backend = (*ElectrumBackend)(nil)
+var (
+	_ Backend      = (*ElectrumBackend)(nil)
+	_ Bip47Backend = (*ElectrumBackend)(nil)
+)
 
 // NewElectrumBackend creates an Esplora-backed wallet backend.
 func NewElectrumBackend(svc *Service, client Esplora, network *chaincfg.Params, log zerolog.Logger) *ElectrumBackend {
@@ -220,14 +223,10 @@ func (p *ElectrumBackend) ListTransactionsRange(ctx context.Context, walletID st
 }
 
 func (p *ElectrumBackend) ListReceivedByAddress(ctx context.Context, walletID string) ([]ReceivedByAddress, error) {
-	scan, err := p.scanWallet(ctx, walletID)
-	if err != nil {
-		return nil, err
-	}
-	tip, err := p.client.TipHeight(ctx)
-	if err != nil {
-		return nil, err
-	}
+	// Served from the local cache so the receive screen never blocks on a scan;
+	// confirmations come from the cached tip, best-effort.
+	scan := p.localScan(walletID)
+	tip, _ := p.client.TipHeight(ctx)
 
 	out := make([]ReceivedByAddress, 0, len(scan.addrs))
 	for _, a := range scan.addrs {
@@ -314,37 +313,57 @@ func (p *ElectrumBackend) AddressHDPath(ctx context.Context, walletID, address s
 }
 
 func (p *ElectrumBackend) NextReceiveAddress(ctx context.Context, walletID string) (string, error) {
-	return p.nextUnused(ctx, walletID, false)
+	return p.nextUnused(walletID, false)
 }
 
 func (p *ElectrumBackend) NextChangeAddress(ctx context.Context, walletID string) (string, error) {
-	return p.nextUnused(ctx, walletID, true)
+	return p.nextUnused(walletID, true)
 }
 
-// nextUnused picks the next unused address from the cached scan, deriving past
-// the cache locally when every scanned address is used. It serves the warm or
-// on-disk scan with no network, so address allocation is instant once a wallet
-// has synced; only a never-synced wallet falls through to a one-time live scan.
-func (p *ElectrumBackend) nextUnused(ctx context.Context, walletID string, change bool) (string, error) {
-	scan, err := p.scanWallet(ctx, walletID)
+// nextUnused picks the next unused address with no network call: a plain SELECT
+// for the lowest-index address on the chain with no history, and when none is on
+// record (fresh wallet, or every stored address is used) it derives the next
+// index locally. Either way it is instant — address allocation never blocks on a
+// scan. The background scan keeps electrum_addresses' usage current.
+func (p *ElectrumBackend) nextUnused(walletID string, change bool) (string, error) {
+	if addr, ok := p.svc.firstUnusedAddress(walletID, change); ok {
+		return addr, nil
+	}
+	w := p.svc.GetWalletByID(walletID)
+	if w == nil {
+		return "", fmt.Errorf("wallet %s not found", walletID)
+	}
+	derivers, _, err := p.chainDerivers(w)
 	if err != nil {
 		return "", err
 	}
-	return p.nextUnusedFromScan(walletID, scan, change)
-}
-
-// nextUnusedFromScan picks the next unused address on a chain from an existing
-// scan, avoiding a second full wallet scan on the send path.
-func (p *ElectrumBackend) nextUnusedFromScan(walletID string, scan *electrumScan, change bool) (string, error) {
-	a, err := p.nextUnusedAddrFromScan(walletID, scan, change)
+	a, err := derivers[chainIndex(change)](uint32(p.svc.maxAddressIndex(walletID, change) + 1))
 	if err != nil {
 		return "", err
 	}
 	return a.address, nil
 }
 
-// nextUnusedAddrFromScan is nextUnusedFromScan but returns the full scannedAddr
-// (with derivation records), for callers that build a change output.
+// localScan returns the wallet's known chain state with no network calls: the
+// warm in-memory scan, else the on-disk scan, else an empty scan.
+func (p *ElectrumBackend) localScan(walletID string) *electrumScan {
+	p.mu.Lock()
+	scan := p.warmScan[walletID]
+	p.mu.Unlock()
+	if scan != nil {
+		return scan
+	}
+	if w := p.svc.GetWalletByID(walletID); w != nil {
+		if cold, _, ok := p.rebuildScanFromDisk(walletID, w); ok {
+			return cold
+		}
+	}
+	return &electrumScan{byAddr: make(map[string]scannedAddr), keys: make(mapKeySource)}
+}
+
+// nextUnusedAddrFromScan returns the next unused address on a chain from an
+// existing scan (with derivation records), for the send path that builds a
+// change output without a second wallet scan.
 func (p *ElectrumBackend) nextUnusedAddrFromScan(walletID string, scan *electrumScan, change bool) (scannedAddr, error) {
 	highest := -1
 	for _, a := range scan.addrs {
@@ -413,6 +432,13 @@ func (p *ElectrumBackend) WatchKeys(ctx context.Context, walletID string, keys [
 	return nil
 }
 
+// EnsureNotificationWatched registers the wallet's own BIP47 notification key so
+// the scan tracks its notification address and inbound notification txs surface
+// in ListTransactionsRange.
+func (p *ElectrumBackend) EnsureNotificationWatched(ctx context.Context, walletID string, notifKey WatchKey) error {
+	return p.WatchKeys(ctx, walletID, []WatchKey{notifKey})
+}
+
 func (p *ElectrumBackend) Send(ctx context.Context, walletID string, req SendRequest) (string, error) {
 	scan, err := p.scanWalletLive(ctx, walletID)
 	if err != nil {
@@ -421,7 +447,7 @@ func (p *ElectrumBackend) Send(ctx context.Context, walletID string, req SendReq
 	if scan.watchOnly {
 		return "", errors.New("watch-only electrum wallet cannot sign or send")
 	}
-	packet, psbtInputs, err := p.buildSendPSBT(ctx, walletID, scan, req)
+	packet, psbtInputs, effect, err := p.buildSendPSBT(ctx, walletID, scan, req)
 	if err != nil {
 		return "", err
 	}
@@ -447,20 +473,130 @@ func (p *ElectrumBackend) Send(ctx context.Context, walletID string, req SendReq
 			return "", fmt.Errorf("inject replay byte: %w", err)
 		}
 	}
-	return p.client.Broadcast(ctx, hexToSend)
+	txid, err := p.client.Broadcast(ctx, hexToSend)
+	if err != nil {
+		return "", err
+	}
+	// We already know exactly what the spend changed — the inputs it consumed and
+	// the change it created — so apply that to the cached scan directly instead of
+	// re-walking the whole wallet over Esplora. Balance/utxo reads reflect the
+	// send immediately; the next block's scan reconciles against the chain.
+	p.applySpend(walletID, txid, effect, packet)
+	return txid, nil
+}
+
+// spendEffect captures what a send consumed and produced so the cached scan can
+// be updated in place after broadcast instead of re-walking the wallet: the
+// inputs it spent and the change it created (change is nil when none).
+type spendEffect struct {
+	spent      []electrumUTXO
+	change     *scannedAddr
+	changeSats int64
+}
+
+// applySpend folds a just-broadcast send into the cached scan with no network
+// call: it drops the spent UTXOs (marking their addresses mempool-spent) and
+// adds the change UTXO (marking the change address mempool-funded), so balance
+// and UTXO reads reflect the send at once. The next block's scan reconciles this
+// optimistic view against the chain.
+func (p *ElectrumBackend) applySpend(walletID, txid string, effect *spendEffect, packet *psbt.Packet) {
+	if effect == nil {
+		return
+	}
+	p.mu.Lock()
+	cached := p.warmScan[walletID]
+	p.mu.Unlock()
+	if cached == nil {
+		return // nothing cached; the next read scans fresh anyway
+	}
+	scan := copyScan(cached)
+
+	spentOutpoints := make(map[string]bool, len(effect.spent))
+	spentByAddr := make(map[string]int64)
+	for _, u := range effect.spent {
+		spentOutpoints[fmt.Sprintf("%s:%d", u.txid, u.vout)] = true
+		spentByAddr[u.address] += u.amountSats
+	}
+	for i := range scan.addrs {
+		a := &scan.addrs[i]
+		sats, ok := spentByAddr[a.address]
+		if !ok {
+			continue
+		}
+		a.utxos = lo.Filter(a.utxos, func(u EsploraUTXO, _ int) bool {
+			return !spentOutpoints[fmt.Sprintf("%s:%d", u.TxID, u.Vout)]
+		})
+		a.stats.MempoolStats.SpentTxoSum += sats
+		a.stats.MempoolStats.SpentTxoCount++
+		a.stats.MempoolStats.TxCount++
+	}
+
+	if effect.change != nil {
+		vout := -1
+		for i, out := range packet.UnsignedTx.TxOut {
+			if bytes.Equal(out.PkScript, effect.change.scriptPubKey) {
+				vout = i
+				break
+			}
+		}
+		if vout >= 0 {
+			utxo := EsploraUTXO{TxID: txid, Vout: vout, Value: effect.changeSats}
+			if i := indexOfAddr(scan.addrs, effect.change.address); i >= 0 {
+				a := &scan.addrs[i]
+				a.utxos = append(append([]EsploraUTXO(nil), a.utxos...), utxo)
+				a.stats.MempoolStats.FundedTxoSum += effect.changeSats
+				a.stats.MempoolStats.FundedTxoCount++
+				a.stats.MempoolStats.TxCount++
+			} else {
+				ca := *effect.change
+				ca.utxos = []EsploraUTXO{utxo}
+				ca.stats.Address = ca.address
+				ca.stats.MempoolStats.FundedTxoSum += effect.changeSats
+				ca.stats.MempoolStats.FundedTxoCount++
+				ca.stats.MempoolStats.TxCount++
+				scan.addrs = append(scan.addrs, ca)
+			}
+		}
+	}
+
+	finalizeScan(scan)
+	p.mu.Lock()
+	p.warmScan[walletID] = scan
+	p.mu.Unlock()
+	p.persistScan(walletID, scan)
+}
+
+// copyScan returns a copy of a scan with fresh addrs/byAddr/keys containers, so
+// applySpend can mutate it without racing readers of the original.
+func copyScan(s *electrumScan) *electrumScan {
+	return &electrumScan{
+		addrs:     append([]scannedAddr(nil), s.addrs...),
+		byAddr:    make(map[string]scannedAddr, len(s.byAddr)),
+		keys:      make(mapKeySource, len(s.keys)),
+		watchOnly: s.watchOnly,
+	}
+}
+
+func indexOfAddr(addrs []scannedAddr, address string) int {
+	for i := range addrs {
+		if addrs[i].address == address {
+			return i
+		}
+	}
+	return -1
 }
 
 // buildSendPSBT performs coin selection and builds an unsigned PSBT for a send.
 // It does not require signing keys, so it serves both Send and CreatePSBT
 // (including watch-only wallets, which produce a PSBT for an external signer).
-func (p *ElectrumBackend) buildSendPSBT(ctx context.Context, walletID string, scan *electrumScan, req SendRequest) (*psbt.Packet, []psbtInput, error) {
+func (p *ElectrumBackend) buildSendPSBT(ctx context.Context, walletID string, scan *electrumScan, req SendRequest) (*psbt.Packet, []psbtInput, *spendEffect, error) {
 	if req.FeeRateSatPerVB > 0 && req.FixedFeeSats > 0 {
-		return nil, nil, errors.New("fee rate and fixed fee are mutually exclusive")
+		return nil, nil, nil, errors.New("fee rate and fixed fee are mutually exclusive")
 	}
 	// Destinations come from a map, so the first output is not stable; only a
 	// single-recipient subtract-fee send has a well-defined output to reduce.
 	if req.SubtractFeeFromAmount && len(req.DestinationsSats) > 1 {
-		return nil, nil, errors.New("subtractFeeFromAmount requires a single destination")
+		return nil, nil, nil, errors.New("subtractFeeFromAmount requires a single destination")
 	}
 	outputs, totalOutSats := buildSendOutputs(req)
 
@@ -475,7 +611,7 @@ func (p *ElectrumBackend) buildSendPSBT(ctx context.Context, walletID string, sc
 		required[key] = true
 		u, ok := findUTXO(pool, ri.TxID, ri.Vout)
 		if !ok {
-			return nil, nil, fmt.Errorf("required input %s not found among wallet UTXOs", key)
+			return nil, nil, nil, fmt.Errorf("required input %s not found among wallet UTXOs", key)
 		}
 		selected = append(selected, u)
 		selectedSats += u.amountSats
@@ -498,11 +634,11 @@ func (p *ElectrumBackend) buildSendPSBT(ctx context.Context, walletID string, sc
 	// output (the wallet's own type) unless a send leaves none.
 	w := p.svc.GetWalletByID(walletID)
 	if w == nil {
-		return nil, nil, fmt.Errorf("wallet %s not found", walletID)
+		return nil, nil, nil, fmt.Errorf("wallet %s not found", walletID)
 	}
 	d, err := p.walletDescriptor(w)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 	inVsize := walletInputVsize(d)
 	changeDust := dustThreshold(d.Kind)
@@ -534,7 +670,7 @@ func (p *ElectrumBackend) buildSendPSBT(ctx context.Context, walletID string, sc
 			break
 		}
 		if i >= len(remaining) {
-			return nil, nil, fmt.Errorf("insufficient funds: need %d sats, have %d sats", target, selectedSats)
+			return nil, nil, nil, fmt.Errorf("insufficient funds: need %d sats, have %d sats", target, selectedSats)
 		}
 		selected = append(selected, remaining[i])
 		selectedSats += remaining[i].amountSats
@@ -550,13 +686,13 @@ func (p *ElectrumBackend) buildSendPSBT(ctx context.Context, walletID string, sc
 	var changeSats int64
 	if req.SubtractFeeFromAmount {
 		if len(outputs) == 0 || outputs[0].OpReturnHex != "" {
-			return nil, nil, errors.New("subtractFeeFromAmount requires a payable first output")
+			return nil, nil, nil, errors.New("subtractFeeFromAmount requires a payable first output")
 		}
 		// Take the fee out of the first output; the rest of the selected value
 		// returns as change, matching Bitcoin Core's subtract-fee semantics.
 		reduced := int64(math.Round(outputs[0].AmountBTC*1e8)) - fee
 		if reduced < dustForOutput(outputs[0], p.network) {
-			return nil, nil, fmt.Errorf("fee %d sats exceeds first output", fee)
+			return nil, nil, nil, fmt.Errorf("fee %d sats exceeds first output", fee)
 		}
 		outputs[0].AmountBTC = float64(reduced) / 1e8
 		changeSats = selectedSats - totalOutSats
@@ -564,13 +700,16 @@ func (p *ElectrumBackend) buildSendPSBT(ctx context.Context, walletID string, sc
 		changeSats = selectedSats - totalOutSats - fee
 	}
 	if changeSats < 0 {
-		return nil, nil, fmt.Errorf("insufficient funds: short %d sats", -changeSats)
+		return nil, nil, nil, fmt.Errorf("insufficient funds: short %d sats", -changeSats)
 	}
+	effect := &spendEffect{spent: selected}
 	if changeSats >= changeDust {
 		changeAddr, err := p.nextUnusedAddrFromScan(walletID, scan, true)
 		if err != nil {
-			return nil, nil, fmt.Errorf("derive change address: %w", err)
+			return nil, nil, nil, fmt.Errorf("derive change address: %w", err)
 		}
+		effect.change = &changeAddr
+		effect.changeSats = changeSats
 		outputs = append(outputs, TxOutSpec{
 			Address:     changeAddr.address,
 			AmountBTC:   float64(changeSats) / 1e8,
@@ -583,11 +722,11 @@ func (p *ElectrumBackend) buildSendPSBT(ctx context.Context, walletID string, sc
 	for idx, u := range selected {
 		sa, ok := scan.byAddr[u.address]
 		if !ok {
-			return nil, nil, fmt.Errorf("no derivation info for input address %s", u.address)
+			return nil, nil, nil, fmt.Errorf("no derivation info for input address %s", u.address)
 		}
 		h, err := chainhash.NewHashFromStr(u.txid)
 		if err != nil {
-			return nil, nil, fmt.Errorf("parse input txid %q: %w", u.txid, err)
+			return nil, nil, nil, fmt.Errorf("parse input txid %q: %w", u.txid, err)
 		}
 		psbtInputs[idx] = psbtInput{
 			outpoint: wire.OutPoint{Hash: *h, Index: uint32(u.vout)},
@@ -598,9 +737,9 @@ func (p *ElectrumBackend) buildSendPSBT(ctx context.Context, walletID string, sc
 
 	packet, err := buildPSBT(psbtInputs, outputs, p.network, p.prevTxFetcher(ctx))
 	if err != nil {
-		return nil, nil, fmt.Errorf("build psbt: %w", err)
+		return nil, nil, nil, fmt.Errorf("build psbt: %w", err)
 	}
-	return packet, psbtInputs, nil
+	return packet, psbtInputs, effect, nil
 }
 
 func (p *ElectrumBackend) requireElectrum(walletID string) error {
@@ -623,7 +762,7 @@ func (p *ElectrumBackend) CreatePSBT(ctx context.Context, walletID string, req S
 	if err != nil {
 		return "", err
 	}
-	packet, _, err := p.buildSendPSBT(ctx, walletID, scan, req)
+	packet, _, _, err := p.buildSendPSBT(ctx, walletID, scan, req)
 	if err != nil {
 		return "", err
 	}
