@@ -11,6 +11,7 @@ import (
 	"sort"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/btcsuite/btcd/btcec/v2"
 	"github.com/btcsuite/btcd/btcutil"
@@ -511,6 +512,11 @@ func (p *ElectrumBackend) applySpend(walletID, txid string, effect *spendEffect,
 	}
 	scan := copyScan(cached)
 
+	// The synthesized mempool tx, stamped now so it sorts to the top of history
+	// as the newest entry. The next block's scan replaces it with the confirmed
+	// version from Esplora.
+	sentTx := buildSentTx(txid, effect, packet, p.network, time.Now().Unix())
+
 	spentOutpoints := make(map[string]bool, len(effect.spent))
 	spentByAddr := make(map[string]int64)
 	for _, u := range effect.spent {
@@ -529,6 +535,7 @@ func (p *ElectrumBackend) applySpend(walletID, txid string, effect *spendEffect,
 		a.stats.MempoolStats.SpentTxoSum += sats
 		a.stats.MempoolStats.SpentTxoCount++
 		a.stats.MempoolStats.TxCount++
+		a.txs = append(append([]EsploraTx(nil), a.txs...), sentTx)
 	}
 
 	if effect.change != nil {
@@ -547,9 +554,11 @@ func (p *ElectrumBackend) applySpend(walletID, txid string, effect *spendEffect,
 				a.stats.MempoolStats.FundedTxoSum += effect.changeSats
 				a.stats.MempoolStats.FundedTxoCount++
 				a.stats.MempoolStats.TxCount++
+				a.txs = append(append([]EsploraTx(nil), a.txs...), sentTx)
 			} else {
 				ca := *effect.change
 				ca.utxos = []EsploraUTXO{utxo}
+				ca.txs = []EsploraTx{sentTx}
 				ca.stats.Address = ca.address
 				ca.stats.MempoolStats.FundedTxoSum += effect.changeSats
 				ca.stats.MempoolStats.FundedTxoCount++
@@ -564,6 +573,38 @@ func (p *ElectrumBackend) applySpend(walletID, txid string, effect *spendEffect,
 	p.warmScan[walletID] = scan
 	p.mu.Unlock()
 	p.persistScan(walletID, scan)
+}
+
+// buildSentTx reconstructs the Esplora view of a just-broadcast send from the
+// data we already hold: the prevouts it spent (address + value) and the outputs
+// it created (decoded from the packet). Marked unconfirmed and stamped at now so
+// history and walletRowsForTx render it exactly like the real tx will.
+func buildSentTx(txid string, effect *spendEffect, packet *psbt.Packet, net *chaincfg.Params, now int64) EsploraTx {
+	var inSum int64
+	vin := lo.Map(effect.spent, func(u electrumUTXO, _ int) EsploraVin {
+		inSum += u.amountSats
+		return EsploraVin{
+			TxID:    u.txid,
+			Vout:    u.vout,
+			Prevout: &EsploraVout{ScriptPubKeyAddress: u.address, Value: u.amountSats},
+		}
+	})
+	var outSum int64
+	vout := lo.Map(packet.UnsignedTx.TxOut, func(out *wire.TxOut, _ int) EsploraVout {
+		outSum += out.Value
+		addr := ""
+		if _, addrs, _, err := txscript.ExtractPkScriptAddrs(out.PkScript, net); err == nil && len(addrs) > 0 {
+			addr = addrs[0].EncodeAddress()
+		}
+		return EsploraVout{ScriptPubKeyAddress: addr, Value: out.Value}
+	})
+	return EsploraTx{
+		TxID:   txid,
+		Vin:    vin,
+		Vout:   vout,
+		Fee:    inSum - outSum,
+		Status: EsploraStatus{Confirmed: false, BlockTime: now},
+	}
 }
 
 // copyScan returns a copy of a scan with fresh addrs/byAddr/keys containers, so
