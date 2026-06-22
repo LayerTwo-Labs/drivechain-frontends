@@ -51,24 +51,36 @@ func RPCPortForNetwork(n Network) int {
 	}
 }
 
-// EsploraURLForNetwork returns the esplora API URL for a given network.
-// Regtest returns "" — no public esplora exists for it and we don't ship a
-// local one, so the enforcer falls back to wallet-sync-source=disabled
-// (see GetCliArgs in enforcer_conf.go).
-func EsploraURLForNetwork(n Network) string {
+// EsploraURLsForNetwork returns the esplora API URLs for a network, primary
+// first. The wallet rotates to the next on a rate-limit/outage, so a network
+// can list multiple providers for resilience. Regtest returns nil — no public
+// esplora exists for it and we don't ship a local one, so the enforcer falls
+// back to wallet-sync-source=disabled (see GetCliArgs in enforcer_conf.go).
+func EsploraURLsForNetwork(n Network) []string {
 	switch n {
 	case NetworkSignet:
-		return "https://explorer.signet.drivechain.info/api"
+		return []string{"https://explorer.signet.drivechain.info/api"}
 	case NetworkMainnet:
-		// blockstream.info is the reference Esplora REST API, built for
-		// programmatic access. mempool.space's /api drops non-browser clients
-		// (requests hang until timeout), which stalls the gap-limit scan.
-		return "https://blockstream.info/api"
+		// mempool.space first, blockstream.info as fallback. Both are reference
+		// Esplora REST APIs; the wallet sends a browser User-Agent so mempool
+		// (which drops non-browser clients) serves it.
+		return []string{"https://mempool.space/api", "https://blockstream.info/api"}
 	case NetworkForknet:
-		return "https://explorer.forknet.drivechain.info/api"
+		return []string{"https://explorer.forknet.drivechain.info/api"}
 	default:
+		return nil
+	}
+}
+
+// EsploraURLForNetwork returns a network's primary esplora API URL (or "" when
+// none exists), for callers that take a single endpoint such as the enforcer's
+// wallet-sync-source.
+func EsploraURLForNetwork(n Network) string {
+	urls := EsploraURLsForNetwork(n)
+	if len(urls) == 0 {
 		return ""
 	}
+	return urls[0]
 }
 
 // RemoteOrchestratorURLForNetwork returns the URL of a hosted, read-only

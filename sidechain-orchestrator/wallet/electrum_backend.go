@@ -92,6 +92,11 @@ type scannedAddr struct {
 	hdPath        string
 	derivations   []keyDerivation // PSBT key-derivation records (signer key matching)
 	stats         EsploraAddressStats
+	// utxos and txs are the address's chain data, fetched alongside stats and
+	// cached on the scan so balance/utxo/history reads never re-hit Esplora.
+	// Both are empty for an unused address.
+	utxos []EsploraUTXO
+	txs   []EsploraTx
 }
 
 type electrumScan struct {
@@ -158,17 +163,9 @@ func (p *ElectrumBackend) ListUnspent(ctx context.Context, walletID string) ([]U
 	if err != nil {
 		return nil, err
 	}
-	var out []UTXO
-	for _, a := range scan.addrs {
-		if !a.stats.Used() {
-			continue
-		}
-		utxos, err := p.client.AddressUTXOs(ctx, a.address)
-		if err != nil {
-			return nil, err
-		}
-		for _, u := range utxos {
-			out = append(out, UTXO{
+	out := lo.FlatMap(scan.addrs, func(a scannedAddr, _ int) []UTXO {
+		return lo.Map(a.utxos, func(u EsploraUTXO, _ int) UTXO {
+			return UTXO{
 				TxID:          u.TxID,
 				Vout:          u.Vout,
 				Address:       a.address,
@@ -179,9 +176,9 @@ func (p *ElectrumBackend) ListUnspent(ctx context.Context, walletID string) ([]U
 				Spendable:  !scan.watchOnly,
 				Solvable:   true,
 				ReceivedAt: u.Status.BlockTime,
-			})
-		}
-	}
+			}
+		})
+	})
 	return out, nil
 }
 
@@ -199,24 +196,12 @@ func (p *ElectrumBackend) ListTransactionsRange(ctx context.Context, walletID st
 		return nil, err
 	}
 
-	txByID := map[string]EsploraTx{}
-	for _, a := range scan.addrs {
-		if !a.stats.Used() {
-			continue
-		}
-		txs, err := p.client.AddressTxs(ctx, a.address)
-		if err != nil {
-			return nil, err
-		}
-		for _, tx := range txs {
-			txByID[tx.TxID] = tx
-		}
-	}
+	allTxs := lo.FlatMap(scan.addrs, func(a scannedAddr, _ int) []EsploraTx { return a.txs })
+	txByID := lo.KeyBy(allTxs, func(tx EsploraTx) string { return tx.TxID })
 
-	var rows []WalletTransaction
-	for _, tx := range txByID {
-		rows = append(rows, walletRowsForTx(tx, scan, tip)...)
-	}
+	rows := lo.FlatMap(lo.Values(txByID), func(tx EsploraTx, _ int) []WalletTransaction {
+		return walletRowsForTx(tx, scan, tip)
+	})
 
 	// Newest first, matching Core's listtransactions default ordering after
 	// the frontend reverses it; sort by time descending here.
@@ -252,32 +237,26 @@ func (p *ElectrumBackend) ListReceivedByAddress(ctx context.Context, walletID st
 			continue
 		}
 		entry := ReceivedByAddress{Address: a.address}
-		if a.stats.Used() {
-			txs, err := p.client.AddressTxs(ctx, a.address)
-			if err != nil {
-				return nil, err
-			}
-			var receivedSats int64
-			maxConfs := 0
-			for _, tx := range txs {
-				var paid int64
-				for _, vout := range tx.Vout {
-					if vout.ScriptPubKeyAddress == a.address {
-						paid += vout.Value
-					}
-				}
-				if paid == 0 {
-					continue
-				}
-				receivedSats += paid
-				entry.TxIDs = append(entry.TxIDs, tx.TxID)
-				if c := confsFor(tx.Status, tip); c > maxConfs {
-					maxConfs = c
+		var receivedSats int64
+		maxConfs := 0
+		for _, tx := range a.txs {
+			var paid int64
+			for _, vout := range tx.Vout {
+				if vout.ScriptPubKeyAddress == a.address {
+					paid += vout.Value
 				}
 			}
-			entry.Amount = float64(receivedSats) / 1e8
-			entry.Confirmations = maxConfs
+			if paid == 0 {
+				continue
+			}
+			receivedSats += paid
+			entry.TxIDs = append(entry.TxIDs, tx.TxID)
+			if c := confsFor(tx.Status, tip); c > maxConfs {
+				maxConfs = c
+			}
 		}
+		entry.Amount = float64(receivedSats) / 1e8
+		entry.Confirmations = maxConfs
 		out = append(out, entry)
 	}
 	return out, nil
@@ -342,8 +321,12 @@ func (p *ElectrumBackend) NextChangeAddress(ctx context.Context, walletID string
 	return p.nextUnused(ctx, walletID, true)
 }
 
+// nextUnused picks the next unused address from the cached scan, deriving past
+// the cache locally when every scanned address is used. It serves the warm or
+// on-disk scan with no network, so address allocation is instant once a wallet
+// has synced; only a never-synced wallet falls through to a one-time live scan.
 func (p *ElectrumBackend) nextUnused(ctx context.Context, walletID string, change bool) (string, error) {
-	scan, err := p.scanWalletLive(ctx, walletID)
+	scan, err := p.scanWallet(ctx, walletID)
 	if err != nil {
 		return "", err
 	}
@@ -481,10 +464,7 @@ func (p *ElectrumBackend) buildSendPSBT(ctx context.Context, walletID string, sc
 	}
 	outputs, totalOutSats := buildSendOutputs(req)
 
-	pool, err := p.spendableUTXOs(ctx, scan)
-	if err != nil {
-		return nil, nil, err
-	}
+	pool := p.spendableUTXOs(scan)
 
 	// Pin required inputs, then fill from the remaining pool largest-first.
 	required := make(map[string]bool)
@@ -971,14 +951,24 @@ func (p *ElectrumBackend) scan(ctx context.Context, walletID string, allowCache 
 	// streaming those would spin the bottom-nav "Scanning…" status forever.
 	p.mu.Lock()
 	initial := !p.warm[walletID]
+	prior := p.warmScan[walletID]
 	p.mu.Unlock()
+	// prior holds the wallet's last known chain data (warm cache, else the
+	// on-disk scan). Addresses whose stats are unchanged copy their UTXOs and
+	// transactions from it instead of re-fetching, so only what moved hits
+	// the network.
+	if prior == nil {
+		if cold, _, ok := p.rebuildScanFromDisk(walletID, w); ok {
+			prior = cold
+		}
+	}
 	defer p.svc.syncReporter.publish(walletID, SyncProgress{Phase: SyncIdle, Message: "Idle"})
 	for i, d := range derivers {
 		chain := "external"
 		if i < len(chainNames) {
 			chain = chainNames[i]
 		}
-		addrs, err := p.scanChain(ctx, walletID, chain, d, initial)
+		addrs, err := p.scanChain(ctx, walletID, chain, d, prior, initial)
 		if err != nil {
 			return nil, err
 		}
@@ -990,7 +980,7 @@ func (p *ElectrumBackend) scan(ctx context.Context, walletID string, allowCache 
 	watch := append([]WatchKey(nil), p.watchKeys[walletID]...)
 	p.mu.Unlock()
 	for _, k := range watch {
-		a, err := p.watchKeyAddr(ctx, k)
+		a, err := p.watchKeyAddr(ctx, k, prior)
 		if err != nil {
 			p.log.Warn().Err(err).Msg("electrum watch key derivation failed")
 			continue
@@ -1059,9 +1049,9 @@ func (p *ElectrumBackend) cacheScan(ctx context.Context, walletID string, scan *
 }
 
 // loadColdScan rebuilds a wallet's scan from its persisted cache without any
-// network calls, used once per process before the first live scan. Keys and
-// scripts are re-derived from the descriptor; only the Esplora stats come from
-// disk. ok is false when warm, when no cache exists, or on any derive error.
+// network calls, used once per process before the first live scan. ok is false
+// when warm, when no cache exists, or on any derive error. On success it marks
+// the wallet warm so the next read serves the cache instead of re-walking.
 func (p *ElectrumBackend) loadColdScan(walletID string, w *WalletData) (*electrumScan, bool) {
 	p.mu.Lock()
 	warm := p.warm[walletID]
@@ -1069,13 +1059,31 @@ func (p *ElectrumBackend) loadColdScan(walletID string, w *WalletData) (*electru
 	if warm {
 		return nil, false
 	}
-	ps, ok := p.svc.loadElectrumScan(walletID)
+	scan, ps, ok := p.rebuildScanFromDisk(walletID, w)
 	if !ok {
 		return nil, false
 	}
+	p.mu.Lock()
+	p.warm[walletID] = true
+	p.lastScan[walletID], _ = json.Marshal(ps)
+	p.mu.Unlock()
+	p.log.Debug().Str("wallet", walletID).Int("addrs", len(scan.addrs)).Msg("electrum scan loaded from cache")
+	return scan, true
+}
+
+// rebuildScanFromDisk reconstructs a wallet's scan purely from its persisted
+// cache: keys and scripts are re-derived from the descriptor, stats come from
+// disk, and no network call is made. It mutates no backend state, so reads that
+// only need the known chain (e.g. address allocation) can use it freely. ok is
+// false when no cache exists or the persisted addresses drift from derivation.
+func (p *ElectrumBackend) rebuildScanFromDisk(walletID string, w *WalletData) (*electrumScan, *persistedScan, bool) {
+	ps, ok := p.svc.loadElectrumScan(walletID)
+	if !ok {
+		return nil, nil, false
+	}
 	d, err := p.walletDescriptor(w)
 	if err != nil {
-		return nil, false
+		return nil, nil, false
 	}
 	scan := &electrumScan{
 		byAddr:    make(map[string]scannedAddr),
@@ -1085,18 +1093,15 @@ func (p *ElectrumBackend) loadColdScan(walletID string, w *WalletData) (*electru
 	for _, pa := range ps.Addrs {
 		a, err := p.deriveAddr(d, pa.Change, pa.Index)
 		if err != nil || a.address != pa.Address {
-			return nil, false // cache drift — fall back to a live scan
+			return nil, nil, false // cache drift — fall back to a live scan
 		}
 		a.stats = pa.Stats
+		a.utxos = pa.UTXOs
+		a.txs = pa.Txs
 		scan.addrs = append(scan.addrs, a)
 	}
 	finalizeScan(scan)
-	p.mu.Lock()
-	p.warm[walletID] = true
-	p.lastScan[walletID], _ = json.Marshal(ps)
-	p.mu.Unlock()
-	p.log.Debug().Str("wallet", walletID).Int("addrs", len(scan.addrs)).Msg("electrum scan loaded from cache")
-	return scan, true
+	return scan, ps, true
 }
 
 // finalizeScan builds the by-address and key lookups from a scan's addresses.
@@ -1113,13 +1118,14 @@ func finalizeScan(scan *electrumScan) {
 // nothing changed since the last persist. BIP47 watch keys (no hdPath) are not
 // part of the derivation chain and are excluded.
 func (p *ElectrumBackend) persistScan(walletID string, scan *electrumScan) {
-	ps := persistedScan{Version: persistedScanVersion, WalletID: walletID}
+	ps := persistedScan{WalletID: walletID}
 	ps.Addrs = lo.FilterMap(scan.addrs, func(a scannedAddr, _ int) (persistedAddr, bool) {
 		if a.hdPath == "" {
 			return persistedAddr{}, false
 		}
 		return persistedAddr{
-			Change: a.change, Index: a.index, Address: a.address, Stats: a.stats,
+			Change: a.change, Index: a.index, Address: a.address,
+			Stats: a.stats, UTXOs: a.utxos, Txs: a.txs,
 		}, true
 	})
 	data, err := json.Marshal(ps)
@@ -1132,7 +1138,7 @@ func (p *ElectrumBackend) persistScan(walletID string, scan *electrumScan) {
 	if unchanged {
 		return
 	}
-	if err := p.svc.saveElectrumScan(walletID, data); err != nil {
+	if err := p.svc.saveElectrumScan(walletID, &ps); err != nil {
 		p.log.Warn().Err(err).Str("wallet", walletID).Msg("persist electrum scan failed")
 		return // don't record the write as done — retry on the next scan
 	}
@@ -1161,7 +1167,7 @@ func (p *ElectrumBackend) chainDerivers(w *WalletData) ([]chainDeriver, bool, er
 	return out, w.IsWatchOnly(), nil
 }
 
-func (p *ElectrumBackend) scanChain(ctx context.Context, walletID, chain string, derive chainDeriver, initial bool) ([]scannedAddr, error) {
+func (p *ElectrumBackend) scanChain(ctx context.Context, walletID, chain string, derive chainDeriver, prior *electrumScan, initial bool) ([]scannedAddr, error) {
 	var out []scannedAddr
 	consecutiveUnused := 0
 	found := 0
@@ -1173,13 +1179,11 @@ func (p *ElectrumBackend) scanChain(ctx context.Context, walletID, chain string,
 		if err != nil {
 			return nil, err
 		}
-		stats, err := p.client.AddressStats(ctx, a.address)
-		if err != nil {
-			return nil, fmt.Errorf("address stats %s: %w", a.address, err)
+		if err := p.hydrate(ctx, &a, prior); err != nil {
+			return nil, err
 		}
-		a.stats = stats
 		out = append(out, a)
-		if stats.Used() {
+		if a.stats.Used() {
 			consecutiveUnused = 0
 			found++
 		} else {
@@ -1187,6 +1191,39 @@ func (p *ElectrumBackend) scanChain(ctx context.Context, walletID, chain string,
 		}
 	}
 	return out, nil
+}
+
+// hydrate fills an address's stats and, when it has history, its UTXOs and
+// transactions. When prior holds the same address with identical stats the
+// chain data is unchanged since the last scan, so it is copied instead of
+// re-fetched — Esplora is only queried for what actually moved.
+func (p *ElectrumBackend) hydrate(ctx context.Context, a *scannedAddr, prior *electrumScan) error {
+	stats, err := p.client.AddressStats(ctx, a.address)
+	if err != nil {
+		return fmt.Errorf("address stats %s: %w", a.address, err)
+	}
+	a.stats = stats
+	if !stats.Used() {
+		return nil
+	}
+	if prior != nil {
+		if prev, ok := prior.byAddr[a.address]; ok && prev.stats == stats {
+			a.utxos = prev.utxos
+			a.txs = prev.txs
+			return nil
+		}
+	}
+	utxos, err := p.client.AddressUTXOs(ctx, a.address)
+	if err != nil {
+		return fmt.Errorf("address utxos %s: %w", a.address, err)
+	}
+	txs, err := p.client.AddressTxs(ctx, a.address)
+	if err != nil {
+		return fmt.Errorf("address txs %s: %w", a.address, err)
+	}
+	a.utxos = utxos
+	a.txs = txs
+	return nil
 }
 
 // watchOnlyDescriptorString returns the descriptor (or bare xpub) stored in a
@@ -1210,7 +1247,7 @@ func watchOnlyDescriptorString(w *WalletData) (string, error) {
 	return "", errors.New("watch-only electrum wallet has no descriptor or xpub")
 }
 
-func (p *ElectrumBackend) watchKeyAddr(ctx context.Context, k WatchKey) (scannedAddr, error) {
+func (p *ElectrumBackend) watchKeyAddr(ctx context.Context, k WatchKey, prior *electrumScan) (scannedAddr, error) {
 	wif, err := btcutil.DecodeWIF(k.WIF)
 	if err != nil {
 		return scannedAddr{}, fmt.Errorf("decode watch WIF: %w", err)
@@ -1220,12 +1257,11 @@ func (p *ElectrumBackend) watchKeyAddr(ctx context.Context, k WatchKey) (scanned
 	if err != nil {
 		return scannedAddr{}, fmt.Errorf("watch key address: %w", err)
 	}
-	encoded := addr.EncodeAddress()
-	stats, err := p.client.AddressStats(ctx, encoded)
-	if err != nil {
-		return scannedAddr{}, fmt.Errorf("watch key stats: %w", err)
+	a := scannedAddr{address: addr.EncodeAddress(), priv: wif.PrivKey}
+	if err := p.hydrate(ctx, &a, prior); err != nil {
+		return scannedAddr{}, err
 	}
-	return scannedAddr{address: encoded, priv: wif.PrivKey, stats: stats}, nil
+	return a, nil
 }
 
 // ============================================================================
@@ -1240,27 +1276,18 @@ type electrumUTXO struct {
 	confirmed  bool
 }
 
-func (p *ElectrumBackend) spendableUTXOs(ctx context.Context, scan *electrumScan) ([]electrumUTXO, error) {
-	var out []electrumUTXO
-	for _, a := range scan.addrs {
-		if !a.stats.Used() {
-			continue
-		}
-		utxos, err := p.client.AddressUTXOs(ctx, a.address)
-		if err != nil {
-			return nil, err
-		}
-		for _, u := range utxos {
-			out = append(out, electrumUTXO{
+func (p *ElectrumBackend) spendableUTXOs(scan *electrumScan) []electrumUTXO {
+	return lo.FlatMap(scan.addrs, func(a scannedAddr, _ int) []electrumUTXO {
+		return lo.Map(a.utxos, func(u EsploraUTXO, _ int) electrumUTXO {
+			return electrumUTXO{
 				txid:       u.TxID,
 				vout:       u.Vout,
 				address:    a.address,
 				amountSats: u.Value,
 				confirmed:  u.Status.Confirmed,
-			})
-		}
-	}
-	return out, nil
+			}
+		})
+	})
 }
 
 func findUTXO(pool []electrumUTXO, txid string, vout int) (electrumUTXO, bool) {
