@@ -222,6 +222,58 @@ func TestElectrumSendBuildsSignsBroadcasts(t *testing.T) {
 	assert.Equal(t, int64(50_000), tx.TxOut[0].Value)
 }
 
+// TestElectrumSendUpdatesCacheInstantly proves a send reflects in balance, UTXOs
+// and history immediately with no re-scan: the fake Esplora still reports the
+// pre-send state, so anything showing the spend came from the local applySpend.
+func TestElectrumSendUpdatesCacheInstantly(t *testing.T) {
+	p, fake, w, addr := newElectrumFixture(t)
+	ctx := context.Background()
+
+	fake.stats[addr] = EsploraAddressStats{
+		Address:    addr,
+		ChainStats: EsploraTxoStats{FundedTxoCount: 1, FundedTxoSum: 200_000, TxCount: 1},
+	}
+	fake.utxos[addr] = []EsploraUTXO{{
+		TxID: "1111111111111111111111111111111111111111111111111111111111111111",
+		Vout: 0, Value: 200_000,
+		Status: EsploraStatus{Confirmed: true, BlockHeight: 100},
+	}}
+
+	// Warm the cache: confirmed reflects the single 200k UTXO, nothing pending.
+	confirmed, pending, err := p.Balance(ctx, w.ID)
+	require.NoError(t, err)
+	require.InDelta(t, 0.002, confirmed, 1e-9)
+	require.Zero(t, pending)
+
+	dest := "tb1qw508d6qejxtdg4y5r3zarvary0c5xw7kxpjzsx"
+	txid, err := p.Send(ctx, w.ID, SendRequest{
+		DestinationsSats: map[string]int64{dest: 50_000},
+		FeeRateSatPerVB:  2,
+	})
+	require.NoError(t, err)
+
+	confirmed, pending, err = p.Balance(ctx, w.ID)
+	require.NoError(t, err)
+	assert.Zero(t, confirmed, "spent input no longer counts as confirmed")
+	assert.Greater(t, pending, 0.0, "change returns as pending")
+	assert.InDelta(t, 0.0015, confirmed+pending, 5e-5, "total = 200k - 50k - fee")
+
+	utxos, err := p.ListUnspent(ctx, w.ID)
+	require.NoError(t, err)
+	require.Len(t, utxos, 1, "old UTXO spent, change UTXO added")
+	assert.Equal(t, txid, utxos[0].TxID, "remaining UTXO is the change output")
+
+	txs, err := p.ListTransactions(ctx, w.ID, 0)
+	require.NoError(t, err)
+	found := false
+	for _, tx := range txs {
+		if tx.TxID == txid {
+			found = true
+		}
+	}
+	assert.True(t, found, "sent tx appears in history immediately")
+}
+
 func TestElectrumSendMaxSubtractsFee(t *testing.T) {
 	p, fake, w, addr := newElectrumFixture(t)
 	ctx := context.Background()
