@@ -52,6 +52,21 @@ type Backend interface {
 	Chain() ChainSource
 }
 
+// Bip47Backend is a Backend that can participate in BIP47. Everything the send
+// path and inbound engine need is already on Backend (WatchKeys, the chain
+// reads, signing); the one backend-specific operation is watching the wallet's
+// own notification address. Core (descriptor import) and electrum (watch key)
+// implement it; the enforcer does not, so it is simply not BIP47-capable. A new
+// provider becomes BIP47-capable by implementing this one method.
+type Bip47Backend interface {
+	Backend
+	// EnsureNotificationWatched makes the wallet track its own BIP47
+	// notification address (the P2PKH for notifKey), rescanning history per
+	// notifKey.RescanFrom so past notifications surface in ListTransactionsRange.
+	// Idempotent.
+	EnsureNotificationWatched(ctx context.Context, walletID string, notifKey WatchKey) error
+}
+
 // ChainSource is wallet-agnostic chain access shared by all backends.
 type ChainSource interface {
 	GetRawTransaction(ctx context.Context, txid string) (*RawTransaction, error)

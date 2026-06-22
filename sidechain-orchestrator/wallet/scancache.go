@@ -2,6 +2,7 @@ package wallet
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 )
 
@@ -139,6 +140,40 @@ func (s *Service) loadElectrumTxs(ctx context.Context, walletID string, byAddr m
 		}
 	}
 	return rows.Err() == nil
+}
+
+// firstUnusedAddress returns the lowest-index address on a chain with no
+// on-chain or mempool history — the next address to hand out for receiving.
+// ok is false when the wallet has no stored addresses for that chain yet, or
+// every one is used; the caller then derives the next index locally.
+func (s *Service) firstUnusedAddress(walletID string, change bool) (string, bool) {
+	if s.electrumDB == nil {
+		return "", false
+	}
+	var addr string
+	err := s.electrumDB.QueryRowContext(context.Background(),
+		`SELECT address FROM electrum_addresses
+		 WHERE wallet_id = ? AND change = ? AND chain_tx_count = 0 AND mempool_tx_count = 0
+		 ORDER BY idx LIMIT 1`, walletID, change).Scan(&addr)
+	if err != nil {
+		return "", false
+	}
+	return addr, true
+}
+
+// maxAddressIndex returns the highest stored address index on a chain, or -1
+// when none are stored. Used to derive the next address past what is known.
+func (s *Service) maxAddressIndex(walletID string, change bool) int {
+	if s.electrumDB == nil {
+		return -1
+	}
+	var max sql.NullInt64
+	if err := s.electrumDB.QueryRowContext(context.Background(),
+		`SELECT MAX(idx) FROM electrum_addresses WHERE wallet_id = ? AND change = ?`,
+		walletID, change).Scan(&max); err != nil || !max.Valid {
+		return -1
+	}
+	return int(max.Int64)
 }
 
 // saveElectrumScan replaces a wallet's stored scan with ps in a single

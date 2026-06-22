@@ -61,10 +61,10 @@ func EsploraURLsForNetwork(n Network) []string {
 	case NetworkSignet:
 		return []string{"https://explorer.signet.drivechain.info/api"}
 	case NetworkMainnet:
-		// mempool.space first, blockstream.info as fallback. Both are reference
-		// Esplora REST APIs; the wallet sends a browser User-Agent so mempool
-		// (which drops non-browser clients) serves it.
-		return []string{"https://mempool.space/api", "https://blockstream.info/api"}
+		// blockstream.info first (reliable for programmatic clients), mempool.space
+		// as fallback. mempool throttles/stalls non-browser traffic, so it is the
+		// backup rather than the primary.
+		return []string{"https://blockstream.info/api", "https://mempool.space/api"}
 	case NetworkForknet:
 		return []string{"https://explorer.forknet.drivechain.info/api"}
 	default:

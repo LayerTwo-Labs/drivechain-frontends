@@ -43,6 +43,17 @@ func (e *WalletEngine) ElectrumConfigured() bool {
 	return ok && r.ElectrumConfigured()
 }
 
+// Bip47BackendFor returns the wallet's backend as a Bip47Backend when it is
+// BIP47-capable. ok is false for non-capable wallets (the enforcer), so the
+// BIP47 engine and send path skip them without a wallet-type switch.
+func (e *WalletEngine) Bip47BackendFor(walletID string) (Bip47Backend, bool) {
+	if r, ok := e.backend.(*BackendRouter); ok {
+		return r.Bip47BackendFor(walletID)
+	}
+	b, ok := e.backend.(Bip47Backend)
+	return b, ok
+}
+
 // ChainForWallet returns the chain source for a wallet's backend, dispatching
 // by wallet type so electrum wallets read/broadcast over Esplora.
 func (e *WalletEngine) ChainForWallet(walletID string) ChainSource {

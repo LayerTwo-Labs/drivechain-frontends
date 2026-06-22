@@ -172,12 +172,10 @@ func (h *WalletHandler) ListWallets(ctx context.Context, req *connect.Request[pb
 			gradientJSON = string(w.Gradient)
 		}
 		// Watch-only wallets hold no seed, so BIP47 derivation is both pointless
-		// and noisy (it errors on the empty seed); skip it.
+		// and noisy (it errors on the empty seed); skip it. Advertise only for
+		// BIP47-capable backends (Core + electrum), the wallets the engine watches.
 		var bip47Code string
-		// Electrum wallets advertise no BIP47 code: inbound BIP47 (BIP47Engine)
-		// only watches bitcoinCore wallets, so a published code would receive
-		// payments the wallet never discovers.
-		if !w.IsWatchOnly() && w.WalletType != wallet.WalletTypeElectrum {
+		if !w.IsWatchOnly() && h.bip47Capable(w.ID) {
 			code, err := wallet.Bip47PaymentCodeFromSeed(w.Master.SeedHex, h.bip47NetParams())
 			if err != nil {
 				h.svc.Log().Error().Err(err).Str("wallet_id", w.ID).Msg("ListWallets: bip47 derivation failed")
@@ -950,6 +948,7 @@ func (h *WalletHandler) sendWalletData(stream *connect.ServerStream[pb.WatchWall
 		h.svc.IsEncrypted(),
 		h.svc.IsUnlocked(),
 		h.bip47NetParams(),
+		h.bip47Capable,
 		bip47Logger(h.svc),
 	)
 	*seq++
@@ -967,19 +966,30 @@ func bip47Logger(svc *wallet.Service) func(walletID string, err error) {
 	}
 }
 
-func buildWatchWalletDataResponse(wallets []wallet.WalletData, activeID string, hasWallet, encrypted, unlocked bool, netParams *chaincfg.Params, onBip47Err func(walletID string, err error)) *pb.WatchWalletDataResponse {
+// bip47Capable reports whether a wallet's backend can participate in BIP47, so a
+// payment code is advertised only for wallets the inbound engine actually
+// watches. Same capability source the engine and send path use (Core + electrum,
+// not the enforcer or an unconfigured backend).
+func (h *WalletHandler) bip47Capable(walletID string) bool {
+	if h.engine == nil {
+		return false
+	}
+	_, ok := h.engine.Bip47BackendFor(walletID)
+	return ok
+}
+
+func buildWatchWalletDataResponse(wallets []wallet.WalletData, activeID string, hasWallet, encrypted, unlocked bool, netParams *chaincfg.Params, bip47Capable func(walletID string) bool, onBip47Err func(walletID string, err error)) *pb.WatchWalletDataResponse {
 	pbWallets := make([]*pb.WalletMetadata, len(wallets))
 	for i, w := range wallets {
 		var gradientJSON string
 		if w.Gradient != nil {
 			gradientJSON = string(w.Gradient)
 		}
-		// Watch-only wallets hold no seed; skip BIP47 derivation on them.
+		// Watch-only wallets hold no seed; skip BIP47 derivation on them. The
+		// code is advertised only for BIP47-capable backends (Core + electrum),
+		// the same wallets the inbound engine watches.
 		var bip47Code string
-		// Electrum wallets advertise no BIP47 code: inbound BIP47 (BIP47Engine)
-		// only watches bitcoinCore wallets, so a published code would receive
-		// payments the wallet never discovers.
-		if !w.IsWatchOnly() && w.WalletType != wallet.WalletTypeElectrum {
+		if !w.IsWatchOnly() && bip47Capable(w.ID) {
 			code, err := wallet.Bip47PaymentCodeFromSeed(w.Master.SeedHex, netParams)
 			if err != nil && onBip47Err != nil {
 				onBip47Err(w.ID, err)

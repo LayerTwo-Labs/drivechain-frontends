@@ -354,11 +354,14 @@ func run(cctx *cli.Context) error {
 		// Fork engine: single source of truth for eCash fork state, needs
 		// Core-backed wallet access for its claimable scan.
 		orch.InitForkEngine(walletEngine)
+	}
 
-		// BIP47 receive engine: watches each Core wallet's notification address
-		// for incoming notification txs, decodes their OP_RETURN payload to
-		// recover the sender's payment code, and imports per-payment receive
-		// descriptors so subsequent payments are spendable.
+	// BIP47 receive engine: watches each BIP47-capable wallet's (Core + electrum)
+	// notification address for incoming notification txs, decodes their OP_RETURN
+	// payload to recover the sender's payment code, and imports per-payment
+	// receive keys so subsequent payments are spendable. Starts whenever any
+	// BIP47-capable backend is configured — an electrum-only wallet needs it too.
+	if chainBackend != nil || electrumBackend != nil {
 		bip47InboundStore := bip47state.NewInboundStore(bitwindowDir)
 		bip47Engine := engines.NewBIP47Engine(log, walletSvc, walletEngine, bip47InboundStore)
 		go func() {

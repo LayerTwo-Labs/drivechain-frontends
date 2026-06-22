@@ -8,6 +8,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/btcsuite/btcd/btcec/v2"
@@ -49,14 +50,20 @@ type BIP47Engine struct {
 	svc     *wallet.Service
 	engine  *wallet.WalletEngine
 	inbound *bip47state.InboundStore
+
+	mu sync.Mutex
+	// notifWatched records wallets whose own notification key has been
+	// registered with the backend this process, so we only do it once.
+	notifWatched map[string]bool
 }
 
 func NewBIP47Engine(log zerolog.Logger, svc *wallet.Service, walletEngine *wallet.WalletEngine, inbound *bip47state.InboundStore) *BIP47Engine {
 	return &BIP47Engine{
-		log:     log.With().Str("component", "bip47").Logger(),
-		svc:     svc,
-		engine:  walletEngine,
-		inbound: inbound,
+		log:          log.With().Str("component", "bip47").Logger(),
+		svc:          svc,
+		engine:       walletEngine,
+		inbound:      inbound,
+		notifWatched: make(map[string]bool),
 	}
 }
 
@@ -85,16 +92,22 @@ func (e *BIP47Engine) tick(ctx context.Context) {
 	wallets := e.svc.GetAllWallets()
 	for i := range wallets {
 		w := &wallets[i]
-		if w.WalletType == wallet.WalletTypeEnforcer {
+		backend, ok := e.engine.Bip47BackendFor(w.ID)
+		if !ok {
+			// Not BIP47-capable (the enforcer wallet, or its backend isn't
+			// configured) — nothing to watch.
 			continue
 		}
 		seedHex := w.Master.SeedHex
 		if seedHex == "" {
 			continue
 		}
-		if _, err := e.engine.Backend().Ensure(ctx, w.ID); err != nil {
+		if _, err := backend.Ensure(ctx, w.ID); err != nil {
 			// Wallet may still be warming up on the backend; retry next tick.
 			continue
+		}
+		if err := e.ensureNotificationWatched(ctx, backend, w.ID, seedHex, net); err != nil {
+			e.log.Warn().Err(err).Str("wallet", w.ID).Msg("ensure notification watched failed")
 		}
 		if err := e.scanWallet(ctx, w.ID, seedHex, net); err != nil {
 			e.log.Warn().Err(err).Str("wallet", w.ID).Msg("scan failed")
@@ -103,6 +116,36 @@ func (e *BIP47Engine) tick(ctx context.Context) {
 			e.log.Warn().Err(err).Str("wallet", w.ID).Msg("extend imports failed")
 		}
 	}
+}
+
+// ensureNotificationWatched registers a wallet's own notification key with its
+// backend once per process, so the backend scans the notification address and
+// inbound notification txs surface in ListTransactionsRange. RescanFrom 0 forces
+// a full history rescan so notifications received before first observation are
+// still found. For Core this is a no-op after the creation-time descriptor
+// import; for electrum it adds the address to the scan.
+func (e *BIP47Engine) ensureNotificationWatched(ctx context.Context, backend wallet.Bip47Backend, walletID, seedHex string, net *chaincfg.Params) error {
+	e.mu.Lock()
+	already := e.notifWatched[walletID]
+	e.mu.Unlock()
+	if already {
+		return nil
+	}
+	notifPriv, _, err := bip47.DeriveOwnNotificationKey(seedHex, net)
+	if err != nil {
+		return fmt.Errorf("derive own notification key: %w", err)
+	}
+	wif, err := btcutil.NewWIF(notifPriv, net, true)
+	if err != nil {
+		return fmt.Errorf("encode notification wif: %w", err)
+	}
+	if err := backend.EnsureNotificationWatched(ctx, walletID, wallet.WatchKey{WIF: wif.String(), RescanFrom: 0}); err != nil {
+		return err
+	}
+	e.mu.Lock()
+	e.notifWatched[walletID] = true
+	e.mu.Unlock()
+	return nil
 }
 
 // scanWallet walks listtransactions forward from the persisted cursor looking
