@@ -2,7 +2,9 @@ import 'dart:async';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
+import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
+import 'package:sail_ui/utils/explorer_url.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 const _menuItemHeight = 33.0;
@@ -199,12 +201,12 @@ class MempoolMenuItem extends StatelessWidget implements SailMenuEntity {
 
   @override
   Widget build(BuildContext context) {
-    final url = 'https://explorer.drivechain.info/tx/$txid';
+    final network = GetIt.I.get<BitcoinConfProvider>().network;
     return SailMenuItem(
       onSelected: () async {
-        await launchUrl(Uri.parse(url));
+        await launchUrl(Uri.parse(mempoolTxUrl(txid, network)));
       },
-      child: SailText.primary12('View on explorer.drivechain.info'),
+      child: SailText.primary12('View transaction'),
     );
   }
 }
