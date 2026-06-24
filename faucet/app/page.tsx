@@ -17,7 +17,13 @@ import type { GetTransactionResponse } from "@/gen/bitcoin/bitcoind/v1alpha/bitc
 import { FaucetService } from "@/gen/faucet/v1/faucet_pb";
 import { timestampToDate } from "@/lib/api";
 import { clientTransport } from "@/lib/client-api";
-import { blockExplorerUrl, exampleAddressForNetwork } from "@/lib/utils";
+import { dispenseErrorMessage } from "@/lib/errors";
+import {
+  blockExplorerUrl,
+  exampleAddressForNetwork,
+  instanceNetwork,
+  isPlausibleAddress,
+} from "@/lib/utils";
 
 export default function Home() {
   const [address, setAddress] = useState("");
@@ -35,6 +41,11 @@ export default function Home() {
   const handleDispense = async () => {
     if (!address || !amount) return;
 
+    if (!isPlausibleAddress(address)) {
+      setError(`That doesn't look like a valid ${instanceNetwork()} address.`);
+      return;
+    }
+
     setLoading(true);
     setError(null);
     setTxid(null);
@@ -45,7 +56,7 @@ export default function Home() {
       setTxid(response.txid);
       fetchClaims(); // Refresh claims list
     } catch (err) {
-      setError(`Failed to dispense coins: ${err}`);
+      setError(dispenseErrorMessage(err));
     } finally {
       setLoading(false);
     }
