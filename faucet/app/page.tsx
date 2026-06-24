@@ -2,7 +2,7 @@
 
 import { createClient } from "@connectrpc/connect";
 import { format } from "date-fns";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -72,9 +72,10 @@ export default function Home() {
   };
 
   // Initial fetch
-  useState(() => {
+  // biome-ignore lint/correctness/useExhaustiveDependencies: fetch once on mount
+  useEffect(() => {
     fetchClaims();
-  });
+  }, []);
 
   const MAX_AMOUNT = 5;
 
