@@ -56,7 +56,14 @@ build_orch_tool() {
         # CGO must stay on when cross-compiling amd64 on an arm host (Go defaults
         # it off for cross builds); macOS clang handles -arch from GOARCH.
         export CGO_ENABLED=1
-        go build -o "$out" "./cmd/$cmd"
+        # Variant builds embed a different default network into orchestratord
+        # (the forknet build defaults to forknet). Only orchestratord has the
+        # defaultNetwork symbol; orchestratorctl is built plain.
+        if [[ "$cmd" == "orchestratord" && -n "${BITWINDOW_DEFAULT_NETWORK:-}" ]]; then
+            go build -ldflags "-X main.defaultNetwork=${BITWINDOW_DEFAULT_NETWORK}" -o "$out" "./cmd/$cmd"
+        else
+            go build -o "$out" "./cmd/$cmd"
+        fi
     )
 }
 
