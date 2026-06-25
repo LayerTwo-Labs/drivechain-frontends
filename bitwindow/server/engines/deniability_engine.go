@@ -14,6 +14,7 @@ import (
 	commonv1 "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/common/v1"
 	pb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1"
 	validatorrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1/mainchainv1connect"
+	orchpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1"
 	corepb "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha"
 	corerpc "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha/bitcoindv1alphaconnect"
 	"github.com/rs/zerolog"
@@ -293,7 +294,7 @@ func (e *DeniabilityEngine) ProcessUTXO(ctx context.Context, utxo *pb.ListUnspen
 		}
 		txid, err = e.sendBitcoinCoreTransaction(ctx, walletId, destinations)
 	case WalletTypeElectrum:
-		return fmt.Errorf("deniability is not supported for electrum wallets")
+		txid, err = e.sendElectrumTransaction(ctx, walletId, utxo, destinations, fee)
 	default:
 		return fmt.Errorf("unknown wallet type: %s", walletType)
 	}
@@ -403,6 +404,28 @@ func (e *DeniabilityEngine) sendBitcoinCoreTransaction(
 	}
 
 	return resp.Msg.Txid, nil
+}
+
+// sendElectrumTransaction sends a transaction via the orchestrator wallet
+// manager, spending the chosen UTXO into the denial destinations.
+func (e *DeniabilityEngine) sendElectrumTransaction(
+	ctx context.Context,
+	walletId string,
+	utxo *pb.ListUnspentOutputsResponse_Output,
+	destinations map[string]uint64,
+	fee uint64,
+) (string, error) {
+	dests := lo.MapValues(destinations, func(sats uint64, _ string) int64 {
+		return int64(sats)
+	})
+	return e.walletEngine.SendTransaction(ctx, &orchpb.SendTransactionRequest{
+		WalletId:     walletId,
+		Destinations: dests,
+		FixedFeeSats: int64(fee),
+		RequiredInputs: []*orchpb.UnspentOutput{
+			{Txid: utxo.Txid.Hex.Value, Vout: int32(utxo.Vout)},
+		},
+	})
 }
 
 // the enforcer wallet takes a few seconds/minutes to add the sent transaction
@@ -537,24 +560,7 @@ func (e *DeniabilityEngine) simpleSplit(
 	walletType WalletType,
 	walletId string,
 ) (map[string]uint64, error) {
-	// Get a new address based on wallet type
-	var address string
-	var err error
-
-	switch walletType {
-	case WalletTypeEnforcer:
-		address, err = e.getEnforcerNewAddress(ctx)
-	case WalletTypeBitcoinCore:
-		if werr := e.rejectWatchOnly(ctx, walletId); werr != nil {
-			return nil, werr
-		}
-		address, err = e.getBitcoinCoreNewAddress(ctx, walletId)
-	case WalletTypeElectrum:
-		return nil, fmt.Errorf("deniability not supported for electrum wallets")
-	default:
-		return nil, fmt.Errorf("unsupported wallet type for deniability: %s", walletType)
-	}
-
+	address, err := e.getNewAddress(ctx, walletType, walletId)
 	if err != nil {
 		return nil, fmt.Errorf("get new address: %w", err)
 	}
@@ -588,24 +594,7 @@ func (e *DeniabilityEngine) targetAmountSplit(
 	walletId string,
 	targetSize int64,
 ) (map[string]uint64, error) {
-	// Get a new address based on wallet type
-	var address string
-	var err error
-
-	switch walletType {
-	case WalletTypeEnforcer:
-		address, err = e.getEnforcerNewAddress(ctx)
-	case WalletTypeBitcoinCore:
-		if werr := e.rejectWatchOnly(ctx, walletId); werr != nil {
-			return nil, werr
-		}
-		address, err = e.getBitcoinCoreNewAddress(ctx, walletId)
-	case WalletTypeElectrum:
-		return nil, fmt.Errorf("deniability not supported for electrum wallets")
-	default:
-		return nil, fmt.Errorf("unsupported wallet type for deniability: %s", walletType)
-	}
-
+	address, err := e.getNewAddress(ctx, walletType, walletId)
 	if err != nil {
 		return nil, fmt.Errorf("get new address: %w", err)
 	}
@@ -628,6 +617,24 @@ func (e *DeniabilityEngine) targetAmountSplit(
 	return map[string]uint64{
 		address: targetAmount,
 	}, nil
+}
+
+// getNewAddress returns a fresh destination address for the active wallet's
+// backend. Watch-only Bitcoin Core wallets are rejected (they can't sign).
+func (e *DeniabilityEngine) getNewAddress(ctx context.Context, walletType WalletType, walletId string) (string, error) {
+	switch walletType {
+	case WalletTypeEnforcer:
+		return e.getEnforcerNewAddress(ctx)
+	case WalletTypeBitcoinCore:
+		if werr := e.rejectWatchOnly(ctx, walletId); werr != nil {
+			return "", werr
+		}
+		return e.getBitcoinCoreNewAddress(ctx, walletId)
+	case WalletTypeElectrum:
+		return e.walletEngine.GetElectrumReceiveAddress(ctx, walletId)
+	default:
+		return "", fmt.Errorf("unsupported wallet type for deniability: %s", walletType)
+	}
 }
 
 // getEnforcerNewAddress creates a new address from the enforcer wallet
@@ -710,11 +717,29 @@ func (e *DeniabilityEngine) listUTXOsForWallet(ctx context.Context, walletId str
 		return e.listBitcoinCoreUTXOs(ctx, walletId)
 
 	case WalletTypeElectrum:
-		return nil, fmt.Errorf("deniability not supported for electrum wallets")
+		return e.listElectrumUTXOs(ctx, walletId)
 
 	default:
 		return nil, fmt.Errorf("unknown wallet type: %s", walletType)
 	}
+}
+
+// listElectrumUTXOs lists an electrum wallet's UTXOs (served via the
+// orchestrator/Esplora) and converts them to the enforcer output shape the
+// rest of the engine works with.
+func (e *DeniabilityEngine) listElectrumUTXOs(ctx context.Context, walletId string) ([]*pb.ListUnspentOutputsResponse_Output, error) {
+	utxos, err := e.walletEngine.GetElectrumUnspent(ctx, walletId)
+	if err != nil {
+		return nil, fmt.Errorf("electrum: list unspent: %w", err)
+	}
+	return lo.Map(utxos, func(u *orchpb.UnspentOutput, _ int) *pb.ListUnspentOutputsResponse_Output {
+		return &pb.ListUnspentOutputsResponse_Output{
+			Txid:      &commonv1.ReverseHex{Hex: &wrapperspb.StringValue{Value: u.Txid}},
+			Vout:      uint32(u.Vout),
+			ValueSats: uint64(u.AmountSats),
+			Address:   &wrapperspb.StringValue{Value: u.Address},
+		}
+	}), nil
 }
 
 // listEnforcerUTXOs lists UTXOs from the enforcer wallet

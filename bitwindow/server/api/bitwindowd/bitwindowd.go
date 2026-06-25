@@ -389,6 +389,23 @@ func (s *Server) CreateAddressBookEntry(ctx context.Context, req *connect.Reques
 		return nil, connect.NewError(connect.CodeInvalidArgument, err)
 	}
 
+	// A label must map to a single address — reject collisions with a
+	// different address (re-saving the same address still upserts below).
+	label := strings.TrimSpace(req.Msg.Label)
+	if label != "" {
+		existing, err := addressbook.List(ctx, s.db)
+		if err != nil {
+			zerolog.Ctx(ctx).Error().Err(err).Msg("could not list address book entries")
+			return nil, connect.NewError(connect.CodeInternal, err)
+		}
+		for _, entry := range existing {
+			if strings.EqualFold(strings.TrimSpace(entry.Label), label) && entry.Address != addr {
+				err := fmt.Errorf("an address book entry with label %q already exists", label)
+				return nil, connect.NewError(connect.CodeAlreadyExists, err)
+			}
+		}
+	}
+
 	// User-added addresses don't belong to a specific wallet (nil walletId)
 	if err := addressbook.Create(ctx, s.db, nil, req.Msg.Label, addr, direction); err != nil {
 		// Check if this is a unique constraint error for address+direction
@@ -470,6 +487,21 @@ func (s *Server) ListAddressBook(ctx context.Context, req *connect.Request[empty
 }
 
 func (s *Server) UpdateAddressBookEntry(ctx context.Context, req *connect.Request[pb.UpdateAddressBookEntryRequest]) (*connect.Response[emptypb.Empty], error) {
+	label := strings.TrimSpace(req.Msg.Label)
+	if label != "" {
+		existing, err := addressbook.List(ctx, s.db)
+		if err != nil {
+			zerolog.Ctx(ctx).Error().Err(err).Msg("could not list address book entries")
+			return nil, connect.NewError(connect.CodeInternal, err)
+		}
+		for _, entry := range existing {
+			if entry.ID != req.Msg.Id && strings.EqualFold(strings.TrimSpace(entry.Label), label) {
+				err := fmt.Errorf("an address book entry with label %q already exists", label)
+				return nil, connect.NewError(connect.CodeAlreadyExists, err)
+			}
+		}
+	}
+
 	if err := addressbook.UpdateLabel(ctx, s.db, req.Msg.Id, req.Msg.Label); err != nil {
 		zerolog.Ctx(ctx).Error().Err(err).Msg("could not update address book entry")
 		return nil, connect.NewError(connect.CodeInternal, err)

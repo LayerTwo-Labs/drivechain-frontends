@@ -429,8 +429,14 @@ func rpcOutputs(outputs []TxOutSpec) []map[string]interface{} {
 // buildSendOutputs maps the request's destinations (plus optional OP_RETURN)
 // to ordered outputs and returns the destination total in sats.
 func buildSendOutputs(req SendRequest) ([]TxOutSpec, int64) {
-	outputs := make([]TxOutSpec, 0, len(req.DestinationsSats)+1)
+	outputs := make([]TxOutSpec, 0, len(req.RawOutputs)+len(req.DestinationsSats)+1)
 	totalDestinationSats := int64(0)
+	// Raw outputs come first so consensus-ordered scripts (e.g. an OP_DRIVECHAIN
+	// treasury immediately before its OP_RETURN address) keep their positions.
+	for _, raw := range req.RawOutputs {
+		outputs = append(outputs, raw)
+		totalDestinationSats += raw.AmountSats
+	}
 	for address, sats := range req.DestinationsSats {
 		outputs = append(outputs, TxOutSpec{Address: address, AmountBTC: float64(sats) / 1e8})
 		totalDestinationSats += sats

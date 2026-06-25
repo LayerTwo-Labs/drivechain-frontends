@@ -15,6 +15,8 @@ import (
 
 	"connectrpc.com/connect"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/wallet"
+	commonv1 "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/common/v1"
+	validatorpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1"
 	validatorrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1/mainchainv1connect"
 	orchpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1"
 	orchrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1/walletmanagerv1connect"
@@ -28,6 +30,7 @@ import (
 	"github.com/samber/lo"
 	"golang.org/x/sync/singleflight"
 	"google.golang.org/protobuf/types/known/emptypb"
+	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
 // WalletType is a wallet's provider backend. Watch-only is an orthogonal
@@ -798,6 +801,89 @@ func (e *WalletEngine) FinalizePsbt(ctx context.Context, psbtBase64 string) (str
 		return "", fmt.Errorf("electrum: finalize psbt: %w", err)
 	}
 	return resp.Msg.RawTxHex, nil
+}
+
+// RequireFullNode returns a clear error when the active wallet is electrum, for
+// L1 operations (sidechain proposals, withdrawal bundles) that can only be
+// produced by a full node with the BIP300/301 enforcer — they live in the block
+// coinbase / are built by the enforcer, so no standalone wallet can broadcast
+// them. Returns nil when the wallet type can't be determined, so the caller's
+// own error path still runs.
+func (e *WalletEngine) RequireFullNode(ctx context.Context, op string) error {
+	w, err := e.GetActiveWallet(ctx)
+	if err != nil {
+		return nil
+	}
+	if w.WalletType == WalletTypeElectrum {
+		return connect.NewError(connect.CodeFailedPrecondition,
+			fmt.Errorf("%s requires a full node with the BIP300/301 enforcer; not available for electrum wallets", op))
+	}
+	return nil
+}
+
+// BroadcastOpReturn publishes raw OP_RETURN data through the active wallet's
+// backend and returns the txid. Electrum wallets run no local enforcer, so they
+// broadcast through the orchestrator wallet manager — the same path the normal
+// "Send" flow uses; enforcer and Bitcoin Core wallets use the enforcer wallet.
+// This is the single broadcast seam every server-side OP_RETURN sender shares.
+func (e *WalletEngine) BroadcastOpReturn(ctx context.Context, data []byte, feeSatPerVByte, feeSats uint64) (string, error) {
+	activeWallet, err := e.GetActiveWallet(ctx)
+	if err != nil {
+		return "", fmt.Errorf("get active wallet: %w", err)
+	}
+
+	if activeWallet.WalletType == WalletTypeElectrum {
+		req := &orchpb.SendTransactionRequest{
+			WalletId:    activeWallet.ID,
+			OpReturnHex: hex.EncodeToString(data),
+		}
+		switch {
+		case feeSatPerVByte > 0:
+			req.FeeRateSatPerVbyte = int64(feeSatPerVByte)
+		case feeSats > 0:
+			req.FixedFeeSats = int64(feeSats)
+		}
+		return e.SendTransaction(ctx, req)
+	}
+
+	wallet, err := e.enforcerConnector(ctx)
+	if err != nil {
+		return "", err
+	}
+	req := &validatorpb.SendTransactionRequest{
+		OpReturnMessage: &commonv1.Hex{
+			Hex: &wrapperspb.StringValue{Value: hex.EncodeToString(data)},
+		},
+	}
+	switch {
+	case feeSatPerVByte > 0:
+		req.FeeRate = &validatorpb.SendTransactionRequest_FeeRate{
+			Fee: &validatorpb.SendTransactionRequest_FeeRate_SatPerVbyte{SatPerVbyte: feeSatPerVByte},
+		}
+	case feeSats > 0:
+		req.FeeRate = &validatorpb.SendTransactionRequest_FeeRate{
+			Fee: &validatorpb.SendTransactionRequest_FeeRate_Sats{Sats: feeSats},
+		}
+	}
+	resp, err := wallet.SendTransaction(ctx, connect.NewRequest(req))
+	if err != nil {
+		return "", err
+	}
+	return resp.Msg.Txid.Hex.Value, nil
+}
+
+// SendTransaction builds, signs, and broadcasts a transaction through the
+// orchestrator wallet manager, which routes to the active wallet's backend
+// (electrum or Bitcoin Core). Used by server-side senders like news OP_RETURNs.
+func (e *WalletEngine) SendTransaction(ctx context.Context, req *orchpb.SendTransactionRequest) (string, error) {
+	if e.orchClient == nil {
+		return "", fmt.Errorf("orchestrator wallet client not connected")
+	}
+	resp, err := e.orchClient.SendTransaction(ctx, connect.NewRequest(req))
+	if err != nil {
+		return "", fmt.Errorf("send transaction: %w", err)
+	}
+	return resp.Msg.Txid, nil
 }
 
 // GetElectrumUnspent returns an electrum wallet's UTXOs from the orchestrator,

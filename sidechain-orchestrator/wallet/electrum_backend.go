@@ -461,7 +461,15 @@ func (p *ElectrumBackend) Send(ctx context.Context, walletID string, req SendReq
 	if err != nil {
 		return "", fmt.Errorf("sign psbt: %w", err)
 	}
-	if signedCount < len(psbtInputs) {
+	// External inputs (e.g. a CTIP) are pre-finalized and need no signature; only
+	// the wallet's own inputs must be signed.
+	walletInputs := 0
+	for i := range psbtInputs {
+		if !psbtInputs[i].external {
+			walletInputs++
+		}
+	}
+	if signedCount < walletInputs {
 		return "", errors.New("transaction signing incomplete")
 	}
 	hexToSend, err := finalizeAndExtract(packet)
@@ -643,10 +651,19 @@ func (p *ElectrumBackend) buildSendPSBT(ctx context.Context, walletID string, sc
 
 	pool := p.spendableUTXOs(scan)
 
+	// External (non-wallet) inputs — e.g. an anyone-can-spend sidechain CTIP —
+	// contribute their value toward the outputs but are not signed by us. Their
+	// vsize is not added to fee estimation, so callers that supply them use a
+	// fixed fee (FixedFeeSats).
+	externalSats := int64(0)
+	for _, ei := range req.ExternalInputs {
+		externalSats += ei.AmountSats
+	}
+
 	// Pin required inputs, then fill from the remaining pool largest-first.
 	required := make(map[string]bool)
 	var selected []electrumUTXO
-	var selectedSats int64
+	selectedSats := externalSats
 	for _, ri := range req.RequiredInputs {
 		key := fmt.Sprintf("%s:%d", ri.TxID, ri.Vout)
 		required[key] = true
@@ -759,8 +776,20 @@ func (p *ElectrumBackend) buildSendPSBT(ctx context.Context, walletID string, sc
 		})
 	}
 
-	psbtInputs := make([]psbtInput, len(selected))
-	for idx, u := range selected {
+	// External inputs come first (e.g. the CTIP at input 0), then wallet inputs.
+	psbtInputs := make([]psbtInput, 0, len(req.ExternalInputs)+len(selected))
+	for _, ei := range req.ExternalInputs {
+		h, err := chainhash.NewHashFromStr(ei.TxID)
+		if err != nil {
+			return nil, nil, nil, fmt.Errorf("parse external input txid %q: %w", ei.TxID, err)
+		}
+		psbtInputs = append(psbtInputs, psbtInput{
+			outpoint: wire.OutPoint{Hash: *h, Index: uint32(ei.Vout)},
+			amount:   ei.AmountSats,
+			external: true,
+		})
+	}
+	for _, u := range selected {
 		sa, ok := scan.byAddr[u.address]
 		if !ok {
 			return nil, nil, nil, fmt.Errorf("no derivation info for input address %s", u.address)
@@ -769,11 +798,11 @@ func (p *ElectrumBackend) buildSendPSBT(ctx context.Context, walletID string, sc
 		if err != nil {
 			return nil, nil, nil, fmt.Errorf("parse input txid %q: %w", u.txid, err)
 		}
-		psbtInputs[idx] = psbtInput{
+		psbtInputs = append(psbtInputs, psbtInput{
 			outpoint: wire.OutPoint{Hash: *h, Index: uint32(u.vout)},
 			amount:   u.amountSats,
 			addr:     sa,
-		}
+		})
 	}
 
 	packet, err := buildPSBT(psbtInputs, outputs, p.network, p.prevTxFetcher(ctx))

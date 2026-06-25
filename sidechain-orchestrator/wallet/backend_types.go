@@ -146,6 +146,12 @@ type SendRequest struct {
 	RequiredInputs        []RequiredInput
 	SubtractFeeFromAmount bool
 	ReplayProtect         bool
+	// RawOutputs carry caller-supplied scriptPubKeys, placed in order before any
+	// address/op_return outputs (e.g. a sidechain OP_DRIVECHAIN treasury output).
+	RawOutputs []TxOutSpec
+	// ExternalInputs are non-wallet UTXOs spent with an empty scriptSig and not
+	// signed — for anyone-can-spend scripts like a sidechain CTIP.
+	ExternalInputs []ExternalInput
 }
 
 // RequiredInput pins one outpoint that the transaction must spend.
@@ -153,6 +159,15 @@ type RequiredInput struct {
 	TxID       string
 	Vout       int
 	AmountSats int64
+}
+
+// ExternalInput is a UTXO the wallet does not own and does not sign; its script
+// must be satisfiable with an empty scriptSig (e.g. a sidechain CTIP).
+type ExternalInput struct {
+	TxID            string
+	Vout            int
+	AmountSats      int64
+	ScriptPubKeyHex string
 }
 
 // WatchKey is one private key whose address the backend must track.

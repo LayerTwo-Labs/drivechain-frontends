@@ -184,7 +184,7 @@ func (s *Server) buildRuntime(ctx context.Context, conf config.Config) (*Runtime
 	}
 
 	rt.chequeEngine = engines.NewChequeEngine(rt.walletEngine, rt.chainParams, s.Bitcoind)
-	walletAdapter := engines.NewWalletAdapter(s.Wallet)
+	walletAdapter := engines.NewWalletAdapter(rt.walletEngine)
 	timestampLogger := log.With().Str("component", "timestamp").Logger()
 	rt.timestampEngine = engines.NewTimestampEngine(rt.db, timestampLogger, walletAdapter, s.Bitcoind)
 	rt.m4Engine = engines.NewM4Engine(rt.db)
@@ -243,7 +243,7 @@ func (s *Server) buildRuntime(ctx context.Context, conf config.Config) (*Runtime
 		register(path, h)
 	}
 	{
-		drivechainSvc := api_drivechain.New(dataSource, s.Wallet, rt.db, conf)
+		drivechainSvc := api_drivechain.New(dataSource, s.Wallet, rt.db, conf, rt.walletEngine)
 		path, h := drivechainv1connect.NewDrivechainServiceHandler(drivechainSvc, stdOpts...)
 		register(path, h)
 	}
@@ -268,7 +268,7 @@ func (s *Server) buildRuntime(ctx context.Context, conf config.Config) (*Runtime
 		register(path, h)
 	}
 	{
-		miscSvc := api_misc.New(rt.db, s.Wallet, rt.timestampEngine, s.Bitcoind)
+		miscSvc := api_misc.New(rt.db, rt.timestampEngine, s.Bitcoind, rt.walletEngine)
 		path, h := miscv1connect.NewMiscServiceHandler(miscSvc, stdOpts...)
 		register(path, h)
 	}
@@ -288,7 +288,7 @@ func (s *Server) buildRuntime(ctx context.Context, conf config.Config) (*Runtime
 		register(path, h)
 	}
 	{
-		bitdriveSvc := api_bitdrive.New(rt.db, s.Wallet, s.Bitcoind, rt.bitdriveEngine)
+		bitdriveSvc := api_bitdrive.New(rt.db, s.Bitcoind, rt.bitdriveEngine, rt.walletEngine)
 		path, h := bitdrivev1connect.NewBitDriveServiceHandler(bitdriveSvc, stdOpts...)
 		register(path, h)
 	}
@@ -313,7 +313,7 @@ func (s *Server) buildRuntime(ctx context.Context, conf config.Config) (*Runtime
 		register(path, h)
 	}
 	// Enforcer bridge — single impl serves three separate services
-	enforcerSvc := api_enforcer.New(dataSource, s.Enforcer, s.Wallet, s.Crypto)
+	enforcerSvc := api_enforcer.New(dataSource, s.Enforcer, s.Wallet, s.Crypto, rt.walletEngine)
 	{
 		path, h := validatorrpc.NewValidatorServiceHandler(enforcerSvc, stdOpts...)
 		register(path, h)

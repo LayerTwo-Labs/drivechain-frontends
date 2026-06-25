@@ -464,6 +464,9 @@ class SendPageViewModel extends BaseViewModel {
   }
 
   Future<void> init() async {
+    // Refresh on open — the provider's startup fetch can race bitwindowd's
+    // connection, leaving the dropdown empty until some later refetch.
+    await addressBookProvider.fetch();
     applicationDir = await Environment.datadir();
     logFile = await getLogFile();
   }

@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"connectrpc.com/connect"
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/engines"
 	service "github.com/LayerTwo-Labs/sidesail/bitwindow/server/service"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/datasource"
 	cryptov1 "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/crypto/v1"
@@ -23,22 +24,25 @@ func New(
 	validator *service.Service[validatorrpc.ValidatorServiceClient],
 	wallet *service.Service[validatorrpc.WalletServiceClient],
 	crypto *service.Service[cryptorpc.CryptoServiceClient],
+	walletEngine *engines.WalletEngine,
 ) *Server {
 	s := &Server{
-		data:      data,
-		validator: validator,
-		wallet:    wallet,
-		crypto:    crypto,
+		data:         data,
+		validator:    validator,
+		wallet:       wallet,
+		crypto:       crypto,
+		walletEngine: walletEngine,
 	}
 
 	return s
 }
 
 type Server struct {
-	data      datasource.DataSource
-	validator *service.Service[validatorrpc.ValidatorServiceClient]
-	wallet    *service.Service[validatorrpc.WalletServiceClient]
-	crypto    *service.Service[cryptorpc.CryptoServiceClient]
+	data         datasource.DataSource
+	validator    *service.Service[validatorrpc.ValidatorServiceClient]
+	wallet       *service.Service[validatorrpc.WalletServiceClient]
+	crypto       *service.Service[cryptorpc.CryptoServiceClient]
+	walletEngine *engines.WalletEngine
 }
 
 // Stop implements mainchainv1connect.ValidatorServiceHandler.
@@ -73,6 +77,9 @@ func (s *Server) SubscribeHeaderSyncProgress(ctx context.Context, c *connect.Req
 
 // BroadcastWithdrawalBundle implements mainchainv1connect.WalletServiceHandler.
 func (s *Server) BroadcastWithdrawalBundle(ctx context.Context, c *connect.Request[mainchainv1.BroadcastWithdrawalBundleRequest]) (*connect.Response[mainchainv1.BroadcastWithdrawalBundleResponse], error) {
+	if err := s.walletEngine.RequireFullNode(ctx, "broadcasting a withdrawal bundle"); err != nil {
+		return nil, err
+	}
 	wallet, err := s.wallet.Get(ctx)
 	if err != nil {
 		return nil, err
@@ -111,6 +118,9 @@ func (s *Server) CreateNewAddress(ctx context.Context, c *connect.Request[mainch
 // CreateSidechainProposal implements mainchainv1connect.WalletServiceHandler.
 // nolint:dupl
 func (s *Server) CreateSidechainProposal(ctx context.Context, c *connect.Request[mainchainv1.CreateSidechainProposalRequest], stream *connect.ServerStream[mainchainv1.CreateSidechainProposalResponse]) error {
+	if err := s.walletEngine.RequireFullNode(ctx, "creating a sidechain proposal"); err != nil {
+		return err
+	}
 	wallet, err := s.wallet.Get(ctx)
 	if err != nil {
 		return err
@@ -131,6 +141,9 @@ func (s *Server) CreateSidechainProposal(ctx context.Context, c *connect.Request
 
 // SubmitSidechainProposal implements mainchainv1connect.WalletServiceHandler.
 func (s *Server) SubmitSidechainProposal(ctx context.Context, c *connect.Request[mainchainv1.SubmitSidechainProposalRequest]) (*connect.Response[mainchainv1.SubmitSidechainProposalResponse], error) {
+	if err := s.walletEngine.RequireFullNode(ctx, "submitting a sidechain proposal"); err != nil {
+		return nil, err
+	}
 	wallet, err := s.wallet.Get(ctx)
 	if err != nil {
 		return nil, err
