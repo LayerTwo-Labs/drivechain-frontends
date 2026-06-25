@@ -9,6 +9,7 @@ import (
 
 	"connectrpc.com/connect"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/config"
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/engines"
 	pb "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/drivechain/v1"
 	rpc "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/drivechain/v1/drivechainv1connect"
 	service "github.com/LayerTwo-Labs/sidesail/bitwindow/server/service"
@@ -50,22 +51,25 @@ func New(
 	wallet *service.Service[validatorrpc.WalletServiceClient],
 	db *sql.DB,
 	conf config.Config,
+	walletEngine *engines.WalletEngine,
 ) *Server {
 	s := &Server{
 		data:             data,
 		wallet:           wallet,
 		db:               db,
 		conf:             conf,
+		walletEngine:     walletEngine,
 		withdrawalCaches: make(map[uint32]*withdrawalCache),
 	}
 	return s
 }
 
 type Server struct {
-	data   datasource.DrivechainReader
-	wallet *service.Service[validatorrpc.WalletServiceClient]
-	db     *sql.DB
-	conf   config.Config
+	data         datasource.DrivechainReader
+	wallet       *service.Service[validatorrpc.WalletServiceClient]
+	db           *sql.DB
+	conf         config.Config
+	walletEngine *engines.WalletEngine
 
 	// Cache for withdrawal bundles per sidechain ID
 	withdrawalCacheMu sync.RWMutex
@@ -257,6 +261,10 @@ func (s *Server) ProposeSidechain(
 	if c.Msg.Hashid2 != "" && len(c.Msg.Hashid2) != 40 {
 		return nil, connect.NewError(connect.CodeInvalidArgument,
 			fmt.Errorf("hashid2 must be 40 hex chars (160 bits)"))
+	}
+
+	if err := s.walletEngine.RequireFullNode(ctx, "proposing a sidechain"); err != nil {
+		return nil, err
 	}
 
 	wallet, err := s.wallet.Get(ctx)

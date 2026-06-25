@@ -365,10 +365,33 @@ message SendTransactionRequest {
   // Build an eCash replay-protected transaction (magic version + extra byte so
   // Bitcoin Core can't deserialize it). Core wallets only.
   bool replay_protect = 8;
+  // Outputs with an explicit raw scriptPubKey, kept in order before any
+  // address/op_return outputs. Used for non-standard scripts (e.g. a sidechain
+  // OP_DRIVECHAIN treasury output).
+  repeated RawOutput raw_outputs = 9;
+  // Inputs not owned by the wallet that must be spent as-is, in order, before
+  // wallet-funded inputs. Used for anyone-can-spend scripts (e.g. a sidechain
+  // CTIP). They are added with an empty scriptSig and not signed.
+  repeated ExternalInput external_inputs = 10;
 }
 
 message SendTransactionResponse {
   string txid = 1;
+}
+
+// RawOutput is a transaction output with a caller-supplied scriptPubKey.
+message RawOutput {
+  int64 value_sats = 1;
+  string script_hex = 2;
+}
+
+// ExternalInput is a UTXO spent by the transaction that the wallet does not own
+// and does not sign — its script must be satisfiable with an empty scriptSig.
+message ExternalInput {
+  string txid = 1;
+  int32 vout = 2;
+  int64 value_sats = 3;
+  string script_pubkey_hex = 4;
 }
 
 message CreatePsbtRequest {
@@ -379,6 +402,8 @@ message CreatePsbtRequest {
   string op_return_hex = 5;
   int64 fixed_fee_sats = 6;
   repeated UnspentOutput required_inputs = 7;
+  repeated RawOutput raw_outputs = 8;
+  repeated ExternalInput external_inputs = 9;
 }
 
 message CreatePsbtResponse {

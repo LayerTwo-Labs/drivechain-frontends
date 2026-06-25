@@ -498,9 +498,9 @@ class BitcoinCore extends Binary {
                      OS.windows: 'bitcoin-30.2-win64.zip',
                    }),
                    BitcoinNetwork.BITCOIN_NETWORK_FORKNET: {
-                     OS.linux: 'L1-bitcoin-patched-forknet-x86_64-unknown-linux-gnu.zip',
-                     OS.macos: 'L1-bitcoin-patched-forknet-x86_64-apple-darwin.zip',
-                     OS.windows: 'L1-bitcoin-patched-forknet-x86_64-w64-msvc.zip',
+                     OS.linux: 'L1-drivechain-forknet-x86_64-unknown-linux-gnu.zip',
+                     OS.macos: 'L1-drivechain-forknet-x86_64-apple-darwin.zip',
+                     OS.windows: 'L1-drivechain-forknet-x86_64-w64-msvc.zip',
                    },
                  },
                  extractSubfolder: {

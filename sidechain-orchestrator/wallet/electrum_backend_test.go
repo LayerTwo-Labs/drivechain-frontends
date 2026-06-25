@@ -9,6 +9,7 @@ import (
 	"sync/atomic"
 	"testing"
 
+	"github.com/btcsuite/btcd/btcutil"
 	"github.com/btcsuite/btcd/btcutil/hdkeychain"
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/btcsuite/btcd/txscript"
@@ -220,6 +221,191 @@ func TestElectrumSendBuildsSignsBroadcasts(t *testing.T) {
 	// One destination output + a change output back to the wallet.
 	require.Len(t, tx.TxOut, 2)
 	assert.Equal(t, int64(50_000), tx.TxOut[0].Value)
+}
+
+// TestElectrumSendSidechainDeposit drives the full BIP300 M5 deposit through the
+// real Send path across a range of slots and the first-deposit (no CTIP) case,
+// and validates EVERY input through txscript.Engine — proving the constructed
+// transaction is consensus-spendable: the CTIP is an anyone-can-spend
+// OP_DRIVECHAIN output spent with an empty scriptSig, and the wallet input
+// carries a valid signature. Outputs are asserted byte-for-byte and in order.
+func TestElectrumSendSidechainDeposit(t *testing.T) {
+	net := &chaincfg.SigNetParams
+	const (
+		walletAmount  = int64(2_000_000)
+		depositAmount = int64(400_000)
+		fee           = int64(1_000)
+	)
+
+	cases := []struct {
+		name        string
+		slot        byte
+		withCtip    bool
+		oldCtip     int64
+		depositAddr string
+	}{
+		{"slot_0_with_ctip", 0, true, 250_000, "s0_examplesidechainaddress"},
+		{"slot_1_with_ctip", 1, true, 500_000, "s1_anotheraddress"},
+		// Slots 1-16 must NOT collapse to OP_1..OP_16 (minimal push) — the script
+		// is emitted as raw bytes, so OP_PUSHBYTES_1 (0x01) stays put.
+		{"slot_16_with_ctip", 16, true, 1, "s16_x"},
+		{"slot_255_with_ctip", 255, true, 999_999, "s255_maxslot"},
+		{"slot_7_first_deposit", 7, false, 0, "s7_firstdeposit"},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			p, fake, w, addr := newElectrumFixture(t)
+			ctx := context.Background()
+
+			fake.stats[addr] = EsploraAddressStats{
+				Address:    addr,
+				ChainStats: EsploraTxoStats{FundedTxoCount: 1, FundedTxoSum: walletAmount, TxCount: 1},
+			}
+			fake.utxos[addr] = []EsploraUTXO{{
+				TxID: "3333333333333333333333333333333333333333333333333333333333333333",
+				Vout: 0, Value: walletAmount,
+				Status: EsploraStatus{Confirmed: true, BlockHeight: 100},
+			}}
+
+			drivechainScript := []byte{txscript.OP_NOP5, txscript.OP_DATA_1, tc.slot, txscript.OP_TRUE}
+
+			var externalInputs []ExternalInput
+			var ctipTxid string
+			if tc.withCtip {
+				treasuryPrev := wire.NewMsgTx(2)
+				treasuryPrev.AddTxIn(wire.NewTxIn(&wire.OutPoint{Index: 0xffffffff}, []byte{0x00}, nil))
+				treasuryPrev.AddTxOut(wire.NewTxOut(tc.oldCtip, drivechainScript))
+				var buf bytes.Buffer
+				require.NoError(t, treasuryPrev.Serialize(&buf))
+				ctipTxid = treasuryPrev.TxHash().String()
+				fake.hexByID[ctipTxid] = hex.EncodeToString(buf.Bytes())
+				externalInputs = []ExternalInput{{TxID: ctipTxid, Vout: 0, AmountSats: tc.oldCtip}}
+			}
+
+			treasuryValue := tc.oldCtip + depositAmount
+			txid, err := p.Send(ctx, w.ID, SendRequest{
+				FixedFeeSats: fee,
+				RawOutputs: []TxOutSpec{
+					{RawScriptHex: hex.EncodeToString(drivechainScript), AmountSats: treasuryValue},
+				},
+				OpReturnHex:    hex.EncodeToString([]byte(tc.depositAddr)),
+				ExternalInputs: externalInputs,
+			})
+			require.NoError(t, err)
+			require.Equal(t, "broadcasttxid", txid)
+			require.Len(t, fake.broadcast, 1)
+
+			var tx wire.MsgTx
+			raw, err := hex.DecodeString(fake.broadcast[0])
+			require.NoError(t, err)
+			require.NoError(t, tx.Deserialize(bytes.NewReader(raw)))
+
+			// Outputs: treasury, OP_RETURN address, change — exact bytes and order.
+			require.Len(t, tx.TxOut, 3)
+			assert.Equal(t, []byte{0xB4, 0x01, tc.slot, 0x51}, tx.TxOut[0].PkScript,
+				"out[0] treasury = OP_DRIVECHAIN OP_PUSHBYTES_1 <slot> OP_TRUE, raw (no minimal-push)")
+			assert.Equal(t, treasuryValue, tx.TxOut[0].Value, "treasury value = old CTIP + deposit")
+
+			require.Equal(t, byte(txscript.OP_RETURN), tx.TxOut[1].PkScript[0], "out[1] must be OP_RETURN")
+			pushed, err := txscript.PushedData(tx.TxOut[1].PkScript)
+			require.NoError(t, err)
+			require.Len(t, pushed, 1)
+			assert.Equal(t, []byte(tc.depositAddr), pushed[0], "OP_RETURN carries the address bytes verbatim")
+			assert.Zero(t, tx.TxOut[1].Value)
+			assert.Equal(t, walletAmount-depositAmount-fee, tx.TxOut[2].Value, "change = wallet - deposit - fee")
+
+			// Map every input to its prevout and locate the CTIP vs wallet inputs.
+			walletAddr, err := btcutil.DecodeAddress(addr, net)
+			require.NoError(t, err)
+			walletScript, err := txscript.PayToAddrScript(walletAddr)
+			require.NoError(t, err)
+
+			prevByOutpoint := map[wire.OutPoint]*wire.TxOut{}
+			ctipIdx, walletIdx := -1, -1
+			for i := range tx.TxIn {
+				op := tx.TxIn[i].PreviousOutPoint
+				if tc.withCtip && op.Hash.String() == ctipTxid {
+					prevByOutpoint[op] = wire.NewTxOut(tc.oldCtip, drivechainScript)
+					ctipIdx = i
+				} else {
+					prevByOutpoint[op] = wire.NewTxOut(walletAmount, walletScript)
+					walletIdx = i
+				}
+			}
+			require.NotEqual(t, -1, walletIdx, "wallet input present")
+
+			prevOuts := txscript.NewMultiPrevOutFetcher(prevByOutpoint)
+			sigHashes := txscript.NewTxSigHashes(&tx, prevOuts)
+
+			if tc.withCtip {
+				require.Len(t, tx.TxIn, 2)
+				require.NotEqual(t, -1, ctipIdx, "CTIP input present")
+				assert.Empty(t, tx.TxIn[ctipIdx].SignatureScript, "CTIP spent with empty scriptSig")
+				assert.Empty(t, tx.TxIn[ctipIdx].Witness, "CTIP input is not signed")
+				// OP_DRIVECHAIN is a NOP under base rules → anyone-can-spend; verify
+				// without upgradable-NOP/cleanstack policy (BIP300 is enforced separately).
+				vm, err := txscript.NewEngine(drivechainScript, &tx, ctipIdx, txscript.ScriptBip16, nil, sigHashes, tc.oldCtip, prevOuts)
+				require.NoError(t, err)
+				require.NoError(t, vm.Execute(), "CTIP anyone-can-spend input must validate with empty scriptSig")
+			} else {
+				require.Len(t, tx.TxIn, 1, "first deposit has only the wallet input")
+			}
+
+			require.NotEmpty(t, tx.TxIn[walletIdx].Witness, "wallet input must be signed")
+			vmWallet, err := txscript.NewEngine(walletScript, &tx, walletIdx,
+				txscript.StandardVerifyFlags|txscript.ScriptVerifyTaproot, nil, sigHashes, walletAmount, prevOuts)
+			require.NoError(t, err)
+			require.NoError(t, vmWallet.Execute(), "wallet input signature must validate")
+		})
+	}
+}
+
+// TestElectrumSendSidechainDepositInsufficientFunds proves the deposit fails
+// cleanly when the wallet can't cover the deposit amount plus fee (the CTIP value
+// funds only the treasury output, not the user's contribution).
+func TestElectrumSendSidechainDepositInsufficientFunds(t *testing.T) {
+	p, fake, w, addr := newElectrumFixture(t)
+	ctx := context.Background()
+
+	const (
+		walletAmount  = int64(100_000)
+		oldCtip       = int64(500_000)
+		depositAmount = int64(400_000) // exceeds wallet funds
+		fee           = int64(1_000)
+		slot          = byte(1)
+	)
+
+	fake.stats[addr] = EsploraAddressStats{
+		Address:    addr,
+		ChainStats: EsploraTxoStats{FundedTxoCount: 1, FundedTxoSum: walletAmount, TxCount: 1},
+	}
+	fake.utxos[addr] = []EsploraUTXO{{
+		TxID: "4444444444444444444444444444444444444444444444444444444444444444",
+		Vout: 0, Value: walletAmount,
+		Status: EsploraStatus{Confirmed: true, BlockHeight: 100},
+	}}
+
+	drivechainScript := []byte{txscript.OP_NOP5, txscript.OP_DATA_1, slot, txscript.OP_TRUE}
+	treasuryPrev := wire.NewMsgTx(2)
+	treasuryPrev.AddTxIn(wire.NewTxIn(&wire.OutPoint{Index: 0xffffffff}, []byte{0x00}, nil))
+	treasuryPrev.AddTxOut(wire.NewTxOut(oldCtip, drivechainScript))
+	var buf bytes.Buffer
+	require.NoError(t, treasuryPrev.Serialize(&buf))
+	ctipTxid := treasuryPrev.TxHash().String()
+	fake.hexByID[ctipTxid] = hex.EncodeToString(buf.Bytes())
+
+	_, err := p.Send(ctx, w.ID, SendRequest{
+		FixedFeeSats: fee,
+		RawOutputs: []TxOutSpec{
+			{RawScriptHex: hex.EncodeToString(drivechainScript), AmountSats: oldCtip + depositAmount},
+		},
+		OpReturnHex:    hex.EncodeToString([]byte("s1_addr")),
+		ExternalInputs: []ExternalInput{{TxID: ctipTxid, Vout: 0, AmountSats: oldCtip}},
+	})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "insufficient funds")
+	assert.Empty(t, fake.broadcast, "nothing is broadcast when funding fails")
 }
 
 // TestElectrumSendUpdatesCacheInstantly proves a send reflects in balance, UTXOs

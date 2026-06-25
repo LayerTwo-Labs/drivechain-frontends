@@ -98,7 +98,7 @@ func TestParseConfigJSON_BitcoincoreVariants(t *testing.T) {
 	}
 	require.NotEmpty(t, core.Variants, "embedded config must declare core variants")
 
-	for _, id := range []string{"core", "patched", "knots"} {
+	for _, id := range []string{"core", "patched", "knots", "forknet"} {
 		v, ok := core.Variants[id]
 		require.True(t, ok, "missing variant %s", id)
 		assert.NotEmpty(t, v.Subfolder)
@@ -107,7 +107,8 @@ func TestParseConfigJSON_BitcoincoreVariants(t *testing.T) {
 		assert.NotEmpty(t, v.AvailableNetworks)
 	}
 
-	assert.True(t, core.Variants["patched"].AvailableOn("forknet"))
+	assert.True(t, core.Variants["forknet"].AvailableOn("forknet"))
+	assert.False(t, core.Variants["patched"].AvailableOn("forknet"))
 	assert.True(t, core.Variants["patched"].AvailableOn("mainnet"))
 	assert.True(t, core.Variants["core"].AvailableOn("mainnet"))
 	assert.True(t, core.Variants["knots"].AvailableOn("mainnet"))
@@ -202,13 +203,13 @@ func TestOrchestrator_ListCoreVariants(t *testing.T) {
 		network string
 		want    []string
 	}{
-		// "patched" (drivechain.info L1-bitcoin-patched-latest) is available on
-		// every chain. core + knots are available everywhere except forknet.
+		// core/patched/knots are available on every chain except forknet, which
+		// has its own dedicated build (L1-drivechain-forknet) as the sole option.
 		{"mainnet", []string{"core", "knots", "patched"}},
 		{"signet", []string{"core", "knots", "patched"}},
 		{"testnet", []string{"core", "knots", "patched"}},
 		{"regtest", []string{"core", "knots", "patched"}},
-		{"forknet", []string{"patched"}},
+		{"forknet", []string{"forknet"}},
 	}
 	for _, tc := range cases {
 		t.Run(tc.network, func(t *testing.T) {

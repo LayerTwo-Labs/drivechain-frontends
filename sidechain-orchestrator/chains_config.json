@@ -1,5 +1,5 @@
 {
-  "version": 4,
+  "version": 5,
   "binaries": {
     "bitcoincore": {
       "type": "core",
@@ -70,7 +70,16 @@
               "macos-arm64": "L1-bitcoin-patched-v30.2-aarch64-apple-darwin.zip",
               "windows-x86_64": "L1-bitcoin-patched-latest-x86_64-w64-msvc.zip"
             },
-            "available_networks": ["mainnet", "signet", "testnet", "regtest", "forknet"]
+            "available_networks": ["mainnet", "signet", "testnet", "regtest"]
+          },
+          "forknet": {
+            "subfolder": "forknet",
+            "base_url": "https://releases.drivechain.info/",
+            "files": {
+              "linux-x86_64": "L1-drivechain-forknet-x86_64-unknown-linux-gnu.zip",
+              "windows-x86_64": "L1-drivechain-forknet-x86_64-w64-msvc.zip"
+            },
+            "available_networks": ["forknet"]
           },
           "knots": {
             "subfolder": "knots",

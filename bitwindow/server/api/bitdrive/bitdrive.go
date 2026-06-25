@@ -3,13 +3,9 @@ package api_bitdrive
 import (
 	"context"
 	"database/sql"
-	"encoding/hex"
 	"fmt"
 
 	"connectrpc.com/connect"
-	commonv1 "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/common/v1"
-	validatorpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1"
-	validatorrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1/mainchainv1connect"
 
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/engines"
 	bitdrivev1 "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/bitdrive/v1"
@@ -22,7 +18,6 @@ import (
 	"github.com/samber/lo"
 	"google.golang.org/protobuf/types/known/emptypb"
 	"google.golang.org/protobuf/types/known/timestamppb"
-	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
 var _ rpc.BitDriveServiceHandler = new(Server)
@@ -30,23 +25,23 @@ var _ rpc.BitDriveServiceHandler = new(Server)
 // New creates a new BitDrive API server
 func New(
 	database *sql.DB,
-	wallet *service.Service[validatorrpc.WalletServiceClient],
 	bitcoind *service.Service[corerpc.BitcoinServiceClient],
 	bitdriveEngine *engines.BitDriveEngine,
+	walletEngine *engines.WalletEngine,
 ) *Server {
 	return &Server{
 		database:       database,
-		wallet:         wallet,
 		bitcoind:       bitcoind,
 		bitdriveEngine: bitdriveEngine,
+		walletEngine:   walletEngine,
 	}
 }
 
 type Server struct {
 	database       *sql.DB
-	wallet         *service.Service[validatorrpc.WalletServiceClient]
 	bitcoind       *service.Service[corerpc.BitcoinServiceClient]
 	bitdriveEngine *engines.BitDriveEngine
+	walletEngine   *engines.WalletEngine
 }
 
 // StoreFile implements bitdrivev1connect.BitDriveServiceHandler.
@@ -70,34 +65,12 @@ func (s *Server) StoreFile(ctx context.Context, req *connect.Request[bitdrivev1.
 
 	opReturnData := engines.FormatOPReturnData(metadataB64, contentStr)
 
-	// Send transaction
-	wallet, err := s.wallet.Get(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("get wallet: %w", err)
-	}
-
-	sendReq := &validatorpb.SendTransactionRequest{
-		OpReturnMessage: &commonv1.Hex{
-			Hex: &wrapperspb.StringValue{
-				Value: hex.EncodeToString([]byte(opReturnData)),
-			},
-		},
-	}
-
-	if req.Msg.FeeSatPerVbyte > 0 {
-		sendReq.FeeRate = &validatorpb.SendTransactionRequest_FeeRate{
-			Fee: &validatorpb.SendTransactionRequest_FeeRate_SatPerVbyte{
-				SatPerVbyte: req.Msg.FeeSatPerVbyte,
-			},
-		}
-	}
-
-	resp, err := wallet.SendTransaction(ctx, connect.NewRequest(sendReq))
+	// Broadcast the OP_RETURN through the active wallet's backend (electrum or
+	// enforcer) so BitDrive works regardless of whether a local enforcer runs.
+	txid, err := s.walletEngine.BroadcastOpReturn(ctx, []byte(opReturnData), req.Msg.FeeSatPerVbyte, 0)
 	if err != nil {
 		return nil, fmt.Errorf("send transaction: %w", err)
 	}
-
-	txid := resp.Msg.Txid.Hex.Value
 
 	log.Info().
 		Str("txid", txid).
@@ -376,34 +349,12 @@ func (s *Server) StoreMultisigData(ctx context.Context, req *connect.Request[bit
 		return nil, fmt.Errorf("encode multisig data: %w", err)
 	}
 
-	// Send transaction
-	wallet, err := s.wallet.Get(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("get wallet: %w", err)
-	}
-
-	sendReq := &validatorpb.SendTransactionRequest{
-		OpReturnMessage: &commonv1.Hex{
-			Hex: &wrapperspb.StringValue{
-				Value: hex.EncodeToString([]byte(opReturnData)),
-			},
-		},
-	}
-
-	if req.Msg.FeeSatPerVbyte > 0 {
-		sendReq.FeeRate = &validatorpb.SendTransactionRequest_FeeRate{
-			Fee: &validatorpb.SendTransactionRequest_FeeRate_SatPerVbyte{
-				SatPerVbyte: req.Msg.FeeSatPerVbyte,
-			},
-		}
-	}
-
-	resp, err := wallet.SendTransaction(ctx, connect.NewRequest(sendReq))
+	// Broadcast the OP_RETURN through the active wallet's backend (electrum or
+	// enforcer) so BitDrive works regardless of whether a local enforcer runs.
+	txid, err := s.walletEngine.BroadcastOpReturn(ctx, []byte(opReturnData), req.Msg.FeeSatPerVbyte, 0)
 	if err != nil {
 		return nil, fmt.Errorf("send transaction: %w", err)
 	}
-
-	txid := resp.Msg.Txid.Hex.Value
 
 	log.Info().
 		Str("txid", txid).

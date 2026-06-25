@@ -22,6 +22,9 @@ type psbtInput struct {
 	outpoint wire.OutPoint
 	amount   int64
 	addr     scannedAddr
+	// external marks a non-wallet input spent with an empty scriptSig (no
+	// signing); it is added via its previous transaction and pre-finalized.
+	external bool
 }
 
 // keyDerivation is a PSBT BIP32/taproot derivation record: a pubkey, the master
@@ -97,6 +100,23 @@ func buildPSBT(inputs []psbtInput, outputs []TxOutSpec, net *chaincfg.Params, pr
 	}
 
 	for i, in := range inputs {
+		// External inputs (e.g. an anyone-can-spend sidechain CTIP) are added
+		// via their previous transaction and pre-finalized with an empty
+		// scriptSig — they carry no keys and are never signed.
+		if in.external {
+			if prevTx == nil {
+				return nil, fmt.Errorf("external input %d needs the previous transaction", i)
+			}
+			pt, err := prevTx(in.outpoint.Hash.String())
+			if err != nil {
+				return nil, fmt.Errorf("fetch prev tx for external input %d: %w", i, err)
+			}
+			if err := updater.AddInNonWitnessUtxo(pt, i); err != nil {
+				return nil, err
+			}
+			packet.Inputs[i].FinalScriptSig = []byte{}
+			continue
+		}
 		if in.addr.kind.isNonWitness() {
 			if prevTx == nil {
 				return nil, fmt.Errorf("legacy input %d needs the previous transaction", i)
@@ -160,6 +180,9 @@ func signPSBT(packet *psbt.Packet, inputs []psbtInput, net *chaincfg.Params) (in
 
 	signed := 0
 	for i := range inputs {
+		if inputs[i].external {
+			continue // pre-finalized, anyone-can-spend; nothing to sign
+		}
 		n, err := signPSBTInput(packet, updater, i, inputs[i], tx, sigHashes, net)
 		if err != nil {
 			return signed, fmt.Errorf("sign input %d: %w", i, err)
@@ -355,6 +378,13 @@ func combinePSBT(base *psbt.Packet, others ...*psbt.Packet) error {
 }
 
 func outputToTxOut(out TxOutSpec, net *chaincfg.Params) (*wire.TxOut, error) {
+	if out.RawScriptHex != "" {
+		script, err := hex.DecodeString(out.RawScriptHex)
+		if err != nil {
+			return nil, fmt.Errorf("decode raw output script: %w", err)
+		}
+		return wire.NewTxOut(out.AmountSats, script), nil
+	}
 	if out.OpReturnHex != "" {
 		data, err := hex.DecodeString(out.OpReturnHex)
 		if err != nil {

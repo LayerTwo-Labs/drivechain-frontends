@@ -456,6 +456,25 @@ func (h *WalletHandler) GetNewAddress(ctx context.Context, req *connect.Request[
 	}), nil
 }
 
+// mapRawOutputs converts proto raw outputs to the wallet's TxOutSpec shape.
+func mapRawOutputs(raws []*pb.RawOutput) []wallet.TxOutSpec {
+	return lo.Map(raws, func(r *pb.RawOutput, _ int) wallet.TxOutSpec {
+		return wallet.TxOutSpec{RawScriptHex: r.ScriptHex, AmountSats: r.ValueSats}
+	})
+}
+
+// mapExternalInputs converts proto external inputs to the wallet's shape.
+func mapExternalInputs(exts []*pb.ExternalInput) []wallet.ExternalInput {
+	return lo.Map(exts, func(e *pb.ExternalInput, _ int) wallet.ExternalInput {
+		return wallet.ExternalInput{
+			TxID:            e.Txid,
+			Vout:            int(e.Vout),
+			AmountSats:      e.ValueSats,
+			ScriptPubKeyHex: e.ScriptPubkeyHex,
+		}
+	})
+}
+
 func (h *WalletHandler) SendTransaction(ctx context.Context, req *connect.Request[pb.SendTransactionRequest]) (*connect.Response[pb.SendTransactionResponse], error) {
 	if len(req.Msg.Destinations) == 0 {
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("must provide at least one destination"))
@@ -517,6 +536,8 @@ func (h *WalletHandler) SendTransaction(ctx context.Context, req *connect.Reques
 			AmountSats: u.AmountSats,
 		}
 	})
+	sendReq.RawOutputs = mapRawOutputs(req.Msg.RawOutputs)
+	sendReq.ExternalInputs = mapExternalInputs(req.Msg.ExternalInputs)
 
 	txid, err := h.engine.Backend().Send(ctx, walletID, sendReq)
 	if err != nil {
@@ -1211,6 +1232,8 @@ func (h *WalletHandler) CreatePsbt(ctx context.Context, req *connect.Request[pb.
 			TxID: u.Txid, Vout: int(u.Vout), AmountSats: u.AmountSats,
 		}
 	})
+	sendReq.RawOutputs = mapRawOutputs(req.Msg.RawOutputs)
+	sendReq.ExternalInputs = mapExternalInputs(req.Msg.ExternalInputs)
 	b64, err := h.engine.CreatePSBT(ctx, walletID, sendReq)
 	if err != nil {
 		return nil, rpcError(err)

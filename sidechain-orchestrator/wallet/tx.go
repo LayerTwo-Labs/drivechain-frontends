@@ -23,6 +23,10 @@ type TxOutSpec struct {
 	Address     string
 	AmountBTC   float64
 	OpReturnHex string
+	// RawScriptHex sets an explicit scriptPubKey (with AmountSats as its value),
+	// for non-standard outputs that have no address (e.g. OP_DRIVECHAIN).
+	RawScriptHex string
+	AmountSats   int64
 	// Set for an owned change output so the PSBT carries its derivation records.
 	Kind        ScriptKind
 	Derivations []keyDerivation

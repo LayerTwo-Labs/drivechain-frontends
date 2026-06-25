@@ -34,6 +34,7 @@ import (
 	cryptorpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/crypto/v1/cryptov1connect"
 	validatorpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1"
 	validatorrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1/mainchainv1connect"
+	orchpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1"
 	corepb "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha"
 	corerpc "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha/bitcoindv1alphaconnect"
 	"github.com/btcsuite/btcd/btcutil"
@@ -1215,15 +1216,6 @@ func (s *Server) CreateSidechainDeposit(ctx context.Context, c *connect.Request[
 		return nil, fmt.Errorf("get wallet type: %w", err)
 	}
 
-	// Sidechain deposits only work with enforcer wallet
-	if walletType != engines.WalletTypeEnforcer {
-		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("sidechain operations only supported with enforcer wallet"))
-	}
-
-	if s.wallet == nil {
-		return nil, errors.New("wallet not connected")
-	}
-
 	slot, depositAddress, _, err := drivechain.DecodeDepositAddress(c.Msg.Destination)
 	if err != nil {
 		return nil, fmt.Errorf("invalid deposit address: %w", err)
@@ -1232,6 +1224,9 @@ func (s *Server) CreateSidechainDeposit(ctx context.Context, c *connect.Request[
 		return nil, fmt.Errorf("address is not a sidechain deposit address, expected slot or format: s<slot>_<address> or s9_<address>_<checksum>")
 	} else if slot == nil {
 		slot = &c.Msg.Slot
+	}
+	if *slot > 255 {
+		return nil, fmt.Errorf("invalid sidechain slot %d: must be 0-255", *slot)
 	}
 
 	amount, err := btcutil.NewAmount(c.Msg.Amount)
@@ -1242,6 +1237,20 @@ func (s *Server) CreateSidechainDeposit(ctx context.Context, c *connect.Request[
 	fee, err := btcutil.NewAmount(c.Msg.Fee)
 	if err != nil || fee < 0 {
 		return nil, fmt.Errorf("invalid fee, must be a BTC-amount greater than zero")
+	}
+
+	// Electrum wallets build the M5 deposit themselves (no local enforcer) and
+	// broadcast it through the orchestrator wallet manager.
+	if walletType == engines.WalletTypeElectrum {
+		return s.createElectrumSidechainDeposit(ctx, walletId, uint32(*slot), depositAddress, amount, fee)
+	}
+
+	// Enforcer wallets delegate construction to the enforcer.
+	if walletType != engines.WalletTypeEnforcer {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("sidechain deposits require an enforcer or electrum wallet"))
+	}
+	if s.wallet == nil {
+		return nil, errors.New("wallet not connected")
 	}
 
 	wallet, err := s.wallet.Get(ctx)
@@ -1263,6 +1272,62 @@ func (s *Server) CreateSidechainDeposit(ctx context.Context, c *connect.Request[
 	return connect.NewResponse(&pb.CreateSidechainDepositResponse{
 		Txid: created.Msg.Txid.Hex.Value,
 	}), nil
+}
+
+// createElectrumSidechainDeposit builds and broadcasts a BIP300 M5 deposit from
+// an electrum wallet. The M5 must spend the sidechain's current CTIP (treasury)
+// and produce, in order: out[0] the new OP_DRIVECHAIN treasury (old CTIP value +
+// deposit), out[1] an OP_RETURN of the sidechain address. The orchestrator funds
+// the deposit amount + fee from the wallet and adds change.
+func (s *Server) createElectrumSidechainDeposit(
+	ctx context.Context,
+	walletId string,
+	slot uint32,
+	depositAddress string,
+	amount, fee btcutil.Amount,
+) (*connect.Response[pb.CreateSidechainDepositResponse], error) {
+	// Current treasury UTXO. Nil means this is the first deposit to the slot, so
+	// there is no prior CTIP to spend and the treasury starts at the deposit.
+	ctipResp, err := s.data.Ctip(ctx, &validatorpb.GetCtipRequest{
+		SidechainNumber: wrapperspb.UInt32(slot),
+	})
+	if err != nil {
+		return nil, fmt.Errorf("get sidechain ctip: %w", err)
+	}
+
+	var ctipValue uint64
+	var externalInputs []*orchpb.ExternalInput
+	if ctip := ctipResp.Ctip; ctip != nil {
+		ctipValue = ctip.Value
+		externalInputs = []*orchpb.ExternalInput{{
+			Txid:      ctip.Txid.Hex.Value,
+			Vout:      int32(ctip.Vout),
+			ValueSats: int64(ctip.Value),
+		}}
+	}
+
+	// Treasury scriptPubKey: OP_DRIVECHAIN OP_PUSHBYTES_1 <slot> OP_TRUE. Built as
+	// raw bytes — minimal-push encoding would collapse a 1-16 slot to OP_N.
+	treasuryScript := []byte{0xB4, 0x01, byte(slot), 0x51}
+
+	req := &orchpb.SendTransactionRequest{
+		WalletId:     walletId,
+		FixedFeeSats: int64(fee),
+		RawOutputs: []*orchpb.RawOutput{
+			{ValueSats: int64(ctipValue) + int64(amount), ScriptHex: hex.EncodeToString(treasuryScript)},
+		},
+		OpReturnHex:    hex.EncodeToString([]byte(depositAddress)),
+		ExternalInputs: externalInputs,
+	}
+
+	txid, err := s.walletEngine.SendTransaction(ctx, req)
+	if err != nil {
+		return nil, fmt.Errorf("broadcast sidechain deposit: %w", err)
+	}
+
+	zerolog.Ctx(ctx).Info().Str("txid", txid).Uint32("slot", slot).Msg("create electrum deposit tx: broadcast")
+
+	return connect.NewResponse(&pb.CreateSidechainDepositResponse{Txid: txid}), nil
 }
 
 // SignMessage implements walletv1connect.WalletServiceHandler.

@@ -1221,26 +1221,30 @@ class _StatusBarState extends State<StatusBar> {
         GetCoinsButton(),
       ],
       endWidgets: [
-        SailSkeletonizer(
-          description: 'Waiting for bitcoind to connect..',
-          enabled: !blockchainProvider.mainchain.connected,
-          child: SailTooltip(
-            message: blockchainProvider.blocks.firstOrNull?.toPretty() ?? '',
-            child: SailText.secondary12('Last block: ${_getTimeSinceLastBlock()}'),
-          ),
-        ),
-        const DividerDot(),
-        SailSkeletonizer(
-          description: 'Waiting for bitcoind to connect..',
-          enabled: !blockchainProvider.mainchain.connected,
-          child: SailTooltip(
-            message: blockchainProvider.peers.map((e) => 'Peer id=${e.id} addr=${e.addr}').join('\n'),
-            child: SailText.secondary12(
-              formatTimeDifference(blockchainProvider.peers.length, 'peer'),
+        // Electrum wallets run no local bitcoind, so block height and peer
+        // counts don't apply — only show them when a Bitcoin Core backend runs.
+        if (GetIt.I.get<WalletReaderProvider>().activeWalletNeedsBitcoinBackends) ...[
+          SailSkeletonizer(
+            description: 'Waiting for bitcoind to connect..',
+            enabled: !blockchainProvider.mainchain.connected,
+            child: SailTooltip(
+              message: blockchainProvider.blocks.firstOrNull?.toPretty() ?? '',
+              child: SailText.secondary12('Last block: ${_getTimeSinceLastBlock()}'),
             ),
           ),
-        ),
-        const DividerDot(),
+          const DividerDot(),
+          SailSkeletonizer(
+            description: 'Waiting for bitcoind to connect..',
+            enabled: !blockchainProvider.mainchain.connected,
+            child: SailTooltip(
+              message: blockchainProvider.peers.map((e) => 'Peer id=${e.id} addr=${e.addr}').join('\n'),
+              child: SailText.secondary12(
+                formatTimeDifference(blockchainProvider.peers.length, 'peer'),
+              ),
+            ),
+          ),
+          const DividerDot(),
+        ],
         ResetButton(
           onTap: () async {
             final confProvider = GetIt.I.get<BitcoinConfProvider>();

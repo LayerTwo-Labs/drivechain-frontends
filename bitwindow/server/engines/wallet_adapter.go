@@ -2,42 +2,18 @@ package engines
 
 import (
 	"context"
-	"encoding/hex"
-	"fmt"
-
-	"connectrpc.com/connect"
-	service "github.com/LayerTwo-Labs/sidesail/bitwindow/server/service"
-	commonv1 "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/common/v1"
-	validatorpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1"
-	validatorrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1/mainchainv1connect"
-	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
-// WalletAdapter adapts the wallet service for timestamp engine
+// WalletAdapter adapts the wallet engine for the timestamp engine, routing
+// OP_RETURN broadcasts through the active wallet's backend (electrum or enforcer).
 type WalletAdapter struct {
-	wallet *service.Service[validatorrpc.WalletServiceClient]
+	engine *WalletEngine
 }
 
-func NewWalletAdapter(wallet *service.Service[validatorrpc.WalletServiceClient]) *WalletAdapter {
-	return &WalletAdapter{wallet: wallet}
+func NewWalletAdapter(engine *WalletEngine) *WalletAdapter {
+	return &WalletAdapter{engine: engine}
 }
 
 func (w *WalletAdapter) SendTransaction(ctx context.Context, opReturnData []byte) (string, error) {
-	client, err := w.wallet.Get(ctx)
-	if err != nil {
-		return "", fmt.Errorf("get wallet client: %w", err)
-	}
-
-	resp, err := client.SendTransaction(ctx, connect.NewRequest(&validatorpb.SendTransactionRequest{
-		OpReturnMessage: &commonv1.Hex{
-			Hex: &wrapperspb.StringValue{
-				Value: hex.EncodeToString(opReturnData),
-			},
-		},
-	}))
-	if err != nil {
-		return "", fmt.Errorf("send transaction: %w", err)
-	}
-
-	return resp.Msg.Txid.Hex.Value, nil
+	return w.engine.BroadcastOpReturn(ctx, opReturnData, 0, 0)
 }

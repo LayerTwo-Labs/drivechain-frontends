@@ -17,9 +17,6 @@ import (
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/timestamps"
 	service "github.com/LayerTwo-Labs/sidesail/bitwindow/server/service"
 	codec "github.com/LayerTwo-Labs/sidesail/coinnews/codec"
-	commonv1 "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/common/v1"
-	validatorpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1"
-	validatorrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1/mainchainv1connect"
 	corepb "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha"
 	corerpc "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha/bitcoindv1alphaconnect"
 	"github.com/btcsuite/btcd/btcec/v2/schnorr"
@@ -27,7 +24,6 @@ import (
 	"github.com/samber/lo"
 	"google.golang.org/protobuf/types/known/emptypb"
 	"google.golang.org/protobuf/types/known/timestamppb"
-	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
 var _ rpc.MiscServiceHandler = new(Server)
@@ -36,23 +32,23 @@ var _ rpc.MiscServiceHandler = new(Server)
 // anything else just yet.
 func New(
 	database *sql.DB,
-	wallet *service.Service[validatorrpc.WalletServiceClient],
 	timestampEngine *engines.TimestampEngine,
 	bitcoind *service.Service[corerpc.BitcoinServiceClient],
+	walletEngine *engines.WalletEngine,
 ) *Server {
 	return &Server{
 		database:        database,
-		wallet:          wallet,
 		timestampEngine: timestampEngine,
 		bitcoind:        bitcoind,
+		walletEngine:    walletEngine,
 	}
 }
 
 type Server struct {
 	database        *sql.DB
-	wallet          *service.Service[validatorrpc.WalletServiceClient]
 	timestampEngine *engines.TimestampEngine
 	bitcoind        *service.Service[corerpc.BitcoinServiceClient]
+	walletEngine    *engines.WalletEngine
 }
 
 // listOPReturnLimit is the cap for the gRPC ListOPReturn handler. The
@@ -116,11 +112,6 @@ func (s *Server) BroadcastNews(ctx context.Context, req *connect.Request[miscv1.
 		return nil, connect.NewError(connect.CodeInvalidArgument, err)
 	}
 
-	wallet, err := s.wallet.Get(ctx)
-	if err != nil {
-		return nil, err
-	}
-
 	storyBytes, err := opreturns.EncodeNewsMessageWithOptions(topicID, req.Msg.Headline, req.Msg.Content, opreturns.StoryOptions{
 		URL:     req.Msg.Url,
 		Lang:    req.Msg.Lang,
@@ -130,30 +121,8 @@ func (s *Server) BroadcastNews(ctx context.Context, req *connect.Request[miscv1.
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInvalidArgument, err)
 	}
-	sendReq := &validatorpb.SendTransactionRequest{
-		OpReturnMessage: &commonv1.Hex{
-			Hex: &wrapperspb.StringValue{
-				Value: hex.EncodeToString(storyBytes),
-			},
-		},
-	}
 
-	// Set fee rate if specified
-	if req.Msg.FeeSatPerVbyte > 0 {
-		sendReq.FeeRate = &validatorpb.SendTransactionRequest_FeeRate{
-			Fee: &validatorpb.SendTransactionRequest_FeeRate_SatPerVbyte{
-				SatPerVbyte: req.Msg.FeeSatPerVbyte,
-			},
-		}
-	} else if req.Msg.FeeSats > 0 {
-		sendReq.FeeRate = &validatorpb.SendTransactionRequest_FeeRate{
-			Fee: &validatorpb.SendTransactionRequest_FeeRate_Sats{
-				Sats: req.Msg.FeeSats,
-			},
-		}
-	}
-
-	resp, err := wallet.SendTransaction(ctx, connect.NewRequest(sendReq))
+	txid, err := s.walletEngine.BroadcastOpReturn(ctx, storyBytes, req.Msg.FeeSatPerVbyte, req.Msg.FeeSats)
 	if err != nil {
 		return nil, fmt.Errorf("broadcast news: %w", err)
 	}
@@ -162,11 +131,11 @@ func (s *Server) BroadcastNews(ctx context.Context, req *connect.Request[miscv1.
 	log.Info().
 		Hex("topic", topicID[:]).
 		Str("headline", req.Msg.Headline).
-		Str("txid", resp.Msg.Txid.String()).
+		Str("txid", txid).
 		Msg("broadcast news transaction")
 
 	return connect.NewResponse(&miscv1.BroadcastNewsResponse{
-		Txid: resp.Msg.Txid.Hex.Value,
+		Txid: txid,
 	}), nil
 }
 
@@ -212,33 +181,7 @@ func (s *Server) broadcastVote(ctx context.Context, req *miscv1.UpvoteNewsReques
 		return nil, fmt.Errorf("vote news: encode vote: %w", err)
 	}
 
-	wallet, err := s.wallet.Get(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	sendReq := &validatorpb.SendTransactionRequest{
-		OpReturnMessage: &commonv1.Hex{
-			Hex: &wrapperspb.StringValue{
-				Value: hex.EncodeToString(voteBytes),
-			},
-		},
-	}
-	if req.FeeSatPerVbyte > 0 {
-		sendReq.FeeRate = &validatorpb.SendTransactionRequest_FeeRate{
-			Fee: &validatorpb.SendTransactionRequest_FeeRate_SatPerVbyte{
-				SatPerVbyte: req.FeeSatPerVbyte,
-			},
-		}
-	} else if req.FeeSats > 0 {
-		sendReq.FeeRate = &validatorpb.SendTransactionRequest_FeeRate{
-			Fee: &validatorpb.SendTransactionRequest_FeeRate_Sats{
-				Sats: req.FeeSats,
-			},
-		}
-	}
-
-	resp, err := wallet.SendTransaction(ctx, connect.NewRequest(sendReq))
+	txid, err := s.walletEngine.BroadcastOpReturn(ctx, voteBytes, req.FeeSatPerVbyte, req.FeeSats)
 	if err != nil {
 		return nil, fmt.Errorf("vote news: %w", err)
 	}
@@ -246,11 +189,11 @@ func (s *Server) broadcastVote(ctx context.Context, req *miscv1.UpvoteNewsReques
 	zerolog.Ctx(ctx).Info().
 		Str("item_id", req.ItemId).
 		Uint8("kind", uint8(kind)).
-		Str("txid", resp.Msg.Txid.String()).
+		Str("txid", txid).
 		Msg("broadcast vote transaction")
 
 	return connect.NewResponse(&miscv1.UpvoteNewsResponse{
-		Txid: resp.Msg.Txid.Hex.Value,
+		Txid: txid,
 	}), nil
 }
 
@@ -285,27 +228,14 @@ func (s *Server) CreateTopic(ctx context.Context, req *connect.Request[miscv1.Cr
 		retentionDays = 7 // Default to 7 days
 	}
 
-	// Send the transaction
-	wallet, err := s.wallet.Get(ctx)
-	if err != nil {
-		return nil, err
-	}
 	topicCreationBytes, err := opreturns.EncodeTopicCreationMessageNewFormat(topicID, req.Msg.Name, retentionDays)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInvalidArgument, err)
 	}
-	resp, err := wallet.SendTransaction(ctx,
-		connect.NewRequest(&validatorpb.SendTransactionRequest{
-			OpReturnMessage: &commonv1.Hex{
-				Hex: &wrapperspb.StringValue{
-					Value: hex.EncodeToString(topicCreationBytes),
-				},
-			},
-		}))
+	txid, err := s.walletEngine.BroadcastOpReturn(ctx, topicCreationBytes, 0, 0)
 	if err != nil {
 		return nil, fmt.Errorf("broadcast topic creation: %w", err)
 	}
-	txid := resp.Msg.Txid.Hex.Value
 
 	log := zerolog.Ctx(ctx)
 	log.Info().
@@ -439,38 +369,18 @@ func (s *Server) CommentNews(ctx context.Context, req *connect.Request[miscv1.Co
 		return nil, fmt.Errorf("comment news: encode comment: %w", err)
 	}
 
-	wallet, err := s.wallet.Get(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	sendReq := &validatorpb.SendTransactionRequest{
-		OpReturnMessage: &commonv1.Hex{
-			Hex: &wrapperspb.StringValue{Value: hex.EncodeToString(commentBytes)},
-		},
-	}
-	if req.Msg.FeeSatPerVbyte > 0 {
-		sendReq.FeeRate = &validatorpb.SendTransactionRequest_FeeRate{
-			Fee: &validatorpb.SendTransactionRequest_FeeRate_SatPerVbyte{SatPerVbyte: req.Msg.FeeSatPerVbyte},
-		}
-	} else if req.Msg.FeeSats > 0 {
-		sendReq.FeeRate = &validatorpb.SendTransactionRequest_FeeRate{
-			Fee: &validatorpb.SendTransactionRequest_FeeRate_Sats{Sats: req.Msg.FeeSats},
-		}
-	}
-
-	resp, err := wallet.SendTransaction(ctx, connect.NewRequest(sendReq))
+	txid, err := s.walletEngine.BroadcastOpReturn(ctx, commentBytes, req.Msg.FeeSatPerVbyte, req.Msg.FeeSats)
 	if err != nil {
 		return nil, fmt.Errorf("comment news: %w", err)
 	}
 
 	zerolog.Ctx(ctx).Info().
 		Str("parent_id", req.Msg.ParentId).
-		Str("txid", resp.Msg.Txid.String()).
+		Str("txid", txid).
 		Msg("broadcast comment transaction")
 
 	return connect.NewResponse(&miscv1.CommentNewsResponse{
-		Txid: resp.Msg.Txid.Hex.Value,
+		Txid: txid,
 	}), nil
 }
 
