@@ -422,7 +422,7 @@ class _BitwindowAPILive implements BitwindowAPI {
       return response;
     } catch (e) {
       final error = 'could not start mining: ${extractConnectException(e)}';
-      throw BitcoindException(error);
+      throw BitwindowException(error);
     }
   }
 
@@ -527,7 +527,7 @@ class _BitwindowAPILive implements BitwindowAPI {
       return response.transactions;
     } catch (e) {
       final error = 'could not list unconfirmed transactions: ${extractConnectException(e)}';
-      throw BitcoindException(error);
+      throw BitwindowException(error);
     }
   }
 
@@ -545,7 +545,7 @@ class _BitwindowAPILive implements BitwindowAPI {
       return (response.recentBlocks, response.hasMore);
     } catch (e) {
       final error = 'could not list blocks: ${extractConnectException(e)}';
-      throw BitcoindException(error);
+      throw BitwindowException(error);
     }
   }
 
@@ -556,7 +556,7 @@ class _BitwindowAPILive implements BitwindowAPI {
       return response;
     } catch (e) {
       final error = 'could not get network stats: ${extractConnectException(e)}';
-      throw BitcoindException(error);
+      throw BitwindowException(error);
     }
   }
 
@@ -565,7 +565,7 @@ class _BitwindowAPILive implements BitwindowAPI {
     try {
       await _client.updateNetwork(UpdateNetworkRequest(network: network));
     } catch (e) {
-      throw BitcoindException('could not update network: ${extractConnectException(e)}');
+      throw BitwindowException('could not update network: ${extractConnectException(e)}');
     }
   }
 }
@@ -1338,7 +1338,7 @@ class _MiscAPILive implements MiscAPI {
       return response.opReturns;
     } catch (e) {
       final error = 'could not list op returns: ${extractConnectException(e)}';
-      throw BitcoindException(error);
+      throw BitwindowException(error);
     }
   }
 
@@ -1374,7 +1374,7 @@ class _MiscAPILive implements MiscAPI {
       return response;
     } catch (e) {
       final error = 'could not broadcast news: ${extractConnectException(e)}';
-      throw BitcoindException(error);
+      throw BitwindowException(error);
     }
   }
 
@@ -1397,7 +1397,7 @@ class _MiscAPILive implements MiscAPI {
       return response;
     } catch (e) {
       final error = 'could not upvote news: ${extractConnectException(e)}';
-      throw BitcoindException(error);
+      throw BitwindowException(error);
     }
   }
 
@@ -1420,7 +1420,7 @@ class _MiscAPILive implements MiscAPI {
       return response;
     } catch (e) {
       final error = 'could not downvote news: ${extractConnectException(e)}';
-      throw BitcoindException(error);
+      throw BitwindowException(error);
     }
   }
 
@@ -1452,7 +1452,7 @@ class _MiscAPILive implements MiscAPI {
       return response;
     } catch (e) {
       final error = 'could not comment on news: ${extractConnectException(e)}';
-      throw BitcoindException(error);
+      throw BitwindowException(error);
     }
   }
 
@@ -1463,7 +1463,7 @@ class _MiscAPILive implements MiscAPI {
       return response.comments;
     } catch (e) {
       final error = 'could not list comments: ${extractConnectException(e)}';
-      throw BitcoindException(error);
+      throw BitwindowException(error);
     }
   }
 
@@ -1483,7 +1483,7 @@ class _MiscAPILive implements MiscAPI {
       return response;
     } catch (e) {
       final error = 'could not create topic: ${extractConnectException(e)}';
-      throw BitcoindException(error);
+      throw BitwindowException(error);
     }
   }
 
@@ -1494,7 +1494,7 @@ class _MiscAPILive implements MiscAPI {
       return response.coinNews;
     } catch (e) {
       final error = 'could not list coin news: ${extractConnectException(e)}';
-      throw BitcoindException(error);
+      throw BitwindowException(error);
     }
   }
 
@@ -1505,7 +1505,7 @@ class _MiscAPILive implements MiscAPI {
       return response.topics;
     } catch (e) {
       final error = 'could not list topics: ${extractConnectException(e)}';
-      throw BitcoindException(error);
+      throw BitwindowException(error);
     }
   }
 
@@ -1523,7 +1523,7 @@ class _MiscAPILive implements MiscAPI {
       return response;
     } catch (e) {
       final error = 'could not timestamp file: ${extractConnectException(e)}';
-      throw BitcoindException(error);
+      throw BitwindowException(error);
     }
   }
 
@@ -1534,7 +1534,7 @@ class _MiscAPILive implements MiscAPI {
       return response.timestamps;
     } catch (e) {
       final error = 'could not list timestamps: ${extractConnectException(e)}';
-      throw BitcoindException(error);
+      throw BitwindowException(error);
     }
   }
 
@@ -1552,7 +1552,7 @@ class _MiscAPILive implements MiscAPI {
       return response;
     } catch (e) {
       final error = 'could not verify timestamp: ${extractConnectException(e)}';
-      throw BitcoindException(error);
+      throw BitwindowException(error);
     }
   }
 }
@@ -1583,7 +1583,7 @@ class _M4APILive implements M4API {
       return response.history;
     } catch (e) {
       final error = 'could not get M4 history: ${extractConnectException(e)}';
-      throw BitcoindException(error);
+      throw BitwindowException(error);
     }
   }
 
@@ -1596,7 +1596,7 @@ class _M4APILive implements M4API {
       return response.preferences;
     } catch (e) {
       final error = 'could not get vote preferences: ${extractConnectException(e)}';
-      throw BitcoindException(error);
+      throw BitwindowException(error);
     }
   }
 
@@ -1618,7 +1618,7 @@ class _M4APILive implements M4API {
       await _client.setVotePreference(request);
     } catch (e) {
       final error = 'could not set vote preference: ${extractConnectException(e)}';
-      throw BitcoindException(error);
+      throw BitwindowException(error);
     }
   }
 
@@ -1631,7 +1631,7 @@ class _M4APILive implements M4API {
       return response;
     } catch (e) {
       final error = 'could not generate M4 bytes: ${extractConnectException(e)}';
-      throw BitcoindException(error);
+      throw BitwindowException(error);
     }
   }
 }
@@ -1653,7 +1653,7 @@ class _NotificationAPILive implements NotificationAPI {
       return response;
     } catch (e) {
       final error = 'could not watch notifications: ${extractConnectException(e)}';
-      throw BitcoindException(error);
+      throw BitwindowException(error);
     }
   }
 }
@@ -2123,11 +2123,11 @@ class WalletException implements Exception {
   String toString() => 'WalletException: $message';
 }
 
-class BitcoindException implements Exception {
+class BitwindowException implements Exception {
   final String message;
-  BitcoindException(this.message);
+  BitwindowException(this.message);
   @override
-  String toString() => 'BitcoindException: $message';
+  String toString() => 'BitwindowException: $message';
 }
 
 class DrivechainException implements Exception {

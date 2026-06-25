@@ -361,6 +361,51 @@ func TestElectrumSendSidechainDeposit(t *testing.T) {
 	}
 }
 
+// TestElectrumSendOpReturnOnly proves an OP_RETURN-only broadcast (e.g. coinnews)
+// works with no destinations: the backend still selects a wallet input to cover
+// the fee, signs it, emits the OP_RETURN output and returns change.
+func TestElectrumSendOpReturnOnly(t *testing.T) {
+	p, fake, w, addr := newElectrumFixture(t)
+	ctx := context.Background()
+
+	const walletAmount = int64(200_000)
+	fake.stats[addr] = EsploraAddressStats{
+		Address:    addr,
+		ChainStats: EsploraTxoStats{FundedTxoCount: 1, FundedTxoSum: walletAmount, TxCount: 1},
+	}
+	fake.utxos[addr] = []EsploraUTXO{{
+		TxID: "5555555555555555555555555555555555555555555555555555555555555555",
+		Vout: 0, Value: walletAmount,
+		Status: EsploraStatus{Confirmed: true, BlockHeight: 100},
+	}}
+
+	payload := []byte("coinnews: hello world")
+	txid, err := p.Send(ctx, w.ID, SendRequest{
+		FixedFeeSats: 1_000,
+		OpReturnHex:  hex.EncodeToString(payload),
+	})
+	require.NoError(t, err)
+	require.Equal(t, "broadcasttxid", txid)
+	require.Len(t, fake.broadcast, 1)
+
+	var tx wire.MsgTx
+	raw, err := hex.DecodeString(fake.broadcast[0])
+	require.NoError(t, err)
+	require.NoError(t, tx.Deserialize(bytes.NewReader(raw)))
+
+	require.Len(t, tx.TxIn, 1, "a fee-paying input must be selected")
+	assert.NotEmpty(t, tx.TxIn[0].Witness, "the input must be signed")
+
+	require.Len(t, tx.TxOut, 2, "OP_RETURN output + change")
+	require.Equal(t, byte(txscript.OP_RETURN), tx.TxOut[0].PkScript[0])
+	pushed, err := txscript.PushedData(tx.TxOut[0].PkScript)
+	require.NoError(t, err)
+	require.Len(t, pushed, 1)
+	assert.Equal(t, payload, pushed[0])
+	assert.Zero(t, tx.TxOut[0].Value)
+	assert.Equal(t, walletAmount-1_000, tx.TxOut[1].Value, "change = funds - fee")
+}
+
 // TestElectrumSendSidechainDepositInsufficientFunds proves the deposit fails
 // cleanly when the wallet can't cover the deposit amount plus fee (the CTIP value
 // funds only the treasury output, not the user's contribution).

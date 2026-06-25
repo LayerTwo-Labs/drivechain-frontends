@@ -476,8 +476,11 @@ func mapExternalInputs(exts []*pb.ExternalInput) []wallet.ExternalInput {
 }
 
 func (h *WalletHandler) SendTransaction(ctx context.Context, req *connect.Request[pb.SendTransactionRequest]) (*connect.Response[pb.SendTransactionResponse], error) {
-	if len(req.Msg.Destinations) == 0 {
-		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("must provide at least one destination"))
+	// A transaction needs at least one output, but it doesn't have to be a
+	// payment: an OP_RETURN-only broadcast (e.g. coinnews) or a raw-script
+	// output (e.g. a sidechain deposit treasury) is a valid send on its own.
+	if len(req.Msg.Destinations) == 0 && req.Msg.OpReturnHex == "" && len(req.Msg.RawOutputs) == 0 {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("must provide at least one output"))
 	}
 
 	if req.Msg.FeeRateSatPerVbyte > 0 && req.Msg.FixedFeeSats > 0 {
@@ -903,6 +906,17 @@ func (h *WalletHandler) GetWalletSeed(ctx context.Context, req *connect.Request[
 func (h *WalletHandler) WatchWalletData(ctx context.Context, req *connect.Request[emptypb.Empty], stream *connect.ServerStream[pb.WatchWalletDataResponse]) error {
 	var seq int64
 
+	// Per-stream subscription. The wallet service fans out notifyChanged to
+	// every subscriber, so concurrent Watch streams don't steal each other's
+	// events. ctx scopes the subscription to this stream's lifetime.
+	//
+	// Subscribe BEFORE the initial send: the channel is buffered (cap 1), so a
+	// wallet-load notification that fires during or right after the first frame
+	// is retained and replayed by the loop below. Subscribing after the initial
+	// send loses that wakeup, leaving the stream stuck on an empty first frame
+	// (empty wallet dropdown, null activeWalletId, endless status recovery).
+	stateChanged := h.svc.Subscribe(ctx)
+
 	if err := h.sendWalletData(stream, &seq); err != nil {
 		return err
 	}
@@ -918,11 +932,6 @@ func (h *WalletHandler) WatchWalletData(ctx context.Context, req *connect.Reques
 	// frame goes out so we don't double up.
 	heartbeat := time.NewTicker(WatchHeartbeatInterval)
 	defer heartbeat.Stop()
-
-	// Per-stream subscription. The wallet service fans out notifyChanged to
-	// every subscriber, so concurrent Watch streams don't steal each other's
-	// events. ctx scopes the subscription to this stream's lifetime.
-	stateChanged := h.svc.Subscribe(ctx)
 
 	send := func() error {
 		if err := h.sendWalletData(stream, &seq); err != nil {

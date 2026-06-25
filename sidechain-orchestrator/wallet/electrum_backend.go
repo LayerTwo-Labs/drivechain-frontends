@@ -441,7 +441,7 @@ func (p *ElectrumBackend) EnsureNotificationWatched(ctx context.Context, walletI
 }
 
 func (p *ElectrumBackend) Send(ctx context.Context, walletID string, req SendRequest) (string, error) {
-	scan, err := p.scanWalletLive(ctx, walletID)
+	scan, err := p.scanForSend(ctx, walletID, req)
 	if err != nil {
 		return "", err
 	}
@@ -828,7 +828,7 @@ func (p *ElectrumBackend) CreatePSBT(ctx context.Context, walletID string, req S
 	if err := p.requireElectrum(walletID); err != nil {
 		return "", err
 	}
-	scan, err := p.scanWalletLive(ctx, walletID)
+	scan, err := p.scanForSend(ctx, walletID, req)
 	if err != nil {
 		return "", err
 	}
@@ -1109,6 +1109,23 @@ func (p *ElectrumBackend) scanWallet(ctx context.Context, walletID string) (*ele
 // for address allocation and spends, where stale data risks reuse or misspend.
 func (p *ElectrumBackend) scanWalletLive(ctx context.Context, walletID string) (*electrumScan, error) {
 	return p.scan(ctx, walletID, false)
+}
+
+// scanForSend picks the scan strategy for building a send/PSBT. An OP_RETURN-only
+// broadcast (e.g. coinnews) needs only a fee UTXO, so the cached, tip-gated scan
+// is enough and avoids a full live re-walk that hammers rate-limited esplora
+// providers. Anything that pays an address, spends a specific/external input, or
+// adds a raw output forces a live scan for fresh UTXO data.
+func (p *ElectrumBackend) scanForSend(ctx context.Context, walletID string, req SendRequest) (*electrumScan, error) {
+	opReturnOnly := req.OpReturnHex != "" &&
+		len(req.DestinationsSats) == 0 &&
+		len(req.RawOutputs) == 0 &&
+		len(req.ExternalInputs) == 0 &&
+		len(req.RequiredInputs) == 0
+	if opReturnOnly {
+		return p.scanWallet(ctx, walletID)
+	}
+	return p.scanWalletLive(ctx, walletID)
 }
 
 func (p *ElectrumBackend) scan(ctx context.Context, walletID string, allowCache bool) (*electrumScan, error) {
