@@ -999,7 +999,11 @@ Future<void> initAutoUpdater(Logger log) async {
   }
 
   try {
-    const feedURL = 'https://releases.drivechain.info/appcast-bitwindow.xml';
+    // Variant builds self-update from their own feed (the forknet build sets
+    // BITWINDOW_APPCAST=appcast-bitwindow-forknet.xml) so they don't cross-update
+    // to the standard BitWindow release.
+    const appcast = String.fromEnvironment('BITWINDOW_APPCAST', defaultValue: 'appcast-bitwindow.xml');
+    final feedURL = 'https://releases.drivechain.info/$appcast';
     log.i('Initializing auto updater with feed URL: $feedURL');
 
     await autoUpdater.setFeedURL(feedURL);

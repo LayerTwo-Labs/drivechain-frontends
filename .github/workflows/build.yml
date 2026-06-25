@@ -113,6 +113,7 @@ jobs:
           add_client_configs() {
             local client=$1
             local build_flag=$2
+            local variant=${3:-standard}
 
             if [[ "${{ needs.check-changes.outputs.build_all }}" == "true" || "$build_flag" == "true" ]]; then
                     # use windows-2022 because we need Inno Setup. -2022-image is heavier than latest
@@ -128,7 +129,7 @@ jobs:
                 fi
 
                 # No chains - just add the basic config
-                configurations+=("{\"os\":\"$os\",\"client\":\"$client\"}")
+                configurations+=("{\"os\":\"$os\",\"client\":\"$client\",\"variant\":\"$variant\"}")
               done
             fi
           }
@@ -142,6 +143,9 @@ jobs:
           add_client_configs "zside" "${{ needs.check-changes.outputs.zside }}"
           add_client_configs "coinshift" "${{ needs.check-changes.outputs.coinshift }}"
           add_client_configs "bitwindow" "${{ needs.check-changes.outputs.bitwindow }}"
+          # Second BitWindow build: identical app that defaults to ForkNet, shipped as
+          # the bitwindow-forknet variant (eCash brand). Same source, build-time flag only.
+          add_client_configs "bitwindow" "${{ needs.check-changes.outputs.bitwindow }}" "forknet"
 
           # Join configurations with commas
           matrix=$(IFS=,; echo "{\"include\":[${configurations[*]}]}")
@@ -197,8 +201,11 @@ jobs:
 
       - name: Setup build directory
         run: |
-          # Create build directory name, isolated per OS AND client to avoid race conditions
-          BUILD_DIR="b-${{ matrix.os }}-${{ matrix.client }}"
+          # Create build directory name, isolated per OS AND client (AND variant, so
+          # the two bitwindow rows on the same OS don't collide) to avoid races.
+          VARIANT_SUFFIX=""
+          [ -n "${{ matrix.variant }}" ] && [ "${{ matrix.variant }}" != "standard" ] && VARIANT_SUFFIX="-${{ matrix.variant }}"
+          BUILD_DIR="b-${{ matrix.os }}-${{ matrix.client }}${VARIANT_SUFFIX}"
           rm -rf "$BUILD_DIR"
           mkdir -p "$BUILD_DIR"
           # Copy source files to build directory
@@ -361,6 +368,9 @@ jobs:
             fi
           fi
 
+          # Variant flavor consumed by set-app-name.sh (standard | forknet).
+          export BITWINDOW_VARIANT="${{ matrix.variant }}"
+
           # Everything after the third line is only relevant for macOS
           ./scripts/build-app.sh ${{ runner.os }} ${{ matrix.client }} \
             "$NOTARIZATION_KEY_PATH" "$NOTARIZATION_KEY_PASSWORD" \
@@ -413,6 +423,12 @@ jobs:
           fi
 
       - name: Generate appcast fragment for this build
+        # Only the standard build feeds the BitWindow appcast. The forknet variant
+        # would otherwise emit a "bitwindow" fragment whose EdDSA signature is over
+        # the forknet zip, poisoning the standard auto-update feed. Forknet
+        # auto-update is a follow-up (needs its own release-name mapping in the
+        # appcast scripts + appcast-bitwindow-forknet.xml).
+        if: matrix.variant == '' || matrix.variant == 'standard'
         continue-on-error: true
         run: |
           # Find built files with platform-specific patterns
@@ -807,8 +823,9 @@ jobs:
       - uses: actions/upload-artifact@v5
         with:
           name:
-            ${{ matrix.client }}-binaries-${{ runner.os }}${{ matrix.chain != ''
-            && format('-{0}', matrix.chain) || '' }}
+            ${{ matrix.client }}-binaries-${{ runner.os }}${{ (matrix.variant != ''
+            && matrix.variant != 'standard') && format('-{0}', matrix.variant) || ''
+            }}${{ matrix.chain != '' && format('-{0}', matrix.chain) || '' }}
           if-no-files-found: error
           path: ${{ env.BUILD_DIR }}/${{ matrix.client }}/release/*
 
@@ -968,6 +985,18 @@ jobs:
             mv bitwindow-binaries-Windows/bitwindow.exe BitWindow-latest-x86_64-windows.exe || true
           else
             echo "Skipping BitWindow artifacts (version not increased)"
+          fi
+
+          # BitWindow forknet variant - same source/version, defaults to ForkNet.
+          # Rides BitWindow's version gate (same pubspec). The BitWindow-* scp and
+          # hashes globs below already pick up these BitWindow-forknet-* files.
+          if [ "$UPLOAD_BITWINDOW" = "true" ]; then
+            echo "Preparing BitWindow (forknet) artifacts for upload..."
+            mv bitwindow-binaries-macOS-forknet/bitwindow-osx64.zip BitWindow-forknet-latest-x86_64-apple-darwin.zip || true
+            mv bitwindow-binaries-macOS-forknet/bitwindow-osx64.dmg BitWindow-forknet-latest-x86_64-apple-darwin.dmg || true
+            mv bitwindow-binaries-Linux-forknet/bitwindow-x86_64-linux-gnu.zip BitWindow-forknet-latest-x86_64-unknown-linux-gnu.zip || true
+            mv bitwindow-binaries-Linux-forknet/BitWindow-x86_64.AppImage BitWindow-forknet-latest-x86_64-unknown-linux-gnu.AppImage || true
+            mv bitwindow-binaries-Windows-forknet/bitwindow.exe BitWindow-forknet-latest-x86_64-windows.exe || true
           fi
 
       - name: Install jq for merging version files
