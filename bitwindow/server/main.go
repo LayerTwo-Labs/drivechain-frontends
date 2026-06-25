@@ -415,14 +415,27 @@ func startOrchestratord(ctx context.Context, conf config.Config) (*exec.Cmd, err
 	}
 	defer orchLogFile.Close() //nolint:errcheck — child has its own fd post-spawn
 
-	args = append(args, "--logfile", orchLogPath)
+	// Dev ergonomics: with ORCHESTRATORD_STDOUT=1, skip --logfile so orchestratord
+	// logs to its stdout (zerolog's default), and tee that into bitwindowd's own
+	// stdout — which the Flutter ProcessManager already streams to the `just run`
+	// terminal. The file copy is kept too. Prod leaves this unset so the detached
+	// orchestratord keeps logging after bitwindowd's stdout is orphaned.
+	orchToStdout := os.Getenv("ORCHESTRATORD_STDOUT") == "1" || os.Getenv("ORCHESTRATORD_STDOUT") == "true"
+	if !orchToStdout {
+		args = append(args, "--logfile", orchLogPath)
+	}
 
-	log.Info().Str("path", orchPath).Strs("args", args).Str("logfile", orchLogPath).Msg("starting orchestratord (detached)")
+	log.Info().Str("path", orchPath).Strs("args", args).Str("logfile", orchLogPath).Bool("stdout", orchToStdout).Msg("starting orchestratord (detached)")
 
 	cmd := exec.Command(orchPath, args...)
 	configureOrchestratordSpawn(cmd)
-	cmd.Stdout = orchLogFile
-	cmd.Stderr = orchLogFile
+	if orchToStdout {
+		cmd.Stdout = io.MultiWriter(os.Stdout, orchLogFile)
+		cmd.Stderr = io.MultiWriter(os.Stderr, orchLogFile)
+	} else {
+		cmd.Stdout = orchLogFile
+		cmd.Stderr = orchLogFile
+	}
 
 	if err := cmd.Start(); err != nil {
 		return nil, fmt.Errorf("start orchestratord: %w", err)
