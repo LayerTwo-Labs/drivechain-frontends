@@ -706,7 +706,7 @@
       "type": "sidechain",
       "slot": 24,
       "name": "Liquid Signet",
-      "version": "b7da9f75ea1d3da7a0b761cd7f18d81500bb1011",
+      "version": "63410bf10676415460179b4e44e9ccc9033f4a1e",
       "description": "Elements/Liquid sidechain in slot 24.",
       "repo_url": "https://github.com/ekulkisnek/liquid-drivechain-signet-adaptation",
       "port": 29443,
@@ -716,8 +716,8 @@
       "dependencies": ["bitcoind", "enforcer"],
       "startup_log_patterns": ["Done loading"],
       "directories": {"binary": {"default": {"linux": "liquid-signet", "macos": "liquid-signet", "windows": "liquid-signet"}}, "flutter_frontend": {}},
-      "download": {"binary": "liquid-signet", "files": {"default": {"base_url": "https://github.com/ekulkisnek/liquid-drivechain-signet-adaptation/releases/download/liquid-signet-b7da9f75/", "linux-x86_64": "", "macos-x86_64": "", "macos-arm64": "liquid-signet-b7da9f75-macos-arm64.tar.gz", "windows-x86_64": ""}}},
-      "hashes": {}
+      "download": {"binary": "liquid-signet", "files": {"default": {"base_url": "https://github.com/ekulkisnek/liquid-drivechain-signet-adaptation/releases/download/elements-63410bf1/", "linux-x86_64": "liquid-signet-elements-63410bf1-linux-x86_64.tar.gz", "linux-arm64": "liquid-signet-elements-63410bf1-linux-arm64.tar.gz", "macos-x86_64": "", "macos-arm64": "liquid-signet-elements-63410bf1-macos-arm64.tar.gz", "windows-x86_64": "liquid-signet-elements-63410bf1-win64.zip"}}},
+      "hashes": {"linux-x86_64": {"sha256": "7f43510ebc409b92f15a2b24dd6de7cb0bbac2b7af87a000b5202ea2aff80ecc", "size": 192242335}, "linux-arm64": {"sha256": "646301d9c4c997c38f89e44669a94e3e6d4e761c20ce9f2ed17804d45eb1a511", "size": 185608106}, "macos-arm64": {"sha256": "8a49ade7d61f95cdfb66f70514906fd3161aa67699be015d6eac1cb70308a22d", "size": 13003530}, "windows-x86_64": {"sha256": "0b959ccb253403eedbf484984227f872702afa2653f7c3803e91ec52a3623601", "size": 44191169}}
     },
     "zside": {
       "type": "sidechain",
@@ -779,23 +779,6 @@
           }
         }
       },
-      "hashes": {}
-    },
-    "liquid-signet": {
-      "type": "sidechain",
-      "slot": 24,
-      "name": "Liquid Signet",
-      "version": "ede73821a1167540522823c1490a724ddd243c2a",
-      "description": "Elements/Liquid sidechain in slot 24.",
-      "repo_url": "https://github.com/ekulkisnek/liquid-drivechain-signet-adaptation",
-      "port": 29443,
-      "chain_layer": 2,
-      "color": "blue",
-      "health_check": {"type": "tcp"},
-      "dependencies": ["bitcoind", "enforcer"],
-      "startup_log_patterns": ["Done loading"],
-      "directories": {"binary": {"default": {"linux": "liquid-signet", "macos": "liquid-signet", "windows": "liquid-signet"}}, "flutter_frontend": {}},
-      "download": {"binary": "liquid-signet", "files": {"default": {"base_url": "", "linux-x86_64": "liquid-signet", "macos-x86_64": "liquid-signet", "macos-arm64": "liquid-signet", "windows-x86_64": "liquid-signet.exe"}}},
       "hashes": {}
     }
   }
