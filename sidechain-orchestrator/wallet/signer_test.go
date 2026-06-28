@@ -45,6 +45,23 @@ func p2trAddr(t *testing.T, priv *btcec.PrivateKey, net *chaincfg.Params) string
 	return addr.EncodeAddress()
 }
 
+func p2shSegwitAddr(t *testing.T, priv *btcec.PrivateKey, net *chaincfg.Params) string {
+	t.Helper()
+	wpkh, err := btcutil.NewAddressWitnessPubKeyHash(btcutil.Hash160(priv.PubKey().SerializeCompressed()), net)
+	if err != nil {
+		t.Fatal(err)
+	}
+	redeem, err := txscript.PayToAddrScript(wpkh)
+	if err != nil {
+		t.Fatal(err)
+	}
+	addr, err := btcutil.NewAddressScriptHash(redeem, net)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return addr.EncodeAddress()
+}
+
 func p2pkhAddr(t *testing.T, priv *btcec.PrivateKey, net *chaincfg.Params) string {
 	t.Helper()
 	addr, err := btcutil.NewAddressPubKeyHash(

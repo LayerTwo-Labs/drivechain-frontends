@@ -548,6 +548,102 @@ func TestCoreBackendCreateCpfpTaproot(t *testing.T) {
 	assert.NotEqual(t, nsVsize, childVsize, "taproot child vsize must differ from native segwit")
 }
 
+// TestCoreBackendCpfpBase58Kinds proves the Core backend fully supports the
+// base58 script kinds that custom derivation (purpose 44'/49') makes reachable:
+// a legacy and a nested-segwit Core wallet each generate a kind-correct receive
+// address (right addressType, candidate filter matches base58) and complete a
+// CPFP sized for that kind.
+func TestCoreBackendCpfpBase58Kinds(t *testing.T) {
+	net := &chaincfg.RegressionNetParams
+	cases := []struct {
+		name        string
+		path        string
+		kind        ScriptKind
+		addressType string
+		childAddr   func(*testing.T) string
+	}{
+		{"legacy", "m/44'/1'/0'", ScriptLegacy, "legacy",
+			func(t *testing.T) string { return p2pkhAddr(t, fixedKey(0x44), net) }},
+		{"nested-segwit", "m/49'/1'/0'", ScriptNestedSegwit, "p2sh-segwit",
+			func(t *testing.T) string { return p2shSegwitAddr(t, fixedKey(0x49), net) }},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			svc := newTestService(t)
+			_, err := svc.GenerateWallet("Enforcer", "", "", testSlots)
+			require.NoError(t, err)
+			core, err := svc.GenerateWalletWithPath("Core-"+tc.name, "", "", 0, tc.path, testSlots)
+			require.NoError(t, err)
+
+			fake := newFakeBitcoind(t)
+			backend := NewCoreBackend(svc, fake.client(t), net, zerolog.New(zerolog.NewTestWriter(t)))
+			coreID := core.ID
+			require.Equal(t, tc.kind, backend.walletScriptKind(coreID))
+
+			fake.stubEnsureFlow()
+			childAddr := tc.childAddr(t)
+
+			const (
+				parentTxid  = "66666666666666666666666666666666666666666666666666666666666666cc"
+				parentValue = int64(200_000)
+				parentVsize = int64(150)
+				parentFee   = int64(150)
+				targetRate  = int64(20)
+			)
+			fake.handle("listunspent", func(bitcoindCall) (any, string) {
+				return []map[string]any{{"txid": parentTxid, "vout": 0, "amount": 0.002, "spendable": true, "confirmations": 0}}, ""
+			})
+			fake.handle("getmempoolentry", func(bitcoindCall) (any, string) {
+				return map[string]any{"vsize": parentVsize, "fees": map[string]any{"base": float64(parentFee) / 1e8}}, ""
+			})
+			// An unused base58 address of the wallet's kind: the candidate filter
+			// must match it (the old witness-prefix filter never would).
+			fake.handle("listreceivedbyaddress", func(bitcoindCall) (any, string) {
+				return []map[string]any{{"address": childAddr, "amount": 0.0, "txids": []string{}}}, ""
+			})
+			var calledGetNewAddress bool
+			fake.handle("getnewaddress", func(bitcoindCall) (any, string) {
+				calledGetNewAddress = true
+				return childAddr, ""
+			})
+			var builtOutputs []map[string]any
+			fake.handle("createrawtransaction", func(c bitcoindCall) (any, string) {
+				require.NoError(t, json.Unmarshal(c.Params[1], &builtOutputs))
+				return "deadbeefcpfp58", ""
+			})
+			fake.handle("signrawtransactionwithwallet", func(c bitcoindCall) (any, string) {
+				return map[string]any{"hex": mustString(t, c.Params[0]), "complete": true}, ""
+			})
+			fake.handle("sendrawtransaction", func(bitcoindCall) (any, string) { return "child-58", "" })
+
+			// The reused unused address path must be hit (filter matches base58).
+			addr, err := backend.NextReceiveAddress(context.Background(), coreID, tc.kind)
+			require.NoError(t, err)
+			assert.Equal(t, childAddr, addr, "must reuse the matching base58 address")
+			assert.False(t, calledGetNewAddress, "an unused kind-matching address should be reused, not minted")
+
+			// addressType mapping is correct for getnewaddress when no reuse exists.
+			at, ok := coreAddressType(tc.kind)
+			require.True(t, ok)
+			assert.Equal(t, tc.addressType, at)
+
+			// CPFP completes and sizes the child for this kind.
+			childTxid, err := backend.CreateCpfp(context.Background(), coreID, CpfpRequest{
+				ParentTxID: parentTxid, ParentVout: 0, TargetRate: targetRate,
+			})
+			require.NoError(t, err)
+			assert.Equal(t, "child-58", childTxid)
+
+			childVsize := int64(11 + inputVsize(tc.kind) + outputVsizeForKind(tc.kind))
+			_, outputSats, err := cpfpChildPlan(targetRate, parentVsize, parentFee, childVsize, parentValue)
+			require.NoError(t, err)
+			require.Len(t, builtOutputs, 1)
+			assert.InDelta(t, btcutil.Amount(outputSats).ToBTC(), builtOutputs[0][childAddr], 1e-12)
+		})
+	}
+}
+
 func TestCpfpChildPlanMeetsTargetRate(t *testing.T) {
 	cases := []struct {
 		name                                                        string
@@ -601,28 +697,40 @@ func TestCoreBackendNextReceiveAddress(t *testing.T) {
 	fake.stubEnsureFlow()
 	ctx := context.Background()
 
+	net := &chaincfg.RegressionNetParams
+	usedSegwit := p2wpkhAddr(t, fixedKey(0x01), net)
+	unusedSegwit := p2wpkhAddr(t, fixedKey(0x02), net)
+	unusedLegacy := p2pkhAddr(t, fixedKey(0x03), net)
+
 	// An unused bech32 address is reused instead of minting a new one;
-	// used and non-bech32 (BIP47 P2PKH) entries are skipped.
+	// used and wrong-kind (P2PKH) entries are skipped.
 	fake.handle("listreceivedbyaddress", func(bitcoindCall) (any, string) {
 		return []map[string]any{
-			{"address": "bcrt1qused", "amount": 0.5, "txids": []string{"a"}},
-			{"address": "mkP2pkhBip47", "amount": 0.0, "txids": []string{}},
-			{"address": "bcrt1qunused", "amount": 0.0, "txids": []string{}},
+			{"address": usedSegwit, "amount": 0.5, "txids": []string{"a"}},
+			{"address": unusedLegacy, "amount": 0.0, "txids": []string{}},
+			{"address": unusedSegwit, "amount": 0.0, "txids": []string{}},
 		}, ""
 	})
 	addr, err := backend.NextReceiveAddress(ctx, coreID, ScriptNativeSegwit)
 	require.NoError(t, err)
-	assert.Equal(t, "bcrt1qunused", addr)
+	assert.Equal(t, unusedSegwit, addr)
 	assert.Empty(t, fake.callsFor("getnewaddress"))
 
-	// All used → mint.
+	// All used → mint with address_type=bech32.
 	fake.handle("listreceivedbyaddress", func(bitcoindCall) (any, string) {
-		return []map[string]any{{"address": "bcrt1qused", "amount": 0.5, "txids": []string{"a"}}}, ""
+		return []map[string]any{{"address": usedSegwit, "amount": 0.5, "txids": []string{"a"}}}, ""
 	})
-	fake.handle("getnewaddress", func(bitcoindCall) (any, string) { return "bcrt1qminted", "" })
+	var mintedType string
+	fake.handle("getnewaddress", func(c bitcoindCall) (any, string) {
+		if len(c.Params) > 1 {
+			mintedType = mustString(t, c.Params[1])
+		}
+		return unusedSegwit, ""
+	})
 	addr, err = backend.NextReceiveAddress(ctx, coreID, ScriptNativeSegwit)
 	require.NoError(t, err)
-	assert.Equal(t, "bcrt1qminted", addr)
+	assert.Equal(t, unusedSegwit, addr)
+	assert.Equal(t, "bech32", mintedType)
 }
 
 func TestCoreBackendNextReceiveAddressTaproot(t *testing.T) {
@@ -630,33 +738,37 @@ func TestCoreBackendNextReceiveAddressTaproot(t *testing.T) {
 	fake.stubEnsureFlow()
 	ctx := context.Background()
 
-	// A taproot request skips segwit (bc1q/bcrt1q) candidates and reuses the
-	// unused bech32m (bcrt1p) one.
+	net := &chaincfg.RegressionNetParams
+	unusedSegwit := p2wpkhAddr(t, fixedKey(0x11), net)
+	unusedTaproot := p2trAddr(t, fixedKey(0x12), net)
+	mintedTaproot := p2trAddr(t, fixedKey(0x13), net)
+
+	// A taproot request skips segwit candidates and reuses the unused P2TR one.
 	fake.handle("listreceivedbyaddress", func(bitcoindCall) (any, string) {
 		return []map[string]any{
-			{"address": "bcrt1qsegwitunused", "amount": 0.0, "txids": []string{}},
-			{"address": "bcrt1ptaprootunused", "amount": 0.0, "txids": []string{}},
+			{"address": unusedSegwit, "amount": 0.0, "txids": []string{}},
+			{"address": unusedTaproot, "amount": 0.0, "txids": []string{}},
 		}, ""
 	})
 	addr, err := backend.NextReceiveAddress(ctx, coreID, ScriptTaproot)
 	require.NoError(t, err)
-	assert.Equal(t, "bcrt1ptaprootunused", addr)
+	assert.Equal(t, unusedTaproot, addr)
 	assert.Empty(t, fake.callsFor("getnewaddress"))
 
 	// No unused taproot candidate → mint with address_type=bech32m.
 	fake.handle("listreceivedbyaddress", func(bitcoindCall) (any, string) {
-		return []map[string]any{{"address": "bcrt1qsegwitunused", "amount": 0.0, "txids": []string{}}}, ""
+		return []map[string]any{{"address": unusedSegwit, "amount": 0.0, "txids": []string{}}}, ""
 	})
 	var mintedType string
 	fake.handle("getnewaddress", func(c bitcoindCall) (any, string) {
 		if len(c.Params) > 1 {
 			mintedType = mustString(t, c.Params[1])
 		}
-		return "bcrt1pminted", ""
+		return mintedTaproot, ""
 	})
 	addr, err = backend.NextReceiveAddress(ctx, coreID, ScriptTaproot)
 	require.NoError(t, err)
-	assert.Equal(t, "bcrt1pminted", addr)
+	assert.Equal(t, mintedTaproot, addr)
 	assert.Equal(t, "bech32m", mintedType)
 }
 
