@@ -67,6 +67,7 @@ dependencies:
   archive: ^4.0.7
   csv: ^8.0.0
   uuid: ^4.5.2
+  mobile_scanner: ^7.1.2
 
 dev_dependencies:
   flutter_test:

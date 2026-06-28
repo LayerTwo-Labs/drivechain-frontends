@@ -9,6 +9,7 @@ import 'package:bitwindow/providers/transactions_provider.dart';
 import 'package:bitwindow/providers/coin_selection_provider.dart';
 import 'package:bitwindow/pages/wallet/widgets/fee_rate_chart.dart';
 import 'package:bitwindow/utils/bitcoin_uri.dart';
+import 'package:bitwindow/widgets/airgap_psbt_dialog.dart';
 import 'package:bitwindow/utils/coin_selection.dart';
 import 'package:bitwindow/utils/explorer_url.dart';
 import 'package:bitwindow/utils/fee_estimation.dart';
@@ -43,6 +44,12 @@ class SendTab extends ViewModelWidget<SendPageViewModel> {
               ),
               const SizedBox(width: SailStyleValues.padding08),
               SailButton(
+                variant: ButtonVariant.secondary,
+                label: 'External signer (airgap)',
+                onPressed: () => _startAirgapFlow(context, viewModel),
+              ),
+              const SizedBox(width: SailStyleValues.padding08),
+              SailButton(
                 variant: ButtonVariant.outline,
                 label: 'Clear All',
                 onPressed: viewModel.clearAll,
@@ -51,6 +58,18 @@ class SendTab extends ViewModelWidget<SendPageViewModel> {
           ),
           SailSpacing(SailStyleValues.padding64),
         ],
+      ),
+    );
+  }
+
+  Future<void> _startAirgapFlow(BuildContext context, SendPageViewModel viewModel) async {
+    final psbt = await viewModel.buildUnsignedPsbtForAirgap(context);
+    if (psbt == null || !context.mounted) return;
+    await showThemedDialog<bool>(
+      context: context,
+      builder: (context) => AirgapPsbtDialog(
+        unsignedPsbtBase64: psbt,
+        onBroadcast: (_) => viewModel.onAirgapBroadcast(),
       ),
     );
   }
@@ -631,6 +650,61 @@ class SendPageViewModel extends BaseViewModel {
       await addressBookProvider.fetch();
       await balanceProvider.fetch();
     }
+  }
+
+  /// Build an unsigned PSBT from the current recipients/fee/coin-selection for
+  /// an external (airgap) signer. Returns base64, or null after surfacing an
+  /// error toast.
+  Future<String?> buildUnsignedPsbtForAirgap(BuildContext context) async {
+    final missingAddress = recipients.indexWhere((r) => r.addressController.text.trim().isEmpty);
+    if (missingAddress != -1) {
+      showSailToast(context, 'Please enter an address for all recipients.');
+      return null;
+    }
+    final missingAmount = recipients.indexWhere((r) => r.amountController.text.trim().isEmpty);
+    if (missingAmount != -1) {
+      showSailToast(context, 'Please enter an amount for all recipients.');
+      return null;
+    }
+    final feeSats = parseAmountToSatoshis(feeController.text, currentUnit);
+    if (feeSats <= 0) {
+      showSailToast(context, 'Please enter a valid fee.');
+      return null;
+    }
+
+    setBusy(true);
+    try {
+      final walletId = _walletReader.activeWalletId;
+      if (walletId == null) throw Exception('No active wallet');
+
+      final destinations = <String, int>{};
+      for (final r in recipients) {
+        final satoshis = parseAmountToSatoshis(r.amountController.text, currentUnit);
+        destinations[r.addressController.text] = (destinations[r.addressController.text] ?? 0) + satoshis;
+      }
+
+      return await _orchestratorWallet.createPsbt(
+        walletId: walletId,
+        destinations: destinations,
+        fixedFeeSats: feeSats,
+        requiredInputs: selectedUtxos,
+      );
+    } catch (error) {
+      log.e('Error building unsigned PSBT: $error');
+      if (context.mounted) {
+        showSailToast(context, 'Could not build PSBT $error', duration: const Duration(seconds: 5));
+      }
+      return null;
+    } finally {
+      setBusy(false);
+      notifyListeners();
+    }
+  }
+
+  Future<void> onAirgapBroadcast() async {
+    await transactionsProvider.fetch();
+    await addressBookProvider.fetch();
+    await balanceProvider.fetch();
   }
 
   Future<void> clearAll() async {
