@@ -4,6 +4,11 @@ import 'dart:io';
 import 'package:logger/logger.dart';
 import 'package:sail_ui/sail_ui.dart';
 
+// First-run theme: the forknet/eCash build (BITWINDOW_NETWORK=forknet) defaults to
+// the eCash theme; every other build defaults to Sail. A user's choice persists and
+// overrides this.
+const String defaultThemeStyleId = String.fromEnvironment('BITWINDOW_NETWORK') == 'forknet' ? 'ecash' : 'sail';
+
 // BitwindowSettings is a special kind of setting. It is *global* bitwindow
 // settings that can be accessed by bitwindow (duh), but also all sidechains!
 // magic
@@ -11,7 +16,7 @@ class BitwindowSettings {
   final bool paranoidMode;
   final String themeStyle;
 
-  BitwindowSettings({this.paranoidMode = false, this.themeStyle = 'sail'});
+  BitwindowSettings({this.paranoidMode = false, this.themeStyle = defaultThemeStyleId});
 
   Map<String, dynamic> toMap() {
     return {'paranoidMode': paranoidMode, 'themeStyle': themeStyle};
@@ -20,7 +25,7 @@ class BitwindowSettings {
   factory BitwindowSettings.fromMap(Map<String, dynamic> map) {
     return BitwindowSettings(
       paranoidMode: map['paranoidMode'] ?? false,
-      themeStyle: map['themeStyle'] ?? 'sail',
+      themeStyle: map['themeStyle'] ?? defaultThemeStyleId,
     );
   }
 
