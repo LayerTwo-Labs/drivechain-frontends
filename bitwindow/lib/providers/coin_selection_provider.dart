@@ -72,6 +72,8 @@ class CoinSelectionProvider extends ChangeNotifier {
         return CoinSelectionStrategy.smallestFirst;
       case pb.CoinSelectionStrategy.COIN_SELECTION_STRATEGY_RANDOM:
         return CoinSelectionStrategy.random;
+      case pb.CoinSelectionStrategy.COIN_SELECTION_STRATEGY_BRANCH_AND_BOUND:
+        return CoinSelectionStrategy.branchAndBound;
       case pb.CoinSelectionStrategy.COIN_SELECTION_STRATEGY_LARGEST_FIRST:
       case pb.CoinSelectionStrategy.COIN_SELECTION_STRATEGY_UNSPECIFIED:
       default:

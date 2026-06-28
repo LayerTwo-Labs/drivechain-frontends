@@ -36,12 +36,14 @@ class CoinSelectionStrategy extends $pb.ProtobufEnum {
   static const CoinSelectionStrategy COIN_SELECTION_STRATEGY_LARGEST_FIRST = CoinSelectionStrategy._(1, _omitEnumNames ? '' : 'COIN_SELECTION_STRATEGY_LARGEST_FIRST');
   static const CoinSelectionStrategy COIN_SELECTION_STRATEGY_SMALLEST_FIRST = CoinSelectionStrategy._(2, _omitEnumNames ? '' : 'COIN_SELECTION_STRATEGY_SMALLEST_FIRST');
   static const CoinSelectionStrategy COIN_SELECTION_STRATEGY_RANDOM = CoinSelectionStrategy._(3, _omitEnumNames ? '' : 'COIN_SELECTION_STRATEGY_RANDOM');
+  static const CoinSelectionStrategy COIN_SELECTION_STRATEGY_BRANCH_AND_BOUND = CoinSelectionStrategy._(4, _omitEnumNames ? '' : 'COIN_SELECTION_STRATEGY_BRANCH_AND_BOUND');
 
   static const $core.List<CoinSelectionStrategy> values = <CoinSelectionStrategy> [
     COIN_SELECTION_STRATEGY_UNSPECIFIED,
     COIN_SELECTION_STRATEGY_LARGEST_FIRST,
     COIN_SELECTION_STRATEGY_SMALLEST_FIRST,
     COIN_SELECTION_STRATEGY_RANDOM,
+    COIN_SELECTION_STRATEGY_BRANCH_AND_BOUND,
   ];
 
   static final $core.Map<$core.int, CoinSelectionStrategy> _byValue = $pb.ProtobufEnum.initByValue(values);
