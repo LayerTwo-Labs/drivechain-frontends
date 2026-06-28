@@ -34,6 +34,8 @@ abstract class BitwindowdServiceBase extends $pb.GeneratedService {
   $async.Future<$1.Empty> deleteAddressBookEntry($pb.ServerContext ctx, $3.DeleteAddressBookEntryRequest request);
   $async.Future<$3.GetSyncInfoResponse> getSyncInfo($pb.ServerContext ctx, $1.Empty request);
   $async.Future<$1.Empty> setTransactionNote($pb.ServerContext ctx, $3.SetTransactionNoteRequest request);
+  $async.Future<$3.ExportLabelsResponse> exportLabels($pb.ServerContext ctx, $1.Empty request);
+  $async.Future<$3.ImportLabelsResponse> importLabels($pb.ServerContext ctx, $3.ImportLabelsRequest request);
   $async.Future<$3.GetFireplaceStatsResponse> getFireplaceStats($pb.ServerContext ctx, $1.Empty request);
   $async.Future<$3.ListRecentTransactionsResponse> listRecentTransactions($pb.ServerContext ctx, $3.ListRecentTransactionsRequest request);
   $async.Future<$3.ListBlocksResponse> listBlocks($pb.ServerContext ctx, $3.ListBlocksRequest request);
@@ -54,6 +56,8 @@ abstract class BitwindowdServiceBase extends $pb.GeneratedService {
       case 'DeleteAddressBookEntry': return $3.DeleteAddressBookEntryRequest();
       case 'GetSyncInfo': return $1.Empty();
       case 'SetTransactionNote': return $3.SetTransactionNoteRequest();
+      case 'ExportLabels': return $1.Empty();
+      case 'ImportLabels': return $3.ImportLabelsRequest();
       case 'GetFireplaceStats': return $1.Empty();
       case 'ListRecentTransactions': return $3.ListRecentTransactionsRequest();
       case 'ListBlocks': return $3.ListBlocksRequest();
@@ -77,6 +81,8 @@ abstract class BitwindowdServiceBase extends $pb.GeneratedService {
       case 'DeleteAddressBookEntry': return this.deleteAddressBookEntry(ctx, request as $3.DeleteAddressBookEntryRequest);
       case 'GetSyncInfo': return this.getSyncInfo(ctx, request as $1.Empty);
       case 'SetTransactionNote': return this.setTransactionNote(ctx, request as $3.SetTransactionNoteRequest);
+      case 'ExportLabels': return this.exportLabels(ctx, request as $1.Empty);
+      case 'ImportLabels': return this.importLabels(ctx, request as $3.ImportLabelsRequest);
       case 'GetFireplaceStats': return this.getFireplaceStats(ctx, request as $1.Empty);
       case 'ListRecentTransactions': return this.listRecentTransactions(ctx, request as $3.ListRecentTransactionsRequest);
       case 'ListBlocks': return this.listBlocks(ctx, request as $3.ListBlocksRequest);

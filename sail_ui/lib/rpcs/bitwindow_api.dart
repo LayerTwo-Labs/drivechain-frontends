@@ -387,6 +387,10 @@ abstract class BitwindowAPI {
   // Transaction note methods here
   Future<void> setTransactionNote(String txid, String note);
 
+  // BIP329 label import/export
+  Future<String> exportLabels();
+  Future<ImportLabelsResponse> importLabels(String jsonl);
+
   Future<GetFireplaceStatsResponse> getFireplaceStats();
 
   Future<List<RecentTransaction>> listRecentTransactions();
@@ -509,6 +513,19 @@ class _BitwindowAPILive implements BitwindowAPI {
       SetTransactionNoteRequest()
         ..txid = txid
         ..note = note,
+    );
+  }
+
+  @override
+  Future<String> exportLabels() async {
+    final response = await _client.exportLabels(Empty());
+    return response.jsonl;
+  }
+
+  @override
+  Future<ImportLabelsResponse> importLabels(String jsonl) async {
+    return _client.importLabels(
+      ImportLabelsRequest()..jsonl = jsonl,
     );
   }
 

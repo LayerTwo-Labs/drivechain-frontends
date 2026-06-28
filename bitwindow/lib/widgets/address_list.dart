@@ -1,7 +1,11 @@
+import 'dart:io';
+
 import 'package:bitwindow/providers/address_book_provider.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:fixnum/fixnum.dart' show Int64;
 import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
+import 'package:intl/intl.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:stacked/stacked.dart';
 
@@ -82,6 +86,59 @@ class AddressBookViewModel extends BaseViewModel {
       setErrorForObject('delete', e.toString());
       notifyListeners();
       rethrow;
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  Future<void> exportLabels(BuildContext context) async {
+    try {
+      setBusy(true);
+
+      final jsonl = await _provider.exportLabels();
+      if (jsonl.isEmpty) {
+        if (context.mounted) showSailToast(context, 'No labels to export');
+        return;
+      }
+
+      final defaultFileName = 'bitwindow-labels-${DateFormat('yyyy-MM-dd').format(DateTime.now())}.jsonl';
+      final result = await FilePicker.saveFile(
+        dialogTitle: 'Export Labels (BIP329)',
+        fileName: defaultFileName,
+        type: FileType.custom,
+        allowedExtensions: ['jsonl'],
+      );
+      if (result == null) return;
+
+      await File(result).writeAsString(jsonl);
+      if (context.mounted) showSailToast(context, 'Labels exported to $result');
+    } catch (e) {
+      if (context.mounted) showSailToast(context, 'Export failed: $e');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  Future<void> importLabels(BuildContext context) async {
+    try {
+      setBusy(true);
+
+      final result = await FilePicker.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['jsonl'],
+        dialogTitle: 'Import Labels (BIP329)',
+      );
+      if (result == null || result.files.single.path == null) return;
+
+      final jsonl = await File(result.files.single.path!).readAsString();
+      final summary = await _provider.importLabels(jsonl);
+
+      final imported = summary.importedAddresses + summary.importedTransactions + summary.importedOutputs;
+      if (context.mounted) {
+        showSailToast(context, 'Imported $imported labels, skipped ${summary.skipped}');
+      }
+    } catch (e) {
+      if (context.mounted) showSailToast(context, 'Import failed: $e');
     } finally {
       setBusy(false);
     }
@@ -218,20 +275,29 @@ class _AddressBookContentState extends State<AddressBookContent> {
       key: Key('address-book-$direction'),
       title: direction == Direction.DIRECTION_SEND ? 'Sending Addresses' : 'Receiving Addresses',
       subtitle: widget.viewModel.error('create') ?? widget.viewModel.error('edit') ?? widget.viewModel.error('delete'),
-      widgetHeaderEnd: direction == Direction.DIRECTION_SEND
-          ? Padding(
-              padding: const EdgeInsets.only(bottom: SailStyleValues.padding16),
-              child: SailRow(
-                spacing: SailStyleValues.padding08,
-                children: [
-                  SailButton(
-                    label: 'Add New Sending Address',
-                    onPressed: () async => _showCreateDialog(context),
-                  ),
-                ],
+      widgetHeaderEnd: Padding(
+        padding: const EdgeInsets.only(bottom: SailStyleValues.padding16),
+        child: SailRow(
+          spacing: SailStyleValues.padding08,
+          children: [
+            if (direction == Direction.DIRECTION_SEND)
+              SailButton(
+                label: 'Add New Sending Address',
+                onPressed: () async => _showCreateDialog(context),
               ),
-            )
-          : null,
+            SailButton(
+              label: 'Import Labels',
+              variant: ButtonVariant.secondary,
+              onPressed: () async => widget.viewModel.importLabels(context),
+            ),
+            SailButton(
+              label: 'Export Labels',
+              variant: ButtonVariant.secondary,
+              onPressed: () async => widget.viewModel.exportLabels(context),
+            ),
+          ],
+        ),
+      ),
       bottomPadding: false,
       child: SailTable(
         getRowId: (index) => widget.viewModel.entries[index].id.toString(),

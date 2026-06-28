@@ -70,4 +70,14 @@ class AddressBookProvider extends ChangeNotifier {
     await bitwindowd.bitwindowd.deleteAddressBookEntry(id);
     await fetch();
   }
+
+  Future<String> exportLabels() async {
+    return bitwindowd.bitwindowd.exportLabels();
+  }
+
+  Future<ImportLabelsResponse> importLabels(String jsonl) async {
+    final result = await bitwindowd.bitwindowd.importLabels(jsonl);
+    await fetch();
+    return result;
+  }
 }

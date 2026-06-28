@@ -131,6 +131,16 @@ class MockBitwindowdAPI implements BitwindowAPI {
   }
 
   @override
+  Future<String> exportLabels() async {
+    return '';
+  }
+
+  @override
+  Future<ImportLabelsResponse> importLabels(String jsonl) async {
+    return ImportLabelsResponse();
+  }
+
+  @override
   Future<GetFireplaceStatsResponse> getFireplaceStats() {
     return Future.value(GetFireplaceStatsResponse());
   }

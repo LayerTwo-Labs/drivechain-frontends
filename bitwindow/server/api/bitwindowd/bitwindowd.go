@@ -21,9 +21,11 @@ import (
 	pb "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/bitwindowd/v1"
 	rpc "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/bitwindowd/v1/bitwindowdv1connect"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/addressbook"
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/bip329"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/blocks"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/deniability"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/transactions"
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/utxometadata"
 	service "github.com/LayerTwo-Labs/sidesail/bitwindow/server/service"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/utils/bandwidth"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/datasource"
@@ -570,6 +572,126 @@ func (s *Server) SetTransactionNote(ctx context.Context, req *connect.Request[pb
 	}
 
 	return connect.NewResponse(&emptypb.Empty{}), nil
+}
+
+// ExportLabels implements bitwindowdv1connect.BitwindowdServiceHandler.
+func (s *Server) ExportLabels(ctx context.Context, req *connect.Request[emptypb.Empty]) (*connect.Response[pb.ExportLabelsResponse], error) {
+	addrs, err := addressbook.List(ctx, s.db)
+	if err != nil {
+		zerolog.Ctx(ctx).Error().Err(err).Msg("could not list address book entries")
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+
+	notes, err := transactions.List(ctx, s.db)
+	if err != nil {
+		zerolog.Ctx(ctx).Error().Err(err).Msg("could not list transaction notes")
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+
+	utxos, err := utxometadata.Get(ctx, s.db, nil)
+	if err != nil {
+		zerolog.Ctx(ctx).Error().Err(err).Msg("could not list utxo metadata")
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+
+	var labels []bip329.Label
+	for _, a := range addrs {
+		if strings.TrimSpace(a.Label) == "" {
+			continue
+		}
+		labels = append(labels, bip329.Label{Type: bip329.TypeAddr, Ref: a.Address, Label: a.Label})
+	}
+	for _, n := range notes {
+		if strings.TrimSpace(n.Note) == "" {
+			continue
+		}
+		labels = append(labels, bip329.Label{Type: bip329.TypeTx, Ref: n.TxID, Label: n.Note})
+	}
+	for _, u := range utxos {
+		if strings.TrimSpace(u.Label) == "" {
+			continue
+		}
+		labels = append(labels, bip329.Label{Type: bip329.TypeOutput, Ref: u.Outpoint, Label: u.Label})
+	}
+
+	jsonl, err := bip329.Encode(labels)
+	if err != nil {
+		zerolog.Ctx(ctx).Error().Err(err).Msg("could not encode labels")
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+
+	return connect.NewResponse(&pb.ExportLabelsResponse{Jsonl: jsonl}), nil
+}
+
+// ImportLabels implements bitwindowdv1connect.BitwindowdServiceHandler.
+func (s *Server) ImportLabels(ctx context.Context, req *connect.Request[pb.ImportLabelsRequest]) (*connect.Response[pb.ImportLabelsResponse], error) {
+	labels, skipped := bip329.Decode(req.Msg.Jsonl)
+
+	resp := &pb.ImportLabelsResponse{Skipped: int64(skipped)}
+
+	for _, l := range labels {
+		ref := strings.TrimSpace(l.Ref)
+		label := strings.TrimSpace(l.Label)
+		if ref == "" || label == "" {
+			resp.Skipped++
+			continue
+		}
+
+		switch l.Type {
+		case bip329.TypeAddr:
+			if err := s.importAddressLabel(ctx, ref, l.Label); err != nil {
+				zerolog.Ctx(ctx).Error().Err(err).Str("ref", ref).Msg("could not import address label")
+				resp.Skipped++
+				continue
+			}
+			resp.ImportedAddresses++
+
+		case bip329.TypeTx:
+			if err := transactions.SetNote(ctx, s.db, ref, l.Label); err != nil {
+				zerolog.Ctx(ctx).Error().Err(err).Str("ref", ref).Msg("could not import transaction note")
+				resp.Skipped++
+				continue
+			}
+			resp.ImportedTransactions++
+
+		case bip329.TypeOutput:
+			lbl := l.Label
+			if err := utxometadata.Set(ctx, s.db, ref, nil, &lbl); err != nil {
+				zerolog.Ctx(ctx).Error().Err(err).Str("ref", ref).Msg("could not import utxo label")
+				resp.Skipped++
+				continue
+			}
+			resp.ImportedOutputs++
+
+		default:
+			resp.Skipped++
+		}
+	}
+
+	return connect.NewResponse(resp), nil
+}
+
+// importAddressLabel upserts an address-book label for an address, classifying
+// the address the same way CreateAddressBookEntry does. Unclassifiable
+// addresses are rejected so a bad ref is skipped rather than stored.
+func (s *Server) importAddressLabel(ctx context.Context, address, label string) error {
+	addr := strings.TrimSpace(address)
+	kind := addressbook.ClassifyAddress(addr)
+	if kind == pb.AddressType_ADDRESS_TYPE_UNKNOWN || kind == pb.AddressType_ADDRESS_TYPE_UNSPECIFIED {
+		return fmt.Errorf("invalid address %q", addr)
+	}
+
+	entries, err := addressbook.List(ctx, s.db)
+	if err != nil {
+		return err
+	}
+	for _, e := range entries {
+		if e.Address == addr {
+			return addressbook.UpdateLabel(ctx, s.db, e.ID, label)
+		}
+	}
+
+	return addressbook.Create(ctx, s.db, nil, label, addr, addressbook.DirectionReceive)
 }
 
 // GetFireplaceStats implements bitwindowdv1connect.BitwindowdServiceHandler.
