@@ -787,12 +787,15 @@ class TransactionStorage {
   }
 }
 
+// WalletRPCManager is residual bitcoind-wallet glue for the multisig modal paths
+// not yet migrated to MultisigLoungeService (funded-PSBT creation, watch-wallet
+// listdescriptors/create in fund_group_modal). It loads the watch wallet on
+// demand and forwards wallet-scoped Core RPCs. New multisig chain work should go
+// through MultisigLoungeService, not here.
 class WalletRPCManager {
   static final WalletRPCManager _instance = WalletRPCManager._internal();
   factory WalletRPCManager() => _instance;
   WalletRPCManager._internal();
-
-  String? _currentlyLoadedWallet;
 
   Future<T> withWallet<T>(
     String walletName,
@@ -826,45 +829,14 @@ class WalletRPCManager {
     }
   }
 
-  Future<void> unloadWallet(String walletName) async {
-    try {
-      await _coreRaw('unloadwallet', [walletName]);
-    } catch (e) {
-      if (e.toString().contains('not found') || e.toString().contains('not loaded')) {
-        return;
-      }
-    }
-  }
-
   Future<T> callWalletRPC<T>(String walletName, String method, List<dynamic> params) async {
     final result = await bitcoindRpcCall(method, params: params, wallet: walletName);
     return result as T;
   }
 
-  Future<double> getWalletBalance(
-    String walletName, {
-    int minConf = 0,
-    bool includeWatchOnly = true,
-  }) async {
-    return await withWallet<double>(walletName, () async {
-      final result = await callWalletRPC<dynamic>(walletName, 'getbalance', [null, minConf, includeWatchOnly]);
-      return result is num ? result.toDouble() : 0.0;
-    });
-  }
-
   Future<Map<String, dynamic>> getWalletInfo(String walletName) async {
     return await withWallet<Map<String, dynamic>>(walletName, () async {
       return await callWalletRPC<Map<String, dynamic>>(walletName, 'getwalletinfo', []);
-    });
-  }
-
-  Future<List<dynamic>> listUnspent(
-    String walletName, {
-    int minConf = 0,
-    int maxConf = 9999999,
-  }) async {
-    return await withWallet<List<dynamic>>(walletName, () async {
-      return await callWalletRPC<List<dynamic>>(walletName, 'listunspent', [minConf, maxConf]);
     });
   }
 
@@ -906,30 +878,6 @@ class WalletRPCManager {
     return await _coreRaw('createwallet', params) as Map<String, dynamic>;
   }
 
-  Future<void> importWallet(String walletName, String filename) async {
-    await withWallet<void>(walletName, () async {
-      await callWalletRPC<dynamic>(walletName, 'importwallet', [filename]);
-    });
-  }
-
-  Future<void> unloadAllWallets() async {
-    try {
-      final loadedWallets = await _coreRaw('listwallets', []);
-      if (loadedWallets is List) {
-        for (final walletName in loadedWallets) {
-          if (walletName is String) {
-            await unloadWallet(walletName);
-          }
-        }
-      }
-      _currentlyLoadedWallet = null;
-    } catch (e) {
-      GetIt.I.get<Logger>().w('Failed to unload wallets: $e');
-    }
-  }
-
-  String? get currentWallet => _currentlyLoadedWallet;
-
   Future<bool> isWalletLoaded(String walletName) async {
     try {
       final loadedWallets = await _coreRaw('listwallets', []);
@@ -937,67 +885,6 @@ class WalletRPCManager {
     } catch (e) {
       return false;
     }
-  }
-
-  Future<bool> isAddressMine(String walletName, String address) async {
-    return await withWallet<bool>(walletName, () async {
-      try {
-        final result = await callWalletRPC<Map<String, dynamic>>(
-          walletName,
-          'getaddressinfo',
-          [address],
-        );
-        return result['ismine'] == true || result['iswatchonly'] == true;
-      } catch (e) {
-        return false;
-      }
-    });
-  }
-
-  Future<void> rescanWallet(String walletName, {int? startHeight, int? startTime}) async {
-    return await withWallet<void>(walletName, () async {
-      if (startHeight != null) {
-        await callWalletRPC<dynamic>(walletName, 'rescanblockchain', [startHeight]);
-      } else if (startTime != null) {
-        await callWalletRPC<dynamic>(walletName, 'rescanblockchain', [startTime]);
-      } else {
-        await callWalletRPC<dynamic>(walletName, 'rescanblockchain', []);
-      }
-    });
-  }
-
-  Future<void> rescanRecentBlocks(String walletName, {int hoursBack = 24}) async {
-    return await withWallet<void>(walletName, () async {
-      final blockchainInfo = await _coreRaw('getblockchaininfo', []);
-
-      if (blockchainInfo is! Map || blockchainInfo['blocks'] is! int) {
-        throw Exception('getblockchaininfo returned invalid response: $blockchainInfo');
-      }
-
-      final currentHeight = blockchainInfo['blocks'] as int;
-
-      final blocksBack = hoursBack * 6;
-      final startHeight = (currentHeight - blocksBack).clamp(0, currentHeight);
-
-      await callWalletRPC<dynamic>(walletName, 'rescanblockchain', [startHeight]);
-    });
-  }
-
-  Future<Map<String, dynamic>> getWalletBalanceAndUtxos(String walletName) async {
-    return await withWallet<Map<String, dynamic>>(walletName, () async {
-      final balance = await callWalletRPC<dynamic>(walletName, 'getbalance', [null, 0, true]);
-      final utxos = await callWalletRPC<List<dynamic>>(walletName, 'listunspent', [0, 9999999, null, true]);
-
-      if (balance is! num) {
-        throw Exception('getbalance returned invalid type: ${balance.runtimeType} for wallet $walletName');
-      }
-
-      return {
-        'balance': balance.toDouble(),
-        'utxos': utxos.length,
-        'utxo_details': utxos.cast<Map<String, dynamic>>(),
-      };
-    });
   }
 }
 
