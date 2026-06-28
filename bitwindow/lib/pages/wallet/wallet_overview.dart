@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:bitwindow/pages/explorer/block_explorer_dialog.dart';
 import 'package:bitwindow/providers/transactions_provider.dart';
+import 'package:collection/collection.dart';
 import 'package:csv/csv.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:fixnum/fixnum.dart';
@@ -345,6 +346,16 @@ class _TransactionTableState extends State<TransactionTable> {
                               },
                               child: SailText.primary12('Bump Fee (RBF)'),
                             ),
+                          // CPFP - accelerate an unconfirmed incoming tx whose
+                          // output this wallet can spend (RBF can't bump it).
+                          if (isUnconfirmed && entry.receivedSatoshi > entry.sentSatoshi)
+                            SailMenuItem(
+                              closeOnSelect: false,
+                              onSelected: () async {
+                                await widget.model.accelerateCpfp(context, entry);
+                              },
+                              child: SailText.primary12('Accelerate (CPFP)'),
+                            ),
                           MempoolMenuItem(txid: entry.txid),
                         ];
                       },
@@ -619,6 +630,65 @@ class OverviewViewModel extends BaseViewModel with ChangeTrackingMixin {
       log.e('Failed to bump fee: $e');
       if (context.mounted) {
         showSailToast(context, 'Failed to bump fee: $e');
+      }
+    }
+  }
+
+  Future<void> accelerateCpfp(BuildContext context, WalletTransaction tx) async {
+    await showThemedDialog(
+      context: context,
+      builder: (context) => SailModal(
+        constraints: const BoxConstraints(maxWidth: 400),
+        child: SailCardEditValues(
+          title: 'Accelerate (CPFP)',
+          subtitle: 'Spend this unconfirmed output with a child tx so the package reaches your target fee rate.',
+          fields: [
+            EditField(name: 'Target fee rate (sat/vB)', currentValue: ''),
+          ],
+          onSave: (updatedFields) async {
+            final raw = updatedFields.firstWhere((f) => f.name == 'Target fee rate (sat/vB)').currentValue;
+            await _createCpfp(context, tx, raw);
+          },
+        ),
+      ),
+    );
+  }
+
+  Future<void> _createCpfp(BuildContext context, WalletTransaction tx, String rawRate) async {
+    final log = GetIt.I<Logger>();
+
+    try {
+      final targetRate = int.tryParse(rawRate.trim());
+      if (targetRate == null || targetRate <= 0) {
+        throw Exception('Enter a positive fee rate in sat/vB');
+      }
+
+      final walletId = _walletReader.activeWalletId;
+      if (walletId == null) throw Exception('No active wallet');
+
+      final unspent = await _orchestratorWallet.listUnspent(walletId);
+      final parent = unspent.utxos.firstWhereOrNull(
+        (u) => u.txid == tx.txid && u.confirmations == 0,
+      );
+      if (parent == null) {
+        throw Exception('No spendable unconfirmed output found for this transaction');
+      }
+
+      final result = await _orchestratorWallet.createCpfp(
+        walletId: walletId,
+        parentTxid: parent.txid,
+        parentVout: parent.vout,
+        targetFeeRate: targetRate,
+      );
+
+      log.i('CPFP child broadcast: ${result.childTxid} (parent ${tx.txid})');
+      if (context.mounted) {
+        showSailToast(context, 'Accelerated! Child txid: ${result.childTxid}');
+      }
+    } catch (e) {
+      log.e('Failed to accelerate (CPFP): $e');
+      if (context.mounted) {
+        showSailToast(context, 'Failed to accelerate: $e');
       }
     }
   }

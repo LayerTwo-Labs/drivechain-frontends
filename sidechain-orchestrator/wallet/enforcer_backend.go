@@ -269,6 +269,10 @@ func (p *EnforcerBackend) BumpFee(ctx context.Context, walletID, txid string, ne
 	return "", p.unsupported("fee bumping")
 }
 
+func (p *EnforcerBackend) CreateCpfp(ctx context.Context, walletID string, req CpfpRequest) (string, error) {
+	return "", p.unsupported("CPFP fee bumping")
+}
+
 // Chain is unavailable on the enforcer wallet service; chain-level lookups
 // route to the chain wallet backend via the router.
 func (p *EnforcerBackend) Chain() ChainSource {

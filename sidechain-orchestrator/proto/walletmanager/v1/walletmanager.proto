@@ -41,6 +41,9 @@ service WalletManagerService {
   rpc ListReceiveAddresses(ListReceiveAddressesRequest) returns (ListReceiveAddressesResponse);
   rpc GetTransactionDetails(GetTransactionDetailsRequest) returns (GetTransactionDetailsResponse);
   rpc BumpFee(BumpFeeRequest) returns (BumpFeeResponse);
+  // CreateCpfp spends an unconfirmed wallet UTXO with a child transaction whose
+  // fee lifts the parent+child package to the target fee rate (CPFP).
+  rpc CreateCpfp(CreateCpfpRequest) returns (CreateCpfpResponse);
   rpc DeriveAddresses(DeriveAddressesRequest) returns (DeriveAddressesResponse);
 
   // PSBT (BIP174). CreatePsbt builds an unsigned PSBT for a send (works for
@@ -577,6 +580,17 @@ message BumpFeeRequest {
 
 message BumpFeeResponse {
   string new_txid = 1;
+}
+
+message CreateCpfpRequest {
+  string wallet_id = 1;
+  string parent_txid = 2;
+  int32 parent_vout = 3;
+  int64 target_fee_rate = 4;  // sat/vB, package fee rate the parent+child must reach
+}
+
+message CreateCpfpResponse {
+  string child_txid = 1;  // broadcast child transaction id
 }
 
 message DeriveAddressesRequest {

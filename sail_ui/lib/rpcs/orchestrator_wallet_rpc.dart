@@ -284,6 +284,22 @@ class OrchestratorWalletRPC {
     );
   }
 
+  Future<wmpb.CreateCpfpResponse> createCpfp({
+    required String walletId,
+    required String parentTxid,
+    required int parentVout,
+    required int targetFeeRate,
+  }) {
+    return _unaryClient.createCpfp(
+      wmpb.CreateCpfpRequest(
+        walletId: walletId,
+        parentTxid: parentTxid,
+        parentVout: parentVout,
+        targetFeeRate: Int64(targetFeeRate),
+      ),
+    );
+  }
+
   Stream<wmpb.WatchWalletDataResponse> watchWalletData() {
     return _streamClient.watchWalletData(emptypb.Empty());
   }

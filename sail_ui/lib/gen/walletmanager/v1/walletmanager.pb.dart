@@ -5335,6 +5335,148 @@ class BumpFeeResponse extends $pb.GeneratedMessage {
   void clearNewTxid() => clearField(1);
 }
 
+class CreateCpfpRequest extends $pb.GeneratedMessage {
+  factory CreateCpfpRequest({
+    $core.String? walletId,
+    $core.String? parentTxid,
+    $core.int? parentVout,
+    $fixnum.Int64? targetFeeRate,
+  }) {
+    final $result = create();
+    if (walletId != null) {
+      $result.walletId = walletId;
+    }
+    if (parentTxid != null) {
+      $result.parentTxid = parentTxid;
+    }
+    if (parentVout != null) {
+      $result.parentVout = parentVout;
+    }
+    if (targetFeeRate != null) {
+      $result.targetFeeRate = targetFeeRate;
+    }
+    return $result;
+  }
+  CreateCpfpRequest._() : super();
+  factory CreateCpfpRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory CreateCpfpRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'CreateCpfpRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'walletmanager.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'walletId')
+    ..aOS(2, _omitFieldNames ? '' : 'parentTxid')
+    ..a<$core.int>(3, _omitFieldNames ? '' : 'parentVout', $pb.PbFieldType.O3)
+    ..aInt64(4, _omitFieldNames ? '' : 'targetFeeRate')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  CreateCpfpRequest clone() => CreateCpfpRequest()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  CreateCpfpRequest copyWith(void Function(CreateCpfpRequest) updates) => super.copyWith((message) => updates(message as CreateCpfpRequest)) as CreateCpfpRequest;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static CreateCpfpRequest create() => CreateCpfpRequest._();
+  CreateCpfpRequest createEmptyInstance() => create();
+  static $pb.PbList<CreateCpfpRequest> createRepeated() => $pb.PbList<CreateCpfpRequest>();
+  @$core.pragma('dart2js:noInline')
+  static CreateCpfpRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<CreateCpfpRequest>(create);
+  static CreateCpfpRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get walletId => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set walletId($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasWalletId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearWalletId() => clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.String get parentTxid => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set parentTxid($core.String v) { $_setString(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasParentTxid() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearParentTxid() => clearField(2);
+
+  @$pb.TagNumber(3)
+  $core.int get parentVout => $_getIZ(2);
+  @$pb.TagNumber(3)
+  set parentVout($core.int v) { $_setSignedInt32(2, v); }
+  @$pb.TagNumber(3)
+  $core.bool hasParentVout() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearParentVout() => clearField(3);
+
+  @$pb.TagNumber(4)
+  $fixnum.Int64 get targetFeeRate => $_getI64(3);
+  @$pb.TagNumber(4)
+  set targetFeeRate($fixnum.Int64 v) { $_setInt64(3, v); }
+  @$pb.TagNumber(4)
+  $core.bool hasTargetFeeRate() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearTargetFeeRate() => clearField(4);
+}
+
+class CreateCpfpResponse extends $pb.GeneratedMessage {
+  factory CreateCpfpResponse({
+    $core.String? childTxid,
+  }) {
+    final $result = create();
+    if (childTxid != null) {
+      $result.childTxid = childTxid;
+    }
+    return $result;
+  }
+  CreateCpfpResponse._() : super();
+  factory CreateCpfpResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory CreateCpfpResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'CreateCpfpResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'walletmanager.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'childTxid')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  CreateCpfpResponse clone() => CreateCpfpResponse()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  CreateCpfpResponse copyWith(void Function(CreateCpfpResponse) updates) => super.copyWith((message) => updates(message as CreateCpfpResponse)) as CreateCpfpResponse;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static CreateCpfpResponse create() => CreateCpfpResponse._();
+  CreateCpfpResponse createEmptyInstance() => create();
+  static $pb.PbList<CreateCpfpResponse> createRepeated() => $pb.PbList<CreateCpfpResponse>();
+  @$core.pragma('dart2js:noInline')
+  static CreateCpfpResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<CreateCpfpResponse>(create);
+  static CreateCpfpResponse? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get childTxid => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set childTxid($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasChildTxid() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearChildTxid() => clearField(1);
+}
+
 class DeriveAddressesRequest extends $pb.GeneratedMessage {
   factory DeriveAddressesRequest({
     $core.String? walletId,
@@ -6316,6 +6458,9 @@ class WalletManagerServiceApi {
   ;
   $async.Future<BumpFeeResponse> bumpFee($pb.ClientContext? ctx, BumpFeeRequest request) =>
     _client.invoke<BumpFeeResponse>(ctx, 'WalletManagerService', 'BumpFee', request, BumpFeeResponse())
+  ;
+  $async.Future<CreateCpfpResponse> createCpfp($pb.ClientContext? ctx, CreateCpfpRequest request) =>
+    _client.invoke<CreateCpfpResponse>(ctx, 'WalletManagerService', 'CreateCpfp', request, CreateCpfpResponse())
   ;
   $async.Future<DeriveAddressesResponse> deriveAddresses($pb.ClientContext? ctx, DeriveAddressesRequest request) =>
     _client.invoke<DeriveAddressesResponse>(ctx, 'WalletManagerService', 'DeriveAddresses', request, DeriveAddressesResponse())
