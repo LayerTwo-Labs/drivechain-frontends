@@ -112,6 +112,9 @@ const (
 	// WalletManagerServiceGetTransactionDetailsProcedure is the fully-qualified name of the
 	// WalletManagerService's GetTransactionDetails RPC.
 	WalletManagerServiceGetTransactionDetailsProcedure = "/walletmanager.v1.WalletManagerService/GetTransactionDetails"
+	// WalletManagerServiceDecodeTransactionProcedure is the fully-qualified name of the
+	// WalletManagerService's DecodeTransaction RPC.
+	WalletManagerServiceDecodeTransactionProcedure = "/walletmanager.v1.WalletManagerService/DecodeTransaction"
 	// WalletManagerServiceBumpFeeProcedure is the fully-qualified name of the WalletManagerService's
 	// BumpFee RPC.
 	WalletManagerServiceBumpFeeProcedure = "/walletmanager.v1.WalletManagerService/BumpFee"
@@ -189,6 +192,7 @@ type WalletManagerServiceClient interface {
 	ListUnspent(context.Context, *connect.Request[v1.ListUnspentRequest]) (*connect.Response[v1.ListUnspentResponse], error)
 	ListReceiveAddresses(context.Context, *connect.Request[v1.ListReceiveAddressesRequest]) (*connect.Response[v1.ListReceiveAddressesResponse], error)
 	GetTransactionDetails(context.Context, *connect.Request[v1.GetTransactionDetailsRequest]) (*connect.Response[v1.GetTransactionDetailsResponse], error)
+	DecodeTransaction(context.Context, *connect.Request[v1.DecodeTransactionRequest]) (*connect.Response[v1.DecodeTransactionResponse], error)
 	BumpFee(context.Context, *connect.Request[v1.BumpFeeRequest]) (*connect.Response[v1.BumpFeeResponse], error)
 	// CreateCpfp spends an unconfirmed wallet UTXO with a child transaction whose
 	// fee lifts the parent+child package to the target fee rate (CPFP).
@@ -384,6 +388,12 @@ func NewWalletManagerServiceClient(httpClient connect.HTTPClient, baseURL string
 			connect.WithSchema(walletManagerServiceMethods.ByName("GetTransactionDetails")),
 			connect.WithClientOptions(opts...),
 		),
+		decodeTransaction: connect.NewClient[v1.DecodeTransactionRequest, v1.DecodeTransactionResponse](
+			httpClient,
+			baseURL+WalletManagerServiceDecodeTransactionProcedure,
+			connect.WithSchema(walletManagerServiceMethods.ByName("DecodeTransaction")),
+			connect.WithClientOptions(opts...),
+		),
 		bumpFee: connect.NewClient[v1.BumpFeeRequest, v1.BumpFeeResponse](
 			httpClient,
 			baseURL+WalletManagerServiceBumpFeeProcedure,
@@ -499,6 +509,7 @@ type walletManagerServiceClient struct {
 	listUnspent               *connect.Client[v1.ListUnspentRequest, v1.ListUnspentResponse]
 	listReceiveAddresses      *connect.Client[v1.ListReceiveAddressesRequest, v1.ListReceiveAddressesResponse]
 	getTransactionDetails     *connect.Client[v1.GetTransactionDetailsRequest, v1.GetTransactionDetailsResponse]
+	decodeTransaction         *connect.Client[v1.DecodeTransactionRequest, v1.DecodeTransactionResponse]
 	bumpFee                   *connect.Client[v1.BumpFeeRequest, v1.BumpFeeResponse]
 	createCpfp                *connect.Client[v1.CreateCpfpRequest, v1.CreateCpfpResponse]
 	deriveAddresses           *connect.Client[v1.DeriveAddressesRequest, v1.DeriveAddressesResponse]
@@ -645,6 +656,11 @@ func (c *walletManagerServiceClient) GetTransactionDetails(ctx context.Context, 
 	return c.getTransactionDetails.CallUnary(ctx, req)
 }
 
+// DecodeTransaction calls walletmanager.v1.WalletManagerService.DecodeTransaction.
+func (c *walletManagerServiceClient) DecodeTransaction(ctx context.Context, req *connect.Request[v1.DecodeTransactionRequest]) (*connect.Response[v1.DecodeTransactionResponse], error) {
+	return c.decodeTransaction.CallUnary(ctx, req)
+}
+
 // BumpFee calls walletmanager.v1.WalletManagerService.BumpFee.
 func (c *walletManagerServiceClient) BumpFee(ctx context.Context, req *connect.Request[v1.BumpFeeRequest]) (*connect.Response[v1.BumpFeeResponse], error) {
 	return c.bumpFee.CallUnary(ctx, req)
@@ -749,6 +765,7 @@ type WalletManagerServiceHandler interface {
 	ListUnspent(context.Context, *connect.Request[v1.ListUnspentRequest]) (*connect.Response[v1.ListUnspentResponse], error)
 	ListReceiveAddresses(context.Context, *connect.Request[v1.ListReceiveAddressesRequest]) (*connect.Response[v1.ListReceiveAddressesResponse], error)
 	GetTransactionDetails(context.Context, *connect.Request[v1.GetTransactionDetailsRequest]) (*connect.Response[v1.GetTransactionDetailsResponse], error)
+	DecodeTransaction(context.Context, *connect.Request[v1.DecodeTransactionRequest]) (*connect.Response[v1.DecodeTransactionResponse], error)
 	BumpFee(context.Context, *connect.Request[v1.BumpFeeRequest]) (*connect.Response[v1.BumpFeeResponse], error)
 	// CreateCpfp spends an unconfirmed wallet UTXO with a child transaction whose
 	// fee lifts the parent+child package to the target fee rate (CPFP).
@@ -940,6 +957,12 @@ func NewWalletManagerServiceHandler(svc WalletManagerServiceHandler, opts ...con
 		connect.WithSchema(walletManagerServiceMethods.ByName("GetTransactionDetails")),
 		connect.WithHandlerOptions(opts...),
 	)
+	walletManagerServiceDecodeTransactionHandler := connect.NewUnaryHandler(
+		WalletManagerServiceDecodeTransactionProcedure,
+		svc.DecodeTransaction,
+		connect.WithSchema(walletManagerServiceMethods.ByName("DecodeTransaction")),
+		connect.WithHandlerOptions(opts...),
+	)
 	walletManagerServiceBumpFeeHandler := connect.NewUnaryHandler(
 		WalletManagerServiceBumpFeeProcedure,
 		svc.BumpFee,
@@ -1078,6 +1101,8 @@ func NewWalletManagerServiceHandler(svc WalletManagerServiceHandler, opts ...con
 			walletManagerServiceListReceiveAddressesHandler.ServeHTTP(w, r)
 		case WalletManagerServiceGetTransactionDetailsProcedure:
 			walletManagerServiceGetTransactionDetailsHandler.ServeHTTP(w, r)
+		case WalletManagerServiceDecodeTransactionProcedure:
+			walletManagerServiceDecodeTransactionHandler.ServeHTTP(w, r)
 		case WalletManagerServiceBumpFeeProcedure:
 			walletManagerServiceBumpFeeHandler.ServeHTTP(w, r)
 		case WalletManagerServiceCreateCpfpProcedure:
@@ -1217,6 +1242,10 @@ func (UnimplementedWalletManagerServiceHandler) ListReceiveAddresses(context.Con
 
 func (UnimplementedWalletManagerServiceHandler) GetTransactionDetails(context.Context, *connect.Request[v1.GetTransactionDetailsRequest]) (*connect.Response[v1.GetTransactionDetailsResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("walletmanager.v1.WalletManagerService.GetTransactionDetails is not implemented"))
+}
+
+func (UnimplementedWalletManagerServiceHandler) DecodeTransaction(context.Context, *connect.Request[v1.DecodeTransactionRequest]) (*connect.Response[v1.DecodeTransactionResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("walletmanager.v1.WalletManagerService.DecodeTransaction is not implemented"))
 }
 
 func (UnimplementedWalletManagerServiceHandler) BumpFee(context.Context, *connect.Request[v1.BumpFeeRequest]) (*connect.Response[v1.BumpFeeResponse], error) {

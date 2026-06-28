@@ -68,5 +68,25 @@ class AddressType extends $pb.ProtobufEnum {
   const AddressType._($core.int v, $core.String n) : super(v, n);
 }
 
+/// DecodedForm reports which artifact the input was recognized as.
+class DecodedForm extends $pb.ProtobufEnum {
+  static const DecodedForm DECODED_FORM_UNSPECIFIED = DecodedForm._(0, _omitEnumNames ? '' : 'DECODED_FORM_UNSPECIFIED');
+  static const DecodedForm DECODED_FORM_TXID = DecodedForm._(1, _omitEnumNames ? '' : 'DECODED_FORM_TXID');
+  static const DecodedForm DECODED_FORM_RAW_TX = DecodedForm._(2, _omitEnumNames ? '' : 'DECODED_FORM_RAW_TX');
+  static const DecodedForm DECODED_FORM_PSBT = DecodedForm._(3, _omitEnumNames ? '' : 'DECODED_FORM_PSBT');
+
+  static const $core.List<DecodedForm> values = <DecodedForm> [
+    DECODED_FORM_UNSPECIFIED,
+    DECODED_FORM_TXID,
+    DECODED_FORM_RAW_TX,
+    DECODED_FORM_PSBT,
+  ];
+
+  static final $core.Map<$core.int, DecodedForm> _byValue = $pb.ProtobufEnum.initByValue(values);
+  static DecodedForm? valueOf($core.int value) => _byValue[value];
+
+  const DecodedForm._($core.int v, $core.String n) : super(v, n);
+}
+
 
 const _omitEnumNames = $core.bool.fromEnvironment('protobuf.omit_enum_names');

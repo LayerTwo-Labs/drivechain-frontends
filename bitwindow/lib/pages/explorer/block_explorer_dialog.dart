@@ -1,4 +1,5 @@
 import 'package:bitwindow/dialogs/merkle_tree_dialog.dart';
+import 'package:bitwindow/pages/explorer/load_transaction_dialog.dart';
 import 'package:bitwindow/pages/explorer/widgets/transaction_flow_diagram.dart';
 import 'package:bitwindow/providers/blockchain_provider.dart';
 import 'package:flutter/foundation.dart';
@@ -71,6 +72,10 @@ class BlockExplorerDialog extends StatelessWidget {
                     onPressed: () => model.searchBlock(model.searchController.text),
                     label: 'Search',
                     variant: ButtonVariant.primary,
+                  ),
+                  SailButton(
+                    onPressed: () => showLoadTransactionDialog(context),
+                    label: 'Load transaction',
                   ),
                 ],
               ),

@@ -270,6 +270,38 @@ class OrchestratorWalletRPC {
     );
   }
 
+  Future<DecodedTransaction> decodeTransaction({
+    required String input,
+    String walletId = '',
+  }) async {
+    final response = await _unaryClient.decodeTransaction(
+      wmpb.DecodeTransactionRequest(input: input, walletId: walletId),
+    );
+
+    return DecodedTransaction(
+      form: response.form,
+      isPsbt: response.isPsbt,
+      signedInputs: response.signedInputs,
+      hasFee: response.hasFee,
+      hasTotalInput: response.hasTotalInput,
+      details: bwpb.GetTransactionDetailsResponse(
+        txid: response.txid,
+        version: response.version,
+        locktime: response.locktime,
+        sizeBytes: response.sizeBytes,
+        vsizeVbytes: response.vsizeVbytes,
+        weightWu: response.weightWu,
+        feeSats: Int64(response.feeSats.toInt()),
+        feeRateSatVb: response.feeRateSatVb,
+        inputs: response.inputs.map(_mapTransactionInput).toList(),
+        totalInputSats: Int64(response.totalInputSats.toInt()),
+        outputs: response.outputs.map(_mapTransactionOutput).toList(),
+        totalOutputSats: Int64(response.totalOutputSats.toInt()),
+        hex: response.raw,
+      ),
+    );
+  }
+
   Future<wmpb.BumpFeeResponse> bumpFee({
     required String walletId,
     required String txid,
@@ -382,4 +414,25 @@ class OrchestratorWalletRPC {
       scriptPubkeyHex: output.scriptPubkeyHex,
     );
   }
+}
+
+/// A locally decoded transaction or PSBT. [details] reuses the transaction-detail
+/// display shape; the extra fields carry decode-specific context (which form was
+/// recognized, PSBT signing progress, and whether the fee/total input are exact).
+class DecodedTransaction {
+  final wmpb.DecodedForm form;
+  final bool isPsbt;
+  final int signedInputs;
+  final bool hasFee;
+  final bool hasTotalInput;
+  final bwpb.GetTransactionDetailsResponse details;
+
+  const DecodedTransaction({
+    required this.form,
+    required this.isPsbt,
+    required this.signedInputs,
+    required this.hasFee,
+    required this.hasTotalInput,
+    required this.details,
+  });
 }

@@ -456,6 +456,23 @@ extension type WalletManagerServiceClient (connect.Transport _transport) {
     );
   }
 
+  Future<walletmanagerv1walletmanager.DecodeTransactionResponse> decodeTransaction(
+    walletmanagerv1walletmanager.DecodeTransactionRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.WalletManagerService.decodeTransaction,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
   Future<walletmanagerv1walletmanager.BumpFeeResponse> bumpFee(
     walletmanagerv1walletmanager.BumpFeeRequest input, {
     connect.Headers? headers,

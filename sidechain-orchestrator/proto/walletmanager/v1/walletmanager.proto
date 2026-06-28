@@ -40,6 +40,7 @@ service WalletManagerService {
   rpc ListUnspent(ListUnspentRequest) returns (ListUnspentResponse);
   rpc ListReceiveAddresses(ListReceiveAddressesRequest) returns (ListReceiveAddressesResponse);
   rpc GetTransactionDetails(GetTransactionDetailsRequest) returns (GetTransactionDetailsResponse);
+  rpc DecodeTransaction(DecodeTransactionRequest) returns (DecodeTransactionResponse);
   rpc BumpFee(BumpFeeRequest) returns (BumpFeeResponse);
   // CreateCpfp spends an unconfirmed wallet UTXO with a child transaction whose
   // fee lifts the parent+child package to the target fee rate (CPFP).
@@ -570,6 +571,50 @@ message TransactionOutput {
   string script_type = 4;
   string script_pubkey_asm = 5;
   string script_pubkey_hex = 6;
+}
+
+// DecodeTransaction inspects a pasted txid, raw transaction hex, or base64 PSBT
+// and returns its decoded inputs/outputs/fee. Read-only: nothing is signed or
+// broadcast.
+message DecodeTransactionRequest {
+  // A 64-hex-char txid, a raw transaction hex, or a base64 PSBT. The form is
+  // auto-detected.
+  string input = 1;
+  // Optional wallet to resolve a txid against (and enrich input values). Empty
+  // uses the active wallet.
+  string wallet_id = 2;
+}
+
+// DecodedForm reports which artifact the input was recognized as.
+enum DecodedForm {
+  DECODED_FORM_UNSPECIFIED = 0;
+  DECODED_FORM_TXID = 1;
+  DECODED_FORM_RAW_TX = 2;
+  DECODED_FORM_PSBT = 3;
+}
+
+message DecodeTransactionResponse {
+  DecodedForm form = 1;
+  string txid = 2;
+  int32 version = 3;
+  int32 locktime = 4;
+  int32 size_bytes = 5;
+  int32 vsize_vbytes = 6;
+  int32 weight_wu = 7;
+  repeated TransactionInput inputs = 8;
+  repeated TransactionOutput outputs = 9;
+  int64 total_input_sats = 10;
+  // True when every input value is known, so total_input_sats and fee are exact.
+  bool has_total_input = 11;
+  int64 total_output_sats = 12;
+  int64 fee_sats = 13;
+  bool has_fee = 14;
+  double fee_rate_sat_vb = 15;
+  // PSBT-only: how many inputs already carry a signature.
+  bool is_psbt = 16;
+  int32 signed_inputs = 17;
+  // Raw transaction hex, or base64 for a PSBT.
+  string raw = 18;
 }
 
 message BumpFeeRequest {
