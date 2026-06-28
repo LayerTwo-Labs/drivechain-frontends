@@ -15,6 +15,226 @@ import 'dart:core' as $core;
 import 'package:fixnum/fixnum.dart' as $fixnum;
 import 'package:protobuf/protobuf.dart' as $pb;
 
+/// SpendDestination is one output of a spend: an address and an amount in sats.
+class SpendDestination extends $pb.GeneratedMessage {
+  factory SpendDestination({
+    $core.String? address,
+    $fixnum.Int64? sats,
+  }) {
+    final $result = create();
+    if (address != null) {
+      $result.address = address;
+    }
+    if (sats != null) {
+      $result.sats = sats;
+    }
+    return $result;
+  }
+  SpendDestination._() : super();
+  factory SpendDestination.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory SpendDestination.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'SpendDestination', package: const $pb.PackageName(_omitMessageNames ? '' : 'multisiglounge.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'address')
+    ..aInt64(2, _omitFieldNames ? '' : 'sats')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  SpendDestination clone() => SpendDestination()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  SpendDestination copyWith(void Function(SpendDestination) updates) => super.copyWith((message) => updates(message as SpendDestination)) as SpendDestination;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static SpendDestination create() => SpendDestination._();
+  SpendDestination createEmptyInstance() => create();
+  static $pb.PbList<SpendDestination> createRepeated() => $pb.PbList<SpendDestination>();
+  @$core.pragma('dart2js:noInline')
+  static SpendDestination getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<SpendDestination>(create);
+  static SpendDestination? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get address => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set address($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasAddress() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearAddress() => clearField(1);
+
+  @$pb.TagNumber(2)
+  $fixnum.Int64 get sats => $_getI64(1);
+  @$pb.TagNumber(2)
+  set sats($fixnum.Int64 v) { $_setInt64(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasSats() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearSats() => clearField(2);
+}
+
+class CreateSpendPsbtRequest extends $pb.GeneratedMessage {
+  factory CreateSpendPsbtRequest({
+    GroupData? group,
+    $core.String? walletId,
+    $core.Iterable<SpendDestination>? destinations,
+    $core.double? feeRateSatVb,
+  }) {
+    final $result = create();
+    if (group != null) {
+      $result.group = group;
+    }
+    if (walletId != null) {
+      $result.walletId = walletId;
+    }
+    if (destinations != null) {
+      $result.destinations.addAll(destinations);
+    }
+    if (feeRateSatVb != null) {
+      $result.feeRateSatVb = feeRateSatVb;
+    }
+    return $result;
+  }
+  CreateSpendPsbtRequest._() : super();
+  factory CreateSpendPsbtRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory CreateSpendPsbtRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'CreateSpendPsbtRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'multisiglounge.v1'), createEmptyInstance: create)
+    ..aOM<GroupData>(1, _omitFieldNames ? '' : 'group', subBuilder: GroupData.create)
+    ..aOS(2, _omitFieldNames ? '' : 'walletId')
+    ..pc<SpendDestination>(3, _omitFieldNames ? '' : 'destinations', $pb.PbFieldType.PM, subBuilder: SpendDestination.create)
+    ..a<$core.double>(4, _omitFieldNames ? '' : 'feeRateSatVb', $pb.PbFieldType.OD)
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  CreateSpendPsbtRequest clone() => CreateSpendPsbtRequest()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  CreateSpendPsbtRequest copyWith(void Function(CreateSpendPsbtRequest) updates) => super.copyWith((message) => updates(message as CreateSpendPsbtRequest)) as CreateSpendPsbtRequest;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static CreateSpendPsbtRequest create() => CreateSpendPsbtRequest._();
+  CreateSpendPsbtRequest createEmptyInstance() => create();
+  static $pb.PbList<CreateSpendPsbtRequest> createRepeated() => $pb.PbList<CreateSpendPsbtRequest>();
+  @$core.pragma('dart2js:noInline')
+  static CreateSpendPsbtRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<CreateSpendPsbtRequest>(create);
+  static CreateSpendPsbtRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  GroupData get group => $_getN(0);
+  @$pb.TagNumber(1)
+  set group(GroupData v) { setField(1, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasGroup() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearGroup() => clearField(1);
+  @$pb.TagNumber(1)
+  GroupData ensureGroup() => $_ensure(0);
+
+  @$pb.TagNumber(2)
+  $core.String get walletId => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set walletId($core.String v) { $_setString(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasWalletId() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearWalletId() => clearField(2);
+
+  @$pb.TagNumber(3)
+  $core.List<SpendDestination> get destinations => $_getList(2);
+
+  /// Optional fee rate in sat/vB. 0 lets bitcoind pick (fallback/estimate fee),
+  /// matching the current Dart path which passes no explicit fee rate.
+  @$pb.TagNumber(4)
+  $core.double get feeRateSatVb => $_getN(3);
+  @$pb.TagNumber(4)
+  set feeRateSatVb($core.double v) { $_setDouble(3, v); }
+  @$pb.TagNumber(4)
+  $core.bool hasFeeRateSatVb() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearFeeRateSatVb() => clearField(4);
+}
+
+class CreateSpendPsbtResponse extends $pb.GeneratedMessage {
+  factory CreateSpendPsbtResponse({
+    $core.String? psbtBase64,
+    $fixnum.Int64? feeSats,
+  }) {
+    final $result = create();
+    if (psbtBase64 != null) {
+      $result.psbtBase64 = psbtBase64;
+    }
+    if (feeSats != null) {
+      $result.feeSats = feeSats;
+    }
+    return $result;
+  }
+  CreateSpendPsbtResponse._() : super();
+  factory CreateSpendPsbtResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory CreateSpendPsbtResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'CreateSpendPsbtResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'multisiglounge.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'psbtBase64')
+    ..aInt64(2, _omitFieldNames ? '' : 'feeSats')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  CreateSpendPsbtResponse clone() => CreateSpendPsbtResponse()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  CreateSpendPsbtResponse copyWith(void Function(CreateSpendPsbtResponse) updates) => super.copyWith((message) => updates(message as CreateSpendPsbtResponse)) as CreateSpendPsbtResponse;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static CreateSpendPsbtResponse create() => CreateSpendPsbtResponse._();
+  CreateSpendPsbtResponse createEmptyInstance() => create();
+  static $pb.PbList<CreateSpendPsbtResponse> createRepeated() => $pb.PbList<CreateSpendPsbtResponse>();
+  @$core.pragma('dart2js:noInline')
+  static CreateSpendPsbtResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<CreateSpendPsbtResponse>(create);
+  static CreateSpendPsbtResponse? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get psbtBase64 => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set psbtBase64($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasPsbtBase64() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearPsbtBase64() => clearField(1);
+
+  /// Fee the funded PSBT pays, in sats.
+  @$pb.TagNumber(2)
+  $fixnum.Int64 get feeSats => $_getI64(1);
+  @$pb.TagNumber(2)
+  set feeSats($fixnum.Int64 v) { $_setInt64(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasFeeSats() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearFeeSats() => clearField(2);
+}
+
 class SyncGroupRequest extends $pb.GeneratedMessage {
   factory SyncGroupRequest({
     GroupData? group,
@@ -2020,6 +2240,9 @@ class MultisigLoungeServiceApi {
   ;
   $async.Future<RestoreHistoryResponse> restoreHistory($pb.ClientContext? ctx, RestoreHistoryRequest request) =>
     _client.invoke<RestoreHistoryResponse>(ctx, 'MultisigLoungeService', 'RestoreHistory', request, RestoreHistoryResponse())
+  ;
+  $async.Future<CreateSpendPsbtResponse> createSpendPsbt($pb.ClientContext? ctx, CreateSpendPsbtRequest request) =>
+    _client.invoke<CreateSpendPsbtResponse>(ctx, 'MultisigLoungeService', 'CreateSpendPsbt', request, CreateSpendPsbtResponse())
   ;
 }
 

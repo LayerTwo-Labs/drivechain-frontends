@@ -166,4 +166,23 @@ extension type MultisigLoungeServiceClient (connect.Transport _transport) {
       onTrailer: onTrailer,
     );
   }
+
+  /// CreateSpendPsbt builds an unsigned funded PSBT spending from the group's
+  /// watch-only wallet to the given destinations (ensuring the wallet exists).
+  Future<multisigloungev1multisiglounge.CreateSpendPsbtResponse> createSpendPsbt(
+    multisigloungev1multisiglounge.CreateSpendPsbtRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.MultisigLoungeService.createSpendPsbt,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
 }

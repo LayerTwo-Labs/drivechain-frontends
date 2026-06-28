@@ -57,6 +57,9 @@ const (
 	// MultisigLoungeServiceRestoreHistoryProcedure is the fully-qualified name of the
 	// MultisigLoungeService's RestoreHistory RPC.
 	MultisigLoungeServiceRestoreHistoryProcedure = "/multisiglounge.v1.MultisigLoungeService/RestoreHistory"
+	// MultisigLoungeServiceCreateSpendPsbtProcedure is the fully-qualified name of the
+	// MultisigLoungeService's CreateSpendPsbt RPC.
+	MultisigLoungeServiceCreateSpendPsbtProcedure = "/multisiglounge.v1.MultisigLoungeService/CreateSpendPsbt"
 )
 
 // MultisigLoungeServiceClient is a client for the multisiglounge.v1.MultisigLoungeService service.
@@ -89,6 +92,9 @@ type MultisigLoungeServiceClient interface {
 	// RestoreHistory scans the watch-only wallet's transactions and reconstructs
 	// the group's spend/receive records with per-tx signature counts and status.
 	RestoreHistory(context.Context, *connect.Request[v1.RestoreHistoryRequest]) (*connect.Response[v1.RestoreHistoryResponse], error)
+	// CreateSpendPsbt builds an unsigned funded PSBT spending from the group's
+	// watch-only wallet to the given destinations (ensuring the wallet exists).
+	CreateSpendPsbt(context.Context, *connect.Request[v1.CreateSpendPsbtRequest]) (*connect.Response[v1.CreateSpendPsbtResponse], error)
 }
 
 // NewMultisigLoungeServiceClient constructs a client for the
@@ -150,6 +156,12 @@ func NewMultisigLoungeServiceClient(httpClient connect.HTTPClient, baseURL strin
 			connect.WithSchema(multisigLoungeServiceMethods.ByName("RestoreHistory")),
 			connect.WithClientOptions(opts...),
 		),
+		createSpendPsbt: connect.NewClient[v1.CreateSpendPsbtRequest, v1.CreateSpendPsbtResponse](
+			httpClient,
+			baseURL+MultisigLoungeServiceCreateSpendPsbtProcedure,
+			connect.WithSchema(multisigLoungeServiceMethods.ByName("CreateSpendPsbt")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -163,6 +175,7 @@ type multisigLoungeServiceClient struct {
 	combineAndBroadcast *connect.Client[v1.CombineAndBroadcastRequest, v1.CombineAndBroadcastResponse]
 	syncGroup           *connect.Client[v1.SyncGroupRequest, v1.SyncGroupResponse]
 	restoreHistory      *connect.Client[v1.RestoreHistoryRequest, v1.RestoreHistoryResponse]
+	createSpendPsbt     *connect.Client[v1.CreateSpendPsbtRequest, v1.CreateSpendPsbtResponse]
 }
 
 // BuildDescriptors calls multisiglounge.v1.MultisigLoungeService.BuildDescriptors.
@@ -205,6 +218,11 @@ func (c *multisigLoungeServiceClient) RestoreHistory(ctx context.Context, req *c
 	return c.restoreHistory.CallUnary(ctx, req)
 }
 
+// CreateSpendPsbt calls multisiglounge.v1.MultisigLoungeService.CreateSpendPsbt.
+func (c *multisigLoungeServiceClient) CreateSpendPsbt(ctx context.Context, req *connect.Request[v1.CreateSpendPsbtRequest]) (*connect.Response[v1.CreateSpendPsbtResponse], error) {
+	return c.createSpendPsbt.CallUnary(ctx, req)
+}
+
 // MultisigLoungeServiceHandler is an implementation of the multisiglounge.v1.MultisigLoungeService
 // service.
 type MultisigLoungeServiceHandler interface {
@@ -236,6 +254,9 @@ type MultisigLoungeServiceHandler interface {
 	// RestoreHistory scans the watch-only wallet's transactions and reconstructs
 	// the group's spend/receive records with per-tx signature counts and status.
 	RestoreHistory(context.Context, *connect.Request[v1.RestoreHistoryRequest]) (*connect.Response[v1.RestoreHistoryResponse], error)
+	// CreateSpendPsbt builds an unsigned funded PSBT spending from the group's
+	// watch-only wallet to the given destinations (ensuring the wallet exists).
+	CreateSpendPsbt(context.Context, *connect.Request[v1.CreateSpendPsbtRequest]) (*connect.Response[v1.CreateSpendPsbtResponse], error)
 }
 
 // NewMultisigLoungeServiceHandler builds an HTTP handler from the service implementation. It
@@ -293,6 +314,12 @@ func NewMultisigLoungeServiceHandler(svc MultisigLoungeServiceHandler, opts ...c
 		connect.WithSchema(multisigLoungeServiceMethods.ByName("RestoreHistory")),
 		connect.WithHandlerOptions(opts...),
 	)
+	multisigLoungeServiceCreateSpendPsbtHandler := connect.NewUnaryHandler(
+		MultisigLoungeServiceCreateSpendPsbtProcedure,
+		svc.CreateSpendPsbt,
+		connect.WithSchema(multisigLoungeServiceMethods.ByName("CreateSpendPsbt")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/multisiglounge.v1.MultisigLoungeService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case MultisigLoungeServiceBuildDescriptorsProcedure:
@@ -311,6 +338,8 @@ func NewMultisigLoungeServiceHandler(svc MultisigLoungeServiceHandler, opts ...c
 			multisigLoungeServiceSyncGroupHandler.ServeHTTP(w, r)
 		case MultisigLoungeServiceRestoreHistoryProcedure:
 			multisigLoungeServiceRestoreHistoryHandler.ServeHTTP(w, r)
+		case MultisigLoungeServiceCreateSpendPsbtProcedure:
+			multisigLoungeServiceCreateSpendPsbtHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -350,4 +379,8 @@ func (UnimplementedMultisigLoungeServiceHandler) SyncGroup(context.Context, *con
 
 func (UnimplementedMultisigLoungeServiceHandler) RestoreHistory(context.Context, *connect.Request[v1.RestoreHistoryRequest]) (*connect.Response[v1.RestoreHistoryResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("multisiglounge.v1.MultisigLoungeService.RestoreHistory is not implemented"))
+}
+
+func (UnimplementedMultisigLoungeServiceHandler) CreateSpendPsbt(context.Context, *connect.Request[v1.CreateSpendPsbtRequest]) (*connect.Response[v1.CreateSpendPsbtResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("multisiglounge.v1.MultisigLoungeService.CreateSpendPsbt is not implemented"))
 }
