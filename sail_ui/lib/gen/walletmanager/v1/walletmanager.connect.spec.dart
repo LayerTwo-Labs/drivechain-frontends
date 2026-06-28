@@ -198,6 +198,13 @@ abstract final class WalletManagerService {
     walletmanagerv1walletmanager.GetTransactionDetailsResponse.new,
   );
 
+  static const decodeTransaction = connect.Spec(
+    '/$name/DecodeTransaction',
+    connect.StreamType.unary,
+    walletmanagerv1walletmanager.DecodeTransactionRequest.new,
+    walletmanagerv1walletmanager.DecodeTransactionResponse.new,
+  );
+
   static const bumpFee = connect.Spec(
     '/$name/BumpFee',
     connect.StreamType.unary,

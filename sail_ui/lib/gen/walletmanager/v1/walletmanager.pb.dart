@@ -5207,6 +5207,356 @@ class TransactionOutput extends $pb.GeneratedMessage {
   void clearScriptPubkeyHex() => clearField(6);
 }
 
+/// DecodeTransaction inspects a pasted txid, raw transaction hex, or base64 PSBT
+/// and returns its decoded inputs/outputs/fee. Read-only: nothing is signed or
+/// broadcast.
+class DecodeTransactionRequest extends $pb.GeneratedMessage {
+  factory DecodeTransactionRequest({
+    $core.String? input,
+    $core.String? walletId,
+  }) {
+    final $result = create();
+    if (input != null) {
+      $result.input = input;
+    }
+    if (walletId != null) {
+      $result.walletId = walletId;
+    }
+    return $result;
+  }
+  DecodeTransactionRequest._() : super();
+  factory DecodeTransactionRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory DecodeTransactionRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'DecodeTransactionRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'walletmanager.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'input')
+    ..aOS(2, _omitFieldNames ? '' : 'walletId')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  DecodeTransactionRequest clone() => DecodeTransactionRequest()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  DecodeTransactionRequest copyWith(void Function(DecodeTransactionRequest) updates) => super.copyWith((message) => updates(message as DecodeTransactionRequest)) as DecodeTransactionRequest;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static DecodeTransactionRequest create() => DecodeTransactionRequest._();
+  DecodeTransactionRequest createEmptyInstance() => create();
+  static $pb.PbList<DecodeTransactionRequest> createRepeated() => $pb.PbList<DecodeTransactionRequest>();
+  @$core.pragma('dart2js:noInline')
+  static DecodeTransactionRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<DecodeTransactionRequest>(create);
+  static DecodeTransactionRequest? _defaultInstance;
+
+  /// A 64-hex-char txid, a raw transaction hex, or a base64 PSBT. The form is
+  /// auto-detected.
+  @$pb.TagNumber(1)
+  $core.String get input => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set input($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasInput() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearInput() => clearField(1);
+
+  /// Optional wallet to resolve a txid against (and enrich input values). Empty
+  /// uses the active wallet.
+  @$pb.TagNumber(2)
+  $core.String get walletId => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set walletId($core.String v) { $_setString(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasWalletId() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearWalletId() => clearField(2);
+}
+
+class DecodeTransactionResponse extends $pb.GeneratedMessage {
+  factory DecodeTransactionResponse({
+    DecodedForm? form,
+    $core.String? txid,
+    $core.int? version,
+    $core.int? locktime,
+    $core.int? sizeBytes,
+    $core.int? vsizeVbytes,
+    $core.int? weightWu,
+    $core.Iterable<TransactionInput>? inputs,
+    $core.Iterable<TransactionOutput>? outputs,
+    $fixnum.Int64? totalInputSats,
+    $core.bool? hasTotalInput,
+    $fixnum.Int64? totalOutputSats,
+    $fixnum.Int64? feeSats,
+    $core.bool? hasFee,
+    $core.double? feeRateSatVb,
+    $core.bool? isPsbt,
+    $core.int? signedInputs,
+    $core.String? raw,
+  }) {
+    final $result = create();
+    if (form != null) {
+      $result.form = form;
+    }
+    if (txid != null) {
+      $result.txid = txid;
+    }
+    if (version != null) {
+      $result.version = version;
+    }
+    if (locktime != null) {
+      $result.locktime = locktime;
+    }
+    if (sizeBytes != null) {
+      $result.sizeBytes = sizeBytes;
+    }
+    if (vsizeVbytes != null) {
+      $result.vsizeVbytes = vsizeVbytes;
+    }
+    if (weightWu != null) {
+      $result.weightWu = weightWu;
+    }
+    if (inputs != null) {
+      $result.inputs.addAll(inputs);
+    }
+    if (outputs != null) {
+      $result.outputs.addAll(outputs);
+    }
+    if (totalInputSats != null) {
+      $result.totalInputSats = totalInputSats;
+    }
+    if (hasTotalInput != null) {
+      $result.hasTotalInput = hasTotalInput;
+    }
+    if (totalOutputSats != null) {
+      $result.totalOutputSats = totalOutputSats;
+    }
+    if (feeSats != null) {
+      $result.feeSats = feeSats;
+    }
+    if (hasFee != null) {
+      $result.hasFee = hasFee;
+    }
+    if (feeRateSatVb != null) {
+      $result.feeRateSatVb = feeRateSatVb;
+    }
+    if (isPsbt != null) {
+      $result.isPsbt = isPsbt;
+    }
+    if (signedInputs != null) {
+      $result.signedInputs = signedInputs;
+    }
+    if (raw != null) {
+      $result.raw = raw;
+    }
+    return $result;
+  }
+  DecodeTransactionResponse._() : super();
+  factory DecodeTransactionResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory DecodeTransactionResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'DecodeTransactionResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'walletmanager.v1'), createEmptyInstance: create)
+    ..e<DecodedForm>(1, _omitFieldNames ? '' : 'form', $pb.PbFieldType.OE, defaultOrMaker: DecodedForm.DECODED_FORM_UNSPECIFIED, valueOf: DecodedForm.valueOf, enumValues: DecodedForm.values)
+    ..aOS(2, _omitFieldNames ? '' : 'txid')
+    ..a<$core.int>(3, _omitFieldNames ? '' : 'version', $pb.PbFieldType.O3)
+    ..a<$core.int>(4, _omitFieldNames ? '' : 'locktime', $pb.PbFieldType.O3)
+    ..a<$core.int>(5, _omitFieldNames ? '' : 'sizeBytes', $pb.PbFieldType.O3)
+    ..a<$core.int>(6, _omitFieldNames ? '' : 'vsizeVbytes', $pb.PbFieldType.O3)
+    ..a<$core.int>(7, _omitFieldNames ? '' : 'weightWu', $pb.PbFieldType.O3)
+    ..pc<TransactionInput>(8, _omitFieldNames ? '' : 'inputs', $pb.PbFieldType.PM, subBuilder: TransactionInput.create)
+    ..pc<TransactionOutput>(9, _omitFieldNames ? '' : 'outputs', $pb.PbFieldType.PM, subBuilder: TransactionOutput.create)
+    ..aInt64(10, _omitFieldNames ? '' : 'totalInputSats')
+    ..aOB(11, _omitFieldNames ? '' : 'hasTotalInput')
+    ..aInt64(12, _omitFieldNames ? '' : 'totalOutputSats')
+    ..aInt64(13, _omitFieldNames ? '' : 'feeSats')
+    ..aOB(14, _omitFieldNames ? '' : 'hasFee')
+    ..a<$core.double>(15, _omitFieldNames ? '' : 'feeRateSatVb', $pb.PbFieldType.OD)
+    ..aOB(16, _omitFieldNames ? '' : 'isPsbt')
+    ..a<$core.int>(17, _omitFieldNames ? '' : 'signedInputs', $pb.PbFieldType.O3)
+    ..aOS(18, _omitFieldNames ? '' : 'raw')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  DecodeTransactionResponse clone() => DecodeTransactionResponse()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  DecodeTransactionResponse copyWith(void Function(DecodeTransactionResponse) updates) => super.copyWith((message) => updates(message as DecodeTransactionResponse)) as DecodeTransactionResponse;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static DecodeTransactionResponse create() => DecodeTransactionResponse._();
+  DecodeTransactionResponse createEmptyInstance() => create();
+  static $pb.PbList<DecodeTransactionResponse> createRepeated() => $pb.PbList<DecodeTransactionResponse>();
+  @$core.pragma('dart2js:noInline')
+  static DecodeTransactionResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<DecodeTransactionResponse>(create);
+  static DecodeTransactionResponse? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  DecodedForm get form => $_getN(0);
+  @$pb.TagNumber(1)
+  set form(DecodedForm v) { setField(1, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasForm() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearForm() => clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.String get txid => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set txid($core.String v) { $_setString(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasTxid() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearTxid() => clearField(2);
+
+  @$pb.TagNumber(3)
+  $core.int get version => $_getIZ(2);
+  @$pb.TagNumber(3)
+  set version($core.int v) { $_setSignedInt32(2, v); }
+  @$pb.TagNumber(3)
+  $core.bool hasVersion() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearVersion() => clearField(3);
+
+  @$pb.TagNumber(4)
+  $core.int get locktime => $_getIZ(3);
+  @$pb.TagNumber(4)
+  set locktime($core.int v) { $_setSignedInt32(3, v); }
+  @$pb.TagNumber(4)
+  $core.bool hasLocktime() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearLocktime() => clearField(4);
+
+  @$pb.TagNumber(5)
+  $core.int get sizeBytes => $_getIZ(4);
+  @$pb.TagNumber(5)
+  set sizeBytes($core.int v) { $_setSignedInt32(4, v); }
+  @$pb.TagNumber(5)
+  $core.bool hasSizeBytes() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearSizeBytes() => clearField(5);
+
+  @$pb.TagNumber(6)
+  $core.int get vsizeVbytes => $_getIZ(5);
+  @$pb.TagNumber(6)
+  set vsizeVbytes($core.int v) { $_setSignedInt32(5, v); }
+  @$pb.TagNumber(6)
+  $core.bool hasVsizeVbytes() => $_has(5);
+  @$pb.TagNumber(6)
+  void clearVsizeVbytes() => clearField(6);
+
+  @$pb.TagNumber(7)
+  $core.int get weightWu => $_getIZ(6);
+  @$pb.TagNumber(7)
+  set weightWu($core.int v) { $_setSignedInt32(6, v); }
+  @$pb.TagNumber(7)
+  $core.bool hasWeightWu() => $_has(6);
+  @$pb.TagNumber(7)
+  void clearWeightWu() => clearField(7);
+
+  @$pb.TagNumber(8)
+  $core.List<TransactionInput> get inputs => $_getList(7);
+
+  @$pb.TagNumber(9)
+  $core.List<TransactionOutput> get outputs => $_getList(8);
+
+  @$pb.TagNumber(10)
+  $fixnum.Int64 get totalInputSats => $_getI64(9);
+  @$pb.TagNumber(10)
+  set totalInputSats($fixnum.Int64 v) { $_setInt64(9, v); }
+  @$pb.TagNumber(10)
+  $core.bool hasTotalInputSats() => $_has(9);
+  @$pb.TagNumber(10)
+  void clearTotalInputSats() => clearField(10);
+
+  /// True when every input value is known, so total_input_sats and fee are exact.
+  @$pb.TagNumber(11)
+  $core.bool get hasTotalInput => $_getBF(10);
+  @$pb.TagNumber(11)
+  set hasTotalInput($core.bool v) { $_setBool(10, v); }
+  @$pb.TagNumber(11)
+  $core.bool hasHasTotalInput() => $_has(10);
+  @$pb.TagNumber(11)
+  void clearHasTotalInput() => clearField(11);
+
+  @$pb.TagNumber(12)
+  $fixnum.Int64 get totalOutputSats => $_getI64(11);
+  @$pb.TagNumber(12)
+  set totalOutputSats($fixnum.Int64 v) { $_setInt64(11, v); }
+  @$pb.TagNumber(12)
+  $core.bool hasTotalOutputSats() => $_has(11);
+  @$pb.TagNumber(12)
+  void clearTotalOutputSats() => clearField(12);
+
+  @$pb.TagNumber(13)
+  $fixnum.Int64 get feeSats => $_getI64(12);
+  @$pb.TagNumber(13)
+  set feeSats($fixnum.Int64 v) { $_setInt64(12, v); }
+  @$pb.TagNumber(13)
+  $core.bool hasFeeSats() => $_has(12);
+  @$pb.TagNumber(13)
+  void clearFeeSats() => clearField(13);
+
+  @$pb.TagNumber(14)
+  $core.bool get hasFee => $_getBF(13);
+  @$pb.TagNumber(14)
+  set hasFee($core.bool v) { $_setBool(13, v); }
+  @$pb.TagNumber(14)
+  $core.bool hasHasFee() => $_has(13);
+  @$pb.TagNumber(14)
+  void clearHasFee() => clearField(14);
+
+  @$pb.TagNumber(15)
+  $core.double get feeRateSatVb => $_getN(14);
+  @$pb.TagNumber(15)
+  set feeRateSatVb($core.double v) { $_setDouble(14, v); }
+  @$pb.TagNumber(15)
+  $core.bool hasFeeRateSatVb() => $_has(14);
+  @$pb.TagNumber(15)
+  void clearFeeRateSatVb() => clearField(15);
+
+  /// PSBT-only: how many inputs already carry a signature.
+  @$pb.TagNumber(16)
+  $core.bool get isPsbt => $_getBF(15);
+  @$pb.TagNumber(16)
+  set isPsbt($core.bool v) { $_setBool(15, v); }
+  @$pb.TagNumber(16)
+  $core.bool hasIsPsbt() => $_has(15);
+  @$pb.TagNumber(16)
+  void clearIsPsbt() => clearField(16);
+
+  @$pb.TagNumber(17)
+  $core.int get signedInputs => $_getIZ(16);
+  @$pb.TagNumber(17)
+  set signedInputs($core.int v) { $_setSignedInt32(16, v); }
+  @$pb.TagNumber(17)
+  $core.bool hasSignedInputs() => $_has(16);
+  @$pb.TagNumber(17)
+  void clearSignedInputs() => clearField(17);
+
+  /// Raw transaction hex, or base64 for a PSBT.
+  @$pb.TagNumber(18)
+  $core.String get raw => $_getSZ(17);
+  @$pb.TagNumber(18)
+  set raw($core.String v) { $_setString(17, v); }
+  @$pb.TagNumber(18)
+  $core.bool hasRaw() => $_has(17);
+  @$pb.TagNumber(18)
+  void clearRaw() => clearField(18);
+}
+
 class BumpFeeRequest extends $pb.GeneratedMessage {
   factory BumpFeeRequest({
     $core.String? walletId,
@@ -6455,6 +6805,9 @@ class WalletManagerServiceApi {
   ;
   $async.Future<GetTransactionDetailsResponse> getTransactionDetails($pb.ClientContext? ctx, GetTransactionDetailsRequest request) =>
     _client.invoke<GetTransactionDetailsResponse>(ctx, 'WalletManagerService', 'GetTransactionDetails', request, GetTransactionDetailsResponse())
+  ;
+  $async.Future<DecodeTransactionResponse> decodeTransaction($pb.ClientContext? ctx, DecodeTransactionRequest request) =>
+    _client.invoke<DecodeTransactionResponse>(ctx, 'WalletManagerService', 'DecodeTransaction', request, DecodeTransactionResponse())
   ;
   $async.Future<BumpFeeResponse> bumpFee($pb.ClientContext? ctx, BumpFeeRequest request) =>
     _client.invoke<BumpFeeResponse>(ctx, 'WalletManagerService', 'BumpFee', request, BumpFeeResponse())

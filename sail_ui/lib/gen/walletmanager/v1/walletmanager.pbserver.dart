@@ -48,6 +48,7 @@ abstract class WalletManagerServiceBase extends $pb.GeneratedService {
   $async.Future<$14.ListUnspentResponse> listUnspent($pb.ServerContext ctx, $14.ListUnspentRequest request);
   $async.Future<$14.ListReceiveAddressesResponse> listReceiveAddresses($pb.ServerContext ctx, $14.ListReceiveAddressesRequest request);
   $async.Future<$14.GetTransactionDetailsResponse> getTransactionDetails($pb.ServerContext ctx, $14.GetTransactionDetailsRequest request);
+  $async.Future<$14.DecodeTransactionResponse> decodeTransaction($pb.ServerContext ctx, $14.DecodeTransactionRequest request);
   $async.Future<$14.BumpFeeResponse> bumpFee($pb.ServerContext ctx, $14.BumpFeeRequest request);
   $async.Future<$14.CreateCpfpResponse> createCpfp($pb.ServerContext ctx, $14.CreateCpfpRequest request);
   $async.Future<$14.DeriveAddressesResponse> deriveAddresses($pb.ServerContext ctx, $14.DeriveAddressesRequest request);
@@ -91,6 +92,7 @@ abstract class WalletManagerServiceBase extends $pb.GeneratedService {
       case 'ListUnspent': return $14.ListUnspentRequest();
       case 'ListReceiveAddresses': return $14.ListReceiveAddressesRequest();
       case 'GetTransactionDetails': return $14.GetTransactionDetailsRequest();
+      case 'DecodeTransaction': return $14.DecodeTransactionRequest();
       case 'BumpFee': return $14.BumpFeeRequest();
       case 'CreateCpfp': return $14.CreateCpfpRequest();
       case 'DeriveAddresses': return $14.DeriveAddressesRequest();
@@ -137,6 +139,7 @@ abstract class WalletManagerServiceBase extends $pb.GeneratedService {
       case 'ListUnspent': return this.listUnspent(ctx, request as $14.ListUnspentRequest);
       case 'ListReceiveAddresses': return this.listReceiveAddresses(ctx, request as $14.ListReceiveAddressesRequest);
       case 'GetTransactionDetails': return this.getTransactionDetails(ctx, request as $14.GetTransactionDetailsRequest);
+      case 'DecodeTransaction': return this.decodeTransaction(ctx, request as $14.DecodeTransactionRequest);
       case 'BumpFee': return this.bumpFee(ctx, request as $14.BumpFeeRequest);
       case 'CreateCpfp': return this.createCpfp(ctx, request as $14.CreateCpfpRequest);
       case 'DeriveAddresses': return this.deriveAddresses(ctx, request as $14.DeriveAddressesRequest);

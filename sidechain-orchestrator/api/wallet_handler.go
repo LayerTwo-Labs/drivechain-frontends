@@ -836,6 +836,179 @@ func (h *WalletHandler) GetTransactionDetails(ctx context.Context, req *connect.
 	}), nil
 }
 
+func (h *WalletHandler) DecodeTransaction(ctx context.Context, req *connect.Request[pb.DecodeTransactionRequest]) (*connect.Response[pb.DecodeTransactionResponse], error) {
+	if err := h.requireEngine(); err != nil {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, err)
+	}
+
+	decoded, err := wallet.DecodeTransaction(req.Msg.Input, h.engine.Network())
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+	}
+
+	if decoded.Form == wallet.DecodedFormTxid {
+		return h.decodeTxidResponse(ctx, decoded.TxID, req.Msg.WalletId)
+	}
+
+	return connect.NewResponse(decodedToResponse(decoded)), nil
+}
+
+func (h *WalletHandler) decodeTxidResponse(ctx context.Context, txid, walletID string) (*connect.Response[pb.DecodeTransactionResponse], error) {
+	resolved, err := h.engine.ResolveWalletID(walletID)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+	}
+
+	rawTx, err := h.engine.ChainForWallet(resolved).GetRawTransaction(ctx, txid)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("transaction %s not found: %w", txid, err))
+	}
+
+	inputs, totalInput, allKnown := h.rawTxInputs(ctx, resolved, rawTx)
+	outputs, totalOutput := rawTxOutputs(rawTx)
+
+	resp := &pb.DecodeTransactionResponse{
+		Form:            pb.DecodedForm_DECODED_FORM_TXID,
+		Txid:            rawTx.TxID,
+		Version:         rawTx.Version,
+		Locktime:        rawTx.Locktime,
+		SizeBytes:       rawTx.Size,
+		VsizeVbytes:     rawTx.Vsize,
+		WeightWu:        rawTx.Weight,
+		Inputs:          inputs,
+		Outputs:         outputs,
+		TotalInputSats:  totalInput,
+		HasTotalInput:   allKnown,
+		TotalOutputSats: totalOutput,
+		Raw:             rawTx.Hex,
+	}
+	if allKnown {
+		fee := totalInput - totalOutput
+		if fee >= 0 {
+			resp.FeeSats = fee
+			resp.HasFee = true
+			if rawTx.Vsize > 0 {
+				resp.FeeRateSatVb = float64(fee) / float64(rawTx.Vsize)
+			}
+		}
+	}
+	return connect.NewResponse(resp), nil
+}
+
+func (h *WalletHandler) rawTxInputs(ctx context.Context, walletID string, rawTx *wallet.RawTransaction) ([]*pb.TransactionInput, int64, bool) {
+	inputs := make([]*pb.TransactionInput, 0, len(rawTx.Vin))
+	total := int64(0)
+	allKnown := len(rawTx.Vin) > 0
+	for i, vin := range rawTx.Vin {
+		input := &pb.TransactionInput{
+			Index:      int32(i),
+			PrevTxid:   vin.TxID,
+			PrevVout:   int32(vin.Vout),
+			Witness:    vin.Witness,
+			Sequence:   vin.Sequence,
+			IsCoinbase: vin.Coinbase != "",
+		}
+		if vin.ScriptSig != nil {
+			input.ScriptSigAsm = vin.ScriptSig.Asm
+			input.ScriptSigHex = vin.ScriptSig.Hex
+		}
+		resolved := false
+		if !input.IsCoinbase && vin.TxID != "" {
+			prevTx, err := h.engine.ChainForWallet(walletID).GetRawTransaction(ctx, vin.TxID)
+			if err == nil && vin.Vout >= 0 && vin.Vout < len(prevTx.Vout) {
+				prevOut := prevTx.Vout[vin.Vout]
+				input.ValueSats = int64(math.Round(prevOut.Value * 1e8))
+				input.Address = prevOut.ScriptPubKey.Address
+				total += input.ValueSats
+				resolved = true
+			}
+		}
+		if input.IsCoinbase {
+			resolved = true
+		}
+		if !resolved {
+			allKnown = false
+		}
+		inputs = append(inputs, input)
+	}
+	return inputs, total, allKnown
+}
+
+func rawTxOutputs(rawTx *wallet.RawTransaction) ([]*pb.TransactionOutput, int64) {
+	outputs := make([]*pb.TransactionOutput, 0, len(rawTx.Vout))
+	total := int64(0)
+	for i, vout := range rawTx.Vout {
+		valueSats := int64(math.Round(vout.Value * 1e8))
+		total += valueSats
+		outputs = append(outputs, &pb.TransactionOutput{
+			Index:           int32(i),
+			ValueSats:       valueSats,
+			Address:         vout.ScriptPubKey.Address,
+			ScriptType:      vout.ScriptPubKey.Type,
+			ScriptPubkeyAsm: vout.ScriptPubKey.Asm,
+			ScriptPubkeyHex: vout.ScriptPubKey.Hex,
+		})
+	}
+	return outputs, total
+}
+
+func decodedToResponse(d *wallet.DecodedTransaction) *pb.DecodeTransactionResponse {
+	resp := &pb.DecodeTransactionResponse{
+		Form:            decodedFormToProto(d.Form),
+		Txid:            d.TxID,
+		Version:         d.Version,
+		Locktime:        d.Locktime,
+		SizeBytes:       d.SizeBytes,
+		VsizeVbytes:     d.VsizeVBytes,
+		WeightWu:        d.WeightWU,
+		TotalInputSats:  d.TotalInputSats,
+		HasTotalInput:   d.HasTotalInput,
+		TotalOutputSats: d.TotalOutput,
+		FeeSats:         d.FeeSats,
+		HasFee:          d.HasFee,
+		FeeRateSatVb:    d.FeeRateSatVB,
+		IsPsbt:          d.IsPSBT,
+		SignedInputs:    int32(d.SignedInputs),
+		Raw:             d.RawHex,
+	}
+	for _, in := range d.Inputs {
+		resp.Inputs = append(resp.Inputs, &pb.TransactionInput{
+			Index:        int32(in.Index),
+			PrevTxid:     in.PrevTxID,
+			PrevVout:     int32(in.PrevVout),
+			Address:      in.Address,
+			ValueSats:    in.ValueSats,
+			ScriptSigHex: in.ScriptSig,
+			Witness:      in.Witness,
+			Sequence:     in.Sequence,
+			IsCoinbase:   in.IsCoinbase,
+		})
+	}
+	for _, out := range d.Outputs {
+		resp.Outputs = append(resp.Outputs, &pb.TransactionOutput{
+			Index:           int32(out.Index),
+			ValueSats:       out.ValueSats,
+			Address:         out.Address,
+			ScriptType:      out.ScriptType,
+			ScriptPubkeyHex: out.ScriptPubKeyHex,
+		})
+	}
+	return resp
+}
+
+func decodedFormToProto(f wallet.DecodedForm) pb.DecodedForm {
+	switch f {
+	case wallet.DecodedFormTxid:
+		return pb.DecodedForm_DECODED_FORM_TXID
+	case wallet.DecodedFormRawTx:
+		return pb.DecodedForm_DECODED_FORM_RAW_TX
+	case wallet.DecodedFormPSBT:
+		return pb.DecodedForm_DECODED_FORM_PSBT
+	default:
+		return pb.DecodedForm_DECODED_FORM_UNSPECIFIED
+	}
+}
+
 func (h *WalletHandler) BumpFee(ctx context.Context, req *connect.Request[pb.BumpFeeRequest]) (*connect.Response[pb.BumpFeeResponse], error) {
 	if err := h.requireEngine(); err != nil {
 		return nil, connect.NewError(connect.CodeFailedPrecondition, err)
