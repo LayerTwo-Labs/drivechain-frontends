@@ -17,7 +17,12 @@ class _SettingsNetworkState extends State<SettingsNetwork> {
   final _settingsProvider = GetIt.I.get<SettingsProvider>();
   BitcoinConfProvider get _confProvider => GetIt.I.get<BitcoinConfProvider>();
   CoreVariantProvider get _variantProvider => GetIt.I.get<CoreVariantProvider>();
+  ElectrumServerProvider get _electrumProvider => GetIt.I.get<ElectrumServerProvider>();
+  WalletReaderProvider get _walletReader => GetIt.I.get<WalletReaderProvider>();
   bool _isSelectingDataDir = false;
+  final _electrumServerController = TextEditingController();
+
+  bool get _isElectrumWallet => _walletReader.activeWallet?.isElectrum ?? false;
 
   @override
   void initState() {
@@ -25,8 +30,13 @@ class _SettingsNetworkState extends State<SettingsNetwork> {
     _settingsProvider.addListener(setstate);
     _confProvider.addListener(setstate);
     _variantProvider.addListener(setstate);
+    _electrumProvider.addListener(_onElectrumChanged);
+    _walletReader.addListener(setstate);
     // Pick up live edits to chains_config.json since the last refresh.
     _variantProvider.refresh();
+    if (_isElectrumWallet) {
+      _electrumProvider.refresh();
+    }
   }
 
   @override
@@ -34,7 +44,59 @@ class _SettingsNetworkState extends State<SettingsNetwork> {
     _settingsProvider.removeListener(setstate);
     _confProvider.removeListener(setstate);
     _variantProvider.removeListener(setstate);
+    _electrumProvider.removeListener(_onElectrumChanged);
+    _walletReader.removeListener(setstate);
+    _electrumServerController.dispose();
     super.dispose();
+  }
+
+  void _onElectrumChanged() {
+    // Keep the field in sync with the backend's current endpoint unless the
+    // user is mid-edit (controller already holds the live value).
+    final current = _electrumProvider.url;
+    if (current.isNotEmpty && _electrumServerController.text.isEmpty) {
+      _electrumServerController.text = current;
+    }
+    setstate();
+  }
+
+  Future<void> _applyElectrumServer() async {
+    final tip = await _electrumProvider.setServer(_electrumServerController.text.trim());
+    if (!mounted) return;
+    final err = _electrumProvider.lastError;
+    if (err != null) {
+      showSailToast(
+        context,
+        'Could not switch server (kept previous): $err',
+        variant: SailToastVariant.destructive,
+      );
+      return;
+    }
+    showSailToast(
+      context,
+      'Connected to ${_electrumProvider.url} (tip height $tip)',
+      variant: SailToastVariant.success,
+    );
+  }
+
+  Future<void> _resetElectrumServer() async {
+    final tip = await _electrumProvider.setServer('');
+    if (!mounted) return;
+    final err = _electrumProvider.lastError;
+    if (err != null) {
+      showSailToast(
+        context,
+        'Could not reset server (kept previous): $err',
+        variant: SailToastVariant.destructive,
+      );
+      return;
+    }
+    _electrumServerController.text = _electrumProvider.url;
+    showSailToast(
+      context,
+      'Reset to default server (tip height $tip)',
+      variant: SailToastVariant.success,
+    );
   }
 
   void setstate() {
@@ -180,6 +242,47 @@ class _SettingsNetworkState extends State<SettingsNetwork> {
               const SailSpacing(4),
               SailText.secondary12(
                 'Choose which Bitcoin Core build the orchestrator runs',
+              ),
+            ],
+          ),
+        if (_isElectrumWallet)
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              SailText.primary15('Electrum Server'),
+              const SailSpacing(SailStyleValues.padding08),
+              SailRow(
+                spacing: SailStyleValues.padding08,
+                children: [
+                  Expanded(
+                    child: SailTextField(
+                      controller: _electrumServerController,
+                      hintText: _electrumProvider.defaultUrl.isEmpty ? 'https://...' : _electrumProvider.defaultUrl,
+                      enabled: !_electrumProvider.busy,
+                      maxLines: 1,
+                      onSubmitted: (_) async => _applyElectrumServer(),
+                    ),
+                  ),
+                  SailButton(
+                    label: 'Apply / Test',
+                    small: true,
+                    loading: _electrumProvider.busy,
+                    onPressed: () async => _applyElectrumServer(),
+                  ),
+                  if (_electrumProvider.isOverride)
+                    SailButton(
+                      label: 'Reset',
+                      small: true,
+                      variant: ButtonVariant.secondary,
+                      onPressed: () async => _resetElectrumServer(),
+                    ),
+                ],
+              ),
+              const SailSpacing(4),
+              SailText.secondary12(
+                _electrumProvider.isOverride
+                    ? 'Using a custom Esplora server. Reset to return to the network default.'
+                    : 'Esplora API endpoint this electrum wallet reads from and broadcasts to',
               ),
             ],
           ),

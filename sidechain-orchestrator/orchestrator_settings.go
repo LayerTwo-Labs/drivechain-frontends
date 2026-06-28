@@ -19,6 +19,9 @@ const orchestratorSettingsFile = "orchestrator_settings.json"
 type OrchestratorSettings struct {
 	CoreVariant       string `json:"core_variant"`
 	UseTestSidechains bool   `json:"use_test_sidechains"`
+	// ElectrumServerURL overrides the network's default Esplora endpoint for
+	// electrum wallets. Empty means "use the network default".
+	ElectrumServerURL string `json:"electrum_server_url"`
 }
 
 func defaultOrchestratorSettings() OrchestratorSettings {
@@ -149,6 +152,30 @@ func (s *SettingsStore) SetCoreVariant(id string) (string, error) {
 	}
 	next := s.current
 	next.CoreVariant = id
+	if err := SaveSettings(s.bitwindowDir, next); err != nil {
+		return prev, err
+	}
+	s.current = next
+	return prev, nil
+}
+
+// ElectrumServerURL returns the user's Esplora endpoint override, or "" when
+// the network default should be used.
+func (s *SettingsStore) ElectrumServerURL() string {
+	return s.Get().ElectrumServerURL
+}
+
+// SetElectrumServerURL persists a new Esplora endpoint override and returns the
+// previous value. An empty url clears the override.
+func (s *SettingsStore) SetElectrumServerURL(url string) (string, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	prev := s.current.ElectrumServerURL
+	if prev == url {
+		return prev, nil
+	}
+	next := s.current
+	next.ElectrumServerURL = url
 	if err := SaveSettings(s.bitwindowDir, next); err != nil {
 		return prev, err
 	}

@@ -704,6 +704,41 @@ extension type WalletManagerServiceClient (connect.Transport _transport) {
     );
   }
 
+  /// Electrum server (Esplora endpoint) selection for electrum wallets.
+  Future<walletmanagerv1walletmanager.GetElectrumServerResponse> getElectrumServer(
+    walletmanagerv1walletmanager.GetElectrumServerRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.WalletManagerService.getElectrumServer,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
+  Future<walletmanagerv1walletmanager.SetElectrumServerResponse> setElectrumServer(
+    walletmanagerv1walletmanager.SetElectrumServerRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.WalletManagerService.setElectrumServer,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
   /// Stream wallet state changes. Sends the full wallet state immediately,
   /// then again whenever wallets or balance change.
   Stream<walletmanagerv1walletmanager.WatchWalletDataResponse> watchWalletData(

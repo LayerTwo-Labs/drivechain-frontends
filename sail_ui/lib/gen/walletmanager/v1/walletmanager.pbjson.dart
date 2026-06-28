@@ -1479,6 +1479,56 @@ const SetTestSidechainsResponse$json = {
 final $typed_data.Uint8List setTestSidechainsResponseDescriptor = $convert.base64Decode(
     'ChlTZXRUZXN0U2lkZWNoYWluc1Jlc3BvbnNl');
 
+@$core.Deprecated('Use getElectrumServerRequestDescriptor instead')
+const GetElectrumServerRequest$json = {
+  '1': 'GetElectrumServerRequest',
+};
+
+/// Descriptor for `GetElectrumServerRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List getElectrumServerRequestDescriptor = $convert.base64Decode(
+    'ChhHZXRFbGVjdHJ1bVNlcnZlclJlcXVlc3Q=');
+
+@$core.Deprecated('Use getElectrumServerResponseDescriptor instead')
+const GetElectrumServerResponse$json = {
+  '1': 'GetElectrumServerResponse',
+  '2': [
+    {'1': 'url', '3': 1, '4': 1, '5': 9, '10': 'url'},
+    {'1': 'is_override', '3': 2, '4': 1, '5': 8, '10': 'isOverride'},
+    {'1': 'default_url', '3': 3, '4': 1, '5': 9, '10': 'defaultUrl'},
+  ],
+};
+
+/// Descriptor for `GetElectrumServerResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List getElectrumServerResponseDescriptor = $convert.base64Decode(
+    'ChlHZXRFbGVjdHJ1bVNlcnZlclJlc3BvbnNlEhAKA3VybBgBIAEoCVIDdXJsEh8KC2lzX292ZX'
+    'JyaWRlGAIgASgIUgppc092ZXJyaWRlEh8KC2RlZmF1bHRfdXJsGAMgASgJUgpkZWZhdWx0VXJs');
+
+@$core.Deprecated('Use setElectrumServerRequestDescriptor instead')
+const SetElectrumServerRequest$json = {
+  '1': 'SetElectrumServerRequest',
+  '2': [
+    {'1': 'url', '3': 1, '4': 1, '5': 9, '10': 'url'},
+  ],
+};
+
+/// Descriptor for `SetElectrumServerRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List setElectrumServerRequestDescriptor = $convert.base64Decode(
+    'ChhTZXRFbGVjdHJ1bVNlcnZlclJlcXVlc3QSEAoDdXJsGAEgASgJUgN1cmw=');
+
+@$core.Deprecated('Use setElectrumServerResponseDescriptor instead')
+const SetElectrumServerResponse$json = {
+  '1': 'SetElectrumServerResponse',
+  '2': [
+    {'1': 'url', '3': 1, '4': 1, '5': 9, '10': 'url'},
+    {'1': 'tip_height', '3': 2, '4': 1, '5': 3, '10': 'tipHeight'},
+  ],
+};
+
+/// Descriptor for `SetElectrumServerResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List setElectrumServerResponseDescriptor = $convert.base64Decode(
+    'ChlTZXRFbGVjdHJ1bVNlcnZlclJlc3BvbnNlEhAKA3VybBgBIAEoCVIDdXJsEh0KCnRpcF9oZW'
+    'lnaHQYAiABKANSCXRpcEhlaWdodA==');
+
 @$core.Deprecated('Use watchWalletDataResponseDescriptor instead')
 const WatchWalletDataResponse$json = {
   '1': 'WatchWalletDataResponse',
@@ -1548,6 +1598,8 @@ const $core.Map<$core.String, $core.dynamic> WalletManagerServiceBase$json = {
     {'1': 'SetCoreVariant', '2': '.walletmanager.v1.SetCoreVariantRequest', '3': '.walletmanager.v1.SetCoreVariantResponse'},
     {'1': 'GetTestSidechains', '2': '.walletmanager.v1.GetTestSidechainsRequest', '3': '.walletmanager.v1.GetTestSidechainsResponse'},
     {'1': 'SetTestSidechains', '2': '.walletmanager.v1.SetTestSidechainsRequest', '3': '.walletmanager.v1.SetTestSidechainsResponse'},
+    {'1': 'GetElectrumServer', '2': '.walletmanager.v1.GetElectrumServerRequest', '3': '.walletmanager.v1.GetElectrumServerResponse'},
+    {'1': 'SetElectrumServer', '2': '.walletmanager.v1.SetElectrumServerRequest', '3': '.walletmanager.v1.SetElectrumServerResponse'},
     {'1': 'WatchWalletData', '2': '.google.protobuf.Empty', '3': '.walletmanager.v1.WatchWalletDataResponse', '6': true},
   ],
 };
@@ -1651,6 +1703,10 @@ const $core.Map<$core.String, $core.Map<$core.String, $core.dynamic>> WalletMana
   '.walletmanager.v1.GetTestSidechainsResponse': GetTestSidechainsResponse$json,
   '.walletmanager.v1.SetTestSidechainsRequest': SetTestSidechainsRequest$json,
   '.walletmanager.v1.SetTestSidechainsResponse': SetTestSidechainsResponse$json,
+  '.walletmanager.v1.GetElectrumServerRequest': GetElectrumServerRequest$json,
+  '.walletmanager.v1.GetElectrumServerResponse': GetElectrumServerResponse$json,
+  '.walletmanager.v1.SetElectrumServerRequest': SetElectrumServerRequest$json,
+  '.walletmanager.v1.SetElectrumServerResponse': SetElectrumServerResponse$json,
   '.google.protobuf.Empty': $13.Empty$json,
   '.walletmanager.v1.WatchWalletDataResponse': WatchWalletDataResponse$json,
 };
@@ -1732,6 +1788,10 @@ final $typed_data.Uint8List walletManagerServiceDescriptor = $convert.base64Deco
     'aGFpbnNSZXF1ZXN0Gisud2FsbGV0bWFuYWdlci52MS5HZXRUZXN0U2lkZWNoYWluc1Jlc3Bvbn'
     'NlEmwKEVNldFRlc3RTaWRlY2hhaW5zEioud2FsbGV0bWFuYWdlci52MS5TZXRUZXN0U2lkZWNo'
     'YWluc1JlcXVlc3QaKy53YWxsZXRtYW5hZ2VyLnYxLlNldFRlc3RTaWRlY2hhaW5zUmVzcG9uc2'
-    'USVgoPV2F0Y2hXYWxsZXREYXRhEhYuZ29vZ2xlLnByb3RvYnVmLkVtcHR5Gikud2FsbGV0bWFu'
-    'YWdlci52MS5XYXRjaFdhbGxldERhdGFSZXNwb25zZTAB');
+    'USbAoRR2V0RWxlY3RydW1TZXJ2ZXISKi53YWxsZXRtYW5hZ2VyLnYxLkdldEVsZWN0cnVtU2Vy'
+    'dmVyUmVxdWVzdBorLndhbGxldG1hbmFnZXIudjEuR2V0RWxlY3RydW1TZXJ2ZXJSZXNwb25zZR'
+    'JsChFTZXRFbGVjdHJ1bVNlcnZlchIqLndhbGxldG1hbmFnZXIudjEuU2V0RWxlY3RydW1TZXJ2'
+    'ZXJSZXF1ZXN0Gisud2FsbGV0bWFuYWdlci52MS5TZXRFbGVjdHJ1bVNlcnZlclJlc3BvbnNlEl'
+    'YKD1dhdGNoV2FsbGV0RGF0YRIWLmdvb2dsZS5wcm90b2J1Zi5FbXB0eRopLndhbGxldG1hbmFn'
+    'ZXIudjEuV2F0Y2hXYWxsZXREYXRhUmVzcG9uc2UwAQ==');
 

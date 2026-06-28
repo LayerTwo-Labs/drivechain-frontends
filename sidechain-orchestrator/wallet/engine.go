@@ -111,6 +111,25 @@ func (e *WalletEngine) FinalizePSBT(psbtBase64 string) (string, error) {
 	return eb.FinalizePSBT(psbtBase64)
 }
 
+// ElectrumServerURL returns the electrum wallet's current Esplora endpoint.
+func (e *WalletEngine) ElectrumServerURL() (string, error) {
+	eb, err := e.electrumBackend()
+	if err != nil {
+		return "", err
+	}
+	return eb.ServerURL(), nil
+}
+
+// SetElectrumServerURL switches the electrum wallet's Esplora endpoint at
+// runtime, returning the new chain tip on success. See ElectrumBackend.SetServerURL.
+func (e *WalletEngine) SetElectrumServerURL(ctx context.Context, url string) (int, error) {
+	eb, err := e.electrumBackend()
+	if err != nil {
+		return 0, err
+	}
+	return eb.SetServerURL(ctx, url)
+}
+
 // Network returns the chain parameters this engine was constructed against.
 func (e *WalletEngine) Network() *chaincfg.Params {
 	return e.network
