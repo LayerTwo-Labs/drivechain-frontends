@@ -321,6 +321,21 @@ abstract final class WalletManagerService {
     walletmanagerv1walletmanager.SetElectrumServerResponse.new,
   );
 
+  /// Tor SOCKS5 proxy routing for the electrum wallet's chain connections.
+  static const getTorConfig = connect.Spec(
+    '/$name/GetTorConfig',
+    connect.StreamType.unary,
+    walletmanagerv1walletmanager.GetTorConfigRequest.new,
+    walletmanagerv1walletmanager.GetTorConfigResponse.new,
+  );
+
+  static const setTorConfig = connect.Spec(
+    '/$name/SetTorConfig',
+    connect.StreamType.unary,
+    walletmanagerv1walletmanager.SetTorConfigRequest.new,
+    walletmanagerv1walletmanager.SetTorConfigResponse.new,
+  );
+
   /// Stream wallet state changes. Sends the full wallet state immediately,
   /// then again whenever wallets or balance change.
   static const watchWalletData = connect.Spec(

@@ -18,9 +18,11 @@ class _SettingsNetworkState extends State<SettingsNetwork> {
   BitcoinConfProvider get _confProvider => GetIt.I.get<BitcoinConfProvider>();
   CoreVariantProvider get _variantProvider => GetIt.I.get<CoreVariantProvider>();
   ElectrumServerProvider get _electrumProvider => GetIt.I.get<ElectrumServerProvider>();
+  TorConfigProvider get _torProvider => GetIt.I.get<TorConfigProvider>();
   WalletReaderProvider get _walletReader => GetIt.I.get<WalletReaderProvider>();
   bool _isSelectingDataDir = false;
   final _electrumServerController = TextEditingController();
+  final _torProxyController = TextEditingController();
 
   bool get _isElectrumWallet => _walletReader.activeWallet?.isElectrum ?? false;
 
@@ -31,11 +33,13 @@ class _SettingsNetworkState extends State<SettingsNetwork> {
     _confProvider.addListener(setstate);
     _variantProvider.addListener(setstate);
     _electrumProvider.addListener(_onElectrumChanged);
+    _torProvider.addListener(_onTorChanged);
     _walletReader.addListener(setstate);
     // Pick up live edits to chains_config.json since the last refresh.
     _variantProvider.refresh();
     if (_isElectrumWallet) {
       _electrumProvider.refresh();
+      _torProvider.refresh();
     }
   }
 
@@ -45,8 +49,10 @@ class _SettingsNetworkState extends State<SettingsNetwork> {
     _confProvider.removeListener(setstate);
     _variantProvider.removeListener(setstate);
     _electrumProvider.removeListener(_onElectrumChanged);
+    _torProvider.removeListener(_onTorChanged);
     _walletReader.removeListener(setstate);
     _electrumServerController.dispose();
+    _torProxyController.dispose();
     super.dispose();
   }
 
@@ -95,6 +101,33 @@ class _SettingsNetworkState extends State<SettingsNetwork> {
     showSailToast(
       context,
       'Reset to default server (tip height $tip)',
+      variant: SailToastVariant.success,
+    );
+  }
+
+  void _onTorChanged() {
+    if (_torProxyController.text.isEmpty) {
+      _torProxyController.text = _torProvider.proxy.isNotEmpty ? _torProvider.proxy : _torProvider.defaultProxy;
+    }
+    setstate();
+  }
+
+  Future<void> _applyTorConfig(bool enabled) async {
+    final proxy = _torProxyController.text.trim();
+    final tip = await _torProvider.apply(enabled, proxy);
+    if (!mounted) return;
+    final err = _torProvider.lastError;
+    if (err != null) {
+      showSailToast(
+        context,
+        'Could not apply Tor config (kept previous): $err',
+        variant: SailToastVariant.destructive,
+      );
+      return;
+    }
+    showSailToast(
+      context,
+      enabled ? 'Routing through ${_torProvider.proxy} (tip height $tip)' : 'Tor routing disabled (tip height $tip)',
       variant: SailToastVariant.success,
     );
   }
@@ -283,6 +316,45 @@ class _SettingsNetworkState extends State<SettingsNetwork> {
                 _electrumProvider.isOverride
                     ? 'Using a custom Esplora server. Reset to return to the network default.'
                     : 'Esplora API endpoint this electrum wallet reads from and broadcasts to',
+              ),
+            ],
+          ),
+        if (_isElectrumWallet)
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              SailText.primary15('Tor Routing'),
+              const SailSpacing(SailStyleValues.padding08),
+              SailToggle(
+                label: 'Route through Tor',
+                value: _torProvider.enabled,
+                onChanged: (v) async => _applyTorConfig(v),
+              ),
+              const SailSpacing(SailStyleValues.padding08),
+              SailRow(
+                spacing: SailStyleValues.padding08,
+                children: [
+                  Expanded(
+                    child: SailTextField(
+                      controller: _torProxyController,
+                      hintText: _torProvider.defaultProxy.isEmpty ? '127.0.0.1:9050' : _torProvider.defaultProxy,
+                      enabled: !_torProvider.busy,
+                      maxLines: 1,
+                      onSubmitted: (_) async => _applyTorConfig(true),
+                    ),
+                  ),
+                  SailButton(
+                    label: 'Apply / Test',
+                    small: true,
+                    loading: _torProvider.busy,
+                    onPressed: () async => _applyTorConfig(true),
+                  ),
+                ],
+              ),
+              const SailSpacing(4),
+              SailText.secondary12(
+                'SOCKS5 proxy (system Tor 127.0.0.1:9050 or Tor Browser 127.0.0.1:9150) '
+                'used to hide your IP from the Esplora server and reach .onion endpoints',
               ),
             ],
           ),

@@ -739,6 +739,41 @@ extension type WalletManagerServiceClient (connect.Transport _transport) {
     );
   }
 
+  /// Tor SOCKS5 proxy routing for the electrum wallet's chain connections.
+  Future<walletmanagerv1walletmanager.GetTorConfigResponse> getTorConfig(
+    walletmanagerv1walletmanager.GetTorConfigRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.WalletManagerService.getTorConfig,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
+  Future<walletmanagerv1walletmanager.SetTorConfigResponse> setTorConfig(
+    walletmanagerv1walletmanager.SetTorConfigRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.WalletManagerService.setTorConfig,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
   /// Stream wallet state changes. Sends the full wallet state immediately,
   /// then again whenever wallets or balance change.
   Stream<walletmanagerv1walletmanager.WatchWalletDataResponse> watchWalletData(

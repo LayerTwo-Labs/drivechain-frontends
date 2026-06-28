@@ -160,6 +160,12 @@ const (
 	// WalletManagerServiceSetElectrumServerProcedure is the fully-qualified name of the
 	// WalletManagerService's SetElectrumServer RPC.
 	WalletManagerServiceSetElectrumServerProcedure = "/walletmanager.v1.WalletManagerService/SetElectrumServer"
+	// WalletManagerServiceGetTorConfigProcedure is the fully-qualified name of the
+	// WalletManagerService's GetTorConfig RPC.
+	WalletManagerServiceGetTorConfigProcedure = "/walletmanager.v1.WalletManagerService/GetTorConfig"
+	// WalletManagerServiceSetTorConfigProcedure is the fully-qualified name of the
+	// WalletManagerService's SetTorConfig RPC.
+	WalletManagerServiceSetTorConfigProcedure = "/walletmanager.v1.WalletManagerService/SetTorConfig"
 	// WalletManagerServiceWatchWalletDataProcedure is the fully-qualified name of the
 	// WalletManagerService's WatchWalletData RPC.
 	WalletManagerServiceWatchWalletDataProcedure = "/walletmanager.v1.WalletManagerService/WatchWalletData"
@@ -225,6 +231,9 @@ type WalletManagerServiceClient interface {
 	// Electrum server (Esplora endpoint) selection for electrum wallets.
 	GetElectrumServer(context.Context, *connect.Request[v1.GetElectrumServerRequest]) (*connect.Response[v1.GetElectrumServerResponse], error)
 	SetElectrumServer(context.Context, *connect.Request[v1.SetElectrumServerRequest]) (*connect.Response[v1.SetElectrumServerResponse], error)
+	// Tor SOCKS5 proxy routing for the electrum wallet's chain connections.
+	GetTorConfig(context.Context, *connect.Request[v1.GetTorConfigRequest]) (*connect.Response[v1.GetTorConfigResponse], error)
+	SetTorConfig(context.Context, *connect.Request[v1.SetTorConfigRequest]) (*connect.Response[v1.SetTorConfigResponse], error)
 	// Stream wallet state changes. Sends the full wallet state immediately,
 	// then again whenever wallets or balance change.
 	WatchWalletData(context.Context, *connect.Request[emptypb.Empty]) (*connect.ServerStreamForClient[v1.WatchWalletDataResponse], error)
@@ -493,6 +502,18 @@ func NewWalletManagerServiceClient(httpClient connect.HTTPClient, baseURL string
 			connect.WithSchema(walletManagerServiceMethods.ByName("SetElectrumServer")),
 			connect.WithClientOptions(opts...),
 		),
+		getTorConfig: connect.NewClient[v1.GetTorConfigRequest, v1.GetTorConfigResponse](
+			httpClient,
+			baseURL+WalletManagerServiceGetTorConfigProcedure,
+			connect.WithSchema(walletManagerServiceMethods.ByName("GetTorConfig")),
+			connect.WithClientOptions(opts...),
+		),
+		setTorConfig: connect.NewClient[v1.SetTorConfigRequest, v1.SetTorConfigResponse](
+			httpClient,
+			baseURL+WalletManagerServiceSetTorConfigProcedure,
+			connect.WithSchema(walletManagerServiceMethods.ByName("SetTorConfig")),
+			connect.WithClientOptions(opts...),
+		),
 		watchWalletData: connect.NewClient[emptypb.Empty, v1.WatchWalletDataResponse](
 			httpClient,
 			baseURL+WalletManagerServiceWatchWalletDataProcedure,
@@ -546,6 +567,8 @@ type walletManagerServiceClient struct {
 	setTestSidechains         *connect.Client[v1.SetTestSidechainsRequest, v1.SetTestSidechainsResponse]
 	getElectrumServer         *connect.Client[v1.GetElectrumServerRequest, v1.GetElectrumServerResponse]
 	setElectrumServer         *connect.Client[v1.SetElectrumServerRequest, v1.SetElectrumServerResponse]
+	getTorConfig              *connect.Client[v1.GetTorConfigRequest, v1.GetTorConfigResponse]
+	setTorConfig              *connect.Client[v1.SetTorConfigRequest, v1.SetTorConfigResponse]
 	watchWalletData           *connect.Client[emptypb.Empty, v1.WatchWalletDataResponse]
 }
 
@@ -759,6 +782,16 @@ func (c *walletManagerServiceClient) SetElectrumServer(ctx context.Context, req 
 	return c.setElectrumServer.CallUnary(ctx, req)
 }
 
+// GetTorConfig calls walletmanager.v1.WalletManagerService.GetTorConfig.
+func (c *walletManagerServiceClient) GetTorConfig(ctx context.Context, req *connect.Request[v1.GetTorConfigRequest]) (*connect.Response[v1.GetTorConfigResponse], error) {
+	return c.getTorConfig.CallUnary(ctx, req)
+}
+
+// SetTorConfig calls walletmanager.v1.WalletManagerService.SetTorConfig.
+func (c *walletManagerServiceClient) SetTorConfig(ctx context.Context, req *connect.Request[v1.SetTorConfigRequest]) (*connect.Response[v1.SetTorConfigResponse], error) {
+	return c.setTorConfig.CallUnary(ctx, req)
+}
+
 // WatchWalletData calls walletmanager.v1.WalletManagerService.WatchWalletData.
 func (c *walletManagerServiceClient) WatchWalletData(ctx context.Context, req *connect.Request[emptypb.Empty]) (*connect.ServerStreamForClient[v1.WatchWalletDataResponse], error) {
 	return c.watchWalletData.CallServerStream(ctx, req)
@@ -825,6 +858,9 @@ type WalletManagerServiceHandler interface {
 	// Electrum server (Esplora endpoint) selection for electrum wallets.
 	GetElectrumServer(context.Context, *connect.Request[v1.GetElectrumServerRequest]) (*connect.Response[v1.GetElectrumServerResponse], error)
 	SetElectrumServer(context.Context, *connect.Request[v1.SetElectrumServerRequest]) (*connect.Response[v1.SetElectrumServerResponse], error)
+	// Tor SOCKS5 proxy routing for the electrum wallet's chain connections.
+	GetTorConfig(context.Context, *connect.Request[v1.GetTorConfigRequest]) (*connect.Response[v1.GetTorConfigResponse], error)
+	SetTorConfig(context.Context, *connect.Request[v1.SetTorConfigRequest]) (*connect.Response[v1.SetTorConfigResponse], error)
 	// Stream wallet state changes. Sends the full wallet state immediately,
 	// then again whenever wallets or balance change.
 	WatchWalletData(context.Context, *connect.Request[emptypb.Empty], *connect.ServerStream[v1.WatchWalletDataResponse]) error
@@ -1089,6 +1125,18 @@ func NewWalletManagerServiceHandler(svc WalletManagerServiceHandler, opts ...con
 		connect.WithSchema(walletManagerServiceMethods.ByName("SetElectrumServer")),
 		connect.WithHandlerOptions(opts...),
 	)
+	walletManagerServiceGetTorConfigHandler := connect.NewUnaryHandler(
+		WalletManagerServiceGetTorConfigProcedure,
+		svc.GetTorConfig,
+		connect.WithSchema(walletManagerServiceMethods.ByName("GetTorConfig")),
+		connect.WithHandlerOptions(opts...),
+	)
+	walletManagerServiceSetTorConfigHandler := connect.NewUnaryHandler(
+		WalletManagerServiceSetTorConfigProcedure,
+		svc.SetTorConfig,
+		connect.WithSchema(walletManagerServiceMethods.ByName("SetTorConfig")),
+		connect.WithHandlerOptions(opts...),
+	)
 	walletManagerServiceWatchWalletDataHandler := connect.NewServerStreamHandler(
 		WalletManagerServiceWatchWalletDataProcedure,
 		svc.WatchWalletData,
@@ -1181,6 +1229,10 @@ func NewWalletManagerServiceHandler(svc WalletManagerServiceHandler, opts ...con
 			walletManagerServiceGetElectrumServerHandler.ServeHTTP(w, r)
 		case WalletManagerServiceSetElectrumServerProcedure:
 			walletManagerServiceSetElectrumServerHandler.ServeHTTP(w, r)
+		case WalletManagerServiceGetTorConfigProcedure:
+			walletManagerServiceGetTorConfigHandler.ServeHTTP(w, r)
+		case WalletManagerServiceSetTorConfigProcedure:
+			walletManagerServiceSetTorConfigHandler.ServeHTTP(w, r)
 		case WalletManagerServiceWatchWalletDataProcedure:
 			walletManagerServiceWatchWalletDataHandler.ServeHTTP(w, r)
 		default:
@@ -1358,6 +1410,14 @@ func (UnimplementedWalletManagerServiceHandler) GetElectrumServer(context.Contex
 
 func (UnimplementedWalletManagerServiceHandler) SetElectrumServer(context.Context, *connect.Request[v1.SetElectrumServerRequest]) (*connect.Response[v1.SetElectrumServerResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("walletmanager.v1.WalletManagerService.SetElectrumServer is not implemented"))
+}
+
+func (UnimplementedWalletManagerServiceHandler) GetTorConfig(context.Context, *connect.Request[v1.GetTorConfigRequest]) (*connect.Response[v1.GetTorConfigResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("walletmanager.v1.WalletManagerService.GetTorConfig is not implemented"))
+}
+
+func (UnimplementedWalletManagerServiceHandler) SetTorConfig(context.Context, *connect.Request[v1.SetTorConfigRequest]) (*connect.Response[v1.SetTorConfigResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("walletmanager.v1.WalletManagerService.SetTorConfig is not implemented"))
 }
 
 func (UnimplementedWalletManagerServiceHandler) WatchWalletData(context.Context, *connect.Request[emptypb.Empty], *connect.ServerStream[v1.WatchWalletDataResponse]) error {

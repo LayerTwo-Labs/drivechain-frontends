@@ -22,7 +22,16 @@ type OrchestratorSettings struct {
 	// ElectrumServerURL overrides the network's default Esplora endpoint for
 	// electrum wallets. Empty means "use the network default".
 	ElectrumServerURL string `json:"electrum_server_url"`
+	// TorEnabled routes the electrum wallet's chain connections through TorProxy
+	// when true. Default false means direct connection.
+	TorEnabled bool `json:"tor_enabled"`
+	// TorProxy is the SOCKS5 proxy address (host:port) used when TorEnabled.
+	TorProxy string `json:"tor_proxy"`
 }
+
+// DefaultTorProxy is the SOCKS5 address of a standard local Tor daemon. Tor
+// Browser exposes the same proxy on 127.0.0.1:9150.
+const DefaultTorProxy = "127.0.0.1:9050"
 
 func defaultOrchestratorSettings() OrchestratorSettings {
 	return OrchestratorSettings{CoreVariant: DefaultCoreVariantID}
@@ -181,6 +190,32 @@ func (s *SettingsStore) SetElectrumServerURL(url string) (string, error) {
 	}
 	s.current = next
 	return prev, nil
+}
+
+// TorConfig returns the persisted Tor routing preference: whether it is enabled
+// and the SOCKS5 proxy address to use.
+func (s *SettingsStore) TorConfig() (bool, string) {
+	g := s.Get()
+	return g.TorEnabled, g.TorProxy
+}
+
+// SetTorConfig persists the Tor routing preference and returns the previous
+// values, so a failed apply can be rolled back.
+func (s *SettingsStore) SetTorConfig(enabled bool, proxy string) (bool, string, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	prevEnabled, prevProxy := s.current.TorEnabled, s.current.TorProxy
+	if prevEnabled == enabled && prevProxy == proxy {
+		return prevEnabled, prevProxy, nil
+	}
+	next := s.current
+	next.TorEnabled = enabled
+	next.TorProxy = proxy
+	if err := SaveSettings(s.bitwindowDir, next); err != nil {
+		return prevEnabled, prevProxy, err
+	}
+	s.current = next
+	return prevEnabled, prevProxy, nil
 }
 
 func (s *SettingsStore) UseTestSidechains() bool {

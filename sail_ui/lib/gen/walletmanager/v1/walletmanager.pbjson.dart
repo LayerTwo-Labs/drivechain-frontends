@@ -1529,6 +1529,59 @@ final $typed_data.Uint8List setElectrumServerResponseDescriptor = $convert.base6
     'ChlTZXRFbGVjdHJ1bVNlcnZlclJlc3BvbnNlEhAKA3VybBgBIAEoCVIDdXJsEh0KCnRpcF9oZW'
     'lnaHQYAiABKANSCXRpcEhlaWdodA==');
 
+@$core.Deprecated('Use getTorConfigRequestDescriptor instead')
+const GetTorConfigRequest$json = {
+  '1': 'GetTorConfigRequest',
+};
+
+/// Descriptor for `GetTorConfigRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List getTorConfigRequestDescriptor = $convert.base64Decode(
+    'ChNHZXRUb3JDb25maWdSZXF1ZXN0');
+
+@$core.Deprecated('Use getTorConfigResponseDescriptor instead')
+const GetTorConfigResponse$json = {
+  '1': 'GetTorConfigResponse',
+  '2': [
+    {'1': 'enabled', '3': 1, '4': 1, '5': 8, '10': 'enabled'},
+    {'1': 'proxy', '3': 2, '4': 1, '5': 9, '10': 'proxy'},
+    {'1': 'default_proxy', '3': 3, '4': 1, '5': 9, '10': 'defaultProxy'},
+  ],
+};
+
+/// Descriptor for `GetTorConfigResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List getTorConfigResponseDescriptor = $convert.base64Decode(
+    'ChRHZXRUb3JDb25maWdSZXNwb25zZRIYCgdlbmFibGVkGAEgASgIUgdlbmFibGVkEhQKBXByb3'
+    'h5GAIgASgJUgVwcm94eRIjCg1kZWZhdWx0X3Byb3h5GAMgASgJUgxkZWZhdWx0UHJveHk=');
+
+@$core.Deprecated('Use setTorConfigRequestDescriptor instead')
+const SetTorConfigRequest$json = {
+  '1': 'SetTorConfigRequest',
+  '2': [
+    {'1': 'enabled', '3': 1, '4': 1, '5': 8, '10': 'enabled'},
+    {'1': 'proxy', '3': 2, '4': 1, '5': 9, '10': 'proxy'},
+  ],
+};
+
+/// Descriptor for `SetTorConfigRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List setTorConfigRequestDescriptor = $convert.base64Decode(
+    'ChNTZXRUb3JDb25maWdSZXF1ZXN0EhgKB2VuYWJsZWQYASABKAhSB2VuYWJsZWQSFAoFcHJveH'
+    'kYAiABKAlSBXByb3h5');
+
+@$core.Deprecated('Use setTorConfigResponseDescriptor instead')
+const SetTorConfigResponse$json = {
+  '1': 'SetTorConfigResponse',
+  '2': [
+    {'1': 'enabled', '3': 1, '4': 1, '5': 8, '10': 'enabled'},
+    {'1': 'proxy', '3': 2, '4': 1, '5': 9, '10': 'proxy'},
+    {'1': 'tip_height', '3': 3, '4': 1, '5': 3, '10': 'tipHeight'},
+  ],
+};
+
+/// Descriptor for `SetTorConfigResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List setTorConfigResponseDescriptor = $convert.base64Decode(
+    'ChRTZXRUb3JDb25maWdSZXNwb25zZRIYCgdlbmFibGVkGAEgASgIUgdlbmFibGVkEhQKBXByb3'
+    'h5GAIgASgJUgVwcm94eRIdCgp0aXBfaGVpZ2h0GAMgASgDUgl0aXBIZWlnaHQ=');
+
 @$core.Deprecated('Use watchWalletDataResponseDescriptor instead')
 const WatchWalletDataResponse$json = {
   '1': 'WatchWalletDataResponse',
@@ -1600,6 +1653,8 @@ const $core.Map<$core.String, $core.dynamic> WalletManagerServiceBase$json = {
     {'1': 'SetTestSidechains', '2': '.walletmanager.v1.SetTestSidechainsRequest', '3': '.walletmanager.v1.SetTestSidechainsResponse'},
     {'1': 'GetElectrumServer', '2': '.walletmanager.v1.GetElectrumServerRequest', '3': '.walletmanager.v1.GetElectrumServerResponse'},
     {'1': 'SetElectrumServer', '2': '.walletmanager.v1.SetElectrumServerRequest', '3': '.walletmanager.v1.SetElectrumServerResponse'},
+    {'1': 'GetTorConfig', '2': '.walletmanager.v1.GetTorConfigRequest', '3': '.walletmanager.v1.GetTorConfigResponse'},
+    {'1': 'SetTorConfig', '2': '.walletmanager.v1.SetTorConfigRequest', '3': '.walletmanager.v1.SetTorConfigResponse'},
     {'1': 'WatchWalletData', '2': '.google.protobuf.Empty', '3': '.walletmanager.v1.WatchWalletDataResponse', '6': true},
   ],
 };
@@ -1707,6 +1762,10 @@ const $core.Map<$core.String, $core.Map<$core.String, $core.dynamic>> WalletMana
   '.walletmanager.v1.GetElectrumServerResponse': GetElectrumServerResponse$json,
   '.walletmanager.v1.SetElectrumServerRequest': SetElectrumServerRequest$json,
   '.walletmanager.v1.SetElectrumServerResponse': SetElectrumServerResponse$json,
+  '.walletmanager.v1.GetTorConfigRequest': GetTorConfigRequest$json,
+  '.walletmanager.v1.GetTorConfigResponse': GetTorConfigResponse$json,
+  '.walletmanager.v1.SetTorConfigRequest': SetTorConfigRequest$json,
+  '.walletmanager.v1.SetTorConfigResponse': SetTorConfigResponse$json,
   '.google.protobuf.Empty': $13.Empty$json,
   '.walletmanager.v1.WatchWalletDataResponse': WatchWalletDataResponse$json,
 };
@@ -1792,6 +1851,9 @@ final $typed_data.Uint8List walletManagerServiceDescriptor = $convert.base64Deco
     'dmVyUmVxdWVzdBorLndhbGxldG1hbmFnZXIudjEuR2V0RWxlY3RydW1TZXJ2ZXJSZXNwb25zZR'
     'JsChFTZXRFbGVjdHJ1bVNlcnZlchIqLndhbGxldG1hbmFnZXIudjEuU2V0RWxlY3RydW1TZXJ2'
     'ZXJSZXF1ZXN0Gisud2FsbGV0bWFuYWdlci52MS5TZXRFbGVjdHJ1bVNlcnZlclJlc3BvbnNlEl'
-    'YKD1dhdGNoV2FsbGV0RGF0YRIWLmdvb2dsZS5wcm90b2J1Zi5FbXB0eRopLndhbGxldG1hbmFn'
-    'ZXIudjEuV2F0Y2hXYWxsZXREYXRhUmVzcG9uc2UwAQ==');
+    '0KDEdldFRvckNvbmZpZxIlLndhbGxldG1hbmFnZXIudjEuR2V0VG9yQ29uZmlnUmVxdWVzdBom'
+    'LndhbGxldG1hbmFnZXIudjEuR2V0VG9yQ29uZmlnUmVzcG9uc2USXQoMU2V0VG9yQ29uZmlnEi'
+    'Uud2FsbGV0bWFuYWdlci52MS5TZXRUb3JDb25maWdSZXF1ZXN0GiYud2FsbGV0bWFuYWdlci52'
+    'MS5TZXRUb3JDb25maWdSZXNwb25zZRJWCg9XYXRjaFdhbGxldERhdGESFi5nb29nbGUucHJvdG'
+    '9idWYuRW1wdHkaKS53YWxsZXRtYW5hZ2VyLnYxLldhdGNoV2FsbGV0RGF0YVJlc3BvbnNlMAE=');
 

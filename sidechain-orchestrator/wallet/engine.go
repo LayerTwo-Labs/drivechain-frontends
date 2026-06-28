@@ -130,6 +130,28 @@ func (e *WalletEngine) SetElectrumServerURL(ctx context.Context, url string) (in
 	return eb.SetServerURL(ctx, url)
 }
 
+// TorConfig reports whether the electrum wallet routes chain connections
+// through a SOCKS5 proxy and the proxy address.
+func (e *WalletEngine) TorConfig() (bool, string, error) {
+	eb, err := e.electrumBackend()
+	if err != nil {
+		return false, "", err
+	}
+	enabled, proxyAddr := eb.TorConfig()
+	return enabled, proxyAddr, nil
+}
+
+// SetTorConfig switches the electrum wallet's SOCKS5 routing at runtime,
+// returning the chain tip reached through the new route. See
+// ElectrumBackend.SetTorConfig.
+func (e *WalletEngine) SetTorConfig(ctx context.Context, enabled bool, proxyAddr string) (int, error) {
+	eb, err := e.electrumBackend()
+	if err != nil {
+		return 0, err
+	}
+	return eb.SetTorConfig(ctx, enabled, proxyAddr)
+}
+
 // Network returns the chain parameters this engine was constructed against.
 func (e *WalletEngine) Network() *chaincfg.Params {
 	return e.network

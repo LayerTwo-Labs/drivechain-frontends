@@ -64,6 +64,8 @@ abstract class WalletManagerServiceBase extends $pb.GeneratedService {
   $async.Future<$14.SetTestSidechainsResponse> setTestSidechains($pb.ServerContext ctx, $14.SetTestSidechainsRequest request);
   $async.Future<$14.GetElectrumServerResponse> getElectrumServer($pb.ServerContext ctx, $14.GetElectrumServerRequest request);
   $async.Future<$14.SetElectrumServerResponse> setElectrumServer($pb.ServerContext ctx, $14.SetElectrumServerRequest request);
+  $async.Future<$14.GetTorConfigResponse> getTorConfig($pb.ServerContext ctx, $14.GetTorConfigRequest request);
+  $async.Future<$14.SetTorConfigResponse> setTorConfig($pb.ServerContext ctx, $14.SetTorConfigRequest request);
   $async.Future<$14.WatchWalletDataResponse> watchWalletData($pb.ServerContext ctx, $13.Empty request);
 
   $pb.GeneratedMessage createRequest($core.String methodName) {
@@ -110,6 +112,8 @@ abstract class WalletManagerServiceBase extends $pb.GeneratedService {
       case 'SetTestSidechains': return $14.SetTestSidechainsRequest();
       case 'GetElectrumServer': return $14.GetElectrumServerRequest();
       case 'SetElectrumServer': return $14.SetElectrumServerRequest();
+      case 'GetTorConfig': return $14.GetTorConfigRequest();
+      case 'SetTorConfig': return $14.SetTorConfigRequest();
       case 'WatchWalletData': return $13.Empty();
       default: throw $core.ArgumentError('Unknown method: $methodName');
     }
@@ -159,6 +163,8 @@ abstract class WalletManagerServiceBase extends $pb.GeneratedService {
       case 'SetTestSidechains': return this.setTestSidechains(ctx, request as $14.SetTestSidechainsRequest);
       case 'GetElectrumServer': return this.getElectrumServer(ctx, request as $14.GetElectrumServerRequest);
       case 'SetElectrumServer': return this.setElectrumServer(ctx, request as $14.SetElectrumServerRequest);
+      case 'GetTorConfig': return this.getTorConfig(ctx, request as $14.GetTorConfigRequest);
+      case 'SetTorConfig': return this.setTorConfig(ctx, request as $14.SetTorConfigRequest);
       case 'WatchWalletData': return this.watchWalletData(ctx, request as $13.Empty);
       default: throw $core.ArgumentError('Unknown method: $methodName');
     }

@@ -352,7 +352,14 @@ func run(cctx *cli.Context) error {
 		if override := orch.ElectrumServerOverride(); override != "" {
 			esploraURLs = []string{override}
 		}
-		electrumBackend = wallet.NewElectrumBackend(walletSvc, wallet.NewEsploraClient(esploraURLs, log), netParams, log)
+		esploraClient := wallet.NewEsploraClient(esploraURLs, log)
+		if torEnabled, torProxy := orch.TorConfigOverride(); torEnabled && torProxy != "" {
+			if err := esploraClient.SetProxy(true, torProxy); err != nil {
+				return fmt.Errorf("apply persisted tor proxy %q: %w", torProxy, err)
+			}
+			log.Info().Str("tor_proxy", torProxy).Msg("electrum wallet routing through tor proxy")
+		}
+		electrumBackend = wallet.NewElectrumBackend(walletSvc, esploraClient, netParams, log)
 		log.Info().Strs("esplora_urls", esploraURLs).Msg("electrum wallet provider initialized")
 	}
 
