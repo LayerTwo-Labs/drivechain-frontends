@@ -61,7 +61,9 @@ class _CombineBroadcastModalState extends State<CombineBroadcastModal> {
     }
   }
 
-  Future<void> _combineTransaction() async {
+  OrchestratorMultisigLoungeRPC get _multisigLounge => GetIt.I.get<OrchestratorRPC>().multisigLounge;
+
+  Future<void> _combineAndBroadcast() async {
     if (_selectedTransaction == null) {
       return;
     }
@@ -77,106 +79,32 @@ class _CombineBroadcastModalState extends State<CombineBroadcastModal> {
       );
 
       final signedPSBTs = <String>[];
-
       for (final kp in tx.keyPSBTs) {
         if (kp.isSigned && kp.psbt != null) {
           signedPSBTs.add(kp.psbt!);
         }
       }
-
       if (signedPSBTs.isEmpty) {
         throw Exception('No signed PSBTs found');
       }
-
       if (tx.signatureCount < group.m) {
         throw Exception('Insufficient signatures: ${tx.signatureCount}/${group.m} required');
       }
 
-      final uniquePSBTs = signedPSBTs.toSet().toList();
-
-      String combined;
-      if (uniquePSBTs.length == 1) {
-        combined = uniquePSBTs.first;
-      } else {
-        final combineResult = await bitcoindRpcCall('combinepsbt', params: [uniquePSBTs]);
-        combined = combineResult as String;
-      }
-
-      final finalizeResult = await bitcoindRpcCall('finalizepsbt', params: [combined]);
-
-      if (finalizeResult is! Map) {
-        throw Exception('PSBT finalization returned invalid result type');
-      }
-
-      final complete = finalizeResult['complete'] as bool? ?? false;
-
-      if (!complete) {
-        final errors = finalizeResult['errors'] as List<dynamic>? ?? [];
-        throw Exception(
-          'PSBT finalization failed - transaction not complete. Expected ${group.m}-of-${group.n} but finalization failed. Errors: $errors',
-        );
-      }
-
-      final hex = finalizeResult['hex'] as String?;
-      if (hex == null) {
-        throw Exception('No transaction hex returned from finalization');
-      }
-
-      await TransactionStatusManager.updateTransactionStatus(
-        transactionId: tx.id,
-        newStatus: TxStatus.readyForBroadcast,
-        combinedPSBT: combined,
-        finalHex: hex,
-        reason: 'PSBT combined and finalized',
+      // The orchestrator combines, finalizes, and broadcasts — and only
+      // broadcasts when the combined PSBT reaches the threshold.
+      final resp = await _multisigLounge.combineAndBroadcast(
+        psbts: signedPSBTs.toSet().toList(),
+        group: multisigGroupToProto(group),
       );
-
-      widget.onSuccess();
-
-      if (mounted) {
-        Navigator.of(context).pop();
-        showSailToast(
-          context,
-          'Transaction combined and finalized successfully! Ready for broadcast.',
-          duration: const Duration(seconds: 3),
-          variant: SailToastVariant.success,
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() {
-          _error = e.toString();
-          _isProcessing = false;
-        });
-      }
-    } finally {
-      if (mounted && _error == null) {
-        setState(() => _isProcessing = false);
-      }
-    }
-  }
-
-  Future<void> _broadcastTransaction() async {
-    if (_selectedTransaction == null) {
-      return;
-    }
-
-    setState(() => _isProcessing = true);
-
-    try {
-      final tx = _selectedTransaction!;
-
-      if (tx.finalHex == null) {
-        throw Exception('Transaction not finalized - cannot broadcast');
-      }
-
-      final txid = await bitcoindRpcCall('sendrawtransaction', params: [tx.finalHex!]) as String;
+      final txid = resp.txid;
 
       await TransactionStatusManager.updateTransactionStatus(
         transactionId: tx.id,
         newStatus: TxStatus.broadcasted,
         txid: txid,
         broadcastTime: DateTime.now(),
-        reason: 'Transaction broadcast',
+        reason: 'Transaction combined and broadcast',
       );
 
       await TransactionStorage.cleanupPSBTFromGroup(tx.id);
@@ -209,7 +137,7 @@ class _CombineBroadcastModalState extends State<CombineBroadcastModal> {
 
   String get _actionButtonLabel {
     if (_selectedTransaction?.status == TxStatus.readyToCombine) {
-      return 'Combine';
+      return 'Combine & Broadcast';
     } else if (_selectedTransaction?.status == TxStatus.readyForBroadcast) {
       return 'Broadcast';
     }
@@ -217,10 +145,9 @@ class _CombineBroadcastModalState extends State<CombineBroadcastModal> {
   }
 
   Future<void> _processTransaction() async {
-    if (_selectedTransaction?.status == TxStatus.readyToCombine) {
-      await _combineTransaction();
-    } else if (_selectedTransaction?.status == TxStatus.readyForBroadcast) {
-      await _broadcastTransaction();
+    final status = _selectedTransaction?.status;
+    if (status == TxStatus.readyToCombine || status == TxStatus.readyForBroadcast) {
+      await _combineAndBroadcast();
     }
   }
 

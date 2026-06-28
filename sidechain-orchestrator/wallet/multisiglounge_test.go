@@ -419,3 +419,303 @@ func (rt *regtest) deriveAddresses(t *testing.T, descWithChecksum, rng string) [
 	require.NotEmpty(t, addrs)
 	return addrs
 }
+
+// rpc runs a node-scoped RPC and unmarshals JSON into out (out may be nil).
+// bitcoin-cli prints bare strings/numbers for scalar results, so a *string out
+// receives the trimmed raw output verbatim rather than going through JSON.
+func (rt *regtest) rpc(t *testing.T, out interface{}, args ...string) {
+	t.Helper()
+	res, err := rt.call(args...)
+	require.NoError(t, err, "rpc %v", args)
+	if out == nil {
+		return
+	}
+	if sp, ok := out.(*string); ok {
+		*sp = strings.TrimSpace(string(res))
+		return
+	}
+	require.NoError(t, json.Unmarshal(res, out), "decode %v: %s", args, res)
+}
+
+// walletRPC runs a wallet-scoped RPC (-rpcwallet=name).
+func (rt *regtest) walletRPC(t *testing.T, wallet string, out interface{}, args ...string) {
+	t.Helper()
+	rt.rpc(t, out, append([]string{"-rpcwallet=" + wallet}, args...)...)
+}
+
+// countPartialSigs decodes a PSBT and returns the max partial-signature count
+// across its inputs.
+func countPartialSigs(t *testing.T, rt *regtest, psbtBase64 string) int {
+	t.Helper()
+	var dec struct {
+		Inputs []struct {
+			PartialSignatures map[string]string `json:"partial_signatures"`
+		} `json:"inputs"`
+	}
+	rt.rpc(t, &dec, "decodepsbt", psbtBase64)
+	max := 0
+	for _, in := range dec.Inputs {
+		if n := len(in.PartialSignatures); n > max {
+			max = n
+		}
+	}
+	return max
+}
+
+// TestMultisigSignCombineBroadcastE2E is the load-bearing Phase 3 proof: it
+// stands up a real regtest bitcoind, creates the 2-of-3 watch-only wallet from
+// the Phase-1 descriptors, funds it, builds a spend PSBT, signs with two of the
+// three keys via the server-side signing-descriptor path (the exact
+// BuildMultisigSigningDescriptors + descriptorprocesspsbt the handler uses),
+// combines/finalizes/broadcasts, and asserts the spend confirms and the balance
+// moves. It also asserts a 1-of-2-signed PSBT is NOT finalizable (no broadcast).
+func TestMultisigSignCombineBroadcastE2E(t *testing.T) {
+	cli, daemon := findBitcoinTools(t)
+	rt := newRegtest(t, cli, daemon)
+	defer rt.stop()
+
+	group, _ := loungeTestKeys(t)
+	watchReceive, watchChange, err := BuildMultisigLoungeDescriptors(group)
+	require.NoError(t, err)
+
+	// Watch-only multisig wallet: descriptors, no private keys.
+	rt.rpc(t, nil, "createwallet", "ms", "true", "true", "", "false", "true")
+	importReq := func(desc string, internal bool) map[string]interface{} {
+		return map[string]interface{}{
+			"desc": desc, "active": true, "internal": internal, "timestamp": "now", "range": []int{0, 20},
+		}
+	}
+	imp, _ := json.Marshal([]map[string]interface{}{importReq(watchReceive, false), importReq(watchChange, true)})
+	var impRes []map[string]interface{}
+	rt.walletRPC(t, "ms", &impRes, "importdescriptors", string(imp))
+	for _, r := range impRes {
+		require.Equal(t, true, r["success"], "importdescriptors: %v", r)
+	}
+
+	// Funding wallet with spendable coins.
+	rt.rpc(t, nil, "createwallet", "fund")
+	var fundAddr string
+	rt.walletRPC(t, "fund", &fundAddr, "getnewaddress")
+	rt.rpc(t, nil, "generatetoaddress", "101", fundAddr)
+
+	// Fund a multisig receive address and confirm it.
+	var msAddr string
+	rt.walletRPC(t, "ms", &msAddr, "getnewaddress")
+	rt.walletRPC(t, "fund", nil, "sendtoaddress", msAddr, "1.0")
+	rt.rpc(t, nil, "generatetoaddress", "1", fundAddr)
+
+	var msBalance float64
+	rt.walletRPC(t, "ms", &msBalance, "getbalance")
+	require.InDelta(t, 1.0, msBalance, 1e-8, "multisig wallet should hold the funded coin")
+
+	// Build an unsigned spend PSBT from the multisig wallet.
+	var dest string
+	rt.walletRPC(t, "fund", &dest, "getnewaddress")
+	outs, _ := json.Marshal([]map[string]float64{{dest: 0.5}})
+	opts, _ := json.Marshal(map[string]interface{}{"includeWatching": true, "changeAddress": msAddr})
+	var funded struct {
+		PSBT string `json:"psbt"`
+	}
+	rt.walletRPC(t, "ms", &funded, "walletcreatefundedpsbt", "[]", string(outs), "0", string(opts))
+	require.NotEmpty(t, funded.PSBT)
+
+	// Sign with two of the three keys via the server-side signing-descriptor path.
+	seedHex := hex.EncodeToString(MnemonicToSeed(testMnemonic, ""))
+	net := &chaincfg.SigNetParams // tpub network — matches the group keys
+	signOnce := func(accountIndex uint32, basePsbt string) string {
+		path := fmt.Sprintf("m/48'/1'/0'/%d'", accountIndex)
+		xprv, xpub, derr := DeriveAccountXprv(seedHex, path, net)
+		require.NoError(t, derr)
+		recv, chg, berr := BuildMultisigSigningDescriptors(group, map[string]string{xpub: xprv})
+		require.NoError(t, berr)
+		descs, _ := json.Marshal([]string{recv, chg})
+		var res struct {
+			PSBT     string `json:"psbt"`
+			Complete bool   `json:"complete"`
+		}
+		rt.rpc(t, &res, "descriptorprocesspsbt", basePsbt, string(descs), "ALL", "true", "false")
+		require.NotEmpty(t, res.PSBT)
+		return res.PSBT
+	}
+
+	signedA := signOnce(2, funded.PSBT)
+	signedB := signOnce(3, funded.PSBT)
+
+	// Negative: one signature alone must NOT finalize a 2-of-3.
+	var finOne struct {
+		Complete bool `json:"complete"`
+	}
+	rt.rpc(t, &finOne, "finalizepsbt", signedA)
+	require.False(t, finOne.Complete, "a single signature must not finalize a 2-of-3 (no broadcast)")
+
+	// Combine the two partials, finalize, broadcast.
+	combineArg, _ := json.Marshal([]string{signedA, signedB})
+	var combined string
+	rt.rpc(t, &combined, "combinepsbt", string(combineArg))
+	var fin struct {
+		Hex      string `json:"hex"`
+		Complete bool   `json:"complete"`
+	}
+	rt.rpc(t, &fin, "finalizepsbt", combined)
+	require.True(t, fin.Complete, "two of three signatures must finalize")
+	require.NotEmpty(t, fin.Hex)
+
+	var txid string
+	rt.rpc(t, &txid, "sendrawtransaction", fin.Hex)
+	require.Len(t, txid, 64, "broadcast should return a txid")
+
+	// Confirm and assert the balance moved off the multisig wallet.
+	rt.rpc(t, nil, "generatetoaddress", "1", fundAddr)
+	var afterBalance float64
+	rt.walletRPC(t, "ms", &afterBalance, "getbalance")
+	require.Less(t, afterBalance, msBalance, "multisig balance must drop after the spend confirms")
+}
+
+// multiOwnedKeyGroup builds a 2-of-3 group where the local wallet (abandon seed)
+// owns keys at m/48'/1'/0'/{2',3'} and the third cosigner is foreign (a
+// different seed the wallet cannot derive). Returns the group plus the two owned
+// xprvs keyed by xpub — the exact signWithXprv map the handler assembles when the
+// wallet owns multiple keys.
+func multiOwnedKeyGroup(t *testing.T) (MultisigLoungeGroup, map[string]string) {
+	t.Helper()
+	net := &chaincfg.SigNetParams
+	const h = hdkeychain.HardenedKeyStart
+
+	ownMaster, err := hdkeychain.NewMaster(MnemonicToSeed(testMnemonic, ""), net)
+	require.NoError(t, err)
+	ownPub, err := ownMaster.ECPubKey()
+	require.NoError(t, err)
+	ownFp := hex.EncodeToString(btcutil.Hash160(ownPub.SerializeCompressed())[:4])
+
+	foreignMaster, err := hdkeychain.NewMaster(MnemonicToSeed(testMnemonic, "foreign"), net)
+	require.NoError(t, err)
+	foreignPub, err := foreignMaster.ECPubKey()
+	require.NoError(t, err)
+	foreignFp := hex.EncodeToString(btcutil.Hash160(foreignPub.SerializeCompressed())[:4])
+
+	derive := func(master *hdkeychain.ExtendedKey, acct uint32) *hdkeychain.ExtendedKey {
+		k := master
+		for _, p := range []uint32{h + 48, h + 1, h + 0, h + acct} {
+			k, err = k.Derive(p)
+			require.NoError(t, err)
+		}
+		return k
+	}
+
+	keys := make([]MultisigLoungeKey, 0, 3)
+	signWithXprv := map[string]string{}
+
+	// Two owned keys (the wallet holds both private keys).
+	for _, acct := range []uint32{2, 3} {
+		priv := derive(ownMaster, acct)
+		pub, nerr := priv.Neuter()
+		require.NoError(t, nerr)
+		keys = append(keys, MultisigLoungeKey{
+			Xpub:        pub.String(),
+			Fingerprint: ownFp,
+			OriginPath:  fmt.Sprintf("48'/1'/0'/%d'", acct),
+			IsWallet:    true,
+		})
+		signWithXprv[pub.String()] = priv.String()
+	}
+
+	// One foreign cosigner (wallet cannot derive this xprv).
+	foreignPriv := derive(foreignMaster, 2)
+	foreignXpub, err := foreignPriv.Neuter()
+	require.NoError(t, err)
+	keys = append(keys, MultisigLoungeKey{
+		Xpub:        foreignXpub.String(),
+		Fingerprint: foreignFp,
+		OriginPath:  "48'/1'/0'/2'",
+		IsWallet:    false,
+	})
+
+	return MultisigLoungeGroup{M: 2, N: 3, Keys: keys}, signWithXprv
+}
+
+// TestMultisigSignMultiOwnedKeyE2E proves the multi-owned-key path: a 2-of-3
+// where ONE wallet holds two of the three keys can fully sign in a SINGLE
+// SignTransaction call (no other cosigner), because BuildMultisigSigningDescriptors
+// substitutes the xprv for every owned key and descriptorprocesspsbt adds all of
+// them at once. Signs once, finalizes, broadcasts, and asserts the spend confirms.
+func TestMultisigSignMultiOwnedKeyE2E(t *testing.T) {
+	cli, daemon := findBitcoinTools(t)
+	rt := newRegtest(t, cli, daemon)
+	defer rt.stop()
+
+	group, signWithXprv := multiOwnedKeyGroup(t)
+	require.Len(t, signWithXprv, 2, "wallet must own exactly two keys for this test")
+
+	watchReceive, watchChange, err := BuildMultisigLoungeDescriptors(group)
+	require.NoError(t, err)
+
+	rt.rpc(t, nil, "createwallet", "ms", "true", "true", "", "false", "true")
+	importReq := func(desc string, internal bool) map[string]interface{} {
+		return map[string]interface{}{
+			"desc": desc, "active": true, "internal": internal, "timestamp": "now", "range": []int{0, 20},
+		}
+	}
+	imp, _ := json.Marshal([]map[string]interface{}{importReq(watchReceive, false), importReq(watchChange, true)})
+	var impRes []map[string]interface{}
+	rt.walletRPC(t, "ms", &impRes, "importdescriptors", string(imp))
+	for _, r := range impRes {
+		require.Equal(t, true, r["success"], "importdescriptors: %v", r)
+	}
+
+	rt.rpc(t, nil, "createwallet", "fund")
+	var fundAddr string
+	rt.walletRPC(t, "fund", &fundAddr, "getnewaddress")
+	rt.rpc(t, nil, "generatetoaddress", "101", fundAddr)
+
+	var msAddr string
+	rt.walletRPC(t, "ms", &msAddr, "getnewaddress")
+	rt.walletRPC(t, "fund", nil, "sendtoaddress", msAddr, "1.0")
+	rt.rpc(t, nil, "generatetoaddress", "1", fundAddr)
+
+	var msBalance float64
+	rt.walletRPC(t, "ms", &msBalance, "getbalance")
+	require.InDelta(t, 1.0, msBalance, 1e-8)
+
+	var dest string
+	rt.walletRPC(t, "fund", &dest, "getnewaddress")
+	outs, _ := json.Marshal([]map[string]float64{{dest: 0.5}})
+	opts, _ := json.Marshal(map[string]interface{}{"includeWatching": true, "changeAddress": msAddr})
+	var funded struct {
+		PSBT string `json:"psbt"`
+	}
+	rt.walletRPC(t, "ms", &funded, "walletcreatefundedpsbt", "[]", string(outs), "0", string(opts))
+	require.NotEmpty(t, funded.PSBT)
+
+	// Build the signing descriptors with BOTH owned xprvs and sign once.
+	recv, chg, berr := BuildMultisigSigningDescriptors(group, signWithXprv)
+	require.NoError(t, berr)
+	descs, _ := json.Marshal([]string{recv, chg})
+	var signed struct {
+		PSBT string `json:"psbt"`
+	}
+	rt.rpc(t, &signed, "descriptorprocesspsbt", funded.PSBT, string(descs), "ALL", "true", "false")
+	require.NotEmpty(t, signed.PSBT)
+
+	// The single call must have added BOTH owned signatures (the load-bearing
+	// check): one descriptorprocesspsbt call signs every owned key.
+	sigCount := countPartialSigs(t, rt, signed.PSBT)
+	require.Equal(t, 2, sigCount, "a single call must add both owned-key signatures to a 2-of-3")
+
+	// The single signed PSBT finalizes alone — no other cosigner needed.
+	var fin struct {
+		Hex      string `json:"hex"`
+		Complete bool   `json:"complete"`
+	}
+	rt.rpc(t, &fin, "finalizepsbt", signed.PSBT)
+	require.True(t, fin.Complete, "two owned signatures from one call must finalize a 2-of-3")
+	require.NotEmpty(t, fin.Hex)
+
+	var txid string
+	rt.rpc(t, &txid, "sendrawtransaction", fin.Hex)
+	require.Len(t, txid, 64)
+
+	rt.rpc(t, nil, "generatetoaddress", "1", fundAddr)
+	var afterBalance float64
+	rt.walletRPC(t, "ms", &afterBalance, "getbalance")
+	require.Less(t, afterBalance, msBalance, "balance must drop after the single-call multi-key spend")
+}

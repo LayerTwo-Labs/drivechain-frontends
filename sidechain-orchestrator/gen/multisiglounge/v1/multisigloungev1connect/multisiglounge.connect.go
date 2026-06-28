@@ -45,6 +45,12 @@ const (
 	// MultisigLoungeServiceImportGroupFromTxidProcedure is the fully-qualified name of the
 	// MultisigLoungeService's ImportGroupFromTxid RPC.
 	MultisigLoungeServiceImportGroupFromTxidProcedure = "/multisiglounge.v1.MultisigLoungeService/ImportGroupFromTxid"
+	// MultisigLoungeServiceSignTransactionProcedure is the fully-qualified name of the
+	// MultisigLoungeService's SignTransaction RPC.
+	MultisigLoungeServiceSignTransactionProcedure = "/multisiglounge.v1.MultisigLoungeService/SignTransaction"
+	// MultisigLoungeServiceCombineAndBroadcastProcedure is the fully-qualified name of the
+	// MultisigLoungeService's CombineAndBroadcast RPC.
+	MultisigLoungeServiceCombineAndBroadcastProcedure = "/multisiglounge.v1.MultisigLoungeService/CombineAndBroadcast"
 )
 
 // MultisigLoungeServiceClient is a client for the multisiglounge.v1.MultisigLoungeService service.
@@ -63,6 +69,14 @@ type MultisigLoungeServiceClient interface {
 	// ImportGroupFromTxid fetches the OP_RETURN at the given txid, decodes the
 	// multisig group, and reports which of the group's keys belong to the wallet.
 	ImportGroupFromTxid(context.Context, *connect.Request[v1.ImportGroupFromTxidRequest]) (*connect.Response[v1.ImportGroupFromTxidResponse], error)
+	// SignTransaction adds the wallet's signature(s) to a multisig PSBT,
+	// deriving the wallet's keys server-side from its seed. The PSBT must belong
+	// to the group (foreign inputs are rejected).
+	SignTransaction(context.Context, *connect.Request[v1.SignTransactionRequest]) (*connect.Response[v1.SignTransactionResponse], error)
+	// CombineAndBroadcast merges partial PSBTs, finalizes, and broadcasts — but
+	// only if the combined PSBT reaches the threshold. A non-finalizable PSBT is
+	// never broadcast.
+	CombineAndBroadcast(context.Context, *connect.Request[v1.CombineAndBroadcastRequest]) (*connect.Response[v1.CombineAndBroadcastResponse], error)
 }
 
 // NewMultisigLoungeServiceClient constructs a client for the
@@ -100,6 +114,18 @@ func NewMultisigLoungeServiceClient(httpClient connect.HTTPClient, baseURL strin
 			connect.WithSchema(multisigLoungeServiceMethods.ByName("ImportGroupFromTxid")),
 			connect.WithClientOptions(opts...),
 		),
+		signTransaction: connect.NewClient[v1.SignTransactionRequest, v1.SignTransactionResponse](
+			httpClient,
+			baseURL+MultisigLoungeServiceSignTransactionProcedure,
+			connect.WithSchema(multisigLoungeServiceMethods.ByName("SignTransaction")),
+			connect.WithClientOptions(opts...),
+		),
+		combineAndBroadcast: connect.NewClient[v1.CombineAndBroadcastRequest, v1.CombineAndBroadcastResponse](
+			httpClient,
+			baseURL+MultisigLoungeServiceCombineAndBroadcastProcedure,
+			connect.WithSchema(multisigLoungeServiceMethods.ByName("CombineAndBroadcast")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -109,6 +135,8 @@ type multisigLoungeServiceClient struct {
 	validatePsbt        *connect.Client[v1.ValidatePsbtRequest, v1.ValidatePsbtResponse]
 	publishGroup        *connect.Client[v1.PublishGroupRequest, v1.PublishGroupResponse]
 	importGroupFromTxid *connect.Client[v1.ImportGroupFromTxidRequest, v1.ImportGroupFromTxidResponse]
+	signTransaction     *connect.Client[v1.SignTransactionRequest, v1.SignTransactionResponse]
+	combineAndBroadcast *connect.Client[v1.CombineAndBroadcastRequest, v1.CombineAndBroadcastResponse]
 }
 
 // BuildDescriptors calls multisiglounge.v1.MultisigLoungeService.BuildDescriptors.
@@ -131,6 +159,16 @@ func (c *multisigLoungeServiceClient) ImportGroupFromTxid(ctx context.Context, r
 	return c.importGroupFromTxid.CallUnary(ctx, req)
 }
 
+// SignTransaction calls multisiglounge.v1.MultisigLoungeService.SignTransaction.
+func (c *multisigLoungeServiceClient) SignTransaction(ctx context.Context, req *connect.Request[v1.SignTransactionRequest]) (*connect.Response[v1.SignTransactionResponse], error) {
+	return c.signTransaction.CallUnary(ctx, req)
+}
+
+// CombineAndBroadcast calls multisiglounge.v1.MultisigLoungeService.CombineAndBroadcast.
+func (c *multisigLoungeServiceClient) CombineAndBroadcast(ctx context.Context, req *connect.Request[v1.CombineAndBroadcastRequest]) (*connect.Response[v1.CombineAndBroadcastResponse], error) {
+	return c.combineAndBroadcast.CallUnary(ctx, req)
+}
+
 // MultisigLoungeServiceHandler is an implementation of the multisiglounge.v1.MultisigLoungeService
 // service.
 type MultisigLoungeServiceHandler interface {
@@ -148,6 +186,14 @@ type MultisigLoungeServiceHandler interface {
 	// ImportGroupFromTxid fetches the OP_RETURN at the given txid, decodes the
 	// multisig group, and reports which of the group's keys belong to the wallet.
 	ImportGroupFromTxid(context.Context, *connect.Request[v1.ImportGroupFromTxidRequest]) (*connect.Response[v1.ImportGroupFromTxidResponse], error)
+	// SignTransaction adds the wallet's signature(s) to a multisig PSBT,
+	// deriving the wallet's keys server-side from its seed. The PSBT must belong
+	// to the group (foreign inputs are rejected).
+	SignTransaction(context.Context, *connect.Request[v1.SignTransactionRequest]) (*connect.Response[v1.SignTransactionResponse], error)
+	// CombineAndBroadcast merges partial PSBTs, finalizes, and broadcasts — but
+	// only if the combined PSBT reaches the threshold. A non-finalizable PSBT is
+	// never broadcast.
+	CombineAndBroadcast(context.Context, *connect.Request[v1.CombineAndBroadcastRequest]) (*connect.Response[v1.CombineAndBroadcastResponse], error)
 }
 
 // NewMultisigLoungeServiceHandler builds an HTTP handler from the service implementation. It
@@ -181,6 +227,18 @@ func NewMultisigLoungeServiceHandler(svc MultisigLoungeServiceHandler, opts ...c
 		connect.WithSchema(multisigLoungeServiceMethods.ByName("ImportGroupFromTxid")),
 		connect.WithHandlerOptions(opts...),
 	)
+	multisigLoungeServiceSignTransactionHandler := connect.NewUnaryHandler(
+		MultisigLoungeServiceSignTransactionProcedure,
+		svc.SignTransaction,
+		connect.WithSchema(multisigLoungeServiceMethods.ByName("SignTransaction")),
+		connect.WithHandlerOptions(opts...),
+	)
+	multisigLoungeServiceCombineAndBroadcastHandler := connect.NewUnaryHandler(
+		MultisigLoungeServiceCombineAndBroadcastProcedure,
+		svc.CombineAndBroadcast,
+		connect.WithSchema(multisigLoungeServiceMethods.ByName("CombineAndBroadcast")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/multisiglounge.v1.MultisigLoungeService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case MultisigLoungeServiceBuildDescriptorsProcedure:
@@ -191,6 +249,10 @@ func NewMultisigLoungeServiceHandler(svc MultisigLoungeServiceHandler, opts ...c
 			multisigLoungeServicePublishGroupHandler.ServeHTTP(w, r)
 		case MultisigLoungeServiceImportGroupFromTxidProcedure:
 			multisigLoungeServiceImportGroupFromTxidHandler.ServeHTTP(w, r)
+		case MultisigLoungeServiceSignTransactionProcedure:
+			multisigLoungeServiceSignTransactionHandler.ServeHTTP(w, r)
+		case MultisigLoungeServiceCombineAndBroadcastProcedure:
+			multisigLoungeServiceCombineAndBroadcastHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -214,4 +276,12 @@ func (UnimplementedMultisigLoungeServiceHandler) PublishGroup(context.Context, *
 
 func (UnimplementedMultisigLoungeServiceHandler) ImportGroupFromTxid(context.Context, *connect.Request[v1.ImportGroupFromTxidRequest]) (*connect.Response[v1.ImportGroupFromTxidResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("multisiglounge.v1.MultisigLoungeService.ImportGroupFromTxid is not implemented"))
+}
+
+func (UnimplementedMultisigLoungeServiceHandler) SignTransaction(context.Context, *connect.Request[v1.SignTransactionRequest]) (*connect.Response[v1.SignTransactionResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("multisiglounge.v1.MultisigLoungeService.SignTransaction is not implemented"))
+}
+
+func (UnimplementedMultisigLoungeServiceHandler) CombineAndBroadcast(context.Context, *connect.Request[v1.CombineAndBroadcastRequest]) (*connect.Response[v1.CombineAndBroadcastResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("multisiglounge.v1.MultisigLoungeService.CombineAndBroadcast is not implemented"))
 }

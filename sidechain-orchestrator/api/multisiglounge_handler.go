@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"time"
@@ -22,13 +23,21 @@ var errMissingGroup = errors.New("group is required")
 // Dart publish path (10000 sats to a fresh own address).
 const multisigGroupFundingSats int64 = 10000
 
+// CoreRawCaller invokes a bitcoind JSON-RPC method (params as a JSON array
+// string), optionally scoped to a wallet. It is the same seam the orchestrator's
+// CoreRawCall handler uses, so multisig signing/combine/broadcast hit the exact
+// bitcoind the rest of the wallet already talks to.
+type CoreRawCaller func(ctx context.Context, method, paramsJSON, wallet string) (json.RawMessage, error)
+
 // MultisigLoungeHandler implements the MultisigLoungeService gRPC handler.
 // BuildDescriptors and ValidatePsbt are pure stateless logic; PublishGroup and
 // ImportGroupFromTxid need the wallet engine (broadcast + raw tx) and service
-// (seed for wallet-key detection), wired after engine init.
+// (seed); SignTransaction and CombineAndBroadcast additionally need the Core RPC
+// seam to drive bitcoind's descriptorprocesspsbt/combinepsbt/finalizepsbt.
 type MultisigLoungeHandler struct {
-	svc    *wallet.Service
-	engine *wallet.WalletEngine // nil until Core/Electrum RPC is configured
+	svc        *wallet.Service
+	engine     *wallet.WalletEngine // nil until Core/Electrum RPC is configured
+	coreCaller CoreRawCaller        // nil until Core RPC is configured
 }
 
 func NewMultisigLoungeHandler() *MultisigLoungeHandler {
@@ -43,6 +52,18 @@ func (h *MultisigLoungeHandler) SetService(svc *wallet.Service) {
 // SetEngine wires the wallet engine (called once Core/Electrum RPC is available).
 func (h *MultisigLoungeHandler) SetEngine(engine *wallet.WalletEngine) {
 	h.engine = engine
+}
+
+// SetCoreCaller wires the bitcoind JSON-RPC seam used for multisig signing.
+func (h *MultisigLoungeHandler) SetCoreCaller(c CoreRawCaller) {
+	h.coreCaller = c
+}
+
+func (h *MultisigLoungeHandler) requireCoreCaller() error {
+	if h.coreCaller == nil {
+		return errors.New("bitcoin core RPC not configured")
+	}
+	return nil
 }
 
 func (h *MultisigLoungeHandler) requireEngine() error {
@@ -290,4 +311,215 @@ func (h *MultisigLoungeHandler) detectWalletKeys(walletID string, g wallet.Multi
 		}
 	}
 	return indices
+}
+
+// groupDataToLoungeGroup maps the full wire GroupData onto the descriptor-builder
+// group (xpub + [fp/origin] + is_wallet), so SignTransaction can reuse the
+// Phase-1 descriptor construction and ValidatePsbt's group membership check.
+func groupDataToLoungeGroup(g *pb.GroupData) wallet.MultisigLoungeGroup {
+	keys := make([]wallet.MultisigLoungeKey, 0, len(g.GetKeys()))
+	for _, k := range g.GetKeys() {
+		keys = append(keys, wallet.MultisigLoungeKey{
+			Xpub:        k.GetXpub(),
+			Fingerprint: k.GetFingerprint(),
+			OriginPath:  k.GetOriginPath(),
+			IsWallet:    k.GetIsWallet(),
+		})
+	}
+	return wallet.MultisigLoungeGroup{
+		M:    int(g.GetM()),
+		N:    int(g.GetN()),
+		Keys: keys,
+	}
+}
+
+// coreCall invokes a bitcoind JSON-RPC method with positional params, wallet-less
+// (matching the Dart multisig path), and unmarshals the result into out.
+func (h *MultisigLoungeHandler) coreCall(ctx context.Context, method string, params []interface{}, out interface{}) error {
+	paramsJSON, err := json.Marshal(params)
+	if err != nil {
+		return fmt.Errorf("marshal %s params: %w", method, err)
+	}
+	raw, err := h.coreCaller(ctx, method, string(paramsJSON), "")
+	if err != nil {
+		return err
+	}
+	if out == nil {
+		return nil
+	}
+	if err := json.Unmarshal(raw, out); err != nil {
+		return fmt.Errorf("decode %s result: %w", method, err)
+	}
+	return nil
+}
+
+func (h *MultisigLoungeHandler) SignTransaction(
+	ctx context.Context,
+	req *connect.Request[pb.SignTransactionRequest],
+) (*connect.Response[pb.SignTransactionResponse], error) {
+	group := req.Msg.GetGroup()
+	if group == nil {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errMissingGroup)
+	}
+	if req.Msg.GetPsbtBase64() == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("psbt_base64 is required"))
+	}
+	if err := h.requireEngine(); err != nil {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, err)
+	}
+	if err := h.requireCoreCaller(); err != nil {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, err)
+	}
+
+	walletID, err := h.engine.ResolveWalletID(req.Msg.GetWalletId())
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+	}
+	seedHex := h.walletSeedHex(walletID)
+	if seedHex == "" {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("wallet has no seed; cannot sign"))
+	}
+
+	loungeGroup := groupDataToLoungeGroup(group)
+
+	// Reject a PSBT that does not belong to this group before signing it.
+	if _, err := wallet.ValidateMultisigPsbt(req.Msg.GetPsbtBase64(), int(group.GetM()), &loungeGroup); err != nil {
+		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("psbt does not match group: %w", err))
+	}
+
+	// Derive the wallet's xprv for every group key the wallet owns, keyed by xpub
+	// for substitution into the signing descriptor.
+	net := h.engine.Network()
+	signWithXprv := map[string]string{}
+	for _, k := range group.GetKeys() {
+		if !k.GetIsWallet() {
+			continue
+		}
+		xprv, xpub, derr := wallet.DeriveAccountXprv(seedHex, k.GetDerivationPath(), net)
+		if derr != nil {
+			continue
+		}
+		if xpub == k.GetXpub() {
+			signWithXprv[xpub] = xprv
+		}
+	}
+	if len(signWithXprv) == 0 {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("wallet owns none of the group's keys; cannot sign"))
+	}
+
+	receiveDesc, changeDesc, err := wallet.BuildMultisigSigningDescriptors(loungeGroup, signWithXprv)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("build signing descriptors: %w", err))
+	}
+
+	before := countPsbtSignatures(req.Msg.GetPsbtBase64())
+
+	// descriptorprocesspsbt(psbt, descriptors, sighashtype, bip32derivs, finalize=false)
+	var res struct {
+		PSBT     string `json:"psbt"`
+		Complete bool   `json:"complete"`
+	}
+	if err := h.coreCall(ctx, "descriptorprocesspsbt", []interface{}{
+		req.Msg.GetPsbtBase64(),
+		[]string{receiveDesc, changeDesc},
+		"ALL",
+		true,
+		false,
+	}, &res); err != nil {
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("descriptorprocesspsbt: %w", err))
+	}
+	if res.PSBT == "" {
+		return nil, connect.NewError(connect.CodeInternal, errors.New("descriptorprocesspsbt returned an empty psbt"))
+	}
+
+	added := countPsbtSignatures(res.PSBT) - before
+	if added < 0 {
+		added = 0
+	}
+
+	return connect.NewResponse(&pb.SignTransactionResponse{
+		PsbtBase64:      res.PSBT,
+		AddedSignatures: uint32(added),
+		IsComplete:      res.Complete,
+	}), nil
+}
+
+func (h *MultisigLoungeHandler) CombineAndBroadcast(
+	ctx context.Context,
+	req *connect.Request[pb.CombineAndBroadcastRequest],
+) (*connect.Response[pb.CombineAndBroadcastResponse], error) {
+	psbts := req.Msg.GetPsbts()
+	if len(psbts) == 0 {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("no psbts provided"))
+	}
+	if err := h.requireCoreCaller(); err != nil {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, err)
+	}
+
+	// Reject any PSBT that does not belong to the group before combining, so a
+	// foreign/stale PSBT can't poison the combined transaction.
+	if group := req.Msg.GetGroup(); group != nil {
+		loungeGroup := groupDataToLoungeGroup(group)
+		for i, p := range psbts {
+			if _, err := wallet.ValidateMultisigPsbt(p, int(group.GetM()), &loungeGroup); err != nil {
+				return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("psbt %d does not match group: %w", i, err))
+			}
+		}
+	}
+
+	// Combine merges partial signatures (it never overwrites; bitcoind unions the
+	// partial sigs across packets), so a stale PSBT can't clobber a newer sig.
+	combined := psbts[0]
+	if len(psbts) > 1 {
+		unique := dedupeStrings(psbts)
+		if len(unique) > 1 {
+			if err := h.coreCall(ctx, "combinepsbt", []interface{}{unique}, &combined); err != nil {
+				return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("combinepsbt: %w", err))
+			}
+		} else {
+			combined = unique[0]
+		}
+	}
+
+	var fin struct {
+		Hex      string `json:"hex"`
+		Complete bool   `json:"complete"`
+	}
+	if err := h.coreCall(ctx, "finalizepsbt", []interface{}{combined}, &fin); err != nil {
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("finalizepsbt: %w", err))
+	}
+	if !fin.Complete || fin.Hex == "" {
+		return nil, connect.NewError(connect.CodeFailedPrecondition,
+			errors.New("psbt is not finalizable (threshold of signatures not reached); not broadcasting"))
+	}
+
+	var txid string
+	if err := h.coreCall(ctx, "sendrawtransaction", []interface{}{fin.Hex}, &txid); err != nil {
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("sendrawtransaction: %w", err))
+	}
+
+	return connect.NewResponse(&pb.CombineAndBroadcastResponse{Txid: txid}), nil
+}
+
+func dedupeStrings(in []string) []string {
+	seen := map[string]bool{}
+	out := make([]string, 0, len(in))
+	for _, s := range in {
+		if seen[s] {
+			continue
+		}
+		seen[s] = true
+		out = append(out, s)
+	}
+	return out
+}
+
+// countPsbtSignatures returns the max partial-signature count across inputs, or
+// 0 if the PSBT cannot be parsed.
+func countPsbtSignatures(psbtBase64 string) int {
+	res, err := wallet.ValidateMultisigPsbt(psbtBase64, 0, nil)
+	if err != nil {
+		return 0
+	}
+	return res.SignatureCount
 }

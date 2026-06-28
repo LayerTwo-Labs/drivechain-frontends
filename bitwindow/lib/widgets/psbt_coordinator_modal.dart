@@ -1,12 +1,10 @@
 import 'dart:convert';
 import 'package:bitwindow/models/multisig_group.dart';
 import 'package:bitwindow/models/multisig_transaction.dart';
-import 'package:bitwindow/providers/hd_wallet_provider.dart';
 import 'package:bitwindow/providers/multisig_provider.dart';
 import 'package:crypto/crypto.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter/services.dart';
-import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:stacked/stacked.dart';
 
@@ -302,12 +300,6 @@ class CreateTransactionViewModel extends BaseViewModel {
       isSigning = true;
       notifyListeners();
 
-      final hdWalletProvider = GetIt.I.get<HDWalletProvider>();
-
-      if (hdWalletProvider.mnemonic == null) {
-        throw Exception('Wallet mnemonic not available - please ensure wallet is unlocked');
-      }
-
       final walletKeys = group.keys.where((k) => k.isWallet).toList();
 
       if (walletKeys.isEmpty) {
@@ -315,14 +307,10 @@ class CreateTransactionViewModel extends BaseViewModel {
       }
 
       final rpcSigner = MultisigRPCSigner();
-      const isMainnet = String.fromEnvironment('BITWINDOW_NETWORK', defaultValue: 'signet') == 'mainnet';
 
       final signingResult = await rpcSigner.signPSBT(
         psbtBase64: createdPSBT!,
         group: group,
-        mnemonic: hdWalletProvider.mnemonic!,
-        walletKeys: walletKeys,
-        isMainnet: isMainnet,
       );
 
       if (signingResult.errors.isNotEmpty) {

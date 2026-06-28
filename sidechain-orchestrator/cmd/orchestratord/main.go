@@ -281,6 +281,7 @@ func run(cctx *cli.Context) error {
 
 	multisigLoungeHandler := api.NewMultisigLoungeHandler()
 	multisigLoungeHandler.SetService(walletSvc)
+	multisigLoungeHandler.SetCoreCaller(handler.RawCoreCall)
 
 	// Wallet derivation must follow the resolved/persisted network: bitwindow-
 	// bitcoin.conf wins over the --network flag (orchestratord is usually

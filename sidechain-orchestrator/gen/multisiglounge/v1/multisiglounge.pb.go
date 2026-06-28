@@ -21,6 +21,228 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+type SignTransactionRequest struct {
+	state      protoimpl.MessageState `protogen:"open.v1"`
+	PsbtBase64 string                 `protobuf:"bytes,1,opt,name=psbt_base64,json=psbtBase64,proto3" json:"psbt_base64,omitempty"`
+	// Full group (with per-key derivation paths) so the wallet's xprv can be
+	// derived and substituted into the signing descriptor.
+	Group *GroupData `protobuf:"bytes,2,opt,name=group,proto3" json:"group,omitempty"`
+	// Wallet whose seed-derived keys sign the PSBT.
+	WalletId      string `protobuf:"bytes,3,opt,name=wallet_id,json=walletId,proto3" json:"wallet_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SignTransactionRequest) Reset() {
+	*x = SignTransactionRequest{}
+	mi := &file_multisiglounge_v1_multisiglounge_proto_msgTypes[0]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SignTransactionRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SignTransactionRequest) ProtoMessage() {}
+
+func (x *SignTransactionRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_multisiglounge_v1_multisiglounge_proto_msgTypes[0]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SignTransactionRequest.ProtoReflect.Descriptor instead.
+func (*SignTransactionRequest) Descriptor() ([]byte, []int) {
+	return file_multisiglounge_v1_multisiglounge_proto_rawDescGZIP(), []int{0}
+}
+
+func (x *SignTransactionRequest) GetPsbtBase64() string {
+	if x != nil {
+		return x.PsbtBase64
+	}
+	return ""
+}
+
+func (x *SignTransactionRequest) GetGroup() *GroupData {
+	if x != nil {
+		return x.Group
+	}
+	return nil
+}
+
+func (x *SignTransactionRequest) GetWalletId() string {
+	if x != nil {
+		return x.WalletId
+	}
+	return ""
+}
+
+type SignTransactionResponse struct {
+	state      protoimpl.MessageState `protogen:"open.v1"`
+	PsbtBase64 string                 `protobuf:"bytes,1,opt,name=psbt_base64,json=psbtBase64,proto3" json:"psbt_base64,omitempty"`
+	// Number of partial signatures this call added.
+	AddedSignatures uint32 `protobuf:"varint,2,opt,name=added_signatures,json=addedSignatures,proto3" json:"added_signatures,omitempty"`
+	// True once the PSBT carries the threshold of signatures.
+	IsComplete    bool `protobuf:"varint,3,opt,name=is_complete,json=isComplete,proto3" json:"is_complete,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SignTransactionResponse) Reset() {
+	*x = SignTransactionResponse{}
+	mi := &file_multisiglounge_v1_multisiglounge_proto_msgTypes[1]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SignTransactionResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SignTransactionResponse) ProtoMessage() {}
+
+func (x *SignTransactionResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_multisiglounge_v1_multisiglounge_proto_msgTypes[1]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SignTransactionResponse.ProtoReflect.Descriptor instead.
+func (*SignTransactionResponse) Descriptor() ([]byte, []int) {
+	return file_multisiglounge_v1_multisiglounge_proto_rawDescGZIP(), []int{1}
+}
+
+func (x *SignTransactionResponse) GetPsbtBase64() string {
+	if x != nil {
+		return x.PsbtBase64
+	}
+	return ""
+}
+
+func (x *SignTransactionResponse) GetAddedSignatures() uint32 {
+	if x != nil {
+		return x.AddedSignatures
+	}
+	return 0
+}
+
+func (x *SignTransactionResponse) GetIsComplete() bool {
+	if x != nil {
+		return x.IsComplete
+	}
+	return false
+}
+
+type CombineAndBroadcastRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	Psbts []string               `protobuf:"bytes,1,rep,name=psbts,proto3" json:"psbts,omitempty"`
+	// Full group, used to reject PSBTs that do not belong to it before combining.
+	Group         *GroupData `protobuf:"bytes,2,opt,name=group,proto3" json:"group,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CombineAndBroadcastRequest) Reset() {
+	*x = CombineAndBroadcastRequest{}
+	mi := &file_multisiglounge_v1_multisiglounge_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CombineAndBroadcastRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CombineAndBroadcastRequest) ProtoMessage() {}
+
+func (x *CombineAndBroadcastRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_multisiglounge_v1_multisiglounge_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CombineAndBroadcastRequest.ProtoReflect.Descriptor instead.
+func (*CombineAndBroadcastRequest) Descriptor() ([]byte, []int) {
+	return file_multisiglounge_v1_multisiglounge_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *CombineAndBroadcastRequest) GetPsbts() []string {
+	if x != nil {
+		return x.Psbts
+	}
+	return nil
+}
+
+func (x *CombineAndBroadcastRequest) GetGroup() *GroupData {
+	if x != nil {
+		return x.Group
+	}
+	return nil
+}
+
+type CombineAndBroadcastResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Txid          string                 `protobuf:"bytes,1,opt,name=txid,proto3" json:"txid,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CombineAndBroadcastResponse) Reset() {
+	*x = CombineAndBroadcastResponse{}
+	mi := &file_multisiglounge_v1_multisiglounge_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CombineAndBroadcastResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CombineAndBroadcastResponse) ProtoMessage() {}
+
+func (x *CombineAndBroadcastResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_multisiglounge_v1_multisiglounge_proto_msgTypes[3]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CombineAndBroadcastResponse.ProtoReflect.Descriptor instead.
+func (*CombineAndBroadcastResponse) Descriptor() ([]byte, []int) {
+	return file_multisiglounge_v1_multisiglounge_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *CombineAndBroadcastResponse) GetTxid() string {
+	if x != nil {
+		return x.Txid
+	}
+	return ""
+}
+
 // GroupKey is one cosigner key with the full metadata carried in the published
 // OP_RETURN group JSON.
 type GroupKey struct {
@@ -40,7 +262,7 @@ type GroupKey struct {
 
 func (x *GroupKey) Reset() {
 	*x = GroupKey{}
-	mi := &file_multisiglounge_v1_multisiglounge_proto_msgTypes[0]
+	mi := &file_multisiglounge_v1_multisiglounge_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -52,7 +274,7 @@ func (x *GroupKey) String() string {
 func (*GroupKey) ProtoMessage() {}
 
 func (x *GroupKey) ProtoReflect() protoreflect.Message {
-	mi := &file_multisiglounge_v1_multisiglounge_proto_msgTypes[0]
+	mi := &file_multisiglounge_v1_multisiglounge_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -65,7 +287,7 @@ func (x *GroupKey) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GroupKey.ProtoReflect.Descriptor instead.
 func (*GroupKey) Descriptor() ([]byte, []int) {
-	return file_multisiglounge_v1_multisiglounge_proto_rawDescGZIP(), []int{0}
+	return file_multisiglounge_v1_multisiglounge_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *GroupKey) GetOwner() string {
@@ -130,7 +352,7 @@ type GroupData struct {
 
 func (x *GroupData) Reset() {
 	*x = GroupData{}
-	mi := &file_multisiglounge_v1_multisiglounge_proto_msgTypes[1]
+	mi := &file_multisiglounge_v1_multisiglounge_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -142,7 +364,7 @@ func (x *GroupData) String() string {
 func (*GroupData) ProtoMessage() {}
 
 func (x *GroupData) ProtoReflect() protoreflect.Message {
-	mi := &file_multisiglounge_v1_multisiglounge_proto_msgTypes[1]
+	mi := &file_multisiglounge_v1_multisiglounge_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -155,7 +377,7 @@ func (x *GroupData) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GroupData.ProtoReflect.Descriptor instead.
 func (*GroupData) Descriptor() ([]byte, []int) {
-	return file_multisiglounge_v1_multisiglounge_proto_rawDescGZIP(), []int{1}
+	return file_multisiglounge_v1_multisiglounge_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *GroupData) GetId() string {
@@ -239,7 +461,7 @@ type PublishGroupRequest struct {
 
 func (x *PublishGroupRequest) Reset() {
 	*x = PublishGroupRequest{}
-	mi := &file_multisiglounge_v1_multisiglounge_proto_msgTypes[2]
+	mi := &file_multisiglounge_v1_multisiglounge_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -251,7 +473,7 @@ func (x *PublishGroupRequest) String() string {
 func (*PublishGroupRequest) ProtoMessage() {}
 
 func (x *PublishGroupRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_multisiglounge_v1_multisiglounge_proto_msgTypes[2]
+	mi := &file_multisiglounge_v1_multisiglounge_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -264,7 +486,7 @@ func (x *PublishGroupRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PublishGroupRequest.ProtoReflect.Descriptor instead.
 func (*PublishGroupRequest) Descriptor() ([]byte, []int) {
-	return file_multisiglounge_v1_multisiglounge_proto_rawDescGZIP(), []int{2}
+	return file_multisiglounge_v1_multisiglounge_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *PublishGroupRequest) GetGroup() *GroupData {
@@ -290,7 +512,7 @@ type PublishGroupResponse struct {
 
 func (x *PublishGroupResponse) Reset() {
 	*x = PublishGroupResponse{}
-	mi := &file_multisiglounge_v1_multisiglounge_proto_msgTypes[3]
+	mi := &file_multisiglounge_v1_multisiglounge_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -302,7 +524,7 @@ func (x *PublishGroupResponse) String() string {
 func (*PublishGroupResponse) ProtoMessage() {}
 
 func (x *PublishGroupResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_multisiglounge_v1_multisiglounge_proto_msgTypes[3]
+	mi := &file_multisiglounge_v1_multisiglounge_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -315,7 +537,7 @@ func (x *PublishGroupResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PublishGroupResponse.ProtoReflect.Descriptor instead.
 func (*PublishGroupResponse) Descriptor() ([]byte, []int) {
-	return file_multisiglounge_v1_multisiglounge_proto_rawDescGZIP(), []int{3}
+	return file_multisiglounge_v1_multisiglounge_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *PublishGroupResponse) GetTxid() string {
@@ -336,7 +558,7 @@ type ImportGroupFromTxidRequest struct {
 
 func (x *ImportGroupFromTxidRequest) Reset() {
 	*x = ImportGroupFromTxidRequest{}
-	mi := &file_multisiglounge_v1_multisiglounge_proto_msgTypes[4]
+	mi := &file_multisiglounge_v1_multisiglounge_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -348,7 +570,7 @@ func (x *ImportGroupFromTxidRequest) String() string {
 func (*ImportGroupFromTxidRequest) ProtoMessage() {}
 
 func (x *ImportGroupFromTxidRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_multisiglounge_v1_multisiglounge_proto_msgTypes[4]
+	mi := &file_multisiglounge_v1_multisiglounge_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -361,7 +583,7 @@ func (x *ImportGroupFromTxidRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ImportGroupFromTxidRequest.ProtoReflect.Descriptor instead.
 func (*ImportGroupFromTxidRequest) Descriptor() ([]byte, []int) {
-	return file_multisiglounge_v1_multisiglounge_proto_rawDescGZIP(), []int{4}
+	return file_multisiglounge_v1_multisiglounge_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *ImportGroupFromTxidRequest) GetTxid() string {
@@ -389,7 +611,7 @@ type ImportGroupFromTxidResponse struct {
 
 func (x *ImportGroupFromTxidResponse) Reset() {
 	*x = ImportGroupFromTxidResponse{}
-	mi := &file_multisiglounge_v1_multisiglounge_proto_msgTypes[5]
+	mi := &file_multisiglounge_v1_multisiglounge_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -401,7 +623,7 @@ func (x *ImportGroupFromTxidResponse) String() string {
 func (*ImportGroupFromTxidResponse) ProtoMessage() {}
 
 func (x *ImportGroupFromTxidResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_multisiglounge_v1_multisiglounge_proto_msgTypes[5]
+	mi := &file_multisiglounge_v1_multisiglounge_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -414,7 +636,7 @@ func (x *ImportGroupFromTxidResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ImportGroupFromTxidResponse.ProtoReflect.Descriptor instead.
 func (*ImportGroupFromTxidResponse) Descriptor() ([]byte, []int) {
-	return file_multisiglounge_v1_multisiglounge_proto_rawDescGZIP(), []int{5}
+	return file_multisiglounge_v1_multisiglounge_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *ImportGroupFromTxidResponse) GetGroup() *GroupData {
@@ -450,7 +672,7 @@ type MultisigKey struct {
 
 func (x *MultisigKey) Reset() {
 	*x = MultisigKey{}
-	mi := &file_multisiglounge_v1_multisiglounge_proto_msgTypes[6]
+	mi := &file_multisiglounge_v1_multisiglounge_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -462,7 +684,7 @@ func (x *MultisigKey) String() string {
 func (*MultisigKey) ProtoMessage() {}
 
 func (x *MultisigKey) ProtoReflect() protoreflect.Message {
-	mi := &file_multisiglounge_v1_multisiglounge_proto_msgTypes[6]
+	mi := &file_multisiglounge_v1_multisiglounge_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -475,7 +697,7 @@ func (x *MultisigKey) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MultisigKey.ProtoReflect.Descriptor instead.
 func (*MultisigKey) Descriptor() ([]byte, []int) {
-	return file_multisiglounge_v1_multisiglounge_proto_rawDescGZIP(), []int{6}
+	return file_multisiglounge_v1_multisiglounge_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *MultisigKey) GetXpub() string {
@@ -527,7 +749,7 @@ type MultisigGroup struct {
 
 func (x *MultisigGroup) Reset() {
 	*x = MultisigGroup{}
-	mi := &file_multisiglounge_v1_multisiglounge_proto_msgTypes[7]
+	mi := &file_multisiglounge_v1_multisiglounge_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -539,7 +761,7 @@ func (x *MultisigGroup) String() string {
 func (*MultisigGroup) ProtoMessage() {}
 
 func (x *MultisigGroup) ProtoReflect() protoreflect.Message {
-	mi := &file_multisiglounge_v1_multisiglounge_proto_msgTypes[7]
+	mi := &file_multisiglounge_v1_multisiglounge_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -552,7 +774,7 @@ func (x *MultisigGroup) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MultisigGroup.ProtoReflect.Descriptor instead.
 func (*MultisigGroup) Descriptor() ([]byte, []int) {
-	return file_multisiglounge_v1_multisiglounge_proto_rawDescGZIP(), []int{7}
+	return file_multisiglounge_v1_multisiglounge_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *MultisigGroup) GetM() uint32 {
@@ -585,7 +807,7 @@ type BuildDescriptorsRequest struct {
 
 func (x *BuildDescriptorsRequest) Reset() {
 	*x = BuildDescriptorsRequest{}
-	mi := &file_multisiglounge_v1_multisiglounge_proto_msgTypes[8]
+	mi := &file_multisiglounge_v1_multisiglounge_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -597,7 +819,7 @@ func (x *BuildDescriptorsRequest) String() string {
 func (*BuildDescriptorsRequest) ProtoMessage() {}
 
 func (x *BuildDescriptorsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_multisiglounge_v1_multisiglounge_proto_msgTypes[8]
+	mi := &file_multisiglounge_v1_multisiglounge_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -610,7 +832,7 @@ func (x *BuildDescriptorsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BuildDescriptorsRequest.ProtoReflect.Descriptor instead.
 func (*BuildDescriptorsRequest) Descriptor() ([]byte, []int) {
-	return file_multisiglounge_v1_multisiglounge_proto_rawDescGZIP(), []int{8}
+	return file_multisiglounge_v1_multisiglounge_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *BuildDescriptorsRequest) GetGroup() *MultisigGroup {
@@ -632,7 +854,7 @@ type BuildDescriptorsResponse struct {
 
 func (x *BuildDescriptorsResponse) Reset() {
 	*x = BuildDescriptorsResponse{}
-	mi := &file_multisiglounge_v1_multisiglounge_proto_msgTypes[9]
+	mi := &file_multisiglounge_v1_multisiglounge_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -644,7 +866,7 @@ func (x *BuildDescriptorsResponse) String() string {
 func (*BuildDescriptorsResponse) ProtoMessage() {}
 
 func (x *BuildDescriptorsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_multisiglounge_v1_multisiglounge_proto_msgTypes[9]
+	mi := &file_multisiglounge_v1_multisiglounge_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -657,7 +879,7 @@ func (x *BuildDescriptorsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BuildDescriptorsResponse.ProtoReflect.Descriptor instead.
 func (*BuildDescriptorsResponse) Descriptor() ([]byte, []int) {
-	return file_multisiglounge_v1_multisiglounge_proto_rawDescGZIP(), []int{9}
+	return file_multisiglounge_v1_multisiglounge_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *BuildDescriptorsResponse) GetReceiveDescriptor() string {
@@ -687,7 +909,7 @@ type ValidatePsbtRequest struct {
 
 func (x *ValidatePsbtRequest) Reset() {
 	*x = ValidatePsbtRequest{}
-	mi := &file_multisiglounge_v1_multisiglounge_proto_msgTypes[10]
+	mi := &file_multisiglounge_v1_multisiglounge_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -699,7 +921,7 @@ func (x *ValidatePsbtRequest) String() string {
 func (*ValidatePsbtRequest) ProtoMessage() {}
 
 func (x *ValidatePsbtRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_multisiglounge_v1_multisiglounge_proto_msgTypes[10]
+	mi := &file_multisiglounge_v1_multisiglounge_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -712,7 +934,7 @@ func (x *ValidatePsbtRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ValidatePsbtRequest.ProtoReflect.Descriptor instead.
 func (*ValidatePsbtRequest) Descriptor() ([]byte, []int) {
-	return file_multisiglounge_v1_multisiglounge_proto_rawDescGZIP(), []int{10}
+	return file_multisiglounge_v1_multisiglounge_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *ValidatePsbtRequest) GetPsbtBase64() string {
@@ -754,7 +976,7 @@ type ValidatePsbtResponse struct {
 
 func (x *ValidatePsbtResponse) Reset() {
 	*x = ValidatePsbtResponse{}
-	mi := &file_multisiglounge_v1_multisiglounge_proto_msgTypes[11]
+	mi := &file_multisiglounge_v1_multisiglounge_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -766,7 +988,7 @@ func (x *ValidatePsbtResponse) String() string {
 func (*ValidatePsbtResponse) ProtoMessage() {}
 
 func (x *ValidatePsbtResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_multisiglounge_v1_multisiglounge_proto_msgTypes[11]
+	mi := &file_multisiglounge_v1_multisiglounge_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -779,7 +1001,7 @@ func (x *ValidatePsbtResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ValidatePsbtResponse.ProtoReflect.Descriptor instead.
 func (*ValidatePsbtResponse) Descriptor() ([]byte, []int) {
-	return file_multisiglounge_v1_multisiglounge_proto_rawDescGZIP(), []int{11}
+	return file_multisiglounge_v1_multisiglounge_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *ValidatePsbtResponse) GetHasSignatures() bool {
@@ -821,7 +1043,23 @@ var File_multisiglounge_v1_multisiglounge_proto protoreflect.FileDescriptor
 
 const file_multisiglounge_v1_multisiglounge_proto_rawDesc = "" +
 	"\n" +
-	"&multisiglounge/v1/multisiglounge.proto\x12\x11multisiglounge.v1\"\xbd\x01\n" +
+	"&multisiglounge/v1/multisiglounge.proto\x12\x11multisiglounge.v1\"\x8a\x01\n" +
+	"\x16SignTransactionRequest\x12\x1f\n" +
+	"\vpsbt_base64\x18\x01 \x01(\tR\n" +
+	"psbtBase64\x122\n" +
+	"\x05group\x18\x02 \x01(\v2\x1c.multisiglounge.v1.GroupDataR\x05group\x12\x1b\n" +
+	"\twallet_id\x18\x03 \x01(\tR\bwalletId\"\x86\x01\n" +
+	"\x17SignTransactionResponse\x12\x1f\n" +
+	"\vpsbt_base64\x18\x01 \x01(\tR\n" +
+	"psbtBase64\x12)\n" +
+	"\x10added_signatures\x18\x02 \x01(\rR\x0faddedSignatures\x12\x1f\n" +
+	"\vis_complete\x18\x03 \x01(\bR\n" +
+	"isComplete\"f\n" +
+	"\x1aCombineAndBroadcastRequest\x12\x14\n" +
+	"\x05psbts\x18\x01 \x03(\tR\x05psbts\x122\n" +
+	"\x05group\x18\x02 \x01(\v2\x1c.multisiglounge.v1.GroupDataR\x05group\"1\n" +
+	"\x1bCombineAndBroadcastResponse\x12\x12\n" +
+	"\x04txid\x18\x01 \x01(\tR\x04txid\"\xbd\x01\n" +
 	"\bGroupKey\x12\x14\n" +
 	"\x05owner\x18\x01 \x01(\tR\x05owner\x12\x12\n" +
 	"\x04xpub\x18\x02 \x01(\tR\x04xpub\x12'\n" +
@@ -880,12 +1118,14 @@ const file_multisiglounge_v1_multisiglounge_proto_rawDesc = "" +
 	"\vis_complete\x18\x03 \x01(\bR\n" +
 	"isComplete\x12 \n" +
 	"\vfinalizable\x18\x04 \x01(\bR\vfinalizable\x12\x14\n" +
-	"\x05error\x18\x05 \x01(\tR\x05error2\xbc\x03\n" +
+	"\x05error\x18\x05 \x01(\tR\x05error2\x9c\x05\n" +
 	"\x15MultisigLoungeService\x12k\n" +
 	"\x10BuildDescriptors\x12*.multisiglounge.v1.BuildDescriptorsRequest\x1a+.multisiglounge.v1.BuildDescriptorsResponse\x12_\n" +
 	"\fValidatePsbt\x12&.multisiglounge.v1.ValidatePsbtRequest\x1a'.multisiglounge.v1.ValidatePsbtResponse\x12_\n" +
 	"\fPublishGroup\x12&.multisiglounge.v1.PublishGroupRequest\x1a'.multisiglounge.v1.PublishGroupResponse\x12t\n" +
-	"\x13ImportGroupFromTxid\x12-.multisiglounge.v1.ImportGroupFromTxidRequest\x1a..multisiglounge.v1.ImportGroupFromTxidResponseB\xf2\x01\n" +
+	"\x13ImportGroupFromTxid\x12-.multisiglounge.v1.ImportGroupFromTxidRequest\x1a..multisiglounge.v1.ImportGroupFromTxidResponse\x12h\n" +
+	"\x0fSignTransaction\x12).multisiglounge.v1.SignTransactionRequest\x1a*.multisiglounge.v1.SignTransactionResponse\x12t\n" +
+	"\x13CombineAndBroadcast\x12-.multisiglounge.v1.CombineAndBroadcastRequest\x1a..multisiglounge.v1.CombineAndBroadcastResponseB\xf2\x01\n" +
 	"\x15com.multisiglounge.v1B\x13MultisigloungeProtoP\x01Z_github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/multisiglounge/v1;multisigloungev1\xa2\x02\x03MXX\xaa\x02\x11Multisiglounge.V1\xca\x02\x11Multisiglounge\\V1\xe2\x02\x1dMultisiglounge\\V1\\GPBMetadata\xea\x02\x12Multisiglounge::V1b\x06proto3"
 
 var (
@@ -900,41 +1140,51 @@ func file_multisiglounge_v1_multisiglounge_proto_rawDescGZIP() []byte {
 	return file_multisiglounge_v1_multisiglounge_proto_rawDescData
 }
 
-var file_multisiglounge_v1_multisiglounge_proto_msgTypes = make([]protoimpl.MessageInfo, 12)
+var file_multisiglounge_v1_multisiglounge_proto_msgTypes = make([]protoimpl.MessageInfo, 16)
 var file_multisiglounge_v1_multisiglounge_proto_goTypes = []any{
-	(*GroupKey)(nil),                    // 0: multisiglounge.v1.GroupKey
-	(*GroupData)(nil),                   // 1: multisiglounge.v1.GroupData
-	(*PublishGroupRequest)(nil),         // 2: multisiglounge.v1.PublishGroupRequest
-	(*PublishGroupResponse)(nil),        // 3: multisiglounge.v1.PublishGroupResponse
-	(*ImportGroupFromTxidRequest)(nil),  // 4: multisiglounge.v1.ImportGroupFromTxidRequest
-	(*ImportGroupFromTxidResponse)(nil), // 5: multisiglounge.v1.ImportGroupFromTxidResponse
-	(*MultisigKey)(nil),                 // 6: multisiglounge.v1.MultisigKey
-	(*MultisigGroup)(nil),               // 7: multisiglounge.v1.MultisigGroup
-	(*BuildDescriptorsRequest)(nil),     // 8: multisiglounge.v1.BuildDescriptorsRequest
-	(*BuildDescriptorsResponse)(nil),    // 9: multisiglounge.v1.BuildDescriptorsResponse
-	(*ValidatePsbtRequest)(nil),         // 10: multisiglounge.v1.ValidatePsbtRequest
-	(*ValidatePsbtResponse)(nil),        // 11: multisiglounge.v1.ValidatePsbtResponse
+	(*SignTransactionRequest)(nil),      // 0: multisiglounge.v1.SignTransactionRequest
+	(*SignTransactionResponse)(nil),     // 1: multisiglounge.v1.SignTransactionResponse
+	(*CombineAndBroadcastRequest)(nil),  // 2: multisiglounge.v1.CombineAndBroadcastRequest
+	(*CombineAndBroadcastResponse)(nil), // 3: multisiglounge.v1.CombineAndBroadcastResponse
+	(*GroupKey)(nil),                    // 4: multisiglounge.v1.GroupKey
+	(*GroupData)(nil),                   // 5: multisiglounge.v1.GroupData
+	(*PublishGroupRequest)(nil),         // 6: multisiglounge.v1.PublishGroupRequest
+	(*PublishGroupResponse)(nil),        // 7: multisiglounge.v1.PublishGroupResponse
+	(*ImportGroupFromTxidRequest)(nil),  // 8: multisiglounge.v1.ImportGroupFromTxidRequest
+	(*ImportGroupFromTxidResponse)(nil), // 9: multisiglounge.v1.ImportGroupFromTxidResponse
+	(*MultisigKey)(nil),                 // 10: multisiglounge.v1.MultisigKey
+	(*MultisigGroup)(nil),               // 11: multisiglounge.v1.MultisigGroup
+	(*BuildDescriptorsRequest)(nil),     // 12: multisiglounge.v1.BuildDescriptorsRequest
+	(*BuildDescriptorsResponse)(nil),    // 13: multisiglounge.v1.BuildDescriptorsResponse
+	(*ValidatePsbtRequest)(nil),         // 14: multisiglounge.v1.ValidatePsbtRequest
+	(*ValidatePsbtResponse)(nil),        // 15: multisiglounge.v1.ValidatePsbtResponse
 }
 var file_multisiglounge_v1_multisiglounge_proto_depIdxs = []int32{
-	0,  // 0: multisiglounge.v1.GroupData.keys:type_name -> multisiglounge.v1.GroupKey
-	1,  // 1: multisiglounge.v1.PublishGroupRequest.group:type_name -> multisiglounge.v1.GroupData
-	1,  // 2: multisiglounge.v1.ImportGroupFromTxidResponse.group:type_name -> multisiglounge.v1.GroupData
-	6,  // 3: multisiglounge.v1.MultisigGroup.keys:type_name -> multisiglounge.v1.MultisigKey
-	7,  // 4: multisiglounge.v1.BuildDescriptorsRequest.group:type_name -> multisiglounge.v1.MultisigGroup
-	7,  // 5: multisiglounge.v1.ValidatePsbtRequest.group:type_name -> multisiglounge.v1.MultisigGroup
-	8,  // 6: multisiglounge.v1.MultisigLoungeService.BuildDescriptors:input_type -> multisiglounge.v1.BuildDescriptorsRequest
-	10, // 7: multisiglounge.v1.MultisigLoungeService.ValidatePsbt:input_type -> multisiglounge.v1.ValidatePsbtRequest
-	2,  // 8: multisiglounge.v1.MultisigLoungeService.PublishGroup:input_type -> multisiglounge.v1.PublishGroupRequest
-	4,  // 9: multisiglounge.v1.MultisigLoungeService.ImportGroupFromTxid:input_type -> multisiglounge.v1.ImportGroupFromTxidRequest
-	9,  // 10: multisiglounge.v1.MultisigLoungeService.BuildDescriptors:output_type -> multisiglounge.v1.BuildDescriptorsResponse
-	11, // 11: multisiglounge.v1.MultisigLoungeService.ValidatePsbt:output_type -> multisiglounge.v1.ValidatePsbtResponse
-	3,  // 12: multisiglounge.v1.MultisigLoungeService.PublishGroup:output_type -> multisiglounge.v1.PublishGroupResponse
-	5,  // 13: multisiglounge.v1.MultisigLoungeService.ImportGroupFromTxid:output_type -> multisiglounge.v1.ImportGroupFromTxidResponse
-	10, // [10:14] is the sub-list for method output_type
-	6,  // [6:10] is the sub-list for method input_type
-	6,  // [6:6] is the sub-list for extension type_name
-	6,  // [6:6] is the sub-list for extension extendee
-	0,  // [0:6] is the sub-list for field type_name
+	5,  // 0: multisiglounge.v1.SignTransactionRequest.group:type_name -> multisiglounge.v1.GroupData
+	5,  // 1: multisiglounge.v1.CombineAndBroadcastRequest.group:type_name -> multisiglounge.v1.GroupData
+	4,  // 2: multisiglounge.v1.GroupData.keys:type_name -> multisiglounge.v1.GroupKey
+	5,  // 3: multisiglounge.v1.PublishGroupRequest.group:type_name -> multisiglounge.v1.GroupData
+	5,  // 4: multisiglounge.v1.ImportGroupFromTxidResponse.group:type_name -> multisiglounge.v1.GroupData
+	10, // 5: multisiglounge.v1.MultisigGroup.keys:type_name -> multisiglounge.v1.MultisigKey
+	11, // 6: multisiglounge.v1.BuildDescriptorsRequest.group:type_name -> multisiglounge.v1.MultisigGroup
+	11, // 7: multisiglounge.v1.ValidatePsbtRequest.group:type_name -> multisiglounge.v1.MultisigGroup
+	12, // 8: multisiglounge.v1.MultisigLoungeService.BuildDescriptors:input_type -> multisiglounge.v1.BuildDescriptorsRequest
+	14, // 9: multisiglounge.v1.MultisigLoungeService.ValidatePsbt:input_type -> multisiglounge.v1.ValidatePsbtRequest
+	6,  // 10: multisiglounge.v1.MultisigLoungeService.PublishGroup:input_type -> multisiglounge.v1.PublishGroupRequest
+	8,  // 11: multisiglounge.v1.MultisigLoungeService.ImportGroupFromTxid:input_type -> multisiglounge.v1.ImportGroupFromTxidRequest
+	0,  // 12: multisiglounge.v1.MultisigLoungeService.SignTransaction:input_type -> multisiglounge.v1.SignTransactionRequest
+	2,  // 13: multisiglounge.v1.MultisigLoungeService.CombineAndBroadcast:input_type -> multisiglounge.v1.CombineAndBroadcastRequest
+	13, // 14: multisiglounge.v1.MultisigLoungeService.BuildDescriptors:output_type -> multisiglounge.v1.BuildDescriptorsResponse
+	15, // 15: multisiglounge.v1.MultisigLoungeService.ValidatePsbt:output_type -> multisiglounge.v1.ValidatePsbtResponse
+	7,  // 16: multisiglounge.v1.MultisigLoungeService.PublishGroup:output_type -> multisiglounge.v1.PublishGroupResponse
+	9,  // 17: multisiglounge.v1.MultisigLoungeService.ImportGroupFromTxid:output_type -> multisiglounge.v1.ImportGroupFromTxidResponse
+	1,  // 18: multisiglounge.v1.MultisigLoungeService.SignTransaction:output_type -> multisiglounge.v1.SignTransactionResponse
+	3,  // 19: multisiglounge.v1.MultisigLoungeService.CombineAndBroadcast:output_type -> multisiglounge.v1.CombineAndBroadcastResponse
+	14, // [14:20] is the sub-list for method output_type
+	8,  // [8:14] is the sub-list for method input_type
+	8,  // [8:8] is the sub-list for extension type_name
+	8,  // [8:8] is the sub-list for extension extendee
+	0,  // [0:8] is the sub-list for field type_name
 }
 
 func init() { file_multisiglounge_v1_multisiglounge_proto_init() }
@@ -948,7 +1198,7 @@ func file_multisiglounge_v1_multisiglounge_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_multisiglounge_v1_multisiglounge_proto_rawDesc), len(file_multisiglounge_v1_multisiglounge_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   12,
+			NumMessages:   16,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

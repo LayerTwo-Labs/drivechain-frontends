@@ -903,6 +903,12 @@ func (h *Handler) GetCoreMempoolInfo(ctx context.Context, _ *connect.Request[pb.
 	}), nil
 }
 
+// RawCoreCall exposes the bitcoind JSON-RPC bridge for in-process callers (e.g.
+// the multisig lounge signing path), bypassing the gRPC envelope.
+func (h *Handler) RawCoreCall(ctx context.Context, method, paramsJSON, wallet string) (json.RawMessage, error) {
+	return h.callCoreRPC(ctx, method, paramsJSON, wallet)
+}
+
 func (h *Handler) CoreRawCall(ctx context.Context, req *connect.Request[pb.CoreRawCallRequest]) (*connect.Response[pb.CoreRawCallResponse], error) {
 	raw, err := h.callCoreRPC(ctx, req.Msg.Method, req.Msg.ParamsJson, req.Msg.Wallet)
 	if err != nil {

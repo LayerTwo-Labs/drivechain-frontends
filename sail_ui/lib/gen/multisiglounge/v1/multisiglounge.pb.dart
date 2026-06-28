@@ -15,6 +15,280 @@ import 'dart:core' as $core;
 import 'package:fixnum/fixnum.dart' as $fixnum;
 import 'package:protobuf/protobuf.dart' as $pb;
 
+class SignTransactionRequest extends $pb.GeneratedMessage {
+  factory SignTransactionRequest({
+    $core.String? psbtBase64,
+    GroupData? group,
+    $core.String? walletId,
+  }) {
+    final $result = create();
+    if (psbtBase64 != null) {
+      $result.psbtBase64 = psbtBase64;
+    }
+    if (group != null) {
+      $result.group = group;
+    }
+    if (walletId != null) {
+      $result.walletId = walletId;
+    }
+    return $result;
+  }
+  SignTransactionRequest._() : super();
+  factory SignTransactionRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory SignTransactionRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'SignTransactionRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'multisiglounge.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'psbtBase64')
+    ..aOM<GroupData>(2, _omitFieldNames ? '' : 'group', subBuilder: GroupData.create)
+    ..aOS(3, _omitFieldNames ? '' : 'walletId')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  SignTransactionRequest clone() => SignTransactionRequest()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  SignTransactionRequest copyWith(void Function(SignTransactionRequest) updates) => super.copyWith((message) => updates(message as SignTransactionRequest)) as SignTransactionRequest;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static SignTransactionRequest create() => SignTransactionRequest._();
+  SignTransactionRequest createEmptyInstance() => create();
+  static $pb.PbList<SignTransactionRequest> createRepeated() => $pb.PbList<SignTransactionRequest>();
+  @$core.pragma('dart2js:noInline')
+  static SignTransactionRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<SignTransactionRequest>(create);
+  static SignTransactionRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get psbtBase64 => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set psbtBase64($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasPsbtBase64() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearPsbtBase64() => clearField(1);
+
+  /// Full group (with per-key derivation paths) so the wallet's xprv can be
+  /// derived and substituted into the signing descriptor.
+  @$pb.TagNumber(2)
+  GroupData get group => $_getN(1);
+  @$pb.TagNumber(2)
+  set group(GroupData v) { setField(2, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasGroup() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearGroup() => clearField(2);
+  @$pb.TagNumber(2)
+  GroupData ensureGroup() => $_ensure(1);
+
+  /// Wallet whose seed-derived keys sign the PSBT.
+  @$pb.TagNumber(3)
+  $core.String get walletId => $_getSZ(2);
+  @$pb.TagNumber(3)
+  set walletId($core.String v) { $_setString(2, v); }
+  @$pb.TagNumber(3)
+  $core.bool hasWalletId() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearWalletId() => clearField(3);
+}
+
+class SignTransactionResponse extends $pb.GeneratedMessage {
+  factory SignTransactionResponse({
+    $core.String? psbtBase64,
+    $core.int? addedSignatures,
+    $core.bool? isComplete,
+  }) {
+    final $result = create();
+    if (psbtBase64 != null) {
+      $result.psbtBase64 = psbtBase64;
+    }
+    if (addedSignatures != null) {
+      $result.addedSignatures = addedSignatures;
+    }
+    if (isComplete != null) {
+      $result.isComplete = isComplete;
+    }
+    return $result;
+  }
+  SignTransactionResponse._() : super();
+  factory SignTransactionResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory SignTransactionResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'SignTransactionResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'multisiglounge.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'psbtBase64')
+    ..a<$core.int>(2, _omitFieldNames ? '' : 'addedSignatures', $pb.PbFieldType.OU3)
+    ..aOB(3, _omitFieldNames ? '' : 'isComplete')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  SignTransactionResponse clone() => SignTransactionResponse()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  SignTransactionResponse copyWith(void Function(SignTransactionResponse) updates) => super.copyWith((message) => updates(message as SignTransactionResponse)) as SignTransactionResponse;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static SignTransactionResponse create() => SignTransactionResponse._();
+  SignTransactionResponse createEmptyInstance() => create();
+  static $pb.PbList<SignTransactionResponse> createRepeated() => $pb.PbList<SignTransactionResponse>();
+  @$core.pragma('dart2js:noInline')
+  static SignTransactionResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<SignTransactionResponse>(create);
+  static SignTransactionResponse? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get psbtBase64 => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set psbtBase64($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasPsbtBase64() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearPsbtBase64() => clearField(1);
+
+  /// Number of partial signatures this call added.
+  @$pb.TagNumber(2)
+  $core.int get addedSignatures => $_getIZ(1);
+  @$pb.TagNumber(2)
+  set addedSignatures($core.int v) { $_setUnsignedInt32(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasAddedSignatures() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearAddedSignatures() => clearField(2);
+
+  /// True once the PSBT carries the threshold of signatures.
+  @$pb.TagNumber(3)
+  $core.bool get isComplete => $_getBF(2);
+  @$pb.TagNumber(3)
+  set isComplete($core.bool v) { $_setBool(2, v); }
+  @$pb.TagNumber(3)
+  $core.bool hasIsComplete() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearIsComplete() => clearField(3);
+}
+
+class CombineAndBroadcastRequest extends $pb.GeneratedMessage {
+  factory CombineAndBroadcastRequest({
+    $core.Iterable<$core.String>? psbts,
+    GroupData? group,
+  }) {
+    final $result = create();
+    if (psbts != null) {
+      $result.psbts.addAll(psbts);
+    }
+    if (group != null) {
+      $result.group = group;
+    }
+    return $result;
+  }
+  CombineAndBroadcastRequest._() : super();
+  factory CombineAndBroadcastRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory CombineAndBroadcastRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'CombineAndBroadcastRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'multisiglounge.v1'), createEmptyInstance: create)
+    ..pPS(1, _omitFieldNames ? '' : 'psbts')
+    ..aOM<GroupData>(2, _omitFieldNames ? '' : 'group', subBuilder: GroupData.create)
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  CombineAndBroadcastRequest clone() => CombineAndBroadcastRequest()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  CombineAndBroadcastRequest copyWith(void Function(CombineAndBroadcastRequest) updates) => super.copyWith((message) => updates(message as CombineAndBroadcastRequest)) as CombineAndBroadcastRequest;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static CombineAndBroadcastRequest create() => CombineAndBroadcastRequest._();
+  CombineAndBroadcastRequest createEmptyInstance() => create();
+  static $pb.PbList<CombineAndBroadcastRequest> createRepeated() => $pb.PbList<CombineAndBroadcastRequest>();
+  @$core.pragma('dart2js:noInline')
+  static CombineAndBroadcastRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<CombineAndBroadcastRequest>(create);
+  static CombineAndBroadcastRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.List<$core.String> get psbts => $_getList(0);
+
+  /// Full group, used to reject PSBTs that do not belong to it before combining.
+  @$pb.TagNumber(2)
+  GroupData get group => $_getN(1);
+  @$pb.TagNumber(2)
+  set group(GroupData v) { setField(2, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasGroup() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearGroup() => clearField(2);
+  @$pb.TagNumber(2)
+  GroupData ensureGroup() => $_ensure(1);
+}
+
+class CombineAndBroadcastResponse extends $pb.GeneratedMessage {
+  factory CombineAndBroadcastResponse({
+    $core.String? txid,
+  }) {
+    final $result = create();
+    if (txid != null) {
+      $result.txid = txid;
+    }
+    return $result;
+  }
+  CombineAndBroadcastResponse._() : super();
+  factory CombineAndBroadcastResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory CombineAndBroadcastResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'CombineAndBroadcastResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'multisiglounge.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'txid')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  CombineAndBroadcastResponse clone() => CombineAndBroadcastResponse()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  CombineAndBroadcastResponse copyWith(void Function(CombineAndBroadcastResponse) updates) => super.copyWith((message) => updates(message as CombineAndBroadcastResponse)) as CombineAndBroadcastResponse;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static CombineAndBroadcastResponse create() => CombineAndBroadcastResponse._();
+  CombineAndBroadcastResponse createEmptyInstance() => create();
+  static $pb.PbList<CombineAndBroadcastResponse> createRepeated() => $pb.PbList<CombineAndBroadcastResponse>();
+  @$core.pragma('dart2js:noInline')
+  static CombineAndBroadcastResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<CombineAndBroadcastResponse>(create);
+  static CombineAndBroadcastResponse? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get txid => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set txid($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasTxid() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearTxid() => clearField(1);
+}
+
 /// GroupKey is one cosigner key with the full metadata carried in the published
 /// OP_RETURN group JSON.
 class GroupKey extends $pb.GeneratedMessage {
@@ -1068,6 +1342,12 @@ class MultisigLoungeServiceApi {
   ;
   $async.Future<ImportGroupFromTxidResponse> importGroupFromTxid($pb.ClientContext? ctx, ImportGroupFromTxidRequest request) =>
     _client.invoke<ImportGroupFromTxidResponse>(ctx, 'MultisigLoungeService', 'ImportGroupFromTxid', request, ImportGroupFromTxidResponse())
+  ;
+  $async.Future<SignTransactionResponse> signTransaction($pb.ClientContext? ctx, SignTransactionRequest request) =>
+    _client.invoke<SignTransactionResponse>(ctx, 'MultisigLoungeService', 'SignTransaction', request, SignTransactionResponse())
+  ;
+  $async.Future<CombineAndBroadcastResponse> combineAndBroadcast($pb.ClientContext? ctx, CombineAndBroadcastRequest request) =>
+    _client.invoke<CombineAndBroadcastResponse>(ctx, 'MultisigLoungeService', 'CombineAndBroadcast', request, CombineAndBroadcastResponse())
   ;
 }
 

@@ -113,39 +113,68 @@ func DecodeGroupOpReturn(message string) (MultisigGroupData, error) {
 	return group, nil
 }
 
-// DeriveAccountXpub derives the account extended public key at a full BIP32 path
-// (e.g. "m/48'/1'/0'/2'") from a hex seed and returns its base58 string. This is
-// the same xpub the BitWindow wallet stores for a cosigner key, so a group key's
-// xpub matching this output means the key belongs to the wallet.
-func DeriveAccountXpub(seedHex, path string, net *chaincfg.Params) (string, error) {
+// deriveMultisigAccountKey derives the account extended key at a full BIP32 path
+// (e.g. "m/48'/1'/0'/2'") from a hex seed. The returned key is private (carries
+// the xprv) when the seed is available.
+func deriveMultisigAccountKey(seedHex, path string, net *chaincfg.Params) (*hdkeychain.ExtendedKey, error) {
 	if net == nil {
-		return "", errors.New("no chain params; cannot derive account xpub")
+		return nil, errors.New("no chain params; cannot derive account key")
 	}
 	seed, err := hex.DecodeString(seedHex)
 	if err != nil {
-		return "", fmt.Errorf("decode seed hex: %w", err)
+		return nil, fmt.Errorf("decode seed hex: %w", err)
 	}
 	master, err := hdkeychain.NewMaster(seed, net)
 	if err != nil {
-		return "", fmt.Errorf("create master key: %w", err)
+		return nil, fmt.Errorf("create master key: %w", err)
 	}
-
 	levels, err := parseHDPath(path)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 	key := master
 	for _, lvl := range levels {
 		key, err = key.Derive(lvl)
 		if err != nil {
-			return "", fmt.Errorf("derive %d: %w", lvl, err)
+			return nil, fmt.Errorf("derive %d: %w", lvl, err)
 		}
+	}
+	return key, nil
+}
+
+// DeriveAccountXpub derives the account extended public key at a full BIP32 path
+// (e.g. "m/48'/1'/0'/2'") from a hex seed and returns its base58 string. This is
+// the same xpub the BitWindow wallet stores for a cosigner key, so a group key's
+// xpub matching this output means the key belongs to the wallet.
+func DeriveAccountXpub(seedHex, path string, net *chaincfg.Params) (string, error) {
+	key, err := deriveMultisigAccountKey(seedHex, path, net)
+	if err != nil {
+		return "", err
 	}
 	pub, err := key.Neuter()
 	if err != nil {
 		return "", err
 	}
 	return pub.String(), nil
+}
+
+// DeriveAccountXprv derives the account extended PRIVATE key at a full BIP32 path
+// from a hex seed and returns its base58 xprv string, alongside the matching
+// account xpub. The xpub identifies the cosigner slot in the group; the xprv is
+// substituted into the signing descriptor so bitcoind can sign with it.
+func DeriveAccountXprv(seedHex, path string, net *chaincfg.Params) (xprv, xpub string, err error) {
+	key, err := deriveMultisigAccountKey(seedHex, path, net)
+	if err != nil {
+		return "", "", err
+	}
+	if !key.IsPrivate() {
+		return "", "", errors.New("derived account key is not private; cannot sign")
+	}
+	pub, err := key.Neuter()
+	if err != nil {
+		return "", "", err
+	}
+	return key.String(), pub.String(), nil
 }
 
 // parseHDPath parses "m/48'/1'/0'/2'" into hardened-aware child indices.
