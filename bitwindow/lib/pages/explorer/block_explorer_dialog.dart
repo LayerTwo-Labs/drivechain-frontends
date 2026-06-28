@@ -3,7 +3,6 @@ import 'package:bitwindow/pages/explorer/load_transaction_dialog.dart';
 import 'package:bitwindow/pages/explorer/widgets/transaction_flow_diagram.dart';
 import 'package:bitwindow/providers/blockchain_provider.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
@@ -563,8 +562,15 @@ class _TransactionDetailsDialogState extends State<TransactionDetailsDialog> {
                     child: _OutputsTab(outputs: _details!.outputs),
                   ),
                   TabItem(
-                    label: 'Hex',
-                    child: _HexTab(hex: _details!.hex),
+                    label: 'Diagram',
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.all(SailStyleValues.padding16),
+                      child: TransactionDiagram(details: _details!),
+                    ),
+                  ),
+                  TabItem(
+                    label: 'Bytes',
+                    child: TransactionByteView(rawHex: _details!.hex),
                   ),
                 ],
                 initialIndex: 0,
@@ -747,54 +753,6 @@ class _OutputsTab extends StatelessWidget {
       },
       rowCount: outputs.length,
       emptyPlaceholder: 'No outputs',
-    );
-  }
-}
-
-class _HexTab extends StatelessWidget {
-  final String hex;
-
-  const _HexTab({required this.hex});
-
-  @override
-  Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(SailStyleValues.padding16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              SailText.primary13('Raw Transaction Hex'),
-              SailButton(
-                onPressed: () async {
-                  await Clipboard.setData(ClipboardData(text: hex));
-                  if (context.mounted) {
-                    showSailToast(context, 'Copied to clipboard');
-                  }
-                },
-                label: 'Copy',
-                small: true,
-              ),
-            ],
-          ),
-          const SailSpacing(SailStyleValues.padding08),
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(SailStyleValues.padding12),
-            decoration: BoxDecoration(
-              color: context.sailTheme.colors.backgroundSecondary,
-              borderRadius: SailStyleValues.borderRadius,
-              border: Border.all(color: context.sailTheme.colors.divider),
-            ),
-            child: SailSelectableText(
-              hex.isEmpty ? 'No hex data available' : hex,
-              monospace: true,
-            ),
-          ),
-        ],
-      ),
     );
   }
 }

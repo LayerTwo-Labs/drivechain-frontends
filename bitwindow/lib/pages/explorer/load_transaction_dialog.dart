@@ -1,4 +1,3 @@
-import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
@@ -170,8 +169,15 @@ class _DecodedView extends StatelessWidget {
                 child: _OutputsTable(decoded: decoded),
               ),
               TabItem(
-                label: 'Raw',
-                child: _RawView(raw: details.hex),
+                label: 'Diagram',
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(SailStyleValues.padding16),
+                  child: TransactionDiagram(details: details, hasFee: decoded.hasFee),
+                ),
+              ),
+              TabItem(
+                label: 'Bytes',
+                child: TransactionByteView(rawHex: details.hex),
               ),
             ],
             initialIndex: 0,
@@ -317,54 +323,6 @@ class _OutputsTable extends StatelessWidget {
       },
       rowCount: outputs.length,
       emptyPlaceholder: 'No outputs',
-    );
-  }
-}
-
-class _RawView extends StatelessWidget {
-  final String raw;
-
-  const _RawView({required this.raw});
-
-  @override
-  Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(SailStyleValues.padding16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              SailText.primary13('Raw'),
-              SailButton(
-                onPressed: () async {
-                  await Clipboard.setData(ClipboardData(text: raw));
-                  if (context.mounted) {
-                    showSailToast(context, 'Copied to clipboard');
-                  }
-                },
-                label: 'Copy',
-                small: true,
-              ),
-            ],
-          ),
-          const SailSpacing(SailStyleValues.padding08),
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(SailStyleValues.padding12),
-            decoration: BoxDecoration(
-              color: context.sailTheme.colors.backgroundSecondary,
-              borderRadius: SailStyleValues.borderRadius,
-              border: Border.all(color: context.sailTheme.colors.divider),
-            ),
-            child: SailSelectableText(
-              raw.isEmpty ? 'No raw data available' : raw,
-              monospace: true,
-            ),
-          ),
-        ],
-      ),
     );
   }
 }
