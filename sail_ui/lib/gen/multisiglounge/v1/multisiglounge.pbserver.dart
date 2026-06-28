@@ -27,6 +27,8 @@ abstract class MultisigLoungeServiceBase extends $pb.GeneratedService {
   $async.Future<$3.ImportGroupFromTxidResponse> importGroupFromTxid($pb.ServerContext ctx, $3.ImportGroupFromTxidRequest request);
   $async.Future<$3.SignTransactionResponse> signTransaction($pb.ServerContext ctx, $3.SignTransactionRequest request);
   $async.Future<$3.CombineAndBroadcastResponse> combineAndBroadcast($pb.ServerContext ctx, $3.CombineAndBroadcastRequest request);
+  $async.Future<$3.SyncGroupResponse> syncGroup($pb.ServerContext ctx, $3.SyncGroupRequest request);
+  $async.Future<$3.RestoreHistoryResponse> restoreHistory($pb.ServerContext ctx, $3.RestoreHistoryRequest request);
 
   $pb.GeneratedMessage createRequest($core.String methodName) {
     switch (methodName) {
@@ -36,6 +38,8 @@ abstract class MultisigLoungeServiceBase extends $pb.GeneratedService {
       case 'ImportGroupFromTxid': return $3.ImportGroupFromTxidRequest();
       case 'SignTransaction': return $3.SignTransactionRequest();
       case 'CombineAndBroadcast': return $3.CombineAndBroadcastRequest();
+      case 'SyncGroup': return $3.SyncGroupRequest();
+      case 'RestoreHistory': return $3.RestoreHistoryRequest();
       default: throw $core.ArgumentError('Unknown method: $methodName');
     }
   }
@@ -48,6 +52,8 @@ abstract class MultisigLoungeServiceBase extends $pb.GeneratedService {
       case 'ImportGroupFromTxid': return this.importGroupFromTxid(ctx, request as $3.ImportGroupFromTxidRequest);
       case 'SignTransaction': return this.signTransaction(ctx, request as $3.SignTransactionRequest);
       case 'CombineAndBroadcast': return this.combineAndBroadcast(ctx, request as $3.CombineAndBroadcastRequest);
+      case 'SyncGroup': return this.syncGroup(ctx, request as $3.SyncGroupRequest);
+      case 'RestoreHistory': return this.restoreHistory(ctx, request as $3.RestoreHistoryRequest);
       default: throw $core.ArgumentError('Unknown method: $methodName');
     }
   }

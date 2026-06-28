@@ -51,6 +51,12 @@ const (
 	// MultisigLoungeServiceCombineAndBroadcastProcedure is the fully-qualified name of the
 	// MultisigLoungeService's CombineAndBroadcast RPC.
 	MultisigLoungeServiceCombineAndBroadcastProcedure = "/multisiglounge.v1.MultisigLoungeService/CombineAndBroadcast"
+	// MultisigLoungeServiceSyncGroupProcedure is the fully-qualified name of the
+	// MultisigLoungeService's SyncGroup RPC.
+	MultisigLoungeServiceSyncGroupProcedure = "/multisiglounge.v1.MultisigLoungeService/SyncGroup"
+	// MultisigLoungeServiceRestoreHistoryProcedure is the fully-qualified name of the
+	// MultisigLoungeService's RestoreHistory RPC.
+	MultisigLoungeServiceRestoreHistoryProcedure = "/multisiglounge.v1.MultisigLoungeService/RestoreHistory"
 )
 
 // MultisigLoungeServiceClient is a client for the multisiglounge.v1.MultisigLoungeService service.
@@ -77,6 +83,12 @@ type MultisigLoungeServiceClient interface {
 	// only if the combined PSBT reaches the threshold. A non-finalizable PSBT is
 	// never broadcast.
 	CombineAndBroadcast(context.Context, *connect.Request[v1.CombineAndBroadcastRequest]) (*connect.Response[v1.CombineAndBroadcastResponse], error)
+	// SyncGroup ensures the group's watch-only wallet exists (creating it from the
+	// Phase-1 descriptors if missing) and returns its balance and UTXOs.
+	SyncGroup(context.Context, *connect.Request[v1.SyncGroupRequest]) (*connect.Response[v1.SyncGroupResponse], error)
+	// RestoreHistory scans the watch-only wallet's transactions and reconstructs
+	// the group's spend/receive records with per-tx signature counts and status.
+	RestoreHistory(context.Context, *connect.Request[v1.RestoreHistoryRequest]) (*connect.Response[v1.RestoreHistoryResponse], error)
 }
 
 // NewMultisigLoungeServiceClient constructs a client for the
@@ -126,6 +138,18 @@ func NewMultisigLoungeServiceClient(httpClient connect.HTTPClient, baseURL strin
 			connect.WithSchema(multisigLoungeServiceMethods.ByName("CombineAndBroadcast")),
 			connect.WithClientOptions(opts...),
 		),
+		syncGroup: connect.NewClient[v1.SyncGroupRequest, v1.SyncGroupResponse](
+			httpClient,
+			baseURL+MultisigLoungeServiceSyncGroupProcedure,
+			connect.WithSchema(multisigLoungeServiceMethods.ByName("SyncGroup")),
+			connect.WithClientOptions(opts...),
+		),
+		restoreHistory: connect.NewClient[v1.RestoreHistoryRequest, v1.RestoreHistoryResponse](
+			httpClient,
+			baseURL+MultisigLoungeServiceRestoreHistoryProcedure,
+			connect.WithSchema(multisigLoungeServiceMethods.ByName("RestoreHistory")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -137,6 +161,8 @@ type multisigLoungeServiceClient struct {
 	importGroupFromTxid *connect.Client[v1.ImportGroupFromTxidRequest, v1.ImportGroupFromTxidResponse]
 	signTransaction     *connect.Client[v1.SignTransactionRequest, v1.SignTransactionResponse]
 	combineAndBroadcast *connect.Client[v1.CombineAndBroadcastRequest, v1.CombineAndBroadcastResponse]
+	syncGroup           *connect.Client[v1.SyncGroupRequest, v1.SyncGroupResponse]
+	restoreHistory      *connect.Client[v1.RestoreHistoryRequest, v1.RestoreHistoryResponse]
 }
 
 // BuildDescriptors calls multisiglounge.v1.MultisigLoungeService.BuildDescriptors.
@@ -169,6 +195,16 @@ func (c *multisigLoungeServiceClient) CombineAndBroadcast(ctx context.Context, r
 	return c.combineAndBroadcast.CallUnary(ctx, req)
 }
 
+// SyncGroup calls multisiglounge.v1.MultisigLoungeService.SyncGroup.
+func (c *multisigLoungeServiceClient) SyncGroup(ctx context.Context, req *connect.Request[v1.SyncGroupRequest]) (*connect.Response[v1.SyncGroupResponse], error) {
+	return c.syncGroup.CallUnary(ctx, req)
+}
+
+// RestoreHistory calls multisiglounge.v1.MultisigLoungeService.RestoreHistory.
+func (c *multisigLoungeServiceClient) RestoreHistory(ctx context.Context, req *connect.Request[v1.RestoreHistoryRequest]) (*connect.Response[v1.RestoreHistoryResponse], error) {
+	return c.restoreHistory.CallUnary(ctx, req)
+}
+
 // MultisigLoungeServiceHandler is an implementation of the multisiglounge.v1.MultisigLoungeService
 // service.
 type MultisigLoungeServiceHandler interface {
@@ -194,6 +230,12 @@ type MultisigLoungeServiceHandler interface {
 	// only if the combined PSBT reaches the threshold. A non-finalizable PSBT is
 	// never broadcast.
 	CombineAndBroadcast(context.Context, *connect.Request[v1.CombineAndBroadcastRequest]) (*connect.Response[v1.CombineAndBroadcastResponse], error)
+	// SyncGroup ensures the group's watch-only wallet exists (creating it from the
+	// Phase-1 descriptors if missing) and returns its balance and UTXOs.
+	SyncGroup(context.Context, *connect.Request[v1.SyncGroupRequest]) (*connect.Response[v1.SyncGroupResponse], error)
+	// RestoreHistory scans the watch-only wallet's transactions and reconstructs
+	// the group's spend/receive records with per-tx signature counts and status.
+	RestoreHistory(context.Context, *connect.Request[v1.RestoreHistoryRequest]) (*connect.Response[v1.RestoreHistoryResponse], error)
 }
 
 // NewMultisigLoungeServiceHandler builds an HTTP handler from the service implementation. It
@@ -239,6 +281,18 @@ func NewMultisigLoungeServiceHandler(svc MultisigLoungeServiceHandler, opts ...c
 		connect.WithSchema(multisigLoungeServiceMethods.ByName("CombineAndBroadcast")),
 		connect.WithHandlerOptions(opts...),
 	)
+	multisigLoungeServiceSyncGroupHandler := connect.NewUnaryHandler(
+		MultisigLoungeServiceSyncGroupProcedure,
+		svc.SyncGroup,
+		connect.WithSchema(multisigLoungeServiceMethods.ByName("SyncGroup")),
+		connect.WithHandlerOptions(opts...),
+	)
+	multisigLoungeServiceRestoreHistoryHandler := connect.NewUnaryHandler(
+		MultisigLoungeServiceRestoreHistoryProcedure,
+		svc.RestoreHistory,
+		connect.WithSchema(multisigLoungeServiceMethods.ByName("RestoreHistory")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/multisiglounge.v1.MultisigLoungeService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case MultisigLoungeServiceBuildDescriptorsProcedure:
@@ -253,6 +307,10 @@ func NewMultisigLoungeServiceHandler(svc MultisigLoungeServiceHandler, opts ...c
 			multisigLoungeServiceSignTransactionHandler.ServeHTTP(w, r)
 		case MultisigLoungeServiceCombineAndBroadcastProcedure:
 			multisigLoungeServiceCombineAndBroadcastHandler.ServeHTTP(w, r)
+		case MultisigLoungeServiceSyncGroupProcedure:
+			multisigLoungeServiceSyncGroupHandler.ServeHTTP(w, r)
+		case MultisigLoungeServiceRestoreHistoryProcedure:
+			multisigLoungeServiceRestoreHistoryHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -284,4 +342,12 @@ func (UnimplementedMultisigLoungeServiceHandler) SignTransaction(context.Context
 
 func (UnimplementedMultisigLoungeServiceHandler) CombineAndBroadcast(context.Context, *connect.Request[v1.CombineAndBroadcastRequest]) (*connect.Response[v1.CombineAndBroadcastResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("multisiglounge.v1.MultisigLoungeService.CombineAndBroadcast is not implemented"))
+}
+
+func (UnimplementedMultisigLoungeServiceHandler) SyncGroup(context.Context, *connect.Request[v1.SyncGroupRequest]) (*connect.Response[v1.SyncGroupResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("multisiglounge.v1.MultisigLoungeService.SyncGroup is not implemented"))
+}
+
+func (UnimplementedMultisigLoungeServiceHandler) RestoreHistory(context.Context, *connect.Request[v1.RestoreHistoryRequest]) (*connect.Response[v1.RestoreHistoryResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("multisiglounge.v1.MultisigLoungeService.RestoreHistory is not implemented"))
 }

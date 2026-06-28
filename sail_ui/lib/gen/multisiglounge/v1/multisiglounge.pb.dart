@@ -15,6 +15,672 @@ import 'dart:core' as $core;
 import 'package:fixnum/fixnum.dart' as $fixnum;
 import 'package:protobuf/protobuf.dart' as $pb;
 
+class SyncGroupRequest extends $pb.GeneratedMessage {
+  factory SyncGroupRequest({
+    GroupData? group,
+    $core.String? walletId,
+  }) {
+    final $result = create();
+    if (group != null) {
+      $result.group = group;
+    }
+    if (walletId != null) {
+      $result.walletId = walletId;
+    }
+    return $result;
+  }
+  SyncGroupRequest._() : super();
+  factory SyncGroupRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory SyncGroupRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'SyncGroupRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'multisiglounge.v1'), createEmptyInstance: create)
+    ..aOM<GroupData>(1, _omitFieldNames ? '' : 'group', subBuilder: GroupData.create)
+    ..aOS(2, _omitFieldNames ? '' : 'walletId')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  SyncGroupRequest clone() => SyncGroupRequest()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  SyncGroupRequest copyWith(void Function(SyncGroupRequest) updates) => super.copyWith((message) => updates(message as SyncGroupRequest)) as SyncGroupRequest;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static SyncGroupRequest create() => SyncGroupRequest._();
+  SyncGroupRequest createEmptyInstance() => create();
+  static $pb.PbList<SyncGroupRequest> createRepeated() => $pb.PbList<SyncGroupRequest>();
+  @$core.pragma('dart2js:noInline')
+  static SyncGroupRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<SyncGroupRequest>(create);
+  static SyncGroupRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  GroupData get group => $_getN(0);
+  @$pb.TagNumber(1)
+  set group(GroupData v) { setField(1, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasGroup() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearGroup() => clearField(1);
+  @$pb.TagNumber(1)
+  GroupData ensureGroup() => $_ensure(0);
+
+  @$pb.TagNumber(2)
+  $core.String get walletId => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set walletId($core.String v) { $_setString(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasWalletId() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearWalletId() => clearField(2);
+}
+
+/// MultisigUtxo is one unspent output of the watch-only wallet.
+class MultisigUtxo extends $pb.GeneratedMessage {
+  factory MultisigUtxo({
+    $core.String? txid,
+    $core.int? vout,
+    $core.String? address,
+    $fixnum.Int64? amountSats,
+    $core.int? confirmations,
+    $core.String? scriptPubkey,
+    $core.bool? spendable,
+    $core.bool? solvable,
+    $core.bool? safe,
+  }) {
+    final $result = create();
+    if (txid != null) {
+      $result.txid = txid;
+    }
+    if (vout != null) {
+      $result.vout = vout;
+    }
+    if (address != null) {
+      $result.address = address;
+    }
+    if (amountSats != null) {
+      $result.amountSats = amountSats;
+    }
+    if (confirmations != null) {
+      $result.confirmations = confirmations;
+    }
+    if (scriptPubkey != null) {
+      $result.scriptPubkey = scriptPubkey;
+    }
+    if (spendable != null) {
+      $result.spendable = spendable;
+    }
+    if (solvable != null) {
+      $result.solvable = solvable;
+    }
+    if (safe != null) {
+      $result.safe = safe;
+    }
+    return $result;
+  }
+  MultisigUtxo._() : super();
+  factory MultisigUtxo.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory MultisigUtxo.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'MultisigUtxo', package: const $pb.PackageName(_omitMessageNames ? '' : 'multisiglounge.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'txid')
+    ..a<$core.int>(2, _omitFieldNames ? '' : 'vout', $pb.PbFieldType.OU3)
+    ..aOS(3, _omitFieldNames ? '' : 'address')
+    ..aInt64(4, _omitFieldNames ? '' : 'amountSats')
+    ..a<$core.int>(5, _omitFieldNames ? '' : 'confirmations', $pb.PbFieldType.OU3)
+    ..aOS(6, _omitFieldNames ? '' : 'scriptPubkey')
+    ..aOB(7, _omitFieldNames ? '' : 'spendable')
+    ..aOB(8, _omitFieldNames ? '' : 'solvable')
+    ..aOB(9, _omitFieldNames ? '' : 'safe')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  MultisigUtxo clone() => MultisigUtxo()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  MultisigUtxo copyWith(void Function(MultisigUtxo) updates) => super.copyWith((message) => updates(message as MultisigUtxo)) as MultisigUtxo;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static MultisigUtxo create() => MultisigUtxo._();
+  MultisigUtxo createEmptyInstance() => create();
+  static $pb.PbList<MultisigUtxo> createRepeated() => $pb.PbList<MultisigUtxo>();
+  @$core.pragma('dart2js:noInline')
+  static MultisigUtxo getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<MultisigUtxo>(create);
+  static MultisigUtxo? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get txid => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set txid($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasTxid() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearTxid() => clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.int get vout => $_getIZ(1);
+  @$pb.TagNumber(2)
+  set vout($core.int v) { $_setUnsignedInt32(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasVout() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearVout() => clearField(2);
+
+  @$pb.TagNumber(3)
+  $core.String get address => $_getSZ(2);
+  @$pb.TagNumber(3)
+  set address($core.String v) { $_setString(2, v); }
+  @$pb.TagNumber(3)
+  $core.bool hasAddress() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearAddress() => clearField(3);
+
+  @$pb.TagNumber(4)
+  $fixnum.Int64 get amountSats => $_getI64(3);
+  @$pb.TagNumber(4)
+  set amountSats($fixnum.Int64 v) { $_setInt64(3, v); }
+  @$pb.TagNumber(4)
+  $core.bool hasAmountSats() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearAmountSats() => clearField(4);
+
+  @$pb.TagNumber(5)
+  $core.int get confirmations => $_getIZ(4);
+  @$pb.TagNumber(5)
+  set confirmations($core.int v) { $_setUnsignedInt32(4, v); }
+  @$pb.TagNumber(5)
+  $core.bool hasConfirmations() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearConfirmations() => clearField(5);
+
+  @$pb.TagNumber(6)
+  $core.String get scriptPubkey => $_getSZ(5);
+  @$pb.TagNumber(6)
+  set scriptPubkey($core.String v) { $_setString(5, v); }
+  @$pb.TagNumber(6)
+  $core.bool hasScriptPubkey() => $_has(5);
+  @$pb.TagNumber(6)
+  void clearScriptPubkey() => clearField(6);
+
+  @$pb.TagNumber(7)
+  $core.bool get spendable => $_getBF(6);
+  @$pb.TagNumber(7)
+  set spendable($core.bool v) { $_setBool(6, v); }
+  @$pb.TagNumber(7)
+  $core.bool hasSpendable() => $_has(6);
+  @$pb.TagNumber(7)
+  void clearSpendable() => clearField(7);
+
+  @$pb.TagNumber(8)
+  $core.bool get solvable => $_getBF(7);
+  @$pb.TagNumber(8)
+  set solvable($core.bool v) { $_setBool(7, v); }
+  @$pb.TagNumber(8)
+  $core.bool hasSolvable() => $_has(7);
+  @$pb.TagNumber(8)
+  void clearSolvable() => clearField(8);
+
+  @$pb.TagNumber(9)
+  $core.bool get safe => $_getBF(8);
+  @$pb.TagNumber(9)
+  set safe($core.bool v) { $_setBool(8, v); }
+  @$pb.TagNumber(9)
+  $core.bool hasSafe() => $_has(8);
+  @$pb.TagNumber(9)
+  void clearSafe() => clearField(9);
+}
+
+class SyncGroupResponse extends $pb.GeneratedMessage {
+  factory SyncGroupResponse({
+    $fixnum.Int64? confirmedSats,
+    $fixnum.Int64? pendingSats,
+    $core.int? utxoCount,
+    $core.Iterable<MultisigUtxo>? utxos,
+  }) {
+    final $result = create();
+    if (confirmedSats != null) {
+      $result.confirmedSats = confirmedSats;
+    }
+    if (pendingSats != null) {
+      $result.pendingSats = pendingSats;
+    }
+    if (utxoCount != null) {
+      $result.utxoCount = utxoCount;
+    }
+    if (utxos != null) {
+      $result.utxos.addAll(utxos);
+    }
+    return $result;
+  }
+  SyncGroupResponse._() : super();
+  factory SyncGroupResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory SyncGroupResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'SyncGroupResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'multisiglounge.v1'), createEmptyInstance: create)
+    ..aInt64(1, _omitFieldNames ? '' : 'confirmedSats')
+    ..aInt64(2, _omitFieldNames ? '' : 'pendingSats')
+    ..a<$core.int>(3, _omitFieldNames ? '' : 'utxoCount', $pb.PbFieldType.OU3)
+    ..pc<MultisigUtxo>(4, _omitFieldNames ? '' : 'utxos', $pb.PbFieldType.PM, subBuilder: MultisigUtxo.create)
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  SyncGroupResponse clone() => SyncGroupResponse()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  SyncGroupResponse copyWith(void Function(SyncGroupResponse) updates) => super.copyWith((message) => updates(message as SyncGroupResponse)) as SyncGroupResponse;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static SyncGroupResponse create() => SyncGroupResponse._();
+  SyncGroupResponse createEmptyInstance() => create();
+  static $pb.PbList<SyncGroupResponse> createRepeated() => $pb.PbList<SyncGroupResponse>();
+  @$core.pragma('dart2js:noInline')
+  static SyncGroupResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<SyncGroupResponse>(create);
+  static SyncGroupResponse? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $fixnum.Int64 get confirmedSats => $_getI64(0);
+  @$pb.TagNumber(1)
+  set confirmedSats($fixnum.Int64 v) { $_setInt64(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasConfirmedSats() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearConfirmedSats() => clearField(1);
+
+  @$pb.TagNumber(2)
+  $fixnum.Int64 get pendingSats => $_getI64(1);
+  @$pb.TagNumber(2)
+  set pendingSats($fixnum.Int64 v) { $_setInt64(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasPendingSats() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearPendingSats() => clearField(2);
+
+  @$pb.TagNumber(3)
+  $core.int get utxoCount => $_getIZ(2);
+  @$pb.TagNumber(3)
+  set utxoCount($core.int v) { $_setUnsignedInt32(2, v); }
+  @$pb.TagNumber(3)
+  $core.bool hasUtxoCount() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearUtxoCount() => clearField(3);
+
+  @$pb.TagNumber(4)
+  $core.List<MultisigUtxo> get utxos => $_getList(3);
+}
+
+class RestoreHistoryRequest extends $pb.GeneratedMessage {
+  factory RestoreHistoryRequest({
+    GroupData? group,
+    $core.String? walletId,
+  }) {
+    final $result = create();
+    if (group != null) {
+      $result.group = group;
+    }
+    if (walletId != null) {
+      $result.walletId = walletId;
+    }
+    return $result;
+  }
+  RestoreHistoryRequest._() : super();
+  factory RestoreHistoryRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory RestoreHistoryRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'RestoreHistoryRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'multisiglounge.v1'), createEmptyInstance: create)
+    ..aOM<GroupData>(1, _omitFieldNames ? '' : 'group', subBuilder: GroupData.create)
+    ..aOS(2, _omitFieldNames ? '' : 'walletId')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  RestoreHistoryRequest clone() => RestoreHistoryRequest()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  RestoreHistoryRequest copyWith(void Function(RestoreHistoryRequest) updates) => super.copyWith((message) => updates(message as RestoreHistoryRequest)) as RestoreHistoryRequest;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static RestoreHistoryRequest create() => RestoreHistoryRequest._();
+  RestoreHistoryRequest createEmptyInstance() => create();
+  static $pb.PbList<RestoreHistoryRequest> createRepeated() => $pb.PbList<RestoreHistoryRequest>();
+  @$core.pragma('dart2js:noInline')
+  static RestoreHistoryRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<RestoreHistoryRequest>(create);
+  static RestoreHistoryRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  GroupData get group => $_getN(0);
+  @$pb.TagNumber(1)
+  set group(GroupData v) { setField(1, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasGroup() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearGroup() => clearField(1);
+  @$pb.TagNumber(1)
+  GroupData ensureGroup() => $_ensure(0);
+
+  @$pb.TagNumber(2)
+  $core.String get walletId => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set walletId($core.String v) { $_setString(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasWalletId() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearWalletId() => clearField(2);
+}
+
+/// MultisigHistoryInput is one input of a reconstructed historical transaction.
+class MultisigHistoryInput extends $pb.GeneratedMessage {
+  factory MultisigHistoryInput({
+    $core.String? txid,
+    $core.int? vout,
+  }) {
+    final $result = create();
+    if (txid != null) {
+      $result.txid = txid;
+    }
+    if (vout != null) {
+      $result.vout = vout;
+    }
+    return $result;
+  }
+  MultisigHistoryInput._() : super();
+  factory MultisigHistoryInput.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory MultisigHistoryInput.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'MultisigHistoryInput', package: const $pb.PackageName(_omitMessageNames ? '' : 'multisiglounge.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'txid')
+    ..a<$core.int>(2, _omitFieldNames ? '' : 'vout', $pb.PbFieldType.OU3)
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  MultisigHistoryInput clone() => MultisigHistoryInput()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  MultisigHistoryInput copyWith(void Function(MultisigHistoryInput) updates) => super.copyWith((message) => updates(message as MultisigHistoryInput)) as MultisigHistoryInput;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static MultisigHistoryInput create() => MultisigHistoryInput._();
+  MultisigHistoryInput createEmptyInstance() => create();
+  static $pb.PbList<MultisigHistoryInput> createRepeated() => $pb.PbList<MultisigHistoryInput>();
+  @$core.pragma('dart2js:noInline')
+  static MultisigHistoryInput getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<MultisigHistoryInput>(create);
+  static MultisigHistoryInput? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get txid => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set txid($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasTxid() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearTxid() => clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.int get vout => $_getIZ(1);
+  @$pb.TagNumber(2)
+  set vout($core.int v) { $_setUnsignedInt32(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasVout() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearVout() => clearField(2);
+}
+
+/// MultisigHistoryTx is a reconstructed group transaction from chain history.
+class MultisigHistoryTx extends $pb.GeneratedMessage {
+  factory MultisigHistoryTx({
+    $core.String? txid,
+    $fixnum.Int64? amountSats,
+    $core.bool? isDeposit,
+    $core.String? destination,
+    $core.int? confirmations,
+    $core.int? signatureCount,
+    $core.String? status,
+    $fixnum.Int64? time,
+    $core.String? finalHex,
+    $core.Iterable<MultisigHistoryInput>? inputs,
+  }) {
+    final $result = create();
+    if (txid != null) {
+      $result.txid = txid;
+    }
+    if (amountSats != null) {
+      $result.amountSats = amountSats;
+    }
+    if (isDeposit != null) {
+      $result.isDeposit = isDeposit;
+    }
+    if (destination != null) {
+      $result.destination = destination;
+    }
+    if (confirmations != null) {
+      $result.confirmations = confirmations;
+    }
+    if (signatureCount != null) {
+      $result.signatureCount = signatureCount;
+    }
+    if (status != null) {
+      $result.status = status;
+    }
+    if (time != null) {
+      $result.time = time;
+    }
+    if (finalHex != null) {
+      $result.finalHex = finalHex;
+    }
+    if (inputs != null) {
+      $result.inputs.addAll(inputs);
+    }
+    return $result;
+  }
+  MultisigHistoryTx._() : super();
+  factory MultisigHistoryTx.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory MultisigHistoryTx.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'MultisigHistoryTx', package: const $pb.PackageName(_omitMessageNames ? '' : 'multisiglounge.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'txid')
+    ..aInt64(2, _omitFieldNames ? '' : 'amountSats')
+    ..aOB(3, _omitFieldNames ? '' : 'isDeposit')
+    ..aOS(4, _omitFieldNames ? '' : 'destination')
+    ..a<$core.int>(5, _omitFieldNames ? '' : 'confirmations', $pb.PbFieldType.OU3)
+    ..a<$core.int>(6, _omitFieldNames ? '' : 'signatureCount', $pb.PbFieldType.OU3)
+    ..aOS(7, _omitFieldNames ? '' : 'status')
+    ..aInt64(8, _omitFieldNames ? '' : 'time')
+    ..aOS(9, _omitFieldNames ? '' : 'finalHex')
+    ..pc<MultisigHistoryInput>(10, _omitFieldNames ? '' : 'inputs', $pb.PbFieldType.PM, subBuilder: MultisigHistoryInput.create)
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  MultisigHistoryTx clone() => MultisigHistoryTx()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  MultisigHistoryTx copyWith(void Function(MultisigHistoryTx) updates) => super.copyWith((message) => updates(message as MultisigHistoryTx)) as MultisigHistoryTx;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static MultisigHistoryTx create() => MultisigHistoryTx._();
+  MultisigHistoryTx createEmptyInstance() => create();
+  static $pb.PbList<MultisigHistoryTx> createRepeated() => $pb.PbList<MultisigHistoryTx>();
+  @$core.pragma('dart2js:noInline')
+  static MultisigHistoryTx getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<MultisigHistoryTx>(create);
+  static MultisigHistoryTx? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get txid => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set txid($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasTxid() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearTxid() => clearField(1);
+
+  /// Absolute amount in sats (sign dropped; see is_deposit for direction).
+  @$pb.TagNumber(2)
+  $fixnum.Int64 get amountSats => $_getI64(1);
+  @$pb.TagNumber(2)
+  set amountSats($fixnum.Int64 v) { $_setInt64(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasAmountSats() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearAmountSats() => clearField(2);
+
+  /// True when the wallet received (positive listtransactions amount).
+  @$pb.TagNumber(3)
+  $core.bool get isDeposit => $_getBF(2);
+  @$pb.TagNumber(3)
+  set isDeposit($core.bool v) { $_setBool(2, v); }
+  @$pb.TagNumber(3)
+  $core.bool hasIsDeposit() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearIsDeposit() => clearField(3);
+
+  @$pb.TagNumber(4)
+  $core.String get destination => $_getSZ(3);
+  @$pb.TagNumber(4)
+  set destination($core.String v) { $_setString(3, v); }
+  @$pb.TagNumber(4)
+  $core.bool hasDestination() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearDestination() => clearField(4);
+
+  @$pb.TagNumber(5)
+  $core.int get confirmations => $_getIZ(4);
+  @$pb.TagNumber(5)
+  set confirmations($core.int v) { $_setUnsignedInt32(4, v); }
+  @$pb.TagNumber(5)
+  $core.bool hasConfirmations() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearConfirmations() => clearField(5);
+
+  /// Signatures counted from the transaction's witness/scriptSig.
+  @$pb.TagNumber(6)
+  $core.int get signatureCount => $_getIZ(5);
+  @$pb.TagNumber(6)
+  set signatureCount($core.int v) { $_setUnsignedInt32(5, v); }
+  @$pb.TagNumber(6)
+  $core.bool hasSignatureCount() => $_has(5);
+  @$pb.TagNumber(6)
+  void clearSignatureCount() => clearField(6);
+
+  /// "broadcasted" (0-conf or <6), or "confirmed" (>=6).
+  @$pb.TagNumber(7)
+  $core.String get status => $_getSZ(6);
+  @$pb.TagNumber(7)
+  set status($core.String v) { $_setString(6, v); }
+  @$pb.TagNumber(7)
+  $core.bool hasStatus() => $_has(6);
+  @$pb.TagNumber(7)
+  void clearStatus() => clearField(7);
+
+  /// Block/receive time, seconds since epoch.
+  @$pb.TagNumber(8)
+  $fixnum.Int64 get time => $_getI64(7);
+  @$pb.TagNumber(8)
+  set time($fixnum.Int64 v) { $_setInt64(7, v); }
+  @$pb.TagNumber(8)
+  $core.bool hasTime() => $_has(7);
+  @$pb.TagNumber(8)
+  void clearTime() => clearField(8);
+
+  @$pb.TagNumber(9)
+  $core.String get finalHex => $_getSZ(8);
+  @$pb.TagNumber(9)
+  set finalHex($core.String v) { $_setString(8, v); }
+  @$pb.TagNumber(9)
+  $core.bool hasFinalHex() => $_has(8);
+  @$pb.TagNumber(9)
+  void clearFinalHex() => clearField(9);
+
+  @$pb.TagNumber(10)
+  $core.List<MultisigHistoryInput> get inputs => $_getList(9);
+}
+
+class RestoreHistoryResponse extends $pb.GeneratedMessage {
+  factory RestoreHistoryResponse({
+    $core.Iterable<MultisigHistoryTx>? transactions,
+  }) {
+    final $result = create();
+    if (transactions != null) {
+      $result.transactions.addAll(transactions);
+    }
+    return $result;
+  }
+  RestoreHistoryResponse._() : super();
+  factory RestoreHistoryResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory RestoreHistoryResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'RestoreHistoryResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'multisiglounge.v1'), createEmptyInstance: create)
+    ..pc<MultisigHistoryTx>(1, _omitFieldNames ? '' : 'transactions', $pb.PbFieldType.PM, subBuilder: MultisigHistoryTx.create)
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  RestoreHistoryResponse clone() => RestoreHistoryResponse()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  RestoreHistoryResponse copyWith(void Function(RestoreHistoryResponse) updates) => super.copyWith((message) => updates(message as RestoreHistoryResponse)) as RestoreHistoryResponse;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static RestoreHistoryResponse create() => RestoreHistoryResponse._();
+  RestoreHistoryResponse createEmptyInstance() => create();
+  static $pb.PbList<RestoreHistoryResponse> createRepeated() => $pb.PbList<RestoreHistoryResponse>();
+  @$core.pragma('dart2js:noInline')
+  static RestoreHistoryResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<RestoreHistoryResponse>(create);
+  static RestoreHistoryResponse? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.List<MultisigHistoryTx> get transactions => $_getList(0);
+}
+
 class SignTransactionRequest extends $pb.GeneratedMessage {
   factory SignTransactionRequest({
     $core.String? psbtBase64,
@@ -1348,6 +2014,12 @@ class MultisigLoungeServiceApi {
   ;
   $async.Future<CombineAndBroadcastResponse> combineAndBroadcast($pb.ClientContext? ctx, CombineAndBroadcastRequest request) =>
     _client.invoke<CombineAndBroadcastResponse>(ctx, 'MultisigLoungeService', 'CombineAndBroadcast', request, CombineAndBroadcastResponse())
+  ;
+  $async.Future<SyncGroupResponse> syncGroup($pb.ClientContext? ctx, SyncGroupRequest request) =>
+    _client.invoke<SyncGroupResponse>(ctx, 'MultisigLoungeService', 'SyncGroup', request, SyncGroupResponse())
+  ;
+  $async.Future<RestoreHistoryResponse> restoreHistory($pb.ClientContext? ctx, RestoreHistoryRequest request) =>
+    _client.invoke<RestoreHistoryResponse>(ctx, 'MultisigLoungeService', 'RestoreHistory', request, RestoreHistoryResponse())
   ;
 }
 

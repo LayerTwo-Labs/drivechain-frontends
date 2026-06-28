@@ -171,49 +171,30 @@ class PSBTValidator {
 }
 
 class BalanceManager {
+  static WalletReaderProvider get _walletReader => GetIt.I<WalletReaderProvider>();
+
+  /// Syncs a group's watch-only wallet server-side (creating it from the
+  /// Phase-1 descriptors if missing), persists the confirmed balance + utxo
+  /// count, then restores any new transaction history.
   static Future<void> updateGroupBalance(MultisigGroup group) async {
     final lockKey = 'balance_${group.id}';
 
     return await FileOperationLock.withLock(lockKey, () async {
-      final walletManager = WalletRPCManager();
-      final walletName = group.watchWalletName ?? 'multisig_${group.id}';
+      final walletId = _walletReader.activeWalletId;
+      if (walletId == null) return;
+
+      final resp = await _multisigLounge.syncGroup(
+        group: multisigGroupToProto(group),
+        walletId: walletId,
+      );
+
+      final balanceBtc = resp.confirmedSats.toInt() / 100000000.0;
+      await MultisigStorage.updateGroupBalance(group.id, balanceBtc, resp.utxoCount);
 
       try {
-        await walletManager.getWalletInfo(walletName);
+        await MultisigStorage.restoreTransactionHistory(group);
       } catch (e) {
-        await _createWatchOnlyWallet(group, walletManager);
-      }
-
-      final balance = await walletManager.getWalletBalance(walletName);
-      final utxos = await walletManager.listUnspent(walletName);
-      final utxoCount = utxos.length;
-
-      await MultisigStorage.updateGroupBalance(group.id, balance, utxoCount);
-
-      // Check for new transactions when balance updates
-      try {
-        final transactions = await walletManager.callWalletRPC<List<dynamic>>(
-          walletName,
-          'listtransactions',
-          ['*', 100, 0, true], // Get last 100 transactions
-        );
-
-        for (final walletTx in transactions) {
-          if (walletTx is Map<String, dynamic>) {
-            final txid = walletTx['txid'] as String?;
-            if (txid != null) {
-              // Check if transaction already exists by blockchain txid
-              final existingTx = await TransactionStorage.getTransactionByTxid(txid);
-              if (existingTx == null) {
-                // Process new transaction
-                await MultisigStorage._processHistoricalTransaction(group, walletTx);
-                TransactionStorage.notifier.notifyTransactionChange();
-              }
-            }
-          }
-        }
-      } catch (e) {
-        // Failed to check for new transactions - not critical
+        // Failed to refresh history - not critical to the balance update.
       }
     });
   }
@@ -222,40 +203,6 @@ class BalanceManager {
     await Future.wait(
       groups.map((group) => updateGroupBalance(group)),
     );
-  }
-
-  static Future<void> _createWatchOnlyWallet(MultisigGroup group, WalletRPCManager walletManager) async {
-    try {
-      final walletName = group.watchWalletName ?? 'multisig_${group.id}';
-
-      await walletManager.createWallet(
-        walletName,
-        disablePrivateKeys: true,
-        blank: true,
-        descriptors: true,
-      );
-
-      if (group.descriptorReceive != null && group.descriptorChange != null) {
-        final descriptors = [
-          {
-            'desc': group.descriptorReceive!,
-            'active': true,
-            'internal': false,
-            'timestamp': 'now',
-          },
-          {
-            'desc': group.descriptorChange!,
-            'active': true,
-            'internal': true,
-            'timestamp': 'now',
-          },
-        ];
-
-        await walletManager.importDescriptors(walletName, descriptors);
-      }
-    } catch (e) {
-      rethrow;
-    }
   }
 }
 
@@ -1056,6 +1003,7 @@ class WalletRPCManager {
 
 class MultisigStorage {
   static MultisigAPI get _api => GetIt.I.get<BitwindowRPC>().multisig;
+  static WalletReaderProvider get _walletReader => GetIt.I<WalletReaderProvider>();
 
   static Future<List<MultisigGroup>> loadGroups() async {
     try {
@@ -1122,173 +1070,55 @@ class MultisigStorage {
   }
 
   static Future<void> restoreTransactionHistory(MultisigGroup group) async {
-    try {
-      if (group.watchWalletName == null) {
-        return;
-      }
+    final walletId = _walletReader.activeWalletId;
+    if (walletId == null) return;
 
-      final walletManager = WalletRPCManager();
-      final transactions = await walletManager.callWalletRPC<List<dynamic>>(
-        group.watchWalletName!,
-        'listtransactions',
-        ['*', 1000, 0, true], // label, count, skip, include_watchonly
+    try {
+      final resp = await _multisigLounge.restoreHistory(
+        group: multisigGroupToProto(group),
+        walletId: walletId,
       );
 
-      final relevantTxs = <Map<String, dynamic>>[];
-      final allTxs = <Map<String, dynamic>>[];
-
-      for (final tx in transactions) {
-        if (tx is Map<String, dynamic>) {
-          final txid = tx['txid'] as String?;
-          final confirmations = tx['confirmations'] as int? ?? 0;
-
-          allTxs.add(tx);
-
-          // Include transactions with 0 confirmations too (recently broadcasted)
-          if (txid != null && confirmations >= 0) {
-            relevantTxs.add(tx);
-          }
+      for (final tx in resp.transactions) {
+        final existingTx = await TransactionStorage.getTransactionByTxid(tx.txid);
+        if (existingTx != null) {
+          continue;
         }
-      }
-
-      for (final walletTx in relevantTxs) {
-        try {
-          await _processHistoricalTransaction(group, walletTx);
-        } catch (e) {
-          // Continue processing other transactions
-        }
+        await TransactionStorage.saveTransaction(_historyToTransaction(group, tx));
+        TransactionStorage.notifier.notifyTransactionChange();
       }
     } catch (e) {
       throw Exception('Transaction history restoration failed: $e');
     }
   }
 
-  static Future<void> _processHistoricalTransaction(
-    MultisigGroup group,
-    Map<String, dynamic> walletTx,
-  ) async {
-    final txid = walletTx['txid'] as String;
-    final originalAmount = (walletTx['amount'] as num?)?.toDouble() ?? 0.0;
-    final amount = originalAmount.abs();
-    final isDeposit = originalAmount > 0;
-    final confirmations = walletTx['confirmations'] as int? ?? 0;
+  static MultisigTransaction _historyToTransaction(MultisigGroup group, mlpb.MultisigHistoryTx tx) {
+    final amount = tx.amountSats.toInt() / 100000000.0;
+    final isSigned = tx.signatureCount >= group.m;
+    final signedAt = isSigned ? DateTime.fromMillisecondsSinceEpoch(tx.time.toInt() * 1000) : null;
+    final time = DateTime.fromMillisecondsSinceEpoch(tx.time.toInt() * 1000);
 
-    final existingTx = await TransactionStorage.getTransactionByTxid(txid);
-    if (existingTx != null) {
-      return;
-    }
-    final txDetails = await _coreRaw('getrawtransaction', [txid, true]) as Map<String, dynamic>;
-
-    if (txDetails.isEmpty) {
-      return;
-    }
-
-    final outputs = txDetails['vout'] as List<dynamic>? ?? [];
-    final inputs = txDetails['vin'] as List<dynamic>? ?? [];
-
-    String destination = 'Unknown';
-    if (outputs.isNotEmpty) {
-      final firstOutput = outputs.first as Map<String, dynamic>;
-      final scriptPubKey = firstOutput['scriptPubKey'] as Map<String, dynamic>?;
-      destination = scriptPubKey?['address'] as String? ?? 'Unknown';
-    }
-
-    // Count signatures in the transaction
-    int signatureCount = _countSignaturesInTransaction(inputs, group);
-
-    // Create keyPSBTs to properly represent the signature status
-    final keyPSBTs = group.keys.map((key) {
-      // For historical transactions, we assume all required signatures are present
-      // since the transaction is confirmed
-      final isSigned = signatureCount >= group.m;
-      return KeyPSBTStatus(
-        keyId: key.xpub,
-        psbt: null, // Historical transactions don't have PSBTs
-        isSigned: isSigned,
-        signedAt: isSigned ? DateTime.fromMillisecondsSinceEpoch((walletTx['time'] as int? ?? 0) * 1000) : null,
-      );
-    }).toList();
-
-    // Determine transaction status based on confirmations and type
-    TxStatus status;
-    if (confirmations == 0) {
-      status = TxStatus.broadcasted; // 0-conf, recently broadcasted
-    } else if (confirmations >= 6) {
-      status = TxStatus.confirmed; // Fully confirmed
-    } else {
-      status = TxStatus.broadcasted; // Has confirmations but not fully confirmed
-    }
-
-    final historicalTx = MultisigTransaction(
-      id: txid,
+    return MultisigTransaction(
+      id: tx.txid,
       groupId: group.id,
-      initialPSBT: '', // Historical transactions don't have PSBTs
-      keyPSBTs: keyPSBTs,
-      inputs: inputs
-          .map(
-            (input) => UtxoInfo(
-              txid: input['txid'] ?? '',
-              vout: input['vout'] ?? 0,
-              amount: 0.0, // We don't have input amounts easily accessible
-              confirmations: confirmations,
-              address: '',
-            ),
-          )
+      initialPSBT: '',
+      keyPSBTs: group.keys
+          .map((key) => KeyPSBTStatus(keyId: key.xpub, psbt: null, isSigned: isSigned, signedAt: signedAt))
           .toList(),
-      destination: destination,
+      inputs: tx.inputs
+          .map((i) => UtxoInfo(txid: i.txid, vout: i.vout, amount: 0.0, confirmations: tx.confirmations, address: ''))
+          .toList(),
+      destination: tx.destination,
       amount: amount,
-      status: status,
-      type: isDeposit ? TxType.deposit : TxType.withdrawal,
-      created: DateTime.fromMillisecondsSinceEpoch((walletTx['time'] as int? ?? 0) * 1000),
-      fee: 0.0, // Fee calculation for historical txs is complex
-      confirmations: confirmations,
-      broadcastTime: DateTime.fromMillisecondsSinceEpoch((walletTx['time'] as int? ?? 0) * 1000),
-      finalHex: txDetails['hex'] as String?,
-      txid: txid, // Set the actual transaction ID
+      status: tx.status == 'confirmed' ? TxStatus.confirmed : TxStatus.broadcasted,
+      type: tx.isDeposit ? TxType.deposit : TxType.withdrawal,
+      created: time,
+      fee: 0.0,
+      confirmations: tx.confirmations,
+      broadcastTime: time,
+      finalHex: tx.finalHex.isEmpty ? null : tx.finalHex,
+      txid: tx.txid,
     );
-
-    await TransactionStorage.saveTransaction(historicalTx);
-  }
-
-  static int _countSignaturesInTransaction(List<dynamic> inputs, MultisigGroup group) {
-    int totalSignatures = 0;
-
-    for (final input in inputs) {
-      if (input is Map<String, dynamic>) {
-        // Check scriptSig for signatures
-        final scriptSig = input['scriptSig'] as Map<String, dynamic>?;
-        if (scriptSig != null) {
-          final asm = scriptSig['asm'] as String?;
-          if (asm != null) {
-            // Count non-empty signatures in the ASM
-            // Multisig scriptSig format: OP_0 <sig1> <sig2> ... <redeemScript>
-            final parts = asm.split(' ');
-            int sigCount = 0;
-            for (final part in parts) {
-              // Signatures are typically 70-72 bytes (140-144 hex chars) and don't start with OP_
-              if (part.length >= 140 && part.length <= 150 && !part.startsWith('OP_')) {
-                sigCount++;
-              }
-            }
-            totalSignatures += sigCount;
-          }
-        }
-
-        // Also check witness data for P2WSH multisig
-        final txinwitness = input['txinwitness'] as List<dynamic>?;
-        if (txinwitness != null) {
-          int witnessSignatures = 0;
-          for (final witness in txinwitness) {
-            if (witness is String && witness.length >= 140 && witness.length <= 150) {
-              witnessSignatures++;
-            }
-          }
-          totalSignatures += witnessSignatures;
-        }
-      }
-    }
-
-    return totalSignatures;
   }
 
   static Future<void> createMultisigWallet(String walletName, String descriptorReceive, String descriptorChange) async {

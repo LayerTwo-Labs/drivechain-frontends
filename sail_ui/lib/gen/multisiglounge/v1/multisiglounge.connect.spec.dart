@@ -70,4 +70,22 @@ abstract final class MultisigLoungeService {
     multisigloungev1multisiglounge.CombineAndBroadcastRequest.new,
     multisigloungev1multisiglounge.CombineAndBroadcastResponse.new,
   );
+
+  /// SyncGroup ensures the group's watch-only wallet exists (creating it from the
+  /// Phase-1 descriptors if missing) and returns its balance and UTXOs.
+  static const syncGroup = connect.Spec(
+    '/$name/SyncGroup',
+    connect.StreamType.unary,
+    multisigloungev1multisiglounge.SyncGroupRequest.new,
+    multisigloungev1multisiglounge.SyncGroupResponse.new,
+  );
+
+  /// RestoreHistory scans the watch-only wallet's transactions and reconstructs
+  /// the group's spend/receive records with per-tx signature counts and status.
+  static const restoreHistory = connect.Spec(
+    '/$name/RestoreHistory',
+    connect.StreamType.unary,
+    multisigloungev1multisiglounge.RestoreHistoryRequest.new,
+    multisigloungev1multisiglounge.RestoreHistoryResponse.new,
+  );
 }
