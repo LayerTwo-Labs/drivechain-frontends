@@ -8,12 +8,64 @@ import 'package:bs58/bs58.dart';
 import 'package:convert/convert.dart';
 import 'package:crypto/crypto.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:fixnum/fixnum.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
+import 'package:sail_ui/gen/multisiglounge/v1/multisiglounge.pb.dart' as mlpb;
 import 'package:sail_ui/sail_ui.dart';
 import 'package:stacked/stacked.dart';
+
+mlpb.GroupData _multisigGroupToProto(MultisigGroup group) {
+  return mlpb.GroupData(
+    id: group.id,
+    name: group.name,
+    n: group.n,
+    m: group.m,
+    keys: group.keys.map(
+      (k) => mlpb.GroupKey(
+        owner: k.owner,
+        xpub: k.xpub,
+        derivationPath: k.derivationPath,
+        fingerprint: k.fingerprint ?? '',
+        originPath: k.originPath ?? '',
+        isWallet: k.isWallet,
+      ),
+    ),
+    created: Int64(group.created),
+    descriptorReceive: group.descriptorReceive ?? '',
+    descriptorChange: group.descriptorChange ?? '',
+    watchWalletName: group.watchWalletName ?? '',
+    txid: group.txid ?? '',
+  );
+}
+
+MultisigKey _protoToMultisigKey(mlpb.GroupKey k, {required bool isWallet}) {
+  return MultisigKey(
+    owner: k.owner,
+    xpub: k.xpub,
+    derivationPath: k.derivationPath,
+    fingerprint: k.fingerprint.isEmpty ? null : k.fingerprint,
+    originPath: k.originPath.isEmpty ? null : k.originPath,
+    isWallet: isWallet,
+  );
+}
+
+MultisigGroup _protoToMultisigGroup(mlpb.GroupData g, List<MultisigKey> keys) {
+  return MultisigGroup(
+    id: g.id,
+    name: g.name,
+    n: g.n,
+    m: g.m,
+    keys: keys,
+    created: g.created.toInt(),
+    txid: g.txid.isEmpty ? null : g.txid,
+    descriptorReceive: g.descriptorReceive.isEmpty ? null : g.descriptorReceive,
+    descriptorChange: g.descriptorChange.isEmpty ? null : g.descriptorChange,
+    watchWalletName: g.watchWalletName.isEmpty ? null : g.watchWalletName,
+  );
+}
 
 class MultisigKey {
   final String owner;
@@ -421,7 +473,7 @@ class CreateMultisigModal extends StatelessWidget {
 class CreateMultisigModalViewModel extends BaseViewModel {
   Logger get log => GetIt.I.get<Logger>();
   final HDWalletProvider _hdWallet = GetIt.I.get<HDWalletProvider>();
-  final OrchestratorWalletRPC _orchestratorWallet = GetIt.I.get<OrchestratorRPC>().wallet;
+  OrchestratorMultisigLoungeRPC get _multisigLounge => GetIt.I.get<OrchestratorRPC>().multisigLounge;
   WalletReaderProvider get _walletReader => GetIt.I<WalletReaderProvider>();
 
   final Set<int> _sessionUsedAccountIndices = <int>{};
@@ -484,7 +536,6 @@ class CreateMultisigModalViewModel extends BaseViewModel {
 
   static const int MULTISIG_DERIVATION_INDEX = 8000;
   static const String MULTISIG_DERIVATION_BASE = "m/84'/1'/0'/0/";
-  static const int MULTISIG_FLAG = 0x02;
 
   int get m => int.tryParse(mController.text) ?? 0;
   int get n => int.tryParse(nController.text) ?? 0;
@@ -861,14 +912,14 @@ class CreateMultisigModalViewModel extends BaseViewModel {
         GetIt.I.get<Logger>().w('Failed to create multisig wallet: $e');
       }
 
-      String? txid;
+      var group = MultisigGroup.fromJson(multisigData);
+
       if (!shouldNotBroadcast) {
-        txid = await _broadcastMultisigGroup(multisigData);
-        multisigData['txid'] = txid;
+        final txid = await _broadcastMultisigGroup(group);
+        group = group.copyWith(txid: txid);
       }
 
       // Persist the group via backend RPC
-      final group = MultisigGroup.fromJson(multisigData);
       await MultisigStorage.saveGroups([group]);
 
       if (context.mounted) {
@@ -883,40 +934,16 @@ class CreateMultisigModalViewModel extends BaseViewModel {
     }
   }
 
-  Future<String> _broadcastMultisigGroup(Map<String, dynamic> multisigData) async {
+  Future<String> _broadcastMultisigGroup(MultisigGroup group) async {
     try {
-      final jsonBytes = Uint8List.fromList(utf8.encode(json.encode(multisigData)));
-
-      final timestamp = DateTime.now().millisecondsSinceEpoch ~/ 1000;
-      const fileType = 'json';
-
-      final metadata = ByteData(9);
-      const flags = MULTISIG_FLAG;
-      metadata.setUint8(0, flags);
-      metadata.setUint32(1, timestamp);
-
-      final typeBytes = utf8.encode(fileType.padRight(4, ' '));
-      for (var i = 0; i < 4; i++) {
-        metadata.setUint8(5 + i, typeBytes[i]);
-      }
-
-      final metadataStr = base64.encode(metadata.buffer.asUint8List());
-
-      final contentStr = base64.encode(jsonBytes);
-
-      final opReturnData = '$metadataStr|$contentStr';
-
       final walletId = _walletReader.activeWalletId;
       if (walletId == null) throw Exception('No active wallet');
 
-      final address = (await _orchestratorWallet.getNewAddress(walletId)).address;
-      final txid = (await _orchestratorWallet.sendTransaction(
+      final resp = await _multisigLounge.publishGroup(
+        group: _multisigGroupToProto(group),
         walletId: walletId,
-        destinations: {address: 10000},
-        opReturnMessage: opReturnData,
-      )).txid;
-
-      return txid;
+      );
+      return resp.txid;
     } catch (e) {
       throw Exception('Failed to broadcast multisig group: $e');
     }
@@ -1071,8 +1098,8 @@ class ImportMultisigModal extends StatelessWidget {
 }
 
 class ImportMultisigModalViewModel extends BaseViewModel {
-  final BitwindowRPC _api = GetIt.I.get<BitwindowRPC>();
-  final HDWalletProvider _hdWallet = GetIt.I.get<HDWalletProvider>();
+  OrchestratorMultisigLoungeRPC get _multisigLounge => GetIt.I.get<OrchestratorRPC>().multisigLounge;
+  WalletReaderProvider get _walletReader => GetIt.I<WalletReaderProvider>();
 
   final TextEditingController txidController = TextEditingController();
 
@@ -1089,42 +1116,18 @@ class ImportMultisigModalViewModel extends BaseViewModel {
       setBusy(true);
 
       final txid = txidController.text.trim();
+      final walletId = _walletReader.activeWalletId;
+      if (walletId == null) throw Exception('No active wallet');
 
-      final opReturns = await _api.misc.listOPReturns();
-      final opReturn = opReturns.firstWhere(
-        (op) => op.txid == txid,
-        orElse: () => throw Exception('No OP_RETURN data found for this transaction'),
-      );
+      final resp = await _multisigLounge.importGroupFromTxid(txid: txid, walletId: walletId);
 
-      if (!opReturn.message.contains('|')) {
-        throw Exception('Invalid OP_RETURN format');
-      }
-
-      final parts = opReturn.message.split('|');
-      if (parts.length != 2) {
-        throw Exception('Invalid OP_RETURN data structure');
-      }
-
-      final metadataBytes = base64.decode(parts[0]);
-      if (metadataBytes.length != 9) {
-        throw Exception('Invalid metadata length');
-      }
-
-      final metadata = ByteData.view(Uint8List.fromList(metadataBytes).buffer);
-      final flags = metadata.getUint8(0);
-      final isMultisig = (flags & 0x02) != 0; // Check multisig flag
-
-      if (!isMultisig) {
-        throw Exception('This transaction does not contain multisig data');
-      }
-
-      final contentBytes = base64.decode(parts[1]);
-      final jsonString = utf8.decode(contentBytes);
-      final multisigData = json.decode(jsonString) as Map<String, dynamic>;
-
-      importedGroup = MultisigGroup.fromJson(multisigData);
-
-      await _detectWalletKeys();
+      final walletIndices = resp.walletKeyIndices.toSet();
+      processedKeys = resp.group.keys
+          .asMap()
+          .entries
+          .map((e) => _protoToMultisigKey(e.value, isWallet: walletIndices.contains(e.key)))
+          .toList();
+      importedGroup = _protoToMultisigGroup(resp.group, processedKeys!);
 
       hasFoundGroup = true;
     } catch (e) {
@@ -1132,72 +1135,6 @@ class ImportMultisigModalViewModel extends BaseViewModel {
     } finally {
       setBusy(false);
       notifyListeners();
-    }
-  }
-
-  Future<void> _detectWalletKeys() async {
-    if (importedGroup == null) return;
-
-    try {
-      if (!_hdWallet.isInitialized) {
-        await _hdWallet.init();
-      }
-
-      if (_hdWallet.mnemonic == null) {
-        processedKeys = importedGroup!.keys
-            .map(
-              (key) => MultisigKey(
-                owner: key.owner,
-                xpub: key.xpub,
-                derivationPath: key.derivationPath,
-                fingerprint: key.fingerprint,
-                originPath: key.originPath,
-                isWallet: false, // No wallet available, all keys are external
-              ),
-            )
-            .toList();
-        return;
-      }
-
-      processedKeys = [];
-      for (final key in importedGroup!.keys) {
-        bool isWalletKey = false;
-
-        try {
-          final keyInfo = await _hdWallet.deriveKeyInfo(_hdWallet.mnemonic!, key.derivationPath);
-          final derivedXpub = keyInfo['xpub'] ?? '';
-
-          if (derivedXpub.isNotEmpty && derivedXpub == key.xpub) {
-            isWalletKey = true;
-          }
-        } catch (e) {
-          // Key derivation failed, treat as external key
-        }
-
-        processedKeys!.add(
-          MultisigKey(
-            owner: key.owner,
-            xpub: key.xpub,
-            derivationPath: key.derivationPath,
-            fingerprint: key.fingerprint,
-            originPath: key.originPath,
-            isWallet: isWalletKey,
-          ),
-        );
-      }
-    } catch (e) {
-      processedKeys = importedGroup!.keys
-          .map(
-            (key) => MultisigKey(
-              owner: key.owner,
-              xpub: key.xpub,
-              derivationPath: key.derivationPath,
-              fingerprint: key.fingerprint,
-              originPath: key.originPath,
-              isWallet: false,
-            ),
-          )
-          .toList();
     }
   }
 

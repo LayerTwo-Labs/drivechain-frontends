@@ -31,4 +31,23 @@ abstract final class MultisigLoungeService {
     multisigloungev1multisiglounge.ValidatePsbtRequest.new,
     multisigloungev1multisiglounge.ValidatePsbtResponse.new,
   );
+
+  /// PublishGroup encodes a multisig group as an OP_RETURN payload (the
+  /// BitWindow wire format) and broadcasts it, funding a fresh own address.
+  /// Returns the broadcast txid.
+  static const publishGroup = connect.Spec(
+    '/$name/PublishGroup',
+    connect.StreamType.unary,
+    multisigloungev1multisiglounge.PublishGroupRequest.new,
+    multisigloungev1multisiglounge.PublishGroupResponse.new,
+  );
+
+  /// ImportGroupFromTxid fetches the OP_RETURN at the given txid, decodes the
+  /// multisig group, and reports which of the group's keys belong to the wallet.
+  static const importGroupFromTxid = connect.Spec(
+    '/$name/ImportGroupFromTxid',
+    connect.StreamType.unary,
+    multisigloungev1multisiglounge.ImportGroupFromTxidRequest.new,
+    multisigloungev1multisiglounge.ImportGroupFromTxidResponse.new,
+  );
 }
