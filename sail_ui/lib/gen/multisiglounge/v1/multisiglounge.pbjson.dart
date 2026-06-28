@@ -13,6 +13,52 @@ import 'dart:convert' as $convert;
 import 'dart:core' as $core;
 import 'dart:typed_data' as $typed_data;
 
+@$core.Deprecated('Use spendDestinationDescriptor instead')
+const SpendDestination$json = {
+  '1': 'SpendDestination',
+  '2': [
+    {'1': 'address', '3': 1, '4': 1, '5': 9, '10': 'address'},
+    {'1': 'sats', '3': 2, '4': 1, '5': 3, '10': 'sats'},
+  ],
+};
+
+/// Descriptor for `SpendDestination`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List spendDestinationDescriptor = $convert.base64Decode(
+    'ChBTcGVuZERlc3RpbmF0aW9uEhgKB2FkZHJlc3MYASABKAlSB2FkZHJlc3MSEgoEc2F0cxgCIA'
+    'EoA1IEc2F0cw==');
+
+@$core.Deprecated('Use createSpendPsbtRequestDescriptor instead')
+const CreateSpendPsbtRequest$json = {
+  '1': 'CreateSpendPsbtRequest',
+  '2': [
+    {'1': 'group', '3': 1, '4': 1, '5': 11, '6': '.multisiglounge.v1.GroupData', '10': 'group'},
+    {'1': 'wallet_id', '3': 2, '4': 1, '5': 9, '10': 'walletId'},
+    {'1': 'destinations', '3': 3, '4': 3, '5': 11, '6': '.multisiglounge.v1.SpendDestination', '10': 'destinations'},
+    {'1': 'fee_rate_sat_vb', '3': 4, '4': 1, '5': 1, '10': 'feeRateSatVb'},
+  ],
+};
+
+/// Descriptor for `CreateSpendPsbtRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List createSpendPsbtRequestDescriptor = $convert.base64Decode(
+    'ChZDcmVhdGVTcGVuZFBzYnRSZXF1ZXN0EjIKBWdyb3VwGAEgASgLMhwubXVsdGlzaWdsb3VuZ2'
+    'UudjEuR3JvdXBEYXRhUgVncm91cBIbCgl3YWxsZXRfaWQYAiABKAlSCHdhbGxldElkEkcKDGRl'
+    'c3RpbmF0aW9ucxgDIAMoCzIjLm11bHRpc2lnbG91bmdlLnYxLlNwZW5kRGVzdGluYXRpb25SDG'
+    'Rlc3RpbmF0aW9ucxIlCg9mZWVfcmF0ZV9zYXRfdmIYBCABKAFSDGZlZVJhdGVTYXRWYg==');
+
+@$core.Deprecated('Use createSpendPsbtResponseDescriptor instead')
+const CreateSpendPsbtResponse$json = {
+  '1': 'CreateSpendPsbtResponse',
+  '2': [
+    {'1': 'psbt_base64', '3': 1, '4': 1, '5': 9, '10': 'psbtBase64'},
+    {'1': 'fee_sats', '3': 2, '4': 1, '5': 3, '10': 'feeSats'},
+  ],
+};
+
+/// Descriptor for `CreateSpendPsbtResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List createSpendPsbtResponseDescriptor = $convert.base64Decode(
+    'ChdDcmVhdGVTcGVuZFBzYnRSZXNwb25zZRIfCgtwc2J0X2Jhc2U2NBgBIAEoCVIKcHNidEJhc2'
+    'U2NBIZCghmZWVfc2F0cxgCIAEoA1IHZmVlU2F0cw==');
+
 @$core.Deprecated('Use syncGroupRequestDescriptor instead')
 const SyncGroupRequest$json = {
   '1': 'SyncGroupRequest',
@@ -404,6 +450,7 @@ const $core.Map<$core.String, $core.dynamic> MultisigLoungeServiceBase$json = {
     {'1': 'CombineAndBroadcast', '2': '.multisiglounge.v1.CombineAndBroadcastRequest', '3': '.multisiglounge.v1.CombineAndBroadcastResponse'},
     {'1': 'SyncGroup', '2': '.multisiglounge.v1.SyncGroupRequest', '3': '.multisiglounge.v1.SyncGroupResponse'},
     {'1': 'RestoreHistory', '2': '.multisiglounge.v1.RestoreHistoryRequest', '3': '.multisiglounge.v1.RestoreHistoryResponse'},
+    {'1': 'CreateSpendPsbt', '2': '.multisiglounge.v1.CreateSpendPsbtRequest', '3': '.multisiglounge.v1.CreateSpendPsbtResponse'},
   ],
 };
 
@@ -432,6 +479,9 @@ const $core.Map<$core.String, $core.Map<$core.String, $core.dynamic>> MultisigLo
   '.multisiglounge.v1.RestoreHistoryResponse': RestoreHistoryResponse$json,
   '.multisiglounge.v1.MultisigHistoryTx': MultisigHistoryTx$json,
   '.multisiglounge.v1.MultisigHistoryInput': MultisigHistoryInput$json,
+  '.multisiglounge.v1.CreateSpendPsbtRequest': CreateSpendPsbtRequest$json,
+  '.multisiglounge.v1.SpendDestination': SpendDestination$json,
+  '.multisiglounge.v1.CreateSpendPsbtResponse': CreateSpendPsbtResponse$json,
 };
 
 /// Descriptor for `MultisigLoungeService`. Decode as a `google.protobuf.ServiceDescriptorProto`.
@@ -451,5 +501,7 @@ final $typed_data.Uint8List multisigLoungeServiceDescriptor = $convert.base64Dec
     'c2USVgoJU3luY0dyb3VwEiMubXVsdGlzaWdsb3VuZ2UudjEuU3luY0dyb3VwUmVxdWVzdBokLm'
     '11bHRpc2lnbG91bmdlLnYxLlN5bmNHcm91cFJlc3BvbnNlEmUKDlJlc3RvcmVIaXN0b3J5Eigu'
     'bXVsdGlzaWdsb3VuZ2UudjEuUmVzdG9yZUhpc3RvcnlSZXF1ZXN0GikubXVsdGlzaWdsb3VuZ2'
-    'UudjEuUmVzdG9yZUhpc3RvcnlSZXNwb25zZQ==');
+    'UudjEuUmVzdG9yZUhpc3RvcnlSZXNwb25zZRJoCg9DcmVhdGVTcGVuZFBzYnQSKS5tdWx0aXNp'
+    'Z2xvdW5nZS52MS5DcmVhdGVTcGVuZFBzYnRSZXF1ZXN0GioubXVsdGlzaWdsb3VuZ2UudjEuQ3'
+    'JlYXRlU3BlbmRQc2J0UmVzcG9uc2U=');
 

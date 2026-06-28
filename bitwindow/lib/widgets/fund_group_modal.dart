@@ -1,7 +1,6 @@
 import 'package:bitwindow/models/multisig_group.dart';
 import 'package:bitwindow/providers/hd_wallet_provider.dart';
 import 'package:bitwindow/providers/multisig_provider.dart';
-import 'package:bitwindow/widgets/create_multisig_modal.dart';
 import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
@@ -110,6 +109,9 @@ class FundGroupModal extends StatelessWidget {
 class FundGroupModalViewModel extends BaseViewModel {
   final List<MultisigGroup> groups;
 
+  OrchestratorMultisigLoungeRPC get _multisigLounge => GetIt.I.get<OrchestratorRPC>().multisigLounge;
+  WalletReaderProvider get _walletReader => GetIt.I<WalletReaderProvider>();
+
   String? modalError;
   MultisigGroup? selectedGroup;
   String currentAddress = '';
@@ -165,98 +167,26 @@ class FundGroupModalViewModel extends BaseViewModel {
         orElse: () => throw Exception('Group not found'),
       );
 
-      final walletManager = WalletRPCManager();
+      final walletId = _walletReader.activeWalletId;
+      if (walletId == null) throw Exception('No active wallet');
+
       final walletName = enhancedGroup.watchWalletName ?? 'multisig_${enhancedGroup.id}';
-
-      String? descriptor;
-
-      try {
-        final walletDescriptors = await walletManager.callWalletRPC<Map<String, dynamic>>(
-          walletName,
-          'listdescriptors',
-          [],
-        );
-
-        if (walletDescriptors['descriptors'] != null) {
-          for (final desc in walletDescriptors['descriptors']) {
-            if (desc is Map && desc['active'] == true && desc['internal'] == false) {
-              descriptor = desc['desc'] as String;
-              break;
-            }
-          }
-        }
-      } catch (e) {
-        // Wallet may not exist yet, will create it below
-      }
 
       MultisigGroup updatedGroup = enhancedGroup;
 
-      if (descriptor == null) {
-        try {
-          await walletManager.createWallet(
-            walletName,
-            disablePrivateKeys: true,
-            blank: true,
-            descriptors: true,
-          );
-        } catch (e) {
-          if (!e.toString().contains('already exists')) {
-            MultisigLogger.error('Failed to create multisig wallet $walletName: $e');
-            rethrow;
-          }
-        }
+      // Ensure the watch-only wallet exists, created from the standard
+      // (Phase-1) descriptors. SyncGroup owns watch-wallet creation server-side.
+      await _multisigLounge.syncGroup(group: multisigGroupToProto(enhancedGroup), walletId: walletId);
 
-        final sortedKeys = List<MultisigKey>.from(enhancedGroup.keys);
-        sortedKeys.sort((a, b) => a.xpub.compareTo(b.xpub));
-
-        final keyDescriptors = sortedKeys
-            .map((key) {
-              if (key.isWallet && key.fingerprint != null && key.originPath != null) {
-                return '[${key.fingerprint!}/${key.originPath!}]${key.xpub}';
-              } else {
-                return key.xpub;
-              }
-            })
-            .join(',');
-
-        final receiveDesc = 'wsh(sortedmulti(${enhancedGroup.m},$keyDescriptors/0/*))';
-        MultisigLogger.info('Creating ${enhancedGroup.m}-of-${enhancedGroup.n} multisig wallet: $walletName');
-        final changeDesc = 'wsh(sortedmulti(${enhancedGroup.m},$keyDescriptors/1/*))';
-
-        final receiveResult = await bitcoindRpcCall('getdescriptorinfo', params: [receiveDesc]);
-        final receiveWithChecksum = receiveResult is Map && receiveResult['descriptor'] != null
-            ? receiveResult['descriptor'] as String
-            : receiveDesc;
-
-        final changeResult = await bitcoindRpcCall('getdescriptorinfo', params: [changeDesc]);
-        final changeWithChecksum = changeResult is Map && changeResult['descriptor'] != null
-            ? changeResult['descriptor'] as String
-            : changeDesc;
-
-        await walletManager.importDescriptors(walletName, [
-          {
-            'desc': receiveWithChecksum,
-            'active': true,
-            'internal': false,
-            'timestamp': 'now',
-            'range': [0, 999],
-          },
-          {
-            'desc': changeWithChecksum,
-            'active': true,
-            'internal': true,
-            'timestamp': 'now',
-            'range': [0, 999],
-          },
-        ]);
-
-        MultisigLogger.info('Descriptors imported successfully to wallet: $walletName');
-
-        descriptor = receiveWithChecksum;
-
+      // The group carries the standard descriptors; build them if not yet
+      // persisted. These are the same descriptors SyncGroup imported.
+      String? descriptor = enhancedGroup.descriptorReceive;
+      if (descriptor == null || descriptor.isEmpty) {
+        final built = await MultisigDescriptorBuilder.buildWatchOnlyDescriptors(enhancedGroup);
+        descriptor = built.receive;
         updatedGroup = enhancedGroup.copyWith(
-          descriptorReceive: receiveWithChecksum,
-          descriptorChange: changeWithChecksum,
+          descriptorReceive: built.receive,
+          descriptorChange: built.change,
           watchWalletName: walletName,
         );
       }

@@ -856,28 +856,6 @@ class WalletRPCManager {
     });
   }
 
-  Future<Map<String, dynamic>> createWallet(
-    String walletName, {
-    bool disablePrivateKeys = false,
-    bool blank = false,
-    String? passphrase,
-    bool avoidReuse = false,
-    bool descriptors = true,
-    bool loadOnStartup = false,
-  }) async {
-    final params = <dynamic>[
-      walletName, // Create directly in network folder
-      disablePrivateKeys,
-      blank,
-      passphrase ?? '',
-      avoidReuse,
-      descriptors,
-      loadOnStartup,
-    ];
-
-    return await _coreRaw('createwallet', params) as Map<String, dynamic>;
-  }
-
   Future<bool> isWalletLoaded(String walletName) async {
     try {
       final loadedWallets = await _coreRaw('listwallets', []);

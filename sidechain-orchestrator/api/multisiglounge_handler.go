@@ -721,6 +721,65 @@ func (h *MultisigLoungeHandler) RestoreHistory(
 	return connect.NewResponse(&pb.RestoreHistoryResponse{Transactions: out}), nil
 }
 
+func (h *MultisigLoungeHandler) CreateSpendPsbt(
+	ctx context.Context,
+	req *connect.Request[pb.CreateSpendPsbtRequest],
+) (*connect.Response[pb.CreateSpendPsbtResponse], error) {
+	group := req.Msg.GetGroup()
+	if group == nil {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errMissingGroup)
+	}
+	if len(req.Msg.GetDestinations()) == 0 {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("at least one destination is required"))
+	}
+	if err := h.requireCoreCaller(); err != nil {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, err)
+	}
+
+	name, err := h.ensureWatchWallet(ctx, group)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+
+	// Destinations as {address: btc}, mirroring the Dart walletcreatefundedpsbt
+	// call which passes BTC amounts.
+	outputs := make(map[string]float64, len(req.Msg.GetDestinations()))
+	for _, d := range req.Msg.GetDestinations() {
+		if d.GetAddress() == "" || d.GetSats() <= 0 {
+			return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("each destination needs an address and a positive sats amount"))
+		}
+		outputs[d.GetAddress()] = float64(d.GetSats()) / 1e8
+	}
+
+	// Options mirror the Dart path: includeWatching (watch-only wallet) and
+	// changePosition 1. A non-zero fee rate is forwarded when provided.
+	options := map[string]interface{}{
+		"includeWatching": true,
+		"changePosition":  1,
+	}
+	if rate := req.Msg.GetFeeRateSatVb(); rate > 0 {
+		options["fee_rate"] = rate
+	}
+
+	var res struct {
+		PSBT string  `json:"psbt"`
+		Fee  float64 `json:"fee"`
+	}
+	// walletcreatefundedpsbt([], outputs, 0, options)
+	if err := h.coreCallWallet(ctx, name, "walletcreatefundedpsbt",
+		[]interface{}{[]interface{}{}, outputs, 0, options}, &res); err != nil {
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("walletcreatefundedpsbt: %w", err))
+	}
+	if res.PSBT == "" {
+		return nil, connect.NewError(connect.CodeInternal, errors.New("walletcreatefundedpsbt returned an empty psbt"))
+	}
+
+	return connect.NewResponse(&pb.CreateSpendPsbtResponse{
+		PsbtBase64: res.PSBT,
+		FeeSats:    btcToSatsInt(res.Fee),
+	}), nil
+}
+
 func btcToSatsInt(btc float64) int64 {
 	return int64(math.Round(btc * 1e8))
 }

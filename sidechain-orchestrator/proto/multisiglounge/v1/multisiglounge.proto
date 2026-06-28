@@ -41,6 +41,31 @@ service MultisigLoungeService {
   // RestoreHistory scans the watch-only wallet's transactions and reconstructs
   // the group's spend/receive records with per-tx signature counts and status.
   rpc RestoreHistory(RestoreHistoryRequest) returns (RestoreHistoryResponse);
+
+  // CreateSpendPsbt builds an unsigned funded PSBT spending from the group's
+  // watch-only wallet to the given destinations (ensuring the wallet exists).
+  rpc CreateSpendPsbt(CreateSpendPsbtRequest) returns (CreateSpendPsbtResponse);
+}
+
+// SpendDestination is one output of a spend: an address and an amount in sats.
+message SpendDestination {
+  string address = 1;
+  int64 sats = 2;
+}
+
+message CreateSpendPsbtRequest {
+  GroupData group = 1;
+  string wallet_id = 2;
+  repeated SpendDestination destinations = 3;
+  // Optional fee rate in sat/vB. 0 lets bitcoind pick (fallback/estimate fee),
+  // matching the current Dart path which passes no explicit fee rate.
+  double fee_rate_sat_vb = 4;
+}
+
+message CreateSpendPsbtResponse {
+  string psbt_base64 = 1;
+  // Fee the funded PSBT pays, in sats.
+  int64 fee_sats = 2;
 }
 
 message SyncGroupRequest {

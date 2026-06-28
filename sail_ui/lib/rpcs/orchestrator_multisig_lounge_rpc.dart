@@ -76,4 +76,20 @@ class OrchestratorMultisigLoungeRPC {
   }) {
     return _client.restoreHistory(mlpb.RestoreHistoryRequest(group: group, walletId: walletId));
   }
+
+  Future<mlpb.CreateSpendPsbtResponse> createSpendPsbt({
+    required mlpb.GroupData group,
+    required String walletId,
+    required List<mlpb.SpendDestination> destinations,
+    double feeRateSatVb = 0,
+  }) {
+    return _client.createSpendPsbt(
+      mlpb.CreateSpendPsbtRequest(
+        group: group,
+        walletId: walletId,
+        destinations: destinations,
+        feeRateSatVb: feeRateSatVb,
+      ),
+    );
+  }
 }

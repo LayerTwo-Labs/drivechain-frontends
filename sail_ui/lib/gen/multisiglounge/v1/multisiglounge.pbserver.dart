@@ -29,6 +29,7 @@ abstract class MultisigLoungeServiceBase extends $pb.GeneratedService {
   $async.Future<$3.CombineAndBroadcastResponse> combineAndBroadcast($pb.ServerContext ctx, $3.CombineAndBroadcastRequest request);
   $async.Future<$3.SyncGroupResponse> syncGroup($pb.ServerContext ctx, $3.SyncGroupRequest request);
   $async.Future<$3.RestoreHistoryResponse> restoreHistory($pb.ServerContext ctx, $3.RestoreHistoryRequest request);
+  $async.Future<$3.CreateSpendPsbtResponse> createSpendPsbt($pb.ServerContext ctx, $3.CreateSpendPsbtRequest request);
 
   $pb.GeneratedMessage createRequest($core.String methodName) {
     switch (methodName) {
@@ -40,6 +41,7 @@ abstract class MultisigLoungeServiceBase extends $pb.GeneratedService {
       case 'CombineAndBroadcast': return $3.CombineAndBroadcastRequest();
       case 'SyncGroup': return $3.SyncGroupRequest();
       case 'RestoreHistory': return $3.RestoreHistoryRequest();
+      case 'CreateSpendPsbt': return $3.CreateSpendPsbtRequest();
       default: throw $core.ArgumentError('Unknown method: $methodName');
     }
   }
@@ -54,6 +56,7 @@ abstract class MultisigLoungeServiceBase extends $pb.GeneratedService {
       case 'CombineAndBroadcast': return this.combineAndBroadcast(ctx, request as $3.CombineAndBroadcastRequest);
       case 'SyncGroup': return this.syncGroup(ctx, request as $3.SyncGroupRequest);
       case 'RestoreHistory': return this.restoreHistory(ctx, request as $3.RestoreHistoryRequest);
+      case 'CreateSpendPsbt': return this.createSpendPsbt(ctx, request as $3.CreateSpendPsbtRequest);
       default: throw $core.ArgumentError('Unknown method: $methodName');
     }
   }

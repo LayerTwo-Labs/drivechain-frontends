@@ -88,4 +88,13 @@ abstract final class MultisigLoungeService {
     multisigloungev1multisiglounge.RestoreHistoryRequest.new,
     multisigloungev1multisiglounge.RestoreHistoryResponse.new,
   );
+
+  /// CreateSpendPsbt builds an unsigned funded PSBT spending from the group's
+  /// watch-only wallet to the given destinations (ensuring the wallet exists).
+  static const createSpendPsbt = connect.Spec(
+    '/$name/CreateSpendPsbt',
+    connect.StreamType.unary,
+    multisigloungev1multisiglounge.CreateSpendPsbtRequest.new,
+    multisigloungev1multisiglounge.CreateSpendPsbtResponse.new,
+  );
 }

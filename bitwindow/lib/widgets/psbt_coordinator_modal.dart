@@ -3,8 +3,11 @@ import 'package:bitwindow/models/multisig_group.dart';
 import 'package:bitwindow/models/multisig_transaction.dart';
 import 'package:bitwindow/providers/multisig_provider.dart';
 import 'package:crypto/crypto.dart';
+import 'package:fixnum/fixnum.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter/services.dart';
+import 'package:get_it/get_it.dart';
+import 'package:sail_ui/gen/multisiglounge/v1/multisiglounge.pb.dart' as mlpb;
 import 'package:sail_ui/sail_ui.dart';
 import 'package:stacked/stacked.dart';
 
@@ -167,6 +170,9 @@ class _GroupSelectionModal extends StatelessWidget {
 class CreateTransactionViewModel extends BaseViewModel {
   final MultisigGroup group;
 
+  OrchestratorMultisigLoungeRPC get _multisigLounge => GetIt.I.get<OrchestratorRPC>().multisigLounge;
+  WalletReaderProvider get _walletReader => GetIt.I<WalletReaderProvider>();
+
   final TextEditingController destinationController = TextEditingController();
   final TextEditingController amountController = TextEditingController();
 
@@ -225,27 +231,19 @@ class CreateTransactionViewModel extends BaseViewModel {
       notifyListeners();
 
       final amount = double.parse(amountController.text);
-      final outputs = {destinationController.text: amount};
+      final walletId = _walletReader.activeWalletId;
+      if (walletId == null) throw Exception('No active wallet');
 
-      final walletManager = WalletRPCManager();
-      final walletName = group.watchWalletName ?? 'multisig_${group.id}';
-
-      final psbtResult = await walletManager.callWalletRPC<Map<String, dynamic>>(
-        walletName,
-        'walletcreatefundedpsbt',
-        [
-          [],
-          outputs,
-          0,
-          {
-            'includeWatching': true,
-            'changePosition': 1,
-          },
+      final resp = await _multisigLounge.createSpendPsbt(
+        group: multisigGroupToProto(group),
+        walletId: walletId,
+        destinations: [
+          mlpb.SpendDestination(address: destinationController.text, sats: Int64((amount * 100000000).round())),
         ],
       );
 
-      final psbt = psbtResult['psbt'] as String;
-      final fee = (psbtResult['fee'] as num?)?.toDouble() ?? 0.0;
+      final psbt = resp.psbtBase64;
+      final fee = resp.feeSats.toInt() / 100000000.0;
 
       createdPSBT = psbt;
       await Clipboard.setData(ClipboardData(text: psbt));
