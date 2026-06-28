@@ -37,19 +37,21 @@ class SailNotification extends StatelessWidget {
           child: Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: SailTheme.of(context).colors.backgroundSecondary,
+              color: theme.colors.backgroundSecondary,
               border: Border.all(
-                color: SailTheme.of(context).colors.divider,
+                color: theme.chrome.terminalStyle ? theme.colors.border : theme.colors.divider,
                 width: 1,
               ),
-              borderRadius: SailStyleValues.borderRadius,
-              boxShadow: [
-                BoxShadow(
-                  color: SailTheme.of(context).colors.shadow,
-                  blurRadius: 8,
-                  offset: const Offset(0, 2),
-                ),
-              ],
+              borderRadius: theme.chrome.terminalStyle ? theme.chrome.radiusSmall : SailStyleValues.borderRadius,
+              boxShadow: theme.chrome.terminalStyle
+                  ? null
+                  : [
+                      BoxShadow(
+                        color: theme.colors.shadow,
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,

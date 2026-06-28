@@ -101,19 +101,25 @@ class _SailTooltipState extends State<SailTooltip> {
                 padding: widget.padding,
                 decoration: BoxDecoration(
                   color: theme.chrome.tooltipBackground ?? theme.colors.popoverBackground,
-                  borderRadius: theme.chrome.beveled ? BorderRadius.zero : BorderRadius.circular(4),
+                  borderRadius: theme.chrome.beveled
+                      ? BorderRadius.zero
+                      : theme.chrome.terminalStyle
+                      ? theme.chrome.radiusSmall
+                      : BorderRadius.circular(4),
                   border: theme.chrome.beveled
                       ? Border.all(color: theme.colors.text, width: 1)
                       : Border.all(color: theme.colors.border),
-                  boxShadow: [
-                    BoxShadow(
-                      color: theme.colors.shadow,
-                      blurRadius: 6,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
+                  boxShadow: theme.chrome.terminalStyle
+                      ? null
+                      : [
+                          BoxShadow(
+                            color: theme.colors.shadow,
+                            blurRadius: 6,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
                 ),
-                child: SailText.primary12(widget.message),
+                child: SailText.primary12(widget.message, monospace: theme.chrome.terminalStyle),
               ),
             ),
           ),

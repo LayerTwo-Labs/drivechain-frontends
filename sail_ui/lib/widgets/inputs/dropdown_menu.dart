@@ -59,6 +59,7 @@ class _SailDropdownButtonState<T> extends State<SailDropdownButton<T>> {
   @override
   Widget build(BuildContext context) {
     final theme = SailTheme.of(context);
+    final terminal = theme.chrome.terminalStyle;
 
     var items = widget.items
         .where(
@@ -83,10 +84,14 @@ class _SailDropdownButtonState<T> extends State<SailDropdownButton<T>> {
       if (currentIndex >= 0) {
         currentDisplay = widget.items[currentIndex];
       } else {
-        currentDisplay = widget.hint != null ? SailText.primary12(widget.hint!, color: Colors.white) : const SizedBox();
+        currentDisplay = widget.hint != null
+            ? SailText.primary12(widget.hint!, color: terminal ? theme.colors.textHint : Colors.white)
+            : const SizedBox();
       }
     } else {
-      currentDisplay = widget.hint != null ? SailText.primary12(widget.hint!, color: Colors.white) : const SizedBox();
+      currentDisplay = widget.hint != null
+          ? SailText.primary12(widget.hint!, color: terminal ? theme.colors.textHint : Colors.white)
+          : const SizedBox();
     }
 
     void toggleMenu() {
@@ -115,11 +120,13 @@ class _SailDropdownButtonState<T> extends State<SailDropdownButton<T>> {
           child: DecoratedBox(
             decoration: BoxDecoration(
               border: Border.all(
-                color: context.sailTheme.colors.border,
+                color: terminal ? theme.colors.outlineButtonBorder : context.sailTheme.colors.border,
                 width: 1,
               ),
-              borderRadius: theme.chrome.radius,
-              color: widget.value == null ? theme.colors.primary : Colors.transparent,
+              borderRadius: terminal ? theme.chrome.radiusSmall : theme.chrome.radius,
+              color: terminal
+                  ? theme.colors.background
+                  : (widget.value == null ? theme.colors.primary : Colors.transparent),
             ),
             child: Padding(
               padding: EdgeInsets.symmetric(vertical: 6, horizontal: 12),
@@ -131,7 +138,9 @@ class _SailDropdownButtonState<T> extends State<SailDropdownButton<T>> {
                   currentDisplay,
                   SailSVG.fromAsset(
                     _open ? SailSVGAsset.chevronUp : SailSVGAsset.chevronDown,
-                    color: widget.value == null ? Colors.white : theme.colors.text,
+                    color: terminal
+                        ? (_open ? theme.colors.primary : theme.colors.text)
+                        : (widget.value == null ? Colors.white : theme.colors.text),
                     width: 13,
                   ),
                 ],

@@ -30,6 +30,8 @@ class _SailRadioButtonState<T> extends State<SailRadioButton<T>> {
   Widget build(BuildContext context) {
     var enabled = widget.onChanged != null && widget.enabled;
 
+    final chrome = SailTheme.of(context).chrome;
+
     Widget visual;
     if (widget.value == widget.groupValue) {
       Color color;
@@ -41,38 +43,77 @@ class _SailRadioButtonState<T> extends State<SailRadioButton<T>> {
         color = Theme.of(context).disabledColor;
       }
 
-      visual = Container(
-        width: widget.size,
-        height: widget.size,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          // borderRadius: BorderRadius.all(Radius.circular(widget.cornerRadius)),
-          color: color,
-          boxShadow: enabled ? sailBoxShadow(context) : null,
-        ),
-        child: Icon(
-          Icons.circle,
-          size: widget.size / 2,
-          color: SailTheme.of(context).colors.background,
-        ),
-      );
+      if (chrome.terminalStyle) {
+        visual = Container(
+          width: widget.size,
+          height: widget.size,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: Colors.transparent,
+            border: Border.all(
+              color: SailTheme.of(context).colors.outlineButtonBorder,
+              width: 1.0,
+            ),
+          ),
+          child: Center(
+            child: Container(
+              width: widget.size / 2,
+              height: widget.size / 2,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: enabled ? SailTheme.of(context).colors.primary : color,
+              ),
+            ),
+          ),
+        );
+      } else {
+        visual = Container(
+          width: widget.size,
+          height: widget.size,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: color,
+            boxShadow: enabled ? sailBoxShadow(context) : null,
+          ),
+          child: Icon(
+            Icons.circle,
+            size: widget.size / 2,
+            color: SailTheme.of(context).colors.background,
+          ),
+        );
+      }
     } else {
       var color = SailTheme.of(context).colors.background;
       if (_pressed) color = Color.lerp(color, Colors.black, 0.2)!;
 
-      visual = Container(
-        width: widget.size,
-        height: widget.size,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: color,
-          border: Border.all(
-            color: SailTheme.of(context).colors.border,
-            width: 1.0,
+      if (chrome.terminalStyle) {
+        visual = Container(
+          width: widget.size,
+          height: widget.size,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: Colors.transparent,
+            border: Border.all(
+              color: SailTheme.of(context).colors.outlineButtonBorder,
+              width: 1.0,
+            ),
           ),
-          boxShadow: sailBoxShadow(context),
-        ),
-      );
+        );
+      } else {
+        visual = Container(
+          width: widget.size,
+          height: widget.size,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: color,
+            border: Border.all(
+              color: SailTheme.of(context).colors.border,
+              width: 1.0,
+            ),
+            boxShadow: sailBoxShadow(context),
+          ),
+        );
+      }
     }
 
     if (widget.label != null) {

@@ -100,6 +100,7 @@ class SailSheet extends StatelessWidget {
         decoration: BoxDecoration(
           color: theme.colors.background,
           border: theme.chrome.beveled ? theme.chrome.bevel!.raised : Border.all(color: theme.colors.border),
+          borderRadius: theme.chrome.terminalStyle ? theme.chrome.radiusLarge : null,
           boxShadow: [
             BoxShadow(
               color: theme.colors.shadow,

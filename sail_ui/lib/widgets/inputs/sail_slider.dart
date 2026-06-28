@@ -43,10 +43,11 @@ class _SailSliderState extends State<SailSlider> {
   @override
   Widget build(BuildContext context) {
     final theme = SailTheme.of(context);
+    final terminal = theme.chrome.terminalStyle;
     final enabled = widget._isEnabled;
     final clampedValue = widget.value.clamp(widget.min, widget.max);
     final t = (clampedValue - widget.min) / (widget.max - widget.min);
-    const thumbRadius = 8.0;
+    final thumbRadius = terminal ? 6.0 : 8.0;
     const trackHeight = 4.0;
 
     return LayoutBuilder(
@@ -77,7 +78,7 @@ class _SailSliderState extends State<SailSlider> {
                         height: trackHeight,
                         decoration: BoxDecoration(
                           color: theme.colors.backgroundSecondary,
-                          borderRadius: BorderRadius.circular(trackHeight),
+                          borderRadius: terminal ? BorderRadius.circular(2) : BorderRadius.circular(trackHeight),
                         ),
                       ),
                     ),
@@ -89,29 +90,39 @@ class _SailSliderState extends State<SailSlider> {
                         height: trackHeight,
                         decoration: BoxDecoration(
                           color: theme.colors.primary,
-                          borderRadius: BorderRadius.circular(trackHeight),
+                          borderRadius: terminal ? BorderRadius.circular(2) : BorderRadius.circular(trackHeight),
                         ),
                       ),
                     ),
                     // thumb
                     Positioned(
                       left: thumbX - thumbRadius,
-                      child: Container(
-                        width: thumbRadius * 2,
-                        height: thumbRadius * 2,
-                        decoration: BoxDecoration(
-                          color: theme.colors.background,
-                          shape: BoxShape.circle,
-                          border: Border.all(color: theme.colors.primary, width: 2),
-                          boxShadow: [
-                            BoxShadow(
-                              color: theme.colors.shadow,
-                              blurRadius: 2,
-                              offset: const Offset(0, 1),
+                      child: terminal
+                          ? Container(
+                              width: thumbRadius * 2,
+                              height: thumbRadius * 2,
+                              decoration: BoxDecoration(
+                                color: theme.colors.primary,
+                                borderRadius: BorderRadius.circular(2),
+                                border: Border.all(color: theme.colors.outlineButtonBorder, width: 1),
+                              ),
+                            )
+                          : Container(
+                              width: thumbRadius * 2,
+                              height: thumbRadius * 2,
+                              decoration: BoxDecoration(
+                                color: theme.colors.background,
+                                shape: BoxShape.circle,
+                                border: Border.all(color: theme.colors.primary, width: 2),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: theme.colors.shadow,
+                                    blurRadius: 2,
+                                    offset: const Offset(0, 1),
+                                  ),
+                                ],
+                              ),
                             ),
-                          ],
-                        ),
-                      ),
                     ),
                   ],
                 ),

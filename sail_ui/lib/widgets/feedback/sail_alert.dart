@@ -22,7 +22,32 @@ class SailAlert extends StatelessWidget {
          'SailAlert requires title or description',
        );
 
+  Color _semanticColor(SailThemeData theme) {
+    switch (variant) {
+      case SailAlertVariant.defaultVariant:
+        return theme.colors.border;
+      case SailAlertVariant.destructive:
+        return theme.colors.error;
+      case SailAlertVariant.warning:
+        return theme.colors.orange;
+      case SailAlertVariant.info:
+        return theme.colors.info;
+      case SailAlertVariant.success:
+        return theme.colors.success;
+    }
+  }
+
   _AlertColors _resolveColors(SailThemeData theme) {
+    if (theme.chrome.terminalStyle) {
+      final semantic = _semanticColor(theme);
+      return _AlertColors(
+        background: theme.colors.backgroundSecondary,
+        border: theme.colors.border,
+        foreground: theme.colors.text,
+        iconColor: semantic,
+        leftAccent: semantic,
+      );
+    }
     switch (variant) {
       case SailAlertVariant.defaultVariant:
         return _AlertColors(
@@ -99,8 +124,15 @@ class SailAlert extends StatelessWidget {
       padding: padding,
       decoration: BoxDecoration(
         color: c.background,
-        borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: c.border),
+        borderRadius: theme.chrome.terminalStyle ? theme.chrome.radiusSmall : BorderRadius.circular(6),
+        border: theme.chrome.terminalStyle && c.leftAccent != null
+            ? Border(
+                top: BorderSide(color: c.border),
+                right: BorderSide(color: c.border),
+                bottom: BorderSide(color: c.border),
+                left: BorderSide(color: c.leftAccent!, width: 2),
+              )
+            : Border.all(color: c.border),
       ),
       child: icon == null
           ? content
@@ -124,10 +156,12 @@ class _AlertColors {
   final Color border;
   final Color foreground;
   final Color iconColor;
+  final Color? leftAccent;
   _AlertColors({
     required this.background,
     required this.border,
     required this.foreground,
     required this.iconColor,
+    this.leftAccent,
   });
 }

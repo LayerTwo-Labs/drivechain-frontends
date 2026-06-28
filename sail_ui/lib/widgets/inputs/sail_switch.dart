@@ -85,13 +85,14 @@ class _SailSwitchState extends State<SailSwitch> with SingleTickerProviderStateM
             animation: _animation,
             builder: (context, _) {
               final t = _animation.value;
+              final terminal = theme.chrome.terminalStyle;
               final trackColor = Color.lerp(inactiveColor, activeColor, t)!;
               return Container(
                 width: widget.width,
                 height: widget.height,
                 decoration: BoxDecoration(
                   color: trackColor,
-                  borderRadius: BorderRadius.circular(widget.height),
+                  borderRadius: BorderRadius.circular(terminal ? 3 : widget.height),
                   border: Border.all(color: borderColor, width: 1),
                 ),
                 child: Padding(
@@ -101,17 +102,22 @@ class _SailSwitchState extends State<SailSwitch> with SingleTickerProviderStateM
                     child: Container(
                       width: thumbSize,
                       height: thumbSize,
-                      decoration: BoxDecoration(
-                        color: thumbColor,
-                        shape: BoxShape.circle,
-                        boxShadow: [
-                          BoxShadow(
-                            color: theme.colors.shadow,
-                            blurRadius: 2,
-                            offset: const Offset(0, 1),
-                          ),
-                        ],
-                      ),
+                      decoration: terminal
+                          ? BoxDecoration(
+                              color: thumbColor,
+                              borderRadius: BorderRadius.circular(2),
+                            )
+                          : BoxDecoration(
+                              color: thumbColor,
+                              shape: BoxShape.circle,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: theme.colors.shadow,
+                                  blurRadius: 2,
+                                  offset: const Offset(0, 1),
+                                ),
+                              ],
+                            ),
                     ),
                   ),
                 ),

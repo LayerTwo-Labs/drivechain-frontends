@@ -35,7 +35,7 @@ class SailSeparator extends StatelessWidget {
     final lineColor = color ?? theme.colors.divider;
     final bevel = theme.chrome.bevel;
     final Widget line;
-    if (bevel != null) {
+    if (bevel != null && !theme.chrome.terminalStyle) {
       // win95 groove: dark band with a light band beneath/beside it
       line = axis == Axis.horizontal
           ? Column(

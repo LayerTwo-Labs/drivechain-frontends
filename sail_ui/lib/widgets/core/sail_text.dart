@@ -264,18 +264,21 @@ class SailText {
     bool monospace = false,
     TextOverflow? overflow,
     int? maxLines,
+    bool eyebrow = false,
   }) {
     return Builder(
       builder: (context) {
         final theme = SailTheme.of(context);
+        final eyebrowOn = eyebrow && theme.chrome.terminalStyle;
         return _Text(
-          label: label,
+          label: eyebrowOn ? label.toUpperCase() : label,
           style: SailStyleValues.twelve.copyWith(
             color: color ?? theme.colors.textSecondary,
             fontWeight: bold ? SailStyleValues.boldWeight : null,
             fontStyle: italic ? FontStyle.italic : FontStyle.normal,
             fontFamily: theme.chrome.fontFamily ?? (monospace ? 'IBMPlexMono' : 'Inter'),
             overflow: overflow,
+            letterSpacing: eyebrowOn ? 2.0 : null,
           ),
           maxLines: maxLines,
           textAlign: textAlign,

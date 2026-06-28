@@ -3,7 +3,7 @@ import 'package:sail_ui/sail_ui.dart';
 
 /// Identifies a theme bundle. The enum name is the persisted string id.
 /// Adding a theme = one new value + one new [SailThemeBundle] entry below.
-enum SailThemeStyle { sail, win95 }
+enum SailThemeStyle { sail, win95, ecash }
 
 extension SailThemeStyleStringer on SailThemeStyle {
   String get id => name;
@@ -76,10 +76,33 @@ final SailThemeBundle _win95Bundle = SailThemeBundle(
   chrome: win95Chrome,
 );
 
+/// eCash — Sail's rounded/flat chrome, but fully monospace to match ecash.com.
+final SailThemeBundle _ecashBundle = SailThemeBundle(
+  style: SailThemeStyle.ecash,
+  displayName: 'eCash',
+  light: ecashLightTheme,
+  dark: ecashDarkTheme,
+  supportsDarkMode: true,
+  chrome: SailChrome(
+    radius: const BorderRadius.all(Radius.circular(4)),
+    radiusSmall: const BorderRadius.all(Radius.circular(3)),
+    radiusLarge: const BorderRadius.all(Radius.circular(8)),
+    bevel: null,
+    fontFamily: 'IBMPlexMono',
+    buttonsRaised: false,
+    fieldsSunken: false,
+    panel: ecashPanel,
+    titleBar: ecashTitleBar,
+    tooltipBackground: ecashTooltipBackground,
+    terminalStyle: true,
+  ),
+);
+
 /// All registered theme bundles, keyed by style.
 final Map<SailThemeStyle, SailThemeBundle> sailThemeBundles = {
   SailThemeStyle.sail: _sailBundle,
   SailThemeStyle.win95: _win95Bundle,
+  SailThemeStyle.ecash: _ecashBundle,
 };
 
 SailThemeBundle sailBundleFor(SailThemeStyle style) => sailThemeBundles[style] ?? _sailBundle;
