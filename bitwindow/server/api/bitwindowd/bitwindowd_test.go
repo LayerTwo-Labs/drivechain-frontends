@@ -1778,6 +1778,87 @@ func TestService_GetNetworkStats(t *testing.T) {
 	})
 }
 
+func TestService_Labels(t *testing.T) {
+	t.Parallel()
+
+	const addr = "bcrt1qw508d6qejxtdg4y5r3zarvary0c5xw7kygt080"
+	const txid = "ab" + "cd1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcd"
+	const outpoint = txid + ":0"
+
+	t.Run("export round-trips through import", func(t *testing.T) {
+		t.Parallel()
+
+		db := database.Test(t)
+		cli := v1connect.NewBitwindowdServiceClient(apitests.API(t, db))
+		ctx := context.Background()
+
+		_, err := cli.CreateAddressBookEntry(ctx, connect.NewRequest(&v1.CreateAddressBookEntryRequest{
+			Label:     "donations",
+			Address:   addr,
+			Direction: v1.Direction_DIRECTION_RECEIVE,
+		}))
+		require.NoError(t, err)
+
+		_, err = cli.SetTransactionNote(ctx, connect.NewRequest(&v1.SetTransactionNoteRequest{
+			Txid: txid,
+			Note: "coffee",
+		}))
+		require.NoError(t, err)
+
+		exported, err := cli.ExportLabels(ctx, connect.NewRequest(&emptypb.Empty{}))
+		require.NoError(t, err)
+		assert.Contains(t, exported.Msg.Jsonl, "donations")
+		assert.Contains(t, exported.Msg.Jsonl, "coffee")
+
+		// Re-import into a fresh DB; the same labels must land.
+		db2 := database.Test(t)
+		cli2 := v1connect.NewBitwindowdServiceClient(apitests.API(t, db2))
+
+		imp, err := cli2.ImportLabels(ctx, connect.NewRequest(&v1.ImportLabelsRequest{
+			Jsonl: exported.Msg.Jsonl,
+		}))
+		require.NoError(t, err)
+		assert.Equal(t, int64(1), imp.Msg.ImportedAddresses)
+		assert.Equal(t, int64(1), imp.Msg.ImportedTransactions)
+		assert.Equal(t, int64(0), imp.Msg.Skipped)
+
+		reexported, err := cli2.ExportLabels(ctx, connect.NewRequest(&emptypb.Empty{}))
+		require.NoError(t, err)
+		assert.Equal(t, exported.Msg.Jsonl, reexported.Msg.Jsonl)
+	})
+
+	t.Run("imports sparrow sample and skips malformed", func(t *testing.T) {
+		t.Parallel()
+
+		db := database.Test(t)
+		cli := v1connect.NewBitwindowdServiceClient(apitests.API(t, db))
+		ctx := context.Background()
+
+		sample := `{"type":"tx","ref":"` + txid + `","label":"Restaurant"}
+{"type":"addr","ref":"` + addr + `","label":"Savings","origin":"wpkh([d34db33f/84'/0'/0'])"}
+{"type":"output","ref":"` + outpoint + `","label":"Coinjoin change","spendable":false}
+{"type":"xpub","ref":"xpub6...","label":"My Wallet"}
+this line is not valid json
+{"type":"input","ref":"` + outpoint + `","label":"unsupported input"}
+
+`
+
+		imp, err := cli.ImportLabels(ctx, connect.NewRequest(&v1.ImportLabelsRequest{Jsonl: sample}))
+		require.NoError(t, err)
+		assert.Equal(t, int64(1), imp.Msg.ImportedAddresses)
+		assert.Equal(t, int64(1), imp.Msg.ImportedTransactions)
+		assert.Equal(t, int64(1), imp.Msg.ImportedOutputs)
+		// xpub + input (unsupported) + malformed json = 3 skipped.
+		assert.Equal(t, int64(3), imp.Msg.Skipped)
+
+		exported, err := cli.ExportLabels(ctx, connect.NewRequest(&emptypb.Empty{}))
+		require.NoError(t, err)
+		assert.Contains(t, exported.Msg.Jsonl, "Restaurant")
+		assert.Contains(t, exported.Msg.Jsonl, "Savings")
+		assert.Contains(t, exported.Msg.Jsonl, "Coinjoin change")
+	})
+}
+
 // expectWatchWalletNoop satisfies the background ensureWatchWallet path
 // for tests that don't care about it.
 func expectWatchWalletNoop(m *mocks.MockBitcoinServiceClient) {

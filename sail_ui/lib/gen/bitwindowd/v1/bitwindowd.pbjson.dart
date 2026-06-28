@@ -328,6 +328,48 @@ final $typed_data.Uint8List setTransactionNoteRequestDescriptor = $convert.base6
     'ChlTZXRUcmFuc2FjdGlvbk5vdGVSZXF1ZXN0EhIKBHR4aWQYASABKAlSBHR4aWQSEgoEbm90ZR'
     'gCIAEoCVIEbm90ZQ==');
 
+@$core.Deprecated('Use exportLabelsResponseDescriptor instead')
+const ExportLabelsResponse$json = {
+  '1': 'ExportLabelsResponse',
+  '2': [
+    {'1': 'jsonl', '3': 1, '4': 1, '5': 9, '10': 'jsonl'},
+  ],
+};
+
+/// Descriptor for `ExportLabelsResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List exportLabelsResponseDescriptor = $convert.base64Decode(
+    'ChRFeHBvcnRMYWJlbHNSZXNwb25zZRIUCgVqc29ubBgBIAEoCVIFanNvbmw=');
+
+@$core.Deprecated('Use importLabelsRequestDescriptor instead')
+const ImportLabelsRequest$json = {
+  '1': 'ImportLabelsRequest',
+  '2': [
+    {'1': 'jsonl', '3': 1, '4': 1, '5': 9, '10': 'jsonl'},
+  ],
+};
+
+/// Descriptor for `ImportLabelsRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List importLabelsRequestDescriptor = $convert.base64Decode(
+    'ChNJbXBvcnRMYWJlbHNSZXF1ZXN0EhQKBWpzb25sGAEgASgJUgVqc29ubA==');
+
+@$core.Deprecated('Use importLabelsResponseDescriptor instead')
+const ImportLabelsResponse$json = {
+  '1': 'ImportLabelsResponse',
+  '2': [
+    {'1': 'imported_addresses', '3': 1, '4': 1, '5': 3, '10': 'importedAddresses'},
+    {'1': 'imported_transactions', '3': 2, '4': 1, '5': 3, '10': 'importedTransactions'},
+    {'1': 'imported_outputs', '3': 3, '4': 1, '5': 3, '10': 'importedOutputs'},
+    {'1': 'skipped', '3': 4, '4': 1, '5': 3, '10': 'skipped'},
+  ],
+};
+
+/// Descriptor for `ImportLabelsResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List importLabelsResponseDescriptor = $convert.base64Decode(
+    'ChRJbXBvcnRMYWJlbHNSZXNwb25zZRItChJpbXBvcnRlZF9hZGRyZXNzZXMYASABKANSEWltcG'
+    '9ydGVkQWRkcmVzc2VzEjMKFWltcG9ydGVkX3RyYW5zYWN0aW9ucxgCIAEoA1IUaW1wb3J0ZWRU'
+    'cmFuc2FjdGlvbnMSKQoQaW1wb3J0ZWRfb3V0cHV0cxgDIAEoA1IPaW1wb3J0ZWRPdXRwdXRzEh'
+    'gKB3NraXBwZWQYBCABKANSB3NraXBwZWQ=');
+
 @$core.Deprecated('Use getFireplaceStatsResponseDescriptor instead')
 const GetFireplaceStatsResponse$json = {
   '1': 'GetFireplaceStatsResponse',
@@ -585,6 +627,8 @@ const $core.Map<$core.String, $core.dynamic> BitwindowdServiceBase$json = {
     {'1': 'DeleteAddressBookEntry', '2': '.bitwindowd.v1.DeleteAddressBookEntryRequest', '3': '.google.protobuf.Empty'},
     {'1': 'GetSyncInfo', '2': '.google.protobuf.Empty', '3': '.bitwindowd.v1.GetSyncInfoResponse'},
     {'1': 'SetTransactionNote', '2': '.bitwindowd.v1.SetTransactionNoteRequest', '3': '.google.protobuf.Empty'},
+    {'1': 'ExportLabels', '2': '.google.protobuf.Empty', '3': '.bitwindowd.v1.ExportLabelsResponse'},
+    {'1': 'ImportLabels', '2': '.bitwindowd.v1.ImportLabelsRequest', '3': '.bitwindowd.v1.ImportLabelsResponse'},
     {'1': 'GetFireplaceStats', '2': '.google.protobuf.Empty', '3': '.bitwindowd.v1.GetFireplaceStatsResponse'},
     {'1': 'ListRecentTransactions', '2': '.bitwindowd.v1.ListRecentTransactionsRequest', '3': '.bitwindowd.v1.ListRecentTransactionsResponse'},
     {'1': 'ListBlocks', '2': '.bitwindowd.v1.ListBlocksRequest', '3': '.bitwindowd.v1.ListBlocksResponse'},
@@ -613,6 +657,9 @@ const $core.Map<$core.String, $core.Map<$core.String, $core.dynamic>> Bitwindowd
   '.bitwindowd.v1.DeleteAddressBookEntryRequest': DeleteAddressBookEntryRequest$json,
   '.bitwindowd.v1.GetSyncInfoResponse': GetSyncInfoResponse$json,
   '.bitwindowd.v1.SetTransactionNoteRequest': SetTransactionNoteRequest$json,
+  '.bitwindowd.v1.ExportLabelsResponse': ExportLabelsResponse$json,
+  '.bitwindowd.v1.ImportLabelsRequest': ImportLabelsRequest$json,
+  '.bitwindowd.v1.ImportLabelsResponse': ImportLabelsResponse$json,
   '.bitwindowd.v1.GetFireplaceStatsResponse': GetFireplaceStatsResponse$json,
   '.bitwindowd.v1.ListRecentTransactionsRequest': ListRecentTransactionsRequest$json,
   '.bitwindowd.v1.ListRecentTransactionsResponse': ListRecentTransactionsResponse$json,
@@ -646,13 +693,16 @@ final $typed_data.Uint8List bitwindowdServiceDescriptor = $convert.base64Decode(
     '50cnlSZXF1ZXN0GhYuZ29vZ2xlLnByb3RvYnVmLkVtcHR5EkkKC0dldFN5bmNJbmZvEhYuZ29v'
     'Z2xlLnByb3RvYnVmLkVtcHR5GiIuYml0d2luZG93ZC52MS5HZXRTeW5jSW5mb1Jlc3BvbnNlEl'
     'YKElNldFRyYW5zYWN0aW9uTm90ZRIoLmJpdHdpbmRvd2QudjEuU2V0VHJhbnNhY3Rpb25Ob3Rl'
-    'UmVxdWVzdBoWLmdvb2dsZS5wcm90b2J1Zi5FbXB0eRJVChFHZXRGaXJlcGxhY2VTdGF0cxIWLm'
-    'dvb2dsZS5wcm90b2J1Zi5FbXB0eRooLmJpdHdpbmRvd2QudjEuR2V0RmlyZXBsYWNlU3RhdHNS'
-    'ZXNwb25zZRJ1ChZMaXN0UmVjZW50VHJhbnNhY3Rpb25zEiwuYml0d2luZG93ZC52MS5MaXN0Um'
-    'VjZW50VHJhbnNhY3Rpb25zUmVxdWVzdBotLmJpdHdpbmRvd2QudjEuTGlzdFJlY2VudFRyYW5z'
-    'YWN0aW9uc1Jlc3BvbnNlElEKCkxpc3RCbG9ja3MSIC5iaXR3aW5kb3dkLnYxLkxpc3RCbG9ja3'
-    'NSZXF1ZXN0GiEuYml0d2luZG93ZC52MS5MaXN0QmxvY2tzUmVzcG9uc2USUQoPR2V0TmV0d29y'
-    'a1N0YXRzEhYuZ29vZ2xlLnByb3RvYnVmLkVtcHR5GiYuYml0d2luZG93ZC52MS5HZXROZXR3b3'
-    'JrU3RhdHNSZXNwb25zZRJaCg1VcGRhdGVOZXR3b3JrEiMuYml0d2luZG93ZC52MS5VcGRhdGVO'
-    'ZXR3b3JrUmVxdWVzdBokLmJpdHdpbmRvd2QudjEuVXBkYXRlTmV0d29ya1Jlc3BvbnNl');
+    'UmVxdWVzdBoWLmdvb2dsZS5wcm90b2J1Zi5FbXB0eRJLCgxFeHBvcnRMYWJlbHMSFi5nb29nbG'
+    'UucHJvdG9idWYuRW1wdHkaIy5iaXR3aW5kb3dkLnYxLkV4cG9ydExhYmVsc1Jlc3BvbnNlElcK'
+    'DEltcG9ydExhYmVscxIiLmJpdHdpbmRvd2QudjEuSW1wb3J0TGFiZWxzUmVxdWVzdBojLmJpdH'
+    'dpbmRvd2QudjEuSW1wb3J0TGFiZWxzUmVzcG9uc2USVQoRR2V0RmlyZXBsYWNlU3RhdHMSFi5n'
+    'b29nbGUucHJvdG9idWYuRW1wdHkaKC5iaXR3aW5kb3dkLnYxLkdldEZpcmVwbGFjZVN0YXRzUm'
+    'VzcG9uc2USdQoWTGlzdFJlY2VudFRyYW5zYWN0aW9ucxIsLmJpdHdpbmRvd2QudjEuTGlzdFJl'
+    'Y2VudFRyYW5zYWN0aW9uc1JlcXVlc3QaLS5iaXR3aW5kb3dkLnYxLkxpc3RSZWNlbnRUcmFuc2'
+    'FjdGlvbnNSZXNwb25zZRJRCgpMaXN0QmxvY2tzEiAuYml0d2luZG93ZC52MS5MaXN0QmxvY2tz'
+    'UmVxdWVzdBohLmJpdHdpbmRvd2QudjEuTGlzdEJsb2Nrc1Jlc3BvbnNlElEKD0dldE5ldHdvcm'
+    'tTdGF0cxIWLmdvb2dsZS5wcm90b2J1Zi5FbXB0eRomLmJpdHdpbmRvd2QudjEuR2V0TmV0d29y'
+    'a1N0YXRzUmVzcG9uc2USWgoNVXBkYXRlTmV0d29yaxIjLmJpdHdpbmRvd2QudjEuVXBkYXRlTm'
+    'V0d29ya1JlcXVlc3QaJC5iaXR3aW5kb3dkLnYxLlVwZGF0ZU5ldHdvcmtSZXNwb25zZQ==');
 

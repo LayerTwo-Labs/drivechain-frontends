@@ -1293,6 +1293,202 @@ class SetTransactionNoteRequest extends $pb.GeneratedMessage {
   void clearNote() => clearField(2);
 }
 
+class ExportLabelsResponse extends $pb.GeneratedMessage {
+  factory ExportLabelsResponse({
+    $core.String? jsonl,
+  }) {
+    final $result = create();
+    if (jsonl != null) {
+      $result.jsonl = jsonl;
+    }
+    return $result;
+  }
+  ExportLabelsResponse._() : super();
+  factory ExportLabelsResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory ExportLabelsResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ExportLabelsResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'bitwindowd.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'jsonl')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  ExportLabelsResponse clone() => ExportLabelsResponse()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  ExportLabelsResponse copyWith(void Function(ExportLabelsResponse) updates) => super.copyWith((message) => updates(message as ExportLabelsResponse)) as ExportLabelsResponse;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ExportLabelsResponse create() => ExportLabelsResponse._();
+  ExportLabelsResponse createEmptyInstance() => create();
+  static $pb.PbList<ExportLabelsResponse> createRepeated() => $pb.PbList<ExportLabelsResponse>();
+  @$core.pragma('dart2js:noInline')
+  static ExportLabelsResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<ExportLabelsResponse>(create);
+  static ExportLabelsResponse? _defaultInstance;
+
+  /// BIP329 JSONL: one JSON object per line.
+  @$pb.TagNumber(1)
+  $core.String get jsonl => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set jsonl($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasJsonl() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearJsonl() => clearField(1);
+}
+
+class ImportLabelsRequest extends $pb.GeneratedMessage {
+  factory ImportLabelsRequest({
+    $core.String? jsonl,
+  }) {
+    final $result = create();
+    if (jsonl != null) {
+      $result.jsonl = jsonl;
+    }
+    return $result;
+  }
+  ImportLabelsRequest._() : super();
+  factory ImportLabelsRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory ImportLabelsRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ImportLabelsRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'bitwindowd.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'jsonl')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  ImportLabelsRequest clone() => ImportLabelsRequest()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  ImportLabelsRequest copyWith(void Function(ImportLabelsRequest) updates) => super.copyWith((message) => updates(message as ImportLabelsRequest)) as ImportLabelsRequest;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ImportLabelsRequest create() => ImportLabelsRequest._();
+  ImportLabelsRequest createEmptyInstance() => create();
+  static $pb.PbList<ImportLabelsRequest> createRepeated() => $pb.PbList<ImportLabelsRequest>();
+  @$core.pragma('dart2js:noInline')
+  static ImportLabelsRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<ImportLabelsRequest>(create);
+  static ImportLabelsRequest? _defaultInstance;
+
+  /// BIP329 JSONL: one JSON object per line.
+  @$pb.TagNumber(1)
+  $core.String get jsonl => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set jsonl($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasJsonl() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearJsonl() => clearField(1);
+}
+
+class ImportLabelsResponse extends $pb.GeneratedMessage {
+  factory ImportLabelsResponse({
+    $fixnum.Int64? importedAddresses,
+    $fixnum.Int64? importedTransactions,
+    $fixnum.Int64? importedOutputs,
+    $fixnum.Int64? skipped,
+  }) {
+    final $result = create();
+    if (importedAddresses != null) {
+      $result.importedAddresses = importedAddresses;
+    }
+    if (importedTransactions != null) {
+      $result.importedTransactions = importedTransactions;
+    }
+    if (importedOutputs != null) {
+      $result.importedOutputs = importedOutputs;
+    }
+    if (skipped != null) {
+      $result.skipped = skipped;
+    }
+    return $result;
+  }
+  ImportLabelsResponse._() : super();
+  factory ImportLabelsResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory ImportLabelsResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ImportLabelsResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'bitwindowd.v1'), createEmptyInstance: create)
+    ..aInt64(1, _omitFieldNames ? '' : 'importedAddresses')
+    ..aInt64(2, _omitFieldNames ? '' : 'importedTransactions')
+    ..aInt64(3, _omitFieldNames ? '' : 'importedOutputs')
+    ..aInt64(4, _omitFieldNames ? '' : 'skipped')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  ImportLabelsResponse clone() => ImportLabelsResponse()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  ImportLabelsResponse copyWith(void Function(ImportLabelsResponse) updates) => super.copyWith((message) => updates(message as ImportLabelsResponse)) as ImportLabelsResponse;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ImportLabelsResponse create() => ImportLabelsResponse._();
+  ImportLabelsResponse createEmptyInstance() => create();
+  static $pb.PbList<ImportLabelsResponse> createRepeated() => $pb.PbList<ImportLabelsResponse>();
+  @$core.pragma('dart2js:noInline')
+  static ImportLabelsResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<ImportLabelsResponse>(create);
+  static ImportLabelsResponse? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $fixnum.Int64 get importedAddresses => $_getI64(0);
+  @$pb.TagNumber(1)
+  set importedAddresses($fixnum.Int64 v) { $_setInt64(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasImportedAddresses() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearImportedAddresses() => clearField(1);
+
+  @$pb.TagNumber(2)
+  $fixnum.Int64 get importedTransactions => $_getI64(1);
+  @$pb.TagNumber(2)
+  set importedTransactions($fixnum.Int64 v) { $_setInt64(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasImportedTransactions() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearImportedTransactions() => clearField(2);
+
+  @$pb.TagNumber(3)
+  $fixnum.Int64 get importedOutputs => $_getI64(2);
+  @$pb.TagNumber(3)
+  set importedOutputs($fixnum.Int64 v) { $_setInt64(2, v); }
+  @$pb.TagNumber(3)
+  $core.bool hasImportedOutputs() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearImportedOutputs() => clearField(3);
+
+  /// Lines skipped because they were blank, malformed, an unsupported type,
+  /// or had an empty label/ref.
+  @$pb.TagNumber(4)
+  $fixnum.Int64 get skipped => $_getI64(3);
+  @$pb.TagNumber(4)
+  set skipped($fixnum.Int64 v) { $_setInt64(3, v); }
+  @$pb.TagNumber(4)
+  $core.bool hasSkipped() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearSkipped() => clearField(4);
+}
+
 class GetFireplaceStatsResponse extends $pb.GeneratedMessage {
   factory GetFireplaceStatsResponse({
     $fixnum.Int64? transactionCount24h,
@@ -2632,6 +2828,12 @@ class BitwindowdServiceApi {
   ;
   $async.Future<$1.Empty> setTransactionNote($pb.ClientContext? ctx, SetTransactionNoteRequest request) =>
     _client.invoke<$1.Empty>(ctx, 'BitwindowdService', 'SetTransactionNote', request, $1.Empty())
+  ;
+  $async.Future<ExportLabelsResponse> exportLabels($pb.ClientContext? ctx, $1.Empty request) =>
+    _client.invoke<ExportLabelsResponse>(ctx, 'BitwindowdService', 'ExportLabels', request, ExportLabelsResponse())
+  ;
+  $async.Future<ImportLabelsResponse> importLabels($pb.ClientContext? ctx, ImportLabelsRequest request) =>
+    _client.invoke<ImportLabelsResponse>(ctx, 'BitwindowdService', 'ImportLabels', request, ImportLabelsResponse())
   ;
   $async.Future<GetFireplaceStatsResponse> getFireplaceStats($pb.ClientContext? ctx, $1.Empty request) =>
     _client.invoke<GetFireplaceStatsResponse>(ctx, 'BitwindowdService', 'GetFireplaceStats', request, GetFireplaceStatsResponse())

@@ -31,6 +31,13 @@ service BitwindowdService {
 
   rpc SetTransactionNote(SetTransactionNoteRequest) returns (google.protobuf.Empty);
 
+  // BIP329 label import/export. ExportLabels emits one JSONL object per
+  // labelled item (address book, tx note, UTXO label). ImportLabels parses
+  // BIP329 JSONL and writes into the matching store, skipping unknown or
+  // malformed lines.
+  rpc ExportLabels(google.protobuf.Empty) returns (ExportLabelsResponse);
+  rpc ImportLabels(ImportLabelsRequest) returns (ImportLabelsResponse);
+
   rpc GetFireplaceStats(google.protobuf.Empty) returns (GetFireplaceStatsResponse);
 
   // Non-stock Bitcoin Core RPCs
@@ -185,6 +192,25 @@ message GetSyncInfoResponse {
 message SetTransactionNoteRequest {
   string txid = 1;
   string note = 2;
+}
+
+message ExportLabelsResponse {
+  // BIP329 JSONL: one JSON object per line.
+  string jsonl = 1;
+}
+
+message ImportLabelsRequest {
+  // BIP329 JSONL: one JSON object per line.
+  string jsonl = 1;
+}
+
+message ImportLabelsResponse {
+  int64 imported_addresses = 1;
+  int64 imported_transactions = 2;
+  int64 imported_outputs = 3;
+  // Lines skipped because they were blank, malformed, an unsupported type,
+  // or had an empty label/ref.
+  int64 skipped = 4;
 }
 
 message GetFireplaceStatsResponse {

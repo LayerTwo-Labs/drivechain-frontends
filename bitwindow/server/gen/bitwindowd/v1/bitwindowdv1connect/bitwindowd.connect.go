@@ -69,6 +69,12 @@ const (
 	// BitwindowdServiceSetTransactionNoteProcedure is the fully-qualified name of the
 	// BitwindowdService's SetTransactionNote RPC.
 	BitwindowdServiceSetTransactionNoteProcedure = "/bitwindowd.v1.BitwindowdService/SetTransactionNote"
+	// BitwindowdServiceExportLabelsProcedure is the fully-qualified name of the BitwindowdService's
+	// ExportLabels RPC.
+	BitwindowdServiceExportLabelsProcedure = "/bitwindowd.v1.BitwindowdService/ExportLabels"
+	// BitwindowdServiceImportLabelsProcedure is the fully-qualified name of the BitwindowdService's
+	// ImportLabels RPC.
+	BitwindowdServiceImportLabelsProcedure = "/bitwindowd.v1.BitwindowdService/ImportLabels"
 	// BitwindowdServiceGetFireplaceStatsProcedure is the fully-qualified name of the
 	// BitwindowdService's GetFireplaceStats RPC.
 	BitwindowdServiceGetFireplaceStatsProcedure = "/bitwindowd.v1.BitwindowdService/GetFireplaceStats"
@@ -107,6 +113,12 @@ type BitwindowdServiceClient interface {
 	DeleteAddressBookEntry(context.Context, *connect.Request[v1.DeleteAddressBookEntryRequest]) (*connect.Response[emptypb.Empty], error)
 	GetSyncInfo(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.GetSyncInfoResponse], error)
 	SetTransactionNote(context.Context, *connect.Request[v1.SetTransactionNoteRequest]) (*connect.Response[emptypb.Empty], error)
+	// BIP329 label import/export. ExportLabels emits one JSONL object per
+	// labelled item (address book, tx note, UTXO label). ImportLabels parses
+	// BIP329 JSONL and writes into the matching store, skipping unknown or
+	// malformed lines.
+	ExportLabels(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.ExportLabelsResponse], error)
+	ImportLabels(context.Context, *connect.Request[v1.ImportLabelsRequest]) (*connect.Response[v1.ImportLabelsResponse], error)
 	GetFireplaceStats(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.GetFireplaceStatsResponse], error)
 	// Lists the most recent transactions, both confirmed and unconfirmed.
 	ListRecentTransactions(context.Context, *connect.Request[v1.ListRecentTransactionsRequest]) (*connect.Response[v1.ListRecentTransactionsResponse], error)
@@ -207,6 +219,18 @@ func NewBitwindowdServiceClient(httpClient connect.HTTPClient, baseURL string, o
 			connect.WithSchema(bitwindowdServiceMethods.ByName("SetTransactionNote")),
 			connect.WithClientOptions(opts...),
 		),
+		exportLabels: connect.NewClient[emptypb.Empty, v1.ExportLabelsResponse](
+			httpClient,
+			baseURL+BitwindowdServiceExportLabelsProcedure,
+			connect.WithSchema(bitwindowdServiceMethods.ByName("ExportLabels")),
+			connect.WithClientOptions(opts...),
+		),
+		importLabels: connect.NewClient[v1.ImportLabelsRequest, v1.ImportLabelsResponse](
+			httpClient,
+			baseURL+BitwindowdServiceImportLabelsProcedure,
+			connect.WithSchema(bitwindowdServiceMethods.ByName("ImportLabels")),
+			connect.WithClientOptions(opts...),
+		),
 		getFireplaceStats: connect.NewClient[emptypb.Empty, v1.GetFireplaceStatsResponse](
 			httpClient,
 			baseURL+BitwindowdServiceGetFireplaceStatsProcedure,
@@ -254,6 +278,8 @@ type bitwindowdServiceClient struct {
 	deleteAddressBookEntry *connect.Client[v1.DeleteAddressBookEntryRequest, emptypb.Empty]
 	getSyncInfo            *connect.Client[emptypb.Empty, v1.GetSyncInfoResponse]
 	setTransactionNote     *connect.Client[v1.SetTransactionNoteRequest, emptypb.Empty]
+	exportLabels           *connect.Client[emptypb.Empty, v1.ExportLabelsResponse]
+	importLabels           *connect.Client[v1.ImportLabelsRequest, v1.ImportLabelsResponse]
 	getFireplaceStats      *connect.Client[emptypb.Empty, v1.GetFireplaceStatsResponse]
 	listRecentTransactions *connect.Client[v1.ListRecentTransactionsRequest, v1.ListRecentTransactionsResponse]
 	listBlocks             *connect.Client[v1.ListBlocksRequest, v1.ListBlocksResponse]
@@ -321,6 +347,16 @@ func (c *bitwindowdServiceClient) SetTransactionNote(ctx context.Context, req *c
 	return c.setTransactionNote.CallUnary(ctx, req)
 }
 
+// ExportLabels calls bitwindowd.v1.BitwindowdService.ExportLabels.
+func (c *bitwindowdServiceClient) ExportLabels(ctx context.Context, req *connect.Request[emptypb.Empty]) (*connect.Response[v1.ExportLabelsResponse], error) {
+	return c.exportLabels.CallUnary(ctx, req)
+}
+
+// ImportLabels calls bitwindowd.v1.BitwindowdService.ImportLabels.
+func (c *bitwindowdServiceClient) ImportLabels(ctx context.Context, req *connect.Request[v1.ImportLabelsRequest]) (*connect.Response[v1.ImportLabelsResponse], error) {
+	return c.importLabels.CallUnary(ctx, req)
+}
+
 // GetFireplaceStats calls bitwindowd.v1.BitwindowdService.GetFireplaceStats.
 func (c *bitwindowdServiceClient) GetFireplaceStats(ctx context.Context, req *connect.Request[emptypb.Empty]) (*connect.Response[v1.GetFireplaceStatsResponse], error) {
 	return c.getFireplaceStats.CallUnary(ctx, req)
@@ -367,6 +403,12 @@ type BitwindowdServiceHandler interface {
 	DeleteAddressBookEntry(context.Context, *connect.Request[v1.DeleteAddressBookEntryRequest]) (*connect.Response[emptypb.Empty], error)
 	GetSyncInfo(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.GetSyncInfoResponse], error)
 	SetTransactionNote(context.Context, *connect.Request[v1.SetTransactionNoteRequest]) (*connect.Response[emptypb.Empty], error)
+	// BIP329 label import/export. ExportLabels emits one JSONL object per
+	// labelled item (address book, tx note, UTXO label). ImportLabels parses
+	// BIP329 JSONL and writes into the matching store, skipping unknown or
+	// malformed lines.
+	ExportLabels(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.ExportLabelsResponse], error)
+	ImportLabels(context.Context, *connect.Request[v1.ImportLabelsRequest]) (*connect.Response[v1.ImportLabelsResponse], error)
 	GetFireplaceStats(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.GetFireplaceStatsResponse], error)
 	// Lists the most recent transactions, both confirmed and unconfirmed.
 	ListRecentTransactions(context.Context, *connect.Request[v1.ListRecentTransactionsRequest]) (*connect.Response[v1.ListRecentTransactionsResponse], error)
@@ -463,6 +505,18 @@ func NewBitwindowdServiceHandler(svc BitwindowdServiceHandler, opts ...connect.H
 		connect.WithSchema(bitwindowdServiceMethods.ByName("SetTransactionNote")),
 		connect.WithHandlerOptions(opts...),
 	)
+	bitwindowdServiceExportLabelsHandler := connect.NewUnaryHandler(
+		BitwindowdServiceExportLabelsProcedure,
+		svc.ExportLabels,
+		connect.WithSchema(bitwindowdServiceMethods.ByName("ExportLabels")),
+		connect.WithHandlerOptions(opts...),
+	)
+	bitwindowdServiceImportLabelsHandler := connect.NewUnaryHandler(
+		BitwindowdServiceImportLabelsProcedure,
+		svc.ImportLabels,
+		connect.WithSchema(bitwindowdServiceMethods.ByName("ImportLabels")),
+		connect.WithHandlerOptions(opts...),
+	)
 	bitwindowdServiceGetFireplaceStatsHandler := connect.NewUnaryHandler(
 		BitwindowdServiceGetFireplaceStatsProcedure,
 		svc.GetFireplaceStats,
@@ -519,6 +573,10 @@ func NewBitwindowdServiceHandler(svc BitwindowdServiceHandler, opts ...connect.H
 			bitwindowdServiceGetSyncInfoHandler.ServeHTTP(w, r)
 		case BitwindowdServiceSetTransactionNoteProcedure:
 			bitwindowdServiceSetTransactionNoteHandler.ServeHTTP(w, r)
+		case BitwindowdServiceExportLabelsProcedure:
+			bitwindowdServiceExportLabelsHandler.ServeHTTP(w, r)
+		case BitwindowdServiceImportLabelsProcedure:
+			bitwindowdServiceImportLabelsHandler.ServeHTTP(w, r)
 		case BitwindowdServiceGetFireplaceStatsProcedure:
 			bitwindowdServiceGetFireplaceStatsHandler.ServeHTTP(w, r)
 		case BitwindowdServiceListRecentTransactionsProcedure:
@@ -584,6 +642,14 @@ func (UnimplementedBitwindowdServiceHandler) GetSyncInfo(context.Context, *conne
 
 func (UnimplementedBitwindowdServiceHandler) SetTransactionNote(context.Context, *connect.Request[v1.SetTransactionNoteRequest]) (*connect.Response[emptypb.Empty], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("bitwindowd.v1.BitwindowdService.SetTransactionNote is not implemented"))
+}
+
+func (UnimplementedBitwindowdServiceHandler) ExportLabels(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.ExportLabelsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("bitwindowd.v1.BitwindowdService.ExportLabels is not implemented"))
+}
+
+func (UnimplementedBitwindowdServiceHandler) ImportLabels(context.Context, *connect.Request[v1.ImportLabelsRequest]) (*connect.Response[v1.ImportLabelsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("bitwindowd.v1.BitwindowdService.ImportLabels is not implemented"))
 }
 
 func (UnimplementedBitwindowdServiceHandler) GetFireplaceStats(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.GetFireplaceStatsResponse], error) {

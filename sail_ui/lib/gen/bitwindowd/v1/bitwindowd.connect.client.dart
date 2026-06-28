@@ -220,6 +220,44 @@ extension type BitwindowdServiceClient (connect.Transport _transport) {
     );
   }
 
+  /// BIP329 label import/export. ExportLabels emits one JSONL object per
+  /// labelled item (address book, tx note, UTXO label). ImportLabels parses
+  /// BIP329 JSONL and writes into the matching store, skipping unknown or
+  /// malformed lines.
+  Future<bitwindowdv1bitwindowd.ExportLabelsResponse> exportLabels(
+    googleprotobufempty.Empty input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.BitwindowdService.exportLabels,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
+  Future<bitwindowdv1bitwindowd.ImportLabelsResponse> importLabels(
+    bitwindowdv1bitwindowd.ImportLabelsRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.BitwindowdService.importLabels,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
   Future<bitwindowdv1bitwindowd.GetFireplaceStatsResponse> getFireplaceStats(
     googleprotobufempty.Empty input, {
     connect.Headers? headers,
