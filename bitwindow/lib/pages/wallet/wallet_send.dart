@@ -7,9 +7,11 @@ import 'package:bitwindow/providers/address_book_provider.dart';
 import 'package:bitwindow/providers/blockchain_provider.dart';
 import 'package:bitwindow/providers/transactions_provider.dart';
 import 'package:bitwindow/providers/coin_selection_provider.dart';
+import 'package:bitwindow/pages/wallet/widgets/fee_rate_chart.dart';
 import 'package:bitwindow/utils/bitcoin_uri.dart';
 import 'package:bitwindow/utils/coin_selection.dart';
 import 'package:bitwindow/utils/explorer_url.dart';
+import 'package:bitwindow/utils/fee_estimation.dart';
 import 'package:collection/collection.dart';
 import 'package:fixnum/fixnum.dart';
 import 'package:flutter/widgets.dart';
@@ -274,30 +276,49 @@ class FeeCard extends ViewModelWidget<SendPageViewModel> {
   Widget build(BuildContext context, SendPageViewModel viewModel) {
     return SailCard(
       title: 'Fee',
-      child: SailTextField(
-        controller: viewModel.feeController,
-        hintText: 'Fee (in ${viewModel.currentUnit.symbol})',
-        textFieldType: viewModel.currentUnit == BitcoinUnit.btc ? TextFieldType.bitcoin : TextFieldType.number,
-        suffixWidget: SailRow(
-          spacing: SailStyleValues.padding08,
-          children: [
-            SailText.primary13(viewModel.currentUnit.symbol),
-            SailDropdownButton<int>(
-              value: null,
-              hint: 'Estimate',
-              items: [
-                SailDropdownItem(value: 1, label: 'Low (1 block)'),
-                SailDropdownItem(value: 3, label: 'Medium (3 blocks)'),
-                SailDropdownItem(value: 6, label: 'High (6 blocks)'),
+      child: SailColumn(
+        spacing: SailStyleValues.padding12,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          SailTextField(
+            controller: viewModel.feeController,
+            hintText: 'Fee (in ${viewModel.currentUnit.symbol})',
+            textFieldType: viewModel.currentUnit == BitcoinUnit.btc ? TextFieldType.bitcoin : TextFieldType.number,
+            suffixWidget: SailRow(
+              spacing: SailStyleValues.padding08,
+              children: [
+                SailText.primary13(viewModel.currentUnit.symbol),
+                SailDropdownButton<int>(
+                  value: null,
+                  hint: 'Estimate',
+                  items: [
+                    SailDropdownItem(value: 1, label: 'Low (1 block)'),
+                    SailDropdownItem(value: 3, label: 'Medium (3 blocks)'),
+                    SailDropdownItem(value: 6, label: 'High (6 blocks)'),
+                  ],
+                  onChanged: (value) async {
+                    if (value != null) {
+                      await viewModel.estimateFee(value);
+                    }
+                  },
+                ),
               ],
-              onChanged: (value) async {
-                if (value != null) {
-                  await viewModel.estimateFee(value);
-                }
-              },
             ),
-          ],
-        ),
+          ),
+          if (viewModel.feeRatePoints.isNotEmpty)
+            FeeRateChart(
+              points: viewModel.feeRatePoints,
+              selectedConfTarget: viewModel.selectedConfTarget,
+              onSelected: viewModel.selectFeeRatePoint,
+            )
+          else if (viewModel.loadingFeeRates)
+            SizedBox(
+              height: 180,
+              child: Center(
+                child: SailCircularProgressIndicator(color: context.sailTheme.colors.text),
+              ),
+            ),
+        ],
       ),
     );
   }
@@ -381,6 +402,10 @@ class SendPageViewModel extends BaseViewModel {
   List<RecipientModel> recipients = [];
   int selectedRecipientIndex = 0;
   BitcoinUnit? _previousUnit;
+
+  List<FeeRatePoint> feeRatePoints = [];
+  int? selectedConfTarget;
+  bool loadingFeeRates = false;
 
   void _onRecipientChanged() {
     notifyListeners();
@@ -471,6 +496,7 @@ class SendPageViewModel extends BaseViewModel {
     await addressBookProvider.fetch();
     applicationDir = await Environment.datadir();
     logFile = await getLogFile();
+    await loadFeeRateCurve();
   }
 
   Directory? applicationDir;
@@ -691,32 +717,64 @@ class SendPageViewModel extends BaseViewModel {
     notifyListeners();
   }
 
+  int get _estimatedTxVBytes {
+    final numInputs = selectedUtxos.isEmpty ? 2 : selectedUtxos.length;
+    final numOutputs = recipients.length + 1; // recipients + change
+    return estimateTxVBytes(numInputs: numInputs, numOutputs: numOutputs);
+  }
+
+  void _setFeeFromSats(int feeSats) {
+    if (currentUnit == BitcoinUnit.btc) {
+      feeController.text = satoshiToBTC(feeSats).toStringAsFixed(8);
+    } else {
+      feeController.text = feeSats.toString();
+    }
+  }
+
+  Future<double?> _feeRateForTarget(int confTarget) async {
+    final response = await _orchestrator.bitcoind.estimateSmartFee(
+      EstimateSmartFeeRequest()..confTarget = Int64(confTarget),
+    );
+    if (!response.hasFeeRate() || response.feeRate <= 0) return null;
+    return btcPerKvbToSatPerVByte(response.feeRate);
+  }
+
   Future<void> estimateFee(int confTarget) async {
     try {
-      final response = await _orchestrator.bitcoind.estimateSmartFee(
-        EstimateSmartFeeRequest()..confTarget = Int64(confTarget),
-      );
-      if (response.hasFeeRate()) {
-        // Convert BTC/kvB to sats/byte, then estimate for a typical transaction
-        final btcPerKvb = response.feeRate;
-        final satsPerByte = (btcPerKvb * 100000000) / 1000;
-
-        // Estimate transaction size: base (10) + inputs (~148 each) + outputs (~34 each)
-        final numInputs = selectedUtxos.isEmpty ? 2 : selectedUtxos.length;
-        final numOutputs = recipients.length + 1; // recipients + change
-        final estimatedSize = 10 + (numInputs * 148) + (numOutputs * 34);
-
-        final estimatedFeeSats = (satsPerByte * estimatedSize).ceil();
-        if (currentUnit == BitcoinUnit.btc) {
-          feeController.text = satoshiToBTC(estimatedFeeSats).toStringAsFixed(8);
-        } else {
-          feeController.text = estimatedFeeSats.toString();
-        }
-        notifyListeners();
-      }
+      final satPerVByte = await _feeRateForTarget(confTarget);
+      if (satPerVByte == null) return;
+      _setFeeFromSats(feeSatsForRate(satPerVByte: satPerVByte, txVBytes: _estimatedTxVBytes));
+      selectedConfTarget = confTarget;
+      notifyListeners();
     } catch (error) {
       log.e('Error estimating fee: $error');
     }
+  }
+
+  Future<void> loadFeeRateCurve() async {
+    loadingFeeRates = true;
+    notifyListeners();
+    try {
+      final results = await Future.wait(
+        feeRateConfTargets.map((t) async {
+          final rate = await _feeRateForTarget(t);
+          return rate == null ? null : FeeRatePoint(confTarget: t, satPerVByte: rate);
+        }),
+      );
+      feeRatePoints = results.whereType<FeeRatePoint>().toList();
+    } catch (error) {
+      log.e('Error loading fee rate curve: $error');
+      feeRatePoints = [];
+    } finally {
+      loadingFeeRates = false;
+      notifyListeners();
+    }
+  }
+
+  void selectFeeRatePoint(FeeRatePoint point) {
+    selectedConfTarget = point.confTarget;
+    _setFeeFromSats(feeSatsForRate(satPerVByte: point.satPerVByte, txVBytes: _estimatedTxVBytes));
+    notifyListeners();
   }
 }
 
