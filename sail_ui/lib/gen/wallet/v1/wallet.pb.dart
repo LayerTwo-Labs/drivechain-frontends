@@ -75,10 +75,14 @@ class GetBalanceRequest extends $pb.GeneratedMessage {
 class GetNewAddressRequest extends $pb.GeneratedMessage {
   factory GetNewAddressRequest({
     $core.String? walletId,
+    AddressType? addressType,
   }) {
     final $result = create();
     if (walletId != null) {
       $result.walletId = walletId;
+    }
+    if (addressType != null) {
+      $result.addressType = addressType;
     }
     return $result;
   }
@@ -88,6 +92,7 @@ class GetNewAddressRequest extends $pb.GeneratedMessage {
 
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'GetNewAddressRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'wallet.v1'), createEmptyInstance: create)
     ..aOS(1, _omitFieldNames ? '' : 'walletId')
+    ..e<AddressType>(2, _omitFieldNames ? '' : 'addressType', $pb.PbFieldType.OE, defaultOrMaker: AddressType.ADDRESS_TYPE_UNSPECIFIED, valueOf: AddressType.valueOf, enumValues: AddressType.values)
     ..hasRequiredFields = false
   ;
 
@@ -120,6 +125,15 @@ class GetNewAddressRequest extends $pb.GeneratedMessage {
   $core.bool hasWalletId() => $_has(0);
   @$pb.TagNumber(1)
   void clearWalletId() => clearField(1);
+
+  @$pb.TagNumber(2)
+  AddressType get addressType => $_getN(1);
+  @$pb.TagNumber(2)
+  set addressType(AddressType v) { setField(2, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasAddressType() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearAddressType() => clearField(2);
 }
 
 class GetNewAddressResponse extends $pb.GeneratedMessage {

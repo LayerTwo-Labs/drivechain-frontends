@@ -2730,10 +2730,14 @@ class GetBalanceResponse extends $pb.GeneratedMessage {
 class GetNewAddressRequest extends $pb.GeneratedMessage {
   factory GetNewAddressRequest({
     $core.String? walletId,
+    AddressType? addressType,
   }) {
     final $result = create();
     if (walletId != null) {
       $result.walletId = walletId;
+    }
+    if (addressType != null) {
+      $result.addressType = addressType;
     }
     return $result;
   }
@@ -2743,6 +2747,7 @@ class GetNewAddressRequest extends $pb.GeneratedMessage {
 
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'GetNewAddressRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'walletmanager.v1'), createEmptyInstance: create)
     ..aOS(1, _omitFieldNames ? '' : 'walletId')
+    ..e<AddressType>(2, _omitFieldNames ? '' : 'addressType', $pb.PbFieldType.OE, defaultOrMaker: AddressType.ADDRESS_TYPE_UNSPECIFIED, valueOf: AddressType.valueOf, enumValues: AddressType.values)
     ..hasRequiredFields = false
   ;
 
@@ -2775,6 +2780,15 @@ class GetNewAddressRequest extends $pb.GeneratedMessage {
   $core.bool hasWalletId() => $_has(0);
   @$pb.TagNumber(1)
   void clearWalletId() => clearField(1);
+
+  @$pb.TagNumber(2)
+  AddressType get addressType => $_getN(1);
+  @$pb.TagNumber(2)
+  set addressType(AddressType v) { setField(2, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasAddressType() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearAddressType() => clearField(2);
 }
 
 class GetNewAddressResponse extends $pb.GeneratedMessage {
@@ -2851,6 +2865,8 @@ class SendTransactionRequest extends $pb.GeneratedMessage {
     $fixnum.Int64? fixedFeeSats,
     $core.Iterable<UnspentOutput>? requiredInputs,
     $core.bool? replayProtect,
+    $core.Iterable<RawOutput>? rawOutputs,
+    $core.Iterable<ExternalInput>? externalInputs,
   }) {
     final $result = create();
     if (walletId != null) {
@@ -2877,6 +2893,12 @@ class SendTransactionRequest extends $pb.GeneratedMessage {
     if (replayProtect != null) {
       $result.replayProtect = replayProtect;
     }
+    if (rawOutputs != null) {
+      $result.rawOutputs.addAll(rawOutputs);
+    }
+    if (externalInputs != null) {
+      $result.externalInputs.addAll(externalInputs);
+    }
     return $result;
   }
   SendTransactionRequest._() : super();
@@ -2892,6 +2914,8 @@ class SendTransactionRequest extends $pb.GeneratedMessage {
     ..aInt64(6, _omitFieldNames ? '' : 'fixedFeeSats')
     ..pc<UnspentOutput>(7, _omitFieldNames ? '' : 'requiredInputs', $pb.PbFieldType.PM, subBuilder: UnspentOutput.create)
     ..aOB(8, _omitFieldNames ? '' : 'replayProtect')
+    ..pc<RawOutput>(9, _omitFieldNames ? '' : 'rawOutputs', $pb.PbFieldType.PM, subBuilder: RawOutput.create)
+    ..pc<ExternalInput>(10, _omitFieldNames ? '' : 'externalInputs', $pb.PbFieldType.PM, subBuilder: ExternalInput.create)
     ..hasRequiredFields = false
   ;
 
@@ -2980,6 +3004,18 @@ class SendTransactionRequest extends $pb.GeneratedMessage {
   $core.bool hasReplayProtect() => $_has(7);
   @$pb.TagNumber(8)
   void clearReplayProtect() => clearField(8);
+
+  /// Outputs with an explicit raw scriptPubKey, kept in order before any
+  /// address/op_return outputs. Used for non-standard scripts (e.g. a sidechain
+  /// OP_DRIVECHAIN treasury output).
+  @$pb.TagNumber(9)
+  $core.List<RawOutput> get rawOutputs => $_getList(8);
+
+  /// Inputs not owned by the wallet that must be spent as-is, in order, before
+  /// wallet-funded inputs. Used for anyone-can-spend scripts (e.g. a sidechain
+  /// CTIP). They are added with an empty scriptSig and not signed.
+  @$pb.TagNumber(10)
+  $core.List<ExternalInput> get externalInputs => $_getList(9);
 }
 
 class SendTransactionResponse extends $pb.GeneratedMessage {
@@ -3032,6 +3068,165 @@ class SendTransactionResponse extends $pb.GeneratedMessage {
   void clearTxid() => clearField(1);
 }
 
+/// RawOutput is a transaction output with a caller-supplied scriptPubKey.
+class RawOutput extends $pb.GeneratedMessage {
+  factory RawOutput({
+    $fixnum.Int64? valueSats,
+    $core.String? scriptHex,
+  }) {
+    final $result = create();
+    if (valueSats != null) {
+      $result.valueSats = valueSats;
+    }
+    if (scriptHex != null) {
+      $result.scriptHex = scriptHex;
+    }
+    return $result;
+  }
+  RawOutput._() : super();
+  factory RawOutput.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory RawOutput.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'RawOutput', package: const $pb.PackageName(_omitMessageNames ? '' : 'walletmanager.v1'), createEmptyInstance: create)
+    ..aInt64(1, _omitFieldNames ? '' : 'valueSats')
+    ..aOS(2, _omitFieldNames ? '' : 'scriptHex')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  RawOutput clone() => RawOutput()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  RawOutput copyWith(void Function(RawOutput) updates) => super.copyWith((message) => updates(message as RawOutput)) as RawOutput;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static RawOutput create() => RawOutput._();
+  RawOutput createEmptyInstance() => create();
+  static $pb.PbList<RawOutput> createRepeated() => $pb.PbList<RawOutput>();
+  @$core.pragma('dart2js:noInline')
+  static RawOutput getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<RawOutput>(create);
+  static RawOutput? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $fixnum.Int64 get valueSats => $_getI64(0);
+  @$pb.TagNumber(1)
+  set valueSats($fixnum.Int64 v) { $_setInt64(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasValueSats() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearValueSats() => clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.String get scriptHex => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set scriptHex($core.String v) { $_setString(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasScriptHex() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearScriptHex() => clearField(2);
+}
+
+/// ExternalInput is a UTXO spent by the transaction that the wallet does not own
+/// and does not sign — its script must be satisfiable with an empty scriptSig.
+class ExternalInput extends $pb.GeneratedMessage {
+  factory ExternalInput({
+    $core.String? txid,
+    $core.int? vout,
+    $fixnum.Int64? valueSats,
+    $core.String? scriptPubkeyHex,
+  }) {
+    final $result = create();
+    if (txid != null) {
+      $result.txid = txid;
+    }
+    if (vout != null) {
+      $result.vout = vout;
+    }
+    if (valueSats != null) {
+      $result.valueSats = valueSats;
+    }
+    if (scriptPubkeyHex != null) {
+      $result.scriptPubkeyHex = scriptPubkeyHex;
+    }
+    return $result;
+  }
+  ExternalInput._() : super();
+  factory ExternalInput.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory ExternalInput.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ExternalInput', package: const $pb.PackageName(_omitMessageNames ? '' : 'walletmanager.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'txid')
+    ..a<$core.int>(2, _omitFieldNames ? '' : 'vout', $pb.PbFieldType.O3)
+    ..aInt64(3, _omitFieldNames ? '' : 'valueSats')
+    ..aOS(4, _omitFieldNames ? '' : 'scriptPubkeyHex')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  ExternalInput clone() => ExternalInput()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  ExternalInput copyWith(void Function(ExternalInput) updates) => super.copyWith((message) => updates(message as ExternalInput)) as ExternalInput;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ExternalInput create() => ExternalInput._();
+  ExternalInput createEmptyInstance() => create();
+  static $pb.PbList<ExternalInput> createRepeated() => $pb.PbList<ExternalInput>();
+  @$core.pragma('dart2js:noInline')
+  static ExternalInput getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<ExternalInput>(create);
+  static ExternalInput? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get txid => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set txid($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasTxid() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearTxid() => clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.int get vout => $_getIZ(1);
+  @$pb.TagNumber(2)
+  set vout($core.int v) { $_setSignedInt32(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasVout() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearVout() => clearField(2);
+
+  @$pb.TagNumber(3)
+  $fixnum.Int64 get valueSats => $_getI64(2);
+  @$pb.TagNumber(3)
+  set valueSats($fixnum.Int64 v) { $_setInt64(2, v); }
+  @$pb.TagNumber(3)
+  $core.bool hasValueSats() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearValueSats() => clearField(3);
+
+  @$pb.TagNumber(4)
+  $core.String get scriptPubkeyHex => $_getSZ(3);
+  @$pb.TagNumber(4)
+  set scriptPubkeyHex($core.String v) { $_setString(3, v); }
+  @$pb.TagNumber(4)
+  $core.bool hasScriptPubkeyHex() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearScriptPubkeyHex() => clearField(4);
+}
+
 class CreatePsbtRequest extends $pb.GeneratedMessage {
   factory CreatePsbtRequest({
     $core.String? walletId,
@@ -3041,6 +3236,8 @@ class CreatePsbtRequest extends $pb.GeneratedMessage {
     $core.String? opReturnHex,
     $fixnum.Int64? fixedFeeSats,
     $core.Iterable<UnspentOutput>? requiredInputs,
+    $core.Iterable<RawOutput>? rawOutputs,
+    $core.Iterable<ExternalInput>? externalInputs,
   }) {
     final $result = create();
     if (walletId != null) {
@@ -3064,6 +3261,12 @@ class CreatePsbtRequest extends $pb.GeneratedMessage {
     if (requiredInputs != null) {
       $result.requiredInputs.addAll(requiredInputs);
     }
+    if (rawOutputs != null) {
+      $result.rawOutputs.addAll(rawOutputs);
+    }
+    if (externalInputs != null) {
+      $result.externalInputs.addAll(externalInputs);
+    }
     return $result;
   }
   CreatePsbtRequest._() : super();
@@ -3078,6 +3281,8 @@ class CreatePsbtRequest extends $pb.GeneratedMessage {
     ..aOS(5, _omitFieldNames ? '' : 'opReturnHex')
     ..aInt64(6, _omitFieldNames ? '' : 'fixedFeeSats')
     ..pc<UnspentOutput>(7, _omitFieldNames ? '' : 'requiredInputs', $pb.PbFieldType.PM, subBuilder: UnspentOutput.create)
+    ..pc<RawOutput>(8, _omitFieldNames ? '' : 'rawOutputs', $pb.PbFieldType.PM, subBuilder: RawOutput.create)
+    ..pc<ExternalInput>(9, _omitFieldNames ? '' : 'externalInputs', $pb.PbFieldType.PM, subBuilder: ExternalInput.create)
     ..hasRequiredFields = false
   ;
 
@@ -3152,6 +3357,12 @@ class CreatePsbtRequest extends $pb.GeneratedMessage {
 
   @$pb.TagNumber(7)
   $core.List<UnspentOutput> get requiredInputs => $_getList(6);
+
+  @$pb.TagNumber(8)
+  $core.List<RawOutput> get rawOutputs => $_getList(7);
+
+  @$pb.TagNumber(9)
+  $core.List<ExternalInput> get externalInputs => $_getList(8);
 }
 
 class CreatePsbtResponse extends $pb.GeneratedMessage {

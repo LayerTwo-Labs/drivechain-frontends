@@ -176,8 +176,13 @@ class OrchestratorWalletRPC {
     return _unaryClient.getBalance(wmpb.GetBalanceRequest(walletId: walletId));
   }
 
-  Future<wmpb.GetNewAddressResponse> getNewAddress(String walletId) {
-    return _unaryClient.getNewAddress(wmpb.GetNewAddressRequest(walletId: walletId));
+  Future<wmpb.GetNewAddressResponse> getNewAddress(
+    String walletId, {
+    wmpb.AddressType? addressType,
+  }) {
+    return _unaryClient.getNewAddress(
+      wmpb.GetNewAddressRequest(walletId: walletId, addressType: addressType),
+    );
   }
 
   Future<wmpb.SendTransactionResponse> sendTransaction({

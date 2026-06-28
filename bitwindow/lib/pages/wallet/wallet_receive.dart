@@ -7,6 +7,7 @@ import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:sail_ui/gen/wallet/v1/wallet.pb.dart';
+import 'package:sail_ui/gen/walletmanager/v1/walletmanager.pb.dart' as wmpb;
 import 'package:sail_ui/sail_ui.dart';
 import 'package:stacked/stacked.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -41,6 +42,24 @@ class ReceiveTab extends StatelessWidget {
                         mainAxisSize: MainAxisSize.min,
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
+                          SailDropdownButton<wmpb.AddressType>(
+                            value: model.addressType,
+                            onChanged: (type) {
+                              if (type != null) {
+                                model.setAddressType(type);
+                              }
+                            },
+                            items: const [
+                              SailDropdownItem(
+                                value: wmpb.AddressType.ADDRESS_TYPE_SEGWIT,
+                                label: 'Segwit (bech32)',
+                              ),
+                              SailDropdownItem(
+                                value: wmpb.AddressType.ADDRESS_TYPE_TAPROOT,
+                                label: 'Taproot (bech32m)',
+                              ),
+                            ],
+                          ),
                           SailRow(
                             spacing: SailStyleValues.padding08,
                             children: [
@@ -313,6 +332,9 @@ class ReceivePageViewModel extends BaseViewModel {
 
   String get address => transactionsProvider.address;
   String get bip47PaymentCode => _hdWalletProvider.bip47PaymentCode;
+
+  wmpb.AddressType get addressType => transactionsProvider.addressType;
+  Future<void> setAddressType(wmpb.AddressType type) => transactionsProvider.setAddressType(type);
 
   /// Watch-only wallets in BitWindow only carry a BIP84 xpub today, not the
   /// BIP47 branch needed to derive a payment code. Hide the BIP47 card for

@@ -69,8 +69,15 @@ message GetBalanceRequest {
   string wallet_id = 1;
 }
 
+enum AddressType {
+  ADDRESS_TYPE_UNSPECIFIED = 0;
+  ADDRESS_TYPE_SEGWIT = 1;
+  ADDRESS_TYPE_TAPROOT = 2;
+}
+
 message GetNewAddressRequest {
   string wallet_id = 1;
+  AddressType address_type = 2;
 }
 
 message GetNewAddressResponse {

@@ -34,9 +34,9 @@ type Backend interface {
 	// AddressHDPath returns the BIP32 derivation path of a wallet address.
 	AddressHDPath(ctx context.Context, walletID, address string) (string, error)
 
-	// NextReceiveAddress returns an unused receive address, minting one only
-	// when every existing address has received funds.
-	NextReceiveAddress(ctx context.Context, walletID string) (string, error)
+	// NextReceiveAddress returns an unused receive address of the given script
+	// kind, minting one only when every existing address has received funds.
+	NextReceiveAddress(ctx context.Context, walletID string, kind ScriptKind) (string, error)
 	NextChangeAddress(ctx context.Context, walletID string) (string, error)
 
 	// WatchKeys registers extra keys whose addresses the wallet must track

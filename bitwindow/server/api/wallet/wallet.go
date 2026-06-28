@@ -469,14 +469,25 @@ func (s *Server) sendWithRequiredInputs(
 func (s *Server) GetNewAddress(ctx context.Context, c *connect.Request[pb.GetNewAddressRequest]) (*connect.Response[pb.GetNewAddressResponse], error) {
 	walletId := c.Msg.WalletId
 
+	addressType := c.Msg.AddressType
+	if addressType == pb.AddressType_ADDRESS_TYPE_UNSPECIFIED {
+		addressType = pb.AddressType_ADDRESS_TYPE_SEGWIT
+	}
+
+	coreAddressType := "bech32"
+	if addressType == pb.AddressType_ADDRESS_TYPE_TAPROOT {
+		coreAddressType = "bech32m"
+	}
+
 	walletType, err := s.walletEngine.GetWalletBackendType(ctx, walletId)
 	if err != nil {
 		return nil, fmt.Errorf("get wallet type: %w", err)
 	}
 
-	// For Bitcoin Core wallets, derive addresses and find the first unused one
-	// This prevents address reuse and gaps in the derivation path
-	if walletType == engines.WalletTypeBitcoinCore {
+	// For segwit Bitcoin Core wallets, derive addresses and find the first
+	// unused one to prevent address reuse and gaps in the derivation path.
+	// Taproot addresses are served straight from Bitcoin Core (bech32m).
+	if walletType == engines.WalletTypeBitcoinCore && addressType == pb.AddressType_ADDRESS_TYPE_SEGWIT {
 		unusedAddress, derivedAddresses, err := s.deriveAndCheckAddresses(ctx, walletId)
 		if err != nil {
 			zerolog.Ctx(ctx).Warn().Err(err).Msg("derive addresses failed, will generate new")
@@ -532,7 +543,7 @@ func (s *Server) GetNewAddress(ctx context.Context, c *connect.Request[pb.GetNew
 		if watchOnly {
 			ensure = s.walletEngine.EnsureWatchOnlyWallet
 		}
-		address, err = s.getBitcoinCoreAddress(ctx, walletId, ensure)
+		address, err = s.getBitcoinCoreAddress(ctx, walletId, ensure, coreAddressType)
 		if err != nil {
 			return nil, err
 		}
@@ -540,6 +551,9 @@ func (s *Server) GetNewAddress(ctx context.Context, c *connect.Request[pb.GetNew
 	case engines.WalletTypeElectrum:
 		// Electrum path — orchestrator derives the address and serves chain
 		// data over Esplora.
+		if addressType == pb.AddressType_ADDRESS_TYPE_TAPROOT {
+			return nil, connect.NewError(connect.CodeUnimplemented, fmt.Errorf("taproot addresses are not supported for electrum wallets"))
+		}
 		address, err = s.walletEngine.GetElectrumReceiveAddress(ctx, walletId)
 		if err != nil {
 			return nil, err
@@ -757,6 +771,7 @@ func (s *Server) getBitcoinCoreAddress(
 	ctx context.Context,
 	walletId string,
 	getWalletName func(context.Context, string) (string, error),
+	addressType string,
 ) (string, error) {
 	walletName, err := getWalletName(ctx, walletId)
 	if err != nil {
@@ -769,7 +784,8 @@ func (s *Server) getBitcoinCoreAddress(
 	}
 
 	resp, err := bitcoind.GetNewAddress(ctx, connect.NewRequest(&corepb.GetNewAddressRequest{
-		Wallet: walletName,
+		Wallet:      walletName,
+		AddressType: addressType,
 	}))
 	if err != nil {
 		return "", fmt.Errorf("bitcoin core get new address: %w", err)

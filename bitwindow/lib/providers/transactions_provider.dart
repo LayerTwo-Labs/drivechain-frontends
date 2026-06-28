@@ -10,6 +10,7 @@ import 'package:sail_ui/classes/rpc_connection.dart';
 import 'package:sail_ui/env.dart';
 import 'package:sail_ui/gen/google/protobuf/timestamp.pb.dart';
 import 'package:sail_ui/gen/wallet/v1/wallet.pb.dart';
+import 'package:sail_ui/gen/walletmanager/v1/walletmanager.pb.dart' as wmpb;
 import 'package:sail_ui/providers/balance_provider.dart';
 import 'package:sail_ui/providers/wallet_reader_provider.dart';
 import 'package:sail_ui/rpcs/bitwindow_api.dart';
@@ -27,6 +28,7 @@ class TransactionProvider extends ChangeNotifier {
   WalletReaderProvider get _walletReader => GetIt.I.get<WalletReaderProvider>();
 
   String address = '';
+  wmpb.AddressType addressType = wmpb.AddressType.ADDRESS_TYPE_SEGWIT;
   List<WalletTransaction> walletTransactions = [];
   List<UnspentOutput> utxos = [];
   List<ReceiveAddress> receiveAddresses = [];
@@ -55,6 +57,16 @@ class TransactionProvider extends ChangeNotifier {
     _fetchTimer = Timer.periodic(Duration(seconds: 5), (timer) {
       fetch();
     });
+  }
+
+  Future<void> setAddressType(wmpb.AddressType type) async {
+    if (addressType == type) {
+      return;
+    }
+    addressType = type;
+    address = '';
+    notifyListeners();
+    await fetch();
   }
 
   void clear() {
@@ -133,7 +145,7 @@ class TransactionProvider extends ChangeNotifier {
         ),
         update<String>(
           address,
-          () async => (await orchestratorWallet.getNewAddress(walletId)).address,
+          () async => (await orchestratorWallet.getNewAddress(walletId, addressType: addressType)).address,
           (v) => address = v,
           // Always update - backend handles finding unused address
           equals: (a, b) => false,

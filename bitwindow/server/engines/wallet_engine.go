@@ -624,6 +624,21 @@ func (e *WalletEngine) CreateBitcoinCoreWalletFromSeed(
 	// Get the xprv string for the account
 	accountXprv := account.String()
 
+	// Derive BIP86 account: m/86'/coin'/0' (taproot)
+	purpose86, err := masterKey.Derive(hdkeychain.HardenedKeyStart + 86)
+	if err != nil {
+		return fmt.Errorf("derive taproot purpose: %w", err)
+	}
+	coin86, err := purpose86.Derive(hdkeychain.HardenedKeyStart + coinType)
+	if err != nil {
+		return fmt.Errorf("derive taproot coin type: %w", err)
+	}
+	account86, err := coin86.Derive(hdkeychain.HardenedKeyStart + 0)
+	if err != nil {
+		return fmt.Errorf("derive taproot account: %w", err)
+	}
+	accountXprv86 := account86.String()
+
 	// Compute master fingerprint for key origin info
 	pubKey, err := masterKey.ECPubKey()
 	if err != nil {
@@ -670,8 +685,10 @@ func (e *WalletEngine) CreateBitcoinCoreWalletFromSeed(
 		desc     string
 		internal bool
 	}{
-		{fmt.Sprintf("wpkh([%s/84'/%d'/0']%s/0/*)", fingerprint, coinType, accountXprv), false}, // Receiving
-		{fmt.Sprintf("wpkh([%s/84'/%d'/0']%s/1/*)", fingerprint, coinType, accountXprv), true},  // Change
+		{fmt.Sprintf("wpkh([%s/84'/%d'/0']%s/0/*)", fingerprint, coinType, accountXprv), false}, // Segwit receiving
+		{fmt.Sprintf("wpkh([%s/84'/%d'/0']%s/1/*)", fingerprint, coinType, accountXprv), true},  // Segwit change
+		{fmt.Sprintf("tr([%s/86'/%d'/0']%s/0/*)", fingerprint, coinType, accountXprv86), false}, // Taproot receiving
+		{fmt.Sprintf("tr([%s/86'/%d'/0']%s/1/*)", fingerprint, coinType, accountXprv86), true},  // Taproot change
 	}
 
 	var requests []*corepb.ImportDescriptorsRequest_Request
