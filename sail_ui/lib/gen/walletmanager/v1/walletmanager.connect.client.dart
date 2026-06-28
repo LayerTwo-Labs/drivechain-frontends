@@ -473,6 +473,25 @@ extension type WalletManagerServiceClient (connect.Transport _transport) {
     );
   }
 
+  /// CreateCpfp spends an unconfirmed wallet UTXO with a child transaction whose
+  /// fee lifts the parent+child package to the target fee rate (CPFP).
+  Future<walletmanagerv1walletmanager.CreateCpfpResponse> createCpfp(
+    walletmanagerv1walletmanager.CreateCpfpRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.WalletManagerService.createCpfp,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
   Future<walletmanagerv1walletmanager.DeriveAddressesResponse> deriveAddresses(
     walletmanagerv1walletmanager.DeriveAddressesRequest input, {
     connect.Headers? headers,

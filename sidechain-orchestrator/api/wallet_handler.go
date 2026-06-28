@@ -856,6 +856,33 @@ func (h *WalletHandler) BumpFee(ctx context.Context, req *connect.Request[pb.Bum
 	}), nil
 }
 
+func (h *WalletHandler) CreateCpfp(ctx context.Context, req *connect.Request[pb.CreateCpfpRequest]) (*connect.Response[pb.CreateCpfpResponse], error) {
+	if err := h.requireEngine(); err != nil {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, err)
+	}
+
+	walletID, err := h.engine.ResolveWalletID(req.Msg.WalletId)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+	}
+
+	childTxID, err := h.engine.Backend().CreateCpfp(ctx, walletID, wallet.CpfpRequest{
+		ParentTxID: req.Msg.ParentTxid,
+		ParentVout: int(req.Msg.ParentVout),
+		TargetRate: req.Msg.TargetFeeRate,
+	})
+	if err != nil {
+		if connect.CodeOf(err) != connect.CodeUnknown {
+			return nil, err
+		}
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+
+	return connect.NewResponse(&pb.CreateCpfpResponse{
+		ChildTxid: childTxID,
+	}), nil
+}
+
 func (h *WalletHandler) DeriveAddresses(ctx context.Context, req *connect.Request[pb.DeriveAddressesRequest]) (*connect.Response[pb.DeriveAddressesResponse], error) {
 	if err := h.requireEngine(); err != nil {
 		return nil, connect.NewError(connect.CodeFailedPrecondition, err)

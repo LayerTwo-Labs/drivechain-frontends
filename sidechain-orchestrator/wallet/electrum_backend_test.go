@@ -1271,3 +1271,110 @@ func TestElectrumScanReportsProgress(t *testing.T) {
 	assert.True(t, sawChange, "snapshot reflects scanning the change chain")
 	assert.Equal(t, SyncIdle, p.svc.SyncSnapshot(w.ID).Phase, "settles to idle")
 }
+
+func TestElectrumCreateCpfpPackageRate(t *testing.T) {
+	p, fake, w, addr := newElectrumFixture(t)
+	ctx := context.Background()
+
+	const (
+		parentTxid  = "2222222222222222222222222222222222222222222222222222222222222222"
+		parentValue = int64(200_000)
+		parentVsize = int64(150)
+		parentFee   = int64(150) // 1 sat/vB parent, deliberately too low
+		targetRate  = int64(20)
+	)
+
+	fake.stats[addr] = EsploraAddressStats{
+		Address:      addr,
+		MempoolStats: EsploraTxoStats{FundedTxoCount: 1, FundedTxoSum: parentValue, TxCount: 1},
+	}
+	fake.utxos[addr] = []EsploraUTXO{{
+		TxID: parentTxid, Vout: 0, Value: parentValue,
+		Status: EsploraStatus{Confirmed: false},
+	}}
+	fake.txByID[parentTxid] = EsploraTx{
+		TxID:   parentTxid,
+		Weight: int32(parentVsize * 4),
+		Fee:    parentFee,
+		Status: EsploraStatus{Confirmed: false},
+	}
+
+	childTxid, err := p.CreateCpfp(ctx, w.ID, CpfpRequest{
+		ParentTxID: parentTxid,
+		ParentVout: 0,
+		TargetRate: targetRate,
+	})
+	require.NoError(t, err)
+	assert.Equal(t, "broadcasttxid", childTxid)
+	require.Len(t, fake.broadcast, 1)
+
+	raw, err := hex.DecodeString(fake.broadcast[0])
+	require.NoError(t, err)
+	var tx wire.MsgTx
+	require.NoError(t, tx.Deserialize(bytes.NewReader(raw)))
+
+	require.Len(t, tx.TxIn, 1, "child must spend exactly the parent outpoint")
+	assert.Equal(t, parentTxid, tx.TxIn[0].PreviousOutPoint.Hash.String())
+	assert.Equal(t, uint32(0), tx.TxIn[0].PreviousOutPoint.Index)
+	require.NotEmpty(t, tx.TxIn[0].Witness, "child input must be signed")
+
+	require.Len(t, tx.TxOut, 1, "self-send: single output, fee taken from it")
+	childFee := parentValue - tx.TxOut[0].Value
+	require.Positive(t, childFee)
+
+	childVsize := computeVsize(&tx)
+	packageRate := float64(parentFee+childFee) / float64(parentVsize+childVsize)
+	assert.GreaterOrEqual(t, packageRate, float64(targetRate),
+		"package fee rate (%.2f) must reach target (%d)", packageRate, targetRate)
+}
+
+func TestElectrumCreateCpfpRejectsConfirmedParent(t *testing.T) {
+	p, fake, w, addr := newElectrumFixture(t)
+	ctx := context.Background()
+
+	const parentTxid = "4444444444444444444444444444444444444444444444444444444444444444"
+	fake.stats[addr] = EsploraAddressStats{
+		Address:    addr,
+		ChainStats: EsploraTxoStats{FundedTxoCount: 1, FundedTxoSum: 100_000, TxCount: 1},
+	}
+	fake.utxos[addr] = []EsploraUTXO{{
+		TxID: parentTxid, Vout: 0, Value: 100_000,
+		Status: EsploraStatus{Confirmed: true, BlockHeight: 100},
+	}}
+
+	_, err := p.CreateCpfp(ctx, w.ID, CpfpRequest{ParentTxID: parentTxid, ParentVout: 0, TargetRate: 10})
+	require.Error(t, err)
+	assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
+}
+
+func TestElectrumCreateCpfpRejectsLowTarget(t *testing.T) {
+	p, fake, w, addr := newElectrumFixture(t)
+	ctx := context.Background()
+
+	const parentTxid = "5555555555555555555555555555555555555555555555555555555555555555"
+	fake.stats[addr] = EsploraAddressStats{
+		Address:      addr,
+		MempoolStats: EsploraTxoStats{FundedTxoCount: 1, FundedTxoSum: 100_000, TxCount: 1},
+	}
+	fake.utxos[addr] = []EsploraUTXO{{
+		TxID: parentTxid, Vout: 0, Value: 100_000,
+		Status: EsploraStatus{Confirmed: false},
+	}}
+	fake.txByID[parentTxid] = EsploraTx{TxID: parentTxid, Weight: 600, Fee: 1500} // 10 sat/vB
+
+	_, err := p.CreateCpfp(ctx, w.ID, CpfpRequest{ParentTxID: parentTxid, ParentVout: 0, TargetRate: 10})
+	require.Error(t, err)
+	assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
+}
+
+// computeVsize returns the BIP141 virtual size of a fully-signed transaction.
+func computeVsize(tx *wire.MsgTx) int64 {
+	var stripped bytes.Buffer
+	_ = tx.SerializeNoWitness(&stripped)
+	var full bytes.Buffer
+	_ = tx.Serialize(&full)
+	baseSize := int64(stripped.Len())
+	totalSize := int64(full.Len())
+	weight := baseSize*3 + totalSize
+	return (weight + 3) / 4
+}

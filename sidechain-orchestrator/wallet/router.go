@@ -193,6 +193,14 @@ func (r *BackendRouter) BumpFee(ctx context.Context, walletID, txid string, newF
 	return p.BumpFee(ctx, walletID, txid, newFeeRate)
 }
 
+func (r *BackendRouter) CreateCpfp(ctx context.Context, walletID string, req CpfpRequest) (string, error) {
+	p, err := r.pick(walletID)
+	if err != nil {
+		return "", err
+	}
+	return p.CreateCpfp(ctx, walletID, req)
+}
+
 // Chain returns a chain source without a wallet context, preferring Core and
 // falling back to electrum (Esplora) so electrum-only deployments still work.
 // Prefer ChainForWallet when a wallet ID is available.

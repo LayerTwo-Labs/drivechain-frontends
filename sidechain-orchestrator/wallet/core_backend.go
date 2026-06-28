@@ -12,6 +12,7 @@ import (
 	"sync"
 	"time"
 
+	"connectrpc.com/connect"
 	"github.com/btcsuite/btcd/btcutil"
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/rs/zerolog"
@@ -530,6 +531,73 @@ func (p *CoreBackend) BumpFee(ctx context.Context, walletID, txid string, newFee
 		return "", err
 	}
 	return p.rpc.BumpFee(ctx, name, txid, newFeeRate)
+}
+
+func (p *CoreBackend) CreateCpfp(ctx context.Context, walletID string, req CpfpRequest) (string, error) {
+	name, err := p.walletName(ctx, walletID)
+	if err != nil {
+		return "", err
+	}
+	if req.TargetRate <= 0 {
+		return "", connect.NewError(connect.CodeInvalidArgument, errors.New("target fee rate must be positive"))
+	}
+
+	// minconf 0: the parent we must spend is unconfirmed, so the default
+	// (minconf 1) would hide it. The parent value feeding the output math is read
+	// from this same lookup.
+	utxos, err := p.rpc.ListUnspentMinConf(ctx, name, 0)
+	if err != nil {
+		return "", err
+	}
+	parent, ok := lo.Find(utxos, func(u UTXO) bool {
+		return u.TxID == req.ParentTxID && u.Vout == req.ParentVout && u.Spendable
+	})
+	if !ok {
+		return "", connect.NewError(connect.CodeInvalidArgument,
+			fmt.Errorf("outpoint %s:%d is not a spendable wallet UTXO", req.ParentTxID, req.ParentVout))
+	}
+	if parent.Confirmations > 0 {
+		return "", connect.NewError(connect.CodeInvalidArgument,
+			fmt.Errorf("outpoint %s:%d is already confirmed; CPFP only applies to unconfirmed parents", req.ParentTxID, req.ParentVout))
+	}
+
+	entry, err := p.rpc.GetMempoolEntry(ctx, req.ParentTxID)
+	if err != nil {
+		return "", fmt.Errorf("get parent mempool entry: %w", err)
+	}
+	parentVsize := entry.Vsize
+	parentFee := int64(math.Round(entry.Fees.Base * 1e8))
+	if parentVsize > 0 && req.TargetRate <= parentFee/parentVsize {
+		return "", connect.NewError(connect.CodeInvalidArgument,
+			fmt.Errorf("target rate %d sat/vB does not exceed parent rate %d sat/vB", req.TargetRate, parentFee/parentVsize))
+	}
+
+	parentValueSats := int64(math.Round(parent.Amount * 1e8))
+	childVsize := int64(11 + inputVsize(ScriptNativeSegwit) + outputVsizeForKind(ScriptNativeSegwit))
+	_, outputSats, err := cpfpChildPlan(req.TargetRate, parentVsize, parentFee, childVsize, parentValueSats)
+	if err != nil {
+		return "", connect.NewError(connect.CodeInvalidArgument, err)
+	}
+
+	childAddr, err := p.NextReceiveAddress(ctx, walletID, ScriptUnknown)
+	if err != nil {
+		return "", err
+	}
+
+	inputs := []RawInput{{TxID: req.ParentTxID, Vout: req.ParentVout}}
+	outputs := []map[string]interface{}{{childAddr: btcutil.Amount(outputSats).ToBTC()}}
+	rawHex, err := p.rpc.CreateRawTransaction(ctx, inputs, outputs)
+	if err != nil {
+		return "", fmt.Errorf("create child tx: %w", err)
+	}
+	signed, err := p.rpc.SignRawTransactionWithWallet(ctx, name, rawHex)
+	if err != nil {
+		return "", fmt.Errorf("sign child tx: %w", err)
+	}
+	if !signed.Complete {
+		return "", errors.New("child transaction signing incomplete")
+	}
+	return p.rpc.SendRawTransaction(ctx, signed.Hex)
 }
 
 // Chain returns the Core-backed chain source.

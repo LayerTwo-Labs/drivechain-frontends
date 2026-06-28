@@ -299,6 +299,21 @@ func (c *CoreRPCClient) ListUnspent(ctx context.Context, walletName string) ([]U
 	return utxos, nil
 }
 
+// ListUnspentMinConf is ListUnspent with an explicit minconf. CPFP passes 0 so
+// the unconfirmed parent output it must spend is visible (default minconf 1
+// hides it).
+func (c *CoreRPCClient) ListUnspentMinConf(ctx context.Context, walletName string, minConf int) ([]UTXO, error) {
+	result, err := c.call(ctx, walletName, "listunspent", minConf)
+	if err != nil {
+		return nil, err
+	}
+	var utxos []UTXO
+	if err := json.Unmarshal(result, &utxos); err != nil {
+		return nil, fmt.Errorf("decode listunspent: %w", err)
+	}
+	return utxos, nil
+}
+
 // CreateRawTransaction builds an unsigned transaction node-side. Outputs
 // keep their given order; each entry is {address: btc} or {"data": hex}.
 func (c *CoreRPCClient) CreateRawTransaction(
@@ -428,6 +443,29 @@ func (c *CoreRPCClient) BumpFee(ctx context.Context, walletName, txid string, ne
 		return "", fmt.Errorf("decode bumpfee: %w", err)
 	}
 	return resp.TxID, nil
+}
+
+// MempoolEntry is the subset of getmempoolentry we use: the tx's virtual size
+// and its absolute base fee in BTC.
+type MempoolEntry struct {
+	Vsize int64 `json:"vsize"`
+	Fees  struct {
+		Base float64 `json:"base"`
+	} `json:"fees"`
+}
+
+// GetMempoolEntry returns mempool metadata for an unconfirmed txid, including
+// its vsize and base fee. Errors if the tx is not in the mempool.
+func (c *CoreRPCClient) GetMempoolEntry(ctx context.Context, txid string) (*MempoolEntry, error) {
+	result, err := c.call(ctx, "", "getmempoolentry", txid)
+	if err != nil {
+		return nil, err
+	}
+	var entry MempoolEntry
+	if err := json.Unmarshal(result, &entry); err != nil {
+		return nil, fmt.Errorf("decode getmempoolentry: %w", err)
+	}
+	return &entry, nil
 }
 
 // GetBlockchainInfo returns blockchain info (used for health checks and sync).

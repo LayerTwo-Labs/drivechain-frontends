@@ -205,6 +205,15 @@ abstract final class WalletManagerService {
     walletmanagerv1walletmanager.BumpFeeResponse.new,
   );
 
+  /// CreateCpfp spends an unconfirmed wallet UTXO with a child transaction whose
+  /// fee lifts the parent+child package to the target fee rate (CPFP).
+  static const createCpfp = connect.Spec(
+    '/$name/CreateCpfp',
+    connect.StreamType.unary,
+    walletmanagerv1walletmanager.CreateCpfpRequest.new,
+    walletmanagerv1walletmanager.CreateCpfpResponse.new,
+  );
+
   static const deriveAddresses = connect.Spec(
     '/$name/DeriveAddresses',
     connect.StreamType.unary,

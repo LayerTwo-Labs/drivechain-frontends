@@ -11,6 +11,7 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/btcsuite/btcd/btcutil"
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
@@ -398,6 +399,99 @@ func TestCoreBackendSendReplayProtect(t *testing.T) {
 	// …and the replay byte is injected AFTER, making the broadcast hex start
 	// with version bfbfbf00 followed by the 0x3f marker.
 	assert.Equal(t, "bfbfbf003faabbccdd", broadcastHex)
+}
+
+func TestCoreBackendCreateCpfp(t *testing.T) {
+	backend, fake, coreID := newCoreBackendFixture(t)
+	fake.stubEnsureFlow()
+
+	const (
+		parentTxid  = "66666666666666666666666666666666666666666666666666666666666666aa"
+		parentValue = int64(200_000)
+		parentVsize = int64(150)
+		parentFee   = int64(150) // 1 sat/vB parent, too low
+		targetRate  = int64(20)
+	)
+	childAddr := p2wpkhAddr(t, fixedKey(0x77), &chaincfg.RegressionNetParams)
+
+	fake.handle("listunspent", func(bitcoindCall) (any, string) {
+		return []map[string]any{
+			{"txid": parentTxid, "vout": 0, "amount": 0.002, "spendable": true, "confirmations": 0},
+		}, ""
+	})
+	fake.handle("getmempoolentry", func(bitcoindCall) (any, string) {
+		return map[string]any{"vsize": parentVsize, "fees": map[string]any{"base": float64(parentFee) / 1e8}}, ""
+	})
+	fake.handle("listreceivedbyaddress", func(bitcoindCall) (any, string) {
+		return []map[string]any{{"address": childAddr, "amount": 0.0, "txids": []string{}}}, ""
+	})
+	var builtOutputs []map[string]any
+	fake.handle("createrawtransaction", func(c bitcoindCall) (any, string) {
+		require.NoError(t, json.Unmarshal(c.Params[1], &builtOutputs))
+		return "deadbeefcpfp", ""
+	})
+	fake.handle("signrawtransactionwithwallet", func(c bitcoindCall) (any, string) {
+		return map[string]any{"hex": mustString(t, c.Params[0]), "complete": true}, ""
+	})
+	fake.handle("sendrawtransaction", func(bitcoindCall) (any, string) { return "child-txid", "" })
+
+	childTxid, err := backend.CreateCpfp(context.Background(), coreID, CpfpRequest{
+		ParentTxID: parentTxid,
+		ParentVout: 0,
+		TargetRate: targetRate,
+	})
+	require.NoError(t, err)
+	assert.Equal(t, "child-txid", childTxid)
+
+	// The parent is unconfirmed: listunspent MUST be called with minconf 0, or
+	// the default (1) hides it.
+	unspents := fake.callsFor("listunspent")
+	require.NotEmpty(t, unspents)
+	require.NotEmpty(t, unspents[0].Params, "listunspent must pass minconf")
+	var minConf int
+	require.NoError(t, json.Unmarshal(unspents[0].Params[0], &minConf))
+	assert.Equal(t, 0, minConf, "listunspent minconf must be 0")
+
+	// The child output equals parentValue - childFee, and the package clears the
+	// target rate.
+	childVsize := int64(11 + inputVsize(ScriptNativeSegwit) + outputVsizeForKind(ScriptNativeSegwit))
+	childFee, outputSats, err := cpfpChildPlan(targetRate, parentVsize, parentFee, childVsize, parentValue)
+	require.NoError(t, err)
+	require.Len(t, builtOutputs, 1, "self-send: single output")
+	assert.InDelta(t, btcutil.Amount(outputSats).ToBTC(), builtOutputs[0][childAddr], 1e-12)
+
+	packageRate := float64(parentFee+childFee) / float64(parentVsize+childVsize)
+	assert.GreaterOrEqual(t, packageRate, float64(targetRate))
+	assert.Positive(t, outputSats)
+}
+
+func TestCpfpChildPlanMeetsTargetRate(t *testing.T) {
+	cases := []struct {
+		name                                                        string
+		targetRate, parentVsize, parentFee, childVsize, parentValue int64
+	}{
+		{"parent_underpaid", 20, 150, 150, 110, 200_000},
+		{"parent_zero_fee", 10, 200, 0, 110, 500_000},
+		{"high_target", 100, 250, 500, 110, 1_000_000},
+		{"parent_already_ok_child_min_relay", 5, 150, 750, 110, 100_000},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			childFee, outputSats, err := cpfpChildPlan(tc.targetRate, tc.parentVsize, tc.parentFee, tc.childVsize, tc.parentValue)
+			require.NoError(t, err)
+			assert.Equal(t, tc.parentValue-childFee, outputSats)
+			assert.Positive(t, outputSats)
+			packageRate := float64(tc.parentFee+childFee) / float64(tc.parentVsize+tc.childVsize)
+			assert.GreaterOrEqual(t, packageRate, float64(tc.targetRate),
+				"package rate %.2f must reach target %d", packageRate, tc.targetRate)
+			assert.GreaterOrEqual(t, childFee, tc.childVsize, "child fee must clear 1 sat/vB min relay")
+		})
+	}
+}
+
+func TestCpfpChildPlanRejectsFeeExceedingParent(t *testing.T) {
+	_, _, err := cpfpChildPlan(1000, 150, 0, 110, 1_000)
+	require.Error(t, err)
 }
 
 func TestCoreBackendWatchKeys(t *testing.T) {

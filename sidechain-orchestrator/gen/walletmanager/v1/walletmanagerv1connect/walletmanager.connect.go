@@ -115,6 +115,9 @@ const (
 	// WalletManagerServiceBumpFeeProcedure is the fully-qualified name of the WalletManagerService's
 	// BumpFee RPC.
 	WalletManagerServiceBumpFeeProcedure = "/walletmanager.v1.WalletManagerService/BumpFee"
+	// WalletManagerServiceCreateCpfpProcedure is the fully-qualified name of the WalletManagerService's
+	// CreateCpfp RPC.
+	WalletManagerServiceCreateCpfpProcedure = "/walletmanager.v1.WalletManagerService/CreateCpfp"
 	// WalletManagerServiceDeriveAddressesProcedure is the fully-qualified name of the
 	// WalletManagerService's DeriveAddresses RPC.
 	WalletManagerServiceDeriveAddressesProcedure = "/walletmanager.v1.WalletManagerService/DeriveAddresses"
@@ -187,6 +190,9 @@ type WalletManagerServiceClient interface {
 	ListReceiveAddresses(context.Context, *connect.Request[v1.ListReceiveAddressesRequest]) (*connect.Response[v1.ListReceiveAddressesResponse], error)
 	GetTransactionDetails(context.Context, *connect.Request[v1.GetTransactionDetailsRequest]) (*connect.Response[v1.GetTransactionDetailsResponse], error)
 	BumpFee(context.Context, *connect.Request[v1.BumpFeeRequest]) (*connect.Response[v1.BumpFeeResponse], error)
+	// CreateCpfp spends an unconfirmed wallet UTXO with a child transaction whose
+	// fee lifts the parent+child package to the target fee rate (CPFP).
+	CreateCpfp(context.Context, *connect.Request[v1.CreateCpfpRequest]) (*connect.Response[v1.CreateCpfpResponse], error)
 	DeriveAddresses(context.Context, *connect.Request[v1.DeriveAddressesRequest]) (*connect.Response[v1.DeriveAddressesResponse], error)
 	// PSBT (BIP174). CreatePsbt builds an unsigned PSBT for a send (works for
 	// watch-only wallets); SignPsbt adds this wallet's signatures; CombinePsbt
@@ -384,6 +390,12 @@ func NewWalletManagerServiceClient(httpClient connect.HTTPClient, baseURL string
 			connect.WithSchema(walletManagerServiceMethods.ByName("BumpFee")),
 			connect.WithClientOptions(opts...),
 		),
+		createCpfp: connect.NewClient[v1.CreateCpfpRequest, v1.CreateCpfpResponse](
+			httpClient,
+			baseURL+WalletManagerServiceCreateCpfpProcedure,
+			connect.WithSchema(walletManagerServiceMethods.ByName("CreateCpfp")),
+			connect.WithClientOptions(opts...),
+		),
 		deriveAddresses: connect.NewClient[v1.DeriveAddressesRequest, v1.DeriveAddressesResponse](
 			httpClient,
 			baseURL+WalletManagerServiceDeriveAddressesProcedure,
@@ -488,6 +500,7 @@ type walletManagerServiceClient struct {
 	listReceiveAddresses      *connect.Client[v1.ListReceiveAddressesRequest, v1.ListReceiveAddressesResponse]
 	getTransactionDetails     *connect.Client[v1.GetTransactionDetailsRequest, v1.GetTransactionDetailsResponse]
 	bumpFee                   *connect.Client[v1.BumpFeeRequest, v1.BumpFeeResponse]
+	createCpfp                *connect.Client[v1.CreateCpfpRequest, v1.CreateCpfpResponse]
 	deriveAddresses           *connect.Client[v1.DeriveAddressesRequest, v1.DeriveAddressesResponse]
 	createPsbt                *connect.Client[v1.CreatePsbtRequest, v1.CreatePsbtResponse]
 	signPsbt                  *connect.Client[v1.SignPsbtRequest, v1.SignPsbtResponse]
@@ -637,6 +650,11 @@ func (c *walletManagerServiceClient) BumpFee(ctx context.Context, req *connect.R
 	return c.bumpFee.CallUnary(ctx, req)
 }
 
+// CreateCpfp calls walletmanager.v1.WalletManagerService.CreateCpfp.
+func (c *walletManagerServiceClient) CreateCpfp(ctx context.Context, req *connect.Request[v1.CreateCpfpRequest]) (*connect.Response[v1.CreateCpfpResponse], error) {
+	return c.createCpfp.CallUnary(ctx, req)
+}
+
 // DeriveAddresses calls walletmanager.v1.WalletManagerService.DeriveAddresses.
 func (c *walletManagerServiceClient) DeriveAddresses(ctx context.Context, req *connect.Request[v1.DeriveAddressesRequest]) (*connect.Response[v1.DeriveAddressesResponse], error) {
 	return c.deriveAddresses.CallUnary(ctx, req)
@@ -732,6 +750,9 @@ type WalletManagerServiceHandler interface {
 	ListReceiveAddresses(context.Context, *connect.Request[v1.ListReceiveAddressesRequest]) (*connect.Response[v1.ListReceiveAddressesResponse], error)
 	GetTransactionDetails(context.Context, *connect.Request[v1.GetTransactionDetailsRequest]) (*connect.Response[v1.GetTransactionDetailsResponse], error)
 	BumpFee(context.Context, *connect.Request[v1.BumpFeeRequest]) (*connect.Response[v1.BumpFeeResponse], error)
+	// CreateCpfp spends an unconfirmed wallet UTXO with a child transaction whose
+	// fee lifts the parent+child package to the target fee rate (CPFP).
+	CreateCpfp(context.Context, *connect.Request[v1.CreateCpfpRequest]) (*connect.Response[v1.CreateCpfpResponse], error)
 	DeriveAddresses(context.Context, *connect.Request[v1.DeriveAddressesRequest]) (*connect.Response[v1.DeriveAddressesResponse], error)
 	// PSBT (BIP174). CreatePsbt builds an unsigned PSBT for a send (works for
 	// watch-only wallets); SignPsbt adds this wallet's signatures; CombinePsbt
@@ -925,6 +946,12 @@ func NewWalletManagerServiceHandler(svc WalletManagerServiceHandler, opts ...con
 		connect.WithSchema(walletManagerServiceMethods.ByName("BumpFee")),
 		connect.WithHandlerOptions(opts...),
 	)
+	walletManagerServiceCreateCpfpHandler := connect.NewUnaryHandler(
+		WalletManagerServiceCreateCpfpProcedure,
+		svc.CreateCpfp,
+		connect.WithSchema(walletManagerServiceMethods.ByName("CreateCpfp")),
+		connect.WithHandlerOptions(opts...),
+	)
 	walletManagerServiceDeriveAddressesHandler := connect.NewUnaryHandler(
 		WalletManagerServiceDeriveAddressesProcedure,
 		svc.DeriveAddresses,
@@ -1053,6 +1080,8 @@ func NewWalletManagerServiceHandler(svc WalletManagerServiceHandler, opts ...con
 			walletManagerServiceGetTransactionDetailsHandler.ServeHTTP(w, r)
 		case WalletManagerServiceBumpFeeProcedure:
 			walletManagerServiceBumpFeeHandler.ServeHTTP(w, r)
+		case WalletManagerServiceCreateCpfpProcedure:
+			walletManagerServiceCreateCpfpHandler.ServeHTTP(w, r)
 		case WalletManagerServiceDeriveAddressesProcedure:
 			walletManagerServiceDeriveAddressesHandler.ServeHTTP(w, r)
 		case WalletManagerServiceCreatePsbtProcedure:
@@ -1192,6 +1221,10 @@ func (UnimplementedWalletManagerServiceHandler) GetTransactionDetails(context.Co
 
 func (UnimplementedWalletManagerServiceHandler) BumpFee(context.Context, *connect.Request[v1.BumpFeeRequest]) (*connect.Response[v1.BumpFeeResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("walletmanager.v1.WalletManagerService.BumpFee is not implemented"))
+}
+
+func (UnimplementedWalletManagerServiceHandler) CreateCpfp(context.Context, *connect.Request[v1.CreateCpfpRequest]) (*connect.Response[v1.CreateCpfpResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("walletmanager.v1.WalletManagerService.CreateCpfp is not implemented"))
 }
 
 func (UnimplementedWalletManagerServiceHandler) DeriveAddresses(context.Context, *connect.Request[v1.DeriveAddressesRequest]) (*connect.Response[v1.DeriveAddressesResponse], error) {

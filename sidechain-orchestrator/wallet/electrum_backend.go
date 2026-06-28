@@ -470,9 +470,14 @@ func (p *ElectrumBackend) Send(ctx context.Context, walletID string, req SendReq
 	if err != nil {
 		return "", err
 	}
-	// Replay protection sets the magic tx version before signing (the signature
-	// commits to it) and appends the replay byte after extraction.
-	if req.ReplayProtect {
+	return p.signAndBroadcast(ctx, walletID, packet, psbtInputs, effect, req.ReplayProtect)
+}
+
+// signAndBroadcast signs the wallet's inputs in packet, finalizes, broadcasts,
+// and folds the spend into the cached scan. replayProtect stamps the magic tx
+// version before signing and appends the replay byte after extraction.
+func (p *ElectrumBackend) signAndBroadcast(ctx context.Context, walletID string, packet *psbt.Packet, psbtInputs []psbtInput, effect *spendEffect, replayProtect bool) (string, error) {
+	if replayProtect {
 		packet.UnsignedTx.Version = replay.TxReplayVersion
 	}
 	signedCount, err := signPSBT(packet, psbtInputs, p.network)
@@ -494,7 +499,7 @@ func (p *ElectrumBackend) Send(ctx context.Context, walletID string, req SendReq
 	if err != nil {
 		return "", err
 	}
-	if req.ReplayProtect {
+	if replayProtect {
 		hexToSend, err = replay.InjectReplayByte(hexToSend)
 		if err != nil {
 			return "", fmt.Errorf("inject replay byte: %w", err)
@@ -999,6 +1004,80 @@ func (p *ElectrumBackend) SignTransaction(ctx context.Context, walletID, rawHex 
 
 func (p *ElectrumBackend) BumpFee(ctx context.Context, walletID, txid string, newFeeRate int64) (string, error) {
 	return "", errors.New("fee bumping is not supported for electrum wallets")
+}
+
+// CreateCpfp builds a child transaction that spends an unconfirmed wallet UTXO
+// back to a fresh wallet address, with a fee chosen so the parent+child package
+// reaches req.TargetRate. Validation rejects a confirmed, unowned, or
+// already-fast-enough parent.
+func (p *ElectrumBackend) CreateCpfp(ctx context.Context, walletID string, req CpfpRequest) (string, error) {
+	if err := p.requireElectrum(walletID); err != nil {
+		return "", err
+	}
+	if req.TargetRate <= 0 {
+		return "", connect.NewError(connect.CodeInvalidArgument, errors.New("target fee rate must be positive"))
+	}
+
+	scan, err := p.scanWallet(ctx, walletID)
+	if err != nil {
+		return "", err
+	}
+	if scan.watchOnly {
+		return "", errors.New("watch-only electrum wallet cannot sign or send")
+	}
+
+	parentUTXO, ok := findUTXO(p.spendableUTXOs(scan), req.ParentTxID, req.ParentVout)
+	if !ok {
+		return "", connect.NewError(connect.CodeInvalidArgument,
+			fmt.Errorf("outpoint %s:%d is not a spendable wallet UTXO", req.ParentTxID, req.ParentVout))
+	}
+	if parentUTXO.confirmed {
+		return "", connect.NewError(connect.CodeInvalidArgument,
+			fmt.Errorf("outpoint %s:%d is already confirmed; CPFP only applies to unconfirmed parents", req.ParentTxID, req.ParentVout))
+	}
+
+	parentTx, err := p.client.Tx(ctx, req.ParentTxID)
+	if err != nil {
+		return "", fmt.Errorf("fetch parent tx: %w", err)
+	}
+	parentVsize := int64(math.Ceil(float64(parentTx.Weight) / 4))
+	parentFee := parentTx.Fee
+	if parentVsize > 0 && req.TargetRate <= parentFee/parentVsize {
+		return "", connect.NewError(connect.CodeInvalidArgument,
+			fmt.Errorf("target rate %d sat/vB does not exceed parent rate %d sat/vB", req.TargetRate, parentFee/parentVsize))
+	}
+
+	w := p.svc.GetWalletByID(walletID)
+	if w == nil {
+		return "", fmt.Errorf("wallet %s not found", walletID)
+	}
+	d, err := p.walletDescriptor(w)
+	if err != nil {
+		return "", err
+	}
+	childVsize := int64(11 + walletInputVsize(d) + outputVsizeForKind(d.Kind))
+	childFee := packageChildFee(req.TargetRate, parentVsize, parentFee, childVsize, 1)
+	if childFee >= parentUTXO.amountSats {
+		return "", connect.NewError(connect.CodeInvalidArgument,
+			fmt.Errorf("child fee %d sats exceeds parent output value %d sats", childFee, parentUTXO.amountSats))
+	}
+
+	childAddr, err := p.nextUnusedAddrFromScan(walletID, scan, false)
+	if err != nil {
+		return "", fmt.Errorf("derive child address: %w", err)
+	}
+
+	req2 := SendRequest{
+		DestinationsSats:      map[string]int64{childAddr.address: parentUTXO.amountSats},
+		FixedFeeSats:          childFee,
+		SubtractFeeFromAmount: true,
+		RequiredInputs:        []RequiredInput{{TxID: parentUTXO.txid, Vout: parentUTXO.vout, AmountSats: parentUTXO.amountSats}},
+	}
+	packet, psbtInputs, effect, err := p.buildSendPSBT(ctx, walletID, scan, req2)
+	if err != nil {
+		return "", err
+	}
+	return p.signAndBroadcast(ctx, walletID, packet, psbtInputs, effect, false)
 }
 
 func (p *ElectrumBackend) Chain() ChainSource {
