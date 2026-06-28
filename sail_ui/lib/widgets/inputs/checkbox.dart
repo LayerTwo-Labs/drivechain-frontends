@@ -50,6 +50,15 @@ class _SailCheckboxState extends State<SailCheckbox> {
                 color: context.sailTheme.colors.formField,
                 border: chrome.bevel!.sunken,
               )
+            : chrome.terminalStyle
+            ? BoxDecoration(
+                borderRadius: BorderRadius.circular(2),
+                color: enabled ? context.sailTheme.colors.primary : context.sailTheme.colors.disabledBackground,
+                border: Border.all(
+                  color: context.sailTheme.colors.outlineButtonBorder,
+                  width: 1,
+                ),
+              )
             : BoxDecoration(
                 borderRadius: BorderRadius.all(Radius.circular(widget.cornerRadius)),
                 color: color,
@@ -73,6 +82,15 @@ class _SailCheckboxState extends State<SailCheckbox> {
             ? BoxDecoration(
                 color: context.sailTheme.colors.formField,
                 border: chrome.bevel!.sunken,
+              )
+            : chrome.terminalStyle
+            ? BoxDecoration(
+                borderRadius: BorderRadius.circular(2),
+                color: Colors.transparent,
+                border: Border.all(
+                  color: context.sailTheme.colors.outlineButtonBorder,
+                  width: 1,
+                ),
               )
             : BoxDecoration(
                 borderRadius: BorderRadius.all(Radius.circular(widget.cornerRadius)),

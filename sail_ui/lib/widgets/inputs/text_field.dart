@@ -72,6 +72,12 @@ class SailTextField extends StatelessWidget {
     final padding = EdgeInsets.symmetric(vertical: 11.5, horizontal: 12);
     final textSize = size == TextFieldSize.regular ? 13.0 : 10.0;
 
+    final terminal = theme.chrome.terminalStyle;
+    final borderRadius = terminal ? theme.chrome.radiusSmall : theme.chrome.radius;
+    final restingBorderColor = terminal ? theme.colors.outlineButtonBorder : theme.colors.border;
+    final focusedBorderColor = terminal ? theme.colors.primary : theme.colors.text;
+    final hintColor = terminal ? theme.colors.textHint : theme.colors.inactiveNavText;
+
     final field = Theme(
       data: Theme.of(context).copyWith(
         textSelectionTheme: TextSelectionThemeData(
@@ -107,12 +113,12 @@ class SailTextField extends StatelessWidget {
           errorBorder: InputBorder.none,
           disabledBorder: InputBorder.none,
           enabledBorder: OutlineInputBorder(
-            borderRadius: theme.chrome.radius,
-            borderSide: BorderSide(color: theme.colors.border),
+            borderRadius: borderRadius,
+            borderSide: BorderSide(color: restingBorderColor),
           ),
           focusedBorder: OutlineInputBorder(
-            borderRadius: theme.chrome.radius,
-            borderSide: BorderSide(color: theme.colors.text),
+            borderRadius: borderRadius,
+            borderSide: BorderSide(color: focusedBorderColor),
           ),
           suffixStyle: TextStyle(
             color: SailTheme.of(context).colors.inactiveNavText,
@@ -120,8 +126,8 @@ class SailTextField extends StatelessWidget {
           ),
           suffixText: suffix,
           border: OutlineInputBorder(
-            borderRadius: theme.chrome.radius,
-            borderSide: BorderSide(color: theme.colors.border),
+            borderRadius: borderRadius,
+            borderSide: BorderSide(color: restingBorderColor),
           ),
           suffixIcon: loading != null && loading!.enabled
               ? Tooltip(
@@ -164,7 +170,7 @@ class SailTextField extends StatelessWidget {
             fontSize: textSize,
           ),
           hintStyle: SailStyleValues.thirteen.copyWith(
-            color: SailTheme.of(context).colors.inactiveNavText,
+            color: hintColor,
             fontSize: textSize,
           ),
         ),

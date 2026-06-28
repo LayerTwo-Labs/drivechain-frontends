@@ -44,24 +44,40 @@ class ProgressBar extends StatelessWidget {
                 // Background container
                 Container(
                   decoration: BoxDecoration(
-                    color: theme.colors.backgroundSecondary.withValues(
-                      alpha: 0.5,
-                    ),
-                    borderRadius: theme.chrome.beveled ? BorderRadius.zero : BorderRadius.circular(999),
+                    color: theme.chrome.terminalStyle
+                        ? theme.colors.backgroundSecondary
+                        : theme.colors.backgroundSecondary.withValues(
+                            alpha: 0.5,
+                          ),
+                    borderRadius: theme.chrome.beveled
+                        ? BorderRadius.zero
+                        : theme.chrome.terminalStyle
+                        ? theme.chrome.radiusSmall
+                        : BorderRadius.circular(999),
                     border: theme.chrome.beveled ? theme.chrome.bevel!.sunken : null,
                   ),
                 ),
                 // Progress indicator
                 ClipRRect(
-                  borderRadius: theme.chrome.beveled ? BorderRadius.zero : BorderRadius.circular(999),
+                  borderRadius: theme.chrome.beveled
+                      ? BorderRadius.zero
+                      : theme.chrome.terminalStyle
+                      ? theme.chrome.radiusSmall
+                      : BorderRadius.circular(999),
                   child: FractionallySizedBox(
                     alignment: Alignment.centerLeft,
                     widthFactor: progress,
                     child: Container(
                       decoration: BoxDecoration(
-                        color: color ?? (theme.chrome.beveled ? theme.colors.primary : theme.colors.text),
+                        color:
+                            color ??
+                            (theme.chrome.beveled || theme.chrome.terminalStyle
+                                ? theme.colors.primary
+                                : theme.colors.text),
                         borderRadius: theme.chrome.beveled
                             ? BorderRadius.zero
+                            : theme.chrome.terminalStyle
+                            ? theme.chrome.radiusSmall
                             : BorderRadius.horizontal(
                                 left: const Radius.circular(999),
                                 right: Radius.circular(

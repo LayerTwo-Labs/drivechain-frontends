@@ -227,12 +227,23 @@ class _TabItem extends StatelessWidget {
           vertical: SailStyleValues.padding04,
           horizontal: SailStyleValues.padding12,
         ),
-        decoration: BoxDecoration(
-          color: isSelected
-              ? (secondary ? context.sailTheme.colors.background : context.sailTheme.colors.backgroundSecondary)
-              : Colors.transparent,
-          borderRadius: theme.chrome.radius,
-        ),
+        decoration: theme.chrome.terminalStyle
+            ? BoxDecoration(
+                color: Colors.transparent,
+                borderRadius: theme.chrome.radiusSmall,
+                border: Border(
+                  bottom: BorderSide(
+                    color: isSelected ? context.sailTheme.colors.activeNavText : Colors.transparent,
+                    width: 2.0,
+                  ),
+                ),
+              )
+            : BoxDecoration(
+                color: isSelected
+                    ? (secondary ? context.sailTheme.colors.background : context.sailTheme.colors.backgroundSecondary)
+                    : Colors.transparent,
+                borderRadius: theme.chrome.radius,
+              ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [

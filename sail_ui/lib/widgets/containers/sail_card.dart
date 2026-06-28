@@ -35,6 +35,9 @@ class SailCard extends StatelessWidget {
   final bool inSeparateWindow;
   final SailWindow? newWindow;
 
+  /// eCash terminal theme only: draws the amber left-accent (`.sc-card` active).
+  final bool selected;
+
   const SailCard({
     super.key,
     this.title,
@@ -54,12 +57,13 @@ class SailCard extends StatelessWidget {
     this.withCloseButton = false,
     this.inSeparateWindow = false,
     this.newWindow,
+    this.selected = false,
   });
 
   @override
   Widget build(BuildContext context) {
     final theme = SailTheme.of(context);
-    final radius = borderRadius ?? theme.chrome.radiusLarge;
+    final radius = borderRadius ?? (theme.chrome.terminalStyle ? theme.chrome.radius : theme.chrome.radiusLarge);
 
     return LayoutBuilder(
       builder: (context, constraints) => _build(context, theme, radius, constraints.hasBoundedHeight),
@@ -73,8 +77,22 @@ class SailCard extends StatelessWidget {
         child: ClipRRect(
           borderRadius: radius,
           child: DecoratedBox(
-            decoration: theme.chrome.bevel != null
+            decoration: theme.chrome.beveled
                 ? theme.chrome.panel(theme.colors)
+                : theme.chrome.terminalStyle
+                ? BoxDecoration(
+                    border: Border(
+                      top: BorderSide(color: theme.colors.border, width: 1.0),
+                      right: BorderSide(color: theme.colors.border, width: 1.0),
+                      bottom: BorderSide(color: theme.colors.border, width: 1.0),
+                      left: BorderSide(
+                        color: selected ? theme.colors.primary : theme.colors.border,
+                        width: selected ? 2.0 : 1.0,
+                      ),
+                    ),
+                    borderRadius: radius,
+                    color: color ?? theme.colors.backgroundSecondary,
+                  )
                 : BoxDecoration(
                     border: Border.all(color: theme.colors.border, width: 1.0),
                     borderRadius: radius,

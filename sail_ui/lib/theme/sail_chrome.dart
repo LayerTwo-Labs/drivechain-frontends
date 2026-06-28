@@ -46,6 +46,10 @@ class SailChrome {
   final bool buttonsRaised;
   final bool fieldsSunken;
 
+  /// Flat terminal aesthetic (eCash): outline-first controls, uppercase
+  /// letter-spaced labels, amber accents. Mutually exclusive with [bevel].
+  final bool terminalStyle;
+
   /// Surface decoration for cards/panels.
   final BoxDecoration Function(SailColor colors) panel;
 
@@ -66,6 +70,7 @@ class SailChrome {
     required this.panel,
     required this.titleBar,
     this.tooltipBackground,
+    this.terminalStyle = false,
   });
 
   bool get beveled => bevel != null;

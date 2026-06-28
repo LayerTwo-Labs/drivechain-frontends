@@ -89,8 +89,9 @@ class _SailButtonState extends State<SailButton> {
   Widget build(BuildContext context) {
     final theme = SailTheme.of(context);
     final colors = theme.colors;
+    final terminalStyle = theme.chrome.terminalStyle;
 
-    final style = _getVariantStyle(widget.variant, colors, widget.textColor);
+    final style = _getVariantStyle(widget.variant, colors, widget.textColor, terminalStyle);
     final content = _ButtonContent(
       foregroundColor: style.foregroundColor,
       variant: widget.variant,
@@ -104,6 +105,7 @@ class _SailButtonState extends State<SailButton> {
       label: widget.label,
       small: widget.small,
       insideTable: widget.insideTable,
+      terminalStyle: terminalStyle,
     );
 
     return _SailScaleButton(
@@ -148,6 +150,7 @@ class _ButtonContent extends StatelessWidget {
   final String? label;
   final bool small;
   final bool insideTable;
+  final bool terminalStyle;
 
   const _ButtonContent({
     required this.foregroundColor,
@@ -162,7 +165,25 @@ class _ButtonContent extends StatelessWidget {
     this.label,
     required this.small,
     required this.insideTable,
+    required this.terminalStyle,
   });
+
+  Widget _terminalLabel(BuildContext context) {
+    final theme = SailTheme.of(context);
+    final text = isLoading ? loadingLabel ?? 'Please wait' : label!;
+    final base = small || insideTable ? SailStyleValues.ten : SailStyleValues.twelve;
+    return Text(
+      text.toUpperCase(),
+      overflow: TextOverflow.ellipsis,
+      style: base.copyWith(
+        color: foregroundColor,
+        fontWeight: SailStyleValues.boldWeight,
+        fontFamily: theme.chrome.fontFamily,
+        letterSpacing: 1.2,
+        decoration: variant == ButtonVariant.link ? TextDecoration.underline : null,
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -197,7 +218,9 @@ class _ButtonContent extends StatelessWidget {
           if (endIcon != null && label != null) const SizedBox(width: 8),
         ],
         if (label != null)
-          small || insideTable
+          terminalStyle
+              ? _terminalLabel(context)
+              : small || insideTable
               ? SailText.primary10(
                   isLoading ? loadingLabel ?? 'Please wait' : label!,
                   color: foregroundColor,
@@ -241,7 +264,11 @@ _ButtonVariantStyle _getVariantStyle(
   ButtonVariant variant,
   SailColor colors,
   Color? textColor,
+  bool terminalStyle,
 ) {
+  if (terminalStyle) {
+    return _getTerminalVariantStyle(variant, colors, textColor);
+  }
   switch (variant) {
     case ButtonVariant.primary:
       return _ButtonVariantStyle(
@@ -285,6 +312,50 @@ _ButtonVariantStyle _getVariantStyle(
         backgroundColor: Colors.transparent,
         foregroundColor: textColor ?? colors.ghostButtonText,
         hoverColor: colors.ghostButtonHover,
+      );
+  }
+}
+
+_ButtonVariantStyle _getTerminalVariantStyle(
+  ButtonVariant variant,
+  SailColor colors,
+  Color? textColor,
+) {
+  switch (variant) {
+    case ButtonVariant.primary:
+      return _ButtonVariantStyle(
+        backgroundColor: Colors.transparent,
+        foregroundColor: textColor ?? colors.primary,
+        borderColor: colors.primary,
+        hoverColor: colors.primary.withValues(alpha: 0.08),
+      );
+    case ButtonVariant.destructive:
+      return _ButtonVariantStyle(
+        backgroundColor: Colors.transparent,
+        foregroundColor: textColor ?? colors.error,
+        borderColor: colors.error,
+        hoverColor: colors.error.withValues(alpha: 0.08),
+      );
+    case ButtonVariant.link:
+      return _ButtonVariantStyle(
+        backgroundColor: Colors.transparent,
+        foregroundColor: textColor ?? colors.linkButtonText,
+        hoverColor: colors.linkButtonText,
+      );
+    case ButtonVariant.icon:
+      return _ButtonVariantStyle(
+        backgroundColor: Colors.transparent,
+        foregroundColor: textColor ?? colors.outlineButtonText,
+        hoverColor: colors.outlineButtonHover,
+      );
+    case ButtonVariant.secondary:
+    case ButtonVariant.outline:
+    case ButtonVariant.ghost:
+      return _ButtonVariantStyle(
+        backgroundColor: Colors.transparent,
+        foregroundColor: textColor ?? colors.outlineButtonText,
+        borderColor: colors.outlineButtonBorder,
+        hoverColor: colors.outlineButtonHover,
       );
   }
 }
@@ -498,6 +569,17 @@ class __SailScaleButtonState extends State<_SailScaleButton> with SingleTickerPr
                           decoration: BoxDecoration(
                             color: currentColor,
                             border: _isPressed ? theme.chrome.bevel!.sunken : theme.chrome.bevel!.raised,
+                          ),
+                          child: widget.child,
+                        )
+                      : theme.chrome.terminalStyle && widget.variant != ButtonVariant.link
+                      ? DecoratedBox(
+                          decoration: BoxDecoration(
+                            color: currentColor,
+                            borderRadius: theme.chrome.radiusSmall,
+                            border: widget.borderColor != null
+                                ? Border.all(color: widget.borderColor!, width: 1)
+                                : null,
                           ),
                           child: widget.child,
                         )
