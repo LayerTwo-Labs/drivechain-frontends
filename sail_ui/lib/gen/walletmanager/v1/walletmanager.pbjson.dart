@@ -13,8 +13,8 @@ import 'dart:convert' as $convert;
 import 'dart:core' as $core;
 import 'dart:typed_data' as $typed_data;
 
-import '../../google/protobuf/empty.pbjson.dart' as $13;
-import '../../google/protobuf/timestamp.pbjson.dart' as $12;
+import '../../google/protobuf/empty.pbjson.dart' as $14;
+import '../../google/protobuf/timestamp.pbjson.dart' as $13;
 
 @$core.Deprecated('Use walletTypeDescriptor instead')
 const WalletType$json = {
@@ -1690,7 +1690,7 @@ const $core.Map<$core.String, $core.Map<$core.String, $core.dynamic>> WalletMana
   '.walletmanager.v1.ListWalletBackupsRequest': ListWalletBackupsRequest$json,
   '.walletmanager.v1.ListWalletBackupsResponse': ListWalletBackupsResponse$json,
   '.walletmanager.v1.WalletBackup': WalletBackup$json,
-  '.google.protobuf.Timestamp': $12.Timestamp$json,
+  '.google.protobuf.Timestamp': $13.Timestamp$json,
   '.walletmanager.v1.BackupWalletSummary': BackupWalletSummary$json,
   '.walletmanager.v1.BalanceSnapshot': BalanceSnapshot$json,
   '.walletmanager.v1.RestoreWalletBackupRequest': RestoreWalletBackupRequest$json,
@@ -1766,7 +1766,7 @@ const $core.Map<$core.String, $core.Map<$core.String, $core.dynamic>> WalletMana
   '.walletmanager.v1.GetTorConfigResponse': GetTorConfigResponse$json,
   '.walletmanager.v1.SetTorConfigRequest': SetTorConfigRequest$json,
   '.walletmanager.v1.SetTorConfigResponse': SetTorConfigResponse$json,
-  '.google.protobuf.Empty': $13.Empty$json,
+  '.google.protobuf.Empty': $14.Empty$json,
   '.walletmanager.v1.WatchWalletDataResponse': WatchWalletDataResponse$json,
 };
 

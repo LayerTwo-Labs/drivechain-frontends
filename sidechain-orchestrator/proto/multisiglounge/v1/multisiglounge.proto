@@ -1,0 +1,72 @@
+syntax = "proto3";
+
+package multisiglounge.v1;
+
+// MultisigLoungeService builds watch-only multisig descriptors and validates
+// PSBTs for the BitWindow multisig lounge. Pure stateless logic — no wallet,
+// no signing, no broadcast.
+service MultisigLoungeService {
+  // BuildDescriptors builds the receive (/0/*) and change (/1/*) watch-only
+  // wsh(sortedmulti) descriptors for a multisig group, with checksums.
+  rpc BuildDescriptors(BuildDescriptorsRequest) returns (BuildDescriptorsResponse);
+
+  // ValidatePsbt parses a base64 PSBT and reports signature progress. When a
+  // group is supplied, inputs whose script does not belong to the group's
+  // descriptor are rejected.
+  rpc ValidatePsbt(ValidatePsbtRequest) returns (ValidatePsbtResponse);
+}
+
+// MultisigKey is one cosigner key in a group.
+message MultisigKey {
+  // Extended public key (xpub/tpub).
+  string xpub = 1;
+  // Full BIP32 derivation path of the account key, e.g. "m/48'/1'/0'/2'".
+  string derivation_path = 2;
+  // Master key fingerprint, 8 hex chars. Empty for non-wallet keys.
+  string fingerprint = 3;
+  // Origin path without the leading "m/", e.g. "48'/1'/0'/2'". Empty for non-wallet keys.
+  string origin_path = 4;
+  // True if this key is owned by the local wallet (emits a [fp/origin] prefix).
+  bool is_wallet = 5;
+}
+
+// MultisigGroup describes an m-of-n policy.
+message MultisigGroup {
+  // Threshold (m): signatures required.
+  uint32 m = 1;
+  // Total keys (n).
+  uint32 n = 2;
+  repeated MultisigKey keys = 3;
+}
+
+message BuildDescriptorsRequest {
+  MultisigGroup group = 1;
+}
+
+message BuildDescriptorsResponse {
+  // Receive descriptor (/0/*) with checksum.
+  string receive_descriptor = 1;
+  // Change descriptor (/1/*) with checksum.
+  string change_descriptor = 2;
+}
+
+message ValidatePsbtRequest {
+  string psbt_base64 = 1;
+  // Signatures required per input (m).
+  uint32 required_sigs = 2;
+  // Optional. When set, every input must match this group's descriptor.
+  MultisigGroup group = 3;
+}
+
+message ValidatePsbtResponse {
+  // At least one partial signature is present on some input.
+  bool has_signatures = 1;
+  // Maximum partial-signature count across inputs.
+  uint32 signature_count = 2;
+  // Every input has reached the required threshold.
+  bool is_complete = 3;
+  // The PSBT can be finalized into a broadcastable transaction.
+  bool finalizable = 4;
+  // Non-empty on validation failure (e.g. foreign input, parse error).
+  string error = 5;
+}

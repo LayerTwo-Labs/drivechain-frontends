@@ -10,7 +10,26 @@ import 'package:get_it/get_it.dart';
 import 'package:sail_ui/gen/google/protobuf/timestamp.pb.dart' as tspb;
 import 'package:logger/logger.dart';
 import 'package:sail_ui/gen/multisig/v1/multisig.pb.dart' as multisigpb;
+import 'package:sail_ui/gen/multisiglounge/v1/multisiglounge.pb.dart' as mlpb;
 import 'package:sail_ui/sail_ui.dart';
+
+OrchestratorMultisigLoungeRPC get _multisigLounge => GetIt.I.get<OrchestratorRPC>().multisigLounge;
+
+mlpb.MultisigGroup _groupToLoungeProto(MultisigGroup group) {
+  return mlpb.MultisigGroup(
+    m: group.m,
+    n: group.n,
+    keys: group.keys.map(
+      (k) => mlpb.MultisigKey(
+        xpub: k.xpub,
+        derivationPath: k.derivationPath,
+        fingerprint: k.fingerprint ?? '',
+        originPath: k.originPath ?? '',
+        isWallet: k.isWallet,
+      ),
+    ),
+  );
+}
 
 /// Retained for API compatibility. No-op now that storage is backend-owned.
 class FileOperationLock {
@@ -71,80 +90,30 @@ class TransactionStatusManager {
 }
 
 class PSBTValidator {
-  /// Checks if any signatures have been added to the PSBT using finalizepsbt as source of truth
+  /// Validates a PSBT via orchestrator MultisigLoungeService. requiredSigs is
+  /// the group threshold (m); validation is pure stateless logic backend-side.
+  static Future<mlpb.ValidatePsbtResponse> _validate(String psbtBase64, int requiredSigs) {
+    return _multisigLounge.validatePsbt(psbtBase64: psbtBase64, requiredSigs: requiredSigs);
+  }
+
+  /// Checks if any partial signatures are present on the PSBT.
   static Future<bool> hasAnySignatures(String psbtBase64, int totalKeysInGroup) async {
     try {
-      // Use finalizepsbt as the ultimate source of truth
-      final finalizeResult = await _coreRaw('finalizepsbt', [psbtBase64, false]);
-
-      if (finalizeResult is! Map) {
-        return false;
-      }
-
-      final complete = finalizeResult['complete'] as bool? ?? false;
-      final resultPsbt = finalizeResult['psbt'] as String?;
-
-      if (complete) {
-        return true;
-      }
-
-      // If not complete, check if any signatures were added by analyzing the result
-      if (resultPsbt != null) {
-        final analysis = await _coreRaw('analyzepsbt', [resultPsbt]);
-
-        if (analysis is Map) {
-          final inputs = analysis['inputs'] as List<dynamic>? ?? [];
-
-          for (int i = 0; i < inputs.length; i++) {
-            final input = inputs[i];
-            if (input is Map<String, dynamic>) {
-              // Check for partial signatures
-              final partialSigs = input['partial_signatures'] as Map<String, dynamic>? ?? {};
-              if (partialSigs.isNotEmpty) {
-                return true;
-              }
-
-              // Check missing signatures vs total keys
-              final missing = input['missing'] as Map<String, dynamic>?;
-              if (missing != null) {
-                final missingSignatures = missing['signatures'] as List<dynamic>? ?? [];
-                if (missingSignatures.length < totalKeysInGroup) {
-                  return true;
-                }
-              }
-            }
-          }
-        }
-      }
-
-      return false;
+      final res = await _validate(psbtBase64, totalKeysInGroup);
+      if (res.error.isNotEmpty) return false;
+      return res.hasSignatures;
     } catch (e) {
       GetIt.I.get<Logger>().e('Error in hasAnySignatures: $e');
       return false;
     }
   }
 
-  /// Checks if the PSBT has enough signatures (at least requiredSigs) using finalizepsbt
+  /// Checks if the PSBT has at least requiredSigs signatures (or is finalizable).
   static Future<bool> hasValidSignatures(String psbtBase64, int requiredSigs, {int? totalKeys}) async {
     try {
-      // Use finalizepsbt to check if we have sufficient signatures
-      final finalizeResult = await _coreRaw('finalizepsbt', [psbtBase64, false]);
-
-      if (finalizeResult is! Map) {
-        return false;
-      }
-
-      final complete = finalizeResult['complete'] as bool? ?? false;
-
-      if (complete) {
-        return true;
-      }
-
-      // If not complete, try to count signatures to see if we at least have some
-      final sigCount = await countSignatures(psbtBase64, totalKeys: totalKeys);
-      final hasEnough = sigCount >= requiredSigs;
-
-      return hasEnough;
+      final res = await _validate(psbtBase64, requiredSigs);
+      if (res.error.isNotEmpty) return false;
+      return res.finalizable || res.signatureCount >= requiredSigs;
     } catch (e) {
       GetIt.I.get<Logger>().e('Error checking valid signatures: $e');
       return false;
@@ -153,13 +122,9 @@ class PSBTValidator {
 
   static Future<bool> isReadyForBroadcast(String psbtBase64, int requiredSigs) async {
     try {
-      // Simply check if finalizepsbt says it's complete
-      final finalizeResult = await _coreRaw('finalizepsbt', [psbtBase64, false]);
-
-      if (finalizeResult is! Map) return false;
-
-      final complete = finalizeResult['complete'] as bool? ?? false;
-      return complete;
+      final res = await _validate(psbtBase64, requiredSigs);
+      if (res.error.isNotEmpty) return false;
+      return res.finalizable;
     } catch (e) {
       return false;
     }
@@ -167,51 +132,9 @@ class PSBTValidator {
 
   static Future<int> countSignatures(String psbtBase64, {int? totalKeys}) async {
     try {
-      // Use finalizepsbt to get a reliable view of the PSBT
-      final finalizeResult = await _coreRaw('finalizepsbt', [psbtBase64, false]);
-
-      if (finalizeResult is! Map) return 0;
-
-      final complete = finalizeResult['complete'] as bool? ?? false;
-      final resultPsbt = finalizeResult['psbt'] as String?;
-
-      if (complete && totalKeys != null) {
-        // If complete, we have all required signatures
-        return totalKeys;
-      }
-
-      // Analyze the finalized PSBT to count signatures
-      final psbtToAnalyze = resultPsbt ?? psbtBase64;
-      final analysis = await _coreRaw('analyzepsbt', [psbtToAnalyze]);
-
-      if (analysis is! Map) return 0;
-
-      final inputs = analysis['inputs'] as List<dynamic>? ?? [];
-      int maxSigs = 0;
-
-      for (int i = 0; i < inputs.length; i++) {
-        final input = inputs[i];
-        if (input is Map<String, dynamic>) {
-          int inputSigs = 0;
-
-          // Count partial signatures
-          final partialSigs = input['partial_signatures'] as Map<String, dynamic>? ?? {};
-          inputSigs += partialSigs.length;
-
-          // If no partial signatures but we have missing info, calculate from missing count
-          if (inputSigs == 0 && totalKeys != null) {
-            final missing = input['missing'] as Map<String, dynamic>?;
-            if (missing != null) {
-              final missingSignatures = missing['signatures'] as List<dynamic>? ?? [];
-              inputSigs = totalKeys - missingSignatures.length;
-            }
-          }
-
-          maxSigs = maxSigs > inputSigs ? maxSigs : inputSigs;
-        }
-      }
-
-      return maxSigs;
+      final res = await _validate(psbtBase64, totalKeys ?? 0);
+      if (res.error.isNotEmpty) return 0;
+      return res.signatureCount;
     } catch (e) {
       GetIt.I.get<Logger>().e('Error counting signatures: $e');
       return 0;
@@ -459,27 +382,10 @@ class MultisigLogger {
 
 class MultisigDescriptorBuilder {
   static Future<MultisigDescriptors> buildWatchOnlyDescriptors(MultisigGroup group) async {
-    final sortedKeys = _sortKeysByBIP67(group.keys);
-
-    final keyDescriptors = sortedKeys
-        .map((key) {
-          if (key.isWallet && key.fingerprint != null && key.originPath != null) {
-            return '[${key.fingerprint}/${key.originPath}]${key.xpub}';
-          } else {
-            return key.xpub;
-          }
-        })
-        .join(',');
-
-    final receiveDesc = 'wsh(sortedmulti(${group.m},$keyDescriptors/0/*))';
-    final changeDesc = 'wsh(sortedmulti(${group.m},$keyDescriptors/1/*))';
-
-    final receiveWithChecksum = await _addChecksum(receiveDesc);
-    final changeWithChecksum = await _addChecksum(changeDesc);
-
+    final resp = await _multisigLounge.buildDescriptors(_groupToLoungeProto(group));
     return MultisigDescriptors(
-      receive: receiveWithChecksum,
-      change: changeWithChecksum,
+      receive: resp.receiveDescriptor,
+      change: resp.changeDescriptor,
     );
   }
 
@@ -520,25 +426,6 @@ class MultisigDescriptorBuilder {
     final sortedKeys = List<MultisigKey>.from(keys);
     sortedKeys.sort((a, b) => a.xpub.compareTo(b.xpub));
     return sortedKeys;
-  }
-
-  static Future<String> _addChecksum(String descriptor) async {
-    try {
-      if (descriptor.contains('#')) {
-        return descriptor;
-      }
-
-      final result = await _coreRaw('getdescriptorinfo', [descriptor]);
-
-      if (result is Map && result['descriptor'] != null) {
-        return result['descriptor'] as String;
-      }
-
-      throw Exception('Bitcoin Core getdescriptorinfo returned invalid response: $result');
-    } catch (e) {
-      GetIt.I.get<Logger>().e('Failed to add checksum to descriptor: $e');
-      throw Exception('Failed to add checksum to descriptor: $e');
-    }
   }
 }
 
