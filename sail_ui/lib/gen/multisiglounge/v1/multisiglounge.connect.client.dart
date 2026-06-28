@@ -49,4 +49,43 @@ extension type MultisigLoungeServiceClient (connect.Transport _transport) {
       onTrailer: onTrailer,
     );
   }
+
+  /// PublishGroup encodes a multisig group as an OP_RETURN payload (the
+  /// BitWindow wire format) and broadcasts it, funding a fresh own address.
+  /// Returns the broadcast txid.
+  Future<multisigloungev1multisiglounge.PublishGroupResponse> publishGroup(
+    multisigloungev1multisiglounge.PublishGroupRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.MultisigLoungeService.publishGroup,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
+  /// ImportGroupFromTxid fetches the OP_RETURN at the given txid, decodes the
+  /// multisig group, and reports which of the group's keys belong to the wallet.
+  Future<multisigloungev1multisiglounge.ImportGroupFromTxidResponse> importGroupFromTxid(
+    multisigloungev1multisiglounge.ImportGroupFromTxidRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.MultisigLoungeService.importGroupFromTxid,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
 }

@@ -12,7 +12,548 @@
 import 'dart:async' as $async;
 import 'dart:core' as $core;
 
+import 'package:fixnum/fixnum.dart' as $fixnum;
 import 'package:protobuf/protobuf.dart' as $pb;
+
+/// GroupKey is one cosigner key with the full metadata carried in the published
+/// OP_RETURN group JSON.
+class GroupKey extends $pb.GeneratedMessage {
+  factory GroupKey({
+    $core.String? owner,
+    $core.String? xpub,
+    $core.String? derivationPath,
+    $core.String? fingerprint,
+    $core.String? originPath,
+    $core.bool? isWallet,
+  }) {
+    final $result = create();
+    if (owner != null) {
+      $result.owner = owner;
+    }
+    if (xpub != null) {
+      $result.xpub = xpub;
+    }
+    if (derivationPath != null) {
+      $result.derivationPath = derivationPath;
+    }
+    if (fingerprint != null) {
+      $result.fingerprint = fingerprint;
+    }
+    if (originPath != null) {
+      $result.originPath = originPath;
+    }
+    if (isWallet != null) {
+      $result.isWallet = isWallet;
+    }
+    return $result;
+  }
+  GroupKey._() : super();
+  factory GroupKey.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory GroupKey.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'GroupKey', package: const $pb.PackageName(_omitMessageNames ? '' : 'multisiglounge.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'owner')
+    ..aOS(2, _omitFieldNames ? '' : 'xpub')
+    ..aOS(3, _omitFieldNames ? '' : 'derivationPath')
+    ..aOS(4, _omitFieldNames ? '' : 'fingerprint')
+    ..aOS(5, _omitFieldNames ? '' : 'originPath')
+    ..aOB(6, _omitFieldNames ? '' : 'isWallet')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  GroupKey clone() => GroupKey()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  GroupKey copyWith(void Function(GroupKey) updates) => super.copyWith((message) => updates(message as GroupKey)) as GroupKey;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static GroupKey create() => GroupKey._();
+  GroupKey createEmptyInstance() => create();
+  static $pb.PbList<GroupKey> createRepeated() => $pb.PbList<GroupKey>();
+  @$core.pragma('dart2js:noInline')
+  static GroupKey getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<GroupKey>(create);
+  static GroupKey? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get owner => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set owner($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasOwner() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearOwner() => clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.String get xpub => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set xpub($core.String v) { $_setString(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasXpub() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearXpub() => clearField(2);
+
+  /// Full BIP32 derivation path, e.g. "m/48'/1'/0'/2'".
+  @$pb.TagNumber(3)
+  $core.String get derivationPath => $_getSZ(2);
+  @$pb.TagNumber(3)
+  set derivationPath($core.String v) { $_setString(2, v); }
+  @$pb.TagNumber(3)
+  $core.bool hasDerivationPath() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearDerivationPath() => clearField(3);
+
+  /// Master key fingerprint, 8 hex chars. Empty for non-wallet keys.
+  @$pb.TagNumber(4)
+  $core.String get fingerprint => $_getSZ(3);
+  @$pb.TagNumber(4)
+  set fingerprint($core.String v) { $_setString(3, v); }
+  @$pb.TagNumber(4)
+  $core.bool hasFingerprint() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearFingerprint() => clearField(4);
+
+  /// Origin path without the leading "m/". Empty for non-wallet keys.
+  @$pb.TagNumber(5)
+  $core.String get originPath => $_getSZ(4);
+  @$pb.TagNumber(5)
+  set originPath($core.String v) { $_setString(4, v); }
+  @$pb.TagNumber(5)
+  $core.bool hasOriginPath() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearOriginPath() => clearField(5);
+
+  @$pb.TagNumber(6)
+  $core.bool get isWallet => $_getBF(5);
+  @$pb.TagNumber(6)
+  set isWallet($core.bool v) { $_setBool(5, v); }
+  @$pb.TagNumber(6)
+  $core.bool hasIsWallet() => $_has(5);
+  @$pb.TagNumber(6)
+  void clearIsWallet() => clearField(6);
+}
+
+/// GroupData is a full multisig group as published in an OP_RETURN.
+class GroupData extends $pb.GeneratedMessage {
+  factory GroupData({
+    $core.String? id,
+    $core.String? name,
+    $core.int? n,
+    $core.int? m,
+    $core.Iterable<GroupKey>? keys,
+    $fixnum.Int64? created,
+    $core.String? descriptorReceive,
+    $core.String? descriptorChange,
+    $core.String? watchWalletName,
+    $core.String? txid,
+  }) {
+    final $result = create();
+    if (id != null) {
+      $result.id = id;
+    }
+    if (name != null) {
+      $result.name = name;
+    }
+    if (n != null) {
+      $result.n = n;
+    }
+    if (m != null) {
+      $result.m = m;
+    }
+    if (keys != null) {
+      $result.keys.addAll(keys);
+    }
+    if (created != null) {
+      $result.created = created;
+    }
+    if (descriptorReceive != null) {
+      $result.descriptorReceive = descriptorReceive;
+    }
+    if (descriptorChange != null) {
+      $result.descriptorChange = descriptorChange;
+    }
+    if (watchWalletName != null) {
+      $result.watchWalletName = watchWalletName;
+    }
+    if (txid != null) {
+      $result.txid = txid;
+    }
+    return $result;
+  }
+  GroupData._() : super();
+  factory GroupData.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory GroupData.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'GroupData', package: const $pb.PackageName(_omitMessageNames ? '' : 'multisiglounge.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'id')
+    ..aOS(2, _omitFieldNames ? '' : 'name')
+    ..a<$core.int>(3, _omitFieldNames ? '' : 'n', $pb.PbFieldType.OU3)
+    ..a<$core.int>(4, _omitFieldNames ? '' : 'm', $pb.PbFieldType.OU3)
+    ..pc<GroupKey>(5, _omitFieldNames ? '' : 'keys', $pb.PbFieldType.PM, subBuilder: GroupKey.create)
+    ..aInt64(6, _omitFieldNames ? '' : 'created')
+    ..aOS(7, _omitFieldNames ? '' : 'descriptorReceive')
+    ..aOS(8, _omitFieldNames ? '' : 'descriptorChange')
+    ..aOS(9, _omitFieldNames ? '' : 'watchWalletName')
+    ..aOS(10, _omitFieldNames ? '' : 'txid')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  GroupData clone() => GroupData()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  GroupData copyWith(void Function(GroupData) updates) => super.copyWith((message) => updates(message as GroupData)) as GroupData;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static GroupData create() => GroupData._();
+  GroupData createEmptyInstance() => create();
+  static $pb.PbList<GroupData> createRepeated() => $pb.PbList<GroupData>();
+  @$core.pragma('dart2js:noInline')
+  static GroupData getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<GroupData>(create);
+  static GroupData? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get id => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set id($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearId() => clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.String get name => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set name($core.String v) { $_setString(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasName() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearName() => clearField(2);
+
+  @$pb.TagNumber(3)
+  $core.int get n => $_getIZ(2);
+  @$pb.TagNumber(3)
+  set n($core.int v) { $_setUnsignedInt32(2, v); }
+  @$pb.TagNumber(3)
+  $core.bool hasN() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearN() => clearField(3);
+
+  @$pb.TagNumber(4)
+  $core.int get m => $_getIZ(3);
+  @$pb.TagNumber(4)
+  set m($core.int v) { $_setUnsignedInt32(3, v); }
+  @$pb.TagNumber(4)
+  $core.bool hasM() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearM() => clearField(4);
+
+  @$pb.TagNumber(5)
+  $core.List<GroupKey> get keys => $_getList(4);
+
+  /// Creation time, milliseconds since epoch (matches the Dart 'created' field).
+  @$pb.TagNumber(6)
+  $fixnum.Int64 get created => $_getI64(5);
+  @$pb.TagNumber(6)
+  set created($fixnum.Int64 v) { $_setInt64(5, v); }
+  @$pb.TagNumber(6)
+  $core.bool hasCreated() => $_has(5);
+  @$pb.TagNumber(6)
+  void clearCreated() => clearField(6);
+
+  @$pb.TagNumber(7)
+  $core.String get descriptorReceive => $_getSZ(6);
+  @$pb.TagNumber(7)
+  set descriptorReceive($core.String v) { $_setString(6, v); }
+  @$pb.TagNumber(7)
+  $core.bool hasDescriptorReceive() => $_has(6);
+  @$pb.TagNumber(7)
+  void clearDescriptorReceive() => clearField(7);
+
+  @$pb.TagNumber(8)
+  $core.String get descriptorChange => $_getSZ(7);
+  @$pb.TagNumber(8)
+  set descriptorChange($core.String v) { $_setString(7, v); }
+  @$pb.TagNumber(8)
+  $core.bool hasDescriptorChange() => $_has(7);
+  @$pb.TagNumber(8)
+  void clearDescriptorChange() => clearField(8);
+
+  @$pb.TagNumber(9)
+  $core.String get watchWalletName => $_getSZ(8);
+  @$pb.TagNumber(9)
+  set watchWalletName($core.String v) { $_setString(8, v); }
+  @$pb.TagNumber(9)
+  $core.bool hasWatchWalletName() => $_has(8);
+  @$pb.TagNumber(9)
+  void clearWatchWalletName() => clearField(9);
+
+  @$pb.TagNumber(10)
+  $core.String get txid => $_getSZ(9);
+  @$pb.TagNumber(10)
+  set txid($core.String v) { $_setString(9, v); }
+  @$pb.TagNumber(10)
+  $core.bool hasTxid() => $_has(9);
+  @$pb.TagNumber(10)
+  void clearTxid() => clearField(10);
+}
+
+class PublishGroupRequest extends $pb.GeneratedMessage {
+  factory PublishGroupRequest({
+    GroupData? group,
+    $core.String? walletId,
+  }) {
+    final $result = create();
+    if (group != null) {
+      $result.group = group;
+    }
+    if (walletId != null) {
+      $result.walletId = walletId;
+    }
+    return $result;
+  }
+  PublishGroupRequest._() : super();
+  factory PublishGroupRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory PublishGroupRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'PublishGroupRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'multisiglounge.v1'), createEmptyInstance: create)
+    ..aOM<GroupData>(1, _omitFieldNames ? '' : 'group', subBuilder: GroupData.create)
+    ..aOS(2, _omitFieldNames ? '' : 'walletId')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  PublishGroupRequest clone() => PublishGroupRequest()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  PublishGroupRequest copyWith(void Function(PublishGroupRequest) updates) => super.copyWith((message) => updates(message as PublishGroupRequest)) as PublishGroupRequest;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static PublishGroupRequest create() => PublishGroupRequest._();
+  PublishGroupRequest createEmptyInstance() => create();
+  static $pb.PbList<PublishGroupRequest> createRepeated() => $pb.PbList<PublishGroupRequest>();
+  @$core.pragma('dart2js:noInline')
+  static PublishGroupRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<PublishGroupRequest>(create);
+  static PublishGroupRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  GroupData get group => $_getN(0);
+  @$pb.TagNumber(1)
+  set group(GroupData v) { setField(1, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasGroup() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearGroup() => clearField(1);
+  @$pb.TagNumber(1)
+  GroupData ensureGroup() => $_ensure(0);
+
+  /// Wallet that funds the broadcast and provides the fresh address.
+  @$pb.TagNumber(2)
+  $core.String get walletId => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set walletId($core.String v) { $_setString(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasWalletId() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearWalletId() => clearField(2);
+}
+
+class PublishGroupResponse extends $pb.GeneratedMessage {
+  factory PublishGroupResponse({
+    $core.String? txid,
+  }) {
+    final $result = create();
+    if (txid != null) {
+      $result.txid = txid;
+    }
+    return $result;
+  }
+  PublishGroupResponse._() : super();
+  factory PublishGroupResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory PublishGroupResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'PublishGroupResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'multisiglounge.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'txid')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  PublishGroupResponse clone() => PublishGroupResponse()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  PublishGroupResponse copyWith(void Function(PublishGroupResponse) updates) => super.copyWith((message) => updates(message as PublishGroupResponse)) as PublishGroupResponse;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static PublishGroupResponse create() => PublishGroupResponse._();
+  PublishGroupResponse createEmptyInstance() => create();
+  static $pb.PbList<PublishGroupResponse> createRepeated() => $pb.PbList<PublishGroupResponse>();
+  @$core.pragma('dart2js:noInline')
+  static PublishGroupResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<PublishGroupResponse>(create);
+  static PublishGroupResponse? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get txid => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set txid($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasTxid() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearTxid() => clearField(1);
+}
+
+class ImportGroupFromTxidRequest extends $pb.GeneratedMessage {
+  factory ImportGroupFromTxidRequest({
+    $core.String? txid,
+    $core.String? walletId,
+  }) {
+    final $result = create();
+    if (txid != null) {
+      $result.txid = txid;
+    }
+    if (walletId != null) {
+      $result.walletId = walletId;
+    }
+    return $result;
+  }
+  ImportGroupFromTxidRequest._() : super();
+  factory ImportGroupFromTxidRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory ImportGroupFromTxidRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ImportGroupFromTxidRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'multisiglounge.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'txid')
+    ..aOS(2, _omitFieldNames ? '' : 'walletId')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  ImportGroupFromTxidRequest clone() => ImportGroupFromTxidRequest()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  ImportGroupFromTxidRequest copyWith(void Function(ImportGroupFromTxidRequest) updates) => super.copyWith((message) => updates(message as ImportGroupFromTxidRequest)) as ImportGroupFromTxidRequest;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ImportGroupFromTxidRequest create() => ImportGroupFromTxidRequest._();
+  ImportGroupFromTxidRequest createEmptyInstance() => create();
+  static $pb.PbList<ImportGroupFromTxidRequest> createRepeated() => $pb.PbList<ImportGroupFromTxidRequest>();
+  @$core.pragma('dart2js:noInline')
+  static ImportGroupFromTxidRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<ImportGroupFromTxidRequest>(create);
+  static ImportGroupFromTxidRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get txid => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set txid($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasTxid() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearTxid() => clearField(1);
+
+  /// Wallet whose keys are matched against the group's cosigners.
+  @$pb.TagNumber(2)
+  $core.String get walletId => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set walletId($core.String v) { $_setString(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasWalletId() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearWalletId() => clearField(2);
+}
+
+class ImportGroupFromTxidResponse extends $pb.GeneratedMessage {
+  factory ImportGroupFromTxidResponse({
+    GroupData? group,
+    $core.Iterable<$core.int>? walletKeyIndices,
+  }) {
+    final $result = create();
+    if (group != null) {
+      $result.group = group;
+    }
+    if (walletKeyIndices != null) {
+      $result.walletKeyIndices.addAll(walletKeyIndices);
+    }
+    return $result;
+  }
+  ImportGroupFromTxidResponse._() : super();
+  factory ImportGroupFromTxidResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory ImportGroupFromTxidResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ImportGroupFromTxidResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'multisiglounge.v1'), createEmptyInstance: create)
+    ..aOM<GroupData>(1, _omitFieldNames ? '' : 'group', subBuilder: GroupData.create)
+    ..p<$core.int>(2, _omitFieldNames ? '' : 'walletKeyIndices', $pb.PbFieldType.KU3)
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  ImportGroupFromTxidResponse clone() => ImportGroupFromTxidResponse()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  ImportGroupFromTxidResponse copyWith(void Function(ImportGroupFromTxidResponse) updates) => super.copyWith((message) => updates(message as ImportGroupFromTxidResponse)) as ImportGroupFromTxidResponse;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ImportGroupFromTxidResponse create() => ImportGroupFromTxidResponse._();
+  ImportGroupFromTxidResponse createEmptyInstance() => create();
+  static $pb.PbList<ImportGroupFromTxidResponse> createRepeated() => $pb.PbList<ImportGroupFromTxidResponse>();
+  @$core.pragma('dart2js:noInline')
+  static ImportGroupFromTxidResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<ImportGroupFromTxidResponse>(create);
+  static ImportGroupFromTxidResponse? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  GroupData get group => $_getN(0);
+  @$pb.TagNumber(1)
+  set group(GroupData v) { setField(1, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasGroup() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearGroup() => clearField(1);
+  @$pb.TagNumber(1)
+  GroupData ensureGroup() => $_ensure(0);
+
+  /// Indices into group.keys that belong to the wallet (derived xpub matches).
+  @$pb.TagNumber(2)
+  $core.List<$core.int> get walletKeyIndices => $_getList(1);
+}
 
 /// MultisigKey is one cosigner key in a group.
 class MultisigKey extends $pb.GeneratedMessage {
@@ -521,6 +1062,12 @@ class MultisigLoungeServiceApi {
   ;
   $async.Future<ValidatePsbtResponse> validatePsbt($pb.ClientContext? ctx, ValidatePsbtRequest request) =>
     _client.invoke<ValidatePsbtResponse>(ctx, 'MultisigLoungeService', 'ValidatePsbt', request, ValidatePsbtResponse())
+  ;
+  $async.Future<PublishGroupResponse> publishGroup($pb.ClientContext? ctx, PublishGroupRequest request) =>
+    _client.invoke<PublishGroupResponse>(ctx, 'MultisigLoungeService', 'PublishGroup', request, PublishGroupResponse())
+  ;
+  $async.Future<ImportGroupFromTxidResponse> importGroupFromTxid($pb.ClientContext? ctx, ImportGroupFromTxidRequest request) =>
+    _client.invoke<ImportGroupFromTxidResponse>(ctx, 'MultisigLoungeService', 'ImportGroupFromTxid', request, ImportGroupFromTxidResponse())
   ;
 }
 

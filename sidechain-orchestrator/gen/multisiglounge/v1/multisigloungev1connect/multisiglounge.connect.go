@@ -39,6 +39,12 @@ const (
 	// MultisigLoungeServiceValidatePsbtProcedure is the fully-qualified name of the
 	// MultisigLoungeService's ValidatePsbt RPC.
 	MultisigLoungeServiceValidatePsbtProcedure = "/multisiglounge.v1.MultisigLoungeService/ValidatePsbt"
+	// MultisigLoungeServicePublishGroupProcedure is the fully-qualified name of the
+	// MultisigLoungeService's PublishGroup RPC.
+	MultisigLoungeServicePublishGroupProcedure = "/multisiglounge.v1.MultisigLoungeService/PublishGroup"
+	// MultisigLoungeServiceImportGroupFromTxidProcedure is the fully-qualified name of the
+	// MultisigLoungeService's ImportGroupFromTxid RPC.
+	MultisigLoungeServiceImportGroupFromTxidProcedure = "/multisiglounge.v1.MultisigLoungeService/ImportGroupFromTxid"
 )
 
 // MultisigLoungeServiceClient is a client for the multisiglounge.v1.MultisigLoungeService service.
@@ -50,6 +56,13 @@ type MultisigLoungeServiceClient interface {
 	// group is supplied, inputs whose script does not belong to the group's
 	// descriptor are rejected.
 	ValidatePsbt(context.Context, *connect.Request[v1.ValidatePsbtRequest]) (*connect.Response[v1.ValidatePsbtResponse], error)
+	// PublishGroup encodes a multisig group as an OP_RETURN payload (the
+	// BitWindow wire format) and broadcasts it, funding a fresh own address.
+	// Returns the broadcast txid.
+	PublishGroup(context.Context, *connect.Request[v1.PublishGroupRequest]) (*connect.Response[v1.PublishGroupResponse], error)
+	// ImportGroupFromTxid fetches the OP_RETURN at the given txid, decodes the
+	// multisig group, and reports which of the group's keys belong to the wallet.
+	ImportGroupFromTxid(context.Context, *connect.Request[v1.ImportGroupFromTxidRequest]) (*connect.Response[v1.ImportGroupFromTxidResponse], error)
 }
 
 // NewMultisigLoungeServiceClient constructs a client for the
@@ -75,13 +88,27 @@ func NewMultisigLoungeServiceClient(httpClient connect.HTTPClient, baseURL strin
 			connect.WithSchema(multisigLoungeServiceMethods.ByName("ValidatePsbt")),
 			connect.WithClientOptions(opts...),
 		),
+		publishGroup: connect.NewClient[v1.PublishGroupRequest, v1.PublishGroupResponse](
+			httpClient,
+			baseURL+MultisigLoungeServicePublishGroupProcedure,
+			connect.WithSchema(multisigLoungeServiceMethods.ByName("PublishGroup")),
+			connect.WithClientOptions(opts...),
+		),
+		importGroupFromTxid: connect.NewClient[v1.ImportGroupFromTxidRequest, v1.ImportGroupFromTxidResponse](
+			httpClient,
+			baseURL+MultisigLoungeServiceImportGroupFromTxidProcedure,
+			connect.WithSchema(multisigLoungeServiceMethods.ByName("ImportGroupFromTxid")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
 // multisigLoungeServiceClient implements MultisigLoungeServiceClient.
 type multisigLoungeServiceClient struct {
-	buildDescriptors *connect.Client[v1.BuildDescriptorsRequest, v1.BuildDescriptorsResponse]
-	validatePsbt     *connect.Client[v1.ValidatePsbtRequest, v1.ValidatePsbtResponse]
+	buildDescriptors    *connect.Client[v1.BuildDescriptorsRequest, v1.BuildDescriptorsResponse]
+	validatePsbt        *connect.Client[v1.ValidatePsbtRequest, v1.ValidatePsbtResponse]
+	publishGroup        *connect.Client[v1.PublishGroupRequest, v1.PublishGroupResponse]
+	importGroupFromTxid *connect.Client[v1.ImportGroupFromTxidRequest, v1.ImportGroupFromTxidResponse]
 }
 
 // BuildDescriptors calls multisiglounge.v1.MultisigLoungeService.BuildDescriptors.
@@ -94,6 +121,16 @@ func (c *multisigLoungeServiceClient) ValidatePsbt(ctx context.Context, req *con
 	return c.validatePsbt.CallUnary(ctx, req)
 }
 
+// PublishGroup calls multisiglounge.v1.MultisigLoungeService.PublishGroup.
+func (c *multisigLoungeServiceClient) PublishGroup(ctx context.Context, req *connect.Request[v1.PublishGroupRequest]) (*connect.Response[v1.PublishGroupResponse], error) {
+	return c.publishGroup.CallUnary(ctx, req)
+}
+
+// ImportGroupFromTxid calls multisiglounge.v1.MultisigLoungeService.ImportGroupFromTxid.
+func (c *multisigLoungeServiceClient) ImportGroupFromTxid(ctx context.Context, req *connect.Request[v1.ImportGroupFromTxidRequest]) (*connect.Response[v1.ImportGroupFromTxidResponse], error) {
+	return c.importGroupFromTxid.CallUnary(ctx, req)
+}
+
 // MultisigLoungeServiceHandler is an implementation of the multisiglounge.v1.MultisigLoungeService
 // service.
 type MultisigLoungeServiceHandler interface {
@@ -104,6 +141,13 @@ type MultisigLoungeServiceHandler interface {
 	// group is supplied, inputs whose script does not belong to the group's
 	// descriptor are rejected.
 	ValidatePsbt(context.Context, *connect.Request[v1.ValidatePsbtRequest]) (*connect.Response[v1.ValidatePsbtResponse], error)
+	// PublishGroup encodes a multisig group as an OP_RETURN payload (the
+	// BitWindow wire format) and broadcasts it, funding a fresh own address.
+	// Returns the broadcast txid.
+	PublishGroup(context.Context, *connect.Request[v1.PublishGroupRequest]) (*connect.Response[v1.PublishGroupResponse], error)
+	// ImportGroupFromTxid fetches the OP_RETURN at the given txid, decodes the
+	// multisig group, and reports which of the group's keys belong to the wallet.
+	ImportGroupFromTxid(context.Context, *connect.Request[v1.ImportGroupFromTxidRequest]) (*connect.Response[v1.ImportGroupFromTxidResponse], error)
 }
 
 // NewMultisigLoungeServiceHandler builds an HTTP handler from the service implementation. It
@@ -125,12 +169,28 @@ func NewMultisigLoungeServiceHandler(svc MultisigLoungeServiceHandler, opts ...c
 		connect.WithSchema(multisigLoungeServiceMethods.ByName("ValidatePsbt")),
 		connect.WithHandlerOptions(opts...),
 	)
+	multisigLoungeServicePublishGroupHandler := connect.NewUnaryHandler(
+		MultisigLoungeServicePublishGroupProcedure,
+		svc.PublishGroup,
+		connect.WithSchema(multisigLoungeServiceMethods.ByName("PublishGroup")),
+		connect.WithHandlerOptions(opts...),
+	)
+	multisigLoungeServiceImportGroupFromTxidHandler := connect.NewUnaryHandler(
+		MultisigLoungeServiceImportGroupFromTxidProcedure,
+		svc.ImportGroupFromTxid,
+		connect.WithSchema(multisigLoungeServiceMethods.ByName("ImportGroupFromTxid")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/multisiglounge.v1.MultisigLoungeService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case MultisigLoungeServiceBuildDescriptorsProcedure:
 			multisigLoungeServiceBuildDescriptorsHandler.ServeHTTP(w, r)
 		case MultisigLoungeServiceValidatePsbtProcedure:
 			multisigLoungeServiceValidatePsbtHandler.ServeHTTP(w, r)
+		case MultisigLoungeServicePublishGroupProcedure:
+			multisigLoungeServicePublishGroupHandler.ServeHTTP(w, r)
+		case MultisigLoungeServiceImportGroupFromTxidProcedure:
+			multisigLoungeServiceImportGroupFromTxidHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -146,4 +206,12 @@ func (UnimplementedMultisigLoungeServiceHandler) BuildDescriptors(context.Contex
 
 func (UnimplementedMultisigLoungeServiceHandler) ValidatePsbt(context.Context, *connect.Request[v1.ValidatePsbtRequest]) (*connect.Response[v1.ValidatePsbtResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("multisiglounge.v1.MultisigLoungeService.ValidatePsbt is not implemented"))
+}
+
+func (UnimplementedMultisigLoungeServiceHandler) PublishGroup(context.Context, *connect.Request[v1.PublishGroupRequest]) (*connect.Response[v1.PublishGroupResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("multisiglounge.v1.MultisigLoungeService.PublishGroup is not implemented"))
+}
+
+func (UnimplementedMultisigLoungeServiceHandler) ImportGroupFromTxid(context.Context, *connect.Request[v1.ImportGroupFromTxidRequest]) (*connect.Response[v1.ImportGroupFromTxidResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("multisiglounge.v1.MultisigLoungeService.ImportGroupFromTxid is not implemented"))
 }

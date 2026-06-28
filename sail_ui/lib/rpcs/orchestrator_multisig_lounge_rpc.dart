@@ -3,7 +3,8 @@ import 'package:sail_ui/gen/multisiglounge/v1/multisiglounge.connect.client.dart
 import 'package:sail_ui/gen/multisiglounge/v1/multisiglounge.pb.dart' as mlpb;
 
 /// Wallet-multisig-lounge RPCs backed by orchestrator MultisigLoungeService:
-/// watch-only descriptor building and PSBT validation. Pure stateless logic.
+/// watch-only descriptor building, PSBT validation, and OP_RETURN group
+/// publish/import.
 class OrchestratorMultisigLoungeRPC {
   late MultisigLoungeServiceClient _client;
 
@@ -27,5 +28,19 @@ class OrchestratorMultisigLoungeRPC {
         group: group,
       ),
     );
+  }
+
+  Future<mlpb.PublishGroupResponse> publishGroup({
+    required mlpb.GroupData group,
+    required String walletId,
+  }) {
+    return _client.publishGroup(mlpb.PublishGroupRequest(group: group, walletId: walletId));
+  }
+
+  Future<mlpb.ImportGroupFromTxidResponse> importGroupFromTxid({
+    required String txid,
+    required String walletId,
+  }) {
+    return _client.importGroupFromTxid(mlpb.ImportGroupFromTxidRequest(txid: txid, walletId: walletId));
   }
 }

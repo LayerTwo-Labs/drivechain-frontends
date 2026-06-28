@@ -14,6 +14,66 @@ service MultisigLoungeService {
   // group is supplied, inputs whose script does not belong to the group's
   // descriptor are rejected.
   rpc ValidatePsbt(ValidatePsbtRequest) returns (ValidatePsbtResponse);
+
+  // PublishGroup encodes a multisig group as an OP_RETURN payload (the
+  // BitWindow wire format) and broadcasts it, funding a fresh own address.
+  // Returns the broadcast txid.
+  rpc PublishGroup(PublishGroupRequest) returns (PublishGroupResponse);
+
+  // ImportGroupFromTxid fetches the OP_RETURN at the given txid, decodes the
+  // multisig group, and reports which of the group's keys belong to the wallet.
+  rpc ImportGroupFromTxid(ImportGroupFromTxidRequest) returns (ImportGroupFromTxidResponse);
+}
+
+// GroupKey is one cosigner key with the full metadata carried in the published
+// OP_RETURN group JSON.
+message GroupKey {
+  string owner = 1;
+  string xpub = 2;
+  // Full BIP32 derivation path, e.g. "m/48'/1'/0'/2'".
+  string derivation_path = 3;
+  // Master key fingerprint, 8 hex chars. Empty for non-wallet keys.
+  string fingerprint = 4;
+  // Origin path without the leading "m/". Empty for non-wallet keys.
+  string origin_path = 5;
+  bool is_wallet = 6;
+}
+
+// GroupData is a full multisig group as published in an OP_RETURN.
+message GroupData {
+  string id = 1;
+  string name = 2;
+  uint32 n = 3;
+  uint32 m = 4;
+  repeated GroupKey keys = 5;
+  // Creation time, milliseconds since epoch (matches the Dart 'created' field).
+  int64 created = 6;
+  string descriptor_receive = 7;
+  string descriptor_change = 8;
+  string watch_wallet_name = 9;
+  string txid = 10;
+}
+
+message PublishGroupRequest {
+  GroupData group = 1;
+  // Wallet that funds the broadcast and provides the fresh address.
+  string wallet_id = 2;
+}
+
+message PublishGroupResponse {
+  string txid = 1;
+}
+
+message ImportGroupFromTxidRequest {
+  string txid = 1;
+  // Wallet whose keys are matched against the group's cosigners.
+  string wallet_id = 2;
+}
+
+message ImportGroupFromTxidResponse {
+  GroupData group = 1;
+  // Indices into group.keys that belong to the wallet (derived xpub matches).
+  repeated uint32 wallet_key_indices = 2;
 }
 
 // MultisigKey is one cosigner key in a group.

@@ -23,11 +23,15 @@ export 'multisiglounge.pb.dart';
 abstract class MultisigLoungeServiceBase extends $pb.GeneratedService {
   $async.Future<$3.BuildDescriptorsResponse> buildDescriptors($pb.ServerContext ctx, $3.BuildDescriptorsRequest request);
   $async.Future<$3.ValidatePsbtResponse> validatePsbt($pb.ServerContext ctx, $3.ValidatePsbtRequest request);
+  $async.Future<$3.PublishGroupResponse> publishGroup($pb.ServerContext ctx, $3.PublishGroupRequest request);
+  $async.Future<$3.ImportGroupFromTxidResponse> importGroupFromTxid($pb.ServerContext ctx, $3.ImportGroupFromTxidRequest request);
 
   $pb.GeneratedMessage createRequest($core.String methodName) {
     switch (methodName) {
       case 'BuildDescriptors': return $3.BuildDescriptorsRequest();
       case 'ValidatePsbt': return $3.ValidatePsbtRequest();
+      case 'PublishGroup': return $3.PublishGroupRequest();
+      case 'ImportGroupFromTxid': return $3.ImportGroupFromTxidRequest();
       default: throw $core.ArgumentError('Unknown method: $methodName');
     }
   }
@@ -36,6 +40,8 @@ abstract class MultisigLoungeServiceBase extends $pb.GeneratedService {
     switch (methodName) {
       case 'BuildDescriptors': return this.buildDescriptors(ctx, request as $3.BuildDescriptorsRequest);
       case 'ValidatePsbt': return this.validatePsbt(ctx, request as $3.ValidatePsbtRequest);
+      case 'PublishGroup': return this.publishGroup(ctx, request as $3.PublishGroupRequest);
+      case 'ImportGroupFromTxid': return this.importGroupFromTxid(ctx, request as $3.ImportGroupFromTxidRequest);
       default: throw $core.ArgumentError('Unknown method: $methodName');
     }
   }

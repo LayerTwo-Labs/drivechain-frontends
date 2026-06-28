@@ -279,6 +279,9 @@ func run(cctx *cli.Context) error {
 	walletHandler.SetOrchestrator(orch)
 	walletHandler.SetBip47StateStore(bip47state.NewStore(bitwindowDir))
 
+	multisigLoungeHandler := api.NewMultisigLoungeHandler()
+	multisigLoungeHandler.SetService(walletSvc)
+
 	// Wallet derivation must follow the resolved/persisted network: bitwindow-
 	// bitcoin.conf wins over the --network flag (orchestratord is usually
 	// launched without --network). Using the raw flag derives signet/testnet
@@ -367,6 +370,7 @@ func run(cctx *cli.Context) error {
 	router := wallet.NewBackendRouter(walletSvc, enforcerBackend, chainBackend, electrumBackend)
 	walletEngine := wallet.NewWalletEngine(walletSvc, router, netParams, log)
 	walletHandler.SetEngine(walletEngine)
+	multisigLoungeHandler.SetEngine(walletEngine)
 
 	if chainBackend != nil {
 		// Fork engine: single source of truth for eCash fork state, needs
@@ -392,7 +396,7 @@ func run(cctx *cli.Context) error {
 	walletPath, walletH := walletrpc.NewWalletManagerServiceHandler(walletHandler, connect.WithInterceptors(authIC))
 	mux.Handle(walletPath, walletH)
 
-	multisigLoungePath, multisigLoungeH := multisigloungerpc.NewMultisigLoungeServiceHandler(api.NewMultisigLoungeHandler(), connect.WithInterceptors(authIC))
+	multisigLoungePath, multisigLoungeH := multisigloungerpc.NewMultisigLoungeServiceHandler(multisigLoungeHandler, connect.WithInterceptors(authIC))
 	mux.Handle(multisigLoungePath, multisigLoungeH)
 
 	// Bitcoin config service
