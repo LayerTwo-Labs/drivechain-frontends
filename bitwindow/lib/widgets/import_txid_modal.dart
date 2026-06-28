@@ -132,6 +132,8 @@ class ImportTxidModalViewModel extends BaseViewModel {
   final BitwindowRPC _api = GetIt.I.get<BitwindowRPC>();
   final HDWalletProvider _hdWallet = GetIt.I.get<HDWalletProvider>();
   Logger get _logger => GetIt.I.get<Logger>();
+  OrchestratorMultisigLoungeRPC get _multisigLounge => GetIt.I.get<OrchestratorRPC>().multisigLounge;
+  WalletReaderProvider get _walletReader => GetIt.I<WalletReaderProvider>();
 
   final txidController = TextEditingController();
   String? modalError;
@@ -143,14 +145,6 @@ class ImportTxidModalViewModel extends BaseViewModel {
       notifyListeners();
     };
     txidController.addListener(_textListener);
-  }
-
-  Future<void> _createWatchWallet(String walletName, String descriptorReceive, String descriptorChange) async {
-    try {
-      await MultisigStorage.createMultisigWallet(walletName, descriptorReceive, descriptorChange);
-    } catch (e) {
-      throw Exception('Failed to create watch wallet: $e');
-    }
   }
 
   @override
@@ -267,8 +261,13 @@ class ImportTxidModalViewModel extends BaseViewModel {
           orElse: () => throw Exception('Group not found after import'),
         );
 
-        if (group.descriptorReceive != null && group.descriptorChange != null && group.watchWalletName != null) {
-          await _createWatchWallet(group.watchWalletName!, group.descriptorReceive!, group.descriptorChange!);
+        // Rebuild the watch wallet from the group's KEYS (server SyncGroup ->
+        // ensureWatchWallet uses the standard descriptors), not the descriptor
+        // baked into the OP_RETURN — a legacy group carries the old buggy
+        // single-key-ranged descriptor, which would create the wrong wallet.
+        final walletId = _walletReader.activeWalletId;
+        if (walletId != null) {
+          await _multisigLounge.syncGroup(group: multisigGroupToProto(group), walletId: walletId);
         }
 
         loadingStatus = 'Restoring transaction history...';
