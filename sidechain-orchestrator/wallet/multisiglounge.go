@@ -48,11 +48,10 @@ func sortKeysByBIP67(keys []MultisigLoungeKey) []MultisigLoungeKey {
 }
 
 // BuildMultisigLoungeDescriptors builds the receive (/0/*) and change (/1/*)
-// watch-only wsh(sortedmulti) descriptors with checksums, byte-identical to the
-// Dart MultisigDescriptorBuilder.buildWatchOnlyDescriptors output.
-//
-// The derivation suffix is appended once to the joined key list — matching the
-// Dart string assembly exactly — so only the final key carries /0/* (resp. /1/*).
+// watch-only wsh(sortedmulti) descriptors with checksums, in standard form: the
+// range suffix is appended to EACH key after the BIP67
+// (xpub-string) sort, so every cosigner ranges over the same chain/index. This
+// must derive the same address set as the signing descriptor, or spends break.
 func BuildMultisigLoungeDescriptors(g MultisigLoungeGroup) (receive, change string, err error) {
 	if g.M < 1 {
 		return "", "", fmt.Errorf("invalid threshold m=%d", g.M)
@@ -62,17 +61,18 @@ func BuildMultisigLoungeDescriptors(g MultisigLoungeGroup) (receive, change stri
 	}
 
 	sorted := sortKeysByBIP67(g.Keys)
-	parts := make([]string, len(sorted))
+	receiveParts := make([]string, len(sorted))
+	changeParts := make([]string, len(sorted))
 	for i, k := range sorted {
 		if k.Xpub == "" {
 			return "", "", fmt.Errorf("key %d has empty xpub", i)
 		}
-		parts[i] = k.keyDescriptor()
+		receiveParts[i] = k.keyDescriptor() + "/0/*"
+		changeParts[i] = k.keyDescriptor() + "/1/*"
 	}
-	joined := strings.Join(parts, ",")
 
-	receiveBody := fmt.Sprintf("wsh(sortedmulti(%d,%s/0/*))", g.M, joined)
-	changeBody := fmt.Sprintf("wsh(sortedmulti(%d,%s/1/*))", g.M, joined)
+	receiveBody := fmt.Sprintf("wsh(sortedmulti(%d,%s))", g.M, strings.Join(receiveParts, ","))
+	changeBody := fmt.Sprintf("wsh(sortedmulti(%d,%s))", g.M, strings.Join(changeParts, ","))
 
 	receive, err = AddDescriptorChecksum(receiveBody)
 	if err != nil {
