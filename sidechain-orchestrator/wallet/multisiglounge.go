@@ -85,6 +85,56 @@ func BuildMultisigLoungeDescriptors(g MultisigLoungeGroup) (receive, change stri
 	return receive, change, nil
 }
 
+// BuildMultisigSigningDescriptors builds the receive (/0/*) and change (/1/*)
+// signing descriptors: identical to the watch-only descriptors except the
+// wallet-owned keys carry their account xprv (signWithXprv keyed by xpub) in
+// place of the xpub, so bitcoind descriptorprocesspsbt can sign with them. The
+// BIP67 ordering is still by xpub string, so the key order — and therefore the
+// derived address set — is byte-identical to the watch-only descriptor. A
+// descriptor whose signing keys are NOT a prefix-consistent substitution would
+// derive different addresses and produce signatures for the wrong scripts; the
+// Phase-1 receive==sign deriveaddresses test guards this invariant.
+//
+// signWithXprv maps a key's xpub to the xprv to substitute. Keys absent from the
+// map keep their xpub (cosigners). Descriptors carry no checksum — bitcoind
+// accepts unchecksummed descriptors and adds its own.
+func BuildMultisigSigningDescriptors(g MultisigLoungeGroup, signWithXprv map[string]string) (receive, change string, err error) {
+	if g.M < 1 {
+		return "", "", fmt.Errorf("invalid threshold m=%d", g.M)
+	}
+	if len(g.Keys) == 0 {
+		return "", "", errors.New("group has no keys")
+	}
+	if len(signWithXprv) == 0 {
+		return "", "", errors.New("no signing keys provided")
+	}
+
+	sorted := sortKeysByBIP67(g.Keys)
+	receiveParts := make([]string, len(sorted))
+	changeParts := make([]string, len(sorted))
+	substituted := 0
+	for i, k := range sorted {
+		if k.Xpub == "" {
+			return "", "", fmt.Errorf("key %d has empty xpub", i)
+		}
+		expr := k.keyDescriptor()
+		if xprv, ok := signWithXprv[k.Xpub]; ok && xprv != "" {
+			// Substitute the xprv for the xpub, preserving any [fp/origin] prefix.
+			expr = strings.Replace(expr, k.Xpub, xprv, 1)
+			substituted++
+		}
+		receiveParts[i] = expr + "/0/*"
+		changeParts[i] = expr + "/1/*"
+	}
+	if substituted == 0 {
+		return "", "", errors.New("none of the signing keys matched a group key")
+	}
+
+	receive = fmt.Sprintf("wsh(sortedmulti(%d,%s))", g.M, strings.Join(receiveParts, ","))
+	change = fmt.Sprintf("wsh(sortedmulti(%d,%s))", g.M, strings.Join(changeParts, ","))
+	return receive, change, nil
+}
+
 // MultisigPsbtValidation reports a PSBT's signature progress.
 type MultisigPsbtValidation struct {
 	HasSignatures  bool

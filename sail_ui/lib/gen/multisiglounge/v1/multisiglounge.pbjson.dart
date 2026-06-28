@@ -13,6 +13,64 @@ import 'dart:convert' as $convert;
 import 'dart:core' as $core;
 import 'dart:typed_data' as $typed_data;
 
+@$core.Deprecated('Use signTransactionRequestDescriptor instead')
+const SignTransactionRequest$json = {
+  '1': 'SignTransactionRequest',
+  '2': [
+    {'1': 'psbt_base64', '3': 1, '4': 1, '5': 9, '10': 'psbtBase64'},
+    {'1': 'group', '3': 2, '4': 1, '5': 11, '6': '.multisiglounge.v1.GroupData', '10': 'group'},
+    {'1': 'wallet_id', '3': 3, '4': 1, '5': 9, '10': 'walletId'},
+  ],
+};
+
+/// Descriptor for `SignTransactionRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List signTransactionRequestDescriptor = $convert.base64Decode(
+    'ChZTaWduVHJhbnNhY3Rpb25SZXF1ZXN0Eh8KC3BzYnRfYmFzZTY0GAEgASgJUgpwc2J0QmFzZT'
+    'Y0EjIKBWdyb3VwGAIgASgLMhwubXVsdGlzaWdsb3VuZ2UudjEuR3JvdXBEYXRhUgVncm91cBIb'
+    'Cgl3YWxsZXRfaWQYAyABKAlSCHdhbGxldElk');
+
+@$core.Deprecated('Use signTransactionResponseDescriptor instead')
+const SignTransactionResponse$json = {
+  '1': 'SignTransactionResponse',
+  '2': [
+    {'1': 'psbt_base64', '3': 1, '4': 1, '5': 9, '10': 'psbtBase64'},
+    {'1': 'added_signatures', '3': 2, '4': 1, '5': 13, '10': 'addedSignatures'},
+    {'1': 'is_complete', '3': 3, '4': 1, '5': 8, '10': 'isComplete'},
+  ],
+};
+
+/// Descriptor for `SignTransactionResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List signTransactionResponseDescriptor = $convert.base64Decode(
+    'ChdTaWduVHJhbnNhY3Rpb25SZXNwb25zZRIfCgtwc2J0X2Jhc2U2NBgBIAEoCVIKcHNidEJhc2'
+    'U2NBIpChBhZGRlZF9zaWduYXR1cmVzGAIgASgNUg9hZGRlZFNpZ25hdHVyZXMSHwoLaXNfY29t'
+    'cGxldGUYAyABKAhSCmlzQ29tcGxldGU=');
+
+@$core.Deprecated('Use combineAndBroadcastRequestDescriptor instead')
+const CombineAndBroadcastRequest$json = {
+  '1': 'CombineAndBroadcastRequest',
+  '2': [
+    {'1': 'psbts', '3': 1, '4': 3, '5': 9, '10': 'psbts'},
+    {'1': 'group', '3': 2, '4': 1, '5': 11, '6': '.multisiglounge.v1.GroupData', '10': 'group'},
+  ],
+};
+
+/// Descriptor for `CombineAndBroadcastRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List combineAndBroadcastRequestDescriptor = $convert.base64Decode(
+    'ChpDb21iaW5lQW5kQnJvYWRjYXN0UmVxdWVzdBIUCgVwc2J0cxgBIAMoCVIFcHNidHMSMgoFZ3'
+    'JvdXAYAiABKAsyHC5tdWx0aXNpZ2xvdW5nZS52MS5Hcm91cERhdGFSBWdyb3Vw');
+
+@$core.Deprecated('Use combineAndBroadcastResponseDescriptor instead')
+const CombineAndBroadcastResponse$json = {
+  '1': 'CombineAndBroadcastResponse',
+  '2': [
+    {'1': 'txid', '3': 1, '4': 1, '5': 9, '10': 'txid'},
+  ],
+};
+
+/// Descriptor for `CombineAndBroadcastResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List combineAndBroadcastResponseDescriptor = $convert.base64Decode(
+    'ChtDb21iaW5lQW5kQnJvYWRjYXN0UmVzcG9uc2USEgoEdHhpZBgBIAEoCVIEdHhpZA==');
+
 @$core.Deprecated('Use groupKeyDescriptor instead')
 const GroupKey$json = {
   '1': 'GroupKey',
@@ -218,6 +276,8 @@ const $core.Map<$core.String, $core.dynamic> MultisigLoungeServiceBase$json = {
     {'1': 'ValidatePsbt', '2': '.multisiglounge.v1.ValidatePsbtRequest', '3': '.multisiglounge.v1.ValidatePsbtResponse'},
     {'1': 'PublishGroup', '2': '.multisiglounge.v1.PublishGroupRequest', '3': '.multisiglounge.v1.PublishGroupResponse'},
     {'1': 'ImportGroupFromTxid', '2': '.multisiglounge.v1.ImportGroupFromTxidRequest', '3': '.multisiglounge.v1.ImportGroupFromTxidResponse'},
+    {'1': 'SignTransaction', '2': '.multisiglounge.v1.SignTransactionRequest', '3': '.multisiglounge.v1.SignTransactionResponse'},
+    {'1': 'CombineAndBroadcast', '2': '.multisiglounge.v1.CombineAndBroadcastRequest', '3': '.multisiglounge.v1.CombineAndBroadcastResponse'},
   ],
 };
 
@@ -235,6 +295,10 @@ const $core.Map<$core.String, $core.Map<$core.String, $core.dynamic>> MultisigLo
   '.multisiglounge.v1.PublishGroupResponse': PublishGroupResponse$json,
   '.multisiglounge.v1.ImportGroupFromTxidRequest': ImportGroupFromTxidRequest$json,
   '.multisiglounge.v1.ImportGroupFromTxidResponse': ImportGroupFromTxidResponse$json,
+  '.multisiglounge.v1.SignTransactionRequest': SignTransactionRequest$json,
+  '.multisiglounge.v1.SignTransactionResponse': SignTransactionResponse$json,
+  '.multisiglounge.v1.CombineAndBroadcastRequest': CombineAndBroadcastRequest$json,
+  '.multisiglounge.v1.CombineAndBroadcastResponse': CombineAndBroadcastResponse$json,
 };
 
 /// Descriptor for `MultisigLoungeService`. Decode as a `google.protobuf.ServiceDescriptorProto`.
@@ -246,5 +310,10 @@ final $typed_data.Uint8List multisigLoungeServiceDescriptor = $convert.base64Dec
     'ZXNwb25zZRJfCgxQdWJsaXNoR3JvdXASJi5tdWx0aXNpZ2xvdW5nZS52MS5QdWJsaXNoR3JvdX'
     'BSZXF1ZXN0GicubXVsdGlzaWdsb3VuZ2UudjEuUHVibGlzaEdyb3VwUmVzcG9uc2USdAoTSW1w'
     'b3J0R3JvdXBGcm9tVHhpZBItLm11bHRpc2lnbG91bmdlLnYxLkltcG9ydEdyb3VwRnJvbVR4aW'
-    'RSZXF1ZXN0Gi4ubXVsdGlzaWdsb3VuZ2UudjEuSW1wb3J0R3JvdXBGcm9tVHhpZFJlc3BvbnNl');
+    'RSZXF1ZXN0Gi4ubXVsdGlzaWdsb3VuZ2UudjEuSW1wb3J0R3JvdXBGcm9tVHhpZFJlc3BvbnNl'
+    'EmgKD1NpZ25UcmFuc2FjdGlvbhIpLm11bHRpc2lnbG91bmdlLnYxLlNpZ25UcmFuc2FjdGlvbl'
+    'JlcXVlc3QaKi5tdWx0aXNpZ2xvdW5nZS52MS5TaWduVHJhbnNhY3Rpb25SZXNwb25zZRJ0ChND'
+    'b21iaW5lQW5kQnJvYWRjYXN0Ei0ubXVsdGlzaWdsb3VuZ2UudjEuQ29tYmluZUFuZEJyb2FkY2'
+    'FzdFJlcXVlc3QaLi5tdWx0aXNpZ2xvdW5nZS52MS5Db21iaW5lQW5kQnJvYWRjYXN0UmVzcG9u'
+    'c2U=');
 

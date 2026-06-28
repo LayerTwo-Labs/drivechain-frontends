@@ -50,4 +50,24 @@ abstract final class MultisigLoungeService {
     multisigloungev1multisiglounge.ImportGroupFromTxidRequest.new,
     multisigloungev1multisiglounge.ImportGroupFromTxidResponse.new,
   );
+
+  /// SignTransaction adds the wallet's signature(s) to a multisig PSBT,
+  /// deriving the wallet's keys server-side from its seed. The PSBT must belong
+  /// to the group (foreign inputs are rejected).
+  static const signTransaction = connect.Spec(
+    '/$name/SignTransaction',
+    connect.StreamType.unary,
+    multisigloungev1multisiglounge.SignTransactionRequest.new,
+    multisigloungev1multisiglounge.SignTransactionResponse.new,
+  );
+
+  /// CombineAndBroadcast merges partial PSBTs, finalizes, and broadcasts — but
+  /// only if the combined PSBT reaches the threshold. A non-finalizable PSBT is
+  /// never broadcast.
+  static const combineAndBroadcast = connect.Spec(
+    '/$name/CombineAndBroadcast',
+    connect.StreamType.unary,
+    multisigloungev1multisiglounge.CombineAndBroadcastRequest.new,
+    multisigloungev1multisiglounge.CombineAndBroadcastResponse.new,
+  );
 }

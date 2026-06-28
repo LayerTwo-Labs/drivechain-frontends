@@ -43,4 +43,23 @@ class OrchestratorMultisigLoungeRPC {
   }) {
     return _client.importGroupFromTxid(mlpb.ImportGroupFromTxidRequest(txid: txid, walletId: walletId));
   }
+
+  Future<mlpb.SignTransactionResponse> signTransaction({
+    required String psbtBase64,
+    required mlpb.GroupData group,
+    required String walletId,
+  }) {
+    return _client.signTransaction(
+      mlpb.SignTransactionRequest(psbtBase64: psbtBase64, group: group, walletId: walletId),
+    );
+  }
+
+  Future<mlpb.CombineAndBroadcastResponse> combineAndBroadcast({
+    required List<String> psbts,
+    required mlpb.GroupData group,
+  }) {
+    return _client.combineAndBroadcast(
+      mlpb.CombineAndBroadcastRequest(psbts: psbts, group: group),
+    );
+  }
 }

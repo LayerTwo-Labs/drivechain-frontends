@@ -88,4 +88,44 @@ extension type MultisigLoungeServiceClient (connect.Transport _transport) {
       onTrailer: onTrailer,
     );
   }
+
+  /// SignTransaction adds the wallet's signature(s) to a multisig PSBT,
+  /// deriving the wallet's keys server-side from its seed. The PSBT must belong
+  /// to the group (foreign inputs are rejected).
+  Future<multisigloungev1multisiglounge.SignTransactionResponse> signTransaction(
+    multisigloungev1multisiglounge.SignTransactionRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.MultisigLoungeService.signTransaction,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
+  /// CombineAndBroadcast merges partial PSBTs, finalizes, and broadcasts — but
+  /// only if the combined PSBT reaches the threshold. A non-finalizable PSBT is
+  /// never broadcast.
+  Future<multisigloungev1multisiglounge.CombineAndBroadcastResponse> combineAndBroadcast(
+    multisigloungev1multisiglounge.CombineAndBroadcastRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.MultisigLoungeService.combineAndBroadcast,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
 }

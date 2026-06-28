@@ -2,7 +2,6 @@ import 'dart:async';
 
 import 'package:bitwindow/models/multisig_group.dart';
 import 'package:bitwindow/models/multisig_transaction.dart';
-import 'package:bitwindow/providers/hd_wallet_provider.dart';
 import 'package:bitwindow/widgets/create_multisig_modal.dart';
 import 'package:fixnum/fixnum.dart';
 import 'package:flutter/foundation.dart';
@@ -28,6 +27,32 @@ mlpb.MultisigGroup _groupToLoungeProto(MultisigGroup group) {
         isWallet: k.isWallet,
       ),
     ),
+  );
+}
+
+/// Builds the full GroupData wire message (with per-key derivation paths) used
+/// by sign/combine/publish RPCs.
+mlpb.GroupData multisigGroupToProto(MultisigGroup group) {
+  return mlpb.GroupData(
+    id: group.id,
+    name: group.name,
+    n: group.n,
+    m: group.m,
+    keys: group.keys.map(
+      (k) => mlpb.GroupKey(
+        owner: k.owner,
+        xpub: k.xpub,
+        derivationPath: k.derivationPath,
+        fingerprint: k.fingerprint ?? '',
+        originPath: k.originPath ?? '',
+        isWallet: k.isWallet,
+      ),
+    ),
+    created: Int64(group.created),
+    descriptorReceive: group.descriptorReceive ?? '',
+    descriptorChange: group.descriptorChange ?? '',
+    watchWalletName: group.watchWalletName ?? '',
+    txid: group.txid ?? '',
   );
 }
 
@@ -80,7 +105,10 @@ class TransactionStatusManager {
     const validTransitions = {
       TxStatus.needsSignatures: [TxStatus.awaitingSignedPSBTs, TxStatus.readyToCombine, TxStatus.voided],
       TxStatus.awaitingSignedPSBTs: [TxStatus.readyToCombine, TxStatus.voided],
-      TxStatus.readyToCombine: [TxStatus.readyForBroadcast, TxStatus.voided],
+      // Combine+finalize+broadcast is one atomic orchestrator call, so a
+      // readyToCombine tx jumps straight to broadcasted. readyForBroadcast stays
+      // reachable from the single-shot signing path (psbt coordinator).
+      TxStatus.readyToCombine: [TxStatus.broadcasted, TxStatus.readyForBroadcast, TxStatus.voided],
       TxStatus.readyForBroadcast: [TxStatus.broadcasted, TxStatus.voided],
       TxStatus.broadcasted: [TxStatus.confirmed, TxStatus.voided],
       TxStatus.confirmed: [TxStatus.completed],
@@ -388,45 +416,6 @@ class MultisigDescriptorBuilder {
       change: resp.changeDescriptor,
     );
   }
-
-  static Future<List<String>> buildSigningDescriptors(
-    MultisigGroup group,
-    MultisigKey signingKey,
-    String privateKeyXprv,
-    String fingerprint,
-  ) async {
-    final sortedKeys = _sortKeysByBIP67(group.keys);
-    final originPath = signingKey.derivationPath.startsWith('m/')
-        ? signingKey.derivationPath.substring(2)
-        : signingKey.derivationPath;
-
-    final receiveKeys = <String>[];
-    final changeKeys = <String>[];
-
-    for (final key in sortedKeys) {
-      if (key == signingKey) {
-        receiveKeys.add('[$fingerprint/$originPath]$privateKeyXprv/0/*');
-        changeKeys.add('[$fingerprint/$originPath]$privateKeyXprv/1/*');
-      } else {
-        final keyDesc = key.fingerprint != null && key.originPath != null
-            ? '[${key.fingerprint}/${key.originPath}]${key.xpub}'
-            : key.xpub;
-        receiveKeys.add('$keyDesc/0/*');
-        changeKeys.add('$keyDesc/1/*');
-      }
-    }
-
-    final receiveDesc = 'wsh(sortedmulti(${group.m},${receiveKeys.join(',')}))';
-    final changeDesc = 'wsh(sortedmulti(${group.m},${changeKeys.join(',')}))';
-
-    return [receiveDesc, changeDesc];
-  }
-
-  static List<MultisigKey> _sortKeysByBIP67(List<MultisigKey> keys) {
-    final sortedKeys = List<MultisigKey>.from(keys);
-    sortedKeys.sort((a, b) => a.xpub.compareTo(b.xpub));
-    return sortedKeys;
-  }
 }
 
 class MultisigDescriptors {
@@ -454,129 +443,32 @@ class SigningResult {
 }
 
 class MultisigRPCSigner {
-  final HDWalletProvider _hdWallet = GetIt.I.get<HDWalletProvider>();
+  WalletReaderProvider get _walletReader => GetIt.I<WalletReaderProvider>();
 
+  /// Signs a multisig PSBT server-side: the orchestrator derives the wallet's
+  /// keys from its seed, builds the signing descriptor, and runs
+  /// descriptorprocesspsbt. No mnemonic leaves the daemon.
   Future<SigningResult> signPSBT({
     required String psbtBase64,
     required MultisigGroup group,
-    required String mnemonic,
-    required List<MultisigKey> walletKeys,
-    bool isMainnet = false,
   }) async {
-    final errors = <String>[];
-
     try {
-      if (group.descriptorReceive == null || group.descriptorChange == null) {
-        throw Exception('Group missing descriptors - cannot sign');
-      }
+      final walletId = _walletReader.activeWalletId;
+      if (walletId == null) throw Exception('No active wallet');
 
-      final participantPSBTs = <String>[];
-      int totalSignaturesAdded = 0;
-
-      for (int i = 0; i < walletKeys.length; i++) {
-        final walletKey = walletKeys[i];
-
-        try {
-          final result = await _signWithParticipant(
-            walletKey: walletKey,
-            mnemonic: mnemonic,
-            psbtBase64: psbtBase64,
-            group: group,
-            isMainnet: isMainnet,
-          );
-
-          if (result != null) {
-            participantPSBTs.add(result.signedPsbt);
-            totalSignaturesAdded += result.signaturesAdded;
-          }
-        } catch (e) {
-          final error = 'Failed to sign with ${walletKey.owner}: $e';
-          errors.add(error);
-        }
-      }
-
-      if (participantPSBTs.isEmpty) {
-        throw Exception('No participants could sign the PSBT');
-      }
-
-      String finalPsbt;
-      if (participantPSBTs.length > 1) {
-        finalPsbt = await _coreRaw('combinepsbt', [participantPSBTs]) as String;
-      } else {
-        finalPsbt = participantPSBTs[0];
-      }
-
-      final isComplete = await PSBTValidator.isReadyForBroadcast(finalPsbt, group.m);
-
-      if (totalSignaturesAdded == 0 && participantPSBTs.isNotEmpty) {
-        errors.add('No signatures were added despite successful processing');
-      }
-
-      if (totalSignaturesAdded == 0 && participantPSBTs.isEmpty) {
-        throw Exception(
-          'No wallet keys were able to sign this transaction. Check that the keys match the multisig configuration.',
-        );
-      }
+      final resp = await _multisigLounge.signTransaction(
+        psbtBase64: psbtBase64,
+        group: multisigGroupToProto(group),
+        walletId: walletId,
+      );
 
       return SigningResult(
-        signedPsbt: finalPsbt,
-        isComplete: isComplete,
-        signaturesAdded: totalSignaturesAdded,
-        errors: errors,
+        signedPsbt: resp.psbtBase64,
+        isComplete: resp.isComplete,
+        signaturesAdded: resp.addedSignatures,
       );
     } catch (e) {
       throw Exception('Multisig PSBT signing failed: $e');
-    }
-  }
-
-  Future<SigningResult?> _signWithParticipant({
-    required MultisigKey walletKey,
-    required String mnemonic,
-    required String psbtBase64,
-    required MultisigGroup group,
-    required bool isMainnet,
-  }) async {
-    try {
-      final keyInfo = await _hdWallet.deriveExtendedKeyInfo(mnemonic, walletKey.derivationPath, isMainnet);
-      final xprv = keyInfo['xprv'];
-      final fingerprint = keyInfo['fingerprint'];
-
-      if (xprv == null || xprv.isEmpty) {
-        throw Exception('Failed to derive extended private key for ${walletKey.owner}');
-      }
-
-      final descriptors = await MultisigDescriptorBuilder.buildSigningDescriptors(
-        group,
-        walletKey,
-        xprv,
-        fingerprint!,
-      );
-
-      final result = await _coreRaw('descriptorprocesspsbt', [
-        psbtBase64,
-        descriptors,
-        'ALL',
-        true,
-        false,
-      ]);
-
-      if (result is Map) {
-        final signedPsbt = result['psbt'] as String;
-        final isComplete = result['complete'] as bool? ?? false;
-        final signaturesAdded =
-            await PSBTValidator.countSignatures(signedPsbt) - await PSBTValidator.countSignatures(psbtBase64);
-
-        return SigningResult(
-          signedPsbt: signedPsbt,
-          isComplete: isComplete,
-          signaturesAdded: signaturesAdded,
-          errors: [],
-        );
-      }
-
-      throw Exception('Invalid response from descriptorprocesspsbt');
-    } catch (e) {
-      rethrow;
     }
   }
 }

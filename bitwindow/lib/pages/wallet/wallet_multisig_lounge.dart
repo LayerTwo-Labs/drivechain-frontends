@@ -1589,30 +1589,9 @@ class MultisigLoungeViewModel extends BaseViewModel {
         return;
       }
 
-      if (_hdWalletProvider.mnemonic == null) {
-        await _hdWalletProvider.reinitialize();
-
-        if (_hdWalletProvider.mnemonic == null) {
-          throw Exception('HD wallet not initialized - no mnemonic available');
-        }
-      }
-
-      final mnemonic = _hdWalletProvider.mnemonic!;
-
-      final isMainnet = await bitcoindRpcCall('getblockchaininfo').then((info) {
-        if (info is Map) {
-          final chain = info['chain'] as String? ?? 'main';
-          return chain == 'main';
-        }
-        return false;
-      });
-
       final signingResult = await rpcSigner.signPSBT(
         psbtBase64: tx.initialPSBT,
         group: group,
-        mnemonic: mnemonic,
-        walletKeys: walletKeys,
-        isMainnet: isMainnet,
       );
 
       final ownedKeys = walletKeys.where((key) => key.isWallet).toList();

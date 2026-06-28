@@ -23,6 +23,43 @@ service MultisigLoungeService {
   // ImportGroupFromTxid fetches the OP_RETURN at the given txid, decodes the
   // multisig group, and reports which of the group's keys belong to the wallet.
   rpc ImportGroupFromTxid(ImportGroupFromTxidRequest) returns (ImportGroupFromTxidResponse);
+
+  // SignTransaction adds the wallet's signature(s) to a multisig PSBT,
+  // deriving the wallet's keys server-side from its seed. The PSBT must belong
+  // to the group (foreign inputs are rejected).
+  rpc SignTransaction(SignTransactionRequest) returns (SignTransactionResponse);
+
+  // CombineAndBroadcast merges partial PSBTs, finalizes, and broadcasts — but
+  // only if the combined PSBT reaches the threshold. A non-finalizable PSBT is
+  // never broadcast.
+  rpc CombineAndBroadcast(CombineAndBroadcastRequest) returns (CombineAndBroadcastResponse);
+}
+
+message SignTransactionRequest {
+  string psbt_base64 = 1;
+  // Full group (with per-key derivation paths) so the wallet's xprv can be
+  // derived and substituted into the signing descriptor.
+  GroupData group = 2;
+  // Wallet whose seed-derived keys sign the PSBT.
+  string wallet_id = 3;
+}
+
+message SignTransactionResponse {
+  string psbt_base64 = 1;
+  // Number of partial signatures this call added.
+  uint32 added_signatures = 2;
+  // True once the PSBT carries the threshold of signatures.
+  bool is_complete = 3;
+}
+
+message CombineAndBroadcastRequest {
+  repeated string psbts = 1;
+  // Full group, used to reject PSBTs that do not belong to it before combining.
+  GroupData group = 2;
+}
+
+message CombineAndBroadcastResponse {
+  string txid = 1;
 }
 
 // GroupKey is one cosigner key with the full metadata carried in the published

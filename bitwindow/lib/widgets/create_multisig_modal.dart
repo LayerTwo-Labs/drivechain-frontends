@@ -8,7 +8,6 @@ import 'package:bs58/bs58.dart';
 import 'package:convert/convert.dart';
 import 'package:crypto/crypto.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:fixnum/fixnum.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
@@ -16,30 +15,6 @@ import 'package:logger/logger.dart';
 import 'package:sail_ui/gen/multisiglounge/v1/multisiglounge.pb.dart' as mlpb;
 import 'package:sail_ui/sail_ui.dart';
 import 'package:stacked/stacked.dart';
-
-mlpb.GroupData _multisigGroupToProto(MultisigGroup group) {
-  return mlpb.GroupData(
-    id: group.id,
-    name: group.name,
-    n: group.n,
-    m: group.m,
-    keys: group.keys.map(
-      (k) => mlpb.GroupKey(
-        owner: k.owner,
-        xpub: k.xpub,
-        derivationPath: k.derivationPath,
-        fingerprint: k.fingerprint ?? '',
-        originPath: k.originPath ?? '',
-        isWallet: k.isWallet,
-      ),
-    ),
-    created: Int64(group.created),
-    descriptorReceive: group.descriptorReceive ?? '',
-    descriptorChange: group.descriptorChange ?? '',
-    watchWalletName: group.watchWalletName ?? '',
-    txid: group.txid ?? '',
-  );
-}
 
 MultisigKey _protoToMultisigKey(mlpb.GroupKey k, {required bool isWallet}) {
   return MultisigKey(
@@ -940,7 +915,7 @@ class CreateMultisigModalViewModel extends BaseViewModel {
       if (walletId == null) throw Exception('No active wallet');
 
       final resp = await _multisigLounge.publishGroup(
-        group: _multisigGroupToProto(group),
+        group: multisigGroupToProto(group),
         walletId: walletId,
       );
       return resp.txid;
