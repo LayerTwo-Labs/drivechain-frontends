@@ -465,6 +465,89 @@ func TestCoreBackendCreateCpfp(t *testing.T) {
 	assert.Positive(t, outputSats)
 }
 
+// TestCoreBackendCreateCpfpTaproot proves CPFP works for a taproot-only (BIP86)
+// Core wallet: the child must be sized as P2TR and a bech32m address requested,
+// not the hardcoded native-segwit child that would break a tr()-only wallet.
+func TestCoreBackendCreateCpfpTaproot(t *testing.T) {
+	svc := newTestService(t)
+	_, err := svc.GenerateWallet("Enforcer", "", "", testSlots)
+	require.NoError(t, err)
+	// Explicit BIP86 path => taproot-only Core wallet (imports only tr()).
+	core, err := svc.GenerateWalletWithPath("CoreTaproot", "", "", 0, "m/86'/1'/0'", testSlots)
+	require.NoError(t, err)
+	require.Equal(t, WalletTypeBitcoinCore, core.WalletType)
+
+	fake := newFakeBitcoind(t)
+	log := zerolog.New(zerolog.NewTestWriter(t))
+	backend := NewCoreBackend(svc, fake.client(t), &chaincfg.RegressionNetParams, log)
+	coreID := core.ID
+
+	// The wallet resolves to taproot.
+	require.Equal(t, ScriptTaproot, backend.walletScriptKind(coreID))
+
+	fake.stubEnsureFlow()
+
+	const (
+		parentTxid  = "66666666666666666666666666666666666666666666666666666666666666bb"
+		parentValue = int64(200_000)
+		parentVsize = int64(150)
+		parentFee   = int64(150)
+		targetRate  = int64(20)
+	)
+	// A P2TR (bech32m) child address — regtest HRP "bcrt" + "1p".
+	taprootAddr := p2trAddr(t, fixedKey(0x88), &chaincfg.RegressionNetParams)
+	require.True(t, strings.HasPrefix(taprootAddr, "bcrt1p"), "child address must be bech32m taproot")
+
+	fake.handle("listunspent", func(bitcoindCall) (any, string) {
+		return []map[string]any{
+			{"txid": parentTxid, "vout": 0, "amount": 0.002, "spendable": true, "confirmations": 0},
+		}, ""
+	})
+	fake.handle("getmempoolentry", func(bitcoindCall) (any, string) {
+		return map[string]any{"vsize": parentVsize, "fees": map[string]any{"base": float64(parentFee) / 1e8}}, ""
+	})
+	var requestedAddressType string
+	fake.handle("listreceivedbyaddress", func(bitcoindCall) (any, string) {
+		// No reusable unused address => forces a getnewaddress with the kind.
+		return []map[string]any{}, ""
+	})
+	fake.handle("getnewaddress", func(c bitcoindCall) (any, string) {
+		if len(c.Params) >= 2 {
+			requestedAddressType = mustString(t, c.Params[1])
+		}
+		return taprootAddr, ""
+	})
+	var builtOutputs []map[string]any
+	fake.handle("createrawtransaction", func(c bitcoindCall) (any, string) {
+		require.NoError(t, json.Unmarshal(c.Params[1], &builtOutputs))
+		return "deadbeefcpfptr", ""
+	})
+	fake.handle("signrawtransactionwithwallet", func(c bitcoindCall) (any, string) {
+		return map[string]any{"hex": mustString(t, c.Params[0]), "complete": true}, ""
+	})
+	fake.handle("sendrawtransaction", func(bitcoindCall) (any, string) { return "child-txid-tr", "" })
+
+	childTxid, err := backend.CreateCpfp(context.Background(), coreID, CpfpRequest{
+		ParentTxID: parentTxid,
+		ParentVout: 0,
+		TargetRate: targetRate,
+	})
+	require.NoError(t, err)
+	assert.Equal(t, "child-txid-tr", childTxid)
+	assert.Equal(t, "bech32m", requestedAddressType, "taproot wallet must request a bech32m child address")
+
+	// The child output is sized with TAPROOT vsize, not native segwit.
+	childVsize := int64(11 + inputVsize(ScriptTaproot) + outputVsizeForKind(ScriptTaproot))
+	_, outputSats, err := cpfpChildPlan(targetRate, parentVsize, parentFee, childVsize, parentValue)
+	require.NoError(t, err)
+	require.Len(t, builtOutputs, 1)
+	assert.InDelta(t, btcutil.Amount(outputSats).ToBTC(), builtOutputs[0][taprootAddr], 1e-12)
+
+	// Taproot sizing differs from native segwit — the fix actually changes the plan.
+	nsVsize := int64(11 + inputVsize(ScriptNativeSegwit) + outputVsizeForKind(ScriptNativeSegwit))
+	assert.NotEqual(t, nsVsize, childVsize, "taproot child vsize must differ from native segwit")
+}
+
 func TestCpfpChildPlanMeetsTargetRate(t *testing.T) {
 	cases := []struct {
 		name                                                        string

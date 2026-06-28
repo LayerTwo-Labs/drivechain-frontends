@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/btcsuite/btcd/btcec/v2"
+	"github.com/btcsuite/btcd/btcec/v2/schnorr"
 	"github.com/btcsuite/btcd/btcutil"
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
@@ -28,6 +29,16 @@ func p2wpkhAddr(t *testing.T, priv *btcec.PrivateKey, net *chaincfg.Params) stri
 	addr, err := btcutil.NewAddressWitnessPubKeyHash(
 		btcutil.Hash160(priv.PubKey().SerializeCompressed()), net,
 	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return addr.EncodeAddress()
+}
+
+func p2trAddr(t *testing.T, priv *btcec.PrivateKey, net *chaincfg.Params) string {
+	t.Helper()
+	tapKey := txscript.ComputeTaprootKeyNoScript(priv.PubKey())
+	addr, err := btcutil.NewAddressTaproot(schnorr.SerializePubKey(tapKey), net)
 	if err != nil {
 		t.Fatal(err)
 	}

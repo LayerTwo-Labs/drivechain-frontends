@@ -1073,20 +1073,15 @@ func (h *WalletHandler) DeriveAddresses(ctx context.Context, req *connect.Reques
 		return nil, connect.NewError(connect.CodeInvalidArgument, err)
 	}
 
-	// Get wallet seed and derive descriptor
-	wallets := h.svc.GetAllWallets()
-	var seedHex string
-	for _, w := range wallets {
-		if w.ID == walletID {
-			seedHex = w.Master.SeedHex
-			break
-		}
-	}
-	if seedHex == "" {
+	// Derive against the wallet's resolved kind/account so the preview matches
+	// its real receive addresses (custom-account / explicit-path / taproot
+	// wallets), not a hardcoded BIP84 account 0.
+	w := h.svc.GetWalletByID(walletID)
+	if w == nil || w.Master.SeedHex == "" {
 		return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("wallet %s seed not found", walletID))
 	}
 
-	addrs, err := wallet.DeriveBIP84Addresses(seedHex, h.engine.Network(), start, count)
+	addrs, err := wallet.DeriveWalletReceiveAddresses(w, h.engine.Network(), start, count)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}

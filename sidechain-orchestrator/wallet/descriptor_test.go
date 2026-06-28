@@ -3,6 +3,7 @@ package wallet
 import (
 	"encoding/binary"
 	"encoding/hex"
+	"strings"
 	"testing"
 
 	"github.com/btcsuite/btcd/btcutil"
@@ -238,4 +239,66 @@ func TestHotWalletOriginPath(t *testing.T) {
 	wantFp := binary.LittleEndian.Uint32(btcutil.Hash160(masterPub.SerializeCompressed())[:4])
 	assert.Equal(t, wantFp, derivs[0].fingerprint, "uses the master fingerprint")
 	assert.NotEqual(t, keyFingerprint(acct), derivs[0].fingerprint, "not the account fingerprint")
+}
+
+// TestDeriveWalletReceiveAddresses proves the address preview derives against the
+// wallet's REAL kind and account: a taproot wallet yields P2TR receive addresses
+// (matching its descriptor), and a custom-account wallet yields that account's
+// addresses (not BIP84 account 0).
+func TestDeriveWalletReceiveAddresses(t *testing.T) {
+	net := &chaincfg.SigNetParams
+	seedHex := hex.EncodeToString(MnemonicToSeed(testMnemonic, ""))
+
+	// realReceiveAddrs derives the descriptor's first count receive addresses for
+	// the given kind/account — the addresses the wallet actually receives to.
+	realReceiveAddrs := func(t *testing.T, w *WalletData, kind ScriptKind, count int) []string {
+		ap, err := accountPathFor(w, kind, net)
+		require.NoError(t, err)
+		acct, _, err := accountKeyAndOrigin(seedHex, ap, net)
+		require.NoError(t, err)
+		d := &Descriptor{Kind: kind, Threshold: 1, Keys: []DescriptorKey{{Account: acct}}}
+		out := make([]string, count)
+		for i := 0; i < count; i++ {
+			ds, _, err := d.DeriveScript(false, uint32(i), net)
+			require.NoError(t, err)
+			out[i] = ds.address.EncodeAddress()
+		}
+		return out
+	}
+
+	t.Run("taproot wallet yields P2TR addresses", func(t *testing.T) {
+		svc := newTestService(t)
+		w, err := svc.CreateElectrumWallet("Taproot", nil, nil, testMnemonic, "", "taproot", 0, "")
+		require.NoError(t, err)
+
+		got, err := DeriveWalletReceiveAddresses(w, net, 0, 3)
+		require.NoError(t, err)
+		require.Len(t, got, 3)
+		for _, a := range got {
+			assert.True(t, strings.HasPrefix(a, "tb1p"), "taproot receive address must be bech32m, got %s", a)
+		}
+		assert.Equal(t, realReceiveAddrs(t, w, ScriptTaproot, 3), got, "must match the wallet's real taproot receive addresses")
+
+		// And it must NOT equal the hardcoded BIP84 native-segwit derivation.
+		bip84, err := DeriveBIP84Addresses(seedHex, net, 0, 3)
+		require.NoError(t, err)
+		assert.NotEqual(t, bip84, got, "taproot preview must differ from BIP84")
+	})
+
+	t.Run("custom account yields that account's addresses", func(t *testing.T) {
+		svc := newTestService(t)
+		const acctIndex = uint32(5)
+		w, err := svc.CreateElectrumWallet("Acct5", nil, nil, testMnemonic, "", "", acctIndex, "")
+		require.NoError(t, err)
+		require.Equal(t, acctIndex, w.AccountIndex)
+
+		got, err := DeriveWalletReceiveAddresses(w, net, 0, 3)
+		require.NoError(t, err)
+		assert.Equal(t, realReceiveAddrs(t, w, ScriptNativeSegwit, 3), got, "must match account-5 receive addresses")
+
+		// Account 5 differs from account 0 (the old hardcoded behavior).
+		acct0, err := DeriveBIP84Addresses(seedHex, net, 0, 3)
+		require.NoError(t, err)
+		assert.NotEqual(t, acct0, got, "custom-account preview must differ from account 0")
+	})
 }

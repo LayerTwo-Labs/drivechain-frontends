@@ -572,14 +572,19 @@ func (p *CoreBackend) CreateCpfp(ctx context.Context, walletID string, req CpfpR
 			fmt.Errorf("target rate %d sat/vB does not exceed parent rate %d sat/vB", req.TargetRate, parentFee/parentVsize))
 	}
 
+	// Size the child for the wallet's own script kind: a taproot (BIP86) wallet
+	// imports only tr() descriptors, so its child is P2TR — using native-segwit
+	// sizing mis-estimates the fee. Default wallets resolve to native segwit.
+	childKind := p.walletScriptKind(walletID)
+
 	parentValueSats := int64(math.Round(parent.Amount * 1e8))
-	childVsize := int64(11 + inputVsize(ScriptNativeSegwit) + outputVsizeForKind(ScriptNativeSegwit))
+	childVsize := int64(11 + inputVsize(childKind) + outputVsizeForKind(childKind))
 	_, outputSats, err := cpfpChildPlan(req.TargetRate, parentVsize, parentFee, childVsize, parentValueSats)
 	if err != nil {
 		return "", connect.NewError(connect.CodeInvalidArgument, err)
 	}
 
-	childAddr, err := p.NextReceiveAddress(ctx, walletID, ScriptUnknown)
+	childAddr, err := p.NextReceiveAddress(ctx, walletID, childKind)
 	if err != nil {
 		return "", err
 	}
@@ -878,6 +883,25 @@ func (p *CoreBackend) createAndImport(ctx context.Context, walletName string, di
 // of the given kind must start with: "...1q" for P2WPKH (witness v0), "...1p"
 // for P2TR (witness v1). Discriminates segwit from taproot so the unused-address
 // scan never returns the wrong type for the requested kind.
+// walletScriptKind resolves the script kind a Core wallet receives to. A wallet
+// with an explicit derivation path imports only that purpose's descriptor, so
+// the kind follows the path; otherwise the default wallet (wpkh + tr both
+// imported) gives bech32 from getnewaddress, i.e. native segwit.
+func (p *CoreBackend) walletScriptKind(walletID string) ScriptKind {
+	w := p.svc.GetWalletByID(walletID)
+	if w == nil || !w.usesExplicitPath() {
+		return ScriptNativeSegwit
+	}
+	ap, err := ParseAccountPath(w.DerivationPath)
+	if err != nil {
+		return ScriptNativeSegwit
+	}
+	if kind, ok := purposeToCoreKind(ap.Purpose); ok {
+		return kind
+	}
+	return ScriptNativeSegwit
+}
+
 func (p *CoreBackend) witnessPrefix(kind ScriptKind) string {
 	if p.network == nil {
 		return ""

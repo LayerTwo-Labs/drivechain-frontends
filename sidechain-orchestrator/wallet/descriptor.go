@@ -421,6 +421,54 @@ func accountKeyFromSeed(seedHex string, kind ScriptKind, net *chaincfg.Params) (
 	return acct, err
 }
 
+// walletReceiveKind resolves the script kind a wallet's receive addresses use:
+// an explicit derivation path's purpose wins (BIP44/49/84/86), otherwise the
+// wallet's stored ScriptType (default native segwit). This is the kind the
+// address preview must derive against so it matches the real receive addresses.
+func walletReceiveKind(w *WalletData) ScriptKind {
+	if w.usesExplicitPath() {
+		if ap, err := ParseAccountPath(w.DerivationPath); err == nil {
+			if kind, ok := purposeToCoreKind(ap.Purpose); ok {
+				return kind
+			}
+		}
+	}
+	return w.scriptKind()
+}
+
+// DeriveWalletReceiveAddresses derives [start, start+count) external (receive)
+// addresses for a hot wallet using its resolved script kind and account path —
+// so the address preview matches the wallet's real receive addresses for custom
+// account / explicit-path / taproot wallets, not just the BIP84 account-0 case.
+func DeriveWalletReceiveAddresses(w *WalletData, net *chaincfg.Params, start, count int) ([]string, error) {
+	if net == nil {
+		return nil, errors.New("no chain params for this network; cannot derive addresses")
+	}
+	if w.Master.SeedHex == "" {
+		return nil, errors.New("wallet has no seed; cannot derive addresses")
+	}
+	kind := walletReceiveKind(w)
+	ap, err := accountPathFor(w, kind, net)
+	if err != nil {
+		return nil, err
+	}
+	acct, _, err := accountKeyAndOrigin(w.Master.SeedHex, ap, net)
+	if err != nil {
+		return nil, err
+	}
+	d := &Descriptor{Kind: kind, Threshold: 1, Keys: []DescriptorKey{{Account: acct}}}
+
+	addrs := make([]string, 0, count)
+	for i := start; i < start+count; i++ {
+		ds, _, err := d.DeriveScript(false, uint32(i), net)
+		if err != nil {
+			return nil, fmt.Errorf("derive address at index %d: %w", i, err)
+		}
+		addrs = append(addrs, ds.address.EncodeAddress())
+	}
+	return addrs, nil
+}
+
 // accountKeyAndOrigin derives the account extended key and the matching key
 // origin ("masterFingerprint/purpose'/coin'/0'"), so a hot wallet's PSBTs carry
 // the real master fingerprint and full derivation path for external signers.

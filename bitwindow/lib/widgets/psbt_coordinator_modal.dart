@@ -311,10 +311,6 @@ class CreateTransactionViewModel extends BaseViewModel {
         group: group,
       );
 
-      if (signingResult.errors.isNotEmpty) {
-        MultisigLogger.error('PSBT signing errors: ${signingResult.errors}');
-      }
-
       createdPSBT = signingResult.signedPsbt;
       await Clipboard.setData(ClipboardData(text: signingResult.signedPsbt));
 
@@ -338,8 +334,6 @@ class CreateTransactionViewModel extends BaseViewModel {
           );
         }
       }
-
-      if (signingResult.errors.isNotEmpty) {}
 
       if (context.mounted) {
         Navigator.of(context).pop(true);
