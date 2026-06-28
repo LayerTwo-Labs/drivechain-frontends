@@ -145,12 +145,12 @@ func (r *BackendRouter) AddressHDPath(ctx context.Context, walletID, address str
 	return p.AddressHDPath(ctx, walletID, address)
 }
 
-func (r *BackendRouter) NextReceiveAddress(ctx context.Context, walletID string) (string, error) {
+func (r *BackendRouter) NextReceiveAddress(ctx context.Context, walletID string, kind ScriptKind) (string, error) {
 	p, err := r.pick(walletID)
 	if err != nil {
 		return "", err
 	}
-	return p.NextReceiveAddress(ctx, walletID)
+	return p.NextReceiveAddress(ctx, walletID, kind)
 }
 
 func (r *BackendRouter) NextChangeAddress(ctx context.Context, walletID string) (string, error) {

@@ -187,7 +187,10 @@ func (p *EnforcerBackend) AddressHDPath(ctx context.Context, walletID, address s
 	return "", p.unsupported("address hd path lookup")
 }
 
-func (p *EnforcerBackend) NextReceiveAddress(ctx context.Context, walletID string) (string, error) {
+func (p *EnforcerBackend) NextReceiveAddress(ctx context.Context, walletID string, kind ScriptKind) (string, error) {
+	if kind == ScriptTaproot {
+		return "", connect.NewError(connect.CodeUnimplemented, fmt.Errorf("enforcer wallet does not support taproot addresses"))
+	}
 	resp, err := p.client.CreateNewAddress(ctx, connect.NewRequest(&enforcerpb.CreateNewAddressRequest{}))
 	if err != nil {
 		return "", fmt.Errorf("enforcer/wallet: create new address: %w", err)
@@ -196,7 +199,7 @@ func (p *EnforcerBackend) NextReceiveAddress(ctx context.Context, walletID strin
 }
 
 func (p *EnforcerBackend) NextChangeAddress(ctx context.Context, walletID string) (string, error) {
-	return p.NextReceiveAddress(ctx, walletID)
+	return p.NextReceiveAddress(ctx, walletID, ScriptUnknown)
 }
 
 func (p *EnforcerBackend) WatchKeys(ctx context.Context, walletID string, keys []WatchKey) error {

@@ -446,7 +446,17 @@ func (h *WalletHandler) GetNewAddress(ctx context.Context, req *connect.Request[
 		return nil, connect.NewError(connect.CodeInvalidArgument, err)
 	}
 
-	addr, err := h.engine.Backend().NextReceiveAddress(ctx, walletID)
+	var kind wallet.ScriptKind
+	switch req.Msg.AddressType {
+	case pb.AddressType_ADDRESS_TYPE_SEGWIT:
+		kind = wallet.ScriptNativeSegwit
+	case pb.AddressType_ADDRESS_TYPE_TAPROOT:
+		kind = wallet.ScriptTaproot
+	default:
+		kind = wallet.ScriptUnknown
+	}
+
+	addr, err := h.engine.Backend().NextReceiveAddress(ctx, walletID, kind)
 	if err != nil {
 		return nil, rpcError(err)
 	}

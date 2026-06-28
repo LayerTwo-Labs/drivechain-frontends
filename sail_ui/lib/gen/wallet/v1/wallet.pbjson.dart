@@ -17,6 +17,21 @@ import '../../bitwindowd/v1/bitwindowd.pbjson.dart' as $3;
 import '../../google/protobuf/empty.pbjson.dart' as $1;
 import '../../google/protobuf/timestamp.pbjson.dart' as $0;
 
+@$core.Deprecated('Use addressTypeDescriptor instead')
+const AddressType$json = {
+  '1': 'AddressType',
+  '2': [
+    {'1': 'ADDRESS_TYPE_UNSPECIFIED', '2': 0},
+    {'1': 'ADDRESS_TYPE_SEGWIT', '2': 1},
+    {'1': 'ADDRESS_TYPE_TAPROOT', '2': 2},
+  ],
+};
+
+/// Descriptor for `AddressType`. Decode as a `google.protobuf.EnumDescriptorProto`.
+final $typed_data.Uint8List addressTypeDescriptor = $convert.base64Decode(
+    'CgtBZGRyZXNzVHlwZRIcChhBRERSRVNTX1RZUEVfVU5TUEVDSUZJRUQQABIXChNBRERSRVNTX1'
+    'RZUEVfU0VHV0lUEAESGAoUQUREUkVTU19UWVBFX1RBUFJPT1QQAg==');
+
 @$core.Deprecated('Use coinSelectionStrategyDescriptor instead')
 const CoinSelectionStrategy$json = {
   '1': 'CoinSelectionStrategy',
@@ -52,12 +67,14 @@ const GetNewAddressRequest$json = {
   '1': 'GetNewAddressRequest',
   '2': [
     {'1': 'wallet_id', '3': 1, '4': 1, '5': 9, '10': 'walletId'},
+    {'1': 'address_type', '3': 2, '4': 1, '5': 14, '6': '.wallet.v1.AddressType', '10': 'addressType'},
   ],
 };
 
 /// Descriptor for `GetNewAddressRequest`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List getNewAddressRequestDescriptor = $convert.base64Decode(
-    'ChRHZXROZXdBZGRyZXNzUmVxdWVzdBIbCgl3YWxsZXRfaWQYASABKAlSCHdhbGxldElk');
+    'ChRHZXROZXdBZGRyZXNzUmVxdWVzdBIbCgl3YWxsZXRfaWQYASABKAlSCHdhbGxldElkEjkKDG'
+    'FkZHJlc3NfdHlwZRgCIAEoDjIWLndhbGxldC52MS5BZGRyZXNzVHlwZVILYWRkcmVzc1R5cGU=');
 
 @$core.Deprecated('Use getNewAddressResponseDescriptor instead')
 const GetNewAddressResponse$json = {

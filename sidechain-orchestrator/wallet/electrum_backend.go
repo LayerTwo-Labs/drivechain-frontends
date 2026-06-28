@@ -13,6 +13,7 @@ import (
 	"sync"
 	"time"
 
+	"connectrpc.com/connect"
 	"github.com/btcsuite/btcd/btcec/v2"
 	"github.com/btcsuite/btcd/btcutil"
 	"github.com/btcsuite/btcd/btcutil/psbt"
@@ -313,7 +314,23 @@ func (p *ElectrumBackend) AddressHDPath(ctx context.Context, walletID, address s
 	return a.hdPath, nil
 }
 
-func (p *ElectrumBackend) NextReceiveAddress(ctx context.Context, walletID string) (string, error) {
+func (p *ElectrumBackend) NextReceiveAddress(ctx context.Context, walletID string, kind ScriptKind) (string, error) {
+	// Electrum wallets are single-kind: every address is derived, scanned, and
+	// signed under the wallet's configured script kind. Serving a foreign kind
+	// would yield an address the wallet can neither track nor spend, so an
+	// explicit mismatch is rejected rather than silently downgraded.
+	if kind != ScriptUnknown {
+		w := p.svc.GetWalletByID(walletID)
+		if w == nil {
+			return "", fmt.Errorf("wallet %s not found", walletID)
+		}
+		if kind != w.scriptKind() {
+			return "", connect.NewError(
+				connect.CodeUnimplemented,
+				fmt.Errorf("electrum wallet is %s; cannot serve %s addresses", w.scriptKind(), kind),
+			)
+		}
+	}
 	return p.nextUnused(walletID, false)
 }
 

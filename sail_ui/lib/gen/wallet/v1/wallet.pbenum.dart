@@ -13,6 +13,23 @@ import 'dart:core' as $core;
 
 import 'package:protobuf/protobuf.dart' as $pb;
 
+class AddressType extends $pb.ProtobufEnum {
+  static const AddressType ADDRESS_TYPE_UNSPECIFIED = AddressType._(0, _omitEnumNames ? '' : 'ADDRESS_TYPE_UNSPECIFIED');
+  static const AddressType ADDRESS_TYPE_SEGWIT = AddressType._(1, _omitEnumNames ? '' : 'ADDRESS_TYPE_SEGWIT');
+  static const AddressType ADDRESS_TYPE_TAPROOT = AddressType._(2, _omitEnumNames ? '' : 'ADDRESS_TYPE_TAPROOT');
+
+  static const $core.List<AddressType> values = <AddressType> [
+    ADDRESS_TYPE_UNSPECIFIED,
+    ADDRESS_TYPE_SEGWIT,
+    ADDRESS_TYPE_TAPROOT,
+  ];
+
+  static final $core.Map<$core.int, AddressType> _byValue = $pb.ProtobufEnum.initByValue(values);
+  static AddressType? valueOf($core.int value) => _byValue[value];
+
+  const AddressType._($core.int v, $core.String n) : super(v, n);
+}
+
 /// Coin Selection Strategy
 class CoinSelectionStrategy extends $pb.ProtobufEnum {
   static const CoinSelectionStrategy COIN_SELECTION_STRATEGY_UNSPECIFIED = CoinSelectionStrategy._(0, _omitEnumNames ? '' : 'COIN_SELECTION_STRATEGY_UNSPECIFIED');

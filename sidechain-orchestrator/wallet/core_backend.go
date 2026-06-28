@@ -255,16 +255,20 @@ func (p *CoreBackend) AddressHDPath(ctx context.Context, walletID, address strin
 // also imports P2PKH addresses for BIP47 (the notification address + per-sender
 // derived payment addresses) — those must never leak into the regular receive
 // flow.
-func (p *CoreBackend) NextReceiveAddress(ctx context.Context, walletID string) (string, error) {
+func (p *CoreBackend) NextReceiveAddress(ctx context.Context, walletID string, kind ScriptKind) (string, error) {
 	name, err := p.walletName(ctx, walletID)
 	if err != nil {
 		return "", err
+	}
+	addressType := "bech32"
+	if kind == ScriptTaproot {
+		addressType = "bech32m"
 	}
 	addrs, err := p.rpc.ListReceivedByAddress(ctx, name)
 	if err != nil {
 		return "", err
 	}
-	prefix := p.bech32Prefix()
+	prefix := p.witnessPrefix(kind)
 	for _, a := range addrs {
 		if a.Amount != 0 || len(a.TxIDs) != 0 {
 			continue
@@ -274,7 +278,7 @@ func (p *CoreBackend) NextReceiveAddress(ctx context.Context, walletID string) (
 		}
 		return a.Address, nil
 	}
-	return p.rpc.GetNewAddress(ctx, name, "", "bech32")
+	return p.rpc.GetNewAddress(ctx, name, "", addressType)
 }
 
 func (p *CoreBackend) NextChangeAddress(ctx context.Context, walletID string) (string, error) {
@@ -621,6 +625,13 @@ func (p *CoreBackend) createBitcoinCoreWallet(ctx context.Context, walletName, s
 	}
 
 	accountXprv := serializeKeyForNetwork(account, p.network)
+
+	account86, err := deriveBIP86Account(masterKey, p.coinType())
+	if err != nil {
+		return err
+	}
+	accountXprv86 := serializeKeyForNetwork(account86, p.network)
+
 	fingerprint := masterFingerprint(masterKey)
 	coinType := p.coinType()
 
@@ -640,9 +651,40 @@ func (p *CoreBackend) createBitcoinCoreWallet(ctx context.Context, walletName, s
 			Internal:  true,
 			Range:     []int{0, 999},
 		},
+		{
+			Desc:      mustAddChecksum(fmt.Sprintf("tr([%s/86'/%d'/0']%s/0/*)", fingerprint, coinType, accountXprv86)),
+			Active:    true,
+			Timestamp: "now",
+			Internal:  false,
+			Range:     []int{0, 999},
+		},
+		{
+			Desc:      mustAddChecksum(fmt.Sprintf("tr([%s/86'/%d'/0']%s/1/*)", fingerprint, coinType, accountXprv86)),
+			Active:    true,
+			Timestamp: "now",
+			Internal:  true,
+			Range:     []int{0, 999},
+		},
 	}
 
 	return p.createAndImport(ctx, walletName, false, descriptors)
+}
+
+// deriveBIP86Account derives the taproot account key m/86'/coin'/0'.
+func deriveBIP86Account(masterKey *bip32.Key, coinType uint32) (*bip32.Key, error) {
+	purpose, err := masterKey.NewChildKey(bip32.FirstHardenedChild + 86)
+	if err != nil {
+		return nil, fmt.Errorf("derive taproot purpose: %w", err)
+	}
+	coin, err := purpose.NewChildKey(bip32.FirstHardenedChild + coinType)
+	if err != nil {
+		return nil, fmt.Errorf("derive taproot coin: %w", err)
+	}
+	account, err := coin.NewChildKey(bip32.FirstHardenedChild + 0)
+	if err != nil {
+		return nil, fmt.Errorf("derive taproot account: %w", err)
+	}
+	return account, nil
 }
 
 // createWatchOnlyWallet creates a watch-only Bitcoin Core wallet.
@@ -737,14 +779,19 @@ func (p *CoreBackend) createAndImport(ctx context.Context, walletName string, di
 	return nil
 }
 
-// bech32Prefix returns the HRP-with-separator prefix that any BIP84 receive
-// address on this network must start with — read directly off the typed
-// chaincfg.Params instead of remapping a network name string.
-func (p *CoreBackend) bech32Prefix() string {
+// witnessPrefix returns the HRP-with-witness-version prefix a receive address
+// of the given kind must start with: "...1q" for P2WPKH (witness v0), "...1p"
+// for P2TR (witness v1). Discriminates segwit from taproot so the unused-address
+// scan never returns the wrong type for the requested kind.
+func (p *CoreBackend) witnessPrefix(kind ScriptKind) string {
 	if p.network == nil {
 		return ""
 	}
-	return p.network.Bech32HRPSegwit + "1"
+	versionChar := "q"
+	if kind == ScriptTaproot {
+		versionChar = "p"
+	}
+	return p.network.Bech32HRPSegwit + "1" + versionChar
 }
 
 // coinType returns the BIP44 coin type for the network.

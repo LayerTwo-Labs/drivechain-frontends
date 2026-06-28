@@ -342,8 +342,15 @@ message GetBalanceResponse {
   double unconfirmed_sats = 2;
 }
 
+enum AddressType {
+  ADDRESS_TYPE_UNSPECIFIED = 0;
+  ADDRESS_TYPE_SEGWIT = 1;
+  ADDRESS_TYPE_TAPROOT = 2;
+}
+
 message GetNewAddressRequest {
   string wallet_id = 1;  // empty = active wallet
+  AddressType address_type = 2;
 }
 
 message GetNewAddressResponse {

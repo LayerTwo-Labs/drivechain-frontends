@@ -5,10 +5,12 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"testing"
 
+	"connectrpc.com/connect"
 	"github.com/btcsuite/btcd/btcutil"
 	"github.com/btcsuite/btcd/btcutil/hdkeychain"
 	"github.com/btcsuite/btcd/chaincfg"
@@ -179,7 +181,7 @@ func TestElectrumNextReceiveSkipsUsed(t *testing.T) {
 	_, _, err := p.Balance(context.Background(), w.ID) // warm the scan so usage is known
 	require.NoError(t, err)
 
-	next, err := p.NextReceiveAddress(context.Background(), w.ID)
+	next, err := p.NextReceiveAddress(context.Background(), w.ID, ScriptUnknown)
 	require.NoError(t, err)
 	assert.NotEqual(t, addr, next, "used address must not be offered for receive")
 
@@ -699,7 +701,7 @@ func TestElectrumWatchOnlyNextReceiveAdvances(t *testing.T) {
 	_, _, err = p.Balance(ctx, wo.ID) // warm the scan so usage is known
 	require.NoError(t, err)
 
-	got, err := p.NextReceiveAddress(ctx, wo.ID)
+	got, err := p.NextReceiveAddress(ctx, wo.ID, ScriptUnknown)
 	require.NoError(t, err)
 	assert.NotEqual(t, used, got, "watch-only must not reuse a used address")
 	assert.Equal(t, next, got)
@@ -762,10 +764,40 @@ func TestElectrumWatchOnlyDescriptorWatchesCorrectAddress(t *testing.T) {
 	require.NoError(t, err)
 	assert.InDelta(t, 0.00055, confirmed, 1e-9, "descriptor must watch the address it derives")
 
-	next, err := p.NextReceiveAddress(ctx, wo.ID)
+	next, err := p.NextReceiveAddress(ctx, wo.ID, ScriptUnknown)
 	require.NoError(t, err)
 	assert.Contains(t, addrs, next, "receive address must be one the descriptor owns")
 	assert.NotEqual(t, addrs[0], next, "must skip the used address")
+}
+
+// TestElectrumNextReceiveTaproot proves a taproot-configured electrum wallet
+// hands out a bech32m (bc1p / tb1p) receive address, and that requesting a
+// foreign kind from a single-kind wallet is rejected rather than downgraded.
+func TestElectrumNextReceiveTaproot(t *testing.T) {
+	net := &chaincfg.SigNetParams
+	ctx := context.Background()
+	svc := newTestService(t)
+
+	w, err := svc.CreateElectrumWallet("Taproot", nil, nil, testMnemonic, "", "taproot")
+	require.NoError(t, err)
+	require.Equal(t, "taproot", w.ScriptType)
+
+	fake := newFakeEsplora()
+	p := NewElectrumBackend(svc, fake, net, zerolog.New(zerolog.NewTestWriter(t)))
+
+	addr, err := p.NextReceiveAddress(ctx, w.ID, ScriptTaproot)
+	require.NoError(t, err)
+	assert.True(t, strings.HasPrefix(addr, net.Bech32HRPSegwit+"1p"), "taproot address must be bech32m: got %s", addr)
+
+	// UNSPECIFIED resolves to the wallet's own kind, so it must also be taproot.
+	addrDefault, err := p.NextReceiveAddress(ctx, w.ID, ScriptUnknown)
+	require.NoError(t, err)
+	assert.True(t, strings.HasPrefix(addrDefault, net.Bech32HRPSegwit+"1p"), "default address must be bech32m: got %s", addrDefault)
+
+	// A segwit request on a taproot-only wallet cannot be served.
+	_, err = p.NextReceiveAddress(ctx, w.ID, ScriptNativeSegwit)
+	require.Error(t, err)
+	assert.Equal(t, connect.CodeUnimplemented, connect.CodeOf(err))
 }
 
 // TestElectrumWatchOnlyAllScriptTypesScanCorrectly imports a watch-only

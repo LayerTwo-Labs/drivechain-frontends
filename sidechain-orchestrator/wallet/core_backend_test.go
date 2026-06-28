@@ -150,17 +150,26 @@ func TestCoreBackendEnsureCreatesDescriptorWallet(t *testing.T) {
 	imports := fake.callsFor("importdescriptors")
 	require.Len(t, imports, 2, "BIP84 pair + BIP47 notification descriptor")
 
-	var bip84 []ImportDescriptor
-	require.NoError(t, json.Unmarshal(imports[0].Params[0], &bip84))
-	require.Len(t, bip84, 2)
+	var singleSig []ImportDescriptor
+	require.NoError(t, json.Unmarshal(imports[0].Params[0], &singleSig))
+	require.Len(t, singleSig, 4, "BIP84 (segwit) pair + BIP86 (taproot) pair")
 	// Regtest coin type is 1; external chain /0/*, change chain /1/*.
-	assert.Contains(t, bip84[0].Desc, "wpkh([")
-	assert.Contains(t, bip84[0].Desc, "/84'/1'/0']")
-	assert.Contains(t, bip84[0].Desc, "/0/*")
-	assert.False(t, bip84[0].Internal)
-	assert.Equal(t, []int{0, 999}, bip84[0].Range)
-	assert.Contains(t, bip84[1].Desc, "/1/*")
-	assert.True(t, bip84[1].Internal)
+	assert.Contains(t, singleSig[0].Desc, "wpkh([")
+	assert.Contains(t, singleSig[0].Desc, "/84'/1'/0']")
+	assert.Contains(t, singleSig[0].Desc, "/0/*")
+	assert.False(t, singleSig[0].Internal)
+	assert.Equal(t, []int{0, 999}, singleSig[0].Range)
+	assert.Contains(t, singleSig[1].Desc, "/1/*")
+	assert.True(t, singleSig[1].Internal)
+	// BIP86 taproot pair, external + change.
+	assert.Contains(t, singleSig[2].Desc, "tr([")
+	assert.Contains(t, singleSig[2].Desc, "/86'/1'/0']")
+	assert.Contains(t, singleSig[2].Desc, "/0/*")
+	assert.False(t, singleSig[2].Internal)
+	assert.Equal(t, []int{0, 999}, singleSig[2].Range)
+	assert.Contains(t, singleSig[3].Desc, "tr([")
+	assert.Contains(t, singleSig[3].Desc, "/1/*")
+	assert.True(t, singleSig[3].Internal)
 
 	var notif []ImportDescriptor
 	require.NoError(t, json.Unmarshal(imports[1].Params[0], &notif))
@@ -424,7 +433,7 @@ func TestCoreBackendNextReceiveAddress(t *testing.T) {
 			{"address": "bcrt1qunused", "amount": 0.0, "txids": []string{}},
 		}, ""
 	})
-	addr, err := backend.NextReceiveAddress(ctx, coreID)
+	addr, err := backend.NextReceiveAddress(ctx, coreID, ScriptNativeSegwit)
 	require.NoError(t, err)
 	assert.Equal(t, "bcrt1qunused", addr)
 	assert.Empty(t, fake.callsFor("getnewaddress"))
@@ -434,9 +443,44 @@ func TestCoreBackendNextReceiveAddress(t *testing.T) {
 		return []map[string]any{{"address": "bcrt1qused", "amount": 0.5, "txids": []string{"a"}}}, ""
 	})
 	fake.handle("getnewaddress", func(bitcoindCall) (any, string) { return "bcrt1qminted", "" })
-	addr, err = backend.NextReceiveAddress(ctx, coreID)
+	addr, err = backend.NextReceiveAddress(ctx, coreID, ScriptNativeSegwit)
 	require.NoError(t, err)
 	assert.Equal(t, "bcrt1qminted", addr)
+}
+
+func TestCoreBackendNextReceiveAddressTaproot(t *testing.T) {
+	backend, fake, coreID := newCoreBackendFixture(t)
+	fake.stubEnsureFlow()
+	ctx := context.Background()
+
+	// A taproot request skips segwit (bc1q/bcrt1q) candidates and reuses the
+	// unused bech32m (bcrt1p) one.
+	fake.handle("listreceivedbyaddress", func(bitcoindCall) (any, string) {
+		return []map[string]any{
+			{"address": "bcrt1qsegwitunused", "amount": 0.0, "txids": []string{}},
+			{"address": "bcrt1ptaprootunused", "amount": 0.0, "txids": []string{}},
+		}, ""
+	})
+	addr, err := backend.NextReceiveAddress(ctx, coreID, ScriptTaproot)
+	require.NoError(t, err)
+	assert.Equal(t, "bcrt1ptaprootunused", addr)
+	assert.Empty(t, fake.callsFor("getnewaddress"))
+
+	// No unused taproot candidate → mint with address_type=bech32m.
+	fake.handle("listreceivedbyaddress", func(bitcoindCall) (any, string) {
+		return []map[string]any{{"address": "bcrt1qsegwitunused", "amount": 0.0, "txids": []string{}}}, ""
+	})
+	var mintedType string
+	fake.handle("getnewaddress", func(c bitcoindCall) (any, string) {
+		if len(c.Params) > 1 {
+			mintedType = mustString(t, c.Params[1])
+		}
+		return "bcrt1pminted", ""
+	})
+	addr, err = backend.NextReceiveAddress(ctx, coreID, ScriptTaproot)
+	require.NoError(t, err)
+	assert.Equal(t, "bcrt1pminted", addr)
+	assert.Equal(t, "bech32m", mintedType)
 }
 
 func mustString(t *testing.T, raw json.RawMessage) string {
