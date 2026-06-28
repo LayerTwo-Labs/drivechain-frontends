@@ -6,6 +6,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math"
+	"strings"
 	"time"
 
 	"connectrpc.com/connect"
@@ -336,11 +338,17 @@ func groupDataToLoungeGroup(g *pb.GroupData) wallet.MultisigLoungeGroup {
 // coreCall invokes a bitcoind JSON-RPC method with positional params, wallet-less
 // (matching the Dart multisig path), and unmarshals the result into out.
 func (h *MultisigLoungeHandler) coreCall(ctx context.Context, method string, params []interface{}, out interface{}) error {
+	return h.coreCallWallet(ctx, "", method, params, out)
+}
+
+// coreCallWallet invokes a bitcoind JSON-RPC method scoped to a named wallet
+// (empty wallet = node-level), with positional params, decoding into out.
+func (h *MultisigLoungeHandler) coreCallWallet(ctx context.Context, wallet, method string, params []interface{}, out interface{}) error {
 	paramsJSON, err := json.Marshal(params)
 	if err != nil {
 		return fmt.Errorf("marshal %s params: %w", method, err)
 	}
-	raw, err := h.coreCaller(ctx, method, string(paramsJSON), "")
+	raw, err := h.coreCaller(ctx, method, string(paramsJSON), wallet)
 	if err != nil {
 		return err
 	}
@@ -499,6 +507,245 @@ func (h *MultisigLoungeHandler) CombineAndBroadcast(
 	}
 
 	return connect.NewResponse(&pb.CombineAndBroadcastResponse{Txid: txid}), nil
+}
+
+// watchWalletName returns the group's watch-only wallet name, defaulting to the
+// Dart convention "multisig_<id>".
+func watchWalletName(g *pb.GroupData) string {
+	if n := g.GetWatchWalletName(); n != "" {
+		return n
+	}
+	return "multisig_" + g.GetId()
+}
+
+// ensureWatchWallet makes sure the group's watch-only descriptor wallet exists
+// and has the Phase-1 receive/change descriptors imported. Idempotent: an
+// already-existing wallet is loaded, not recreated, and re-importing the same
+// descriptors is a no-op in Core.
+func (h *MultisigLoungeHandler) ensureWatchWallet(ctx context.Context, g *pb.GroupData) (string, error) {
+	name := watchWalletName(g)
+
+	// Already loaded? listwallets is the cheapest check.
+	var loaded []string
+	if err := h.coreCall(ctx, "listwallets", nil, &loaded); err != nil {
+		return "", fmt.Errorf("listwallets: %w", err)
+	}
+	for _, w := range loaded {
+		if w == name {
+			return name, nil
+		}
+	}
+
+	// Try to load it; on failure create it fresh.
+	if err := h.coreCall(ctx, "loadwallet", []interface{}{name}, nil); err == nil {
+		return name, nil
+	}
+
+	receive, change, err := wallet.BuildMultisigLoungeDescriptors(groupDataToLoungeGroup(g))
+	if err != nil {
+		return "", fmt.Errorf("build descriptors: %w", err)
+	}
+
+	// createwallet(name, disable_private_keys=true, blank=true, "", false, true, false)
+	if err := h.coreCall(ctx, "createwallet",
+		[]interface{}{name, true, true, "", false, true, false}, nil); err != nil {
+		// A concurrent create may have won the race; tolerate "already exists".
+		if !strings.Contains(err.Error(), "already exists") && !strings.Contains(err.Error(), "Database already exists") {
+			return "", fmt.Errorf("createwallet: %w", err)
+		}
+	}
+
+	descs := []map[string]interface{}{
+		{"desc": receive, "active": true, "internal": false, "timestamp": "now", "range": []int{0, 999}},
+		{"desc": change, "active": true, "internal": true, "timestamp": "now", "range": []int{0, 999}},
+	}
+	var importRes []struct {
+		Success bool `json:"success"`
+		Error   struct {
+			Message string `json:"message"`
+		} `json:"error"`
+	}
+	if err := h.coreCallWallet(ctx, name, "importdescriptors", []interface{}{descs}, &importRes); err != nil {
+		return "", fmt.Errorf("importdescriptors: %w", err)
+	}
+	for i, r := range importRes {
+		if !r.Success {
+			return "", fmt.Errorf("import %s descriptor failed: %s", map[int]string{0: "receive", 1: "change"}[i], r.Error.Message)
+		}
+	}
+	return name, nil
+}
+
+func (h *MultisigLoungeHandler) SyncGroup(
+	ctx context.Context,
+	req *connect.Request[pb.SyncGroupRequest],
+) (*connect.Response[pb.SyncGroupResponse], error) {
+	group := req.Msg.GetGroup()
+	if group == nil {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errMissingGroup)
+	}
+	if err := h.requireCoreCaller(); err != nil {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, err)
+	}
+
+	name, err := h.ensureWatchWallet(ctx, group)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+
+	// getbalances reports confirmed (trusted) and pending (untrusted_pending)
+	// in one call, watch-only included for a descriptor wallet.
+	var balances struct {
+		Mine struct {
+			Trusted          float64 `json:"trusted"`
+			UntrustedPending float64 `json:"untrusted_pending"`
+		} `json:"mine"`
+		Watchonly struct {
+			Trusted          float64 `json:"trusted"`
+			UntrustedPending float64 `json:"untrusted_pending"`
+		} `json:"watchonly"`
+	}
+	if err := h.coreCallWallet(ctx, name, "getbalances", nil, &balances); err != nil {
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("getbalances: %w", err))
+	}
+	confirmed := balances.Mine.Trusted + balances.Watchonly.Trusted
+	pending := balances.Mine.UntrustedPending + balances.Watchonly.UntrustedPending
+
+	var utxos []struct {
+		Txid          string  `json:"txid"`
+		Vout          uint32  `json:"vout"`
+		Address       string  `json:"address"`
+		Amount        float64 `json:"amount"`
+		Confirmations uint32  `json:"confirmations"`
+		ScriptPubKey  string  `json:"scriptPubKey"`
+		Spendable     bool    `json:"spendable"`
+		Solvable      bool    `json:"solvable"`
+		Safe          bool    `json:"safe"`
+	}
+	// listunspent(minconf=0, maxconf=9999999, [], include_unsafe=true)
+	if err := h.coreCallWallet(ctx, name, "listunspent",
+		[]interface{}{0, 9999999, []string{}, true}, &utxos); err != nil {
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("listunspent: %w", err))
+	}
+
+	pbUtxos := make([]*pb.MultisigUtxo, 0, len(utxos))
+	for _, u := range utxos {
+		pbUtxos = append(pbUtxos, &pb.MultisigUtxo{
+			Txid:          u.Txid,
+			Vout:          u.Vout,
+			Address:       u.Address,
+			AmountSats:    btcToSatsInt(u.Amount),
+			Confirmations: u.Confirmations,
+			ScriptPubkey:  u.ScriptPubKey,
+			Spendable:     u.Spendable,
+			Solvable:      u.Solvable,
+			Safe:          u.Safe,
+		})
+	}
+
+	return connect.NewResponse(&pb.SyncGroupResponse{
+		ConfirmedSats: btcToSatsInt(confirmed),
+		PendingSats:   btcToSatsInt(pending),
+		UtxoCount:     uint32(len(utxos)),
+		Utxos:         pbUtxos,
+	}), nil
+}
+
+func (h *MultisigLoungeHandler) RestoreHistory(
+	ctx context.Context,
+	req *connect.Request[pb.RestoreHistoryRequest],
+) (*connect.Response[pb.RestoreHistoryResponse], error) {
+	group := req.Msg.GetGroup()
+	if group == nil {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errMissingGroup)
+	}
+	if err := h.requireCoreCaller(); err != nil {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, err)
+	}
+
+	name, err := h.ensureWatchWallet(ctx, group)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+
+	// listtransactions("*", 1000, 0, include_watchonly=true)
+	var txs []struct {
+		Txid          string  `json:"txid"`
+		Amount        float64 `json:"amount"`
+		Confirmations int32   `json:"confirmations"`
+		Time          int64   `json:"time"`
+	}
+	if err := h.coreCallWallet(ctx, name, "listtransactions",
+		[]interface{}{"*", 1000, 0, true}, &txs); err != nil {
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("listtransactions: %w", err))
+	}
+
+	seen := map[string]bool{}
+	out := make([]*pb.MultisigHistoryTx, 0, len(txs))
+	for _, wtx := range txs {
+		if wtx.Txid == "" || seen[wtx.Txid] {
+			continue
+		}
+		seen[wtx.Txid] = true
+
+		var raw wallet.RawTransaction
+		// getrawtransaction(txid, verbose=true)
+		if err := h.coreCall(ctx, "getrawtransaction", []interface{}{wtx.Txid, true}, &raw); err != nil {
+			continue // skip txs we can't fetch (matches Dart's per-tx tolerance)
+		}
+
+		destination := "Unknown"
+		if len(raw.Vout) > 0 && raw.Vout[0].ScriptPubKey.Address != "" {
+			destination = raw.Vout[0].ScriptPubKey.Address
+		}
+
+		inputs := make([]*pb.MultisigHistoryInput, 0, len(raw.Vin))
+		for _, vin := range raw.Vin {
+			inputs = append(inputs, &pb.MultisigHistoryInput{Txid: vin.TxID, Vout: uint32(vin.Vout)})
+		}
+
+		out = append(out, &pb.MultisigHistoryTx{
+			Txid:           wtx.Txid,
+			AmountSats:     btcToSatsInt(absFloat(wtx.Amount)),
+			IsDeposit:      wtx.Amount > 0,
+			Destination:    destination,
+			Confirmations:  uint32(maxInt32(wtx.Confirmations, 0)),
+			SignatureCount: uint32(wallet.CountMultisigSignatures(raw.Vin)),
+			Status:         restoreStatus(wtx.Confirmations),
+			Time:           wtx.Time,
+			FinalHex:       raw.Hex,
+			Inputs:         inputs,
+		})
+	}
+
+	return connect.NewResponse(&pb.RestoreHistoryResponse{Transactions: out}), nil
+}
+
+func btcToSatsInt(btc float64) int64 {
+	return int64(math.Round(btc * 1e8))
+}
+
+func absFloat(f float64) float64 {
+	if f < 0 {
+		return -f
+	}
+	return f
+}
+
+func maxInt32(a, b int32) int32 {
+	if a > b {
+		return a
+	}
+	return b
+}
+
+// restoreStatus mirrors the Dart _processHistoricalTransaction status mapping:
+// 0-conf or <6 confs is "broadcasted"; >=6 is "confirmed".
+func restoreStatus(confirmations int32) string {
+	if confirmations >= 6 {
+		return "confirmed"
+	}
+	return "broadcasted"
 }
 
 func dedupeStrings(in []string) []string {

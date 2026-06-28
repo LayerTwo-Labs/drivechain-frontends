@@ -128,4 +128,42 @@ extension type MultisigLoungeServiceClient (connect.Transport _transport) {
       onTrailer: onTrailer,
     );
   }
+
+  /// SyncGroup ensures the group's watch-only wallet exists (creating it from the
+  /// Phase-1 descriptors if missing) and returns its balance and UTXOs.
+  Future<multisigloungev1multisiglounge.SyncGroupResponse> syncGroup(
+    multisigloungev1multisiglounge.SyncGroupRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.MultisigLoungeService.syncGroup,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
+  /// RestoreHistory scans the watch-only wallet's transactions and reconstructs
+  /// the group's spend/receive records with per-tx signature counts and status.
+  Future<multisigloungev1multisiglounge.RestoreHistoryResponse> restoreHistory(
+    multisigloungev1multisiglounge.RestoreHistoryRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.MultisigLoungeService.restoreHistory,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
 }

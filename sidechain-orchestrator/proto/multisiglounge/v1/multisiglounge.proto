@@ -33,6 +33,73 @@ service MultisigLoungeService {
   // only if the combined PSBT reaches the threshold. A non-finalizable PSBT is
   // never broadcast.
   rpc CombineAndBroadcast(CombineAndBroadcastRequest) returns (CombineAndBroadcastResponse);
+
+  // SyncGroup ensures the group's watch-only wallet exists (creating it from the
+  // Phase-1 descriptors if missing) and returns its balance and UTXOs.
+  rpc SyncGroup(SyncGroupRequest) returns (SyncGroupResponse);
+
+  // RestoreHistory scans the watch-only wallet's transactions and reconstructs
+  // the group's spend/receive records with per-tx signature counts and status.
+  rpc RestoreHistory(RestoreHistoryRequest) returns (RestoreHistoryResponse);
+}
+
+message SyncGroupRequest {
+  GroupData group = 1;
+  string wallet_id = 2;
+}
+
+// MultisigUtxo is one unspent output of the watch-only wallet.
+message MultisigUtxo {
+  string txid = 1;
+  uint32 vout = 2;
+  string address = 3;
+  int64 amount_sats = 4;
+  uint32 confirmations = 5;
+  string script_pubkey = 6;
+  bool spendable = 7;
+  bool solvable = 8;
+  bool safe = 9;
+}
+
+message SyncGroupResponse {
+  int64 confirmed_sats = 1;
+  int64 pending_sats = 2;
+  uint32 utxo_count = 3;
+  repeated MultisigUtxo utxos = 4;
+}
+
+message RestoreHistoryRequest {
+  GroupData group = 1;
+  string wallet_id = 2;
+}
+
+// MultisigHistoryInput is one input of a reconstructed historical transaction.
+message MultisigHistoryInput {
+  string txid = 1;
+  uint32 vout = 2;
+}
+
+// MultisigHistoryTx is a reconstructed group transaction from chain history.
+message MultisigHistoryTx {
+  string txid = 1;
+  // Absolute amount in sats (sign dropped; see is_deposit for direction).
+  int64 amount_sats = 2;
+  // True when the wallet received (positive listtransactions amount).
+  bool is_deposit = 3;
+  string destination = 4;
+  uint32 confirmations = 5;
+  // Signatures counted from the transaction's witness/scriptSig.
+  uint32 signature_count = 6;
+  // "broadcasted" (0-conf or <6), or "confirmed" (>=6).
+  string status = 7;
+  // Block/receive time, seconds since epoch.
+  int64 time = 8;
+  string final_hex = 9;
+  repeated MultisigHistoryInput inputs = 10;
+}
+
+message RestoreHistoryResponse {
+  repeated MultisigHistoryTx transactions = 1;
 }
 
 message SignTransactionRequest {

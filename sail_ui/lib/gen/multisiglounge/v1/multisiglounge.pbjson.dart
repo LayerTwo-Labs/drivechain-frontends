@@ -13,6 +13,130 @@ import 'dart:convert' as $convert;
 import 'dart:core' as $core;
 import 'dart:typed_data' as $typed_data;
 
+@$core.Deprecated('Use syncGroupRequestDescriptor instead')
+const SyncGroupRequest$json = {
+  '1': 'SyncGroupRequest',
+  '2': [
+    {'1': 'group', '3': 1, '4': 1, '5': 11, '6': '.multisiglounge.v1.GroupData', '10': 'group'},
+    {'1': 'wallet_id', '3': 2, '4': 1, '5': 9, '10': 'walletId'},
+  ],
+};
+
+/// Descriptor for `SyncGroupRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List syncGroupRequestDescriptor = $convert.base64Decode(
+    'ChBTeW5jR3JvdXBSZXF1ZXN0EjIKBWdyb3VwGAEgASgLMhwubXVsdGlzaWdsb3VuZ2UudjEuR3'
+    'JvdXBEYXRhUgVncm91cBIbCgl3YWxsZXRfaWQYAiABKAlSCHdhbGxldElk');
+
+@$core.Deprecated('Use multisigUtxoDescriptor instead')
+const MultisigUtxo$json = {
+  '1': 'MultisigUtxo',
+  '2': [
+    {'1': 'txid', '3': 1, '4': 1, '5': 9, '10': 'txid'},
+    {'1': 'vout', '3': 2, '4': 1, '5': 13, '10': 'vout'},
+    {'1': 'address', '3': 3, '4': 1, '5': 9, '10': 'address'},
+    {'1': 'amount_sats', '3': 4, '4': 1, '5': 3, '10': 'amountSats'},
+    {'1': 'confirmations', '3': 5, '4': 1, '5': 13, '10': 'confirmations'},
+    {'1': 'script_pubkey', '3': 6, '4': 1, '5': 9, '10': 'scriptPubkey'},
+    {'1': 'spendable', '3': 7, '4': 1, '5': 8, '10': 'spendable'},
+    {'1': 'solvable', '3': 8, '4': 1, '5': 8, '10': 'solvable'},
+    {'1': 'safe', '3': 9, '4': 1, '5': 8, '10': 'safe'},
+  ],
+};
+
+/// Descriptor for `MultisigUtxo`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List multisigUtxoDescriptor = $convert.base64Decode(
+    'CgxNdWx0aXNpZ1V0eG8SEgoEdHhpZBgBIAEoCVIEdHhpZBISCgR2b3V0GAIgASgNUgR2b3V0Eh'
+    'gKB2FkZHJlc3MYAyABKAlSB2FkZHJlc3MSHwoLYW1vdW50X3NhdHMYBCABKANSCmFtb3VudFNh'
+    'dHMSJAoNY29uZmlybWF0aW9ucxgFIAEoDVINY29uZmlybWF0aW9ucxIjCg1zY3JpcHRfcHVia2'
+    'V5GAYgASgJUgxzY3JpcHRQdWJrZXkSHAoJc3BlbmRhYmxlGAcgASgIUglzcGVuZGFibGUSGgoI'
+    'c29sdmFibGUYCCABKAhSCHNvbHZhYmxlEhIKBHNhZmUYCSABKAhSBHNhZmU=');
+
+@$core.Deprecated('Use syncGroupResponseDescriptor instead')
+const SyncGroupResponse$json = {
+  '1': 'SyncGroupResponse',
+  '2': [
+    {'1': 'confirmed_sats', '3': 1, '4': 1, '5': 3, '10': 'confirmedSats'},
+    {'1': 'pending_sats', '3': 2, '4': 1, '5': 3, '10': 'pendingSats'},
+    {'1': 'utxo_count', '3': 3, '4': 1, '5': 13, '10': 'utxoCount'},
+    {'1': 'utxos', '3': 4, '4': 3, '5': 11, '6': '.multisiglounge.v1.MultisigUtxo', '10': 'utxos'},
+  ],
+};
+
+/// Descriptor for `SyncGroupResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List syncGroupResponseDescriptor = $convert.base64Decode(
+    'ChFTeW5jR3JvdXBSZXNwb25zZRIlCg5jb25maXJtZWRfc2F0cxgBIAEoA1INY29uZmlybWVkU2'
+    'F0cxIhCgxwZW5kaW5nX3NhdHMYAiABKANSC3BlbmRpbmdTYXRzEh0KCnV0eG9fY291bnQYAyAB'
+    'KA1SCXV0eG9Db3VudBI1CgV1dHhvcxgEIAMoCzIfLm11bHRpc2lnbG91bmdlLnYxLk11bHRpc2'
+    'lnVXR4b1IFdXR4b3M=');
+
+@$core.Deprecated('Use restoreHistoryRequestDescriptor instead')
+const RestoreHistoryRequest$json = {
+  '1': 'RestoreHistoryRequest',
+  '2': [
+    {'1': 'group', '3': 1, '4': 1, '5': 11, '6': '.multisiglounge.v1.GroupData', '10': 'group'},
+    {'1': 'wallet_id', '3': 2, '4': 1, '5': 9, '10': 'walletId'},
+  ],
+};
+
+/// Descriptor for `RestoreHistoryRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List restoreHistoryRequestDescriptor = $convert.base64Decode(
+    'ChVSZXN0b3JlSGlzdG9yeVJlcXVlc3QSMgoFZ3JvdXAYASABKAsyHC5tdWx0aXNpZ2xvdW5nZS'
+    '52MS5Hcm91cERhdGFSBWdyb3VwEhsKCXdhbGxldF9pZBgCIAEoCVIId2FsbGV0SWQ=');
+
+@$core.Deprecated('Use multisigHistoryInputDescriptor instead')
+const MultisigHistoryInput$json = {
+  '1': 'MultisigHistoryInput',
+  '2': [
+    {'1': 'txid', '3': 1, '4': 1, '5': 9, '10': 'txid'},
+    {'1': 'vout', '3': 2, '4': 1, '5': 13, '10': 'vout'},
+  ],
+};
+
+/// Descriptor for `MultisigHistoryInput`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List multisigHistoryInputDescriptor = $convert.base64Decode(
+    'ChRNdWx0aXNpZ0hpc3RvcnlJbnB1dBISCgR0eGlkGAEgASgJUgR0eGlkEhIKBHZvdXQYAiABKA'
+    '1SBHZvdXQ=');
+
+@$core.Deprecated('Use multisigHistoryTxDescriptor instead')
+const MultisigHistoryTx$json = {
+  '1': 'MultisigHistoryTx',
+  '2': [
+    {'1': 'txid', '3': 1, '4': 1, '5': 9, '10': 'txid'},
+    {'1': 'amount_sats', '3': 2, '4': 1, '5': 3, '10': 'amountSats'},
+    {'1': 'is_deposit', '3': 3, '4': 1, '5': 8, '10': 'isDeposit'},
+    {'1': 'destination', '3': 4, '4': 1, '5': 9, '10': 'destination'},
+    {'1': 'confirmations', '3': 5, '4': 1, '5': 13, '10': 'confirmations'},
+    {'1': 'signature_count', '3': 6, '4': 1, '5': 13, '10': 'signatureCount'},
+    {'1': 'status', '3': 7, '4': 1, '5': 9, '10': 'status'},
+    {'1': 'time', '3': 8, '4': 1, '5': 3, '10': 'time'},
+    {'1': 'final_hex', '3': 9, '4': 1, '5': 9, '10': 'finalHex'},
+    {'1': 'inputs', '3': 10, '4': 3, '5': 11, '6': '.multisiglounge.v1.MultisigHistoryInput', '10': 'inputs'},
+  ],
+};
+
+/// Descriptor for `MultisigHistoryTx`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List multisigHistoryTxDescriptor = $convert.base64Decode(
+    'ChFNdWx0aXNpZ0hpc3RvcnlUeBISCgR0eGlkGAEgASgJUgR0eGlkEh8KC2Ftb3VudF9zYXRzGA'
+    'IgASgDUgphbW91bnRTYXRzEh0KCmlzX2RlcG9zaXQYAyABKAhSCWlzRGVwb3NpdBIgCgtkZXN0'
+    'aW5hdGlvbhgEIAEoCVILZGVzdGluYXRpb24SJAoNY29uZmlybWF0aW9ucxgFIAEoDVINY29uZm'
+    'lybWF0aW9ucxInCg9zaWduYXR1cmVfY291bnQYBiABKA1SDnNpZ25hdHVyZUNvdW50EhYKBnN0'
+    'YXR1cxgHIAEoCVIGc3RhdHVzEhIKBHRpbWUYCCABKANSBHRpbWUSGwoJZmluYWxfaGV4GAkgAS'
+    'gJUghmaW5hbEhleBI/CgZpbnB1dHMYCiADKAsyJy5tdWx0aXNpZ2xvdW5nZS52MS5NdWx0aXNp'
+    'Z0hpc3RvcnlJbnB1dFIGaW5wdXRz');
+
+@$core.Deprecated('Use restoreHistoryResponseDescriptor instead')
+const RestoreHistoryResponse$json = {
+  '1': 'RestoreHistoryResponse',
+  '2': [
+    {'1': 'transactions', '3': 1, '4': 3, '5': 11, '6': '.multisiglounge.v1.MultisigHistoryTx', '10': 'transactions'},
+  ],
+};
+
+/// Descriptor for `RestoreHistoryResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List restoreHistoryResponseDescriptor = $convert.base64Decode(
+    'ChZSZXN0b3JlSGlzdG9yeVJlc3BvbnNlEkgKDHRyYW5zYWN0aW9ucxgBIAMoCzIkLm11bHRpc2'
+    'lnbG91bmdlLnYxLk11bHRpc2lnSGlzdG9yeVR4Ugx0cmFuc2FjdGlvbnM=');
+
 @$core.Deprecated('Use signTransactionRequestDescriptor instead')
 const SignTransactionRequest$json = {
   '1': 'SignTransactionRequest',
@@ -278,6 +402,8 @@ const $core.Map<$core.String, $core.dynamic> MultisigLoungeServiceBase$json = {
     {'1': 'ImportGroupFromTxid', '2': '.multisiglounge.v1.ImportGroupFromTxidRequest', '3': '.multisiglounge.v1.ImportGroupFromTxidResponse'},
     {'1': 'SignTransaction', '2': '.multisiglounge.v1.SignTransactionRequest', '3': '.multisiglounge.v1.SignTransactionResponse'},
     {'1': 'CombineAndBroadcast', '2': '.multisiglounge.v1.CombineAndBroadcastRequest', '3': '.multisiglounge.v1.CombineAndBroadcastResponse'},
+    {'1': 'SyncGroup', '2': '.multisiglounge.v1.SyncGroupRequest', '3': '.multisiglounge.v1.SyncGroupResponse'},
+    {'1': 'RestoreHistory', '2': '.multisiglounge.v1.RestoreHistoryRequest', '3': '.multisiglounge.v1.RestoreHistoryResponse'},
   ],
 };
 
@@ -299,6 +425,13 @@ const $core.Map<$core.String, $core.Map<$core.String, $core.dynamic>> MultisigLo
   '.multisiglounge.v1.SignTransactionResponse': SignTransactionResponse$json,
   '.multisiglounge.v1.CombineAndBroadcastRequest': CombineAndBroadcastRequest$json,
   '.multisiglounge.v1.CombineAndBroadcastResponse': CombineAndBroadcastResponse$json,
+  '.multisiglounge.v1.SyncGroupRequest': SyncGroupRequest$json,
+  '.multisiglounge.v1.SyncGroupResponse': SyncGroupResponse$json,
+  '.multisiglounge.v1.MultisigUtxo': MultisigUtxo$json,
+  '.multisiglounge.v1.RestoreHistoryRequest': RestoreHistoryRequest$json,
+  '.multisiglounge.v1.RestoreHistoryResponse': RestoreHistoryResponse$json,
+  '.multisiglounge.v1.MultisigHistoryTx': MultisigHistoryTx$json,
+  '.multisiglounge.v1.MultisigHistoryInput': MultisigHistoryInput$json,
 };
 
 /// Descriptor for `MultisigLoungeService`. Decode as a `google.protobuf.ServiceDescriptorProto`.
@@ -315,5 +448,8 @@ final $typed_data.Uint8List multisigLoungeServiceDescriptor = $convert.base64Dec
     'JlcXVlc3QaKi5tdWx0aXNpZ2xvdW5nZS52MS5TaWduVHJhbnNhY3Rpb25SZXNwb25zZRJ0ChND'
     'b21iaW5lQW5kQnJvYWRjYXN0Ei0ubXVsdGlzaWdsb3VuZ2UudjEuQ29tYmluZUFuZEJyb2FkY2'
     'FzdFJlcXVlc3QaLi5tdWx0aXNpZ2xvdW5nZS52MS5Db21iaW5lQW5kQnJvYWRjYXN0UmVzcG9u'
-    'c2U=');
+    'c2USVgoJU3luY0dyb3VwEiMubXVsdGlzaWdsb3VuZ2UudjEuU3luY0dyb3VwUmVxdWVzdBokLm'
+    '11bHRpc2lnbG91bmdlLnYxLlN5bmNHcm91cFJlc3BvbnNlEmUKDlJlc3RvcmVIaXN0b3J5Eigu'
+    'bXVsdGlzaWdsb3VuZ2UudjEuUmVzdG9yZUhpc3RvcnlSZXF1ZXN0GikubXVsdGlzaWdsb3VuZ2'
+    'UudjEuUmVzdG9yZUhpc3RvcnlSZXNwb25zZQ==');
 

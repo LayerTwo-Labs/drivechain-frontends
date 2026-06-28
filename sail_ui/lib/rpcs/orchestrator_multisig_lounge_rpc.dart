@@ -62,4 +62,18 @@ class OrchestratorMultisigLoungeRPC {
       mlpb.CombineAndBroadcastRequest(psbts: psbts, group: group),
     );
   }
+
+  Future<mlpb.SyncGroupResponse> syncGroup({
+    required mlpb.GroupData group,
+    required String walletId,
+  }) {
+    return _client.syncGroup(mlpb.SyncGroupRequest(group: group, walletId: walletId));
+  }
+
+  Future<mlpb.RestoreHistoryResponse> restoreHistory({
+    required mlpb.GroupData group,
+    required String walletId,
+  }) {
+    return _client.restoreHistory(mlpb.RestoreHistoryRequest(group: group, walletId: walletId));
+  }
 }
