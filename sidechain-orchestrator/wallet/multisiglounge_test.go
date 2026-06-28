@@ -2,10 +2,15 @@ package wallet
 
 import (
 	"bytes"
+	"context"
 	"encoding/base64"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
+	"os/exec"
+	"strings"
 	"testing"
+	"time"
 
 	"github.com/btcsuite/btcd/btcec/v2"
 	"github.com/btcsuite/btcd/btcutil"
@@ -54,16 +59,16 @@ func loungeTestKeys(t *testing.T) (MultisigLoungeGroup, []*hdkeychain.ExtendedKe
 }
 
 // TestBuildDescriptorsGoldenParity pins the Go descriptor output to the exact
-// bytes (and checksum) BitWindow's Dart buildWatchOnlyDescriptors produces, which
-// was independently confirmed against bitcoind getdescriptorinfo for these keys.
-// The single trailing /0/* (resp. /1/*) on the last key is intentional: it
-// reproduces the Dart string assembly byte-for-byte. Any drift here would change
-// addresses and risk funds, so the strings are hard-pinned.
+// standard-form bytes and checksum, independently confirmed against bitcoind
+// getdescriptorinfo for these keys (receive checksum ha0h82uj, change jgydevv6).
+// Every key carries its own /0/* (resp. /1/*) range so all cosigners derive over
+// the same chain/index — the form that matches the signing descriptor. Any drift
+// here would change addresses and risk funds, so the strings are hard-pinned.
 func TestBuildDescriptorsGoldenParity(t *testing.T) {
 	group, _ := loungeTestKeys(t)
 
-	const wantReceive = "wsh(sortedmulti(2,[73c5da0a/48'/1'/0'/2']tpubDFH9dgzveyD8zTbPUFuLrGmCydNvxehyNdUXKJAQN8x4aZ4j6UZqGfnqFrD4NqyaTVGKbvEW54tsvPTK2UoSbCC1PJY8iCNiwTL3RWZEheQ,[73c5da0a/48'/1'/0'/3']tpubDFH9dgzveyD94P86sEzUzWtd2wxFkUoK78rSBqSWyXNuFq46dy4HbPTEZEP4fbSY4L5Vb2LFnm23JeGQppq5SPcPDNuHZU3JQwMSFXLdudh,[73c5da0a/48'/1'/0'/4']tpubDFH9dgzveyD97hF9wTbwFieMpH9LcP5HcmbBS3vu8ijqNnu8djwrD2so8GbXpAzeTw7wwPjdKwQX6BTk2o6eCSGHJggkVYnMeBC9ECe9Ufp/0/*))#0mez4m89"
-	const wantChange = "wsh(sortedmulti(2,[73c5da0a/48'/1'/0'/2']tpubDFH9dgzveyD8zTbPUFuLrGmCydNvxehyNdUXKJAQN8x4aZ4j6UZqGfnqFrD4NqyaTVGKbvEW54tsvPTK2UoSbCC1PJY8iCNiwTL3RWZEheQ,[73c5da0a/48'/1'/0'/3']tpubDFH9dgzveyD94P86sEzUzWtd2wxFkUoK78rSBqSWyXNuFq46dy4HbPTEZEP4fbSY4L5Vb2LFnm23JeGQppq5SPcPDNuHZU3JQwMSFXLdudh,[73c5da0a/48'/1'/0'/4']tpubDFH9dgzveyD97hF9wTbwFieMpH9LcP5HcmbBS3vu8ijqNnu8djwrD2so8GbXpAzeTw7wwPjdKwQX6BTk2o6eCSGHJggkVYnMeBC9ECe9Ufp/1/*))#fc38wkv3"
+	const wantReceive = "wsh(sortedmulti(2,[73c5da0a/48'/1'/0'/2']tpubDFH9dgzveyD8zTbPUFuLrGmCydNvxehyNdUXKJAQN8x4aZ4j6UZqGfnqFrD4NqyaTVGKbvEW54tsvPTK2UoSbCC1PJY8iCNiwTL3RWZEheQ/0/*,[73c5da0a/48'/1'/0'/3']tpubDFH9dgzveyD94P86sEzUzWtd2wxFkUoK78rSBqSWyXNuFq46dy4HbPTEZEP4fbSY4L5Vb2LFnm23JeGQppq5SPcPDNuHZU3JQwMSFXLdudh/0/*,[73c5da0a/48'/1'/0'/4']tpubDFH9dgzveyD97hF9wTbwFieMpH9LcP5HcmbBS3vu8ijqNnu8djwrD2so8GbXpAzeTw7wwPjdKwQX6BTk2o6eCSGHJggkVYnMeBC9ECe9Ufp/0/*))#ha0h82uj"
+	const wantChange = "wsh(sortedmulti(2,[73c5da0a/48'/1'/0'/2']tpubDFH9dgzveyD8zTbPUFuLrGmCydNvxehyNdUXKJAQN8x4aZ4j6UZqGfnqFrD4NqyaTVGKbvEW54tsvPTK2UoSbCC1PJY8iCNiwTL3RWZEheQ/1/*,[73c5da0a/48'/1'/0'/3']tpubDFH9dgzveyD94P86sEzUzWtd2wxFkUoK78rSBqSWyXNuFq46dy4HbPTEZEP4fbSY4L5Vb2LFnm23JeGQppq5SPcPDNuHZU3JQwMSFXLdudh/1/*,[73c5da0a/48'/1'/0'/4']tpubDFH9dgzveyD97hF9wTbwFieMpH9LcP5HcmbBS3vu8ijqNnu8djwrD2so8GbXpAzeTw7wwPjdKwQX6BTk2o6eCSGHJggkVYnMeBC9ECe9Ufp/1/*))#jgydevv6"
 
 	receive, change, err := BuildMultisigLoungeDescriptors(group)
 	require.NoError(t, err)
@@ -271,4 +276,146 @@ func loungeForeignPSBT(t *testing.T) *psbt.Packet {
 func TestValidatePsbtBadBase64(t *testing.T) {
 	_, err := ValidateMultisigPsbt("not-base64!!!", 2, nil)
 	require.Error(t, err)
+}
+
+// loungeSigningDescriptors builds the signing-style descriptors for the test
+// group: the first cosigner's key as an xprv, the others as xpubs, each ranged
+// /0/* (receive) and /1/* (change) — mirroring the Dart buildSigningDescriptors
+// output. This is the descriptor the wallet signs with; it must derive the same
+// addresses the watch-only (all-xpub) descriptor receives to.
+func loungeSigningDescriptors(t *testing.T, group MultisigLoungeGroup) (receive, change string) {
+	t.Helper()
+	const h = hdkeychain.HardenedKeyStart
+	master, err := hdkeychain.NewMaster(MnemonicToSeed(testMnemonic, ""), &chaincfg.SigNetParams)
+	require.NoError(t, err)
+	signKey := master
+	for _, p := range []uint32{h + 48, h + 1, h + 0, h + 2} {
+		signKey, err = signKey.Derive(p)
+		require.NoError(t, err)
+	}
+	xprv := signKey.String()
+
+	sorted := sortKeysByBIP67(group.Keys)
+	rParts := make([]string, len(sorted))
+	cParts := make([]string, len(sorted))
+	for i, k := range sorted {
+		expr := fmt.Sprintf("[%s/%s]%s", k.Fingerprint, k.OriginPath, k.Xpub)
+		if i == 0 {
+			expr = fmt.Sprintf("[%s/%s]%s", k.Fingerprint, k.OriginPath, xprv)
+		}
+		rParts[i] = expr + "/0/*"
+		cParts[i] = expr + "/1/*"
+	}
+	receive = fmt.Sprintf("wsh(sortedmulti(%d,%s))", group.M, strings.Join(rParts, ","))
+	change = fmt.Sprintf("wsh(sortedmulti(%d,%s))", group.M, strings.Join(cParts, ","))
+	return receive, change
+}
+
+// TestDescriptorReceiveEqualsSign is the load-bearing safety check: via bitcoind
+// deriveaddresses, the watch-only receive/change descriptors and the signing
+// receive/change descriptors must produce the identical first-N addresses. If
+// they diverge, the wallet receives to addresses it cannot spend from.
+//
+// Skips when bitcoin-cli/bitcoind are not on PATH (CI without Core); the pinned
+// golden checksums in TestBuildDescriptorsGoldenParity were validated against
+// bitcoind out of band.
+func TestDescriptorReceiveEqualsSign(t *testing.T) {
+	cli, daemon := findBitcoinTools(t)
+
+	group, _ := loungeTestKeys(t)
+	watchReceive, watchChange, err := BuildMultisigLoungeDescriptors(group)
+	require.NoError(t, err)
+	signReceive, signChange := loungeSigningDescriptors(t, group)
+
+	rt := newRegtest(t, cli, daemon)
+	defer rt.stop()
+
+	assert.Equal(t,
+		rt.deriveAddresses(t, rt.withChecksum(t, signReceive), "[0,4]"),
+		rt.deriveAddresses(t, watchReceive, "[0,4]"),
+		"watch-only receive descriptor must derive the same addresses the signing descriptor does",
+	)
+	assert.Equal(t,
+		rt.deriveAddresses(t, rt.withChecksum(t, signChange), "[0,4]"),
+		rt.deriveAddresses(t, watchChange, "[0,4]"),
+		"watch-only change descriptor must derive the same addresses the signing descriptor does",
+	)
+}
+
+func findBitcoinTools(t *testing.T) (cli, daemon string) {
+	t.Helper()
+	cli, err := exec.LookPath("bitcoin-cli")
+	if err != nil {
+		t.Skip("bitcoin-cli not on PATH; skipping receive==sign consistency check")
+	}
+	daemon, err = exec.LookPath("bitcoind")
+	if err != nil {
+		t.Skip("bitcoind not on PATH; skipping receive==sign consistency check")
+	}
+	return cli, daemon
+}
+
+type regtest struct {
+	cli     string
+	dataDir string
+}
+
+func newRegtest(t *testing.T, cli, daemon string) *regtest {
+	t.Helper()
+	dir := t.TempDir()
+	cmd := exec.Command(daemon, "-regtest", "-datadir="+dir, "-daemon", "-server=1",
+		"-rpcuser=u", "-rpcpassword=p", "-fallbackfee=0.0001")
+	require.NoError(t, cmd.Run())
+	rt := &regtest{cli: cli, dataDir: dir}
+
+	// Wait for the RPC to come up.
+	deadline := time.Now().Add(20 * time.Second)
+	for time.Now().Before(deadline) {
+		if _, err := rt.call("getblockchaininfo"); err == nil {
+			return rt
+		}
+		time.Sleep(300 * time.Millisecond)
+	}
+	t.Fatal("bitcoind regtest RPC did not come up")
+	return nil
+}
+
+func (rt *regtest) stop() {
+	_, _ = rt.call("stop")
+	// Give bitcoind a moment to release its datadir before t.TempDir cleanup.
+	time.Sleep(time.Second)
+}
+
+func (rt *regtest) call(args ...string) ([]byte, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	full := append([]string{"-regtest", "-datadir=" + rt.dataDir, "-rpcuser=u", "-rpcpassword=p"}, args...)
+	out, err := exec.CommandContext(ctx, rt.cli, full...).Output()
+	return out, err
+}
+
+func (rt *regtest) withChecksum(t *testing.T, desc string) string {
+	t.Helper()
+	out, err := rt.call("getdescriptorinfo", desc)
+	require.NoError(t, err)
+	var info struct {
+		Descriptor string `json:"descriptor"`
+	}
+	require.NoError(t, json.Unmarshal(out, &info))
+	require.NotEmpty(t, info.Descriptor)
+	return info.Descriptor
+}
+
+func (rt *regtest) deriveAddresses(t *testing.T, descWithChecksum, rng string) []string {
+	t.Helper()
+	desc := descWithChecksum
+	if !strings.Contains(desc, "#") {
+		desc = rt.withChecksum(t, desc)
+	}
+	out, err := rt.call("deriveaddresses", desc, rng)
+	require.NoError(t, err)
+	var addrs []string
+	require.NoError(t, json.Unmarshal(out, &addrs))
+	require.NotEmpty(t, addrs)
+	return addrs
 }
