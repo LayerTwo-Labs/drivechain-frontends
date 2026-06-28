@@ -306,6 +306,21 @@ abstract final class WalletManagerService {
     walletmanagerv1walletmanager.SetTestSidechainsResponse.new,
   );
 
+  /// Electrum server (Esplora endpoint) selection for electrum wallets.
+  static const getElectrumServer = connect.Spec(
+    '/$name/GetElectrumServer',
+    connect.StreamType.unary,
+    walletmanagerv1walletmanager.GetElectrumServerRequest.new,
+    walletmanagerv1walletmanager.GetElectrumServerResponse.new,
+  );
+
+  static const setElectrumServer = connect.Spec(
+    '/$name/SetElectrumServer',
+    connect.StreamType.unary,
+    walletmanagerv1walletmanager.SetElectrumServerRequest.new,
+    walletmanagerv1walletmanager.SetElectrumServerResponse.new,
+  );
+
   /// Stream wallet state changes. Sends the full wallet state immediately,
   /// then again whenever wallets or balance change.
   static const watchWalletData = connect.Spec(

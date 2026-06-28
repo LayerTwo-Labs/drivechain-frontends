@@ -62,6 +62,8 @@ abstract class WalletManagerServiceBase extends $pb.GeneratedService {
   $async.Future<$14.SetCoreVariantResponse> setCoreVariant($pb.ServerContext ctx, $14.SetCoreVariantRequest request);
   $async.Future<$14.GetTestSidechainsResponse> getTestSidechains($pb.ServerContext ctx, $14.GetTestSidechainsRequest request);
   $async.Future<$14.SetTestSidechainsResponse> setTestSidechains($pb.ServerContext ctx, $14.SetTestSidechainsRequest request);
+  $async.Future<$14.GetElectrumServerResponse> getElectrumServer($pb.ServerContext ctx, $14.GetElectrumServerRequest request);
+  $async.Future<$14.SetElectrumServerResponse> setElectrumServer($pb.ServerContext ctx, $14.SetElectrumServerRequest request);
   $async.Future<$14.WatchWalletDataResponse> watchWalletData($pb.ServerContext ctx, $13.Empty request);
 
   $pb.GeneratedMessage createRequest($core.String methodName) {
@@ -106,6 +108,8 @@ abstract class WalletManagerServiceBase extends $pb.GeneratedService {
       case 'SetCoreVariant': return $14.SetCoreVariantRequest();
       case 'GetTestSidechains': return $14.GetTestSidechainsRequest();
       case 'SetTestSidechains': return $14.SetTestSidechainsRequest();
+      case 'GetElectrumServer': return $14.GetElectrumServerRequest();
+      case 'SetElectrumServer': return $14.SetElectrumServerRequest();
       case 'WatchWalletData': return $13.Empty();
       default: throw $core.ArgumentError('Unknown method: $methodName');
     }
@@ -153,6 +157,8 @@ abstract class WalletManagerServiceBase extends $pb.GeneratedService {
       case 'SetCoreVariant': return this.setCoreVariant(ctx, request as $14.SetCoreVariantRequest);
       case 'GetTestSidechains': return this.getTestSidechains(ctx, request as $14.GetTestSidechainsRequest);
       case 'SetTestSidechains': return this.setTestSidechains(ctx, request as $14.SetTestSidechainsRequest);
+      case 'GetElectrumServer': return this.getElectrumServer(ctx, request as $14.GetElectrumServerRequest);
+      case 'SetElectrumServer': return this.setElectrumServer(ctx, request as $14.SetElectrumServerRequest);
       case 'WatchWalletData': return this.watchWalletData(ctx, request as $13.Empty);
       default: throw $core.ArgumentError('Unknown method: $methodName');
     }

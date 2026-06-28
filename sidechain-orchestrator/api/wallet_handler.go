@@ -1367,6 +1367,71 @@ func (h *WalletHandler) SetTestSidechains(ctx context.Context, req *connect.Requ
 	return connect.NewResponse(&pb.SetTestSidechainsResponse{}), nil
 }
 
+// ============================================================================
+// Electrum server selection
+// ============================================================================
+
+func (h *WalletHandler) GetElectrumServer(ctx context.Context, req *connect.Request[pb.GetElectrumServerRequest]) (*connect.Response[pb.GetElectrumServerResponse], error) {
+	if h.engine == nil {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("wallet engine not configured"))
+	}
+	url, err := h.engine.ElectrumServerURL()
+	if err != nil {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, err)
+	}
+	defaultURL := ""
+	override := ""
+	if h.orch != nil {
+		defaultURL = h.orch.DefaultElectrumServerURL()
+		override = h.orch.ElectrumServerOverride()
+	}
+	return connect.NewResponse(&pb.GetElectrumServerResponse{
+		Url:        url,
+		IsOverride: override != "",
+		DefaultUrl: defaultURL,
+	}), nil
+}
+
+func (h *WalletHandler) SetElectrumServer(ctx context.Context, req *connect.Request[pb.SetElectrumServerRequest]) (*connect.Response[pb.SetElectrumServerResponse], error) {
+	if h.engine == nil {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("wallet engine not configured"))
+	}
+
+	// Empty URL resets to the network default; resolve it here so the switch is
+	// validated and persisted as a cleared override, not as a literal default.
+	target := req.Msg.Url
+	reset := target == ""
+	if reset {
+		if h.orch == nil {
+			return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("orchestrator not configured"))
+		}
+		target = h.orch.DefaultElectrumServerURL()
+		if target == "" {
+			return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("no default electrum server for this network"))
+		}
+	}
+
+	tip, err := h.engine.SetElectrumServerURL(ctx, target)
+	if err != nil {
+		return nil, err
+	}
+
+	if h.orch != nil {
+		persist := target
+		if reset {
+			persist = ""
+		}
+		if perr := h.orch.PersistElectrumServerURL(persist); perr != nil {
+			return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("server switched but persisting it failed: %w", perr))
+		}
+	}
+
+	return connect.NewResponse(&pb.SetElectrumServerResponse{
+		Url:       target,
+		TipHeight: int64(tip),
+	}), nil
+}
+
 func coreVariantDisplayName(id string) string {
 	switch id {
 	case "core":

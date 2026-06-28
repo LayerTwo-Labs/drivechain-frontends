@@ -409,6 +409,17 @@ class OrchestratorWalletRPC {
     return _unaryClient.setTestSidechains(wmpb.SetTestSidechainsRequest(enabled: enabled));
   }
 
+  Future<wmpb.GetElectrumServerResponse> getElectrumServer() {
+    return _unaryClient.getElectrumServer(wmpb.GetElectrumServerRequest());
+  }
+
+  /// Switch the electrum wallet's Esplora endpoint. Pass an empty url to reset
+  /// to the network default. Validates connectivity server-side and keeps the
+  /// previous endpoint on failure.
+  Future<wmpb.SetElectrumServerResponse> setElectrumServer(String url) {
+    return _unaryClient.setElectrumServer(wmpb.SetElectrumServerRequest(url: url));
+  }
+
   String _bytesToHex(List<int> bytes) {
     final buffer = StringBuffer();
     for (final byte in bytes) {

@@ -348,6 +348,10 @@ func run(cctx *cli.Context) error {
 	var electrumBackend wallet.Backend
 	if net := config.NetworkFromString(resolvedNetwork); config.ElectrumWalletSupportedForNetwork(net) && netParams != nil {
 		esploraURLs := config.EsploraURLsForNetwork(net)
+		// A persisted runtime override replaces the network default endpoint.
+		if override := orch.ElectrumServerOverride(); override != "" {
+			esploraURLs = []string{override}
+		}
 		electrumBackend = wallet.NewElectrumBackend(walletSvc, wallet.NewEsploraClient(esploraURLs, log), netParams, log)
 		log.Info().Strs("esplora_urls", esploraURLs).Msg("electrum wallet provider initialized")
 	}

@@ -6560,6 +6560,236 @@ class SetTestSidechainsResponse extends $pb.GeneratedMessage {
   static SetTestSidechainsResponse? _defaultInstance;
 }
 
+class GetElectrumServerRequest extends $pb.GeneratedMessage {
+  factory GetElectrumServerRequest() => create();
+  GetElectrumServerRequest._() : super();
+  factory GetElectrumServerRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory GetElectrumServerRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'GetElectrumServerRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'walletmanager.v1'), createEmptyInstance: create)
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  GetElectrumServerRequest clone() => GetElectrumServerRequest()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  GetElectrumServerRequest copyWith(void Function(GetElectrumServerRequest) updates) => super.copyWith((message) => updates(message as GetElectrumServerRequest)) as GetElectrumServerRequest;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static GetElectrumServerRequest create() => GetElectrumServerRequest._();
+  GetElectrumServerRequest createEmptyInstance() => create();
+  static $pb.PbList<GetElectrumServerRequest> createRepeated() => $pb.PbList<GetElectrumServerRequest>();
+  @$core.pragma('dart2js:noInline')
+  static GetElectrumServerRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<GetElectrumServerRequest>(create);
+  static GetElectrumServerRequest? _defaultInstance;
+}
+
+class GetElectrumServerResponse extends $pb.GeneratedMessage {
+  factory GetElectrumServerResponse({
+    $core.String? url,
+    $core.bool? isOverride,
+    $core.String? defaultUrl,
+  }) {
+    final $result = create();
+    if (url != null) {
+      $result.url = url;
+    }
+    if (isOverride != null) {
+      $result.isOverride = isOverride;
+    }
+    if (defaultUrl != null) {
+      $result.defaultUrl = defaultUrl;
+    }
+    return $result;
+  }
+  GetElectrumServerResponse._() : super();
+  factory GetElectrumServerResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory GetElectrumServerResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'GetElectrumServerResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'walletmanager.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'url')
+    ..aOB(2, _omitFieldNames ? '' : 'isOverride')
+    ..aOS(3, _omitFieldNames ? '' : 'defaultUrl')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  GetElectrumServerResponse clone() => GetElectrumServerResponse()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  GetElectrumServerResponse copyWith(void Function(GetElectrumServerResponse) updates) => super.copyWith((message) => updates(message as GetElectrumServerResponse)) as GetElectrumServerResponse;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static GetElectrumServerResponse create() => GetElectrumServerResponse._();
+  GetElectrumServerResponse createEmptyInstance() => create();
+  static $pb.PbList<GetElectrumServerResponse> createRepeated() => $pb.PbList<GetElectrumServerResponse>();
+  @$core.pragma('dart2js:noInline')
+  static GetElectrumServerResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<GetElectrumServerResponse>(create);
+  static GetElectrumServerResponse? _defaultInstance;
+
+  /// Effective Esplora endpoint the electrum wallet is currently using.
+  @$pb.TagNumber(1)
+  $core.String get url => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set url($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasUrl() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearUrl() => clearField(1);
+
+  /// True when url is a user-set override rather than the network default.
+  @$pb.TagNumber(2)
+  $core.bool get isOverride => $_getBF(1);
+  @$pb.TagNumber(2)
+  set isOverride($core.bool v) { $_setBool(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasIsOverride() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearIsOverride() => clearField(2);
+
+  /// The network's built-in default endpoint (so the UI can offer "reset").
+  @$pb.TagNumber(3)
+  $core.String get defaultUrl => $_getSZ(2);
+  @$pb.TagNumber(3)
+  set defaultUrl($core.String v) { $_setString(2, v); }
+  @$pb.TagNumber(3)
+  $core.bool hasDefaultUrl() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearDefaultUrl() => clearField(3);
+}
+
+class SetElectrumServerRequest extends $pb.GeneratedMessage {
+  factory SetElectrumServerRequest({
+    $core.String? url,
+  }) {
+    final $result = create();
+    if (url != null) {
+      $result.url = url;
+    }
+    return $result;
+  }
+  SetElectrumServerRequest._() : super();
+  factory SetElectrumServerRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory SetElectrumServerRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'SetElectrumServerRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'walletmanager.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'url')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  SetElectrumServerRequest clone() => SetElectrumServerRequest()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  SetElectrumServerRequest copyWith(void Function(SetElectrumServerRequest) updates) => super.copyWith((message) => updates(message as SetElectrumServerRequest)) as SetElectrumServerRequest;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static SetElectrumServerRequest create() => SetElectrumServerRequest._();
+  SetElectrumServerRequest createEmptyInstance() => create();
+  static $pb.PbList<SetElectrumServerRequest> createRepeated() => $pb.PbList<SetElectrumServerRequest>();
+  @$core.pragma('dart2js:noInline')
+  static SetElectrumServerRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<SetElectrumServerRequest>(create);
+  static SetElectrumServerRequest? _defaultInstance;
+
+  /// New Esplora endpoint (http/https). Empty resets to the network default.
+  @$pb.TagNumber(1)
+  $core.String get url => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set url($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasUrl() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearUrl() => clearField(1);
+}
+
+class SetElectrumServerResponse extends $pb.GeneratedMessage {
+  factory SetElectrumServerResponse({
+    $core.String? url,
+    $fixnum.Int64? tipHeight,
+  }) {
+    final $result = create();
+    if (url != null) {
+      $result.url = url;
+    }
+    if (tipHeight != null) {
+      $result.tipHeight = tipHeight;
+    }
+    return $result;
+  }
+  SetElectrumServerResponse._() : super();
+  factory SetElectrumServerResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory SetElectrumServerResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'SetElectrumServerResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'walletmanager.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'url')
+    ..aInt64(2, _omitFieldNames ? '' : 'tipHeight')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  SetElectrumServerResponse clone() => SetElectrumServerResponse()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  SetElectrumServerResponse copyWith(void Function(SetElectrumServerResponse) updates) => super.copyWith((message) => updates(message as SetElectrumServerResponse)) as SetElectrumServerResponse;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static SetElectrumServerResponse create() => SetElectrumServerResponse._();
+  SetElectrumServerResponse createEmptyInstance() => create();
+  static $pb.PbList<SetElectrumServerResponse> createRepeated() => $pb.PbList<SetElectrumServerResponse>();
+  @$core.pragma('dart2js:noInline')
+  static SetElectrumServerResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<SetElectrumServerResponse>(create);
+  static SetElectrumServerResponse? _defaultInstance;
+
+  /// Endpoint now in use (the normalized override, or the default after a reset).
+  @$pb.TagNumber(1)
+  $core.String get url => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set url($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasUrl() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearUrl() => clearField(1);
+
+  /// Chain tip height fetched from the new server, confirming connectivity.
+  @$pb.TagNumber(2)
+  $fixnum.Int64 get tipHeight => $_getI64(1);
+  @$pb.TagNumber(2)
+  set tipHeight($fixnum.Int64 v) { $_setInt64(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasTipHeight() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearTipHeight() => clearField(2);
+}
+
 class WatchWalletDataResponse extends $pb.GeneratedMessage {
   factory WatchWalletDataResponse({
     $core.bool? hasWallet,
@@ -6847,6 +7077,12 @@ class WalletManagerServiceApi {
   ;
   $async.Future<SetTestSidechainsResponse> setTestSidechains($pb.ClientContext? ctx, SetTestSidechainsRequest request) =>
     _client.invoke<SetTestSidechainsResponse>(ctx, 'WalletManagerService', 'SetTestSidechains', request, SetTestSidechainsResponse())
+  ;
+  $async.Future<GetElectrumServerResponse> getElectrumServer($pb.ClientContext? ctx, GetElectrumServerRequest request) =>
+    _client.invoke<GetElectrumServerResponse>(ctx, 'WalletManagerService', 'GetElectrumServer', request, GetElectrumServerResponse())
+  ;
+  $async.Future<SetElectrumServerResponse> setElectrumServer($pb.ClientContext? ctx, SetElectrumServerRequest request) =>
+    _client.invoke<SetElectrumServerResponse>(ctx, 'WalletManagerService', 'SetElectrumServer', request, SetElectrumServerResponse())
   ;
   $async.Future<WatchWalletDataResponse> watchWalletData($pb.ClientContext? ctx, $13.Empty request) =>
     _client.invoke<WatchWalletDataResponse>(ctx, 'WalletManagerService', 'WatchWalletData', request, WatchWalletDataResponse())

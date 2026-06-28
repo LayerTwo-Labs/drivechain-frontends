@@ -37,7 +37,9 @@ type EsploraClient struct {
 	// baseURLs is an ordered provider list, primary first. A request rotates to
 	// the next provider on each retry, so a rate-limited or unreachable primary
 	// (e.g. mempool.space 429s) fails over to the fallback (e.g. blockstream.info)
-	// on the very next attempt instead of stalling on one host.
+	// on the very next attempt instead of stalling on one host. Guarded by urlMu
+	// so SetBaseURLs can swap the endpoint at runtime without racing in-flight do().
+	urlMu    sync.RWMutex
 	baseURLs []string
 	client   *http.Client
 	log      zerolog.Logger
@@ -82,6 +84,28 @@ func NewEsploraClient(baseURLs []string, log zerolog.Logger) *EsploraClient {
 		log:         log.With().Str("component", "esplora").Logger(),
 		minInterval: esploraMinInterval,
 	}
+}
+
+// BaseURLs returns the current provider list, primary first.
+func (c *EsploraClient) BaseURLs() []string {
+	c.urlMu.RLock()
+	defer c.urlMu.RUnlock()
+	return append([]string(nil), c.baseURLs...)
+}
+
+// SetBaseURLs atomically swaps the provider list. In-flight requests that
+// already captured the old list complete against it; subsequent requests use
+// the new list. The tip cache is dropped so the next read reflects the new
+// server's chain immediately.
+func (c *EsploraClient) SetBaseURLs(baseURLs []string) {
+	roots := lo.Map(baseURLs, func(u string, _ int) string { return strings.TrimRight(u, "/") })
+	c.urlMu.Lock()
+	c.baseURLs = roots
+	c.urlMu.Unlock()
+
+	c.tipMu.Lock()
+	c.tipFetched = time.Time{}
+	c.tipMu.Unlock()
 }
 
 // EsploraStatus is the confirmation context shared by txs and UTXOs.
@@ -178,6 +202,11 @@ func (c *EsploraClient) do(ctx context.Context, method, path string, reqBody io.
 		bodyBytes = b
 	}
 
+	roots := c.BaseURLs()
+	if len(roots) == 0 {
+		return nil, fmt.Errorf("esplora %s %s: no server configured", method, path)
+	}
+
 	var lastErr error
 	for attempt := 0; attempt < esploraMaxAttempts; attempt++ {
 		if err := c.pace(ctx); err != nil {
@@ -191,7 +220,7 @@ func (c *EsploraClient) do(ctx context.Context, method, path string, reqBody io.
 		// Rotate providers across retries: attempt 0 hits the primary, and each
 		// retry advances to the next root so a 429/outage on one host fails over
 		// to the next instead of backing off against the same dead provider.
-		base := c.baseURLs[attempt%len(c.baseURLs)]
+		base := roots[attempt%len(roots)]
 		req, err := http.NewRequestWithContext(ctx, method, base+path, rdr)
 		if err != nil {
 			return nil, fmt.Errorf("build request %s: %w", path, err)

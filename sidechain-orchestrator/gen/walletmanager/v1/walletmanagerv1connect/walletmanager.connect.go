@@ -154,6 +154,12 @@ const (
 	// WalletManagerServiceSetTestSidechainsProcedure is the fully-qualified name of the
 	// WalletManagerService's SetTestSidechains RPC.
 	WalletManagerServiceSetTestSidechainsProcedure = "/walletmanager.v1.WalletManagerService/SetTestSidechains"
+	// WalletManagerServiceGetElectrumServerProcedure is the fully-qualified name of the
+	// WalletManagerService's GetElectrumServer RPC.
+	WalletManagerServiceGetElectrumServerProcedure = "/walletmanager.v1.WalletManagerService/GetElectrumServer"
+	// WalletManagerServiceSetElectrumServerProcedure is the fully-qualified name of the
+	// WalletManagerService's SetElectrumServer RPC.
+	WalletManagerServiceSetElectrumServerProcedure = "/walletmanager.v1.WalletManagerService/SetElectrumServer"
 	// WalletManagerServiceWatchWalletDataProcedure is the fully-qualified name of the
 	// WalletManagerService's WatchWalletData RPC.
 	WalletManagerServiceWatchWalletDataProcedure = "/walletmanager.v1.WalletManagerService/WatchWalletData"
@@ -216,6 +222,9 @@ type WalletManagerServiceClient interface {
 	// the alternative_download config (test builds) instead of the default.
 	GetTestSidechains(context.Context, *connect.Request[v1.GetTestSidechainsRequest]) (*connect.Response[v1.GetTestSidechainsResponse], error)
 	SetTestSidechains(context.Context, *connect.Request[v1.SetTestSidechainsRequest]) (*connect.Response[v1.SetTestSidechainsResponse], error)
+	// Electrum server (Esplora endpoint) selection for electrum wallets.
+	GetElectrumServer(context.Context, *connect.Request[v1.GetElectrumServerRequest]) (*connect.Response[v1.GetElectrumServerResponse], error)
+	SetElectrumServer(context.Context, *connect.Request[v1.SetElectrumServerRequest]) (*connect.Response[v1.SetElectrumServerResponse], error)
 	// Stream wallet state changes. Sends the full wallet state immediately,
 	// then again whenever wallets or balance change.
 	WatchWalletData(context.Context, *connect.Request[emptypb.Empty]) (*connect.ServerStreamForClient[v1.WatchWalletDataResponse], error)
@@ -472,6 +481,18 @@ func NewWalletManagerServiceClient(httpClient connect.HTTPClient, baseURL string
 			connect.WithSchema(walletManagerServiceMethods.ByName("SetTestSidechains")),
 			connect.WithClientOptions(opts...),
 		),
+		getElectrumServer: connect.NewClient[v1.GetElectrumServerRequest, v1.GetElectrumServerResponse](
+			httpClient,
+			baseURL+WalletManagerServiceGetElectrumServerProcedure,
+			connect.WithSchema(walletManagerServiceMethods.ByName("GetElectrumServer")),
+			connect.WithClientOptions(opts...),
+		),
+		setElectrumServer: connect.NewClient[v1.SetElectrumServerRequest, v1.SetElectrumServerResponse](
+			httpClient,
+			baseURL+WalletManagerServiceSetElectrumServerProcedure,
+			connect.WithSchema(walletManagerServiceMethods.ByName("SetElectrumServer")),
+			connect.WithClientOptions(opts...),
+		),
 		watchWalletData: connect.NewClient[emptypb.Empty, v1.WatchWalletDataResponse](
 			httpClient,
 			baseURL+WalletManagerServiceWatchWalletDataProcedure,
@@ -523,6 +544,8 @@ type walletManagerServiceClient struct {
 	setCoreVariant            *connect.Client[v1.SetCoreVariantRequest, v1.SetCoreVariantResponse]
 	getTestSidechains         *connect.Client[v1.GetTestSidechainsRequest, v1.GetTestSidechainsResponse]
 	setTestSidechains         *connect.Client[v1.SetTestSidechainsRequest, v1.SetTestSidechainsResponse]
+	getElectrumServer         *connect.Client[v1.GetElectrumServerRequest, v1.GetElectrumServerResponse]
+	setElectrumServer         *connect.Client[v1.SetElectrumServerRequest, v1.SetElectrumServerResponse]
 	watchWalletData           *connect.Client[emptypb.Empty, v1.WatchWalletDataResponse]
 }
 
@@ -726,6 +749,16 @@ func (c *walletManagerServiceClient) SetTestSidechains(ctx context.Context, req 
 	return c.setTestSidechains.CallUnary(ctx, req)
 }
 
+// GetElectrumServer calls walletmanager.v1.WalletManagerService.GetElectrumServer.
+func (c *walletManagerServiceClient) GetElectrumServer(ctx context.Context, req *connect.Request[v1.GetElectrumServerRequest]) (*connect.Response[v1.GetElectrumServerResponse], error) {
+	return c.getElectrumServer.CallUnary(ctx, req)
+}
+
+// SetElectrumServer calls walletmanager.v1.WalletManagerService.SetElectrumServer.
+func (c *walletManagerServiceClient) SetElectrumServer(ctx context.Context, req *connect.Request[v1.SetElectrumServerRequest]) (*connect.Response[v1.SetElectrumServerResponse], error) {
+	return c.setElectrumServer.CallUnary(ctx, req)
+}
+
 // WatchWalletData calls walletmanager.v1.WalletManagerService.WatchWalletData.
 func (c *walletManagerServiceClient) WatchWalletData(ctx context.Context, req *connect.Request[emptypb.Empty]) (*connect.ServerStreamForClient[v1.WatchWalletDataResponse], error) {
 	return c.watchWalletData.CallServerStream(ctx, req)
@@ -789,6 +822,9 @@ type WalletManagerServiceHandler interface {
 	// the alternative_download config (test builds) instead of the default.
 	GetTestSidechains(context.Context, *connect.Request[v1.GetTestSidechainsRequest]) (*connect.Response[v1.GetTestSidechainsResponse], error)
 	SetTestSidechains(context.Context, *connect.Request[v1.SetTestSidechainsRequest]) (*connect.Response[v1.SetTestSidechainsResponse], error)
+	// Electrum server (Esplora endpoint) selection for electrum wallets.
+	GetElectrumServer(context.Context, *connect.Request[v1.GetElectrumServerRequest]) (*connect.Response[v1.GetElectrumServerResponse], error)
+	SetElectrumServer(context.Context, *connect.Request[v1.SetElectrumServerRequest]) (*connect.Response[v1.SetElectrumServerResponse], error)
 	// Stream wallet state changes. Sends the full wallet state immediately,
 	// then again whenever wallets or balance change.
 	WatchWalletData(context.Context, *connect.Request[emptypb.Empty], *connect.ServerStream[v1.WatchWalletDataResponse]) error
@@ -1041,6 +1077,18 @@ func NewWalletManagerServiceHandler(svc WalletManagerServiceHandler, opts ...con
 		connect.WithSchema(walletManagerServiceMethods.ByName("SetTestSidechains")),
 		connect.WithHandlerOptions(opts...),
 	)
+	walletManagerServiceGetElectrumServerHandler := connect.NewUnaryHandler(
+		WalletManagerServiceGetElectrumServerProcedure,
+		svc.GetElectrumServer,
+		connect.WithSchema(walletManagerServiceMethods.ByName("GetElectrumServer")),
+		connect.WithHandlerOptions(opts...),
+	)
+	walletManagerServiceSetElectrumServerHandler := connect.NewUnaryHandler(
+		WalletManagerServiceSetElectrumServerProcedure,
+		svc.SetElectrumServer,
+		connect.WithSchema(walletManagerServiceMethods.ByName("SetElectrumServer")),
+		connect.WithHandlerOptions(opts...),
+	)
 	walletManagerServiceWatchWalletDataHandler := connect.NewServerStreamHandler(
 		WalletManagerServiceWatchWalletDataProcedure,
 		svc.WatchWalletData,
@@ -1129,6 +1177,10 @@ func NewWalletManagerServiceHandler(svc WalletManagerServiceHandler, opts ...con
 			walletManagerServiceGetTestSidechainsHandler.ServeHTTP(w, r)
 		case WalletManagerServiceSetTestSidechainsProcedure:
 			walletManagerServiceSetTestSidechainsHandler.ServeHTTP(w, r)
+		case WalletManagerServiceGetElectrumServerProcedure:
+			walletManagerServiceGetElectrumServerHandler.ServeHTTP(w, r)
+		case WalletManagerServiceSetElectrumServerProcedure:
+			walletManagerServiceSetElectrumServerHandler.ServeHTTP(w, r)
 		case WalletManagerServiceWatchWalletDataProcedure:
 			walletManagerServiceWatchWalletDataHandler.ServeHTTP(w, r)
 		default:
@@ -1298,6 +1350,14 @@ func (UnimplementedWalletManagerServiceHandler) GetTestSidechains(context.Contex
 
 func (UnimplementedWalletManagerServiceHandler) SetTestSidechains(context.Context, *connect.Request[v1.SetTestSidechainsRequest]) (*connect.Response[v1.SetTestSidechainsResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("walletmanager.v1.WalletManagerService.SetTestSidechains is not implemented"))
+}
+
+func (UnimplementedWalletManagerServiceHandler) GetElectrumServer(context.Context, *connect.Request[v1.GetElectrumServerRequest]) (*connect.Response[v1.GetElectrumServerResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("walletmanager.v1.WalletManagerService.GetElectrumServer is not implemented"))
+}
+
+func (UnimplementedWalletManagerServiceHandler) SetElectrumServer(context.Context, *connect.Request[v1.SetElectrumServerRequest]) (*connect.Response[v1.SetElectrumServerResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("walletmanager.v1.WalletManagerService.SetElectrumServer is not implemented"))
 }
 
 func (UnimplementedWalletManagerServiceHandler) WatchWalletData(context.Context, *connect.Request[emptypb.Empty], *connect.ServerStream[v1.WatchWalletDataResponse]) error {

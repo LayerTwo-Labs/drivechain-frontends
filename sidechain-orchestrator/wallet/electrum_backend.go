@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	neturl "net/url"
 	"sort"
 	"strings"
 	"sync"
@@ -40,6 +41,14 @@ const (
 // ElectrumBackend serves a wallet with no local Core or enforcer: it derives
 // BIP84 keys from the wallet seed, reads chain state from an Esplora REST
 // backend, and builds/signs/broadcasts transactions in-process.
+// SwappableEsplora is an Esplora whose endpoint can be changed at runtime.
+// *EsploraClient implements it; in-memory test backends need not.
+type SwappableEsplora interface {
+	Esplora
+	BaseURLs() []string
+	SetBaseURLs([]string)
+}
+
 type ElectrumBackend struct {
 	svc     *Service
 	client  Esplora
@@ -1082,6 +1091,78 @@ func (p *ElectrumBackend) CreateCpfp(ctx context.Context, walletID string, req C
 
 func (p *ElectrumBackend) Chain() ChainSource {
 	return esploraChain{client: p.client}
+}
+
+// ServerURL returns the wallet's current primary Esplora endpoint, or "" when
+// the backend's client does not expose one.
+func (p *ElectrumBackend) ServerURL() string {
+	sw, ok := p.client.(SwappableEsplora)
+	if !ok {
+		return ""
+	}
+	roots := sw.BaseURLs()
+	if len(roots) == 0 {
+		return ""
+	}
+	return roots[0]
+}
+
+// SetServerURL points the wallet at a different Esplora endpoint at runtime. The
+// switch is validated before it commits: the new endpoint must be a well-formed
+// http/https URL and must answer a tip-height probe. On any failure the previous
+// endpoint is restored and an error is returned, so the wallet is never left
+// disconnected. On success the new tip height is returned and the choice is
+// persisted. Swapping only the client's URL list is safe with in-flight reads:
+// requests that already captured the old list finish against it, new ones use
+// the new endpoint.
+func (p *ElectrumBackend) SetServerURL(ctx context.Context, url string) (int, error) {
+	sw, ok := p.client.(SwappableEsplora)
+	if !ok {
+		return 0, connect.NewError(connect.CodeUnimplemented, errors.New("this wallet's backend does not support switching servers"))
+	}
+	normalized, err := normalizeEsploraURL(url)
+	if err != nil {
+		return 0, connect.NewError(connect.CodeInvalidArgument, err)
+	}
+
+	prev := sw.BaseURLs()
+	sw.SetBaseURLs([]string{normalized})
+
+	tip, err := sw.TipHeight(ctx)
+	if err != nil {
+		sw.SetBaseURLs(prev)
+		return 0, connect.NewError(connect.CodeUnavailable, fmt.Errorf("server %s unreachable, kept previous server: %w", normalized, err))
+	}
+
+	// The new endpoint serves a different chain view, so every cached scan is
+	// stale. Drop them so reads re-walk against the new server.
+	p.mu.Lock()
+	p.warmScan = make(map[string]*electrumScan)
+	p.tipAt = make(map[string]int)
+	p.warm = make(map[string]bool)
+	p.mu.Unlock()
+
+	return tip, nil
+}
+
+// normalizeEsploraURL validates a user-supplied Esplora endpoint and returns it
+// trimmed of a trailing slash. It must be an absolute http/https URL with a host.
+func normalizeEsploraURL(raw string) (string, error) {
+	trimmed := strings.TrimSpace(raw)
+	if trimmed == "" {
+		return "", errors.New("server URL is required")
+	}
+	u, err := neturl.Parse(trimmed)
+	if err != nil {
+		return "", fmt.Errorf("invalid server URL: %w", err)
+	}
+	if u.Scheme != "http" && u.Scheme != "https" {
+		return "", fmt.Errorf("server URL must be http or https, got %q", u.Scheme)
+	}
+	if u.Host == "" {
+		return "", errors.New("server URL must include a host")
+	}
+	return strings.TrimRight(trimmed, "/"), nil
 }
 
 // esploraChain adapts an Esplora backend to the wallet-agnostic ChainSource.

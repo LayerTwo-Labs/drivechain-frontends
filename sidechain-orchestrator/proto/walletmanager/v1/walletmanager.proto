@@ -69,6 +69,10 @@ service WalletManagerService {
   rpc GetTestSidechains(GetTestSidechainsRequest) returns (GetTestSidechainsResponse);
   rpc SetTestSidechains(SetTestSidechainsRequest) returns (SetTestSidechainsResponse);
 
+  // Electrum server (Esplora endpoint) selection for electrum wallets.
+  rpc GetElectrumServer(GetElectrumServerRequest) returns (GetElectrumServerResponse);
+  rpc SetElectrumServer(SetElectrumServerRequest) returns (SetElectrumServerResponse);
+
   // Stream wallet state changes. Sends the full wallet state immediately,
   // then again whenever wallets or balance change.
   rpc WatchWalletData(google.protobuf.Empty) returns (stream WatchWalletDataResponse);
@@ -706,6 +710,29 @@ message SetTestSidechainsRequest {
 }
 
 message SetTestSidechainsResponse {}
+
+message GetElectrumServerRequest {}
+
+message GetElectrumServerResponse {
+  // Effective Esplora endpoint the electrum wallet is currently using.
+  string url = 1;
+  // True when url is a user-set override rather than the network default.
+  bool is_override = 2;
+  // The network's built-in default endpoint (so the UI can offer "reset").
+  string default_url = 3;
+}
+
+message SetElectrumServerRequest {
+  // New Esplora endpoint (http/https). Empty resets to the network default.
+  string url = 1;
+}
+
+message SetElectrumServerResponse {
+  // Endpoint now in use (the normalized override, or the default after a reset).
+  string url = 1;
+  // Chain tip height fetched from the new server, confirming connectivity.
+  int64 tip_height = 2;
+}
 
 // ============================================================================
 // Watch Wallet Data

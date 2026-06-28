@@ -2006,6 +2006,31 @@ func (o *Orchestrator) stopForNetworkSwap(ctx context.Context, name string) erro
 	return nil
 }
 
+// DefaultElectrumServerURL returns the built-in Esplora endpoint for the
+// current network, the value used when the user has set no override.
+func (o *Orchestrator) DefaultElectrumServerURL() string {
+	return config.EsploraURLForNetwork(config.NetworkFromString(o.Network))
+}
+
+// ElectrumServerOverride returns the persisted user Esplora override, or ""
+// when none is set (the network default applies).
+func (o *Orchestrator) ElectrumServerOverride() string {
+	if o.Settings == nil {
+		return ""
+	}
+	return o.Settings.ElectrumServerURL()
+}
+
+// PersistElectrumServerURL stores a runtime Esplora endpoint override so it
+// survives restart. An empty url clears the override (reset to default).
+func (o *Orchestrator) PersistElectrumServerURL(url string) error {
+	if o.Settings == nil {
+		return fmt.Errorf("orchestrator settings not initialised")
+	}
+	_, err := o.Settings.SetElectrumServerURL(url)
+	return err
+}
+
 // UseTestSidechains reports the persisted test-sidechains preference.
 func (o *Orchestrator) UseTestSidechains() bool {
 	if o.Settings == nil {
