@@ -77,10 +77,11 @@ func (AddressType) EnumDescriptor() ([]byte, []int) {
 type CoinSelectionStrategy int32
 
 const (
-	CoinSelectionStrategy_COIN_SELECTION_STRATEGY_UNSPECIFIED    CoinSelectionStrategy = 0
-	CoinSelectionStrategy_COIN_SELECTION_STRATEGY_LARGEST_FIRST  CoinSelectionStrategy = 1
-	CoinSelectionStrategy_COIN_SELECTION_STRATEGY_SMALLEST_FIRST CoinSelectionStrategy = 2
-	CoinSelectionStrategy_COIN_SELECTION_STRATEGY_RANDOM         CoinSelectionStrategy = 3
+	CoinSelectionStrategy_COIN_SELECTION_STRATEGY_UNSPECIFIED      CoinSelectionStrategy = 0
+	CoinSelectionStrategy_COIN_SELECTION_STRATEGY_LARGEST_FIRST    CoinSelectionStrategy = 1
+	CoinSelectionStrategy_COIN_SELECTION_STRATEGY_SMALLEST_FIRST   CoinSelectionStrategy = 2
+	CoinSelectionStrategy_COIN_SELECTION_STRATEGY_RANDOM           CoinSelectionStrategy = 3
+	CoinSelectionStrategy_COIN_SELECTION_STRATEGY_BRANCH_AND_BOUND CoinSelectionStrategy = 4
 )
 
 // Enum value maps for CoinSelectionStrategy.
@@ -90,12 +91,14 @@ var (
 		1: "COIN_SELECTION_STRATEGY_LARGEST_FIRST",
 		2: "COIN_SELECTION_STRATEGY_SMALLEST_FIRST",
 		3: "COIN_SELECTION_STRATEGY_RANDOM",
+		4: "COIN_SELECTION_STRATEGY_BRANCH_AND_BOUND",
 	}
 	CoinSelectionStrategy_value = map[string]int32{
-		"COIN_SELECTION_STRATEGY_UNSPECIFIED":    0,
-		"COIN_SELECTION_STRATEGY_LARGEST_FIRST":  1,
-		"COIN_SELECTION_STRATEGY_SMALLEST_FIRST": 2,
-		"COIN_SELECTION_STRATEGY_RANDOM":         3,
+		"COIN_SELECTION_STRATEGY_UNSPECIFIED":      0,
+		"COIN_SELECTION_STRATEGY_LARGEST_FIRST":    1,
+		"COIN_SELECTION_STRATEGY_SMALLEST_FIRST":   2,
+		"COIN_SELECTION_STRATEGY_RANDOM":           3,
+		"COIN_SELECTION_STRATEGY_BRANCH_AND_BOUND": 4,
 	}
 )
 
@@ -4398,12 +4401,13 @@ const file_wallet_v1_wallet_proto_rawDesc = "" +
 	"\vAddressType\x12\x1c\n" +
 	"\x18ADDRESS_TYPE_UNSPECIFIED\x10\x00\x12\x17\n" +
 	"\x13ADDRESS_TYPE_SEGWIT\x10\x01\x12\x18\n" +
-	"\x14ADDRESS_TYPE_TAPROOT\x10\x02*\xbb\x01\n" +
+	"\x14ADDRESS_TYPE_TAPROOT\x10\x02*\xe9\x01\n" +
 	"\x15CoinSelectionStrategy\x12'\n" +
 	"#COIN_SELECTION_STRATEGY_UNSPECIFIED\x10\x00\x12)\n" +
 	"%COIN_SELECTION_STRATEGY_LARGEST_FIRST\x10\x01\x12*\n" +
 	"&COIN_SELECTION_STRATEGY_SMALLEST_FIRST\x10\x02\x12\"\n" +
-	"\x1eCOIN_SELECTION_STRATEGY_RANDOM\x10\x032\x95\x16\n" +
+	"\x1eCOIN_SELECTION_STRATEGY_RANDOM\x10\x03\x12,\n" +
+	"(COIN_SELECTION_STRATEGY_BRANCH_AND_BOUND\x10\x042\x95\x16\n" +
 	"\rWalletService\x12p\n" +
 	"\x17CreateBitcoinCoreWallet\x12).wallet.v1.CreateBitcoinCoreWalletRequest\x1a*.wallet.v1.CreateBitcoinCoreWalletResponse\x12X\n" +
 	"\x0fSendTransaction\x12!.wallet.v1.SendTransactionRequest\x1a\".wallet.v1.SendTransactionResponse\x12I\n" +

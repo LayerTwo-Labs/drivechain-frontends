@@ -451,6 +451,8 @@ class SendPageViewModel extends BaseViewModel {
         return pb.CoinSelectionStrategy.COIN_SELECTION_STRATEGY_SMALLEST_FIRST;
       case CoinSelectionStrategy.random:
         return pb.CoinSelectionStrategy.COIN_SELECTION_STRATEGY_RANDOM;
+      case CoinSelectionStrategy.branchAndBound:
+        return pb.CoinSelectionStrategy.COIN_SELECTION_STRATEGY_BRANCH_AND_BOUND;
     }
   }
 

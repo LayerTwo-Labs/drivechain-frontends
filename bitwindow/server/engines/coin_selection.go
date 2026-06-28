@@ -2,6 +2,7 @@ package engines
 
 import (
 	"fmt"
+	"math"
 	"math/rand"
 	"sort"
 
@@ -91,6 +92,14 @@ func SelectCoins(
 		}, nil
 	}
 
+	if strategy == walletpb.CoinSelectionStrategy_COIN_SELECTION_STRATEGY_BRANCH_AND_BOUND {
+		if result := selectBranchAndBound(required, available, targetSats, feeSatsPerVbyte, numOutputs); result != nil {
+			return result, nil
+		}
+		// Fall back to largest-first when BnB finds no exact match.
+		strategy = walletpb.CoinSelectionStrategy_COIN_SELECTION_STRATEGY_LARGEST_FIRST
+	}
+
 	// Sort available UTXOs by strategy
 	sortByStrategy(available, strategy)
 
@@ -140,6 +149,142 @@ func SelectCoins(
 		Available:    totalAvailable,
 		FrozenAmount: totalFrozen,
 		Message:      message,
+	}
+}
+
+// branchAndBoundMaxTries caps the depth-first search, matching Bitcoin Core.
+const branchAndBoundMaxTries = 100_000
+
+// selectBranchAndBound runs Bitcoin Core's Branch-and-Bound search: it looks for
+// a subset of UTXOs whose effective value (value minus the fee to spend each
+// input) lands in [target, target+costOfChange], producing a transaction that
+// needs no change output. Returns nil when no such exact match exists so the
+// caller can fall back to another strategy.
+//
+// target is the send amount plus the fee for a no-change transaction (overhead +
+// send outputs, with one fewer output than numOutputs since no change is added).
+// costOfChange is the fee to create a change output now plus the fee to spend it
+// later.
+func selectBranchAndBound(
+	required, available []*walletpb.UnspentOutput,
+	targetSats, feeSatsPerVbyte int64,
+	numOutputs int,
+) *CoinSelectionResult {
+	feePerInput := int64(InputVbytes) * feeSatsPerVbyte
+
+	sendOutputs := numOutputs - 1
+	if sendOutputs < 1 {
+		sendOutputs = 1
+	}
+	noChangeOverhead := int64(OverheadVbytes+(sendOutputs*OutputVbytes)) * feeSatsPerVbyte
+	costOfChange := int64(OutputVbytes+InputVbytes) * feeSatsPerVbyte
+
+	effective := func(u *walletpb.UnspentOutput) int64 {
+		return int64(u.ValueSats) - feePerInput
+	}
+
+	var requiredEffective int64
+	for _, u := range required {
+		requiredEffective += effective(u)
+	}
+
+	target := targetSats + noChangeOverhead - requiredEffective
+	if target <= 0 {
+		return nil
+	}
+
+	pool := make([]*walletpb.UnspentOutput, 0, len(available))
+	var poolTotal int64
+	for _, u := range available {
+		ev := effective(u)
+		if ev <= 0 {
+			continue // spending this input costs more than it adds
+		}
+		pool = append(pool, u)
+		poolTotal += ev
+	}
+	if poolTotal < target {
+		return nil
+	}
+
+	sort.Slice(pool, func(i, j int) bool {
+		return effective(pool[i]) > effective(pool[j])
+	})
+
+	effs := make([]int64, len(pool))
+	for i, u := range pool {
+		effs[i] = effective(u)
+	}
+
+	bestSelection := []bool{}
+	currSelection := make([]bool, len(pool))
+	var bestWaste int64 = math.MaxInt64
+
+	var remaining int64 = poolTotal
+	tries := branchAndBoundMaxTries
+
+	var search func(depth int, currValue int64) bool
+	search = func(depth int, currValue int64) bool {
+		if tries <= 0 {
+			return false
+		}
+
+		if currValue >= target {
+			waste := currValue - target
+			if waste <= costOfChange && waste < bestWaste {
+				bestWaste = waste
+				bestSelection = make([]bool, len(currSelection))
+				copy(bestSelection, currSelection)
+			}
+			return true
+		}
+		if depth >= len(pool) {
+			return false
+		}
+		if currValue+remaining < target {
+			return false
+		}
+
+		tries--
+
+		// Include branch.
+		remaining -= effs[depth]
+		currSelection[depth] = true
+		search(depth+1, currValue+effs[depth])
+		currSelection[depth] = false
+		remaining += effs[depth]
+
+		// Omit branch.
+		search(depth+1, currValue)
+		return false
+	}
+
+	search(0, 0)
+
+	if bestWaste == math.MaxInt64 {
+		return nil
+	}
+
+	selected := make([]*walletpb.UnspentOutput, len(required))
+	copy(selected, required)
+	for i, picked := range bestSelection {
+		if picked {
+			selected = append(selected, pool[i])
+		}
+	}
+
+	var totalInput int64
+	for _, u := range selected {
+		totalInput += int64(u.ValueSats)
+	}
+
+	fee := int64(OverheadVbytes+(len(selected)*InputVbytes)+(sendOutputs*OutputVbytes)) * feeSatsPerVbyte
+
+	return &CoinSelectionResult{
+		SelectedUTXOs:  selected,
+		TotalInputSats: totalInput,
+		FeeSats:        fee,
+		ChangeSats:     0,
 	}
 }
 

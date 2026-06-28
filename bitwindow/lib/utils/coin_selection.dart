@@ -7,6 +7,7 @@ enum CoinSelectionStrategy {
   largestFirst,
   smallestFirst,
   random,
+  branchAndBound,
 }
 
 /// Result of coin selection
@@ -162,6 +163,7 @@ class CoinSelector {
   static void _sortByStrategy(List<UnspentOutput> utxos, CoinSelectionStrategy strategy) {
     switch (strategy) {
       case CoinSelectionStrategy.largestFirst:
+      case CoinSelectionStrategy.branchAndBound:
         utxos.sort((a, b) => b.valueSats.compareTo(a.valueSats));
         break;
       case CoinSelectionStrategy.smallestFirst:
@@ -184,6 +186,8 @@ extension CoinSelectionStrategyExtension on CoinSelectionStrategy {
         return 'Smallest First';
       case CoinSelectionStrategy.random:
         return 'Random';
+      case CoinSelectionStrategy.branchAndBound:
+        return 'Branch and Bound';
     }
   }
 
@@ -195,6 +199,8 @@ extension CoinSelectionStrategyExtension on CoinSelectionStrategy {
         return 'Cleans up small UTXOs over time';
       case CoinSelectionStrategy.random:
         return 'Better privacy, harder to fingerprint';
+      case CoinSelectionStrategy.branchAndBound:
+        return 'Finds an exact match to avoid a change output';
     }
   }
 }
