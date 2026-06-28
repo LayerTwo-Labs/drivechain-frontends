@@ -81,7 +81,7 @@ func TestBackendRouterMissingSides(t *testing.T) {
 	core, err := svc.GenerateWallet("Core", "", "", testSlots)
 	require.NoError(t, err)
 
-	elec, err := svc.CreateElectrumWallet("Electrum", nil, nil, "", "", "")
+	elec, err := svc.CreateElectrumWallet("Electrum", nil, nil, "", "", "", 0, "")
 	require.NoError(t, err)
 	require.Equal(t, WalletTypeElectrum, elec.WalletType)
 

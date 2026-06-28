@@ -165,6 +165,8 @@ class GenerateWalletRequest extends $pb.GeneratedMessage {
     $core.String? name,
     $core.String? customMnemonic,
     $core.String? passphrase,
+    $core.int? account,
+    $core.String? derivationPath,
   }) {
     final $result = create();
     if (name != null) {
@@ -176,6 +178,12 @@ class GenerateWalletRequest extends $pb.GeneratedMessage {
     if (passphrase != null) {
       $result.passphrase = passphrase;
     }
+    if (account != null) {
+      $result.account = account;
+    }
+    if (derivationPath != null) {
+      $result.derivationPath = derivationPath;
+    }
     return $result;
   }
   GenerateWalletRequest._() : super();
@@ -186,6 +194,8 @@ class GenerateWalletRequest extends $pb.GeneratedMessage {
     ..aOS(1, _omitFieldNames ? '' : 'name')
     ..aOS(2, _omitFieldNames ? '' : 'customMnemonic')
     ..aOS(3, _omitFieldNames ? '' : 'passphrase')
+    ..a<$core.int>(4, _omitFieldNames ? '' : 'account', $pb.PbFieldType.OU3)
+    ..aOS(5, _omitFieldNames ? '' : 'derivationPath')
     ..hasRequiredFields = false
   ;
 
@@ -236,6 +246,29 @@ class GenerateWalletRequest extends $pb.GeneratedMessage {
   $core.bool hasPassphrase() => $_has(2);
   @$pb.TagNumber(3)
   void clearPassphrase() => clearField(3);
+
+  /// Optional BIP32 account index for the wallet's account-level key
+  /// (purpose'/coin'/account'). 0 = standard. Ignored when derivation_path set.
+  @$pb.TagNumber(4)
+  $core.int get account => $_getIZ(3);
+  @$pb.TagNumber(4)
+  set account($core.int v) { $_setUnsignedInt32(3, v); }
+  @$pb.TagNumber(4)
+  $core.bool hasAccount() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearAccount() => clearField(4);
+
+  /// Optional full account-level derivation path (e.g. "m/84'/0'/3'"),
+  /// overriding the default purpose/coin/account. Empty = default (BIP84,
+  /// network coin, account field). All three levels must be hardened.
+  @$pb.TagNumber(5)
+  $core.String get derivationPath => $_getSZ(4);
+  @$pb.TagNumber(5)
+  set derivationPath($core.String v) { $_setString(4, v); }
+  @$pb.TagNumber(5)
+  $core.bool hasDerivationPath() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearDerivationPath() => clearField(5);
 }
 
 class GenerateWalletResponse extends $pb.GeneratedMessage {
@@ -2266,6 +2299,8 @@ class CreateElectrumWalletRequest extends $pb.GeneratedMessage {
     $core.String? customMnemonic,
     $core.String? xpubOrDescriptor,
     $core.String? scriptType,
+    $core.int? account,
+    $core.String? derivationPath,
   }) {
     final $result = create();
     if (name != null) {
@@ -2286,6 +2321,12 @@ class CreateElectrumWalletRequest extends $pb.GeneratedMessage {
     if (scriptType != null) {
       $result.scriptType = scriptType;
     }
+    if (account != null) {
+      $result.account = account;
+    }
+    if (derivationPath != null) {
+      $result.derivationPath = derivationPath;
+    }
     return $result;
   }
   CreateElectrumWalletRequest._() : super();
@@ -2299,6 +2340,8 @@ class CreateElectrumWalletRequest extends $pb.GeneratedMessage {
     ..aOS(4, _omitFieldNames ? '' : 'customMnemonic')
     ..aOS(5, _omitFieldNames ? '' : 'xpubOrDescriptor')
     ..aOS(6, _omitFieldNames ? '' : 'scriptType')
+    ..a<$core.int>(7, _omitFieldNames ? '' : 'account', $pb.PbFieldType.OU3)
+    ..aOS(8, _omitFieldNames ? '' : 'derivationPath')
     ..hasRequiredFields = false
   ;
 
@@ -2379,6 +2422,29 @@ class CreateElectrumWalletRequest extends $pb.GeneratedMessage {
   $core.bool hasScriptType() => $_has(5);
   @$pb.TagNumber(6)
   void clearScriptType() => clearField(6);
+
+  /// Optional BIP32 account index for the account-level key. 0 = standard.
+  /// Ignored when derivation_path set or for watch-only imports.
+  @$pb.TagNumber(7)
+  $core.int get account => $_getIZ(6);
+  @$pb.TagNumber(7)
+  set account($core.int v) { $_setUnsignedInt32(6, v); }
+  @$pb.TagNumber(7)
+  $core.bool hasAccount() => $_has(6);
+  @$pb.TagNumber(7)
+  void clearAccount() => clearField(7);
+
+  /// Optional full account-level derivation path (e.g. "m/84'/0'/3'"),
+  /// overriding purpose/coin/account. Empty = default. All three levels must be
+  /// hardened. Ignored for watch-only imports.
+  @$pb.TagNumber(8)
+  $core.String get derivationPath => $_getSZ(7);
+  @$pb.TagNumber(8)
+  set derivationPath($core.String v) { $_setString(7, v); }
+  @$pb.TagNumber(8)
+  $core.bool hasDerivationPath() => $_has(7);
+  @$pb.TagNumber(8)
+  void clearDerivationPath() => clearField(8);
 }
 
 class CreateElectrumWalletResponse extends $pb.GeneratedMessage {

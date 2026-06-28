@@ -136,7 +136,7 @@ func (f *fakeEsplora) FeeRateForTarget(_ context.Context, _ int, fallback float6
 func newElectrumFixture(t *testing.T) (*ElectrumBackend, *fakeEsplora, *WalletData, string) {
 	t.Helper()
 	svc := newTestService(t)
-	w, err := svc.CreateElectrumWallet("Electrum", nil, nil, "", "", "")
+	w, err := svc.CreateElectrumWallet("Electrum", nil, nil, "", "", "", 0, "")
 	require.NoError(t, err)
 	require.Equal(t, WalletTypeElectrum, w.WalletType)
 
@@ -596,7 +596,7 @@ func TestElectrumSendInsufficientFunds(t *testing.T) {
 
 func TestElectrumImportSeedIsDeterministic(t *testing.T) {
 	svc := newTestService(t)
-	w, err := svc.CreateElectrumWallet("Imported", nil, nil, testMnemonic, "", "")
+	w, err := svc.CreateElectrumWallet("Imported", nil, nil, testMnemonic, "", "", 0, "")
 	require.NoError(t, err)
 	require.Equal(t, WalletTypeElectrum, w.WalletType)
 
@@ -605,15 +605,78 @@ func TestElectrumImportSeedIsDeterministic(t *testing.T) {
 	assert.Equal(t, testMnemonic, w.Master.Mnemonic)
 }
 
+// TestElectrumCustomAccountReceiveAndSpend proves a non-zero account index is
+// honored end-to-end: addresses derive under m/84'/1'/1' (signet coin type),
+// and a self-send is built, signed to completion, and broadcast. It mirrors
+// TestElectrumSendBuildsSignsBroadcasts but on a custom account.
+func TestElectrumCustomAccountReceiveAndSpend(t *testing.T) {
+	svc := newTestService(t)
+	ctx := context.Background()
+	net := &chaincfg.SigNetParams
+
+	w, err := svc.CreateElectrumWallet("Acct1", nil, nil, testMnemonic, "", "", 1, "")
+	require.NoError(t, err)
+	require.Equal(t, uint32(1), w.AccountIndex)
+
+	fake := newFakeEsplora()
+	p := NewElectrumBackend(svc, fake, net, zerolog.New(zerolog.NewTestWriter(t)))
+
+	// Receive address must derive under the account-1 external chain.
+	d, err := p.walletDescriptor(w)
+	require.NoError(t, err)
+	recv, err := p.deriveAddr(d, false, 0)
+	require.NoError(t, err)
+	assert.Equal(t, "m/84'/1'/1'/0/0", recv.hdPath, "receive address must sit under m/84'/1'/1'/0/*")
+
+	// Change address must derive under the account-1 internal chain.
+	chgAddr, err := p.NextChangeAddress(ctx, w.ID)
+	require.NoError(t, err)
+	chgPath, err := p.AddressHDPath(ctx, w.ID, chgAddr)
+	require.NoError(t, err)
+	assert.Contains(t, chgPath, "m/84'/1'/1'/1/", "change address must sit under m/84'/1'/1'/1/*")
+
+	// Fund the account-1 receive address and spend from it.
+	fake.stats[recv.address] = EsploraAddressStats{
+		Address:    recv.address,
+		ChainStats: EsploraTxoStats{FundedTxoCount: 1, FundedTxoSum: 200_000, TxCount: 1},
+	}
+	fake.utxos[recv.address] = []EsploraUTXO{{
+		TxID: "2222222222222222222222222222222222222222222222222222222222222222",
+		Vout: 0, Value: 200_000,
+		Status: EsploraStatus{Confirmed: true, BlockHeight: 100},
+	}}
+
+	dest := "tb1qw508d6qejxtdg4y5r3zarvary0c5xw7kxpjzsx"
+	txid, err := p.Send(ctx, w.ID, SendRequest{
+		DestinationsSats: map[string]int64{dest: 50_000},
+		FeeRateSatPerVB:  2,
+	})
+	require.NoError(t, err)
+	assert.Equal(t, "broadcasttxid", txid)
+	require.Len(t, fake.broadcast, 1)
+
+	raw, err := hex.DecodeString(fake.broadcast[0])
+	require.NoError(t, err)
+	var tx wire.MsgTx
+	require.NoError(t, tx.Deserialize(bytes.NewReader(raw)))
+
+	// Every wallet input must be signed to completion (signedCount == walletInputs):
+	// the single input carries a P2WPKH witness, and a change output returns funds.
+	require.Len(t, tx.TxIn, 1)
+	require.NotEmpty(t, tx.TxIn[0].Witness, "account-1 input must be signed (P2WPKH witness present)")
+	require.Len(t, tx.TxOut, 2)
+	assert.Equal(t, int64(50_000), tx.TxOut[0].Value)
+}
+
 func TestElectrumWatchOnlyDerivesSameAddressesAndCannotSend(t *testing.T) {
 	svc := newTestService(t)
 	ctx := context.Background()
 
-	seedWallet, err := svc.CreateElectrumWallet("Seed", nil, nil, testMnemonic, "", "")
+	seedWallet, err := svc.CreateElectrumWallet("Seed", nil, nil, testMnemonic, "", "", 0, "")
 	require.NoError(t, err)
 	xpub := accountXpub(t, seedWallet.Master.SeedHex, &chaincfg.SigNetParams)
 
-	woWallet, err := svc.CreateElectrumWallet("Watch", nil, nil, "", xpub, "")
+	woWallet, err := svc.CreateElectrumWallet("Watch", nil, nil, "", xpub, "", 0, "")
 	require.NoError(t, err)
 	require.Equal(t, WalletTypeElectrum, woWallet.WalletType)
 	require.Empty(t, woWallet.Master.SeedHex, "watch-only wallet stores no seed")
@@ -684,10 +747,10 @@ func TestElectrumWatchOnlyNextReceiveAdvances(t *testing.T) {
 	svc := newTestService(t)
 	ctx := context.Background()
 
-	seedWallet, err := svc.CreateElectrumWallet("Seed", nil, nil, testMnemonic, "", "")
+	seedWallet, err := svc.CreateElectrumWallet("Seed", nil, nil, testMnemonic, "", "", 0, "")
 	require.NoError(t, err)
 	xpub := accountXpub(t, seedWallet.Master.SeedHex, &chaincfg.SigNetParams)
-	wo, err := svc.CreateElectrumWallet("Watch", nil, nil, "", xpub, "")
+	wo, err := svc.CreateElectrumWallet("Watch", nil, nil, "", xpub, "", 0, "")
 	require.NoError(t, err)
 
 	addrs, err := DeriveBIP84Addresses(seedWallet.Master.SeedHex, &chaincfg.SigNetParams, 0, 2)
@@ -741,12 +804,12 @@ func TestElectrumWatchOnlyDescriptorWatchesCorrectAddress(t *testing.T) {
 	svc := newTestService(t)
 	ctx := context.Background()
 
-	seedWallet, err := svc.CreateElectrumWallet("Seed", nil, nil, testMnemonic, "", "")
+	seedWallet, err := svc.CreateElectrumWallet("Seed", nil, nil, testMnemonic, "", "", 0, "")
 	require.NoError(t, err)
 	xpub := accountXpub(t, seedWallet.Master.SeedHex, &chaincfg.SigNetParams)
 
 	descriptor := "wpkh([abcd1234/84h/0h/0h]" + xpub + "/0/*)"
-	wo, err := svc.CreateElectrumWallet("WatchDesc", nil, nil, "", descriptor, "")
+	wo, err := svc.CreateElectrumWallet("WatchDesc", nil, nil, "", descriptor, "", 0, "")
 	require.NoError(t, err)
 	require.Equal(t, WalletTypeElectrum, wo.WalletType)
 
@@ -778,7 +841,7 @@ func TestElectrumNextReceiveTaproot(t *testing.T) {
 	ctx := context.Background()
 	svc := newTestService(t)
 
-	w, err := svc.CreateElectrumWallet("Taproot", nil, nil, testMnemonic, "", "taproot")
+	w, err := svc.CreateElectrumWallet("Taproot", nil, nil, testMnemonic, "", "taproot", 0, "")
 	require.NoError(t, err)
 	require.Equal(t, "taproot", w.ScriptType)
 
@@ -817,7 +880,7 @@ func TestElectrumWatchOnlyAllScriptTypesScanCorrectly(t *testing.T) {
 			require.NoError(t, err)
 
 			svc := newTestService(t)
-			wo, err := svc.CreateElectrumWallet("WO-"+kind.String(), nil, nil, "", descStr, "")
+			wo, err := svc.CreateElectrumWallet("WO-"+kind.String(), nil, nil, "", descStr, "", 0, "")
 			require.NoError(t, err)
 			require.Equal(t, kind.String(), wo.ScriptType)
 
@@ -841,7 +904,7 @@ func TestElectrumWatchOnlyAllScriptTypesScanCorrectly(t *testing.T) {
 
 func TestCreateElectrumWatchOnlyRejectsBadDescriptor(t *testing.T) {
 	svc := newTestService(t)
-	_, err := svc.CreateElectrumWallet("WO", nil, nil, "", "combo(xpubA)", "")
+	_, err := svc.CreateElectrumWallet("WO", nil, nil, "", "combo(xpubA)", "", 0, "")
 	require.ErrorContains(t, err, "invalid watch-only descriptor")
 }
 
@@ -908,7 +971,7 @@ func TestCreateElectrumHotWalletScriptTypes(t *testing.T) {
 	for _, st := range []string{"legacy", "nested-segwit", "taproot"} {
 		t.Run(st, func(t *testing.T) {
 			svc := newTestService(t)
-			w, err := svc.CreateElectrumWallet("Hot-"+st, nil, nil, testMnemonic, "", st)
+			w, err := svc.CreateElectrumWallet("Hot-"+st, nil, nil, testMnemonic, "", st, 0, "")
 			require.NoError(t, err)
 			require.Equal(t, st, w.ScriptType)
 
@@ -1011,10 +1074,10 @@ func TestElectrumListReceivedExcludesChange(t *testing.T) {
 func TestElectrumWatchOnlyUTXOsNotSpendable(t *testing.T) {
 	net := &chaincfg.SigNetParams
 	svc := newTestService(t)
-	seedWallet, err := svc.CreateElectrumWallet("Seed", nil, nil, testMnemonic, "", "")
+	seedWallet, err := svc.CreateElectrumWallet("Seed", nil, nil, testMnemonic, "", "", 0, "")
 	require.NoError(t, err)
 	xpub := accountXpub(t, seedWallet.Master.SeedHex, net)
-	wo, err := svc.CreateElectrumWallet("Watch", nil, nil, "", xpub, "")
+	wo, err := svc.CreateElectrumWallet("Watch", nil, nil, "", xpub, "", 0, "")
 	require.NoError(t, err)
 	addrs, err := DeriveBIP84Addresses(seedWallet.Master.SeedHex, net, 0, 1)
 	require.NoError(t, err)

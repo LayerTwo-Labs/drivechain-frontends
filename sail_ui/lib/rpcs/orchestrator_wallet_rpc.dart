@@ -42,12 +42,16 @@ class OrchestratorWalletRPC {
     required String name,
     String? customMnemonic,
     String? passphrase,
+    int account = 0,
+    String? derivationPath,
   }) {
     return _unaryClient.generateWallet(
       wmpb.GenerateWalletRequest(
         name: name,
         customMnemonic: customMnemonic ?? '',
         passphrase: passphrase ?? '',
+        account: account,
+        derivationPath: derivationPath ?? '',
       ),
     );
   }
@@ -106,6 +110,9 @@ class OrchestratorWalletRPC {
     List<int> slots = const [],
     String? customMnemonic,
     String? xpubOrDescriptor,
+    String? scriptType,
+    int account = 0,
+    String? derivationPath,
   }) {
     return _unaryClient.createElectrumWallet(
       wmpb.CreateElectrumWalletRequest(
@@ -114,6 +121,9 @@ class OrchestratorWalletRPC {
         slots: slots,
         customMnemonic: customMnemonic ?? '',
         xpubOrDescriptor: xpubOrDescriptor ?? '',
+        scriptType: scriptType ?? '',
+        account: account,
+        derivationPath: derivationPath ?? '',
       ),
     );
   }

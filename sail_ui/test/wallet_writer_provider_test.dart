@@ -34,6 +34,8 @@ class _FakeWalletRPC extends OrchestratorWalletRPC {
     required String name,
     String? customMnemonic,
     String? passphrase,
+    int account = 0,
+    String? derivationPath,
   }) async {
     generateWalletCalls++;
     generatedName = name;

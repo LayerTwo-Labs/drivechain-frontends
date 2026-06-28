@@ -66,6 +66,10 @@ class _SailCreateWalletPageState extends State<SailCreateWalletPage> {
   final TextEditingController _mnemonicController = TextEditingController();
   final TextEditingController _passphraseController = TextEditingController();
   final TextEditingController _walletNameController = TextEditingController();
+  // Advanced derivation: account index (default 0) and an optional full
+  // account-level path override (m/purpose'/coin'/account').
+  final TextEditingController _accountController = TextEditingController();
+  final TextEditingController _derivationPathController = TextEditingController();
   File? _selectedBackupFile;
   WalletWriterProvider get _walletProvider => GetIt.I.get<WalletWriterProvider>();
   bool _isHexMode = false;
@@ -121,6 +125,8 @@ class _SailCreateWalletPageState extends State<SailCreateWalletPage> {
     _mnemonicController.dispose();
     _passphraseController.dispose();
     _walletNameController.dispose();
+    _accountController.dispose();
+    _derivationPathController.dispose();
     super.dispose();
   }
 
@@ -752,6 +758,8 @@ class _SailCreateWalletPageState extends State<SailCreateWalletPage> {
                   ),
                 ),
               ],
+              const SizedBox(height: 16),
+              SizedBox(width: 400, child: _buildDerivationOptions(theme)),
               const SizedBox(height: 32),
               Spacer(),
               SizedBox(
@@ -907,6 +915,8 @@ class _SailCreateWalletPageState extends State<SailCreateWalletPage> {
                   textFieldType: TextFieldType.text,
                   size: TextFieldSize.regular,
                 ),
+                const SizedBox(height: 8),
+                _buildDerivationOptions(theme),
                 // Upload a wallet backup file as an alternative to the seed.
                 if (widget.onRestoreFromFile != null) ...[
                   const SizedBox(height: 24),
@@ -959,6 +969,46 @@ class _SailCreateWalletPageState extends State<SailCreateWalletPage> {
               ],
             ),
           ),
+        ),
+      ),
+    );
+  }
+
+  // _buildDerivationOptions renders a collapsed "Advanced derivation" section
+  // letting the user set a non-default account index or a full account-level
+  // path. Hidden by default; defaults reproduce standard BIP84 account 0.
+  Widget _buildDerivationOptions(SailThemeData theme) {
+    return SailCollapsible(
+      trigger: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            SailText.secondary13('Advanced derivation'),
+            const SizedBox(width: 6),
+            SailText.secondary13('(optional)', color: theme.colors.textSecondary),
+          ],
+        ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.only(top: 8),
+        child: SailColumn(
+          spacing: SailStyleValues.padding08,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            SailTextField(
+              controller: _accountController,
+              hintText: 'Account index (default 0)',
+              textFieldType: TextFieldType.number,
+              size: TextFieldSize.regular,
+            ),
+            SailTextField(
+              controller: _derivationPathController,
+              hintText: "Full account path, e.g. m/84'/0'/0' (overrides account)",
+              textFieldType: TextFieldType.text,
+              size: TextFieldSize.regular,
+            ),
+          ],
         ),
       ),
     );
@@ -1039,12 +1089,16 @@ class _SailCreateWalletPageState extends State<SailCreateWalletPage> {
     String? customMnemonic,
     String? passphrase,
   }) async {
+    final account = _resolvedAccountIndex();
+    final derivationPath = _derivationPathController.text.trim();
     switch (_selectedProvider) {
       case InitialWalletProvider.enforcer:
         await _walletProvider.generateWallet(
           name: name,
           customMnemonic: customMnemonic,
           passphrase: passphrase,
+          account: account,
+          derivationPath: derivationPath,
         );
       case InitialWalletProvider.bitcoinCore:
         await _walletProvider.createBitcoinCoreWallet(
@@ -1052,6 +1106,8 @@ class _SailCreateWalletPageState extends State<SailCreateWalletPage> {
           gradient: WalletGradient.fromWalletId(name),
           customMnemonic: customMnemonic,
           passphrase: passphrase,
+          account: account,
+          derivationPath: derivationPath,
         );
       case InitialWalletProvider.electrum:
         // The electrum create RPC carries no passphrase field, so importing a
@@ -1064,8 +1120,18 @@ class _SailCreateWalletPageState extends State<SailCreateWalletPage> {
           name: name,
           gradient: WalletGradient.fromWalletId(name),
           customMnemonic: customMnemonic,
+          account: account,
+          derivationPath: derivationPath,
         );
     }
+  }
+
+  // _resolvedAccountIndex reads the optional account-index field; blank = 0. The
+  // backend validates range and the full-path override, so this only parses.
+  int _resolvedAccountIndex() {
+    final raw = _accountController.text.trim();
+    if (raw.isEmpty) return 0;
+    return int.tryParse(raw) ?? 0;
   }
 
   Future<void> _handleFastMode() async {

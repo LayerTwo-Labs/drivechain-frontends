@@ -56,6 +56,22 @@ func (k ScriptKind) Purpose() (uint32, bool) {
 	}
 }
 
+// HotScriptKind maps a hot-wallet script-type string ("legacy",
+// "nested-segwit", "native-segwit"/"" , "taproot") to its ScriptKind. Unknown
+// values default to native segwit.
+func HotScriptKind(s string) ScriptKind {
+	switch s {
+	case "legacy":
+		return ScriptLegacy
+	case "nested-segwit":
+		return ScriptNestedSegwit
+	case "taproot":
+		return ScriptTaproot
+	default:
+		return ScriptNativeSegwit
+	}
+}
+
 func (k ScriptKind) String() string {
 	switch k {
 	case ScriptLegacy:

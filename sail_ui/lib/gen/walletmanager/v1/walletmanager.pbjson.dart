@@ -101,6 +101,8 @@ const GenerateWalletRequest$json = {
     {'1': 'name', '3': 1, '4': 1, '5': 9, '10': 'name'},
     {'1': 'custom_mnemonic', '3': 2, '4': 1, '5': 9, '10': 'customMnemonic'},
     {'1': 'passphrase', '3': 3, '4': 1, '5': 9, '10': 'passphrase'},
+    {'1': 'account', '3': 4, '4': 1, '5': 13, '10': 'account'},
+    {'1': 'derivation_path', '3': 5, '4': 1, '5': 9, '10': 'derivationPath'},
   ],
 };
 
@@ -108,7 +110,8 @@ const GenerateWalletRequest$json = {
 final $typed_data.Uint8List generateWalletRequestDescriptor = $convert.base64Decode(
     'ChVHZW5lcmF0ZVdhbGxldFJlcXVlc3QSEgoEbmFtZRgBIAEoCVIEbmFtZRInCg9jdXN0b21fbW'
     '5lbW9uaWMYAiABKAlSDmN1c3RvbU1uZW1vbmljEh4KCnBhc3NwaHJhc2UYAyABKAlSCnBhc3Nw'
-    'aHJhc2U=');
+    'aHJhc2USGAoHYWNjb3VudBgEIAEoDVIHYWNjb3VudBInCg9kZXJpdmF0aW9uX3BhdGgYBSABKA'
+    'lSDmRlcml2YXRpb25QYXRo');
 
 @$core.Deprecated('Use generateWalletResponseDescriptor instead')
 const GenerateWalletResponse$json = {
@@ -576,6 +579,8 @@ const CreateElectrumWalletRequest$json = {
     {'1': 'custom_mnemonic', '3': 4, '4': 1, '5': 9, '10': 'customMnemonic'},
     {'1': 'xpub_or_descriptor', '3': 5, '4': 1, '5': 9, '10': 'xpubOrDescriptor'},
     {'1': 'script_type', '3': 6, '4': 1, '5': 9, '10': 'scriptType'},
+    {'1': 'account', '3': 7, '4': 1, '5': 13, '10': 'account'},
+    {'1': 'derivation_path', '3': 8, '4': 1, '5': 9, '10': 'derivationPath'},
   ],
 };
 
@@ -585,7 +590,8 @@ final $typed_data.Uint8List createElectrumWalletRequestDescriptor = $convert.bas
     'FkaWVudF9qc29uGAIgASgJUgxncmFkaWVudEpzb24SFAoFc2xvdHMYAyADKA1SBXNsb3RzEicK'
     'D2N1c3RvbV9tbmVtb25pYxgEIAEoCVIOY3VzdG9tTW5lbW9uaWMSLAoSeHB1Yl9vcl9kZXNjcm'
     'lwdG9yGAUgASgJUhB4cHViT3JEZXNjcmlwdG9yEh8KC3NjcmlwdF90eXBlGAYgASgJUgpzY3Jp'
-    'cHRUeXBl');
+    'cHRUeXBlEhgKB2FjY291bnQYByABKA1SB2FjY291bnQSJwoPZGVyaXZhdGlvbl9wYXRoGAggAS'
+    'gJUg5kZXJpdmF0aW9uUGF0aA==');
 
 @$core.Deprecated('Use createElectrumWalletResponseDescriptor instead')
 const CreateElectrumWalletResponse$json = {

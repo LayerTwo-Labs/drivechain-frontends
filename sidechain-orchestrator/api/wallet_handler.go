@@ -118,7 +118,11 @@ func (h *WalletHandler) GetWalletStatus(ctx context.Context, req *connect.Reques
 }
 
 func (h *WalletHandler) GenerateWallet(ctx context.Context, req *connect.Request[pb.GenerateWalletRequest]) (*connect.Response[pb.GenerateWalletResponse], error) {
-	w, err := h.svc.GenerateWallet(req.Msg.Name, req.Msg.CustomMnemonic, req.Msg.Passphrase, allSidechainSlots())
+	account, path, err := wallet.ResolveCreateDerivationPath(req.Msg.Account, req.Msg.DerivationPath)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+	}
+	w, err := h.svc.GenerateWalletWithPath(req.Msg.Name, req.Msg.CustomMnemonic, req.Msg.Passphrase, account, path, allSidechainSlots())
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
@@ -342,7 +346,24 @@ func (h *WalletHandler) CreateElectrumWallet(ctx context.Context, req *connect.R
 		return nil, connect.NewError(connect.CodeFailedPrecondition,
 			errors.New("electrum wallets are not supported on this network"))
 	}
-	w, err := h.svc.CreateElectrumWallet(req.Msg.Name, json.RawMessage(req.Msg.GradientJson), req.Msg.Slots, req.Msg.CustomMnemonic, req.Msg.XpubOrDescriptor, req.Msg.ScriptType)
+	account, path, err := wallet.ResolveCreateDerivationPath(req.Msg.Account, req.Msg.DerivationPath)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+	}
+	// An explicit path must match the chosen script type's purpose — an electrum
+	// wallet derives one address kind, so importing a path whose purpose implies
+	// a different kind would mismatch the addresses it scans and signs.
+	if path != "" && req.Msg.XpubOrDescriptor == "" {
+		ap, perr := wallet.ParseAccountPath(path)
+		if perr != nil {
+			return nil, connect.NewError(connect.CodeInvalidArgument, perr)
+		}
+		if want, ok := wallet.HotScriptKind(req.Msg.ScriptType).Purpose(); ok && ap.Purpose != want {
+			return nil, connect.NewError(connect.CodeInvalidArgument,
+				fmt.Errorf("derivation purpose %d' does not match script type %q (want %d')", ap.Purpose, req.Msg.ScriptType, want))
+		}
+	}
+	w, err := h.svc.CreateElectrumWallet(req.Msg.Name, json.RawMessage(req.Msg.GradientJson), req.Msg.Slots, req.Msg.CustomMnemonic, req.Msg.XpubOrDescriptor, req.Msg.ScriptType, account, path)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}

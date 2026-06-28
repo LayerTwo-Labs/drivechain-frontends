@@ -413,20 +413,20 @@ func parseMultisig(body string) (*Descriptor, error) {
 // accountKeyFromSeed derives the BIP-standard account extended key
 // (m/purpose'/coin'/0') for a script kind from a hex seed, via hdkeychain.
 func accountKeyFromSeed(seedHex string, kind ScriptKind, net *chaincfg.Params) (*hdkeychain.ExtendedKey, error) {
-	acct, _, err := accountKeyAndOrigin(seedHex, kind, net)
+	ap, err := accountPathFor(&WalletData{ScriptType: kind.String()}, kind, net)
+	if err != nil {
+		return nil, err
+	}
+	acct, _, err := accountKeyAndOrigin(seedHex, ap, net)
 	return acct, err
 }
 
 // accountKeyAndOrigin derives the account extended key and the matching key
 // origin ("masterFingerprint/purpose'/coin'/0'"), so a hot wallet's PSBTs carry
 // the real master fingerprint and full derivation path for external signers.
-func accountKeyAndOrigin(seedHex string, kind ScriptKind, net *chaincfg.Params) (*hdkeychain.ExtendedKey, string, error) {
+func accountKeyAndOrigin(seedHex string, ap AccountPath, net *chaincfg.Params) (*hdkeychain.ExtendedKey, string, error) {
 	if net == nil {
 		return nil, "", errors.New("no chain params for this network; cannot derive electrum wallet")
-	}
-	purpose, ok := kind.Purpose()
-	if !ok {
-		return nil, "", fmt.Errorf("no derivation purpose for kind %s", kind)
 	}
 	seed, err := hex.DecodeString(seedHex)
 	if err != nil {
@@ -443,11 +443,11 @@ func accountKeyAndOrigin(seedHex string, kind ScriptKind, net *chaincfg.Params) 
 	fingerprint := hex.EncodeToString(btcutil.Hash160(masterPub.SerializeCompressed())[:4])
 
 	const h = hdkeychain.HardenedKeyStart
-	acct, err := deriveHardened(master, h+purpose, h+net.HDCoinType, h+0)
+	acct, err := deriveHardened(master, h+ap.Purpose, h+ap.Coin, h+ap.Account)
 	if err != nil {
 		return nil, "", err
 	}
-	origin := fmt.Sprintf("%s/%dh/%dh/0h", fingerprint, purpose, net.HDCoinType)
+	origin := fmt.Sprintf("%s/%s", fingerprint, ap.Origin("h"))
 	return acct, origin, nil
 }
 

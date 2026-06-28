@@ -40,12 +40,16 @@ class WalletWriterProvider extends ChangeNotifier {
     required String name,
     String? customMnemonic,
     String? passphrase,
+    int account = 0,
+    String? derivationPath,
   }) async {
     try {
       final resp = await _client.generateWallet(
         name: name,
         customMnemonic: customMnemonic,
         passphrase: passphrase,
+        account: account,
+        derivationPath: derivationPath,
       );
 
       _logger.i(
@@ -70,8 +74,16 @@ class WalletWriterProvider extends ChangeNotifier {
     required WalletGradient gradient,
     String? customMnemonic,
     String? passphrase,
+    int account = 0,
+    String? derivationPath,
   }) async {
-    final result = await generateWallet(name: name, customMnemonic: customMnemonic, passphrase: passphrase);
+    final result = await generateWallet(
+      name: name,
+      customMnemonic: customMnemonic,
+      passphrase: passphrase,
+      account: account,
+      derivationPath: derivationPath,
+    );
     final walletId = result['wallet_id'] as String?;
     if (walletId != null) {
       await updateWalletMetadata(walletId, name, gradient);
@@ -87,6 +99,9 @@ class WalletWriterProvider extends ChangeNotifier {
     required WalletGradient gradient,
     String? customMnemonic,
     String? xpubOrDescriptor,
+    String? scriptType,
+    int account = 0,
+    String? derivationPath,
   }) async {
     try {
       final resp = await _client.createElectrumWallet(
@@ -94,6 +109,9 @@ class WalletWriterProvider extends ChangeNotifier {
         gradientJson: gradient.toJsonString(),
         customMnemonic: customMnemonic,
         xpubOrDescriptor: xpubOrDescriptor,
+        scriptType: scriptType,
+        account: account,
+        derivationPath: derivationPath,
       );
 
       _logger.i('createElectrumWallet: created via backend, id=${resp.walletId}');

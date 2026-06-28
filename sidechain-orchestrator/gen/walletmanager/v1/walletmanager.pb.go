@@ -296,6 +296,13 @@ type GenerateWalletRequest struct {
 	Name           string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	CustomMnemonic string                 `protobuf:"bytes,2,opt,name=custom_mnemonic,json=customMnemonic,proto3" json:"custom_mnemonic,omitempty"` // optional
 	Passphrase     string                 `protobuf:"bytes,3,opt,name=passphrase,proto3" json:"passphrase,omitempty"`                               // optional
+	// Optional BIP32 account index for the wallet's account-level key
+	// (purpose'/coin'/account'). 0 = standard. Ignored when derivation_path set.
+	Account uint32 `protobuf:"varint,4,opt,name=account,proto3" json:"account,omitempty"`
+	// Optional full account-level derivation path (e.g. "m/84'/0'/3'"),
+	// overriding the default purpose/coin/account. Empty = default (BIP84,
+	// network coin, account field). All three levels must be hardened.
+	DerivationPath string `protobuf:"bytes,5,opt,name=derivation_path,json=derivationPath,proto3" json:"derivation_path,omitempty"`
 	unknownFields  protoimpl.UnknownFields
 	sizeCache      protoimpl.SizeCache
 }
@@ -347,6 +354,20 @@ func (x *GenerateWalletRequest) GetCustomMnemonic() string {
 func (x *GenerateWalletRequest) GetPassphrase() string {
 	if x != nil {
 		return x.Passphrase
+	}
+	return ""
+}
+
+func (x *GenerateWalletRequest) GetAccount() uint32 {
+	if x != nil {
+		return x.Account
+	}
+	return 0
+}
+
+func (x *GenerateWalletRequest) GetDerivationPath() string {
+	if x != nil {
+		return x.DerivationPath
 	}
 	return ""
 }
@@ -2113,9 +2134,16 @@ type CreateElectrumWalletRequest struct {
 	// Address type for a hot wallet: "legacy", "nested-segwit",
 	// "native-segwit" (default), or "taproot". Ignored for watch-only imports
 	// (the descriptor's own type wins).
-	ScriptType    string `protobuf:"bytes,6,opt,name=script_type,json=scriptType,proto3" json:"script_type,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	ScriptType string `protobuf:"bytes,6,opt,name=script_type,json=scriptType,proto3" json:"script_type,omitempty"`
+	// Optional BIP32 account index for the account-level key. 0 = standard.
+	// Ignored when derivation_path set or for watch-only imports.
+	Account uint32 `protobuf:"varint,7,opt,name=account,proto3" json:"account,omitempty"`
+	// Optional full account-level derivation path (e.g. "m/84'/0'/3'"),
+	// overriding purpose/coin/account. Empty = default. All three levels must be
+	// hardened. Ignored for watch-only imports.
+	DerivationPath string `protobuf:"bytes,8,opt,name=derivation_path,json=derivationPath,proto3" json:"derivation_path,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *CreateElectrumWalletRequest) Reset() {
@@ -2186,6 +2214,20 @@ func (x *CreateElectrumWalletRequest) GetXpubOrDescriptor() string {
 func (x *CreateElectrumWalletRequest) GetScriptType() string {
 	if x != nil {
 		return x.ScriptType
+	}
+	return ""
+}
+
+func (x *CreateElectrumWalletRequest) GetAccount() uint32 {
+	if x != nil {
+		return x.Account
+	}
+	return 0
+}
+
+func (x *CreateElectrumWalletRequest) GetDerivationPath() string {
+	if x != nil {
+		return x.DerivationPath
 	}
 	return ""
 }
@@ -5251,13 +5293,15 @@ const file_walletmanager_v1_walletmanager_proto_rawDesc = "" +
 	"\tencrypted\x18\x02 \x01(\bR\tencrypted\x12\x1a\n" +
 	"\bunlocked\x18\x03 \x01(\bR\bunlocked\x12(\n" +
 	"\x10active_wallet_id\x18\x04 \x01(\tR\x0eactiveWalletId\x12,\n" +
-	"\x12active_wallet_name\x18\x05 \x01(\tR\x10activeWalletName\"t\n" +
+	"\x12active_wallet_name\x18\x05 \x01(\tR\x10activeWalletName\"\xb7\x01\n" +
 	"\x15GenerateWalletRequest\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12'\n" +
 	"\x0fcustom_mnemonic\x18\x02 \x01(\tR\x0ecustomMnemonic\x12\x1e\n" +
 	"\n" +
 	"passphrase\x18\x03 \x01(\tR\n" +
-	"passphrase\"Q\n" +
+	"passphrase\x12\x18\n" +
+	"\aaccount\x18\x04 \x01(\rR\aaccount\x12'\n" +
+	"\x0fderivation_path\x18\x05 \x01(\tR\x0ederivationPath\"Q\n" +
 	"\x16GenerateWalletResponse\x12\x1b\n" +
 	"\twallet_id\x18\x01 \x01(\tR\bwalletId\x12\x1a\n" +
 	"\bmnemonic\x18\x02 \x01(\tR\bmnemonic\"1\n" +
@@ -5364,7 +5408,7 @@ const file_walletmanager_v1_walletmanager_proto_rawDesc = "" +
 	"\x12xpub_or_descriptor\x18\x02 \x01(\tR\x10xpubOrDescriptor\x12#\n" +
 	"\rgradient_json\x18\x03 \x01(\tR\fgradientJson\"<\n" +
 	"\x1dCreateWatchOnlyWalletResponse\x12\x1b\n" +
-	"\twallet_id\x18\x01 \x01(\tR\bwalletId\"\xe4\x01\n" +
+	"\twallet_id\x18\x01 \x01(\tR\bwalletId\"\xa7\x02\n" +
 	"\x1bCreateElectrumWalletRequest\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12#\n" +
 	"\rgradient_json\x18\x02 \x01(\tR\fgradientJson\x12\x14\n" +
@@ -5372,7 +5416,9 @@ const file_walletmanager_v1_walletmanager_proto_rawDesc = "" +
 	"\x0fcustom_mnemonic\x18\x04 \x01(\tR\x0ecustomMnemonic\x12,\n" +
 	"\x12xpub_or_descriptor\x18\x05 \x01(\tR\x10xpubOrDescriptor\x12\x1f\n" +
 	"\vscript_type\x18\x06 \x01(\tR\n" +
-	"scriptType\";\n" +
+	"scriptType\x12\x18\n" +
+	"\aaccount\x18\a \x01(\rR\aaccount\x12'\n" +
+	"\x0fderivation_path\x18\b \x01(\tR\x0ederivationPath\";\n" +
 	"\x1cCreateElectrumWalletResponse\x12\x1b\n" +
 	"\twallet_id\x18\x01 \x01(\tR\bwalletId\"=\n" +
 	"\x1eCreateBitcoinCoreWalletRequest\x12\x1b\n" +
