@@ -32,6 +32,7 @@ import (
 	coinshiftrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/coinshift/v1/coinshiftv1connect"
 	cryptorpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/crypto/v1/cryptov1connect"
 	enforcerrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1/mainchainv1connect"
+	multisigloungerpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/multisiglounge/v1/multisigloungev1connect"
 	rpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/orchestrator/v1/orchestratorv1connect"
 	photonrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/photon/v1/photonv1connect"
 	thunderrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/thunder/v1/thunderv1connect"
@@ -390,6 +391,9 @@ func run(cctx *cli.Context) error {
 
 	walletPath, walletH := walletrpc.NewWalletManagerServiceHandler(walletHandler, connect.WithInterceptors(authIC))
 	mux.Handle(walletPath, walletH)
+
+	multisigLoungePath, multisigLoungeH := multisigloungerpc.NewMultisigLoungeServiceHandler(api.NewMultisigLoungeHandler(), connect.WithInterceptors(authIC))
+	mux.Handle(multisigLoungePath, multisigLoungeH)
 
 	// Bitcoin config service
 	if orch.BitcoinConf != nil {

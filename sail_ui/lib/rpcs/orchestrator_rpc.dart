@@ -5,6 +5,7 @@ import 'package:connectrpc/protocol/connect.dart' as connect;
 import 'package:sail_ui/gen/bitcoin/bitcoind/v1alpha/bitcoin.connect.client.dart';
 import 'package:sail_ui/gen/orchestrator/v1/orchestrator.connect.client.dart';
 import 'package:sail_ui/gen/orchestrator/v1/orchestrator.pb.dart';
+import 'package:sail_ui/rpcs/orchestrator_multisig_lounge_rpc.dart';
 import 'package:sail_ui/rpcs/orchestrator_wallet_rpc.dart';
 
 /// RPC client for the orchestrator daemon.
@@ -28,6 +29,7 @@ class OrchestratorRPC {
   late OrchestratorServiceClient _unaryClient;
   late OrchestratorServiceClient _streamClient;
   late OrchestratorWalletRPC wallet;
+  late OrchestratorMultisigLoungeRPC multisigLounge;
 
   /// btc-buf BitcoinService — single canonical bitcoind proxy for all
   /// callers. Routes peers / mempool / fee / blocks / PSBT helpers.
@@ -57,6 +59,7 @@ class OrchestratorRPC {
     _unaryClient = OrchestratorServiceClient(unaryTransport);
     _streamClient = OrchestratorServiceClient(streamTransport);
     wallet = OrchestratorWalletRPC.fromTransports(unary: unaryTransport, stream: streamTransport);
+    multisigLounge = OrchestratorMultisigLoungeRPC.fromTransport(unaryTransport);
     bitcoind = BitcoinServiceClient(unaryTransport);
   }
 

@@ -15,30 +15,30 @@ import 'dart:core' as $core;
 
 import 'package:protobuf/protobuf.dart' as $pb;
 
-import 'sidechain_conf.pb.dart' as $6;
+import 'sidechain_conf.pb.dart' as $7;
 import 'sidechain_conf.pbjson.dart';
 
 export 'sidechain_conf.pb.dart';
 
 abstract class SidechainConfServiceBase extends $pb.GeneratedService {
-  $async.Future<$6.GetSidechainConfigResponse> getSidechainConfig($pb.ServerContext ctx, $6.GetSidechainConfigRequest request);
-  $async.Future<$6.WriteSidechainConfigResponse> writeSidechainConfig($pb.ServerContext ctx, $6.WriteSidechainConfigRequest request);
-  $async.Future<$6.SyncSidechainNetworkFromBitcoinConfResponse> syncSidechainNetworkFromBitcoinConf($pb.ServerContext ctx, $6.SyncSidechainNetworkFromBitcoinConfRequest request);
+  $async.Future<$7.GetSidechainConfigResponse> getSidechainConfig($pb.ServerContext ctx, $7.GetSidechainConfigRequest request);
+  $async.Future<$7.WriteSidechainConfigResponse> writeSidechainConfig($pb.ServerContext ctx, $7.WriteSidechainConfigRequest request);
+  $async.Future<$7.SyncSidechainNetworkFromBitcoinConfResponse> syncSidechainNetworkFromBitcoinConf($pb.ServerContext ctx, $7.SyncSidechainNetworkFromBitcoinConfRequest request);
 
   $pb.GeneratedMessage createRequest($core.String methodName) {
     switch (methodName) {
-      case 'GetSidechainConfig': return $6.GetSidechainConfigRequest();
-      case 'WriteSidechainConfig': return $6.WriteSidechainConfigRequest();
-      case 'SyncSidechainNetworkFromBitcoinConf': return $6.SyncSidechainNetworkFromBitcoinConfRequest();
+      case 'GetSidechainConfig': return $7.GetSidechainConfigRequest();
+      case 'WriteSidechainConfig': return $7.WriteSidechainConfigRequest();
+      case 'SyncSidechainNetworkFromBitcoinConf': return $7.SyncSidechainNetworkFromBitcoinConfRequest();
       default: throw $core.ArgumentError('Unknown method: $methodName');
     }
   }
 
   $async.Future<$pb.GeneratedMessage> handleCall($pb.ServerContext ctx, $core.String methodName, $pb.GeneratedMessage request) {
     switch (methodName) {
-      case 'GetSidechainConfig': return this.getSidechainConfig(ctx, request as $6.GetSidechainConfigRequest);
-      case 'WriteSidechainConfig': return this.writeSidechainConfig(ctx, request as $6.WriteSidechainConfigRequest);
-      case 'SyncSidechainNetworkFromBitcoinConf': return this.syncSidechainNetworkFromBitcoinConf(ctx, request as $6.SyncSidechainNetworkFromBitcoinConfRequest);
+      case 'GetSidechainConfig': return this.getSidechainConfig(ctx, request as $7.GetSidechainConfigRequest);
+      case 'WriteSidechainConfig': return this.writeSidechainConfig(ctx, request as $7.WriteSidechainConfigRequest);
+      case 'SyncSidechainNetworkFromBitcoinConf': return this.syncSidechainNetworkFromBitcoinConf(ctx, request as $7.SyncSidechainNetworkFromBitcoinConfRequest);
       default: throw $core.ArgumentError('Unknown method: $methodName');
     }
   }
