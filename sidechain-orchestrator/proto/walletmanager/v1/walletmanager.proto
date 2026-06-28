@@ -92,6 +92,13 @@ message GenerateWalletRequest {
   string name = 1;
   string custom_mnemonic = 2; // optional
   string passphrase = 3; // optional
+  // Optional BIP32 account index for the wallet's account-level key
+  // (purpose'/coin'/account'). 0 = standard. Ignored when derivation_path set.
+  uint32 account = 4;
+  // Optional full account-level derivation path (e.g. "m/84'/0'/3'"),
+  // overriding the default purpose/coin/account. Empty = default (BIP84,
+  // network coin, account field). All three levels must be hardened.
+  string derivation_path = 5;
 }
 
 message GenerateWalletResponse {
@@ -305,6 +312,13 @@ message CreateElectrumWalletRequest {
   // "native-segwit" (default), or "taproot". Ignored for watch-only imports
   // (the descriptor's own type wins).
   string script_type = 6;
+  // Optional BIP32 account index for the account-level key. 0 = standard.
+  // Ignored when derivation_path set or for watch-only imports.
+  uint32 account = 7;
+  // Optional full account-level derivation path (e.g. "m/84'/0'/3'"),
+  // overriding purpose/coin/account. Empty = default. All three levels must be
+  // hardened. Ignored for watch-only imports.
+  string derivation_path = 8;
 }
 
 message CreateElectrumWalletResponse {

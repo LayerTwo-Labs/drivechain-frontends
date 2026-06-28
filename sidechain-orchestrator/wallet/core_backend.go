@@ -106,7 +106,7 @@ func (p *CoreBackend) Ensure(ctx context.Context, walletID string) (string, erro
 		if targetWallet.IsWatchOnly() {
 			err = p.createWatchOnlyWallet(ctx, walletName, targetWallet)
 		} else {
-			err = p.createBitcoinCoreWallet(ctx, walletName, targetWallet.Master.SeedHex)
+			err = p.createBitcoinCoreWallet(ctx, walletName, targetWallet)
 		}
 	default:
 		return "", fmt.Errorf("wallet type %s does not use Bitcoin Core", targetWallet.WalletType)
@@ -594,11 +594,14 @@ func (p *CoreBackend) ensureBip47NotificationDescriptor(ctx context.Context, wal
 }
 
 // createBitcoinCoreWallet creates a Bitcoin Core descriptor wallet from a seed.
-func (p *CoreBackend) createBitcoinCoreWallet(ctx context.Context, walletName, seedHex string) error {
+// With no derivation override it imports the standard BIP84 + BIP86 descriptors
+// at account 0; an AccountIndex shifts both to that account; an explicit
+// DerivationPath imports the single descriptor for that path's purpose.
+func (p *CoreBackend) createBitcoinCoreWallet(ctx context.Context, walletName string, w *WalletData) error {
 	if p.network == nil {
 		return fmt.Errorf("no chain params for this network; cannot derive wallet descriptors")
 	}
-	seed, err := hex.DecodeString(seedHex)
+	seed, err := hex.DecodeString(w.Master.SeedHex)
 	if err != nil {
 		return fmt.Errorf("decode seed hex: %w", err)
 	}
@@ -607,84 +610,108 @@ func (p *CoreBackend) createBitcoinCoreWallet(ctx context.Context, walletName, s
 	if err != nil {
 		return fmt.Errorf("create master key: %w", err)
 	}
-
-	// Derive BIP84 account: m/84'/coin'/0'
-	purpose, err := masterKey.NewChildKey(bip32.FirstHardenedChild + 84)
-	if err != nil {
-		return fmt.Errorf("derive purpose: %w", err)
-	}
-
-	coin, err := purpose.NewChildKey(bip32.FirstHardenedChild + p.coinType())
-	if err != nil {
-		return fmt.Errorf("derive coin: %w", err)
-	}
-
-	account, err := coin.NewChildKey(bip32.FirstHardenedChild + 0)
-	if err != nil {
-		return fmt.Errorf("derive account: %w", err)
-	}
-
-	accountXprv := serializeKeyForNetwork(account, p.network)
-
-	account86, err := deriveBIP86Account(masterKey, p.coinType())
-	if err != nil {
-		return err
-	}
-	accountXprv86 := serializeKeyForNetwork(account86, p.network)
-
 	fingerprint := masterFingerprint(masterKey)
-	coinType := p.coinType()
 
-	// Build descriptors with checksum
-	descriptors := []ImportDescriptor{
-		{
-			Desc:      mustAddChecksum(fmt.Sprintf("wpkh([%s/84'/%d'/0']%s/0/*)", fingerprint, coinType, accountXprv)),
-			Active:    true,
-			Timestamp: "now",
-			Internal:  false,
-			Range:     []int{0, 999},
-		},
-		{
-			Desc:      mustAddChecksum(fmt.Sprintf("wpkh([%s/84'/%d'/0']%s/1/*)", fingerprint, coinType, accountXprv)),
-			Active:    true,
-			Timestamp: "now",
-			Internal:  true,
-			Range:     []int{0, 999},
-		},
-		{
-			Desc:      mustAddChecksum(fmt.Sprintf("tr([%s/86'/%d'/0']%s/0/*)", fingerprint, coinType, accountXprv86)),
-			Active:    true,
-			Timestamp: "now",
-			Internal:  false,
-			Range:     []int{0, 999},
-		},
-		{
-			Desc:      mustAddChecksum(fmt.Sprintf("tr([%s/86'/%d'/0']%s/1/*)", fingerprint, coinType, accountXprv86)),
-			Active:    true,
-			Timestamp: "now",
-			Internal:  true,
-			Range:     []int{0, 999},
-		},
+	var purposes []ScriptKind
+	if w.usesExplicitPath() {
+		ap, err := ParseAccountPath(w.DerivationPath)
+		if err != nil {
+			return fmt.Errorf("invalid derivation path: %w", err)
+		}
+		kind, ok := purposeToCoreKind(ap.Purpose)
+		if !ok {
+			return fmt.Errorf("unsupported core descriptor purpose %d'", ap.Purpose)
+		}
+		purposes = []ScriptKind{kind}
+	} else {
+		purposes = []ScriptKind{ScriptNativeSegwit, ScriptTaproot}
+	}
+
+	var descriptors []ImportDescriptor
+	for _, kind := range purposes {
+		ap, err := accountPathFor(w, kind, p.network)
+		if err != nil {
+			return err
+		}
+		acct, err := deriveAccountKey(masterKey, ap)
+		if err != nil {
+			return err
+		}
+		acctXprv := serializeKeyForNetwork(acct, p.network)
+		open, close, ok := coreDescriptorWrapper(kind)
+		if !ok {
+			return fmt.Errorf("unsupported core descriptor kind %s", kind)
+		}
+		origin := ap.Origin("'")
+		descriptors = append(descriptors,
+			ImportDescriptor{
+				Desc:      mustAddChecksum(fmt.Sprintf("%s[%s/%s]%s/0/*%s", open, fingerprint, origin, acctXprv, close)),
+				Active:    true,
+				Timestamp: "now",
+				Internal:  false,
+				Range:     []int{0, 999},
+			},
+			ImportDescriptor{
+				Desc:      mustAddChecksum(fmt.Sprintf("%s[%s/%s]%s/1/*%s", open, fingerprint, origin, acctXprv, close)),
+				Active:    true,
+				Timestamp: "now",
+				Internal:  true,
+				Range:     []int{0, 999},
+			},
+		)
 	}
 
 	return p.createAndImport(ctx, walletName, false, descriptors)
 }
 
-// deriveBIP86Account derives the taproot account key m/86'/coin'/0'.
-func deriveBIP86Account(masterKey *bip32.Key, coinType uint32) (*bip32.Key, error) {
-	purpose, err := masterKey.NewChildKey(bip32.FirstHardenedChild + 86)
+// deriveAccountKey derives the hardened account-level key for an AccountPath.
+func deriveAccountKey(masterKey *bip32.Key, ap AccountPath) (*bip32.Key, error) {
+	purpose, err := masterKey.NewChildKey(bip32.FirstHardenedChild + ap.Purpose)
 	if err != nil {
-		return nil, fmt.Errorf("derive taproot purpose: %w", err)
+		return nil, fmt.Errorf("derive purpose %d': %w", ap.Purpose, err)
 	}
-	coin, err := purpose.NewChildKey(bip32.FirstHardenedChild + coinType)
+	coin, err := purpose.NewChildKey(bip32.FirstHardenedChild + ap.Coin)
 	if err != nil {
-		return nil, fmt.Errorf("derive taproot coin: %w", err)
+		return nil, fmt.Errorf("derive coin %d': %w", ap.Coin, err)
 	}
-	account, err := coin.NewChildKey(bip32.FirstHardenedChild + 0)
+	account, err := coin.NewChildKey(bip32.FirstHardenedChild + ap.Account)
 	if err != nil {
-		return nil, fmt.Errorf("derive taproot account: %w", err)
+		return nil, fmt.Errorf("derive account %d': %w", ap.Account, err)
 	}
 	return account, nil
+}
+
+// coreDescriptorWrapper returns the open/close fragments wrapping the key
+// expression for a single-sig kind's Core descriptor.
+func coreDescriptorWrapper(kind ScriptKind) (open, close string, ok bool) {
+	switch kind {
+	case ScriptLegacy:
+		return "pkh(", ")", true
+	case ScriptNestedSegwit:
+		return "sh(wpkh(", "))", true
+	case ScriptNativeSegwit:
+		return "wpkh(", ")", true
+	case ScriptTaproot:
+		return "tr(", ")", true
+	default:
+		return "", "", false
+	}
+}
+
+// purposeToCoreKind maps a BIP purpose to the single-sig kind Core imports for it.
+func purposeToCoreKind(purpose uint32) (ScriptKind, bool) {
+	switch purpose {
+	case 44:
+		return ScriptLegacy, true
+	case 49:
+		return ScriptNestedSegwit, true
+	case 84:
+		return ScriptNativeSegwit, true
+	case 86:
+		return ScriptTaproot, true
+	default:
+		return ScriptUnknown, false
+	}
 }
 
 // createWatchOnlyWallet creates a watch-only Bitcoin Core wallet.

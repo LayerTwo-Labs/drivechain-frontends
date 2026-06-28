@@ -36,6 +36,15 @@ type WalletData struct {
 	// ScriptType is the electrum address kind (legacy/nested-segwit/
 	// native-segwit/taproot/multisig). Empty means native segwit (BIP84).
 	ScriptType string `json:"script_type,omitempty"`
+	// AccountIndex is the BIP32 account index used when deriving the wallet's
+	// standard descriptors (shifts both BIP84 and BIP86 to this account). 0 =
+	// standard. Mutually exclusive with DerivationPath.
+	AccountIndex uint32 `json:"account_index,omitempty"`
+	// DerivationPath is an explicit full account-level path
+	// (m/purpose'/coin'/account') overriding purpose/coin/account. When set, the
+	// wallet imports the single descriptor matching that purpose. Empty means
+	// the standard purposes at AccountIndex.
+	DerivationPath string `json:"derivation_path,omitempty"`
 }
 
 // scriptKind maps the wallet's stored script type to a ScriptKind, defaulting

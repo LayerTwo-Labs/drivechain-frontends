@@ -710,7 +710,7 @@ func TestServiceCreateElectrumWatchOnlyRejectsPrivateKey(t *testing.T) {
 	require.True(t, acct.IsPrivate())
 
 	desc := "wpkh(" + acct.String() + "/0/*)"
-	_, err = svc.CreateElectrumWallet("Leaky", nil, nil, "", desc, "")
+	_, err = svc.CreateElectrumWallet("Leaky", nil, nil, "", desc, "", 0, "")
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "private key")
 }

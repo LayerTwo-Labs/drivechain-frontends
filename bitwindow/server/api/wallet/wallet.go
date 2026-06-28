@@ -148,7 +148,7 @@ func (s *Server) CreateBitcoinCoreWallet(ctx context.Context, c *connect.Request
 	}
 
 	// Directly import to Bitcoin Core - no wallet.json needed
-	if err := s.walletEngine.CreateBitcoinCoreWalletFromSeed(ctx, coreWalletName, seedHex); err != nil {
+	if err := s.walletEngine.CreateBitcoinCoreWalletFromSeed(ctx, coreWalletName, seedHex, 0, ""); err != nil {
 		zerolog.Ctx(ctx).Error().Err(err).Msg("create Bitcoin Core wallet failed")
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("create wallet: %w", err))
 	}

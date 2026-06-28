@@ -20,12 +20,12 @@ import (
 	validatorrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1/mainchainv1connect"
 	orchpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1"
 	orchrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1/walletmanagerv1connect"
+	orchwallet "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/wallet"
 	corepb "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha"
 	corerpc "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha/bitcoindv1alphaconnect"
 	"github.com/btcsuite/btcd/btcutil"
 	"github.com/btcsuite/btcd/btcutil/hdkeychain"
 	"github.com/btcsuite/btcd/chaincfg"
-	"github.com/btcsuite/btcd/wire"
 	"github.com/rs/zerolog"
 	"github.com/samber/lo"
 	"golang.org/x/sync/singleflight"
@@ -58,6 +58,12 @@ type WalletInfo struct {
 		Descriptor string `json:"descriptor"`
 		Xpub       string `json:"xpub"`
 	} `json:"watch_only,omitempty"`
+	// AccountIndex shifts the standard BIP84/BIP86 descriptors to this account.
+	// 0 = standard. Mutually exclusive with DerivationPath.
+	AccountIndex uint32 `json:"account_index,omitempty"`
+	// DerivationPath is an explicit account-level path (m/purpose'/coin'/account')
+	// overriding purpose/coin/account; empty = standard purposes at AccountIndex.
+	DerivationPath string `json:"derivation_path,omitempty"`
 }
 
 // IsWatchOnly reports whether the wallet holds no signing key — it carries an
@@ -567,7 +573,7 @@ func (e *WalletEngine) ensureBitcoinCoreWalletLocked(ctx context.Context, wallet
 	walletExists := lo.Contains(listResp.Msg.Wallets, walletName)
 	if !walletExists {
 		// Create wallet from seed
-		if err := e.CreateBitcoinCoreWalletFromSeed(ctx, walletName, wallet.Master.SeedHex); err != nil {
+		if err := e.CreateBitcoinCoreWalletFromSeed(ctx, walletName, wallet.Master.SeedHex, wallet.AccountIndex, wallet.DerivationPath); err != nil {
 			return "", fmt.Errorf("create Bitcoin Core wallet: %w", err)
 		}
 		zerolog.Ctx(ctx).Info().
@@ -581,11 +587,15 @@ func (e *WalletEngine) ensureBitcoinCoreWalletLocked(ctx context.Context, wallet
 	return walletName, nil
 }
 
-// CreateBitcoinCoreWalletFromSeed creates a Bitcoin Core wallet and imports the seed
+// CreateBitcoinCoreWalletFromSeed creates a Bitcoin Core wallet and imports the
+// seed. accountIndex/derivationPath are the optional account-level derivation
+// override (0/"" = standard BIP84+BIP86 at account 0).
 func (e *WalletEngine) CreateBitcoinCoreWalletFromSeed(
 	ctx context.Context,
 	walletName string,
 	seedHex string,
+	accountIndex uint32,
+	derivationPath string,
 ) error {
 	// Decode seed
 	seed, err := hex.DecodeString(seedHex)
@@ -599,53 +609,10 @@ func (e *WalletEngine) CreateBitcoinCoreWalletFromSeed(
 		return fmt.Errorf("derive master key: %w", err)
 	}
 
-	// Derive to BIP84 account level: m/84'/0'/0'
-	purpose, err := masterKey.Derive(hdkeychain.HardenedKeyStart + 84)
+	descriptors, err := e.coreDescriptors(masterKey, accountIndex, derivationPath, true)
 	if err != nil {
-		return fmt.Errorf("derive purpose: %w", err)
+		return err
 	}
-
-	// Coin type: 0' for mainnet, 1' for testnet/signet
-	coinType := uint32(0)
-	if e.chainParams.Name != "mainnet" {
-		coinType = 1
-	}
-	coin, err := purpose.Derive(hdkeychain.HardenedKeyStart + coinType)
-	if err != nil {
-		return fmt.Errorf("derive coin type: %w", err)
-	}
-
-	// Account: 0'
-	account, err := coin.Derive(hdkeychain.HardenedKeyStart + 0)
-	if err != nil {
-		return fmt.Errorf("derive account: %w", err)
-	}
-
-	// Get the xprv string for the account
-	accountXprv := account.String()
-
-	// Derive BIP86 account: m/86'/coin'/0' (taproot)
-	purpose86, err := masterKey.Derive(hdkeychain.HardenedKeyStart + 86)
-	if err != nil {
-		return fmt.Errorf("derive taproot purpose: %w", err)
-	}
-	coin86, err := purpose86.Derive(hdkeychain.HardenedKeyStart + coinType)
-	if err != nil {
-		return fmt.Errorf("derive taproot coin type: %w", err)
-	}
-	account86, err := coin86.Derive(hdkeychain.HardenedKeyStart + 0)
-	if err != nil {
-		return fmt.Errorf("derive taproot account: %w", err)
-	}
-	accountXprv86 := account86.String()
-
-	// Compute master fingerprint for key origin info
-	pubKey, err := masterKey.ECPubKey()
-	if err != nil {
-		return fmt.Errorf("get master public key: %w", err)
-	}
-	hash160 := btcutil.Hash160(pubKey.SerializeCompressed())
-	fingerprint := hex.EncodeToString(hash160[:4])
 
 	// Get bitcoind client
 	bitcoindClient, err := e.bitcoindConnector(ctx)
@@ -678,17 +645,6 @@ func (e *WalletEngine) CreateBitcoinCoreWalletFromSeed(
 		} else {
 			return fmt.Errorf("create Bitcoin Core wallet: %w", err)
 		}
-	}
-
-	// Import descriptors for receiving and change addresses with key origin info
-	descriptors := []struct {
-		desc     string
-		internal bool
-	}{
-		{fmt.Sprintf("wpkh([%s/84'/%d'/0']%s/0/*)", fingerprint, coinType, accountXprv), false}, // Segwit receiving
-		{fmt.Sprintf("wpkh([%s/84'/%d'/0']%s/1/*)", fingerprint, coinType, accountXprv), true},  // Segwit change
-		{fmt.Sprintf("tr([%s/86'/%d'/0']%s/0/*)", fingerprint, coinType, accountXprv86), false}, // Taproot receiving
-		{fmt.Sprintf("tr([%s/86'/%d'/0']%s/1/*)", fingerprint, coinType, accountXprv86), true},  // Taproot change
 	}
 
 	var requests []*corepb.ImportDescriptorsRequest_Request
@@ -727,6 +683,80 @@ func (e *WalletEngine) CreateBitcoinCoreWalletFromSeed(
 	}
 
 	return nil
+}
+
+// coreDescriptor is one descriptor string and whether it's the internal (change) chain.
+type coreDescriptor struct {
+	desc     string
+	internal bool
+}
+
+// coreDescriptors builds the receive+change descriptors for a Core wallet from
+// the master key and the optional account-level derivation override. With no
+// override it returns BIP84 + BIP86 at account 0; an account index shifts both;
+// an explicit path returns the single descriptor for that path's purpose. This
+// mirrors the orchestrator CoreBackend so the local fallback derives identically.
+func (e *WalletEngine) coreDescriptors(masterKey *hdkeychain.ExtendedKey, accountIndex uint32, derivationPath string, withOrigin bool) ([]coreDescriptor, error) {
+	pubKey, err := masterKey.ECPubKey()
+	if err != nil {
+		return nil, fmt.Errorf("get master public key: %w", err)
+	}
+	fingerprint := hex.EncodeToString(btcutil.Hash160(pubKey.SerializeCompressed())[:4])
+
+	var kinds []orchwallet.ScriptKind
+	if strings.TrimSpace(derivationPath) != "" {
+		ap, err := orchwallet.ParseAccountPath(derivationPath)
+		if err != nil {
+			return nil, fmt.Errorf("invalid derivation path: %w", err)
+		}
+		kind, ok := orchwallet.PurposeToCoreKind(ap.Purpose)
+		if !ok {
+			return nil, fmt.Errorf("unsupported core descriptor purpose %d'", ap.Purpose)
+		}
+		kinds = []orchwallet.ScriptKind{kind}
+	} else {
+		kinds = []orchwallet.ScriptKind{orchwallet.ScriptNativeSegwit, orchwallet.ScriptTaproot}
+	}
+
+	var out []coreDescriptor
+	for _, kind := range kinds {
+		ap, err := orchwallet.ResolveAccountPath(accountIndex, derivationPath, kind, e.chainParams)
+		if err != nil {
+			return nil, err
+		}
+		acct, err := deriveHardenedPath(masterKey, ap)
+		if err != nil {
+			return nil, err
+		}
+		acctXprv := acct.String()
+		open, close, ok := orchwallet.CoreDescriptorWrapper(kind)
+		if !ok {
+			return nil, fmt.Errorf("unsupported core descriptor kind %s", kind)
+		}
+		origin := ""
+		if withOrigin {
+			origin = fmt.Sprintf("[%s/%s]", fingerprint, ap.Origin("'"))
+		}
+		out = append(out,
+			coreDescriptor{desc: fmt.Sprintf("%s%s%s/0/*%s", open, origin, acctXprv, close), internal: false},
+			coreDescriptor{desc: fmt.Sprintf("%s%s%s/1/*%s", open, origin, acctXprv, close), internal: true},
+		)
+	}
+	return out, nil
+}
+
+// deriveHardenedPath derives the hardened account-level key for an AccountPath.
+func deriveHardenedPath(masterKey *hdkeychain.ExtendedKey, ap orchwallet.AccountPath) (*hdkeychain.ExtendedKey, error) {
+	const h = hdkeychain.HardenedKeyStart
+	cur := masterKey
+	for _, idx := range []uint32{ap.Purpose, ap.Coin, ap.Account} {
+		next, err := cur.Derive(h + idx)
+		if err != nil {
+			return nil, fmt.Errorf("derive %d': %w", idx, err)
+		}
+		cur = next
+	}
+	return cur, nil
 }
 
 // GetBitcoinCoreWalletName returns the Bitcoin Core wallet name for a walletId
@@ -1288,29 +1318,10 @@ func (e *WalletEngine) createBitcoinCoreWalletForSync(
 		return fmt.Errorf("derive master key: %w", err)
 	}
 
-	// Derive to BIP84 account level: m/84'/0'/0'
-	purpose, err := masterKey.Derive(hdkeychain.HardenedKeyStart + 84)
+	descriptors, err := e.coreDescriptors(masterKey, wallet.AccountIndex, wallet.DerivationPath, false)
 	if err != nil {
-		return fmt.Errorf("derive purpose: %w", err)
+		return err
 	}
-
-	// Coin type
-	coinType := uint32(1)
-	if e.chainParams.Net == wire.MainNet {
-		coinType = 0
-	}
-	coin, err := purpose.Derive(hdkeychain.HardenedKeyStart + coinType)
-	if err != nil {
-		return fmt.Errorf("derive coin type: %w", err)
-	}
-
-	// Account: 0'
-	account, err := coin.Derive(hdkeychain.HardenedKeyStart + 0)
-	if err != nil {
-		return fmt.Errorf("derive account: %w", err)
-	}
-
-	accountXprv := account.String()
 
 	// Create wallet
 	_, err = bitcoindClient.CreateWallet(ctx, connect.NewRequest(&corepb.CreateWalletRequest{
@@ -1337,15 +1348,6 @@ func (e *WalletEngine) createBitcoinCoreWalletForSync(
 		} else {
 			return fmt.Errorf("create Bitcoin Core wallet: %w", err)
 		}
-	}
-
-	// Import descriptors
-	descriptors := []struct {
-		desc     string
-		internal bool
-	}{
-		{fmt.Sprintf("wpkh(%s/0/*)", accountXprv), false},
-		{fmt.Sprintf("wpkh(%s/1/*)", accountXprv), true},
 	}
 
 	var requests []*corepb.ImportDescriptorsRequest_Request

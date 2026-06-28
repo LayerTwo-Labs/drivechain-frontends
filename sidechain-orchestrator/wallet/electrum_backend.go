@@ -16,6 +16,7 @@ import (
 	"connectrpc.com/connect"
 	"github.com/btcsuite/btcd/btcec/v2"
 	"github.com/btcsuite/btcd/btcutil"
+	"github.com/btcsuite/btcd/btcutil/hdkeychain"
 	"github.com/btcsuite/btcd/btcutil/psbt"
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
@@ -1041,7 +1042,11 @@ func (p *ElectrumBackend) walletDescriptor(w *WalletData) (*Descriptor, error) {
 		return nil, errors.New("no chain params for this network; cannot derive electrum wallet")
 	}
 	if w.Master.SeedHex != "" {
-		acct, origin, err := accountKeyAndOrigin(w.Master.SeedHex, w.scriptKind(), p.network)
+		ap, err := accountPathFor(w, w.scriptKind(), p.network)
+		if err != nil {
+			return nil, err
+		}
+		acct, origin, err := accountKeyAndOrigin(w.Master.SeedHex, ap, p.network)
 		if err != nil {
 			return nil, err
 		}
@@ -1074,7 +1079,7 @@ func (p *ElectrumBackend) deriveAddr(d *Descriptor, change bool, index uint32) (
 		kind:         d.Kind,
 		change:       change,
 		index:        index,
-		hdPath:       descriptorHDPath(d.Kind, p.network, change, index),
+		hdPath:       descriptorHDPath(d, p.network, change, index),
 		derivations:  derivations,
 	}
 	if d.Kind.isMultisig() {
@@ -1100,13 +1105,19 @@ func (p *ElectrumBackend) deriveAddr(d *Descriptor, change bool, index uint32) (
 	return a, nil
 }
 
-// descriptorHDPath formats the BIP derivation path for display.
-func descriptorHDPath(kind ScriptKind, net *chaincfg.Params, change bool, index uint32) string {
-	purpose, ok := kind.Purpose()
-	if !ok {
-		return fmt.Sprintf("m/%d/%d", chainIndex(change), index)
+// descriptorHDPath formats the full BIP derivation path for display, using the
+// descriptor's resolved account origin so a custom account/path is reflected.
+func descriptorHDPath(d *Descriptor, net *chaincfg.Params, change bool, index uint32) string {
+	if len(d.Keys) == 1 {
+		if _, path, ok := parseOrigin(d.Keys[0].Origin); ok && len(path) == 3 {
+			const h = hdkeychain.HardenedKeyStart
+			return fmt.Sprintf("m/%d'/%d'/%d'/%d/%d", path[0]-h, path[1]-h, path[2]-h, chainIndex(change), index)
+		}
 	}
-	return fmt.Sprintf("m/%d'/%d'/0'/%d/%d", purpose, net.HDCoinType, chainIndex(change), index)
+	if purpose, ok := d.Kind.Purpose(); ok && net != nil {
+		return fmt.Sprintf("m/%d'/%d'/0'/%d/%d", purpose, net.HDCoinType, chainIndex(change), index)
+	}
+	return fmt.Sprintf("m/%d/%d", chainIndex(change), index)
 }
 
 func chainIndex(change bool) uint32 {

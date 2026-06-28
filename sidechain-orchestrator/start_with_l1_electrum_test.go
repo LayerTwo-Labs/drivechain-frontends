@@ -21,7 +21,7 @@ func newTestWalletService(t *testing.T) *wallet.Service {
 func TestStartWithL1SkipsBackendsForElectrum(t *testing.T) {
 	o := newTestOrchestrator(t)
 	svc := newTestWalletService(t)
-	_, err := svc.CreateElectrumWallet("Electrum", nil, nil, "", "", "")
+	_, err := svc.CreateElectrumWallet("Electrum", nil, nil, "", "", "", 0, "")
 	require.NoError(t, err)
 	require.False(t, svc.ActiveWalletNeedsBitcoinBackends())
 	o.WalletSvc = svc

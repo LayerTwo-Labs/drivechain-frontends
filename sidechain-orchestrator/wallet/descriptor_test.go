@@ -220,7 +220,7 @@ func TestDescriptorAcceptsMultisigSLIP132(t *testing.T) {
 func TestHotWalletOriginPath(t *testing.T) {
 	seedHex := hex.EncodeToString(MnemonicToSeed(testMnemonic, ""))
 	net := &chaincfg.MainNetParams
-	acct, origin, err := accountKeyAndOrigin(seedHex, ScriptNativeSegwit, net)
+	acct, origin, err := accountKeyAndOrigin(seedHex, AccountPath{Purpose: 84, Coin: 0, Account: 0}, net)
 	require.NoError(t, err)
 	assert.Regexp(t, `^[0-9a-f]{8}/84h/0h/0h$`, origin)
 

@@ -47,6 +47,8 @@ class _CreateAnotherWalletPageState extends State<CreateAnotherWalletPage> {
   final TextEditingController _xpubController = TextEditingController();
   final TextEditingController _mnemonicController = TextEditingController();
   final TextEditingController _entropyController = TextEditingController();
+  final TextEditingController _accountController = TextEditingController();
+  final TextEditingController _derivationPathController = TextEditingController();
 
   @override
   void dispose() {
@@ -55,6 +57,8 @@ class _CreateAnotherWalletPageState extends State<CreateAnotherWalletPage> {
     _xpubController.dispose();
     _mnemonicController.dispose();
     _entropyController.dispose();
+    _accountController.dispose();
+    _derivationPathController.dispose();
     super.dispose();
   }
 
@@ -117,17 +121,23 @@ class _CreateAnotherWalletPageState extends State<CreateAnotherWalletPage> {
           );
         }
       } else {
+        final account = int.tryParse(_accountController.text.trim()) ?? 0;
+        final derivationPath = _derivationPathController.text.trim();
         if (_provider == WalletProvider.electrum) {
           await walletProvider.createElectrumWallet(
             name: _walletName,
             gradient: _selectedGradient!,
             customMnemonic: mnemonic,
+            account: account,
+            derivationPath: derivationPath,
           );
         } else {
           await walletProvider.createBitcoinCoreWallet(
             name: _walletName,
             gradient: _selectedGradient!,
             customMnemonic: mnemonic,
+            account: account,
+            derivationPath: derivationPath,
           );
         }
       }
@@ -199,6 +209,11 @@ class _CreateAnotherWalletPageState extends State<CreateAnotherWalletPage> {
         ),
       _NameStep(
         nameController: _nameController,
+        accountController: _accountController,
+        derivationPathController: _derivationPathController,
+        // Derivation override only applies to seed-backed wallets; a watch-only
+        // descriptor import carries its own path.
+        showDerivation: _method != WalletSetupMethod.importDescriptor,
         onNext: () {
           setState(() => _walletName = _nameController.text.trim());
           _nextStep();
@@ -424,9 +439,18 @@ class _GenerateModeStep extends StatelessWidget {
 
 class _NameStep extends StatefulWidget {
   final TextEditingController nameController;
+  final TextEditingController accountController;
+  final TextEditingController derivationPathController;
+  final bool showDerivation;
   final VoidCallback onNext;
 
-  const _NameStep({required this.nameController, required this.onNext});
+  const _NameStep({
+    required this.nameController,
+    required this.accountController,
+    required this.derivationPathController,
+    required this.showDerivation,
+    required this.onNext,
+  });
 
   @override
   State<_NameStep> createState() => _NameStepState();
@@ -475,6 +499,36 @@ class _NameStepState extends State<_NameStep> {
                   child: SailText.secondary12(
                     'A wallet with that name already exists.',
                     color: SailTheme.of(context).colors.error,
+                  ),
+                ),
+              ],
+              if (widget.showDerivation) ...[
+                const SizedBox(height: 24),
+                SailCollapsible(
+                  trigger: Align(
+                    alignment: Alignment.centerLeft,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      child: SailText.secondary13('Advanced derivation (optional)'),
+                    ),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.only(top: 8),
+                    child: Column(
+                      children: [
+                        SailTextField(
+                          controller: widget.accountController,
+                          hintText: 'Account index (default 0)',
+                          textFieldType: TextFieldType.number,
+                        ),
+                        const SizedBox(height: 8),
+                        SailTextField(
+                          controller: widget.derivationPathController,
+                          hintText: "Full account path, e.g. m/84'/0'/0' (overrides account)",
+                          textFieldType: TextFieldType.text,
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ],
