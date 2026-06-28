@@ -235,6 +235,7 @@ export 'utils/change_tracker.dart';
 export 'utils/file_overrides.dart';
 export 'utils/file_utils.dart';
 export 'utils/diff_utils.dart';
+export 'utils/ur_psbt.dart';
 export 'viewmodels/bitcoin_config_editor_viewmodel.dart';
 export 'viewmodels/enforcer_config_editor_viewmodel.dart';
 export 'widgets/buttons/back_button.dart';

@@ -223,6 +223,59 @@ class OrchestratorWalletRPC {
     );
   }
 
+  /// Build an unsigned PSBT (base64) for an external/airgap signer. Mirrors the
+  /// inputs of [sendTransaction] but stops before signing/broadcast.
+  Future<String> createPsbt({
+    required String walletId,
+    required Map<String, int> destinations,
+    int? feeRateSatPerVbyte,
+    int? fixedFeeSats,
+    bool subtractFeeFromAmount = false,
+    String? opReturnMessage,
+    String? opReturnHex,
+    List<bwpb.UnspentOutput>? requiredInputs,
+  }) async {
+    final resolvedOpReturnHex =
+        opReturnHex ?? (opReturnMessage == null ? null : _bytesToHex(utf8.encode(opReturnMessage)));
+
+    final response = await _unaryClient.createPsbt(
+      wmpb.CreatePsbtRequest(
+        walletId: walletId,
+        destinations: destinations.map((key, value) => MapEntry(key, Int64(value))),
+        feeRateSatPerVbyte: Int64(feeRateSatPerVbyte ?? 0),
+        subtractFeeFromAmount: subtractFeeFromAmount,
+        opReturnHex: resolvedOpReturnHex ?? '',
+        fixedFeeSats: Int64(fixedFeeSats ?? 0),
+        requiredInputs: requiredInputs?.map(_mapRequiredInput).toList() ?? [],
+      ),
+    );
+    return response.psbtBase64;
+  }
+
+  /// Sign a PSBT with the active (hot) wallet, returning the updated PSBT.
+  Future<String> signPsbt({required String walletId, required String psbtBase64}) async {
+    final response = await _unaryClient.signPsbt(
+      wmpb.SignPsbtRequest(walletId: walletId, psbtBase64: psbtBase64),
+    );
+    return response.psbtBase64;
+  }
+
+  /// Merge multiple PSBTs (e.g. the original plus an externally signed copy).
+  Future<String> combinePsbt({required List<String> psbtsBase64}) async {
+    final response = await _unaryClient.combinePsbt(
+      wmpb.CombinePsbtRequest(psbtBase64: psbtsBase64),
+    );
+    return response.psbtBase64;
+  }
+
+  /// Finalize a fully-signed PSBT into a broadcastable raw transaction hex.
+  Future<String> finalizePsbt({required String psbtBase64}) async {
+    final response = await _unaryClient.finalizePsbt(
+      wmpb.FinalizePsbtRequest(psbtBase64: psbtBase64),
+    );
+    return response.rawTxHex;
+  }
+
   Future<wmpb.ListTransactionsResponse> listTransactions({
     required String walletId,
     int count = _defaultTransactionCount,
