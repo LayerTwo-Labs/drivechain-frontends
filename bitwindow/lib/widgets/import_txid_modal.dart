@@ -234,6 +234,12 @@ class ImportTxidModalViewModel extends BaseViewModel {
 
       multisigData['txid'] = txid;
 
+      final walletId = _walletReader.activeWalletId;
+      if (walletId == null) {
+        modalError = 'Cannot import multisig: no active wallet. Unlock or select a wallet, then try again.';
+        return;
+      }
+
       loadingStatus = 'Validating wallet keys...';
       notifyListeners();
 
@@ -265,10 +271,7 @@ class ImportTxidModalViewModel extends BaseViewModel {
         // ensureWatchWallet uses the standard descriptors), not the descriptor
         // baked into the OP_RETURN — a legacy group carries the old buggy
         // single-key-ranged descriptor, which would create the wrong wallet.
-        final walletId = _walletReader.activeWalletId;
-        if (walletId != null) {
-          await _multisigLounge.syncGroup(group: multisigGroupToProto(group), walletId: walletId);
-        }
+        await _multisigLounge.syncGroup(group: multisigGroupToProto(group), walletId: walletId);
 
         loadingStatus = 'Restoring transaction history...';
         notifyListeners();

@@ -261,25 +261,72 @@ func (p *CoreBackend) NextReceiveAddress(ctx context.Context, walletID string, k
 	if err != nil {
 		return "", err
 	}
-	addressType := "bech32"
-	if kind == ScriptTaproot {
-		addressType = "bech32m"
+	addressType, ok := coreAddressType(kind)
+	if !ok {
+		return "", fmt.Errorf("unsupported address kind %s for the Bitcoin Core backend", kind)
 	}
 	addrs, err := p.rpc.ListReceivedByAddress(ctx, name)
 	if err != nil {
 		return "", err
 	}
-	prefix := p.witnessPrefix(kind)
+	// Reuse an unused address only if it matches the requested kind, so a wallet
+	// holding several script kinds doesn't hand back a foreign-kind address.
 	for _, a := range addrs {
 		if a.Amount != 0 || len(a.TxIDs) != 0 {
 			continue
 		}
-		if prefix != "" && !strings.HasPrefix(a.Address, prefix) {
+		if !p.addressMatchesKind(a.Address, kind) {
 			continue
 		}
 		return a.Address, nil
 	}
 	return p.rpc.GetNewAddress(ctx, name, "", addressType)
+}
+
+// coreAddressType maps a script kind to Bitcoin Core's getnewaddress
+// address_type argument.
+func coreAddressType(kind ScriptKind) (string, bool) {
+	switch kind {
+	case ScriptLegacy:
+		return "legacy", true
+	case ScriptNestedSegwit:
+		return "p2sh-segwit", true
+	case ScriptNativeSegwit:
+		return "bech32", true
+	case ScriptTaproot:
+		return "bech32m", true
+	default:
+		return "", false
+	}
+}
+
+// addressMatchesKind reports whether a decoded address is the concrete type the
+// given script kind produces, so candidate filtering works for base58 (P2PKH,
+// P2SH-P2WPKH) as well as bech32/bech32m kinds.
+func (p *CoreBackend) addressMatchesKind(address string, kind ScriptKind) bool {
+	if p.network == nil {
+		return false
+	}
+	addr, err := btcutil.DecodeAddress(address, p.network)
+	if err != nil {
+		return false
+	}
+	switch kind {
+	case ScriptLegacy:
+		_, ok := addr.(*btcutil.AddressPubKeyHash)
+		return ok
+	case ScriptNestedSegwit:
+		_, ok := addr.(*btcutil.AddressScriptHash)
+		return ok
+	case ScriptNativeSegwit:
+		_, ok := addr.(*btcutil.AddressWitnessPubKeyHash)
+		return ok
+	case ScriptTaproot:
+		_, ok := addr.(*btcutil.AddressTaproot)
+		return ok
+	default:
+		return false
+	}
 }
 
 func (p *CoreBackend) NextChangeAddress(ctx context.Context, walletID string) (string, error) {
@@ -879,10 +926,6 @@ func (p *CoreBackend) createAndImport(ctx context.Context, walletName string, di
 	return nil
 }
 
-// witnessPrefix returns the HRP-with-witness-version prefix a receive address
-// of the given kind must start with: "...1q" for P2WPKH (witness v0), "...1p"
-// for P2TR (witness v1). Discriminates segwit from taproot so the unused-address
-// scan never returns the wrong type for the requested kind.
 // walletScriptKind resolves the script kind a Core wallet receives to. A wallet
 // with an explicit derivation path imports only that purpose's descriptor, so
 // the kind follows the path; otherwise the default wallet (wpkh + tr both
@@ -900,17 +943,6 @@ func (p *CoreBackend) walletScriptKind(walletID string) ScriptKind {
 		return kind
 	}
 	return ScriptNativeSegwit
-}
-
-func (p *CoreBackend) witnessPrefix(kind ScriptKind) string {
-	if p.network == nil {
-		return ""
-	}
-	versionChar := "q"
-	if kind == ScriptTaproot {
-		versionChar = "p"
-	}
-	return p.network.Bech32HRPSegwit + "1" + versionChar
 }
 
 // coinType returns the BIP44 coin type for the network.
