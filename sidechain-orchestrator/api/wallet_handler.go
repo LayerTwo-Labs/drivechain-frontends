@@ -1432,6 +1432,57 @@ func (h *WalletHandler) SetElectrumServer(ctx context.Context, req *connect.Requ
 	}), nil
 }
 
+// ============================================================================
+// Tor routing
+// ============================================================================
+
+func (h *WalletHandler) GetTorConfig(ctx context.Context, req *connect.Request[pb.GetTorConfigRequest]) (*connect.Response[pb.GetTorConfigResponse], error) {
+	if h.engine == nil {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("wallet engine not configured"))
+	}
+	enabled, proxyAddr, err := h.engine.TorConfig()
+	if err != nil {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, err)
+	}
+	return connect.NewResponse(&pb.GetTorConfigResponse{
+		Enabled:      enabled,
+		Proxy:        proxyAddr,
+		DefaultProxy: orchestrator.DefaultTorProxy,
+	}), nil
+}
+
+func (h *WalletHandler) SetTorConfig(ctx context.Context, req *connect.Request[pb.SetTorConfigRequest]) (*connect.Response[pb.SetTorConfigResponse], error) {
+	if h.engine == nil {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("wallet engine not configured"))
+	}
+
+	proxyAddr := req.Msg.Proxy
+	if req.Msg.Enabled && proxyAddr == "" {
+		proxyAddr = orchestrator.DefaultTorProxy
+	}
+
+	tip, err := h.engine.SetTorConfig(ctx, req.Msg.Enabled, proxyAddr)
+	if err != nil {
+		return nil, err
+	}
+
+	if h.orch != nil {
+		persistProxy := proxyAddr
+		if !req.Msg.Enabled {
+			persistProxy = ""
+		}
+		if perr := h.orch.PersistTorConfig(req.Msg.Enabled, persistProxy); perr != nil {
+			return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("tor routing switched but persisting it failed: %w", perr))
+		}
+	}
+
+	return connect.NewResponse(&pb.SetTorConfigResponse{
+		Enabled:   req.Msg.Enabled,
+		Proxy:     proxyAddr,
+		TipHeight: int64(tip),
+	}), nil
+}
+
 func coreVariantDisplayName(id string) string {
 	switch id {
 	case "core":

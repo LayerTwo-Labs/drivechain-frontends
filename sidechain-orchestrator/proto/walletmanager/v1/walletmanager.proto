@@ -73,6 +73,10 @@ service WalletManagerService {
   rpc GetElectrumServer(GetElectrumServerRequest) returns (GetElectrumServerResponse);
   rpc SetElectrumServer(SetElectrumServerRequest) returns (SetElectrumServerResponse);
 
+  // Tor SOCKS5 proxy routing for the electrum wallet's chain connections.
+  rpc GetTorConfig(GetTorConfigRequest) returns (GetTorConfigResponse);
+  rpc SetTorConfig(SetTorConfigRequest) returns (SetTorConfigResponse);
+
   // Stream wallet state changes. Sends the full wallet state immediately,
   // then again whenever wallets or balance change.
   rpc WatchWalletData(google.protobuf.Empty) returns (stream WatchWalletDataResponse);
@@ -732,6 +736,32 @@ message SetElectrumServerResponse {
   string url = 1;
   // Chain tip height fetched from the new server, confirming connectivity.
   int64 tip_height = 2;
+}
+
+message GetTorConfigRequest {}
+
+message GetTorConfigResponse {
+  // True when chain connections are routed through the SOCKS5 proxy.
+  bool enabled = 1;
+  // SOCKS5 proxy address (host:port) used when enabled.
+  string proxy = 2;
+  // Default proxy address suggested when none is set (Tor: 127.0.0.1:9050).
+  string default_proxy = 3;
+}
+
+message SetTorConfigRequest {
+  // Enable or disable routing chain connections through the SOCKS5 proxy.
+  bool enabled = 1;
+  // SOCKS5 proxy address (host:port). Required when enabled; empty uses the default.
+  string proxy = 2;
+}
+
+message SetTorConfigResponse {
+  // Config now in effect.
+  bool enabled = 1;
+  string proxy = 2;
+  // Chain tip height fetched through the proxy, confirming connectivity.
+  int64 tip_height = 3;
 }
 
 // ============================================================================

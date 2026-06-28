@@ -8,8 +8,10 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"net"
 	neturl "net/url"
 	"sort"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -47,6 +49,8 @@ type SwappableEsplora interface {
 	Esplora
 	BaseURLs() []string
 	SetBaseURLs([]string)
+	ProxyConfig() (bool, string)
+	SetProxy(enabled bool, proxyAddr string) error
 }
 
 type ElectrumBackend struct {
@@ -1143,6 +1147,74 @@ func (p *ElectrumBackend) SetServerURL(ctx context.Context, url string) (int, er
 	p.mu.Unlock()
 
 	return tip, nil
+}
+
+// TorConfig reports whether the wallet routes chain connections through a SOCKS5
+// proxy and the proxy address, or (false, "") when the backend can't proxy.
+func (p *ElectrumBackend) TorConfig() (bool, string) {
+	sw, ok := p.client.(SwappableEsplora)
+	if !ok {
+		return false, ""
+	}
+	return sw.ProxyConfig()
+}
+
+// SetTorConfig routes (or stops routing) the wallet's chain connections through a
+// SOCKS5 proxy. When enabling, proxyAddr must be a valid host:port and is probed
+// with a tip-height request before committing; on any failure the previous proxy
+// config is restored and an error returned, so the wallet is never left
+// disconnected. On success the new tip height is returned and cached scans are
+// dropped (the new route may reach a different server view).
+func (p *ElectrumBackend) SetTorConfig(ctx context.Context, enabled bool, proxyAddr string) (int, error) {
+	sw, ok := p.client.(SwappableEsplora)
+	if !ok {
+		return 0, connect.NewError(connect.CodeUnimplemented, errors.New("this wallet's backend does not support tor routing"))
+	}
+	if enabled {
+		normalized, err := normalizeProxyAddr(proxyAddr)
+		if err != nil {
+			return 0, connect.NewError(connect.CodeInvalidArgument, err)
+		}
+		proxyAddr = normalized
+	}
+
+	prevEnabled, prevProxy := sw.ProxyConfig()
+	if err := sw.SetProxy(enabled, proxyAddr); err != nil {
+		return 0, connect.NewError(connect.CodeInvalidArgument, err)
+	}
+
+	tip, err := sw.TipHeight(ctx)
+	if err != nil {
+		_ = sw.SetProxy(prevEnabled, prevProxy)
+		return 0, connect.NewError(connect.CodeUnavailable, fmt.Errorf("proxy %s unreachable, kept previous tor config: %w", proxyAddr, err))
+	}
+
+	p.mu.Lock()
+	p.warmScan = make(map[string]*electrumScan)
+	p.tipAt = make(map[string]int)
+	p.warm = make(map[string]bool)
+	p.mu.Unlock()
+
+	return tip, nil
+}
+
+// normalizeProxyAddr validates a SOCKS5 proxy address of the form host:port.
+func normalizeProxyAddr(raw string) (string, error) {
+	trimmed := strings.TrimSpace(raw)
+	if trimmed == "" {
+		return "", errors.New("proxy address is required when tor is enabled")
+	}
+	host, port, err := net.SplitHostPort(trimmed)
+	if err != nil {
+		return "", fmt.Errorf("proxy address must be host:port: %w", err)
+	}
+	if host == "" {
+		return "", errors.New("proxy address must include a host")
+	}
+	if n, err := strconv.Atoi(port); err != nil || n < 1 || n > 65535 {
+		return "", fmt.Errorf("proxy port must be 1-65535, got %q", port)
+	}
+	return trimmed, nil
 }
 
 // normalizeEsploraURL validates a user-supplied Esplora endpoint and returns it

@@ -420,6 +420,17 @@ class OrchestratorWalletRPC {
     return _unaryClient.setElectrumServer(wmpb.SetElectrumServerRequest(url: url));
   }
 
+  Future<wmpb.GetTorConfigResponse> getTorConfig() {
+    return _unaryClient.getTorConfig(wmpb.GetTorConfigRequest());
+  }
+
+  /// Route (or stop routing) the electrum wallet's chain connections through a
+  /// SOCKS5 proxy. When enabling, an empty proxy uses the network default.
+  /// Validates connectivity server-side and keeps the previous config on failure.
+  Future<wmpb.SetTorConfigResponse> setTorConfig(bool enabled, String proxy) {
+    return _unaryClient.setTorConfig(wmpb.SetTorConfigRequest(enabled: enabled, proxy: proxy));
+  }
+
   String _bytesToHex(List<int> bytes) {
     final buffer = StringBuffer();
     for (final byte in bytes) {

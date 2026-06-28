@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"strconv"
 	"strings"
@@ -14,6 +15,7 @@ import (
 
 	"github.com/rs/zerolog"
 	"github.com/samber/lo"
+	"golang.org/x/net/proxy"
 )
 
 // Esplora is the chain-data surface an electrum wallet needs. ElectrumBackend
@@ -41,8 +43,15 @@ type EsploraClient struct {
 	// so SetBaseURLs can swap the endpoint at runtime without racing in-flight do().
 	urlMu    sync.RWMutex
 	baseURLs []string
-	client   *http.Client
 	log      zerolog.Logger
+
+	// client carries the active transport. SetProxy swaps it (direct vs. a
+	// SOCKS5-dialing transport) under clientMu; do() snapshots it so an in-flight
+	// request finishes against the transport it started on.
+	clientMu    sync.RWMutex
+	client      *http.Client
+	torEnabled  bool
+	torProxyURL string
 
 	// Pacing keeps a gap-limit scan under public rate limits (mempool.space
 	// 429s a fast sequential burst). nextReq is the earliest the next request
@@ -84,6 +93,69 @@ func NewEsploraClient(baseURLs []string, log zerolog.Logger) *EsploraClient {
 		log:         log.With().Str("component", "esplora").Logger(),
 		minInterval: esploraMinInterval,
 	}
+}
+
+// directDialer is the baseline TCP dialer used when Tor routing is off, and the
+// forward dialer the SOCKS5 dialer hands off to.
+var directDialer = &net.Dialer{Timeout: 30 * time.Second}
+
+// newHTTPClient builds the wallet's HTTP client. With torProxy set, every
+// connection (including .onion hostnames, which resolve only through the proxy)
+// dials via the SOCKS5 proxy; otherwise it dials directly.
+func newHTTPClient(torProxy string) (*http.Client, error) {
+	if torProxy == "" {
+		return &http.Client{Timeout: 30 * time.Second}, nil
+	}
+	dialer, err := proxy.SOCKS5("tcp", torProxy, nil, directDialer)
+	if err != nil {
+		return nil, fmt.Errorf("build socks5 dialer for %q: %w", torProxy, err)
+	}
+	ctxDialer, ok := dialer.(proxy.ContextDialer)
+	if !ok {
+		return nil, fmt.Errorf("socks5 dialer for %q is not context-aware", torProxy)
+	}
+	return &http.Client{
+		Timeout:   30 * time.Second,
+		Transport: &http.Transport{DialContext: ctxDialer.DialContext},
+	}, nil
+}
+
+// ProxyConfig reports whether Tor routing is enabled and the proxy address in use.
+func (c *EsploraClient) ProxyConfig() (bool, string) {
+	c.clientMu.RLock()
+	defer c.clientMu.RUnlock()
+	return c.torEnabled, c.torProxyURL
+}
+
+// SetProxy swaps the HTTP transport to route through (or stop routing through) a
+// SOCKS5 proxy. When enabled is false the proxy argument is ignored and dialing
+// reverts to direct. In-flight requests finish on their captured client; new
+// requests use the new one.
+func (c *EsploraClient) SetProxy(enabled bool, proxyAddr string) error {
+	addr := ""
+	if enabled {
+		addr = proxyAddr
+	}
+	client, err := newHTTPClient(addr)
+	if err != nil {
+		return err
+	}
+	c.clientMu.Lock()
+	c.client = client
+	c.torEnabled = enabled
+	c.torProxyURL = proxyAddr
+	c.clientMu.Unlock()
+
+	c.tipMu.Lock()
+	c.tipFetched = time.Time{}
+	c.tipMu.Unlock()
+	return nil
+}
+
+func (c *EsploraClient) httpClient() *http.Client {
+	c.clientMu.RLock()
+	defer c.clientMu.RUnlock()
+	return c.client
 }
 
 // BaseURLs returns the current provider list, primary first.
@@ -206,6 +278,7 @@ func (c *EsploraClient) do(ctx context.Context, method, path string, reqBody io.
 	if len(roots) == 0 {
 		return nil, fmt.Errorf("esplora %s %s: no server configured", method, path)
 	}
+	client := c.httpClient()
 
 	var lastErr error
 	for attempt := 0; attempt < esploraMaxAttempts; attempt++ {
@@ -230,7 +303,7 @@ func (c *EsploraClient) do(ctx context.Context, method, path string, reqBody io.
 		req.Header.Set("User-Agent", esploraUserAgent)
 		c.log.Info().Str("method", method).Str("path", path).Str("base", base).Int("attempt", attempt).Msg("esplora request")
 
-		resp, err := c.client.Do(req)
+		resp, err := client.Do(req)
 		if err != nil {
 			lastErr = fmt.Errorf("esplora %s %s: %w", method, path, err)
 			if !backoff(ctx, attempt, 0) {

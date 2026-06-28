@@ -229,6 +229,7 @@ Future<(Directory, File, Logger)> init(String arguments) async {
 
   GetIt.I.registerLazySingleton<CoreVariantProvider>(() => CoreVariantProvider());
   GetIt.I.registerLazySingleton<ElectrumServerProvider>(() => ElectrumServerProvider());
+  GetIt.I.registerLazySingleton<TorConfigProvider>(() => TorConfigProvider());
 
   final walletWriter = WalletWriterProvider(bitwindowAppDir: applicationDir);
   GetIt.I.registerLazySingleton<WalletWriterProvider>(() => walletWriter);

@@ -2031,6 +2031,24 @@ func (o *Orchestrator) PersistElectrumServerURL(url string) error {
 	return err
 }
 
+// TorConfigOverride returns the persisted Tor routing preference (enabled,
+// proxy address), or (false, "") when settings are unavailable.
+func (o *Orchestrator) TorConfigOverride() (bool, string) {
+	if o.Settings == nil {
+		return false, ""
+	}
+	return o.Settings.TorConfig()
+}
+
+// PersistTorConfig stores the Tor routing preference so it survives restart.
+func (o *Orchestrator) PersistTorConfig(enabled bool, proxy string) error {
+	if o.Settings == nil {
+		return fmt.Errorf("orchestrator settings not initialised")
+	}
+	_, _, err := o.Settings.SetTorConfig(enabled, proxy)
+	return err
+}
+
 // UseTestSidechains reports the persisted test-sidechains preference.
 func (o *Orchestrator) UseTestSidechains() bool {
 	if o.Settings == nil {

@@ -151,6 +151,7 @@ export 'pages/datadir_setup_page.dart';
 export 'providers/bitcoin_conf_provider.dart';
 export 'providers/core_variant_provider.dart';
 export 'providers/electrum_server_provider.dart';
+export 'providers/tor_config_provider.dart';
 export 'providers/enforcer_conf_provider.dart';
 export 'providers/balance_provider.dart';
 export 'providers/formatter_provider.dart';

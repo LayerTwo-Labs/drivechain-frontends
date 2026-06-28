@@ -6790,6 +6790,265 @@ class SetElectrumServerResponse extends $pb.GeneratedMessage {
   void clearTipHeight() => clearField(2);
 }
 
+class GetTorConfigRequest extends $pb.GeneratedMessage {
+  factory GetTorConfigRequest() => create();
+  GetTorConfigRequest._() : super();
+  factory GetTorConfigRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory GetTorConfigRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'GetTorConfigRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'walletmanager.v1'), createEmptyInstance: create)
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  GetTorConfigRequest clone() => GetTorConfigRequest()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  GetTorConfigRequest copyWith(void Function(GetTorConfigRequest) updates) => super.copyWith((message) => updates(message as GetTorConfigRequest)) as GetTorConfigRequest;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static GetTorConfigRequest create() => GetTorConfigRequest._();
+  GetTorConfigRequest createEmptyInstance() => create();
+  static $pb.PbList<GetTorConfigRequest> createRepeated() => $pb.PbList<GetTorConfigRequest>();
+  @$core.pragma('dart2js:noInline')
+  static GetTorConfigRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<GetTorConfigRequest>(create);
+  static GetTorConfigRequest? _defaultInstance;
+}
+
+class GetTorConfigResponse extends $pb.GeneratedMessage {
+  factory GetTorConfigResponse({
+    $core.bool? enabled,
+    $core.String? proxy,
+    $core.String? defaultProxy,
+  }) {
+    final $result = create();
+    if (enabled != null) {
+      $result.enabled = enabled;
+    }
+    if (proxy != null) {
+      $result.proxy = proxy;
+    }
+    if (defaultProxy != null) {
+      $result.defaultProxy = defaultProxy;
+    }
+    return $result;
+  }
+  GetTorConfigResponse._() : super();
+  factory GetTorConfigResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory GetTorConfigResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'GetTorConfigResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'walletmanager.v1'), createEmptyInstance: create)
+    ..aOB(1, _omitFieldNames ? '' : 'enabled')
+    ..aOS(2, _omitFieldNames ? '' : 'proxy')
+    ..aOS(3, _omitFieldNames ? '' : 'defaultProxy')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  GetTorConfigResponse clone() => GetTorConfigResponse()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  GetTorConfigResponse copyWith(void Function(GetTorConfigResponse) updates) => super.copyWith((message) => updates(message as GetTorConfigResponse)) as GetTorConfigResponse;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static GetTorConfigResponse create() => GetTorConfigResponse._();
+  GetTorConfigResponse createEmptyInstance() => create();
+  static $pb.PbList<GetTorConfigResponse> createRepeated() => $pb.PbList<GetTorConfigResponse>();
+  @$core.pragma('dart2js:noInline')
+  static GetTorConfigResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<GetTorConfigResponse>(create);
+  static GetTorConfigResponse? _defaultInstance;
+
+  /// True when chain connections are routed through the SOCKS5 proxy.
+  @$pb.TagNumber(1)
+  $core.bool get enabled => $_getBF(0);
+  @$pb.TagNumber(1)
+  set enabled($core.bool v) { $_setBool(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasEnabled() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearEnabled() => clearField(1);
+
+  /// SOCKS5 proxy address (host:port) used when enabled.
+  @$pb.TagNumber(2)
+  $core.String get proxy => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set proxy($core.String v) { $_setString(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasProxy() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearProxy() => clearField(2);
+
+  /// Default proxy address suggested when none is set (Tor: 127.0.0.1:9050).
+  @$pb.TagNumber(3)
+  $core.String get defaultProxy => $_getSZ(2);
+  @$pb.TagNumber(3)
+  set defaultProxy($core.String v) { $_setString(2, v); }
+  @$pb.TagNumber(3)
+  $core.bool hasDefaultProxy() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearDefaultProxy() => clearField(3);
+}
+
+class SetTorConfigRequest extends $pb.GeneratedMessage {
+  factory SetTorConfigRequest({
+    $core.bool? enabled,
+    $core.String? proxy,
+  }) {
+    final $result = create();
+    if (enabled != null) {
+      $result.enabled = enabled;
+    }
+    if (proxy != null) {
+      $result.proxy = proxy;
+    }
+    return $result;
+  }
+  SetTorConfigRequest._() : super();
+  factory SetTorConfigRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory SetTorConfigRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'SetTorConfigRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'walletmanager.v1'), createEmptyInstance: create)
+    ..aOB(1, _omitFieldNames ? '' : 'enabled')
+    ..aOS(2, _omitFieldNames ? '' : 'proxy')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  SetTorConfigRequest clone() => SetTorConfigRequest()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  SetTorConfigRequest copyWith(void Function(SetTorConfigRequest) updates) => super.copyWith((message) => updates(message as SetTorConfigRequest)) as SetTorConfigRequest;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static SetTorConfigRequest create() => SetTorConfigRequest._();
+  SetTorConfigRequest createEmptyInstance() => create();
+  static $pb.PbList<SetTorConfigRequest> createRepeated() => $pb.PbList<SetTorConfigRequest>();
+  @$core.pragma('dart2js:noInline')
+  static SetTorConfigRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<SetTorConfigRequest>(create);
+  static SetTorConfigRequest? _defaultInstance;
+
+  /// Enable or disable routing chain connections through the SOCKS5 proxy.
+  @$pb.TagNumber(1)
+  $core.bool get enabled => $_getBF(0);
+  @$pb.TagNumber(1)
+  set enabled($core.bool v) { $_setBool(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasEnabled() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearEnabled() => clearField(1);
+
+  /// SOCKS5 proxy address (host:port). Required when enabled; empty uses the default.
+  @$pb.TagNumber(2)
+  $core.String get proxy => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set proxy($core.String v) { $_setString(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasProxy() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearProxy() => clearField(2);
+}
+
+class SetTorConfigResponse extends $pb.GeneratedMessage {
+  factory SetTorConfigResponse({
+    $core.bool? enabled,
+    $core.String? proxy,
+    $fixnum.Int64? tipHeight,
+  }) {
+    final $result = create();
+    if (enabled != null) {
+      $result.enabled = enabled;
+    }
+    if (proxy != null) {
+      $result.proxy = proxy;
+    }
+    if (tipHeight != null) {
+      $result.tipHeight = tipHeight;
+    }
+    return $result;
+  }
+  SetTorConfigResponse._() : super();
+  factory SetTorConfigResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory SetTorConfigResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'SetTorConfigResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'walletmanager.v1'), createEmptyInstance: create)
+    ..aOB(1, _omitFieldNames ? '' : 'enabled')
+    ..aOS(2, _omitFieldNames ? '' : 'proxy')
+    ..aInt64(3, _omitFieldNames ? '' : 'tipHeight')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  SetTorConfigResponse clone() => SetTorConfigResponse()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  SetTorConfigResponse copyWith(void Function(SetTorConfigResponse) updates) => super.copyWith((message) => updates(message as SetTorConfigResponse)) as SetTorConfigResponse;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static SetTorConfigResponse create() => SetTorConfigResponse._();
+  SetTorConfigResponse createEmptyInstance() => create();
+  static $pb.PbList<SetTorConfigResponse> createRepeated() => $pb.PbList<SetTorConfigResponse>();
+  @$core.pragma('dart2js:noInline')
+  static SetTorConfigResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<SetTorConfigResponse>(create);
+  static SetTorConfigResponse? _defaultInstance;
+
+  /// Config now in effect.
+  @$pb.TagNumber(1)
+  $core.bool get enabled => $_getBF(0);
+  @$pb.TagNumber(1)
+  set enabled($core.bool v) { $_setBool(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasEnabled() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearEnabled() => clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.String get proxy => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set proxy($core.String v) { $_setString(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasProxy() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearProxy() => clearField(2);
+
+  /// Chain tip height fetched through the proxy, confirming connectivity.
+  @$pb.TagNumber(3)
+  $fixnum.Int64 get tipHeight => $_getI64(2);
+  @$pb.TagNumber(3)
+  set tipHeight($fixnum.Int64 v) { $_setInt64(2, v); }
+  @$pb.TagNumber(3)
+  $core.bool hasTipHeight() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearTipHeight() => clearField(3);
+}
+
 class WatchWalletDataResponse extends $pb.GeneratedMessage {
   factory WatchWalletDataResponse({
     $core.bool? hasWallet,
@@ -7083,6 +7342,12 @@ class WalletManagerServiceApi {
   ;
   $async.Future<SetElectrumServerResponse> setElectrumServer($pb.ClientContext? ctx, SetElectrumServerRequest request) =>
     _client.invoke<SetElectrumServerResponse>(ctx, 'WalletManagerService', 'SetElectrumServer', request, SetElectrumServerResponse())
+  ;
+  $async.Future<GetTorConfigResponse> getTorConfig($pb.ClientContext? ctx, GetTorConfigRequest request) =>
+    _client.invoke<GetTorConfigResponse>(ctx, 'WalletManagerService', 'GetTorConfig', request, GetTorConfigResponse())
+  ;
+  $async.Future<SetTorConfigResponse> setTorConfig($pb.ClientContext? ctx, SetTorConfigRequest request) =>
+    _client.invoke<SetTorConfigResponse>(ctx, 'WalletManagerService', 'SetTorConfig', request, SetTorConfigResponse())
   ;
   $async.Future<WatchWalletDataResponse> watchWalletData($pb.ClientContext? ctx, $13.Empty request) =>
     _client.invoke<WatchWalletDataResponse>(ctx, 'WalletManagerService', 'WatchWalletData', request, WatchWalletDataResponse())

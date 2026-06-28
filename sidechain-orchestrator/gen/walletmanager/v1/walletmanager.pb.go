@@ -5770,6 +5770,221 @@ func (x *SetElectrumServerResponse) GetTipHeight() int64 {
 	return 0
 }
 
+type GetTorConfigRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetTorConfigRequest) Reset() {
+	*x = GetTorConfigRequest{}
+	mi := &file_walletmanager_v1_walletmanager_proto_msgTypes[98]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetTorConfigRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetTorConfigRequest) ProtoMessage() {}
+
+func (x *GetTorConfigRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_walletmanager_v1_walletmanager_proto_msgTypes[98]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetTorConfigRequest.ProtoReflect.Descriptor instead.
+func (*GetTorConfigRequest) Descriptor() ([]byte, []int) {
+	return file_walletmanager_v1_walletmanager_proto_rawDescGZIP(), []int{98}
+}
+
+type GetTorConfigResponse struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// True when chain connections are routed through the SOCKS5 proxy.
+	Enabled bool `protobuf:"varint,1,opt,name=enabled,proto3" json:"enabled,omitempty"`
+	// SOCKS5 proxy address (host:port) used when enabled.
+	Proxy string `protobuf:"bytes,2,opt,name=proxy,proto3" json:"proxy,omitempty"`
+	// Default proxy address suggested when none is set (Tor: 127.0.0.1:9050).
+	DefaultProxy  string `protobuf:"bytes,3,opt,name=default_proxy,json=defaultProxy,proto3" json:"default_proxy,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetTorConfigResponse) Reset() {
+	*x = GetTorConfigResponse{}
+	mi := &file_walletmanager_v1_walletmanager_proto_msgTypes[99]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetTorConfigResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetTorConfigResponse) ProtoMessage() {}
+
+func (x *GetTorConfigResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_walletmanager_v1_walletmanager_proto_msgTypes[99]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetTorConfigResponse.ProtoReflect.Descriptor instead.
+func (*GetTorConfigResponse) Descriptor() ([]byte, []int) {
+	return file_walletmanager_v1_walletmanager_proto_rawDescGZIP(), []int{99}
+}
+
+func (x *GetTorConfigResponse) GetEnabled() bool {
+	if x != nil {
+		return x.Enabled
+	}
+	return false
+}
+
+func (x *GetTorConfigResponse) GetProxy() string {
+	if x != nil {
+		return x.Proxy
+	}
+	return ""
+}
+
+func (x *GetTorConfigResponse) GetDefaultProxy() string {
+	if x != nil {
+		return x.DefaultProxy
+	}
+	return ""
+}
+
+type SetTorConfigRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Enable or disable routing chain connections through the SOCKS5 proxy.
+	Enabled bool `protobuf:"varint,1,opt,name=enabled,proto3" json:"enabled,omitempty"`
+	// SOCKS5 proxy address (host:port). Required when enabled; empty uses the default.
+	Proxy         string `protobuf:"bytes,2,opt,name=proxy,proto3" json:"proxy,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SetTorConfigRequest) Reset() {
+	*x = SetTorConfigRequest{}
+	mi := &file_walletmanager_v1_walletmanager_proto_msgTypes[100]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SetTorConfigRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SetTorConfigRequest) ProtoMessage() {}
+
+func (x *SetTorConfigRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_walletmanager_v1_walletmanager_proto_msgTypes[100]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SetTorConfigRequest.ProtoReflect.Descriptor instead.
+func (*SetTorConfigRequest) Descriptor() ([]byte, []int) {
+	return file_walletmanager_v1_walletmanager_proto_rawDescGZIP(), []int{100}
+}
+
+func (x *SetTorConfigRequest) GetEnabled() bool {
+	if x != nil {
+		return x.Enabled
+	}
+	return false
+}
+
+func (x *SetTorConfigRequest) GetProxy() string {
+	if x != nil {
+		return x.Proxy
+	}
+	return ""
+}
+
+type SetTorConfigResponse struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Config now in effect.
+	Enabled bool   `protobuf:"varint,1,opt,name=enabled,proto3" json:"enabled,omitempty"`
+	Proxy   string `protobuf:"bytes,2,opt,name=proxy,proto3" json:"proxy,omitempty"`
+	// Chain tip height fetched through the proxy, confirming connectivity.
+	TipHeight     int64 `protobuf:"varint,3,opt,name=tip_height,json=tipHeight,proto3" json:"tip_height,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SetTorConfigResponse) Reset() {
+	*x = SetTorConfigResponse{}
+	mi := &file_walletmanager_v1_walletmanager_proto_msgTypes[101]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SetTorConfigResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SetTorConfigResponse) ProtoMessage() {}
+
+func (x *SetTorConfigResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_walletmanager_v1_walletmanager_proto_msgTypes[101]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SetTorConfigResponse.ProtoReflect.Descriptor instead.
+func (*SetTorConfigResponse) Descriptor() ([]byte, []int) {
+	return file_walletmanager_v1_walletmanager_proto_rawDescGZIP(), []int{101}
+}
+
+func (x *SetTorConfigResponse) GetEnabled() bool {
+	if x != nil {
+		return x.Enabled
+	}
+	return false
+}
+
+func (x *SetTorConfigResponse) GetProxy() string {
+	if x != nil {
+		return x.Proxy
+	}
+	return ""
+}
+
+func (x *SetTorConfigResponse) GetTipHeight() int64 {
+	if x != nil {
+		return x.TipHeight
+	}
+	return 0
+}
+
 type WatchWalletDataResponse struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Wallet status
@@ -5795,7 +6010,7 @@ type WatchWalletDataResponse struct {
 
 func (x *WatchWalletDataResponse) Reset() {
 	*x = WatchWalletDataResponse{}
-	mi := &file_walletmanager_v1_walletmanager_proto_msgTypes[98]
+	mi := &file_walletmanager_v1_walletmanager_proto_msgTypes[102]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5807,7 +6022,7 @@ func (x *WatchWalletDataResponse) String() string {
 func (*WatchWalletDataResponse) ProtoMessage() {}
 
 func (x *WatchWalletDataResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_walletmanager_v1_walletmanager_proto_msgTypes[98]
+	mi := &file_walletmanager_v1_walletmanager_proto_msgTypes[102]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5820,7 +6035,7 @@ func (x *WatchWalletDataResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use WatchWalletDataResponse.ProtoReflect.Descriptor instead.
 func (*WatchWalletDataResponse) Descriptor() ([]byte, []int) {
-	return file_walletmanager_v1_walletmanager_proto_rawDescGZIP(), []int{98}
+	return file_walletmanager_v1_walletmanager_proto_rawDescGZIP(), []int{102}
 }
 
 func (x *WatchWalletDataResponse) GetHasWallet() bool {
@@ -6292,7 +6507,20 @@ const file_walletmanager_v1_walletmanager_proto_rawDesc = "" +
 	"\x19SetElectrumServerResponse\x12\x10\n" +
 	"\x03url\x18\x01 \x01(\tR\x03url\x12\x1d\n" +
 	"\n" +
-	"tip_height\x18\x02 \x01(\x03R\ttipHeight\"\xda\x02\n" +
+	"tip_height\x18\x02 \x01(\x03R\ttipHeight\"\x15\n" +
+	"\x13GetTorConfigRequest\"k\n" +
+	"\x14GetTorConfigResponse\x12\x18\n" +
+	"\aenabled\x18\x01 \x01(\bR\aenabled\x12\x14\n" +
+	"\x05proxy\x18\x02 \x01(\tR\x05proxy\x12#\n" +
+	"\rdefault_proxy\x18\x03 \x01(\tR\fdefaultProxy\"E\n" +
+	"\x13SetTorConfigRequest\x12\x18\n" +
+	"\aenabled\x18\x01 \x01(\bR\aenabled\x12\x14\n" +
+	"\x05proxy\x18\x02 \x01(\tR\x05proxy\"e\n" +
+	"\x14SetTorConfigResponse\x12\x18\n" +
+	"\aenabled\x18\x01 \x01(\bR\aenabled\x12\x14\n" +
+	"\x05proxy\x18\x02 \x01(\tR\x05proxy\x12\x1d\n" +
+	"\n" +
+	"tip_height\x18\x03 \x01(\x03R\ttipHeight\"\xda\x02\n" +
 	"\x17WatchWalletDataResponse\x12\x1d\n" +
 	"\n" +
 	"has_wallet\x18\x01 \x01(\bR\thasWallet\x12\x1c\n" +
@@ -6323,7 +6551,7 @@ const file_walletmanager_v1_walletmanager_proto_rawDesc = "" +
 	"\x18DECODED_FORM_UNSPECIFIED\x10\x00\x12\x15\n" +
 	"\x11DECODED_FORM_TXID\x10\x01\x12\x17\n" +
 	"\x13DECODED_FORM_RAW_TX\x10\x02\x12\x15\n" +
-	"\x11DECODED_FORM_PSBT\x10\x032\xf7\"\n" +
+	"\x11DECODED_FORM_PSBT\x10\x032\xb5$\n" +
 	"\x14WalletManagerService\x12f\n" +
 	"\x0fGetWalletStatus\x12(.walletmanager.v1.GetWalletStatusRequest\x1a).walletmanager.v1.GetWalletStatusResponse\x12c\n" +
 	"\x0eGenerateWallet\x12'.walletmanager.v1.GenerateWalletRequest\x1a(.walletmanager.v1.GenerateWalletResponse\x12]\n" +
@@ -6370,7 +6598,9 @@ const file_walletmanager_v1_walletmanager_proto_rawDesc = "" +
 	"\x11GetTestSidechains\x12*.walletmanager.v1.GetTestSidechainsRequest\x1a+.walletmanager.v1.GetTestSidechainsResponse\x12l\n" +
 	"\x11SetTestSidechains\x12*.walletmanager.v1.SetTestSidechainsRequest\x1a+.walletmanager.v1.SetTestSidechainsResponse\x12l\n" +
 	"\x11GetElectrumServer\x12*.walletmanager.v1.GetElectrumServerRequest\x1a+.walletmanager.v1.GetElectrumServerResponse\x12l\n" +
-	"\x11SetElectrumServer\x12*.walletmanager.v1.SetElectrumServerRequest\x1a+.walletmanager.v1.SetElectrumServerResponse\x12V\n" +
+	"\x11SetElectrumServer\x12*.walletmanager.v1.SetElectrumServerRequest\x1a+.walletmanager.v1.SetElectrumServerResponse\x12]\n" +
+	"\fGetTorConfig\x12%.walletmanager.v1.GetTorConfigRequest\x1a&.walletmanager.v1.GetTorConfigResponse\x12]\n" +
+	"\fSetTorConfig\x12%.walletmanager.v1.SetTorConfigRequest\x1a&.walletmanager.v1.SetTorConfigResponse\x12V\n" +
 	"\x0fWatchWalletData\x12\x16.google.protobuf.Empty\x1a).walletmanager.v1.WatchWalletDataResponse0\x01B\xea\x01\n" +
 	"\x14com.walletmanager.v1B\x12WalletmanagerProtoP\x01Z]github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1;walletmanagerv1\xa2\x02\x03WXX\xaa\x02\x10Walletmanager.V1\xca\x02\x10Walletmanager\\V1\xe2\x02\x1cWalletmanager\\V1\\GPBMetadata\xea\x02\x11Walletmanager::V1b\x06proto3"
 
@@ -6387,7 +6617,7 @@ func file_walletmanager_v1_walletmanager_proto_rawDescGZIP() []byte {
 }
 
 var file_walletmanager_v1_walletmanager_proto_enumTypes = make([]protoimpl.EnumInfo, 4)
-var file_walletmanager_v1_walletmanager_proto_msgTypes = make([]protoimpl.MessageInfo, 101)
+var file_walletmanager_v1_walletmanager_proto_msgTypes = make([]protoimpl.MessageInfo, 105)
 var file_walletmanager_v1_walletmanager_proto_goTypes = []any{
 	(WalletType)(0),                             // 0: walletmanager.v1.WalletType
 	(RestoreWalletBackupStepState)(0),           // 1: walletmanager.v1.RestoreWalletBackupStepState
@@ -6491,20 +6721,24 @@ var file_walletmanager_v1_walletmanager_proto_goTypes = []any{
 	(*GetElectrumServerResponse)(nil),           // 99: walletmanager.v1.GetElectrumServerResponse
 	(*SetElectrumServerRequest)(nil),            // 100: walletmanager.v1.SetElectrumServerRequest
 	(*SetElectrumServerResponse)(nil),           // 101: walletmanager.v1.SetElectrumServerResponse
-	(*WatchWalletDataResponse)(nil),             // 102: walletmanager.v1.WatchWalletDataResponse
-	nil,                                         // 103: walletmanager.v1.SendTransactionRequest.DestinationsEntry
-	nil,                                         // 104: walletmanager.v1.CreatePsbtRequest.DestinationsEntry
-	(v1.BinaryType)(0),                          // 105: orchestrator.v1.BinaryType
-	(*timestamppb.Timestamp)(nil),               // 106: google.protobuf.Timestamp
-	(*emptypb.Empty)(nil),                       // 107: google.protobuf.Empty
+	(*GetTorConfigRequest)(nil),                 // 102: walletmanager.v1.GetTorConfigRequest
+	(*GetTorConfigResponse)(nil),                // 103: walletmanager.v1.GetTorConfigResponse
+	(*SetTorConfigRequest)(nil),                 // 104: walletmanager.v1.SetTorConfigRequest
+	(*SetTorConfigResponse)(nil),                // 105: walletmanager.v1.SetTorConfigResponse
+	(*WatchWalletDataResponse)(nil),             // 106: walletmanager.v1.WatchWalletDataResponse
+	nil,                                         // 107: walletmanager.v1.SendTransactionRequest.DestinationsEntry
+	nil,                                         // 108: walletmanager.v1.CreatePsbtRequest.DestinationsEntry
+	(v1.BinaryType)(0),                          // 109: orchestrator.v1.BinaryType
+	(*timestamppb.Timestamp)(nil),               // 110: google.protobuf.Timestamp
+	(*emptypb.Empty)(nil),                       // 111: google.protobuf.Empty
 }
 var file_walletmanager_v1_walletmanager_proto_depIdxs = []int32{
 	0,   // 0: walletmanager.v1.WalletMetadata.wallet_type:type_name -> walletmanager.v1.WalletType
 	19,  // 1: walletmanager.v1.WalletMetadata.sidechains:type_name -> walletmanager.v1.SidechainStarter
 	18,  // 2: walletmanager.v1.ListWalletsResponse.wallets:type_name -> walletmanager.v1.WalletMetadata
-	105, // 3: walletmanager.v1.BalanceSnapshot.binary:type_name -> orchestrator.v1.BinaryType
-	106, // 4: walletmanager.v1.BalanceSnapshot.updated_at:type_name -> google.protobuf.Timestamp
-	106, // 5: walletmanager.v1.WalletBackup.created_at:type_name -> google.protobuf.Timestamp
+	109, // 3: walletmanager.v1.BalanceSnapshot.binary:type_name -> orchestrator.v1.BinaryType
+	110, // 4: walletmanager.v1.BalanceSnapshot.updated_at:type_name -> google.protobuf.Timestamp
+	110, // 5: walletmanager.v1.WalletBackup.created_at:type_name -> google.protobuf.Timestamp
 	31,  // 6: walletmanager.v1.WalletBackup.wallets:type_name -> walletmanager.v1.BackupWalletSummary
 	30,  // 7: walletmanager.v1.WalletBackup.latest_known_balance:type_name -> walletmanager.v1.BalanceSnapshot
 	32,  // 8: walletmanager.v1.ListWalletBackupsResponse.backups:type_name -> walletmanager.v1.WalletBackup
@@ -6512,16 +6746,16 @@ var file_walletmanager_v1_walletmanager_proto_depIdxs = []int32{
 	37,  // 10: walletmanager.v1.RestoreWalletBackupProgressResponse.steps:type_name -> walletmanager.v1.RestoreWalletBackupStep
 	38,  // 11: walletmanager.v1.RestoreWalletBackupProgressResponse.status:type_name -> walletmanager.v1.RestoreWalletBackupProgressStatus
 	2,   // 12: walletmanager.v1.GetNewAddressRequest.address_type:type_name -> walletmanager.v1.AddressType
-	103, // 13: walletmanager.v1.SendTransactionRequest.destinations:type_name -> walletmanager.v1.SendTransactionRequest.DestinationsEntry
+	107, // 13: walletmanager.v1.SendTransactionRequest.destinations:type_name -> walletmanager.v1.SendTransactionRequest.DestinationsEntry
 	68,  // 14: walletmanager.v1.SendTransactionRequest.required_inputs:type_name -> walletmanager.v1.UnspentOutput
 	54,  // 15: walletmanager.v1.SendTransactionRequest.raw_outputs:type_name -> walletmanager.v1.RawOutput
 	55,  // 16: walletmanager.v1.SendTransactionRequest.external_inputs:type_name -> walletmanager.v1.ExternalInput
-	104, // 17: walletmanager.v1.CreatePsbtRequest.destinations:type_name -> walletmanager.v1.CreatePsbtRequest.DestinationsEntry
+	108, // 17: walletmanager.v1.CreatePsbtRequest.destinations:type_name -> walletmanager.v1.CreatePsbtRequest.DestinationsEntry
 	68,  // 18: walletmanager.v1.CreatePsbtRequest.required_inputs:type_name -> walletmanager.v1.UnspentOutput
 	54,  // 19: walletmanager.v1.CreatePsbtRequest.raw_outputs:type_name -> walletmanager.v1.RawOutput
 	55,  // 20: walletmanager.v1.CreatePsbtRequest.external_inputs:type_name -> walletmanager.v1.ExternalInput
 	65,  // 21: walletmanager.v1.ListTransactionsResponse.transactions:type_name -> walletmanager.v1.TransactionEntry
-	106, // 22: walletmanager.v1.UnspentOutput.received_at:type_name -> google.protobuf.Timestamp
+	110, // 22: walletmanager.v1.UnspentOutput.received_at:type_name -> google.protobuf.Timestamp
 	68,  // 23: walletmanager.v1.ListUnspentResponse.utxos:type_name -> walletmanager.v1.UnspentOutput
 	71,  // 24: walletmanager.v1.ListReceiveAddressesResponse.addresses:type_name -> walletmanager.v1.ReceiveAddress
 	65,  // 25: walletmanager.v1.GetTransactionDetailsResponse.transaction:type_name -> walletmanager.v1.TransactionEntry
@@ -6574,52 +6808,56 @@ var file_walletmanager_v1_walletmanager_proto_depIdxs = []int32{
 	96,  // 72: walletmanager.v1.WalletManagerService.SetTestSidechains:input_type -> walletmanager.v1.SetTestSidechainsRequest
 	98,  // 73: walletmanager.v1.WalletManagerService.GetElectrumServer:input_type -> walletmanager.v1.GetElectrumServerRequest
 	100, // 74: walletmanager.v1.WalletManagerService.SetElectrumServer:input_type -> walletmanager.v1.SetElectrumServerRequest
-	107, // 75: walletmanager.v1.WalletManagerService.WatchWalletData:input_type -> google.protobuf.Empty
-	5,   // 76: walletmanager.v1.WalletManagerService.GetWalletStatus:output_type -> walletmanager.v1.GetWalletStatusResponse
-	7,   // 77: walletmanager.v1.WalletManagerService.GenerateWallet:output_type -> walletmanager.v1.GenerateWalletResponse
-	9,   // 78: walletmanager.v1.WalletManagerService.UnlockWallet:output_type -> walletmanager.v1.UnlockWalletResponse
-	11,  // 79: walletmanager.v1.WalletManagerService.LockWallet:output_type -> walletmanager.v1.LockWalletResponse
-	13,  // 80: walletmanager.v1.WalletManagerService.EncryptWallet:output_type -> walletmanager.v1.EncryptWalletResponse
-	15,  // 81: walletmanager.v1.WalletManagerService.ChangePassword:output_type -> walletmanager.v1.ChangePasswordResponse
-	17,  // 82: walletmanager.v1.WalletManagerService.RemoveEncryption:output_type -> walletmanager.v1.RemoveEncryptionResponse
-	21,  // 83: walletmanager.v1.WalletManagerService.ListWallets:output_type -> walletmanager.v1.ListWalletsResponse
-	23,  // 84: walletmanager.v1.WalletManagerService.SwitchWallet:output_type -> walletmanager.v1.SwitchWalletResponse
-	25,  // 85: walletmanager.v1.WalletManagerService.UpdateWalletMetadata:output_type -> walletmanager.v1.UpdateWalletMetadataResponse
-	27,  // 86: walletmanager.v1.WalletManagerService.DeleteWallet:output_type -> walletmanager.v1.DeleteWalletResponse
-	29,  // 87: walletmanager.v1.WalletManagerService.DeleteAllWallets:output_type -> walletmanager.v1.DeleteAllWalletsResponse
-	34,  // 88: walletmanager.v1.WalletManagerService.ListWalletBackups:output_type -> walletmanager.v1.ListWalletBackupsResponse
-	36,  // 89: walletmanager.v1.WalletManagerService.RestoreWalletBackup:output_type -> walletmanager.v1.RestoreWalletBackupResponse
-	39,  // 90: walletmanager.v1.WalletManagerService.RestoreWalletBackupStream:output_type -> walletmanager.v1.RestoreWalletBackupProgressResponse
-	41,  // 91: walletmanager.v1.WalletManagerService.CreateWatchOnlyWallet:output_type -> walletmanager.v1.CreateWatchOnlyWalletResponse
-	43,  // 92: walletmanager.v1.WalletManagerService.CreateElectrumWallet:output_type -> walletmanager.v1.CreateElectrumWalletResponse
-	45,  // 93: walletmanager.v1.WalletManagerService.CreateBitcoinCoreWallet:output_type -> walletmanager.v1.CreateBitcoinCoreWalletResponse
-	47,  // 94: walletmanager.v1.WalletManagerService.EnsureCoreWallets:output_type -> walletmanager.v1.EnsureCoreWalletsResponse
-	49,  // 95: walletmanager.v1.WalletManagerService.GetBalance:output_type -> walletmanager.v1.GetBalanceResponse
-	51,  // 96: walletmanager.v1.WalletManagerService.GetNewAddress:output_type -> walletmanager.v1.GetNewAddressResponse
-	53,  // 97: walletmanager.v1.WalletManagerService.SendTransaction:output_type -> walletmanager.v1.SendTransactionResponse
-	66,  // 98: walletmanager.v1.WalletManagerService.ListTransactions:output_type -> walletmanager.v1.ListTransactionsResponse
-	69,  // 99: walletmanager.v1.WalletManagerService.ListUnspent:output_type -> walletmanager.v1.ListUnspentResponse
-	72,  // 100: walletmanager.v1.WalletManagerService.ListReceiveAddresses:output_type -> walletmanager.v1.ListReceiveAddressesResponse
-	74,  // 101: walletmanager.v1.WalletManagerService.GetTransactionDetails:output_type -> walletmanager.v1.GetTransactionDetailsResponse
-	78,  // 102: walletmanager.v1.WalletManagerService.DecodeTransaction:output_type -> walletmanager.v1.DecodeTransactionResponse
-	80,  // 103: walletmanager.v1.WalletManagerService.BumpFee:output_type -> walletmanager.v1.BumpFeeResponse
-	82,  // 104: walletmanager.v1.WalletManagerService.CreateCpfp:output_type -> walletmanager.v1.CreateCpfpResponse
-	84,  // 105: walletmanager.v1.WalletManagerService.DeriveAddresses:output_type -> walletmanager.v1.DeriveAddressesResponse
-	57,  // 106: walletmanager.v1.WalletManagerService.CreatePsbt:output_type -> walletmanager.v1.CreatePsbtResponse
-	59,  // 107: walletmanager.v1.WalletManagerService.SignPsbt:output_type -> walletmanager.v1.SignPsbtResponse
-	61,  // 108: walletmanager.v1.WalletManagerService.CombinePsbt:output_type -> walletmanager.v1.CombinePsbtResponse
-	63,  // 109: walletmanager.v1.WalletManagerService.FinalizePsbt:output_type -> walletmanager.v1.FinalizePsbtResponse
-	86,  // 110: walletmanager.v1.WalletManagerService.GetWalletSeed:output_type -> walletmanager.v1.GetWalletSeedResponse
-	89,  // 111: walletmanager.v1.WalletManagerService.ListCoreVariants:output_type -> walletmanager.v1.ListCoreVariantsResponse
-	91,  // 112: walletmanager.v1.WalletManagerService.GetCoreVariant:output_type -> walletmanager.v1.GetCoreVariantResponse
-	93,  // 113: walletmanager.v1.WalletManagerService.SetCoreVariant:output_type -> walletmanager.v1.SetCoreVariantResponse
-	95,  // 114: walletmanager.v1.WalletManagerService.GetTestSidechains:output_type -> walletmanager.v1.GetTestSidechainsResponse
-	97,  // 115: walletmanager.v1.WalletManagerService.SetTestSidechains:output_type -> walletmanager.v1.SetTestSidechainsResponse
-	99,  // 116: walletmanager.v1.WalletManagerService.GetElectrumServer:output_type -> walletmanager.v1.GetElectrumServerResponse
-	101, // 117: walletmanager.v1.WalletManagerService.SetElectrumServer:output_type -> walletmanager.v1.SetElectrumServerResponse
-	102, // 118: walletmanager.v1.WalletManagerService.WatchWalletData:output_type -> walletmanager.v1.WatchWalletDataResponse
-	76,  // [76:119] is the sub-list for method output_type
-	33,  // [33:76] is the sub-list for method input_type
+	102, // 75: walletmanager.v1.WalletManagerService.GetTorConfig:input_type -> walletmanager.v1.GetTorConfigRequest
+	104, // 76: walletmanager.v1.WalletManagerService.SetTorConfig:input_type -> walletmanager.v1.SetTorConfigRequest
+	111, // 77: walletmanager.v1.WalletManagerService.WatchWalletData:input_type -> google.protobuf.Empty
+	5,   // 78: walletmanager.v1.WalletManagerService.GetWalletStatus:output_type -> walletmanager.v1.GetWalletStatusResponse
+	7,   // 79: walletmanager.v1.WalletManagerService.GenerateWallet:output_type -> walletmanager.v1.GenerateWalletResponse
+	9,   // 80: walletmanager.v1.WalletManagerService.UnlockWallet:output_type -> walletmanager.v1.UnlockWalletResponse
+	11,  // 81: walletmanager.v1.WalletManagerService.LockWallet:output_type -> walletmanager.v1.LockWalletResponse
+	13,  // 82: walletmanager.v1.WalletManagerService.EncryptWallet:output_type -> walletmanager.v1.EncryptWalletResponse
+	15,  // 83: walletmanager.v1.WalletManagerService.ChangePassword:output_type -> walletmanager.v1.ChangePasswordResponse
+	17,  // 84: walletmanager.v1.WalletManagerService.RemoveEncryption:output_type -> walletmanager.v1.RemoveEncryptionResponse
+	21,  // 85: walletmanager.v1.WalletManagerService.ListWallets:output_type -> walletmanager.v1.ListWalletsResponse
+	23,  // 86: walletmanager.v1.WalletManagerService.SwitchWallet:output_type -> walletmanager.v1.SwitchWalletResponse
+	25,  // 87: walletmanager.v1.WalletManagerService.UpdateWalletMetadata:output_type -> walletmanager.v1.UpdateWalletMetadataResponse
+	27,  // 88: walletmanager.v1.WalletManagerService.DeleteWallet:output_type -> walletmanager.v1.DeleteWalletResponse
+	29,  // 89: walletmanager.v1.WalletManagerService.DeleteAllWallets:output_type -> walletmanager.v1.DeleteAllWalletsResponse
+	34,  // 90: walletmanager.v1.WalletManagerService.ListWalletBackups:output_type -> walletmanager.v1.ListWalletBackupsResponse
+	36,  // 91: walletmanager.v1.WalletManagerService.RestoreWalletBackup:output_type -> walletmanager.v1.RestoreWalletBackupResponse
+	39,  // 92: walletmanager.v1.WalletManagerService.RestoreWalletBackupStream:output_type -> walletmanager.v1.RestoreWalletBackupProgressResponse
+	41,  // 93: walletmanager.v1.WalletManagerService.CreateWatchOnlyWallet:output_type -> walletmanager.v1.CreateWatchOnlyWalletResponse
+	43,  // 94: walletmanager.v1.WalletManagerService.CreateElectrumWallet:output_type -> walletmanager.v1.CreateElectrumWalletResponse
+	45,  // 95: walletmanager.v1.WalletManagerService.CreateBitcoinCoreWallet:output_type -> walletmanager.v1.CreateBitcoinCoreWalletResponse
+	47,  // 96: walletmanager.v1.WalletManagerService.EnsureCoreWallets:output_type -> walletmanager.v1.EnsureCoreWalletsResponse
+	49,  // 97: walletmanager.v1.WalletManagerService.GetBalance:output_type -> walletmanager.v1.GetBalanceResponse
+	51,  // 98: walletmanager.v1.WalletManagerService.GetNewAddress:output_type -> walletmanager.v1.GetNewAddressResponse
+	53,  // 99: walletmanager.v1.WalletManagerService.SendTransaction:output_type -> walletmanager.v1.SendTransactionResponse
+	66,  // 100: walletmanager.v1.WalletManagerService.ListTransactions:output_type -> walletmanager.v1.ListTransactionsResponse
+	69,  // 101: walletmanager.v1.WalletManagerService.ListUnspent:output_type -> walletmanager.v1.ListUnspentResponse
+	72,  // 102: walletmanager.v1.WalletManagerService.ListReceiveAddresses:output_type -> walletmanager.v1.ListReceiveAddressesResponse
+	74,  // 103: walletmanager.v1.WalletManagerService.GetTransactionDetails:output_type -> walletmanager.v1.GetTransactionDetailsResponse
+	78,  // 104: walletmanager.v1.WalletManagerService.DecodeTransaction:output_type -> walletmanager.v1.DecodeTransactionResponse
+	80,  // 105: walletmanager.v1.WalletManagerService.BumpFee:output_type -> walletmanager.v1.BumpFeeResponse
+	82,  // 106: walletmanager.v1.WalletManagerService.CreateCpfp:output_type -> walletmanager.v1.CreateCpfpResponse
+	84,  // 107: walletmanager.v1.WalletManagerService.DeriveAddresses:output_type -> walletmanager.v1.DeriveAddressesResponse
+	57,  // 108: walletmanager.v1.WalletManagerService.CreatePsbt:output_type -> walletmanager.v1.CreatePsbtResponse
+	59,  // 109: walletmanager.v1.WalletManagerService.SignPsbt:output_type -> walletmanager.v1.SignPsbtResponse
+	61,  // 110: walletmanager.v1.WalletManagerService.CombinePsbt:output_type -> walletmanager.v1.CombinePsbtResponse
+	63,  // 111: walletmanager.v1.WalletManagerService.FinalizePsbt:output_type -> walletmanager.v1.FinalizePsbtResponse
+	86,  // 112: walletmanager.v1.WalletManagerService.GetWalletSeed:output_type -> walletmanager.v1.GetWalletSeedResponse
+	89,  // 113: walletmanager.v1.WalletManagerService.ListCoreVariants:output_type -> walletmanager.v1.ListCoreVariantsResponse
+	91,  // 114: walletmanager.v1.WalletManagerService.GetCoreVariant:output_type -> walletmanager.v1.GetCoreVariantResponse
+	93,  // 115: walletmanager.v1.WalletManagerService.SetCoreVariant:output_type -> walletmanager.v1.SetCoreVariantResponse
+	95,  // 116: walletmanager.v1.WalletManagerService.GetTestSidechains:output_type -> walletmanager.v1.GetTestSidechainsResponse
+	97,  // 117: walletmanager.v1.WalletManagerService.SetTestSidechains:output_type -> walletmanager.v1.SetTestSidechainsResponse
+	99,  // 118: walletmanager.v1.WalletManagerService.GetElectrumServer:output_type -> walletmanager.v1.GetElectrumServerResponse
+	101, // 119: walletmanager.v1.WalletManagerService.SetElectrumServer:output_type -> walletmanager.v1.SetElectrumServerResponse
+	103, // 120: walletmanager.v1.WalletManagerService.GetTorConfig:output_type -> walletmanager.v1.GetTorConfigResponse
+	105, // 121: walletmanager.v1.WalletManagerService.SetTorConfig:output_type -> walletmanager.v1.SetTorConfigResponse
+	106, // 122: walletmanager.v1.WalletManagerService.WatchWalletData:output_type -> walletmanager.v1.WatchWalletDataResponse
+	78,  // [78:123] is the sub-list for method output_type
+	33,  // [33:78] is the sub-list for method input_type
 	33,  // [33:33] is the sub-list for extension type_name
 	33,  // [33:33] is the sub-list for extension extendee
 	0,   // [0:33] is the sub-list for field type_name
@@ -6636,7 +6874,7 @@ func file_walletmanager_v1_walletmanager_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_walletmanager_v1_walletmanager_proto_rawDesc), len(file_walletmanager_v1_walletmanager_proto_rawDesc)),
 			NumEnums:      4,
-			NumMessages:   101,
+			NumMessages:   105,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

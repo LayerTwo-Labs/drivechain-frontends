@@ -18,6 +18,9 @@ type swappableFakeEsplora struct {
 	*fakeEsplora
 	urls        []string
 	unreachable map[string]bool
+	torEnabled  bool
+	torProxy    string
+	badProxies  map[string]bool
 }
 
 var _ SwappableEsplora = (*swappableFakeEsplora)(nil)
@@ -27,6 +30,7 @@ func newSwappableFakeEsplora(url string) *swappableFakeEsplora {
 		fakeEsplora: newFakeEsplora(),
 		urls:        []string{url},
 		unreachable: map[string]bool{},
+		badProxies:  map[string]bool{},
 	}
 }
 
@@ -38,9 +42,22 @@ func (f *swappableFakeEsplora) SetBaseURLs(urls []string) {
 	f.urls = append([]string(nil), urls...)
 }
 
+func (f *swappableFakeEsplora) ProxyConfig() (bool, string) {
+	return f.torEnabled, f.torProxy
+}
+
+func (f *swappableFakeEsplora) SetProxy(enabled bool, proxyAddr string) error {
+	f.torEnabled = enabled
+	f.torProxy = proxyAddr
+	return nil
+}
+
 func (f *swappableFakeEsplora) TipHeight(ctx context.Context) (int, error) {
 	if len(f.urls) > 0 && f.unreachable[f.urls[0]] {
 		return 0, errors.New("connection refused")
+	}
+	if f.torEnabled && f.badProxies[f.torProxy] {
+		return 0, errors.New("proxy connection refused")
 	}
 	return f.fakeEsplora.TipHeight(ctx)
 }
