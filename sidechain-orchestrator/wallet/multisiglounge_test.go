@@ -104,7 +104,6 @@ func loungeMultisigPSBT(t *testing.T, accts []*hdkeychain.ExtendedKey, signWith 
 	const amount = int64(100_000)
 	const dest = "tb1qw508d6qejxtdg4y5r3zarvary0c5xw7kxpjzsx"
 
-	const h = hdkeychain.HardenedKeyStart
 	keys := make([]DescriptorKey, len(accts))
 	for i, a := range accts {
 		keys[i] = DescriptorKey{Origin: fmt.Sprintf("73c5da0a/48h/1h/0h/%dh", 2+i), Account: a}
