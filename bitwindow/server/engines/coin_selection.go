@@ -220,7 +220,7 @@ func selectBranchAndBound(
 	currSelection := make([]bool, len(pool))
 	var bestWaste int64 = math.MaxInt64
 
-	var remaining int64 = poolTotal
+	var remaining = poolTotal
 	tries := branchAndBoundMaxTries
 
 	var search func(depth int, currValue int64) bool
@@ -292,7 +292,8 @@ func selectBranchAndBound(
 func sortByStrategy(utxos []*walletpb.UnspentOutput, strategy walletpb.CoinSelectionStrategy) {
 	switch strategy {
 	case walletpb.CoinSelectionStrategy_COIN_SELECTION_STRATEGY_LARGEST_FIRST,
-		walletpb.CoinSelectionStrategy_COIN_SELECTION_STRATEGY_UNSPECIFIED:
+		walletpb.CoinSelectionStrategy_COIN_SELECTION_STRATEGY_UNSPECIFIED,
+		walletpb.CoinSelectionStrategy_COIN_SELECTION_STRATEGY_BRANCH_AND_BOUND:
 		sort.Slice(utxos, func(i, j int) bool {
 			return utxos[i].ValueSats > utxos[j].ValueSats
 		})
