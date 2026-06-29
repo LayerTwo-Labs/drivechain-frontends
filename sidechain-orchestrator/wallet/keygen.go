@@ -185,13 +185,9 @@ func GenerateFullWallet(name string, customMnemonic string, passphrase string, s
 		Name:             "Master",
 	}
 
-	// Derive L1 starter: m/44'/0'/256'
-	l1Mnemonic, err := DeriveStarter(seedHex, "m/44'/0'/256'")
-	if err != nil {
-		return nil, fmt.Errorf("derive L1 starter: %w", err)
-	}
+	// L1 (Bitcoin Core) uses the master seed directly — it is the first wallet.
 	l1 := L1Wallet{
-		Mnemonic: l1Mnemonic,
+		Mnemonic: mnemonic,
 		Name:     "Bitcoin Core (Patched)",
 	}
 

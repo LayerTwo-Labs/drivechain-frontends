@@ -190,8 +190,11 @@ func TestGenerateFullWallet(t *testing.T) {
 		assert.True(t, bip39.IsMnemonicValid(sc.Mnemonic))
 	}
 
-	// Master and derived mnemonics should all be different
-	allMnemonics := []string{wallet.Master.Mnemonic, wallet.L1.Mnemonic}
+	// L1 uses the master seed directly
+	assert.Equal(t, wallet.Master.Mnemonic, wallet.L1.Mnemonic)
+
+	// Master and sidechain mnemonics should all be different
+	allMnemonics := []string{wallet.Master.Mnemonic}
 	for _, sc := range wallet.Sidechains {
 		allMnemonics = append(allMnemonics, sc.Mnemonic)
 	}
@@ -265,7 +268,9 @@ func TestGenerateFullWalletWithPassphrase(t *testing.T) {
 	// Same master mnemonic but different seeds and derivations
 	assert.Equal(t, w1.Master.Mnemonic, w2.Master.Mnemonic)
 	assert.NotEqual(t, w1.Master.SeedHex, w2.Master.SeedHex, "passphrase should change the seed")
-	assert.NotEqual(t, w1.L1.Mnemonic, w2.L1.Mnemonic, "passphrase should change derived mnemonics")
+	// L1 mirrors the master mnemonic, which a passphrase does not change.
+	assert.Equal(t, w1.L1.Mnemonic, w2.L1.Mnemonic)
+	assert.Equal(t, w1.Master.Mnemonic, w1.L1.Mnemonic)
 	assert.NotEqual(t, w1.Sidechains[0].Mnemonic, w2.Sidechains[0].Mnemonic)
 }
 
