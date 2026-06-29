@@ -261,6 +261,11 @@ func (p *CoreBackend) NextReceiveAddress(ctx context.Context, walletID string, k
 	if err != nil {
 		return "", err
 	}
+	// ScriptUnknown is the default sentinel ("the wallet's natural kind"); resolve
+	// it to the wallet's script kind, which defaults to native segwit.
+	if kind == ScriptUnknown {
+		kind = p.walletScriptKind(walletID)
+	}
 	addressType, ok := coreAddressType(kind)
 	if !ok {
 		return "", fmt.Errorf("unsupported address kind %s for the Bitcoin Core backend", kind)
@@ -943,9 +948,4 @@ func (p *CoreBackend) walletScriptKind(walletID string) ScriptKind {
 		return kind
 	}
 	return ScriptNativeSegwit
-}
-
-// coinType returns the BIP44 coin type for the network.
-func (p *CoreBackend) coinType() uint32 {
-	return p.network.HDCoinType
 }

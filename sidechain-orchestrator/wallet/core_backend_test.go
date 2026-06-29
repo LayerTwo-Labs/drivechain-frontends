@@ -733,6 +733,34 @@ func TestCoreBackendNextReceiveAddress(t *testing.T) {
 	assert.Equal(t, "bech32", mintedType)
 }
 
+// TestCoreBackendNextReceiveAddressUnknownSentinel pins the default-sentinel
+// behavior: NextReceiveAddress(..., ScriptUnknown) means "the wallet's natural
+// kind", which for a default Core wallet is native segwit (bech32). A regression
+// here broke the integration test's getnewaddress path.
+func TestCoreBackendNextReceiveAddressUnknownSentinel(t *testing.T) {
+	backend, fake, coreID := newCoreBackendFixture(t)
+	fake.stubEnsureFlow()
+	ctx := context.Background()
+
+	net := &chaincfg.RegressionNetParams
+	minted := p2wpkhAddr(t, fixedKey(0x21), net)
+
+	// No reusable unused address → mint, and the requested type must be bech32.
+	fake.handle("listreceivedbyaddress", func(bitcoindCall) (any, string) { return []map[string]any{}, "" })
+	var mintedType string
+	fake.handle("getnewaddress", func(c bitcoindCall) (any, string) {
+		if len(c.Params) > 1 {
+			mintedType = mustString(t, c.Params[1])
+		}
+		return minted, ""
+	})
+
+	addr, err := backend.NextReceiveAddress(ctx, coreID, ScriptUnknown)
+	require.NoError(t, err)
+	assert.Equal(t, minted, addr)
+	assert.Equal(t, "bech32", mintedType, "ScriptUnknown must resolve to native segwit for a default wallet")
+}
+
 func TestCoreBackendNextReceiveAddressTaproot(t *testing.T) {
 	backend, fake, coreID := newCoreBackendFixture(t)
 	fake.stubEnsureFlow()

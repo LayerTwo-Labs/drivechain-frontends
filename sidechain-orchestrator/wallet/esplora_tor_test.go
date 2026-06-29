@@ -50,7 +50,7 @@ func (s *stubSOCKS5) serve() {
 }
 
 func (s *stubSOCKS5) handle(c net.Conn) {
-	defer c.Close()
+	defer func() { _ = c.Close() }()
 
 	// Greeting: version, nmethods, methods.
 	hdr := make([]byte, 2)
@@ -107,7 +107,7 @@ func (s *stubSOCKS5) handle(c net.Conn) {
 		_, _ = c.Write([]byte{0x05, 0x01, 0x00, 0x01, 0, 0, 0, 0, 0, 0})
 		return
 	}
-	defer upstream.Close()
+	defer func() { _ = upstream.Close() }()
 	// Success reply with a dummy bind address.
 	if _, err := c.Write([]byte{0x05, 0x00, 0x00, 0x01, 0, 0, 0, 0, 0, 0}); err != nil {
 		return
