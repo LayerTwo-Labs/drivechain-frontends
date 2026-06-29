@@ -179,6 +179,9 @@ class _ImportPSBTModalState extends State<ImportPSBTModal> {
     try {
       final cleanPsbt = _psbtController.text.replaceAll(RegExp(r'\s'), '');
 
+      // decodepsbt is load-bearing here, not just a format gate: its result is
+      // consumed below to reconstruct the transaction record (outputs/amounts,
+      // destinations, inputs, fee). The is! Map check doubles as the format gate.
       final decodedPsbt = await bitcoindRpcCall('decodepsbt', params: [cleanPsbt]);
       if (decodedPsbt is! Map) {
         throw Exception('Invalid PSBT format');

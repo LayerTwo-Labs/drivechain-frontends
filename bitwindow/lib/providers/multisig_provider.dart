@@ -379,13 +379,11 @@ class SigningResult {
   final String signedPsbt;
   final bool isComplete;
   final int signaturesAdded;
-  final List<String> errors;
 
   SigningResult({
     required this.signedPsbt,
     required this.isComplete,
     required this.signaturesAdded,
-    this.errors = const [],
   });
 }
 
@@ -787,11 +785,11 @@ class TransactionStorage {
   }
 }
 
-// WalletRPCManager is residual bitcoind-wallet glue for the multisig modal paths
-// not yet migrated to MultisigLoungeService (funded-PSBT creation, watch-wallet
-// listdescriptors/create in fund_group_modal). It loads the watch wallet on
-// demand and forwards wallet-scoped Core RPCs. New multisig chain work should go
-// through MultisigLoungeService, not here.
+// WalletRPCManager is residual bitcoind-wallet glue for the one multisig path not
+// yet on MultisigLoungeService: reading a watch wallet's getwalletinfo and minting
+// a receive address for display (wallet_multisig_lounge). It loads the watch
+// wallet on demand and forwards wallet-scoped Core RPCs. New multisig chain work
+// should go through MultisigLoungeService, not here.
 class WalletRPCManager {
   static final WalletRPCManager _instance = WalletRPCManager._internal();
   factory WalletRPCManager() => _instance;
@@ -847,12 +845,6 @@ class WalletRPCManager {
       if (addressType != null) params.add(addressType);
 
       return await callWalletRPC<String>(walletName, 'getnewaddress', params);
-    });
-  }
-
-  Future<List<dynamic>> importDescriptors(String walletName, List<Map<String, dynamic>> descriptors) async {
-    return await withWallet<List<dynamic>>(walletName, () async {
-      return await callWalletRPC<List<dynamic>>(walletName, 'importdescriptors', [descriptors]);
     });
   }
 
@@ -984,64 +976,6 @@ class MultisigStorage {
       finalHex: tx.finalHex.isEmpty ? null : tx.finalHex,
       txid: tx.txid,
     );
-  }
-
-  static Future<void> createMultisigWallet(String walletName, String descriptorReceive, String descriptorChange) async {
-    try {
-      // Create wallet directly in network folder, no wallets/ subdirectory
-      await _coreRaw('createwallet', [
-        walletName, // Create directly in network folder
-        true, // disable_private_keys - DISABLE private keys (watch-only)
-        true, // blank (start empty)
-        '', // passphrase (empty)
-        false, // avoid_reuse
-        true, // descriptors (modern descriptor wallet format)
-        false, // load_on_startup
-      ]);
-
-      try {
-        await _coreRaw('loadwallet', [walletName]);
-      } catch (e) {
-        // Wallet might already be loaded
-      }
-
-      final descriptorsToImport = [
-        {
-          'desc': descriptorReceive,
-          'active': true,
-          'internal': false,
-          'timestamp': 'now',
-          'range': [0, 999],
-        },
-        {
-          'desc': descriptorChange,
-          'active': true,
-          'internal': true,
-          'timestamp': 'now',
-          'range': [0, 999],
-        },
-      ];
-
-      final walletManager = WalletRPCManager();
-      final importResult = await walletManager.importDescriptors(walletName, descriptorsToImport);
-
-      for (int i = 0; i < importResult.length; i++) {
-        final result = importResult[i] as Map<String, dynamic>;
-        final success = result['success'] as bool? ?? false;
-        final desc = i == 0 ? 'receive' : 'change';
-
-        if (!success) {
-          final error = result['error'] ?? 'Unknown error';
-          throw Exception('Failed to import $desc descriptor: $error');
-        }
-      }
-    } catch (e) {
-      if (e.toString().contains('already exists') || e.toString().contains('Database already exists')) {
-        return; // Not a fatal error
-      }
-
-      throw Exception('Failed to create multisig wallet: $e');
-    }
   }
 
   // ─── Proto ↔ Model converters ─────────────────────────────────────

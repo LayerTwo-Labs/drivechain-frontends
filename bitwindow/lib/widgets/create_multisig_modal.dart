@@ -881,13 +881,19 @@ class CreateMultisigModalViewModel extends BaseViewModel {
         'watch_wallet_name': 'multisig_$multisigId',
       };
 
-      try {
-        await _createMultisigWallet('multisig_$multisigId', descriptors.receive, descriptors.change);
-      } catch (e) {
-        GetIt.I.get<Logger>().w('Failed to create multisig wallet: $e');
-      }
-
       var group = MultisigGroup.fromJson(multisigData);
+
+      // Ensure the watch-only wallet exists, created server-side from the group
+      // KEYS (SyncGroup -> ensureWatchWallet). Best-effort: a hiccup here must
+      // not block group creation/broadcast — funding/address derivation re-syncs.
+      try {
+        final walletId = _walletReader.activeWalletId;
+        if (walletId != null) {
+          await _multisigLounge.syncGroup(group: multisigGroupToProto(group), walletId: walletId);
+        }
+      } catch (e) {
+        GetIt.I.get<Logger>().w('Failed to create multisig watch wallet: $e');
+      }
 
       if (!shouldNotBroadcast) {
         final txid = await _broadcastMultisigGroup(group);
@@ -927,10 +933,6 @@ class CreateMultisigModalViewModel extends BaseViewModel {
   void setShouldNotBroadcast(bool value) {
     shouldNotBroadcast = value;
     notifyListeners();
-  }
-
-  Future<void> _createMultisigWallet(String walletName, String descriptorReceive, String descriptorChange) async {
-    await MultisigStorage.createMultisigWallet(walletName, descriptorReceive, descriptorChange);
   }
 
   @override
