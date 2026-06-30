@@ -161,6 +161,37 @@ class ReceiveAddressesTable extends StatefulWidget {
   State<ReceiveAddressesTable> createState() => _ReceiveAddressesTableState();
 }
 
+/// Resolves an address's display type from its encoding, so the column works for
+/// any backend (electrum, Core, enforcer). bech32/bech32m carry a witness-version
+/// character right after the HRP ('q' = segwit v0, 'p' = taproot v1); base58
+/// addresses are classified by their version prefix.
+String receiveAddressType(String address) {
+  final lower = address.toLowerCase();
+  for (final hrp in ['bcrt1', 'bc1', 'tb1']) {
+    if (lower.startsWith(hrp)) {
+      switch (lower[hrp.length]) {
+        case 'q':
+          return 'Segwit';
+        case 'p':
+          return 'Taproot';
+        default:
+          return '';
+      }
+    }
+  }
+  switch (address.isEmpty ? '' : address[0]) {
+    case '1':
+    case 'm':
+    case 'n':
+      return 'Legacy';
+    case '2':
+    case '3':
+      return 'P2SH';
+    default:
+      return '';
+  }
+}
+
 class _ReceiveAddressesTableState extends State<ReceiveAddressesTable> {
   String sortColumn = 'last_used_at';
   bool sortAscending = false;
@@ -188,6 +219,14 @@ class _ReceiveAddressesTableState extends State<ReceiveAddressesTable> {
         case 'address':
           aValue = a.address;
           bValue = b.address;
+          break;
+        case 'type':
+          aValue = receiveAddressType(a.address);
+          bValue = receiveAddressType(b.address);
+          break;
+        case 'chain':
+          aValue = a.isChange ? 'Change' : 'Receive';
+          bValue = b.isChange ? 'Change' : 'Receive';
           break;
         case 'label':
           aValue = a.label;
@@ -236,6 +275,8 @@ class _ReceiveAddressesTableState extends State<ReceiveAddressesTable> {
                   headerBuilder: (context) => [
                     SailTableHeaderCell(name: 'Last Used', onSort: () => onSort('last_used_at')),
                     SailTableHeaderCell(name: 'Address', onSort: () => onSort('address')),
+                    SailTableHeaderCell(name: 'Type', onSort: () => onSort('type')),
+                    SailTableHeaderCell(name: 'Change', onSort: () => onSort('chain')),
                     SailTableHeaderCell(name: 'Label', onSort: () => onSort('label')),
                     SailTableHeaderCell(name: 'Balance', onSort: () => onSort('current_balance_sat')),
                   ],
@@ -252,6 +293,12 @@ class _ReceiveAddressesTableState extends State<ReceiveAddressesTable> {
                         value: utxo.address,
                         copyValue: utxo.address,
                       ),
+                      SailTableCell(
+                        value: utxo.isChange ? 'Yes' : '',
+                        child: utxo.isChange
+                            ? SailSVG.fromAsset(SailSVGAsset.check, width: 12)
+                            : const SizedBox.shrink(),
+                      ),
                       SailTableCell(value: utxo.label),
                       SailTableCell(value: formattedAmount, monospace: true),
                     ];
@@ -262,12 +309,14 @@ class _ReceiveAddressesTableState extends State<ReceiveAddressesTable> {
                   sortColumnIndex: [
                     'last_used_at',
                     'address',
+                    'type',
+                    'chain',
                     'label',
                     'current_balance_sat',
                   ].indexOf(sortColumn),
                   sortAscending: sortAscending,
                   onSort: (columnIndex, ascending) {
-                    onSort(['last_used_at', 'address', 'label', 'current_balance_sat'][columnIndex]);
+                    onSort(['last_used_at', 'address', 'type', 'chain', 'label', 'current_balance_sat'][columnIndex]);
                   },
                   contextMenuItems: (rowId) {
                     final entry = entries.firstWhere((e) => e.address == rowId);

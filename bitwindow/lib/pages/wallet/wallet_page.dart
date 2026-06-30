@@ -1,6 +1,9 @@
 import 'package:auto_route/auto_route.dart';
 import 'package:bitwindow/main.dart';
 import 'package:bitwindow/pages/wallet/bitdrive_page.dart';
+import 'package:bitwindow/pages/wallet/psbt_signer_tab.dart';
+import 'package:bitwindow/pages/explorer/block_explorer_dialog.dart';
+import 'package:bitwindow/pages/explorer/load_transaction_dialog.dart';
 import 'package:bitwindow/providers/address_book_provider.dart';
 import 'package:bitwindow/providers/hd_wallet_provider.dart';
 import 'package:bitwindow/pages/wallet/denability_page.dart';
@@ -165,6 +168,18 @@ class WalletPage extends StatelessWidget {
                     TabItem(
                       label: 'Multisig Lounge',
                       child: MultisigLoungeTab(),
+                    ),
+                    TabItem(
+                      label: 'Decode Transaction',
+                      child: const LoadTransactionDialog(),
+                    ),
+                    TabItem(
+                      label: 'PSBT Signer',
+                      child: const PsbtSignerTab(),
+                    ),
+                    TabItem(
+                      label: 'Block Explorer',
+                      child: const BlockExplorerDialog(),
                     ),
                   ],
                 ),

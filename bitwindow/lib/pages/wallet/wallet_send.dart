@@ -337,6 +337,25 @@ class FeeCard extends ViewModelWidget<SendPageViewModel> {
                 child: SailCircularProgressIndicator(color: context.sailTheme.colors.text),
               ),
             ),
+          SailColumn(
+            spacing: SailStyleValues.padding04,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              SailText.secondary13('Coin selection'),
+              SailDropdownButton<CoinSelectionStrategy>(
+                value: viewModel.coinSelectionStrategy,
+                items: CoinSelectionStrategy.values
+                    .map((s) => SailDropdownItem<CoinSelectionStrategy>(value: s, label: s.displayName))
+                    .toList(),
+                onChanged: (value) async {
+                  if (value != null) {
+                    await viewModel.setCoinSelectionStrategy(value);
+                  }
+                },
+              ),
+              SailText.secondary12(viewModel.coinSelectionStrategy.description),
+            ],
+          ),
         ],
       ),
     );

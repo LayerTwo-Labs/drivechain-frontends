@@ -7,7 +7,10 @@ import 'package:sail_ui/sail_ui.dart';
 Future<void> showLoadTransactionDialog(BuildContext context) async {
   await showThemedDialog<void>(
     context: context,
-    builder: (_) => const LoadTransactionDialog(),
+    builder: (_) => const SailModal(
+      constraints: BoxConstraints(maxWidth: 900, maxHeight: 760),
+      child: LoadTransactionDialog(),
+    ),
   );
 }
 
@@ -81,38 +84,35 @@ class _LoadTransactionDialogState extends State<LoadTransactionDialog> {
 
   @override
   Widget build(BuildContext context) {
-    return SailModal(
-      constraints: const BoxConstraints(maxWidth: 900, maxHeight: 760),
-      child: SailCard(
-        title: 'Load Transaction',
-        subtitle: 'Paste a txid, raw transaction hex, or base64 PSBT',
-        error: _error,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            SailTextField(
-              controller: _controller,
-              hintText: 'txid / transaction hex / base64 PSBT',
-              minLines: 3,
-              maxLines: 6,
-            ),
-            const SailSpacing(SailStyleValues.padding08),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                SailButton(
-                  onPressed: _isLoading ? null : _decode,
-                  label: 'Decode',
-                  variant: ButtonVariant.primary,
-                  loading: _isLoading,
-                ),
-              ],
-            ),
-            const SailSpacing(SailStyleValues.padding16),
-            if (_decoded != null) Expanded(child: _DecodedView(decoded: _decoded!)),
-          ],
-        ),
+    return SailCard(
+      title: 'Load Transaction',
+      subtitle: 'Paste a txid, raw transaction hex, or base64 PSBT',
+      error: _error,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          SailTextField(
+            controller: _controller,
+            hintText: 'txid / transaction hex / base64 PSBT',
+            minLines: 3,
+            maxLines: 6,
+          ),
+          const SailSpacing(SailStyleValues.padding08),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              SailButton(
+                onPressed: _isLoading ? null : _decode,
+                label: 'Decode',
+                variant: ButtonVariant.primary,
+                loading: _isLoading,
+              ),
+            ],
+          ),
+          const SailSpacing(SailStyleValues.padding16),
+          if (_decoded != null) Expanded(child: _DecodedView(decoded: _decoded!)),
+        ],
       ),
     );
   }

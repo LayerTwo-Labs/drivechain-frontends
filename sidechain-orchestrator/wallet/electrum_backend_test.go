@@ -833,9 +833,9 @@ func TestElectrumWatchOnlyDescriptorWatchesCorrectAddress(t *testing.T) {
 	assert.NotEqual(t, addrs[0], next, "must skip the used address")
 }
 
-// TestElectrumNextReceiveTaproot proves a taproot-configured electrum wallet
-// hands out a bech32m (bc1p / tb1p) receive address, and that requesting a
-// foreign kind from a single-kind wallet is rejected rather than downgraded.
+// TestElectrumNextReceiveTaproot proves a taproot-configured hot electrum wallet
+// hands out a bech32m (bc1p / tb1p) receive address by default, and that it can
+// also serve a segwit (bech32) address from the same seed (dual-kind).
 func TestElectrumNextReceiveTaproot(t *testing.T) {
 	net := &chaincfg.SigNetParams
 	ctx := context.Background()
@@ -857,10 +857,11 @@ func TestElectrumNextReceiveTaproot(t *testing.T) {
 	require.NoError(t, err)
 	assert.True(t, strings.HasPrefix(addrDefault, net.Bech32HRPSegwit+"1p"), "default address must be bech32m: got %s", addrDefault)
 
-	// A segwit request on a taproot-only wallet cannot be served.
-	_, err = p.NextReceiveAddress(ctx, w.ID, ScriptNativeSegwit)
-	require.Error(t, err)
-	assert.Equal(t, connect.CodeUnimplemented, connect.CodeOf(err))
+	// A hot wallet derives both BIP84 and BIP86 from its seed, so a segwit
+	// request is served a bech32 address rather than rejected.
+	segwit, err := p.NextReceiveAddress(ctx, w.ID, ScriptNativeSegwit)
+	require.NoError(t, err)
+	assert.True(t, strings.HasPrefix(segwit, net.Bech32HRPSegwit+"1q"), "segwit address must be bech32: got %s", segwit)
 }
 
 // TestElectrumWatchOnlyAllScriptTypesScanCorrectly imports a watch-only
@@ -1042,31 +1043,142 @@ func TestElectrumGetWalletTransactionSentAmountExcludesFee(t *testing.T) {
 
 // TestElectrumListReceivedExcludesChange: the receive-address list must not
 // expose internal change addresses.
-func TestElectrumListReceivedExcludesChange(t *testing.T) {
+// TestElectrumListReceivedIncludesFundedChange proves a change address holding a
+// balance is listed and flagged Change, while an unused change address is not —
+// so the table accounts for change UTXOs without dumping the change lookahead.
+func TestElectrumListReceivedIncludesFundedChange(t *testing.T) {
 	net := &chaincfg.SigNetParams
 	p, fake, w, addr := newElectrumFixture(t)
 
 	acct, err := accountKeyFromSeed(w.Master.SeedHex, ScriptNativeSegwit, net)
 	require.NoError(t, err)
 	d := &Descriptor{Kind: ScriptNativeSegwit, Threshold: 1, Keys: []DescriptorKey{{Account: acct}}}
-	chg, _, err := d.DeriveScript(true, 0, net)
+	fundedChg, _, err := d.DeriveScript(true, 0, net)
 	require.NoError(t, err)
-	chgAddr := chg.address.EncodeAddress()
+	fundedChgAddr := fundedChg.address.EncodeAddress()
+	unusedChg, _, err := d.DeriveScript(true, 1, net)
+	require.NoError(t, err)
+	unusedChgAddr := unusedChg.address.EncodeAddress()
 
 	fake.stats[addr] = EsploraAddressStats{Address: addr, ChainStats: EsploraTxoStats{TxCount: 1}}
-	fake.stats[chgAddr] = EsploraAddressStats{Address: chgAddr, ChainStats: EsploraTxoStats{TxCount: 1}}
-
-	_, _, err = p.Balance(context.Background(), w.ID) // warm the scan so addresses are known
-	require.NoError(t, err)
+	fake.stats[fundedChgAddr] = EsploraAddressStats{Address: fundedChgAddr, ChainStats: EsploraTxoStats{FundedTxoCount: 1, FundedTxoSum: 2857, TxCount: 1}}
 
 	recv, err := p.ListReceivedByAddress(context.Background(), w.ID)
 	require.NoError(t, err)
+	byAddr := map[string]ReceivedByAddress{}
+	for _, r := range recv {
+		byAddr[r.Address] = r
+	}
+	require.Contains(t, byAddr, addr, "external receive address must be listed")
+	assert.False(t, byAddr[addr].Change)
+
+	require.Contains(t, byAddr, fundedChgAddr, "funded change address must be listed")
+	assert.True(t, byAddr[fundedChgAddr].Change, "change address must be flagged as change")
+	assert.InDelta(t, 2857.0/1e8, byAddr[fundedChgAddr].Amount, 1e-9)
+
+	assert.NotContains(t, byAddr, unusedChgAddr, "unused change address must not appear (no change lookahead)")
+}
+
+// TestElectrumDualKindServesAndSpendsTaproot proves a standard hot segwit wallet
+// also derives, tracks, and spends taproot (BIP86) from the same seed.
+func TestElectrumDualKindServesAndSpendsTaproot(t *testing.T) {
+	net := &chaincfg.SigNetParams
+	ctx := context.Background()
+	p, fake, w, _ := newElectrumFixture(t) // native-segwit hot wallet
+
+	tapAddr, err := p.NextReceiveAddress(ctx, w.ID, ScriptTaproot)
+	require.NoError(t, err)
+	require.True(t, strings.HasPrefix(tapAddr, net.Bech32HRPSegwit+"1p"), "want bech32m, got %s", tapAddr)
+
+	// Fund the taproot address only, then spend it — proves the dual-kind scan
+	// tracks and signs taproot UTXOs, not just the wallet's primary segwit kind.
+	fake.stats[tapAddr] = EsploraAddressStats{
+		Address:    tapAddr,
+		ChainStats: EsploraTxoStats{FundedTxoCount: 1, FundedTxoSum: 200_000, TxCount: 1},
+	}
+	fake.utxos[tapAddr] = []EsploraUTXO{{
+		TxID: "2222222222222222222222222222222222222222222222222222222222222222",
+		Vout: 0, Value: 200_000,
+		Status: EsploraStatus{Confirmed: true, BlockHeight: 100},
+	}}
+
+	confirmed, _, err := p.Balance(ctx, w.ID)
+	require.NoError(t, err)
+	assert.InDelta(t, 0.002, confirmed, 1e-9, "taproot funds must count toward the segwit wallet's balance")
+
+	txid, err := p.Send(ctx, w.ID, SendRequest{
+		DestinationsSats: map[string]int64{"tb1qw508d6qejxtdg4y5r3zarvary0c5xw7kxpjzsx": 50_000},
+		FeeRateSatPerVB:  2,
+	})
+	require.NoError(t, err)
+	assert.Equal(t, "broadcasttxid", txid)
+	require.Len(t, fake.broadcast, 1)
+}
+
+// TestElectrumListReceivedCapsAtHighestUsed proves the receive list stops at the
+// highest external index that has received funds, plus one — not the full
+// gap-limit lookahead the scan walks.
+func TestElectrumListReceivedCapsAtHighestUsed(t *testing.T) {
+	net := &chaincfg.SigNetParams
+	ctx := context.Background()
+	svc := newTestService(t)
+	seedWallet, err := svc.CreateElectrumWallet("Seed", nil, nil, testMnemonic, "", "", 0, "")
+	require.NoError(t, err)
+	xpub := accountXpub(t, seedWallet.Master.SeedHex, net)
+	wo, err := svc.CreateElectrumWallet("Watch", nil, nil, "", xpub, "", 0, "") // single-kind segwit
+	require.NoError(t, err)
+
+	addrs, err := DeriveBIP84Addresses(seedWallet.Master.SeedHex, net, 0, 6)
+	require.NoError(t, err)
+
+	fake := newFakeEsplora()
+	p := NewElectrumBackend(svc, fake, net, zerolog.New(zerolog.NewTestWriter(t)))
+	// Index 2 received funds; everything else is unused.
+	fake.stats[addrs[2]] = EsploraAddressStats{Address: addrs[2], ChainStats: EsploraTxoStats{FundedTxoCount: 1, FundedTxoSum: 70_000, TxCount: 1}}
+
+	recv, err := p.ListReceivedByAddress(ctx, wo.ID)
+	require.NoError(t, err)
+	assert.Len(t, recv, 4, "list must stop at highest-received + 1, not dump the gap-limit lookahead")
 	listed := map[string]bool{}
 	for _, r := range recv {
 		listed[r.Address] = true
 	}
-	assert.True(t, listed[addr], "external receive address must be listed")
-	assert.False(t, listed[chgAddr], "change address must not appear in the receive list")
+	for i := 0; i <= 3; i++ {
+		assert.True(t, listed[addrs[i]], "index %d (within highest-received + 1) must be listed", i)
+	}
+	assert.False(t, listed[addrs[4]], "index 4 (beyond highest-received + 1) must not be listed")
+}
+
+// TestElectrumListReceivedReportsCurrentBalance proves the receive list reports
+// each address's current balance (funded minus spent), not gross received.
+func TestElectrumListReceivedReportsCurrentBalance(t *testing.T) {
+	net := &chaincfg.SigNetParams
+	ctx := context.Background()
+	svc := newTestService(t)
+	seedWallet, err := svc.CreateElectrumWallet("Seed", nil, nil, testMnemonic, "", "", 0, "")
+	require.NoError(t, err)
+	xpub := accountXpub(t, seedWallet.Master.SeedHex, net)
+	wo, err := svc.CreateElectrumWallet("Watch", nil, nil, "", xpub, "", 0, "")
+	require.NoError(t, err)
+
+	addrs, err := DeriveBIP84Addresses(seedWallet.Master.SeedHex, net, 0, 2)
+	require.NoError(t, err)
+
+	fake := newFakeEsplora()
+	p := NewElectrumBackend(svc, fake, net, zerolog.New(zerolog.NewTestWriter(t)))
+	// Index 0: received 100k then spent all of it → current balance 0.
+	fake.stats[addrs[0]] = EsploraAddressStats{Address: addrs[0], ChainStats: EsploraTxoStats{FundedTxoCount: 1, FundedTxoSum: 100_000, SpentTxoCount: 1, SpentTxoSum: 100_000, TxCount: 2}}
+	// Index 1: received 50k, unspent → current balance 0.0005.
+	fake.stats[addrs[1]] = EsploraAddressStats{Address: addrs[1], ChainStats: EsploraTxoStats{FundedTxoCount: 1, FundedTxoSum: 50_000, TxCount: 1}}
+
+	recv, err := p.ListReceivedByAddress(ctx, wo.ID)
+	require.NoError(t, err)
+	byAddr := map[string]float64{}
+	for _, r := range recv {
+		byAddr[r.Address] = r.Amount
+	}
+	assert.InDelta(t, 0.0, byAddr[addrs[0]], 1e-9, "fully spent address must report zero balance, not gross received")
+	assert.InDelta(t, 0.0005, byAddr[addrs[1]], 1e-9)
 }
 
 // TestElectrumWatchOnlyUTXOsNotSpendable: a watch-only wallet's coins are

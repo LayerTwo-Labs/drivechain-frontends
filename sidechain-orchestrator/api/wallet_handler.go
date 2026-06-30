@@ -725,6 +725,7 @@ func (h *WalletHandler) ListReceiveAddresses(ctx context.Context, req *connect.R
 			AmountSats: int64(math.Round(a.Amount * 1e8)),
 			Label:      a.Label,
 			TxCount:    int32(len(a.TxIDs)),
+			IsChange:   a.Change,
 		}
 	})
 

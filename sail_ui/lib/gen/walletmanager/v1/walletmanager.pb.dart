@@ -4460,6 +4460,7 @@ class ReceiveAddress extends $pb.GeneratedMessage {
     $fixnum.Int64? amountSats,
     $core.String? label,
     $core.int? txCount,
+    $core.bool? isChange,
   }) {
     final $result = create();
     if (address != null) {
@@ -4477,6 +4478,9 @@ class ReceiveAddress extends $pb.GeneratedMessage {
     if (txCount != null) {
       $result.txCount = txCount;
     }
+    if (isChange != null) {
+      $result.isChange = isChange;
+    }
     return $result;
   }
   ReceiveAddress._() : super();
@@ -4489,6 +4493,7 @@ class ReceiveAddress extends $pb.GeneratedMessage {
     ..aInt64(3, _omitFieldNames ? '' : 'amountSats')
     ..aOS(4, _omitFieldNames ? '' : 'label')
     ..a<$core.int>(5, _omitFieldNames ? '' : 'txCount', $pb.PbFieldType.O3)
+    ..aOB(6, _omitFieldNames ? '' : 'isChange')
     ..hasRequiredFields = false
   ;
 
@@ -4557,6 +4562,15 @@ class ReceiveAddress extends $pb.GeneratedMessage {
   $core.bool hasTxCount() => $_has(4);
   @$pb.TagNumber(5)
   void clearTxCount() => clearField(5);
+
+  @$pb.TagNumber(6)
+  $core.bool get isChange => $_getBF(5);
+  @$pb.TagNumber(6)
+  set isChange($core.bool v) { $_setBool(5, v); }
+  @$pb.TagNumber(6)
+  $core.bool hasIsChange() => $_has(5);
+  @$pb.TagNumber(6)
+  void clearIsChange() => clearField(6);
 }
 
 class ListReceiveAddressesResponse extends $pb.GeneratedMessage {

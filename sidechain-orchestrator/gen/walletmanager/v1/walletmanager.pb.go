@@ -3916,6 +3916,7 @@ type ReceiveAddress struct {
 	AmountSats    int64                  `protobuf:"varint,3,opt,name=amount_sats,json=amountSats,proto3" json:"amount_sats,omitempty"`
 	Label         string                 `protobuf:"bytes,4,opt,name=label,proto3" json:"label,omitempty"`
 	TxCount       int32                  `protobuf:"varint,5,opt,name=tx_count,json=txCount,proto3" json:"tx_count,omitempty"`
+	IsChange      bool                   `protobuf:"varint,6,opt,name=is_change,json=isChange,proto3" json:"is_change,omitempty"` // internal change address vs external receive address
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -3983,6 +3984,13 @@ func (x *ReceiveAddress) GetTxCount() int32 {
 		return x.TxCount
 	}
 	return 0
+}
+
+func (x *ReceiveAddress) GetIsChange() bool {
+	if x != nil {
+		return x.IsChange
+	}
+	return false
 }
 
 type ListReceiveAddressesResponse struct {
@@ -6366,14 +6374,15 @@ const file_walletmanager_v1_walletmanager_proto_rawDesc = "" +
 	"\x13ListUnspentResponse\x125\n" +
 	"\x05utxos\x18\x01 \x03(\v2\x1f.walletmanager.v1.UnspentOutputR\x05utxos\":\n" +
 	"\x1bListReceiveAddressesRequest\x12\x1b\n" +
-	"\twallet_id\x18\x01 \x01(\tR\bwalletId\"\x94\x01\n" +
+	"\twallet_id\x18\x01 \x01(\tR\bwalletId\"\xb1\x01\n" +
 	"\x0eReceiveAddress\x12\x18\n" +
 	"\aaddress\x18\x01 \x01(\tR\aaddress\x12\x16\n" +
 	"\x06amount\x18\x02 \x01(\x01R\x06amount\x12\x1f\n" +
 	"\vamount_sats\x18\x03 \x01(\x03R\n" +
 	"amountSats\x12\x14\n" +
 	"\x05label\x18\x04 \x01(\tR\x05label\x12\x19\n" +
-	"\btx_count\x18\x05 \x01(\x05R\atxCount\"^\n" +
+	"\btx_count\x18\x05 \x01(\x05R\atxCount\x12\x1b\n" +
+	"\tis_change\x18\x06 \x01(\bR\bisChange\"^\n" +
 	"\x1cListReceiveAddressesResponse\x12>\n" +
 	"\taddresses\x18\x01 \x03(\v2 .walletmanager.v1.ReceiveAddressR\taddresses\"O\n" +
 	"\x1cGetTransactionDetailsRequest\x12\x1b\n" +
