@@ -72,6 +72,27 @@ func HotScriptKind(s string) ScriptKind {
 	}
 }
 
+// parseScriptKind is the inverse of String(), resolving a persisted kind label
+// back to its ScriptKind. An unrecognized label defaults to native segwit.
+func parseScriptKind(s string) ScriptKind {
+	switch s {
+	case "legacy":
+		return ScriptLegacy
+	case "nested-segwit":
+		return ScriptNestedSegwit
+	case "taproot":
+		return ScriptTaproot
+	case "multisig":
+		return ScriptMultisig
+	case "multisig-p2sh":
+		return ScriptMultisigP2SH
+	case "multisig-nested":
+		return ScriptMultisigNested
+	default:
+		return ScriptNativeSegwit
+	}
+}
+
 func (k ScriptKind) String() string {
 	switch k {
 	case ScriptLegacy:

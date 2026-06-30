@@ -15,6 +15,7 @@ var electrumScanTables = []string{"electrum_addresses", "electrum_utxos", "elect
 // Keys and scripts are re-derived from the seed on load, so only fetched data
 // is persisted.
 type persistedAddr struct {
+	Kind    ScriptKind
 	Change  bool
 	Index   uint32
 	Address string
@@ -60,10 +61,10 @@ func (s *Service) loadElectrumScan(walletID string) (*persistedScan, bool) {
 
 func (s *Service) loadElectrumAddrs(ctx context.Context, walletID string) (map[string]*persistedAddr, []string, bool) {
 	rows, err := s.electrumDB.QueryContext(ctx, `
-		SELECT address, change, idx,
+		SELECT address, kind, change, idx,
 		       chain_funded_count, chain_funded_sum, chain_spent_count, chain_spent_sum, chain_tx_count,
 		       mempool_funded_count, mempool_funded_sum, mempool_spent_count, mempool_spent_sum, mempool_tx_count
-		FROM electrum_addresses WHERE wallet_id = ? ORDER BY change, idx`, walletID)
+		FROM electrum_addresses WHERE wallet_id = ? ORDER BY kind, change, idx`, walletID)
 	if err != nil {
 		s.log.Warn().Err(err).Msg("load electrum addresses failed")
 		return nil, nil, false
@@ -74,13 +75,15 @@ func (s *Service) loadElectrumAddrs(ctx context.Context, walletID string) (map[s
 	var order []string
 	for rows.Next() {
 		var a persistedAddr
+		var kind string
 		cs, ms := &a.Stats.ChainStats, &a.Stats.MempoolStats
-		if err := rows.Scan(&a.Address, &a.Change, &a.Index,
+		if err := rows.Scan(&a.Address, &kind, &a.Change, &a.Index,
 			&cs.FundedTxoCount, &cs.FundedTxoSum, &cs.SpentTxoCount, &cs.SpentTxoSum, &cs.TxCount,
 			&ms.FundedTxoCount, &ms.FundedTxoSum, &ms.SpentTxoCount, &ms.SpentTxoSum, &ms.TxCount); err != nil {
 			s.log.Warn().Err(err).Msg("scan electrum address failed")
 			return nil, nil, false
 		}
+		a.Kind = parseScriptKind(kind)
 		a.Stats.Address = a.Address
 		byAddr[a.Address] = &a
 		order = append(order, a.Address)
@@ -142,35 +145,35 @@ func (s *Service) loadElectrumTxs(ctx context.Context, walletID string, byAddr m
 	return rows.Err() == nil
 }
 
-// firstUnusedAddress returns the lowest-index address on a chain with no
+// firstUnusedAddress returns the lowest-index address on a kind's chain with no
 // on-chain or mempool history — the next address to hand out for receiving.
 // ok is false when the wallet has no stored addresses for that chain yet, or
 // every one is used; the caller then derives the next index locally.
-func (s *Service) firstUnusedAddress(walletID string, change bool) (string, bool) {
+func (s *Service) firstUnusedAddress(walletID string, kind ScriptKind, change bool) (string, bool) {
 	if s.electrumDB == nil {
 		return "", false
 	}
 	var addr string
 	err := s.electrumDB.QueryRowContext(context.Background(),
 		`SELECT address FROM electrum_addresses
-		 WHERE wallet_id = ? AND change = ? AND chain_tx_count = 0 AND mempool_tx_count = 0
-		 ORDER BY idx LIMIT 1`, walletID, change).Scan(&addr)
+		 WHERE wallet_id = ? AND kind = ? AND change = ? AND chain_tx_count = 0 AND mempool_tx_count = 0
+		 ORDER BY idx LIMIT 1`, walletID, kind.String(), change).Scan(&addr)
 	if err != nil {
 		return "", false
 	}
 	return addr, true
 }
 
-// maxAddressIndex returns the highest stored address index on a chain, or -1
-// when none are stored. Used to derive the next address past what is known.
-func (s *Service) maxAddressIndex(walletID string, change bool) int {
+// maxAddressIndex returns the highest stored address index on a kind's chain, or
+// -1 when none are stored. Used to derive the next address past what is known.
+func (s *Service) maxAddressIndex(walletID string, kind ScriptKind, change bool) int {
 	if s.electrumDB == nil {
 		return -1
 	}
 	var max sql.NullInt64
 	if err := s.electrumDB.QueryRowContext(context.Background(),
-		`SELECT MAX(idx) FROM electrum_addresses WHERE wallet_id = ? AND change = ?`,
-		walletID, change).Scan(&max); err != nil || !max.Valid {
+		`SELECT MAX(idx) FROM electrum_addresses WHERE wallet_id = ? AND kind = ? AND change = ?`,
+		walletID, kind.String(), change).Scan(&max); err != nil || !max.Valid {
 		return -1
 	}
 	return int(max.Int64)
@@ -197,11 +200,11 @@ func (s *Service) saveElectrumScan(walletID string, ps *persistedScan) error {
 	for _, a := range ps.Addrs {
 		cs, ms := a.Stats.ChainStats, a.Stats.MempoolStats
 		if _, err := tx.ExecContext(ctx, `INSERT INTO electrum_addresses
-			(wallet_id, change, idx, address,
+			(wallet_id, kind, change, idx, address,
 			 chain_funded_count, chain_funded_sum, chain_spent_count, chain_spent_sum, chain_tx_count,
 			 mempool_funded_count, mempool_funded_sum, mempool_spent_count, mempool_spent_sum, mempool_tx_count)
-			VALUES (?,?,?,?, ?,?,?,?,?, ?,?,?,?,?)`,
-			walletID, a.Change, a.Index, a.Address,
+			VALUES (?,?,?,?,?, ?,?,?,?,?, ?,?,?,?,?)`,
+			walletID, a.Kind.String(), a.Change, a.Index, a.Address,
 			cs.FundedTxoCount, cs.FundedTxoSum, cs.SpentTxoCount, cs.SpentTxoSum, cs.TxCount,
 			ms.FundedTxoCount, ms.FundedTxoSum, ms.SpentTxoCount, ms.SpentTxoSum, ms.TxCount); err != nil {
 			return err

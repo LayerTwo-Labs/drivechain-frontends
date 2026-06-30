@@ -45,6 +45,7 @@ type ReceivedByAddress struct {
 	Confirmations int      `json:"confirmations"`
 	Label         string   `json:"label"`
 	TxIDs         []string `json:"txids"`
+	Change        bool     `json:"change"`
 }
 
 // WalletTx is the wallet's view of one of its own transactions

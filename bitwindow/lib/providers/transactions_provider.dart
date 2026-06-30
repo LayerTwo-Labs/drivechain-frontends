@@ -189,7 +189,7 @@ class TransactionProvider extends ChangeNotifier {
                     address: address.address,
                     label: address.label,
                     currentBalanceSat: address.amountSats,
-                    isChange: false,
+                    isChange: address.isChange,
                     lastUsedAt: Timestamp(),
                   ),
                 )

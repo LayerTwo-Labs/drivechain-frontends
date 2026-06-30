@@ -239,39 +239,61 @@ func (p *ElectrumBackend) ListTransactionsRange(ctx context.Context, walletID st
 }
 
 func (p *ElectrumBackend) ListReceivedByAddress(ctx context.Context, walletID string) ([]ReceivedByAddress, error) {
-	// Served from the local cache so the receive screen never blocks on a scan;
-	// confirmations come from the cached tip, best-effort.
-	scan := p.localScan(walletID)
+	// Shares the tip-gated scan the rest of the wallet reads use, so the receive
+	// list reflects the same chain state as the balance instead of a stale cache.
+	scan, err := p.scanWallet(ctx, walletID)
+	if err != nil {
+		return nil, err
+	}
 	tip, _ := p.client.TipHeight(ctx)
+
+	// The scan walks the full gap-limit lookahead, but the list should stop at
+	// the highest index that has received funds, tracked per derivation chain
+	// (script kind × external/change), since each is independent. External chains
+	// also show the next unused address (the one the receive screen hands out);
+	// change chains do not — an unused change address is never offered manually.
+	type chainKey struct {
+		kind   ScriptKind
+		change bool
+	}
+	highestReceived := make(map[chainKey]int)
+	for _, a := range scan.addrs {
+		if a.hdPath == "" {
+			continue
+		}
+		key := chainKey{a.kind, a.change}
+		if _, ok := highestReceived[key]; !ok {
+			highestReceived[key] = -1
+		}
+		received := a.stats.ChainStats.FundedTxoCount > 0 || a.stats.MempoolStats.FundedTxoCount > 0
+		if received && int(a.index) > highestReceived[key] {
+			highestReceived[key] = int(a.index)
+		}
+	}
 
 	out := make([]ReceivedByAddress, 0, len(scan.addrs))
 	for _, a := range scan.addrs {
-		// Internal change addresses are not receive addresses; skip them so the
-		// list mirrors Core's external-only receive view.
-		if a.change {
+		if a.hdPath == "" {
 			continue
 		}
-		entry := ReceivedByAddress{Address: a.address}
-		var receivedSats int64
-		maxConfs := 0
+		limit := highestReceived[chainKey{a.kind, a.change}]
+		if !a.change {
+			limit++ // external: also show the next unused receive address
+		}
+		if int(a.index) > limit {
+			continue
+		}
+		// Current balance for the address: funded minus spent, on-chain and in
+		// the mempool. The column shows the live balance, not gross received.
+		balance := (a.stats.ChainStats.FundedTxoSum - a.stats.ChainStats.SpentTxoSum) +
+			(a.stats.MempoolStats.FundedTxoSum - a.stats.MempoolStats.SpentTxoSum)
+		entry := ReceivedByAddress{Address: a.address, Amount: float64(balance) / 1e8, Change: a.change}
 		for _, tx := range a.txs {
-			var paid int64
-			for _, vout := range tx.Vout {
-				if vout.ScriptPubKeyAddress == a.address {
-					paid += vout.Value
-				}
-			}
-			if paid == 0 {
-				continue
-			}
-			receivedSats += paid
 			entry.TxIDs = append(entry.TxIDs, tx.TxID)
-			if c := confsFor(tx.Status, tip); c > maxConfs {
-				maxConfs = c
+			if c := confsFor(tx.Status, tip); c > entry.Confirmations {
+				entry.Confirmations = c
 			}
 		}
-		entry.Amount = float64(receivedSats) / 1e8
-		entry.Confirmations = maxConfs
 		out = append(out, entry)
 	}
 	return out, nil
@@ -329,80 +351,68 @@ func (p *ElectrumBackend) AddressHDPath(ctx context.Context, walletID, address s
 }
 
 func (p *ElectrumBackend) NextReceiveAddress(ctx context.Context, walletID string, kind ScriptKind) (string, error) {
-	// Electrum wallets are single-kind: every address is derived, scanned, and
-	// signed under the wallet's configured script kind. Serving a foreign kind
-	// would yield an address the wallet can neither track nor spend, so an
-	// explicit mismatch is rejected rather than silently downgraded.
-	if kind != ScriptUnknown {
-		w := p.svc.GetWalletByID(walletID)
-		if w == nil {
-			return "", fmt.Errorf("wallet %s not found", walletID)
-		}
-		if kind != w.scriptKind() {
-			return "", connect.NewError(
-				connect.CodeUnimplemented,
-				fmt.Errorf("electrum wallet is %s; cannot serve %s addresses", w.scriptKind(), kind),
-			)
-		}
+	w := p.svc.GetWalletByID(walletID)
+	if w == nil {
+		return "", fmt.Errorf("wallet %s not found", walletID)
 	}
-	return p.nextUnused(walletID, false)
+	// ScriptUnknown is the default sentinel ("the wallet's natural kind").
+	target := kind
+	if target == ScriptUnknown {
+		target = w.scriptKind()
+	}
+	// Serving a kind the wallet doesn't derive would yield an address it can
+	// neither track nor spend, so reject it rather than silently downgrade.
+	if !lo.Contains(p.receiveKinds(w), target) {
+		return "", connect.NewError(
+			connect.CodeUnimplemented,
+			fmt.Errorf("electrum wallet does not derive %s addresses", target),
+		)
+	}
+	return p.nextUnused(walletID, target, false)
 }
 
 func (p *ElectrumBackend) NextChangeAddress(ctx context.Context, walletID string) (string, error) {
-	return p.nextUnused(walletID, true)
+	w := p.svc.GetWalletByID(walletID)
+	if w == nil {
+		return "", fmt.Errorf("wallet %s not found", walletID)
+	}
+	return p.nextUnused(walletID, w.scriptKind(), true)
 }
 
-// nextUnused picks the next unused address with no network call: a plain SELECT
-// for the lowest-index address on the chain with no history, and when none is on
-// record (fresh wallet, or every stored address is used) it derives the next
-// index locally. Either way it is instant — address allocation never blocks on a
-// scan. The background scan keeps electrum_addresses' usage current.
-func (p *ElectrumBackend) nextUnused(walletID string, change bool) (string, error) {
-	if addr, ok := p.svc.firstUnusedAddress(walletID, change); ok {
+// nextUnused picks the next unused address of a kind with no network call: a
+// plain SELECT for the lowest-index address on the chain with no history, and
+// when none is on record (fresh wallet, or every stored address is used) it
+// derives the next index locally. Either way it is instant — address allocation
+// never blocks on a scan. The background scan keeps electrum_addresses current.
+func (p *ElectrumBackend) nextUnused(walletID string, kind ScriptKind, change bool) (string, error) {
+	if addr, ok := p.svc.firstUnusedAddress(walletID, kind, change); ok {
 		return addr, nil
 	}
 	w := p.svc.GetWalletByID(walletID)
 	if w == nil {
 		return "", fmt.Errorf("wallet %s not found", walletID)
 	}
-	derivers, _, err := p.chainDerivers(w)
+	derivers, err := p.kindDerivers(w, kind)
 	if err != nil {
 		return "", err
 	}
-	a, err := derivers[chainIndex(change)](uint32(p.svc.maxAddressIndex(walletID, change) + 1))
+	a, err := derivers[chainIndex(change)](uint32(p.svc.maxAddressIndex(walletID, kind, change) + 1))
 	if err != nil {
 		return "", err
 	}
 	return a.address, nil
 }
 
-// localScan returns the wallet's known chain state with no network calls: the
-// warm in-memory scan, else the on-disk scan, else an empty scan.
-func (p *ElectrumBackend) localScan(walletID string) *electrumScan {
-	p.mu.Lock()
-	scan := p.warmScan[walletID]
-	p.mu.Unlock()
-	if scan != nil {
-		return scan
-	}
-	if w := p.svc.GetWalletByID(walletID); w != nil {
-		if cold, _, ok := p.rebuildScanFromDisk(walletID, w); ok {
-			return cold
-		}
-	}
-	return &electrumScan{byAddr: make(map[string]scannedAddr), keys: make(mapKeySource)}
-}
-
 // nextUnusedAddrFromScan returns the next unused address on a chain from an
 // existing scan (with derivation records), for the send path that builds a
 // change output without a second wallet scan.
-func (p *ElectrumBackend) nextUnusedAddrFromScan(walletID string, scan *electrumScan, change bool) (scannedAddr, error) {
+func (p *ElectrumBackend) nextUnusedAddrFromScan(walletID string, scan *electrumScan, kind ScriptKind, change bool) (scannedAddr, error) {
 	highest := -1
 	for _, a := range scan.addrs {
 		// Skip BIP47 watch keys (empty hdPath); they aren't part of the
 		// derivation chain. Watch-only chain addresses have no priv key but
 		// still advance the chain, so the chain marker is hdPath, not priv.
-		if a.hdPath == "" || a.change != change {
+		if a.hdPath == "" || a.change != change || a.kind != kind {
 			continue
 		}
 		if int(a.index) > highest {
@@ -417,15 +427,11 @@ func (p *ElectrumBackend) nextUnusedAddrFromScan(walletID string, scan *electrum
 	if w == nil {
 		return scannedAddr{}, fmt.Errorf("wallet %s not found", walletID)
 	}
-	derivers, _, err := p.chainDerivers(w)
+	derivers, err := p.kindDerivers(w, kind)
 	if err != nil {
 		return scannedAddr{}, err
 	}
-	chainIdx := 0
-	if change {
-		chainIdx = 1
-	}
-	a, err := derivers[chainIdx](uint32(highest + 1))
+	a, err := derivers[chainIndex(change)](uint32(highest + 1))
 	if err != nil {
 		return scannedAddr{}, err
 	}
@@ -798,7 +804,7 @@ func (p *ElectrumBackend) buildSendPSBT(ctx context.Context, walletID string, sc
 	}
 	effect := &spendEffect{spent: selected}
 	if changeSats >= changeDust {
-		changeAddr, err := p.nextUnusedAddrFromScan(walletID, scan, true)
+		changeAddr, err := p.nextUnusedAddrFromScan(walletID, scan, w.scriptKind(), true)
 		if err != nil {
 			return nil, nil, nil, fmt.Errorf("derive change address: %w", err)
 		}
@@ -1075,7 +1081,7 @@ func (p *ElectrumBackend) CreateCpfp(ctx context.Context, walletID string, req C
 			fmt.Errorf("child fee %d sats exceeds parent output value %d sats", childFee, parentUTXO.amountSats))
 	}
 
-	childAddr, err := p.nextUnusedAddrFromScan(walletID, scan, false)
+	childAddr, err := p.nextUnusedAddrFromScan(walletID, scan, w.scriptKind(), false)
 	if err != nil {
 		return "", fmt.Errorf("derive child address: %w", err)
 	}
@@ -1266,15 +1272,22 @@ func (c esploraChain) Broadcast(ctx context.Context, rawHex string) (string, err
 // Derivation + scanning
 // ============================================================================
 
-// walletDescriptor builds the parsed output descriptor for a wallet: from its
-// seed + script kind when hot (the account key is private, so its addresses can
-// be signed), or from its stored watch-only descriptor otherwise.
+// walletDescriptor builds the parsed output descriptor for a wallet's primary
+// script kind — the kind used for change and fee sizing.
 func (p *ElectrumBackend) walletDescriptor(w *WalletData) (*Descriptor, error) {
+	return p.walletDescriptorFor(w, w.scriptKind())
+}
+
+// walletDescriptorFor builds the parsed output descriptor for one of a wallet's
+// script kinds: from its seed + the kind when hot (the account key is private,
+// so its addresses can be signed), or from its single stored watch-only
+// descriptor otherwise (watch-only wallets are single-kind, so kind is ignored).
+func (p *ElectrumBackend) walletDescriptorFor(w *WalletData, kind ScriptKind) (*Descriptor, error) {
 	if p.network == nil {
 		return nil, errors.New("no chain params for this network; cannot derive electrum wallet")
 	}
 	if w.Master.SeedHex != "" {
-		ap, err := accountPathFor(w, w.scriptKind(), p.network)
+		ap, err := accountPathFor(w, kind, p.network)
 		if err != nil {
 			return nil, err
 		}
@@ -1282,7 +1295,7 @@ func (p *ElectrumBackend) walletDescriptor(w *WalletData) (*Descriptor, error) {
 		if err != nil {
 			return nil, err
 		}
-		return &Descriptor{Kind: w.scriptKind(), Threshold: 1, Keys: []DescriptorKey{{Origin: origin, Account: acct}}}, nil
+		return &Descriptor{Kind: kind, Threshold: 1, Keys: []DescriptorKey{{Origin: origin, Account: acct}}}, nil
 	}
 	desc, err := watchOnlyDescriptorString(w)
 	if err != nil {
@@ -1426,11 +1439,7 @@ func (p *ElectrumBackend) scan(ctx context.Context, walletID string, allowCache 
 		keys:   make(mapKeySource),
 	}
 
-	derivers, watchOnly, err := p.chainDerivers(w)
-	if err != nil {
-		return nil, err
-	}
-	scan.watchOnly = watchOnly
+	scan.watchOnly = w.IsWatchOnly()
 	chainNames := []string{"external", "change"}
 	// Only stream per-address progress on a wallet's first scan this process
 	// (the initial sync). Warm wallets re-scan on routine balance polls, and
@@ -1449,16 +1458,22 @@ func (p *ElectrumBackend) scan(ctx context.Context, walletID string, allowCache 
 		}
 	}
 	defer p.svc.syncReporter.publish(walletID, SyncProgress{Phase: SyncIdle, Message: "Idle"})
-	for i, d := range derivers {
-		chain := "external"
-		if i < len(chainNames) {
-			chain = chainNames[i]
-		}
-		addrs, err := p.scanChain(ctx, walletID, chain, d, prior, initial)
+	for _, kind := range p.receiveKinds(w) {
+		derivers, err := p.kindDerivers(w, kind)
 		if err != nil {
 			return nil, err
 		}
-		scan.addrs = append(scan.addrs, addrs...)
+		for i, d := range derivers {
+			chain := "external"
+			if i < len(chainNames) {
+				chain = chainNames[i]
+			}
+			addrs, err := p.scanChain(ctx, walletID, chain, d, prior, initial)
+			if err != nil {
+				return nil, err
+			}
+			scan.addrs = append(scan.addrs, addrs...)
+		}
 	}
 	p.svc.syncReporter.publish(walletID, SyncProgress{Phase: SyncDone, Message: "Up to date"})
 
@@ -1567,16 +1582,22 @@ func (p *ElectrumBackend) rebuildScanFromDisk(walletID string, w *WalletData) (*
 	if !ok {
 		return nil, nil, false
 	}
-	d, err := p.walletDescriptor(w)
-	if err != nil {
-		return nil, nil, false
-	}
 	scan := &electrumScan{
 		byAddr:    make(map[string]scannedAddr),
 		keys:      make(mapKeySource),
 		watchOnly: w.IsWatchOnly(),
 	}
+	descByKind := make(map[ScriptKind]*Descriptor)
 	for _, pa := range ps.Addrs {
+		d, ok := descByKind[pa.Kind]
+		if !ok {
+			var err error
+			d, err = p.walletDescriptorFor(w, pa.Kind)
+			if err != nil {
+				return nil, nil, false
+			}
+			descByKind[pa.Kind] = d
+		}
 		a, err := p.deriveAddr(d, pa.Change, pa.Index)
 		if err != nil || a.address != pa.Address {
 			return nil, nil, false // cache drift — fall back to a live scan
@@ -1610,7 +1631,7 @@ func (p *ElectrumBackend) persistScan(walletID string, scan *electrumScan) {
 			return persistedAddr{}, false
 		}
 		return persistedAddr{
-			Change: a.change, Index: a.index, Address: a.address,
+			Kind: a.kind, Change: a.change, Index: a.index, Address: a.address,
 			Stats: a.stats, UTXOs: a.utxos, Txs: a.txs,
 		}, true
 	})
@@ -1636,21 +1657,41 @@ func (p *ElectrumBackend) persistScan(walletID string, scan *electrumScan) {
 // chainDeriver derives the address+key at an index of one derivation chain.
 type chainDeriver func(index uint32) (scannedAddr, error)
 
-// chainDerivers returns the external+change derivers for a wallet from its
-// output descriptor. The second return is true for watch-only (no priv keys).
-func (p *ElectrumBackend) chainDerivers(w *WalletData) ([]chainDeriver, bool, error) {
-	d, err := p.walletDescriptor(w)
+// receiveKinds lists the script kinds an electrum wallet derives receive
+// addresses for. A standard hot single-sig segwit or taproot wallet derives
+// both (BIP84 + BIP86) from its one seed, so the receive screen can switch
+// between them; its own kind is listed first as the primary used for change and
+// fee sizing. Every other wallet — watch-only, explicit-path, legacy, nested,
+// or multisig — is single-kind.
+func (p *ElectrumBackend) receiveKinds(w *WalletData) []ScriptKind {
+	primary := w.scriptKind()
+	if w.IsWatchOnly() || w.usesExplicitPath() {
+		return []ScriptKind{primary}
+	}
+	switch primary {
+	case ScriptNativeSegwit:
+		return []ScriptKind{ScriptNativeSegwit, ScriptTaproot}
+	case ScriptTaproot:
+		return []ScriptKind{ScriptTaproot, ScriptNativeSegwit}
+	default:
+		return []ScriptKind{primary}
+	}
+}
+
+// kindDerivers returns the external (index 0) and change (index 1) address
+// derivers for one script kind of a wallet, built from that kind's descriptor.
+func (p *ElectrumBackend) kindDerivers(w *WalletData, kind ScriptKind) ([]chainDeriver, error) {
+	d, err := p.walletDescriptorFor(w, kind)
 	if err != nil {
-		return nil, false, err
+		return nil, err
 	}
-	var out []chainDeriver
-	for _, change := range []bool{false, true} {
-		change := change
-		out = append(out, func(i uint32) (scannedAddr, error) {
+	out := make([]chainDeriver, 2)
+	for ci, change := range []bool{false, true} {
+		out[ci] = func(i uint32) (scannedAddr, error) {
 			return p.deriveAddr(d, change, i)
-		})
+		}
 	}
-	return out, w.IsWatchOnly(), nil
+	return out, nil
 }
 
 func (p *ElectrumBackend) scanChain(ctx context.Context, walletID, chain string, derive chainDeriver, prior *electrumScan, initial bool) ([]scannedAddr, error) {

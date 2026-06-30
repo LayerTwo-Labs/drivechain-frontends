@@ -529,6 +529,7 @@ message ReceiveAddress {
   int64 amount_sats = 3;
   string label = 4;
   int32 tx_count = 5;
+  bool is_change = 6;  // internal change address vs external receive address
 }
 
 message ListReceiveAddressesResponse {

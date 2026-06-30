@@ -1071,6 +1071,7 @@ const ReceiveAddress$json = {
     {'1': 'amount_sats', '3': 3, '4': 1, '5': 3, '10': 'amountSats'},
     {'1': 'label', '3': 4, '4': 1, '5': 9, '10': 'label'},
     {'1': 'tx_count', '3': 5, '4': 1, '5': 5, '10': 'txCount'},
+    {'1': 'is_change', '3': 6, '4': 1, '5': 8, '10': 'isChange'},
   ],
 };
 
@@ -1078,7 +1079,8 @@ const ReceiveAddress$json = {
 final $typed_data.Uint8List receiveAddressDescriptor = $convert.base64Decode(
     'Cg5SZWNlaXZlQWRkcmVzcxIYCgdhZGRyZXNzGAEgASgJUgdhZGRyZXNzEhYKBmFtb3VudBgCIA'
     'EoAVIGYW1vdW50Eh8KC2Ftb3VudF9zYXRzGAMgASgDUgphbW91bnRTYXRzEhQKBWxhYmVsGAQg'
-    'ASgJUgVsYWJlbBIZCgh0eF9jb3VudBgFIAEoBVIHdHhDb3VudA==');
+    'ASgJUgVsYWJlbBIZCgh0eF9jb3VudBgFIAEoBVIHdHhDb3VudBIbCglpc19jaGFuZ2UYBiABKA'
+    'hSCGlzQ2hhbmdl');
 
 @$core.Deprecated('Use listReceiveAddressesResponseDescriptor instead')
 const ListReceiveAddressesResponse$json = {
