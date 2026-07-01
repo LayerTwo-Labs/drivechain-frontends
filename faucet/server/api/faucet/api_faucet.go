@@ -42,7 +42,7 @@ type Server struct {
 }
 
 const (
-	MaxCoinsPer5Min    = 100_000
+	MaxCoinsPer5Min    = 100
 	MaxCoinsPerRequest = 5
 	ResetInterval      = 5 * time.Minute
 )
