@@ -14,6 +14,17 @@ export function instanceNetwork(): string {
   return network;
 }
 
+// Loose sanity check to catch empty or obviously typo'd input before we hit
+// the node. Intentionally does not verify the checksum or network, the faucet's
+// Bitcoin Core node is the source of truth, so this stays permissive to avoid
+// rejecting a valid address.
+export function isPlausibleAddress(address: string): boolean {
+  const addr = address.trim();
+  const bech32 = /^(bc|tb|bcrt)1[a-z0-9]{6,87}$/i;
+  const base58 = /^[123mn][1-9A-HJ-NP-Za-km-z]{24,38}$/;
+  return bech32.test(addr) || base58.test(addr);
+}
+
 export function exampleAddressForNetwork(): string {
   switch (instanceNetwork()) {
     case "signet":
