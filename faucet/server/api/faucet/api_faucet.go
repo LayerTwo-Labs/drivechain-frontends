@@ -181,3 +181,24 @@ func (s *Server) ListClaims(ctx context.Context, req *connect.Request[pb.ListCla
 		Transactions: transactions,
 	}), nil
 }
+
+// GetStatus implements faucetv1connect.FaucetServiceHandler. It reports the
+// faucet's balance and whether it currently has enough funds to serve requests.
+func (s *Server) GetStatus(ctx context.Context, req *connect.Request[pb.GetStatusRequest]) (*connect.Response[pb.GetStatusResponse], error) {
+
+	const minHealthyBalance = 10
+
+	balances, err := s.bitcoind.GetBalances(ctx, &connect.Request[btcpb.GetBalancesRequest]{})
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("get balances: %w", err))
+	}
+
+	mine := balances.Msg.GetMine()
+	available := mine.GetTrusted()
+
+	return connect.NewResponse(&pb.GetStatusResponse{
+		Available: available,
+		Pending:   mine.GetUntrustedPending() + mine.GetImmature(),
+		Healthy:   available > minHealthyBalance,
+	}), nil
+}

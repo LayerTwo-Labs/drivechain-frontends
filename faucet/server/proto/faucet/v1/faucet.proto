@@ -8,6 +8,7 @@ import "buf/validate/validate.proto";
 service FaucetService {
   rpc DispenseCoins(DispenseCoinsRequest) returns (DispenseCoinsResponse) {}
   rpc ListClaims(ListClaimsRequest) returns (ListClaimsResponse) {}
+  rpc GetStatus(GetStatusRequest) returns (GetStatusResponse) {}
 }
 
 message DispenseCoinsRequest {
@@ -23,4 +24,15 @@ message ListClaimsRequest {}
 
 message ListClaimsResponse {
   repeated bitcoin.bitcoind.v1alpha.GetTransactionResponse transactions = 1;
+}
+
+message GetStatusRequest {}
+
+message GetStatusResponse {
+  // Spendable balance available for dispensing right now, in BTC.
+  double available = 1;
+  // Balance not yet spendable (unconfirmed incoming + immature coinbase), in BTC.
+  double pending = 2;
+  // Whether the faucet has enough funds to serve dispense requests.
+  bool healthy = 3;
 }
