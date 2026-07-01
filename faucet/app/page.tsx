@@ -25,6 +25,8 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [txid, setTxid] = useState<string | null>(null);
+  const [available, setAvailable] = useState<number | null>(null);
+  const [healthy, setHealthy] = useState<boolean | null>(null);
 
   const [claims, setClaims] = useState<GetTransactionResponse[]>([]);
   const [claimsLoading, setClaimsLoading] = useState(false);
@@ -44,10 +46,26 @@ export default function Home() {
       const response = await api.dispenseCoins({ amount: Number(amount), destination: address });
       setTxid(response.txid);
       fetchClaims(); // Refresh claims list
+      fetchStatus(); // Refresh faucet balance/health
     } catch (err) {
       setError(`Failed to dispense coins: ${err}`);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchStatus = async () => {
+    try {
+      const api = createClient(FaucetService, clientTransport);
+      const response = await api.getStatus({});
+      setAvailable(response.available);
+      setHealthy(response.healthy);
+    } catch (err) {
+      // Don't block the user if we can't read the status — just skip the
+      // pre-flight check and let the dispense call surface any error.
+      console.error("Failed to fetch faucet status", err);
+      setAvailable(null);
+      setHealthy(null);
     }
   };
 
@@ -75,9 +93,15 @@ export default function Home() {
   // biome-ignore lint/correctness/useExhaustiveDependencies: fetch once on mount
   useEffect(() => {
     fetchClaims();
+    fetchStatus();
   }, []);
 
   const MAX_AMOUNT = 5;
+
+  // The faucet reports itself unhealthy when it's low on funds; treat that as
+  // "can't serve right now".
+  const faucetUnhealthy = healthy === false;
+  const insufficientFunds = available !== null && amount !== "" && Number(amount) > available;
 
   const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
@@ -93,7 +117,10 @@ export default function Home() {
       <Card>
         <CardHeader>
           <CardTitle>Dispense Drivechain Coins</CardTitle>
-          <CardDescription>Send Drivechain coins to your L1-address</CardDescription>
+          <CardDescription>
+            Send Drivechain coins to your L1-address
+            {available !== null && !faucetUnhealthy && ` — ${available.toFixed(8)} BTC available`}
+          </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
           <div className="flex flex-col gap-2">
@@ -150,6 +177,20 @@ export default function Home() {
             </div>
           </div>
 
+          {faucetUnhealthy && (
+            <div className="p-3 text-sm text-red-500 bg-red-50 rounded-md border border-red-200">
+              The faucet is running low on funds and is temporarily unavailable. Please check back
+              later.
+            </div>
+          )}
+
+          {!faucetUnhealthy && insufficientFunds && (
+            <div className="p-3 text-sm text-amber-600 bg-amber-50 rounded-md border border-amber-200">
+              The faucet only has {available?.toFixed(8)} BTC available right now. Lower the amount
+              and try again.
+            </div>
+          )}
+
           {error && (
             <div className="p-3 text-sm text-red-500 bg-red-50 rounded-md border border-red-200">
               {error}
@@ -169,7 +210,7 @@ export default function Home() {
           <div className="flex gap-2">
             <Button
               onClick={handleDispense}
-              disabled={loading || !address || !amount}
+              disabled={loading || !address || !amount || faucetUnhealthy || insufficientFunds}
               loading={loading}
             >
               Send
