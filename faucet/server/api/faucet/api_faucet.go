@@ -38,12 +38,25 @@ type Server struct {
 	mu             sync.Mutex
 	dispensed      map[string]float64
 	totalDispensed float64
+	windowEnds     time.Time // when the current dispensation window resets
 }
 
 const (
 	MaxCoinsPer5Min    = 100_000
 	MaxCoinsPerRequest = 5
+	ResetInterval      = 5 * time.Minute
 )
+
+// resetIfWindowElapsed clears the dispensation counters and starts a new
+// window if the current one has passed. Callers must hold s.mu.
+func (s *Server) resetIfWindowElapsed(now time.Time) {
+	if now.Before(s.windowEnds) {
+		return
+	}
+	s.dispensed = make(map[string]float64)
+	s.totalDispensed = 0
+	s.windowEnds = now.Add(ResetInterval)
+}
 
 func NewClient(ctx context.Context, bitcoind bitcoindv1alphaconnect.BitcoinServiceClient) *Server {
 	faucet := &Server{
@@ -68,10 +81,9 @@ func (s *Server) resetHandler(ctx context.Context) {
 
 	for {
 		select {
-		case <-ticker.C:
+		case now := <-ticker.C:
 			s.mu.Lock()
-			s.totalDispensed = 0
-			s.dispensed = make(map[string]float64)
+			s.resetIfWindowElapsed(now)
 			s.mu.Unlock()
 			log.Println("faucet reset: cleared total dispensed coins, address list, and IP list.")
 		case <-connectionTicker.C:
@@ -90,9 +102,18 @@ func (s *Server) DispenseCoins(ctx context.Context, c *connect.Request[pb.Dispen
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
+	s.resetIfWindowElapsed(time.Now())
+
 	amount, err := s.validateDispenseArgs(c.Msg)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+	}
+
+	if s.totalDispensed > MaxCoinsPer5Min {
+		return nil, connect.NewError(connect.CodeResourceExhausted, fmt.Errorf(
+			"the faucet has hit its dispensation limit, try again in %s",
+			formatDuration(time.Until(s.windowEnds)),
+		))
 	}
 
 	s.recordDispensation(c.Msg.Destination, amount.ToBTC())
@@ -124,6 +145,31 @@ func (s *Server) DispenseCoins(ctx context.Context, c *connect.Request[pb.Dispen
 	}), nil
 }
 
+// formatDuration renders d as a user-friendly string like
+// "4 minutes and 30 seconds".
+func formatDuration(d time.Duration) string {
+	d = max(d.Round(time.Second), time.Second)
+
+	minutes := int(d.Minutes())
+	seconds := int(d.Seconds()) % 60
+
+	plural := func(n int, unit string) string {
+		if n == 1 {
+			return fmt.Sprintf("%d %s", n, unit)
+		}
+		return fmt.Sprintf("%d %ss", n, unit)
+	}
+
+	switch {
+	case minutes == 0:
+		return plural(seconds, "second")
+	case seconds == 0:
+		return plural(minutes, "minute")
+	default:
+		return plural(minutes, "minute") + " and " + plural(seconds, "second")
+	}
+}
+
 func (s *Server) recordDispensation(destination string, amount float64) {
 	s.dispensed[destination] += amount
 	s.totalDispensed += amount
@@ -143,10 +189,6 @@ func (s *Server) validateDispenseArgs(req *pb.DispenseCoinsRequest) (btcutil.Amo
 	amount, err := btcutil.NewAmount(req.Amount)
 	if err != nil {
 		return 0, fmt.Errorf("%.8f is not a valid bitcoin amount, expected format like 0.12345678", req.Amount)
-	}
-
-	if s.totalDispensed >= MaxCoinsPer5Min {
-		return 0, fmt.Errorf("faucet limit reached, try again later")
 	}
 
 	return amount, nil
