@@ -39,12 +39,15 @@ const (
 	// FaucetServiceListClaimsProcedure is the fully-qualified name of the FaucetService's ListClaims
 	// RPC.
 	FaucetServiceListClaimsProcedure = "/faucet.v1.FaucetService/ListClaims"
+	// FaucetServiceGetStatusProcedure is the fully-qualified name of the FaucetService's GetStatus RPC.
+	FaucetServiceGetStatusProcedure = "/faucet.v1.FaucetService/GetStatus"
 )
 
 // FaucetServiceClient is a client for the faucet.v1.FaucetService service.
 type FaucetServiceClient interface {
 	DispenseCoins(context.Context, *connect.Request[v1.DispenseCoinsRequest]) (*connect.Response[v1.DispenseCoinsResponse], error)
 	ListClaims(context.Context, *connect.Request[v1.ListClaimsRequest]) (*connect.Response[v1.ListClaimsResponse], error)
+	GetStatus(context.Context, *connect.Request[v1.GetStatusRequest]) (*connect.Response[v1.GetStatusResponse], error)
 }
 
 // NewFaucetServiceClient constructs a client for the faucet.v1.FaucetService service. By default,
@@ -70,6 +73,12 @@ func NewFaucetServiceClient(httpClient connect.HTTPClient, baseURL string, opts 
 			connect.WithSchema(faucetServiceMethods.ByName("ListClaims")),
 			connect.WithClientOptions(opts...),
 		),
+		getStatus: connect.NewClient[v1.GetStatusRequest, v1.GetStatusResponse](
+			httpClient,
+			baseURL+FaucetServiceGetStatusProcedure,
+			connect.WithSchema(faucetServiceMethods.ByName("GetStatus")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -77,6 +86,7 @@ func NewFaucetServiceClient(httpClient connect.HTTPClient, baseURL string, opts 
 type faucetServiceClient struct {
 	dispenseCoins *connect.Client[v1.DispenseCoinsRequest, v1.DispenseCoinsResponse]
 	listClaims    *connect.Client[v1.ListClaimsRequest, v1.ListClaimsResponse]
+	getStatus     *connect.Client[v1.GetStatusRequest, v1.GetStatusResponse]
 }
 
 // DispenseCoins calls faucet.v1.FaucetService.DispenseCoins.
@@ -89,10 +99,16 @@ func (c *faucetServiceClient) ListClaims(ctx context.Context, req *connect.Reque
 	return c.listClaims.CallUnary(ctx, req)
 }
 
+// GetStatus calls faucet.v1.FaucetService.GetStatus.
+func (c *faucetServiceClient) GetStatus(ctx context.Context, req *connect.Request[v1.GetStatusRequest]) (*connect.Response[v1.GetStatusResponse], error) {
+	return c.getStatus.CallUnary(ctx, req)
+}
+
 // FaucetServiceHandler is an implementation of the faucet.v1.FaucetService service.
 type FaucetServiceHandler interface {
 	DispenseCoins(context.Context, *connect.Request[v1.DispenseCoinsRequest]) (*connect.Response[v1.DispenseCoinsResponse], error)
 	ListClaims(context.Context, *connect.Request[v1.ListClaimsRequest]) (*connect.Response[v1.ListClaimsResponse], error)
+	GetStatus(context.Context, *connect.Request[v1.GetStatusRequest]) (*connect.Response[v1.GetStatusResponse], error)
 }
 
 // NewFaucetServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -114,12 +130,20 @@ func NewFaucetServiceHandler(svc FaucetServiceHandler, opts ...connect.HandlerOp
 		connect.WithSchema(faucetServiceMethods.ByName("ListClaims")),
 		connect.WithHandlerOptions(opts...),
 	)
+	faucetServiceGetStatusHandler := connect.NewUnaryHandler(
+		FaucetServiceGetStatusProcedure,
+		svc.GetStatus,
+		connect.WithSchema(faucetServiceMethods.ByName("GetStatus")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/faucet.v1.FaucetService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case FaucetServiceDispenseCoinsProcedure:
 			faucetServiceDispenseCoinsHandler.ServeHTTP(w, r)
 		case FaucetServiceListClaimsProcedure:
 			faucetServiceListClaimsHandler.ServeHTTP(w, r)
+		case FaucetServiceGetStatusProcedure:
+			faucetServiceGetStatusHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -135,4 +159,8 @@ func (UnimplementedFaucetServiceHandler) DispenseCoins(context.Context, *connect
 
 func (UnimplementedFaucetServiceHandler) ListClaims(context.Context, *connect.Request[v1.ListClaimsRequest]) (*connect.Response[v1.ListClaimsResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("faucet.v1.FaucetService.ListClaims is not implemented"))
+}
+
+func (UnimplementedFaucetServiceHandler) GetStatus(context.Context, *connect.Request[v1.GetStatusRequest]) (*connect.Response[v1.GetStatusResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("faucet.v1.FaucetService.GetStatus is not implemented"))
 }

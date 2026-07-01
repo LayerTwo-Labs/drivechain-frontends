@@ -13,3 +13,8 @@ export const dispenseCoins = FaucetService.method.dispenseCoins;
  * @generated from rpc faucet.v1.FaucetService.ListClaims
  */
 export const listClaims = FaucetService.method.listClaims;
+
+/**
+ * @generated from rpc faucet.v1.FaucetService.GetStatus
+ */
+export const getStatus = FaucetService.method.getStatus;

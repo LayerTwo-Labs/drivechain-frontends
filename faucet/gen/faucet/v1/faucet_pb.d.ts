@@ -118,6 +118,82 @@ export declare type ListClaimsResponseJson = {
 export declare const ListClaimsResponseSchema: GenMessage<ListClaimsResponse, {jsonType: ListClaimsResponseJson}>;
 
 /**
+ * @generated from message faucet.v1.GetStatusRequest
+ */
+export declare type GetStatusRequest = Message<"faucet.v1.GetStatusRequest"> & {
+};
+
+/**
+ * @generated from message faucet.v1.GetStatusRequest
+ */
+export declare type GetStatusRequestJson = {
+};
+
+/**
+ * Describes the message faucet.v1.GetStatusRequest.
+ * Use `create(GetStatusRequestSchema)` to create a new message.
+ */
+export declare const GetStatusRequestSchema: GenMessage<GetStatusRequest, {jsonType: GetStatusRequestJson}>;
+
+/**
+ * @generated from message faucet.v1.GetStatusResponse
+ */
+export declare type GetStatusResponse = Message<"faucet.v1.GetStatusResponse"> & {
+  /**
+   * Spendable balance available for dispensing right now, in BTC.
+   *
+   * @generated from field: double available = 1;
+   */
+  available: number;
+
+  /**
+   * Balance not yet spendable (unconfirmed incoming + immature coinbase), in BTC.
+   *
+   * @generated from field: double pending = 2;
+   */
+  pending: number;
+
+  /**
+   * Whether the faucet has enough funds to serve dispense requests.
+   *
+   * @generated from field: bool healthy = 3;
+   */
+  healthy: boolean;
+};
+
+/**
+ * @generated from message faucet.v1.GetStatusResponse
+ */
+export declare type GetStatusResponseJson = {
+  /**
+   * Spendable balance available for dispensing right now, in BTC.
+   *
+   * @generated from field: double available = 1;
+   */
+  available?: number | "NaN" | "Infinity" | "-Infinity";
+
+  /**
+   * Balance not yet spendable (unconfirmed incoming + immature coinbase), in BTC.
+   *
+   * @generated from field: double pending = 2;
+   */
+  pending?: number | "NaN" | "Infinity" | "-Infinity";
+
+  /**
+   * Whether the faucet has enough funds to serve dispense requests.
+   *
+   * @generated from field: bool healthy = 3;
+   */
+  healthy?: boolean;
+};
+
+/**
+ * Describes the message faucet.v1.GetStatusResponse.
+ * Use `create(GetStatusResponseSchema)` to create a new message.
+ */
+export declare const GetStatusResponseSchema: GenMessage<GetStatusResponse, {jsonType: GetStatusResponseJson}>;
+
+/**
  * @generated from service faucet.v1.FaucetService
  */
 export declare const FaucetService: GenService<{
@@ -136,6 +212,14 @@ export declare const FaucetService: GenService<{
     methodKind: "unary";
     input: typeof ListClaimsRequestSchema;
     output: typeof ListClaimsResponseSchema;
+  },
+  /**
+   * @generated from rpc faucet.v1.FaucetService.GetStatus
+   */
+  getStatus: {
+    methodKind: "unary";
+    input: typeof GetStatusRequestSchema;
+    output: typeof GetStatusResponseSchema;
   },
 }>;
 

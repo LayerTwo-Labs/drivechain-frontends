@@ -12,3 +12,7 @@ export const dispenseCoins: typeof FaucetService["method"]["dispenseCoins"];
  * @generated from rpc faucet.v1.FaucetService.ListClaims
  */
 export const listClaims: typeof FaucetService["method"]["listClaims"];
+/**
+ * @generated from rpc faucet.v1.FaucetService.GetStatus
+ */
+export const getStatus: typeof FaucetService["method"]["getStatus"];

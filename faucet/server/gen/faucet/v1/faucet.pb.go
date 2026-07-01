@@ -199,6 +199,105 @@ func (x *ListClaimsResponse) GetTransactions() []*v1alpha.GetTransactionResponse
 	return nil
 }
 
+type GetStatusRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetStatusRequest) Reset() {
+	*x = GetStatusRequest{}
+	mi := &file_faucet_v1_faucet_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetStatusRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetStatusRequest) ProtoMessage() {}
+
+func (x *GetStatusRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_faucet_v1_faucet_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetStatusRequest.ProtoReflect.Descriptor instead.
+func (*GetStatusRequest) Descriptor() ([]byte, []int) {
+	return file_faucet_v1_faucet_proto_rawDescGZIP(), []int{4}
+}
+
+type GetStatusResponse struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Spendable balance available for dispensing right now, in BTC.
+	Available float64 `protobuf:"fixed64,1,opt,name=available,proto3" json:"available,omitempty"`
+	// Balance not yet spendable (unconfirmed incoming + immature coinbase), in BTC.
+	Pending float64 `protobuf:"fixed64,2,opt,name=pending,proto3" json:"pending,omitempty"`
+	// Whether the faucet has enough funds to serve dispense requests.
+	Healthy       bool `protobuf:"varint,3,opt,name=healthy,proto3" json:"healthy,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetStatusResponse) Reset() {
+	*x = GetStatusResponse{}
+	mi := &file_faucet_v1_faucet_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetStatusResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetStatusResponse) ProtoMessage() {}
+
+func (x *GetStatusResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_faucet_v1_faucet_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetStatusResponse.ProtoReflect.Descriptor instead.
+func (*GetStatusResponse) Descriptor() ([]byte, []int) {
+	return file_faucet_v1_faucet_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *GetStatusResponse) GetAvailable() float64 {
+	if x != nil {
+		return x.Available
+	}
+	return 0
+}
+
+func (x *GetStatusResponse) GetPending() float64 {
+	if x != nil {
+		return x.Pending
+	}
+	return 0
+}
+
+func (x *GetStatusResponse) GetHealthy() bool {
+	if x != nil {
+		return x.Healthy
+	}
+	return false
+}
+
 var File_faucet_v1_faucet_proto protoreflect.FileDescriptor
 
 const file_faucet_v1_faucet_proto_rawDesc = "" +
@@ -211,11 +310,17 @@ const file_faucet_v1_faucet_proto_rawDesc = "" +
 	"\x04txid\x18\x01 \x01(\tR\x04txid\"\x13\n" +
 	"\x11ListClaimsRequest\"j\n" +
 	"\x12ListClaimsResponse\x12T\n" +
-	"\ftransactions\x18\x01 \x03(\v20.bitcoin.bitcoind.v1alpha.GetTransactionResponseR\ftransactions2\xb2\x01\n" +
+	"\ftransactions\x18\x01 \x03(\v20.bitcoin.bitcoind.v1alpha.GetTransactionResponseR\ftransactions\"\x12\n" +
+	"\x10GetStatusRequest\"e\n" +
+	"\x11GetStatusResponse\x12\x1c\n" +
+	"\tavailable\x18\x01 \x01(\x01R\tavailable\x12\x18\n" +
+	"\apending\x18\x02 \x01(\x01R\apending\x12\x18\n" +
+	"\ahealthy\x18\x03 \x01(\bR\ahealthy2\xfc\x01\n" +
 	"\rFaucetService\x12T\n" +
 	"\rDispenseCoins\x12\x1f.faucet.v1.DispenseCoinsRequest\x1a .faucet.v1.DispenseCoinsResponse\"\x00\x12K\n" +
 	"\n" +
-	"ListClaims\x12\x1c.faucet.v1.ListClaimsRequest\x1a\x1d.faucet.v1.ListClaimsResponse\"\x00B\xa9\x01\n" +
+	"ListClaims\x12\x1c.faucet.v1.ListClaimsRequest\x1a\x1d.faucet.v1.ListClaimsResponse\"\x00\x12H\n" +
+	"\tGetStatus\x12\x1b.faucet.v1.GetStatusRequest\x1a\x1c.faucet.v1.GetStatusResponse\"\x00B\xa9\x01\n" +
 	"\rcom.faucet.v1B\vFaucetProtoP\x01ZFgithub.com/LayerTwo-Labs/sidesail/faucet/server/gen/faucet/v1;faucetv1\xa2\x02\x03FXX\xaa\x02\tFaucet.V1\xca\x02\tFaucet\\V1\xe2\x02\x15Faucet\\V1\\GPBMetadata\xea\x02\n" +
 	"Faucet::V1b\x06proto3"
 
@@ -231,22 +336,26 @@ func file_faucet_v1_faucet_proto_rawDescGZIP() []byte {
 	return file_faucet_v1_faucet_proto_rawDescData
 }
 
-var file_faucet_v1_faucet_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
+var file_faucet_v1_faucet_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
 var file_faucet_v1_faucet_proto_goTypes = []any{
 	(*DispenseCoinsRequest)(nil),           // 0: faucet.v1.DispenseCoinsRequest
 	(*DispenseCoinsResponse)(nil),          // 1: faucet.v1.DispenseCoinsResponse
 	(*ListClaimsRequest)(nil),              // 2: faucet.v1.ListClaimsRequest
 	(*ListClaimsResponse)(nil),             // 3: faucet.v1.ListClaimsResponse
-	(*v1alpha.GetTransactionResponse)(nil), // 4: bitcoin.bitcoind.v1alpha.GetTransactionResponse
+	(*GetStatusRequest)(nil),               // 4: faucet.v1.GetStatusRequest
+	(*GetStatusResponse)(nil),              // 5: faucet.v1.GetStatusResponse
+	(*v1alpha.GetTransactionResponse)(nil), // 6: bitcoin.bitcoind.v1alpha.GetTransactionResponse
 }
 var file_faucet_v1_faucet_proto_depIdxs = []int32{
-	4, // 0: faucet.v1.ListClaimsResponse.transactions:type_name -> bitcoin.bitcoind.v1alpha.GetTransactionResponse
+	6, // 0: faucet.v1.ListClaimsResponse.transactions:type_name -> bitcoin.bitcoind.v1alpha.GetTransactionResponse
 	0, // 1: faucet.v1.FaucetService.DispenseCoins:input_type -> faucet.v1.DispenseCoinsRequest
 	2, // 2: faucet.v1.FaucetService.ListClaims:input_type -> faucet.v1.ListClaimsRequest
-	1, // 3: faucet.v1.FaucetService.DispenseCoins:output_type -> faucet.v1.DispenseCoinsResponse
-	3, // 4: faucet.v1.FaucetService.ListClaims:output_type -> faucet.v1.ListClaimsResponse
-	3, // [3:5] is the sub-list for method output_type
-	1, // [1:3] is the sub-list for method input_type
+	4, // 3: faucet.v1.FaucetService.GetStatus:input_type -> faucet.v1.GetStatusRequest
+	1, // 4: faucet.v1.FaucetService.DispenseCoins:output_type -> faucet.v1.DispenseCoinsResponse
+	3, // 5: faucet.v1.FaucetService.ListClaims:output_type -> faucet.v1.ListClaimsResponse
+	5, // 6: faucet.v1.FaucetService.GetStatus:output_type -> faucet.v1.GetStatusResponse
+	4, // [4:7] is the sub-list for method output_type
+	1, // [1:4] is the sub-list for method input_type
 	1, // [1:1] is the sub-list for extension type_name
 	1, // [1:1] is the sub-list for extension extendee
 	0, // [0:1] is the sub-list for field type_name
@@ -263,7 +372,7 @@ func file_faucet_v1_faucet_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_faucet_v1_faucet_proto_rawDesc), len(file_faucet_v1_faucet_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   4,
+			NumMessages:   6,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

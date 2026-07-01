@@ -10,7 +10,7 @@ import { file_buf_validate_validate } from "../../buf/validate/validate_pb";
  * Describes the file faucet/v1/faucet.proto.
  */
 export const file_faucet_v1_faucet = /*@__PURE__*/
-  fileDesc("ChZmYXVjZXQvdjEvZmF1Y2V0LnByb3RvEglmYXVjZXQudjEiSwoURGlzcGVuc2VDb2luc1JlcXVlc3QSGwoLZGVzdGluYXRpb24YASABKAlCBrpIA8gBARIWCgZhbW91bnQYAiABKAFCBrpIA8gBASIlChVEaXNwZW5zZUNvaW5zUmVzcG9uc2USDAoEdHhpZBgBIAEoCSITChFMaXN0Q2xhaW1zUmVxdWVzdCJcChJMaXN0Q2xhaW1zUmVzcG9uc2USRgoMdHJhbnNhY3Rpb25zGAEgAygLMjAuYml0Y29pbi5iaXRjb2luZC52MWFscGhhLkdldFRyYW5zYWN0aW9uUmVzcG9uc2UysgEKDUZhdWNldFNlcnZpY2USVAoNRGlzcGVuc2VDb2lucxIfLmZhdWNldC52MS5EaXNwZW5zZUNvaW5zUmVxdWVzdBogLmZhdWNldC52MS5EaXNwZW5zZUNvaW5zUmVzcG9uc2UiABJLCgpMaXN0Q2xhaW1zEhwuZmF1Y2V0LnYxLkxpc3RDbGFpbXNSZXF1ZXN0Gh0uZmF1Y2V0LnYxLkxpc3RDbGFpbXNSZXNwb25zZSIAYgZwcm90bzM", [file_bitcoin_bitcoind_v1alpha_bitcoin, file_buf_validate_validate]);
+  fileDesc("ChZmYXVjZXQvdjEvZmF1Y2V0LnByb3RvEglmYXVjZXQudjEiSwoURGlzcGVuc2VDb2luc1JlcXVlc3QSGwoLZGVzdGluYXRpb24YASABKAlCBrpIA8gBARIWCgZhbW91bnQYAiABKAFCBrpIA8gBASIlChVEaXNwZW5zZUNvaW5zUmVzcG9uc2USDAoEdHhpZBgBIAEoCSITChFMaXN0Q2xhaW1zUmVxdWVzdCJcChJMaXN0Q2xhaW1zUmVzcG9uc2USRgoMdHJhbnNhY3Rpb25zGAEgAygLMjAuYml0Y29pbi5iaXRjb2luZC52MWFscGhhLkdldFRyYW5zYWN0aW9uUmVzcG9uc2UiEgoQR2V0U3RhdHVzUmVxdWVzdCJIChFHZXRTdGF0dXNSZXNwb25zZRIRCglhdmFpbGFibGUYASABKAESDwoHcGVuZGluZxgCIAEoARIPCgdoZWFsdGh5GAMgASgIMvwBCg1GYXVjZXRTZXJ2aWNlElQKDURpc3BlbnNlQ29pbnMSHy5mYXVjZXQudjEuRGlzcGVuc2VDb2luc1JlcXVlc3QaIC5mYXVjZXQudjEuRGlzcGVuc2VDb2luc1Jlc3BvbnNlIgASSwoKTGlzdENsYWltcxIcLmZhdWNldC52MS5MaXN0Q2xhaW1zUmVxdWVzdBodLmZhdWNldC52MS5MaXN0Q2xhaW1zUmVzcG9uc2UiABJICglHZXRTdGF0dXMSGy5mYXVjZXQudjEuR2V0U3RhdHVzUmVxdWVzdBocLmZhdWNldC52MS5HZXRTdGF0dXNSZXNwb25zZSIAYgZwcm90bzM", [file_bitcoin_bitcoind_v1alpha_bitcoin, file_buf_validate_validate]);
 
 /**
  * Describes the message faucet.v1.DispenseCoinsRequest.
@@ -39,6 +39,20 @@ export const ListClaimsRequestSchema = /*@__PURE__*/
  */
 export const ListClaimsResponseSchema = /*@__PURE__*/
   messageDesc(file_faucet_v1_faucet, 3);
+
+/**
+ * Describes the message faucet.v1.GetStatusRequest.
+ * Use `create(GetStatusRequestSchema)` to create a new message.
+ */
+export const GetStatusRequestSchema = /*@__PURE__*/
+  messageDesc(file_faucet_v1_faucet, 4);
+
+/**
+ * Describes the message faucet.v1.GetStatusResponse.
+ * Use `create(GetStatusResponseSchema)` to create a new message.
+ */
+export const GetStatusResponseSchema = /*@__PURE__*/
+  messageDesc(file_faucet_v1_faucet, 5);
 
 /**
  * @generated from service faucet.v1.FaucetService
