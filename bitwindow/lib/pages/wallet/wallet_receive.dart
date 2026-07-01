@@ -293,6 +293,7 @@ class _ReceiveAddressesTableState extends State<ReceiveAddressesTable> {
                         value: utxo.address,
                         copyValue: utxo.address,
                       ),
+                      SailTableCell(value: receiveAddressType(utxo.address)),
                       SailTableCell(
                         value: utxo.isChange ? 'Yes' : '',
                         child: utxo.isChange

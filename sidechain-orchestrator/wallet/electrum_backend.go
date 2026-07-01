@@ -43,10 +43,10 @@ const (
 // ElectrumBackend serves a wallet with no local Core or enforcer: it derives
 // BIP84 keys from the wallet seed, reads chain state from an Esplora REST
 // backend, and builds/signs/broadcasts transactions in-process.
-// SwappableEsplora is an Esplora whose endpoint can be changed at runtime.
-// *EsploraClient implements it; in-memory test backends need not.
-type SwappableEsplora interface {
-	Esplora
+// SwappableChainSource is a ChainDataSource whose endpoint can be changed at
+// runtime. *EsploraClient implements it; in-memory test backends need not.
+type SwappableChainSource interface {
+	ChainDataSource
 	BaseURLs() []string
 	SetBaseURLs([]string)
 	ProxyConfig() (bool, string)
@@ -55,7 +55,7 @@ type SwappableEsplora interface {
 
 type ElectrumBackend struct {
 	svc     *Service
-	client  Esplora
+	client  ChainDataSource
 	network *chaincfg.Params
 	log     zerolog.Logger
 
@@ -79,7 +79,7 @@ var (
 )
 
 // NewElectrumBackend creates an Esplora-backed wallet backend.
-func NewElectrumBackend(svc *Service, client Esplora, network *chaincfg.Params, log zerolog.Logger) *ElectrumBackend {
+func NewElectrumBackend(svc *Service, client ChainDataSource, network *chaincfg.Params, log zerolog.Logger) *ElectrumBackend {
 	return &ElectrumBackend{
 		svc:       svc,
 		client:    client,
@@ -1106,7 +1106,7 @@ func (p *ElectrumBackend) Chain() ChainSource {
 // ServerURL returns the wallet's current primary Esplora endpoint, or "" when
 // the backend's client does not expose one.
 func (p *ElectrumBackend) ServerURL() string {
-	sw, ok := p.client.(SwappableEsplora)
+	sw, ok := p.client.(SwappableChainSource)
 	if !ok {
 		return ""
 	}
@@ -1126,7 +1126,7 @@ func (p *ElectrumBackend) ServerURL() string {
 // requests that already captured the old list finish against it, new ones use
 // the new endpoint.
 func (p *ElectrumBackend) SetServerURL(ctx context.Context, url string) (int, error) {
-	sw, ok := p.client.(SwappableEsplora)
+	sw, ok := p.client.(SwappableChainSource)
 	if !ok {
 		return 0, connect.NewError(connect.CodeUnimplemented, errors.New("this wallet's backend does not support switching servers"))
 	}
@@ -1158,7 +1158,7 @@ func (p *ElectrumBackend) SetServerURL(ctx context.Context, url string) (int, er
 // TorConfig reports whether the wallet routes chain connections through a SOCKS5
 // proxy and the proxy address, or (false, "") when the backend can't proxy.
 func (p *ElectrumBackend) TorConfig() (bool, string) {
-	sw, ok := p.client.(SwappableEsplora)
+	sw, ok := p.client.(SwappableChainSource)
 	if !ok {
 		return false, ""
 	}
@@ -1172,7 +1172,7 @@ func (p *ElectrumBackend) TorConfig() (bool, string) {
 // disconnected. On success the new tip height is returned and cached scans are
 // dropped (the new route may reach a different server view).
 func (p *ElectrumBackend) SetTorConfig(ctx context.Context, enabled bool, proxyAddr string) (int, error) {
-	sw, ok := p.client.(SwappableEsplora)
+	sw, ok := p.client.(SwappableChainSource)
 	if !ok {
 		return 0, connect.NewError(connect.CodeUnimplemented, errors.New("this wallet's backend does not support tor routing"))
 	}
@@ -1243,9 +1243,9 @@ func normalizeEsploraURL(raw string) (string, error) {
 	return strings.TrimRight(trimmed, "/"), nil
 }
 
-// esploraChain adapts an Esplora backend to the wallet-agnostic ChainSource.
+// esploraChain adapts a ChainDataSource to the wallet-agnostic ChainSource.
 type esploraChain struct {
-	client Esplora
+	client ChainDataSource
 }
 
 func (c esploraChain) GetRawTransaction(ctx context.Context, txid string) (*RawTransaction, error) {

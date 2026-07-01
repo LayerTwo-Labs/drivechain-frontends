@@ -11,7 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// swappableFakeEsplora is a fakeEsplora that also satisfies SwappableEsplora, so
+// swappableFakeEsplora is a fakeEsplora that also satisfies SwappableChainSource, so
 // SetServerURL can exercise the runtime endpoint swap. unreachableURLs marks
 // endpoints whose tip probe fails, simulating a dead server.
 type swappableFakeEsplora struct {
@@ -23,7 +23,7 @@ type swappableFakeEsplora struct {
 	badProxies  map[string]bool
 }
 
-var _ SwappableEsplora = (*swappableFakeEsplora)(nil)
+var _ SwappableChainSource = (*swappableFakeEsplora)(nil)
 
 func newSwappableFakeEsplora(url string) *swappableFakeEsplora {
 	return &swappableFakeEsplora{

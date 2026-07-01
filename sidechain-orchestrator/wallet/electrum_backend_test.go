@@ -58,7 +58,7 @@ type fakeEsplora struct {
 	broadcast []string
 }
 
-var _ Esplora = (*fakeEsplora)(nil)
+var _ ChainDataSource = (*fakeEsplora)(nil)
 
 func newFakeEsplora() *fakeEsplora {
 	return &fakeEsplora{
@@ -1248,13 +1248,13 @@ func TestDustThresholdByType(t *testing.T) {
 // countingEsplora wraps an Esplora and counts AddressStats calls, to prove a
 // cold-boot scan is served from the persisted cache with no network.
 type countingEsplora struct {
-	Esplora
+	ChainDataSource
 	statsCalls int32
 }
 
 func (c *countingEsplora) AddressStats(ctx context.Context, address string) (EsploraAddressStats, error) {
 	atomic.AddInt32(&c.statsCalls, 1)
-	return c.Esplora.AddressStats(ctx, address)
+	return c.ChainDataSource.AddressStats(ctx, address)
 }
 
 // TestElectrumScanPersistsAcrossRestart: a live scan persists to disk, and a
@@ -1275,7 +1275,7 @@ func TestElectrumScanPersistsAcrossRestart(t *testing.T) {
 
 	// Simulated restart: a new backend on the same Service, backed by an Esplora
 	// with no data that counts every AddressStats call.
-	counting := &countingEsplora{Esplora: newFakeEsplora()}
+	counting := &countingEsplora{ChainDataSource: newFakeEsplora()}
 	p2 := NewElectrumBackend(p.svc, counting, &chaincfg.SigNetParams, zerolog.New(zerolog.NewTestWriter(t)))
 
 	confirmed2, _, err := p2.Balance(ctx, w.ID)
@@ -1322,7 +1322,7 @@ func TestElectrumScanPersistsUTXOsAndTxs(t *testing.T) {
 
 	// Cold boot: a fresh backend whose Esplora holds no data and counts stats
 	// calls. UTXOs and history must come entirely from the database.
-	counting := &countingEsplora{Esplora: newFakeEsplora()}
+	counting := &countingEsplora{ChainDataSource: newFakeEsplora()}
 	p2 := NewElectrumBackend(p.svc, counting, &chaincfg.SigNetParams, zerolog.New(zerolog.NewTestWriter(t)))
 
 	utxos2, err := p2.ListUnspent(ctx, w.ID)
@@ -1342,14 +1342,14 @@ func TestElectrumScanPersistsUTXOsAndTxs(t *testing.T) {
 // recordingEsplora captures the wallet's sync snapshot at each AddressStats
 // call, so a test can prove the polled status reflects scan progress.
 type recordingEsplora struct {
-	Esplora
+	ChainDataSource
 	svc   *Service
 	snaps []SyncProgress
 }
 
 func (r *recordingEsplora) AddressStats(ctx context.Context, address string) (EsploraAddressStats, error) {
 	r.snaps = append(r.snaps, r.svc.ActiveSyncStatus())
-	return r.Esplora.AddressStats(ctx, address)
+	return r.ChainDataSource.AddressStats(ctx, address)
 }
 
 // TestElectrumScanReportsProgress: the snapshot a GetSyncStatus poll would read
@@ -1363,7 +1363,7 @@ func TestElectrumScanReportsProgress(t *testing.T) {
 		ChainStats: EsploraTxoStats{FundedTxoCount: 1, FundedTxoSum: 100_000, TxCount: 1},
 	}
 
-	rec := &recordingEsplora{Esplora: fake, svc: p.svc}
+	rec := &recordingEsplora{ChainDataSource: fake, svc: p.svc}
 	p2 := NewElectrumBackend(p.svc, rec, &chaincfg.SigNetParams, zerolog.New(zerolog.NewTestWriter(t)))
 
 	_, _, err := p2.Balance(ctx, w.ID) // live scan
