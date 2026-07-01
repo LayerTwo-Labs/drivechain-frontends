@@ -2009,7 +2009,11 @@ func (o *Orchestrator) stopForNetworkSwap(ctx context.Context, name string) erro
 // DefaultElectrumServerURL returns the built-in Esplora endpoint for the
 // current network, the value used when the user has set no override.
 func (o *Orchestrator) DefaultElectrumServerURL() string {
-	return config.EsploraURLForNetwork(config.NetworkFromString(o.Network))
+	urls := config.WalletChainSourceURLsForNetwork(config.NetworkFromString(o.Network))
+	if len(urls) == 0 {
+		return ""
+	}
+	return urls[0]
 }
 
 // ElectrumServerOverride returns the persisted user Esplora override, or ""

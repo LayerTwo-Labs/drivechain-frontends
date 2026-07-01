@@ -72,6 +72,22 @@ func EsploraURLsForNetwork(n Network) []string {
 	}
 }
 
+// WalletChainSourceURLsForNetwork returns the endpoints the electrum wallet
+// reads chain data from, primary first. Mainnet uses the drivechain Electrum
+// server (ssl://) — its public HTTP is a mempool.space API that lacks the
+// /address/:a/utxo and /fee-estimates endpoints the wallet needs — while other
+// networks use their Esplora REST. The scheme (ssl/tcp vs https) selects the
+// client. This is deliberately separate from EsploraURLForNetwork, which feeds
+// the enforcer's BDK sync and must stay an HTTP Esplora URL.
+func WalletChainSourceURLsForNetwork(n Network) []string {
+	switch n {
+	case NetworkMainnet:
+		return []string{"ssl://explorer.mainnet.drivechain.info:50002"}
+	default:
+		return EsploraURLsForNetwork(n)
+	}
+}
+
 // EsploraURLForNetwork returns a network's primary esplora API URL (or "" when
 // none exists), for callers that take a single endpoint such as the enforcer's
 // wallet-sync-source.

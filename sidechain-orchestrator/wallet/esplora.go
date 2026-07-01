@@ -21,7 +21,11 @@ import (
 // Esplora is the chain-data surface an electrum wallet needs. ElectrumBackend
 // depends on this interface so tests can supply an in-memory backend instead of
 // a live REST endpoint; *EsploraClient is the production implementation.
-type Esplora interface {
+// ChainDataSource is the chain-data backend an electrum wallet reads from:
+// address history, UTXOs, raw transactions, fee estimates, and broadcast.
+// EsploraClient (HTTP) and ElectrumClient (Electrum protocol) both implement it,
+// so the wallet backend is agnostic to which one serves it.
+type ChainDataSource interface {
 	AddressStats(ctx context.Context, address string) (EsploraAddressStats, error)
 	AddressUTXOs(ctx context.Context, address string) ([]EsploraUTXO, error)
 	AddressTxs(ctx context.Context, address string) ([]EsploraTx, error)
@@ -68,7 +72,7 @@ type EsploraClient struct {
 	tipFetched time.Time
 }
 
-var _ Esplora = (*EsploraClient)(nil)
+var _ ChainDataSource = (*EsploraClient)(nil)
 
 const (
 	esploraMaxAttempts = 6
