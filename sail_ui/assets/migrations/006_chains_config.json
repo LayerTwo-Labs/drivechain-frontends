@@ -1,0 +1,21 @@
+{
+  "version": 6,
+  "migration": "patch",
+  "binaries": {
+    "liquid-signet": {
+      "version": "bf81d90968d080a20e97b76c2a2431baa9a8f9a1",
+      "download": {
+        "binary": "liquid-signet",
+        "files": {
+          "default": {
+            "base_url": "https://github.com/ekulkisnek/liquid-drivechain-signet-adaptation/releases/download/elements-bf81d909/",
+            "linux-x86_64": "liquid-signet-elements-bf81d909-linux-x86_64.tar.gz",
+            "macos-x86_64": "",
+            "macos-arm64": "liquid-signet-elements-bf81d909-macos-arm64.tar.gz",
+            "windows-x86_64": "liquid-signet-elements-bf81d909-win64.zip"
+          }
+        }
+      }
+    }
+  }
+}
