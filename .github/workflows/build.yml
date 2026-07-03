@@ -217,6 +217,11 @@ jobs:
           if [ -d "sidechain-orchestrator" ]; then
             cp -r sidechain-orchestrator "$BUILD_DIR/"
           fi
+          # Copy sqlitemigrate: both sidechain-orchestrator (../sqlitemigrate) and
+          # bitwindow/server (../../sqlitemigrate) replace-resolve to $BUILD_DIR/sqlitemigrate
+          if [ -d "sqlitemigrate" ]; then
+            cp -r sqlitemigrate "$BUILD_DIR/"
+          fi
           # Copy coinnews/codec for bitwindow's Go module replace directive
           if [ -d "coinnews/codec" ]; then
             mkdir -p "$BUILD_DIR/coinnews"
@@ -311,14 +316,16 @@ jobs:
           echo "Setting key partition list"
           security set-key-partition-list -S apple-tool:,apple: -s -k "$KEYCHAIN_PASSWORD" ~/Library/Keychains/build.keychain
 
-          # Find the Common Name of the certificate we just imported
-          security find-certificate -a -p build.keychain > certificate.pem
-          cert_subject=$(openssl x509 -in certificate.pem -noout -subject)
-          echo Certificate subject: "'$cert_subject'"
-
-          cn_part=$(grep -o 'CN = "[^"]*"' <<< "$cert_subject")
-          cn_value=$(sed 's/CN = "\(.*\)"/\1/' <<< "$cn_part")
-          echo "Determined code sign identity"
+          # Read the signing identity straight from the keychain. This is immune to
+          # OpenSSL subject-format differences across runner images (CN=x vs CN = "x").
+          cn_value=$(security find-identity -v -p codesigning build.keychain \
+            | sed -n 's/.*"\(.*\)".*/\1/p' | head -1)
+          if [ -z "$cn_value" ]; then
+            echo "No codesigning identity found in keychain" >&2
+            security find-identity -v -p codesigning build.keychain >&2
+            exit 1
+          fi
+          echo "Determined code sign identity: '$cn_value'"
 
           # Create notarization API key file in the build directory
           echo "Creating notarization API key file in ${{ env.BUILD_DIR }}"
