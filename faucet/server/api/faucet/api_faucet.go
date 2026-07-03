@@ -134,6 +134,10 @@ func (s *Server) DispenseCoins(ctx context.Context, c *connect.Request[pb.Dispen
 		msg := "The faucet is out of funds. Please try again later."
 		return nil, connect.NewError(connect.CodeResourceExhausted, errors.New(msg))
 
+	case err != nil && isInvalidAddressError(err):
+		return nil, connect.NewError(connect.CodeInvalidArgument,
+			errors.New("the destination is not a valid bitcoin address"))
+
 	case err != nil:
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("dispense coins: %w", err))
 	}
@@ -178,6 +182,16 @@ func (s *Server) recordDispensation(destination string, amount float64) {
 func (s *Server) undoDispensation(destination string, amount float64) {
 	s.dispensed[destination] -= amount
 	s.totalDispensed -= amount
+}
+
+// isInvalidAddressError reports whether a SendToAddress error is Bitcoin Core
+// (or btcutil) rejecting the destination address, as opposed to a genuine
+// internal fault. Lets us return a clean InvalidArgument instead of a 500.
+func isInvalidAddressError(err error) bool {
+	msg := err.Error()
+	return strings.Contains(msg, "Invalid Bitcoin address") ||
+		strings.Contains(msg, "Invalid address") ||
+		strings.Contains(msg, "invalid format")
 }
 
 func (s *Server) validateDispenseArgs(req *pb.DispenseCoinsRequest) (btcutil.Amount, error) {
