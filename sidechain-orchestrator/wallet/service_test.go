@@ -192,6 +192,33 @@ func TestServiceChangePassword(t *testing.T) {
 	assert.Error(t, err)
 }
 
+func TestServiceChangePasswordRefusedWhileLocked(t *testing.T) {
+	svc := newTestService(t)
+
+	w, err := svc.GenerateWallet("PW Change Locked", "", "", testSlots)
+	require.NoError(t, err)
+	require.NoError(t, svc.EncryptWallet("oldpass"))
+
+	svc.LockWallet()
+	require.False(t, svc.IsUnlocked())
+
+	// Changing the password while locked must be refused and must not corrupt
+	// the in-memory state (leaving the key set without any wallets loaded).
+	err = svc.ChangePassword("oldpass", "newpass")
+	assert.Error(t, err)
+	assert.False(t, svc.IsUnlocked())
+	assert.Nil(t, svc.encryptionKey)
+	assert.Empty(t, svc.unlockedPass)
+
+	// The wallet file was left untouched: the new password does not work and the
+	// original wallet is still recoverable with the old password.
+	assert.Error(t, svc.UnlockWallet("newpass"))
+	require.NoError(t, svc.UnlockWallet("oldpass"))
+	wallets := svc.ListWallets()
+	require.Len(t, wallets, 1)
+	assert.Equal(t, w.ID, wallets[0].ID)
+}
+
 func TestServiceRemoveEncryption(t *testing.T) {
 	svc := newTestService(t)
 
