@@ -62,3 +62,6 @@ vendor/
 # Build artifacts
 sidechain-orchestrator/orchestratorctl
 sidechain-orchestrator/orchestratord
+
+# Orchestration harness artifacts
+.omo/
