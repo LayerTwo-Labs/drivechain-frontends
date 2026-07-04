@@ -566,7 +566,16 @@ func (s *Server) GetSyncInfo(ctx context.Context, req *connect.Request[emptypb.E
 
 // SetTransactionNote implements bitwindowdv1connect.BitwindowdServiceHandler.
 func (s *Server) SetTransactionNote(ctx context.Context, req *connect.Request[pb.SetTransactionNoteRequest]) (*connect.Response[emptypb.Empty], error) {
-	if err := transactions.SetNote(ctx, s.db, req.Msg.Txid, req.Msg.Note); err != nil {
+	// Notes are private, wallet-local metadata. Scope them to the wallet the
+	// user is currently viewing (the active wallet) so a note written here does
+	// not surface in another wallet's transaction list.
+	activeWallet, err := s.walletEngine.GetActiveWallet(ctx)
+	if err != nil {
+		zerolog.Ctx(ctx).Error().Err(err).Msg("could not get active wallet")
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+
+	if err := transactions.SetNote(ctx, s.db, activeWallet.ID, req.Msg.Txid, req.Msg.Note); err != nil {
 		zerolog.Ctx(ctx).Error().Err(err).Msg("could not set transaction note")
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
@@ -625,6 +634,14 @@ func (s *Server) ExportLabels(ctx context.Context, req *connect.Request[emptypb.
 
 // ImportLabels implements bitwindowdv1connect.BitwindowdServiceHandler.
 func (s *Server) ImportLabels(ctx context.Context, req *connect.Request[pb.ImportLabelsRequest]) (*connect.Response[pb.ImportLabelsResponse], error) {
+	// Transaction notes are wallet-scoped; BIP329 tx labels carry only a txid,
+	// so import them into the wallet the user is currently viewing.
+	activeWallet, err := s.walletEngine.GetActiveWallet(ctx)
+	if err != nil {
+		zerolog.Ctx(ctx).Error().Err(err).Msg("could not get active wallet")
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+
 	labels, skipped := bip329.Decode(req.Msg.Jsonl)
 
 	resp := &pb.ImportLabelsResponse{Skipped: int64(skipped)}
@@ -647,7 +664,7 @@ func (s *Server) ImportLabels(ctx context.Context, req *connect.Request[pb.Impor
 			resp.ImportedAddresses++
 
 		case bip329.TypeTx:
-			if err := transactions.SetNote(ctx, s.db, ref, l.Label); err != nil {
+			if err := transactions.SetNote(ctx, s.db, activeWallet.ID, ref, l.Label); err != nil {
 				zerolog.Ctx(ctx).Error().Err(err).Str("ref", ref).Msg("could not import transaction note")
 				resp.Skipped++
 				continue
