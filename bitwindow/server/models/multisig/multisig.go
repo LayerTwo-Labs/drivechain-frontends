@@ -667,7 +667,11 @@ func (s *Store) ListSoloKeys(ctx context.Context) ([]SoloKey, error) {
 }
 
 func (s *Store) AddSoloKey(ctx context.Context, k SoloKey) error {
-	_, err := s.db.ExecContext(ctx, `
+	return addSoloKeyOn(ctx, s.db, k)
+}
+
+func addSoloKeyOn(ctx context.Context, e execer, k SoloKey) error {
+	_, err := e.ExecContext(ctx, `
 		INSERT OR IGNORE INTO multisig_solo_keys (xpub, derivation_path, fingerprint, origin_path, owner)
 		VALUES (?, ?, ?, ?, ?)`, k.Xpub, k.DerivationPath, nullStr(k.Fingerprint), nullStr(k.OriginPath), nullStr(k.Owner))
 	return err
@@ -836,6 +840,19 @@ func (s *Store) SaveTransactionAtomic(ctx context.Context, p SaveTransactionAtom
 
 // ImportFromJSON imports groups + solo_keys from the old multisig.json format.
 func (s *Store) ImportFromJSON(ctx context.Context, data []byte) error {
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback() //nolint:errcheck
+
+	if err := importFromJSONOn(ctx, tx, data); err != nil {
+		return err
+	}
+	return tx.Commit()
+}
+
+func importFromJSONOn(ctx context.Context, e execer, data []byte) error {
 	var raw struct {
 		Groups   []json.RawMessage        `json:"groups"`
 		SoloKeys []map[string]interface{} `json:"solo_keys"`
@@ -870,7 +887,7 @@ func (s *Store) ImportFromJSON(ctx context.Context, data []byte) error {
 			continue
 		}
 
-		if err := s.SaveGroup(ctx, g); err != nil {
+		if err := saveGroupOn(ctx, e, g); err != nil {
 			return fmt.Errorf("save group %s: %w", g.ID, err)
 		}
 
@@ -895,7 +912,7 @@ func (s *Store) ImportFromJSON(ctx context.Context, data []byte) error {
 				})
 			}
 		}
-		if err := s.ReplaceKeysForGroup(ctx, g.ID, keys); err != nil {
+		if err := replaceKeysForGroupOn(ctx, e, g.ID, keys); err != nil {
 			return fmt.Errorf("replace keys for %s: %w", g.ID, err)
 		}
 
@@ -920,7 +937,7 @@ func (s *Store) ImportFromJSON(ctx context.Context, data []byte) error {
 				}
 			}
 		}
-		if err := s.ReplaceAddresses(ctx, g.ID, addrs); err != nil {
+		if err := replaceAddressesOn(ctx, e, g.ID, addrs); err != nil {
 			return fmt.Errorf("replace addresses for %s: %w", g.ID, err)
 		}
 
@@ -933,14 +950,14 @@ func (s *Store) ImportFromJSON(ctx context.Context, data []byte) error {
 				}
 			}
 		}
-		if err := s.ReplaceGroupTransactionIDs(ctx, g.ID, ids); err != nil {
+		if err := replaceGroupTransactionIDsOn(ctx, e, g.ID, ids); err != nil {
 			return fmt.Errorf("replace tx ids for %s: %w", g.ID, err)
 		}
 	}
 
 	// Import solo keys
 	for _, sk := range raw.SoloKeys {
-		if err := s.AddSoloKey(ctx, SoloKey{
+		if err := addSoloKeyOn(ctx, e, SoloKey{
 			Xpub:           getString(sk, "xpub"),
 			DerivationPath: getString(sk, "path"),
 			Fingerprint:    getString(sk, "fingerprint"),
@@ -956,6 +973,19 @@ func (s *Store) ImportFromJSON(ctx context.Context, data []byte) error {
 
 // ImportTransactionsFromJSON imports transactions from the old transactions.json format.
 func (s *Store) ImportTransactionsFromJSON(ctx context.Context, data []byte) error {
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback() //nolint:errcheck
+
+	if err := importTransactionsFromJSONOn(ctx, tx, data); err != nil {
+		return err
+	}
+	return tx.Commit()
+}
+
+func importTransactionsFromJSONOn(ctx context.Context, e execer, data []byte) error {
 	var txns []map[string]interface{}
 	if err := json.Unmarshal(data, &txns); err != nil {
 		return fmt.Errorf("unmarshal: %w", err)
@@ -1028,7 +1058,7 @@ func (s *Store) ImportTransactionsFromJSON(ctx context.Context, data []byte) err
 			continue
 		}
 
-		if err := s.SaveTransaction(ctx, t); err != nil {
+		if err := saveTransactionOn(ctx, e, t); err != nil {
 			return fmt.Errorf("save tx %s: %w", t.ID, err)
 		}
 
@@ -1056,7 +1086,7 @@ func (s *Store) ImportTransactionsFromJSON(ctx context.Context, data []byte) err
 				})
 			}
 			if len(psbts) > 0 {
-				if err := s.ReplaceTxKeyPSBTs(ctx, t.ID, psbts); err != nil {
+				if err := replaceTxKeyPSBTsOn(ctx, e, t.ID, psbts); err != nil {
 					return fmt.Errorf("replace key psbts for tx %s: %w", t.ID, err)
 				}
 			}
@@ -1080,7 +1110,7 @@ func (s *Store) ImportTransactionsFromJSON(ctx context.Context, data []byte) err
 				})
 			}
 			if len(txInputs) > 0 {
-				if err := s.ReplaceTxInputs(ctx, t.ID, txInputs); err != nil {
+				if err := replaceTxInputsOn(ctx, e, t.ID, txInputs); err != nil {
 					return fmt.Errorf("replace inputs for tx %s: %w", t.ID, err)
 				}
 			}
@@ -1088,6 +1118,33 @@ func (s *Store) ImportTransactionsFromJSON(ctx context.Context, data []byte) err
 	}
 
 	return nil
+}
+
+// ImportBackupAtomic imports the multisig group data and transaction data from a
+// restored backup in a single database transaction. If either import fails the
+// whole operation is rolled back, so a malformed or partially-writable backup
+// never leaves committed groups/keys/addresses/links pointing at absent
+// transactions (orphan link rows). Either payload may be nil to skip it.
+func (s *Store) ImportBackupAtomic(ctx context.Context, multisigJSON, txJSON []byte) error {
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("begin tx: %w", err)
+	}
+	defer tx.Rollback() //nolint:errcheck
+
+	if multisigJSON != nil {
+		if err := importFromJSONOn(ctx, tx, multisigJSON); err != nil {
+			return fmt.Errorf("import multisig data: %w", err)
+		}
+	}
+
+	if txJSON != nil {
+		if err := importTransactionsFromJSONOn(ctx, tx, txJSON); err != nil {
+			return fmt.Errorf("import transactions: %w", err)
+		}
+	}
+
+	return tx.Commit()
 }
 
 // ─── helpers ───────────────────────────────────────────────────────
