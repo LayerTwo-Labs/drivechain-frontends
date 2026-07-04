@@ -185,22 +185,15 @@ func (e *BackupEngine) RestoreBackup(ctx context.Context, data []byte, filename 
 		log.Info().Msg("restore: wrote metadata.json")
 	}
 
-	// Import multisig data into DB
-	if multisigJSON != nil {
-		if err := e.multisigStore.ImportFromJSON(ctx, multisigJSON); err != nil {
-			log.Warn().Err(err).Msg("restore: failed to import multisig data")
-		} else {
-			log.Info().Msg("restore: imported multisig data")
+	// Import multisig group data and transaction data into the DB atomically so
+	// a failure in either leaves no partial wallet state (e.g. committed
+	// group→transaction links pointing at transactions that never got imported).
+	// The error is propagated so a failed restore is not reported as a success.
+	if multisigJSON != nil || txJSON != nil {
+		if err := e.multisigStore.ImportBackupAtomic(ctx, multisigJSON, txJSON); err != nil {
+			return fmt.Errorf("import multisig data: %w", err)
 		}
-	}
-
-	// Import transaction data into DB
-	if txJSON != nil {
-		if err := e.multisigStore.ImportTransactionsFromJSON(ctx, txJSON); err != nil {
-			log.Warn().Err(err).Msg("restore: failed to import transactions")
-		} else {
-			log.Info().Msg("restore: imported transactions")
-		}
+		log.Info().Msg("restore: imported multisig data")
 	}
 
 	return nil
