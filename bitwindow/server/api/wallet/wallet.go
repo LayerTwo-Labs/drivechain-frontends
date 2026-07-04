@@ -2248,7 +2248,7 @@ func (s *Server) CheckChequeFunding(ctx context.Context, c *connect.Request[pb.C
 		}
 
 		// Convert BTC to satoshis
-		amountSats := uint64(totalAmount * 100000000)
+		amountSats := uint64(math.Round(totalAmount * 100000000))
 
 		// Always update — handles new fundings arriving after first one
 		if err := cheques.UpdateFunding(ctx, s.database, walletId, c.Msg.Id, txids, amountSats); err != nil {
@@ -2372,7 +2372,7 @@ func (s *Server) SweepCheque(ctx context.Context, c *connect.Request[pb.SweepChe
 	totalAmountBTC := lo.SumBy(utxos.Msg.Unspent, func(utxo *corepb.UnspentOutput) float64 {
 		return utxo.Amount
 	})
-	totalAmount := uint64(totalAmountBTC * 1e8)
+	totalAmount := uint64(math.Round(totalAmountBTC * 1e8))
 
 	// Set fee rate
 	feeSatPerVbyte := c.Msg.FeeSatPerVbyte
@@ -2550,7 +2550,7 @@ func (s *Server) buildSweepTx(
 	// Calculate total amount in satoshis
 	var totalSats uint64
 	for _, utxo := range utxos {
-		totalSats += uint64(utxo.Amount * 1e8)
+		totalSats += uint64(math.Round(utxo.Amount * 1e8))
 	}
 
 	// Estimate transaction size (P2WPKH input is ~68 vbytes, P2WPKH output is ~31 vbytes, overhead ~11 vbytes)
@@ -2626,10 +2626,10 @@ func (s *Server) signSweepTx(
 		witnessScript, err := txscript.WitnessSignature(
 			tx, txscript.NewTxSigHashes(tx, txscript.NewCannedPrevOutputFetcher(
 				sourcePkScript,
-				int64(utxo.Amount*1e8),
+				int64(math.Round(utxo.Amount*1e8)),
 			)),
 			i,
-			int64(utxo.Amount*1e8),
+			int64(math.Round(utxo.Amount*1e8)),
 			sourcePkScript,
 			txscript.SigHashAll,
 			wif.PrivKey,

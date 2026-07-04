@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
+	"math"
 	"strings"
 	"sync/atomic"
 	"time"
@@ -221,7 +222,7 @@ func (e *ChequeEngine) ScanForFunds(ctx context.Context, walletId string, bitcoi
 			}
 
 			// Convert BTC to satoshis
-			amountSats := uint64(totalAmount * 100000000)
+			amountSats := uint64(math.Round(totalAmount * 100000000))
 
 			recoveries = append(recoveries, ChequeRecovery{
 				Index:   i,
