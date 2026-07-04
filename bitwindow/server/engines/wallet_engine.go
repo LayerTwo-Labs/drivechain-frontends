@@ -1362,7 +1362,7 @@ func (e *WalletEngine) createBitcoinCoreWalletForSync(
 			Active:      true,
 			Timestamp:   nil,
 			Internal:    d.internal,
-			RangeStart:  1,
+			RangeStart:  0,
 			RangeEnd:    1000,
 		})
 	}
