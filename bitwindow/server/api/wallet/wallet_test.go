@@ -2,12 +2,14 @@ package api_wallet_test
 
 import (
 	"context"
+	"database/sql"
 	"testing"
 
 	"connectrpc.com/connect"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/database"
 	walletv1 "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/wallet/v1"
 	walletv1connect "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/wallet/v1/walletv1connect"
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/cheques"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/tests/apitests"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/tests/mocks"
 	mainchainv1 "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1"
@@ -214,6 +216,106 @@ func TestService_DeleteCheque(t *testing.T) {
 		// A non-existent cheque must surface as NotFound, not a leaked
 		// "no rows" internal error.
 		require.Equal(t, connect.CodeNotFound, connect.CodeOf(err))
+	})
+}
+
+// TestService_DeleteChequeFundingGuard pins the server-side deletion guard:
+// a cheque with any recorded incoming funds (partial or full) that has not
+// been swept must not be deletable, because its row still represents real
+// money at the derived address. Once swept, the row is safe to remove.
+func TestService_DeleteChequeFundingGuard(t *testing.T) {
+	t.Parallel()
+
+	// deleteChequeClient stands up an API server with the permissive bitcoind
+	// mock the cheque engine bootstrap needs, and hands back both a client and
+	// the backing database so the test can seed cheque funding state directly.
+	deleteChequeClient := func(t *testing.T) (walletv1connect.WalletServiceClient, *sql.DB) {
+		t.Helper()
+
+		ctrl := gomock.NewController(t)
+		db := database.Test(t)
+
+		mockBitcoind := mocks.NewMockBitcoinServiceClient(ctrl)
+		mockBitcoind.EXPECT().
+			ListWallets(gomock.Any(), gomock.Any()).
+			Return(&connect.Response[bitcoindv1alpha.ListWalletsResponse]{
+				Msg: &bitcoindv1alpha.ListWalletsResponse{Wallets: []string{}},
+			}, nil).AnyTimes()
+		mockBitcoind.EXPECT().
+			CreateWallet(gomock.Any(), gomock.Any()).
+			Return(&connect.Response[bitcoindv1alpha.CreateWalletResponse]{
+				Msg: &bitcoindv1alpha.CreateWalletResponse{Name: "cheque_watch"},
+			}, nil).AnyTimes()
+
+		cli := walletv1connect.NewWalletServiceClient(apitests.API(t, db, apitests.WithBitcoind(mockBitcoind)))
+		return cli, db
+	}
+
+	t.Run("partially funded unswept cheque cannot be deleted", func(t *testing.T) {
+		t.Parallel()
+
+		cli, db := deleteChequeClient(t)
+
+		// Cheque expects 1 BTC but only 0.5 BTC arrived: partially funded, unswept.
+		chequeID, err := cheques.Create(context.Background(), db, testWalletID, 0, 100_000_000, "tb1qpartialdelete000000000000000000000000000")
+		require.NoError(t, err)
+		require.NoError(t, cheques.UpdateFunding(context.Background(), db, testWalletID, chequeID,
+			[]string{"partial0partial0partial0partial0partial0partial0partial0partial0"}, 50_000_000))
+
+		_, err = cli.DeleteCheque(context.Background(), connect.NewRequest(&walletv1.DeleteChequeRequest{
+			WalletId: testWalletID,
+			Id:       chequeID,
+		}))
+		require.Error(t, err)
+		require.Equal(t, connect.CodeFailedPrecondition, connect.CodeOf(err))
+
+		// The row must survive — its recorded funds are still unswept.
+		_, err = cheques.Get(context.Background(), db, testWalletID, chequeID)
+		require.NoError(t, err)
+	})
+
+	t.Run("fully funded unswept cheque cannot be deleted", func(t *testing.T) {
+		t.Parallel()
+
+		cli, db := deleteChequeClient(t)
+
+		chequeID, err := cheques.Create(context.Background(), db, testWalletID, 0, 100_000_000, "tb1qfulldelete0000000000000000000000000000000")
+		require.NoError(t, err)
+		require.NoError(t, cheques.UpdateFunding(context.Background(), db, testWalletID, chequeID,
+			[]string{"full0000full0000full0000full0000full0000full0000full0000full0000"}, 100_000_000))
+
+		_, err = cli.DeleteCheque(context.Background(), connect.NewRequest(&walletv1.DeleteChequeRequest{
+			WalletId: testWalletID,
+			Id:       chequeID,
+		}))
+		require.Error(t, err)
+		require.Equal(t, connect.CodeFailedPrecondition, connect.CodeOf(err))
+
+		_, err = cheques.Get(context.Background(), db, testWalletID, chequeID)
+		require.NoError(t, err)
+	})
+
+	t.Run("swept cheque can be deleted", func(t *testing.T) {
+		t.Parallel()
+
+		cli, db := deleteChequeClient(t)
+
+		chequeID, err := cheques.Create(context.Background(), db, testWalletID, 0, 100_000_000, "tb1qsweptdelete000000000000000000000000000000")
+		require.NoError(t, err)
+		require.NoError(t, cheques.UpdateFunding(context.Background(), db, testWalletID, chequeID,
+			[]string{"swept000swept000swept000swept000swept000swept000swept000swept000"}, 100_000_000))
+		require.NoError(t, cheques.UpdateSwept(context.Background(), db, testWalletID, chequeID,
+			"deadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef0"))
+
+		_, err = cli.DeleteCheque(context.Background(), connect.NewRequest(&walletv1.DeleteChequeRequest{
+			WalletId: testWalletID,
+			Id:       chequeID,
+		}))
+		require.NoError(t, err)
+
+		// Once swept, the row is gone.
+		_, err = cheques.Get(context.Background(), db, testWalletID, chequeID)
+		require.ErrorIs(t, err, sql.ErrNoRows)
 	})
 }
 
