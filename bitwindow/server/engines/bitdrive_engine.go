@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/hmac"
+	"crypto/rand"
 	"crypto/sha256"
 	"crypto/subtle"
 	"database/sql"
@@ -32,6 +33,11 @@ const (
 
 	// Authentication tag size (8 bytes from HMAC-SHA256)
 	AuthTagSize = 8
+
+	// Per-file random nonce size (bytes). Prepended to the ciphertext body and
+	// mixed into the keystream seed so two files sharing a timestamp and file
+	// type never reuse the XOR keystream (two-time pad).
+	NonceSize = 16
 
 	// Metadata size (1 byte flags + 4 bytes timestamp + 4 bytes file type)
 	MetadataSize = 9
@@ -194,18 +200,22 @@ func DetectFileType(content []byte) string {
 }
 
 // DeriveKeyStream derives a keystream for XOR encryption
-// Uses SHA256(seed || counter) where seed = SHA256(privateKeyHex:timestamp:fileType)
-func (e *BitDriveEngine) DeriveKeyStream(ctx context.Context, timestamp uint32, fileType string, length int) ([]byte, error) {
+// Uses SHA256(seed || counter) where seed = SHA256(privateKeyHex:timestamp:fileType: || nonce).
+// The per-file random nonce guarantees that two files sharing a timestamp and
+// file type never derive the same keystream.
+func (e *BitDriveEngine) DeriveKeyStream(ctx context.Context, nonce []byte, timestamp uint32, fileType string, length int) ([]byte, error) {
 	// Get the encryption key
 	privateKeyHex, err := e.getEncryptionPrivateKey(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("get encryption key: %w", err)
 	}
 
-	// Create seed: SHA256(privateKeyHex:timestamp:fileType)
-	seedInput := fmt.Sprintf("%s:%d:%s", privateKeyHex, timestamp, fileType)
-	seedHash := sha256.Sum256([]byte(seedInput))
-	seed := seedHash[:]
+	// Create seed: SHA256(privateKeyHex:timestamp:fileType: || nonce)
+	seedInput := fmt.Sprintf("%s:%d:%s:", privateKeyHex, timestamp, fileType)
+	seedHasher := sha256.New()
+	seedHasher.Write([]byte(seedInput))
+	seedHasher.Write(nonce)
+	seed := seedHasher.Sum(nil)
 
 	// Generate keystream using counter mode
 	result := make([]byte, length)
@@ -349,10 +359,19 @@ func (e *BitDriveEngine) getAuthKey(_ context.Context) ([]byte, error) {
 	return privKey.Serialize(), nil
 }
 
-// Encrypt encrypts content using XOR with derived keystream and appends HMAC auth tag
+// Encrypt encrypts content using XOR with derived keystream and appends HMAC auth tag.
+// The output layout is: nonce (NonceSize) || ciphertext || tag (AuthTagSize). The
+// random per-file nonce is mixed into the keystream so repeated (timestamp, fileType)
+// tuples never reuse the keystream.
 func (e *BitDriveEngine) Encrypt(ctx context.Context, content []byte, timestamp uint32, fileType string) ([]byte, error) {
+	// Generate a random per-file nonce
+	nonce := make([]byte, NonceSize)
+	if _, err := rand.Read(nonce); err != nil {
+		return nil, fmt.Errorf("generate nonce: %w", err)
+	}
+
 	// Generate keystream
-	keyStream, err := e.DeriveKeyStream(ctx, timestamp, fileType, len(content))
+	keyStream, err := e.DeriveKeyStream(ctx, nonce, timestamp, fileType, len(content))
 	if err != nil {
 		return nil, fmt.Errorf("derive keystream: %w", err)
 	}
@@ -364,42 +383,47 @@ func (e *BitDriveEngine) Encrypt(ctx context.Context, content []byte, timestamp 
 	}
 
 	// Generate truncated authentication tag (first 8 bytes of HMAC-SHA256)
+	// over the nonce and ciphertext so nonce tampering is also detected.
 	authKey, err := e.getAuthKey(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("get auth key: %w", err)
 	}
 
 	mac := hmac.New(sha256.New, authKey)
+	mac.Write(nonce)
 	mac.Write(encrypted)
 	fullTag := mac.Sum(nil)
 	tag := fullTag[:AuthTagSize]
 
-	// Combine encrypted content with tag
-	result := make([]byte, len(encrypted)+len(tag))
-	copy(result, encrypted)
-	copy(result[len(encrypted):], tag)
+	// Combine nonce, encrypted content, and tag
+	result := make([]byte, NonceSize+len(encrypted)+len(tag))
+	copy(result, nonce)
+	copy(result[NonceSize:], encrypted)
+	copy(result[NonceSize+len(encrypted):], tag)
 
 	return result, nil
 }
 
 // Decrypt verifies the HMAC auth tag and decrypts content
 func (e *BitDriveEngine) Decrypt(ctx context.Context, encryptedData []byte, timestamp uint32, fileType string) ([]byte, error) {
-	if len(encryptedData) <= AuthTagSize {
+	if len(encryptedData) <= NonceSize+AuthTagSize {
 		return nil, fmt.Errorf("encrypted data too short")
 	}
 
-	// Extract content and tag
-	contentLen := len(encryptedData) - AuthTagSize
-	encryptedContent := encryptedData[:contentLen]
-	receivedTag := encryptedData[contentLen:]
+	// Extract nonce, content, and tag
+	nonce := encryptedData[:NonceSize]
+	contentLen := len(encryptedData) - NonceSize - AuthTagSize
+	encryptedContent := encryptedData[NonceSize : NonceSize+contentLen]
+	receivedTag := encryptedData[NonceSize+contentLen:]
 
-	// Verify authentication tag
+	// Verify authentication tag over the nonce and ciphertext
 	authKey, err := e.getAuthKey(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("get auth key: %w", err)
 	}
 
 	mac := hmac.New(sha256.New, authKey)
+	mac.Write(nonce)
 	mac.Write(encryptedContent)
 	fullTag := mac.Sum(nil)
 	calculatedTag := fullTag[:AuthTagSize]
@@ -410,7 +434,7 @@ func (e *BitDriveEngine) Decrypt(ctx context.Context, encryptedData []byte, time
 	}
 
 	// Generate keystream
-	keyStream, err := e.DeriveKeyStream(ctx, timestamp, fileType, contentLen)
+	keyStream, err := e.DeriveKeyStream(ctx, nonce, timestamp, fileType, contentLen)
 	if err != nil {
 		return nil, fmt.Errorf("derive keystream: %w", err)
 	}
