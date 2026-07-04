@@ -189,7 +189,7 @@ func (e *DeniabilityEngine) cancelIfUTXOIsGone(ctx context.Context, walletUTXOs 
 		})
 
 		if !utxoExists {
-			if err := deniability.Cancel(ctx, e.db, denial.ID, "cancelled due to UTXO being moved"); err != nil {
+			if err := deniability.Cancel(ctx, e.db, walletId, denial.ID, "cancelled due to UTXO being moved"); err != nil {
 				return fmt.Errorf("cancel denial %d: %w", denial.ID, err)
 			}
 
@@ -244,7 +244,7 @@ func (e *DeniabilityEngine) ProcessUTXO(ctx context.Context, utxo *pb.ListUnspen
 		reason := "utxo is too small to split"
 		logger.Warn().Msg("cancelling denial due to insufficient UTXO amount")
 
-		if err := deniability.Cancel(ctx, e.db, denial.ID, reason); err != nil {
+		if err := deniability.Cancel(ctx, e.db, lo.FromPtr(denial.WalletID), denial.ID, reason); err != nil {
 			return fmt.Errorf("cancel denial: %w", err)
 		}
 		return nil

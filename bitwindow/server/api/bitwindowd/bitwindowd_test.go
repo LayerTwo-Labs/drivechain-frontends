@@ -1271,6 +1271,75 @@ func TestService_ResumeDenial(t *testing.T) {
 	})
 }
 
+// TestService_DenialMutations_WalletScoped asserts that the Cancel/Pause/Resume
+// RPC handlers only mutate the active wallet's plans. The test harness resolves
+// the active wallet to "test-wallet-id-1234"; here we plant a denial owned by a
+// different wallet and confirm each mutation is rejected and leaves it untouched.
+func TestService_DenialMutations_WalletScoped(t *testing.T) {
+	t.Parallel()
+
+	const otherWallet = "other-wallet-id"
+
+	t.Run("cannot cancel another wallet's denial", func(t *testing.T) {
+		t.Parallel()
+
+		ctx := context.Background()
+		db := database.Test(t)
+		cli := v1connect.NewBitwindowdServiceClient(apitests.API(t, db))
+
+		denial, err := deniability.Create(ctx, db, otherWallet, "othertxid", 0, time.Hour, 3, nil)
+		require.NoError(t, err)
+
+		_, err = cli.CancelDenial(ctx, connect.NewRequest(&v1.CancelDenialRequest{Id: denial.ID}))
+		require.Error(t, err)
+
+		got, err := deniability.Get(ctx, db, denial.ID)
+		require.NoError(t, err)
+		assert.Nil(t, got.CancelledAt)
+		require.NotNil(t, got.WalletID)
+		assert.Equal(t, otherWallet, *got.WalletID)
+	})
+
+	t.Run("cannot pause another wallet's denial", func(t *testing.T) {
+		t.Parallel()
+
+		ctx := context.Background()
+		db := database.Test(t)
+		cli := v1connect.NewBitwindowdServiceClient(apitests.API(t, db))
+
+		denial, err := deniability.Create(ctx, db, otherWallet, "othertxid", 0, time.Hour, 3, nil)
+		require.NoError(t, err)
+
+		_, err = cli.PauseDenial(ctx, connect.NewRequest(&v1.PauseDenialRequest{Id: denial.ID}))
+		require.Error(t, err)
+
+		got, err := deniability.Get(ctx, db, denial.ID)
+		require.NoError(t, err)
+		assert.Nil(t, got.PausedAt)
+	})
+
+	t.Run("cannot resume another wallet's denial", func(t *testing.T) {
+		t.Parallel()
+
+		ctx := context.Background()
+		db := database.Test(t)
+		cli := v1connect.NewBitwindowdServiceClient(apitests.API(t, db))
+
+		denial, err := deniability.Create(ctx, db, otherWallet, "othertxid", 0, time.Hour, 3, nil)
+		require.NoError(t, err)
+
+		// Pause it as its owner so there is a paused plan to attempt to resume.
+		require.NoError(t, deniability.Pause(ctx, db, otherWallet, denial.ID))
+
+		_, err = cli.ResumeDenial(ctx, connect.NewRequest(&v1.ResumeDenialRequest{Id: denial.ID}))
+		require.Error(t, err)
+
+		got, err := deniability.Get(ctx, db, denial.ID)
+		require.NoError(t, err)
+		assert.NotNil(t, got.PausedAt)
+	})
+}
+
 func TestService_ListBlocks(t *testing.T) {
 	t.Parallel()
 
