@@ -516,6 +516,24 @@ func (s *Store) SaveTransaction(ctx context.Context, t Transaction) error {
 }
 
 func saveTransactionOn(ctx context.Context, e execer, t Transaction) error {
+	// Transaction IDs are client-supplied (and derived from a short 32-bit content
+	// hash), so they can collide across multisig groups. multisig_transactions is
+	// keyed by id alone, so a colliding save would reassign the existing row to the
+	// caller's group and — via the child-table replace — wipe the original group's
+	// collected signer PSBTs and inputs. Refuse to move a transaction between groups.
+	var existingGroupID string
+	switch err := e.QueryRowContext(ctx,
+		`SELECT group_id FROM multisig_transactions WHERE id = ?`, t.ID,
+	).Scan(&existingGroupID); {
+	case err == sql.ErrNoRows:
+		// No existing row — safe to insert.
+	case err != nil:
+		return err
+	case existingGroupID != t.GroupID:
+		return fmt.Errorf("transaction %s already belongs to group %s, refusing to reassign to group %s",
+			t.ID, existingGroupID, t.GroupID)
+	}
+
 	var bt interface{}
 	if t.BroadcastTime != nil {
 		bt = *t.BroadcastTime

@@ -436,6 +436,60 @@ func TestSaveTransactionAtomic_FKViolation(t *testing.T) {
 	require.Error(t, err, "FK constraint should reject orphan transaction")
 }
 
+func TestSaveTransactionAtomic_CrossGroupCollisionRejected(t *testing.T) {
+	ctx := context.Background()
+	store := multisig.NewStore(setupTestDB(t))
+
+	groupA := sampleGroup()
+	require.NoError(t, store.SaveGroup(ctx, groupA))
+	groupB := sampleGroup()
+	groupB.ID = "grp-2"
+	groupB.Name = "Other Group"
+	require.NoError(t, store.SaveGroup(ctx, groupB))
+
+	// Group A saves a transaction with a signed PSBT and an input.
+	require.NoError(t, store.SaveTransactionAtomic(ctx, multisig.SaveTransactionAtomicParams{
+		Transaction: multisig.Transaction{
+			ID: "tx-collide", GroupID: groupA.ID, InitialPSBT: "psbt-a", Status: 1, Type: 1, Created: 1700000500,
+		},
+		KeyPSBTs: []multisig.TxKeyPSBT{{TransactionID: "tx-collide", KeyID: "key-a", PSBT: "signed-psbt-a", IsSigned: true}},
+		Inputs:   []multisig.TxInput{{TransactionID: "tx-collide", Txid: "input-a", Vout: 0, Amount: 1.0}},
+	}))
+
+	// Group B tries to save a transaction whose id collides with group A's — must be rejected.
+	err := store.SaveTransactionAtomic(ctx, multisig.SaveTransactionAtomicParams{
+		Transaction: multisig.Transaction{
+			ID: "tx-collide", GroupID: groupB.ID, InitialPSBT: "psbt-b", Status: 1, Type: 1, Created: 1700000600,
+		},
+		KeyPSBTs: []multisig.TxKeyPSBT{{TransactionID: "tx-collide", KeyID: "key-b", PSBT: "unsigned-psbt-b"}},
+		Inputs:   []multisig.TxInput{{TransactionID: "tx-collide", Txid: "input-b", Vout: 0, Amount: 2.0}},
+	})
+	require.Error(t, err, "colliding tx id from a different group must be rejected")
+
+	// Group A's transaction, PSBT and input must be untouched.
+	got, err := store.GetTransaction(ctx, "tx-collide")
+	require.NoError(t, err)
+	require.NotNil(t, got)
+	assert.Equal(t, groupA.ID, got.GroupID)
+	assert.Equal(t, "psbt-a", got.InitialPSBT)
+
+	dbPSBTs, err := store.ListTxKeyPSBTs(ctx, "tx-collide")
+	require.NoError(t, err)
+	require.Len(t, dbPSBTs, 1)
+	assert.Equal(t, "signed-psbt-a", dbPSBTs[0].PSBT)
+	assert.True(t, dbPSBTs[0].IsSigned)
+
+	dbInputs, err := store.ListTxInputs(ctx, "tx-collide")
+	require.NoError(t, err)
+	require.Len(t, dbInputs, 1)
+	assert.Equal(t, "input-a", dbInputs[0].Txid)
+
+	// Group B still sees no transaction under the colliding id.
+	bTxns, err := store.ListTransactions(ctx, groupB.ID)
+	require.NoError(t, err)
+	assert.Empty(t, bTxns)
+}
+
 func TestSaveGroupAtomic_UpdateExisting(t *testing.T) {
 	ctx := context.Background()
 	store := multisig.NewStore(setupTestDB(t))
