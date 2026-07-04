@@ -105,6 +105,11 @@ func (s *Server) SetVotePreference(
 		return nil, fmt.Errorf("invalid vote type: %s", req.Msg.VoteType)
 	}
 
+	// Validate sidechain slot (0-255) before narrowing to uint8
+	if req.Msg.SidechainSlot > 255 {
+		return nil, fmt.Errorf("invalid sidechain slot: %d (must be 0-255)", req.Msg.SidechainSlot)
+	}
+
 	var bundleHash *string
 	if req.Msg.BundleHash != nil {
 		bundleHash = req.Msg.BundleHash
