@@ -34,6 +34,42 @@ func TestDeniability(t *testing.T) {
 		require.Equal(t, numHops, denial.NumHops)
 	})
 
+	t.Run("Create rejects duplicate active denial for same UTXO", func(t *testing.T) {
+		t.Parallel()
+		db := database.Test(t)
+
+		txid := gofakeit.UUID()
+		vout := gofakeit.Int32()
+
+		// First active denial for the UTXO succeeds.
+		_, err := Create(ctx, db, "test-wallet", txid, vout, 1*time.Hour, 3, nil)
+		require.NoError(t, err)
+
+		// A second active denial for the same UTXO must be rejected. SQLite's
+		// NULL-distinct semantics previously let the
+		// UNIQUE(initial_txid, initial_vout, cancelled_at) constraint admit
+		// duplicate rows with cancelled_at IS NULL.
+		_, err = Create(ctx, db, "test-wallet", txid, vout, 1*time.Hour, 3, nil)
+		require.Error(t, err)
+
+		var active int
+		err = db.QueryRow(`
+			SELECT COUNT(*) FROM denials
+			WHERE initial_txid = ? AND initial_vout = ? AND cancelled_at IS NULL
+		`, txid, vout).Scan(&active)
+		require.NoError(t, err)
+		require.Equal(t, 1, active)
+
+		// Cancelling the active plan frees the UTXO so a fresh plan can be created.
+		var id int64
+		err = db.QueryRow(`SELECT id FROM denials WHERE initial_txid = ? AND initial_vout = ?`, txid, vout).Scan(&id)
+		require.NoError(t, err)
+		require.NoError(t, Cancel(ctx, db, "test-wallet", id, "test"))
+
+		_, err = Create(ctx, db, "test-wallet", txid, vout, 1*time.Hour, 3, nil)
+		require.NoError(t, err)
+	})
+
 	t.Run("RecordExecution", func(t *testing.T) {
 		t.Parallel()
 		db := database.Test(t)
