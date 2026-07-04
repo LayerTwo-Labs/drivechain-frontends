@@ -646,20 +646,31 @@ func (s *Server) deriveAndCheckAddresses(ctx context.Context, walletId string) (
 		return "", nil, fmt.Errorf("get wallet name: %w", err)
 	}
 
-	// Get all transactions once to avoid repeated RPC calls
-	txResp, err := s.data.ListWalletTransactions(ctx, &corepb.ListTransactionsRequest{
-		Wallet: walletName,
-		Count:  1000, // Check recent transactions
-	})
-	if err != nil {
-		return "", nil, fmt.Errorf("list transactions: %w", err)
-	}
-
-	// Build a map of used addresses for fast lookup
+	// Page through the entire transaction history so used addresses older than
+	// the most recent window are still detected. A single Count:1000 fetch misses
+	// used addresses on wallets with more than one page of transactions, which
+	// would let an already-used receiving address be handed out again.
+	const txPageSize = 1000
 	usedAddresses := make(map[string]bool)
-	for _, tx := range txResp.Transactions {
-		for _, detail := range tx.Details {
-			usedAddresses[detail.Address] = true
+	for skip := uint32(0); ; skip += txPageSize {
+		txResp, err := s.data.ListWalletTransactions(ctx, &corepb.ListTransactionsRequest{
+			Wallet: walletName,
+			Count:  txPageSize,
+			Skip:   skip,
+		})
+		if err != nil {
+			return "", nil, fmt.Errorf("list transactions: %w", err)
+		}
+
+		for _, tx := range txResp.Transactions {
+			for _, detail := range tx.Details {
+				usedAddresses[detail.Address] = true
+			}
+		}
+
+		// Fewer than a full page means we have reached the end of the history.
+		if len(txResp.Transactions) < txPageSize {
+			break
 		}
 	}
 

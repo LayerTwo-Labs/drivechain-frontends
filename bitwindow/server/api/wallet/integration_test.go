@@ -270,4 +270,64 @@ func TestDeriveAndCheckAddressesIntegration(t *testing.T) {
 		t.Logf("First unused: %s", firstUnused)
 		t.Log("\nThis test proves we don't reuse emptied addresses!")
 	})
+
+	t.Run("used address beyond first page is detected via pagination", func(t *testing.T) {
+		// Learn the derived addresses first (empty history).
+		mockBitcoind.EXPECT().
+			ListTransactions(gomock.Any(), gomock.Any()).
+			Return(&connect.Response[corepb.ListTransactionsResponse]{
+				Msg: &corepb.ListTransactionsResponse{
+					Transactions: []*corepb.GetTransactionResponse{},
+				},
+			}, nil)
+
+		_, allAddresses, err := server.deriveAndCheckAddresses(ctx, "80CEBA2163224572BDEADD2D2181C51B")
+		require.NoError(t, err)
+
+		// A wallet with more than one page of history. The first page (Skip:0)
+		// marks addresses 0-4 used, while address 5 is only used by a transaction
+		// on the second page (Skip:1000). A single Count:1000 fetch would miss it
+		// and hand address 5 out again.
+		const pageSize = 1000
+		firstPage := make([]*corepb.GetTransactionResponse, pageSize)
+		for i := range firstPage {
+			addr := allAddresses[0].Address
+			if i < 5 {
+				addr = allAddresses[i].Address
+			}
+			firstPage[i] = &corepb.GetTransactionResponse{
+				Details: []*corepb.GetTransactionResponse_Details{
+					{Address: addr, Amount: 0.1},
+				},
+			}
+		}
+		secondPage := []*corepb.GetTransactionResponse{
+			{
+				Details: []*corepb.GetTransactionResponse_Details{
+					{Address: allAddresses[5].Address, Amount: 0.1},
+				},
+			},
+		}
+
+		mockBitcoind.EXPECT().
+			ListTransactions(gomock.Any(), gomock.Any()).
+			DoAndReturn(func(ctx context.Context, req *connect.Request[corepb.ListTransactionsRequest]) (*connect.Response[corepb.ListTransactionsResponse], error) {
+				txs := secondPage
+				if req.Msg.Skip == 0 {
+					txs = firstPage
+				}
+				return &connect.Response[corepb.ListTransactionsResponse]{
+					Msg: &corepb.ListTransactionsResponse{Transactions: txs},
+				}, nil
+			}).
+			Times(2)
+
+		firstUnused, derivedAddresses, err := server.deriveAndCheckAddresses(ctx, "80CEBA2163224572BDEADD2D2181C51B")
+		require.NoError(t, err)
+
+		// Address 5 is used even though it only appears on the second page.
+		require.True(t, derivedAddresses[5].Used, "Address 5 should be marked used (found on second page)")
+		require.NotEqual(t, allAddresses[5].Address, firstUnused, "Should not reuse address used beyond the first page")
+		require.Equal(t, allAddresses[6].Address, firstUnused, "Should return first truly unused address")
+	})
 }
