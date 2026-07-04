@@ -100,7 +100,13 @@ func (h *WalletHandler) expandBip47Destinations(
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("read bip47 state: %w", err))
 	}
-	if state != nil && state.NotificationTxID != nil {
+	// A persisted NotificationTxID only proves the recipient was notified while
+	// that tx is still live on-chain or in the mempool. If it was reorged out,
+	// RBF-replaced, or dropped, we must re-notify — otherwise this send pays a
+	// derived address the recipient can never discover. Revalidate against the
+	// chain before trusting the stored txid.
+	if state != nil && state.NotificationTxID != nil &&
+		h.bip47NotificationLive(ctx, walletID, *state.NotificationTxID) {
 		return expansion, nil
 	}
 
@@ -110,6 +116,18 @@ func (h *WalletHandler) expandBip47Destinations(
 	}
 	expansion.notificationTxHex = rawHex
 	return expansion, nil
+}
+
+// bip47NotificationLive reports whether a previously broadcast notification tx
+// is still discoverable on the chain the wallet uses (confirmed or in the
+// mempool). A stored NotificationTxID that no longer resolves — reorged out,
+// RBF-replaced, or dropped — must not be trusted as proof of notification, so
+// the caller re-notifies. A lookup error is treated as "not live": re-notifying
+// is safe (the recipient de-dupes) and preserves the recipient's ability to
+// discover the payment address.
+func (h *WalletHandler) bip47NotificationLive(ctx context.Context, walletID, txid string) bool {
+	tx, err := h.engine.ChainForWallet(walletID).GetRawTransaction(ctx, txid)
+	return err == nil && tx != nil
 }
 
 // buildBip47NotificationTx assembles the unsigned notification transaction by
