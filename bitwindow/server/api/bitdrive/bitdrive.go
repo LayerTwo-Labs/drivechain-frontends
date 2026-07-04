@@ -185,7 +185,7 @@ func (s *Server) ScanForFiles(ctx context.Context, req *connect.Request[emptypb.
 			Encrypted: metadata.Encrypted,
 			Timestamp: metadata.Timestamp,
 			FileType:  metadata.FileType,
-			Filename:  fmt.Sprintf("%d.%s", metadata.Timestamp, metadata.FileType),
+			Filename:  fmt.Sprintf("%d_%s.%s", metadata.Timestamp, opReturn.TxID, metadata.FileType),
 		})
 	}
 
