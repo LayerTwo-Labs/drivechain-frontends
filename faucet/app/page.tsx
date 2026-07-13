@@ -2,7 +2,9 @@
 
 import { createClient } from "@connectrpc/connect";
 import { format } from "date-fns";
+import { redirect } from "next/navigation";
 import { useEffect, useState } from "react";
+import { useNetwork } from "@/components/network-provider";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -17,9 +19,14 @@ import type { GetTransactionResponse } from "@/gen/bitcoin/bitcoind/v1alpha/bitc
 import { FaucetService } from "@/gen/faucet/v1/faucet_pb";
 import { timestampToDate } from "@/lib/api";
 import { clientTransport } from "@/lib/client-api";
-import { blockExplorerUrl, exampleAddressForNetwork } from "@/lib/utils";
+import { blockExplorerUrl, exampleAddressForNetwork, faucetEnabled } from "@/lib/network";
 
 export default function Home() {
+  const network = useNetwork();
+  // Dry-run networks have no faucet; the explorer is the landing page.
+  if (!faucetEnabled(network)) {
+    redirect("/sidechains");
+  }
   const [address, setAddress] = useState("");
   const [amount, setAmount] = useState("");
   const [loading, setLoading] = useState(false);
@@ -130,7 +137,7 @@ export default function Home() {
             <div className="flex flex-col sm:flex-row gap-2">
               <Input
                 id="address"
-                placeholder={`Enter a L1-address (e.g. ${exampleAddressForNetwork()})`}
+                placeholder={`Enter a L1-address (e.g. ${exampleAddressForNetwork(network)})`}
                 value={address}
                 onChange={(e) => setAddress(e.target.value)}
               />
@@ -200,7 +207,11 @@ export default function Home() {
           {txid && (
             <div className="p-3 text-sm text-green-700 bg-green-50 rounded-md border border-green-200">
               Dispensed {amount} BTC!{" "}
-              <a href={blockExplorerUrl(txid)} target="_blank" className="underline font-bold">
+              <a
+                href={blockExplorerUrl(network, txid)}
+                target="_blank"
+                className="underline font-bold"
+              >
                 View Transaction
               </a>
             </div>
@@ -294,7 +305,7 @@ export default function Home() {
                       <td className="px-3 sm:px-6 py-4 font-mono text-xs">
                         <div className="truncate max-w-[80px] sm:max-w-[200px] md:max-w-full">
                           <a
-                            href={blockExplorerUrl(claim.txid)}
+                            href={blockExplorerUrl(network, claim.txid)}
                             target="_blank"
                             className="text-primary hover:underline"
                           >
