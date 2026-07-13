@@ -135,7 +135,18 @@ func (m *Miner) submitUpstreamWork(ctx context.Context, work *Work) (*string, er
 	select {
 	case m.acceptedBlocks <- header.BlockHash():
 	default:
-		zerolog.Ctx(ctx).Warn().Msg("Block accepted, but channel is full")
+		// Buffer full: either nobody consumes notifications (CLI mode) or
+		// the consumer is stalled. Drop the oldest notification to make
+		// room and keep the newest. Expected in CLI mode, not a fault.
+		select {
+		case <-m.acceptedBlocks:
+		default:
+		}
+		select {
+		case m.acceptedBlocks <- header.BlockHash():
+		default:
+		}
+		zerolog.Ctx(ctx).Debug().Msg("Accepted-block notification buffer full, dropped oldest")
 	}
 
 	_, err = m.getNewWork(ctx)

@@ -456,8 +456,11 @@ func New(cfg Config) (*Miner, error) {
 	}
 
 	return &Miner{
-		client:            http.DefaultClient,
-		acceptedBlocks:    make(chan chainhash.Hash),
+		client: http.DefaultClient,
+		// Buffered: consumers (e.g. the bitwindowd MineBlocks stream) read
+		// asynchronously, and in CLI mode there is no consumer at all. The
+		// send side never blocks and coalesces latest-wins on overflow.
+		acceptedBlocks:    make(chan chainhash.Hash, 64),
 		routines:          cfg.Routines,
 		scanTime:          cfg.ScanTime,
 		rpcURL:            cfg.RpcURL,
