@@ -1,6 +1,6 @@
 "use client";
 
-import { createClient } from "@connectrpc/connect";
+import { ConnectError, createClient } from "@connectrpc/connect";
 import { format } from "date-fns";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -48,7 +48,7 @@ export default function Home() {
       fetchClaims(); // Refresh claims list
       fetchStatus(); // Refresh faucet balance/health
     } catch (err) {
-      setError(`Failed to dispense coins: ${err}`);
+      setError(ConnectError.from(err).rawMessage);
     } finally {
       setLoading(false);
     }
