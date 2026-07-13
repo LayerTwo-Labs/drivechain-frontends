@@ -3,10 +3,14 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { cn, instanceNetwork } from "@/lib/utils";
+import { useNetwork } from "@/components/network-provider";
+import { faucetEnabled, hasConnectInfoPage } from "@/lib/network";
+import { cn } from "@/lib/utils";
 
 export function Navbar() {
   const pathname = usePathname();
+  const network = useNetwork();
+  const siteName = faucetEnabled(network) ? "Drivechain Faucet" : "Drivechain Explorer";
 
   return (
     <nav className="border-b bg-background">
@@ -21,16 +25,26 @@ export function Navbar() {
               className="h-full w-full object-cover"
             />
           </div>
-          <span className="truncate">Drivechain Faucet ({instanceNetwork()})</span>
+          <span className="truncate">
+            {siteName} ({network})
+          </span>
         </div>
         <div className="flex space-x-6 overflow-x-auto no-scrollbar w-full md:w-auto justify-center md:justify-end pb-1 md:pb-0">
-          <NavLink href="/" active={pathname === "/"}>
-            Faucet
-          </NavLink>
+          {faucetEnabled(network) && (
+            <NavLink href="/" active={pathname === "/"}>
+              Faucet
+            </NavLink>
+          )}
           <NavLink href="/sidechains" active={pathname?.startsWith("/sidechains")}>
             Sidechains
           </NavLink>
-          <NavLink href="https://drivechain.info/">Info</NavLink>
+          {hasConnectInfoPage(network) ? (
+            <NavLink href="/info" active={pathname?.startsWith("/info")}>
+              Info
+            </NavLink>
+          ) : (
+            <NavLink href="https://drivechain.info/">Info</NavLink>
+          )}
           <NavLink href="https://www.drivechain.info/dev.txt">Dev</NavLink>
         </div>
         {/* Mobile Menu Placeholder - for now we just hide links on small screens, 

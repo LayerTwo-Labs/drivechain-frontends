@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import { Footer } from "@/components/footer";
 import { Navbar } from "@/components/navbar";
-import { instanceNetwork } from "@/lib/utils";
+import { NetworkProvider } from "@/components/network-provider";
+import { faucetEnabled, serverNetwork } from "@/lib/network";
 
 import "./globals.css";
 
@@ -12,26 +13,36 @@ export const dynamic = "force-dynamic";
 
 const inter = Inter({ subsets: ["latin"] });
 
-const network = instanceNetwork();
-const title = `Drivechain Faucet (${network})`;
-const description = `A Drivechain faucet for obtaining free (and worthless!) coins on ${network}`;
+// Runtime metadata: the network comes from the NETWORK env var per request,
+// so a single image serves every network.
+export async function generateMetadata(): Promise<Metadata> {
+  const network = serverNetwork();
+  const title = faucetEnabled(network)
+    ? `Drivechain Faucet (${network})`
+    : `Drivechain Explorer (${network})`;
+  const description = faucetEnabled(network)
+    ? `A Drivechain faucet for obtaining free (and worthless!) coins on ${network}`
+    : `Sidechain explorer and connection info for ${network}`;
 
-export const metadata: Metadata = {
-  title,
-  description,
-  metadataBase: process.env.METADATA_BASE_URL,
-  openGraph: {
+  return {
     title,
     description,
-    siteName: "Drivechain Faucet",
-    type: "website",
-  },
-  twitter: {
-    card: "summary_large_image",
-    title,
-    description,
-  },
-};
+    metadataBase: process.env.METADATA_BASE_URL
+      ? new URL(process.env.METADATA_BASE_URL)
+      : undefined,
+    openGraph: {
+      title,
+      description,
+      siteName: title,
+      type: "website",
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+    },
+  };
+}
 
 export default function RootLayout({
   children,
@@ -43,9 +54,11 @@ export default function RootLayout({
       <body
         className={`${inter.className} antialiased min-h-screen bg-background text-foreground flex flex-col`}
       >
-        <Navbar />
-        <main className="container mx-auto py-8 px-4 flex-grow">{children}</main>
-        <Footer />
+        <NetworkProvider network={serverNetwork()}>
+          <Navbar />
+          <main className="container mx-auto py-8 px-4 flex-grow">{children}</main>
+          <Footer />
+        </NetworkProvider>
       </body>
     </html>
   );

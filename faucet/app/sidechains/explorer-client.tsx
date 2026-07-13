@@ -8,6 +8,7 @@ import { formatDistanceToNow } from "date-fns";
 import { Check, Copy } from "lucide-react";
 import { useCallback, useState } from "react";
 import { Console } from "@/components/console";
+import { useNetwork } from "@/components/network-provider";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   type ChainTip,
@@ -18,8 +19,8 @@ import {
 } from "@/gen/explorer/v1/explorer_pb";
 import { timestampToDate } from "@/lib/api";
 import { clientTransport } from "@/lib/client-api";
+import { blockExplorerBlockUrl } from "@/lib/network";
 import { useInterval } from "@/lib/use-interval";
-import { blockExplorerBlockUrl } from "@/lib/utils";
 
 interface ExplorerClientProps {
   // We accept any here because the initial data might have BigInts converted to strings
@@ -28,6 +29,7 @@ interface ExplorerClientProps {
 }
 
 export function ExplorerClient({ initialData }: ExplorerClientProps) {
+  const network = useNetwork();
   const [data, setData] = useState(
     initialData ? pb.fromJson(GetChainTipsResponseSchema, initialData) : null
   );
@@ -49,7 +51,7 @@ export function ExplorerClient({ initialData }: ExplorerClientProps) {
           title="Mainchain"
           subtitle="Most recent block on the mainchain"
           block={data?.mainchain}
-          explorerUrl={blockExplorerBlockUrl}
+          explorerUrl={(hash: string) => blockExplorerBlockUrl(network, hash)}
           staleThresholdMs={20 * 60 * 1000}
         />
         <BlockCard

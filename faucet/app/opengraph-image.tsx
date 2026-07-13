@@ -1,9 +1,14 @@
 import { ImageResponse } from "next/og";
-import { instanceNetwork } from "@/lib/utils";
+import { faucetEnabled, serverNetwork } from "@/lib/network";
 
-export const runtime = "edge";
+// The network is only known at runtime (NETWORK env var), but Next prerenders
+// metadata image routes at build time by default — which would bake whichever
+// network the build happened to default to into a static PNG, for every
+// deployment of the image. The layout's force-dynamic doesn't cover this: an
+// opengraph-image is compiled into its own route, with its own segment config.
+export const dynamic = "force-dynamic";
 
-export const alt = "Drivechain Faucet";
+export const alt = "Drivechain";
 export const size = {
   width: 1200,
   height: 630,
@@ -12,7 +17,9 @@ export const size = {
 export const contentType = "image/png";
 
 export default async function Image() {
-  const network = instanceNetwork();
+  const network = serverNetwork();
+  // Mirrors the title in app/layout.tsx: there's no faucet on a drynet.
+  const title = faucetEnabled(network) ? "Drivechain Faucet" : "Drivechain Explorer";
 
   return new ImageResponse(
     <div
@@ -54,7 +61,7 @@ export default async function Image() {
             lineHeight: 1,
           }}
         >
-          Drivechain Faucet
+          {title}
         </div>
         <div
           style={{
