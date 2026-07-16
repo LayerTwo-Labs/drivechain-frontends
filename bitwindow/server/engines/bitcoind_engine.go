@@ -208,14 +208,6 @@ func (p *Parser) handleBlockTick(ctx context.Context) error {
 		if err := p.purgeCoinNewsAtOrAbove(ctx, lastProcessedHeight+1); err != nil {
 			return fmt.Errorf("purge coinnews on reorg: %w", err)
 		}
-
-		// Same for the M4 SCDB (M3 proposals, M4 votes, withdrawal bundles):
-		// persistM3Message inserts bundles idempotently, so a proposal that
-		// existed only in an orphaned block would otherwise survive the replay
-		// as 'pending' and GenerateM4Bytes would vote on the stale bundle.
-		if err := p.m4Engine.PurgeReorgedState(ctx, lastProcessedHeight+1); err != nil {
-			return fmt.Errorf("purge m4 scdb on reorg: %w", err)
-		}
 	}
 
 	const batchSize = 30
