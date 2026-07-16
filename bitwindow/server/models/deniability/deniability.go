@@ -266,15 +266,14 @@ func listExecutions(ctx context.Context, db *sql.DB, denialID int64) ([]Executed
 	return executions, nil
 }
 
-// Cancel marks a deniability plan as cancelled. The update is scoped to
-// walletID so one wallet cannot cancel another wallet's plan.
-func Cancel(ctx context.Context, db *sql.DB, walletID string, id int64, reason string) error {
+// Cancel marks a deniability plan as cancelled
+func Cancel(ctx context.Context, db *sql.DB, id int64, reason string) error {
 	rows, err := db.ExecContext(ctx, `
 		UPDATE denials
 			SET cancelled_at = ?,
 			cancelled_reason = ?
-		WHERE id = ? AND wallet_id = ?
-	`, time.Now(), reason, id, walletID)
+		WHERE id = ?
+	`, time.Now(), reason, id)
 	if err != nil {
 		return fmt.Errorf("could not cancel deniability: %w", err)
 	}
@@ -286,14 +285,13 @@ func Cancel(ctx context.Context, db *sql.DB, walletID string, id int64, reason s
 	return nil
 }
 
-// Pause marks a deniability plan as paused. The update is scoped to walletID
-// so one wallet cannot pause another wallet's plan.
-func Pause(ctx context.Context, db *sql.DB, walletID string, id int64) error {
+// Pause marks a deniability plan as paused
+func Pause(ctx context.Context, db *sql.DB, id int64) error {
 	rows, err := db.ExecContext(ctx, `
 		UPDATE denials
 			SET paused_at = ?
-		WHERE id = ? AND wallet_id = ? AND paused_at IS NULL AND cancelled_at IS NULL
-	`, time.Now(), id, walletID)
+		WHERE id = ? AND paused_at IS NULL AND cancelled_at IS NULL
+	`, time.Now(), id)
 	if err != nil {
 		return fmt.Errorf("could not pause deniability: %w", err)
 	}
@@ -305,14 +303,13 @@ func Pause(ctx context.Context, db *sql.DB, walletID string, id int64) error {
 	return nil
 }
 
-// Resume resumes a paused deniability plan. The update is scoped to walletID
-// so one wallet cannot resume another wallet's plan.
-func Resume(ctx context.Context, db *sql.DB, walletID string, id int64) error {
+// Resume resumes a paused deniability plan
+func Resume(ctx context.Context, db *sql.DB, id int64) error {
 	rows, err := db.ExecContext(ctx, `
 		UPDATE denials
 			SET paused_at = NULL
-		WHERE id = ? AND wallet_id = ? AND paused_at IS NOT NULL
-	`, id, walletID)
+		WHERE id = ? AND paused_at IS NOT NULL
+	`, id)
 	if err != nil {
 		return fmt.Errorf("could not resume deniability: %w", err)
 	}

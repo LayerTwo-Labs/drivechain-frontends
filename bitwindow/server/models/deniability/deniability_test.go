@@ -119,7 +119,7 @@ func TestDeniability(t *testing.T) {
 
 		// Cancel the denial
 		reason := "test cancellation"
-		err = Cancel(ctx, db, "test-wallet", denialID, reason)
+		err = Cancel(ctx, db, denialID, reason)
 		require.NoError(t, err)
 
 		// Verify the cancellation

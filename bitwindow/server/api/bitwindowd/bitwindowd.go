@@ -337,15 +337,7 @@ func (s *Server) CancelDenial(
 	ctx context.Context,
 	req *connect.Request[pb.CancelDenialRequest],
 ) (*connect.Response[emptypb.Empty], error) {
-	// Scope the mutation to the active wallet so one wallet cannot cancel
-	// another wallet's deniability plan.
-	activeWallet, err := s.walletEngine.GetActiveWallet(ctx)
-	if err != nil {
-		zerolog.Ctx(ctx).Error().Err(err).Msg("could not get active wallet")
-		return nil, connect.NewError(connect.CodeInternal, err)
-	}
-
-	err = deniability.Cancel(ctx, s.db, activeWallet.ID, req.Msg.Id, "cancelled by user")
+	err := deniability.Cancel(ctx, s.db, req.Msg.Id, "cancelled by user")
 	if err != nil {
 		zerolog.Ctx(ctx).Error().Err(err).Msg("could not cancel denial")
 		return nil, connect.NewError(connect.CodeInternal, err)
@@ -358,15 +350,7 @@ func (s *Server) PauseDenial(
 	ctx context.Context,
 	req *connect.Request[pb.PauseDenialRequest],
 ) (*connect.Response[emptypb.Empty], error) {
-	// Scope the mutation to the active wallet so one wallet cannot pause
-	// another wallet's deniability plan.
-	activeWallet, err := s.walletEngine.GetActiveWallet(ctx)
-	if err != nil {
-		zerolog.Ctx(ctx).Error().Err(err).Msg("could not get active wallet")
-		return nil, connect.NewError(connect.CodeInternal, err)
-	}
-
-	err = deniability.Pause(ctx, s.db, activeWallet.ID, req.Msg.Id)
+	err := deniability.Pause(ctx, s.db, req.Msg.Id)
 	if err != nil {
 		zerolog.Ctx(ctx).Error().Err(err).Msg("could not pause denial")
 		return nil, err
@@ -379,15 +363,7 @@ func (s *Server) ResumeDenial(
 	ctx context.Context,
 	req *connect.Request[pb.ResumeDenialRequest],
 ) (*connect.Response[emptypb.Empty], error) {
-	// Scope the mutation to the active wallet so one wallet cannot resume
-	// another wallet's deniability plan.
-	activeWallet, err := s.walletEngine.GetActiveWallet(ctx)
-	if err != nil {
-		zerolog.Ctx(ctx).Error().Err(err).Msg("could not get active wallet")
-		return nil, connect.NewError(connect.CodeInternal, err)
-	}
-
-	err = deniability.Resume(ctx, s.db, activeWallet.ID, req.Msg.Id)
+	err := deniability.Resume(ctx, s.db, req.Msg.Id)
 	if err != nil {
 		zerolog.Ctx(ctx).Error().Err(err).Msg("could not resume denial")
 		return nil, err
