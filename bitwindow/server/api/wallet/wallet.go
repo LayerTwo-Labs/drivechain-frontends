@@ -895,7 +895,7 @@ func (s *Server) ListTransactions(ctx context.Context, c *connect.Request[pb.Lis
 			return nil, fmt.Errorf("enforcer/wallet: could not list addressbook: %w", err)
 		}
 
-		notes, err := transactions.ListByWallet(ctx, s.database, walletId)
+		notes, err := transactions.List(ctx, s.database)
 		if err != nil {
 			return nil, fmt.Errorf("enforcer/wallet: could not list transactions: %w", err)
 		}
@@ -972,7 +972,7 @@ func (s *Server) ListTransactions(ctx context.Context, c *connect.Request[pb.Lis
 			}
 			return ""
 		}
-		notes, err := transactions.ListByWallet(ctx, s.database, walletId)
+		notes, err := transactions.List(ctx, s.database)
 		if err != nil {
 			return nil, fmt.Errorf("electrum: could not list notes: %w", err)
 		}
@@ -1039,7 +1039,7 @@ func (s *Server) ListTransactions(ctx context.Context, c *connect.Request[pb.Lis
 		return nil, fmt.Errorf("list addressbook: %w", err)
 	}
 
-	notes, err := transactions.ListByWallet(ctx, s.database, walletId)
+	notes, err := transactions.List(ctx, s.database)
 	if err != nil {
 		return nil, fmt.Errorf("list transactions: %w", err)
 	}
