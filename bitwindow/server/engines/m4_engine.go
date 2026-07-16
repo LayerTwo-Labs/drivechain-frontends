@@ -468,34 +468,6 @@ func (e *M4Engine) updateBundleStates(ctx context.Context) error {
 	return nil
 }
 
-// PurgeReorgedState deletes every SCDB row derived from a block at or above
-// `fromHeight`. Called when the engine detects a reorg and replays a height
-// range: persistM3Message / persistM4Message insert idempotently
-// (ON CONFLICT DO NOTHING/UPDATE), so without this purge an M3 withdrawal-bundle
-// proposal that existed only in an orphaned block survives the replay as a
-// 'pending' bundle and GenerateM4Bytes votes on it. Mirrors
-// purgeCoinNewsAtOrAbove for the M4 tables.
-func (e *M4Engine) PurgeReorgedState(ctx context.Context, fromHeight uint32) error {
-	tx, err := e.db.BeginTx(ctx, nil)
-	if err != nil {
-		return err
-	}
-	defer func() { _ = tx.Rollback() }()
-
-	stmts := []string{
-		`DELETE FROM m4_votes         WHERE m4_message_id IN (SELECT id FROM m4_messages WHERE block_height >= ?)`,
-		`DELETE FROM m4_messages      WHERE block_height >= ?`,
-		`DELETE FROM m3_messages      WHERE block_height >= ?`,
-		`DELETE FROM withdrawal_bundles WHERE first_seen_height >= ?`,
-	}
-	for _, q := range stmts {
-		if _, err := tx.ExecContext(ctx, q, fromHeight); err != nil {
-			return err
-		}
-	}
-	return tx.Commit()
-}
-
 // GetWithdrawalBundles returns active withdrawal bundles for a sidechain
 func (e *M4Engine) GetWithdrawalBundles(ctx context.Context, sidechainSlot *uint8) ([]m4.WithdrawalBundle, error) {
 	query := `
