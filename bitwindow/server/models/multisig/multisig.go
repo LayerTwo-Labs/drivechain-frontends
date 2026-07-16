@@ -874,10 +874,9 @@ func (s *Store) ImportFromJSON(ctx context.Context, data []byte) error {
 			return fmt.Errorf("save group %s: %w", g.ID, err)
 		}
 
-		// Import keys — always replace so a restored group never inherits a
-		// prior group's keys when the backup omits/empties the field.
-		var keys []Key
+		// Import keys
 		if keysRaw, ok := gj["keys"].([]interface{}); ok {
+			var keys []Key
 			for i, kr := range keysRaw {
 				kd, ok := kr.(map[string]interface{})
 				if !ok {
@@ -894,14 +893,14 @@ func (s *Store) ImportFromJSON(ctx context.Context, data []byte) error {
 					SortOrder:      i,
 				})
 			}
-		}
-		if err := s.ReplaceKeysForGroup(ctx, g.ID, keys); err != nil {
-			return fmt.Errorf("replace keys for %s: %w", g.ID, err)
+			if err := s.ReplaceKeysForGroup(ctx, g.ID, keys); err != nil {
+				return fmt.Errorf("replace keys for %s: %w", g.ID, err)
+			}
 		}
 
-		// Import addresses — always replace so stale addresses don't survive.
-		var addrs []Address
+		// Import addresses
 		if addrData, ok := gj["addresses"].(map[string]interface{}); ok {
+			var addrs []Address
 			for _, addrType := range []string{"receive", "change"} {
 				if addrList, ok := addrData[addrType].([]interface{}); ok {
 					for _, ad := range addrList {
@@ -919,22 +918,26 @@ func (s *Store) ImportFromJSON(ctx context.Context, data []byte) error {
 					}
 				}
 			}
-		}
-		if err := s.ReplaceAddresses(ctx, g.ID, addrs); err != nil {
-			return fmt.Errorf("replace addresses for %s: %w", g.ID, err)
+			if len(addrs) > 0 {
+				if err := s.ReplaceAddresses(ctx, g.ID, addrs); err != nil {
+					return fmt.Errorf("replace addresses for %s: %w", g.ID, err)
+				}
+			}
 		}
 
-		// Import transaction IDs — always replace so stale tx links don't survive.
-		var ids []string
+		// Import transaction IDs
 		if txIDs, ok := gj["transaction_ids"].([]interface{}); ok {
+			var ids []string
 			for _, id := range txIDs {
 				if s, ok := id.(string); ok {
 					ids = append(ids, s)
 				}
 			}
-		}
-		if err := s.ReplaceGroupTransactionIDs(ctx, g.ID, ids); err != nil {
-			return fmt.Errorf("replace tx ids for %s: %w", g.ID, err)
+			if len(ids) > 0 {
+				if err := s.ReplaceGroupTransactionIDs(ctx, g.ID, ids); err != nil {
+					return fmt.Errorf("replace tx ids for %s: %w", g.ID, err)
+				}
+			}
 		}
 	}
 
