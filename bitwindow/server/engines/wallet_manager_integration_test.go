@@ -155,7 +155,7 @@ func TestDescriptorImportIntegration(t *testing.T) {
 			Active:      true,
 			Timestamp:   nil, // nil = "now", skips rescan
 			Internal:    d.internal,
-			RangeStart:  0,    // Start from HD index 0 (importdescriptors range is inclusive)
+			RangeStart:  1,    // Start from 1 (0 gets omitted by protobuf)
 			RangeEnd:    1000, // Generate 1000 keys
 		})
 	}
