@@ -1055,16 +1055,6 @@ func (s *Service) ChangePassword(oldPassword, newPassword string) error {
 		return fmt.Errorf("wallet is not encrypted")
 	}
 
-	// Require the wallet to be unlocked. Changing the password re-encrypts the
-	// file and sets s.encryptionKey/s.unlockedPass; if the wallet is locked
-	// (s.wallets nil) that would leave the key set without any wallets loaded,
-	// an inconsistent state where a subsequent GenerateWallet treats the install
-	// as empty and overwrites wallet.json. Force an explicit UnlockWallet first.
-	if len(s.wallets) == 0 {
-		s.log.Warn().Msg("change password failed: wallet is locked")
-		return fmt.Errorf("wallet is locked, unlock before changing password")
-	}
-
 	salt, err := base64.StdEncoding.DecodeString(meta.Salt)
 	if err != nil {
 		return fmt.Errorf("decode salt: %w", err)
