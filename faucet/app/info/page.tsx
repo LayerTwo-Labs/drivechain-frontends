@@ -20,8 +20,10 @@ const CONNECT_INFO: Record<
     esplora: string;
     electrum: string;
     electrumTls: string;
-    dataBase: string;
-    snapshotFile: string;
+    // Snapshot fields are optional: a drynet without a published assumeutxo
+    // snapshot omits them, and the fast-bootstrap UI is hidden accordingly.
+    dataBase?: string;
+    snapshotFile?: string;
   }
 > = {
   drynet1: {
@@ -37,11 +39,22 @@ const CONNECT_INFO: Record<
     dataBase: "https://data.drivechain.dev/drynet1",
     snapshotFile: "utxo-955584.dat",
   },
+  drynet2: {
+    forkHeight: 957_600,
+    lastCommonBlock: 957_599,
+    node: "drynet2.drivechain.dev:8335",
+    explorer: "https://explorer.drynet2.drivechain.dev",
+    esplora: "https://esplora.drynet2.drivechain.dev",
+    electrum: "explorer.drynet2.drivechain.dev:50011",
+    electrumTls: "explorer.drynet2.drivechain.dev:50012",
+    // No assumeutxo snapshot published yet: fast-bootstrap section is hidden.
+  },
 };
 
 export default function InfoPage() {
   const net = serverNetwork();
   const info = CONNECT_INFO[net];
+  const hasSnapshot = Boolean(info?.snapshotFile);
 
   if (!info) {
     return (
@@ -95,12 +108,14 @@ export default function InfoPage() {
               without running a node.
             </p>
           </div>
-          <div className="space-y-1">
-            <InlineCode>{info.dataBase}/</InlineCode>
-            <p className="text-muted-foreground">
-              UTXO snapshots, to skip the historical download entirely — see below.
-            </p>
-          </div>
+          {hasSnapshot && (
+            <div className="space-y-1">
+              <InlineCode>{info.dataBase}/</InlineCode>
+              <p className="text-muted-foreground">
+                UTXO snapshots, to skip the historical download entirely — see below.
+              </p>
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -129,34 +144,37 @@ export default function InfoPage() {
           </p>
           <p className="text-sm text-muted-foreground">
             A full sync downloads and validates all of mainnet history up to the fork (~850 GB,
-            several hours). For a much faster start, use the UTXO snapshot below.
+            several hours).
+            {hasSnapshot ? " For a much faster start, use the UTXO snapshot below." : ""}
           </p>
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Fast bootstrap (UTXO snapshot)</CardTitle>
-          <CardDescription>
-            The client ships an <InlineCode>assumeutxo</InlineCode> commitment for the fork block,
-            so you can load a ~9 GB snapshot and be validating {net} blocks at the tip within
-            minutes. Historical blocks backfill in the background.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <CodeBlock>{`curl -O ${info.dataBase}/${info.snapshotFile}
+      {hasSnapshot && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Fast bootstrap (UTXO snapshot)</CardTitle>
+            <CardDescription>
+              The client ships an <InlineCode>assumeutxo</InlineCode> commitment for the fork block,
+              so you can load a ~9 GB snapshot and be validating {net} blocks at the tip within
+              minutes. Historical blocks backfill in the background.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <CodeBlock>{`curl -O ${info.dataBase}/${info.snapshotFile}
 curl -O ${info.dataBase}/SHA256SUMS
 sha256sum -c SHA256SUMS`}</CodeBlock>
-          <CodeBlock>{`bitcoind -daemon -datadir=./${net} -addnode=${info.node}
+            <CodeBlock>{`bitcoind -daemon -datadir=./${net} -addnode=${info.node}
 bitcoin-cli -datadir=./${net} -rpcclienttimeout=0 \\
   loadtxoutset ${info.snapshotFile}`}</CodeBlock>
-          <p className="text-sm text-muted-foreground">
-            The snapshot is verified against a hash committed in the client’s{" "}
-            <InlineCode>chainparams</InlineCode>. Expect the background history sync to eventually
-            use the full ~850 GB of disk.
-          </p>
-        </CardContent>
-      </Card>
+            <p className="text-sm text-muted-foreground">
+              The snapshot is verified against a hash committed in the client’s{" "}
+              <InlineCode>chainparams</InlineCode>. Expect the background history sync to eventually
+              use the full ~850 GB of disk.
+            </p>
+          </CardContent>
+        </Card>
+      )}
 
       <Card>
         <CardHeader>

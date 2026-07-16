@@ -30,6 +30,7 @@ export function exampleAddressForNetwork(network: string): string {
       return "tb1quez8thg0py02vl8gj98efa08tc0zfwuctc6d7j";
     case "forknet":
     case "drynet1":
+    case "drynet2":
       return "bc1q4akxjffcy6f4tyhj6d5xjfyqqzh7vnqag06v3x";
     default:
       throw new Error(`No example address for network: ${network}`);
@@ -44,6 +45,8 @@ function blockExplorerBase(network: string): string {
       return "https://explorer.forknet.drivechain.info";
     case "drynet1":
       return "https://explorer.drynet1.drivechain.dev";
+    case "drynet2":
+      return "https://explorer.drynet2.drivechain.dev";
     default:
       throw new Error(`No block explorer URL for network: ${network}`);
   }
