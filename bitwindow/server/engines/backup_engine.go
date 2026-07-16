@@ -326,6 +326,27 @@ func (e *BackupEngine) exportMultisigJSON(ctx context.Context) ([]byte, error) {
 	return json.MarshalIndent(export, "", "  ")
 }
 
+// transactions.json stores status and type as names, and times as RFC3339.
+var txStatusNames = map[int]string{
+	1: "needsSignatures",
+	2: "awaitingSignedPSBTs",
+	3: "readyToCombine",
+	4: "readyForBroadcast",
+	5: "broadcasted",
+	6: "confirmed",
+	7: "completed",
+	8: "voided",
+}
+
+var txTypeNames = map[int]string{
+	1: "deposit",
+	2: "withdrawal",
+}
+
+func formatBackupTime(unix int64) string {
+	return time.Unix(unix, 0).UTC().Format(time.RFC3339)
+}
+
 func (e *BackupEngine) exportTransactionsJSON(ctx context.Context) ([]byte, error) {
 	groups, err := e.multisigStore.ListGroups(ctx)
 	if err != nil {
@@ -350,9 +371,9 @@ func (e *BackupEngine) exportTransactionsJSON(ctx context.Context) ([]byte, erro
 				"combinedPSBT":       tx.CombinedPSBT,
 				"finalHex":           tx.FinalHex,
 				"txid":               tx.Txid,
-				"status":             tx.Status,
-				"type":               tx.Type,
-				"created":            tx.Created,
+				"status":             txStatusNames[tx.Status],
+				"type":               txTypeNames[tx.Type],
+				"created":            formatBackupTime(tx.Created),
 				"amount":             tx.Amount,
 				"destination":        tx.Destination,
 				"fee":                tx.Fee,
@@ -360,7 +381,7 @@ func (e *BackupEngine) exportTransactionsJSON(ctx context.Context) ([]byte, erro
 				"requiredSignatures": tx.RequiredSignatures,
 			}
 			if tx.BroadcastTime != nil {
-				tm["broadcastTime"] = *tx.BroadcastTime
+				tm["broadcastTime"] = formatBackupTime(*tx.BroadcastTime)
 			}
 
 			var kpList []map[string]interface{}
@@ -371,7 +392,7 @@ func (e *BackupEngine) exportTransactionsJSON(ctx context.Context) ([]byte, erro
 					"isSigned": kp.IsSigned,
 				}
 				if kp.SignedAt != nil {
-					kpm["signedAt"] = *kp.SignedAt
+					kpm["signedAt"] = formatBackupTime(*kp.SignedAt)
 				}
 				kpList = append(kpList, kpm)
 			}
