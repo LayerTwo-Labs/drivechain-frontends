@@ -503,10 +503,8 @@ func (e *BitDriveEngine) SaveFile(ctx context.Context, txid string, content []by
 		return nil
 	}
 
-	// Generate filename. The txid is included so that two distinct
-	// transactions sharing the same timestamp and file type do not collide
-	// on the same local path and overwrite each other.
-	filename := fmt.Sprintf("%d_%s.%s", metadata.Timestamp, txid, metadata.FileType)
+	// Generate filename
+	filename := fmt.Sprintf("%d.%s", metadata.Timestamp, metadata.FileType)
 	filePath := filepath.Join(e.bitdriveDir, filename)
 
 	// Write file
