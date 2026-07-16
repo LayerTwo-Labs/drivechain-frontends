@@ -1116,16 +1116,11 @@ func (e *WalletEngine) importDescriptorToWallet(
 
 	var requests []*corepb.ImportDescriptorsRequest_Request
 	for i, desc := range descriptorsToImport {
-		// Strip any existing (possibly placeholder) checksum and compute a real
-		// one — Bitcoin Core rejects descriptors imported without a valid checksum.
-		descWithChecksum, err := AddDescriptorChecksum(strings.Split(desc, "#")[0])
-		if err != nil {
-			return fmt.Errorf("compute descriptor checksum: %w", err)
-		}
+		desc = strings.Split(desc, "#")[0]
 		isInternal := i == 1
 
 		requests = append(requests, &corepb.ImportDescriptorsRequest_Request{
-			Descriptor_: descWithChecksum,
+			Descriptor_: desc,
 			Active:      true,
 			Timestamp:   nil,
 			Internal:    isInternal,
