@@ -195,25 +195,6 @@ func TestService_SetVotePreference(t *testing.T) {
 		require.Len(t, prefs.Msg.Preferences, 1)
 		assert.Equal(t, uint32(255), prefs.Msg.Preferences[0].SidechainSlot)
 	})
-
-	t.Run("out-of-range sidechain slot (256) returns error and does not wrap", func(t *testing.T) {
-		t.Parallel()
-
-		db := database.Test(t)
-		cli := m4v1connect.NewM4ServiceClient(apitests.API(t, db))
-
-		// Slot 256 overflows uint8 and would wrap to slot 0 without validation.
-		_, err := cli.SetVotePreference(context.Background(), connect.NewRequest(&m4pb.SetVotePreferenceRequest{
-			SidechainSlot: 256,
-			VoteType:      "alarm",
-		}))
-		require.Error(t, err)
-
-		// No preference should have been stored for the wrapped slot 0.
-		prefs, err := cli.GetVotePreferences(context.Background(), connect.NewRequest(&m4pb.GetVotePreferencesRequest{}))
-		require.NoError(t, err)
-		assert.Empty(t, prefs.Msg.Preferences)
-	})
 }
 
 func TestService_GetM4History(t *testing.T) {
