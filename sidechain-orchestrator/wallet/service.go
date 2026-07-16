@@ -1098,8 +1098,12 @@ func (s *Service) ChangePassword(oldPassword, newPassword string) error {
 		return fmt.Errorf("write metadata: %w", err)
 	}
 
-	s.encryptionKey = newKey
-	s.unlockedPass = newPassword
+	// Adopt the new key only if wallets are loaded. Doing it while locked would
+	// leave a key set with no wallets, which reads as unlocked to callers.
+	if len(s.wallets) > 0 {
+		s.encryptionKey = newKey
+		s.unlockedPass = newPassword
+	}
 
 	s.log.Info().Msg("password changed successfully")
 	return nil
@@ -1548,6 +1552,12 @@ func (s *Service) loadWalletFile() error {
 
 // saveWalletFile writes wallet.json atomically. Must be called with mu held.
 func (s *Service) saveWalletFile() error {
+	// Locking clears s.wallets and the key, so saving now would write a wallet
+	// file missing every locked wallet, in plaintext over the encrypted one.
+	if s.isEncrypted() && s.encryptionKey == nil {
+		return fmt.Errorf("wallet is locked, unlock before saving")
+	}
+
 	wf := WalletFile{
 		Version:        1,
 		ActiveWalletID: s.activeWalletID,
@@ -1561,7 +1571,7 @@ func (s *Service) saveWalletFile() error {
 
 	data := string(jsonBytes)
 
-	if s.isEncrypted() && s.encryptionKey != nil {
+	if s.isEncrypted() {
 		encrypted, err := Encrypt(data, s.encryptionKey)
 		if err != nil {
 			return fmt.Errorf("encrypt wallet: %w", err)
