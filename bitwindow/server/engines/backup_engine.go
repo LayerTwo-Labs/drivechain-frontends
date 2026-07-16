@@ -278,47 +278,50 @@ func (e *BackupEngine) exportMultisigJSON(ctx context.Context) ([]byte, error) {
 		}
 
 		gm := map[string]interface{}{
-			"id":                g.ID,
-			"name":              g.Name,
-			"n":                 g.N,
-			"m":                 g.M,
-			"created":           g.Created,
-			"txid":              g.Txid,
-			"descriptor":        g.Descriptor,
-			"descriptorReceive": g.DescriptorReceive,
-			"descriptorChange":  g.DescriptorChange,
-			"watchWalletName":   g.WatchWalletName,
-			"balance":           g.Balance,
-			"utxos":             g.Utxos,
-			"nextReceiveIndex":  g.NextReceiveIndex,
-			"nextChangeIndex":   g.NextChangeIndex,
-			"transactionIds":    txIDs,
+			"id":                 g.ID,
+			"name":               g.Name,
+			"n":                  g.N,
+			"m":                  g.M,
+			"created":            g.Created,
+			"txid":               g.Txid,
+			"descriptor":         g.Descriptor,
+			"descriptorReceive":  g.DescriptorReceive,
+			"descriptorChange":   g.DescriptorChange,
+			"watch_wallet_name":  g.WatchWalletName,
+			"balance":            g.Balance,
+			"utxos":              g.Utxos,
+			"next_receive_index": g.NextReceiveIndex,
+			"next_change_index":  g.NextChangeIndex,
+			"transaction_ids":    txIDs,
 		}
 
 		var keyList []map[string]interface{}
 		for _, k := range keys {
 			keyList = append(keyList, map[string]interface{}{
-				"owner":          k.Owner,
-				"xpub":           k.Xpub,
-				"derivationPath": k.DerivationPath,
-				"fingerprint":    k.Fingerprint,
-				"originPath":     k.OriginPath,
-				"isWallet":       k.IsWallet,
-				"sortOrder":      k.SortOrder,
+				"owner":       k.Owner,
+				"xpub":        k.Xpub,
+				"path":        k.DerivationPath,
+				"fingerprint": k.Fingerprint,
+				"origin_path": k.OriginPath,
+				"is_wallet":   k.IsWallet,
+				"sortOrder":   k.SortOrder,
 			})
 		}
 		gm["keys"] = keyList
 
-		var addrList []map[string]interface{}
+		// Addresses are grouped by type, matching what the importer reads.
+		addrMap := map[string][]map[string]interface{}{
+			"receive": {},
+			"change":  {},
+		}
 		for _, a := range addrs {
-			addrList = append(addrList, map[string]interface{}{
-				"type":  a.AddrType,
-				"index": a.Index,
-				"addr":  a.Addr,
-				"used":  a.Used,
+			addrMap[a.AddrType] = append(addrMap[a.AddrType], map[string]interface{}{
+				"index":   a.Index,
+				"address": a.Addr,
+				"used":    a.Used,
 			})
 		}
-		gm["addresses"] = addrList
+		gm["addresses"] = addrMap
 
 		export.Groups = append(export.Groups, gm)
 	}
@@ -329,11 +332,11 @@ func (e *BackupEngine) exportMultisigJSON(ctx context.Context) ([]byte, error) {
 	}
 	for _, sk := range soloKeys {
 		export.SoloKeys = append(export.SoloKeys, map[string]interface{}{
-			"xpub":           sk.Xpub,
-			"derivationPath": sk.DerivationPath,
-			"fingerprint":    sk.Fingerprint,
-			"originPath":     sk.OriginPath,
-			"owner":          sk.Owner,
+			"xpub":        sk.Xpub,
+			"path":        sk.DerivationPath,
+			"fingerprint": sk.Fingerprint,
+			"origin_path": sk.OriginPath,
+			"owner":       sk.Owner,
 		})
 	}
 
