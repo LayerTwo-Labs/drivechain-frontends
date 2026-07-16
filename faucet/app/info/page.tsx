@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { CodeBlock } from "@/components/code-block";
 import { InlineCode } from "@/components/inline-code";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { serverNetwork } from "@/lib/network";
+import { type Network, serverNetwork } from "@/lib/network";
 
 export const metadata: Metadata = {
   title: "Connect to drynet",
@@ -10,21 +10,23 @@ export const metadata: Metadata = {
 
 // Per-drynet connection parameters. Future drynets add an entry here (and
 // this page is only linked on drynet builds — see hasConnectInfoPage()).
-const CONNECT_INFO: Record<
-  string,
-  {
-    forkHeight: number;
-    lastCommonBlock: number;
-    node: string;
-    explorer: string;
-    esplora: string;
-    electrum: string;
-    electrumTls: string;
-    // Snapshot fields are optional: a drynet without a published assumeutxo
-    // snapshot omits them, and the fast-bootstrap UI is hidden accordingly.
-    dataBase?: string;
-    snapshotFile?: string;
-  }
+const CONNECT_INFO: Partial<
+  Record<
+    Network,
+    {
+      forkHeight: number;
+      lastCommonBlock: number;
+      node: string;
+      explorer: string;
+      esplora: string;
+      electrum: string;
+      electrumTls: string;
+      // Snapshot fields are optional: a drynet without a published assumeutxo
+      // snapshot omits them, and the fast-bootstrap UI is hidden accordingly.
+      dataBase?: string;
+      snapshotFile?: string;
+    }
+  >
 > = {
   drynet1: {
     forkHeight: 955_584,
@@ -126,11 +128,11 @@ export default function InfoPage() {
             Build the drivechain client from{" "}
             <a
               className="underline"
-              href="https://github.com/ecash-com/bitcoin/tree/drivechain-ecash"
+              href={`https://github.com/ecash-com/bitcoin/tree/${net}`}
               target="_blank"
               rel="noreferrer"
             >
-              ecash-com/bitcoin (drivechain-ecash branch)
+              ecash-com/bitcoin ({net} branch)
             </a>{" "}
             . Then connect to the network:
           </CardDescription>
