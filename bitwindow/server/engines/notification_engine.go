@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"math"
 	"strings"
 	"sync"
 	"time"
@@ -250,7 +249,7 @@ func (e *NotificationEngine) processWalletTransactions(ctx context.Context, tran
 					Transaction: &notificationv1.TransactionEvent{
 						Type:          notificationv1.TransactionEvent_TYPE_RECEIVED,
 						Txid:          txid,
-						AmountSats:    uint64(math.Round(tx.Amount * 100000000)),
+						AmountSats:    uint64(tx.Amount * 100000000),
 						Confirmations: confirmations,
 					},
 				},
@@ -272,7 +271,7 @@ func (e *NotificationEngine) processWalletTransactions(ctx context.Context, tran
 					Transaction: &notificationv1.TransactionEvent{
 						Type:          notificationv1.TransactionEvent_TYPE_SENT,
 						Txid:          txid,
-						AmountSats:    uint64(math.Round(-tx.Amount * 100000000)),
+						AmountSats:    uint64(-tx.Amount * 100000000),
 						Confirmations: confirmations,
 					},
 				},
@@ -300,7 +299,7 @@ func (e *NotificationEngine) processWalletTransactions(ctx context.Context, tran
 					Transaction: &notificationv1.TransactionEvent{
 						Type:          notificationv1.TransactionEvent_TYPE_CONFIRMED,
 						Txid:          txid,
-						AmountSats:    uint64(math.Round(tx.Amount * 100000000)),
+						AmountSats:    uint64(tx.Amount * 100000000),
 						Confirmations: confirmations,
 					},
 				},
