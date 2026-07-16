@@ -188,19 +188,17 @@ func (e *BackupEngine) RestoreBackup(ctx context.Context, data []byte, filename 
 	// Import multisig data into DB
 	if multisigJSON != nil {
 		if err := e.multisigStore.ImportFromJSON(ctx, multisigJSON); err != nil {
-			log.Warn().Err(err).Msg("restore: failed to import multisig data")
-		} else {
-			log.Info().Msg("restore: imported multisig data")
+			return fmt.Errorf("import multisig data: %w", err)
 		}
+		log.Info().Msg("restore: imported multisig data")
 	}
 
 	// Import transaction data into DB
 	if txJSON != nil {
 		if err := e.multisigStore.ImportTransactionsFromJSON(ctx, txJSON); err != nil {
-			log.Warn().Err(err).Msg("restore: failed to import transactions")
-		} else {
-			log.Info().Msg("restore: imported transactions")
+			return fmt.Errorf("import transactions: %w", err)
 		}
+		log.Info().Msg("restore: imported transactions")
 	}
 
 	return nil
