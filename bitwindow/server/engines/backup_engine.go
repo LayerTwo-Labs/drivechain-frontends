@@ -99,8 +99,9 @@ Keep this file secure. Anyone with access can control ALL your funds.
 	// multisig data from DB
 	multisigJSON, err := e.exportMultisigJSON(ctx)
 	if err != nil {
-		log.Warn().Err(err).Msg("backup: failed to export multisig data")
-	} else if multisigJSON != nil {
+		return nil, "", fmt.Errorf("export multisig data: %w", err)
+	}
+	if multisigJSON != nil {
 		if err := addToZip(zw, "multisig/multisig.json", multisigJSON); err != nil {
 			return nil, "", fmt.Errorf("write multisig.json: %w", err)
 		}
@@ -110,8 +111,9 @@ Keep this file secure. Anyone with access can control ALL your funds.
 	// transaction data from DB
 	txJSON, err := e.exportTransactionsJSON(ctx)
 	if err != nil {
-		log.Warn().Err(err).Msg("backup: failed to export transactions")
-	} else if txJSON != nil {
+		return nil, "", fmt.Errorf("export transactions: %w", err)
+	}
+	if txJSON != nil {
 		if err := addToZip(zw, "transactions.json", txJSON); err != nil {
 			return nil, "", fmt.Errorf("write transactions.json: %w", err)
 		}
@@ -262,9 +264,18 @@ func (e *BackupEngine) exportMultisigJSON(ctx context.Context) ([]byte, error) {
 	var export exportData
 
 	for _, g := range groups {
-		keys, _ := e.multisigStore.ListKeysForGroup(ctx, g.ID)
-		addrs, _ := e.multisigStore.ListAddresses(ctx, g.ID)
-		txIDs, _ := e.multisigStore.ListGroupTransactionIDs(ctx, g.ID)
+		keys, err := e.multisigStore.ListKeysForGroup(ctx, g.ID)
+		if err != nil {
+			return nil, fmt.Errorf("list keys for group %s: %w", g.ID, err)
+		}
+		addrs, err := e.multisigStore.ListAddresses(ctx, g.ID)
+		if err != nil {
+			return nil, fmt.Errorf("list addresses for group %s: %w", g.ID, err)
+		}
+		txIDs, err := e.multisigStore.ListGroupTransactionIDs(ctx, g.ID)
+		if err != nil {
+			return nil, fmt.Errorf("list transaction ids for group %s: %w", g.ID, err)
+		}
 
 		gm := map[string]interface{}{
 			"id":                g.ID,
@@ -312,7 +323,10 @@ func (e *BackupEngine) exportMultisigJSON(ctx context.Context) ([]byte, error) {
 		export.Groups = append(export.Groups, gm)
 	}
 
-	soloKeys, _ := e.multisigStore.ListSoloKeys(ctx)
+	soloKeys, err := e.multisigStore.ListSoloKeys(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("list solo keys: %w", err)
+	}
 	for _, sk := range soloKeys {
 		export.SoloKeys = append(export.SoloKeys, map[string]interface{}{
 			"xpub":           sk.Xpub,
@@ -358,11 +372,17 @@ func (e *BackupEngine) exportTransactionsJSON(ctx context.Context) ([]byte, erro
 	for _, g := range groups {
 		txns, err := e.multisigStore.ListTransactions(ctx, g.ID)
 		if err != nil {
-			continue
+			return nil, fmt.Errorf("list transactions for group %s: %w", g.ID, err)
 		}
 		for _, tx := range txns {
-			keyPSBTs, _ := e.multisigStore.ListTxKeyPSBTs(ctx, tx.ID)
-			inputs, _ := e.multisigStore.ListTxInputs(ctx, tx.ID)
+			keyPSBTs, err := e.multisigStore.ListTxKeyPSBTs(ctx, tx.ID)
+			if err != nil {
+				return nil, fmt.Errorf("list key psbts for transaction %s: %w", tx.ID, err)
+			}
+			inputs, err := e.multisigStore.ListTxInputs(ctx, tx.ID)
+			if err != nil {
+				return nil, fmt.Errorf("list inputs for transaction %s: %w", tx.ID, err)
+			}
 
 			tm := map[string]interface{}{
 				"id":                 tx.ID,
