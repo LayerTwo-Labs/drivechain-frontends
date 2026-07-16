@@ -2486,8 +2486,8 @@ func (s *Server) DeleteCheque(ctx context.Context, c *connect.Request[pb.DeleteC
 	}
 
 	// Only allow deletion of unfunded or swept cheques
-	// Any recorded incoming funds (full or partial) but not swept = still has money, can't delete
-	if (cheque.IsFunded() || cheque.IsPartiallyFunded()) && cheque.SweptTxid == nil {
+	// Funded but not swept = still has money, can't delete
+	if cheque.IsFunded() && cheque.SweptTxid == nil {
 		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("cannot delete funded cheque"))
 	}
 
