@@ -8,6 +8,7 @@ on:
       - "sail_ui/**"
       - "drivechain_lints/**"
       - "sidechain-orchestrator/**"
+      - "sqlitemigrate/**"
       - "bitwindow/**"
       - "thunder/**"
       - "truthcoin/**"
@@ -44,6 +45,7 @@ jobs:
               - 'thunder/**'
               - 'sail_ui/**'
               - 'sidechain-orchestrator/**'
+              - 'sqlitemigrate/**'
               - 'drivechain_lints/**'
               - '.github/workflows/**'
             truthcoin:
@@ -51,6 +53,7 @@ jobs:
               - 'truthcoin/**'
               - 'sail_ui/**'
               - 'sidechain-orchestrator/**'
+              - 'sqlitemigrate/**'
               - 'drivechain_lints/**'
               - '.github/workflows/**'
             photon:
@@ -58,6 +61,7 @@ jobs:
               - 'photon/**'
               - 'sail_ui/**'
               - 'sidechain-orchestrator/**'
+              - 'sqlitemigrate/**'
               - 'drivechain_lints/**'
               - '.github/workflows/**'
             bitnames:
@@ -65,6 +69,7 @@ jobs:
               - 'bitnames/**'
               - 'sail_ui/**'
               - 'sidechain-orchestrator/**'
+              - 'sqlitemigrate/**'
               - 'drivechain_lints/**'
               - '.github/workflows/**'
             bitassets:
@@ -72,6 +77,7 @@ jobs:
               - 'bitassets/**'
               - 'sail_ui/**'
               - 'sidechain-orchestrator/**'
+              - 'sqlitemigrate/**'
               - 'drivechain_lints/**'
               - '.github/workflows/**'
             zside:
@@ -79,6 +85,7 @@ jobs:
               - 'zside/**'
               - 'sail_ui/**'
               - 'sidechain-orchestrator/**'
+              - 'sqlitemigrate/**'
               - 'drivechain_lints/**'
               - '.github/workflows/**'
             coinshift:
@@ -86,6 +93,7 @@ jobs:
               - 'coinshift/**'
               - 'sail_ui/**'
               - 'sidechain-orchestrator/**'
+              - 'sqlitemigrate/**'
               - 'drivechain_lints/**'
               - '.github/workflows/**'
             bitwindow:
@@ -93,6 +101,7 @@ jobs:
               - 'bitwindow/**'
               - 'sail_ui/**'
               - 'sidechain-orchestrator/**'
+              - 'sqlitemigrate/**'
               - 'drivechain_lints/**'
               - '.github/workflows/**'
 
