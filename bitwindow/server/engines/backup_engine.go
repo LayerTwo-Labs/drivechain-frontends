@@ -341,8 +341,8 @@ func (e *BackupEngine) exportTransactionsJSON(ctx context.Context) ([]byte, erro
 			tm := map[string]interface{}{
 				"id":                 tx.ID,
 				"groupId":            tx.GroupID,
-				"initialPSBT":        tx.InitialPSBT,
-				"combinedPSBT":       tx.CombinedPSBT,
+				"initialPsbt":        tx.InitialPSBT,
+				"combinedPsbt":       tx.CombinedPSBT,
 				"finalHex":           tx.FinalHex,
 				"txid":               tx.Txid,
 				"status":             tx.Status,
@@ -361,16 +361,16 @@ func (e *BackupEngine) exportTransactionsJSON(ctx context.Context) ([]byte, erro
 			var kpList []map[string]interface{}
 			for _, kp := range keyPSBTs {
 				kpm := map[string]interface{}{
-					"keyId":    kp.KeyID,
-					"psbt":     kp.PSBT,
-					"isSigned": kp.IsSigned,
+					"keyId":  kp.KeyID,
+					"psbt":   kp.PSBT,
+					"signed": kp.IsSigned,
 				}
 				if kp.SignedAt != nil {
 					kpm["signedAt"] = *kp.SignedAt
 				}
 				kpList = append(kpList, kpm)
 			}
-			tm["keyPSBTs"] = kpList
+			tm["keyPsbts"] = kpList
 
 			var inList []map[string]interface{}
 			for _, in := range inputs {
