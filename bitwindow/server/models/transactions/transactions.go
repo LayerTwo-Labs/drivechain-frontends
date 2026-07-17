@@ -15,9 +15,9 @@ type TransactionNote struct {
 	SetAt time.Time
 }
 
-func Get(ctx context.Context, db *sql.DB, txid string) (TransactionNote, error) {
+func Get(ctx context.Context, db *sql.DB, walletID string, txid string) (TransactionNote, error) {
 	var note TransactionNote
-	err := db.QueryRowContext(ctx, `SELECT txid, note, set_at FROM transaction_notes WHERE txid = ?`, txid).
+	err := db.QueryRowContext(ctx, `SELECT txid, note, set_at FROM transaction_notes WHERE wallet_id = ? AND txid = ?`, walletID, txid).
 		Scan(&note.TxID, &note.Note, &note.SetAt)
 	if err != nil {
 		return TransactionNote{}, err
@@ -26,8 +26,8 @@ func Get(ctx context.Context, db *sql.DB, txid string) (TransactionNote, error) 
 	return note, nil
 }
 
-func List(ctx context.Context, db *sql.DB) ([]TransactionNote, error) {
-	rows, err := db.QueryContext(ctx, `SELECT txid, note, set_at FROM transaction_notes`)
+func ListByWallet(ctx context.Context, db *sql.DB, walletID string) ([]TransactionNote, error) {
+	rows, err := db.QueryContext(ctx, `SELECT txid, note, set_at FROM transaction_notes WHERE wallet_id = ?`, walletID)
 	if err != nil {
 		return nil, err
 	}
@@ -46,19 +46,18 @@ func List(ctx context.Context, db *sql.DB) ([]TransactionNote, error) {
 	return notes, rows.Err()
 }
 
-func SetNote(ctx context.Context, db *sql.DB, txid string, note string) error {
+func SetNote(ctx context.Context, db *sql.DB, walletID string, txid string, note string) error {
+	if walletID == "" {
+		return connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("wallet id cannot be empty"))
+	}
 	if txid == "" {
 		return connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("txid cannot be empty"))
 	}
 
-	rows, err := db.ExecContext(ctx, `
-		INSERT INTO transaction_notes (txid, note) 
-		VALUES (?, ?)
-		ON CONFLICT(txid) DO UPDATE SET note = ?, set_at = CURRENT_TIMESTAMP`,
-		txid, note, note)
-
-	if rows, _ := rows.RowsAffected(); rows == 0 {
-		return connect.NewError(connect.CodeNotFound, fmt.Errorf("transaction note not found"))
-	}
+	_, err := db.ExecContext(ctx, `
+		INSERT INTO transaction_notes (wallet_id, txid, note)
+		VALUES (?, ?, ?)
+		ON CONFLICT(wallet_id, txid) DO UPDATE SET note = ?, set_at = CURRENT_TIMESTAMP`,
+		walletID, txid, note, note)
 	return err
 }

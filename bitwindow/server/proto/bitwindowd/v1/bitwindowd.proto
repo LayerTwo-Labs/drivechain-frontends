@@ -192,6 +192,9 @@ message GetSyncInfoResponse {
 message SetTransactionNoteRequest {
   string txid = 1;
   string note = 2;
+  // Notes are per-wallet: the same transaction can appear in two of the user's
+  // wallets, and a note written on one must not show on the other.
+  string wallet_id = 3;
 }
 
 message ExportLabelsResponse {

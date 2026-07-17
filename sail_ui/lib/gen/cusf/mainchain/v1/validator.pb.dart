@@ -1422,6 +1422,7 @@ class GetChainInfoResponse_Bip300Constants extends $pb.GeneratedMessage {
     $core.int? usedSidechainSlotActivationThreshold,
     $core.int? unusedSidechainSlotProposalMaxAge,
     $core.int? unusedSidechainSlotActivationThreshold,
+    $core.int? activationHeight,
   }) {
     final $result = create();
     if (withdrawalBundleMaxAge != null) {
@@ -1442,6 +1443,9 @@ class GetChainInfoResponse_Bip300Constants extends $pb.GeneratedMessage {
     if (unusedSidechainSlotActivationThreshold != null) {
       $result.unusedSidechainSlotActivationThreshold = unusedSidechainSlotActivationThreshold;
     }
+    if (activationHeight != null) {
+      $result.activationHeight = activationHeight;
+    }
     return $result;
   }
   GetChainInfoResponse_Bip300Constants._() : super();
@@ -1455,6 +1459,7 @@ class GetChainInfoResponse_Bip300Constants extends $pb.GeneratedMessage {
     ..a<$core.int>(4, _omitFieldNames ? '' : 'usedSidechainSlotActivationThreshold', $pb.PbFieldType.OU3)
     ..a<$core.int>(5, _omitFieldNames ? '' : 'unusedSidechainSlotProposalMaxAge', $pb.PbFieldType.OU3)
     ..a<$core.int>(6, _omitFieldNames ? '' : 'unusedSidechainSlotActivationThreshold', $pb.PbFieldType.OU3)
+    ..a<$core.int>(7, _omitFieldNames ? '' : 'activationHeight', $pb.PbFieldType.OU3)
     ..hasRequiredFields = false
   ;
 
@@ -1544,6 +1549,18 @@ class GetChainInfoResponse_Bip300Constants extends $pb.GeneratedMessage {
   $core.bool hasUnusedSidechainSlotActivationThreshold() => $_has(5);
   @$pb.TagNumber(6)
   void clearUnusedSidechainSlotActivationThreshold() => clearField(6);
+
+  /// Height at which enforcement activates. Blocks below this
+  /// height are plain Bitcoin history and are not scanned for BIP300
+  /// messages or deposits. 0 means enforced from genesis.
+  @$pb.TagNumber(7)
+  $core.int get activationHeight => $_getIZ(6);
+  @$pb.TagNumber(7)
+  set activationHeight($core.int v) { $_setUnsignedInt32(6, v); }
+  @$pb.TagNumber(7)
+  $core.bool hasActivationHeight() => $_has(6);
+  @$pb.TagNumber(7)
+  void clearActivationHeight() => clearField(7);
 }
 
 class GetChainInfoResponse extends $pb.GeneratedMessage {

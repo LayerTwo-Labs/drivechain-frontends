@@ -240,7 +240,8 @@ class TransactionProvider extends ChangeNotifier {
   }
 
   Future<void> saveNote(String txid, String note) async {
-    await bitwindowd.bitwindowd.setTransactionNote(txid, note);
+    // Notes are stored per wallet, so write to the one being listed.
+    await bitwindowd.bitwindowd.setTransactionNote(txid, note, walletId: _walletReader.activeWalletId ?? '');
     await fetch();
   }
 

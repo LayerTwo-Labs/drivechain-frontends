@@ -566,7 +566,16 @@ func (s *Server) GetSyncInfo(ctx context.Context, req *connect.Request[emptypb.E
 
 // SetTransactionNote implements bitwindowdv1connect.BitwindowdServiceHandler.
 func (s *Server) SetTransactionNote(ctx context.Context, req *connect.Request[pb.SetTransactionNoteRequest]) (*connect.Response[emptypb.Empty], error) {
-	if err := transactions.SetNote(ctx, s.db, req.Msg.Txid, req.Msg.Note); err != nil {
+	walletID := req.Msg.WalletId
+	if walletID == "" {
+		activeWallet, err := s.walletEngine.GetActiveWallet(ctx)
+		if err != nil {
+			return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("get active wallet: %w", err))
+		}
+		walletID = activeWallet.ID
+	}
+
+	if err := transactions.SetNote(ctx, s.db, walletID, req.Msg.Txid, req.Msg.Note); err != nil {
 		zerolog.Ctx(ctx).Error().Err(err).Msg("could not set transaction note")
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
@@ -582,7 +591,14 @@ func (s *Server) ExportLabels(ctx context.Context, req *connect.Request[emptypb.
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
 
-	notes, err := transactions.List(ctx, s.db)
+	// BIP329 has no wallet field: a label file describes one wallet. Export the
+	// active wallet's notes, which is what importing one back in expects.
+	activeWallet, err := s.walletEngine.GetActiveWallet(ctx)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("get active wallet: %w", err))
+	}
+
+	notes, err := transactions.ListByWallet(ctx, s.db, activeWallet.ID)
 	if err != nil {
 		zerolog.Ctx(ctx).Error().Err(err).Msg("could not list transaction notes")
 		return nil, connect.NewError(connect.CodeInternal, err)
@@ -627,6 +643,12 @@ func (s *Server) ExportLabels(ctx context.Context, req *connect.Request[emptypb.
 func (s *Server) ImportLabels(ctx context.Context, req *connect.Request[pb.ImportLabelsRequest]) (*connect.Response[pb.ImportLabelsResponse], error) {
 	labels, skipped := bip329.Decode(req.Msg.Jsonl)
 
+	// A BIP329 file describes one wallet, so its notes belong to the active one.
+	activeWallet, err := s.walletEngine.GetActiveWallet(ctx)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("get active wallet: %w", err))
+	}
+
 	resp := &pb.ImportLabelsResponse{Skipped: int64(skipped)}
 
 	for _, l := range labels {
@@ -647,7 +669,7 @@ func (s *Server) ImportLabels(ctx context.Context, req *connect.Request[pb.Impor
 			resp.ImportedAddresses++
 
 		case bip329.TypeTx:
-			if err := transactions.SetNote(ctx, s.db, ref, l.Label); err != nil {
+			if err := transactions.SetNote(ctx, s.db, activeWallet.ID, ref, l.Label); err != nil {
 				zerolog.Ctx(ctx).Error().Err(err).Str("ref", ref).Msg("could not import transaction note")
 				resp.Skipped++
 				continue
