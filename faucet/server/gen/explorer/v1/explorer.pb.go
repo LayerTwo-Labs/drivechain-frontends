@@ -125,9 +125,16 @@ type ChainTip struct {
 	Status    ChainTipStatus         `protobuf:"varint,4,opt,name=status,proto3,enum=explorer.v1.ChainTipStatus" json:"status,omitempty"`
 	// ACKs accumulated by the pending proposal; only meaningful when status is
 	// CHAIN_TIP_STATUS_PROPOSED.
-	VoteCount     uint32 `protobuf:"varint,5,opt,name=vote_count,json=voteCount,proto3" json:"vote_count,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	VoteCount uint32 `protobuf:"varint,5,opt,name=vote_count,json=voteCount,proto3" json:"vote_count,omitempty"`
+	// Total ACKs required to activate the slot (from the network thresholds).
+	// Only meaningful when status is CHAIN_TIP_STATUS_PROPOSED.
+	AckThreshold uint32 `protobuf:"varint,6,opt,name=ack_threshold,json=ackThreshold,proto3" json:"ack_threshold,omitempty"`
+	// Blocks left in the proposal's voting window — i.e. how many more chances to
+	// ACK before it expires. Only meaningful when status is
+	// CHAIN_TIP_STATUS_PROPOSED.
+	ProposalBlocksRemaining uint32 `protobuf:"varint,7,opt,name=proposal_blocks_remaining,json=proposalBlocksRemaining,proto3" json:"proposal_blocks_remaining,omitempty"`
+	unknownFields           protoimpl.UnknownFields
+	sizeCache               protoimpl.SizeCache
 }
 
 func (x *ChainTip) Reset() {
@@ -191,6 +198,20 @@ func (x *ChainTip) GetStatus() ChainTipStatus {
 func (x *ChainTip) GetVoteCount() uint32 {
 	if x != nil {
 		return x.VoteCount
+	}
+	return 0
+}
+
+func (x *ChainTip) GetAckThreshold() uint32 {
+	if x != nil {
+		return x.AckThreshold
+	}
+	return 0
+}
+
+func (x *ChainTip) GetProposalBlocksRemaining() uint32 {
+	if x != nil {
+		return x.ProposalBlocksRemaining
 	}
 	return 0
 }
@@ -584,14 +605,16 @@ var File_explorer_v1_explorer_proto protoreflect.FileDescriptor
 const file_explorer_v1_explorer_proto_rawDesc = "" +
 	"\n" +
 	"\x1aexplorer/v1/explorer.proto\x12\vexplorer.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"\x15\n" +
-	"\x13GetChainTipsRequest\"\xc4\x01\n" +
+	"\x13GetChainTipsRequest\"\xa5\x02\n" +
 	"\bChainTip\x12\x12\n" +
 	"\x04hash\x18\x01 \x01(\tR\x04hash\x12\x16\n" +
 	"\x06height\x18\x02 \x01(\x04R\x06height\x128\n" +
 	"\ttimestamp\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\ttimestamp\x123\n" +
 	"\x06status\x18\x04 \x01(\x0e2\x1b.explorer.v1.ChainTipStatusR\x06status\x12\x1d\n" +
 	"\n" +
-	"vote_count\x18\x05 \x01(\rR\tvoteCount\"\xaa\x03\n" +
+	"vote_count\x18\x05 \x01(\rR\tvoteCount\x12#\n" +
+	"\rack_threshold\x18\x06 \x01(\rR\fackThreshold\x12:\n" +
+	"\x19proposal_blocks_remaining\x18\a \x01(\rR\x17proposalBlocksRemaining\"\xaa\x03\n" +
 	"\x14GetChainTipsResponse\x123\n" +
 	"\tmainchain\x18\x01 \x01(\v2\x15.explorer.v1.ChainTipR\tmainchain\x12/\n" +
 	"\athunder\x18\x02 \x01(\v2\x15.explorer.v1.ChainTipR\athunder\x123\n" +

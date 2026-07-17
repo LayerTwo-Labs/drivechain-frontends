@@ -115,10 +115,10 @@ func (s *Server) GetChainTips(ctx context.Context, req *connect.Request[pb.GetCh
 
 	// On-chain proposals still accumulating ACKs. Best-effort: on error we just
 	// fall back to NOT_ACTIVATED rather than failing the whole request.
-	proposalVotes, err := s.sidechainProposalVotes(ctx)
+	proposals, err := s.sidechainProposals(ctx)
 	if err != nil {
 		zerolog.Ctx(ctx).Warn().Err(err).Msg("could not fetch sidechain proposal")
-		proposalVotes = map[uint32]uint32{}
+		proposals = map[uint32]proposalStatus{}
 	}
 
 	sidechains := []struct {
@@ -143,10 +143,12 @@ func (s *Server) GetChainTips(ctx context.Context, req *connect.Request[pb.GetCh
 			// hitting the node.
 			if !isActivated(sc.slot) {
 				// Distinguish "proposed, voting" from "no proposal at all".
-				if votes, ok := proposalVotes[sc.slot]; ok {
+				if ps, ok := proposals[sc.slot]; ok {
 					sc.set(&pb.ChainTip{
-						Status:    pb.ChainTipStatus_CHAIN_TIP_STATUS_PROPOSED,
-						VoteCount: votes,
+						Status:                  pb.ChainTipStatus_CHAIN_TIP_STATUS_PROPOSED,
+						VoteCount:               ps.voteCount,
+						AckThreshold:            ps.ackThreshold,
+						ProposalBlocksRemaining: ps.blocksRemaining,
 					})
 				} else {
 					sc.set(&pb.ChainTip{Status: pb.ChainTipStatus_CHAIN_TIP_STATUS_NOT_ACTIVATED})
@@ -278,13 +280,30 @@ func (s *Server) sidechainActivation(ctx context.Context) (func(slot uint32) boo
 	return func(slot uint32) bool { return active[slot] }, nil
 }
 
-// sidechainProposalVotes asks the enforcer for on-chain sidechain M1 proposals
-// that have not yet activated, returning the ACK count per slot. A slot absent
-// from the map has no pending proposal.
-func (s *Server) sidechainProposalVotes(ctx context.Context) (map[uint32]uint32, error) {
+// proposalStatus captures how far a pending on-chain proposal is toward
+// activation and how much of its voting window is left.
+type proposalStatus struct {
+	voteCount       uint32 // ACKs accumulated so far
+	ackThreshold    uint32 // ACKs needed to activate (0 = enforcer didn't report)
+	blocksRemaining uint32 // chances left before the proposal expires
+}
+
+// sidechainProposals asks the enforcer for on-chain sidechain M1 proposals that
+// have not yet activated, returning per-slot activation progress. A slot absent
+// from the map has no pending proposal. The thresholds/window come from the
+// enforcer's network constants; these proposals target inactive slots, so the
+// "unused slot" thresholds apply.
+func (s *Server) sidechainProposals(ctx context.Context) (map[uint32]proposalStatus, error) {
 	validator, err := s.validator.Get(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("connect to enforcer: %w", err)
+	}
+
+	var consts *validatorpb.GetChainInfoResponse_Bip300Constants
+	if info, err := validator.GetChainInfo(ctx, connect.NewRequest(&validatorpb.GetChainInfoRequest{})); err != nil {
+		return nil, fmt.Errorf("get chain info from enforcer: %w", err)
+	} else {
+		consts = info.Msg.GetBip300Constants()
 	}
 
 	proposals, err := validator.GetSidechainProposals(ctx, connect.NewRequest(&validatorpb.GetSidechainProposalsRequest{}))
@@ -292,9 +311,35 @@ func (s *Server) sidechainProposalVotes(ctx context.Context) (map[uint32]uint32,
 		return nil, fmt.Errorf("list sidechain proposals from enforcer: %w", err)
 	}
 
-	return lo.SliceToMap(proposals.Msg.GetSidechainProposals(), func(p *validatorpb.GetSidechainProposalsResponse_SidechainProposal) (uint32, uint32) {
-		return p.GetSidechainNumber().GetValue(), p.GetVoteCount().GetValue()
-	}), nil
+	threshold := activationThreshold(consts, false /* slot is inactive here */)
+	maxAge := proposalMaxAge(consts, false)
+
+	out := make(map[uint32]proposalStatus, len(proposals.Msg.GetSidechainProposals()))
+	for _, p := range proposals.Msg.GetSidechainProposals() {
+		var remaining uint32
+		if age := p.GetProposalAge().GetValue(); maxAge > age {
+			remaining = maxAge - age
+		}
+		out[p.GetSidechainNumber().GetValue()] = proposalStatus{
+			voteCount:       p.GetVoteCount().GetValue(),
+			ackThreshold:    threshold,
+			blocksRemaining: remaining,
+		}
+	}
+	return out, nil
+}
+
+// proposalMaxAge is the number of blocks a proposal has to accumulate enough
+// ACKs before it expires. Mirrors activationThreshold. Returns 0 if the
+// enforcer didn't report consensus constants.
+func proposalMaxAge(consts *validatorpb.GetChainInfoResponse_Bip300Constants, slotInUse bool) uint32 {
+	if consts == nil {
+		return 0
+	}
+	if slotInUse {
+		return consts.GetUsedSidechainSlotProposalMaxAge()
+	}
+	return consts.GetUnusedSidechainSlotProposalMaxAge()
 }
 
 func (s *Server) getSidechainTip(ctx context.Context, sidechain lo.Tuple2[string, *jsonrpc.Client], bestMainchainBlock *btcpb.GetBlockResponse) (*pb.ChainTip, error) {

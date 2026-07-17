@@ -60,6 +60,23 @@ export declare type ChainTip = Message<"explorer.v1.ChainTip"> & {
    * @generated from field: uint32 vote_count = 5;
    */
   voteCount: number;
+
+  /**
+   * Total ACKs required to activate the slot (from the network thresholds).
+   * Only meaningful when status is CHAIN_TIP_STATUS_PROPOSED.
+   *
+   * @generated from field: uint32 ack_threshold = 6;
+   */
+  ackThreshold: number;
+
+  /**
+   * Blocks left in the proposal's voting window — i.e. how many more chances to
+   * ACK before it expires. Only meaningful when status is
+   * CHAIN_TIP_STATUS_PROPOSED.
+   *
+   * @generated from field: uint32 proposal_blocks_remaining = 7;
+   */
+  proposalBlocksRemaining: number;
 };
 
 /**
@@ -93,6 +110,23 @@ export declare type ChainTipJson = {
    * @generated from field: uint32 vote_count = 5;
    */
   voteCount?: number;
+
+  /**
+   * Total ACKs required to activate the slot (from the network thresholds).
+   * Only meaningful when status is CHAIN_TIP_STATUS_PROPOSED.
+   *
+   * @generated from field: uint32 ack_threshold = 6;
+   */
+  ackThreshold?: number;
+
+  /**
+   * Blocks left in the proposal's voting window — i.e. how many more chances to
+   * ACK before it expires. Only meaningful when status is
+   * CHAIN_TIP_STATUS_PROPOSED.
+   *
+   * @generated from field: uint32 proposal_blocks_remaining = 7;
+   */
+  proposalBlocksRemaining?: number;
 };
 
 /**
