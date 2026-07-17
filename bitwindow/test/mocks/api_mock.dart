@@ -126,7 +126,7 @@ class MockBitwindowdAPI implements BitwindowAPI {
   }
 
   @override
-  Future<void> setTransactionNote(String txid, String note) async {
+  Future<void> setTransactionNote(String txid, String note, {String walletId = ''}) async {
     return;
   }
 

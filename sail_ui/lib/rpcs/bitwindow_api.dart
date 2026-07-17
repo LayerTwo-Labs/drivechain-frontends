@@ -385,7 +385,7 @@ abstract class BitwindowAPI {
   Future<void> deleteAddressBookEntry(Int64 id);
 
   // Transaction note methods here
-  Future<void> setTransactionNote(String txid, String note);
+  Future<void> setTransactionNote(String txid, String note, {String walletId = ''});
 
   // BIP329 label import/export
   Future<String> exportLabels();
@@ -508,11 +508,12 @@ class _BitwindowAPILive implements BitwindowAPI {
   }
 
   @override
-  Future<void> setTransactionNote(String txid, String note) async {
+  Future<void> setTransactionNote(String txid, String note, {String walletId = ''}) async {
     await _client.setTransactionNote(
       SetTransactionNoteRequest()
         ..txid = txid
-        ..note = note,
+        ..note = note
+        ..walletId = walletId,
     );
   }
 

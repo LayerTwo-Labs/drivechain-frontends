@@ -320,13 +320,14 @@ const SetTransactionNoteRequest$json = {
   '2': [
     {'1': 'txid', '3': 1, '4': 1, '5': 9, '10': 'txid'},
     {'1': 'note', '3': 2, '4': 1, '5': 9, '10': 'note'},
+    {'1': 'wallet_id', '3': 3, '4': 1, '5': 9, '10': 'walletId'},
   ],
 };
 
 /// Descriptor for `SetTransactionNoteRequest`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List setTransactionNoteRequestDescriptor = $convert.base64Decode(
     'ChlTZXRUcmFuc2FjdGlvbk5vdGVSZXF1ZXN0EhIKBHR4aWQYASABKAlSBHR4aWQSEgoEbm90ZR'
-    'gCIAEoCVIEbm90ZQ==');
+    'gCIAEoCVIEbm90ZRIbCgl3YWxsZXRfaWQYAyABKAlSCHdhbGxldElk');
 
 @$core.Deprecated('Use exportLabelsResponseDescriptor instead')
 const ExportLabelsResponse$json = {

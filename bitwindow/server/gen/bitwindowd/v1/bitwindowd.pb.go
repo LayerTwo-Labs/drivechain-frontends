@@ -1105,9 +1105,12 @@ func (x *GetSyncInfoResponse) GetStartupMessage() string {
 
 // Request to set a transaction note
 type SetTransactionNoteRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Txid          string                 `protobuf:"bytes,1,opt,name=txid,proto3" json:"txid,omitempty"`
-	Note          string                 `protobuf:"bytes,2,opt,name=note,proto3" json:"note,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	Txid  string                 `protobuf:"bytes,1,opt,name=txid,proto3" json:"txid,omitempty"`
+	Note  string                 `protobuf:"bytes,2,opt,name=note,proto3" json:"note,omitempty"`
+	// Notes are per-wallet: the same transaction can appear in two of the user's
+	// wallets, and a note written on one must not show on the other.
+	WalletId      string `protobuf:"bytes,3,opt,name=wallet_id,json=walletId,proto3" json:"wallet_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1152,6 +1155,13 @@ func (x *SetTransactionNoteRequest) GetTxid() string {
 func (x *SetTransactionNoteRequest) GetNote() string {
 	if x != nil {
 		return x.Note
+	}
+	return ""
+}
+
+func (x *SetTransactionNoteRequest) GetWalletId() string {
+	if x != nil {
+		return x.WalletId
 	}
 	return ""
 }
@@ -2392,10 +2402,11 @@ const file_bitwindowd_v1_bitwindowd_proto_rawDesc = "" +
 	"\x16tip_block_processed_at\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampR\x13tipBlockProcessedAt\x12#\n" +
 	"\rheader_height\x18\x05 \x01(\x03R\fheaderHeight\x12#\n" +
 	"\rsync_progress\x18\x06 \x01(\x01R\fsyncProgress\x12'\n" +
-	"\x0fstartup_message\x18\a \x01(\tR\x0estartupMessage\"C\n" +
+	"\x0fstartup_message\x18\a \x01(\tR\x0estartupMessage\"`\n" +
 	"\x19SetTransactionNoteRequest\x12\x12\n" +
 	"\x04txid\x18\x01 \x01(\tR\x04txid\x12\x12\n" +
-	"\x04note\x18\x02 \x01(\tR\x04note\",\n" +
+	"\x04note\x18\x02 \x01(\tR\x04note\x12\x1b\n" +
+	"\twallet_id\x18\x03 \x01(\tR\bwalletId\",\n" +
 	"\x14ExportLabelsResponse\x12\x14\n" +
 	"\x05jsonl\x18\x01 \x01(\tR\x05jsonl\"+\n" +
 	"\x13ImportLabelsRequest\x12\x14\n" +

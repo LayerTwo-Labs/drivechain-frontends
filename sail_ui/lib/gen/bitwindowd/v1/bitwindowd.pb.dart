@@ -1233,6 +1233,7 @@ class SetTransactionNoteRequest extends $pb.GeneratedMessage {
   factory SetTransactionNoteRequest({
     $core.String? txid,
     $core.String? note,
+    $core.String? walletId,
   }) {
     final $result = create();
     if (txid != null) {
@@ -1240,6 +1241,9 @@ class SetTransactionNoteRequest extends $pb.GeneratedMessage {
     }
     if (note != null) {
       $result.note = note;
+    }
+    if (walletId != null) {
+      $result.walletId = walletId;
     }
     return $result;
   }
@@ -1250,6 +1254,7 @@ class SetTransactionNoteRequest extends $pb.GeneratedMessage {
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'SetTransactionNoteRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'bitwindowd.v1'), createEmptyInstance: create)
     ..aOS(1, _omitFieldNames ? '' : 'txid')
     ..aOS(2, _omitFieldNames ? '' : 'note')
+    ..aOS(3, _omitFieldNames ? '' : 'walletId')
     ..hasRequiredFields = false
   ;
 
@@ -1291,6 +1296,17 @@ class SetTransactionNoteRequest extends $pb.GeneratedMessage {
   $core.bool hasNote() => $_has(1);
   @$pb.TagNumber(2)
   void clearNote() => clearField(2);
+
+  /// Notes are per-wallet: the same transaction can appear in two of the user's
+  /// wallets, and a note written on one must not show on the other.
+  @$pb.TagNumber(3)
+  $core.String get walletId => $_getSZ(2);
+  @$pb.TagNumber(3)
+  set walletId($core.String v) { $_setString(2, v); }
+  @$pb.TagNumber(3)
+  $core.bool hasWalletId() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearWalletId() => clearField(3);
 }
 
 class ExportLabelsResponse extends $pb.GeneratedMessage {
