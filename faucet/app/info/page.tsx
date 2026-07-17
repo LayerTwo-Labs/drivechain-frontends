@@ -49,7 +49,8 @@ const CONNECT_INFO: Partial<
     esplora: "https://esplora.drynet2.drivechain.dev",
     electrum: "explorer.drynet2.drivechain.dev:50011",
     electrumTls: "explorer.drynet2.drivechain.dev:50012",
-    // No assumeutxo snapshot published yet: fast-bootstrap section is hidden.
+    dataBase: "https://data.drivechain.dev/drynet2",
+    snapshotFile: "utxo-957600.dat",
   },
 };
 

@@ -37,6 +37,13 @@ message ChainTip {
   // ACKs accumulated by the pending proposal; only meaningful when status is
   // CHAIN_TIP_STATUS_PROPOSED.
   uint32 vote_count = 5;
+  // Total ACKs required to activate the slot (from the network thresholds).
+  // Only meaningful when status is CHAIN_TIP_STATUS_PROPOSED.
+  uint32 ack_threshold = 6;
+  // Blocks left in the proposal's voting window — i.e. how many more chances to
+  // ACK before it expires. Only meaningful when status is
+  // CHAIN_TIP_STATUS_PROPOSED.
+  uint32 proposal_blocks_remaining = 7;
 }
 
 message GetChainTipsResponse {

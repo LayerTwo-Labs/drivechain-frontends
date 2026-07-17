@@ -236,7 +236,7 @@ const STATUS_LABELS: Record<ChainStatus, string> = {
   behind: "Behind mainchain",
   unreachable: "Unable to connect",
   "not-activated": "Not activated yet",
-  proposed: "Proposed — voting to activate",
+  proposed: "Proposed",
 };
 
 const MAINCHAIN_STATUS_LABELS: Record<ChainStatus, string> = {
@@ -333,9 +333,12 @@ function BlockCard({
           >
             {STATUS_LABELS[status]}
             {status === "proposed" && (
-              <span className="font-normal text-muted-foreground">
-                {" "}
-                · {block?.voteCount ?? 0} ACK{block?.voteCount === 1 ? "" : "s"}
+              <span className="block mt-1 font-normal text-muted-foreground">
+                {block?.ackThreshold
+                  ? `${block.voteCount} / ${block.ackThreshold} ACKs · ${block.proposalBlocksRemaining} chance${
+                      block.proposalBlocksRemaining === 1 ? "" : "s"
+                    } left`
+                  : `${block?.voteCount ?? 0} ACK${block?.voteCount === 1 ? "" : "s"}`}
               </span>
             )}
           </p>
