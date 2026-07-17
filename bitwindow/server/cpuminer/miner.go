@@ -113,6 +113,7 @@ func gbtWorkDecode(val gbtRpcResponse, coinbaseAddr string, coinbaseSig string) 
 
 	var version, curtime uint32
 	var cbtx []byte
+	var coinbaseTxid string // set when the server supplies a full coinbasetxn
 	var merkleTree [][]byte
 	var (
 		coinbaseAppend = slices.Contains(val.Mutable, "coinbase/append")
@@ -145,22 +146,27 @@ func gbtWorkDecode(val gbtRpcResponse, coinbaseAddr string, coinbaseSig string) 
 
 	// Build coinbase transaction
 	if len(val.CoinbaseTxn) > 0 {
-		panic("coinbaseTxn not implemented")
-		/*
-			cbtxHex, ok := coinbaseTxn["data"].(string)
-			if !ok {
-				return fmt.Errorf("JSON invalid coinbasetxn")
-			}
-			cbtxSize := len(cbtxHex) / 2
-			cbtx = make([]byte, cbtxSize+100)
-			if cbtxSize < 60 {
-				return fmt.Errorf("JSON invalid coinbasetxn")
-			}
-			if err := hex2bin(cbtx, cbtxHex); err != nil {
-				return fmt.Errorf("JSON invalid coinbasetxn: %v", err)
-			}
-			cbtx = cbtx[:cbtxSize]
-		*/
+		// The enforcer serves a full coinbase with BIP300/301
+		// coinbase outputs. Use it verbatim: appending sig/aux (as the coinbasevalue
+		// path does) would change its txid and invalidate the witness
+		// commitment. Its serialized `data` includes the segwit witness, so the
+		// merkle leaf comes from the server-provided `txid`, not a hash of the
+		// bytes (see below).
+		var cbInfo struct {
+			Data string `json:"data"`
+			Txid string `json:"txid"`
+		}
+		if err := json.Unmarshal(val.CoinbaseTxn, &cbInfo); err != nil {
+			return nil, fmt.Errorf("JSON invalid coinbasetxn: %w", err)
+		}
+		if cbInfo.Data == "" || cbInfo.Txid == "" {
+			return nil, fmt.Errorf("coinbasetxn missing data or txid")
+		}
+		cbtx = make([]byte, len(cbInfo.Data)/2)
+		if err := decodeHex(cbtx, cbInfo.Data); err != nil {
+			return nil, fmt.Errorf("JSON invalid coinbasetxn data: %w", err)
+		}
+		coinbaseTxid = cbInfo.Txid
 	} else {
 		// Build coinbase from coinbasevalue
 		if coinbaseAddr == "" {
@@ -350,23 +356,14 @@ func gbtWorkDecode(val gbtRpcResponse, coinbaseAddr string, coinbaseSig string) 
 		merkleTree[i] = make([]byte, 32)
 	}
 
-	// Hash coinbase
-	if segwit {
-		if len(val.CoinbaseTxn) > 0 {
-			panic("coinbaseTxn not implemented")
-			/*
-				cbtxTxid, ok := coinbaseTxn["txid"].(string)
-				if !ok {
-					return fmt.Errorf("JSON invalid coinbase txid")
-				}
-				if err := hex2bin(merkleTree[0], cbtxTxid); err != nil {
-					return fmt.Errorf("JSON invalid coinbase txid: %v", err)
-				}
-				memrev(merkleTree[0])
-			*/
-		} else {
-			sha256d(merkleTree[0], cbtx)
+	// Coinbase → merkle leaf 0. A server-supplied coinbase's `data` includes
+	// the segwit witness, so hashing it would not yield the txid. Use the
+	// server-provided txid directly (byte-reversed to internal order).
+	if len(val.CoinbaseTxn) > 0 {
+		if err := decodeHex(merkleTree[0], coinbaseTxid); err != nil {
+			return nil, fmt.Errorf("JSON invalid coinbase txid: %w", err)
 		}
+		reverseBytes(merkleTree[0])
 	} else {
 		sha256d(merkleTree[0], cbtx)
 	}
