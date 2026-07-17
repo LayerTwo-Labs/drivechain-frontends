@@ -221,13 +221,14 @@ function MempoolIcon({ className }: { className?: string }) {
   );
 }
 
-type ChainStatus = "synced" | "behind" | "unreachable" | "not-activated";
+type ChainStatus = "synced" | "behind" | "unreachable" | "not-activated" | "proposed";
 
 const STATUS_COLORS: Record<ChainStatus, string> = {
   synced: "bg-emerald-400/80",
   behind: "bg-amber-400",
   unreachable: "bg-red-400",
   "not-activated": "bg-slate-400",
+  proposed: "bg-sky-400",
 };
 
 const STATUS_LABELS: Record<ChainStatus, string> = {
@@ -235,6 +236,7 @@ const STATUS_LABELS: Record<ChainStatus, string> = {
   behind: "Behind mainchain",
   unreachable: "Unable to connect",
   "not-activated": "Not activated yet",
+  proposed: "Proposed — voting to activate",
 };
 
 const MAINCHAIN_STATUS_LABELS: Record<ChainStatus, string> = {
@@ -249,6 +251,7 @@ function getChainStatus(
   staleThresholdMs?: number
 ): ChainStatus {
   if (!block || block.status === ChainTipStatus.UNREACHABLE) return "unreachable";
+  if (block.status === ChainTipStatus.PROPOSED) return "proposed";
   if (block.status === ChainTipStatus.NOT_ACTIVATED) return "not-activated";
   if (staleThresholdMs && block.timestamp) {
     const blockTimeMs = Number(block.timestamp.seconds) * 1000;
@@ -307,7 +310,7 @@ function BlockCard({
     </>
   );
 
-  if (status === "unreachable" || status === "not-activated") {
+  if (status === "unreachable" || status === "not-activated" || status === "proposed") {
     return (
       <Card>
         <CardHeader>
@@ -321,10 +324,20 @@ function BlockCard({
         <CardContent>
           <p
             className={`text-sm font-bold ${
-              status === "unreachable" ? "text-destructive" : "text-muted-foreground"
+              status === "unreachable"
+                ? "text-destructive"
+                : status === "proposed"
+                  ? "text-sky-600 dark:text-sky-400"
+                  : "text-muted-foreground"
             }`}
           >
             {STATUS_LABELS[status]}
+            {status === "proposed" && (
+              <span className="font-normal text-muted-foreground">
+                {" "}
+                · {block?.voteCount ?? 0} ACK{block?.voteCount === 1 ? "" : "s"}
+              </span>
+            )}
           </p>
         </CardContent>
       </Card>

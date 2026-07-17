@@ -113,6 +113,14 @@ func (s *Server) GetChainTips(ctx context.Context, req *connect.Request[pb.GetCh
 		return nil, fmt.Errorf("get sidechain activation: %w", err)
 	}
 
+	// On-chain proposals still accumulating ACKs. Best-effort: on error we just
+	// fall back to NOT_ACTIVATED rather than failing the whole request.
+	proposalVotes, err := s.sidechainProposalVotes(ctx)
+	if err != nil {
+		zerolog.Ctx(ctx).Warn().Err(err).Msg("could not fetch sidechain proposal")
+		proposalVotes = map[uint32]uint32{}
+	}
+
 	sidechains := []struct {
 		name   string
 		slot   uint32
@@ -134,7 +142,15 @@ func (s *Server) GetChainTips(ctx context.Context, req *connect.Request[pb.GetCh
 			// If the enforcer told us the slot isn't activated, there's no point
 			// hitting the node.
 			if !isActivated(sc.slot) {
-				sc.set(&pb.ChainTip{Status: pb.ChainTipStatus_CHAIN_TIP_STATUS_NOT_ACTIVATED})
+				// Distinguish "proposed, voting" from "no proposal at all".
+				if votes, ok := proposalVotes[sc.slot]; ok {
+					sc.set(&pb.ChainTip{
+						Status:    pb.ChainTipStatus_CHAIN_TIP_STATUS_PROPOSED,
+						VoteCount: votes,
+					})
+				} else {
+					sc.set(&pb.ChainTip{Status: pb.ChainTipStatus_CHAIN_TIP_STATUS_NOT_ACTIVATED})
+				}
 				return nil
 			}
 
@@ -260,6 +276,25 @@ func (s *Server) sidechainActivation(ctx context.Context) (func(slot uint32) boo
 	})
 
 	return func(slot uint32) bool { return active[slot] }, nil
+}
+
+// sidechainProposalVotes asks the enforcer for on-chain sidechain M1 proposals
+// that have not yet activated, returning the ACK count per slot. A slot absent
+// from the map has no pending proposal.
+func (s *Server) sidechainProposalVotes(ctx context.Context) (map[uint32]uint32, error) {
+	validator, err := s.validator.Get(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("connect to enforcer: %w", err)
+	}
+
+	proposals, err := validator.GetSidechainProposals(ctx, connect.NewRequest(&validatorpb.GetSidechainProposalsRequest{}))
+	if err != nil {
+		return nil, fmt.Errorf("list sidechain proposals from enforcer: %w", err)
+	}
+
+	return lo.SliceToMap(proposals.Msg.GetSidechainProposals(), func(p *validatorpb.GetSidechainProposalsResponse_SidechainProposal) (uint32, uint32) {
+		return p.GetSidechainNumber().GetValue(), p.GetVoteCount().GetValue()
+	}), nil
 }
 
 func (s *Server) getSidechainTip(ctx context.Context, sidechain lo.Tuple2[string, *jsonrpc.Client], bestMainchainBlock *btcpb.GetBlockResponse) (*pb.ChainTip, error) {

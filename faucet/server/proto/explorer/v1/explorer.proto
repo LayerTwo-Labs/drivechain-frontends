@@ -23,6 +23,10 @@ enum ChainTipStatus {
 
   // The chain node could not be reached at all.
   CHAIN_TIP_STATUS_UNREACHABLE = 3;
+
+  // The sidechain has an on-chain M1 proposal but has not yet crossed the
+  // activation threshold (it is accumulating ACKs). See vote_count.
+  CHAIN_TIP_STATUS_PROPOSED = 4;
 }
 
 message ChainTip {
@@ -30,6 +34,9 @@ message ChainTip {
   uint64 height = 2;
   google.protobuf.Timestamp timestamp = 3;
   ChainTipStatus status = 4;
+  // ACKs accumulated by the pending proposal; only meaningful when status is
+  // CHAIN_TIP_STATUS_PROPOSED.
+  uint32 vote_count = 5;
 }
 
 message GetChainTipsResponse {
