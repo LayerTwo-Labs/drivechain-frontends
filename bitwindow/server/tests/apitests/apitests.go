@@ -280,6 +280,14 @@ var _ http.RoundTripper = new(ctxTransport)
 func defaultBitcoindMock(ctrl *gomock.Controller) bitcoindv1alphaconnect.BitcoinServiceClient {
 	mock := mocks.NewMockBitcoinServiceClient(ctrl)
 
+	// The parser ticker races the test, and starts by fetching block 1. The
+	// test chain has no blocks, which is what bitcoind says here, and the
+	// parser treats it as "nothing to do yet" and ends the tick.
+	mock.EXPECT().
+		GetBlockHash(gomock.Any(), gomock.Any()).
+		Return(nil, fmt.Errorf("Block height out of range")).
+		AnyTimes()
+
 	mock.EXPECT().
 		ListWallets(gomock.Any(), gomock.Any()).
 		Return(&connect.Response[corepb.ListWalletsResponse]{
