@@ -285,7 +285,7 @@ func defaultBitcoindMock(ctrl *gomock.Controller) bitcoindv1alphaconnect.Bitcoin
 	// parser treats it as "nothing to do yet" and ends the tick.
 	mock.EXPECT().
 		GetBlockHash(gomock.Any(), gomock.Any()).
-		Return(nil, fmt.Errorf("Block height out of range")).
+		Return(nil, fmt.Errorf("Block height out of range")). //nolint:staticcheck // bitcoind's wording, which the parser matches on
 		AnyTimes()
 
 	mock.EXPECT().

@@ -9,15 +9,16 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func seedBundle(t *testing.T, ctx context.Context, e *M4Engine, slot int, hash string, firstSeen uint32) {
+// seedBundle inserts a pending bundle on slot 0.
+func seedBundle(t *testing.T, ctx context.Context, e *M4Engine, hash string, firstSeen uint32) {
 	t.Helper()
-	_, err := e.db.ExecContext(ctx, `INSERT OR IGNORE INTO sidechains (slot, name) VALUES (?, ?)`, slot, "test")
+	_, err := e.db.ExecContext(ctx, `INSERT OR IGNORE INTO sidechains (slot, name) VALUES (0, 'test')`)
 	require.NoError(t, err)
 	_, err = e.db.ExecContext(ctx, `
 		INSERT INTO withdrawal_bundles (sidechain_slot, bundle_hash, work_score, blocks_left,
 			first_seen_height, last_updated_height, status)
-		VALUES (?, ?, 1, ?, ?, ?, 'pending')`,
-		slot, hash, m4.WithdrawalMaxAge, firstSeen, firstSeen)
+		VALUES (0, ?, 1, ?, ?, ?, 'pending')`,
+		hash, m4.WithdrawalMaxAge, firstSeen, firstSeen)
 	require.NoError(t, err)
 }
 
@@ -35,7 +36,7 @@ func TestUpdateBundleStates_ReplayIsIdempotent(t *testing.T) {
 	db := database.Test(t)
 	e := NewM4Engine(db)
 
-	seedBundle(t, ctx, e, 0, "bundle-a", 100)
+	seedBundle(t, ctx, e, "bundle-a", 100)
 
 	require.NoError(t, e.updateBundleStates(ctx, 120))
 	_, afterFirst, _ := bundleState(t, ctx, e, "bundle-a")
@@ -53,7 +54,7 @@ func TestApplyM4Votes_ReplayDoesNotDoubleCount(t *testing.T) {
 	db := database.Test(t)
 	e := NewM4Engine(db)
 
-	seedBundle(t, ctx, e, 0, "bundle-a", 100)
+	seedBundle(t, ctx, e, "bundle-a", 100)
 
 	idx := uint16(0)
 	msg := &m4.M4Message{Votes: []m4.M4Vote{{
@@ -84,16 +85,16 @@ func TestPurgeM4AtOrAbove(t *testing.T) {
 	e := NewM4Engine(db)
 	p := &Parser{db: db}
 
-	seedBundle(t, ctx, e, 0, "bundle-below", 100)
-	seedBundle(t, ctx, e, 0, "bundle-orphaned", 200)
+	seedBundle(t, ctx, e, "bundle-below", 100)
+	seedBundle(t, ctx, e, "bundle-orphaned", 200)
 
 	require.NoError(t, p.purgeM4AtOrAbove(ctx, 181))
 
-	var count int
-	require.NoError(t, db.QueryRowContext(ctx,
-		`SELECT COUNT(*) FROM withdrawal_bundles WHERE bundle_hash = ?`, "bundle-below").Scan(&count))
-	require.Equal(t, 1, count, "bundles below the rewind target survive")
+	// Scanning the row at all asserts it survived.
+	_, _, status := bundleState(t, ctx, e, "bundle-below")
+	require.Equal(t, "pending", status, "bundles below the rewind target survive")
 
+	var count int
 	require.NoError(t, db.QueryRowContext(ctx,
 		`SELECT COUNT(*) FROM withdrawal_bundles WHERE bundle_hash = ?`, "bundle-orphaned").Scan(&count))
 	require.Zero(t, count, "bundles born at or above the rewind target are wiped")
