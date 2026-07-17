@@ -10,3 +10,19 @@ repos:
         # exclude: "lib/gen/.*"
         args:
           - bitwindow/lib/*
+
+  - repo: local
+    hooks:
+      - id: prettier-faucet
+        name: prettier (faucet)
+        entry: faucet/node_modules/.bin/prettier --write --ignore-unknown
+        language: system
+        files: ^faucet/
+        exclude: ^faucet/(gen/|node_modules/|\.next/|bun\.lock)
+
+      - id: gofmt-faucet-server
+        name: gofmt (faucet server)
+        entry: gofmt -l -w
+        language: system
+        files: ^faucet/server/.*\.go$
+        exclude: ^faucet/server/gen/
