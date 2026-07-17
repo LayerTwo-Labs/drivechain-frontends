@@ -653,6 +653,10 @@ func (s *Service) CreateElectrumWallet(name string, gradient json.RawMessage, sl
 	}
 
 	s.mu.Lock()
+	if s.locked() {
+		s.mu.Unlock()
+		return nil, fmt.Errorf("wallet is locked, unlock before creating a wallet")
+	}
 	wallet, err := s.generateWalletOfType(name, customMnemonic, "", accountIndex, derivationPath, sidechainSlots, WalletTypeElectrum)
 	if err == nil && st != "" {
 		for i := range s.wallets {
@@ -711,6 +715,10 @@ func (s *Service) createElectrumWatchOnly(name string, gradient json.RawMessage,
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
+	if s.locked() {
+		return nil, fmt.Errorf("wallet is locked, unlock before creating a wallet")
+	}
+
 	walletID := generateWalletID()
 	watchOnly := map[string]string{}
 	if strings.Contains(xpubOrDescriptor, "(") && strings.Contains(xpubOrDescriptor, ")") {
@@ -748,6 +756,10 @@ func (s *Service) createElectrumWatchOnly(name string, gradient json.RawMessage,
 func (s *Service) CreateWatchOnlyWallet(name, xpubOrDescriptor, gradientJSON string) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+
+	if s.locked() {
+		return fmt.Errorf("wallet is locked, unlock before creating a wallet")
+	}
 
 	s.log.Info().Str("name", name).Msg("creating watch-only wallet")
 
@@ -794,6 +806,10 @@ func (s *Service) UpdateWallet(wallet WalletData) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
+	if s.locked() {
+		return fmt.Errorf("wallet is locked, unlock before updating a wallet")
+	}
+
 	found := false
 	for i, w := range s.wallets {
 		if w.ID == wallet.ID {
@@ -823,6 +839,10 @@ func (s *Service) GenerateWallet(name, customMnemonic, passphrase string, slots 
 func (s *Service) GenerateWalletWithPath(name, customMnemonic, passphrase string, accountIndex uint32, derivationPath string, slots []SidechainSlot) (*WalletData, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+
+	if s.locked() {
+		return nil, fmt.Errorf("wallet is locked, unlock before generating a wallet")
+	}
 
 	// Determine wallet type: first wallet is enforcer, subsequent are bitcoinCore.
 	// Constraint: AT MOST 1 enforcer wallet. All extra wallets go through Bitcoin Core.
@@ -1098,9 +1118,9 @@ func (s *Service) ChangePassword(oldPassword, newPassword string) error {
 		return fmt.Errorf("write metadata: %w", err)
 	}
 
-	// Adopt the new key only if wallets are loaded. Doing it while locked would
-	// leave a key set with no wallets, which reads as unlocked to callers.
-	if len(s.wallets) > 0 {
+	// Adopt the new key only if we already held one. While locked there is no
+	// key, and taking one would leave the service holding a key with no wallets.
+	if s.encryptionKey != nil {
 		s.encryptionKey = newKey
 		s.unlockedPass = newPassword
 	}
@@ -1463,6 +1483,12 @@ func (s *Service) isEncrypted() bool {
 	return meta.Encrypted
 }
 
+// locked reports whether the wallet file is encrypted but no key is held, so
+// the stored wallets are neither loaded nor writable. Must be called with mu held.
+func (s *Service) locked() bool {
+	return s.isEncrypted() && s.encryptionKey == nil
+}
+
 func (s *Service) loadMetadata() (EncryptionMetadata, error) {
 	data, err := os.ReadFile(s.metadataFilePath())
 	if err != nil {
@@ -1554,7 +1580,7 @@ func (s *Service) loadWalletFile() error {
 func (s *Service) saveWalletFile() error {
 	// Locking clears s.wallets and the key, so saving now would write a wallet
 	// file missing every locked wallet, in plaintext over the encrypted one.
-	if s.isEncrypted() && s.encryptionKey == nil {
+	if s.locked() {
 		return fmt.Errorf("wallet is locked, unlock before saving")
 	}
 

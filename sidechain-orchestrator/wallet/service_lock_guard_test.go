@@ -95,6 +95,50 @@ func TestChangePassword_WhileUnlocked_KeepsSessionUsable(t *testing.T) {
 	require.Len(t, svc.ListWallets(), 2)
 }
 
+// A failed create while locked must not leave a wallet in memory, which would
+// read as unlocked and later be saved over the real encrypted wallet.
+func TestGenerateWallet_WhileLocked_LeavesNoTransientWallet(t *testing.T) {
+	svc, originalID, before := generateAndEncrypt(t, "correct horse")
+	svc.LockWallet()
+
+	_, err := svc.GenerateWallet("Clobber", "", "", testSlots)
+	require.Error(t, err)
+	require.False(t, svc.IsUnlocked(), "a failed create must not leave the service looking unlocked")
+	require.Empty(t, svc.ListWallets(), "a failed create must not leave a wallet in memory")
+
+	// A later password change must not persist the transient wallet.
+	require.NoError(t, svc.ChangePassword("correct horse", "new pass"))
+	after, err := os.ReadFile(svc.walletFilePath())
+	require.NoError(t, err)
+	require.NotEqual(t, before, after, "file is re-encrypted under the new password")
+
+	require.NoError(t, svc.UnlockWallet("new pass"))
+	wallets := svc.ListWallets()
+	require.Len(t, wallets, 1)
+	require.Equal(t, originalID, wallets[0].ID, "the original wallet must survive")
+}
+
+// Changing the password while unlocked with no wallets must still adopt the new
+// key, else the next save encrypts with a stale key under the new metadata.
+func TestChangePassword_UnlockedWithNoWallets_AdoptsNewKey(t *testing.T) {
+	svc, originalID, _ := generateAndEncrypt(t, "old pass")
+	require.True(t, svc.IsUnlocked())
+
+	require.NoError(t, svc.DeleteWallet(originalID))
+	require.Empty(t, svc.ListWallets(), "no wallets left, but still holding the key")
+
+	require.NoError(t, svc.ChangePassword("old pass", "new pass"))
+
+	// Saving now must use the new key, so the file stays readable with it.
+	_, err := svc.GenerateWallet("Replacement", "", "", testSlots)
+	require.NoError(t, err, "generating a replacement wallet must work")
+
+	svc.LockWallet()
+	require.NoError(t, svc.UnlockWallet("new pass"), "wallet must be decryptable with the new password")
+	require.Len(t, svc.ListWallets(), 1)
+	require.Equal(t, "Replacement", svc.ListWallets()[0].Name)
+}
+
 // An unencrypted wallet is unaffected by the guard.
 func TestGenerateWallet_Unencrypted_StillWorks(t *testing.T) {
 	svc := newTestService(t)
