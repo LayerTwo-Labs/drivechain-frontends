@@ -52,6 +52,14 @@ export declare type ChainTip = Message<"explorer.v1.ChainTip"> & {
    * @generated from field: explorer.v1.ChainTipStatus status = 4;
    */
   status: ChainTipStatus;
+
+  /**
+   * ACKs accumulated by the pending proposal; only meaningful when status is
+   * CHAIN_TIP_STATUS_PROPOSED.
+   *
+   * @generated from field: uint32 vote_count = 5;
+   */
+  voteCount: number;
 };
 
 /**
@@ -77,6 +85,14 @@ export declare type ChainTipJson = {
    * @generated from field: explorer.v1.ChainTipStatus status = 4;
    */
   status?: ChainTipStatusJson;
+
+  /**
+   * ACKs accumulated by the pending proposal; only meaningful when status is
+   * CHAIN_TIP_STATUS_PROPOSED.
+   *
+   * @generated from field: uint32 vote_count = 5;
+   */
+  voteCount?: number;
 };
 
 /**
@@ -520,12 +536,20 @@ export enum ChainTipStatus {
    * @generated from enum value: CHAIN_TIP_STATUS_UNREACHABLE = 3;
    */
   UNREACHABLE = 3,
+
+  /**
+   * The sidechain has an on-chain M1 proposal but has not yet crossed the
+   * activation threshold (it is accumulating ACKs). See vote_count.
+   *
+   * @generated from enum value: CHAIN_TIP_STATUS_PROPOSED = 4;
+   */
+  PROPOSED = 4,
 }
 
 /**
  * @generated from enum explorer.v1.ChainTipStatus
  */
-export declare type ChainTipStatusJson = "CHAIN_TIP_STATUS_UNSPECIFIED" | "CHAIN_TIP_STATUS_ACTIVE" | "CHAIN_TIP_STATUS_NOT_ACTIVATED" | "CHAIN_TIP_STATUS_UNREACHABLE";
+export declare type ChainTipStatusJson = "CHAIN_TIP_STATUS_UNSPECIFIED" | "CHAIN_TIP_STATUS_ACTIVE" | "CHAIN_TIP_STATUS_NOT_ACTIVATED" | "CHAIN_TIP_STATUS_UNREACHABLE" | "CHAIN_TIP_STATUS_PROPOSED";
 
 /**
  * Describes the enum explorer.v1.ChainTipStatus.

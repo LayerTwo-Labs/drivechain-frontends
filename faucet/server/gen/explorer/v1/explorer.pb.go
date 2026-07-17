@@ -31,6 +31,9 @@ const (
 	ChainTipStatus_CHAIN_TIP_STATUS_NOT_ACTIVATED ChainTipStatus = 2
 	// The chain node could not be reached at all.
 	ChainTipStatus_CHAIN_TIP_STATUS_UNREACHABLE ChainTipStatus = 3
+	// The sidechain has an on-chain M1 proposal but has not yet crossed the
+	// activation threshold (it is accumulating ACKs). See vote_count.
+	ChainTipStatus_CHAIN_TIP_STATUS_PROPOSED ChainTipStatus = 4
 )
 
 // Enum value maps for ChainTipStatus.
@@ -40,12 +43,14 @@ var (
 		1: "CHAIN_TIP_STATUS_ACTIVE",
 		2: "CHAIN_TIP_STATUS_NOT_ACTIVATED",
 		3: "CHAIN_TIP_STATUS_UNREACHABLE",
+		4: "CHAIN_TIP_STATUS_PROPOSED",
 	}
 	ChainTipStatus_value = map[string]int32{
 		"CHAIN_TIP_STATUS_UNSPECIFIED":   0,
 		"CHAIN_TIP_STATUS_ACTIVE":        1,
 		"CHAIN_TIP_STATUS_NOT_ACTIVATED": 2,
 		"CHAIN_TIP_STATUS_UNREACHABLE":   3,
+		"CHAIN_TIP_STATUS_PROPOSED":      4,
 	}
 )
 
@@ -113,11 +118,14 @@ func (*GetChainTipsRequest) Descriptor() ([]byte, []int) {
 }
 
 type ChainTip struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Hash          string                 `protobuf:"bytes,1,opt,name=hash,proto3" json:"hash,omitempty"`
-	Height        uint64                 `protobuf:"varint,2,opt,name=height,proto3" json:"height,omitempty"`
-	Timestamp     *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
-	Status        ChainTipStatus         `protobuf:"varint,4,opt,name=status,proto3,enum=explorer.v1.ChainTipStatus" json:"status,omitempty"`
+	state     protoimpl.MessageState `protogen:"open.v1"`
+	Hash      string                 `protobuf:"bytes,1,opt,name=hash,proto3" json:"hash,omitempty"`
+	Height    uint64                 `protobuf:"varint,2,opt,name=height,proto3" json:"height,omitempty"`
+	Timestamp *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
+	Status    ChainTipStatus         `protobuf:"varint,4,opt,name=status,proto3,enum=explorer.v1.ChainTipStatus" json:"status,omitempty"`
+	// ACKs accumulated by the pending proposal; only meaningful when status is
+	// CHAIN_TIP_STATUS_PROPOSED.
+	VoteCount     uint32 `protobuf:"varint,5,opt,name=vote_count,json=voteCount,proto3" json:"vote_count,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -178,6 +186,13 @@ func (x *ChainTip) GetStatus() ChainTipStatus {
 		return x.Status
 	}
 	return ChainTipStatus_CHAIN_TIP_STATUS_UNSPECIFIED
+}
+
+func (x *ChainTip) GetVoteCount() uint32 {
+	if x != nil {
+		return x.VoteCount
+	}
+	return 0
 }
 
 type GetChainTipsResponse struct {
@@ -569,12 +584,14 @@ var File_explorer_v1_explorer_proto protoreflect.FileDescriptor
 const file_explorer_v1_explorer_proto_rawDesc = "" +
 	"\n" +
 	"\x1aexplorer/v1/explorer.proto\x12\vexplorer.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"\x15\n" +
-	"\x13GetChainTipsRequest\"\xa5\x01\n" +
+	"\x13GetChainTipsRequest\"\xc4\x01\n" +
 	"\bChainTip\x12\x12\n" +
 	"\x04hash\x18\x01 \x01(\tR\x04hash\x12\x16\n" +
 	"\x06height\x18\x02 \x01(\x04R\x06height\x128\n" +
 	"\ttimestamp\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\ttimestamp\x123\n" +
-	"\x06status\x18\x04 \x01(\x0e2\x1b.explorer.v1.ChainTipStatusR\x06status\"\xaa\x03\n" +
+	"\x06status\x18\x04 \x01(\x0e2\x1b.explorer.v1.ChainTipStatusR\x06status\x12\x1d\n" +
+	"\n" +
+	"vote_count\x18\x05 \x01(\rR\tvoteCount\"\xaa\x03\n" +
 	"\x14GetChainTipsResponse\x123\n" +
 	"\tmainchain\x18\x01 \x01(\v2\x15.explorer.v1.ChainTipR\tmainchain\x12/\n" +
 	"\athunder\x18\x02 \x01(\v2\x15.explorer.v1.ChainTipR\athunder\x123\n" +
@@ -604,12 +621,13 @@ const file_explorer_v1_explorer_proto_rawDesc = "" +
 	"vote_count\x18\x05 \x01(\rR\tvoteCount\"\x8c\x01\n" +
 	"\x16ListSidechainsResponse\x12<\n" +
 	"\tproposals\x18\x01 \x03(\v2\x1e.explorer.v1.SidechainProposalR\tproposals\x124\n" +
-	"\x06active\x18\x02 \x03(\v2\x1c.explorer.v1.ActiveSidechainR\x06active*\x95\x01\n" +
+	"\x06active\x18\x02 \x03(\v2\x1c.explorer.v1.ActiveSidechainR\x06active*\xb4\x01\n" +
 	"\x0eChainTipStatus\x12 \n" +
 	"\x1cCHAIN_TIP_STATUS_UNSPECIFIED\x10\x00\x12\x1b\n" +
 	"\x17CHAIN_TIP_STATUS_ACTIVE\x10\x01\x12\"\n" +
 	"\x1eCHAIN_TIP_STATUS_NOT_ACTIVATED\x10\x02\x12 \n" +
-	"\x1cCHAIN_TIP_STATUS_UNREACHABLE\x10\x032\xc5\x01\n" +
+	"\x1cCHAIN_TIP_STATUS_UNREACHABLE\x10\x03\x12\x1d\n" +
+	"\x19CHAIN_TIP_STATUS_PROPOSED\x10\x042\xc5\x01\n" +
 	"\x0fExplorerService\x12U\n" +
 	"\fGetChainTips\x12 .explorer.v1.GetChainTipsRequest\x1a!.explorer.v1.GetChainTipsResponse\"\x00\x12[\n" +
 	"\x0eListSidechains\x12\".explorer.v1.ListSidechainsRequest\x1a#.explorer.v1.ListSidechainsResponse\"\x00B\xb9\x01\n" +
