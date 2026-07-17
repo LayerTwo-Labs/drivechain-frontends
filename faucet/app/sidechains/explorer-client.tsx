@@ -11,38 +11,69 @@ import { Console } from "@/components/console";
 import { useNetwork } from "@/components/network-provider";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
+  type ActiveSidechain,
   type ChainTip,
   ChainTipStatus,
   ExplorerService,
   type GetChainTipsResponseJson,
   GetChainTipsResponseSchema,
+  type ListSidechainsResponse,
+  type ListSidechainsResponseJson,
+  ListSidechainsResponseSchema,
 } from "@/gen/explorer/v1/explorer_pb";
 import { timestampToDate } from "@/lib/api";
 import { clientTransport } from "@/lib/client-api";
 import { blockExplorerBlockUrl } from "@/lib/network";
 import { useInterval } from "@/lib/use-interval";
 
+// Sidechain slots operated by LayerTwo Labs — the curated roster rendered as
+// first-class cards above. Mirrors the backend constants in
+// faucet/server/api/explorer/api_explorer.go. Any *other* activated slot is a
+// third-party ("community") sidechain we neither run nor endorse.
+const L2L_SLOTS = new Set([
+  2, // BitNames
+  4, // BitAssets
+  9, // Thunder
+  13, // Truthcoin
+  98, // Zside
+  99, // Photon
+  255, // CoinShift
+]);
+
 interface ExplorerClientProps {
   // We accept any here because the initial data might have BigInts converted to strings
   // but we cast it back to GetChainTipsResponse for usage where safe.
   initialData?: GetChainTipsResponseJson;
+  initialSidechains?: ListSidechainsResponseJson;
 }
 
-export function ExplorerClient({ initialData }: ExplorerClientProps) {
+export function ExplorerClient({ initialData, initialSidechains }: ExplorerClientProps) {
   const network = useNetwork();
   const [data, setData] = useState(
     initialData ? pb.fromJson(GetChainTipsResponseSchema, initialData) : null
   );
+  const [sidechains, setSidechains] = useState<ListSidechainsResponse | null>(
+    initialSidechains ? pb.fromJson(ListSidechainsResponseSchema, initialSidechains) : null
+  );
 
   useInterval(async () => {
+    const api = createClient(ExplorerService, clientTransport);
+    // Independent so a failure of one doesn't stop the other from refreshing.
     try {
-      const api = createClient(ExplorerService, clientTransport);
-      const response = await api.getChainTips({});
-      setData(response);
+      setData(await api.getChainTips({}));
     } catch (err) {
       console.error("Failed to fetch chain tips", err);
     }
+    try {
+      setSidechains(await api.listSidechains({}));
+    } catch (err) {
+      console.error("Failed to fetch sidechains", err);
+    }
   }, 10_000);
+
+  const communitySidechains = (sidechains?.active ?? []).filter(
+    (sc) => !L2L_SLOTS.has(sc.sidechainNumber)
+  );
 
   return (
     <div className="flex flex-col gap-6">
@@ -104,6 +135,28 @@ export function ExplorerClient({ initialData }: ExplorerClientProps) {
           mainchainTimestamp={data?.mainchain?.timestamp}
         />
       </div>
+
+      {communitySidechains.length > 0 && (
+        <section className="flex flex-col gap-3">
+          <div>
+            <h2 className="text-lg font-semibold flex items-center gap-2">
+              Community sidechains
+              <span className="text-[10px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded border border-amber-500/40 bg-amber-500/10 text-amber-600 dark:text-amber-400">
+                Unofficial
+              </span>
+            </h2>
+            <p className="text-sm text-muted-foreground max-w-2xl mt-1">
+              Sidechains activated on this network by third parties. LayerTwo Labs does not develop,
+              operate, audit, or endorse them — interact with them at your own risk.
+            </p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            {communitySidechains.map((sc) => (
+              <CommunitySidechainCard key={sc.sidechainNumber} sidechain={sc} />
+            ))}
+          </div>
+        </section>
+      )}
 
       <Card>
         <CardHeader>
@@ -308,6 +361,35 @@ function BlockCard({
             {formatDistanceToNow(timestampToDate(block.timestamp), { addSuffix: true })}
           </div>
         )}
+      </CardContent>
+    </Card>
+  );
+}
+
+function CommunitySidechainCard({ sidechain }: { sidechain: ActiveSidechain }) {
+  const title = sidechain.title.trim() || "Untitled sidechain";
+  return (
+    <Card className="border-dashed bg-muted/30">
+      <CardHeader>
+        <CardTitle className="text-base flex items-center gap-2">
+          <span
+            className="inline-block h-2.5 w-2.5 rounded-full bg-slate-400 shrink-0"
+            title="Third-party sidechain — not monitored"
+          />
+          <span className="truncate" title={title}>
+            {title}
+          </span>
+        </CardTitle>
+        <CardDescription className="text-xs">
+          Slot L2-S{sidechain.sidechainNumber} · not operated by LayerTwo Labs
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="flex flex-col gap-1 text-sm">
+        <div>Activated at height {sidechain.activationHeight.toLocaleString()}</div>
+        <div className="text-xs text-muted-foreground">
+          Proposed at {sidechain.proposalHeight.toLocaleString()} · {sidechain.voteCount} ACK
+          {sidechain.voteCount === 1 ? "" : "s"}
+        </div>
       </CardContent>
     </Card>
   );
