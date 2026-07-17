@@ -172,6 +172,22 @@ func (e *BackupEngine) RestoreBackup(ctx context.Context, data []byte, filename 
 		return fmt.Errorf("backup does not contain wallet.json")
 	}
 
+	// Import into the DB before touching the wallet files, so a backup that
+	// fails to import leaves the current wallet in place.
+	if multisigJSON != nil {
+		if err := e.multisigStore.ImportFromJSON(ctx, multisigJSON); err != nil {
+			return fmt.Errorf("import multisig data: %w", err)
+		}
+		log.Info().Msg("restore: imported multisig data")
+	}
+
+	if txJSON != nil {
+		if err := e.multisigStore.ImportTransactionsFromJSON(ctx, txJSON); err != nil {
+			return fmt.Errorf("import transactions: %w", err)
+		}
+		log.Info().Msg("restore: imported transactions")
+	}
+
 	// Restore wallet.json
 	walletPath := filepath.Join(e.walletDir, "wallet.json")
 	if err := os.WriteFile(walletPath, walletJSON, 0600); err != nil {
@@ -185,22 +201,6 @@ func (e *BackupEngine) RestoreBackup(ctx context.Context, data []byte, filename 
 			return fmt.Errorf("write metadata.json: %w", err)
 		}
 		log.Info().Msg("restore: wrote metadata.json")
-	}
-
-	// Import multisig data into DB
-	if multisigJSON != nil {
-		if err := e.multisigStore.ImportFromJSON(ctx, multisigJSON); err != nil {
-			return fmt.Errorf("import multisig data: %w", err)
-		}
-		log.Info().Msg("restore: imported multisig data")
-	}
-
-	// Import transaction data into DB
-	if txJSON != nil {
-		if err := e.multisigStore.ImportTransactionsFromJSON(ctx, txJSON); err != nil {
-			return fmt.Errorf("import transactions: %w", err)
-		}
-		log.Info().Msg("restore: imported transactions")
 	}
 
 	return nil
