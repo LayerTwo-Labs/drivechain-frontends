@@ -208,6 +208,10 @@ func (p *Parser) handleBlockTick(ctx context.Context) error {
 		if err := p.purgeCoinNewsAtOrAbove(ctx, lastProcessedHeight+1); err != nil {
 			return fmt.Errorf("purge coinnews on reorg: %w", err)
 		}
+
+		if err := p.purgeM4AtOrAbove(ctx, lastProcessedHeight+1); err != nil {
+			return fmt.Errorf("purge m4 on reorg: %w", err)
+		}
 	}
 
 	const batchSize = 30

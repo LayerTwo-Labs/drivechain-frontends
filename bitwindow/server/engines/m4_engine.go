@@ -69,7 +69,7 @@ func (e *M4Engine) ProcessBlock(ctx context.Context, height uint32, block *wire.
 
 		// Apply M4 votes to update bundle work scores
 		if err := e.applyM4Votes(ctx, height, m4Msg); err != nil {
-			log.Warn().Err(err).Msg("failed to apply M4 votes")
+			return fmt.Errorf("apply M4 votes: %w", err)
 		}
 
 		log.Debug().
@@ -78,9 +78,9 @@ func (e *M4Engine) ProcessBlock(ctx context.Context, height uint32, block *wire.
 			Msg("processed M4 message")
 	}
 
-	// Update all bundle states (decrement blocks_left, check expiration)
-	if err := e.updateBundleStates(ctx); err != nil {
-		log.Warn().Err(err).Msg("failed to update bundle states")
+	// Update all bundle states (recompute blocks_left, check expiration)
+	if err := e.updateBundleStates(ctx, height); err != nil {
+		return fmt.Errorf("update bundle states: %w", err)
 	}
 
 	return nil
@@ -371,16 +371,26 @@ func (e *M4Engine) applyM4Votes(ctx context.Context, height uint32, msg *m4.M4Me
 			// Increment work score for upvoted bundle
 			// We need to find the bundle by sidechain slot and index
 			if vote.BundleIndex != nil {
+				// The bundle is picked by a subquery because SQLite only allows
+				// ORDER BY/LIMIT directly on an UPDATE in builds this driver
+				// does not use.
+				// last_updated_height < height keeps a replayed block from
+				// scoring a bundle it already scored. Heights only move forward
+				// in a normal scan, so this is a no-op there.
 				_, err := e.db.ExecContext(ctx, `
 					UPDATE withdrawal_bundles
 					SET work_score = work_score + 1,
 					    last_updated_height = ?,
 					    updated_at = CURRENT_TIMESTAMP
-					WHERE sidechain_slot = ?
-					  AND status = 'pending'
-					ORDER BY first_seen_height ASC
-					LIMIT 1 OFFSET ?
-				`, height, vote.SidechainSlot, *vote.BundleIndex)
+					WHERE id = (
+					    SELECT id FROM withdrawal_bundles
+					    WHERE sidechain_slot = ?
+					      AND status = 'pending'
+					    ORDER BY first_seen_height ASC
+					    LIMIT 1 OFFSET ?
+					)
+					  AND last_updated_height < ?
+				`, height, vote.SidechainSlot, *vote.BundleIndex, height)
 				if err != nil {
 					return fmt.Errorf("upvote bundle: %w", err)
 				}
@@ -395,7 +405,8 @@ func (e *M4Engine) applyM4Votes(ctx context.Context, height uint32, msg *m4.M4Me
 				    updated_at = CURRENT_TIMESTAMP
 				WHERE sidechain_slot = ?
 				  AND status = 'pending'
-			`, height, vote.SidechainSlot)
+				  AND last_updated_height < ?
+			`, height, vote.SidechainSlot, height)
 			if err != nil {
 				return fmt.Errorf("alarm (downvote) bundles: %w", err)
 			}
@@ -407,7 +418,8 @@ func (e *M4Engine) applyM4Votes(ctx context.Context, height uint32, msg *m4.M4Me
 				SET last_updated_height = ?
 				WHERE sidechain_slot = ?
 				  AND status = 'pending'
-			`, height, vote.SidechainSlot)
+				  AND last_updated_height < ?
+			`, height, vote.SidechainSlot, height)
 			if err != nil {
 				return fmt.Errorf("abstain (no-op) on bundles: %w", err)
 			}
@@ -417,18 +429,18 @@ func (e *M4Engine) applyM4Votes(ctx context.Context, height uint32, msg *m4.M4Me
 	return nil
 }
 
-// updateBundleStates decrements blocks_left and updates status for all pending bundles
-func (e *M4Engine) updateBundleStates(ctx context.Context) error {
-	// Decrement blocks_left for all pending bundles
+// updateBundleStates recomputes blocks_left and updates status for all pending bundles
+func (e *M4Engine) updateBundleStates(ctx context.Context, height uint32) error {
+	// Derived from the height rather than decremented, so replaying a block
+	// after a reorg lands on the same value instead of ageing the bundle twice.
 	_, err := e.db.ExecContext(ctx, `
 		UPDATE withdrawal_bundles
-		SET blocks_left = blocks_left - 1,
+		SET blocks_left = MAX(0, max_age - (? - first_seen_height)),
 		    updated_at = CURRENT_TIMESTAMP
 		WHERE status = 'pending'
-		  AND blocks_left > 0
-	`)
+	`, height)
 	if err != nil {
-		return fmt.Errorf("decrement blocks_left: %w", err)
+		return fmt.Errorf("recompute blocks_left: %w", err)
 	}
 
 	// Mark bundles as approved if work_score >= 13150

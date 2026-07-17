@@ -164,6 +164,31 @@ func dropMsg(ctx context.Context, pos cnstore.BlockPos, reason string, err error
 		Msg("coinnews: " + reason + ", dropping")
 }
 
+// purgeM4AtOrAbove deletes every M4/SCDB row originating from a block at or
+// above `fromHeight`. Called on the same reorg replay as purgeCoinNewsAtOrAbove
+// — without it, a bundle first seen in an orphaned block survives the replay
+// (its insert is ON CONFLICT DO NOTHING) and keeps voting.
+func (p *Parser) purgeM4AtOrAbove(ctx context.Context, fromHeight uint32) error {
+	tx, err := p.db.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback() //nolint:errcheck // committed on success
+
+	stmts := []string{
+		`DELETE FROM m4_votes           WHERE m4_message_id IN (SELECT id FROM m4_messages WHERE block_height >= ?)`,
+		`DELETE FROM m4_messages        WHERE block_height >= ?`,
+		`DELETE FROM m3_messages        WHERE block_height >= ?`,
+		`DELETE FROM withdrawal_bundles WHERE first_seen_height >= ?`,
+	}
+	for _, q := range stmts {
+		if _, err := tx.ExecContext(ctx, q, fromHeight); err != nil {
+			return err
+		}
+	}
+	return tx.Commit()
+}
+
 // purgeCoinNewsAtOrAbove deletes every cn_* row originating from a
 // block at or above `fromHeight`. Called when the engine detects a
 // reorg and replays a height range — without it, `INSERT OR IGNORE`
