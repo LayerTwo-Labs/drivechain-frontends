@@ -33,6 +33,7 @@ class BitcoinConfProvider extends ChangeNotifier {
   BitcoinNetwork network = BitcoinNetwork.BITCOIN_NETWORK_SIGNET;
   String? defaultDatadir;
   String? forknetDatadir;
+  String? drynet2Datadir;
   BitcoinConfig? currentConfig;
   late final RootStackRouter router;
 
@@ -41,17 +42,22 @@ class BitcoinConfProvider extends ChangeNotifier {
   String? get detectedDataDir => dataDirFor(network);
 
   /// Returns the datadir recorded for [n]'s datadir group, or null if
-  /// none is configured. Forknet has its own group; everything else shares
-  /// the default group (Bitcoin Core auto-partitions via chain subdirs).
+  /// none is configured. Forknet and drynet2 each have their own group;
+  /// everything else shares the default group (Bitcoin Core auto-partitions
+  /// via chain subdirs).
   String? dataDirFor(BitcoinNetwork n) {
     if (n == BitcoinNetwork.BITCOIN_NETWORK_FORKNET) {
       return forknetDatadir;
+    }
+    if (n == BitcoinNetwork.BITCOIN_NETWORK_DRYNET2) {
+      return drynet2Datadir;
     }
     return defaultDatadir;
   }
 
   bool get networkSupportsSidechains {
     return network == BitcoinNetwork.BITCOIN_NETWORK_FORKNET ||
+        network == BitcoinNetwork.BITCOIN_NETWORK_DRYNET2 ||
         network == BitcoinNetwork.BITCOIN_NETWORK_SIGNET ||
         network == BitcoinNetwork.BITCOIN_NETWORK_REGTEST;
   }
@@ -108,6 +114,7 @@ class BitcoinConfProvider extends ChangeNotifier {
       configPath = resp.configPath.isEmpty ? null : resp.configPath;
       defaultDatadir = resp.defaultDatadir.isEmpty ? null : resp.defaultDatadir;
       forknetDatadir = resp.forknetDatadir.isEmpty ? null : resp.forknetDatadir;
+      drynet2Datadir = resp.drynet2Datadir.isEmpty ? null : resp.drynet2Datadir;
       rpcPort = resp.rpcPort;
 
       network = _parseNetwork(resp.network);
@@ -211,7 +218,9 @@ class BitcoinConfProvider extends ChangeNotifier {
   }
 
   bool networkRequiresDataDir(BitcoinNetwork network) {
-    return network == BitcoinNetwork.BITCOIN_NETWORK_MAINNET || network == BitcoinNetwork.BITCOIN_NETWORK_FORKNET;
+    return network == BitcoinNetwork.BITCOIN_NETWORK_MAINNET ||
+        network == BitcoinNetwork.BITCOIN_NETWORK_FORKNET ||
+        network == BitcoinNetwork.BITCOIN_NETWORK_DRYNET2;
   }
 
   Future<void> updateDataDir(
@@ -267,6 +276,7 @@ class BitcoinConfProvider extends ChangeNotifier {
     return switch (network.toLowerCase()) {
       'mainnet' || 'main' => BitcoinNetwork.BITCOIN_NETWORK_MAINNET,
       'forknet' => BitcoinNetwork.BITCOIN_NETWORK_FORKNET,
+      'drynet2' => BitcoinNetwork.BITCOIN_NETWORK_DRYNET2,
       'testnet' || 'test' => BitcoinNetwork.BITCOIN_NETWORK_TESTNET,
       'signet' => BitcoinNetwork.BITCOIN_NETWORK_SIGNET,
       'regtest' => BitcoinNetwork.BITCOIN_NETWORK_REGTEST,
@@ -278,6 +288,7 @@ class BitcoinConfProvider extends ChangeNotifier {
     return switch (network) {
       BitcoinNetwork.BITCOIN_NETWORK_MAINNET => 'mainnet',
       BitcoinNetwork.BITCOIN_NETWORK_FORKNET => 'forknet',
+      BitcoinNetwork.BITCOIN_NETWORK_DRYNET2 => 'drynet2',
       BitcoinNetwork.BITCOIN_NETWORK_TESTNET => 'testnet',
       BitcoinNetwork.BITCOIN_NETWORK_SIGNET => 'signet',
       BitcoinNetwork.BITCOIN_NETWORK_REGTEST => 'regtest',

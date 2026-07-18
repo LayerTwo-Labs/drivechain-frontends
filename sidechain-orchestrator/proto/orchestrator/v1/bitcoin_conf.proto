@@ -39,6 +39,7 @@ message GetBitcoinConfigResponse {
   // restored on the next swap into that group. Empty = no path stored.
   string default_datadir = 11;
   string forknet_datadir = 12;
+  string drynet2_datadir = 13;
 }
 
 // SetBitcoinConfigNetwork

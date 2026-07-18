@@ -462,6 +462,9 @@ func (m *BitcoinConfManager) HasDatadirForNetwork(n Network) bool {
 	if n == NetworkForknet {
 		return m.Config.GetGroupDatadir(DatadirGroupForknet) != ""
 	}
+	if n == NetworkDrynet2 {
+		return m.Config.GetGroupDatadir(DatadirGroupDrynet2) != ""
+	}
 	if n == NetworkMainnet {
 		// Mainnet still needs a user-chosen path — it would otherwise write
 		// 700+ GB into Library/Application Support.
@@ -484,9 +487,22 @@ func (m *BitcoinConfManager) applyMainSectionDefaults(n Network) {
 	if m.Config == nil {
 		return
 	}
+	// Keys that identify a specific chain=main network (forknet vs drynet2 vs
+	// real mainnet). Strip them first so a swap never leaves a sibling's port
+	// or peer behind — forknet and drynet2 use different ports, and only
+	// drynet2 sets addnode/uacomment.
+	mainVariantKeys := []string{
+		"port", "rpcport", "rpcbind", "rpcallowip", "addnode", "uacomment",
+		"assumevalid", "minimumchainwork", "listenonion", "drivechain", "fallbackfee",
+	}
+	for _, k := range mainVariantKeys {
+		m.Config.RemoveSetting(k, "main")
+	}
+
+	var defaults []struct{ k, v string }
 	switch n {
 	case NetworkForknet:
-		forknetMainDefaults := []struct{ k, v string }{
+		defaults = []struct{ k, v string }{
 			{"port", "8300"},
 			{"rpcport", "18301"},
 			{"rpcbind", "127.0.0.1"},
@@ -497,17 +513,23 @@ func (m *BitcoinConfManager) applyMainSectionDefaults(n Network) {
 			{"drivechain", "1"},
 			{"fallbackfee", "0.00021"},
 		}
-		for _, kv := range forknetMainDefaults {
-			if !m.Config.HasSetting(kv.k, "main") {
-				m.Config.SetSetting(kv.k, kv.v, "main")
-			}
+	case NetworkDrynet2:
+		defaults = []struct{ k, v string }{
+			{"port", "8301"},
+			{"rpcport", "18302"},
+			{"rpcbind", "127.0.0.1"},
+			{"rpcallowip", "0.0.0.0/0"},
+			{"addnode", "drynet2.drivechain.dev:8335"},
+			{"uacomment", "drynet2"},
+			{"assumevalid", "0000000000000000000000000000000000000000000000000000000000000000"},
+			{"minimumchainwork", "0x00"},
+			{"listenonion", "0"},
+			{"drivechain", "1"},
+			{"fallbackfee", "0.00021"},
 		}
-	case NetworkMainnet:
-		// Strip forknet-only keys; bitcoind on real mainnet must not see
-		// drivechain=1 or the alternate port.
-		for _, k := range []string{"drivechain", "port", "rpcport", "fallbackfee"} {
-			m.Config.RemoveSetting(k, "main")
-		}
+	}
+	for _, kv := range defaults {
+		m.Config.SetSetting(kv.k, kv.v, "main")
 	}
 }
 

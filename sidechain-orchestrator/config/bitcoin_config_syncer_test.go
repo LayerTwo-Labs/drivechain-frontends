@@ -310,6 +310,30 @@ func TestGetDefaultConfigForknetKeepsFallbackfee(t *testing.T) {
 	}
 }
 
+func TestGetDefaultConfigDrynet2HasPeerAndSentinel(t *testing.T) {
+	m := &BitcoinConfManager{Network: NetworkDrynet2}
+	conf := m.GetDefaultConfig()
+	for _, want := range []string{"drivechain=1", "addnode=drynet2.drivechain.dev:8335", "uacomment=drynet2", "rpcport=18302"} {
+		if !strings.Contains(conf, want) {
+			t.Errorf("drynet2 default config must include %q, got:\n%s", want, conf)
+		}
+	}
+}
+
+// The forknet and drynet2 configs both say chain=main + drivechain=1; only the
+// uacomment sentinel tells them apart. Round-trip each generated config back
+// through the detector to prove they don't collide.
+func TestNetworkFromConfigDistinguishesDrynet2FromForknet(t *testing.T) {
+	drynet2 := ParseBitcoinConfig((&BitcoinConfManager{Network: NetworkDrynet2}).GetDefaultConfig())
+	if got := NetworkFromConfig(drynet2); got != NetworkDrynet2 {
+		t.Errorf("drynet2 config detected as %q, want drynet2", got)
+	}
+	forknet := ParseBitcoinConfig((&BitcoinConfManager{Network: NetworkForknet}).GetDefaultConfig())
+	if got := NetworkFromConfig(forknet); got != NetworkForknet {
+		t.Errorf("forknet config detected as %q, want forknet", got)
+	}
+}
+
 // ---------------------------------------------------------------------------
 // Copy config downstream
 // ---------------------------------------------------------------------------

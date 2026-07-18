@@ -621,6 +621,7 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
   bool get networkSupportsSidechains {
     final network = _confProvider.network;
     return network == BitcoinNetwork.BITCOIN_NETWORK_FORKNET ||
+        network == BitcoinNetwork.BITCOIN_NETWORK_DRYNET2 ||
         network == BitcoinNetwork.BITCOIN_NETWORK_SIGNET ||
         network == BitcoinNetwork.BITCOIN_NETWORK_REGTEST;
   }

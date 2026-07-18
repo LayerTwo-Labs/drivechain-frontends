@@ -111,8 +111,13 @@ class EnforcerLive extends EnforcerRPC {
         throw Exception('testnet not supported for enforcer');
 
       case BitcoinNetwork.BITCOIN_NETWORK_MAINNET:
+        args.add('--wallet-esplora-url=https://esplora.mainnet.drivechain.info');
+
       case BitcoinNetwork.BITCOIN_NETWORK_FORKNET:
-        args.add('--wallet-esplora-url=https://mempool.space/api');
+        args.add('--wallet-esplora-url=https://explorer.forknet.drivechain.info/api');
+
+      case BitcoinNetwork.BITCOIN_NETWORK_DRYNET2:
+        args.add('--wallet-esplora-url=https://esplora.drynet2.drivechain.dev');
 
       case BitcoinNetwork.BITCOIN_NETWORK_SIGNET:
       default:

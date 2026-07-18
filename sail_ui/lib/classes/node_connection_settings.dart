@@ -44,6 +44,7 @@ class CoreConnectionSettings extends ChangeNotifier {
     final defaultPort = switch (network) {
       BitcoinNetwork.BITCOIN_NETWORK_MAINNET => 8332,
       BitcoinNetwork.BITCOIN_NETWORK_FORKNET => 18301,
+      BitcoinNetwork.BITCOIN_NETWORK_DRYNET2 => 18302,
       BitcoinNetwork.BITCOIN_NETWORK_TESTNET => 18332,
       BitcoinNetwork.BITCOIN_NETWORK_SIGNET => 38332,
       BitcoinNetwork.BITCOIN_NETWORK_REGTEST => 18443,
@@ -151,10 +152,12 @@ CoreConnectionSettings readMainchainConf({BitcoinConfProvider? provider}) {
     final datadir = confProvider.detectedDataDir?.isNotEmpty == true
         ? confProvider.detectedDataDir!
         : BitcoinCore().rootDirNetwork(network);
-    // Both mainnet and forknet use root datadir, other networks use subdirs
+    // mainnet, forknet and drynet2 use root datadir, other networks use subdirs
     final networkDir = filePath([
       datadir,
-      (network == BitcoinNetwork.BITCOIN_NETWORK_MAINNET || network == BitcoinNetwork.BITCOIN_NETWORK_FORKNET)
+      (network == BitcoinNetwork.BITCOIN_NETWORK_MAINNET ||
+              network == BitcoinNetwork.BITCOIN_NETWORK_FORKNET ||
+              network == BitcoinNetwork.BITCOIN_NETWORK_DRYNET2)
           ? ''
           : network.toReadableNet(),
     ]);

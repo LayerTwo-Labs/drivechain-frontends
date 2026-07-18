@@ -55,6 +55,8 @@ class _DataDirSelectPageState extends State<DataDirSelectPage> {
         return 'Mainnet needs a Bitcoin Core data directory with the blockchain data (2.5TB+). Pick a directory that contains the blocks folder.';
       case BitcoinNetwork.BITCOIN_NETWORK_FORKNET:
         return 'Forknet needs a data directory to store the chain. Pick an empty directory or one already used for forknet.';
+      case BitcoinNetwork.BITCOIN_NETWORK_DRYNET2:
+        return 'Drynet2 needs a data directory to store the chain. Pick an empty directory or one already used for drynet2.';
       default:
         return 'Pick a directory for Bitcoin Core to store its data.';
     }

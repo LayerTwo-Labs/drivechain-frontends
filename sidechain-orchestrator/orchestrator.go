@@ -754,6 +754,8 @@ func (o *Orchestrator) StartWithL1(ctx context.Context, target string, opts Star
 				return
 			}
 
+			o.maybeLoadDrynet2Snapshot(ctx, ch)
+
 			o.startEnforcerWhenReady(ctx, opts, enforcerPrefetch)
 
 			// Wait for enforcer's gRPC port to actually accept dials before
@@ -1036,6 +1038,7 @@ func (o *Orchestrator) RestartDaemon(ctx context.Context, name string) (<-chan S
 			if !o.startBitcoindOnly(ctx, opts, ch) {
 				return
 			}
+			o.maybeLoadDrynet2Snapshot(ctx, ch)
 			ch <- StartupProgress{Stage: "done", Message: fmt.Sprintf("%s started", config.DisplayName), Done: true}
 
 		case "enforcer":
@@ -1936,6 +1939,7 @@ func enforcerNetworkSwapStatePaths(root string) []string {
 		filepath.Join(root, "bitcoin"),
 		filepath.Join(root, "mainnet"),
 		filepath.Join(root, "forknet"),
+		filepath.Join(root, "drynet2"),
 		filepath.Join(root, "signet"),
 		filepath.Join(root, "testnet"),
 		filepath.Join(root, "regtest"),

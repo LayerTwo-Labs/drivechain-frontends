@@ -8,29 +8,35 @@ type Network string
 const (
 	NetworkMainnet Network = "mainnet"
 	NetworkForknet Network = "forknet"
+	NetworkDrynet2 Network = "drynet2"
 	NetworkSignet  Network = "signet"
 	NetworkRegtest Network = "regtest"
 	NetworkTestnet Network = "testnet"
 )
 
 // DatadirGroup partitions networks by which folder bitcoind writes to.
-// Forknet runs on chain=main and writes to the root of datadir, colliding
-// with mainnet — so it needs its own group. The four "default" networks
-// share one datadir because Bitcoin Core auto-partitions them via chain
-// subdirectories (signet/, testnet3/, regtest/, blocks/ for mainnet).
+// Forknet and drynet2 both run on chain=main and write to the root of datadir,
+// colliding with mainnet and each other — so each needs its own group. The four
+// "default" networks share one datadir because Bitcoin Core auto-partitions them
+// via chain subdirectories (signet/, testnet3/, regtest/, blocks/ for mainnet).
 type DatadirGroup string
 
 const (
 	DatadirGroupDefault DatadirGroup = "default"
 	DatadirGroupForknet DatadirGroup = "forknet"
+	DatadirGroupDrynet2 DatadirGroup = "drynet2"
 )
 
 // DatadirGroupForNetwork returns the datadir group a network belongs to.
 func DatadirGroupForNetwork(n Network) DatadirGroup {
-	if n == NetworkForknet {
+	switch n {
+	case NetworkForknet:
 		return DatadirGroupForknet
+	case NetworkDrynet2:
+		return DatadirGroupDrynet2
+	default:
+		return DatadirGroupDefault
 	}
-	return DatadirGroupDefault
 }
 
 // RPCPortForNetwork returns the default RPC port for a given network.
@@ -40,6 +46,8 @@ func RPCPortForNetwork(n Network) int {
 		return 8332
 	case NetworkForknet:
 		return 18301
+	case NetworkDrynet2:
+		return 18302
 	case NetworkTestnet:
 		return 18332
 	case NetworkSignet:
@@ -61,12 +69,14 @@ func EsploraURLsForNetwork(n Network) []string {
 	case NetworkSignet:
 		return []string{"https://explorer.signet.drivechain.info/api"}
 	case NetworkMainnet:
-		// blockstream.info first (reliable for programmatic clients), mempool.space
-		// as fallback. mempool throttles/stalls non-browser traffic, so it is the
-		// backup rather than the primary.
-		return []string{"https://blockstream.info/api", "https://mempool.space/api"}
+		// drivechain's own Esplora server. Its routes sit at the root, so the
+		// base URL carries no /api suffix (the other networks' do).
+		return []string{"https://esplora.mainnet.drivechain.info"}
 	case NetworkForknet:
 		return []string{"https://explorer.forknet.drivechain.info/api"}
+	case NetworkDrynet2:
+		// drynet2's Esplora serves its routes at the root, so no /api suffix.
+		return []string{"https://esplora.drynet2.drivechain.dev"}
 	default:
 		return nil
 	}
@@ -145,10 +155,10 @@ func (n Network) CoreSection() string {
 }
 
 // CoreSectionForNetwork returns the Bitcoin Core config section name for a network.
-// Both mainnet and forknet use "main" since forknet runs on mainnet params.
+// Mainnet, forknet and drynet2 all use "main" since the forks run on mainnet params.
 func CoreSectionForNetwork(n Network) string {
 	switch n {
-	case NetworkMainnet, NetworkForknet:
+	case NetworkMainnet, NetworkForknet, NetworkDrynet2:
 		return "main"
 	case NetworkTestnet:
 		return "test"
@@ -170,6 +180,12 @@ func NetworkFromConfig(conf *BitcoinConfig) Network {
 		case "main", "mainnet":
 			drivechainSetting := conf.GetEffectiveSetting("drivechain", "main")
 			if drivechainSetting == "1" {
+				// forknet and drynet2 both run chain=main + drivechain=1. They
+				// are told apart by the uacomment sentinel drynet2 writes into
+				// its [main] section.
+				if conf.GetEffectiveSetting("uacomment", "main") == string(NetworkDrynet2) {
+					return NetworkDrynet2
+				}
 				return NetworkForknet
 			}
 			return NetworkMainnet
@@ -205,6 +221,8 @@ func NetworkFromString(s string) Network {
 		return NetworkMainnet
 	case "forknet":
 		return NetworkForknet
+	case "drynet2":
+		return NetworkDrynet2
 	case "testnet", "test":
 		return NetworkTestnet
 	case "signet":

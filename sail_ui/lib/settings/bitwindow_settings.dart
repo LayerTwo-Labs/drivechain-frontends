@@ -4,10 +4,11 @@ import 'dart:io';
 import 'package:logger/logger.dart';
 import 'package:sail_ui/sail_ui.dart';
 
-// First-run theme: the forknet/eCash build (BITWINDOW_NETWORK=forknet) defaults to
-// the eCash theme; every other build defaults to Sail. A user's choice persists and
-// overrides this.
-const String defaultThemeStyleId = String.fromEnvironment('BITWINDOW_NETWORK') == 'forknet' ? 'ecash' : 'sail';
+// First-run theme: the eCash builds (BITWINDOW_NETWORK=forknet or drynet2) default
+// to the eCash theme; every other build defaults to Sail. A user's choice persists
+// and overrides this.
+const String _bitwindowNetwork = String.fromEnvironment('BITWINDOW_NETWORK');
+const String defaultThemeStyleId = _bitwindowNetwork == 'forknet' || _bitwindowNetwork == 'drynet2' ? 'ecash' : 'sail';
 
 // BitwindowSettings is a special kind of setting. It is *global* bitwindow
 // settings that can be accessed by bitwindow (duh), but also all sidechains!

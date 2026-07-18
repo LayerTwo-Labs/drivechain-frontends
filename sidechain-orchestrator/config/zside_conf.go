@@ -80,7 +80,7 @@ func (m *ZSideConfManager) GetDefaultConfig() string {
 			network = "signet"
 		case NetworkRegtest:
 			network = "regtest"
-		case NetworkForknet:
+		case NetworkForknet, NetworkDrynet2:
 			network = "mainnet"
 		default:
 			network = "signet"
@@ -211,7 +211,7 @@ func (m *ZSideConfManager) SyncNetworkFromBitcoinConf() error {
 	switch m.bitcoinConf.Network {
 	case NetworkRegtest:
 		sidechainNetwork = "regtest"
-	case NetworkForknet:
+	case NetworkForknet, NetworkDrynet2:
 		sidechainNetwork = "mainnet"
 	default:
 		sidechainNetwork = "signet"

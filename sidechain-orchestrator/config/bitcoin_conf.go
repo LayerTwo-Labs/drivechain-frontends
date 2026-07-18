@@ -149,6 +149,24 @@ listenonion=0
 drivechain=1
 fallbackfee=0.00021
 `
+	case NetworkDrynet2:
+		// drynet2 also runs chain=main. It has no DNS seeds, so it needs an
+		// explicit peer. uacomment=drynet2 is the sentinel that tells drynet2
+		// apart from forknet in NetworkFromConfig.
+		mainSection = `# drynet2-specific settings (drivechain testnet on mainnet params)
+[main]
+port=8301
+rpcport=18302
+rpcbind=127.0.0.1
+rpcallowip=0.0.0.0/0
+addnode=drynet2.drivechain.dev:8335
+uacomment=drynet2
+assumevalid=0000000000000000000000000000000000000000000000000000000000000000
+minimumchainwork=0x00
+listenonion=0
+drivechain=1
+fallbackfee=0.00021
+`
 	default:
 		mainSection = `# Mainnet-specific settings
 [main]
@@ -245,7 +263,7 @@ func (m *BitcoinConfManager) UpdateNetwork(n Network) error {
 
 	chainValue := "signet"
 	switch n {
-	case NetworkMainnet, NetworkForknet:
+	case NetworkMainnet, NetworkForknet, NetworkDrynet2:
 		chainValue = "main"
 	case NetworkTestnet:
 		chainValue = "test"

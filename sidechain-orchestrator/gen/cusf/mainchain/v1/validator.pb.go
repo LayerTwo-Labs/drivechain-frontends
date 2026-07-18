@@ -2126,8 +2126,12 @@ type GetChainInfoResponse_Bip300Constants struct {
 	// Number of votes required to activate a proposal for an unused sidechain
 	// slot.
 	UnusedSidechainSlotActivationThreshold uint32 `protobuf:"varint,6,opt,name=unused_sidechain_slot_activation_threshold,json=unusedSidechainSlotActivationThreshold,proto3" json:"unused_sidechain_slot_activation_threshold,omitempty"`
-	unknownFields                          protoimpl.UnknownFields
-	sizeCache                              protoimpl.SizeCache
+	// Height at which enforcement activates. Blocks below this
+	// height are plain Bitcoin history and are not scanned for BIP300
+	// messages or deposits. 0 means enforced from genesis.
+	ActivationHeight uint32 `protobuf:"varint,7,opt,name=activation_height,json=activationHeight,proto3" json:"activation_height,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
 }
 
 func (x *GetChainInfoResponse_Bip300Constants) Reset() {
@@ -2198,6 +2202,13 @@ func (x *GetChainInfoResponse_Bip300Constants) GetUnusedSidechainSlotProposalMax
 func (x *GetChainInfoResponse_Bip300Constants) GetUnusedSidechainSlotActivationThreshold() uint32 {
 	if x != nil {
 		return x.UnusedSidechainSlotActivationThreshold
+	}
+	return 0
+}
+
+func (x *GetChainInfoResponse_Bip300Constants) GetActivationHeight() uint32 {
+	if x != nil {
+		return x.ActivationHeight
 	}
 	return 0
 }
@@ -3141,17 +3152,18 @@ const file_cusf_mainchain_v1_validator_proto_rawDesc = "" +
 	"\x14ancestor_commitments\x18\x02 \x03(\v2C.cusf.mainchain.v1.GetBmmHStarCommitmentResponse.OptionalCommitmentR\x13ancestorCommitmentsB\r\n" +
 	"\v_commitmentB\b\n" +
 	"\x06result\"\x15\n" +
-	"\x13GetChainInfoRequest\"\xa8\x05\n" +
+	"\x13GetChainInfoRequest\"\xd5\x05\n" +
 	"\x14GetChainInfoResponse\x124\n" +
 	"\anetwork\x18\x01 \x01(\x0e2\x1a.cusf.mainchain.v1.NetworkR\anetwork\x12b\n" +
-	"\x10bip300_constants\x18\x02 \x01(\v27.cusf.mainchain.v1.GetChainInfoResponse.Bip300ConstantsR\x0fbip300Constants\x1a\xf5\x03\n" +
+	"\x10bip300_constants\x18\x02 \x01(\v27.cusf.mainchain.v1.GetChainInfoResponse.Bip300ConstantsR\x0fbip300Constants\x1a\xa2\x04\n" +
 	"\x0fBip300Constants\x129\n" +
 	"\x19withdrawal_bundle_max_age\x18\x01 \x01(\rR\x16withdrawalBundleMaxAge\x12Q\n" +
 	"%withdrawal_bundle_inclusion_threshold\x18\x02 \x01(\rR\"withdrawalBundleInclusionThreshold\x12M\n" +
 	"$used_sidechain_slot_proposal_max_age\x18\x03 \x01(\rR\x1fusedSidechainSlotProposalMaxAge\x12V\n" +
 	"(used_sidechain_slot_activation_threshold\x18\x04 \x01(\rR$usedSidechainSlotActivationThreshold\x12Q\n" +
 	"&unused_sidechain_slot_proposal_max_age\x18\x05 \x01(\rR!unusedSidechainSlotProposalMaxAge\x12Z\n" +
-	"*unused_sidechain_slot_activation_threshold\x18\x06 \x01(\rR&unusedSidechainSlotActivationThreshold\"\x14\n" +
+	"*unused_sidechain_slot_activation_threshold\x18\x06 \x01(\rR&unusedSidechainSlotActivationThreshold\x12+\n" +
+	"\x11activation_height\x18\a \x01(\rR\x10activationHeight\"\x14\n" +
 	"\x12GetChainTipRequest\"e\n" +
 	"\x13GetChainTipResponse\x12N\n" +
 	"\x11block_header_info\x18\x01 \x01(\v2\".cusf.mainchain.v1.BlockHeaderInfoR\x0fblockHeaderInfo\"\xee\t\n" +

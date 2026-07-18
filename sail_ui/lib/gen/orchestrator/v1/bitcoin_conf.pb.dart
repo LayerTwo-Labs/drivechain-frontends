@@ -60,6 +60,7 @@ class GetBitcoinConfigResponse extends $pb.GeneratedMessage {
     $core.String? rpcPassword,
     $core.String? defaultDatadir,
     $core.String? forknetDatadir,
+    $core.String? drynet2Datadir,
   }) {
     final $result = create();
     if (network != null) {
@@ -98,6 +99,9 @@ class GetBitcoinConfigResponse extends $pb.GeneratedMessage {
     if (forknetDatadir != null) {
       $result.forknetDatadir = forknetDatadir;
     }
+    if (drynet2Datadir != null) {
+      $result.drynet2Datadir = drynet2Datadir;
+    }
     return $result;
   }
   GetBitcoinConfigResponse._() : super();
@@ -117,6 +121,7 @@ class GetBitcoinConfigResponse extends $pb.GeneratedMessage {
     ..aOS(10, _omitFieldNames ? '' : 'rpcPassword')
     ..aOS(11, _omitFieldNames ? '' : 'defaultDatadir')
     ..aOS(12, _omitFieldNames ? '' : 'forknetDatadir')
+    ..aOS(13, _omitFieldNames ? '' : 'drynet2Datadir')
     ..hasRequiredFields = false
   ;
 
@@ -254,6 +259,15 @@ class GetBitcoinConfigResponse extends $pb.GeneratedMessage {
   $core.bool hasForknetDatadir() => $_has(11);
   @$pb.TagNumber(12)
   void clearForknetDatadir() => clearField(12);
+
+  @$pb.TagNumber(13)
+  $core.String get drynet2Datadir => $_getSZ(12);
+  @$pb.TagNumber(13)
+  set drynet2Datadir($core.String v) { $_setString(12, v); }
+  @$pb.TagNumber(13)
+  $core.bool hasDrynet2Datadir() => $_has(12);
+  @$pb.TagNumber(13)
+  void clearDrynet2Datadir() => clearField(13);
 }
 
 class SetBitcoinConfigNetworkRequest extends $pb.GeneratedMessage {

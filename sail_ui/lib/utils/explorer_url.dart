@@ -6,6 +6,7 @@ import 'package:sail_ui/sail_ui.dart';
 String _explorerHost(BitcoinNetwork network) => switch (network) {
   BitcoinNetwork.BITCOIN_NETWORK_MAINNET => 'mempool.space',
   BitcoinNetwork.BITCOIN_NETWORK_FORKNET => 'explorer.forknet.drivechain.info',
+  BitcoinNetwork.BITCOIN_NETWORK_DRYNET2 => 'explorer.drynet2.drivechain.dev',
   BitcoinNetwork.BITCOIN_NETWORK_TESTNET => 'explorer.testnet.drivechain.info',
   _ => 'explorer.signet.drivechain.info',
 };

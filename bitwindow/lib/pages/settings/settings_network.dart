@@ -239,6 +239,7 @@ class _SettingsNetworkState extends State<SettingsNetwork> {
     final showDataDir =
         _confProvider.network == BitcoinNetwork.BITCOIN_NETWORK_MAINNET ||
         _confProvider.network == BitcoinNetwork.BITCOIN_NETWORK_FORKNET ||
+        _confProvider.network == BitcoinNetwork.BITCOIN_NETWORK_DRYNET2 ||
         _confProvider.detectedDataDir != null;
     final canEditDataDir = !_confProvider.hasPrivateBitcoinConf;
 
@@ -376,6 +377,10 @@ class _SettingsNetworkState extends State<SettingsNetwork> {
                   label: BitcoinNetwork.BITCOIN_NETWORK_FORKNET.toDisplayName(),
                 ),
                 SailDropdownItem<BitcoinNetwork>(
+                  value: BitcoinNetwork.BITCOIN_NETWORK_DRYNET2,
+                  label: BitcoinNetwork.BITCOIN_NETWORK_DRYNET2.toDisplayName(),
+                ),
+                SailDropdownItem<BitcoinNetwork>(
                   value: BitcoinNetwork.BITCOIN_NETWORK_SIGNET,
                   label: BitcoinNetwork.BITCOIN_NETWORK_SIGNET.toDisplayName(),
                 ),
@@ -426,9 +431,11 @@ class _SettingsNetworkState extends State<SettingsNetwork> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               SailText.primary15(
-                _confProvider.network == BitcoinNetwork.BITCOIN_NETWORK_FORKNET
-                    ? 'Bitcoin Data Directory — Forknet'
-                    : 'Bitcoin Data Directory — Default',
+                switch (_confProvider.network) {
+                  BitcoinNetwork.BITCOIN_NETWORK_FORKNET => 'Bitcoin Data Directory — Forknet',
+                  BitcoinNetwork.BITCOIN_NETWORK_DRYNET2 => 'Bitcoin Data Directory — Drynet2',
+                  _ => 'Bitcoin Data Directory — Default',
+                },
               ),
               const SailSpacing(SailStyleValues.padding08),
               SailRow(
