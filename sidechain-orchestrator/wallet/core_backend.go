@@ -408,6 +408,13 @@ func (p *CoreBackend) Send(ctx context.Context, walletID string, req SendRequest
 		return p.rpc.SendMany(ctx, name, destinations)
 	}
 
+	// Replay protection stamps a magic locktime; Core lowers the inputs it is
+	// given below SEQUENCE_FINAL so the locktime takes effect.
+	locktime := uint32(0)
+	if req.ReplayProtect {
+		locktime = replay.ReplayLockTime
+	}
+
 	outputs, totalDestinationSats := buildSendOutputs(req)
 	inputs := make([]RawInput, 0, len(req.RequiredInputs))
 	selectedInputAmountSats := int64(0)
@@ -443,14 +450,14 @@ func (p *CoreBackend) Send(ctx context.Context, walletID string, req SendRequest
 			outputs = append(outputs, TxOutSpec{Address: changeAddress, AmountBTC: float64(changeSats) / 1e8})
 		}
 
-		rawHex, err := p.rpc.CreateRawTransaction(ctx, inputs, rpcOutputs(outputs))
+		rawHex, err := p.rpc.CreateRawTransaction(ctx, inputs, rpcOutputs(outputs), locktime)
 		if err != nil {
 			return "", fmt.Errorf("create raw transaction: %w", err)
 		}
-		return p.signAndBroadcast(ctx, name, rawHex, req.ReplayProtect)
+		return p.signAndBroadcast(ctx, name, rawHex)
 	}
 
-	rawHex, err := p.rpc.CreateRawTransaction(ctx, inputs, rpcOutputs(outputs))
+	rawHex, err := p.rpc.CreateRawTransaction(ctx, inputs, rpcOutputs(outputs), locktime)
 	if err != nil {
 		return "", fmt.Errorf("create raw transaction: %w", err)
 	}
@@ -465,12 +472,17 @@ func (p *CoreBackend) Send(ctx context.Context, walletID string, req SendRequest
 	if req.SubtractFeeFromAmount && len(req.DestinationsSats) > 0 {
 		options["subtractFeeFromOutputs"] = lo.Range(len(req.DestinationsSats))
 	}
+	if req.ReplayProtect {
+		// Inputs Core selects during funding must also be non-final, else the
+		// locktime is ignored and there is no replay protection.
+		options["replaceable"] = true
+	}
 
 	funded, err := p.rpc.FundRawTransaction(ctx, name, rawHex, options)
 	if err != nil {
 		return "", fmt.Errorf("fund raw transaction: %w", err)
 	}
-	return p.signAndBroadcast(ctx, name, funded.Hex, req.ReplayProtect)
+	return p.signAndBroadcast(ctx, name, funded.Hex)
 }
 
 // rpcOutputs maps outputs onto createrawtransaction's wire shape.
@@ -535,19 +547,9 @@ func (p *CoreBackend) selectInputsForFixedFee(ctx context.Context, walletID stri
 	return selected, totalSats, nil
 }
 
-// signAndBroadcast signs via Core and broadcasts, applying the eCash fork's
-// replay protection around the signature when requested.
-func (p *CoreBackend) signAndBroadcast(ctx context.Context, name, rawHex string, replayProtect bool) (string, error) {
-	// Set the magic version BEFORE signing so the signature commits to it
-	// (the fork's sighash is computed over this version).
-	if replayProtect {
-		var err error
-		rawHex, err = replay.SetVersion(rawHex)
-		if err != nil {
-			return "", fmt.Errorf("set replay version: %w", err)
-		}
-	}
-
+// signAndBroadcast signs via Core and broadcasts. Any replay locktime is
+// already baked into rawHex, so the signature commits to it here.
+func (p *CoreBackend) signAndBroadcast(ctx context.Context, name, rawHex string) (string, error) {
 	signed, err := p.rpc.SignRawTransactionWithWallet(ctx, name, rawHex)
 	if err != nil {
 		return "", fmt.Errorf("sign raw transaction: %w", err)
@@ -556,17 +558,7 @@ func (p *CoreBackend) signAndBroadcast(ctx context.Context, name, rawHex string,
 		return "", errors.New("transaction signing incomplete")
 	}
 
-	hexToSend := signed.Hex
-	// Inject the extra byte AFTER signing — it's a serialization marker, not
-	// part of the sighash, and it makes the tx un-deserializable by Bitcoin.
-	if replayProtect {
-		hexToSend, err = replay.InjectReplayByte(hexToSend)
-		if err != nil {
-			return "", fmt.Errorf("inject replay byte: %w", err)
-		}
-	}
-
-	return p.rpc.SendRawTransaction(ctx, hexToSend)
+	return p.rpc.SendRawTransaction(ctx, signed.Hex)
 }
 
 func (p *CoreBackend) SignTransaction(ctx context.Context, walletID, rawHex string) (*SignRawTransactionResult, error) {
@@ -643,7 +635,7 @@ func (p *CoreBackend) CreateCpfp(ctx context.Context, walletID string, req CpfpR
 
 	inputs := []RawInput{{TxID: req.ParentTxID, Vout: req.ParentVout}}
 	outputs := []map[string]interface{}{{childAddr: btcutil.Amount(outputSats).ToBTC()}}
-	rawHex, err := p.rpc.CreateRawTransaction(ctx, inputs, outputs)
+	rawHex, err := p.rpc.CreateRawTransaction(ctx, inputs, outputs, 0)
 	if err != nil {
 		return "", fmt.Errorf("create child tx: %w", err)
 	}

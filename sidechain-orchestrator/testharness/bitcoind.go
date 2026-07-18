@@ -33,6 +33,13 @@ func bitcoindBinaryPath(dataDir string, configs []orchestrator.BinaryConfig, var
 func findBitcoind(t *testing.T, log zerolog.Logger) string {
 	t.Helper()
 
+	// An explicit binary wins over the download logic — used to run against a
+	// specific build (e.g. stock vs. replay-patched bitcoind).
+	if bin := os.Getenv("BITCOIND_BIN"); bin != "" {
+		log.Info().Str("path", bin).Msg("using bitcoind from BITCOIND_BIN")
+		return bin
+	}
+
 	dataDir := orchestrator.DefaultDataDir()
 	// Testharness uses the default ("patched") variant unconditionally — it
 	// always wants the drivechain build, regardless of whatever the user has

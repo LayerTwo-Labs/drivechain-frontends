@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"connectrpc.com/connect"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/replay"
 	"github.com/btcsuite/btcd/btcutil"
 	"github.com/btcsuite/btcd/btcutil/hdkeychain"
 	"github.com/btcsuite/btcd/chaincfg"
@@ -223,6 +224,67 @@ func TestElectrumSendBuildsSignsBroadcasts(t *testing.T) {
 	// One destination output + a change output back to the wallet.
 	require.Len(t, tx.TxOut, 2)
 	assert.Equal(t, int64(50_000), tx.TxOut[0].Value)
+	// A normal send carries no replay locktime.
+	assert.Zero(t, tx.LockTime)
+}
+
+// TestElectrumSendReplayProtect drives the real Electrum send path with replay
+// protection on and proves the broadcast tx carries the magic nLockTime and a
+// non-final input — and, critically, that the signature commits to them, so the
+// tx is still consensus-spendable (txscript.Engine accepts the wallet input).
+// That only holds if the locktime/sequence are applied BEFORE signing.
+func TestElectrumSendReplayProtect(t *testing.T) {
+	p, fake, w, addr := newElectrumFixture(t)
+	net := &chaincfg.SigNetParams
+	ctx := context.Background()
+
+	const utxoValue = 200_000
+	fake.stats[addr] = EsploraAddressStats{
+		Address:    addr,
+		ChainStats: EsploraTxoStats{FundedTxoCount: 1, FundedTxoSum: utxoValue, TxCount: 1},
+	}
+	fake.utxos[addr] = []EsploraUTXO{{
+		TxID: "1111111111111111111111111111111111111111111111111111111111111111",
+		Vout: 0, Value: utxoValue,
+		Status: EsploraStatus{Confirmed: true, BlockHeight: 100},
+	}}
+
+	dest := "tb1qw508d6qejxtdg4y5r3zarvary0c5xw7kxpjzsx"
+	_, err := p.Send(ctx, w.ID, SendRequest{
+		DestinationsSats: map[string]int64{dest: 50_000},
+		FeeRateSatPerVB:  2,
+		ReplayProtect:    true,
+	})
+	require.NoError(t, err)
+	require.Len(t, fake.broadcast, 1)
+
+	var tx wire.MsgTx
+	raw, err := hex.DecodeString(fake.broadcast[0])
+	require.NoError(t, err)
+	require.NoError(t, tx.Deserialize(bytes.NewReader(raw)))
+
+	// Magic locktime, and a non-final input (else stock Core ignores the
+	// locktime and there is no protection).
+	assert.EqualValues(t, replay.ReplayLockTime, tx.LockTime)
+	require.Len(t, tx.TxIn, 1)
+	assert.Less(t, tx.TxIn[0].Sequence, uint32(wire.MaxTxInSequenceNum), "input must be non-final")
+
+	// The signature must commit to the replay locktime+sequence: the wallet
+	// input has to validate under full consensus rules.
+	walletAddr, err := btcutil.DecodeAddress(addr, net)
+	require.NoError(t, err)
+	walletScript, err := txscript.PayToAddrScript(walletAddr)
+	require.NoError(t, err)
+
+	prevOuts := txscript.NewMultiPrevOutFetcher(map[wire.OutPoint]*wire.TxOut{
+		tx.TxIn[0].PreviousOutPoint: wire.NewTxOut(utxoValue, walletScript),
+	})
+	sigHashes := txscript.NewTxSigHashes(&tx, prevOuts)
+	require.NotEmpty(t, tx.TxIn[0].Witness, "input must be signed")
+	vm, err := txscript.NewEngine(walletScript, &tx, 0,
+		txscript.StandardVerifyFlags|txscript.ScriptVerifyTaproot, nil, sigHashes, utxoValue, prevOuts)
+	require.NoError(t, err)
+	require.NoError(t, vm.Execute(), "replay-protected tx signature must validate")
 }
 
 // TestElectrumSendSidechainDeposit drives the full BIP300 M5 deposit through the

@@ -133,3 +133,42 @@ jobs:
       - name: Run bitwindow wallet integration tests
         working-directory: bitwindow/server
         run: go test -v -tags integration -timeout 10m ./integrationtest/
+
+  replay-protection:
+    name: replay protection (macOS)
+    runs-on: macos-latest
+    if: github.event.pull_request.draft == false
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Cache Go modules
+        uses: actions/cache@v5
+        with:
+          path: |
+            ~/go/pkg/mod
+            ~/.cache/go-build
+          key: go-${{ env.GO_VERSION }}-${{ runner.os }}-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            go-${{ env.GO_VERSION }}-${{ runner.os }}-
+
+      - uses: actions/setup-go@v6
+        with:
+          go-version: ${{ env.GO_VERSION }}
+
+      # Stock (unpatched) Bitcoin Core for the "must reject non-final" phase.
+      - name: Download stock bitcoind
+        run: |
+          curl -sSL -o core.tar.gz https://bitcoincore.org/bin/bitcoin-core-30.2/bitcoin-30.2-arm64-apple-darwin.tar.gz
+          tar xzf core.tar.gz
+          echo "BITCOIND_STOCK=$PWD/bitcoin-30.2/bin/bitcoind" >> "$GITHUB_ENV"
+
+      # Fork bitcoind (nLockTime replay patch) is committed at
+      # sidechain-orchestrator/testdata/bitcoind-replay (macOS arm64).
+      - name: Run replay-protection integration test
+        working-directory: sidechain-orchestrator
+        env:
+          BITCOIND_REPLAY: ${{ github.workspace }}/sidechain-orchestrator/testdata/bitcoind-replay
+        run: |
+          chmod +x "$BITCOIND_REPLAY"
+          go test -v -tags integration -run TestReplayLockTime -timeout 12m .
