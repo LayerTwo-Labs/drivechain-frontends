@@ -11,6 +11,7 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/replay"
 	"github.com/btcsuite/btcd/btcutil"
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/rs/zerolog"
@@ -393,12 +394,17 @@ func TestCoreBackendSendReplayProtect(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	// The magic version replaces the original BEFORE signing (the signature
-	// commits to it)…
-	assert.Equal(t, "bfbfbf00aabbccdd", signInputHex)
-	// …and the replay byte is injected AFTER, making the broadcast hex start
-	// with version bfbfbf00 followed by the 0x3f marker.
-	assert.Equal(t, "bfbfbf003faabbccdd", broadcastHex)
+	// Replay protection is applied by passing the magic locktime as
+	// createrawtransaction's 3rd argument; Core lowers the input sequences.
+	creates := fake.callsFor("createrawtransaction")
+	require.Len(t, creates, 1)
+	var locktime uint32
+	require.NoError(t, json.Unmarshal(creates[0].Params[2], &locktime))
+	assert.Equal(t, replay.ReplayLockTime, locktime)
+
+	// No hex surgery — the built tx is signed and broadcast unchanged.
+	assert.Equal(t, "01000000aabbccdd", signInputHex)
+	assert.Equal(t, "01000000aabbccdd", broadcastHex)
 }
 
 func TestCoreBackendCreateCpfp(t *testing.T) {

@@ -493,11 +493,11 @@ func (p *ElectrumBackend) Send(ctx context.Context, walletID string, req SendReq
 }
 
 // signAndBroadcast signs the wallet's inputs in packet, finalizes, broadcasts,
-// and folds the spend into the cached scan. replayProtect stamps the magic tx
-// version before signing and appends the replay byte after extraction.
+// and folds the spend into the cached scan. replayProtect stamps the magic
+// nLockTime and non-final sequences before signing.
 func (p *ElectrumBackend) signAndBroadcast(ctx context.Context, walletID string, packet *psbt.Packet, psbtInputs []psbtInput, effect *spendEffect, replayProtect bool) (string, error) {
 	if replayProtect {
-		packet.UnsignedTx.Version = replay.TxReplayVersion
+		replay.ApplyLockTime(packet.UnsignedTx)
 	}
 	signedCount, err := signPSBT(packet, psbtInputs, p.network)
 	if err != nil {
@@ -517,12 +517,6 @@ func (p *ElectrumBackend) signAndBroadcast(ctx context.Context, walletID string,
 	hexToSend, err := finalizeAndExtract(packet)
 	if err != nil {
 		return "", err
-	}
-	if replayProtect {
-		hexToSend, err = replay.InjectReplayByte(hexToSend)
-		if err != nil {
-			return "", fmt.Errorf("inject replay byte: %w", err)
-		}
 	}
 	txid, err := p.client.Broadcast(ctx, hexToSend)
 	if err != nil {

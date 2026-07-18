@@ -315,13 +315,16 @@ func (c *CoreRPCClient) ListUnspentMinConf(ctx context.Context, walletName strin
 }
 
 // CreateRawTransaction builds an unsigned transaction node-side. Outputs
-// keep their given order; each entry is {address: btc} or {"data": hex}.
+// keep their given order; each entry is {address: btc} or {"data": hex}. A
+// non-zero locktime is set on the tx, and Core lowers the given inputs'
+// sequences below SEQUENCE_FINAL so the locktime takes effect.
 func (c *CoreRPCClient) CreateRawTransaction(
 	ctx context.Context,
 	inputs []RawInput,
 	outputs []map[string]interface{},
+	locktime uint32,
 ) (string, error) {
-	result, err := c.call(ctx, "", "createrawtransaction", inputs, outputs)
+	result, err := c.call(ctx, "", "createrawtransaction", inputs, outputs, locktime)
 	if err != nil {
 		return "", err
 	}
