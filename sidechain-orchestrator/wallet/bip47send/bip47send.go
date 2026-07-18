@@ -28,8 +28,8 @@ import (
 // Returns an error for networks where BIP47 sends are not supported.
 func NetworkParams(network string) (*chaincfg.Params, error) {
 	switch network {
-	// Forknet runs on mainnet params — same chain, same key derivation.
-	case "mainnet", "forknet":
+	// Forknet and drynet2 run on mainnet params — same chain, same key derivation.
+	case "mainnet", "forknet", "drynet2":
 		return &chaincfg.MainNetParams, nil
 	case "signet":
 		return &chaincfg.SigNetParams, nil

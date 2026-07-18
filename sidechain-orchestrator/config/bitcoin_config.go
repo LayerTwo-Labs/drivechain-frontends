@@ -81,7 +81,7 @@ func ParseBitcoinConfig(content string) *BitcoinConfig {
 			if eq := strings.Index(rest, "="); eq > 0 {
 				group := DatadirGroup(strings.TrimSpace(rest[:eq]))
 				path := strings.TrimSpace(rest[eq+1:])
-				if group == DatadirGroupDefault || group == DatadirGroupForknet {
+				if group == DatadirGroupDefault || group == DatadirGroupForknet || group == DatadirGroupDrynet2 {
 					config.DatadirSlots[group] = path
 				}
 			}
@@ -136,7 +136,7 @@ func (c *BitcoinConfig) Serialize() string {
 	// byte-stable. Always emit both groups when either has a value, to keep
 	// hand-editing predictable.
 	if len(c.DatadirSlots) > 0 {
-		groupOrder := []DatadirGroup{DatadirGroupDefault, DatadirGroupForknet}
+		groupOrder := []DatadirGroup{DatadirGroupDefault, DatadirGroupForknet, DatadirGroupDrynet2}
 		anyEmitted := false
 		for _, g := range groupOrder {
 			if v, ok := c.DatadirSlots[g]; ok && v != "" {

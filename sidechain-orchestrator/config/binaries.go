@@ -112,7 +112,7 @@ func (b BinaryDirConfig) DatadirNetwork(network Network, bitcoinOverride string)
 	}
 	switch b.BinaryName {
 	case "bitcoind":
-		if network == NetworkMainnet || network == NetworkForknet {
+		if network == NetworkMainnet || network == NetworkForknet || network == NetworkDrynet2 {
 			return baseDir
 		}
 		return filepath.Join(baseDir, network.ReadableName())
@@ -338,7 +338,7 @@ func (b BinaryDirConfig) GetBlockchainDataPaths(networkDir string, network Netwo
 
 	case "bip300301-enforcer":
 		rootdir := b.RootDir()
-		networkName := strings.ReplaceAll(strings.ReplaceAll(network.ReadableName(), "mainnet", "bitcoin"), "forknet", "bitcoin")
+		networkName := strings.ReplaceAll(strings.ReplaceAll(strings.ReplaceAll(network.ReadableName(), "mainnet", "bitcoin"), "forknet", "bitcoin"), "drynet2", "bitcoin")
 		return GetExistingFilesInDir(rootdir, []string{filepath.Join("validator", networkName), networkName}, log)
 
 	case "bitwindowd":
@@ -421,7 +421,7 @@ func (b BinaryDirConfig) GetWalletPaths(networkDir string, network Network, log 
 	switch b.BinaryName {
 	case "bip300301-enforcer":
 		rootdir := b.RootDir()
-		networkName := strings.ReplaceAll(strings.ReplaceAll(network.ReadableName(), "mainnet", "bitcoin"), "forknet", "bitcoin")
+		networkName := strings.ReplaceAll(strings.ReplaceAll(strings.ReplaceAll(network.ReadableName(), "mainnet", "bitcoin"), "forknet", "bitcoin"), "drynet2", "bitcoin")
 		walletDir := filepath.Join(rootdir, "wallet", networkName)
 		if _, err := os.Stat(walletDir); err == nil {
 			paths = append(paths, walletDir)
@@ -700,6 +700,8 @@ func (n Network) ReadableName() string {
 		return "mainnet"
 	case NetworkForknet:
 		return "forknet"
+	case NetworkDrynet2:
+		return "drynet2"
 	case NetworkSignet:
 		return "signet"
 	case NetworkRegtest:

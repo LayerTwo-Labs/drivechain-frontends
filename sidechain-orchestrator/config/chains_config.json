@@ -1,5 +1,5 @@
 {
-  "version": 5,
+  "version": 6,
   "binaries": {
     "bitcoincore": {
       "type": "core",
@@ -80,6 +80,17 @@
               "windows-x86_64": "L1-drivechain-forknet-x86_64-w64-msvc.zip"
             },
             "available_networks": ["forknet"]
+          },
+          "drynet2": {
+            "subfolder": "drynet2",
+            "base_url": "https://releases.drivechain.info/",
+            "files": {
+              "linux-x86_64": "L1-ecash-bitcoin-drynet2-x86_64-unknown-linux-gnu.zip",
+              "macos-x86_64": "L1-ecash-bitcoin-drynet2-x86_64-apple-darwin.zip",
+              "macos-arm64": "L1-ecash-bitcoin-drynet2-aarch64-apple-darwin.zip",
+              "windows-x86_64": "L1-ecash-bitcoin-drynet2-x86_64-w64-msvc.zip"
+            },
+            "available_networks": ["drynet2"]
           },
           "knots": {
             "subfolder": "knots",

@@ -2709,8 +2709,9 @@ type SendTransactionRequest struct {
 	FixedFeeSats int64 `protobuf:"varint,6,opt,name=fixed_fee_sats,json=fixedFeeSats,proto3" json:"fixed_fee_sats,omitempty"`
 	// Explicit wallet inputs to spend.
 	RequiredInputs []*UnspentOutput `protobuf:"bytes,7,rep,name=required_inputs,json=requiredInputs,proto3" json:"required_inputs,omitempty"`
-	// Build an eCash replay-protected transaction (magic version + extra byte so
-	// Bitcoin Core can't deserialize it). Core wallets only.
+	// Build a replay-protected transaction: stamp the magic nLockTime
+	// (499999999) and non-final input sequences so stock Bitcoin Core rejects it
+	// as non-final, while a patched bitcoind confirms it. Core/Electrum only.
 	ReplayProtect bool `protobuf:"varint,8,opt,name=replay_protect,json=replayProtect,proto3" json:"replay_protect,omitempty"`
 	// Outputs with an explicit raw scriptPubKey, kept in order before any
 	// address/op_return outputs. Used for non-standard scripts (e.g. a sidechain

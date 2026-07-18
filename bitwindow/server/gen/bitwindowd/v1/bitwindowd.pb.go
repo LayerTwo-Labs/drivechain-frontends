@@ -82,6 +82,7 @@ const (
 	BitcoinNetwork_BITCOIN_NETWORK_SIGNET      BitcoinNetwork = 4
 	BitcoinNetwork_BITCOIN_NETWORK_TESTNET     BitcoinNetwork = 5
 	BitcoinNetwork_BITCOIN_NETWORK_FORKNET     BitcoinNetwork = 6
+	BitcoinNetwork_BITCOIN_NETWORK_DRYNET2     BitcoinNetwork = 7
 )
 
 // Enum value maps for BitcoinNetwork.
@@ -94,6 +95,7 @@ var (
 		4: "BITCOIN_NETWORK_SIGNET",
 		5: "BITCOIN_NETWORK_TESTNET",
 		6: "BITCOIN_NETWORK_FORKNET",
+		7: "BITCOIN_NETWORK_DRYNET2",
 	}
 	BitcoinNetwork_value = map[string]int32{
 		"BITCOIN_NETWORK_UNSPECIFIED": 0,
@@ -103,6 +105,7 @@ var (
 		"BITCOIN_NETWORK_SIGNET":      4,
 		"BITCOIN_NETWORK_TESTNET":     5,
 		"BITCOIN_NETWORK_FORKNET":     6,
+		"BITCOIN_NETWORK_DRYNET2":     7,
 	}
 )
 
@@ -2505,7 +2508,7 @@ const file_bitwindowd_v1_bitwindowd_proto_rawDesc = "" +
 	"\tDirection\x12\x19\n" +
 	"\x15DIRECTION_UNSPECIFIED\x10\x00\x12\x12\n" +
 	"\x0eDIRECTION_SEND\x10\x01\x12\x15\n" +
-	"\x11DIRECTION_RECEIVE\x10\x02*\xde\x01\n" +
+	"\x11DIRECTION_RECEIVE\x10\x02*\xfb\x01\n" +
 	"\x0eBitcoinNetwork\x12\x1f\n" +
 	"\x1bBITCOIN_NETWORK_UNSPECIFIED\x10\x00\x12\x1b\n" +
 	"\x17BITCOIN_NETWORK_UNKNOWN\x10\x01\x12\x1b\n" +
@@ -2513,7 +2516,8 @@ const file_bitwindowd_v1_bitwindowd_proto_rawDesc = "" +
 	"\x17BITCOIN_NETWORK_REGTEST\x10\x03\x12\x1a\n" +
 	"\x16BITCOIN_NETWORK_SIGNET\x10\x04\x12\x1b\n" +
 	"\x17BITCOIN_NETWORK_TESTNET\x10\x05\x12\x1b\n" +
-	"\x17BITCOIN_NETWORK_FORKNET\x10\x06*\xac\x01\n" +
+	"\x17BITCOIN_NETWORK_FORKNET\x10\x06\x12\x1b\n" +
+	"\x17BITCOIN_NETWORK_DRYNET2\x10\a*\xac\x01\n" +
 	"\vAddressType\x12\x1c\n" +
 	"\x18ADDRESS_TYPE_UNSPECIFIED\x10\x00\x12\x18\n" +
 	"\x14ADDRESS_TYPE_UNKNOWN\x10\x01\x12\x1b\n" +

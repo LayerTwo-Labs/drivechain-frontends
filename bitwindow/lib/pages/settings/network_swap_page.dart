@@ -244,6 +244,8 @@ String _networkToString(BitcoinNetwork network) {
       return 'mainnet';
     case BitcoinNetwork.BITCOIN_NETWORK_FORKNET:
       return 'forknet';
+    case BitcoinNetwork.BITCOIN_NETWORK_DRYNET2:
+      return 'drynet2';
     case BitcoinNetwork.BITCOIN_NETWORK_TESTNET:
       return 'testnet';
     case BitcoinNetwork.BITCOIN_NETWORK_SIGNET:

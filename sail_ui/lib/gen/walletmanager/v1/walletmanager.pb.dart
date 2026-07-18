@@ -3060,8 +3060,9 @@ class SendTransactionRequest extends $pb.GeneratedMessage {
   @$pb.TagNumber(7)
   $core.List<UnspentOutput> get requiredInputs => $_getList(6);
 
-  /// Build an eCash replay-protected transaction (magic version + extra byte so
-  /// Bitcoin Core can't deserialize it). Core wallets only.
+  /// Build a replay-protected transaction: stamp the magic nLockTime
+  /// (499999999) and non-final input sequences so stock Bitcoin Core rejects it
+  /// as non-final, while a patched bitcoind confirms it. Core/Electrum only.
   @$pb.TagNumber(8)
   $core.bool get replayProtect => $_getBF(7);
   @$pb.TagNumber(8)

@@ -1056,6 +1056,10 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
                                 label: BitcoinNetwork.BITCOIN_NETWORK_FORKNET.toDisplayName(),
                               ),
                               SailDropdownItem<BitcoinNetwork>(
+                                value: BitcoinNetwork.BITCOIN_NETWORK_DRYNET2,
+                                label: BitcoinNetwork.BITCOIN_NETWORK_DRYNET2.toDisplayName(),
+                              ),
+                              SailDropdownItem<BitcoinNetwork>(
                                 value: BitcoinNetwork.BITCOIN_NETWORK_SIGNET,
                                 label: BitcoinNetwork.BITCOIN_NETWORK_SIGNET.toDisplayName(),
                               ),

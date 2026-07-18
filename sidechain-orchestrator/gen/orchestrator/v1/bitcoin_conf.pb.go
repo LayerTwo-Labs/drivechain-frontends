@@ -77,6 +77,7 @@ type GetBitcoinConfigResponse struct {
 	// restored on the next swap into that group. Empty = no path stored.
 	DefaultDatadir string `protobuf:"bytes,11,opt,name=default_datadir,json=defaultDatadir,proto3" json:"default_datadir,omitempty"`
 	ForknetDatadir string `protobuf:"bytes,12,opt,name=forknet_datadir,json=forknetDatadir,proto3" json:"forknet_datadir,omitempty"`
+	Drynet2Datadir string `protobuf:"bytes,13,opt,name=drynet2_datadir,json=drynet2Datadir,proto3" json:"drynet2_datadir,omitempty"`
 	unknownFields  protoimpl.UnknownFields
 	sizeCache      protoimpl.SizeCache
 }
@@ -191,6 +192,13 @@ func (x *GetBitcoinConfigResponse) GetDefaultDatadir() string {
 func (x *GetBitcoinConfigResponse) GetForknetDatadir() string {
 	if x != nil {
 		return x.ForknetDatadir
+	}
+	return ""
+}
+
+func (x *GetBitcoinConfigResponse) GetDrynet2Datadir() string {
+	if x != nil {
+		return x.Drynet2Datadir
 	}
 	return ""
 }
@@ -448,7 +456,7 @@ var File_orchestrator_v1_bitcoin_conf_proto protoreflect.FileDescriptor
 const file_orchestrator_v1_bitcoin_conf_proto_rawDesc = "" +
 	"\n" +
 	"\"orchestrator/v1/bitcoin_conf.proto\x12\x0forchestrator.v1\"\x19\n" +
-	"\x17GetBitcoinConfigRequest\"\xdf\x03\n" +
+	"\x17GetBitcoinConfigRequest\"\x88\x04\n" +
 	"\x18GetBitcoinConfigResponse\x12\x18\n" +
 	"\anetwork\x18\x01 \x01(\tR\anetwork\x12\x19\n" +
 	"\brpc_port\x18\x02 \x01(\x05R\arpcPort\x12(\n" +
@@ -464,7 +472,8 @@ const file_orchestrator_v1_bitcoin_conf_proto_rawDesc = "" +
 	"\frpc_password\x18\n" +
 	" \x01(\tR\vrpcPassword\x12'\n" +
 	"\x0fdefault_datadir\x18\v \x01(\tR\x0edefaultDatadir\x12'\n" +
-	"\x0fforknet_datadir\x18\f \x01(\tR\x0eforknetDatadir\":\n" +
+	"\x0fforknet_datadir\x18\f \x01(\tR\x0eforknetDatadir\x12'\n" +
+	"\x0fdrynet2_datadir\x18\r \x01(\tR\x0edrynet2Datadir\":\n" +
 	"\x1eSetBitcoinConfigNetworkRequest\x12\x18\n" +
 	"\anetwork\x18\x01 \x01(\tR\anetwork\"!\n" +
 	"\x1fSetBitcoinConfigNetworkResponse\"U\n" +

@@ -37,10 +37,12 @@ CoreConnectionSettings readRPCConfig(
   final log = GetIt.I.get<Logger>();
 
   final conf = File(filePath([datadir, confFile]));
-  // Both mainnet and forknet use root datadir, other networks use subdirs
+  // mainnet, forknet and drynet2 use root datadir, other networks use subdirs
   final networkDir = filePath([
     datadir,
-    (network == BitcoinNetwork.BITCOIN_NETWORK_MAINNET || network == BitcoinNetwork.BITCOIN_NETWORK_FORKNET)
+    (network == BitcoinNetwork.BITCOIN_NETWORK_MAINNET ||
+            network == BitcoinNetwork.BITCOIN_NETWORK_FORKNET ||
+            network == BitcoinNetwork.BITCOIN_NETWORK_DRYNET2)
         ? ''
         : network.toReadableNet(),
   ]);
@@ -51,6 +53,7 @@ CoreConnectionSettings readRPCConfig(
   final defaultPort = switch (network) {
     BitcoinNetwork.BITCOIN_NETWORK_MAINNET => 8332, // real Bitcoin mainnet
     BitcoinNetwork.BITCOIN_NETWORK_FORKNET => 18301, // forknet
+    BitcoinNetwork.BITCOIN_NETWORK_DRYNET2 => 18302, // drynet2
     BitcoinNetwork.BITCOIN_NETWORK_TESTNET => 18332,
     BitcoinNetwork.BITCOIN_NETWORK_SIGNET => 38332,
     BitcoinNetwork.BITCOIN_NETWORK_REGTEST => 18443,
@@ -208,6 +211,8 @@ extension NetworkExtensions on BitcoinNetwork {
         return 'mainnet';
       case BitcoinNetwork.BITCOIN_NETWORK_FORKNET:
         return 'forknet';
+      case BitcoinNetwork.BITCOIN_NETWORK_DRYNET2:
+        return 'drynet2';
       case BitcoinNetwork.BITCOIN_NETWORK_SIGNET:
         return 'signet';
       case BitcoinNetwork.BITCOIN_NETWORK_REGTEST:
@@ -227,7 +232,8 @@ extension NetworkExtensions on BitcoinNetwork {
     switch (this) {
       case BitcoinNetwork.BITCOIN_NETWORK_MAINNET:
       case BitcoinNetwork.BITCOIN_NETWORK_FORKNET:
-        return 'main'; // Forknet uses [main] section - Bitcoin doesn't recognize [forknet]
+      case BitcoinNetwork.BITCOIN_NETWORK_DRYNET2:
+        return 'main'; // Forknet and drynet2 use [main] section - Bitcoin doesn't recognize [forknet]
       case BitcoinNetwork.BITCOIN_NETWORK_SIGNET:
         return 'signet';
       case BitcoinNetwork.BITCOIN_NETWORK_REGTEST:
@@ -246,6 +252,7 @@ extension NetworkExtensions on BitcoinNetwork {
     switch (this) {
       case BitcoinNetwork.BITCOIN_NETWORK_MAINNET:
       case BitcoinNetwork.BITCOIN_NETWORK_FORKNET:
+      case BitcoinNetwork.BITCOIN_NETWORK_DRYNET2:
         return 'main';
       case BitcoinNetwork.BITCOIN_NETWORK_SIGNET:
         return 'signet';
@@ -267,6 +274,8 @@ extension NetworkExtensions on BitcoinNetwork {
         return 'BTC Mainnet';
       case BitcoinNetwork.BITCOIN_NETWORK_FORKNET:
         return 'L2L-Forknet';
+      case BitcoinNetwork.BITCOIN_NETWORK_DRYNET2:
+        return 'L2L-Drynet2';
       case BitcoinNetwork.BITCOIN_NETWORK_SIGNET:
         return 'L2L-Signet';
       case BitcoinNetwork.BITCOIN_NETWORK_TESTNET:

@@ -177,7 +177,7 @@ func (s *Server) UpdateNetwork(ctx context.Context, req *connect.Request[pb.Upda
 
 func isKnownNetwork(n config.Network) bool {
 	switch n {
-	case config.NetworkMainnet, config.NetworkForknet, config.NetworkSignet, config.NetworkTestnet, config.NetworkRegtest:
+	case config.NetworkMainnet, config.NetworkForknet, config.NetworkDrynet2, config.NetworkSignet, config.NetworkTestnet, config.NetworkRegtest:
 		return true
 	}
 	return false

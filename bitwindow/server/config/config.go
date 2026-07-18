@@ -15,6 +15,7 @@ type Network string
 const (
 	NetworkMainnet Network = "mainnet"
 	NetworkForknet Network = "forknet"
+	NetworkDrynet2 Network = "drynet2"
 	NetworkRegtest Network = "regtest"
 	NetworkSignet  Network = "signet"
 	NetworkTestnet Network = "testnet"
@@ -127,5 +128,5 @@ func (c *Config) Finalize(network Network) error {
 // on this — signet / testnet / regtest blocks are small or empty so
 // running scans through their IBD doesn't move the needle on Core load.
 func IsFullChainNetwork(n Network) bool {
-	return n == NetworkMainnet || n == NetworkForknet
+	return n == NetworkMainnet || n == NetworkForknet || n == NetworkDrynet2
 }

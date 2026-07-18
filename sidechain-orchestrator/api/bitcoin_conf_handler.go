@@ -39,10 +39,11 @@ func (h *BitcoinConfHandler) GetBitcoinConfig(ctx context.Context, req *connect.
 
 	network := h.conf.Network
 	networkSupportsSidechains := network == config.NetworkForknet ||
+		network == config.NetworkDrynet2 ||
 		network == config.NetworkSignet ||
 		network == config.NetworkRegtest
 
-	var configContent, rpcUser, rpcPassword, defaultDatadir, forknetDatadir string
+	var configContent, rpcUser, rpcPassword, defaultDatadir, forknetDatadir, drynet2Datadir string
 	if h.conf.Config != nil {
 		configContent = h.conf.Config.Serialize()
 		section := h.conf.Network.CoreSection()
@@ -50,6 +51,7 @@ func (h *BitcoinConfHandler) GetBitcoinConfig(ctx context.Context, req *connect.
 		rpcPassword = h.conf.Config.GetEffectiveSetting("rpcpassword", section)
 		defaultDatadir = h.conf.Config.GetGroupDatadir(config.DatadirGroupDefault)
 		forknetDatadir = h.conf.Config.GetGroupDatadir(config.DatadirGroupForknet)
+		drynet2Datadir = h.conf.Config.GetGroupDatadir(config.DatadirGroupDrynet2)
 		// If the active group has a live datadir but no slot recorded yet
 		// (fresh install or hand-edited conf), surface the live value as
 		// the active slot so the UI doesn't claim "no datadir set".
@@ -60,6 +62,9 @@ func (h *BitcoinConfHandler) GetBitcoinConfig(ctx context.Context, req *connect.
 			}
 			if activeGroup == config.DatadirGroupForknet && forknetDatadir == "" {
 				forknetDatadir = liveDatadir
+			}
+			if activeGroup == config.DatadirGroupDrynet2 && drynet2Datadir == "" {
+				drynet2Datadir = liveDatadir
 			}
 		}
 	}
@@ -77,6 +82,7 @@ func (h *BitcoinConfHandler) GetBitcoinConfig(ctx context.Context, req *connect.
 		RpcPassword:               rpcPassword,
 		DefaultDatadir:            defaultDatadir,
 		ForknetDatadir:            forknetDatadir,
+		Drynet2Datadir:            drynet2Datadir,
 	}), nil
 }
 

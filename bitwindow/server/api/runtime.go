@@ -605,7 +605,7 @@ func (rt *Runtime) Close() {
 
 func chainParamsFor(network config.Network) *chaincfg.Params {
 	switch network {
-	case config.NetworkMainnet, config.NetworkForknet:
+	case config.NetworkMainnet, config.NetworkForknet, config.NetworkDrynet2:
 		return &chaincfg.MainNetParams
 	case config.NetworkTestnet:
 		return &chaincfg.TestNet3Params

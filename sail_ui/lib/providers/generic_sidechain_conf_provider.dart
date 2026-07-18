@@ -86,7 +86,7 @@ abstract class GenericSidechainConfProvider extends ChangeNotifier {
     final sidechainNetwork = switch (network) {
       BitcoinNetwork.BITCOIN_NETWORK_SIGNET => 'signet',
       BitcoinNetwork.BITCOIN_NETWORK_REGTEST => 'regtest',
-      BitcoinNetwork.BITCOIN_NETWORK_FORKNET => 'mainnet',
+      BitcoinNetwork.BITCOIN_NETWORK_FORKNET || BitcoinNetwork.BITCOIN_NETWORK_DRYNET2 => 'mainnet',
       _ => 'signet', // fallback for unsupported networks (mainnet, testnet)
     };
 

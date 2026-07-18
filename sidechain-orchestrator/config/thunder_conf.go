@@ -17,10 +17,10 @@ const thunderConfFilename = "thunder.conf"
 // ThunderConfManager manages Thunder sidechain configuration.
 // 1:1 port of GenericSidechainConfProvider + ThunderConfProvider from Dart.
 type ThunderConfManager struct {
-	Config     *GenericAppConfig
-	ConfigPath string
+	Config      *GenericAppConfig
+	ConfigPath  string
 	bitcoinConf *BitcoinConfManager
-	log        zerolog.Logger
+	log         zerolog.Logger
 
 	// File watching
 	watcher   *fsnotify.Watcher
@@ -128,7 +128,7 @@ func (m *ThunderConfManager) GetDefaultConfig() string {
 			network = "signet"
 		case NetworkRegtest:
 			network = "regtest"
-		case NetworkForknet:
+		case NetworkForknet, NetworkDrynet2:
 			network = "mainnet"
 		default:
 			network = "signet"
@@ -266,7 +266,7 @@ func (m *ThunderConfManager) SyncNetworkFromBitcoinConf() error {
 	switch m.bitcoinConf.Network {
 	case NetworkRegtest:
 		sidechainNetwork = "regtest"
-	case NetworkForknet:
+	case NetworkForknet, NetworkDrynet2:
 		sidechainNetwork = "mainnet"
 	default:
 		sidechainNetwork = "signet"
