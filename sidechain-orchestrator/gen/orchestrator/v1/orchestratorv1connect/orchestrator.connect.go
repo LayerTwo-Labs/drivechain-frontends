@@ -63,6 +63,9 @@ const (
 	// OrchestratorServiceRestartL1Procedure is the fully-qualified name of the OrchestratorService's
 	// RestartL1 RPC.
 	OrchestratorServiceRestartL1Procedure = "/orchestrator.v1.OrchestratorService/RestartL1"
+	// OrchestratorServiceApplyUTXOSnapshotProcedure is the fully-qualified name of the
+	// OrchestratorService's ApplyUTXOSnapshot RPC.
+	OrchestratorServiceApplyUTXOSnapshotProcedure = "/orchestrator.v1.OrchestratorService/ApplyUTXOSnapshot"
 	// OrchestratorServiceShutdownAllProcedure is the fully-qualified name of the OrchestratorService's
 	// ShutdownAll RPC.
 	OrchestratorServiceShutdownAllProcedure = "/orchestrator.v1.OrchestratorService/ShutdownAll"
@@ -149,6 +152,11 @@ type OrchestratorServiceClient interface {
 	// as soon as the boot goroutine is dispatched. Use this for the "Restart
 	// Bitcoin Core and Enforcer" UI flow instead of hand-sequencing stop/start.
 	RestartL1(context.Context, *connect.Request[v1.RestartL1Request]) (*connect.Response[v1.RestartL1Response], error)
+	// Load a UTXO snapshot into the running Bitcoin Core. Streams download and
+	// load progress; a snapshot Core refuses (its base block already passed, or
+	// a snapshot already loaded in this datadir) comes back as an error carrying
+	// Core's own message. Nothing is stopped, restarted or deleted.
+	ApplyUTXOSnapshot(context.Context, *connect.Request[v1.ApplyUTXOSnapshotRequest]) (*connect.ServerStreamForClient[v1.ApplyUTXOSnapshotResponse], error)
 	// Shutdown all running binaries.
 	ShutdownAll(context.Context, *connect.Request[v1.ShutdownAllRequest]) (*connect.ServerStreamForClient[v1.ShutdownAllResponse], error)
 	// Detached-daemon shutdown. bitwindowd calls this on window close;
@@ -271,6 +279,12 @@ func NewOrchestratorServiceClient(httpClient connect.HTTPClient, baseURL string,
 			connect.WithSchema(orchestratorServiceMethods.ByName("RestartL1")),
 			connect.WithClientOptions(opts...),
 		),
+		applyUTXOSnapshot: connect.NewClient[v1.ApplyUTXOSnapshotRequest, v1.ApplyUTXOSnapshotResponse](
+			httpClient,
+			baseURL+OrchestratorServiceApplyUTXOSnapshotProcedure,
+			connect.WithSchema(orchestratorServiceMethods.ByName("ApplyUTXOSnapshot")),
+			connect.WithClientOptions(opts...),
+		),
 		shutdownAll: connect.NewClient[v1.ShutdownAllRequest, v1.ShutdownAllResponse](
 			httpClient,
 			baseURL+OrchestratorServiceShutdownAllProcedure,
@@ -370,6 +384,7 @@ type orchestratorServiceClient struct {
 	startWithL1                *connect.Client[v1.StartWithL1Request, v1.StartWithL1Response]
 	restartDaemon              *connect.Client[v1.RestartDaemonRequest, v1.RestartDaemonResponse]
 	restartL1                  *connect.Client[v1.RestartL1Request, v1.RestartL1Response]
+	applyUTXOSnapshot          *connect.Client[v1.ApplyUTXOSnapshotRequest, v1.ApplyUTXOSnapshotResponse]
 	shutdownAll                *connect.Client[v1.ShutdownAllRequest, v1.ShutdownAllResponse]
 	shutdown                   *connect.Client[v1.ShutdownRequest, v1.ShutdownResponse]
 	getBTCPrice                *connect.Client[v1.GetBTCPriceRequest, v1.GetBTCPriceResponse]
@@ -434,6 +449,11 @@ func (c *orchestratorServiceClient) RestartDaemon(ctx context.Context, req *conn
 // RestartL1 calls orchestrator.v1.OrchestratorService.RestartL1.
 func (c *orchestratorServiceClient) RestartL1(ctx context.Context, req *connect.Request[v1.RestartL1Request]) (*connect.Response[v1.RestartL1Response], error) {
 	return c.restartL1.CallUnary(ctx, req)
+}
+
+// ApplyUTXOSnapshot calls orchestrator.v1.OrchestratorService.ApplyUTXOSnapshot.
+func (c *orchestratorServiceClient) ApplyUTXOSnapshot(ctx context.Context, req *connect.Request[v1.ApplyUTXOSnapshotRequest]) (*connect.ServerStreamForClient[v1.ApplyUTXOSnapshotResponse], error) {
+	return c.applyUTXOSnapshot.CallServerStream(ctx, req)
 }
 
 // ShutdownAll calls orchestrator.v1.OrchestratorService.ShutdownAll.
@@ -549,6 +569,11 @@ type OrchestratorServiceHandler interface {
 	// as soon as the boot goroutine is dispatched. Use this for the "Restart
 	// Bitcoin Core and Enforcer" UI flow instead of hand-sequencing stop/start.
 	RestartL1(context.Context, *connect.Request[v1.RestartL1Request]) (*connect.Response[v1.RestartL1Response], error)
+	// Load a UTXO snapshot into the running Bitcoin Core. Streams download and
+	// load progress; a snapshot Core refuses (its base block already passed, or
+	// a snapshot already loaded in this datadir) comes back as an error carrying
+	// Core's own message. Nothing is stopped, restarted or deleted.
+	ApplyUTXOSnapshot(context.Context, *connect.Request[v1.ApplyUTXOSnapshotRequest], *connect.ServerStream[v1.ApplyUTXOSnapshotResponse]) error
 	// Shutdown all running binaries.
 	ShutdownAll(context.Context, *connect.Request[v1.ShutdownAllRequest], *connect.ServerStream[v1.ShutdownAllResponse]) error
 	// Detached-daemon shutdown. bitwindowd calls this on window close;
@@ -667,6 +692,12 @@ func NewOrchestratorServiceHandler(svc OrchestratorServiceHandler, opts ...conne
 		connect.WithSchema(orchestratorServiceMethods.ByName("RestartL1")),
 		connect.WithHandlerOptions(opts...),
 	)
+	orchestratorServiceApplyUTXOSnapshotHandler := connect.NewServerStreamHandler(
+		OrchestratorServiceApplyUTXOSnapshotProcedure,
+		svc.ApplyUTXOSnapshot,
+		connect.WithSchema(orchestratorServiceMethods.ByName("ApplyUTXOSnapshot")),
+		connect.WithHandlerOptions(opts...),
+	)
 	orchestratorServiceShutdownAllHandler := connect.NewServerStreamHandler(
 		OrchestratorServiceShutdownAllProcedure,
 		svc.ShutdownAll,
@@ -773,6 +804,8 @@ func NewOrchestratorServiceHandler(svc OrchestratorServiceHandler, opts ...conne
 			orchestratorServiceRestartDaemonHandler.ServeHTTP(w, r)
 		case OrchestratorServiceRestartL1Procedure:
 			orchestratorServiceRestartL1Handler.ServeHTTP(w, r)
+		case OrchestratorServiceApplyUTXOSnapshotProcedure:
+			orchestratorServiceApplyUTXOSnapshotHandler.ServeHTTP(w, r)
 		case OrchestratorServiceShutdownAllProcedure:
 			orchestratorServiceShutdownAllHandler.ServeHTTP(w, r)
 		case OrchestratorServiceShutdownProcedure:
@@ -848,6 +881,10 @@ func (UnimplementedOrchestratorServiceHandler) RestartDaemon(context.Context, *c
 
 func (UnimplementedOrchestratorServiceHandler) RestartL1(context.Context, *connect.Request[v1.RestartL1Request]) (*connect.Response[v1.RestartL1Response], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("orchestrator.v1.OrchestratorService.RestartL1 is not implemented"))
+}
+
+func (UnimplementedOrchestratorServiceHandler) ApplyUTXOSnapshot(context.Context, *connect.Request[v1.ApplyUTXOSnapshotRequest], *connect.ServerStream[v1.ApplyUTXOSnapshotResponse]) error {
+	return connect.NewError(connect.CodeUnimplemented, errors.New("orchestrator.v1.OrchestratorService.ApplyUTXOSnapshot is not implemented"))
 }
 
 func (UnimplementedOrchestratorServiceHandler) ShutdownAll(context.Context, *connect.Request[v1.ShutdownAllRequest], *connect.ServerStream[v1.ShutdownAllResponse]) error {

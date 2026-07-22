@@ -53,6 +53,12 @@ service OrchestratorService {
   // Bitcoin Core and Enforcer" UI flow instead of hand-sequencing stop/start.
   rpc RestartL1(RestartL1Request) returns (RestartL1Response);
 
+  // Load a UTXO snapshot into the running Bitcoin Core. Streams download and
+  // load progress; a snapshot Core refuses (its base block already passed, or
+  // a snapshot already loaded in this datadir) comes back as an error carrying
+  // Core's own message. Nothing is stopped, restarted or deleted.
+  rpc ApplyUTXOSnapshot(ApplyUTXOSnapshotRequest) returns (stream ApplyUTXOSnapshotResponse);
+
   // Shutdown all running binaries.
   rpc ShutdownAll(ShutdownAllRequest) returns (stream ShutdownAllResponse);
 
@@ -266,6 +272,29 @@ message RestartDaemonResponse {}
 message RestartL1Request {}
 
 message RestartL1Response {}
+
+// ApplyUTXOSnapshot
+
+message ApplyUTXOSnapshotRequest {
+  // Exactly one of url or path. url is downloaded; path is a file the user
+  // already has on disk and is left in place afterwards.
+  string url = 1;
+  string path = 2;
+  // Expected sha256 of the snapshot, lowercase hex. Optional — empty loads the
+  // snapshot unverified, which is the normal case for a user-supplied file.
+  string sha256 = 3;
+}
+
+message ApplyUTXOSnapshotResponse {
+  // Human-readable status, e.g. "downloading UTXO snapshot... 42%".
+  string message = 1;
+  // Download completion, 0-100. Zero while no download is in flight — the
+  // load phase itself reports no percentage, because Core blocks until the
+  // whole snapshot is read and exposes no completion fraction.
+  int32 download_percent = 2;
+  // Set once Core has accepted and finished loading the snapshot.
+  bool done = 3;
+}
 
 // ShutdownAll
 

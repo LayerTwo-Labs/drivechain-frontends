@@ -1,0 +1,125 @@
+{
+  "schema_version": 1,
+  "networks": [
+    {
+      "id": "bitcoin",
+      "family": "bitcoin",
+      "display_name": "Bitcoin",
+      "description": "Regular bitcoin mainnet",
+      "chain": "main",
+      "currency": {
+        "name": "Bitcoin",
+        "ticker": "BTC"
+      },
+      "backends": [
+        {
+          "kind": "esplora",
+          "url": "https://esplora.mainnet.drivechain.info",
+          "priority": 1,
+          "tls": true,
+          "label": "L2L Esplora"
+        },
+        {
+          "kind": "electrum",
+          "url": "ssl://explorer.mainnet.drivechain.info:50002",
+          "priority": 2,
+          "tls": true,
+          "label": "L2L electrs"
+        }
+      ],
+      "explorer_tx_template": "https://explorer.mainnet.drivechain.info/tx/{txid}",
+      "explorer_address_template": "https://explorer.mainnet.drivechain.info/address/{address}",
+      "explorer_block_template": "https://explorer.mainnet.drivechain.info/block/{hash}",
+      "services": {
+        "faucet": {
+          "url": null,
+          "amount": null,
+          "cooldown_seconds": null
+        },
+        "coinnews": {
+          "url": "https://coinnews.mainnet.drivechain.info"
+        }
+      }
+    },
+    {
+      "id": "signet",
+      "family": "signet",
+      "display_name": "L2L Signet",
+      "description": "Bitcoin signet with Drivechain (BIP300/301) enforcement",
+      "chain": "signet",
+      "currency": {
+        "name": "Signet Bitcoin",
+        "ticker": "sBTC"
+      },
+      "backends": [
+        {
+          "kind": "esplora",
+          "url": "https://esplora.signet.drivechain.info",
+          "priority": 1,
+          "tls": true,
+          "label": "L2L Esplora"
+        },
+        {
+          "kind": "electrum",
+          "url": "ssl://node.signet.drivechain.info:50002",
+          "priority": 2,
+          "tls": true,
+          "label": "L2L electrs"
+        }
+      ],
+      "explorer_tx_template": "https://explorer.signet.drivechain.info/tx/{txid}",
+      "explorer_address_template": "https://explorer.signet.drivechain.info/address/{address}",
+      "explorer_block_template": "https://explorer.signet.drivechain.info/block/{hash}",
+      "services": {
+        "faucet": {
+          "url": "https://node.signet.drivechain.info/api",
+          "amount": 3,
+          "cooldown_seconds": 3600
+        },
+        "coinnews": {
+          "url": "https://coinnews.signet.drivechain.info"
+        }
+      }
+    },
+    {
+      "id": "drynet2",
+      "family": "ecash",
+      "display_name": "Drynet 2",
+      "description": "Fork of mainnet with PoW difficulty reset",
+      "chain": "main",
+      "currency": {
+        "name": "eCash",
+        "ticker": "ECX"
+      },
+      "backends": [
+        {
+          "kind": "esplora",
+          "url": "https://esplora.drynet2.drivechain.dev",
+          "priority": 1,
+          "tls": true,
+          "label": "L2L Esplora"
+        },
+        {
+          "kind": "electrum",
+          "url": "ssl://drynet2.drivechain.dev:50012",
+          "priority": 2,
+          "tls": true,
+          "label": "L2L electrs"
+        }
+      ],
+      "explorer_tx_template": "https://explorer.drynet2.drivechain.dev/tx/{txid}",
+      "explorer_address_template": "https://explorer.drynet2.drivechain.dev/address/{address}",
+      "explorer_block_template": "https://explorer.drynet2.drivechain.dev/block/{hash}",
+      "services": {
+        "faucet": {
+          "url": null,
+          "amount": null,
+          "cooldown_seconds": null
+        },
+        "coinnews": {
+          "url": "https://coinnews.drynet2.drivechain.dev"
+        }
+      }
+    }
+  ]
+}

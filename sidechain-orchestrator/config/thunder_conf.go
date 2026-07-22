@@ -128,7 +128,7 @@ func (m *ThunderConfManager) GetDefaultConfig() string {
 			network = "signet"
 		case NetworkRegtest:
 			network = "regtest"
-		case NetworkForknet, NetworkDrynet2:
+		case NetworkForknet, NetworkDrynet:
 			network = "mainnet"
 		default:
 			network = "signet"
@@ -266,7 +266,7 @@ func (m *ThunderConfManager) SyncNetworkFromBitcoinConf() error {
 	switch m.bitcoinConf.Network {
 	case NetworkRegtest:
 		sidechainNetwork = "regtest"
-	case NetworkForknet, NetworkDrynet2:
+	case NetworkForknet, NetworkDrynet:
 		sidechainNetwork = "mainnet"
 	default:
 		sidechainNetwork = "signet"
