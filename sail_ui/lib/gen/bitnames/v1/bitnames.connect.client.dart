@@ -422,6 +422,42 @@ extension type BitnamesServiceClient (connect.Transport _transport) {
     );
   }
 
+  /// Get BitName data at an exact block/transaction position.
+  Future<bitnamesv1bitnames.GetBitNameDataAtPositionResponse> getBitNameDataAtPosition(
+    bitnamesv1bitnames.GetBitNameDataAtPositionRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.BitnamesService.getBitNameDataAtPosition,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
+  /// Get transaction confirmation information.
+  Future<bitnamesv1bitnames.GetTransactionInfoResponse> getTransactionInfo(
+    bitnamesv1bitnames.GetTransactionInfoRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.BitnamesService.getTransactionInfo,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
   /// List all BitNames.
   Future<bitnamesv1bitnames.ListBitNamesResponse> listBitNames(
     bitnamesv1bitnames.ListBitNamesRequest input, {

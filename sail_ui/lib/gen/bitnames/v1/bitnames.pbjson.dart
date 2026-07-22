@@ -981,6 +981,60 @@ final $typed_data.Uint8List openapiSchemaResponseDescriptor = $convert.base64Dec
     'ChVPcGVuYXBpU2NoZW1hUmVzcG9uc2USHwoLc2NoZW1hX2pzb24YASABKAlSCnNjaGVtYUpzb2'
     '4=');
 
+@$core.Deprecated('Use getBitNameDataAtPositionRequestDescriptor instead')
+const GetBitNameDataAtPositionRequest$json = {
+  '1': 'GetBitNameDataAtPositionRequest',
+  '2': [
+    {'1': 'bitname', '3': 1, '4': 1, '5': 9, '10': 'bitname'},
+    {'1': 'block_hash', '3': 2, '4': 1, '5': 9, '10': 'blockHash'},
+    {'1': 'tx_index', '3': 3, '4': 1, '5': 13, '10': 'txIndex'},
+  ],
+};
+
+/// Descriptor for `GetBitNameDataAtPositionRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List getBitNameDataAtPositionRequestDescriptor = $convert.base64Decode(
+    'Ch9HZXRCaXROYW1lRGF0YUF0UG9zaXRpb25SZXF1ZXN0EhgKB2JpdG5hbWUYASABKAlSB2JpdG'
+    '5hbWUSHQoKYmxvY2tfaGFzaBgCIAEoCVIJYmxvY2tIYXNoEhkKCHR4X2luZGV4GAMgASgNUgd0'
+    'eEluZGV4');
+
+@$core.Deprecated('Use getBitNameDataAtPositionResponseDescriptor instead')
+const GetBitNameDataAtPositionResponse$json = {
+  '1': 'GetBitNameDataAtPositionResponse',
+  '2': [
+    {'1': 'data_json', '3': 1, '4': 1, '5': 9, '10': 'dataJson'},
+  ],
+};
+
+/// Descriptor for `GetBitNameDataAtPositionResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List getBitNameDataAtPositionResponseDescriptor = $convert.base64Decode(
+    'CiBHZXRCaXROYW1lRGF0YUF0UG9zaXRpb25SZXNwb25zZRIbCglkYXRhX2pzb24YASABKAlSCG'
+    'RhdGFKc29u');
+
+@$core.Deprecated('Use getTransactionInfoRequestDescriptor instead')
+const GetTransactionInfoRequest$json = {
+  '1': 'GetTransactionInfoRequest',
+  '2': [
+    {'1': 'txid', '3': 1, '4': 1, '5': 9, '10': 'txid'},
+  ],
+};
+
+/// Descriptor for `GetTransactionInfoRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List getTransactionInfoRequestDescriptor = $convert.base64Decode(
+    'ChlHZXRUcmFuc2FjdGlvbkluZm9SZXF1ZXN0EhIKBHR4aWQYASABKAlSBHR4aWQ=');
+
+@$core.Deprecated('Use getTransactionInfoResponseDescriptor instead')
+const GetTransactionInfoResponse$json = {
+  '1': 'GetTransactionInfoResponse',
+  '2': [
+    {'1': 'transaction_info_json', '3': 1, '4': 1, '5': 9, '10': 'transactionInfoJson'},
+  ],
+};
+
+/// Descriptor for `GetTransactionInfoResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List getTransactionInfoResponseDescriptor = $convert.base64Decode(
+    'ChpHZXRUcmFuc2FjdGlvbkluZm9SZXNwb25zZRIyChV0cmFuc2FjdGlvbl9pbmZvX2pzb24YAS'
+    'ABKAlSE3RyYW5zYWN0aW9uSW5mb0pzb24=');
+
 const $core.Map<$core.String, $core.dynamic> BitnamesServiceBase$json = {
   '1': 'BitnamesService',
   '2': [
@@ -1007,6 +1061,8 @@ const $core.Map<$core.String, $core.dynamic> BitnamesServiceBase$json = {
     {'1': 'SetSeedFromMnemonic', '2': '.bitnames.v1.SetSeedFromMnemonicRequest', '3': '.bitnames.v1.SetSeedFromMnemonicResponse'},
     {'1': 'CallRaw', '2': '.bitnames.v1.CallRawRequest', '3': '.bitnames.v1.CallRawResponse'},
     {'1': 'GetBitNameData', '2': '.bitnames.v1.GetBitNameDataRequest', '3': '.bitnames.v1.GetBitNameDataResponse'},
+    {'1': 'GetBitNameDataAtPosition', '2': '.bitnames.v1.GetBitNameDataAtPositionRequest', '3': '.bitnames.v1.GetBitNameDataAtPositionResponse'},
+    {'1': 'GetTransactionInfo', '2': '.bitnames.v1.GetTransactionInfoRequest', '3': '.bitnames.v1.GetTransactionInfoResponse'},
     {'1': 'ListBitNames', '2': '.bitnames.v1.ListBitNamesRequest', '3': '.bitnames.v1.ListBitNamesResponse'},
     {'1': 'RegisterBitName', '2': '.bitnames.v1.RegisterBitNameRequest', '3': '.bitnames.v1.RegisterBitNameResponse'},
     {'1': 'ReserveBitName', '2': '.bitnames.v1.ReserveBitNameRequest', '3': '.bitnames.v1.ReserveBitNameResponse'},
@@ -1076,6 +1132,10 @@ const $core.Map<$core.String, $core.Map<$core.String, $core.dynamic>> BitnamesSe
   '.bitnames.v1.CallRawResponse': CallRawResponse$json,
   '.bitnames.v1.GetBitNameDataRequest': GetBitNameDataRequest$json,
   '.bitnames.v1.GetBitNameDataResponse': GetBitNameDataResponse$json,
+  '.bitnames.v1.GetBitNameDataAtPositionRequest': GetBitNameDataAtPositionRequest$json,
+  '.bitnames.v1.GetBitNameDataAtPositionResponse': GetBitNameDataAtPositionResponse$json,
+  '.bitnames.v1.GetTransactionInfoRequest': GetTransactionInfoRequest$json,
+  '.bitnames.v1.GetTransactionInfoResponse': GetTransactionInfoResponse$json,
   '.bitnames.v1.ListBitNamesRequest': ListBitNamesRequest$json,
   '.bitnames.v1.ListBitNamesResponse': ListBitNamesResponse$json,
   '.bitnames.v1.RegisterBitNameRequest': RegisterBitNameRequest$json,
@@ -1154,35 +1214,39 @@ final $typed_data.Uint8List bitnamesServiceDescriptor = $convert.base64Decode(
     'VlZEZyb21NbmVtb25pY1Jlc3BvbnNlEkQKB0NhbGxSYXcSGy5iaXRuYW1lcy52MS5DYWxsUmF3'
     'UmVxdWVzdBocLmJpdG5hbWVzLnYxLkNhbGxSYXdSZXNwb25zZRJZCg5HZXRCaXROYW1lRGF0YR'
     'IiLmJpdG5hbWVzLnYxLkdldEJpdE5hbWVEYXRhUmVxdWVzdBojLmJpdG5hbWVzLnYxLkdldEJp'
-    'dE5hbWVEYXRhUmVzcG9uc2USUwoMTGlzdEJpdE5hbWVzEiAuYml0bmFtZXMudjEuTGlzdEJpdE'
-    '5hbWVzUmVxdWVzdBohLmJpdG5hbWVzLnYxLkxpc3RCaXROYW1lc1Jlc3BvbnNlElwKD1JlZ2lz'
-    'dGVyQml0TmFtZRIjLmJpdG5hbWVzLnYxLlJlZ2lzdGVyQml0TmFtZVJlcXVlc3QaJC5iaXRuYW'
-    '1lcy52MS5SZWdpc3RlckJpdE5hbWVSZXNwb25zZRJZCg5SZXNlcnZlQml0TmFtZRIiLmJpdG5h'
-    'bWVzLnYxLlJlc2VydmVCaXROYW1lUmVxdWVzdBojLmJpdG5hbWVzLnYxLlJlc2VydmVCaXROYW'
-    '1lUmVzcG9uc2USaAoTR2V0TmV3RW5jcnlwdGlvbktleRInLmJpdG5hbWVzLnYxLkdldE5ld0Vu'
-    'Y3J5cHRpb25LZXlSZXF1ZXN0GiguYml0bmFtZXMudjEuR2V0TmV3RW5jcnlwdGlvbktleVJlc3'
-    'BvbnNlEmUKEkdldE5ld1ZlcmlmeWluZ0tleRImLmJpdG5hbWVzLnYxLkdldE5ld1ZlcmlmeWlu'
-    'Z0tleVJlcXVlc3QaJy5iaXRuYW1lcy52MS5HZXROZXdWZXJpZnlpbmdLZXlSZXNwb25zZRJNCg'
-    'pEZWNyeXB0TXNnEh4uYml0bmFtZXMudjEuRGVjcnlwdE1zZ1JlcXVlc3QaHy5iaXRuYW1lcy52'
-    'MS5EZWNyeXB0TXNnUmVzcG9uc2USTQoKRW5jcnlwdE1zZxIeLmJpdG5hbWVzLnYxLkVuY3J5cH'
-    'RNc2dSZXF1ZXN0Gh8uYml0bmFtZXMudjEuRW5jcnlwdE1zZ1Jlc3BvbnNlEk0KCkdldFBheW1h'
-    'aWwSHi5iaXRuYW1lcy52MS5HZXRQYXltYWlsUmVxdWVzdBofLmJpdG5hbWVzLnYxLkdldFBheW'
-    '1haWxSZXNwb25zZRJiChFHZXRQYXltYWlsRW50cmllcxIlLmJpdG5hbWVzLnYxLkdldFBheW1h'
-    'aWxFbnRyaWVzUmVxdWVzdBomLmJpdG5hbWVzLnYxLkdldFBheW1haWxFbnRyaWVzUmVzcG9uc2'
-    'USWQoOUmVzb2x2ZUJpdE5hbWUSIi5iaXRuYW1lcy52MS5SZXNvbHZlQml0TmFtZVJlcXVlc3Qa'
-    'Iy5iaXRuYW1lcy52MS5SZXNvbHZlQml0TmFtZVJlc3BvbnNlElYKDVVwZGF0ZUJpdE5hbWUSIS'
-    '5iaXRuYW1lcy52MS5VcGRhdGVCaXROYW1lUmVxdWVzdBoiLmJpdG5hbWVzLnYxLlVwZGF0ZUJp'
-    'dE5hbWVSZXNwb25zZRJWCg1SZXNvbHZlQ29tbWl0EiEuYml0bmFtZXMudjEuUmVzb2x2ZUNvbW'
-    '1pdFJlcXVlc3QaIi5iaXRuYW1lcy52MS5SZXNvbHZlQ29tbWl0UmVzcG9uc2USXwoQU2lnbkFy'
-    'Yml0cmFyeU1zZxIkLmJpdG5hbWVzLnYxLlNpZ25BcmJpdHJhcnlNc2dSZXF1ZXN0GiUuYml0bm'
-    'FtZXMudjEuU2lnbkFyYml0cmFyeU1zZ1Jlc3BvbnNlEnEKFlNpZ25BcmJpdHJhcnlNc2dBc0Fk'
-    'ZHISKi5iaXRuYW1lcy52MS5TaWduQXJiaXRyYXJ5TXNnQXNBZGRyUmVxdWVzdBorLmJpdG5hbW'
-    'VzLnYxLlNpZ25BcmJpdHJhcnlNc2dBc0FkZHJSZXNwb25zZRJcCg9WZXJpZnlTaWduYXR1cmUS'
-    'Iy5iaXRuYW1lcy52MS5WZXJpZnlTaWduYXR1cmVSZXF1ZXN0GiQuYml0bmFtZXMudjEuVmVyaW'
-    'Z5U2lnbmF0dXJlUmVzcG9uc2USZQoSR2V0V2FsbGV0QWRkcmVzc2VzEiYuYml0bmFtZXMudjEu'
-    'R2V0V2FsbGV0QWRkcmVzc2VzUmVxdWVzdBonLmJpdG5hbWVzLnYxLkdldFdhbGxldEFkZHJlc3'
-    'Nlc1Jlc3BvbnNlEkQKB015VXR4b3MSGy5iaXRuYW1lcy52MS5NeVV0eG9zUmVxdWVzdBocLmJp'
-    'dG5hbWVzLnYxLk15VXR4b3NSZXNwb25zZRJWCg1PcGVuYXBpU2NoZW1hEiEuYml0bmFtZXMudj'
-    'EuT3BlbmFwaVNjaGVtYVJlcXVlc3QaIi5iaXRuYW1lcy52MS5PcGVuYXBpU2NoZW1hUmVzcG9u'
-    'c2U=');
+    'dE5hbWVEYXRhUmVzcG9uc2USdwoYR2V0Qml0TmFtZURhdGFBdFBvc2l0aW9uEiwuYml0bmFtZX'
+    'MudjEuR2V0Qml0TmFtZURhdGFBdFBvc2l0aW9uUmVxdWVzdBotLmJpdG5hbWVzLnYxLkdldEJp'
+    'dE5hbWVEYXRhQXRQb3NpdGlvblJlc3BvbnNlEmUKEkdldFRyYW5zYWN0aW9uSW5mbxImLmJpdG'
+    '5hbWVzLnYxLkdldFRyYW5zYWN0aW9uSW5mb1JlcXVlc3QaJy5iaXRuYW1lcy52MS5HZXRUcmFu'
+    'c2FjdGlvbkluZm9SZXNwb25zZRJTCgxMaXN0Qml0TmFtZXMSIC5iaXRuYW1lcy52MS5MaXN0Qm'
+    'l0TmFtZXNSZXF1ZXN0GiEuYml0bmFtZXMudjEuTGlzdEJpdE5hbWVzUmVzcG9uc2USXAoPUmVn'
+    'aXN0ZXJCaXROYW1lEiMuYml0bmFtZXMudjEuUmVnaXN0ZXJCaXROYW1lUmVxdWVzdBokLmJpdG'
+    '5hbWVzLnYxLlJlZ2lzdGVyQml0TmFtZVJlc3BvbnNlElkKDlJlc2VydmVCaXROYW1lEiIuYml0'
+    'bmFtZXMudjEuUmVzZXJ2ZUJpdE5hbWVSZXF1ZXN0GiMuYml0bmFtZXMudjEuUmVzZXJ2ZUJpdE'
+    '5hbWVSZXNwb25zZRJoChNHZXROZXdFbmNyeXB0aW9uS2V5EicuYml0bmFtZXMudjEuR2V0TmV3'
+    'RW5jcnlwdGlvbktleVJlcXVlc3QaKC5iaXRuYW1lcy52MS5HZXROZXdFbmNyeXB0aW9uS2V5Um'
+    'VzcG9uc2USZQoSR2V0TmV3VmVyaWZ5aW5nS2V5EiYuYml0bmFtZXMudjEuR2V0TmV3VmVyaWZ5'
+    'aW5nS2V5UmVxdWVzdBonLmJpdG5hbWVzLnYxLkdldE5ld1ZlcmlmeWluZ0tleVJlc3BvbnNlEk'
+    '0KCkRlY3J5cHRNc2cSHi5iaXRuYW1lcy52MS5EZWNyeXB0TXNnUmVxdWVzdBofLmJpdG5hbWVz'
+    'LnYxLkRlY3J5cHRNc2dSZXNwb25zZRJNCgpFbmNyeXB0TXNnEh4uYml0bmFtZXMudjEuRW5jcn'
+    'lwdE1zZ1JlcXVlc3QaHy5iaXRuYW1lcy52MS5FbmNyeXB0TXNnUmVzcG9uc2USTQoKR2V0UGF5'
+    'bWFpbBIeLmJpdG5hbWVzLnYxLkdldFBheW1haWxSZXF1ZXN0Gh8uYml0bmFtZXMudjEuR2V0UG'
+    'F5bWFpbFJlc3BvbnNlEmIKEUdldFBheW1haWxFbnRyaWVzEiUuYml0bmFtZXMudjEuR2V0UGF5'
+    'bWFpbEVudHJpZXNSZXF1ZXN0GiYuYml0bmFtZXMudjEuR2V0UGF5bWFpbEVudHJpZXNSZXNwb2'
+    '5zZRJZCg5SZXNvbHZlQml0TmFtZRIiLmJpdG5hbWVzLnYxLlJlc29sdmVCaXROYW1lUmVxdWVz'
+    'dBojLmJpdG5hbWVzLnYxLlJlc29sdmVCaXROYW1lUmVzcG9uc2USVgoNVXBkYXRlQml0TmFtZR'
+    'IhLmJpdG5hbWVzLnYxLlVwZGF0ZUJpdE5hbWVSZXF1ZXN0GiIuYml0bmFtZXMudjEuVXBkYXRl'
+    'Qml0TmFtZVJlc3BvbnNlElYKDVJlc29sdmVDb21taXQSIS5iaXRuYW1lcy52MS5SZXNvbHZlQ2'
+    '9tbWl0UmVxdWVzdBoiLmJpdG5hbWVzLnYxLlJlc29sdmVDb21taXRSZXNwb25zZRJfChBTaWdu'
+    'QXJiaXRyYXJ5TXNnEiQuYml0bmFtZXMudjEuU2lnbkFyYml0cmFyeU1zZ1JlcXVlc3QaJS5iaX'
+    'RuYW1lcy52MS5TaWduQXJiaXRyYXJ5TXNnUmVzcG9uc2UScQoWU2lnbkFyYml0cmFyeU1zZ0Fz'
+    'QWRkchIqLmJpdG5hbWVzLnYxLlNpZ25BcmJpdHJhcnlNc2dBc0FkZHJSZXF1ZXN0GisuYml0bm'
+    'FtZXMudjEuU2lnbkFyYml0cmFyeU1zZ0FzQWRkclJlc3BvbnNlElwKD1ZlcmlmeVNpZ25hdHVy'
+    'ZRIjLmJpdG5hbWVzLnYxLlZlcmlmeVNpZ25hdHVyZVJlcXVlc3QaJC5iaXRuYW1lcy52MS5WZX'
+    'JpZnlTaWduYXR1cmVSZXNwb25zZRJlChJHZXRXYWxsZXRBZGRyZXNzZXMSJi5iaXRuYW1lcy52'
+    'MS5HZXRXYWxsZXRBZGRyZXNzZXNSZXF1ZXN0GicuYml0bmFtZXMudjEuR2V0V2FsbGV0QWRkcm'
+    'Vzc2VzUmVzcG9uc2USRAoHTXlVdHhvcxIbLmJpdG5hbWVzLnYxLk15VXR4b3NSZXF1ZXN0Ghwu'
+    'Yml0bmFtZXMudjEuTXlVdHhvc1Jlc3BvbnNlElYKDU9wZW5hcGlTY2hlbWESIS5iaXRuYW1lcy'
+    '52MS5PcGVuYXBpU2NoZW1hUmVxdWVzdBoiLmJpdG5hbWVzLnYxLk9wZW5hcGlTY2hlbWFSZXNw'
+    'b25zZQ==');
 

@@ -185,6 +185,11 @@ func (c *Client) BitNameData(ctx context.Context, name string) (*BitNameData, er
 	return &d, nil
 }
 
+// BitNameDataAtPosition retrieves BitName data at an exact block/transaction position.
+func (c *Client) BitNameDataAtPosition(ctx context.Context, bitname, blockHash string, txIndex uint32) (BitNameData, error) {
+	return unmarshal[BitNameData](c, ctx, "bitname_data_at_position", []interface{}{bitname, blockHash, txIndex})
+}
+
 // ListBitNames returns all registered BitNames.
 func (c *Client) ListBitNames(ctx context.Context) ([]BitnameEntry, error) {
 	return unmarshal[[]BitnameEntry](c, ctx, "bitnames", nil)

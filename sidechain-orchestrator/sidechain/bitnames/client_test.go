@@ -268,6 +268,21 @@ func TestClientMessageRPCParameterOrder(t *testing.T) {
 }
 
 func TestClientBitNameMailboxRPCs(t *testing.T) {
+	t.Run("decode historical data", func(t *testing.T) {
+		server, requests := recordingClientRPC(t, map[string]any{
+			"seq_id": "0.0.0", "signing_pubkey": "historical-key",
+		})
+		defer server.Close()
+
+		data, err := clientFromServer(server).BitNameDataAtPosition(
+			context.Background(), "bitname-hash", "block-hash", 7,
+		)
+		require.NoError(t, err)
+		require.NotNil(t, data.SigningPubkey)
+		assert.Equal(t, "historical-key", *data.SigningPubkey)
+		requireClientRPCRequest(t, requests, "bitname_data_at_position", `["bitname-hash","block-hash",7]`)
+	})
+
 	t.Run("resolve unregistered name", func(t *testing.T) {
 		server, requests := recordingClientRPC(t, nil)
 		defer server.Close()

@@ -3609,6 +3609,198 @@ func (x *OpenapiSchemaResponse) GetSchemaJson() string {
 	return ""
 }
 
+type GetBitNameDataAtPositionRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Bitname       string                 `protobuf:"bytes,1,opt,name=bitname,proto3" json:"bitname,omitempty"`
+	BlockHash     string                 `protobuf:"bytes,2,opt,name=block_hash,json=blockHash,proto3" json:"block_hash,omitempty"`
+	TxIndex       uint32                 `protobuf:"varint,3,opt,name=tx_index,json=txIndex,proto3" json:"tx_index,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetBitNameDataAtPositionRequest) Reset() {
+	*x = GetBitNameDataAtPositionRequest{}
+	mi := &file_bitnames_v1_bitnames_proto_msgTypes[82]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetBitNameDataAtPositionRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetBitNameDataAtPositionRequest) ProtoMessage() {}
+
+func (x *GetBitNameDataAtPositionRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_bitnames_v1_bitnames_proto_msgTypes[82]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetBitNameDataAtPositionRequest.ProtoReflect.Descriptor instead.
+func (*GetBitNameDataAtPositionRequest) Descriptor() ([]byte, []int) {
+	return file_bitnames_v1_bitnames_proto_rawDescGZIP(), []int{82}
+}
+
+func (x *GetBitNameDataAtPositionRequest) GetBitname() string {
+	if x != nil {
+		return x.Bitname
+	}
+	return ""
+}
+
+func (x *GetBitNameDataAtPositionRequest) GetBlockHash() string {
+	if x != nil {
+		return x.BlockHash
+	}
+	return ""
+}
+
+func (x *GetBitNameDataAtPositionRequest) GetTxIndex() uint32 {
+	if x != nil {
+		return x.TxIndex
+	}
+	return 0
+}
+
+type GetBitNameDataAtPositionResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	DataJson      string                 `protobuf:"bytes,1,opt,name=data_json,json=dataJson,proto3" json:"data_json,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetBitNameDataAtPositionResponse) Reset() {
+	*x = GetBitNameDataAtPositionResponse{}
+	mi := &file_bitnames_v1_bitnames_proto_msgTypes[83]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetBitNameDataAtPositionResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetBitNameDataAtPositionResponse) ProtoMessage() {}
+
+func (x *GetBitNameDataAtPositionResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_bitnames_v1_bitnames_proto_msgTypes[83]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetBitNameDataAtPositionResponse.ProtoReflect.Descriptor instead.
+func (*GetBitNameDataAtPositionResponse) Descriptor() ([]byte, []int) {
+	return file_bitnames_v1_bitnames_proto_rawDescGZIP(), []int{83}
+}
+
+func (x *GetBitNameDataAtPositionResponse) GetDataJson() string {
+	if x != nil {
+		return x.DataJson
+	}
+	return ""
+}
+
+type GetTransactionInfoRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Txid          string                 `protobuf:"bytes,1,opt,name=txid,proto3" json:"txid,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetTransactionInfoRequest) Reset() {
+	*x = GetTransactionInfoRequest{}
+	mi := &file_bitnames_v1_bitnames_proto_msgTypes[84]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetTransactionInfoRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetTransactionInfoRequest) ProtoMessage() {}
+
+func (x *GetTransactionInfoRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_bitnames_v1_bitnames_proto_msgTypes[84]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetTransactionInfoRequest.ProtoReflect.Descriptor instead.
+func (*GetTransactionInfoRequest) Descriptor() ([]byte, []int) {
+	return file_bitnames_v1_bitnames_proto_rawDescGZIP(), []int{84}
+}
+
+func (x *GetTransactionInfoRequest) GetTxid() string {
+	if x != nil {
+		return x.Txid
+	}
+	return ""
+}
+
+type GetTransactionInfoResponse struct {
+	state               protoimpl.MessageState `protogen:"open.v1"`
+	TransactionInfoJson string                 `protobuf:"bytes,1,opt,name=transaction_info_json,json=transactionInfoJson,proto3" json:"transaction_info_json,omitempty"`
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
+}
+
+func (x *GetTransactionInfoResponse) Reset() {
+	*x = GetTransactionInfoResponse{}
+	mi := &file_bitnames_v1_bitnames_proto_msgTypes[85]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetTransactionInfoResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetTransactionInfoResponse) ProtoMessage() {}
+
+func (x *GetTransactionInfoResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_bitnames_v1_bitnames_proto_msgTypes[85]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetTransactionInfoResponse.ProtoReflect.Descriptor instead.
+func (*GetTransactionInfoResponse) Descriptor() ([]byte, []int) {
+	return file_bitnames_v1_bitnames_proto_rawDescGZIP(), []int{85}
+}
+
+func (x *GetTransactionInfoResponse) GetTransactionInfoJson() string {
+	if x != nil {
+		return x.TransactionInfoJson
+	}
+	return ""
+}
+
 var File_bitnames_v1_bitnames_proto protoreflect.FileDescriptor
 
 const file_bitnames_v1_bitnames_proto_rawDesc = "" +
@@ -3798,7 +3990,18 @@ const file_bitnames_v1_bitnames_proto_rawDesc = "" +
 	"\x14OpenapiSchemaRequest\"8\n" +
 	"\x15OpenapiSchemaResponse\x12\x1f\n" +
 	"\vschema_json\x18\x01 \x01(\tR\n" +
-	"schemaJson2\xc0\x1d\n" +
+	"schemaJson\"u\n" +
+	"\x1fGetBitNameDataAtPositionRequest\x12\x18\n" +
+	"\abitname\x18\x01 \x01(\tR\abitname\x12\x1d\n" +
+	"\n" +
+	"block_hash\x18\x02 \x01(\tR\tblockHash\x12\x19\n" +
+	"\btx_index\x18\x03 \x01(\rR\atxIndex\"?\n" +
+	" GetBitNameDataAtPositionResponse\x12\x1b\n" +
+	"\tdata_json\x18\x01 \x01(\tR\bdataJson\"/\n" +
+	"\x19GetTransactionInfoRequest\x12\x12\n" +
+	"\x04txid\x18\x01 \x01(\tR\x04txid\"P\n" +
+	"\x1aGetTransactionInfoResponse\x122\n" +
+	"\x15transaction_info_json\x18\x01 \x01(\tR\x13transactionInfoJson2\xa0\x1f\n" +
 	"\x0fBitnamesService\x12M\n" +
 	"\n" +
 	"GetBalance\x12\x1e.bitnames.v1.GetBalanceRequest\x1a\x1f.bitnames.v1.GetBalanceResponse\x12V\n" +
@@ -3823,7 +4026,9 @@ const file_bitnames_v1_bitnames_proto_rawDesc = "" +
 	"\x10GenerateMnemonic\x12$.bitnames.v1.GenerateMnemonicRequest\x1a%.bitnames.v1.GenerateMnemonicResponse\x12h\n" +
 	"\x13SetSeedFromMnemonic\x12'.bitnames.v1.SetSeedFromMnemonicRequest\x1a(.bitnames.v1.SetSeedFromMnemonicResponse\x12D\n" +
 	"\aCallRaw\x12\x1b.bitnames.v1.CallRawRequest\x1a\x1c.bitnames.v1.CallRawResponse\x12Y\n" +
-	"\x0eGetBitNameData\x12\".bitnames.v1.GetBitNameDataRequest\x1a#.bitnames.v1.GetBitNameDataResponse\x12S\n" +
+	"\x0eGetBitNameData\x12\".bitnames.v1.GetBitNameDataRequest\x1a#.bitnames.v1.GetBitNameDataResponse\x12w\n" +
+	"\x18GetBitNameDataAtPosition\x12,.bitnames.v1.GetBitNameDataAtPositionRequest\x1a-.bitnames.v1.GetBitNameDataAtPositionResponse\x12e\n" +
+	"\x12GetTransactionInfo\x12&.bitnames.v1.GetTransactionInfoRequest\x1a'.bitnames.v1.GetTransactionInfoResponse\x12S\n" +
 	"\fListBitNames\x12 .bitnames.v1.ListBitNamesRequest\x1a!.bitnames.v1.ListBitNamesResponse\x12\\\n" +
 	"\x0fRegisterBitName\x12#.bitnames.v1.RegisterBitNameRequest\x1a$.bitnames.v1.RegisterBitNameResponse\x12Y\n" +
 	"\x0eReserveBitName\x12\".bitnames.v1.ReserveBitNameRequest\x1a#.bitnames.v1.ReserveBitNameResponse\x12h\n" +
@@ -3859,7 +4064,7 @@ func file_bitnames_v1_bitnames_proto_rawDescGZIP() []byte {
 	return file_bitnames_v1_bitnames_proto_rawDescData
 }
 
-var file_bitnames_v1_bitnames_proto_msgTypes = make([]protoimpl.MessageInfo, 82)
+var file_bitnames_v1_bitnames_proto_msgTypes = make([]protoimpl.MessageInfo, 86)
 var file_bitnames_v1_bitnames_proto_goTypes = []any{
 	(*GetBalanceRequest)(nil),                             // 0: bitnames.v1.GetBalanceRequest
 	(*GetBalanceResponse)(nil),                            // 1: bitnames.v1.GetBalanceResponse
@@ -3943,6 +4148,10 @@ var file_bitnames_v1_bitnames_proto_goTypes = []any{
 	(*MyUtxosResponse)(nil),                               // 79: bitnames.v1.MyUtxosResponse
 	(*OpenapiSchemaRequest)(nil),                          // 80: bitnames.v1.OpenapiSchemaRequest
 	(*OpenapiSchemaResponse)(nil),                         // 81: bitnames.v1.OpenapiSchemaResponse
+	(*GetBitNameDataAtPositionRequest)(nil),               // 82: bitnames.v1.GetBitNameDataAtPositionRequest
+	(*GetBitNameDataAtPositionResponse)(nil),              // 83: bitnames.v1.GetBitNameDataAtPositionResponse
+	(*GetTransactionInfoRequest)(nil),                     // 84: bitnames.v1.GetTransactionInfoRequest
+	(*GetTransactionInfoResponse)(nil),                    // 85: bitnames.v1.GetTransactionInfoResponse
 }
 var file_bitnames_v1_bitnames_proto_depIdxs = []int32{
 	0,  // 0: bitnames.v1.BitnamesService.GetBalance:input_type -> bitnames.v1.GetBalanceRequest
@@ -3968,67 +4177,71 @@ var file_bitnames_v1_bitnames_proto_depIdxs = []int32{
 	40, // 20: bitnames.v1.BitnamesService.SetSeedFromMnemonic:input_type -> bitnames.v1.SetSeedFromMnemonicRequest
 	42, // 21: bitnames.v1.BitnamesService.CallRaw:input_type -> bitnames.v1.CallRawRequest
 	44, // 22: bitnames.v1.BitnamesService.GetBitNameData:input_type -> bitnames.v1.GetBitNameDataRequest
-	46, // 23: bitnames.v1.BitnamesService.ListBitNames:input_type -> bitnames.v1.ListBitNamesRequest
-	48, // 24: bitnames.v1.BitnamesService.RegisterBitName:input_type -> bitnames.v1.RegisterBitNameRequest
-	50, // 25: bitnames.v1.BitnamesService.ReserveBitName:input_type -> bitnames.v1.ReserveBitNameRequest
-	52, // 26: bitnames.v1.BitnamesService.GetNewEncryptionKey:input_type -> bitnames.v1.GetNewEncryptionKeyRequest
-	54, // 27: bitnames.v1.BitnamesService.GetNewVerifyingKey:input_type -> bitnames.v1.GetNewVerifyingKeyRequest
-	56, // 28: bitnames.v1.BitnamesService.DecryptMsg:input_type -> bitnames.v1.DecryptMsgRequest
-	58, // 29: bitnames.v1.BitnamesService.EncryptMsg:input_type -> bitnames.v1.EncryptMsgRequest
-	60, // 30: bitnames.v1.BitnamesService.GetPaymail:input_type -> bitnames.v1.GetPaymailRequest
-	62, // 31: bitnames.v1.BitnamesService.GetPaymailEntries:input_type -> bitnames.v1.GetPaymailEntriesRequest
-	64, // 32: bitnames.v1.BitnamesService.ResolveBitName:input_type -> bitnames.v1.ResolveBitNameRequest
-	66, // 33: bitnames.v1.BitnamesService.UpdateBitName:input_type -> bitnames.v1.UpdateBitNameRequest
-	68, // 34: bitnames.v1.BitnamesService.ResolveCommit:input_type -> bitnames.v1.ResolveCommitRequest
-	70, // 35: bitnames.v1.BitnamesService.SignArbitraryMsg:input_type -> bitnames.v1.SignArbitraryMsgRequest
-	72, // 36: bitnames.v1.BitnamesService.SignArbitraryMsgAsAddr:input_type -> bitnames.v1.SignArbitraryMsgAsAddrRequest
-	74, // 37: bitnames.v1.BitnamesService.VerifySignature:input_type -> bitnames.v1.VerifySignatureRequest
-	76, // 38: bitnames.v1.BitnamesService.GetWalletAddresses:input_type -> bitnames.v1.GetWalletAddressesRequest
-	78, // 39: bitnames.v1.BitnamesService.MyUtxos:input_type -> bitnames.v1.MyUtxosRequest
-	80, // 40: bitnames.v1.BitnamesService.OpenapiSchema:input_type -> bitnames.v1.OpenapiSchemaRequest
-	1,  // 41: bitnames.v1.BitnamesService.GetBalance:output_type -> bitnames.v1.GetBalanceResponse
-	3,  // 42: bitnames.v1.BitnamesService.GetBlockCount:output_type -> bitnames.v1.GetBlockCountResponse
-	5,  // 43: bitnames.v1.BitnamesService.Stop:output_type -> bitnames.v1.StopResponse
-	7,  // 44: bitnames.v1.BitnamesService.GetNewAddress:output_type -> bitnames.v1.GetNewAddressResponse
-	9,  // 45: bitnames.v1.BitnamesService.Withdraw:output_type -> bitnames.v1.WithdrawResponse
-	11, // 46: bitnames.v1.BitnamesService.Transfer:output_type -> bitnames.v1.TransferResponse
-	13, // 47: bitnames.v1.BitnamesService.GetSidechainWealth:output_type -> bitnames.v1.GetSidechainWealthResponse
-	15, // 48: bitnames.v1.BitnamesService.CreateDeposit:output_type -> bitnames.v1.CreateDepositResponse
-	17, // 49: bitnames.v1.BitnamesService.GetPendingWithdrawalBundle:output_type -> bitnames.v1.GetPendingWithdrawalBundleResponse
-	19, // 50: bitnames.v1.BitnamesService.ConnectPeer:output_type -> bitnames.v1.ConnectPeerResponse
-	21, // 51: bitnames.v1.BitnamesService.ListPeers:output_type -> bitnames.v1.ListPeersResponse
-	23, // 52: bitnames.v1.BitnamesService.Mine:output_type -> bitnames.v1.MineResponse
-	25, // 53: bitnames.v1.BitnamesService.GetBlock:output_type -> bitnames.v1.GetBlockResponse
-	27, // 54: bitnames.v1.BitnamesService.GetBestMainchainBlockHash:output_type -> bitnames.v1.GetBestMainchainBlockHashResponse
-	29, // 55: bitnames.v1.BitnamesService.GetBestSidechainBlockHash:output_type -> bitnames.v1.GetBestSidechainBlockHashResponse
-	31, // 56: bitnames.v1.BitnamesService.GetBmmInclusions:output_type -> bitnames.v1.GetBmmInclusionsResponse
-	33, // 57: bitnames.v1.BitnamesService.GetWalletUtxos:output_type -> bitnames.v1.GetWalletUtxosResponse
-	35, // 58: bitnames.v1.BitnamesService.ListUtxos:output_type -> bitnames.v1.ListUtxosResponse
-	37, // 59: bitnames.v1.BitnamesService.GetLatestFailedWithdrawalBundleHeight:output_type -> bitnames.v1.GetLatestFailedWithdrawalBundleHeightResponse
-	39, // 60: bitnames.v1.BitnamesService.GenerateMnemonic:output_type -> bitnames.v1.GenerateMnemonicResponse
-	41, // 61: bitnames.v1.BitnamesService.SetSeedFromMnemonic:output_type -> bitnames.v1.SetSeedFromMnemonicResponse
-	43, // 62: bitnames.v1.BitnamesService.CallRaw:output_type -> bitnames.v1.CallRawResponse
-	45, // 63: bitnames.v1.BitnamesService.GetBitNameData:output_type -> bitnames.v1.GetBitNameDataResponse
-	47, // 64: bitnames.v1.BitnamesService.ListBitNames:output_type -> bitnames.v1.ListBitNamesResponse
-	49, // 65: bitnames.v1.BitnamesService.RegisterBitName:output_type -> bitnames.v1.RegisterBitNameResponse
-	51, // 66: bitnames.v1.BitnamesService.ReserveBitName:output_type -> bitnames.v1.ReserveBitNameResponse
-	53, // 67: bitnames.v1.BitnamesService.GetNewEncryptionKey:output_type -> bitnames.v1.GetNewEncryptionKeyResponse
-	55, // 68: bitnames.v1.BitnamesService.GetNewVerifyingKey:output_type -> bitnames.v1.GetNewVerifyingKeyResponse
-	57, // 69: bitnames.v1.BitnamesService.DecryptMsg:output_type -> bitnames.v1.DecryptMsgResponse
-	59, // 70: bitnames.v1.BitnamesService.EncryptMsg:output_type -> bitnames.v1.EncryptMsgResponse
-	61, // 71: bitnames.v1.BitnamesService.GetPaymail:output_type -> bitnames.v1.GetPaymailResponse
-	63, // 72: bitnames.v1.BitnamesService.GetPaymailEntries:output_type -> bitnames.v1.GetPaymailEntriesResponse
-	65, // 73: bitnames.v1.BitnamesService.ResolveBitName:output_type -> bitnames.v1.ResolveBitNameResponse
-	67, // 74: bitnames.v1.BitnamesService.UpdateBitName:output_type -> bitnames.v1.UpdateBitNameResponse
-	69, // 75: bitnames.v1.BitnamesService.ResolveCommit:output_type -> bitnames.v1.ResolveCommitResponse
-	71, // 76: bitnames.v1.BitnamesService.SignArbitraryMsg:output_type -> bitnames.v1.SignArbitraryMsgResponse
-	73, // 77: bitnames.v1.BitnamesService.SignArbitraryMsgAsAddr:output_type -> bitnames.v1.SignArbitraryMsgAsAddrResponse
-	75, // 78: bitnames.v1.BitnamesService.VerifySignature:output_type -> bitnames.v1.VerifySignatureResponse
-	77, // 79: bitnames.v1.BitnamesService.GetWalletAddresses:output_type -> bitnames.v1.GetWalletAddressesResponse
-	79, // 80: bitnames.v1.BitnamesService.MyUtxos:output_type -> bitnames.v1.MyUtxosResponse
-	81, // 81: bitnames.v1.BitnamesService.OpenapiSchema:output_type -> bitnames.v1.OpenapiSchemaResponse
-	41, // [41:82] is the sub-list for method output_type
-	0,  // [0:41] is the sub-list for method input_type
+	82, // 23: bitnames.v1.BitnamesService.GetBitNameDataAtPosition:input_type -> bitnames.v1.GetBitNameDataAtPositionRequest
+	84, // 24: bitnames.v1.BitnamesService.GetTransactionInfo:input_type -> bitnames.v1.GetTransactionInfoRequest
+	46, // 25: bitnames.v1.BitnamesService.ListBitNames:input_type -> bitnames.v1.ListBitNamesRequest
+	48, // 26: bitnames.v1.BitnamesService.RegisterBitName:input_type -> bitnames.v1.RegisterBitNameRequest
+	50, // 27: bitnames.v1.BitnamesService.ReserveBitName:input_type -> bitnames.v1.ReserveBitNameRequest
+	52, // 28: bitnames.v1.BitnamesService.GetNewEncryptionKey:input_type -> bitnames.v1.GetNewEncryptionKeyRequest
+	54, // 29: bitnames.v1.BitnamesService.GetNewVerifyingKey:input_type -> bitnames.v1.GetNewVerifyingKeyRequest
+	56, // 30: bitnames.v1.BitnamesService.DecryptMsg:input_type -> bitnames.v1.DecryptMsgRequest
+	58, // 31: bitnames.v1.BitnamesService.EncryptMsg:input_type -> bitnames.v1.EncryptMsgRequest
+	60, // 32: bitnames.v1.BitnamesService.GetPaymail:input_type -> bitnames.v1.GetPaymailRequest
+	62, // 33: bitnames.v1.BitnamesService.GetPaymailEntries:input_type -> bitnames.v1.GetPaymailEntriesRequest
+	64, // 34: bitnames.v1.BitnamesService.ResolveBitName:input_type -> bitnames.v1.ResolveBitNameRequest
+	66, // 35: bitnames.v1.BitnamesService.UpdateBitName:input_type -> bitnames.v1.UpdateBitNameRequest
+	68, // 36: bitnames.v1.BitnamesService.ResolveCommit:input_type -> bitnames.v1.ResolveCommitRequest
+	70, // 37: bitnames.v1.BitnamesService.SignArbitraryMsg:input_type -> bitnames.v1.SignArbitraryMsgRequest
+	72, // 38: bitnames.v1.BitnamesService.SignArbitraryMsgAsAddr:input_type -> bitnames.v1.SignArbitraryMsgAsAddrRequest
+	74, // 39: bitnames.v1.BitnamesService.VerifySignature:input_type -> bitnames.v1.VerifySignatureRequest
+	76, // 40: bitnames.v1.BitnamesService.GetWalletAddresses:input_type -> bitnames.v1.GetWalletAddressesRequest
+	78, // 41: bitnames.v1.BitnamesService.MyUtxos:input_type -> bitnames.v1.MyUtxosRequest
+	80, // 42: bitnames.v1.BitnamesService.OpenapiSchema:input_type -> bitnames.v1.OpenapiSchemaRequest
+	1,  // 43: bitnames.v1.BitnamesService.GetBalance:output_type -> bitnames.v1.GetBalanceResponse
+	3,  // 44: bitnames.v1.BitnamesService.GetBlockCount:output_type -> bitnames.v1.GetBlockCountResponse
+	5,  // 45: bitnames.v1.BitnamesService.Stop:output_type -> bitnames.v1.StopResponse
+	7,  // 46: bitnames.v1.BitnamesService.GetNewAddress:output_type -> bitnames.v1.GetNewAddressResponse
+	9,  // 47: bitnames.v1.BitnamesService.Withdraw:output_type -> bitnames.v1.WithdrawResponse
+	11, // 48: bitnames.v1.BitnamesService.Transfer:output_type -> bitnames.v1.TransferResponse
+	13, // 49: bitnames.v1.BitnamesService.GetSidechainWealth:output_type -> bitnames.v1.GetSidechainWealthResponse
+	15, // 50: bitnames.v1.BitnamesService.CreateDeposit:output_type -> bitnames.v1.CreateDepositResponse
+	17, // 51: bitnames.v1.BitnamesService.GetPendingWithdrawalBundle:output_type -> bitnames.v1.GetPendingWithdrawalBundleResponse
+	19, // 52: bitnames.v1.BitnamesService.ConnectPeer:output_type -> bitnames.v1.ConnectPeerResponse
+	21, // 53: bitnames.v1.BitnamesService.ListPeers:output_type -> bitnames.v1.ListPeersResponse
+	23, // 54: bitnames.v1.BitnamesService.Mine:output_type -> bitnames.v1.MineResponse
+	25, // 55: bitnames.v1.BitnamesService.GetBlock:output_type -> bitnames.v1.GetBlockResponse
+	27, // 56: bitnames.v1.BitnamesService.GetBestMainchainBlockHash:output_type -> bitnames.v1.GetBestMainchainBlockHashResponse
+	29, // 57: bitnames.v1.BitnamesService.GetBestSidechainBlockHash:output_type -> bitnames.v1.GetBestSidechainBlockHashResponse
+	31, // 58: bitnames.v1.BitnamesService.GetBmmInclusions:output_type -> bitnames.v1.GetBmmInclusionsResponse
+	33, // 59: bitnames.v1.BitnamesService.GetWalletUtxos:output_type -> bitnames.v1.GetWalletUtxosResponse
+	35, // 60: bitnames.v1.BitnamesService.ListUtxos:output_type -> bitnames.v1.ListUtxosResponse
+	37, // 61: bitnames.v1.BitnamesService.GetLatestFailedWithdrawalBundleHeight:output_type -> bitnames.v1.GetLatestFailedWithdrawalBundleHeightResponse
+	39, // 62: bitnames.v1.BitnamesService.GenerateMnemonic:output_type -> bitnames.v1.GenerateMnemonicResponse
+	41, // 63: bitnames.v1.BitnamesService.SetSeedFromMnemonic:output_type -> bitnames.v1.SetSeedFromMnemonicResponse
+	43, // 64: bitnames.v1.BitnamesService.CallRaw:output_type -> bitnames.v1.CallRawResponse
+	45, // 65: bitnames.v1.BitnamesService.GetBitNameData:output_type -> bitnames.v1.GetBitNameDataResponse
+	83, // 66: bitnames.v1.BitnamesService.GetBitNameDataAtPosition:output_type -> bitnames.v1.GetBitNameDataAtPositionResponse
+	85, // 67: bitnames.v1.BitnamesService.GetTransactionInfo:output_type -> bitnames.v1.GetTransactionInfoResponse
+	47, // 68: bitnames.v1.BitnamesService.ListBitNames:output_type -> bitnames.v1.ListBitNamesResponse
+	49, // 69: bitnames.v1.BitnamesService.RegisterBitName:output_type -> bitnames.v1.RegisterBitNameResponse
+	51, // 70: bitnames.v1.BitnamesService.ReserveBitName:output_type -> bitnames.v1.ReserveBitNameResponse
+	53, // 71: bitnames.v1.BitnamesService.GetNewEncryptionKey:output_type -> bitnames.v1.GetNewEncryptionKeyResponse
+	55, // 72: bitnames.v1.BitnamesService.GetNewVerifyingKey:output_type -> bitnames.v1.GetNewVerifyingKeyResponse
+	57, // 73: bitnames.v1.BitnamesService.DecryptMsg:output_type -> bitnames.v1.DecryptMsgResponse
+	59, // 74: bitnames.v1.BitnamesService.EncryptMsg:output_type -> bitnames.v1.EncryptMsgResponse
+	61, // 75: bitnames.v1.BitnamesService.GetPaymail:output_type -> bitnames.v1.GetPaymailResponse
+	63, // 76: bitnames.v1.BitnamesService.GetPaymailEntries:output_type -> bitnames.v1.GetPaymailEntriesResponse
+	65, // 77: bitnames.v1.BitnamesService.ResolveBitName:output_type -> bitnames.v1.ResolveBitNameResponse
+	67, // 78: bitnames.v1.BitnamesService.UpdateBitName:output_type -> bitnames.v1.UpdateBitNameResponse
+	69, // 79: bitnames.v1.BitnamesService.ResolveCommit:output_type -> bitnames.v1.ResolveCommitResponse
+	71, // 80: bitnames.v1.BitnamesService.SignArbitraryMsg:output_type -> bitnames.v1.SignArbitraryMsgResponse
+	73, // 81: bitnames.v1.BitnamesService.SignArbitraryMsgAsAddr:output_type -> bitnames.v1.SignArbitraryMsgAsAddrResponse
+	75, // 82: bitnames.v1.BitnamesService.VerifySignature:output_type -> bitnames.v1.VerifySignatureResponse
+	77, // 83: bitnames.v1.BitnamesService.GetWalletAddresses:output_type -> bitnames.v1.GetWalletAddressesResponse
+	79, // 84: bitnames.v1.BitnamesService.MyUtxos:output_type -> bitnames.v1.MyUtxosResponse
+	81, // 85: bitnames.v1.BitnamesService.OpenapiSchema:output_type -> bitnames.v1.OpenapiSchemaResponse
+	43, // [43:86] is the sub-list for method output_type
+	0,  // [0:43] is the sub-list for method input_type
 	0,  // [0:0] is the sub-list for extension type_name
 	0,  // [0:0] is the sub-list for extension extendee
 	0,  // [0:0] is the sub-list for field type_name
@@ -4046,7 +4259,7 @@ func file_bitnames_v1_bitnames_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_bitnames_v1_bitnames_proto_rawDesc), len(file_bitnames_v1_bitnames_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   82,
+			NumMessages:   86,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

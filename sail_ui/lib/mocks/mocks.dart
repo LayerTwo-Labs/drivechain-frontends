@@ -1187,6 +1187,12 @@ class MockBitnamesRPC extends BitnamesRPC {
   }
 
   @override
+  Future<BitNameData> bitNameDataAtPosition(String bitname, String blockHash, int txIndex) async => BitNameData();
+
+  @override
+  Future<bool> isTransactionConfirmed(String txid) async => false;
+
+  @override
   Future<List<BitnameEntry>> listBitNames() {
     return Future.value([]);
   }

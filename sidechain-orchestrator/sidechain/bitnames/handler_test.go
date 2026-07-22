@@ -168,6 +168,37 @@ func TestHandlerMessageRPCParameterOrder(t *testing.T) {
 }
 
 func TestHandlerBitNameMailboxRPCs(t *testing.T) {
+	t.Run("read transaction confirmation info", func(t *testing.T) {
+		handler, requests, closeServer := recordingHandler(t, map[string]any{
+			"fee_sats": 100, "txin": map[string]any{"block_hash": "block-hash", "idx": 7},
+		})
+		defer closeServer()
+
+		response, err := handler.GetTransactionInfo(
+			context.Background(), connect.NewRequest(&pb.GetTransactionInfoRequest{Txid: "txid"}),
+		)
+		require.NoError(t, err)
+		assert.Contains(t, response.Msg.TransactionInfoJson, `"txin"`)
+		requireRPCRequest(t, requests, "get_transaction_info", `"txid"`)
+	})
+
+	t.Run("resolve historical data", func(t *testing.T) {
+		handler, requests, closeServer := recordingHandler(t, map[string]any{
+			"seq_id": "0.0.0", "signing_pubkey": "historical-key",
+		})
+		defer closeServer()
+
+		response, err := handler.GetBitNameDataAtPosition(
+			context.Background(),
+			connect.NewRequest(&pb.GetBitNameDataAtPositionRequest{
+				Bitname: "bitname-hash", BlockHash: "block-hash", TxIndex: 7,
+			}),
+		)
+		require.NoError(t, err)
+		assert.JSONEq(t, `{"seq_id":"0.0.0","signing_pubkey":"historical-key"}`, response.Msg.DataJson)
+		requireRPCRequest(t, requests, "bitname_data_at_position", `["bitname-hash","block-hash",7]`)
+	})
+
 	t.Run("resolve current owner", func(t *testing.T) {
 		result := map[string]any{
 			"bitname":  "bitname-hash",

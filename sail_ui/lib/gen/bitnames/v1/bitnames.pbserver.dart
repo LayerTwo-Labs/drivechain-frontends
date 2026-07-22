@@ -44,6 +44,8 @@ abstract class BitnamesServiceBase extends $pb.GeneratedService {
   $async.Future<$1.SetSeedFromMnemonicResponse> setSeedFromMnemonic($pb.ServerContext ctx, $1.SetSeedFromMnemonicRequest request);
   $async.Future<$1.CallRawResponse> callRaw($pb.ServerContext ctx, $1.CallRawRequest request);
   $async.Future<$1.GetBitNameDataResponse> getBitNameData($pb.ServerContext ctx, $1.GetBitNameDataRequest request);
+  $async.Future<$1.GetBitNameDataAtPositionResponse> getBitNameDataAtPosition($pb.ServerContext ctx, $1.GetBitNameDataAtPositionRequest request);
+  $async.Future<$1.GetTransactionInfoResponse> getTransactionInfo($pb.ServerContext ctx, $1.GetTransactionInfoRequest request);
   $async.Future<$1.ListBitNamesResponse> listBitNames($pb.ServerContext ctx, $1.ListBitNamesRequest request);
   $async.Future<$1.RegisterBitNameResponse> registerBitName($pb.ServerContext ctx, $1.RegisterBitNameRequest request);
   $async.Future<$1.ReserveBitNameResponse> reserveBitName($pb.ServerContext ctx, $1.ReserveBitNameRequest request);
@@ -88,6 +90,8 @@ abstract class BitnamesServiceBase extends $pb.GeneratedService {
       case 'SetSeedFromMnemonic': return $1.SetSeedFromMnemonicRequest();
       case 'CallRaw': return $1.CallRawRequest();
       case 'GetBitNameData': return $1.GetBitNameDataRequest();
+      case 'GetBitNameDataAtPosition': return $1.GetBitNameDataAtPositionRequest();
+      case 'GetTransactionInfo': return $1.GetTransactionInfoRequest();
       case 'ListBitNames': return $1.ListBitNamesRequest();
       case 'RegisterBitName': return $1.RegisterBitNameRequest();
       case 'ReserveBitName': return $1.ReserveBitNameRequest();
@@ -135,6 +139,8 @@ abstract class BitnamesServiceBase extends $pb.GeneratedService {
       case 'SetSeedFromMnemonic': return this.setSeedFromMnemonic(ctx, request as $1.SetSeedFromMnemonicRequest);
       case 'CallRaw': return this.callRaw(ctx, request as $1.CallRawRequest);
       case 'GetBitNameData': return this.getBitNameData(ctx, request as $1.GetBitNameDataRequest);
+      case 'GetBitNameDataAtPosition': return this.getBitNameDataAtPosition(ctx, request as $1.GetBitNameDataAtPositionRequest);
+      case 'GetTransactionInfo': return this.getTransactionInfo(ctx, request as $1.GetTransactionInfoRequest);
       case 'ListBitNames': return this.listBitNames(ctx, request as $1.ListBitNamesRequest);
       case 'RegisterBitName': return this.registerBitName(ctx, request as $1.RegisterBitNameRequest);
       case 'ReserveBitName': return this.reserveBitName(ctx, request as $1.ReserveBitNameRequest);

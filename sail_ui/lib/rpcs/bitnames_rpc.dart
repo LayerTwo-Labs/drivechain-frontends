@@ -30,6 +30,12 @@ abstract class BitnamesRPC extends SidechainRPC {
   /// Get BitName data
   Future<BitNameData?> getBitNameData(String name);
 
+  /// Get BitName data at an exact block/transaction position.
+  Future<BitNameData> bitNameDataAtPosition(String bitname, String blockHash, int txIndex);
+
+  /// Return whether a transaction is included in the current canonical chain.
+  Future<bool> isTransactionConfirmed(String txid);
+
   /// List all BitNames
   Future<List<BitnameEntry>> listBitNames();
 
@@ -292,6 +298,20 @@ class BitnamesLive extends BitnamesRPC {
     if (resp.dataJson.isEmpty) return null;
     final decoded = jsonDecode(resp.dataJson) as Map<String, dynamic>;
     return BitNameData.fromJson(decoded);
+  }
+
+  @override
+  Future<BitNameData> bitNameDataAtPosition(String bitname, String blockHash, int txIndex) async {
+    final resp = await _client.getBitNameDataAtPosition(
+      pb.GetBitNameDataAtPositionRequest(bitname: bitname, blockHash: blockHash, txIndex: txIndex),
+    );
+    return BitNameData.fromJson(jsonDecode(resp.dataJson) as Map<String, dynamic>);
+  }
+
+  @override
+  Future<bool> isTransactionConfirmed(String txid) async {
+    final resp = await _client.getTransactionInfo(pb.GetTransactionInfoRequest(txid: txid));
+    return transactionInfoIsConfirmed(jsonDecode(resp.transactionInfoJson));
   }
 
   @override
@@ -696,6 +716,7 @@ class BitnamesLive extends BitnamesRPC {
 final bitnamesRPCMethods = [
   'balance',
   'bitname_data',
+  'bitname_data_at_position',
   'bitnames',
   'connect_peer',
   'create_deposit',
@@ -713,6 +734,7 @@ final bitnamesRPCMethods = [
   'getblockcount',
   'get_paymail',
   'get_paymail_entries',
+  'get_transaction_info',
   'get_wallet_addresses',
   'get_wallet_utxos',
   'latest_failed_withdrawal_bundle_height',
@@ -736,6 +758,19 @@ final bitnamesRPCMethods = [
   'verify_signature',
   'withdraw',
 ];
+
+/// Decode the backend's nullable transaction information without treating a
+/// malformed response as confirmation.
+bool transactionInfoIsConfirmed(Object? info) {
+  if (info == null) return false;
+  if (info is! Map<String, dynamic>) throw const FormatException('Invalid transaction info');
+  final txin = info['txin'];
+  if (txin == null) return false;
+  if (txin is! Map<String, dynamic> || txin['block_hash'] is! String || txin['idx'] is! int) {
+    throw const FormatException('Invalid transaction inclusion');
+  }
+  return true;
+}
 
 // Models for Bitnames RPC responses
 class BitNameData {

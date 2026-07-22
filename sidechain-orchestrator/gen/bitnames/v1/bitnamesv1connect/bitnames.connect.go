@@ -99,6 +99,12 @@ const (
 	// BitnamesServiceGetBitNameDataProcedure is the fully-qualified name of the BitnamesService's
 	// GetBitNameData RPC.
 	BitnamesServiceGetBitNameDataProcedure = "/bitnames.v1.BitnamesService/GetBitNameData"
+	// BitnamesServiceGetBitNameDataAtPositionProcedure is the fully-qualified name of the
+	// BitnamesService's GetBitNameDataAtPosition RPC.
+	BitnamesServiceGetBitNameDataAtPositionProcedure = "/bitnames.v1.BitnamesService/GetBitNameDataAtPosition"
+	// BitnamesServiceGetTransactionInfoProcedure is the fully-qualified name of the BitnamesService's
+	// GetTransactionInfo RPC.
+	BitnamesServiceGetTransactionInfoProcedure = "/bitnames.v1.BitnamesService/GetTransactionInfo"
 	// BitnamesServiceListBitNamesProcedure is the fully-qualified name of the BitnamesService's
 	// ListBitNames RPC.
 	BitnamesServiceListBitNamesProcedure = "/bitnames.v1.BitnamesService/ListBitNames"
@@ -202,6 +208,10 @@ type BitnamesServiceClient interface {
 	CallRaw(context.Context, *connect.Request[v1.CallRawRequest]) (*connect.Response[v1.CallRawResponse], error)
 	// Get BitName data by name.
 	GetBitNameData(context.Context, *connect.Request[v1.GetBitNameDataRequest]) (*connect.Response[v1.GetBitNameDataResponse], error)
+	// Get BitName data at an exact block/transaction position.
+	GetBitNameDataAtPosition(context.Context, *connect.Request[v1.GetBitNameDataAtPositionRequest]) (*connect.Response[v1.GetBitNameDataAtPositionResponse], error)
+	// Get transaction confirmation information.
+	GetTransactionInfo(context.Context, *connect.Request[v1.GetTransactionInfoRequest]) (*connect.Response[v1.GetTransactionInfoResponse], error)
 	// List all BitNames.
 	ListBitNames(context.Context, *connect.Request[v1.ListBitNamesRequest]) (*connect.Response[v1.ListBitNamesResponse], error)
 	// Register a BitName.
@@ -389,6 +399,18 @@ func NewBitnamesServiceClient(httpClient connect.HTTPClient, baseURL string, opt
 			connect.WithSchema(bitnamesServiceMethods.ByName("GetBitNameData")),
 			connect.WithClientOptions(opts...),
 		),
+		getBitNameDataAtPosition: connect.NewClient[v1.GetBitNameDataAtPositionRequest, v1.GetBitNameDataAtPositionResponse](
+			httpClient,
+			baseURL+BitnamesServiceGetBitNameDataAtPositionProcedure,
+			connect.WithSchema(bitnamesServiceMethods.ByName("GetBitNameDataAtPosition")),
+			connect.WithClientOptions(opts...),
+		),
+		getTransactionInfo: connect.NewClient[v1.GetTransactionInfoRequest, v1.GetTransactionInfoResponse](
+			httpClient,
+			baseURL+BitnamesServiceGetTransactionInfoProcedure,
+			connect.WithSchema(bitnamesServiceMethods.ByName("GetTransactionInfo")),
+			connect.WithClientOptions(opts...),
+		),
 		listBitNames: connect.NewClient[v1.ListBitNamesRequest, v1.ListBitNamesResponse](
 			httpClient,
 			baseURL+BitnamesServiceListBitNamesProcedure,
@@ -525,6 +547,8 @@ type bitnamesServiceClient struct {
 	setSeedFromMnemonic                   *connect.Client[v1.SetSeedFromMnemonicRequest, v1.SetSeedFromMnemonicResponse]
 	callRaw                               *connect.Client[v1.CallRawRequest, v1.CallRawResponse]
 	getBitNameData                        *connect.Client[v1.GetBitNameDataRequest, v1.GetBitNameDataResponse]
+	getBitNameDataAtPosition              *connect.Client[v1.GetBitNameDataAtPositionRequest, v1.GetBitNameDataAtPositionResponse]
+	getTransactionInfo                    *connect.Client[v1.GetTransactionInfoRequest, v1.GetTransactionInfoResponse]
 	listBitNames                          *connect.Client[v1.ListBitNamesRequest, v1.ListBitNamesResponse]
 	registerBitName                       *connect.Client[v1.RegisterBitNameRequest, v1.RegisterBitNameResponse]
 	reserveBitName                        *connect.Client[v1.ReserveBitNameRequest, v1.ReserveBitNameResponse]
@@ -659,6 +683,16 @@ func (c *bitnamesServiceClient) CallRaw(ctx context.Context, req *connect.Reques
 // GetBitNameData calls bitnames.v1.BitnamesService.GetBitNameData.
 func (c *bitnamesServiceClient) GetBitNameData(ctx context.Context, req *connect.Request[v1.GetBitNameDataRequest]) (*connect.Response[v1.GetBitNameDataResponse], error) {
 	return c.getBitNameData.CallUnary(ctx, req)
+}
+
+// GetBitNameDataAtPosition calls bitnames.v1.BitnamesService.GetBitNameDataAtPosition.
+func (c *bitnamesServiceClient) GetBitNameDataAtPosition(ctx context.Context, req *connect.Request[v1.GetBitNameDataAtPositionRequest]) (*connect.Response[v1.GetBitNameDataAtPositionResponse], error) {
+	return c.getBitNameDataAtPosition.CallUnary(ctx, req)
+}
+
+// GetTransactionInfo calls bitnames.v1.BitnamesService.GetTransactionInfo.
+func (c *bitnamesServiceClient) GetTransactionInfo(ctx context.Context, req *connect.Request[v1.GetTransactionInfoRequest]) (*connect.Response[v1.GetTransactionInfoResponse], error) {
+	return c.getTransactionInfo.CallUnary(ctx, req)
 }
 
 // ListBitNames calls bitnames.v1.BitnamesService.ListBitNames.
@@ -799,6 +833,10 @@ type BitnamesServiceHandler interface {
 	CallRaw(context.Context, *connect.Request[v1.CallRawRequest]) (*connect.Response[v1.CallRawResponse], error)
 	// Get BitName data by name.
 	GetBitNameData(context.Context, *connect.Request[v1.GetBitNameDataRequest]) (*connect.Response[v1.GetBitNameDataResponse], error)
+	// Get BitName data at an exact block/transaction position.
+	GetBitNameDataAtPosition(context.Context, *connect.Request[v1.GetBitNameDataAtPositionRequest]) (*connect.Response[v1.GetBitNameDataAtPositionResponse], error)
+	// Get transaction confirmation information.
+	GetTransactionInfo(context.Context, *connect.Request[v1.GetTransactionInfoRequest]) (*connect.Response[v1.GetTransactionInfoResponse], error)
 	// List all BitNames.
 	ListBitNames(context.Context, *connect.Request[v1.ListBitNamesRequest]) (*connect.Response[v1.ListBitNamesResponse], error)
 	// Register a BitName.
@@ -982,6 +1020,18 @@ func NewBitnamesServiceHandler(svc BitnamesServiceHandler, opts ...connect.Handl
 		connect.WithSchema(bitnamesServiceMethods.ByName("GetBitNameData")),
 		connect.WithHandlerOptions(opts...),
 	)
+	bitnamesServiceGetBitNameDataAtPositionHandler := connect.NewUnaryHandler(
+		BitnamesServiceGetBitNameDataAtPositionProcedure,
+		svc.GetBitNameDataAtPosition,
+		connect.WithSchema(bitnamesServiceMethods.ByName("GetBitNameDataAtPosition")),
+		connect.WithHandlerOptions(opts...),
+	)
+	bitnamesServiceGetTransactionInfoHandler := connect.NewUnaryHandler(
+		BitnamesServiceGetTransactionInfoProcedure,
+		svc.GetTransactionInfo,
+		connect.WithSchema(bitnamesServiceMethods.ByName("GetTransactionInfo")),
+		connect.WithHandlerOptions(opts...),
+	)
 	bitnamesServiceListBitNamesHandler := connect.NewUnaryHandler(
 		BitnamesServiceListBitNamesProcedure,
 		svc.ListBitNames,
@@ -1138,6 +1188,10 @@ func NewBitnamesServiceHandler(svc BitnamesServiceHandler, opts ...connect.Handl
 			bitnamesServiceCallRawHandler.ServeHTTP(w, r)
 		case BitnamesServiceGetBitNameDataProcedure:
 			bitnamesServiceGetBitNameDataHandler.ServeHTTP(w, r)
+		case BitnamesServiceGetBitNameDataAtPositionProcedure:
+			bitnamesServiceGetBitNameDataAtPositionHandler.ServeHTTP(w, r)
+		case BitnamesServiceGetTransactionInfoProcedure:
+			bitnamesServiceGetTransactionInfoHandler.ServeHTTP(w, r)
 		case BitnamesServiceListBitNamesProcedure:
 			bitnamesServiceListBitNamesHandler.ServeHTTP(w, r)
 		case BitnamesServiceRegisterBitNameProcedure:
@@ -1273,6 +1327,14 @@ func (UnimplementedBitnamesServiceHandler) CallRaw(context.Context, *connect.Req
 
 func (UnimplementedBitnamesServiceHandler) GetBitNameData(context.Context, *connect.Request[v1.GetBitNameDataRequest]) (*connect.Response[v1.GetBitNameDataResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("bitnames.v1.BitnamesService.GetBitNameData is not implemented"))
+}
+
+func (UnimplementedBitnamesServiceHandler) GetBitNameDataAtPosition(context.Context, *connect.Request[v1.GetBitNameDataAtPositionRequest]) (*connect.Response[v1.GetBitNameDataAtPositionResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("bitnames.v1.BitnamesService.GetBitNameDataAtPosition is not implemented"))
+}
+
+func (UnimplementedBitnamesServiceHandler) GetTransactionInfo(context.Context, *connect.Request[v1.GetTransactionInfoRequest]) (*connect.Response[v1.GetTransactionInfoResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("bitnames.v1.BitnamesService.GetTransactionInfo is not implemented"))
 }
 
 func (UnimplementedBitnamesServiceHandler) ListBitNames(context.Context, *connect.Request[v1.ListBitNamesRequest]) (*connect.Response[v1.ListBitNamesResponse], error) {

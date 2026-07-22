@@ -194,6 +194,22 @@ abstract final class BitnamesService {
     bitnamesv1bitnames.GetBitNameDataResponse.new,
   );
 
+  /// Get BitName data at an exact block/transaction position.
+  static const getBitNameDataAtPosition = connect.Spec(
+    '/$name/GetBitNameDataAtPosition',
+    connect.StreamType.unary,
+    bitnamesv1bitnames.GetBitNameDataAtPositionRequest.new,
+    bitnamesv1bitnames.GetBitNameDataAtPositionResponse.new,
+  );
+
+  /// Get transaction confirmation information.
+  static const getTransactionInfo = connect.Spec(
+    '/$name/GetTransactionInfo',
+    connect.StreamType.unary,
+    bitnamesv1bitnames.GetTransactionInfoRequest.new,
+    bitnamesv1bitnames.GetTransactionInfoResponse.new,
+  );
+
   /// List all BitNames.
   static const listBitNames = connect.Spec(
     '/$name/ListBitNames',

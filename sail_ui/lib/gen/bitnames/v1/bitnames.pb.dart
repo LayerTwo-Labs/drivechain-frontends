@@ -3975,6 +3975,234 @@ class OpenapiSchemaResponse extends $pb.GeneratedMessage {
   void clearSchemaJson() => clearField(1);
 }
 
+class GetBitNameDataAtPositionRequest extends $pb.GeneratedMessage {
+  factory GetBitNameDataAtPositionRequest({
+    $core.String? bitname,
+    $core.String? blockHash,
+    $core.int? txIndex,
+  }) {
+    final $result = create();
+    if (bitname != null) {
+      $result.bitname = bitname;
+    }
+    if (blockHash != null) {
+      $result.blockHash = blockHash;
+    }
+    if (txIndex != null) {
+      $result.txIndex = txIndex;
+    }
+    return $result;
+  }
+  GetBitNameDataAtPositionRequest._() : super();
+  factory GetBitNameDataAtPositionRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory GetBitNameDataAtPositionRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'GetBitNameDataAtPositionRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'bitnames.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'bitname')
+    ..aOS(2, _omitFieldNames ? '' : 'blockHash')
+    ..a<$core.int>(3, _omitFieldNames ? '' : 'txIndex', $pb.PbFieldType.OU3)
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  GetBitNameDataAtPositionRequest clone() => GetBitNameDataAtPositionRequest()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  GetBitNameDataAtPositionRequest copyWith(void Function(GetBitNameDataAtPositionRequest) updates) => super.copyWith((message) => updates(message as GetBitNameDataAtPositionRequest)) as GetBitNameDataAtPositionRequest;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static GetBitNameDataAtPositionRequest create() => GetBitNameDataAtPositionRequest._();
+  GetBitNameDataAtPositionRequest createEmptyInstance() => create();
+  static $pb.PbList<GetBitNameDataAtPositionRequest> createRepeated() => $pb.PbList<GetBitNameDataAtPositionRequest>();
+  @$core.pragma('dart2js:noInline')
+  static GetBitNameDataAtPositionRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<GetBitNameDataAtPositionRequest>(create);
+  static GetBitNameDataAtPositionRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get bitname => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set bitname($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasBitname() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearBitname() => clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.String get blockHash => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set blockHash($core.String v) { $_setString(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasBlockHash() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearBlockHash() => clearField(2);
+
+  @$pb.TagNumber(3)
+  $core.int get txIndex => $_getIZ(2);
+  @$pb.TagNumber(3)
+  set txIndex($core.int v) { $_setUnsignedInt32(2, v); }
+  @$pb.TagNumber(3)
+  $core.bool hasTxIndex() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearTxIndex() => clearField(3);
+}
+
+class GetBitNameDataAtPositionResponse extends $pb.GeneratedMessage {
+  factory GetBitNameDataAtPositionResponse({
+    $core.String? dataJson,
+  }) {
+    final $result = create();
+    if (dataJson != null) {
+      $result.dataJson = dataJson;
+    }
+    return $result;
+  }
+  GetBitNameDataAtPositionResponse._() : super();
+  factory GetBitNameDataAtPositionResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory GetBitNameDataAtPositionResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'GetBitNameDataAtPositionResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'bitnames.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'dataJson')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  GetBitNameDataAtPositionResponse clone() => GetBitNameDataAtPositionResponse()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  GetBitNameDataAtPositionResponse copyWith(void Function(GetBitNameDataAtPositionResponse) updates) => super.copyWith((message) => updates(message as GetBitNameDataAtPositionResponse)) as GetBitNameDataAtPositionResponse;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static GetBitNameDataAtPositionResponse create() => GetBitNameDataAtPositionResponse._();
+  GetBitNameDataAtPositionResponse createEmptyInstance() => create();
+  static $pb.PbList<GetBitNameDataAtPositionResponse> createRepeated() => $pb.PbList<GetBitNameDataAtPositionResponse>();
+  @$core.pragma('dart2js:noInline')
+  static GetBitNameDataAtPositionResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<GetBitNameDataAtPositionResponse>(create);
+  static GetBitNameDataAtPositionResponse? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get dataJson => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set dataJson($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasDataJson() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearDataJson() => clearField(1);
+}
+
+class GetTransactionInfoRequest extends $pb.GeneratedMessage {
+  factory GetTransactionInfoRequest({
+    $core.String? txid,
+  }) {
+    final $result = create();
+    if (txid != null) {
+      $result.txid = txid;
+    }
+    return $result;
+  }
+  GetTransactionInfoRequest._() : super();
+  factory GetTransactionInfoRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory GetTransactionInfoRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'GetTransactionInfoRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'bitnames.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'txid')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  GetTransactionInfoRequest clone() => GetTransactionInfoRequest()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  GetTransactionInfoRequest copyWith(void Function(GetTransactionInfoRequest) updates) => super.copyWith((message) => updates(message as GetTransactionInfoRequest)) as GetTransactionInfoRequest;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static GetTransactionInfoRequest create() => GetTransactionInfoRequest._();
+  GetTransactionInfoRequest createEmptyInstance() => create();
+  static $pb.PbList<GetTransactionInfoRequest> createRepeated() => $pb.PbList<GetTransactionInfoRequest>();
+  @$core.pragma('dart2js:noInline')
+  static GetTransactionInfoRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<GetTransactionInfoRequest>(create);
+  static GetTransactionInfoRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get txid => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set txid($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasTxid() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearTxid() => clearField(1);
+}
+
+class GetTransactionInfoResponse extends $pb.GeneratedMessage {
+  factory GetTransactionInfoResponse({
+    $core.String? transactionInfoJson,
+  }) {
+    final $result = create();
+    if (transactionInfoJson != null) {
+      $result.transactionInfoJson = transactionInfoJson;
+    }
+    return $result;
+  }
+  GetTransactionInfoResponse._() : super();
+  factory GetTransactionInfoResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory GetTransactionInfoResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'GetTransactionInfoResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'bitnames.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'transactionInfoJson')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  GetTransactionInfoResponse clone() => GetTransactionInfoResponse()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  GetTransactionInfoResponse copyWith(void Function(GetTransactionInfoResponse) updates) => super.copyWith((message) => updates(message as GetTransactionInfoResponse)) as GetTransactionInfoResponse;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static GetTransactionInfoResponse create() => GetTransactionInfoResponse._();
+  GetTransactionInfoResponse createEmptyInstance() => create();
+  static $pb.PbList<GetTransactionInfoResponse> createRepeated() => $pb.PbList<GetTransactionInfoResponse>();
+  @$core.pragma('dart2js:noInline')
+  static GetTransactionInfoResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<GetTransactionInfoResponse>(create);
+  static GetTransactionInfoResponse? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get transactionInfoJson => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set transactionInfoJson($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasTransactionInfoJson() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearTransactionInfoJson() => clearField(1);
+}
+
 class BitnamesServiceApi {
   $pb.RpcClient _client;
   BitnamesServiceApi(this._client);
@@ -4047,6 +4275,12 @@ class BitnamesServiceApi {
   ;
   $async.Future<GetBitNameDataResponse> getBitNameData($pb.ClientContext? ctx, GetBitNameDataRequest request) =>
     _client.invoke<GetBitNameDataResponse>(ctx, 'BitnamesService', 'GetBitNameData', request, GetBitNameDataResponse())
+  ;
+  $async.Future<GetBitNameDataAtPositionResponse> getBitNameDataAtPosition($pb.ClientContext? ctx, GetBitNameDataAtPositionRequest request) =>
+    _client.invoke<GetBitNameDataAtPositionResponse>(ctx, 'BitnamesService', 'GetBitNameDataAtPosition', request, GetBitNameDataAtPositionResponse())
+  ;
+  $async.Future<GetTransactionInfoResponse> getTransactionInfo($pb.ClientContext? ctx, GetTransactionInfoRequest request) =>
+    _client.invoke<GetTransactionInfoResponse>(ctx, 'BitnamesService', 'GetTransactionInfo', request, GetTransactionInfoResponse())
   ;
   $async.Future<ListBitNamesResponse> listBitNames($pb.ClientContext? ctx, ListBitNamesRequest request) =>
     _client.invoke<ListBitNamesResponse>(ctx, 'BitnamesService', 'ListBitNames', request, ListBitNamesResponse())

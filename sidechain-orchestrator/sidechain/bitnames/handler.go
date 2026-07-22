@@ -227,6 +227,23 @@ func (h *Handler) GetBitNameData(ctx context.Context, req *connect.Request[pb.Ge
 	return connect.NewResponse(&pb.GetBitNameDataResponse{DataJson: string(raw)}), nil
 }
 
+func (h *Handler) GetBitNameDataAtPosition(ctx context.Context, req *connect.Request[pb.GetBitNameDataAtPositionRequest]) (*connect.Response[pb.GetBitNameDataAtPositionResponse], error) {
+	params := []any{req.Msg.Bitname, req.Msg.BlockHash, req.Msg.TxIndex}
+	raw, err := h.proxy.Client.CallRaw(ctx, "bitname_data_at_position", params)
+	if err != nil {
+		return nil, err
+	}
+	return connect.NewResponse(&pb.GetBitNameDataAtPositionResponse{DataJson: string(raw)}), nil
+}
+
+func (h *Handler) GetTransactionInfo(ctx context.Context, req *connect.Request[pb.GetTransactionInfoRequest]) (*connect.Response[pb.GetTransactionInfoResponse], error) {
+	raw, err := h.proxy.Client.CallRaw(ctx, "get_transaction_info", req.Msg.Txid)
+	if err != nil {
+		return nil, err
+	}
+	return connect.NewResponse(&pb.GetTransactionInfoResponse{TransactionInfoJson: string(raw)}), nil
+}
+
 func (h *Handler) ListBitNames(ctx context.Context, req *connect.Request[pb.ListBitNamesRequest]) (*connect.Response[pb.ListBitNamesResponse], error) {
 	raw, err := h.proxy.Client.CallRaw(ctx, "bitnames", nil)
 	if err != nil {

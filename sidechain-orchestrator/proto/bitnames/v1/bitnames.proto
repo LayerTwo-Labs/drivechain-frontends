@@ -74,6 +74,12 @@ service BitnamesService {
   // Get BitName data by name.
   rpc GetBitNameData(GetBitNameDataRequest) returns (GetBitNameDataResponse);
 
+  // Get BitName data at an exact block/transaction position.
+  rpc GetBitNameDataAtPosition(GetBitNameDataAtPositionRequest) returns (GetBitNameDataAtPositionResponse);
+
+  // Get transaction confirmation information.
+  rpc GetTransactionInfo(GetTransactionInfoRequest) returns (GetTransactionInfoResponse);
+
   // List all BitNames.
   rpc ListBitNames(ListBitNamesRequest) returns (ListBitNamesResponse);
 
@@ -516,4 +522,26 @@ message OpenapiSchemaRequest {}
 
 message OpenapiSchemaResponse {
   string schema_json = 1;
+}
+
+// GetBitNameDataAtPosition
+
+message GetBitNameDataAtPositionRequest {
+  string bitname = 1;
+  string block_hash = 2;
+  uint32 tx_index = 3;
+}
+
+message GetBitNameDataAtPositionResponse {
+  string data_json = 1;
+}
+
+// GetTransactionInfo
+
+message GetTransactionInfoRequest {
+  string txid = 1;
+}
+
+message GetTransactionInfoResponse {
+  string transaction_info_json = 1;
 }
