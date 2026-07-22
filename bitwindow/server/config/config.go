@@ -15,7 +15,7 @@ type Network string
 const (
 	NetworkMainnet Network = "mainnet"
 	NetworkForknet Network = "forknet"
-	NetworkDrynet2 Network = "drynet2"
+	NetworkDrynet  Network = "drynet"
 	NetworkRegtest Network = "regtest"
 	NetworkSignet  Network = "signet"
 	NetworkTestnet Network = "testnet"
@@ -124,9 +124,25 @@ func (c *Config) Finalize(network Network) error {
 }
 
 // IsFullChainNetwork reports whether the network has full mainnet-scale
-// block volume (mainnet / forknet). Callers gate IBD-only RPC throttling
+// block volume (mainnet / forknet / drynet). Callers gate IBD-only RPC throttling
 // on this — signet / testnet / regtest blocks are small or empty so
 // running scans through their IBD doesn't move the needle on Core load.
 func IsFullChainNetwork(n Network) bool {
-	return n == NetworkMainnet || n == NetworkForknet || n == NetworkDrynet2
+	return n == NetworkMainnet || n == NetworkForknet || n == NetworkDrynet
+}
+
+// IsMineableNetwork reports whether blocks can usefully be generated locally.
+// Forknet and drynet are drivechain testnets that restart difficulty at 1 from
+// their fork block, so they are CPU-mineable at home even though they run on
+// mainnet params; regtest and testnet are trivially mineable. Real mainnet and
+// signet are not — signet blocks are produced by its challenge signers.
+func IsMineableNetwork(n Network) bool {
+	switch n {
+	case NetworkRegtest, NetworkTestnet, NetworkForknet, NetworkDrynet:
+		return true
+	case NetworkMainnet, NetworkSignet:
+		return false
+	default:
+		return false
+	}
 }

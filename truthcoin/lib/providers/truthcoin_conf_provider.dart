@@ -57,7 +57,7 @@ class TruthcoinConfProvider extends GenericSidechainConfProvider {
       network = switch (bitcoinConfProvider.network) {
         BitcoinNetwork.BITCOIN_NETWORK_SIGNET => 'signet',
         BitcoinNetwork.BITCOIN_NETWORK_REGTEST => 'regtest',
-        BitcoinNetwork.BITCOIN_NETWORK_FORKNET || BitcoinNetwork.BITCOIN_NETWORK_DRYNET2 => 'mainnet',
+        BitcoinNetwork.BITCOIN_NETWORK_FORKNET || BitcoinNetwork.BITCOIN_NETWORK_DRYNET => 'mainnet',
         _ => 'signet',
       };
     } catch (_) {}

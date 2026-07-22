@@ -138,7 +138,7 @@ enum BitcoinNetwork {
   BITCOIN_NETWORK_SIGNET = 4;
   BITCOIN_NETWORK_TESTNET = 5;
   BITCOIN_NETWORK_FORKNET = 6;
-  BITCOIN_NETWORK_DRYNET2 = 7;
+  BITCOIN_NETWORK_DRYNET = 7;
 }
 
 enum AddressType {
@@ -347,7 +347,7 @@ message ProcessBandwidth {
 }
 
 message UpdateNetworkRequest {
-  // Target network: signet, mainnet, forknet, testnet, regtest.
+  // Target network: signet, mainnet, forknet, drynet, testnet, regtest.
   string network = 1;
 }
 

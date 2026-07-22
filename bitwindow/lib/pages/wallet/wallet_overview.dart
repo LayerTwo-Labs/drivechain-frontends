@@ -73,7 +73,7 @@ class OverviewTab extends StatelessWidget {
                           child: SailTooltip(
                             message: GetIt.I.get<BitcoinConfProvider>().networkSupportsSidechains
                                 ? ''
-                                : 'Sidechains require Forknet or Signet network',
+                                : 'Sidechains require Forknet, Drynet or Signet network',
                             child: Opacity(
                               opacity: GetIt.I.get<BitcoinConfProvider>().networkSupportsSidechains ? 1.0 : 0.4,
                               child: WalletStats(

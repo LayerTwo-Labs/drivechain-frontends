@@ -43,7 +43,7 @@ class _NetworkSwapPageState extends State<NetworkSwapPage> {
     });
 
     try {
-      await _bitwindow.bitwindowd.updateNetwork(_networkToString(widget.toNetwork));
+      await _bitwindow.bitwindowd.updateNetwork(widget.toNetwork.toReadableNet());
       await _clearFrontendCaches();
       if (mounted) {
         setState(() {
@@ -236,23 +236,4 @@ class _SwapStep {
 
   bool get isCompleted => endTime != null;
   Duration? get duration => (startTime != null && endTime != null) ? endTime!.difference(startTime!) : null;
-}
-
-String _networkToString(BitcoinNetwork network) {
-  switch (network) {
-    case BitcoinNetwork.BITCOIN_NETWORK_MAINNET:
-      return 'mainnet';
-    case BitcoinNetwork.BITCOIN_NETWORK_FORKNET:
-      return 'forknet';
-    case BitcoinNetwork.BITCOIN_NETWORK_DRYNET2:
-      return 'drynet2';
-    case BitcoinNetwork.BITCOIN_NETWORK_TESTNET:
-      return 'testnet';
-    case BitcoinNetwork.BITCOIN_NETWORK_SIGNET:
-      return 'signet';
-    case BitcoinNetwork.BITCOIN_NETWORK_REGTEST:
-      return 'regtest';
-    default:
-      return 'signet';
-  }
 }
