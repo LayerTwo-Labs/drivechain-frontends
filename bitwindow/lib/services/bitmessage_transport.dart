@@ -4,21 +4,17 @@ import 'package:bitwindow/models/bitintroduction_protocol.dart';
 import 'package:http/http.dart' as http;
 
 // dart format off
-
 enum BitMessageTransportType { direct, tor }
-
 class BitMessageHttpResponse {
   const BitMessageHttpResponse({required this.statusCode, required this.body});
   final int statusCode;
   final String body;
 }
-
 abstract interface class BitMessageHttpDialer {
   Future<BitMessageHttpResponse> get(Uri uri, {required Duration timeout});
   Future<BitMessageHttpResponse> postJson(Uri uri, {required String body, required Duration timeout});
   void close();
 }
-
 class DirectBitMessageHttpDialer implements BitMessageHttpDialer {
   DirectBitMessageHttpDialer({http.Client? client}) : _client = client ?? http.Client();
   final http.Client _client;

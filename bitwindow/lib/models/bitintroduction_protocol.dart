@@ -1,5 +1,4 @@
 import 'dart:convert';
-
 import 'package:thirds/blake3.dart';
 
 const bitIntroductionProtocol = 'bitintroduction';
@@ -12,7 +11,6 @@ enum BitIntroductionKind {
 
   const BitIntroductionKind(this.wireName);
   final String wireName;
-
   static BitIntroductionKind fromWireName(String value) {
     for (final kind in values) {
       if (kind.wireName == value) return kind;
