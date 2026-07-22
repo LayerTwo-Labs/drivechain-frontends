@@ -1,7 +1,11 @@
 package orchestrator
 
 import (
+	"archive/tar"
+	"archive/zip"
+	"compress/gzip"
 	"context"
+	"crypto/sha256"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -13,6 +17,110 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+func TestExtractZip_RejectsTraversal(t *testing.T) {
+	dm, dir := newTestDownloadManager(t)
+	archive := filepath.Join(dir, "traversal.zip")
+	makeZipFile(t, archive, map[string][]byte{"../outside": []byte("nope")})
+
+	_, err := dm.extractZip(archive, BinDir(dir), "bitnames-tor")
+	require.Error(t, err)
+	assert.ErrorContains(t, err, "path escapes extraction root")
+}
+
+func TestExtractZipPreservingTree_RejectsEscapingSymlink(t *testing.T) {
+	dm, dir := newTestDownloadManager(t)
+	archive := filepath.Join(dir, "symlink.zip")
+	f, err := os.Create(archive)
+	require.NoError(t, err)
+	w := zip.NewWriter(f)
+	header := &zip.FileHeader{Name: "bundle/link"}
+	header.SetMode(os.ModeSymlink | 0o777)
+	entry, err := w.CreateHeader(header)
+	require.NoError(t, err)
+	_, err = entry.Write([]byte("../../outside"))
+	require.NoError(t, err)
+	require.NoError(t, w.Close())
+	require.NoError(t, f.Close())
+
+	_, err = dm.extractZipPreservingTree(archive, BinDir(dir), "bundle")
+	require.Error(t, err)
+	assert.ErrorContains(t, err, "target escapes extraction root")
+}
+
+func TestValidateZipArchive_RejectsOversizedMetadata(t *testing.T) {
+	err := validateZipArchive([]*zip.File{{FileHeader: zip.FileHeader{
+		Name:               "bundle/large",
+		UncompressedSize64: maxArchiveEntryBytes + 1,
+	}}})
+	require.Error(t, err)
+	assert.ErrorContains(t, err, "expanded size exceeds limit")
+}
+
+func TestArchiveDestination_RejectsNonPortablePaths(t *testing.T) {
+	for _, name := range []string{`..\outside`, `C:\outside`, `safe:name`, `bundle/NUL`, `bundle/com1.exe`} {
+		_, err := archiveDestination(t.TempDir(), name)
+		require.Error(t, err, name)
+	}
+}
+
+func TestExtractTarGz_RejectsOversizedMetadata(t *testing.T) {
+	dm, dir := newTestDownloadManager(t)
+	archive := filepath.Join(dir, "large.tar.gz")
+	f, err := os.Create(archive)
+	require.NoError(t, err)
+	gz := gzip.NewWriter(f)
+	tw := tar.NewWriter(gz)
+	require.NoError(t, tw.WriteHeader(&tar.Header{Name: "large", Mode: 0o755, Size: int64(maxArchiveEntryBytes) + 1}))
+	_ = tw.Close()
+	require.NoError(t, gz.Close())
+	require.NoError(t, f.Close())
+
+	_, err = dm.extractTarGz(archive, BinDir(dir), "large")
+	require.Error(t, err)
+	assert.ErrorContains(t, err, "expanded size exceeds limit")
+}
+
+func TestExtractBinary_PreservesSidecarBundle(t *testing.T) {
+	dm, dir := newTestDownloadManager(t)
+	archive := filepath.Join(dir, "sidecar.zip")
+	makeZipFile(t, archive, map[string][]byte{
+		"bitnames-tor/bitnames-tor": []byte("wrapper"),
+		"bitnames-tor/tor/tor":      []byte("tor"),
+	})
+	_, err := dm.extractBinary(archive, BinaryConfig{PreserveArchiveTree: true,
+		ExtractSubfolder: map[string]string{currentOS(): "bitnames-tor"}}, "bitnames-tor", "", dir, "default", false)
+	require.NoError(t, err)
+	for path, want := range map[string]string{"bitnames-tor": "wrapper", filepath.Join("tor", "tor"): "tor"} {
+		got, err := os.ReadFile(filepath.Join(BinDir(dir), path))
+		require.NoError(t, err)
+		assert.Equal(t, want, string(got))
+	}
+}
+
+func TestExtractBinary_RejectsIncompleteSidecarOverOldInstall(t *testing.T) {
+	dm, dir := newTestDownloadManager(t)
+	old := BinaryPath(dir, "bitnames-tor")
+	require.NoError(t, os.MkdirAll(filepath.Dir(old), 0o755))
+	require.NoError(t, os.WriteFile(old, []byte("old"), 0o755))
+	archive := filepath.Join(dir, "incomplete.zip")
+	makeZipFile(t, archive, map[string][]byte{"bitnames-tor/README": []byte("not an executable")})
+	_, err := dm.extractBinary(archive, BinaryConfig{PreserveArchiveTree: true,
+		ExtractSubfolder: map[string]string{currentOS(): "bitnames-tor"}}, "bitnames-tor", "", dir, "default", false)
+	require.Error(t, err)
+	assert.ErrorContains(t, err, "missing required executable")
+	got, readErr := os.ReadFile(old)
+	require.NoError(t, readErr)
+	assert.Equal(t, "old", string(got))
+}
+
+func TestBitnamesTorConfigRequiresPinnedBundle(t *testing.T) {
+	cfg, ok := BinaryConfigByName("bitnames-tor")
+	require.True(t, ok)
+	assert.True(t, cfg.RequireHash)
+	assert.True(t, cfg.PreserveArchiveTree)
+	assert.Equal(t, "bitnames-tor", cfg.ExtractSubfolder[currentOS()])
+}
 
 func TestExtractZip(t *testing.T) {
 	dm, dir := newTestDownloadManager(t)
@@ -131,6 +239,88 @@ func TestDownload_Direct(t *testing.T) {
 	assert.True(t, last.Done)
 	_, err = os.Stat(BinaryPath(dir, "test-binary"))
 	require.NoError(t, err)
+}
+
+func TestDownload_RequiredHashFailsClosed(t *testing.T) {
+	zipContent := makeZipBytes(t, map[string][]byte{"test-binary": []byte("data")})
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		_, _ = w.Write(zipContent)
+	}))
+	defer srv.Close()
+	validHash := fmt.Sprintf("%x", sha256.Sum256(zipContent))
+
+	for _, tc := range []struct {
+		name, hash string
+		size       int64
+		wantDone   bool
+	}{
+		{name: "missing"},
+		{name: "mismatch", hash: "00"},
+		{name: "oversize", hash: validHash, size: 1},
+		{name: "verified", hash: validHash, size: int64(len(zipContent)), wantDone: true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			dm, dir := newTestDownloadManager(t)
+			dm.httpClient = srv.Client()
+			hashes := map[string]ArchiveHash{}
+			if tc.hash != "" {
+				hashes[currentPlatform()] = ArchiveHash{SHA256: tc.hash, Size: tc.size}
+			}
+			ch, err := dm.Download(context.Background(), BinaryConfig{
+				Name: "test", BinaryName: "test-binary", DownloadSource: DownloadSourceDirect,
+				DownloadURLs:  map[string]string{"default": srv.URL + "/"},
+				Files:         map[string]string{currentPlatform(): "test-binary.zip"},
+				ArchiveHashes: hashes, RequireHash: true,
+			}, "default", true)
+			require.NoError(t, err)
+			var last DownloadProgress
+			for progress := range ch {
+				last = progress
+			}
+			assert.Equal(t, tc.wantDone, last.Done)
+			if !tc.wantDone {
+				require.Error(t, last.Error)
+				_, err = os.Stat(BinaryPath(dir, "test-binary"))
+				assert.True(t, os.IsNotExist(err))
+			}
+		})
+	}
+}
+
+func TestDownload_ObservedHashIsNotTrusted(t *testing.T) {
+	dm, dir := newTestDownloadManager(t)
+	zipContent := makeZipBytes(t, map[string][]byte{"test-binary": []byte("new")})
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) { _, _ = w.Write(zipContent) }))
+	defer srv.Close()
+	dm.httpClient = srv.Client()
+	path := BinaryPath(dir, "test-binary")
+	require.NoError(t, os.MkdirAll(filepath.Dir(path), 0o755))
+	require.NoError(t, os.WriteFile(path, []byte("old"), 0o755))
+	ch, err := dm.Download(context.Background(), BinaryConfig{
+		Name: "test", BinaryName: "test-binary", DownloadSource: DownloadSourceDirect,
+		DownloadURLs: map[string]string{"default": srv.URL + "/"}, Files: map[string]string{currentPlatform(): "test.zip"},
+		ArchiveHashes: map[string]ArchiveHash{currentPlatform(): {SHA256: "stale", Size: 1}}, RequireHash: true,
+	}, "default", false)
+	require.NoError(t, err)
+	var last DownloadProgress
+	for progress := range ch {
+		last = progress
+	}
+	require.Error(t, last.Error)
+	got, err := os.ReadFile(path)
+	require.NoError(t, err)
+	assert.Equal(t, "old", string(got))
+
+	ch, err = dm.Download(context.Background(), BinaryConfig{
+		Name: "test", BinaryName: "test-binary", DownloadSource: DownloadSourceDirect,
+		DownloadURLs: map[string]string{"default": srv.URL + "/"}, Files: map[string]string{currentPlatform(): "test.zip"},
+		ArchiveHashes: map[string]ArchiveHash{currentPlatform(): {SHA256: "observed", Size: 1}},
+	}, "default", true)
+	require.NoError(t, err)
+	assert.True(t, drainProgress(t, ch).Done)
+	got, err = os.ReadFile(path)
+	require.NoError(t, err)
+	assert.Equal(t, "new", string(got))
 }
 
 func TestDownload_GitHub(t *testing.T) {

@@ -27,6 +27,11 @@ const (
 	DownloadSourceGitHub                       // GitHub releases API (regex matching)
 )
 
+type ArchiveHash struct {
+	SHA256 string `json:"sha256"`
+	Size   int64  `json:"size"`
+}
+
 // BinaryConfig is the 1:1 Go port of Dart's Binary abstract class + subclasses.
 // Every field maps to a Dart property from binaries.dart / sidechains.dart.
 type BinaryConfig struct {
@@ -52,11 +57,14 @@ type BinaryConfig struct {
 	FlutterFrontendDir map[string]string
 
 	// Primary download configuration — Dart: MetadataConfig.downloadConfig
-	DownloadSource   DownloadSource
-	DownloadURLs     map[string]string // network -> base URL ("default", "forknet", etc.)
-	Files            map[string]string // os -> filename or regex pattern
-	ForknetFiles     map[string]string // os -> forknet-specific filename (BitcoinCore only)
-	ExtractSubfolder map[string]string // os -> subfolder to extract from zip (empty = root)
+	DownloadSource      DownloadSource
+	DownloadURLs        map[string]string // network -> base URL ("default", "forknet", etc.)
+	Files               map[string]string // os -> filename or regex pattern
+	ForknetFiles        map[string]string // os -> forknet-specific filename (BitcoinCore only)
+	ExtractSubfolder    map[string]string // os -> subfolder to extract from zip (empty = root)
+	ArchiveHashes       map[string]ArchiveHash
+	RequireHash         bool
+	PreserveArchiveTree bool
 
 	// Core variant configuration — only populated for the bitcoincore entry.
 	// Keys are variant IDs ("core", "patched", "knots").

@@ -17,6 +17,7 @@ import (
 	"runtime"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/rs/zerolog"
 )
@@ -44,6 +45,16 @@ type DownloadState struct {
 }
 
 const bytesPerMB int64 = 1024 * 1024
+
+// Archive limits are deliberately well above any supported node bundle while
+// preventing a malformed release archive from consuming unbounded disk space.
+const (
+	maxArchiveEntries       = 10_000
+	maxArchiveDownloadBytes = int64(2 << 30)    // 2 GiB
+	maxArchiveExpandedBytes = uint64(2 << 30)   // 2 GiB
+	maxArchiveEntryBytes    = uint64(512 << 20) // 512 MiB
+	maxArchiveDownloadTime  = 15 * time.Minute
+)
 
 // toMB rounds bytes down to whole megabytes. -1 (unknown total) passes through.
 func toMB(bytes int64) int64 {
@@ -137,7 +148,7 @@ func (d *DownloadManager) DownloadWithOptions(ctx context.Context, config Binary
 		binPath = TestSidechainBinaryPath(d.dataDir, binaryName)
 	}
 
-	if !force {
+	if !force && !config.RequireHash {
 		if _, err := os.Stat(binPath); err == nil {
 			ch := make(chan DownloadProgress, 1)
 			ch <- DownloadProgress{Message: binPath, Done: true}
@@ -194,6 +205,8 @@ func (d *DownloadManager) DownloadWithOptions(ctx context.Context, config Binary
 	d.state.Store(stateKey, DownloadState{Running: true})
 
 	go func() {
+		ctx, cancel := context.WithTimeout(ctx, maxArchiveDownloadTime)
+		defer cancel()
 		defer d.inFlight.Delete(inFlightKey)
 		defer d.state.Delete(stateKey)
 		defer close(ch)
@@ -259,6 +272,17 @@ func (d *DownloadManager) DownloadWithOptions(ctx context.Context, config Binary
 		case DownloadSourceDirect:
 			downloadURL = baseURL + fileName
 		}
+		expected, pinned := config.ArchiveHashes[currentPlatform()]
+		if !pinned {
+			expected, pinned = config.ArchiveHashes[currentOS()]
+		}
+		if !config.RequireHash {
+			expected, pinned = ArchiveHash{}, false
+		}
+		if config.RequireHash && (!pinned || expected.SHA256 == "") {
+			send(DownloadProgress{Error: fmt.Errorf("no trusted archive hash configured for %s on %s", config.Name, currentPlatform())})
+			return
+		}
 
 		d.log.Info().Str("url", downloadURL).Str("binary", config.Name).Msg("downloading")
 
@@ -271,7 +295,7 @@ func (d *DownloadManager) DownloadWithOptions(ctx context.Context, config Binary
 
 		savePath := filepath.Join(tmpDir, filepath.Base(downloadURL))
 
-		if err := d.downloadFile(ctx, downloadURL, savePath, send); err != nil {
+		if err := d.downloadFile(ctx, downloadURL, savePath, send, expected.Size); err != nil {
 			send(DownloadProgress{Error: err})
 			return
 		}
@@ -282,13 +306,21 @@ func (d *DownloadManager) DownloadWithOptions(ctx context.Context, config Binary
 		}
 		archiveHash, archiveSize, err := hashFile(savePath)
 		if err != nil {
-			d.log.Warn().Err(err).Msg("failed to hash archive")
-		} else {
-			d.log.Info().Str("hash", archiveHash).Int64("size", archiveSize).Str("binary", config.Name).Msg("archive hash")
-			if d.configFilePath != "" {
-				if err := writeHashToConfig(d.configFilePath, config.Name, currentPlatform(), archiveHash, archiveSize); err != nil {
-					d.log.Warn().Err(err).Msg("failed to write hash to config")
-				}
+			send(DownloadProgress{Error: fmt.Errorf("hash archive: %w", err)})
+			return
+		}
+		if pinned && expected.SHA256 != "" && !strings.EqualFold(expected.SHA256, archiveHash) {
+			send(DownloadProgress{Error: fmt.Errorf("archive hash mismatch for %s", config.Name)})
+			return
+		}
+		if pinned && expected.Size > 0 && expected.Size != archiveSize {
+			send(DownloadProgress{Error: fmt.Errorf("archive size mismatch for %s", config.Name)})
+			return
+		}
+		d.log.Info().Str("hash", archiveHash).Int64("size", archiveSize).Str("binary", config.Name).Msg("archive hash checked")
+		if d.configFilePath != "" && !pinned {
+			if err := writeHashToConfig(d.configFilePath, config.Name, currentPlatform(), archiveHash, archiveSize); err != nil {
+				d.log.Warn().Err(err).Msg("failed to write hash to config")
 			}
 		}
 
@@ -457,11 +489,18 @@ func (d *DownloadManager) probeContentLength(ctx context.Context, url string) in
 // mirror them into the DownloadManager.state map so polled status reads pick
 // them up. Returning false from send aborts the download (caller decided the
 // consumer is gone).
-func (d *DownloadManager) downloadFile(ctx context.Context, url, savePath string, send func(DownloadProgress) bool) error {
+func (d *DownloadManager) downloadFile(ctx context.Context, url, savePath string, send func(DownloadProgress) bool, expectedSizes ...int64) error {
 	// Probe the size first — final GET responses sometimes lack Content-Length
 	// (S3 redirects, transfer-encoded responses), and the UI's progress bar
 	// goes blank when total is unknown.
 	probedTotal := d.probeContentLength(ctx, url)
+	limit := maxArchiveDownloadBytes
+	if len(expectedSizes) > 0 && expectedSizes[0] > 0 && expectedSizes[0] < limit {
+		limit = expectedSizes[0]
+	}
+	if probedTotal > limit {
+		return fmt.Errorf("download exceeds %d-byte limit", limit)
+	}
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
@@ -476,6 +515,9 @@ func (d *DownloadManager) downloadFile(ctx context.Context, url, savePath string
 
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("download returned HTTP %d", resp.StatusCode)
+	}
+	if resp.ContentLength > limit {
+		return fmt.Errorf("download exceeds %d-byte limit", limit)
 	}
 
 	f, err := os.Create(savePath)
@@ -497,6 +539,9 @@ func (d *DownloadManager) downloadFile(ctx context.Context, url, savePath string
 	for {
 		n, readErr := resp.Body.Read(buf)
 		if n > 0 {
+			if downloaded+int64(n) > limit {
+				return fmt.Errorf("download exceeds %d-byte limit", limit)
+			}
 			if _, err := f.Write(buf[:n]); err != nil {
 				return fmt.Errorf("write: %w", err)
 			}
@@ -572,6 +617,34 @@ func (d *DownloadManager) extractBinary(archivePath string, config BinaryConfig,
 	case strings.HasSuffix(lower, ".zip"):
 		// Test sidechain archives ship as Flutter app bundles — flatten-by-
 		// basename would destroy the bundle, so preserve the tree.
+		if config.PreserveArchiveTree && stripPrefix == "" {
+			stripPrefix = config.ExtractSubfolder[currentOS()]
+		}
+		if config.PreserveArchiveTree {
+			stage, err := os.MkdirTemp(destDir, ".orchestrator-verify-*")
+			if err != nil {
+				return false, fmt.Errorf("create bundle staging dir: %w", err)
+			}
+			defer os.RemoveAll(stage) //nolint:errcheck // cleanup
+			if _, err := d.extractZipPreservingTree(archivePath, stage, stripPrefix); err != nil {
+				return false, err
+			}
+			name := extractName
+			torName := "tor"
+			if runtime.GOOS == "windows" {
+				name, torName = name+".exe", torName+".exe"
+			}
+			required := []string{name}
+			if extractName == "bitnames-tor" {
+				required = append(required, filepath.Join("tor", torName))
+			}
+			for _, path := range required {
+				if info, err := os.Stat(filepath.Join(stage, path)); err != nil || info.IsDir() {
+					return false, fmt.Errorf("archive missing required executable %s", path)
+				}
+			}
+			return d.extractZipPreservingTree(archivePath, destDir, stripPrefix)
+		}
 		if hasSCVariant {
 			return d.extractZipPreservingTree(archivePath, destDir, stripPrefix)
 		}
@@ -602,6 +675,9 @@ func (d *DownloadManager) extractZipPreservingTree(archivePath, destDir, stripPr
 		return false, fmt.Errorf("open zip: %w", err)
 	}
 	defer r.Close() //nolint:errcheck // cleanup
+	if err := validateZipArchive(r.File); err != nil {
+		return false, err
+	}
 
 	if stripPrefix != "" && !strings.HasSuffix(stripPrefix, "/") {
 		stripPrefix += "/"
@@ -624,15 +700,24 @@ func (d *DownloadManager) extractZipPreservingTree(archivePath, destDir, stripPr
 			}
 		}
 
-		destPath := filepath.Join(destDir, name)
+		destPath, err := archiveDestination(destDir, name)
+		if err != nil {
+			return false, fmt.Errorf("invalid zip entry %q: %w", f.Name, err)
+		}
 
 		if f.FileInfo().IsDir() {
+			if err := rejectSymlinkParent(destDir, destPath); err != nil {
+				return false, err
+			}
 			if err := os.MkdirAll(destPath, 0o755); err != nil {
 				return false, fmt.Errorf("create dir: %w", err)
 			}
 			continue
 		}
 
+		if err := rejectSymlinkParent(destDir, destPath); err != nil {
+			return false, err
+		}
 		if err := os.MkdirAll(filepath.Dir(destPath), 0o755); err != nil {
 			return false, fmt.Errorf("create dir: %w", err)
 		}
@@ -646,10 +731,16 @@ func (d *DownloadManager) extractZipPreservingTree(archivePath, destDir, stripPr
 			if err != nil {
 				return false, fmt.Errorf("open symlink %s: %w", f.Name, err)
 			}
-			target, err := io.ReadAll(rc)
+			target, err := io.ReadAll(io.LimitReader(rc, int64(maxArchiveEntryBytes)+1))
 			_ = rc.Close()
 			if err != nil {
 				return false, fmt.Errorf("read symlink %s: %w", f.Name, err)
+			}
+			if uint64(len(target)) > maxArchiveEntryBytes {
+				return false, fmt.Errorf("symlink %s exceeds size limit", f.Name)
+			}
+			if err := validateSymlinkTarget(destDir, destPath, string(target)); err != nil {
+				return false, fmt.Errorf("invalid symlink %s: %w", f.Name, err)
 			}
 			_ = os.Remove(destPath)
 			if err := os.Symlink(string(target), destPath); err != nil {
@@ -685,6 +776,9 @@ func (d *DownloadManager) extractZip(archivePath, destDir, binaryName string) (b
 		return false, fmt.Errorf("open zip: %w", err)
 	}
 	defer r.Close() //nolint:errcheck // cleanup
+	if err := validateZipArchive(r.File); err != nil {
+		return false, err
+	}
 
 	tmpDir, err := os.MkdirTemp("", "orchestrator-extract-*")
 	if err != nil {
@@ -697,7 +791,10 @@ func (d *DownloadManager) extractZip(archivePath, destDir, binaryName string) (b
 			continue
 		}
 
-		destPath := filepath.Join(tmpDir, f.Name)
+		destPath, err := archiveDestination(tmpDir, f.Name)
+		if err != nil {
+			return false, fmt.Errorf("invalid zip entry %q: %w", f.Name, err)
+		}
 		if err := os.MkdirAll(filepath.Dir(destPath), 0o755); err != nil {
 			return false, fmt.Errorf("create dir: %w", err)
 		}
@@ -711,6 +808,9 @@ func (d *DownloadManager) extractZip(archivePath, destDir, binaryName string) (b
 }
 
 func extractZipFile(f *zip.File, dest string) error {
+	if f.UncompressedSize64 > maxArchiveEntryBytes {
+		return fmt.Errorf("zip entry %s exceeds size limit", f.Name)
+	}
 	rc, err := f.Open()
 	if err != nil {
 		return fmt.Errorf("open zip entry %s: %w", f.Name, err)
@@ -723,11 +823,121 @@ func extractZipFile(f *zip.File, dest string) error {
 	}
 	defer outFile.Close() //nolint:errcheck // cleanup
 
-	if _, err := io.Copy(outFile, rc); err != nil {
+	if _, err := io.Copy(outFile, io.LimitReader(rc, int64(maxArchiveEntryBytes)+1)); err != nil {
 		return fmt.Errorf("extract %s: %w", f.Name, err)
+	}
+	info, err := outFile.Stat()
+	if err != nil {
+		return fmt.Errorf("stat %s: %w", f.Name, err)
+	}
+	if uint64(info.Size()) > maxArchiveEntryBytes {
+		return fmt.Errorf("zip entry %s exceeds size limit", f.Name)
 	}
 
 	return nil
+}
+
+func validateZipArchive(files []*zip.File) error {
+	if len(files) > maxArchiveEntries {
+		return fmt.Errorf("zip contains too many entries: %d", len(files))
+	}
+	var total uint64
+	for _, f := range files {
+		if _, err := archiveDestination("/archive-root", f.Name); err != nil {
+			return fmt.Errorf("invalid zip entry %q: %w", f.Name, err)
+		}
+		if f.FileInfo().IsDir() {
+			continue
+		}
+		if f.UncompressedSize64 > maxArchiveEntryBytes || total > maxArchiveExpandedBytes-f.UncompressedSize64 {
+			return fmt.Errorf("zip expanded size exceeds limit")
+		}
+		total += f.UncompressedSize64
+	}
+	return nil
+}
+
+func archiveDestination(root, name string) (string, error) {
+	if name == "" || strings.IndexByte(name, 0) >= 0 {
+		return "", fmt.Errorf("empty or NUL-containing path")
+	}
+	// ZIP paths are slash-separated. Normalize backslashes too so an archive
+	// rejected on Unix cannot become traversal when later handled on Windows.
+	normalized := strings.ReplaceAll(name, "\\", "/")
+	if err := validatePortableArchivePath(normalized); err != nil {
+		return "", err
+	}
+	clean := filepath.Clean(filepath.FromSlash(normalized))
+	if filepath.IsAbs(clean) || hasWindowsVolumePath(normalized) || clean == "." || clean == ".." || strings.HasPrefix(clean, ".."+string(filepath.Separator)) {
+		return "", fmt.Errorf("path escapes extraction root")
+	}
+	dest := filepath.Join(root, clean)
+	rel, err := filepath.Rel(root, dest)
+	if err != nil || rel == ".." || strings.HasPrefix(rel, ".."+string(filepath.Separator)) {
+		return "", fmt.Errorf("path escapes extraction root")
+	}
+	return dest, nil
+}
+
+func validatePortableArchivePath(path string) error {
+	for _, part := range strings.Split(path, "/") {
+		trimmed := strings.TrimRight(part, " .")
+		stem := strings.ToUpper(strings.SplitN(trimmed, ".", 2)[0])
+		reserved := stem == "CON" || stem == "PRN" || stem == "AUX" || stem == "NUL" || stem == "CONIN$" || stem == "CONOUT$" ||
+			(len(stem) == 4 && (strings.HasPrefix(stem, "COM") || strings.HasPrefix(stem, "LPT")) && stem[3] >= '1' && stem[3] <= '9')
+		if strings.Contains(part, ":") || reserved {
+			return fmt.Errorf("non-portable archive path")
+		}
+	}
+	return nil
+}
+
+// rejectSymlinkParent prevents a later archive entry from traversing a link
+// placed by an earlier entry. Framework links themselves remain supported.
+func rejectSymlinkParent(root, dest string) error {
+	rel, err := filepath.Rel(root, filepath.Dir(dest))
+	if err != nil {
+		return err
+	}
+	current := root
+	for _, part := range strings.Split(rel, string(filepath.Separator)) {
+		if part == "." || part == "" {
+			continue
+		}
+		current = filepath.Join(current, part)
+		info, err := os.Lstat(current)
+		if err == nil && info.Mode()&os.ModeSymlink != 0 {
+			return fmt.Errorf("refusing to write through symlink %s", current)
+		}
+		if err != nil && !os.IsNotExist(err) {
+			return err
+		}
+	}
+	return nil
+}
+
+func validateSymlinkTarget(root, link, target string) error {
+	if target == "" || strings.IndexByte(target, 0) >= 0 {
+		return fmt.Errorf("empty or NUL-containing target")
+	}
+	normalizedText := strings.ReplaceAll(target, "\\", "/")
+	if err := validatePortableArchivePath(normalizedText); err != nil {
+		return err
+	}
+	normalized := filepath.FromSlash(normalizedText)
+	if filepath.IsAbs(normalized) || hasWindowsVolumePath(normalizedText) {
+		return fmt.Errorf("absolute target")
+	}
+	resolved := filepath.Clean(filepath.Join(filepath.Dir(link), normalized))
+	rel, err := filepath.Rel(root, resolved)
+	if err != nil || rel == ".." || strings.HasPrefix(rel, ".."+string(filepath.Separator)) {
+		return fmt.Errorf("target escapes extraction root")
+	}
+	return nil
+}
+
+func hasWindowsVolumePath(path string) bool {
+	return len(path) >= 2 && ((path[0] >= 'a' && path[0] <= 'z') || (path[0] >= 'A' && path[0] <= 'Z')) && path[1] == ':'
 }
 
 // extractTarGz extracts a tar.gz archive.
@@ -751,6 +961,8 @@ func (d *DownloadManager) extractTarGz(archivePath, destDir, binaryName string) 
 	defer os.RemoveAll(tmpDir) //nolint:errcheck // cleanup
 
 	tr := tar.NewReader(gz)
+	entries := 0
+	var expanded uint64
 	for {
 		header, err := tr.Next()
 		if err == io.EOF {
@@ -759,10 +971,18 @@ func (d *DownloadManager) extractTarGz(archivePath, destDir, binaryName string) 
 		if err != nil {
 			return false, fmt.Errorf("read tar: %w", err)
 		}
+		entries++
+		if entries > maxArchiveEntries {
+			return false, fmt.Errorf("tar contains too many entries")
+		}
 
 		if header.Typeflag != tar.TypeReg {
 			continue
 		}
+		if header.Size < 0 || uint64(header.Size) > maxArchiveEntryBytes || expanded > maxArchiveExpandedBytes-uint64(header.Size) {
+			return false, fmt.Errorf("tar expanded size exceeds limit")
+		}
+		expanded += uint64(header.Size)
 
 		// Skip non-binary files (LICENSE, README, etc.)
 		base := filepath.Base(header.Name)
@@ -776,9 +996,14 @@ func (d *DownloadManager) extractTarGz(archivePath, destDir, binaryName string) 
 			return false, fmt.Errorf("create %s: %w", destPath, err)
 		}
 
-		if _, err := io.Copy(outFile, tr); err != nil {
+		written, err := io.Copy(outFile, io.LimitReader(tr, int64(maxArchiveEntryBytes)+1))
+		if err != nil {
 			_ = outFile.Close()
 			return false, fmt.Errorf("extract %s: %w", header.Name, err)
+		}
+		if written != header.Size {
+			_ = outFile.Close()
+			return false, fmt.Errorf("tar entry %s has invalid size", header.Name)
 		}
 		_ = outFile.Close()
 	}

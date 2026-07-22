@@ -408,6 +408,8 @@
       "name": "BitNames Tor",
       "version": "latest",
       "description": "Private BitIntroduction routing and onion service",
+      "require_hash": true,
+      "preserve_archive_tree": true,
       "repo_url": "https://github.com/LayerTwo-Labs/bitnames-tor",
       "port": 37998,
       "chain_layer": 0,
@@ -440,6 +442,13 @@
             "macos-x86_64": "bitnames-tor-latest-x86_64-apple-darwin.zip",
             "macos-arm64": "bitnames-tor-latest-aarch64-apple-darwin.zip",
             "windows-x86_64": "bitnames-tor-latest-x86_64-pc-windows-gnu.zip"
+          }
+        },
+        "extract_subfolder": {
+          "default": {
+            "linux": "bitnames-tor",
+            "macos": "bitnames-tor",
+            "windows": "bitnames-tor"
           }
         }
       },

@@ -108,6 +108,35 @@ func TestDownloadBinary_RejectsUnknownBinary(t *testing.T) {
 	require.Error(t, err, "unknown binary must surface as an RPC error")
 }
 
+func TestDownloadBinary_BitnamesTorReturnsIntegrityError(t *testing.T) {
+	orch := newTestOrchHandlerWithBinary(t, orchestrator.BinaryConfig{
+		Name: "bitnames-tor", BinaryName: "bitnames-tor", RequireHash: true,
+		DownloadSource: orchestrator.DownloadSourceDirect,
+		DownloadURLs:   map[string]string{"default": "https://example.invalid/"},
+		Files:          map[string]string{currentPlatform(): "bitnames-tor.zip"},
+	})
+	mux := http.NewServeMux()
+	path, handler := rpc.NewOrchestratorServiceHandler(NewHandler(orch))
+	mux.Handle(path, handler)
+	srv := httptest.NewServer(h2c.NewHandler(mux, &http2.Server{}))
+	defer srv.Close()
+	client := rpc.NewOrchestratorServiceClient(srv.Client(), srv.URL, connect.WithGRPC())
+
+	_, err := client.DownloadBinary(context.Background(), connect.NewRequest(&pb.DownloadBinaryRequest{Name: "bitnames-tor"}))
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "trusted archive hash")
+}
+
+func TestWaitForCompletedDownload_RequiresDone(t *testing.T) {
+	incomplete := make(chan orchestrator.DownloadProgress)
+	close(incomplete)
+	require.ErrorContains(t, waitForCompletedDownload(incomplete), "without a completed artifact")
+	complete := make(chan orchestrator.DownloadProgress, 1)
+	complete <- orchestrator.DownloadProgress{Done: true}
+	close(complete)
+	require.NoError(t, waitForCompletedDownload(complete))
+}
+
 // newTestOrchHandlerWithBinary builds a minimal Orchestrator wired with a
 // single binary config — enough for DownloadBinary to walk through the
 // download path without touching the rest of the configs.
