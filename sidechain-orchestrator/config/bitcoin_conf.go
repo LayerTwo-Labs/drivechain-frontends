@@ -22,7 +22,12 @@ type BitcoinConfManager struct {
 	ConfigPath      string
 	DetectedDataDir string
 	HasPrivateConf  bool
-	log             zerolog.Logger
+
+	// DrynetID is the live drynet generation ("drynet2"). Set from the
+	// resolved network catalog; falls back to the embedded generation until
+	// then, so a first boot still writes a usable peer.
+	DrynetID string
+	log      zerolog.Logger
 
 	// OnNetworkChanged is called after a network switch completes.
 	// Set by the server to restart services (orchestrator binaries).
@@ -80,6 +85,29 @@ func (m *BitcoinConfManager) LoadConfig(isFirst bool) error {
 	return nil
 }
 
+// Generation returns the drynet generation to write into bitcoin.conf. It
+// falls back to the embedded catalog so a first boot — which happens before the
+// catalog resolves — still writes a real generation rather than an empty value.
+func (m *BitcoinConfManager) Generation() string {
+	if m.DrynetID != "" {
+		return m.DrynetID
+	}
+	return DrynetGeneration()
+}
+
+// DrynetPeer is the seed node for the active drynet generation. Drynet has no
+// DNS seeds, so bitcoind needs an explicit peer to find the network at all.
+func (m *BitcoinConfManager) DrynetPeer() string {
+	gen := m.Generation()
+	if gen == "" {
+		return ""
+	}
+	return fmt.Sprintf("%s.drivechain.dev:%d", gen, drynetP2PPort)
+}
+
+// drynetP2PPort is the port every drynet generation listens on.
+const drynetP2PPort = 8335
+
 // GetConfFilePath returns the resolved -conf= path to pass to bitcoind.
 // Mirrors the confFile() logic from binaries.dart.
 func (m *BitcoinConfManager) GetConfFilePath() string {
@@ -129,14 +157,13 @@ func (m *BitcoinConfManager) GetDefaultConfig() string {
 
 	// Per-network [main] section overrides. Mainnet has no [main] overrides;
 	// signet/testnet/regtest options live in their own sections below.
-	// Forknet uses [main] because its chain= is "main" (it's a drivechain
-	// testnet on mainnet params).
+	// Forknet and drynet use [main] because their chain= is "main" (they are
+	// drivechain testnets on mainnet params).
 	var mainSection string
 	switch m.Network {
 	case NetworkForknet:
-		// Forknet runs as chain=main, so fallbackfee belongs here (not in
-		// the common block) — Bitcoin Core rejects fallbackfee on real
-		// mainnet but accepts it on this drivechain testnet.
+		// Forknet runs as chain=main, so fallbackfee belongs here (not in the
+		// common block) — Core rejects it on real mainnet but accepts it here.
 		mainSection = `# Forknet-specific settings (drivechain testnet on mainnet params)
 [main]
 port=8300
@@ -149,24 +176,23 @@ listenonion=0
 drivechain=1
 fallbackfee=0.00021
 `
-	case NetworkDrynet2:
-		// drynet2 also runs chain=main. It has no DNS seeds, so it needs an
-		// explicit peer. uacomment=drynet2 is the sentinel that tells drynet2
-		// apart from forknet in NetworkFromConfig.
-		mainSection = `# drynet2-specific settings (drivechain testnet on mainnet params)
+	case NetworkDrynet:
+		// Drynet runs chain=main, so fallbackfee belongs here (not in the
+		// common block). It has no DNS seeds, so it needs an explicit peer.
+		mainSection = fmt.Sprintf(`# drynet-specific settings (drivechain testnet on mainnet params)
 [main]
 port=8301
 rpcport=18302
 rpcbind=127.0.0.1
 rpcallowip=0.0.0.0/0
-addnode=drynet2.drivechain.dev:8335
-uacomment=drynet2
+addnode=%s
+uacomment=%s
 assumevalid=0000000000000000000000000000000000000000000000000000000000000000
 minimumchainwork=0x00
 listenonion=0
 drivechain=1
 fallbackfee=0.00021
-`
+`, m.DrynetPeer(), m.Generation())
 	default:
 		mainSection = `# Mainnet-specific settings
 [main]
@@ -263,7 +289,7 @@ func (m *BitcoinConfManager) UpdateNetwork(n Network) error {
 
 	chainValue := "signet"
 	switch n {
-	case NetworkMainnet, NetworkForknet, NetworkDrynet2:
+	case NetworkMainnet, NetworkForknet, NetworkDrynet:
 		chainValue = "main"
 	case NetworkTestnet:
 		chainValue = "test"

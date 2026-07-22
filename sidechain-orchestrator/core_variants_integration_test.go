@@ -179,8 +179,8 @@ func TestIntegration_SetCoreVariant_RejectsIncompatibleNetwork(t *testing.T) {
 	defer srv.Close()
 
 	dataDir := t.TempDir()
-	o := newIntegrationOrchestrator(t, "forknet", srv.URL+"/", dataDir, t.TempDir())
-	// "core" is not available on forknet — must be rejected.
+	o := newIntegrationOrchestrator(t, "drynet", srv.URL+"/", dataDir, t.TempDir())
+	// "core" is not available on drynet — must be rejected.
 	err := o.SetCoreVariant(context.Background(), "core")
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "not available")
@@ -206,7 +206,7 @@ func TestIntegration_ListCoreVariants_FilterByNetwork(t *testing.T) {
 		want    []string
 	}{
 		{"mainnet", []string{"core", "patched", "knots"}},
-		{"forknet", []string{"patched"}},
+		{"drynet", []string{"patched"}},
 		{"signet", []string{"core", "patched", "knots"}},
 		{"testnet", []string{"core", "patched", "knots"}},
 		{"regtest", []string{"core", "patched", "knots"}},
@@ -220,8 +220,8 @@ func TestIntegration_ListCoreVariants_FilterByNetwork(t *testing.T) {
 	}
 }
 
-// User picks knots on signet, then relaunches the app on forknet. The
-// resolver must clamp to a forknet-compatible variant (patched) instead of
+// User picks knots on signet, then relaunches the app on drynet. The
+// resolver must clamp to a drynet-compatible variant (patched) instead of
 // honouring the persisted knots ID.
 func TestIntegration_VariantResolver_ClampsOnNetworkSwap(t *testing.T) {
 	srv := newVariantServer(t, &requestCount{})
@@ -236,14 +236,14 @@ func TestIntegration_VariantResolver_ClampsOnNetworkSwap(t *testing.T) {
 	// Persist the network swap to disk the way the UI does — bitwindow-
 	// bitcoin.conf is the source of truth on subsequent boots, the CLI
 	// flag only seeds first-boot defaults.
-	require.NoError(t, first.BitcoinConf.UpdateNetwork(config.NetworkForknet))
+	require.NoError(t, first.BitcoinConf.UpdateNetwork(config.NetworkDrynet))
 
-	// Same data dirs; the new orchestrator picks up the persisted forknet.
+	// Same data dirs; the new orchestrator picks up the persisted drynet.
 	second := newIntegrationOrchestrator(t, "signet", srv.URL+"/", dataDir, bwDir)
 
 	v, ok := second.download.CoreVariant()
-	require.True(t, ok, "resolver must produce a variant on forknet")
-	assert.Equal(t, "patched", v.ID, "persisted knots is not forknet-compatible; must clamp to patched")
+	require.True(t, ok, "resolver must produce a variant on drynet")
+	assert.Equal(t, "patched", v.ID, "persisted knots is not drynet-compatible; must clamp to patched")
 
 	// Swap back to signet via the conf, then knots becomes valid again.
 	require.NoError(t, second.BitcoinConf.UpdateNetwork(config.NetworkSignet))
@@ -257,9 +257,9 @@ func TestIntegration_VariantResolver_FallbackWhenSettingsEmpty(t *testing.T) {
 	srv := newVariantServer(t, &requestCount{})
 	defer srv.Close()
 
-	o := newIntegrationOrchestrator(t, "forknet", srv.URL+"/", "", "")
+	o := newIntegrationOrchestrator(t, "drynet", srv.URL+"/", "", "")
 	v, ok := o.download.CoreVariant()
-	require.True(t, ok, "fresh forknet install must resolve to a variant")
+	require.True(t, ok, "fresh drynet install must resolve to a variant")
 	assert.Equal(t, "patched", v.ID)
 }
 
@@ -441,8 +441,8 @@ func TestIntegration_ListCoreVariants_ClampsActiveOnNetworkMismatch(t *testing.T
 	dataDir := t.TempDir()
 	bwDir := t.TempDir()
 
-	// Persist a forknet-only variant, then load orchestrator on signet.
-	// "core" is not available on forknet, but it IS valid on signet, so use
+	// Persist a drynet-only variant, then load orchestrator on signet.
+	// "core" is not available on drynet, but it IS valid on signet, so use
 	// it inverse here: persist an unknown id to simulate a mismatch.
 	require.NoError(t, SaveSettings(bwDir, OrchestratorSettings{CoreVariant: "stale-id"}))
 	o := newIntegrationOrchestrator(t, "signet", srv.URL+"/", dataDir, bwDir)

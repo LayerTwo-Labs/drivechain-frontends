@@ -68,7 +68,7 @@ type DownloadManager struct {
 	// CoreVariant returns the active Bitcoin Core variant spec to use for
 	// download/extract. It is consulted only when config.IsBitcoinCore. May
 	// be left nil — in that case the download falls back to the legacy
-	// per-network file selection (default vs. forknet).
+	// per-network file selection (default vs. variant).
 	CoreVariant func() (CoreVariantSpec, bool)
 
 	// SidechainVariant resolves the test/alternative download spec for a
@@ -555,13 +555,6 @@ func (d *DownloadManager) extractBinary(archivePath string, config BinaryConfig,
 		// conflicts and aborts mid-way, leaving the old binary in place.
 		if err := os.RemoveAll(destDir); err != nil {
 			return false, fmt.Errorf("wipe stale extract dir: %w", err)
-		}
-	case !config.IsBitcoinCore:
-		// Forknet zips ship a top-level directory we have to peel off.
-		if subfolder, ok := config.ExtractSubfolder[currentOS()]; ok && subfolder != "" {
-			if network == "forknet" && len(config.ForknetFiles) > 0 {
-				destDir = filepath.Join(destDir, subfolder)
-			}
 		}
 	}
 

@@ -33,7 +33,7 @@ func makeBitcoindCoreConfig(baseURL string) BinaryConfig {
 		DownloadSource: DownloadSourceDirect,
 		Variants: map[string]CoreVariantSpec{
 			"core":    mkVariant("core", "bitcoin", []string{"mainnet", "signet", "testnet", "regtest"}),
-			"patched": mkVariant("patched", "drivechain-patched", []string{"mainnet", "signet", "testnet", "regtest", "forknet"}),
+			"patched": mkVariant("patched", "drivechain-patched", []string{"mainnet", "signet", "testnet", "regtest", "drynet"}),
 			"knots":   mkVariant("knots", "knots", []string{"mainnet", "signet", "testnet", "regtest"}),
 		},
 	}
@@ -57,7 +57,7 @@ func TestCoreVariantSpec_AvailableOn(t *testing.T) {
 	v := CoreVariantSpec{AvailableNetworks: []string{"signet", "testnet"}}
 	assert.True(t, v.AvailableOn("signet"))
 	assert.True(t, v.AvailableOn("testnet"))
-	assert.False(t, v.AvailableOn("forknet"))
+	assert.False(t, v.AvailableOn("drynet"))
 	assert.False(t, v.AvailableOn(""))
 }
 
@@ -70,8 +70,8 @@ func TestFilterVariantsForNetwork(t *testing.T) {
 	signet := variantIDs(FilterVariantsForNetwork(cfg, "signet"))
 	assert.ElementsMatch(t, []string{"core", "patched", "knots"}, signet)
 
-	forknet := variantIDs(FilterVariantsForNetwork(cfg, "forknet"))
-	assert.ElementsMatch(t, []string{"patched"}, forknet)
+	drynet := variantIDs(FilterVariantsForNetwork(cfg, "drynet"))
+	assert.ElementsMatch(t, []string{"patched"}, drynet)
 
 	testnet := variantIDs(FilterVariantsForNetwork(cfg, "testnet"))
 	assert.ElementsMatch(t, []string{"core", "patched", "knots"}, testnet)
@@ -98,7 +98,7 @@ func TestParseConfigJSON_BitcoincoreVariants(t *testing.T) {
 	}
 	require.NotEmpty(t, core.Variants, "embedded config must declare core variants")
 
-	for _, id := range []string{"core", "patched", "knots", "forknet"} {
+	for _, id := range []string{"core", "patched", "knots", "forknet", "drynet"} {
 		v, ok := core.Variants[id]
 		require.True(t, ok, "missing variant %s", id)
 		assert.NotEmpty(t, v.Subfolder)
@@ -108,13 +108,15 @@ func TestParseConfigJSON_BitcoincoreVariants(t *testing.T) {
 	}
 
 	assert.True(t, core.Variants["forknet"].AvailableOn("forknet"))
-	assert.False(t, core.Variants["patched"].AvailableOn("forknet"))
+	assert.True(t, core.Variants["drynet"].AvailableOn("drynet"))
+	assert.False(t, core.Variants["drynet"].AvailableOn("forknet"))
+	assert.False(t, core.Variants["patched"].AvailableOn("drynet"))
 	assert.True(t, core.Variants["patched"].AvailableOn("mainnet"))
 	assert.True(t, core.Variants["core"].AvailableOn("mainnet"))
 	assert.True(t, core.Variants["knots"].AvailableOn("mainnet"))
 	assert.True(t, core.Variants["core"].AvailableOn("signet"))
 	assert.True(t, core.Variants["knots"].AvailableOn("signet"))
-	assert.False(t, core.Variants["core"].AvailableOn("forknet"))
+	assert.False(t, core.Variants["core"].AvailableOn("drynet"))
 }
 
 func TestSettingsStore_RoundTrip(t *testing.T) {
@@ -186,7 +188,7 @@ func TestDownload_VariantSkipsWhenInstalled(t *testing.T) {
 	require.NoError(t, os.MkdirAll(filepath.Dir(target), 0o755))
 	require.NoError(t, os.WriteFile(target, []byte("already-installed"), 0o755))
 
-	ch, err := dm.Download(context.Background(), cfg, "forknet", false)
+	ch, err := dm.Download(context.Background(), cfg, "drynet", false)
 	require.NoError(t, err)
 	last := drainProgress(t, ch)
 	assert.True(t, last.Done)
@@ -203,13 +205,14 @@ func TestOrchestrator_ListCoreVariants(t *testing.T) {
 		network string
 		want    []string
 	}{
-		// core/patched/knots are available on every chain except forknet, which
-		// has its own dedicated build (L1-drivechain-forknet) as the sole option.
+		// core/patched/knots are available on every chain except forknet and
+		// drynet, which each have a dedicated build as their sole option.
 		{"mainnet", []string{"core", "knots", "patched"}},
 		{"signet", []string{"core", "knots", "patched"}},
 		{"testnet", []string{"core", "knots", "patched"}},
 		{"regtest", []string{"core", "knots", "patched"}},
 		{"forknet", []string{"forknet"}},
+		{"drynet", []string{"drynet"}},
 	}
 	for _, tc := range cases {
 		t.Run(tc.network, func(t *testing.T) {

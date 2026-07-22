@@ -267,7 +267,7 @@ func (m *SidechainConfManager) resolveNetwork() string {
 	switch m.bitcoinConf.Network {
 	case NetworkRegtest:
 		return "regtest"
-	case NetworkForknet, NetworkDrynet2:
+	case NetworkForknet, NetworkDrynet:
 		return "mainnet"
 	default:
 		return "signet"

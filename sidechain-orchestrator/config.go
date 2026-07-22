@@ -53,9 +53,8 @@ type BinaryConfig struct {
 
 	// Primary download configuration — Dart: MetadataConfig.downloadConfig
 	DownloadSource   DownloadSource
-	DownloadURLs     map[string]string // network -> base URL ("default", "forknet", etc.)
+	DownloadURLs     map[string]string // network -> base URL ("default", etc.)
 	Files            map[string]string // os -> filename or regex pattern
-	ForknetFiles     map[string]string // os -> forknet-specific filename (BitcoinCore only)
 	ExtractSubfolder map[string]string // os -> subfolder to extract from zip (empty = root)
 
 	// Core variant configuration — only populated for the bitcoincore entry.

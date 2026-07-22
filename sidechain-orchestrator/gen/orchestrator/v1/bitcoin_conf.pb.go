@@ -59,7 +59,7 @@ func (*GetBitcoinConfigRequest) Descriptor() ([]byte, []int) {
 
 type GetBitcoinConfigResponse struct {
 	state                     protoimpl.MessageState `protogen:"open.v1"`
-	Network                   string                 `protobuf:"bytes,1,opt,name=network,proto3" json:"network,omitempty"` // signet, mainnet, forknet, testnet, regtest
+	Network                   string                 `protobuf:"bytes,1,opt,name=network,proto3" json:"network,omitempty"` // signet, mainnet, forknet, drynet, testnet, regtest
 	RpcPort                   int32                  `protobuf:"varint,2,opt,name=rpc_port,json=rpcPort,proto3" json:"rpc_port,omitempty"`
 	HasPrivateConf            bool                   `protobuf:"varint,3,opt,name=has_private_conf,json=hasPrivateConf,proto3" json:"has_private_conf,omitempty"`   // true if user has their own bitcoin.conf
 	ConfigPath                string                 `protobuf:"bytes,4,opt,name=config_path,json=configPath,proto3" json:"config_path,omitempty"`                  // path to the active config file
@@ -77,9 +77,12 @@ type GetBitcoinConfigResponse struct {
 	// restored on the next swap into that group. Empty = no path stored.
 	DefaultDatadir string `protobuf:"bytes,11,opt,name=default_datadir,json=defaultDatadir,proto3" json:"default_datadir,omitempty"`
 	ForknetDatadir string `protobuf:"bytes,12,opt,name=forknet_datadir,json=forknetDatadir,proto3" json:"forknet_datadir,omitempty"`
-	Drynet2Datadir string `protobuf:"bytes,13,opt,name=drynet2_datadir,json=drynet2Datadir,proto3" json:"drynet2_datadir,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+	DrynetDatadir  string `protobuf:"bytes,13,opt,name=drynet_datadir,json=drynetDatadir,proto3" json:"drynet_datadir,omitempty"`
+	// Live drynet generation ("drynet2"). Drynet hostnames are built from it, so
+	// the frontend needs it to link at the right explorer.
+	DrynetGeneration string `protobuf:"bytes,14,opt,name=drynet_generation,json=drynetGeneration,proto3" json:"drynet_generation,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
 }
 
 func (x *GetBitcoinConfigResponse) Reset() {
@@ -196,16 +199,23 @@ func (x *GetBitcoinConfigResponse) GetForknetDatadir() string {
 	return ""
 }
 
-func (x *GetBitcoinConfigResponse) GetDrynet2Datadir() string {
+func (x *GetBitcoinConfigResponse) GetDrynetDatadir() string {
 	if x != nil {
-		return x.Drynet2Datadir
+		return x.DrynetDatadir
+	}
+	return ""
+}
+
+func (x *GetBitcoinConfigResponse) GetDrynetGeneration() string {
+	if x != nil {
+		return x.DrynetGeneration
 	}
 	return ""
 }
 
 type SetBitcoinConfigNetworkRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Network       string                 `protobuf:"bytes,1,opt,name=network,proto3" json:"network,omitempty"` // signet, mainnet, forknet, testnet, regtest
+	Network       string                 `protobuf:"bytes,1,opt,name=network,proto3" json:"network,omitempty"` // signet, mainnet, forknet, drynet, testnet, regtest
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -456,7 +466,7 @@ var File_orchestrator_v1_bitcoin_conf_proto protoreflect.FileDescriptor
 const file_orchestrator_v1_bitcoin_conf_proto_rawDesc = "" +
 	"\n" +
 	"\"orchestrator/v1/bitcoin_conf.proto\x12\x0forchestrator.v1\"\x19\n" +
-	"\x17GetBitcoinConfigRequest\"\x88\x04\n" +
+	"\x17GetBitcoinConfigRequest\"\xb3\x04\n" +
 	"\x18GetBitcoinConfigResponse\x12\x18\n" +
 	"\anetwork\x18\x01 \x01(\tR\anetwork\x12\x19\n" +
 	"\brpc_port\x18\x02 \x01(\x05R\arpcPort\x12(\n" +
@@ -472,8 +482,9 @@ const file_orchestrator_v1_bitcoin_conf_proto_rawDesc = "" +
 	"\frpc_password\x18\n" +
 	" \x01(\tR\vrpcPassword\x12'\n" +
 	"\x0fdefault_datadir\x18\v \x01(\tR\x0edefaultDatadir\x12'\n" +
-	"\x0fforknet_datadir\x18\f \x01(\tR\x0eforknetDatadir\x12'\n" +
-	"\x0fdrynet2_datadir\x18\r \x01(\tR\x0edrynet2Datadir\":\n" +
+	"\x0fforknet_datadir\x18\f \x01(\tR\x0eforknetDatadir\x12%\n" +
+	"\x0edrynet_datadir\x18\r \x01(\tR\rdrynetDatadir\x12+\n" +
+	"\x11drynet_generation\x18\x0e \x01(\tR\x10drynetGeneration\":\n" +
 	"\x1eSetBitcoinConfigNetworkRequest\x12\x18\n" +
 	"\anetwork\x18\x01 \x01(\tR\anetwork\"!\n" +
 	"\x1fSetBitcoinConfigNetworkResponse\"U\n" +

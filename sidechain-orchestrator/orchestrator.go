@@ -21,6 +21,7 @@ import (
 	"golang.org/x/net/http2"
 
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config/netcatalog"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/datasource"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/fork"
 	enforcerpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1"
@@ -110,6 +111,23 @@ type Orchestrator struct {
 	DataDir      string
 	Network      string
 	BitwindowDir string
+
+	// Catalog is the resolved network catalog (service endpoints, explorer
+	// templates, and the live drynet generation id).
+	Catalog netcatalog.Catalog
+
+	// rawConfigs holds the binary configs exactly as loaded, placeholders
+	// intact. Expansion is not reversible, so a later generation has to be
+	// applied to these rather than to the already-expanded o.configs.
+	rawConfigs map[string]BinaryConfig
+
+	// pendingSnapshot is a UTXO snapshot to apply the next time bitcoind comes
+	// up. Guarded by mu.
+	pendingSnapshot *SnapshotSource
+
+	// drynetID is the live drynet generation ("drynet2"). Guarded by mu; read
+	// by UpdateConfigs to expand the placeholder in freshly loaded configs.
+	drynetID string
 
 	BitcoinConf    *config.BitcoinConfManager
 	EnforcerConf   *config.EnforcerConfManager
@@ -233,6 +251,7 @@ func New(dataDir, network, bitwindowDir string, configs []BinaryConfig, log zero
 		BitwindowDir: bitwindowDir,
 		Settings:     settings,
 		configs:      lo.SliceToMap(configs, func(c BinaryConfig) (string, BinaryConfig) { return c.Name, c }),
+		rawConfigs:   lo.SliceToMap(configs, func(c BinaryConfig) (string, BinaryConfig) { return c.Name, c }),
 		download:     NewDownloadManager(dataDir, ConfigFilePath(bitwindowDir), log),
 		process:      NewProcessManager(dataDir, pidMgr, log),
 		pidManager:   pidMgr,
@@ -461,8 +480,12 @@ func (o *Orchestrator) discoverPid(cfg BinaryConfig) int {
 func (o *Orchestrator) UpdateConfigs(configs []BinaryConfig) {
 	o.mu.Lock()
 	defer o.mu.Unlock()
+	if o.rawConfigs == nil {
+		o.rawConfigs = make(map[string]BinaryConfig, len(configs))
+	}
 	for _, c := range configs {
-		o.configs[c.Name] = c
+		o.rawConfigs[c.Name] = c
+		o.configs[c.Name] = expandDrynetPlaceholder(c, o.drynetID)
 	}
 }
 
@@ -754,8 +777,6 @@ func (o *Orchestrator) StartWithL1(ctx context.Context, target string, opts Star
 				return
 			}
 
-			o.maybeLoadDrynet2Snapshot(ctx, ch)
-
 			o.startEnforcerWhenReady(ctx, opts, enforcerPrefetch)
 
 			// Wait for enforcer's gRPC port to actually accept dials before
@@ -877,7 +898,16 @@ func (o *Orchestrator) injectHeadlessForForcedBackend(config BinaryConfig, opts 
 //  1. startConnectionTimer() — pings once, then starts 1s timer
 //  2. if (connected) → "already running, not booting" → return
 //  3. else → bootProcess() → wait for connection
-func (o *Orchestrator) startBitcoindOnly(ctx context.Context, opts StartOpts, ch chan<- StartupProgress) bool {
+func (o *Orchestrator) startBitcoindOnly(ctx context.Context, opts StartOpts, ch chan<- StartupProgress) (started bool) {
+	// A UTXO snapshot can only be loaded against a live, RPC-reachable node, so
+	// every path that brings bitcoind up gets the apply for free rather than
+	// each caller having to remember it.
+	defer func() {
+		if started {
+			o.maybeApplySnapshot(ctx, ch)
+		}
+	}()
+
 	coreCfg := o.configs["bitcoind"]
 	var coreHealthOpts HealthCheckOpts
 	if o.BitcoinConf != nil {
@@ -1038,7 +1068,6 @@ func (o *Orchestrator) RestartDaemon(ctx context.Context, name string) (<-chan S
 			if !o.startBitcoindOnly(ctx, opts, ch) {
 				return
 			}
-			o.maybeLoadDrynet2Snapshot(ctx, ch)
 			ch <- StartupProgress{Stage: "done", Message: fmt.Sprintf("%s started", config.DisplayName), Done: true}
 
 		case "enforcer":
@@ -1938,8 +1967,11 @@ func enforcerNetworkSwapStatePaths(root string) []string {
 		filepath.Join(root, "wallet"),
 		filepath.Join(root, "bitcoin"),
 		filepath.Join(root, "mainnet"),
+		// forknet/drynet2 are retired network names, still listed so an
+		// upgrade clears the state directories they left behind.
 		filepath.Join(root, "forknet"),
 		filepath.Join(root, "drynet2"),
+		filepath.Join(root, "drynet"),
 		filepath.Join(root, "signet"),
 		filepath.Join(root, "testnet"),
 		filepath.Join(root, "regtest"),
@@ -2644,7 +2676,7 @@ func (o *Orchestrator) GetSyncStatus(ctx context.Context) (*SyncStatus, error) {
 	// above). The local sidechain RPC only reports blocks it has indexed,
 	// which can't act as the goal — that has to be the network tip. The
 	// explorer is a best-effort UX extra: only signet has one today, so on
-	// mainnet/testnet/regtest/forknet the fetch always fails. When it does,
+	// mainnet/testnet/regtest/drynet the fetch always fails. When it does,
 	// leave Headers at zero. The previous behaviour set Headers=Blocks,
 	// which made progress = blocks/blocks = 1.0 and rendered every running
 	// sidechain as fully synced even mid-IBD — a far worse failure mode
@@ -2698,12 +2730,16 @@ const explorerCacheTTL = 30 * time.Second
 type explorerHeightsConnection struct{ o *Orchestrator }
 
 func (c *explorerHeightsConnection) Fetch(ctx context.Context) (map[string]int64, error) {
-	// "forknet" runs on mainnet params for the L1 but the explorer host
-	// keys it as "forknet". The other readable names match the URL slug
-	// directly (mainnet/signet/testnet/regtest). Today only signet has a
-	// live explorer; calls on any other network fail, the CachedConnection
-	// last-good-on-error logic keeps serving the previous (or empty) map.
-	url := fmt.Sprintf("https://node.%s.drivechain.info/api/explorer.v1.ExplorerService/GetChainTips", c.o.Network)
+	// Only networks with hosted infrastructure have a public explorer. Drynet
+	// lives on drivechain.dev under a per-generation host and publishes no tip
+	// endpoint at all, so building a drivechain.info URL for it just dials a
+	// name that has never existed, once per poll.
+	network := config.NetworkFromString(c.o.Network)
+	if config.RemoteOrchestratorURLForNetwork(network) == "" {
+		return nil, fmt.Errorf("no public explorer for %s", network)
+	}
+	// Readable names match the explorer URL slug directly.
+	url := fmt.Sprintf("https://node.%s.drivechain.info/api/explorer.v1.ExplorerService/GetChainTips", network.ReadableName())
 
 	rpcCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
