@@ -243,6 +243,20 @@ class OrchestratorRPC {
     return _unaryClient.restartL1(RestartL1Request());
   }
 
+  /// Load a UTXO snapshot into the running Bitcoin Core. Pass exactly one of
+  /// [url] or [path]; [sha256] is optional and skips verification when omitted.
+  /// Streams download and load progress. Nothing is stopped or deleted — a
+  /// snapshot Core refuses arrives as an error carrying Core's own message.
+  Stream<ApplyUTXOSnapshotResponse> applyUTXOSnapshot({
+    String url = '',
+    String path = '',
+    String sha256 = '',
+  }) {
+    return _streamClient.applyUTXOSnapshot(
+      ApplyUTXOSnapshotRequest(url: url, path: path, sha256: sha256),
+    );
+  }
+
   Stream<ShutdownAllResponse> shutdownAll({bool force = false}) {
     return _streamClient.shutdownAll(ShutdownAllRequest(force: force));
   }

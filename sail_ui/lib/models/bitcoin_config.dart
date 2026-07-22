@@ -4,7 +4,7 @@ const String kBitcoinConfVersionCommentPrefix = '# bitwindow-bitcoin-conf-versio
 class BitcoinConfig {
   Map<String, String> globalSettings = {};
   // Network sections - only valid Bitcoin Core sections
-  // Note: forknet uses 'main' section since it runs on mainnet params
+  // Note: forknet and drynet use 'main' section since they run on mainnet params
   Map<String, Map<String, String>> networkSettings = {
     'main': {},
     'test': {},

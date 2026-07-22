@@ -38,7 +38,8 @@ const GetBitcoinConfigResponse$json = {
     {'1': 'rpc_password', '3': 10, '4': 1, '5': 9, '10': 'rpcPassword'},
     {'1': 'default_datadir', '3': 11, '4': 1, '5': 9, '10': 'defaultDatadir'},
     {'1': 'forknet_datadir', '3': 12, '4': 1, '5': 9, '10': 'forknetDatadir'},
-    {'1': 'drynet2_datadir', '3': 13, '4': 1, '5': 9, '10': 'drynet2Datadir'},
+    {'1': 'drynet_datadir', '3': 13, '4': 1, '5': 9, '10': 'drynetDatadir'},
+    {'1': 'drynet_generation', '3': 14, '4': 1, '5': 9, '10': 'drynetGeneration'},
   ],
 };
 
@@ -52,8 +53,9 @@ final $typed_data.Uint8List getBitcoinConfigResponseDescriptor = $convert.base64
     'V0d29ya1N1cHBvcnRzU2lkZWNoYWlucxIgCgxpc19kZW1vX21vZGUYCCABKAhSCmlzRGVtb01v'
     'ZGUSGQoIcnBjX3VzZXIYCSABKAlSB3JwY1VzZXISIQoMcnBjX3Bhc3N3b3JkGAogASgJUgtycG'
     'NQYXNzd29yZBInCg9kZWZhdWx0X2RhdGFkaXIYCyABKAlSDmRlZmF1bHREYXRhZGlyEicKD2Zv'
-    'cmtuZXRfZGF0YWRpchgMIAEoCVIOZm9ya25ldERhdGFkaXISJwoPZHJ5bmV0Ml9kYXRhZGlyGA'
-    '0gASgJUg5kcnluZXQyRGF0YWRpcg==');
+    'cmtuZXRfZGF0YWRpchgMIAEoCVIOZm9ya25ldERhdGFkaXISJQoOZHJ5bmV0X2RhdGFkaXIYDS'
+    'ABKAlSDWRyeW5ldERhdGFkaXISKwoRZHJ5bmV0X2dlbmVyYXRpb24YDiABKAlSEGRyeW5ldEdl'
+    'bmVyYXRpb24=');
 
 @$core.Deprecated('Use setBitcoinConfigNetworkRequestDescriptor instead')
 const SetBitcoinConfigNetworkRequest$json = {
