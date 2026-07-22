@@ -145,8 +145,8 @@ func (c *Client) MyUTXOs(ctx context.Context) (json.RawMessage, error) {
 }
 
 // Transfer sends funds.
-func (c *Client) Transfer(ctx context.Context, dest string, valueSats, feeSats int64, memo *string) (string, error) {
-	params := []interface{}{dest, valueSats, feeSats, memo}
+func (c *Client) Transfer(ctx context.Context, dest string, valueSats, feeSats int64, memo, idempotencyKey *string) (string, error) {
+	params := []interface{}{dest, valueSats, feeSats, memo, idempotencyKey}
 	return unmarshal[string](c, ctx, "transfer", params)
 }
 

@@ -76,6 +76,18 @@ func requireRPCRequest(
 }
 
 func TestHandlerMessageRPCParameterOrder(t *testing.T) {
+	t.Run("idempotent transfer", func(t *testing.T) {
+		handler, requests, closeServer := recordingHandler(t, "txid")
+		defer closeServer()
+		memo, key := "aabb", "message-id"
+		response, err := handler.Transfer(context.Background(), connect.NewRequest(&pb.TransferRequest{
+			Address: "address", AmountSats: 1, FeeSats: 100, Memo: &memo, IdempotencyKey: &key,
+		}))
+		require.NoError(t, err)
+		assert.Equal(t, "txid", response.Msg.Txid)
+		requireRPCRequest(t, requests, "transfer", `["address",1,100,"aabb","message-id"]`)
+	})
+
 	t.Run("decrypt", func(t *testing.T) {
 		handler, requests, closeServer := recordingHandler(t, "68656c6c6f")
 		defer closeServer()

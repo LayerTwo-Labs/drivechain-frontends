@@ -4,7 +4,6 @@ import 'package:bitwindow/services/bitmessage_transport.dart';
 import 'package:http/io_client.dart';
 import 'package:socks5_proxy/socks_client.dart';
 
-/// Routes HTTP through the SOCKS5 listener exposed by bitnames-tor.
 BitMessageHttpDialer createTorBitMessageDialer({
   String proxyHost = '127.0.0.1',
   int proxyPort = 19050,

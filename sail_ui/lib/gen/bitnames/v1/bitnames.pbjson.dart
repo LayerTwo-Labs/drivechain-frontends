@@ -133,9 +133,11 @@ const TransferRequest$json = {
     {'1': 'amount_sats', '3': 2, '4': 1, '5': 3, '10': 'amountSats'},
     {'1': 'fee_sats', '3': 3, '4': 1, '5': 3, '10': 'feeSats'},
     {'1': 'memo', '3': 4, '4': 1, '5': 9, '9': 0, '10': 'memo', '17': true},
+    {'1': 'idempotency_key', '3': 5, '4': 1, '5': 9, '9': 1, '10': 'idempotencyKey', '17': true},
   ],
   '8': [
     {'1': '_memo'},
+    {'1': '_idempotency_key'},
   ],
 };
 
@@ -143,7 +145,8 @@ const TransferRequest$json = {
 final $typed_data.Uint8List transferRequestDescriptor = $convert.base64Decode(
     'Cg9UcmFuc2ZlclJlcXVlc3QSGAoHYWRkcmVzcxgBIAEoCVIHYWRkcmVzcxIfCgthbW91bnRfc2'
     'F0cxgCIAEoA1IKYW1vdW50U2F0cxIZCghmZWVfc2F0cxgDIAEoA1IHZmVlU2F0cxIXCgRtZW1v'
-    'GAQgASgJSABSBG1lbW+IAQFCBwoFX21lbW8=');
+    'GAQgASgJSABSBG1lbW+IAQESLAoPaWRlbXBvdGVuY3lfa2V5GAUgASgJSAFSDmlkZW1wb3Rlbm'
+    'N5S2V5iAEBQgcKBV9tZW1vQhIKEF9pZGVtcG90ZW5jeV9rZXk=');
 
 @$core.Deprecated('Use transferResponseDescriptor instead')
 const TransferResponse$json = {

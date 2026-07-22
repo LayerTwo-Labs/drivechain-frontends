@@ -20,6 +20,8 @@ import 'package:sail_ui/settings/client_settings.dart';
 import 'package:sail_ui/settings/hash_plaintext_settings.dart';
 import 'package:sail_ui/widgets/components/core_transaction.dart';
 
+enum BitnamesTransactionStatus { absent, pending, confirmed }
+
 /// API to the bitnames server.
 abstract class BitnamesRPC extends SidechainRPC {
   BitnamesRPC({required super.binaryType});
@@ -35,6 +37,9 @@ abstract class BitnamesRPC extends SidechainRPC {
 
   /// Return whether a transaction is included in the current canonical chain.
   Future<bool> isTransactionConfirmed(String txid);
+
+  Future<BitnamesTransactionStatus> transactionStatus(String txid) async =>
+      await isTransactionConfirmed(txid) ? BitnamesTransactionStatus.confirmed : BitnamesTransactionStatus.pending;
 
   /// List all BitNames
   Future<List<BitnameEntry>> listBitNames();
@@ -166,6 +171,14 @@ abstract class BitnamesRPC extends SidechainRPC {
     required int fee,
     String? memo,
   });
+
+  Future<String> transferIdempotent({
+    required String idempotencyKey,
+    required String dest,
+    required int value,
+    required int fee,
+    String? memo,
+  }) => transfer(dest: dest, value: value, fee: fee, memo: memo);
 }
 
 class BitnamesLive extends BitnamesRPC {
@@ -310,8 +323,13 @@ class BitnamesLive extends BitnamesRPC {
 
   @override
   Future<bool> isTransactionConfirmed(String txid) async {
+    return await transactionStatus(txid) == BitnamesTransactionStatus.confirmed;
+  }
+
+  @override
+  Future<BitnamesTransactionStatus> transactionStatus(String txid) async {
     final resp = await _client.getTransactionInfo(pb.GetTransactionInfoRequest(txid: txid));
-    return transactionInfoIsConfirmed(jsonDecode(resp.transactionInfoJson));
+    return transactionInfoStatus(jsonDecode(resp.transactionInfoJson));
   }
 
   @override
@@ -688,6 +706,26 @@ class BitnamesLive extends BitnamesRPC {
   }
 
   @override
+  Future<String> transferIdempotent({
+    required String idempotencyKey,
+    required String dest,
+    required int value,
+    required int fee,
+    String? memo,
+  }) async {
+    final resp = await _client.transfer(
+      pb.TransferRequest(
+        address: dest,
+        amountSats: Int64(value),
+        feeSats: Int64(fee),
+        memo: memo,
+        idempotencyKey: idempotencyKey,
+      ),
+    );
+    return resp.txid;
+  }
+
+  @override
   Future<String> withdraw(
     String mainchainAddress,
     int amountSats,
@@ -761,16 +799,18 @@ final bitnamesRPCMethods = [
 
 /// Decode the backend's nullable transaction information without treating a
 /// malformed response as confirmation.
-bool transactionInfoIsConfirmed(Object? info) {
-  if (info == null) return false;
+BitnamesTransactionStatus transactionInfoStatus(Object? info) {
+  if (info == null) return BitnamesTransactionStatus.absent;
   if (info is! Map<String, dynamic>) throw const FormatException('Invalid transaction info');
   final txin = info['txin'];
-  if (txin == null) return false;
+  if (txin == null) return BitnamesTransactionStatus.pending;
   if (txin is! Map<String, dynamic> || txin['block_hash'] is! String || txin['idx'] is! int) {
     throw const FormatException('Invalid transaction inclusion');
   }
-  return true;
+  return BitnamesTransactionStatus.confirmed;
 }
+
+bool transactionInfoIsConfirmed(Object? info) => transactionInfoStatus(info) == BitnamesTransactionStatus.confirmed;
 
 // Models for Bitnames RPC responses
 class BitNameData {

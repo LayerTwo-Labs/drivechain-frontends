@@ -70,10 +70,15 @@ func (h *Handler) Withdraw(ctx context.Context, req *connect.Request[pb.Withdraw
 }
 
 func (h *Handler) Transfer(ctx context.Context, req *connect.Request[pb.TransferRequest]) (*connect.Response[pb.TransferResponse], error) {
-	// BitNames transfer accepts [dest, value, fee, memo]
+	// BitNames transfer accepts [dest, value, fee, memo, idempotency_key]
 	params := []any{req.Msg.Address, req.Msg.AmountSats, req.Msg.FeeSats}
 	if req.Msg.Memo != nil {
 		params = append(params, *req.Msg.Memo)
+	} else {
+		params = append(params, nil)
+	}
+	if req.Msg.IdempotencyKey != nil {
+		params = append(params, *req.Msg.IdempotencyKey)
 	} else {
 		params = append(params, nil)
 	}

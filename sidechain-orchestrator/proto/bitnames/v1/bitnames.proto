@@ -186,6 +186,7 @@ message TransferRequest {
   int64 amount_sats = 2;
   int64 fee_sats = 3;
   optional string memo = 4;
+  optional string idempotency_key = 5;
 }
 
 message TransferResponse {

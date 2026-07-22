@@ -454,13 +454,14 @@ func (x *WithdrawResponse) GetTxid() string {
 }
 
 type TransferRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Address       string                 `protobuf:"bytes,1,opt,name=address,proto3" json:"address,omitempty"`
-	AmountSats    int64                  `protobuf:"varint,2,opt,name=amount_sats,json=amountSats,proto3" json:"amount_sats,omitempty"`
-	FeeSats       int64                  `protobuf:"varint,3,opt,name=fee_sats,json=feeSats,proto3" json:"fee_sats,omitempty"`
-	Memo          *string                `protobuf:"bytes,4,opt,name=memo,proto3,oneof" json:"memo,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	Address        string                 `protobuf:"bytes,1,opt,name=address,proto3" json:"address,omitempty"`
+	AmountSats     int64                  `protobuf:"varint,2,opt,name=amount_sats,json=amountSats,proto3" json:"amount_sats,omitempty"`
+	FeeSats        int64                  `protobuf:"varint,3,opt,name=fee_sats,json=feeSats,proto3" json:"fee_sats,omitempty"`
+	Memo           *string                `protobuf:"bytes,4,opt,name=memo,proto3,oneof" json:"memo,omitempty"`
+	IdempotencyKey *string                `protobuf:"bytes,5,opt,name=idempotency_key,json=idempotencyKey,proto3,oneof" json:"idempotency_key,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *TransferRequest) Reset() {
@@ -517,6 +518,13 @@ func (x *TransferRequest) GetFeeSats() int64 {
 func (x *TransferRequest) GetMemo() string {
 	if x != nil && x.Memo != nil {
 		return *x.Memo
+	}
+	return ""
+}
+
+func (x *TransferRequest) GetIdempotencyKey() string {
+	if x != nil && x.IdempotencyKey != nil {
+		return *x.IdempotencyKey
 	}
 	return ""
 }
@@ -3826,14 +3834,16 @@ const file_bitnames_v1_bitnames_proto_rawDesc = "" +
 	"\rside_fee_sats\x18\x03 \x01(\x03R\vsideFeeSats\x12\"\n" +
 	"\rmain_fee_sats\x18\x04 \x01(\x03R\vmainFeeSats\"&\n" +
 	"\x10WithdrawResponse\x12\x12\n" +
-	"\x04txid\x18\x01 \x01(\tR\x04txid\"\x89\x01\n" +
+	"\x04txid\x18\x01 \x01(\tR\x04txid\"\xcb\x01\n" +
 	"\x0fTransferRequest\x12\x18\n" +
 	"\aaddress\x18\x01 \x01(\tR\aaddress\x12\x1f\n" +
 	"\vamount_sats\x18\x02 \x01(\x03R\n" +
 	"amountSats\x12\x19\n" +
 	"\bfee_sats\x18\x03 \x01(\x03R\afeeSats\x12\x17\n" +
-	"\x04memo\x18\x04 \x01(\tH\x00R\x04memo\x88\x01\x01B\a\n" +
-	"\x05_memo\"&\n" +
+	"\x04memo\x18\x04 \x01(\tH\x00R\x04memo\x88\x01\x01\x12,\n" +
+	"\x0fidempotency_key\x18\x05 \x01(\tH\x01R\x0eidempotencyKey\x88\x01\x01B\a\n" +
+	"\x05_memoB\x12\n" +
+	"\x10_idempotency_key\"&\n" +
 	"\x10TransferResponse\x12\x12\n" +
 	"\x04txid\x18\x01 \x01(\tR\x04txid\"\x1b\n" +
 	"\x19GetSidechainWealthRequest\"0\n" +

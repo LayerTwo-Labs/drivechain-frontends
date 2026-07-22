@@ -3,6 +3,8 @@ import 'dart:convert';
 import 'package:bitwindow/models/bitintroduction_protocol.dart';
 import 'package:http/http.dart' as http;
 
+// dart format off
+
 enum BitMessageTransportType { direct, tor }
 
 class BitMessageHttpResponse {
@@ -80,24 +82,12 @@ class BitMessageTransport {
   final Duration requestTimeout;
   final int maxProfileResponseBytes;
 
-  Future<BitMessageSendResult> send(
-    BitMessageWire wire,
-    VerifiedBitMessageProfile profile, {
-    bool torOnly = false,
-  }) async {
+  Future<BitMessageSendResult> send(BitMessageWire wire, VerifiedBitMessageProfile profile,
+    {bool torOnly = false}) async {
     if (wire.recipientBitNameHash != profile.bitNameHash) {
       throw ArgumentError('Wire recipient does not match the verified profile');
     }
-    final routes = <_HttpRoute>[];
-    if (!torOnly) {
-      routes.addAll(
-        profile.directEndpoints.map((uri) => _HttpRoute(BitMessageTransportType.direct, uri, directDialer)),
-      );
-    }
-    final tor = torDialer;
-    if (tor != null) {
-      routes.addAll(profile.torEndpoints.map((uri) => _HttpRoute(BitMessageTransportType.tor, uri, tor)));
-    }
+    final routes = _routes(profile.profile, torOnly);
     if (torOnly && routes.isEmpty) {
       throw const BitMessageTransportException('Tor mode is enabled but no Tor route is available', []);
     }
@@ -106,19 +96,13 @@ class BitMessageTransport {
     for (final route in routes) {
       try {
         await _verifyProfile(route, profile);
-        final response = await route.dialer.postJson(
-          route.endpoint.resolve('bitmessage_submit'),
-          body: canonicalJsonEncode(wire.toJson()),
-          timeout: requestTimeout,
-        );
+        final response = await route.dialer.postJson(route.endpoint.resolve('bitmessage_submit'),
+          body: canonicalJsonEncode(wire.toJson()), timeout: requestTimeout);
         if (response.statusCode < 200 || response.statusCode >= 300) {
           throw StateError('submit returned HTTP ${response.statusCode}');
         }
-        return BitMessageSendResult(
-          transport: route.type,
-          endpoint: route.endpoint,
-          failedAttempts: List.unmodifiable(failures),
-        );
+        return BitMessageSendResult(transport: route.type, endpoint: route.endpoint,
+          failedAttempts: List.unmodifiable(failures));
       } catch (error) {
         failures.add('${route.type.name}:${route.endpoint}: $error');
       }
@@ -126,11 +110,33 @@ class BitMessageTransport {
     throw BitMessageTransportException('No BitMessage route accepted the message', List.unmodifiable(failures));
   }
 
+  Future<BitMessageProfile?> discoverProfile(BitMessageProfile previous, {bool torOnly = false}) async {
+    for (final route in _routes(previous, torOnly)) {
+      try {
+        final profile = await _readProfile(route);
+        if (profile.bitNameHash == previous.bitNameHash) return profile;
+      } catch (_) {}
+    }
+    return null;
+  }
+
+  List<_HttpRoute> _routes(BitMessageProfile profile, bool torOnly) => [
+    if (!torOnly) ...profile.directEndpoints.map((uri) => _HttpRoute(BitMessageTransportType.direct, uri, directDialer)),
+    if (torDialer != null) ...profile.torEndpoints.map((uri) => _HttpRoute(BitMessageTransportType.tor, uri, torDialer!)),
+  ];
+
   Future<void> _verifyProfile(_HttpRoute route, VerifiedBitMessageProfile expected) async {
-    final response = await route.dialer.get(
-      route.endpoint.resolve('bitname_commit'),
-      timeout: requestTimeout,
-    );
+    final served = await _readProfile(route);
+    if (bitMessageProfileCommitment(served) != expected.onChainCommitment) {
+      throw StateError('served profile does not match the authoritative BitName commitment');
+    }
+    if (canonicalJsonEncode(served.toJson()) != canonicalJsonEncode(expected.profile.toJson())) {
+      throw StateError('served profile differs from the verified profile');
+    }
+  }
+
+  Future<BitMessageProfile> _readProfile(_HttpRoute route) async {
+    final response = await route.dialer.get(route.endpoint.resolve('bitname_commit'), timeout: requestTimeout);
     if (response.statusCode != 200) throw StateError('commit returned HTTP ${response.statusCode}');
     if (utf8.encode(response.body).length > maxProfileResponseBytes) {
       throw StateError('committed profile response is too large');
@@ -142,13 +148,7 @@ class BitMessageTransport {
       throw StateError('committed profile response is not valid JSON');
     }
     if (decoded is! Map) throw StateError('committed profile response must be an object');
-    final served = BitMessageProfile.fromJson(Map<String, dynamic>.from(decoded));
-    if (bitMessageProfileCommitment(served) != expected.onChainCommitment) {
-      throw StateError('served profile does not match the authoritative BitName commitment');
-    }
-    if (canonicalJsonEncode(served.toJson()) != canonicalJsonEncode(expected.profile.toJson())) {
-      throw StateError('served profile differs from the verified profile');
-    }
+    return BitMessageProfile.fromJson(Map<String, dynamic>.from(decoded));
   }
 
   void close() {

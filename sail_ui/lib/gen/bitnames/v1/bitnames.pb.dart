@@ -487,6 +487,7 @@ class TransferRequest extends $pb.GeneratedMessage {
     $fixnum.Int64? amountSats,
     $fixnum.Int64? feeSats,
     $core.String? memo,
+    $core.String? idempotencyKey,
   }) {
     final $result = create();
     if (address != null) {
@@ -501,6 +502,9 @@ class TransferRequest extends $pb.GeneratedMessage {
     if (memo != null) {
       $result.memo = memo;
     }
+    if (idempotencyKey != null) {
+      $result.idempotencyKey = idempotencyKey;
+    }
     return $result;
   }
   TransferRequest._() : super();
@@ -512,6 +516,7 @@ class TransferRequest extends $pb.GeneratedMessage {
     ..aInt64(2, _omitFieldNames ? '' : 'amountSats')
     ..aInt64(3, _omitFieldNames ? '' : 'feeSats')
     ..aOS(4, _omitFieldNames ? '' : 'memo')
+    ..aOS(5, _omitFieldNames ? '' : 'idempotencyKey')
     ..hasRequiredFields = false
   ;
 
@@ -571,6 +576,15 @@ class TransferRequest extends $pb.GeneratedMessage {
   $core.bool hasMemo() => $_has(3);
   @$pb.TagNumber(4)
   void clearMemo() => clearField(4);
+
+  @$pb.TagNumber(5)
+  $core.String get idempotencyKey => $_getSZ(4);
+  @$pb.TagNumber(5)
+  set idempotencyKey($core.String v) { $_setString(4, v); }
+  @$pb.TagNumber(5)
+  $core.bool hasIdempotencyKey() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearIdempotencyKey() => clearField(5);
 }
 
 class TransferResponse extends $pb.GeneratedMessage {

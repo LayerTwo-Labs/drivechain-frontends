@@ -1,4 +1,4 @@
-// dart format width=120
+// dart format off
 
 import 'dart:async';
 import 'dart:convert';
@@ -7,25 +7,11 @@ import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:sail_ui/sail_ui.dart';
 
-enum BitnamesTorState {
-  unavailable,
-  notDownloaded,
-  stopped,
-  downloading,
-  starting,
-  ready,
-  error,
-}
+enum BitnamesTorState { unavailable, notDownloaded, stopped, downloading, starting, ready, error }
 
 class BitnamesTorStatus {
-  const BitnamesTorStatus({
-    required this.state,
-    this.onionHost,
-    this.p2pOnion,
-    this.p2pReady = false,
-    this.socksAddress = '127.0.0.1:19050',
-    this.error,
-  });
+  const BitnamesTorStatus({required this.state, this.onionHost, this.p2pOnion, this.p2pReady = false,
+    this.socksAddress = '127.0.0.1:19050', this.error});
   final BitnamesTorState state;
   final String? onionHost, p2pOnion, error;
   final bool p2pReady;
@@ -34,16 +20,14 @@ class BitnamesTorStatus {
 }
 
 class BitnamesTorController {
-  BitnamesTorController({
-    required this.orchestrator,
-    http.Client? httpClient,
-    Uri? statusEndpoint,
-  }) : statusEndpoint = statusEndpoint ?? Uri.parse('http://127.0.0.1:37998/status'),
+  BitnamesTorController({required this.orchestrator, http.Client? httpClient, Uri? statusEndpoint, this._controlToken})
+    : statusEndpoint = statusEndpoint ?? Uri.parse('http://127.0.0.1:37998/status'),
        _httpClient = httpClient ?? http.Client();
   static const binaryName = 'bitnames-tor';
   final OrchestratorRPC orchestrator;
   final Uri statusEndpoint;
   final http.Client _httpClient;
+  String? _controlToken;
   final Set<String> _tunnelAddresses = {};
   bool _chainTorPrepared = false;
   bool get chainTorPrepared => _chainTorPrepared;
@@ -94,19 +78,11 @@ class BitnamesTorController {
     throw TimeoutException('Timed out starting BitNames Tor');
   }
 
-  Future<void> stop() async {
-    _chainTorPrepared = false;
-    _tunnelAddresses.clear();
-    await orchestrator.stopBinary(binaryName);
-  }
+  Future<void> stop() async { _chainTorPrepared = false; _tunnelAddresses.clear(); await orchestrator.stopBinary(binaryName); }
 
   Future<String> connectP2P(String onion) async {
     final endpoint = statusEndpoint.replace(path: '/p2p/connect');
-    final request = _httpClient.post(
-      endpoint,
-      headers: const {'content-type': 'application/json'},
-      body: jsonEncode({'onion': onion}),
-    );
+    final request = _httpClient.post(endpoint, headers: await _headers(contentType: true), body: jsonEncode({'onion': onion}));
     final response = await request.timeout(const Duration(seconds: 20));
     if (response.statusCode != 200) {
       throw StateError('BitNames Tor peer failed: ${response.body.trim()}');
@@ -120,16 +96,13 @@ class BitnamesTorController {
     return address;
   }
 
-  Future<void> enableChainTor(
-    BitnamesRPC rpc,
-    String peerOnion, {
-    Duration timeout = const Duration(minutes: 2),
-  }) async {
+  Future<void> enableChainTor(BitnamesRPC rpc, String peerOnion,
+    {Duration timeout = const Duration(minutes: 2)}) async {
     _chainTorPrepared = false;
     final status = await refresh();
     if (!status.ready || !status.p2pReady) throw StateError('Start BitNames Tor before enabling Tor mode');
     final tunnel = await connectP2P(peerOnion);
-    await _restartBitNames(['--tor-proxy-mode'], timeout);
+    await _restartBitNames(['--tor-proxy-mode', '--tor-proxy-peer', tunnel], timeout);
     await rpc.connectPeer(tunnel);
     _chainTorPrepared = true;
     final deadline = DateTime.now().add(timeout);
@@ -142,10 +115,7 @@ class BitnamesTorController {
   }
 
   Future<void> disableChainTor({Duration timeout = const Duration(minutes: 2)}) async {
-    _chainTorPrepared = false;
-    _tunnelAddresses.clear();
-    await _restartBitNames(const [], timeout);
-  }
+    _chainTorPrepared = false; _tunnelAddresses.clear(); await _restartBitNames(const [], timeout); }
 
   Future<bool> chainTorReady(BitnamesRPC rpc) async {
     if (!_chainTorPrepared) return false;
@@ -178,7 +148,7 @@ class BitnamesTorController {
 
   Future<BitnamesTorStatus?> _runtimeStatus() async {
     try {
-      final request = _httpClient.get(statusEndpoint, headers: const {'accept': 'application/json'});
+      final request = _httpClient.get(statusEndpoint, headers: await _headers());
       final body = jsonDecode((await request.timeout(const Duration(seconds: 1))).body);
       if (body is! Map) return null;
       final json = Map<String, dynamic>.from(body);
@@ -186,17 +156,21 @@ class BitnamesTorController {
       final error = (rawError?.trim().isEmpty ?? true) ? null : rawError;
       var state = error == null ? BitnamesTorState.starting : BitnamesTorState.error;
       if (json['ready'] == true) state = BitnamesTorState.ready;
-      return BitnamesTorStatus(
-        state: state,
-        onionHost: _withoutScheme(json['onion'] as String?),
-        p2pOnion: json['p2p_onion'] as String?,
-        p2pReady: json['p2p_ready'] == true,
-        socksAddress: json['socks_address'] as String? ?? '127.0.0.1:19050',
-        error: error,
-      );
-    } catch (_) {
-      return null;
-    }
+      return BitnamesTorStatus(state: state, onionHost: _withoutScheme(json['onion'] as String?),
+        p2pOnion: json['p2p_onion'] as String?, p2pReady: json['p2p_ready'] == true,
+        socksAddress: json['socks_address'] as String? ?? '127.0.0.1:19050', error: error);
+    } catch (_) { return null; }
+  }
+
+  Future<Map<String, String>> _headers({bool contentType = false}) async => {
+    'accept': 'application/json', 'authorization': 'Bearer ${await _token()}',
+    if (contentType) 'content-type': 'application/json',
+  };
+  Future<String> _token() async {
+    if (_controlToken != null) return _controlToken!;
+    final env = Platform.environment, home = env['HOME'] ?? env['USERPROFILE'];
+    final base = Platform.isWindows ? env['APPDATA'] : Platform.isMacOS ? '$home/Library/Application Support' : env['XDG_CONFIG_HOME'] ?? '$home/.config';
+    return _controlToken = (await File('$base/bitnames-tor/control-token').readAsString()).trim();
   }
 
   Future<void> _pause() => Future<void>.delayed(const Duration(milliseconds: 500));
