@@ -21,8 +21,10 @@ class _SettingsNetworkState extends State<SettingsNetwork> {
   TorConfigProvider get _torProvider => GetIt.I.get<TorConfigProvider>();
   WalletReaderProvider get _walletReader => GetIt.I.get<WalletReaderProvider>();
   bool _isSelectingDataDir = false;
+  bool _isPickingSnapshot = false;
   final _electrumServerController = TextEditingController();
   final _torProxyController = TextEditingController();
+  final _snapshotController = TextEditingController();
 
   bool get _isElectrumWallet => _walletReader.activeWallet?.isElectrum ?? false;
 
@@ -53,6 +55,7 @@ class _SettingsNetworkState extends State<SettingsNetwork> {
     _walletReader.removeListener(setstate);
     _electrumServerController.dispose();
     _torProxyController.dispose();
+    _snapshotController.dispose();
     super.dispose();
   }
 
@@ -196,6 +199,45 @@ class _SettingsNetworkState extends State<SettingsNetwork> {
     await _confProvider.updateDataDir(null, forNetwork: _confProvider.network);
   }
 
+  Future<void> _pickSnapshotFile() async {
+    setState(() => _isPickingSnapshot = true);
+    try {
+      final result = await FilePicker.pickFiles(dialogTitle: 'Choose a UTXO snapshot');
+      final path = result?.files.single.path;
+      if (path != null) {
+        _snapshotController.text = path;
+      }
+    } catch (e) {
+      if (mounted) {
+        showSailToast(context, 'Could not open the file picker: $e', variant: SailToastVariant.destructive);
+      }
+    } finally {
+      if (mounted) setState(() => _isPickingSnapshot = false);
+    }
+  }
+
+  Future<void> _applySnapshot() async {
+    final source = _snapshotController.text.trim();
+    if (source.isEmpty) {
+      showSailToast(context, 'Enter a snapshot URL or choose a file first', variant: SailToastVariant.destructive);
+      return;
+    }
+    // A bare URL is downloaded; anything else is treated as a local file.
+    final isURL = source.startsWith('http://') || source.startsWith('https://');
+
+    final applied = await Navigator.of(context).push<bool>(
+      sailRoute(
+        builder: (_) => UTXOSnapshotPage(
+          url: isURL ? source : '',
+          filePath: isURL ? '' : source,
+        ),
+      ),
+    );
+    if (applied == true) {
+      _snapshotController.clear();
+    }
+  }
+
   Future<void> _handleVariantChange(String? id) async {
     if (id == null || id == _variantProvider.activeId) return;
 
@@ -239,7 +281,7 @@ class _SettingsNetworkState extends State<SettingsNetwork> {
     final showDataDir =
         _confProvider.network == BitcoinNetwork.BITCOIN_NETWORK_MAINNET ||
         _confProvider.network == BitcoinNetwork.BITCOIN_NETWORK_FORKNET ||
-        _confProvider.network == BitcoinNetwork.BITCOIN_NETWORK_DRYNET2 ||
+        _confProvider.network == BitcoinNetwork.BITCOIN_NETWORK_DRYNET ||
         _confProvider.detectedDataDir != null;
     final canEditDataDir = !_confProvider.hasPrivateBitcoinConf;
 
@@ -377,8 +419,8 @@ class _SettingsNetworkState extends State<SettingsNetwork> {
                   label: BitcoinNetwork.BITCOIN_NETWORK_FORKNET.toDisplayName(),
                 ),
                 SailDropdownItem<BitcoinNetwork>(
-                  value: BitcoinNetwork.BITCOIN_NETWORK_DRYNET2,
-                  label: BitcoinNetwork.BITCOIN_NETWORK_DRYNET2.toDisplayName(),
+                  value: BitcoinNetwork.BITCOIN_NETWORK_DRYNET,
+                  label: BitcoinNetwork.BITCOIN_NETWORK_DRYNET.toDisplayName(),
                 ),
                 SailDropdownItem<BitcoinNetwork>(
                   value: BitcoinNetwork.BITCOIN_NETWORK_SIGNET,
@@ -433,7 +475,7 @@ class _SettingsNetworkState extends State<SettingsNetwork> {
               SailText.primary15(
                 switch (_confProvider.network) {
                   BitcoinNetwork.BITCOIN_NETWORK_FORKNET => 'Bitcoin Data Directory — Forknet',
-                  BitcoinNetwork.BITCOIN_NETWORK_DRYNET2 => 'Bitcoin Data Directory — Drynet2',
+                  BitcoinNetwork.BITCOIN_NETWORK_DRYNET => 'Bitcoin Data Directory — Drynet',
                   _ => 'Bitcoin Data Directory — Default',
                 },
               ),
@@ -479,6 +521,40 @@ class _SettingsNetworkState extends State<SettingsNetwork> {
               ),
             ],
           ),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SailText.primary15('UTXO Snapshot'),
+            const SailSpacing(SailStyleValues.padding08),
+            SailRow(
+              spacing: SailStyleValues.padding08,
+              children: [
+                Expanded(
+                  child: SailTextField(
+                    controller: _snapshotController,
+                    hintText: 'https://example.com/utxo-957600.dat',
+                  ),
+                ),
+                SailButton(
+                  label: 'Choose file',
+                  small: true,
+                  variant: ButtonVariant.secondary,
+                  loading: _isPickingSnapshot,
+                  onPressed: () async => await _pickSnapshotFile(),
+                ),
+                SailButton(
+                  label: 'Load',
+                  small: true,
+                  onPressed: () async => await _applySnapshot(),
+                ),
+              ],
+            ),
+            const SailSpacing(4),
+            SailText.secondary12(
+              'Skip the historical download by loading an assumeutxo snapshot, so Bitcoin Core validates at the tip within minutes and backfills history afterwards. Nothing is deleted, and your own bitcoin.conf is not touched.',
+            ),
+          ],
+        ),
         SailSpacing(SailStyleValues.padding64),
       ],
     );

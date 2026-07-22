@@ -458,8 +458,8 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver, Window
                                   label: 'Forknet',
                                 ),
                                 SailDropdownItem<BitcoinNetwork>(
-                                  value: BitcoinNetwork.BITCOIN_NETWORK_DRYNET2,
-                                  label: 'Drynet2',
+                                  value: BitcoinNetwork.BITCOIN_NETWORK_DRYNET,
+                                  label: 'Drynet',
                                 ),
                                 SailDropdownItem<BitcoinNetwork>(
                                   value: BitcoinNetwork.BITCOIN_NETWORK_SIGNET,

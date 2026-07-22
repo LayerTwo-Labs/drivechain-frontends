@@ -45,7 +45,7 @@ class _M4ExplorerPageState extends State<M4ExplorerPage> {
                   const SailSpacing(SailStyleValues.padding20),
                   SailText.secondary13(
                     'The Sidechain Withdrawal Admin (M4 Explorer) is only available on Drivechain-enabled networks '
-                    '(Forknet and Signet). These networks implement BIP300, which enables trustless two-way pegged sidechains.',
+                    '(Forknet, Drynet and Signet). These networks implement BIP300, which enables trustless two-way pegged sidechains.',
                   ),
                   const SailSpacing(SailStyleValues.padding20),
                   SailText.primary15('What is M4?'),
@@ -59,7 +59,7 @@ class _M4ExplorerPageState extends State<M4ExplorerPage> {
                   const SailSpacing(SailStyleValues.padding08),
                   SailText.secondary13(
                     '1. Go to Settings\n'
-                    '2. Switch to "Forknet" or "Signet" network\n'
+                    '2. Switch to "Forknet", "Drynet" or "Signet" network\n'
                     '3. Restart BitWindow\n'
                     '4. Return here to manage sidechain withdrawals',
                   ),

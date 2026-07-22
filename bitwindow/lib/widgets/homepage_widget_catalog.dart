@@ -333,7 +333,7 @@ class HomepageWidgetCatalog {
                       SailText.primary15('Unlock with BIP300'),
                       const SailSpacing(SailStyleValues.padding12),
                       SailText.secondary13(
-                        'This feature requires Forknet or Signet network. '
+                        'This feature requires Forknet, Drynet or Signet network. '
                         'Switch networks in Settings to unlock sidechain functionality.',
                       ),
                       const SailSpacing(SailStyleValues.padding12),

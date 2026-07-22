@@ -16,7 +16,9 @@ class _FakeConf extends ChangeNotifier implements BitcoinConfProvider {
 
   @override
   bool networkRequiresDataDir(BitcoinNetwork n) =>
-      n == BitcoinNetwork.BITCOIN_NETWORK_MAINNET || n == BitcoinNetwork.BITCOIN_NETWORK_FORKNET;
+      n == BitcoinNetwork.BITCOIN_NETWORK_MAINNET ||
+      n == BitcoinNetwork.BITCOIN_NETWORK_FORKNET ||
+      n == BitcoinNetwork.BITCOIN_NETWORK_DRYNET;
 
   @override
   bool hasDataDirFor(BitcoinNetwork n) => false;

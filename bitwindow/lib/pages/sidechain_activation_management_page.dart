@@ -35,7 +35,7 @@ class SidechainActivationManagementPage extends StatelessWidget {
                   SailText.primary20('Unlock Sidechain Activation with BIP300'),
                   const SailSpacing(SailStyleValues.padding20),
                   SailText.secondary13(
-                    'Sidechain activation is only available on Drivechain-enabled networks (Forknet and Signet). '
+                    'Sidechain activation is only available on Drivechain-enabled networks (Forknet, Drynet and Signet). '
                     'These networks implement BIP300, which enables trustless two-way pegged sidechains.',
                   ),
                   const SailSpacing(SailStyleValues.padding20),
@@ -50,7 +50,7 @@ class SidechainActivationManagementPage extends StatelessWidget {
                   const SailSpacing(SailStyleValues.padding08),
                   SailText.secondary13(
                     '1. Go to Settings\n'
-                    '2. Switch to "Forknet" or "Signet" network\n'
+                    '2. Switch to "Forknet", "Drynet" or "Signet" network\n'
                     '3. Restart BitWindow\n'
                     '4. Return here to manage sidechain proposals',
                   ),
