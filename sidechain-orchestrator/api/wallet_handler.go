@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -179,7 +180,9 @@ func (h *WalletHandler) ListWallets(ctx context.Context, req *connect.Request[pb
 		// and noisy (it errors on the empty seed); skip it. Advertise only for
 		// BIP47-capable backends (Core + electrum), the wallets the engine watches.
 		var bip47Code string
-		if !w.IsWatchOnly() && h.bip47Capable(w.ID) {
+		// BIP47 derives from a single master seed, which multisig and watch-only
+		// wallets don't have — skip them rather than derive from an empty seed.
+		if w.Master.SeedHex != "" && !w.IsWatchOnly() && h.bip47Capable(w.ID) {
 			code, err := wallet.Bip47PaymentCodeFromSeed(w.Master.SeedHex, h.bip47NetParams())
 			if err != nil {
 				h.svc.Log().Error().Err(err).Str("wallet_id", w.ID).Msg("ListWallets: bip47 derivation failed")
@@ -194,6 +197,7 @@ func (h *WalletHandler) ListWallets(ctx context.Context, req *connect.Request[pb
 			GradientJson:     gradientJSON,
 			CreatedAt:        w.CreatedAt.Format(time.RFC3339),
 			Bip47PaymentCode: bip47Code,
+			Multisig:         multisigInfoProto(&w),
 		}
 	}
 	return connect.NewResponse(&pb.ListWalletsResponse{
@@ -370,6 +374,147 @@ func (h *WalletHandler) CreateElectrumWallet(ctx context.Context, req *connect.R
 	return connect.NewResponse(&pb.CreateElectrumWalletResponse{
 		WalletId: w.ID,
 	}), nil
+}
+
+func (h *WalletHandler) CreateMultisigWallet(ctx context.Context, req *connect.Request[pb.CreateMultisigWalletRequest]) (*connect.Response[pb.CreateMultisigWalletResponse], error) {
+	if h.engine == nil || !h.engine.ElectrumConfigured() {
+		return nil, connect.NewError(connect.CodeFailedPrecondition,
+			errors.New("multisig wallets are not supported on this network"))
+	}
+	net := h.engine.Network()
+	cosigners := make([]wallet.MultisigCosigner, 0, len(req.Msg.Cosigners))
+	for _, c := range req.Msg.Cosigners {
+		xpub := c.Xpub
+		// For a held cosigner, derive the authoritative xpub from its seed +
+		// passphrase so the stored (watch-only) key can never disagree with the
+		// signing key — the wallet always watches exactly what it can sign.
+		if c.Mnemonic != "" {
+			seedHex := hex.EncodeToString(wallet.MnemonicToSeed(c.Mnemonic, c.Passphrase))
+			_, derived, err := wallet.DeriveAccountXprv(seedHex, "m/"+c.OriginPath, net)
+			if err != nil {
+				return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("derive cosigner xpub: %w", err))
+			}
+			xpub = derived
+		}
+		cosigners = append(cosigners, wallet.MultisigCosigner{
+			Xpub:        xpub,
+			OriginPath:  c.OriginPath,
+			Fingerprint: c.Fingerprint,
+			Mnemonic:    c.Mnemonic,
+			Passphrase:  c.Passphrase,
+			Xprv:        c.Xprv,
+		})
+	}
+	w, err := h.svc.CreateElectrumMultisig(
+		req.Msg.Name,
+		json.RawMessage(req.Msg.GradientJson),
+		int(req.Msg.M),
+		int(req.Msg.N),
+		req.Msg.ScriptType,
+		cosigners,
+	)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+	return connect.NewResponse(&pb.CreateMultisigWalletResponse{WalletId: w.ID}), nil
+}
+
+// multisigInfoProto exposes a wallet's multisig policy to the frontend. Private
+// cosigner material (mnemonic/xprv) is never included — only public data and a
+// held flag.
+func multisigInfoProto(w *wallet.WalletData) *pb.MultisigInfo {
+	if w.Multisig == nil {
+		return nil
+	}
+	cosigners := make([]*pb.MultisigCosignerInfo, 0, len(w.Multisig.Cosigners))
+	for _, c := range w.Multisig.Cosigners {
+		cosigners = append(cosigners, &pb.MultisigCosignerInfo{
+			Xpub:        c.Xpub,
+			Fingerprint: c.Fingerprint,
+			OriginPath:  c.OriginPath,
+			Held:        c.Held(),
+		})
+	}
+	return &pb.MultisigInfo{
+		M:          uint32(w.Multisig.M),
+		N:          uint32(w.Multisig.N),
+		ScriptType: w.MultisigScriptType(),
+		Cosigners:  cosigners,
+	}
+}
+
+func (h *WalletHandler) ParseMultisigConfig(ctx context.Context, req *connect.Request[pb.ParseMultisigConfigRequest]) (*connect.Response[pb.ParseMultisigConfigResponse], error) {
+	m, n, scriptType, cosigners, err := wallet.ParseMultisigConfig(req.Msg.Content)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+	}
+	pbCosigners := make([]*pb.ParsedCosigner, 0, len(cosigners))
+	for _, c := range cosigners {
+		pbCosigners = append(pbCosigners, &pb.ParsedCosigner{
+			Xpub:        c.Xpub,
+			Fingerprint: c.Fingerprint,
+			OriginPath:  c.OriginPath,
+		})
+	}
+	return connect.NewResponse(&pb.ParseMultisigConfigResponse{
+		M:          uint32(m),
+		N:          uint32(n),
+		ScriptType: scriptType,
+		Cosigners:  pbCosigners,
+	}), nil
+}
+
+func (h *WalletHandler) SignPsbtWithCosigner(ctx context.Context, req *connect.Request[pb.SignPsbtWithCosignerRequest]) (*connect.Response[pb.SignPsbtWithCosignerResponse], error) {
+	if err := h.requireEngine(); err != nil {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, err)
+	}
+	walletID, err := h.engine.ResolveWalletID(req.Msg.WalletId)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+	}
+	out, err := h.engine.SignPSBTWithCosigner(ctx, walletID, req.Msg.PsbtBase64, req.Msg.CosignerXpub)
+	if err != nil {
+		return nil, rpcError(err)
+	}
+	return connect.NewResponse(&pb.SignPsbtWithCosignerResponse{PsbtBase64: out}), nil
+}
+
+func (h *WalletHandler) MultisigPsbtStatus(ctx context.Context, req *connect.Request[pb.MultisigPsbtStatusRequest]) (*connect.Response[pb.MultisigPsbtStatusResponse], error) {
+	w := h.svc.GetWalletByID(req.Msg.WalletId)
+	if w == nil {
+		return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("wallet %s not found", req.Msg.WalletId))
+	}
+	if w.Multisig == nil {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("wallet is not a multisig wallet"))
+	}
+	status, err := wallet.MultisigPsbtSigningStatus(req.Msg.PsbtBase64, w.Multisig.Cosigners)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+	}
+	return connect.NewResponse(&pb.MultisigPsbtStatusResponse{
+		Threshold:      uint32(w.Multisig.M),
+		Signatures:     uint32(status.Signatures),
+		Finalizable:    status.Finalizable,
+		CosignerSigned: status.CosignerSigned,
+	}), nil
+}
+
+func (h *WalletHandler) BroadcastTransaction(ctx context.Context, req *connect.Request[pb.BroadcastTransactionRequest]) (*connect.Response[pb.BroadcastTransactionResponse], error) {
+	if err := h.requireEngine(); err != nil {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, err)
+	}
+	walletID, err := h.engine.ResolveWalletID(req.Msg.WalletId)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+	}
+	txid, err := h.engine.ChainForWallet(walletID).Broadcast(ctx, req.Msg.TxHex)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("broadcast: %w", err))
+	}
+	if rerr := h.engine.RefreshElectrumScan(ctx, walletID); rerr != nil {
+		h.svc.Log().Warn().Err(rerr).Str("wallet_id", walletID).Msg("refresh scan after broadcast failed")
+	}
+	return connect.NewResponse(&pb.BroadcastTransactionResponse{Txid: txid}), nil
 }
 
 // ============================================================================
@@ -1246,7 +1391,9 @@ func buildWatchWalletDataResponse(wallets []wallet.WalletData, activeID string, 
 		// code is advertised only for BIP47-capable backends (Core + electrum),
 		// the same wallets the inbound engine watches.
 		var bip47Code string
-		if !w.IsWatchOnly() && bip47Capable(w.ID) {
+		// BIP47 derives from a single master seed, which multisig and watch-only
+		// wallets don't have — skip them rather than derive from an empty seed.
+		if w.Master.SeedHex != "" && !w.IsWatchOnly() && bip47Capable(w.ID) {
 			code, err := wallet.Bip47PaymentCodeFromSeed(w.Master.SeedHex, netParams)
 			if err != nil && onBip47Err != nil {
 				onBip47Err(w.ID, err)
@@ -1261,6 +1408,7 @@ func buildWatchWalletDataResponse(wallets []wallet.WalletData, activeID string, 
 			GradientJson:     gradientJSON,
 			CreatedAt:        w.CreatedAt.Format(time.RFC3339),
 			Bip47PaymentCode: bip47Code,
+			Multisig:         multisigInfoProto(&w),
 		}
 		// Starter material lives only on the enforcer wallet (L1 mnemonic and
 		// sidechain starters are derived from its seed). Attach it to that

@@ -73,11 +73,15 @@ func ParseDescriptor(s string) (*Descriptor, error) {
 		}
 		return parseSingleSig(ScriptNestedSegwit, inner, "wpkh(")
 	case strings.HasPrefix(body, "tr("):
-		// Key-path only: a script tree (comma or brace inside) is unsupported.
 		inner, err := unwrap(body, "tr(")
 		if err != nil {
 			return nil, err
 		}
+		// tr(internal,sortedmulti_a(...)): taproot script-path multisig.
+		if strings.Contains(inner, "sortedmulti_a(") {
+			return parseTaprootMultisig(inner)
+		}
+		// Otherwise key-path only: any other script tree is unsupported.
 		if strings.ContainsAny(inner, ",{") {
 			return nil, errors.New("tr() with a script tree is not supported (key-path only)")
 		}
@@ -210,6 +214,8 @@ func (d *Descriptor) String() (string, error) {
 		body = fmt.Sprintf("sh(sortedmulti(%d,%s))", d.Threshold, strings.Join(exprs, ","))
 	case ScriptMultisigNested:
 		body = fmt.Sprintf("sh(wsh(sortedmulti(%d,%s)))", d.Threshold, strings.Join(exprs, ","))
+	case ScriptMultisigTaproot:
+		body = fmt.Sprintf("tr(%s,sortedmulti_a(%d,%s))", numsInternalKeyHex, d.Threshold, strings.Join(exprs, ","))
 	default:
 		return "", fmt.Errorf("cannot serialize script kind %s", d.Kind)
 	}
@@ -229,7 +235,7 @@ func (d *Descriptor) DeriveScript(change bool, index uint32, net *chaincfg.Param
 		chain = 1
 	}
 
-	if d.Kind.isMultisig() {
+	if d.Kind.isMultisig() || d.Kind.isTaprootMultisig() {
 		pubs := make([]*btcec.PublicKey, len(d.Keys))
 		for i, k := range d.Keys {
 			pub, err := deriveChildPub(k.Account, chain, index)
@@ -361,6 +367,45 @@ func deriveChild(account *hdkeychain.ExtendedKey, chain, index uint32) (*hdkeych
 
 // parseMultisig parses the sortedmulti wrappers — wsh (P2WSH), sh(wsh (P2SH-P2WSH),
 // and sh (legacy P2SH) — into a multisig descriptor with the matching kind.
+// parseTaprootMultisig parses the inside of a tr(): "<internal>,sortedmulti_a(m,keys)".
+// The internal key is the unspendable NUMS point; only the sortedmulti_a policy is
+// retained, since derivation re-commits the leaf under the NUMS key.
+func parseTaprootMultisig(inner string) (*Descriptor, error) {
+	sep := strings.Index(inner, ",sortedmulti_a(")
+	if sep < 0 {
+		return nil, errors.New("invalid tr(sortedmulti_a) descriptor")
+	}
+	// Only the fixed NUMS internal key is supported; anything else would derive
+	// under a different taproot output key than we sign for.
+	if internal := strings.TrimSpace(inner[:sep]); !strings.EqualFold(internal, numsInternalKeyHex) {
+		return nil, fmt.Errorf("unsupported taproot internal key %q (only the NUMS point is supported)", internal)
+	}
+	args, err := unwrap(inner[sep+1:], "sortedmulti_a(")
+	if err != nil {
+		return nil, err
+	}
+	parts := strings.Split(args, ",")
+	if len(parts) < 2 {
+		return nil, errors.New("sortedmulti_a needs a threshold and at least one key")
+	}
+	threshold, err := strconv.Atoi(strings.TrimSpace(parts[0]))
+	if err != nil {
+		return nil, fmt.Errorf("multisig threshold: %w", err)
+	}
+	keys := make([]DescriptorKey, 0, len(parts)-1)
+	for _, p := range parts[1:] {
+		k, err := parseKeyExpr(p)
+		if err != nil {
+			return nil, err
+		}
+		keys = append(keys, k)
+	}
+	if threshold < 1 || threshold > len(keys) {
+		return nil, fmt.Errorf("multisig threshold %d out of range for %d keys", threshold, len(keys))
+	}
+	return &Descriptor{Kind: ScriptMultisigTaproot, Threshold: threshold, Keys: keys}, nil
+}
+
 func parseMultisig(body string) (*Descriptor, error) {
 	var kind ScriptKind
 	var inner string

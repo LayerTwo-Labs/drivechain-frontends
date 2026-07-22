@@ -7,6 +7,7 @@ import 'package:dart_bip32_bip44/dart_bip32_bip44.dart';
 import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
+import 'package:sail_ui/gen/walletmanager/v1/walletmanager.pb.dart' as wmpb;
 import 'package:sail_ui/sail_ui.dart';
 
 /// Wallet writer provider backed by orchestrator's WalletManagerService.
@@ -120,6 +121,36 @@ class WalletWriterProvider extends ChangeNotifier {
       notifyListeners();
     } catch (e) {
       _logger.e('createElectrumWallet: failed: $e');
+      rethrow;
+    }
+  }
+
+  /// Creates an m-of-n multisig electrum wallet. Cosigners carrying a mnemonic
+  /// or xprv are held on disk and can sign; the rest are watch-only legs.
+  Future<void> createMultisigWallet({
+    required String name,
+    required WalletGradient gradient,
+    required int m,
+    required int n,
+    required String scriptType,
+    required List<wmpb.MultisigCosignerInput> cosigners,
+  }) async {
+    try {
+      final resp = await _client.createMultisigWallet(
+        name: name,
+        gradientJson: gradient.toJsonString(),
+        m: m,
+        n: n,
+        scriptType: scriptType,
+        cosigners: cosigners,
+      );
+
+      _logger.i('createMultisigWallet: created via backend, id=${resp.walletId}');
+
+      await _walletReader.init();
+      notifyListeners();
+    } catch (e) {
+      _logger.e('createMultisigWallet: failed: $e');
       rethrow;
     }
   }

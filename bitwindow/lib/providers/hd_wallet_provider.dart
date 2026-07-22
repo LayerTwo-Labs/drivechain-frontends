@@ -217,7 +217,12 @@ class HDWalletProvider extends ChangeNotifier {
     }
   }
 
-  Future<Map<String, String>> deriveExtendedKeyInfo(String mnemonic, String path, [bool isMainnet = false]) async {
+  Future<Map<String, String>> deriveExtendedKeyInfo(
+    String mnemonic,
+    String path, [
+    bool isMainnet = false,
+    String passphrase = '',
+  ]) async {
     try {
       String adjustedPath = path;
       if (isMainnet && path.contains("'1'/")) {
@@ -226,7 +231,7 @@ class HDWalletProvider extends ChangeNotifier {
         adjustedPath = path.replaceAll("'0'/", "'1'/");
       }
 
-      final mnemonicObj = Mnemonic.fromSentence(mnemonic, Language.english);
+      final mnemonicObj = Mnemonic.fromSentence(mnemonic, Language.english, passphrase: passphrase);
       final seedHex = hex.encode(mnemonicObj.seed);
       final chain = Chain.seed(seedHex);
 
@@ -390,6 +395,9 @@ class HDWalletProvider extends ChangeNotifier {
         'publicKey': pubKeyHex,
         'address': address,
         'wif': wif,
+        // The path the key was actually derived from (after any network fixup),
+        // so callers store an origin that matches the derived xpub.
+        'derivation_path': adjustedPath,
       };
     } catch (e) {
       return {};

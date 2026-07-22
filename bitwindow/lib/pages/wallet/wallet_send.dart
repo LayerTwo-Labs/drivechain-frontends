@@ -10,6 +10,7 @@ import 'package:bitwindow/providers/coin_selection_provider.dart';
 import 'package:bitwindow/pages/wallet/widgets/fee_rate_chart.dart';
 import 'package:bitwindow/utils/bitcoin_uri.dart';
 import 'package:bitwindow/widgets/airgap_psbt_dialog.dart';
+import 'package:bitwindow/widgets/multisig_sign_modal.dart';
 import 'package:bitwindow/utils/coin_selection.dart';
 import 'package:bitwindow/utils/explorer_url.dart';
 import 'package:bitwindow/utils/fee_estimation.dart';
@@ -602,6 +603,15 @@ class SendPageViewModel extends BaseViewModel {
   }
 
   Future<void> sendTransaction(BuildContext context) async {
+    // Multisig never auto-signs: build the PSBT and open the signing panel,
+    // where each on-disk keystore signs explicitly and broadcast happens once
+    // the threshold is met.
+    final activeWallet = _walletReader.activeWallet;
+    if (activeWallet != null && activeWallet.isMultisig) {
+      await _startMultisigSign(context, activeWallet);
+      return;
+    }
+
     setBusy(true);
 
     // Check if all recipients have an address
@@ -669,6 +679,25 @@ class SendPageViewModel extends BaseViewModel {
       await addressBookProvider.fetch();
       await balanceProvider.fetch();
     }
+  }
+
+  /// Build the PSBT for a multisig send and open the per-keystore signing
+  /// panel. Reuses the airgap PSBT builder (validates recipients/fee and calls
+  /// createPsbt) — the wallet's held keystores then sign in the panel.
+  Future<void> _startMultisigSign(BuildContext context, WalletData wallet) async {
+    final psbt = await buildUnsignedPsbtForAirgap(context);
+    if (psbt == null || !context.mounted) return;
+    await showThemedDialog(
+      context: context,
+      builder: (context) => MultisigSignModal(
+        walletId: wallet.id,
+        initialPsbt: psbt,
+        multisig: wallet.multisig!,
+      ),
+    );
+    await clearAll();
+    await transactionsProvider.fetch();
+    await balanceProvider.fetch();
   }
 
   /// Build an unsigned PSBT from the current recipients/fee/coin-selection for

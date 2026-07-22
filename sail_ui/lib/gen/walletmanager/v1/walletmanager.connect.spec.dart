@@ -133,6 +133,22 @@ abstract final class WalletManagerService {
     walletmanagerv1walletmanager.CreateElectrumWalletResponse.new,
   );
 
+  static const createMultisigWallet = connect.Spec(
+    '/$name/CreateMultisigWallet',
+    connect.StreamType.unary,
+    walletmanagerv1walletmanager.CreateMultisigWalletRequest.new,
+    walletmanagerv1walletmanager.CreateMultisigWalletResponse.new,
+  );
+
+  /// ParseMultisigConfig parses a descriptor or a wallet-config file (Coldcard
+  /// text / Sparrow / Specter / Caravan JSON) into an m-of-n policy + cosigners.
+  static const parseMultisigConfig = connect.Spec(
+    '/$name/ParseMultisigConfig',
+    connect.StreamType.unary,
+    walletmanagerv1walletmanager.ParseMultisigConfigRequest.new,
+    walletmanagerv1walletmanager.ParseMultisigConfigResponse.new,
+  );
+
   /// Core wallet management
   static const createBitcoinCoreWallet = connect.Spec(
     '/$name/CreateBitcoinCoreWallet',
@@ -246,6 +262,15 @@ abstract final class WalletManagerService {
     walletmanagerv1walletmanager.SignPsbtResponse.new,
   );
 
+  /// SignPsbtWithCosigner signs a multisig PSBT with a single held cosigner's key
+  /// (per-keystore signing), leaving the other legs for their own signers.
+  static const signPsbtWithCosigner = connect.Spec(
+    '/$name/SignPsbtWithCosigner',
+    connect.StreamType.unary,
+    walletmanagerv1walletmanager.SignPsbtWithCosignerRequest.new,
+    walletmanagerv1walletmanager.SignPsbtWithCosignerResponse.new,
+  );
+
   static const combinePsbt = connect.Spec(
     '/$name/CombinePsbt',
     connect.StreamType.unary,
@@ -258,6 +283,24 @@ abstract final class WalletManagerService {
     connect.StreamType.unary,
     walletmanagerv1walletmanager.FinalizePsbtRequest.new,
     walletmanagerv1walletmanager.FinalizePsbtResponse.new,
+  );
+
+  /// MultisigPsbtStatus reports signing progress for a multisig wallet's PSBT:
+  /// signature count, whether it can be finalized, and which cosigners signed.
+  static const multisigPsbtStatus = connect.Spec(
+    '/$name/MultisigPsbtStatus',
+    connect.StreamType.unary,
+    walletmanagerv1walletmanager.MultisigPsbtStatusRequest.new,
+    walletmanagerv1walletmanager.MultisigPsbtStatusResponse.new,
+  );
+
+  /// BroadcastTransaction broadcasts a finalized raw transaction over the
+  /// wallet's chain source and returns its txid.
+  static const broadcastTransaction = connect.Spec(
+    '/$name/BroadcastTransaction',
+    connect.StreamType.unary,
+    walletmanagerv1walletmanager.BroadcastTransactionRequest.new,
+    walletmanagerv1walletmanager.BroadcastTransactionResponse.new,
   );
 
   /// Seed access for cheque engine

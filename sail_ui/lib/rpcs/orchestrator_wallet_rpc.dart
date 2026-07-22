@@ -128,6 +128,34 @@ class OrchestratorWalletRPC {
     );
   }
 
+  /// Creates an m-of-n multisig electrum wallet. Cosigners carrying a mnemonic
+  /// or xprv are held on disk and can sign; the rest are watch-only legs.
+  Future<wmpb.CreateMultisigWalletResponse> createMultisigWallet({
+    required String name,
+    required String gradientJson,
+    required int m,
+    required int n,
+    required String scriptType,
+    required List<wmpb.MultisigCosignerInput> cosigners,
+  }) {
+    return _unaryClient.createMultisigWallet(
+      wmpb.CreateMultisigWalletRequest(
+        name: name,
+        gradientJson: gradientJson,
+        m: m,
+        n: n,
+        scriptType: scriptType,
+        cosigners: cosigners,
+      ),
+    );
+  }
+
+  /// Parses a descriptor or wallet-config file into a multisig policy +
+  /// cosigners, for the editable-descriptor and import-config flows.
+  Future<wmpb.ParseMultisigConfigResponse> parseMultisigConfig(String content) {
+    return _unaryClient.parseMultisigConfig(wmpb.ParseMultisigConfigRequest(content: content));
+  }
+
   Future<wmpb.SwitchWalletResponse> switchWallet(String walletId) {
     return _unaryClient.switchWallet(wmpb.SwitchWalletRequest(walletId: walletId));
   }
@@ -261,6 +289,23 @@ class OrchestratorWalletRPC {
   }
 
   /// Merge multiple PSBTs (e.g. the original plus an externally signed copy).
+  /// Signs a multisig PSBT with a single held cosigner's key (per-keystore
+  /// signing). Returns the updated PSBT with that cosigner's signature added.
+  Future<String> signPsbtWithCosigner({
+    required String walletId,
+    required String psbtBase64,
+    required String cosignerXpub,
+  }) async {
+    final response = await _unaryClient.signPsbtWithCosigner(
+      wmpb.SignPsbtWithCosignerRequest(
+        walletId: walletId,
+        psbtBase64: psbtBase64,
+        cosignerXpub: cosignerXpub,
+      ),
+    );
+    return response.psbtBase64;
+  }
+
   Future<String> combinePsbt({required List<String> psbtsBase64}) async {
     final response = await _unaryClient.combinePsbt(
       wmpb.CombinePsbtRequest(psbtBase64: psbtsBase64),
@@ -274,6 +319,25 @@ class OrchestratorWalletRPC {
       wmpb.FinalizePsbtRequest(psbtBase64: psbtBase64),
     );
     return response.rawTxHex;
+  }
+
+  /// Reports a multisig PSBT's signing progress: signature count, whether it
+  /// can be finalized, and which cosigners have signed.
+  Future<wmpb.MultisigPsbtStatusResponse> multisigPsbtStatus({
+    required String walletId,
+    required String psbtBase64,
+  }) {
+    return _unaryClient.multisigPsbtStatus(
+      wmpb.MultisigPsbtStatusRequest(walletId: walletId, psbtBase64: psbtBase64),
+    );
+  }
+
+  /// Broadcasts a finalized raw transaction over the wallet's chain.
+  Future<String> broadcastTransaction({required String walletId, required String txHex}) async {
+    final response = await _unaryClient.broadcastTransaction(
+      wmpb.BroadcastTransactionRequest(walletId: walletId, txHex: txHex),
+    );
+    return response.txid;
   }
 
   Future<wmpb.ListTransactionsResponse> listTransactions({

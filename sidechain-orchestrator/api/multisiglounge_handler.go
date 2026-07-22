@@ -112,7 +112,7 @@ func (h *MultisigLoungeHandler) BuildDescriptors(
 	if group == nil {
 		return nil, connect.NewError(connect.CodeInvalidArgument, errMissingGroup)
 	}
-	receive, change, err := wallet.BuildMultisigLoungeDescriptors(protoToLoungeGroup(group))
+	receive, change, err := wallet.BuildMultisigLoungeDescriptorsTyped(protoToLoungeGroup(group), req.Msg.GetScriptType())
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInvalidArgument, err)
 	}
