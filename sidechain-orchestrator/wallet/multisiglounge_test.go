@@ -76,6 +76,33 @@ func TestBuildDescriptorsGoldenParity(t *testing.T) {
 	assert.Equal(t, wantChange, change)
 }
 
+// TestBuildDescriptorsScriptTypes verifies the typed builder emits the correct
+// outer wrapper per multisig script type, and that the receive descriptor
+// round-trips through ParseDescriptor (the form the watch-only path parses).
+func TestBuildDescriptorsScriptTypes(t *testing.T) {
+	group, _ := loungeTestKeys(t)
+	cases := []struct {
+		scriptType string
+		prefix     string
+	}{
+		{"wsh", "wsh(sortedmulti("},
+		{"sh-wsh", "sh(wsh(sortedmulti("},
+		{"sh", "sh(sortedmulti("},
+		{"tr", "tr("},
+	}
+	for _, tc := range cases {
+		t.Run(tc.scriptType, func(t *testing.T) {
+			receive, change, err := BuildMultisigLoungeDescriptorsTyped(group, tc.scriptType)
+			require.NoError(t, err)
+			assert.True(t, strings.HasPrefix(receive, tc.prefix), "receive %q", receive)
+			assert.True(t, strings.HasPrefix(change, tc.prefix), "change %q", change)
+			// The receive descriptor must parse; change (/1/*) is derived from it.
+			_, err = ParseDescriptor(receive)
+			require.NoError(t, err)
+		})
+	}
+}
+
 // TestBuildDescriptorsBIP67Order asserts the key descriptors are emitted in
 // ascending xpub-string order regardless of input order, matching the Dart
 // _sortKeysByBIP67 (which sorts by xpub string, not serialized pubkey).
@@ -717,4 +744,71 @@ func TestMultisigSignMultiOwnedKeyE2E(t *testing.T) {
 	var afterBalance float64
 	rt.walletRPC(t, "ms", &afterBalance, "getbalance")
 	require.Less(t, afterBalance, msBalance, "balance must drop after the single-call multi-key spend")
+}
+
+// TestParseMultisigDescriptorRoundTrip parses a built watch-only descriptor back
+// into its policy + cosigners, matching the original group.
+func TestParseMultisigDescriptorRoundTrip(t *testing.T) {
+	group, _ := loungeTestKeys(t)
+	receive, _, err := BuildMultisigLoungeDescriptorsTyped(group, "wsh")
+	require.NoError(t, err)
+
+	m, n, scriptType, cosigners, err := ParseMultisigConfig(receive)
+	require.NoError(t, err)
+	assert.Equal(t, 2, m)
+	assert.Equal(t, 3, n)
+	assert.Equal(t, "wsh", scriptType)
+	require.Len(t, cosigners, 3)
+	// Every parsed cosigner xpub must be one of the group's keys, with its origin.
+	groupXpubs := map[string]bool{}
+	for _, k := range group.Keys {
+		groupXpubs[k.Xpub] = true
+	}
+	for _, c := range cosigners {
+		assert.True(t, groupXpubs[c.Xpub], "parsed xpub %s must be a group key", c.Xpub)
+		assert.Equal(t, "73c5da0a", c.Fingerprint)
+		assert.Contains(t, c.OriginPath, "48'/1'/0'/")
+	}
+}
+
+// TestParseColdcardAndCaravanConfig parses a Coldcard text config and a Caravan
+// JSON export into the same 2-of-3 policy + cosigners, normalizing SLIP-132 keys.
+func TestParseColdcardAndCaravanConfig(t *testing.T) {
+	group, _ := loungeTestKeys(t) // tpub cosigners at 48'/1'/0'/{2,3,4}'
+	k := group.Keys
+
+	coldcard := "# Coldcard Multisig setup file\n" +
+		"Name: Test\n" +
+		"Policy: 2 of 3\n" +
+		"Derivation: m/48'/1'/0'/2'\n" +
+		"Format: P2WSH\n\n" +
+		"73C5DA0A: " + k[0].Xpub + "\n" +
+		"73C5DA0A: " + k[1].Xpub + "\n" +
+		"73C5DA0A: " + k[2].Xpub + "\n"
+
+	m, n, scriptType, cosigners, err := ParseMultisigConfig(coldcard)
+	require.NoError(t, err)
+	assert.Equal(t, 2, m)
+	assert.Equal(t, 3, n)
+	assert.Equal(t, "wsh", scriptType)
+	require.Len(t, cosigners, 3)
+	assert.Equal(t, k[0].Xpub, cosigners[0].Xpub)
+	assert.Equal(t, "73c5da0a", cosigners[0].Fingerprint)
+	assert.Equal(t, "48'/1'/0'/2'", cosigners[0].OriginPath)
+
+	caravan := fmt.Sprintf(`{"name":"t","addressType":"P2WSH",`+
+		`"quorum":{"requiredSigners":2,"totalSigners":3},`+
+		`"extendedPublicKeys":[`+
+		`{"xfp":"73C5DA0A","bip32Path":"m/48'/1'/0'/2'","xpub":"%s"},`+
+		`{"xfp":"73C5DA0A","bip32Path":"m/48'/1'/0'/3'","xpub":"%s"},`+
+		`{"xfp":"73C5DA0A","bip32Path":"m/48'/1'/0'/4'","xpub":"%s"}]}`,
+		k[0].Xpub, k[1].Xpub, k[2].Xpub)
+
+	m2, n2, st2, cos2, err := ParseMultisigConfig(caravan)
+	require.NoError(t, err)
+	assert.Equal(t, 2, m2)
+	assert.Equal(t, 3, n2)
+	assert.Equal(t, "wsh", st2)
+	require.Len(t, cos2, 3)
+	assert.Equal(t, "48'/1'/0'/4'", cos2[2].OriginPath)
 }

@@ -41,7 +41,7 @@ type keyDerivation struct {
 // in/out is non-nil.
 func addBip32Derivations(in *psbt.PInput, out *psbt.POutput, kind ScriptKind, ds []keyDerivation) {
 	for _, kd := range ds {
-		if kind == ScriptTaproot {
+		if kind == ScriptTaproot || kind.isTaprootMultisig() {
 			tap := &psbt.TaprootBip32Derivation{
 				XOnlyPubKey:          schnorr.SerializePubKey(kd.pub),
 				LeafHashes:           [][]byte{},
@@ -144,10 +144,15 @@ func buildPSBT(inputs []psbtInput, outputs []TxOutSpec, net *chaincfg.Params, pr
 		}
 		if in.addr.kind == ScriptTaproot {
 			packet.Inputs[i].TaprootInternalKey = schnorr.SerializePubKey(in.addr.tapInternal)
-		} else if err := updater.AddInSighashType(txscript.SigHashAll, i); err != nil {
-			return nil, err
+			addBip32Derivations(&packet.Inputs[i], nil, in.addr.kind, in.addr.derivations)
+		} else if in.addr.kind.isTaprootMultisig() {
+			addTaprootMultisigInputFields(&packet.Inputs[i], in.addr)
+		} else {
+			if err := updater.AddInSighashType(txscript.SigHashAll, i); err != nil {
+				return nil, err
+			}
+			addBip32Derivations(&packet.Inputs[i], nil, in.addr.kind, in.addr.derivations)
 		}
-		addBip32Derivations(&packet.Inputs[i], nil, in.addr.kind, in.addr.derivations)
 	}
 
 	// Mark owned change outputs so a signer can verify them as its own.
@@ -203,6 +208,9 @@ func signPSBTInput(
 ) (int, error) {
 	if in.addr.kind.isMultisig() {
 		return signMultisigInput(packet, i, in, tx, sigHashes, net)
+	}
+	if in.addr.kind.isTaprootMultisig() {
+		return signTaprootMultisigInput(packet, i, in, tx, sigHashes)
 	}
 	priv := in.addr.priv
 	if priv == nil {
@@ -265,6 +273,15 @@ func prevOutForInput(packet *psbt.Packet, i int) *wire.TxOut {
 
 // finalizeAndExtract finalizes a fully-signed PSBT and returns the raw tx hex.
 func finalizeAndExtract(packet *psbt.Packet) (string, error) {
+	// tr(sortedmulti_a) inputs are finalized by assembling the tapscript witness
+	// ourselves; the generic finalizer then sees them as already final.
+	for i := range packet.Inputs {
+		if len(packet.Inputs[i].TaprootLeafScript) > 0 {
+			if err := finalizeTaprootMultisigInput(packet, i); err != nil {
+				return "", fmt.Errorf("finalize taproot multisig input %d: %w", i, err)
+			}
+		}
+	}
 	if err := psbt.MaybeFinalizeAll(packet); err != nil {
 		return "", fmt.Errorf("finalize psbt: %w", err)
 	}
@@ -371,6 +388,35 @@ func combinePSBT(base *psbt.Packet, others ...*psbt.Packet) error {
 			}
 			if bi.TaprootKeySpendSig == nil && len(oi.TaprootKeySpendSig) > 0 {
 				bi.TaprootKeySpendSig = oi.TaprootKeySpendSig
+			}
+			// Taproot script-path (multi_a) multisig: merge each cosigner's
+			// tapscript signature and the leaf/derivation metadata, so the
+			// sign-a-copy-each-then-combine flow reaches the threshold.
+			for _, s := range oi.TaprootScriptSpendSig {
+				if !hasTapScriptSig(bi.TaprootScriptSpendSig, s.XOnlyPubKey, s.LeafHash) {
+					bi.TaprootScriptSpendSig = append(bi.TaprootScriptSpendSig, s)
+				}
+			}
+			if len(bi.TaprootLeafScript) == 0 {
+				bi.TaprootLeafScript = oi.TaprootLeafScript
+			}
+			if len(bi.TaprootInternalKey) == 0 {
+				bi.TaprootInternalKey = oi.TaprootInternalKey
+			}
+			if len(bi.TaprootMerkleRoot) == 0 {
+				bi.TaprootMerkleRoot = oi.TaprootMerkleRoot
+			}
+			for _, d := range oi.TaprootBip32Derivation {
+				found := false
+				for _, e := range bi.TaprootBip32Derivation {
+					if bytes.Equal(e.XOnlyPubKey, d.XOnlyPubKey) {
+						found = true
+						break
+					}
+				}
+				if !found {
+					bi.TaprootBip32Derivation = append(bi.TaprootBip32Derivation, d)
+				}
 			}
 		}
 	}

@@ -751,6 +751,61 @@ func (s *Service) createElectrumWatchOnly(name string, gradient json.RawMessage,
 	return &wallet, nil
 }
 
+// CreateElectrumMultisig creates an m-of-n multisig electrum wallet. Cosigners
+// carrying a mnemonic or xprv are held on disk and can sign; the rest are
+// watch-only legs. scriptType is "wsh" (native P2WSH, default), "sh-wsh"
+// (nested), or "sh" (legacy P2SH). The wallet monitors and signs through the
+// same descriptor + PSBT path as any other electrum wallet.
+func (s *Service) CreateElectrumMultisig(
+	name string,
+	gradient json.RawMessage,
+	m, n int,
+	scriptType string,
+	cosigners []MultisigCosigner,
+) (*WalletData, error) {
+	if m < 1 || m > n {
+		return nil, fmt.Errorf("invalid threshold %d-of-%d", m, n)
+	}
+	if len(cosigners) != n {
+		return nil, fmt.Errorf("expected %d cosigners, got %d", n, len(cosigners))
+	}
+	for i, c := range cosigners {
+		if c.Xpub == "" {
+			return nil, fmt.Errorf("cosigner %d has no xpub", i)
+		}
+	}
+
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	if s.locked() {
+		return nil, fmt.Errorf("wallet is locked, unlock before creating a wallet")
+	}
+
+	walletID := generateWalletID()
+	wallet := WalletData{
+		Version:    1,
+		Master:     MasterWallet{SeedHex: ""},
+		L1:         L1Wallet{Mnemonic: ""},
+		Sidechains: []SidechainWallet{},
+		ID:         walletID,
+		Name:       name,
+		Gradient:   gradient,
+		CreatedAt:  time.Now(),
+		WalletType: WalletTypeElectrum,
+		ScriptType: multisigScriptKind(scriptType).String(),
+		Multisig:   &MultisigWalletData{M: m, N: n, Cosigners: cosigners},
+	}
+
+	s.wallets = append(s.wallets, wallet)
+	s.activeWalletID = walletID
+	if err := s.saveWalletFile(); err != nil {
+		return nil, fmt.Errorf("save multisig electrum wallet: %w", err)
+	}
+	s.log.Info().Str("id", walletID).Int("m", m).Int("n", n).Msg("multisig electrum wallet created")
+	return &wallet, nil
+}
+
 // CreateWatchOnlyWallet creates a watch-only wallet from an xpub or descriptor.
 // Dart: WalletWriterProvider.createWatchOnlyWallet (L156-214)
 func (s *Service) CreateWatchOnlyWallet(name, xpubOrDescriptor, gradientJSON string) error {

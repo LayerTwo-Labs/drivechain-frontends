@@ -230,6 +230,9 @@ message MultisigGroup {
 
 message BuildDescriptorsRequest {
   MultisigGroup group = 1;
+  // Multisig script type: "wsh" (native P2WSH, default), "sh-wsh" (nested
+  // P2SH-P2WSH), or "sh" (legacy P2SH). Empty means native P2WSH.
+  string script_type = 2;
 }
 
 message BuildDescriptorsResponse {

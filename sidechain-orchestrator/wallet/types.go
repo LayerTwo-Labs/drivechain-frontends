@@ -45,6 +45,43 @@ type WalletData struct {
 	// wallet imports the single descriptor matching that purpose. Empty means
 	// the standard purposes at AccountIndex.
 	DerivationPath string `json:"derivation_path,omitempty"`
+	// Multisig, when set, makes this an m-of-n multisig wallet. Cosigners that
+	// carry a mnemonic or xprv are held on disk and can sign; the rest are
+	// watch-only legs.
+	Multisig *MultisigWalletData `json:"multisig,omitempty"`
+}
+
+// MultisigWalletData is the multisig policy stored in wallet.json. The wallet's
+// ScriptType field carries the script kind (multisig / multisig-nested /
+// multisig-p2sh); this holds the threshold and the cosigner keys.
+type MultisigWalletData struct {
+	M         int                `json:"m"`
+	N         int                `json:"n"`
+	Cosigners []MultisigCosigner `json:"cosigners"`
+}
+
+// MultisigCosigner is one leg of a multisig wallet. A cosigner with a Mnemonic
+// or Xprv is held on disk (this wallet can sign with it); one with only an Xpub
+// is a watch-only leg signed elsewhere.
+type MultisigCosigner struct {
+	Xpub        string `json:"xpub"`
+	OriginPath  string `json:"origin_path,omitempty"` // without leading m/
+	Fingerprint string `json:"fingerprint,omitempty"`
+	Mnemonic    string `json:"mnemonic,omitempty"`
+	Passphrase  string `json:"passphrase,omitempty"` // optional BIP39 passphrase for Mnemonic
+	Xprv        string `json:"xprv,omitempty"`       // account-level xprv, if imported directly
+}
+
+// Held reports whether this wallet holds the cosigner's private key.
+func (c MultisigCosigner) Held() bool { return c.Mnemonic != "" || c.Xprv != "" }
+
+// MultisigScriptType returns the wallet's multisig script-type string ("wsh",
+// "sh-wsh", or "sh"), or empty for a non-multisig wallet.
+func (w *WalletData) MultisigScriptType() string {
+	if w.Multisig == nil {
+		return ""
+	}
+	return multisigTypeString(w.scriptKind())
 }
 
 // scriptKind maps the wallet's stored script type to a ScriptKind, defaulting
@@ -63,6 +100,8 @@ func (w *WalletData) scriptKind() ScriptKind {
 		return ScriptMultisigP2SH
 	case "multisig-nested":
 		return ScriptMultisigNested
+	case "multisig-taproot":
+		return ScriptMultisigTaproot
 	default:
 		return ScriptNativeSegwit
 	}
@@ -72,6 +111,16 @@ func (w *WalletData) scriptKind() ScriptKind {
 // orthogonal capability to the backend type (Core or electrum): a wallet is
 // watch-only iff it carries an xpub/descriptor payload instead of a seed.
 func (w *WalletData) IsWatchOnly() bool {
+	if w.Multisig != nil {
+		// A multisig wallet can sign as soon as it holds one cosigner's key; it
+		// is watch-only only when every leg is external.
+		for _, c := range w.Multisig.Cosigners {
+			if c.Held() {
+				return false
+			}
+		}
+		return true
+	}
 	return len(w.WatchOnly) > 0
 }
 

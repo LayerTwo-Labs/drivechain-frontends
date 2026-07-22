@@ -153,6 +153,7 @@ class WalletReaderProvider extends ChangeNotifier {
         isElectrum: protoWallet.walletType == wmpb.WalletType.WALLET_TYPE_ELECTRUM,
         isWatchOnly: protoWallet.watchOnly,
         bip47PaymentCode: protoWallet.bip47PaymentCode,
+        multisig: protoWallet.hasMultisig() ? protoWallet.multisig : null,
       );
     }).toList();
 

@@ -27,6 +27,10 @@ service WalletManagerService {
   // Create an electrum wallet: keys are generated locally, but no local Bitcoin
   // Core or enforcer runs — chain data is served remotely via the datasource.
   rpc CreateElectrumWallet(CreateElectrumWalletRequest) returns (CreateElectrumWalletResponse);
+  rpc CreateMultisigWallet(CreateMultisigWalletRequest) returns (CreateMultisigWalletResponse);
+  // ParseMultisigConfig parses a descriptor or a wallet-config file (Coldcard
+  // text / Sparrow / Specter / Caravan JSON) into an m-of-n policy + cosigners.
+  rpc ParseMultisigConfig(ParseMultisigConfigRequest) returns (ParseMultisigConfigResponse);
 
   // Core wallet management
   rpc CreateBitcoinCoreWallet(CreateBitcoinCoreWalletRequest) returns (CreateBitcoinCoreWalletResponse);
@@ -53,8 +57,17 @@ service WalletManagerService {
   // wallets only.
   rpc CreatePsbt(CreatePsbtRequest) returns (CreatePsbtResponse);
   rpc SignPsbt(SignPsbtRequest) returns (SignPsbtResponse);
+  // SignPsbtWithCosigner signs a multisig PSBT with a single held cosigner's key
+  // (per-keystore signing), leaving the other legs for their own signers.
+  rpc SignPsbtWithCosigner(SignPsbtWithCosignerRequest) returns (SignPsbtWithCosignerResponse);
   rpc CombinePsbt(CombinePsbtRequest) returns (CombinePsbtResponse);
   rpc FinalizePsbt(FinalizePsbtRequest) returns (FinalizePsbtResponse);
+  // MultisigPsbtStatus reports signing progress for a multisig wallet's PSBT:
+  // signature count, whether it can be finalized, and which cosigners signed.
+  rpc MultisigPsbtStatus(MultisigPsbtStatusRequest) returns (MultisigPsbtStatusResponse);
+  // BroadcastTransaction broadcasts a finalized raw transaction over the
+  // wallet's chain source and returns its txid.
+  rpc BroadcastTransaction(BroadcastTransactionRequest) returns (BroadcastTransactionResponse);
 
   // Seed access for cheque engine
   rpc GetWalletSeed(GetWalletSeedRequest) returns (GetWalletSeedResponse);
@@ -187,6 +200,24 @@ message WalletMetadata {
 
   // Watch-only wallets track an external xpub/descriptor; no spending key.
   bool watch_only = 10;
+
+  // Multisig policy, present only for multisig wallets. Cosigner private
+  // material is never exposed here — only public data and a held flag.
+  MultisigInfo multisig = 11;
+}
+
+message MultisigInfo {
+  uint32 m = 1; // threshold
+  uint32 n = 2; // total cosigners
+  string script_type = 3; // wsh | sh-wsh | sh
+  repeated MultisigCosignerInfo cosigners = 4;
+}
+
+message MultisigCosignerInfo {
+  string xpub = 1;
+  string fingerprint = 2;
+  string origin_path = 3;
+  bool held = 4; // this wallet holds the key and can sign for this cosigner
 }
 
 message SidechainStarter {
@@ -337,6 +368,51 @@ message CreateElectrumWalletResponse {
   string wallet_id = 1;
 }
 
+// MultisigCosignerInput is one leg of a multisig wallet. A cosigner with a
+// mnemonic or xprv is held on disk (this wallet signs with it); one with only
+// an xpub is a watch-only leg signed elsewhere.
+message MultisigCosignerInput {
+  string xpub = 1;
+  string origin_path = 2; // without leading m/, e.g. "48'/1'/0'/2'"
+  string fingerprint = 3; // master key fingerprint, 8 hex chars
+  string mnemonic = 4;    // held: BIP39 seed, stored so the wallet can sign
+  string xprv = 5;        // held: account-level xprv, alternative to mnemonic
+  string passphrase = 6;  // optional BIP39 passphrase for mnemonic
+}
+
+message CreateMultisigWalletRequest {
+  string name = 1;
+  string gradient_json = 2;
+  uint32 m = 3; // threshold (signatures required)
+  uint32 n = 4; // total cosigners
+  // "wsh" (native P2WSH, default), "sh-wsh" (nested P2SH-P2WSH), or "sh"
+  // (legacy P2SH).
+  string script_type = 5;
+  repeated MultisigCosignerInput cosigners = 6;
+}
+
+message CreateMultisigWalletResponse {
+  string wallet_id = 1;
+}
+
+message ParseMultisigConfigRequest {
+  // An output descriptor or a wallet-config file's contents.
+  string content = 1;
+}
+
+message ParsedCosigner {
+  string xpub = 1;
+  string fingerprint = 2;
+  string origin_path = 3;
+}
+
+message ParseMultisigConfigResponse {
+  uint32 m = 1;
+  uint32 n = 2;
+  string script_type = 3; // wsh | sh-wsh | sh
+  repeated ParsedCosigner cosigners = 4;
+}
+
 // ============================================================================
 // Core Wallet Management
 // ============================================================================
@@ -453,6 +529,16 @@ message SignPsbtResponse {
   string psbt_base64 = 1;
 }
 
+message SignPsbtWithCosignerRequest {
+  string wallet_id = 1;
+  string psbt_base64 = 2;
+  string cosigner_xpub = 3;
+}
+
+message SignPsbtWithCosignerResponse {
+  string psbt_base64 = 1;
+}
+
 message CombinePsbtRequest {
   repeated string psbt_base64 = 1;
 }
@@ -467,6 +553,28 @@ message FinalizePsbtRequest {
 
 message FinalizePsbtResponse {
   string raw_tx_hex = 1;
+}
+
+message MultisigPsbtStatusRequest {
+  string wallet_id = 1;
+  string psbt_base64 = 2;
+}
+
+message MultisigPsbtStatusResponse {
+  uint32 threshold = 1;  // signatures required (m)
+  uint32 signatures = 2; // signatures present (max across inputs)
+  bool finalizable = 3;
+  // Aligned to the wallet's cosigners; true where that cosigner has signed.
+  repeated bool cosigner_signed = 4;
+}
+
+message BroadcastTransactionRequest {
+  string wallet_id = 1;
+  string tx_hex = 2;
+}
+
+message BroadcastTransactionResponse {
+  string txid = 1;
 }
 
 

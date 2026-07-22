@@ -97,20 +97,22 @@ func NewElectrumBackend(svc *Service, client ChainDataSource, network *chaincfg.
 // scannedAddr is one derived (or watched) address with its key and current
 // funding stats.
 type scannedAddr struct {
-	address       string
-	priv          *btcec.PrivateKey
-	pub           *btcec.PublicKey
-	scriptPubKey  []byte
-	redeem        []byte              // P2SH-P2WPKH redeem (nested segwit)
-	witnessScript []byte              // P2WSH multisig script
-	multisigPrivs []*btcec.PrivateKey // multisig: the keys this wallet holds
-	tapInternal   *btcec.PublicKey    // taproot internal key
-	kind          ScriptKind
-	change        bool
-	index         uint32
-	hdPath        string
-	derivations   []keyDerivation // PSBT key-derivation records (signer key matching)
-	stats         EsploraAddressStats
+	address         string
+	priv            *btcec.PrivateKey
+	pub             *btcec.PublicKey
+	scriptPubKey    []byte
+	redeem          []byte              // P2SH-P2WPKH redeem (nested segwit)
+	witnessScript   []byte              // P2WSH multisig script
+	multisigPrivs   []*btcec.PrivateKey // multisig: the keys this wallet holds
+	tapInternal     *btcec.PublicKey    // taproot internal key
+	tapLeafScript   []byte              // tr sortedmulti_a: the tapleaf multi_a script
+	tapControlBlock []byte              // tr sortedmulti_a: the leaf's control block
+	kind            ScriptKind
+	change          bool
+	index           uint32
+	hdPath          string
+	derivations     []keyDerivation // PSBT key-derivation records (signer key matching)
+	stats           EsploraAddressStats
 	// utxos and txs are the address's chain data, fetched alongside stats and
 	// cached on the scan so balance/utxo/history reads never re-hit Esplora.
 	// Both are empty for an unused address.
@@ -358,6 +360,12 @@ func (p *ElectrumBackend) NextReceiveAddress(ctx context.Context, walletID strin
 	// ScriptUnknown is the default sentinel ("the wallet's natural kind").
 	target := kind
 	if target == ScriptUnknown {
+		target = w.scriptKind()
+	}
+	// A multisig wallet has exactly one address kind — the one its descriptor
+	// defines. A single-sig address type (native-segwit/taproot/…) doesn't apply,
+	// so always serve the wallet's own kind instead of rejecting the request.
+	if w.Multisig != nil {
 		target = w.scriptKind()
 	}
 	// Serving a kind the wallet doesn't derive would yield an address it can
@@ -899,6 +907,69 @@ func (p *ElectrumBackend) SignPSBT(ctx context.Context, walletID, psbtBase64 str
 	return packet.B64Encode()
 }
 
+// SignPSBTWithCosigner signs a multisig PSBT with a single held cosigner's key
+// (identified by xpub), leaving the other legs for their own signers. It derives
+// each input's signing key at the exact path the PSBT records, so no chain scan
+// is needed — the per-keystore "Sign" action.
+func (p *ElectrumBackend) SignPSBTWithCosigner(ctx context.Context, walletID, psbtBase64, cosignerXpub string) (string, error) {
+	if err := p.requireElectrum(walletID); err != nil {
+		return "", err
+	}
+	w := p.svc.GetWalletByID(walletID)
+	if w == nil || w.Multisig == nil {
+		return "", errors.New("wallet is not a multisig wallet")
+	}
+	packet, err := decodePSBTBase64(psbtBase64)
+	if err != nil {
+		return "", err
+	}
+	desc, err := p.multisigSigningDescriptorFor(w, cosignerXpub)
+	if err != nil {
+		return "", err
+	}
+	inputs := make([]psbtInput, len(packet.Inputs))
+	for i := range packet.Inputs {
+		change, index, ok := chainIndexFromInput(packet.Inputs[i])
+		if !ok {
+			return "", fmt.Errorf("psbt input %d has no derivation path to sign from", i)
+		}
+		sa, err := p.deriveAddr(desc, change, index)
+		if err != nil {
+			return "", err
+		}
+		out := prevOutForInput(packet, i)
+		if out == nil {
+			return "", fmt.Errorf("psbt input %d missing prevout", i)
+		}
+		inputs[i] = psbtInput{
+			outpoint: packet.UnsignedTx.TxIn[i].PreviousOutPoint,
+			amount:   out.Value,
+			addr:     sa,
+		}
+	}
+	if _, err := signPSBT(packet, inputs, p.network); err != nil {
+		return "", err
+	}
+	return packet.B64Encode()
+}
+
+// chainIndexFromInput reads (change, index) from a PSBT input's BIP32 derivation
+// path — its last two elements are the chain (0/1) and address index. Handles
+// both the ECDSA (Bip32Derivation) and taproot (TaprootBip32Derivation) forms.
+func chainIndexFromInput(in psbt.PInput) (change bool, index uint32, ok bool) {
+	for _, d := range in.Bip32Derivation {
+		if len(d.Bip32Path) >= 2 {
+			return d.Bip32Path[len(d.Bip32Path)-2] == 1, d.Bip32Path[len(d.Bip32Path)-1], true
+		}
+	}
+	for _, d := range in.TaprootBip32Derivation {
+		if len(d.Bip32Path) >= 2 {
+			return d.Bip32Path[len(d.Bip32Path)-2] == 1, d.Bip32Path[len(d.Bip32Path)-1], true
+		}
+	}
+	return false, 0, false
+}
+
 // CombinePSBT merges signatures from several base64 PSBTs of the same tx.
 func (p *ElectrumBackend) CombinePSBT(psbtsBase64 []string) (string, error) {
 	if len(psbtsBase64) == 0 {
@@ -1280,6 +1351,9 @@ func (p *ElectrumBackend) walletDescriptorFor(w *WalletData, kind ScriptKind) (*
 	if p.network == nil {
 		return nil, errors.New("no chain params for this network; cannot derive electrum wallet")
 	}
+	if w.Multisig != nil {
+		return p.multisigSigningDescriptor(w)
+	}
 	if w.Master.SeedHex != "" {
 		ap, err := accountPathFor(w, kind, p.network)
 		if err != nil {
@@ -1296,6 +1370,68 @@ func (p *ElectrumBackend) walletDescriptorFor(w *WalletData, kind ScriptKind) (*
 		return nil, err
 	}
 	return ParseDescriptor(desc)
+}
+
+// multisigSigningDescriptor builds the wallet's multisig descriptor, substituting
+// each held cosigner's account xprv for its xpub (so deriveAddr yields signing
+// keys) while external legs stay xpubs. The resulting descriptor derives the same
+// addresses as the watch-only one and is signed through the same PSBT path as any
+// other input — held keys are just signers that happen to live on disk.
+func (p *ElectrumBackend) multisigSigningDescriptor(w *WalletData) (*Descriptor, error) {
+	return p.multisigSigningDescriptorFor(w, "")
+}
+
+// multisigSigningDescriptorFor builds the multisig descriptor with held cosigners
+// substituted as their xprv. When onlyXpub is non-empty, only that cosigner's
+// xprv is substituted (the rest stay xpubs), so signing adds a single cosigner's
+// signature — the per-keystore signing path.
+func (p *ElectrumBackend) multisigSigningDescriptorFor(w *WalletData, onlyXpub string) (*Descriptor, error) {
+	ms := w.Multisig
+	if ms == nil {
+		return nil, errors.New("wallet has no multisig config")
+	}
+	group := MultisigLoungeGroup{M: ms.M, N: ms.N}
+	signWithXprv := map[string]string{}
+	for _, c := range ms.Cosigners {
+		group.Keys = append(group.Keys, MultisigLoungeKey{
+			Xpub:        c.Xpub,
+			Fingerprint: c.Fingerprint,
+			OriginPath:  c.OriginPath,
+			// Emit a [fingerprint/origin] prefix whenever we have the origin, so
+			// every cosigner's key-origin lands in the PSBT (needed to attribute
+			// signatures and for external-wallet interop) — not just held keys.
+			IsWallet: c.Fingerprint != "" && c.OriginPath != "",
+		})
+		if !c.Held() {
+			continue
+		}
+		if onlyXpub != "" && c.Xpub != onlyXpub {
+			continue
+		}
+		xprv := c.Xprv
+		if xprv == "" {
+			seedHex := hex.EncodeToString(MnemonicToSeed(c.Mnemonic, c.Passphrase))
+			x, _, err := DeriveAccountXprv(seedHex, "m/"+c.OriginPath, p.network)
+			if err != nil {
+				return nil, fmt.Errorf("derive cosigner xprv: %w", err)
+			}
+			xprv = x
+		}
+		signWithXprv[c.Xpub] = xprv
+	}
+
+	scriptType := multisigTypeString(w.scriptKind())
+	var receive string
+	var err error
+	if len(signWithXprv) > 0 {
+		receive, _, err = BuildMultisigSigningDescriptorsTyped(group, signWithXprv, scriptType)
+	} else {
+		receive, _, err = BuildMultisigLoungeDescriptorsTyped(group, scriptType)
+	}
+	if err != nil {
+		return nil, err
+	}
+	return ParseDescriptor(receive)
 }
 
 // deriveAddr resolves one address of a descriptor, enriching it with the signing
@@ -1323,6 +1459,19 @@ func (p *ElectrumBackend) deriveAddr(d *Descriptor, change bool, index uint32) (
 	}
 	if d.Kind.isMultisig() {
 		a.witnessScript = ds.witnessScript
+		for _, k := range d.Keys {
+			priv, ok, err := deriveChildPrivIfPossible(k.Account, chainIndex(change), index)
+			if err != nil {
+				return scannedAddr{}, err
+			}
+			if ok {
+				a.multisigPrivs = append(a.multisigPrivs, priv)
+			}
+		}
+	} else if d.Kind.isTaprootMultisig() {
+		a.tapInternal = ds.tapInternal
+		a.tapLeafScript = ds.tapLeafScript
+		a.tapControlBlock = ds.tapControlBlock
 		for _, k := range d.Keys {
 			priv, ok, err := deriveChildPrivIfPossible(k.Account, chainIndex(change), index)
 			if err != nil {

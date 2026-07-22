@@ -19,19 +19,27 @@ import (
 type ScriptKind int
 
 const (
-	ScriptUnknown        ScriptKind = iota
-	ScriptLegacy                    // P2PKH, BIP44 (purpose 44')
-	ScriptNestedSegwit              // P2SH-P2WPKH, BIP49 (purpose 49')
-	ScriptNativeSegwit              // P2WPKH, BIP84 (purpose 84')
-	ScriptTaproot                   // P2TR key-path, BIP86 (purpose 86')
-	ScriptMultisig                  // wsh(sortedmulti): P2WSH
-	ScriptMultisigP2SH              // sh(sortedmulti): legacy P2SH
-	ScriptMultisigNested            // sh(wsh(sortedmulti)): P2SH-P2WSH
+	ScriptUnknown         ScriptKind = iota
+	ScriptLegacy                     // P2PKH, BIP44 (purpose 44')
+	ScriptNestedSegwit               // P2SH-P2WPKH, BIP49 (purpose 49')
+	ScriptNativeSegwit               // P2WPKH, BIP84 (purpose 84')
+	ScriptTaproot                    // P2TR key-path, BIP86 (purpose 86')
+	ScriptMultisig                   // wsh(sortedmulti): P2WSH
+	ScriptMultisigP2SH               // sh(sortedmulti): legacy P2SH
+	ScriptMultisigNested             // sh(wsh(sortedmulti)): P2SH-P2WSH
+	ScriptMultisigTaproot            // tr(NUMS,sortedmulti_a): P2TR script path
 )
 
-// isMultisig reports whether the kind is one of the sortedmulti wrappers.
+// isMultisig reports whether the kind is one of the P2WSH/P2SH sortedmulti
+// wrappers (signed with ECDSA partial sigs). Taproot multisig is separate.
 func (k ScriptKind) isMultisig() bool {
 	return k == ScriptMultisig || k == ScriptMultisigP2SH || k == ScriptMultisigNested
+}
+
+// isTaprootMultisig reports whether the kind is a tr(sortedmulti_a) script-path
+// multisig (signed with BIP342 tapscript schnorr signatures).
+func (k ScriptKind) isTaprootMultisig() bool {
+	return k == ScriptMultisigTaproot
 }
 
 // isNonWitness reports whether spending an input of this kind needs the full
@@ -88,6 +96,8 @@ func parseScriptKind(s string) ScriptKind {
 		return ScriptMultisigP2SH
 	case "multisig-nested":
 		return ScriptMultisigNested
+	case "multisig-taproot":
+		return ScriptMultisigTaproot
 	default:
 		return ScriptNativeSegwit
 	}
@@ -109,6 +119,8 @@ func (k ScriptKind) String() string {
 		return "multisig-p2sh"
 	case ScriptMultisigNested:
 		return "multisig-nested"
+	case ScriptMultisigTaproot:
+		return "multisig-taproot"
 	default:
 		return "unknown"
 	}
@@ -117,11 +129,13 @@ func (k ScriptKind) String() string {
 // derivedScript is the fully resolved output for one address: its encoded
 // address, scriptPubKey, and the auxiliary scripts/keys a signer needs.
 type derivedScript struct {
-	address       btcutil.Address
-	scriptPubKey  []byte
-	redeemScript  []byte // P2SH-P2WPKH: the witness program wrapped by the P2SH
-	witnessScript []byte // P2WSH multisig: the k-of-n script
-	tapInternal   *btcec.PublicKey
+	address         btcutil.Address
+	scriptPubKey    []byte
+	redeemScript    []byte // P2SH-P2WPKH: the witness program wrapped by the P2SH
+	witnessScript   []byte // P2WSH multisig: the k-of-n script
+	tapLeafScript   []byte // tr sortedmulti_a: the tapleaf multi_a script
+	tapControlBlock []byte // tr sortedmulti_a: the leaf's control block
+	tapInternal     *btcec.PublicKey
 }
 
 // singleSigOutput builds the address and scripts for one compressed pubkey
@@ -207,6 +221,10 @@ func multisigWitnessScript(threshold int, pubs []*btcec.PublicKey, net *chaincfg
 // the given multisig kind: P2WSH (native), P2SH (legacy), or P2SH-P2WSH (nested).
 // The k-of-n script is the witness/redeem script depending on the wrapper.
 func multisigOutput(kind ScriptKind, threshold int, pubs []*btcec.PublicKey, net *chaincfg.Params) (derivedScript, error) {
+	if kind == ScriptMultisigTaproot {
+		return taprootMultisigOutput(threshold, pubs, net)
+	}
+
 	ms, err := multisigWitnessScript(threshold, pubs, net)
 	if err != nil {
 		return derivedScript{}, err

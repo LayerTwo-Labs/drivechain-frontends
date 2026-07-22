@@ -38,9 +38,25 @@ func walletInputVsize(d *Descriptor) int {
 		return multisigInputVsize(d.Threshold, len(d.Keys), true)
 	case ScriptMultisigP2SH:
 		return p2shMultisigInputVsize(d.Threshold, len(d.Keys))
+	case ScriptMultisigTaproot:
+		return taprootMultisigInputVsize(d.Threshold, len(d.Keys))
 	default:
 		return inputVsize(d.Kind)
 	}
+}
+
+// taprootMultisigInputVsize estimates the vsize of spending a tr(sortedmulti_a)
+// input: a P2TR base plus the witness-discounted script-path stack of m 64-byte
+// schnorr sigs, (n-m) empty slots, the multi_a leaf script, and the control block.
+func taprootMultisigInputVsize(threshold, nKeys int) int {
+	leafScript := nKeys*33 + 3 // <32-byte key push> per key, then <m> OP_NUMEQUAL
+	witness := 1 +             // stack item count
+		threshold*65 + // m signatures (1-byte len + 64-byte schnorr)
+		(nKeys - threshold) + // (n-m) empty slots (1 byte each)
+		(1 + leafScript) + // leaf script push
+		(1 + 33) // control block (single leaf: version + 32-byte internal key)
+	base := 32 + 4 + 4 + 1 // outpoint + sequence + empty scriptSig len
+	return base + (witness+3)/4
 }
 
 // multisigInputVsize estimates the vbytes to spend a P2WSH (or, when nested, a
@@ -96,7 +112,7 @@ func scriptPubKeyLen(kind ScriptKind) int {
 		return 25 // P2PKH
 	case ScriptNestedSegwit, ScriptMultisigP2SH, ScriptMultisigNested:
 		return 23 // P2SH
-	case ScriptTaproot, ScriptMultisig:
+	case ScriptTaproot, ScriptMultisig, ScriptMultisigTaproot:
 		return 34 // P2TR / P2WSH
 	default:
 		return 22 // P2WPKH

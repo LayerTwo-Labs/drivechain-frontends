@@ -301,6 +301,42 @@ extension type WalletManagerServiceClient (connect.Transport _transport) {
     );
   }
 
+  Future<walletmanagerv1walletmanager.CreateMultisigWalletResponse> createMultisigWallet(
+    walletmanagerv1walletmanager.CreateMultisigWalletRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.WalletManagerService.createMultisigWallet,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
+  /// ParseMultisigConfig parses a descriptor or a wallet-config file (Coldcard
+  /// text / Sparrow / Specter / Caravan JSON) into an m-of-n policy + cosigners.
+  Future<walletmanagerv1walletmanager.ParseMultisigConfigResponse> parseMultisigConfig(
+    walletmanagerv1walletmanager.ParseMultisigConfigRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.WalletManagerService.parseMultisigConfig,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
   /// Core wallet management
   Future<walletmanagerv1walletmanager.CreateBitcoinCoreWalletResponse> createBitcoinCoreWallet(
     walletmanagerv1walletmanager.CreateBitcoinCoreWalletRequest input, {
@@ -564,6 +600,25 @@ extension type WalletManagerServiceClient (connect.Transport _transport) {
     );
   }
 
+  /// SignPsbtWithCosigner signs a multisig PSBT with a single held cosigner's key
+  /// (per-keystore signing), leaving the other legs for their own signers.
+  Future<walletmanagerv1walletmanager.SignPsbtWithCosignerResponse> signPsbtWithCosigner(
+    walletmanagerv1walletmanager.SignPsbtWithCosignerRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.WalletManagerService.signPsbtWithCosigner,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
   Future<walletmanagerv1walletmanager.CombinePsbtResponse> combinePsbt(
     walletmanagerv1walletmanager.CombinePsbtRequest input, {
     connect.Headers? headers,
@@ -590,6 +645,44 @@ extension type WalletManagerServiceClient (connect.Transport _transport) {
   }) {
     return connect.Client(_transport).unary(
       specs.WalletManagerService.finalizePsbt,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
+  /// MultisigPsbtStatus reports signing progress for a multisig wallet's PSBT:
+  /// signature count, whether it can be finalized, and which cosigners signed.
+  Future<walletmanagerv1walletmanager.MultisigPsbtStatusResponse> multisigPsbtStatus(
+    walletmanagerv1walletmanager.MultisigPsbtStatusRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.WalletManagerService.multisigPsbtStatus,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
+  /// BroadcastTransaction broadcasts a finalized raw transaction over the
+  /// wallet's chain source and returns its txid.
+  Future<walletmanagerv1walletmanager.BroadcastTransactionResponse> broadcastTransaction(
+    walletmanagerv1walletmanager.BroadcastTransactionRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.WalletManagerService.broadcastTransaction,
       input,
       signal: signal,
       headers: headers,

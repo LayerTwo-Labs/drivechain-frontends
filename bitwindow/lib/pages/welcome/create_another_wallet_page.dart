@@ -2,6 +2,7 @@ import 'dart:convert' show utf8;
 import 'dart:math';
 
 import 'package:auto_route/auto_route.dart';
+import 'package:bitwindow/pages/welcome/multisig_config_step.dart';
 import 'package:bitwindow/routing/router.dart';
 import 'package:convert/convert.dart' show hex;
 import 'package:crypto/crypto.dart' show sha256;
@@ -18,7 +19,7 @@ class CreateAnotherWalletPage extends StatefulWidget {
 }
 
 /// How the wallet's seed or keys are sourced.
-enum WalletSetupMethod { generate, importSeed, importDescriptor }
+enum WalletSetupMethod { generate, importSeed, importDescriptor, multisig }
 
 /// Which backend serves the wallet. The provider and how keys are sourced are
 /// orthogonal — any provider can run any method (including watch-only).
@@ -41,6 +42,8 @@ class _CreateAnotherWalletPageState extends State<CreateAnotherWalletPage> {
   String _xpubOrDescriptor = '';
   String _mnemonic = '';
   String _entropyMnemonic = '';
+  // The assembled multisig configuration (cosigners + held seeds + descriptors).
+  MultisigWalletSpec? _multisigSpec;
   bool _isCreating = false;
 
   final TextEditingController _nameController = TextEditingController();
@@ -98,6 +101,26 @@ class _CreateAnotherWalletPageState extends State<CreateAnotherWalletPage> {
 
     try {
       final walletProvider = GetIt.I.get<WalletWriterProvider>();
+
+      // Multisig: the wizard assembled cosigners (with held seeds); the backend
+      // stores them and derives the descriptor. Signs through the same PSBT path
+      // as any other electrum wallet.
+      if (_method == WalletSetupMethod.multisig) {
+        final spec = _multisigSpec!;
+        await walletProvider.createMultisigWallet(
+          name: _walletName,
+          gradient: _selectedGradient!,
+          m: spec.m,
+          n: spec.n,
+          scriptType: spec.scriptType,
+          cosigners: spec.toCosignerInputs(),
+        );
+        if (mounted) {
+          await showMultisigExportDialog(context, receive: spec.receiveDescriptor, change: spec.changeDescriptor);
+          await GetIt.I.get<AppRouter>().replaceAll([const RootRoute()]);
+        }
+        return;
+      }
 
       final descriptor = _method == WalletSetupMethod.importDescriptor ? _xpubOrDescriptor : null;
       // A null mnemonic on the spendable path means "backend generates a fresh
@@ -169,13 +192,23 @@ class _CreateAnotherWalletPageState extends State<CreateAnotherWalletPage> {
           _nextStep();
         },
       ),
-      _ProviderStep(
-        selectedProvider: _provider,
-        onProviderSelected: (provider) {
-          setState(() => _provider = provider);
-          _nextStep();
-        },
-      ),
+      // Multisig is electrum-only (signing lives in the electrum backend), so it
+      // skips the provider step and configures cosigners right after the method.
+      if (_method == WalletSetupMethod.multisig)
+        MultisigConfigStep(
+          onConfigured: (spec) {
+            setState(() => _multisigSpec = spec);
+            _nextStep();
+          },
+        ),
+      if (_method != WalletSetupMethod.multisig)
+        _ProviderStep(
+          selectedProvider: _provider,
+          onProviderSelected: (provider) {
+            setState(() => _provider = provider);
+            _nextStep();
+          },
+        ),
       if (_method == WalletSetupMethod.generate)
         _GenerateModeStep(
           onModeSelected: (mode) {
@@ -213,7 +246,7 @@ class _CreateAnotherWalletPageState extends State<CreateAnotherWalletPage> {
         derivationPathController: _derivationPathController,
         // Derivation override only applies to seed-backed wallets; a watch-only
         // descriptor import carries its own path.
-        showDerivation: _method != WalletSetupMethod.importDescriptor,
+        showDerivation: _method != WalletSetupMethod.importDescriptor && _method != WalletSetupMethod.multisig,
         onNext: () {
           setState(() => _walletName = _nameController.text.trim());
           _nextStep();
@@ -317,6 +350,13 @@ class _MethodStep extends StatelessWidget {
                     icon: SailSVGAsset.iconSearch,
                     isSelected: selectedMethod == WalletSetupMethod.importDescriptor,
                     onTap: () => onMethodSelected(WalletSetupMethod.importDescriptor),
+                  ),
+                  _MethodCard(
+                    title: 'Create a multisig wallet',
+                    description: 'Build an m-of-n wallet from cosigner keys',
+                    icon: SailSVGAsset.iconWallet,
+                    isSelected: selectedMethod == WalletSetupMethod.multisig,
+                    onTap: () => onMethodSelected(WalletSetupMethod.multisig),
                   ),
                 ],
               ),

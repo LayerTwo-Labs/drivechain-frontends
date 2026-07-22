@@ -85,6 +85,12 @@ const (
 	// WalletManagerServiceCreateElectrumWalletProcedure is the fully-qualified name of the
 	// WalletManagerService's CreateElectrumWallet RPC.
 	WalletManagerServiceCreateElectrumWalletProcedure = "/walletmanager.v1.WalletManagerService/CreateElectrumWallet"
+	// WalletManagerServiceCreateMultisigWalletProcedure is the fully-qualified name of the
+	// WalletManagerService's CreateMultisigWallet RPC.
+	WalletManagerServiceCreateMultisigWalletProcedure = "/walletmanager.v1.WalletManagerService/CreateMultisigWallet"
+	// WalletManagerServiceParseMultisigConfigProcedure is the fully-qualified name of the
+	// WalletManagerService's ParseMultisigConfig RPC.
+	WalletManagerServiceParseMultisigConfigProcedure = "/walletmanager.v1.WalletManagerService/ParseMultisigConfig"
 	// WalletManagerServiceCreateBitcoinCoreWalletProcedure is the fully-qualified name of the
 	// WalletManagerService's CreateBitcoinCoreWallet RPC.
 	WalletManagerServiceCreateBitcoinCoreWalletProcedure = "/walletmanager.v1.WalletManagerService/CreateBitcoinCoreWallet"
@@ -130,12 +136,21 @@ const (
 	// WalletManagerServiceSignPsbtProcedure is the fully-qualified name of the WalletManagerService's
 	// SignPsbt RPC.
 	WalletManagerServiceSignPsbtProcedure = "/walletmanager.v1.WalletManagerService/SignPsbt"
+	// WalletManagerServiceSignPsbtWithCosignerProcedure is the fully-qualified name of the
+	// WalletManagerService's SignPsbtWithCosigner RPC.
+	WalletManagerServiceSignPsbtWithCosignerProcedure = "/walletmanager.v1.WalletManagerService/SignPsbtWithCosigner"
 	// WalletManagerServiceCombinePsbtProcedure is the fully-qualified name of the
 	// WalletManagerService's CombinePsbt RPC.
 	WalletManagerServiceCombinePsbtProcedure = "/walletmanager.v1.WalletManagerService/CombinePsbt"
 	// WalletManagerServiceFinalizePsbtProcedure is the fully-qualified name of the
 	// WalletManagerService's FinalizePsbt RPC.
 	WalletManagerServiceFinalizePsbtProcedure = "/walletmanager.v1.WalletManagerService/FinalizePsbt"
+	// WalletManagerServiceMultisigPsbtStatusProcedure is the fully-qualified name of the
+	// WalletManagerService's MultisigPsbtStatus RPC.
+	WalletManagerServiceMultisigPsbtStatusProcedure = "/walletmanager.v1.WalletManagerService/MultisigPsbtStatus"
+	// WalletManagerServiceBroadcastTransactionProcedure is the fully-qualified name of the
+	// WalletManagerService's BroadcastTransaction RPC.
+	WalletManagerServiceBroadcastTransactionProcedure = "/walletmanager.v1.WalletManagerService/BroadcastTransaction"
 	// WalletManagerServiceGetWalletSeedProcedure is the fully-qualified name of the
 	// WalletManagerService's GetWalletSeed RPC.
 	WalletManagerServiceGetWalletSeedProcedure = "/walletmanager.v1.WalletManagerService/GetWalletSeed"
@@ -193,6 +208,10 @@ type WalletManagerServiceClient interface {
 	// Create an electrum wallet: keys are generated locally, but no local Bitcoin
 	// Core or enforcer runs — chain data is served remotely via the datasource.
 	CreateElectrumWallet(context.Context, *connect.Request[v1.CreateElectrumWalletRequest]) (*connect.Response[v1.CreateElectrumWalletResponse], error)
+	CreateMultisigWallet(context.Context, *connect.Request[v1.CreateMultisigWalletRequest]) (*connect.Response[v1.CreateMultisigWalletResponse], error)
+	// ParseMultisigConfig parses a descriptor or a wallet-config file (Coldcard
+	// text / Sparrow / Specter / Caravan JSON) into an m-of-n policy + cosigners.
+	ParseMultisigConfig(context.Context, *connect.Request[v1.ParseMultisigConfigRequest]) (*connect.Response[v1.ParseMultisigConfigResponse], error)
 	// Core wallet management
 	CreateBitcoinCoreWallet(context.Context, *connect.Request[v1.CreateBitcoinCoreWalletRequest]) (*connect.Response[v1.CreateBitcoinCoreWalletResponse], error)
 	EnsureCoreWallets(context.Context, *connect.Request[v1.EnsureCoreWalletsRequest]) (*connect.Response[v1.EnsureCoreWalletsResponse], error)
@@ -216,8 +235,17 @@ type WalletManagerServiceClient interface {
 	// wallets only.
 	CreatePsbt(context.Context, *connect.Request[v1.CreatePsbtRequest]) (*connect.Response[v1.CreatePsbtResponse], error)
 	SignPsbt(context.Context, *connect.Request[v1.SignPsbtRequest]) (*connect.Response[v1.SignPsbtResponse], error)
+	// SignPsbtWithCosigner signs a multisig PSBT with a single held cosigner's key
+	// (per-keystore signing), leaving the other legs for their own signers.
+	SignPsbtWithCosigner(context.Context, *connect.Request[v1.SignPsbtWithCosignerRequest]) (*connect.Response[v1.SignPsbtWithCosignerResponse], error)
 	CombinePsbt(context.Context, *connect.Request[v1.CombinePsbtRequest]) (*connect.Response[v1.CombinePsbtResponse], error)
 	FinalizePsbt(context.Context, *connect.Request[v1.FinalizePsbtRequest]) (*connect.Response[v1.FinalizePsbtResponse], error)
+	// MultisigPsbtStatus reports signing progress for a multisig wallet's PSBT:
+	// signature count, whether it can be finalized, and which cosigners signed.
+	MultisigPsbtStatus(context.Context, *connect.Request[v1.MultisigPsbtStatusRequest]) (*connect.Response[v1.MultisigPsbtStatusResponse], error)
+	// BroadcastTransaction broadcasts a finalized raw transaction over the
+	// wallet's chain source and returns its txid.
+	BroadcastTransaction(context.Context, *connect.Request[v1.BroadcastTransactionRequest]) (*connect.Response[v1.BroadcastTransactionResponse], error)
 	// Seed access for cheque engine
 	GetWalletSeed(context.Context, *connect.Request[v1.GetWalletSeedRequest]) (*connect.Response[v1.GetWalletSeedResponse], error)
 	// Bitcoin Core variant selection (untouched / touched / knots).
@@ -352,6 +380,18 @@ func NewWalletManagerServiceClient(httpClient connect.HTTPClient, baseURL string
 			connect.WithSchema(walletManagerServiceMethods.ByName("CreateElectrumWallet")),
 			connect.WithClientOptions(opts...),
 		),
+		createMultisigWallet: connect.NewClient[v1.CreateMultisigWalletRequest, v1.CreateMultisigWalletResponse](
+			httpClient,
+			baseURL+WalletManagerServiceCreateMultisigWalletProcedure,
+			connect.WithSchema(walletManagerServiceMethods.ByName("CreateMultisigWallet")),
+			connect.WithClientOptions(opts...),
+		),
+		parseMultisigConfig: connect.NewClient[v1.ParseMultisigConfigRequest, v1.ParseMultisigConfigResponse](
+			httpClient,
+			baseURL+WalletManagerServiceParseMultisigConfigProcedure,
+			connect.WithSchema(walletManagerServiceMethods.ByName("ParseMultisigConfig")),
+			connect.WithClientOptions(opts...),
+		),
 		createBitcoinCoreWallet: connect.NewClient[v1.CreateBitcoinCoreWalletRequest, v1.CreateBitcoinCoreWalletResponse](
 			httpClient,
 			baseURL+WalletManagerServiceCreateBitcoinCoreWalletProcedure,
@@ -442,6 +482,12 @@ func NewWalletManagerServiceClient(httpClient connect.HTTPClient, baseURL string
 			connect.WithSchema(walletManagerServiceMethods.ByName("SignPsbt")),
 			connect.WithClientOptions(opts...),
 		),
+		signPsbtWithCosigner: connect.NewClient[v1.SignPsbtWithCosignerRequest, v1.SignPsbtWithCosignerResponse](
+			httpClient,
+			baseURL+WalletManagerServiceSignPsbtWithCosignerProcedure,
+			connect.WithSchema(walletManagerServiceMethods.ByName("SignPsbtWithCosigner")),
+			connect.WithClientOptions(opts...),
+		),
 		combinePsbt: connect.NewClient[v1.CombinePsbtRequest, v1.CombinePsbtResponse](
 			httpClient,
 			baseURL+WalletManagerServiceCombinePsbtProcedure,
@@ -452,6 +498,18 @@ func NewWalletManagerServiceClient(httpClient connect.HTTPClient, baseURL string
 			httpClient,
 			baseURL+WalletManagerServiceFinalizePsbtProcedure,
 			connect.WithSchema(walletManagerServiceMethods.ByName("FinalizePsbt")),
+			connect.WithClientOptions(opts...),
+		),
+		multisigPsbtStatus: connect.NewClient[v1.MultisigPsbtStatusRequest, v1.MultisigPsbtStatusResponse](
+			httpClient,
+			baseURL+WalletManagerServiceMultisigPsbtStatusProcedure,
+			connect.WithSchema(walletManagerServiceMethods.ByName("MultisigPsbtStatus")),
+			connect.WithClientOptions(opts...),
+		),
+		broadcastTransaction: connect.NewClient[v1.BroadcastTransactionRequest, v1.BroadcastTransactionResponse](
+			httpClient,
+			baseURL+WalletManagerServiceBroadcastTransactionProcedure,
+			connect.WithSchema(walletManagerServiceMethods.ByName("BroadcastTransaction")),
 			connect.WithClientOptions(opts...),
 		),
 		getWalletSeed: connect.NewClient[v1.GetWalletSeedRequest, v1.GetWalletSeedResponse](
@@ -542,6 +600,8 @@ type walletManagerServiceClient struct {
 	restoreWalletBackupStream *connect.Client[v1.RestoreWalletBackupRequest, v1.RestoreWalletBackupProgressResponse]
 	createWatchOnlyWallet     *connect.Client[v1.CreateWatchOnlyWalletRequest, v1.CreateWatchOnlyWalletResponse]
 	createElectrumWallet      *connect.Client[v1.CreateElectrumWalletRequest, v1.CreateElectrumWalletResponse]
+	createMultisigWallet      *connect.Client[v1.CreateMultisigWalletRequest, v1.CreateMultisigWalletResponse]
+	parseMultisigConfig       *connect.Client[v1.ParseMultisigConfigRequest, v1.ParseMultisigConfigResponse]
 	createBitcoinCoreWallet   *connect.Client[v1.CreateBitcoinCoreWalletRequest, v1.CreateBitcoinCoreWalletResponse]
 	ensureCoreWallets         *connect.Client[v1.EnsureCoreWalletsRequest, v1.EnsureCoreWalletsResponse]
 	getBalance                *connect.Client[v1.GetBalanceRequest, v1.GetBalanceResponse]
@@ -557,8 +617,11 @@ type walletManagerServiceClient struct {
 	deriveAddresses           *connect.Client[v1.DeriveAddressesRequest, v1.DeriveAddressesResponse]
 	createPsbt                *connect.Client[v1.CreatePsbtRequest, v1.CreatePsbtResponse]
 	signPsbt                  *connect.Client[v1.SignPsbtRequest, v1.SignPsbtResponse]
+	signPsbtWithCosigner      *connect.Client[v1.SignPsbtWithCosignerRequest, v1.SignPsbtWithCosignerResponse]
 	combinePsbt               *connect.Client[v1.CombinePsbtRequest, v1.CombinePsbtResponse]
 	finalizePsbt              *connect.Client[v1.FinalizePsbtRequest, v1.FinalizePsbtResponse]
+	multisigPsbtStatus        *connect.Client[v1.MultisigPsbtStatusRequest, v1.MultisigPsbtStatusResponse]
+	broadcastTransaction      *connect.Client[v1.BroadcastTransactionRequest, v1.BroadcastTransactionResponse]
 	getWalletSeed             *connect.Client[v1.GetWalletSeedRequest, v1.GetWalletSeedResponse]
 	listCoreVariants          *connect.Client[v1.ListCoreVariantsRequest, v1.ListCoreVariantsResponse]
 	getCoreVariant            *connect.Client[v1.GetCoreVariantRequest, v1.GetCoreVariantResponse]
@@ -657,6 +720,16 @@ func (c *walletManagerServiceClient) CreateElectrumWallet(ctx context.Context, r
 	return c.createElectrumWallet.CallUnary(ctx, req)
 }
 
+// CreateMultisigWallet calls walletmanager.v1.WalletManagerService.CreateMultisigWallet.
+func (c *walletManagerServiceClient) CreateMultisigWallet(ctx context.Context, req *connect.Request[v1.CreateMultisigWalletRequest]) (*connect.Response[v1.CreateMultisigWalletResponse], error) {
+	return c.createMultisigWallet.CallUnary(ctx, req)
+}
+
+// ParseMultisigConfig calls walletmanager.v1.WalletManagerService.ParseMultisigConfig.
+func (c *walletManagerServiceClient) ParseMultisigConfig(ctx context.Context, req *connect.Request[v1.ParseMultisigConfigRequest]) (*connect.Response[v1.ParseMultisigConfigResponse], error) {
+	return c.parseMultisigConfig.CallUnary(ctx, req)
+}
+
 // CreateBitcoinCoreWallet calls walletmanager.v1.WalletManagerService.CreateBitcoinCoreWallet.
 func (c *walletManagerServiceClient) CreateBitcoinCoreWallet(ctx context.Context, req *connect.Request[v1.CreateBitcoinCoreWalletRequest]) (*connect.Response[v1.CreateBitcoinCoreWalletResponse], error) {
 	return c.createBitcoinCoreWallet.CallUnary(ctx, req)
@@ -732,6 +805,11 @@ func (c *walletManagerServiceClient) SignPsbt(ctx context.Context, req *connect.
 	return c.signPsbt.CallUnary(ctx, req)
 }
 
+// SignPsbtWithCosigner calls walletmanager.v1.WalletManagerService.SignPsbtWithCosigner.
+func (c *walletManagerServiceClient) SignPsbtWithCosigner(ctx context.Context, req *connect.Request[v1.SignPsbtWithCosignerRequest]) (*connect.Response[v1.SignPsbtWithCosignerResponse], error) {
+	return c.signPsbtWithCosigner.CallUnary(ctx, req)
+}
+
 // CombinePsbt calls walletmanager.v1.WalletManagerService.CombinePsbt.
 func (c *walletManagerServiceClient) CombinePsbt(ctx context.Context, req *connect.Request[v1.CombinePsbtRequest]) (*connect.Response[v1.CombinePsbtResponse], error) {
 	return c.combinePsbt.CallUnary(ctx, req)
@@ -740,6 +818,16 @@ func (c *walletManagerServiceClient) CombinePsbt(ctx context.Context, req *conne
 // FinalizePsbt calls walletmanager.v1.WalletManagerService.FinalizePsbt.
 func (c *walletManagerServiceClient) FinalizePsbt(ctx context.Context, req *connect.Request[v1.FinalizePsbtRequest]) (*connect.Response[v1.FinalizePsbtResponse], error) {
 	return c.finalizePsbt.CallUnary(ctx, req)
+}
+
+// MultisigPsbtStatus calls walletmanager.v1.WalletManagerService.MultisigPsbtStatus.
+func (c *walletManagerServiceClient) MultisigPsbtStatus(ctx context.Context, req *connect.Request[v1.MultisigPsbtStatusRequest]) (*connect.Response[v1.MultisigPsbtStatusResponse], error) {
+	return c.multisigPsbtStatus.CallUnary(ctx, req)
+}
+
+// BroadcastTransaction calls walletmanager.v1.WalletManagerService.BroadcastTransaction.
+func (c *walletManagerServiceClient) BroadcastTransaction(ctx context.Context, req *connect.Request[v1.BroadcastTransactionRequest]) (*connect.Response[v1.BroadcastTransactionResponse], error) {
+	return c.broadcastTransaction.CallUnary(ctx, req)
 }
 
 // GetWalletSeed calls walletmanager.v1.WalletManagerService.GetWalletSeed.
@@ -820,6 +908,10 @@ type WalletManagerServiceHandler interface {
 	// Create an electrum wallet: keys are generated locally, but no local Bitcoin
 	// Core or enforcer runs — chain data is served remotely via the datasource.
 	CreateElectrumWallet(context.Context, *connect.Request[v1.CreateElectrumWalletRequest]) (*connect.Response[v1.CreateElectrumWalletResponse], error)
+	CreateMultisigWallet(context.Context, *connect.Request[v1.CreateMultisigWalletRequest]) (*connect.Response[v1.CreateMultisigWalletResponse], error)
+	// ParseMultisigConfig parses a descriptor or a wallet-config file (Coldcard
+	// text / Sparrow / Specter / Caravan JSON) into an m-of-n policy + cosigners.
+	ParseMultisigConfig(context.Context, *connect.Request[v1.ParseMultisigConfigRequest]) (*connect.Response[v1.ParseMultisigConfigResponse], error)
 	// Core wallet management
 	CreateBitcoinCoreWallet(context.Context, *connect.Request[v1.CreateBitcoinCoreWalletRequest]) (*connect.Response[v1.CreateBitcoinCoreWalletResponse], error)
 	EnsureCoreWallets(context.Context, *connect.Request[v1.EnsureCoreWalletsRequest]) (*connect.Response[v1.EnsureCoreWalletsResponse], error)
@@ -843,8 +935,17 @@ type WalletManagerServiceHandler interface {
 	// wallets only.
 	CreatePsbt(context.Context, *connect.Request[v1.CreatePsbtRequest]) (*connect.Response[v1.CreatePsbtResponse], error)
 	SignPsbt(context.Context, *connect.Request[v1.SignPsbtRequest]) (*connect.Response[v1.SignPsbtResponse], error)
+	// SignPsbtWithCosigner signs a multisig PSBT with a single held cosigner's key
+	// (per-keystore signing), leaving the other legs for their own signers.
+	SignPsbtWithCosigner(context.Context, *connect.Request[v1.SignPsbtWithCosignerRequest]) (*connect.Response[v1.SignPsbtWithCosignerResponse], error)
 	CombinePsbt(context.Context, *connect.Request[v1.CombinePsbtRequest]) (*connect.Response[v1.CombinePsbtResponse], error)
 	FinalizePsbt(context.Context, *connect.Request[v1.FinalizePsbtRequest]) (*connect.Response[v1.FinalizePsbtResponse], error)
+	// MultisigPsbtStatus reports signing progress for a multisig wallet's PSBT:
+	// signature count, whether it can be finalized, and which cosigners signed.
+	MultisigPsbtStatus(context.Context, *connect.Request[v1.MultisigPsbtStatusRequest]) (*connect.Response[v1.MultisigPsbtStatusResponse], error)
+	// BroadcastTransaction broadcasts a finalized raw transaction over the
+	// wallet's chain source and returns its txid.
+	BroadcastTransaction(context.Context, *connect.Request[v1.BroadcastTransactionRequest]) (*connect.Response[v1.BroadcastTransactionResponse], error)
 	// Seed access for cheque engine
 	GetWalletSeed(context.Context, *connect.Request[v1.GetWalletSeedRequest]) (*connect.Response[v1.GetWalletSeedResponse], error)
 	// Bitcoin Core variant selection (untouched / touched / knots).
@@ -975,6 +1076,18 @@ func NewWalletManagerServiceHandler(svc WalletManagerServiceHandler, opts ...con
 		connect.WithSchema(walletManagerServiceMethods.ByName("CreateElectrumWallet")),
 		connect.WithHandlerOptions(opts...),
 	)
+	walletManagerServiceCreateMultisigWalletHandler := connect.NewUnaryHandler(
+		WalletManagerServiceCreateMultisigWalletProcedure,
+		svc.CreateMultisigWallet,
+		connect.WithSchema(walletManagerServiceMethods.ByName("CreateMultisigWallet")),
+		connect.WithHandlerOptions(opts...),
+	)
+	walletManagerServiceParseMultisigConfigHandler := connect.NewUnaryHandler(
+		WalletManagerServiceParseMultisigConfigProcedure,
+		svc.ParseMultisigConfig,
+		connect.WithSchema(walletManagerServiceMethods.ByName("ParseMultisigConfig")),
+		connect.WithHandlerOptions(opts...),
+	)
 	walletManagerServiceCreateBitcoinCoreWalletHandler := connect.NewUnaryHandler(
 		WalletManagerServiceCreateBitcoinCoreWalletProcedure,
 		svc.CreateBitcoinCoreWallet,
@@ -1065,6 +1178,12 @@ func NewWalletManagerServiceHandler(svc WalletManagerServiceHandler, opts ...con
 		connect.WithSchema(walletManagerServiceMethods.ByName("SignPsbt")),
 		connect.WithHandlerOptions(opts...),
 	)
+	walletManagerServiceSignPsbtWithCosignerHandler := connect.NewUnaryHandler(
+		WalletManagerServiceSignPsbtWithCosignerProcedure,
+		svc.SignPsbtWithCosigner,
+		connect.WithSchema(walletManagerServiceMethods.ByName("SignPsbtWithCosigner")),
+		connect.WithHandlerOptions(opts...),
+	)
 	walletManagerServiceCombinePsbtHandler := connect.NewUnaryHandler(
 		WalletManagerServiceCombinePsbtProcedure,
 		svc.CombinePsbt,
@@ -1075,6 +1194,18 @@ func NewWalletManagerServiceHandler(svc WalletManagerServiceHandler, opts ...con
 		WalletManagerServiceFinalizePsbtProcedure,
 		svc.FinalizePsbt,
 		connect.WithSchema(walletManagerServiceMethods.ByName("FinalizePsbt")),
+		connect.WithHandlerOptions(opts...),
+	)
+	walletManagerServiceMultisigPsbtStatusHandler := connect.NewUnaryHandler(
+		WalletManagerServiceMultisigPsbtStatusProcedure,
+		svc.MultisigPsbtStatus,
+		connect.WithSchema(walletManagerServiceMethods.ByName("MultisigPsbtStatus")),
+		connect.WithHandlerOptions(opts...),
+	)
+	walletManagerServiceBroadcastTransactionHandler := connect.NewUnaryHandler(
+		WalletManagerServiceBroadcastTransactionProcedure,
+		svc.BroadcastTransaction,
+		connect.WithSchema(walletManagerServiceMethods.ByName("BroadcastTransaction")),
 		connect.WithHandlerOptions(opts...),
 	)
 	walletManagerServiceGetWalletSeedHandler := connect.NewUnaryHandler(
@@ -1179,6 +1310,10 @@ func NewWalletManagerServiceHandler(svc WalletManagerServiceHandler, opts ...con
 			walletManagerServiceCreateWatchOnlyWalletHandler.ServeHTTP(w, r)
 		case WalletManagerServiceCreateElectrumWalletProcedure:
 			walletManagerServiceCreateElectrumWalletHandler.ServeHTTP(w, r)
+		case WalletManagerServiceCreateMultisigWalletProcedure:
+			walletManagerServiceCreateMultisigWalletHandler.ServeHTTP(w, r)
+		case WalletManagerServiceParseMultisigConfigProcedure:
+			walletManagerServiceParseMultisigConfigHandler.ServeHTTP(w, r)
 		case WalletManagerServiceCreateBitcoinCoreWalletProcedure:
 			walletManagerServiceCreateBitcoinCoreWalletHandler.ServeHTTP(w, r)
 		case WalletManagerServiceEnsureCoreWalletsProcedure:
@@ -1209,10 +1344,16 @@ func NewWalletManagerServiceHandler(svc WalletManagerServiceHandler, opts ...con
 			walletManagerServiceCreatePsbtHandler.ServeHTTP(w, r)
 		case WalletManagerServiceSignPsbtProcedure:
 			walletManagerServiceSignPsbtHandler.ServeHTTP(w, r)
+		case WalletManagerServiceSignPsbtWithCosignerProcedure:
+			walletManagerServiceSignPsbtWithCosignerHandler.ServeHTTP(w, r)
 		case WalletManagerServiceCombinePsbtProcedure:
 			walletManagerServiceCombinePsbtHandler.ServeHTTP(w, r)
 		case WalletManagerServiceFinalizePsbtProcedure:
 			walletManagerServiceFinalizePsbtHandler.ServeHTTP(w, r)
+		case WalletManagerServiceMultisigPsbtStatusProcedure:
+			walletManagerServiceMultisigPsbtStatusHandler.ServeHTTP(w, r)
+		case WalletManagerServiceBroadcastTransactionProcedure:
+			walletManagerServiceBroadcastTransactionHandler.ServeHTTP(w, r)
 		case WalletManagerServiceGetWalletSeedProcedure:
 			walletManagerServiceGetWalletSeedHandler.ServeHTTP(w, r)
 		case WalletManagerServiceListCoreVariantsProcedure:
@@ -1312,6 +1453,14 @@ func (UnimplementedWalletManagerServiceHandler) CreateElectrumWallet(context.Con
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("walletmanager.v1.WalletManagerService.CreateElectrumWallet is not implemented"))
 }
 
+func (UnimplementedWalletManagerServiceHandler) CreateMultisigWallet(context.Context, *connect.Request[v1.CreateMultisigWalletRequest]) (*connect.Response[v1.CreateMultisigWalletResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("walletmanager.v1.WalletManagerService.CreateMultisigWallet is not implemented"))
+}
+
+func (UnimplementedWalletManagerServiceHandler) ParseMultisigConfig(context.Context, *connect.Request[v1.ParseMultisigConfigRequest]) (*connect.Response[v1.ParseMultisigConfigResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("walletmanager.v1.WalletManagerService.ParseMultisigConfig is not implemented"))
+}
+
 func (UnimplementedWalletManagerServiceHandler) CreateBitcoinCoreWallet(context.Context, *connect.Request[v1.CreateBitcoinCoreWalletRequest]) (*connect.Response[v1.CreateBitcoinCoreWalletResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("walletmanager.v1.WalletManagerService.CreateBitcoinCoreWallet is not implemented"))
 }
@@ -1372,12 +1521,24 @@ func (UnimplementedWalletManagerServiceHandler) SignPsbt(context.Context, *conne
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("walletmanager.v1.WalletManagerService.SignPsbt is not implemented"))
 }
 
+func (UnimplementedWalletManagerServiceHandler) SignPsbtWithCosigner(context.Context, *connect.Request[v1.SignPsbtWithCosignerRequest]) (*connect.Response[v1.SignPsbtWithCosignerResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("walletmanager.v1.WalletManagerService.SignPsbtWithCosigner is not implemented"))
+}
+
 func (UnimplementedWalletManagerServiceHandler) CombinePsbt(context.Context, *connect.Request[v1.CombinePsbtRequest]) (*connect.Response[v1.CombinePsbtResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("walletmanager.v1.WalletManagerService.CombinePsbt is not implemented"))
 }
 
 func (UnimplementedWalletManagerServiceHandler) FinalizePsbt(context.Context, *connect.Request[v1.FinalizePsbtRequest]) (*connect.Response[v1.FinalizePsbtResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("walletmanager.v1.WalletManagerService.FinalizePsbt is not implemented"))
+}
+
+func (UnimplementedWalletManagerServiceHandler) MultisigPsbtStatus(context.Context, *connect.Request[v1.MultisigPsbtStatusRequest]) (*connect.Response[v1.MultisigPsbtStatusResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("walletmanager.v1.WalletManagerService.MultisigPsbtStatus is not implemented"))
+}
+
+func (UnimplementedWalletManagerServiceHandler) BroadcastTransaction(context.Context, *connect.Request[v1.BroadcastTransactionRequest]) (*connect.Response[v1.BroadcastTransactionResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("walletmanager.v1.WalletManagerService.BroadcastTransaction is not implemented"))
 }
 
 func (UnimplementedWalletManagerServiceHandler) GetWalletSeed(context.Context, *connect.Request[v1.GetWalletSeedRequest]) (*connect.Response[v1.GetWalletSeedResponse], error) {
