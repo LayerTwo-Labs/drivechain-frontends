@@ -114,8 +114,15 @@ class ChatPage extends StatelessWidget {
                             ),
                           const Spacer(),
                           SailButton(
+                            label: 'Messaging setup',
+                            variant: ButtonVariant.secondary,
+                            onPressed: () async => _showMessagingSetupDialog(context, model),
+                          ),
+                          const SizedBox(width: SailStyleValues.padding08),
+                          SailButton(
                             label: 'Add Contact',
                             variant: ButtonVariant.secondary,
+                            disabled: model.selectedIdentity == null,
                             onPressed: () async => _showAddContactDialog(context, model),
                           ),
                         ],
@@ -246,11 +253,29 @@ class ChatPage extends StatelessWidget {
                             )
                           : SailCard(
                               title: model.selectedContact!.displayName,
-                              subtitle:
-                                  'Paymail fee: ${model.selectedContact!.paymailFeeSats ?? 1000} sats per message',
+                              subtitle: model.relationshipStatus,
                               bottomPadding: false,
                               child: Column(
                                 children: [
+                                  if (model.selectedContact!.relationshipState ==
+                                      ChatRelationshipState.incomingIntroduction)
+                                    Row(
+                                      children: [
+                                        SailButton(label: 'Accept', onPressed: () async => model.accept(context)),
+                                        const SizedBox(width: SailStyleValues.padding08),
+                                        SailButton(
+                                          label: 'Reject',
+                                          variant: ButtonVariant.secondary,
+                                          onPressed: model.reject,
+                                        ),
+                                        const SizedBox(width: SailStyleValues.padding08),
+                                        SailButton(
+                                          label: 'Block',
+                                          variant: ButtonVariant.destructive,
+                                          onPressed: model.block,
+                                        ),
+                                      ],
+                                    ),
                                   Expanded(
                                     // Message list (inlined)
                                     child: Builder(
@@ -311,6 +336,19 @@ class ChatPage extends StatelessWidget {
                                                             color: theme.colors.textTertiary,
                                                           ),
                                                         ],
+                                                        if (message.error != null &&
+                                                            message.kind != ChatMessageKind.introduction &&
+                                                            (message.kind != ChatMessageKind.acceptance ||
+                                                                model.selectedContact!.relationshipState ==
+                                                                    ChatRelationshipState.incomingIntroduction)) ...[
+                                                          const SizedBox(width: SailStyleValues.padding08),
+                                                          SailButton(
+                                                            label: 'Send on chain',
+                                                            variant: ButtonVariant.secondary,
+                                                            onPressed: () async =>
+                                                                model.sendViaChain(context, message.id),
+                                                          ),
+                                                        ],
                                                       ],
                                                     ),
                                                   ],
@@ -329,18 +367,19 @@ class ChatPage extends StatelessWidget {
                                       Expanded(
                                         child: SailTextField(
                                           controller: model.messageController,
-                                          hintText: 'Type a message...',
+                                          hintText: model.sendHint,
+                                          enabled: model.canSend,
                                           maxLines: 3,
                                           minLines: 1,
-                                          onSubmitted: (_) => model.sendMessage(),
+                                          onSubmitted: (_) => model.sendMessage(context),
                                         ),
                                       ),
                                       const SizedBox(width: SailStyleValues.padding08),
                                       SailButton(
                                         label: 'Send',
                                         loading: model.isSending,
-                                        disabled: model.messageController.text.isEmpty,
-                                        onPressed: model.sendMessage,
+                                        disabled: !model.canSend || model.messageController.text.isEmpty,
+                                        onPressed: () async => model.sendMessage(context),
                                       ),
                                     ],
                                   ),
@@ -381,6 +420,7 @@ class ChatPage extends StatelessWidget {
   Future<void> _showAddContactDialog(BuildContext context, ChatViewModel model) async {
     await showThemedDialog<void>(
       context: context,
+      barrierDismissible: false,
       builder: (context) => _AddContactDialog(model: model),
     );
   }
@@ -391,6 +431,92 @@ class ChatPage extends StatelessWidget {
       barrierDismissible: false,
       builder: (context) => _RegisterBitNameDialog(model: model),
     );
+  }
+
+  Future<void> _showMessagingSetupDialog(BuildContext context, ChatViewModel model) async {
+    final direct = TextEditingController(), peer = TextEditingController();
+    final fee = TextEditingController(text: '${model.selectedIdentity?.details.paymailFeeSats ?? 1000}');
+    var busy = false;
+    Future<void> run(StateSetter setState, Future<bool> Function() action, String success) async {
+      setState(() => busy = true);
+      final ok = await action();
+      if (context.mounted) {
+        showSailToast(context, ok ? success : model.chatError ?? 'Messaging setup failed');
+        setState(() => busy = false);
+      }
+    }
+
+    await showThemedDialog<void>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setState) => SailDialog(
+          title: 'Messaging setup',
+          subtitle: model.torOnly
+              ? 'Tor-only: messages and BitNames chain writes use Tor'
+              : 'Direct messaging with optional Tor privacy',
+          actions: [
+            SailButton(
+              label: 'Close',
+              variant: ButtonVariant.secondary,
+              disabled: busy,
+              onPressed: () async => Navigator.pop(context),
+            ),
+          ],
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              SailTextField(controller: direct, label: 'Direct reply URL', hintText: 'http://your-ip:37999'),
+              const SizedBox(height: SailStyleValues.padding12),
+              SailTextField(
+                controller: fee,
+                label: 'Introduction fee (sats)',
+                hintText: '1000',
+                helperText: 'Leave blank to stop accepting introductions',
+                textFieldType: TextFieldType.number,
+              ),
+              const SizedBox(height: SailStyleValues.padding12),
+              SailTextField(controller: peer, label: 'Tor P2P peer', hintText: '<56-character>.onion:6002'),
+              const SizedBox(height: SailStyleValues.padding12),
+              SailText.secondary12('Your message onion: ${model.ownOnion ?? "start Tor to create one"}'),
+              SailText.secondary12('Your P2P onion: ${model.p2pOnion ?? "start Tor to create one"}'),
+              const SizedBox(height: SailStyleValues.padding12),
+              Row(
+                children: [
+                  SailButton(
+                    label: model.torReady ? 'Tor ready' : 'Download / start Tor',
+                    disabled: busy || model.torReady,
+                    onPressed: () async => run(setState, model.startTor, 'BitNames Tor is ready'),
+                  ),
+                  const SizedBox(width: SailStyleValues.padding08),
+                  SailButton(
+                    label: model.torOnly ? 'Use direct mode' : 'Use Tor-only mode',
+                    disabled: busy,
+                    onPressed: () async => run(
+                      setState,
+                      () => model.setTorOnly(!model.torOnly, peer.text.trim()),
+                      model.torOnly ? 'Direct mode enabled' : 'Tor-only mode enabled',
+                    ),
+                  ),
+                  const SizedBox(width: SailStyleValues.padding08),
+                  SailButton(
+                    label: 'Publish reply profile',
+                    disabled: busy,
+                    onPressed: () async => run(
+                      setState,
+                      () => model.publishProfile(direct.text.trim(), fee.text),
+                      'Reply profile submitted',
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+    direct.dispose();
+    peer.dispose();
+    fee.dispose();
   }
 }
 
@@ -744,6 +870,32 @@ class ChatViewModel extends BaseViewModel {
 
   bool get isSending => _chatProvider.isSending;
   String? get chatError => _chatProvider.error;
+  bool get torOnly => _chatProvider.torOnly;
+  bool get torReady => _chatProvider.torStatus.ready;
+  String? get ownOnion => _chatProvider.torStatus.onionHost;
+  String? get p2pOnion => _chatProvider.torStatus.p2pOnion;
+  bool get canSend => switch (selectedContact?.relationshipState) {
+    ChatRelationshipState.accepted => true,
+    ChatRelationshipState.none || ChatRelationshipState.rejected => selectedContact?.paymailFeeSats != null,
+    _ => false,
+  };
+  String get relationshipStatus => switch (selectedContact!.relationshipState) {
+    ChatRelationshipState.accepted => 'Accepted • direct/Tor chat unlocked',
+    ChatRelationshipState.incomingIntroduction => 'Introduction received • accept to unlock chat',
+    ChatRelationshipState.acceptancePending => 'Acceptance sent • waiting for chain confirmation',
+    ChatRelationshipState.outgoingIntroduction => 'Introduction sent • waiting for acceptance',
+    ChatRelationshipState.blocked => 'Blocked',
+    _ when selectedContact!.paymailFeeSats != null =>
+      'Introduction: ${selectedContact!.paymailFeeSats} sats + 100 sats chain fee',
+    _ => 'This BitName is not accepting introductions',
+  };
+  String get sendHint => switch (selectedContact?.relationshipState) {
+    ChatRelationshipState.incomingIntroduction => 'Accept or reject this introduction',
+    ChatRelationshipState.acceptancePending => 'Waiting for acceptance confirmation',
+    ChatRelationshipState.outgoingIntroduction => 'Waiting for acceptance',
+    ChatRelationshipState.blocked => 'Contact blocked',
+    _ => 'Type a message...',
+  };
 
   bool get isClaiming => _chatProvider.isClaiming;
   String? get claimingStatus => _chatProvider.claimingStatus;
@@ -768,8 +920,6 @@ class ChatViewModel extends BaseViewModel {
   void _onConnectionChanged() {
     if (isConnected) {
       _chatProvider.startPolling();
-    } else {
-      _chatProvider.stopPolling();
     }
     notifyListeners();
   }
@@ -807,16 +957,71 @@ class ChatViewModel extends BaseViewModel {
     }
   }
 
-  Future<void> sendMessage() async {
+  Future<void> sendMessage(BuildContext context) async {
     if (messageController.text.isEmpty) return;
-
+    final contact = selectedContact!;
+    if ((contact.relationshipState == ChatRelationshipState.none ||
+            contact.relationshipState == ChatRelationshipState.rejected) &&
+        !await _confirmSpend(
+          context,
+          'Send introduction?',
+          '${contact.paymailFeeSats} sats to the recipient + ${ChatProvider.minerFeeSats} sats chain fee',
+        )) {
+      return;
+    }
     final content = messageController.text;
     messageController.clear();
-
-    final txid = await _chatProvider.sendMessage(content);
-    if (txid == null && _chatProvider.error != null) {
-      // Message failed, restore text
+    final result = await _chatProvider.send(content);
+    if (!result.sent && !result.needsChainConfirmation) {
       messageController.text = content;
+    }
+    if (context.mounted) await _handleFallback(context, result);
+  }
+
+  Future<void> accept(BuildContext context) async {
+    final result = await _chatProvider.acceptIntroduction();
+    if (context.mounted) await _handleFallback(context, result);
+  }
+
+  Future<void> reject() => _chatProvider.rejectIntroduction();
+  Future<void> block() => _chatProvider.blockContact();
+  Future<void> sendViaChain(BuildContext context, String id) => _sendFallback(context, id);
+  Future<void> _handleFallback(BuildContext context, ChatSendResult result) async {
+    if (result.needsChainConfirmation && result.id != null) {
+      await _sendFallback(context, result.id!);
+    } else if (!result.sent && context.mounted) {
+      showSailToast(context, result.error ?? 'Message failed');
+    }
+  }
+
+  Future<void> _sendFallback(BuildContext context, String id) async {
+    if (!await _confirmSpend(
+      context,
+      'Send through BitNames?',
+      '${ChatProvider.fallbackValueSats} sat + ${ChatProvider.minerFeeSats} sats chain fee',
+    )) {
+      return;
+    }
+    final result = await _chatProvider.sendViaChain(id);
+    if (!result.sent && context.mounted) showSailToast(context, result.error ?? 'Chain send failed');
+  }
+
+  Future<bool> startTor() async => (await _chatProvider.downloadAndStartTor()).ready;
+  Future<bool> setTorOnly(bool enabled, String peer) =>
+      _chatProvider.setTorOnly(enabled, peerOnion: peer.isEmpty ? null : peer);
+  Future<bool> publishProfile(String direct, String fee) async {
+    try {
+      final onion = ownOnion;
+      final parsedFee = int.tryParse(fee.trim());
+      if (fee.trim().isNotEmpty && parsedFee == null) return false;
+      return await _chatProvider.publishProfile(
+            direct: [if (direct.isNotEmpty) Uri.parse(direct)],
+            tor: [if (onion != null) Uri.parse('http://$onion')],
+            paymailFeeSats: parsedFee,
+          ) !=
+          null;
+    } catch (_) {
+      return false;
     }
   }
 
@@ -824,11 +1029,23 @@ class ChatViewModel extends BaseViewModel {
   void dispose() {
     _chatProvider.removeListener(_onProviderChanged);
     _bitnamesRPC.removeListener(_onConnectionChanged);
-    _chatProvider.stopPolling();
     messageController.dispose();
     super.dispose();
   }
 }
+
+Future<bool> _confirmSpend(BuildContext context, String title, String subtitle) async =>
+    await showThemedDialog<bool>(
+      context: context,
+      builder: (dialogContext) => SailAlertCard(
+        title: title,
+        subtitle: subtitle,
+        confirmText: 'Confirm spend',
+        onConfirm: () async => Navigator.pop(dialogContext, true),
+        onCancel: () async => Navigator.pop(dialogContext, false),
+      ),
+    ) ==
+    true;
 
 /// Searchable dropdown for selecting a BitName identity.
 /// Supports searching by plaintext name (uses Blake3 hash matching)

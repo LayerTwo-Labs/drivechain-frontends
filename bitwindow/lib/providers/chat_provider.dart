@@ -1,94 +1,142 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 
+import 'package:bitwindow/models/bitintroduction_protocol.dart';
 import 'package:bitwindow/models/chat_models.dart';
+import 'package:bitwindow/services/bitintroduction_codec.dart';
+import 'package:bitwindow/services/bitmessage_server.dart';
+import 'package:bitwindow/services/bitmessage_transport.dart';
+import 'package:bitwindow/services/bitnames_bitintroduction_backend.dart';
+import 'package:bitwindow/services/bitnames_tor_controller.dart';
+import 'package:bitwindow/services/tor_bitmessage_dialer.dart';
 import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:thirds/blake3.dart';
+import 'package:uuid/uuid.dart';
+
+// dart format off
+enum ChatSendDisposition { sent, needsChainConfirmation, failed }
+class ChatSendResult {
+  const ChatSendResult(this.disposition, {this.id, this.reference, this.error}); final ChatSendDisposition disposition; final String? id, reference, error;
+  bool get sent => disposition == ChatSendDisposition.sent; bool get needsChainConfirmation => disposition == ChatSendDisposition.needsChainConfirmation;
+}
+typedef TorMutationGuard = Future<String?> Function();
 
 class ChatProvider extends ChangeNotifier {
-  BitnamesRPC get bitnamesRPC => GetIt.I.get<BitnamesRPC>();
-  BalanceProvider get balanceProvider => GetIt.I.get<BalanceProvider>();
-  final ClientSettings _clientSettings = GetIt.I.get<ClientSettings>();
+  ChatProvider({
+    BitnamesRPC? rpc, ClientSettings? settings, BalanceProvider? balances,
+    BitMessageTransport? transport, BitnamesTorController? tor, TorMutationGuard? torMutationGuard,
+    DateTime Function()? now, String Function()? id, this.autoStart = true,
+    this.pollInterval = const Duration(seconds: 30), int serverPort = 37999,
+  }) : bitnamesRPC = rpc ?? GetIt.I.get<BitnamesRPC>(),
+       _settings = settings ?? GetIt.I.get<ClientSettings>(),
+       _balances = balances ?? _get<BalanceProvider>(),
+       _tor = tor ?? _defaultTor(),
+       // ignore: prefer_initializing_formals
+       _torMutationGuard = torMutationGuard,
+       _now = now ?? DateTime.now,
+       _newId = id ?? const Uuid().v4 {
+    _verifier = BitnamesBitMessageProfileVerifier(bitnamesRPC);
+    _codec = BitIntroductionEnvelopeCodec(signer: BitnamesBitIntroductionSigner(bitnamesRPC), signatureBackend: BitnamesBitIntroductionSignatureVerifier(bitnamesRPC), profileVerifier: _verifier, cipherBackend: BitnamesBitMessageCipher(bitnamesRPC));
+    _ownsTransport = transport == null;
+    _transport = transport ?? BitMessageTransport(directDialer: DirectBitMessageHttpDialer(), torDialer: createTorBitMessageDialer());
+    _server = BitMessageServer(port: serverPort, bindAddress: InternetAddress.anyIPv4, allowRemoteClients: () => !_torOnly, profileProvider: (hash) => hash == null ? null : _profiles[hash], onIncomingWire: (wire) async {
+      if (!await receiveWire(wire, ChatTransport.direct)) throw const FormatException('BitMessage was rejected');
+    });
+    bitnamesRPC.addListener(_onConnectionChanged);
+    _balances?.addListener(_onBalanceChanged);
+    if (autoStart) unawaited(initialize());
+  }
+
+  static const minerFeeSats = 100, fallbackValueSats = 1, maxMessageBytes = 4096;
+  final BitnamesRPC bitnamesRPC; final ClientSettings _settings; final BalanceProvider? _balances;
+  final BitnamesTorController? _tor; final TorMutationGuard? _torMutationGuard;
+  final DateTime Function() _now; final String Function() _newId;
+  final bool autoStart; final Duration pollInterval;
+  late final BitnamesBitMessageProfileVerifier _verifier; late final BitIntroductionEnvelopeCodec _codec;
+  late final BitMessageTransport _transport; late final BitMessageServer _server; late final bool _ownsTransport;
 
   List<BitnameEntry> _allBitNames = [];
-  List<BitnameEntry> get allBitNames => _allBitNames;
-
-  // BitNames owned by this wallet (from UTXOs)
   List<BitnameEntry> _myIdentities = [];
-  List<BitnameEntry> get myIdentities => _myIdentities;
-
-  // Cached owned hashes for quick startup
   Set<String> _ownedHashes = {};
+  BitnameEntry? _selectedIdentity;
+  ClientSettings get _clientSettings => _settings;
+  HashNameMappingSetting _hashNameMapping = HashNameMappingSetting();
+  List<ChatContact> _contacts = [];
+  final List<ChatMessage> _messages = [];
+  final Map<String, BitMessageProfile> _profiles = {}; final Set<String> _pendingProfiles = {}; final Map<String, BitMessageWire> _pendingWires = {};
+  ChatContact? _selectedContact;
+  Timer? _pollTimer;
+  Future<void>? _ready; String? _torPeerOnion;
+  bool _polling = false, _isSending = false, _torOnly = false, _disposed = false;
+  String? _error;
+  BitnamesTorStatus _torStatus = const BitnamesTorStatus(state: BitnamesTorState.unavailable);
 
-  // BitNames sidechain balance from BalanceProvider
+  List<BitnameEntry> get allBitNames => _allBitNames;
+  List<BitnameEntry> get myIdentities => _myIdentities;
+  BitnameEntry? get selectedIdentity => _selectedIdentity;
+  ChatContact? get selectedContact => _selectedContact;
+  List<ChatContact> get contacts => _contacts.where((c) => c.localBitname == (_selectedIdentity?.hash ?? '')).toList();
+  List<ChatMessage> get messages => List.unmodifiable(_messages);
+  List<ChatMessage> get currentConversation => _messages.where((m) {
+    final me = _selectedIdentity?.hash, them = _selectedContact?.id;
+    return (m.senderBitname == me && m.recipientBitname == them) ||
+        (m.senderBitname == them && m.recipientBitname == me);
+  }).toList()..sort((a, b) => a.timestamp.compareTo(b.timestamp));
+  bool get isSending => _isSending;
+  bool get isLoading => _ready != null && _myIdentities.isEmpty; String? get error => _error;
+  bool get torOnly => _torOnly; BitnamesTorStatus get torStatus => _torStatus;
+  BalanceProvider get balanceProvider => _balances ?? GetIt.I.get<BalanceProvider>();
   double get balanceBTC => balanceProvider.balanceFor(bitnamesRPC).$1;
   int get balanceSats => (balanceBTC * 100000000).round();
   bool get hasSufficientBalance => balanceSats >= 10000;
+  Map<String, BitMessageProfile> get profiles => Map.unmodifiable(_profiles);
+  bool profileReady(String hash) => _profiles.containsKey(hash) && !_pendingProfiles.contains(hash);
 
-  HashNameMappingSetting _hashNameMapping = HashNameMappingSetting();
-
-  BitnameEntry? _selectedIdentity;
-  BitnameEntry? get selectedIdentity => _selectedIdentity;
-
-  List<ChatContact> _contacts = [];
-  List<ChatContact> get contacts => _contacts;
-
-  ChatContact? _selectedContact;
-  ChatContact? get selectedContact => _selectedContact;
-
-  final List<ChatMessage> _messages = [];
-  List<ChatMessage> get messages => _messages;
-
-  List<ChatMessage> get currentConversation {
-    if (_selectedContact == null || _selectedIdentity == null) return [];
-    return _messages.where((m) {
-      final isWithContact =
-          m.senderPubkey == _selectedContact!.encryptionPubkey ||
-          m.recipientPubkey == _selectedContact!.encryptionPubkey;
-      final isFromMyIdentity =
-          m.senderPubkey == _selectedIdentity!.details.encryptionPubkey ||
-          m.recipientPubkey == _selectedIdentity!.details.encryptionPubkey;
-      return isWithContact && isFromMyIdentity;
-    }).toList()..sort((a, b) => a.timestamp.compareTo(b.timestamp));
+  Future<void> initialize() => _ready ??= _init();
+  Future<void> _init() async {
+    final state = (await _settings.getValue(_ChatState())).value;
+    await _loadContacts();
+    final persistedContacts = _list(state['contacts'], ChatContact.fromJson);
+    if (persistedContacts.isNotEmpty) _contacts = persistedContacts;
+    _messages.addAll(_list(state['messages'], ChatMessage.fromJson));
+    for (final json in _maps(state['profiles'])) { final profile = BitMessageProfile.fromJson(json); _profiles[profile.bitNameHash] = profile; }
+    _pendingProfiles.addAll((state['pending_profiles'] as List? ?? []).cast<String>());
+    for (final entry in (state['pending_wires'] as Map? ?? {}).entries) {
+      _pendingWires[entry.key as String] = BitMessageWire.fromJson(Map<String, dynamic>.from(entry.value as Map));
+    }
+    _ownedHashes = (state['owned'] as List? ?? []).cast<String>().toSet();
+    _torOnly = state['tor_only'] as bool? ?? false;
+    _torPeerOnion = state['tor_peer'] as String?;
+    if (_tor != null) _torStatus = await _tor.refresh();
+    if (autoStart) {
+      try { await _server.start(); } catch (e) { _error = 'BitMessage listener unavailable: $e'; }
+      startPolling();
+    }
+    if (_torOnly && _torPeerOnion != null) {
+      try { await _tor?.enableChainTor(bitnamesRPC, _torPeerOnion!); }
+      catch (e) { _error = 'Tor-only BitNames is not ready: $e'; }
+    }
+    if (bitnamesRPC.connected) await refresh();
+    _changed();
   }
 
-  final bool _isLoading = false;
-  bool get isLoading => _isLoading;
-
-  String? _error;
-  String? get error => _error;
-
-  bool _isSending = false;
-  bool get isSending => _isSending;
-
-  Timer? _pollTimer;
-  static const _pollInterval = Duration(seconds: 30);
-
-  ChatProvider() {
-    bitnamesRPC.addListener(_onConnectionChanged);
-    balanceProvider.addListener(_onBalanceChanged);
-    _init();
+  Future<void> refresh() async {
+    await fetchIdentities();
+    await fetchPaymail();
   }
 
   void _onConnectionChanged() {
     if (bitnamesRPC.connected) {
-      _init();
+      refresh();
     }
   }
 
   void _onBalanceChanged() {
     // Notify listeners when balance changes so UI updates
     notifyListeners();
-  }
-
-  Future<void> _init() async {
-    if (!bitnamesRPC.connected) return;
-    await Future.wait([
-      fetchIdentities(),
-      _loadContacts(),
-    ]);
   }
 
   Future<void> fetchIdentities() async {
@@ -131,10 +179,17 @@ class ChatProvider extends ChangeNotifier {
       // Match owned hashes to full BitName entries
       _myIdentities = _allBitNames.where((entry) => _ownedHashes.contains(entry.hash)).toList();
 
-      // Select first owned identity if none selected
-      if (_selectedIdentity == null && _myIdentities.isNotEmpty) {
-        _selectedIdentity = _myIdentities.first;
+      // Rebind to fresh chain data and clear conversations if ownership changed.
+      final refreshed = _myIdentities.where((entry) => entry.hash == _selectedIdentity?.hash).firstOrNull;
+      if (refreshed == null) _selectedContact = null;
+      _selectedIdentity = refreshed ?? _myIdentities.firstOrNull;
+      for (final identity in _myIdentities) {
+        final profile = _profiles[identity.hash];
+        if (profile != null && identity.details.commitment == bitMessageProfileCommitment(profile)) {
+          _pendingProfiles.remove(identity.hash);
+        }
       }
+      await _save();
       notifyListeners();
     } catch (e) {
       _error = 'Failed to fetch identities: $e';
@@ -161,6 +216,165 @@ class ChatProvider extends ChangeNotifier {
   Future<void> _saveOwnedHashes() async {
     final setting = OwnedBitNamesSetting(newValue: _ownedHashes.toList());
     await _clientSettings.setValue(setting);
+  }
+
+  Future<void> _loadContacts() async {
+    try {
+      final setting = ChatContactsSetting();
+      final loaded = await _clientSettings.getValue(setting);
+      _contacts = loaded.value;
+      notifyListeners();
+    } catch (e) {
+      _contacts = [];
+    }
+  }
+
+  Future<String?> publishProfile({
+    required Iterable<Uri> direct,
+    required Iterable<Uri> tor,
+    required int? paymailFeeSats,
+  }) async {
+    final me = _selectedIdentity;
+    if (me?.details.signingPubkey == null || me?.details.encryptionPubkey == null) {
+      _fail('Select a BitName with signing and encryption keys');
+      return null;
+    }
+    if (paymailFeeSats != null && paymailFeeSats < 0) { _fail('Introduction fee cannot be negative'); return null; }
+    if (!await _mutationAllowed()) return null;
+    final identity = me!;
+    final profile = BitMessageProfile(bitNameHash: identity.hash, signingPublicKey: identity.details.signingPubkey!,
+      encryptionPublicKey: identity.details.encryptionPubkey!, directEndpoints: direct.map((u) => _path(u, identity.hash)),
+      torEndpoints: tor.map((u) => _path(u, identity.hash)), paymailFeeSats: paymailFeeSats);
+    if (profile.directEndpoints.isEmpty && profile.torEndpoints.isEmpty) {
+      _fail('Add a direct or Tor endpoint');
+      return null;
+    }
+    try {
+      final txid = await bitnamesRPC.updateBitName(bitname: identity.hash,
+        updates: BitNameDataUpdates(commitment: BitNameUpdate.set(bitMessageProfileCommitment(profile)),
+          paymailFeeSats: paymailFeeSats == null ? const BitNameUpdate<int>.delete() : BitNameUpdate.set(paymailFeeSats)),
+        feeSats: minerFeeSats);
+      _profiles[identity.hash] = profile; _pendingProfiles.add(identity.hash); await _save(); _changed();
+      return txid;
+    } catch (e) {
+      _fail('Could not publish reply profile: $e'); return null;
+    }
+  }
+
+  Future<bool> setTorOnly(bool enabled, {String? peerOnion}) async {
+    try {
+      if (enabled) {
+        final controller = _tor;
+        final onion = peerOnion ?? _torPeerOnion;
+        if (controller == null || onion == null) throw StateError('Start BitNames Tor and choose a P2P onion');
+        await controller.enableChainTor(bitnamesRPC, onion);
+        _torPeerOnion = onion;
+      } else { await _tor?.disableChainTor(); }
+      _torOnly = enabled; await _save(); _changed();
+      return true;
+    } catch (e) {
+      _fail('Could not ${enabled ? 'enable' : 'disable'} Tor mode: $e'); return false;
+    }
+  }
+
+  Future<BitnamesTorStatus> downloadAndStartTor() async {
+    try { _torStatus = await _tor!.downloadAndStart(); }
+    catch (e) { _torStatus = BitnamesTorStatus(state: BitnamesTorState.error, error: '$e'); }
+    _changed(); return _torStatus;
+  }
+
+  Future<void> addContactFromEntry(BitnameEntry entry) async {
+    if (entry.details.encryptionPubkey == null) {
+      _error = 'BitName has no encryption key';
+      notifyListeners();
+      return;
+    }
+
+    // Resolve the current owner address; never use a local receive address.
+    final resolution = await bitnamesRPC.resolveBitName(entry.hash);
+    if (resolution == null) return;
+    final address = resolution.address;
+
+    final contact = ChatContact(
+      id: entry.hash,
+      localBitname: _selectedIdentity?.hash ?? '',
+      name: entry.hash,
+      plaintextName: entry.plaintextName,
+      encryptionPubkey: entry.details.encryptionPubkey!,
+      signingPubkey: entry.details.signingPubkey,
+      address: address,
+      paymailFeeSats: entry.details.paymailFeeSats,
+      isManual: true,
+    );
+
+    await addContact(contact);
+  }
+
+  Future<ChatContact?> lookupBitName(String nameOrHash) async {
+    if (!bitnamesRPC.connected) return null;
+
+    try {
+      final hash = RegExp(r'^[0-9a-fA-F]{64}$').hasMatch(nameOrHash)
+          ? nameOrHash.toLowerCase()
+          : blake3Hex(utf8.encode(nameOrHash.trim().toLowerCase()));
+      final resolution = await bitnamesRPC.resolveBitName(hash);
+      final data = resolution?.data;
+      if (data == null || data.encryptionPubkey == null || _selectedIdentity == null) return null;
+
+      return ChatContact(
+        id: hash,
+        localBitname: _selectedIdentity!.hash,
+        name: hash,
+        plaintextName: nameOrHash,
+        encryptionPubkey: data.encryptionPubkey!,
+        signingPubkey: data.signingPubkey,
+        address: resolution!.address,
+        paymailFeeSats: data.paymailFeeSats,
+        isManual: true,
+      );
+    } catch (e) {
+      _error = 'Failed to lookup BitName: $e';
+      notifyListeners();
+      return null;
+    }
+  }
+
+  Future<void> _saveContacts() async {
+    final setting = ChatContactsSetting(newValue: _contacts);
+    await _clientSettings.setValue(setting);
+    await _save();
+  }
+
+  Future<void> addContact(ChatContact contact) async {
+    final existingIndex = _contacts.indexWhere((c) => c.relationshipId == contact.relationshipId);
+    if (existingIndex >= 0) {
+      _contacts[existingIndex] = contact;
+    } else {
+      _contacts.add(contact);
+    }
+    if (_selectedContact?.relationshipId == contact.relationshipId) {
+      _selectedContact = contact;
+    }
+    await _saveContacts();
+    notifyListeners();
+  }
+
+  Future<void> _putContact(ChatContact contact) => addContact(contact);
+
+  Future<void> removeContact(String contactId) async {
+    _contacts.removeWhere(
+      (c) => c.id == contactId && c.localBitname == _selectedIdentity?.hash,
+    );
+    if (_selectedContact?.id == contactId) {
+      _selectedContact = null;
+    }
+    await _saveContacts();
+    notifyListeners();
+  }
+
+  void selectContact(ChatContact contact) {
+    _selectedContact = contact;
+    notifyListeners();
   }
 
   /// Search for a BitName by plaintext name using Blake3 hash
@@ -211,6 +425,7 @@ class ChatProvider extends ChangeNotifier {
 
   void selectIdentity(BitnameEntry identity) {
     _selectedIdentity = identity;
+    _selectedContact = null;
     notifyListeners();
     fetchPaymail();
   }
@@ -249,6 +464,7 @@ class ChatProvider extends ChangeNotifier {
       notifyListeners();
       return null;
     }
+    if (!await _mutationAllowed()) return null;
 
     // Use a unique status ID per claim so back-to-back claims work
     final statusId = 'claiming_$plaintextName';
@@ -267,8 +483,9 @@ class ChatProvider extends ChangeNotifier {
       _addStatus(statusId, 'Reserving "$plaintextName"...');
       await bitnamesRPC.reserveBitName(plaintextName);
 
-      // Get encryption key for paymail
+      // Get messaging keys
       final encryptionPubkey = await bitnamesRPC.getNewEncryptionKey();
+      final signingPubkey = await bitnamesRPC.getNewVerifyingKey();
 
       // Retry register until reservation is mined (stay in "Reserving" state)
       String? txid;
@@ -280,6 +497,7 @@ class ChatProvider extends ChangeNotifier {
             plaintextName,
             BitNameData(
               encryptionPubkey: encryptionPubkey,
+              signingPubkey: signingPubkey,
               paymailFeeSats: 1000,
             ),
           );
@@ -322,265 +540,356 @@ class ChatProvider extends ChangeNotifier {
     }
   }
 
-  Future<void> _loadContacts() async {
+  Future<ChatSendResult> send(String body) async {
+    if (_selectedContact?.relationshipState == ChatRelationshipState.accepted) {
+      return _sendDirect(body, BitIntroductionKind.message, _selectedContact!.introductionId);
+    }
+    return sendIntroduction(body);
+  }
+
+  Future<String?> sendMessage(String body) async {
+    final result = await send(body);
+    return result.sent ? result.reference ?? result.id : null;
+  }
+
+  Future<ChatSendResult> sendIntroduction(String body) async {
+    final contact = _selectedContact;
+    if (_isSending) return _failed('A message is already being sent');
+    if (contact == null || !{ChatRelationshipState.none, ChatRelationshipState.rejected}.contains(contact.relationshipState)) {
+      return _failed('A new introduction is not allowed for this contact'); }
+    _isSending = true; _changed();
     try {
-      final setting = ChatContactsSetting();
-      final loaded = await _clientSettings.getValue(setting);
-      _contacts = loaded.value;
-      notifyListeners();
+      final ctx = await _context();
+      final fee = ctx?.remote.data.paymailFeeSats;
+      if (ctx == null || fee == null) return _failed('Recipient is not accepting introductions');
+      if (fee != ctx.contact.paymailFeeSats) {
+        await _putContact(ctx.contact.copyWith(address: ctx.remote.address, paymailFeeSats: fee));
+        return _failed('The introduction fee changed to $fee sats; review and confirm it again');
+      }
+      if (!await _mutationAllowed()) return _failed(_error!);
+      final prepared = await _prepare(ctx, body, BitIntroductionKind.introduction, null, true);
+      final txid = await bitnamesRPC.transfer(dest: ctx.remote.address, value: fee,
+        fee: minerFeeSats, memo: prepared.$2.ciphertext);
+      final contact = ctx.contact.copyWith(address: ctx.remote.address,
+        relationshipState: ChatRelationshipState.outgoingIntroduction, introductionId: prepared.$1.payload.id);
+      await _putContact(contact);
+      await _putMessage(_message(prepared.$1, true, ChatTransport.bitnamesChain, txid, fee));
+      return ChatSendResult(ChatSendDisposition.sent, id: prepared.$1.payload.id, reference: txid);
+    } catch (e) { return _failed('Could not send introduction: $e'); }
+    finally { _isSending = false; _changed(); }
+  }
+
+  Future<ChatSendResult> _sendDirect(String body, BitIntroductionKind kind, String? reply) async {
+    final ctx = await _context();
+    final accepting = kind == BitIntroductionKind.acceptance &&
+        ctx?.contact.relationshipState == ChatRelationshipState.incomingIntroduction;
+    if (ctx == null || (!ctx.contact.isAccepted && !accepting)) return _failed('Chat is not accepted');
+    final remoteProfile = _profile(ctx.contact);
+    if (remoteProfile == null) return _failed('Contact has no verified reply profile');
+    late (SignedBitIntroductionEnvelope, BitMessageWire) prepared;
+    try { prepared = await _prepare(ctx, body, kind, reply, true); }
+    catch (e) { return _failed('Could not prepare message: $e'); }
+    try {
+      final verified = await _verifier.verify(remoteProfile);
+      await _transport.send(prepared.$2, verified, torOnly: _torOnly);
+      await _putMessage(_message(prepared.$1, true, _torOnly ? ChatTransport.tor : ChatTransport.direct));
+      return ChatSendResult(ChatSendDisposition.sent, id: prepared.$1.payload.id);
     } catch (e) {
-      _contacts = [];
+      _pendingWires[prepared.$1.payload.id] = prepared.$2;
+      await _putMessage(_message(prepared.$1, true,
+        _torOnly ? ChatTransport.tor : ChatTransport.direct, null, null, '$e'));
+      return ChatSendResult(ChatSendDisposition.needsChainConfirmation, id: prepared.$1.payload.id, error: '$e');
     }
   }
 
-  Future<void> _saveContacts() async {
-    final setting = ChatContactsSetting(newValue: _contacts);
-    await _clientSettings.setValue(setting);
+  Future<ChatSendResult> acceptIntroduction() async {
+    final contact = _selectedContact;
+    if (contact?.relationshipState != ChatRelationshipState.incomingIntroduction) return _failed('No introduction to accept');
+    if (_messages.any((m) => m.kind == ChatMessageKind.acceptance && m.senderBitname == contact!.localBitname &&
+        m.recipientBitname == contact.id && _pendingWires.containsKey(m.id))) {
+      return _failed('Retry or reject the pending acceptance first'); }
+    final result = await _sendDirect('accepted', BitIntroductionKind.acceptance, contact!.introductionId);
+    if (result.sent) await _putContact(contact.copyWith(relationshipState: ChatRelationshipState.accepted));
+    return result;
   }
 
-  Future<void> addContact(ChatContact contact) async {
-    final existingIndex = _contacts.indexWhere((c) => c.id == contact.id);
-    if (existingIndex >= 0) {
-      _contacts[existingIndex] = contact;
-    } else {
-      _contacts.add(contact);
-    }
-    await _saveContacts();
-    notifyListeners();
+  Future<void> rejectIntroduction() => _setRelationship(ChatRelationshipState.rejected);
+  Future<void> blockContact() => _setRelationship(ChatRelationshipState.blocked);
+  Future<void> _setRelationship(ChatRelationshipState state) async {
+    if (_selectedContact != null) await _putContact(_selectedContact!.copyWith(relationshipState: state));
   }
 
-  Future<void> removeContact(String contactId) async {
-    _contacts.removeWhere((c) => c.id == contactId);
-    if (_selectedContact?.id == contactId) {
-      _selectedContact = null;
-    }
-    await _saveContacts();
-    notifyListeners();
-  }
-
-  /// Add contact directly from a BitnameEntry (no lookup needed)
-  Future<void> addContactFromEntry(BitnameEntry entry) async {
-    if (entry.details.encryptionPubkey == null) {
-      _error = 'BitName has no encryption key';
-      notifyListeners();
-      return;
-    }
-
-    // Get an address for sending to this contact
-    final address = await bitnamesRPC.getNewAddress();
-
-    final contact = ChatContact(
-      id: entry.hash,
-      name: entry.hash,
-      plaintextName: entry.plaintextName,
-      encryptionPubkey: entry.details.encryptionPubkey!,
-      address: address,
-      paymailFeeSats: entry.details.paymailFeeSats,
-      isManual: true,
-    );
-
-    await addContact(contact);
-  }
-
-  void selectContact(ChatContact contact) {
-    _selectedContact = contact;
-    notifyListeners();
+  Future<ChatSendResult> sendViaChain(String id) async {
+    final wire = _pendingWires[id];
+    final message = _messages.where((m) => m.id == id).firstOrNull;
+    final contact = message == null ? null : _find(message.senderBitname, message.recipientBitname);
+    final accepting = message?.kind == ChatMessageKind.acceptance &&
+        contact?.relationshipState == ChatRelationshipState.incomingIntroduction;
+    final allowed = message?.kind == ChatMessageKind.acceptance ? accepting : contact?.isAccepted == true;
+    if (wire == null || message == null || !allowed ||
+        message.kind == ChatMessageKind.introduction) { return _failed('Chain fallback is only available after acceptance'); }
+    _pendingWires.remove(id);
+    if (!await _mutationAllowed()) { _pendingWires[id] = wire; return _failed(_error!); }
+    try {
+      final remote = await bitnamesRPC.resolveBitName(message.recipientBitname);
+      if (remote == null) throw StateError('Recipient is not registered');
+      final txid = await bitnamesRPC.transfer(dest: remote.address, value: fallbackValueSats,
+        fee: minerFeeSats, memo: wire.ciphertext);
+      await _putMessage(
+        ChatMessage(id: message.id, content: message.content, senderBitname: message.senderBitname,
+          recipientBitname: message.recipientBitname, timestamp: message.timestamp, isOutgoing: true,
+          kind: message.kind, deliveryState: ChatDeliveryState.confirmed, transport: ChatTransport.bitnamesChain,
+          introductionId: message.introductionId, txid: txid, valueSats: fallbackValueSats),
+      );
+      if (accepting) await _putContact(contact!.copyWith(relationshipState: ChatRelationshipState.acceptancePending));
+      return ChatSendResult(ChatSendDisposition.sent, id: id, reference: txid);
+    } catch (e) { _pendingWires[id] = wire; return _failed('Could not send fallback: $e'); }
   }
 
   Future<void> fetchPaymail() async {
-    if (!bitnamesRPC.connected || _selectedIdentity == null) return;
-
+    if (_polling || !bitnamesRPC.connected) return;
+    _polling = true;
     try {
-      final paymail = await bitnamesRPC.getPaymail();
-      await _processPaymail(paymail);
-    } catch (e) {
-      _error = 'Failed to fetch paymail: $e';
-      notifyListeners();
-    }
-  }
-
-  Future<void> _processPaymail(Map<String, dynamic> paymail) async {
-    if (paymail.isEmpty || _selectedIdentity == null) return;
-
-    final myEncryptionPubkey = _selectedIdentity!.details.encryptionPubkey;
-    if (myEncryptionPubkey == null) return;
-
-    for (final entry in paymail.entries) {
-      final outpointKey = entry.key;
-      final data = entry.value as Map<String, dynamic>;
-
-      // Skip if we already have this message
-      if (_messages.any((m) => m.id == outpointKey)) continue;
-
-      final senderAddress = data['address'] as String;
-      final content = data['content'] as Map<String, dynamic>;
-      final memoBytes = data['memo'] as List<dynamic>;
-
-      // Skip if no memo (no message content)
-      if (memoBytes.isEmpty) continue;
-
-      // Extract value from content (BitcoinSats format)
-      int? valueSats;
-      if (content.containsKey('BitcoinSats')) {
-        valueSats = content['BitcoinSats'] as int?;
-      }
-
-      // Convert memo bytes to hex string (ciphertext)
-      final ciphertext = memoBytes.map((b) => (b as int).toRadixString(16).padLeft(2, '0')).join();
-
-      try {
-        // Decrypt the message using our encryption key
-        final plaintext = await bitnamesRPC.decryptMsg(
-          ciphertext: ciphertext,
-          encryptionPubkey: myEncryptionPubkey,
-        );
-
-        // Create ChatMessage
-        final message = ChatMessage(
-          id: outpointKey,
-          content: plaintext,
-          senderPubkey: senderAddress,
-          recipientPubkey: myEncryptionPubkey,
-          timestamp: DateTime.now(),
-          isOutgoing: false,
-          txid: outpointKey,
-          valueSats: valueSats,
-        );
-        _messages.add(message);
-
-        // Update contact's last message if we have them as a contact
-        final contactIndex = _contacts.indexWhere((c) => c.address == senderAddress);
-        if (contactIndex >= 0) {
-          _contacts[contactIndex] = _contacts[contactIndex].copyWith(
-            lastMessage: plaintext,
-            lastMessageTime: DateTime.now(),
-          );
-          await _saveContacts();
+      await _confirmAcceptances();
+      for (final mail in await bitnamesRPC.getPaymailEntries()) {
+        for (final recipient in mail.recipients.where((r) => _ownedHashes.contains(r.bitname))) {
+          try { if (await receiveWire(
+            BitMessageWire(recipientBitNameHash: recipient.bitname, ciphertext: mail.output.memoHex), ChatTransport.bitnamesChain,
+            value: mail.valueSats, requiredFee: recipient.requiredFeeSats, recipientData: recipient.data,
+            reference: canonicalJsonEncode(mail.outpoint), blockHash: mail.blockHash, txIndex: mail.txIndex,
+          )) { break; } } catch (_) {}
         }
-      } catch (e) {
-        // Failed to decrypt - may not be intended for us or invalid
       }
-    }
-
-    notifyListeners();
-  }
-
-  Future<String?> sendMessage(String content) async {
-    if (_selectedContact == null || _selectedIdentity == null) {
-      _error = 'No contact or identity selected';
-      notifyListeners();
-      return null;
-    }
-
-    if (_selectedIdentity!.details.encryptionPubkey == null) {
-      _error = 'Selected identity has no encryption key';
-      notifyListeners();
-      return null;
-    }
-
-    _isSending = true;
-    _error = null;
-    notifyListeners();
-
-    try {
-      // 1. Encrypt the message with recipient's pubkey
-      final ciphertext = await bitnamesRPC.encryptMsg(
-        msg: content,
-        encryptionPubkey: _selectedContact!.encryptionPubkey,
-      );
-
-      // 2. Send as transfer with memo
-      final txid = await bitnamesRPC.transfer(
-        dest: _selectedContact!.address,
-        value: _selectedContact!.paymailFeeSats ?? 1000,
-        fee: 100,
-        memo: ciphertext,
-      );
-
-      // 3. Add to local message list
-      final message = ChatMessage(
-        id: txid,
-        content: content,
-        senderPubkey: _selectedIdentity!.details.encryptionPubkey!,
-        recipientPubkey: _selectedContact!.encryptionPubkey,
-        timestamp: DateTime.now(),
-        isOutgoing: true,
-        txid: txid,
-        valueSats: _selectedContact!.paymailFeeSats ?? 1000,
-      );
-      _messages.add(message);
-
-      // 4. Update contact's last message
-      final contactIndex = _contacts.indexWhere((c) => c.id == _selectedContact!.id);
-      if (contactIndex >= 0) {
-        _contacts[contactIndex] = _contacts[contactIndex].copyWith(
-          lastMessage: content,
-          lastMessageTime: DateTime.now(),
-        );
-        await _saveContacts();
-      }
-
-      notifyListeners();
-      return txid;
-    } catch (e) {
-      _error = 'Failed to send message: $e';
-      notifyListeners();
-      return null;
+    } catch (e) { _fail('Could not poll BitIntroduction messages: $e');
     } finally {
-      _isSending = false;
-      notifyListeners();
+      _polling = false;
     }
   }
 
-  void startPolling() {
-    _pollTimer?.cancel();
-    _pollTimer = Timer.periodic(_pollInterval, (_) {
-      fetchPaymail();
-    });
+  Future<void> _confirmAcceptances() async {
+    for (final message in _messages.where((m) => m.kind == ChatMessageKind.acceptance && m.txid != null)) {
+      final contact = _find(message.senderBitname, message.recipientBitname);
+      if (!{ChatRelationshipState.incomingIntroduction, ChatRelationshipState.acceptancePending}.contains(contact?.relationshipState)) continue;
+      try { if (await bitnamesRPC.isTransactionConfirmed(message.txid!)) {
+        await _putContact(contact!.copyWith(relationshipState: ChatRelationshipState.accepted)); } } catch (_) {}
+    }
   }
 
-  void stopPolling() {
-    _pollTimer?.cancel();
-    _pollTimer = null;
+  Future<bool> receiveWire(
+    BitMessageWire wire,
+    ChatTransport transport, {
+    int? value,
+    int? requiredFee,
+    BitNameData? recipientData,
+    String? reference,
+    String? blockHash,
+    int? txIndex,
+  }) async {
+    if (!_ownedHashes.contains(wire.recipientBitNameHash)) return false;
+    final data = recipientData ?? (await bitnamesRPC.resolveBitName(wire.recipientBitNameHash))?.data;
+    if (data?.encryptionPubkey == null || data?.signingPubkey == null) return false;
+    final recipient = _synthetic(wire.recipientBitNameHash, data!);
+    final envelope = await _codec.openWire(wire: wire, recipientProfile: recipient);
+    final payload = envelope.payload;
+    final duplicate = _messages.where((m) => m.id == payload.id).firstOrNull;
+    if (duplicate != null) { return duplicate.senderBitname == payload.senderBitNameHash &&
+        duplicate.recipientBitname == payload.recipientBitNameHash && duplicate.content == payload.body &&
+        duplicate.kind.index == payload.kind.index && duplicate.timestamp.millisecondsSinceEpoch == payload.timestamp.millisecondsSinceEpoch; }
+    final existing = _find(payload.recipientBitNameHash, payload.senderBitNameHash);
+    if (existing?.relationshipState == ChatRelationshipState.blocked) return false;
+    if (payload.kind == BitIntroductionKind.introduction &&
+        (transport != ChatTransport.bitnamesChain || requiredFee == null || value != requiredFee)) { return false; }
+    if (payload.kind != BitIntroductionKind.introduction &&
+        transport == ChatTransport.bitnamesChain && value != fallbackValueSats) { return false; }
+    final claimed = payload.replyProfile ?? _profile(existing);
+    if (claimed == null) return false;
+    final historical = blockHash == null || txIndex == null ? null :
+        await bitnamesRPC.bitNameDataAtPosition(payload.senderBitNameHash, blockHash, txIndex);
+    final sender = historical == null ? await _verifier.verify(claimed) :
+        _verifier.verifyAt(claimed, historical, '$blockHash:$txIndex');
+    await _codec.verify(envelope, senderProfile: sender, verifiedReplyProfile: historical == null ? null : sender);
+    final state = switch (payload.kind) {
+      BitIntroductionKind.introduction when existing == null || existing.relationshipState == ChatRelationshipState.none ||
+              existing.relationshipState == ChatRelationshipState.rejected =>
+        ChatRelationshipState.incomingIntroduction,
+      BitIntroductionKind.acceptance when existing?.relationshipState == ChatRelationshipState.outgoingIntroduction &&
+              existing?.introductionId == payload.inReplyTo =>
+        ChatRelationshipState.accepted,
+      BitIntroductionKind.message when existing?.isAccepted == true && existing?.introductionId == payload.inReplyTo =>
+        ChatRelationshipState.accepted,
+      _ => null,
+    };
+    if (state == null) return false;
+    final senderResolution = await bitnamesRPC.resolveBitName(payload.senderBitNameHash);
+    if (senderResolution == null) return false;
+    final base = existing ?? ChatContact(id: payload.senderBitNameHash, localBitname: payload.recipientBitNameHash,
+      name: payload.senderBitNameHash, encryptionPubkey: sender.encryptionPublicKey);
+    await _putContact(base.copyWith(address: senderResolution.address, signingPubkey: sender.signingPublicKey,
+      relationshipState: state, introductionId: payload.kind == BitIntroductionKind.introduction ? payload.id : existing?.introductionId,
+      replyProfile: sender.profile.toJson(), lastMessage: payload.body, lastMessageTime: payload.timestamp));
+    await _putMessage(_message(envelope, false, transport, reference, value));
+    return true;
   }
 
-  Future<ChatContact?> lookupBitName(String nameOrHash) async {
-    if (!bitnamesRPC.connected) return null;
-
+  Future<_Context?> _context() async {
+    final me = _selectedIdentity, contact = _selectedContact;
+    if (me == null || contact == null || !_ownedHashes.contains(me.hash) || contact.localBitname != me.hash) return null;
+    final profile = _profiles[me.hash];
+    if (profile == null || _pendingProfiles.contains(me.hash)) { _fail('Publish and confirm a reply profile first'); return null; }
     try {
-      final data = await bitnamesRPC.getBitNameData(nameOrHash);
-      if (data == null || data.encryptionPubkey == null) return null;
-
-      // Get an address for this identity
-      final address = await bitnamesRPC.getNewAddress();
-
-      return ChatContact(
-        id: nameOrHash,
-        name: nameOrHash,
-        plaintextName: nameOrHash,
-        encryptionPubkey: data.encryptionPubkey!,
-        address: address,
-        paymailFeeSats: data.paymailFeeSats,
-        isManual: true,
-      );
+      final self = await _verifier.verify(profile);
+      final remote = await bitnamesRPC.resolveBitName(contact.id);
+      if (remote?.data.encryptionPubkey == null || remote?.data.signingPubkey == null) return null;
+      return _Context(contact, self, remote!, _synthetic(contact.id, remote.data));
     } catch (e) {
-      _error = 'Failed to lookup BitName: $e';
-      notifyListeners();
-      return null;
+      _fail('Could not verify messaging profiles: $e'); return null;
     }
   }
 
+  Future<(SignedBitIntroductionEnvelope, BitMessageWire)> _prepare(
+    _Context ctx,
+    String body,
+    BitIntroductionKind kind,
+    String? reply,
+    bool includeProfile,
+  ) async {
+    if (utf8.encode(body).length > maxMessageBytes) throw ArgumentError('Messages are limited to $maxMessageBytes UTF-8 bytes');
+    final envelope = await _codec.createSigned(id: _newId(), kind: kind, senderProfile: ctx.self,
+      recipientBitNameHash: ctx.contact.id, timestamp: _now(), body: body, inReplyTo: reply,
+      replyProfile: includeProfile ? ctx.self : null);
+    return (envelope, await _codec.createWire(envelope: envelope, recipientProfile: ctx.remoteCipher));
+  }
+
+  VerifiedBitMessageProfile _synthetic(String hash, BitNameData data) {
+    final profile = BitMessageProfile(bitNameHash: hash, signingPublicKey: data.signingPubkey!,
+      encryptionPublicKey: data.encryptionPubkey!, paymailFeeSats: data.paymailFeeSats);
+    return VerifiedBitMessageProfile.verified(profile: profile,
+      onChainCommitment: bitMessageProfileCommitment(profile), verificationReference: 'encryption-only');
+  }
+
+  BitMessageProfile? _profile(ChatContact? contact) {
+    try {
+      return contact?.replyProfile == null ? null : BitMessageProfile.fromJson(contact!.replyProfile!);
+    } catch (_) { return null; }
+  }
+
+  ChatContact? _find(String local, String remote) =>
+      _contacts.where((c) => c.localBitname == local && c.id == remote).firstOrNull;
+
+  ChatMessage _message(
+    SignedBitIntroductionEnvelope envelope,
+    bool outgoing,
+    ChatTransport transport, [
+    String? reference,
+    int? value,
+    String? error,
+  ]) {
+    final p = envelope.payload;
+    return ChatMessage(id: p.id, content: p.body, senderBitname: p.senderBitNameHash,
+      recipientBitname: p.recipientBitNameHash, timestamp: p.timestamp, isOutgoing: outgoing,
+      kind: ChatMessageKind.values[BitIntroductionKind.values.indexOf(p.kind)],
+      deliveryState: error == null ? ChatDeliveryState.confirmed : ChatDeliveryState.failed,
+      transport: transport, introductionId: p.kind == BitIntroductionKind.introduction ? p.id : p.inReplyTo,
+      txid: reference, valueSats: value, error: error);
+  }
+
+  Future<void> _putMessage(ChatMessage message) async {
+    final index = _messages.indexWhere((m) => m.id == message.id);
+    index < 0 ? _messages.add(message) : _messages[index] = message;
+    await _save(); _changed();
+  }
+
+  Future<bool> _mutationAllowed() async {
+    if (!_torOnly) return true;
+    final guard = _torMutationGuard;
+    if (guard != null) {
+      final reason = await guard();
+      if (reason == null) return true;
+      _fail(reason); return false;
+    }
+    if (await _tor?.chainTorReady(bitnamesRPC) ?? false) return true;
+    _fail('Tor-only BitNames writes require --tor-proxy-mode and a connected loopback UDP tunnel peer'); return false;
+  }
+
+  Future<void> _save() => _settings.setValue(_ChatState(newValue: {
+        'contacts': _contacts.map((e) => e.toJson()).toList(),
+        'messages': _messages.map((e) => e.toJson()).toList(),
+        'profiles': _profiles.values.map((e) => e.toJson()).toList(),
+        'pending_profiles': _pendingProfiles.toList(),
+        'pending_wires': _pendingWires.map((k, v) => MapEntry(k, v.toJson())),
+        'owned': _ownedHashes.toList(), 'tor_only': _torOnly,
+        if (_torPeerOnion != null) 'tor_peer': _torPeerOnion,
+      }));
+
+  void startPolling() { _pollTimer ??= Timer.periodic(pollInterval, (_) => unawaited(refresh())); }
+  void stopPolling() {}
   void clearError() {
     _error = null;
     notifyListeners();
   }
 
+  ChatSendResult _failed(String message) { _fail(message); return ChatSendResult(ChatSendDisposition.failed, error: message); }
+  void _fail(String? value) { _error = value; _changed(); }
+  void _changed() { if (!_disposed) notifyListeners(); }
+
   @override
   void dispose() {
-    bitnamesRPC.removeListener(_onConnectionChanged);
-    balanceProvider.removeListener(_onBalanceChanged);
+    _disposed = true;
     _pollTimer?.cancel();
+    bitnamesRPC.removeListener(_onConnectionChanged);
+    _balances?.removeListener(_onBalanceChanged);
+    unawaited(_server.stop());
+    if (_ownsTransport) _transport.close();
+    _tor?.close();
     super.dispose();
+  }
+}
+
+class _Context {
+  const _Context(this.contact, this.self, this.remote, this.remoteCipher);
+  final ChatContact contact; final VerifiedBitMessageProfile self, remoteCipher; final BitNameResolution remote;
+}
+
+class _ChatState extends SettingValue<Map<String, dynamic>> {
+  _ChatState({super.newValue});
+  @override String get key => 'bitintroduction_state_v1';
+  @override Map<String, dynamic> defaultValue() => {};
+  @override
+  Map<String, dynamic>? fromJson(String value) {
+    try { return Map<String, dynamic>.from(jsonDecode(value) as Map); }
+    catch (_) { return null; }
+  }
+  @override String toJson() => jsonEncode(value);
+  @override SettingValue<Map<String, dynamic>> withValue([Map<String, dynamic>? value]) => _ChatState(newValue: value);
+}
+
+class OwnedBitNamesSetting extends SettingValue<List<String>> {
+  OwnedBitNamesSetting({super.newValue});
+
+  @override
+  String get key => 'owned_bitname_hashes';
+
+  @override
+  List<String> defaultValue() => [];
+
+  @override
+  String toJson() {
+    return jsonEncode(value);
+  }
+
+  @override
+  List<String>? fromJson(String jsonString) {
+    try {
+      final List<dynamic> decoded = jsonDecode(jsonString);
+      return decoded.cast<String>();
+    } catch (e) {
+      return null;
+    }
+  }
+
+  @override
+  SettingValue<List<String>> withValue([List<String>? value]) {
+    return OwnedBitNamesSetting(newValue: value);
   }
 }
 
@@ -614,32 +923,16 @@ class ChatContactsSetting extends SettingValue<List<ChatContact>> {
   }
 }
 
-class OwnedBitNamesSetting extends SettingValue<List<String>> {
-  OwnedBitNamesSetting({super.newValue});
-
-  @override
-  String get key => 'owned_bitname_hashes';
-
-  @override
-  List<String> defaultValue() => [];
-
-  @override
-  String toJson() {
-    return jsonEncode(value);
-  }
-
-  @override
-  List<String>? fromJson(String jsonString) {
-    try {
-      final List<dynamic> decoded = jsonDecode(jsonString);
-      return decoded.cast<String>();
-    } catch (e) {
-      return null;
-    }
-  }
-
-  @override
-  SettingValue<List<String>> withValue([List<String>? value]) {
-    return OwnedBitNamesSetting(newValue: value);
-  }
+List<Map<String, dynamic>> _maps(Object? value) => (value as List? ?? []).map((e) => Map<String, dynamic>.from(e as Map)).toList();
+List<T> _list<T>(Object? value, T Function(Map<String, dynamic>) decode) => _maps(value).map(decode).toList();
+Uri _path(Uri uri, String hash) {
+  final base = uri.path.endsWith('/') ? uri : uri.replace(path: '${uri.path}/');
+  return base.path.endsWith('/bitname/$hash/') ? base : base.resolve('bitname/$hash/');
 }
+T? _get<T extends Object>() => GetIt.I.isRegistered<T>() ? GetIt.I.get<T>() : null;
+BitnamesTorController? _defaultTor() {
+  final orchestrator = _get<OrchestratorRPC>();
+  return orchestrator == null ? null : BitnamesTorController(orchestrator: orchestrator);
+}
+extension _First<T> on Iterable<T> { T? get firstOrNull => isEmpty ? null : first; }
+// dart format on
