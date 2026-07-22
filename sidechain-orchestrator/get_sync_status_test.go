@@ -123,7 +123,7 @@ func TestGetSyncStatus_LeavesHeadersZeroWhenExplorerDown(t *testing.T) {
 	slot := out.Sidechains["thunder"]
 	assert.Equal(t, int64(50), slot.Blocks)
 	// The public explorer is a UX extra — only signet has one today, so on
-	// mainnet/testnet/regtest/forknet the fetch always fails. Headers must
+	// mainnet/testnet/regtest/drynet the fetch always fails. Headers must
 	// stay zero so the UI renders an unknown/zero-progress state instead of
 	// the previous Headers=Blocks fallback that made every running sidechain
 	// look fully synced mid-IBD.

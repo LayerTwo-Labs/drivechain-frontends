@@ -1475,8 +1475,11 @@ func (x *MultisigGroup) GetKeys() []*MultisigKey {
 }
 
 type BuildDescriptorsRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Group         *MultisigGroup         `protobuf:"bytes,1,opt,name=group,proto3" json:"group,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	Group *MultisigGroup         `protobuf:"bytes,1,opt,name=group,proto3" json:"group,omitempty"`
+	// Multisig script type: "wsh" (native P2WSH, default), "sh-wsh" (nested
+	// P2SH-P2WSH), or "sh" (legacy P2SH). Empty means native P2WSH.
+	ScriptType    string `protobuf:"bytes,2,opt,name=script_type,json=scriptType,proto3" json:"script_type,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1516,6 +1519,13 @@ func (x *BuildDescriptorsRequest) GetGroup() *MultisigGroup {
 		return x.Group
 	}
 	return nil
+}
+
+func (x *BuildDescriptorsRequest) GetScriptType() string {
+	if x != nil {
+		return x.ScriptType
+	}
+	return ""
 }
 
 type BuildDescriptorsResponse struct {
@@ -1831,9 +1841,11 @@ const file_multisiglounge_v1_multisiglounge_proto_rawDesc = "" +
 	"\rMultisigGroup\x12\f\n" +
 	"\x01m\x18\x01 \x01(\rR\x01m\x12\f\n" +
 	"\x01n\x18\x02 \x01(\rR\x01n\x122\n" +
-	"\x04keys\x18\x03 \x03(\v2\x1e.multisiglounge.v1.MultisigKeyR\x04keys\"Q\n" +
+	"\x04keys\x18\x03 \x03(\v2\x1e.multisiglounge.v1.MultisigKeyR\x04keys\"r\n" +
 	"\x17BuildDescriptorsRequest\x126\n" +
-	"\x05group\x18\x01 \x01(\v2 .multisiglounge.v1.MultisigGroupR\x05group\"v\n" +
+	"\x05group\x18\x01 \x01(\v2 .multisiglounge.v1.MultisigGroupR\x05group\x12\x1f\n" +
+	"\vscript_type\x18\x02 \x01(\tR\n" +
+	"scriptType\"v\n" +
 	"\x18BuildDescriptorsResponse\x12-\n" +
 	"\x12receive_descriptor\x18\x01 \x01(\tR\x11receiveDescriptor\x12+\n" +
 	"\x11change_descriptor\x18\x02 \x01(\tR\x10changeDescriptor\"\x93\x01\n" +

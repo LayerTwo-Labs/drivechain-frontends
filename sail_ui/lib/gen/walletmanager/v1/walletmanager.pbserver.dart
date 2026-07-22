@@ -39,6 +39,8 @@ abstract class WalletManagerServiceBase extends $pb.GeneratedService {
   $async.Future<$15.RestoreWalletBackupProgressResponse> restoreWalletBackupStream($pb.ServerContext ctx, $15.RestoreWalletBackupRequest request);
   $async.Future<$15.CreateWatchOnlyWalletResponse> createWatchOnlyWallet($pb.ServerContext ctx, $15.CreateWatchOnlyWalletRequest request);
   $async.Future<$15.CreateElectrumWalletResponse> createElectrumWallet($pb.ServerContext ctx, $15.CreateElectrumWalletRequest request);
+  $async.Future<$15.CreateMultisigWalletResponse> createMultisigWallet($pb.ServerContext ctx, $15.CreateMultisigWalletRequest request);
+  $async.Future<$15.ParseMultisigConfigResponse> parseMultisigConfig($pb.ServerContext ctx, $15.ParseMultisigConfigRequest request);
   $async.Future<$15.CreateBitcoinCoreWalletResponse> createBitcoinCoreWallet($pb.ServerContext ctx, $15.CreateBitcoinCoreWalletRequest request);
   $async.Future<$15.EnsureCoreWalletsResponse> ensureCoreWallets($pb.ServerContext ctx, $15.EnsureCoreWalletsRequest request);
   $async.Future<$15.GetBalanceResponse> getBalance($pb.ServerContext ctx, $15.GetBalanceRequest request);
@@ -54,8 +56,11 @@ abstract class WalletManagerServiceBase extends $pb.GeneratedService {
   $async.Future<$15.DeriveAddressesResponse> deriveAddresses($pb.ServerContext ctx, $15.DeriveAddressesRequest request);
   $async.Future<$15.CreatePsbtResponse> createPsbt($pb.ServerContext ctx, $15.CreatePsbtRequest request);
   $async.Future<$15.SignPsbtResponse> signPsbt($pb.ServerContext ctx, $15.SignPsbtRequest request);
+  $async.Future<$15.SignPsbtWithCosignerResponse> signPsbtWithCosigner($pb.ServerContext ctx, $15.SignPsbtWithCosignerRequest request);
   $async.Future<$15.CombinePsbtResponse> combinePsbt($pb.ServerContext ctx, $15.CombinePsbtRequest request);
   $async.Future<$15.FinalizePsbtResponse> finalizePsbt($pb.ServerContext ctx, $15.FinalizePsbtRequest request);
+  $async.Future<$15.MultisigPsbtStatusResponse> multisigPsbtStatus($pb.ServerContext ctx, $15.MultisigPsbtStatusRequest request);
+  $async.Future<$15.BroadcastTransactionResponse> broadcastTransaction($pb.ServerContext ctx, $15.BroadcastTransactionRequest request);
   $async.Future<$15.GetWalletSeedResponse> getWalletSeed($pb.ServerContext ctx, $15.GetWalletSeedRequest request);
   $async.Future<$15.ListCoreVariantsResponse> listCoreVariants($pb.ServerContext ctx, $15.ListCoreVariantsRequest request);
   $async.Future<$15.GetCoreVariantResponse> getCoreVariant($pb.ServerContext ctx, $15.GetCoreVariantRequest request);
@@ -87,6 +92,8 @@ abstract class WalletManagerServiceBase extends $pb.GeneratedService {
       case 'RestoreWalletBackupStream': return $15.RestoreWalletBackupRequest();
       case 'CreateWatchOnlyWallet': return $15.CreateWatchOnlyWalletRequest();
       case 'CreateElectrumWallet': return $15.CreateElectrumWalletRequest();
+      case 'CreateMultisigWallet': return $15.CreateMultisigWalletRequest();
+      case 'ParseMultisigConfig': return $15.ParseMultisigConfigRequest();
       case 'CreateBitcoinCoreWallet': return $15.CreateBitcoinCoreWalletRequest();
       case 'EnsureCoreWallets': return $15.EnsureCoreWalletsRequest();
       case 'GetBalance': return $15.GetBalanceRequest();
@@ -102,8 +109,11 @@ abstract class WalletManagerServiceBase extends $pb.GeneratedService {
       case 'DeriveAddresses': return $15.DeriveAddressesRequest();
       case 'CreatePsbt': return $15.CreatePsbtRequest();
       case 'SignPsbt': return $15.SignPsbtRequest();
+      case 'SignPsbtWithCosigner': return $15.SignPsbtWithCosignerRequest();
       case 'CombinePsbt': return $15.CombinePsbtRequest();
       case 'FinalizePsbt': return $15.FinalizePsbtRequest();
+      case 'MultisigPsbtStatus': return $15.MultisigPsbtStatusRequest();
+      case 'BroadcastTransaction': return $15.BroadcastTransactionRequest();
       case 'GetWalletSeed': return $15.GetWalletSeedRequest();
       case 'ListCoreVariants': return $15.ListCoreVariantsRequest();
       case 'GetCoreVariant': return $15.GetCoreVariantRequest();
@@ -138,6 +148,8 @@ abstract class WalletManagerServiceBase extends $pb.GeneratedService {
       case 'RestoreWalletBackupStream': return this.restoreWalletBackupStream(ctx, request as $15.RestoreWalletBackupRequest);
       case 'CreateWatchOnlyWallet': return this.createWatchOnlyWallet(ctx, request as $15.CreateWatchOnlyWalletRequest);
       case 'CreateElectrumWallet': return this.createElectrumWallet(ctx, request as $15.CreateElectrumWalletRequest);
+      case 'CreateMultisigWallet': return this.createMultisigWallet(ctx, request as $15.CreateMultisigWalletRequest);
+      case 'ParseMultisigConfig': return this.parseMultisigConfig(ctx, request as $15.ParseMultisigConfigRequest);
       case 'CreateBitcoinCoreWallet': return this.createBitcoinCoreWallet(ctx, request as $15.CreateBitcoinCoreWalletRequest);
       case 'EnsureCoreWallets': return this.ensureCoreWallets(ctx, request as $15.EnsureCoreWalletsRequest);
       case 'GetBalance': return this.getBalance(ctx, request as $15.GetBalanceRequest);
@@ -153,8 +165,11 @@ abstract class WalletManagerServiceBase extends $pb.GeneratedService {
       case 'DeriveAddresses': return this.deriveAddresses(ctx, request as $15.DeriveAddressesRequest);
       case 'CreatePsbt': return this.createPsbt(ctx, request as $15.CreatePsbtRequest);
       case 'SignPsbt': return this.signPsbt(ctx, request as $15.SignPsbtRequest);
+      case 'SignPsbtWithCosigner': return this.signPsbtWithCosigner(ctx, request as $15.SignPsbtWithCosignerRequest);
       case 'CombinePsbt': return this.combinePsbt(ctx, request as $15.CombinePsbtRequest);
       case 'FinalizePsbt': return this.finalizePsbt(ctx, request as $15.FinalizePsbtRequest);
+      case 'MultisigPsbtStatus': return this.multisigPsbtStatus(ctx, request as $15.MultisigPsbtStatusRequest);
+      case 'BroadcastTransaction': return this.broadcastTransaction(ctx, request as $15.BroadcastTransactionRequest);
       case 'GetWalletSeed': return this.getWalletSeed(ctx, request as $15.GetWalletSeedRequest);
       case 'ListCoreVariants': return this.listCoreVariants(ctx, request as $15.ListCoreVariantsRequest);
       case 'GetCoreVariant': return this.getCoreVariant(ctx, request as $15.GetCoreVariantRequest);

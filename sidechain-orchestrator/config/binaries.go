@@ -112,7 +112,7 @@ func (b BinaryDirConfig) DatadirNetwork(network Network, bitcoinOverride string)
 	}
 	switch b.BinaryName {
 	case "bitcoind":
-		if network == NetworkMainnet || network == NetworkForknet || network == NetworkDrynet2 {
+		if network == NetworkMainnet || network == NetworkForknet || network == NetworkDrynet {
 			return baseDir
 		}
 		return filepath.Join(baseDir, network.ReadableName())
@@ -292,6 +292,30 @@ func DirConfigByName(name string) (BinaryDirConfig, bool) {
 
 // GetExistingFilesInDir returns paths of existing files/directories from a list.
 // Dart: _getExistingFilesInDir (L314-331)
+// utxoSnapshotPattern matches the assumeutxo snapshots downloaded into the
+// datadir root, e.g. utxo-957600.dat.
+var utxoSnapshotPattern = regexp.MustCompile(`^utxo-\d+\.dat$`)
+
+// GetMatchingFilesInDir returns entries of dir whose name matches re. A
+// missing or unreadable dir yields nothing — callers are enumerating paths to
+// delete, so there is nothing to do either way.
+func GetMatchingFilesInDir(dir string, re *regexp.Regexp, log zerolog.Logger) []string {
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		if !os.IsNotExist(err) {
+			log.Warn().Err(err).Str("dir", dir).Msg("could not scan for matching files")
+		}
+		return nil
+	}
+	var matched []string
+	for _, e := range entries {
+		if re.MatchString(e.Name()) {
+			matched = append(matched, filepath.Join(dir, e.Name()))
+		}
+	}
+	return matched
+}
+
 func GetExistingFilesInDir(dir string, files []string, log zerolog.Logger) []string {
 	var existing []string
 	for _, file := range files {
@@ -330,15 +354,18 @@ func DeleteFilesWithRetry(paths []string, log zerolog.Logger) {
 func (b BinaryDirConfig) GetBlockchainDataPaths(networkDir string, network Network, log zerolog.Logger) []string {
 	switch b.BinaryName {
 	case "bitcoind":
-		return GetExistingFilesInDir(networkDir, []string{
+		paths := GetExistingFilesInDir(networkDir, []string{
 			".lock", "anchors.dat", "banlist.json", "bitcoin.pid", "bitcoind.pid",
 			"blocks", "chainstate", "debug.log", "fee_estimates.dat", "indexes",
 			"mempool.dat", "peers.dat", "settings.json",
 		}, log)
+		// assumeutxo snapshots are named for the height they commit to, so a
+		// fixed filename can't catch them. They are large and re-downloadable.
+		return append(paths, GetMatchingFilesInDir(networkDir, utxoSnapshotPattern, log)...)
 
 	case "bip300301-enforcer":
 		rootdir := b.RootDir()
-		networkName := strings.ReplaceAll(strings.ReplaceAll(strings.ReplaceAll(network.ReadableName(), "mainnet", "bitcoin"), "forknet", "bitcoin"), "drynet2", "bitcoin")
+		networkName := strings.ReplaceAll(strings.ReplaceAll(strings.ReplaceAll(network.ReadableName(), "mainnet", "bitcoin"), "forknet", "bitcoin"), "drynet", "bitcoin")
 		return GetExistingFilesInDir(rootdir, []string{filepath.Join("validator", networkName), networkName}, log)
 
 	case "bitwindowd":
@@ -370,20 +397,83 @@ const wipingSuffix = ".wiping"
 // started bitcoind never sees half-deleted data, then deleted; leftover
 // ".wiping" siblings from an interrupted prior wipe are swept into the delete.
 func WipeChainData(network Network, bitcoinDatadirOverride string, log zerolog.Logger) {
-	go func() {
-		var doomed []string
-		for _, dc := range AllDirConfigs() {
-			networkDir := dc.DatadirNetwork(network, bitcoinDatadirOverride)
-			for _, p := range dc.GetBlockchainDataPaths(networkDir, network, log) {
-				orphans, _ := filepath.Glob(p + wipingSuffix + "*")
-				doomed = append(doomed, orphans...)
-				if aside := renameAside(p, log); aside != "" {
-					doomed = append(doomed, aside)
-				}
+	go WipeChainDataSync(network, bitcoinDatadirOverride, log)
+}
+
+// WipeNetworkScopedChainDataSync wipes only the binaries whose data is
+// actually partitioned by network: bitcoind (drynet has its own datadir group)
+// and bitwindowd (per-network subdir). Sidechains keep a flat datadir shared
+// across networks, and the enforcer maps both drynet and mainnet onto
+// validator/bitcoin, so wiping those for one network destroys another's state.
+//
+// Used by the drynet generation rollover, which can fire while the user is on
+// a different network entirely. A network swap purges enforcer and sidechain
+// state separately.
+func WipeNetworkScopedChainDataSync(network Network, bitcoinDatadirOverride string, log zerolog.Logger) {
+	var doomed []string
+	for _, dc := range AllDirConfigs() {
+		if dc.BinaryName != "bitcoind" && dc.BinaryName != "bitwindowd" {
+			continue
+		}
+		networkDir := dc.DatadirNetwork(network, bitcoinDatadirOverride)
+		for _, p := range dc.GetBlockchainDataPaths(networkDir, network, log) {
+			orphans, _ := filepath.Glob(p + wipingSuffix + "*")
+			doomed = append(doomed, orphans...)
+			if aside := renameAside(p, log); aside != "" {
+				doomed = append(doomed, aside)
 			}
 		}
-		DeleteFilesWithRetry(doomed, log)
-	}()
+	}
+	go DeleteFilesWithRetry(doomed, log)
+}
+
+// WipeEnforcerChainDataSync wipes the enforcer's validator and block state for
+// network, leaving its wallet. The enforcer keeps one chain per network, not
+// per generation, so a drynet generation rollover — which stays on drynet and
+// so fires no network swap — must clear it here or the new generation inherits
+// the old one's validator chain. Renames aside synchronously like
+// WipeChainDataSync so a caller recording the wipe can trust it happened.
+func WipeEnforcerChainDataSync(network Network, log zerolog.Logger) {
+	var doomed []string
+	for _, dc := range AllDirConfigs() {
+		if dc.BinaryName != "bip300301-enforcer" {
+			continue
+		}
+		networkDir := dc.DatadirNetwork(network, "")
+		for _, p := range dc.GetBlockchainDataPaths(networkDir, network, log) {
+			orphans, _ := filepath.Glob(p + wipingSuffix + "*")
+			doomed = append(doomed, orphans...)
+			if aside := renameAside(p, log); aside != "" {
+				doomed = append(doomed, aside)
+			}
+		}
+	}
+	go DeleteFilesWithRetry(doomed, log)
+}
+
+// WipeChainDataSync renames the doomed paths aside before returning, then
+// deletes them in the background. The rename is what actually makes the old
+// chain state unreachable, so callers that record "this data is gone" — the
+// drynet generation rollover persisting a new catalog, say — must use this:
+// with the fully-backgrounded variant the process can exit before the rename
+// lands, and the next boot then trusts a record of a wipe that never happened.
+//
+// Only safe off the startup critical path. The rename is O(1) on the same
+// filesystem but can still stall on an unresponsive volume, which is why
+// startup keeps WipeChainData.
+func WipeChainDataSync(network Network, bitcoinDatadirOverride string, log zerolog.Logger) {
+	var doomed []string
+	for _, dc := range AllDirConfigs() {
+		networkDir := dc.DatadirNetwork(network, bitcoinDatadirOverride)
+		for _, p := range dc.GetBlockchainDataPaths(networkDir, network, log) {
+			orphans, _ := filepath.Glob(p + wipingSuffix + "*")
+			doomed = append(doomed, orphans...)
+			if aside := renameAside(p, log); aside != "" {
+				doomed = append(doomed, aside)
+			}
+		}
+	}
+	go DeleteFilesWithRetry(doomed, log)
 }
 
 // renameAside moves a doomed chain path to a unique sibling so the delete can
@@ -421,7 +511,7 @@ func (b BinaryDirConfig) GetWalletPaths(networkDir string, network Network, log 
 	switch b.BinaryName {
 	case "bip300301-enforcer":
 		rootdir := b.RootDir()
-		networkName := strings.ReplaceAll(strings.ReplaceAll(strings.ReplaceAll(network.ReadableName(), "mainnet", "bitcoin"), "forknet", "bitcoin"), "drynet2", "bitcoin")
+		networkName := strings.ReplaceAll(strings.ReplaceAll(strings.ReplaceAll(network.ReadableName(), "mainnet", "bitcoin"), "forknet", "bitcoin"), "drynet", "bitcoin")
 		walletDir := filepath.Join(rootdir, "wallet", networkName)
 		if _, err := os.Stat(walletDir); err == nil {
 			paths = append(paths, walletDir)
@@ -700,8 +790,8 @@ func (n Network) ReadableName() string {
 		return "mainnet"
 	case NetworkForknet:
 		return "forknet"
-	case NetworkDrynet2:
-		return "drynet2"
+	case NetworkDrynet:
+		return "drynet"
 	case NetworkSignet:
 		return "signet"
 	case NetworkRegtest:

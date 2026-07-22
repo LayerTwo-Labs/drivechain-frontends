@@ -44,7 +44,7 @@ func (h *BitcoindHealthCheck) Check(ctx context.Context) error {
 		return fmt.Errorf("decode getblockchaininfo: %w", err)
 	}
 	// BIP324 headers-presync only happens on networks where peers
-	// exchange headers (mainnet, signet, testnet, forknet). Regtest has
+	// exchange headers (mainnet, signet, testnet, forknet, drynet). Regtest has
 	// no peers and never enters presync; a fresh regtest node sits at
 	// blocks=0/headers=0 as steady state — and `initialblockdownload`
 	// is no help here either, because Core sets IBD=true whenever the

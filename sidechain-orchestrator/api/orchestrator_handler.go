@@ -197,6 +197,53 @@ func (h *Handler) RestartL1(ctx context.Context, req *connect.Request[pb.Restart
 	return connect.NewResponse(&pb.RestartL1Response{}), nil
 }
 
+// ApplyUTXOSnapshot loads a snapshot into the running Bitcoin Core, streaming
+// progress. Core's own rejection message is relayed as the RPC error so the
+// user sees why a snapshot was refused.
+func (h *Handler) ApplyUTXOSnapshot(
+	ctx context.Context,
+	req *connect.Request[pb.ApplyUTXOSnapshotRequest],
+	stream *connect.ServerStream[pb.ApplyUTXOSnapshotResponse],
+) error {
+	url := strings.TrimSpace(req.Msg.Url)
+	path := strings.TrimSpace(req.Msg.Path)
+	if (url == "") == (path == "") {
+		return connect.NewError(
+			connect.CodeInvalidArgument,
+			fmt.Errorf("provide exactly one of url or path"),
+		)
+	}
+
+	ch, err := h.orch.ApplyUserSnapshot(ctx, orchestrator.SnapshotSource{
+		URL:       url,
+		Path:      path,
+		SHA256:    strings.TrimSpace(req.Msg.Sha256),
+		Label:     "UTXO snapshot",
+		Requested: true,
+	})
+	if err != nil {
+		return connect.NewError(connect.CodeFailedPrecondition, err)
+	}
+
+	for p := range ch {
+		if p.Error != nil {
+			return connect.NewError(connect.CodeFailedPrecondition, p.Error)
+		}
+		var pct int32
+		if p.MBTotal > 0 {
+			pct = int32(p.MBDownloaded * 100 / p.MBTotal)
+		}
+		if err := stream.Send(&pb.ApplyUTXOSnapshotResponse{
+			Message:         p.Message,
+			DownloadPercent: pct,
+			Done:            p.Done,
+		}); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 // StartWithL1 dispatches a boot goroutine and returns immediately. The
 // goroutine uses context.Background() so that a transport blip / client
 // disconnect on this RPC can't cancel an in-flight bitcoind download or

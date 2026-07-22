@@ -1,5 +1,5 @@
 {
-  "version": 6,
+  "version": 7,
   "binaries": {
     "bitcoincore": {
       "type": "core",
@@ -26,7 +26,8 @@
         "Pre-synchronizing blockheaders",
         "Synchronizing blockheaders",
         "Rescan completed in",
-        "Rescan started from block"
+        "Rescan started from block",
+          "(?i)snapshot"
       ],
       "directories": {
         "binary": {
@@ -81,16 +82,16 @@
             },
             "available_networks": ["forknet"]
           },
-          "drynet2": {
-            "subfolder": "drynet2",
+          "drynet": {
+            "subfolder": "{drynet}",
             "base_url": "https://releases.drivechain.info/",
             "files": {
-              "linux-x86_64": "L1-ecash-bitcoin-drynet2-x86_64-unknown-linux-gnu.zip",
-              "macos-x86_64": "L1-ecash-bitcoin-drynet2-x86_64-apple-darwin.zip",
-              "macos-arm64": "L1-ecash-bitcoin-drynet2-aarch64-apple-darwin.zip",
-              "windows-x86_64": "L1-ecash-bitcoin-drynet2-x86_64-w64-msvc.zip"
+              "linux-x86_64": "L1-ecash-bitcoin-{drynet}-x86_64-unknown-linux-gnu.zip",
+              "macos-x86_64": "L1-ecash-bitcoin-{drynet}-x86_64-apple-darwin.zip",
+              "macos-arm64": "L1-ecash-bitcoin-{drynet}-aarch64-apple-darwin.zip",
+              "windows-x86_64": "L1-ecash-bitcoin-{drynet}-x86_64-w64-msvc.zip"
             },
-            "available_networks": ["drynet2"]
+            "available_networks": ["drynet"]
           },
           "knots": {
             "subfolder": "knots",

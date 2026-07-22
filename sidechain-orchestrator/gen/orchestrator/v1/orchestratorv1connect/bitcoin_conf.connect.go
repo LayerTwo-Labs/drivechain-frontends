@@ -51,7 +51,7 @@ const (
 type BitcoinConfServiceClient interface {
 	// Get current Bitcoin Core configuration state.
 	GetBitcoinConfig(context.Context, *connect.Request[v1.GetBitcoinConfigRequest]) (*connect.Response[v1.GetBitcoinConfigResponse], error)
-	// Set the Bitcoin Core network (signet, mainnet, forknet, testnet, regtest).
+	// Set the Bitcoin Core network (signet, mainnet, forknet, drynet, testnet, regtest).
 	SetBitcoinConfigNetwork(context.Context, *connect.Request[v1.SetBitcoinConfigNetworkRequest]) (*connect.Response[v1.SetBitcoinConfigNetworkResponse], error)
 	// Set the Bitcoin Core datadir for a specific network.
 	SetBitcoinConfigDataDir(context.Context, *connect.Request[v1.SetBitcoinConfigDataDirRequest]) (*connect.Response[v1.SetBitcoinConfigDataDirResponse], error)
@@ -129,7 +129,7 @@ func (c *bitcoinConfServiceClient) WriteBitcoinConfig(ctx context.Context, req *
 type BitcoinConfServiceHandler interface {
 	// Get current Bitcoin Core configuration state.
 	GetBitcoinConfig(context.Context, *connect.Request[v1.GetBitcoinConfigRequest]) (*connect.Response[v1.GetBitcoinConfigResponse], error)
-	// Set the Bitcoin Core network (signet, mainnet, forknet, testnet, regtest).
+	// Set the Bitcoin Core network (signet, mainnet, forknet, drynet, testnet, regtest).
 	SetBitcoinConfigNetwork(context.Context, *connect.Request[v1.SetBitcoinConfigNetworkRequest]) (*connect.Response[v1.SetBitcoinConfigNetworkResponse], error)
 	// Set the Bitcoin Core datadir for a specific network.
 	SetBitcoinConfigDataDir(context.Context, *connect.Request[v1.SetBitcoinConfigDataDirRequest]) (*connect.Response[v1.SetBitcoinConfigDataDirResponse], error)

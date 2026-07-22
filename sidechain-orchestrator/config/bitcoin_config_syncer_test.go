@@ -251,7 +251,7 @@ func TestGetDefaultConfigMainnetIncludesRest(t *testing.T) {
 
 // Mainnet runs the enforcer too, so it must ship the same enforcer-required
 // settings (zmqpubsequence) and perf knobs (rpcthreads, rpcworkqueue) as
-// signet/forknet. Regression guard for the unify-template change.
+// signet/drynet. Regression guard for the unify-template change.
 func TestGetDefaultConfigMainnetMatchesEnforcerExpectations(t *testing.T) {
 	m := &BitcoinConfManager{Network: NetworkMainnet}
 	conf := m.GetDefaultConfig()
@@ -299,38 +299,112 @@ func TestGetDefaultConfigFallbackfeeNotOnMainnet(t *testing.T) {
 	}
 }
 
-func TestGetDefaultConfigForknetKeepsFallbackfee(t *testing.T) {
-	m := &BitcoinConfManager{Network: NetworkForknet}
+func TestGetDefaultConfigDrynetHasPeerAndFallbackfee(t *testing.T) {
+	m := &BitcoinConfManager{Network: NetworkDrynet}
 	conf := m.GetDefaultConfig()
-	if !strings.Contains(conf, "fallbackfee=0.00021") {
-		t.Errorf("forknet default config must include fallbackfee, got:\n%s", conf)
-	}
-	if !strings.Contains(conf, "drivechain=1") {
-		t.Errorf("forknet default config must include drivechain=1, got:\n%s", conf)
-	}
-}
-
-func TestGetDefaultConfigDrynet2HasPeerAndSentinel(t *testing.T) {
-	m := &BitcoinConfManager{Network: NetworkDrynet2}
-	conf := m.GetDefaultConfig()
-	for _, want := range []string{"drivechain=1", "addnode=drynet2.drivechain.dev:8335", "uacomment=drynet2", "rpcport=18302"} {
+	for _, want := range []string{
+		"drivechain=1", "fallbackfee=0.00021",
+		"addnode=drynet2.drivechain.dev:8335", "uacomment=drynet2", "rpcport=18302",
+	} {
 		if !strings.Contains(conf, want) {
-			t.Errorf("drynet2 default config must include %q, got:\n%s", want, conf)
+			t.Errorf("drynet default config must include %q, got:\n%s", want, conf)
 		}
 	}
 }
 
-// The forknet and drynet2 configs both say chain=main + drivechain=1; only the
+func TestGetDefaultConfigForknetKeepsFallbackfee(t *testing.T) {
+	m := &BitcoinConfManager{Network: NetworkForknet}
+	conf := m.GetDefaultConfig()
+	for _, want := range []string{"drivechain=1", "fallbackfee=0.00021", "rpcport=18301"} {
+		if !strings.Contains(conf, want) {
+			t.Errorf("forknet default config must include %q, got:\n%s", want, conf)
+		}
+	}
+}
+
+// Forknet and drynet run on mainnet params, so a swap must write chain=main.
+// Writing anything else boots the wrong network while [main] still carries the
+// fork's ports and drivechain=1.
+func TestUpdateNetworkWritesChainMainForForks(t *testing.T) {
+	for _, n := range []Network{NetworkMainnet, NetworkForknet, NetworkDrynet} {
+		t.Run(string(n), func(t *testing.T) {
+			m := newTestManager(t.TempDir())
+			m.Config = NewBitcoinConfig()
+			m.Config.SetGroupDatadir(DatadirGroupForNetwork(n), "/some/path")
+			require.NoError(t, m.UpdateNetwork(n))
+			require.Equal(t, "main", m.Config.GetSetting("chain"), "%s must run on chain=main", n)
+		})
+	}
+}
+
+// The generation drives the peer and the sentinel, so a new drynet needs an
+// endpoint change rather than a code change.
+func TestDrynetGenerationDrivesPeerAndSentinel(t *testing.T) {
+	m := &BitcoinConfManager{Network: NetworkDrynet, DrynetID: "drynet3"}
+	conf := m.GetDefaultConfig()
+	for _, want := range []string{"addnode=drynet3.drivechain.dev:8335", "uacomment=drynet3"} {
+		if !strings.Contains(conf, want) {
+			t.Errorf("drynet3 config must include %q, got:\n%s", want, conf)
+		}
+	}
+	if strings.Contains(conf, "drynet2") {
+		t.Errorf("drynet3 config must not mention drynet2, got:\n%s", conf)
+	}
+
+	// applyMainSectionDefaults writes the same values on a network swap.
+	m2 := &BitcoinConfManager{Config: NewBitcoinConfig(), DrynetID: "drynet3", log: zerolog.Nop()}
+	m2.applyMainSectionDefaults(NetworkDrynet)
+	if got := m2.Config.GetSetting("addnode", "main"); got != "drynet3.drivechain.dev:8335" {
+		t.Errorf("addnode = %q, want the drynet3 peer", got)
+	}
+	if got := m2.Config.GetSetting("uacomment", "main"); got != "drynet3" {
+		t.Errorf("uacomment = %q, want drynet3", got)
+	}
+}
+
+// With no resolved catalog the embedded generation is used, so a first boot
+// still writes a reachable peer instead of an empty addnode.
+func TestDrynetFallsBackToEmbeddedGeneration(t *testing.T) {
+	m := &BitcoinConfManager{Network: NetworkDrynet}
+	if got := m.Generation(); got == "" {
+		t.Fatal("Generation() must fall back to the embedded catalog")
+	}
+	if got := m.DrynetPeer(); !strings.HasSuffix(got, ".drivechain.dev:8335") {
+		t.Errorf("DrynetPeer() = %q, want a drivechain.dev seed node", got)
+	}
+}
+
+// The forknet and drynet configs both say chain=main + drivechain=1; only the
 // uacomment sentinel tells them apart. Round-trip each generated config back
 // through the detector to prove they don't collide.
-func TestNetworkFromConfigDistinguishesDrynet2FromForknet(t *testing.T) {
-	drynet2 := ParseBitcoinConfig((&BitcoinConfManager{Network: NetworkDrynet2}).GetDefaultConfig())
-	if got := NetworkFromConfig(drynet2); got != NetworkDrynet2 {
-		t.Errorf("drynet2 config detected as %q, want drynet2", got)
-	}
+func TestNetworkFromConfigDistinguishesDrynetFromForknet(t *testing.T) {
 	forknet := ParseBitcoinConfig((&BitcoinConfManager{Network: NetworkForknet}).GetDefaultConfig())
 	if got := NetworkFromConfig(forknet); got != NetworkForknet {
 		t.Errorf("forknet config detected as %q, want forknet", got)
+	}
+	drynet := ParseBitcoinConfig((&BitcoinConfManager{Network: NetworkDrynet}).GetDefaultConfig())
+	if got := NetworkFromConfig(drynet); got != NetworkDrynet {
+		t.Errorf("drynet config detected as %q, want drynet", got)
+	}
+}
+
+// The sentinel carries the generation, so detection must match on the prefix:
+// a future drynet3 conf has to stay drynet rather than falling through to
+// forknet, which would silently drop the drynet datadir slot.
+func TestNetworkFromConfigDetectsFutureDrynetGeneration(t *testing.T) {
+	conf := ParseBitcoinConfig((&BitcoinConfManager{Network: NetworkDrynet}).GetDefaultConfig())
+	conf.SetSetting("uacomment", "drynet3", "main")
+	if got := NetworkFromConfig(conf); got != NetworkDrynet {
+		t.Errorf("drynet3 config detected as %q, want drynet", got)
+	}
+}
+
+// Drynet's config says chain=main + drivechain=1. Round-trip the generated
+// config back through the detector to prove it is not read as mainnet.
+func TestNetworkFromConfigDetectsDrynet(t *testing.T) {
+	drynet := ParseBitcoinConfig((&BitcoinConfManager{Network: NetworkDrynet}).GetDefaultConfig())
+	if got := NetworkFromConfig(drynet); got != NetworkDrynet {
+		t.Errorf("drynet config detected as %q, want drynet", got)
 	}
 }
 
@@ -375,24 +449,33 @@ func TestHasDatadirForNetwork(t *testing.T) {
 	m := newTestManager(tmpDir)
 	m.Config = NewBitcoinConfig()
 
-	// No datadir anywhere — mainnet/forknet should be false
-	if m.HasDatadirForNetwork(NetworkForknet) {
-		t.Error("forknet should be false when slot is empty")
+	// No datadir anywhere — mainnet/drynet should be false
+	if m.HasDatadirForNetwork(NetworkDrynet) {
+		t.Error("drynet should be false when slot is empty")
 	}
 	if m.HasDatadirForNetwork(NetworkMainnet) {
 		t.Error("mainnet should be false when slot/datadir is empty")
 	}
 
-	// Non-mainnet/forknet — always true (signet/test/regtest use bitcoind defaults).
+	// Non-mainnet/drynet — always true (signet/test/regtest use bitcoind defaults).
 	if !m.HasDatadirForNetwork(NetworkSignet) {
 		t.Error("signet should always return true")
 	}
 
-	// Forknet only honours its own slot, not the live datadir or default slot.
+	// Drynet only honours its own slot, not the live datadir or default slot.
 	m.Config.SetSetting("datadir", "/some/path")
 	m.Config.SetGroupDatadir(DatadirGroupDefault, "/some/path")
+	if m.HasDatadirForNetwork(NetworkDrynet) {
+		t.Error("drynet should ignore default-group datadir")
+	}
+	m.Config.SetGroupDatadir(DatadirGroupDrynet, "/drynet/path")
+	if !m.HasDatadirForNetwork(NetworkDrynet) {
+		t.Error("drynet should be true when drynet slot is set")
+	}
+
+	// Forknet has its own slot, independent of drynet's.
 	if m.HasDatadirForNetwork(NetworkForknet) {
-		t.Error("forknet should ignore default-group datadir")
+		t.Error("forknet should ignore drynet-group datadir")
 	}
 	m.Config.SetGroupDatadir(DatadirGroupForknet, "/forknet/path")
 	if !m.HasDatadirForNetwork(NetworkForknet) {
@@ -470,11 +553,11 @@ func TestDetectedDataDirPrefersPerNetworkSection(t *testing.T) {
 func TestUpdateDataDirInactiveGroupLeavesActiveAlone(t *testing.T) {
 	tmpDir := t.TempDir()
 	m := newTestManager(tmpDir)
-	m.Network = NetworkForknet
+	m.Network = NetworkDrynet
 	m.Config.SetSetting("chain", "main")
 	m.Config.SetSetting("drivechain", "1", "main")
-	m.Config.SetSetting("datadir", "/forknet/live")
-	m.Config.SetGroupDatadir(DatadirGroupForknet, "/forknet/live")
+	m.Config.SetSetting("datadir", "/drynet/live")
+	m.Config.SetGroupDatadir(DatadirGroupDrynet, "/drynet/live")
 
 	masterPath := m.getBitWindowConfigPath()
 	require.NoError(t, os.MkdirAll(filepath.Dir(masterPath), 0755))
@@ -483,7 +566,7 @@ func TestUpdateDataDirInactiveGroupLeavesActiveAlone(t *testing.T) {
 	require.NoError(t, m.UpdateDataDir("/picked/for/mainnet", NetworkMainnet))
 
 	require.Equal(t, "/picked/for/mainnet", m.Config.GetGroupDatadir(DatadirGroupDefault))
-	require.Equal(t, "/forknet/live", m.Config.GetSetting("datadir"), "active datadir must not change when setting inactive group")
+	require.Equal(t, "/drynet/live", m.Config.GetSetting("datadir"), "active datadir must not change when setting inactive group")
 }
 
 // UpdateDataDir for the active group must update both the slot AND the live
@@ -504,7 +587,7 @@ func TestUpdateDataDirActiveGroupUpdatesLive(t *testing.T) {
 	require.Equal(t, "/picked/for/mainnet", m.Config.GetSetting("datadir"))
 }
 
-// Manual edit: rewrite datadir= directly on disk, reload, swap to forknet —
+// Manual edit: rewrite datadir= directly on disk, reload, swap to drynet —
 // default slot must reflect the manual value (snapshot adopts the live edit).
 func TestSwapAdoptsManuallyEditedDatadirIntoSlot(t *testing.T) {
 	tmpDir := t.TempDir()
@@ -517,15 +600,15 @@ func TestSwapAdoptsManuallyEditedDatadirIntoSlot(t *testing.T) {
 	require.NoError(t, os.MkdirAll(filepath.Dir(masterPath), 0755))
 	require.NoError(t, os.WriteFile(masterPath, []byte(m.Config.Serialize()), 0644))
 
-	// Pre-stage forknet path so the swap is allowed.
-	m.Config.SetGroupDatadir(DatadirGroupForknet, "/forknet/path")
+	// Pre-stage drynet path so the swap is allowed.
+	m.Config.SetGroupDatadir(DatadirGroupDrynet, "/drynet/path")
 	require.NoError(t, os.WriteFile(masterPath, []byte(m.Config.Serialize()), 0644))
 	require.NoError(t, m.LoadConfig(false))
 
-	require.NoError(t, m.UpdateNetwork(NetworkForknet))
+	require.NoError(t, m.UpdateNetwork(NetworkDrynet))
 
 	require.Equal(t, "/manually/edited", m.Config.GetGroupDatadir(DatadirGroupDefault))
-	require.Equal(t, "/forknet/path", m.Config.GetSetting("datadir"))
+	require.Equal(t, "/drynet/path", m.Config.GetSetting("datadir"))
 }
 
 // Within-group swap (mainnet ↔ signet) leaves datadir= alone and writes no
@@ -546,26 +629,30 @@ func TestUpdateNetworkWithinDefaultGroupKeepsDatadir(t *testing.T) {
 
 	require.Equal(t, "/shared/default", m.Config.GetSetting("datadir"))
 	require.Equal(t, "", m.Config.GetGroupDatadir(DatadirGroupDefault), "no slot writes happen on within-group swap")
-	require.Equal(t, "", m.Config.GetGroupDatadir(DatadirGroupForknet))
+	require.Equal(t, "", m.Config.GetGroupDatadir(DatadirGroupDrynet))
 }
 
-// applyMainSectionDefaults: signet → forknet adds drivechain=1 + alt ports
-// under [main]; forknet → mainnet strips them.
-func TestApplyMainSectionDefaultsForknetThenMainnet(t *testing.T) {
+// applyMainSectionDefaults: signet → drynet adds drivechain=1 + alt ports
+// under [main]; drynet → mainnet strips them.
+func TestApplyMainSectionDefaultsDrynetThenMainnet(t *testing.T) {
 	m := &BitcoinConfManager{Config: NewBitcoinConfig(), log: zerolog.Nop()}
 	m.Config.SetSetting("chain", "signet")
 
-	m.applyMainSectionDefaults(NetworkForknet)
+	m.applyMainSectionDefaults(NetworkDrynet)
 	require.Equal(t, "1", m.Config.GetSetting("drivechain", "main"))
-	require.Equal(t, "8300", m.Config.GetSetting("port", "main"))
-	require.Equal(t, "18301", m.Config.GetSetting("rpcport", "main"))
+	require.Equal(t, "8301", m.Config.GetSetting("port", "main"))
+	require.Equal(t, "18302", m.Config.GetSetting("rpcport", "main"))
 	require.Equal(t, "0.00021", m.Config.GetSetting("fallbackfee", "main"))
+	require.Equal(t, "drynet2.drivechain.dev:8335", m.Config.GetSetting("addnode", "main"))
+	require.Equal(t, "drynet2", m.Config.GetSetting("uacomment", "main"))
 
 	m.applyMainSectionDefaults(NetworkMainnet)
 	require.Equal(t, "", m.Config.GetSetting("drivechain", "main"))
 	require.Equal(t, "", m.Config.GetSetting("port", "main"))
 	require.Equal(t, "", m.Config.GetSetting("rpcport", "main"))
 	require.Equal(t, "", m.Config.GetSetting("fallbackfee", "main"))
+	require.Equal(t, "", m.Config.GetSetting("addnode", "main"))
+	require.Equal(t, "", m.Config.GetSetting("uacomment", "main"))
 }
 
 // ---------------------------------------------------------------------------
@@ -708,41 +795,41 @@ func TestDatadirSlotsRoundTrip(t *testing.T) {
 	src := `# bitwindow-bitcoin-conf-version=8
 
 # bitwindow-datadir-default=/Volumes/SSD/bitcoin
-# bitwindow-datadir-forknet=/Volumes/HDD/forknet
+# bitwindow-datadir-drynet=/Volumes/HDD/drynet
 
 datadir=/Volumes/SSD/bitcoin
 chain=signet
 `
 	c := ParseBitcoinConfig(src)
 	require.Equal(t, "/Volumes/SSD/bitcoin", c.GetGroupDatadir(DatadirGroupDefault))
-	require.Equal(t, "/Volumes/HDD/forknet", c.GetGroupDatadir(DatadirGroupForknet))
+	require.Equal(t, "/Volumes/HDD/drynet", c.GetGroupDatadir(DatadirGroupDrynet))
 
-	c.SetGroupDatadir(DatadirGroupForknet, "/new/forknet/path")
+	c.SetGroupDatadir(DatadirGroupDrynet, "/new/drynet/path")
 
 	out := c.Serialize()
 	require.Contains(t, out, "# bitwindow-datadir-default=/Volumes/SSD/bitcoin\n")
-	require.Contains(t, out, "# bitwindow-datadir-forknet=/new/forknet/path\n")
+	require.Contains(t, out, "# bitwindow-datadir-drynet=/new/drynet/path\n")
 
-	// Stable order: default before forknet
+	// Stable order: default before drynet
 	defIdx := strings.Index(out, "# bitwindow-datadir-default=")
-	fkIdx := strings.Index(out, "# bitwindow-datadir-forknet=")
-	require.Greater(t, fkIdx, defIdx, "default slot should serialize before forknet slot")
+	fkIdx := strings.Index(out, "# bitwindow-datadir-drynet=")
+	require.Greater(t, fkIdx, defIdx, "default slot should serialize before drynet slot")
 
 	// Re-parse, values stable
 	c2 := ParseBitcoinConfig(out)
 	require.Equal(t, "/Volumes/SSD/bitcoin", c2.GetGroupDatadir(DatadirGroupDefault))
-	require.Equal(t, "/new/forknet/path", c2.GetGroupDatadir(DatadirGroupForknet))
+	require.Equal(t, "/new/drynet/path", c2.GetGroupDatadir(DatadirGroupDrynet))
 }
 
 func TestDatadirSlotsClearedOnEmpty(t *testing.T) {
 	c := NewBitcoinConfig()
-	c.SetGroupDatadir(DatadirGroupForknet, "/some/path")
-	require.Equal(t, "/some/path", c.GetGroupDatadir(DatadirGroupForknet))
-	c.SetGroupDatadir(DatadirGroupForknet, "")
-	require.Equal(t, "", c.GetGroupDatadir(DatadirGroupForknet))
+	c.SetGroupDatadir(DatadirGroupDrynet, "/some/path")
+	require.Equal(t, "/some/path", c.GetGroupDatadir(DatadirGroupDrynet))
+	c.SetGroupDatadir(DatadirGroupDrynet, "")
+	require.Equal(t, "", c.GetGroupDatadir(DatadirGroupDrynet))
 
 	out := c.Serialize()
-	require.NotContains(t, out, "# bitwindow-datadir-forknet=")
+	require.NotContains(t, out, "# bitwindow-datadir-drynet=")
 }
 
 func TestDatadirGroupForNetwork(t *testing.T) {
@@ -750,7 +837,7 @@ func TestDatadirGroupForNetwork(t *testing.T) {
 	require.Equal(t, DatadirGroupDefault, DatadirGroupForNetwork(NetworkSignet))
 	require.Equal(t, DatadirGroupDefault, DatadirGroupForNetwork(NetworkTestnet))
 	require.Equal(t, DatadirGroupDefault, DatadirGroupForNetwork(NetworkRegtest))
-	require.Equal(t, DatadirGroupForknet, DatadirGroupForNetwork(NetworkForknet))
+	require.Equal(t, DatadirGroupDrynet, DatadirGroupForNetwork(NetworkDrynet))
 }
 
 // ---------------------------------------------------------------------------

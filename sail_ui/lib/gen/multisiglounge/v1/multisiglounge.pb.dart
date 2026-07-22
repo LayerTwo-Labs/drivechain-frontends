@@ -1905,10 +1905,14 @@ class MultisigGroup extends $pb.GeneratedMessage {
 class BuildDescriptorsRequest extends $pb.GeneratedMessage {
   factory BuildDescriptorsRequest({
     MultisigGroup? group,
+    $core.String? scriptType,
   }) {
     final $result = create();
     if (group != null) {
       $result.group = group;
+    }
+    if (scriptType != null) {
+      $result.scriptType = scriptType;
     }
     return $result;
   }
@@ -1918,6 +1922,7 @@ class BuildDescriptorsRequest extends $pb.GeneratedMessage {
 
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'BuildDescriptorsRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'multisiglounge.v1'), createEmptyInstance: create)
     ..aOM<MultisigGroup>(1, _omitFieldNames ? '' : 'group', subBuilder: MultisigGroup.create)
+    ..aOS(2, _omitFieldNames ? '' : 'scriptType')
     ..hasRequiredFields = false
   ;
 
@@ -1952,6 +1957,17 @@ class BuildDescriptorsRequest extends $pb.GeneratedMessage {
   void clearGroup() => clearField(1);
   @$pb.TagNumber(1)
   MultisigGroup ensureGroup() => $_ensure(0);
+
+  /// Multisig script type: "wsh" (native P2WSH, default), "sh-wsh" (nested
+  /// P2SH-P2WSH), or "sh" (legacy P2SH). Empty means native P2WSH.
+  @$pb.TagNumber(2)
+  $core.String get scriptType => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set scriptType($core.String v) { $_setString(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasScriptType() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearScriptType() => clearField(2);
 }
 
 class BuildDescriptorsResponse extends $pb.GeneratedMessage {

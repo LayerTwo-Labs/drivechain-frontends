@@ -12,8 +12,8 @@ class OrchestratorMultisigLoungeRPC {
     _client = MultisigLoungeServiceClient(unary);
   }
 
-  Future<mlpb.BuildDescriptorsResponse> buildDescriptors(mlpb.MultisigGroup group) {
-    return _client.buildDescriptors(mlpb.BuildDescriptorsRequest(group: group));
+  Future<mlpb.BuildDescriptorsResponse> buildDescriptors(mlpb.MultisigGroup group, {String scriptType = ''}) {
+    return _client.buildDescriptors(mlpb.BuildDescriptorsRequest(group: group, scriptType: scriptType));
   }
 
   Future<mlpb.ValidatePsbtResponse> validatePsbt({

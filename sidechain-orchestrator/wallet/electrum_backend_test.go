@@ -1347,7 +1347,7 @@ func TestElectrumScanPersistsAcrossRestart(t *testing.T) {
 
 	// The next call this session is served from the in-memory cache: no new
 	// block has arrived, so it does not re-query Esplora and returns the same
-	// balance (Sparrow-style scan-once-refresh-on-block).
+	// balance.
 	confirmed3, _, err := p2.Balance(ctx, w.ID)
 	require.NoError(t, err)
 	assert.InDelta(t, 0.0025, confirmed3, 1e-9, "served from warm cache while tip unchanged")
@@ -1551,4 +1551,418 @@ func computeVsize(tx *wire.MsgTx) int64 {
 	totalSize := int64(full.Len())
 	weight := baseSize*3 + totalSize
 	return (weight + 3) / 4
+}
+
+// multisigTestCosigner builds a cosigner from the test mnemonic at
+// m/48'/1'/account'/2' (BIP48 native-segwit multisig). held=true stores the
+// mnemonic so the wallet can sign with this leg.
+func multisigTestCosigner(t *testing.T, net *chaincfg.Params, account int, held bool) MultisigCosigner {
+	t.Helper()
+	seedHex := hex.EncodeToString(MnemonicToSeed(testMnemonic, ""))
+	origin := fmt.Sprintf("48'/1'/%d'/2'", account)
+	_, xpub, err := DeriveAccountXprv(seedHex, "m/"+origin, net)
+	require.NoError(t, err)
+
+	seed, err := hex.DecodeString(seedHex)
+	require.NoError(t, err)
+	master, err := hdkeychain.NewMaster(seed, net)
+	require.NoError(t, err)
+	mpub, err := master.ECPubKey()
+	require.NoError(t, err)
+	fp := hex.EncodeToString(btcutil.Hash160(mpub.SerializeCompressed())[:4])
+
+	c := MultisigCosigner{Xpub: xpub, OriginPath: origin, Fingerprint: fp}
+	if held {
+		c.Mnemonic = testMnemonic
+	}
+	return c
+}
+
+// TestElectrumMultisigHeldKeysSignAndBroadcast proves the core of local multisig
+// signing: a 2-of-3 wallet that holds two cosigner keys derives its signing
+// descriptor, populates both signing keys on the address, and — because two held
+// keys meet the threshold — signs a send to completion and broadcasts it with no
+// external cosigner. Signing goes through the same PSBT path as single-sig.
+func TestElectrumMultisigHeldKeysSignAndBroadcast(t *testing.T) {
+	svc := newTestService(t)
+	ctx := context.Background()
+	net := &chaincfg.SigNetParams
+
+	cosigners := []MultisigCosigner{
+		multisigTestCosigner(t, net, 0, true),  // held
+		multisigTestCosigner(t, net, 1, true),  // held
+		multisigTestCosigner(t, net, 2, false), // watch-only leg
+	}
+	w, err := svc.CreateElectrumMultisig("MS 2of3", nil, 2, 3, "wsh", cosigners)
+	require.NoError(t, err)
+	require.False(t, w.IsWatchOnly(), "holding two keys, the wallet must be signable")
+
+	fake := newFakeEsplora()
+	p := NewElectrumBackend(svc, fake, net, zerolog.New(zerolog.NewTestWriter(t)))
+
+	d, err := p.walletDescriptor(w)
+	require.NoError(t, err)
+	require.True(t, d.Kind.isMultisig())
+	require.Equal(t, 2, d.Threshold)
+
+	recv, err := p.deriveAddr(d, false, 0)
+	require.NoError(t, err)
+	require.NotNil(t, recv.witnessScript)
+	require.Len(t, recv.multisigPrivs, 2, "wallet holds two of three cosigner keys")
+	require.True(t, strings.HasPrefix(recv.address, "tb1q"))
+
+	fake.stats[recv.address] = EsploraAddressStats{
+		Address:    recv.address,
+		ChainStats: EsploraTxoStats{FundedTxoCount: 1, FundedTxoSum: 200_000, TxCount: 1},
+	}
+	fake.utxos[recv.address] = []EsploraUTXO{{
+		TxID: "2222222222222222222222222222222222222222222222222222222222222222",
+		Vout: 0, Value: 200_000,
+		Status: EsploraStatus{Confirmed: true, BlockHeight: 100},
+	}}
+
+	dest := "tb1qw508d6qejxtdg4y5r3zarvary0c5xw7kxpjzsx"
+	_, err = p.Send(ctx, w.ID, SendRequest{
+		DestinationsSats: map[string]int64{dest: 50_000},
+		FeeRateSatPerVB:  2,
+	})
+	require.NoError(t, err)
+	require.Len(t, fake.broadcast, 1, "two held keys meet the 2-of-3 threshold; send broadcasts")
+}
+
+// TestElectrumMultisigPsbtStatus proves the per-cosigner signing status used by
+// the sign panel: an unsigned PSBT reports zero signatures, and after the wallet
+// signs with its two held keys the status reports two signatures, finalizable,
+// and the two held cosigners (not the watch-only leg) credited — even though all
+// three share a master fingerprint and differ only by derivation path.
+func TestElectrumMultisigPsbtStatus(t *testing.T) {
+	svc := newTestService(t)
+	ctx := context.Background()
+	net := &chaincfg.SigNetParams
+
+	cosigners := []MultisigCosigner{
+		multisigTestCosigner(t, net, 0, true),
+		multisigTestCosigner(t, net, 1, true),
+		multisigTestCosigner(t, net, 2, false),
+	}
+	w, err := svc.CreateElectrumMultisig("MS status", nil, 2, 3, "wsh", cosigners)
+	require.NoError(t, err)
+
+	fake := newFakeEsplora()
+	p := NewElectrumBackend(svc, fake, net, zerolog.New(zerolog.NewTestWriter(t)))
+
+	d, err := p.walletDescriptor(w)
+	require.NoError(t, err)
+	recv, err := p.deriveAddr(d, false, 0)
+	require.NoError(t, err)
+
+	fake.stats[recv.address] = EsploraAddressStats{
+		Address:    recv.address,
+		ChainStats: EsploraTxoStats{FundedTxoCount: 1, FundedTxoSum: 200_000, TxCount: 1},
+	}
+	fake.utxos[recv.address] = []EsploraUTXO{{
+		TxID: "3333333333333333333333333333333333333333333333333333333333333333",
+		Vout: 0, Value: 200_000,
+		Status: EsploraStatus{Confirmed: true, BlockHeight: 100},
+	}}
+
+	psbt, err := p.CreatePSBT(ctx, w.ID, SendRequest{
+		DestinationsSats: map[string]int64{"tb1qw508d6qejxtdg4y5r3zarvary0c5xw7kxpjzsx": 50_000},
+		FeeRateSatPerVB:  2,
+	})
+	require.NoError(t, err)
+
+	before, err := MultisigPsbtSigningStatus(psbt, cosigners)
+	require.NoError(t, err)
+	assert.Equal(t, 0, before.Signatures)
+	assert.False(t, before.Finalizable)
+	assert.Equal(t, []bool{false, false, false}, before.CosignerSigned)
+
+	signed, err := p.SignPSBT(ctx, w.ID, psbt)
+	require.NoError(t, err)
+
+	after, err := MultisigPsbtSigningStatus(signed, cosigners)
+	require.NoError(t, err)
+	assert.Equal(t, 2, after.Signatures)
+	assert.True(t, after.Finalizable)
+	assert.Equal(t, []bool{true, true, false}, after.CosignerSigned, "the two held cosigners signed; the watch-only leg did not")
+}
+
+// TestElectrumMultisigPerCosignerSign proves per-keystore signing: signing with
+// one cosigner at a time adds exactly one signature each, and after two the PSBT
+// is finalizable — the sign-panel's per-keystore Sign buttons.
+func TestElectrumMultisigPerCosignerSign(t *testing.T) {
+	svc := newTestService(t)
+	ctx := context.Background()
+	net := &chaincfg.SigNetParams
+
+	cosigners := []MultisigCosigner{
+		multisigTestCosigner(t, net, 0, true),
+		multisigTestCosigner(t, net, 1, true),
+		multisigTestCosigner(t, net, 2, false),
+	}
+	w, err := svc.CreateElectrumMultisig("MS per-key", nil, 2, 3, "wsh", cosigners)
+	require.NoError(t, err)
+
+	fake := newFakeEsplora()
+	p := NewElectrumBackend(svc, fake, net, zerolog.New(zerolog.NewTestWriter(t)))
+	d, err := p.walletDescriptor(w)
+	require.NoError(t, err)
+	recv, err := p.deriveAddr(d, false, 0)
+	require.NoError(t, err)
+	fake.stats[recv.address] = EsploraAddressStats{
+		Address: recv.address, ChainStats: EsploraTxoStats{FundedTxoCount: 1, FundedTxoSum: 200_000, TxCount: 1},
+	}
+	fake.utxos[recv.address] = []EsploraUTXO{{
+		TxID: "4444444444444444444444444444444444444444444444444444444444444444",
+		Vout: 0, Value: 200_000, Status: EsploraStatus{Confirmed: true, BlockHeight: 100},
+	}}
+
+	psbt, err := p.CreatePSBT(ctx, w.ID, SendRequest{
+		DestinationsSats: map[string]int64{"tb1qw508d6qejxtdg4y5r3zarvary0c5xw7kxpjzsx": 50_000},
+		FeeRateSatPerVB:  2,
+	})
+	require.NoError(t, err)
+
+	// Sign with cosigner 0 only -> one signature, not finalizable.
+	psbt, err = p.SignPSBTWithCosigner(ctx, w.ID, psbt, cosigners[0].Xpub)
+	require.NoError(t, err)
+	s1, err := MultisigPsbtSigningStatus(psbt, cosigners)
+	require.NoError(t, err)
+	assert.Equal(t, 1, s1.Signatures)
+	assert.False(t, s1.Finalizable)
+	assert.Equal(t, []bool{true, false, false}, s1.CosignerSigned)
+
+	// Sign with cosigner 1 -> two signatures, finalizable.
+	psbt, err = p.SignPSBTWithCosigner(ctx, w.ID, psbt, cosigners[1].Xpub)
+	require.NoError(t, err)
+	s2, err := MultisigPsbtSigningStatus(psbt, cosigners)
+	require.NoError(t, err)
+	assert.Equal(t, 2, s2.Signatures)
+	assert.True(t, s2.Finalizable)
+	assert.Equal(t, []bool{true, true, false}, s2.CosignerSigned)
+}
+
+// TestElectrumMultisigPassphraseChangesAddresses proves a held cosigner's BIP39
+// passphrase feeds derivation: the same seed with a passphrase yields a
+// different signing address, so the passphrase is honored end to end.
+func TestElectrumMultisigPassphraseChangesAddresses(t *testing.T) {
+	svc := newTestService(t)
+	net := &chaincfg.SigNetParams
+
+	base := []MultisigCosigner{
+		multisigTestCosigner(t, net, 0, true),
+		multisigTestCosigner(t, net, 1, false),
+		multisigTestCosigner(t, net, 2, false),
+	}
+	w1, err := svc.CreateElectrumMultisig("nopass", nil, 2, 3, "wsh", base)
+	require.NoError(t, err)
+
+	// Same cosigners, but cosigner 0 now carries a passphrase and its stored xpub
+	// is re-derived accordingly (mirrors what the frontend sends).
+	seedHex := hex.EncodeToString(MnemonicToSeed(testMnemonic, "trezor"))
+	_, xpub, err := DeriveAccountXprv(seedHex, "m/48'/1'/0'/2'", net)
+	require.NoError(t, err)
+	withPass := []MultisigCosigner{
+		{Xpub: xpub, OriginPath: "48'/1'/0'/2'", Fingerprint: base[0].Fingerprint, Mnemonic: testMnemonic, Passphrase: "trezor"},
+		base[1], base[2],
+	}
+	w2, err := svc.CreateElectrumMultisig("withpass", nil, 2, 3, "wsh", withPass)
+	require.NoError(t, err)
+
+	p := NewElectrumBackend(svc, newFakeEsplora(), net, zerolog.New(zerolog.NewTestWriter(t)))
+	d1, err := p.walletDescriptor(w1)
+	require.NoError(t, err)
+	a1, err := p.deriveAddr(d1, false, 0)
+	require.NoError(t, err)
+	d2, err := p.walletDescriptor(w2)
+	require.NoError(t, err)
+	a2, err := p.deriveAddr(d2, false, 0)
+	require.NoError(t, err)
+	assert.NotEqual(t, a1.address, a2.address, "a passphrase must change the derived multisig address")
+}
+
+// TestElectrumTaprootMultisigSignFinalizeValid proves the taproot (BIP342
+// sortedmulti_a) path end to end: a 2-of-3 tr() wallet derives a P2TR address,
+// signs one cosigner at a time, finalizes, and the resulting witness satisfies
+// the consensus script engine — the funds-safety gate.
+func TestElectrumTaprootMultisigSignFinalizeValid(t *testing.T) {
+	svc := newTestService(t)
+	ctx := context.Background()
+	net := &chaincfg.SigNetParams
+
+	cosigners := []MultisigCosigner{
+		multisigTestCosigner(t, net, 0, true),
+		multisigTestCosigner(t, net, 1, true),
+		multisigTestCosigner(t, net, 2, false),
+	}
+	w, err := svc.CreateElectrumMultisig("tr 2of3", nil, 2, 3, "tr", cosigners)
+	require.NoError(t, err)
+	require.False(t, w.IsWatchOnly())
+	require.Equal(t, "multisig-taproot", w.ScriptType)
+
+	fake := newFakeEsplora()
+	p := NewElectrumBackend(svc, fake, net, zerolog.New(zerolog.NewTestWriter(t)))
+	d, err := p.walletDescriptor(w)
+	require.NoError(t, err)
+	require.True(t, d.Kind.isTaprootMultisig())
+	recv, err := p.deriveAddr(d, false, 0)
+	require.NoError(t, err)
+	require.True(t, strings.HasPrefix(recv.address, "tb1p"), "want P2TR, got %s", recv.address)
+	require.Len(t, recv.multisigPrivs, 2)
+
+	const fundTxid = "5555555555555555555555555555555555555555555555555555555555555555"
+	const fundAmt = int64(200_000)
+	fake.stats[recv.address] = EsploraAddressStats{Address: recv.address, ChainStats: EsploraTxoStats{FundedTxoCount: 1, FundedTxoSum: fundAmt, TxCount: 1}}
+	fake.utxos[recv.address] = []EsploraUTXO{{TxID: fundTxid, Vout: 0, Value: fundAmt, Status: EsploraStatus{Confirmed: true, BlockHeight: 100}}}
+
+	psbtB64, err := p.CreatePSBT(ctx, w.ID, SendRequest{
+		DestinationsSats: map[string]int64{"tb1qw508d6qejxtdg4y5r3zarvary0c5xw7kxpjzsx": 50_000},
+		FeeRateSatPerVB:  2,
+	})
+	require.NoError(t, err)
+
+	psbtB64, err = p.SignPSBTWithCosigner(ctx, w.ID, psbtB64, cosigners[0].Xpub)
+	require.NoError(t, err)
+	st1, err := MultisigPsbtSigningStatus(psbtB64, cosigners)
+	require.NoError(t, err)
+	assert.Equal(t, 1, st1.Signatures)
+	assert.False(t, st1.Finalizable)
+
+	psbtB64, err = p.SignPSBTWithCosigner(ctx, w.ID, psbtB64, cosigners[1].Xpub)
+	require.NoError(t, err)
+	st2, err := MultisigPsbtSigningStatus(psbtB64, cosigners)
+	require.NoError(t, err)
+	assert.Equal(t, 2, st2.Signatures)
+	assert.True(t, st2.Finalizable)
+	assert.Equal(t, []bool{true, true, false}, st2.CosignerSigned)
+
+	packet, err := decodePSBTBase64(psbtB64)
+	require.NoError(t, err)
+	rawHex, err := finalizeAndExtract(packet)
+	require.NoError(t, err)
+	rawBytes, err := hex.DecodeString(rawHex)
+	require.NoError(t, err)
+	var tx wire.MsgTx
+	require.NoError(t, tx.Deserialize(bytes.NewReader(rawBytes)))
+
+	prevOut := wire.NewTxOut(fundAmt, recv.scriptPubKey)
+	fetcher := txscript.NewMultiPrevOutFetcher(map[wire.OutPoint]*wire.TxOut{
+		tx.TxIn[0].PreviousOutPoint: prevOut,
+	})
+	sigHashes := txscript.NewTxSigHashes(&tx, fetcher)
+	vm, err := txscript.NewEngine(recv.scriptPubKey, &tx, 0, txscript.StandardVerifyFlags, nil, sigHashes, fundAmt, fetcher)
+	require.NoError(t, err)
+	require.NoError(t, vm.Execute(), "finalized taproot multisig witness must satisfy the script")
+}
+
+// validateFinalizedInput0 runs input 0 of a finalized raw tx through the
+// consensus script engine against its prevout, returning any failure.
+func validateFinalizedInput0(t *testing.T, rawHex string, prevScript []byte, amt int64) {
+	t.Helper()
+	rawBytes, err := hex.DecodeString(rawHex)
+	require.NoError(t, err)
+	var tx wire.MsgTx
+	require.NoError(t, tx.Deserialize(bytes.NewReader(rawBytes)))
+	prevOut := wire.NewTxOut(amt, prevScript)
+	fetcher := txscript.NewMultiPrevOutFetcher(map[wire.OutPoint]*wire.TxOut{tx.TxIn[0].PreviousOutPoint: prevOut})
+	sh := txscript.NewTxSigHashes(&tx, fetcher)
+	vm, err := txscript.NewEngine(prevScript, &tx, 0, txscript.StandardVerifyFlags, nil, sh, amt, fetcher)
+	require.NoError(t, err)
+	require.NoError(t, vm.Execute(), "finalized witness must satisfy the script")
+}
+
+// TestElectrumTaprootMultisigHoldAllKeysCapsAtThreshold covers the over-sign bug:
+// a 2-of-3 taproot wallet that holds ALL three keys signs three times, but the
+// finalizer must cap the witness at exactly m (2) so the multi_a <m> OP_NUMEQUAL
+// holds and the tx is valid.
+func TestElectrumTaprootMultisigHoldAllKeysCapsAtThreshold(t *testing.T) {
+	svc := newTestService(t)
+	ctx := context.Background()
+	net := &chaincfg.SigNetParams
+	cosigners := []MultisigCosigner{
+		multisigTestCosigner(t, net, 0, true),
+		multisigTestCosigner(t, net, 1, true),
+		multisigTestCosigner(t, net, 2, true), // hold ALL three
+	}
+	w, err := svc.CreateElectrumMultisig("tr all", nil, 2, 3, "tr", cosigners)
+	require.NoError(t, err)
+	fake := newFakeEsplora()
+	p := NewElectrumBackend(svc, fake, net, zerolog.New(zerolog.NewTestWriter(t)))
+	d, _ := p.walletDescriptor(w)
+	recv, _ := p.deriveAddr(d, false, 0)
+	require.Len(t, recv.multisigPrivs, 3)
+	const amt = int64(200_000)
+	fake.stats[recv.address] = EsploraAddressStats{Address: recv.address, ChainStats: EsploraTxoStats{FundedTxoCount: 1, FundedTxoSum: amt, TxCount: 1}}
+	fake.utxos[recv.address] = []EsploraUTXO{{TxID: "6666666666666666666666666666666666666666666666666666666666666666", Vout: 0, Value: amt, Status: EsploraStatus{Confirmed: true, BlockHeight: 100}}}
+
+	psbt, err := p.CreatePSBT(ctx, w.ID, SendRequest{DestinationsSats: map[string]int64{"tb1qw508d6qejxtdg4y5r3zarvary0c5xw7kxpjzsx": 50_000}, FeeRateSatPerVB: 2})
+	require.NoError(t, err)
+	psbt, err = p.SignPSBT(ctx, w.ID, psbt) // signs with all three held keys
+	require.NoError(t, err)
+	st, err := MultisigPsbtSigningStatus(psbt, cosigners)
+	require.NoError(t, err)
+	assert.Equal(t, 3, st.Signatures) // three sigs collected...
+	packet, err := decodePSBTBase64(psbt)
+	require.NoError(t, err)
+	rawHex, err := finalizeAndExtract(packet) // ...but the witness is capped at 2
+	require.NoError(t, err)
+	validateFinalizedInput0(t, rawHex, recv.scriptPubKey, amt)
+}
+
+// TestElectrumTaprootMultisigCombine covers the combinePSBT bug: two cosigners
+// each sign their own copy of the same PSBT, and CombinePSBT must merge both
+// tapscript signatures so the result finalizes to a valid tx.
+func TestElectrumTaprootMultisigCombine(t *testing.T) {
+	svc := newTestService(t)
+	ctx := context.Background()
+	net := &chaincfg.SigNetParams
+	cosigners := []MultisigCosigner{
+		multisigTestCosigner(t, net, 0, true),
+		multisigTestCosigner(t, net, 1, true),
+		multisigTestCosigner(t, net, 2, false),
+	}
+	w, err := svc.CreateElectrumMultisig("tr combine", nil, 2, 3, "tr", cosigners)
+	require.NoError(t, err)
+	fake := newFakeEsplora()
+	p := NewElectrumBackend(svc, fake, net, zerolog.New(zerolog.NewTestWriter(t)))
+	d, _ := p.walletDescriptor(w)
+	recv, _ := p.deriveAddr(d, false, 0)
+	const amt = int64(200_000)
+	fake.stats[recv.address] = EsploraAddressStats{Address: recv.address, ChainStats: EsploraTxoStats{FundedTxoCount: 1, FundedTxoSum: amt, TxCount: 1}}
+	fake.utxos[recv.address] = []EsploraUTXO{{TxID: "7777777777777777777777777777777777777777777777777777777777777777", Vout: 0, Value: amt, Status: EsploraStatus{Confirmed: true, BlockHeight: 100}}}
+
+	base, err := p.CreatePSBT(ctx, w.ID, SendRequest{DestinationsSats: map[string]int64{"tb1qw508d6qejxtdg4y5r3zarvary0c5xw7kxpjzsx": 50_000}, FeeRateSatPerVB: 2})
+	require.NoError(t, err)
+	// Each cosigner signs their OWN copy of the same base PSBT.
+	copyA, err := p.SignPSBTWithCosigner(ctx, w.ID, base, cosigners[0].Xpub)
+	require.NoError(t, err)
+	copyB, err := p.SignPSBTWithCosigner(ctx, w.ID, base, cosigners[1].Xpub)
+	require.NoError(t, err)
+	combined, err := p.CombinePSBT([]string{copyA, copyB})
+	require.NoError(t, err)
+	st, err := MultisigPsbtSigningStatus(combined, cosigners)
+	require.NoError(t, err)
+	assert.Equal(t, 2, st.Signatures, "combine must merge both cosigners' tapscript sigs")
+	assert.True(t, st.Finalizable)
+	packet, err := decodePSBTBase64(combined)
+	require.NoError(t, err)
+	rawHex, err := finalizeAndExtract(packet)
+	require.NoError(t, err)
+	validateFinalizedInput0(t, rawHex, recv.scriptPubKey, amt)
+}
+
+// TestParseTaprootMultisigRejectsNonNUMS covers the internal-key check: a taproot
+// multisig descriptor with a non-NUMS internal key must be rejected, not silently
+// re-derived under NUMS.
+func TestParseTaprootMultisigRejectsNonNUMS(t *testing.T) {
+	group, _ := loungeTestKeys(t)
+	good, _, err := BuildMultisigLoungeDescriptorsTyped(group, "tr")
+	require.NoError(t, err)
+	_, _, _, _, err = ParseMultisigConfig(good)
+	require.NoError(t, err)
+	// Swap the NUMS internal key for a different (arbitrary) x-only key.
+	bad := strings.Replace(good, numsInternalKeyHex, "0000000000000000000000000000000000000000000000000000000000000001", 1)
+	_, _, _, _, err = ParseMultisigConfig(bad)
+	require.Error(t, err, "a non-NUMS taproot internal key must be rejected")
 }

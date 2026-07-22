@@ -52,7 +52,34 @@ func signalGroup(cmd *exec.Cmd, sig syscall.Signal) error {
 	return nil
 }
 
-func sweepPriorRunOrphans(t *testing.T) { t.Helper() }
+// sweepPriorRunOrphans kills daemons left holding the ports this suite needs.
+// A previous case can leak an orchestratord past its own cleanup; the next
+// case's orchestratord then refuses to start, because it fails closed rather
+// than adopt a listener it cannot authenticate against. The app ends up
+// talking to the stale process, whose auth cookie lives in a temp dir that has
+// already been removed, and every RPC fails with "local auth cookie is
+// missing" until the test times out.
+//
+// Targeted by port rather than by process name: running this locally must not
+// take out the developer's own bitwindow, only whatever is squatting on the
+// ports the test is about to bind.
+func sweepPriorRunOrphans(t *testing.T) {
+	t.Helper()
+	for _, port := range []int{orchestratordPort, bitwindowdPort} {
+		out, err := exec.Command("lsof", "-ti", fmt.Sprintf("tcp:%d", port)).Output()
+		if err != nil {
+			continue // nothing listening, or no lsof — either way there is nothing to sweep
+		}
+		for _, field := range strings.Fields(string(out)) {
+			pid, convErr := strconv.Atoi(field)
+			if convErr != nil {
+				continue
+			}
+			t.Logf("sweeping orphaned pid %d holding port %d", pid, port)
+			_ = syscall.Kill(pid, syscall.SIGKILL)
+		}
+	}
+}
 
 // closeAppViaWindowSystem triggers a graceful "user closed the window"
 // event for the Flutter app identified by pid. This exercises the GUI

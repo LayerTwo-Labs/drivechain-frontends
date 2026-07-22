@@ -381,13 +381,15 @@ const BuildDescriptorsRequest$json = {
   '1': 'BuildDescriptorsRequest',
   '2': [
     {'1': 'group', '3': 1, '4': 1, '5': 11, '6': '.multisiglounge.v1.MultisigGroup', '10': 'group'},
+    {'1': 'script_type', '3': 2, '4': 1, '5': 9, '10': 'scriptType'},
   ],
 };
 
 /// Descriptor for `BuildDescriptorsRequest`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List buildDescriptorsRequestDescriptor = $convert.base64Decode(
     'ChdCdWlsZERlc2NyaXB0b3JzUmVxdWVzdBI2CgVncm91cBgBIAEoCzIgLm11bHRpc2lnbG91bm'
-    'dlLnYxLk11bHRpc2lnR3JvdXBSBWdyb3Vw');
+    'dlLnYxLk11bHRpc2lnR3JvdXBSBWdyb3VwEh8KC3NjcmlwdF90eXBlGAIgASgJUgpzY3JpcHRU'
+    'eXBl');
 
 @$core.Deprecated('Use buildDescriptorsResponseDescriptor instead')
 const BuildDescriptorsResponse$json = {

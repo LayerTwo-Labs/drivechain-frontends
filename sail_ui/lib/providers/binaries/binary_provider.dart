@@ -194,6 +194,14 @@ class BinaryProvider extends ChangeNotifier {
     await _orchestrator.restartL1();
   }
 
+  /// Load a UTXO snapshot into the running Bitcoin Core, streaming progress.
+  /// Nothing is stopped or deleted; a snapshot Core refuses surfaces as a
+  /// stream error carrying Core's own message.
+  Stream<ApplyUTXOSnapshotResponse> applyUTXOSnapshot({String url = '', String path = '', String sha256 = ''}) {
+    log.i('BinaryProvider: applying UTXO snapshot');
+    return _orchestrator.applyUTXOSnapshot(url: url, path: path, sha256: sha256);
+  }
+
   Future<void> stop(Binary binary, {bool skipDownstream = false}) async {
     if (_isDaemonBinary(binary)) {
       await _stopDaemonBinary(binary);

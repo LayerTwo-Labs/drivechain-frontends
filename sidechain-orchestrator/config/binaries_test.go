@@ -64,6 +64,22 @@ func TestBitcoinCoreForknetPath(t *testing.T) {
 	}
 }
 
+func TestBitcoinCoreDrynetPath(t *testing.T) {
+	p := BitcoinCoreDirs.RootDirNetwork(NetworkDrynet)
+	var want string
+	switch runtime.GOOS {
+	case "darwin":
+		want = filepath.Join(home(), "Library", "Application Support", "Drivechain")
+	case "windows":
+		want = filepath.Join(home(), "AppData", "Roaming", "Drivechain")
+	default:
+		want = filepath.Join(home(), ".drivechain")
+	}
+	if p != want {
+		t.Errorf("BitcoinCore drynet path = %q, want %q", p, want)
+	}
+}
+
 func TestBitcoinCoreRootDirPanics(t *testing.T) {
 	// BitcoinCore has different dirs per network (mainnet vs others), so RootDir() should panic
 	defer func() {

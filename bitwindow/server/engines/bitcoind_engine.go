@@ -172,7 +172,7 @@ func (p *Parser) handleBlockTick(ctx context.Context) error {
 	}
 
 	// While Core is still doing initial block download on a *full* chain
-	// (mainnet / forknet), skip the OP_RETURN scan entirely. Each scan
+	// (mainnet / forknet / drynet), skip the OP_RETURN scan entirely. Each scan
 	// fans out a parallel batch of blocks and issues per-tx
 	// GetRawTransaction calls (needed for fee), all of which queue behind
 	// cs_main. During IBD on a populated chain that's enough pressure to

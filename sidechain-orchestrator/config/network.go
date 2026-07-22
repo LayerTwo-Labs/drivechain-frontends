@@ -1,6 +1,11 @@
 package config
 
-import "strings"
+import (
+	"strings"
+	"sync"
+
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config/netcatalog"
+)
 
 // Network represents the Bitcoin network type.
 type Network string
@@ -8,14 +13,14 @@ type Network string
 const (
 	NetworkMainnet Network = "mainnet"
 	NetworkForknet Network = "forknet"
-	NetworkDrynet2 Network = "drynet2"
+	NetworkDrynet  Network = "drynet"
 	NetworkSignet  Network = "signet"
 	NetworkRegtest Network = "regtest"
 	NetworkTestnet Network = "testnet"
 )
 
 // DatadirGroup partitions networks by which folder bitcoind writes to.
-// Forknet and drynet2 both run on chain=main and write to the root of datadir,
+// Forknet and drynet both run on chain=main and write to the root of datadir,
 // colliding with mainnet and each other — so each needs its own group. The four
 // "default" networks share one datadir because Bitcoin Core auto-partitions them
 // via chain subdirectories (signet/, testnet3/, regtest/, blocks/ for mainnet).
@@ -24,16 +29,46 @@ type DatadirGroup string
 const (
 	DatadirGroupDefault DatadirGroup = "default"
 	DatadirGroupForknet DatadirGroup = "forknet"
-	DatadirGroupDrynet2 DatadirGroup = "drynet2"
+	DatadirGroupDrynet  DatadirGroup = "drynet"
 )
+
+// drynetGeneration is the live drynet generation ("drynet2"), resolved from the
+// network catalog at startup. Package-level because the URL helpers below are
+// package functions called from everywhere; guarded because the catalog is
+// refreshed on a background goroutine.
+var (
+	drynetGenerationMu sync.RWMutex
+	drynetGeneration   string
+)
+
+// SetDrynetGeneration records the resolved drynet generation. Called once the
+// network catalog is loaded, before anything dials.
+func SetDrynetGeneration(id string) {
+	drynetGenerationMu.Lock()
+	defer drynetGenerationMu.Unlock()
+	drynetGeneration = id
+}
+
+// DrynetGeneration returns the live drynet generation, falling back to the
+// generation compiled into the binary so the URLs resolve before the catalog
+// has been read.
+func DrynetGeneration() string {
+	drynetGenerationMu.RLock()
+	id := drynetGeneration
+	drynetGenerationMu.RUnlock()
+	if id != "" {
+		return id
+	}
+	return netcatalog.EmbeddedDrynetID()
+}
 
 // DatadirGroupForNetwork returns the datadir group a network belongs to.
 func DatadirGroupForNetwork(n Network) DatadirGroup {
 	switch n {
 	case NetworkForknet:
 		return DatadirGroupForknet
-	case NetworkDrynet2:
-		return DatadirGroupDrynet2
+	case NetworkDrynet:
+		return DatadirGroupDrynet
 	default:
 		return DatadirGroupDefault
 	}
@@ -46,7 +81,7 @@ func RPCPortForNetwork(n Network) int {
 		return 8332
 	case NetworkForknet:
 		return 18301
-	case NetworkDrynet2:
+	case NetworkDrynet:
 		return 18302
 	case NetworkTestnet:
 		return 18332
@@ -74,9 +109,13 @@ func EsploraURLsForNetwork(n Network) []string {
 		return []string{"https://esplora.mainnet.drivechain.info"}
 	case NetworkForknet:
 		return []string{"https://explorer.forknet.drivechain.info/api"}
-	case NetworkDrynet2:
-		// drynet2's Esplora serves its routes at the root, so no /api suffix.
-		return []string{"https://esplora.drynet2.drivechain.dev"}
+	case NetworkDrynet:
+		// drynet's Esplora serves its routes at the root, so no /api suffix.
+		// Host carries the generation, so it moves with the network.
+		if gen := DrynetGeneration(); gen != "" {
+			return []string{"https://esplora." + gen + ".drivechain.dev"}
+		}
+		return nil
 	default:
 		return nil
 	}
@@ -155,10 +194,10 @@ func (n Network) CoreSection() string {
 }
 
 // CoreSectionForNetwork returns the Bitcoin Core config section name for a network.
-// Mainnet, forknet and drynet2 all use "main" since the forks run on mainnet params.
+// Mainnet, forknet and drynet all use "main" since the forks run on mainnet params.
 func CoreSectionForNetwork(n Network) string {
 	switch n {
-	case NetworkMainnet, NetworkForknet, NetworkDrynet2:
+	case NetworkMainnet, NetworkForknet, NetworkDrynet:
 		return "main"
 	case NetworkTestnet:
 		return "test"
@@ -172,19 +211,19 @@ func CoreSectionForNetwork(n Network) string {
 }
 
 // NetworkFromConfig detects the network from a parsed BitcoinConfig.
-// Handles forknet detection (chain=main + drivechain=1 in [main] section).
+// Handles forknet/drynet detection (chain=main + drivechain=1 in [main]).
 func NetworkFromConfig(conf *BitcoinConfig) Network {
 	chainSetting := conf.GetSetting("chain")
 	if chainSetting != "" {
 		switch strings.ToLower(chainSetting) {
 		case "main", "mainnet":
-			drivechainSetting := conf.GetEffectiveSetting("drivechain", "main")
-			if drivechainSetting == "1" {
-				// forknet and drynet2 both run chain=main + drivechain=1. They
-				// are told apart by the uacomment sentinel drynet2 writes into
-				// its [main] section.
-				if conf.GetEffectiveSetting("uacomment", "main") == string(NetworkDrynet2) {
-					return NetworkDrynet2
+			if conf.GetEffectiveSetting("drivechain", "main") == "1" {
+				// forknet and drynet both run chain=main + drivechain=1, told
+				// apart by the uacomment sentinel drynet writes into [main].
+				// That value carries the generation ("drynet2"), so match the
+				// prefix — an exact compare would break on every rollover.
+				if strings.HasPrefix(conf.GetEffectiveSetting("uacomment", "main"), string(NetworkDrynet)) {
+					return NetworkDrynet
 				}
 				return NetworkForknet
 			}
@@ -221,8 +260,8 @@ func NetworkFromString(s string) Network {
 		return NetworkMainnet
 	case "forknet":
 		return NetworkForknet
-	case "drynet2":
-		return NetworkDrynet2
+	case "drynet":
+		return NetworkDrynet
 	case "testnet", "test":
 		return NetworkTestnet
 	case "signet":

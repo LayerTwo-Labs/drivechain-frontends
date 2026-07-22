@@ -73,7 +73,7 @@ func main() {
 			},
 			&cli.StringFlag{
 				Name:    "network",
-				Usage:   "bitcoin network (mainnet, testnet, signet, regtest, forknet)",
+				Usage:   "bitcoin network (mainnet, testnet, signet, regtest, forknet, drynet)",
 				Value:   defaultNetwork,
 				EnvVars: []string{"ORCHESTRATOR_NETWORK"},
 			},
@@ -135,7 +135,9 @@ func run(cctx *cli.Context) error {
 	if err != nil {
 		level = zerolog.InfoLevel
 	}
-	var logOut io.Writer = zerolog.ConsoleWriter{Out: os.Stdout}
+	// Millisecond timestamps: startup is a sequence of sub-second steps, and
+	// the default minute granularity makes it impossible to see which one is slow.
+	var logOut io.Writer = zerolog.ConsoleWriter{Out: os.Stdout, TimeFormat: "15:04:05.000"}
 	if logPath := cctx.String("logfile"); logPath != "" {
 		// O_APPEND so multiple processes (e.g. an old instance still draining
 		// and a new instance probing the port) don't truncate each other.
@@ -145,7 +147,7 @@ func run(cctx *cli.Context) error {
 			os.Exit(1)
 		}
 		defer f.Close() //nolint:errcheck
-		logOut = zerolog.ConsoleWriter{Out: f, NoColor: true}
+		logOut = zerolog.ConsoleWriter{Out: f, NoColor: true, TimeFormat: "15:04:05.000"}
 	}
 	log := zerolog.New(logOut).
 		Level(level).
@@ -240,6 +242,14 @@ func run(cctx *cli.Context) error {
 	if err := orch.AdoptOrphans(ctx); err != nil {
 		log.Warn().Err(err).Msg("adopt orphans")
 	}
+
+	// Strictly after AdoptOrphans: a drynet generation rollover wipes chain
+	// data, and it decides whether that is safe by asking whether bitcoind is
+	// running. Before adoption the process manager is empty, so a Core still
+	// alive from the previous session would look stopped and have its blocks
+	// renamed out from under it. Still before the listener binds, so the
+	// generation is settled before anything can be served.
+	orch.ResolveNetworkCatalog(ctx)
 
 	// Set up gRPC/ConnectRPC server
 	handler := api.NewHandler(orch)

@@ -93,6 +93,15 @@ func (e *WalletEngine) SignPSBT(ctx context.Context, walletID, psbtBase64 string
 	return eb.SignPSBT(ctx, walletID, psbtBase64)
 }
 
+// SignPSBTWithCosigner adds a single multisig cosigner's signature to a PSBT.
+func (e *WalletEngine) SignPSBTWithCosigner(ctx context.Context, walletID, psbtBase64, cosignerXpub string) (string, error) {
+	eb, err := e.electrumBackend()
+	if err != nil {
+		return "", err
+	}
+	return eb.SignPSBTWithCosigner(ctx, walletID, psbtBase64, cosignerXpub)
+}
+
 // CombinePSBT merges cosigner PSBTs of the same transaction.
 func (e *WalletEngine) CombinePSBT(psbtsBase64 []string) (string, error) {
 	eb, err := e.electrumBackend()
@@ -109,6 +118,15 @@ func (e *WalletEngine) FinalizePSBT(psbtBase64 string) (string, error) {
 		return "", err
 	}
 	return eb.FinalizePSBT(psbtBase64)
+}
+
+func (e *WalletEngine) RefreshElectrumScan(ctx context.Context, walletID string) error {
+	eb, err := e.electrumBackend()
+	if err != nil {
+		return nil
+	}
+	_, err = eb.scan(ctx, walletID, false)
+	return err
 }
 
 // ElectrumServerURL returns the electrum wallet's current Esplora endpoint.

@@ -295,7 +295,6 @@ func jsonToBinaryConfig(key string, jb jsonBinaryConf) BinaryConfig {
 		bc.BinaryName = jb.Download.Binary
 		bc.DownloadURLs = parseBaseURLs(jb.Download.Files)
 		bc.Files = parseOSFiles(jb.Download.Files, "default")
-		bc.ForknetFiles = parseOSFiles(jb.Download.Files, "forknet")
 		bc.ExtractSubfolder = parseOSMapFromExtract(jb.Download.ExtractSubfolder, "default")
 
 		// Determine download source from URL
@@ -304,12 +303,6 @@ func jsonToBinaryConfig(key string, jb jsonBinaryConf) BinaryConfig {
 			bc.DownloadSource = DownloadSourceGitHub
 		} else {
 			bc.DownloadSource = DownloadSourceDirect
-		}
-
-		// Forknet extract subfolder (merge)
-		forknetSub := parseOSMapFromExtract(jb.Download.ExtractSubfolder, "forknet")
-		if len(forknetSub) > 0 {
-			bc.ExtractSubfolder = forknetSub
 		}
 
 		for id, v := range jb.Download.Variants {

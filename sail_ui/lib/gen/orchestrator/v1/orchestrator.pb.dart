@@ -1504,6 +1504,171 @@ class RestartL1Response extends $pb.GeneratedMessage {
   static RestartL1Response? _defaultInstance;
 }
 
+class ApplyUTXOSnapshotRequest extends $pb.GeneratedMessage {
+  factory ApplyUTXOSnapshotRequest({
+    $core.String? url,
+    $core.String? path,
+    $core.String? sha256,
+  }) {
+    final $result = create();
+    if (url != null) {
+      $result.url = url;
+    }
+    if (path != null) {
+      $result.path = path;
+    }
+    if (sha256 != null) {
+      $result.sha256 = sha256;
+    }
+    return $result;
+  }
+  ApplyUTXOSnapshotRequest._() : super();
+  factory ApplyUTXOSnapshotRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory ApplyUTXOSnapshotRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ApplyUTXOSnapshotRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'orchestrator.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'url')
+    ..aOS(2, _omitFieldNames ? '' : 'path')
+    ..aOS(3, _omitFieldNames ? '' : 'sha256')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  ApplyUTXOSnapshotRequest clone() => ApplyUTXOSnapshotRequest()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  ApplyUTXOSnapshotRequest copyWith(void Function(ApplyUTXOSnapshotRequest) updates) => super.copyWith((message) => updates(message as ApplyUTXOSnapshotRequest)) as ApplyUTXOSnapshotRequest;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ApplyUTXOSnapshotRequest create() => ApplyUTXOSnapshotRequest._();
+  ApplyUTXOSnapshotRequest createEmptyInstance() => create();
+  static $pb.PbList<ApplyUTXOSnapshotRequest> createRepeated() => $pb.PbList<ApplyUTXOSnapshotRequest>();
+  @$core.pragma('dart2js:noInline')
+  static ApplyUTXOSnapshotRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<ApplyUTXOSnapshotRequest>(create);
+  static ApplyUTXOSnapshotRequest? _defaultInstance;
+
+  /// Exactly one of url or path. url is downloaded; path is a file the user
+  /// already has on disk and is left in place afterwards.
+  @$pb.TagNumber(1)
+  $core.String get url => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set url($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasUrl() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearUrl() => clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.String get path => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set path($core.String v) { $_setString(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasPath() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearPath() => clearField(2);
+
+  /// Expected sha256 of the snapshot, lowercase hex. Optional — empty loads the
+  /// snapshot unverified, which is the normal case for a user-supplied file.
+  @$pb.TagNumber(3)
+  $core.String get sha256 => $_getSZ(2);
+  @$pb.TagNumber(3)
+  set sha256($core.String v) { $_setString(2, v); }
+  @$pb.TagNumber(3)
+  $core.bool hasSha256() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearSha256() => clearField(3);
+}
+
+class ApplyUTXOSnapshotResponse extends $pb.GeneratedMessage {
+  factory ApplyUTXOSnapshotResponse({
+    $core.String? message,
+    $core.int? downloadPercent,
+    $core.bool? done,
+  }) {
+    final $result = create();
+    if (message != null) {
+      $result.message = message;
+    }
+    if (downloadPercent != null) {
+      $result.downloadPercent = downloadPercent;
+    }
+    if (done != null) {
+      $result.done = done;
+    }
+    return $result;
+  }
+  ApplyUTXOSnapshotResponse._() : super();
+  factory ApplyUTXOSnapshotResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory ApplyUTXOSnapshotResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ApplyUTXOSnapshotResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'orchestrator.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'message')
+    ..a<$core.int>(2, _omitFieldNames ? '' : 'downloadPercent', $pb.PbFieldType.O3)
+    ..aOB(3, _omitFieldNames ? '' : 'done')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  ApplyUTXOSnapshotResponse clone() => ApplyUTXOSnapshotResponse()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  ApplyUTXOSnapshotResponse copyWith(void Function(ApplyUTXOSnapshotResponse) updates) => super.copyWith((message) => updates(message as ApplyUTXOSnapshotResponse)) as ApplyUTXOSnapshotResponse;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ApplyUTXOSnapshotResponse create() => ApplyUTXOSnapshotResponse._();
+  ApplyUTXOSnapshotResponse createEmptyInstance() => create();
+  static $pb.PbList<ApplyUTXOSnapshotResponse> createRepeated() => $pb.PbList<ApplyUTXOSnapshotResponse>();
+  @$core.pragma('dart2js:noInline')
+  static ApplyUTXOSnapshotResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<ApplyUTXOSnapshotResponse>(create);
+  static ApplyUTXOSnapshotResponse? _defaultInstance;
+
+  /// Human-readable status, e.g. "downloading UTXO snapshot... 42%".
+  @$pb.TagNumber(1)
+  $core.String get message => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set message($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasMessage() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearMessage() => clearField(1);
+
+  /// Download completion, 0-100. Zero while no download is in flight — the
+  /// load phase itself reports no percentage, because Core blocks until the
+  /// whole snapshot is read and exposes no completion fraction.
+  @$pb.TagNumber(2)
+  $core.int get downloadPercent => $_getIZ(1);
+  @$pb.TagNumber(2)
+  set downloadPercent($core.int v) { $_setSignedInt32(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasDownloadPercent() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearDownloadPercent() => clearField(2);
+
+  /// Set once Core has accepted and finished loading the snapshot.
+  @$pb.TagNumber(3)
+  $core.bool get done => $_getBF(2);
+  @$pb.TagNumber(3)
+  set done($core.bool v) { $_setBool(2, v); }
+  @$pb.TagNumber(3)
+  $core.bool hasDone() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearDone() => clearField(3);
+}
+
 class ShutdownAllRequest extends $pb.GeneratedMessage {
   factory ShutdownAllRequest({
     $core.bool? force,
@@ -3998,6 +4163,9 @@ class OrchestratorServiceApi {
   ;
   $async.Future<RestartL1Response> restartL1($pb.ClientContext? ctx, RestartL1Request request) =>
     _client.invoke<RestartL1Response>(ctx, 'OrchestratorService', 'RestartL1', request, RestartL1Response())
+  ;
+  $async.Future<ApplyUTXOSnapshotResponse> applyUTXOSnapshot($pb.ClientContext? ctx, ApplyUTXOSnapshotRequest request) =>
+    _client.invoke<ApplyUTXOSnapshotResponse>(ctx, 'OrchestratorService', 'ApplyUTXOSnapshot', request, ApplyUTXOSnapshotResponse())
   ;
   $async.Future<ShutdownAllResponse> shutdownAll($pb.ClientContext? ctx, ShutdownAllRequest request) =>
     _client.invoke<ShutdownAllResponse>(ctx, 'OrchestratorService', 'ShutdownAll', request, ShutdownAllResponse())

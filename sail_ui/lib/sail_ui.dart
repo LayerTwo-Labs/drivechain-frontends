@@ -140,6 +140,7 @@ export 'pages/sidechains/parent_chain_page.dart';
 export 'pages/configure_homepage_page.dart';
 export 'pages/bitcoin_conf_editor_page.dart';
 export 'pages/l1_restart_page.dart';
+export 'pages/utxo_snapshot_page.dart';
 export 'pages/coming_soon_page.dart';
 export 'pages/enforcer_conf_editor_page.dart';
 export 'pages/datadir_select_page.dart';

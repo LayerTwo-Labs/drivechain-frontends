@@ -262,6 +262,7 @@ const WalletMetadata$json = {
     {'1': 'l1_mnemonic', '3': 8, '4': 1, '5': 9, '10': 'l1Mnemonic'},
     {'1': 'sidechains', '3': 9, '4': 3, '5': 11, '6': '.walletmanager.v1.SidechainStarter', '10': 'sidechains'},
     {'1': 'watch_only', '3': 10, '4': 1, '5': 8, '10': 'watchOnly'},
+    {'1': 'multisig', '3': 11, '4': 1, '5': 11, '6': '.walletmanager.v1.MultisigInfo', '10': 'multisig'},
   ],
 };
 
@@ -274,7 +275,42 @@ final $typed_data.Uint8List walletMetadataDescriptor = $convert.base64Decode(
     'ZW50Q29kZRInCg9tYXN0ZXJfbW5lbW9uaWMYByABKAlSDm1hc3Rlck1uZW1vbmljEh8KC2wxX2'
     '1uZW1vbmljGAggASgJUgpsMU1uZW1vbmljEkIKCnNpZGVjaGFpbnMYCSADKAsyIi53YWxsZXRt'
     'YW5hZ2VyLnYxLlNpZGVjaGFpblN0YXJ0ZXJSCnNpZGVjaGFpbnMSHQoKd2F0Y2hfb25seRgKIA'
-    'EoCFIJd2F0Y2hPbmx5');
+    'EoCFIJd2F0Y2hPbmx5EjoKCG11bHRpc2lnGAsgASgLMh4ud2FsbGV0bWFuYWdlci52MS5NdWx0'
+    'aXNpZ0luZm9SCG11bHRpc2ln');
+
+@$core.Deprecated('Use multisigInfoDescriptor instead')
+const MultisigInfo$json = {
+  '1': 'MultisigInfo',
+  '2': [
+    {'1': 'm', '3': 1, '4': 1, '5': 13, '10': 'm'},
+    {'1': 'n', '3': 2, '4': 1, '5': 13, '10': 'n'},
+    {'1': 'script_type', '3': 3, '4': 1, '5': 9, '10': 'scriptType'},
+    {'1': 'cosigners', '3': 4, '4': 3, '5': 11, '6': '.walletmanager.v1.MultisigCosignerInfo', '10': 'cosigners'},
+  ],
+};
+
+/// Descriptor for `MultisigInfo`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List multisigInfoDescriptor = $convert.base64Decode(
+    'CgxNdWx0aXNpZ0luZm8SDAoBbRgBIAEoDVIBbRIMCgFuGAIgASgNUgFuEh8KC3NjcmlwdF90eX'
+    'BlGAMgASgJUgpzY3JpcHRUeXBlEkQKCWNvc2lnbmVycxgEIAMoCzImLndhbGxldG1hbmFnZXIu'
+    'djEuTXVsdGlzaWdDb3NpZ25lckluZm9SCWNvc2lnbmVycw==');
+
+@$core.Deprecated('Use multisigCosignerInfoDescriptor instead')
+const MultisigCosignerInfo$json = {
+  '1': 'MultisigCosignerInfo',
+  '2': [
+    {'1': 'xpub', '3': 1, '4': 1, '5': 9, '10': 'xpub'},
+    {'1': 'fingerprint', '3': 2, '4': 1, '5': 9, '10': 'fingerprint'},
+    {'1': 'origin_path', '3': 3, '4': 1, '5': 9, '10': 'originPath'},
+    {'1': 'held', '3': 4, '4': 1, '5': 8, '10': 'held'},
+  ],
+};
+
+/// Descriptor for `MultisigCosignerInfo`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List multisigCosignerInfoDescriptor = $convert.base64Decode(
+    'ChRNdWx0aXNpZ0Nvc2lnbmVySW5mbxISCgR4cHViGAEgASgJUgR4cHViEiAKC2ZpbmdlcnByaW'
+    '50GAIgASgJUgtmaW5nZXJwcmludBIfCgtvcmlnaW5fcGF0aBgDIAEoCVIKb3JpZ2luUGF0aBIS'
+    'CgRoZWxkGAQgASgIUgRoZWxk');
 
 @$core.Deprecated('Use sidechainStarterDescriptor instead')
 const SidechainStarter$json = {
@@ -623,6 +659,103 @@ final $typed_data.Uint8List createElectrumWalletResponseDescriptor = $convert.ba
     'ChxDcmVhdGVFbGVjdHJ1bVdhbGxldFJlc3BvbnNlEhsKCXdhbGxldF9pZBgBIAEoCVIId2FsbG'
     'V0SWQ=');
 
+@$core.Deprecated('Use multisigCosignerInputDescriptor instead')
+const MultisigCosignerInput$json = {
+  '1': 'MultisigCosignerInput',
+  '2': [
+    {'1': 'xpub', '3': 1, '4': 1, '5': 9, '10': 'xpub'},
+    {'1': 'origin_path', '3': 2, '4': 1, '5': 9, '10': 'originPath'},
+    {'1': 'fingerprint', '3': 3, '4': 1, '5': 9, '10': 'fingerprint'},
+    {'1': 'mnemonic', '3': 4, '4': 1, '5': 9, '10': 'mnemonic'},
+    {'1': 'xprv', '3': 5, '4': 1, '5': 9, '10': 'xprv'},
+    {'1': 'passphrase', '3': 6, '4': 1, '5': 9, '10': 'passphrase'},
+  ],
+};
+
+/// Descriptor for `MultisigCosignerInput`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List multisigCosignerInputDescriptor = $convert.base64Decode(
+    'ChVNdWx0aXNpZ0Nvc2lnbmVySW5wdXQSEgoEeHB1YhgBIAEoCVIEeHB1YhIfCgtvcmlnaW5fcG'
+    'F0aBgCIAEoCVIKb3JpZ2luUGF0aBIgCgtmaW5nZXJwcmludBgDIAEoCVILZmluZ2VycHJpbnQS'
+    'GgoIbW5lbW9uaWMYBCABKAlSCG1uZW1vbmljEhIKBHhwcnYYBSABKAlSBHhwcnYSHgoKcGFzc3'
+    'BocmFzZRgGIAEoCVIKcGFzc3BocmFzZQ==');
+
+@$core.Deprecated('Use createMultisigWalletRequestDescriptor instead')
+const CreateMultisigWalletRequest$json = {
+  '1': 'CreateMultisigWalletRequest',
+  '2': [
+    {'1': 'name', '3': 1, '4': 1, '5': 9, '10': 'name'},
+    {'1': 'gradient_json', '3': 2, '4': 1, '5': 9, '10': 'gradientJson'},
+    {'1': 'm', '3': 3, '4': 1, '5': 13, '10': 'm'},
+    {'1': 'n', '3': 4, '4': 1, '5': 13, '10': 'n'},
+    {'1': 'script_type', '3': 5, '4': 1, '5': 9, '10': 'scriptType'},
+    {'1': 'cosigners', '3': 6, '4': 3, '5': 11, '6': '.walletmanager.v1.MultisigCosignerInput', '10': 'cosigners'},
+  ],
+};
+
+/// Descriptor for `CreateMultisigWalletRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List createMultisigWalletRequestDescriptor = $convert.base64Decode(
+    'ChtDcmVhdGVNdWx0aXNpZ1dhbGxldFJlcXVlc3QSEgoEbmFtZRgBIAEoCVIEbmFtZRIjCg1ncm'
+    'FkaWVudF9qc29uGAIgASgJUgxncmFkaWVudEpzb24SDAoBbRgDIAEoDVIBbRIMCgFuGAQgASgN'
+    'UgFuEh8KC3NjcmlwdF90eXBlGAUgASgJUgpzY3JpcHRUeXBlEkUKCWNvc2lnbmVycxgGIAMoCz'
+    'InLndhbGxldG1hbmFnZXIudjEuTXVsdGlzaWdDb3NpZ25lcklucHV0Ugljb3NpZ25lcnM=');
+
+@$core.Deprecated('Use createMultisigWalletResponseDescriptor instead')
+const CreateMultisigWalletResponse$json = {
+  '1': 'CreateMultisigWalletResponse',
+  '2': [
+    {'1': 'wallet_id', '3': 1, '4': 1, '5': 9, '10': 'walletId'},
+  ],
+};
+
+/// Descriptor for `CreateMultisigWalletResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List createMultisigWalletResponseDescriptor = $convert.base64Decode(
+    'ChxDcmVhdGVNdWx0aXNpZ1dhbGxldFJlc3BvbnNlEhsKCXdhbGxldF9pZBgBIAEoCVIId2FsbG'
+    'V0SWQ=');
+
+@$core.Deprecated('Use parseMultisigConfigRequestDescriptor instead')
+const ParseMultisigConfigRequest$json = {
+  '1': 'ParseMultisigConfigRequest',
+  '2': [
+    {'1': 'content', '3': 1, '4': 1, '5': 9, '10': 'content'},
+  ],
+};
+
+/// Descriptor for `ParseMultisigConfigRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List parseMultisigConfigRequestDescriptor = $convert.base64Decode(
+    'ChpQYXJzZU11bHRpc2lnQ29uZmlnUmVxdWVzdBIYCgdjb250ZW50GAEgASgJUgdjb250ZW50');
+
+@$core.Deprecated('Use parsedCosignerDescriptor instead')
+const ParsedCosigner$json = {
+  '1': 'ParsedCosigner',
+  '2': [
+    {'1': 'xpub', '3': 1, '4': 1, '5': 9, '10': 'xpub'},
+    {'1': 'fingerprint', '3': 2, '4': 1, '5': 9, '10': 'fingerprint'},
+    {'1': 'origin_path', '3': 3, '4': 1, '5': 9, '10': 'originPath'},
+  ],
+};
+
+/// Descriptor for `ParsedCosigner`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List parsedCosignerDescriptor = $convert.base64Decode(
+    'Cg5QYXJzZWRDb3NpZ25lchISCgR4cHViGAEgASgJUgR4cHViEiAKC2ZpbmdlcnByaW50GAIgAS'
+    'gJUgtmaW5nZXJwcmludBIfCgtvcmlnaW5fcGF0aBgDIAEoCVIKb3JpZ2luUGF0aA==');
+
+@$core.Deprecated('Use parseMultisigConfigResponseDescriptor instead')
+const ParseMultisigConfigResponse$json = {
+  '1': 'ParseMultisigConfigResponse',
+  '2': [
+    {'1': 'm', '3': 1, '4': 1, '5': 13, '10': 'm'},
+    {'1': 'n', '3': 2, '4': 1, '5': 13, '10': 'n'},
+    {'1': 'script_type', '3': 3, '4': 1, '5': 9, '10': 'scriptType'},
+    {'1': 'cosigners', '3': 4, '4': 3, '5': 11, '6': '.walletmanager.v1.ParsedCosigner', '10': 'cosigners'},
+  ],
+};
+
+/// Descriptor for `ParseMultisigConfigResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List parseMultisigConfigResponseDescriptor = $convert.base64Decode(
+    'ChtQYXJzZU11bHRpc2lnQ29uZmlnUmVzcG9uc2USDAoBbRgBIAEoDVIBbRIMCgFuGAIgASgNUg'
+    'FuEh8KC3NjcmlwdF90eXBlGAMgASgJUgpzY3JpcHRUeXBlEj4KCWNvc2lnbmVycxgEIAMoCzIg'
+    'LndhbGxldG1hbmFnZXIudjEuUGFyc2VkQ29zaWduZXJSCWNvc2lnbmVycw==');
+
 @$core.Deprecated('Use createBitcoinCoreWalletRequestDescriptor instead')
 const CreateBitcoinCoreWalletRequest$json = {
   '1': 'CreateBitcoinCoreWalletRequest',
@@ -891,6 +1024,35 @@ const SignPsbtResponse$json = {
 final $typed_data.Uint8List signPsbtResponseDescriptor = $convert.base64Decode(
     'ChBTaWduUHNidFJlc3BvbnNlEh8KC3BzYnRfYmFzZTY0GAEgASgJUgpwc2J0QmFzZTY0');
 
+@$core.Deprecated('Use signPsbtWithCosignerRequestDescriptor instead')
+const SignPsbtWithCosignerRequest$json = {
+  '1': 'SignPsbtWithCosignerRequest',
+  '2': [
+    {'1': 'wallet_id', '3': 1, '4': 1, '5': 9, '10': 'walletId'},
+    {'1': 'psbt_base64', '3': 2, '4': 1, '5': 9, '10': 'psbtBase64'},
+    {'1': 'cosigner_xpub', '3': 3, '4': 1, '5': 9, '10': 'cosignerXpub'},
+  ],
+};
+
+/// Descriptor for `SignPsbtWithCosignerRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List signPsbtWithCosignerRequestDescriptor = $convert.base64Decode(
+    'ChtTaWduUHNidFdpdGhDb3NpZ25lclJlcXVlc3QSGwoJd2FsbGV0X2lkGAEgASgJUgh3YWxsZX'
+    'RJZBIfCgtwc2J0X2Jhc2U2NBgCIAEoCVIKcHNidEJhc2U2NBIjCg1jb3NpZ25lcl94cHViGAMg'
+    'ASgJUgxjb3NpZ25lclhwdWI=');
+
+@$core.Deprecated('Use signPsbtWithCosignerResponseDescriptor instead')
+const SignPsbtWithCosignerResponse$json = {
+  '1': 'SignPsbtWithCosignerResponse',
+  '2': [
+    {'1': 'psbt_base64', '3': 1, '4': 1, '5': 9, '10': 'psbtBase64'},
+  ],
+};
+
+/// Descriptor for `SignPsbtWithCosignerResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List signPsbtWithCosignerResponseDescriptor = $convert.base64Decode(
+    'ChxTaWduUHNidFdpdGhDb3NpZ25lclJlc3BvbnNlEh8KC3BzYnRfYmFzZTY0GAEgASgJUgpwc2'
+    'J0QmFzZTY0');
+
 @$core.Deprecated('Use combinePsbtRequestDescriptor instead')
 const CombinePsbtRequest$json = {
   '1': 'CombinePsbtRequest',
@@ -938,6 +1100,63 @@ const FinalizePsbtResponse$json = {
 /// Descriptor for `FinalizePsbtResponse`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List finalizePsbtResponseDescriptor = $convert.base64Decode(
     'ChRGaW5hbGl6ZVBzYnRSZXNwb25zZRIcCgpyYXdfdHhfaGV4GAEgASgJUghyYXdUeEhleA==');
+
+@$core.Deprecated('Use multisigPsbtStatusRequestDescriptor instead')
+const MultisigPsbtStatusRequest$json = {
+  '1': 'MultisigPsbtStatusRequest',
+  '2': [
+    {'1': 'wallet_id', '3': 1, '4': 1, '5': 9, '10': 'walletId'},
+    {'1': 'psbt_base64', '3': 2, '4': 1, '5': 9, '10': 'psbtBase64'},
+  ],
+};
+
+/// Descriptor for `MultisigPsbtStatusRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List multisigPsbtStatusRequestDescriptor = $convert.base64Decode(
+    'ChlNdWx0aXNpZ1BzYnRTdGF0dXNSZXF1ZXN0EhsKCXdhbGxldF9pZBgBIAEoCVIId2FsbGV0SW'
+    'QSHwoLcHNidF9iYXNlNjQYAiABKAlSCnBzYnRCYXNlNjQ=');
+
+@$core.Deprecated('Use multisigPsbtStatusResponseDescriptor instead')
+const MultisigPsbtStatusResponse$json = {
+  '1': 'MultisigPsbtStatusResponse',
+  '2': [
+    {'1': 'threshold', '3': 1, '4': 1, '5': 13, '10': 'threshold'},
+    {'1': 'signatures', '3': 2, '4': 1, '5': 13, '10': 'signatures'},
+    {'1': 'finalizable', '3': 3, '4': 1, '5': 8, '10': 'finalizable'},
+    {'1': 'cosigner_signed', '3': 4, '4': 3, '5': 8, '10': 'cosignerSigned'},
+  ],
+};
+
+/// Descriptor for `MultisigPsbtStatusResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List multisigPsbtStatusResponseDescriptor = $convert.base64Decode(
+    'ChpNdWx0aXNpZ1BzYnRTdGF0dXNSZXNwb25zZRIcCgl0aHJlc2hvbGQYASABKA1SCXRocmVzaG'
+    '9sZBIeCgpzaWduYXR1cmVzGAIgASgNUgpzaWduYXR1cmVzEiAKC2ZpbmFsaXphYmxlGAMgASgI'
+    'UgtmaW5hbGl6YWJsZRInCg9jb3NpZ25lcl9zaWduZWQYBCADKAhSDmNvc2lnbmVyU2lnbmVk');
+
+@$core.Deprecated('Use broadcastTransactionRequestDescriptor instead')
+const BroadcastTransactionRequest$json = {
+  '1': 'BroadcastTransactionRequest',
+  '2': [
+    {'1': 'wallet_id', '3': 1, '4': 1, '5': 9, '10': 'walletId'},
+    {'1': 'tx_hex', '3': 2, '4': 1, '5': 9, '10': 'txHex'},
+  ],
+};
+
+/// Descriptor for `BroadcastTransactionRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List broadcastTransactionRequestDescriptor = $convert.base64Decode(
+    'ChtCcm9hZGNhc3RUcmFuc2FjdGlvblJlcXVlc3QSGwoJd2FsbGV0X2lkGAEgASgJUgh3YWxsZX'
+    'RJZBIVCgZ0eF9oZXgYAiABKAlSBXR4SGV4');
+
+@$core.Deprecated('Use broadcastTransactionResponseDescriptor instead')
+const BroadcastTransactionResponse$json = {
+  '1': 'BroadcastTransactionResponse',
+  '2': [
+    {'1': 'txid', '3': 1, '4': 1, '5': 9, '10': 'txid'},
+  ],
+};
+
+/// Descriptor for `BroadcastTransactionResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List broadcastTransactionResponseDescriptor = $convert.base64Decode(
+    'ChxCcm9hZGNhc3RUcmFuc2FjdGlvblJlc3BvbnNlEhIKBHR4aWQYASABKAlSBHR4aWQ=');
 
 @$core.Deprecated('Use listTransactionsRequestDescriptor instead')
 const ListTransactionsRequest$json = {
@@ -1630,6 +1849,8 @@ const $core.Map<$core.String, $core.dynamic> WalletManagerServiceBase$json = {
     {'1': 'RestoreWalletBackupStream', '2': '.walletmanager.v1.RestoreWalletBackupRequest', '3': '.walletmanager.v1.RestoreWalletBackupProgressResponse', '6': true},
     {'1': 'CreateWatchOnlyWallet', '2': '.walletmanager.v1.CreateWatchOnlyWalletRequest', '3': '.walletmanager.v1.CreateWatchOnlyWalletResponse'},
     {'1': 'CreateElectrumWallet', '2': '.walletmanager.v1.CreateElectrumWalletRequest', '3': '.walletmanager.v1.CreateElectrumWalletResponse'},
+    {'1': 'CreateMultisigWallet', '2': '.walletmanager.v1.CreateMultisigWalletRequest', '3': '.walletmanager.v1.CreateMultisigWalletResponse'},
+    {'1': 'ParseMultisigConfig', '2': '.walletmanager.v1.ParseMultisigConfigRequest', '3': '.walletmanager.v1.ParseMultisigConfigResponse'},
     {'1': 'CreateBitcoinCoreWallet', '2': '.walletmanager.v1.CreateBitcoinCoreWalletRequest', '3': '.walletmanager.v1.CreateBitcoinCoreWalletResponse'},
     {'1': 'EnsureCoreWallets', '2': '.walletmanager.v1.EnsureCoreWalletsRequest', '3': '.walletmanager.v1.EnsureCoreWalletsResponse'},
     {'1': 'GetBalance', '2': '.walletmanager.v1.GetBalanceRequest', '3': '.walletmanager.v1.GetBalanceResponse'},
@@ -1645,8 +1866,11 @@ const $core.Map<$core.String, $core.dynamic> WalletManagerServiceBase$json = {
     {'1': 'DeriveAddresses', '2': '.walletmanager.v1.DeriveAddressesRequest', '3': '.walletmanager.v1.DeriveAddressesResponse'},
     {'1': 'CreatePsbt', '2': '.walletmanager.v1.CreatePsbtRequest', '3': '.walletmanager.v1.CreatePsbtResponse'},
     {'1': 'SignPsbt', '2': '.walletmanager.v1.SignPsbtRequest', '3': '.walletmanager.v1.SignPsbtResponse'},
+    {'1': 'SignPsbtWithCosigner', '2': '.walletmanager.v1.SignPsbtWithCosignerRequest', '3': '.walletmanager.v1.SignPsbtWithCosignerResponse'},
     {'1': 'CombinePsbt', '2': '.walletmanager.v1.CombinePsbtRequest', '3': '.walletmanager.v1.CombinePsbtResponse'},
     {'1': 'FinalizePsbt', '2': '.walletmanager.v1.FinalizePsbtRequest', '3': '.walletmanager.v1.FinalizePsbtResponse'},
+    {'1': 'MultisigPsbtStatus', '2': '.walletmanager.v1.MultisigPsbtStatusRequest', '3': '.walletmanager.v1.MultisigPsbtStatusResponse'},
+    {'1': 'BroadcastTransaction', '2': '.walletmanager.v1.BroadcastTransactionRequest', '3': '.walletmanager.v1.BroadcastTransactionResponse'},
     {'1': 'GetWalletSeed', '2': '.walletmanager.v1.GetWalletSeedRequest', '3': '.walletmanager.v1.GetWalletSeedResponse'},
     {'1': 'ListCoreVariants', '2': '.walletmanager.v1.ListCoreVariantsRequest', '3': '.walletmanager.v1.ListCoreVariantsResponse'},
     {'1': 'GetCoreVariant', '2': '.walletmanager.v1.GetCoreVariantRequest', '3': '.walletmanager.v1.GetCoreVariantResponse'},
@@ -1681,6 +1905,8 @@ const $core.Map<$core.String, $core.Map<$core.String, $core.dynamic>> WalletMana
   '.walletmanager.v1.ListWalletsResponse': ListWalletsResponse$json,
   '.walletmanager.v1.WalletMetadata': WalletMetadata$json,
   '.walletmanager.v1.SidechainStarter': SidechainStarter$json,
+  '.walletmanager.v1.MultisigInfo': MultisigInfo$json,
+  '.walletmanager.v1.MultisigCosignerInfo': MultisigCosignerInfo$json,
   '.walletmanager.v1.SwitchWalletRequest': SwitchWalletRequest$json,
   '.walletmanager.v1.SwitchWalletResponse': SwitchWalletResponse$json,
   '.walletmanager.v1.UpdateWalletMetadataRequest': UpdateWalletMetadataRequest$json,
@@ -1704,6 +1930,12 @@ const $core.Map<$core.String, $core.Map<$core.String, $core.dynamic>> WalletMana
   '.walletmanager.v1.CreateWatchOnlyWalletResponse': CreateWatchOnlyWalletResponse$json,
   '.walletmanager.v1.CreateElectrumWalletRequest': CreateElectrumWalletRequest$json,
   '.walletmanager.v1.CreateElectrumWalletResponse': CreateElectrumWalletResponse$json,
+  '.walletmanager.v1.CreateMultisigWalletRequest': CreateMultisigWalletRequest$json,
+  '.walletmanager.v1.MultisigCosignerInput': MultisigCosignerInput$json,
+  '.walletmanager.v1.CreateMultisigWalletResponse': CreateMultisigWalletResponse$json,
+  '.walletmanager.v1.ParseMultisigConfigRequest': ParseMultisigConfigRequest$json,
+  '.walletmanager.v1.ParseMultisigConfigResponse': ParseMultisigConfigResponse$json,
+  '.walletmanager.v1.ParsedCosigner': ParsedCosigner$json,
   '.walletmanager.v1.CreateBitcoinCoreWalletRequest': CreateBitcoinCoreWalletRequest$json,
   '.walletmanager.v1.CreateBitcoinCoreWalletResponse': CreateBitcoinCoreWalletResponse$json,
   '.walletmanager.v1.EnsureCoreWalletsRequest': EnsureCoreWalletsRequest$json,
@@ -1743,10 +1975,16 @@ const $core.Map<$core.String, $core.Map<$core.String, $core.dynamic>> WalletMana
   '.walletmanager.v1.CreatePsbtResponse': CreatePsbtResponse$json,
   '.walletmanager.v1.SignPsbtRequest': SignPsbtRequest$json,
   '.walletmanager.v1.SignPsbtResponse': SignPsbtResponse$json,
+  '.walletmanager.v1.SignPsbtWithCosignerRequest': SignPsbtWithCosignerRequest$json,
+  '.walletmanager.v1.SignPsbtWithCosignerResponse': SignPsbtWithCosignerResponse$json,
   '.walletmanager.v1.CombinePsbtRequest': CombinePsbtRequest$json,
   '.walletmanager.v1.CombinePsbtResponse': CombinePsbtResponse$json,
   '.walletmanager.v1.FinalizePsbtRequest': FinalizePsbtRequest$json,
   '.walletmanager.v1.FinalizePsbtResponse': FinalizePsbtResponse$json,
+  '.walletmanager.v1.MultisigPsbtStatusRequest': MultisigPsbtStatusRequest$json,
+  '.walletmanager.v1.MultisigPsbtStatusResponse': MultisigPsbtStatusResponse$json,
+  '.walletmanager.v1.BroadcastTransactionRequest': BroadcastTransactionRequest$json,
+  '.walletmanager.v1.BroadcastTransactionResponse': BroadcastTransactionResponse$json,
   '.walletmanager.v1.GetWalletSeedRequest': GetWalletSeedRequest$json,
   '.walletmanager.v1.GetWalletSeedResponse': GetWalletSeedResponse$json,
   '.walletmanager.v1.ListCoreVariantsRequest': ListCoreVariantsRequest$json,
@@ -1806,56 +2044,67 @@ final $typed_data.Uint8List walletManagerServiceDescriptor = $convert.base64Deco
     'IuLndhbGxldG1hbmFnZXIudjEuQ3JlYXRlV2F0Y2hPbmx5V2FsbGV0UmVxdWVzdBovLndhbGxl'
     'dG1hbmFnZXIudjEuQ3JlYXRlV2F0Y2hPbmx5V2FsbGV0UmVzcG9uc2USdQoUQ3JlYXRlRWxlY3'
     'RydW1XYWxsZXQSLS53YWxsZXRtYW5hZ2VyLnYxLkNyZWF0ZUVsZWN0cnVtV2FsbGV0UmVxdWVz'
-    'dBouLndhbGxldG1hbmFnZXIudjEuQ3JlYXRlRWxlY3RydW1XYWxsZXRSZXNwb25zZRJ+ChdDcm'
-    'VhdGVCaXRjb2luQ29yZVdhbGxldBIwLndhbGxldG1hbmFnZXIudjEuQ3JlYXRlQml0Y29pbkNv'
-    'cmVXYWxsZXRSZXF1ZXN0GjEud2FsbGV0bWFuYWdlci52MS5DcmVhdGVCaXRjb2luQ29yZVdhbG'
-    'xldFJlc3BvbnNlEmwKEUVuc3VyZUNvcmVXYWxsZXRzEioud2FsbGV0bWFuYWdlci52MS5FbnN1'
-    'cmVDb3JlV2FsbGV0c1JlcXVlc3QaKy53YWxsZXRtYW5hZ2VyLnYxLkVuc3VyZUNvcmVXYWxsZX'
-    'RzUmVzcG9uc2USVwoKR2V0QmFsYW5jZRIjLndhbGxldG1hbmFnZXIudjEuR2V0QmFsYW5jZVJl'
-    'cXVlc3QaJC53YWxsZXRtYW5hZ2VyLnYxLkdldEJhbGFuY2VSZXNwb25zZRJgCg1HZXROZXdBZG'
-    'RyZXNzEiYud2FsbGV0bWFuYWdlci52MS5HZXROZXdBZGRyZXNzUmVxdWVzdBonLndhbGxldG1h'
-    'bmFnZXIudjEuR2V0TmV3QWRkcmVzc1Jlc3BvbnNlEmYKD1NlbmRUcmFuc2FjdGlvbhIoLndhbG'
-    'xldG1hbmFnZXIudjEuU2VuZFRyYW5zYWN0aW9uUmVxdWVzdBopLndhbGxldG1hbmFnZXIudjEu'
-    'U2VuZFRyYW5zYWN0aW9uUmVzcG9uc2USaQoQTGlzdFRyYW5zYWN0aW9ucxIpLndhbGxldG1hbm'
-    'FnZXIudjEuTGlzdFRyYW5zYWN0aW9uc1JlcXVlc3QaKi53YWxsZXRtYW5hZ2VyLnYxLkxpc3RU'
-    'cmFuc2FjdGlvbnNSZXNwb25zZRJaCgtMaXN0VW5zcGVudBIkLndhbGxldG1hbmFnZXIudjEuTG'
-    'lzdFVuc3BlbnRSZXF1ZXN0GiUud2FsbGV0bWFuYWdlci52MS5MaXN0VW5zcGVudFJlc3BvbnNl'
-    'EnUKFExpc3RSZWNlaXZlQWRkcmVzc2VzEi0ud2FsbGV0bWFuYWdlci52MS5MaXN0UmVjZWl2ZU'
-    'FkZHJlc3Nlc1JlcXVlc3QaLi53YWxsZXRtYW5hZ2VyLnYxLkxpc3RSZWNlaXZlQWRkcmVzc2Vz'
-    'UmVzcG9uc2USeAoVR2V0VHJhbnNhY3Rpb25EZXRhaWxzEi4ud2FsbGV0bWFuYWdlci52MS5HZX'
-    'RUcmFuc2FjdGlvbkRldGFpbHNSZXF1ZXN0Gi8ud2FsbGV0bWFuYWdlci52MS5HZXRUcmFuc2Fj'
-    'dGlvbkRldGFpbHNSZXNwb25zZRJsChFEZWNvZGVUcmFuc2FjdGlvbhIqLndhbGxldG1hbmFnZX'
-    'IudjEuRGVjb2RlVHJhbnNhY3Rpb25SZXF1ZXN0Gisud2FsbGV0bWFuYWdlci52MS5EZWNvZGVU'
-    'cmFuc2FjdGlvblJlc3BvbnNlEk4KB0J1bXBGZWUSIC53YWxsZXRtYW5hZ2VyLnYxLkJ1bXBGZW'
-    'VSZXF1ZXN0GiEud2FsbGV0bWFuYWdlci52MS5CdW1wRmVlUmVzcG9uc2USVwoKQ3JlYXRlQ3Bm'
-    'cBIjLndhbGxldG1hbmFnZXIudjEuQ3JlYXRlQ3BmcFJlcXVlc3QaJC53YWxsZXRtYW5hZ2VyLn'
-    'YxLkNyZWF0ZUNwZnBSZXNwb25zZRJmCg9EZXJpdmVBZGRyZXNzZXMSKC53YWxsZXRtYW5hZ2Vy'
-    'LnYxLkRlcml2ZUFkZHJlc3Nlc1JlcXVlc3QaKS53YWxsZXRtYW5hZ2VyLnYxLkRlcml2ZUFkZH'
-    'Jlc3Nlc1Jlc3BvbnNlElcKCkNyZWF0ZVBzYnQSIy53YWxsZXRtYW5hZ2VyLnYxLkNyZWF0ZVBz'
-    'YnRSZXF1ZXN0GiQud2FsbGV0bWFuYWdlci52MS5DcmVhdGVQc2J0UmVzcG9uc2USUQoIU2lnbl'
-    'BzYnQSIS53YWxsZXRtYW5hZ2VyLnYxLlNpZ25Qc2J0UmVxdWVzdBoiLndhbGxldG1hbmFnZXIu'
-    'djEuU2lnblBzYnRSZXNwb25zZRJaCgtDb21iaW5lUHNidBIkLndhbGxldG1hbmFnZXIudjEuQ2'
-    '9tYmluZVBzYnRSZXF1ZXN0GiUud2FsbGV0bWFuYWdlci52MS5Db21iaW5lUHNidFJlc3BvbnNl'
-    'El0KDEZpbmFsaXplUHNidBIlLndhbGxldG1hbmFnZXIudjEuRmluYWxpemVQc2J0UmVxdWVzdB'
-    'omLndhbGxldG1hbmFnZXIudjEuRmluYWxpemVQc2J0UmVzcG9uc2USYAoNR2V0V2FsbGV0U2Vl'
-    'ZBImLndhbGxldG1hbmFnZXIudjEuR2V0V2FsbGV0U2VlZFJlcXVlc3QaJy53YWxsZXRtYW5hZ2'
-    'VyLnYxLkdldFdhbGxldFNlZWRSZXNwb25zZRJpChBMaXN0Q29yZVZhcmlhbnRzEikud2FsbGV0'
-    'bWFuYWdlci52MS5MaXN0Q29yZVZhcmlhbnRzUmVxdWVzdBoqLndhbGxldG1hbmFnZXIudjEuTG'
-    'lzdENvcmVWYXJpYW50c1Jlc3BvbnNlEmMKDkdldENvcmVWYXJpYW50Eicud2FsbGV0bWFuYWdl'
-    'ci52MS5HZXRDb3JlVmFyaWFudFJlcXVlc3QaKC53YWxsZXRtYW5hZ2VyLnYxLkdldENvcmVWYX'
-    'JpYW50UmVzcG9uc2USYwoOU2V0Q29yZVZhcmlhbnQSJy53YWxsZXRtYW5hZ2VyLnYxLlNldENv'
-    'cmVWYXJpYW50UmVxdWVzdBooLndhbGxldG1hbmFnZXIudjEuU2V0Q29yZVZhcmlhbnRSZXNwb2'
-    '5zZRJsChFHZXRUZXN0U2lkZWNoYWlucxIqLndhbGxldG1hbmFnZXIudjEuR2V0VGVzdFNpZGVj'
-    'aGFpbnNSZXF1ZXN0Gisud2FsbGV0bWFuYWdlci52MS5HZXRUZXN0U2lkZWNoYWluc1Jlc3Bvbn'
-    'NlEmwKEVNldFRlc3RTaWRlY2hhaW5zEioud2FsbGV0bWFuYWdlci52MS5TZXRUZXN0U2lkZWNo'
-    'YWluc1JlcXVlc3QaKy53YWxsZXRtYW5hZ2VyLnYxLlNldFRlc3RTaWRlY2hhaW5zUmVzcG9uc2'
-    'USbAoRR2V0RWxlY3RydW1TZXJ2ZXISKi53YWxsZXRtYW5hZ2VyLnYxLkdldEVsZWN0cnVtU2Vy'
-    'dmVyUmVxdWVzdBorLndhbGxldG1hbmFnZXIudjEuR2V0RWxlY3RydW1TZXJ2ZXJSZXNwb25zZR'
-    'JsChFTZXRFbGVjdHJ1bVNlcnZlchIqLndhbGxldG1hbmFnZXIudjEuU2V0RWxlY3RydW1TZXJ2'
-    'ZXJSZXF1ZXN0Gisud2FsbGV0bWFuYWdlci52MS5TZXRFbGVjdHJ1bVNlcnZlclJlc3BvbnNlEl'
-    '0KDEdldFRvckNvbmZpZxIlLndhbGxldG1hbmFnZXIudjEuR2V0VG9yQ29uZmlnUmVxdWVzdBom'
-    'LndhbGxldG1hbmFnZXIudjEuR2V0VG9yQ29uZmlnUmVzcG9uc2USXQoMU2V0VG9yQ29uZmlnEi'
-    'Uud2FsbGV0bWFuYWdlci52MS5TZXRUb3JDb25maWdSZXF1ZXN0GiYud2FsbGV0bWFuYWdlci52'
-    'MS5TZXRUb3JDb25maWdSZXNwb25zZRJWCg9XYXRjaFdhbGxldERhdGESFi5nb29nbGUucHJvdG'
-    '9idWYuRW1wdHkaKS53YWxsZXRtYW5hZ2VyLnYxLldhdGNoV2FsbGV0RGF0YVJlc3BvbnNlMAE=');
+    'dBouLndhbGxldG1hbmFnZXIudjEuQ3JlYXRlRWxlY3RydW1XYWxsZXRSZXNwb25zZRJ1ChRDcm'
+    'VhdGVNdWx0aXNpZ1dhbGxldBItLndhbGxldG1hbmFnZXIudjEuQ3JlYXRlTXVsdGlzaWdXYWxs'
+    'ZXRSZXF1ZXN0Gi4ud2FsbGV0bWFuYWdlci52MS5DcmVhdGVNdWx0aXNpZ1dhbGxldFJlc3Bvbn'
+    'NlEnIKE1BhcnNlTXVsdGlzaWdDb25maWcSLC53YWxsZXRtYW5hZ2VyLnYxLlBhcnNlTXVsdGlz'
+    'aWdDb25maWdSZXF1ZXN0Gi0ud2FsbGV0bWFuYWdlci52MS5QYXJzZU11bHRpc2lnQ29uZmlnUm'
+    'VzcG9uc2USfgoXQ3JlYXRlQml0Y29pbkNvcmVXYWxsZXQSMC53YWxsZXRtYW5hZ2VyLnYxLkNy'
+    'ZWF0ZUJpdGNvaW5Db3JlV2FsbGV0UmVxdWVzdBoxLndhbGxldG1hbmFnZXIudjEuQ3JlYXRlQm'
+    'l0Y29pbkNvcmVXYWxsZXRSZXNwb25zZRJsChFFbnN1cmVDb3JlV2FsbGV0cxIqLndhbGxldG1h'
+    'bmFnZXIudjEuRW5zdXJlQ29yZVdhbGxldHNSZXF1ZXN0Gisud2FsbGV0bWFuYWdlci52MS5Fbn'
+    'N1cmVDb3JlV2FsbGV0c1Jlc3BvbnNlElcKCkdldEJhbGFuY2USIy53YWxsZXRtYW5hZ2VyLnYx'
+    'LkdldEJhbGFuY2VSZXF1ZXN0GiQud2FsbGV0bWFuYWdlci52MS5HZXRCYWxhbmNlUmVzcG9uc2'
+    'USYAoNR2V0TmV3QWRkcmVzcxImLndhbGxldG1hbmFnZXIudjEuR2V0TmV3QWRkcmVzc1JlcXVl'
+    'c3QaJy53YWxsZXRtYW5hZ2VyLnYxLkdldE5ld0FkZHJlc3NSZXNwb25zZRJmCg9TZW5kVHJhbn'
+    'NhY3Rpb24SKC53YWxsZXRtYW5hZ2VyLnYxLlNlbmRUcmFuc2FjdGlvblJlcXVlc3QaKS53YWxs'
+    'ZXRtYW5hZ2VyLnYxLlNlbmRUcmFuc2FjdGlvblJlc3BvbnNlEmkKEExpc3RUcmFuc2FjdGlvbn'
+    'MSKS53YWxsZXRtYW5hZ2VyLnYxLkxpc3RUcmFuc2FjdGlvbnNSZXF1ZXN0Gioud2FsbGV0bWFu'
+    'YWdlci52MS5MaXN0VHJhbnNhY3Rpb25zUmVzcG9uc2USWgoLTGlzdFVuc3BlbnQSJC53YWxsZX'
+    'RtYW5hZ2VyLnYxLkxpc3RVbnNwZW50UmVxdWVzdBolLndhbGxldG1hbmFnZXIudjEuTGlzdFVu'
+    'c3BlbnRSZXNwb25zZRJ1ChRMaXN0UmVjZWl2ZUFkZHJlc3NlcxItLndhbGxldG1hbmFnZXIudj'
+    'EuTGlzdFJlY2VpdmVBZGRyZXNzZXNSZXF1ZXN0Gi4ud2FsbGV0bWFuYWdlci52MS5MaXN0UmVj'
+    'ZWl2ZUFkZHJlc3Nlc1Jlc3BvbnNlEngKFUdldFRyYW5zYWN0aW9uRGV0YWlscxIuLndhbGxldG'
+    '1hbmFnZXIudjEuR2V0VHJhbnNhY3Rpb25EZXRhaWxzUmVxdWVzdBovLndhbGxldG1hbmFnZXIu'
+    'djEuR2V0VHJhbnNhY3Rpb25EZXRhaWxzUmVzcG9uc2USbAoRRGVjb2RlVHJhbnNhY3Rpb24SKi'
+    '53YWxsZXRtYW5hZ2VyLnYxLkRlY29kZVRyYW5zYWN0aW9uUmVxdWVzdBorLndhbGxldG1hbmFn'
+    'ZXIudjEuRGVjb2RlVHJhbnNhY3Rpb25SZXNwb25zZRJOCgdCdW1wRmVlEiAud2FsbGV0bWFuYW'
+    'dlci52MS5CdW1wRmVlUmVxdWVzdBohLndhbGxldG1hbmFnZXIudjEuQnVtcEZlZVJlc3BvbnNl'
+    'ElcKCkNyZWF0ZUNwZnASIy53YWxsZXRtYW5hZ2VyLnYxLkNyZWF0ZUNwZnBSZXF1ZXN0GiQud2'
+    'FsbGV0bWFuYWdlci52MS5DcmVhdGVDcGZwUmVzcG9uc2USZgoPRGVyaXZlQWRkcmVzc2VzEigu'
+    'd2FsbGV0bWFuYWdlci52MS5EZXJpdmVBZGRyZXNzZXNSZXF1ZXN0Gikud2FsbGV0bWFuYWdlci'
+    '52MS5EZXJpdmVBZGRyZXNzZXNSZXNwb25zZRJXCgpDcmVhdGVQc2J0EiMud2FsbGV0bWFuYWdl'
+    'ci52MS5DcmVhdGVQc2J0UmVxdWVzdBokLndhbGxldG1hbmFnZXIudjEuQ3JlYXRlUHNidFJlc3'
+    'BvbnNlElEKCFNpZ25Qc2J0EiEud2FsbGV0bWFuYWdlci52MS5TaWduUHNidFJlcXVlc3QaIi53'
+    'YWxsZXRtYW5hZ2VyLnYxLlNpZ25Qc2J0UmVzcG9uc2USdQoUU2lnblBzYnRXaXRoQ29zaWduZX'
+    'ISLS53YWxsZXRtYW5hZ2VyLnYxLlNpZ25Qc2J0V2l0aENvc2lnbmVyUmVxdWVzdBouLndhbGxl'
+    'dG1hbmFnZXIudjEuU2lnblBzYnRXaXRoQ29zaWduZXJSZXNwb25zZRJaCgtDb21iaW5lUHNidB'
+    'IkLndhbGxldG1hbmFnZXIudjEuQ29tYmluZVBzYnRSZXF1ZXN0GiUud2FsbGV0bWFuYWdlci52'
+    'MS5Db21iaW5lUHNidFJlc3BvbnNlEl0KDEZpbmFsaXplUHNidBIlLndhbGxldG1hbmFnZXIudj'
+    'EuRmluYWxpemVQc2J0UmVxdWVzdBomLndhbGxldG1hbmFnZXIudjEuRmluYWxpemVQc2J0UmVz'
+    'cG9uc2USbwoSTXVsdGlzaWdQc2J0U3RhdHVzEisud2FsbGV0bWFuYWdlci52MS5NdWx0aXNpZ1'
+    'BzYnRTdGF0dXNSZXF1ZXN0Giwud2FsbGV0bWFuYWdlci52MS5NdWx0aXNpZ1BzYnRTdGF0dXNS'
+    'ZXNwb25zZRJ1ChRCcm9hZGNhc3RUcmFuc2FjdGlvbhItLndhbGxldG1hbmFnZXIudjEuQnJvYW'
+    'RjYXN0VHJhbnNhY3Rpb25SZXF1ZXN0Gi4ud2FsbGV0bWFuYWdlci52MS5Ccm9hZGNhc3RUcmFu'
+    'c2FjdGlvblJlc3BvbnNlEmAKDUdldFdhbGxldFNlZWQSJi53YWxsZXRtYW5hZ2VyLnYxLkdldF'
+    'dhbGxldFNlZWRSZXF1ZXN0Gicud2FsbGV0bWFuYWdlci52MS5HZXRXYWxsZXRTZWVkUmVzcG9u'
+    'c2USaQoQTGlzdENvcmVWYXJpYW50cxIpLndhbGxldG1hbmFnZXIudjEuTGlzdENvcmVWYXJpYW'
+    '50c1JlcXVlc3QaKi53YWxsZXRtYW5hZ2VyLnYxLkxpc3RDb3JlVmFyaWFudHNSZXNwb25zZRJj'
+    'Cg5HZXRDb3JlVmFyaWFudBInLndhbGxldG1hbmFnZXIudjEuR2V0Q29yZVZhcmlhbnRSZXF1ZX'
+    'N0Gigud2FsbGV0bWFuYWdlci52MS5HZXRDb3JlVmFyaWFudFJlc3BvbnNlEmMKDlNldENvcmVW'
+    'YXJpYW50Eicud2FsbGV0bWFuYWdlci52MS5TZXRDb3JlVmFyaWFudFJlcXVlc3QaKC53YWxsZX'
+    'RtYW5hZ2VyLnYxLlNldENvcmVWYXJpYW50UmVzcG9uc2USbAoRR2V0VGVzdFNpZGVjaGFpbnMS'
+    'Ki53YWxsZXRtYW5hZ2VyLnYxLkdldFRlc3RTaWRlY2hhaW5zUmVxdWVzdBorLndhbGxldG1hbm'
+    'FnZXIudjEuR2V0VGVzdFNpZGVjaGFpbnNSZXNwb25zZRJsChFTZXRUZXN0U2lkZWNoYWlucxIq'
+    'LndhbGxldG1hbmFnZXIudjEuU2V0VGVzdFNpZGVjaGFpbnNSZXF1ZXN0Gisud2FsbGV0bWFuYW'
+    'dlci52MS5TZXRUZXN0U2lkZWNoYWluc1Jlc3BvbnNlEmwKEUdldEVsZWN0cnVtU2VydmVyEiou'
+    'd2FsbGV0bWFuYWdlci52MS5HZXRFbGVjdHJ1bVNlcnZlclJlcXVlc3QaKy53YWxsZXRtYW5hZ2'
+    'VyLnYxLkdldEVsZWN0cnVtU2VydmVyUmVzcG9uc2USbAoRU2V0RWxlY3RydW1TZXJ2ZXISKi53'
+    'YWxsZXRtYW5hZ2VyLnYxLlNldEVsZWN0cnVtU2VydmVyUmVxdWVzdBorLndhbGxldG1hbmFnZX'
+    'IudjEuU2V0RWxlY3RydW1TZXJ2ZXJSZXNwb25zZRJdCgxHZXRUb3JDb25maWcSJS53YWxsZXRt'
+    'YW5hZ2VyLnYxLkdldFRvckNvbmZpZ1JlcXVlc3QaJi53YWxsZXRtYW5hZ2VyLnYxLkdldFRvck'
+    'NvbmZpZ1Jlc3BvbnNlEl0KDFNldFRvckNvbmZpZxIlLndhbGxldG1hbmFnZXIudjEuU2V0VG9y'
+    'Q29uZmlnUmVxdWVzdBomLndhbGxldG1hbmFnZXIudjEuU2V0VG9yQ29uZmlnUmVzcG9uc2USVg'
+    'oPV2F0Y2hXYWxsZXREYXRhEhYuZ29vZ2xlLnByb3RvYnVmLkVtcHR5Gikud2FsbGV0bWFuYWdl'
+    'ci52MS5XYXRjaFdhbGxldERhdGFSZXNwb25zZTAB');
 

@@ -152,9 +152,9 @@ func bootedLayout(t *testing.T, home, network string) []string {
 	)
 
 	// --- enforcer: simulate it ran on `network`. -----------------------------
-	// networkName: collect logic replaces mainnet/forknet with "bitcoin".
+	// networkName: collect logic replaces mainnet/drynet with "bitcoin".
 	networkName := network
-	if network == "mainnet" || network == "forknet" {
+	if network == "mainnet" || network == "drynet" {
 		networkName = "bitcoin"
 	}
 	writeDir(t, filepath.Join(enfRoot, "validator", networkName))

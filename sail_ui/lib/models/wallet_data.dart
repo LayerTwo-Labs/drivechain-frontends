@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:sail_ui/gen/walletmanager/v1/walletmanager.pb.dart' as wmpb;
 import 'package:uuid/uuid.dart';
 import 'package:sail_ui/sail_ui.dart';
 
@@ -27,6 +28,12 @@ class WalletData {
   // Not persisted — populated only from the proto, not from wallet.json.
   final String bip47PaymentCode;
 
+  /// Multisig policy for a multisig wallet, from the WatchWalletData stream.
+  /// Null for non-multisig wallets. Not persisted (proto-only).
+  final wmpb.MultisigInfo? multisig;
+
+  bool get isMultisig => multisig != null;
+
   WalletData({
     required this.version,
     required this.master,
@@ -40,6 +47,7 @@ class WalletData {
     this.isElectrum = false,
     this.isWatchOnly = false,
     this.bip47PaymentCode = '',
+    this.multisig,
   });
 
   Map<String, dynamic> toJson() {

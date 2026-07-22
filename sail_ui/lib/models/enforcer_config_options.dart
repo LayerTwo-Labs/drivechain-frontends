@@ -222,7 +222,7 @@ class EnforcerConfigOptions {
       category: 'Wallet',
       description: 'Esplora API URL',
       tooltip:
-          'URL of the Esplora server to use for the wallet. Network defaults: Signet: https://explorer.signet.drivechain.info/api, Mainnet: https://explorer.forknet.drivechain.info/api. Regtest has no default — the enforcer runs with wallet-sync-source=disabled instead.',
+          'URL of the Esplora server to use for the wallet. Network defaults: Signet: https://explorer.signet.drivechain.info/api, Mainnet: https://esplora.mainnet.drivechain.info, Forknet: https://explorer.forknet.drivechain.info/api, Drynet: https://esplora.drynet2.drivechain.dev. Regtest has no default — the enforcer runs with wallet-sync-source=disabled instead.',
       inputType: EnforcerConfigInputType.url,
       isUseful: true,
     ),
@@ -230,8 +230,7 @@ class EnforcerConfigOptions {
       key: 'wallet-electrum-host',
       category: 'Wallet',
       description: 'Electrum Host',
-      tooltip:
-          'Electrum server host. Network defaults: Signet: node.signet.drivechain.info, Mainnet: node.forknet.drivechain.info, Regtest: 127.0.0.1',
+      tooltip: 'Electrum server host. Network defaults: Signet: node.signet.drivechain.info, Regtest: 127.0.0.1',
       inputType: EnforcerConfigInputType.text,
     ),
     EnforcerConfigOption(

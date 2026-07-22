@@ -177,7 +177,7 @@ func (s *Server) UpdateNetwork(ctx context.Context, req *connect.Request[pb.Upda
 
 func isKnownNetwork(n config.Network) bool {
 	switch n {
-	case config.NetworkMainnet, config.NetworkForknet, config.NetworkDrynet2, config.NetworkSignet, config.NetworkTestnet, config.NetworkRegtest:
+	case config.NetworkMainnet, config.NetworkForknet, config.NetworkDrynet, config.NetworkSignet, config.NetworkTestnet, config.NetworkRegtest:
 		return true
 	}
 	return false
@@ -951,7 +951,7 @@ func (s *Server) ListRecentTransactions(ctx context.Context, c *connect.Request[
 		return nil, fmt.Errorf("bitcoind: could not get blockchain info: %w", err)
 	}
 
-	// While Core is in IBD on a populated chain (mainnet / forknet), the
+	// While Core is in IBD on a populated chain (mainnet / forknet / drynet), the
 	// historical block walk below is the single biggest source of cs_main
 	// pressure on this whole codebase: it issues a per-tx
 	// GetRawTransaction for every tx in up to 100 recent blocks. During
@@ -1113,19 +1113,20 @@ func (s *Server) getCoinbaseAddress(ctx context.Context) (string, error) {
 
 func (s *Server) MineBlocks(ctx context.Context, req *connect.Request[emptypb.Empty], stream *connect.ServerStream[pb.MineBlocksResponse]) error {
 	// Verify we're actually able to connect to Bitcoin Core
-	info, err := s.data.BlockchainInfo(ctx, &corepb.GetBlockchainInfoRequest{})
-	if err != nil {
+	if _, err := s.data.BlockchainInfo(ctx, &corepb.GetBlockchainInfoRequest{}); err != nil {
 		return err
 	}
 
-	switch info.Chain {
-	case "regtest", "testnet3", "testnet4", "forknet":
-	default:
+	// Gate on the configured network rather than Core's reported chain: forknet
+	// and drynet both report "main" and so are indistinguishable from real
+	// mainnet there, which is why they could never be allowlisted by chain name.
+	network := s.config.BitcoinCoreNetwork
+	if !config.IsMineableNetwork(network) {
 		return connect.NewError(
 			connect.CodeFailedPrecondition,
 			fmt.Errorf(
 				"generating blocks on %s is not supported",
-				cmp.Or(info.Chain, "unknown network"),
+				cmp.Or(string(network), "unknown network"),
 			),
 		)
 	}

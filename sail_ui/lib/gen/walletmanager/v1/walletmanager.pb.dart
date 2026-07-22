@@ -753,6 +753,7 @@ class WalletMetadata extends $pb.GeneratedMessage {
     $core.String? l1Mnemonic,
     $core.Iterable<SidechainStarter>? sidechains,
     $core.bool? watchOnly,
+    MultisigInfo? multisig,
   }) {
     final $result = create();
     if (id != null) {
@@ -785,6 +786,9 @@ class WalletMetadata extends $pb.GeneratedMessage {
     if (watchOnly != null) {
       $result.watchOnly = watchOnly;
     }
+    if (multisig != null) {
+      $result.multisig = multisig;
+    }
     return $result;
   }
   WalletMetadata._() : super();
@@ -802,6 +806,7 @@ class WalletMetadata extends $pb.GeneratedMessage {
     ..aOS(8, _omitFieldNames ? '' : 'l1Mnemonic')
     ..pc<SidechainStarter>(9, _omitFieldNames ? '' : 'sidechains', $pb.PbFieldType.PM, subBuilder: SidechainStarter.create)
     ..aOB(10, _omitFieldNames ? '' : 'watchOnly')
+    ..aOM<MultisigInfo>(11, _omitFieldNames ? '' : 'multisig', subBuilder: MultisigInfo.create)
     ..hasRequiredFields = false
   ;
 
@@ -915,6 +920,197 @@ class WalletMetadata extends $pb.GeneratedMessage {
   $core.bool hasWatchOnly() => $_has(9);
   @$pb.TagNumber(10)
   void clearWatchOnly() => clearField(10);
+
+  /// Multisig policy, present only for multisig wallets. Cosigner private
+  /// material is never exposed here — only public data and a held flag.
+  @$pb.TagNumber(11)
+  MultisigInfo get multisig => $_getN(10);
+  @$pb.TagNumber(11)
+  set multisig(MultisigInfo v) { setField(11, v); }
+  @$pb.TagNumber(11)
+  $core.bool hasMultisig() => $_has(10);
+  @$pb.TagNumber(11)
+  void clearMultisig() => clearField(11);
+  @$pb.TagNumber(11)
+  MultisigInfo ensureMultisig() => $_ensure(10);
+}
+
+class MultisigInfo extends $pb.GeneratedMessage {
+  factory MultisigInfo({
+    $core.int? m,
+    $core.int? n,
+    $core.String? scriptType,
+    $core.Iterable<MultisigCosignerInfo>? cosigners,
+  }) {
+    final $result = create();
+    if (m != null) {
+      $result.m = m;
+    }
+    if (n != null) {
+      $result.n = n;
+    }
+    if (scriptType != null) {
+      $result.scriptType = scriptType;
+    }
+    if (cosigners != null) {
+      $result.cosigners.addAll(cosigners);
+    }
+    return $result;
+  }
+  MultisigInfo._() : super();
+  factory MultisigInfo.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory MultisigInfo.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'MultisigInfo', package: const $pb.PackageName(_omitMessageNames ? '' : 'walletmanager.v1'), createEmptyInstance: create)
+    ..a<$core.int>(1, _omitFieldNames ? '' : 'm', $pb.PbFieldType.OU3)
+    ..a<$core.int>(2, _omitFieldNames ? '' : 'n', $pb.PbFieldType.OU3)
+    ..aOS(3, _omitFieldNames ? '' : 'scriptType')
+    ..pc<MultisigCosignerInfo>(4, _omitFieldNames ? '' : 'cosigners', $pb.PbFieldType.PM, subBuilder: MultisigCosignerInfo.create)
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  MultisigInfo clone() => MultisigInfo()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  MultisigInfo copyWith(void Function(MultisigInfo) updates) => super.copyWith((message) => updates(message as MultisigInfo)) as MultisigInfo;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static MultisigInfo create() => MultisigInfo._();
+  MultisigInfo createEmptyInstance() => create();
+  static $pb.PbList<MultisigInfo> createRepeated() => $pb.PbList<MultisigInfo>();
+  @$core.pragma('dart2js:noInline')
+  static MultisigInfo getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<MultisigInfo>(create);
+  static MultisigInfo? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.int get m => $_getIZ(0);
+  @$pb.TagNumber(1)
+  set m($core.int v) { $_setUnsignedInt32(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasM() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearM() => clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.int get n => $_getIZ(1);
+  @$pb.TagNumber(2)
+  set n($core.int v) { $_setUnsignedInt32(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasN() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearN() => clearField(2);
+
+  @$pb.TagNumber(3)
+  $core.String get scriptType => $_getSZ(2);
+  @$pb.TagNumber(3)
+  set scriptType($core.String v) { $_setString(2, v); }
+  @$pb.TagNumber(3)
+  $core.bool hasScriptType() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearScriptType() => clearField(3);
+
+  @$pb.TagNumber(4)
+  $core.List<MultisigCosignerInfo> get cosigners => $_getList(3);
+}
+
+class MultisigCosignerInfo extends $pb.GeneratedMessage {
+  factory MultisigCosignerInfo({
+    $core.String? xpub,
+    $core.String? fingerprint,
+    $core.String? originPath,
+    $core.bool? held,
+  }) {
+    final $result = create();
+    if (xpub != null) {
+      $result.xpub = xpub;
+    }
+    if (fingerprint != null) {
+      $result.fingerprint = fingerprint;
+    }
+    if (originPath != null) {
+      $result.originPath = originPath;
+    }
+    if (held != null) {
+      $result.held = held;
+    }
+    return $result;
+  }
+  MultisigCosignerInfo._() : super();
+  factory MultisigCosignerInfo.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory MultisigCosignerInfo.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'MultisigCosignerInfo', package: const $pb.PackageName(_omitMessageNames ? '' : 'walletmanager.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'xpub')
+    ..aOS(2, _omitFieldNames ? '' : 'fingerprint')
+    ..aOS(3, _omitFieldNames ? '' : 'originPath')
+    ..aOB(4, _omitFieldNames ? '' : 'held')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  MultisigCosignerInfo clone() => MultisigCosignerInfo()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  MultisigCosignerInfo copyWith(void Function(MultisigCosignerInfo) updates) => super.copyWith((message) => updates(message as MultisigCosignerInfo)) as MultisigCosignerInfo;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static MultisigCosignerInfo create() => MultisigCosignerInfo._();
+  MultisigCosignerInfo createEmptyInstance() => create();
+  static $pb.PbList<MultisigCosignerInfo> createRepeated() => $pb.PbList<MultisigCosignerInfo>();
+  @$core.pragma('dart2js:noInline')
+  static MultisigCosignerInfo getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<MultisigCosignerInfo>(create);
+  static MultisigCosignerInfo? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get xpub => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set xpub($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasXpub() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearXpub() => clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.String get fingerprint => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set fingerprint($core.String v) { $_setString(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasFingerprint() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearFingerprint() => clearField(2);
+
+  @$pb.TagNumber(3)
+  $core.String get originPath => $_getSZ(2);
+  @$pb.TagNumber(3)
+  set originPath($core.String v) { $_setString(2, v); }
+  @$pb.TagNumber(3)
+  $core.bool hasOriginPath() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearOriginPath() => clearField(3);
+
+  @$pb.TagNumber(4)
+  $core.bool get held => $_getBF(3);
+  @$pb.TagNumber(4)
+  set held($core.bool v) { $_setBool(3, v); }
+  @$pb.TagNumber(4)
+  $core.bool hasHeld() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearHeld() => clearField(4);
 }
 
 class SidechainStarter extends $pb.GeneratedMessage {
@@ -2497,6 +2693,510 @@ class CreateElectrumWalletResponse extends $pb.GeneratedMessage {
   void clearWalletId() => clearField(1);
 }
 
+/// MultisigCosignerInput is one leg of a multisig wallet. A cosigner with a
+/// mnemonic or xprv is held on disk (this wallet signs with it); one with only
+/// an xpub is a watch-only leg signed elsewhere.
+class MultisigCosignerInput extends $pb.GeneratedMessage {
+  factory MultisigCosignerInput({
+    $core.String? xpub,
+    $core.String? originPath,
+    $core.String? fingerprint,
+    $core.String? mnemonic,
+    $core.String? xprv,
+    $core.String? passphrase,
+  }) {
+    final $result = create();
+    if (xpub != null) {
+      $result.xpub = xpub;
+    }
+    if (originPath != null) {
+      $result.originPath = originPath;
+    }
+    if (fingerprint != null) {
+      $result.fingerprint = fingerprint;
+    }
+    if (mnemonic != null) {
+      $result.mnemonic = mnemonic;
+    }
+    if (xprv != null) {
+      $result.xprv = xprv;
+    }
+    if (passphrase != null) {
+      $result.passphrase = passphrase;
+    }
+    return $result;
+  }
+  MultisigCosignerInput._() : super();
+  factory MultisigCosignerInput.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory MultisigCosignerInput.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'MultisigCosignerInput', package: const $pb.PackageName(_omitMessageNames ? '' : 'walletmanager.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'xpub')
+    ..aOS(2, _omitFieldNames ? '' : 'originPath')
+    ..aOS(3, _omitFieldNames ? '' : 'fingerprint')
+    ..aOS(4, _omitFieldNames ? '' : 'mnemonic')
+    ..aOS(5, _omitFieldNames ? '' : 'xprv')
+    ..aOS(6, _omitFieldNames ? '' : 'passphrase')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  MultisigCosignerInput clone() => MultisigCosignerInput()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  MultisigCosignerInput copyWith(void Function(MultisigCosignerInput) updates) => super.copyWith((message) => updates(message as MultisigCosignerInput)) as MultisigCosignerInput;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static MultisigCosignerInput create() => MultisigCosignerInput._();
+  MultisigCosignerInput createEmptyInstance() => create();
+  static $pb.PbList<MultisigCosignerInput> createRepeated() => $pb.PbList<MultisigCosignerInput>();
+  @$core.pragma('dart2js:noInline')
+  static MultisigCosignerInput getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<MultisigCosignerInput>(create);
+  static MultisigCosignerInput? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get xpub => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set xpub($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasXpub() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearXpub() => clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.String get originPath => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set originPath($core.String v) { $_setString(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasOriginPath() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearOriginPath() => clearField(2);
+
+  @$pb.TagNumber(3)
+  $core.String get fingerprint => $_getSZ(2);
+  @$pb.TagNumber(3)
+  set fingerprint($core.String v) { $_setString(2, v); }
+  @$pb.TagNumber(3)
+  $core.bool hasFingerprint() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearFingerprint() => clearField(3);
+
+  @$pb.TagNumber(4)
+  $core.String get mnemonic => $_getSZ(3);
+  @$pb.TagNumber(4)
+  set mnemonic($core.String v) { $_setString(3, v); }
+  @$pb.TagNumber(4)
+  $core.bool hasMnemonic() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearMnemonic() => clearField(4);
+
+  @$pb.TagNumber(5)
+  $core.String get xprv => $_getSZ(4);
+  @$pb.TagNumber(5)
+  set xprv($core.String v) { $_setString(4, v); }
+  @$pb.TagNumber(5)
+  $core.bool hasXprv() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearXprv() => clearField(5);
+
+  @$pb.TagNumber(6)
+  $core.String get passphrase => $_getSZ(5);
+  @$pb.TagNumber(6)
+  set passphrase($core.String v) { $_setString(5, v); }
+  @$pb.TagNumber(6)
+  $core.bool hasPassphrase() => $_has(5);
+  @$pb.TagNumber(6)
+  void clearPassphrase() => clearField(6);
+}
+
+class CreateMultisigWalletRequest extends $pb.GeneratedMessage {
+  factory CreateMultisigWalletRequest({
+    $core.String? name,
+    $core.String? gradientJson,
+    $core.int? m,
+    $core.int? n,
+    $core.String? scriptType,
+    $core.Iterable<MultisigCosignerInput>? cosigners,
+  }) {
+    final $result = create();
+    if (name != null) {
+      $result.name = name;
+    }
+    if (gradientJson != null) {
+      $result.gradientJson = gradientJson;
+    }
+    if (m != null) {
+      $result.m = m;
+    }
+    if (n != null) {
+      $result.n = n;
+    }
+    if (scriptType != null) {
+      $result.scriptType = scriptType;
+    }
+    if (cosigners != null) {
+      $result.cosigners.addAll(cosigners);
+    }
+    return $result;
+  }
+  CreateMultisigWalletRequest._() : super();
+  factory CreateMultisigWalletRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory CreateMultisigWalletRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'CreateMultisigWalletRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'walletmanager.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'name')
+    ..aOS(2, _omitFieldNames ? '' : 'gradientJson')
+    ..a<$core.int>(3, _omitFieldNames ? '' : 'm', $pb.PbFieldType.OU3)
+    ..a<$core.int>(4, _omitFieldNames ? '' : 'n', $pb.PbFieldType.OU3)
+    ..aOS(5, _omitFieldNames ? '' : 'scriptType')
+    ..pc<MultisigCosignerInput>(6, _omitFieldNames ? '' : 'cosigners', $pb.PbFieldType.PM, subBuilder: MultisigCosignerInput.create)
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  CreateMultisigWalletRequest clone() => CreateMultisigWalletRequest()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  CreateMultisigWalletRequest copyWith(void Function(CreateMultisigWalletRequest) updates) => super.copyWith((message) => updates(message as CreateMultisigWalletRequest)) as CreateMultisigWalletRequest;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static CreateMultisigWalletRequest create() => CreateMultisigWalletRequest._();
+  CreateMultisigWalletRequest createEmptyInstance() => create();
+  static $pb.PbList<CreateMultisigWalletRequest> createRepeated() => $pb.PbList<CreateMultisigWalletRequest>();
+  @$core.pragma('dart2js:noInline')
+  static CreateMultisigWalletRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<CreateMultisigWalletRequest>(create);
+  static CreateMultisigWalletRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get name => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set name($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasName() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearName() => clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.String get gradientJson => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set gradientJson($core.String v) { $_setString(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasGradientJson() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearGradientJson() => clearField(2);
+
+  @$pb.TagNumber(3)
+  $core.int get m => $_getIZ(2);
+  @$pb.TagNumber(3)
+  set m($core.int v) { $_setUnsignedInt32(2, v); }
+  @$pb.TagNumber(3)
+  $core.bool hasM() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearM() => clearField(3);
+
+  @$pb.TagNumber(4)
+  $core.int get n => $_getIZ(3);
+  @$pb.TagNumber(4)
+  set n($core.int v) { $_setUnsignedInt32(3, v); }
+  @$pb.TagNumber(4)
+  $core.bool hasN() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearN() => clearField(4);
+
+  /// "wsh" (native P2WSH, default), "sh-wsh" (nested P2SH-P2WSH), or "sh"
+  /// (legacy P2SH).
+  @$pb.TagNumber(5)
+  $core.String get scriptType => $_getSZ(4);
+  @$pb.TagNumber(5)
+  set scriptType($core.String v) { $_setString(4, v); }
+  @$pb.TagNumber(5)
+  $core.bool hasScriptType() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearScriptType() => clearField(5);
+
+  @$pb.TagNumber(6)
+  $core.List<MultisigCosignerInput> get cosigners => $_getList(5);
+}
+
+class CreateMultisigWalletResponse extends $pb.GeneratedMessage {
+  factory CreateMultisigWalletResponse({
+    $core.String? walletId,
+  }) {
+    final $result = create();
+    if (walletId != null) {
+      $result.walletId = walletId;
+    }
+    return $result;
+  }
+  CreateMultisigWalletResponse._() : super();
+  factory CreateMultisigWalletResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory CreateMultisigWalletResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'CreateMultisigWalletResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'walletmanager.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'walletId')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  CreateMultisigWalletResponse clone() => CreateMultisigWalletResponse()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  CreateMultisigWalletResponse copyWith(void Function(CreateMultisigWalletResponse) updates) => super.copyWith((message) => updates(message as CreateMultisigWalletResponse)) as CreateMultisigWalletResponse;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static CreateMultisigWalletResponse create() => CreateMultisigWalletResponse._();
+  CreateMultisigWalletResponse createEmptyInstance() => create();
+  static $pb.PbList<CreateMultisigWalletResponse> createRepeated() => $pb.PbList<CreateMultisigWalletResponse>();
+  @$core.pragma('dart2js:noInline')
+  static CreateMultisigWalletResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<CreateMultisigWalletResponse>(create);
+  static CreateMultisigWalletResponse? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get walletId => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set walletId($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasWalletId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearWalletId() => clearField(1);
+}
+
+class ParseMultisigConfigRequest extends $pb.GeneratedMessage {
+  factory ParseMultisigConfigRequest({
+    $core.String? content,
+  }) {
+    final $result = create();
+    if (content != null) {
+      $result.content = content;
+    }
+    return $result;
+  }
+  ParseMultisigConfigRequest._() : super();
+  factory ParseMultisigConfigRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory ParseMultisigConfigRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ParseMultisigConfigRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'walletmanager.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'content')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  ParseMultisigConfigRequest clone() => ParseMultisigConfigRequest()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  ParseMultisigConfigRequest copyWith(void Function(ParseMultisigConfigRequest) updates) => super.copyWith((message) => updates(message as ParseMultisigConfigRequest)) as ParseMultisigConfigRequest;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ParseMultisigConfigRequest create() => ParseMultisigConfigRequest._();
+  ParseMultisigConfigRequest createEmptyInstance() => create();
+  static $pb.PbList<ParseMultisigConfigRequest> createRepeated() => $pb.PbList<ParseMultisigConfigRequest>();
+  @$core.pragma('dart2js:noInline')
+  static ParseMultisigConfigRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<ParseMultisigConfigRequest>(create);
+  static ParseMultisigConfigRequest? _defaultInstance;
+
+  /// An output descriptor or a wallet-config file's contents.
+  @$pb.TagNumber(1)
+  $core.String get content => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set content($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasContent() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearContent() => clearField(1);
+}
+
+class ParsedCosigner extends $pb.GeneratedMessage {
+  factory ParsedCosigner({
+    $core.String? xpub,
+    $core.String? fingerprint,
+    $core.String? originPath,
+  }) {
+    final $result = create();
+    if (xpub != null) {
+      $result.xpub = xpub;
+    }
+    if (fingerprint != null) {
+      $result.fingerprint = fingerprint;
+    }
+    if (originPath != null) {
+      $result.originPath = originPath;
+    }
+    return $result;
+  }
+  ParsedCosigner._() : super();
+  factory ParsedCosigner.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory ParsedCosigner.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ParsedCosigner', package: const $pb.PackageName(_omitMessageNames ? '' : 'walletmanager.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'xpub')
+    ..aOS(2, _omitFieldNames ? '' : 'fingerprint')
+    ..aOS(3, _omitFieldNames ? '' : 'originPath')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  ParsedCosigner clone() => ParsedCosigner()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  ParsedCosigner copyWith(void Function(ParsedCosigner) updates) => super.copyWith((message) => updates(message as ParsedCosigner)) as ParsedCosigner;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ParsedCosigner create() => ParsedCosigner._();
+  ParsedCosigner createEmptyInstance() => create();
+  static $pb.PbList<ParsedCosigner> createRepeated() => $pb.PbList<ParsedCosigner>();
+  @$core.pragma('dart2js:noInline')
+  static ParsedCosigner getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<ParsedCosigner>(create);
+  static ParsedCosigner? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get xpub => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set xpub($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasXpub() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearXpub() => clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.String get fingerprint => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set fingerprint($core.String v) { $_setString(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasFingerprint() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearFingerprint() => clearField(2);
+
+  @$pb.TagNumber(3)
+  $core.String get originPath => $_getSZ(2);
+  @$pb.TagNumber(3)
+  set originPath($core.String v) { $_setString(2, v); }
+  @$pb.TagNumber(3)
+  $core.bool hasOriginPath() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearOriginPath() => clearField(3);
+}
+
+class ParseMultisigConfigResponse extends $pb.GeneratedMessage {
+  factory ParseMultisigConfigResponse({
+    $core.int? m,
+    $core.int? n,
+    $core.String? scriptType,
+    $core.Iterable<ParsedCosigner>? cosigners,
+  }) {
+    final $result = create();
+    if (m != null) {
+      $result.m = m;
+    }
+    if (n != null) {
+      $result.n = n;
+    }
+    if (scriptType != null) {
+      $result.scriptType = scriptType;
+    }
+    if (cosigners != null) {
+      $result.cosigners.addAll(cosigners);
+    }
+    return $result;
+  }
+  ParseMultisigConfigResponse._() : super();
+  factory ParseMultisigConfigResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory ParseMultisigConfigResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ParseMultisigConfigResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'walletmanager.v1'), createEmptyInstance: create)
+    ..a<$core.int>(1, _omitFieldNames ? '' : 'm', $pb.PbFieldType.OU3)
+    ..a<$core.int>(2, _omitFieldNames ? '' : 'n', $pb.PbFieldType.OU3)
+    ..aOS(3, _omitFieldNames ? '' : 'scriptType')
+    ..pc<ParsedCosigner>(4, _omitFieldNames ? '' : 'cosigners', $pb.PbFieldType.PM, subBuilder: ParsedCosigner.create)
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  ParseMultisigConfigResponse clone() => ParseMultisigConfigResponse()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  ParseMultisigConfigResponse copyWith(void Function(ParseMultisigConfigResponse) updates) => super.copyWith((message) => updates(message as ParseMultisigConfigResponse)) as ParseMultisigConfigResponse;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ParseMultisigConfigResponse create() => ParseMultisigConfigResponse._();
+  ParseMultisigConfigResponse createEmptyInstance() => create();
+  static $pb.PbList<ParseMultisigConfigResponse> createRepeated() => $pb.PbList<ParseMultisigConfigResponse>();
+  @$core.pragma('dart2js:noInline')
+  static ParseMultisigConfigResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<ParseMultisigConfigResponse>(create);
+  static ParseMultisigConfigResponse? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.int get m => $_getIZ(0);
+  @$pb.TagNumber(1)
+  set m($core.int v) { $_setUnsignedInt32(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasM() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearM() => clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.int get n => $_getIZ(1);
+  @$pb.TagNumber(2)
+  set n($core.int v) { $_setUnsignedInt32(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasN() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearN() => clearField(2);
+
+  @$pb.TagNumber(3)
+  $core.String get scriptType => $_getSZ(2);
+  @$pb.TagNumber(3)
+  set scriptType($core.String v) { $_setString(2, v); }
+  @$pb.TagNumber(3)
+  $core.bool hasScriptType() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearScriptType() => clearField(3);
+
+  @$pb.TagNumber(4)
+  $core.List<ParsedCosigner> get cosigners => $_getList(3);
+}
+
 class CreateBitcoinCoreWalletRequest extends $pb.GeneratedMessage {
   factory CreateBitcoinCoreWalletRequest({
     $core.String? walletId,
@@ -3596,6 +4296,134 @@ class SignPsbtResponse extends $pb.GeneratedMessage {
   void clearPsbtBase64() => clearField(1);
 }
 
+class SignPsbtWithCosignerRequest extends $pb.GeneratedMessage {
+  factory SignPsbtWithCosignerRequest({
+    $core.String? walletId,
+    $core.String? psbtBase64,
+    $core.String? cosignerXpub,
+  }) {
+    final $result = create();
+    if (walletId != null) {
+      $result.walletId = walletId;
+    }
+    if (psbtBase64 != null) {
+      $result.psbtBase64 = psbtBase64;
+    }
+    if (cosignerXpub != null) {
+      $result.cosignerXpub = cosignerXpub;
+    }
+    return $result;
+  }
+  SignPsbtWithCosignerRequest._() : super();
+  factory SignPsbtWithCosignerRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory SignPsbtWithCosignerRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'SignPsbtWithCosignerRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'walletmanager.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'walletId')
+    ..aOS(2, _omitFieldNames ? '' : 'psbtBase64')
+    ..aOS(3, _omitFieldNames ? '' : 'cosignerXpub')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  SignPsbtWithCosignerRequest clone() => SignPsbtWithCosignerRequest()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  SignPsbtWithCosignerRequest copyWith(void Function(SignPsbtWithCosignerRequest) updates) => super.copyWith((message) => updates(message as SignPsbtWithCosignerRequest)) as SignPsbtWithCosignerRequest;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static SignPsbtWithCosignerRequest create() => SignPsbtWithCosignerRequest._();
+  SignPsbtWithCosignerRequest createEmptyInstance() => create();
+  static $pb.PbList<SignPsbtWithCosignerRequest> createRepeated() => $pb.PbList<SignPsbtWithCosignerRequest>();
+  @$core.pragma('dart2js:noInline')
+  static SignPsbtWithCosignerRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<SignPsbtWithCosignerRequest>(create);
+  static SignPsbtWithCosignerRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get walletId => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set walletId($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasWalletId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearWalletId() => clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.String get psbtBase64 => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set psbtBase64($core.String v) { $_setString(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasPsbtBase64() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearPsbtBase64() => clearField(2);
+
+  @$pb.TagNumber(3)
+  $core.String get cosignerXpub => $_getSZ(2);
+  @$pb.TagNumber(3)
+  set cosignerXpub($core.String v) { $_setString(2, v); }
+  @$pb.TagNumber(3)
+  $core.bool hasCosignerXpub() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearCosignerXpub() => clearField(3);
+}
+
+class SignPsbtWithCosignerResponse extends $pb.GeneratedMessage {
+  factory SignPsbtWithCosignerResponse({
+    $core.String? psbtBase64,
+  }) {
+    final $result = create();
+    if (psbtBase64 != null) {
+      $result.psbtBase64 = psbtBase64;
+    }
+    return $result;
+  }
+  SignPsbtWithCosignerResponse._() : super();
+  factory SignPsbtWithCosignerResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory SignPsbtWithCosignerResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'SignPsbtWithCosignerResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'walletmanager.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'psbtBase64')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  SignPsbtWithCosignerResponse clone() => SignPsbtWithCosignerResponse()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  SignPsbtWithCosignerResponse copyWith(void Function(SignPsbtWithCosignerResponse) updates) => super.copyWith((message) => updates(message as SignPsbtWithCosignerResponse)) as SignPsbtWithCosignerResponse;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static SignPsbtWithCosignerResponse create() => SignPsbtWithCosignerResponse._();
+  SignPsbtWithCosignerResponse createEmptyInstance() => create();
+  static $pb.PbList<SignPsbtWithCosignerResponse> createRepeated() => $pb.PbList<SignPsbtWithCosignerResponse>();
+  @$core.pragma('dart2js:noInline')
+  static SignPsbtWithCosignerResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<SignPsbtWithCosignerResponse>(create);
+  static SignPsbtWithCosignerResponse? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get psbtBase64 => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set psbtBase64($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasPsbtBase64() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearPsbtBase64() => clearField(1);
+}
+
 class CombinePsbtRequest extends $pb.GeneratedMessage {
   factory CombinePsbtRequest({
     $core.Iterable<$core.String>? psbtBase64,
@@ -3788,6 +4616,271 @@ class FinalizePsbtResponse extends $pb.GeneratedMessage {
   $core.bool hasRawTxHex() => $_has(0);
   @$pb.TagNumber(1)
   void clearRawTxHex() => clearField(1);
+}
+
+class MultisigPsbtStatusRequest extends $pb.GeneratedMessage {
+  factory MultisigPsbtStatusRequest({
+    $core.String? walletId,
+    $core.String? psbtBase64,
+  }) {
+    final $result = create();
+    if (walletId != null) {
+      $result.walletId = walletId;
+    }
+    if (psbtBase64 != null) {
+      $result.psbtBase64 = psbtBase64;
+    }
+    return $result;
+  }
+  MultisigPsbtStatusRequest._() : super();
+  factory MultisigPsbtStatusRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory MultisigPsbtStatusRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'MultisigPsbtStatusRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'walletmanager.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'walletId')
+    ..aOS(2, _omitFieldNames ? '' : 'psbtBase64')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  MultisigPsbtStatusRequest clone() => MultisigPsbtStatusRequest()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  MultisigPsbtStatusRequest copyWith(void Function(MultisigPsbtStatusRequest) updates) => super.copyWith((message) => updates(message as MultisigPsbtStatusRequest)) as MultisigPsbtStatusRequest;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static MultisigPsbtStatusRequest create() => MultisigPsbtStatusRequest._();
+  MultisigPsbtStatusRequest createEmptyInstance() => create();
+  static $pb.PbList<MultisigPsbtStatusRequest> createRepeated() => $pb.PbList<MultisigPsbtStatusRequest>();
+  @$core.pragma('dart2js:noInline')
+  static MultisigPsbtStatusRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<MultisigPsbtStatusRequest>(create);
+  static MultisigPsbtStatusRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get walletId => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set walletId($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasWalletId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearWalletId() => clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.String get psbtBase64 => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set psbtBase64($core.String v) { $_setString(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasPsbtBase64() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearPsbtBase64() => clearField(2);
+}
+
+class MultisigPsbtStatusResponse extends $pb.GeneratedMessage {
+  factory MultisigPsbtStatusResponse({
+    $core.int? threshold,
+    $core.int? signatures,
+    $core.bool? finalizable,
+    $core.Iterable<$core.bool>? cosignerSigned,
+  }) {
+    final $result = create();
+    if (threshold != null) {
+      $result.threshold = threshold;
+    }
+    if (signatures != null) {
+      $result.signatures = signatures;
+    }
+    if (finalizable != null) {
+      $result.finalizable = finalizable;
+    }
+    if (cosignerSigned != null) {
+      $result.cosignerSigned.addAll(cosignerSigned);
+    }
+    return $result;
+  }
+  MultisigPsbtStatusResponse._() : super();
+  factory MultisigPsbtStatusResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory MultisigPsbtStatusResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'MultisigPsbtStatusResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'walletmanager.v1'), createEmptyInstance: create)
+    ..a<$core.int>(1, _omitFieldNames ? '' : 'threshold', $pb.PbFieldType.OU3)
+    ..a<$core.int>(2, _omitFieldNames ? '' : 'signatures', $pb.PbFieldType.OU3)
+    ..aOB(3, _omitFieldNames ? '' : 'finalizable')
+    ..p<$core.bool>(4, _omitFieldNames ? '' : 'cosignerSigned', $pb.PbFieldType.KB)
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  MultisigPsbtStatusResponse clone() => MultisigPsbtStatusResponse()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  MultisigPsbtStatusResponse copyWith(void Function(MultisigPsbtStatusResponse) updates) => super.copyWith((message) => updates(message as MultisigPsbtStatusResponse)) as MultisigPsbtStatusResponse;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static MultisigPsbtStatusResponse create() => MultisigPsbtStatusResponse._();
+  MultisigPsbtStatusResponse createEmptyInstance() => create();
+  static $pb.PbList<MultisigPsbtStatusResponse> createRepeated() => $pb.PbList<MultisigPsbtStatusResponse>();
+  @$core.pragma('dart2js:noInline')
+  static MultisigPsbtStatusResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<MultisigPsbtStatusResponse>(create);
+  static MultisigPsbtStatusResponse? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.int get threshold => $_getIZ(0);
+  @$pb.TagNumber(1)
+  set threshold($core.int v) { $_setUnsignedInt32(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasThreshold() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearThreshold() => clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.int get signatures => $_getIZ(1);
+  @$pb.TagNumber(2)
+  set signatures($core.int v) { $_setUnsignedInt32(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasSignatures() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearSignatures() => clearField(2);
+
+  @$pb.TagNumber(3)
+  $core.bool get finalizable => $_getBF(2);
+  @$pb.TagNumber(3)
+  set finalizable($core.bool v) { $_setBool(2, v); }
+  @$pb.TagNumber(3)
+  $core.bool hasFinalizable() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearFinalizable() => clearField(3);
+
+  /// Aligned to the wallet's cosigners; true where that cosigner has signed.
+  @$pb.TagNumber(4)
+  $core.List<$core.bool> get cosignerSigned => $_getList(3);
+}
+
+class BroadcastTransactionRequest extends $pb.GeneratedMessage {
+  factory BroadcastTransactionRequest({
+    $core.String? walletId,
+    $core.String? txHex,
+  }) {
+    final $result = create();
+    if (walletId != null) {
+      $result.walletId = walletId;
+    }
+    if (txHex != null) {
+      $result.txHex = txHex;
+    }
+    return $result;
+  }
+  BroadcastTransactionRequest._() : super();
+  factory BroadcastTransactionRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory BroadcastTransactionRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'BroadcastTransactionRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'walletmanager.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'walletId')
+    ..aOS(2, _omitFieldNames ? '' : 'txHex')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  BroadcastTransactionRequest clone() => BroadcastTransactionRequest()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  BroadcastTransactionRequest copyWith(void Function(BroadcastTransactionRequest) updates) => super.copyWith((message) => updates(message as BroadcastTransactionRequest)) as BroadcastTransactionRequest;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static BroadcastTransactionRequest create() => BroadcastTransactionRequest._();
+  BroadcastTransactionRequest createEmptyInstance() => create();
+  static $pb.PbList<BroadcastTransactionRequest> createRepeated() => $pb.PbList<BroadcastTransactionRequest>();
+  @$core.pragma('dart2js:noInline')
+  static BroadcastTransactionRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<BroadcastTransactionRequest>(create);
+  static BroadcastTransactionRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get walletId => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set walletId($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasWalletId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearWalletId() => clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.String get txHex => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set txHex($core.String v) { $_setString(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasTxHex() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearTxHex() => clearField(2);
+}
+
+class BroadcastTransactionResponse extends $pb.GeneratedMessage {
+  factory BroadcastTransactionResponse({
+    $core.String? txid,
+  }) {
+    final $result = create();
+    if (txid != null) {
+      $result.txid = txid;
+    }
+    return $result;
+  }
+  BroadcastTransactionResponse._() : super();
+  factory BroadcastTransactionResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory BroadcastTransactionResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'BroadcastTransactionResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'walletmanager.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'txid')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  BroadcastTransactionResponse clone() => BroadcastTransactionResponse()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  BroadcastTransactionResponse copyWith(void Function(BroadcastTransactionResponse) updates) => super.copyWith((message) => updates(message as BroadcastTransactionResponse)) as BroadcastTransactionResponse;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static BroadcastTransactionResponse create() => BroadcastTransactionResponse._();
+  BroadcastTransactionResponse createEmptyInstance() => create();
+  static $pb.PbList<BroadcastTransactionResponse> createRepeated() => $pb.PbList<BroadcastTransactionResponse>();
+  @$core.pragma('dart2js:noInline')
+  static BroadcastTransactionResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<BroadcastTransactionResponse>(create);
+  static BroadcastTransactionResponse? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get txid => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set txid($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasTxid() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearTxid() => clearField(1);
 }
 
 class ListTransactionsRequest extends $pb.GeneratedMessage {
@@ -7283,6 +8376,12 @@ class WalletManagerServiceApi {
   $async.Future<CreateElectrumWalletResponse> createElectrumWallet($pb.ClientContext? ctx, CreateElectrumWalletRequest request) =>
     _client.invoke<CreateElectrumWalletResponse>(ctx, 'WalletManagerService', 'CreateElectrumWallet', request, CreateElectrumWalletResponse())
   ;
+  $async.Future<CreateMultisigWalletResponse> createMultisigWallet($pb.ClientContext? ctx, CreateMultisigWalletRequest request) =>
+    _client.invoke<CreateMultisigWalletResponse>(ctx, 'WalletManagerService', 'CreateMultisigWallet', request, CreateMultisigWalletResponse())
+  ;
+  $async.Future<ParseMultisigConfigResponse> parseMultisigConfig($pb.ClientContext? ctx, ParseMultisigConfigRequest request) =>
+    _client.invoke<ParseMultisigConfigResponse>(ctx, 'WalletManagerService', 'ParseMultisigConfig', request, ParseMultisigConfigResponse())
+  ;
   $async.Future<CreateBitcoinCoreWalletResponse> createBitcoinCoreWallet($pb.ClientContext? ctx, CreateBitcoinCoreWalletRequest request) =>
     _client.invoke<CreateBitcoinCoreWalletResponse>(ctx, 'WalletManagerService', 'CreateBitcoinCoreWallet', request, CreateBitcoinCoreWalletResponse())
   ;
@@ -7328,11 +8427,20 @@ class WalletManagerServiceApi {
   $async.Future<SignPsbtResponse> signPsbt($pb.ClientContext? ctx, SignPsbtRequest request) =>
     _client.invoke<SignPsbtResponse>(ctx, 'WalletManagerService', 'SignPsbt', request, SignPsbtResponse())
   ;
+  $async.Future<SignPsbtWithCosignerResponse> signPsbtWithCosigner($pb.ClientContext? ctx, SignPsbtWithCosignerRequest request) =>
+    _client.invoke<SignPsbtWithCosignerResponse>(ctx, 'WalletManagerService', 'SignPsbtWithCosigner', request, SignPsbtWithCosignerResponse())
+  ;
   $async.Future<CombinePsbtResponse> combinePsbt($pb.ClientContext? ctx, CombinePsbtRequest request) =>
     _client.invoke<CombinePsbtResponse>(ctx, 'WalletManagerService', 'CombinePsbt', request, CombinePsbtResponse())
   ;
   $async.Future<FinalizePsbtResponse> finalizePsbt($pb.ClientContext? ctx, FinalizePsbtRequest request) =>
     _client.invoke<FinalizePsbtResponse>(ctx, 'WalletManagerService', 'FinalizePsbt', request, FinalizePsbtResponse())
+  ;
+  $async.Future<MultisigPsbtStatusResponse> multisigPsbtStatus($pb.ClientContext? ctx, MultisigPsbtStatusRequest request) =>
+    _client.invoke<MultisigPsbtStatusResponse>(ctx, 'WalletManagerService', 'MultisigPsbtStatus', request, MultisigPsbtStatusResponse())
+  ;
+  $async.Future<BroadcastTransactionResponse> broadcastTransaction($pb.ClientContext? ctx, BroadcastTransactionRequest request) =>
+    _client.invoke<BroadcastTransactionResponse>(ctx, 'WalletManagerService', 'BroadcastTransaction', request, BroadcastTransactionResponse())
   ;
   $async.Future<GetWalletSeedResponse> getWalletSeed($pb.ClientContext? ctx, GetWalletSeedRequest request) =>
     _client.invoke<GetWalletSeedResponse>(ctx, 'WalletManagerService', 'GetWalletSeed', request, GetWalletSeedResponse())

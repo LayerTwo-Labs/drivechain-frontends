@@ -18,7 +18,7 @@ func CoreVariantInstalled(dataDir string, v CoreVariantSpec, binaryName string) 
 // Fix for the silent-knots-default regression: the previous comparator
 // was a plain alphabetical sort, which on signet ranked "knots" before
 // "untouched" / "patched" and ended up downloading bitcoinknots.org
-// any time the persisted variant was forknet-only. Knots is a niche
+// any time the persisted variant was forknet- or drynet-only. Knots is a niche
 // fork that should never be picked by accident.
 func preferenceLess(a, b string) bool {
 	return variantPreference(a) < variantPreference(b)
