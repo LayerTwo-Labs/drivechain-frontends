@@ -39,6 +39,45 @@ func clientFromServer(srv *httptest.Server) *Client {
 	return &Client{baseURL: srv.URL, http: srv.Client()}
 }
 
+type recordedClientRPCRequest struct {
+	Method string          `json:"method"`
+	Params json.RawMessage `json:"params"`
+}
+
+func recordingClientRPC(
+	t *testing.T,
+	result any,
+) (*httptest.Server, <-chan recordedClientRPCRequest) {
+	t.Helper()
+	requests := make(chan recordedClientRPCRequest, 1)
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		defer r.Body.Close() //nolint:errcheck
+		var request recordedClientRPCRequest
+		require.NoError(t, json.NewDecoder(r.Body).Decode(&request))
+		requests <- request
+
+		w.Header().Set("Content-Type", "application/json")
+		require.NoError(t, json.NewEncoder(w).Encode(map[string]any{
+			"jsonrpc": "2.0",
+			"id":      "orchestrator",
+			"result":  result,
+		}))
+	}))
+	return server, requests
+}
+
+func requireClientRPCRequest(
+	t *testing.T,
+	requests <-chan recordedClientRPCRequest,
+	method string,
+	paramsJSON string,
+) {
+	t.Helper()
+	request := <-requests
+	assert.Equal(t, method, request.Method)
+	assert.JSONEq(t, paramsJSON, string(request.Params))
+}
+
 func TestBalance(t *testing.T) {
 	srv := fakeRPC(t, map[string]interface{}{
 		"balance": BalanceResponse{TotalSats: 100_000, AvailableSats: 80_000},
@@ -137,8 +176,8 @@ func TestBitnameEntryJSON(t *testing.T) {
 
 func TestNullableResults(t *testing.T) {
 	srv := fakeRPC(t, map[string]interface{}{
-		"get_best_mainchain_block_hash":  nil,
-		"get_best_sidechain_block_hash":  "deadbeef",
+		"get_best_mainchain_block_hash":          nil,
+		"get_best_sidechain_block_hash":          "deadbeef",
 		"latest_failed_withdrawal_bundle_height": nil,
 	})
 	defer srv.Close()
@@ -157,4 +196,157 @@ func TestNullableResults(t *testing.T) {
 	height, err := c.LatestFailedWithdrawalBundleHeight(context.Background())
 	require.NoError(t, err)
 	assert.Nil(t, height)
+}
+
+func TestClientMessageRPCParameterOrder(t *testing.T) {
+	t.Run("decrypt", func(t *testing.T) {
+		server, requests := recordingClientRPC(t, "68656c6c6f")
+		defer server.Close()
+
+		plaintext, err := clientFromServer(server).DecryptMsg(
+			context.Background(),
+			"recipient-key",
+			"ciphertext",
+		)
+		require.NoError(t, err)
+		assert.Equal(t, "68656c6c6f", plaintext)
+		requireClientRPCRequest(t, requests, "decrypt_msg", `["recipient-key","ciphertext"]`)
+	})
+
+	t.Run("sign with BitName key", func(t *testing.T) {
+		server, requests := recordingClientRPC(t, "signature")
+		defer server.Close()
+
+		signature, err := clientFromServer(server).SignArbitraryMsg(
+			context.Background(),
+			"message",
+			"verifying-key",
+		)
+		require.NoError(t, err)
+		assert.Equal(t, "signature", signature)
+		requireClientRPCRequest(t, requests, "sign_arbitrary_msg", `["verifying-key","message"]`)
+	})
+
+	t.Run("sign with address key", func(t *testing.T) {
+		server, requests := recordingClientRPC(t, map[string]any{
+			"verifying_key": "verifying-key",
+			"signature":     "signature",
+		})
+		defer server.Close()
+
+		authorization, err := clientFromServer(server).SignArbitraryMsgAsAddr(
+			context.Background(),
+			"message",
+			"address",
+		)
+		require.NoError(t, err)
+		assert.Equal(t, "verifying-key", authorization.VerifyingKey)
+		assert.Equal(t, "signature", authorization.Signature)
+		requireClientRPCRequest(t, requests, "sign_arbitrary_msg_as_addr", `["address","message"]`)
+	})
+
+	t.Run("verify", func(t *testing.T) {
+		server, requests := recordingClientRPC(t, true)
+		defer server.Close()
+
+		valid, err := clientFromServer(server).VerifySignature(
+			context.Background(),
+			"signature",
+			"verifying-key",
+			"arbitrary",
+			"message",
+		)
+		require.NoError(t, err)
+		assert.True(t, valid)
+		requireClientRPCRequest(
+			t,
+			requests,
+			"verify_signature",
+			`["signature","verifying-key","arbitrary","message"]`,
+		)
+	})
+}
+
+func TestClientBitNameMailboxRPCs(t *testing.T) {
+	t.Run("resolve unregistered name", func(t *testing.T) {
+		server, requests := recordingClientRPC(t, nil)
+		defer server.Close()
+
+		resolution, err := clientFromServer(server).ResolveBitName(
+			context.Background(),
+			"bitname-hash",
+		)
+		require.NoError(t, err)
+		assert.Nil(t, resolution)
+		requireClientRPCRequest(t, requests, "resolve_bitname", `["bitname-hash"]`)
+	})
+
+	t.Run("update mutable data", func(t *testing.T) {
+		server, requests := recordingClientRPC(t, "update-txid")
+		defer server.Close()
+
+		updates := BitNameDataUpdates{
+			Commitment:       json.RawMessage(`"Retain"`),
+			SocketAddrV4:     json.RawMessage(`"Retain"`),
+			SocketAddrV6:     json.RawMessage(`"Retain"`),
+			EncryptionPubkey: json.RawMessage(`"Retain"`),
+			SigningPubkey:    json.RawMessage(`{"Set":"verifying-key"}`),
+			PaymailFeeSats:   json.RawMessage(`"Retain"`),
+		}
+		txid, err := clientFromServer(server).UpdateBitName(
+			context.Background(),
+			"bitname-hash",
+			updates,
+			100,
+		)
+		require.NoError(t, err)
+		assert.Equal(t, "update-txid", txid)
+		requireClientRPCRequest(
+			t,
+			requests,
+			"update_bitname",
+			`[
+				"bitname-hash",
+				{
+					"commitment":"Retain",
+					"socket_addr_v4":"Retain",
+					"socket_addr_v6":"Retain",
+					"encryption_pubkey":"Retain",
+					"signing_pubkey":{"Set":"verifying-key"},
+					"paymail_fee_sats":"Retain"
+				},
+				100
+			]`,
+		)
+	})
+
+	t.Run("decode ordered entries", func(t *testing.T) {
+		server, _ := recordingClientRPC(t, []any{
+			map[string]any{
+				"outpoint":     map[string]any{"Regular": map[string]any{"txid": "txid", "vout": 0}},
+				"output":       map[string]any{"address": "address", "content": map[string]any{"Bitcoin": map[string]any{"value": 1}}, "memo": "aabb"},
+				"value_sats":   1,
+				"block_hash":   "block-hash",
+				"block_height": 5,
+				"tx_index":     6,
+				"recipients": []any{
+					map[string]any{
+						"bitname":           "bitname-hash",
+						"required_fee_sats": 1000,
+						"data":              map[string]any{"seq_id": "0791-0362", "paymail_fee_sats": 1000},
+					},
+				},
+			},
+		})
+		defer server.Close()
+
+		entries, err := clientFromServer(server).GetPaymailEntries(context.Background())
+		require.NoError(t, err)
+		require.Len(t, entries, 1)
+		assert.Equal(t, uint64(1), entries[0].ValueSats)
+		assert.Equal(t, "aabb", entries[0].Output.Memo)
+		require.Len(t, entries[0].Recipients, 1)
+		require.NotNil(t, entries[0].Recipients[0].RequiredFeeSats)
+		assert.Equal(t, uint64(1000), *entries[0].Recipients[0].RequiredFeeSats)
+	})
 }

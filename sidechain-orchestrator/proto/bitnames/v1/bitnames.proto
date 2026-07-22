@@ -98,6 +98,15 @@ service BitnamesService {
   // Get paymail information.
   rpc GetPaymail(GetPaymailRequest) returns (GetPaymailResponse);
 
+  // Get JSON-safe, ordered paymail entries with recipient attribution.
+  rpc GetPaymailEntries(GetPaymailEntriesRequest) returns (GetPaymailEntriesResponse);
+
+  // Resolve a BitName to its current ownership output and data.
+  rpc ResolveBitName(ResolveBitNameRequest) returns (ResolveBitNameResponse);
+
+  // Update mutable data for an owned BitName.
+  rpc UpdateBitName(UpdateBitNameRequest) returns (UpdateBitNameResponse);
+
   // Resolve a commitment from a BitName.
   rpc ResolveCommit(ResolveCommitRequest) returns (ResolveCommitResponse);
 
@@ -106,6 +115,9 @@ service BitnamesService {
 
   // Sign an arbitrary message as a specific address.
   rpc SignArbitraryMsgAsAddr(SignArbitraryMsgAsAddrRequest) returns (SignArbitraryMsgAsAddrResponse);
+
+  // Verify a signature using the specified domain separation tag.
+  rpc VerifySignature(VerifySignatureRequest) returns (VerifySignatureResponse);
 
   // Get wallet addresses.
   rpc GetWalletAddresses(GetWalletAddressesRequest) returns (GetWalletAddressesResponse);
@@ -404,6 +416,37 @@ message GetPaymailResponse {
   string paymail_json = 1;
 }
 
+// GetPaymailEntries
+
+message GetPaymailEntriesRequest {}
+
+message GetPaymailEntriesResponse {
+  string entries_json = 1;
+}
+
+// ResolveBitName
+
+message ResolveBitNameRequest {
+  string bitname = 1;
+}
+
+message ResolveBitNameResponse {
+  // Empty when the BitName is not currently registered.
+  string resolution_json = 1;
+}
+
+// UpdateBitName
+
+message UpdateBitNameRequest {
+  string bitname = 1;
+  string updates_json = 2;
+  int64 fee_sats = 3;
+}
+
+message UpdateBitNameResponse {
+  string txid = 1;
+}
+
 // ResolveCommit
 
 message ResolveCommitRequest {
@@ -435,6 +478,20 @@ message SignArbitraryMsgAsAddrRequest {
 message SignArbitraryMsgAsAddrResponse {
   string verifying_key = 1;
   string signature = 2;
+}
+
+// VerifySignature
+
+message VerifySignatureRequest {
+  string signature = 1;
+  string verifying_key = 2;
+  // The backend accepts "arbitrary" or "transaction".
+  string domain = 3;
+  string msg = 4;
+}
+
+message VerifySignatureResponse {
+  bool valid = 1;
 }
 
 // GetWalletAddresses

@@ -733,6 +733,80 @@ final $typed_data.Uint8List getPaymailResponseDescriptor = $convert.base64Decode
     'ChJHZXRQYXltYWlsUmVzcG9uc2USIQoMcGF5bWFpbF9qc29uGAEgASgJUgtwYXltYWlsSnNvbg'
     '==');
 
+@$core.Deprecated('Use getPaymailEntriesRequestDescriptor instead')
+const GetPaymailEntriesRequest$json = {
+  '1': 'GetPaymailEntriesRequest',
+};
+
+/// Descriptor for `GetPaymailEntriesRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List getPaymailEntriesRequestDescriptor = $convert.base64Decode(
+    'ChhHZXRQYXltYWlsRW50cmllc1JlcXVlc3Q=');
+
+@$core.Deprecated('Use getPaymailEntriesResponseDescriptor instead')
+const GetPaymailEntriesResponse$json = {
+  '1': 'GetPaymailEntriesResponse',
+  '2': [
+    {'1': 'entries_json', '3': 1, '4': 1, '5': 9, '10': 'entriesJson'},
+  ],
+};
+
+/// Descriptor for `GetPaymailEntriesResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List getPaymailEntriesResponseDescriptor = $convert.base64Decode(
+    'ChlHZXRQYXltYWlsRW50cmllc1Jlc3BvbnNlEiEKDGVudHJpZXNfanNvbhgBIAEoCVILZW50cm'
+    'llc0pzb24=');
+
+@$core.Deprecated('Use resolveBitNameRequestDescriptor instead')
+const ResolveBitNameRequest$json = {
+  '1': 'ResolveBitNameRequest',
+  '2': [
+    {'1': 'bitname', '3': 1, '4': 1, '5': 9, '10': 'bitname'},
+  ],
+};
+
+/// Descriptor for `ResolveBitNameRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List resolveBitNameRequestDescriptor = $convert.base64Decode(
+    'ChVSZXNvbHZlQml0TmFtZVJlcXVlc3QSGAoHYml0bmFtZRgBIAEoCVIHYml0bmFtZQ==');
+
+@$core.Deprecated('Use resolveBitNameResponseDescriptor instead')
+const ResolveBitNameResponse$json = {
+  '1': 'ResolveBitNameResponse',
+  '2': [
+    {'1': 'resolution_json', '3': 1, '4': 1, '5': 9, '10': 'resolutionJson'},
+  ],
+};
+
+/// Descriptor for `ResolveBitNameResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List resolveBitNameResponseDescriptor = $convert.base64Decode(
+    'ChZSZXNvbHZlQml0TmFtZVJlc3BvbnNlEicKD3Jlc29sdXRpb25fanNvbhgBIAEoCVIOcmVzb2'
+    'x1dGlvbkpzb24=');
+
+@$core.Deprecated('Use updateBitNameRequestDescriptor instead')
+const UpdateBitNameRequest$json = {
+  '1': 'UpdateBitNameRequest',
+  '2': [
+    {'1': 'bitname', '3': 1, '4': 1, '5': 9, '10': 'bitname'},
+    {'1': 'updates_json', '3': 2, '4': 1, '5': 9, '10': 'updatesJson'},
+    {'1': 'fee_sats', '3': 3, '4': 1, '5': 3, '10': 'feeSats'},
+  ],
+};
+
+/// Descriptor for `UpdateBitNameRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List updateBitNameRequestDescriptor = $convert.base64Decode(
+    'ChRVcGRhdGVCaXROYW1lUmVxdWVzdBIYCgdiaXRuYW1lGAEgASgJUgdiaXRuYW1lEiEKDHVwZG'
+    'F0ZXNfanNvbhgCIAEoCVILdXBkYXRlc0pzb24SGQoIZmVlX3NhdHMYAyABKANSB2ZlZVNhdHM=');
+
+@$core.Deprecated('Use updateBitNameResponseDescriptor instead')
+const UpdateBitNameResponse$json = {
+  '1': 'UpdateBitNameResponse',
+  '2': [
+    {'1': 'txid', '3': 1, '4': 1, '5': 9, '10': 'txid'},
+  ],
+};
+
+/// Descriptor for `UpdateBitNameResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List updateBitNameResponseDescriptor = $convert.base64Decode(
+    'ChVVcGRhdGVCaXROYW1lUmVzcG9uc2USEgoEdHhpZBgBIAEoCVIEdHhpZA==');
+
 @$core.Deprecated('Use resolveCommitRequestDescriptor instead')
 const ResolveCommitRequest$json = {
   '1': 'ResolveCommitRequest',
@@ -812,6 +886,35 @@ const SignArbitraryMsgAsAddrResponse$json = {
 final $typed_data.Uint8List signArbitraryMsgAsAddrResponseDescriptor = $convert.base64Decode(
     'Ch5TaWduQXJiaXRyYXJ5TXNnQXNBZGRyUmVzcG9uc2USIwoNdmVyaWZ5aW5nX2tleRgBIAEoCV'
     'IMdmVyaWZ5aW5nS2V5EhwKCXNpZ25hdHVyZRgCIAEoCVIJc2lnbmF0dXJl');
+
+@$core.Deprecated('Use verifySignatureRequestDescriptor instead')
+const VerifySignatureRequest$json = {
+  '1': 'VerifySignatureRequest',
+  '2': [
+    {'1': 'signature', '3': 1, '4': 1, '5': 9, '10': 'signature'},
+    {'1': 'verifying_key', '3': 2, '4': 1, '5': 9, '10': 'verifyingKey'},
+    {'1': 'domain', '3': 3, '4': 1, '5': 9, '10': 'domain'},
+    {'1': 'msg', '3': 4, '4': 1, '5': 9, '10': 'msg'},
+  ],
+};
+
+/// Descriptor for `VerifySignatureRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List verifySignatureRequestDescriptor = $convert.base64Decode(
+    'ChZWZXJpZnlTaWduYXR1cmVSZXF1ZXN0EhwKCXNpZ25hdHVyZRgBIAEoCVIJc2lnbmF0dXJlEi'
+    'MKDXZlcmlmeWluZ19rZXkYAiABKAlSDHZlcmlmeWluZ0tleRIWCgZkb21haW4YAyABKAlSBmRv'
+    'bWFpbhIQCgNtc2cYBCABKAlSA21zZw==');
+
+@$core.Deprecated('Use verifySignatureResponseDescriptor instead')
+const VerifySignatureResponse$json = {
+  '1': 'VerifySignatureResponse',
+  '2': [
+    {'1': 'valid', '3': 1, '4': 1, '5': 8, '10': 'valid'},
+  ],
+};
+
+/// Descriptor for `VerifySignatureResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List verifySignatureResponseDescriptor = $convert.base64Decode(
+    'ChdWZXJpZnlTaWduYXR1cmVSZXNwb25zZRIUCgV2YWxpZBgBIAEoCFIFdmFsaWQ=');
 
 @$core.Deprecated('Use getWalletAddressesRequestDescriptor instead')
 const GetWalletAddressesRequest$json = {
@@ -912,9 +1015,13 @@ const $core.Map<$core.String, $core.dynamic> BitnamesServiceBase$json = {
     {'1': 'DecryptMsg', '2': '.bitnames.v1.DecryptMsgRequest', '3': '.bitnames.v1.DecryptMsgResponse'},
     {'1': 'EncryptMsg', '2': '.bitnames.v1.EncryptMsgRequest', '3': '.bitnames.v1.EncryptMsgResponse'},
     {'1': 'GetPaymail', '2': '.bitnames.v1.GetPaymailRequest', '3': '.bitnames.v1.GetPaymailResponse'},
+    {'1': 'GetPaymailEntries', '2': '.bitnames.v1.GetPaymailEntriesRequest', '3': '.bitnames.v1.GetPaymailEntriesResponse'},
+    {'1': 'ResolveBitName', '2': '.bitnames.v1.ResolveBitNameRequest', '3': '.bitnames.v1.ResolveBitNameResponse'},
+    {'1': 'UpdateBitName', '2': '.bitnames.v1.UpdateBitNameRequest', '3': '.bitnames.v1.UpdateBitNameResponse'},
     {'1': 'ResolveCommit', '2': '.bitnames.v1.ResolveCommitRequest', '3': '.bitnames.v1.ResolveCommitResponse'},
     {'1': 'SignArbitraryMsg', '2': '.bitnames.v1.SignArbitraryMsgRequest', '3': '.bitnames.v1.SignArbitraryMsgResponse'},
     {'1': 'SignArbitraryMsgAsAddr', '2': '.bitnames.v1.SignArbitraryMsgAsAddrRequest', '3': '.bitnames.v1.SignArbitraryMsgAsAddrResponse'},
+    {'1': 'VerifySignature', '2': '.bitnames.v1.VerifySignatureRequest', '3': '.bitnames.v1.VerifySignatureResponse'},
     {'1': 'GetWalletAddresses', '2': '.bitnames.v1.GetWalletAddressesRequest', '3': '.bitnames.v1.GetWalletAddressesResponse'},
     {'1': 'MyUtxos', '2': '.bitnames.v1.MyUtxosRequest', '3': '.bitnames.v1.MyUtxosResponse'},
     {'1': 'OpenapiSchema', '2': '.bitnames.v1.OpenapiSchemaRequest', '3': '.bitnames.v1.OpenapiSchemaResponse'},
@@ -985,12 +1092,20 @@ const $core.Map<$core.String, $core.Map<$core.String, $core.dynamic>> BitnamesSe
   '.bitnames.v1.EncryptMsgResponse': EncryptMsgResponse$json,
   '.bitnames.v1.GetPaymailRequest': GetPaymailRequest$json,
   '.bitnames.v1.GetPaymailResponse': GetPaymailResponse$json,
+  '.bitnames.v1.GetPaymailEntriesRequest': GetPaymailEntriesRequest$json,
+  '.bitnames.v1.GetPaymailEntriesResponse': GetPaymailEntriesResponse$json,
+  '.bitnames.v1.ResolveBitNameRequest': ResolveBitNameRequest$json,
+  '.bitnames.v1.ResolveBitNameResponse': ResolveBitNameResponse$json,
+  '.bitnames.v1.UpdateBitNameRequest': UpdateBitNameRequest$json,
+  '.bitnames.v1.UpdateBitNameResponse': UpdateBitNameResponse$json,
   '.bitnames.v1.ResolveCommitRequest': ResolveCommitRequest$json,
   '.bitnames.v1.ResolveCommitResponse': ResolveCommitResponse$json,
   '.bitnames.v1.SignArbitraryMsgRequest': SignArbitraryMsgRequest$json,
   '.bitnames.v1.SignArbitraryMsgResponse': SignArbitraryMsgResponse$json,
   '.bitnames.v1.SignArbitraryMsgAsAddrRequest': SignArbitraryMsgAsAddrRequest$json,
   '.bitnames.v1.SignArbitraryMsgAsAddrResponse': SignArbitraryMsgAsAddrResponse$json,
+  '.bitnames.v1.VerifySignatureRequest': VerifySignatureRequest$json,
+  '.bitnames.v1.VerifySignatureResponse': VerifySignatureResponse$json,
   '.bitnames.v1.GetWalletAddressesRequest': GetWalletAddressesRequest$json,
   '.bitnames.v1.GetWalletAddressesResponse': GetWalletAddressesResponse$json,
   '.bitnames.v1.MyUtxosRequest': MyUtxosRequest$json,
@@ -1052,15 +1167,22 @@ final $typed_data.Uint8List bitnamesServiceDescriptor = $convert.base64Decode(
     'MS5EZWNyeXB0TXNnUmVzcG9uc2USTQoKRW5jcnlwdE1zZxIeLmJpdG5hbWVzLnYxLkVuY3J5cH'
     'RNc2dSZXF1ZXN0Gh8uYml0bmFtZXMudjEuRW5jcnlwdE1zZ1Jlc3BvbnNlEk0KCkdldFBheW1h'
     'aWwSHi5iaXRuYW1lcy52MS5HZXRQYXltYWlsUmVxdWVzdBofLmJpdG5hbWVzLnYxLkdldFBheW'
-    '1haWxSZXNwb25zZRJWCg1SZXNvbHZlQ29tbWl0EiEuYml0bmFtZXMudjEuUmVzb2x2ZUNvbW1p'
-    'dFJlcXVlc3QaIi5iaXRuYW1lcy52MS5SZXNvbHZlQ29tbWl0UmVzcG9uc2USXwoQU2lnbkFyYm'
-    'l0cmFyeU1zZxIkLmJpdG5hbWVzLnYxLlNpZ25BcmJpdHJhcnlNc2dSZXF1ZXN0GiUuYml0bmFt'
-    'ZXMudjEuU2lnbkFyYml0cmFyeU1zZ1Jlc3BvbnNlEnEKFlNpZ25BcmJpdHJhcnlNc2dBc0FkZH'
-    'ISKi5iaXRuYW1lcy52MS5TaWduQXJiaXRyYXJ5TXNnQXNBZGRyUmVxdWVzdBorLmJpdG5hbWVz'
-    'LnYxLlNpZ25BcmJpdHJhcnlNc2dBc0FkZHJSZXNwb25zZRJlChJHZXRXYWxsZXRBZGRyZXNzZX'
-    'MSJi5iaXRuYW1lcy52MS5HZXRXYWxsZXRBZGRyZXNzZXNSZXF1ZXN0GicuYml0bmFtZXMudjEu'
-    'R2V0V2FsbGV0QWRkcmVzc2VzUmVzcG9uc2USRAoHTXlVdHhvcxIbLmJpdG5hbWVzLnYxLk15VX'
-    'R4b3NSZXF1ZXN0GhwuYml0bmFtZXMudjEuTXlVdHhvc1Jlc3BvbnNlElYKDU9wZW5hcGlTY2hl'
-    'bWESIS5iaXRuYW1lcy52MS5PcGVuYXBpU2NoZW1hUmVxdWVzdBoiLmJpdG5hbWVzLnYxLk9wZW'
-    '5hcGlTY2hlbWFSZXNwb25zZQ==');
+    '1haWxSZXNwb25zZRJiChFHZXRQYXltYWlsRW50cmllcxIlLmJpdG5hbWVzLnYxLkdldFBheW1h'
+    'aWxFbnRyaWVzUmVxdWVzdBomLmJpdG5hbWVzLnYxLkdldFBheW1haWxFbnRyaWVzUmVzcG9uc2'
+    'USWQoOUmVzb2x2ZUJpdE5hbWUSIi5iaXRuYW1lcy52MS5SZXNvbHZlQml0TmFtZVJlcXVlc3Qa'
+    'Iy5iaXRuYW1lcy52MS5SZXNvbHZlQml0TmFtZVJlc3BvbnNlElYKDVVwZGF0ZUJpdE5hbWUSIS'
+    '5iaXRuYW1lcy52MS5VcGRhdGVCaXROYW1lUmVxdWVzdBoiLmJpdG5hbWVzLnYxLlVwZGF0ZUJp'
+    'dE5hbWVSZXNwb25zZRJWCg1SZXNvbHZlQ29tbWl0EiEuYml0bmFtZXMudjEuUmVzb2x2ZUNvbW'
+    '1pdFJlcXVlc3QaIi5iaXRuYW1lcy52MS5SZXNvbHZlQ29tbWl0UmVzcG9uc2USXwoQU2lnbkFy'
+    'Yml0cmFyeU1zZxIkLmJpdG5hbWVzLnYxLlNpZ25BcmJpdHJhcnlNc2dSZXF1ZXN0GiUuYml0bm'
+    'FtZXMudjEuU2lnbkFyYml0cmFyeU1zZ1Jlc3BvbnNlEnEKFlNpZ25BcmJpdHJhcnlNc2dBc0Fk'
+    'ZHISKi5iaXRuYW1lcy52MS5TaWduQXJiaXRyYXJ5TXNnQXNBZGRyUmVxdWVzdBorLmJpdG5hbW'
+    'VzLnYxLlNpZ25BcmJpdHJhcnlNc2dBc0FkZHJSZXNwb25zZRJcCg9WZXJpZnlTaWduYXR1cmUS'
+    'Iy5iaXRuYW1lcy52MS5WZXJpZnlTaWduYXR1cmVSZXF1ZXN0GiQuYml0bmFtZXMudjEuVmVyaW'
+    'Z5U2lnbmF0dXJlUmVzcG9uc2USZQoSR2V0V2FsbGV0QWRkcmVzc2VzEiYuYml0bmFtZXMudjEu'
+    'R2V0V2FsbGV0QWRkcmVzc2VzUmVxdWVzdBonLmJpdG5hbWVzLnYxLkdldFdhbGxldEFkZHJlc3'
+    'Nlc1Jlc3BvbnNlEkQKB015VXR4b3MSGy5iaXRuYW1lcy52MS5NeVV0eG9zUmVxdWVzdBocLmJp'
+    'dG5hbWVzLnYxLk15VXR4b3NSZXNwb25zZRJWCg1PcGVuYXBpU2NoZW1hEiEuYml0bmFtZXMudj'
+    'EuT3BlbmFwaVNjaGVtYVJlcXVlc3QaIi5iaXRuYW1lcy52MS5PcGVuYXBpU2NoZW1hUmVzcG9u'
+    'c2U=');
 

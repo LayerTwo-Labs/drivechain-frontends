@@ -2939,6 +2939,317 @@ class GetPaymailResponse extends $pb.GeneratedMessage {
   void clearPaymailJson() => clearField(1);
 }
 
+class GetPaymailEntriesRequest extends $pb.GeneratedMessage {
+  factory GetPaymailEntriesRequest() => create();
+  GetPaymailEntriesRequest._() : super();
+  factory GetPaymailEntriesRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory GetPaymailEntriesRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'GetPaymailEntriesRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'bitnames.v1'), createEmptyInstance: create)
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  GetPaymailEntriesRequest clone() => GetPaymailEntriesRequest()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  GetPaymailEntriesRequest copyWith(void Function(GetPaymailEntriesRequest) updates) => super.copyWith((message) => updates(message as GetPaymailEntriesRequest)) as GetPaymailEntriesRequest;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static GetPaymailEntriesRequest create() => GetPaymailEntriesRequest._();
+  GetPaymailEntriesRequest createEmptyInstance() => create();
+  static $pb.PbList<GetPaymailEntriesRequest> createRepeated() => $pb.PbList<GetPaymailEntriesRequest>();
+  @$core.pragma('dart2js:noInline')
+  static GetPaymailEntriesRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<GetPaymailEntriesRequest>(create);
+  static GetPaymailEntriesRequest? _defaultInstance;
+}
+
+class GetPaymailEntriesResponse extends $pb.GeneratedMessage {
+  factory GetPaymailEntriesResponse({
+    $core.String? entriesJson,
+  }) {
+    final $result = create();
+    if (entriesJson != null) {
+      $result.entriesJson = entriesJson;
+    }
+    return $result;
+  }
+  GetPaymailEntriesResponse._() : super();
+  factory GetPaymailEntriesResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory GetPaymailEntriesResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'GetPaymailEntriesResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'bitnames.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'entriesJson')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  GetPaymailEntriesResponse clone() => GetPaymailEntriesResponse()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  GetPaymailEntriesResponse copyWith(void Function(GetPaymailEntriesResponse) updates) => super.copyWith((message) => updates(message as GetPaymailEntriesResponse)) as GetPaymailEntriesResponse;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static GetPaymailEntriesResponse create() => GetPaymailEntriesResponse._();
+  GetPaymailEntriesResponse createEmptyInstance() => create();
+  static $pb.PbList<GetPaymailEntriesResponse> createRepeated() => $pb.PbList<GetPaymailEntriesResponse>();
+  @$core.pragma('dart2js:noInline')
+  static GetPaymailEntriesResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<GetPaymailEntriesResponse>(create);
+  static GetPaymailEntriesResponse? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get entriesJson => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set entriesJson($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasEntriesJson() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearEntriesJson() => clearField(1);
+}
+
+class ResolveBitNameRequest extends $pb.GeneratedMessage {
+  factory ResolveBitNameRequest({
+    $core.String? bitname,
+  }) {
+    final $result = create();
+    if (bitname != null) {
+      $result.bitname = bitname;
+    }
+    return $result;
+  }
+  ResolveBitNameRequest._() : super();
+  factory ResolveBitNameRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory ResolveBitNameRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ResolveBitNameRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'bitnames.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'bitname')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  ResolveBitNameRequest clone() => ResolveBitNameRequest()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  ResolveBitNameRequest copyWith(void Function(ResolveBitNameRequest) updates) => super.copyWith((message) => updates(message as ResolveBitNameRequest)) as ResolveBitNameRequest;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ResolveBitNameRequest create() => ResolveBitNameRequest._();
+  ResolveBitNameRequest createEmptyInstance() => create();
+  static $pb.PbList<ResolveBitNameRequest> createRepeated() => $pb.PbList<ResolveBitNameRequest>();
+  @$core.pragma('dart2js:noInline')
+  static ResolveBitNameRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<ResolveBitNameRequest>(create);
+  static ResolveBitNameRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get bitname => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set bitname($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasBitname() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearBitname() => clearField(1);
+}
+
+class ResolveBitNameResponse extends $pb.GeneratedMessage {
+  factory ResolveBitNameResponse({
+    $core.String? resolutionJson,
+  }) {
+    final $result = create();
+    if (resolutionJson != null) {
+      $result.resolutionJson = resolutionJson;
+    }
+    return $result;
+  }
+  ResolveBitNameResponse._() : super();
+  factory ResolveBitNameResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory ResolveBitNameResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ResolveBitNameResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'bitnames.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'resolutionJson')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  ResolveBitNameResponse clone() => ResolveBitNameResponse()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  ResolveBitNameResponse copyWith(void Function(ResolveBitNameResponse) updates) => super.copyWith((message) => updates(message as ResolveBitNameResponse)) as ResolveBitNameResponse;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ResolveBitNameResponse create() => ResolveBitNameResponse._();
+  ResolveBitNameResponse createEmptyInstance() => create();
+  static $pb.PbList<ResolveBitNameResponse> createRepeated() => $pb.PbList<ResolveBitNameResponse>();
+  @$core.pragma('dart2js:noInline')
+  static ResolveBitNameResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<ResolveBitNameResponse>(create);
+  static ResolveBitNameResponse? _defaultInstance;
+
+  /// Empty when the BitName is not currently registered.
+  @$pb.TagNumber(1)
+  $core.String get resolutionJson => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set resolutionJson($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasResolutionJson() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearResolutionJson() => clearField(1);
+}
+
+class UpdateBitNameRequest extends $pb.GeneratedMessage {
+  factory UpdateBitNameRequest({
+    $core.String? bitname,
+    $core.String? updatesJson,
+    $fixnum.Int64? feeSats,
+  }) {
+    final $result = create();
+    if (bitname != null) {
+      $result.bitname = bitname;
+    }
+    if (updatesJson != null) {
+      $result.updatesJson = updatesJson;
+    }
+    if (feeSats != null) {
+      $result.feeSats = feeSats;
+    }
+    return $result;
+  }
+  UpdateBitNameRequest._() : super();
+  factory UpdateBitNameRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory UpdateBitNameRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'UpdateBitNameRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'bitnames.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'bitname')
+    ..aOS(2, _omitFieldNames ? '' : 'updatesJson')
+    ..aInt64(3, _omitFieldNames ? '' : 'feeSats')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  UpdateBitNameRequest clone() => UpdateBitNameRequest()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  UpdateBitNameRequest copyWith(void Function(UpdateBitNameRequest) updates) => super.copyWith((message) => updates(message as UpdateBitNameRequest)) as UpdateBitNameRequest;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static UpdateBitNameRequest create() => UpdateBitNameRequest._();
+  UpdateBitNameRequest createEmptyInstance() => create();
+  static $pb.PbList<UpdateBitNameRequest> createRepeated() => $pb.PbList<UpdateBitNameRequest>();
+  @$core.pragma('dart2js:noInline')
+  static UpdateBitNameRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<UpdateBitNameRequest>(create);
+  static UpdateBitNameRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get bitname => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set bitname($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasBitname() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearBitname() => clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.String get updatesJson => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set updatesJson($core.String v) { $_setString(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasUpdatesJson() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearUpdatesJson() => clearField(2);
+
+  @$pb.TagNumber(3)
+  $fixnum.Int64 get feeSats => $_getI64(2);
+  @$pb.TagNumber(3)
+  set feeSats($fixnum.Int64 v) { $_setInt64(2, v); }
+  @$pb.TagNumber(3)
+  $core.bool hasFeeSats() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearFeeSats() => clearField(3);
+}
+
+class UpdateBitNameResponse extends $pb.GeneratedMessage {
+  factory UpdateBitNameResponse({
+    $core.String? txid,
+  }) {
+    final $result = create();
+    if (txid != null) {
+      $result.txid = txid;
+    }
+    return $result;
+  }
+  UpdateBitNameResponse._() : super();
+  factory UpdateBitNameResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory UpdateBitNameResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'UpdateBitNameResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'bitnames.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'txid')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  UpdateBitNameResponse clone() => UpdateBitNameResponse()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  UpdateBitNameResponse copyWith(void Function(UpdateBitNameResponse) updates) => super.copyWith((message) => updates(message as UpdateBitNameResponse)) as UpdateBitNameResponse;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static UpdateBitNameResponse create() => UpdateBitNameResponse._();
+  UpdateBitNameResponse createEmptyInstance() => create();
+  static $pb.PbList<UpdateBitNameResponse> createRepeated() => $pb.PbList<UpdateBitNameResponse>();
+  @$core.pragma('dart2js:noInline')
+  static UpdateBitNameResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<UpdateBitNameResponse>(create);
+  static UpdateBitNameResponse? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get txid => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set txid($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasTxid() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearTxid() => clearField(1);
+}
+
 class ResolveCommitRequest extends $pb.GeneratedMessage {
   factory ResolveCommitRequest({
     $core.String? bitname,
@@ -3281,6 +3592,149 @@ class SignArbitraryMsgAsAddrResponse extends $pb.GeneratedMessage {
   void clearSignature() => clearField(2);
 }
 
+class VerifySignatureRequest extends $pb.GeneratedMessage {
+  factory VerifySignatureRequest({
+    $core.String? signature,
+    $core.String? verifyingKey,
+    $core.String? domain,
+    $core.String? msg,
+  }) {
+    final $result = create();
+    if (signature != null) {
+      $result.signature = signature;
+    }
+    if (verifyingKey != null) {
+      $result.verifyingKey = verifyingKey;
+    }
+    if (domain != null) {
+      $result.domain = domain;
+    }
+    if (msg != null) {
+      $result.msg = msg;
+    }
+    return $result;
+  }
+  VerifySignatureRequest._() : super();
+  factory VerifySignatureRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory VerifySignatureRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'VerifySignatureRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'bitnames.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'signature')
+    ..aOS(2, _omitFieldNames ? '' : 'verifyingKey')
+    ..aOS(3, _omitFieldNames ? '' : 'domain')
+    ..aOS(4, _omitFieldNames ? '' : 'msg')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  VerifySignatureRequest clone() => VerifySignatureRequest()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  VerifySignatureRequest copyWith(void Function(VerifySignatureRequest) updates) => super.copyWith((message) => updates(message as VerifySignatureRequest)) as VerifySignatureRequest;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static VerifySignatureRequest create() => VerifySignatureRequest._();
+  VerifySignatureRequest createEmptyInstance() => create();
+  static $pb.PbList<VerifySignatureRequest> createRepeated() => $pb.PbList<VerifySignatureRequest>();
+  @$core.pragma('dart2js:noInline')
+  static VerifySignatureRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<VerifySignatureRequest>(create);
+  static VerifySignatureRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get signature => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set signature($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasSignature() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearSignature() => clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.String get verifyingKey => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set verifyingKey($core.String v) { $_setString(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasVerifyingKey() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearVerifyingKey() => clearField(2);
+
+  /// The backend accepts "arbitrary" or "transaction".
+  @$pb.TagNumber(3)
+  $core.String get domain => $_getSZ(2);
+  @$pb.TagNumber(3)
+  set domain($core.String v) { $_setString(2, v); }
+  @$pb.TagNumber(3)
+  $core.bool hasDomain() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearDomain() => clearField(3);
+
+  @$pb.TagNumber(4)
+  $core.String get msg => $_getSZ(3);
+  @$pb.TagNumber(4)
+  set msg($core.String v) { $_setString(3, v); }
+  @$pb.TagNumber(4)
+  $core.bool hasMsg() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearMsg() => clearField(4);
+}
+
+class VerifySignatureResponse extends $pb.GeneratedMessage {
+  factory VerifySignatureResponse({
+    $core.bool? valid,
+  }) {
+    final $result = create();
+    if (valid != null) {
+      $result.valid = valid;
+    }
+    return $result;
+  }
+  VerifySignatureResponse._() : super();
+  factory VerifySignatureResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory VerifySignatureResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'VerifySignatureResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'bitnames.v1'), createEmptyInstance: create)
+    ..aOB(1, _omitFieldNames ? '' : 'valid')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  VerifySignatureResponse clone() => VerifySignatureResponse()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  VerifySignatureResponse copyWith(void Function(VerifySignatureResponse) updates) => super.copyWith((message) => updates(message as VerifySignatureResponse)) as VerifySignatureResponse;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static VerifySignatureResponse create() => VerifySignatureResponse._();
+  VerifySignatureResponse createEmptyInstance() => create();
+  static $pb.PbList<VerifySignatureResponse> createRepeated() => $pb.PbList<VerifySignatureResponse>();
+  @$core.pragma('dart2js:noInline')
+  static VerifySignatureResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<VerifySignatureResponse>(create);
+  static VerifySignatureResponse? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.bool get valid => $_getBF(0);
+  @$pb.TagNumber(1)
+  set valid($core.bool v) { $_setBool(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasValid() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearValid() => clearField(1);
+}
+
 class GetWalletAddressesRequest extends $pb.GeneratedMessage {
   factory GetWalletAddressesRequest() => create();
   GetWalletAddressesRequest._() : super();
@@ -3618,6 +4072,15 @@ class BitnamesServiceApi {
   $async.Future<GetPaymailResponse> getPaymail($pb.ClientContext? ctx, GetPaymailRequest request) =>
     _client.invoke<GetPaymailResponse>(ctx, 'BitnamesService', 'GetPaymail', request, GetPaymailResponse())
   ;
+  $async.Future<GetPaymailEntriesResponse> getPaymailEntries($pb.ClientContext? ctx, GetPaymailEntriesRequest request) =>
+    _client.invoke<GetPaymailEntriesResponse>(ctx, 'BitnamesService', 'GetPaymailEntries', request, GetPaymailEntriesResponse())
+  ;
+  $async.Future<ResolveBitNameResponse> resolveBitName($pb.ClientContext? ctx, ResolveBitNameRequest request) =>
+    _client.invoke<ResolveBitNameResponse>(ctx, 'BitnamesService', 'ResolveBitName', request, ResolveBitNameResponse())
+  ;
+  $async.Future<UpdateBitNameResponse> updateBitName($pb.ClientContext? ctx, UpdateBitNameRequest request) =>
+    _client.invoke<UpdateBitNameResponse>(ctx, 'BitnamesService', 'UpdateBitName', request, UpdateBitNameResponse())
+  ;
   $async.Future<ResolveCommitResponse> resolveCommit($pb.ClientContext? ctx, ResolveCommitRequest request) =>
     _client.invoke<ResolveCommitResponse>(ctx, 'BitnamesService', 'ResolveCommit', request, ResolveCommitResponse())
   ;
@@ -3626,6 +4089,9 @@ class BitnamesServiceApi {
   ;
   $async.Future<SignArbitraryMsgAsAddrResponse> signArbitraryMsgAsAddr($pb.ClientContext? ctx, SignArbitraryMsgAsAddrRequest request) =>
     _client.invoke<SignArbitraryMsgAsAddrResponse>(ctx, 'BitnamesService', 'SignArbitraryMsgAsAddr', request, SignArbitraryMsgAsAddrResponse())
+  ;
+  $async.Future<VerifySignatureResponse> verifySignature($pb.ClientContext? ctx, VerifySignatureRequest request) =>
+    _client.invoke<VerifySignatureResponse>(ctx, 'BitnamesService', 'VerifySignature', request, VerifySignatureResponse())
   ;
   $async.Future<GetWalletAddressesResponse> getWalletAddresses($pb.ClientContext? ctx, GetWalletAddressesRequest request) =>
     _client.invoke<GetWalletAddressesResponse>(ctx, 'BitnamesService', 'GetWalletAddresses', request, GetWalletAddressesResponse())

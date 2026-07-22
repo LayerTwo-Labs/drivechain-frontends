@@ -276,7 +276,7 @@ func (h *Handler) GetNewVerifyingKey(ctx context.Context, req *connect.Request[p
 
 func (h *Handler) DecryptMsg(ctx context.Context, req *connect.Request[pb.DecryptMsgRequest]) (*connect.Response[pb.DecryptMsgResponse], error) {
 	var plaintext string
-	params := []any{req.Msg.EncryptionPubkey, req.Msg.Ciphertext, true}
+	params := []any{req.Msg.EncryptionPubkey, req.Msg.Ciphertext}
 	if err := h.proxy.Client.Call(ctx, "decrypt_msg", params, &plaintext); err != nil {
 		return nil, err
 	}
@@ -300,6 +300,38 @@ func (h *Handler) GetPaymail(ctx context.Context, req *connect.Request[pb.GetPay
 	return connect.NewResponse(&pb.GetPaymailResponse{PaymailJson: string(raw)}), nil
 }
 
+func (h *Handler) GetPaymailEntries(ctx context.Context, req *connect.Request[pb.GetPaymailEntriesRequest]) (*connect.Response[pb.GetPaymailEntriesResponse], error) {
+	raw, err := h.proxy.Client.CallRaw(ctx, "get_paymail_entries", nil)
+	if err != nil {
+		return nil, err
+	}
+	return connect.NewResponse(&pb.GetPaymailEntriesResponse{EntriesJson: string(raw)}), nil
+}
+
+func (h *Handler) ResolveBitName(ctx context.Context, req *connect.Request[pb.ResolveBitNameRequest]) (*connect.Response[pb.ResolveBitNameResponse], error) {
+	raw, err := h.proxy.Client.CallRaw(ctx, "resolve_bitname", []any{req.Msg.Bitname})
+	if err != nil {
+		return nil, err
+	}
+	if string(raw) == "null" {
+		return connect.NewResponse(&pb.ResolveBitNameResponse{}), nil
+	}
+	return connect.NewResponse(&pb.ResolveBitNameResponse{ResolutionJson: string(raw)}), nil
+}
+
+func (h *Handler) UpdateBitName(ctx context.Context, req *connect.Request[pb.UpdateBitNameRequest]) (*connect.Response[pb.UpdateBitNameResponse], error) {
+	var updates any
+	if err := json.Unmarshal([]byte(req.Msg.UpdatesJson), &updates); err != nil {
+		return nil, fmt.Errorf("unmarshal BitName updates: %w", err)
+	}
+	var txid string
+	params := []any{req.Msg.Bitname, updates, req.Msg.FeeSats}
+	if err := h.proxy.Client.Call(ctx, "update_bitname", params, &txid); err != nil {
+		return nil, err
+	}
+	return connect.NewResponse(&pb.UpdateBitNameResponse{Txid: txid}), nil
+}
+
 func (h *Handler) ResolveCommit(ctx context.Context, req *connect.Request[pb.ResolveCommitRequest]) (*connect.Response[pb.ResolveCommitResponse], error) {
 	var commitment string
 	if err := h.proxy.Client.Call(ctx, "resolve_commit", req.Msg.Bitname, &commitment); err != nil {
@@ -310,7 +342,7 @@ func (h *Handler) ResolveCommit(ctx context.Context, req *connect.Request[pb.Res
 
 func (h *Handler) SignArbitraryMsg(ctx context.Context, req *connect.Request[pb.SignArbitraryMsgRequest]) (*connect.Response[pb.SignArbitraryMsgResponse], error) {
 	var signature string
-	params := []any{req.Msg.Msg, req.Msg.VerifyingKey}
+	params := []any{req.Msg.VerifyingKey, req.Msg.Msg}
 	if err := h.proxy.Client.Call(ctx, "sign_arbitrary_msg", params, &signature); err != nil {
 		return nil, err
 	}
@@ -322,7 +354,7 @@ func (h *Handler) SignArbitraryMsgAsAddr(ctx context.Context, req *connect.Reque
 		VerifyingKey string `json:"verifying_key"`
 		Signature    string `json:"signature"`
 	}
-	params := []any{req.Msg.Msg, req.Msg.Address}
+	params := []any{req.Msg.Address, req.Msg.Msg}
 	if err := h.proxy.Client.Call(ctx, "sign_arbitrary_msg_as_addr", params, &result); err != nil {
 		return nil, err
 	}
@@ -330,6 +362,15 @@ func (h *Handler) SignArbitraryMsgAsAddr(ctx context.Context, req *connect.Reque
 		VerifyingKey: result.VerifyingKey,
 		Signature:    result.Signature,
 	}), nil
+}
+
+func (h *Handler) VerifySignature(ctx context.Context, req *connect.Request[pb.VerifySignatureRequest]) (*connect.Response[pb.VerifySignatureResponse], error) {
+	var valid bool
+	params := []any{req.Msg.Signature, req.Msg.VerifyingKey, req.Msg.Domain, req.Msg.Msg}
+	if err := h.proxy.Client.Call(ctx, "verify_signature", params, &valid); err != nil {
+		return nil, err
+	}
+	return connect.NewResponse(&pb.VerifySignatureResponse{Valid: valid}), nil
 }
 
 func (h *Handler) GetWalletAddresses(ctx context.Context, req *connect.Request[pb.GetWalletAddressesRequest]) (*connect.Response[pb.GetWalletAddressesResponse], error) {

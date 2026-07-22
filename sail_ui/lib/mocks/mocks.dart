@@ -1312,6 +1312,25 @@ class MockBitnamesRPC extends BitnamesRPC {
   }
 
   @override
+  Future<List<PaymailEntry>> getPaymailEntries() async {
+    return [];
+  }
+
+  @override
+  Future<BitNameResolution?> resolveBitName(String bitname) async {
+    return null;
+  }
+
+  @override
+  Future<String> updateBitName({
+    required String bitname,
+    required BitNameDataUpdates updates,
+    required int feeSats,
+  }) async {
+    return 'mock_txid_update_bitname';
+  }
+
+  @override
   Future<List<String>> getWalletAddresses() async {
     return Future.value(['mock_wallet_address_1234']);
   }
@@ -1364,6 +1383,16 @@ class MockBitnamesRPC extends BitnamesRPC {
     required String address,
   }) async {
     return Future.value({'signed_msg': 'mock_signed_msg_1234'});
+  }
+
+  @override
+  Future<bool> verifySignature({
+    required String signature,
+    required String verifyingKey,
+    String domain = 'arbitrary',
+    required String msg,
+  }) async {
+    return true;
   }
 
   @override

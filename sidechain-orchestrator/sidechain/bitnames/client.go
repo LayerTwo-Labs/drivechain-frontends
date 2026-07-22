@@ -205,6 +205,28 @@ func (c *Client) ResolveCommit(ctx context.Context, bitname string) (string, err
 	return unmarshal[string](c, ctx, "resolve_commit", bitname)
 }
 
+// ResolveBitName returns the current ownership output and data for a BitName.
+func (c *Client) ResolveBitName(ctx context.Context, bitname string) (*BitNameResolution, error) {
+	raw, err := c.call(ctx, "resolve_bitname", []interface{}{bitname})
+	if err != nil {
+		return nil, err
+	}
+	if string(raw) == "null" {
+		return nil, nil
+	}
+	var resolution BitNameResolution
+	if err := json.Unmarshal(raw, &resolution); err != nil {
+		return nil, fmt.Errorf("decode resolve_bitname result: %w", err)
+	}
+	return &resolution, nil
+}
+
+// UpdateBitName changes mutable data for an owned BitName.
+func (c *Client) UpdateBitName(ctx context.Context, bitname string, updates BitNameDataUpdates, feeSats int64) (string, error) {
+	params := []interface{}{bitname, updates, feeSats}
+	return unmarshal[string](c, ctx, "update_bitname", params)
+}
+
 // ---------------------------------------------------------------------------
 // Blockchain
 // ---------------------------------------------------------------------------
@@ -330,21 +352,30 @@ func (c *Client) EncryptMsg(ctx context.Context, encryptionPubkey, msg string) (
 // DecryptMsg decrypts a ciphertext with the given encryption public key.
 // Returns the hex-encoded plaintext (caller must decode if needed).
 func (c *Client) DecryptMsg(ctx context.Context, encryptionPubkey, ciphertext string) (string, error) {
-	return unmarshal[string](c, ctx, "decrypt_msg", []interface{}{encryptionPubkey, ciphertext, true})
+	return unmarshal[string](c, ctx, "decrypt_msg", []interface{}{encryptionPubkey, ciphertext})
 }
 
 // SignArbitraryMsg signs a message with the specified verifying key.
 func (c *Client) SignArbitraryMsg(ctx context.Context, msg, verifyingKey string) (string, error) {
-	return unmarshal[string](c, ctx, "sign_arbitrary_msg", []interface{}{msg, verifyingKey})
+	return unmarshal[string](c, ctx, "sign_arbitrary_msg", []interface{}{verifyingKey, msg})
 }
 
 // SignArbitraryMsgAsAddr signs a message with the secret key for the given address.
 func (c *Client) SignArbitraryMsgAsAddr(ctx context.Context, msg, address string) (*SignatureResponse, error) {
-	r, err := unmarshal[SignatureResponse](c, ctx, "sign_arbitrary_msg_as_addr", []interface{}{msg, address})
+	r, err := unmarshal[SignatureResponse](c, ctx, "sign_arbitrary_msg_as_addr", []interface{}{address, msg})
 	if err != nil {
 		return nil, err
 	}
 	return &r, nil
+}
+
+// VerifySignature verifies a signature against the specified key and domain.
+func (c *Client) VerifySignature(
+	ctx context.Context,
+	signature, verifyingKey, domain, msg string,
+) (bool, error) {
+	params := []interface{}{signature, verifyingKey, domain, msg}
+	return unmarshal[bool](c, ctx, "verify_signature", params)
 }
 
 // ---------------------------------------------------------------------------
@@ -354,6 +385,11 @@ func (c *Client) SignArbitraryMsgAsAddr(ctx context.Context, msg, address string
 // GetPaymail returns paymail information as raw JSON.
 func (c *Client) GetPaymail(ctx context.Context) (json.RawMessage, error) {
 	return c.call(ctx, "get_paymail", nil)
+}
+
+// GetPaymailEntries returns JSON-safe, ordered paymail entries.
+func (c *Client) GetPaymailEntries(ctx context.Context) ([]PaymailEntry, error) {
+	return unmarshal[[]PaymailEntry](c, ctx, "get_paymail_entries", nil)
 }
 
 // ---------------------------------------------------------------------------
