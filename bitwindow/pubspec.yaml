@@ -62,7 +62,7 @@ dependencies:
   bs58: ^1.0.2
   auto_updater: ^1.0.0
   bitcoin_base: ^7.0.0
-  blockchain_utils: ^7.0.0
+  blockchain_utils: ^7.1.0
   bech32: ^0.2.2
   archive: ^4.0.7
   csv: ^8.0.0
