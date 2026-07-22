@@ -5,8 +5,7 @@ enum ChatDeliveryState { pending, delivered, confirmed, failed }
 enum ChatTransport { bitnamesChain, direct, tor }
 
 class StatusMessage {
-  final String id;
-  final String message;
+  final String id; final String message;
 
   StatusMessage({required this.id, required this.message});
 }
@@ -41,7 +40,6 @@ class ChatMessage {
   factory ChatMessage.fromJson(Map<String, dynamic> json) => ChatMessage(
     id: json['id'] ?? '',
     content: json['content'] ?? '',
-    // The pubkey keys keep old prototype history readable.
     senderBitname: json['sender_bitname'] ?? json['sender_pubkey'] ?? '',
     recipientBitname: json['recipient_bitname'] ?? json['recipient_pubkey'] ?? '',
     timestamp: json['timestamp'] != null ? DateTime.fromMillisecondsSinceEpoch(json['timestamp']) : DateTime.now(),
