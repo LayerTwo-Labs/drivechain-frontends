@@ -452,7 +452,24 @@
           }
         }
       },
-      "hashes": {}
+      "hashes": {
+        "linux-x86_64": {
+          "sha256": "58307ce3bf96a9b8d5bba87466bbc180844ecb81ead748ec4af10f1e424e0ead",
+          "size": 34707268
+        },
+        "macos-x86_64": {
+          "sha256": "fe486068b2ec0dbf29516d6a6c97c100a268bc68360d89ece296064bd7c81650",
+          "size": 21782699
+        },
+        "macos-arm64": {
+          "sha256": "7d283d41171b79ad139a44a38b544f01dc28dd0248e29dd0ffb030a356de98c9",
+          "size": 20993965
+        },
+        "windows-x86_64": {
+          "sha256": "57a3a6ca9944d5aa9ed8dfe2cb7339df67ba3e8fe21b0aa6e1c6b91a25b54269",
+          "size": 24886928
+        }
+      }
     },
     "bitnames": {
       "type": "sidechain",
