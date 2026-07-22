@@ -403,6 +403,48 @@
       },
       "hashes": {}
     },
+    "bitnames-tor": {
+      "type": "utility",
+      "name": "BitNames Tor",
+      "version": "latest",
+      "description": "Private BitIntroduction routing and onion service",
+      "repo_url": "https://github.com/LayerTwo-Labs/bitnames-tor",
+      "port": 37998,
+      "chain_layer": 0,
+      "color": "purple",
+      "health_check": {
+        "type": "tcp"
+      },
+      "dependencies": [],
+      "startup_log_patterns": ["Bootstrapped", "onion service ready"],
+      "directories": {
+        "binary": {
+          "default": {
+            "linux": ".bitnames-tor",
+            "macos": "BitNames Tor",
+            "windows": "BitNames Tor"
+          }
+        },
+        "flutter_frontend": {
+          "linux": "",
+          "macos": "",
+          "windows": ""
+        }
+      },
+      "download": {
+        "binary": "bitnames-tor",
+        "files": {
+          "default": {
+            "base_url": "https://github.com/LayerTwo-Labs/bitnames-tor/releases/latest/download/",
+            "linux-x86_64": "bitnames-tor-latest-x86_64-unknown-linux-gnu.zip",
+            "macos-x86_64": "bitnames-tor-latest-x86_64-apple-darwin.zip",
+            "macos-arm64": "bitnames-tor-latest-aarch64-apple-darwin.zip",
+            "windows-x86_64": "bitnames-tor-latest-x86_64-pc-windows-gnu.zip"
+          }
+        }
+      },
+      "hashes": {}
+    },
     "bitnames": {
       "type": "sidechain",
       "slot": 2,
