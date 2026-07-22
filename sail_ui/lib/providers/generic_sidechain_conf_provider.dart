@@ -81,12 +81,12 @@ abstract class GenericSidechainConfProvider extends ChangeNotifier {
     final bitcoinConfProvider = GetIt.I.get<BitcoinConfProvider>();
     final network = bitcoinConfProvider.network;
 
-    // Sidechains support signet, regtest, and forknet (drivechain testnet)
+    // Sidechains support signet, regtest, forknet and drynet (drivechain testnets)
     // Real mainnet not supported - drivechain not activated there yet
     final sidechainNetwork = switch (network) {
       BitcoinNetwork.BITCOIN_NETWORK_SIGNET => 'signet',
       BitcoinNetwork.BITCOIN_NETWORK_REGTEST => 'regtest',
-      BitcoinNetwork.BITCOIN_NETWORK_FORKNET || BitcoinNetwork.BITCOIN_NETWORK_DRYNET2 => 'mainnet',
+      BitcoinNetwork.BITCOIN_NETWORK_FORKNET || BitcoinNetwork.BITCOIN_NETWORK_DRYNET => 'mainnet',
       _ => 'signet', // fallback for unsupported networks (mainnet, testnet)
     };
 

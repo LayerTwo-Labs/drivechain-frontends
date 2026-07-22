@@ -60,7 +60,8 @@ class GetBitcoinConfigResponse extends $pb.GeneratedMessage {
     $core.String? rpcPassword,
     $core.String? defaultDatadir,
     $core.String? forknetDatadir,
-    $core.String? drynet2Datadir,
+    $core.String? drynetDatadir,
+    $core.String? drynetGeneration,
   }) {
     final $result = create();
     if (network != null) {
@@ -99,8 +100,11 @@ class GetBitcoinConfigResponse extends $pb.GeneratedMessage {
     if (forknetDatadir != null) {
       $result.forknetDatadir = forknetDatadir;
     }
-    if (drynet2Datadir != null) {
-      $result.drynet2Datadir = drynet2Datadir;
+    if (drynetDatadir != null) {
+      $result.drynetDatadir = drynetDatadir;
+    }
+    if (drynetGeneration != null) {
+      $result.drynetGeneration = drynetGeneration;
     }
     return $result;
   }
@@ -121,7 +125,8 @@ class GetBitcoinConfigResponse extends $pb.GeneratedMessage {
     ..aOS(10, _omitFieldNames ? '' : 'rpcPassword')
     ..aOS(11, _omitFieldNames ? '' : 'defaultDatadir')
     ..aOS(12, _omitFieldNames ? '' : 'forknetDatadir')
-    ..aOS(13, _omitFieldNames ? '' : 'drynet2Datadir')
+    ..aOS(13, _omitFieldNames ? '' : 'drynetDatadir')
+    ..aOS(14, _omitFieldNames ? '' : 'drynetGeneration')
     ..hasRequiredFields = false
   ;
 
@@ -261,13 +266,24 @@ class GetBitcoinConfigResponse extends $pb.GeneratedMessage {
   void clearForknetDatadir() => clearField(12);
 
   @$pb.TagNumber(13)
-  $core.String get drynet2Datadir => $_getSZ(12);
+  $core.String get drynetDatadir => $_getSZ(12);
   @$pb.TagNumber(13)
-  set drynet2Datadir($core.String v) { $_setString(12, v); }
+  set drynetDatadir($core.String v) { $_setString(12, v); }
   @$pb.TagNumber(13)
-  $core.bool hasDrynet2Datadir() => $_has(12);
+  $core.bool hasDrynetDatadir() => $_has(12);
   @$pb.TagNumber(13)
-  void clearDrynet2Datadir() => clearField(13);
+  void clearDrynetDatadir() => clearField(13);
+
+  /// Live drynet generation ("drynet2"). Drynet hostnames are built from it, so
+  /// the frontend needs it to link at the right explorer.
+  @$pb.TagNumber(14)
+  $core.String get drynetGeneration => $_getSZ(13);
+  @$pb.TagNumber(14)
+  set drynetGeneration($core.String v) { $_setString(13, v); }
+  @$pb.TagNumber(14)
+  $core.bool hasDrynetGeneration() => $_has(13);
+  @$pb.TagNumber(14)
+  void clearDrynetGeneration() => clearField(14);
 }
 
 class SetBitcoinConfigNetworkRequest extends $pb.GeneratedMessage {

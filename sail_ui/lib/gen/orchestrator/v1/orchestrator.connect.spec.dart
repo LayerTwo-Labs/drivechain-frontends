@@ -110,6 +110,17 @@ abstract final class OrchestratorService {
     orchestratorv1orchestrator.RestartL1Response.new,
   );
 
+  /// Load a UTXO snapshot into the running Bitcoin Core. Streams download and
+  /// load progress; a snapshot Core refuses (its base block already passed, or
+  /// a snapshot already loaded in this datadir) comes back as an error carrying
+  /// Core's own message. Nothing is stopped, restarted or deleted.
+  static const applyUTXOSnapshot = connect.Spec(
+    '/$name/ApplyUTXOSnapshot',
+    connect.StreamType.server,
+    orchestratorv1orchestrator.ApplyUTXOSnapshotRequest.new,
+    orchestratorv1orchestrator.ApplyUTXOSnapshotResponse.new,
+  );
+
   /// Shutdown all running binaries.
   static const shutdownAll = connect.Spec(
     '/$name/ShutdownAll',

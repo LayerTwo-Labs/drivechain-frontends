@@ -38,7 +38,7 @@ class BitcoinNetwork extends $pb.ProtobufEnum {
   static const BitcoinNetwork BITCOIN_NETWORK_SIGNET = BitcoinNetwork._(4, _omitEnumNames ? '' : 'BITCOIN_NETWORK_SIGNET');
   static const BitcoinNetwork BITCOIN_NETWORK_TESTNET = BitcoinNetwork._(5, _omitEnumNames ? '' : 'BITCOIN_NETWORK_TESTNET');
   static const BitcoinNetwork BITCOIN_NETWORK_FORKNET = BitcoinNetwork._(6, _omitEnumNames ? '' : 'BITCOIN_NETWORK_FORKNET');
-  static const BitcoinNetwork BITCOIN_NETWORK_DRYNET2 = BitcoinNetwork._(7, _omitEnumNames ? '' : 'BITCOIN_NETWORK_DRYNET2');
+  static const BitcoinNetwork BITCOIN_NETWORK_DRYNET = BitcoinNetwork._(7, _omitEnumNames ? '' : 'BITCOIN_NETWORK_DRYNET');
 
   static const $core.List<BitcoinNetwork> values = <BitcoinNetwork> [
     BITCOIN_NETWORK_UNSPECIFIED,
@@ -48,7 +48,7 @@ class BitcoinNetwork extends $pb.ProtobufEnum {
     BITCOIN_NETWORK_SIGNET,
     BITCOIN_NETWORK_TESTNET,
     BITCOIN_NETWORK_FORKNET,
-    BITCOIN_NETWORK_DRYNET2,
+    BITCOIN_NETWORK_DRYNET,
   ];
 
   static final $core.Map<$core.int, BitcoinNetwork> _byValue = $pb.ProtobufEnum.initByValue(values);

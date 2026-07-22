@@ -37,12 +37,12 @@ CoreConnectionSettings readRPCConfig(
   final log = GetIt.I.get<Logger>();
 
   final conf = File(filePath([datadir, confFile]));
-  // mainnet, forknet and drynet2 use root datadir, other networks use subdirs
+  // mainnet, forknet and drynet use root datadir, other networks use subdirs
   final networkDir = filePath([
     datadir,
     (network == BitcoinNetwork.BITCOIN_NETWORK_MAINNET ||
             network == BitcoinNetwork.BITCOIN_NETWORK_FORKNET ||
-            network == BitcoinNetwork.BITCOIN_NETWORK_DRYNET2)
+            network == BitcoinNetwork.BITCOIN_NETWORK_DRYNET)
         ? ''
         : network.toReadableNet(),
   ]);
@@ -53,7 +53,7 @@ CoreConnectionSettings readRPCConfig(
   final defaultPort = switch (network) {
     BitcoinNetwork.BITCOIN_NETWORK_MAINNET => 8332, // real Bitcoin mainnet
     BitcoinNetwork.BITCOIN_NETWORK_FORKNET => 18301, // forknet
-    BitcoinNetwork.BITCOIN_NETWORK_DRYNET2 => 18302, // drynet2
+    BitcoinNetwork.BITCOIN_NETWORK_DRYNET => 18302, // drynet
     BitcoinNetwork.BITCOIN_NETWORK_TESTNET => 18332,
     BitcoinNetwork.BITCOIN_NETWORK_SIGNET => 38332,
     BitcoinNetwork.BITCOIN_NETWORK_REGTEST => 18443,
@@ -211,8 +211,8 @@ extension NetworkExtensions on BitcoinNetwork {
         return 'mainnet';
       case BitcoinNetwork.BITCOIN_NETWORK_FORKNET:
         return 'forknet';
-      case BitcoinNetwork.BITCOIN_NETWORK_DRYNET2:
-        return 'drynet2';
+      case BitcoinNetwork.BITCOIN_NETWORK_DRYNET:
+        return 'drynet';
       case BitcoinNetwork.BITCOIN_NETWORK_SIGNET:
         return 'signet';
       case BitcoinNetwork.BITCOIN_NETWORK_REGTEST:
@@ -226,14 +226,14 @@ extension NetworkExtensions on BitcoinNetwork {
   }
 
   /// Get the config section name for this network
-  /// Note: Both mainnet and forknet use 'main' section since forknet runs on mainnet params
-  /// and forknet is not a valid Bitcoin Core section
+  /// Note: mainnet, forknet and drynet all use 'main' since the forks run on
+  /// mainnet params and are not valid Bitcoin Core section names
   String toCoreNetwork() {
     switch (this) {
       case BitcoinNetwork.BITCOIN_NETWORK_MAINNET:
       case BitcoinNetwork.BITCOIN_NETWORK_FORKNET:
-      case BitcoinNetwork.BITCOIN_NETWORK_DRYNET2:
-        return 'main'; // Forknet and drynet2 use [main] section - Bitcoin doesn't recognize [forknet]
+      case BitcoinNetwork.BITCOIN_NETWORK_DRYNET:
+        return 'main';
       case BitcoinNetwork.BITCOIN_NETWORK_SIGNET:
         return 'signet';
       case BitcoinNetwork.BITCOIN_NETWORK_REGTEST:
@@ -247,12 +247,12 @@ extension NetworkExtensions on BitcoinNetwork {
   }
 
   /// Get the Bitcoin Core section name for Bitcoin Core settings (rpcport, etc.)
-  /// Both mainnet and forknet use 'main' for Bitcoin Core compatibility
+  /// Mainnet, forknet and drynet all use 'main' for Bitcoin Core compatibility
   String toCoreNetworkForBitcoinSettings() {
     switch (this) {
       case BitcoinNetwork.BITCOIN_NETWORK_MAINNET:
       case BitcoinNetwork.BITCOIN_NETWORK_FORKNET:
-      case BitcoinNetwork.BITCOIN_NETWORK_DRYNET2:
+      case BitcoinNetwork.BITCOIN_NETWORK_DRYNET:
         return 'main';
       case BitcoinNetwork.BITCOIN_NETWORK_SIGNET:
         return 'signet';
@@ -274,8 +274,8 @@ extension NetworkExtensions on BitcoinNetwork {
         return 'BTC Mainnet';
       case BitcoinNetwork.BITCOIN_NETWORK_FORKNET:
         return 'L2L-Forknet';
-      case BitcoinNetwork.BITCOIN_NETWORK_DRYNET2:
-        return 'L2L-Drynet2';
+      case BitcoinNetwork.BITCOIN_NETWORK_DRYNET:
+        return 'L2L-Drynet';
       case BitcoinNetwork.BITCOIN_NETWORK_SIGNET:
         return 'L2L-Signet';
       case BitcoinNetwork.BITCOIN_NETWORK_TESTNET:

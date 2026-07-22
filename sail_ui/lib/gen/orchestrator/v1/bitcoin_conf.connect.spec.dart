@@ -18,7 +18,7 @@ abstract final class BitcoinConfService {
     orchestratorv1bitcoin_conf.GetBitcoinConfigResponse.new,
   );
 
-  /// Set the Bitcoin Core network (signet, mainnet, forknet, testnet, regtest).
+  /// Set the Bitcoin Core network (signet, mainnet, forknet, drynet, testnet, regtest).
   static const setBitcoinConfigNetwork = connect.Spec(
     '/$name/SetBitcoinConfigNetwork',
     connect.StreamType.unary,

@@ -5,7 +5,7 @@ import 'package:sail_ui/sail_ui.dart';
 
 /// Page shown when a sidechain app is launched on an unsupported network.
 /// Drivechain is not enabled on mainnet/testnet yet, so sidechains can only
-/// run on forknet, signet, or regtest.
+/// run on forknet, drynet, signet, or regtest.
 @RoutePage()
 class NetworkSwitchPage extends StatefulWidget {
   const NetworkSwitchPage({super.key});
@@ -87,7 +87,7 @@ class _NetworkSwitchPageState extends State<NetworkSwitchPage> {
                       const SizedBox(height: 24),
                       SailText.primary15(
                         'Drivechains are not enabled on $currentNetwork yet.\n'
-                        'You must switch to Forknet, Signet, or Regtest to use sidechains.',
+                        'You must switch to Forknet, Drynet, Signet, or Regtest to use sidechains.',
                         textAlign: TextAlign.center,
                       ),
                       const SizedBox(height: 30),
@@ -116,8 +116,8 @@ class _NetworkSwitchPageState extends State<NetworkSwitchPage> {
                               label: 'Forknet',
                             ),
                             SailDropdownItem<BitcoinNetwork>(
-                              value: BitcoinNetwork.BITCOIN_NETWORK_DRYNET2,
-                              label: 'Drynet2',
+                              value: BitcoinNetwork.BITCOIN_NETWORK_DRYNET,
+                              label: 'Drynet',
                             ),
                             SailDropdownItem<BitcoinNetwork>(
                               value: BitcoinNetwork.BITCOIN_NETWORK_REGTEST,

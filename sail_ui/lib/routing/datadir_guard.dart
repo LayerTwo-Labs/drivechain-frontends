@@ -11,7 +11,7 @@ class DataDirGuard extends AutoRouteGuard {
     final confProvider = GetIt.I.get<BitcoinConfProvider>();
     final network = confProvider.network;
 
-    // Only mainnet and forknet require an explicit datadir.
+    // Only mainnet, forknet and drynet require an explicit datadir.
     if (!confProvider.networkRequiresDataDir(network)) {
       resolver.next(true);
       return;

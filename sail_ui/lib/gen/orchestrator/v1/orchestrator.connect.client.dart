@@ -208,6 +208,27 @@ extension type OrchestratorServiceClient (connect.Transport _transport) {
     );
   }
 
+  /// Load a UTXO snapshot into the running Bitcoin Core. Streams download and
+  /// load progress; a snapshot Core refuses (its base block already passed, or
+  /// a snapshot already loaded in this datadir) comes back as an error carrying
+  /// Core's own message. Nothing is stopped, restarted or deleted.
+  Stream<orchestratorv1orchestrator.ApplyUTXOSnapshotResponse> applyUTXOSnapshot(
+    orchestratorv1orchestrator.ApplyUTXOSnapshotRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).server(
+      specs.OrchestratorService.applyUTXOSnapshot,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
   /// Shutdown all running binaries.
   Stream<orchestratorv1orchestrator.ShutdownAllResponse> shutdownAll(
     orchestratorv1orchestrator.ShutdownAllRequest input, {

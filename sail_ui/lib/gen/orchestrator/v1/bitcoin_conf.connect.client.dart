@@ -26,7 +26,7 @@ extension type BitcoinConfServiceClient (connect.Transport _transport) {
     );
   }
 
-  /// Set the Bitcoin Core network (signet, mainnet, forknet, testnet, regtest).
+  /// Set the Bitcoin Core network (signet, mainnet, forknet, drynet, testnet, regtest).
   Future<orchestratorv1bitcoin_conf.SetBitcoinConfigNetworkResponse> setBitcoinConfigNetwork(
     orchestratorv1bitcoin_conf.SetBitcoinConfigNetworkRequest input, {
     connect.Headers? headers,
