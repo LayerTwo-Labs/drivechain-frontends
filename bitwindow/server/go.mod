@@ -62,6 +62,7 @@ require (
 require (
 	github.com/FactomProject/basen v0.0.0-20150613233007-fe3947df716e // indirect
 	github.com/FactomProject/btcutilecc v0.0.0-20130527213604-d3a63a5752ec // indirect
+	github.com/LayerTwo-Labs/sidesail/bitwindow/server/cpuminer v0.0.0
 	github.com/LayerTwo-Labs/sidesail/coinnews/codec v0.0.0
 	github.com/LayerTwo-Labs/sidesail/sqlitemigrate v0.0.0
 	github.com/fsnotify/fsnotify v1.9.0 // indirect
@@ -73,3 +74,5 @@ replace github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator => ../../sidech
 replace github.com/LayerTwo-Labs/sidesail/coinnews/codec => ../../coinnews/codec
 
 replace github.com/LayerTwo-Labs/sidesail/sqlitemigrate => ../../sqlitemigrate
+
+replace github.com/LayerTwo-Labs/sidesail/bitwindow/server/cpuminer => ./cpuminer

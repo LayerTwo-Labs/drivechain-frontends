@@ -1,0 +1,75 @@
+name: CPU miner
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - "bitwindow/server/cpuminer/**"
+      - ".github/workflows/cpuminer.yml"
+  pull_request:
+    branches: [master]
+    paths:
+      - "bitwindow/server/cpuminer/**"
+      - ".github/workflows/cpuminer.yml"
+
+jobs:
+  # Build and push ALL events. We give the images sensible tags, so
+  # there's no confusion around what's 'dev' builds through PRs, and
+  # what's proper 'master' builds.
+  #
+  # Official GitHub docs on this: https://docs.github.com/en/actions/use-cases-and-examples/publishing-packages/publishing-docker-images
+  build-push-docker:
+    runs-on: ubuntu-latest-large
+    if: github.event.pull_request.draft == false || github.event_name == 'push'
+    timeout-minutes: 30
+
+    permissions:
+      contents: read
+      packages: write
+      attestations: write
+      id-token: write
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Docker meta
+        id: meta
+        uses: docker/metadata-action@v6
+        with:
+          images: |
+            # bitwindow-cpuminer, NOT cpuminer: that ghcr package belongs to
+            # the standalone LayerTwo-Labs/cpuminer repo (the C miner fork),
+            # and only its own repo may push to it.
+            ghcr.io/${{ github.repository_owner }}/bitwindow-cpuminer
+          tags: |
+            type=sha,event=push
+            type=ref,event=pr
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Login to GHCR
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build (and maybe push) Docker image
+        uses: docker/build-push-action@v7
+        with:
+          # The cpuminer is a self-contained Go module; its directory is the
+          # whole build context.
+          context: ./bitwindow/server/cpuminer
+          file: ./bitwindow/server/cpuminer/Dockerfile
+          #prettier-ignore
+          push: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
+          #prettier-ignore
+          tags: ${{ steps.meta.outputs.tags }}
+          #prettier-ignore
+          # Lowercase literal: registry refs reject the mixed-case
+          # repository_owner, and unlike `images:` above this string is not
+          # normalized by metadata-action.
+          cache-from: type=registry,ref=ghcr.io/layertwo-labs/bitwindow-cpuminer:latest
+          cache-to: type=inline
