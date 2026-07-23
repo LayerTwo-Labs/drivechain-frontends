@@ -166,7 +166,7 @@ abstract class Sidechain extends Binary {
 class LiquidSignet extends Sidechain {
   LiquidSignet({
     super.name = 'Liquid Signet',
-    super.version = 'b7da9f75ea1d3da7a0b761cd7f18d81500bb1011',
+    super.version = 'bf8e9e1e5a6453b3a0573ff57cf9c92b2b3afe2b',
     super.description = 'Elements/Liquid sidechain',
     super.repoUrl = 'https://github.com/ekulkisnek/liquid-drivechain-signet-adaptation',
     DirectoryConfig? directories,
