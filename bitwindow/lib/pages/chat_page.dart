@@ -92,7 +92,7 @@ class ChatPage extends StatelessWidget {
                               onIdentitySelected: model.selectIdentity,
                             )
                           else
-                            SailText.secondary13('No BitNames owned'),
+                            SailText.secondary13(model.chatError ?? 'No BitNames owned'),
                           const SizedBox(width: SailStyleValues.padding12),
                           if (model.hasSufficientBalance)
                             SailTooltip(
@@ -151,7 +151,7 @@ class ChatPage extends StatelessWidget {
                                   child: Column(
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
-                                      SailText.secondary13('No contacts yet'),
+                                      SailText.secondary13(model.chatError ?? 'No contacts yet'),
                                       const SizedBox(height: SailStyleValues.padding08),
                                       SailText.secondary12(
                                         'Add a contact to start chatting',
@@ -512,7 +512,6 @@ class ChatPage extends StatelessWidget {
         ),
       ),
     );
-    fee.dispose();
   }
 }
 
@@ -601,7 +600,7 @@ class _AddContactDialogState extends State<_AddContactDialog> {
 
     // Find BitName with matching hash
     return widget.model.allBitNames.where((entry) {
-      return entry.hash.toLowerCase() == searchHash.toLowerCase();
+      return entry.hash.toLowerCase() == query.toLowerCase() || entry.hash.toLowerCase() == searchHash.toLowerCase();
     }).firstOrNull;
   }
 
@@ -906,6 +905,7 @@ class ChatViewModel extends BaseViewModel {
   void init() {
     if (isConnected) {
       _chatProvider.startPolling();
+      unawaited(_chatProvider.refresh());
     }
   }
 

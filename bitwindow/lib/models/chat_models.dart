@@ -22,6 +22,7 @@ class ChatMessage {
   final String? txid;
   final int? valueSats;
   final String? error;
+  String get localBitname => isOutgoing ? senderBitname : recipientBitname;
 
   ChatMessage({
     required this.id,

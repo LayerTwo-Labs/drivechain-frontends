@@ -844,7 +844,11 @@ class BitNameData {
 
   factory BitNameData.fromJson(Map<String, dynamic> json) => BitNameData(
     seqId: json['seq_id'] as String?,
-    commitment: json['commitment'] as String?,
+    commitment: switch (json['commitment']) {
+      final String value => value,
+      final List<dynamic> value => hex.encode(value.cast<int>()),
+      _ => null,
+    },
     encryptionPubkey: json['encryption_pubkey'] as String?,
     paymailFeeSats: json['paymail_fee_sats'] as int?,
     signingPubkey: json['signing_pubkey'] as String?,
@@ -895,7 +899,9 @@ class BitNameDataUpdates {
   });
 
   Map<String, dynamic> toJson() => {
-    'commitment': commitment.toJson(),
+    'commitment': commitment.action == BitNameUpdateAction.set
+        ? {'Set': hex.decode(commitment.value!)}
+        : commitment.toJson(),
     'socket_addr_v4': socketAddrV4.toJson(),
     'socket_addr_v6': socketAddrV6.toJson(),
     'encryption_pubkey': encryptionPubkey.toJson(),

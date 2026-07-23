@@ -37,11 +37,8 @@ class BitMessageProfile {
     }
   }
 
-  final String bitNameHash;
-  final String signingPublicKey;
-  final String encryptionPublicKey;
-  final List<Uri> directEndpoints;
-  final List<Uri> torEndpoints;
+  final String bitNameHash, signingPublicKey, encryptionPublicKey;
+  final List<Uri> directEndpoints, torEndpoints;
   final int? paymailFeeSats;
 
   factory BitMessageProfile.fromJson(Map<String, dynamic> json) => BitMessageProfile(
@@ -79,8 +76,7 @@ class VerifiedBitMessageProfile {
   }
 
   final BitMessageProfile profile;
-  final String onChainCommitment;
-  final String verificationReference;
+  final String onChainCommitment, verificationReference;
   String get bitNameHash => profile.bitNameHash;
   String get bitNameCommit => onChainCommitment;
   String get signingPublicKey => profile.signingPublicKey;
@@ -121,12 +117,9 @@ class BitIntroductionPayload {
   }
 
   final int version;
-  final String id;
+  final String id, senderBitNameHash, recipientBitNameHash, body;
   final BitIntroductionKind kind;
-  final String senderBitNameHash;
-  final String recipientBitNameHash;
   final DateTime timestamp;
-  final String body;
   final String? inReplyTo;
   final BitMessageProfile? replyProfile;
 
@@ -191,8 +184,7 @@ class BitMessageWire {
     _notEmpty(ciphertext, 'ciphertext');
   }
 
-  final String recipientBitNameHash;
-  final String ciphertext;
+  final String recipientBitNameHash, ciphertext;
 
   factory BitMessageWire.fromJson(Map<String, dynamic> json) => BitMessageWire(
     recipientBitNameHash: _string(json, 'recipient_bitname_hash'),
