@@ -3,6 +3,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'package:bitwindow/models/bitintroduction_protocol.dart';
+import 'package:bitwindow/models/bitnames_commitment.dart';
 typedef BitMessageProfileProvider = FutureOr<BitMessageProfile?> Function(String? bitNameHash);
 typedef IncomingBitMessageCallback = FutureOr<void> Function(BitMessageWire wire);
 class BitMessageServer {
@@ -96,7 +97,7 @@ class BitMessageServer {
     if (hash != null && profile.bitNameHash != hash) {
       throw const FormatException('profile provider returned the wrong identity');
     }
-    await _json(response, HttpStatus.ok, profile.toJson());
+    await _json(response, HttpStatus.ok, bitNamesCommitResponse(profile));
   }
   Future<void> _accept(HttpRequest request, String? expectedHash) async {
     if (request.headers.contentType?.mimeType != ContentType.json.mimeType) {

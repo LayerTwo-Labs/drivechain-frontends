@@ -126,6 +126,8 @@ class ChatPage extends StatelessWidget {
                                   ? 'Registered • reply profile waiting for a BitNames block'
                                   : model.messagingReady
                                   ? 'Registered • ready to message'
+                                  : model.commitmentBlocked
+                                  ? 'Registered • existing application commitment protected'
                                   : 'Registered • reply profile not published',
                               color: model.messagingProfilePending
                                   ? theme.colors.primary
@@ -565,6 +567,15 @@ class ChatPage extends StatelessWidget {
                 model.torOnly
                     ? 'Your IP address is hidden. BitNames chain writes also use the connected Tor tunnel.'
                     : 'Your reply address is detected automatically. Use Tor-only mode to hide your IP address.',
+              ),
+              const SizedBox(height: SailStyleValues.padding12),
+              SailText.primary13(model.commitmentSummary),
+              const SizedBox(height: SailStyleValues.padding04),
+              SailText.secondary12(
+                '${model.commitmentDetails}\n${model.commitmentMode} • ${model.commitmentNetwork}',
+                color: model.commitmentBlocked
+                    ? SailTheme.of(context).colors.warning
+                    : SailTheme.of(context).colors.textSecondary,
               ),
               const SizedBox(height: SailStyleValues.padding12),
               Row(
@@ -1203,6 +1214,13 @@ class ChatViewModel extends BaseViewModel {
   String? get p2pOnion => _chatProvider.torStatus.p2pOnion;
   bool get messagingReady => _chatProvider.selectedProfileReady;
   bool get messagingProfilePending => _chatProvider.selectedProfilePending;
+  bool get commitmentBlocked => _chatProvider.selectedCommitmentBlocked;
+  String get commitmentSummary =>
+      _chatProvider.selectedCommitmentAssessment?.summary ?? 'Select a BitName to inspect its application commitment';
+  String get commitmentDetails =>
+      _chatProvider.selectedCommitmentAssessment?.details ?? 'No commitment state is available.';
+  String get commitmentMode => _chatProvider.commitmentMode;
+  String get commitmentNetwork => _chatProvider.commitmentNetwork;
   BitnamesChainSnapshot get chainHealth => _chatProvider.chainHealth;
   BitnamesStorageStatus get storageStatus => _chatProvider.storageStatus;
   bool get chainWritesReady => chainHealth.mutationSafe && storageStatus.writable;

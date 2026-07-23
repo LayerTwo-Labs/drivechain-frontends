@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:bitwindow/models/bitintroduction_protocol.dart';
+import 'package:bitwindow/models/bitnames_commitment.dart';
 import 'package:http/http.dart' as http;
 
 // dart format off
@@ -122,7 +123,7 @@ class BitMessageTransport {
 
   Future<void> _verifyProfile(_HttpRoute route, VerifiedBitMessageProfile expected) async {
     final served = await _readProfile(route);
-    if (bitMessageProfileCommitment(served) != expected.onChainCommitment) {
+    if (bitNamesAuthoritativeProfileCommitment(served) != expected.onChainCommitment) {
       throw StateError('served profile does not match the authoritative BitName commitment');
     }
     if (canonicalJsonEncode(served.toJson()) != canonicalJsonEncode(expected.profile.toJson())) {
@@ -143,7 +144,7 @@ class BitMessageTransport {
       throw StateError('committed profile response is not valid JSON');
     }
     if (decoded is! Map) throw StateError('committed profile response must be an object');
-    return BitMessageProfile.fromJson(Map<String, dynamic>.from(decoded));
+    return bitNamesProfileFromCommitResponse(Map<String, dynamic>.from(decoded));
   }
 
   void close() {

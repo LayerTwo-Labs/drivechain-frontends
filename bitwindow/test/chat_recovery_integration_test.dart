@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:bitwindow/models/bitintroduction_protocol.dart';
+import 'package:bitwindow/models/bitnames_commitment.dart';
 import 'package:bitwindow/models/bitnames_recovery.dart';
 import 'package:bitwindow/models/chat_models.dart';
 import 'package:bitwindow/providers/chat_provider.dart';
@@ -230,13 +231,18 @@ void main() {
 
   test('reply-profile reorg locks messaging and does not republish', () async {
     const hash = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';
-    final profile = BitMessageProfile(
+    final baseProfile = BitMessageProfile(
       bitNameHash: hash,
       signingPublicKey: 'signing',
       encryptionPublicKey: 'encryption',
       directEndpoints: [Uri.parse('http://127.0.0.1:37999/bitname/$hash/')],
       paymailFeeSats: 500,
     );
+    final manifest = BitNamesCommitmentManifest.forReplyProfile(
+      baseProfile,
+      network: 'signet',
+    );
+    final profile = baseProfile.withCommitmentManifest(manifest.toJson());
     final now = DateTime.utc(2026, 7, 23, 15);
     final operation = BitnamesOperation(
       id: 'profile_$hash',
@@ -264,11 +270,27 @@ void main() {
             bitnamesMainchainHash: 'same-tip',
             sidechainHeight: 15,
             registeredHash: hash,
-            commitment: bitMessageProfileCommitment(profile),
+            commitment: manifest.commitment,
           )
           ..setConnected(true)
           ..statuses['profile-tx'] = BitnamesTransactionStatus.confirmed;
     final enforcer = RecoveryEnforcerRPC(height: 749, hash: 'same-tip')..setConnected(true);
+    final first = ChatProvider(
+      rpc: rpc,
+      settings: settings,
+      enforcer: enforcer,
+      restartBitnames: () async {},
+      storageKeySource: storageKeys,
+      autoStart: false,
+    );
+    await first.initialize();
+    expect(first.selectedProfileReady, isTrue);
+    expect(
+      first.selectedCommitmentAssessment?.kind,
+      BitNamesProfileCommitmentKind.namespaced,
+    );
+    first.dispose();
+
     final provider = ChatProvider(
       rpc: rpc,
       settings: settings,
@@ -281,7 +303,7 @@ void main() {
     expect(provider.selectedProfileReady, isTrue);
 
     rpc
-      ..commitment = 'different-commitment'
+      ..commitment = 'd' * 64
       ..statuses['profile-tx'] = BitnamesTransactionStatus.absent
       ..sidechainHeight = 16
       ..sidechainHash = 'side-16';
@@ -292,6 +314,144 @@ void main() {
     expect(provider.operations.single.phase, BitnamesOperationPhase.paused);
     expect(rpc.updateCalls, 0);
     provider.dispose();
+  });
+
+  test('unknown application commitment blocks publication before spending', () async {
+    const hash = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';
+    final rpc = RecoveryBitnamesRPC(
+      bitnamesMainchainHash: 'same-tip',
+      sidechainHeight: 15,
+      registeredHash: hash,
+      commitment: 'e' * 64,
+    )..setConnected(true);
+    final provider = ChatProvider(
+      rpc: rpc,
+      settings: settings,
+      storageKeySource: storageKeys,
+      autoStart: false,
+      commitmentNetwork: 'signet',
+      commitmentActivation: BitNamesCommitmentActivation.namespacedV1,
+    );
+    await provider.initialize();
+
+    expect(provider.selectedCommitmentBlocked, isTrue);
+    expect(
+      await provider.publishProfile(
+        direct: [Uri.parse('http://127.0.0.1:37999')],
+        tor: const [],
+        paymailFeeSats: 500,
+      ),
+      isNull,
+    );
+    expect(rpc.updateCalls, 0);
+    expect(provider.error, contains('unknown application commitment'));
+    provider.dispose();
+  });
+
+  test('commitment race aborts before journaling or spending', () async {
+    const hash = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';
+    final rpc = RecoveryBitnamesRPC(
+      bitnamesMainchainHash: 'same-tip',
+      sidechainHeight: 15,
+      registeredHash: hash,
+      commitmentFromSecondResolve: 'f' * 64,
+    )..setConnected(true);
+    final provider = ChatProvider(
+      rpc: rpc,
+      settings: settings,
+      storageKeySource: storageKeys,
+      autoStart: false,
+      commitmentNetwork: 'signet',
+      commitmentActivation: BitNamesCommitmentActivation.namespacedV1,
+    );
+    await provider.initialize();
+
+    expect(
+      await provider.publishProfile(
+        direct: [Uri.parse('http://127.0.0.1:37999')],
+        tor: const [],
+        paymailFeeSats: 500,
+      ),
+      isNull,
+    );
+    expect(rpc.updateCalls, 0);
+    expect(provider.operations, isEmpty);
+    expect(provider.error, contains('changed while'));
+    provider.dispose();
+  });
+
+  test('namespaced profile confirms, survives restart, and never downgrades', () async {
+    const hash = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';
+    final rpc = RecoveryBitnamesRPC(
+      bitnamesMainchainHash: 'same-tip',
+      sidechainHeight: 15,
+      registeredHash: hash,
+    )..setConnected(true);
+    final enforcer = RecoveryEnforcerRPC(height: 749, hash: 'same-tip')..setConnected(true);
+    final active = ChatProvider(
+      rpc: rpc,
+      settings: settings,
+      enforcer: enforcer,
+      restartBitnames: () async {},
+      storageKeySource: storageKeys,
+      autoStart: false,
+      commitmentNetwork: 'signet',
+      commitmentActivation: BitNamesCommitmentActivation.namespacedV1,
+    );
+    await active.initialize();
+    final txid = await active.publishProfile(
+      direct: [Uri.parse('http://127.0.0.1:37999')],
+      tor: const [],
+      paymailFeeSats: 500,
+    );
+    final submitted = rpc.lastUpdates!.commitment.value!;
+    final profile = active.profiles[hash]!;
+
+    expect(txid, 'profile-tx');
+    expect(rpc.updateCalls, 1);
+    expect(rpc.lastUpdateFee, ChatProvider.minerFeeSats);
+    expect(profile.commitmentManifest, isNotNull);
+    expect(bitNamesAuthoritativeProfileCommitment(profile), submitted);
+    expect(active.selectedProfilePending, isTrue);
+
+    rpc
+      ..commitment = submitted
+      ..statuses['profile-tx'] = BitnamesTransactionStatus.confirmed
+      ..sidechainHeight = 16
+      ..sidechainHash = 'side-16';
+    await active.refresh();
+    expect(active.selectedProfileReady, isTrue);
+    expect(active.operations.single.phase, BitnamesOperationPhase.confirmed);
+    active.dispose();
+
+    final restarted = ChatProvider(
+      rpc: rpc,
+      settings: settings,
+      enforcer: enforcer,
+      restartBitnames: () async {},
+      storageKeySource: storageKeys,
+      autoStart: false,
+      commitmentNetwork: 'signet',
+      commitmentActivation: BitNamesCommitmentActivation.legacyCompatible,
+    );
+    await restarted.initialize();
+    expect(restarted.selectedProfileReady, isTrue);
+    expect(
+      restarted.selectedCommitmentAssessment?.kind,
+      BitNamesProfileCommitmentKind.namespaced,
+    );
+
+    await restarted.publishProfile(
+      direct: [Uri.parse('http://127.0.0.1:37999')],
+      tor: const [],
+      paymailFeeSats: 500,
+    );
+    expect(rpc.updateCalls, 2);
+    expect(
+      restarted.profiles[hash]!.commitmentManifest,
+      isNotNull,
+    );
+    restarted.dispose();
   });
 
   test('introduction reorg relocks an accepted relationship', () async {
@@ -622,7 +782,7 @@ class RecoveryDialer implements BitMessageHttpDialer {
     required Duration timeout,
   }) async => BitMessageHttpResponse(
     statusCode: 200,
-    body: jsonEncode(profile.toJson()),
+    body: jsonEncode(bitNamesCommitResponse(profile)),
   );
 
   @override
@@ -645,6 +805,7 @@ class RecoveryBitnamesRPC extends MockBitnamesRPC {
     required this.sidechainHeight,
     this.registeredHash,
     this.commitment,
+    this.commitmentFromSecondResolve,
     this.failChainSnapshot = false,
   });
 
@@ -653,10 +814,14 @@ class RecoveryBitnamesRPC extends MockBitnamesRPC {
   String sidechainHash = 'side-15';
   String? registeredHash;
   String? commitment;
+  String? commitmentFromSecondResolve;
   bool failChainSnapshot;
   int registerCalls = 0;
   int reserveCalls = 0;
   int updateCalls = 0;
+  int resolveCalls = 0;
+  BitNameDataUpdates? lastUpdates;
+  int? lastUpdateFee;
   final Map<String, BitnamesTransactionStatus> statuses = {};
 
   @override
@@ -706,18 +871,21 @@ class RecoveryBitnamesRPC extends MockBitnamesRPC {
     required int feeSats,
   }) async {
     updateCalls++;
+    lastUpdates = updates;
+    lastUpdateFee = feeSats;
     return 'profile-tx';
   }
 
   @override
   Future<BitNameResolution?> resolveBitName(String bitname) async {
     if (registeredHash != bitname) return null;
+    resolveCalls++;
     return BitNameResolution(
       bitname: bitname,
       outpoint: const {'txid': 'registered', 'vout': 0},
       address: 'address',
       data: BitNameData(
-        commitment: commitment,
+        commitment: resolveCalls >= 2 ? commitmentFromSecondResolve ?? commitment : commitment,
         encryptionPubkey: 'encryption',
         signingPubkey: 'signing',
         paymailFeeSats: 500,

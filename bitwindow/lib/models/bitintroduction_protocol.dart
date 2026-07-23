@@ -27,9 +27,11 @@ class BitMessageProfile {
     Iterable<Uri> directEndpoints = const [],
     Iterable<Uri> torEndpoints = const [],
     this.paymailFeeSats,
+    Map<String, dynamic>? commitmentManifest,
   }) : bitNameHash = _bitNameHash(bitNameHash),
        directEndpoints = List.unmodifiable(_endpoints(directEndpoints, false)),
-       torEndpoints = List.unmodifiable(_endpoints(torEndpoints, true)) {
+       torEndpoints = List.unmodifiable(_endpoints(torEndpoints, true)),
+       commitmentManifest = commitmentManifest == null ? null : _immutableJsonObject(commitmentManifest) {
     _notEmpty(signingPublicKey, 'signingPublicKey');
     _notEmpty(encryptionPublicKey, 'encryptionPublicKey');
     if (paymailFeeSats != null && paymailFeeSats! < 0) {
@@ -40,6 +42,7 @@ class BitMessageProfile {
   final String bitNameHash, signingPublicKey, encryptionPublicKey;
   final List<Uri> directEndpoints, torEndpoints;
   final int? paymailFeeSats;
+  final Map<String, dynamic>? commitmentManifest;
 
   factory BitMessageProfile.fromJson(Map<String, dynamic> json) => BitMessageProfile(
     bitNameHash: _string(json, 'bitname_hash'),
@@ -48,9 +51,14 @@ class BitMessageProfile {
     directEndpoints: _uriList(json['direct_endpoints'], 'direct_endpoints'),
     torEndpoints: _uriList(json['tor_endpoints'], 'tor_endpoints'),
     paymailFeeSats: _optionalInt(json, 'paymail_fee_sats'),
+    commitmentManifest: switch (json['commitment_manifest']) {
+      final Map value => Map<String, dynamic>.from(value),
+      null => null,
+      _ => throw const FormatException('commitment_manifest must be an object'),
+    },
   );
 
-  Map<String, dynamic> toJson() => {
+  Map<String, dynamic> toCommitmentPayloadJson() => {
     'bitname_hash': bitNameHash,
     'signing_public_key': signingPublicKey,
     'encryption_public_key': encryptionPublicKey,
@@ -58,6 +66,23 @@ class BitMessageProfile {
     'tor_endpoints': torEndpoints.map((uri) => '$uri').toList(),
     if (paymailFeeSats != null) 'paymail_fee_sats': paymailFeeSats,
   };
+
+  Map<String, dynamic> toJson() => {
+    ...toCommitmentPayloadJson(),
+    if (commitmentManifest != null) 'commitment_manifest': _cloneJsonObject(commitmentManifest!),
+  };
+
+  BitMessageProfile withCommitmentManifest(
+    Map<String, dynamic>? manifest,
+  ) => BitMessageProfile(
+    bitNameHash: bitNameHash,
+    signingPublicKey: signingPublicKey,
+    encryptionPublicKey: encryptionPublicKey,
+    directEndpoints: directEndpoints,
+    torEndpoints: torEndpoints,
+    paymailFeeSats: paymailFeeSats,
+    commitmentManifest: manifest,
+  );
 }
 
 class VerifiedBitMessageProfile {
@@ -65,11 +90,13 @@ class VerifiedBitMessageProfile {
     required this.profile,
     required String onChainCommitment,
     required this.verificationReference,
+    bool Function(BitMessageProfile profile, String commitment)? commitmentVerifier,
   }) : onChainCommitment = onChainCommitment.trim().toLowerCase() {
     if (!_hashPattern.hasMatch(this.onChainCommitment)) {
       throw ArgumentError.value(onChainCommitment, 'onChainCommitment', 'must be a 32-byte hexadecimal hash');
     }
-    if (bitMessageProfileCommitment(profile) != this.onChainCommitment) {
+    if (!(commitmentVerifier?.call(profile, this.onChainCommitment) ??
+        bitMessageProfileCommitment(profile) == this.onChainCommitment)) {
       throw ArgumentError.value(onChainCommitment, 'onChainCommitment', 'does not commit to the canonical profile');
     }
     _notEmpty(verificationReference, 'verificationReference');
@@ -86,8 +113,11 @@ class VerifiedBitMessageProfile {
   int? get paymailFeeSats => profile.paymailFeeSats;
 }
 
-String bitMessageProfileCommitment(BitMessageProfile profile) =>
-    blake3Hex(utf8.encode(canonicalJsonEncode(profile.toJson())));
+String bitMessageProfileCommitment(BitMessageProfile profile) => blake3Hex(
+  utf8.encode(
+    canonicalJsonEncode(profile.toCommitmentPayloadJson()),
+  ),
+);
 
 class BitIntroductionPayload {
   BitIntroductionPayload({
@@ -214,6 +244,27 @@ String canonicalJsonEncode(Object? value) {
 }
 
 final _hashPattern = RegExp(r'^[0-9a-f]{64}$');
+
+Map<String, dynamic> _cloneJsonObject(Map<String, dynamic> value) {
+  try {
+    return Map<String, dynamic>.from(
+      jsonDecode(jsonEncode(value)) as Map,
+    );
+  } catch (_) {
+    throw const FormatException('commitment_manifest must contain JSON data');
+  }
+}
+
+Map<String, dynamic> _immutableJsonObject(Map<String, dynamic> value) {
+  Object? freeze(Object? item) => switch (item) {
+    final Map map => Map<String, dynamic>.unmodifiable(
+      map.map((key, value) => MapEntry('$key', freeze(value))),
+    ),
+    final List list => List<Object?>.unmodifiable(list.map(freeze)),
+    _ => item,
+  };
+  return freeze(_cloneJsonObject(value))! as Map<String, dynamic>;
+}
 
 String _bitNameHash(String value) {
   final hash = value.trim().toLowerCase();

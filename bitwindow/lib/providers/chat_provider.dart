@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:bitwindow/models/bitintroduction_protocol.dart';
+import 'package:bitwindow/models/bitnames_commitment.dart';
 import 'package:bitwindow/models/bitnames_recovery.dart';
 import 'package:bitwindow/models/chat_models.dart';
 import 'package:bitwindow/services/bitintroduction_codec.dart';
@@ -36,6 +37,8 @@ class ChatProvider extends ChangeNotifier {
     DateTime Function()? now, String Function()? id, this.autoStart = true,
     this.pollInterval = const Duration(seconds: 30), int serverPort = 37999,
     BitnamesChainRecovery chainRecovery = const BitnamesChainRecovery(),
+    String? commitmentNetwork,
+    BitNamesCommitmentActivation? commitmentActivation,
   }) : bitnamesRPC = rpc ?? GetIt.I.get<BitnamesRPC>(),
        _settings = settings ?? GetIt.I.get<ClientSettings>(),
        _balances = balances ?? _get<BalanceProvider>(),
@@ -47,10 +50,20 @@ class ChatProvider extends ChangeNotifier {
        // ignore: prefer_initializing_formals
        _torMutationGuard = torMutationGuard,
        _now = now ?? DateTime.now,
-       _newId = id ?? const Uuid().v4 {
+       _newId = id ?? const Uuid().v4,
+       _commitmentNetwork = bitNamesCommitmentNetwork(
+         commitmentNetwork ?? _defaultCommitmentNetwork(),
+       ),
+       _commitmentActivation = commitmentActivation ??
+           (_namespacedCommitmentsActivated
+               ? BitNamesCommitmentActivation.namespacedV1
+               : BitNamesCommitmentActivation.legacyCompatible) {
     _storageKeys = secureStore?.keySource ?? storageKeySource ?? _defaultStorageKeys();
     _secureStore = secureStore ?? BitnamesSecureStore(store: _settings.store, keySource: _storageKeys);
-    _verifier = BitnamesBitMessageProfileVerifier(bitnamesRPC);
+    _verifier = BitnamesBitMessageProfileVerifier(
+      bitnamesRPC,
+      commitmentNetwork: _commitmentNetwork,
+    );
     _codec = BitIntroductionEnvelopeCodec(signer: BitnamesBitIntroductionSigner(bitnamesRPC), signatureBackend: BitnamesBitIntroductionSignatureVerifier(bitnamesRPC), profileVerifier: _verifier, cipherBackend: BitnamesBitMessageCipher(bitnamesRPC));
     _ownsTransport = transport == null;
     _transport = transport ?? BitMessageTransport(directDialer: DirectBitMessageHttpDialer(), torDialer: createTorBitMessageDialer());
@@ -64,11 +77,15 @@ class ChatProvider extends ChangeNotifier {
   }
 
   static const minerFeeSats = 100, fallbackValueSats = 1, maxMessageBytes = 4096;
+  static const _namespacedCommitmentsActivated =
+      bool.fromEnvironment('BITNAMES_NAMESPACED_COMMITMENTS');
   final BitnamesRPC bitnamesRPC; final ClientSettings _settings; final BalanceProvider? _balances;
   final EnforcerRPC? _enforcer; final Future<void> Function()? _restartBitnames;
   final BitnamesChainRecovery _chainRecovery;
   final BitnamesTorController? _tor; final TorMutationGuard? _torMutationGuard;
   final DateTime Function() _now; final String Function() _newId;
+  final String _commitmentNetwork;
+  final BitNamesCommitmentActivation _commitmentActivation;
   final bool autoStart; final Duration pollInterval;
   late final BitnamesBitMessageProfileVerifier _verifier; late final BitIntroductionEnvelopeCodec _codec;
   late final BitMessageTransport _transport; late final BitMessageServer _server; late final bool _ownsTransport;
@@ -129,9 +146,33 @@ class ChatProvider extends ChangeNotifier {
   int get balanceSats => (balanceBTC * 100000000).round();
   bool get hasSufficientBalance => balanceSats >= 10000;
   Map<String, BitMessageProfile> get profiles => Map.unmodifiable(_profiles);
-  bool profileReady(String hash) => _profiles.containsKey(hash) && !_pendingProfiles.contains(hash);
+  bool profileReady(String hash) {
+    final identity = _myIdentities.where((entry) => entry.hash == hash).firstOrNull;
+    final profile = _profiles[hash];
+    return identity != null &&
+        profile != null &&
+        !_pendingProfiles.contains(hash) &&
+        _profileMatchesCommitment(identity, profile);
+  }
   bool get selectedProfileReady => _selectedIdentity != null && profileReady(_selectedIdentity!.hash);
   bool get selectedProfilePending => _selectedIdentity != null && _pendingProfiles.contains(_selectedIdentity!.hash);
+  String get commitmentNetwork => _commitmentNetwork;
+  String get commitmentMode => _commitmentActivation == BitNamesCommitmentActivation.namespacedV1
+      ? 'Namespaced v1 writes enabled'
+      : 'Legacy-compatible writes; existing namespaced commitments remain namespaced';
+  BitNamesCommitmentAssessment? get selectedCommitmentAssessment {
+    final identity = _selectedIdentity;
+    if (identity == null) return null;
+    return assessBitMessageProfileCommitment(
+      profile: _profiles[identity.hash],
+      onChainCommitment: identity.details.commitment,
+      network: _commitmentNetwork,
+    );
+  }
+  bool get selectedCommitmentBlocked {
+    final assessment = selectedCommitmentAssessment;
+    return assessment != null && !assessment.writable;
+  }
   BitnamesChainSnapshot get chainHealth => _chainHealth;
   List<BitnamesOperation> get operations => List.unmodifiable(_operations.values);
   BitnamesStorageStatus get storageStatus => _secureStore.status;
@@ -518,7 +559,7 @@ class ChatProvider extends ChangeNotifier {
       for (final identity in _myIdentities) {
         final profile = _profiles[identity.hash];
         final statusId = 'profile_${identity.hash}';
-        if (profile != null && identity.details.commitment == bitMessageProfileCommitment(profile)) {
+        if (profile != null && _profileMatchesCommitment(identity, profile)) {
           if (_pendingProfiles.remove(identity.hash)) {
             _addStatus(
               statusId,
@@ -583,13 +624,73 @@ class ChatProvider extends ChangeNotifier {
     if (!await _mutationAllowed()) { _removeStatus(statusId); return null; }
     BitnamesOperation? operation;
     try {
-      final identity = me, signing = identity.details.signingPubkey ?? await bitnamesRPC.getNewVerifyingKey(),
-          encryption = identity.details.encryptionPubkey ?? await bitnamesRPC.getNewEncryptionKey();
-      final profile = BitMessageProfile(bitNameHash: identity.hash, signingPublicKey: signing,
+      final identity = me;
+      if (!await _ownsBitNameNow(identity.hash)) {
+        throw StateError('The selected BitName is no longer owned by this wallet');
+      }
+      final resolution = await _resolveOrNull(identity.hash);
+      if (resolution == null) {
+        throw StateError('The selected BitName is no longer registered');
+      }
+      final currentCommitment = resolution.data.commitment;
+      final signing = resolution.data.signingPubkey ?? await bitnamesRPC.getNewVerifyingKey();
+      final encryption = resolution.data.encryptionPubkey ?? await bitnamesRPC.getNewEncryptionKey();
+      final proposedProfile = BitMessageProfile(bitNameHash: identity.hash, signingPublicKey: signing,
         encryptionPublicKey: encryption, directEndpoints: direct.map((u) => _path(u, identity.hash)),
         torEndpoints: tor.map((u) => _path(u, identity.hash)), paymailFeeSats: paymailFeeSats);
-      if (profile.directEndpoints.isEmpty && profile.torEndpoints.isEmpty) {
+      if (proposedProfile.directEndpoints.isEmpty && proposedProfile.torEndpoints.isEmpty) {
         _removeStatus(statusId); _fail('Add a direct or Tor endpoint'); return null;
+      }
+      final planner = BitNamesCommitmentPlanner(
+        network: _commitmentNetwork,
+        activation: _commitmentActivation,
+      );
+      var knownProfile = _profiles[identity.hash];
+      var assessment = planner.assess(
+        onChainCommitment: currentCommitment,
+        knownProfile: knownProfile,
+      );
+      if (!assessment.writable && knownProfile != null) {
+        final discovered = await _transport.discoverProfile(knownProfile, torOnly: _torOnly);
+        final discoveredAssessment = planner.assess(
+          onChainCommitment: currentCommitment,
+          knownProfile: discovered,
+        );
+        if (discoveredAssessment.writable) {
+          knownProfile = discovered;
+          assessment = discoveredAssessment;
+        }
+      }
+      if (!assessment.writable) {
+        throw BitNamesCommitmentConflict('${assessment.summary}. ${assessment.details}');
+      }
+      final plan = planner.plan(
+        profile: proposedProfile,
+        currentCommitment: currentCommitment,
+        knownProfile: knownProfile,
+      );
+      final profile = plan.profile;
+      _addStatus(
+        statusId,
+        '${plan.summary} • ${plan.commitment.substring(0, 12)}… on $_commitmentNetwork'
+        '${plan.preservedApplications == 0 ? '' : ' • preserving ${plan.preservedApplications} other application namespace(s)'}',
+      );
+      final preflight = await _resolveOrNull(identity.hash);
+      if (preflight == null || !await _ownsBitNameNow(identity.hash)) {
+        throw StateError('BitName ownership changed while the reply profile was being prepared');
+      }
+      if (preflight.data.commitment != currentCommitment) {
+        throw const BitNamesCommitmentConflict(
+          'The application commitment changed while the reply profile was being prepared; nothing was submitted',
+        );
+      }
+      if (preflight.data.seqId != resolution.data.seqId ||
+          preflight.data.signingPubkey != resolution.data.signingPubkey ||
+          preflight.data.encryptionPubkey != resolution.data.encryptionPubkey ||
+          preflight.data.paymailFeeSats != resolution.data.paymailFeeSats) {
+        throw const BitNamesCommitmentConflict(
+          'BitName data changed while the reply profile was being prepared; nothing was submitted',
+        );
       }
       final now = _now();
       operation = BitnamesOperation(
@@ -610,7 +711,7 @@ class ChatProvider extends ChangeNotifier {
       );
       await _putOperation(operation);
       final txid = await bitnamesRPC.updateBitName(bitname: identity.hash,
-        updates: BitNameDataUpdates(commitment: BitNameUpdate.set(bitMessageProfileCommitment(profile)),
+        updates: BitNameDataUpdates(commitment: BitNameUpdate.set(plan.commitment),
           signingPubkey: BitNameUpdate.set(signing), encryptionPubkey: BitNameUpdate.set(encryption),
           paymailFeeSats: paymailFeeSats == null ? const BitNameUpdate<int>.delete() : BitNameUpdate.set(paymailFeeSats)),
         feeSats: minerFeeSats);
@@ -1225,7 +1326,7 @@ class ChatProvider extends ChangeNotifier {
             .where((entry) => entry.hash == operation.bitnameHash)
             .firstOrNull;
     final canonical =
-        identity?.details.commitment == bitMessageProfileCommitment(profile);
+        identity != null && _profileMatchesCommitment(identity, profile);
     if (canonical) {
       _profiles[operation.bitnameHash] = profile;
       _pendingProfiles.remove(operation.bitnameHash);
@@ -1710,6 +1811,12 @@ class ChatProvider extends ChangeNotifier {
       _contacts.where((c) => c.localBitname == local && c.id == remote).firstOrNull;
   String _identityLabel(BitnameEntry identity) => identity.plaintextName ?? '${identity.hash.substring(0, 8)}…';
   String _short(String value) => value.length <= 12 ? value : '${value.substring(0, 12)}…';
+  bool _profileMatchesCommitment(BitnameEntry identity, BitMessageProfile profile) =>
+      assessBitMessageProfileCommitment(
+        profile: profile,
+        onChainCommitment: identity.details.commitment,
+        network: _commitmentNetwork,
+      ).verified;
 
   ChatMessage _message(
     SignedBitIntroductionEnvelope envelope,
@@ -1874,6 +1981,8 @@ Uri _path(Uri uri, String hash) {
   return base.path.endsWith('/bitname/$hash/') ? base : base.resolve('bitname/$hash/');
 }
 T? _get<T extends Object>() => GetIt.I.isRegistered<T>() ? GetIt.I.get<T>() : null;
+String _defaultCommitmentNetwork() =>
+    _get<BitcoinConfProvider>()?.network.toReadableNet() ?? 'signet';
 Future<void> _defaultRestartBitnames() async {
   final binaries = _get<BinaryProvider>();
   final bitnames = binaries?.binaries.whereType<BitNames>().firstOrNull;
