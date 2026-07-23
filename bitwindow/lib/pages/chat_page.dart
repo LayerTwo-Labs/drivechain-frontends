@@ -93,6 +93,12 @@ class ChatPage extends StatelessWidget {
                             )
                           else
                             SailText.secondary13(model.chatError ?? 'No BitNames owned'),
+                          if (model.selectedIdentity != null) ...[
+                            const SizedBox(width: SailStyleValues.padding08),
+                            SailSVG.fromAsset(SailSVGAsset.check, color: theme.colors.success, height: 14),
+                            const SizedBox(width: SailStyleValues.padding04),
+                            SailText.secondary12('Registered on BitNames', color: theme.colors.success),
+                          ],
                           const SizedBox(width: SailStyleValues.padding12),
                           if (model.hasSufficientBalance)
                             SailTooltip(
