@@ -1,7 +1,9 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:auto_route/auto_route.dart';
+import 'package:bitwindow/models/bitintroduction_protocol.dart';
 import 'package:bitwindow/models/chat_models.dart';
 import 'package:bitwindow/pages/sidechains_page.dart';
 import 'package:bitwindow/providers/chat_provider.dart';
@@ -434,7 +436,6 @@ class ChatPage extends StatelessWidget {
   }
 
   Future<void> _showMessagingSetupDialog(BuildContext context, ChatViewModel model) async {
-    final direct = TextEditingController(), peer = TextEditingController();
     final fee = TextEditingController(text: '${model.selectedIdentity?.details.paymailFeeSats ?? 1000}');
     var busy = false;
     Future<void> run(StateSetter setState, Future<bool> Function() action, String success) async {
@@ -465,8 +466,6 @@ class ChatPage extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              SailTextField(controller: direct, label: 'Direct reply URL', hintText: 'http://your-ip:37999'),
-              const SizedBox(height: SailStyleValues.padding12),
               SailTextField(
                 controller: fee,
                 label: 'Introduction fee (sats)',
@@ -475,10 +474,9 @@ class ChatPage extends StatelessWidget {
                 textFieldType: TextFieldType.number,
               ),
               const SizedBox(height: SailStyleValues.padding12),
-              SailTextField(controller: peer, label: 'Tor P2P peer', hintText: '<56-character>.onion:6002'),
-              const SizedBox(height: SailStyleValues.padding12),
-              SailText.secondary12('Your message onion: ${model.ownOnion ?? "start Tor to create one"}'),
-              SailText.secondary12('Your P2P onion: ${model.p2pOnion ?? "start Tor to create one"}'),
+              SailText.secondary12(
+                model.torOnly ? 'Continue through Tor' : 'Continue directly (reply address is detected automatically)',
+              ),
               const SizedBox(height: SailStyleValues.padding12),
               Row(
                 children: [
@@ -493,7 +491,7 @@ class ChatPage extends StatelessWidget {
                     disabled: busy,
                     onPressed: () async => run(
                       setState,
-                      () => model.setTorOnly(!model.torOnly, peer.text.trim()),
+                      () => model.setTorOnly(!model.torOnly),
                       model.torOnly ? 'Direct mode enabled' : 'Tor-only mode enabled',
                     ),
                   ),
@@ -503,7 +501,7 @@ class ChatPage extends StatelessWidget {
                     disabled: busy,
                     onPressed: () async => run(
                       setState,
-                      () => model.publishProfile(direct.text.trim(), fee.text),
+                      () => model.publishProfile(fee.text),
                       'Reply profile submitted',
                     ),
                   ),
@@ -514,8 +512,6 @@ class ChatPage extends StatelessWidget {
         ),
       ),
     );
-    direct.dispose();
-    peer.dispose();
     fee.dispose();
   }
 }
@@ -1007,15 +1003,21 @@ class ChatViewModel extends BaseViewModel {
   }
 
   Future<bool> startTor() async => (await _chatProvider.downloadAndStartTor()).ready;
-  Future<bool> setTorOnly(bool enabled, String peer) =>
-      _chatProvider.setTorOnly(enabled, peerOnion: peer.isEmpty ? null : peer);
-  Future<bool> publishProfile(String direct, String fee) async {
+  Future<bool> setTorOnly(bool enabled) {
+    final profile = selectedContact?.replyProfile;
+    final onion = profile == null ? null : BitMessageProfile.fromJson(profile).torEndpoints.firstOrNull?.host;
+    return _chatProvider.setTorOnly(enabled, peerOnion: onion == null ? null : '$onion:6002');
+  }
+
+  Future<bool> publishProfile(String fee) async {
     try {
       final onion = ownOnion;
       final parsedFee = int.tryParse(fee.trim());
       if (fee.trim().isNotEmpty && parsedFee == null) return false;
+      final interfaces = await NetworkInterface.list(type: InternetAddressType.IPv4);
+      final address = interfaces.expand((interface) => interface.addresses).where((ip) => !ip.isLoopback).firstOrNull;
       return await _chatProvider.publishProfile(
-            direct: [if (direct.isNotEmpty) Uri.parse(direct)],
+            direct: [if (!torOnly && address != null) Uri.parse('http://${address.address}:37999')],
             tor: [if (onion != null) Uri.parse('http://$onion')],
             paymailFeeSats: parsedFee,
           ) !=

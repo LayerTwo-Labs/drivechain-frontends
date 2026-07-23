@@ -44,14 +44,12 @@ class DirectBitMessageHttpDialer implements BitMessageHttpDialer {
   @override
   void close() => _client.close();
 }
-
 class BitMessageSendResult {
   const BitMessageSendResult({required this.transport, this.endpoint, this.failedAttempts = const []});
   final BitMessageTransportType transport;
   final Uri? endpoint;
   final List<String> failedAttempts;
 }
-
 class BitMessageTransportException implements Exception {
   const BitMessageTransportException(this.message, this.attempts);
   final String message;
