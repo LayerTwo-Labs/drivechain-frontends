@@ -1,0 +1,8 @@
+run: build
+    ./dc-hubd
+
+build:
+    go build -v -o ./dc-hubd .
+
+lint: 
+    golangci-lint run ./...

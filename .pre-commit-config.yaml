@@ -13,16 +13,16 @@ repos:
 
   - repo: local
     hooks:
-      - id: prettier-faucet
-        name: prettier (faucet)
-        entry: faucet/node_modules/.bin/prettier --write --ignore-unknown
+      - id: prettier-dc-hub
+        name: prettier (dc-hub)
+        entry: dc-hub/node_modules/.bin/prettier --write --ignore-unknown
         language: system
-        files: ^faucet/
-        exclude: ^faucet/(gen/|node_modules/|\.next/|bun\.lock)
+        files: ^dc-hub/
+        exclude: ^dc-hub/(gen/|node_modules/|\.next/|bun\.lock)
 
-      - id: gofmt-faucet-server
-        name: gofmt (faucet server)
+      - id: gofmt-dc-hub-server
+        name: gofmt (dc-hub server)
         entry: gofmt -l -w
         language: system
-        files: ^faucet/server/.*\.go$
-        exclude: ^faucet/server/gen/
+        files: ^dc-hub/server/.*\.go$
+        exclude: ^dc-hub/server/gen/

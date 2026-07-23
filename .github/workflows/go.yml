@@ -5,7 +5,7 @@ on:
     paths:
       - "bitwindow/server/**"
       - "sidechain-orchestrator/**"
-      - "faucet/server/**"
+      - "dc-hub/server/**"
       - "sail_ui/assets/chains_config.json"
       - ".github/workflows/go.yml"
 
@@ -36,7 +36,7 @@ jobs:
         module:
           - bitwindow/server
           - sidechain-orchestrator
-          - faucet/server
+          - dc-hub/server
         include:
           - module: bitwindow/server
             install-sqlite: true

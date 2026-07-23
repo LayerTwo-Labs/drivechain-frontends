@@ -16,4 +16,4 @@ A collection of various Drivechain-related applications.
 
 - [Coinshift](coinshift/README.md)
 
-- [Faucet](faucet/README.md)
+- [Drivechain Hub](dc-hub/README.md)
