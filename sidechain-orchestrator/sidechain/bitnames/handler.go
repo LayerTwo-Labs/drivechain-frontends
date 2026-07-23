@@ -163,7 +163,7 @@ func (h *Handler) CreateDeposit(ctx context.Context, req *connect.Request[pb.Cre
 }
 
 func (h *Handler) ConnectPeer(ctx context.Context, req *connect.Request[pb.ConnectPeerRequest]) (*connect.Response[pb.ConnectPeerResponse], error) {
-	if err := h.proxy.Client.Call(ctx, "connect_peer", req.Msg.Address, nil); err != nil {
+	if _, err := h.proxy.Client.CallRaw(ctx, "connect_peer", []any{req.Msg.Address}); err != nil {
 		return nil, err
 	}
 	return connect.NewResponse(&pb.ConnectPeerResponse{}), nil

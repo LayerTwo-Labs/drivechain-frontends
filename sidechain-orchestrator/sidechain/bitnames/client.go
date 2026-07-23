@@ -311,7 +311,7 @@ func (c *Client) PendingWithdrawalBundle(ctx context.Context) (json.RawMessage, 
 
 // ConnectPeer connects to a peer at the given address.
 func (c *Client) ConnectPeer(ctx context.Context, address string) error {
-	_, err := c.call(ctx, "connect_peer", address)
+	_, err := c.call(ctx, "connect_peer", []any{address})
 	return err
 }
 

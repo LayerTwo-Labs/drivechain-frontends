@@ -55,6 +55,7 @@ class BitnamesTorController {
   }
 
   Future<BitnamesTorStatus> downloadAndStart({Duration timeout = const Duration(minutes: 15)}) async {
+    if ((await orchestrator.getBinaryStatus(binaryName)).status.downloaded) return start();
     await orchestrator.downloadBinary(binaryName);
     final deadline = DateTime.now().add(timeout);
     while (DateTime.now().isBefore(deadline)) {
@@ -66,7 +67,7 @@ class BitnamesTorController {
     throw TimeoutException('Timed out downloading BitNames Tor');
   }
 
-  Future<BitnamesTorStatus> start({Duration timeout = const Duration(minutes: 2)}) async {
+  Future<BitnamesTorStatus> start({Duration timeout = const Duration(minutes: 2)}) async { final existing = await refresh(); if (existing.ready) return existing;
     await orchestrator.startBinary(binaryName);
     final deadline = DateTime.now().add(timeout);
     while (DateTime.now().isBefore(deadline)) {
@@ -103,11 +104,11 @@ class BitnamesTorController {
     if (!status.ready || !status.p2pReady) throw StateError('Start BitNames Tor before enabling Tor mode');
     final tunnel = await connectP2P(peerOnion);
     await _restartBitNames(['--tor-proxy-mode', '--tor-proxy-peer', tunnel], timeout);
-    await rpc.connectPeer(tunnel);
     _chainTorPrepared = true;
     final deadline = DateTime.now().add(timeout);
     while (DateTime.now().isBefore(deadline)) {
       if (await chainTorReady(rpc)) return;
+      try { await rpc.connectPeer(tunnel); } catch (_) {}
       await _pause();
     }
     _chainTorPrepared = false;
@@ -132,13 +133,12 @@ class BitnamesTorController {
   }
 
   Future<void> _restartBitNames(List<String> args, Duration timeout) async {
-    await orchestrator.stopBinary('bitnames');
+    await orchestrator.stopBinary('bitnames', force: true); final deadline = DateTime.now().add(timeout); while ((await orchestrator.getBinaryStatus('bitnames')).status.connected && DateTime.now().isBefore(deadline)) { await _pause(); } await _pause();
     await orchestrator.startWithL1('bitnames', targetArgs: args, forceBackend: true);
-    final deadline = DateTime.now().add(timeout);
     while (DateTime.now().isBefore(deadline)) {
       final status = (await orchestrator.getBinaryStatus('bitnames')).status;
       if (status.connected) return;
-      final errors = [status.error, status.startupError, status.connectionError];
+      final errors = [status.startupError];
       final error = errors.firstWhere((value) => value.isNotEmpty, orElse: () => '');
       if (error.isNotEmpty) throw StateError(error);
       await _pause();
