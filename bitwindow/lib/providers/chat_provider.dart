@@ -116,10 +116,15 @@ class ChatProvider extends ChangeNotifier {
       startPolling();
     }
     if (_torOnly && _torPeerOnion != null) {
-      try { await _tor?.enableChainTor(bitnamesRPC, _torPeerOnion!); }
-      catch (e) { _error = 'Tor-only BitNames is not ready: $e'; }
+      unawaited(_restoreTor());
     }
     if (bitnamesRPC.connected) await refresh();
+    _changed();
+  }
+
+  Future<void> _restoreTor() async {
+    try { await _tor?.enableChainTor(bitnamesRPC, _torPeerOnion!); }
+    catch (e) { _error = 'Tor-only BitNames is not ready: $e'; }
     _changed();
   }
 
@@ -270,7 +275,9 @@ class ChatProvider extends ChangeNotifier {
       if (enabled) {
         final controller = _tor;
         final onion = peerOnion ?? _torPeerOnion;
-        if (controller == null || onion == null) throw StateError('Start BitNames Tor and choose a P2P onion');
+        if (controller == null || onion == null) {
+          throw StateError('No BitNames Tor peer is configured. Use direct mode or connect a Tor-capable contact first');
+        }
         await controller.enableChainTor(bitnamesRPC, onion);
         _torPeerOnion = onion;
       } else { await _tor?.disableChainTor(); }

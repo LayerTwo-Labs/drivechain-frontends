@@ -795,7 +795,8 @@ class _RegisterBitNameDialogState extends State<_RegisterBitNameDialog> {
   @override
   void initState() {
     super.initState();
-    useTor = widget.model.torOnly;
+    // Direct works immediately; Tor needs a separate remote BitNames Tor peer.
+    useTor = false;
     controller.addListener(_onTextChanged);
     feeController.addListener(_onTextChanged);
   }
@@ -829,6 +830,7 @@ class _RegisterBitNameDialogState extends State<_RegisterBitNameDialog> {
         SailButton(
           label: busy ? 'Setting up...' : 'Register',
           disabled: controller.text.trim().isEmpty || int.tryParse(feeController.text.trim()) == null || busy,
+          skipLoading: true,
           onPressed: () async {
             setState(() => busy = true);
             final ready = await widget.model.prepareRegistration(useTor);
@@ -875,7 +877,7 @@ class _RegisterBitNameDialogState extends State<_RegisterBitNameDialog> {
             const SizedBox(height: SailStyleValues.padding08),
             SailText.secondary12(
               useTor
-                  ? 'Tor will be started before anything is submitted.'
+                  ? 'Requires a reachable BitNames Tor peer; setup fails safely if none is available.'
                   : 'Registration and messaging setup will continue directly.',
               color: theme.colors.textSecondary,
             ),
@@ -1052,7 +1054,7 @@ class ChatViewModel extends BaseViewModel {
   Future<bool> startTor() async => (await _chatProvider.downloadAndStartTor()).ready;
   Future<bool> setTorOnly(bool enabled) {
     final profile = selectedContact?.replyProfile;
-    final onion = profile == null ? p2pOnion : BitMessageProfile.fromJson(profile).torEndpoints.firstOrNull?.host;
+    final onion = profile == null ? null : BitMessageProfile.fromJson(profile).torEndpoints.firstOrNull?.host;
     final peer = onion == null || onion.contains(':') ? onion : '$onion:6002';
     return _chatProvider.setTorOnly(enabled, peerOnion: peer);
   }
