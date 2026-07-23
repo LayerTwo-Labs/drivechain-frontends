@@ -8,6 +8,8 @@ import 'package:bitwindow/models/bitnames_recovery.dart';
 import 'package:bitwindow/models/chat_models.dart';
 import 'package:bitwindow/pages/sidechains_page.dart';
 import 'package:bitwindow/providers/chat_provider.dart';
+import 'package:bitwindow/services/bitnames_secure_store.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
@@ -79,6 +81,12 @@ class ChatPage extends StatelessWidget {
                       _ChainHealthBar(
                         health: model.chainHealth,
                         onRetry: model.retryChainRecovery,
+                      ),
+                      _PrivateStorageBar(
+                        status: model.storageStatus,
+                        onBackup: () => model.backupPrivateData(context),
+                        onRestore: () => model.restorePrivateData(context),
+                        onClear: () => model.clearPrivateData(context),
                       ),
                       // Status bars - stack all status messages
                       ...model.statusMessages.map(
@@ -345,8 +353,17 @@ class ChatPage extends StatelessWidget {
                                         return ListView.builder(
                                           reverse: true,
                                           padding: const EdgeInsets.all(SailStyleValues.padding08),
-                                          itemCount: messages.length,
+                                          itemCount: messages.length + (model.hasOlderMessages ? 1 : 0),
                                           itemBuilder: (context, index) {
+                                            if (index == messages.length) {
+                                              return Center(
+                                                child: SailButton(
+                                                  label: 'Load earlier messages',
+                                                  variant: ButtonVariant.secondary,
+                                                  onPressed: model.loadOlderMessages,
+                                                ),
+                                              );
+                                            }
                                             final message = messages[messages.length - 1 - index];
                                             // Message bubble (inlined)
                                             final isOwn = message.isOutgoing;
@@ -630,6 +647,87 @@ class _ClaimingStatusBar extends StatelessWidget {
           Expanded(
             child: SailText.primary13(status.message),
           ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PrivateStorageBar extends StatelessWidget {
+  const _PrivateStorageBar({
+    required this.status,
+    required this.onBackup,
+    required this.onRestore,
+    required this.onClear,
+  });
+
+  final BitnamesStorageStatus status;
+  final Future<void> Function() onBackup;
+  final Future<void> Function() onRestore;
+  final Future<void> Function() onClear;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = SailTheme.of(context);
+    final problem = {
+      BitnamesStorageState.locked,
+      BitnamesStorageState.corrupt,
+    }.contains(status.state);
+    final color = problem ? theme.colors.warning : theme.colors.success;
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(
+        horizontal: SailStyleValues.padding12,
+        vertical: SailStyleValues.padding08,
+      ),
+      margin: const EdgeInsets.only(bottom: SailStyleValues.padding08),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.08),
+        borderRadius: SailStyleValues.borderRadius,
+        border: Border.all(color: color.withValues(alpha: 0.25)),
+      ),
+      child: Row(
+        children: [
+          SailSVG.fromAsset(
+            problem ? SailSVGAsset.iconWarning : SailSVGAsset.check,
+            color: color,
+            height: 16,
+          ),
+          const SizedBox(width: SailStyleValues.padding12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SailText.primary13(status.summary, color: color),
+                if (status.details != null || status.generation != null)
+                  SailText.secondary12(
+                    [
+                      if (status.details != null) status.details!,
+                      if (status.generation != null) 'Authenticated generation ${status.generation}',
+                    ].join(' • '),
+                  ),
+              ],
+            ),
+          ),
+          if (status.writable) ...[
+            SailButton(
+              label: 'Encrypted backup',
+              variant: ButtonVariant.secondary,
+              onPressed: onBackup,
+            ),
+            const SizedBox(width: SailStyleValues.padding08),
+            SailButton(
+              label: 'Restore',
+              variant: ButtonVariant.secondary,
+              onPressed: onRestore,
+            ),
+            const SizedBox(width: SailStyleValues.padding08),
+            SailButton(
+              label: 'Clear chats',
+              variant: ButtonVariant.secondary,
+              onPressed: onClear,
+            ),
+          ],
         ],
       ),
     );
@@ -1095,6 +1193,7 @@ class ChatViewModel extends BaseViewModel {
   ChatContact? get selectedContact => _chatProvider.selectedContact;
 
   List<ChatMessage> get currentConversation => _chatProvider.currentConversation;
+  bool get hasOlderMessages => _chatProvider.hasOlderMessages;
 
   bool get isSending => _chatProvider.isSending;
   String? get chatError => _chatProvider.error;
@@ -1105,7 +1204,8 @@ class ChatViewModel extends BaseViewModel {
   bool get messagingReady => _chatProvider.selectedProfileReady;
   bool get messagingProfilePending => _chatProvider.selectedProfilePending;
   BitnamesChainSnapshot get chainHealth => _chatProvider.chainHealth;
-  bool get chainWritesReady => chainHealth.mutationSafe;
+  BitnamesStorageStatus get storageStatus => _chatProvider.storageStatus;
+  bool get chainWritesReady => chainHealth.mutationSafe && storageStatus.writable;
   bool get hasTorChainPeer {
     if (torOnly || _chatProvider.hasConfiguredTorPeer) return true;
     try {
@@ -1204,6 +1304,8 @@ class ChatViewModel extends BaseViewModel {
     _chatProvider.selectContact(contact);
   }
 
+  Future<void> loadOlderMessages() async => _chatProvider.loadOlderMessages();
+
   Future<ChatContact?> lookupAndAddContact(String nameOrHash) async {
     setBusy(true);
     try {
@@ -1290,6 +1392,85 @@ class ChatViewModel extends BaseViewModel {
           null;
     } catch (_) {
       return false;
+    }
+  }
+
+  Future<void> backupPrivateData(BuildContext context) async {
+    try {
+      final path = await FilePicker.saveFile(
+        dialogTitle: 'Save encrypted BitNames backup',
+        fileName: 'bitnames-private-${DateTime.now().toUtc().toIso8601String().replaceAll(':', '-')}.json',
+        type: FileType.custom,
+        allowedExtensions: ['json'],
+      );
+      if (path == null) return;
+      await File(path).writeAsString(
+        await _chatProvider.exportPrivateData(),
+        flush: true,
+      );
+      if (context.mounted) {
+        showSailToast(
+          context,
+          'Encrypted chats, reply routes, and pending operations backed up',
+          variant: SailToastVariant.success,
+        );
+      }
+    } catch (e) {
+      if (context.mounted) showSailToast(context, 'Private backup failed: $e');
+    }
+  }
+
+  Future<void> restorePrivateData(BuildContext context) async {
+    try {
+      final result = await FilePicker.pickFiles(
+        dialogTitle: 'Restore encrypted BitNames backup',
+        type: FileType.custom,
+        allowedExtensions: ['json'],
+      );
+      final path = result?.files.single.path;
+      if (path == null) return;
+      final file = File(path);
+      if (await file.length() > 64 * 1024 * 1024) {
+        throw const BitnamesStorageException('Backup is larger than the 64 MiB safety limit');
+      }
+      await _chatProvider.restorePrivateData(await file.readAsString());
+      if (context.mounted) {
+        showSailToast(
+          context,
+          'Encrypted BitNames data authenticated and restored',
+          variant: SailToastVariant.success,
+        );
+      }
+    } catch (e) {
+      if (context.mounted) showSailToast(context, 'Private restore rejected: $e');
+    }
+  }
+
+  Future<void> clearPrivateData(BuildContext context) async {
+    final confirmed = await showThemedDialog<bool>(
+      context: context,
+      builder: (dialogContext) => SailAlertCard(
+        title: 'Clear private chat history?',
+        subtitle:
+            'Contacts, messages, and queued encrypted deliveries will be removed. '
+            'Registered BitNames and confirmed reply profiles stay available.',
+        confirmText: 'Clear chats',
+        onConfirm: () async => Navigator.pop(dialogContext, true),
+        onCancel: () async => Navigator.pop(dialogContext, false),
+      ),
+    );
+    if (confirmed != true) return;
+    try {
+      await _chatProvider.clearChatHistory();
+      if (context.mounted) {
+        showSailToast(
+          context,
+          'Private BitNames chat history cleared',
+          variant: SailToastVariant.success,
+        );
+      }
+    } catch (e) {
+      if (context.mounted) showSailToast(context, 'Could not clear chats: $e');
     }
   }
 

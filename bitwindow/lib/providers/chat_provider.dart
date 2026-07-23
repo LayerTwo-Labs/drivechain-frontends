@@ -9,6 +9,7 @@ import 'package:bitwindow/services/bitintroduction_codec.dart';
 import 'package:bitwindow/services/bitmessage_server.dart';
 import 'package:bitwindow/services/bitmessage_transport.dart';
 import 'package:bitwindow/services/bitnames_bitintroduction_backend.dart';
+import 'package:bitwindow/services/bitnames_secure_store.dart';
 import 'package:bitwindow/services/bitnames_tor_controller.dart';
 import 'package:bitwindow/services/tor_bitmessage_dialer.dart';
 import 'package:flutter/foundation.dart';
@@ -31,6 +32,7 @@ class ChatProvider extends ChangeNotifier {
     BitnamesRPC? rpc, ClientSettings? settings, BalanceProvider? balances,
     EnforcerRPC? enforcer, Future<void> Function()? restartBitnames,
     BitMessageTransport? transport, BitnamesTorController? tor, TorMutationGuard? torMutationGuard,
+    BitnamesSecureStore? secureStore, BitnamesStorageKeySource? storageKeySource,
     DateTime Function()? now, String Function()? id, this.autoStart = true,
     this.pollInterval = const Duration(seconds: 30), int serverPort = 37999,
     BitnamesChainRecovery chainRecovery = const BitnamesChainRecovery(),
@@ -46,6 +48,8 @@ class ChatProvider extends ChangeNotifier {
        _torMutationGuard = torMutationGuard,
        _now = now ?? DateTime.now,
        _newId = id ?? const Uuid().v4 {
+    _storageKeys = secureStore?.keySource ?? storageKeySource ?? _defaultStorageKeys();
+    _secureStore = secureStore ?? BitnamesSecureStore(store: _settings.store, keySource: _storageKeys);
     _verifier = BitnamesBitMessageProfileVerifier(bitnamesRPC);
     _codec = BitIntroductionEnvelopeCodec(signer: BitnamesBitIntroductionSigner(bitnamesRPC), signatureBackend: BitnamesBitIntroductionSignatureVerifier(bitnamesRPC), profileVerifier: _verifier, cipherBackend: BitnamesBitMessageCipher(bitnamesRPC));
     _ownsTransport = transport == null;
@@ -55,6 +59,7 @@ class ChatProvider extends ChangeNotifier {
     });
     bitnamesRPC.addListener(_onConnectionChanged);
     _balances?.addListener(_onBalanceChanged);
+    _storageKeys.addListener(_onStorageKeyChanged);
     if (autoStart) unawaited(initialize());
   }
 
@@ -67,6 +72,8 @@ class ChatProvider extends ChangeNotifier {
   final bool autoStart; final Duration pollInterval;
   late final BitnamesBitMessageProfileVerifier _verifier; late final BitIntroductionEnvelopeCodec _codec;
   late final BitMessageTransport _transport; late final BitMessageServer _server; late final bool _ownsTransport;
+  late final BitnamesStorageKeySource _storageKeys;
+  late final BitnamesSecureStore _secureStore;
 
   List<BitnameEntry> _allBitNames = [];
   List<BitnameEntry> _myIdentities = [];
@@ -80,12 +87,14 @@ class ChatProvider extends ChangeNotifier {
   final Map<String, BitMessageProfile> _profiles = {}; final Set<String> _pendingProfiles = {}; final Map<String, BitMessageWire> _pendingWires = {};
   final Map<String, BitnamesOperation> _operations = {};
   ChatContact? _selectedContact;
+  int _conversationPageSize = 50;
   Timer? _pollTimer;
   Future<void>? _ready; String? _torPeerOnion;
   bool _polling = false, _refreshing = false, _isSending = false, _torOnly = false, _disposed = false;
   String? _error;
   final Lock _saveLock = Lock();
   final Lock _operationLock = Lock();
+  final Lock _storageReloadLock = Lock();
   BitnamesChainSnapshot _chainHealth = const BitnamesChainSnapshot();
   BitnamesTorStatus _torStatus = const BitnamesTorStatus(state: BitnamesTorState.unavailable);
 
@@ -95,11 +104,22 @@ class ChatProvider extends ChangeNotifier {
   ChatContact? get selectedContact => _selectedContact;
   List<ChatContact> get contacts => _contacts.where((c) => c.localBitname == (_selectedIdentity?.hash ?? '')).toList();
   List<ChatMessage> get messages => List.unmodifiable(_messages);
-  List<ChatMessage> get currentConversation => _messages.where((m) {
+  List<ChatMessage> get _allCurrentConversation => _messages.where((m) {
     final me = _selectedIdentity?.hash, them = _selectedContact?.id;
     return m.localBitname == me && ((m.senderBitname == me && m.recipientBitname == them) ||
         (m.senderBitname == them && m.recipientBitname == me));
   }).toList();
+  List<ChatMessage> get currentConversation {
+    final local = _selectedIdentity?.hash, remote = _selectedContact?.id;
+    if (local == null || remote == null) return [];
+    return conversationPage(
+      localBitname: local,
+      remoteBitname: remote,
+      limit: _conversationPageSize,
+    );
+  }
+  bool get hasOlderMessages =>
+      _allCurrentConversation.length > currentConversation.length;
   bool get isSending => _isSending;
   bool get isLoading => _ready != null && _myIdentities.isEmpty; String? get error => _error;
   bool get torOnly => _torOnly; BitnamesTorStatus get torStatus => _torStatus;
@@ -114,13 +134,40 @@ class ChatProvider extends ChangeNotifier {
   bool get selectedProfilePending => _selectedIdentity != null && _pendingProfiles.contains(_selectedIdentity!.hash);
   BitnamesChainSnapshot get chainHealth => _chainHealth;
   List<BitnamesOperation> get operations => List.unmodifiable(_operations.values);
+  BitnamesStorageStatus get storageStatus => _secureStore.status;
+  bool get privateStorageReady => storageStatus.writable;
 
   Future<void> initialize() => _ready ??= _init();
   Future<void> _init() async {
-    final state = (await _settings.getValue(_ChatState())).value;
-    await _loadContacts();
-    final persistedContacts = _list(state['contacts'], ChatContact.fromJson);
-    if (persistedContacts.isNotEmpty) _contacts = persistedContacts;
+    var opened = false;
+    await _saveLock.synchronized(() async {
+      try {
+        final state = await _secureStore.load();
+        _clearPrivateMemory();
+        if (!storageStatus.writable) return;
+        _hydrate(state);
+        _restoreOperationStatuses();
+        opened = true;
+      } on BitnamesStorageException catch (e) {
+        _clearPrivateMemory();
+        _error = 'Private BitNames storage was not opened: $e';
+      }
+    });
+    if (!opened) {
+      _changed();
+      return;
+    }
+    if (_tor != null) _torStatus = await _tor.refresh();
+    if (autoStart) await _startRuntime();
+    if (_torOnly && _torPeerOnion != null) {
+      unawaited(_restoreTor());
+    }
+    if (bitnamesRPC.connected) await refresh();
+    _changed();
+  }
+
+  void _hydrate(Map<String, dynamic> state) {
+    _contacts = _list(state['contacts'], ChatContact.fromJson);
     _messages.addAll(_list(state['messages'], ChatMessage.fromJson));
     for (final json in _maps(state['profiles'])) { final profile = BitMessageProfile.fromJson(json); _profiles[profile.bitNameHash] = profile; }
     _pendingProfiles.addAll((state['pending_profiles'] as List? ?? []).whereType<String>());
@@ -148,17 +195,63 @@ class ChatProvider extends ChangeNotifier {
     _preferredIdentityHash = state['selected_identity'] is String ? state['selected_identity'] as String : null;
     _torOnly = state['tor_only'] == true;
     _torPeerOnion = state['tor_peer'] is String ? state['tor_peer'] as String : null;
-    _restoreOperationStatuses();
-    if (_tor != null) _torStatus = await _tor.refresh();
-    if (autoStart) {
-      try { await _server.start(); } catch (e) { _error = 'BitMessage listener unavailable: $e'; }
-      startPolling();
+  }
+
+  void _clearPrivateMemory() {
+    _contacts = [];
+    _messages.clear();
+    _profiles.clear();
+    _pendingProfiles.clear();
+    _pendingWires.clear();
+    _operations.clear();
+    _ownedHashes.clear();
+    _myIdentities = [];
+    _selectedIdentity = null;
+    _selectedContact = null;
+    _conversationPageSize = 50;
+    _preferredIdentityHash = null;
+    _torPeerOnion = null;
+    _torOnly = false;
+    _statusMessages.clear();
+  }
+
+  Future<void> _startRuntime() async {
+    if (!_server.isRunning) {
+      try { await _server.start(); }
+      catch (e) { _error = 'BitMessage listener unavailable: $e'; }
     }
-    if (_torOnly && _torPeerOnion != null) {
-      unawaited(_restoreTor());
-    }
-    if (bitnamesRPC.connected) await refresh();
-    _changed();
+    startPolling();
+  }
+
+  void _onStorageKeyChanged() {
+    unawaited(_storageReloadLock.synchronized(() async {
+      if (_disposed) return;
+      var ready = false;
+      await _saveLock.synchronized(() async {
+        stopPolling();
+        if (_server.isRunning) await _server.stop();
+        _clearPrivateMemory();
+        try {
+          final state = await _secureStore.load();
+          if (!storageStatus.writable) {
+            _error = null;
+            return;
+          }
+          _hydrate(state);
+          _restoreOperationStatuses();
+          _error = null;
+          ready = true;
+        } on BitnamesStorageException catch (e) {
+          _error = 'Private BitNames storage was not opened: $e';
+        }
+      });
+      if (ready) {
+        if (autoStart) await _startRuntime();
+        if (_torOnly && _torPeerOnion != null) unawaited(_restoreTor());
+        if (bitnamesRPC.connected) await refresh();
+      }
+      _changed();
+    }));
   }
 
   Future<void> _restoreTor() async {
@@ -168,7 +261,7 @@ class ChatProvider extends ChangeNotifier {
   }
 
   Future<void> refresh() async {
-    if (_refreshing) return;
+    if (_refreshing || !privateStorageReady) return;
     _refreshing = true;
     try {
       if (_tor != null) _torStatus = await _tor.refresh();
@@ -361,7 +454,7 @@ class ChatProvider extends ChangeNotifier {
   }
 
   void _onConnectionChanged() {
-    if (bitnamesRPC.connected) {
+    if (bitnamesRPC.connected && privateStorageReady) {
       unawaited(refresh());
     }
   }
@@ -455,32 +548,13 @@ class ChatProvider extends ChangeNotifier {
       // Load hash-name mappings
       final loadedMapping = await _clientSettings.getValue(HashNameMappingSetting());
       _hashNameMapping = loadedMapping as HashNameMappingSetting;
-
-      // Load cached owned hashes
-      final ownedSetting = await _clientSettings.getValue(OwnedBitNamesSetting());
-      _ownedHashes = ownedSetting.value.toSet();
-
       notifyListeners();
     } catch (e) {
       // Ignore errors on cache load
     }
   }
 
-  Future<void> _saveOwnedHashes() async {
-    final setting = OwnedBitNamesSetting(newValue: _ownedHashes.toList());
-    await _clientSettings.setValue(setting);
-  }
-
-  Future<void> _loadContacts() async {
-    try {
-      final setting = ChatContactsSetting();
-      final loaded = await _clientSettings.getValue(setting);
-      _contacts = loaded.value;
-      notifyListeners();
-    } catch (e) {
-      _contacts = [];
-    }
-  }
+  Future<void> _saveOwnedHashes() => _save();
 
   Future<String?> publishProfile({
     required Iterable<Uri> direct,
@@ -568,6 +642,10 @@ class ChatProvider extends ChangeNotifier {
   }
 
   Future<bool> setTorOnly(bool enabled, {String? peerOnion}) async {
+    if (!privateStorageReady) {
+      _fail('${storageStatus.summary}. Unlock the wallet before changing Tor routing');
+      return false;
+    }
     if (!enabled && !_torOnly) return true;
     if (enabled && _torOnly && _tor != null && await _tor.chainTorReady(bitnamesRPC)) return true;
     try {
@@ -652,12 +730,6 @@ class ChatProvider extends ChangeNotifier {
     }
   }
 
-  Future<void> _saveContacts() async {
-    final setting = ChatContactsSetting(newValue: _contacts);
-    await _clientSettings.setValue(setting);
-    await _save();
-  }
-
   Future<void> addContact(ChatContact contact) async {
     final existingIndex = _contacts.indexWhere((c) => c.relationshipId == contact.relationshipId);
     if (existingIndex >= 0) {
@@ -678,6 +750,11 @@ class ChatProvider extends ChangeNotifier {
   Future<void> _putContact(ChatContact contact) => _storeContact(contact);
 
   Future<void> _storeContact(ChatContact contact) async {
+    _storeContactInMemory(contact);
+    await _save(); notifyListeners();
+  }
+
+  void _storeContactInMemory(ChatContact contact) {
     final index = _contacts.indexWhere((c) => c.relationshipId == contact.relationshipId);
     if (index >= 0) {
       _contacts[index] = contact;
@@ -685,7 +762,6 @@ class ChatProvider extends ChangeNotifier {
       _contacts.add(contact);
     }
     if (_selectedContact?.relationshipId == contact.relationshipId) _selectedContact = contact;
-    await _saveContacts(); notifyListeners();
   }
 
   Future<void> removeContact(String contactId) async {
@@ -695,12 +771,18 @@ class ChatProvider extends ChangeNotifier {
     if (_selectedContact?.id == contactId) {
       _selectedContact = null;
     }
-    await _saveContacts();
+    await _save();
     notifyListeners();
   }
 
   void selectContact(ChatContact contact) {
     _selectedContact = contact;
+    _conversationPageSize = 50;
+    notifyListeners();
+  }
+
+  void loadOlderMessages() {
+    _conversationPageSize += 50;
     notifyListeners();
   }
 
@@ -754,6 +836,7 @@ class ChatProvider extends ChangeNotifier {
     _selectedIdentity = identity;
     _preferredIdentityHash = identity.hash;
     _selectedContact = null;
+    _conversationPageSize = 50;
     notifyListeners();
     unawaited(_save());
     fetchPaymail();
@@ -1268,7 +1351,7 @@ class ChatProvider extends ChangeNotifier {
       _pendingWires[id] = prepared.$2;
       final contact = ctx.contact.copyWith(address: ctx.remote.address,
         relationshipState: ChatRelationshipState.outgoingIntroduction, introductionId: prepared.$1.payload.id);
-      await _putContact(contact); await _putMessage(pending);
+      _storeContactInMemory(contact); _storeMessageInMemory(pending); await _save(); _changed();
       try { final txid = await bitnamesRPC.transferIdempotent(idempotencyKey: id, dest: ctx.remote.address,
         value: fee, fee: minerFeeSats, memo: prepared.$2.ciphertext);
         await _putMessage(pending.copyWith(txid: txid));
@@ -1280,6 +1363,9 @@ class ChatProvider extends ChangeNotifier {
   }
 
   Future<ChatSendResult> _sendDirect(String body, BitIntroductionKind kind, String? reply) async {
+    if (!privateStorageReady) {
+      return _failed('${storageStatus.summary}. ${storageStatus.details ?? 'Unlock the wallet before messaging'}');
+    }
     final ctx = await _context();
     final accepting = kind == BitIntroductionKind.acceptance &&
         ctx?.contact.relationshipState == ChatRelationshipState.incomingIntroduction;
@@ -1292,6 +1378,12 @@ class ChatProvider extends ChangeNotifier {
     late (SignedBitIntroductionEnvelope, BitMessageWire) prepared;
     try { prepared = await _prepare(ctx, body, kind, reply, true); }
     catch (e) { return _failed('Could not prepare message: $e'); }
+    final transport = _torOnly ? ChatTransport.tor : ChatTransport.direct;
+    final pending = _message(prepared.$1, true, transport)
+        .copyWith(deliveryState: ChatDeliveryState.pending);
+    _pendingWires[prepared.$1.payload.id] = prepared.$2;
+    _storeMessageInMemory(pending);
+    await _save();
     try {
       VerifiedBitMessageProfile verified;
       try { verified = await _verifier.verify(remoteProfile); }
@@ -1300,12 +1392,18 @@ class ChatProvider extends ChangeNotifier {
         await _putContact(ctx.contact.copyWith(encryptionPubkey: current.encryptionPublicKey,
           signingPubkey: current.signingPublicKey, replyProfile: current.toJson())); }
       await _transport.send(prepared.$2, verified, torOnly: _torOnly);
-      await _putMessage(_message(prepared.$1, true, _torOnly ? ChatTransport.tor : ChatTransport.direct));
+      _pendingWires.remove(prepared.$1.payload.id);
+      _storeMessageInMemory(_message(prepared.$1, true, transport));
+      if (accepting) {
+        _storeContactInMemory(
+          ctx.contact.copyWith(relationshipState: ChatRelationshipState.accepted),
+        );
+      }
+      await _save(); _changed();
       return ChatSendResult(ChatSendDisposition.sent, id: prepared.$1.payload.id);
     } catch (e) {
-      _pendingWires[prepared.$1.payload.id] = prepared.$2;
-      await _putMessage(_message(prepared.$1, true,
-        _torOnly ? ChatTransport.tor : ChatTransport.direct, null, null, '$e'));
+      _storeMessageInMemory(_message(prepared.$1, true, transport, null, null, '$e'));
+      await _save(); _changed();
       return ChatSendResult(ChatSendDisposition.needsChainConfirmation, id: prepared.$1.payload.id, error: '$e');
     }
   }
@@ -1318,8 +1416,7 @@ class ChatProvider extends ChangeNotifier {
         m.recipientBitname == contact.id && _pendingWires.containsKey(m.id))) {
       return _failed('Retry or reject the pending acceptance first'); }
     _isSending = true; _changed();
-    try { final result = await _sendDirect('accepted', BitIntroductionKind.acceptance, contact!.introductionId);
-      if (result.sent) await _putContact(contact.copyWith(relationshipState: ChatRelationshipState.accepted)); return result;
+    try { return await _sendDirect('accepted', BitIntroductionKind.acceptance, contact!.introductionId);
     } finally { _isSending = false; _changed(); }
   }
 
@@ -1359,8 +1456,13 @@ class ChatProvider extends ChangeNotifier {
           recipientBitname: message.recipientBitname, timestamp: message.timestamp, isOutgoing: true,
           kind: message.kind, deliveryState: ChatDeliveryState.pending, transport: ChatTransport.bitnamesChain,
           introductionId: message.introductionId, valueSats: fallbackValueSats);
-      await _putMessage(pending);
-      if (accepting) await _putContact(contact!.copyWith(relationshipState: ChatRelationshipState.acceptancePending));
+      _storeMessageInMemory(pending);
+      if (accepting) {
+        _storeContactInMemory(
+          contact!.copyWith(relationshipState: ChatRelationshipState.acceptancePending),
+        );
+      }
+      await _save(); _changed();
       final txid = await bitnamesRPC.transferIdempotent(idempotencyKey: id, dest: remote.address,
         value: fallbackValueSats, fee: minerFeeSats, memo: wire.ciphertext);
       await _putMessage(pending.copyWith(txid: txid));
@@ -1373,6 +1475,7 @@ class ChatProvider extends ChangeNotifier {
     if (_polling || !bitnamesRPC.connected) return;
     _polling = true;
     try {
+      await _recoverDirectSubmissions();
       await _recoverChainSubmissions();
       await _confirmAcceptances();
       final mailbox = await bitnamesRPC.getPaymailEntries(), validatedChainIds = <String>{};
@@ -1390,6 +1493,55 @@ class ChatProvider extends ChangeNotifier {
     } finally {
       _polling = false;
     }
+  }
+
+  Future<void> _recoverDirectSubmissions() async {
+    final pending = _messages.where(
+      (message) =>
+          message.isOutgoing &&
+          message.transport != ChatTransport.bitnamesChain &&
+          message.deliveryState == ChatDeliveryState.pending &&
+          _pendingWires.containsKey(message.id),
+    ).toList();
+    for (final message in pending) {
+      final contact = _find(message.senderBitname, message.recipientBitname);
+      final profile = _profile(contact);
+      try {
+        if (message.transport == ChatTransport.direct && _torOnly) {
+          throw StateError('Direct retry blocked because Tor-only mode is enabled');
+        }
+        if (contact == null || profile == null) {
+          throw StateError('The saved contact reply profile is unavailable');
+        }
+        final verified = await _verifier.verify(profile);
+        await _transport.send(
+          _pendingWires[message.id]!,
+          verified,
+          torOnly: message.transport == ChatTransport.tor,
+        );
+        _pendingWires.remove(message.id);
+        _storeMessageInMemory(
+          message.copyWith(deliveryState: ChatDeliveryState.confirmed),
+        );
+        if (message.kind == ChatMessageKind.acceptance &&
+            contact.relationshipState ==
+                ChatRelationshipState.incomingIntroduction) {
+          _storeContactInMemory(
+            contact.copyWith(relationshipState: ChatRelationshipState.accepted),
+          );
+        }
+        await _save();
+      } catch (e) {
+        _storeMessageInMemory(
+          message.copyWith(
+            deliveryState: ChatDeliveryState.failed,
+            error: 'Interrupted delivery was not retried successfully: $e',
+          ),
+        );
+        await _save();
+      }
+    }
+    if (pending.isNotEmpty) _changed();
   }
 
   Future<void> _confirmAcceptances() async {
@@ -1453,6 +1605,7 @@ class ChatProvider extends ChangeNotifier {
     int? txIndex, Set<String>? validatedChainIds,
   }) async {
     bool reject(String reason) { if (transport == ChatTransport.bitnamesChain) throw FormatException(reason); return false; }
+    if (!privateStorageReady) return reject('private chat storage is locked or unavailable');
     if (!_ownedHashes.contains(wire.recipientBitNameHash)) return reject('recipient BitName is not owned');
     final data = recipientData ?? (await bitnamesRPC.resolveBitName(wire.recipientBitNameHash))?.data;
     if (data?.encryptionPubkey == null || data?.signingPubkey == null) return reject('recipient profile has no messaging keys');
@@ -1496,10 +1649,11 @@ class ChatProvider extends ChangeNotifier {
       name: payload.senderBitNameHash,
       plaintextName: _allBitNames.where((entry) => entry.hash == payload.senderBitNameHash).firstOrNull?.plaintextName,
       encryptionPubkey: sender.encryptionPublicKey);
-    await _putContact(base.copyWith(address: senderResolution.address, signingPubkey: sender.signingPublicKey,
+    _storeContactInMemory(base.copyWith(address: senderResolution.address, signingPubkey: sender.signingPublicKey,
       relationshipState: state, introductionId: payload.kind == BitIntroductionKind.introduction ? payload.id : existing?.introductionId,
       replyProfile: sender.profile.toJson(), lastMessage: payload.body, lastMessageTime: payload.timestamp));
-    await _putMessage(_message(envelope, false, transport, reference, value));
+    _storeMessageInMemory(_message(envelope, false, transport, reference, value));
+    await _save(); _changed();
     validatedChainIds?.add(payload.id); return true;
   }
 
@@ -1575,12 +1729,20 @@ class ChatProvider extends ChangeNotifier {
   }
 
   Future<void> _putMessage(ChatMessage message) async {
-    final index = _messages.indexWhere((m) => m.id == message.id && m.localBitname == message.localBitname);
-    index < 0 ? _messages.add(message) : _messages[index] = message;
+    _storeMessageInMemory(message);
     await _save(); _changed();
   }
 
+  void _storeMessageInMemory(ChatMessage message) {
+    final index = _messages.indexWhere((m) => m.id == message.id && m.localBitname == message.localBitname);
+    index < 0 ? _messages.add(message) : _messages[index] = message;
+  }
+
   Future<bool> _mutationAllowed() async {
+    if (!privateStorageReady) {
+      _fail('${storageStatus.summary}. ${storageStatus.details ?? 'Unlock the wallet before continuing'}');
+      return false;
+    }
     if (_enforcer != null) {
       final observedAt = _chainHealth.observedAt;
       final stale =
@@ -1603,8 +1765,7 @@ class ChatProvider extends ChangeNotifier {
     _fail('Tor-only BitNames writes require --tor-proxy-mode and a connected loopback UDP tunnel peer'); return false;
   }
 
-  Future<void> _save() {
-    final snapshot = {
+  Map<String, dynamic> _snapshot() => {
       'contacts': _contacts.map((e) => e.toJson()).toList(),
       'messages': _messages.map((e) => e.toJson()).toList(),
       'profiles': _profiles.values.map((e) => e.toJson()).toList(),
@@ -1617,13 +1778,67 @@ class ChatProvider extends ChangeNotifier {
       if (_selectedIdentity != null) 'selected_identity': _selectedIdentity!.hash,
       if (_torPeerOnion != null) 'tor_peer': _torPeerOnion,
     };
+
+  Future<void> _save() {
+    if (!privateStorageReady) {
+      throw BitnamesStorageException(
+        '${storageStatus.summary}. ${storageStatus.details ?? 'Unlock the wallet before changing private BitNames data'}',
+      );
+    }
     return _saveLock.synchronized(
-      () => _settings.setValue(_ChatState(newValue: snapshot)),
+      () => _secureStore.save(_snapshot()),
     );
   }
 
-  void startPolling() { _pollTimer ??= Timer.periodic(pollInterval, (_) => unawaited(refresh())); }
-  void stopPolling() {}
+  Future<String> exportPrivateData() => _secureStore.exportEncrypted();
+
+  Future<void> restorePrivateData(String encoded) async {
+    await _saveLock.synchronized(() async {
+      await _secureStore.restoreEncrypted(encoded);
+      final state = await _secureStore.load();
+      _clearPrivateMemory();
+      _hydrate(state);
+      _restoreOperationStatuses();
+    });
+    _changed();
+  }
+
+  Future<void> clearChatHistory() async {
+    if (!privateStorageReady) {
+      throw BitnamesStorageException(storageStatus.summary);
+    }
+    await _saveLock.synchronized(() async {
+      _contacts.clear();
+      _messages.clear();
+      _pendingWires.clear();
+      _selectedContact = null;
+      await _secureStore.clear();
+      await _secureStore.save(_snapshot());
+    });
+    _changed();
+  }
+
+  List<ChatMessage> conversationPage({
+    required String localBitname,
+    required String remoteBitname,
+    int limit = 50,
+    DateTime? before,
+  }) => _secureStore
+      .pageMessages(
+        _snapshot(),
+        localBitname: localBitname,
+        remoteBitname: remoteBitname,
+        limit: limit,
+        beforeTimestamp: before?.millisecondsSinceEpoch,
+      )
+      .map(ChatMessage.fromJson)
+      .toList();
+
+  void startPolling() {
+    if (!privateStorageReady) return;
+    _pollTimer ??= Timer.periodic(pollInterval, (_) => unawaited(refresh()));
+  }
+  void stopPolling() { _pollTimer?.cancel(); _pollTimer = null; }
   void clearError() {
     _error = null;
     notifyListeners();
@@ -1639,6 +1854,7 @@ class ChatProvider extends ChangeNotifier {
     _pollTimer?.cancel();
     bitnamesRPC.removeListener(_onConnectionChanged);
     _balances?.removeListener(_onBalanceChanged);
+    _storageKeys.removeListener(_onStorageKeyChanged);
     unawaited(_server.stop());
     if (_ownsTransport) _transport.close();
     _tor?.close();
@@ -1649,79 +1865,6 @@ class ChatProvider extends ChangeNotifier {
 class _Context {
   const _Context(this.contact, this.self, this.remote, this.remoteCipher);
   final ChatContact contact; final VerifiedBitMessageProfile self, remoteCipher; final BitNameResolution remote;
-}
-
-class _ChatState extends SettingValue<Map<String, dynamic>> {
-  _ChatState({super.newValue});
-  @override String get key => 'bitintroduction_state_v1';
-  @override Map<String, dynamic> defaultValue() => {};
-  @override
-  Map<String, dynamic>? fromJson(String value) {
-    try { return Map<String, dynamic>.from(jsonDecode(value) as Map); }
-    catch (_) { return null; }
-  }
-  @override String toJson() => jsonEncode(value);
-  @override SettingValue<Map<String, dynamic>> withValue([Map<String, dynamic>? value]) => _ChatState(newValue: value);
-}
-
-class OwnedBitNamesSetting extends SettingValue<List<String>> {
-  OwnedBitNamesSetting({super.newValue});
-
-  @override
-  String get key => 'owned_bitname_hashes';
-
-  @override
-  List<String> defaultValue() => [];
-
-  @override
-  String toJson() {
-    return jsonEncode(value);
-  }
-
-  @override
-  List<String>? fromJson(String jsonString) {
-    try {
-      final List<dynamic> decoded = jsonDecode(jsonString);
-      return decoded.cast<String>();
-    } catch (e) {
-      return null;
-    }
-  }
-
-  @override
-  SettingValue<List<String>> withValue([List<String>? value]) {
-    return OwnedBitNamesSetting(newValue: value);
-  }
-}
-
-class ChatContactsSetting extends SettingValue<List<ChatContact>> {
-  ChatContactsSetting({super.newValue});
-
-  @override
-  String get key => 'chat_contacts';
-
-  @override
-  List<ChatContact> defaultValue() => [];
-
-  @override
-  String toJson() {
-    return jsonEncode(value.map((e) => e.toJson()).toList());
-  }
-
-  @override
-  List<ChatContact>? fromJson(String jsonString) {
-    try {
-      final List<dynamic> decoded = jsonDecode(jsonString);
-      return decoded.map((e) => ChatContact.fromJson(e as Map<String, dynamic>)).toList();
-    } catch (e) {
-      return null;
-    }
-  }
-
-  @override
-  SettingValue<List<ChatContact>> withValue([List<ChatContact>? value]) {
-    return ChatContactsSetting(newValue: value);
-  }
 }
 
 List<Map<String, dynamic>> _maps(Object? value) => (value as List? ?? []).map((e) => Map<String, dynamic>.from(e as Map)).toList();
@@ -1742,6 +1885,13 @@ Future<void> _defaultRestartBitnames() async {
 BitnamesTorController? _defaultTor() {
   final orchestrator = _get<OrchestratorRPC>();
   return orchestrator == null ? null : BitnamesTorController(orchestrator: orchestrator);
+}
+BitnamesStorageKeySource _defaultStorageKeys() {
+  final walletReader = _get<WalletReaderProvider>();
+  if (walletReader == null) {
+    throw StateError('WalletReaderProvider is required for encrypted BitNames storage');
+  }
+  return WalletBitnamesStorageKeySource(walletReader);
 }
 extension _First<T> on Iterable<T> { T? get firstOrNull => isEmpty ? null : first; }
 // dart format on

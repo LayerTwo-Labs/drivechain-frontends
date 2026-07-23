@@ -4,6 +4,8 @@ import 'package:bitwindow/models/bitintroduction_protocol.dart';
 import 'package:bitwindow/models/bitnames_recovery.dart';
 import 'package:bitwindow/models/chat_models.dart';
 import 'package:bitwindow/providers/chat_provider.dart';
+import 'package:bitwindow/services/bitmessage_transport.dart';
+import 'package:bitwindow/services/bitnames_secure_store.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
@@ -14,11 +16,13 @@ import 'mocks/store_mock.dart';
 void main() {
   late MockStore store;
   late ClientSettings settings;
+  late FixedBitnamesStorageKeySource storageKeys;
 
   setUp(() async {
     await GetIt.I.reset();
     store = MockStore();
     settings = ClientSettings(store: store, log: Logger());
+    storageKeys = FixedBitnamesStorageKeySource();
     GetIt.I.registerSingleton<ClientSettings>(settings);
   });
 
@@ -39,6 +43,7 @@ void main() {
       settings: settings,
       enforcer: enforcer,
       restartBitnames: () async => restarts++,
+      storageKeySource: storageKeys,
       autoStart: false,
     );
     await provider.initialize();
@@ -54,6 +59,7 @@ void main() {
       settings: settings,
       enforcer: enforcer,
       restartBitnames: () async => restarts++,
+      storageKeySource: storageKeys,
       autoStart: false,
     );
     await restored.initialize();
@@ -96,6 +102,7 @@ void main() {
       settings: settings,
       enforcer: enforcer,
       restartBitnames: () async {},
+      storageKeySource: storageKeys,
       autoStart: false,
     );
     await first.initialize();
@@ -112,6 +119,7 @@ void main() {
       settings: settings,
       enforcer: enforcer,
       restartBitnames: () async {},
+      storageKeySource: storageKeys,
       autoStart: false,
     );
     await second.initialize();
@@ -163,6 +171,7 @@ void main() {
       settings: settings,
       enforcer: enforcer,
       restartBitnames: () async {},
+      storageKeySource: storageKeys,
       autoStart: false,
     );
     await provider.initialize();
@@ -207,6 +216,7 @@ void main() {
       settings: settings,
       enforcer: enforcer,
       restartBitnames: () async {},
+      storageKeySource: storageKeys,
       autoStart: false,
     );
     await provider.initialize();
@@ -264,6 +274,7 @@ void main() {
       settings: settings,
       enforcer: enforcer,
       restartBitnames: () async {},
+      storageKeySource: storageKeys,
       autoStart: false,
     );
     await provider.initialize();
@@ -343,6 +354,7 @@ void main() {
       settings: settings,
       enforcer: enforcer,
       restartBitnames: () async {},
+      storageKeySource: storageKeys,
       autoStart: false,
     );
     await provider.initialize();
@@ -363,6 +375,213 @@ void main() {
     );
     provider.dispose();
   });
+
+  test('wallet lock clears private state and blocks every spend until unlock', () async {
+    const local = 'alice';
+    const remote = 'bob';
+    final contact = ChatContact(
+      id: remote,
+      localBitname: local,
+      name: remote,
+      encryptionPubkey: 'remote-encryption',
+    );
+    final message = ChatMessage(
+      id: 'private-message',
+      content: 'private',
+      senderBitname: local,
+      recipientBitname: remote,
+      timestamp: DateTime.utc(2026, 7, 23),
+      isOutgoing: true,
+    );
+    await store.setString(
+      BitnamesSecureStore.legacyStateKey,
+      jsonEncode({
+        'contacts': [contact.toJson()],
+        'messages': [message.toJson()],
+      }),
+    );
+    final rpc = RecoveryBitnamesRPC(
+      bitnamesMainchainHash: 'tip',
+      sidechainHeight: 15,
+    )..setConnected(true);
+    final provider = ChatProvider(
+      rpc: rpc,
+      settings: settings,
+      storageKeySource: storageKeys,
+      autoStart: false,
+    );
+    await provider.initialize();
+    expect(provider.messages.single.content, 'private');
+
+    storageKeys.lock();
+    await _waitFor(() => provider.storageStatus.state == BitnamesStorageState.locked);
+    expect(provider.messages, isEmpty);
+    expect(provider.contacts, isEmpty);
+    expect(await provider.claimIdentity('must-not-spend'), isNull);
+    expect(rpc.reserveCalls, 0);
+
+    storageKeys.unlock(
+      scope: 'test-wallet',
+      secret: 'test-only-bitnames-storage-secret',
+    );
+    await _waitFor(() => provider.messages.isNotEmpty);
+    expect(provider.messages.single.content, 'private');
+    provider.dispose();
+  });
+
+  test('wrong wallet key never falls back to a plaintext journal or spends', () async {
+    final encrypted = BitnamesSecureStore(
+      store: store,
+      keySource: storageKeys,
+    );
+    await encrypted.load();
+    await encrypted.save({
+      'operations': [
+        BitnamesOperation(
+          id: 'registration_safe',
+          type: BitnamesOperationType.registration,
+          phase: BitnamesOperationPhase.reservationSubmitted,
+          bitnameHash: 'safe',
+          plaintextName: 'safe',
+          reservationTxid: 'already-paid',
+          createdAt: DateTime.utc(2026, 7, 23),
+          updatedAt: DateTime.utc(2026, 7, 23),
+        ).toJson(),
+      ],
+    });
+    await store.setString(
+      BitnamesSecureStore.legacyStateKey,
+      jsonEncode({
+        'operations': [
+          BitnamesOperation(
+            id: 'registration_attacker',
+            type: BitnamesOperationType.registration,
+            phase: BitnamesOperationPhase.prepared,
+            bitnameHash: 'attacker',
+            plaintextName: 'attacker',
+            createdAt: DateTime.utc(2026, 7, 23),
+            updatedAt: DateTime.utc(2026, 7, 23),
+          ).toJson(),
+        ],
+      }),
+    );
+    storageKeys.unlock(
+      scope: 'test-wallet',
+      secret: 'wrong-secret-for-same-wallet',
+    );
+    final rpc = RecoveryBitnamesRPC(
+      bitnamesMainchainHash: 'tip',
+      sidechainHeight: 15,
+    )..setConnected(true);
+    final provider = ChatProvider(
+      rpc: rpc,
+      settings: settings,
+      storageKeySource: storageKeys,
+      autoStart: false,
+    );
+    await provider.initialize();
+
+    expect(provider.storageStatus.state, BitnamesStorageState.corrupt);
+    expect(provider.operations, isEmpty);
+    expect(await provider.claimIdentity('attacker'), isNull);
+    expect(rpc.reserveCalls, 0);
+    expect(await store.getString(BitnamesSecureStore.legacyStateKey), isNotNull);
+    provider.dispose();
+  });
+
+  test('interrupted direct delivery retries the same encrypted wire once', () async {
+    final local = List.filled(64, 'a').join();
+    final remote = List.filled(64, 'b').join();
+    final profile = BitMessageProfile(
+      bitNameHash: remote,
+      signingPublicKey: 'signing',
+      encryptionPublicKey: 'encryption',
+      directEndpoints: [Uri.parse('http://peer.test/bitname/$remote/')],
+      paymailFeeSats: 500,
+    );
+    final contact = ChatContact(
+      id: remote,
+      localBitname: local,
+      name: remote,
+      encryptionPubkey: 'encryption',
+      signingPubkey: 'signing',
+      paymailFeeSats: 500,
+      relationshipState: ChatRelationshipState.accepted,
+      introductionId: 'intro',
+      replyProfile: profile.toJson(),
+    );
+    final message = ChatMessage(
+      id: 'stable-message-id',
+      content: 'resume exactly once',
+      senderBitname: local,
+      recipientBitname: remote,
+      timestamp: DateTime.utc(2026, 7, 23),
+      isOutgoing: true,
+      deliveryState: ChatDeliveryState.pending,
+      transport: ChatTransport.direct,
+      introductionId: 'intro',
+    );
+    final wire = BitMessageWire(
+      recipientBitNameHash: remote,
+      ciphertext: 'same-ciphertext',
+    );
+    await store.setString(
+      BitnamesSecureStore.legacyStateKey,
+      jsonEncode({
+        'contacts': [contact.toJson()],
+        'messages': [message.toJson()],
+        'pending_wires': {message.id: wire.toJson()},
+      }),
+    );
+    final commitment = bitMessageProfileCommitment(profile);
+    final rpc = RecoveryBitnamesRPC(
+      bitnamesMainchainHash: 'tip',
+      sidechainHeight: 15,
+      registeredHash: remote,
+      commitment: commitment,
+    )..setConnected(true);
+    final dialer = RecoveryDialer(profile);
+    final provider = ChatProvider(
+      rpc: rpc,
+      settings: settings,
+      storageKeySource: storageKeys,
+      transport: BitMessageTransport(directDialer: dialer),
+      autoStart: false,
+    );
+    await provider.initialize();
+
+    expect(dialer.submittedBodies, hasLength(1));
+    expect(dialer.submittedBodies.single, contains('same-ciphertext'));
+    expect(
+      provider.messages.single.deliveryState,
+      ChatDeliveryState.confirmed,
+    );
+    provider.dispose();
+
+    final restartedDialer = RecoveryDialer(profile);
+    final restarted = ChatProvider(
+      rpc: rpc,
+      settings: settings,
+      storageKeySource: storageKeys,
+      transport: BitMessageTransport(directDialer: restartedDialer),
+      autoStart: false,
+    );
+    await restarted.initialize();
+    expect(restartedDialer.submittedBodies, isEmpty);
+    expect(restarted.messages.single.id, 'stable-message-id');
+    expect(
+      restarted.messages.single.deliveryState,
+      ChatDeliveryState.confirmed,
+    );
+    restarted.dispose();
+  });
+}
+
+Future<void> _waitFor(bool Function() condition) async {
+  for (var attempt = 0; attempt < 100 && !condition(); attempt++) {
+    await Future<void>.delayed(const Duration(milliseconds: 5));
+  }
+  expect(condition(), isTrue);
 }
 
 class RecoveryEnforcerRPC extends MockEnforcerRPC {
@@ -389,6 +608,35 @@ class RecoveryEnforcerRPC extends MockEnforcerRPC {
       warnings: const [],
     );
   }
+}
+
+class RecoveryDialer implements BitMessageHttpDialer {
+  RecoveryDialer(this.profile);
+
+  final BitMessageProfile profile;
+  final List<String> submittedBodies = [];
+
+  @override
+  Future<BitMessageHttpResponse> get(
+    Uri uri, {
+    required Duration timeout,
+  }) async => BitMessageHttpResponse(
+    statusCode: 200,
+    body: jsonEncode(profile.toJson()),
+  );
+
+  @override
+  Future<BitMessageHttpResponse> postJson(
+    Uri uri, {
+    required String body,
+    required Duration timeout,
+  }) async {
+    submittedBodies.add(body);
+    return const BitMessageHttpResponse(statusCode: 202, body: '{}');
+  }
+
+  @override
+  void close() {}
 }
 
 class RecoveryBitnamesRPC extends MockBitnamesRPC {
