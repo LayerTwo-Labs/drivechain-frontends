@@ -157,11 +157,11 @@ class ChatPage extends StatelessWidget {
                                   child: Column(
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
-                                      SailText.secondary13(model.chatError ?? 'No contacts yet'),
+                                      SailText.secondary13('No conversations yet'),
                                       const SizedBox(height: SailStyleValues.padding08),
                                       SailText.secondary12(
-                                        'Add a contact to start chatting',
-                                        color: theme.colors.textTertiary,
+                                        'Find a BitName to start a conversation',
+                                        color: theme.colors.textSecondary,
                                       ),
                                     ],
                                   ),
@@ -215,6 +215,11 @@ class ChatPage extends StatelessWidget {
                                                 SailText.primary13(
                                                   contact.displayName,
                                                   bold: true,
+                                                ),
+                                                SailText.secondary12(
+                                                  contact.id,
+                                                  color: theme.colors.textSecondary,
+                                                  overflow: TextOverflow.ellipsis,
                                                 ),
                                                 if (contact.lastMessage != null)
                                                   SailText.secondary12(
@@ -783,17 +788,24 @@ class _RegisterBitNameDialog extends StatefulWidget {
 
 class _RegisterBitNameDialogState extends State<_RegisterBitNameDialog> {
   final controller = TextEditingController();
+  final feeController = TextEditingController(text: '1000');
+  late bool useTor;
+  bool busy = false;
 
   @override
   void initState() {
     super.initState();
+    useTor = widget.model.torOnly;
     controller.addListener(_onTextChanged);
+    feeController.addListener(_onTextChanged);
   }
 
   @override
   void dispose() {
     controller.removeListener(_onTextChanged);
+    feeController.removeListener(_onTextChanged);
     controller.dispose();
+    feeController.dispose();
     super.dispose();
   }
 
@@ -811,19 +823,26 @@ class _RegisterBitNameDialogState extends State<_RegisterBitNameDialog> {
         SailButton(
           label: 'Cancel',
           variant: ButtonVariant.secondary,
+          disabled: busy,
           onPressed: () async => Navigator.of(context).pop(),
         ),
         SailButton(
-          label: 'Register',
-          disabled: controller.text.isEmpty,
+          label: busy ? 'Setting up...' : 'Register',
+          disabled: controller.text.trim().isEmpty || int.tryParse(feeController.text.trim()) == null || busy,
           onPressed: () async {
-            if (controller.text.isNotEmpty) {
-              final name = controller.text;
-              // Close dialog immediately - progress shows in main status bar
-              Navigator.of(context).pop();
-              // Start claiming in background (fire and forget)
-              unawaited(widget.model.claimIdentity(name));
+            setState(() => busy = true);
+            final ready = await widget.model.prepareRegistration(useTor);
+            if (!ready || !mounted) {
+              if (mounted) {
+                showSailToast(this.context, widget.model.chatError ?? 'Messaging setup failed');
+                setState(() => busy = false);
+              }
+              return;
             }
+            final name = controller.text.trim();
+            final fee = int.parse(feeController.text.trim());
+            Navigator.of(this.context).pop();
+            unawaited(widget.model.registerIdentity(name, fee));
           },
         ),
       ],
@@ -840,10 +859,25 @@ class _RegisterBitNameDialogState extends State<_RegisterBitNameDialog> {
               hintText: 'e.g., alice',
               label: 'BitName',
             ),
+            const SizedBox(height: SailStyleValues.padding12),
+            SailTextField(
+              controller: feeController,
+              hintText: '1000',
+              label: 'Introduction fee (sats)',
+              textFieldType: TextFieldType.number,
+            ),
+            const SizedBox(height: SailStyleValues.padding12),
+            SailCheckbox(
+              value: useTor,
+              onChanged: (value) => setState(() => useTor = value),
+              label: 'Continue through Tor',
+            ),
             const SizedBox(height: SailStyleValues.padding08),
             SailText.secondary12(
-              'This will reserve and register the name on the BitNames sidechain.',
-              color: theme.colors.textTertiary,
+              useTor
+                  ? 'Tor will be started before anything is submitted.'
+                  : 'Registration and messaging setup will continue directly.',
+              color: theme.colors.textSecondary,
             ),
           ],
         ),
@@ -930,8 +964,15 @@ class ChatViewModel extends BaseViewModel {
     _chatProvider.selectIdentity(identity);
   }
 
-  Future<String?> claimIdentity(String name) async {
-    return await _chatProvider.claimIdentity(name);
+  Future<bool> prepareRegistration(bool useTor) async {
+    if (useTor && !torReady && !await startTor()) return false;
+    return setTorOnly(useTor);
+  }
+
+  Future<String?> registerIdentity(String name, int fee) async {
+    final txid = await _chatProvider.claimIdentity(name, introductionFeeSats: fee);
+    if (txid != null) await publishProfile('$fee');
+    return txid;
   }
 
   Future<void> saveNameMapping(String plaintextName) async {
@@ -1011,8 +1052,9 @@ class ChatViewModel extends BaseViewModel {
   Future<bool> startTor() async => (await _chatProvider.downloadAndStartTor()).ready;
   Future<bool> setTorOnly(bool enabled) {
     final profile = selectedContact?.replyProfile;
-    final onion = profile == null ? null : BitMessageProfile.fromJson(profile).torEndpoints.firstOrNull?.host;
-    return _chatProvider.setTorOnly(enabled, peerOnion: onion == null ? null : '$onion:6002');
+    final onion = profile == null ? p2pOnion : BitMessageProfile.fromJson(profile).torEndpoints.firstOrNull?.host;
+    final peer = onion == null || onion.contains(':') ? onion : '$onion:6002';
+    return _chatProvider.setTorOnly(enabled, peerOnion: peer);
   }
 
   Future<bool> publishProfile(String fee) async {

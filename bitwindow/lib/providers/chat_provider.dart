@@ -461,7 +461,7 @@ class ChatProvider extends ChangeNotifier {
 
   /// Reserve and register a BitName automatically
   /// Handles the reserve-wait-register dance internally
-  Future<String?> claimIdentity(String plaintextName) async {
+  Future<String?> claimIdentity(String plaintextName, {int introductionFeeSats = 1000}) async {
     // Add progress before connection/privacy guards so Register never appears to do nothing.
     final statusId = 'claiming_$plaintextName';
     _addStatus(statusId, 'Preparing registration for "$plaintextName"...');
@@ -508,7 +508,7 @@ class ChatProvider extends ChangeNotifier {
             BitNameData(
               encryptionPubkey: encryptionPubkey,
               signingPubkey: signingPubkey,
-              paymailFeeSats: 1000,
+              paymailFeeSats: introductionFeeSats,
             ),
           );
         } catch (e) {
@@ -530,7 +530,11 @@ class ChatProvider extends ChangeNotifier {
       // Poll until BitName appears in identity list (register tx mined)
       while (true) {
         await fetchIdentities();
-        if (_myIdentities.any((entry) => entry.plaintextName == plaintextName)) {
+        final registered = _myIdentities.where((entry) => entry.plaintextName == plaintextName).firstOrNull;
+        if (registered != null) {
+          _selectedIdentity = registered;
+          _selectedContact = null;
+          _changed();
           break;
         }
         await Future.delayed(retryDelay);

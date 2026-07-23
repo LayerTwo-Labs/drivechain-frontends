@@ -333,7 +333,7 @@ class _ComboboxRowState extends State<_ComboboxRow> {
                         widget.subtitle!,
                         overflow: TextOverflow.ellipsis,
                         style: SailStyleValues.twelve.copyWith(
-                          color: theme.colors.textTertiary,
+                          color: theme.colors.textSecondary,
                         ),
                       ),
                   ],
