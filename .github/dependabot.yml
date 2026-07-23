@@ -11,7 +11,7 @@ updates:
         update-types: ["version-update:semver-patch"]
 
   - package-ecosystem: pub
-    directory: "/faucet"
+    directory: "/dc-hub"
     schedule:
       interval: weekly
     ignore:
@@ -19,7 +19,7 @@ updates:
         update-types: ["version-update:semver-patch"]
 
   - package-ecosystem: pub
-    directory: "/faucet/server"
+    directory: "/dc-hub/server"
     schedule:
       interval: weekly
     ignore:
