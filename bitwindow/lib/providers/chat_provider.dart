@@ -151,6 +151,12 @@ class ChatProvider extends ChangeNotifier {
 
       // Fetch all BitNames (for lookup and search)
       _allBitNames = await bitnamesRPC.listBitNames();
+      final namesByHash = {for (final entry in _allBitNames) entry.hash: entry.plaintextName};
+      _contacts = _contacts
+          .map((contact) => namesByHash[contact.id] == null
+              ? contact
+              : contact.copyWith(plaintextName: namesByHash[contact.id]))
+          .toList();
 
       // Get wallet UTXOs and find owned BitNames
       final utxos = await bitnamesRPC.listUTXOs();
@@ -773,7 +779,9 @@ class ChatProvider extends ChangeNotifier {
     final senderResolution = await bitnamesRPC.resolveBitName(payload.senderBitNameHash);
     if (senderResolution == null) return reject('sender BitName is not registered');
     final base = existing ?? ChatContact(id: payload.senderBitNameHash, localBitname: payload.recipientBitNameHash,
-      name: payload.senderBitNameHash, encryptionPubkey: sender.encryptionPublicKey);
+      name: payload.senderBitNameHash,
+      plaintextName: _allBitNames.where((entry) => entry.hash == payload.senderBitNameHash).firstOrNull?.plaintextName,
+      encryptionPubkey: sender.encryptionPublicKey);
     await _putContact(base.copyWith(address: senderResolution.address, signingPubkey: sender.signingPublicKey,
       relationshipState: state, introductionId: payload.kind == BitIntroductionKind.introduction ? payload.id : existing?.introductionId,
       replyProfile: sender.profile.toJson(), lastMessage: payload.body, lastMessageTime: payload.timestamp));

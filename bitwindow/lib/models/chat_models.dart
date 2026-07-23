@@ -125,7 +125,7 @@ class ChatContact {
     this.isManual = false,
   });
 
-  String get displayName => plaintextName ?? name;
+  String get displayName => plaintextName ?? (name == id && id.length > 8 ? 'BitName ${id.substring(0, 8)}…' : name);
   String get relationshipId => '$localBitname:$id';
   bool get isAccepted => relationshipState == ChatRelationshipState.accepted;
 
