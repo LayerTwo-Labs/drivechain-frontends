@@ -296,7 +296,10 @@ class BitNamesCommitmentPlanner {
       throw BitNamesCommitmentConflict(assessment.details);
     }
     final existingNamespaced = assessment.kind == BitNamesProfileCommitmentKind.namespaced;
-    final useNamespaced = existingNamespaced || activation == BitNamesCommitmentActivation.namespacedV1;
+    final useNamespaced =
+        existingNamespaced ||
+        _isSelfConsistentNamespacedProfile(knownProfile, network) ||
+        activation == BitNamesCommitmentActivation.namespacedV1;
     if (!useNamespaced) {
       return BitNamesCommitmentWritePlan(
         profile: baseProfile,
@@ -319,6 +322,26 @@ class BitNamesCommitmentPlanner {
       migratesLegacy: assessment.kind == BitNamesProfileCommitmentKind.legacy,
       preservedApplications: manifest.applications.length - 1,
     );
+  }
+}
+
+bool _isSelfConsistentNamespacedProfile(
+  BitMessageProfile? profile,
+  String network,
+) {
+  if (profile?.commitmentManifest == null) return false;
+  try {
+    final manifest = BitNamesCommitmentManifest.parse(
+      profile!.commitmentManifest!,
+    );
+    return assessBitMessageProfileCommitment(
+          profile: profile,
+          onChainCommitment: manifest.commitment,
+          network: network,
+        ).kind ==
+        BitNamesProfileCommitmentKind.namespaced;
+  } catch (_) {
+    return false;
   }
 }
 

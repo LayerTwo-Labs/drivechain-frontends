@@ -155,11 +155,22 @@ void main() {
             currentCommitment: migration.commitment,
             knownProfile: restarted,
           );
+      final afterRemoval =
+          const BitNamesCommitmentPlanner(
+            network: 'signet',
+            activation: BitNamesCommitmentActivation.legacyCompatible,
+          ).plan(
+            profile: _profile(_alice, fee: 503),
+            currentCommitment: null,
+            knownProfile: update.profile,
+          );
 
       expect(migration.migratesLegacy, isTrue);
       expect(migration.kind, BitNamesProfileCommitmentKind.namespaced);
       expect(update.kind, BitNamesProfileCommitmentKind.namespaced);
       expect(update.profile.commitmentManifest, isNotNull);
+      expect(afterRemoval.kind, BitNamesProfileCommitmentKind.namespaced);
+      expect(afterRemoval.profile.commitmentManifest, isNotNull);
     });
 
     test('preserves an authenticated commitment from another application', () {
