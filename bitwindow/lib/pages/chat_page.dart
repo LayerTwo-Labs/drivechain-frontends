@@ -95,9 +95,31 @@ class ChatPage extends StatelessWidget {
                             SailText.secondary13(model.chatError ?? 'No BitNames owned'),
                           if (model.selectedIdentity != null) ...[
                             const SizedBox(width: SailStyleValues.padding08),
-                            SailSVG.fromAsset(SailSVGAsset.check, color: theme.colors.success, height: 14),
+                            if (model.messagingProfilePending)
+                              SizedBox(
+                                width: 14,
+                                height: 14,
+                                child: LoadingIndicator(color: theme.colors.primary),
+                              )
+                            else
+                              SailSVG.fromAsset(
+                                model.messagingReady ? SailSVGAsset.check : SailSVGAsset.iconWarning,
+                                color: model.messagingReady ? theme.colors.success : theme.colors.warning,
+                                height: 14,
+                              ),
                             const SizedBox(width: SailStyleValues.padding04),
-                            SailText.secondary12('Registered on BitNames', color: theme.colors.success),
+                            SailText.secondary12(
+                              model.messagingProfilePending
+                                  ? 'Registered • reply profile waiting for a BitNames block'
+                                  : model.messagingReady
+                                  ? 'Registered • ready to message'
+                                  : 'Registered • reply profile not published',
+                              color: model.messagingProfilePending
+                                  ? theme.colors.primary
+                                  : model.messagingReady
+                                  ? theme.colors.success
+                                  : theme.colors.warning,
+                            ),
                           ],
                           const SizedBox(width: SailStyleValues.padding12),
                           if (model.hasSufficientBalance)
@@ -122,8 +144,9 @@ class ChatPage extends StatelessWidget {
                             ),
                           const Spacer(),
                           SailButton(
-                            label: 'Messaging setup',
+                            label: model.messagingProfilePending ? 'Reply profile pending' : 'Messaging setup',
                             variant: ButtonVariant.secondary,
+                            disabled: model.selectedIdentity == null || model.messagingProfilePending,
                             onPressed: () async => _showMessagingSetupDialog(context, model),
                           ),
                           const SizedBox(width: SailStyleValues.padding08),
@@ -359,6 +382,13 @@ class ChatPage extends StatelessWidget {
                                                             color: theme.colors.textTertiary,
                                                           ),
                                                         ],
+                                                        const SizedBox(width: SailStyleValues.padding08),
+                                                        SailText.secondary12(
+                                                          _messageDelivery(message),
+                                                          color: message.deliveryState == ChatDeliveryState.failed
+                                                              ? theme.colors.error
+                                                              : theme.colors.textTertiary,
+                                                        ),
                                                         if (message.error != null &&
                                                             message.kind != ChatMessageKind.introduction &&
                                                             (message.kind != ChatMessageKind.acceptance ||
@@ -440,6 +470,20 @@ class ChatPage extends StatelessWidget {
     return '$hour:$minute';
   }
 
+  String _messageDelivery(ChatMessage message) {
+    if (message.deliveryState == ChatDeliveryState.failed) {
+      return '${message.transport == ChatTransport.tor ? 'Tor' : 'Direct'} delivery failed';
+    }
+    if (message.deliveryState == ChatDeliveryState.pending) {
+      return message.transport == ChatTransport.bitnamesChain ? 'Waiting for BitNames block' : 'Sending';
+    }
+    return switch (message.transport) {
+      ChatTransport.bitnamesChain => 'Confirmed on BitNames',
+      ChatTransport.tor => message.isOutgoing ? 'Delivered through Tor' : 'Received through Tor',
+      ChatTransport.direct => message.isOutgoing ? 'Delivered directly' : 'Received directly',
+    };
+  }
+
   Future<void> _showAddContactDialog(BuildContext context, ChatViewModel model) async {
     await showThemedDialog<void>(
       context: context,
@@ -475,7 +519,7 @@ class ChatPage extends StatelessWidget {
           title: 'Messaging setup',
           subtitle: model.torOnly
               ? 'Tor-only: messages and BitNames chain writes use Tor'
-              : 'Direct messaging with optional Tor privacy',
+              : 'Direct messaging shares your detected IP address with contacts',
           actions: [
             SailButton(
               label: 'Close',
@@ -496,7 +540,9 @@ class ChatPage extends StatelessWidget {
               ),
               const SizedBox(height: SailStyleValues.padding12),
               SailText.secondary12(
-                model.torOnly ? 'Continue through Tor' : 'Continue directly (reply address is detected automatically)',
+                model.torOnly
+                    ? 'Your IP address is hidden. BitNames chain writes also use the connected Tor tunnel.'
+                    : 'Your reply address is detected automatically. Use Tor-only mode to hide your IP address.',
               ),
               const SizedBox(height: SailStyleValues.padding12),
               Row(
@@ -509,7 +555,7 @@ class ChatPage extends StatelessWidget {
                   const SizedBox(width: SailStyleValues.padding08),
                   SailButton(
                     label: model.torOnly ? 'Use direct mode' : 'Use Tor-only mode',
-                    disabled: busy,
+                    disabled: busy || (!model.torOnly && !model.hasTorChainPeer),
                     onPressed: () async => run(
                       setState,
                       () => model.setTorOnly(!model.torOnly),
@@ -518,16 +564,23 @@ class ChatPage extends StatelessWidget {
                   ),
                   const SizedBox(width: SailStyleValues.padding08),
                   SailButton(
-                    label: 'Publish reply profile',
+                    label: 'Save & publish reply profile',
                     disabled: busy,
                     onPressed: () async => run(
                       setState,
                       () => model.publishProfile(fee.text),
-                      'Reply profile submitted',
+                      'Reply profile submitted • waiting for a BitNames block',
                     ),
                   ),
                 ],
               ),
+              if (!model.torOnly && !model.hasTorChainPeer) ...[
+                const SizedBox(height: SailStyleValues.padding08),
+                SailText.secondary12(
+                  'Tor-only chain routing needs a Tor-capable contact or LayerTwo relay. None is configured yet.',
+                  color: SailTheme.of(context).colors.warning,
+                ),
+              ],
             ],
           ),
         ),
@@ -877,7 +930,11 @@ class _RegisterBitNameDialogState extends State<_RegisterBitNameDialog> {
                     busy = false;
                     registered = txid != null;
                     resultMessage = registered
-                        ? '"$name" was mined in a BitNames block and is now registered'
+                        ? widget.model.messagingProfilePending
+                              ? '"$name" is registered • its reply profile is waiting for one more BitNames block'
+                              : widget.model.messagingReady
+                              ? '"$name" is registered and ready to message'
+                              : '"$name" is registered • publish its reply profile before chatting'
                         : widget.model.chatError ?? 'Registration failed';
                   });
                 },
@@ -892,7 +949,8 @@ class _RegisterBitNameDialogState extends State<_RegisterBitNameDialog> {
             SailText.secondary13('Enter a name to register as your identity'),
             const SizedBox(height: SailStyleValues.padding12),
             SailText.secondary12(
-              'Registration requires BitNames blocks: first for the reservation, then for the registered name.',
+              'BitWindow handles registration automatically. It normally needs three BitNames blocks: '
+              'reservation, registered name, then the reply profile used for paid introductions and replies.',
             ),
             const SizedBox(height: SailStyleValues.padding12),
             SailTextField(
@@ -907,17 +965,24 @@ class _RegisterBitNameDialogState extends State<_RegisterBitNameDialog> {
               label: 'Introduction fee (sats)',
               textFieldType: TextFieldType.number,
             ),
+            const SizedBox(height: SailStyleValues.padding04),
+            SailText.secondary12(
+              'People pay this amount to you, plus the 100-sat BitNames chain fee.',
+              color: theme.colors.textSecondary,
+            ),
             const SizedBox(height: SailStyleValues.padding12),
             SailCheckbox(
               value: useTor,
-              onChanged: busy ? null : (value) => setState(() => useTor = value),
+              onChanged: busy || !widget.model.hasTorChainPeer ? null : (value) => setState(() => useTor = value),
               label: 'Continue through Tor',
             ),
             const SizedBox(height: SailStyleValues.padding08),
             SailText.secondary12(
-              useTor
+              !widget.model.hasTorChainPeer
+                  ? 'Tor registration needs a Tor-capable BitNames peer or LayerTwo relay; none is configured yet.'
+                  : useTor
                   ? 'Requires a reachable BitNames Tor peer; setup fails safely if none is available.'
-                  : 'Registration and messaging setup will continue directly.',
+                  : 'Direct setup shares your detected IP address with contacts.',
               color: theme.colors.textSecondary,
             ),
             if (busy || resultMessage != null) ...[
@@ -962,6 +1027,18 @@ class ChatViewModel extends BaseViewModel {
   bool get torReady => _chatProvider.torStatus.ready;
   String? get ownOnion => _chatProvider.torStatus.onionHost;
   String? get p2pOnion => _chatProvider.torStatus.p2pOnion;
+  bool get messagingReady => _chatProvider.selectedProfileReady;
+  bool get messagingProfilePending => _chatProvider.selectedProfilePending;
+  bool get hasTorChainPeer {
+    if (torOnly || _chatProvider.hasConfiguredTorPeer) return true;
+    try {
+      final profile = selectedContact?.replyProfile;
+      return profile != null && BitMessageProfile.fromJson(profile).torEndpoints.isNotEmpty;
+    } catch (_) {
+      return false;
+    }
+  }
+
   bool get canSend => switch (selectedContact?.relationshipState) {
     ChatRelationshipState.accepted => true,
     ChatRelationshipState.none => selectedContact?.paymailFeeSats != null,

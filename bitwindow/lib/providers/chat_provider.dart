@@ -62,6 +62,7 @@ class ChatProvider extends ChangeNotifier {
   List<BitnameEntry> _myIdentities = [];
   Set<String> _ownedHashes = {};
   BitnameEntry? _selectedIdentity;
+  String? _preferredIdentityHash;
   ClientSettings get _clientSettings => _settings;
   HashNameMappingSetting _hashNameMapping = HashNameMappingSetting();
   List<ChatContact> _contacts = [];
@@ -88,12 +89,15 @@ class ChatProvider extends ChangeNotifier {
   bool get isSending => _isSending;
   bool get isLoading => _ready != null && _myIdentities.isEmpty; String? get error => _error;
   bool get torOnly => _torOnly; BitnamesTorStatus get torStatus => _torStatus;
+  bool get hasConfiguredTorPeer => _torPeerOnion != null;
   BalanceProvider get balanceProvider => _balances ?? GetIt.I.get<BalanceProvider>();
   double get balanceBTC => balanceProvider.balanceFor(bitnamesRPC).$1;
   int get balanceSats => (balanceBTC * 100000000).round();
   bool get hasSufficientBalance => balanceSats >= 10000;
   Map<String, BitMessageProfile> get profiles => Map.unmodifiable(_profiles);
   bool profileReady(String hash) => _profiles.containsKey(hash) && !_pendingProfiles.contains(hash);
+  bool get selectedProfileReady => _selectedIdentity != null && profileReady(_selectedIdentity!.hash);
+  bool get selectedProfilePending => _selectedIdentity != null && _pendingProfiles.contains(_selectedIdentity!.hash);
 
   Future<void> initialize() => _ready ??= _init();
   Future<void> _init() async {
@@ -112,6 +116,7 @@ class ChatProvider extends ChangeNotifier {
       } catch (_) {}
     }
     _ownedHashes = (state['owned'] as List? ?? []).whereType<String>().toSet();
+    _preferredIdentityHash = state['selected_identity'] is String ? state['selected_identity'] as String : null;
     _torOnly = state['tor_only'] == true;
     _torPeerOnion = state['tor_peer'] is String ? state['tor_peer'] as String : null;
     if (_tor != null) _torStatus = await _tor.refresh();
@@ -193,13 +198,29 @@ class ChatProvider extends ChangeNotifier {
       // Match owned hashes to full BitName entries
       _myIdentities = _allBitNames.where((entry) => _ownedHashes.contains(entry.hash)).toList();
 
-      final refreshed = _myIdentities.where((entry) => entry.hash == _selectedIdentity?.hash).firstOrNull;
+      final preferredHash = _selectedIdentity?.hash ?? _preferredIdentityHash;
+      final refreshed = _myIdentities.where((entry) => entry.hash == preferredHash).firstOrNull;
       if (refreshed == null) _selectedContact = null;
       _selectedIdentity = refreshed ?? _myIdentities.firstOrNull;
+      _preferredIdentityHash = _selectedIdentity?.hash;
       for (final identity in _myIdentities) {
         final profile = _profiles[identity.hash];
+        final statusId = 'profile_${identity.hash}';
         if (profile != null && identity.details.commitment == bitMessageProfileCommitment(profile)) {
-          _pendingProfiles.remove(identity.hash);
+          if (_pendingProfiles.remove(identity.hash)) {
+            _addStatus(
+              statusId,
+              'Reply profile confirmed in a BitNames block • "${_identityLabel(identity)}" is ready to message',
+              completed: true,
+            );
+            Timer(const Duration(seconds: 15), () => _removeStatus(statusId));
+          }
+        } else if (_pendingProfiles.contains(identity.hash) &&
+            !_statusMessages.any((status) => status.id == statusId)) {
+          _addStatus(
+            statusId,
+            'Reply profile for "${_identityLabel(identity)}" submitted • waiting for a BitNames block',
+          );
         }
       }
       await _save();
@@ -249,24 +270,38 @@ class ChatProvider extends ChangeNotifier {
   }) async {
     final me = _selectedIdentity;
     if (me == null) { _fail('Select a registered BitName first'); return null; }
+    final statusId = 'profile_${me.hash}';
     if (paymailFeeSats != null && paymailFeeSats < 0) { _fail('Introduction fee cannot be negative'); return null; }
-    if (!await _mutationAllowed()) return null;
+    _addStatus(statusId, 'Creating signing and encryption keys for the reply profile...');
+    if (!await _mutationAllowed()) { _removeStatus(statusId); return null; }
     try {
       final identity = me, signing = identity.details.signingPubkey ?? await bitnamesRPC.getNewVerifyingKey(),
           encryption = identity.details.encryptionPubkey ?? await bitnamesRPC.getNewEncryptionKey();
       final profile = BitMessageProfile(bitNameHash: identity.hash, signingPublicKey: signing,
         encryptionPublicKey: encryption, directEndpoints: direct.map((u) => _path(u, identity.hash)),
         torEndpoints: tor.map((u) => _path(u, identity.hash)), paymailFeeSats: paymailFeeSats);
-      if (profile.directEndpoints.isEmpty && profile.torEndpoints.isEmpty) { _fail('Add a direct or Tor endpoint'); return null; }
+      if (profile.directEndpoints.isEmpty && profile.torEndpoints.isEmpty) {
+        _removeStatus(statusId); _fail('Add a direct or Tor endpoint'); return null;
+      }
+      _addStatus(
+        statusId,
+        'Publishing reply profile (${profile.torEndpoints.isNotEmpty ? 'Tor onion' : 'Direct IP'}, '
+        '${paymailFeeSats == null ? 'introductions off' : '$paymailFeeSats-sat introduction fee'})...',
+      );
       final txid = await bitnamesRPC.updateBitName(bitname: identity.hash,
         updates: BitNameDataUpdates(commitment: BitNameUpdate.set(bitMessageProfileCommitment(profile)),
           signingPubkey: BitNameUpdate.set(signing), encryptionPubkey: BitNameUpdate.set(encryption),
           paymailFeeSats: paymailFeeSats == null ? const BitNameUpdate<int>.delete() : BitNameUpdate.set(paymailFeeSats)),
         feeSats: minerFeeSats);
-      _profiles[identity.hash] = profile; _pendingProfiles.add(identity.hash); await _save(); _changed();
+      _profiles[identity.hash] = profile; _pendingProfiles.add(identity.hash);
+      _addStatus(
+        statusId,
+        'Reply profile submitted • waiting for a BitNames block • transaction ${_short(txid)}',
+      );
+      await _save(); _changed();
       return txid;
     } catch (e) {
-      _fail('Could not publish reply profile: $e'); return null;
+      _removeStatus(statusId); _fail('Could not publish reply profile: $e'); return null;
     }
   }
 
@@ -455,8 +490,10 @@ class ChatProvider extends ChangeNotifier {
 
   void selectIdentity(BitnameEntry identity) {
     _selectedIdentity = identity;
+    _preferredIdentityHash = identity.hash;
     _selectedContact = null;
     notifyListeners();
+    unawaited(_save());
     fetchPaymail();
   }
 
@@ -474,12 +511,12 @@ class ChatProvider extends ChangeNotifier {
   void _addStatus(String id, String message, {bool completed = false}) {
     _statusMessages.removeWhere((s) => s.id == id);
     _statusMessages.add(StatusMessage(id: id, message: message, completed: completed));
-    notifyListeners();
+    _changed();
   }
 
   void _removeStatus(String id) {
     _statusMessages.removeWhere((s) => s.id == id);
-    notifyListeners();
+    _changed();
   }
 
   // Legacy getters for compatibility - check for any claiming_ status
@@ -580,6 +617,7 @@ class ChatProvider extends ChangeNotifier {
         final registered = _myIdentities.where((entry) => entry.plaintextName == plaintextName).firstOrNull;
         if (registered != null) {
           _selectedIdentity = registered;
+          _preferredIdentityHash = registered.hash;
           _selectedContact = null;
           _changed();
           break;
@@ -623,7 +661,9 @@ class ChatProvider extends ChangeNotifier {
     try {
       final ctx = await _context();
       final fee = ctx?.remote.data.paymailFeeSats;
-      if (ctx == null) return _failed(_error ?? 'Publish and confirm your reply profile first');
+      if (ctx == null) {
+        return _failed(_error ?? 'Publish the reply profile in Messaging setup and wait for its BitNames block');
+      }
       if (fee != ctx.contact.paymailFeeSats) {
         await addContact(ChatContact(id: ctx.contact.id, localBitname: ctx.contact.localBitname,
           name: ctx.contact.name, plaintextName: ctx.contact.plaintextName,
@@ -655,10 +695,12 @@ class ChatProvider extends ChangeNotifier {
     final ctx = await _context();
     final accepting = kind == BitIntroductionKind.acceptance &&
         ctx?.contact.relationshipState == ChatRelationshipState.incomingIntroduction;
-    if (ctx == null) return _failed(_error ?? 'Publish and confirm your reply profile first');
+    if (ctx == null) {
+      return _failed(_error ?? 'Publish the reply profile in Messaging setup and wait for its BitNames block');
+    }
     if (!ctx.contact.isAccepted && !accepting) return _failed('Chat is not accepted');
     final remoteProfile = _profile(ctx.contact);
-    if (remoteProfile == null) return _failed('Contact has no verified reply profile');
+    if (remoteProfile == null) return _failed('This contact has not published a verified reply profile');
     late (SignedBitIntroductionEnvelope, BitMessageWire) prepared;
     try { prepared = await _prepare(ctx, body, kind, reply, true); }
     catch (e) { return _failed('Could not prepare message: $e'); }
@@ -869,7 +911,9 @@ class ChatProvider extends ChangeNotifier {
     final me = _selectedIdentity, contact = _selectedContact;
     if (me == null || contact == null || !_ownedHashes.contains(me.hash) || contact.localBitname != me.hash) return null;
     final profile = _profiles[me.hash];
-    if (profile == null || _pendingProfiles.contains(me.hash)) { _fail('Publish and confirm a reply profile first'); return null; }
+    if (profile == null || _pendingProfiles.contains(me.hash)) {
+      _fail('Publish the reply profile in Messaging setup and wait for its BitNames block'); return null;
+    }
     try {
       if (!await _ownsBitNameNow(me.hash)) throw StateError('The selected BitName is no longer owned');
       final self = await _verifier.verify(profile);
@@ -914,6 +958,8 @@ class ChatProvider extends ChangeNotifier {
   });
   ChatContact? _find(String local, String remote) =>
       _contacts.where((c) => c.localBitname == local && c.id == remote).firstOrNull;
+  String _identityLabel(BitnameEntry identity) => identity.plaintextName ?? '${identity.hash.substring(0, 8)}…';
+  String _short(String value) => value.length <= 12 ? value : '${value.substring(0, 12)}…';
 
   ChatMessage _message(
     SignedBitIntroductionEnvelope envelope,
@@ -957,6 +1003,7 @@ class ChatProvider extends ChangeNotifier {
         'pending_profiles': _pendingProfiles.toList(),
         'pending_wires': _pendingWires.map((k, v) => MapEntry(k, v.toJson())),
         'owned': _ownedHashes.toList(), 'tor_only': _torOnly,
+        if (_selectedIdentity != null) 'selected_identity': _selectedIdentity!.hash,
         if (_torPeerOnion != null) 'tor_peer': _torPeerOnion,
       }));
 
