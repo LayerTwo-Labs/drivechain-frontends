@@ -77,7 +77,7 @@ class ChatPage extends StatelessWidget {
                     children: [
                       // Status bars - stack all status messages
                       ...model.statusMessages.map(
-                        (status) => _ClaimingStatusBar(status: status.message),
+                        (status) => _ClaimingStatusBar(status: status),
                       ),
                       // Main action bar
                       Row(
@@ -537,7 +537,7 @@ class ChatPage extends StatelessWidget {
 }
 
 class _ClaimingStatusBar extends StatelessWidget {
-  final String status;
+  final StatusMessage status;
 
   const _ClaimingStatusBar({required this.status});
 
@@ -552,20 +552,25 @@ class _ClaimingStatusBar extends StatelessWidget {
       ),
       margin: const EdgeInsets.only(bottom: SailStyleValues.padding08),
       decoration: BoxDecoration(
-        color: theme.colors.primary.withValues(alpha: 0.1),
+        color: (status.completed ? theme.colors.success : theme.colors.primary).withValues(alpha: 0.1),
         borderRadius: SailStyleValues.borderRadius,
-        border: Border.all(color: theme.colors.primary.withValues(alpha: 0.3)),
+        border: Border.all(
+          color: (status.completed ? theme.colors.success : theme.colors.primary).withValues(alpha: 0.3),
+        ),
       ),
       child: Row(
         children: [
-          SizedBox(
-            width: 16,
-            height: 16,
-            child: LoadingIndicator(color: theme.colors.primary),
-          ),
+          if (status.completed)
+            SailSVG.fromAsset(SailSVGAsset.check, color: theme.colors.success, height: 16)
+          else
+            SizedBox(
+              width: 16,
+              height: 16,
+              child: LoadingIndicator(color: theme.colors.primary),
+            ),
           const SizedBox(width: SailStyleValues.padding12),
           Expanded(
-            child: SailText.primary13(status),
+            child: SailText.primary13(status.message),
           ),
         ],
       ),

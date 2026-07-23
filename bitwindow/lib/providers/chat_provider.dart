@@ -471,9 +471,9 @@ class ChatProvider extends ChangeNotifier {
   final List<StatusMessage> _statusMessages = [];
   List<StatusMessage> get statusMessages => List.unmodifiable(_statusMessages);
 
-  void _addStatus(String id, String message) {
+  void _addStatus(String id, String message, {bool completed = false}) {
     _statusMessages.removeWhere((s) => s.id == id);
-    _statusMessages.add(StatusMessage(id: id, message: message));
+    _statusMessages.add(StatusMessage(id: id, message: message, completed: completed));
     notifyListeners();
   }
 
@@ -529,7 +529,7 @@ class ChatProvider extends ChangeNotifier {
       // Step 1: Reserve (wait for tx to be mined)
       _addStatus(statusId, 'Submitting reservation for "$plaintextName"...');
       await bitnamesRPC.reserveBitName(plaintextName);
-      _addStatus(statusId, 'Reservation submitted • waiting for a BitNames block...');
+      _addStatus(statusId, 'Reservation submitted • it must be mined in a BitNames block before registration can continue');
 
       final encryptionPubkey = await bitnamesRPC.getNewEncryptionKey();
       final signingPubkey = await bitnamesRPC.getNewVerifyingKey();
@@ -561,7 +561,7 @@ class ChatProvider extends ChangeNotifier {
       }
 
       // Step 2: Register tx submitted, wait for it to be mined
-      _addStatus(statusId, 'Registration submitted • waiting for a BitNames block...');
+      _addStatus(statusId, '"$plaintextName" submitted • it must be mined in a BitNames block to finish registration');
       await _hashNameMapping.saveMapping(plaintextName, isMine: true);
 
       // Poll until BitName appears in identity list (register tx mined)
@@ -578,9 +578,9 @@ class ChatProvider extends ChangeNotifier {
       }
 
       // Step 3: Registered successfully
-      _addStatus(statusId, 'Registered "$plaintextName" successfully!');
+      _addStatus(statusId, '"$plaintextName" was mined in a BitNames block and is now registered', completed: true);
       keepSuccessStatus = true;
-      Timer(const Duration(seconds: 5), () => _removeStatus(statusId));
+      Timer(const Duration(seconds: 15), () => _removeStatus(statusId));
 
       return txid;
     } catch (e) {

@@ -5,9 +5,9 @@ enum ChatDeliveryState { pending, delivered, confirmed, failed }
 enum ChatTransport { bitnamesChain, direct, tor }
 
 class StatusMessage {
-  final String id; final String message;
+  final String id; final String message; final bool completed;
 
-  StatusMessage({required this.id, required this.message});
+  StatusMessage({required this.id, required this.message, this.completed = false});
 }
 
 class ChatMessage {
