@@ -84,7 +84,7 @@ class ChatProvider extends ChangeNotifier {
     final me = _selectedIdentity?.hash, them = _selectedContact?.id;
     return m.localBitname == me && ((m.senderBitname == me && m.recipientBitname == them) ||
         (m.senderBitname == them && m.recipientBitname == me));
-  }).toList()..sort((a, b) => a.timestamp.compareTo(b.timestamp));
+  }).toList();
   bool get isSending => _isSending;
   bool get isLoading => _ready != null && _myIdentities.isEmpty; String? get error => _error;
   bool get torOnly => _torOnly; BitnamesTorStatus get torStatus => _torStatus;
@@ -486,6 +486,7 @@ class ChatProvider extends ChangeNotifier {
       return null;
     }
     _addStatus(statusId, 'Checking balance...');
+    var keepSuccessStatus = false;
 
     try {
       // Check balance first
@@ -549,7 +550,8 @@ class ChatProvider extends ChangeNotifier {
 
       // Step 3: Registered successfully
       _addStatus(statusId, 'Registered "$plaintextName" successfully!');
-      await Future.delayed(const Duration(seconds: 5));
+      keepSuccessStatus = true;
+      Timer(const Duration(seconds: 5), () => _removeStatus(statusId));
 
       return txid;
     } catch (e) {
@@ -557,7 +559,7 @@ class ChatProvider extends ChangeNotifier {
       notifyListeners();
       return null;
     } finally {
-      _removeStatus(statusId);
+      if (!keepSuccessStatus) _removeStatus(statusId);
     }
   }
 
