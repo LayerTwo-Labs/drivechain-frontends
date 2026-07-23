@@ -289,6 +289,16 @@ class ChatPage extends StatelessWidget {
                                         ),
                                       ],
                                     ),
+                                  if (model.selectedContact!.relationshipState ==
+                                      ChatRelationshipState.outgoingIntroduction)
+                                    Align(
+                                      alignment: Alignment.centerLeft,
+                                      child: SailButton(
+                                        label: 'Stop waiting',
+                                        variant: ButtonVariant.secondary,
+                                        onPressed: model.cancelIntroduction,
+                                      ),
+                                    ),
                                   Expanded(
                                     // Message list (inlined)
                                     child: Builder(
@@ -655,9 +665,11 @@ class _AddContactDialogState extends State<_AddContactDialog> {
 
     try {
       // Create contact directly from entry data (no need to lookup again)
-      await widget.model.addContactFromEntry(entry);
-      if (mounted) {
+      final added = await widget.model.addContactFromEntry(entry);
+      if (mounted && added) {
         Navigator.of(context).pop();
+      } else if (mounted) {
+        showSailToast(context, widget.model.chatError ?? 'Could not add this contact');
       }
     } finally {
       if (mounted) setState(() => isLoading = false);
@@ -795,8 +807,7 @@ class _RegisterBitNameDialogState extends State<_RegisterBitNameDialog> {
   @override
   void initState() {
     super.initState();
-    // Direct works immediately; Tor needs a separate remote BitNames Tor peer.
-    useTor = false;
+    useTor = widget.model.torOnly;
     controller.addListener(_onTextChanged);
     feeController.addListener(_onTextChanged);
   }
@@ -829,7 +840,7 @@ class _RegisterBitNameDialogState extends State<_RegisterBitNameDialog> {
         ),
         SailButton(
           label: busy ? 'Setting up...' : 'Register',
-          disabled: controller.text.trim().isEmpty || int.tryParse(feeController.text.trim()) == null || busy,
+          disabled: controller.text.trim().isEmpty || (int.tryParse(feeController.text.trim()) ?? -1) < 0 || busy,
           skipLoading: true,
           onPressed: () async {
             setState(() => busy = true);
@@ -913,7 +924,7 @@ class ChatViewModel extends BaseViewModel {
   String? get p2pOnion => _chatProvider.torStatus.p2pOnion;
   bool get canSend => switch (selectedContact?.relationshipState) {
     ChatRelationshipState.accepted => true,
-    ChatRelationshipState.none || ChatRelationshipState.rejected => selectedContact?.paymailFeeSats != null,
+    ChatRelationshipState.none => selectedContact?.paymailFeeSats != null,
     _ => false,
   };
   String get relationshipStatus => switch (selectedContact!.relationshipState) {
@@ -921,6 +932,7 @@ class ChatViewModel extends BaseViewModel {
     ChatRelationshipState.incomingIntroduction => 'Introduction received • accept to unlock chat',
     ChatRelationshipState.acceptancePending => 'Acceptance sent • waiting for chain confirmation',
     ChatRelationshipState.outgoingIntroduction => 'Introduction sent • waiting for acceptance',
+    ChatRelationshipState.rejected => 'Introduction closed • no further payment will be sent',
     ChatRelationshipState.blocked => 'Blocked',
     _ when selectedContact!.paymailFeeSats != null =>
       'Introduction: ${selectedContact!.paymailFeeSats} sats + 100 sats chain fee',
@@ -930,6 +942,7 @@ class ChatViewModel extends BaseViewModel {
     ChatRelationshipState.incomingIntroduction => 'Accept or reject this introduction',
     ChatRelationshipState.acceptancePending => 'Waiting for acceptance confirmation',
     ChatRelationshipState.outgoingIntroduction => 'Waiting for acceptance',
+    ChatRelationshipState.rejected => 'Introduction closed',
     ChatRelationshipState.blocked => 'Contact blocked',
     _ => 'Type a message...',
   };
@@ -981,9 +994,7 @@ class ChatViewModel extends BaseViewModel {
     await _chatProvider.saveNameMapping(plaintextName);
   }
 
-  Future<void> addContactFromEntry(BitnameEntry entry) async {
-    await _chatProvider.addContactFromEntry(entry);
-  }
+  Future<bool> addContactFromEntry(BitnameEntry entry) => _chatProvider.addContactFromEntry(entry);
 
   void selectContact(ChatContact contact) {
     _chatProvider.selectContact(contact);
@@ -1005,8 +1016,7 @@ class ChatViewModel extends BaseViewModel {
   Future<void> sendMessage(BuildContext context) async {
     if (messageController.text.isEmpty) return;
     final contact = selectedContact!;
-    if ((contact.relationshipState == ChatRelationshipState.none ||
-            contact.relationshipState == ChatRelationshipState.rejected) &&
+    if (contact.relationshipState == ChatRelationshipState.none &&
         !await _confirmSpend(
           context,
           'Send introduction?',
@@ -1029,6 +1039,7 @@ class ChatViewModel extends BaseViewModel {
   }
 
   Future<void> reject() => _chatProvider.rejectIntroduction();
+  Future<void> cancelIntroduction() => _chatProvider.cancelIntroduction();
   Future<void> block() => _chatProvider.blockContact();
   Future<void> sendViaChain(BuildContext context, String id) => _sendFallback(context, id);
   Future<void> _handleFallback(BuildContext context, ChatSendResult result) async {

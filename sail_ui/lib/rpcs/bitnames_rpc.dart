@@ -850,7 +850,10 @@ class BitNameData {
       _ => null,
     },
     encryptionPubkey: json['encryption_pubkey'] as String?,
-    paymailFeeSats: json['paymail_fee_sats'] as int?,
+    paymailFeeSats: switch (json['paymail_fee_sats']) {
+      final int value when value >= 0 => value,
+      _ => null,
+    },
     signingPubkey: json['signing_pubkey'] as String?,
     socketAddrV4: json['socket_addr_v4'] as String?,
     socketAddrV6: json['socket_addr_v6'] as String?,
@@ -945,7 +948,10 @@ class PaymailRecipient {
   factory PaymailRecipient.fromJson(Map<String, dynamic> json) => PaymailRecipient(
     bitname: json['bitname'] as String,
     data: BitNameData.fromJson(json['data'] as Map<String, dynamic>),
-    requiredFeeSats: json['required_fee_sats'] as int?,
+    requiredFeeSats: switch (json['required_fee_sats']) {
+      final int value when value >= 0 => value,
+      _ => null,
+    },
   );
 }
 
@@ -1067,6 +1073,9 @@ class BitnameDetails {
     socketAddrV6: json['socket_addr_v6'] as String?,
     encryptionPubkey: json['encryption_pubkey'] as String?,
     signingPubkey: json['signing_pubkey'] as String?,
-    paymailFeeSats: json['paymail_fee_sats'] as int?,
+    paymailFeeSats: switch (json['paymail_fee_sats']) {
+      final int value when value >= 0 => value,
+      _ => null,
+    },
   );
 }

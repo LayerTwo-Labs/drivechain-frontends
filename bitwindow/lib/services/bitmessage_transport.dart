@@ -20,25 +20,26 @@ class DirectBitMessageHttpDialer implements BitMessageHttpDialer {
   final http.Client _client;
 
   @override
-  Future<BitMessageHttpResponse> get(Uri uri, {required Duration timeout}) async {
-    final response = await _client.get(uri, headers: const {'accept': 'application/json'}).timeout(timeout);
-    return BitMessageHttpResponse(statusCode: response.statusCode, body: response.body);
-  }
+  Future<BitMessageHttpResponse> get(Uri uri, {required Duration timeout}) =>
+      _send(http.Request('GET', uri)..headers['accept'] = 'application/json', timeout);
 
   @override
   Future<BitMessageHttpResponse> postJson(
     Uri uri, {
     required String body,
     required Duration timeout,
-  }) async {
-    final response = await _client
-        .post(
-          uri,
-          headers: const {'accept': 'application/json', 'content-type': 'application/json'},
-          body: body,
-        )
-        .timeout(timeout);
-    return BitMessageHttpResponse(statusCode: response.statusCode, body: response.body);
+  }) => _send(http.Request('POST', uri)
+    ..headers.addAll(const {'accept': 'application/json', 'content-type': 'application/json'})
+    ..body = body, timeout);
+
+  Future<BitMessageHttpResponse> _send(http.Request request, Duration timeout) async {
+    request.followRedirects = false;
+    final response = await _client.send(request).timeout(timeout), bytes = <int>[];
+    await response.stream.fold<void>(null, (_, chunk) {
+      if (bytes.length + chunk.length > 64 * 1024) throw StateError('HTTP response is too large');
+      bytes.addAll(chunk);
+    }).timeout(timeout);
+    return BitMessageHttpResponse(statusCode: response.statusCode, body: utf8.decode(bytes));
   }
 
   @override

@@ -1637,7 +1637,13 @@ class _DepositModalState extends State<DepositModal> {
                     ),
                   ),
                   UnitDropdown(value: Unit.BTC, onChanged: (_) {}, enabled: false),
-                  Expanded(child: Container()),
+                  Expanded(
+                    child: NumericField(
+                      label: 'Bitcoin network fee',
+                      controller: feeController,
+                      hintText: '0.0001',
+                    ),
+                  ),
                 ],
               ),
               const SailSpacing(SailStyleValues.padding08),

@@ -103,13 +103,17 @@ class ChatProvider extends ChangeNotifier {
     if (persistedContacts.isNotEmpty) _contacts = persistedContacts;
     _messages.addAll(_list(state['messages'], ChatMessage.fromJson));
     for (final json in _maps(state['profiles'])) { final profile = BitMessageProfile.fromJson(json); _profiles[profile.bitNameHash] = profile; }
-    _pendingProfiles.addAll((state['pending_profiles'] as List? ?? []).cast<String>());
-    for (final entry in (state['pending_wires'] as Map? ?? {}).entries) {
-      _pendingWires[entry.key as String] = BitMessageWire.fromJson(Map<String, dynamic>.from(entry.value as Map));
+    _pendingProfiles.addAll((state['pending_profiles'] as List? ?? []).whereType<String>());
+    for (final entry in (state['pending_wires'] is Map ? state['pending_wires'] as Map : const {}).entries) {
+      try {
+        if (entry.key is String && entry.value is Map) {
+          _pendingWires[entry.key as String] = BitMessageWire.fromJson(Map<String, dynamic>.from(entry.value as Map));
+        }
+      } catch (_) {}
     }
-    _ownedHashes = (state['owned'] as List? ?? []).cast<String>().toSet();
-    _torOnly = state['tor_only'] as bool? ?? false;
-    _torPeerOnion = state['tor_peer'] as String?;
+    _ownedHashes = (state['owned'] as List? ?? []).whereType<String>().toSet();
+    _torOnly = state['tor_only'] == true;
+    _torPeerOnion = state['tor_peer'] is String ? state['tor_peer'] as String : null;
     if (_tor != null) _torStatus = await _tor.refresh();
     if (autoStart) {
       try { await _server.start(); } catch (e) { _error = 'BitMessage listener unavailable: $e'; }
@@ -244,23 +248,19 @@ class ChatProvider extends ChangeNotifier {
     required int? paymailFeeSats,
   }) async {
     final me = _selectedIdentity;
-    if (me?.details.signingPubkey == null || me?.details.encryptionPubkey == null) {
-      _fail('Select a BitName with signing and encryption keys');
-      return null;
-    }
+    if (me == null) { _fail('Select a registered BitName first'); return null; }
     if (paymailFeeSats != null && paymailFeeSats < 0) { _fail('Introduction fee cannot be negative'); return null; }
     if (!await _mutationAllowed()) return null;
-    final identity = me!;
-    final profile = BitMessageProfile(bitNameHash: identity.hash, signingPublicKey: identity.details.signingPubkey!,
-      encryptionPublicKey: identity.details.encryptionPubkey!, directEndpoints: direct.map((u) => _path(u, identity.hash)),
-      torEndpoints: tor.map((u) => _path(u, identity.hash)), paymailFeeSats: paymailFeeSats);
-    if (profile.directEndpoints.isEmpty && profile.torEndpoints.isEmpty) {
-      _fail('Add a direct or Tor endpoint');
-      return null;
-    }
     try {
+      final identity = me, signing = identity.details.signingPubkey ?? await bitnamesRPC.getNewVerifyingKey(),
+          encryption = identity.details.encryptionPubkey ?? await bitnamesRPC.getNewEncryptionKey();
+      final profile = BitMessageProfile(bitNameHash: identity.hash, signingPublicKey: signing,
+        encryptionPublicKey: encryption, directEndpoints: direct.map((u) => _path(u, identity.hash)),
+        torEndpoints: tor.map((u) => _path(u, identity.hash)), paymailFeeSats: paymailFeeSats);
+      if (profile.directEndpoints.isEmpty && profile.torEndpoints.isEmpty) { _fail('Add a direct or Tor endpoint'); return null; }
       final txid = await bitnamesRPC.updateBitName(bitname: identity.hash,
         updates: BitNameDataUpdates(commitment: BitNameUpdate.set(bitMessageProfileCommitment(profile)),
+          signingPubkey: BitNameUpdate.set(signing), encryptionPubkey: BitNameUpdate.set(encryption),
           paymailFeeSats: paymailFeeSats == null ? const BitNameUpdate<int>.delete() : BitNameUpdate.set(paymailFeeSats)),
         feeSats: minerFeeSats);
       _profiles[identity.hash] = profile; _pendingProfiles.add(identity.hash); await _save(); _changed();
@@ -271,10 +271,12 @@ class ChatProvider extends ChangeNotifier {
   }
 
   Future<bool> setTorOnly(bool enabled, {String? peerOnion}) async {
+    if (!enabled && !_torOnly) return true;
+    if (enabled && _torOnly && _tor != null && await _tor.chainTorReady(bitnamesRPC)) return true;
     try {
       if (enabled) {
         final controller = _tor;
-        final onion = peerOnion ?? _torPeerOnion;
+        final onion = peerOnion;
         if (controller == null || onion == null) {
           throw StateError('No BitNames Tor peer is configured. Use direct mode or connect a Tor-capable contact first');
         }
@@ -294,15 +296,18 @@ class ChatProvider extends ChangeNotifier {
     _changed(); return _torStatus;
   }
 
-  Future<void> addContactFromEntry(BitnameEntry entry) async {
+  Future<bool> addContactFromEntry(BitnameEntry entry) async {
+    if (entry.hash == _selectedIdentity?.hash) {
+      _fail('Choose a different BitName; you cannot add your current identity'); return false;
+    }
     if (entry.details.encryptionPubkey == null) {
       _error = 'BitName has no encryption key';
       notifyListeners();
-      return;
+      return false;
     }
 
     final resolution = await bitnamesRPC.resolveBitName(entry.hash);
-    if (resolution == null) return;
+    if (resolution == null) { _fail('Could not resolve this BitName'); return false; }
     final address = resolution.address;
 
     final contact = ChatContact(
@@ -318,6 +323,7 @@ class ChatProvider extends ChangeNotifier {
     );
 
     await addContact(contact);
+    return true;
   }
 
   Future<ChatContact?> lookupBitName(String nameOrHash) async {
@@ -358,18 +364,32 @@ class ChatProvider extends ChangeNotifier {
   Future<void> addContact(ChatContact contact) async {
     final existingIndex = _contacts.indexWhere((c) => c.relationshipId == contact.relationshipId);
     if (existingIndex >= 0) {
-      _contacts[existingIndex] = contact;
+      final old = _contacts[existingIndex];
+      contact = ChatContact(id: contact.id, localBitname: contact.localBitname, name: contact.name,
+        plaintextName: contact.plaintextName, encryptionPubkey: contact.encryptionPubkey,
+        signingPubkey: contact.signingPubkey, address: contact.address,
+        paymailFeeSats: contact.paymailFeeSats, relationshipState: old.relationshipState,
+        introductionId: old.introductionId, replyProfile: old.replyProfile,
+        lastMessage: old.lastMessage, lastMessageTime: old.lastMessageTime,
+        unreadCount: old.unreadCount, isManual: contact.isManual);
     } else {
       _contacts.add(contact);
     }
-    if (_selectedContact?.relationshipId == contact.relationshipId) {
-      _selectedContact = contact;
-    }
-    await _saveContacts();
-    notifyListeners();
+    await _storeContact(contact);
   }
 
-  Future<void> _putContact(ChatContact contact) => addContact(contact);
+  Future<void> _putContact(ChatContact contact) => _storeContact(contact);
+
+  Future<void> _storeContact(ChatContact contact) async {
+    final index = _contacts.indexWhere((c) => c.relationshipId == contact.relationshipId);
+    if (index >= 0) {
+      _contacts[index] = contact;
+    } else {
+      _contacts.add(contact);
+    }
+    if (_selectedContact?.relationshipId == contact.relationshipId) _selectedContact = contact;
+    await _saveContacts(); notifyListeners();
+  }
 
   Future<void> removeContact(String contactId) async {
     _contacts.removeWhere(
@@ -469,9 +489,14 @@ class ChatProvider extends ChangeNotifier {
   /// Reserve and register a BitName automatically
   /// Handles the reserve-wait-register dance internally
   Future<String?> claimIdentity(String plaintextName, {int introductionFeeSats = 1000}) async {
+    plaintextName = plaintextName.trim().toLowerCase();
     // Add progress before connection/privacy guards so Register never appears to do nothing.
     final statusId = 'claiming_$plaintextName';
     _addStatus(statusId, 'Preparing registration for "$plaintextName"...');
+    if (plaintextName.isEmpty || introductionFeeSats < 0 || introductionFeeSats > 2100000000000000) {
+      _fail('Enter a name and an introduction fee from 0 to 2,100,000,000,000,000 sats');
+      _removeStatus(statusId); return null;
+    }
     if (!bitnamesRPC.connected) {
       _error = 'BitNames not connected';
       _addStatus(statusId, 'Registration paused • BitNames is not connected');
@@ -489,6 +514,10 @@ class ChatProvider extends ChangeNotifier {
     var keepSuccessStatus = false;
 
     try {
+      final hash = blake3Hex(utf8.encode(plaintextName.trim().toLowerCase()));
+      if (_allBitNames.any((entry) => entry.hash == hash) || await bitnamesRPC.resolveBitName(hash) != null) {
+        _fail('That BitName is already registered'); return null;
+      }
       // Check balance first
       final balance = await bitnamesRPC.getBalance();
       if (balance.availableSats < 10000) {
@@ -578,17 +607,22 @@ class ChatProvider extends ChangeNotifier {
   Future<ChatSendResult> sendIntroduction(String body) async {
     final contact = _selectedContact;
     if (_isSending) return _failed('A message is already being sent');
-    if (contact == null || !{ChatRelationshipState.none, ChatRelationshipState.rejected}.contains(contact.relationshipState)) {
+    if (contact == null || contact.relationshipState != ChatRelationshipState.none) {
       return _failed('A new introduction is not allowed for this contact'); }
     _isSending = true; _changed();
     try {
       final ctx = await _context();
       final fee = ctx?.remote.data.paymailFeeSats;
-      if (ctx == null || fee == null) return _failed('Recipient is not accepting introductions');
+      if (ctx == null) return _failed(_error ?? 'Publish and confirm your reply profile first');
       if (fee != ctx.contact.paymailFeeSats) {
-        await _putContact(ctx.contact.copyWith(address: ctx.remote.address, paymailFeeSats: fee));
+        await addContact(ChatContact(id: ctx.contact.id, localBitname: ctx.contact.localBitname,
+          name: ctx.contact.name, plaintextName: ctx.contact.plaintextName,
+          encryptionPubkey: ctx.remote.data.encryptionPubkey!, signingPubkey: ctx.remote.data.signingPubkey,
+          address: ctx.remote.address, paymailFeeSats: fee, isManual: ctx.contact.isManual));
+        if (fee == null) return _failed('Recipient is not accepting introductions');
         return _failed('The introduction fee changed to $fee sats; review and confirm it again');
       }
+      if (fee == null) return _failed('Recipient is not accepting introductions');
       if (!await _mutationAllowed()) return _failed(_error!);
       final prepared = await _prepare(ctx, body, BitIntroductionKind.introduction, null, true);
       final id = prepared.$1.payload.id, pending = _message(prepared.$1, true, ChatTransport.bitnamesChain, null, fee)
@@ -601,7 +635,8 @@ class ChatProvider extends ChangeNotifier {
         value: fee, fee: minerFeeSats, memo: prepared.$2.ciphertext);
         await _putMessage(pending.copyWith(txid: txid));
         return ChatSendResult(ChatSendDisposition.sent, id: id, reference: txid);
-      } catch (e) { return ChatSendResult(ChatSendDisposition.needsChainConfirmation, id: id, error: '$e'); }
+      } catch (e) { return ChatSendResult(ChatSendDisposition.failed, id: id,
+        error: 'Introduction is queued and will retry when BitNames reconnects: $e'); }
     } catch (e) { return _failed('Could not send introduction: $e'); }
     finally { _isSending = false; _changed(); }
   }
@@ -648,6 +683,16 @@ class ChatProvider extends ChangeNotifier {
   }
 
   Future<void> rejectIntroduction() => _setRelationship(ChatRelationshipState.rejected);
+  Future<void> cancelIntroduction() async {
+    final contact = _selectedContact;
+    if (_isSending || contact?.relationshipState != ChatRelationshipState.outgoingIntroduction) return;
+    final id = contact!.introductionId;
+    _pendingWires.remove(id);
+    _messages.removeWhere((m) => m.id == id && m.localBitname == contact.localBitname);
+    await _putContact(contact.copyWith(
+      relationshipState: ChatRelationshipState.rejected, clearIntroductionId: true));
+    await _save();
+  }
   Future<void> blockContact() => _setRelationship(ChatRelationshipState.blocked);
   Future<void> _setRelationship(ChatRelationshipState state) async {
     if (!_isSending && _selectedContact != null) await _putContact(_selectedContact!.copyWith(relationshipState: state));
