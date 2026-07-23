@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:bitwindow/models/bitintroduction_protocol.dart';
+import 'package:bitwindow/models/bitnames_recovery.dart';
 import 'package:bitwindow/models/chat_models.dart';
 import 'package:bitwindow/services/bitintroduction_codec.dart';
 import 'package:bitwindow/services/bitmessage_server.dart';
@@ -13,6 +14,7 @@ import 'package:bitwindow/services/tor_bitmessage_dialer.dart';
 import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
+import 'package:synchronized/synchronized.dart';
 import 'package:thirds/blake3.dart';
 import 'package:uuid/uuid.dart';
 
@@ -27,12 +29,18 @@ typedef TorMutationGuard = Future<String?> Function();
 class ChatProvider extends ChangeNotifier {
   ChatProvider({
     BitnamesRPC? rpc, ClientSettings? settings, BalanceProvider? balances,
+    EnforcerRPC? enforcer, Future<void> Function()? restartBitnames,
     BitMessageTransport? transport, BitnamesTorController? tor, TorMutationGuard? torMutationGuard,
     DateTime Function()? now, String Function()? id, this.autoStart = true,
     this.pollInterval = const Duration(seconds: 30), int serverPort = 37999,
+    BitnamesChainRecovery chainRecovery = const BitnamesChainRecovery(),
   }) : bitnamesRPC = rpc ?? GetIt.I.get<BitnamesRPC>(),
        _settings = settings ?? GetIt.I.get<ClientSettings>(),
        _balances = balances ?? _get<BalanceProvider>(),
+       _enforcer = enforcer ?? _get<EnforcerRPC>(),
+       _restartBitnames = restartBitnames ?? _defaultRestartBitnames,
+       // ignore: prefer_initializing_formals
+       _chainRecovery = chainRecovery,
        _tor = tor ?? _defaultTor(),
        // ignore: prefer_initializing_formals
        _torMutationGuard = torMutationGuard,
@@ -52,6 +60,8 @@ class ChatProvider extends ChangeNotifier {
 
   static const minerFeeSats = 100, fallbackValueSats = 1, maxMessageBytes = 4096;
   final BitnamesRPC bitnamesRPC; final ClientSettings _settings; final BalanceProvider? _balances;
+  final EnforcerRPC? _enforcer; final Future<void> Function()? _restartBitnames;
+  final BitnamesChainRecovery _chainRecovery;
   final BitnamesTorController? _tor; final TorMutationGuard? _torMutationGuard;
   final DateTime Function() _now; final String Function() _newId;
   final bool autoStart; final Duration pollInterval;
@@ -68,11 +78,15 @@ class ChatProvider extends ChangeNotifier {
   List<ChatContact> _contacts = [];
   final List<ChatMessage> _messages = [];
   final Map<String, BitMessageProfile> _profiles = {}; final Set<String> _pendingProfiles = {}; final Map<String, BitMessageWire> _pendingWires = {};
+  final Map<String, BitnamesOperation> _operations = {};
   ChatContact? _selectedContact;
   Timer? _pollTimer;
   Future<void>? _ready; String? _torPeerOnion;
-  bool _polling = false, _isSending = false, _torOnly = false, _disposed = false;
+  bool _polling = false, _refreshing = false, _isSending = false, _torOnly = false, _disposed = false;
   String? _error;
+  final Lock _saveLock = Lock();
+  final Lock _operationLock = Lock();
+  BitnamesChainSnapshot _chainHealth = const BitnamesChainSnapshot();
   BitnamesTorStatus _torStatus = const BitnamesTorStatus(state: BitnamesTorState.unavailable);
 
   List<BitnameEntry> get allBitNames => _allBitNames;
@@ -98,6 +112,8 @@ class ChatProvider extends ChangeNotifier {
   bool profileReady(String hash) => _profiles.containsKey(hash) && !_pendingProfiles.contains(hash);
   bool get selectedProfileReady => _selectedIdentity != null && profileReady(_selectedIdentity!.hash);
   bool get selectedProfilePending => _selectedIdentity != null && _pendingProfiles.contains(_selectedIdentity!.hash);
+  BitnamesChainSnapshot get chainHealth => _chainHealth;
+  List<BitnamesOperation> get operations => List.unmodifiable(_operations.values);
 
   Future<void> initialize() => _ready ??= _init();
   Future<void> _init() async {
@@ -115,10 +131,24 @@ class ChatProvider extends ChangeNotifier {
         }
       } catch (_) {}
     }
+    for (final json in _maps(state['operations'])) {
+      try {
+        final operation = BitnamesOperation.fromJson(json);
+        _operations[operation.id] = operation;
+      } catch (_) {}
+    }
+    if (state['chain_health'] is Map) {
+      try {
+        _chainHealth = BitnamesChainSnapshot.fromJson(
+          Map<String, dynamic>.from(state['chain_health'] as Map),
+        );
+      } catch (_) {}
+    }
     _ownedHashes = (state['owned'] as List? ?? []).whereType<String>().toSet();
     _preferredIdentityHash = state['selected_identity'] is String ? state['selected_identity'] as String : null;
     _torOnly = state['tor_only'] == true;
     _torPeerOnion = state['tor_peer'] is String ? state['tor_peer'] as String : null;
+    _restoreOperationStatuses();
     if (_tor != null) _torStatus = await _tor.refresh();
     if (autoStart) {
       try { await _server.start(); } catch (e) { _error = 'BitMessage listener unavailable: $e'; }
@@ -137,13 +167,202 @@ class ChatProvider extends ChangeNotifier {
     _changed();
   }
 
-  Future<void> refresh() async { if (_tor != null) _torStatus = await _tor.refresh();
-    await fetchIdentities(); await fetchPaymail();
+  Future<void> refresh() async {
+    if (_refreshing) return;
+    _refreshing = true;
+    try {
+      if (_tor != null) _torStatus = await _tor.refresh();
+      if (!await _refreshChainHealth()) return;
+      await fetchIdentities();
+      await _reconcileOperations();
+      await fetchPaymail();
+      _chainHealth = _chainHealth.copyWith(lastReconciledAt: _now());
+      await _save();
+    } finally {
+      _refreshing = false;
+      _changed();
+    }
+  }
+
+  Future<bool> _refreshChainHealth() async {
+    final enforcer = _enforcer;
+    if (enforcer == null) return bitnamesRPC.connected;
+    final now = _now();
+    if (!bitnamesRPC.connected || !enforcer.connected) {
+      _chainHealth = _chainRecovery.disconnected(_chainHealth, now).snapshot;
+      await _save();
+      return false;
+    }
+    try {
+      final enforcerInfo = await enforcer.getBlockchainInfo();
+      final bitnamesMainchainHash =
+          await bitnamesRPC.getBestMainchainBlockHash();
+      final sidechainHeight = await bitnamesRPC.getBlockCount();
+      final sidechainHash = await bitnamesRPC.getBestSidechainBlockHash();
+      final peers = await bitnamesRPC.listPeers();
+      if (bitnamesMainchainHash == null || sidechainHash == null) {
+        throw StateError('BitNames did not report complete chain tips');
+      }
+      final decision = _chainRecovery.observe(
+        _chainHealth,
+        BitnamesChainObservation(
+          enforcerHeight: enforcerInfo.blocks,
+          enforcerHash: enforcerInfo.bestBlockHash,
+          bitnamesMainchainHash: bitnamesMainchainHash,
+          sidechainHeight: sidechainHeight,
+          sidechainHash: sidechainHash,
+          peerCount: peers.length,
+          waitingForBlock: _hasPendingChainWork,
+        ),
+        now,
+      );
+      _chainHealth = decision.snapshot;
+      await _save();
+      if (decision.restartBitnames) {
+        final restart = _restartBitnames;
+        if (restart == null) {
+          _chainHealth = _chainHealth.copyWith(
+            state: BitnamesChainHealthState.stalled,
+            error: 'Automatic BitNames restart is unavailable',
+          );
+          await _save();
+          return false;
+        }
+        try {
+          await restart();
+        } catch (e) {
+          _chainHealth = _chainHealth.copyWith(
+            state: BitnamesChainHealthState.error,
+            error: 'Automatic BitNames restart failed: $e',
+          );
+          await _save();
+        }
+        return false;
+      }
+      return _chainHealth.mutationSafe;
+    } catch (e) {
+      final decision = _chainRecovery.failed(_chainHealth, now, e);
+      _chainHealth = decision.snapshot;
+      await _save();
+      if (decision.restartBitnames && _restartBitnames != null) {
+        try {
+          await _restartBitnames();
+        } catch (restartError) {
+          _chainHealth = _chainHealth.copyWith(
+            state: BitnamesChainHealthState.error,
+            error: 'Automatic BitNames restart failed: $restartError',
+          );
+          await _save();
+        }
+      }
+      return false;
+    }
+  }
+
+  bool get _hasPendingChainWork =>
+      _operations.values.any(
+        (operation) =>
+            !operation.terminal &&
+            operation.phase != BitnamesOperationPhase.prepared &&
+            operation.phase != BitnamesOperationPhase.paused,
+      ) ||
+      _messages.any(
+        (message) =>
+            message.transport == ChatTransport.bitnamesChain &&
+            message.deliveryState == ChatDeliveryState.pending,
+      );
+
+  Future<void> retryChainRecovery() async {
+    if (_chainHealth.state == BitnamesChainHealthState.stalled) {
+      _chainHealth = _chainHealth.copyWith(
+        state: BitnamesChainHealthState.waitingForBlock,
+        observedAt: _now(),
+        lastProgressAt: _now(),
+        clearError: true,
+      );
+      await _save();
+      await refresh();
+      return;
+    }
+    final restart = _restartBitnames;
+    if (restart == null) {
+      _fail('BitNames restart is unavailable');
+      return;
+    }
+    _chainHealth = _chainHealth.copyWith(
+      state: BitnamesChainHealthState.recovering,
+      observedAt: _now(),
+      lastProgressAt: _now(),
+      recoveryAttempts: _chainHealth.recoveryAttempts + 1,
+      recoveryTip: _chainHealth.enforcerHash,
+      clearError: true,
+    );
+    await _save();
+    _changed();
+    try {
+      await restart();
+    } catch (e) {
+      _chainHealth = _chainHealth.copyWith(
+        state: BitnamesChainHealthState.error,
+        error: 'Could not restart BitNames: $e',
+      );
+      await _save();
+      _changed();
+    }
+  }
+
+  void _restoreOperationStatuses() {
+    for (final operation in _operations.values.where((op) => !op.terminal)) {
+      _addStatus(operation.id, _operationStatus(operation));
+    }
+  }
+
+  String _operationStatus(BitnamesOperation operation) {
+    final name =
+        operation.plaintextName ??
+        (operation.bitnameHash.length > 8
+            ? '${operation.bitnameHash.substring(0, 8)}…'
+            : operation.bitnameHash);
+    return switch (operation.phase) {
+      BitnamesOperationPhase.prepared =>
+        'Preparing BitName operation for "$name"',
+      BitnamesOperationPhase.reservationSubmitting =>
+        'Reservation submission for "$name" was interrupted • checking chain state before any retry',
+      BitnamesOperationPhase.reservationSubmitted =>
+        'Reservation for "$name" submitted • waiting for a BitNames block'
+            '${operation.reservationTxid == null ? '' : ' • transaction ${_short(operation.reservationTxid!)}'}',
+      BitnamesOperationPhase.registrationSubmitting =>
+        'Registration submission for "$name" was interrupted • checking chain state before any retry',
+      BitnamesOperationPhase.registrationSubmitted =>
+        '"$name" registration submitted • waiting for a BitNames block'
+            '${operation.txid == null ? '' : ' • transaction ${_short(operation.txid!)}'}',
+      BitnamesOperationPhase.profileSubmitting =>
+        'Reply-profile submission for "$name" was interrupted • checking chain state before any retry',
+      BitnamesOperationPhase.profileSubmitted =>
+        'Reply profile for "$name" submitted • waiting for a BitNames block'
+            '${operation.txid == null ? '' : ' • transaction ${_short(operation.txid!)}'}',
+      BitnamesOperationPhase.paused =>
+        '$name operation paused safely • ${operation.lastError ?? 'review required'}',
+      BitnamesOperationPhase.failed =>
+        '$name operation failed • ${operation.lastError ?? 'unknown error'}',
+      BitnamesOperationPhase.cancelled => '$name operation cancelled',
+      BitnamesOperationPhase.confirmed => '$name operation confirmed',
+    };
+  }
+
+  Future<void> _putOperation(BitnamesOperation operation) async {
+    _operations[operation.id] = operation;
+    if (operation.phase == BitnamesOperationPhase.confirmed) {
+      _addStatus(operation.id, _operationStatus(operation), completed: true);
+    } else if (!operation.terminal) {
+      _addStatus(operation.id, _operationStatus(operation));
+    }
+    await _save();
   }
 
   void _onConnectionChanged() {
     if (bitnamesRPC.connected) {
-      refresh();
+      unawaited(refresh());
     }
   }
 
@@ -271,9 +490,24 @@ class ChatProvider extends ChangeNotifier {
     final me = _selectedIdentity;
     if (me == null) { _fail('Select a registered BitName first'); return null; }
     final statusId = 'profile_${me.hash}';
+    final existing = _operations[statusId];
+    if (existing?.phase == BitnamesOperationPhase.paused) {
+      _fail(
+        'The previous reply-profile transaction is paused safely: ${existing!.lastError ?? 'review required'}',
+      );
+      return null;
+    }
+    if (existing != null && !existing.terminal) {
+      await _reconcileOperations();
+      if (!(_operations[statusId]?.terminal ?? true)) {
+        _fail('A reply-profile operation for this BitName is already being reconciled');
+        return null;
+      }
+    }
     if (paymailFeeSats != null && paymailFeeSats < 0) { _fail('Introduction fee cannot be negative'); return null; }
     _addStatus(statusId, 'Creating signing and encryption keys for the reply profile...');
     if (!await _mutationAllowed()) { _removeStatus(statusId); return null; }
+    BitnamesOperation? operation;
     try {
       final identity = me, signing = identity.details.signingPubkey ?? await bitnamesRPC.getNewVerifyingKey(),
           encryption = identity.details.encryptionPubkey ?? await bitnamesRPC.getNewEncryptionKey();
@@ -283,25 +517,53 @@ class ChatProvider extends ChangeNotifier {
       if (profile.directEndpoints.isEmpty && profile.torEndpoints.isEmpty) {
         _removeStatus(statusId); _fail('Add a direct or Tor endpoint'); return null;
       }
-      _addStatus(
-        statusId,
-        'Publishing reply profile (${profile.torEndpoints.isNotEmpty ? 'Tor onion' : 'Direct IP'}, '
-        '${paymailFeeSats == null ? 'introductions off' : '$paymailFeeSats-sat introduction fee'})...',
+      final now = _now();
+      operation = BitnamesOperation(
+        id: statusId,
+        type: BitnamesOperationType.profilePublication,
+        phase: BitnamesOperationPhase.profileSubmitting,
+        bitnameHash: identity.hash,
+        plaintextName: identity.plaintextName,
+        introductionFeeSats: paymailFeeSats,
+        encryptionPubkey: encryption,
+        signingPubkey: signing,
+        profile: profile.toJson(),
+        createdAt: now,
+        updatedAt: now,
+        lastObservedSidechainHeight: _chainHealth.sidechainHeight,
+        attempts: 1,
+        maySpend: true,
       );
+      await _putOperation(operation);
       final txid = await bitnamesRPC.updateBitName(bitname: identity.hash,
         updates: BitNameDataUpdates(commitment: BitNameUpdate.set(bitMessageProfileCommitment(profile)),
           signingPubkey: BitNameUpdate.set(signing), encryptionPubkey: BitNameUpdate.set(encryption),
           paymailFeeSats: paymailFeeSats == null ? const BitNameUpdate<int>.delete() : BitNameUpdate.set(paymailFeeSats)),
         feeSats: minerFeeSats);
       _profiles[identity.hash] = profile; _pendingProfiles.add(identity.hash);
-      _addStatus(
-        statusId,
-        'Reply profile submitted • waiting for a BitNames block • transaction ${_short(txid)}',
+      operation = operation.copyWith(
+        phase: BitnamesOperationPhase.profileSubmitted,
+        txid: txid,
+        updatedAt: _now(),
+        maySpend: false,
+        clearError: true,
       );
-      await _save(); _changed();
+      await _putOperation(operation);
+      _changed();
       return txid;
     } catch (e) {
-      _removeStatus(statusId); _fail('Could not publish reply profile: $e'); return null;
+      if (operation != null) {
+        await _putOperation(
+          operation.copyWith(
+            updatedAt: _now(),
+            maySpend: false,
+            lastError: 'Submission outcome is unknown: $e',
+          ),
+        );
+      } else {
+        _removeStatus(statusId);
+      }
+      _fail('Could not publish reply profile: $e'); return null;
     }
   }
 
@@ -547,11 +809,23 @@ class ChatProvider extends ChangeNotifier {
       _removeStatus(statusId);
       return null;
     }
-    _addStatus(statusId, 'Checking balance...');
-    var keepSuccessStatus = false;
-
+    _addStatus(statusId, 'Checking balance and existing chain state...');
     try {
-      final hash = blake3Hex(utf8.encode(plaintextName.trim().toLowerCase()));
+      final hash = blake3Hex(utf8.encode(plaintextName));
+      final operationId = 'registration_$hash';
+      var operation = _operations[operationId];
+      if (operation?.phase == BitnamesOperationPhase.paused ||
+          operation?.phase == BitnamesOperationPhase.failed ||
+          operation?.phase == BitnamesOperationPhase.cancelled) {
+        _fail(
+          'The previous registration is ${operation!.phase.name}: '
+          '${operation.lastError ?? 'review is required before another spend'}',
+        );
+        return null;
+      }
+      if (operation != null && !operation.terminal) {
+        _addStatus(operation.id, _operationStatus(operation));
+      }
       var alreadyRegistered = _allBitNames.any((entry) => entry.hash == hash);
       if (!alreadyRegistered) {
         try {
@@ -560,83 +834,397 @@ class ChatProvider extends ChangeNotifier {
           if (!e.toString().toLowerCase().contains('missing bitname')) rethrow;
         }
       }
-      if (alreadyRegistered) {
+      if (alreadyRegistered && operation == null) {
         _fail('That BitName is already registered'); return null;
       }
-      // Check balance first
-      final balance = await bitnamesRPC.getBalance();
-      if (balance.availableSats < 10000) {
-        _error = 'Insufficient BitNames balance. Deposit funds to BitNames sidechain first.';
-        notifyListeners();
-        return null;
-      }
-
-      // Step 1: Reserve (wait for tx to be mined)
-      _addStatus(statusId, 'Submitting reservation for "$plaintextName"...');
-      await bitnamesRPC.reserveBitName(plaintextName);
-      _addStatus(statusId, 'Reservation submitted • it must be mined in a BitNames block before registration can continue');
-
-      final encryptionPubkey = await bitnamesRPC.getNewEncryptionKey();
-      final signingPubkey = await bitnamesRPC.getNewVerifyingKey();
-
-      // Retry register until reservation is mined (stay in "Reserving" state)
-      String? txid;
-      const retryDelay = Duration(seconds: 10);
-
-      while (txid == null) {
-        try {
-          txid = await bitnamesRPC.registerBitName(
-            plaintextName,
-            BitNameData(
-              encryptionPubkey: encryptionPubkey,
-              signingPubkey: signingPubkey,
-              paymailFeeSats: introductionFeeSats,
-            ),
-          );
-        } catch (e) {
-          final errorStr = e.toString().toLowerCase();
-          if (errorStr.contains('reservation') ||
-              errorStr.contains('not found') ||
-              errorStr.contains('missing bitname')) {
-            // Reservation not mined yet, wait and retry
-            await Future.delayed(retryDelay);
-          } else {
-            // Different error, rethrow
-            rethrow;
-          }
+      if (operation == null) {
+        final balance = await bitnamesRPC.getBalance();
+        if (balance.availableSats < 10000) {
+          _error = 'Insufficient BitNames balance. Deposit funds to BitNames sidechain first.';
+          notifyListeners();
+          return null;
         }
+        final now = _now();
+        operation = BitnamesOperation(
+          id: operationId,
+          type: BitnamesOperationType.registration,
+          phase: BitnamesOperationPhase.prepared,
+          bitnameHash: hash,
+          plaintextName: plaintextName,
+          introductionFeeSats: introductionFeeSats,
+          createdAt: now,
+          updatedAt: now,
+          lastObservedSidechainHeight: _chainHealth.sidechainHeight,
+        );
+        await _putOperation(operation);
       }
-
-      // Step 2: Register tx submitted, wait for it to be mined
-      _addStatus(statusId, '"$plaintextName" submitted • it must be mined in a BitNames block to finish registration');
-      await _hashNameMapping.saveMapping(plaintextName, isMine: true);
-
-      // Poll until BitName appears in identity list (register tx mined)
+      const retryDelay = Duration(seconds: 10);
       while (true) {
-        await fetchIdentities();
-        final registered = _myIdentities.where((entry) => entry.plaintextName == plaintextName).firstOrNull;
-        if (registered != null) {
-          _selectedIdentity = registered;
-          _preferredIdentityHash = registered.hash;
-          _selectedContact = null;
-          _changed();
-          break;
+        await _reconcileOperations();
+        operation = _operations[operationId]!;
+        if (operation.phase == BitnamesOperationPhase.confirmed) {
+          final registered = _myIdentities.where((entry) => entry.hash == hash).firstOrNull;
+          if (registered != null) {
+            _selectedIdentity = registered;
+            _preferredIdentityHash = registered.hash;
+            _selectedContact = null;
+            await _save();
+            _changed();
+          }
+          Timer(const Duration(seconds: 15), () => _removeStatus(operationId));
+          _removeStatus(statusId);
+          return operation.txid;
+        }
+        if (operation.uncertain && operation.lastError != null) {
+          _fail(operation.lastError);
+          return null;
+        }
+        if (!_chainHealth.mutationSafe) {
+          _fail('${_chainHealth.summary}. Registration will resume automatically after reconciliation.');
+          return null;
         }
         await Future.delayed(retryDelay);
+        await refresh();
       }
-
-      // Step 3: Registered successfully
-      _addStatus(statusId, '"$plaintextName" was mined in a BitNames block and is now registered', completed: true);
-      keepSuccessStatus = true;
-      Timer(const Duration(seconds: 15), () => _removeStatus(statusId));
-
-      return txid;
     } catch (e) {
       _error = 'Failed to claim BitName: $e';
       notifyListeners();
       return null;
     } finally {
-      if (!keepSuccessStatus) _removeStatus(statusId);
+      _removeStatus(statusId);
+    }
+  }
+
+  Future<void> _reconcileOperations() =>
+      _operationLock.synchronized(_reconcileOperationsUnlocked);
+
+  Future<void> _reconcileOperationsUnlocked() async {
+    if (!bitnamesRPC.connected || !_chainHealth.mutationSafe) return;
+    for (final operation in _operations.values.toList()) {
+      if (operation.phase == BitnamesOperationPhase.failed ||
+          operation.phase == BitnamesOperationPhase.cancelled) {
+        continue;
+      }
+      if (operation.type == BitnamesOperationType.registration) {
+        await _reconcileRegistration(operation);
+      } else {
+        await _reconcileProfile(operation);
+      }
+    }
+  }
+
+  Future<void> _reconcileRegistration(BitnamesOperation operation) async {
+    final resolution = await _resolveOrNull(operation.bitnameHash);
+    final owned = resolution != null && await _ownsBitNameNow(operation.bitnameHash);
+    if (owned) {
+      if (operation.plaintextName != null) {
+        await _hashNameMapping.saveMapping(operation.plaintextName!, isMine: true);
+      }
+      if (operation.phase != BitnamesOperationPhase.confirmed) {
+        await _putOperation(
+          operation.copyWith(
+            phase: BitnamesOperationPhase.confirmed,
+            updatedAt: _now(),
+            lastObservedSidechainHeight: _chainHealth.sidechainHeight,
+            maySpend: false,
+            clearError: true,
+          ),
+        );
+        await fetchIdentities();
+      }
+      return;
+    }
+
+    if (operation.phase == BitnamesOperationPhase.confirmed) {
+      await _putOperation(
+        operation.copyWith(
+          phase: BitnamesOperationPhase.registrationSubmitted,
+          updatedAt: _now(),
+          maySpend: false,
+          lastError:
+              'Registration was removed by a reorg or ownership changed; no transaction was resent',
+        ),
+      );
+      return;
+    }
+
+    switch (operation.phase) {
+      case BitnamesOperationPhase.prepared:
+        final submitting = operation.copyWith(
+          phase: BitnamesOperationPhase.reservationSubmitting,
+          updatedAt: _now(),
+          attempts: operation.attempts + 1,
+          maySpend: true,
+          clearError: true,
+        );
+        await _putOperation(submitting);
+        try {
+          final txid = await bitnamesRPC.reserveBitName(operation.plaintextName!);
+          await _putOperation(
+            submitting.copyWith(
+              phase: BitnamesOperationPhase.reservationSubmitted,
+              reservationTxid: txid,
+              updatedAt: _now(),
+              lastObservedSidechainHeight: _chainHealth.sidechainHeight,
+              maySpend: false,
+              clearError: true,
+            ),
+          );
+        } catch (e) {
+          await _putOperation(
+            submitting.copyWith(
+              updatedAt: _now(),
+              maySpend: false,
+              lastError:
+                  'Reservation submission outcome is unknown; BitWindow will not spend again automatically: $e',
+            ),
+          );
+        }
+        return;
+      case BitnamesOperationPhase.reservationSubmitting:
+        if (operation.lastError == null) {
+          await _putOperation(
+            operation.copyWith(
+              updatedAt: _now(),
+              maySpend: false,
+              lastError:
+                  'BitWindow restarted during reservation submission; checking ownership without resubmitting',
+            ),
+          );
+        } else if (operation.lastObservedSidechainHeight != null &&
+            (_chainHealth.sidechainHeight ?? 0) >
+                operation.lastObservedSidechainHeight!) {
+          await _submitRegistration(
+            operation,
+            probingUncertainReservation: true,
+          );
+        }
+        return;
+      case BitnamesOperationPhase.reservationSubmitted:
+        final txid = operation.reservationTxid;
+        if (txid == null) {
+          await _pauseOperation(operation, 'Reservation transaction ID is missing');
+          return;
+        }
+        final status = await bitnamesRPC.transactionStatus(txid);
+        if (status == BitnamesTransactionStatus.absent) {
+          await _pauseOperation(
+            operation,
+            'Reservation is no longer in the canonical chain or mempool; retry requires fresh approval',
+          );
+          return;
+        }
+        if (status == BitnamesTransactionStatus.pending) return;
+        await _submitRegistration(operation);
+        return;
+      case BitnamesOperationPhase.registrationSubmitting:
+        if (operation.lastError == null) {
+          await _putOperation(
+            operation.copyWith(
+              updatedAt: _now(),
+              maySpend: false,
+              lastError:
+                  'BitWindow restarted during registration submission; checking ownership without resubmitting',
+            ),
+          );
+        }
+        return;
+      case BitnamesOperationPhase.registrationSubmitted:
+        final txid = operation.txid;
+        if (txid == null) {
+          await _pauseOperation(operation, 'Registration transaction ID is missing');
+          return;
+        }
+        final status = await bitnamesRPC.transactionStatus(txid);
+        if (status == BitnamesTransactionStatus.absent) {
+          await _pauseOperation(
+            operation,
+            'Registration is no longer in the canonical chain or mempool; no transaction was resent',
+          );
+        } else if (status == BitnamesTransactionStatus.confirmed) {
+          await _pauseOperation(
+            operation,
+            'Registration transaction is confirmed but ownership is not visible; wallet reconciliation is required',
+          );
+        }
+        return;
+      case BitnamesOperationPhase.profileSubmitting:
+      case BitnamesOperationPhase.profileSubmitted:
+      case BitnamesOperationPhase.paused:
+      case BitnamesOperationPhase.failed:
+      case BitnamesOperationPhase.cancelled:
+      case BitnamesOperationPhase.confirmed:
+        return;
+    }
+  }
+
+  Future<void> _submitRegistration(
+    BitnamesOperation operation, {
+    bool probingUncertainReservation = false,
+  }) async {
+    var current = operation;
+    if (current.encryptionPubkey == null || current.signingPubkey == null) {
+      current = current.copyWith(
+        encryptionPubkey:
+            current.encryptionPubkey ??
+            await bitnamesRPC.getNewEncryptionKey(),
+        signingPubkey:
+            current.signingPubkey ?? await bitnamesRPC.getNewVerifyingKey(),
+        updatedAt: _now(),
+      );
+      await _putOperation(current);
+    }
+    final submitting = current.copyWith(
+      phase: BitnamesOperationPhase.registrationSubmitting,
+      updatedAt: _now(),
+      attempts: current.attempts + 1,
+      maySpend: true,
+      clearError: true,
+    );
+    await _putOperation(submitting);
+    try {
+      final txid = await bitnamesRPC.registerBitName(
+        current.plaintextName!,
+        BitNameData(
+          encryptionPubkey: current.encryptionPubkey,
+          signingPubkey: current.signingPubkey,
+          paymailFeeSats: current.introductionFeeSats,
+        ),
+      );
+      await _putOperation(
+        submitting.copyWith(
+          phase: BitnamesOperationPhase.registrationSubmitted,
+          txid: txid,
+          updatedAt: _now(),
+          lastObservedSidechainHeight: _chainHealth.sidechainHeight,
+          maySpend: false,
+          clearError: true,
+        ),
+      );
+    } catch (e) {
+      final missingReservation =
+          probingUncertainReservation &&
+          RegExp(
+            'reservation|missing bitname|not found',
+            caseSensitive: false,
+          ).hasMatch('$e');
+      await _putOperation(
+        submitting.copyWith(
+          phase: missingReservation
+              ? BitnamesOperationPhase.reservationSubmitting
+              : BitnamesOperationPhase.registrationSubmitting,
+          updatedAt: _now(),
+          lastObservedSidechainHeight: _chainHealth.sidechainHeight,
+          maySpend: false,
+          lastError: missingReservation
+              ? 'No confirmed reservation was found at sidechain block '
+                    '${_chainHealth.sidechainHeight ?? 'unknown'}; waiting without resubmitting'
+              : 'Registration submission outcome is unknown; BitWindow will not spend again automatically: $e',
+        ),
+      );
+    }
+  }
+
+  Future<void> _reconcileProfile(BitnamesOperation operation) async {
+    BitMessageProfile? profile;
+    try {
+      profile =
+          operation.profile == null
+              ? _profiles[operation.bitnameHash]
+              : BitMessageProfile.fromJson(operation.profile!);
+    } catch (_) {}
+    if (profile == null) {
+      await _pauseOperation(operation, 'Saved reply profile is missing or invalid');
+      return;
+    }
+    final identity =
+        _allBitNames
+            .where((entry) => entry.hash == operation.bitnameHash)
+            .firstOrNull;
+    final canonical =
+        identity?.details.commitment == bitMessageProfileCommitment(profile);
+    if (canonical) {
+      _profiles[operation.bitnameHash] = profile;
+      _pendingProfiles.remove(operation.bitnameHash);
+      if (operation.phase != BitnamesOperationPhase.confirmed) {
+        await _putOperation(
+          operation.copyWith(
+            phase: BitnamesOperationPhase.confirmed,
+            updatedAt: _now(),
+            lastObservedSidechainHeight: _chainHealth.sidechainHeight,
+            maySpend: false,
+            clearError: true,
+          ),
+        );
+      }
+      return;
+    }
+
+    _pendingProfiles.add(operation.bitnameHash);
+    if (operation.phase == BitnamesOperationPhase.confirmed) {
+      await _putOperation(
+        operation.copyWith(
+          phase: BitnamesOperationPhase.profileSubmitted,
+          updatedAt: _now(),
+          maySpend: false,
+          lastError:
+              'Reply-profile confirmation was removed by a reorg or replaced; messaging remains locked',
+        ),
+      );
+      return;
+    }
+    if (operation.phase == BitnamesOperationPhase.profileSubmitting) {
+      if (operation.lastError == null) {
+        await _putOperation(
+          operation.copyWith(
+            updatedAt: _now(),
+            maySpend: false,
+            lastError:
+                'BitWindow restarted during reply-profile submission; checking the chain without resubmitting',
+          ),
+        );
+      }
+      return;
+    }
+    if (operation.phase != BitnamesOperationPhase.profileSubmitted) return;
+    final txid = operation.txid;
+    if (txid == null) {
+      await _pauseOperation(operation, 'Reply-profile transaction ID is missing');
+      return;
+    }
+    final status = await bitnamesRPC.transactionStatus(txid);
+    if (status == BitnamesTransactionStatus.absent) {
+      await _pauseOperation(
+        operation,
+        'Reply-profile transaction is no longer canonical; no transaction was resent',
+      );
+    } else if (status == BitnamesTransactionStatus.confirmed) {
+      await _pauseOperation(
+        operation,
+        'Reply-profile transaction confirmed but its commitment is not current; another update may have replaced it',
+      );
+    }
+  }
+
+  Future<void> _pauseOperation(
+    BitnamesOperation operation,
+    String reason,
+  ) =>
+      _putOperation(
+        operation.copyWith(
+          phase: BitnamesOperationPhase.paused,
+          updatedAt: _now(),
+          maySpend: false,
+          lastError: reason,
+        ),
+      );
+
+  Future<BitNameResolution?> _resolveOrNull(String bitname) async {
+    try {
+      return await bitnamesRPC.resolveBitName(bitname);
+    } catch (e) {
+      if (e.toString().toLowerCase().contains('missing bitname')) return null;
+      rethrow;
     }
   }
 
@@ -817,7 +1405,7 @@ class ChatProvider extends ChangeNotifier {
     for (final message in _messages.where((m) => m.isOutgoing && m.transport == ChatTransport.bitnamesChain && _pendingWires.containsKey(m.id)).toList()) {
       try {
         final status = message.txid == null ? BitnamesTransactionStatus.absent : await bitnamesRPC.transactionStatus(message.txid!);
-        if (status == BitnamesTransactionStatus.confirmed) { _pendingWires.remove(message.id);
+        if (status == BitnamesTransactionStatus.confirmed) {
           await _putMessage(message.copyWith(deliveryState: ChatDeliveryState.confirmed)); continue; }
         if (status == BitnamesTransactionStatus.pending || !await _mutationAllowed() || !await _ownsBitNameNow(message.senderBitname)) continue;
         final remote = await bitnamesRPC.resolveBitName(message.recipientBitname); if (remote == null) continue;
@@ -833,6 +1421,14 @@ class ChatProvider extends ChangeNotifier {
     final valid = <String>{}, auth = _messages.where((m) => m.transport == ChatTransport.bitnamesChain).toList();
     for (final message in auth) { try { if (message.txid != null &&
       (message.isOutgoing ? await bitnamesRPC.isTransactionConfirmed(message.txid!) : validatedChainIds.contains(message.id))) { valid.add(message.id); } } catch (_) {} }
+    for (final message in auth.where((message) => message.isOutgoing)) {
+      final state = valid.contains(message.id)
+          ? ChatDeliveryState.confirmed
+          : ChatDeliveryState.pending;
+      if (message.deliveryState != state) {
+        await _putMessage(message.copyWith(deliveryState: state));
+      }
+    }
     for (final contact in _contacts) {
       if ({ChatRelationshipState.blocked, ChatRelationshipState.rejected}.contains(contact.relationshipState)) continue;
       final intro = _messages.where((m) => m.id == contact.introductionId && m.localBitname == contact.localBitname && m.kind == ChatMessageKind.introduction).firstOrNull;
@@ -985,6 +1581,17 @@ class ChatProvider extends ChangeNotifier {
   }
 
   Future<bool> _mutationAllowed() async {
+    if (_enforcer != null) {
+      final observedAt = _chainHealth.observedAt;
+      final stale =
+          observedAt == null ||
+          _now().difference(observedAt) > pollInterval;
+      if ((stale || !_chainHealth.mutationSafe) &&
+          !await _refreshChainHealth()) {
+        _fail('${_chainHealth.summary}. ${_chainHealth.details}');
+        return false;
+      }
+    }
     if (!_torOnly) return true;
     final guard = _torMutationGuard;
     if (guard != null) {
@@ -996,16 +1603,24 @@ class ChatProvider extends ChangeNotifier {
     _fail('Tor-only BitNames writes require --tor-proxy-mode and a connected loopback UDP tunnel peer'); return false;
   }
 
-  Future<void> _save() => _settings.setValue(_ChatState(newValue: {
-        'contacts': _contacts.map((e) => e.toJson()).toList(),
-        'messages': _messages.map((e) => e.toJson()).toList(),
-        'profiles': _profiles.values.map((e) => e.toJson()).toList(),
-        'pending_profiles': _pendingProfiles.toList(),
-        'pending_wires': _pendingWires.map((k, v) => MapEntry(k, v.toJson())),
-        'owned': _ownedHashes.toList(), 'tor_only': _torOnly,
-        if (_selectedIdentity != null) 'selected_identity': _selectedIdentity!.hash,
-        if (_torPeerOnion != null) 'tor_peer': _torPeerOnion,
-      }));
+  Future<void> _save() {
+    final snapshot = {
+      'contacts': _contacts.map((e) => e.toJson()).toList(),
+      'messages': _messages.map((e) => e.toJson()).toList(),
+      'profiles': _profiles.values.map((e) => e.toJson()).toList(),
+      'pending_profiles': _pendingProfiles.toList(),
+      'pending_wires': _pendingWires.map((k, v) => MapEntry(k, v.toJson())),
+      'operations': _operations.values.map((e) => e.toJson()).toList(),
+      'chain_health': _chainHealth.toJson(),
+      'owned': _ownedHashes.toList(),
+      'tor_only': _torOnly,
+      if (_selectedIdentity != null) 'selected_identity': _selectedIdentity!.hash,
+      if (_torPeerOnion != null) 'tor_peer': _torPeerOnion,
+    };
+    return _saveLock.synchronized(
+      () => _settings.setValue(_ChatState(newValue: snapshot)),
+    );
+  }
 
   void startPolling() { _pollTimer ??= Timer.periodic(pollInterval, (_) => unawaited(refresh())); }
   void stopPolling() {}
@@ -1116,6 +1731,14 @@ Uri _path(Uri uri, String hash) {
   return base.path.endsWith('/bitname/$hash/') ? base : base.resolve('bitname/$hash/');
 }
 T? _get<T extends Object>() => GetIt.I.isRegistered<T>() ? GetIt.I.get<T>() : null;
+Future<void> _defaultRestartBitnames() async {
+  final binaries = _get<BinaryProvider>();
+  final bitnames = binaries?.binaries.whereType<BitNames>().firstOrNull;
+  if (binaries == null || bitnames == null) {
+    throw StateError('BitNames is not managed by the local orchestrator');
+  }
+  await binaries.restart(bitnames);
+}
 BitnamesTorController? _defaultTor() {
   final orchestrator = _get<OrchestratorRPC>();
   return orchestrator == null ? null : BitnamesTorController(orchestrator: orchestrator);

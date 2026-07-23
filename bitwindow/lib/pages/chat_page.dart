@@ -4,6 +4,7 @@ import 'dart:io';
 
 import 'package:auto_route/auto_route.dart';
 import 'package:bitwindow/models/bitintroduction_protocol.dart';
+import 'package:bitwindow/models/bitnames_recovery.dart';
 import 'package:bitwindow/models/chat_models.dart';
 import 'package:bitwindow/pages/sidechains_page.dart';
 import 'package:bitwindow/providers/chat_provider.dart';
@@ -75,6 +76,10 @@ class ChatPage extends StatelessWidget {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
+                      _ChainHealthBar(
+                        health: model.chainHealth,
+                        onRetry: model.retryChainRecovery,
+                      ),
                       // Status bars - stack all status messages
                       ...model.statusMessages.map(
                         (status) => _ClaimingStatusBar(status: status),
@@ -128,7 +133,7 @@ class ChatPage extends StatelessWidget {
                               child: SailButton(
                                 label: 'Register BitName',
                                 variant: ButtonVariant.secondary,
-                                disabled: model.isClaiming,
+                                disabled: model.isClaiming || !model.chainWritesReady,
                                 onPressed: () async => _showRegisterBitNameDialog(context, model),
                                 skipLoading: true,
                               ),
@@ -631,6 +636,76 @@ class _ClaimingStatusBar extends StatelessWidget {
   }
 }
 
+class _ChainHealthBar extends StatelessWidget {
+  const _ChainHealthBar({required this.health, required this.onRetry});
+
+  final BitnamesChainSnapshot health;
+  final Future<void> Function() onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = SailTheme.of(context);
+    final attention = health.needsAttention;
+    final waiting =
+        health.state == BitnamesChainHealthState.waitingForBlock ||
+        health.state == BitnamesChainHealthState.recovering ||
+        health.state == BitnamesChainHealthState.unknown;
+    final color = health.state == BitnamesChainHealthState.synced
+        ? theme.colors.success
+        : attention
+        ? theme.colors.warning
+        : theme.colors.primary;
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(
+        horizontal: SailStyleValues.padding12,
+        vertical: SailStyleValues.padding08,
+      ),
+      margin: const EdgeInsets.only(bottom: SailStyleValues.padding08),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.08),
+        borderRadius: SailStyleValues.borderRadius,
+        border: Border.all(color: color.withValues(alpha: 0.25)),
+      ),
+      child: Row(
+        children: [
+          if (waiting)
+            SizedBox(
+              width: 16,
+              height: 16,
+              child: LoadingIndicator(color: color),
+            )
+          else
+            SailSVG.fromAsset(
+              health.state == BitnamesChainHealthState.synced ? SailSVGAsset.check : SailSVGAsset.iconWarning,
+              color: color,
+              height: 16,
+            ),
+          const SizedBox(width: SailStyleValues.padding12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SailText.primary13(health.summary, color: color),
+                const SizedBox(height: SailStyleValues.padding04),
+                SailText.secondary12(health.details),
+              ],
+            ),
+          ),
+          if (health.state == BitnamesChainHealthState.stalled || health.state == BitnamesChainHealthState.error) ...[
+            const SizedBox(width: SailStyleValues.padding12),
+            SailButton(
+              label: health.state == BitnamesChainHealthState.stalled ? 'Check again' : 'Retry recovery',
+              variant: ButtonVariant.secondary,
+              onPressed: onRetry,
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
 class _AddContactDialog extends StatefulWidget {
   final ChatViewModel model;
 
@@ -1029,6 +1104,8 @@ class ChatViewModel extends BaseViewModel {
   String? get p2pOnion => _chatProvider.torStatus.p2pOnion;
   bool get messagingReady => _chatProvider.selectedProfileReady;
   bool get messagingProfilePending => _chatProvider.selectedProfilePending;
+  BitnamesChainSnapshot get chainHealth => _chatProvider.chainHealth;
+  bool get chainWritesReady => chainHealth.mutationSafe;
   bool get hasTorChainPeer {
     if (torOnly || _chatProvider.hasConfiguredTorPeer) return true;
     try {
@@ -1168,6 +1245,7 @@ class ChatViewModel extends BaseViewModel {
   Future<void> reject() => _chatProvider.rejectIntroduction();
   Future<void> cancelIntroduction() => _chatProvider.cancelIntroduction();
   Future<void> block() => _chatProvider.blockContact();
+  Future<void> retryChainRecovery() => _chatProvider.retryChainRecovery();
   Future<void> sendViaChain(BuildContext context, String id) => _sendFallback(context, id);
   Future<void> _handleFallback(BuildContext context, ChatSendResult result) async {
     if (result.needsChainConfirmation && result.id != null) {
