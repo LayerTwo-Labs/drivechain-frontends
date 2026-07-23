@@ -808,6 +808,8 @@ class _RegisterBitNameDialogState extends State<_RegisterBitNameDialog> {
   final feeController = TextEditingController(text: '1000');
   late bool useTor;
   bool busy = false;
+  bool registered = false;
+  String? resultMessage;
 
   @override
   void initState() {
@@ -838,30 +840,47 @@ class _RegisterBitNameDialogState extends State<_RegisterBitNameDialog> {
       title: 'Register BitName',
       actions: [
         SailButton(
-          label: 'Cancel',
+          label: busy || registered ? 'Close' : 'Cancel',
           variant: ButtonVariant.secondary,
-          disabled: busy,
           onPressed: () async => Navigator.of(context).pop(),
         ),
         SailButton(
-          label: busy ? 'Setting up...' : 'Register',
+          label: registered
+              ? 'Done'
+              : busy
+              ? 'Waiting for block...'
+              : 'Register',
           disabled: controller.text.trim().isEmpty || (int.tryParse(feeController.text.trim()) ?? -1) < 0 || busy,
           skipLoading: true,
-          onPressed: () async {
-            setState(() => busy = true);
-            final ready = await widget.model.prepareRegistration(useTor);
-            if (!ready || !mounted) {
-              if (mounted) {
-                showSailToast(this.context, widget.model.chatError ?? 'Messaging setup failed');
-                setState(() => busy = false);
-              }
-              return;
-            }
-            final name = controller.text.trim();
-            final fee = int.parse(feeController.text.trim());
-            Navigator.of(this.context).pop();
-            unawaited(widget.model.registerIdentity(name, fee));
-          },
+          onPressed: registered
+              ? () async => Navigator.of(context).pop()
+              : () async {
+                  setState(() {
+                    busy = true;
+                    resultMessage = null;
+                  });
+                  final ready = await widget.model.prepareRegistration(useTor);
+                  if (!ready || !mounted) {
+                    if (mounted) {
+                      setState(() {
+                        busy = false;
+                        resultMessage = widget.model.chatError ?? 'Messaging setup failed';
+                      });
+                    }
+                    return;
+                  }
+                  final name = controller.text.trim();
+                  final fee = int.parse(feeController.text.trim());
+                  final txid = await widget.model.registerIdentity(name, fee);
+                  if (!mounted) return;
+                  setState(() {
+                    busy = false;
+                    registered = txid != null;
+                    resultMessage = registered
+                        ? '"$name" was mined in a BitNames block and is now registered'
+                        : widget.model.chatError ?? 'Registration failed';
+                  });
+                },
         ),
       ],
       child: SizedBox(
@@ -871,6 +890,10 @@ class _RegisterBitNameDialogState extends State<_RegisterBitNameDialog> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             SailText.secondary13('Enter a name to register as your identity'),
+            const SizedBox(height: SailStyleValues.padding12),
+            SailText.secondary12(
+              'Registration requires BitNames blocks: first for the reservation, then for the registered name.',
+            ),
             const SizedBox(height: SailStyleValues.padding12),
             SailTextField(
               controller: controller,
@@ -887,7 +910,7 @@ class _RegisterBitNameDialogState extends State<_RegisterBitNameDialog> {
             const SizedBox(height: SailStyleValues.padding12),
             SailCheckbox(
               value: useTor,
-              onChanged: (value) => setState(() => useTor = value),
+              onChanged: busy ? null : (value) => setState(() => useTor = value),
               label: 'Continue through Tor',
             ),
             const SizedBox(height: SailStyleValues.padding08),
@@ -897,6 +920,18 @@ class _RegisterBitNameDialogState extends State<_RegisterBitNameDialog> {
                   : 'Registration and messaging setup will continue directly.',
               color: theme.colors.textSecondary,
             ),
+            if (busy || resultMessage != null) ...[
+              const SizedBox(height: SailStyleValues.padding12),
+              AnimatedBuilder(
+                animation: widget.model,
+                builder: (context, _) => SailText.primary13(
+                  resultMessage ??
+                      widget.model.claimingStatus ??
+                      'Registration submitted • waiting for a BitNames block',
+                  color: registered ? theme.colors.success : theme.colors.primary,
+                ),
+              ),
+            ],
           ],
         ),
       ),
@@ -932,11 +967,13 @@ class ChatViewModel extends BaseViewModel {
     ChatRelationshipState.none => selectedContact?.paymailFeeSats != null,
     _ => false,
   };
-  bool get introductionAwaitingBlock => currentConversation.any((message) =>
-      message.id == selectedContact?.introductionId &&
-      message.isOutgoing &&
-      message.kind == ChatMessageKind.introduction &&
-      message.deliveryState == ChatDeliveryState.pending);
+  bool get introductionAwaitingBlock => currentConversation.any(
+    (message) =>
+        message.id == selectedContact?.introductionId &&
+        message.isOutgoing &&
+        message.kind == ChatMessageKind.introduction &&
+        message.deliveryState == ChatDeliveryState.pending,
+  );
   String get relationshipStatus => switch (selectedContact!.relationshipState) {
     ChatRelationshipState.accepted => 'Accepted • direct/Tor chat unlocked',
     ChatRelationshipState.incomingIntroduction => 'Introduction received • accept to unlock chat',

@@ -515,7 +515,15 @@ class ChatProvider extends ChangeNotifier {
 
     try {
       final hash = blake3Hex(utf8.encode(plaintextName.trim().toLowerCase()));
-      if (_allBitNames.any((entry) => entry.hash == hash) || await bitnamesRPC.resolveBitName(hash) != null) {
+      var alreadyRegistered = _allBitNames.any((entry) => entry.hash == hash);
+      if (!alreadyRegistered) {
+        try {
+          alreadyRegistered = await bitnamesRPC.resolveBitName(hash) != null;
+        } catch (e) {
+          if (!e.toString().toLowerCase().contains('missing bitname')) rethrow;
+        }
+      }
+      if (alreadyRegistered) {
         _fail('That BitName is already registered'); return null;
       }
       // Check balance first
@@ -550,7 +558,9 @@ class ChatProvider extends ChangeNotifier {
           );
         } catch (e) {
           final errorStr = e.toString().toLowerCase();
-          if (errorStr.contains('reservation') || errorStr.contains('not found')) {
+          if (errorStr.contains('reservation') ||
+              errorStr.contains('not found') ||
+              errorStr.contains('missing bitname')) {
             // Reservation not mined yet, wait and retry
             await Future.delayed(retryDelay);
           } else {
