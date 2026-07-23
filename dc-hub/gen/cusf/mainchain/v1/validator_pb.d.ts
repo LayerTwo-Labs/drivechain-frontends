@@ -924,6 +924,15 @@ export declare type GetChainInfoResponse_Bip300Constants = Message<"cusf.maincha
    * @generated from field: uint32 unused_sidechain_slot_activation_threshold = 6;
    */
   unusedSidechainSlotActivationThreshold: number;
+
+  /**
+   * Height at which enforcement activates. Blocks below this
+   * height are plain Bitcoin history and are not scanned for BIP300
+   * messages or deposits. 0 means enforced from genesis.
+   *
+   * @generated from field: uint32 activation_height = 7;
+   */
+  activationHeight: number;
 };
 
 /**
@@ -977,6 +986,15 @@ export declare type GetChainInfoResponse_Bip300ConstantsJson = {
    * @generated from field: uint32 unused_sidechain_slot_activation_threshold = 6;
    */
   unusedSidechainSlotActivationThreshold?: number;
+
+  /**
+   * Height at which enforcement activates. Blocks below this
+   * height are plain Bitcoin history and are not scanned for BIP300
+   * messages or deposits. 0 means enforced from genesis.
+   *
+   * @generated from field: uint32 activation_height = 7;
+   */
+  activationHeight?: number;
 };
 
 /**
