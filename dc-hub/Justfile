@@ -1,10 +1,10 @@
 gen: gen-validator
     buf generate --template buf.web.gen.yaml server
-    buf generate --template buf.web.gen.yaml https://github.com/LayerTwo-Labs/cusf_sidechain_proto.git
+    buf generate --template buf.web.gen.yaml https://github.com/LayerTwo-Labs/bip300301_enforcer.git
     cd server && buf generate --template buf.go.gen.yaml .
 
 gen-validator:
-    cd server && buf generate --template buf.go.gen.yaml https://github.com/LayerTwo-Labs/cusf_sidechain_proto.git
+    cd server && buf generate --template buf.go.gen.yaml https://github.com/LayerTwo-Labs/bip300301_enforcer.git
 
 build-client:
     bun run build
