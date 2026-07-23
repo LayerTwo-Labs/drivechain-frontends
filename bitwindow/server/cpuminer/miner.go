@@ -118,7 +118,14 @@ func gbtWorkDecode(val gbtRpcResponse, coinbaseAddr string, coinbaseSig string) 
 	var (
 		coinbaseAppend = slices.Contains(val.Mutable, "coinbase/append")
 		submitCoinbase = slices.Contains(val.Mutable, "submit/coinbase")
-		segwit         = slices.Contains(val.Rules, "segwit")
+		// BIP9 GBT `rules` entries carry a "!" prefix when the rule is
+		// mandatory — Bitcoin Core (and the enforcer) emit "!segwit", not
+		// "segwit". Missing this made segwit=false, so merkle leaves were
+		// hashed over the full witness serialization (= wtxid, not txid) and
+		// every block containing a segwit tx was rejected: bad-txnmrklroot.
+		segwit = slices.ContainsFunc(val.Rules, func(rule string) bool {
+			return strings.TrimPrefix(rule, "!") == "segwit"
+		})
 	)
 
 	// Get height
