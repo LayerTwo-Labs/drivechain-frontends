@@ -53,123 +53,142 @@ class _MessagingTabPageState extends State<MessagingTabPage> {
   @override
   Widget build(BuildContext context) {
     return QtPage(
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Encrypt Card
-          Expanded(
-            child: SailCard(
-              title: 'Encrypt',
-              subtitle: 'Encrypt a message for a BitName or pubkey',
-              error: encryptError,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  SailTextField(
-                    label: "Receiver's BitName or Encryption Pubkey (Bech32m)",
-                    hintText: 'Enter a BitName or a pubkey',
-                    controller: encryptPubkeyController,
-                    suffixWidget: _hasBitnamesEncryptMatch ? SailSVG.icon(SailSVGAsset.iconSuccess, height: 20) : null,
-                  ),
-                  const SizedBox(height: 16),
-                  SailTextField(
-                    label: 'Plaintext message:',
-                    hintText: 'Enter a message to encrypt',
-                    controller: encryptMessageController,
-                    minLines: 3,
-                    maxLines: 6,
-                  ),
-                  const SizedBox(height: 16),
-                  SailButton(
-                    label: 'Encrypt',
-                    onPressed: handleEncrypt,
-                    loading: encryptLoading,
-                  ),
-                  if (encryptResult != null)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 12),
-                      child: SailText.secondary13(
-                        encryptResult!,
-                        monospace: true,
-                      ),
-                    ),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(width: 24),
-          // Decrypt Card
-          Expanded(
-            child: SailCard(
-              title: 'Decrypt',
-              subtitle: 'Decrypt a message using your pubkey',
-              error: decryptError,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  SailTextField(
-                    label: "Receiver's BitName or Encryption Pubkey (Bech32m)",
-                    hintText: 'Enter a BitName or a pubkey',
-                    controller: decryptPubkeyController,
-                    suffixWidget: _hasBitnamesDecryptMatch ? SailSVG.icon(SailSVGAsset.iconSuccess, height: 20) : null,
-                  ),
-                  const SizedBox(height: 16),
-                  SailTextField(
-                    label: 'Ciphertext message (hex):',
-                    hintText: 'Enter a ciphertext message',
-                    controller: decryptMessageController,
-                    minLines: 3,
-                    maxLines: 6,
-                  ),
-                  const SizedBox(height: 16),
-                  SailButton(
-                    label: 'Decrypt',
-                    onPressed: handleDecrypt,
-                    loading: decryptLoading,
-                  ),
-                  if (decryptResult != null)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 12),
-                      child: SailText.secondary13(
-                        decryptResult!,
-                        monospace: true,
-                      ),
-                    ),
-                ],
-              ),
-            ),
-          ),
-        ],
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final encrypt = _encryptCard(), decrypt = _decryptCard();
+          if (constraints.maxWidth < 800) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [encrypt, const SizedBox(height: 24), decrypt],
+            );
+          }
+          return Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(child: encrypt),
+              const SizedBox(width: 24),
+              Expanded(child: decrypt),
+            ],
+          );
+        },
       ),
     );
   }
 
-  /// Resolves the input to an encryption pubkey
-  /// Input can be: username, blake3 hash, or direct encryption key
-  String? _resolveEncryptionKey(String input) {
-    if (input.isEmpty) {
-      return null;
-    }
+  Widget _encryptCard() => SailCard(
+    title: 'Encrypt',
+    subtitle: 'Encrypt a message for a BitName or pubkey',
+    error: encryptError,
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SailTextField(
+          label: "Recipient's BitName or encryption pubkey (Bech32m)",
+          hintText: 'Enter a BitName or pubkey',
+          controller: encryptPubkeyController,
+          suffixWidget: _hasBitnamesEncryptMatch ? SailSVG.icon(SailSVGAsset.iconSuccess, height: 20) : null,
+        ),
+        const SizedBox(height: 16),
+        SailTextField(
+          label: 'Plaintext message',
+          hintText: 'Enter a message to encrypt',
+          controller: encryptMessageController,
+          minLines: 3,
+          maxLines: 6,
+        ),
+        const SizedBox(height: 16),
+        SailButton(
+          label: 'Encrypt',
+          onPressed: handleEncrypt,
+          loading: encryptLoading,
+        ),
+        if (encryptResult != null)
+          Padding(
+            padding: const EdgeInsets.only(top: 12),
+            child: ResultRow(
+              label: 'Ciphertext',
+              value: encryptResult!,
+              monospace: true,
+              copyable: true,
+            ),
+          ),
+      ],
+    ),
+  );
 
+  Widget _decryptCard() => SailCard(
+    title: 'Decrypt',
+    subtitle: 'Decrypt a message sent to one of your BitNames',
+    error: decryptError,
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SailTextField(
+          label: 'Your BitName or encryption pubkey (Bech32m)',
+          hintText: 'Enter your receiving BitName or pubkey',
+          controller: decryptPubkeyController,
+          suffixWidget: _hasBitnamesDecryptMatch ? SailSVG.icon(SailSVGAsset.iconSuccess, height: 20) : null,
+        ),
+        const SizedBox(height: 16),
+        SailTextField(
+          label: 'Ciphertext message (hex)',
+          hintText: 'Enter a ciphertext message',
+          controller: decryptMessageController,
+          minLines: 3,
+          maxLines: 6,
+        ),
+        const SizedBox(height: 16),
+        SailButton(
+          label: 'Decrypt',
+          onPressed: handleDecrypt,
+          loading: decryptLoading,
+        ),
+        if (decryptResult != null)
+          Padding(
+            padding: const EdgeInsets.only(top: 12),
+            child: ResultRow(
+              label: 'Plaintext',
+              value: decryptResult!,
+              copyable: true,
+            ),
+          ),
+      ],
+    ),
+  );
+
+  BitnameEntry? _resolveBitName(String input) {
     final trimmedInput = input.trim();
+    if (trimmedInput.isEmpty) return null;
 
-    // then check if input is a blake3 hash match
     var existingEntryMatch = bitnamesProvider.entries
-        .where((entry) => entry.hash == blake3Hex(utf8.encode(trimmedInput)).toLowerCase())
+        .where(
+          (entry) => entry.hash == blake3Hex(utf8.encode(trimmedInput)).toLowerCase(),
+        )
         .firstOrNull;
-
-    if (existingEntryMatch != null) {
-      // we found a plaintext match! save it to disk for easy access later
-      unawaited(bitnamesProvider.saveHashNameMapping(trimmedInput));
-    }
-
-    // First, check if input is already a direct hash match in bitnames
     existingEntryMatch ??= bitnamesProvider.entries
-        .where((entry) => entry.hash.toLowerCase() == trimmedInput.toLowerCase())
+        .where(
+          (entry) => entry.hash.toLowerCase() == trimmedInput.toLowerCase(),
+        )
         .firstOrNull;
+    return existingEntryMatch;
+  }
 
-    // If no bitname match found, assume input is a direct encryption key
-    return existingEntryMatch?.details.encryptionPubkey;
+  String? _resolveEncryptionKey(String input) => _resolveBitName(input)?.details.encryptionPubkey;
+
+  String _requireEncryptionKey(String input) {
+    final trimmed = input.trim(), entry = _resolveBitName(input);
+    if (entry != null) {
+      final key = entry.details.encryptionPubkey;
+      if (key == null) {
+        throw const FormatException(
+          'This BitName has no encryption key. Its owner must add one before messaging.',
+        );
+      }
+      if (!RegExp(r'^[0-9a-fA-F]{64}$').hasMatch(trimmed)) unawaited(bitnamesProvider.saveHashNameMapping(trimmed));
+      return key;
+    }
+    if (trimmed.isEmpty) throw const FormatException('Enter a BitName or encryption pubkey.');
+    return trimmed;
   }
 
   Future<void> handleEncrypt() async {
@@ -180,21 +199,17 @@ class _MessagingTabPageState extends State<MessagingTabPage> {
     });
 
     try {
-      final resolvedKey = _resolveEncryptionKey(encryptPubkeyController.text) ?? encryptPubkeyController.text.trim();
-      if (resolvedKey.isEmpty) {
-        setState(() => encryptError = 'Must enter a valid pubkey');
-        return;
-      }
-
+      final resolvedKey = _requireEncryptionKey(encryptPubkeyController.text);
       final ciphertext = await rpc.encryptMsg(
-        msg: encryptMessageController.text.trim(),
+        msg: encryptMessageController.text,
         encryptionPubkey: resolvedKey,
       );
+      if (!mounted) return;
       setState(() => encryptResult = ciphertext);
     } catch (e) {
-      setState(() => encryptError = e.toString());
+      if (mounted) setState(() => encryptError = _friendlyError(e));
     } finally {
-      setState(() => encryptLoading = false);
+      if (mounted) setState(() => encryptLoading = false);
     }
   }
 
@@ -206,26 +221,26 @@ class _MessagingTabPageState extends State<MessagingTabPage> {
     });
 
     try {
-      final resolvedKey = _resolveEncryptionKey(decryptPubkeyController.text) ?? decryptPubkeyController.text.trim();
-      if (resolvedKey.isEmpty) {
-        setState(() => decryptError = 'Must enter a valid pubkey');
-        return;
-      }
-
+      final resolvedKey = _requireEncryptionKey(decryptPubkeyController.text);
       final plaintext = await rpc.decryptMsg(
         ciphertext: decryptMessageController.text.trim(),
         encryptionPubkey: resolvedKey,
       );
+      if (!mounted) return;
       setState(() => decryptResult = plaintext);
     } catch (e) {
-      setState(() => decryptError = e.toString());
+      if (mounted) setState(() => decryptError = _friendlyError(e));
     } finally {
-      setState(() => decryptLoading = false);
+      if (mounted) setState(() => decryptLoading = false);
     }
   }
 
+  String _friendlyError(Object error) => error is FormatException
+      ? error.message.toString()
+      : 'Request failed. Check the BitNames connection and try again.';
+
   void _onChange() {
-    setState(() {});
+    if (mounted) setState(() {});
   }
 
   @override
