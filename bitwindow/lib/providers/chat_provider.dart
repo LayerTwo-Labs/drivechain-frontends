@@ -462,15 +462,22 @@ class ChatProvider extends ChangeNotifier {
   /// Reserve and register a BitName automatically
   /// Handles the reserve-wait-register dance internally
   Future<String?> claimIdentity(String plaintextName) async {
+    // Add progress before connection/privacy guards so Register never appears to do nothing.
+    final statusId = 'claiming_$plaintextName';
+    _addStatus(statusId, 'Preparing registration for "$plaintextName"...');
     if (!bitnamesRPC.connected) {
       _error = 'BitNames not connected';
-      notifyListeners();
+      _addStatus(statusId, 'Registration paused • BitNames is not connected');
+      await Future.delayed(const Duration(seconds: 5));
+      _removeStatus(statusId);
       return null;
     }
-    if (!await _mutationAllowed()) return null;
-
-    // Use a unique status ID per claim so back-to-back claims work
-    final statusId = 'claiming_$plaintextName';
+    if (!await _mutationAllowed()) {
+      _addStatus(statusId, 'Registration paused • start BitNames Tor, then try again');
+      await Future.delayed(const Duration(seconds: 5));
+      _removeStatus(statusId);
+      return null;
+    }
     _addStatus(statusId, 'Checking balance...');
 
     try {
