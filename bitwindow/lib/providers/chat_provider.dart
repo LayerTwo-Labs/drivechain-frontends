@@ -477,8 +477,9 @@ class ChatProvider extends ChangeNotifier {
       }
 
       // Step 1: Reserve (wait for tx to be mined)
-      _addStatus(statusId, 'Reserving "$plaintextName"...');
+      _addStatus(statusId, 'Submitting reservation for "$plaintextName"...');
       await bitnamesRPC.reserveBitName(plaintextName);
+      _addStatus(statusId, 'Reservation submitted • waiting for a BitNames block...');
 
       final encryptionPubkey = await bitnamesRPC.getNewEncryptionKey();
       final signingPubkey = await bitnamesRPC.getNewVerifyingKey();
@@ -510,7 +511,7 @@ class ChatProvider extends ChangeNotifier {
       }
 
       // Step 2: Register tx submitted, wait for it to be mined
-      _addStatus(statusId, 'Registering "$plaintextName"...');
+      _addStatus(statusId, 'Registration submitted • waiting for a BitNames block...');
       await _hashNameMapping.saveMapping(plaintextName, isMine: true);
 
       // Poll until BitName appears in identity list (register tx mined)
