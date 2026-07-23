@@ -645,7 +645,8 @@ class ChatProvider extends ChangeNotifier {
     final ctx = await _context();
     final accepting = kind == BitIntroductionKind.acceptance &&
         ctx?.contact.relationshipState == ChatRelationshipState.incomingIntroduction;
-    if (ctx == null || (!ctx.contact.isAccepted && !accepting)) return _failed('Chat is not accepted');
+    if (ctx == null) return _failed(_error ?? 'Publish and confirm your reply profile first');
+    if (!ctx.contact.isAccepted && !accepting) return _failed('Chat is not accepted');
     final remoteProfile = _profile(ctx.contact);
     if (remoteProfile == null) return _failed('Contact has no verified reply profile');
     late (SignedBitIntroductionEnvelope, BitMessageWire) prepared;
