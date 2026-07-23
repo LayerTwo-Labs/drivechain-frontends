@@ -927,10 +927,17 @@ class ChatViewModel extends BaseViewModel {
     ChatRelationshipState.none => selectedContact?.paymailFeeSats != null,
     _ => false,
   };
+  bool get introductionAwaitingBlock => currentConversation.any((message) =>
+      message.id == selectedContact?.introductionId &&
+      message.isOutgoing &&
+      message.kind == ChatMessageKind.introduction &&
+      message.deliveryState == ChatDeliveryState.pending);
   String get relationshipStatus => switch (selectedContact!.relationshipState) {
     ChatRelationshipState.accepted => 'Accepted • direct/Tor chat unlocked',
     ChatRelationshipState.incomingIntroduction => 'Introduction received • accept to unlock chat',
     ChatRelationshipState.acceptancePending => 'Acceptance sent • waiting for chain confirmation',
+    ChatRelationshipState.outgoingIntroduction when introductionAwaitingBlock =>
+      'Introduction submitted • waiting for a BitNames block',
     ChatRelationshipState.outgoingIntroduction => 'Introduction sent • waiting for acceptance',
     ChatRelationshipState.rejected => 'Introduction closed • no further payment will be sent',
     ChatRelationshipState.blocked => 'Blocked',
@@ -941,6 +948,7 @@ class ChatViewModel extends BaseViewModel {
   String get sendHint => switch (selectedContact?.relationshipState) {
     ChatRelationshipState.incomingIntroduction => 'Accept or reject this introduction',
     ChatRelationshipState.acceptancePending => 'Waiting for acceptance confirmation',
+    ChatRelationshipState.outgoingIntroduction when introductionAwaitingBlock => 'Waiting for a BitNames block',
     ChatRelationshipState.outgoingIntroduction => 'Waiting for acceptance',
     ChatRelationshipState.rejected => 'Introduction closed',
     ChatRelationshipState.blocked => 'Contact blocked',
