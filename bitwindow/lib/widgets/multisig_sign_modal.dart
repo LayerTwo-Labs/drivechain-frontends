@@ -1,3 +1,5 @@
+import 'package:bitwindow/utils/explorer_url.dart';
+import 'package:bitwindow/widgets/hardware_device_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get_it/get_it.dart';
@@ -27,9 +29,11 @@ class _MultisigSignModalState extends State<MultisigSignModal> {
   int _signatures = 0;
   bool _finalizable = false;
   List<bool> _signed = const [];
-  bool _busy = false;
+  String? _busyKey;
   String? _error;
-  String? _broadcastTxid;
+
+  bool _isBusy(String key) => _busyKey == key;
+  bool _blocked(String key) => _busyKey != null && _busyKey != key;
 
   int get _threshold => widget.multisig.m;
   List<wmpb.MultisigCosignerInfo> get _cosigners => widget.multisig.cosigners;
@@ -57,9 +61,9 @@ class _MultisigSignModalState extends State<MultisigSignModal> {
     }
   }
 
-  Future<void> _run(Future<void> Function() action) async {
+  Future<void> _run(String key, Future<void> Function() action) async {
     setState(() {
-      _busy = true;
+      _busyKey = key;
       _error = null;
     });
     try {
@@ -67,11 +71,11 @@ class _MultisigSignModalState extends State<MultisigSignModal> {
     } catch (e) {
       setState(() => _error = '$e');
     } finally {
-      if (mounted) setState(() => _busy = false);
+      if (mounted) setState(() => _busyKey = null);
     }
   }
 
-  Future<void> _signCosigner(int index) => _run(() async {
+  Future<void> _signCosigner(int index) => _run('cosigner-$index', () async {
     final signed = await _wallet.signPsbtWithCosigner(
       walletId: widget.walletId,
       psbtBase64: _psbt,
@@ -81,13 +85,43 @@ class _MultisigSignModalState extends State<MultisigSignModal> {
     await _refreshStatus();
   });
 
+  Future<void> _signWithDevice(int index) => _run('device-$index', () async {
+    final c = _cosigners[index];
+    final sel = wmpb.HardwareDeviceSelector(type: c.hardwareDeviceType, fingerprint: c.fingerprint);
+    final signed = await _signOnDevice(sel);
+    _psbt = await _wallet.combinePsbt(psbtsBase64: [_psbt, signed]);
+    await _refreshStatus();
+  });
+
+  Future<String> _signOnDevice(wmpb.HardwareDeviceSelector sel) async {
+    try {
+      return await _wallet.signPsbtWithDevice(device: sel, psbtBase64: _psbt);
+    } catch (e) {
+      final msg = e.toString().toLowerCase();
+      final needsDevice =
+          msg.contains('locked') ||
+          msg.contains('promptpin') ||
+          msg.contains('-12') ||
+          msg.contains('not found') ||
+          msg.contains('no device') ||
+          msg.contains('libusb');
+      if (!needsDevice || !mounted) rethrow;
+      final unlocked = await showHardwareDevicePicker(context);
+      if (unlocked == null) rethrow;
+      // Sign the just-unlocked device by path: a re-locked device has no
+      // fingerprint, and path skips the re-enumeration that races auto-lock.
+      final byPath = wmpb.HardwareDeviceSelector(type: unlocked.type, path: unlocked.path);
+      return await _wallet.signPsbtWithDevice(device: byPath, psbtBase64: _psbt);
+    }
+  }
+
   Future<void> _importSignedPsbt() async {
     final imported = await showThemedDialog<String>(
       context: context,
       builder: (context) => const _ImportPsbtDialog(),
     );
     if (imported == null || imported.isEmpty) return;
-    await _run(() async {
+    await _run('import', () async {
       final combined = await _wallet.combinePsbt(psbtsBase64: [_psbt, imported]);
       _psbt = combined;
       await _refreshStatus();
@@ -99,10 +133,17 @@ class _MultisigSignModalState extends State<MultisigSignModal> {
     if (mounted) showSailToast(context, 'PSBT copied', variant: SailToastVariant.success);
   }
 
-  Future<void> _broadcast() => _run(() async {
+  Future<void> _broadcast() => _run('broadcast', () async {
     final hex = await _wallet.finalizePsbt(psbtBase64: _psbt);
     final txid = await _wallet.broadcastTransaction(walletId: widget.walletId, txHex: hex);
-    setState(() => _broadcastTxid = txid);
+    final network = GetIt.I.get<BitcoinConfProvider>().network;
+    GetIt.I.get<NotificationProvider>().add(
+      title: 'Transaction broadcast',
+      content: txid,
+      dialogType: DialogType.success,
+      links: [NotificationLink(text: 'View transaction', url: mempoolTxUrl(txid, network))],
+    );
+    if (mounted) Navigator.of(context).pop(txid);
   });
 
   @override
@@ -118,14 +159,10 @@ class _MultisigSignModalState extends State<MultisigSignModal> {
             spacing: SailStyleValues.padding16,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              if (_broadcastTxid != null)
-                _broadcastSuccess(context)
-              else ...[
-                _progressBar(context),
-                ..._cosigners.asMap().entries.map((e) => _cosignerRow(context, e.key, e.value)),
-                const SizedBox(height: 4),
-                _actions(context),
-              ],
+              _progressBar(context),
+              ..._cosigners.asMap().entries.map((e) => _cosignerRow(context, e.key, e.value)),
+              const SizedBox(height: 4),
+              _actions(context),
             ],
           ),
         ),
@@ -173,14 +210,26 @@ class _MultisigSignModalState extends State<MultisigSignModal> {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                       decoration: BoxDecoration(
-                        color: (c.held ? theme.colors.primary : theme.colors.orange).withValues(
-                          alpha: 0.1,
-                        ),
+                        color:
+                            (c.held
+                                    ? theme.colors.primary
+                                    : c.hardwareDeviceType.isNotEmpty
+                                    ? theme.colors.success
+                                    : theme.colors.orange)
+                                .withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(4),
                       ),
                       child: SailText.secondary12(
-                        c.held ? 'On disk' : 'Watch-only',
-                        color: c.held ? theme.colors.primary : theme.colors.orange,
+                        c.held
+                            ? 'On disk'
+                            : c.hardwareDeviceType.isNotEmpty
+                            ? 'Hardware'
+                            : 'Watch-only',
+                        color: c.held
+                            ? theme.colors.primary
+                            : c.hardwareDeviceType.isNotEmpty
+                            ? theme.colors.success
+                            : theme.colors.orange,
                       ),
                     ),
                   ],
@@ -189,18 +238,26 @@ class _MultisigSignModalState extends State<MultisigSignModal> {
               ],
             ),
           ),
-          if (c.held && !signed)
+          if (signed)
+            SailText.secondary12('Signed', color: theme.colors.success)
+          else if (c.held)
             SailButton(
               label: 'Sign',
               small: true,
-              loading: _busy,
+              loading: _isBusy('cosigner-$i'),
+              disabled: _blocked('cosigner-$i'),
               onPressed: () async => _signCosigner(i),
             )
+          else if (c.hardwareDeviceType.isNotEmpty)
+            SailButton(
+              label: 'Sign on device',
+              small: true,
+              loading: _isBusy('device-$i'),
+              disabled: _blocked('device-$i'),
+              onPressed: () async => _signWithDevice(i),
+            )
           else
-            SailText.secondary12(
-              signed ? 'Signed' : 'Signs elsewhere',
-              color: signed ? theme.colors.success : theme.colors.textSecondary,
-            ),
+            SailText.secondary12('Signs elsewhere', color: theme.colors.textSecondary),
         ],
       ),
     );
@@ -220,43 +277,15 @@ class _MultisigSignModalState extends State<MultisigSignModal> {
         SailButton(
           label: 'Import signed PSBT',
           variant: ButtonVariant.secondary,
+          loading: _isBusy('import'),
+          disabled: _blocked('import'),
           onPressed: () async => _importSignedPsbt(),
         ),
         SailButton(
           label: 'Broadcast',
-          disabled: !_finalizable,
-          loading: _busy,
+          disabled: !_finalizable || _blocked('broadcast'),
+          loading: _isBusy('broadcast'),
           onPressed: () async => _broadcast(),
-        ),
-      ],
-    );
-  }
-
-  Widget _broadcastSuccess(BuildContext context) {
-    return SailColumn(
-      spacing: SailStyleValues.padding16,
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            SailSVG.icon(
-              SailSVGAsset.iconSuccess,
-              width: 20,
-              color: SailTheme.of(context).colors.success,
-            ),
-            const SizedBox(width: 8),
-            SailText.primary15('Transaction broadcast', bold: true),
-          ],
-        ),
-        SailText.secondary12(_broadcastTxid!, monospace: true),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.end,
-          children: [
-            SailButton(
-              label: 'Done',
-              onPressed: () async => Navigator.of(context).pop(_broadcastTxid),
-            ),
-          ],
         ),
       ],
     );

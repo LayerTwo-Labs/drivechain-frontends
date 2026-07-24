@@ -754,6 +754,8 @@ class WalletMetadata extends $pb.GeneratedMessage {
     $core.Iterable<SidechainStarter>? sidechains,
     $core.bool? watchOnly,
     MultisigInfo? multisig,
+    $core.String? hardwareDeviceType,
+    $core.String? hardwareFingerprint,
   }) {
     final $result = create();
     if (id != null) {
@@ -789,6 +791,12 @@ class WalletMetadata extends $pb.GeneratedMessage {
     if (multisig != null) {
       $result.multisig = multisig;
     }
+    if (hardwareDeviceType != null) {
+      $result.hardwareDeviceType = hardwareDeviceType;
+    }
+    if (hardwareFingerprint != null) {
+      $result.hardwareFingerprint = hardwareFingerprint;
+    }
     return $result;
   }
   WalletMetadata._() : super();
@@ -807,6 +815,8 @@ class WalletMetadata extends $pb.GeneratedMessage {
     ..pc<SidechainStarter>(9, _omitFieldNames ? '' : 'sidechains', $pb.PbFieldType.PM, subBuilder: SidechainStarter.create)
     ..aOB(10, _omitFieldNames ? '' : 'watchOnly')
     ..aOM<MultisigInfo>(11, _omitFieldNames ? '' : 'multisig', subBuilder: MultisigInfo.create)
+    ..aOS(12, _omitFieldNames ? '' : 'hardwareDeviceType')
+    ..aOS(13, _omitFieldNames ? '' : 'hardwareFingerprint')
     ..hasRequiredFields = false
   ;
 
@@ -933,6 +943,25 @@ class WalletMetadata extends $pb.GeneratedMessage {
   void clearMultisig() => clearField(11);
   @$pb.TagNumber(11)
   MultisigInfo ensureMultisig() => $_ensure(10);
+
+  /// Device type and master fingerprint for a single-sig hardware wallet.
+  @$pb.TagNumber(12)
+  $core.String get hardwareDeviceType => $_getSZ(11);
+  @$pb.TagNumber(12)
+  set hardwareDeviceType($core.String v) { $_setString(11, v); }
+  @$pb.TagNumber(12)
+  $core.bool hasHardwareDeviceType() => $_has(11);
+  @$pb.TagNumber(12)
+  void clearHardwareDeviceType() => clearField(12);
+
+  @$pb.TagNumber(13)
+  $core.String get hardwareFingerprint => $_getSZ(12);
+  @$pb.TagNumber(13)
+  set hardwareFingerprint($core.String v) { $_setString(12, v); }
+  @$pb.TagNumber(13)
+  $core.bool hasHardwareFingerprint() => $_has(12);
+  @$pb.TagNumber(13)
+  void clearHardwareFingerprint() => clearField(13);
 }
 
 class MultisigInfo extends $pb.GeneratedMessage {
@@ -1027,6 +1056,7 @@ class MultisigCosignerInfo extends $pb.GeneratedMessage {
     $core.String? fingerprint,
     $core.String? originPath,
     $core.bool? held,
+    $core.String? hardwareDeviceType,
   }) {
     final $result = create();
     if (xpub != null) {
@@ -1041,6 +1071,9 @@ class MultisigCosignerInfo extends $pb.GeneratedMessage {
     if (held != null) {
       $result.held = held;
     }
+    if (hardwareDeviceType != null) {
+      $result.hardwareDeviceType = hardwareDeviceType;
+    }
     return $result;
   }
   MultisigCosignerInfo._() : super();
@@ -1052,6 +1085,7 @@ class MultisigCosignerInfo extends $pb.GeneratedMessage {
     ..aOS(2, _omitFieldNames ? '' : 'fingerprint')
     ..aOS(3, _omitFieldNames ? '' : 'originPath')
     ..aOB(4, _omitFieldNames ? '' : 'held')
+    ..aOS(5, _omitFieldNames ? '' : 'hardwareDeviceType')
     ..hasRequiredFields = false
   ;
 
@@ -1111,6 +1145,16 @@ class MultisigCosignerInfo extends $pb.GeneratedMessage {
   $core.bool hasHeld() => $_has(3);
   @$pb.TagNumber(4)
   void clearHeld() => clearField(4);
+
+  /// Device type when this leg signs on a USB device.
+  @$pb.TagNumber(5)
+  $core.String get hardwareDeviceType => $_getSZ(4);
+  @$pb.TagNumber(5)
+  set hardwareDeviceType($core.String v) { $_setString(4, v); }
+  @$pb.TagNumber(5)
+  $core.bool hasHardwareDeviceType() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearHardwareDeviceType() => clearField(5);
 }
 
 class SidechainStarter extends $pb.GeneratedMessage {
@@ -2497,6 +2541,8 @@ class CreateElectrumWalletRequest extends $pb.GeneratedMessage {
     $core.String? scriptType,
     $core.int? account,
     $core.String? derivationPath,
+    $core.String? hardwareDeviceType,
+    $core.String? hardwareFingerprint,
   }) {
     final $result = create();
     if (name != null) {
@@ -2523,6 +2569,12 @@ class CreateElectrumWalletRequest extends $pb.GeneratedMessage {
     if (derivationPath != null) {
       $result.derivationPath = derivationPath;
     }
+    if (hardwareDeviceType != null) {
+      $result.hardwareDeviceType = hardwareDeviceType;
+    }
+    if (hardwareFingerprint != null) {
+      $result.hardwareFingerprint = hardwareFingerprint;
+    }
     return $result;
   }
   CreateElectrumWalletRequest._() : super();
@@ -2538,6 +2590,8 @@ class CreateElectrumWalletRequest extends $pb.GeneratedMessage {
     ..aOS(6, _omitFieldNames ? '' : 'scriptType')
     ..a<$core.int>(7, _omitFieldNames ? '' : 'account', $pb.PbFieldType.OU3)
     ..aOS(8, _omitFieldNames ? '' : 'derivationPath')
+    ..aOS(9, _omitFieldNames ? '' : 'hardwareDeviceType')
+    ..aOS(10, _omitFieldNames ? '' : 'hardwareFingerprint')
     ..hasRequiredFields = false
   ;
 
@@ -2641,6 +2695,25 @@ class CreateElectrumWalletRequest extends $pb.GeneratedMessage {
   $core.bool hasDerivationPath() => $_has(7);
   @$pb.TagNumber(8)
   void clearDerivationPath() => clearField(8);
+
+  /// Device type and master fingerprint when importing a hardware wallet.
+  @$pb.TagNumber(9)
+  $core.String get hardwareDeviceType => $_getSZ(8);
+  @$pb.TagNumber(9)
+  set hardwareDeviceType($core.String v) { $_setString(8, v); }
+  @$pb.TagNumber(9)
+  $core.bool hasHardwareDeviceType() => $_has(8);
+  @$pb.TagNumber(9)
+  void clearHardwareDeviceType() => clearField(9);
+
+  @$pb.TagNumber(10)
+  $core.String get hardwareFingerprint => $_getSZ(9);
+  @$pb.TagNumber(10)
+  set hardwareFingerprint($core.String v) { $_setString(9, v); }
+  @$pb.TagNumber(10)
+  $core.bool hasHardwareFingerprint() => $_has(9);
+  @$pb.TagNumber(10)
+  void clearHardwareFingerprint() => clearField(10);
 }
 
 class CreateElectrumWalletResponse extends $pb.GeneratedMessage {
@@ -2704,6 +2777,7 @@ class MultisigCosignerInput extends $pb.GeneratedMessage {
     $core.String? mnemonic,
     $core.String? xprv,
     $core.String? passphrase,
+    $core.String? hardwareDeviceType,
   }) {
     final $result = create();
     if (xpub != null) {
@@ -2724,6 +2798,9 @@ class MultisigCosignerInput extends $pb.GeneratedMessage {
     if (passphrase != null) {
       $result.passphrase = passphrase;
     }
+    if (hardwareDeviceType != null) {
+      $result.hardwareDeviceType = hardwareDeviceType;
+    }
     return $result;
   }
   MultisigCosignerInput._() : super();
@@ -2737,6 +2814,7 @@ class MultisigCosignerInput extends $pb.GeneratedMessage {
     ..aOS(4, _omitFieldNames ? '' : 'mnemonic')
     ..aOS(5, _omitFieldNames ? '' : 'xprv')
     ..aOS(6, _omitFieldNames ? '' : 'passphrase')
+    ..aOS(7, _omitFieldNames ? '' : 'hardwareDeviceType')
     ..hasRequiredFields = false
   ;
 
@@ -2814,6 +2892,16 @@ class MultisigCosignerInput extends $pb.GeneratedMessage {
   $core.bool hasPassphrase() => $_has(5);
   @$pb.TagNumber(6)
   void clearPassphrase() => clearField(6);
+
+  /// Device type ("trezor", "ledger", ...) when this leg signs on a USB device.
+  @$pb.TagNumber(7)
+  $core.String get hardwareDeviceType => $_getSZ(6);
+  @$pb.TagNumber(7)
+  set hardwareDeviceType($core.String v) { $_setString(6, v); }
+  @$pb.TagNumber(7)
+  $core.bool hasHardwareDeviceType() => $_has(6);
+  @$pb.TagNumber(7)
+  void clearHardwareDeviceType() => clearField(7);
 }
 
 class CreateMultisigWalletRequest extends $pb.GeneratedMessage {
@@ -3427,6 +3515,188 @@ class GetBalanceRequest extends $pb.GeneratedMessage {
   $core.bool hasWalletId() => $_has(0);
   @$pb.TagNumber(1)
   void clearWalletId() => clearField(1);
+}
+
+class RescanWalletRequest extends $pb.GeneratedMessage {
+  factory RescanWalletRequest({
+    $core.String? walletId,
+  }) {
+    final $result = create();
+    if (walletId != null) {
+      $result.walletId = walletId;
+    }
+    return $result;
+  }
+  RescanWalletRequest._() : super();
+  factory RescanWalletRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory RescanWalletRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'RescanWalletRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'walletmanager.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'walletId')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  RescanWalletRequest clone() => RescanWalletRequest()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  RescanWalletRequest copyWith(void Function(RescanWalletRequest) updates) => super.copyWith((message) => updates(message as RescanWalletRequest)) as RescanWalletRequest;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static RescanWalletRequest create() => RescanWalletRequest._();
+  RescanWalletRequest createEmptyInstance() => create();
+  static $pb.PbList<RescanWalletRequest> createRepeated() => $pb.PbList<RescanWalletRequest>();
+  @$core.pragma('dart2js:noInline')
+  static RescanWalletRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<RescanWalletRequest>(create);
+  static RescanWalletRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get walletId => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set walletId($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasWalletId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearWalletId() => clearField(1);
+}
+
+class RescanWalletResponse extends $pb.GeneratedMessage {
+  factory RescanWalletResponse() => create();
+  RescanWalletResponse._() : super();
+  factory RescanWalletResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory RescanWalletResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'RescanWalletResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'walletmanager.v1'), createEmptyInstance: create)
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  RescanWalletResponse clone() => RescanWalletResponse()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  RescanWalletResponse copyWith(void Function(RescanWalletResponse) updates) => super.copyWith((message) => updates(message as RescanWalletResponse)) as RescanWalletResponse;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static RescanWalletResponse create() => RescanWalletResponse._();
+  RescanWalletResponse createEmptyInstance() => create();
+  static $pb.PbList<RescanWalletResponse> createRepeated() => $pb.PbList<RescanWalletResponse>();
+  @$core.pragma('dart2js:noInline')
+  static RescanWalletResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<RescanWalletResponse>(create);
+  static RescanWalletResponse? _defaultInstance;
+}
+
+class EstimateFeeRequest extends $pb.GeneratedMessage {
+  factory EstimateFeeRequest({
+    $core.int? confTarget,
+  }) {
+    final $result = create();
+    if (confTarget != null) {
+      $result.confTarget = confTarget;
+    }
+    return $result;
+  }
+  EstimateFeeRequest._() : super();
+  factory EstimateFeeRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory EstimateFeeRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'EstimateFeeRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'walletmanager.v1'), createEmptyInstance: create)
+    ..a<$core.int>(1, _omitFieldNames ? '' : 'confTarget', $pb.PbFieldType.O3)
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  EstimateFeeRequest clone() => EstimateFeeRequest()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  EstimateFeeRequest copyWith(void Function(EstimateFeeRequest) updates) => super.copyWith((message) => updates(message as EstimateFeeRequest)) as EstimateFeeRequest;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static EstimateFeeRequest create() => EstimateFeeRequest._();
+  EstimateFeeRequest createEmptyInstance() => create();
+  static $pb.PbList<EstimateFeeRequest> createRepeated() => $pb.PbList<EstimateFeeRequest>();
+  @$core.pragma('dart2js:noInline')
+  static EstimateFeeRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<EstimateFeeRequest>(create);
+  static EstimateFeeRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.int get confTarget => $_getIZ(0);
+  @$pb.TagNumber(1)
+  set confTarget($core.int v) { $_setSignedInt32(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasConfTarget() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearConfTarget() => clearField(1);
+}
+
+class EstimateFeeResponse extends $pb.GeneratedMessage {
+  factory EstimateFeeResponse({
+    $core.double? satPerVbyte,
+  }) {
+    final $result = create();
+    if (satPerVbyte != null) {
+      $result.satPerVbyte = satPerVbyte;
+    }
+    return $result;
+  }
+  EstimateFeeResponse._() : super();
+  factory EstimateFeeResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory EstimateFeeResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'EstimateFeeResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'walletmanager.v1'), createEmptyInstance: create)
+    ..a<$core.double>(1, _omitFieldNames ? '' : 'satPerVbyte', $pb.PbFieldType.OD)
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  EstimateFeeResponse clone() => EstimateFeeResponse()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  EstimateFeeResponse copyWith(void Function(EstimateFeeResponse) updates) => super.copyWith((message) => updates(message as EstimateFeeResponse)) as EstimateFeeResponse;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static EstimateFeeResponse create() => EstimateFeeResponse._();
+  EstimateFeeResponse createEmptyInstance() => create();
+  static $pb.PbList<EstimateFeeResponse> createRepeated() => $pb.PbList<EstimateFeeResponse>();
+  @$core.pragma('dart2js:noInline')
+  static EstimateFeeResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<EstimateFeeResponse>(create);
+  static EstimateFeeResponse? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.double get satPerVbyte => $_getN(0);
+  @$pb.TagNumber(1)
+  set satPerVbyte($core.double v) { $_setDouble(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasSatPerVbyte() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearSatPerVbyte() => clearField(1);
 }
 
 class GetBalanceResponse extends $pb.GeneratedMessage {
@@ -4881,6 +5151,1088 @@ class BroadcastTransactionResponse extends $pb.GeneratedMessage {
   $core.bool hasTxid() => $_has(0);
   @$pb.TagNumber(1)
   void clearTxid() => clearField(1);
+}
+
+/// HardwareDevice is one connected USB signer. error is set when the device was
+/// found but could not be opened.
+class HardwareDevice extends $pb.GeneratedMessage {
+  factory HardwareDevice({
+    $core.String? type,
+    $core.String? model,
+    $core.String? label,
+    $core.String? path,
+    $core.String? fingerprint,
+    $core.bool? needsPin,
+    $core.bool? needsPassphrase,
+    $core.String? error,
+    $core.int? errorCode,
+  }) {
+    final $result = create();
+    if (type != null) {
+      $result.type = type;
+    }
+    if (model != null) {
+      $result.model = model;
+    }
+    if (label != null) {
+      $result.label = label;
+    }
+    if (path != null) {
+      $result.path = path;
+    }
+    if (fingerprint != null) {
+      $result.fingerprint = fingerprint;
+    }
+    if (needsPin != null) {
+      $result.needsPin = needsPin;
+    }
+    if (needsPassphrase != null) {
+      $result.needsPassphrase = needsPassphrase;
+    }
+    if (error != null) {
+      $result.error = error;
+    }
+    if (errorCode != null) {
+      $result.errorCode = errorCode;
+    }
+    return $result;
+  }
+  HardwareDevice._() : super();
+  factory HardwareDevice.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory HardwareDevice.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'HardwareDevice', package: const $pb.PackageName(_omitMessageNames ? '' : 'walletmanager.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'type')
+    ..aOS(2, _omitFieldNames ? '' : 'model')
+    ..aOS(3, _omitFieldNames ? '' : 'label')
+    ..aOS(4, _omitFieldNames ? '' : 'path')
+    ..aOS(5, _omitFieldNames ? '' : 'fingerprint')
+    ..aOB(6, _omitFieldNames ? '' : 'needsPin')
+    ..aOB(7, _omitFieldNames ? '' : 'needsPassphrase')
+    ..aOS(8, _omitFieldNames ? '' : 'error')
+    ..a<$core.int>(9, _omitFieldNames ? '' : 'errorCode', $pb.PbFieldType.O3)
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  HardwareDevice clone() => HardwareDevice()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  HardwareDevice copyWith(void Function(HardwareDevice) updates) => super.copyWith((message) => updates(message as HardwareDevice)) as HardwareDevice;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static HardwareDevice create() => HardwareDevice._();
+  HardwareDevice createEmptyInstance() => create();
+  static $pb.PbList<HardwareDevice> createRepeated() => $pb.PbList<HardwareDevice>();
+  @$core.pragma('dart2js:noInline')
+  static HardwareDevice getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<HardwareDevice>(create);
+  static HardwareDevice? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get type => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set type($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasType() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearType() => clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.String get model => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set model($core.String v) { $_setString(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasModel() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearModel() => clearField(2);
+
+  @$pb.TagNumber(3)
+  $core.String get label => $_getSZ(2);
+  @$pb.TagNumber(3)
+  set label($core.String v) { $_setString(2, v); }
+  @$pb.TagNumber(3)
+  $core.bool hasLabel() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearLabel() => clearField(3);
+
+  @$pb.TagNumber(4)
+  $core.String get path => $_getSZ(3);
+  @$pb.TagNumber(4)
+  set path($core.String v) { $_setString(3, v); }
+  @$pb.TagNumber(4)
+  $core.bool hasPath() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearPath() => clearField(4);
+
+  @$pb.TagNumber(5)
+  $core.String get fingerprint => $_getSZ(4);
+  @$pb.TagNumber(5)
+  set fingerprint($core.String v) { $_setString(4, v); }
+  @$pb.TagNumber(5)
+  $core.bool hasFingerprint() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearFingerprint() => clearField(5);
+
+  @$pb.TagNumber(6)
+  $core.bool get needsPin => $_getBF(5);
+  @$pb.TagNumber(6)
+  set needsPin($core.bool v) { $_setBool(5, v); }
+  @$pb.TagNumber(6)
+  $core.bool hasNeedsPin() => $_has(5);
+  @$pb.TagNumber(6)
+  void clearNeedsPin() => clearField(6);
+
+  @$pb.TagNumber(7)
+  $core.bool get needsPassphrase => $_getBF(6);
+  @$pb.TagNumber(7)
+  set needsPassphrase($core.bool v) { $_setBool(6, v); }
+  @$pb.TagNumber(7)
+  $core.bool hasNeedsPassphrase() => $_has(6);
+  @$pb.TagNumber(7)
+  void clearNeedsPassphrase() => clearField(7);
+
+  @$pb.TagNumber(8)
+  $core.String get error => $_getSZ(7);
+  @$pb.TagNumber(8)
+  set error($core.String v) { $_setString(7, v); }
+  @$pb.TagNumber(8)
+  $core.bool hasError() => $_has(7);
+  @$pb.TagNumber(8)
+  void clearError() => clearField(8);
+
+  /// Raw HWI error code: -18 uninitialized, -12 busy/locked, 0 none.
+  @$pb.TagNumber(9)
+  $core.int get errorCode => $_getIZ(8);
+  @$pb.TagNumber(9)
+  set errorCode($core.int v) { $_setSignedInt32(8, v); }
+  @$pb.TagNumber(9)
+  $core.bool hasErrorCode() => $_has(8);
+  @$pb.TagNumber(9)
+  void clearErrorCode() => clearField(9);
+}
+
+/// HardwareDeviceSelector identifies which device a command targets.
+class HardwareDeviceSelector extends $pb.GeneratedMessage {
+  factory HardwareDeviceSelector({
+    $core.String? type,
+    $core.String? path,
+    $core.String? fingerprint,
+    $core.String? passphrase,
+  }) {
+    final $result = create();
+    if (type != null) {
+      $result.type = type;
+    }
+    if (path != null) {
+      $result.path = path;
+    }
+    if (fingerprint != null) {
+      $result.fingerprint = fingerprint;
+    }
+    if (passphrase != null) {
+      $result.passphrase = passphrase;
+    }
+    return $result;
+  }
+  HardwareDeviceSelector._() : super();
+  factory HardwareDeviceSelector.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory HardwareDeviceSelector.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'HardwareDeviceSelector', package: const $pb.PackageName(_omitMessageNames ? '' : 'walletmanager.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'type')
+    ..aOS(2, _omitFieldNames ? '' : 'path')
+    ..aOS(3, _omitFieldNames ? '' : 'fingerprint')
+    ..aOS(4, _omitFieldNames ? '' : 'passphrase')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  HardwareDeviceSelector clone() => HardwareDeviceSelector()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  HardwareDeviceSelector copyWith(void Function(HardwareDeviceSelector) updates) => super.copyWith((message) => updates(message as HardwareDeviceSelector)) as HardwareDeviceSelector;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static HardwareDeviceSelector create() => HardwareDeviceSelector._();
+  HardwareDeviceSelector createEmptyInstance() => create();
+  static $pb.PbList<HardwareDeviceSelector> createRepeated() => $pb.PbList<HardwareDeviceSelector>();
+  @$core.pragma('dart2js:noInline')
+  static HardwareDeviceSelector getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<HardwareDeviceSelector>(create);
+  static HardwareDeviceSelector? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get type => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set type($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasType() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearType() => clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.String get path => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set path($core.String v) { $_setString(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasPath() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearPath() => clearField(2);
+
+  @$pb.TagNumber(3)
+  $core.String get fingerprint => $_getSZ(2);
+  @$pb.TagNumber(3)
+  set fingerprint($core.String v) { $_setString(2, v); }
+  @$pb.TagNumber(3)
+  $core.bool hasFingerprint() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearFingerprint() => clearField(3);
+
+  @$pb.TagNumber(4)
+  $core.String get passphrase => $_getSZ(3);
+  @$pb.TagNumber(4)
+  set passphrase($core.String v) { $_setString(3, v); }
+  @$pb.TagNumber(4)
+  $core.bool hasPassphrase() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearPassphrase() => clearField(4);
+}
+
+class EnumerateHardwareDevicesRequest extends $pb.GeneratedMessage {
+  factory EnumerateHardwareDevicesRequest({
+    $core.String? passphrase,
+  }) {
+    final $result = create();
+    if (passphrase != null) {
+      $result.passphrase = passphrase;
+    }
+    return $result;
+  }
+  EnumerateHardwareDevicesRequest._() : super();
+  factory EnumerateHardwareDevicesRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory EnumerateHardwareDevicesRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'EnumerateHardwareDevicesRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'walletmanager.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'passphrase')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  EnumerateHardwareDevicesRequest clone() => EnumerateHardwareDevicesRequest()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  EnumerateHardwareDevicesRequest copyWith(void Function(EnumerateHardwareDevicesRequest) updates) => super.copyWith((message) => updates(message as EnumerateHardwareDevicesRequest)) as EnumerateHardwareDevicesRequest;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static EnumerateHardwareDevicesRequest create() => EnumerateHardwareDevicesRequest._();
+  EnumerateHardwareDevicesRequest createEmptyInstance() => create();
+  static $pb.PbList<EnumerateHardwareDevicesRequest> createRepeated() => $pb.PbList<EnumerateHardwareDevicesRequest>();
+  @$core.pragma('dart2js:noInline')
+  static EnumerateHardwareDevicesRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<EnumerateHardwareDevicesRequest>(create);
+  static EnumerateHardwareDevicesRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get passphrase => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set passphrase($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasPassphrase() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearPassphrase() => clearField(1);
+}
+
+class EnumerateHardwareDevicesResponse extends $pb.GeneratedMessage {
+  factory EnumerateHardwareDevicesResponse({
+    $core.Iterable<HardwareDevice>? devices,
+  }) {
+    final $result = create();
+    if (devices != null) {
+      $result.devices.addAll(devices);
+    }
+    return $result;
+  }
+  EnumerateHardwareDevicesResponse._() : super();
+  factory EnumerateHardwareDevicesResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory EnumerateHardwareDevicesResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'EnumerateHardwareDevicesResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'walletmanager.v1'), createEmptyInstance: create)
+    ..pc<HardwareDevice>(1, _omitFieldNames ? '' : 'devices', $pb.PbFieldType.PM, subBuilder: HardwareDevice.create)
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  EnumerateHardwareDevicesResponse clone() => EnumerateHardwareDevicesResponse()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  EnumerateHardwareDevicesResponse copyWith(void Function(EnumerateHardwareDevicesResponse) updates) => super.copyWith((message) => updates(message as EnumerateHardwareDevicesResponse)) as EnumerateHardwareDevicesResponse;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static EnumerateHardwareDevicesResponse create() => EnumerateHardwareDevicesResponse._();
+  EnumerateHardwareDevicesResponse createEmptyInstance() => create();
+  static $pb.PbList<EnumerateHardwareDevicesResponse> createRepeated() => $pb.PbList<EnumerateHardwareDevicesResponse>();
+  @$core.pragma('dart2js:noInline')
+  static EnumerateHardwareDevicesResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<EnumerateHardwareDevicesResponse>(create);
+  static EnumerateHardwareDevicesResponse? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.List<HardwareDevice> get devices => $_getList(0);
+}
+
+class GetHardwareXpubRequest extends $pb.GeneratedMessage {
+  factory GetHardwareXpubRequest({
+    HardwareDeviceSelector? device,
+    $core.String? derivationPath,
+  }) {
+    final $result = create();
+    if (device != null) {
+      $result.device = device;
+    }
+    if (derivationPath != null) {
+      $result.derivationPath = derivationPath;
+    }
+    return $result;
+  }
+  GetHardwareXpubRequest._() : super();
+  factory GetHardwareXpubRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory GetHardwareXpubRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'GetHardwareXpubRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'walletmanager.v1'), createEmptyInstance: create)
+    ..aOM<HardwareDeviceSelector>(1, _omitFieldNames ? '' : 'device', subBuilder: HardwareDeviceSelector.create)
+    ..aOS(2, _omitFieldNames ? '' : 'derivationPath')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  GetHardwareXpubRequest clone() => GetHardwareXpubRequest()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  GetHardwareXpubRequest copyWith(void Function(GetHardwareXpubRequest) updates) => super.copyWith((message) => updates(message as GetHardwareXpubRequest)) as GetHardwareXpubRequest;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static GetHardwareXpubRequest create() => GetHardwareXpubRequest._();
+  GetHardwareXpubRequest createEmptyInstance() => create();
+  static $pb.PbList<GetHardwareXpubRequest> createRepeated() => $pb.PbList<GetHardwareXpubRequest>();
+  @$core.pragma('dart2js:noInline')
+  static GetHardwareXpubRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<GetHardwareXpubRequest>(create);
+  static GetHardwareXpubRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  HardwareDeviceSelector get device => $_getN(0);
+  @$pb.TagNumber(1)
+  set device(HardwareDeviceSelector v) { setField(1, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasDevice() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearDevice() => clearField(1);
+  @$pb.TagNumber(1)
+  HardwareDeviceSelector ensureDevice() => $_ensure(0);
+
+  @$pb.TagNumber(2)
+  $core.String get derivationPath => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set derivationPath($core.String v) { $_setString(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasDerivationPath() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearDerivationPath() => clearField(2);
+}
+
+class GetHardwareXpubResponse extends $pb.GeneratedMessage {
+  factory GetHardwareXpubResponse({
+    $core.String? xpub,
+  }) {
+    final $result = create();
+    if (xpub != null) {
+      $result.xpub = xpub;
+    }
+    return $result;
+  }
+  GetHardwareXpubResponse._() : super();
+  factory GetHardwareXpubResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory GetHardwareXpubResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'GetHardwareXpubResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'walletmanager.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'xpub')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  GetHardwareXpubResponse clone() => GetHardwareXpubResponse()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  GetHardwareXpubResponse copyWith(void Function(GetHardwareXpubResponse) updates) => super.copyWith((message) => updates(message as GetHardwareXpubResponse)) as GetHardwareXpubResponse;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static GetHardwareXpubResponse create() => GetHardwareXpubResponse._();
+  GetHardwareXpubResponse createEmptyInstance() => create();
+  static $pb.PbList<GetHardwareXpubResponse> createRepeated() => $pb.PbList<GetHardwareXpubResponse>();
+  @$core.pragma('dart2js:noInline')
+  static GetHardwareXpubResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<GetHardwareXpubResponse>(create);
+  static GetHardwareXpubResponse? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get xpub => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set xpub($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasXpub() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearXpub() => clearField(1);
+}
+
+class SignPsbtWithDeviceRequest extends $pb.GeneratedMessage {
+  factory SignPsbtWithDeviceRequest({
+    HardwareDeviceSelector? device,
+    $core.String? psbtBase64,
+  }) {
+    final $result = create();
+    if (device != null) {
+      $result.device = device;
+    }
+    if (psbtBase64 != null) {
+      $result.psbtBase64 = psbtBase64;
+    }
+    return $result;
+  }
+  SignPsbtWithDeviceRequest._() : super();
+  factory SignPsbtWithDeviceRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory SignPsbtWithDeviceRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'SignPsbtWithDeviceRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'walletmanager.v1'), createEmptyInstance: create)
+    ..aOM<HardwareDeviceSelector>(1, _omitFieldNames ? '' : 'device', subBuilder: HardwareDeviceSelector.create)
+    ..aOS(2, _omitFieldNames ? '' : 'psbtBase64')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  SignPsbtWithDeviceRequest clone() => SignPsbtWithDeviceRequest()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  SignPsbtWithDeviceRequest copyWith(void Function(SignPsbtWithDeviceRequest) updates) => super.copyWith((message) => updates(message as SignPsbtWithDeviceRequest)) as SignPsbtWithDeviceRequest;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static SignPsbtWithDeviceRequest create() => SignPsbtWithDeviceRequest._();
+  SignPsbtWithDeviceRequest createEmptyInstance() => create();
+  static $pb.PbList<SignPsbtWithDeviceRequest> createRepeated() => $pb.PbList<SignPsbtWithDeviceRequest>();
+  @$core.pragma('dart2js:noInline')
+  static SignPsbtWithDeviceRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<SignPsbtWithDeviceRequest>(create);
+  static SignPsbtWithDeviceRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  HardwareDeviceSelector get device => $_getN(0);
+  @$pb.TagNumber(1)
+  set device(HardwareDeviceSelector v) { setField(1, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasDevice() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearDevice() => clearField(1);
+  @$pb.TagNumber(1)
+  HardwareDeviceSelector ensureDevice() => $_ensure(0);
+
+  @$pb.TagNumber(2)
+  $core.String get psbtBase64 => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set psbtBase64($core.String v) { $_setString(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasPsbtBase64() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearPsbtBase64() => clearField(2);
+}
+
+class SignPsbtWithDeviceResponse extends $pb.GeneratedMessage {
+  factory SignPsbtWithDeviceResponse({
+    $core.String? psbtBase64,
+  }) {
+    final $result = create();
+    if (psbtBase64 != null) {
+      $result.psbtBase64 = psbtBase64;
+    }
+    return $result;
+  }
+  SignPsbtWithDeviceResponse._() : super();
+  factory SignPsbtWithDeviceResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory SignPsbtWithDeviceResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'SignPsbtWithDeviceResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'walletmanager.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'psbtBase64')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  SignPsbtWithDeviceResponse clone() => SignPsbtWithDeviceResponse()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  SignPsbtWithDeviceResponse copyWith(void Function(SignPsbtWithDeviceResponse) updates) => super.copyWith((message) => updates(message as SignPsbtWithDeviceResponse)) as SignPsbtWithDeviceResponse;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static SignPsbtWithDeviceResponse create() => SignPsbtWithDeviceResponse._();
+  SignPsbtWithDeviceResponse createEmptyInstance() => create();
+  static $pb.PbList<SignPsbtWithDeviceResponse> createRepeated() => $pb.PbList<SignPsbtWithDeviceResponse>();
+  @$core.pragma('dart2js:noInline')
+  static SignPsbtWithDeviceResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<SignPsbtWithDeviceResponse>(create);
+  static SignPsbtWithDeviceResponse? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get psbtBase64 => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set psbtBase64($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasPsbtBase64() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearPsbtBase64() => clearField(1);
+}
+
+class PromptDevicePinRequest extends $pb.GeneratedMessage {
+  factory PromptDevicePinRequest({
+    HardwareDeviceSelector? device,
+  }) {
+    final $result = create();
+    if (device != null) {
+      $result.device = device;
+    }
+    return $result;
+  }
+  PromptDevicePinRequest._() : super();
+  factory PromptDevicePinRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory PromptDevicePinRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'PromptDevicePinRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'walletmanager.v1'), createEmptyInstance: create)
+    ..aOM<HardwareDeviceSelector>(1, _omitFieldNames ? '' : 'device', subBuilder: HardwareDeviceSelector.create)
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  PromptDevicePinRequest clone() => PromptDevicePinRequest()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  PromptDevicePinRequest copyWith(void Function(PromptDevicePinRequest) updates) => super.copyWith((message) => updates(message as PromptDevicePinRequest)) as PromptDevicePinRequest;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static PromptDevicePinRequest create() => PromptDevicePinRequest._();
+  PromptDevicePinRequest createEmptyInstance() => create();
+  static $pb.PbList<PromptDevicePinRequest> createRepeated() => $pb.PbList<PromptDevicePinRequest>();
+  @$core.pragma('dart2js:noInline')
+  static PromptDevicePinRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<PromptDevicePinRequest>(create);
+  static PromptDevicePinRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  HardwareDeviceSelector get device => $_getN(0);
+  @$pb.TagNumber(1)
+  set device(HardwareDeviceSelector v) { setField(1, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasDevice() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearDevice() => clearField(1);
+  @$pb.TagNumber(1)
+  HardwareDeviceSelector ensureDevice() => $_ensure(0);
+}
+
+class PromptDevicePinResponse extends $pb.GeneratedMessage {
+  factory PromptDevicePinResponse() => create();
+  PromptDevicePinResponse._() : super();
+  factory PromptDevicePinResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory PromptDevicePinResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'PromptDevicePinResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'walletmanager.v1'), createEmptyInstance: create)
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  PromptDevicePinResponse clone() => PromptDevicePinResponse()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  PromptDevicePinResponse copyWith(void Function(PromptDevicePinResponse) updates) => super.copyWith((message) => updates(message as PromptDevicePinResponse)) as PromptDevicePinResponse;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static PromptDevicePinResponse create() => PromptDevicePinResponse._();
+  PromptDevicePinResponse createEmptyInstance() => create();
+  static $pb.PbList<PromptDevicePinResponse> createRepeated() => $pb.PbList<PromptDevicePinResponse>();
+  @$core.pragma('dart2js:noInline')
+  static PromptDevicePinResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<PromptDevicePinResponse>(create);
+  static PromptDevicePinResponse? _defaultInstance;
+}
+
+class SendDevicePinRequest extends $pb.GeneratedMessage {
+  factory SendDevicePinRequest({
+    HardwareDeviceSelector? device,
+    $core.String? pin,
+  }) {
+    final $result = create();
+    if (device != null) {
+      $result.device = device;
+    }
+    if (pin != null) {
+      $result.pin = pin;
+    }
+    return $result;
+  }
+  SendDevicePinRequest._() : super();
+  factory SendDevicePinRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory SendDevicePinRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'SendDevicePinRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'walletmanager.v1'), createEmptyInstance: create)
+    ..aOM<HardwareDeviceSelector>(1, _omitFieldNames ? '' : 'device', subBuilder: HardwareDeviceSelector.create)
+    ..aOS(2, _omitFieldNames ? '' : 'pin')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  SendDevicePinRequest clone() => SendDevicePinRequest()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  SendDevicePinRequest copyWith(void Function(SendDevicePinRequest) updates) => super.copyWith((message) => updates(message as SendDevicePinRequest)) as SendDevicePinRequest;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static SendDevicePinRequest create() => SendDevicePinRequest._();
+  SendDevicePinRequest createEmptyInstance() => create();
+  static $pb.PbList<SendDevicePinRequest> createRepeated() => $pb.PbList<SendDevicePinRequest>();
+  @$core.pragma('dart2js:noInline')
+  static SendDevicePinRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<SendDevicePinRequest>(create);
+  static SendDevicePinRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  HardwareDeviceSelector get device => $_getN(0);
+  @$pb.TagNumber(1)
+  set device(HardwareDeviceSelector v) { setField(1, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasDevice() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearDevice() => clearField(1);
+  @$pb.TagNumber(1)
+  HardwareDeviceSelector ensureDevice() => $_ensure(0);
+
+  @$pb.TagNumber(2)
+  $core.String get pin => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set pin($core.String v) { $_setString(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasPin() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearPin() => clearField(2);
+}
+
+class SendDevicePinResponse extends $pb.GeneratedMessage {
+  factory SendDevicePinResponse() => create();
+  SendDevicePinResponse._() : super();
+  factory SendDevicePinResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory SendDevicePinResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'SendDevicePinResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'walletmanager.v1'), createEmptyInstance: create)
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  SendDevicePinResponse clone() => SendDevicePinResponse()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  SendDevicePinResponse copyWith(void Function(SendDevicePinResponse) updates) => super.copyWith((message) => updates(message as SendDevicePinResponse)) as SendDevicePinResponse;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static SendDevicePinResponse create() => SendDevicePinResponse._();
+  SendDevicePinResponse createEmptyInstance() => create();
+  static $pb.PbList<SendDevicePinResponse> createRepeated() => $pb.PbList<SendDevicePinResponse>();
+  @$core.pragma('dart2js:noInline')
+  static SendDevicePinResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<SendDevicePinResponse>(create);
+  static SendDevicePinResponse? _defaultInstance;
+}
+
+class CloseDeviceRequest extends $pb.GeneratedMessage {
+  factory CloseDeviceRequest({
+    HardwareDeviceSelector? device,
+  }) {
+    final $result = create();
+    if (device != null) {
+      $result.device = device;
+    }
+    return $result;
+  }
+  CloseDeviceRequest._() : super();
+  factory CloseDeviceRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory CloseDeviceRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'CloseDeviceRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'walletmanager.v1'), createEmptyInstance: create)
+    ..aOM<HardwareDeviceSelector>(1, _omitFieldNames ? '' : 'device', subBuilder: HardwareDeviceSelector.create)
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  CloseDeviceRequest clone() => CloseDeviceRequest()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  CloseDeviceRequest copyWith(void Function(CloseDeviceRequest) updates) => super.copyWith((message) => updates(message as CloseDeviceRequest)) as CloseDeviceRequest;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static CloseDeviceRequest create() => CloseDeviceRequest._();
+  CloseDeviceRequest createEmptyInstance() => create();
+  static $pb.PbList<CloseDeviceRequest> createRepeated() => $pb.PbList<CloseDeviceRequest>();
+  @$core.pragma('dart2js:noInline')
+  static CloseDeviceRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<CloseDeviceRequest>(create);
+  static CloseDeviceRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  HardwareDeviceSelector get device => $_getN(0);
+  @$pb.TagNumber(1)
+  set device(HardwareDeviceSelector v) { setField(1, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasDevice() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearDevice() => clearField(1);
+  @$pb.TagNumber(1)
+  HardwareDeviceSelector ensureDevice() => $_ensure(0);
+}
+
+class CloseDeviceResponse extends $pb.GeneratedMessage {
+  factory CloseDeviceResponse() => create();
+  CloseDeviceResponse._() : super();
+  factory CloseDeviceResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory CloseDeviceResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'CloseDeviceResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'walletmanager.v1'), createEmptyInstance: create)
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  CloseDeviceResponse clone() => CloseDeviceResponse()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  CloseDeviceResponse copyWith(void Function(CloseDeviceResponse) updates) => super.copyWith((message) => updates(message as CloseDeviceResponse)) as CloseDeviceResponse;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static CloseDeviceResponse create() => CloseDeviceResponse._();
+  CloseDeviceResponse createEmptyInstance() => create();
+  static $pb.PbList<CloseDeviceResponse> createRepeated() => $pb.PbList<CloseDeviceResponse>();
+  @$core.pragma('dart2js:noInline')
+  static CloseDeviceResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<CloseDeviceResponse>(create);
+  static CloseDeviceResponse? _defaultInstance;
+}
+
+/// DeriveKeystoreRequest carries one source plus the intent to derive from.
+class DeriveKeystoreRequest extends $pb.GeneratedMessage {
+  factory DeriveKeystoreRequest({
+    $core.String? mnemonic,
+    $core.String? passphrase,
+    HardwareDeviceSelector? device,
+    $core.String? rawKey,
+    $core.String? scriptType,
+    $core.bool? multisig,
+    $core.int? account,
+  }) {
+    final $result = create();
+    if (mnemonic != null) {
+      $result.mnemonic = mnemonic;
+    }
+    if (passphrase != null) {
+      $result.passphrase = passphrase;
+    }
+    if (device != null) {
+      $result.device = device;
+    }
+    if (rawKey != null) {
+      $result.rawKey = rawKey;
+    }
+    if (scriptType != null) {
+      $result.scriptType = scriptType;
+    }
+    if (multisig != null) {
+      $result.multisig = multisig;
+    }
+    if (account != null) {
+      $result.account = account;
+    }
+    return $result;
+  }
+  DeriveKeystoreRequest._() : super();
+  factory DeriveKeystoreRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory DeriveKeystoreRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'DeriveKeystoreRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'walletmanager.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'mnemonic')
+    ..aOS(2, _omitFieldNames ? '' : 'passphrase')
+    ..aOM<HardwareDeviceSelector>(3, _omitFieldNames ? '' : 'device', subBuilder: HardwareDeviceSelector.create)
+    ..aOS(4, _omitFieldNames ? '' : 'rawKey')
+    ..aOS(5, _omitFieldNames ? '' : 'scriptType')
+    ..aOB(6, _omitFieldNames ? '' : 'multisig')
+    ..a<$core.int>(7, _omitFieldNames ? '' : 'account', $pb.PbFieldType.OU3)
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  DeriveKeystoreRequest clone() => DeriveKeystoreRequest()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  DeriveKeystoreRequest copyWith(void Function(DeriveKeystoreRequest) updates) => super.copyWith((message) => updates(message as DeriveKeystoreRequest)) as DeriveKeystoreRequest;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static DeriveKeystoreRequest create() => DeriveKeystoreRequest._();
+  DeriveKeystoreRequest createEmptyInstance() => create();
+  static $pb.PbList<DeriveKeystoreRequest> createRepeated() => $pb.PbList<DeriveKeystoreRequest>();
+  @$core.pragma('dart2js:noInline')
+  static DeriveKeystoreRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<DeriveKeystoreRequest>(create);
+  static DeriveKeystoreRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get mnemonic => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set mnemonic($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasMnemonic() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearMnemonic() => clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.String get passphrase => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set passphrase($core.String v) { $_setString(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasPassphrase() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearPassphrase() => clearField(2);
+
+  @$pb.TagNumber(3)
+  HardwareDeviceSelector get device => $_getN(2);
+  @$pb.TagNumber(3)
+  set device(HardwareDeviceSelector v) { setField(3, v); }
+  @$pb.TagNumber(3)
+  $core.bool hasDevice() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearDevice() => clearField(3);
+  @$pb.TagNumber(3)
+  HardwareDeviceSelector ensureDevice() => $_ensure(2);
+
+  @$pb.TagNumber(4)
+  $core.String get rawKey => $_getSZ(3);
+  @$pb.TagNumber(4)
+  set rawKey($core.String v) { $_setString(3, v); }
+  @$pb.TagNumber(4)
+  $core.bool hasRawKey() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearRawKey() => clearField(4);
+
+  /// single-sig: "legacy" | "nested-segwit" | "native-segwit" | "taproot";
+  /// multisig: "sh" | "sh-wsh" | "wsh" | "tr".
+  @$pb.TagNumber(5)
+  $core.String get scriptType => $_getSZ(4);
+  @$pb.TagNumber(5)
+  set scriptType($core.String v) { $_setString(4, v); }
+  @$pb.TagNumber(5)
+  $core.bool hasScriptType() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearScriptType() => clearField(5);
+
+  @$pb.TagNumber(6)
+  $core.bool get multisig => $_getBF(5);
+  @$pb.TagNumber(6)
+  set multisig($core.bool v) { $_setBool(5, v); }
+  @$pb.TagNumber(6)
+  $core.bool hasMultisig() => $_has(5);
+  @$pb.TagNumber(6)
+  void clearMultisig() => clearField(6);
+
+  @$pb.TagNumber(7)
+  $core.int get account => $_getIZ(6);
+  @$pb.TagNumber(7)
+  set account($core.int v) { $_setUnsignedInt32(6, v); }
+  @$pb.TagNumber(7)
+  $core.bool hasAccount() => $_has(6);
+  @$pb.TagNumber(7)
+  void clearAccount() => clearField(7);
+}
+
+class DeriveKeystoreResponse extends $pb.GeneratedMessage {
+  factory DeriveKeystoreResponse({
+    $core.String? xpub,
+    $core.String? fingerprint,
+    $core.String? originPath,
+    $core.String? descriptor,
+  }) {
+    final $result = create();
+    if (xpub != null) {
+      $result.xpub = xpub;
+    }
+    if (fingerprint != null) {
+      $result.fingerprint = fingerprint;
+    }
+    if (originPath != null) {
+      $result.originPath = originPath;
+    }
+    if (descriptor != null) {
+      $result.descriptor = descriptor;
+    }
+    return $result;
+  }
+  DeriveKeystoreResponse._() : super();
+  factory DeriveKeystoreResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory DeriveKeystoreResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'DeriveKeystoreResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'walletmanager.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'xpub')
+    ..aOS(2, _omitFieldNames ? '' : 'fingerprint')
+    ..aOS(3, _omitFieldNames ? '' : 'originPath')
+    ..aOS(4, _omitFieldNames ? '' : 'descriptor')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  DeriveKeystoreResponse clone() => DeriveKeystoreResponse()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  DeriveKeystoreResponse copyWith(void Function(DeriveKeystoreResponse) updates) => super.copyWith((message) => updates(message as DeriveKeystoreResponse)) as DeriveKeystoreResponse;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static DeriveKeystoreResponse create() => DeriveKeystoreResponse._();
+  DeriveKeystoreResponse createEmptyInstance() => create();
+  static $pb.PbList<DeriveKeystoreResponse> createRepeated() => $pb.PbList<DeriveKeystoreResponse>();
+  @$core.pragma('dart2js:noInline')
+  static DeriveKeystoreResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<DeriveKeystoreResponse>(create);
+  static DeriveKeystoreResponse? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get xpub => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set xpub($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasXpub() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearXpub() => clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.String get fingerprint => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set fingerprint($core.String v) { $_setString(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasFingerprint() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearFingerprint() => clearField(2);
+
+  @$pb.TagNumber(3)
+  $core.String get originPath => $_getSZ(2);
+  @$pb.TagNumber(3)
+  set originPath($core.String v) { $_setString(2, v); }
+  @$pb.TagNumber(3)
+  $core.bool hasOriginPath() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearOriginPath() => clearField(3);
+
+  /// Single-sig watch descriptor for device/raw sources; empty for multisig.
+  @$pb.TagNumber(4)
+  $core.String get descriptor => $_getSZ(3);
+  @$pb.TagNumber(4)
+  set descriptor($core.String v) { $_setString(3, v); }
+  @$pb.TagNumber(4)
+  $core.bool hasDescriptor() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearDescriptor() => clearField(4);
 }
 
 class ListTransactionsRequest extends $pb.GeneratedMessage {
@@ -8391,6 +9743,12 @@ class WalletManagerServiceApi {
   $async.Future<GetBalanceResponse> getBalance($pb.ClientContext? ctx, GetBalanceRequest request) =>
     _client.invoke<GetBalanceResponse>(ctx, 'WalletManagerService', 'GetBalance', request, GetBalanceResponse())
   ;
+  $async.Future<RescanWalletResponse> rescanWallet($pb.ClientContext? ctx, RescanWalletRequest request) =>
+    _client.invoke<RescanWalletResponse>(ctx, 'WalletManagerService', 'RescanWallet', request, RescanWalletResponse())
+  ;
+  $async.Future<EstimateFeeResponse> estimateFee($pb.ClientContext? ctx, EstimateFeeRequest request) =>
+    _client.invoke<EstimateFeeResponse>(ctx, 'WalletManagerService', 'EstimateFee', request, EstimateFeeResponse())
+  ;
   $async.Future<GetNewAddressResponse> getNewAddress($pb.ClientContext? ctx, GetNewAddressRequest request) =>
     _client.invoke<GetNewAddressResponse>(ctx, 'WalletManagerService', 'GetNewAddress', request, GetNewAddressResponse())
   ;
@@ -8441,6 +9799,27 @@ class WalletManagerServiceApi {
   ;
   $async.Future<BroadcastTransactionResponse> broadcastTransaction($pb.ClientContext? ctx, BroadcastTransactionRequest request) =>
     _client.invoke<BroadcastTransactionResponse>(ctx, 'WalletManagerService', 'BroadcastTransaction', request, BroadcastTransactionResponse())
+  ;
+  $async.Future<EnumerateHardwareDevicesResponse> enumerateHardwareDevices($pb.ClientContext? ctx, EnumerateHardwareDevicesRequest request) =>
+    _client.invoke<EnumerateHardwareDevicesResponse>(ctx, 'WalletManagerService', 'EnumerateHardwareDevices', request, EnumerateHardwareDevicesResponse())
+  ;
+  $async.Future<GetHardwareXpubResponse> getHardwareXpub($pb.ClientContext? ctx, GetHardwareXpubRequest request) =>
+    _client.invoke<GetHardwareXpubResponse>(ctx, 'WalletManagerService', 'GetHardwareXpub', request, GetHardwareXpubResponse())
+  ;
+  $async.Future<SignPsbtWithDeviceResponse> signPsbtWithDevice($pb.ClientContext? ctx, SignPsbtWithDeviceRequest request) =>
+    _client.invoke<SignPsbtWithDeviceResponse>(ctx, 'WalletManagerService', 'SignPsbtWithDevice', request, SignPsbtWithDeviceResponse())
+  ;
+  $async.Future<PromptDevicePinResponse> promptDevicePin($pb.ClientContext? ctx, PromptDevicePinRequest request) =>
+    _client.invoke<PromptDevicePinResponse>(ctx, 'WalletManagerService', 'PromptDevicePin', request, PromptDevicePinResponse())
+  ;
+  $async.Future<SendDevicePinResponse> sendDevicePin($pb.ClientContext? ctx, SendDevicePinRequest request) =>
+    _client.invoke<SendDevicePinResponse>(ctx, 'WalletManagerService', 'SendDevicePin', request, SendDevicePinResponse())
+  ;
+  $async.Future<CloseDeviceResponse> closeDevice($pb.ClientContext? ctx, CloseDeviceRequest request) =>
+    _client.invoke<CloseDeviceResponse>(ctx, 'WalletManagerService', 'CloseDevice', request, CloseDeviceResponse())
+  ;
+  $async.Future<DeriveKeystoreResponse> deriveKeystore($pb.ClientContext? ctx, DeriveKeystoreRequest request) =>
+    _client.invoke<DeriveKeystoreResponse>(ctx, 'WalletManagerService', 'DeriveKeystore', request, DeriveKeystoreResponse())
   ;
   $async.Future<GetWalletSeedResponse> getWalletSeed($pb.ClientContext? ctx, GetWalletSeedRequest request) =>
     _client.invoke<GetWalletSeedResponse>(ctx, 'WalletManagerService', 'GetWalletSeed', request, GetWalletSeedResponse())

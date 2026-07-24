@@ -34,6 +34,12 @@ class WalletData {
 
   bool get isMultisig => multisig != null;
 
+  /// Device type and master fingerprint for a single-sig hardware wallet.
+  final String hardwareDeviceType;
+  final String hardwareFingerprint;
+
+  bool get isHardware => hardwareDeviceType.isNotEmpty;
+
   WalletData({
     required this.version,
     required this.master,
@@ -48,6 +54,8 @@ class WalletData {
     this.isWatchOnly = false,
     this.bip47PaymentCode = '',
     this.multisig,
+    this.hardwareDeviceType = '',
+    this.hardwareFingerprint = '',
   });
 
   Map<String, dynamic> toJson() {

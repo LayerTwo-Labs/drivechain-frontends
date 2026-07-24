@@ -390,6 +390,40 @@ extension type WalletManagerServiceClient (connect.Transport _transport) {
     );
   }
 
+  Future<walletmanagerv1walletmanager.RescanWalletResponse> rescanWallet(
+    walletmanagerv1walletmanager.RescanWalletRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.WalletManagerService.rescanWallet,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
+  Future<walletmanagerv1walletmanager.EstimateFeeResponse> estimateFee(
+    walletmanagerv1walletmanager.EstimateFeeRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.WalletManagerService.estimateFee,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
   Future<walletmanagerv1walletmanager.GetNewAddressResponse> getNewAddress(
     walletmanagerv1walletmanager.GetNewAddressRequest input, {
     connect.Headers? headers,
@@ -683,6 +717,129 @@ extension type WalletManagerServiceClient (connect.Transport _transport) {
   }) {
     return connect.Client(_transport).unary(
       specs.WalletManagerService.broadcastTransaction,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
+  /// USB hardware wallets.
+  Future<walletmanagerv1walletmanager.EnumerateHardwareDevicesResponse> enumerateHardwareDevices(
+    walletmanagerv1walletmanager.EnumerateHardwareDevicesRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.WalletManagerService.enumerateHardwareDevices,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
+  Future<walletmanagerv1walletmanager.GetHardwareXpubResponse> getHardwareXpub(
+    walletmanagerv1walletmanager.GetHardwareXpubRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.WalletManagerService.getHardwareXpub,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
+  Future<walletmanagerv1walletmanager.SignPsbtWithDeviceResponse> signPsbtWithDevice(
+    walletmanagerv1walletmanager.SignPsbtWithDeviceRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.WalletManagerService.signPsbtWithDevice,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
+  /// PromptDevicePin shows the PIN matrix; SendDevicePin unlocks with it.
+  Future<walletmanagerv1walletmanager.PromptDevicePinResponse> promptDevicePin(
+    walletmanagerv1walletmanager.PromptDevicePinRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.WalletManagerService.promptDevicePin,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
+  Future<walletmanagerv1walletmanager.SendDevicePinResponse> sendDevicePin(
+    walletmanagerv1walletmanager.SendDevicePinRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.WalletManagerService.sendDevicePin,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
+  /// CloseDevice releases the device so the next enumerate isn't blocked.
+  Future<walletmanagerv1walletmanager.CloseDeviceResponse> closeDevice(
+    walletmanagerv1walletmanager.CloseDeviceRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.WalletManagerService.closeDevice,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
+  /// DeriveKeystore turns a keystore's intent into derived account key material.
+  Future<walletmanagerv1walletmanager.DeriveKeystoreResponse> deriveKeystore(
+    walletmanagerv1walletmanager.DeriveKeystoreRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.WalletManagerService.deriveKeystore,
       input,
       signal: signal,
       headers: headers,

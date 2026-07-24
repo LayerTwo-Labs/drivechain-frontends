@@ -38,6 +38,8 @@ service WalletManagerService {
 
   // Bitcoin operations (proxied through Core RPC)
   rpc GetBalance(GetBalanceRequest) returns (GetBalanceResponse);
+  rpc RescanWallet(RescanWalletRequest) returns (RescanWalletResponse);
+  rpc EstimateFee(EstimateFeeRequest) returns (EstimateFeeResponse);
   rpc GetNewAddress(GetNewAddressRequest) returns (GetNewAddressResponse);
   rpc SendTransaction(SendTransactionRequest) returns (SendTransactionResponse);
   rpc ListTransactions(ListTransactionsRequest) returns (ListTransactionsResponse);
@@ -68,6 +70,19 @@ service WalletManagerService {
   // BroadcastTransaction broadcasts a finalized raw transaction over the
   // wallet's chain source and returns its txid.
   rpc BroadcastTransaction(BroadcastTransactionRequest) returns (BroadcastTransactionResponse);
+
+  // USB hardware wallets.
+  rpc EnumerateHardwareDevices(EnumerateHardwareDevicesRequest) returns (EnumerateHardwareDevicesResponse);
+  rpc GetHardwareXpub(GetHardwareXpubRequest) returns (GetHardwareXpubResponse);
+  rpc SignPsbtWithDevice(SignPsbtWithDeviceRequest) returns (SignPsbtWithDeviceResponse);
+  // PromptDevicePin shows the PIN matrix; SendDevicePin unlocks with it.
+  rpc PromptDevicePin(PromptDevicePinRequest) returns (PromptDevicePinResponse);
+  rpc SendDevicePin(SendDevicePinRequest) returns (SendDevicePinResponse);
+  // CloseDevice releases the device so the next enumerate isn't blocked.
+  rpc CloseDevice(CloseDeviceRequest) returns (CloseDeviceResponse);
+
+  // DeriveKeystore turns a keystore's intent into derived account key material.
+  rpc DeriveKeystore(DeriveKeystoreRequest) returns (DeriveKeystoreResponse);
 
   // Seed access for cheque engine
   rpc GetWalletSeed(GetWalletSeedRequest) returns (GetWalletSeedResponse);
@@ -204,6 +219,10 @@ message WalletMetadata {
   // Multisig policy, present only for multisig wallets. Cosigner private
   // material is never exposed here — only public data and a held flag.
   MultisigInfo multisig = 11;
+
+  // Device type and master fingerprint for a single-sig hardware wallet.
+  string hardware_device_type = 12;
+  string hardware_fingerprint = 13;
 }
 
 message MultisigInfo {
@@ -218,6 +237,8 @@ message MultisigCosignerInfo {
   string fingerprint = 2;
   string origin_path = 3;
   bool held = 4; // this wallet holds the key and can sign for this cosigner
+  // Device type when this leg signs on a USB device.
+  string hardware_device_type = 5;
 }
 
 message SidechainStarter {
@@ -362,6 +383,9 @@ message CreateElectrumWalletRequest {
   // overriding purpose/coin/account. Empty = default. All three levels must be
   // hardened. Ignored for watch-only imports.
   string derivation_path = 8;
+  // Device type and master fingerprint when importing a hardware wallet.
+  string hardware_device_type = 9;
+  string hardware_fingerprint = 10;
 }
 
 message CreateElectrumWalletResponse {
@@ -378,6 +402,8 @@ message MultisigCosignerInput {
   string mnemonic = 4;    // held: BIP39 seed, stored so the wallet can sign
   string xprv = 5;        // held: account-level xprv, alternative to mnemonic
   string passphrase = 6;  // optional BIP39 passphrase for mnemonic
+  // Device type ("trezor", "ledger", ...) when this leg signs on a USB device.
+  string hardware_device_type = 7;
 }
 
 message CreateMultisigWalletRequest {
@@ -437,6 +463,20 @@ message EnsureCoreWalletsResponse {
 
 message GetBalanceRequest {
   string wallet_id = 1;  // empty = active wallet
+}
+
+message RescanWalletRequest {
+  string wallet_id = 1;  // empty = active wallet
+}
+
+message RescanWalletResponse {}
+
+message EstimateFeeRequest {
+  int32 conf_target = 1;
+}
+
+message EstimateFeeResponse {
+  double sat_per_vbyte = 1;
 }
 
 message GetBalanceResponse {
@@ -575,6 +615,95 @@ message BroadcastTransactionRequest {
 
 message BroadcastTransactionResponse {
   string txid = 1;
+}
+
+// HardwareDevice is one connected USB signer. error is set when the device was
+// found but could not be opened.
+message HardwareDevice {
+  string type = 1;
+  string model = 2;
+  string label = 3;
+  string path = 4;
+  string fingerprint = 5;
+  bool needs_pin = 6;
+  bool needs_passphrase = 7;
+  string error = 8;
+  // Raw HWI error code: -18 uninitialized, -12 busy/locked, 0 none.
+  int32 error_code = 9;
+}
+
+// HardwareDeviceSelector identifies which device a command targets.
+message HardwareDeviceSelector {
+  string type = 1;
+  string path = 2;
+  string fingerprint = 3;
+  string passphrase = 4; // BIP39 passphrase for passphrase-protected devices
+}
+
+message EnumerateHardwareDevicesRequest {
+  string passphrase = 1; // confirm the passphrase wallet's fingerprint
+}
+
+message EnumerateHardwareDevicesResponse {
+  repeated HardwareDevice devices = 1;
+}
+
+message GetHardwareXpubRequest {
+  HardwareDeviceSelector device = 1;
+  string derivation_path = 2;
+}
+
+message GetHardwareXpubResponse {
+  string xpub = 1;
+}
+
+message SignPsbtWithDeviceRequest {
+  HardwareDeviceSelector device = 1;
+  string psbt_base64 = 2;
+}
+
+message SignPsbtWithDeviceResponse {
+  string psbt_base64 = 1;
+}
+
+message PromptDevicePinRequest {
+  HardwareDeviceSelector device = 1;
+}
+
+message PromptDevicePinResponse {}
+
+message SendDevicePinRequest {
+  HardwareDeviceSelector device = 1;
+  string pin = 2; // matrix positions the user picked, not the actual digits
+}
+
+message SendDevicePinResponse {}
+
+message CloseDeviceRequest {
+  HardwareDeviceSelector device = 1;
+}
+
+message CloseDeviceResponse {}
+
+// DeriveKeystoreRequest carries one source plus the intent to derive from.
+message DeriveKeystoreRequest {
+  string mnemonic = 1;
+  string passphrase = 2; // optional, with mnemonic
+  HardwareDeviceSelector device = 3;
+  string raw_key = 4; // pasted "[fp/origin]xpub", bare xpub, or descriptor
+  // single-sig: "legacy" | "nested-segwit" | "native-segwit" | "taproot";
+  // multisig: "sh" | "sh-wsh" | "wsh" | "tr".
+  string script_type = 5;
+  bool multisig = 6;
+  uint32 account = 7;
+}
+
+message DeriveKeystoreResponse {
+  string xpub = 1;
+  string fingerprint = 2;
+  string origin_path = 3; // without leading m/
+  // Single-sig watch descriptor for device/raw sources; empty for multisig.
+  string descriptor = 4;
 }
 
 

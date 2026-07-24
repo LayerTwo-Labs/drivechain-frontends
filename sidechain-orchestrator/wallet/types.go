@@ -70,10 +70,15 @@ type MultisigCosigner struct {
 	Mnemonic    string `json:"mnemonic,omitempty"`
 	Passphrase  string `json:"passphrase,omitempty"` // optional BIP39 passphrase for Mnemonic
 	Xprv        string `json:"xprv,omitempty"`       // account-level xprv, if imported directly
+	// Device type ("trezor", "ledger", ...) when this leg signs on a USB device.
+	HardwareDeviceType string `json:"hardware_device_type,omitempty"`
 }
 
 // Held reports whether this wallet holds the cosigner's private key.
 func (c MultisigCosigner) Held() bool { return c.Mnemonic != "" || c.Xprv != "" }
+
+// IsHardware reports whether this cosigner signs on a USB hardware device.
+func (c MultisigCosigner) IsHardware() bool { return c.HardwareDeviceType != "" }
 
 // MultisigScriptType returns the wallet's multisig script-type string ("wsh",
 // "sh-wsh", or "sh"), or empty for a non-multisig wallet.
@@ -123,6 +128,24 @@ func (w *WalletData) IsWatchOnly() bool {
 	}
 	return len(w.WatchOnly) > 0
 }
+
+// watchOnlyField reads a key from the watch-only payload, or "" if absent.
+func (w *WalletData) watchOnlyField(key string) string {
+	if len(w.WatchOnly) == 0 {
+		return ""
+	}
+	var m map[string]string
+	if json.Unmarshal(w.WatchOnly, &m) != nil {
+		return ""
+	}
+	return m[key]
+}
+
+// HardwareDeviceType returns the device type for a single-sig hardware wallet.
+func (w *WalletData) HardwareDeviceType() string { return w.watchOnlyField("hardware_device_type") }
+
+// HardwareFingerprint returns a single-sig hardware wallet's device fingerprint.
+func (w *WalletData) HardwareFingerprint() string { return w.watchOnlyField("hardware_fingerprint") }
 
 // Custom JSON marshal/unmarshal for WalletData to handle time format
 func (w WalletData) MarshalJSON() ([]byte, error) {

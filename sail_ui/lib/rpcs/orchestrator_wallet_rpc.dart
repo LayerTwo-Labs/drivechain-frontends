@@ -34,6 +34,15 @@ class OrchestratorWalletRPC {
     return _unaryClient.getWalletStatus(wmpb.GetWalletStatusRequest());
   }
 
+  Future<void> rescanWallet({String? walletId}) async {
+    await _unaryClient.rescanWallet(wmpb.RescanWalletRequest(walletId: walletId ?? ''));
+  }
+
+  Future<double?> estimateFee(int confTarget) async {
+    final r = await _unaryClient.estimateFee(wmpb.EstimateFeeRequest(confTarget: confTarget));
+    return r.satPerVbyte > 0 ? r.satPerVbyte : null;
+  }
+
   Future<wmpb.ListWalletsResponse> listWallets() {
     return _unaryClient.listWallets(wmpb.ListWalletsRequest());
   }
@@ -113,6 +122,8 @@ class OrchestratorWalletRPC {
     String? scriptType,
     int account = 0,
     String? derivationPath,
+    String? hardwareDeviceType,
+    String? hardwareFingerprint,
   }) {
     return _unaryClient.createElectrumWallet(
       wmpb.CreateElectrumWalletRequest(
@@ -124,6 +135,8 @@ class OrchestratorWalletRPC {
         scriptType: scriptType ?? '',
         account: account,
         derivationPath: derivationPath ?? '',
+        hardwareDeviceType: hardwareDeviceType ?? '',
+        hardwareFingerprint: hardwareFingerprint ?? '',
       ),
     );
   }
@@ -338,6 +351,75 @@ class OrchestratorWalletRPC {
       wmpb.BroadcastTransactionRequest(walletId: walletId, txHex: txHex),
     );
     return response.txid;
+  }
+
+  /// Lists connected USB hardware wallets. A passphrase makes a
+  /// passphrase-protected device report its passphrase-wallet fingerprint.
+  Future<List<wmpb.HardwareDevice>> enumerateHardwareDevices({String? passphrase}) async {
+    final response = await _unaryClient.enumerateHardwareDevices(
+      wmpb.EnumerateHardwareDevicesRequest(passphrase: passphrase ?? ''),
+    );
+    return response.devices;
+  }
+
+  /// Reads the account xpub at [derivationPath] from a hardware device.
+  Future<String> getHardwareXpub({
+    required wmpb.HardwareDeviceSelector device,
+    required String derivationPath,
+  }) async {
+    final response = await _unaryClient.getHardwareXpub(
+      wmpb.GetHardwareXpubRequest(device: device, derivationPath: derivationPath),
+    );
+    return response.xpub;
+  }
+
+  /// Signs a PSBT on a hardware device, returning the device-signed PSBT.
+  Future<String> signPsbtWithDevice({
+    required wmpb.HardwareDeviceSelector device,
+    required String psbtBase64,
+  }) async {
+    final response = await _unaryClient.signPsbtWithDevice(
+      wmpb.SignPsbtWithDeviceRequest(device: device, psbtBase64: psbtBase64),
+    );
+    return response.psbtBase64;
+  }
+
+  /// Makes a locked device show its scrambled PIN matrix.
+  Future<void> promptDevicePin({required wmpb.HardwareDeviceSelector device}) async {
+    await _unaryClient.promptDevicePin(wmpb.PromptDevicePinRequest(device: device));
+  }
+
+  /// Unlocks a device with the matrix positions the user picked.
+  Future<void> sendDevicePin({required wmpb.HardwareDeviceSelector device, required String pin}) async {
+    await _unaryClient.sendDevicePin(wmpb.SendDevicePinRequest(device: device, pin: pin));
+  }
+
+  /// Releases a device session (e.g. after cancelling a PIN prompt).
+  Future<void> closeDevice({required wmpb.HardwareDeviceSelector device}) async {
+    await _unaryClient.closeDevice(wmpb.CloseDeviceRequest(device: device));
+  }
+
+  /// Derives a keystore's account key material from its source and intent.
+  Future<wmpb.DeriveKeystoreResponse> deriveKeystore({
+    String? mnemonic,
+    String? passphrase,
+    wmpb.HardwareDeviceSelector? device,
+    String? rawKey,
+    required String scriptType,
+    required bool multisig,
+    int account = 0,
+  }) {
+    return _unaryClient.deriveKeystore(
+      wmpb.DeriveKeystoreRequest(
+        mnemonic: mnemonic ?? '',
+        passphrase: passphrase ?? '',
+        device: device,
+        rawKey: rawKey ?? '',
+        scriptType: scriptType,
+        multisig: multisig,
+        account: account,
+      ),
+    );
   }
 
   Future<wmpb.ListTransactionsResponse> listTransactions({

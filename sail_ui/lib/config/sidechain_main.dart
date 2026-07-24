@@ -286,9 +286,9 @@ List<Binary> _initialBinaries(
   return binaries;
 }
 
-/// Embedded Go daemons that ship as separate per-arch binaries on macOS
-/// (suffixed `-arm64` / `-x86_64`); the host-arch one is selected at launch.
-const _perArchDaemons = {'bitwindowd', 'orchestratord', 'orchestratorctl'};
+/// Embedded binaries that ship as separate per-arch copies on macOS (suffixed
+/// `-arm64` / `-x86_64`); the host-arch one is selected at launch.
+const _perArchDaemons = {'bitwindowd', 'orchestratord', 'orchestratorctl', 'hwi-daemon'};
 
 /// The asset filename to load from the bundle for [canonical]. On macOS the
 /// embedded daemons ship per-arch, so the host [arch] is appended; everywhere
@@ -306,6 +306,8 @@ Future<void> copyBinariesFromAssets(Logger log, Directory appDir) async {
   // orchestratorctl is a CLI (not a launchable Binary in allBinaries), but the
   // console execs it from bin/, so it has to be staged here too.
   await _copyEmbeddedBinary(log, fileDir, 'orchestratorctl');
+  // hwi-daemon is the bundled hardware-wallet process.
+  await _copyEmbeddedBinary(log, fileDir, 'hwi-daemon');
 
   log.d('Finished copying all available binaries to assets/bin');
 }
@@ -347,7 +349,6 @@ Future<void> _copyEmbeddedBinary(Logger log, Directory fileDir, String canonical
 List<Binary> get allBinaries => [
   ...coreBinaries,
   ...sidechainBinaries,
-  resolveFromConfig(BinaryType.BINARY_TYPE_ORCHESTRATORD, () => Orchestratord()),
   resolveFromConfig(BinaryType.BINARY_TYPE_ZSIDED, () => ZSided()),
 ];
 

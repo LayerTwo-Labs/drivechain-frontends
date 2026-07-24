@@ -155,6 +155,7 @@ export 'providers/electrum_server_provider.dart';
 export 'providers/tor_config_provider.dart';
 export 'providers/enforcer_conf_provider.dart';
 export 'providers/balance_provider.dart';
+export 'providers/hwi_provider.dart';
 export 'providers/formatter_provider.dart';
 export 'providers/generic_sidechain_conf_provider.dart';
 export 'providers/backend_sidechain_conf_provider.dart';

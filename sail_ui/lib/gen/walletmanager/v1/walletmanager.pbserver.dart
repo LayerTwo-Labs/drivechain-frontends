@@ -44,6 +44,8 @@ abstract class WalletManagerServiceBase extends $pb.GeneratedService {
   $async.Future<$15.CreateBitcoinCoreWalletResponse> createBitcoinCoreWallet($pb.ServerContext ctx, $15.CreateBitcoinCoreWalletRequest request);
   $async.Future<$15.EnsureCoreWalletsResponse> ensureCoreWallets($pb.ServerContext ctx, $15.EnsureCoreWalletsRequest request);
   $async.Future<$15.GetBalanceResponse> getBalance($pb.ServerContext ctx, $15.GetBalanceRequest request);
+  $async.Future<$15.RescanWalletResponse> rescanWallet($pb.ServerContext ctx, $15.RescanWalletRequest request);
+  $async.Future<$15.EstimateFeeResponse> estimateFee($pb.ServerContext ctx, $15.EstimateFeeRequest request);
   $async.Future<$15.GetNewAddressResponse> getNewAddress($pb.ServerContext ctx, $15.GetNewAddressRequest request);
   $async.Future<$15.SendTransactionResponse> sendTransaction($pb.ServerContext ctx, $15.SendTransactionRequest request);
   $async.Future<$15.ListTransactionsResponse> listTransactions($pb.ServerContext ctx, $15.ListTransactionsRequest request);
@@ -61,6 +63,13 @@ abstract class WalletManagerServiceBase extends $pb.GeneratedService {
   $async.Future<$15.FinalizePsbtResponse> finalizePsbt($pb.ServerContext ctx, $15.FinalizePsbtRequest request);
   $async.Future<$15.MultisigPsbtStatusResponse> multisigPsbtStatus($pb.ServerContext ctx, $15.MultisigPsbtStatusRequest request);
   $async.Future<$15.BroadcastTransactionResponse> broadcastTransaction($pb.ServerContext ctx, $15.BroadcastTransactionRequest request);
+  $async.Future<$15.EnumerateHardwareDevicesResponse> enumerateHardwareDevices($pb.ServerContext ctx, $15.EnumerateHardwareDevicesRequest request);
+  $async.Future<$15.GetHardwareXpubResponse> getHardwareXpub($pb.ServerContext ctx, $15.GetHardwareXpubRequest request);
+  $async.Future<$15.SignPsbtWithDeviceResponse> signPsbtWithDevice($pb.ServerContext ctx, $15.SignPsbtWithDeviceRequest request);
+  $async.Future<$15.PromptDevicePinResponse> promptDevicePin($pb.ServerContext ctx, $15.PromptDevicePinRequest request);
+  $async.Future<$15.SendDevicePinResponse> sendDevicePin($pb.ServerContext ctx, $15.SendDevicePinRequest request);
+  $async.Future<$15.CloseDeviceResponse> closeDevice($pb.ServerContext ctx, $15.CloseDeviceRequest request);
+  $async.Future<$15.DeriveKeystoreResponse> deriveKeystore($pb.ServerContext ctx, $15.DeriveKeystoreRequest request);
   $async.Future<$15.GetWalletSeedResponse> getWalletSeed($pb.ServerContext ctx, $15.GetWalletSeedRequest request);
   $async.Future<$15.ListCoreVariantsResponse> listCoreVariants($pb.ServerContext ctx, $15.ListCoreVariantsRequest request);
   $async.Future<$15.GetCoreVariantResponse> getCoreVariant($pb.ServerContext ctx, $15.GetCoreVariantRequest request);
@@ -97,6 +106,8 @@ abstract class WalletManagerServiceBase extends $pb.GeneratedService {
       case 'CreateBitcoinCoreWallet': return $15.CreateBitcoinCoreWalletRequest();
       case 'EnsureCoreWallets': return $15.EnsureCoreWalletsRequest();
       case 'GetBalance': return $15.GetBalanceRequest();
+      case 'RescanWallet': return $15.RescanWalletRequest();
+      case 'EstimateFee': return $15.EstimateFeeRequest();
       case 'GetNewAddress': return $15.GetNewAddressRequest();
       case 'SendTransaction': return $15.SendTransactionRequest();
       case 'ListTransactions': return $15.ListTransactionsRequest();
@@ -114,6 +125,13 @@ abstract class WalletManagerServiceBase extends $pb.GeneratedService {
       case 'FinalizePsbt': return $15.FinalizePsbtRequest();
       case 'MultisigPsbtStatus': return $15.MultisigPsbtStatusRequest();
       case 'BroadcastTransaction': return $15.BroadcastTransactionRequest();
+      case 'EnumerateHardwareDevices': return $15.EnumerateHardwareDevicesRequest();
+      case 'GetHardwareXpub': return $15.GetHardwareXpubRequest();
+      case 'SignPsbtWithDevice': return $15.SignPsbtWithDeviceRequest();
+      case 'PromptDevicePin': return $15.PromptDevicePinRequest();
+      case 'SendDevicePin': return $15.SendDevicePinRequest();
+      case 'CloseDevice': return $15.CloseDeviceRequest();
+      case 'DeriveKeystore': return $15.DeriveKeystoreRequest();
       case 'GetWalletSeed': return $15.GetWalletSeedRequest();
       case 'ListCoreVariants': return $15.ListCoreVariantsRequest();
       case 'GetCoreVariant': return $15.GetCoreVariantRequest();
@@ -153,6 +171,8 @@ abstract class WalletManagerServiceBase extends $pb.GeneratedService {
       case 'CreateBitcoinCoreWallet': return this.createBitcoinCoreWallet(ctx, request as $15.CreateBitcoinCoreWalletRequest);
       case 'EnsureCoreWallets': return this.ensureCoreWallets(ctx, request as $15.EnsureCoreWalletsRequest);
       case 'GetBalance': return this.getBalance(ctx, request as $15.GetBalanceRequest);
+      case 'RescanWallet': return this.rescanWallet(ctx, request as $15.RescanWalletRequest);
+      case 'EstimateFee': return this.estimateFee(ctx, request as $15.EstimateFeeRequest);
       case 'GetNewAddress': return this.getNewAddress(ctx, request as $15.GetNewAddressRequest);
       case 'SendTransaction': return this.sendTransaction(ctx, request as $15.SendTransactionRequest);
       case 'ListTransactions': return this.listTransactions(ctx, request as $15.ListTransactionsRequest);
@@ -170,6 +190,13 @@ abstract class WalletManagerServiceBase extends $pb.GeneratedService {
       case 'FinalizePsbt': return this.finalizePsbt(ctx, request as $15.FinalizePsbtRequest);
       case 'MultisigPsbtStatus': return this.multisigPsbtStatus(ctx, request as $15.MultisigPsbtStatusRequest);
       case 'BroadcastTransaction': return this.broadcastTransaction(ctx, request as $15.BroadcastTransactionRequest);
+      case 'EnumerateHardwareDevices': return this.enumerateHardwareDevices(ctx, request as $15.EnumerateHardwareDevicesRequest);
+      case 'GetHardwareXpub': return this.getHardwareXpub(ctx, request as $15.GetHardwareXpubRequest);
+      case 'SignPsbtWithDevice': return this.signPsbtWithDevice(ctx, request as $15.SignPsbtWithDeviceRequest);
+      case 'PromptDevicePin': return this.promptDevicePin(ctx, request as $15.PromptDevicePinRequest);
+      case 'SendDevicePin': return this.sendDevicePin(ctx, request as $15.SendDevicePinRequest);
+      case 'CloseDevice': return this.closeDevice(ctx, request as $15.CloseDeviceRequest);
+      case 'DeriveKeystore': return this.deriveKeystore(ctx, request as $15.DeriveKeystoreRequest);
       case 'GetWalletSeed': return this.getWalletSeed(ctx, request as $15.GetWalletSeedRequest);
       case 'ListCoreVariants': return this.listCoreVariants(ctx, request as $15.ListCoreVariantsRequest);
       case 'GetCoreVariant': return this.getCoreVariant(ctx, request as $15.GetCoreVariantRequest);

@@ -169,6 +169,8 @@ class WalletReaderProvider extends ChangeNotifier {
         isWatchOnly: protoWallet.watchOnly,
         bip47PaymentCode: protoWallet.bip47PaymentCode,
         multisig: protoWallet.hasMultisig() ? protoWallet.multisig : null,
+        hardwareDeviceType: protoWallet.hardwareDeviceType,
+        hardwareFingerprint: protoWallet.hardwareFingerprint,
       );
     }).toList();
 

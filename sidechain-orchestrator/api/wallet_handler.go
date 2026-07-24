@@ -190,14 +190,16 @@ func (h *WalletHandler) ListWallets(ctx context.Context, req *connect.Request[pb
 			bip47Code = code
 		}
 		pbWallets[i] = &pb.WalletMetadata{
-			Id:               w.ID,
-			Name:             w.Name,
-			WalletType:       walletTypeToProto(w.WalletType),
-			WatchOnly:        w.IsWatchOnly(),
-			GradientJson:     gradientJSON,
-			CreatedAt:        w.CreatedAt.Format(time.RFC3339),
-			Bip47PaymentCode: bip47Code,
-			Multisig:         multisigInfoProto(&w),
+			Id:                  w.ID,
+			Name:                w.Name,
+			WalletType:          walletTypeToProto(w.WalletType),
+			WatchOnly:           w.IsWatchOnly(),
+			HardwareDeviceType:  w.HardwareDeviceType(),
+			HardwareFingerprint: w.HardwareFingerprint(),
+			GradientJson:        gradientJSON,
+			CreatedAt:           w.CreatedAt.Format(time.RFC3339),
+			Bip47PaymentCode:    bip47Code,
+			Multisig:            multisigInfoProto(&w),
 		}
 	}
 	return connect.NewResponse(&pb.ListWalletsResponse{
@@ -371,6 +373,11 @@ func (h *WalletHandler) CreateElectrumWallet(ctx context.Context, req *connect.R
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
+	if req.Msg.HardwareDeviceType != "" {
+		if err := h.svc.SetWalletHardwareDevice(w.ID, req.Msg.HardwareDeviceType, req.Msg.HardwareFingerprint); err != nil {
+			return nil, connect.NewError(connect.CodeInternal, err)
+		}
+	}
 	return connect.NewResponse(&pb.CreateElectrumWalletResponse{
 		WalletId: w.ID,
 	}), nil
@@ -397,12 +404,13 @@ func (h *WalletHandler) CreateMultisigWallet(ctx context.Context, req *connect.R
 			xpub = derived
 		}
 		cosigners = append(cosigners, wallet.MultisigCosigner{
-			Xpub:        xpub,
-			OriginPath:  c.OriginPath,
-			Fingerprint: c.Fingerprint,
-			Mnemonic:    c.Mnemonic,
-			Passphrase:  c.Passphrase,
-			Xprv:        c.Xprv,
+			Xpub:               xpub,
+			OriginPath:         c.OriginPath,
+			Fingerprint:        c.Fingerprint,
+			Mnemonic:           c.Mnemonic,
+			Passphrase:         c.Passphrase,
+			Xprv:               c.Xprv,
+			HardwareDeviceType: c.HardwareDeviceType,
 		})
 	}
 	w, err := h.svc.CreateElectrumMultisig(
@@ -429,10 +437,11 @@ func multisigInfoProto(w *wallet.WalletData) *pb.MultisigInfo {
 	cosigners := make([]*pb.MultisigCosignerInfo, 0, len(w.Multisig.Cosigners))
 	for _, c := range w.Multisig.Cosigners {
 		cosigners = append(cosigners, &pb.MultisigCosignerInfo{
-			Xpub:        c.Xpub,
-			Fingerprint: c.Fingerprint,
-			OriginPath:  c.OriginPath,
-			Held:        c.Held(),
+			Xpub:               c.Xpub,
+			Fingerprint:        c.Fingerprint,
+			OriginPath:         c.OriginPath,
+			Held:               c.Held(),
+			HardwareDeviceType: c.HardwareDeviceType,
 		})
 	}
 	return &pb.MultisigInfo{
@@ -515,6 +524,31 @@ func (h *WalletHandler) BroadcastTransaction(ctx context.Context, req *connect.R
 		h.svc.Log().Warn().Err(rerr).Str("wallet_id", walletID).Msg("refresh scan after broadcast failed")
 	}
 	return connect.NewResponse(&pb.BroadcastTransactionResponse{Txid: txid}), nil
+}
+
+func (h *WalletHandler) RescanWallet(ctx context.Context, req *connect.Request[pb.RescanWalletRequest]) (*connect.Response[pb.RescanWalletResponse], error) {
+	if err := h.requireEngine(); err != nil {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, err)
+	}
+	walletID, err := h.engine.ResolveWalletID(req.Msg.WalletId)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+	}
+	if err := h.engine.RefreshElectrumScan(ctx, walletID); err != nil {
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("rescan: %w", err))
+	}
+	return connect.NewResponse(&pb.RescanWalletResponse{}), nil
+}
+
+func (h *WalletHandler) EstimateFee(ctx context.Context, req *connect.Request[pb.EstimateFeeRequest]) (*connect.Response[pb.EstimateFeeResponse], error) {
+	if err := h.requireEngine(); err != nil {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, err)
+	}
+	rate, err := h.engine.EstimateFeeRate(ctx, int(req.Msg.ConfTarget))
+	if err != nil {
+		return nil, connect.NewError(connect.CodeUnavailable, err)
+	}
+	return connect.NewResponse(&pb.EstimateFeeResponse{SatPerVbyte: rate}), nil
 }
 
 // ============================================================================
@@ -1401,14 +1435,16 @@ func buildWatchWalletDataResponse(wallets []wallet.WalletData, activeID string, 
 			bip47Code = code
 		}
 		md := &pb.WalletMetadata{
-			Id:               w.ID,
-			Name:             w.Name,
-			WalletType:       walletTypeToProto(w.WalletType),
-			WatchOnly:        w.IsWatchOnly(),
-			GradientJson:     gradientJSON,
-			CreatedAt:        w.CreatedAt.Format(time.RFC3339),
-			Bip47PaymentCode: bip47Code,
-			Multisig:         multisigInfoProto(&w),
+			Id:                  w.ID,
+			Name:                w.Name,
+			WalletType:          walletTypeToProto(w.WalletType),
+			WatchOnly:           w.IsWatchOnly(),
+			HardwareDeviceType:  w.HardwareDeviceType(),
+			HardwareFingerprint: w.HardwareFingerprint(),
+			GradientJson:        gradientJSON,
+			CreatedAt:           w.CreatedAt.Format(time.RFC3339),
+			Bip47PaymentCode:    bip47Code,
+			Multisig:            multisigInfoProto(&w),
 		}
 		// Starter material lives only on the enforcer wallet (L1 mnemonic and
 		// sidechain starters are derived from its seed). Attach it to that

@@ -234,7 +234,10 @@ func (e *WalletEngine) Unlock(walletData map[string]any) error {
 
 	seedHex, ok := master["seed_hex"].(string)
 	if !ok || seedHex == "" {
-		return errors.New("invalid wallet structure: missing or empty seed_hex")
+		// Multisig and watch-only wallets have no master seed, so the cheque
+		// engine has nothing to unlock. Skip rather than fail.
+		zerolog.Ctx(context.Background()).Info().Msg("active wallet has no master seed (multisig/watch-only), skipping cheque engine unlock")
+		return nil
 	}
 
 	// Validate seed hex

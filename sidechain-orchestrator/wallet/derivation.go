@@ -131,6 +131,30 @@ func accountPathFor(w *WalletData, kind ScriptKind, net *chaincfg.Params) (Accou
 	return AccountPath{Purpose: purpose, Coin: coin, Account: w.AccountIndex}, nil
 }
 
+// multisigAccountPath returns the cosigner account path for a script type:
+// BIP48 for segwit variants, BIP45 for legacy P2SH.
+func multisigAccountPath(scriptType string, account uint32, net *chaincfg.Params) (string, error) {
+	if account >= 1<<31 {
+		return "", fmt.Errorf("account index %d out of hardened range", account)
+	}
+	coin := uint32(1)
+	if net != nil {
+		coin = net.HDCoinType
+	}
+	switch scriptType {
+	case "sh":
+		return fmt.Sprintf("m/45'/%d'", account), nil
+	case "sh-wsh":
+		return fmt.Sprintf("m/48'/%d'/%d'/1'", coin, account), nil
+	case "tr":
+		return fmt.Sprintf("m/48'/%d'/%d'/3'", coin, account), nil
+	case "wsh", "":
+		return fmt.Sprintf("m/48'/%d'/%d'/2'", coin, account), nil
+	default:
+		return "", fmt.Errorf("unknown multisig script type %q", scriptType)
+	}
+}
+
 // usesExplicitPath reports whether the wallet pins a single explicit purpose via
 // a full DerivationPath override (vs only shifting the account index).
 func (w *WalletData) usesExplicitPath() bool {

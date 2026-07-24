@@ -120,6 +120,14 @@ func (e *WalletEngine) FinalizePSBT(psbtBase64 string) (string, error) {
 	return eb.FinalizePSBT(psbtBase64)
 }
 
+func (e *WalletEngine) EstimateFeeRate(ctx context.Context, confTarget int) (float64, error) {
+	eb, err := e.electrumBackend()
+	if err != nil {
+		return 0, err
+	}
+	return eb.FeeRateForTarget(ctx, confTarget), nil
+}
+
 func (e *WalletEngine) RefreshElectrumScan(ctx context.Context, walletID string) error {
 	eb, err := e.electrumBackend()
 	if err != nil {
