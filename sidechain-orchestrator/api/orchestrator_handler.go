@@ -69,14 +69,19 @@ func (h *Handler) GetBinaryVersion(ctx context.Context, req *connect.Request[pb.
 	}), nil
 }
 
-// DownloadBinary dispatches a download in a background goroutine and
-// returns immediately. Mirrors StartWithL1's fire-and-forget shape so a
-// transport blip / client disconnect can't cancel an in-flight download.
-// Progress is polled out of GetSyncStatus (DownloadManager.state-backed).
+// DownloadBinary normally dispatches a background download. The security-
+// pinned Tor bundle waits so an integrity failure reaches BitWindow before it
+// can start an older executable. Other progress remains poll-driven.
 func (h *Handler) DownloadBinary(ctx context.Context, req *connect.Request[pb.DownloadBinaryRequest]) (*connect.Response[pb.DownloadBinaryResponse], error) {
 	ch, err := h.orch.Download(context.Background(), req.Msg.Name, req.Msg.Force)
 	if err != nil {
 		return nil, err
+	}
+	if req.Msg.Name == "bitnames-tor" {
+		if err := waitForCompletedDownload(ch); err != nil {
+			return nil, connect.NewError(connect.CodeFailedPrecondition, err)
+		}
+		return connect.NewResponse(&pb.DownloadBinaryResponse{}), nil
 	}
 
 	go func() {
@@ -86,6 +91,20 @@ func (h *Handler) DownloadBinary(ctx context.Context, req *connect.Request[pb.Do
 	}()
 
 	return connect.NewResponse(&pb.DownloadBinaryResponse{}), nil
+}
+
+func waitForCompletedDownload(ch <-chan orchestrator.DownloadProgress) error {
+	done := false
+	for progress := range ch {
+		if progress.Error != nil {
+			return progress.Error
+		}
+		done = done || progress.Done
+	}
+	if !done {
+		return fmt.Errorf("download ended without a completed artifact")
+	}
+	return nil
 }
 
 func (h *Handler) StartBinary(ctx context.Context, req *connect.Request[pb.StartBinaryRequest]) (*connect.Response[pb.StartBinaryResponse], error) {

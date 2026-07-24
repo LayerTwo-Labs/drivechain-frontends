@@ -36,9 +36,13 @@ class SidechainUTXO {
       final regular = outpoint['Regular'] as Map<String, dynamic>;
       outpointStr = '${regular['txid']}:${regular['vout']}';
       type = OutpointType.regular;
-    } else {
+    } else if (outpoint.containsKey('Deposit')) {
       outpointStr = outpoint['Deposit'] as String;
       type = OutpointType.deposit;
+    } else {
+      final coinbase = outpoint['Coinbase'] as Map<String, dynamic>;
+      outpointStr = '${coinbase['merkle_root']}:${coinbase['vout']}';
+      type = OutpointType.regular;
     }
 
     return SidechainUTXO(
@@ -77,9 +81,13 @@ class BitnamesUTXO extends SidechainUTXO {
       final regular = outpoint['Regular'] as Map<String, dynamic>;
       outpointStr = '${regular['txid']}:${regular['vout']}';
       type = OutpointType.regular;
-    } else {
+    } else if (outpoint.containsKey('Deposit')) {
       outpointStr = outpoint['Deposit'] as String;
       type = OutpointType.deposit;
+    } else {
+      final coinbase = outpoint['Coinbase'] as Map<String, dynamic>;
+      outpointStr = '${coinbase['merkle_root']}:${coinbase['vout']}';
+      type = OutpointType.regular;
     }
 
     // Get value from content
