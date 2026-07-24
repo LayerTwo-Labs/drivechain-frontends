@@ -2164,140 +2164,42 @@ class ListBlocksResponse extends $pb.GeneratedMessage {
   void clearHasMore() => clearField(5);
 }
 
-class MineBlocksResponse_HashRate extends $pb.GeneratedMessage {
-  factory MineBlocksResponse_HashRate({
+class GetMiningStatusResponse extends $pb.GeneratedMessage {
+  factory GetMiningStatusResponse({
+    $core.bool? mining,
     $core.double? hashRate,
+    $core.int? blocksFound,
+    $core.Iterable<$core.String>? recentBlockHashes,
+    $core.String? error,
   }) {
     final $result = create();
-    if (hashRate != null) {
-      $result.hashRate = hashRate;
-    }
-    return $result;
-  }
-  MineBlocksResponse_HashRate._() : super();
-  factory MineBlocksResponse_HashRate.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory MineBlocksResponse_HashRate.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
-
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'MineBlocksResponse.HashRate', package: const $pb.PackageName(_omitMessageNames ? '' : 'bitwindowd.v1'), createEmptyInstance: create)
-    ..a<$core.double>(1, _omitFieldNames ? '' : 'hashRate', $pb.PbFieldType.OD)
-    ..hasRequiredFields = false
-  ;
-
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
-  'Will be removed in next major version')
-  MineBlocksResponse_HashRate clone() => MineBlocksResponse_HashRate()..mergeFromMessage(this);
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
-  'Will be removed in next major version')
-  MineBlocksResponse_HashRate copyWith(void Function(MineBlocksResponse_HashRate) updates) => super.copyWith((message) => updates(message as MineBlocksResponse_HashRate)) as MineBlocksResponse_HashRate;
-
-  $pb.BuilderInfo get info_ => _i;
-
-  @$core.pragma('dart2js:noInline')
-  static MineBlocksResponse_HashRate create() => MineBlocksResponse_HashRate._();
-  MineBlocksResponse_HashRate createEmptyInstance() => create();
-  static $pb.PbList<MineBlocksResponse_HashRate> createRepeated() => $pb.PbList<MineBlocksResponse_HashRate>();
-  @$core.pragma('dart2js:noInline')
-  static MineBlocksResponse_HashRate getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<MineBlocksResponse_HashRate>(create);
-  static MineBlocksResponse_HashRate? _defaultInstance;
-
-  /// Hashes per second
-  @$pb.TagNumber(1)
-  $core.double get hashRate => $_getN(0);
-  @$pb.TagNumber(1)
-  set hashRate($core.double v) { $_setDouble(0, v); }
-  @$pb.TagNumber(1)
-  $core.bool hasHashRate() => $_has(0);
-  @$pb.TagNumber(1)
-  void clearHashRate() => clearField(1);
-}
-
-class MineBlocksResponse_BlockFound extends $pb.GeneratedMessage {
-  factory MineBlocksResponse_BlockFound({
-    $core.String? blockHash,
-  }) {
-    final $result = create();
-    if (blockHash != null) {
-      $result.blockHash = blockHash;
-    }
-    return $result;
-  }
-  MineBlocksResponse_BlockFound._() : super();
-  factory MineBlocksResponse_BlockFound.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory MineBlocksResponse_BlockFound.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
-
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'MineBlocksResponse.BlockFound', package: const $pb.PackageName(_omitMessageNames ? '' : 'bitwindowd.v1'), createEmptyInstance: create)
-    ..aOS(1, _omitFieldNames ? '' : 'blockHash')
-    ..hasRequiredFields = false
-  ;
-
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
-  'Will be removed in next major version')
-  MineBlocksResponse_BlockFound clone() => MineBlocksResponse_BlockFound()..mergeFromMessage(this);
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
-  'Will be removed in next major version')
-  MineBlocksResponse_BlockFound copyWith(void Function(MineBlocksResponse_BlockFound) updates) => super.copyWith((message) => updates(message as MineBlocksResponse_BlockFound)) as MineBlocksResponse_BlockFound;
-
-  $pb.BuilderInfo get info_ => _i;
-
-  @$core.pragma('dart2js:noInline')
-  static MineBlocksResponse_BlockFound create() => MineBlocksResponse_BlockFound._();
-  MineBlocksResponse_BlockFound createEmptyInstance() => create();
-  static $pb.PbList<MineBlocksResponse_BlockFound> createRepeated() => $pb.PbList<MineBlocksResponse_BlockFound>();
-  @$core.pragma('dart2js:noInline')
-  static MineBlocksResponse_BlockFound getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<MineBlocksResponse_BlockFound>(create);
-  static MineBlocksResponse_BlockFound? _defaultInstance;
-
-  @$pb.TagNumber(1)
-  $core.String get blockHash => $_getSZ(0);
-  @$pb.TagNumber(1)
-  set blockHash($core.String v) { $_setString(0, v); }
-  @$pb.TagNumber(1)
-  $core.bool hasBlockHash() => $_has(0);
-  @$pb.TagNumber(1)
-  void clearBlockHash() => clearField(1);
-}
-
-enum MineBlocksResponse_Event {
-  blockFound, 
-  hashRate, 
-  notSet
-}
-
-class MineBlocksResponse extends $pb.GeneratedMessage {
-  factory MineBlocksResponse({
-    MineBlocksResponse_BlockFound? blockFound,
-    MineBlocksResponse_HashRate? hashRate,
-  }) {
-    final $result = create();
-    if (blockFound != null) {
-      $result.blockFound = blockFound;
+    if (mining != null) {
+      $result.mining = mining;
     }
     if (hashRate != null) {
       $result.hashRate = hashRate;
     }
+    if (blocksFound != null) {
+      $result.blocksFound = blocksFound;
+    }
+    if (recentBlockHashes != null) {
+      $result.recentBlockHashes.addAll(recentBlockHashes);
+    }
+    if (error != null) {
+      $result.error = error;
+    }
     return $result;
   }
-  MineBlocksResponse._() : super();
-  factory MineBlocksResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory MineBlocksResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+  GetMiningStatusResponse._() : super();
+  factory GetMiningStatusResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory GetMiningStatusResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
 
-  static const $core.Map<$core.int, MineBlocksResponse_Event> _MineBlocksResponse_EventByTag = {
-    1 : MineBlocksResponse_Event.blockFound,
-    2 : MineBlocksResponse_Event.hashRate,
-    0 : MineBlocksResponse_Event.notSet
-  };
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'MineBlocksResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'bitwindowd.v1'), createEmptyInstance: create)
-    ..oo(0, [1, 2])
-    ..aOM<MineBlocksResponse_BlockFound>(1, _omitFieldNames ? '' : 'blockFound', subBuilder: MineBlocksResponse_BlockFound.create)
-    ..aOM<MineBlocksResponse_HashRate>(2, _omitFieldNames ? '' : 'hashRate', subBuilder: MineBlocksResponse_HashRate.create)
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'GetMiningStatusResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'bitwindowd.v1'), createEmptyInstance: create)
+    ..aOB(1, _omitFieldNames ? '' : 'mining')
+    ..a<$core.double>(2, _omitFieldNames ? '' : 'hashRate', $pb.PbFieldType.OD)
+    ..a<$core.int>(3, _omitFieldNames ? '' : 'blocksFound', $pb.PbFieldType.O3)
+    ..pPS(4, _omitFieldNames ? '' : 'recentBlockHashes')
+    ..aOS(5, _omitFieldNames ? '' : 'error')
     ..hasRequiredFields = false
   ;
 
@@ -2305,47 +2207,66 @@ class MineBlocksResponse extends $pb.GeneratedMessage {
   'Using this can add significant overhead to your binary. '
   'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
   'Will be removed in next major version')
-  MineBlocksResponse clone() => MineBlocksResponse()..mergeFromMessage(this);
+  GetMiningStatusResponse clone() => GetMiningStatusResponse()..mergeFromMessage(this);
   @$core.Deprecated(
   'Using this can add significant overhead to your binary. '
   'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
   'Will be removed in next major version')
-  MineBlocksResponse copyWith(void Function(MineBlocksResponse) updates) => super.copyWith((message) => updates(message as MineBlocksResponse)) as MineBlocksResponse;
+  GetMiningStatusResponse copyWith(void Function(GetMiningStatusResponse) updates) => super.copyWith((message) => updates(message as GetMiningStatusResponse)) as GetMiningStatusResponse;
 
   $pb.BuilderInfo get info_ => _i;
 
   @$core.pragma('dart2js:noInline')
-  static MineBlocksResponse create() => MineBlocksResponse._();
-  MineBlocksResponse createEmptyInstance() => create();
-  static $pb.PbList<MineBlocksResponse> createRepeated() => $pb.PbList<MineBlocksResponse>();
+  static GetMiningStatusResponse create() => GetMiningStatusResponse._();
+  GetMiningStatusResponse createEmptyInstance() => create();
+  static $pb.PbList<GetMiningStatusResponse> createRepeated() => $pb.PbList<GetMiningStatusResponse>();
   @$core.pragma('dart2js:noInline')
-  static MineBlocksResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<MineBlocksResponse>(create);
-  static MineBlocksResponse? _defaultInstance;
-
-  MineBlocksResponse_Event whichEvent() => _MineBlocksResponse_EventByTag[$_whichOneof(0)]!;
-  void clearEvent() => clearField($_whichOneof(0));
+  static GetMiningStatusResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<GetMiningStatusResponse>(create);
+  static GetMiningStatusResponse? _defaultInstance;
 
   @$pb.TagNumber(1)
-  MineBlocksResponse_BlockFound get blockFound => $_getN(0);
+  $core.bool get mining => $_getBF(0);
   @$pb.TagNumber(1)
-  set blockFound(MineBlocksResponse_BlockFound v) { setField(1, v); }
+  set mining($core.bool v) { $_setBool(0, v); }
   @$pb.TagNumber(1)
-  $core.bool hasBlockFound() => $_has(0);
+  $core.bool hasMining() => $_has(0);
   @$pb.TagNumber(1)
-  void clearBlockFound() => clearField(1);
-  @$pb.TagNumber(1)
-  MineBlocksResponse_BlockFound ensureBlockFound() => $_ensure(0);
+  void clearMining() => clearField(1);
 
+  /// Hashes per second, averaged since the miner started.
   @$pb.TagNumber(2)
-  MineBlocksResponse_HashRate get hashRate => $_getN(1);
+  $core.double get hashRate => $_getN(1);
   @$pb.TagNumber(2)
-  set hashRate(MineBlocksResponse_HashRate v) { setField(2, v); }
+  set hashRate($core.double v) { $_setDouble(1, v); }
   @$pb.TagNumber(2)
   $core.bool hasHashRate() => $_has(1);
   @$pb.TagNumber(2)
   void clearHashRate() => clearField(2);
-  @$pb.TagNumber(2)
-  MineBlocksResponse_HashRate ensureHashRate() => $_ensure(1);
+
+  @$pb.TagNumber(3)
+  $core.int get blocksFound => $_getIZ(2);
+  @$pb.TagNumber(3)
+  set blocksFound($core.int v) { $_setSignedInt32(2, v); }
+  @$pb.TagNumber(3)
+  $core.bool hasBlocksFound() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearBlocksFound() => clearField(3);
+
+  /// Block hashes found this session, newest first.
+  @$pb.TagNumber(4)
+  $core.List<$core.String> get recentBlockHashes => $_getList(3);
+
+  /// Why the miner last stopped on its own (e.g. the node is still syncing),
+  /// empty when it stopped cleanly. StartMining returns before work is fetched,
+  /// so this is where a startup failure surfaces.
+  @$pb.TagNumber(5)
+  $core.String get error => $_getSZ(4);
+  @$pb.TagNumber(5)
+  set error($core.String v) { $_setString(4, v); }
+  @$pb.TagNumber(5)
+  $core.bool hasError() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearError() => clearField(5);
 }
 
 class GetNetworkStatsResponse extends $pb.GeneratedMessage {
@@ -2812,8 +2733,14 @@ class BitwindowdServiceApi {
   $async.Future<$1.Empty> stop($pb.ClientContext? ctx, BitwindowdServiceStopRequest request) =>
     _client.invoke<$1.Empty>(ctx, 'BitwindowdService', 'Stop', request, $1.Empty())
   ;
-  $async.Future<MineBlocksResponse> mineBlocks($pb.ClientContext? ctx, $1.Empty request) =>
-    _client.invoke<MineBlocksResponse>(ctx, 'BitwindowdService', 'MineBlocks', request, MineBlocksResponse())
+  $async.Future<$1.Empty> startMining($pb.ClientContext? ctx, $1.Empty request) =>
+    _client.invoke<$1.Empty>(ctx, 'BitwindowdService', 'StartMining', request, $1.Empty())
+  ;
+  $async.Future<$1.Empty> stopMining($pb.ClientContext? ctx, $1.Empty request) =>
+    _client.invoke<$1.Empty>(ctx, 'BitwindowdService', 'StopMining', request, $1.Empty())
+  ;
+  $async.Future<GetMiningStatusResponse> getMiningStatus($pb.ClientContext? ctx, $1.Empty request) =>
+    _client.invoke<GetMiningStatusResponse>(ctx, 'BitwindowdService', 'GetMiningStatus', request, GetMiningStatusResponse())
   ;
   $async.Future<$1.Empty> createDenial($pb.ClientContext? ctx, CreateDenialRequest request) =>
     _client.invoke<$1.Empty>(ctx, 'BitwindowdService', 'CreateDenial', request, $1.Empty())

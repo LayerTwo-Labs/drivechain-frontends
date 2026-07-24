@@ -219,6 +219,7 @@ export 'settings/debug_settings.dart';
 export 'settings/font_settings.dart';
 export 'settings/hash_plaintext_settings.dart';
 export 'settings/secure_store.dart';
+export 'settings/mining_banner_setting.dart';
 export 'settings/test_sidechains_settings.dart';
 export 'settings/bitwindow_settings.dart';
 export 'settings/notification_history_setting.dart';

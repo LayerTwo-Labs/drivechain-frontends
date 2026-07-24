@@ -23,11 +23,27 @@ abstract final class BitwindowdService {
     googleprotobufempty.Empty.new,
   );
 
-  static const mineBlocks = connect.Spec(
-    '/$name/MineBlocks',
-    connect.StreamType.server,
+  /// CPU mining, drynet only. Start/Stop control a backend-owned miner that
+  /// keeps running independent of any client; GetMiningStatus polls its stats.
+  static const startMining = connect.Spec(
+    '/$name/StartMining',
+    connect.StreamType.unary,
     googleprotobufempty.Empty.new,
-    bitwindowdv1bitwindowd.MineBlocksResponse.new,
+    googleprotobufempty.Empty.new,
+  );
+
+  static const stopMining = connect.Spec(
+    '/$name/StopMining',
+    connect.StreamType.unary,
+    googleprotobufempty.Empty.new,
+    googleprotobufempty.Empty.new,
+  );
+
+  static const getMiningStatus = connect.Spec(
+    '/$name/GetMiningStatus',
+    connect.StreamType.unary,
+    googleprotobufempty.Empty.new,
+    bitwindowdv1bitwindowd.GetMiningStatusResponse.new,
   );
 
   /// Deniability operations

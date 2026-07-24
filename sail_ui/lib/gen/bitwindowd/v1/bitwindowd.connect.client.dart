@@ -31,15 +31,51 @@ extension type BitwindowdServiceClient (connect.Transport _transport) {
     );
   }
 
-  Stream<bitwindowdv1bitwindowd.MineBlocksResponse> mineBlocks(
+  /// CPU mining, drynet only. Start/Stop control a backend-owned miner that
+  /// keeps running independent of any client; GetMiningStatus polls its stats.
+  Future<googleprotobufempty.Empty> startMining(
     googleprotobufempty.Empty input, {
     connect.Headers? headers,
     connect.AbortSignal? signal,
     Function(connect.Headers)? onHeader,
     Function(connect.Headers)? onTrailer,
   }) {
-    return connect.Client(_transport).server(
-      specs.BitwindowdService.mineBlocks,
+    return connect.Client(_transport).unary(
+      specs.BitwindowdService.startMining,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
+  Future<googleprotobufempty.Empty> stopMining(
+    googleprotobufempty.Empty input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.BitwindowdService.stopMining,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
+  Future<bitwindowdv1bitwindowd.GetMiningStatusResponse> getMiningStatus(
+    googleprotobufempty.Empty input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.BitwindowdService.getMiningStatus,
       input,
       signal: signal,
       headers: headers,

@@ -26,6 +26,7 @@ class _CpuMiningPageState extends State<CpuMiningPage> {
   void initState() {
     super.initState();
     _loadCoinbaseAddress();
+    _miningProvider.refreshStatus();
     _miningProvider.addListener(_onMiningStateChanged);
   }
 

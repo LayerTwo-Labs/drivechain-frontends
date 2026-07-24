@@ -501,42 +501,24 @@ final $typed_data.Uint8List listBlocksResponseDescriptor = $convert.base64Decode
     'ChJMaXN0QmxvY2tzUmVzcG9uc2USOQoNcmVjZW50X2Jsb2NrcxgEIAMoCzIULmJpdHdpbmRvd2'
     'QudjEuQmxvY2tSDHJlY2VudEJsb2NrcxIZCghoYXNfbW9yZRgFIAEoCFIHaGFzTW9yZQ==');
 
-@$core.Deprecated('Use mineBlocksResponseDescriptor instead')
-const MineBlocksResponse$json = {
-  '1': 'MineBlocksResponse',
+@$core.Deprecated('Use getMiningStatusResponseDescriptor instead')
+const GetMiningStatusResponse$json = {
+  '1': 'GetMiningStatusResponse',
   '2': [
-    {'1': 'block_found', '3': 1, '4': 1, '5': 11, '6': '.bitwindowd.v1.MineBlocksResponse.BlockFound', '9': 0, '10': 'blockFound'},
-    {'1': 'hash_rate', '3': 2, '4': 1, '5': 11, '6': '.bitwindowd.v1.MineBlocksResponse.HashRate', '9': 0, '10': 'hashRate'},
-  ],
-  '3': [MineBlocksResponse_HashRate$json, MineBlocksResponse_BlockFound$json],
-  '8': [
-    {'1': 'event'},
+    {'1': 'mining', '3': 1, '4': 1, '5': 8, '10': 'mining'},
+    {'1': 'hash_rate', '3': 2, '4': 1, '5': 1, '10': 'hashRate'},
+    {'1': 'blocks_found', '3': 3, '4': 1, '5': 5, '10': 'blocksFound'},
+    {'1': 'recent_block_hashes', '3': 4, '4': 3, '5': 9, '10': 'recentBlockHashes'},
+    {'1': 'error', '3': 5, '4': 1, '5': 9, '10': 'error'},
   ],
 };
 
-@$core.Deprecated('Use mineBlocksResponseDescriptor instead')
-const MineBlocksResponse_HashRate$json = {
-  '1': 'HashRate',
-  '2': [
-    {'1': 'hash_rate', '3': 1, '4': 1, '5': 1, '10': 'hashRate'},
-  ],
-};
-
-@$core.Deprecated('Use mineBlocksResponseDescriptor instead')
-const MineBlocksResponse_BlockFound$json = {
-  '1': 'BlockFound',
-  '2': [
-    {'1': 'block_hash', '3': 1, '4': 1, '5': 9, '10': 'blockHash'},
-  ],
-};
-
-/// Descriptor for `MineBlocksResponse`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List mineBlocksResponseDescriptor = $convert.base64Decode(
-    'ChJNaW5lQmxvY2tzUmVzcG9uc2USTwoLYmxvY2tfZm91bmQYASABKAsyLC5iaXR3aW5kb3dkLn'
-    'YxLk1pbmVCbG9ja3NSZXNwb25zZS5CbG9ja0ZvdW5kSABSCmJsb2NrRm91bmQSSQoJaGFzaF9y'
-    'YXRlGAIgASgLMiouYml0d2luZG93ZC52MS5NaW5lQmxvY2tzUmVzcG9uc2UuSGFzaFJhdGVIAF'
-    'IIaGFzaFJhdGUaJwoISGFzaFJhdGUSGwoJaGFzaF9yYXRlGAEgASgBUghoYXNoUmF0ZRorCgpC'
-    'bG9ja0ZvdW5kEh0KCmJsb2NrX2hhc2gYASABKAlSCWJsb2NrSGFzaEIHCgVldmVudA==');
+/// Descriptor for `GetMiningStatusResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List getMiningStatusResponseDescriptor = $convert.base64Decode(
+    'ChdHZXRNaW5pbmdTdGF0dXNSZXNwb25zZRIWCgZtaW5pbmcYASABKAhSBm1pbmluZxIbCgloYX'
+    'NoX3JhdGUYAiABKAFSCGhhc2hSYXRlEiEKDGJsb2Nrc19mb3VuZBgDIAEoBVILYmxvY2tzRm91'
+    'bmQSLgoTcmVjZW50X2Jsb2NrX2hhc2hlcxgEIAMoCVIRcmVjZW50QmxvY2tIYXNoZXMSFAoFZX'
+    'Jyb3IYBSABKAlSBWVycm9y');
 
 @$core.Deprecated('Use getNetworkStatsResponseDescriptor instead')
 const GetNetworkStatsResponse$json = {
@@ -619,7 +601,9 @@ const $core.Map<$core.String, $core.dynamic> BitwindowdServiceBase$json = {
   '1': 'BitwindowdService',
   '2': [
     {'1': 'Stop', '2': '.bitwindowd.v1.BitwindowdServiceStopRequest', '3': '.google.protobuf.Empty'},
-    {'1': 'MineBlocks', '2': '.google.protobuf.Empty', '3': '.bitwindowd.v1.MineBlocksResponse', '6': true},
+    {'1': 'StartMining', '2': '.google.protobuf.Empty', '3': '.google.protobuf.Empty'},
+    {'1': 'StopMining', '2': '.google.protobuf.Empty', '3': '.google.protobuf.Empty'},
+    {'1': 'GetMiningStatus', '2': '.google.protobuf.Empty', '3': '.bitwindowd.v1.GetMiningStatusResponse'},
     {'1': 'CreateDenial', '2': '.bitwindowd.v1.CreateDenialRequest', '3': '.google.protobuf.Empty'},
     {'1': 'CancelDenial', '2': '.bitwindowd.v1.CancelDenialRequest', '3': '.google.protobuf.Empty'},
     {'1': 'PauseDenial', '2': '.bitwindowd.v1.PauseDenialRequest', '3': '.google.protobuf.Empty'},
@@ -644,9 +628,7 @@ const $core.Map<$core.String, $core.dynamic> BitwindowdServiceBase$json = {
 const $core.Map<$core.String, $core.Map<$core.String, $core.dynamic>> BitwindowdServiceBase$messageJson = {
   '.bitwindowd.v1.BitwindowdServiceStopRequest': BitwindowdServiceStopRequest$json,
   '.google.protobuf.Empty': $1.Empty$json,
-  '.bitwindowd.v1.MineBlocksResponse': MineBlocksResponse$json,
-  '.bitwindowd.v1.MineBlocksResponse.BlockFound': MineBlocksResponse_BlockFound$json,
-  '.bitwindowd.v1.MineBlocksResponse.HashRate': MineBlocksResponse_HashRate$json,
+  '.bitwindowd.v1.GetMiningStatusResponse': GetMiningStatusResponse$json,
   '.bitwindowd.v1.CreateDenialRequest': CreateDenialRequest$json,
   '.bitwindowd.v1.CancelDenialRequest': CancelDenialRequest$json,
   '.bitwindowd.v1.PauseDenialRequest': PauseDenialRequest$json,
@@ -679,33 +661,36 @@ const $core.Map<$core.String, $core.Map<$core.String, $core.dynamic>> Bitwindowd
 /// Descriptor for `BitwindowdService`. Decode as a `google.protobuf.ServiceDescriptorProto`.
 final $typed_data.Uint8List bitwindowdServiceDescriptor = $convert.base64Decode(
     'ChFCaXR3aW5kb3dkU2VydmljZRJLCgRTdG9wEisuYml0d2luZG93ZC52MS5CaXR3aW5kb3dkU2'
-    'VydmljZVN0b3BSZXF1ZXN0GhYuZ29vZ2xlLnByb3RvYnVmLkVtcHR5EkkKCk1pbmVCbG9ja3MS'
-    'Fi5nb29nbGUucHJvdG9idWYuRW1wdHkaIS5iaXR3aW5kb3dkLnYxLk1pbmVCbG9ja3NSZXNwb2'
-    '5zZTABEkoKDENyZWF0ZURlbmlhbBIiLmJpdHdpbmRvd2QudjEuQ3JlYXRlRGVuaWFsUmVxdWVz'
-    'dBoWLmdvb2dsZS5wcm90b2J1Zi5FbXB0eRJKCgxDYW5jZWxEZW5pYWwSIi5iaXR3aW5kb3dkLn'
-    'YxLkNhbmNlbERlbmlhbFJlcXVlc3QaFi5nb29nbGUucHJvdG9idWYuRW1wdHkSSAoLUGF1c2VE'
-    'ZW5pYWwSIS5iaXR3aW5kb3dkLnYxLlBhdXNlRGVuaWFsUmVxdWVzdBoWLmdvb2dsZS5wcm90b2'
-    'J1Zi5FbXB0eRJKCgxSZXN1bWVEZW5pYWwSIi5iaXR3aW5kb3dkLnYxLlJlc3VtZURlbmlhbFJl'
-    'cXVlc3QaFi5nb29nbGUucHJvdG9idWYuRW1wdHkSdQoWQ3JlYXRlQWRkcmVzc0Jvb2tFbnRyeR'
-    'IsLmJpdHdpbmRvd2QudjEuQ3JlYXRlQWRkcmVzc0Jvb2tFbnRyeVJlcXVlc3QaLS5iaXR3aW5k'
-    'b3dkLnYxLkNyZWF0ZUFkZHJlc3NCb29rRW50cnlSZXNwb25zZRJRCg9MaXN0QWRkcmVzc0Jvb2'
-    'sSFi5nb29nbGUucHJvdG9idWYuRW1wdHkaJi5iaXR3aW5kb3dkLnYxLkxpc3RBZGRyZXNzQm9v'
-    'a1Jlc3BvbnNlEl4KFlVwZGF0ZUFkZHJlc3NCb29rRW50cnkSLC5iaXR3aW5kb3dkLnYxLlVwZG'
-    'F0ZUFkZHJlc3NCb29rRW50cnlSZXF1ZXN0GhYuZ29vZ2xlLnByb3RvYnVmLkVtcHR5El4KFkRl'
-    'bGV0ZUFkZHJlc3NCb29rRW50cnkSLC5iaXR3aW5kb3dkLnYxLkRlbGV0ZUFkZHJlc3NCb29rRW'
-    '50cnlSZXF1ZXN0GhYuZ29vZ2xlLnByb3RvYnVmLkVtcHR5EkkKC0dldFN5bmNJbmZvEhYuZ29v'
-    'Z2xlLnByb3RvYnVmLkVtcHR5GiIuYml0d2luZG93ZC52MS5HZXRTeW5jSW5mb1Jlc3BvbnNlEl'
-    'YKElNldFRyYW5zYWN0aW9uTm90ZRIoLmJpdHdpbmRvd2QudjEuU2V0VHJhbnNhY3Rpb25Ob3Rl'
-    'UmVxdWVzdBoWLmdvb2dsZS5wcm90b2J1Zi5FbXB0eRJLCgxFeHBvcnRMYWJlbHMSFi5nb29nbG'
-    'UucHJvdG9idWYuRW1wdHkaIy5iaXR3aW5kb3dkLnYxLkV4cG9ydExhYmVsc1Jlc3BvbnNlElcK'
-    'DEltcG9ydExhYmVscxIiLmJpdHdpbmRvd2QudjEuSW1wb3J0TGFiZWxzUmVxdWVzdBojLmJpdH'
-    'dpbmRvd2QudjEuSW1wb3J0TGFiZWxzUmVzcG9uc2USVQoRR2V0RmlyZXBsYWNlU3RhdHMSFi5n'
-    'b29nbGUucHJvdG9idWYuRW1wdHkaKC5iaXR3aW5kb3dkLnYxLkdldEZpcmVwbGFjZVN0YXRzUm'
-    'VzcG9uc2USdQoWTGlzdFJlY2VudFRyYW5zYWN0aW9ucxIsLmJpdHdpbmRvd2QudjEuTGlzdFJl'
-    'Y2VudFRyYW5zYWN0aW9uc1JlcXVlc3QaLS5iaXR3aW5kb3dkLnYxLkxpc3RSZWNlbnRUcmFuc2'
-    'FjdGlvbnNSZXNwb25zZRJRCgpMaXN0QmxvY2tzEiAuYml0d2luZG93ZC52MS5MaXN0QmxvY2tz'
-    'UmVxdWVzdBohLmJpdHdpbmRvd2QudjEuTGlzdEJsb2Nrc1Jlc3BvbnNlElEKD0dldE5ldHdvcm'
-    'tTdGF0cxIWLmdvb2dsZS5wcm90b2J1Zi5FbXB0eRomLmJpdHdpbmRvd2QudjEuR2V0TmV0d29y'
-    'a1N0YXRzUmVzcG9uc2USWgoNVXBkYXRlTmV0d29yaxIjLmJpdHdpbmRvd2QudjEuVXBkYXRlTm'
-    'V0d29ya1JlcXVlc3QaJC5iaXR3aW5kb3dkLnYxLlVwZGF0ZU5ldHdvcmtSZXNwb25zZQ==');
+    'VydmljZVN0b3BSZXF1ZXN0GhYuZ29vZ2xlLnByb3RvYnVmLkVtcHR5Ej0KC1N0YXJ0TWluaW5n'
+    'EhYuZ29vZ2xlLnByb3RvYnVmLkVtcHR5GhYuZ29vZ2xlLnByb3RvYnVmLkVtcHR5EjwKClN0b3'
+    'BNaW5pbmcSFi5nb29nbGUucHJvdG9idWYuRW1wdHkaFi5nb29nbGUucHJvdG9idWYuRW1wdHkS'
+    'UQoPR2V0TWluaW5nU3RhdHVzEhYuZ29vZ2xlLnByb3RvYnVmLkVtcHR5GiYuYml0d2luZG93ZC'
+    '52MS5HZXRNaW5pbmdTdGF0dXNSZXNwb25zZRJKCgxDcmVhdGVEZW5pYWwSIi5iaXR3aW5kb3dk'
+    'LnYxLkNyZWF0ZURlbmlhbFJlcXVlc3QaFi5nb29nbGUucHJvdG9idWYuRW1wdHkSSgoMQ2FuY2'
+    'VsRGVuaWFsEiIuYml0d2luZG93ZC52MS5DYW5jZWxEZW5pYWxSZXF1ZXN0GhYuZ29vZ2xlLnBy'
+    'b3RvYnVmLkVtcHR5EkgKC1BhdXNlRGVuaWFsEiEuYml0d2luZG93ZC52MS5QYXVzZURlbmlhbF'
+    'JlcXVlc3QaFi5nb29nbGUucHJvdG9idWYuRW1wdHkSSgoMUmVzdW1lRGVuaWFsEiIuYml0d2lu'
+    'ZG93ZC52MS5SZXN1bWVEZW5pYWxSZXF1ZXN0GhYuZ29vZ2xlLnByb3RvYnVmLkVtcHR5EnUKFk'
+    'NyZWF0ZUFkZHJlc3NCb29rRW50cnkSLC5iaXR3aW5kb3dkLnYxLkNyZWF0ZUFkZHJlc3NCb29r'
+    'RW50cnlSZXF1ZXN0Gi0uYml0d2luZG93ZC52MS5DcmVhdGVBZGRyZXNzQm9va0VudHJ5UmVzcG'
+    '9uc2USUQoPTGlzdEFkZHJlc3NCb29rEhYuZ29vZ2xlLnByb3RvYnVmLkVtcHR5GiYuYml0d2lu'
+    'ZG93ZC52MS5MaXN0QWRkcmVzc0Jvb2tSZXNwb25zZRJeChZVcGRhdGVBZGRyZXNzQm9va0VudH'
+    'J5EiwuYml0d2luZG93ZC52MS5VcGRhdGVBZGRyZXNzQm9va0VudHJ5UmVxdWVzdBoWLmdvb2ds'
+    'ZS5wcm90b2J1Zi5FbXB0eRJeChZEZWxldGVBZGRyZXNzQm9va0VudHJ5EiwuYml0d2luZG93ZC'
+    '52MS5EZWxldGVBZGRyZXNzQm9va0VudHJ5UmVxdWVzdBoWLmdvb2dsZS5wcm90b2J1Zi5FbXB0'
+    'eRJJCgtHZXRTeW5jSW5mbxIWLmdvb2dsZS5wcm90b2J1Zi5FbXB0eRoiLmJpdHdpbmRvd2Qudj'
+    'EuR2V0U3luY0luZm9SZXNwb25zZRJWChJTZXRUcmFuc2FjdGlvbk5vdGUSKC5iaXR3aW5kb3dk'
+    'LnYxLlNldFRyYW5zYWN0aW9uTm90ZVJlcXVlc3QaFi5nb29nbGUucHJvdG9idWYuRW1wdHkSSw'
+    'oMRXhwb3J0TGFiZWxzEhYuZ29vZ2xlLnByb3RvYnVmLkVtcHR5GiMuYml0d2luZG93ZC52MS5F'
+    'eHBvcnRMYWJlbHNSZXNwb25zZRJXCgxJbXBvcnRMYWJlbHMSIi5iaXR3aW5kb3dkLnYxLkltcG'
+    '9ydExhYmVsc1JlcXVlc3QaIy5iaXR3aW5kb3dkLnYxLkltcG9ydExhYmVsc1Jlc3BvbnNlElUK'
+    'EUdldEZpcmVwbGFjZVN0YXRzEhYuZ29vZ2xlLnByb3RvYnVmLkVtcHR5GiguYml0d2luZG93ZC'
+    '52MS5HZXRGaXJlcGxhY2VTdGF0c1Jlc3BvbnNlEnUKFkxpc3RSZWNlbnRUcmFuc2FjdGlvbnMS'
+    'LC5iaXR3aW5kb3dkLnYxLkxpc3RSZWNlbnRUcmFuc2FjdGlvbnNSZXF1ZXN0Gi0uYml0d2luZG'
+    '93ZC52MS5MaXN0UmVjZW50VHJhbnNhY3Rpb25zUmVzcG9uc2USUQoKTGlzdEJsb2NrcxIgLmJp'
+    'dHdpbmRvd2QudjEuTGlzdEJsb2Nrc1JlcXVlc3QaIS5iaXR3aW5kb3dkLnYxLkxpc3RCbG9ja3'
+    'NSZXNwb25zZRJRCg9HZXROZXR3b3JrU3RhdHMSFi5nb29nbGUucHJvdG9idWYuRW1wdHkaJi5i'
+    'aXR3aW5kb3dkLnYxLkdldE5ldHdvcmtTdGF0c1Jlc3BvbnNlEloKDVVwZGF0ZU5ldHdvcmsSIy'
+    '5iaXR3aW5kb3dkLnYxLlVwZGF0ZU5ldHdvcmtSZXF1ZXN0GiQuYml0d2luZG93ZC52MS5VcGRh'
+    'dGVOZXR3b3JrUmVzcG9uc2U=');
 

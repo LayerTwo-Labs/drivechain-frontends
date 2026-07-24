@@ -4,6 +4,7 @@ import (
 	"cmp"
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"net/http"
 	"os/exec"
@@ -93,6 +94,20 @@ type Server struct {
 	// hash too, so same-height reorgs invalidate.
 	listBlocksCache sync.Map // listBlocksCacheKey -> *listBlocksCacheEntry
 	listBlocksTip   atomic.Pointer[blocksTip]
+
+	mining miningController
+}
+
+// miningController owns the backend CPU miner so mining survives independent of
+// any client. Guarded by mu; a nil miner means stopped.
+type miningController struct {
+	mu      sync.Mutex
+	miner   *cpuminer.Miner
+	cancel  context.CancelFunc
+	done    chan struct{} // closed when the miner goroutine has fully exited
+	started time.Time
+	blocks  []string
+	lastErr string // why the miner last stopped on its own, "" if cleanly
 }
 
 type listBlocksCacheKey struct {
@@ -154,6 +169,10 @@ func (s *Server) UpdateNetwork(ctx context.Context, req *connect.Request[pb.Upda
 	if !isKnownNetwork(network) {
 		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("unknown network: %q", req.Msg.Network))
 	}
+
+	// Stop the drynet miner before switching away: the recycle builds a fresh
+	// server that would otherwise have no handle to stop it.
+	s.stopMiner()
 
 	confClient := orchrpc.NewBitcoinConfServiceClient(
 		http.DefaultClient,
@@ -1111,30 +1130,33 @@ func (s *Server) getCoinbaseAddress(ctx context.Context) (string, error) {
 	}
 }
 
-func (s *Server) MineBlocks(ctx context.Context, req *connect.Request[emptypb.Empty], stream *connect.ServerStream[pb.MineBlocksResponse]) error {
-	// Verify we're actually able to connect to Bitcoin Core
-	if _, err := s.data.BlockchainInfo(ctx, &corepb.GetBlockchainInfoRequest{}); err != nil {
-		return err
-	}
-
-	// Gate on the configured network rather than Core's reported chain: forknet
-	// and drynet both report "main" and so are indistinguishable from real
-	// mainnet there, which is why they could never be allowlisted by chain name.
+// StartMining spins up the backend CPU miner on drynet, idempotently. The miner
+// runs on a detached context and keeps going after this call returns.
+func (s *Server) StartMining(ctx context.Context, req *connect.Request[emptypb.Empty]) (*connect.Response[emptypb.Empty], error) {
+	// Gate on the configured network rather than Core's reported chain: drynet
+	// reports "main" and so is indistinguishable from real mainnet there.
 	network := s.config.BitcoinCoreNetwork
 	if !config.IsMineableNetwork(network) {
-		return connect.NewError(
+		return nil, connect.NewError(
 			connect.CodeFailedPrecondition,
-			fmt.Errorf(
-				"generating blocks on %s is not supported",
-				cmp.Or(string(network), "unknown network"),
-			),
+			fmt.Errorf("mining is only available on drynet, not %s", cmp.Or(string(network), "unknown network")),
 		)
 	}
 
-	// Get a payout address from the active wallet for mining rewards
+	s.mining.mu.Lock()
+	defer s.mining.mu.Unlock()
+	if s.mining.miner != nil {
+		return connect.NewResponse(&emptypb.Empty{}), nil
+	}
+
+	if _, err := s.data.BlockchainInfo(ctx, &corepb.GetBlockchainInfoRequest{}); err != nil {
+		return nil, connect.NewError(connect.CodeUnavailable, fmt.Errorf("bitcoin core unreachable: %w", err))
+	}
+
+	// Get a payout address from the active wallet for mining rewards.
 	address, err := s.getCoinbaseAddress(ctx)
 	if err != nil {
-		return connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("get mining address: %w", err))
+		return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("get mining address: %w", err))
 	}
 
 	// cpuminer talks raw bitcoind JSON-RPC; pull the live creds from
@@ -1147,62 +1169,107 @@ func (s *Server) MineBlocks(ctx context.Context, req *connect.Request[emptypb.Em
 	)
 	confResp, err := confClient.GetBitcoinConfig(ctx, connect.NewRequest(&orchpb.GetBitcoinConfigRequest{}))
 	if err != nil {
-		return connect.NewError(connect.CodeUnavailable, fmt.Errorf("read bitcoin config from orchestrator: %w", err))
+		return nil, connect.NewError(connect.CodeUnavailable, fmt.Errorf("read bitcoin config from orchestrator: %w", err))
 	}
 	miner, err := cpuminer.New(cpuminer.Config{
 		RpcURL:          fmt.Sprintf("http://localhost:%d", confResp.Msg.RpcPort),
 		RpcUser:         confResp.Msg.RpcUser,
 		RpcPass:         confResp.Msg.RpcPassword,
-		Routines:        1, // Single routine sufficient for regtest/testnet mining
+		Routines:        1,
 		CoinbaseAddress: address,
 	})
 	if err != nil {
-		return fmt.Errorf("create miner: %w", err)
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("create miner: %w", err))
 	}
 
-	errs := make(chan error)
+	logger := zerolog.Ctx(ctx)
+	minerCtx, cancel := context.WithCancel(logger.WithContext(context.Background()))
+	done := make(chan struct{})
+	s.mining.miner = miner
+	s.mining.cancel = cancel
+	s.mining.done = done
+	s.mining.started = time.Now()
+	s.mining.blocks = nil
+	s.mining.lastErr = ""
 
-	start := time.Now()
-
+	go s.consumeMinedBlocks(minerCtx, miner)
 	go func() {
-		for block := range miner.AcceptedBlocks() {
-			if err := stream.Send(&pb.MineBlocksResponse{
-				Event: &pb.MineBlocksResponse_BlockFound_{
-					BlockFound: &pb.MineBlocksResponse_BlockFound{
-						BlockHash: block.String(),
-					},
-				},
-			}); err != nil {
-				errs <- fmt.Errorf("send block found update: %w", err)
+		err := miner.Start(minerCtx)
+		// Also fires the block consumer's exit when Start returns on its own
+		// (an internal error), not just when StopMining cancels.
+		cancel()
+		fatal := err != nil && !errors.Is(err, context.Canceled)
+		s.mining.mu.Lock()
+		if s.mining.miner == miner {
+			s.mining.miner = nil
+			s.mining.cancel = nil
+			s.mining.done = nil
+			if fatal {
+				s.mining.lastErr = err.Error()
 			}
 		}
-	}()
-
-	go func() {
-		if err := miner.Start(ctx); err != nil {
-			errs <- err
+		s.mining.mu.Unlock()
+		close(done)
+		if fatal {
+			logger.Error().Err(err).Msg("cpu miner stopped with error")
 		}
 	}()
 
-	hashRateTicker := time.NewTicker(time.Second * 5)
-	defer hashRateTicker.Stop()
+	return connect.NewResponse(&emptypb.Empty{}), nil
+}
 
-	go func() {
-		for range hashRateTicker.C {
-			hashRate := miner.GetHashes()
-			if err := stream.Send(&pb.MineBlocksResponse{
-				Event: &pb.MineBlocksResponse_HashRate_{
-					HashRate: &pb.MineBlocksResponse_HashRate{
-						HashRate: float64(hashRate) / time.Since(start).Seconds(),
-					},
-				},
-			}); err != nil {
-				errs <- fmt.Errorf("send hash rate update: %w", err)
+// consumeMinedBlocks records accepted block hashes until the miner is cancelled.
+func (s *Server) consumeMinedBlocks(ctx context.Context, miner *cpuminer.Miner) {
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case block := <-miner.AcceptedBlocks():
+			s.mining.mu.Lock()
+			if s.mining.miner == miner {
+				s.mining.blocks = append([]string{block.String()}, s.mining.blocks...)
 			}
+			s.mining.mu.Unlock()
 		}
-	}()
+	}
+}
 
-	return <-errs
+// StopMining cancels the backend miner. Idempotent.
+func (s *Server) StopMining(ctx context.Context, req *connect.Request[emptypb.Empty]) (*connect.Response[emptypb.Empty], error) {
+	s.stopMiner()
+	return connect.NewResponse(&emptypb.Empty{}), nil
+}
+
+// stopMiner cancels the miner and waits for its goroutine to exit, so a
+// following Start never overlaps a miner that is still hashing.
+func (s *Server) stopMiner() {
+	s.mining.mu.Lock()
+	cancel, done := s.mining.cancel, s.mining.done
+	s.mining.mu.Unlock()
+	if cancel == nil {
+		return
+	}
+	cancel()
+	<-done
+}
+
+// GetMiningStatus reports whether the miner is running plus its hash rate and
+// the blocks found this session, which survive a stop until mining restarts.
+func (s *Server) GetMiningStatus(ctx context.Context, req *connect.Request[emptypb.Empty]) (*connect.Response[pb.GetMiningStatusResponse], error) {
+	s.mining.mu.Lock()
+	defer s.mining.mu.Unlock()
+	resp := &pb.GetMiningStatusResponse{
+		BlocksFound:       int32(len(s.mining.blocks)),
+		RecentBlockHashes: append([]string(nil), s.mining.blocks...),
+		Error:             s.mining.lastErr,
+	}
+	if s.mining.miner != nil {
+		resp.Mining = true
+		if elapsed := time.Since(s.mining.started).Seconds(); elapsed > 0 {
+			resp.HashRate = float64(s.mining.miner.GetHashes()) / elapsed
+		}
+	}
+	return connect.NewResponse(resp), nil
 }
 
 func (s *Server) GetNetworkStats(ctx context.Context, req *connect.Request[emptypb.Empty]) (*connect.Response[pb.GetNetworkStatsResponse], error) {

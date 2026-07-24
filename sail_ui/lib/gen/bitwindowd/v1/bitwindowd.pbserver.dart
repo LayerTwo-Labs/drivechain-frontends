@@ -23,7 +23,9 @@ export 'bitwindowd.pb.dart';
 
 abstract class BitwindowdServiceBase extends $pb.GeneratedService {
   $async.Future<$1.Empty> stop($pb.ServerContext ctx, $3.BitwindowdServiceStopRequest request);
-  $async.Future<$3.MineBlocksResponse> mineBlocks($pb.ServerContext ctx, $1.Empty request);
+  $async.Future<$1.Empty> startMining($pb.ServerContext ctx, $1.Empty request);
+  $async.Future<$1.Empty> stopMining($pb.ServerContext ctx, $1.Empty request);
+  $async.Future<$3.GetMiningStatusResponse> getMiningStatus($pb.ServerContext ctx, $1.Empty request);
   $async.Future<$1.Empty> createDenial($pb.ServerContext ctx, $3.CreateDenialRequest request);
   $async.Future<$1.Empty> cancelDenial($pb.ServerContext ctx, $3.CancelDenialRequest request);
   $async.Future<$1.Empty> pauseDenial($pb.ServerContext ctx, $3.PauseDenialRequest request);
@@ -45,7 +47,9 @@ abstract class BitwindowdServiceBase extends $pb.GeneratedService {
   $pb.GeneratedMessage createRequest($core.String methodName) {
     switch (methodName) {
       case 'Stop': return $3.BitwindowdServiceStopRequest();
-      case 'MineBlocks': return $1.Empty();
+      case 'StartMining': return $1.Empty();
+      case 'StopMining': return $1.Empty();
+      case 'GetMiningStatus': return $1.Empty();
       case 'CreateDenial': return $3.CreateDenialRequest();
       case 'CancelDenial': return $3.CancelDenialRequest();
       case 'PauseDenial': return $3.PauseDenialRequest();
@@ -70,7 +74,9 @@ abstract class BitwindowdServiceBase extends $pb.GeneratedService {
   $async.Future<$pb.GeneratedMessage> handleCall($pb.ServerContext ctx, $core.String methodName, $pb.GeneratedMessage request) {
     switch (methodName) {
       case 'Stop': return this.stop(ctx, request as $3.BitwindowdServiceStopRequest);
-      case 'MineBlocks': return this.mineBlocks(ctx, request as $1.Empty);
+      case 'StartMining': return this.startMining(ctx, request as $1.Empty);
+      case 'StopMining': return this.stopMining(ctx, request as $1.Empty);
+      case 'GetMiningStatus': return this.getMiningStatus(ctx, request as $1.Empty);
       case 'CreateDenial': return this.createDenial(ctx, request as $3.CreateDenialRequest);
       case 'CancelDenial': return this.cancelDenial(ctx, request as $3.CancelDenialRequest);
       case 'PauseDenial': return this.pauseDenial(ctx, request as $3.PauseDenialRequest);

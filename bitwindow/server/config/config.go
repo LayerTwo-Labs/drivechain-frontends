@@ -131,18 +131,8 @@ func IsFullChainNetwork(n Network) bool {
 	return n == NetworkMainnet || n == NetworkForknet || n == NetworkDrynet
 }
 
-// IsMineableNetwork reports whether blocks can usefully be generated locally.
-// Forknet and drynet are drivechain testnets that restart difficulty at 1 from
-// their fork block, so they are CPU-mineable at home even though they run on
-// mainnet params; regtest and testnet are trivially mineable. Real mainnet and
-// signet are not — signet blocks are produced by its challenge signers.
+// IsMineableNetwork reports whether users may CPU-mine blocks locally. Only
+// drynet is enabled, where difficulty restarts at 1 from the fork block.
 func IsMineableNetwork(n Network) bool {
-	switch n {
-	case NetworkRegtest, NetworkTestnet, NetworkForknet, NetworkDrynet:
-		return true
-	case NetworkMainnet, NetworkSignet:
-		return false
-	default:
-		return false
-	}
+	return n == NetworkDrynet
 }

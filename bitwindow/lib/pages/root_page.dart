@@ -19,6 +19,7 @@ import 'package:bitwindow/pages/overview_page.dart';
 import 'package:bitwindow/pages/wallet/bitcoin_uri_dialog.dart';
 import 'package:bitwindow/providers/transactions_provider.dart';
 import 'package:bitwindow/widgets/fork_countdown_timer.dart';
+import 'package:bitwindow/widgets/mining_banner.dart';
 import 'package:bitwindow/widgets/proof_of_funds_modal.dart';
 import 'package:bitwindow/providers/bitwindow_settings_provider.dart';
 import 'package:bitwindow/providers/blockchain_provider.dart';
@@ -1091,7 +1092,9 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
                     body: Column(
                       children: [
                         Expanded(
-                          child: ForkCountdownHeader(child: child),
+                          child: ForkCountdownHeader(
+                            child: MiningBannerHeader(child: child),
+                          ),
                         ),
                         const StatusBar(),
                       ],

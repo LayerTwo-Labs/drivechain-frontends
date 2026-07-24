@@ -164,9 +164,13 @@ class MockBitwindowdAPI implements BitwindowAPI {
   Future<void> updateNetwork(String network) async {}
 
   @override
-  Stream<MineBlocksResponse> mineBlocks() {
-    return Stream.periodic(const Duration(seconds: 1)).map((_) => MineBlocksResponse());
-  }
+  Future<void> startMining() async {}
+
+  @override
+  Future<void> stopMining() async {}
+
+  @override
+  Future<GetMiningStatusResponse> getMiningStatus() async => GetMiningStatusResponse();
 
   @override
   Future<void> pauseDenial(Int64 id) {

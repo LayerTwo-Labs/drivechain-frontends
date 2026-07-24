@@ -358,8 +358,10 @@ class BitwindowRPCLive extends BitwindowRPC {
 abstract class BitwindowAPI {
   Future<void> stop({bool skipDownstream = false});
 
-  // CPU mining
-  Stream<MineBlocksResponse> mineBlocks();
+  // CPU mining (drynet only)
+  Future<void> startMining();
+  Future<void> stopMining();
+  Future<GetMiningStatusResponse> getMiningStatus();
 
   // Denial methods here
   Future<void> createDenial({
@@ -420,13 +422,29 @@ class _BitwindowAPILive implements BitwindowAPI {
   }
 
   @override
-  Stream<MineBlocksResponse> mineBlocks() {
+  Future<void> startMining() async {
     try {
-      final response = _client.mineBlocks(Empty());
-      return response;
+      await _client.startMining(Empty());
     } catch (e) {
-      final error = 'could not start mining: ${extractConnectException(e)}';
-      throw BitwindowException(error);
+      throw BitwindowException('could not start mining: ${extractConnectException(e)}');
+    }
+  }
+
+  @override
+  Future<void> stopMining() async {
+    try {
+      await _client.stopMining(Empty());
+    } catch (e) {
+      throw BitwindowException('could not stop mining: ${extractConnectException(e)}');
+    }
+  }
+
+  @override
+  Future<GetMiningStatusResponse> getMiningStatus() async {
+    try {
+      return await _client.getMiningStatus(Empty());
+    } catch (e) {
+      throw BitwindowException('could not get mining status: ${extractConnectException(e)}');
     }
   }
 
