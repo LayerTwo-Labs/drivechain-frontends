@@ -61,7 +61,7 @@ dependencies:
   dart_bip32_bip44: ^0.2.0
   bs58: ^1.0.2
   auto_updater: ^1.0.0
-  bitcoin_base: ^7.0.0
+  bitcoin_base: ^7.3.0
   blockchain_utils: ^7.0.0
   bech32: ^0.2.2
   archive: ^4.0.7

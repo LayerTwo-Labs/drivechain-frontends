@@ -165,18 +165,18 @@ packages:
     dependency: "direct main"
     description:
       name: bitcoin_base
-      sha256: "9d7b3e4028b912a8070c62da00f5eae5e0548335d790cf53e7861aeaf9a7c62d"
+      sha256: "6a419a007727295ca612a1ad0d3034795512615591f6e06a2d10d441c6dbbb95"
       url: "https://pub.dev"
     source: hosted
-    version: "7.2.0"
+    version: "7.3.0"
   blockchain_utils:
     dependency: "direct main"
     description:
       name: blockchain_utils
-      sha256: d24d5054f0e595289375c00e8ecfeb85605a7d3ee8f69b14725e602f9571cccd
+      sha256: "81ed3cdea69e0a1be27f17aaa137186afa893025a1fde210be32348764082e4e"
       url: "https://pub.dev"
     source: hosted
-    version: "7.0.0"
+    version: "7.1.0"
   boolean_selector:
     dependency: transitive
     description:
@@ -1518,4 +1518,4 @@ packages:
     version: "3.1.3"
 sdks:
   dart: "3.12.0"
-  flutter: "3.44.0"
+  flutter: ">=3.44.0"
