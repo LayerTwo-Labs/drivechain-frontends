@@ -4,18 +4,18 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
 	"net/url"
 	"os"
 	"path/filepath"
-	"regexp"
-	"strconv"
 	"strings"
 	"time"
 
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config/netcatalog"
 )
 
 // SnapshotSource describes where a UTXO snapshot comes from. Exactly one of
@@ -124,19 +124,110 @@ func (o *Orchestrator) maybeApplySnapshot(ctx context.Context, ch chan<- Startup
 	o.applySnapshot(ctx, *src, ch)
 }
 
-// autoSnapshotSource returns the snapshot published for the active network, or
-// nil when that network publishes none. Only drynet does today.
-func (o *Orchestrator) autoSnapshotSource(ctx context.Context) (*SnapshotSource, error) {
-	if config.NetworkFromString(o.Network) != config.NetworkDrynet {
+// autoSnapshotSource returns the UTXO snapshot the network catalog publishes
+// for the active network, or nil when it publishes none.
+func (o *Orchestrator) autoSnapshotSource(_ context.Context) (*SnapshotSource, error) {
+	a := o.publishedSnapshot()
+	if a == nil {
 		return nil, nil
 	}
-	// Read through the mutex-guarded helper: the catalog refresh runs on its
-	// own goroutine, and o.Catalog is not safe to read unlocked from here.
-	drynetID := config.DrynetGeneration()
-	if drynetID == "" {
-		return nil, fmt.Errorf("no drynet generation resolved")
+	return &SnapshotSource{
+		URL:    a.URL,
+		SHA256: a.SHA256,
+		Height: a.Height,
+		Label:  "UTXO snapshot",
+	}, nil
+}
+
+// publishedSnapshot returns the active network's catalog assumeutxo entry, or
+// nil when none is published. o.Catalog is read under the lock.
+func (o *Orchestrator) publishedSnapshot() *netcatalog.AssumeUTXO {
+	o.mu.RLock()
+	cat := o.Catalog
+	o.mu.RUnlock()
+	entry, ok := catalogEntryForNetwork(cat, config.NetworkFromString(o.Network))
+	if !ok {
+		return nil
 	}
-	return snapshotSourceForDrynet(ctx, drynetID)
+	return entry.AssumeUTXO
+}
+
+// SnapshotStatus reports the snapshot published for the active network and the
+// one currently loaded in Bitcoin Core. Zero-valued fields mean none.
+type SnapshotStatus struct {
+	Available netcatalog.AssumeUTXO
+	Active    ActiveSnapshot
+}
+
+// ActiveSnapshot is the assumeutxo chainstate Bitcoin Core has loaded. Present
+// is false when Core is unreachable, too old, or has no snapshot loaded.
+type ActiveSnapshot struct {
+	Present              bool
+	Blockhash            string
+	Height               int64
+	Validated            bool
+	VerificationProgress float64
+}
+
+// SnapshotStatus returns the published and currently-loaded snapshots.
+func (o *Orchestrator) SnapshotStatus(ctx context.Context) SnapshotStatus {
+	s := SnapshotStatus{Active: o.activeSnapshot(ctx)}
+	if a := o.publishedSnapshot(); a != nil {
+		s.Available = *a
+	}
+	return s
+}
+
+// activeSnapshot returns the assumeutxo chainstate loaded in Core.
+func (o *Orchestrator) activeSnapshot(ctx context.Context) ActiveSnapshot {
+	client, err := o.CoreStatusClient()
+	if err != nil {
+		return ActiveSnapshot{}
+	}
+	raw, err := client.call(ctx, "getchainstates")
+	if err != nil {
+		return ActiveSnapshot{}
+	}
+	var states struct {
+		ChainStates []struct {
+			Blocks               int64   `json:"blocks"`
+			SnapshotBlockhash    string  `json:"snapshot_blockhash"`
+			Validated            bool    `json:"validated"`
+			VerificationProgress float64 `json:"verificationprogress"`
+		} `json:"chainstates"`
+	}
+	if err := json.Unmarshal(raw, &states); err != nil {
+		return ActiveSnapshot{}
+	}
+	for _, s := range states.ChainStates {
+		if s.SnapshotBlockhash != "" {
+			return ActiveSnapshot{
+				Present:              true,
+				Blockhash:            s.SnapshotBlockhash,
+				Height:               s.Blocks,
+				Validated:            s.Validated,
+				VerificationProgress: s.VerificationProgress,
+			}
+		}
+	}
+	return ActiveSnapshot{}
+}
+
+// catalogEntryForNetwork maps an active network to its catalog entry. Drynet is
+// keyed by family since its id carries the generation; the rest by id.
+func catalogEntryForNetwork(cat netcatalog.Catalog, n config.Network) (netcatalog.Network, bool) {
+	switch n {
+	case config.NetworkDrynet:
+		return cat.CurrentECash()
+	case config.NetworkMainnet:
+		return cat.ByID("bitcoin")
+	case config.NetworkSignet:
+		return cat.ByID("signet")
+	case config.NetworkForknet:
+		return cat.ByID("forknet")
+	default:
+		return netcatalog.Network{}, false
+	}
 }
 
 // applySnapshot downloads (when needed), verifies and loads a snapshot against
@@ -296,22 +387,6 @@ func snapshotFileName(rawURL string) string {
 
 const snapshotStage = "utxo-snapshot"
 
-// snapshotListingTimeout bounds the small SHA256SUMS fetch.
-const snapshotListingTimeout = 10 * time.Second
-
-// snapshotSourceForDrynet returns the snapshot published for one drynet
-// generation. The hosting location lives here rather than at package scope so
-// that a new generation is only ever an argument.
-func snapshotSourceForDrynet(ctx context.Context, drynetID string) (*SnapshotSource, error) {
-	dir := "https://data.drivechain.dev/" + drynetID + "/"
-	info, err := fetchSnapshotListing(ctx, dir)
-	if err != nil {
-		return nil, err
-	}
-	info.Label = drynetID + " UTXO snapshot"
-	return info, nil
-}
-
 // ensureSnapshotFile makes sure a verified snapshot exists at path, reusing an
 // already-downloaded copy when its digest still matches.
 func ensureSnapshotFile(ctx context.Context, src SnapshotSource, path string, ch chan<- StartupProgress, o *Orchestrator) error {
@@ -336,59 +411,6 @@ func ensureSnapshotFile(ctx context.Context, src SnapshotSource, path string, ch
 		return fmt.Errorf("snapshot hash mismatch: got %s, want %s", sum, src.SHA256)
 	}
 	return nil
-}
-
-// fetchSnapshotListing reads a SHA256SUMS in dir and returns the
-// highest-height utxo-<height>.dat it lists, with its digest and download URL.
-// The listing is the single source for the filename and the commitment height,
-// so a new publication needs no code change.
-func fetchSnapshotListing(ctx context.Context, dir string) (*SnapshotSource, error) {
-	// The boot path passes a context with no deadline, so an unresponsive host
-	// would otherwise hold up the enforcer and sidechains instead of falling
-	// back to a full sync. Bounds the listing only — the snapshot download
-	// itself is gigabytes and keeps the caller's context.
-	ctx, cancel := context.WithTimeout(ctx, snapshotListingTimeout)
-	defer cancel()
-
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, dir+"SHA256SUMS", nil)
-	if err != nil {
-		return nil, err
-	}
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close() //nolint:errcheck // cleanup
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("HTTP %d", resp.StatusCode)
-	}
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, err
-	}
-
-	var best SnapshotSource
-	for _, line := range strings.Split(string(body), "\n") {
-		fields := strings.Fields(line)
-		if len(fields) < 2 {
-			continue
-		}
-		name := filepath.Base(fields[len(fields)-1])
-		snapshotPattern := regexp.MustCompile(`^utxo-(\d+)\.dat$`)
-		m := snapshotPattern.FindStringSubmatch(name)
-		if m == nil {
-			continue
-		}
-		height, err := strconv.ParseInt(m[1], 10, 64)
-		if err != nil || height <= best.Height {
-			continue
-		}
-		best = SnapshotSource{URL: dir + name, SHA256: fields[0], Height: height}
-	}
-	if best.URL == "" {
-		return nil, fmt.Errorf("no utxo-<height>.dat entry in %sSHA256SUMS", dir)
-	}
-	return &best, nil
 }
 
 // downloadAndHash streams url to dest (via a .part file) while computing its

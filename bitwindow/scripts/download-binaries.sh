@@ -17,6 +17,11 @@ if [[ "$os" == "windows" ]]; then
     exe=".exe"
 fi
 
+case "$(uname -m)" in
+    arm64|aarch64) host_goarch=arm64 ;;
+    *)             host_goarch=amd64 ;;
+esac
+
 # CI builds both macOS arches (suffixed -arm64 / -x86_64); dev builds host only.
 if [[ "$os" == "darwin" ]]; then
     if [[ -n "${CI:-}" ]]; then
@@ -61,24 +66,28 @@ build_orch_tool() {
 build_hwi_daemon() {
     local goarch="$1" out="$2"
     [[ -f "$out" ]] && { echo "hwi-daemon present ($out)"; return; }
-    if ! command -v python3 >/dev/null 2>&1; then
-        echo "python3 not found; cannot build hwi-daemon" >&2
+    # PyInstaller bundles the running interpreter, so it can only build for the
+    # host arch. Skip a mismatched cross target rather than fail.
+    if [[ -n "$goarch" && "$goarch" != "$host_goarch" ]]; then
+        echo "skipping hwi-daemon for $goarch (not host arch)"
+        return
+    fi
+    local py
+    py="$(command -v python3 || command -v python)" || {
+        echo "python not found; cannot build hwi-daemon" >&2
         return 1
-    fi
-    local runner=()
-    if [[ "$os" == "darwin" && "$goarch" == "amd64" && "$(uname -m)" == "arm64" ]]; then
-        # Install Rosetta to cross-build the Intel daemon.
-        softwareupdate --install-rosetta --agree-to-license >/dev/null 2>&1 || true
-        runner=(arch -x86_64)
-    fi
+    }
+    local bindir=bin
+    [[ "$os" == "windows" ]] && bindir=Scripts
     local script="$original_cwd/../sidechain-orchestrator/hwi-daemon/hwi_daemon.py"
-    local tmp
-    tmp="$(mktemp -d)"
+    local name; name="$(basename "$out")"; name="${name%"$exe"}"
+    local tmp; tmp="$(mktemp -d)"
     echo "Building hwi-daemon (${goarch:-host}) — installs hwi + pyinstaller into a temp venv"
-    "${runner[@]}" python3 -m venv "$tmp/venv"
-    "${runner[@]}" "$tmp/venv/bin/pip" install --quiet --upgrade pip
-    "${runner[@]}" "$tmp/venv/bin/pip" install --quiet "hwi==2.1.1" pyinstaller
-    "${runner[@]}" "$tmp/venv/bin/pyinstaller" --onefile --name hwi-daemon --collect-all hwilib \
+    "$py" -m venv "$tmp/venv"
+    local vpy="$tmp/venv/$bindir/python"
+    "$vpy" -m pip install --quiet --upgrade pip
+    "$vpy" -m pip install --quiet "hwi==2.1.1" pyinstaller
+    "$vpy" -m PyInstaller --onefile --name "$name" --collect-all hwilib \
         --distpath "$(dirname "$out")" --workpath "$tmp/build" --specpath "$tmp" "$script"
     chmod +x "$out" 2>/dev/null || true
     rm -rf "$tmp"

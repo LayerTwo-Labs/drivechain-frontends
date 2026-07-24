@@ -30,8 +30,15 @@ func (o *Orchestrator) ResolveNetworkCatalog(ctx context.Context) {
 	// is the only place it can be applied: the generation decides which chain
 	// data is valid, and swapping that under a running process is what caused
 	// the wipe and cache to disagree.
+	promoted := false
 	if pending, ok := netcatalog.LoadPending(o.BitwindowDir); ok {
 		current = o.promotePendingCatalog(current, pending, fromDisk)
+		promoted = true
+	}
+	// Reconcile installs whose cached catalog already lists the newest
+	// generation, where no pending promotion fires.
+	if !promoted {
+		o.wipeIfDrynetGenerationStale(current)
 	}
 	o.adoptCatalog(current)
 
@@ -161,6 +168,28 @@ func expandDrynetPlaceholder(cfg BinaryConfig, id string) BinaryConfig {
 	}
 	cfg.Variants = variants
 	return cfg
+}
+
+// wipeIfDrynetGenerationStale clears drynet chain data when the on-disk conf was
+// written for an older generation than the catalog now serves.
+func (o *Orchestrator) wipeIfDrynetGenerationStale(current netcatalog.Catalog) {
+	if config.NetworkFromString(o.Network) != config.NetworkDrynet {
+		return
+	}
+	o.wipeOnDrynetGenerationChange(o.installedDrynetGeneration(), current.DrynetID())
+}
+
+// installedDrynetGeneration returns the drynet generation the on-disk
+// bitcoin.conf was written for, from its uacomment sentinel, or "" when none.
+func (o *Orchestrator) installedDrynetGeneration() string {
+	if o.BitcoinConf == nil || o.BitcoinConf.Config == nil {
+		return ""
+	}
+	uacomment := o.BitcoinConf.Config.GetEffectiveSetting("uacomment", "main")
+	if !strings.HasPrefix(uacomment, string(config.NetworkDrynet)) {
+		return ""
+	}
+	return uacomment
 }
 
 // wipeOnDrynetGenerationChange deletes drynet chain state when the published

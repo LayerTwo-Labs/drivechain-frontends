@@ -121,6 +121,16 @@ abstract final class OrchestratorService {
     orchestratorv1orchestrator.ApplyUTXOSnapshotResponse.new,
   );
 
+  /// The UTXO snapshot published for the active network (from the network
+  /// catalog) plus the one currently loaded in Bitcoin Core, if any. Feeds the
+  /// settings UI: pre-fills the snapshot field and shows what is loaded.
+  static const getSnapshotStatus = connect.Spec(
+    '/$name/GetSnapshotStatus',
+    connect.StreamType.unary,
+    orchestratorv1orchestrator.GetSnapshotStatusRequest.new,
+    orchestratorv1orchestrator.GetSnapshotStatusResponse.new,
+  );
+
   /// Shutdown all running binaries.
   static const shutdownAll = connect.Spec(
     '/$name/ShutdownAll',

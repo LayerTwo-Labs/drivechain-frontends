@@ -207,6 +207,11 @@ class BinaryProvider extends ChangeNotifier {
     return _orchestrator.applyUTXOSnapshot(url: url, path: path, sha256: sha256);
   }
 
+  /// The published and currently-loaded UTXO snapshots for the active network.
+  Future<GetSnapshotStatusResponse> getSnapshotStatus() {
+    return _orchestrator.getSnapshotStatus();
+  }
+
   Future<void> stop(Binary binary, {bool skipDownstream = false}) async {
     if (_isDaemonBinary(binary)) {
       await _stopDaemonBinary(binary);

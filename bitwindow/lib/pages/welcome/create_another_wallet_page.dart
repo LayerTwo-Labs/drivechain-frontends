@@ -38,6 +38,7 @@ class _CreateAnotherWalletPageState extends State<CreateAnotherWalletPage> {
   String? _hardwareDeviceType;
   String? _hardwareFingerprint;
   String _mnemonic = '';
+  String _passphrase = '';
   String _singleScriptType = 'native-segwit';
   MultisigWalletSpec? _multisigSpec;
   bool _isCreating = false;
@@ -129,6 +130,7 @@ class _CreateAnotherWalletPageState extends State<CreateAnotherWalletPage> {
           name: _walletName,
           gradient: _selectedGradient!,
           customMnemonic: _mnemonic,
+          passphrase: _passphrase,
           scriptType: _singleScriptType,
         );
       }
@@ -165,6 +167,7 @@ class _CreateAnotherWalletPageState extends State<CreateAnotherWalletPage> {
               if ((s.mnemonic ?? '').isNotEmpty) {
                 _method = WalletSetupMethod.importSeed;
                 _mnemonic = s.mnemonic!;
+                _passphrase = s.passphrase ?? '';
               } else {
                 _method = WalletSetupMethod.importDescriptor;
                 _xpubOrDescriptor = s.xpubOrDescriptor ?? '';

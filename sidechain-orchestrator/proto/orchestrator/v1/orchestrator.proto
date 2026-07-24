@@ -59,6 +59,11 @@ service OrchestratorService {
   // Core's own message. Nothing is stopped, restarted or deleted.
   rpc ApplyUTXOSnapshot(ApplyUTXOSnapshotRequest) returns (stream ApplyUTXOSnapshotResponse);
 
+  // The UTXO snapshot published for the active network (from the network
+  // catalog) plus the one currently loaded in Bitcoin Core, if any. Feeds the
+  // settings UI: pre-fills the snapshot field and shows what is loaded.
+  rpc GetSnapshotStatus(GetSnapshotStatusRequest) returns (GetSnapshotStatusResponse);
+
   // Shutdown all running binaries.
   rpc ShutdownAll(ShutdownAllRequest) returns (stream ShutdownAllResponse);
 
@@ -294,6 +299,26 @@ message ApplyUTXOSnapshotResponse {
   int32 download_percent = 2;
   // Set once Core has accepted and finished loading the snapshot.
   bool done = 3;
+}
+
+// GetSnapshotStatus
+
+message GetSnapshotStatusRequest {}
+
+message GetSnapshotStatusResponse {
+  // The snapshot the active network publishes, empty url when none. Used to
+  // pre-fill the snapshot field in settings.
+  string available_url = 1;
+  int64 available_height = 2;
+  string available_sha256 = 3;
+
+  // The snapshot currently loaded in Bitcoin Core, from getchainstates.
+  bool has_active_snapshot = 4;
+  string active_blockhash = 5;
+  int64 active_height = 6;
+  // Set once Core has fully validated the snapshot chainstate from genesis.
+  bool active_validated = 7;
+  double active_verification_progress = 8;
 }
 
 // ShutdownAll

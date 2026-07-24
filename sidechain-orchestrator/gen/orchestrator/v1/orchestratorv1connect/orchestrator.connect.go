@@ -66,6 +66,9 @@ const (
 	// OrchestratorServiceApplyUTXOSnapshotProcedure is the fully-qualified name of the
 	// OrchestratorService's ApplyUTXOSnapshot RPC.
 	OrchestratorServiceApplyUTXOSnapshotProcedure = "/orchestrator.v1.OrchestratorService/ApplyUTXOSnapshot"
+	// OrchestratorServiceGetSnapshotStatusProcedure is the fully-qualified name of the
+	// OrchestratorService's GetSnapshotStatus RPC.
+	OrchestratorServiceGetSnapshotStatusProcedure = "/orchestrator.v1.OrchestratorService/GetSnapshotStatus"
 	// OrchestratorServiceShutdownAllProcedure is the fully-qualified name of the OrchestratorService's
 	// ShutdownAll RPC.
 	OrchestratorServiceShutdownAllProcedure = "/orchestrator.v1.OrchestratorService/ShutdownAll"
@@ -157,6 +160,10 @@ type OrchestratorServiceClient interface {
 	// a snapshot already loaded in this datadir) comes back as an error carrying
 	// Core's own message. Nothing is stopped, restarted or deleted.
 	ApplyUTXOSnapshot(context.Context, *connect.Request[v1.ApplyUTXOSnapshotRequest]) (*connect.ServerStreamForClient[v1.ApplyUTXOSnapshotResponse], error)
+	// The UTXO snapshot published for the active network (from the network
+	// catalog) plus the one currently loaded in Bitcoin Core, if any. Feeds the
+	// settings UI: pre-fills the snapshot field and shows what is loaded.
+	GetSnapshotStatus(context.Context, *connect.Request[v1.GetSnapshotStatusRequest]) (*connect.Response[v1.GetSnapshotStatusResponse], error)
 	// Shutdown all running binaries.
 	ShutdownAll(context.Context, *connect.Request[v1.ShutdownAllRequest]) (*connect.ServerStreamForClient[v1.ShutdownAllResponse], error)
 	// Detached-daemon shutdown. bitwindowd calls this on window close;
@@ -285,6 +292,12 @@ func NewOrchestratorServiceClient(httpClient connect.HTTPClient, baseURL string,
 			connect.WithSchema(orchestratorServiceMethods.ByName("ApplyUTXOSnapshot")),
 			connect.WithClientOptions(opts...),
 		),
+		getSnapshotStatus: connect.NewClient[v1.GetSnapshotStatusRequest, v1.GetSnapshotStatusResponse](
+			httpClient,
+			baseURL+OrchestratorServiceGetSnapshotStatusProcedure,
+			connect.WithSchema(orchestratorServiceMethods.ByName("GetSnapshotStatus")),
+			connect.WithClientOptions(opts...),
+		),
 		shutdownAll: connect.NewClient[v1.ShutdownAllRequest, v1.ShutdownAllResponse](
 			httpClient,
 			baseURL+OrchestratorServiceShutdownAllProcedure,
@@ -385,6 +398,7 @@ type orchestratorServiceClient struct {
 	restartDaemon              *connect.Client[v1.RestartDaemonRequest, v1.RestartDaemonResponse]
 	restartL1                  *connect.Client[v1.RestartL1Request, v1.RestartL1Response]
 	applyUTXOSnapshot          *connect.Client[v1.ApplyUTXOSnapshotRequest, v1.ApplyUTXOSnapshotResponse]
+	getSnapshotStatus          *connect.Client[v1.GetSnapshotStatusRequest, v1.GetSnapshotStatusResponse]
 	shutdownAll                *connect.Client[v1.ShutdownAllRequest, v1.ShutdownAllResponse]
 	shutdown                   *connect.Client[v1.ShutdownRequest, v1.ShutdownResponse]
 	getBTCPrice                *connect.Client[v1.GetBTCPriceRequest, v1.GetBTCPriceResponse]
@@ -454,6 +468,11 @@ func (c *orchestratorServiceClient) RestartL1(ctx context.Context, req *connect.
 // ApplyUTXOSnapshot calls orchestrator.v1.OrchestratorService.ApplyUTXOSnapshot.
 func (c *orchestratorServiceClient) ApplyUTXOSnapshot(ctx context.Context, req *connect.Request[v1.ApplyUTXOSnapshotRequest]) (*connect.ServerStreamForClient[v1.ApplyUTXOSnapshotResponse], error) {
 	return c.applyUTXOSnapshot.CallServerStream(ctx, req)
+}
+
+// GetSnapshotStatus calls orchestrator.v1.OrchestratorService.GetSnapshotStatus.
+func (c *orchestratorServiceClient) GetSnapshotStatus(ctx context.Context, req *connect.Request[v1.GetSnapshotStatusRequest]) (*connect.Response[v1.GetSnapshotStatusResponse], error) {
+	return c.getSnapshotStatus.CallUnary(ctx, req)
 }
 
 // ShutdownAll calls orchestrator.v1.OrchestratorService.ShutdownAll.
@@ -574,6 +593,10 @@ type OrchestratorServiceHandler interface {
 	// a snapshot already loaded in this datadir) comes back as an error carrying
 	// Core's own message. Nothing is stopped, restarted or deleted.
 	ApplyUTXOSnapshot(context.Context, *connect.Request[v1.ApplyUTXOSnapshotRequest], *connect.ServerStream[v1.ApplyUTXOSnapshotResponse]) error
+	// The UTXO snapshot published for the active network (from the network
+	// catalog) plus the one currently loaded in Bitcoin Core, if any. Feeds the
+	// settings UI: pre-fills the snapshot field and shows what is loaded.
+	GetSnapshotStatus(context.Context, *connect.Request[v1.GetSnapshotStatusRequest]) (*connect.Response[v1.GetSnapshotStatusResponse], error)
 	// Shutdown all running binaries.
 	ShutdownAll(context.Context, *connect.Request[v1.ShutdownAllRequest], *connect.ServerStream[v1.ShutdownAllResponse]) error
 	// Detached-daemon shutdown. bitwindowd calls this on window close;
@@ -698,6 +721,12 @@ func NewOrchestratorServiceHandler(svc OrchestratorServiceHandler, opts ...conne
 		connect.WithSchema(orchestratorServiceMethods.ByName("ApplyUTXOSnapshot")),
 		connect.WithHandlerOptions(opts...),
 	)
+	orchestratorServiceGetSnapshotStatusHandler := connect.NewUnaryHandler(
+		OrchestratorServiceGetSnapshotStatusProcedure,
+		svc.GetSnapshotStatus,
+		connect.WithSchema(orchestratorServiceMethods.ByName("GetSnapshotStatus")),
+		connect.WithHandlerOptions(opts...),
+	)
 	orchestratorServiceShutdownAllHandler := connect.NewServerStreamHandler(
 		OrchestratorServiceShutdownAllProcedure,
 		svc.ShutdownAll,
@@ -806,6 +835,8 @@ func NewOrchestratorServiceHandler(svc OrchestratorServiceHandler, opts ...conne
 			orchestratorServiceRestartL1Handler.ServeHTTP(w, r)
 		case OrchestratorServiceApplyUTXOSnapshotProcedure:
 			orchestratorServiceApplyUTXOSnapshotHandler.ServeHTTP(w, r)
+		case OrchestratorServiceGetSnapshotStatusProcedure:
+			orchestratorServiceGetSnapshotStatusHandler.ServeHTTP(w, r)
 		case OrchestratorServiceShutdownAllProcedure:
 			orchestratorServiceShutdownAllHandler.ServeHTTP(w, r)
 		case OrchestratorServiceShutdownProcedure:
@@ -885,6 +916,10 @@ func (UnimplementedOrchestratorServiceHandler) RestartL1(context.Context, *conne
 
 func (UnimplementedOrchestratorServiceHandler) ApplyUTXOSnapshot(context.Context, *connect.Request[v1.ApplyUTXOSnapshotRequest], *connect.ServerStream[v1.ApplyUTXOSnapshotResponse]) error {
 	return connect.NewError(connect.CodeUnimplemented, errors.New("orchestrator.v1.OrchestratorService.ApplyUTXOSnapshot is not implemented"))
+}
+
+func (UnimplementedOrchestratorServiceHandler) GetSnapshotStatus(context.Context, *connect.Request[v1.GetSnapshotStatusRequest]) (*connect.Response[v1.GetSnapshotStatusResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("orchestrator.v1.OrchestratorService.GetSnapshotStatus is not implemented"))
 }
 
 func (UnimplementedOrchestratorServiceHandler) ShutdownAll(context.Context, *connect.Request[v1.ShutdownAllRequest], *connect.ServerStream[v1.ShutdownAllResponse]) error {

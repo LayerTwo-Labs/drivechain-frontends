@@ -119,6 +119,12 @@
         "coinnews": {
           "url": "https://coinnews.drynet2.drivechain.dev"
         }
+      },
+      "assumeutxo": {
+        "url": "https://data.drivechain.dev/drynet2/utxo-957600.dat",
+        "height": 957600,
+        "sha256": "473ae741a3a7c4c5c28c85a54aa166e0ea46d13d83ae0bf2142d332373ed155b",
+        "size_bytes": 9498111432
       }
     }
   ]

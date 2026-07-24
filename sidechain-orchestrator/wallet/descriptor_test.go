@@ -268,7 +268,7 @@ func TestDeriveWalletReceiveAddresses(t *testing.T) {
 
 	t.Run("taproot wallet yields P2TR addresses", func(t *testing.T) {
 		svc := newTestService(t)
-		w, err := svc.CreateElectrumWallet("Taproot", nil, nil, testMnemonic, "", "taproot", 0, "")
+		w, err := svc.CreateElectrumWallet("Taproot", nil, nil, testMnemonic, "", "", "taproot", 0, "")
 		require.NoError(t, err)
 
 		got, err := DeriveWalletReceiveAddresses(w, net, 0, 3)
@@ -288,7 +288,7 @@ func TestDeriveWalletReceiveAddresses(t *testing.T) {
 	t.Run("custom account yields that account's addresses", func(t *testing.T) {
 		svc := newTestService(t)
 		const acctIndex = uint32(5)
-		w, err := svc.CreateElectrumWallet("Acct5", nil, nil, testMnemonic, "", "", acctIndex, "")
+		w, err := svc.CreateElectrumWallet("Acct5", nil, nil, testMnemonic, "", "", "", acctIndex, "")
 		require.NoError(t, err)
 		require.Equal(t, acctIndex, w.AccountIndex)
 

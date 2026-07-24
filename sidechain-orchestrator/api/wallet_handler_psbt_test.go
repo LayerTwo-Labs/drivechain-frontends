@@ -59,7 +59,7 @@ func TestWalletHandlerPSBTRoundTrip(t *testing.T) {
 	require.NoError(t, svc.Init())
 	t.Cleanup(func() { svc.Close() })
 
-	w, err := svc.CreateElectrumWallet("E", nil, nil, "", "", "", 0, "")
+	w, err := svc.CreateElectrumWallet("E", nil, nil, "", "", "", "", 0, "")
 	require.NoError(t, err)
 
 	net := &chaincfg.SigNetParams
@@ -110,7 +110,7 @@ func TestWalletNeedsL1(t *testing.T) {
 
 	full, err := svc.GenerateWallet("Full", "", "", nil)
 	require.NoError(t, err)
-	elec, err := svc.CreateElectrumWallet("E", nil, nil, "", "", "", 0, "")
+	elec, err := svc.CreateElectrumWallet("E", nil, nil, "", "", "", "", 0, "")
 	require.NoError(t, err)
 
 	h := NewWalletHandler(svc)
@@ -127,7 +127,7 @@ func TestListWalletsElectrumHasNoBip47Code(t *testing.T) {
 	require.NoError(t, svc.Init())
 	t.Cleanup(func() { svc.Close() })
 
-	w, err := svc.CreateElectrumWallet("E", nil, nil, "", "", "", 0, "")
+	w, err := svc.CreateElectrumWallet("E", nil, nil, "", "", "", "", 0, "")
 	require.NoError(t, err)
 
 	h := NewWalletHandler(svc)

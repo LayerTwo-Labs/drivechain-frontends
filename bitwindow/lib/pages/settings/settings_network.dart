@@ -3,6 +3,7 @@ import 'package:bitwindow/routing/router.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
+import 'package:logger/logger.dart';
 import 'package:sail_ui/pages/router.gr.dart';
 import 'package:sail_ui/sail_ui.dart';
 
@@ -20,11 +21,14 @@ class _SettingsNetworkState extends State<SettingsNetwork> {
   ElectrumServerProvider get _electrumProvider => GetIt.I.get<ElectrumServerProvider>();
   TorConfigProvider get _torProvider => GetIt.I.get<TorConfigProvider>();
   WalletReaderProvider get _walletReader => GetIt.I.get<WalletReaderProvider>();
+  BinaryProvider get _binaryProvider => GetIt.I.get<BinaryProvider>();
+  Logger get _log => GetIt.I.get<Logger>();
   bool _isSelectingDataDir = false;
   bool _isPickingSnapshot = false;
   final _electrumServerController = TextEditingController();
   final _torProxyController = TextEditingController();
   final _snapshotController = TextEditingController();
+  GetSnapshotStatusResponse? _snapshotStatus;
 
   bool get _isElectrumWallet => _walletReader.activeWallet?.isElectrum ?? false;
 
@@ -43,6 +47,40 @@ class _SettingsNetworkState extends State<SettingsNetwork> {
       _electrumProvider.refresh();
       _torProvider.refresh();
     }
+    _loadSnapshotStatus();
+  }
+
+  Future<void> _loadSnapshotStatus() async {
+    try {
+      final status = await _binaryProvider.getSnapshotStatus();
+      if (!mounted) return;
+      setState(() {
+        _snapshotStatus = status;
+        // Pre-fill with the snapshot published for this network, unless the
+        // user has already typed one.
+        if (_snapshotController.text.isEmpty && status.availableUrl.isNotEmpty) {
+          _snapshotController.text = status.availableUrl;
+        }
+      });
+    } catch (e) {
+      _log.w('could not load snapshot status: $e');
+    }
+  }
+
+  String? _snapshotStatusText() {
+    final status = _snapshotStatus;
+    if (status == null) return null;
+    if (status.hasActiveSnapshot) {
+      if (status.activeValidated) {
+        return 'Snapshot loaded and fully validated (block ${status.activeHeight}).';
+      }
+      final pct = (status.activeVerificationProgress * 100).toStringAsFixed(1);
+      return 'Snapshot active at block ${status.activeHeight}, validating history in the background ($pct%).';
+    }
+    if (status.availableUrl.isNotEmpty) {
+      return 'Published snapshot for this network: block ${status.availableHeight}. Load it to sync in minutes.';
+    }
+    return 'No snapshot is published for this network.';
   }
 
   @override
@@ -553,6 +591,10 @@ class _SettingsNetworkState extends State<SettingsNetwork> {
             SailText.secondary12(
               'Skip the historical download by loading an assumeutxo snapshot, so Bitcoin Core validates at the tip within minutes and backfills history afterwards. Nothing is deleted, and your own bitcoin.conf is not touched.',
             ),
+            if (_snapshotStatusText() != null) ...[
+              const SailSpacing(SailStyleValues.padding08),
+              SailText.secondary12(_snapshotStatusText()!),
+            ],
           ],
         ),
         SailSpacing(SailStyleValues.padding64),

@@ -257,6 +257,12 @@ class OrchestratorRPC {
     );
   }
 
+  /// The UTXO snapshot the active network publishes plus the one Bitcoin Core
+  /// currently has loaded. Drives the snapshot section in settings.
+  Future<GetSnapshotStatusResponse> getSnapshotStatus() {
+    return _unaryClient.getSnapshotStatus(GetSnapshotStatusRequest());
+  }
+
   Stream<ShutdownAllResponse> shutdownAll({bool force = false}) {
     return _streamClient.shutdownAll(ShutdownAllRequest(force: force));
   }

@@ -2543,6 +2543,7 @@ class CreateElectrumWalletRequest extends $pb.GeneratedMessage {
     $core.String? derivationPath,
     $core.String? hardwareDeviceType,
     $core.String? hardwareFingerprint,
+    $core.String? passphrase,
   }) {
     final $result = create();
     if (name != null) {
@@ -2575,6 +2576,9 @@ class CreateElectrumWalletRequest extends $pb.GeneratedMessage {
     if (hardwareFingerprint != null) {
       $result.hardwareFingerprint = hardwareFingerprint;
     }
+    if (passphrase != null) {
+      $result.passphrase = passphrase;
+    }
     return $result;
   }
   CreateElectrumWalletRequest._() : super();
@@ -2592,6 +2596,7 @@ class CreateElectrumWalletRequest extends $pb.GeneratedMessage {
     ..aOS(8, _omitFieldNames ? '' : 'derivationPath')
     ..aOS(9, _omitFieldNames ? '' : 'hardwareDeviceType')
     ..aOS(10, _omitFieldNames ? '' : 'hardwareFingerprint')
+    ..aOS(11, _omitFieldNames ? '' : 'passphrase')
     ..hasRequiredFields = false
   ;
 
@@ -2714,6 +2719,17 @@ class CreateElectrumWalletRequest extends $pb.GeneratedMessage {
   $core.bool hasHardwareFingerprint() => $_has(9);
   @$pb.TagNumber(10)
   void clearHardwareFingerprint() => clearField(10);
+
+  /// Optional BIP39 passphrase applied to custom_mnemonic. Ignored for
+  /// watch-only imports.
+  @$pb.TagNumber(11)
+  $core.String get passphrase => $_getSZ(10);
+  @$pb.TagNumber(11)
+  set passphrase($core.String v) { $_setString(10, v); }
+  @$pb.TagNumber(11)
+  $core.bool hasPassphrase() => $_has(10);
+  @$pb.TagNumber(11)
+  void clearPassphrase() => clearField(11);
 }
 
 class CreateElectrumWalletResponse extends $pb.GeneratedMessage {

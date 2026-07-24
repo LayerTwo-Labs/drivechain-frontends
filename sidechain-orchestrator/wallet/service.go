@@ -637,7 +637,7 @@ func (s *Service) CreateBitcoinCoreWallet(name string, gradientJSON json.RawMess
 // customMnemonic imports an existing seed (empty = generate a new one).
 // xpubOrDescriptor instead creates a watch-only electrum wallet with no
 // private keys; it is mutually exclusive with customMnemonic.
-func (s *Service) CreateElectrumWallet(name string, gradient json.RawMessage, slots []uint32, customMnemonic, xpubOrDescriptor, scriptType string, accountIndex uint32, derivationPath string) (*WalletData, error) {
+func (s *Service) CreateElectrumWallet(name string, gradient json.RawMessage, slots []uint32, customMnemonic, passphrase, xpubOrDescriptor, scriptType string, accountIndex uint32, derivationPath string) (*WalletData, error) {
 	if xpubOrDescriptor != "" {
 		return s.createElectrumWatchOnly(name, gradient, xpubOrDescriptor)
 	}
@@ -657,7 +657,7 @@ func (s *Service) CreateElectrumWallet(name string, gradient json.RawMessage, sl
 		s.mu.Unlock()
 		return nil, fmt.Errorf("wallet is locked, unlock before creating a wallet")
 	}
-	wallet, err := s.generateWalletOfType(name, customMnemonic, "", accountIndex, derivationPath, sidechainSlots, WalletTypeElectrum)
+	wallet, err := s.generateWalletOfType(name, customMnemonic, passphrase, accountIndex, derivationPath, sidechainSlots, WalletTypeElectrum)
 	if err == nil && st != "" {
 		for i := range s.wallets {
 			if s.wallets[i].ID == wallet.ID {

@@ -808,7 +808,7 @@ class _MultisigConfigStepState extends State<MultisigConfigStep> {
         passphrase: passphrase,
         device: device,
         rawKey: rawKey,
-        scriptType: _scriptType,
+        scriptType: _isSingle ? _singleHotScriptType() : _scriptType,
         multisig: !_isSingle,
         account: index,
       );

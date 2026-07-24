@@ -19,6 +19,27 @@ func TestEmbeddedCatalogParses(t *testing.T) {
 	}
 }
 
+// The newest generation wins regardless of catalog order, so a catalog that
+// still lists older ones resolves to the latest.
+func TestDrynetIDPicksNewestGeneration(t *testing.T) {
+	c := Catalog{Networks: []Network{
+		{ID: "bitcoin", Family: "bitcoin"},
+		{ID: "drynet2", Family: FamilyECash},
+		{ID: "drynet10", Family: FamilyECash},
+		{ID: "drynet3", Family: FamilyECash},
+	}}
+	if got := c.DrynetID(); got != "drynet10" {
+		t.Errorf("DrynetID() = %q, want drynet10", got)
+	}
+}
+
+func TestDrynetIDEmptyWithoutECash(t *testing.T) {
+	c := Catalog{Networks: []Network{{ID: "bitcoin", Family: "bitcoin"}}}
+	if got := c.DrynetID(); got != "" {
+		t.Errorf("DrynetID() = %q, want empty", got)
+	}
+}
+
 // The cache is the baseline for detecting a generation change, so a round trip
 // must preserve the id and report that it came from disk.
 func TestSaveThenLoadReportsFromDisk(t *testing.T) {
