@@ -85,14 +85,29 @@ class WalletReaderProvider extends ChangeNotifier {
     required String? newActiveId,
     required bool newHasWalletOnDisk,
   }) {
+    _logger.i(
+      'WalletReaderProvider: frame wallets=${protoWallets.length} '
+      'active=$newActiveId hasWallet=$newHasWalletOnDisk (current=${wallets.length})',
+    );
+    // Reconnecting stream can send an empty initial frame; keep a populated
+    // list (a real delete arrives with hasWallet=false).
+    if (protoWallets.isEmpty && wallets.isNotEmpty && newHasWalletOnDisk) {
+      return;
+    }
     final previousActiveId = activeWalletId;
-    if (previousActiveId != newActiveId) {
+    // A transient stream frame can arrive with an empty active id while wallets
+    // still exist; keep the known-good selection instead of blanking it.
+    var effectiveActiveId = newActiveId;
+    if (effectiveActiveId == null && previousActiveId != null && protoWallets.isNotEmpty) {
+      effectiveActiveId = previousActiveId;
+    }
+    if (previousActiveId != effectiveActiveId) {
       _logger.i(
-        'WalletReaderProvider: activeWalletId $previousActiveId -> $newActiveId '
+        'WalletReaderProvider: activeWalletId $previousActiveId -> $effectiveActiveId '
         '(wallets=${protoWallets.length})',
       );
     }
-    activeWalletId = newActiveId;
+    activeWalletId = effectiveActiveId;
 
     final previousHasWallet = hasWalletOnDisk;
     hasWalletOnDisk = newHasWalletOnDisk;
@@ -436,6 +451,12 @@ class WalletReaderProvider extends ChangeNotifier {
     activeWalletId = null;
     unlockedPassword = null;
     notifyListeners();
+  }
+
+  // Clear then immediately re-fetch, instead of waiting for the next stream frame.
+  Future<void> reloadForNetworkChange() async {
+    clearState();
+    await _seedWalletsIfEmpty('network-change');
   }
 
   @override

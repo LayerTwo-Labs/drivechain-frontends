@@ -98,7 +98,9 @@ class BinaryProvider extends ChangeNotifier {
     bool isSidechainApp = false,
     bool shutdownEnabled = true,
   }) async {
-    final binaries = await loadBinaryCreationTimestamp(initialBinaries, appDir);
+    final binaries = await Future.wait(
+      initialBinaries.map((b) => b.updateLocalMetadata(appDir)),
+    );
     final pidDir = Directory(path.join(appDir.path, 'pids'));
     final processManager = ProcessManager(
       appDir: appDir,
@@ -114,6 +116,9 @@ class BinaryProvider extends ChangeNotifier {
 
     // Adopt any processes from a previous session via PID files.
     await provider._adoptOrphanedProcesses();
+
+    // Release-date check hits the network; refresh it off the load path.
+    unawaited(provider._refreshMetadata());
 
     return provider;
   }

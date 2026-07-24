@@ -345,32 +345,28 @@ abstract class Binary {
       }
 
       final downloadUrl = Uri.parse(baseUrl).resolve(fileName).toString();
-      final useTest = GetIt.I.isRegistered<SettingsProvider>()
-          ? GetIt.I.get<SettingsProvider>().useTestSidechains
-          : false;
-      final hasAlt = metadata.hasAlternativeDownloadConfig;
-      log.w('_checkDirectReleaseDate $name: useTest=$useTest hasAlt=$hasAlt url=$downloadUrl');
+      final client = HttpClient()..connectionTimeout = const Duration(seconds: 5);
+      try {
+        final request = await client.headUrl(Uri.parse(downloadUrl));
+        final response = await request.close().timeout(const Duration(seconds: 5));
 
-      final client = HttpClient();
+        if (response.statusCode != 200) {
+          log.w(
+            'Warning: Could not check release date for $name: HTTP ${response.statusCode}',
+          );
+          return null;
+        }
 
-      final request = await client.headUrl(Uri.parse(downloadUrl));
-      final response = await request.close();
+        final lastModified = response.headers.value('last-modified');
+        if (lastModified == null) {
+          log.w('Warning: No Last-Modified header for $name');
+          return null;
+        }
 
-      if (response.statusCode != 200) {
-        log.w(
-          'Warning: Could not check release date for $name: HTTP ${response.statusCode}',
-        );
-        return null;
+        return HttpDate.parse(lastModified);
+      } finally {
+        client.close(force: true);
       }
-
-      final lastModified = response.headers.value('last-modified');
-      if (lastModified == null) {
-        log.w('Warning: No Last-Modified header for $name');
-        return null;
-      }
-
-      final releaseDate = HttpDate.parse(lastModified);
-      return releaseDate;
     } catch (e) {
       log.w('Warning: Failed to check direct release date for $name: $e');
       return null;

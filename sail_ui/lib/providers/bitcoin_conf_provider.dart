@@ -95,10 +95,7 @@ class BitcoinConfProvider extends ChangeNotifier {
 
   void _startPolling() {
     if (Environment.isInTest) return;
-    _pollTimer = Timer.periodic(
-      const Duration(seconds: 5),
-      (_) => loadConfig(),
-    );
+    _pollTimer = Timer.periodic(const Duration(seconds: 5), (_) => loadConfig());
   }
 
   bool _isConnectionError(Object e) {
@@ -109,7 +106,7 @@ class BitcoinConfProvider extends ChangeNotifier {
         msg.contains('Connection terminated');
   }
 
-  Future<void> loadConfig({bool isFirst = false}) async {
+  Future<void> loadConfig({bool isFirst = false, bool userInitiated = false}) async {
     try {
       final resp = await _client.getBitcoinConfig(GetBitcoinConfigRequest());
       final oldNetwork = network;
@@ -128,7 +125,9 @@ class BitcoinConfProvider extends ChangeNotifier {
         currentConfig = BitcoinConfig.parse(resp.configContent);
       }
 
-      if (!isFirst && oldNetwork != network) {
+      // Only a real user switch refreshes per-network state; the 5s poll must
+      // not, or the boot network reconciliation flashes balances.
+      if (!isFirst && userInitiated && oldNetwork != network) {
         _onNetworkChanged();
       }
 
@@ -151,7 +150,7 @@ class BitcoinConfProvider extends ChangeNotifier {
       GetIt.I.get<SyncProvider>().reset();
     }
     if (GetIt.I.isRegistered<WalletReaderProvider>()) {
-      GetIt.I.get<WalletReaderProvider>().clearState();
+      GetIt.I.get<WalletReaderProvider>().reloadForNetworkChange();
     }
   }
 
@@ -160,7 +159,7 @@ class BitcoinConfProvider extends ChangeNotifier {
       await _client.setBitcoinConfigNetwork(
         SetBitcoinConfigNetworkRequest(network: _networkToString(newNetwork)),
       );
-      await loadConfig();
+      await loadConfig(userInitiated: true);
     } on crpc.ConnectException catch (e) {
       if (e.code == crpc.Code.failedPrecondition && e.message.contains('datadir not configured')) {
         throw MissingDatadirException(newNetwork);
@@ -173,10 +172,7 @@ class BitcoinConfProvider extends ChangeNotifier {
     }
   }
 
-  Future<void> swapNetwork(
-    BuildContext context,
-    BitcoinNetwork newNetwork,
-  ) async {
+  Future<void> swapNetwork(BuildContext context, BitcoinNetwork newNetwork) async {
     if (hasPrivateBitcoinConf) return;
     if (network == newNetwork) return;
 
@@ -198,10 +194,7 @@ class BitcoinConfProvider extends ChangeNotifier {
     }
   }
 
-  Future<bool> ensureDataDirForNetwork(
-    BuildContext context,
-    BitcoinNetwork targetNetwork,
-  ) async {
+  Future<bool> ensureDataDirForNetwork(BuildContext context, BitcoinNetwork targetNetwork) async {
     if (!networkRequiresDataDir(targetNetwork) || hasDataDirFor(targetNetwork)) {
       return true;
     }
@@ -228,10 +221,7 @@ class BitcoinConfProvider extends ChangeNotifier {
         network == BitcoinNetwork.BITCOIN_NETWORK_DRYNET;
   }
 
-  Future<void> updateDataDir(
-    String? dataDir, {
-    required BitcoinNetwork forNetwork,
-  }) async {
+  Future<void> updateDataDir(String? dataDir, {required BitcoinNetwork forNetwork}) async {
     try {
       await _client.setBitcoinConfigDataDir(
         SetBitcoinConfigDataDirRequest(
@@ -261,9 +251,7 @@ class BitcoinConfProvider extends ChangeNotifier {
 
   Future<void> writeConfig(String content) async {
     try {
-      await _client.writeBitcoinConfig(
-        WriteBitcoinConfigRequest(configContent: content),
-      );
+      await _client.writeBitcoinConfig(WriteBitcoinConfigRequest(configContent: content));
       await loadConfig();
     } catch (e) {
       log.e('BitcoinConfProvider: failed to write config: $e');

@@ -765,6 +765,9 @@ Future<void> bootBitwindowBackend(Logger log) async {
       await orchestrator.listBinaries();
       log.i('STARTUP: orchestratord is ready');
       orchestratorReady = true;
+      // Backend is up now; load the real network before the UI shows so it
+      // never renders the default one.
+      await GetIt.I.get<BitcoinConfProvider>().loadConfig();
       // SettingsProvider.create ran before orchestratord was up, so the
       // test-sidechains flag may still be the cached/default value. Pull
       // the real one from orchestratord now — BinaryProvider listens to
