@@ -33,7 +33,7 @@ func TestPaymentCode_FromBobMnemonic(t *testing.T) {
 
 // TestPaymentCode_TestnetUsesCoinTypeOne verifies that on a non-mainnet
 // chain, derivation traverses m/47'/1'/0' instead of m/47'/0'/0' — matching
-// BIP44's coin_type convention and Sparrow/Samourai interop.
+// BIP44's coin_type convention.
 func TestPaymentCode_TestnetUsesCoinTypeOne(t *testing.T) {
 	mainnet, err := PaymentCodeFromSeed(aliceSeedHex, &chaincfg.MainNetParams)
 	require.NoError(t, err)

@@ -855,6 +855,30 @@ func (s *Service) CreateWatchOnlyWallet(name, xpubOrDescriptor, gradientJSON str
 	return nil
 }
 
+// SetWalletHardwareDevice tags a watch-only wallet to sign on a USB device.
+func (s *Service) SetWalletHardwareDevice(walletID, deviceType, fingerprint string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.locked() {
+		return fmt.Errorf("wallet is locked")
+	}
+	for i := range s.wallets {
+		if s.wallets[i].ID != walletID {
+			continue
+		}
+		m := map[string]string{}
+		if len(s.wallets[i].WatchOnly) > 0 {
+			_ = json.Unmarshal(s.wallets[i].WatchOnly, &m)
+		}
+		m["hardware_device_type"] = deviceType
+		m["hardware_fingerprint"] = fingerprint
+		blob, _ := json.Marshal(m)
+		s.wallets[i].WatchOnly = json.RawMessage(blob)
+		return s.saveWalletFile()
+	}
+	return fmt.Errorf("wallet %s not found", walletID)
+}
+
 // UpdateWallet updates or adds a wallet and saves to file.
 // Dart: WalletReaderProvider.updateWallet (L570-591)
 func (s *Service) UpdateWallet(wallet WalletData) error {

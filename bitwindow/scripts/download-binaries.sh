@@ -5,9 +5,7 @@ original_cwd=$(pwd)
 assets_dir=$original_cwd/assets/bin
 mkdir -p $assets_dir
 
-# OS detection via `uname -s` — matches the pattern used in bitwindow/justfile.
-# `$OSTYPE` is unreliable on the GitHub Windows runner (sometimes empty),
-# which silently fell through to the else branch and dropped the .exe suffix.
+# uname -s over $OSTYPE, which is empty on the Windows runner.
 case "$(uname -s)" in
     Darwin*)             os=darwin ;;
     MINGW*|MSYS*|CYGWIN*) os=windows ;;
@@ -19,13 +17,7 @@ if [[ "$os" == "windows" ]]; then
     exe=".exe"
 fi
 
-# The macOS app ships ONE frontend that must boot its embedded Go daemons
-# natively on both Apple Silicon and Intel. So in CI (the distributed build)
-# each darwin daemon is built for both arches, suffixed `-arm64` / `-x86_64`;
-# copyBinariesFromAssets picks the host-arch one at launch. Local `just run`
-# only needs the host arch, so build that alone for fast iteration. Other OSes
-# build a single host-arch binary. Suffix tokens match Dart's currentArch()
-# (arm64 / x86_64), not GOARCH.
+# CI builds both macOS arches (suffixed -arm64 / -x86_64); dev builds host only.
 if [[ "$os" == "darwin" ]]; then
     if [[ -n "${CI:-}" ]]; then
         targets=("arm64:arm64" "amd64:x86_64")
@@ -53,18 +45,43 @@ build_orch_tool() {
     (
         cd "$original_cwd/../sidechain-orchestrator"
         [[ -n "$goarch" ]] && export GOARCH="$goarch"
-        # CGO must stay on when cross-compiling amd64 on an arm host (Go defaults
-        # it off for cross builds); macOS clang handles -arch from GOARCH.
+        # Keep CGO on for the amd64-on-arm cross build.
         export CGO_ENABLED=1
-        # Variant builds embed a different default network into orchestratord
-        # (the forknet build defaults to forknet). Only orchestratord has the
-        # defaultNetwork symbol; orchestratorctl is built plain.
+        # Bake the default network into orchestratord only.
         if [[ "$cmd" == "orchestratord" && -n "${BITWINDOW_DEFAULT_NETWORK:-}" ]]; then
             go build -ldflags "-X main.defaultNetwork=${BITWINDOW_DEFAULT_NETWORK}" -o "$out" "./cmd/$cmd"
         else
             go build -o "$out" "./cmd/$cmd"
         fi
     )
+}
+
+# the hwi-daemon is a persistent process to interact with the bitcoin core hwi cli.
+# Built as a standalone binary to be able to cancel ongoing operations etc.
+build_hwi_daemon() {
+    local goarch="$1" out="$2"
+    [[ -f "$out" ]] && { echo "hwi-daemon present ($out)"; return; }
+    if ! command -v python3 >/dev/null 2>&1; then
+        echo "python3 not found; cannot build hwi-daemon" >&2
+        return 1
+    fi
+    local runner=()
+    if [[ "$os" == "darwin" && "$goarch" == "amd64" && "$(uname -m)" == "arm64" ]]; then
+        # Install Rosetta to cross-build the Intel daemon.
+        softwareupdate --install-rosetta --agree-to-license >/dev/null 2>&1 || true
+        runner=(arch -x86_64)
+    fi
+    local script="$original_cwd/../sidechain-orchestrator/hwi-daemon/hwi_daemon.py"
+    local tmp
+    tmp="$(mktemp -d)"
+    echo "Building hwi-daemon (${goarch:-host}) — installs hwi + pyinstaller into a temp venv"
+    "${runner[@]}" python3 -m venv "$tmp/venv"
+    "${runner[@]}" "$tmp/venv/bin/pip" install --quiet --upgrade pip
+    "${runner[@]}" "$tmp/venv/bin/pip" install --quiet "hwi==2.1.1" pyinstaller
+    "${runner[@]}" "$tmp/venv/bin/pyinstaller" --onefile --name hwi-daemon --collect-all hwilib \
+        --distpath "$(dirname "$out")" --workpath "$tmp/build" --specpath "$tmp" "$script"
+    chmod +x "$out" 2>/dev/null || true
+    rm -rf "$tmp"
 }
 
 for target in "${targets[@]}"; do
@@ -77,20 +94,13 @@ for target in "${targets[@]}"; do
     build_bitwindowd "$goarch" "$assets_dir/bitwindowd${sfx}${exe}"
     build_orch_tool  "$goarch" orchestratord   "$assets_dir/orchestratord${sfx}${exe}"
     build_orch_tool  "$goarch" orchestratorctl "$assets_dir/orchestratorctl${sfx}${exe}"
+    build_hwi_daemon "$goarch" "$assets_dir/hwi-daemon${sfx}${exe}"
 done
 
-# On macOS the loop above only writes arch-suffixed names. The release build
-# (build-app.sh) bundles those and resolves the host-arch one at launch via
-# embeddedAssetName. But `just run` execs the daemon straight from the source
-# tree under its plain (no-suffix) name — binaries.dart resolves
-# binDir(Directory.current)/<canonical> — so without a fresh no-suffix copy it
-# silently launches a stale leftover. Stage host-arch copies under the plain
-# names for that dev path. Gated on STAGE_PLAIN_BINARIES (set only by `just
-# run`) rather than CI: the release build calls this script too, and must NOT
-# get a duplicate plain binary bloating the bundle, CI or not.
+# `just run` execs the daemons by their plain names, so stage host-arch copies.
 if [[ "$os" == "darwin" && "${STAGE_PLAIN_BINARIES:-}" == "1" ]]; then
-    host_token="$(uname -m)" # arm64 | x86_64, matches the suffix tokens above
-    for daemon in bitwindowd orchestratord orchestratorctl; do
+    host_token="$(uname -m)"
+    for daemon in bitwindowd orchestratord orchestratorctl hwi-daemon; do
         cp -f "$assets_dir/${daemon}-${host_token}" "$assets_dir/${daemon}"
     done
 fi

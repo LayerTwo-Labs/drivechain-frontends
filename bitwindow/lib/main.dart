@@ -235,6 +235,8 @@ Future<(Directory, File, Logger)> init(String arguments) async {
   GetIt.I.registerLazySingleton<WalletWriterProvider>(() => walletWriter);
   await walletWriter.init();
 
+  GetIt.I.registerSingleton<HwiProvider>(HwiProvider());
+
   GetIt.I.registerLazySingleton<BalanceProvider>(
     () => BalanceProvider(
       connections: [

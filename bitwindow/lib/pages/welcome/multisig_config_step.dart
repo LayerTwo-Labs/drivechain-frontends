@@ -1,8 +1,12 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:math';
 
 import 'package:bitwindow/providers/hd_wallet_provider.dart';
+import 'package:bitwindow/widgets/hardware_device_picker.dart';
 import 'package:bitwindow/widgets/ur_qr_scanner.dart' show urCameraScanSupported;
+import 'package:convert/convert.dart';
+import 'package:crypto/crypto.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -12,13 +16,11 @@ import 'package:sail_ui/gen/multisiglounge/v1/multisiglounge.pb.dart' as mlpb;
 import 'package:sail_ui/gen/walletmanager/v1/walletmanager.pb.dart' as wmpb;
 import 'package:sail_ui/sail_ui.dart';
 
-bool _isMainnet() => GetIt.I.get<BitcoinConfProvider>().network == BitcoinNetwork.BITCOIN_NETWORK_MAINNET;
-
-enum CosignerSource { software, xpub, file, qr }
+enum CosignerSource { software, xpub, file, qr, device }
 
 /// One cosigner in the multisig policy. A key is [isFilled] once it has an xpub.
-/// A cosigner with a [mnemonic] is held on disk and can sign; the rest are
-/// watch-only signed elsewhere.
+/// A cosigner with a [mnemonic] is held on disk and can sign; a cosigner with a
+/// [hardwareDeviceType] signs on a USB device; the rest are signed elsewhere.
 class CosignerKeystore {
   String owner;
   String xpub = '';
@@ -27,6 +29,8 @@ class CosignerKeystore {
   String? originPath; // without leading m/, e.g. 48'/1'/0'/2'
   String? mnemonic; // present => held on disk, this wallet can sign with it
   String? passphrase; // optional BIP39 passphrase for mnemonic
+  String? descriptor; // backend-built single-sig watch descriptor (device/watch-only)
+  String? hardwareDeviceType; // present => signs on a USB device
   bool isWallet = false;
   CosignerSource? source;
 
@@ -34,6 +38,7 @@ class CosignerKeystore {
 
   bool get isFilled => xpub.isNotEmpty;
   bool get held => mnemonic != null && mnemonic!.isNotEmpty;
+  bool get isHardware => hardwareDeviceType != null && hardwareDeviceType!.isNotEmpty;
 }
 
 class MultisigWalletSpec {
@@ -62,9 +67,39 @@ class MultisigWalletSpec {
             fingerprint: c.fingerprint ?? '',
             mnemonic: c.mnemonic ?? '',
             passphrase: c.passphrase ?? '',
+            hardwareDeviceType: c.hardwareDeviceType ?? '',
           ),
         )
         .toList();
+  }
+
+  /// The Coldcard multisig setup file, imported on the device once before
+  /// spending. Null for taproot multisig, which has no Coldcard format.
+  String? coldcardConfig(String walletName) {
+    final format = switch (scriptType) {
+      'sh' => 'P2SH',
+      'sh-wsh' => 'P2SH-P2WSH',
+      'wsh' => 'P2WSH',
+      _ => null,
+    };
+    if (format == null) return null;
+    // Coldcard needs a master fingerprint per cosigner.
+    if (cosigners.any((c) => (c.fingerprint ?? '').isEmpty)) return null;
+    var name = walletName.replaceAll(RegExp(r'[^A-Za-z0-9_]'), '');
+    if (name.isEmpty) name = 'multisig';
+    if (name.length > 20) name = name.substring(0, 20);
+    final b = StringBuffer()
+      ..writeln('# Coldcard Multisig setup file')
+      ..writeln('Name: $name')
+      ..writeln('Policy: $m of $n')
+      ..writeln('Format: $format')
+      ..writeln();
+    for (final c in cosigners) {
+      final path = (c.originPath ?? '').isEmpty ? '' : 'm/${c.originPath}';
+      if (path.isNotEmpty) b.writeln('Derivation: $path');
+      b.writeln('${(c.fingerprint ?? '').toUpperCase()}: ${c.xpub}');
+    }
+    return b.toString();
   }
 }
 
@@ -81,8 +116,36 @@ bool isPlausibleXpub(String input) {
   return (xpub: trimmed, fingerprint: null, originPath: null);
 }
 
+/// The outcome of the create screen: a multisig spec or a single-sig setup.
+class WalletSetupResult {
+  final MultisigWalletSpec? multisig;
+  final SingleSigResult? single;
+  const WalletSetupResult.multisig(MultisigWalletSpec this.multisig) : single = null;
+  const WalletSetupResult.single(SingleSigResult this.single) : multisig = null;
+  bool get isMultisig => multisig != null;
+}
+
+/// A single-sig wallet to create. A [mnemonic] makes a spendable wallet; an
+/// [xpubOrDescriptor] a watch-only or hardware one.
+class SingleSigResult {
+  final String scriptType; // hot-wallet string: native-segwit|nested-segwit|legacy|taproot
+  final String? mnemonic;
+  final String? passphrase;
+  final String? xpubOrDescriptor;
+  final String? hardwareDeviceType;
+  final String? hardwareFingerprint;
+  const SingleSigResult({
+    required this.scriptType,
+    this.mnemonic,
+    this.passphrase,
+    this.xpubOrDescriptor,
+    this.hardwareDeviceType,
+    this.hardwareFingerprint,
+  });
+}
+
 class MultisigConfigStep extends StatefulWidget {
-  final void Function(MultisigWalletSpec spec) onConfigured;
+  final void Function(WalletSetupResult result) onConfigured;
 
   const MultisigConfigStep({required this.onConfigured, super.key});
 
@@ -93,10 +156,13 @@ class MultisigConfigStep extends StatefulWidget {
 class _MultisigConfigStepState extends State<MultisigConfigStep> {
   static const int _maxCosigners = 15;
 
+  String _policy = 'multi'; // single | multi
   int _threshold = 2; // m
   int _total = 3; // n
-  String _scriptType = 'wsh'; // wsh | sh-wsh | sh
+  String _scriptType = 'wsh'; // multi: wsh|sh-wsh|sh|tr; single: wpkh|sh-wpkh|pkh|tr
   int _selectedTab = 0;
+
+  bool get _isSingle => _policy == 'single';
   bool _building = false;
   String? _error;
   late List<CosignerKeystore> _keystores;
@@ -105,6 +171,8 @@ class _MultisigConfigStepState extends State<MultisigConfigStep> {
   void initState() {
     super.initState();
     _keystores = List.generate(_total, (i) => CosignerKeystore(owner: 'Keystore ${i + 1}'));
+    // Warm up hardware-device enumeration so the picker opens without a spinner.
+    prefetchHardwareDevices();
   }
 
   void _onSliderChanged(RangeValues v) {
@@ -134,6 +202,15 @@ class _MultisigConfigStepState extends State<MultisigConfigStep> {
       if (!k.isFilled) return k.owner.replaceAll(' ', '');
       return '${k.xpub.substring(0, 8)}…';
     });
+    if (_isSingle) {
+      final key = parts.first;
+      return switch (_scriptType) {
+        'pkh' => 'pkh($key)',
+        'sh-wpkh' => 'sh(wpkh($key))',
+        'tr' => 'tr($key)',
+        _ => 'wpkh($key)',
+      };
+    }
     if (_scriptType == 'tr') {
       return 'tr(sortedmulti_a($_threshold,${parts.join(',')}))';
     }
@@ -163,6 +240,24 @@ class _MultisigConfigStepState extends State<MultisigConfigStep> {
       return;
     }
 
+    if (_isSingle) {
+      final k = _keystores.first;
+      final descriptor = (k.descriptor ?? '').isNotEmpty ? k.descriptor : k.xpub;
+      widget.onConfigured(
+        WalletSetupResult.single(
+          (k.mnemonic ?? '').isNotEmpty
+              ? SingleSigResult(scriptType: _singleHotScriptType(), mnemonic: k.mnemonic, passphrase: k.passphrase)
+              : SingleSigResult(
+                  scriptType: _singleHotScriptType(),
+                  xpubOrDescriptor: descriptor,
+                  hardwareDeviceType: k.hardwareDeviceType,
+                  hardwareFingerprint: k.fingerprint,
+                ),
+        ),
+      );
+      return;
+    }
+
     setState(() => _building = true);
     try {
       final group = mlpb.MultisigGroup(
@@ -184,13 +279,15 @@ class _MultisigConfigStepState extends State<MultisigConfigStep> {
         scriptType: _scriptType,
       );
       widget.onConfigured(
-        MultisigWalletSpec(
-          m: _threshold,
-          n: _total,
-          scriptType: _scriptType,
-          cosigners: List.of(_keystores),
-          receiveDescriptor: resp.receiveDescriptor,
-          changeDescriptor: resp.changeDescriptor,
+        WalletSetupResult.multisig(
+          MultisigWalletSpec(
+            m: _threshold,
+            n: _total,
+            scriptType: _scriptType,
+            cosigners: List.of(_keystores),
+            receiveDescriptor: resp.receiveDescriptor,
+            changeDescriptor: resp.changeDescriptor,
+          ),
         ),
       );
     } catch (e) {
@@ -199,6 +296,14 @@ class _MultisigConfigStepState extends State<MultisigConfigStep> {
       if (mounted) setState(() => _building = false);
     }
   }
+
+  // Maps the single-sig script dropdown value to the backend's hot-wallet string.
+  String _singleHotScriptType() => switch (_scriptType) {
+    'pkh' => 'legacy',
+    'sh-wpkh' => 'nested-segwit',
+    'tr' => 'taproot',
+    _ => 'native-segwit',
+  };
 
   void _setKeystore(int index, CosignerKeystore k) {
     setState(() => _keystores[index] = k);
@@ -218,11 +323,14 @@ class _MultisigConfigStepState extends State<MultisigConfigStep> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              SailText.primary24('Create a multisig wallet', bold: true),
+              SailText.primary24(_isSingle ? 'Create a wallet' : 'Create a multisig wallet', bold: true),
               const SizedBox(height: 4),
               SailText.secondary13(
-                'Add a keystore for each cosigner. Software keystores hold their seed on disk and sign here; '
-                'the rest are signed elsewhere. Importable into Bitcoin Core and Sparrow.',
+                _isSingle
+                    ? 'Choose how this wallet holds its key: generate or import a seed, watch an xpub, or use a '
+                          'hardware wallet.'
+                    : 'Add a keystore for each cosigner. Software keystores hold their seed on disk and sign here; '
+                          'the rest are signed elsewhere. Importable into Bitcoin Core and Sparrow.',
               ),
               const SizedBox(height: 24),
               _settingsSection(context),
@@ -272,31 +380,34 @@ class _MultisigConfigStepState extends State<MultisigConfigStep> {
               ),
             ),
             const SizedBox(width: 32),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  SailText.secondary13('Cosigners'),
-                  const SizedBox(height: 4),
-                  SliderTheme(
-                    data: SliderThemeData(
-                      activeTrackColor: SailTheme.of(context).colors.primary,
-                      thumbColor: SailTheme.of(context).colors.primary,
+            if (!_isSingle)
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    SailText.secondary13('Cosigners'),
+                    const SizedBox(height: 4),
+                    SliderTheme(
+                      data: SliderThemeData(
+                        activeTrackColor: SailTheme.of(context).colors.primary,
+                        thumbColor: SailTheme.of(context).colors.primary,
+                      ),
+                      child: RangeSlider(
+                        min: 1,
+                        max: _maxCosigners.toDouble(),
+                        divisions: _maxCosigners - 1,
+                        values: RangeValues(_threshold.toDouble(), _total.toDouble()),
+                        labels: RangeLabels('$_threshold', '$_total'),
+                        onChanged: _onSliderChanged,
+                      ),
                     ),
-                    child: RangeSlider(
-                      min: 1,
-                      max: _maxCosigners.toDouble(),
-                      divisions: _maxCosigners - 1,
-                      values: RangeValues(_threshold.toDouble(), _total.toDouble()),
-                      labels: RangeLabels('$_threshold', '$_total'),
-                      onChanged: _onSliderChanged,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  SailText.primary15('M of N:  $_threshold / $_total', bold: true),
-                ],
-              ),
-            ),
+                    const SizedBox(height: 4),
+                    SailText.primary15('M of N:  $_threshold / $_total', bold: true),
+                  ],
+                ),
+              )
+            else
+              const Expanded(child: SizedBox()),
           ],
         ),
       ),
@@ -314,35 +425,51 @@ class _MultisigConfigStepState extends State<MultisigConfigStep> {
 
   Widget _policyDropdown(BuildContext context) {
     return SailDropdownButton<String>(
-      value: 'multi',
+      value: _policy,
       onChanged: (v) async {
-        if (v == 'single') {
-          showSailToast(
-            context,
-            'Use the single-signature wallet flow instead',
-            variant: SailToastVariant.info,
-          );
-        }
+        if (v == null || v == _policy) return;
+        setState(() {
+          _policy = v;
+          if (_isSingle) {
+            _threshold = 1;
+            _total = 1;
+            _scriptType = 'wpkh';
+          } else {
+            _threshold = 2;
+            _total = 3;
+            _scriptType = 'wsh';
+          }
+          _selectedTab = 0;
+          _resizeKeystores();
+        });
       },
       items: const [
-        SailDropdownItem<String>(value: 'multi', label: 'Multi Signature'),
         SailDropdownItem<String>(value: 'single', label: 'Single Signature'),
+        SailDropdownItem<String>(value: 'multi', label: 'Multi Signature'),
       ],
     );
   }
 
   Widget _scriptDropdown(BuildContext context) {
+    final items = _isSingle
+        ? const [
+            SailDropdownItem<String>(value: 'wpkh', label: 'Native Segwit (P2WPKH)'),
+            SailDropdownItem<String>(value: 'tr', label: 'Taproot (P2TR)'),
+            SailDropdownItem<String>(value: 'sh-wpkh', label: 'Nested Segwit (P2SH-P2WPKH)'),
+            SailDropdownItem<String>(value: 'pkh', label: 'Legacy (P2PKH)'),
+          ]
+        : const [
+            SailDropdownItem<String>(value: 'wsh', label: 'Native Segwit (P2WSH)'),
+            SailDropdownItem<String>(value: 'tr', label: 'Taproot (P2TR)'),
+            SailDropdownItem<String>(value: 'sh-wsh', label: 'Nested Segwit (P2SH-P2WSH)'),
+            SailDropdownItem<String>(value: 'sh', label: 'Legacy (P2SH)'),
+          ];
     return SailDropdownButton<String>(
       value: _scriptType,
       onChanged: (v) async {
         if (v != null) setState(() => _scriptType = v);
       },
-      items: const [
-        SailDropdownItem<String>(value: 'wsh', label: 'Native Segwit (P2WSH)'),
-        SailDropdownItem<String>(value: 'tr', label: 'Taproot (P2TR)'),
-        SailDropdownItem<String>(value: 'sh-wsh', label: 'Nested Segwit (P2SH-P2WSH)'),
-        SailDropdownItem<String>(value: 'sh', label: 'Legacy (P2SH)'),
-      ],
+      items: items,
     );
   }
 
@@ -527,6 +654,18 @@ class _MultisigConfigStepState extends State<MultisigConfigStep> {
     return _sourcePicker(context, index);
   }
 
+  String _badgeLabel(CosignerKeystore k) {
+    if (k.held) return 'On disk (can sign)';
+    if (k.isHardware) return 'Hardware (${k.hardwareDeviceType})';
+    return 'Watch-only';
+  }
+
+  Color _badgeColor(SailThemeData theme, CosignerKeystore k) {
+    if (k.held) return theme.colors.primary;
+    if (k.isHardware) return theme.colors.success;
+    return theme.colors.orange;
+  }
+
   Widget _filledKeystore(BuildContext context, int index, CosignerKeystore k) {
     final theme = SailTheme.of(context);
     return SailCard(
@@ -544,15 +683,10 @@ class _MultisigConfigStepState extends State<MultisigConfigStep> {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                     decoration: BoxDecoration(
-                      color: (k.held ? theme.colors.primary : theme.colors.orange).withValues(
-                        alpha: 0.1,
-                      ),
+                      color: _badgeColor(theme, k).withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(4),
                     ),
-                    child: SailText.secondary12(
-                      k.held ? 'On disk (can sign)' : 'Watch-only',
-                      color: k.held ? theme.colors.primary : theme.colors.orange,
-                    ),
+                    child: SailText.secondary12(_badgeLabel(k), color: _badgeColor(theme, k)),
                   ),
                 ],
               ),
@@ -607,6 +741,13 @@ class _MultisigConfigStepState extends State<MultisigConfigStep> {
           enabled: urCameraScanSupported,
           onTap: () async => _addFromQr(context, index),
         ),
+        _sourceCard(
+          context,
+          icon: SailSVGAsset.iconWallet,
+          title: 'Hardware Wallet',
+          subtitle: 'Trezor, Ledger, Coldcard over USB',
+          onTap: () async => _addFromDevice(context, index),
+        ),
       ],
     );
   }
@@ -651,14 +792,30 @@ class _MultisigConfigStepState extends State<MultisigConfigStep> {
   // Derivation path for the chosen script type (BIP48 script-type level for
   // segwit, BIP45 for legacy P2SH). The slot index is the account, so each
   // software keystore gets a distinct key.
-  String _bip48Path(int index, bool mainnet) {
-    final coin = mainnet ? "0'" : "1'";
-    return switch (_scriptType) {
-      'sh' => "m/45'/$index'",
-      'sh-wsh' => "m/48'/$coin/$index'/1'",
-      'tr' => "m/48'/$coin/$index'/3'",
-      _ => "m/48'/$coin/$index'/2'",
-    };
+
+  // The backend derives the account key material. Account = the slot index so
+  // each keystore key is distinct.
+  Future<wmpb.DeriveKeystoreResponse?> _derive(
+    int index, {
+    String? mnemonic,
+    String? passphrase,
+    wmpb.HardwareDeviceSelector? device,
+    String? rawKey,
+  }) async {
+    try {
+      return await GetIt.I.get<OrchestratorRPC>().wallet.deriveKeystore(
+        mnemonic: mnemonic,
+        passphrase: passphrase,
+        device: device,
+        rawKey: rawKey,
+        scriptType: _scriptType,
+        multisig: !_isSingle,
+        account: index,
+      );
+    } catch (e) {
+      setState(() => _error = 'Failed to derive key: $e');
+      return null;
+    }
   }
 
   Future<void> _addSoftwareKeystore(BuildContext context, int index) async {
@@ -669,29 +826,18 @@ class _MultisigConfigStepState extends State<MultisigConfigStep> {
     );
     if (seed == null || seed.mnemonic.isEmpty) return;
 
-    // Derive the cosigner's account xpub from the seed + passphrase, so the xpub
-    // matches the backend's MnemonicToSeed(mnemonic, passphrase).
-    final hd = GetIt.I.get<HDWalletProvider>();
-    final mainnet = _isMainnet();
-    final path = _bip48Path(index, mainnet);
-    final info = await hd.deriveExtendedKeyInfo(seed.mnemonic, path, mainnet, seed.passphrase);
-    final xpub = info['xpub'];
-    if (xpub == null || xpub.isEmpty) {
-      setState(() => _error = 'Failed to derive a key from that seed');
-      return;
-    }
-    // Use the path the key was actually derived from, so the stored origin can
-    // never disagree with the derived xpub (and the exported descriptor).
-    final derivedPath = info['derivation_path'] ?? path;
+    final derived = await _derive(index, mnemonic: seed.mnemonic, passphrase: seed.passphrase);
+    if (derived == null) return;
     _setKeystore(
       index,
       CosignerKeystore(owner: 'Keystore ${index + 1}')
-        ..xpub = xpub
+        ..xpub = derived.xpub
         ..mnemonic = seed.mnemonic
         ..passphrase = seed.passphrase.isEmpty ? null : seed.passphrase
-        ..derivationPath = derivedPath
-        ..originPath = derivedPath.startsWith('m/') ? derivedPath.substring(2) : derivedPath
-        ..fingerprint = info['fingerprint']
+        ..derivationPath = 'm/${derived.originPath}'
+        ..originPath = derived.originPath
+        ..fingerprint = derived.fingerprint
+        ..descriptor = derived.descriptor.isEmpty ? null : derived.descriptor
         ..isWallet = true
         ..source = CosignerSource.software,
     );
@@ -747,6 +893,35 @@ class _MultisigConfigStepState extends State<MultisigConfigStep> {
     }
     _setKeystore(index, k);
   }
+
+  Future<void> _addFromDevice(BuildContext context, int index) async {
+    setState(() => _error = null);
+    final device = await showHardwareDevicePicker(context);
+    if (device == null) return;
+
+    final derived = await _derive(
+      index,
+      device: wmpb.HardwareDeviceSelector(
+        type: device.type,
+        path: device.path,
+        fingerprint: device.fingerprint,
+        passphrase: hardwareDevicePassphrase(device.path),
+      ),
+    );
+    if (derived == null) return;
+    _setKeystore(
+      index,
+      CosignerKeystore(owner: device.model.isNotEmpty ? device.model : 'Keystore ${index + 1}')
+        ..xpub = derived.xpub
+        ..derivationPath = 'm/${derived.originPath}'
+        ..originPath = derived.originPath
+        ..fingerprint = derived.fingerprint
+        ..descriptor = derived.descriptor.isEmpty ? null : derived.descriptor
+        ..hardwareDeviceType = device.type
+        ..isWallet = false
+        ..source = CosignerSource.device,
+    );
+  }
 }
 
 /// Builds a keystore from a raw "[fp/origin]xpub" or bare xpub string, or null
@@ -790,6 +965,7 @@ Future<void> showMultisigExportDialog(
   BuildContext context, {
   required String receive,
   required String change,
+  String? coldcardConfig,
 }) {
   final importCommand =
       "importdescriptors '["
@@ -852,6 +1028,34 @@ Future<void> showMultisigExportDialog(
                     field('Receive descriptor', receive),
                     field('Change descriptor', change),
                     field('Bitcoin Core import', importCommand),
+                    if (coldcardConfig != null) ...[
+                      field('Coldcard multisig setup', coldcardConfig),
+                      SailText.secondary12(
+                        'Save this and import it on the Coldcard once (Settings → Multisig Wallets → '
+                        'Import). Required before the Coldcard will sign.',
+                      ),
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: SailButton(
+                          label: 'Save Coldcard file',
+                          variant: ButtonVariant.secondary,
+                          small: true,
+                          onPressed: () async {
+                            final p = await FilePicker.saveFile(
+                              dialogTitle: 'Save Coldcard multisig file',
+                              fileName: 'multisig-coldcard.txt',
+                              type: FileType.custom,
+                              allowedExtensions: ['txt'],
+                            );
+                            if (p == null) return;
+                            await File(p).writeAsString(coldcardConfig);
+                            if (context.mounted) {
+                              showSailToast(context, 'Saved', variant: SailToastVariant.success);
+                            }
+                          },
+                        ),
+                      ),
+                    ],
                   ],
                 ),
               ),
@@ -888,10 +1092,14 @@ class _SoftwareKeystoreDialog extends StatefulWidget {
 
 class _SoftwareKeystoreDialogState extends State<_SoftwareKeystoreDialog> {
   HDWalletProvider get _hd => GetIt.I.get<HDWalletProvider>();
+  WalletWriterProvider get _writer => GetIt.I.get<WalletWriterProvider>();
   final TextEditingController _import = TextEditingController();
   final TextEditingController _passphrase = TextEditingController();
+  final TextEditingController _entropy = TextEditingController();
   String? _generated;
   bool _busy = false;
+  bool _paranoid = false;
+  bool _isHexMode = false;
   String? _error;
 
   @override
@@ -904,6 +1112,7 @@ class _SoftwareKeystoreDialogState extends State<_SoftwareKeystoreDialog> {
   void dispose() {
     _import.dispose();
     _passphrase.dispose();
+    _entropy.dispose();
     super.dispose();
   }
 
@@ -935,6 +1144,50 @@ class _SoftwareKeystoreDialogState extends State<_SoftwareKeystoreDialog> {
     }
   }
 
+  List<int> _entropyFromHex(String s) {
+    final padded = s.trim().padRight(((s.length + 31) ~/ 32) * 32, '0');
+    return hex.decode(padded);
+  }
+
+  Future<void> _createFromEntropy() async {
+    final input = _entropy.text.trim();
+    if (input.isEmpty) {
+      setState(() => _error = 'Enter some entropy first');
+      return;
+    }
+    if (_isHexMode && (!RegExp(r'^[0-9a-fA-F]+$').hasMatch(input) || input.length > 64)) {
+      setState(() => _error = 'Enter up to 64 hex characters (0-9, A-F)');
+      return;
+    }
+    setState(() {
+      _busy = true;
+      _error = null;
+    });
+    try {
+      final entropy = _isHexMode ? _entropyFromHex(input) : sha256.convert(utf8.encode(input)).bytes.sublist(0, 16);
+      final wallet = await _writer.generateWalletFromEntropy(entropy, doNotSave: true);
+      final m = wallet['mnemonic'] as String?;
+      if (m == null || m.isEmpty) {
+        setState(() => _error = 'Failed to derive a seed from that entropy');
+        return;
+      }
+      setState(() => _generated = m);
+    } catch (e) {
+      setState(() => _error = 'Error deriving seed: $e');
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  void _randomEntropy() {
+    final rng = Random.secure();
+    final bytes = List.generate(16, (_) => rng.nextInt(256));
+    setState(() {
+      _isHexMode = true;
+      _entropy.text = hex.encode(bytes);
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return SailModal(
@@ -947,7 +1200,7 @@ class _SoftwareKeystoreDialogState extends State<_SoftwareKeystoreDialog> {
           spacing: SailStyleValues.padding16,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            if (_generated == null) ...[
+            if (_generated == null && !_paranoid) ...[
               SailTextField(
                 label: 'Import an existing seed phrase',
                 controller: _import,
@@ -961,13 +1214,23 @@ class _SoftwareKeystoreDialogState extends State<_SoftwareKeystoreDialog> {
                 children: [
                   SailButton(
                     label: 'Generate new seed',
-                    variant: ButtonVariant.secondary,
+                    variant: ButtonVariant.primary,
                     loading: _busy,
                     onPressed: () async => _generate(),
+                  ),
+                  const SizedBox(width: 8),
+                  SailButton(
+                    label: 'Paranoid mode',
+                    variant: ButtonVariant.ghost,
+                    onPressed: () async => setState(() {
+                      _paranoid = true;
+                      _error = null;
+                    }),
                   ),
                   const Spacer(),
                   SailButton(
                     label: 'Import',
+                    variant: ButtonVariant.secondary,
                     disabled: !_isValidMnemonic(_import.text),
                     onPressed: () async {
                       if (!_isValidMnemonic(_import.text)) {
@@ -978,6 +1241,54 @@ class _SoftwareKeystoreDialogState extends State<_SoftwareKeystoreDialog> {
                         context,
                       ).pop(SoftwareSeed(_import.text.trim(), _passphrase.text));
                     },
+                  ),
+                ],
+              ),
+            ] else if (_generated == null && _paranoid) ...[
+              SailText.secondary13(
+                'Provide your own entropy instead of trusting the generator. This becomes your seed.',
+              ),
+              Row(
+                children: [
+                  SailText.primary13('Custom entropy'),
+                  const SizedBox(width: 12),
+                  SailCheckbox(
+                    value: _isHexMode,
+                    onChanged: (v) => setState(() {
+                      _isHexMode = v;
+                      _entropy.clear();
+                    }),
+                    label: 'Hex',
+                  ),
+                ],
+              ),
+              SailTextField(
+                controller: _entropy,
+                hintText: _isHexMode ? 'Up to 64 hex characters (16-32 bytes)' : 'Type text to hash into entropy',
+                size: TextFieldSize.small,
+              ),
+              _passphraseField(),
+              Row(
+                children: [
+                  SailButton(
+                    label: 'Back',
+                    variant: ButtonVariant.ghost,
+                    onPressed: () async => setState(() {
+                      _paranoid = false;
+                      _error = null;
+                    }),
+                  ),
+                  const SizedBox(width: 8),
+                  SailButton(
+                    label: 'Random',
+                    variant: ButtonVariant.secondary,
+                    onPressed: () async => _randomEntropy(),
+                  ),
+                  const Spacer(),
+                  SailButton(
+                    label: 'Create seed',
+                    loading: _busy,
+                    onPressed: () async => _createFromEntropy(),
                   ),
                 ],
               ),
@@ -993,7 +1304,7 @@ class _SoftwareKeystoreDialogState extends State<_SoftwareKeystoreDialog> {
                   color: SailTheme.of(context).colors.backgroundSecondary,
                   borderRadius: BorderRadius.circular(6),
                 ),
-                child: SailText.primary13(_generated!, monospace: true),
+                child: SailText.primary13(_generated!, monospace: true, overflow: TextOverflow.visible),
               ),
               _passphraseField(),
               Row(

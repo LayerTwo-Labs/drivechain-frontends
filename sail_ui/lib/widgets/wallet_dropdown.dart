@@ -8,6 +8,7 @@ class WalletDropdown extends StatelessWidget {
   final Function(String walletId) onWalletSelected;
   final VoidCallback onCreateWallet;
   final Function(String walletId, String newBackgroundSvg)? onBackgroundChanged;
+  final Function(WalletMetadata wallet)? onEditWallet;
 
   const WalletDropdown({
     super.key,
@@ -16,6 +17,7 @@ class WalletDropdown extends StatelessWidget {
     required this.onWalletSelected,
     required this.onCreateWallet,
     this.onBackgroundChanged,
+    this.onEditWallet,
   });
 
   @override
@@ -51,6 +53,14 @@ class WalletDropdown extends StatelessWidget {
                     ),
                     const SizedBox(width: 12),
                     SailText.primary13(wallet.name),
+                    if (onEditWallet != null) ...[
+                      const Spacer(),
+                      GestureDetector(
+                        behavior: HitTestBehavior.opaque,
+                        onTap: () => onEditWallet!(wallet),
+                        child: Icon(Icons.edit, size: 16, color: theme.colors.primary),
+                      ),
+                    ],
                   ],
                 ),
               ),

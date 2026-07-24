@@ -68,6 +68,31 @@ func addBip32Derivations(in *psbt.PInput, out *psbt.POutput, kind ScriptKind, ds
 	}
 }
 
+// multisigGlobalXpubs returns PSBT global xpub records for every cosigner, which
+// hardware signers need to register the multisig. Nil for single-key descriptors.
+func multisigGlobalXpubs(d *Descriptor) []psbt.XPub {
+	if len(d.Keys) < 2 {
+		return nil
+	}
+	xpubs := make([]psbt.XPub, 0, len(d.Keys))
+	for _, k := range d.Keys {
+		fp, path, ok := parseOrigin(k.Origin)
+		if !ok {
+			continue
+		}
+		pub, err := k.Account.Neuter()
+		if err != nil {
+			continue
+		}
+		xpubs = append(xpubs, psbt.XPub{
+			ExtendedKey:          psbt.EncodeExtendedKey(pub),
+			MasterKeyFingerprint: fp,
+			Bip32Path:            path,
+		})
+	}
+	return xpubs
+}
+
 // prevTxFunc fetches a previous transaction by txid — needed to populate the
 // non-witness UTXO for legacy (P2PKH) inputs.
 type prevTxFunc func(txid string) (*wire.MsgTx, error)
@@ -128,8 +153,16 @@ func buildPSBT(inputs []psbtInput, outputs []TxOutSpec, net *chaincfg.Params, pr
 			if err := updater.AddInNonWitnessUtxo(pt, i); err != nil {
 				return nil, err
 			}
-		} else if err := updater.AddInWitnessUtxo(wire.NewTxOut(in.amount, in.addr.scriptPubKey), i); err != nil {
-			return nil, err
+		} else {
+			if err := updater.AddInWitnessUtxo(wire.NewTxOut(in.amount, in.addr.scriptPubKey), i); err != nil {
+				return nil, err
+			}
+			// Trezor verifies every input against its full previous transaction.
+			if prevTx != nil {
+				if pt, err := prevTx(in.outpoint.Hash.String()); err == nil {
+					_ = updater.AddInNonWitnessUtxo(pt, i)
+				}
+			}
 		}
 
 		if in.addr.redeem != nil {

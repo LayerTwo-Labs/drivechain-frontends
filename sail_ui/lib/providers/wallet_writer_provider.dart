@@ -103,6 +103,8 @@ class WalletWriterProvider extends ChangeNotifier {
     String? scriptType,
     int account = 0,
     String? derivationPath,
+    String? hardwareDeviceType,
+    String? hardwareFingerprint,
   }) async {
     try {
       final resp = await _client.createElectrumWallet(
@@ -113,6 +115,8 @@ class WalletWriterProvider extends ChangeNotifier {
         scriptType: scriptType,
         account: account,
         derivationPath: derivationPath,
+        hardwareDeviceType: hardwareDeviceType,
+        hardwareFingerprint: hardwareFingerprint,
       );
 
       _logger.i('createElectrumWallet: created via backend, id=${resp.walletId}');

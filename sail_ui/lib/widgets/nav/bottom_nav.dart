@@ -58,6 +58,7 @@ class BottomNav extends StatelessWidget {
                 );
               },
             ),
+            const _BalanceRefreshButton(),
             if (balanceEndWidgets.isNotEmpty) ...[
               const SailSpacing(SailStyleValues.padding08),
               ...balanceEndWidgets,
@@ -857,6 +858,46 @@ class ElectrumScanStatus extends StatelessWidget {
           ),
         );
       },
+    );
+  }
+}
+
+class _BalanceRefreshButton extends StatefulWidget {
+  const _BalanceRefreshButton();
+
+  @override
+  State<_BalanceRefreshButton> createState() => _BalanceRefreshButtonState();
+}
+
+class _BalanceRefreshButtonState extends State<_BalanceRefreshButton> {
+  bool _busy = false;
+
+  Future<void> _refresh() async {
+    if (_busy) return;
+    setState(() => _busy = true);
+    try {
+      await GetIt.I.get<OrchestratorRPC>().wallet.rescanWallet();
+      await GetIt.I.get<BalanceProvider>().fetch();
+    } catch (_) {
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = SailTheme.of(context);
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: SailStyleValues.padding04),
+      child: _busy
+          ? const SizedBox(width: 12, height: 12, child: CircularProgressIndicator(strokeWidth: 2))
+          : SailTappable(
+              onTap: _refresh,
+              child: Tooltip(
+                message: 'Refresh balance',
+                child: SailSVG.icon(SailSVGAsset.iconRestart, width: 14, color: theme.colors.textSecondary),
+              ),
+            ),
     );
   }
 }

@@ -172,6 +172,20 @@ abstract final class WalletManagerService {
     walletmanagerv1walletmanager.GetBalanceResponse.new,
   );
 
+  static const rescanWallet = connect.Spec(
+    '/$name/RescanWallet',
+    connect.StreamType.unary,
+    walletmanagerv1walletmanager.RescanWalletRequest.new,
+    walletmanagerv1walletmanager.RescanWalletResponse.new,
+  );
+
+  static const estimateFee = connect.Spec(
+    '/$name/EstimateFee',
+    connect.StreamType.unary,
+    walletmanagerv1walletmanager.EstimateFeeRequest.new,
+    walletmanagerv1walletmanager.EstimateFeeResponse.new,
+  );
+
   static const getNewAddress = connect.Spec(
     '/$name/GetNewAddress',
     connect.StreamType.unary,
@@ -301,6 +315,59 @@ abstract final class WalletManagerService {
     connect.StreamType.unary,
     walletmanagerv1walletmanager.BroadcastTransactionRequest.new,
     walletmanagerv1walletmanager.BroadcastTransactionResponse.new,
+  );
+
+  /// USB hardware wallets.
+  static const enumerateHardwareDevices = connect.Spec(
+    '/$name/EnumerateHardwareDevices',
+    connect.StreamType.unary,
+    walletmanagerv1walletmanager.EnumerateHardwareDevicesRequest.new,
+    walletmanagerv1walletmanager.EnumerateHardwareDevicesResponse.new,
+  );
+
+  static const getHardwareXpub = connect.Spec(
+    '/$name/GetHardwareXpub',
+    connect.StreamType.unary,
+    walletmanagerv1walletmanager.GetHardwareXpubRequest.new,
+    walletmanagerv1walletmanager.GetHardwareXpubResponse.new,
+  );
+
+  static const signPsbtWithDevice = connect.Spec(
+    '/$name/SignPsbtWithDevice',
+    connect.StreamType.unary,
+    walletmanagerv1walletmanager.SignPsbtWithDeviceRequest.new,
+    walletmanagerv1walletmanager.SignPsbtWithDeviceResponse.new,
+  );
+
+  /// PromptDevicePin shows the PIN matrix; SendDevicePin unlocks with it.
+  static const promptDevicePin = connect.Spec(
+    '/$name/PromptDevicePin',
+    connect.StreamType.unary,
+    walletmanagerv1walletmanager.PromptDevicePinRequest.new,
+    walletmanagerv1walletmanager.PromptDevicePinResponse.new,
+  );
+
+  static const sendDevicePin = connect.Spec(
+    '/$name/SendDevicePin',
+    connect.StreamType.unary,
+    walletmanagerv1walletmanager.SendDevicePinRequest.new,
+    walletmanagerv1walletmanager.SendDevicePinResponse.new,
+  );
+
+  /// CloseDevice releases the device so the next enumerate isn't blocked.
+  static const closeDevice = connect.Spec(
+    '/$name/CloseDevice',
+    connect.StreamType.unary,
+    walletmanagerv1walletmanager.CloseDeviceRequest.new,
+    walletmanagerv1walletmanager.CloseDeviceResponse.new,
+  );
+
+  /// DeriveKeystore turns a keystore's intent into derived account key material.
+  static const deriveKeystore = connect.Spec(
+    '/$name/DeriveKeystore',
+    connect.StreamType.unary,
+    walletmanagerv1walletmanager.DeriveKeystoreRequest.new,
+    walletmanagerv1walletmanager.DeriveKeystoreResponse.new,
   );
 
   /// Seed access for cheque engine

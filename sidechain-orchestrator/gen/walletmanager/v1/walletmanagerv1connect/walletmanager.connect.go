@@ -100,6 +100,12 @@ const (
 	// WalletManagerServiceGetBalanceProcedure is the fully-qualified name of the WalletManagerService's
 	// GetBalance RPC.
 	WalletManagerServiceGetBalanceProcedure = "/walletmanager.v1.WalletManagerService/GetBalance"
+	// WalletManagerServiceRescanWalletProcedure is the fully-qualified name of the
+	// WalletManagerService's RescanWallet RPC.
+	WalletManagerServiceRescanWalletProcedure = "/walletmanager.v1.WalletManagerService/RescanWallet"
+	// WalletManagerServiceEstimateFeeProcedure is the fully-qualified name of the
+	// WalletManagerService's EstimateFee RPC.
+	WalletManagerServiceEstimateFeeProcedure = "/walletmanager.v1.WalletManagerService/EstimateFee"
 	// WalletManagerServiceGetNewAddressProcedure is the fully-qualified name of the
 	// WalletManagerService's GetNewAddress RPC.
 	WalletManagerServiceGetNewAddressProcedure = "/walletmanager.v1.WalletManagerService/GetNewAddress"
@@ -151,6 +157,27 @@ const (
 	// WalletManagerServiceBroadcastTransactionProcedure is the fully-qualified name of the
 	// WalletManagerService's BroadcastTransaction RPC.
 	WalletManagerServiceBroadcastTransactionProcedure = "/walletmanager.v1.WalletManagerService/BroadcastTransaction"
+	// WalletManagerServiceEnumerateHardwareDevicesProcedure is the fully-qualified name of the
+	// WalletManagerService's EnumerateHardwareDevices RPC.
+	WalletManagerServiceEnumerateHardwareDevicesProcedure = "/walletmanager.v1.WalletManagerService/EnumerateHardwareDevices"
+	// WalletManagerServiceGetHardwareXpubProcedure is the fully-qualified name of the
+	// WalletManagerService's GetHardwareXpub RPC.
+	WalletManagerServiceGetHardwareXpubProcedure = "/walletmanager.v1.WalletManagerService/GetHardwareXpub"
+	// WalletManagerServiceSignPsbtWithDeviceProcedure is the fully-qualified name of the
+	// WalletManagerService's SignPsbtWithDevice RPC.
+	WalletManagerServiceSignPsbtWithDeviceProcedure = "/walletmanager.v1.WalletManagerService/SignPsbtWithDevice"
+	// WalletManagerServicePromptDevicePinProcedure is the fully-qualified name of the
+	// WalletManagerService's PromptDevicePin RPC.
+	WalletManagerServicePromptDevicePinProcedure = "/walletmanager.v1.WalletManagerService/PromptDevicePin"
+	// WalletManagerServiceSendDevicePinProcedure is the fully-qualified name of the
+	// WalletManagerService's SendDevicePin RPC.
+	WalletManagerServiceSendDevicePinProcedure = "/walletmanager.v1.WalletManagerService/SendDevicePin"
+	// WalletManagerServiceCloseDeviceProcedure is the fully-qualified name of the
+	// WalletManagerService's CloseDevice RPC.
+	WalletManagerServiceCloseDeviceProcedure = "/walletmanager.v1.WalletManagerService/CloseDevice"
+	// WalletManagerServiceDeriveKeystoreProcedure is the fully-qualified name of the
+	// WalletManagerService's DeriveKeystore RPC.
+	WalletManagerServiceDeriveKeystoreProcedure = "/walletmanager.v1.WalletManagerService/DeriveKeystore"
 	// WalletManagerServiceGetWalletSeedProcedure is the fully-qualified name of the
 	// WalletManagerService's GetWalletSeed RPC.
 	WalletManagerServiceGetWalletSeedProcedure = "/walletmanager.v1.WalletManagerService/GetWalletSeed"
@@ -217,6 +244,8 @@ type WalletManagerServiceClient interface {
 	EnsureCoreWallets(context.Context, *connect.Request[v1.EnsureCoreWalletsRequest]) (*connect.Response[v1.EnsureCoreWalletsResponse], error)
 	// Bitcoin operations (proxied through Core RPC)
 	GetBalance(context.Context, *connect.Request[v1.GetBalanceRequest]) (*connect.Response[v1.GetBalanceResponse], error)
+	RescanWallet(context.Context, *connect.Request[v1.RescanWalletRequest]) (*connect.Response[v1.RescanWalletResponse], error)
+	EstimateFee(context.Context, *connect.Request[v1.EstimateFeeRequest]) (*connect.Response[v1.EstimateFeeResponse], error)
 	GetNewAddress(context.Context, *connect.Request[v1.GetNewAddressRequest]) (*connect.Response[v1.GetNewAddressResponse], error)
 	SendTransaction(context.Context, *connect.Request[v1.SendTransactionRequest]) (*connect.Response[v1.SendTransactionResponse], error)
 	ListTransactions(context.Context, *connect.Request[v1.ListTransactionsRequest]) (*connect.Response[v1.ListTransactionsResponse], error)
@@ -246,6 +275,17 @@ type WalletManagerServiceClient interface {
 	// BroadcastTransaction broadcasts a finalized raw transaction over the
 	// wallet's chain source and returns its txid.
 	BroadcastTransaction(context.Context, *connect.Request[v1.BroadcastTransactionRequest]) (*connect.Response[v1.BroadcastTransactionResponse], error)
+	// USB hardware wallets.
+	EnumerateHardwareDevices(context.Context, *connect.Request[v1.EnumerateHardwareDevicesRequest]) (*connect.Response[v1.EnumerateHardwareDevicesResponse], error)
+	GetHardwareXpub(context.Context, *connect.Request[v1.GetHardwareXpubRequest]) (*connect.Response[v1.GetHardwareXpubResponse], error)
+	SignPsbtWithDevice(context.Context, *connect.Request[v1.SignPsbtWithDeviceRequest]) (*connect.Response[v1.SignPsbtWithDeviceResponse], error)
+	// PromptDevicePin shows the PIN matrix; SendDevicePin unlocks with it.
+	PromptDevicePin(context.Context, *connect.Request[v1.PromptDevicePinRequest]) (*connect.Response[v1.PromptDevicePinResponse], error)
+	SendDevicePin(context.Context, *connect.Request[v1.SendDevicePinRequest]) (*connect.Response[v1.SendDevicePinResponse], error)
+	// CloseDevice releases the device so the next enumerate isn't blocked.
+	CloseDevice(context.Context, *connect.Request[v1.CloseDeviceRequest]) (*connect.Response[v1.CloseDeviceResponse], error)
+	// DeriveKeystore turns a keystore's intent into derived account key material.
+	DeriveKeystore(context.Context, *connect.Request[v1.DeriveKeystoreRequest]) (*connect.Response[v1.DeriveKeystoreResponse], error)
 	// Seed access for cheque engine
 	GetWalletSeed(context.Context, *connect.Request[v1.GetWalletSeedRequest]) (*connect.Response[v1.GetWalletSeedResponse], error)
 	// Bitcoin Core variant selection (untouched / touched / knots).
@@ -410,6 +450,18 @@ func NewWalletManagerServiceClient(httpClient connect.HTTPClient, baseURL string
 			connect.WithSchema(walletManagerServiceMethods.ByName("GetBalance")),
 			connect.WithClientOptions(opts...),
 		),
+		rescanWallet: connect.NewClient[v1.RescanWalletRequest, v1.RescanWalletResponse](
+			httpClient,
+			baseURL+WalletManagerServiceRescanWalletProcedure,
+			connect.WithSchema(walletManagerServiceMethods.ByName("RescanWallet")),
+			connect.WithClientOptions(opts...),
+		),
+		estimateFee: connect.NewClient[v1.EstimateFeeRequest, v1.EstimateFeeResponse](
+			httpClient,
+			baseURL+WalletManagerServiceEstimateFeeProcedure,
+			connect.WithSchema(walletManagerServiceMethods.ByName("EstimateFee")),
+			connect.WithClientOptions(opts...),
+		),
 		getNewAddress: connect.NewClient[v1.GetNewAddressRequest, v1.GetNewAddressResponse](
 			httpClient,
 			baseURL+WalletManagerServiceGetNewAddressProcedure,
@@ -512,6 +564,48 @@ func NewWalletManagerServiceClient(httpClient connect.HTTPClient, baseURL string
 			connect.WithSchema(walletManagerServiceMethods.ByName("BroadcastTransaction")),
 			connect.WithClientOptions(opts...),
 		),
+		enumerateHardwareDevices: connect.NewClient[v1.EnumerateHardwareDevicesRequest, v1.EnumerateHardwareDevicesResponse](
+			httpClient,
+			baseURL+WalletManagerServiceEnumerateHardwareDevicesProcedure,
+			connect.WithSchema(walletManagerServiceMethods.ByName("EnumerateHardwareDevices")),
+			connect.WithClientOptions(opts...),
+		),
+		getHardwareXpub: connect.NewClient[v1.GetHardwareXpubRequest, v1.GetHardwareXpubResponse](
+			httpClient,
+			baseURL+WalletManagerServiceGetHardwareXpubProcedure,
+			connect.WithSchema(walletManagerServiceMethods.ByName("GetHardwareXpub")),
+			connect.WithClientOptions(opts...),
+		),
+		signPsbtWithDevice: connect.NewClient[v1.SignPsbtWithDeviceRequest, v1.SignPsbtWithDeviceResponse](
+			httpClient,
+			baseURL+WalletManagerServiceSignPsbtWithDeviceProcedure,
+			connect.WithSchema(walletManagerServiceMethods.ByName("SignPsbtWithDevice")),
+			connect.WithClientOptions(opts...),
+		),
+		promptDevicePin: connect.NewClient[v1.PromptDevicePinRequest, v1.PromptDevicePinResponse](
+			httpClient,
+			baseURL+WalletManagerServicePromptDevicePinProcedure,
+			connect.WithSchema(walletManagerServiceMethods.ByName("PromptDevicePin")),
+			connect.WithClientOptions(opts...),
+		),
+		sendDevicePin: connect.NewClient[v1.SendDevicePinRequest, v1.SendDevicePinResponse](
+			httpClient,
+			baseURL+WalletManagerServiceSendDevicePinProcedure,
+			connect.WithSchema(walletManagerServiceMethods.ByName("SendDevicePin")),
+			connect.WithClientOptions(opts...),
+		),
+		closeDevice: connect.NewClient[v1.CloseDeviceRequest, v1.CloseDeviceResponse](
+			httpClient,
+			baseURL+WalletManagerServiceCloseDeviceProcedure,
+			connect.WithSchema(walletManagerServiceMethods.ByName("CloseDevice")),
+			connect.WithClientOptions(opts...),
+		),
+		deriveKeystore: connect.NewClient[v1.DeriveKeystoreRequest, v1.DeriveKeystoreResponse](
+			httpClient,
+			baseURL+WalletManagerServiceDeriveKeystoreProcedure,
+			connect.WithSchema(walletManagerServiceMethods.ByName("DeriveKeystore")),
+			connect.WithClientOptions(opts...),
+		),
 		getWalletSeed: connect.NewClient[v1.GetWalletSeedRequest, v1.GetWalletSeedResponse](
 			httpClient,
 			baseURL+WalletManagerServiceGetWalletSeedProcedure,
@@ -605,6 +699,8 @@ type walletManagerServiceClient struct {
 	createBitcoinCoreWallet   *connect.Client[v1.CreateBitcoinCoreWalletRequest, v1.CreateBitcoinCoreWalletResponse]
 	ensureCoreWallets         *connect.Client[v1.EnsureCoreWalletsRequest, v1.EnsureCoreWalletsResponse]
 	getBalance                *connect.Client[v1.GetBalanceRequest, v1.GetBalanceResponse]
+	rescanWallet              *connect.Client[v1.RescanWalletRequest, v1.RescanWalletResponse]
+	estimateFee               *connect.Client[v1.EstimateFeeRequest, v1.EstimateFeeResponse]
 	getNewAddress             *connect.Client[v1.GetNewAddressRequest, v1.GetNewAddressResponse]
 	sendTransaction           *connect.Client[v1.SendTransactionRequest, v1.SendTransactionResponse]
 	listTransactions          *connect.Client[v1.ListTransactionsRequest, v1.ListTransactionsResponse]
@@ -622,6 +718,13 @@ type walletManagerServiceClient struct {
 	finalizePsbt              *connect.Client[v1.FinalizePsbtRequest, v1.FinalizePsbtResponse]
 	multisigPsbtStatus        *connect.Client[v1.MultisigPsbtStatusRequest, v1.MultisigPsbtStatusResponse]
 	broadcastTransaction      *connect.Client[v1.BroadcastTransactionRequest, v1.BroadcastTransactionResponse]
+	enumerateHardwareDevices  *connect.Client[v1.EnumerateHardwareDevicesRequest, v1.EnumerateHardwareDevicesResponse]
+	getHardwareXpub           *connect.Client[v1.GetHardwareXpubRequest, v1.GetHardwareXpubResponse]
+	signPsbtWithDevice        *connect.Client[v1.SignPsbtWithDeviceRequest, v1.SignPsbtWithDeviceResponse]
+	promptDevicePin           *connect.Client[v1.PromptDevicePinRequest, v1.PromptDevicePinResponse]
+	sendDevicePin             *connect.Client[v1.SendDevicePinRequest, v1.SendDevicePinResponse]
+	closeDevice               *connect.Client[v1.CloseDeviceRequest, v1.CloseDeviceResponse]
+	deriveKeystore            *connect.Client[v1.DeriveKeystoreRequest, v1.DeriveKeystoreResponse]
 	getWalletSeed             *connect.Client[v1.GetWalletSeedRequest, v1.GetWalletSeedResponse]
 	listCoreVariants          *connect.Client[v1.ListCoreVariantsRequest, v1.ListCoreVariantsResponse]
 	getCoreVariant            *connect.Client[v1.GetCoreVariantRequest, v1.GetCoreVariantResponse]
@@ -745,6 +848,16 @@ func (c *walletManagerServiceClient) GetBalance(ctx context.Context, req *connec
 	return c.getBalance.CallUnary(ctx, req)
 }
 
+// RescanWallet calls walletmanager.v1.WalletManagerService.RescanWallet.
+func (c *walletManagerServiceClient) RescanWallet(ctx context.Context, req *connect.Request[v1.RescanWalletRequest]) (*connect.Response[v1.RescanWalletResponse], error) {
+	return c.rescanWallet.CallUnary(ctx, req)
+}
+
+// EstimateFee calls walletmanager.v1.WalletManagerService.EstimateFee.
+func (c *walletManagerServiceClient) EstimateFee(ctx context.Context, req *connect.Request[v1.EstimateFeeRequest]) (*connect.Response[v1.EstimateFeeResponse], error) {
+	return c.estimateFee.CallUnary(ctx, req)
+}
+
 // GetNewAddress calls walletmanager.v1.WalletManagerService.GetNewAddress.
 func (c *walletManagerServiceClient) GetNewAddress(ctx context.Context, req *connect.Request[v1.GetNewAddressRequest]) (*connect.Response[v1.GetNewAddressResponse], error) {
 	return c.getNewAddress.CallUnary(ctx, req)
@@ -828,6 +941,41 @@ func (c *walletManagerServiceClient) MultisigPsbtStatus(ctx context.Context, req
 // BroadcastTransaction calls walletmanager.v1.WalletManagerService.BroadcastTransaction.
 func (c *walletManagerServiceClient) BroadcastTransaction(ctx context.Context, req *connect.Request[v1.BroadcastTransactionRequest]) (*connect.Response[v1.BroadcastTransactionResponse], error) {
 	return c.broadcastTransaction.CallUnary(ctx, req)
+}
+
+// EnumerateHardwareDevices calls walletmanager.v1.WalletManagerService.EnumerateHardwareDevices.
+func (c *walletManagerServiceClient) EnumerateHardwareDevices(ctx context.Context, req *connect.Request[v1.EnumerateHardwareDevicesRequest]) (*connect.Response[v1.EnumerateHardwareDevicesResponse], error) {
+	return c.enumerateHardwareDevices.CallUnary(ctx, req)
+}
+
+// GetHardwareXpub calls walletmanager.v1.WalletManagerService.GetHardwareXpub.
+func (c *walletManagerServiceClient) GetHardwareXpub(ctx context.Context, req *connect.Request[v1.GetHardwareXpubRequest]) (*connect.Response[v1.GetHardwareXpubResponse], error) {
+	return c.getHardwareXpub.CallUnary(ctx, req)
+}
+
+// SignPsbtWithDevice calls walletmanager.v1.WalletManagerService.SignPsbtWithDevice.
+func (c *walletManagerServiceClient) SignPsbtWithDevice(ctx context.Context, req *connect.Request[v1.SignPsbtWithDeviceRequest]) (*connect.Response[v1.SignPsbtWithDeviceResponse], error) {
+	return c.signPsbtWithDevice.CallUnary(ctx, req)
+}
+
+// PromptDevicePin calls walletmanager.v1.WalletManagerService.PromptDevicePin.
+func (c *walletManagerServiceClient) PromptDevicePin(ctx context.Context, req *connect.Request[v1.PromptDevicePinRequest]) (*connect.Response[v1.PromptDevicePinResponse], error) {
+	return c.promptDevicePin.CallUnary(ctx, req)
+}
+
+// SendDevicePin calls walletmanager.v1.WalletManagerService.SendDevicePin.
+func (c *walletManagerServiceClient) SendDevicePin(ctx context.Context, req *connect.Request[v1.SendDevicePinRequest]) (*connect.Response[v1.SendDevicePinResponse], error) {
+	return c.sendDevicePin.CallUnary(ctx, req)
+}
+
+// CloseDevice calls walletmanager.v1.WalletManagerService.CloseDevice.
+func (c *walletManagerServiceClient) CloseDevice(ctx context.Context, req *connect.Request[v1.CloseDeviceRequest]) (*connect.Response[v1.CloseDeviceResponse], error) {
+	return c.closeDevice.CallUnary(ctx, req)
+}
+
+// DeriveKeystore calls walletmanager.v1.WalletManagerService.DeriveKeystore.
+func (c *walletManagerServiceClient) DeriveKeystore(ctx context.Context, req *connect.Request[v1.DeriveKeystoreRequest]) (*connect.Response[v1.DeriveKeystoreResponse], error) {
+	return c.deriveKeystore.CallUnary(ctx, req)
 }
 
 // GetWalletSeed calls walletmanager.v1.WalletManagerService.GetWalletSeed.
@@ -917,6 +1065,8 @@ type WalletManagerServiceHandler interface {
 	EnsureCoreWallets(context.Context, *connect.Request[v1.EnsureCoreWalletsRequest]) (*connect.Response[v1.EnsureCoreWalletsResponse], error)
 	// Bitcoin operations (proxied through Core RPC)
 	GetBalance(context.Context, *connect.Request[v1.GetBalanceRequest]) (*connect.Response[v1.GetBalanceResponse], error)
+	RescanWallet(context.Context, *connect.Request[v1.RescanWalletRequest]) (*connect.Response[v1.RescanWalletResponse], error)
+	EstimateFee(context.Context, *connect.Request[v1.EstimateFeeRequest]) (*connect.Response[v1.EstimateFeeResponse], error)
 	GetNewAddress(context.Context, *connect.Request[v1.GetNewAddressRequest]) (*connect.Response[v1.GetNewAddressResponse], error)
 	SendTransaction(context.Context, *connect.Request[v1.SendTransactionRequest]) (*connect.Response[v1.SendTransactionResponse], error)
 	ListTransactions(context.Context, *connect.Request[v1.ListTransactionsRequest]) (*connect.Response[v1.ListTransactionsResponse], error)
@@ -946,6 +1096,17 @@ type WalletManagerServiceHandler interface {
 	// BroadcastTransaction broadcasts a finalized raw transaction over the
 	// wallet's chain source and returns its txid.
 	BroadcastTransaction(context.Context, *connect.Request[v1.BroadcastTransactionRequest]) (*connect.Response[v1.BroadcastTransactionResponse], error)
+	// USB hardware wallets.
+	EnumerateHardwareDevices(context.Context, *connect.Request[v1.EnumerateHardwareDevicesRequest]) (*connect.Response[v1.EnumerateHardwareDevicesResponse], error)
+	GetHardwareXpub(context.Context, *connect.Request[v1.GetHardwareXpubRequest]) (*connect.Response[v1.GetHardwareXpubResponse], error)
+	SignPsbtWithDevice(context.Context, *connect.Request[v1.SignPsbtWithDeviceRequest]) (*connect.Response[v1.SignPsbtWithDeviceResponse], error)
+	// PromptDevicePin shows the PIN matrix; SendDevicePin unlocks with it.
+	PromptDevicePin(context.Context, *connect.Request[v1.PromptDevicePinRequest]) (*connect.Response[v1.PromptDevicePinResponse], error)
+	SendDevicePin(context.Context, *connect.Request[v1.SendDevicePinRequest]) (*connect.Response[v1.SendDevicePinResponse], error)
+	// CloseDevice releases the device so the next enumerate isn't blocked.
+	CloseDevice(context.Context, *connect.Request[v1.CloseDeviceRequest]) (*connect.Response[v1.CloseDeviceResponse], error)
+	// DeriveKeystore turns a keystore's intent into derived account key material.
+	DeriveKeystore(context.Context, *connect.Request[v1.DeriveKeystoreRequest]) (*connect.Response[v1.DeriveKeystoreResponse], error)
 	// Seed access for cheque engine
 	GetWalletSeed(context.Context, *connect.Request[v1.GetWalletSeedRequest]) (*connect.Response[v1.GetWalletSeedResponse], error)
 	// Bitcoin Core variant selection (untouched / touched / knots).
@@ -1106,6 +1267,18 @@ func NewWalletManagerServiceHandler(svc WalletManagerServiceHandler, opts ...con
 		connect.WithSchema(walletManagerServiceMethods.ByName("GetBalance")),
 		connect.WithHandlerOptions(opts...),
 	)
+	walletManagerServiceRescanWalletHandler := connect.NewUnaryHandler(
+		WalletManagerServiceRescanWalletProcedure,
+		svc.RescanWallet,
+		connect.WithSchema(walletManagerServiceMethods.ByName("RescanWallet")),
+		connect.WithHandlerOptions(opts...),
+	)
+	walletManagerServiceEstimateFeeHandler := connect.NewUnaryHandler(
+		WalletManagerServiceEstimateFeeProcedure,
+		svc.EstimateFee,
+		connect.WithSchema(walletManagerServiceMethods.ByName("EstimateFee")),
+		connect.WithHandlerOptions(opts...),
+	)
 	walletManagerServiceGetNewAddressHandler := connect.NewUnaryHandler(
 		WalletManagerServiceGetNewAddressProcedure,
 		svc.GetNewAddress,
@@ -1206,6 +1379,48 @@ func NewWalletManagerServiceHandler(svc WalletManagerServiceHandler, opts ...con
 		WalletManagerServiceBroadcastTransactionProcedure,
 		svc.BroadcastTransaction,
 		connect.WithSchema(walletManagerServiceMethods.ByName("BroadcastTransaction")),
+		connect.WithHandlerOptions(opts...),
+	)
+	walletManagerServiceEnumerateHardwareDevicesHandler := connect.NewUnaryHandler(
+		WalletManagerServiceEnumerateHardwareDevicesProcedure,
+		svc.EnumerateHardwareDevices,
+		connect.WithSchema(walletManagerServiceMethods.ByName("EnumerateHardwareDevices")),
+		connect.WithHandlerOptions(opts...),
+	)
+	walletManagerServiceGetHardwareXpubHandler := connect.NewUnaryHandler(
+		WalletManagerServiceGetHardwareXpubProcedure,
+		svc.GetHardwareXpub,
+		connect.WithSchema(walletManagerServiceMethods.ByName("GetHardwareXpub")),
+		connect.WithHandlerOptions(opts...),
+	)
+	walletManagerServiceSignPsbtWithDeviceHandler := connect.NewUnaryHandler(
+		WalletManagerServiceSignPsbtWithDeviceProcedure,
+		svc.SignPsbtWithDevice,
+		connect.WithSchema(walletManagerServiceMethods.ByName("SignPsbtWithDevice")),
+		connect.WithHandlerOptions(opts...),
+	)
+	walletManagerServicePromptDevicePinHandler := connect.NewUnaryHandler(
+		WalletManagerServicePromptDevicePinProcedure,
+		svc.PromptDevicePin,
+		connect.WithSchema(walletManagerServiceMethods.ByName("PromptDevicePin")),
+		connect.WithHandlerOptions(opts...),
+	)
+	walletManagerServiceSendDevicePinHandler := connect.NewUnaryHandler(
+		WalletManagerServiceSendDevicePinProcedure,
+		svc.SendDevicePin,
+		connect.WithSchema(walletManagerServiceMethods.ByName("SendDevicePin")),
+		connect.WithHandlerOptions(opts...),
+	)
+	walletManagerServiceCloseDeviceHandler := connect.NewUnaryHandler(
+		WalletManagerServiceCloseDeviceProcedure,
+		svc.CloseDevice,
+		connect.WithSchema(walletManagerServiceMethods.ByName("CloseDevice")),
+		connect.WithHandlerOptions(opts...),
+	)
+	walletManagerServiceDeriveKeystoreHandler := connect.NewUnaryHandler(
+		WalletManagerServiceDeriveKeystoreProcedure,
+		svc.DeriveKeystore,
+		connect.WithSchema(walletManagerServiceMethods.ByName("DeriveKeystore")),
 		connect.WithHandlerOptions(opts...),
 	)
 	walletManagerServiceGetWalletSeedHandler := connect.NewUnaryHandler(
@@ -1320,6 +1535,10 @@ func NewWalletManagerServiceHandler(svc WalletManagerServiceHandler, opts ...con
 			walletManagerServiceEnsureCoreWalletsHandler.ServeHTTP(w, r)
 		case WalletManagerServiceGetBalanceProcedure:
 			walletManagerServiceGetBalanceHandler.ServeHTTP(w, r)
+		case WalletManagerServiceRescanWalletProcedure:
+			walletManagerServiceRescanWalletHandler.ServeHTTP(w, r)
+		case WalletManagerServiceEstimateFeeProcedure:
+			walletManagerServiceEstimateFeeHandler.ServeHTTP(w, r)
 		case WalletManagerServiceGetNewAddressProcedure:
 			walletManagerServiceGetNewAddressHandler.ServeHTTP(w, r)
 		case WalletManagerServiceSendTransactionProcedure:
@@ -1354,6 +1573,20 @@ func NewWalletManagerServiceHandler(svc WalletManagerServiceHandler, opts ...con
 			walletManagerServiceMultisigPsbtStatusHandler.ServeHTTP(w, r)
 		case WalletManagerServiceBroadcastTransactionProcedure:
 			walletManagerServiceBroadcastTransactionHandler.ServeHTTP(w, r)
+		case WalletManagerServiceEnumerateHardwareDevicesProcedure:
+			walletManagerServiceEnumerateHardwareDevicesHandler.ServeHTTP(w, r)
+		case WalletManagerServiceGetHardwareXpubProcedure:
+			walletManagerServiceGetHardwareXpubHandler.ServeHTTP(w, r)
+		case WalletManagerServiceSignPsbtWithDeviceProcedure:
+			walletManagerServiceSignPsbtWithDeviceHandler.ServeHTTP(w, r)
+		case WalletManagerServicePromptDevicePinProcedure:
+			walletManagerServicePromptDevicePinHandler.ServeHTTP(w, r)
+		case WalletManagerServiceSendDevicePinProcedure:
+			walletManagerServiceSendDevicePinHandler.ServeHTTP(w, r)
+		case WalletManagerServiceCloseDeviceProcedure:
+			walletManagerServiceCloseDeviceHandler.ServeHTTP(w, r)
+		case WalletManagerServiceDeriveKeystoreProcedure:
+			walletManagerServiceDeriveKeystoreHandler.ServeHTTP(w, r)
 		case WalletManagerServiceGetWalletSeedProcedure:
 			walletManagerServiceGetWalletSeedHandler.ServeHTTP(w, r)
 		case WalletManagerServiceListCoreVariantsProcedure:
@@ -1473,6 +1706,14 @@ func (UnimplementedWalletManagerServiceHandler) GetBalance(context.Context, *con
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("walletmanager.v1.WalletManagerService.GetBalance is not implemented"))
 }
 
+func (UnimplementedWalletManagerServiceHandler) RescanWallet(context.Context, *connect.Request[v1.RescanWalletRequest]) (*connect.Response[v1.RescanWalletResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("walletmanager.v1.WalletManagerService.RescanWallet is not implemented"))
+}
+
+func (UnimplementedWalletManagerServiceHandler) EstimateFee(context.Context, *connect.Request[v1.EstimateFeeRequest]) (*connect.Response[v1.EstimateFeeResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("walletmanager.v1.WalletManagerService.EstimateFee is not implemented"))
+}
+
 func (UnimplementedWalletManagerServiceHandler) GetNewAddress(context.Context, *connect.Request[v1.GetNewAddressRequest]) (*connect.Response[v1.GetNewAddressResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("walletmanager.v1.WalletManagerService.GetNewAddress is not implemented"))
 }
@@ -1539,6 +1780,34 @@ func (UnimplementedWalletManagerServiceHandler) MultisigPsbtStatus(context.Conte
 
 func (UnimplementedWalletManagerServiceHandler) BroadcastTransaction(context.Context, *connect.Request[v1.BroadcastTransactionRequest]) (*connect.Response[v1.BroadcastTransactionResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("walletmanager.v1.WalletManagerService.BroadcastTransaction is not implemented"))
+}
+
+func (UnimplementedWalletManagerServiceHandler) EnumerateHardwareDevices(context.Context, *connect.Request[v1.EnumerateHardwareDevicesRequest]) (*connect.Response[v1.EnumerateHardwareDevicesResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("walletmanager.v1.WalletManagerService.EnumerateHardwareDevices is not implemented"))
+}
+
+func (UnimplementedWalletManagerServiceHandler) GetHardwareXpub(context.Context, *connect.Request[v1.GetHardwareXpubRequest]) (*connect.Response[v1.GetHardwareXpubResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("walletmanager.v1.WalletManagerService.GetHardwareXpub is not implemented"))
+}
+
+func (UnimplementedWalletManagerServiceHandler) SignPsbtWithDevice(context.Context, *connect.Request[v1.SignPsbtWithDeviceRequest]) (*connect.Response[v1.SignPsbtWithDeviceResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("walletmanager.v1.WalletManagerService.SignPsbtWithDevice is not implemented"))
+}
+
+func (UnimplementedWalletManagerServiceHandler) PromptDevicePin(context.Context, *connect.Request[v1.PromptDevicePinRequest]) (*connect.Response[v1.PromptDevicePinResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("walletmanager.v1.WalletManagerService.PromptDevicePin is not implemented"))
+}
+
+func (UnimplementedWalletManagerServiceHandler) SendDevicePin(context.Context, *connect.Request[v1.SendDevicePinRequest]) (*connect.Response[v1.SendDevicePinResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("walletmanager.v1.WalletManagerService.SendDevicePin is not implemented"))
+}
+
+func (UnimplementedWalletManagerServiceHandler) CloseDevice(context.Context, *connect.Request[v1.CloseDeviceRequest]) (*connect.Response[v1.CloseDeviceResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("walletmanager.v1.WalletManagerService.CloseDevice is not implemented"))
+}
+
+func (UnimplementedWalletManagerServiceHandler) DeriveKeystore(context.Context, *connect.Request[v1.DeriveKeystoreRequest]) (*connect.Response[v1.DeriveKeystoreResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("walletmanager.v1.WalletManagerService.DeriveKeystore is not implemented"))
 }
 
 func (UnimplementedWalletManagerServiceHandler) GetWalletSeed(context.Context, *connect.Request[v1.GetWalletSeedRequest]) (*connect.Response[v1.GetWalletSeedResponse], error) {

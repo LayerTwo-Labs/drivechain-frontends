@@ -9,8 +9,10 @@ import 'package:bitwindow/providers/transactions_provider.dart';
 import 'package:bitwindow/providers/coin_selection_provider.dart';
 import 'package:bitwindow/pages/wallet/widgets/fee_rate_chart.dart';
 import 'package:bitwindow/utils/bitcoin_uri.dart';
-import 'package:bitwindow/widgets/airgap_psbt_dialog.dart';
+import 'package:bitwindow/signing/psbt_signer.dart';
+import 'package:bitwindow/signing/sign_and_broadcast.dart';
 import 'package:bitwindow/widgets/multisig_sign_modal.dart';
+import 'package:sail_ui/gen/walletmanager/v1/walletmanager.pb.dart' as wmpb;
 import 'package:bitwindow/utils/coin_selection.dart';
 import 'package:bitwindow/utils/explorer_url.dart';
 import 'package:bitwindow/utils/fee_estimation.dart';
@@ -47,9 +49,26 @@ class SendTab extends ViewModelWidget<SendPageViewModel> {
               SailButton(
                 variant: ButtonVariant.secondary,
                 label: 'External signer (airgap)',
-                onPressed: () => _startAirgapFlow(context, viewModel),
+                onPressed: () => _externalSign(context, viewModel, AirgapPsbtSigner()),
               ),
               const SizedBox(width: SailStyleValues.padding08),
+              if (viewModel.isHardwareWallet) ...[
+                SailButton(
+                  variant: ButtonVariant.secondary,
+                  label: 'Sign with ${viewModel.hardwareDeviceType}',
+                  onPressed: () => _externalSign(
+                    context,
+                    viewModel,
+                    HwiPsbtSigner(
+                      wmpb.HardwareDeviceSelector(
+                        type: viewModel.hardwareDeviceType,
+                        fingerprint: viewModel.hardwareFingerprint,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: SailStyleValues.padding08),
+              ],
               SailButton(
                 variant: ButtonVariant.outline,
                 label: 'Clear All',
@@ -63,16 +82,27 @@ class SendTab extends ViewModelWidget<SendPageViewModel> {
     );
   }
 
-  Future<void> _startAirgapFlow(BuildContext context, SendPageViewModel viewModel) async {
+  /// Builds the unsigned PSBT, signs it with [signer], then broadcasts.
+  Future<void> _externalSign(BuildContext context, SendPageViewModel viewModel, PsbtSigner signer) async {
+    final walletId = GetIt.I<WalletReaderProvider>().activeWalletId;
+    if (walletId == null) return;
     final psbt = await viewModel.buildUnsignedPsbtForAirgap(context);
     if (psbt == null || !context.mounted) return;
-    await showThemedDialog<bool>(
-      context: context,
-      builder: (context) => AirgapPsbtDialog(
+    try {
+      final txid = await signAndBroadcast(
+        context,
+        walletId: walletId,
         unsignedPsbtBase64: psbt,
-        onBroadcast: (_) => viewModel.onAirgapBroadcast(),
-      ),
-    );
+        signer: signer,
+      );
+      if (txid == null || !context.mounted) return;
+      showSailToast(context, 'Transaction broadcast', variant: SailToastVariant.success);
+      await viewModel.onAirgapBroadcast();
+    } catch (e) {
+      if (context.mounted) {
+        showSailToast(context, 'Failed to broadcast: $e', variant: SailToastVariant.destructive);
+      }
+    }
   }
 }
 
@@ -411,6 +441,10 @@ class SendPageViewModel extends BaseViewModel {
   SettingsProvider get settingsProvider => GetIt.I<SettingsProvider>();
   WalletReaderProvider get _walletReader => GetIt.I<WalletReaderProvider>();
 
+  bool get isHardwareWallet => _walletReader.activeWallet?.isHardware ?? false;
+  String get hardwareDeviceType => _walletReader.activeWallet?.hardwareDeviceType ?? '';
+  String get hardwareFingerprint => _walletReader.activeWallet?.hardwareFingerprint ?? '';
+
   BitcoinUnit get currentUnit => settingsProvider.bitcoinUnit;
 
   List<AddressBookEntry> get addressBookEntries => addressBookProvider.sendEntries;
@@ -536,6 +570,7 @@ class SendPageViewModel extends BaseViewModel {
     applicationDir = await Environment.datadir();
     logFile = await getLogFile();
     await loadFeeRateCurve();
+    await estimateFee(1); // default to the next-block fee
   }
 
   Directory? applicationDir;
@@ -854,6 +889,13 @@ class SendPageViewModel extends BaseViewModel {
   }
 
   Future<double?> _feeRateForTarget(int confTarget) async {
+    // Electrum wallets have no Bitcoin Core; fee comes from esplora via the backend.
+    try {
+      final rate = await _orchestrator.wallet.estimateFee(confTarget);
+      if (rate != null && rate > 0) return rate;
+    } catch (_) {
+      // fall through to Bitcoin Core for core-backed wallets
+    }
     final response = await _orchestrator.bitcoind.estimateSmartFee(
       EstimateSmartFeeRequest()..confTarget = Int64(confTarget),
     );
