@@ -581,6 +581,9 @@ class _MultisigConfigStepState extends State<MultisigConfigStep> {
     try {
       final resp = await GetIt.I.get<OrchestratorRPC>().wallet.parseMultisigConfig(content);
       setState(() {
+        // An imported config is inherently multisig; switch mode so Next builds
+        // the multisig wallet instead of a single-sig one from the first leg.
+        _policy = 'multi';
         _threshold = resp.m;
         _total = resp.n;
         if (resp.scriptType.isNotEmpty) _scriptType = resp.scriptType;
