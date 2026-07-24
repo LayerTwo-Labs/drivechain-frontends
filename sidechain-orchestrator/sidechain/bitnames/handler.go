@@ -158,7 +158,7 @@ func (h *Handler) CreateDeposit(ctx context.Context, req *connect.Request[pb.Cre
 }
 
 func (h *Handler) ConnectPeer(ctx context.Context, req *connect.Request[pb.ConnectPeerRequest]) (*connect.Response[pb.ConnectPeerResponse], error) {
-	if err := h.proxy.Client.Call(ctx, "connect_peer", req.Msg.Address, nil); err != nil {
+	if _, err := h.proxy.Client.CallRaw(ctx, "connect_peer", []any{req.Msg.Address}); err != nil {
 		return nil, err
 	}
 	return connect.NewResponse(&pb.ConnectPeerResponse{}), nil
@@ -276,7 +276,7 @@ func (h *Handler) GetNewVerifyingKey(ctx context.Context, req *connect.Request[p
 
 func (h *Handler) DecryptMsg(ctx context.Context, req *connect.Request[pb.DecryptMsgRequest]) (*connect.Response[pb.DecryptMsgResponse], error) {
 	var plaintext string
-	params := []any{req.Msg.EncryptionPubkey, req.Msg.Ciphertext, true}
+	params := []any{req.Msg.EncryptionPubkey, req.Msg.Ciphertext}
 	if err := h.proxy.Client.Call(ctx, "decrypt_msg", params, &plaintext); err != nil {
 		return nil, err
 	}
@@ -310,7 +310,7 @@ func (h *Handler) ResolveCommit(ctx context.Context, req *connect.Request[pb.Res
 
 func (h *Handler) SignArbitraryMsg(ctx context.Context, req *connect.Request[pb.SignArbitraryMsgRequest]) (*connect.Response[pb.SignArbitraryMsgResponse], error) {
 	var signature string
-	params := []any{req.Msg.Msg, req.Msg.VerifyingKey}
+	params := []any{req.Msg.VerifyingKey, req.Msg.Msg}
 	if err := h.proxy.Client.Call(ctx, "sign_arbitrary_msg", params, &signature); err != nil {
 		return nil, err
 	}
@@ -322,7 +322,7 @@ func (h *Handler) SignArbitraryMsgAsAddr(ctx context.Context, req *connect.Reque
 		VerifyingKey string `json:"verifying_key"`
 		Signature    string `json:"signature"`
 	}
-	params := []any{req.Msg.Msg, req.Msg.Address}
+	params := []any{req.Msg.Address, req.Msg.Msg}
 	if err := h.proxy.Client.Call(ctx, "sign_arbitrary_msg_as_addr", params, &result); err != nil {
 		return nil, err
 	}
