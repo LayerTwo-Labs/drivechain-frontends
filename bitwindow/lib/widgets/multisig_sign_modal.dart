@@ -110,7 +110,11 @@ class _MultisigSignModalState extends State<MultisigSignModal> {
       if (unlocked == null) rethrow;
       // Sign the just-unlocked device by path: a re-locked device has no
       // fingerprint, and path skips the re-enumeration that races auto-lock.
-      final byPath = wmpb.HardwareDeviceSelector(type: unlocked.type, path: unlocked.path);
+      final byPath = wmpb.HardwareDeviceSelector(
+        type: unlocked.type,
+        path: unlocked.path,
+        passphrase: hardwareDevicePassphrase(unlocked.path),
+      );
       return await _wallet.signPsbtWithDevice(device: byPath, psbtBase64: _psbt);
     }
   }

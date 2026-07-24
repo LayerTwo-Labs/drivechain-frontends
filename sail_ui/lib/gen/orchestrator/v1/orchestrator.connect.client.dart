@@ -229,6 +229,26 @@ extension type OrchestratorServiceClient (connect.Transport _transport) {
     );
   }
 
+  /// The UTXO snapshot published for the active network (from the network
+  /// catalog) plus the one currently loaded in Bitcoin Core, if any. Feeds the
+  /// settings UI: pre-fills the snapshot field and shows what is loaded.
+  Future<orchestratorv1orchestrator.GetSnapshotStatusResponse> getSnapshotStatus(
+    orchestratorv1orchestrator.GetSnapshotStatusRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.OrchestratorService.getSnapshotStatus,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
   /// Shutdown all running binaries.
   Stream<orchestratorv1orchestrator.ShutdownAllResponse> shutdownAll(
     orchestratorv1orchestrator.ShutdownAllRequest input, {

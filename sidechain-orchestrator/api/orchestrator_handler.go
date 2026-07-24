@@ -225,6 +225,22 @@ func (h *Handler) ApplyUTXOSnapshot(
 	return nil
 }
 
+// GetSnapshotStatus returns the snapshot the active network publishes and the
+// one Bitcoin Core currently has loaded.
+func (h *Handler) GetSnapshotStatus(ctx context.Context, req *connect.Request[pb.GetSnapshotStatusRequest]) (*connect.Response[pb.GetSnapshotStatusResponse], error) {
+	s := h.orch.SnapshotStatus(ctx)
+	return connect.NewResponse(&pb.GetSnapshotStatusResponse{
+		AvailableUrl:               s.Available.URL,
+		AvailableHeight:            s.Available.Height,
+		AvailableSha256:            s.Available.SHA256,
+		HasActiveSnapshot:          s.Active.Present,
+		ActiveBlockhash:            s.Active.Blockhash,
+		ActiveHeight:               s.Active.Height,
+		ActiveValidated:            s.Active.Validated,
+		ActiveVerificationProgress: s.Active.VerificationProgress,
+	}), nil
+}
+
 // StartWithL1 dispatches a boot goroutine and returns immediately. The
 // goroutine uses context.Background() so that a transport blip / client
 // disconnect on this RPC can't cancel an in-flight bitcoind download or

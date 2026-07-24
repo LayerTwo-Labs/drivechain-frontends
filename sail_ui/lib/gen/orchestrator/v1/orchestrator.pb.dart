@@ -1669,6 +1669,190 @@ class ApplyUTXOSnapshotResponse extends $pb.GeneratedMessage {
   void clearDone() => clearField(3);
 }
 
+class GetSnapshotStatusRequest extends $pb.GeneratedMessage {
+  factory GetSnapshotStatusRequest() => create();
+  GetSnapshotStatusRequest._() : super();
+  factory GetSnapshotStatusRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory GetSnapshotStatusRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'GetSnapshotStatusRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'orchestrator.v1'), createEmptyInstance: create)
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  GetSnapshotStatusRequest clone() => GetSnapshotStatusRequest()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  GetSnapshotStatusRequest copyWith(void Function(GetSnapshotStatusRequest) updates) => super.copyWith((message) => updates(message as GetSnapshotStatusRequest)) as GetSnapshotStatusRequest;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static GetSnapshotStatusRequest create() => GetSnapshotStatusRequest._();
+  GetSnapshotStatusRequest createEmptyInstance() => create();
+  static $pb.PbList<GetSnapshotStatusRequest> createRepeated() => $pb.PbList<GetSnapshotStatusRequest>();
+  @$core.pragma('dart2js:noInline')
+  static GetSnapshotStatusRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<GetSnapshotStatusRequest>(create);
+  static GetSnapshotStatusRequest? _defaultInstance;
+}
+
+class GetSnapshotStatusResponse extends $pb.GeneratedMessage {
+  factory GetSnapshotStatusResponse({
+    $core.String? availableUrl,
+    $fixnum.Int64? availableHeight,
+    $core.String? availableSha256,
+    $core.bool? hasActiveSnapshot,
+    $core.String? activeBlockhash,
+    $fixnum.Int64? activeHeight,
+    $core.bool? activeValidated,
+    $core.double? activeVerificationProgress,
+  }) {
+    final $result = create();
+    if (availableUrl != null) {
+      $result.availableUrl = availableUrl;
+    }
+    if (availableHeight != null) {
+      $result.availableHeight = availableHeight;
+    }
+    if (availableSha256 != null) {
+      $result.availableSha256 = availableSha256;
+    }
+    if (hasActiveSnapshot != null) {
+      $result.hasActiveSnapshot = hasActiveSnapshot;
+    }
+    if (activeBlockhash != null) {
+      $result.activeBlockhash = activeBlockhash;
+    }
+    if (activeHeight != null) {
+      $result.activeHeight = activeHeight;
+    }
+    if (activeValidated != null) {
+      $result.activeValidated = activeValidated;
+    }
+    if (activeVerificationProgress != null) {
+      $result.activeVerificationProgress = activeVerificationProgress;
+    }
+    return $result;
+  }
+  GetSnapshotStatusResponse._() : super();
+  factory GetSnapshotStatusResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory GetSnapshotStatusResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'GetSnapshotStatusResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'orchestrator.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'availableUrl')
+    ..aInt64(2, _omitFieldNames ? '' : 'availableHeight')
+    ..aOS(3, _omitFieldNames ? '' : 'availableSha256')
+    ..aOB(4, _omitFieldNames ? '' : 'hasActiveSnapshot')
+    ..aOS(5, _omitFieldNames ? '' : 'activeBlockhash')
+    ..aInt64(6, _omitFieldNames ? '' : 'activeHeight')
+    ..aOB(7, _omitFieldNames ? '' : 'activeValidated')
+    ..a<$core.double>(8, _omitFieldNames ? '' : 'activeVerificationProgress', $pb.PbFieldType.OD)
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  GetSnapshotStatusResponse clone() => GetSnapshotStatusResponse()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  GetSnapshotStatusResponse copyWith(void Function(GetSnapshotStatusResponse) updates) => super.copyWith((message) => updates(message as GetSnapshotStatusResponse)) as GetSnapshotStatusResponse;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static GetSnapshotStatusResponse create() => GetSnapshotStatusResponse._();
+  GetSnapshotStatusResponse createEmptyInstance() => create();
+  static $pb.PbList<GetSnapshotStatusResponse> createRepeated() => $pb.PbList<GetSnapshotStatusResponse>();
+  @$core.pragma('dart2js:noInline')
+  static GetSnapshotStatusResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<GetSnapshotStatusResponse>(create);
+  static GetSnapshotStatusResponse? _defaultInstance;
+
+  /// The snapshot the active network publishes, empty url when none. Used to
+  /// pre-fill the snapshot field in settings.
+  @$pb.TagNumber(1)
+  $core.String get availableUrl => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set availableUrl($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasAvailableUrl() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearAvailableUrl() => clearField(1);
+
+  @$pb.TagNumber(2)
+  $fixnum.Int64 get availableHeight => $_getI64(1);
+  @$pb.TagNumber(2)
+  set availableHeight($fixnum.Int64 v) { $_setInt64(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasAvailableHeight() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearAvailableHeight() => clearField(2);
+
+  @$pb.TagNumber(3)
+  $core.String get availableSha256 => $_getSZ(2);
+  @$pb.TagNumber(3)
+  set availableSha256($core.String v) { $_setString(2, v); }
+  @$pb.TagNumber(3)
+  $core.bool hasAvailableSha256() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearAvailableSha256() => clearField(3);
+
+  /// The snapshot currently loaded in Bitcoin Core, from getchainstates.
+  @$pb.TagNumber(4)
+  $core.bool get hasActiveSnapshot => $_getBF(3);
+  @$pb.TagNumber(4)
+  set hasActiveSnapshot($core.bool v) { $_setBool(3, v); }
+  @$pb.TagNumber(4)
+  $core.bool hasHasActiveSnapshot() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearHasActiveSnapshot() => clearField(4);
+
+  @$pb.TagNumber(5)
+  $core.String get activeBlockhash => $_getSZ(4);
+  @$pb.TagNumber(5)
+  set activeBlockhash($core.String v) { $_setString(4, v); }
+  @$pb.TagNumber(5)
+  $core.bool hasActiveBlockhash() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearActiveBlockhash() => clearField(5);
+
+  @$pb.TagNumber(6)
+  $fixnum.Int64 get activeHeight => $_getI64(5);
+  @$pb.TagNumber(6)
+  set activeHeight($fixnum.Int64 v) { $_setInt64(5, v); }
+  @$pb.TagNumber(6)
+  $core.bool hasActiveHeight() => $_has(5);
+  @$pb.TagNumber(6)
+  void clearActiveHeight() => clearField(6);
+
+  /// Set once Core has fully validated the snapshot chainstate from genesis.
+  @$pb.TagNumber(7)
+  $core.bool get activeValidated => $_getBF(6);
+  @$pb.TagNumber(7)
+  set activeValidated($core.bool v) { $_setBool(6, v); }
+  @$pb.TagNumber(7)
+  $core.bool hasActiveValidated() => $_has(6);
+  @$pb.TagNumber(7)
+  void clearActiveValidated() => clearField(7);
+
+  @$pb.TagNumber(8)
+  $core.double get activeVerificationProgress => $_getN(7);
+  @$pb.TagNumber(8)
+  set activeVerificationProgress($core.double v) { $_setDouble(7, v); }
+  @$pb.TagNumber(8)
+  $core.bool hasActiveVerificationProgress() => $_has(7);
+  @$pb.TagNumber(8)
+  void clearActiveVerificationProgress() => clearField(8);
+}
+
 class ShutdownAllRequest extends $pb.GeneratedMessage {
   factory ShutdownAllRequest({
     $core.bool? force,
@@ -4166,6 +4350,9 @@ class OrchestratorServiceApi {
   ;
   $async.Future<ApplyUTXOSnapshotResponse> applyUTXOSnapshot($pb.ClientContext? ctx, ApplyUTXOSnapshotRequest request) =>
     _client.invoke<ApplyUTXOSnapshotResponse>(ctx, 'OrchestratorService', 'ApplyUTXOSnapshot', request, ApplyUTXOSnapshotResponse())
+  ;
+  $async.Future<GetSnapshotStatusResponse> getSnapshotStatus($pb.ClientContext? ctx, GetSnapshotStatusRequest request) =>
+    _client.invoke<GetSnapshotStatusResponse>(ctx, 'OrchestratorService', 'GetSnapshotStatus', request, GetSnapshotStatusResponse())
   ;
   $async.Future<ShutdownAllResponse> shutdownAll($pb.ClientContext? ctx, ShutdownAllRequest request) =>
     _client.invoke<ShutdownAllResponse>(ctx, 'OrchestratorService', 'ShutdownAll', request, ShutdownAllResponse())

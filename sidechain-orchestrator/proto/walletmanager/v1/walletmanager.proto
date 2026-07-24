@@ -386,6 +386,9 @@ message CreateElectrumWalletRequest {
   // Device type and master fingerprint when importing a hardware wallet.
   string hardware_device_type = 9;
   string hardware_fingerprint = 10;
+  // Optional BIP39 passphrase applied to custom_mnemonic. Ignored for
+  // watch-only imports.
+  string passphrase = 11;
 }
 
 message CreateElectrumWalletResponse {

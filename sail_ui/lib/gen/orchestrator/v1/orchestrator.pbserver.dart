@@ -32,6 +32,7 @@ abstract class OrchestratorServiceBase extends $pb.GeneratedService {
   $async.Future<$6.RestartDaemonResponse> restartDaemon($pb.ServerContext ctx, $6.RestartDaemonRequest request);
   $async.Future<$6.RestartL1Response> restartL1($pb.ServerContext ctx, $6.RestartL1Request request);
   $async.Future<$6.ApplyUTXOSnapshotResponse> applyUTXOSnapshot($pb.ServerContext ctx, $6.ApplyUTXOSnapshotRequest request);
+  $async.Future<$6.GetSnapshotStatusResponse> getSnapshotStatus($pb.ServerContext ctx, $6.GetSnapshotStatusRequest request);
   $async.Future<$6.ShutdownAllResponse> shutdownAll($pb.ServerContext ctx, $6.ShutdownAllRequest request);
   $async.Future<$6.ShutdownResponse> shutdown($pb.ServerContext ctx, $6.ShutdownRequest request);
   $async.Future<$6.GetBTCPriceResponse> getBTCPrice($pb.ServerContext ctx, $6.GetBTCPriceRequest request);
@@ -60,6 +61,7 @@ abstract class OrchestratorServiceBase extends $pb.GeneratedService {
       case 'RestartDaemon': return $6.RestartDaemonRequest();
       case 'RestartL1': return $6.RestartL1Request();
       case 'ApplyUTXOSnapshot': return $6.ApplyUTXOSnapshotRequest();
+      case 'GetSnapshotStatus': return $6.GetSnapshotStatusRequest();
       case 'ShutdownAll': return $6.ShutdownAllRequest();
       case 'Shutdown': return $6.ShutdownRequest();
       case 'GetBTCPrice': return $6.GetBTCPriceRequest();
@@ -91,6 +93,7 @@ abstract class OrchestratorServiceBase extends $pb.GeneratedService {
       case 'RestartDaemon': return this.restartDaemon(ctx, request as $6.RestartDaemonRequest);
       case 'RestartL1': return this.restartL1(ctx, request as $6.RestartL1Request);
       case 'ApplyUTXOSnapshot': return this.applyUTXOSnapshot(ctx, request as $6.ApplyUTXOSnapshotRequest);
+      case 'GetSnapshotStatus': return this.getSnapshotStatus(ctx, request as $6.GetSnapshotStatusRequest);
       case 'ShutdownAll': return this.shutdownAll(ctx, request as $6.ShutdownAllRequest);
       case 'Shutdown': return this.shutdown(ctx, request as $6.ShutdownRequest);
       case 'GetBTCPrice': return this.getBTCPrice(ctx, request as $6.GetBTCPriceRequest);

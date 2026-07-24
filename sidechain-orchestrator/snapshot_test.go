@@ -1,52 +1,37 @@
 package orchestrator
 
 import (
-	"net/http"
-	"net/http/httptest"
 	"testing"
+
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config/netcatalog"
 )
 
-func listingServer(t *testing.T, body string) *httptest.Server {
-	t.Helper()
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path != "/SHA256SUMS" {
-			w.WriteHeader(http.StatusNotFound)
-			return
-		}
-		_, _ = w.Write([]byte(body))
-	}))
-	t.Cleanup(srv.Close)
-	return srv
-}
+// The active network maps to its catalog entry, whose assumeutxo drives the
+// automatic load. Drynet matches by family; the rest by id.
+func TestCatalogEntryForNetwork(t *testing.T) {
+	// The newest ecash generation wins, whatever it is called and whatever order
+	// the catalog lists it in. The higher-numbered entry carries Height 99.
+	const newestHeight = 99
+	cat := netcatalog.Catalog{Networks: []netcatalog.Network{
+		{ID: "bitcoin", Family: "bitcoin"},
+		{ID: "signet", Family: "bitcoin"},
+		{ID: "drynet9", Family: netcatalog.FamilyECash, AssumeUTXO: &netcatalog.AssumeUTXO{Height: newestHeight}},
+		{ID: "drynet7", Family: netcatalog.FamilyECash, AssumeUTXO: &netcatalog.AssumeUTXO{Height: 7}},
+	}}
 
-// The commitment height and filename come from the published listing, so a new
-// snapshot needs no code change. The highest entry wins.
-func TestFetchSnapshotListingPicksHighestHeight(t *testing.T) {
-	srv := listingServer(t,
-		"aaa  utxo-957600.dat\n"+
-			"bbb  utxo-1000000.dat\n"+
-			"ccc  some-other-file.tar.gz\n")
-
-	got, err := fetchSnapshotListing(t.Context(), srv.URL+"/")
-	if err != nil {
-		t.Fatalf("fetchSnapshotListing: %v", err)
+	if got, ok := catalogEntryForNetwork(cat, config.NetworkMainnet); !ok || got.ID != "bitcoin" {
+		t.Errorf("mainnet -> %q (ok=%v), want bitcoin", got.ID, ok)
 	}
-	if got.Height != 1000000 {
-		t.Errorf("Height = %d, want 1000000", got.Height)
+	if got, ok := catalogEntryForNetwork(cat, config.NetworkSignet); !ok || got.ID != "signet" {
+		t.Errorf("signet -> %q (ok=%v), want signet", got.ID, ok)
 	}
-	if got.SHA256 != "bbb" {
-		t.Errorf("SHA256 = %q, want bbb", got.SHA256)
+	got, ok := catalogEntryForNetwork(cat, config.NetworkDrynet)
+	if !ok || got.AssumeUTXO.Height != newestHeight {
+		t.Errorf("drynet -> %+v (ok=%v), want the newest generation", got, ok)
 	}
-	if want := srv.URL + "/utxo-1000000.dat"; got.URL != want {
-		t.Errorf("URL = %q, want %q", got.URL, want)
-	}
-}
-
-func TestFetchSnapshotListingRejectsListingWithoutSnapshot(t *testing.T) {
-	srv := listingServer(t, "aaa  readme.txt\n")
-
-	if _, err := fetchSnapshotListing(t.Context(), srv.URL+"/"); err == nil {
-		t.Error("expected an error when the listing has no utxo-<height>.dat")
+	if _, ok := catalogEntryForNetwork(cat, config.NetworkForknet); ok {
+		t.Error("forknet has no catalog entry, want not found")
 	}
 }
 

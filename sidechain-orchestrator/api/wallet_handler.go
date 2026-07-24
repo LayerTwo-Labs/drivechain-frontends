@@ -369,7 +369,7 @@ func (h *WalletHandler) CreateElectrumWallet(ctx context.Context, req *connect.R
 				fmt.Errorf("derivation purpose %d' does not match script type %q (want %d')", ap.Purpose, req.Msg.ScriptType, want))
 		}
 	}
-	w, err := h.svc.CreateElectrumWallet(req.Msg.Name, json.RawMessage(req.Msg.GradientJson), req.Msg.Slots, req.Msg.CustomMnemonic, req.Msg.XpubOrDescriptor, req.Msg.ScriptType, account, path)
+	w, err := h.svc.CreateElectrumWallet(req.Msg.Name, json.RawMessage(req.Msg.GradientJson), req.Msg.Slots, req.Msg.CustomMnemonic, req.Msg.Passphrase, req.Msg.XpubOrDescriptor, req.Msg.ScriptType, account, path)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}

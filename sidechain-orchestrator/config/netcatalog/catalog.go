@@ -14,6 +14,8 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strconv"
+	"strings"
 	"time"
 )
 
@@ -70,6 +72,18 @@ type Network struct {
 			URL string `json:"url"`
 		} `json:"coinnews"`
 	} `json:"services"`
+
+	// AssumeUTXO is the published UTXO snapshot for this network, or nil when it
+	// has none. URL points straight at the .dat file.
+	AssumeUTXO *AssumeUTXO `json:"assumeutxo"`
+}
+
+// AssumeUTXO describes a network's published UTXO snapshot.
+type AssumeUTXO struct {
+	URL       string `json:"url"`
+	Height    int64  `json:"height"`
+	SHA256    string `json:"sha256"`
+	SizeBytes int64  `json:"size_bytes"`
 }
 
 // Backend is one endpoint a network can be read from. Kind is "esplora" or
@@ -92,10 +106,45 @@ func (c Catalog) ByFamily(family string) (Network, bool) {
 	return Network{}, false
 }
 
-// DrynetID returns the live drynet generation id (e.g. "drynet2"), or "" when
+// ByID returns the network with the given id, and whether one was found.
+func (c Catalog) ByID(id string) (Network, bool) {
+	for _, n := range c.Networks {
+		if n.ID == id {
+			return n, true
+		}
+	}
+	return Network{}, false
+}
+
+// CurrentECash returns the newest eCash generation (highest trailing number in
+// the id), so a catalog that still lists older ones resolves to the latest.
+func (c Catalog) CurrentECash() (Network, bool) {
+	best, bestGen := Network{}, -1
+	for _, n := range c.Networks {
+		if n.Family != FamilyECash {
+			continue
+		}
+		if g := generationNumber(n.ID); g > bestGen {
+			best, bestGen = n, g
+		}
+	}
+	return best, bestGen >= 0
+}
+
+// generationNumber parses the trailing integer of an id ("drynet3" -> 3), or -1.
+func generationNumber(id string) int {
+	i := strings.LastIndexFunc(id, func(r rune) bool { return r < '0' || r > '9' })
+	n, err := strconv.Atoi(id[i+1:])
+	if err != nil {
+		return -1
+	}
+	return n
+}
+
+// DrynetID returns the live drynet generation id (e.g. "drynet3"), or "" when
 // the catalog carries no eCash entry.
 func (c Catalog) DrynetID() string {
-	n, ok := c.ByFamily(FamilyECash)
+	n, ok := c.CurrentECash()
 	if !ok {
 		return ""
 	}

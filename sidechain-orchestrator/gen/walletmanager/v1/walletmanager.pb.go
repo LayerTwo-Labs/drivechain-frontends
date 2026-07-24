@@ -2370,8 +2370,11 @@ type CreateElectrumWalletRequest struct {
 	// Device type and master fingerprint when importing a hardware wallet.
 	HardwareDeviceType  string `protobuf:"bytes,9,opt,name=hardware_device_type,json=hardwareDeviceType,proto3" json:"hardware_device_type,omitempty"`
 	HardwareFingerprint string `protobuf:"bytes,10,opt,name=hardware_fingerprint,json=hardwareFingerprint,proto3" json:"hardware_fingerprint,omitempty"`
-	unknownFields       protoimpl.UnknownFields
-	sizeCache           protoimpl.SizeCache
+	// Optional BIP39 passphrase applied to custom_mnemonic. Ignored for
+	// watch-only imports.
+	Passphrase    string `protobuf:"bytes,11,opt,name=passphrase,proto3" json:"passphrase,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *CreateElectrumWalletRequest) Reset() {
@@ -2470,6 +2473,13 @@ func (x *CreateElectrumWalletRequest) GetHardwareDeviceType() string {
 func (x *CreateElectrumWalletRequest) GetHardwareFingerprint() string {
 	if x != nil {
 		return x.HardwareFingerprint
+	}
+	return ""
+}
+
+func (x *CreateElectrumWalletRequest) GetPassphrase() string {
+	if x != nil {
+		return x.Passphrase
 	}
 	return ""
 }
@@ -8202,7 +8212,7 @@ const file_walletmanager_v1_walletmanager_proto_rawDesc = "" +
 	"\x12xpub_or_descriptor\x18\x02 \x01(\tR\x10xpubOrDescriptor\x12#\n" +
 	"\rgradient_json\x18\x03 \x01(\tR\fgradientJson\"<\n" +
 	"\x1dCreateWatchOnlyWalletResponse\x12\x1b\n" +
-	"\twallet_id\x18\x01 \x01(\tR\bwalletId\"\x8c\x03\n" +
+	"\twallet_id\x18\x01 \x01(\tR\bwalletId\"\xac\x03\n" +
 	"\x1bCreateElectrumWalletRequest\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12#\n" +
 	"\rgradient_json\x18\x02 \x01(\tR\fgradientJson\x12\x14\n" +
@@ -8215,7 +8225,10 @@ const file_walletmanager_v1_walletmanager_proto_rawDesc = "" +
 	"\x0fderivation_path\x18\b \x01(\tR\x0ederivationPath\x120\n" +
 	"\x14hardware_device_type\x18\t \x01(\tR\x12hardwareDeviceType\x121\n" +
 	"\x14hardware_fingerprint\x18\n" +
-	" \x01(\tR\x13hardwareFingerprint\";\n" +
+	" \x01(\tR\x13hardwareFingerprint\x12\x1e\n" +
+	"\n" +
+	"passphrase\x18\v \x01(\tR\n" +
+	"passphrase\";\n" +
 	"\x1cCreateElectrumWalletResponse\x12\x1b\n" +
 	"\twallet_id\x18\x01 \x01(\tR\bwalletId\"\xf0\x01\n" +
 	"\x15MultisigCosignerInput\x12\x12\n" +

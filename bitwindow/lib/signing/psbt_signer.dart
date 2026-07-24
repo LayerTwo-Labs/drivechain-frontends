@@ -1,4 +1,5 @@
 import 'package:bitwindow/widgets/airgap_sign_step.dart';
+import 'package:bitwindow/widgets/hardware_device_picker.dart';
 import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/gen/walletmanager/v1/walletmanager.pb.dart' as wmpb;
@@ -70,7 +71,30 @@ class HwiPsbtSigner implements PsbtSigner {
   OrchestratorWalletRPC get _wallet => GetIt.I<OrchestratorRPC>().wallet;
 
   @override
-  Future<String> signPsbt(String unsignedPsbtBase64, BuildContext context) {
-    return _wallet.signPsbtWithDevice(device: device, psbtBase64: unsignedPsbtBase64);
+  Future<String> signPsbt(String unsignedPsbtBase64, BuildContext context) async {
+    try {
+      return await _wallet.signPsbtWithDevice(device: device, psbtBase64: unsignedPsbtBase64);
+    } catch (e) {
+      final msg = e.toString().toLowerCase();
+      final needsDevice =
+          msg.contains('locked') ||
+          msg.contains('promptpin') ||
+          msg.contains('passphrase') ||
+          msg.contains('-12') ||
+          msg.contains('not found') ||
+          msg.contains('no device') ||
+          msg.contains('libusb');
+      if (!needsDevice || !context.mounted) rethrow;
+      final unlocked = await showHardwareDevicePicker(context);
+      if (unlocked == null) rethrow;
+      // A re-locked device has no fingerprint; sign by path and carry the
+      // passphrase so a hidden wallet resolves to the same account.
+      final byPath = wmpb.HardwareDeviceSelector(
+        type: unlocked.type,
+        path: unlocked.path,
+        passphrase: hardwareDevicePassphrase(unlocked.path),
+      );
+      return await _wallet.signPsbtWithDevice(device: byPath, psbtBase64: unsignedPsbtBase64);
+    }
   }
 }
