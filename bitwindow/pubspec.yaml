@@ -81,7 +81,7 @@ dev_dependencies:
   build_runner: ^2.15.0
   flutter_launcher_icons: ^0.14.4
   # Pinned: 4.7.1 fails to build on macOS with "module 'PatrolImpl' not found".
-  patrol: 4.6.1
+  patrol: 4.7.1
   integration_test:
     sdk: flutter
 
