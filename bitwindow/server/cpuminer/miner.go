@@ -461,9 +461,8 @@ func New(cfg Config) (*Miner, error) {
 
 	return &Miner{
 		client: http.DefaultClient,
-		// Buffered: consumers (e.g. the bitwindowd MineBlocks stream) read
-		// asynchronously, and in CLI mode there is no consumer at all. The
-		// send side never blocks and coalesces latest-wins on overflow.
+		// Buffered: consumers read asynchronously, and in CLI mode there is no
+		// consumer at all. The send side never blocks on overflow.
 		acceptedBlocks:    make(chan chainhash.Hash, 64),
 		routines:          cfg.Routines,
 		scanTime:          cfg.ScanTime,
@@ -557,17 +556,25 @@ func (m *Miner) Start(ctx context.Context) error {
 	if m.routines == 0 {
 		panic("PROGRAMMER ERROR: zero routines")
 	}
-	errs := make(chan error)
+	// A fatal error in one routine cancels the rest; parent cancellation stops
+	// them all. Start returns only once every routine has actually exited.
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+	errs := make(chan error, m.routines)
+	var wg sync.WaitGroup
 	for i := 0; i < m.routines; i++ {
+		wg.Add(1)
 		go func() {
+			defer wg.Done()
 			log := zerolog.Ctx(ctx).With().Int("routine", i).Logger()
-			ctx := log.WithContext(ctx)
-
-			if err := m.runRoutine(ctx, i); err != nil && !errors.Is(err, context.Canceled) {
+			if err := m.runRoutine(log.WithContext(ctx), i); err != nil && !errors.Is(err, context.Canceled) {
 				errs <- fmt.Errorf("miner routine no. %d: %w", i, err)
+				cancel()
 			}
 		}()
 	}
+	wg.Wait()
+	close(errs)
 	return <-errs
 }
 
@@ -690,6 +697,14 @@ func (m *Miner) scanhashSha256d(
 	hash := make([]byte, 32)
 
 	for header.Nonce < maxNonce && time.Since(start) < m.scanTime {
+		// Stop promptly when cancelled instead of scanning out the whole
+		// scanTime; checked in bulk so it costs nothing per hash.
+		if header.Nonce&0xffff == 0 {
+			if err := ctx.Err(); err != nil {
+				return false, err
+			}
+		}
+
 		// Update nonce
 		header.Nonce++
 		binary.LittleEndian.PutUint32(data[76:], header.Nonce)
