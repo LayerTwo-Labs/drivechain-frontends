@@ -11,12 +11,13 @@ type BalanceResponse struct {
 
 // BitNameData holds optional metadata fields attached to a BitName.
 type BitNameData struct {
-	Commitment      *string `json:"commitment,omitempty"`
+	SeqID            string  `json:"seq_id,omitempty"`
+	Commitment       *string `json:"commitment,omitempty"`
 	EncryptionPubkey *string `json:"encryption_pubkey,omitempty"`
-	PaymailFeeSats  *int64  `json:"paymail_fee_sats,omitempty"`
+	PaymailFeeSats   *uint64 `json:"paymail_fee_sats,omitempty"`
 	SigningPubkey    *string `json:"signing_pubkey,omitempty"`
-	SocketAddrV4    *string `json:"socket_addr_v4,omitempty"`
-	SocketAddrV6    *string `json:"socket_addr_v6,omitempty"`
+	SocketAddrV4     *string `json:"socket_addr_v4,omitempty"`
+	SocketAddrV6     *string `json:"socket_addr_v6,omitempty"`
 }
 
 // BitnameDetails describes the on-chain state of a registered BitName.
@@ -67,12 +68,12 @@ type SignatureResponse struct {
 
 // BmmResult is the response from the "mine" RPC.
 type BmmResult struct {
-	HashLastMainBlock     string  `json:"hash_last_main_block"`
-	BmmBlockCreated       *string `json:"bmm_block_created,omitempty"`
-	BmmBlockSubmitted     *string `json:"bmm_block_submitted,omitempty"`
+	HashLastMainBlock      string  `json:"hash_last_main_block"`
+	BmmBlockCreated        *string `json:"bmm_block_created,omitempty"`
+	BmmBlockSubmitted      *string `json:"bmm_block_submitted,omitempty"`
 	BmmBlockSubmittedBlind *string `json:"bmm_block_submitted_blind,omitempty"`
-	Ntxn                  int     `json:"ntxn"`
-	Nfees                 int     `json:"nfees"`
-	Txid                  string  `json:"txid"`
-	Error                 *string `json:"error,omitempty"`
+	Ntxn                   int     `json:"ntxn"`
+	Nfees                  int     `json:"nfees"`
+	Txid                   string  `json:"txid"`
+	Error                  *string `json:"error,omitempty"`
 }
