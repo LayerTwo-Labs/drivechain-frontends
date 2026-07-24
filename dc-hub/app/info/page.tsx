@@ -3,7 +3,7 @@ import { CodeBlock } from "@/components/code-block";
 import { InlineCode } from "@/components/inline-code";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { getNetworkConfig } from "@/lib/config";
-import { blockExplorerBase, findBackend } from "@/lib/network";
+import { blockExplorerBase, findBackend, l1Binaries, RELEASES_BASE } from "@/lib/network";
 
 export async function generateMetadata(): Promise<Metadata> {
   const net = await getNetworkConfig();
@@ -21,6 +21,7 @@ export default async function InfoPage() {
   const explorer = blockExplorerBase(net);
   const snapshot = net.assumeutxo;
   const snapshotFile = snapshot?.url.split("/").pop();
+  const binaries = l1Binaries(net);
   const { blockbook, fast_withdrawal } = net.services;
   const isForknet = net.family === "ecash";
 
@@ -109,7 +110,7 @@ export default async function InfoPage() {
           <CardHeader>
             <CardTitle>Run a node</CardTitle>
             <CardDescription>
-              Build the drivechain client from{" "}
+              Download a prebuilt {net.display_name} node, or build it from{" "}
               <a
                 className="underline"
                 href={`https://github.com/ecash-com/bitcoin/tree/${net.id}`}
@@ -117,11 +118,20 @@ export default async function InfoPage() {
                 rel="noreferrer"
               >
                 ecash-com/bitcoin ({net.id} branch)
-              </a>{" "}
+              </a>
               . Then connect to the network:
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
+            {binaries && (
+              <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm">
+                {binaries.map((b) => (
+                  <a key={b.url} className="underline" href={b.url}>
+                    {b.label}
+                  </a>
+                ))}
+              </div>
+            )}
             <CodeBlock>{`bitcoind -datadir=./${net.id}${p2p ? ` -addnode=${p2p.address}` : ""}`}</CodeBlock>
             <p className="text-sm text-muted-foreground">
               ⚠️ Always pass <InlineCode>-datadir</InlineCode>: because the fork identifies as{" "}
@@ -132,6 +142,13 @@ export default async function InfoPage() {
               A full sync downloads and validates all of mainnet history up to the fork (~850 GB,
               several hours).
               {snapshot ? " For a much faster start, use the UTXO snapshot below." : ""}
+            </p>
+            <p className="text-sm text-muted-foreground">
+              Binaries for everything else (BitWindow, sidechains, the BIP300/301 enforcer) are at{" "}
+              <a className="underline" href={RELEASES_BASE} target="_blank" rel="noreferrer">
+                releases.drivechain.info
+              </a>
+              .
             </p>
           </CardContent>
         </Card>
@@ -154,7 +171,13 @@ export default async function InfoPage() {
 echo "${snapshot.sha256}  ${snapshotFile}" | shasum -a 256 --check`}</CodeBlock>
             <CodeBlock>{`bitcoind -daemon -datadir=./${net.id}${p2p ? ` -addnode=${p2p.address}` : ""}
 bitcoin-cli -datadir=./${net.id} -rpcclienttimeout=0 \\
-  loadtxoutset ${snapshotFile}`}</CodeBlock>
+  loadtxoutset "$PWD/${snapshotFile}"`}</CodeBlock>
+            <p className="text-sm text-muted-foreground">
+              Pass an <em>absolute</em> path to <InlineCode>loadtxoutset</InlineCode>: bitcoind
+              resolves relative paths against its own datadir, not your shell’s working directory,
+              so the bare filename would fail with{" "}
+              <InlineCode>Couldn’t open file … for reading</InlineCode>.
+            </p>
             <p className="text-sm text-muted-foreground">
               The snapshot is verified against a hash committed in the client’s{" "}
               <InlineCode>chainparams</InlineCode>. Expect the background history sync to eventually
