@@ -38,6 +38,9 @@ const (
 	// electrumMaxScan caps per-chain derivation so a misbehaving backend
 	// can't drive an unbounded scan.
 	electrumMaxScan = 1000
+	// electrumScanTTL re-walks the cache this often even without a new block,
+	// so mempool funds surface within seconds instead of at the next block.
+	electrumScanTTL = 15 * time.Second
 )
 
 // ElectrumBackend serves a wallet with no local Core or enforcer: it derives
@@ -64,6 +67,7 @@ type ElectrumBackend struct {
 	warm      map[string]bool          // walletID -> a live scan has run this process
 	warmScan  map[string]*electrumScan // walletID -> cached scan, served between blocks
 	tipAt     map[string]int           // walletID -> chain tip the cached scan reflects
+	scanAt    map[string]time.Time     // walletID -> when the cached scan was taken
 	lastScan  map[string][]byte        // walletID -> last persisted scan bytes (skip rewrites)
 
 	// scanLocks serialises live scans per wallet so concurrent readers
@@ -71,6 +75,13 @@ type ElectrumBackend struct {
 	// gap-walk instead of each firing its own burst of Esplora requests.
 	scanMu    sync.Mutex
 	scanLocks map[string]*sync.Mutex
+
+	// Push subscriptions: scripthash -> last status and -> walletID, so a server
+	// push refreshes exactly the affected wallet instead of polling.
+	subMu        sync.Mutex
+	subStatus    map[string]string
+	shWallet     map[string]string
+	consumerOnce sync.Once
 }
 
 var (
@@ -89,9 +100,17 @@ func NewElectrumBackend(svc *Service, client ChainDataSource, network *chaincfg.
 		warm:      make(map[string]bool),
 		warmScan:  make(map[string]*electrumScan),
 		tipAt:     make(map[string]int),
+		scanAt:    make(map[string]time.Time),
 		lastScan:  make(map[string][]byte),
 		scanLocks: make(map[string]*sync.Mutex),
+		subStatus: make(map[string]string),
+		shWallet:  make(map[string]string),
 	}
+}
+
+// FeeRateForTarget returns the esplora sat/vB fee estimate for a confirmation target.
+func (p *ElectrumBackend) FeeRateForTarget(ctx context.Context, target int) float64 {
+	return p.client.FeeRateForTarget(ctx, target, 1.0)
 }
 
 // scannedAddr is one derived (or watched) address with its key and current
@@ -158,11 +177,8 @@ func (p *ElectrumBackend) Balance(ctx context.Context, walletID string) (float64
 	if err != nil {
 		return 0, 0, err
 	}
-	// confirmed = confirmed coins not yet being spent in the mempool; pending =
-	// everything else, derived from the true total so it accounts for spending
-	// unconfirmed coins (e.g. spending an unconfirmed receive, where mempoolSpent
-	// exceeds the confirmed balance). Both stay non-negative and
-	// confirmed+pending == the real wallet total = chainNet + mempoolNet.
+	// confirmed = confirmed coins not being spent in the mempool; pending = the
+	// rest, derived from the true total so spending unconfirmed coins nets out.
 	var confirmedNet, mempoolFunded, mempoolSpent int64
 	for _, a := range scan.addrs {
 		confirmedNet += a.stats.ChainStats.FundedTxoSum - a.stats.ChainStats.SpentTxoSum
@@ -474,6 +490,7 @@ func (p *ElectrumBackend) WatchKeys(ctx context.Context, walletID string, keys [
 		// keep serving the stale scan and never see payments to the new
 		// addresses. Drop the cache to force a re-walk on the next read.
 		delete(p.warmScan, walletID)
+		delete(p.scanAt, walletID)
 	}
 	return nil
 }
@@ -853,6 +870,8 @@ func (p *ElectrumBackend) buildSendPSBT(ctx context.Context, walletID string, sc
 	if err != nil {
 		return nil, nil, nil, fmt.Errorf("build psbt: %w", err)
 	}
+	// Multisig hardware signers need the cosigner xpubs to register the policy.
+	packet.XPubs = multisigGlobalXpubs(d)
 	return packet, psbtInputs, effect, nil
 }
 
@@ -1214,6 +1233,7 @@ func (p *ElectrumBackend) SetServerURL(ctx context.Context, url string) (int, er
 	p.mu.Lock()
 	p.warmScan = make(map[string]*electrumScan)
 	p.tipAt = make(map[string]int)
+	p.scanAt = make(map[string]time.Time)
 	p.warm = make(map[string]bool)
 	p.mu.Unlock()
 
@@ -1263,6 +1283,7 @@ func (p *ElectrumBackend) SetTorConfig(ctx context.Context, enabled bool, proxyA
 	p.mu.Lock()
 	p.warmScan = make(map[string]*electrumScan)
 	p.tipAt = make(map[string]int)
+	p.scanAt = make(map[string]time.Time)
 	p.warm = make(map[string]bool)
 	p.mu.Unlock()
 
@@ -1521,27 +1542,10 @@ func (p *ElectrumBackend) scanWallet(ctx context.Context, walletID string) (*ele
 	return p.scan(ctx, walletID, true)
 }
 
-// scanWalletLive forces a fresh network scan, bypassing the cold cache. Use it
-// for address allocation and spends, where stale data risks reuse or misspend.
-func (p *ElectrumBackend) scanWalletLive(ctx context.Context, walletID string) (*electrumScan, error) {
-	return p.scan(ctx, walletID, false)
-}
-
-// scanForSend picks the scan strategy for building a send/PSBT. An OP_RETURN-only
-// broadcast (e.g. coinnews) needs only a fee UTXO, so the cached, tip-gated scan
-// is enough and avoids a full live re-walk that hammers rate-limited esplora
-// providers. Anything that pays an address, spends a specific/external input, or
-// adds a raw output forces a live scan for fresh UTXO data.
-func (p *ElectrumBackend) scanForSend(ctx context.Context, walletID string, req SendRequest) (*electrumScan, error) {
-	opReturnOnly := req.OpReturnHex != "" &&
-		len(req.DestinationsSats) == 0 &&
-		len(req.RawOutputs) == 0 &&
-		len(req.ExternalInputs) == 0 &&
-		len(req.RequiredInputs) == 0
-	if opReturnOnly {
-		return p.scanWallet(ctx, walletID)
-	}
-	return p.scanWalletLive(ctx, walletID)
+// scanForSend builds a send from the cached scan. Scripthash push subscriptions
+// keep the cache current, so a send no longer needs a full live re-walk.
+func (p *ElectrumBackend) scanForSend(ctx context.Context, walletID string, _ SendRequest) (*electrumScan, error) {
+	return p.scanWallet(ctx, walletID)
 }
 
 func (p *ElectrumBackend) scan(ctx context.Context, walletID string, allowCache bool) (*electrumScan, error) {
@@ -1638,7 +1642,83 @@ func (p *ElectrumBackend) scan(ctx context.Context, walletID string, allowCache 
 	p.warm[walletID] = true
 	p.mu.Unlock()
 	p.cacheScan(ctx, walletID, scan)
+	go p.subscribeScan(walletID, scan)
 	return scan, nil
+}
+
+// subscribeScan registers every scanned address's scripthash for server pushes
+// and records its status, so a change refreshes only this wallet. Electrum only.
+func (p *ElectrumBackend) subscribeScan(walletID string, scan *electrumScan) {
+	ec, ok := p.client.(*ElectrumClient)
+	if !ok {
+		return
+	}
+	p.consumerOnce.Do(func() { go p.consumeNotifications(ec) })
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	_, _ = ec.SubscribeHeaders(ctx)
+	for _, a := range scan.addrs {
+		sh, err := ec.ScriptHash(a.address)
+		if err != nil {
+			continue
+		}
+		status, err := ec.Subscribe(ctx, sh)
+		if err != nil {
+			continue
+		}
+		p.subMu.Lock()
+		p.shWallet[sh] = walletID
+		p.subStatus[sh] = status
+		p.subMu.Unlock()
+	}
+}
+
+// consumeNotifications turns server pushes into cache invalidation + a change
+// fan-out, so incoming funds surface within ~1s instead of on a poll timer.
+func (p *ElectrumBackend) consumeNotifications(ec *ElectrumClient) {
+	for n := range ec.Notifications() {
+		switch n.Kind {
+		case "scripthash":
+			p.subMu.Lock()
+			walletID, known := p.shWallet[n.ScriptHash]
+			changed := known && p.subStatus[n.ScriptHash] != n.Status
+			if changed {
+				p.subStatus[n.ScriptHash] = n.Status
+			}
+			p.subMu.Unlock()
+			if changed {
+				p.invalidate(walletID)
+				p.svc.notifyChanged()
+			}
+		case "headers":
+			p.svc.notifyChanged()
+		case "reconnect":
+			p.onElectrumReconnect()
+		}
+	}
+}
+
+func (p *ElectrumBackend) invalidate(walletID string) {
+	p.mu.Lock()
+	delete(p.warmScan, walletID)
+	delete(p.tipAt, walletID)
+	delete(p.scanAt, walletID)
+	p.mu.Unlock()
+}
+
+// onElectrumReconnect drops all subscription state and warm caches; the next
+// read re-scans and re-subscribes on the fresh socket.
+func (p *ElectrumBackend) onElectrumReconnect() {
+	p.subMu.Lock()
+	p.subStatus = make(map[string]string)
+	p.shWallet = make(map[string]string)
+	p.subMu.Unlock()
+	p.mu.Lock()
+	p.warmScan = make(map[string]*electrumScan)
+	p.tipAt = make(map[string]int)
+	p.scanAt = make(map[string]time.Time)
+	p.mu.Unlock()
+	p.svc.notifyChanged()
 }
 
 // lockScan returns the per-wallet scan mutex (creating it on first use), locked.
@@ -1664,6 +1744,7 @@ func (p *ElectrumBackend) cachedScan(ctx context.Context, walletID string) *elec
 	p.mu.Lock()
 	scan := p.warmScan[walletID]
 	at, hasTip := p.tipAt[walletID]
+	fresh := time.Since(p.scanAt[walletID]) < electrumScanTTL
 	p.mu.Unlock()
 	if scan == nil {
 		return nil
@@ -1672,10 +1753,10 @@ func (p *ElectrumBackend) cachedScan(ctx context.Context, walletID string) *elec
 	if err != nil {
 		return scan // network blip: serve cache rather than re-walk or fail the read
 	}
-	if hasTip && tip == at {
-		return scan // no new block → nothing changed
+	if hasTip && tip == at && fresh {
+		return scan // no new block and cache still fresh → nothing changed
 	}
-	return nil // new block (or unknown tip): re-walk once to refresh
+	return nil // new block, or cache aged out: re-walk once to catch mempool activity
 }
 
 // cacheScan stores a completed scan as the in-memory cache, tagged with the
@@ -1684,6 +1765,7 @@ func (p *ElectrumBackend) cacheScan(ctx context.Context, walletID string, scan *
 	tip, err := p.client.TipHeight(ctx)
 	p.mu.Lock()
 	p.warmScan[walletID] = scan
+	p.scanAt[walletID] = time.Now()
 	if err == nil {
 		p.tipAt[walletID] = tip
 	} else {

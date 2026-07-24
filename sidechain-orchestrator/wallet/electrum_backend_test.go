@@ -707,6 +707,8 @@ func TestElectrumCustomAccountReceiveAndSpend(t *testing.T) {
 		Vout: 0, Value: 200_000,
 		Status: EsploraStatus{Confirmed: true, BlockHeight: 100},
 	}}
+	// A real receive fires a scripthash push that drops the cache; simulate it.
+	p.invalidate(w.ID)
 
 	dest := "tb1qw508d6qejxtdg4y5r3zarvary0c5xw7kxpjzsx"
 	txid, err := p.Send(ctx, w.ID, SendRequest{
