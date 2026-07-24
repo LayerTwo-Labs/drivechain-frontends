@@ -1,5 +1,23 @@
 # drivechain-frontends — engineering rules
 
+## Always be concise
+
+Be as concise as possible in everything: responses, code, and comments.
+
+A comment says what the thing is or does, in one line, two at most. No
+history, no "why not X", no cross-file spelunking, no product name-drops.
+Most code needs no comment at all.
+
+```
+# Bad:
+# Cross-building the Intel daemon on Apple Silicon needs Rosetta. This
+# branch only runs in CI (dev builds the host arch only); the install is
+# idempotent (no-op if already present).
+
+# Good:
+# Install Rosetta to cross-build the Intel daemon.
+```
+
 ## Never write migration / backward-compat code
 
 This project is pre-1.0. Treat every change as the new source of truth.
