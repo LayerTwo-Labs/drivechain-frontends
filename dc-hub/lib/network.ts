@@ -99,6 +99,32 @@ export function findBackend(net: NetworkConfig, kind: string): Backend | undefin
   return net.backends.find((b) => b.kind === kind);
 }
 
+export const RELEASES_BASE = "https://releases.drivechain.info";
+
+const L1_BINARY_TARGETS = [
+  { target: "aarch64-apple-darwin", label: "macOS (Apple Silicon)" },
+  { target: "x86_64-apple-darwin", label: "macOS (Intel)" },
+  { target: "x86_64-unknown-linux-gnu", label: "Linux (x86_64)" },
+  { target: "x86_64-w64-msvc", label: "Windows (x86_64)" },
+];
+
+export interface BinaryLink {
+  label: string;
+  url: string;
+}
+
+/** Prebuilt L1 node binaries for this network on releases.drivechain.info,
+ * named `L1-ecash-bitcoin-<network id>-<target>.zip` there. Only the ecash
+ * family gets per-network builds (each fork is its own chain); other
+ * families return null. */
+export function l1Binaries(net: NetworkConfig): BinaryLink[] | null {
+  if (net.family !== "ecash") return null;
+  return L1_BINARY_TARGETS.map(({ target, label }) => ({
+    label,
+    url: `${RELEASES_BASE}/L1-ecash-bitcoin-${net.id}-${target}.zip`,
+  }));
+}
+
 const EXAMPLE_ADDRESS_BY_CHAIN: Record<string, string> = {
   main: "bc1q4akxjffcy6f4tyhj6d5xjfyqqzh7vnqag06v3x",
   signet: "tb1quez8thg0py02vl8gj98efa08tc0zfwuctc6d7j",
