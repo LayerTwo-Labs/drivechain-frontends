@@ -444,9 +444,7 @@ type electrumHistoryItem struct {
 }
 
 // AddressStats synthesises Esplora address stats from get_balance + get_history.
-// Electrum has no funded/spent breakdown, so the funded sums carry the balance
-// (spent 0) — the wallet backend only reads net balance, tx counts, and whether
-// the address has any history, all of which this preserves.
+// A negative mempool balance is a spend, so it maps to spent, not funded.
 func (c *ElectrumClient) AddressStats(ctx context.Context, address string) (EsploraAddressStats, error) {
 	sh, err := c.scriptHash(address)
 	if err != nil {
@@ -478,7 +476,11 @@ func (c *ElectrumClient) AddressStats(ctx context.Context, address string) (Espl
 	stats.ChainStats.FundedTxoSum = bal.Confirmed
 	stats.MempoolStats.TxCount = mempool
 	stats.MempoolStats.FundedTxoCount = mempool
-	stats.MempoolStats.FundedTxoSum = bal.Unconfirmed
+	if bal.Unconfirmed >= 0 {
+		stats.MempoolStats.FundedTxoSum = bal.Unconfirmed
+	} else {
+		stats.MempoolStats.SpentTxoSum = -bal.Unconfirmed
+	}
 	return stats, nil
 }
 
