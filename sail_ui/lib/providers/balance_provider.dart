@@ -38,6 +38,18 @@ class BalanceProvider extends ChangeNotifier {
     fetch();
   }
 
+  // Write a balance fetched elsewhere in the same batch as utxos/transactions,
+  // so the displayed number can't drift from the list it belongs to.
+  void setBalance(RPCConnection rpc, double confirmed, double pending) {
+    final changed = _balances[rpc] != (confirmed, pending) || !initialized;
+    _balances[rpc] = (confirmed, pending);
+    initialized = true;
+    if (changed) {
+      error = null;
+      notifyListeners();
+    }
+  }
+
   void clear() {
     for (final rpc in connections) {
       _balances[rpc] = (0.0, 0.0);
