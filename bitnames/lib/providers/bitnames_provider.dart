@@ -22,14 +22,21 @@ class BitnamesProvider extends ChangeNotifier {
 
   BitnamesProvider() {
     rpc.addListener(fetch);
-    fetch();
+    _initialize();
     _startRetryTimer();
+  }
+
+  Future<void> _initialize() async {
+    hashNameMapping = await clientSettings.getValue(HashNameMappingSetting()) as HashNameMappingSetting;
+    notifyListeners();
+    await fetch();
   }
 
   /// Save a new hash-name mapping
   Future<void> saveHashNameMapping(String name, {bool isMine = false}) async {
     final hash = blake3Hex(utf8.encode(name));
-    final newMappings = Map<String, HashMapping>.from(hashNameMapping.value);
+    final stored = await clientSettings.getValue(HashNameMappingSetting());
+    final newMappings = Map<String, HashMapping>.from(stored.value);
     newMappings[hash] = HashMapping(name: name, isMine: isMine);
     hashNameMapping = HashNameMappingSetting(newValue: newMappings);
     await clientSettings.setValue(hashNameMapping);
@@ -47,7 +54,7 @@ class BitnamesProvider extends ChangeNotifier {
 
     _retryTimer?.cancel();
     _retryTimer = Timer.periodic(const Duration(milliseconds: 500), (timer) {
-      if (entries.isNotEmpty && initialized) {
+      if (initialized) {
         timer.cancel();
         _retryTimer = null;
         return;
@@ -77,7 +84,18 @@ class BitnamesProvider extends ChangeNotifier {
   bool _listEquals(List<BitnameEntry> a, List<BitnameEntry> b) {
     if (a.length != b.length) return false;
     for (int i = 0; i < a.length; i++) {
-      if (a[i].hash != b[i].hash || a[i].plaintextName != b[i].plaintextName) return false;
+      final x = a[i], y = b[i], xd = x.details, yd = y.details;
+      if (x.hash != y.hash ||
+          x.plaintextName != y.plaintextName ||
+          xd.seqId != yd.seqId ||
+          xd.commitment != yd.commitment ||
+          xd.socketAddrV4 != yd.socketAddrV4 ||
+          xd.socketAddrV6 != yd.socketAddrV6 ||
+          xd.encryptionPubkey != yd.encryptionPubkey ||
+          xd.signingPubkey != yd.signingPubkey ||
+          xd.paymailFeeSats != yd.paymailFeeSats) {
+        return false;
+      }
     }
     return true;
   }

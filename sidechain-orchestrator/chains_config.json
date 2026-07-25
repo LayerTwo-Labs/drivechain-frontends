@@ -404,6 +404,74 @@
       },
       "hashes": {}
     },
+    "bitnames-tor": {
+      "type": "utility",
+      "name": "BitNames Tor",
+      "version": "latest",
+      "description": "Private BitIntroduction routing and onion service",
+      "require_hash": true,
+      "preserve_archive_tree": true,
+      "repo_url": "https://github.com/LayerTwo-Labs/bitnames-tor",
+      "port": 37998,
+      "chain_layer": 0,
+      "color": "purple",
+      "health_check": {
+        "type": "tcp"
+      },
+      "dependencies": [],
+      "startup_log_patterns": ["Bootstrapped", "onion service ready"],
+      "directories": {
+        "binary": {
+          "default": {
+            "linux": ".bitnames-tor",
+            "macos": "BitNames Tor",
+            "windows": "BitNames Tor"
+          }
+        },
+        "flutter_frontend": {
+          "linux": "",
+          "macos": "",
+          "windows": ""
+        }
+      },
+      "download": {
+        "binary": "bitnames-tor",
+        "files": {
+          "default": {
+            "base_url": "https://github.com/LayerTwo-Labs/bitnames-tor/releases/latest/download/",
+            "linux-x86_64": "bitnames-tor-latest-x86_64-unknown-linux-gnu.zip",
+            "macos-x86_64": "bitnames-tor-latest-x86_64-apple-darwin.zip",
+            "macos-arm64": "bitnames-tor-latest-aarch64-apple-darwin.zip",
+            "windows-x86_64": "bitnames-tor-latest-x86_64-pc-windows-gnu.zip"
+          }
+        },
+        "extract_subfolder": {
+          "default": {
+            "linux": "bitnames-tor",
+            "macos": "bitnames-tor",
+            "windows": "bitnames-tor"
+          }
+        }
+      },
+      "hashes": {
+        "linux-x86_64": {
+          "sha256": "58307ce3bf96a9b8d5bba87466bbc180844ecb81ead748ec4af10f1e424e0ead",
+          "size": 34707268
+        },
+        "macos-x86_64": {
+          "sha256": "fe486068b2ec0dbf29516d6a6c97c100a268bc68360d89ece296064bd7c81650",
+          "size": 21782699
+        },
+        "macos-arm64": {
+          "sha256": "7d283d41171b79ad139a44a38b544f01dc28dd0248e29dd0ffb030a356de98c9",
+          "size": 20993965
+        },
+        "windows-x86_64": {
+          "sha256": "57a3a6ca9944d5aa9ed8dfe2cb7339df67ba3e8fe21b0aa6e1c6b91a25b54269",
+          "size": 24886928
+        }
+      }
+    },
     "bitnames": {
       "type": "sidechain",
       "slot": 2,

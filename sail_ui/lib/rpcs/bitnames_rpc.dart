@@ -20,6 +20,8 @@ import 'package:sail_ui/settings/client_settings.dart';
 import 'package:sail_ui/settings/hash_plaintext_settings.dart';
 import 'package:sail_ui/widgets/components/core_transaction.dart';
 
+enum BitnamesTransactionStatus { absent, pending, confirmed }
+
 /// API to the bitnames server.
 abstract class BitnamesRPC extends SidechainRPC {
   BitnamesRPC({required super.binaryType});
@@ -29,6 +31,20 @@ abstract class BitnamesRPC extends SidechainRPC {
 
   /// Get BitName data
   Future<BitNameData?> getBitNameData(String name);
+
+  /// Get BitName data at an exact block/transaction position.
+  Future<BitNameData> bitNameDataAtPosition(String bitname, String blockHash, int txIndex) async {
+    final data = await callRAW('bitname_data_at_position', [bitname, blockHash, txIndex]);
+    if (data is! Map) throw const FormatException('Invalid historical BitName data');
+    return BitNameData.fromJson(Map<String, dynamic>.from(data));
+  }
+
+  /// Return whether a transaction is included in the current canonical chain.
+  Future<bool> isTransactionConfirmed(String txid) async =>
+      await transactionStatus(txid) == BitnamesTransactionStatus.confirmed;
+
+  Future<BitnamesTransactionStatus> transactionStatus(String txid) async =>
+      transactionInfoStatus(await callRAW('get_transaction_info', [txid]));
 
   /// List all BitNames
   Future<List<BitnameEntry>> listBitNames();
@@ -101,6 +117,33 @@ abstract class BitnamesRPC extends SidechainRPC {
   /// Get all paymail
   Future<Map<String, dynamic>> getPaymail();
 
+  /// Get JSON-safe, ordered paymail entries with recipient attribution.
+  Future<List<PaymailEntry>> getPaymailEntries() async {
+    final entries = await callRAW('get_paymail_entries');
+    if (entries == null) return [];
+    if (entries is! List) throw const FormatException('Invalid paymail entries');
+    return entries.map((entry) => PaymailEntry.fromJson(Map<String, dynamic>.from(entry as Map))).toList();
+  }
+
+  /// Resolve a BitName to its current ownership output and data.
+  Future<BitNameResolution?> resolveBitName(String bitname) async {
+    final resolution = await callRAW('resolve_bitname', [bitname]);
+    if (resolution == null) return null;
+    if (resolution is! Map) throw const FormatException('Invalid BitName resolution');
+    return BitNameResolution.fromJson(Map<String, dynamic>.from(resolution));
+  }
+
+  /// Update mutable data for an owned BitName.
+  Future<String> updateBitName({
+    required String bitname,
+    required BitNameDataUpdates updates,
+    required int feeSats,
+  }) async {
+    final txid = await callRAW('update_bitname', [bitname, updates.toJson(), feeSats]);
+    if (txid is! String) throw const FormatException('Invalid BitName update transaction');
+    return txid;
+  }
+
   /// Get wallet addresses, sorted by base58 encoding
   Future<List<String>> getWalletAddresses();
 
@@ -132,6 +175,18 @@ abstract class BitnamesRPC extends SidechainRPC {
     required String address,
   });
 
+  /// Verify a signature against the specified key and domain separation tag.
+  Future<bool> verifySignature({
+    required String signature,
+    required String verifyingKey,
+    String domain = 'arbitrary',
+    required String msg,
+  }) async {
+    final valid = await callRAW('verify_signature', [signature, verifyingKey, domain, msg]);
+    if (valid is! bool) throw const FormatException('Invalid signature verification response');
+    return valid;
+  }
+
   /// Transfer funds to the specified address
   Future<String> transfer({
     required String dest,
@@ -139,6 +194,18 @@ abstract class BitnamesRPC extends SidechainRPC {
     required int fee,
     String? memo,
   });
+
+  Future<String> transferIdempotent({
+    required String idempotencyKey,
+    required String dest,
+    required int value,
+    required int fee,
+    String? memo,
+  }) async {
+    final txid = await callRAW('transfer', [dest, value, fee, memo, idempotencyKey]);
+    if (txid is! String) throw const FormatException('Invalid transfer transaction');
+    return txid;
+  }
 }
 
 class BitnamesLive extends BitnamesRPC {
@@ -162,7 +229,9 @@ class BitnamesLive extends BitnamesRPC {
 
   @override
   Future<(double, double)> balance() async {
-    final resp = await GetIt.I.get<OrchestratorRPC>().getSidechainBalance(binaryType);
+    final resp = await GetIt.I.get<OrchestratorRPC>().getSidechainBalance(
+      binaryType,
+    );
     final confirmed = satoshiToBTC(resp.confirmedSats.toInt());
     final unconfirmed = satoshiToBTC(resp.pendingSats.toInt());
     return (confirmed, unconfirmed);
@@ -209,7 +278,9 @@ class BitnamesLive extends BitnamesRPC {
   @override
   Future<dynamic> callRAW(String method, [dynamic params]) async {
     final paramsJson = params != null ? jsonEncode(params) : '';
-    final resp = await _client.callRaw(pb.CallRawRequest(method: method, paramsJson: paramsJson));
+    final resp = await _client.callRaw(
+      pb.CallRawRequest(method: method, paramsJson: paramsJson),
+    );
     if (resp.resultJson.isEmpty) return null;
     return jsonDecode(resp.resultJson);
   }
@@ -235,7 +306,11 @@ class BitnamesLive extends BitnamesRPC {
   Future<double> sideEstimateFee() async => 0.00001;
 
   @override
-  Future<String> sideSend(String address, double amount, bool subtractFeeFromAmount) async {
+  Future<String> sideSend(
+    String address,
+    double amount,
+    bool subtractFeeFromAmount,
+  ) async {
     final resp = await _client.transfer(
       pb.TransferRequest(
         address: address,
@@ -257,7 +332,9 @@ class BitnamesLive extends BitnamesRPC {
 
   @override
   Future<BitNameData?> getBitNameData(String name) async {
-    final resp = await _client.getBitNameData(pb.GetBitNameDataRequest(name: name));
+    final resp = await _client.getBitNameData(
+      pb.GetBitNameDataRequest(name: name),
+    );
     if (resp.dataJson.isEmpty) return null;
     final decoded = jsonDecode(resp.dataJson) as Map<String, dynamic>;
     return BitNameData.fromJson(decoded);
@@ -330,17 +407,16 @@ class BitnamesLive extends BitnamesRPC {
   Future<String> registerBitName(String plainName, BitNameData? data) async {
     final dataJson = data != null ? jsonEncode(data.toJson()) : '';
     final resp = await _client.registerBitName(
-      pb.RegisterBitNameRequest(
-        plainName: plainName,
-        dataJson: dataJson,
-      ),
+      pb.RegisterBitNameRequest(plainName: plainName, dataJson: dataJson),
     );
     return resp.txid;
   }
 
   @override
   Future<String> reserveBitName(String name) async {
-    final resp = await _client.reserveBitName(pb.ReserveBitNameRequest(name: name));
+    final resp = await _client.reserveBitName(
+      pb.ReserveBitNameRequest(name: name),
+    );
     return resp.txid;
   }
 
@@ -353,19 +429,25 @@ class BitnamesLive extends BitnamesRPC {
 
   @override
   Future<String> getBMMInclusions(String blockHash) async {
-    final resp = await _client.getBmmInclusions(pb.GetBmmInclusionsRequest(blockHash: blockHash));
+    final resp = await _client.getBmmInclusions(
+      pb.GetBmmInclusionsRequest(blockHash: blockHash),
+    );
     return resp.inclusions;
   }
 
   @override
   Future<String?> getBestMainchainBlockHash() async {
-    final resp = await _client.getBestMainchainBlockHash(pb.GetBestMainchainBlockHashRequest());
+    final resp = await _client.getBestMainchainBlockHash(
+      pb.GetBestMainchainBlockHashRequest(),
+    );
     return resp.hash.isEmpty ? null : resp.hash;
   }
 
   @override
   Future<String?> getBestSidechainBlockHash() async {
-    final resp = await _client.getBestSidechainBlockHash(pb.GetBestSidechainBlockHashRequest());
+    final resp = await _client.getBestSidechainBlockHash(
+      pb.GetBestSidechainBlockHashRequest(),
+    );
     return resp.hash.isEmpty ? null : resp.hash;
   }
 
@@ -379,7 +461,9 @@ class BitnamesLive extends BitnamesRPC {
 
   @override
   Future<PendingWithdrawalBundle?> getPendingWithdrawalBundle() async {
-    final resp = await _client.getPendingWithdrawalBundle(pb.GetPendingWithdrawalBundleRequest());
+    final resp = await _client.getPendingWithdrawalBundle(
+      pb.GetPendingWithdrawalBundleRequest(),
+    );
     if (resp.bundleJson.isEmpty) return null;
     final decoded = jsonDecode(resp.bundleJson);
     return PendingWithdrawalBundle.fromJson(decoded as Map<String, dynamic>);
@@ -393,24 +477,32 @@ class BitnamesLive extends BitnamesRPC {
 
   @override
   Future<void> setSeedFromMnemonic(String mnemonic) async {
-    await _client.setSeedFromMnemonic(pb.SetSeedFromMnemonicRequest(mnemonic: mnemonic));
+    await _client.setSeedFromMnemonic(
+      pb.SetSeedFromMnemonicRequest(mnemonic: mnemonic),
+    );
   }
 
   @override
   Future<int> getSidechainWealth() async {
-    final resp = await _client.getSidechainWealth(pb.GetSidechainWealthRequest());
+    final resp = await _client.getSidechainWealth(
+      pb.GetSidechainWealthRequest(),
+    );
     return resp.sats.toInt();
   }
 
   @override
   Future<String> getNewEncryptionKey() async {
-    final resp = await _client.getNewEncryptionKey(pb.GetNewEncryptionKeyRequest());
+    final resp = await _client.getNewEncryptionKey(
+      pb.GetNewEncryptionKeyRequest(),
+    );
     return resp.key;
   }
 
   @override
   Future<String> getNewVerifyingKey() async {
-    final resp = await _client.getNewVerifyingKey(pb.GetNewVerifyingKeyRequest());
+    final resp = await _client.getNewVerifyingKey(
+      pb.GetNewVerifyingKeyRequest(),
+    );
     return resp.key;
   }
 
@@ -453,10 +545,7 @@ class BitnamesLive extends BitnamesRPC {
     required String encryptionPubkey,
   }) async {
     final resp = await _client.encryptMsg(
-      pb.EncryptMsgRequest(
-        msg: msg,
-        encryptionPubkey: encryptionPubkey,
-      ),
+      pb.EncryptMsgRequest(msg: msg, encryptionPubkey: encryptionPubkey),
     );
     return resp.ciphertext;
   }
@@ -476,7 +565,9 @@ class BitnamesLive extends BitnamesRPC {
 
   @override
   Future<String> resolveCommit(String bitname) async {
-    final resp = await _client.resolveCommit(pb.ResolveCommitRequest(bitname: bitname));
+    final resp = await _client.resolveCommit(
+      pb.ResolveCommitRequest(bitname: bitname),
+    );
     return resp.commitment;
   }
 
@@ -486,10 +577,7 @@ class BitnamesLive extends BitnamesRPC {
     required String verifyingKey,
   }) async {
     final resp = await _client.signArbitraryMsg(
-      pb.SignArbitraryMsgRequest(
-        msg: msg,
-        verifyingKey: verifyingKey,
-      ),
+      pb.SignArbitraryMsgRequest(msg: msg, verifyingKey: verifyingKey),
     );
     return resp.signature;
   }
@@ -500,20 +588,16 @@ class BitnamesLive extends BitnamesRPC {
     required String address,
   }) async {
     final resp = await _client.signArbitraryMsgAsAddr(
-      pb.SignArbitraryMsgAsAddrRequest(
-        msg: msg,
-        address: address,
-      ),
+      pb.SignArbitraryMsgAsAddrRequest(msg: msg, address: address),
     );
-    return {
-      'verifying_key': resp.verifyingKey,
-      'signature': resp.signature,
-    };
+    return {'verifying_key': resp.verifyingKey, 'signature': resp.signature};
   }
 
   @override
   Future<List<String>> getWalletAddresses() async {
-    final resp = await _client.getWalletAddresses(pb.GetWalletAddressesRequest());
+    final resp = await _client.getWalletAddresses(
+      pb.GetWalletAddressesRequest(),
+    );
     return resp.addresses.toList();
   }
 
@@ -605,6 +689,7 @@ class BitnamesLive extends BitnamesRPC {
 final bitnamesRPCMethods = [
   'balance',
   'bitname_data',
+  'bitname_data_at_position',
   'bitnames',
   'connect_peer',
   'create_deposit',
@@ -621,6 +706,8 @@ final bitnamesRPCMethods = [
   'get_new_verifying_key',
   'getblockcount',
   'get_paymail',
+  'get_paymail_entries',
+  'get_transaction_info',
   'get_wallet_addresses',
   'get_wallet_utxos',
   'latest_failed_withdrawal_bundle_height',
@@ -632,6 +719,7 @@ final bitnamesRPCMethods = [
   'pending_withdrawal_bundle',
   'register_bitname',
   'reserve_bitname',
+  'resolve_bitname',
   'resolve_commit',
   'set_seed_from_mnemonic',
   'sidechain_wealth',
@@ -639,12 +727,27 @@ final bitnamesRPCMethods = [
   'sign_arbitrary_msg_as_addr',
   'stop',
   'transfer',
+  'update_bitname',
   'verify_signature',
   'withdraw',
 ];
 
+/// Decode the backend's nullable transaction information without treating a
+/// malformed response as confirmation.
+BitnamesTransactionStatus transactionInfoStatus(Object? info) {
+  if (info == null) return BitnamesTransactionStatus.absent;
+  if (info is! Map<String, dynamic>) throw const FormatException('Invalid transaction info');
+  final txin = info['txin'];
+  if (txin == null) return BitnamesTransactionStatus.pending;
+  if (txin is! Map<String, dynamic> || txin['block_hash'] is! String || txin['idx'] is! int) {
+    throw const FormatException('Invalid transaction inclusion');
+  }
+  return BitnamesTransactionStatus.confirmed;
+}
+
 // Models for Bitnames RPC responses
 class BitNameData {
+  final String? seqId;
   final String? commitment;
   final String? encryptionPubkey;
   final int? paymailFeeSats;
@@ -653,6 +756,7 @@ class BitNameData {
   final String? socketAddrV6;
 
   BitNameData({
+    this.seqId,
     this.commitment,
     this.encryptionPubkey,
     this.paymailFeeSats,
@@ -662,6 +766,7 @@ class BitNameData {
   });
 
   Map<String, dynamic> toJson() => {
+    if (seqId != null) 'seq_id': seqId,
     if (commitment != null) 'commitment': commitment,
     if (encryptionPubkey != null) 'encryption_pubkey': encryptionPubkey,
     if (paymailFeeSats != null) 'paymail_fee_sats': paymailFeeSats,
@@ -671,12 +776,175 @@ class BitNameData {
   };
 
   factory BitNameData.fromJson(Map<String, dynamic> json) => BitNameData(
-    commitment: json['commitment'] as String?,
+    seqId: json['seq_id'] as String?,
+    commitment: switch (json['commitment']) {
+      final String value => value,
+      final List<dynamic> value => hex.encode(value.cast<int>()),
+      _ => null,
+    },
     encryptionPubkey: json['encryption_pubkey'] as String?,
-    paymailFeeSats: json['paymail_fee_sats'] as int?,
+    paymailFeeSats: switch (json['paymail_fee_sats']) {
+      final int value when value >= 0 => value,
+      _ => null,
+    },
     signingPubkey: json['signing_pubkey'] as String?,
     socketAddrV4: json['socket_addr_v4'] as String?,
     socketAddrV6: json['socket_addr_v6'] as String?,
+  );
+}
+
+enum BitNameUpdateAction { retain, delete, set }
+
+/// A single mutable BitName field update.
+///
+/// The JSON encoding matches the backend's `Retain`, `Delete`, and
+/// `{ "Set": value }` representation.
+class BitNameUpdate<T extends Object> {
+  final BitNameUpdateAction action;
+  final T? value;
+
+  const BitNameUpdate.retain() : action = BitNameUpdateAction.retain, value = null;
+
+  const BitNameUpdate.delete() : action = BitNameUpdateAction.delete, value = null;
+
+  const BitNameUpdate.set(T this.value) : action = BitNameUpdateAction.set;
+
+  Object toJson() => switch (action) {
+    BitNameUpdateAction.retain => 'Retain',
+    BitNameUpdateAction.delete => 'Delete',
+    BitNameUpdateAction.set => {'Set': value},
+  };
+}
+
+/// Mutable updates for a BitName. Unspecified fields are retained.
+class BitNameDataUpdates {
+  final BitNameUpdate<String> commitment;
+  final BitNameUpdate<String> socketAddrV4;
+  final BitNameUpdate<String> socketAddrV6;
+  final BitNameUpdate<String> encryptionPubkey;
+  final BitNameUpdate<String> signingPubkey;
+  final BitNameUpdate<int> paymailFeeSats;
+
+  const BitNameDataUpdates({
+    this.commitment = const BitNameUpdate<String>.retain(),
+    this.socketAddrV4 = const BitNameUpdate<String>.retain(),
+    this.socketAddrV6 = const BitNameUpdate<String>.retain(),
+    this.encryptionPubkey = const BitNameUpdate<String>.retain(),
+    this.signingPubkey = const BitNameUpdate<String>.retain(),
+    this.paymailFeeSats = const BitNameUpdate<int>.retain(),
+  });
+
+  Map<String, dynamic> toJson() => {
+    'commitment': commitment.action == BitNameUpdateAction.set
+        ? {'Set': hex.decode(commitment.value!)}
+        : commitment.toJson(),
+    'socket_addr_v4': socketAddrV4.toJson(),
+    'socket_addr_v6': socketAddrV6.toJson(),
+    'encryption_pubkey': encryptionPubkey.toJson(),
+    'signing_pubkey': signingPubkey.toJson(),
+    'paymail_fee_sats': paymailFeeSats.toJson(),
+  };
+}
+
+class BitNameResolution {
+  final String bitname;
+  final Map<String, dynamic> outpoint;
+  final String address;
+  final BitNameData data;
+
+  const BitNameResolution({
+    required this.bitname,
+    required this.outpoint,
+    required this.address,
+    required this.data,
+  });
+
+  factory BitNameResolution.fromJson(Map<String, dynamic> json) => BitNameResolution(
+    bitname: json['bitname'] as String,
+    outpoint: Map<String, dynamic>.from(json['outpoint'] as Map),
+    address: json['address'] as String,
+    data: BitNameData.fromJson(json['data'] as Map<String, dynamic>),
+  );
+}
+
+class PaymailRecipient {
+  final String bitname;
+  final BitNameData data;
+  final int? requiredFeeSats;
+
+  const PaymailRecipient({
+    required this.bitname,
+    required this.data,
+    this.requiredFeeSats,
+  });
+
+  factory PaymailRecipient.fromJson(Map<String, dynamic> json) => PaymailRecipient(
+    bitname: json['bitname'] as String,
+    data: BitNameData.fromJson(json['data'] as Map<String, dynamic>),
+    requiredFeeSats: switch (json['required_fee_sats']) {
+      final int value when value >= 0 => value,
+      _ => null,
+    },
+  );
+}
+
+class PaymailOutput {
+  final String address;
+  final Map<String, dynamic> content;
+  final String memoHex;
+
+  const PaymailOutput({
+    required this.address,
+    required this.content,
+    required this.memoHex,
+  });
+
+  factory PaymailOutput.fromJson(Map<String, dynamic> json) {
+    final memo = json['memo'];
+    final memoHex = switch (memo) {
+      String value => value,
+      List<dynamic> bytes => bytes.cast<int>().map((byte) => byte.toRadixString(16).padLeft(2, '0')).join(),
+      _ => throw FormatException('Invalid paymail memo: $memo'),
+    };
+    return PaymailOutput(
+      address: json['address'] as String,
+      content: Map<String, dynamic>.from(json['content'] as Map),
+      memoHex: memoHex,
+    );
+  }
+}
+
+class PaymailEntry {
+  final Map<String, dynamic> outpoint;
+  final PaymailOutput output;
+  final int valueSats;
+  final String blockHash;
+  final int blockHeight;
+  final int txIndex;
+  final List<PaymailRecipient> recipients;
+
+  const PaymailEntry({
+    required this.outpoint,
+    required this.output,
+    required this.valueSats,
+    required this.blockHash,
+    required this.blockHeight,
+    required this.txIndex,
+    required this.recipients,
+  });
+
+  factory PaymailEntry.fromJson(Map<String, dynamic> json) => PaymailEntry(
+    outpoint: Map<String, dynamic>.from(json['outpoint'] as Map),
+    output: PaymailOutput.fromJson(json['output'] as Map<String, dynamic>),
+    valueSats: json['value_sats'] as int,
+    blockHash: json['block_hash'] as String,
+    blockHeight: json['block_height'] as int,
+    txIndex: json['tx_index'] as int,
+    recipients: (json['recipients'] as List<dynamic>)
+        .map(
+          (recipient) => PaymailRecipient.fromJson(recipient as Map<String, dynamic>),
+        )
+        .toList(),
   );
 }
 
@@ -738,6 +1006,9 @@ class BitnameDetails {
     socketAddrV6: json['socket_addr_v6'] as String?,
     encryptionPubkey: json['encryption_pubkey'] as String?,
     signingPubkey: json['signing_pubkey'] as String?,
-    paymailFeeSats: json['paymail_fee_sats'] as int?,
+    paymailFeeSats: switch (json['paymail_fee_sats']) {
+      final int value when value >= 0 => value,
+      _ => null,
+    },
   );
 }
