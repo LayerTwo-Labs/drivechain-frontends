@@ -36,6 +36,7 @@ import 'package:bitwindow/providers/transactions_provider.dart';
 import 'package:bitwindow/providers/coin_selection_provider.dart';
 import 'package:bitwindow/routing/router.dart';
 import 'package:bitwindow/widgets/address_list.dart';
+import 'package:bitwindow/widgets/drynet_upgrade_banner.dart';
 import 'package:bitwindow/widgets/hash_calculator_modal.dart';
 // App shell needs MaterialApp + ThemeData; Colors/Scaffold serve the
 // ancestor-independent error boundary. Everything below uses sail_ui.
@@ -171,6 +172,9 @@ Future<(Directory, File, Logger)> init(String arguments) async {
   GetIt.I.registerLazySingleton<ContentProvider>(() => ContentProvider());
   GetIt.I.registerLazySingleton<PriceProvider>(() => PriceProvider());
   GetIt.I.registerLazySingleton<NotificationProvider>(() => NotificationProvider());
+  GetIt.I.registerLazySingleton<NotificationActions>(
+    () => const NotificationActions({drynetUpgradeAction: openDrynetUpgrade}),
+  );
 
   // Load chains config from JSON (copies seed from assets if missing)
   final chainsConfigProvider = await ChainsConfigProvider.create(
@@ -205,6 +209,8 @@ Future<(Directory, File, Logger)> init(String arguments) async {
     port: Environment.orchestratorPort.value,
   );
   GetIt.I.registerSingleton<OrchestratorRPC>(orchestrator);
+  // Eager, and after the orchestrator it polls: nothing ever resolves it.
+  GetIt.I.registerSingleton<DrynetUpgradeWatcher>(DrynetUpgradeWatcher());
   final backendStateProvider = BackendStateProvider(orchestrator);
   GetIt.I.registerSingleton<BackendStateProvider>(backendStateProvider);
 

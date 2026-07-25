@@ -2,10 +2,13 @@ PODS:
   - auto_updater_macos (0.0.1):
     - FlutterMacOS
     - Sparkle
+  - CocoaAsyncSocket (7.6.5)
   - desktop_multi_window (0.0.1):
     - FlutterMacOS
   - FlutterMacOS (1.0.0)
-  - screen_retriever_macos (0.0.1):
+  - patrol (0.0.1):
+    - CocoaAsyncSocket (~> 7.6)
+    - Flutter
     - FlutterMacOS
   - Sparkle (2.9.1)
 
@@ -13,10 +16,11 @@ DEPENDENCIES:
   - auto_updater_macos (from `Flutter/ephemeral/.symlinks/plugins/auto_updater_macos/macos`)
   - desktop_multi_window (from `Flutter/ephemeral/.symlinks/plugins/desktop_multi_window/macos`)
   - FlutterMacOS (from `Flutter/ephemeral`)
-  - screen_retriever_macos (from `Flutter/ephemeral/.symlinks/plugins/screen_retriever_macos/macos`)
+  - patrol (from `Flutter/ephemeral/.symlinks/plugins/patrol/darwin`)
 
 SPEC REPOS:
   trunk:
+    - CocoaAsyncSocket
     - Sparkle
 
 EXTERNAL SOURCES:
@@ -26,14 +30,15 @@ EXTERNAL SOURCES:
     :path: Flutter/ephemeral/.symlinks/plugins/desktop_multi_window/macos
   FlutterMacOS:
     :path: Flutter/ephemeral
-  screen_retriever_macos:
-    :path: Flutter/ephemeral/.symlinks/plugins/screen_retriever_macos/macos
+  patrol:
+    :path: Flutter/ephemeral/.symlinks/plugins/patrol/darwin
 
 SPEC CHECKSUMS:
   auto_updater_macos: 3a42f1a06be6981f1a18be37e6e7bf86aa732118
+  CocoaAsyncSocket: 065fd1e645c7abab64f7a6a2007a48038fdc6a99
   desktop_multi_window: 93667594ccc4b88d91a97972fd3b1b89667fa80a
   FlutterMacOS: d0db08ddef1a9af05a5ec4b724367152bb0500b1
-  screen_retriever_macos: 452e51764a9e1cdb74b3c541238795849f21557f
+  patrol: cea8074f183a2a4232d0ebd10569ae05149ada42
   Sparkle: a4115cd9a339b297a61163256e6954d9e35297ce
 
 PODFILE CHECKSUM: 9ebaf0ce3d369aaa26a9ea0e159195ed94724cf3

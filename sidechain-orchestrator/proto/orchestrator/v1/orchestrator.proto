@@ -64,6 +64,15 @@ service OrchestratorService {
   // settings UI: pre-fills the snapshot field and shows what is loaded.
   rpc GetSnapshotStatus(GetSnapshotStatusRequest) returns (GetSnapshotStatusResponse);
 
+  // The drynet generation published but not switched to yet. Feeds the upgrade
+  // prompt; pending_generation is empty when already on the newest one.
+  rpc GetPendingNetworkGeneration(GetPendingNetworkGenerationRequest) returns (GetPendingNetworkGenerationResponse);
+
+  // Switch to the published drynet generation. Stops the L1 daemons, deletes
+  // the retired chain and boots them again. Wallets survive, chain history and
+  // its transactions do not — only call with the user's confirmation.
+  rpc ApplyPendingNetworkGeneration(ApplyPendingNetworkGenerationRequest) returns (ApplyPendingNetworkGenerationResponse);
+
   // Shutdown all running binaries.
   rpc ShutdownAll(ShutdownAllRequest) returns (stream ShutdownAllResponse);
 
@@ -320,6 +329,30 @@ message GetSnapshotStatusResponse {
   bool active_validated = 7;
   double active_verification_progress = 8;
 }
+
+// GetPendingNetworkGeneration
+
+message GetPendingNetworkGenerationRequest {}
+
+message GetPendingNetworkGenerationResponse {
+  // The generation this install runs now, and the newer one published, empty
+  // when already current.
+  string current_generation = 1;
+  string pending_generation = 2;
+
+  // The new generation's UTXO snapshot, so the prompt can offer a fast resync.
+  // Zero height means none is published.
+  string snapshot_url = 3;
+  int64 snapshot_height = 4;
+  string snapshot_sha256 = 5;
+  int64 snapshot_size_bytes = 6;
+}
+
+// ApplyPendingNetworkGeneration
+
+message ApplyPendingNetworkGenerationRequest {}
+
+message ApplyPendingNetworkGenerationResponse {}
 
 // ShutdownAll
 

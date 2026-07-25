@@ -1093,7 +1093,14 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
                       children: [
                         Expanded(
                           child: ForkCountdownHeader(
-                            child: MiningBannerHeader(child: child),
+                            child: MiningBannerHeader(
+                              child: Column(
+                                children: [
+                                  const NotificationBanner(),
+                                  Expanded(child: child),
+                                ],
+                              ),
+                            ),
                           ),
                         ),
                         const StatusBar(),
