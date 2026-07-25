@@ -36,11 +36,11 @@ class DashboardGroup extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     SailText.primary13(title, bold: true),
-                    if (widgetTrailing != null) widgetTrailing!,
+                    ?widgetTrailing,
                   ],
                 ),
                 Expanded(child: Container()),
-                if (widgetEnd != null) widgetEnd!,
+                ?widgetEnd,
               ],
             ),
           ),

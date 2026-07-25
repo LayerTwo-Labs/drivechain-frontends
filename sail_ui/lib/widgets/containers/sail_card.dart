@@ -119,7 +119,7 @@ class SailCard extends StatelessWidget {
                               color: const Color(0xFFFFFFFF),
                             ),
                           ),
-                          if (widgetHeaderEnd != null) widgetHeaderEnd!,
+                          ?widgetHeaderEnd,
                           if (newWindow != null)
                             SailButton(
                               variant: ButtonVariant.icon,
@@ -184,7 +184,7 @@ class SailCard extends StatelessWidget {
                                   SailRow(
                                     spacing: SailStyleValues.padding08,
                                     children: [
-                                      if (widgetHeaderEnd != null) widgetHeaderEnd!,
+                                      ?widgetHeaderEnd,
                                       if (newWindow != null)
                                         SailTooltip(
                                           message: 'Open in a new window',
@@ -312,7 +312,7 @@ class SailCardSmall extends StatelessWidget {
                             error: error,
                           ),
                         ),
-                        if (headerEnd != null) headerEnd!,
+                        ?headerEnd,
                       ],
                     ),
                   ),

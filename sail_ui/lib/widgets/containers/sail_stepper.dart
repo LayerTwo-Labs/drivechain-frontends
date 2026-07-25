@@ -45,7 +45,7 @@ class SailStepper extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   steps[i].content,
-                  if (controls != null) controls!,
+                  ?controls,
                 ],
               ),
             ),
