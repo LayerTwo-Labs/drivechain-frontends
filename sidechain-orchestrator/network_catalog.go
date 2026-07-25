@@ -2,6 +2,7 @@ package orchestrator
 
 import (
 	"context"
+	"fmt"
 	"net"
 	"strconv"
 	"strings"
@@ -32,13 +33,13 @@ func (o *Orchestrator) ResolveNetworkCatalog(ctx context.Context) {
 	// the wipe and cache to disagree.
 	promoted := false
 	if pending, ok := netcatalog.LoadPending(o.BitwindowDir); ok {
-		current = o.promotePendingCatalog(current, pending, fromDisk)
+		current = o.promotePendingCatalog(ctx, current, pending, fromDisk)
 		promoted = true
 	}
 	// Reconcile installs whose cached catalog already lists the newest
 	// generation, where no pending promotion fires.
 	if !promoted {
-		o.wipeIfDrynetGenerationStale(current)
+		o.wipeIfDrynetGenerationStale(ctx, current)
 	}
 	o.adoptCatalog(current)
 
@@ -51,7 +52,7 @@ func (o *Orchestrator) ResolveNetworkCatalog(ctx context.Context) {
 // the stale drynet chain data first. Returns the catalog to actually use: the
 // pending one when it could be applied, otherwise the current one, so the
 // process never serves a generation whose data it has not cleared.
-func (o *Orchestrator) promotePendingCatalog(current, pending netcatalog.Catalog, fromDisk bool) netcatalog.Catalog {
+func (o *Orchestrator) promotePendingCatalog(ctx context.Context, current, pending netcatalog.Catalog, fromDisk bool) netcatalog.Catalog {
 	// With no cache — a first run after upgrading from a pre-catalog build —
 	// the embedded generation is still what any existing drynet data belongs
 	// to, so it remains a valid baseline.
@@ -60,7 +61,17 @@ func (o *Orchestrator) promotePendingCatalog(current, pending netcatalog.Catalog
 		baseline = netcatalog.EmbeddedDrynetID()
 	}
 
-	if !o.wipeOnDrynetGenerationChange(baseline, pending.DrynetID()) {
+	// Switching generations throws away the old chain, so it is the user's call
+	// to make. The pending file is what the upgrade prompt reads.
+	if baseline != "" && pending.DrynetID() != "" && baseline != pending.DrynetID() {
+		o.log.Info().
+			Str("current", baseline).
+			Str("published", pending.DrynetID()).
+			Msg("a new drynet generation is available, waiting for the user to confirm the resync")
+		return current
+	}
+
+	if !o.wipeOnDrynetGenerationChange(ctx, baseline, pending.DrynetID()) {
 		// Leave the pending file in place; the next start tries again.
 		o.log.Warn().Msg("could not apply the pending network catalog, keeping the current one")
 		return current
@@ -74,6 +85,71 @@ func (o *Orchestrator) promotePendingCatalog(current, pending netcatalog.Catalog
 	}
 	netcatalog.ClearPending(o.BitwindowDir)
 	return pending
+}
+
+// PendingDrynetUpgrade is a published generation this install has not switched
+// to yet. ID is empty when it is already on the newest one.
+type PendingDrynetUpgrade struct {
+	ID       string
+	Snapshot *netcatalog.AssumeUTXO
+}
+
+// PendingDrynetUpgrade reports the generation waiting for the user's go-ahead.
+func (o *Orchestrator) PendingDrynetUpgrade() PendingDrynetUpgrade {
+	pending, ok := netcatalog.LoadPending(o.BitwindowDir)
+	if !ok {
+		return PendingDrynetUpgrade{}
+	}
+	id := pending.DrynetID()
+	if id == "" || id == config.DrynetGeneration() {
+		return PendingDrynetUpgrade{}
+	}
+	entry, _ := pending.CurrentECash()
+	return PendingDrynetUpgrade{ID: id, Snapshot: entry.AssumeUTXO}
+}
+
+// switchDrynetGeneration stops the L1 daemons, deletes the retired drynet chain
+// (wallets survive) and moves every consumer onto the published generation.
+func (o *Orchestrator) switchDrynetGeneration(ctx context.Context) error {
+	pending, ok := netcatalog.LoadPending(o.BitwindowDir)
+	if !ok {
+		return fmt.Errorf("no new drynet generation to switch to")
+	}
+	current, _ := netcatalog.Load(o.BitwindowDir)
+	if !o.wipeOnDrynetGenerationChange(ctx, current.DrynetID(), pending.DrynetID()) {
+		return fmt.Errorf("could not clear the retired drynet chain data")
+	}
+	if err := netcatalog.Save(o.BitwindowDir, pending); err != nil {
+		return fmt.Errorf("persist network catalog: %w", err)
+	}
+	netcatalog.ClearPending(o.BitwindowDir)
+	o.adoptCatalog(pending)
+	return nil
+}
+
+// ApplyPendingDrynetGeneration switches generation, then boots L1 again when the
+// switch had to stop it. From another network nothing was running against drynet.
+func (o *Orchestrator) ApplyPendingDrynetGeneration(ctx context.Context) error {
+	onDrynet := config.NetworkFromString(o.Network) == config.NetworkDrynet
+	if err := o.switchDrynetGeneration(ctx); err != nil {
+		return err
+	}
+	if !onDrynet {
+		return nil
+	}
+
+	bootCh, err := o.StartWithL1(context.Background(), "bitcoind", StartOpts{})
+	if err != nil {
+		return fmt.Errorf("restart L1 stack on the new generation: %w", err)
+	}
+	go func() {
+		for p := range bootCh {
+			if p.Error != nil {
+				o.log.Error().Err(p.Error).Msg("L1 stack restart after the drynet generation change failed")
+			}
+		}
+	}()
+	return nil
 }
 
 // refreshNetworkCatalog fetches the published catalog and, when it differs from
@@ -172,11 +248,11 @@ func expandDrynetPlaceholder(cfg BinaryConfig, id string) BinaryConfig {
 
 // wipeIfDrynetGenerationStale clears drynet chain data when the on-disk conf was
 // written for an older generation than the catalog now serves.
-func (o *Orchestrator) wipeIfDrynetGenerationStale(current netcatalog.Catalog) {
+func (o *Orchestrator) wipeIfDrynetGenerationStale(ctx context.Context, current netcatalog.Catalog) {
 	if config.NetworkFromString(o.Network) != config.NetworkDrynet {
 		return
 	}
-	o.wipeOnDrynetGenerationChange(o.installedDrynetGeneration(), current.DrynetID())
+	o.wipeOnDrynetGenerationChange(ctx, o.installedDrynetGeneration(), current.DrynetID())
 }
 
 // installedDrynetGeneration returns the drynet generation the on-disk
@@ -198,7 +274,7 @@ func (o *Orchestrator) installedDrynetGeneration() string {
 // the new chain. Wallets survive — see WipeChainData.
 // It reports whether the catalog may move on: true when nothing needed wiping
 // or the wipe was started, false when the stale data is still there.
-func (o *Orchestrator) wipeOnDrynetGenerationChange(oldID, newID string) bool {
+func (o *Orchestrator) wipeOnDrynetGenerationChange(ctx context.Context, oldID, newID string) bool {
 	if oldID == "" || newID == "" || oldID == newID {
 		return true
 	}
@@ -211,16 +287,29 @@ func (o *Orchestrator) wipeOnDrynetGenerationChange(oldID, newID string) bool {
 		o.log.Warn().Msg("drynet generation changed but user bitcoin.conf takes precedence, skipping wipe")
 		return true
 	}
-	// The refresh runs detached, so bitcoind may already have been adopted or
-	// started by the time the new generation lands. Renaming blocks and
-	// chainstate out from under a live node corrupts it; defer to the next
-	// boot, where the check runs before Core comes up.
-	if o.process.IsRunning("bitcoind") || o.coreRPCReachable() {
-		o.log.Warn().
-			Str("previous", oldID).
-			Str("current", newID).
-			Msg("drynet generation changed while bitcoin core is running, deferring wipe to next start")
-		return false
+	// Only a drynet-active install has daemons holding this data open; from any
+	// other network the retired chain is untouched files on disk.
+	if config.NetworkFromString(o.Network) == config.NetworkDrynet {
+		// Wiping under a live node corrupts it, and the enforcer's esplora host
+		// carries the generation, so a survivor keeps dialling the retired one.
+		for _, name := range []string{"enforcer", "bitcoind"} {
+			if !o.process.IsRunning(name) {
+				continue
+			}
+			if err := o.stopForNetworkSwap(ctx, name); err != nil {
+				o.log.Warn().Err(err).Str("binary", name).
+					Msg("could not stop daemon for the drynet generation change, deferring wipe to next start")
+				return false
+			}
+		}
+		// A Core the user launched themselves is not ours to stop.
+		if o.coreRPCReachable() {
+			o.log.Warn().
+				Str("previous", oldID).
+				Str("current", newID).
+				Msg("drynet generation changed but an unmanaged bitcoin core is running, deferring wipe to next start")
+			return false
+		}
 	}
 
 	o.log.Info().

@@ -15,6 +15,10 @@ class NotificationLink {
   );
 }
 
+/// How a notification is presented: a transient toast, or a strip pinned at the
+/// top of the app until the user interacts with it.
+enum NotificationStyle { toast, banner }
+
 /// A persisted notification shown in the bell history list.
 class NotificationItem {
   final String id;
@@ -23,6 +27,13 @@ class NotificationItem {
   final DialogType dialogType;
   final DateTime timestamp;
   final List<NotificationLink> links;
+  final NotificationStyle style;
+
+  /// Key of an in-app action to run when tapped, empty for none. A key rather
+  /// than a callback because history is persisted as JSON.
+  final String action;
+
+  final bool read;
 
   NotificationItem({
     required this.id,
@@ -31,7 +42,22 @@ class NotificationItem {
     required this.dialogType,
     required this.timestamp,
     this.links = const [],
+    this.style = NotificationStyle.toast,
+    this.action = '',
+    this.read = false,
   });
+
+  NotificationItem copyWith({bool? read}) => NotificationItem(
+    id: id,
+    title: title,
+    content: content,
+    dialogType: dialogType,
+    timestamp: timestamp,
+    links: links,
+    style: style,
+    action: action,
+    read: read ?? this.read,
+  );
 
   Map<String, dynamic> toMap() => {
     'id': id,
@@ -40,6 +66,9 @@ class NotificationItem {
     'dialogType': dialogType.index,
     'timestamp': timestamp.toIso8601String(),
     'links': links.map((l) => l.toMap()).toList(),
+    'style': style.index,
+    'action': action,
+    'read': read,
   };
 
   factory NotificationItem.fromMap(Map<String, dynamic> map) {
@@ -53,6 +82,9 @@ class NotificationItem {
       links: rawLinks is List
           ? rawLinks.map((l) => NotificationLink.fromMap(Map<String, dynamic>.from(l))).toList()
           : const [],
+      style: NotificationStyle.values[(map['style'] ?? 0).clamp(0, NotificationStyle.values.length - 1)],
+      action: map['action'] ?? '',
+      read: map['read'] ?? false,
     );
   }
 }

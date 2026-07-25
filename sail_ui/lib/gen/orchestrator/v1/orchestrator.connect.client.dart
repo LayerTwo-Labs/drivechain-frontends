@@ -249,6 +249,45 @@ extension type OrchestratorServiceClient (connect.Transport _transport) {
     );
   }
 
+  /// The drynet generation published but not switched to yet. Feeds the upgrade
+  /// prompt; pending_generation is empty when already on the newest one.
+  Future<orchestratorv1orchestrator.GetPendingNetworkGenerationResponse> getPendingNetworkGeneration(
+    orchestratorv1orchestrator.GetPendingNetworkGenerationRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.OrchestratorService.getPendingNetworkGeneration,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
+  /// Switch to the published drynet generation. Stops the L1 daemons, deletes
+  /// the retired chain and boots them again. Wallets survive, chain history and
+  /// its transactions do not — only call with the user's confirmation.
+  Future<orchestratorv1orchestrator.ApplyPendingNetworkGenerationResponse> applyPendingNetworkGeneration(
+    orchestratorv1orchestrator.ApplyPendingNetworkGenerationRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.OrchestratorService.applyPendingNetworkGeneration,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
   /// Shutdown all running binaries.
   Stream<orchestratorv1orchestrator.ShutdownAllResponse> shutdownAll(
     orchestratorv1orchestrator.ShutdownAllRequest input, {

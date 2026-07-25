@@ -1893,6 +1893,14 @@ func (o *Orchestrator) SwapNetwork(ctx context.Context, n config.Network) error 
 		return err
 	}
 
+	// Entering drynet on a retired generation syncs a chain about to be thrown
+	// away. Must precede UpdateNetwork, which writes the generation into the conf.
+	if n == config.NetworkDrynet && o.PendingDrynetUpgrade().ID != "" {
+		if err := o.switchDrynetGeneration(ctx); err != nil {
+			return fmt.Errorf("switch to the current drynet generation: %w", err)
+		}
+	}
+
 	if err := o.BitcoinConf.UpdateNetwork(n); err != nil {
 		return fmt.Errorf("persist network: %w", err)
 	}

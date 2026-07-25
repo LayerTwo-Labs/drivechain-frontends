@@ -13,6 +13,7 @@ import (
 	"github.com/samber/lo"
 
 	orchestrator "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config"
 	pb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/orchestrator/v1"
 	rpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/orchestrator/v1/orchestratorv1connect"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/bitassets"
@@ -239,6 +240,28 @@ func (h *Handler) GetSnapshotStatus(ctx context.Context, req *connect.Request[pb
 		ActiveValidated:            s.Active.Validated,
 		ActiveVerificationProgress: s.Active.VerificationProgress,
 	}), nil
+}
+
+func (h *Handler) GetPendingNetworkGeneration(ctx context.Context, req *connect.Request[pb.GetPendingNetworkGenerationRequest]) (*connect.Response[pb.GetPendingNetworkGenerationResponse], error) {
+	pending := h.orch.PendingDrynetUpgrade()
+	resp := &pb.GetPendingNetworkGenerationResponse{
+		CurrentGeneration: config.DrynetGeneration(),
+		PendingGeneration: pending.ID,
+	}
+	if pending.Snapshot != nil {
+		resp.SnapshotUrl = pending.Snapshot.URL
+		resp.SnapshotHeight = pending.Snapshot.Height
+		resp.SnapshotSha256 = pending.Snapshot.SHA256
+		resp.SnapshotSizeBytes = pending.Snapshot.SizeBytes
+	}
+	return connect.NewResponse(resp), nil
+}
+
+func (h *Handler) ApplyPendingNetworkGeneration(ctx context.Context, req *connect.Request[pb.ApplyPendingNetworkGenerationRequest]) (*connect.Response[pb.ApplyPendingNetworkGenerationResponse], error) {
+	if err := h.orch.ApplyPendingDrynetGeneration(ctx); err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+	return connect.NewResponse(&pb.ApplyPendingNetworkGenerationResponse{}), nil
 }
 
 // StartWithL1 dispatches a boot goroutine and returns immediately. The

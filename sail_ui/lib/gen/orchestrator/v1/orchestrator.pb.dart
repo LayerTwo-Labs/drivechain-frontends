@@ -1853,6 +1853,226 @@ class GetSnapshotStatusResponse extends $pb.GeneratedMessage {
   void clearActiveVerificationProgress() => clearField(8);
 }
 
+class GetPendingNetworkGenerationRequest extends $pb.GeneratedMessage {
+  factory GetPendingNetworkGenerationRequest() => create();
+  GetPendingNetworkGenerationRequest._() : super();
+  factory GetPendingNetworkGenerationRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory GetPendingNetworkGenerationRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'GetPendingNetworkGenerationRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'orchestrator.v1'), createEmptyInstance: create)
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  GetPendingNetworkGenerationRequest clone() => GetPendingNetworkGenerationRequest()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  GetPendingNetworkGenerationRequest copyWith(void Function(GetPendingNetworkGenerationRequest) updates) => super.copyWith((message) => updates(message as GetPendingNetworkGenerationRequest)) as GetPendingNetworkGenerationRequest;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static GetPendingNetworkGenerationRequest create() => GetPendingNetworkGenerationRequest._();
+  GetPendingNetworkGenerationRequest createEmptyInstance() => create();
+  static $pb.PbList<GetPendingNetworkGenerationRequest> createRepeated() => $pb.PbList<GetPendingNetworkGenerationRequest>();
+  @$core.pragma('dart2js:noInline')
+  static GetPendingNetworkGenerationRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<GetPendingNetworkGenerationRequest>(create);
+  static GetPendingNetworkGenerationRequest? _defaultInstance;
+}
+
+class GetPendingNetworkGenerationResponse extends $pb.GeneratedMessage {
+  factory GetPendingNetworkGenerationResponse({
+    $core.String? currentGeneration,
+    $core.String? pendingGeneration,
+    $core.String? snapshotUrl,
+    $fixnum.Int64? snapshotHeight,
+    $core.String? snapshotSha256,
+    $fixnum.Int64? snapshotSizeBytes,
+  }) {
+    final $result = create();
+    if (currentGeneration != null) {
+      $result.currentGeneration = currentGeneration;
+    }
+    if (pendingGeneration != null) {
+      $result.pendingGeneration = pendingGeneration;
+    }
+    if (snapshotUrl != null) {
+      $result.snapshotUrl = snapshotUrl;
+    }
+    if (snapshotHeight != null) {
+      $result.snapshotHeight = snapshotHeight;
+    }
+    if (snapshotSha256 != null) {
+      $result.snapshotSha256 = snapshotSha256;
+    }
+    if (snapshotSizeBytes != null) {
+      $result.snapshotSizeBytes = snapshotSizeBytes;
+    }
+    return $result;
+  }
+  GetPendingNetworkGenerationResponse._() : super();
+  factory GetPendingNetworkGenerationResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory GetPendingNetworkGenerationResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'GetPendingNetworkGenerationResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'orchestrator.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'currentGeneration')
+    ..aOS(2, _omitFieldNames ? '' : 'pendingGeneration')
+    ..aOS(3, _omitFieldNames ? '' : 'snapshotUrl')
+    ..aInt64(4, _omitFieldNames ? '' : 'snapshotHeight')
+    ..aOS(5, _omitFieldNames ? '' : 'snapshotSha256')
+    ..aInt64(6, _omitFieldNames ? '' : 'snapshotSizeBytes')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  GetPendingNetworkGenerationResponse clone() => GetPendingNetworkGenerationResponse()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  GetPendingNetworkGenerationResponse copyWith(void Function(GetPendingNetworkGenerationResponse) updates) => super.copyWith((message) => updates(message as GetPendingNetworkGenerationResponse)) as GetPendingNetworkGenerationResponse;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static GetPendingNetworkGenerationResponse create() => GetPendingNetworkGenerationResponse._();
+  GetPendingNetworkGenerationResponse createEmptyInstance() => create();
+  static $pb.PbList<GetPendingNetworkGenerationResponse> createRepeated() => $pb.PbList<GetPendingNetworkGenerationResponse>();
+  @$core.pragma('dart2js:noInline')
+  static GetPendingNetworkGenerationResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<GetPendingNetworkGenerationResponse>(create);
+  static GetPendingNetworkGenerationResponse? _defaultInstance;
+
+  /// The generation this install runs now, and the newer one published, empty
+  /// when already current.
+  @$pb.TagNumber(1)
+  $core.String get currentGeneration => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set currentGeneration($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasCurrentGeneration() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearCurrentGeneration() => clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.String get pendingGeneration => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set pendingGeneration($core.String v) { $_setString(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasPendingGeneration() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearPendingGeneration() => clearField(2);
+
+  /// The new generation's UTXO snapshot, so the prompt can offer a fast resync.
+  /// Zero height means none is published.
+  @$pb.TagNumber(3)
+  $core.String get snapshotUrl => $_getSZ(2);
+  @$pb.TagNumber(3)
+  set snapshotUrl($core.String v) { $_setString(2, v); }
+  @$pb.TagNumber(3)
+  $core.bool hasSnapshotUrl() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearSnapshotUrl() => clearField(3);
+
+  @$pb.TagNumber(4)
+  $fixnum.Int64 get snapshotHeight => $_getI64(3);
+  @$pb.TagNumber(4)
+  set snapshotHeight($fixnum.Int64 v) { $_setInt64(3, v); }
+  @$pb.TagNumber(4)
+  $core.bool hasSnapshotHeight() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearSnapshotHeight() => clearField(4);
+
+  @$pb.TagNumber(5)
+  $core.String get snapshotSha256 => $_getSZ(4);
+  @$pb.TagNumber(5)
+  set snapshotSha256($core.String v) { $_setString(4, v); }
+  @$pb.TagNumber(5)
+  $core.bool hasSnapshotSha256() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearSnapshotSha256() => clearField(5);
+
+  @$pb.TagNumber(6)
+  $fixnum.Int64 get snapshotSizeBytes => $_getI64(5);
+  @$pb.TagNumber(6)
+  set snapshotSizeBytes($fixnum.Int64 v) { $_setInt64(5, v); }
+  @$pb.TagNumber(6)
+  $core.bool hasSnapshotSizeBytes() => $_has(5);
+  @$pb.TagNumber(6)
+  void clearSnapshotSizeBytes() => clearField(6);
+}
+
+class ApplyPendingNetworkGenerationRequest extends $pb.GeneratedMessage {
+  factory ApplyPendingNetworkGenerationRequest() => create();
+  ApplyPendingNetworkGenerationRequest._() : super();
+  factory ApplyPendingNetworkGenerationRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory ApplyPendingNetworkGenerationRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ApplyPendingNetworkGenerationRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'orchestrator.v1'), createEmptyInstance: create)
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  ApplyPendingNetworkGenerationRequest clone() => ApplyPendingNetworkGenerationRequest()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  ApplyPendingNetworkGenerationRequest copyWith(void Function(ApplyPendingNetworkGenerationRequest) updates) => super.copyWith((message) => updates(message as ApplyPendingNetworkGenerationRequest)) as ApplyPendingNetworkGenerationRequest;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ApplyPendingNetworkGenerationRequest create() => ApplyPendingNetworkGenerationRequest._();
+  ApplyPendingNetworkGenerationRequest createEmptyInstance() => create();
+  static $pb.PbList<ApplyPendingNetworkGenerationRequest> createRepeated() => $pb.PbList<ApplyPendingNetworkGenerationRequest>();
+  @$core.pragma('dart2js:noInline')
+  static ApplyPendingNetworkGenerationRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<ApplyPendingNetworkGenerationRequest>(create);
+  static ApplyPendingNetworkGenerationRequest? _defaultInstance;
+}
+
+class ApplyPendingNetworkGenerationResponse extends $pb.GeneratedMessage {
+  factory ApplyPendingNetworkGenerationResponse() => create();
+  ApplyPendingNetworkGenerationResponse._() : super();
+  factory ApplyPendingNetworkGenerationResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory ApplyPendingNetworkGenerationResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ApplyPendingNetworkGenerationResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'orchestrator.v1'), createEmptyInstance: create)
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  ApplyPendingNetworkGenerationResponse clone() => ApplyPendingNetworkGenerationResponse()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  ApplyPendingNetworkGenerationResponse copyWith(void Function(ApplyPendingNetworkGenerationResponse) updates) => super.copyWith((message) => updates(message as ApplyPendingNetworkGenerationResponse)) as ApplyPendingNetworkGenerationResponse;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ApplyPendingNetworkGenerationResponse create() => ApplyPendingNetworkGenerationResponse._();
+  ApplyPendingNetworkGenerationResponse createEmptyInstance() => create();
+  static $pb.PbList<ApplyPendingNetworkGenerationResponse> createRepeated() => $pb.PbList<ApplyPendingNetworkGenerationResponse>();
+  @$core.pragma('dart2js:noInline')
+  static ApplyPendingNetworkGenerationResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<ApplyPendingNetworkGenerationResponse>(create);
+  static ApplyPendingNetworkGenerationResponse? _defaultInstance;
+}
+
 class ShutdownAllRequest extends $pb.GeneratedMessage {
   factory ShutdownAllRequest({
     $core.bool? force,
@@ -4353,6 +4573,12 @@ class OrchestratorServiceApi {
   ;
   $async.Future<GetSnapshotStatusResponse> getSnapshotStatus($pb.ClientContext? ctx, GetSnapshotStatusRequest request) =>
     _client.invoke<GetSnapshotStatusResponse>(ctx, 'OrchestratorService', 'GetSnapshotStatus', request, GetSnapshotStatusResponse())
+  ;
+  $async.Future<GetPendingNetworkGenerationResponse> getPendingNetworkGeneration($pb.ClientContext? ctx, GetPendingNetworkGenerationRequest request) =>
+    _client.invoke<GetPendingNetworkGenerationResponse>(ctx, 'OrchestratorService', 'GetPendingNetworkGeneration', request, GetPendingNetworkGenerationResponse())
+  ;
+  $async.Future<ApplyPendingNetworkGenerationResponse> applyPendingNetworkGeneration($pb.ClientContext? ctx, ApplyPendingNetworkGenerationRequest request) =>
+    _client.invoke<ApplyPendingNetworkGenerationResponse>(ctx, 'OrchestratorService', 'ApplyPendingNetworkGeneration', request, ApplyPendingNetworkGenerationResponse())
   ;
   $async.Future<ShutdownAllResponse> shutdownAll($pb.ClientContext? ctx, ShutdownAllRequest request) =>
     _client.invoke<ShutdownAllResponse>(ctx, 'OrchestratorService', 'ShutdownAll', request, ShutdownAllResponse())

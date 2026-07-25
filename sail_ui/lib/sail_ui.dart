@@ -273,6 +273,7 @@ export 'widgets/debug/sidechain_debug_window.dart';
 export 'widgets/containers/action_tile.dart';
 export 'widgets/containers/bottom_action_bar.dart';
 export 'widgets/containers/notification.dart';
+export 'widgets/containers/notification_banner.dart';
 export 'widgets/containers/notification_toast_overlay.dart';
 export 'widgets/nav/notification_bell.dart';
 export 'widgets/containers/qt_container.dart';

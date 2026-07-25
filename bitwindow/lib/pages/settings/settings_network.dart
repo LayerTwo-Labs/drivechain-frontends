@@ -1,5 +1,6 @@
 import 'package:bitwindow/pages/settings/network_swap_page.dart';
 import 'package:bitwindow/routing/router.dart';
+import 'package:bitwindow/widgets/drynet_upgrade_banner.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
@@ -615,6 +616,11 @@ Future<void> swapNetworkWithDatadirPrompt(
 
   final ready = await provider.ensureDataDirForNetwork(context, network);
   if (!ready) return;
+
+  if (!context.mounted) return;
+  if (network == BitcoinNetwork.BITCOIN_NETWORK_DRYNET && !await confirmPendingDrynetUpgrade(context)) {
+    return;
+  }
 
   if (!context.mounted) return;
   await Navigator.of(context).push<bool>(

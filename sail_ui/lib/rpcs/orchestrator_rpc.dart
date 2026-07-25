@@ -263,6 +263,18 @@ class OrchestratorRPC {
     return _unaryClient.getSnapshotStatus(GetSnapshotStatusRequest());
   }
 
+  /// The drynet generation published but not switched to yet, with the UTXO
+  /// snapshot it offers. An empty pendingGeneration means already current.
+  Future<GetPendingNetworkGenerationResponse> getPendingNetworkGeneration() {
+    return _unaryClient.getPendingNetworkGeneration(GetPendingNetworkGenerationRequest());
+  }
+
+  /// Switch to the published drynet generation. Destructive: the old chain and
+  /// its transactions are deleted, wallets survive. Confirm with the user first.
+  Future<ApplyPendingNetworkGenerationResponse> applyPendingNetworkGeneration() {
+    return _unaryClient.applyPendingNetworkGeneration(ApplyPendingNetworkGenerationRequest());
+  }
+
   Stream<ShutdownAllResponse> shutdownAll({bool force = false}) {
     return _streamClient.shutdownAll(ShutdownAllRequest(force: force));
   }
