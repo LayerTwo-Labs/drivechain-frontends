@@ -44,7 +44,7 @@ class SuccessScreen extends StatelessWidget {
                 color: iconColor ?? theme.colors.success,
               ),
               const Spacer(),
-              if (actions != null) actions!,
+              ?actions,
               if (actions == null)
                 Row(
                   mainAxisAlignment: MainAxisAlignment.end,

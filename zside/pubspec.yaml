@@ -14,7 +14,7 @@ dependencies:
   sail_ui:
     path: ../sail_ui
 
-  cupertino_icons: ^1.0.8
+  cupertino_icons: ^1.0.9
   dart_coin_rpc:
     git:
       url: https://github.com/barebitcoin/dart_coin_rpc.git
@@ -22,11 +22,11 @@ dependencies:
       ref: ab0b7cb2de6e1634a6e65892770ed0d157d38443
   flutter_highlighter: ^0.1.1
   logger: ^2.7.0
-  dio: 5.9.0
+  dio: 5.10.0
   auto_route: ^11.1.0
   get_it: ^8.3.0
   qr_flutter: ^4.1.0
-  window_manager: ^0.5.1
+  window_manager: ^0.5.2
   collection: ^1.19.1
   stacked: ^3.5.0
   desktop_multi_window:
@@ -34,10 +34,10 @@ dependencies:
       url: https://github.com/octobocto/flutter-plugins.git
       ref: 252f3f7910288500039c39ae2b944622a0e55152
       path: packages/desktop_multi_window
-  synchronized: ^3.4.0
-  intl: ^0.20.2
+  synchronized: ^3.4.1+1
+  intl: ^0.20.3
   http: ^1.6.0
-  path_provider: ^2.1.5
+  path_provider: ^2.1.6
   crypto: ^3.0.7
   connectrpc: ^1.0.0
   path: ^1.9.1
@@ -52,11 +52,11 @@ dev_dependencies:
     sdk: flutter
 
   flutter_lints: ^6.0.0
-  custom_lint: ^0.8.0
+  custom_lint: ^0.8.1
   drivechain_lints:
     path: ../drivechain_lints
   auto_route_generator: ^10.4.0
-  build_runner: ^2.15.0
+  build_runner: ^2.15.1
   flutter_launcher_icons: ^0.14.4
 
 flutter_launcher_icons:
