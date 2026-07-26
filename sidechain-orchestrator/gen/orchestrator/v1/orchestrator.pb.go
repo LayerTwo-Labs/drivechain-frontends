@@ -1784,14 +1784,17 @@ type GetPendingNetworkGenerationResponse struct {
 	// when already current.
 	CurrentGeneration string `protobuf:"bytes,1,opt,name=current_generation,json=currentGeneration,proto3" json:"current_generation,omitempty"`
 	PendingGeneration string `protobuf:"bytes,2,opt,name=pending_generation,json=pendingGeneration,proto3" json:"pending_generation,omitempty"`
-	// The new generation's UTXO snapshot, so the prompt can offer a fast resync.
-	// Zero height means none is published.
-	SnapshotUrl       string `protobuf:"bytes,3,opt,name=snapshot_url,json=snapshotUrl,proto3" json:"snapshot_url,omitempty"`
-	SnapshotHeight    int64  `protobuf:"varint,4,opt,name=snapshot_height,json=snapshotHeight,proto3" json:"snapshot_height,omitempty"`
-	SnapshotSha256    string `protobuf:"bytes,5,opt,name=snapshot_sha256,json=snapshotSha256,proto3" json:"snapshot_sha256,omitempty"`
-	SnapshotSizeBytes int64  `protobuf:"varint,6,opt,name=snapshot_size_bytes,json=snapshotSizeBytes,proto3" json:"snapshot_size_bytes,omitempty"`
-	unknownFields     protoimpl.UnknownFields
-	sizeCache         protoimpl.SizeCache
+	// The new generation's UTXO snapshot, which the switch syncs from. Zero
+	// height means none is published.
+	SnapshotHeight    int64 `protobuf:"varint,3,opt,name=snapshot_height,json=snapshotHeight,proto3" json:"snapshot_height,omitempty"`
+	SnapshotSizeBytes int64 `protobuf:"varint,4,opt,name=snapshot_size_bytes,json=snapshotSizeBytes,proto3" json:"snapshot_size_bytes,omitempty"`
+	// The new generation's seed node, for the manual switch instructions.
+	PendingPeer string `protobuf:"bytes,5,opt,name=pending_peer,json=pendingPeer,proto3" json:"pending_peer,omitempty"`
+	// True when the user's own bitcoin.conf names the generation. The switch
+	// cannot be made here — the prompt spells out what to change instead.
+	UserManagedConf bool `protobuf:"varint,6,opt,name=user_managed_conf,json=userManagedConf,proto3" json:"user_managed_conf,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
 }
 
 func (x *GetPendingNetworkGenerationResponse) Reset() {
@@ -1838,25 +1841,11 @@ func (x *GetPendingNetworkGenerationResponse) GetPendingGeneration() string {
 	return ""
 }
 
-func (x *GetPendingNetworkGenerationResponse) GetSnapshotUrl() string {
-	if x != nil {
-		return x.SnapshotUrl
-	}
-	return ""
-}
-
 func (x *GetPendingNetworkGenerationResponse) GetSnapshotHeight() int64 {
 	if x != nil {
 		return x.SnapshotHeight
 	}
 	return 0
-}
-
-func (x *GetPendingNetworkGenerationResponse) GetSnapshotSha256() string {
-	if x != nil {
-		return x.SnapshotSha256
-	}
-	return ""
 }
 
 func (x *GetPendingNetworkGenerationResponse) GetSnapshotSizeBytes() int64 {
@@ -1866,26 +1855,43 @@ func (x *GetPendingNetworkGenerationResponse) GetSnapshotSizeBytes() int64 {
 	return 0
 }
 
-type ApplyPendingNetworkGenerationRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
+func (x *GetPendingNetworkGenerationResponse) GetPendingPeer() string {
+	if x != nil {
+		return x.PendingPeer
+	}
+	return ""
+}
+
+func (x *GetPendingNetworkGenerationResponse) GetUserManagedConf() bool {
+	if x != nil {
+		return x.UserManagedConf
+	}
+	return false
+}
+
+type ConfirmPendingNetworkGenerationRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The generation the prompt showed. Refused once the published one has moved
+	// on, so a refresh mid-dialog cannot switch the user to a different chain.
+	Generation    string `protobuf:"bytes,1,opt,name=generation,proto3" json:"generation,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *ApplyPendingNetworkGenerationRequest) Reset() {
-	*x = ApplyPendingNetworkGenerationRequest{}
+func (x *ConfirmPendingNetworkGenerationRequest) Reset() {
+	*x = ConfirmPendingNetworkGenerationRequest{}
 	mi := &file_orchestrator_v1_orchestrator_proto_msgTypes[28]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *ApplyPendingNetworkGenerationRequest) String() string {
+func (x *ConfirmPendingNetworkGenerationRequest) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*ApplyPendingNetworkGenerationRequest) ProtoMessage() {}
+func (*ConfirmPendingNetworkGenerationRequest) ProtoMessage() {}
 
-func (x *ApplyPendingNetworkGenerationRequest) ProtoReflect() protoreflect.Message {
+func (x *ConfirmPendingNetworkGenerationRequest) ProtoReflect() protoreflect.Message {
 	mi := &file_orchestrator_v1_orchestrator_proto_msgTypes[28]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -1897,31 +1903,38 @@ func (x *ApplyPendingNetworkGenerationRequest) ProtoReflect() protoreflect.Messa
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use ApplyPendingNetworkGenerationRequest.ProtoReflect.Descriptor instead.
-func (*ApplyPendingNetworkGenerationRequest) Descriptor() ([]byte, []int) {
+// Deprecated: Use ConfirmPendingNetworkGenerationRequest.ProtoReflect.Descriptor instead.
+func (*ConfirmPendingNetworkGenerationRequest) Descriptor() ([]byte, []int) {
 	return file_orchestrator_v1_orchestrator_proto_rawDescGZIP(), []int{28}
 }
 
-type ApplyPendingNetworkGenerationResponse struct {
+func (x *ConfirmPendingNetworkGenerationRequest) GetGeneration() string {
+	if x != nil {
+		return x.Generation
+	}
+	return ""
+}
+
+type ConfirmPendingNetworkGenerationResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *ApplyPendingNetworkGenerationResponse) Reset() {
-	*x = ApplyPendingNetworkGenerationResponse{}
+func (x *ConfirmPendingNetworkGenerationResponse) Reset() {
+	*x = ConfirmPendingNetworkGenerationResponse{}
 	mi := &file_orchestrator_v1_orchestrator_proto_msgTypes[29]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *ApplyPendingNetworkGenerationResponse) String() string {
+func (x *ConfirmPendingNetworkGenerationResponse) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*ApplyPendingNetworkGenerationResponse) ProtoMessage() {}
+func (*ConfirmPendingNetworkGenerationResponse) ProtoMessage() {}
 
-func (x *ApplyPendingNetworkGenerationResponse) ProtoReflect() protoreflect.Message {
+func (x *ConfirmPendingNetworkGenerationResponse) ProtoReflect() protoreflect.Message {
 	mi := &file_orchestrator_v1_orchestrator_proto_msgTypes[29]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -1933,8 +1946,8 @@ func (x *ApplyPendingNetworkGenerationResponse) ProtoReflect() protoreflect.Mess
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use ApplyPendingNetworkGenerationResponse.ProtoReflect.Descriptor instead.
-func (*ApplyPendingNetworkGenerationResponse) Descriptor() ([]byte, []int) {
+// Deprecated: Use ConfirmPendingNetworkGenerationResponse.ProtoReflect.Descriptor instead.
+func (*ConfirmPendingNetworkGenerationResponse) Descriptor() ([]byte, []int) {
 	return file_orchestrator_v1_orchestrator_proto_rawDescGZIP(), []int{29}
 }
 
@@ -4073,16 +4086,19 @@ const file_orchestrator_v1_orchestrator_proto_rawDesc = "" +
 	"\ractive_height\x18\x06 \x01(\x03R\factiveHeight\x12)\n" +
 	"\x10active_validated\x18\a \x01(\bR\x0factiveValidated\x12@\n" +
 	"\x1cactive_verification_progress\x18\b \x01(\x01R\x1aactiveVerificationProgress\"$\n" +
-	"\"GetPendingNetworkGenerationRequest\"\xa8\x02\n" +
+	"\"GetPendingNetworkGenerationRequest\"\xab\x02\n" +
 	"#GetPendingNetworkGenerationResponse\x12-\n" +
 	"\x12current_generation\x18\x01 \x01(\tR\x11currentGeneration\x12-\n" +
-	"\x12pending_generation\x18\x02 \x01(\tR\x11pendingGeneration\x12!\n" +
-	"\fsnapshot_url\x18\x03 \x01(\tR\vsnapshotUrl\x12'\n" +
-	"\x0fsnapshot_height\x18\x04 \x01(\x03R\x0esnapshotHeight\x12'\n" +
-	"\x0fsnapshot_sha256\x18\x05 \x01(\tR\x0esnapshotSha256\x12.\n" +
-	"\x13snapshot_size_bytes\x18\x06 \x01(\x03R\x11snapshotSizeBytes\"&\n" +
-	"$ApplyPendingNetworkGenerationRequest\"'\n" +
-	"%ApplyPendingNetworkGenerationResponse\"*\n" +
+	"\x12pending_generation\x18\x02 \x01(\tR\x11pendingGeneration\x12'\n" +
+	"\x0fsnapshot_height\x18\x03 \x01(\x03R\x0esnapshotHeight\x12.\n" +
+	"\x13snapshot_size_bytes\x18\x04 \x01(\x03R\x11snapshotSizeBytes\x12!\n" +
+	"\fpending_peer\x18\x05 \x01(\tR\vpendingPeer\x12*\n" +
+	"\x11user_managed_conf\x18\x06 \x01(\bR\x0fuserManagedConf\"H\n" +
+	"&ConfirmPendingNetworkGenerationRequest\x12\x1e\n" +
+	"\n" +
+	"generation\x18\x01 \x01(\tR\n" +
+	"generation\")\n" +
+	"'ConfirmPendingNetworkGenerationResponse\"*\n" +
 	"\x12ShutdownAllRequest\x12\x14\n" +
 	"\x05force\x18\x01 \x01(\bR\x05force\"\xb0\x01\n" +
 	"\x13ShutdownAllResponse\x12\x1f\n" +
@@ -4255,7 +4271,7 @@ const file_orchestrator_v1_orchestrator_proto_rawDesc = "" +
 	"\x14DELETION_TYPE_WALLET\x10\x02\x12\x1a\n" +
 	"\x16DELETION_TYPE_SETTINGS\x10\x03\x12\x16\n" +
 	"\x12DELETION_TYPE_LOGS\x10\x04\x12\x1a\n" +
-	"\x16DELETION_TYPE_SOFTWARE\x10\x052\xed\x16\n" +
+	"\x16DELETION_TYPE_SOFTWARE\x10\x052\xf3\x16\n" +
 	"\x13OrchestratorService\x12[\n" +
 	"\fListBinaries\x12$.orchestrator.v1.ListBinariesRequest\x1a%.orchestrator.v1.ListBinariesResponse\x12d\n" +
 	"\x0fGetBinaryStatus\x12'.orchestrator.v1.GetBinaryStatusRequest\x1a(.orchestrator.v1.GetBinaryStatusResponse\x12g\n" +
@@ -4271,8 +4287,8 @@ const file_orchestrator_v1_orchestrator_proto_rawDesc = "" +
 	"\tRestartL1\x12!.orchestrator.v1.RestartL1Request\x1a\".orchestrator.v1.RestartL1Response\x12l\n" +
 	"\x11ApplyUTXOSnapshot\x12).orchestrator.v1.ApplyUTXOSnapshotRequest\x1a*.orchestrator.v1.ApplyUTXOSnapshotResponse0\x01\x12j\n" +
 	"\x11GetSnapshotStatus\x12).orchestrator.v1.GetSnapshotStatusRequest\x1a*.orchestrator.v1.GetSnapshotStatusResponse\x12\x88\x01\n" +
-	"\x1bGetPendingNetworkGeneration\x123.orchestrator.v1.GetPendingNetworkGenerationRequest\x1a4.orchestrator.v1.GetPendingNetworkGenerationResponse\x12\x8e\x01\n" +
-	"\x1dApplyPendingNetworkGeneration\x125.orchestrator.v1.ApplyPendingNetworkGenerationRequest\x1a6.orchestrator.v1.ApplyPendingNetworkGenerationResponse\x12Z\n" +
+	"\x1bGetPendingNetworkGeneration\x123.orchestrator.v1.GetPendingNetworkGenerationRequest\x1a4.orchestrator.v1.GetPendingNetworkGenerationResponse\x12\x94\x01\n" +
+	"\x1fConfirmPendingNetworkGeneration\x127.orchestrator.v1.ConfirmPendingNetworkGenerationRequest\x1a8.orchestrator.v1.ConfirmPendingNetworkGenerationResponse\x12Z\n" +
 	"\vShutdownAll\x12#.orchestrator.v1.ShutdownAllRequest\x1a$.orchestrator.v1.ShutdownAllResponse0\x01\x12O\n" +
 	"\bShutdown\x12 .orchestrator.v1.ShutdownRequest\x1a!.orchestrator.v1.ShutdownResponse\x12X\n" +
 	"\vGetBTCPrice\x12#.orchestrator.v1.GetBTCPriceRequest\x1a$.orchestrator.v1.GetBTCPriceResponse\x12\x85\x01\n" +
@@ -4304,76 +4320,76 @@ func file_orchestrator_v1_orchestrator_proto_rawDescGZIP() []byte {
 var file_orchestrator_v1_orchestrator_proto_enumTypes = make([]protoimpl.EnumInfo, 3)
 var file_orchestrator_v1_orchestrator_proto_msgTypes = make([]protoimpl.MessageInfo, 67)
 var file_orchestrator_v1_orchestrator_proto_goTypes = []any{
-	(SidechainType)(0),                            // 0: orchestrator.v1.SidechainType
-	(BinaryType)(0),                               // 1: orchestrator.v1.BinaryType
-	(DeletionType)(0),                             // 2: orchestrator.v1.DeletionType
-	(*BinaryStatusMsg)(nil),                       // 3: orchestrator.v1.BinaryStatusMsg
-	(*StartupLogEntryMsg)(nil),                    // 4: orchestrator.v1.StartupLogEntryMsg
-	(*ListBinariesRequest)(nil),                   // 5: orchestrator.v1.ListBinariesRequest
-	(*ListBinariesResponse)(nil),                  // 6: orchestrator.v1.ListBinariesResponse
-	(*GetBinaryStatusRequest)(nil),                // 7: orchestrator.v1.GetBinaryStatusRequest
-	(*GetBinaryStatusResponse)(nil),               // 8: orchestrator.v1.GetBinaryStatusResponse
-	(*GetBinaryVersionRequest)(nil),               // 9: orchestrator.v1.GetBinaryVersionRequest
-	(*GetBinaryVersionResponse)(nil),              // 10: orchestrator.v1.GetBinaryVersionResponse
-	(*DownloadBinaryRequest)(nil),                 // 11: orchestrator.v1.DownloadBinaryRequest
-	(*DownloadBinaryResponse)(nil),                // 12: orchestrator.v1.DownloadBinaryResponse
-	(*StartBinaryRequest)(nil),                    // 13: orchestrator.v1.StartBinaryRequest
-	(*StartBinaryResponse)(nil),                   // 14: orchestrator.v1.StartBinaryResponse
-	(*StopBinaryRequest)(nil),                     // 15: orchestrator.v1.StopBinaryRequest
-	(*StopBinaryResponse)(nil),                    // 16: orchestrator.v1.StopBinaryResponse
-	(*StreamLogsRequest)(nil),                     // 17: orchestrator.v1.StreamLogsRequest
-	(*StreamLogsResponse)(nil),                    // 18: orchestrator.v1.StreamLogsResponse
-	(*StartWithL1Request)(nil),                    // 19: orchestrator.v1.StartWithL1Request
-	(*StartWithL1Response)(nil),                   // 20: orchestrator.v1.StartWithL1Response
-	(*RestartDaemonRequest)(nil),                  // 21: orchestrator.v1.RestartDaemonRequest
-	(*RestartDaemonResponse)(nil),                 // 22: orchestrator.v1.RestartDaemonResponse
-	(*RestartL1Request)(nil),                      // 23: orchestrator.v1.RestartL1Request
-	(*RestartL1Response)(nil),                     // 24: orchestrator.v1.RestartL1Response
-	(*ApplyUTXOSnapshotRequest)(nil),              // 25: orchestrator.v1.ApplyUTXOSnapshotRequest
-	(*ApplyUTXOSnapshotResponse)(nil),             // 26: orchestrator.v1.ApplyUTXOSnapshotResponse
-	(*GetSnapshotStatusRequest)(nil),              // 27: orchestrator.v1.GetSnapshotStatusRequest
-	(*GetSnapshotStatusResponse)(nil),             // 28: orchestrator.v1.GetSnapshotStatusResponse
-	(*GetPendingNetworkGenerationRequest)(nil),    // 29: orchestrator.v1.GetPendingNetworkGenerationRequest
-	(*GetPendingNetworkGenerationResponse)(nil),   // 30: orchestrator.v1.GetPendingNetworkGenerationResponse
-	(*ApplyPendingNetworkGenerationRequest)(nil),  // 31: orchestrator.v1.ApplyPendingNetworkGenerationRequest
-	(*ApplyPendingNetworkGenerationResponse)(nil), // 32: orchestrator.v1.ApplyPendingNetworkGenerationResponse
-	(*ShutdownAllRequest)(nil),                    // 33: orchestrator.v1.ShutdownAllRequest
-	(*ShutdownAllResponse)(nil),                   // 34: orchestrator.v1.ShutdownAllResponse
-	(*GetBTCPriceRequest)(nil),                    // 35: orchestrator.v1.GetBTCPriceRequest
-	(*GetBTCPriceResponse)(nil),                   // 36: orchestrator.v1.GetBTCPriceResponse
-	(*GetMainchainBlockchainInfoRequest)(nil),     // 37: orchestrator.v1.GetMainchainBlockchainInfoRequest
-	(*GetMainchainBlockchainInfoResponse)(nil),    // 38: orchestrator.v1.GetMainchainBlockchainInfoResponse
-	(*GetEnforcerBlockchainInfoRequest)(nil),      // 39: orchestrator.v1.GetEnforcerBlockchainInfoRequest
-	(*GetEnforcerBlockchainInfoResponse)(nil),     // 40: orchestrator.v1.GetEnforcerBlockchainInfoResponse
-	(*GetSyncStatusRequest)(nil),                  // 41: orchestrator.v1.GetSyncStatusRequest
-	(*GetSyncStatusResponse)(nil),                 // 42: orchestrator.v1.GetSyncStatusResponse
-	(*SidechainStatus)(nil),                       // 43: orchestrator.v1.SidechainStatus
-	(*ChainSync)(nil),                             // 44: orchestrator.v1.ChainSync
-	(*GetDownloadStatusRequest)(nil),              // 45: orchestrator.v1.GetDownloadStatusRequest
-	(*GetDownloadStatusResponse)(nil),             // 46: orchestrator.v1.GetDownloadStatusResponse
-	(*DownloadStatus)(nil),                        // 47: orchestrator.v1.DownloadStatus
-	(*GetMainchainBalanceRequest)(nil),            // 48: orchestrator.v1.GetMainchainBalanceRequest
-	(*GetMainchainBalanceResponse)(nil),           // 49: orchestrator.v1.GetMainchainBalanceResponse
-	(*GetSidechainBalanceRequest)(nil),            // 50: orchestrator.v1.GetSidechainBalanceRequest
-	(*GetSidechainBalanceResponse)(nil),           // 51: orchestrator.v1.GetSidechainBalanceResponse
-	(*SingleDeletion)(nil),                        // 52: orchestrator.v1.SingleDeletion
-	(*GatherFilesToDeleteRequest)(nil),            // 53: orchestrator.v1.GatherFilesToDeleteRequest
-	(*GatherFilesToDeleteResponse)(nil),           // 54: orchestrator.v1.GatherFilesToDeleteResponse
-	(*ResetFileInfo)(nil),                         // 55: orchestrator.v1.ResetFileInfo
-	(*DeleteFilesRequest)(nil),                    // 56: orchestrator.v1.DeleteFilesRequest
-	(*DeleteFilesResponse)(nil),                   // 57: orchestrator.v1.DeleteFilesResponse
-	(*GetCoreMempoolInfoRequest)(nil),             // 58: orchestrator.v1.GetCoreMempoolInfoRequest
-	(*GetCoreMempoolInfoResponse)(nil),            // 59: orchestrator.v1.GetCoreMempoolInfoResponse
-	(*CoreRawCallRequest)(nil),                    // 60: orchestrator.v1.CoreRawCallRequest
-	(*CoreRawCallResponse)(nil),                   // 61: orchestrator.v1.CoreRawCallResponse
-	(*GetForkStatusRequest)(nil),                  // 62: orchestrator.v1.GetForkStatusRequest
-	(*GetForkStatusResponse)(nil),                 // 63: orchestrator.v1.GetForkStatusResponse
-	(*ForkWalletClaim)(nil),                       // 64: orchestrator.v1.ForkWalletClaim
-	(*ForkClaimUtxo)(nil),                         // 65: orchestrator.v1.ForkClaimUtxo
-	(*ShutdownRequest)(nil),                       // 66: orchestrator.v1.ShutdownRequest
-	(*ShutdownResponse)(nil),                      // 67: orchestrator.v1.ShutdownResponse
-	nil,                                           // 68: orchestrator.v1.StartBinaryRequest.EnvEntry
-	nil,                                           // 69: orchestrator.v1.StartWithL1Request.TargetEnvEntry
+	(SidechainType)(0),                              // 0: orchestrator.v1.SidechainType
+	(BinaryType)(0),                                 // 1: orchestrator.v1.BinaryType
+	(DeletionType)(0),                               // 2: orchestrator.v1.DeletionType
+	(*BinaryStatusMsg)(nil),                         // 3: orchestrator.v1.BinaryStatusMsg
+	(*StartupLogEntryMsg)(nil),                      // 4: orchestrator.v1.StartupLogEntryMsg
+	(*ListBinariesRequest)(nil),                     // 5: orchestrator.v1.ListBinariesRequest
+	(*ListBinariesResponse)(nil),                    // 6: orchestrator.v1.ListBinariesResponse
+	(*GetBinaryStatusRequest)(nil),                  // 7: orchestrator.v1.GetBinaryStatusRequest
+	(*GetBinaryStatusResponse)(nil),                 // 8: orchestrator.v1.GetBinaryStatusResponse
+	(*GetBinaryVersionRequest)(nil),                 // 9: orchestrator.v1.GetBinaryVersionRequest
+	(*GetBinaryVersionResponse)(nil),                // 10: orchestrator.v1.GetBinaryVersionResponse
+	(*DownloadBinaryRequest)(nil),                   // 11: orchestrator.v1.DownloadBinaryRequest
+	(*DownloadBinaryResponse)(nil),                  // 12: orchestrator.v1.DownloadBinaryResponse
+	(*StartBinaryRequest)(nil),                      // 13: orchestrator.v1.StartBinaryRequest
+	(*StartBinaryResponse)(nil),                     // 14: orchestrator.v1.StartBinaryResponse
+	(*StopBinaryRequest)(nil),                       // 15: orchestrator.v1.StopBinaryRequest
+	(*StopBinaryResponse)(nil),                      // 16: orchestrator.v1.StopBinaryResponse
+	(*StreamLogsRequest)(nil),                       // 17: orchestrator.v1.StreamLogsRequest
+	(*StreamLogsResponse)(nil),                      // 18: orchestrator.v1.StreamLogsResponse
+	(*StartWithL1Request)(nil),                      // 19: orchestrator.v1.StartWithL1Request
+	(*StartWithL1Response)(nil),                     // 20: orchestrator.v1.StartWithL1Response
+	(*RestartDaemonRequest)(nil),                    // 21: orchestrator.v1.RestartDaemonRequest
+	(*RestartDaemonResponse)(nil),                   // 22: orchestrator.v1.RestartDaemonResponse
+	(*RestartL1Request)(nil),                        // 23: orchestrator.v1.RestartL1Request
+	(*RestartL1Response)(nil),                       // 24: orchestrator.v1.RestartL1Response
+	(*ApplyUTXOSnapshotRequest)(nil),                // 25: orchestrator.v1.ApplyUTXOSnapshotRequest
+	(*ApplyUTXOSnapshotResponse)(nil),               // 26: orchestrator.v1.ApplyUTXOSnapshotResponse
+	(*GetSnapshotStatusRequest)(nil),                // 27: orchestrator.v1.GetSnapshotStatusRequest
+	(*GetSnapshotStatusResponse)(nil),               // 28: orchestrator.v1.GetSnapshotStatusResponse
+	(*GetPendingNetworkGenerationRequest)(nil),      // 29: orchestrator.v1.GetPendingNetworkGenerationRequest
+	(*GetPendingNetworkGenerationResponse)(nil),     // 30: orchestrator.v1.GetPendingNetworkGenerationResponse
+	(*ConfirmPendingNetworkGenerationRequest)(nil),  // 31: orchestrator.v1.ConfirmPendingNetworkGenerationRequest
+	(*ConfirmPendingNetworkGenerationResponse)(nil), // 32: orchestrator.v1.ConfirmPendingNetworkGenerationResponse
+	(*ShutdownAllRequest)(nil),                      // 33: orchestrator.v1.ShutdownAllRequest
+	(*ShutdownAllResponse)(nil),                     // 34: orchestrator.v1.ShutdownAllResponse
+	(*GetBTCPriceRequest)(nil),                      // 35: orchestrator.v1.GetBTCPriceRequest
+	(*GetBTCPriceResponse)(nil),                     // 36: orchestrator.v1.GetBTCPriceResponse
+	(*GetMainchainBlockchainInfoRequest)(nil),       // 37: orchestrator.v1.GetMainchainBlockchainInfoRequest
+	(*GetMainchainBlockchainInfoResponse)(nil),      // 38: orchestrator.v1.GetMainchainBlockchainInfoResponse
+	(*GetEnforcerBlockchainInfoRequest)(nil),        // 39: orchestrator.v1.GetEnforcerBlockchainInfoRequest
+	(*GetEnforcerBlockchainInfoResponse)(nil),       // 40: orchestrator.v1.GetEnforcerBlockchainInfoResponse
+	(*GetSyncStatusRequest)(nil),                    // 41: orchestrator.v1.GetSyncStatusRequest
+	(*GetSyncStatusResponse)(nil),                   // 42: orchestrator.v1.GetSyncStatusResponse
+	(*SidechainStatus)(nil),                         // 43: orchestrator.v1.SidechainStatus
+	(*ChainSync)(nil),                               // 44: orchestrator.v1.ChainSync
+	(*GetDownloadStatusRequest)(nil),                // 45: orchestrator.v1.GetDownloadStatusRequest
+	(*GetDownloadStatusResponse)(nil),               // 46: orchestrator.v1.GetDownloadStatusResponse
+	(*DownloadStatus)(nil),                          // 47: orchestrator.v1.DownloadStatus
+	(*GetMainchainBalanceRequest)(nil),              // 48: orchestrator.v1.GetMainchainBalanceRequest
+	(*GetMainchainBalanceResponse)(nil),             // 49: orchestrator.v1.GetMainchainBalanceResponse
+	(*GetSidechainBalanceRequest)(nil),              // 50: orchestrator.v1.GetSidechainBalanceRequest
+	(*GetSidechainBalanceResponse)(nil),             // 51: orchestrator.v1.GetSidechainBalanceResponse
+	(*SingleDeletion)(nil),                          // 52: orchestrator.v1.SingleDeletion
+	(*GatherFilesToDeleteRequest)(nil),              // 53: orchestrator.v1.GatherFilesToDeleteRequest
+	(*GatherFilesToDeleteResponse)(nil),             // 54: orchestrator.v1.GatherFilesToDeleteResponse
+	(*ResetFileInfo)(nil),                           // 55: orchestrator.v1.ResetFileInfo
+	(*DeleteFilesRequest)(nil),                      // 56: orchestrator.v1.DeleteFilesRequest
+	(*DeleteFilesResponse)(nil),                     // 57: orchestrator.v1.DeleteFilesResponse
+	(*GetCoreMempoolInfoRequest)(nil),               // 58: orchestrator.v1.GetCoreMempoolInfoRequest
+	(*GetCoreMempoolInfoResponse)(nil),              // 59: orchestrator.v1.GetCoreMempoolInfoResponse
+	(*CoreRawCallRequest)(nil),                      // 60: orchestrator.v1.CoreRawCallRequest
+	(*CoreRawCallResponse)(nil),                     // 61: orchestrator.v1.CoreRawCallResponse
+	(*GetForkStatusRequest)(nil),                    // 62: orchestrator.v1.GetForkStatusRequest
+	(*GetForkStatusResponse)(nil),                   // 63: orchestrator.v1.GetForkStatusResponse
+	(*ForkWalletClaim)(nil),                         // 64: orchestrator.v1.ForkWalletClaim
+	(*ForkClaimUtxo)(nil),                           // 65: orchestrator.v1.ForkClaimUtxo
+	(*ShutdownRequest)(nil),                         // 66: orchestrator.v1.ShutdownRequest
+	(*ShutdownResponse)(nil),                        // 67: orchestrator.v1.ShutdownResponse
+	nil,                                             // 68: orchestrator.v1.StartBinaryRequest.EnvEntry
+	nil,                                             // 69: orchestrator.v1.StartWithL1Request.TargetEnvEntry
 }
 var file_orchestrator_v1_orchestrator_proto_depIdxs = []int32{
 	4,  // 0: orchestrator.v1.BinaryStatusMsg.startup_logs:type_name -> orchestrator.v1.StartupLogEntryMsg
@@ -4411,7 +4427,7 @@ var file_orchestrator_v1_orchestrator_proto_depIdxs = []int32{
 	25, // 32: orchestrator.v1.OrchestratorService.ApplyUTXOSnapshot:input_type -> orchestrator.v1.ApplyUTXOSnapshotRequest
 	27, // 33: orchestrator.v1.OrchestratorService.GetSnapshotStatus:input_type -> orchestrator.v1.GetSnapshotStatusRequest
 	29, // 34: orchestrator.v1.OrchestratorService.GetPendingNetworkGeneration:input_type -> orchestrator.v1.GetPendingNetworkGenerationRequest
-	31, // 35: orchestrator.v1.OrchestratorService.ApplyPendingNetworkGeneration:input_type -> orchestrator.v1.ApplyPendingNetworkGenerationRequest
+	31, // 35: orchestrator.v1.OrchestratorService.ConfirmPendingNetworkGeneration:input_type -> orchestrator.v1.ConfirmPendingNetworkGenerationRequest
 	33, // 36: orchestrator.v1.OrchestratorService.ShutdownAll:input_type -> orchestrator.v1.ShutdownAllRequest
 	66, // 37: orchestrator.v1.OrchestratorService.Shutdown:input_type -> orchestrator.v1.ShutdownRequest
 	35, // 38: orchestrator.v1.OrchestratorService.GetBTCPrice:input_type -> orchestrator.v1.GetBTCPriceRequest
@@ -4439,7 +4455,7 @@ var file_orchestrator_v1_orchestrator_proto_depIdxs = []int32{
 	26, // 60: orchestrator.v1.OrchestratorService.ApplyUTXOSnapshot:output_type -> orchestrator.v1.ApplyUTXOSnapshotResponse
 	28, // 61: orchestrator.v1.OrchestratorService.GetSnapshotStatus:output_type -> orchestrator.v1.GetSnapshotStatusResponse
 	30, // 62: orchestrator.v1.OrchestratorService.GetPendingNetworkGeneration:output_type -> orchestrator.v1.GetPendingNetworkGenerationResponse
-	32, // 63: orchestrator.v1.OrchestratorService.ApplyPendingNetworkGeneration:output_type -> orchestrator.v1.ApplyPendingNetworkGenerationResponse
+	32, // 63: orchestrator.v1.OrchestratorService.ConfirmPendingNetworkGeneration:output_type -> orchestrator.v1.ConfirmPendingNetworkGenerationResponse
 	34, // 64: orchestrator.v1.OrchestratorService.ShutdownAll:output_type -> orchestrator.v1.ShutdownAllResponse
 	67, // 65: orchestrator.v1.OrchestratorService.Shutdown:output_type -> orchestrator.v1.ShutdownResponse
 	36, // 66: orchestrator.v1.OrchestratorService.GetBTCPrice:output_type -> orchestrator.v1.GetBTCPriceResponse

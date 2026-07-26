@@ -72,9 +72,9 @@ const (
 	// OrchestratorServiceGetPendingNetworkGenerationProcedure is the fully-qualified name of the
 	// OrchestratorService's GetPendingNetworkGeneration RPC.
 	OrchestratorServiceGetPendingNetworkGenerationProcedure = "/orchestrator.v1.OrchestratorService/GetPendingNetworkGeneration"
-	// OrchestratorServiceApplyPendingNetworkGenerationProcedure is the fully-qualified name of the
-	// OrchestratorService's ApplyPendingNetworkGeneration RPC.
-	OrchestratorServiceApplyPendingNetworkGenerationProcedure = "/orchestrator.v1.OrchestratorService/ApplyPendingNetworkGeneration"
+	// OrchestratorServiceConfirmPendingNetworkGenerationProcedure is the fully-qualified name of the
+	// OrchestratorService's ConfirmPendingNetworkGeneration RPC.
+	OrchestratorServiceConfirmPendingNetworkGenerationProcedure = "/orchestrator.v1.OrchestratorService/ConfirmPendingNetworkGeneration"
 	// OrchestratorServiceShutdownAllProcedure is the fully-qualified name of the OrchestratorService's
 	// ShutdownAll RPC.
 	OrchestratorServiceShutdownAllProcedure = "/orchestrator.v1.OrchestratorService/ShutdownAll"
@@ -173,10 +173,11 @@ type OrchestratorServiceClient interface {
 	// The drynet generation published but not switched to yet. Feeds the upgrade
 	// prompt; pending_generation is empty when already on the newest one.
 	GetPendingNetworkGeneration(context.Context, *connect.Request[v1.GetPendingNetworkGenerationRequest]) (*connect.Response[v1.GetPendingNetworkGenerationResponse], error)
-	// Switch to the published drynet generation. Stops the L1 daemons, deletes
-	// the retired chain and boots them again. Wallets survive, chain history and
+	// Record the user's go-ahead to switch to the published drynet generation.
+	// Nothing is stopped or deleted here: the caller must restart the backends,
+	// and the switch runs on the next start. Wallets survive, chain history and
 	// its transactions do not — only call with the user's confirmation.
-	ApplyPendingNetworkGeneration(context.Context, *connect.Request[v1.ApplyPendingNetworkGenerationRequest]) (*connect.Response[v1.ApplyPendingNetworkGenerationResponse], error)
+	ConfirmPendingNetworkGeneration(context.Context, *connect.Request[v1.ConfirmPendingNetworkGenerationRequest]) (*connect.Response[v1.ConfirmPendingNetworkGenerationResponse], error)
 	// Shutdown all running binaries.
 	ShutdownAll(context.Context, *connect.Request[v1.ShutdownAllRequest]) (*connect.ServerStreamForClient[v1.ShutdownAllResponse], error)
 	// Detached-daemon shutdown. bitwindowd calls this on window close;
@@ -317,10 +318,10 @@ func NewOrchestratorServiceClient(httpClient connect.HTTPClient, baseURL string,
 			connect.WithSchema(orchestratorServiceMethods.ByName("GetPendingNetworkGeneration")),
 			connect.WithClientOptions(opts...),
 		),
-		applyPendingNetworkGeneration: connect.NewClient[v1.ApplyPendingNetworkGenerationRequest, v1.ApplyPendingNetworkGenerationResponse](
+		confirmPendingNetworkGeneration: connect.NewClient[v1.ConfirmPendingNetworkGenerationRequest, v1.ConfirmPendingNetworkGenerationResponse](
 			httpClient,
-			baseURL+OrchestratorServiceApplyPendingNetworkGenerationProcedure,
-			connect.WithSchema(orchestratorServiceMethods.ByName("ApplyPendingNetworkGeneration")),
+			baseURL+OrchestratorServiceConfirmPendingNetworkGenerationProcedure,
+			connect.WithSchema(orchestratorServiceMethods.ByName("ConfirmPendingNetworkGeneration")),
 			connect.WithClientOptions(opts...),
 		),
 		shutdownAll: connect.NewClient[v1.ShutdownAllRequest, v1.ShutdownAllResponse](
@@ -412,34 +413,34 @@ func NewOrchestratorServiceClient(httpClient connect.HTTPClient, baseURL string,
 
 // orchestratorServiceClient implements OrchestratorServiceClient.
 type orchestratorServiceClient struct {
-	listBinaries                  *connect.Client[v1.ListBinariesRequest, v1.ListBinariesResponse]
-	getBinaryStatus               *connect.Client[v1.GetBinaryStatusRequest, v1.GetBinaryStatusResponse]
-	getBinaryVersion              *connect.Client[v1.GetBinaryVersionRequest, v1.GetBinaryVersionResponse]
-	downloadBinary                *connect.Client[v1.DownloadBinaryRequest, v1.DownloadBinaryResponse]
-	startBinary                   *connect.Client[v1.StartBinaryRequest, v1.StartBinaryResponse]
-	stopBinary                    *connect.Client[v1.StopBinaryRequest, v1.StopBinaryResponse]
-	streamLogs                    *connect.Client[v1.StreamLogsRequest, v1.StreamLogsResponse]
-	startWithL1                   *connect.Client[v1.StartWithL1Request, v1.StartWithL1Response]
-	restartDaemon                 *connect.Client[v1.RestartDaemonRequest, v1.RestartDaemonResponse]
-	restartL1                     *connect.Client[v1.RestartL1Request, v1.RestartL1Response]
-	applyUTXOSnapshot             *connect.Client[v1.ApplyUTXOSnapshotRequest, v1.ApplyUTXOSnapshotResponse]
-	getSnapshotStatus             *connect.Client[v1.GetSnapshotStatusRequest, v1.GetSnapshotStatusResponse]
-	getPendingNetworkGeneration   *connect.Client[v1.GetPendingNetworkGenerationRequest, v1.GetPendingNetworkGenerationResponse]
-	applyPendingNetworkGeneration *connect.Client[v1.ApplyPendingNetworkGenerationRequest, v1.ApplyPendingNetworkGenerationResponse]
-	shutdownAll                   *connect.Client[v1.ShutdownAllRequest, v1.ShutdownAllResponse]
-	shutdown                      *connect.Client[v1.ShutdownRequest, v1.ShutdownResponse]
-	getBTCPrice                   *connect.Client[v1.GetBTCPriceRequest, v1.GetBTCPriceResponse]
-	getMainchainBlockchainInfo    *connect.Client[v1.GetMainchainBlockchainInfoRequest, v1.GetMainchainBlockchainInfoResponse]
-	getEnforcerBlockchainInfo     *connect.Client[v1.GetEnforcerBlockchainInfoRequest, v1.GetEnforcerBlockchainInfoResponse]
-	getSyncStatus                 *connect.Client[v1.GetSyncStatusRequest, v1.GetSyncStatusResponse]
-	getDownloadStatus             *connect.Client[v1.GetDownloadStatusRequest, v1.GetDownloadStatusResponse]
-	getMainchainBalance           *connect.Client[v1.GetMainchainBalanceRequest, v1.GetMainchainBalanceResponse]
-	getSidechainBalance           *connect.Client[v1.GetSidechainBalanceRequest, v1.GetSidechainBalanceResponse]
-	gatherFilesToDelete           *connect.Client[v1.GatherFilesToDeleteRequest, v1.GatherFilesToDeleteResponse]
-	deleteFiles                   *connect.Client[v1.DeleteFilesRequest, v1.DeleteFilesResponse]
-	getCoreMempoolInfo            *connect.Client[v1.GetCoreMempoolInfoRequest, v1.GetCoreMempoolInfoResponse]
-	coreRawCall                   *connect.Client[v1.CoreRawCallRequest, v1.CoreRawCallResponse]
-	getForkStatus                 *connect.Client[v1.GetForkStatusRequest, v1.GetForkStatusResponse]
+	listBinaries                    *connect.Client[v1.ListBinariesRequest, v1.ListBinariesResponse]
+	getBinaryStatus                 *connect.Client[v1.GetBinaryStatusRequest, v1.GetBinaryStatusResponse]
+	getBinaryVersion                *connect.Client[v1.GetBinaryVersionRequest, v1.GetBinaryVersionResponse]
+	downloadBinary                  *connect.Client[v1.DownloadBinaryRequest, v1.DownloadBinaryResponse]
+	startBinary                     *connect.Client[v1.StartBinaryRequest, v1.StartBinaryResponse]
+	stopBinary                      *connect.Client[v1.StopBinaryRequest, v1.StopBinaryResponse]
+	streamLogs                      *connect.Client[v1.StreamLogsRequest, v1.StreamLogsResponse]
+	startWithL1                     *connect.Client[v1.StartWithL1Request, v1.StartWithL1Response]
+	restartDaemon                   *connect.Client[v1.RestartDaemonRequest, v1.RestartDaemonResponse]
+	restartL1                       *connect.Client[v1.RestartL1Request, v1.RestartL1Response]
+	applyUTXOSnapshot               *connect.Client[v1.ApplyUTXOSnapshotRequest, v1.ApplyUTXOSnapshotResponse]
+	getSnapshotStatus               *connect.Client[v1.GetSnapshotStatusRequest, v1.GetSnapshotStatusResponse]
+	getPendingNetworkGeneration     *connect.Client[v1.GetPendingNetworkGenerationRequest, v1.GetPendingNetworkGenerationResponse]
+	confirmPendingNetworkGeneration *connect.Client[v1.ConfirmPendingNetworkGenerationRequest, v1.ConfirmPendingNetworkGenerationResponse]
+	shutdownAll                     *connect.Client[v1.ShutdownAllRequest, v1.ShutdownAllResponse]
+	shutdown                        *connect.Client[v1.ShutdownRequest, v1.ShutdownResponse]
+	getBTCPrice                     *connect.Client[v1.GetBTCPriceRequest, v1.GetBTCPriceResponse]
+	getMainchainBlockchainInfo      *connect.Client[v1.GetMainchainBlockchainInfoRequest, v1.GetMainchainBlockchainInfoResponse]
+	getEnforcerBlockchainInfo       *connect.Client[v1.GetEnforcerBlockchainInfoRequest, v1.GetEnforcerBlockchainInfoResponse]
+	getSyncStatus                   *connect.Client[v1.GetSyncStatusRequest, v1.GetSyncStatusResponse]
+	getDownloadStatus               *connect.Client[v1.GetDownloadStatusRequest, v1.GetDownloadStatusResponse]
+	getMainchainBalance             *connect.Client[v1.GetMainchainBalanceRequest, v1.GetMainchainBalanceResponse]
+	getSidechainBalance             *connect.Client[v1.GetSidechainBalanceRequest, v1.GetSidechainBalanceResponse]
+	gatherFilesToDelete             *connect.Client[v1.GatherFilesToDeleteRequest, v1.GatherFilesToDeleteResponse]
+	deleteFiles                     *connect.Client[v1.DeleteFilesRequest, v1.DeleteFilesResponse]
+	getCoreMempoolInfo              *connect.Client[v1.GetCoreMempoolInfoRequest, v1.GetCoreMempoolInfoResponse]
+	coreRawCall                     *connect.Client[v1.CoreRawCallRequest, v1.CoreRawCallResponse]
+	getForkStatus                   *connect.Client[v1.GetForkStatusRequest, v1.GetForkStatusResponse]
 }
 
 // ListBinaries calls orchestrator.v1.OrchestratorService.ListBinaries.
@@ -508,10 +509,10 @@ func (c *orchestratorServiceClient) GetPendingNetworkGeneration(ctx context.Cont
 	return c.getPendingNetworkGeneration.CallUnary(ctx, req)
 }
 
-// ApplyPendingNetworkGeneration calls
-// orchestrator.v1.OrchestratorService.ApplyPendingNetworkGeneration.
-func (c *orchestratorServiceClient) ApplyPendingNetworkGeneration(ctx context.Context, req *connect.Request[v1.ApplyPendingNetworkGenerationRequest]) (*connect.Response[v1.ApplyPendingNetworkGenerationResponse], error) {
-	return c.applyPendingNetworkGeneration.CallUnary(ctx, req)
+// ConfirmPendingNetworkGeneration calls
+// orchestrator.v1.OrchestratorService.ConfirmPendingNetworkGeneration.
+func (c *orchestratorServiceClient) ConfirmPendingNetworkGeneration(ctx context.Context, req *connect.Request[v1.ConfirmPendingNetworkGenerationRequest]) (*connect.Response[v1.ConfirmPendingNetworkGenerationResponse], error) {
+	return c.confirmPendingNetworkGeneration.CallUnary(ctx, req)
 }
 
 // ShutdownAll calls orchestrator.v1.OrchestratorService.ShutdownAll.
@@ -639,10 +640,11 @@ type OrchestratorServiceHandler interface {
 	// The drynet generation published but not switched to yet. Feeds the upgrade
 	// prompt; pending_generation is empty when already on the newest one.
 	GetPendingNetworkGeneration(context.Context, *connect.Request[v1.GetPendingNetworkGenerationRequest]) (*connect.Response[v1.GetPendingNetworkGenerationResponse], error)
-	// Switch to the published drynet generation. Stops the L1 daemons, deletes
-	// the retired chain and boots them again. Wallets survive, chain history and
+	// Record the user's go-ahead to switch to the published drynet generation.
+	// Nothing is stopped or deleted here: the caller must restart the backends,
+	// and the switch runs on the next start. Wallets survive, chain history and
 	// its transactions do not — only call with the user's confirmation.
-	ApplyPendingNetworkGeneration(context.Context, *connect.Request[v1.ApplyPendingNetworkGenerationRequest]) (*connect.Response[v1.ApplyPendingNetworkGenerationResponse], error)
+	ConfirmPendingNetworkGeneration(context.Context, *connect.Request[v1.ConfirmPendingNetworkGenerationRequest]) (*connect.Response[v1.ConfirmPendingNetworkGenerationResponse], error)
 	// Shutdown all running binaries.
 	ShutdownAll(context.Context, *connect.Request[v1.ShutdownAllRequest], *connect.ServerStream[v1.ShutdownAllResponse]) error
 	// Detached-daemon shutdown. bitwindowd calls this on window close;
@@ -779,10 +781,10 @@ func NewOrchestratorServiceHandler(svc OrchestratorServiceHandler, opts ...conne
 		connect.WithSchema(orchestratorServiceMethods.ByName("GetPendingNetworkGeneration")),
 		connect.WithHandlerOptions(opts...),
 	)
-	orchestratorServiceApplyPendingNetworkGenerationHandler := connect.NewUnaryHandler(
-		OrchestratorServiceApplyPendingNetworkGenerationProcedure,
-		svc.ApplyPendingNetworkGeneration,
-		connect.WithSchema(orchestratorServiceMethods.ByName("ApplyPendingNetworkGeneration")),
+	orchestratorServiceConfirmPendingNetworkGenerationHandler := connect.NewUnaryHandler(
+		OrchestratorServiceConfirmPendingNetworkGenerationProcedure,
+		svc.ConfirmPendingNetworkGeneration,
+		connect.WithSchema(orchestratorServiceMethods.ByName("ConfirmPendingNetworkGeneration")),
 		connect.WithHandlerOptions(opts...),
 	)
 	orchestratorServiceShutdownAllHandler := connect.NewServerStreamHandler(
@@ -897,8 +899,8 @@ func NewOrchestratorServiceHandler(svc OrchestratorServiceHandler, opts ...conne
 			orchestratorServiceGetSnapshotStatusHandler.ServeHTTP(w, r)
 		case OrchestratorServiceGetPendingNetworkGenerationProcedure:
 			orchestratorServiceGetPendingNetworkGenerationHandler.ServeHTTP(w, r)
-		case OrchestratorServiceApplyPendingNetworkGenerationProcedure:
-			orchestratorServiceApplyPendingNetworkGenerationHandler.ServeHTTP(w, r)
+		case OrchestratorServiceConfirmPendingNetworkGenerationProcedure:
+			orchestratorServiceConfirmPendingNetworkGenerationHandler.ServeHTTP(w, r)
 		case OrchestratorServiceShutdownAllProcedure:
 			orchestratorServiceShutdownAllHandler.ServeHTTP(w, r)
 		case OrchestratorServiceShutdownProcedure:
@@ -988,8 +990,8 @@ func (UnimplementedOrchestratorServiceHandler) GetPendingNetworkGeneration(conte
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("orchestrator.v1.OrchestratorService.GetPendingNetworkGeneration is not implemented"))
 }
 
-func (UnimplementedOrchestratorServiceHandler) ApplyPendingNetworkGeneration(context.Context, *connect.Request[v1.ApplyPendingNetworkGenerationRequest]) (*connect.Response[v1.ApplyPendingNetworkGenerationResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("orchestrator.v1.OrchestratorService.ApplyPendingNetworkGeneration is not implemented"))
+func (UnimplementedOrchestratorServiceHandler) ConfirmPendingNetworkGeneration(context.Context, *connect.Request[v1.ConfirmPendingNetworkGenerationRequest]) (*connect.Response[v1.ConfirmPendingNetworkGenerationResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("orchestrator.v1.OrchestratorService.ConfirmPendingNetworkGeneration is not implemented"))
 }
 
 func (UnimplementedOrchestratorServiceHandler) ShutdownAll(context.Context, *connect.Request[v1.ShutdownAllRequest], *connect.ServerStream[v1.ShutdownAllResponse]) error {

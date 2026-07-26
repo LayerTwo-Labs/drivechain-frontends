@@ -92,6 +92,20 @@ void main() {
       expect(p.activeBanner, isNull);
     });
 
+    test('a banner dismissed before restart stays dismissed', () async {
+      final p = await freshProvider();
+      addBanner(p, 'drynet-upgrade-drynet3', 'drynet3 is out');
+      await p.markRead('drynet-upgrade-drynet3');
+
+      // A fresh provider re-adds it from its 15s poll before the async history
+      // load lands — the load must not resurrect it as unread.
+      final restarted = NotificationProvider();
+      addBanner(restarted, 'drynet-upgrade-drynet3', 'drynet3 is out');
+      await Future<void>.delayed(Duration.zero);
+
+      expect(restarted.activeBanner, isNull);
+    });
+
     test('a read banner stays in the bell history', () async {
       final p = await freshProvider();
       addBanner(p, 'first', 'drynet3 is out');

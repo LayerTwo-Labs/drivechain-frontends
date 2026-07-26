@@ -505,10 +505,10 @@ const GetPendingNetworkGenerationResponse$json = {
   '2': [
     {'1': 'current_generation', '3': 1, '4': 1, '5': 9, '10': 'currentGeneration'},
     {'1': 'pending_generation', '3': 2, '4': 1, '5': 9, '10': 'pendingGeneration'},
-    {'1': 'snapshot_url', '3': 3, '4': 1, '5': 9, '10': 'snapshotUrl'},
-    {'1': 'snapshot_height', '3': 4, '4': 1, '5': 3, '10': 'snapshotHeight'},
-    {'1': 'snapshot_sha256', '3': 5, '4': 1, '5': 9, '10': 'snapshotSha256'},
-    {'1': 'snapshot_size_bytes', '3': 6, '4': 1, '5': 3, '10': 'snapshotSizeBytes'},
+    {'1': 'snapshot_height', '3': 3, '4': 1, '5': 3, '10': 'snapshotHeight'},
+    {'1': 'snapshot_size_bytes', '3': 4, '4': 1, '5': 3, '10': 'snapshotSizeBytes'},
+    {'1': 'pending_peer', '3': 5, '4': 1, '5': 9, '10': 'pendingPeer'},
+    {'1': 'user_managed_conf', '3': 6, '4': 1, '5': 8, '10': 'userManagedConf'},
   ],
 };
 
@@ -516,28 +516,28 @@ const GetPendingNetworkGenerationResponse$json = {
 final $typed_data.Uint8List getPendingNetworkGenerationResponseDescriptor = $convert.base64Decode(
     'CiNHZXRQZW5kaW5nTmV0d29ya0dlbmVyYXRpb25SZXNwb25zZRItChJjdXJyZW50X2dlbmVyYX'
     'Rpb24YASABKAlSEWN1cnJlbnRHZW5lcmF0aW9uEi0KEnBlbmRpbmdfZ2VuZXJhdGlvbhgCIAEo'
-    'CVIRcGVuZGluZ0dlbmVyYXRpb24SIQoMc25hcHNob3RfdXJsGAMgASgJUgtzbmFwc2hvdFVybB'
-    'InCg9zbmFwc2hvdF9oZWlnaHQYBCABKANSDnNuYXBzaG90SGVpZ2h0EicKD3NuYXBzaG90X3No'
-    'YTI1NhgFIAEoCVIOc25hcHNob3RTaGEyNTYSLgoTc25hcHNob3Rfc2l6ZV9ieXRlcxgGIAEoA1'
-    'IRc25hcHNob3RTaXplQnl0ZXM=');
+    'CVIRcGVuZGluZ0dlbmVyYXRpb24SJwoPc25hcHNob3RfaGVpZ2h0GAMgASgDUg5zbmFwc2hvdE'
+    'hlaWdodBIuChNzbmFwc2hvdF9zaXplX2J5dGVzGAQgASgDUhFzbmFwc2hvdFNpemVCeXRlcxIh'
+    'CgxwZW5kaW5nX3BlZXIYBSABKAlSC3BlbmRpbmdQZWVyEioKEXVzZXJfbWFuYWdlZF9jb25mGA'
+    'YgASgIUg91c2VyTWFuYWdlZENvbmY=');
 
-@$core.Deprecated('Use applyPendingNetworkGenerationRequestDescriptor instead')
-const ApplyPendingNetworkGenerationRequest$json = {
-  '1': 'ApplyPendingNetworkGenerationRequest',
+@$core.Deprecated('Use confirmPendingNetworkGenerationRequestDescriptor instead')
+const ConfirmPendingNetworkGenerationRequest$json = {
+  '1': 'ConfirmPendingNetworkGenerationRequest',
 };
 
-/// Descriptor for `ApplyPendingNetworkGenerationRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List applyPendingNetworkGenerationRequestDescriptor = $convert.base64Decode(
-    'CiRBcHBseVBlbmRpbmdOZXR3b3JrR2VuZXJhdGlvblJlcXVlc3Q=');
+/// Descriptor for `ConfirmPendingNetworkGenerationRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List confirmPendingNetworkGenerationRequestDescriptor = $convert.base64Decode(
+    'CiZDb25maXJtUGVuZGluZ05ldHdvcmtHZW5lcmF0aW9uUmVxdWVzdA==');
 
-@$core.Deprecated('Use applyPendingNetworkGenerationResponseDescriptor instead')
-const ApplyPendingNetworkGenerationResponse$json = {
-  '1': 'ApplyPendingNetworkGenerationResponse',
+@$core.Deprecated('Use confirmPendingNetworkGenerationResponseDescriptor instead')
+const ConfirmPendingNetworkGenerationResponse$json = {
+  '1': 'ConfirmPendingNetworkGenerationResponse',
 };
 
-/// Descriptor for `ApplyPendingNetworkGenerationResponse`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List applyPendingNetworkGenerationResponseDescriptor = $convert.base64Decode(
-    'CiVBcHBseVBlbmRpbmdOZXR3b3JrR2VuZXJhdGlvblJlc3BvbnNl');
+/// Descriptor for `ConfirmPendingNetworkGenerationResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List confirmPendingNetworkGenerationResponseDescriptor = $convert.base64Decode(
+    'CidDb25maXJtUGVuZGluZ05ldHdvcmtHZW5lcmF0aW9uUmVzcG9uc2U=');
 
 @$core.Deprecated('Use shutdownAllRequestDescriptor instead')
 const ShutdownAllRequest$json = {
@@ -1062,7 +1062,7 @@ const $core.Map<$core.String, $core.dynamic> OrchestratorServiceBase$json = {
     {'1': 'ApplyUTXOSnapshot', '2': '.orchestrator.v1.ApplyUTXOSnapshotRequest', '3': '.orchestrator.v1.ApplyUTXOSnapshotResponse', '6': true},
     {'1': 'GetSnapshotStatus', '2': '.orchestrator.v1.GetSnapshotStatusRequest', '3': '.orchestrator.v1.GetSnapshotStatusResponse'},
     {'1': 'GetPendingNetworkGeneration', '2': '.orchestrator.v1.GetPendingNetworkGenerationRequest', '3': '.orchestrator.v1.GetPendingNetworkGenerationResponse'},
-    {'1': 'ApplyPendingNetworkGeneration', '2': '.orchestrator.v1.ApplyPendingNetworkGenerationRequest', '3': '.orchestrator.v1.ApplyPendingNetworkGenerationResponse'},
+    {'1': 'ConfirmPendingNetworkGeneration', '2': '.orchestrator.v1.ConfirmPendingNetworkGenerationRequest', '3': '.orchestrator.v1.ConfirmPendingNetworkGenerationResponse'},
     {'1': 'ShutdownAll', '2': '.orchestrator.v1.ShutdownAllRequest', '3': '.orchestrator.v1.ShutdownAllResponse', '6': true},
     {'1': 'Shutdown', '2': '.orchestrator.v1.ShutdownRequest', '3': '.orchestrator.v1.ShutdownResponse'},
     {'1': 'GetBTCPrice', '2': '.orchestrator.v1.GetBTCPriceRequest', '3': '.orchestrator.v1.GetBTCPriceResponse'},
@@ -1112,8 +1112,8 @@ const $core.Map<$core.String, $core.Map<$core.String, $core.dynamic>> Orchestrat
   '.orchestrator.v1.GetSnapshotStatusResponse': GetSnapshotStatusResponse$json,
   '.orchestrator.v1.GetPendingNetworkGenerationRequest': GetPendingNetworkGenerationRequest$json,
   '.orchestrator.v1.GetPendingNetworkGenerationResponse': GetPendingNetworkGenerationResponse$json,
-  '.orchestrator.v1.ApplyPendingNetworkGenerationRequest': ApplyPendingNetworkGenerationRequest$json,
-  '.orchestrator.v1.ApplyPendingNetworkGenerationResponse': ApplyPendingNetworkGenerationResponse$json,
+  '.orchestrator.v1.ConfirmPendingNetworkGenerationRequest': ConfirmPendingNetworkGenerationRequest$json,
+  '.orchestrator.v1.ConfirmPendingNetworkGenerationResponse': ConfirmPendingNetworkGenerationResponse$json,
   '.orchestrator.v1.ShutdownAllRequest': ShutdownAllRequest$json,
   '.orchestrator.v1.ShutdownAllResponse': ShutdownAllResponse$json,
   '.orchestrator.v1.ShutdownRequest': ShutdownRequest$json,
@@ -1176,34 +1176,34 @@ final $typed_data.Uint8List orchestratorServiceDescriptor = $convert.base64Decod
     'bmFwc2hvdFN0YXR1c1JlcXVlc3QaKi5vcmNoZXN0cmF0b3IudjEuR2V0U25hcHNob3RTdGF0dX'
     'NSZXNwb25zZRKIAQobR2V0UGVuZGluZ05ldHdvcmtHZW5lcmF0aW9uEjMub3JjaGVzdHJhdG9y'
     'LnYxLkdldFBlbmRpbmdOZXR3b3JrR2VuZXJhdGlvblJlcXVlc3QaNC5vcmNoZXN0cmF0b3Iudj'
-    'EuR2V0UGVuZGluZ05ldHdvcmtHZW5lcmF0aW9uUmVzcG9uc2USjgEKHUFwcGx5UGVuZGluZ05l'
-    'dHdvcmtHZW5lcmF0aW9uEjUub3JjaGVzdHJhdG9yLnYxLkFwcGx5UGVuZGluZ05ldHdvcmtHZW'
-    '5lcmF0aW9uUmVxdWVzdBo2Lm9yY2hlc3RyYXRvci52MS5BcHBseVBlbmRpbmdOZXR3b3JrR2Vu'
-    'ZXJhdGlvblJlc3BvbnNlEloKC1NodXRkb3duQWxsEiMub3JjaGVzdHJhdG9yLnYxLlNodXRkb3'
-    'duQWxsUmVxdWVzdBokLm9yY2hlc3RyYXRvci52MS5TaHV0ZG93bkFsbFJlc3BvbnNlMAESTwoI'
-    'U2h1dGRvd24SIC5vcmNoZXN0cmF0b3IudjEuU2h1dGRvd25SZXF1ZXN0GiEub3JjaGVzdHJhdG'
-    '9yLnYxLlNodXRkb3duUmVzcG9uc2USWAoLR2V0QlRDUHJpY2USIy5vcmNoZXN0cmF0b3IudjEu'
-    'R2V0QlRDUHJpY2VSZXF1ZXN0GiQub3JjaGVzdHJhdG9yLnYxLkdldEJUQ1ByaWNlUmVzcG9uc2'
-    'UShQEKGkdldE1haW5jaGFpbkJsb2NrY2hhaW5JbmZvEjIub3JjaGVzdHJhdG9yLnYxLkdldE1h'
-    'aW5jaGFpbkJsb2NrY2hhaW5JbmZvUmVxdWVzdBozLm9yY2hlc3RyYXRvci52MS5HZXRNYWluY2'
-    'hhaW5CbG9ja2NoYWluSW5mb1Jlc3BvbnNlEoIBChlHZXRFbmZvcmNlckJsb2NrY2hhaW5JbmZv'
-    'EjEub3JjaGVzdHJhdG9yLnYxLkdldEVuZm9yY2VyQmxvY2tjaGFpbkluZm9SZXF1ZXN0GjIub3'
-    'JjaGVzdHJhdG9yLnYxLkdldEVuZm9yY2VyQmxvY2tjaGFpbkluZm9SZXNwb25zZRJeCg1HZXRT'
-    'eW5jU3RhdHVzEiUub3JjaGVzdHJhdG9yLnYxLkdldFN5bmNTdGF0dXNSZXF1ZXN0GiYub3JjaG'
-    'VzdHJhdG9yLnYxLkdldFN5bmNTdGF0dXNSZXNwb25zZRJqChFHZXREb3dubG9hZFN0YXR1cxIp'
-    'Lm9yY2hlc3RyYXRvci52MS5HZXREb3dubG9hZFN0YXR1c1JlcXVlc3QaKi5vcmNoZXN0cmF0b3'
-    'IudjEuR2V0RG93bmxvYWRTdGF0dXNSZXNwb25zZRJwChNHZXRNYWluY2hhaW5CYWxhbmNlEisu'
-    'b3JjaGVzdHJhdG9yLnYxLkdldE1haW5jaGFpbkJhbGFuY2VSZXF1ZXN0Giwub3JjaGVzdHJhdG'
-    '9yLnYxLkdldE1haW5jaGFpbkJhbGFuY2VSZXNwb25zZRJwChNHZXRTaWRlY2hhaW5CYWxhbmNl'
-    'Eisub3JjaGVzdHJhdG9yLnYxLkdldFNpZGVjaGFpbkJhbGFuY2VSZXF1ZXN0Giwub3JjaGVzdH'
-    'JhdG9yLnYxLkdldFNpZGVjaGFpbkJhbGFuY2VSZXNwb25zZRJwChNHYXRoZXJGaWxlc1RvRGVs'
-    'ZXRlEisub3JjaGVzdHJhdG9yLnYxLkdhdGhlckZpbGVzVG9EZWxldGVSZXF1ZXN0Giwub3JjaG'
-    'VzdHJhdG9yLnYxLkdhdGhlckZpbGVzVG9EZWxldGVSZXNwb25zZRJaCgtEZWxldGVGaWxlcxIj'
-    'Lm9yY2hlc3RyYXRvci52MS5EZWxldGVGaWxlc1JlcXVlc3QaJC5vcmNoZXN0cmF0b3IudjEuRG'
-    'VsZXRlRmlsZXNSZXNwb25zZTABEm0KEkdldENvcmVNZW1wb29sSW5mbxIqLm9yY2hlc3RyYXRv'
-    'ci52MS5HZXRDb3JlTWVtcG9vbEluZm9SZXF1ZXN0Gisub3JjaGVzdHJhdG9yLnYxLkdldENvcm'
-    'VNZW1wb29sSW5mb1Jlc3BvbnNlElgKC0NvcmVSYXdDYWxsEiMub3JjaGVzdHJhdG9yLnYxLkNv'
-    'cmVSYXdDYWxsUmVxdWVzdBokLm9yY2hlc3RyYXRvci52MS5Db3JlUmF3Q2FsbFJlc3BvbnNlEl'
-    '4KDUdldEZvcmtTdGF0dXMSJS5vcmNoZXN0cmF0b3IudjEuR2V0Rm9ya1N0YXR1c1JlcXVlc3Qa'
-    'Ji5vcmNoZXN0cmF0b3IudjEuR2V0Rm9ya1N0YXR1c1Jlc3BvbnNl');
+    'EuR2V0UGVuZGluZ05ldHdvcmtHZW5lcmF0aW9uUmVzcG9uc2USlAEKH0NvbmZpcm1QZW5kaW5n'
+    'TmV0d29ya0dlbmVyYXRpb24SNy5vcmNoZXN0cmF0b3IudjEuQ29uZmlybVBlbmRpbmdOZXR3b3'
+    'JrR2VuZXJhdGlvblJlcXVlc3QaOC5vcmNoZXN0cmF0b3IudjEuQ29uZmlybVBlbmRpbmdOZXR3'
+    'b3JrR2VuZXJhdGlvblJlc3BvbnNlEloKC1NodXRkb3duQWxsEiMub3JjaGVzdHJhdG9yLnYxLl'
+    'NodXRkb3duQWxsUmVxdWVzdBokLm9yY2hlc3RyYXRvci52MS5TaHV0ZG93bkFsbFJlc3BvbnNl'
+    'MAESTwoIU2h1dGRvd24SIC5vcmNoZXN0cmF0b3IudjEuU2h1dGRvd25SZXF1ZXN0GiEub3JjaG'
+    'VzdHJhdG9yLnYxLlNodXRkb3duUmVzcG9uc2USWAoLR2V0QlRDUHJpY2USIy5vcmNoZXN0cmF0'
+    'b3IudjEuR2V0QlRDUHJpY2VSZXF1ZXN0GiQub3JjaGVzdHJhdG9yLnYxLkdldEJUQ1ByaWNlUm'
+    'VzcG9uc2UShQEKGkdldE1haW5jaGFpbkJsb2NrY2hhaW5JbmZvEjIub3JjaGVzdHJhdG9yLnYx'
+    'LkdldE1haW5jaGFpbkJsb2NrY2hhaW5JbmZvUmVxdWVzdBozLm9yY2hlc3RyYXRvci52MS5HZX'
+    'RNYWluY2hhaW5CbG9ja2NoYWluSW5mb1Jlc3BvbnNlEoIBChlHZXRFbmZvcmNlckJsb2NrY2hh'
+    'aW5JbmZvEjEub3JjaGVzdHJhdG9yLnYxLkdldEVuZm9yY2VyQmxvY2tjaGFpbkluZm9SZXF1ZX'
+    'N0GjIub3JjaGVzdHJhdG9yLnYxLkdldEVuZm9yY2VyQmxvY2tjaGFpbkluZm9SZXNwb25zZRJe'
+    'Cg1HZXRTeW5jU3RhdHVzEiUub3JjaGVzdHJhdG9yLnYxLkdldFN5bmNTdGF0dXNSZXF1ZXN0Gi'
+    'Yub3JjaGVzdHJhdG9yLnYxLkdldFN5bmNTdGF0dXNSZXNwb25zZRJqChFHZXREb3dubG9hZFN0'
+    'YXR1cxIpLm9yY2hlc3RyYXRvci52MS5HZXREb3dubG9hZFN0YXR1c1JlcXVlc3QaKi5vcmNoZX'
+    'N0cmF0b3IudjEuR2V0RG93bmxvYWRTdGF0dXNSZXNwb25zZRJwChNHZXRNYWluY2hhaW5CYWxh'
+    'bmNlEisub3JjaGVzdHJhdG9yLnYxLkdldE1haW5jaGFpbkJhbGFuY2VSZXF1ZXN0Giwub3JjaG'
+    'VzdHJhdG9yLnYxLkdldE1haW5jaGFpbkJhbGFuY2VSZXNwb25zZRJwChNHZXRTaWRlY2hhaW5C'
+    'YWxhbmNlEisub3JjaGVzdHJhdG9yLnYxLkdldFNpZGVjaGFpbkJhbGFuY2VSZXF1ZXN0Giwub3'
+    'JjaGVzdHJhdG9yLnYxLkdldFNpZGVjaGFpbkJhbGFuY2VSZXNwb25zZRJwChNHYXRoZXJGaWxl'
+    'c1RvRGVsZXRlEisub3JjaGVzdHJhdG9yLnYxLkdhdGhlckZpbGVzVG9EZWxldGVSZXF1ZXN0Gi'
+    'wub3JjaGVzdHJhdG9yLnYxLkdhdGhlckZpbGVzVG9EZWxldGVSZXNwb25zZRJaCgtEZWxldGVG'
+    'aWxlcxIjLm9yY2hlc3RyYXRvci52MS5EZWxldGVGaWxlc1JlcXVlc3QaJC5vcmNoZXN0cmF0b3'
+    'IudjEuRGVsZXRlRmlsZXNSZXNwb25zZTABEm0KEkdldENvcmVNZW1wb29sSW5mbxIqLm9yY2hl'
+    'c3RyYXRvci52MS5HZXRDb3JlTWVtcG9vbEluZm9SZXF1ZXN0Gisub3JjaGVzdHJhdG9yLnYxLk'
+    'dldENvcmVNZW1wb29sSW5mb1Jlc3BvbnNlElgKC0NvcmVSYXdDYWxsEiMub3JjaGVzdHJhdG9y'
+    'LnYxLkNvcmVSYXdDYWxsUmVxdWVzdBokLm9yY2hlc3RyYXRvci52MS5Db3JlUmF3Q2FsbFJlc3'
+    'BvbnNlEl4KDUdldEZvcmtTdGF0dXMSJS5vcmNoZXN0cmF0b3IudjEuR2V0Rm9ya1N0YXR1c1Jl'
+    'cXVlc3QaJi5vcmNoZXN0cmF0b3IudjEuR2V0Rm9ya1N0YXR1c1Jlc3BvbnNl');
 

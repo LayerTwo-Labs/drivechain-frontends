@@ -435,6 +435,10 @@ class BottomNavViewModel extends BaseViewModel with ChangeTrackingMixin {
   String get _connectionStatusRaw {
     final dp = downloadProvider;
     if (dp != null && dp.hasActiveDownloads) {
+      // A message means work that isn't a plain binary fetch, e.g. the UTXO
+      // snapshot, and it names itself.
+      final labelled = dp.downloads.values.where((d) => d.message.isNotEmpty);
+      if (labelled.isNotEmpty) return '${labelled.first.message}...';
       if (dp.statusFor(BinaryType.BINARY_TYPE_BITCOIND) != null) return 'Downloading mainchain...';
       if (dp.statusFor(BinaryType.BINARY_TYPE_ENFORCER) != null) return 'Downloading enforcer...';
       final additionalType = additionalConnection.rpc.binary.type;

@@ -1889,10 +1889,10 @@ class GetPendingNetworkGenerationResponse extends $pb.GeneratedMessage {
   factory GetPendingNetworkGenerationResponse({
     $core.String? currentGeneration,
     $core.String? pendingGeneration,
-    $core.String? snapshotUrl,
     $fixnum.Int64? snapshotHeight,
-    $core.String? snapshotSha256,
     $fixnum.Int64? snapshotSizeBytes,
+    $core.String? pendingPeer,
+    $core.bool? userManagedConf,
   }) {
     final $result = create();
     if (currentGeneration != null) {
@@ -1901,17 +1901,17 @@ class GetPendingNetworkGenerationResponse extends $pb.GeneratedMessage {
     if (pendingGeneration != null) {
       $result.pendingGeneration = pendingGeneration;
     }
-    if (snapshotUrl != null) {
-      $result.snapshotUrl = snapshotUrl;
-    }
     if (snapshotHeight != null) {
       $result.snapshotHeight = snapshotHeight;
     }
-    if (snapshotSha256 != null) {
-      $result.snapshotSha256 = snapshotSha256;
-    }
     if (snapshotSizeBytes != null) {
       $result.snapshotSizeBytes = snapshotSizeBytes;
+    }
+    if (pendingPeer != null) {
+      $result.pendingPeer = pendingPeer;
+    }
+    if (userManagedConf != null) {
+      $result.userManagedConf = userManagedConf;
     }
     return $result;
   }
@@ -1922,10 +1922,10 @@ class GetPendingNetworkGenerationResponse extends $pb.GeneratedMessage {
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'GetPendingNetworkGenerationResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'orchestrator.v1'), createEmptyInstance: create)
     ..aOS(1, _omitFieldNames ? '' : 'currentGeneration')
     ..aOS(2, _omitFieldNames ? '' : 'pendingGeneration')
-    ..aOS(3, _omitFieldNames ? '' : 'snapshotUrl')
-    ..aInt64(4, _omitFieldNames ? '' : 'snapshotHeight')
-    ..aOS(5, _omitFieldNames ? '' : 'snapshotSha256')
-    ..aInt64(6, _omitFieldNames ? '' : 'snapshotSizeBytes')
+    ..aInt64(3, _omitFieldNames ? '' : 'snapshotHeight')
+    ..aInt64(4, _omitFieldNames ? '' : 'snapshotSizeBytes')
+    ..aOS(5, _omitFieldNames ? '' : 'pendingPeer')
+    ..aOB(6, _omitFieldNames ? '' : 'userManagedConf')
     ..hasRequiredFields = false
   ;
 
@@ -1970,52 +1970,55 @@ class GetPendingNetworkGenerationResponse extends $pb.GeneratedMessage {
   @$pb.TagNumber(2)
   void clearPendingGeneration() => clearField(2);
 
-  /// The new generation's UTXO snapshot, so the prompt can offer a fast resync.
-  /// Zero height means none is published.
+  /// The new generation's UTXO snapshot, which the switch syncs from. Zero
+  /// height means none is published.
   @$pb.TagNumber(3)
-  $core.String get snapshotUrl => $_getSZ(2);
+  $fixnum.Int64 get snapshotHeight => $_getI64(2);
   @$pb.TagNumber(3)
-  set snapshotUrl($core.String v) { $_setString(2, v); }
+  set snapshotHeight($fixnum.Int64 v) { $_setInt64(2, v); }
   @$pb.TagNumber(3)
-  $core.bool hasSnapshotUrl() => $_has(2);
+  $core.bool hasSnapshotHeight() => $_has(2);
   @$pb.TagNumber(3)
-  void clearSnapshotUrl() => clearField(3);
+  void clearSnapshotHeight() => clearField(3);
 
   @$pb.TagNumber(4)
-  $fixnum.Int64 get snapshotHeight => $_getI64(3);
+  $fixnum.Int64 get snapshotSizeBytes => $_getI64(3);
   @$pb.TagNumber(4)
-  set snapshotHeight($fixnum.Int64 v) { $_setInt64(3, v); }
+  set snapshotSizeBytes($fixnum.Int64 v) { $_setInt64(3, v); }
   @$pb.TagNumber(4)
-  $core.bool hasSnapshotHeight() => $_has(3);
+  $core.bool hasSnapshotSizeBytes() => $_has(3);
   @$pb.TagNumber(4)
-  void clearSnapshotHeight() => clearField(4);
+  void clearSnapshotSizeBytes() => clearField(4);
 
+  /// The new generation's seed node, for the manual switch instructions.
   @$pb.TagNumber(5)
-  $core.String get snapshotSha256 => $_getSZ(4);
+  $core.String get pendingPeer => $_getSZ(4);
   @$pb.TagNumber(5)
-  set snapshotSha256($core.String v) { $_setString(4, v); }
+  set pendingPeer($core.String v) { $_setString(4, v); }
   @$pb.TagNumber(5)
-  $core.bool hasSnapshotSha256() => $_has(4);
+  $core.bool hasPendingPeer() => $_has(4);
   @$pb.TagNumber(5)
-  void clearSnapshotSha256() => clearField(5);
+  void clearPendingPeer() => clearField(5);
 
+  /// True when the user's own bitcoin.conf names the generation. The switch
+  /// cannot be made here — the prompt spells out what to change instead.
   @$pb.TagNumber(6)
-  $fixnum.Int64 get snapshotSizeBytes => $_getI64(5);
+  $core.bool get userManagedConf => $_getBF(5);
   @$pb.TagNumber(6)
-  set snapshotSizeBytes($fixnum.Int64 v) { $_setInt64(5, v); }
+  set userManagedConf($core.bool v) { $_setBool(5, v); }
   @$pb.TagNumber(6)
-  $core.bool hasSnapshotSizeBytes() => $_has(5);
+  $core.bool hasUserManagedConf() => $_has(5);
   @$pb.TagNumber(6)
-  void clearSnapshotSizeBytes() => clearField(6);
+  void clearUserManagedConf() => clearField(6);
 }
 
-class ApplyPendingNetworkGenerationRequest extends $pb.GeneratedMessage {
-  factory ApplyPendingNetworkGenerationRequest() => create();
-  ApplyPendingNetworkGenerationRequest._() : super();
-  factory ApplyPendingNetworkGenerationRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory ApplyPendingNetworkGenerationRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+class ConfirmPendingNetworkGenerationRequest extends $pb.GeneratedMessage {
+  factory ConfirmPendingNetworkGenerationRequest() => create();
+  ConfirmPendingNetworkGenerationRequest._() : super();
+  factory ConfirmPendingNetworkGenerationRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory ConfirmPendingNetworkGenerationRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
 
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ApplyPendingNetworkGenerationRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'orchestrator.v1'), createEmptyInstance: create)
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ConfirmPendingNetworkGenerationRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'orchestrator.v1'), createEmptyInstance: create)
     ..hasRequiredFields = false
   ;
 
@@ -2023,31 +2026,31 @@ class ApplyPendingNetworkGenerationRequest extends $pb.GeneratedMessage {
   'Using this can add significant overhead to your binary. '
   'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
   'Will be removed in next major version')
-  ApplyPendingNetworkGenerationRequest clone() => ApplyPendingNetworkGenerationRequest()..mergeFromMessage(this);
+  ConfirmPendingNetworkGenerationRequest clone() => ConfirmPendingNetworkGenerationRequest()..mergeFromMessage(this);
   @$core.Deprecated(
   'Using this can add significant overhead to your binary. '
   'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
   'Will be removed in next major version')
-  ApplyPendingNetworkGenerationRequest copyWith(void Function(ApplyPendingNetworkGenerationRequest) updates) => super.copyWith((message) => updates(message as ApplyPendingNetworkGenerationRequest)) as ApplyPendingNetworkGenerationRequest;
+  ConfirmPendingNetworkGenerationRequest copyWith(void Function(ConfirmPendingNetworkGenerationRequest) updates) => super.copyWith((message) => updates(message as ConfirmPendingNetworkGenerationRequest)) as ConfirmPendingNetworkGenerationRequest;
 
   $pb.BuilderInfo get info_ => _i;
 
   @$core.pragma('dart2js:noInline')
-  static ApplyPendingNetworkGenerationRequest create() => ApplyPendingNetworkGenerationRequest._();
-  ApplyPendingNetworkGenerationRequest createEmptyInstance() => create();
-  static $pb.PbList<ApplyPendingNetworkGenerationRequest> createRepeated() => $pb.PbList<ApplyPendingNetworkGenerationRequest>();
+  static ConfirmPendingNetworkGenerationRequest create() => ConfirmPendingNetworkGenerationRequest._();
+  ConfirmPendingNetworkGenerationRequest createEmptyInstance() => create();
+  static $pb.PbList<ConfirmPendingNetworkGenerationRequest> createRepeated() => $pb.PbList<ConfirmPendingNetworkGenerationRequest>();
   @$core.pragma('dart2js:noInline')
-  static ApplyPendingNetworkGenerationRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<ApplyPendingNetworkGenerationRequest>(create);
-  static ApplyPendingNetworkGenerationRequest? _defaultInstance;
+  static ConfirmPendingNetworkGenerationRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<ConfirmPendingNetworkGenerationRequest>(create);
+  static ConfirmPendingNetworkGenerationRequest? _defaultInstance;
 }
 
-class ApplyPendingNetworkGenerationResponse extends $pb.GeneratedMessage {
-  factory ApplyPendingNetworkGenerationResponse() => create();
-  ApplyPendingNetworkGenerationResponse._() : super();
-  factory ApplyPendingNetworkGenerationResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory ApplyPendingNetworkGenerationResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+class ConfirmPendingNetworkGenerationResponse extends $pb.GeneratedMessage {
+  factory ConfirmPendingNetworkGenerationResponse() => create();
+  ConfirmPendingNetworkGenerationResponse._() : super();
+  factory ConfirmPendingNetworkGenerationResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory ConfirmPendingNetworkGenerationResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
 
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ApplyPendingNetworkGenerationResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'orchestrator.v1'), createEmptyInstance: create)
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ConfirmPendingNetworkGenerationResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'orchestrator.v1'), createEmptyInstance: create)
     ..hasRequiredFields = false
   ;
 
@@ -2055,22 +2058,22 @@ class ApplyPendingNetworkGenerationResponse extends $pb.GeneratedMessage {
   'Using this can add significant overhead to your binary. '
   'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
   'Will be removed in next major version')
-  ApplyPendingNetworkGenerationResponse clone() => ApplyPendingNetworkGenerationResponse()..mergeFromMessage(this);
+  ConfirmPendingNetworkGenerationResponse clone() => ConfirmPendingNetworkGenerationResponse()..mergeFromMessage(this);
   @$core.Deprecated(
   'Using this can add significant overhead to your binary. '
   'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
   'Will be removed in next major version')
-  ApplyPendingNetworkGenerationResponse copyWith(void Function(ApplyPendingNetworkGenerationResponse) updates) => super.copyWith((message) => updates(message as ApplyPendingNetworkGenerationResponse)) as ApplyPendingNetworkGenerationResponse;
+  ConfirmPendingNetworkGenerationResponse copyWith(void Function(ConfirmPendingNetworkGenerationResponse) updates) => super.copyWith((message) => updates(message as ConfirmPendingNetworkGenerationResponse)) as ConfirmPendingNetworkGenerationResponse;
 
   $pb.BuilderInfo get info_ => _i;
 
   @$core.pragma('dart2js:noInline')
-  static ApplyPendingNetworkGenerationResponse create() => ApplyPendingNetworkGenerationResponse._();
-  ApplyPendingNetworkGenerationResponse createEmptyInstance() => create();
-  static $pb.PbList<ApplyPendingNetworkGenerationResponse> createRepeated() => $pb.PbList<ApplyPendingNetworkGenerationResponse>();
+  static ConfirmPendingNetworkGenerationResponse create() => ConfirmPendingNetworkGenerationResponse._();
+  ConfirmPendingNetworkGenerationResponse createEmptyInstance() => create();
+  static $pb.PbList<ConfirmPendingNetworkGenerationResponse> createRepeated() => $pb.PbList<ConfirmPendingNetworkGenerationResponse>();
   @$core.pragma('dart2js:noInline')
-  static ApplyPendingNetworkGenerationResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<ApplyPendingNetworkGenerationResponse>(create);
-  static ApplyPendingNetworkGenerationResponse? _defaultInstance;
+  static ConfirmPendingNetworkGenerationResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<ConfirmPendingNetworkGenerationResponse>(create);
+  static ConfirmPendingNetworkGenerationResponse? _defaultInstance;
 }
 
 class ShutdownAllRequest extends $pb.GeneratedMessage {
@@ -4577,8 +4580,8 @@ class OrchestratorServiceApi {
   $async.Future<GetPendingNetworkGenerationResponse> getPendingNetworkGeneration($pb.ClientContext? ctx, GetPendingNetworkGenerationRequest request) =>
     _client.invoke<GetPendingNetworkGenerationResponse>(ctx, 'OrchestratorService', 'GetPendingNetworkGeneration', request, GetPendingNetworkGenerationResponse())
   ;
-  $async.Future<ApplyPendingNetworkGenerationResponse> applyPendingNetworkGeneration($pb.ClientContext? ctx, ApplyPendingNetworkGenerationRequest request) =>
-    _client.invoke<ApplyPendingNetworkGenerationResponse>(ctx, 'OrchestratorService', 'ApplyPendingNetworkGeneration', request, ApplyPendingNetworkGenerationResponse())
+  $async.Future<ConfirmPendingNetworkGenerationResponse> confirmPendingNetworkGeneration($pb.ClientContext? ctx, ConfirmPendingNetworkGenerationRequest request) =>
+    _client.invoke<ConfirmPendingNetworkGenerationResponse>(ctx, 'OrchestratorService', 'ConfirmPendingNetworkGeneration', request, ConfirmPendingNetworkGenerationResponse())
   ;
   $async.Future<ShutdownAllResponse> shutdownAll($pb.ClientContext? ctx, ShutdownAllRequest request) =>
     _client.invoke<ShutdownAllResponse>(ctx, 'OrchestratorService', 'ShutdownAll', request, ShutdownAllResponse())

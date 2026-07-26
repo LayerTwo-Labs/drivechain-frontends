@@ -9,6 +9,37 @@ import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:sail_ui/sail_ui.dart';
 
+/// Drops in-memory state that belonged to the chain we just left.
+Future<void> clearNetworkScopedCaches() async {
+  if (GetIt.I.isRegistered<TransactionProvider>()) {
+    GetIt.I.get<TransactionProvider>().clear();
+  }
+  if (GetIt.I.isRegistered<BlockchainProvider>()) {
+    GetIt.I.get<BlockchainProvider>().clear();
+  }
+  if (GetIt.I.isRegistered<AddressBookProvider>()) {
+    GetIt.I.get<AddressBookProvider>().clear();
+  }
+  if (GetIt.I.isRegistered<SidechainProvider>()) {
+    GetIt.I.get<SidechainProvider>().clear();
+  }
+  if (GetIt.I.isRegistered<BalanceProvider>()) {
+    GetIt.I.get<BalanceProvider>().clear();
+  }
+  if (GetIt.I.isRegistered<ForkProvider>()) {
+    GetIt.I.get<ForkProvider>().clear();
+  }
+  if (GetIt.I.isRegistered<SyncProvider>()) {
+    GetIt.I.get<SyncProvider>().reset();
+  }
+  if (GetIt.I.isRegistered<WalletReaderProvider>()) {
+    GetIt.I.get<WalletReaderProvider>().clearState();
+  }
+  if (GetIt.I.isRegistered<HDWalletProvider>()) {
+    await GetIt.I.get<HDWalletProvider>().reinitialize();
+  }
+}
+
 /// Confirms a Bitcoin network change. Routes through bitwindowd's
 /// `UpdateNetwork` RPC: orchestratord rewrites the conf and restarts
 /// bitcoind on the new chain, then bitwindowd recycles its DB + engines
@@ -44,7 +75,7 @@ class _NetworkSwapPageState extends State<NetworkSwapPage> {
 
     try {
       await _bitwindow.bitwindowd.updateNetwork(widget.toNetwork.toReadableNet());
-      await _clearFrontendCaches();
+      await clearNetworkScopedCaches();
       if (mounted) {
         setState(() {
           _step.endTime = DateTime.now();
@@ -59,38 +90,6 @@ class _NetworkSwapPageState extends State<NetworkSwapPage> {
           _error = e.toString();
         });
       }
-    }
-  }
-
-  /// Wipe in-memory caches after a network swap — bitwindowd recycled its
-  /// DB in-process, so anything cached from the old network is now stale.
-  Future<void> _clearFrontendCaches() async {
-    if (GetIt.I.isRegistered<TransactionProvider>()) {
-      GetIt.I.get<TransactionProvider>().clear();
-    }
-    if (GetIt.I.isRegistered<BlockchainProvider>()) {
-      GetIt.I.get<BlockchainProvider>().clear();
-    }
-    if (GetIt.I.isRegistered<AddressBookProvider>()) {
-      GetIt.I.get<AddressBookProvider>().clear();
-    }
-    if (GetIt.I.isRegistered<SidechainProvider>()) {
-      GetIt.I.get<SidechainProvider>().clear();
-    }
-    if (GetIt.I.isRegistered<BalanceProvider>()) {
-      GetIt.I.get<BalanceProvider>().clear();
-    }
-    if (GetIt.I.isRegistered<ForkProvider>()) {
-      GetIt.I.get<ForkProvider>().clear();
-    }
-    if (GetIt.I.isRegistered<SyncProvider>()) {
-      GetIt.I.get<SyncProvider>().reset();
-    }
-    if (GetIt.I.isRegistered<WalletReaderProvider>()) {
-      GetIt.I.get<WalletReaderProvider>().clearState();
-    }
-    if (GetIt.I.isRegistered<HDWalletProvider>()) {
-      await GetIt.I.get<HDWalletProvider>().reinitialize();
     }
   }
 

@@ -98,11 +98,16 @@ func (m *BitcoinConfManager) Generation() string {
 // DrynetPeer is the seed node for the active drynet generation. Drynet has no
 // DNS seeds, so bitcoind needs an explicit peer to find the network at all.
 func (m *BitcoinConfManager) DrynetPeer() string {
-	gen := m.Generation()
-	if gen == "" {
+	return DrynetPeerFor(m.Generation())
+}
+
+// DrynetPeerFor is the seed node for a given drynet generation, empty when the
+// generation is.
+func DrynetPeerFor(generation string) string {
+	if generation == "" {
 		return ""
 	}
-	return fmt.Sprintf("%s.drivechain.dev:%d", gen, drynetP2PPort)
+	return fmt.Sprintf("%s.drivechain.dev:%d", generation, drynetP2PPort)
 }
 
 // drynetP2PPort is the port every drynet generation listens on.

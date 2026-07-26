@@ -247,6 +247,10 @@ func (o *Orchestrator) applySnapshot(ctx context.Context, src SnapshotSource, ch
 		}
 	}
 
+	// Progress rides the download map so the existing bars render it and take
+	// precedence over block sync, which is stalled behind the snapshot anyway.
+	defer o.download.ClearState("bitcoind")
+
 	path := src.Path
 	if path == "" {
 		// Only a download needs somewhere to land; a file the user pointed us
@@ -257,7 +261,8 @@ func (o *Orchestrator) applySnapshot(ctx context.Context, src SnapshotSource, ch
 			return
 		}
 		path = filepath.Join(datadir, snapshotFileName(src.URL))
-		ch <- StartupProgress{Stage: snapshotStage, Message: "preparing " + src.Label + "..."}
+		trySend(ch, StartupProgress{Stage: snapshotStage, Message: "preparing " + src.Label + "..."})
+		o.download.PublishState("bitcoind", DownloadState{Message: snapshotDownloadMessage})
 		if err := ensureSnapshotFile(ctx, src, path, ch, o); err != nil {
 			o.log.Error().Err(err).Msg("snapshot download/verify failed, falling back to a full sync")
 			ch <- o.snapshotFailure(src, "snapshot unavailable, doing a full sync instead", err)
@@ -266,17 +271,17 @@ func (o *Orchestrator) applySnapshot(ctx context.Context, src SnapshotSource, ch
 	} else if src.SHA256 != "" {
 		// A digest supplied alongside a local file still has to hold: handing
 		// Core a corrupt snapshot is worse than refusing it.
-		ch <- StartupProgress{Stage: snapshotStage, Message: "verifying " + src.Label + "..."}
+		trySend(ch, StartupProgress{Stage: snapshotStage, Message: "verifying " + src.Label + "..."})
 		sum, err := sha256File(path)
 		if err != nil {
 			o.log.Error().Err(err).Str("path", path).Msg("snapshot: could not read file to verify")
-			ch <- StartupProgress{Stage: snapshotStage, Message: "could not read the snapshot file", Error: err}
+			trySend(ch, StartupProgress{Stage: snapshotStage, Message: "could not read the snapshot file", Error: err})
 			return
 		}
 		if !strings.EqualFold(sum, src.SHA256) {
 			err := fmt.Errorf("snapshot hash mismatch: got %s, want %s", sum, src.SHA256)
 			o.log.Error().Err(err).Msg("snapshot verification failed")
-			ch <- StartupProgress{Stage: snapshotStage, Message: err.Error(), Error: err}
+			trySend(ch, StartupProgress{Stage: snapshotStage, Message: err.Error(), Error: err})
 			return
 		}
 	}
@@ -284,7 +289,8 @@ func (o *Orchestrator) applySnapshot(ctx context.Context, src SnapshotSource, ch
 	// Core validates the snapshot here and blocks until the whole thing is
 	// loaded, so this is both the acceptance check and the load. Its rejection
 	// message is the useful one — relay it rather than paraphrasing.
-	ch <- StartupProgress{Stage: snapshotStage, Message: "loading " + src.Label + ", bitcoin core is reading the snapshot..."}
+	trySend(ch, StartupProgress{Stage: snapshotStage, Message: "loading " + src.Label + ", bitcoin core is reading the snapshot..."})
+	o.download.PublishState("bitcoind", DownloadState{Message: snapshotApplyMessage})
 
 	loadErr := make(chan error, 1)
 	go func() {
@@ -309,13 +315,13 @@ func (o *Orchestrator) applySnapshot(ctx context.Context, src SnapshotSource, ch
 
 	if err != nil {
 		o.log.Error().Err(err).Msg("snapshot loadtxoutset failed, falling back to a full sync")
-		ch <- StartupProgress{Stage: snapshotStage, Message: "bitcoin core rejected the snapshot: " + err.Error(), Error: err}
+		trySend(ch, StartupProgress{Stage: snapshotStage, Message: "bitcoin core rejected the snapshot: " + err.Error(), Error: err})
 		return
 	}
 
 	// The snapshot file is left on disk. It is expensive to fetch and stays
 	// reusable, so deleting it is the caller's call, not ours.
-	ch <- StartupProgress{Stage: snapshotStage, Message: "UTXO snapshot loaded, validating at the tip", Done: true}
+	trySend(ch, StartupProgress{Stage: snapshotStage, Message: "UTXO snapshot loaded, validating at the tip", Done: true})
 	o.log.Info().Str("source", src.Label).Msg("UTXO snapshot loaded via loadtxoutset")
 }
 
@@ -387,18 +393,38 @@ func snapshotFileName(rawURL string) string {
 
 const snapshotStage = "utxo-snapshot"
 
+// trySend drops the update when nobody is draining. Snapshot progress is
+// advisory; a full channel must never stall the load itself.
+func trySend(ch chan<- StartupProgress, p StartupProgress) {
+	select {
+	case ch <- p:
+	default:
+	}
+}
+
+// Status text the frontend renders for the two snapshot phases.
+const (
+	snapshotDownloadMessage = "Downloading UTXO snapshot"
+	snapshotApplyMessage    = "Applying UTXO snapshot"
+	snapshotVerifyMessage   = "Verifying UTXO snapshot"
+)
+
 // ensureSnapshotFile makes sure a verified snapshot exists at path, reusing an
 // already-downloaded copy when its digest still matches.
 func ensureSnapshotFile(ctx context.Context, src SnapshotSource, path string, ch chan<- StartupProgress, o *Orchestrator) error {
 	if src.SHA256 != "" {
+		// Hashing 9.5 GB takes minutes; say so rather than sitting on "Downloading".
+		o.download.PublishState("bitcoind", DownloadState{Message: snapshotVerifyMessage})
 		if sum, err := sha256File(path); err == nil && strings.EqualFold(sum, src.SHA256) {
 			o.log.Info().Msg("snapshot already present and verified")
 			return nil
 		}
 	}
 
-	ch <- StartupProgress{Stage: snapshotStage, Message: "downloading " + src.Label + "..."}
-	sum, err := downloadAndHash(ctx, src.URL, path, ch)
+	trySend(ch, StartupProgress{Stage: snapshotStage, Message: "downloading " + src.Label + "..."})
+	sum, err := downloadAndHash(ctx, src.URL, path, ch, func(s DownloadState) {
+		o.download.PublishState("bitcoind", s)
+	})
 	if err != nil {
 		return fmt.Errorf("download snapshot: %w", err)
 	}
@@ -416,7 +442,7 @@ func ensureSnapshotFile(ctx context.Context, src SnapshotSource, path string, ch
 // downloadAndHash streams url to dest (via a .part file) while computing its
 // sha256, so the ~9 GB file is read from the network exactly once. It emits
 // coarse progress on ch and returns the lowercase hex digest.
-func downloadAndHash(ctx context.Context, url, dest string, ch chan<- StartupProgress) (string, error) {
+func downloadAndHash(ctx context.Context, url, dest string, ch chan<- StartupProgress, publish func(DownloadState)) (string, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
 		return "", err
@@ -437,7 +463,7 @@ func downloadAndHash(ctx context.Context, url, dest string, ch chan<- StartupPro
 	}
 
 	hasher := sha256.New()
-	pw := &snapshotProgressWriter{total: resp.ContentLength, ch: ch}
+	pw := &snapshotProgressWriter{total: resp.ContentLength, ch: ch, publish: publish}
 	if _, err := io.Copy(io.MultiWriter(f, hasher, pw), resp.Body); err != nil {
 		_ = f.Close()
 		_ = os.Remove(tmp)
@@ -483,6 +509,7 @@ type snapshotProgressWriter struct {
 	written int64
 	lastPct int
 	ch      chan<- StartupProgress
+	publish func(DownloadState)
 }
 
 func (w *snapshotProgressWriter) Write(p []byte) (int, error) {
@@ -494,6 +521,13 @@ func (w *snapshotProgressWriter) Write(p []byte) (int, error) {
 	pct := int(w.written * 100 / w.total)
 	if pct > w.lastPct {
 		w.lastPct = pct
+		if w.publish != nil {
+			w.publish(DownloadState{
+				Message:      snapshotDownloadMessage,
+				MBDownloaded: toMB(w.written),
+				MBTotal:      toMB(w.total),
+			})
+		}
 		select {
 		case w.ch <- StartupProgress{
 			Stage:        snapshotStage,

@@ -68,10 +68,11 @@ service OrchestratorService {
   // prompt; pending_generation is empty when already on the newest one.
   rpc GetPendingNetworkGeneration(GetPendingNetworkGenerationRequest) returns (GetPendingNetworkGenerationResponse);
 
-  // Switch to the published drynet generation. Stops the L1 daemons, deletes
-  // the retired chain and boots them again. Wallets survive, chain history and
+  // Record the user's go-ahead to switch to the published drynet generation.
+  // Nothing is stopped or deleted here: the caller must restart the backends,
+  // and the switch runs on the next start. Wallets survive, chain history and
   // its transactions do not — only call with the user's confirmation.
-  rpc ApplyPendingNetworkGeneration(ApplyPendingNetworkGenerationRequest) returns (ApplyPendingNetworkGenerationResponse);
+  rpc ConfirmPendingNetworkGeneration(ConfirmPendingNetworkGenerationRequest) returns (ConfirmPendingNetworkGenerationResponse);
 
   // Shutdown all running binaries.
   rpc ShutdownAll(ShutdownAllRequest) returns (stream ShutdownAllResponse);
@@ -340,19 +341,24 @@ message GetPendingNetworkGenerationResponse {
   string current_generation = 1;
   string pending_generation = 2;
 
-  // The new generation's UTXO snapshot, so the prompt can offer a fast resync.
-  // Zero height means none is published.
-  string snapshot_url = 3;
-  int64 snapshot_height = 4;
-  string snapshot_sha256 = 5;
-  int64 snapshot_size_bytes = 6;
+  // The new generation's UTXO snapshot, which the switch syncs from. Zero
+  // height means none is published.
+  int64 snapshot_height = 3;
+  int64 snapshot_size_bytes = 4;
+
+  // The new generation's seed node, for the manual switch instructions.
+  string pending_peer = 5;
+
+  // True when the user's own bitcoin.conf names the generation. The switch
+  // cannot be made here — the prompt spells out what to change instead.
+  bool user_managed_conf = 6;
 }
 
-// ApplyPendingNetworkGeneration
+// ConfirmPendingNetworkGeneration
 
-message ApplyPendingNetworkGenerationRequest {}
+message ConfirmPendingNetworkGenerationRequest {}
 
-message ApplyPendingNetworkGenerationResponse {}
+message ConfirmPendingNetworkGenerationResponse {}
 
 // ShutdownAll
 

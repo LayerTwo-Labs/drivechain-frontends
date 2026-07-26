@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
 
-typedef NotificationActionHandler = Future<void> Function(BuildContext context);
+/// Returns whether the action was carried out. False leaves the banner unread,
+/// so cancelling or failing keeps it on screen.
+typedef NotificationActionHandler = Future<bool> Function(BuildContext context);
 
 /// Resolves a [NotificationItem.action] key to its handler. An unknown key is a
 /// no-op, so a notification persisted by an older build cannot crash the banner.
@@ -39,7 +41,7 @@ class NotificationBanner extends StatelessWidget {
             final handler = GetIt.I.isRegistered<NotificationActions>()
                 ? GetIt.I.get<NotificationActions>()[item.action]
                 : null;
-            if (handler != null) await handler(context);
+            if (handler != null && !await handler(context)) return;
             await provider.markRead(item.id);
           },
           child: Container(

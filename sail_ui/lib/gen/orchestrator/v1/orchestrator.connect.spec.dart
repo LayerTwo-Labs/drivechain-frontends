@@ -140,14 +140,15 @@ abstract final class OrchestratorService {
     orchestratorv1orchestrator.GetPendingNetworkGenerationResponse.new,
   );
 
-  /// Switch to the published drynet generation. Stops the L1 daemons, deletes
-  /// the retired chain and boots them again. Wallets survive, chain history and
+  /// Record the user's go-ahead to switch to the published drynet generation.
+  /// Nothing is stopped or deleted here: the caller must restart the backends,
+  /// and the switch runs on the next start. Wallets survive, chain history and
   /// its transactions do not — only call with the user's confirmation.
-  static const applyPendingNetworkGeneration = connect.Spec(
-    '/$name/ApplyPendingNetworkGeneration',
+  static const confirmPendingNetworkGeneration = connect.Spec(
+    '/$name/ConfirmPendingNetworkGeneration',
     connect.StreamType.unary,
-    orchestratorv1orchestrator.ApplyPendingNetworkGenerationRequest.new,
-    orchestratorv1orchestrator.ApplyPendingNetworkGenerationResponse.new,
+    orchestratorv1orchestrator.ConfirmPendingNetworkGenerationRequest.new,
+    orchestratorv1orchestrator.ConfirmPendingNetworkGenerationResponse.new,
   );
 
   /// Shutdown all running binaries.

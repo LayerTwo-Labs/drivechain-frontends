@@ -212,8 +212,11 @@ class BinaryProvider extends ChangeNotifier {
     return _orchestrator.getSnapshotStatus();
   }
 
-  Future<void> stop(Binary binary, {bool skipDownstream = false}) async {
+  /// [expectRestart] silences the exit watchdog for this stop, so a caller that
+  /// owns the reboot isn't raced by an automatic one two seconds later.
+  Future<void> stop(Binary binary, {bool skipDownstream = false, bool expectRestart = false}) async {
     if (_isDaemonBinary(binary)) {
+      if (expectRestart) _expectedStops.add(binary.name);
       await _stopDaemonBinary(binary);
       return;
     }
@@ -377,6 +380,9 @@ class BinaryProvider extends ChangeNotifier {
 
   bool _shuttingDown = false;
 
+  /// Daemons stopped on purpose by a caller that will restart them itself.
+  final Set<String> _expectedStops = {};
+
   /// True when *this* Flutter instance is the one that originally spawned
   /// orchestratord (cold-start path). False when we attached to an
   /// already-running orchestratord from another Flutter app (hot-start path).
@@ -426,6 +432,7 @@ class BinaryProvider extends ChangeNotifier {
   /// Start a daemon binary by spawning it via ProcessManager.
   /// Watches for exit and auto-restarts unless we're shutting down.
   Future<void> _startDaemonBinary(Binary binary) async {
+    _expectedStops.remove(binary.name);
     if (_processManager.isRunning(binary)) {
       log.i('BinaryProvider: ${binary.name} already running');
       return;
@@ -477,7 +484,7 @@ class BinaryProvider extends ChangeNotifier {
     if (process == null) return;
 
     _processManager.addListener(() {
-      if (_shuttingDown) return;
+      if (_shuttingDown || _expectedStops.contains(binary.name)) return;
       if (!_processManager.isRunning(binary)) {
         _syncDaemonConnectionState(binary, running: false);
         log.w('${binary.name} exited unexpectedly, restarting in 2s');

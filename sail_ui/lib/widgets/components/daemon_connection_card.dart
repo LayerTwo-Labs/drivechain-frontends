@@ -197,9 +197,11 @@ class DownloadStatusRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // A message names work that isn't a plain binary fetch, e.g. the UTXO snapshot.
+    final what = download.message.isNotEmpty ? download.message : 'Downloading $name';
     final tooltip = download.mbTotal > 0
-        ? 'Downloading $name\nProgress: ${formatDataSizeFromMB(download.mbDownloaded.toDouble())}\nSize: ${formatDataSizeFromMB(download.mbTotal.toDouble())}'
-        : 'Downloading $name\n${formatDataSizeFromMB(download.mbDownloaded.toDouble())} so far (size unknown)';
+        ? '$what\nProgress: ${formatDataSizeFromMB(download.mbDownloaded.toDouble())}\nSize: ${formatDataSizeFromMB(download.mbTotal.toDouble())}'
+        : '$what\n${formatDataSizeFromMB(download.mbDownloaded.toDouble())} so far (size unknown)';
 
     return SailRow(
       mainAxisAlignment: MainAxisAlignment.start,
