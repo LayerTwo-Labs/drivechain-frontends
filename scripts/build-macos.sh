@@ -40,7 +40,13 @@ if test -n "$notarization_identity"; then
             # Skip if no files match the pattern
             [ -e "$asset" ] || continue
             echo Signing binary asset $(basename "$asset")
-            codesign --verbose --deep --force --options runtime --sign \
+            # hwi unpacks a Python runtime to a temp dir and loads it on start,
+            # which library validation refuses under the hardened runtime.
+            asset_entitlements=""
+            case "$(basename "$asset")" in
+                hwi*) asset_entitlements="--entitlements $old_cwd/macos/Runner/HWI.entitlements" ;;
+            esac
+            codesign --verbose --deep --force --options runtime $asset_entitlements --sign \
                 "$notarization_identity" "$asset"
         done
     else
