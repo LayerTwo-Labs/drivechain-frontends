@@ -33,6 +33,8 @@ updates:
     ignore:
       - dependency-name: "*"
         update-types: ["version-update:semver-patch"]
+      # Every version past 4.6.1 breaks the macOS build.
+      - dependency-name: "patrol"
 
   - package-ecosystem: gomod
     directory: "/bitwindow/server"
