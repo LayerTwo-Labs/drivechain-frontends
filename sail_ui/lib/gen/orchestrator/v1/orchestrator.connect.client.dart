@@ -268,18 +268,19 @@ extension type OrchestratorServiceClient (connect.Transport _transport) {
     );
   }
 
-  /// Switch to the published drynet generation. Stops the L1 daemons, deletes
-  /// the retired chain and boots them again. Wallets survive, chain history and
+  /// Record the user's go-ahead to switch to the published drynet generation.
+  /// Nothing is stopped or deleted here: the caller must restart the backends,
+  /// and the switch runs on the next start. Wallets survive, chain history and
   /// its transactions do not — only call with the user's confirmation.
-  Future<orchestratorv1orchestrator.ApplyPendingNetworkGenerationResponse> applyPendingNetworkGeneration(
-    orchestratorv1orchestrator.ApplyPendingNetworkGenerationRequest input, {
+  Future<orchestratorv1orchestrator.ConfirmPendingNetworkGenerationResponse> confirmPendingNetworkGeneration(
+    orchestratorv1orchestrator.ConfirmPendingNetworkGenerationRequest input, {
     connect.Headers? headers,
     connect.AbortSignal? signal,
     Function(connect.Headers)? onHeader,
     Function(connect.Headers)? onTrailer,
   }) {
     return connect.Client(_transport).unary(
-      specs.OrchestratorService.applyPendingNetworkGeneration,
+      specs.OrchestratorService.confirmPendingNetworkGeneration,
       input,
       signal: signal,
       headers: headers,

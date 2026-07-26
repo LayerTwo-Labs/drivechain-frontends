@@ -38,10 +38,17 @@ func (o *Orchestrator) ResolveNetworkCatalog(ctx context.Context) {
 	}
 	// Reconcile installs whose cached catalog already lists the newest
 	// generation, where no pending promotion fires.
-	if !promoted {
-		o.wipeIfDrynetGenerationStale(ctx, current)
+	drynetID := current.DrynetID()
+	if !promoted && !o.wipeIfDrynetGenerationStale(ctx, current) {
+		// Keep serving the generation those blocks belong to, so the next start
+		// retries rather than opening them as the new fork.
+		drynetID = o.installedDrynetGeneration()
+		o.log.Error().
+			Str("retained", drynetID).
+			Str("published", current.DrynetID()).
+			Msg("drynet chain data could not be cleared, staying on the installed generation")
 	}
-	o.adoptCatalog(current)
+	o.adoptCatalog(current, drynetID)
 
 	// The refresh is network I/O and must never gate startup. It runs detached
 	// and only writes the pending slot.
@@ -91,7 +98,12 @@ func (o *Orchestrator) promotePendingCatalog(ctx context.Context, current, pendi
 // to yet. ID is empty when it is already on the newest one.
 type PendingDrynetUpgrade struct {
 	ID       string
+	Peer     string
 	Snapshot *netcatalog.AssumeUTXO
+
+	// UserManagedConf means the switch has to be made by hand: the user's own
+	// bitcoin.conf names the generation and is not ours to rewrite.
+	UserManagedConf bool
 }
 
 // PendingDrynetUpgrade reports the generation waiting for the user's go-ahead.
@@ -105,50 +117,55 @@ func (o *Orchestrator) PendingDrynetUpgrade() PendingDrynetUpgrade {
 		return PendingDrynetUpgrade{}
 	}
 	entry, _ := pending.CurrentECash()
-	return PendingDrynetUpgrade{ID: id, Snapshot: entry.AssumeUTXO}
+	return PendingDrynetUpgrade{
+		ID:              id,
+		Peer:            config.DrynetPeerFor(id),
+		Snapshot:        entry.AssumeUTXO,
+		UserManagedConf: o.drynetSwitchIsManual(),
+	}
 }
 
-// switchDrynetGeneration stops the L1 daemons, deletes the retired drynet chain
-// (wallets survive) and moves every consumer onto the published generation.
-func (o *Orchestrator) switchDrynetGeneration(ctx context.Context) error {
+// drynetSwitchIsManual reports whether the user's own bitcoin.conf decides which
+// drynet generation this install runs.
+func (o *Orchestrator) drynetSwitchIsManual() bool {
+	if config.NetworkFromString(o.Network) != config.NetworkDrynet {
+		return false
+	}
+	return o.BitcoinConf != nil && o.BitcoinConf.HasPrivateConf
+}
+
+// ConfirmPendingDrynetGeneration records the user's go-ahead by promoting the
+// published catalog to the cache. The switch itself runs on the next start.
+func (o *Orchestrator) ConfirmPendingDrynetGeneration(ctx context.Context) error {
 	pending, ok := netcatalog.LoadPending(o.BitwindowDir)
 	if !ok {
 		return fmt.Errorf("no new drynet generation to switch to")
 	}
-	current, _ := netcatalog.Load(o.BitwindowDir)
-	if !o.wipeOnDrynetGenerationChange(ctx, current.DrynetID(), pending.DrynetID()) {
-		return fmt.Errorf("could not clear the retired drynet chain data")
+	if o.drynetSwitchIsManual() {
+		return fmt.Errorf("your own bitcoin.conf decides which drynet generation this node runs, so the switch has to be made there")
+	}
+	// The next start must be free to wipe, and it cannot stop a Core we did not
+	// launch. Promoting the cache first would leave nothing to fall back to.
+	if config.NetworkFromString(o.Network) == config.NetworkDrynet &&
+		!o.process.IsRunning("bitcoind") && o.coreRPCReachable() {
+		return fmt.Errorf("a bitcoin core this app did not start is running — stop it first")
+	}
+	// Off drynet the retired chain is cold files that no start will revisit:
+	// the startup wipe only runs while drynet is active. Clear them here.
+	if config.NetworkFromString(o.Network) != config.NetworkDrynet {
+		current, _ := netcatalog.Load(o.BitwindowDir)
+		if !o.wipeOnDrynetGenerationChange(ctx, current.DrynetID(), pending.DrynetID()) {
+			return fmt.Errorf("could not clear the retired drynet chain data")
+		}
 	}
 	if err := netcatalog.Save(o.BitwindowDir, pending); err != nil {
 		return fmt.Errorf("persist network catalog: %w", err)
 	}
 	netcatalog.ClearPending(o.BitwindowDir)
-	o.adoptCatalog(pending)
-	return nil
-}
-
-// ApplyPendingDrynetGeneration switches generation, then boots L1 again when the
-// switch had to stop it. From another network nothing was running against drynet.
-func (o *Orchestrator) ApplyPendingDrynetGeneration(ctx context.Context) error {
-	onDrynet := config.NetworkFromString(o.Network) == config.NetworkDrynet
-	if err := o.switchDrynetGeneration(ctx); err != nil {
-		return err
-	}
-	if !onDrynet {
-		return nil
-	}
-
-	bootCh, err := o.StartWithL1(context.Background(), "bitcoind", StartOpts{})
-	if err != nil {
-		return fmt.Errorf("restart L1 stack on the new generation: %w", err)
-	}
-	go func() {
-		for p := range bootCh {
-			if p.Error != nil {
-				o.log.Error().Err(p.Error).Msg("L1 stack restart after the drynet generation change failed")
-			}
-		}
-	}()
+	o.log.Info().
+		Str("current", config.DrynetGeneration()).
+		Str("confirmed", pending.DrynetID()).
+		Msg("drynet generation switch confirmed, applying on the next start")
 	return nil
 }
 
@@ -185,8 +202,7 @@ func (o *Orchestrator) refreshNetworkCatalog(ctx context.Context, current netcat
 // the binary configs so every download path sees a concrete filename.
 // Only safe before the RPC server is accepting requests: it writes state that
 // the handlers then read without a shared lock.
-func (o *Orchestrator) adoptCatalog(c netcatalog.Catalog) {
-	id := c.DrynetID()
+func (o *Orchestrator) adoptCatalog(c netcatalog.Catalog, id string) {
 	if id == "" {
 		o.log.Warn().Msg("network catalog carries no drynet generation, drynet downloads will not resolve")
 	}
@@ -248,11 +264,11 @@ func expandDrynetPlaceholder(cfg BinaryConfig, id string) BinaryConfig {
 
 // wipeIfDrynetGenerationStale clears drynet chain data when the on-disk conf was
 // written for an older generation than the catalog now serves.
-func (o *Orchestrator) wipeIfDrynetGenerationStale(ctx context.Context, current netcatalog.Catalog) {
+func (o *Orchestrator) wipeIfDrynetGenerationStale(ctx context.Context, current netcatalog.Catalog) bool {
 	if config.NetworkFromString(o.Network) != config.NetworkDrynet {
-		return
+		return true
 	}
-	o.wipeOnDrynetGenerationChange(ctx, o.installedDrynetGeneration(), current.DrynetID())
+	return o.wipeOnDrynetGenerationChange(ctx, o.installedDrynetGeneration(), current.DrynetID())
 }
 
 // installedDrynetGeneration returns the drynet generation the on-disk
@@ -290,8 +306,8 @@ func (o *Orchestrator) wipeOnDrynetGenerationChange(ctx context.Context, oldID, 
 	// Only a drynet-active install has daemons holding this data open; from any
 	// other network the retired chain is untouched files on disk.
 	if config.NetworkFromString(o.Network) == config.NetworkDrynet {
-		// Wiping under a live node corrupts it, and the enforcer's esplora host
-		// carries the generation, so a survivor keeps dialling the retired one.
+		// Daemons adopted from a previous session. Wiping under a live node
+		// corrupts it, and a surviving enforcer keeps dialling the retired host.
 		for _, name := range []string{"enforcer", "bitcoind"} {
 			if !o.process.IsRunning(name) {
 				continue
@@ -317,6 +333,9 @@ func (o *Orchestrator) wipeOnDrynetGenerationChange(ctx context.Context, oldID, 
 		Str("current", newID).
 		Msg("drynet generation changed, wiping stale chain data")
 
+	// The drynet build is per generation, and every variant shares one path.
+	o.removeCoreBinary()
+
 	// Synchronous: the caller persists the new generation next, and recording
 	// a wipe that has not happened is worse than not wiping at all. Runs on
 	// the refresh goroutine, so a slow volume cannot delay startup.
@@ -335,6 +354,13 @@ func (o *Orchestrator) wipeOnDrynetGenerationChange(ctx context.Context, oldID, 
 // to it — and renaming blocks out from under a live node corrupts it. A refused
 // connection is the common case and returns immediately.
 func (o *Orchestrator) coreRPCReachable() bool {
+	if o.coreReachable != nil {
+		return o.coreReachable()
+	}
+	return o.dialCoreRPC()
+}
+
+func (o *Orchestrator) dialCoreRPC() bool {
 	if o.BitcoinConf == nil {
 		return false
 	}

@@ -247,21 +247,21 @@ func (h *Handler) GetPendingNetworkGeneration(ctx context.Context, req *connect.
 	resp := &pb.GetPendingNetworkGenerationResponse{
 		CurrentGeneration: config.DrynetGeneration(),
 		PendingGeneration: pending.ID,
+		PendingPeer:       pending.Peer,
+		UserManagedConf:   pending.UserManagedConf,
 	}
 	if pending.Snapshot != nil {
-		resp.SnapshotUrl = pending.Snapshot.URL
 		resp.SnapshotHeight = pending.Snapshot.Height
-		resp.SnapshotSha256 = pending.Snapshot.SHA256
 		resp.SnapshotSizeBytes = pending.Snapshot.SizeBytes
 	}
 	return connect.NewResponse(resp), nil
 }
 
-func (h *Handler) ApplyPendingNetworkGeneration(ctx context.Context, req *connect.Request[pb.ApplyPendingNetworkGenerationRequest]) (*connect.Response[pb.ApplyPendingNetworkGenerationResponse], error) {
-	if err := h.orch.ApplyPendingDrynetGeneration(ctx); err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
+func (h *Handler) ConfirmPendingNetworkGeneration(ctx context.Context, req *connect.Request[pb.ConfirmPendingNetworkGenerationRequest]) (*connect.Response[pb.ConfirmPendingNetworkGenerationResponse], error) {
+	if err := h.orch.ConfirmPendingDrynetGeneration(ctx); err != nil {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, err)
 	}
-	return connect.NewResponse(&pb.ApplyPendingNetworkGenerationResponse{}), nil
+	return connect.NewResponse(&pb.ConfirmPendingNetworkGenerationResponse{}), nil
 }
 
 // StartWithL1 dispatches a boot goroutine and returns immediately. The

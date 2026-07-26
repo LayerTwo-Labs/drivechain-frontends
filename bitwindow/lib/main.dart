@@ -874,9 +874,37 @@ void _streamBinaryLogs(OrchestratorRPC orchestrator, String binaryName, BinaryTy
 Future<void> rebootBitwindowBackend(Logger log) async {
   final binaryProvider = GetIt.I.get<BinaryProvider>();
 
-  await binaryProvider.stop(BitWindow());
-  await Future.delayed(const Duration(seconds: 1));
+  // Ask first, kill second: bitwindowd relays this on a clean exit, but it gets
+  // force-killed if it lingers, and then nothing would drain orchestratord.
+  try {
+    await GetIt.I.get<OrchestratorRPC>().shutdown();
+  } catch (e) {
+    log.w('REBOOT: orchestratord shutdown call failed: $e');
+  }
+  await binaryProvider.stop(BitWindow(), expectRestart: true);
+  await _awaitOrchestratordExit(log);
   await bootBitwindowBackend(log);
+}
+
+/// Blocks until orchestratord's port stops accepting, the same signal bitwindowd
+/// uses to choose between adopting a live daemon and spawning one.
+Future<void> _awaitOrchestratordExit(Logger log) async {
+  final host = Environment.orchestratorHost.value;
+  final port = Environment.orchestratorPort.value;
+  final deadline = DateTime.now().add(const Duration(seconds: 150));
+
+  while (DateTime.now().isBefore(deadline)) {
+    try {
+      final socket = await Socket.connect(host, port, timeout: const Duration(seconds: 2));
+      socket.destroy();
+    } catch (_) {
+      log.i('REBOOT: orchestratord released $host:$port');
+      return;
+    }
+    await Future.delayed(const Duration(milliseconds: 500));
+  }
+  // Booting now would adopt the daemon we meant to replace.
+  throw StateError('orchestratord is still holding $host:$port — restart BitWindow to finish');
 }
 
 // Restores a wallet from a backup file (.zip/.json). The backend RestoreBackup

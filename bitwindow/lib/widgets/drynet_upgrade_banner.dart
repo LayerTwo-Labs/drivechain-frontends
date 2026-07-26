@@ -1,11 +1,17 @@
 import 'dart:async';
 
+import 'package:bitwindow/main.dart' show rebootBitwindowBackend;
+import 'package:bitwindow/pages/settings/network_swap_page.dart' show clearNetworkScopedCaches;
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
+import 'package:logger/logger.dart';
 import 'package:sail_ui/sail_ui.dart';
 
 /// Action key the banner notification carries; see NotificationActions.
 const drynetUpgradeAction = 'drynet_upgrade';
+
+/// Id prefix for the upgrade banner, so a fulfilled one can be found again.
+const _bannerIdPrefix = 'drynet-upgrade-';
 
 /// Raises a banner notification when a newer drynet generation is published.
 /// Polls because the backend records it from a detached goroutine after boot.
@@ -27,10 +33,18 @@ class DrynetUpgradeWatcher {
     } catch (e) {
       return; // Orchestrator not up yet; the next tick retries.
     }
-    if (pending.pendingGeneration.isEmpty) return;
+    final provider = GetIt.I.get<NotificationProvider>();
+    if (pending.pendingGeneration.isEmpty) {
+      // Upgraded some other way, e.g. the settings network selector. Retire the
+      // banner rather than keep advertising a generation already installed.
+      for (final stale in provider.history.where((n) => n.id.startsWith(_bannerIdPrefix) && !n.read).toList()) {
+        await provider.markRead(stale.id);
+      }
+      return;
+    }
 
-    GetIt.I.get<NotificationProvider>().add(
-      id: 'drynet-upgrade-${pending.pendingGeneration}',
+    provider.add(
+      id: '$_bannerIdPrefix${pending.pendingGeneration}',
       title: '${pending.pendingGeneration} is out',
       content: 'Switch over →',
       dialogType: DialogType.info,
@@ -41,20 +55,22 @@ class DrynetUpgradeWatcher {
 }
 
 /// Opens the upgrade flow. Wired to [drynetUpgradeAction] in main.dart.
-Future<void> openDrynetUpgrade(BuildContext context) async {
+/// True once the switch is recorded.
+Future<bool> openDrynetUpgrade(BuildContext context) async {
   final GetPendingNetworkGenerationResponse pending;
   try {
     pending = await GetIt.I.get<OrchestratorRPC>().getPendingNetworkGeneration();
   } catch (e) {
-    return;
+    return false;
   }
-  if (pending.pendingGeneration.isEmpty || !context.mounted) return;
+  if (pending.pendingGeneration.isEmpty) return true;
+  if (!context.mounted) return false;
 
-  final onDrynet = GetIt.I.get<BitcoinConfProvider>().network == BitcoinNetwork.BITCOIN_NETWORK_DRYNET;
-  await showThemedDialog<bool>(
+  final switched = await showThemedDialog<bool>(
     context: context,
-    builder: (context) => DrynetUpgradeDialog(pending: pending, onDrynet: onDrynet),
+    builder: (context) => DrynetUpgradeDialog(pending: pending),
   );
+  return switched == true;
 }
 
 /// Runs the upgrade flow when a newer generation is published, so entering
@@ -72,19 +88,15 @@ Future<bool> confirmPendingDrynetUpgrade(BuildContext context) async {
   final applied = await showThemedDialog<bool>(
     context: context,
     barrierDismissible: false,
-    builder: (context) => DrynetUpgradeDialog(pending: pending, onDrynet: false),
+    builder: (context) => DrynetUpgradeDialog(pending: pending),
   );
   return applied == true;
 }
 
 /// Spells out what switching generations costs before running it.
 class DrynetUpgradeDialog extends StatefulWidget {
-  const DrynetUpgradeDialog({super.key, required this.pending, required this.onDrynet});
+  const DrynetUpgradeDialog({super.key, required this.pending});
   final GetPendingNetworkGenerationResponse pending;
-
-  /// Whether drynet is the active network. The snapshot loads into the running
-  /// Bitcoin Core, so it is only on offer when that Core is drynet's.
-  final bool onDrynet;
 
   @override
   State<DrynetUpgradeDialog> createState() => _DrynetUpgradeDialogState();
@@ -92,46 +104,71 @@ class DrynetUpgradeDialog extends StatefulWidget {
 
 class _DrynetUpgradeDialogState extends State<DrynetUpgradeDialog> {
   OrchestratorRPC get _orchestrator => GetIt.I.get<OrchestratorRPC>();
+  Logger get _log => GetIt.I.get<Logger>();
 
-  late bool _useSnapshot = _hasSnapshot;
+  late GetPendingNetworkGenerationResponse _pending = widget.pending;
+  Timer? _refresh;
   String? _error;
   String _progress = '';
 
-  bool get _hasSnapshot => widget.onDrynet && widget.pending.snapshotUrl.isNotEmpty;
+  @override
+  void initState() {
+    super.initState();
+    _refresh = Timer.periodic(const Duration(seconds: 5), (_) => unawaited(_reload()));
+  }
+
+  @override
+  void dispose() {
+    _refresh?.cancel();
+    super.dispose();
+  }
+
+  /// Keeps the dialog on the generation that is actually published: the catalog
+  /// refresh runs detached and can supersede the one the banner opened with.
+  Future<void> _reload() async {
+    if (_progress.isNotEmpty) return;
+    final GetPendingNetworkGenerationResponse fresh;
+    try {
+      fresh = await _orchestrator.getPendingNetworkGeneration();
+    } catch (e) {
+      return;
+    }
+    if (!mounted || fresh.pendingGeneration == _pending.pendingGeneration) return;
+    if (fresh.pendingGeneration.isEmpty) {
+      Navigator.of(context).pop(true);
+      return;
+    }
+    setState(() => _pending = fresh);
+  }
+
+  bool get _hasSnapshot => _pending.snapshotHeight > 0;
 
   String get _snapshotSize {
-    final gb = widget.pending.snapshotSizeBytes.toInt() / (1000 * 1000 * 1000);
+    final gb = _pending.snapshotSizeBytes.toInt() / (1000 * 1000 * 1000);
     return '${gb.toStringAsFixed(1)} GB';
   }
 
   Future<void> _upgrade() async {
     setState(() {
       _error = null;
-      _progress = widget.onDrynet ? 'Stopping Bitcoin Core and the enforcer...' : 'Switching over...';
+      _progress = 'Confirming the switch...';
     });
     try {
-      await _orchestrator.applyPendingNetworkGeneration();
+      await _orchestrator.confirmPendingNetworkGeneration();
     } catch (e) {
       if (mounted) setState(() => _error = 'Could not switch over: $e');
       return;
     }
 
-    if (_useSnapshot && _hasSnapshot) {
-      try {
-        await for (final p in _orchestrator.applyUTXOSnapshot(
-          url: widget.pending.snapshotUrl,
-          sha256: widget.pending.snapshotSha256,
-        )) {
-          if (!mounted) return;
-          setState(() => _progress = p.message);
-          if (p.done) break;
-        }
-      } catch (e) {
-        // The generation switch already succeeded, so the upgrade stands;
-        // only the fast-sync shortcut failed.
-        if (mounted) setState(() => _error = 'Switched over, but the snapshot failed: $e');
-        return;
-      }
+    if (mounted) setState(() => _progress = 'Restarting the backends on ${_pending.pendingGeneration}...');
+    try {
+      await rebootBitwindowBackend(_log);
+      await clearNetworkScopedCaches();
+    } catch (e) {
+      // The switch is recorded and applies on any later start, so this is a
+      // restart that needs retrying, not an upgrade that failed.
+      if (mounted) setState(() => _error = 'Switched over — restart BitWindow to finish: $e');
+      return;
     }
 
     if (mounted) Navigator.of(context).pop(true);
@@ -140,7 +177,7 @@ class _DrynetUpgradeDialogState extends State<DrynetUpgradeDialog> {
   @override
   Widget build(BuildContext context) {
     final theme = SailTheme.of(context);
-    final p = widget.pending;
+    final p = _pending;
     final busy = _progress.isNotEmpty && _error == null;
 
     return SailDialog(
@@ -149,15 +186,16 @@ class _DrynetUpgradeDialogState extends State<DrynetUpgradeDialog> {
       error: _error,
       actions: [
         SailButton(
-          label: 'Cancel',
-          variant: ButtonVariant.secondary,
+          label: p.userManagedConf ? 'Close' : 'Cancel',
+          variant: p.userManagedConf ? ButtonVariant.primary : ButtonVariant.secondary,
           onPressed: () async => Navigator.of(context).pop(false),
         ),
-        SailButton(
-          label: 'Switch to ${p.pendingGeneration}',
-          loading: busy,
-          onPressed: _upgrade,
-        ),
+        if (!p.userManagedConf)
+          SailButton(
+            label: 'Switch to ${p.pendingGeneration}',
+            loading: busy,
+            onPressed: _upgrade,
+          ),
       ],
       child: SailColumn(
         spacing: SailStyleValues.padding12,
@@ -173,14 +211,22 @@ class _DrynetUpgradeDialogState extends State<DrynetUpgradeDialog> {
           SailText.secondary13('• Coins and transactions you had on ${p.currentGeneration} are gone for good.'),
           SailText.secondary13('• Your wallets, addresses and keys are kept.'),
           if (_hasSnapshot)
-            SailCheckbox(
-              value: _useSnapshot,
-              onChanged: busy ? null : (v) => setState(() => _useSnapshot = v),
-              label: 'Fast sync from a UTXO snapshot at block ${p.snapshotHeight} ($_snapshotSize download)',
+            SailText.secondary13(
+              '• The sync starts from a UTXO snapshot at block ${p.snapshotHeight} ($_snapshotSize download).',
             ),
+          if (p.userManagedConf) ..._manualSteps(p),
           if (busy) SailText.secondary12(_progress, color: theme.colors.textSecondary),
         ],
       ),
     );
   }
+
+  List<Widget> _manualSteps(GetPendingNetworkGenerationResponse p) => [
+    SailText.primary13(
+      'Your own bitcoin.conf decides which generation this node runs, so the switch is yours to make:',
+    ),
+    SailText.secondary13('• Set uacomment=${p.pendingGeneration} and addnode=${p.pendingPeer} under [main].'),
+    SailText.secondary13('• Delete blocks/ and chainstate/ from your drynet datadir.'),
+    SailText.secondary13('• Restart BitWindow.'),
+  ];
 }

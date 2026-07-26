@@ -79,7 +79,7 @@ class _SettingsNetworkState extends State<SettingsNetwork> {
       return 'Snapshot active at block ${status.activeHeight}, validating history in the background ($pct%).';
     }
     if (status.availableUrl.isNotEmpty) {
-      return 'Published snapshot for this network: block ${status.availableHeight}. Load it to sync in minutes.';
+      return 'Published snapshot for this network: block ${status.availableHeight}.';
     }
     return 'No snapshot is published for this network.';
   }
@@ -248,7 +248,11 @@ class _SettingsNetworkState extends State<SettingsNetwork> {
       }
     } catch (e) {
       if (mounted) {
-        showSailToast(context, 'Could not open the file picker: $e', variant: SailToastVariant.destructive);
+        showSailToast(
+          context,
+          'Could not open the file picker: $e',
+          variant: SailToastVariant.destructive,
+        );
       }
     } finally {
       if (mounted) setState(() => _isPickingSnapshot = false);
@@ -258,7 +262,11 @@ class _SettingsNetworkState extends State<SettingsNetwork> {
   Future<void> _applySnapshot() async {
     final source = _snapshotController.text.trim();
     if (source.isEmpty) {
-      showSailToast(context, 'Enter a snapshot URL or choose a file first', variant: SailToastVariant.destructive);
+      showSailToast(
+        context,
+        'Enter a snapshot URL or choose a file first',
+        variant: SailToastVariant.destructive,
+      );
       return;
     }
     // A bare URL is downloaded; anything else is treated as a local file.
@@ -266,10 +274,7 @@ class _SettingsNetworkState extends State<SettingsNetwork> {
 
     final applied = await Navigator.of(context).push<bool>(
       sailRoute(
-        builder: (_) => UTXOSnapshotPage(
-          url: isURL ? source : '',
-          filePath: isURL ? '' : source,
-        ),
+        builder: (_) => UTXOSnapshotPage(url: isURL ? source : '', filePath: isURL ? '' : source),
       ),
     );
     if (applied == true) {
@@ -290,10 +295,7 @@ class _SettingsNetworkState extends State<SettingsNetwork> {
             variant: ButtonVariant.ghost,
             onPressed: () async => Navigator.of(ctx).pop(false),
           ),
-          SailButton(
-            label: 'Switch',
-            onPressed: () async => Navigator.of(ctx).pop(true),
-          ),
+          SailButton(label: 'Switch', onPressed: () async => Navigator.of(ctx).pop(true)),
         ],
         child: SailText.secondary13(
           'Bitcoin Core will be stopped, the new build downloaded if needed, and then restarted.',
@@ -355,9 +357,7 @@ class _SettingsNetworkState extends State<SettingsNetwork> {
                 onChanged: (String? id) async => _handleVariantChange(id),
               ),
               const SailSpacing(4),
-              SailText.secondary12(
-                'Choose which Bitcoin Core build the orchestrator runs',
-              ),
+              SailText.secondary12('Choose which Bitcoin Core build the orchestrator runs'),
             ],
           ),
         if (_isElectrumWallet)
@@ -502,22 +502,18 @@ class _SettingsNetworkState extends State<SettingsNetwork> {
               },
             ),
             const SailSpacing(4),
-            SailText.secondary12(
-              'Configure your Bitcoin Core conf',
-            ),
+            SailText.secondary12('Configure your Bitcoin Core conf'),
           ],
         ),
         if (showDataDir)
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              SailText.primary15(
-                switch (_confProvider.network) {
-                  BitcoinNetwork.BITCOIN_NETWORK_FORKNET => 'Bitcoin Data Directory — Forknet',
-                  BitcoinNetwork.BITCOIN_NETWORK_DRYNET => 'Bitcoin Data Directory — Drynet',
-                  _ => 'Bitcoin Data Directory — Default',
-                },
-              ),
+              SailText.primary15(switch (_confProvider.network) {
+                BitcoinNetwork.BITCOIN_NETWORK_FORKNET => 'Bitcoin Data Directory — Forknet',
+                BitcoinNetwork.BITCOIN_NETWORK_DRYNET => 'Bitcoin Data Directory — Drynet',
+                _ => 'Bitcoin Data Directory — Default',
+              }),
               const SailSpacing(SailStyleValues.padding08),
               SailRow(
                 spacing: SailStyleValues.padding08,
@@ -590,7 +586,7 @@ class _SettingsNetworkState extends State<SettingsNetwork> {
             ),
             const SailSpacing(4),
             SailText.secondary12(
-              'Skip the historical download by loading an assumeutxo snapshot, so Bitcoin Core validates at the tip within minutes and backfills history afterwards. Nothing is deleted, and your own bitcoin.conf is not touched.',
+              'Skip the historical download by loading an assumeutxo snapshot. Bitcoin Core will only validate whatever comes after the snapshot and backfill history afterwards. This allows for a much faster initial sync.',
             ),
             if (_snapshotStatusText() != null) ...[
               const SailSpacing(SailStyleValues.padding08),
@@ -625,10 +621,7 @@ Future<void> swapNetworkWithDatadirPrompt(
   if (!context.mounted) return;
   await Navigator.of(context).push<bool>(
     sailRoute(
-      builder: (_) => NetworkSwapPage(
-        fromNetwork: provider.network,
-        toNetwork: network,
-      ),
+      builder: (_) => NetworkSwapPage(fromNetwork: provider.network, toNetwork: network),
     ),
   );
 }

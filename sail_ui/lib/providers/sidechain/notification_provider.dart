@@ -22,8 +22,15 @@ class NotificationProvider extends ChangeNotifier {
   /// was in flight would otherwise be dropped.
   Future<void> _load() async {
     final loaded = await GetIt.I.get<ClientSettings>().getValue(NotificationHistorySetting());
-    final existing = history.map((n) => n.id).toSet();
-    history.addAll(loaded.value.items.where((n) => !existing.contains(n.id)));
+    for (final stored in loaded.value.items) {
+      final live = history.indexWhere((n) => n.id == stored.id);
+      if (live < 0) {
+        history.add(stored);
+      } else if (stored.read && !history[live].read) {
+        // Re-added by a poll before the load landed, so it lost that it was dismissed.
+        history[live] = history[live].copyWith(read: true);
+      }
+    }
     history.sort((a, b) => b.timestamp.compareTo(a.timestamp));
     notifyListeners();
   }

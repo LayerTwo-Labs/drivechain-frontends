@@ -269,10 +269,10 @@ class OrchestratorRPC {
     return _unaryClient.getPendingNetworkGeneration(GetPendingNetworkGenerationRequest());
   }
 
-  /// Switch to the published drynet generation. Destructive: the old chain and
-  /// its transactions are deleted, wallets survive. Confirm with the user first.
-  Future<ApplyPendingNetworkGenerationResponse> applyPendingNetworkGeneration() {
-    return _unaryClient.applyPendingNetworkGeneration(ApplyPendingNetworkGenerationRequest());
+  /// Record the go-ahead to switch to the published drynet generation. Applied
+  /// on the next backend start, which the caller is responsible for.
+  Future<ConfirmPendingNetworkGenerationResponse> confirmPendingNetworkGeneration() {
+    return _unaryClient.confirmPendingNetworkGeneration(ConfirmPendingNetworkGenerationRequest());
   }
 
   Stream<ShutdownAllResponse> shutdownAll({bool force = false}) {

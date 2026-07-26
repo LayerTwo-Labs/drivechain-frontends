@@ -214,6 +214,10 @@ type Orchestrator struct {
 	// the real boot helper; tests override it to bypass process spawning.
 	bootBitcoindForVariantSwap func(ctx context.Context) <-chan StartupProgress
 
+	// coreReachable reports whether something answers on Core's RPC port.
+	// Overridable so tests don't depend on what is listening on this machine.
+	coreReachable func() bool
+
 	// Detached-daemon lifecycle. See shutdown.go.
 	shutdownMu    sync.Mutex
 	shutdownState int32         // shutdownState* constants
@@ -321,6 +325,7 @@ func New(dataDir, network, bitwindowDir string, configs []BinaryConfig, log zero
 
 	orch.stopBinary = orch.Stop
 	orch.bootBitcoindForVariantSwap = orch.defaultBootBitcoindForVariantSwap
+	orch.coreReachable = orch.dialCoreRPC
 
 	// Wire process exit events to ConnectionMonitor state.
 	// When a process crashes, its stderr error message becomes the monitor's
@@ -1893,13 +1898,9 @@ func (o *Orchestrator) SwapNetwork(ctx context.Context, n config.Network) error 
 		return err
 	}
 
-	// Entering drynet on a retired generation syncs a chain about to be thrown
-	// away. Must precede UpdateNetwork, which writes the generation into the conf.
-	if n == config.NetworkDrynet && o.PendingDrynetUpgrade().ID != "" {
-		if err := o.switchDrynetGeneration(ctx); err != nil {
-			return fmt.Errorf("switch to the current drynet generation: %w", err)
-		}
-	}
+	// Variants share bin/bitcoind, and the next network wants a different
+	// build, so drop it rather than boot the outgoing network's binary.
+	o.removeCoreBinary()
 
 	if err := o.BitcoinConf.UpdateNetwork(n); err != nil {
 		return fmt.Errorf("persist network: %w", err)
@@ -2209,6 +2210,22 @@ func (o *Orchestrator) defaultBootBitcoindForVariantSwap(ctx context.Context) <-
 		return out
 	}
 	return ch
+}
+
+// removeCoreBinary deletes the shared bin/bitcoind. Every Core variant lives at
+// that one path, so a build left by another network — or another drynet
+// generation — has to go before the next boot downloads the right one.
+func (o *Orchestrator) removeCoreBinary() {
+	cfg, ok := o.configs["bitcoind"]
+	if !ok {
+		return
+	}
+	path := CoreBinaryPath(o.DataDir, CoreVariantSpec{}, cfg.BinaryName)
+	if err := os.Remove(path); err != nil && !os.IsNotExist(err) {
+		o.log.Warn().Err(err).Str("path", path).Msg("could not remove bitcoind, the next boot may run the wrong build")
+		return
+	}
+	o.log.Info().Str("path", path).Msg("removed bitcoind so the next boot fetches the build this chain needs")
 }
 
 // Configs returns the binary configs.

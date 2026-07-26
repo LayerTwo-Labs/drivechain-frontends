@@ -378,6 +378,18 @@ func (d *DownloadManager) States() map[string]DownloadState {
 	return out
 }
 
+// PublishState posts a progress entry under a binary's logical name for work
+// that isn't a binary fetch, so GetDownloadStatus reports it like any download.
+func (d *DownloadManager) PublishState(name string, s DownloadState) {
+	s.Running = true
+	d.state.Store(name, s)
+}
+
+// ClearState removes a PublishState entry.
+func (d *DownloadManager) ClearState(name string) {
+	d.state.Delete(name)
+}
+
 // resolveGitHubURL queries the GitHub releases API and finds the asset
 // matching the regex pattern.
 func (d *DownloadManager) resolveGitHubURL(ctx context.Context, apiURL, pattern string) (string, error) {

@@ -50,7 +50,7 @@ class _FakeBinaryProvider extends BinaryProvider {
   }
 
   @override
-  Future<void> stop(Binary binary, {bool skipDownstream = false}) async {}
+  Future<void> stop(Binary binary, {bool skipDownstream = false, bool expectRestart = false}) async {}
 }
 
 class _MockStore implements KeyValueStore {
