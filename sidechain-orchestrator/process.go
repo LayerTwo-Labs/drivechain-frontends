@@ -166,8 +166,9 @@ type ProcessManager struct {
 	// builds. ok=false means use the production BinaryName + flat BinaryPath.
 	SidechainVariant func(config BinaryConfig) (sidechainVariantSpec, bool)
 
-	mu        sync.Mutex
-	processes map[string]*ManagedProcess // keyed by config name
+	mu         sync.Mutex
+	processes  map[string]*ManagedProcess // keyed by config name
+	lastExited map[string]*ManagedProcess // last exited process, keyed by config name — keeps its logs readable
 
 	// OnExit is called when a process exits. The orchestrator uses this to
 	// pipe exit errors into ConnectionMonitor.connectionError for the UI.
@@ -186,6 +187,7 @@ func NewProcessManager(dataDir string, pidManager *PidFileManager, log zerolog.L
 		pidManager: pidManager,
 		log:        log.With().Str("component", "process").Logger(),
 		processes:  make(map[string]*ManagedProcess),
+		lastExited: make(map[string]*ManagedProcess),
 	}
 }
 
@@ -316,6 +318,7 @@ func (pm *ProcessManager) StartWithOptions(_ context.Context, config BinaryConfi
 
 	pm.mu.Lock()
 	pm.processes[processName] = proc
+	delete(pm.lastExited, processName)
 	pm.mu.Unlock()
 
 	// Write PID file
@@ -489,6 +492,7 @@ func (pm *ProcessManager) StartWithOptions(_ context.Context, config BinaryConfi
 
 		pm.mu.Lock()
 		delete(pm.processes, processName)
+		pm.lastExited[processName] = proc
 		pm.mu.Unlock()
 
 		_ = pm.pidManager.DeletePidFile(pidName)
@@ -625,6 +629,29 @@ func (pm *ProcessManager) Get(name string) *ManagedProcess {
 	return pm.processes[name]
 }
 
+// LastExit returns the exit code of a binary's most recent run. ok is false
+// once the binary starts again, and for binaries that never ran.
+func (pm *ProcessManager) LastExit(name string) (int, bool) {
+	pm.mu.Lock()
+	defer pm.mu.Unlock()
+	proc, ok := pm.lastExited[name]
+	if !ok {
+		return 0, false
+	}
+	return proc.ExitCode(), true
+}
+
+// LatestRun returns the running process, or the last exited one when it is
+// gone, so crash handlers can still read the logs it died with.
+func (pm *ProcessManager) LatestRun(name string) *ManagedProcess {
+	pm.mu.Lock()
+	defer pm.mu.Unlock()
+	if proc, ok := pm.processes[name]; ok {
+		return proc
+	}
+	return pm.lastExited[name]
+}
+
 // IsRunning checks if a binary is currently running.
 func (pm *ProcessManager) IsRunning(name string) bool {
 	return pm.Get(name) != nil
@@ -665,6 +692,7 @@ func (pm *ProcessManager) AdoptProcessResolved(config BinaryConfig, pid int, bin
 		return
 	}
 
+	delete(pm.lastExited, config.Name)
 	pm.processes[config.Name] = &ManagedProcess{
 		Config:       config,
 		Pid:          pid,

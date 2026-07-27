@@ -108,8 +108,11 @@ func failBoot(mon *ConnectionMonitor, ch chan<- StartupProgress, prefix string, 
 
 // Orchestrator coordinates binary download, process management, and health checking.
 type Orchestrator struct {
-	DataDir      string
+	DataDir string
+	// Network is the active Bitcoin network. Write via setNetwork and read
+	// concurrently via CurrentNetwork.
 	Network      string
+	networkMu    sync.RWMutex
 	BitwindowDir string
 
 	// Catalog is the resolved network catalog (service endpoints, explorer
@@ -371,7 +374,7 @@ func New(dataDir, network, bitwindowDir string, configs []BinaryConfig, log zero
 				Str("conf_network", string(bitcoinConf.Network)).
 				Str("cli_network", network).
 				Msg("using persisted network from bitwindow-bitcoin.conf")
-			orch.Network = string(bitcoinConf.Network)
+			orch.setNetwork(string(bitcoinConf.Network))
 		}
 		orch.BitcoinConf = bitcoinConf
 
@@ -948,7 +951,7 @@ func (o *Orchestrator) startBitcoindOnly(ctx context.Context, opts StartOpts, ch
 	coreMon.StartRestartTimer(ctx,
 		// Dart binary_provider.dart L490-506: detect -reindex need before restart
 		func(restartCtx context.Context) error {
-			proc := o.process.Get("bitcoind")
+			proc := o.process.LatestRun("bitcoind")
 			if proc != nil {
 				logs := proc.RecentLogs(100)
 				for _, entry := range logs {
@@ -972,18 +975,7 @@ func (o *Orchestrator) startBitcoindOnly(ctx context.Context, opts StartOpts, ch
 			_, err := o.process.Start(restartCtx, o.configs["bitcoind"], coreArgs, nil)
 			return err
 		},
-		func() (int, bool) {
-			proc := o.process.Get("bitcoind")
-			if proc == nil {
-				return 0, false
-			}
-			select {
-			case <-proc.ExitCh():
-				return proc.ExitCode(), true
-			default:
-				return 0, false
-			}
-		},
+		o.exitedFunc("bitcoind"),
 	)
 
 	ch <- StartupProgress{Stage: "starting-bitcoind", Message: "starting Bitcoin Core..."}
@@ -1089,6 +1081,11 @@ func (o *Orchestrator) RestartDaemon(ctx context.Context, name string) (<-chan S
 	}()
 
 	return ch, nil
+}
+
+// exitedFunc reports the exit code of a binary's last run, for the restart timer.
+func (o *Orchestrator) exitedFunc(name string) func() (int, bool) {
+	return func() (int, bool) { return o.process.LastExit(name) }
 }
 
 // startEnforcerWhenReady waits for wallet + IBD completion, then starts the enforcer.
@@ -1218,18 +1215,7 @@ func (o *Orchestrator) startEnforcerWhenReady(ctx context.Context, opts StartOpt
 			_, err := o.process.Start(restartCtx, o.configs["enforcer"], enfOpts.EnforcerArgs, enforcerEnv())
 			return err
 		},
-		func() (int, bool) {
-			proc := o.process.Get("enforcer")
-			if proc == nil {
-				return 0, false
-			}
-			select {
-			case <-proc.ExitCh():
-				return proc.ExitCode(), true
-			default:
-				return 0, false
-			}
-		},
+		o.exitedFunc("enforcer"),
 	)
 
 	if prefetched != nil {
@@ -1426,18 +1412,7 @@ func (o *Orchestrator) startTargetOnly(ctx context.Context, config BinaryConfig,
 			_, err := o.process.StartWithOptions(restartCtx, config, targetArgs, targetEnv, procOpts)
 			return err
 		},
-		func() (int, bool) {
-			proc := o.process.Get(config.Name)
-			if proc == nil {
-				return 0, false
-			}
-			select {
-			case <-proc.ExitCh():
-				return proc.ExitCode(), true
-			default:
-				return 0, false
-			}
-		},
+		o.exitedFunc(config.Name),
 	)
 
 	if _, err := o.process.StartWithOptions(ctx, config, targetArgs, targetEnv, procOpts); err != nil {
@@ -1908,7 +1883,7 @@ func (o *Orchestrator) SwapNetwork(ctx context.Context, n config.Network) error 
 	if err := o.BitcoinConf.LoadConfig(false); err != nil {
 		return fmt.Errorf("reload config: %w", err)
 	}
-	o.Network = string(n)
+	o.setNetwork(string(n))
 	o.clearNetworkSwapCaches()
 
 	if !bitcoindWasRunning && !enforcerWasRunning {
@@ -1987,6 +1962,19 @@ func enforcerNetworkSwapStatePaths(root string) []string {
 	}
 }
 
+// CurrentNetwork reads the active network, safe against a concurrent swap.
+func (o *Orchestrator) CurrentNetwork() string {
+	o.networkMu.RLock()
+	defer o.networkMu.RUnlock()
+	return o.Network
+}
+
+func (o *Orchestrator) setNetwork(n string) {
+	o.networkMu.Lock()
+	o.Network = n
+	o.networkMu.Unlock()
+}
+
 func (o *Orchestrator) clearNetworkSwapCaches() {
 	o.syncConnMu.Lock()
 	o.explorerHeightsCache = nil
@@ -2002,6 +1990,14 @@ func (o *Orchestrator) clearNetworkSwapCaches() {
 	o.enforcerHTTPClient = nil
 	o.explorerHTTPClient = nil
 	o.httpClientsMu.Unlock()
+
+	// An endpoint the user picked for the outgoing network serves a different
+	// chain, so the incoming network's default applies until they pick again.
+	if o.Settings != nil && o.Settings.ElectrumServerURL() != "" {
+		if err := o.PersistElectrumServerURL(""); err != nil {
+			o.log.Error().Err(err).Msg("clear electrum server override on network swap")
+		}
+	}
 }
 
 // RestartL1 stops the L1 stack (enforcer + bitcoind) and boots it again on

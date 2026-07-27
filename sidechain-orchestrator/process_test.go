@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -26,6 +27,59 @@ func TestProcessManager_StartAndStop(t *testing.T) {
 	require.NoError(t, pm.Stop(context.Background(), "sleep-test", false))
 	time.Sleep(200 * time.Millisecond)
 	assert.False(t, pm.IsRunning("sleep-test"))
+}
+
+func TestProcessManager_LastExit(t *testing.T) {
+	pm, dir := newTestProcessManager(t)
+	symlinkSystemBinary(t, dir, "false")
+	symlinkSystemBinary(t, dir, "sleep")
+
+	_, ok := pm.LastExit("false-test")
+	assert.False(t, ok)
+
+	_, _ = pm.Start(context.Background(), BinaryConfig{
+		Name: "false-test", BinaryName: "false",
+	}, nil, nil)
+
+	require.Eventually(t, func() bool {
+		code, ok := pm.LastExit("false-test")
+		return ok && code == 1
+	}, 3*time.Second, 50*time.Millisecond)
+
+	_, err := pm.Start(context.Background(), BinaryConfig{
+		Name: "false-test", BinaryName: "sleep",
+	}, []string{"30"}, nil)
+	require.NoError(t, err)
+
+	_, ok = pm.LastExit("false-test")
+	assert.False(t, ok)
+}
+
+func TestProcessManager_LatestRunKeepsExitedLogs(t *testing.T) {
+	pm, dir := newTestProcessManager(t)
+	symlinkSystemBinary(t, dir, "sh")
+
+	_, _ = pm.Start(context.Background(), BinaryConfig{
+		Name: "sh-test", BinaryName: "sh",
+	}, []string{"-c", "echo Please restart with -reindex; exit 1"}, nil)
+
+	require.Eventually(t, func() bool {
+		code, ok := pm.LastExit("sh-test")
+		return ok && code == 1
+	}, 3*time.Second, 50*time.Millisecond)
+
+	assert.Nil(t, pm.Get("sh-test"))
+
+	proc := pm.LatestRun("sh-test")
+	require.NotNil(t, proc, "the exited process must stay reachable for crash handlers")
+
+	var sawReindex bool
+	for _, entry := range proc.RecentLogs(100) {
+		if strings.Contains(entry.Line, "Please restart with -reindex") {
+			sawReindex = true
+		}
+	}
+	assert.True(t, sawReindex, "logs the process died with must survive its removal")
 }
 
 func TestProcessManager_StopNotRunning(t *testing.T) {
