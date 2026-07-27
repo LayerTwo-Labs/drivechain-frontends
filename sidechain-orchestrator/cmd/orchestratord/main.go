@@ -360,26 +360,32 @@ func run(cctx *cli.Context) error {
 	// chain state over the Esplora REST API. The wallet backend speaks Esplora,
 	// so it needs an Esplora endpoint; bitwindow's higher-level reads route
 	// through the hosted orchestrator separately (see Server.buildDataSource).
-	var electrumBackend wallet.Backend
-	if net := config.NetworkFromString(resolvedNetwork); config.ElectrumWalletSupportedForNetwork(net) && netParams != nil {
-		sourceURLs := config.WalletChainSourceURLsForNetwork(net)
+	// Endpoint and params are looked up per call from the orchestrator's current
+	// network, so a network swap applies without restarting the process.
+	resolveChainTarget := func() wallet.ChainTarget {
+		current := orch.CurrentNetwork()
+		net := config.NetworkFromString(current)
+		urls := config.WalletChainSourceURLsForNetwork(net)
 		// A persisted runtime override replaces the network default endpoint.
 		if override := orch.ElectrumServerOverride(); override != "" {
-			sourceURLs = []string{override}
+			urls = []string{override}
 		}
-		// The scheme selects the client: ssl://tcp:// → Electrum, https:// → Esplora.
-		chainSource := wallet.NewChainDataSource(sourceURLs, log, netParams)
-		if torEnabled, torProxy := orch.TorConfigOverride(); torEnabled && torProxy != "" {
-			if sw, ok := chainSource.(wallet.SwappableChainSource); ok {
-				if err := sw.SetProxy(true, torProxy); err != nil {
-					return fmt.Errorf("apply persisted tor proxy %q: %w", torProxy, err)
-				}
-				log.Info().Str("tor_proxy", torProxy).Msg("electrum wallet routing through tor proxy")
-			}
+		params, err := bip47send.NetworkParams(current)
+		if err != nil {
+			params = nil
 		}
-		electrumBackend = wallet.NewElectrumBackend(walletSvc, chainSource, netParams, log)
-		log.Info().Strs("chain_source_urls", sourceURLs).Msg("electrum wallet provider initialized")
+		return wallet.ChainTarget{Network: current, URLs: urls, Params: params}
 	}
+
+	chainSource := wallet.NewNetworkChainSource(resolveChainTarget, log)
+	if torEnabled, torProxy := orch.TorConfigOverride(); torEnabled && torProxy != "" {
+		if err := chainSource.SetProxy(true, torProxy); err != nil {
+			return fmt.Errorf("apply persisted tor proxy %q: %w", torProxy, err)
+		}
+		log.Info().Str("tor_proxy", torProxy).Msg("electrum wallet routing through tor proxy")
+	}
+	electrumBackend := wallet.NewElectrumBackend(walletSvc, chainSource, netParams, log)
+	log.Info().Strs("chain_source_urls", resolveChainTarget().URLs).Msg("electrum wallet provider initialized")
 
 	router := wallet.NewBackendRouter(walletSvc, enforcerBackend, chainBackend, electrumBackend)
 	walletEngine := wallet.NewWalletEngine(walletSvc, router, netParams, log)

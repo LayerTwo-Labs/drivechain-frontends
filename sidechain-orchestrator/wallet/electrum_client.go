@@ -423,7 +423,7 @@ func (c *ElectrumClient) ScriptHash(address string) (string, error) {
 // scriptHash returns the Electrum scripthash for an address: sha256 of its
 // scriptPubKey, byte-reversed, hex-encoded.
 func (c *ElectrumClient) scriptHash(address string) (string, error) {
-	addr, err := btcutil.DecodeAddress(address, c.network)
+	addr, err := btcutil.DecodeAddress(address, c.netParams())
 	if err != nil {
 		return "", fmt.Errorf("decode address %q: %w", address, err)
 	}
@@ -619,7 +619,7 @@ func (c *ElectrumClient) buildTx(ctx context.Context, txid string) (EsploraTx, e
 				vin.Prevout = &EsploraVout{
 					Value:               po.Value,
 					ScriptPubKey:        hex.EncodeToString(po.PkScript),
-					ScriptPubKeyAddress: scriptAddress(po.PkScript, c.network),
+					ScriptPubKeyAddress: scriptAddress(po.PkScript, c.netParams()),
 				}
 				totalIn += po.Value
 			} else {
@@ -632,7 +632,7 @@ func (c *ElectrumClient) buildTx(ctx context.Context, txid string) (EsploraTx, e
 		et.Vout = append(et.Vout, EsploraVout{
 			Value:               to.Value,
 			ScriptPubKey:        hex.EncodeToString(to.PkScript),
-			ScriptPubKeyAddress: scriptAddress(to.PkScript, c.network),
+			ScriptPubKeyAddress: scriptAddress(to.PkScript, c.netParams()),
 		})
 		totalOut += to.Value
 	}
@@ -735,6 +735,22 @@ func (c *ElectrumClient) ProxyConfig() (bool, string) {
 	c.urlMu.RLock()
 	defer c.urlMu.RUnlock()
 	return c.proxyOn, c.proxyAddr
+}
+
+// SetNetwork re-points address decoding at another network's params.
+func (c *ElectrumClient) SetNetwork(n *chaincfg.Params) {
+	if n == nil {
+		return
+	}
+	c.urlMu.Lock()
+	c.network = n
+	c.urlMu.Unlock()
+}
+
+func (c *ElectrumClient) netParams() *chaincfg.Params {
+	c.urlMu.RLock()
+	defer c.urlMu.RUnlock()
+	return c.network
 }
 
 func (c *ElectrumClient) SetProxy(enabled bool, proxyAddr string) error {
