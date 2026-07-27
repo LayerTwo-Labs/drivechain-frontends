@@ -264,3 +264,25 @@ func boolToInt(b bool) int {
 	}
 	return 0
 }
+
+// clearElectrumScans drops every wallet's persisted scan. Networks that share
+// address parameters derive identical addresses, so a scan kept across a switch
+// would serve the previous chain's balances and UTXOs.
+func (s *Service) clearElectrumScans() error {
+	if s.electrumDB == nil {
+		return nil
+	}
+	ctx := context.Background()
+	tx, err := s.electrumDB.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback() //nolint:errcheck // rolled back unless Commit succeeds
+
+	for _, table := range electrumScanTables {
+		if _, err := tx.ExecContext(ctx, "DELETE FROM "+table); err != nil {
+			return err
+		}
+	}
+	return tx.Commit()
+}

@@ -70,6 +70,10 @@ type ElectrumBackend struct {
 	scanAt    map[string]time.Time     // walletID -> when the cached scan was taken
 	lastScan  map[string][]byte        // walletID -> last persisted scan bytes (skip rewrites)
 
+	// generation changes on every network switch, so a read that checked out a
+	// scan before the switch can tell its result belongs to the previous chain.
+	generation uint64
+
 	// scanLocks serialises live scans per wallet so concurrent readers
 	// (balance, txs, utxos, stats all poll at once) collapse into a single
 	// gap-walk instead of each firing its own burst of Esplora requests.
@@ -78,10 +82,10 @@ type ElectrumBackend struct {
 
 	// Push subscriptions: scripthash -> last status and -> walletID, so a server
 	// push refreshes exactly the affected wallet instead of polling.
-	subMu        sync.Mutex
-	subStatus    map[string]string
-	shWallet     map[string]string
-	consumerOnce sync.Once
+	subMu      sync.Mutex
+	subStatus  map[string]string
+	shWallet   map[string]string
+	consumerCh <-chan ElectrumNotification
 }
 
 var (
@@ -91,7 +95,7 @@ var (
 
 // NewElectrumBackend creates an Esplora-backed wallet backend.
 func NewElectrumBackend(svc *Service, client ChainDataSource, network *chaincfg.Params, log zerolog.Logger) *ElectrumBackend {
-	return &ElectrumBackend{
+	b := &ElectrumBackend{
 		svc:       svc,
 		client:    client,
 		network:   network,
@@ -106,6 +110,55 @@ func NewElectrumBackend(svc *Service, client ChainDataSource, network *chaincfg.
 		subStatus: make(map[string]string),
 		shWallet:  make(map[string]string),
 	}
+	if ns, ok := client.(*NetworkChainSource); ok {
+		ns.SetOnNetworkSwitch(b.dropChainCaches)
+	}
+	return b
+}
+
+// params reports the params of the network the chain source is pointed at
+// right now, so derivation can never disagree with the server being read.
+func (p *ElectrumBackend) params() *chaincfg.Params {
+	if ps, ok := p.client.(ParamsSource); ok {
+		if n := ps.Params(); n != nil {
+			return n
+		}
+	}
+	return p.network
+}
+
+// Available reports whether the current network has a wallet chain source.
+func (p *ElectrumBackend) Available() bool {
+	if ns, ok := p.client.(*NetworkChainSource); ok {
+		return ns.Available()
+	}
+	return true
+}
+
+// dropChainCaches clears every scan cached against the previous network.
+func (p *ElectrumBackend) dropChainCaches() {
+	p.mu.Lock()
+	p.generation++
+	p.warmScan = make(map[string]*electrumScan)
+	p.tipAt = make(map[string]int)
+	p.scanAt = make(map[string]time.Time)
+	p.warm = make(map[string]bool)
+	p.lastScan = make(map[string][]byte)
+	p.mu.Unlock()
+
+	p.subMu.Lock()
+	p.subStatus = make(map[string]string)
+	p.shWallet = make(map[string]string)
+	p.subMu.Unlock()
+
+	if p.svc != nil {
+		if err := p.svc.clearElectrumScans(); err != nil {
+			p.log.Error().Err(err).Msg("clearing persisted scans after network switch failed")
+			return
+		}
+	}
+
+	p.log.Info().Msg("dropped chain caches after network switch")
 }
 
 // FeeRateForTarget returns the esplora sat/vB fee estimate for a confirmation target.
@@ -521,10 +574,11 @@ func (p *ElectrumBackend) Send(ctx context.Context, walletID string, req SendReq
 // and folds the spend into the cached scan. replayProtect stamps the magic
 // nLockTime and non-final sequences before signing.
 func (p *ElectrumBackend) signAndBroadcast(ctx context.Context, walletID string, packet *psbt.Packet, psbtInputs []psbtInput, effect *spendEffect, replayProtect bool) (string, error) {
+	net := p.params()
 	if replayProtect {
 		replay.ApplyLockTime(packet.UnsignedTx)
 	}
-	signedCount, err := signPSBT(packet, psbtInputs, p.network)
+	signedCount, err := signPSBT(packet, psbtInputs, net)
 	if err != nil {
 		return "", fmt.Errorf("sign psbt: %w", err)
 	}
@@ -570,6 +624,7 @@ type spendEffect struct {
 // and UTXO reads reflect the send at once. The next block's scan reconciles this
 // optimistic view against the chain.
 func (p *ElectrumBackend) applySpend(walletID, txid string, effect *spendEffect, packet *psbt.Packet) {
+	net := p.params()
 	if effect == nil {
 		return
 	}
@@ -584,7 +639,7 @@ func (p *ElectrumBackend) applySpend(walletID, txid string, effect *spendEffect,
 	// The synthesized mempool tx, stamped now so it sorts to the top of history
 	// as the newest entry. The next block's scan replaces it with the confirmed
 	// version from Esplora.
-	sentTx := buildSentTx(txid, effect, packet, p.network, time.Now().Unix())
+	sentTx := buildSentTx(txid, effect, packet, net, time.Now().Unix())
 
 	spentOutpoints := make(map[string]bool, len(effect.spent))
 	spentByAddr := make(map[string]int64)
@@ -700,6 +755,7 @@ func indexOfAddr(addrs []scannedAddr, address string) int {
 // It does not require signing keys, so it serves both Send and CreatePSBT
 // (including watch-only wallets, which produce a PSBT for an external signer).
 func (p *ElectrumBackend) buildSendPSBT(ctx context.Context, walletID string, scan *electrumScan, req SendRequest) (*psbt.Packet, []psbtInput, *spendEffect, error) {
+	net := p.params()
 	if req.FeeRateSatPerVB > 0 && req.FixedFeeSats > 0 {
 		return nil, nil, nil, errors.New("fee rate and fixed fee are mutually exclusive")
 	}
@@ -768,7 +824,7 @@ func (p *ElectrumBackend) buildSendPSBT(ctx context.Context, walletID string, sc
 		}
 		outVsize := 0
 		for _, o := range outputs {
-			outVsize += outputVsize(o, p.network)
+			outVsize += outputVsize(o, net)
 		}
 		if withChange {
 			outVsize += outputVsizeForKind(d.Kind)
@@ -810,7 +866,7 @@ func (p *ElectrumBackend) buildSendPSBT(ctx context.Context, walletID string, sc
 		// Take the fee out of the first output; the rest of the selected value
 		// returns as change, matching Bitcoin Core's subtract-fee semantics.
 		reduced := int64(math.Round(outputs[0].AmountBTC*1e8)) - fee
-		if reduced < dustForOutput(outputs[0], p.network) {
+		if reduced < dustForOutput(outputs[0], net) {
 			return nil, nil, nil, fmt.Errorf("fee %d sats exceeds first output", fee)
 		}
 		outputs[0].AmountBTC = float64(reduced) / 1e8
@@ -866,7 +922,7 @@ func (p *ElectrumBackend) buildSendPSBT(ctx context.Context, walletID string, sc
 		})
 	}
 
-	packet, err := buildPSBT(psbtInputs, outputs, p.network, p.prevTxFetcher(ctx))
+	packet, err := buildPSBT(psbtInputs, outputs, net, p.prevTxFetcher(ctx))
 	if err != nil {
 		return nil, nil, nil, fmt.Errorf("build psbt: %w", err)
 	}
@@ -905,6 +961,7 @@ func (p *ElectrumBackend) CreatePSBT(ctx context.Context, walletID string, req S
 // SignPSBT adds this wallet's signatures to a base64 PSBT and returns the
 // updated PSBT. Inputs whose keys it doesn't hold are left for other signers.
 func (p *ElectrumBackend) SignPSBT(ctx context.Context, walletID, psbtBase64 string) (string, error) {
+	net := p.params()
 	if err := p.requireElectrum(walletID); err != nil {
 		return "", err
 	}
@@ -920,7 +977,7 @@ func (p *ElectrumBackend) SignPSBT(ctx context.Context, walletID, psbtBase64 str
 	if err != nil {
 		return "", err
 	}
-	if _, err := signPSBT(packet, inputs, p.network); err != nil {
+	if _, err := signPSBT(packet, inputs, net); err != nil {
 		return "", err
 	}
 	return packet.B64Encode()
@@ -931,6 +988,7 @@ func (p *ElectrumBackend) SignPSBT(ctx context.Context, walletID, psbtBase64 str
 // each input's signing key at the exact path the PSBT records, so no chain scan
 // is needed — the per-keystore "Sign" action.
 func (p *ElectrumBackend) SignPSBTWithCosigner(ctx context.Context, walletID, psbtBase64, cosignerXpub string) (string, error) {
+	net := p.params()
 	if err := p.requireElectrum(walletID); err != nil {
 		return "", err
 	}
@@ -966,7 +1024,7 @@ func (p *ElectrumBackend) SignPSBTWithCosigner(ctx context.Context, walletID, ps
 			addr:     sa,
 		}
 	}
-	if _, err := signPSBT(packet, inputs, p.network); err != nil {
+	if _, err := signPSBT(packet, inputs, net); err != nil {
 		return "", err
 	}
 	return packet.B64Encode()
@@ -1024,13 +1082,14 @@ func (p *ElectrumBackend) FinalizePSBT(psbtBase64 string) (string, error) {
 // psbtInputsFromPacket reconstructs the per-input signing metadata for a PSBT by
 // scanning the wallet and matching each input's prevout to a derived address.
 func (p *ElectrumBackend) psbtInputsFromPacket(packet *psbt.Packet, scan *electrumScan) ([]psbtInput, error) {
+	net := p.params()
 	inputs := make([]psbtInput, len(packet.Inputs))
 	for i := range packet.Inputs {
 		out := prevOutForInput(packet, i)
 		if out == nil {
 			return nil, fmt.Errorf("psbt input %d missing prevout", i)
 		}
-		_, addrs, _, err := txscript.ExtractPkScriptAddrs(out.PkScript, p.network)
+		_, addrs, _, err := txscript.ExtractPkScriptAddrs(out.PkScript, net)
 		if err != nil || len(addrs) == 0 {
 			return nil, fmt.Errorf("psbt input %d: cannot resolve address", i)
 		}
@@ -1076,6 +1135,7 @@ func (p *ElectrumBackend) prevTxFetcher(ctx context.Context) prevTxFunc {
 }
 
 func (p *ElectrumBackend) SignTransaction(ctx context.Context, walletID, rawHex string) (*SignRawTransactionResult, error) {
+	net := p.params()
 	scan, err := p.scanWallet(ctx, walletID)
 	if err != nil {
 		return nil, err
@@ -1102,7 +1162,7 @@ func (p *ElectrumBackend) SignTransaction(ctx context.Context, walletID, rawHex 
 		vout := prevTx.Vout[idx]
 		prevOuts[in.PreviousOutPoint] = PrevOut{Address: vout.ScriptPubKeyAddress, AmountSats: vout.Value}
 	}
-	return SignTransactionLocal(rawHex, prevOuts, scan.keys, p.network)
+	return SignTransactionLocal(rawHex, prevOuts, scan.keys, net)
 }
 
 func (p *ElectrumBackend) BumpFee(ctx context.Context, walletID, txid string, newFeeRate int64) (string, error) {
@@ -1231,6 +1291,7 @@ func (p *ElectrumBackend) SetServerURL(ctx context.Context, url string) (int, er
 	// The new endpoint serves a different chain view, so every cached scan is
 	// stale. Drop them so reads re-walk against the new server.
 	p.mu.Lock()
+	p.generation++
 	p.warmScan = make(map[string]*electrumScan)
 	p.tipAt = make(map[string]int)
 	p.scanAt = make(map[string]time.Time)
@@ -1281,6 +1342,7 @@ func (p *ElectrumBackend) SetTorConfig(ctx context.Context, enabled bool, proxyA
 	}
 
 	p.mu.Lock()
+	p.generation++
 	p.warmScan = make(map[string]*electrumScan)
 	p.tipAt = make(map[string]int)
 	p.scanAt = make(map[string]time.Time)
@@ -1369,18 +1431,19 @@ func (p *ElectrumBackend) walletDescriptor(w *WalletData) (*Descriptor, error) {
 // so its addresses can be signed), or from its single stored watch-only
 // descriptor otherwise (watch-only wallets are single-kind, so kind is ignored).
 func (p *ElectrumBackend) walletDescriptorFor(w *WalletData, kind ScriptKind) (*Descriptor, error) {
-	if p.network == nil {
+	net := p.params()
+	if net == nil {
 		return nil, errors.New("no chain params for this network; cannot derive electrum wallet")
 	}
 	if w.Multisig != nil {
 		return p.multisigSigningDescriptor(w)
 	}
 	if w.Master.SeedHex != "" {
-		ap, err := accountPathFor(w, kind, p.network)
+		ap, err := accountPathFor(w, kind, net)
 		if err != nil {
 			return nil, err
 		}
-		acct, origin, err := accountKeyAndOrigin(w.Master.SeedHex, ap, p.network)
+		acct, origin, err := accountKeyAndOrigin(w.Master.SeedHex, ap, net)
 		if err != nil {
 			return nil, err
 		}
@@ -1407,6 +1470,7 @@ func (p *ElectrumBackend) multisigSigningDescriptor(w *WalletData) (*Descriptor,
 // xprv is substituted (the rest stay xpubs), so signing adds a single cosigner's
 // signature — the per-keystore signing path.
 func (p *ElectrumBackend) multisigSigningDescriptorFor(w *WalletData, onlyXpub string) (*Descriptor, error) {
+	net := p.params()
 	ms := w.Multisig
 	if ms == nil {
 		return nil, errors.New("wallet has no multisig config")
@@ -1432,7 +1496,7 @@ func (p *ElectrumBackend) multisigSigningDescriptorFor(w *WalletData, onlyXpub s
 		xprv := c.Xprv
 		if xprv == "" {
 			seedHex := hex.EncodeToString(MnemonicToSeed(c.Mnemonic, c.Passphrase))
-			x, _, err := DeriveAccountXprv(seedHex, "m/"+c.OriginPath, p.network)
+			x, _, err := DeriveAccountXprv(seedHex, "m/"+c.OriginPath, net)
 			if err != nil {
 				return nil, fmt.Errorf("derive cosigner xprv: %w", err)
 			}
@@ -1458,7 +1522,8 @@ func (p *ElectrumBackend) multisigSigningDescriptorFor(w *WalletData, onlyXpub s
 // deriveAddr resolves one address of a descriptor, enriching it with the signing
 // metadata: the private key (hot wallets), scriptPubKey, and redeem/tap material.
 func (p *ElectrumBackend) deriveAddr(d *Descriptor, change bool, index uint32) (scannedAddr, error) {
-	ds, pub, err := d.DeriveScript(change, index, p.network)
+	net := p.params()
+	ds, pub, err := d.DeriveScript(change, index, net)
 	if err != nil {
 		return scannedAddr{}, err
 	}
@@ -1475,7 +1540,7 @@ func (p *ElectrumBackend) deriveAddr(d *Descriptor, change bool, index uint32) (
 		kind:         d.Kind,
 		change:       change,
 		index:        index,
-		hdPath:       descriptorHDPath(d, p.network, change, index),
+		hdPath:       descriptorHDPath(d, net, change, index),
 		derivations:  derivations,
 	}
 	if d.Kind.isMultisig() {
@@ -1581,6 +1646,10 @@ func (p *ElectrumBackend) scan(ctx context.Context, walletID string, allowCache 
 		}
 	}
 
+	// Stamped before the walk: a switch part-way through leaves a scan built
+	// against the outgoing chain, or a mix of both endpoints.
+	gen := p.chainGeneration()
+
 	scan := &electrumScan{
 		byAddr: make(map[string]scannedAddr),
 		keys:   make(mapKeySource),
@@ -1637,6 +1706,9 @@ func (p *ElectrumBackend) scan(ctx context.Context, walletID string, allowCache 
 	}
 
 	finalizeScan(scan)
+	if gen != p.chainGeneration() {
+		return nil, fmt.Errorf("network changed during scan of wallet %s", walletID)
+	}
 	p.persistScan(walletID, scan)
 	p.mu.Lock()
 	p.warm[walletID] = true
@@ -1648,12 +1720,37 @@ func (p *ElectrumBackend) scan(ctx context.Context, walletID string, allowCache 
 
 // subscribeScan registers every scanned address's scripthash for server pushes
 // and records its status, so a change refreshes only this wallet. Electrum only.
+// electrumSubscriber is the push-subscription surface of an Electrum client,
+// matched by interface so wrappers like NetworkChainSource keep live sync.
+type electrumSubscriber interface {
+	SubscribeHeaders(ctx context.Context) (int, error)
+	ScriptHash(address string) (string, error)
+	Subscribe(ctx context.Context, scriptHash string) (string, error)
+	Notifications() <-chan ElectrumNotification
+}
+
+// startNotificationConsumer relays pushes from the active client, re-binding
+// when it changes: a non-subscribing client offers no channel to consume.
+func (p *ElectrumBackend) startNotificationConsumer(ec electrumSubscriber) {
+	ch := ec.Notifications()
+	if ch == nil {
+		return
+	}
+	p.subMu.Lock()
+	defer p.subMu.Unlock()
+	if p.consumerCh == ch {
+		return
+	}
+	p.consumerCh = ch
+	go p.consumeNotifications(ch)
+}
+
 func (p *ElectrumBackend) subscribeScan(walletID string, scan *electrumScan) {
-	ec, ok := p.client.(*ElectrumClient)
+	ec, ok := p.client.(electrumSubscriber)
 	if !ok {
 		return
 	}
-	p.consumerOnce.Do(func() { go p.consumeNotifications(ec) })
+	p.startNotificationConsumer(ec)
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 	_, _ = ec.SubscribeHeaders(ctx)
@@ -1675,8 +1772,8 @@ func (p *ElectrumBackend) subscribeScan(walletID string, scan *electrumScan) {
 
 // consumeNotifications turns server pushes into cache invalidation + a change
 // fan-out, so incoming funds surface within ~1s instead of on a poll timer.
-func (p *ElectrumBackend) consumeNotifications(ec *ElectrumClient) {
-	for n := range ec.Notifications() {
+func (p *ElectrumBackend) consumeNotifications(ch <-chan ElectrumNotification) {
+	for n := range ch {
 		switch n.Kind {
 		case "scripthash":
 			p.subMu.Lock()
@@ -1714,6 +1811,7 @@ func (p *ElectrumBackend) onElectrumReconnect() {
 	p.shWallet = make(map[string]string)
 	p.subMu.Unlock()
 	p.mu.Lock()
+	p.generation++
 	p.warmScan = make(map[string]*electrumScan)
 	p.tipAt = make(map[string]int)
 	p.scanAt = make(map[string]time.Time)
@@ -1745,11 +1843,17 @@ func (p *ElectrumBackend) cachedScan(ctx context.Context, walletID string) *elec
 	scan := p.warmScan[walletID]
 	at, hasTip := p.tipAt[walletID]
 	fresh := time.Since(p.scanAt[walletID]) < electrumScanTTL
+	gen := p.generation
 	p.mu.Unlock()
 	if scan == nil {
 		return nil
 	}
+	// TipHeight resolves the current network and can switch it, which drops the
+	// caches — but not this already-checked-out scan.
 	tip, err := p.client.TipHeight(ctx)
+	if gen != p.chainGeneration() {
+		return nil
+	}
 	if err != nil {
 		return scan // network blip: serve cache rather than re-walk or fail the read
 	}
@@ -1759,11 +1863,24 @@ func (p *ElectrumBackend) cachedScan(ctx context.Context, walletID string) *elec
 	return nil // new block, or cache aged out: re-walk once to catch mempool activity
 }
 
+// chainGeneration reports the current cache epoch, which changes whenever the
+// network, endpoint or connection does.
+func (p *ElectrumBackend) chainGeneration() uint64 {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	return p.generation
+}
+
 // cacheScan stores a completed scan as the in-memory cache, tagged with the
 // chain tip it reflects so cachedScan can detect staleness on the next block.
 func (p *ElectrumBackend) cacheScan(ctx context.Context, walletID string, scan *electrumScan) {
+	gen := p.chainGeneration()
 	tip, err := p.client.TipHeight(ctx)
 	p.mu.Lock()
+	if p.generation != gen {
+		p.mu.Unlock()
+		return // switched mid-scan: storing this would re-cache the old chain
+	}
 	p.warmScan[walletID] = scan
 	p.scanAt[walletID] = time.Now()
 	if err == nil {
@@ -2000,12 +2117,13 @@ func watchOnlyDescriptorString(w *WalletData) (string, error) {
 }
 
 func (p *ElectrumBackend) watchKeyAddr(ctx context.Context, k WatchKey, prior *electrumScan) (scannedAddr, error) {
+	net := p.params()
 	wif, err := btcutil.DecodeWIF(k.WIF)
 	if err != nil {
 		return scannedAddr{}, fmt.Errorf("decode watch WIF: %w", err)
 	}
 	pubHash := btcutil.Hash160(wif.PrivKey.PubKey().SerializeCompressed())
-	addr, err := btcutil.NewAddressPubKeyHash(pubHash, p.network)
+	addr, err := btcutil.NewAddressPubKeyHash(pubHash, net)
 	if err != nil {
 		return scannedAddr{}, fmt.Errorf("watch key address: %w", err)
 	}

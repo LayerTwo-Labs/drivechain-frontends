@@ -29,7 +29,13 @@ func NewBackendRouter(svc *Service, enforcer, chain, electrum Backend) *BackendR
 // wired. Networks without an Esplora backend leave it nil; callers use this to
 // refuse creating electrum wallets that could never sync.
 func (r *BackendRouter) ElectrumConfigured() bool {
-	return r.electrum != nil
+	if r.electrum == nil {
+		return false
+	}
+	if eb, ok := r.electrum.(*ElectrumBackend); ok {
+		return eb.Available()
+	}
+	return true
 }
 
 // ElectrumBackend returns the configured electrum backend, if any. PSBT
