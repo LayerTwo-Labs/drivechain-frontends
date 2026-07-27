@@ -268,7 +268,6 @@ String resolveDaemonStatusMessage({
 ///  5. isDownloading             -> amber
 ///  6. hasInfoMessage            -> info
 ///  7. !connected, no other info -> amber  (booting, no news — used to flash red)
-@visibleForTesting
 Color resolveDaemonStatusColor({
   required SailThemeData theme,
   required String? connectionError,

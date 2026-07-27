@@ -7,6 +7,7 @@ import 'package:bitwindow/pages/settings/settings_network.dart';
 import 'package:bitwindow/pages/settings_page.dart';
 import 'package:bitwindow/pages/wallet/wallet_page.dart';
 import 'package:bitwindow/utils/navigation_registry.dart';
+import 'package:bitwindow/dialogs/cpu_mining_dialog.dart';
 import 'package:bitwindow/dialogs/change_password_dialog.dart';
 import 'package:bitwindow/dialogs/encrypt_wallet_dialog.dart';
 import 'package:bitwindow/dialogs/merkle_tree_dialog.dart';
@@ -237,11 +238,6 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
 
       // Use Bitcoin
       CommandItem(
-        label: 'CPU Miner',
-        category: 'Use Bitcoin',
-        onSelected: () => GetIt.I.get<AppRouter>().push(CpuMiningRoute()),
-      ),
-      CommandItem(
         label: 'M4 Explorer',
         category: 'Use Bitcoin',
         onSelected: () {
@@ -297,7 +293,7 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
       CommandItem(
         label: 'CPU Mining',
         category: 'Crypto Tools',
-        onSelected: () => GetIt.I.get<AppRouter>().push(CpuMiningRoute()),
+        onSelected: () => showThemedDialog(context: context, builder: (context) => const CpuMiningDialog()),
       ),
 
       // This Node
@@ -658,12 +654,6 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
                 PlatformMenuItemGroup(
                   members: [
                     PlatformMenuItem(
-                      label: 'CPU Miner',
-                      onSelected: () async {
-                        await GetIt.I.get<AppRouter>().push(CpuMiningRoute());
-                      },
-                    ),
-                    PlatformMenuItem(
                       label: 'M4 Explorer',
                       onSelected: () async {
                         await GetIt.I.get<AppRouter>().push(M4ExplorerRoute());
@@ -752,7 +742,7 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
                     PlatformMenuItem(
                       label: 'Solo Mine',
                       onSelected: () async {
-                        await GetIt.I.get<AppRouter>().push(CpuMiningRoute());
+                        await showThemedDialog(context: context, builder: (context) => const CpuMiningDialog());
                       },
                     ),
                     PlatformMenuItem(
@@ -846,7 +836,7 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
                     PlatformMenuItem(
                       label: 'CPU Mining',
                       onSelected: () async {
-                        await GetIt.I.get<AppRouter>().push(CpuMiningRoute());
+                        await showThemedDialog(context: context, builder: (context) => const CpuMiningDialog());
                       },
                     ),
                   ],
@@ -1229,6 +1219,12 @@ class _StatusBarState extends State<StatusBar> {
       },
       onOpenEnforcerConfConfigurator: () {
         GetIt.I.get<AppRouter>().push(const EnforcerConfEditorRoute());
+      },
+      onOpenMiningSettings: () => showThemedDialog(context: context, builder: (context) => const CpuMiningDialog()),
+      onViewMiningLogs: () {
+        GetIt.I.get<AppRouter>().push(
+          LogRoute(title: 'CPU Miner', logPath: minerLogPath()),
+        );
       },
       mainchainInfo: true,
       balanceEndWidgets: const [

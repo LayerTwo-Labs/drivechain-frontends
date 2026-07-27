@@ -4,7 +4,6 @@ import 'package:bitwindow/main.dart' show restoreBitwindowWalletFromFile;
 import 'package:bitwindow/pages/chat_page.dart';
 import 'package:bitwindow/pages/configure_homepage.dart';
 import 'package:bitwindow/pages/console_page.dart';
-import 'package:bitwindow/pages/cpu_mining_page.dart';
 import 'package:bitwindow/pages/explorer/m4_explorer_page.dart';
 import 'package:bitwindow/pages/learn_page.dart';
 import 'package:bitwindow/pages/overview_page.dart';
@@ -159,10 +158,6 @@ class AppRouter extends RootStackRouter {
     AutoRoute(
       path: '/verify-timestamp',
       page: VerifyTimestampRoute.page,
-    ),
-    AutoRoute(
-      path: '/cpu-mining',
-      page: CpuMiningRoute.page,
     ),
     AutoRoute(
       path: '/m4-explorer',

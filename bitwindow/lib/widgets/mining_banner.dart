@@ -1,5 +1,4 @@
-import 'package:bitwindow/providers/mining_provider.dart';
-import 'package:bitwindow/routing/router.dart';
+import 'package:bitwindow/dialogs/cpu_mining_dialog.dart';
 import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
@@ -76,7 +75,7 @@ class _MiningBannerState extends State<MiningBanner> {
     final theme = SailTheme.of(context);
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
-      onTap: () => GetIt.I.get<AppRouter>().push(CpuMiningRoute()),
+      onTap: () => showThemedDialog(context: context, builder: (context) => const CpuMiningDialog()),
       child: Container(
         width: double.infinity,
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),

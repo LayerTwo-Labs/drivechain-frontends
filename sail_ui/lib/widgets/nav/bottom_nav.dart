@@ -4,6 +4,18 @@ import 'package:sail_ui/providers/price_provider.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:stacked/stacked.dart';
 
+/// Mining is drynet-only — StartMining rejects every other network — so the
+/// miner surfaces stay hidden elsewhere rather than offering a dead control.
+MiningProvider? drynetMiningProvider() {
+  if (!GetIt.I.isRegistered<MiningProvider>() || !GetIt.I.isRegistered<BitcoinConfProvider>()) {
+    return null;
+  }
+  if (GetIt.I.get<BitcoinConfProvider>().network != BitcoinNetwork.BITCOIN_NETWORK_DRYNET) {
+    return null;
+  }
+  return GetIt.I.get<MiningProvider>();
+}
+
 class BottomNav extends StatelessWidget {
   final List<Widget> endWidgets;
   final List<Widget> balanceEndWidgets;
@@ -14,6 +26,8 @@ class BottomNav extends StatelessWidget {
   final VoidCallback? onOpenConfConfigurator;
   final VoidCallback? onOpenEnforcerConfConfigurator;
   final VoidCallback? onOpenAdditionalConfConfigurator;
+  final VoidCallback? onOpenMiningSettings;
+  final VoidCallback? onViewMiningLogs;
 
   const BottomNav({
     super.key,
@@ -26,6 +40,8 @@ class BottomNav extends StatelessWidget {
     this.onOpenConfConfigurator,
     this.onOpenEnforcerConfConfigurator,
     this.onOpenAdditionalConfConfigurator,
+    this.onOpenMiningSettings,
+    this.onViewMiningLogs,
   });
 
   @override
@@ -64,6 +80,11 @@ class BottomNav extends StatelessWidget {
               ...balanceEndWidgets,
             ],
             Expanded(child: Container()),
+            Builder(
+              builder: (context) => MiningStatus(
+                onTap: () => displayConnectionStatusDialog(context, additionalConnection, onlyShowAdditional),
+              ),
+            ),
             const ElectrumScanStatus(),
             ViewModelBuilder.reactive(
               viewModelBuilder: () => BottomNavViewModel(
@@ -256,6 +277,12 @@ class BottomNav extends StatelessWidget {
                       );
                     },
                   ),
+                  if (drynetMiningProvider() case final mining?)
+                    MiningStatusCard(
+                      mining: mining,
+                      onOpenSettings: onOpenMiningSettings,
+                      onViewLogs: onViewMiningLogs,
+                    ),
                 ],
               ),
             ],
@@ -858,6 +885,81 @@ class ElectrumScanStatus extends StatelessWidget {
                   ),
                 ),
               ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class MiningStatus extends StatefulWidget {
+  final VoidCallback? onTap;
+
+  const MiningStatus({super.key, this.onTap});
+
+  @override
+  State<MiningStatus> createState() => _MiningStatusState();
+}
+
+class _MiningStatusState extends State<MiningStatus> {
+  MiningProvider? get _mining => drynetMiningProvider();
+  BitcoinConfProvider? get _conf =>
+      GetIt.I.isRegistered<BitcoinConfProvider>() ? GetIt.I.get<BitcoinConfProvider>() : null;
+
+  @override
+  void initState() {
+    super.initState();
+    _conf?.addListener(_syncPolling);
+    _syncPolling();
+  }
+
+  @override
+  void dispose() {
+    _conf?.removeListener(_syncPolling);
+    super.dispose();
+  }
+
+  // The network can flip to drynet long after this widget first built, so
+  // polling follows it rather than being decided once.
+  void _syncPolling() {
+    final mining = _mining;
+    if (mining == null) {
+      if (GetIt.I.isRegistered<MiningProvider>()) {
+        GetIt.I.get<MiningProvider>().stopPolling();
+      }
+      return;
+    }
+    mining.startPolling();
+    mining.refreshStatus();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final mining = _mining;
+    if (mining == null) return const SizedBox.shrink();
+
+    return ListenableBuilder(
+      listenable: mining,
+      builder: (context, _) {
+        if (!mining.isMining) return const SizedBox.shrink();
+
+        final theme = SailTheme.of(context);
+        final blocks = mining.blocksFound;
+        return Padding(
+          padding: const EdgeInsets.only(right: SailStyleValues.padding08),
+          child: SailTappable(
+            onTap: widget.onTap == null ? null : () async => widget.onTap!(),
+            child: Tooltip(
+              message: blocks == 0 ? 'CPU mining, no blocks found yet' : 'CPU mining, $blocks blocks found',
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  SailSVG.icon(SailSVGAsset.pickaxe, width: 13, color: theme.colors.orange),
+                  const SizedBox(width: SailStyleValues.padding08),
+                  SailText.secondary12('Mining at ${mining.formattedHashRate}'),
+                ],
+              ),
             ),
           ),
         );
