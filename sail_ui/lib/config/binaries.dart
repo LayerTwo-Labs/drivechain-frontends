@@ -1042,6 +1042,9 @@ String? flutterFrontendDirFor(BinaryType type, OS os, String home) {
   };
 }
 
+/// The CPU miner runs inside bitwindowd and logs beside its server log.
+String minerLogPath() => filePath([BitWindow().datadirNetwork(), 'miner.log']);
+
 extension BinaryPaths on Binary {
   String confFile() {
     return switch (type) {

@@ -7,7 +7,9 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"os"
 	"os/exec"
+	"path/filepath"
 	"slices"
 	"strconv"
 	"strings"
@@ -1182,7 +1184,7 @@ func (s *Server) StartMining(ctx context.Context, req *connect.Request[emptypb.E
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("create miner: %w", err))
 	}
 
-	logger := zerolog.Ctx(ctx)
+	logger, closeMinerLog := s.minerLogger(ctx)
 	minerCtx, cancel := context.WithCancel(logger.WithContext(context.Background()))
 	done := make(chan struct{})
 	s.mining.miner = miner
@@ -1194,6 +1196,7 @@ func (s *Server) StartMining(ctx context.Context, req *connect.Request[emptypb.E
 
 	go s.consumeMinedBlocks(minerCtx, miner)
 	go func() {
+		defer closeMinerLog()
 		err := miner.Start(minerCtx)
 		// Also fires the block consumer's exit when Start returns on its own
 		// (an internal error), not just when StopMining cancels.
@@ -1211,11 +1214,35 @@ func (s *Server) StartMining(ctx context.Context, req *connect.Request[emptypb.E
 		s.mining.mu.Unlock()
 		close(done)
 		if fatal {
+			zerolog.Ctx(ctx).Error().Err(err).Msg("cpu miner stopped with error")
 			logger.Error().Err(err).Msg("cpu miner stopped with error")
 		}
 	}()
 
 	return connect.NewResponse(&emptypb.Empty{}), nil
+}
+
+// minerLogger returns the logger the miner runs with: its own debug-level
+// miner.log, since the miner's progress output sits below the server log level.
+// The returned closer must be called when the mining run ends.
+func (s *Server) minerLogger(ctx context.Context) (*zerolog.Logger, func()) {
+	serverLog := zerolog.Ctx(ctx)
+
+	path := filepath.Join(filepath.Dir(s.config.LogPath), "miner.log")
+	file, err := os.OpenFile(path, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+	if err != nil {
+		serverLog.Warn().Err(err).Str("path", path).Msg("could not open miner.log, logging to server log")
+		return serverLog, func() {}
+	}
+
+	writer := zerolog.NewConsoleWriter(func(w *zerolog.ConsoleWriter) {
+		w.Out = file
+		w.NoColor = true
+		w.TimeFormat = time.DateTime + ".000"
+	})
+	logger := zerolog.New(writer).Level(zerolog.DebugLevel).With().Timestamp().Logger()
+	serverLog.Info().Str("path", path).Msg("miner log enabled")
+	return &logger, func() { _ = file.Close() }
 }
 
 // consumeMinedBlocks records accepted block hashes until the miner is cancelled.

@@ -17,12 +17,23 @@ class MiningProvider extends ChangeNotifier {
 
   Timer? _pollTimer;
 
+  static const _hashRateUnits = ['H/s', 'KH/s', 'MH/s', 'GH/s', 'TH/s', 'PH/s'];
+
+  String get formattedHashRate {
+    var rate = hashRate;
+    var unit = 0;
+    while (rate >= 1000 && unit < _hashRateUnits.length - 1) {
+      rate /= 1000;
+      unit++;
+    }
+    return '${rate.toStringAsFixed(1)} ${_hashRateUnits[unit]}';
+  }
+
   Future<void> startMining() async {
     try {
       _log.i('Starting CPU mining');
       error = null;
       await _bitwindowd.bitwindowd.startMining();
-      _startPolling();
       await refreshStatus();
     } catch (e) {
       _log.e('Failed to start mining: $e');
@@ -35,7 +46,6 @@ class MiningProvider extends ChangeNotifier {
     try {
       _log.i('Stopping CPU mining');
       await _bitwindowd.bitwindowd.stopMining();
-      _stopPolling();
       await refreshStatus();
     } catch (e) {
       _log.e('Failed to stop mining: $e');
@@ -52,29 +62,25 @@ class MiningProvider extends ChangeNotifier {
       blocksFound = status.blocksFound;
       foundBlockHashes = status.recentBlockHashes;
       error = status.error.isNotEmpty ? status.error : null;
-      if (isMining) {
-        _startPolling();
-      } else {
-        _stopPolling();
-      }
       notifyListeners();
     } catch (e) {
       _log.w('Failed to fetch mining status: $e');
     }
   }
 
-  void _startPolling() {
+  // Polls while idle too, so miners started elsewhere still show up.
+  void startPolling() {
     _pollTimer ??= Timer.periodic(const Duration(seconds: 3), (_) => refreshStatus());
   }
 
-  void _stopPolling() {
+  void stopPolling() {
     _pollTimer?.cancel();
     _pollTimer = null;
   }
 
   @override
   void dispose() {
-    _stopPolling();
+    stopPolling();
     super.dispose();
   }
 }
