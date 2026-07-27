@@ -124,6 +124,36 @@ class SailText {
     );
   }
 
+  static Widget primary16(
+    String label, {
+    TextAlign? textAlign,
+    bool bold = false,
+    Color? color,
+    bool underline = false,
+    bool italic = false,
+    bool monospace = false,
+    TextOverflow? overflow = TextOverflow.ellipsis,
+  }) {
+    return Builder(
+      builder: (context) {
+        final theme = SailTheme.of(context);
+        return _Text(
+          label: label,
+          style: SailStyleValues.sixteen.copyWith(
+            color: color ?? theme.colors.text,
+            fontWeight: bold ? SailStyleValues.boldWeight : null,
+            fontStyle: italic ? FontStyle.italic : FontStyle.normal,
+            decoration: underline ? TextDecoration.underline : TextDecoration.none,
+            decorationColor: underline ? (color ?? theme.colors.text) : null,
+            fontFamily: theme.chrome.fontFamily ?? (monospace ? 'IBMPlexMono' : 'Inter'),
+            overflow: overflow,
+          ),
+          textAlign: textAlign,
+        );
+      },
+    );
+  }
+
   static Widget primary15(
     String label, {
     TextAlign? textAlign,
