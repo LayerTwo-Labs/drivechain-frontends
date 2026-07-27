@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/config"
-	_ "github.com/mattn/go-sqlite3"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sqliteguard"
 	"github.com/rs/zerolog"
 )
 
@@ -19,17 +19,13 @@ func New(ctx context.Context, conf config.Config) (*sql.DB, error) {
 		Str("path", dbpath).
 		Msg("opening database")
 
-	db, err := sql.Open("sqlite3", dbpath)
+	db, err := sqliteguard.Open(ctx, sqliteguard.Config{
+		Path:    dbpath,
+		Migrate: runMigrations,
+		Log:     *zerolog.Ctx(ctx),
+	})
 	if err != nil {
-		return nil, fmt.Errorf("could not open database: %v", err)
-	}
-
-	if err := runMigrations(ctx, db); err != nil {
-		if err := db.Close(); err != nil {
-			return nil, fmt.Errorf("could not close database nor run migrations: %v", err)
-		}
-
-		return nil, fmt.Errorf("run migrations: %v", err)
+		return nil, fmt.Errorf("open database: %w", err)
 	}
 
 	// When running this against realistic amounts of data we run into DB locking
