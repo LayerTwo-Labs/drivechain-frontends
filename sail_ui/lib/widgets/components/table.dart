@@ -19,7 +19,7 @@ class SailTable extends StatefulWidget {
     this.onSelectedRow,
     this.onDoubleTap,
     this.contextMenuItems,
-    this.cellHeight = 24.0,
+    this.cellHeight = 40.0,
     this.shrinkWrap = false,
     this.drawGrid = false,
     this.resizableColumns = true,
@@ -688,7 +688,7 @@ class SailTableCell extends StatelessWidget {
       color: backgroundColor,
       child:
           child ??
-          SailText.primary12(
+          SailText.primary16(
             value,
             color: textColor,
             monospace: monospace,
@@ -733,9 +733,8 @@ class SailTableHeaderCell extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             Flexible(
-              child: SailText.primary10(
+              child: SailText.primary16(
                 name,
-                bold: true,
                 overflow: TextOverflow.ellipsis,
                 color: theme.colors.inactiveNavText,
               ),
