@@ -72,6 +72,8 @@ type ConnectionMonitor struct {
 	// Dart: _restartCount — tracks restart attempts
 	restartCount int
 
+	lastRestartAt time.Time
+
 	// Timer control
 	connectionStop chan struct{}
 	restartStop    chan struct{}
@@ -380,6 +382,7 @@ func (m *ConnectionMonitor) testConnection(ctx context.Context) {
 		m.startupError = ""
 		m.completedStartup = true
 		m.restartCount = 0
+		m.lastRestartAt = time.Time{}
 		m.hasCrashError = false // clear crash error on successful reconnection
 		m.initializingBinary = false
 	} else if isConnectModeOnly {
@@ -514,6 +517,12 @@ func (m *ConnectionMonitor) StartRestartTimer(ctx context.Context, restartFunc f
 	}()
 }
 
+// restartBackoff spaces out restart attempts: 1s doubling to a 30s ceiling.
+func restartBackoff(restartCount int) time.Duration {
+	backoff := time.Second << min(restartCount, 5)
+	return min(backoff, 30*time.Second)
+}
+
 // checkAndRestart is called every 500ms by the restart timer.
 // Dart: the body of the Timer.periodic callback in startRestartTimer (L246-284)
 func (m *ConnectionMonitor) checkAndRestart(ctx context.Context) {
@@ -551,6 +560,11 @@ func (m *ConnectionMonitor) checkAndRestart(ctx context.Context) {
 		return
 	}
 
+	if !m.lastRestartAt.IsZero() && time.Since(m.lastRestartAt) < restartBackoff(m.restartCount) {
+		m.mu.Unlock()
+		return
+	}
+
 	// Dart L267-269: we're connected, no need to restart
 	if m.connected {
 		m.mu.Unlock()
@@ -576,6 +590,7 @@ func (m *ConnectionMonitor) checkAndRestart(ctx context.Context) {
 
 	m.mu.Lock()
 	m.restartCount++
+	m.lastRestartAt = time.Now()
 	m.initializingBinary = true
 	m.mu.Unlock()
 
@@ -596,6 +611,7 @@ func (m *ConnectionMonitor) checkAndRestart(ctx context.Context) {
 	// Dart L279-281: if connected after restart, reset count
 	if m.connected {
 		m.restartCount = 0
+		m.lastRestartAt = time.Time{}
 	}
 	m.mu.Unlock()
 	m.notifyChange()
