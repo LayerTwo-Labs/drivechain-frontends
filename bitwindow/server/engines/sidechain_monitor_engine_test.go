@@ -189,10 +189,77 @@ func TestSidechainMonitorEngine_CleanupOldWithdrawals(t *testing.T) {
 		DetectedAt: newTime,
 	}
 
+	// Add old and new pending fast withdrawals
+	engine.pendingFastWithdrawals["old-hash"] = PendingFastWithdrawal{
+		Hash:      "old-hash",
+		Sidechain: "thunder",
+		Attempts:  12,
+		CreatedAt: oldTime,
+	}
+	engine.pendingFastWithdrawals["new-hash"] = PendingFastWithdrawal{
+		Hash:      "new-hash",
+		Sidechain: "thunder",
+		CreatedAt: newTime,
+	}
+
 	// Run cleanup
-	engine.cleanupOldWithdrawals()
+	engine.cleanupOldWithdrawals(context.Background())
 
 	// Old withdrawal should be removed, new one should remain
 	assert.NotContains(t, engine.detectedWithdrawals, "old-txid")
 	assert.Contains(t, engine.detectedWithdrawals, "new-txid")
+
+	// Same for pending fast withdrawals - otherwise a withdrawal the server
+	// never accepts is retried forever
+	assert.NotContains(t, engine.pendingFastWithdrawals, "old-hash")
+	assert.Contains(t, engine.pendingFastWithdrawals, "new-hash")
+}
+
+func TestSidechainMonitorEngine_FailedCompletionBacksOff(t *testing.T) {
+	ctx := zerolog.New(zerolog.NewTestWriter(t)).WithContext(context.Background())
+
+	// Mock server that always fails the /paid POST
+	var paidRequests int
+	mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		paidRequests++
+		w.WriteHeader(http.StatusInternalServerError)
+		if err := json.NewEncoder(w).Encode(map[string]interface{}{"status": "error"}); err != nil {
+			t.Errorf("failed to encode response: %v", err)
+		}
+	}))
+	defer mockServer.Close()
+
+	engine := NewSidechainMonitorEngine(
+		nil, nil, nil, nil, nil, nil,
+		nil,
+	)
+
+	pending := PendingFastWithdrawal{
+		Hash:           "test-hash-123456789abcdef",
+		Sidechain:      "thunder",
+		ServerAddress:  "thunder1test456",
+		ExpectedAmount: 105000,
+		ServerURL:      mockServer.URL,
+		CreatedAt:      time.Now(),
+	}
+
+	err := engine.RegisterPendingFastWithdrawal(ctx, pending)
+	require.NoError(t, err)
+
+	// A failing completion must not drop the withdrawal, but must record the attempt
+	err = engine.completeWithdrawal(ctx, pending, "test-txid-456789abcdef123")
+	require.Error(t, err)
+	engine.recordFailedCompletion(pending.Hash)
+	assert.Equal(t, 1, paidRequests)
+
+	stored := engine.pendingFastWithdrawals[pending.Hash]
+	assert.Equal(t, 1, stored.Attempts)
+	assert.False(t, stored.LastAttempt.IsZero())
+
+	// Backoff grows with the attempt count, and is capped
+	assert.Equal(t, 30*time.Second, completionBackoff(0))
+	assert.Equal(t, 30*time.Second, completionBackoff(1))
+	assert.Equal(t, 60*time.Second, completionBackoff(2))
+	assert.Equal(t, 16*time.Minute, completionBackoff(6))
+	assert.Equal(t, 16*time.Minute, completionBackoff(100))
 }

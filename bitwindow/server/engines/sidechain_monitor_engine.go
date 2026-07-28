@@ -69,6 +69,32 @@ type PendingFastWithdrawal struct {
 	ExpectedAmount int64     `json:"expected_amount"` // Amount expected (sats)
 	ServerURL      string    `json:"server_url"`      // Fast withdrawal server URL
 	CreatedAt      time.Time `json:"created_at"`
+	Attempts       int       `json:"attempts"`     // Failed /paid completion attempts so far
+	LastAttempt    time.Time `json:"last_attempt"` // When the last /paid attempt was made
+}
+
+const (
+	// completionBackoffBase is the delay before the first /paid retry. Each
+	// subsequent failure doubles it, up to completionBackoffMaxShift.
+	completionBackoffBase = 30 * time.Second
+
+	// completionBackoffMaxShift caps the exponential backoff at
+	// completionBackoffBase << completionBackoffMaxShift (16 minutes).
+	completionBackoffMaxShift = 5
+)
+
+// completionBackoff returns how long to wait before re-POSTing /paid after the
+// given number of failed attempts
+func completionBackoff(attempts int) time.Duration {
+	shift := attempts - 1
+	if shift < 0 {
+		shift = 0
+	}
+	if shift > completionBackoffMaxShift {
+		shift = completionBackoffMaxShift
+	}
+
+	return completionBackoffBase << shift
 }
 
 // NewSidechainMonitorEngine creates a new sidechain monitoring engine
@@ -135,7 +161,7 @@ func (e *SidechainMonitorEngine) Run(ctx context.Context) error {
 					pollCount++
 					// Cleanup old withdrawals every 60 polls for ALL sidechains (fix memory leak)
 					if pollCount%60 == 0 {
-						e.cleanupOldWithdrawals()
+						e.cleanupOldWithdrawals(ctx)
 					}
 
 					// Dynamic polling interval based on pending withdrawals
@@ -209,9 +235,15 @@ func (e *SidechainMonitorEngine) checkFastWithdrawalPayments(ctx context.Context
 	e.mu.RLock()
 	var pendingForSidechain []PendingFastWithdrawal
 	for _, pending := range e.pendingFastWithdrawals {
-		if pending.Sidechain == sidechain {
-			pendingForSidechain = append(pendingForSidechain, pending)
+		if pending.Sidechain != sidechain {
+			continue
 		}
+		// Skip rows still backing off from a failed /paid POST, so a server that
+		// is down doesn't get the same completion re-posted on every poll
+		if !pending.LastAttempt.IsZero() && time.Since(pending.LastAttempt) < completionBackoff(pending.Attempts) {
+			continue
+		}
+		pendingForSidechain = append(pendingForSidechain, pending)
 	}
 	e.mu.RUnlock()
 
@@ -262,11 +294,28 @@ func (e *SidechainMonitorEngine) checkFastWithdrawalPayments(ctx context.Context
 			// Auto-complete the withdrawal
 			if err := e.completeWithdrawal(ctx, pending, txid); err != nil {
 				log.Error().Err(err).Str("hash", pending.Hash).Msg("failed to auto-complete withdrawal")
+				e.recordFailedCompletion(pending.Hash)
 			}
 		}
 	}
 
 	return nil
+}
+
+// recordFailedCompletion notes a failed /paid POST so the next attempt for the
+// same withdrawal is delayed by completionBackoff instead of firing next poll
+func (e *SidechainMonitorEngine) recordFailedCompletion(hash string) {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+
+	pending, exists := e.pendingFastWithdrawals[hash]
+	if !exists {
+		return // Already completed or cleaned up
+	}
+
+	pending.Attempts++
+	pending.LastAttempt = time.Now()
+	e.pendingFastWithdrawals[hash] = pending
 }
 
 // getPollInterval returns the polling interval based on pending withdrawals
@@ -288,7 +337,9 @@ func (e *SidechainMonitorEngine) getPollInterval() time.Duration {
 }
 
 // cleanupOldWithdrawals removes withdrawals older than 1 hour to prevent memory bloat
-func (e *SidechainMonitorEngine) cleanupOldWithdrawals() {
+func (e *SidechainMonitorEngine) cleanupOldWithdrawals(ctx context.Context) {
+	log := zerolog.Ctx(ctx)
+
 	e.mu.Lock()
 	defer e.mu.Unlock()
 
@@ -296,6 +347,20 @@ func (e *SidechainMonitorEngine) cleanupOldWithdrawals() {
 	for txid, withdrawal := range e.detectedWithdrawals {
 		if withdrawal.DetectedAt.Before(cutoff) {
 			delete(e.detectedWithdrawals, txid)
+		}
+	}
+
+	// Pending fast withdrawals are retried until the server accepts the /paid
+	// POST, so they need the same retention or they accumulate forever
+	for hash, pending := range e.pendingFastWithdrawals {
+		if pending.CreatedAt.Before(cutoff) {
+			delete(e.pendingFastWithdrawals, hash)
+
+			log.Warn().
+				Str("hash", hash).
+				Str("sidechain", pending.Sidechain).
+				Int("attempts", pending.Attempts).
+				Msg("giving up on auto-completing fast withdrawal, retention expired")
 		}
 	}
 }
