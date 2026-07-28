@@ -134,6 +134,57 @@ jobs:
         working-directory: bitwindow/server
         run: go test -v -tags integration -timeout 10m ./integrationtest/
 
+  hwi-daemon:
+    name: hwi daemon (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    if: github.event.pull_request.draft == false
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-2022, macos-latest]
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-go@v6
+        with:
+          go-version: ${{ env.GO_VERSION }}
+
+      - name: Install libusb (Linux)
+        if: runner.os == 'Linux'
+        run: sudo apt-get update -y && sudo apt-get install -y libusb-1.0-0-dev
+
+      - name: Install libusb (macOS)
+        if: runner.os == 'macOS'
+        run: brew install libusb
+
+      - name: Fetch libusb (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $ver = "1.0.27"
+          Invoke-WebRequest "https://github.com/libusb/libusb/releases/download/v$ver/libusb-$ver.7z" -OutFile libusb.7z
+          7z x libusb.7z -olibusb-dist
+          $dll = Get-ChildItem libusb-dist -Recurse -Filter libusb-1.0.dll |
+                 Where-Object { $_.FullName -like '*\VS2022\MS64\dll\*' } | Select-Object -First 1
+          if (-not $dll) { throw "no VS2022/MS64 libusb-1.0.dll in libusb-$ver.7z" }
+          "LIBUSB_DLL=$($dll.FullName)" >> $env:GITHUB_ENV
+
+      - name: Freeze the hwi daemon
+        shell: bash
+        run: |
+          out="$PWD/hwi-out/hwi-daemon"
+          [[ "$RUNNER_OS" == "Windows" ]] && out="$out.exe"
+          sidechain-orchestrator/hwi-daemon/build.sh "$out"
+          # Go execs the daemon, so hand it a path the host understands.
+          [[ "$RUNNER_OS" == "Windows" ]] && out="$(cygpath -w "$out")"
+          echo "ORCHESTRATOR_HWI_DAEMON=$out" >> "$GITHUB_ENV"
+
+      - name: Run the daemon smoke test
+        working-directory: sidechain-orchestrator
+        run: go test -v -run TestHWIDaemonSmoke -timeout 10m ./wallet/
+
   replay-protection:
     name: replay protection (macOS)
     runs-on: macos-latest
