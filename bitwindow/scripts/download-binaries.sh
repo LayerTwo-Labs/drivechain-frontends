@@ -111,13 +111,15 @@ build_hwi_daemon() {
     esac
     cp "$libusb" "$tmp/$wanted"
     # PyInstaller splits --add-binary on the host os.pathsep.
-    local sep=":"; [[ "$os" == "windows" ]] && sep=";"
+    local sep=":" staged="$tmp/$wanted"
+    # MSYS mangles the ";"-joined argument instead of translating the path.
+    [[ "$os" == "windows" ]] && { sep=";"; staged="$(cygpath -w "$staged")"; }
     echo "Building hwi-daemon (${goarch:-host}) — installs hwi + pyinstaller into a temp venv"
     "$py" -m venv "$tmp/venv"
     local vpy="$tmp/venv/$bindir/python"
     "$vpy" -m pip install --quiet --upgrade pip
     "$vpy" -m pip install --quiet "hwi==2.1.1" pyinstaller
-    "$vpy" -m PyInstaller --onefile --name "$name" --collect-all hwilib --add-binary "$tmp/$wanted$sep." \
+    "$vpy" -m PyInstaller --onefile --name "$name" --collect-all hwilib --add-binary "$staged$sep." \
         --distpath "$(dirname "$out")" --workpath "$tmp/build" --specpath "$tmp" "$script"
     chmod +x "$out" 2>/dev/null || true
     rm -rf "$tmp"
