@@ -174,19 +174,16 @@ func DetectFileType(content []byte) string {
 	// Try to detect text files
 	sampleSize := min(1024, len(content))
 
-	// Check if content looks like valid UTF-8 text
+	// Check if content is printable ASCII text. Non-ASCII bytes must classify as
+	// "bin": the "txt" path stores content raw in the OP_RETURN, and retrieval
+	// runs it through opreturns.OPReturnToReadable, which hex-encodes anything
+	// containing a byte above 0x7E and so destroys the "metadataB64|content"
+	// framing that DecodeOPReturnData needs.
 	isText := true
 	for i := range sampleSize {
 		b := content[i]
 		// Allow printable ASCII, newlines, tabs
-		if b < 0x09 || (b > 0x0D && b < 0x20) || b == 0x7F {
-			// Check for UTF-8 multi-byte sequences
-			if b >= 0x80 && b <= 0xBF {
-				continue // continuation byte
-			}
-			if b >= 0xC0 && b <= 0xF7 {
-				continue // start of multi-byte
-			}
+		if b < 0x09 || (b > 0x0D && b < 0x20) || b >= 0x7F {
 			isText = false
 			break
 		}
