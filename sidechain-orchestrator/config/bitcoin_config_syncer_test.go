@@ -563,9 +563,10 @@ func TestUpdateDataDirInactiveGroupLeavesActiveAlone(t *testing.T) {
 	require.NoError(t, os.MkdirAll(filepath.Dir(masterPath), 0755))
 	require.NoError(t, os.WriteFile(masterPath, []byte(m.Config.Serialize()), 0644))
 
-	require.NoError(t, m.UpdateDataDir("/picked/for/mainnet", NetworkMainnet))
+	picked := filepath.Join(tmpDir, "picked", "for", "mainnet")
+	require.NoError(t, m.UpdateDataDir(picked, NetworkMainnet))
 
-	require.Equal(t, "/picked/for/mainnet", m.Config.GetGroupDatadir(DatadirGroupDefault))
+	require.Equal(t, picked, m.Config.GetGroupDatadir(DatadirGroupDefault))
 	require.Equal(t, "/drynet/live", m.Config.GetSetting("datadir"), "active datadir must not change when setting inactive group")
 }
 
@@ -581,10 +582,11 @@ func TestUpdateDataDirActiveGroupUpdatesLive(t *testing.T) {
 	require.NoError(t, os.MkdirAll(filepath.Dir(masterPath), 0755))
 	require.NoError(t, os.WriteFile(masterPath, []byte(m.Config.Serialize()), 0644))
 
-	require.NoError(t, m.UpdateDataDir("/picked/for/mainnet", NetworkMainnet))
+	picked := filepath.Join(tmpDir, "picked", "for", "mainnet")
+	require.NoError(t, m.UpdateDataDir(picked, NetworkMainnet))
 
-	require.Equal(t, "/picked/for/mainnet", m.Config.GetGroupDatadir(DatadirGroupDefault))
-	require.Equal(t, "/picked/for/mainnet", m.Config.GetSetting("datadir"))
+	require.Equal(t, picked, m.Config.GetGroupDatadir(DatadirGroupDefault))
+	require.Equal(t, picked, m.Config.GetSetting("datadir"))
 }
 
 // Manual edit: rewrite datadir= directly on disk, reload, swap to drynet —
@@ -608,7 +610,7 @@ func TestSwapAdoptsManuallyEditedDatadirIntoSlot(t *testing.T) {
 	require.NoError(t, m.UpdateNetwork(NetworkDrynet))
 
 	require.Equal(t, "/manually/edited", m.Config.GetGroupDatadir(DatadirGroupDefault))
-	require.Equal(t, "/drynet/path", m.Config.GetSetting("datadir"))
+	require.Equal(t, "/drynet/path/drynet", m.Config.GetSetting("datadir"))
 }
 
 // Within-group swap (mainnet ↔ signet) leaves datadir= alone and writes no
@@ -808,7 +810,7 @@ chain=signet
 
 	out := c.Serialize()
 	require.Contains(t, out, "# bitwindow-datadir-default=/Volumes/SSD/bitcoin\n")
-	require.Contains(t, out, "# bitwindow-datadir-drynet=/new/drynet/path\n")
+	require.Contains(t, out, "# bitwindow-datadir-drynet=/new/drynet/path/drynet\n")
 
 	// Stable order: default before drynet
 	defIdx := strings.Index(out, "# bitwindow-datadir-default=")
@@ -818,13 +820,13 @@ chain=signet
 	// Re-parse, values stable
 	c2 := ParseBitcoinConfig(out)
 	require.Equal(t, "/Volumes/SSD/bitcoin", c2.GetGroupDatadir(DatadirGroupDefault))
-	require.Equal(t, "/new/drynet/path", c2.GetGroupDatadir(DatadirGroupDrynet))
+	require.Equal(t, "/new/drynet/path/drynet", c2.GetGroupDatadir(DatadirGroupDrynet))
 }
 
 func TestDatadirSlotsClearedOnEmpty(t *testing.T) {
 	c := NewBitcoinConfig()
 	c.SetGroupDatadir(DatadirGroupDrynet, "/some/path")
-	require.Equal(t, "/some/path", c.GetGroupDatadir(DatadirGroupDrynet))
+	require.Equal(t, "/some/path/drynet", c.GetGroupDatadir(DatadirGroupDrynet))
 	c.SetGroupDatadir(DatadirGroupDrynet, "")
 	require.Equal(t, "", c.GetGroupDatadir(DatadirGroupDrynet))
 
@@ -838,6 +840,33 @@ func TestDatadirGroupForNetwork(t *testing.T) {
 	require.Equal(t, DatadirGroupDefault, DatadirGroupForNetwork(NetworkTestnet))
 	require.Equal(t, DatadirGroupDefault, DatadirGroupForNetwork(NetworkRegtest))
 	require.Equal(t, DatadirGroupDrynet, DatadirGroupForNetwork(NetworkDrynet))
+}
+
+func TestNormalizeGroupDatadir(t *testing.T) {
+	require.Equal(t, "/x/forknet", NormalizeGroupDatadir(DatadirGroupForknet, "/x"))
+	require.Equal(t, "/x/forknet", NormalizeGroupDatadir(DatadirGroupForknet, "/x/forknet"), "idempotent")
+	require.Equal(t, "/x/forknet", NormalizeGroupDatadir(DatadirGroupForknet, "/x/forknet/"), "trailing slash")
+	require.Equal(t, "/x", NormalizeGroupDatadir(DatadirGroupDefault, "/x"), "default group untouched")
+	require.Equal(t, "", NormalizeGroupDatadir(DatadirGroupForknet, ""))
+}
+
+// The whole point of the suffix: even when the user points both groups at the
+// same folder, forknet and mainnet resolve to different bitcoind datadirs.
+func TestSameSlotPathStillSeparatesForknetFromMainnet(t *testing.T) {
+	c := NewBitcoinConfig()
+	c.SetGroupDatadir(DatadirGroupDefault, "/Volumes/BTC")
+	c.SetGroupDatadir(DatadirGroupForknet, "/Volumes/BTC")
+
+	mainnet := c.GetGroupDatadir(DatadirGroupDefault)
+	forknet := c.GetGroupDatadir(DatadirGroupForknet)
+
+	require.NotEqual(t, mainnet, forknet)
+	require.Equal(t, "/Volumes/BTC/forknet", forknet)
+
+	require.NotEqual(t,
+		BitcoinCoreDirs.DatadirNetwork(NetworkMainnet, mainnet),
+		BitcoinCoreDirs.DatadirNetwork(NetworkForknet, forknet),
+	)
 }
 
 // ---------------------------------------------------------------------------

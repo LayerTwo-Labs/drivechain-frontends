@@ -425,6 +425,14 @@ func (m *BitcoinConfManager) UpdateDataDir(dataDir string, forNetwork Network) e
 	group := DatadirGroupForNetwork(forNetwork)
 	m.Config.SetGroupDatadir(group, cleanDataDir)
 
+	// The picker validated the path the user chose; forknet's slot is stored a
+	// level deeper than that, and bitcoind refuses to boot on a missing datadir.
+	if stored := m.Config.GetGroupDatadir(group); stored != "" {
+		if err := os.MkdirAll(stored, 0755); err != nil {
+			return fmt.Errorf("create datadir %s: %w", stored, err)
+		}
+	}
+
 	if group == DatadirGroupForNetwork(m.Network) {
 		m.materializeDatadirForGroup(group)
 	}

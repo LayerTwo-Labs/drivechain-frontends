@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"path/filepath"
 	"strconv"
 	"strings"
 )
@@ -83,7 +84,7 @@ func ParseBitcoinConfig(content string) *BitcoinConfig {
 				group := DatadirGroup(strings.TrimSpace(rest[:eq]))
 				path := strings.TrimSpace(rest[eq+1:])
 				if group == DatadirGroupDefault || group == DatadirGroupForknet || group == DatadirGroupDrynet {
-					config.DatadirSlots[group] = path
+					config.DatadirSlots[group] = NormalizeGroupDatadir(group, path)
 				}
 			}
 			continue
@@ -298,7 +299,23 @@ func (c *BitcoinConfig) SetGroupDatadir(g DatadirGroup, path string) {
 		delete(c.DatadirSlots, g)
 		return
 	}
-	c.DatadirSlots[g] = path
+	c.DatadirSlots[g] = NormalizeGroupDatadir(g, path)
+}
+
+// NormalizeGroupDatadir appends the group's own directory component to a
+// non-default group's datadir. Forknet and drynet run on chain=main, so Core
+// writes blocks/ and chainstate/ to the root of the datadir exactly like
+// mainnet — the suffix is the only thing keeping the three chains from loading
+// each other's data. Idempotent.
+func NormalizeGroupDatadir(g DatadirGroup, path string) string {
+	if g == DatadirGroupDefault || path == "" {
+		return path
+	}
+	clean := filepath.Clean(path)
+	if filepath.Base(clean) == string(g) {
+		return clean
+	}
+	return filepath.Join(clean, string(g))
 }
 
 func removeFromOrder(order []string, key string) []string {
