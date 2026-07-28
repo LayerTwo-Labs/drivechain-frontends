@@ -39,9 +39,10 @@ func Bitcoind(ctx context.Context, orchestratorAddr string) (corerpc.BitcoinServ
 	if orchestratorAddr == "" {
 		return nil, errors.New("empty orchestrator addr")
 	}
+	addr := ensureHTTPScheme(orchestratorAddr)
 	return corerpc.NewBitcoinServiceClient(
-		getSharedClient(ctx),
-		ensureHTTPScheme(orchestratorAddr),
+		clientForScheme(ctx, addr),
+		addr,
 		connect.WithGRPC(),
 		// Bitcoind is the one dial target on the orchestrator (its hosted core
 		// proxy); enforcer/sidechain dials go to other daemons and stay
@@ -60,6 +61,17 @@ func ensureHTTPScheme(addr string) string {
 		return addr
 	}
 	return "http://" + addr
+}
+
+// clientForScheme picks the client matching addr's scheme (addr must already
+// have been through ensureHTTPScheme). The shared client is h2c: it dials
+// cleartext no matter what scheme the URL carries, so handing it an https://
+// orchestrator URL would put the local-auth cookie on the wire in the clear.
+func clientForScheme(ctx context.Context, addr string) *http.Client {
+	if strings.HasPrefix(strings.ToLower(addr), "https://") {
+		return getSharedTLSClient(ctx)
+	}
+	return getSharedClient(ctx)
 }
 
 func EnforcerValidator(ctx context.Context, url string) (
@@ -234,9 +246,13 @@ func CoinShift(ctx context.Context, host string, port int) (*coinshift.Client, e
 }
 
 var (
-	// Shared HTTP client for all connections
+	// Shared HTTP client for all cleartext (http://) connections
 	sharedClient *http.Client
 	clientOnce   sync.Once
+
+	// Shared HTTP client for https:// targets. Same settings, but real TLS.
+	sharedTLSClient *http.Client
+	tlsClientOnce   sync.Once
 
 	// cookieDir is the bitwindow data dir holding .auth.cookie, used by the
 	// orchestrator-targeting Bitcoind client. Set once at startup via
@@ -248,27 +264,47 @@ var (
 // (Bitcoind proxy) client. Call once at startup before the first dial.
 func SetCookieDir(dir string) { cookieDir = dir }
 
-// getSharedClient returns a singleton HTTP client for all connections
+// getSharedClient returns a singleton HTTP client for cleartext connections
 func getSharedClient(ctx context.Context) *http.Client {
 	clientOnce.Do(func() {
-		sharedClient = &http.Client{
-			Transport: &http2.Transport{
-				AllowHTTP: true,
-				DialTLS: func(network, addr string, _ *tls.Config) (net.Conn, error) {
-					return net.Dial(network, addr)
-				},
-				// Without explicit timeouts here, clients linger indefinitely
-				IdleConnTimeout:  15 * time.Second,
-				ReadIdleTimeout:  30 * time.Second, // Close if no data received for 30s
-				PingTimeout:      15 * time.Second,
-				WriteByteTimeout: 10 * time.Second,
-
-				CountError: func(errType string) {
-					zerolog.Ctx(ctx).Error().Msgf("HTTP/2 transport error: %s", errType)
-				},
-			},
-			Timeout: 30 * time.Second, // Overall request timeout
-		}
+		sharedClient = newHTTP2Client(ctx, true)
 	})
 	return sharedClient
+}
+
+// getSharedTLSClient returns a singleton HTTP client for https:// connections.
+func getSharedTLSClient(ctx context.Context) *http.Client {
+	tlsClientOnce.Do(func() {
+		sharedTLSClient = newHTTP2Client(ctx, false)
+	})
+	return sharedTLSClient
+}
+
+// newHTTP2Client builds an HTTP/2 client with our standard timeouts. With
+// cleartext set it speaks h2c (prior knowledge, no TLS handshake); otherwise
+// http2.Transport's own TLS dialer handles the connection. The h2c dialer must
+// never be used for https:// targets — it ignores the *tls.Config it is handed
+// and would send the request, headers and all, unencrypted.
+func newHTTP2Client(ctx context.Context, cleartext bool) *http.Client {
+	transport := &http2.Transport{
+		// Without explicit timeouts here, clients linger indefinitely
+		IdleConnTimeout:  15 * time.Second,
+		ReadIdleTimeout:  30 * time.Second, // Close if no data received for 30s
+		PingTimeout:      15 * time.Second,
+		WriteByteTimeout: 10 * time.Second,
+
+		CountError: func(errType string) {
+			zerolog.Ctx(ctx).Error().Msgf("HTTP/2 transport error: %s", errType)
+		},
+	}
+	if cleartext {
+		transport.AllowHTTP = true
+		transport.DialTLS = func(network, addr string, _ *tls.Config) (net.Conn, error) {
+			return net.Dial(network, addr)
+		}
+	}
+	return &http.Client{
+		Transport: transport,
+		Timeout:   30 * time.Second, // Overall request timeout
+	}
 }

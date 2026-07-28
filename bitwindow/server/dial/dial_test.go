@@ -1,6 +1,10 @@
 package dial
 
-import "testing"
+import (
+	"testing"
+
+	"golang.org/x/net/http2"
+)
 
 // TestEnsureHTTPScheme guards the double-prefix regression. config.OrchestratorAddr
 // defaults to a full URL ("http://localhost:30400"); dial.Bitcoind used to wrap
@@ -37,5 +41,44 @@ func TestEnsureHTTPScheme(t *testing.T) {
 func TestBitcoind_RejectsEmptyAddr(t *testing.T) {
 	if _, err := Bitcoind(t.Context(), ""); err == nil {
 		t.Fatal("Bitcoind(\"\") returned nil error")
+	}
+}
+
+// TestClientForScheme guards the cookie-leak regression. Every dial used the
+// h2c client, whose DialTLS hook discards the *tls.Config it is handed and
+// plain net.Dials instead — x/net/http2 routes https:// connections through
+// that same hook, so an https:// orchestrator.addr dialed cleartext and the
+// local-auth bearer cookie went out unencrypted. https:// must get a transport
+// that actually does TLS.
+func TestClientForScheme(t *testing.T) {
+	cleartext := clientForScheme(t.Context(), "http://localhost:30400")
+	encrypted := clientForScheme(t.Context(), "https://orch.example.com")
+
+	if cleartext == encrypted {
+		t.Fatal("http:// and https:// got the same client")
+	}
+
+	h2c, ok := cleartext.Transport.(*http2.Transport)
+	if !ok {
+		t.Fatalf("http:// transport = %T, want *http2.Transport", cleartext.Transport)
+	}
+	if !h2c.AllowHTTP || h2c.DialTLS == nil {
+		t.Error("http:// client is not the h2c transport")
+	}
+
+	tlsTransport, ok := encrypted.Transport.(*http2.Transport)
+	if !ok {
+		t.Fatalf("https:// transport = %T, want *http2.Transport", encrypted.Transport)
+	}
+	if tlsTransport.AllowHTTP {
+		t.Error("https:// client allows cleartext HTTP/2")
+	}
+	if tlsTransport.DialTLS != nil || tlsTransport.DialTLSContext != nil {
+		t.Error("https:// client overrides the TLS dialer, bypassing TLS")
+	}
+
+	// ensureHTTPScheme passes mixed-case schemes through untouched.
+	if got := clientForScheme(t.Context(), "HTTPS://orch.example.com"); got != encrypted {
+		t.Error("mixed-case https:// did not get the TLS client")
 	}
 }
