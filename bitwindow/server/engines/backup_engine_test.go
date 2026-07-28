@@ -145,6 +145,25 @@ func TestRestoreBackup_JSON(t *testing.T) {
 	}
 }
 
+// a zipped wallet.json that ValidateBackup rejects must also be rejected by
+// RestoreBackup, instead of being written over the live wallet
+func TestRestoreBackup_ZIP_InvalidWalletJSON(t *testing.T) {
+	tmpDir := t.TempDir()
+	e := &BackupEngine{walletDir: tmpDir}
+
+	bad := zipWith(t, "wallet.json", []byte(`{"foo":"bar"}`))
+
+	if _, err := e.ValidateBackup(context.TODO(), bad, "backup.zip"); err == nil {
+		t.Fatal("expected ValidateBackup to reject invalid wallet.json")
+	}
+	if err := e.RestoreBackup(testCtx(), bad, "backup.zip"); err == nil {
+		t.Fatal("expected RestoreBackup to reject invalid wallet.json")
+	}
+	if _, err := os.Stat(filepath.Join(tmpDir, "wallet.json")); !os.IsNotExist(err) {
+		t.Fatal("RestoreBackup wrote wallet.json despite invalid contents")
+	}
+}
+
 func TestHasCurrentWallet(t *testing.T) {
 	tmpDir := t.TempDir()
 	e := &BackupEngine{walletDir: tmpDir}

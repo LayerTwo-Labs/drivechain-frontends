@@ -155,10 +155,6 @@ func (e *BackupEngine) RestoreBackup(ctx context.Context, data []byte, filename 
 	switch ext {
 	case ".json":
 		walletJSON = data
-		// Validate it's valid wallet JSON
-		if err := validateWalletJSON(data); err != nil {
-			return fmt.Errorf("invalid wallet.json: %w", err)
-		}
 	case ".zip":
 		walletJSON, metadataJSON, multisigJSON, txJSON, err = extractZIP(data)
 		if err != nil {
@@ -172,20 +168,10 @@ func (e *BackupEngine) RestoreBackup(ctx context.Context, data []byte, filename 
 		return fmt.Errorf("backup does not contain wallet.json")
 	}
 
-	// Import into the DB before touching the wallet files, so a backup that
-	// fails to import leaves the current wallet in place.
-	if multisigJSON != nil {
-		if err := e.multisigStore.ImportFromJSON(ctx, multisigJSON); err != nil {
-			return fmt.Errorf("import multisig data: %w", err)
-		}
-		log.Info().Msg("restore: imported multisig data")
-	}
-
-	if txJSON != nil {
-		if err := e.multisigStore.ImportTransactionsFromJSON(ctx, txJSON); err != nil {
-			return fmt.Errorf("import transactions: %w", err)
-		}
-		log.Info().Msg("restore: imported transactions")
+	// Validate it's valid wallet JSON. This gates both file types, so a restore
+	// never writes bytes that ValidateBackup (validateJSON/validateZIP) rejects.
+	if err := validateWalletJSON(walletJSON); err != nil {
+		return fmt.Errorf("invalid wallet.json: %w", err)
 	}
 
 	// Restore wallet.json
