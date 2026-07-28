@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/bitdrive"
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/opreturns"
 	"github.com/btcsuite/btcd/chaincfg"
 	_ "github.com/mattn/go-sqlite3"
 )
@@ -225,5 +226,69 @@ func TestSaveFile_SameSecondNoCollision(t *testing.T) {
 	}
 	if string(secondContent) != "second file" {
 		t.Fatalf("second file content wrong: got %q", secondContent)
+	}
+}
+
+// TestDetectFileType_NonASCIIIsBinary verifies that any byte above 0x7E makes
+// content classify as "bin" rather than "txt". Classifying it as text sends it
+// down the raw-storage path, which cannot survive retrieval.
+func TestDetectFileType_NonASCIIIsBinary(t *testing.T) {
+	tests := []struct {
+		name    string
+		content []byte
+		want    string
+	}{
+		{"plain ascii", []byte("hello world\n\tand tabs"), "txt"},
+		{"utf-8 multi-byte", []byte("café"), "bin"},
+		{"high byte", []byte("prefix\xFFsuffix"), "bin"},
+		{"continuation byte only", []byte("prefix\xBFsuffix"), "bin"},
+		{"delete char", []byte("prefix\x7Fsuffix"), "bin"},
+		{"nul byte", []byte("prefix\x00suffix"), "bin"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := DetectFileType(tt.content); got != tt.want {
+				t.Fatalf("DetectFileType(%q) = %q, want %q", tt.content, got, tt.want)
+			}
+		})
+	}
+}
+
+// TestEncodeOPReturnData_NonASCIIRoundTrip walks a payload containing a byte
+// above 0x7F through the full store/retrieve chain:
+// EncodeOPReturnData -> FormatOPReturnData -> OPReturnToReadable ->
+// DecodeOPReturnData. Storing such content as "txt" put raw high bytes on
+// chain, which OPReturnToReadable then hex-encoded, hiding the "|" separator
+// and making DecodeOPReturnData fail with "invalid OP_RETURN format".
+func TestEncodeOPReturnData_NonASCIIRoundTrip(t *testing.T) {
+	ctx := context.Background()
+	engine := &BitDriveEngine{}
+
+	contents := [][]byte{
+		[]byte("café ☕ unicode text"),
+		[]byte("ascii with one high byte: \xFE"),
+		{0x00, 0x01, 0x80, 0xFF, 0x7C, 0x41},
+	}
+
+	for _, content := range contents {
+		metadataB64, contentStr, _, err := engine.EncodeOPReturnData(ctx, content, false)
+		if err != nil {
+			t.Fatalf("encode %q: %v", content, err)
+		}
+
+		opReturnData := FormatOPReturnData(metadataB64, contentStr)
+		readable := opreturns.OPReturnToReadable([]byte(opReturnData))
+
+		decoded, metadata, err := engine.DecodeOPReturnData(ctx, readable)
+		if err != nil {
+			t.Fatalf("decode %q: %v", content, err)
+		}
+		if metadata.FileType != "bin" {
+			t.Fatalf("expected file type bin for %q, got %q", content, metadata.FileType)
+		}
+		if !bytes.Equal(decoded, content) {
+			t.Fatalf("round trip mismatch: got %q, want %q", decoded, content)
+		}
 	}
 }
