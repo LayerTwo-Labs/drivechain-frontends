@@ -35,15 +35,51 @@ func TestSwapNetwork_CrossGroupPreservesDatadirs(t *testing.T) {
 	// Mainnet → drynet (cross-group): live datadir flips to drynet's,
 	// default slot retains the mainnet datadir.
 	require.NoError(t, o.SwapNetwork(context.Background(), config.NetworkDrynet))
-	require.Equal(t, "/tmp/group-drynet", o.BitcoinConf.Config.GetSetting("datadir"))
+	require.Equal(t, "/tmp/group-drynet/drynet", o.BitcoinConf.Config.GetSetting("datadir"))
 	require.Equal(t, "/tmp/group-default", o.BitcoinConf.Config.GetGroupDatadir(config.DatadirGroupDefault))
-	require.Equal(t, "/tmp/group-drynet", o.BitcoinConf.Config.GetGroupDatadir(config.DatadirGroupDrynet))
+	require.Equal(t, "/tmp/group-drynet/drynet", o.BitcoinConf.Config.GetGroupDatadir(config.DatadirGroupDrynet))
 
 	// Drynet → mainnet (cross-group back): default slot restored, drynet
 	// slot retained for the next swap.
 	require.NoError(t, o.SwapNetwork(context.Background(), config.NetworkMainnet))
 	require.Equal(t, "/tmp/group-default", o.BitcoinConf.Config.GetSetting("datadir"))
-	require.Equal(t, "/tmp/group-drynet", o.BitcoinConf.Config.GetGroupDatadir(config.DatadirGroupDrynet))
+	require.Equal(t, "/tmp/group-drynet/drynet", o.BitcoinConf.Config.GetGroupDatadir(config.DatadirGroupDrynet))
+}
+
+// Regression: mainnet, forknet and drynet all run on chain=main, so Core
+// writes blocks/ and chainstate/ to the root of the datadir for each of them.
+// A user who picks the same folder for every group used to have bitcoind boot
+// one chain on top of another's chainstate and reindex over it. The per-group
+// suffix is what keeps them apart.
+func TestSwapNetwork_SamePickedPathKeepsChainsApart(t *testing.T) {
+	o := newTestOrchestrator(t)
+	require.NotNil(t, o.BitcoinConf)
+
+	const picked = "/tmp/one-and-only-datadir"
+	o.BitcoinConf.Config.SetGroupDatadir(config.DatadirGroupDefault, picked)
+	o.BitcoinConf.Config.SetGroupDatadir(config.DatadirGroupForknet, picked)
+	o.BitcoinConf.Config.SetGroupDatadir(config.DatadirGroupDrynet, picked)
+	o.BitcoinConf.Config.SetSetting("datadir", picked)
+	require.NoError(t, o.BitcoinConf.SaveConfig())
+	require.NoError(t, o.BitcoinConf.LoadConfig(false))
+
+	resolve := func(n config.Network) string {
+		require.NoError(t, o.SwapNetwork(context.Background(), n))
+		return config.BitcoinCoreDirs.DatadirNetwork(n, o.BitcoinConf.Config.GetSetting("datadir"))
+	}
+
+	mainnetDir := resolve(config.NetworkMainnet)
+	forknetDir := resolve(config.NetworkForknet)
+	drynetDir := resolve(config.NetworkDrynet)
+
+	require.Equal(t, picked, mainnetDir)
+	require.Equal(t, filepath.Join(picked, "forknet"), forknetDir)
+	require.Equal(t, filepath.Join(picked, "drynet"), drynetDir)
+	require.Len(t, map[string]bool{mainnetDir: true, forknetDir: true, drynetDir: true}, 3,
+		"no two chain=main networks may share bitcoind's datadir")
+
+	// Swapping back must restore mainnet's root, not leave it under a subdir.
+	require.Equal(t, picked, resolve(config.NetworkMainnet))
 }
 
 // Within-group swap (mainnet → signet) leaves the datadir alone — Bitcoin
