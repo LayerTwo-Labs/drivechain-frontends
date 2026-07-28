@@ -388,10 +388,34 @@ func (m *BitcoinConfManager) wipeStaleChainData(config *BitcoinConfig, networks 
 		return
 	}
 	for _, n := range networks {
-		override := config.GetEffectiveSetting("datadir", CoreSectionForNetwork(n))
-		m.log.Info().Str("network", string(n)).Msg("migration invalidated chain data, wiping")
+		override, ok := m.wipeDatadirForNetwork(config, n)
+		if !ok {
+			m.log.Warn().Str("network", string(n)).
+				Msg("skipping chain data wipe - no datadir recorded for that network")
+			continue
+		}
+		m.log.Info().Str("network", string(n)).Str("datadir", override).
+			Msg("migration invalidated chain data, wiping")
 		WipeChainData(n, override, m.log)
 	}
+}
+
+// wipeDatadirForNetwork resolves the datadir holding n's chain data. The live
+// `datadir=` line belongs to whichever group is active right now, so reading it
+// for an inactive network points the wipe at the wrong chain — a forknet wipe
+// run while the user sits on mainnet resolved to mainnet's datadir and deleted
+// its blocks/ and chainstate/. Only the active group may fall back to the live
+// value; an inactive group with no recorded slot returns false so the caller
+// skips the wipe rather than guessing.
+func (m *BitcoinConfManager) wipeDatadirForNetwork(config *BitcoinConfig, n Network) (string, bool) {
+	group := DatadirGroupForNetwork(n)
+	if slot := config.GetGroupDatadir(group); slot != "" {
+		return slot, true
+	}
+	if group == DatadirGroupForNetwork(m.Network) {
+		return config.GetEffectiveSetting("datadir", CoreSectionForNetwork(n)), true
+	}
+	return "", false
 }
 
 type configFileInfo struct {
