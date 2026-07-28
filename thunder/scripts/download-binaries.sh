@@ -17,6 +17,7 @@ echo "Building orchestratord in $server_cwd"
 if [[ "$OSTYPE" == "darwin"* ]]; then
     echo "Forcing amd64 GOARCH"
     export GOARCH=amd64
+    export CGO_ENABLED=1
 fi
 
 go build -o ./bin/orchestratord ./cmd/orchestratord/
