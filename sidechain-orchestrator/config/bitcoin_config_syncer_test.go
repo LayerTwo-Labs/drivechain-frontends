@@ -134,6 +134,69 @@ func TestWipeChainDataPreservesWallets(t *testing.T) {
 	}
 }
 
+// Regression: a migration armed for forknet, applied while the user is sitting
+// on mainnet, must not touch mainnet's chain. CoreSectionForNetwork(forknet) is
+// "main", so resolving the datadir from the live `datadir=` line handed the
+// wipe mainnet's directory and deleted its blocks/ and chainstate/.
+func TestWipeStaleChainDataNeverTouchesAnotherNetworksDatadir(t *testing.T) {
+	tmpDir := t.TempDir()
+	mainnetDir := filepath.Join(tmpDir, "mainnet-chain")
+	seed := func(path string) {
+		require.NoError(t, os.MkdirAll(filepath.Dir(path), 0o755))
+		require.NoError(t, os.WriteFile(path, []byte("stub"), 0o644))
+	}
+	seed(filepath.Join(mainnetDir, "blocks", "blk00000.dat"))
+	seed(filepath.Join(mainnetDir, "chainstate", "CURRENT"))
+
+	m := newTestManager(tmpDir)
+	m.Network = NetworkMainnet
+	m.Config.SetSetting("chain", "main")
+	m.Config.SetSetting("datadir", mainnetDir)
+	m.Config.SetGroupDatadir(DatadirGroupDefault, mainnetDir)
+
+	m.wipeStaleChainData(m.Config, []Network{NetworkForknet})
+
+	// The wipe is asynchronous; give a buggy one time to land.
+	require.Never(t, func() bool {
+		_, err := os.Stat(filepath.Join(mainnetDir, "blocks", "blk00000.dat"))
+		return os.IsNotExist(err)
+	}, 500*time.Millisecond, 50*time.Millisecond, "mainnet chain data must survive a forknet-targeted wipe")
+
+	_, err := os.Stat(filepath.Join(mainnetDir, "chainstate", "CURRENT"))
+	require.NoError(t, err, "mainnet chainstate must survive a forknet-targeted wipe")
+}
+
+// With a forknet slot recorded, the wipe resolves to that path — not the live
+// mainnet one — and does delete forknet's chain.
+func TestWipeStaleChainDataUsesTargetNetworkSlot(t *testing.T) {
+	tmpDir := t.TempDir()
+	mainnetDir := filepath.Join(tmpDir, "mainnet-chain")
+	forknetDir := filepath.Join(tmpDir, "forknet-chain", "forknet")
+	seed := func(path string) {
+		require.NoError(t, os.MkdirAll(filepath.Dir(path), 0o755))
+		require.NoError(t, os.WriteFile(path, []byte("stub"), 0o644))
+	}
+	seed(filepath.Join(mainnetDir, "blocks", "blk00000.dat"))
+	seed(filepath.Join(forknetDir, "blocks", "blk00000.dat"))
+
+	m := newTestManager(tmpDir)
+	m.Network = NetworkMainnet
+	m.Config.SetSetting("chain", "main")
+	m.Config.SetSetting("datadir", mainnetDir)
+	m.Config.SetGroupDatadir(DatadirGroupDefault, mainnetDir)
+	m.Config.SetGroupDatadir(DatadirGroupForknet, forknetDir)
+
+	m.wipeStaleChainData(m.Config, []Network{NetworkForknet})
+
+	require.Eventually(t, func() bool {
+		_, err := os.Stat(filepath.Join(forknetDir, "blocks"))
+		return os.IsNotExist(err)
+	}, 5*time.Second, 20*time.Millisecond, "forknet chain data should be wiped")
+
+	_, err := os.Stat(filepath.Join(mainnetDir, "blocks", "blk00000.dat"))
+	require.NoError(t, err, "mainnet chain data must be untouched")
+}
+
 // The wipe runs entirely in the background and returns immediately so a large,
 // slow, or unresponsive datadir can't block orchestrator startup — that stall
 // is what kept the RPC listener down past the frontend's readiness timeout. The
