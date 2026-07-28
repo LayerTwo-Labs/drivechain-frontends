@@ -342,8 +342,12 @@ func (p *CoreBackend) NextChangeAddress(ctx context.Context, walletID string) (s
 	return p.rpc.GetRawChangeAddress(ctx, name)
 }
 
-// WatchKeys imports each key as a pkh() descriptor. Per-key import failures
-// are logged, not fatal — matching how Core treats already-known descriptors.
+// WatchKeys imports each key as a pkh() descriptor. Re-importing a descriptor
+// Core already knows still reports success, so a success:false result means
+// that key is genuinely not being watched: log every failure and return an
+// error. Callers persist an import watermark once this returns nil (the BIP47
+// per-sender window), and swallowing a partial failure would move that
+// watermark past addresses the wallet never actually watches.
 func (p *CoreBackend) WatchKeys(ctx context.Context, walletID string, keys []WatchKey) error {
 	name, err := p.walletName(ctx, walletID)
 	if err != nil {
@@ -360,6 +364,7 @@ func (p *CoreBackend) WatchKeys(ctx context.Context, walletID string, keys []Wat
 	if err != nil {
 		return err
 	}
+	var failed []string
 	for i, r := range results {
 		if r.Success {
 			continue
@@ -369,6 +374,10 @@ func (p *CoreBackend) WatchKeys(ctx context.Context, walletID string, keys []Wat
 			msg = r.Error.Message
 		}
 		p.log.Warn().Int("descriptor_index", i).Str("error", msg).Msg("watch key import failed")
+		failed = append(failed, fmt.Sprintf("%d: %s", i, msg))
+	}
+	if len(failed) > 0 {
+		return fmt.Errorf("%d of %d watch key imports failed [%s]", len(failed), len(results), strings.Join(failed, "; "))
 	}
 	return nil
 }

@@ -698,6 +698,45 @@ func TestCoreBackendWatchKeys(t *testing.T) {
 	assert.Equal(t, float64(1_700_000_000), asFloat(t, descs[0].Timestamp))
 }
 
+// A per-descriptor success:false means that key is not watched. WatchKeys must
+// surface it, otherwise the BIP47 engine bumps its import watermark past
+// addresses Core never got.
+func TestCoreBackendWatchKeysPartialImportFailure(t *testing.T) {
+	backend, fake, coreID := newCoreBackendFixture(t)
+	fake.stubEnsureFlow()
+	ctx := context.Background()
+
+	_, err := backend.Ensure(ctx, coreID)
+	require.NoError(t, err)
+
+	// Core accepts the first descriptor and rejects the second.
+	fake.handle("importdescriptors", func(c bitcoindCall) (any, string) {
+		var descs []ImportDescriptor
+		_ = json.Unmarshal(c.Params[0], &descs)
+		results := make([]map[string]any, len(descs))
+		for i := range results {
+			if i == 1 {
+				results[i] = map[string]any{"success": false, "error": map[string]any{"code": -1, "message": "Rescan failed"}}
+				continue
+			}
+			results[i] = map[string]any{"success": true}
+		}
+		return results, ""
+	})
+
+	first, err := btcutil.NewWIF(fixedKey(0x11), &chaincfg.RegressionNetParams, true)
+	require.NoError(t, err)
+	second, err := btcutil.NewWIF(fixedKey(0x12), &chaincfg.RegressionNetParams, true)
+	require.NoError(t, err)
+
+	err = backend.WatchKeys(ctx, coreID, []WatchKey{
+		{WIF: first.String(), RescanFrom: 1_700_000_000},
+		{WIF: second.String(), RescanFrom: 1_700_000_000},
+	})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "Rescan failed")
+}
+
 func TestCoreBackendNextReceiveAddress(t *testing.T) {
 	backend, fake, coreID := newCoreBackendFixture(t)
 	fake.stubEnsureFlow()
