@@ -2156,7 +2156,9 @@ func (x *ProcessBandwidth) GetConnectionCount() int32 {
 type UpdateNetworkRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Target network: signet, mainnet, forknet, drynet, testnet, regtest.
-	Network       string `protobuf:"bytes,1,opt,name=network,proto3" json:"network,omitempty"`
+	Network string `protobuf:"bytes,1,opt,name=network,proto3" json:"network,omitempty"`
+	// The user's answer to must_select_datadir, when they were asked.
+	DataDir       string `protobuf:"bytes,2,opt,name=data_dir,json=dataDir,proto3" json:"data_dir,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -2194,6 +2196,13 @@ func (*UpdateNetworkRequest) Descriptor() ([]byte, []int) {
 func (x *UpdateNetworkRequest) GetNetwork() string {
 	if x != nil {
 		return x.Network
+	}
+	return ""
+}
+
+func (x *UpdateNetworkRequest) GetDataDir() string {
+	if x != nil {
+		return x.DataDir
 	}
 	return ""
 }
@@ -2406,9 +2415,10 @@ const file_bitwindowd_v1_bitwindowd_proto_rawDesc = "" +
 	"\x10tx_bytes_per_sec\x18\x04 \x01(\x01R\rtxBytesPerSec\x12$\n" +
 	"\x0etotal_rx_bytes\x18\x05 \x01(\x04R\ftotalRxBytes\x12$\n" +
 	"\x0etotal_tx_bytes\x18\x06 \x01(\x04R\ftotalTxBytes\x12)\n" +
-	"\x10connection_count\x18\a \x01(\x05R\x0fconnectionCount\"0\n" +
+	"\x10connection_count\x18\a \x01(\x05R\x0fconnectionCount\"K\n" +
 	"\x14UpdateNetworkRequest\x12\x18\n" +
-	"\anetwork\x18\x01 \x01(\tR\anetwork\"\x17\n" +
+	"\anetwork\x18\x01 \x01(\tR\anetwork\x12\x19\n" +
+	"\bdata_dir\x18\x02 \x01(\tR\adataDir\"\x17\n" +
 	"\x15UpdateNetworkResponse*Q\n" +
 	"\tDirection\x12\x19\n" +
 	"\x15DIRECTION_UNSPECIFIED\x10\x00\x12\x12\n" +

@@ -1,3 +1,4 @@
+import 'package:sail_ui/providers/network_scoped.dart';
 import 'dart:async';
 
 import 'package:fixnum/fixnum.dart';
@@ -37,7 +38,12 @@ bool applyFundingResponse(
   return true;
 }
 
-class CheckProvider extends ChangeNotifier {
+class CheckProvider extends ChangeNotifier implements NetworkScoped {
+  @override
+  Future<void> onNetworkChanged() async {
+    clear();
+  }
+
   final Logger log = Logger(level: Level.debug);
   final BitwindowRPC _bitwindowRPC = GetIt.I.get<BitwindowRPC>();
   final WalletReaderProvider _walletReader = GetIt.I.get<WalletReaderProvider>();

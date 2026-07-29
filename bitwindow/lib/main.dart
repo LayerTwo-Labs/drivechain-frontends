@@ -219,6 +219,11 @@ Future<(Directory, File, Logger)> init(String arguments) async {
   );
   GetIt.I.registerSingleton<BitwindowRPC>(bitwindow);
 
+  // bitwindow applies the swap through bitwindowd so it recycles its
+  // per-network database in the same step.
+  bitcoinConfProvider.networkSwapper = (network, dataDir) =>
+      bitwindow.bitwindowd.updateNetwork(network, dataDir: dataDir);
+
   // now register all sidedchains
   GetIt.I.registerSingleton<BitAssetsRPC>(BitAssetsLive());
   GetIt.I.registerSingleton<BitnamesRPC>(BitnamesLive());
@@ -230,6 +235,7 @@ Future<(Directory, File, Logger)> init(String arguments) async {
 
   final walletReader = WalletReaderProvider(applicationDir);
   GetIt.I.registerLazySingleton<WalletReaderProvider>(() => walletReader);
+  NetworkScopedRegistry.enrol(walletReader);
   await walletReader.init();
 
   GetIt.I.registerLazySingleton<CoreVariantProvider>(() => CoreVariantProvider());
@@ -260,10 +266,12 @@ Future<(Directory, File, Logger)> init(String arguments) async {
       additionalConnection: SyncConnection(rpc: bitwindow, name: bitwindow.binary.name),
     ),
   );
+  NetworkScopedRegistry.enrolLazy<BalanceProvider>();
+  NetworkScopedRegistry.enrolLazy<SyncProvider>();
   GetIt.I.registerLazySingleton<DownloadProvider>(() => DownloadProvider());
-  GetIt.I.registerSingleton<BlockchainProvider>(BlockchainProvider());
+  NetworkScopedRegistry.register<BlockchainProvider>(BlockchainProvider());
   GetIt.I.registerSingleton<NetworkProvider>(NetworkProvider());
-  GetIt.I.registerSingleton<TransactionProvider>(TransactionProvider());
+  NetworkScopedRegistry.register<TransactionProvider>(TransactionProvider());
 
   // Refetch live on every new mainchain block so the user sees fresh blocks,
   // balance, and transactions without waiting for each provider's slower
@@ -278,16 +286,16 @@ Future<(Directory, File, Logger)> init(String arguments) async {
     }
   });
   GetIt.I.registerSingleton<NewsProvider>(NewsProvider());
-  GetIt.I.registerSingleton<SidechainProvider>(SidechainProvider());
+  NetworkScopedRegistry.register<SidechainProvider>(SidechainProvider());
   GetIt.I.registerSingleton<M4Provider>(M4Provider());
-  GetIt.I.registerSingleton<AddressBookProvider>(AddressBookProvider());
+  NetworkScopedRegistry.register<AddressBookProvider>(AddressBookProvider());
   GetIt.I.registerSingleton<CoinSelectionProvider>(CoinSelectionProvider());
   GetIt.I.registerSingleton<MiningProvider>(MiningProvider());
-  GetIt.I.registerSingleton<HDWalletProvider>(HDWalletProvider());
+  NetworkScopedRegistry.register<HDWalletProvider>(HDWalletProvider());
   GetIt.I.registerSingleton<BitDriveProvider>(BitDriveProvider());
   // Eager initialization so it can listen for wallet unlock events
   final checkProvider = CheckProvider();
-  GetIt.I.registerSingleton<CheckProvider>(checkProvider);
+  NetworkScopedRegistry.register<CheckProvider>(checkProvider);
   final timestampProvider = TimestampProvider();
   GetIt.I.registerSingleton<TimestampProvider>(timestampProvider);
   final bitwindowHomepageProvider = BitwindowHomepageProvider();
@@ -297,9 +305,9 @@ Future<(Directory, File, Logger)> init(String arguments) async {
   GetIt.I.registerLazySingleton<BitwindowSettingsProvider>(() => BitwindowSettingsProvider());
   GetIt.I.registerLazySingleton<MempoolProvider>(() => MempoolProvider());
   GetIt.I.registerSingleton<NotificationStreamProvider>(NotificationStreamProvider());
-  GetIt.I.registerSingleton<ForkProvider>(ForkProvider()..init());
+  NetworkScopedRegistry.register<ForkProvider>(ForkProvider()..init());
   GetIt.I.registerSingleton<ChatProvider>(ChatProvider());
-  GetIt.I.registerSingleton<FastWithdrawalProvider>(FastWithdrawalProvider());
+  NetworkScopedRegistry.register<FastWithdrawalProvider>(FastWithdrawalProvider());
   GetIt.I.registerSingleton<UpdateProvider>(
     UpdateProvider(
       log: log,

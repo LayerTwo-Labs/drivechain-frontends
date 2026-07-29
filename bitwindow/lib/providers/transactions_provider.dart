@@ -1,3 +1,4 @@
+import 'package:sail_ui/providers/network_scoped.dart';
 import 'dart:async';
 
 import 'package:bitwindow/providers/blockchain_provider.dart';
@@ -20,7 +21,12 @@ import 'package:sail_ui/rpcs/orchestrator_wallet_rpc.dart';
 
 // because the class extends ChangeNotifier, any subscribers
 // to this class will be notified of changes to new transactions
-class TransactionProvider extends ChangeNotifier {
+class TransactionProvider extends ChangeNotifier implements NetworkScoped {
+  @override
+  Future<void> onNetworkChanged() async {
+    clear();
+  }
+
   final Logger _log = GetIt.I.get<Logger>();
   BitwindowRPC get bitwindowd => GetIt.I.get<BitwindowRPC>();
   OrchestratorWalletRPC get orchestratorWallet => GetIt.I.get<OrchestratorRPC>().wallet;

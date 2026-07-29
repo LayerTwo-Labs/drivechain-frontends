@@ -165,3 +165,13 @@ func (s *Store) ReserveNextIndex(walletID, recipientCode string) (uint32, error)
 	}
 	return idx, nil
 }
+
+// Rebind points the store at another network's directory, dropping state
+// loaded from the previous one.
+func (s *Store) Rebind(dir string) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.path = filepath.Join(dir, fileName)
+	s.rows = make(map[string]*State)
+	s.loaded = false
+}

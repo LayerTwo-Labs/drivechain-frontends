@@ -581,12 +581,14 @@ const UpdateNetworkRequest$json = {
   '1': 'UpdateNetworkRequest',
   '2': [
     {'1': 'network', '3': 1, '4': 1, '5': 9, '10': 'network'},
+    {'1': 'data_dir', '3': 2, '4': 1, '5': 9, '10': 'dataDir'},
   ],
 };
 
 /// Descriptor for `UpdateNetworkRequest`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List updateNetworkRequestDescriptor = $convert.base64Decode(
-    'ChRVcGRhdGVOZXR3b3JrUmVxdWVzdBIYCgduZXR3b3JrGAEgASgJUgduZXR3b3Jr');
+    'ChRVcGRhdGVOZXR3b3JrUmVxdWVzdBIYCgduZXR3b3JrGAEgASgJUgduZXR3b3JrEhkKCGRhdG'
+    'FfZGlyGAIgASgJUgdkYXRhRGly');
 
 @$core.Deprecated('Use updateNetworkResponseDescriptor instead')
 const UpdateNetworkResponse$json = {

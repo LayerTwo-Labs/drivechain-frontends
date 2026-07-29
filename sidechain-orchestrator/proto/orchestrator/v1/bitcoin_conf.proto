@@ -6,6 +6,10 @@ service BitcoinConfService {
   // Get current Bitcoin Core configuration state.
   rpc GetBitcoinConfig(GetBitcoinConfigRequest) returns (GetBitcoinConfigResponse);
 
+  // Report what the user must resolve before a network and/or wallet-backend
+  // change can be applied. Side-effect free.
+  rpc PrepareNetworkChange(PrepareNetworkChangeRequest) returns (NetworkChangePlan);
+
   // Set the Bitcoin Core network (signet, mainnet, forknet, drynet, testnet, regtest).
   rpc SetBitcoinConfigNetwork(SetBitcoinConfigNetworkRequest) returns (SetBitcoinConfigNetworkResponse);
 
@@ -43,15 +47,52 @@ message GetBitcoinConfigResponse {
   // Live drynet generation ("drynet2"). Drynet hostnames are built from it, so
   // the frontend needs it to link at the right explorer.
   string drynet_generation = 14;
+  // True when the current network and wallet backend need a datadir the user
+  // has not chosen yet. Drives the boot-time prompt.
+  bool must_select_datadir = 15;
+}
+
+// PrepareNetworkChange
+
+// WalletBackend is what serves the wallet's chain data.
+enum WalletBackend {
+  WALLET_BACKEND_UNSPECIFIED = 0; // keep the current backend
+  WALLET_BACKEND_ELECTRUM = 1;
+  WALLET_BACKEND_CORE = 2;
+  WALLET_BACKEND_ENFORCER = 3;
+}
+
+message PrepareNetworkChangeRequest {
+  string network = 1; // empty keeps the current network
+  WalletBackend wallet_backend = 2; // UNSPECIFIED keeps the current backend
+  string wallet_id = 3; // wallet being switched to, if any; sets wallet_backend
+}
+
+// NetworkChangePlan is what the change would require. Prepare returns it for
+// the frontend to resolve; apply re-runs it and refuses anything unresolved.
+message NetworkChangePlan {
+  string network = 1;
+  WalletBackend wallet_backend = 2;
+  bool must_select_datadir = 3;
+  string datadir = 4; // the path that would be used, empty when unset
+  string datadir_group = 5; // default | forknet | drynet
+  bool needs_local_backends = 6; // false for electrum — nothing is downloaded
+  bool implies_chain_download = 7;
+  repeated string missing_binaries = 8;
+  bool needs_binary_download = 9;
+  bool no_op = 10; // nothing would change
 }
 
 // SetBitcoinConfigNetwork
 
 message SetBitcoinConfigNetworkRequest {
   string network = 1; // signet, mainnet, forknet, drynet, testnet, regtest
+  string data_dir = 2; // the user's answer to must_select_datadir, if asked
 }
 
-message SetBitcoinConfigNetworkResponse {}
+message SetBitcoinConfigNetworkResponse {
+  NetworkChangePlan applied = 1;
+}
 
 // SetBitcoinConfigDataDir
 

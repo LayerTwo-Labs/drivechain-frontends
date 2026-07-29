@@ -43,6 +43,13 @@ func (r *syncReporter) publish(walletID string, p SyncProgress) {
 	r.latest[walletID] = p
 }
 
+// reset drops all progress, so a network swap doesn't report the old chain's.
+func (r *syncReporter) reset() {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.latest = make(map[string]SyncProgress)
+}
+
 // snapshot returns the latest known progress for a wallet (idle if none yet).
 func (r *syncReporter) snapshot(walletID string) SyncProgress {
 	r.mu.Lock()

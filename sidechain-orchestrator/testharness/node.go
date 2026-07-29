@@ -146,7 +146,7 @@ port=%d
 	go func() { _ = bitcoindCmd.Wait() }()
 
 	// 4. Wait for bitcoind RPC to be ready.
-	n.CoreRPC = wallet.NewCoreRPCClient("127.0.0.1", rpcPort, "test", "test")
+	n.CoreRPC = wallet.NewCoreRPCClient(wallet.StaticCoreEndpoint("127.0.0.1", rpcPort, "test", "test"))
 	waitForBitcoind(t, n.CoreRPC, name)
 
 	// 5. Start orchestratord as a real subprocess.

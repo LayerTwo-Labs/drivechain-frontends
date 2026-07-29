@@ -20,6 +20,11 @@ func (o *Orchestrator) InitForkEngine(we *wallet.WalletEngine) {
 	o.forkEngine = fork.NewEngine(o, &forkWalletScanner{o: o, engine: we}, time.Second)
 }
 
+// SetWalletEngine hands the orchestrator the engine it resets on a network swap.
+func (o *Orchestrator) SetWalletEngine(we *wallet.WalletEngine) {
+	o.walletEngine = we
+}
+
 // SetForkEnforcerWallet attaches the enforcer wallet client to the fork scan so
 // the enforcer wallet's pre-fork coins are claimable too. Called from main once
 // the enforcer client exists (which is after InitForkEngine), so it's read

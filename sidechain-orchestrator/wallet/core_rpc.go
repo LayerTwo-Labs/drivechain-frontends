@@ -11,16 +11,37 @@ import (
 	"time"
 )
 
+// CoreEndpoint is Bitcoin Core's JSON-RPC address and credentials. Port and
+// credentials both move with the network, so they are resolved together.
+type CoreEndpoint struct {
+	Host     string
+	Port     int
+	User     string
+	Password string
+}
+
+func (e CoreEndpoint) baseURL() string {
+	return fmt.Sprintf("http://%s:%d", e.Host, e.Port)
+}
+
+// CoreEndpointFunc reports the endpoint for the network in use right now.
+type CoreEndpointFunc func() CoreEndpoint
+
+// StaticCoreEndpoint is a CoreEndpointFunc pinned to one endpoint.
+func StaticCoreEndpoint(host string, port int, user, password string) CoreEndpointFunc {
+	return func() CoreEndpoint {
+		return CoreEndpoint{Host: host, Port: port, User: user, Password: password}
+	}
+}
+
 // CoreRPCClient is a Bitcoin Core JSON-RPC client that supports wallet-specific endpoints.
 type CoreRPCClient struct {
-	baseURL  string
-	user     string
-	password string
-	client   *http.Client
+	resolve CoreEndpointFunc
+	client  *http.Client
 }
 
 // NewCoreRPCClient creates a new Bitcoin Core RPC client.
-func NewCoreRPCClient(host string, port int, user, password string) *CoreRPCClient {
+func NewCoreRPCClient(resolve CoreEndpointFunc) *CoreRPCClient {
 	// Use longer timeout on Windows due to slower disk I/O in CI environments
 	timeout := 30 * time.Second
 	if runtime.GOOS == "windows" {
@@ -28,10 +49,8 @@ func NewCoreRPCClient(host string, port int, user, password string) *CoreRPCClie
 	}
 
 	return &CoreRPCClient{
-		baseURL:  fmt.Sprintf("http://%s:%d", host, port),
-		user:     user,
-		password: password,
-		client:   &http.Client{Timeout: timeout},
+		resolve: resolve,
+		client:  &http.Client{Timeout: timeout},
 	}
 }
 
@@ -69,9 +88,10 @@ func (c *CoreRPCClient) call(ctx context.Context, walletName, method string, par
 		return nil, fmt.Errorf("marshal %s request: %w", method, err)
 	}
 
-	url := c.baseURL
+	endpoint := c.resolve()
+	url := endpoint.baseURL()
 	if walletName != "" {
-		url = fmt.Sprintf("%s/wallet/%s", c.baseURL, walletName)
+		url = fmt.Sprintf("%s/wallet/%s", url, walletName)
 	}
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(body))
@@ -79,8 +99,8 @@ func (c *CoreRPCClient) call(ctx context.Context, walletName, method string, par
 		return nil, fmt.Errorf("create %s request: %w", method, err)
 	}
 	req.Header.Set("Content-Type", "application/json")
-	if c.user != "" {
-		req.SetBasicAuth(c.user, c.password)
+	if endpoint.User != "" {
+		req.SetBasicAuth(endpoint.User, endpoint.Password)
 	}
 
 	resp, err := c.client.Do(req)

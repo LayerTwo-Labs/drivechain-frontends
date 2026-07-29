@@ -84,7 +84,17 @@ func (h *BitcoinConfHandler) GetBitcoinConfig(ctx context.Context, req *connect.
 		ForknetDatadir:            forknetDatadir,
 		DrynetDatadir:             drynetDatadir,
 		DrynetGeneration:          config.DrynetGeneration(),
+		MustSelectDatadir:         h.orch.PlanNetworkChange(orchestrator.NetworkChangeRequest{}).MustSelectDatadir,
 	}), nil
+}
+
+func (h *BitcoinConfHandler) PrepareNetworkChange(ctx context.Context, req *connect.Request[pb.PrepareNetworkChangeRequest]) (*connect.Response[pb.NetworkChangePlan], error) {
+	plan := h.orch.PlanNetworkChange(orchestrator.NetworkChangeRequest{
+		Network:       strings.TrimSpace(req.Msg.Network),
+		WalletBackend: walletBackendFromProto(req.Msg.WalletBackend),
+		WalletID:      strings.TrimSpace(req.Msg.WalletId),
+	})
+	return connect.NewResponse(networkChangePlanToProto(plan)), nil
 }
 
 func (h *BitcoinConfHandler) SetBitcoinConfigNetwork(ctx context.Context, req *connect.Request[pb.SetBitcoinConfigNetworkRequest]) (*connect.Response[pb.SetBitcoinConfigNetworkResponse], error) {
@@ -99,20 +109,27 @@ func (h *BitcoinConfHandler) SetBitcoinConfigNetwork(ctx context.Context, req *c
 
 	network := config.NetworkFromString(networkStr)
 
-	// Guard: mainnet/forknet/drynet need a datadir set up before we switch. Surface
-	// a FailedPrecondition so the frontend can prompt the user to pick one.
-	if !h.conf.HasDatadirForNetwork(network) {
-		return nil, connect.NewError(
-			connect.CodeFailedPrecondition,
-			fmt.Errorf("datadir not configured for %s", network),
-		)
+	if dataDir := strings.TrimSpace(req.Msg.DataDir); dataDir != "" {
+		if err := validateDirWritable(dataDir); err != nil {
+			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("directory not writable: %w", err))
+		}
+		if err := h.conf.UpdateDataDir(dataDir, network); err != nil {
+			return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("update datadir: %w", err))
+		}
+	}
+
+	// Apply is authoritative: re-plan so a stale prepare can't smuggle through a
+	// requirement the user never resolved.
+	plan := h.orch.PlanNetworkChange(orchestrator.NetworkChangeRequest{Network: networkStr})
+	if plan.MustSelectDatadir {
+		return nil, requirementsUnmet(plan)
 	}
 
 	if err := h.orch.SwapNetwork(ctx, network); err != nil {
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("swap network: %w", err))
 	}
 
-	return connect.NewResponse(&pb.SetBitcoinConfigNetworkResponse{}), nil
+	return connect.NewResponse(&pb.SetBitcoinConfigNetworkResponse{Applied: networkChangePlanToProto(plan)}), nil
 }
 
 func (h *BitcoinConfHandler) WriteBitcoinConfig(ctx context.Context, req *connect.Request[pb.WriteBitcoinConfigRequest]) (*connect.Response[pb.WriteBitcoinConfigResponse], error) {

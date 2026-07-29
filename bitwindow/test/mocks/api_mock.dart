@@ -161,7 +161,7 @@ class MockBitwindowdAPI implements BitwindowAPI {
   }
 
   @override
-  Future<void> updateNetwork(String network) async {}
+  Future<void> updateNetwork(String network, {String dataDir = ''}) async {}
 
   @override
   Future<void> startMining() async {}

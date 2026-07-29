@@ -26,6 +26,25 @@ extension type BitcoinConfServiceClient (connect.Transport _transport) {
     );
   }
 
+  /// Report what the user must resolve before a network and/or wallet-backend
+  /// change can be applied. Side-effect free.
+  Future<orchestratorv1bitcoin_conf.NetworkChangePlan> prepareNetworkChange(
+    orchestratorv1bitcoin_conf.PrepareNetworkChangeRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.BitcoinConfService.prepareNetworkChange,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
   /// Set the Bitcoin Core network (signet, mainnet, forknet, drynet, testnet, regtest).
   Future<orchestratorv1bitcoin_conf.SetBitcoinConfigNetworkResponse> setBitcoinConfigNetwork(
     orchestratorv1bitcoin_conf.SetBitcoinConfigNetworkRequest input, {

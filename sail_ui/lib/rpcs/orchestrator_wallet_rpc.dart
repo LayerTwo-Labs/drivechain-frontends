@@ -171,8 +171,8 @@ class OrchestratorWalletRPC {
     return _unaryClient.parseMultisigConfig(wmpb.ParseMultisigConfigRequest(content: content));
   }
 
-  Future<wmpb.SwitchWalletResponse> switchWallet(String walletId) {
-    return _unaryClient.switchWallet(wmpb.SwitchWalletRequest(walletId: walletId));
+  Future<wmpb.SwitchWalletResponse> switchWallet(String walletId, {String dataDir = ''}) {
+    return _unaryClient.switchWallet(wmpb.SwitchWalletRequest(walletId: walletId, dataDir: dataDir));
   }
 
   Future<wmpb.UpdateWalletMetadataResponse> updateWalletMetadata({

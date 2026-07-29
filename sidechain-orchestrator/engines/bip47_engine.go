@@ -67,6 +67,15 @@ func NewBIP47Engine(log zerolog.Logger, svc *wallet.Service, walletEngine *walle
 	}
 }
 
+// ResetForNetwork drops the per-network watch registry and repoints the
+// inbound store, so the next tick re-registers against the new chain.
+func (e *BIP47Engine) ResetForNetwork(networkDir string) {
+	e.inbound.Rebind(networkDir)
+	e.mu.Lock()
+	defer e.mu.Unlock()
+	e.notifWatched = make(map[string]bool)
+}
+
 // Run loops until ctx is cancelled. Errors from a single tick are logged and
 // the loop continues — a transient Core RPC failure shouldn't stop the engine.
 func (e *BIP47Engine) Run(ctx context.Context) error {

@@ -146,7 +146,7 @@ func newElectrumFixture(t *testing.T) (*ElectrumBackend, *fakeEsplora, *WalletDa
 	firstAddr := addrs[0]
 
 	fake := newFakeEsplora()
-	p := NewElectrumBackend(svc, fake, &chaincfg.SigNetParams, zerolog.New(zerolog.NewTestWriter(t)))
+	p := NewElectrumBackend(svc, fake, StaticParams(&chaincfg.SigNetParams), zerolog.New(zerolog.NewTestWriter(t)))
 	return p, fake, w, firstAddr
 }
 
@@ -681,7 +681,7 @@ func TestElectrumCustomAccountReceiveAndSpend(t *testing.T) {
 	require.Equal(t, uint32(1), w.AccountIndex)
 
 	fake := newFakeEsplora()
-	p := NewElectrumBackend(svc, fake, net, zerolog.New(zerolog.NewTestWriter(t)))
+	p := NewElectrumBackend(svc, fake, StaticParams(net), zerolog.New(zerolog.NewTestWriter(t)))
 
 	// Receive address must derive under the account-1 external chain.
 	d, err := p.walletDescriptor(w)
@@ -751,7 +751,7 @@ func TestElectrumWatchOnlyDerivesSameAddressesAndCannotSend(t *testing.T) {
 	addr := seedAddrs[0]
 
 	fake := newFakeEsplora()
-	p := NewElectrumBackend(svc, fake, &chaincfg.SigNetParams, zerolog.New(zerolog.NewTestWriter(t)))
+	p := NewElectrumBackend(svc, fake, StaticParams(&chaincfg.SigNetParams), zerolog.New(zerolog.NewTestWriter(t)))
 	fake.stats[addr] = EsploraAddressStats{
 		Address:    addr,
 		ChainStats: EsploraTxoStats{FundedTxoCount: 1, FundedTxoSum: 70_000, TxCount: 1},
@@ -881,7 +881,7 @@ func TestElectrumWatchOnlyDescriptorWatchesCorrectAddress(t *testing.T) {
 	require.NoError(t, err)
 
 	fake := newFakeEsplora()
-	p := NewElectrumBackend(svc, fake, &chaincfg.SigNetParams, zerolog.New(zerolog.NewTestWriter(t)))
+	p := NewElectrumBackend(svc, fake, StaticParams(&chaincfg.SigNetParams), zerolog.New(zerolog.NewTestWriter(t)))
 	fake.stats[addrs[0]] = EsploraAddressStats{
 		Address:    addrs[0],
 		ChainStats: EsploraTxoStats{FundedTxoCount: 1, FundedTxoSum: 55_000, TxCount: 1},
@@ -954,7 +954,7 @@ func TestElectrumWatchOnlyAllScriptTypesScanCorrectly(t *testing.T) {
 			addr := ds.address.EncodeAddress()
 
 			fake := newFakeEsplora()
-			p := NewElectrumBackend(svc, fake, net, zerolog.New(zerolog.NewTestWriter(t)))
+			p := NewElectrumBackend(svc, fake, StaticParams(net), zerolog.New(zerolog.NewTestWriter(t)))
 			fake.stats[addr] = EsploraAddressStats{
 				Address:    addr,
 				ChainStats: EsploraTxoStats{FundedTxoCount: 1, FundedTxoSum: 42_000, TxCount: 1},
@@ -1060,7 +1060,7 @@ func TestCreateElectrumHotWalletScriptTypes(t *testing.T) {
 			fake.utxos[addr] = []EsploraUTXO{{TxID: prevHash, Vout: 0, Value: amount, Status: EsploraStatus{Confirmed: true, BlockHeight: 100}}}
 			fake.hexByID[prevHash] = hex.EncodeToString(buf.Bytes())
 
-			p := NewElectrumBackend(svc, fake, net, zerolog.New(zerolog.NewTestWriter(t)))
+			p := NewElectrumBackend(svc, fake, StaticParams(net), zerolog.New(zerolog.NewTestWriter(t)))
 			req := SendRequest{DestinationsSats: map[string]int64{dest: 50_000}, FeeRateSatPerVB: 2}
 
 			unsigned, err := p.CreatePSBT(ctx, w.ID, req)
@@ -1196,7 +1196,7 @@ func TestElectrumListReceivedCapsAtHighestUsed(t *testing.T) {
 	require.NoError(t, err)
 
 	fake := newFakeEsplora()
-	p := NewElectrumBackend(svc, fake, net, zerolog.New(zerolog.NewTestWriter(t)))
+	p := NewElectrumBackend(svc, fake, StaticParams(net), zerolog.New(zerolog.NewTestWriter(t)))
 	// Index 2 received funds; everything else is unused.
 	fake.stats[addrs[2]] = EsploraAddressStats{Address: addrs[2], ChainStats: EsploraTxoStats{FundedTxoCount: 1, FundedTxoSum: 70_000, TxCount: 1}}
 
@@ -1229,7 +1229,7 @@ func TestElectrumListReceivedReportsCurrentBalance(t *testing.T) {
 	require.NoError(t, err)
 
 	fake := newFakeEsplora()
-	p := NewElectrumBackend(svc, fake, net, zerolog.New(zerolog.NewTestWriter(t)))
+	p := NewElectrumBackend(svc, fake, StaticParams(net), zerolog.New(zerolog.NewTestWriter(t)))
 	// Index 0: received 100k then spent all of it → current balance 0.
 	fake.stats[addrs[0]] = EsploraAddressStats{Address: addrs[0], ChainStats: EsploraTxoStats{FundedTxoCount: 1, FundedTxoSum: 100_000, SpentTxoCount: 1, SpentTxoSum: 100_000, TxCount: 2}}
 	// Index 1: received 50k, unspent → current balance 0.0005.
@@ -1260,7 +1260,7 @@ func TestElectrumWatchOnlyUTXOsNotSpendable(t *testing.T) {
 	addr := addrs[0]
 
 	fake := newFakeEsplora()
-	p := NewElectrumBackend(svc, fake, net, zerolog.New(zerolog.NewTestWriter(t)))
+	p := NewElectrumBackend(svc, fake, StaticParams(net), zerolog.New(zerolog.NewTestWriter(t)))
 	fake.stats[addr] = EsploraAddressStats{Address: addr, ChainStats: EsploraTxoStats{FundedTxoCount: 1, FundedTxoSum: 100_000, TxCount: 1}}
 	fake.utxos[addr] = []EsploraUTXO{{TxID: "aa", Vout: 0, Value: 100_000, Status: EsploraStatus{Confirmed: true, BlockHeight: 100}}}
 
@@ -1340,7 +1340,7 @@ func TestElectrumScanPersistsAcrossRestart(t *testing.T) {
 	// Simulated restart: a new backend on the same Service, backed by an Esplora
 	// with no data that counts every AddressStats call.
 	counting := &countingEsplora{ChainDataSource: newFakeEsplora()}
-	p2 := NewElectrumBackend(p.svc, counting, &chaincfg.SigNetParams, zerolog.New(zerolog.NewTestWriter(t)))
+	p2 := NewElectrumBackend(p.svc, counting, StaticParams(&chaincfg.SigNetParams), zerolog.New(zerolog.NewTestWriter(t)))
 
 	confirmed2, _, err := p2.Balance(ctx, w.ID)
 	require.NoError(t, err)
@@ -1387,7 +1387,7 @@ func TestElectrumScanPersistsUTXOsAndTxs(t *testing.T) {
 	// Cold boot: a fresh backend whose Esplora holds no data and counts stats
 	// calls. UTXOs and history must come entirely from the database.
 	counting := &countingEsplora{ChainDataSource: newFakeEsplora()}
-	p2 := NewElectrumBackend(p.svc, counting, &chaincfg.SigNetParams, zerolog.New(zerolog.NewTestWriter(t)))
+	p2 := NewElectrumBackend(p.svc, counting, StaticParams(&chaincfg.SigNetParams), zerolog.New(zerolog.NewTestWriter(t)))
 
 	utxos2, err := p2.ListUnspent(ctx, w.ID)
 	require.NoError(t, err)
@@ -1428,7 +1428,7 @@ func TestElectrumScanReportsProgress(t *testing.T) {
 	}
 
 	rec := &recordingEsplora{ChainDataSource: fake, svc: p.svc}
-	p2 := NewElectrumBackend(p.svc, rec, &chaincfg.SigNetParams, zerolog.New(zerolog.NewTestWriter(t)))
+	p2 := NewElectrumBackend(p.svc, rec, StaticParams(&chaincfg.SigNetParams), zerolog.New(zerolog.NewTestWriter(t)))
 
 	_, _, err := p2.Balance(ctx, w.ID) // live scan
 	require.NoError(t, err)
@@ -1600,7 +1600,7 @@ func TestElectrumMultisigHeldKeysSignAndBroadcast(t *testing.T) {
 	require.False(t, w.IsWatchOnly(), "holding two keys, the wallet must be signable")
 
 	fake := newFakeEsplora()
-	p := NewElectrumBackend(svc, fake, net, zerolog.New(zerolog.NewTestWriter(t)))
+	p := NewElectrumBackend(svc, fake, StaticParams(net), zerolog.New(zerolog.NewTestWriter(t)))
 
 	d, err := p.walletDescriptor(w)
 	require.NoError(t, err)
@@ -1651,7 +1651,7 @@ func TestElectrumMultisigPsbtStatus(t *testing.T) {
 	require.NoError(t, err)
 
 	fake := newFakeEsplora()
-	p := NewElectrumBackend(svc, fake, net, zerolog.New(zerolog.NewTestWriter(t)))
+	p := NewElectrumBackend(svc, fake, StaticParams(net), zerolog.New(zerolog.NewTestWriter(t)))
 
 	d, err := p.walletDescriptor(w)
 	require.NoError(t, err)
@@ -1707,7 +1707,7 @@ func TestElectrumMultisigPerCosignerSign(t *testing.T) {
 	require.NoError(t, err)
 
 	fake := newFakeEsplora()
-	p := NewElectrumBackend(svc, fake, net, zerolog.New(zerolog.NewTestWriter(t)))
+	p := NewElectrumBackend(svc, fake, StaticParams(net), zerolog.New(zerolog.NewTestWriter(t)))
 	d, err := p.walletDescriptor(w)
 	require.NoError(t, err)
 	recv, err := p.deriveAddr(d, false, 0)
@@ -1772,7 +1772,7 @@ func TestElectrumMultisigPassphraseChangesAddresses(t *testing.T) {
 	w2, err := svc.CreateElectrumMultisig("withpass", nil, 2, 3, "wsh", withPass)
 	require.NoError(t, err)
 
-	p := NewElectrumBackend(svc, newFakeEsplora(), net, zerolog.New(zerolog.NewTestWriter(t)))
+	p := NewElectrumBackend(svc, newFakeEsplora(), StaticParams(net), zerolog.New(zerolog.NewTestWriter(t)))
 	d1, err := p.walletDescriptor(w1)
 	require.NoError(t, err)
 	a1, err := p.deriveAddr(d1, false, 0)
@@ -1804,7 +1804,7 @@ func TestElectrumTaprootMultisigSignFinalizeValid(t *testing.T) {
 	require.Equal(t, "multisig-taproot", w.ScriptType)
 
 	fake := newFakeEsplora()
-	p := NewElectrumBackend(svc, fake, net, zerolog.New(zerolog.NewTestWriter(t)))
+	p := NewElectrumBackend(svc, fake, StaticParams(net), zerolog.New(zerolog.NewTestWriter(t)))
 	d, err := p.walletDescriptor(w)
 	require.NoError(t, err)
 	require.True(t, d.Kind.isTaprootMultisig())
@@ -1890,7 +1890,7 @@ func TestElectrumTaprootMultisigHoldAllKeysCapsAtThreshold(t *testing.T) {
 	w, err := svc.CreateElectrumMultisig("tr all", nil, 2, 3, "tr", cosigners)
 	require.NoError(t, err)
 	fake := newFakeEsplora()
-	p := NewElectrumBackend(svc, fake, net, zerolog.New(zerolog.NewTestWriter(t)))
+	p := NewElectrumBackend(svc, fake, StaticParams(net), zerolog.New(zerolog.NewTestWriter(t)))
 	d, _ := p.walletDescriptor(w)
 	recv, _ := p.deriveAddr(d, false, 0)
 	require.Len(t, recv.multisigPrivs, 3)
@@ -1927,7 +1927,7 @@ func TestElectrumTaprootMultisigCombine(t *testing.T) {
 	w, err := svc.CreateElectrumMultisig("tr combine", nil, 2, 3, "tr", cosigners)
 	require.NoError(t, err)
 	fake := newFakeEsplora()
-	p := NewElectrumBackend(svc, fake, net, zerolog.New(zerolog.NewTestWriter(t)))
+	p := NewElectrumBackend(svc, fake, StaticParams(net), zerolog.New(zerolog.NewTestWriter(t)))
 	d, _ := p.walletDescriptor(w)
 	recv, _ := p.deriveAddr(d, false, 0)
 	const amt = int64(200_000)

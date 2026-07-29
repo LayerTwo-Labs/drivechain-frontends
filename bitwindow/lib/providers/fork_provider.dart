@@ -32,7 +32,12 @@ class WalletClaim {
 /// it does NO fork math (heights, claim detection, the claim-before-countdown
 /// gate all live in the engine). The only local concern is smoothing the
 /// countdown's local-clock tick.
-class ForkProvider extends ChangeNotifier {
+class ForkProvider extends ChangeNotifier implements NetworkScoped {
+  @override
+  Future<void> onNetworkChanged() async {
+    clear();
+  }
+
   OrchestratorRPC get _orchestrator => GetIt.I<OrchestratorRPC>();
   OrchestratorWalletRPC get _wallet => _orchestrator.wallet;
   TransactionProvider get _transactions => GetIt.I<TransactionProvider>();

@@ -1,44 +1,7 @@
-import 'package:bitwindow/providers/address_book_provider.dart';
-import 'package:bitwindow/providers/blockchain_provider.dart';
-import 'package:bitwindow/providers/fork_provider.dart';
-import 'package:bitwindow/providers/hd_wallet_provider.dart';
-import 'package:bitwindow/providers/sidechain_provider.dart';
-import 'package:bitwindow/providers/transactions_provider.dart';
 import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:sail_ui/sail_ui.dart';
-
-/// Drops in-memory state that belonged to the chain we just left.
-Future<void> clearNetworkScopedCaches() async {
-  if (GetIt.I.isRegistered<TransactionProvider>()) {
-    GetIt.I.get<TransactionProvider>().clear();
-  }
-  if (GetIt.I.isRegistered<BlockchainProvider>()) {
-    GetIt.I.get<BlockchainProvider>().clear();
-  }
-  if (GetIt.I.isRegistered<AddressBookProvider>()) {
-    GetIt.I.get<AddressBookProvider>().clear();
-  }
-  if (GetIt.I.isRegistered<SidechainProvider>()) {
-    GetIt.I.get<SidechainProvider>().clear();
-  }
-  if (GetIt.I.isRegistered<BalanceProvider>()) {
-    GetIt.I.get<BalanceProvider>().clear();
-  }
-  if (GetIt.I.isRegistered<ForkProvider>()) {
-    GetIt.I.get<ForkProvider>().clear();
-  }
-  if (GetIt.I.isRegistered<SyncProvider>()) {
-    GetIt.I.get<SyncProvider>().reset();
-  }
-  if (GetIt.I.isRegistered<WalletReaderProvider>()) {
-    GetIt.I.get<WalletReaderProvider>().clearState();
-  }
-  if (GetIt.I.isRegistered<HDWalletProvider>()) {
-    await GetIt.I.get<HDWalletProvider>().reinitialize();
-  }
-}
 
 /// Confirms a Bitcoin network change. Routes through bitwindowd's
 /// `UpdateNetwork` RPC: orchestratord rewrites the conf and restarts
@@ -48,8 +11,9 @@ Future<void> clearNetworkScopedCaches() async {
 class NetworkSwapPage extends StatefulWidget {
   final BitcoinNetwork fromNetwork;
   final BitcoinNetwork toNetwork;
+  final String dataDir;
 
-  const NetworkSwapPage({super.key, required this.fromNetwork, required this.toNetwork});
+  const NetworkSwapPage({super.key, required this.fromNetwork, required this.toNetwork, this.dataDir = ''});
 
   @override
   State<NetworkSwapPage> createState() => _NetworkSwapPageState();
@@ -57,7 +21,6 @@ class NetworkSwapPage extends StatefulWidget {
 
 class _NetworkSwapPageState extends State<NetworkSwapPage> {
   Logger get _log => GetIt.I.get<Logger>();
-  BitwindowRPC get _bitwindow => GetIt.I.get<BitwindowRPC>();
 
   final _SwapStep _step = _SwapStep('Switching network');
 
@@ -74,8 +37,7 @@ class _NetworkSwapPageState extends State<NetworkSwapPage> {
     });
 
     try {
-      await _bitwindow.bitwindowd.updateNetwork(widget.toNetwork.toReadableNet());
-      await clearNetworkScopedCaches();
+      await GetIt.I.get<BitcoinConfProvider>().updateNetwork(widget.toNetwork, dataDir: widget.dataDir);
       if (mounted) {
         setState(() {
           _step.endTime = DateTime.now();

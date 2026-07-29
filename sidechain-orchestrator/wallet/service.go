@@ -31,9 +31,10 @@ type Service struct {
 	bitwindowDir string
 	log          zerolog.Logger
 
-	// electrumDB stores electrum wallet chain state (addresses, UTXOs, txs) so
-	// reads serve from disk and only deltas hit Esplora. Owned solely by the
-	// orchestrator; nil when it could not be opened.
+	// Electrum chain state (addresses, UTXOs, txs), one database per network
+	// under <bitwindowDir>/<network>/. nil when it could not be opened.
+	dbMu       sync.RWMutex
+	network    string
 	electrumDB *sql.DB
 
 	// In-memory state
@@ -275,14 +276,12 @@ func (s *Service) Init() error {
 		return fmt.Errorf("create bitwindow dir: %w", err)
 	}
 
-	db, err := OpenElectrumDB(context.Background(), filepath.Join(s.bitwindowDir, "electrum.db"))
-	if err != nil {
-		return fmt.Errorf("open electrum db: %w", err)
+	if err := s.openElectrumDB(); err != nil {
+		return err
 	}
-	s.electrumDB = db
 
 	s.mu.Lock()
-	err = s.loadWalletFile()
+	err := s.loadWalletFile()
 	s.mu.Unlock()
 	if err != nil {
 		s.log.Warn().Err(err).Msg("initial wallet load failed (may not exist yet)")
@@ -298,6 +297,80 @@ func (s *Service) Init() error {
 	return nil
 }
 
+// NetworkDir is where per-network wallet state lives. Seeds stay at the flat
+// <bitwindowDir> root — they are network-agnostic.
+func (s *Service) NetworkDir() string {
+	s.dbMu.RLock()
+	defer s.dbMu.RUnlock()
+	return s.networkDirLocked()
+}
+
+func (s *Service) networkDirLocked() string {
+	if s.network == "" {
+		return s.bitwindowDir
+	}
+	return filepath.Join(s.bitwindowDir, s.network)
+}
+
+// SetNetwork records the boot network. Call before Init; afterwards use
+// RebindNetwork, which also moves the open database.
+func (s *Service) SetNetwork(network string) {
+	s.dbMu.Lock()
+	defer s.dbMu.Unlock()
+	s.network = network
+}
+
+// db returns the electrum handle. A rebind swaps the pointer, so callers must
+// read it through here rather than caching it.
+func (s *Service) db() *sql.DB {
+	s.dbMu.RLock()
+	defer s.dbMu.RUnlock()
+	return s.electrumDB
+}
+
+func (s *Service) openElectrumDB() error {
+	s.dbMu.Lock()
+	dir := s.networkDirLocked()
+	s.dbMu.Unlock()
+
+	if err := os.MkdirAll(dir, 0700); err != nil {
+		return fmt.Errorf("create network dir: %w", err)
+	}
+	db, err := OpenElectrumDB(context.Background(), filepath.Join(dir, "electrum.db"))
+	if err != nil {
+		return fmt.Errorf("open electrum db: %w", err)
+	}
+
+	s.dbMu.Lock()
+	s.electrumDB = db
+	s.dbMu.Unlock()
+	return nil
+}
+
+// RebindNetwork points wallet state at another network's directory. The
+// previous handle is closed after the swap, so in-flight reads finish first.
+func (s *Service) RebindNetwork(network string) error {
+	s.dbMu.Lock()
+	if network == s.network {
+		s.dbMu.Unlock()
+		return nil
+	}
+	previous := s.electrumDB
+	s.network = network
+	s.electrumDB = nil
+	s.dbMu.Unlock()
+
+	if previous != nil {
+		_ = previous.Close()
+	}
+	if err := s.openElectrumDB(); err != nil {
+		return err
+	}
+	s.syncReporter.reset()
+	s.log.Info().Str("network", network).Str("dir", s.NetworkDir()).Msg("wallet state rebound to network")
+	return nil
+}
+
 // Close stops the file watcher and cleans up starter files.
 func (s *Service) Close() {
 	s.closeOnce.Do(func() {
@@ -306,8 +379,8 @@ func (s *Service) Close() {
 		if s.watcher != nil {
 			_ = s.watcher.Close()
 		}
-		if s.electrumDB != nil {
-			_ = s.electrumDB.Close()
+		if db := s.db(); db != nil {
+			_ = db.Close()
 		}
 		s.CleanupStarterFiles()
 	})

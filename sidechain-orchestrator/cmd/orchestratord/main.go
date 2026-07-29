@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
+	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/rs/zerolog"
 	"github.com/urfave/cli/v2"
 	"golang.org/x/net/http2"
@@ -211,6 +212,7 @@ func run(cctx *cli.Context) error {
 
 	// Initialize wallet service
 	walletSvc := wallet.NewService(bitwindowDir, log)
+	walletSvc.SetNetwork(orch.CurrentNetwork())
 	walletSvc.OnStopAllBinaries = func() error {
 		shutdownCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 		defer cancel()
@@ -287,39 +289,52 @@ func run(cctx *cli.Context) error {
 	// Wallet manager service
 	walletHandler := api.NewWalletHandler(walletSvc)
 	walletHandler.SetOrchestrator(orch)
-	walletHandler.SetBip47StateStore(bip47state.NewStore(bitwindowDir))
+	bip47SendStore := bip47state.NewStore(walletSvc.NetworkDir())
+	walletHandler.SetBip47StateStore(bip47SendStore)
 
 	multisigLoungeHandler := api.NewMultisigLoungeHandler()
 	multisigLoungeHandler.SetService(walletSvc)
 	multisigLoungeHandler.SetCoreCaller(handler.RawCoreCall)
 
-	// Wallet derivation must follow the resolved/persisted network: bitwindow-
-	// bitcoin.conf wins over the --network flag (orchestratord is usually
-	// launched without --network). Using the raw flag derives signet/testnet
-	// addresses while the user is on mainnet.
-	resolvedNetwork := network
-	if orch.Network != "" {
-		resolvedNetwork = orch.Network
+	// bitwindow-bitcoin.conf wins over the --network flag, which orchestratord
+	// is usually launched without.
+	currentNetwork := func() string {
+		if n := orch.CurrentNetwork(); n != "" {
+			return n
+		}
+		return network
 	}
-	netParams, perr := bip47send.NetworkParams(resolvedNetwork)
-	if perr != nil {
-		log.Warn().Err(perr).Str("network", resolvedNetwork).Msg("unrecognised network; BIP47 features will be disabled")
+	netParams := wallet.ParamsFunc(func() *chaincfg.Params {
+		params, err := bip47send.NetworkParams(currentNetwork())
+		if err != nil {
+			return nil
+		}
+		return params
+	})
+	if _, perr := bip47send.NetworkParams(currentNetwork()); perr != nil {
+		log.Warn().Err(perr).Str("network", currentNetwork()).Msg("unrecognised network; BIP47 features will be disabled")
 	}
 
 	// Chain wallet provider — CoreBackend today; electrum/btcd providers
 	// slot in behind the same wallet.Backend interface.
 	var chainBackend wallet.Backend
 	if orch.BitcoinConf != nil {
-		port := orch.BitcoinConf.GetRPCPort()
-		var user, password string
-		if orch.BitcoinConf.Config != nil {
-			section := orch.BitcoinConf.Network.CoreSection()
-			user = orch.BitcoinConf.Config.GetEffectiveSetting("rpcuser", section)
-			password = orch.BitcoinConf.Config.GetEffectiveSetting("rpcpassword", section)
+		// Port and credentials both move with the network.
+		coreEndpoint := func() wallet.CoreEndpoint {
+			endpoint := wallet.CoreEndpoint{
+				Host: orch.BitcoinConf.GetRPCHost(),
+				Port: orch.BitcoinConf.GetRPCPort(),
+			}
+			if orch.BitcoinConf.Config != nil {
+				section := orch.BitcoinConf.Network.CoreSection()
+				endpoint.User = orch.BitcoinConf.Config.GetEffectiveSetting("rpcuser", section)
+				endpoint.Password = orch.BitcoinConf.Config.GetEffectiveSetting("rpcpassword", section)
+			}
+			return endpoint
 		}
-		coreRPC := wallet.NewCoreRPCClient(orch.BitcoinConf.GetRPCHost(), port, user, password)
+		coreRPC := wallet.NewCoreRPCClient(coreEndpoint)
 		chainBackend = wallet.NewCoreBackend(walletSvc, coreRPC, netParams, log)
-		log.Info().Int("rpc_port", port).Msg("core wallet provider initialized")
+		log.Info().Int("rpc_port", coreEndpoint().Port).Msg("core wallet provider initialized")
 	}
 
 	// Enforcer wallet provider — relays the enforcer-type wallet to the
@@ -363,18 +378,14 @@ func run(cctx *cli.Context) error {
 	// Endpoint and params are looked up per call from the orchestrator's current
 	// network, so a network swap applies without restarting the process.
 	resolveChainTarget := func() wallet.ChainTarget {
-		current := orch.CurrentNetwork()
+		current := currentNetwork()
 		net := config.NetworkFromString(current)
 		urls := config.WalletChainSourceURLsForNetwork(net)
 		// A persisted runtime override replaces the network default endpoint.
 		if override := orch.ElectrumServerOverride(); override != "" {
 			urls = []string{override}
 		}
-		params, err := bip47send.NetworkParams(current)
-		if err != nil {
-			params = nil
-		}
-		return wallet.ChainTarget{Network: current, URLs: urls, Params: params}
+		return wallet.ChainTarget{Network: current, URLs: urls, Params: netParams()}
 	}
 
 	chainSource := wallet.NewNetworkChainSource(resolveChainTarget, log)
@@ -389,6 +400,8 @@ func run(cctx *cli.Context) error {
 
 	router := wallet.NewBackendRouter(walletSvc, enforcerBackend, chainBackend, electrumBackend)
 	walletEngine := wallet.NewWalletEngine(walletSvc, router, netParams, log)
+	walletEngine.OnNetworkReset(func(dir string) { bip47SendStore.Rebind(dir) })
+	orch.SetWalletEngine(walletEngine)
 	walletHandler.SetEngine(walletEngine)
 	multisigLoungeHandler.SetEngine(walletEngine)
 
@@ -404,8 +417,9 @@ func run(cctx *cli.Context) error {
 	// receive keys so subsequent payments are spendable. Starts whenever any
 	// BIP47-capable backend is configured — an electrum-only wallet needs it too.
 	if chainBackend != nil || electrumBackend != nil {
-		bip47InboundStore := bip47state.NewInboundStore(bitwindowDir)
+		bip47InboundStore := bip47state.NewInboundStore(walletSvc.NetworkDir())
 		bip47Engine := engines.NewBIP47Engine(log, walletSvc, walletEngine, bip47InboundStore)
+		walletEngine.OnNetworkReset(bip47Engine.ResetForNetwork)
 		go func() {
 			if err := bip47Engine.Run(ctx); err != nil && !errors.Is(err, context.Canceled) {
 				log.Error().Err(err).Msg("bip47 engine exited")

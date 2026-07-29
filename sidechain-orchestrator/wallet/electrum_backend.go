@@ -57,10 +57,10 @@ type SwappableChainSource interface {
 }
 
 type ElectrumBackend struct {
-	svc     *Service
-	client  ChainDataSource
-	network *chaincfg.Params
-	log     zerolog.Logger
+	svc       *Service
+	client    ChainDataSource
+	netParams ParamsFunc
+	log       zerolog.Logger
 
 	mu        sync.Mutex
 	watchKeys map[string][]WatchKey    // walletID -> extra keys to track
@@ -94,11 +94,11 @@ var (
 )
 
 // NewElectrumBackend creates an Esplora-backed wallet backend.
-func NewElectrumBackend(svc *Service, client ChainDataSource, network *chaincfg.Params, log zerolog.Logger) *ElectrumBackend {
+func NewElectrumBackend(svc *Service, client ChainDataSource, params ParamsFunc, log zerolog.Logger) *ElectrumBackend {
 	b := &ElectrumBackend{
 		svc:       svc,
 		client:    client,
-		network:   network,
+		netParams: params,
 		log:       log.With().Str("component", "electrum-backend").Logger(),
 		watchKeys: make(map[string][]WatchKey),
 		warm:      make(map[string]bool),
@@ -109,9 +109,6 @@ func NewElectrumBackend(svc *Service, client ChainDataSource, network *chaincfg.
 		scanLocks: make(map[string]*sync.Mutex),
 		subStatus: make(map[string]string),
 		shWallet:  make(map[string]string),
-	}
-	if ns, ok := client.(*NetworkChainSource); ok {
-		ns.SetOnNetworkSwitch(b.dropChainCaches)
 	}
 	return b
 }
@@ -124,7 +121,7 @@ func (p *ElectrumBackend) params() *chaincfg.Params {
 			return n
 		}
 	}
-	return p.network
+	return p.netParams.resolve()
 }
 
 // Available reports whether the current network has a wallet chain source.
@@ -135,8 +132,9 @@ func (p *ElectrumBackend) Available() bool {
 	return true
 }
 
-// dropChainCaches clears every scan cached against the previous network.
-func (p *ElectrumBackend) dropChainCaches() {
+// dropScanCaches clears cached scans and subscription state. For a changed
+// chain view on the same network — a new server, a proxy change, a reconnect.
+func (p *ElectrumBackend) dropScanCaches() {
 	p.mu.Lock()
 	p.generation++
 	p.warmScan = make(map[string]*electrumScan)
@@ -150,15 +148,22 @@ func (p *ElectrumBackend) dropChainCaches() {
 	p.subStatus = make(map[string]string)
 	p.shWallet = make(map[string]string)
 	p.subMu.Unlock()
+}
 
-	if p.svc != nil {
-		if err := p.svc.clearElectrumScans(); err != nil {
-			p.log.Error().Err(err).Msg("clearing persisted scans after network switch failed")
-			return
-		}
-	}
+// ResetNetworkState drops everything derived from the previous network,
+// including the watch keys and scan locks a chain-view reset keeps.
+func (p *ElectrumBackend) ResetNetworkState() {
+	p.dropScanCaches()
 
-	p.log.Info().Msg("dropped chain caches after network switch")
+	p.mu.Lock()
+	p.watchKeys = make(map[string][]WatchKey)
+	p.mu.Unlock()
+
+	p.scanMu.Lock()
+	p.scanLocks = make(map[string]*sync.Mutex)
+	p.scanMu.Unlock()
+
+	p.log.Info().Msg("dropped wallet chain state after network switch")
 }
 
 // FeeRateForTarget returns the esplora sat/vB fee estimate for a confirmation target.
@@ -1290,13 +1295,7 @@ func (p *ElectrumBackend) SetServerURL(ctx context.Context, url string) (int, er
 
 	// The new endpoint serves a different chain view, so every cached scan is
 	// stale. Drop them so reads re-walk against the new server.
-	p.mu.Lock()
-	p.generation++
-	p.warmScan = make(map[string]*electrumScan)
-	p.tipAt = make(map[string]int)
-	p.scanAt = make(map[string]time.Time)
-	p.warm = make(map[string]bool)
-	p.mu.Unlock()
+	p.dropScanCaches()
 
 	return tip, nil
 }
@@ -1341,13 +1340,7 @@ func (p *ElectrumBackend) SetTorConfig(ctx context.Context, enabled bool, proxyA
 		return 0, connect.NewError(connect.CodeUnavailable, fmt.Errorf("proxy %s unreachable, kept previous tor config: %w", proxyAddr, err))
 	}
 
-	p.mu.Lock()
-	p.generation++
-	p.warmScan = make(map[string]*electrumScan)
-	p.tipAt = make(map[string]int)
-	p.scanAt = make(map[string]time.Time)
-	p.warm = make(map[string]bool)
-	p.mu.Unlock()
+	p.dropScanCaches()
 
 	return tip, nil
 }
@@ -1806,16 +1799,7 @@ func (p *ElectrumBackend) invalidate(walletID string) {
 // onElectrumReconnect drops all subscription state and warm caches; the next
 // read re-scans and re-subscribes on the fresh socket.
 func (p *ElectrumBackend) onElectrumReconnect() {
-	p.subMu.Lock()
-	p.subStatus = make(map[string]string)
-	p.shWallet = make(map[string]string)
-	p.subMu.Unlock()
-	p.mu.Lock()
-	p.generation++
-	p.warmScan = make(map[string]*electrumScan)
-	p.tipAt = make(map[string]int)
-	p.scanAt = make(map[string]time.Time)
-	p.mu.Unlock()
+	p.dropScanCaches()
 	p.svc.notifyChanged()
 }
 

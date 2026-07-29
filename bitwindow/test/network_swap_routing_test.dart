@@ -8,20 +8,19 @@ import 'package:sail_ui/sail_ui.dart';
 import 'test_utils.dart';
 
 /// Fake conf provider so the routing test controls the only input the
-/// DataDirGuard cares about: which network is active and whether it already
-/// has a datadir. No real backend / network init.
+/// DataDirGuard cares about: the backend's verdict on whether a datadir is
+/// needed. No real backend / network init.
 class _FakeConf extends ChangeNotifier implements BitcoinConfProvider {
+  _FakeConf({required this.mustSelectDatadir});
+
   @override
   BitcoinNetwork network = BitcoinNetwork.BITCOIN_NETWORK_MAINNET;
 
   @override
-  bool networkRequiresDataDir(BitcoinNetwork n) =>
-      n == BitcoinNetwork.BITCOIN_NETWORK_MAINNET ||
-      n == BitcoinNetwork.BITCOIN_NETWORK_FORKNET ||
-      n == BitcoinNetwork.BITCOIN_NETWORK_DRYNET;
+  bool mustSelectDatadir;
 
   @override
-  bool hasDataDirFor(BitcoinNetwork n) => false;
+  Future<void> loadConfig({bool isFirst = false, bool userInitiated = false}) async {}
 
   @override
   dynamic noSuchMethod(Invocation invocation) => null;
@@ -37,7 +36,7 @@ void main() {
     if (GetIt.I.isRegistered<BitcoinConfProvider>()) {
       await GetIt.I.unregister<BitcoinConfProvider>();
     }
-    GetIt.I.registerSingleton<BitcoinConfProvider>(_FakeConf());
+    GetIt.I.registerSingleton<BitcoinConfProvider>(_FakeConf(mustSelectDatadir: true));
 
     final router = AppRouter();
     await tester.pumpWidget(

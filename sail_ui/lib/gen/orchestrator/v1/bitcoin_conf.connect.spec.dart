@@ -18,6 +18,15 @@ abstract final class BitcoinConfService {
     orchestratorv1bitcoin_conf.GetBitcoinConfigResponse.new,
   );
 
+  /// Report what the user must resolve before a network and/or wallet-backend
+  /// change can be applied. Side-effect free.
+  static const prepareNetworkChange = connect.Spec(
+    '/$name/PrepareNetworkChange',
+    connect.StreamType.unary,
+    orchestratorv1bitcoin_conf.PrepareNetworkChangeRequest.new,
+    orchestratorv1bitcoin_conf.NetworkChangePlan.new,
+  );
+
   /// Set the Bitcoin Core network (signet, mainnet, forknet, drynet, testnet, regtest).
   static const setBitcoinConfigNetwork = connect.Spec(
     '/$name/SetBitcoinConfigNetwork',

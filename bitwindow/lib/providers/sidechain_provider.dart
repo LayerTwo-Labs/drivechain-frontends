@@ -1,3 +1,4 @@
+import 'package:sail_ui/providers/network_scoped.dart';
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
@@ -10,7 +11,12 @@ import 'package:sail_ui/providers/sync_provider.dart';
 import 'package:sail_ui/providers/wallet_reader_provider.dart';
 import 'package:sail_ui/rpcs/bitwindow_api.dart';
 
-class SidechainProvider extends ChangeNotifier {
+class SidechainProvider extends ChangeNotifier implements NetworkScoped {
+  @override
+  Future<void> onNetworkChanged() async {
+    clear();
+  }
+
   Logger get log => GetIt.I.get<Logger>();
 
   SyncProvider get _syncProvider => GetIt.I.get<SyncProvider>();

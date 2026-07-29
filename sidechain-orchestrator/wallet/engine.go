@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"sync"
 
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/rs/zerolog"
@@ -16,18 +17,19 @@ type WalletEngine struct {
 	svc     *Service
 	backend Backend
 	log     zerolog.Logger
-	network *chaincfg.Params
+	params  ParamsFunc
+
+	resetMu sync.Mutex
+	onReset []func(networkDir string)
 }
 
-// NewWalletEngine wires a Backend to the wallet service. Callers convert
-// the CLI network string via bip47send.NetworkParams (or equivalent) before
-// passing — the engine never sees the network name as a free-form string.
-func NewWalletEngine(svc *Service, backend Backend, network *chaincfg.Params, log zerolog.Logger) *WalletEngine {
+// NewWalletEngine wires a Backend to the wallet service.
+func NewWalletEngine(svc *Service, backend Backend, params ParamsFunc, log zerolog.Logger) *WalletEngine {
 	return &WalletEngine{
 		svc:     svc,
 		backend: backend,
 		log:     log.With().Str("component", "wallet-engine").Logger(),
-		network: network,
+		params:  params,
 	}
 }
 
@@ -178,9 +180,9 @@ func (e *WalletEngine) SetTorConfig(ctx context.Context, enabled bool, proxyAddr
 	return eb.SetTorConfig(ctx, enabled, proxyAddr)
 }
 
-// Network returns the chain parameters this engine was constructed against.
+// Network returns the chain parameters of the network in use right now.
 func (e *WalletEngine) Network() *chaincfg.Params {
-	return e.network
+	return e.params.resolve()
 }
 
 // ResolveWalletID returns the wallet ID to use. If empty, returns active wallet ID.

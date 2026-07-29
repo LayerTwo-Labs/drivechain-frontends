@@ -35,10 +35,10 @@ const walletLoadingBackoff = 5 * time.Second
 // derives BIP84 descriptors from wallet.json seeds, lazily creates the Core
 // wallets, and proxies all wallet operations to Core RPC.
 type CoreBackend struct {
-	svc     *Service
-	rpc     *CoreRPCClient
-	log     zerolog.Logger
-	network *chaincfg.Params
+	svc    *Service
+	rpc    *CoreRPCClient
+	log    zerolog.Logger
+	params ParamsFunc
 
 	mu          sync.Mutex
 	coreWallets map[string]string // walletID -> Core wallet name
@@ -57,14 +57,29 @@ var (
 )
 
 // NewCoreBackend creates the Bitcoin Core wallet backend.
-func NewCoreBackend(svc *Service, rpc *CoreRPCClient, network *chaincfg.Params, log zerolog.Logger) *CoreBackend {
+func NewCoreBackend(svc *Service, rpc *CoreRPCClient, params ParamsFunc, log zerolog.Logger) *CoreBackend {
 	return &CoreBackend{
 		svc:         svc,
 		rpc:         rpc,
 		log:         log.With().Str("component", "core-backend").Logger(),
-		network:     network,
+		params:      params,
 		coreWallets: make(map[string]string),
 	}
+}
+
+// ResetNetworkState drops the wallet-name cache: a different network means a
+// different bitcoind datadir, where those wallets do not exist.
+func (p *CoreBackend) ResetNetworkState() {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	p.coreWallets = make(map[string]string)
+	p.loadingUntil = time.Time{}
+	p.loadingErr = nil
+}
+
+// net reports the params of the network in use right now.
+func (p *CoreBackend) net() *chaincfg.Params {
+	return p.params.resolve()
 }
 
 // Ensure ensures a Bitcoin Core wallet exists for a wallet.json wallet.
@@ -309,10 +324,11 @@ func coreAddressType(kind ScriptKind) (string, bool) {
 // given script kind produces, so candidate filtering works for base58 (P2PKH,
 // P2SH-P2WPKH) as well as bech32/bech32m kinds.
 func (p *CoreBackend) addressMatchesKind(address string, kind ScriptKind) bool {
-	if p.network == nil {
+	net := p.net()
+	if net == nil {
 		return false
 	}
-	addr, err := btcutil.DecodeAddress(address, p.network)
+	addr, err := btcutil.DecodeAddress(address, net)
 	if err != nil {
 		return false
 	}
@@ -677,14 +693,15 @@ func (c coreChain) Broadcast(ctx context.Context, rawHex string) (string, error)
 // up historic notification txs; subsequent imports are no-ops because Core
 // recognizes the descriptor as already known.
 func (p *CoreBackend) ensureBip47NotificationDescriptor(ctx context.Context, walletName, seedHex string) error {
-	if p.network == nil {
+	net := p.net()
+	if net == nil {
 		return nil
 	}
-	notifPriv, _, err := bip47.DeriveOwnNotificationKey(seedHex, p.network)
+	notifPriv, _, err := bip47.DeriveOwnNotificationKey(seedHex, net)
 	if err != nil {
 		return fmt.Errorf("derive notification key: %w", err)
 	}
-	wif, err := btcutil.NewWIF(notifPriv, p.network, true)
+	wif, err := btcutil.NewWIF(notifPriv, net, true)
 	if err != nil {
 		return fmt.Errorf("encode notification wif: %w", err)
 	}
@@ -715,7 +732,8 @@ func (p *CoreBackend) ensureBip47NotificationDescriptor(ctx context.Context, wal
 // at account 0; an AccountIndex shifts both to that account; an explicit
 // DerivationPath imports the single descriptor for that path's purpose.
 func (p *CoreBackend) createBitcoinCoreWallet(ctx context.Context, walletName string, w *WalletData) error {
-	if p.network == nil {
+	net := p.net()
+	if net == nil {
 		return fmt.Errorf("no chain params for this network; cannot derive wallet descriptors")
 	}
 	seed, err := hex.DecodeString(w.Master.SeedHex)
@@ -746,7 +764,7 @@ func (p *CoreBackend) createBitcoinCoreWallet(ctx context.Context, walletName st
 
 	var descriptors []ImportDescriptor
 	for _, kind := range purposes {
-		ap, err := accountPathFor(w, kind, p.network)
+		ap, err := accountPathFor(w, kind, net)
 		if err != nil {
 			return err
 		}
@@ -754,7 +772,7 @@ func (p *CoreBackend) createBitcoinCoreWallet(ctx context.Context, walletName st
 		if err != nil {
 			return err
 		}
-		acctXprv := serializeKeyForNetwork(acct, p.network)
+		acctXprv := serializeKeyForNetwork(acct, net)
 		open, close, ok := coreDescriptorWrapper(kind)
 		if !ok {
 			return fmt.Errorf("unsupported core descriptor kind %s", kind)

@@ -150,6 +150,7 @@ export 'routing/wallet_guard.dart';
 export 'routing/network_guard.dart';
 export 'pages/datadir_setup_page.dart';
 export 'providers/bitcoin_conf_provider.dart';
+export 'providers/network_scoped.dart';
 export 'providers/core_variant_provider.dart';
 export 'providers/electrum_server_provider.dart';
 export 'providers/tor_config_provider.dart';

@@ -3,7 +3,9 @@ package wallet
 import (
 	"context"
 	"errors"
+	"sync"
 	"testing"
+	"time"
 
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/rs/zerolog"
@@ -66,7 +68,7 @@ func newSwitchableElectrumBackend(t *testing.T, initialURL string) (*ElectrumBac
 	t.Helper()
 	svc := newTestService(t)
 	fake := newSwappableFakeEsplora(initialURL)
-	p := NewElectrumBackend(svc, fake, &chaincfg.SigNetParams, zerolog.New(zerolog.NewTestWriter(t)))
+	p := NewElectrumBackend(svc, fake, StaticParams(&chaincfg.SigNetParams), zerolog.New(zerolog.NewTestWriter(t)))
 	return p, fake
 }
 
@@ -110,4 +112,50 @@ func TestSetServerURLHonorsHTTPS(t *testing.T) {
 	_, err := p.SetServerURL(context.Background(), "https://secure.example/api")
 	require.NoError(t, err)
 	assert.Equal(t, "https://secure.example/api", p.ServerURL())
+}
+
+// A network swap must clear every per-wallet cache, not just the scan ones —
+// watchKeys and scanLocks were the two a chain-view reset leaves behind.
+func TestResetNetworkStateClearsEveryCache(t *testing.T) {
+	p := NewElectrumBackend(nil, nil, StaticParams(&chaincfg.SigNetParams), zerolog.Nop())
+
+	p.mu.Lock()
+	before := p.generation
+	p.watchKeys["w1"] = []WatchKey{{WIF: "wif"}}
+	p.warm["w1"] = true
+	p.warmScan["w1"] = &electrumScan{}
+	p.tipAt["w1"] = 900000
+	p.scanAt["w1"] = time.Now()
+	p.lastScan["w1"] = []byte("scan")
+	p.mu.Unlock()
+
+	p.scanMu.Lock()
+	p.scanLocks["w1"] = &sync.Mutex{}
+	p.scanMu.Unlock()
+
+	p.subMu.Lock()
+	p.subStatus["sh"] = "status"
+	p.shWallet["sh"] = "w1"
+	p.subMu.Unlock()
+
+	p.ResetNetworkState()
+
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	assert.Empty(t, p.watchKeys, "watch keys derive under the old network's params")
+	assert.Empty(t, p.warm)
+	assert.Empty(t, p.warmScan)
+	assert.Empty(t, p.tipAt)
+	assert.Empty(t, p.scanAt)
+	assert.Empty(t, p.lastScan)
+	assert.Greater(t, p.generation, before, "generation must advance so in-flight scans are rejected")
+
+	p.scanMu.Lock()
+	defer p.scanMu.Unlock()
+	assert.Empty(t, p.scanLocks)
+
+	p.subMu.Lock()
+	defer p.subMu.Unlock()
+	assert.Empty(t, p.subStatus)
+	assert.Empty(t, p.shWallet)
 }

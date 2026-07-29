@@ -1,3 +1,4 @@
+import 'package:sail_ui/providers/network_scoped.dart';
 import 'dart:convert';
 
 import 'package:bitwindow/providers/transactions_provider.dart';
@@ -19,7 +20,12 @@ enum FastWithdrawalStage {
   error,
 }
 
-class FastWithdrawalProvider extends ChangeNotifier {
+class FastWithdrawalProvider extends ChangeNotifier implements NetworkScoped {
+  @override
+  Future<void> onNetworkChanged() async {
+    reset();
+  }
+
   Logger get log => GetIt.I.get<Logger>();
   TransactionProvider get _transactionsProvider => GetIt.I<TransactionProvider>();
 

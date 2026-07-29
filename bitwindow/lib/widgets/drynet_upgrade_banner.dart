@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:bitwindow/main.dart' show rebootBitwindowBackend;
-import 'package:bitwindow/pages/settings/network_swap_page.dart' show clearNetworkScopedCaches;
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
@@ -163,7 +162,7 @@ class _DrynetUpgradeDialogState extends State<DrynetUpgradeDialog> {
     if (mounted) setState(() => _progress = 'Restarting the backends on ${_pending.pendingGeneration}...');
     try {
       await rebootBitwindowBackend(_log);
-      await clearNetworkScopedCaches();
+      await NetworkScopedRegistry.clearAll();
     } catch (e) {
       // The switch is recorded and applies on any later start, so this is a
       // restart that needs retrying, not an upgrade that failed.

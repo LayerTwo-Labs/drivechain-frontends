@@ -600,9 +600,8 @@ class _SettingsNetworkState extends State<SettingsNetwork> {
   }
 }
 
-/// Pushes the full-page network swap flow. The shared Sail UI datadir
-/// precondition runs first; only a configured target network reaches
-/// [NetworkSwapPage], which performs the stop/save/boot progress flow.
+/// Pushes the full-page network swap flow. The backend reports what the user
+/// must resolve first; only a resolved change reaches [NetworkSwapPage].
 Future<void> swapNetworkWithDatadirPrompt(
   BuildContext context,
   BitcoinConfProvider provider,
@@ -610,8 +609,12 @@ Future<void> swapNetworkWithDatadirPrompt(
 ) async {
   if (provider.network == network) return;
 
-  final ready = await provider.ensureDataDirForNetwork(context, network);
-  if (!ready) return;
+  final plan = await provider.prepareNetworkChange(targetNetwork: network);
+  if (plan.noOp) return;
+
+  if (!context.mounted) return;
+  final dataDir = await provider.resolveNetworkChangePlan(context, plan, network);
+  if (dataDir == null) return;
 
   if (!context.mounted) return;
   if (network == BitcoinNetwork.BITCOIN_NETWORK_DRYNET && !await confirmPendingDrynetUpgrade(context)) {
@@ -621,7 +624,7 @@ Future<void> swapNetworkWithDatadirPrompt(
   if (!context.mounted) return;
   await Navigator.of(context).push<bool>(
     sailRoute(
-      builder: (_) => NetworkSwapPage(fromNetwork: provider.network, toNetwork: network),
+      builder: (_) => NetworkSwapPage(fromNetwork: provider.network, toNetwork: network, dataDir: dataDir),
     ),
   );
 }

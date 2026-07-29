@@ -256,6 +256,8 @@ message ListWalletsResponse {
 
 message SwitchWalletRequest {
   string wallet_id = 1;
+  // The user's answer when a previous attempt reported must_select_datadir.
+  string data_dir = 2;
 }
 
 message SwitchWalletResponse {}

@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart' show BuildContext;
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:sail_ui/env.dart';
@@ -14,7 +15,12 @@ import 'package:sail_ui/sail_ui.dart';
 /// Uses the WatchWalletData server-streaming RPC, wrapped in a
 /// [StreamSupervisor] that owns reconnect, transport recreation, and
 /// heartbeat detection.
-class WalletReaderProvider extends ChangeNotifier {
+class WalletReaderProvider extends ChangeNotifier implements NetworkScoped {
+  @override
+  Future<void> onNetworkChanged() async {
+    await reloadForNetworkChange();
+  }
+
   final Logger _logger = GetIt.I.get<Logger>();
   OrchestratorWalletRPC get _client => GetIt.I.get<OrchestratorRPC>().wallet;
   final Directory bitwindowAppDir;
@@ -383,15 +389,30 @@ class WalletReaderProvider extends ChangeNotifier {
     // Stream will push updated state automatically.
   }
 
-  Future<void> switchWallet(String walletId) async {
+  Future<void> switchWallet(String walletId, {String dataDir = ''}) async {
     try {
-      await _client.switchWallet(walletId);
+      await _client.switchWallet(walletId, dataDir: dataDir);
       activeWalletId = walletId;
       notifyListeners();
     } catch (e) {
       _logger.e('WalletReaderProvider: switch wallet failed: $e');
       rethrow;
     }
+  }
+
+  /// Resolves whatever the backend needs before a wallet switch — moving onto a
+  /// Core wallet can need a datadir this network was never given.
+  Future<String> resolveSwitchRequirements(BuildContext context, String walletId) async {
+    if (!GetIt.I.isRegistered<BitcoinConfProvider>()) return '';
+
+    final conf = GetIt.I.get<BitcoinConfProvider>();
+    final plan = await conf.prepareNetworkChange(walletId: walletId);
+    if (!plan.mustSelectDatadir) return '';
+
+    if (!context.mounted) throw NetworkChangeDeclined(conf.network);
+    final dataDir = await conf.resolveNetworkChangePlan(context, plan, conf.network);
+    if (dataDir == null) throw NetworkChangeDeclined(conf.network);
+    return dataDir;
   }
 
   Future<void> removeWalletFromList(String walletId) async {
