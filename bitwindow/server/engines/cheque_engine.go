@@ -4,38 +4,17 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
-	"math"
-	"strings"
 	"sync/atomic"
 	"time"
 
-	"connectrpc.com/connect"
-	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/service"
-	corepb "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha"
-	corerpc "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha/bitcoindv1alphaconnect"
 	"github.com/btcsuite/btcd/btcutil"
 	"github.com/btcsuite/btcd/btcutil/hdkeychain"
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/rs/zerolog"
-	"github.com/samber/lo"
-	"google.golang.org/protobuf/types/known/emptypb"
-	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
-const (
-	// Derivation path for cheques: m/44'/0'/999'/{index}
-	chequeAccount = 999
-
-	// ChequeWalletName is the name of the watch-only Bitcoin Core wallet for cheques
-	ChequeWalletName = "cheque_watch"
-)
-
-// IsWalletAlreadyLoadedErr reports whether err is bitcoind's "-35 wallet already
-// loaded" response. It's benign — the wallet IS loaded — so callers that loaded
-// the wallet only to use it must treat it as success, not abort.
-func IsWalletAlreadyLoadedErr(err error) bool {
-	return err != nil && strings.Contains(err.Error(), "already loaded")
-}
+// Derivation path for cheques: m/44'/0'/999'/{index}
+const chequeAccount = 999
 
 // ChequeRecovery represents a recovered cheque with funds
 type ChequeRecovery struct {
@@ -50,19 +29,15 @@ type ChequeRecovery struct {
 type ChequeEngine struct {
 	walletEngine *WalletEngine
 	chainParams  *chaincfg.Params
-	bitcoind     *service.Service[corerpc.BitcoinServiceClient]
+	chain        ChequeChain
 }
 
 // NewChequeEngine creates a new cheque engine
-func NewChequeEngine(
-	walletEngine *WalletEngine,
-	chainParams *chaincfg.Params,
-	bitcoind *service.Service[corerpc.BitcoinServiceClient],
-) *ChequeEngine {
+func NewChequeEngine(walletEngine *WalletEngine, chainParams *chaincfg.Params, chain ChequeChain) *ChequeEngine {
 	return &ChequeEngine{
 		walletEngine: walletEngine,
 		chainParams:  chainParams,
-		bitcoind:     bitcoind,
+		chain:        chain,
 	}
 }
 
@@ -168,7 +143,7 @@ func (e *ChequeEngine) DeriveChequePrivateKey(walletId string, index uint32) (st
 }
 
 // ScanForFunds scans the first count addresses for UTXOs for a specific wallet
-func (e *ChequeEngine) ScanForFunds(ctx context.Context, walletId string, bitcoind corerpc.BitcoinServiceClient, count int) ([]ChequeRecovery, error) {
+func (e *ChequeEngine) ScanForFunds(ctx context.Context, walletId string, count int) ([]ChequeRecovery, error) {
 	// Get seed from wallet engine for the specific wallet
 	seedHex, err := e.walletEngine.GetWalletSeed(walletId)
 	if err != nil {
@@ -200,29 +175,19 @@ func (e *ChequeEngine) ScanForFunds(ctx context.Context, walletId string, bitcoi
 
 		address := addr.EncodeAddress()
 
-		// Query bitcoind for UTXOs on this address using cheque wallet
-		utxos, err := bitcoind.ListUnspent(ctx, connect.NewRequest(&corepb.ListUnspentRequest{
-			MinimumConfirmations: lo.ToPtr(uint32(0)), // Include unconfirmed
-			Addresses:            []string{address},
-			Wallet:               ChequeWalletName,
-		}))
-
+		utxos, err := e.chain.AddressUnspent(ctx, address, time.Unix(0, 0))
 		if err != nil {
 			log.Warn().Err(err).Str("address", address).Msg("failed to query UTXOs")
 			continue
 		}
 
-		if len(utxos.Msg.Unspent) > 0 {
-			// Calculate total amount
-			var totalAmount float64
+		if len(utxos) > 0 {
+			var amountSats uint64
 			var txid string
-			for _, utxo := range utxos.Msg.Unspent {
-				totalAmount += utxo.Amount
-				txid = utxo.Txid
+			for _, utxo := range utxos {
+				amountSats += uint64(utxo.ValueSats)
+				txid = utxo.TxID
 			}
-
-			// Convert BTC to satoshis
-			amountSats := uint64(math.Round(totalAmount * 100000000))
 
 			recoveries = append(recoveries, ChequeRecovery{
 				Index:   i,
@@ -253,18 +218,12 @@ func (e *ChequeEngine) Start(ctx context.Context) <-chan struct{} {
 
 	done := make(chan struct{})
 	var pending atomic.Int32
-	pending.Store(2)
+	pending.Store(1)
 	finish := func() {
 		if pending.Add(-1) == 0 {
 			close(done)
 		}
 	}
-
-	// Import cheque descriptor into Bitcoin Core so it tracks all cheque addresses
-	go func() {
-		defer finish()
-		e.importChequeDescriptor(ctx)
-	}()
 
 	// Cheque recovery waits for unlock since it needs to derive addresses
 	go func() {
@@ -273,187 +232,6 @@ func (e *ChequeEngine) Start(ctx context.Context) <-chan struct{} {
 	}()
 
 	return done
-}
-
-// importChequeDescriptors imports the cheque derivation path descriptors for all wallets into Bitcoin Core
-func (e *ChequeEngine) importChequeDescriptor(ctx context.Context) {
-	log := zerolog.Ctx(ctx)
-
-	// Wait for wallet to be unlocked
-	for !e.walletEngine.IsUnlocked() {
-		select {
-		case <-ctx.Done():
-			return
-		case <-time.After(100 * time.Millisecond):
-			// Check again
-		}
-	}
-
-	// Wait for bitcoind to connect. Service.ConnectedChan is a single buffered
-	// channel shared by every consumer (health forwarder, ensureWatchWallet,
-	// us, recoverChequesOnUnlock); whichever goroutine reads first wins the
-	// one buffered value and the rest deadlock until the next state change.
-	// Poll IsConnected instead so this goroutine can't get starved.
-	for !e.bitcoind.IsConnected() {
-		select {
-		case <-ctx.Done():
-			return
-		case <-time.After(100 * time.Millisecond):
-		}
-	}
-
-	bitcoind, err := e.bitcoind.Get(ctx)
-	if err != nil {
-		log.Warn().Err(err).Msg("cannot import cheque descriptors: bitcoind not available")
-		return
-	}
-
-	// service.Service may flip Connected before the RPC port accepts traffic.
-	// Poll ListWallets until it answers — same pattern as recoverChequesOnUnlock.
-	var coreWallets *connect.Response[corepb.ListWalletsResponse]
-	for {
-		coreWallets, err = bitcoind.ListWallets(ctx, connect.NewRequest(&emptypb.Empty{}))
-		if err == nil {
-			break
-		}
-		select {
-		case <-ctx.Done():
-			return
-		case <-time.After(time.Second):
-		}
-	}
-
-	walletExists := lo.Contains(coreWallets.Msg.Wallets, ChequeWalletName)
-	if !walletExists {
-		// Create watch-only cheque wallet
-		_, err = bitcoind.CreateWallet(ctx, connect.NewRequest(&corepb.CreateWalletRequest{
-			Name:               ChequeWalletName,
-			DisablePrivateKeys: true,
-			Blank:              true,
-		}))
-		if err != nil {
-			// If wallet exists on disk but not loaded, try loading it
-			if strings.Contains(err.Error(), "already exists") || strings.Contains(err.Error(), "Database already exists") {
-				log.Info().Msg("cheque wallet exists on disk, loading it")
-				_, loadErr := bitcoind.LoadWallet(ctx, connect.NewRequest(&corepb.LoadWalletRequest{
-					Filename: ChequeWalletName,
-				}))
-				if loadErr != nil && !IsWalletAlreadyLoadedErr(loadErr) {
-					log.Error().Err(loadErr).Msg("cannot import cheque descriptors: failed to load cheque wallet")
-					return
-				}
-			} else {
-				log.Error().Err(err).Msg("cannot import cheque descriptors: failed to create cheque wallet")
-				return
-			}
-		}
-	}
-
-	// Get all wallets and import descriptor for each
-	wallets, err := e.walletEngine.GetAllWallets(ctx)
-	if err != nil {
-		log.Warn().Err(err).Msg("cannot import cheque descriptors: failed to get wallets")
-		return
-	}
-
-	for _, wallet := range wallets {
-		if err := e.importDescriptorForWallet(ctx, bitcoind, wallet.ID); err != nil {
-			log.Warn().Err(err).Str("wallet_id", wallet.ID).Msg("failed to import cheque descriptor for wallet")
-		}
-	}
-
-	log.Info().Int("wallet_count", len(wallets)).Msg("cheque descriptors import complete")
-}
-
-// importDescriptorForWallet imports the cheque descriptor for a specific wallet
-func (e *ChequeEngine) importDescriptorForWallet(ctx context.Context, bitcoind corerpc.BitcoinServiceClient, walletId string) error {
-	log := zerolog.Ctx(ctx)
-
-	seedHex, err := e.walletEngine.GetWalletSeed(walletId)
-	if err != nil {
-		return fmt.Errorf("get wallet seed: %w", err)
-	}
-
-	seedBytes, err := hex.DecodeString(seedHex)
-	if err != nil {
-		return fmt.Errorf("decode seed: %w", err)
-	}
-
-	// Create master key and derive to account level m/44'/0'/999'
-	masterKey, err := hdkeychain.NewMaster(seedBytes, e.chainParams)
-	if err != nil {
-		return fmt.Errorf("create master key: %w", err)
-	}
-
-	purpose, err := masterKey.Derive(hdkeychain.HardenedKeyStart + 44)
-	if err != nil {
-		return fmt.Errorf("derive purpose: %w", err)
-	}
-
-	coinType, err := purpose.Derive(hdkeychain.HardenedKeyStart + 0)
-	if err != nil {
-		return fmt.Errorf("derive coin type: %w", err)
-	}
-
-	chequeAcct, err := coinType.Derive(hdkeychain.HardenedKeyStart + chequeAccount)
-	if err != nil {
-		return fmt.Errorf("derive cheque account: %w", err)
-	}
-
-	// Get the xpub for the account level
-	xpub := chequeAcct.String()
-
-	// Create wpkh descriptor without checksum first
-	descriptorWithoutChecksum := fmt.Sprintf("wpkh(%s/*)", xpub)
-
-	// Get Bitcoin Core to add the checksum for us using GetDescriptorInfo
-	descInfo, err := bitcoind.GetDescriptorInfo(ctx, connect.NewRequest(&corepb.GetDescriptorInfoRequest{
-		Descriptor_: descriptorWithoutChecksum,
-	}))
-	if err != nil {
-		return fmt.Errorf("get descriptor info: %w", err)
-	}
-
-	// Use the descriptor with checksum from Bitcoin Core
-	descriptor := descInfo.Msg.Descriptor_
-
-	// Import the descriptor into Bitcoin Core cheque wallet.
-	// Timestamp=epoch triggers a full rescan so cheques funded before this
-	// import (e.g. the first run after the descriptor-deadlock fix landed)
-	// get picked up. btc-buf maps nil → "now" (no rescan), which would leave
-	// existing funded cheques permanently invisible.
-	resp, err := bitcoind.ImportDescriptors(ctx, connect.NewRequest(&corepb.ImportDescriptorsRequest{
-		Wallet: ChequeWalletName,
-		Requests: []*corepb.ImportDescriptorsRequest_Request{
-			{
-				Descriptor_: descriptor,
-				Active:      true,
-				RangeStart:  0,
-				RangeEnd:    2000,
-				Timestamp:   timestamppb.New(time.Unix(0, 0)),
-				Internal:    false,
-			},
-		},
-	}))
-	if err != nil {
-		return fmt.Errorf("import descriptor: %w", err)
-	}
-
-	// Check if import was successful
-	if len(resp.Msg.Responses) > 0 {
-		if resp.Msg.Responses[0].Success {
-			log.Debug().Str("wallet_id", walletId).Msg("cheque descriptor imported successfully")
-		} else {
-			if len(resp.Msg.Responses[0].Warnings) > 0 {
-				log.Warn().Str("wallet_id", walletId).Strs("warnings", resp.Msg.Responses[0].Warnings).Msg("cheque descriptor import had warnings")
-			}
-			if resp.Msg.Responses[0].Error != nil {
-				return fmt.Errorf("import failed: %s", resp.Msg.Responses[0].Error.Message)
-			}
-		}
-	}
-
-	return nil
 }
 
 // recoverChequesOnUnlock waits for wallet unlock and bitcoind, then recovers cheques for all wallets
@@ -472,41 +250,7 @@ func (e *ChequeEngine) recoverChequesOnUnlock(ctx context.Context) {
 		}
 	}
 
-	log.Info().Msg("wallet unlocked, waiting for bitcoind for cheque recovery")
-
-	// Poll IsConnected — see importChequeDescriptor for why ConnectedChan
-	// would starve this goroutine.
-	for !e.bitcoind.IsConnected() {
-		select {
-		case <-ctx.Done():
-			return
-		case <-time.After(100 * time.Millisecond):
-		}
-	}
-
-	log.Info().Msg("bitcoind connected, waiting for RPC to be reachable")
-
-	// The service may report "connected" before the RPC port accepts connections.
-	// Wait until we can actually reach Bitcoin Core.
-	bitcoind, err := e.bitcoind.Get(ctx)
-	if err != nil {
-		log.Error().Err(err).Msg("failed to get bitcoind client for recovery")
-		return
-	}
-
-	for {
-		_, err := bitcoind.ListWallets(ctx, connect.NewRequest(&emptypb.Empty{}))
-		if err == nil {
-			break
-		}
-		select {
-		case <-ctx.Done():
-			return
-		case <-time.After(time.Second):
-		}
-	}
-
-	log.Info().Msg("bitcoind RPC reachable, recovering cheques for all wallets")
+	log.Info().Msg("wallet unlocked, recovering cheques for all wallets")
 
 	wallets, err := e.walletEngine.GetAllWallets(ctx)
 	if err != nil {
@@ -516,7 +260,7 @@ func (e *ChequeEngine) recoverChequesOnUnlock(ctx context.Context) {
 
 	totalRecoveries := 0
 	for _, wallet := range wallets {
-		recoveries, err := e.ScanForFunds(ctx, wallet.ID, bitcoind, 20)
+		recoveries, err := e.ScanForFunds(ctx, wallet.ID, 20)
 		if err != nil {
 			log.Warn().Err(err).Str("wallet_id", wallet.ID).Msg("failed to scan wallet for cheque funds")
 			continue

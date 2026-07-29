@@ -93,11 +93,12 @@ class _CashCheckPageState extends State<CashCheckPage> {
 
       final destinationAddress = (await _orchestratorWallet.getNewAddress(walletId)).address;
 
+      // 0 means "use the backend's electrum fee estimate".
       final result = await _bitwindowRPC.wallet.sweepCheque(
         walletId,
         wif,
         destinationAddress,
-        10,
+        0,
       );
 
       if (!mounted) return;

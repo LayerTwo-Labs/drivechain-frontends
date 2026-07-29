@@ -123,10 +123,11 @@ class CheckDetailViewModel extends BaseViewModel {
     }
 
     try {
+      // 0 means "use the backend's electrum fee estimate".
       final txid = await _checkProvider.sweepCheck(
         _check!.privateKeyWif,
         destinationAddress,
-        10,
+        0,
       );
 
       if (!context.mounted) return;

@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/engines"
-	corepb "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha"
 	"github.com/btcsuite/btcd/btcec/v2"
 	"github.com/btcsuite/btcd/btcutil"
 	"github.com/btcsuite/btcd/chaincfg"
@@ -38,11 +37,11 @@ func TestBuildAndSignChequeSweepTx(t *testing.T) {
 	destAddress := "tb1q6rz28mcfaxtmd6v789l9rrlrusdprr9pqcpvkl"
 
 	// Sample UTXO
-	testUTXOs := []*corepb.UnspentOutput{
+	testUTXOs := []engines.ChequeUTXO{
 		{
-			Txid:   "4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b",
-			Vout:   0,
-			Amount: 0.001, // 100,000 sats
+			TxID:      "4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b",
+			Vout:      0,
+			ValueSats: 100_000,
 		},
 	}
 

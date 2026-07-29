@@ -1887,3 +1887,47 @@ func (h *WalletHandler) FinalizePsbt(ctx context.Context, req *connect.Request[p
 	}
 	return connect.NewResponse(&pb.FinalizePsbtResponse{RawTxHex: rawHex}), nil
 }
+
+func (h *WalletHandler) GetAddressUnspent(ctx context.Context, req *connect.Request[pb.GetAddressUnspentRequest]) (*connect.Response[pb.GetAddressUnspentResponse], error) {
+	if err := h.requireEngine(); err != nil {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, err)
+	}
+	address := strings.TrimSpace(req.Msg.Address)
+	if address == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("address is required"))
+	}
+
+	utxos, tip, err := h.engine.AddressUnspent(ctx, address)
+	if err != nil {
+		return nil, rpcError(err)
+	}
+
+	return connect.NewResponse(&pb.GetAddressUnspentResponse{
+		Utxos: lo.Map(utxos, func(u wallet.UTXO, _ int) *pb.AddressUnspentOutput {
+			return &pb.AddressUnspentOutput{
+				Txid:          u.TxID,
+				Vout:          int32(u.Vout),
+				ValueSats:     int64(math.Round(u.Amount * 1e8)),
+				Confirmations: int32(u.Confirmations),
+				BlockTime:     u.ReceivedAt,
+			}
+		}),
+		TipHeight: int32(tip),
+	}), nil
+}
+
+func (h *WalletHandler) BroadcastElectrumTransaction(ctx context.Context, req *connect.Request[pb.BroadcastElectrumTransactionRequest]) (*connect.Response[pb.BroadcastElectrumTransactionResponse], error) {
+	if err := h.requireEngine(); err != nil {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, err)
+	}
+	txHex := strings.TrimSpace(req.Msg.TxHex)
+	if txHex == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("tx_hex is required"))
+	}
+
+	txid, err := h.engine.BroadcastRaw(ctx, txHex)
+	if err != nil {
+		return nil, rpcError(err)
+	}
+	return connect.NewResponse(&pb.BroadcastElectrumTransactionResponse{Txid: txid}), nil
+}

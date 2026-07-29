@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"fmt"
 	"net"
@@ -12,24 +13,21 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
-
-	"database/sql"
-
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/config"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/engines"
 	service "github.com/LayerTwo-Labs/sidesail/bitwindow/server/service"
+	cryptorpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/crypto/v1/cryptov1connect"
+	validatorrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1/mainchainv1connect"
+	orchrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1/walletmanagerv1connect"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/bitassets"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/bitnames"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/coinshift"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/photon"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/thunder"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/truthcoin"
+	corerpc "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha/bitcoindv1alphaconnect"
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/rs/zerolog"
-
-	cryptorpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/crypto/v1/cryptov1connect"
-	validatorrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1/mainchainv1connect"
-	corerpc "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha/bitcoindv1alphaconnect"
 )
 
 type Services struct {
@@ -47,6 +45,8 @@ type Services struct {
 	CoinShiftConnector service.Connector[*coinshift.Client]
 
 	OrchestratorAddr string // e.g. "http://localhost:30400"
+	// OrchestratorClient replaces the dialed client when set, for tests.
+	OrchestratorClient orchrpc.WalletManagerServiceClient
 
 	// EnforcerJSONRPCAddr is the enforcer's JSON-RPC endpoint (host:port),
 	// served to the frontend via the /enforcer/jsonrpc passthrough.

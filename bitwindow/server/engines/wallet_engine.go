@@ -1396,3 +1396,58 @@ func (e *WalletEngine) createBitcoinCoreWalletForSync(
 
 	return nil
 }
+
+// HasOrchestratorClient reports whether the orchestrator's electrum surface is
+// reachable at all — false in dev setups that never dialled it.
+func (e *WalletEngine) HasOrchestratorClient() bool {
+	return e.orchClient != nil
+}
+
+// ChequeAddressUnspent reports a cheque address's UTXOs. Always electrum-backed
+// on the orchestrator side, whatever wallet the user has active.
+func (e *WalletEngine) ChequeAddressUnspent(ctx context.Context, address string) ([]*orchpb.AddressUnspentOutput, int32, error) {
+	if e.orchClient == nil {
+		return nil, 0, fmt.Errorf("orchestrator wallet client not connected")
+	}
+	resp, err := e.orchClient.GetAddressUnspent(ctx, connect.NewRequest(&orchpb.GetAddressUnspentRequest{
+		Address: address,
+	}))
+	if err != nil {
+		return nil, 0, fmt.Errorf("electrum: address unspent: %w", err)
+	}
+	return resp.Msg.Utxos, resp.Msg.TipHeight, nil
+}
+
+// BroadcastChequeTx broadcasts a cheque sweep over electrum. A wallet-scoped
+// broadcast would route through Core when a Core wallet is active.
+func (e *WalletEngine) BroadcastChequeTx(ctx context.Context, txHex string) (string, error) {
+	if e.orchClient == nil {
+		return "", fmt.Errorf("orchestrator wallet client not connected")
+	}
+	resp, err := e.orchClient.BroadcastElectrumTransaction(ctx, connect.NewRequest(&orchpb.BroadcastElectrumTransactionRequest{
+		TxHex: txHex,
+	}))
+	if err != nil {
+		return "", fmt.Errorf("electrum: broadcast: %w", err)
+	}
+	return resp.Msg.Txid, nil
+}
+
+// EstimateFeeRate returns the electrum fee estimate in sat/vB for a
+// confirmation target, floored at the 1 sat/vB relay minimum.
+func (e *WalletEngine) EstimateFeeRate(ctx context.Context, confTarget int32) (float64, error) {
+	if e.orchClient == nil {
+		return 0, fmt.Errorf("orchestrator wallet client not connected")
+	}
+	resp, err := e.orchClient.EstimateFee(ctx, connect.NewRequest(&orchpb.EstimateFeeRequest{
+		ConfTarget: confTarget,
+	}))
+	if err != nil {
+		return 0, fmt.Errorf("electrum: estimate fee: %w", err)
+	}
+	rate := resp.Msg.SatPerVbyte
+	if rate < 1 {
+		rate = 1
+	}
+	return rate, nil
+}
