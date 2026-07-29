@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math"
 	"time"
 
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/database"
@@ -14,6 +15,15 @@ import (
 )
 
 func GetProcessedTip(ctx context.Context, db *sql.DB) (*ProcessedBlock, error) {
+	return GetProcessedTipAtOrBelow(ctx, db, math.MaxUint32)
+}
+
+// GetProcessedTipAtOrBelow returns the highest processed block that is not
+// above maxHeight. A rollback on the node (reorg, reindex, wiped datadir)
+// leaves processed_blocks rows above the node's tip until the parser's next
+// tick clears them, and callers that report our sync position must not surface
+// a block the node no longer has.
+func GetProcessedTipAtOrBelow(ctx context.Context, db *sql.DB, maxHeight uint32) (*ProcessedBlock, error) {
 	var (
 		pb           ProcessedBlock
 		txidsJSON    string
@@ -22,10 +32,11 @@ func GetProcessedTip(ctx context.Context, db *sql.DB) (*ProcessedBlock, error) {
 
 	err := db.QueryRowContext(ctx, `
 	SELECT height, block_hash, txids, block_time, processed_at
-	FROM processed_blocks 
-	ORDER BY height DESC 
+	FROM processed_blocks
+	WHERE height <= ?
+	ORDER BY height DESC
 	LIMIT 1
-	`).Scan(&pb.Height, &rawBlockHash, &txidsJSON, &pb.BlockTime, &pb.ProcessedAt)
+	`, maxHeight).Scan(&pb.Height, &rawBlockHash, &txidsJSON, &pb.BlockTime, &pb.ProcessedAt)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
 	} else if err != nil {

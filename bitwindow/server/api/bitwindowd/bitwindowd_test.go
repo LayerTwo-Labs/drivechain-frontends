@@ -958,6 +958,65 @@ func TestService_GetSyncInfo(t *testing.T) {
 		require.NoError(t, err)
 		assert.NotNil(t, resp.Msg)
 	})
+
+	t.Run("processed tip above core tip", func(t *testing.T) {
+		t.Parallel()
+
+		ctx := context.Background()
+		database := database.Test(t)
+
+		ctrl := gomock.NewController(t)
+		mockBitcoind := mocks.NewMockBitcoinServiceClient(ctrl)
+
+		// Background operations expectations
+		mockBitcoind.EXPECT().
+			ListWallets(gomock.Any(), gomock.Any()).
+			Return(&connect.Response[corepb.ListWalletsResponse]{
+				Msg: &corepb.ListWalletsResponse{
+					Wallets: []string{},
+				},
+			}, nil).
+			AnyTimes()
+		mockBitcoind.EXPECT().
+			CreateWallet(gomock.Any(), gomock.Any()).
+			Return(&connect.Response[corepb.CreateWalletResponse]{
+				Msg: &corepb.CreateWalletResponse{
+					Name: "cheque_watch",
+				},
+			}, nil).
+			AnyTimes()
+
+		// Core rolled back to 100, but we still hold a processed row at 105.
+		mockBitcoind.EXPECT().
+			GetBlockchainInfo(gomock.Any(), gomock.Any()).
+			Return(&connect.Response[corepb.GetBlockchainInfoResponse]{
+				Msg: &corepb.GetBlockchainInfoResponse{
+					Chain:   "main",
+					Blocks:  100,
+					Headers: 100,
+				},
+			}, nil).
+			AnyTimes()
+
+		hashAt := func(height uint32) chainhash.Hash {
+			hash, err := chainhash.NewHashFromStr(fmt.Sprintf("%064x", height))
+			require.NoError(t, err)
+			return *hash
+		}
+
+		require.NoError(t, blocks.MarkBlocksProcessed(ctx, database, []blocks.ProcessedBlock{
+			{Height: 100, Hash: hashAt(100), BlockTime: time.Now(), ProcessedAt: time.Now()},
+			{Height: 105, Hash: hashAt(105), BlockTime: time.Now(), ProcessedAt: time.Now()},
+		}))
+
+		cli := v1connect.NewBitwindowdServiceClient(apitests.API(t, database, apitests.WithBitcoind(mockBitcoind)))
+
+		resp, err := cli.GetSyncInfo(ctx, connect.NewRequest(&emptypb.Empty{}))
+		require.NoError(t, err)
+		assert.EqualValues(t, 100, resp.Msg.TipBlockHeight)
+		assert.Equal(t, hashAt(100).String(), resp.Msg.TipBlockHash)
+		assert.EqualValues(t, 1, resp.Msg.SyncProgress)
+	})
 }
 
 func TestService_SetTransactionNote(t *testing.T) {

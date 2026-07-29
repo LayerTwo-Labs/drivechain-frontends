@@ -558,7 +558,12 @@ func (s *Server) GetSyncInfo(ctx context.Context, req *connect.Request[emptypb.E
 		return nil, err
 	}
 
-	processedTip, err := blocks.GetProcessedTip(ctx, s.db)
+	// Bitcoin Core is the authority on what the chain actually contains. After
+	// a rollback our processed_blocks can hold rows above Core's tip until the
+	// parser's next tick wipes them, and reporting those verbatim surfaces an
+	// impossible height and a sync progress above 100%. Bound what we report to
+	// blocks Core still has.
+	processedTip, err := blocks.GetProcessedTipAtOrBelow(ctx, s.db, tip.Blocks)
 	if err != nil {
 		zerolog.Ctx(ctx).Error().Err(err).Msg("could not get processed tip")
 		return nil, connect.NewError(connect.CodeInternal, err)
@@ -575,12 +580,19 @@ func (s *Server) GetSyncInfo(ctx context.Context, req *connect.Request[emptypb.E
 		}), nil
 	}
 
+	// A node parked on genesis has zero blocks to catch up to, and NaN
+	// serializes into the response as an unusable progress bar.
+	var syncProgress float64
+	if tip.Blocks > 0 {
+		syncProgress = float64(processedTip.Height) / float64(tip.Blocks)
+	}
+
 	return connect.NewResponse(&pb.GetSyncInfoResponse{
 		TipBlockHeight:      int64(processedTip.Height),
 		TipBlockTime:        processedTip.ProcessedAt.Unix(),
 		TipBlockHash:        processedTip.Hash.String(),
 		TipBlockProcessedAt: timestamppb.New(processedTip.ProcessedAt),
-		SyncProgress:        float64(processedTip.Height) / float64(tip.Blocks),
+		SyncProgress:        syncProgress,
 		HeaderHeight:        int64(tip.Headers),
 	}), nil
 }
