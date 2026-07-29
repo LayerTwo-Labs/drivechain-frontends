@@ -302,12 +302,10 @@ func (c *BitcoinConfig) SetGroupDatadir(g DatadirGroup, path string) {
 	c.DatadirSlots[g] = path
 }
 
-// GroupDatadirForPick maps a directory the user just chose to the datadir a
-// group should use. Forknet and drynet run on chain=main, so Core writes
-// blocks/ and chainstate/ to the root of the datadir exactly like mainnet;
-// the extra component is the only thing keeping the three chains off each
-// other. Apply this once, where the path enters the config — slots already on
-// disk are stored verbatim, so re-applying it would redirect a live datadir.
+// GroupDatadirForPick returns the datadir a group should use for a directory
+// the user just chose. Non-default groups run on chain=main and would share
+// mainnet's datadir root. Apply once, at the pick — slots on disk are already
+// resolved and re-applying would redirect a live datadir.
 func GroupDatadirForPick(g DatadirGroup, picked string) string {
 	if g == DatadirGroupDefault || picked == "" {
 		return picked

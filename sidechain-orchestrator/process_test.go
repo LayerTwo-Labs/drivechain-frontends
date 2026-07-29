@@ -59,6 +59,7 @@ func TestProcessManager_LatestRunKeepsExitedLogs(t *testing.T) {
 	pm, dir := newTestProcessManager(t)
 	symlinkSystemBinary(t, dir, "sh")
 
+	// Start reports the immediate exit; the point here is the logs outliving it.
 	_, _ = pm.Start(context.Background(), BinaryConfig{
 		Name: "sh-test", BinaryName: "sh",
 	}, []string{"-c", "echo Please restart with -reindex; exit 1"}, nil)

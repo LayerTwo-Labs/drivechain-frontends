@@ -39,6 +39,13 @@ func newTestProcessManager(t *testing.T) (*ProcessManager, string) {
 	dir := t.TempDir()
 	log := testLogger(t)
 	pm := NewProcessManager(dir, NewPidFileManager(dir, log), log)
+	t.Cleanup(func() {
+		running := pm.ListRunning()
+		_ = pm.StopAll(context.Background(), true)
+		for _, name := range running {
+			pm.WaitForExit(name, 5*time.Second)
+		}
+	})
 	return pm, dir
 }
 

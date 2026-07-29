@@ -289,17 +289,28 @@ func (pm *ProcessManager) StartWithOptions(_ context.Context, config BinaryConfi
 
 	configureProcessAttr(cmd)
 
-	stdout, err := cmd.StdoutPipe()
+	// Own the pipes rather than using cmd.StdoutPipe: cmd.Wait closes those the
+	// moment the child exits, discarding whatever the readers hadn't drained yet.
+	stdout, stdoutW, err := os.Pipe()
 	if err != nil {
 		return 0, fmt.Errorf("stdout pipe: %w", err)
 	}
-	stderr, err := cmd.StderrPipe()
+	stderr, stderrW, err := os.Pipe()
 	if err != nil {
+		stdout.Close()
+		stdoutW.Close()
 		return 0, fmt.Errorf("stderr pipe: %w", err)
 	}
+	cmd.Stdout = stdoutW
+	cmd.Stderr = stderrW
 
-	if err := cmd.Start(); err != nil {
-		return 0, fmt.Errorf("start %s: %w", processName, err)
+	startErr := cmd.Start()
+	stdoutW.Close()
+	stderrW.Close()
+	if startErr != nil {
+		stdout.Close()
+		stderr.Close()
+		return 0, fmt.Errorf("start %s: %w", processName, startErr)
 	}
 
 	runtimeConfig := config
@@ -363,6 +374,7 @@ func (pm *ProcessManager) StartWithOptions(_ context.Context, config BinaryConfi
 	stdoutDone := make(chan struct{})
 	go func() {
 		defer close(stdoutDone)
+		defer stdout.Close()
 		scanner := bufio.NewScanner(stdout)
 		scanner.Buffer(make([]byte, 1024*1024), 1024*1024)
 		for scanner.Scan() {
@@ -383,6 +395,7 @@ func (pm *ProcessManager) StartWithOptions(_ context.Context, config BinaryConfi
 	stderrDone := make(chan struct{})
 	go func() {
 		defer close(stderrDone)
+		defer stderr.Close()
 		scanner := bufio.NewScanner(stderr)
 		scanner.Buffer(make([]byte, 1024*1024), 1024*1024)
 		for scanner.Scan() {
@@ -488,8 +501,6 @@ func (pm *ProcessManager) StartWithOptions(_ context.Context, config BinaryConfi
 			Line:      fmt.Sprintf("=== %s exited (code %d) ===", processName, exitCode),
 		})
 
-		close(proc.exitCh)
-
 		pm.mu.Lock()
 		delete(pm.processes, processName)
 		pm.lastExited[processName] = proc
@@ -502,6 +513,9 @@ func (pm *ProcessManager) StartWithOptions(_ context.Context, config BinaryConfi
 			Int("pid", proc.Pid).
 			Int("exit_code", exitCode).
 			Msg("process exited")
+
+		// Closed last so a waiter sees the drained logs and the recorded exit.
+		close(proc.exitCh)
 
 		// Notify the orchestrator so it can update ConnectionMonitor
 		if pm.OnExit != nil {
