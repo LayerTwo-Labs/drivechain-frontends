@@ -1870,10 +1870,7 @@ func (x *GetPendingNetworkGenerationResponse) GetUserManagedConf() bool {
 }
 
 type ConfirmPendingNetworkGenerationRequest struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// The generation the prompt showed. Refused once the published one has moved
-	// on, so a refresh mid-dialog cannot switch the user to a different chain.
-	Generation    string `protobuf:"bytes,1,opt,name=generation,proto3" json:"generation,omitempty"`
+	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1906,13 +1903,6 @@ func (x *ConfirmPendingNetworkGenerationRequest) ProtoReflect() protoreflect.Mes
 // Deprecated: Use ConfirmPendingNetworkGenerationRequest.ProtoReflect.Descriptor instead.
 func (*ConfirmPendingNetworkGenerationRequest) Descriptor() ([]byte, []int) {
 	return file_orchestrator_v1_orchestrator_proto_rawDescGZIP(), []int{28}
-}
-
-func (x *ConfirmPendingNetworkGenerationRequest) GetGeneration() string {
-	if x != nil {
-		return x.Generation
-	}
-	return ""
 }
 
 type ConfirmPendingNetworkGenerationResponse struct {
@@ -4093,11 +4083,8 @@ const file_orchestrator_v1_orchestrator_proto_rawDesc = "" +
 	"\x0fsnapshot_height\x18\x03 \x01(\x03R\x0esnapshotHeight\x12.\n" +
 	"\x13snapshot_size_bytes\x18\x04 \x01(\x03R\x11snapshotSizeBytes\x12!\n" +
 	"\fpending_peer\x18\x05 \x01(\tR\vpendingPeer\x12*\n" +
-	"\x11user_managed_conf\x18\x06 \x01(\bR\x0fuserManagedConf\"H\n" +
-	"&ConfirmPendingNetworkGenerationRequest\x12\x1e\n" +
-	"\n" +
-	"generation\x18\x01 \x01(\tR\n" +
-	"generation\")\n" +
+	"\x11user_managed_conf\x18\x06 \x01(\bR\x0fuserManagedConf\"(\n" +
+	"&ConfirmPendingNetworkGenerationRequest\")\n" +
 	"'ConfirmPendingNetworkGenerationResponse\"*\n" +
 	"\x12ShutdownAllRequest\x12\x14\n" +
 	"\x05force\x18\x01 \x01(\bR\x05force\"\xb0\x01\n" +
