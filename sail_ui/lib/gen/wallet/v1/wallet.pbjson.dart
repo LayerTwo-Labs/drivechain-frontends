@@ -227,6 +227,7 @@ const UnspentOutput$json = {
     {'1': 'is_change', '3': 5, '4': 1, '5': 8, '10': 'isChange'},
     {'1': 'received_at', '3': 6, '4': 1, '5': 11, '6': '.google.protobuf.Timestamp', '10': 'receivedAt'},
     {'1': 'denial_info', '3': 7, '4': 1, '5': 11, '6': '.bitwindowd.v1.DenialInfo', '9': 0, '10': 'denialInfo', '17': true},
+    {'1': 'derivation_path', '3': 8, '4': 1, '5': 9, '10': 'derivationPath'},
   ],
   '8': [
     {'1': '_denial_info'},
@@ -239,8 +240,8 @@ final $typed_data.Uint8List unspentOutputDescriptor = $convert.base64Decode(
     'lSB2FkZHJlc3MSFAoFbGFiZWwYAyABKAlSBWxhYmVsEh0KCnZhbHVlX3NhdHMYBCABKARSCXZh'
     'bHVlU2F0cxIbCglpc19jaGFuZ2UYBSABKAhSCGlzQ2hhbmdlEjsKC3JlY2VpdmVkX2F0GAYgAS'
     'gLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcFIKcmVjZWl2ZWRBdBI/CgtkZW5pYWxfaW5m'
-    'bxgHIAEoCzIZLmJpdHdpbmRvd2QudjEuRGVuaWFsSW5mb0gAUgpkZW5pYWxJbmZviAEBQg4KDF'
-    '9kZW5pYWxfaW5mbw==');
+    'bxgHIAEoCzIZLmJpdHdpbmRvd2QudjEuRGVuaWFsSW5mb0gAUgpkZW5pYWxJbmZviAEBEicKD2'
+    'Rlcml2YXRpb25fcGF0aBgIIAEoCVIOZGVyaXZhdGlvblBhdGhCDgoMX2RlbmlhbF9pbmZv');
 
 @$core.Deprecated('Use listUnspentResponseDescriptor instead')
 const ListUnspentResponse$json = {
@@ -277,6 +278,7 @@ const ReceiveAddress$json = {
     {'1': 'current_balance_sat', '3': 3, '4': 1, '5': 4, '10': 'currentBalanceSat'},
     {'1': 'is_change', '3': 4, '4': 1, '5': 8, '10': 'isChange'},
     {'1': 'last_used_at', '3': 5, '4': 1, '5': 11, '6': '.google.protobuf.Timestamp', '10': 'lastUsedAt'},
+    {'1': 'derivation_path', '3': 6, '4': 1, '5': 9, '10': 'derivationPath'},
   ],
 };
 
@@ -285,7 +287,8 @@ final $typed_data.Uint8List receiveAddressDescriptor = $convert.base64Decode(
     'Cg5SZWNlaXZlQWRkcmVzcxIYCgdhZGRyZXNzGAEgASgJUgdhZGRyZXNzEhQKBWxhYmVsGAIgAS'
     'gJUgVsYWJlbBIuChNjdXJyZW50X2JhbGFuY2Vfc2F0GAMgASgEUhFjdXJyZW50QmFsYW5jZVNh'
     'dBIbCglpc19jaGFuZ2UYBCABKAhSCGlzQ2hhbmdlEjwKDGxhc3RfdXNlZF9hdBgFIAEoCzIaLm'
-    'dvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXBSCmxhc3RVc2VkQXQ=');
+    'dvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXBSCmxhc3RVc2VkQXQSJwoPZGVyaXZhdGlvbl9wYXRo'
+    'GAYgASgJUg5kZXJpdmF0aW9uUGF0aA==');
 
 @$core.Deprecated('Use confirmationDescriptor instead')
 const Confirmation$json = {
@@ -702,13 +705,15 @@ const SweepChequeResponse$json = {
   '2': [
     {'1': 'txid', '3': 1, '4': 1, '5': 9, '10': 'txid'},
     {'1': 'amount_sats', '3': 2, '4': 1, '5': 4, '10': 'amountSats'},
+    {'1': 'fee_sat_per_vbyte', '3': 3, '4': 1, '5': 4, '10': 'feeSatPerVbyte'},
   ],
 };
 
 /// Descriptor for `SweepChequeResponse`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List sweepChequeResponseDescriptor = $convert.base64Decode(
     'ChNTd2VlcENoZXF1ZVJlc3BvbnNlEhIKBHR4aWQYASABKAlSBHR4aWQSHwoLYW1vdW50X3NhdH'
-    'MYAiABKARSCmFtb3VudFNhdHM=');
+    'MYAiABKARSCmFtb3VudFNhdHMSKQoRZmVlX3NhdF9wZXJfdmJ5dGUYAyABKARSDmZlZVNhdFBl'
+    'clZieXRl');
 
 @$core.Deprecated('Use deleteChequeRequestDescriptor instead')
 const DeleteChequeRequest$json = {

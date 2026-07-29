@@ -696,6 +696,7 @@ class UnspentOutput extends $pb.GeneratedMessage {
     $core.bool? isChange,
     $0.Timestamp? receivedAt,
     $3.DenialInfo? denialInfo,
+    $core.String? derivationPath,
   }) {
     final $result = create();
     if (output != null) {
@@ -719,6 +720,9 @@ class UnspentOutput extends $pb.GeneratedMessage {
     if (denialInfo != null) {
       $result.denialInfo = denialInfo;
     }
+    if (derivationPath != null) {
+      $result.derivationPath = derivationPath;
+    }
     return $result;
   }
   UnspentOutput._() : super();
@@ -733,6 +737,7 @@ class UnspentOutput extends $pb.GeneratedMessage {
     ..aOB(5, _omitFieldNames ? '' : 'isChange')
     ..aOM<$0.Timestamp>(6, _omitFieldNames ? '' : 'receivedAt', subBuilder: $0.Timestamp.create)
     ..aOM<$3.DenialInfo>(7, _omitFieldNames ? '' : 'denialInfo', subBuilder: $3.DenialInfo.create)
+    ..aOS(8, _omitFieldNames ? '' : 'derivationPath')
     ..hasRequiredFields = false
   ;
 
@@ -830,6 +835,16 @@ class UnspentOutput extends $pb.GeneratedMessage {
   void clearDenialInfo() => clearField(7);
   @$pb.TagNumber(7)
   $3.DenialInfo ensureDenialInfo() => $_ensure(6);
+
+  /// BIP32 path of the address that owns this output; empty when unknown.
+  @$pb.TagNumber(8)
+  $core.String get derivationPath => $_getSZ(7);
+  @$pb.TagNumber(8)
+  set derivationPath($core.String v) { $_setString(7, v); }
+  @$pb.TagNumber(8)
+  $core.bool hasDerivationPath() => $_has(7);
+  @$pb.TagNumber(8)
+  void clearDerivationPath() => clearField(8);
 }
 
 class ListUnspentResponse extends $pb.GeneratedMessage {
@@ -927,6 +942,7 @@ class ReceiveAddress extends $pb.GeneratedMessage {
     $fixnum.Int64? currentBalanceSat,
     $core.bool? isChange,
     $0.Timestamp? lastUsedAt,
+    $core.String? derivationPath,
   }) {
     final $result = create();
     if (address != null) {
@@ -944,6 +960,9 @@ class ReceiveAddress extends $pb.GeneratedMessage {
     if (lastUsedAt != null) {
       $result.lastUsedAt = lastUsedAt;
     }
+    if (derivationPath != null) {
+      $result.derivationPath = derivationPath;
+    }
     return $result;
   }
   ReceiveAddress._() : super();
@@ -956,6 +975,7 @@ class ReceiveAddress extends $pb.GeneratedMessage {
     ..a<$fixnum.Int64>(3, _omitFieldNames ? '' : 'currentBalanceSat', $pb.PbFieldType.OU6, defaultOrMaker: $fixnum.Int64.ZERO)
     ..aOB(4, _omitFieldNames ? '' : 'isChange')
     ..aOM<$0.Timestamp>(5, _omitFieldNames ? '' : 'lastUsedAt', subBuilder: $0.Timestamp.create)
+    ..aOS(6, _omitFieldNames ? '' : 'derivationPath')
     ..hasRequiredFields = false
   ;
 
@@ -1026,6 +1046,16 @@ class ReceiveAddress extends $pb.GeneratedMessage {
   void clearLastUsedAt() => clearField(5);
   @$pb.TagNumber(5)
   $0.Timestamp ensureLastUsedAt() => $_ensure(4);
+
+  /// BIP32 path this address derives from; empty when unknown.
+  @$pb.TagNumber(6)
+  $core.String get derivationPath => $_getSZ(5);
+  @$pb.TagNumber(6)
+  set derivationPath($core.String v) { $_setString(5, v); }
+  @$pb.TagNumber(6)
+  $core.bool hasDerivationPath() => $_has(5);
+  @$pb.TagNumber(6)
+  void clearDerivationPath() => clearField(6);
 }
 
 class Confirmation extends $pb.GeneratedMessage {
@@ -3010,6 +3040,7 @@ class SweepChequeResponse extends $pb.GeneratedMessage {
   factory SweepChequeResponse({
     $core.String? txid,
     $fixnum.Int64? amountSats,
+    $fixnum.Int64? feeSatPerVbyte,
   }) {
     final $result = create();
     if (txid != null) {
@@ -3017,6 +3048,9 @@ class SweepChequeResponse extends $pb.GeneratedMessage {
     }
     if (amountSats != null) {
       $result.amountSats = amountSats;
+    }
+    if (feeSatPerVbyte != null) {
+      $result.feeSatPerVbyte = feeSatPerVbyte;
     }
     return $result;
   }
@@ -3027,6 +3061,7 @@ class SweepChequeResponse extends $pb.GeneratedMessage {
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'SweepChequeResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'wallet.v1'), createEmptyInstance: create)
     ..aOS(1, _omitFieldNames ? '' : 'txid')
     ..a<$fixnum.Int64>(2, _omitFieldNames ? '' : 'amountSats', $pb.PbFieldType.OU6, defaultOrMaker: $fixnum.Int64.ZERO)
+    ..a<$fixnum.Int64>(3, _omitFieldNames ? '' : 'feeSatPerVbyte', $pb.PbFieldType.OU6, defaultOrMaker: $fixnum.Int64.ZERO)
     ..hasRequiredFields = false
   ;
 
@@ -3068,6 +3103,17 @@ class SweepChequeResponse extends $pb.GeneratedMessage {
   $core.bool hasAmountSats() => $_has(1);
   @$pb.TagNumber(2)
   void clearAmountSats() => clearField(2);
+
+  /// The fee rate the sweep used, so the UI can report an estimate it did not
+  /// choose.
+  @$pb.TagNumber(3)
+  $fixnum.Int64 get feeSatPerVbyte => $_getI64(2);
+  @$pb.TagNumber(3)
+  set feeSatPerVbyte($fixnum.Int64 v) { $_setInt64(2, v); }
+  @$pb.TagNumber(3)
+  $core.bool hasFeeSatPerVbyte() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearFeeSatPerVbyte() => clearField(3);
 }
 
 class DeleteChequeRequest extends $pb.GeneratedMessage {

@@ -75,13 +75,13 @@ class ReceiveTab extends StatelessWidget {
                                   controller: TextEditingController(text: model.address),
                                   hintText: 'A Drivechain address',
                                   readOnly: true,
-                                  suffixWidget: CopyButton(
-                                    text: model.address,
-                                  ),
+                                  suffixWidget: CopyButton(text: model.address),
                                 ),
                               ),
                             ],
                           ),
+                          if (model.addressDerivationPath.isNotEmpty)
+                            SailText.secondary12(model.addressDerivationPath, monospace: true),
                           if (model.address.isEmpty)
                             SailButton(
                               label: 'Generate new address',
@@ -97,10 +97,7 @@ class ReceiveTab extends StatelessWidget {
                       padding: true,
                       child: QrImageView(
                         padding: EdgeInsets.zero,
-                        eyeStyle: QrEyeStyle(
-                          color: theme.colors.text,
-                          eyeShape: QrEyeShape.square,
-                        ),
+                        eyeStyle: QrEyeStyle(color: theme.colors.text, eyeShape: QrEyeShape.square),
                         dataModuleStyle: QrDataModuleStyle(color: theme.colors.text),
                         data: model.address,
                         version: QrVersions.auto,
@@ -111,7 +108,7 @@ class ReceiveTab extends StatelessWidget {
               ),
               if (!model.hideBip47)
                 SailCard(
-                  title: 'Receive with Bip47 v3 Payment Code',
+                  title: 'Your BIP47 v3 Payment Code',
                   error: model.modelError,
                   child: SailColumn(
                     spacing: SailStyleValues.padding16,
@@ -130,9 +127,7 @@ class ReceiveTab extends StatelessWidget {
                               controller: TextEditingController(text: model.bip47PaymentCode),
                               hintText: 'A Drivechain address',
                               readOnly: true,
-                              suffixWidget: CopyButton(
-                                text: model.bip47PaymentCode,
-                              ),
+                              suffixWidget: CopyButton(text: model.bip47PaymentCode),
                             ),
                           ),
                         ],
@@ -141,9 +136,7 @@ class ReceiveTab extends StatelessWidget {
                   ),
                 ),
 
-              ReceiveAddressesTable(
-                model: model,
-              ),
+              ReceiveAddressesTable(model: model),
             ],
           ),
         );
@@ -155,10 +148,7 @@ class ReceiveTab extends StatelessWidget {
 class ReceiveAddressesTable extends StatefulWidget {
   final ReceivePageViewModel model;
 
-  const ReceiveAddressesTable({
-    super.key,
-    required this.model,
-  });
+  const ReceiveAddressesTable({super.key, required this.model});
 
   @override
   State<ReceiveAddressesTable> createState() => _ReceiveAddressesTableState();
@@ -196,6 +186,10 @@ String receiveAddressType(String address) {
 }
 
 class _ReceiveAddressesTableState extends State<ReceiveAddressesTable> {
+  // One list, so a new column can't be added to the header and forgotten in
+  // the sort lookups.
+  static const _columns = ['last_used_at', 'address', 'path', 'type', 'chain', 'label', 'current_balance_sat'];
+
   String sortColumn = 'last_used_at';
   bool sortAscending = false;
 
@@ -222,6 +216,10 @@ class _ReceiveAddressesTableState extends State<ReceiveAddressesTable> {
         case 'address':
           aValue = a.address;
           bValue = b.address;
+          break;
+        case 'path':
+          aValue = a.derivationPath;
+          bValue = b.derivationPath;
           break;
         case 'type':
           aValue = receiveAddressType(a.address);
@@ -278,10 +276,14 @@ class _ReceiveAddressesTableState extends State<ReceiveAddressesTable> {
                   headerBuilder: (context) => [
                     SailTableHeaderCell(name: 'Last Used', onSort: () => onSort('last_used_at')),
                     SailTableHeaderCell(name: 'Address', onSort: () => onSort('address')),
+                    SailTableHeaderCell(name: 'Path', onSort: () => onSort('path')),
                     SailTableHeaderCell(name: 'Type', onSort: () => onSort('type')),
                     SailTableHeaderCell(name: 'Change', onSort: () => onSort('chain')),
                     SailTableHeaderCell(name: 'Label', onSort: () => onSort('label')),
-                    SailTableHeaderCell(name: 'Balance', onSort: () => onSort('current_balance_sat')),
+                    SailTableHeaderCell(
+                      name: 'Balance',
+                      onSort: () => onSort('current_balance_sat'),
+                    ),
                   ],
                   rowBuilder: (context, row, selected) {
                     final utxo = entries[row];
@@ -292,9 +294,17 @@ class _ReceiveAddressesTableState extends State<ReceiveAddressesTable> {
                             ? 'Never'
                             : formatDate(utxo.lastUsedAt.toDateTime().toLocal()),
                       ),
+                      SailTableCell(value: utxo.address, copyValue: utxo.address),
                       SailTableCell(
-                        value: utxo.address,
-                        copyValue: utxo.address,
+                        value: utxo.derivationPath.isEmpty ? '—' : utxo.derivationPath,
+                        copyValue: utxo.derivationPath,
+                        child: SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          child: SailText.primary12(
+                            utxo.derivationPath.isEmpty ? '—' : utxo.derivationPath,
+                            monospace: true,
+                          ),
+                        ),
                       ),
                       SailTableCell(value: receiveAddressType(utxo.address)),
                       SailTableCell(
@@ -310,18 +320,9 @@ class _ReceiveAddressesTableState extends State<ReceiveAddressesTable> {
                   rowCount: entries.length,
                   emptyPlaceholder: 'No receive addresses yet',
                   drawGrid: true,
-                  sortColumnIndex: [
-                    'last_used_at',
-                    'address',
-                    'type',
-                    'chain',
-                    'label',
-                    'current_balance_sat',
-                  ].indexOf(sortColumn),
+                  sortColumnIndex: _columns.indexOf(sortColumn),
                   sortAscending: sortAscending,
-                  onSort: (columnIndex, ascending) {
-                    onSort(['last_used_at', 'address', 'type', 'chain', 'label', 'current_balance_sat'][columnIndex]);
-                  },
+                  onSort: (columnIndex, ascending) => onSort(_columns[columnIndex]),
                   contextMenuItems: (rowId) {
                     final entry = entries.firstWhere((e) => e.address == rowId);
                     final network = GetIt.I.get<BitcoinConfProvider>().network;
@@ -340,9 +341,7 @@ class _ReceiveAddressesTableState extends State<ReceiveAddressesTable> {
                                   title: entry.label.isEmpty ? 'Add Label' : 'Edit Label',
                                   subtitle:
                                       "${entry.label.isEmpty ? "Set a" : "Update the"} label and click Save when you're done",
-                                  fields: [
-                                    EditField(name: 'Label', currentValue: entry.label),
-                                  ],
+                                  fields: [EditField(name: 'Label', currentValue: entry.label)],
                                   onSave: (updatedFields) async {
                                     final newLabel = updatedFields.firstWhere((f) => f.name == 'Label').currentValue;
                                     await widget.model.saveLabel(context, entry.address, newLabel);
@@ -352,7 +351,9 @@ class _ReceiveAddressesTableState extends State<ReceiveAddressesTable> {
                             );
                           });
                         },
-                        child: SailText.primary12(entry.label.isEmpty ? 'Add Label' : 'Update Label'),
+                        child: SailText.primary12(
+                          entry.label.isEmpty ? 'Add Label' : 'Update Label',
+                        ),
                       ),
                       SailMenuItem(
                         onSelected: () => launchUrl(Uri.parse(mempoolAddressUrl(entry.address, network))),
@@ -384,6 +385,7 @@ class ReceivePageViewModel extends BaseViewModel {
   String? modelError;
 
   String get address => transactionsProvider.address;
+  String get addressDerivationPath => transactionsProvider.addressDerivationPath;
   String get bip47PaymentCode => _hdWalletProvider.bip47PaymentCode;
 
   wmpb.AddressType get addressType => transactionsProvider.addressType;
@@ -411,7 +413,12 @@ class ReceivePageViewModel extends BaseViewModel {
 
   AddressBookEntry get matchingEntry => _addressBookProvider.receiveEntries.firstWhere(
     (e) => e.address == address,
-    orElse: () => AddressBookEntry(id: Int64(0), label: '', address: '', direction: Direction.DIRECTION_RECEIVE),
+    orElse: () => AddressBookEntry(
+      id: Int64(0),
+      label: '',
+      address: '',
+      direction: Direction.DIRECTION_RECEIVE,
+    ),
   );
   bool get hasExistingLabel => matchingEntry.label.isNotEmpty;
 
@@ -455,11 +462,7 @@ class ReceivePageViewModel extends BaseViewModel {
     try {
       modelError = null;
       setBusy(true);
-      await _addressBookProvider.createEntry(
-        label,
-        address,
-        Direction.DIRECTION_RECEIVE,
-      );
+      await _addressBookProvider.createEntry(label, address, Direction.DIRECTION_RECEIVE);
 
       // Fetch the transactions provider to update the receiveAddresses list
       await transactionsProvider.fetch();

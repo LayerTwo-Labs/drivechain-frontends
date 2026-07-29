@@ -35,6 +35,7 @@ class TransactionProvider extends ChangeNotifier implements NetworkScoped {
   WalletReaderProvider get _walletReader => GetIt.I.get<WalletReaderProvider>();
 
   String address = '';
+  String addressDerivationPath = '';
   wmpb.AddressType addressType = wmpb.AddressType.ADDRESS_TYPE_SEGWIT;
   List<WalletTransaction> walletTransactions = [];
   List<UnspentOutput> utxos = [];
@@ -152,7 +153,11 @@ class TransactionProvider extends ChangeNotifier implements NetworkScoped {
         ),
         update<String>(
           address,
-          () async => (await orchestratorWallet.getNewAddress(walletId, addressType: addressType)).address,
+          () async {
+            final next = await orchestratorWallet.getNewAddress(walletId, addressType: addressType);
+            addressDerivationPath = next.derivationPath;
+            return next.address;
+          },
           (v) => address = v,
           // Always update - backend handles finding unused address
           equals: (a, b) => false,
@@ -170,6 +175,7 @@ class TransactionProvider extends ChangeNotifier implements NetworkScoped {
                     valueSats: utxo.amountSats,
                     isChange: false,
                     receivedAt: utxo.hasReceivedAt() ? utxo.receivedAt : null,
+                    derivationPath: utxo.derivationPath,
                   ),
                 )
                 .toList();
@@ -198,6 +204,7 @@ class TransactionProvider extends ChangeNotifier implements NetworkScoped {
                     currentBalanceSat: address.amountSats,
                     isChange: address.isChange,
                     lastUsedAt: Timestamp(),
+                    derivationPath: address.derivationPath,
                   ),
                 )
                 .toList();

@@ -503,6 +503,7 @@ message GetNewAddressRequest {
 message GetNewAddressResponse {
   string address = 1;
   int32 index = 2;
+  string derivation_path = 3;
 }
 
 message SendTransactionRequest {
@@ -756,6 +757,9 @@ message UnspentOutput {
   // Wallet's first-seen mempool timestamp when available, otherwise the
   // confirming block's time. Unset if neither is known.
   google.protobuf.Timestamp received_at = 11;
+  // BIP32 path of the address that owns this output. Empty when the backend
+  // cannot report one (Bitcoin Core bulk lists, the enforcer).
+  string derivation_path = 12;
 }
 
 message ListUnspentResponse {
@@ -773,6 +777,9 @@ message ReceiveAddress {
   string label = 4;
   int32 tx_count = 5;
   bool is_change = 6;  // internal change address vs external receive address
+  // BIP32 path this address derives from. Empty when the backend cannot
+  // report one (Bitcoin Core bulk lists, the enforcer).
+  string derivation_path = 7;
 }
 
 message ListReceiveAddressesResponse {

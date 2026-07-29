@@ -153,6 +153,8 @@ message UnspentOutput {
   google.protobuf.Timestamp received_at = 6;
   // If set, this utxo is part of a denial chain
   optional bitwindowd.v1.DenialInfo denial_info = 7;
+  // BIP32 path of the address that owns this output; empty when unknown.
+  string derivation_path = 8;
 }
 
 message ListUnspentResponse {
@@ -169,6 +171,8 @@ message ReceiveAddress {
   uint64 current_balance_sat = 3;
   bool is_change = 4;
   google.protobuf.Timestamp last_used_at = 5;
+  // BIP32 path this address derives from; empty when unknown.
+  string derivation_path = 6;
 }
 
 message Confirmation {

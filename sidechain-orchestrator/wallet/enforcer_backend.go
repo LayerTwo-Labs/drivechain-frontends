@@ -187,19 +187,22 @@ func (p *EnforcerBackend) AddressHDPath(ctx context.Context, walletID, address s
 	return "", p.unsupported("address hd path lookup")
 }
 
-func (p *EnforcerBackend) NextReceiveAddress(ctx context.Context, walletID string, kind ScriptKind) (string, error) {
+// The enforcer wallet is a black box: it mints addresses but reports no
+// derivation, so HDPath stays empty and Index -1.
+func (p *EnforcerBackend) NextReceiveAddress(ctx context.Context, walletID string, kind ScriptKind) (DerivedAddress, error) {
 	if kind == ScriptTaproot {
-		return "", connect.NewError(connect.CodeUnimplemented, fmt.Errorf("enforcer wallet does not support taproot addresses"))
+		return DerivedAddress{}, connect.NewError(connect.CodeUnimplemented, fmt.Errorf("enforcer wallet does not support taproot addresses"))
 	}
 	resp, err := p.client.CreateNewAddress(ctx, connect.NewRequest(&enforcerpb.CreateNewAddressRequest{}))
 	if err != nil {
-		return "", fmt.Errorf("enforcer/wallet: create new address: %w", err)
+		return DerivedAddress{}, fmt.Errorf("enforcer/wallet: create new address: %w", err)
 	}
-	return resp.Msg.Address, nil
+	return DerivedAddress{Address: resp.Msg.Address, Index: -1}, nil
 }
 
 func (p *EnforcerBackend) NextChangeAddress(ctx context.Context, walletID string) (string, error) {
-	return p.NextReceiveAddress(ctx, walletID, ScriptUnknown)
+	derived, err := p.NextReceiveAddress(ctx, walletID, ScriptUnknown)
+	return derived.Address, err
 }
 
 func (p *EnforcerBackend) WatchKeys(ctx context.Context, walletID string, keys []WatchKey) error {

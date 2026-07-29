@@ -271,10 +271,10 @@ func (p *CoreBackend) AddressHDPath(ctx context.Context, walletID, address strin
 // also imports P2PKH addresses for BIP47 (the notification address + per-sender
 // derived payment addresses) — those must never leak into the regular receive
 // flow.
-func (p *CoreBackend) NextReceiveAddress(ctx context.Context, walletID string, kind ScriptKind) (string, error) {
+func (p *CoreBackend) NextReceiveAddress(ctx context.Context, walletID string, kind ScriptKind) (DerivedAddress, error) {
 	name, err := p.walletName(ctx, walletID)
 	if err != nil {
-		return "", err
+		return DerivedAddress{}, err
 	}
 	// ScriptUnknown is the default sentinel ("the wallet's natural kind"); resolve
 	// it to the wallet's script kind, which defaults to native segwit.
@@ -283,11 +283,11 @@ func (p *CoreBackend) NextReceiveAddress(ctx context.Context, walletID string, k
 	}
 	addressType, ok := coreAddressType(kind)
 	if !ok {
-		return "", fmt.Errorf("unsupported address kind %s for the Bitcoin Core backend", kind)
+		return DerivedAddress{}, fmt.Errorf("unsupported address kind %s for the Bitcoin Core backend", kind)
 	}
 	addrs, err := p.rpc.ListReceivedByAddress(ctx, name)
 	if err != nil {
-		return "", err
+		return DerivedAddress{}, err
 	}
 	// Reuse an unused address only if it matches the requested kind, so a wallet
 	// holding several script kinds doesn't hand back a foreign-kind address.
@@ -298,9 +298,26 @@ func (p *CoreBackend) NextReceiveAddress(ctx context.Context, walletID string, k
 		if !p.addressMatchesKind(a.Address, kind) {
 			continue
 		}
-		return a.Address, nil
+		return p.describeAddress(ctx, walletID, a.Address), nil
 	}
-	return p.rpc.GetNewAddress(ctx, name, "", addressType)
+	addr, err := p.rpc.GetNewAddress(ctx, name, "", addressType)
+	if err != nil {
+		return DerivedAddress{}, err
+	}
+	return p.describeAddress(ctx, walletID, addr), nil
+}
+
+// describeAddress attaches Core's hdkeypath for the one address being served.
+// Bulk lists skip this: listreceivedbyaddress has no path, and a getaddressinfo
+// per row would be N round-trips on a list the receive tab polls.
+func (p *CoreBackend) describeAddress(ctx context.Context, walletID, address string) DerivedAddress {
+	derived := DerivedAddress{Address: address, Index: -1}
+	path, err := p.AddressHDPath(ctx, walletID, address)
+	if err != nil {
+		return derived
+	}
+	derived.HDPath = path
+	return derived
 }
 
 // coreAddressType maps a script kind to Bitcoin Core's getnewaddress
@@ -650,7 +667,7 @@ func (p *CoreBackend) CreateCpfp(ctx context.Context, walletID string, req CpfpR
 	}
 
 	inputs := []RawInput{{TxID: req.ParentTxID, Vout: req.ParentVout}}
-	outputs := []map[string]interface{}{{childAddr: btcutil.Amount(outputSats).ToBTC()}}
+	outputs := []map[string]interface{}{{childAddr.Address: btcutil.Amount(outputSats).ToBTC()}}
 	rawHex, err := p.rpc.CreateRawTransaction(ctx, inputs, outputs, 0)
 	if err != nil {
 		return "", fmt.Errorf("create child tx: %w", err)

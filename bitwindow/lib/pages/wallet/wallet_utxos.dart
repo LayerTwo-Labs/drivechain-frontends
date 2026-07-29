@@ -184,6 +184,10 @@ class UTXOTable extends StatefulWidget {
 }
 
 class _UTXOTableState extends State<UTXOTable> {
+  // One list, so a new column can't be added to the header and forgotten in
+  // the sort lookups.
+  static const _columns = ['frozen', 'date', 'output', 'address', 'path', 'label', 'deniability', 'value'];
+
   String sortColumn = 'date';
   bool sortAscending = true;
   List<UnspentOutput> sortedEntries = [];
@@ -262,6 +266,10 @@ class _UTXOTableState extends State<UTXOTable> {
         case 'address':
           aValue = a.address;
           bValue = b.address;
+          break;
+        case 'path':
+          aValue = a.derivationPath;
+          bValue = b.derivationPath;
           break;
         case 'label':
           aValue = _getLabel(a);
@@ -406,6 +414,7 @@ class _UTXOTableState extends State<UTXOTable> {
               SailTableHeaderCell(name: 'Date', onSort: () => onSort('date')),
               SailTableHeaderCell(name: 'Output', onSort: () => onSort('output')),
               SailTableHeaderCell(name: 'Address', onSort: () => onSort('address')),
+              SailTableHeaderCell(name: 'Path', onSort: () => onSort('path')),
               SailTableHeaderCell(name: 'Label', onSort: () => onSort('label')),
               SailTableHeaderCell(name: 'Deniability', onSort: () => onSort('deniability')),
               SailTableHeaderCell(name: 'Amount', onSort: () => onSort('value')),
@@ -435,6 +444,11 @@ class _UTXOTableState extends State<UTXOTable> {
                   monospace: true,
                 ),
                 SailTableCell(
+                  value: utxo.derivationPath.isEmpty ? '—' : utxo.derivationPath,
+                  copyValue: utxo.derivationPath,
+                  monospace: true,
+                ),
+                SailTableCell(
                   value: _getLabel(utxo),
                   monospace: true,
                 ),
@@ -452,19 +466,9 @@ class _UTXOTableState extends State<UTXOTable> {
             rowCount: sortedEntries.length,
             emptyPlaceholder: hideFrozen ? 'No unfrozen UTXOs' : 'No UTXOs in wallet',
             drawGrid: true,
-            sortColumnIndex: [
-              'frozen',
-              'date',
-              'output',
-              'address',
-              'label',
-              'deniability',
-              'value',
-            ].indexOf(sortColumn),
+            sortColumnIndex: _columns.indexOf(sortColumn),
             sortAscending: sortAscending,
-            onSort: (columnIndex, ascending) {
-              onSort(['frozen', 'date', 'output', 'address', 'label', 'deniability', 'value'][columnIndex]);
-            },
+            onSort: (columnIndex, ascending) => onSort(_columns[columnIndex]),
             onDoubleTap: (rowId) => showTransactionDetails(context, rowId.split(':').first),
             contextMenuItems: (rowId) {
               final utxo = sortedEntries.firstWhere((u) => u.output == rowId);

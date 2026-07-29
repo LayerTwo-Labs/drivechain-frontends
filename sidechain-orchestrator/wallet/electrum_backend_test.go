@@ -182,7 +182,7 @@ func TestElectrumNextReceiveSkipsUsed(t *testing.T) {
 	_, _, err := p.Balance(context.Background(), w.ID) // warm the scan so usage is known
 	require.NoError(t, err)
 
-	next, err := p.NextReceiveAddress(context.Background(), w.ID, ScriptUnknown)
+	next, err := nextAddr(p, context.Background(), w.ID, ScriptUnknown)
 	require.NoError(t, err)
 	assert.NotEqual(t, addr, next, "used address must not be offered for receive")
 
@@ -822,13 +822,13 @@ func TestElectrumWatchOnlyNextReceiveAdvances(t *testing.T) {
 	used, next := addrs[0], addrs[1]
 
 	fake := newFakeEsplora()
-	p := NewElectrumBackend(svc, fake, &chaincfg.SigNetParams, zerolog.New(zerolog.NewTestWriter(t)))
+	p := NewElectrumBackend(svc, fake, StaticParams(&chaincfg.SigNetParams), zerolog.New(zerolog.NewTestWriter(t)))
 	fake.stats[used] = EsploraAddressStats{Address: used, ChainStats: EsploraTxoStats{TxCount: 1}}
 
 	_, _, err = p.Balance(ctx, wo.ID) // warm the scan so usage is known
 	require.NoError(t, err)
 
-	got, err := p.NextReceiveAddress(ctx, wo.ID, ScriptUnknown)
+	got, err := nextAddr(p, ctx, wo.ID, ScriptUnknown)
 	require.NoError(t, err)
 	assert.NotEqual(t, used, got, "watch-only must not reuse a used address")
 	assert.Equal(t, next, got)
@@ -891,7 +891,7 @@ func TestElectrumWatchOnlyDescriptorWatchesCorrectAddress(t *testing.T) {
 	require.NoError(t, err)
 	assert.InDelta(t, 0.00055, confirmed, 1e-9, "descriptor must watch the address it derives")
 
-	next, err := p.NextReceiveAddress(ctx, wo.ID, ScriptUnknown)
+	next, err := nextAddr(p, ctx, wo.ID, ScriptUnknown)
 	require.NoError(t, err)
 	assert.Contains(t, addrs, next, "receive address must be one the descriptor owns")
 	assert.NotEqual(t, addrs[0], next, "must skip the used address")
@@ -910,20 +910,20 @@ func TestElectrumNextReceiveTaproot(t *testing.T) {
 	require.Equal(t, "taproot", w.ScriptType)
 
 	fake := newFakeEsplora()
-	p := NewElectrumBackend(svc, fake, net, zerolog.New(zerolog.NewTestWriter(t)))
+	p := NewElectrumBackend(svc, fake, StaticParams(net), zerolog.New(zerolog.NewTestWriter(t)))
 
-	addr, err := p.NextReceiveAddress(ctx, w.ID, ScriptTaproot)
+	addr, err := nextAddr(p, ctx, w.ID, ScriptTaproot)
 	require.NoError(t, err)
 	assert.True(t, strings.HasPrefix(addr, net.Bech32HRPSegwit+"1p"), "taproot address must be bech32m: got %s", addr)
 
 	// UNSPECIFIED resolves to the wallet's own kind, so it must also be taproot.
-	addrDefault, err := p.NextReceiveAddress(ctx, w.ID, ScriptUnknown)
+	addrDefault, err := nextAddr(p, ctx, w.ID, ScriptUnknown)
 	require.NoError(t, err)
 	assert.True(t, strings.HasPrefix(addrDefault, net.Bech32HRPSegwit+"1p"), "default address must be bech32m: got %s", addrDefault)
 
 	// A hot wallet derives both BIP84 and BIP86 from its seed, so a segwit
 	// request is served a bech32 address rather than rejected.
-	segwit, err := p.NextReceiveAddress(ctx, w.ID, ScriptNativeSegwit)
+	segwit, err := nextAddr(p, ctx, w.ID, ScriptNativeSegwit)
 	require.NoError(t, err)
 	assert.True(t, strings.HasPrefix(segwit, net.Bech32HRPSegwit+"1q"), "segwit address must be bech32: got %s", segwit)
 }
@@ -1150,7 +1150,7 @@ func TestElectrumDualKindServesAndSpendsTaproot(t *testing.T) {
 	ctx := context.Background()
 	p, fake, w, _ := newElectrumFixture(t) // native-segwit hot wallet
 
-	tapAddr, err := p.NextReceiveAddress(ctx, w.ID, ScriptTaproot)
+	tapAddr, err := nextAddr(p, ctx, w.ID, ScriptTaproot)
 	require.NoError(t, err)
 	require.True(t, strings.HasPrefix(tapAddr, net.Bech32HRPSegwit+"1p"), "want bech32m, got %s", tapAddr)
 
@@ -1967,4 +1967,122 @@ func TestParseTaprootMultisigRejectsNonNUMS(t *testing.T) {
 	bad := strings.Replace(good, numsInternalKeyHex, "0000000000000000000000000000000000000000000000000000000000000001", 1)
 	_, _, _, _, err = ParseMultisigConfig(bad)
 	require.Error(t, err, "a non-NUMS taproot internal key must be rejected")
+}
+
+// TestElectrumReceiveAddressFollowsLiveNetwork is the regression test for
+// wallet state surviving a network swap: one seed, one backend, params flipped
+// underneath it, and the address it serves must move with the network.
+func TestElectrumReceiveAddressFollowsLiveNetwork(t *testing.T) {
+	ctx := context.Background()
+	svc := newTestService(t)
+
+	w, err := svc.CreateElectrumWallet("Live", nil, nil, testMnemonic, "", "", "", 0, "")
+	require.NoError(t, err)
+
+	net := &chaincfg.SigNetParams
+	fake := newFakeEsplora()
+	p := NewElectrumBackend(svc, fake, func() *chaincfg.Params { return net }, zerolog.New(zerolog.NewTestWriter(t)))
+
+	signet, err := nextAddr(p, ctx, w.ID, ScriptUnknown)
+	require.NoError(t, err)
+	require.True(t, strings.HasPrefix(signet, chaincfg.SigNetParams.Bech32HRPSegwit+"1"), "got %s", signet)
+
+	net = &chaincfg.MainNetParams
+	mainnet, err := nextAddr(p, ctx, w.ID, ScriptUnknown)
+	require.NoError(t, err)
+	assert.True(t, strings.HasPrefix(mainnet, chaincfg.MainNetParams.Bech32HRPSegwit+"1"),
+		"receive address must follow the current network, got %s", mainnet)
+	assert.NotEqual(t, signet, mainnet)
+}
+
+// TestBip47PaymentCodeFollowsLiveNetwork covers the reported symptom: the code
+// shown in the wallet list stayed on the pre-swap network.
+func TestBip47PaymentCodeFollowsLiveNetwork(t *testing.T) {
+	svc := newTestService(t)
+	w, err := svc.CreateElectrumWallet("Live", nil, nil, testMnemonic, "", "", "", 0, "")
+	require.NoError(t, err)
+
+	net := &chaincfg.SigNetParams
+	engine := NewWalletEngine(svc, nil, func() *chaincfg.Params { return net }, zerolog.New(zerolog.NewTestWriter(t)))
+
+	signet, err := Bip47PaymentCodeFromSeed(w.Master.SeedHex, engine.Network())
+	require.NoError(t, err)
+
+	net = &chaincfg.MainNetParams
+	mainnet, err := Bip47PaymentCodeFromSeed(w.Master.SeedHex, engine.Network())
+	require.NoError(t, err)
+
+	assert.NotEqual(t, signet, mainnet, "payment code must follow the current network")
+}
+
+// nextAddr is the address alone, for assertions that don't care which
+// derivation produced it.
+func nextAddr(b Backend, ctx context.Context, walletID string, kind ScriptKind) (string, error) {
+	derived, err := b.NextReceiveAddress(ctx, walletID, kind)
+	return derived.Address, err
+}
+
+// A path must come from the descriptor's own origin, which is why it is built
+// on the backend: a wallet with a custom account breaks any client-side guess.
+func TestElectrumListReceivedIncludesDerivationPath(t *testing.T) {
+	ctx := context.Background()
+	p, fake, w, _ := newElectrumFixture(t)
+
+	addrs, err := DeriveBIP84Addresses(w.Master.SeedHex, &chaincfg.SigNetParams, 0, 2)
+	require.NoError(t, err)
+	fake.stats[addrs[0]] = EsploraAddressStats{
+		Address:    addrs[0],
+		ChainStats: EsploraTxoStats{FundedTxoCount: 1, FundedTxoSum: 50_000, TxCount: 1},
+	}
+
+	received, err := p.ListReceivedByAddress(ctx, w.ID)
+	require.NoError(t, err)
+	require.NotEmpty(t, received)
+
+	byAddress := map[string]ReceivedByAddress{}
+	for _, r := range received {
+		byAddress[r.Address] = r
+	}
+	first, ok := byAddress[addrs[0]]
+	require.True(t, ok)
+	assert.Equal(t, "m/84'/1'/0'/0/0", first.HDPath, "signet coin type is 1'")
+
+	for _, r := range received {
+		if r.Change {
+			assert.Contains(t, r.HDPath, "/1/", "change addresses derive on the internal chain")
+		}
+	}
+}
+
+// The served receive address carries its own path and index, so the UI can
+// label it without deriving anything itself.
+func TestElectrumNextReceiveReturnsPathAndIndex(t *testing.T) {
+	ctx := context.Background()
+	p, _, w, _ := newElectrumFixture(t)
+
+	derived, err := p.NextReceiveAddress(ctx, w.ID, ScriptUnknown)
+	require.NoError(t, err)
+	assert.NotEmpty(t, derived.Address)
+	assert.Equal(t, "m/84'/1'/0'/0/0", derived.HDPath)
+	assert.EqualValues(t, 0, derived.Index)
+}
+
+// Taproot derives under BIP86, so the purpose in the path has to follow the
+// script kind rather than the wallet default.
+func TestElectrumTaprootReceivePathUsesBIP86(t *testing.T) {
+	ctx := context.Background()
+	svc := newTestService(t)
+	w, err := svc.CreateElectrumWallet("Taproot", nil, nil, testMnemonic, "", "", "taproot", 0, "")
+	require.NoError(t, err)
+
+	fake := newFakeEsplora()
+	p := NewElectrumBackend(svc, fake, StaticParams(&chaincfg.SigNetParams), zerolog.New(zerolog.NewTestWriter(t)))
+
+	taproot, err := p.NextReceiveAddress(ctx, w.ID, ScriptTaproot)
+	require.NoError(t, err)
+	assert.Equal(t, "m/86'/1'/0'/0/0", taproot.HDPath)
+
+	segwit, err := p.NextReceiveAddress(ctx, w.ID, ScriptNativeSegwit)
+	require.NoError(t, err)
+	assert.Equal(t, "m/84'/1'/0'/0/0", segwit.HDPath)
 }
