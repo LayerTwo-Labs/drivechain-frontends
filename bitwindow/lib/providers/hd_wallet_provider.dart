@@ -9,7 +9,12 @@ import 'package:logger/logger.dart';
 import 'package:pointycastle/digests/ripemd160.dart';
 import 'package:pointycastle/digests/sha256.dart';
 
-class HDWalletProvider extends ChangeNotifier {
+class HDWalletProvider extends ChangeNotifier implements NetworkScoped {
+  @override
+  Future<void> onNetworkChanged() async {
+    await reinitialize();
+  }
+
   Logger get log => GetIt.I.get<Logger>();
 
   String? _seedHex;

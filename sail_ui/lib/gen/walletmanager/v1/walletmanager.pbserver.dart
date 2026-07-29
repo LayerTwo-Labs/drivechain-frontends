@@ -41,6 +41,9 @@ abstract class WalletManagerServiceBase extends $pb.GeneratedService {
   $async.Future<$15.CreateElectrumWalletResponse> createElectrumWallet($pb.ServerContext ctx, $15.CreateElectrumWalletRequest request);
   $async.Future<$15.CreateMultisigWalletResponse> createMultisigWallet($pb.ServerContext ctx, $15.CreateMultisigWalletRequest request);
   $async.Future<$15.ParseMultisigConfigResponse> parseMultisigConfig($pb.ServerContext ctx, $15.ParseMultisigConfigRequest request);
+  $async.Future<$15.ValidateDescriptorResponse> validateDescriptor($pb.ServerContext ctx, $15.ValidateDescriptorRequest request);
+  $async.Future<$15.ValidateDerivationPathResponse> validateDerivationPath($pb.ServerContext ctx, $15.ValidateDerivationPathRequest request);
+  $async.Future<$15.ListDerivationPathsResponse> listDerivationPaths($pb.ServerContext ctx, $15.ListDerivationPathsRequest request);
   $async.Future<$15.CreateBitcoinCoreWalletResponse> createBitcoinCoreWallet($pb.ServerContext ctx, $15.CreateBitcoinCoreWalletRequest request);
   $async.Future<$15.EnsureCoreWalletsResponse> ensureCoreWallets($pb.ServerContext ctx, $15.EnsureCoreWalletsRequest request);
   $async.Future<$15.GetBalanceResponse> getBalance($pb.ServerContext ctx, $15.GetBalanceRequest request);
@@ -63,6 +66,8 @@ abstract class WalletManagerServiceBase extends $pb.GeneratedService {
   $async.Future<$15.FinalizePsbtResponse> finalizePsbt($pb.ServerContext ctx, $15.FinalizePsbtRequest request);
   $async.Future<$15.MultisigPsbtStatusResponse> multisigPsbtStatus($pb.ServerContext ctx, $15.MultisigPsbtStatusRequest request);
   $async.Future<$15.BroadcastTransactionResponse> broadcastTransaction($pb.ServerContext ctx, $15.BroadcastTransactionRequest request);
+  $async.Future<$15.GetAddressUnspentResponse> getAddressUnspent($pb.ServerContext ctx, $15.GetAddressUnspentRequest request);
+  $async.Future<$15.BroadcastElectrumTransactionResponse> broadcastElectrumTransaction($pb.ServerContext ctx, $15.BroadcastElectrumTransactionRequest request);
   $async.Future<$15.EnumerateHardwareDevicesResponse> enumerateHardwareDevices($pb.ServerContext ctx, $15.EnumerateHardwareDevicesRequest request);
   $async.Future<$15.GetHardwareXpubResponse> getHardwareXpub($pb.ServerContext ctx, $15.GetHardwareXpubRequest request);
   $async.Future<$15.SignPsbtWithDeviceResponse> signPsbtWithDevice($pb.ServerContext ctx, $15.SignPsbtWithDeviceRequest request);
@@ -103,6 +108,9 @@ abstract class WalletManagerServiceBase extends $pb.GeneratedService {
       case 'CreateElectrumWallet': return $15.CreateElectrumWalletRequest();
       case 'CreateMultisigWallet': return $15.CreateMultisigWalletRequest();
       case 'ParseMultisigConfig': return $15.ParseMultisigConfigRequest();
+      case 'ValidateDescriptor': return $15.ValidateDescriptorRequest();
+      case 'ValidateDerivationPath': return $15.ValidateDerivationPathRequest();
+      case 'ListDerivationPaths': return $15.ListDerivationPathsRequest();
       case 'CreateBitcoinCoreWallet': return $15.CreateBitcoinCoreWalletRequest();
       case 'EnsureCoreWallets': return $15.EnsureCoreWalletsRequest();
       case 'GetBalance': return $15.GetBalanceRequest();
@@ -125,6 +133,8 @@ abstract class WalletManagerServiceBase extends $pb.GeneratedService {
       case 'FinalizePsbt': return $15.FinalizePsbtRequest();
       case 'MultisigPsbtStatus': return $15.MultisigPsbtStatusRequest();
       case 'BroadcastTransaction': return $15.BroadcastTransactionRequest();
+      case 'GetAddressUnspent': return $15.GetAddressUnspentRequest();
+      case 'BroadcastElectrumTransaction': return $15.BroadcastElectrumTransactionRequest();
       case 'EnumerateHardwareDevices': return $15.EnumerateHardwareDevicesRequest();
       case 'GetHardwareXpub': return $15.GetHardwareXpubRequest();
       case 'SignPsbtWithDevice': return $15.SignPsbtWithDeviceRequest();
@@ -168,6 +178,9 @@ abstract class WalletManagerServiceBase extends $pb.GeneratedService {
       case 'CreateElectrumWallet': return this.createElectrumWallet(ctx, request as $15.CreateElectrumWalletRequest);
       case 'CreateMultisigWallet': return this.createMultisigWallet(ctx, request as $15.CreateMultisigWalletRequest);
       case 'ParseMultisigConfig': return this.parseMultisigConfig(ctx, request as $15.ParseMultisigConfigRequest);
+      case 'ValidateDescriptor': return this.validateDescriptor(ctx, request as $15.ValidateDescriptorRequest);
+      case 'ValidateDerivationPath': return this.validateDerivationPath(ctx, request as $15.ValidateDerivationPathRequest);
+      case 'ListDerivationPaths': return this.listDerivationPaths(ctx, request as $15.ListDerivationPathsRequest);
       case 'CreateBitcoinCoreWallet': return this.createBitcoinCoreWallet(ctx, request as $15.CreateBitcoinCoreWalletRequest);
       case 'EnsureCoreWallets': return this.ensureCoreWallets(ctx, request as $15.EnsureCoreWalletsRequest);
       case 'GetBalance': return this.getBalance(ctx, request as $15.GetBalanceRequest);
@@ -190,6 +203,8 @@ abstract class WalletManagerServiceBase extends $pb.GeneratedService {
       case 'FinalizePsbt': return this.finalizePsbt(ctx, request as $15.FinalizePsbtRequest);
       case 'MultisigPsbtStatus': return this.multisigPsbtStatus(ctx, request as $15.MultisigPsbtStatusRequest);
       case 'BroadcastTransaction': return this.broadcastTransaction(ctx, request as $15.BroadcastTransactionRequest);
+      case 'GetAddressUnspent': return this.getAddressUnspent(ctx, request as $15.GetAddressUnspentRequest);
+      case 'BroadcastElectrumTransaction': return this.broadcastElectrumTransaction(ctx, request as $15.BroadcastElectrumTransactionRequest);
       case 'EnumerateHardwareDevices': return this.enumerateHardwareDevices(ctx, request as $15.EnumerateHardwareDevicesRequest);
       case 'GetHardwareXpub': return this.getHardwareXpub(ctx, request as $15.GetHardwareXpubRequest);
       case 'SignPsbtWithDevice': return this.signPsbtWithDevice(ctx, request as $15.SignPsbtWithDeviceRequest);

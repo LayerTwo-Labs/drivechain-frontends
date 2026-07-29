@@ -14,6 +14,10 @@ import 'dart:core' as $core;
 
 import 'package:protobuf/protobuf.dart' as $pb;
 
+import 'bitcoin_conf.pbenum.dart';
+
+export 'bitcoin_conf.pbenum.dart';
+
 class GetBitcoinConfigRequest extends $pb.GeneratedMessage {
   factory GetBitcoinConfigRequest() => create();
   GetBitcoinConfigRequest._() : super();
@@ -62,6 +66,7 @@ class GetBitcoinConfigResponse extends $pb.GeneratedMessage {
     $core.String? forknetDatadir,
     $core.String? drynetDatadir,
     $core.String? drynetGeneration,
+    $core.bool? mustSelectDatadir,
   }) {
     final $result = create();
     if (network != null) {
@@ -106,6 +111,9 @@ class GetBitcoinConfigResponse extends $pb.GeneratedMessage {
     if (drynetGeneration != null) {
       $result.drynetGeneration = drynetGeneration;
     }
+    if (mustSelectDatadir != null) {
+      $result.mustSelectDatadir = mustSelectDatadir;
+    }
     return $result;
   }
   GetBitcoinConfigResponse._() : super();
@@ -127,6 +135,7 @@ class GetBitcoinConfigResponse extends $pb.GeneratedMessage {
     ..aOS(12, _omitFieldNames ? '' : 'forknetDatadir')
     ..aOS(13, _omitFieldNames ? '' : 'drynetDatadir')
     ..aOS(14, _omitFieldNames ? '' : 'drynetGeneration')
+    ..aOB(15, _omitFieldNames ? '' : 'mustSelectDatadir')
     ..hasRequiredFields = false
   ;
 
@@ -284,15 +293,280 @@ class GetBitcoinConfigResponse extends $pb.GeneratedMessage {
   $core.bool hasDrynetGeneration() => $_has(13);
   @$pb.TagNumber(14)
   void clearDrynetGeneration() => clearField(14);
+
+  /// True when the current network and wallet backend need a datadir the user
+  /// has not chosen yet. Drives the boot-time prompt.
+  @$pb.TagNumber(15)
+  $core.bool get mustSelectDatadir => $_getBF(14);
+  @$pb.TagNumber(15)
+  set mustSelectDatadir($core.bool v) { $_setBool(14, v); }
+  @$pb.TagNumber(15)
+  $core.bool hasMustSelectDatadir() => $_has(14);
+  @$pb.TagNumber(15)
+  void clearMustSelectDatadir() => clearField(15);
+}
+
+class PrepareNetworkChangeRequest extends $pb.GeneratedMessage {
+  factory PrepareNetworkChangeRequest({
+    $core.String? network,
+    WalletBackend? walletBackend,
+    $core.String? walletId,
+  }) {
+    final $result = create();
+    if (network != null) {
+      $result.network = network;
+    }
+    if (walletBackend != null) {
+      $result.walletBackend = walletBackend;
+    }
+    if (walletId != null) {
+      $result.walletId = walletId;
+    }
+    return $result;
+  }
+  PrepareNetworkChangeRequest._() : super();
+  factory PrepareNetworkChangeRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory PrepareNetworkChangeRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'PrepareNetworkChangeRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'orchestrator.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'network')
+    ..e<WalletBackend>(2, _omitFieldNames ? '' : 'walletBackend', $pb.PbFieldType.OE, defaultOrMaker: WalletBackend.WALLET_BACKEND_UNSPECIFIED, valueOf: WalletBackend.valueOf, enumValues: WalletBackend.values)
+    ..aOS(3, _omitFieldNames ? '' : 'walletId')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  PrepareNetworkChangeRequest clone() => PrepareNetworkChangeRequest()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  PrepareNetworkChangeRequest copyWith(void Function(PrepareNetworkChangeRequest) updates) => super.copyWith((message) => updates(message as PrepareNetworkChangeRequest)) as PrepareNetworkChangeRequest;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static PrepareNetworkChangeRequest create() => PrepareNetworkChangeRequest._();
+  PrepareNetworkChangeRequest createEmptyInstance() => create();
+  static $pb.PbList<PrepareNetworkChangeRequest> createRepeated() => $pb.PbList<PrepareNetworkChangeRequest>();
+  @$core.pragma('dart2js:noInline')
+  static PrepareNetworkChangeRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<PrepareNetworkChangeRequest>(create);
+  static PrepareNetworkChangeRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get network => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set network($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasNetwork() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearNetwork() => clearField(1);
+
+  @$pb.TagNumber(2)
+  WalletBackend get walletBackend => $_getN(1);
+  @$pb.TagNumber(2)
+  set walletBackend(WalletBackend v) { setField(2, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasWalletBackend() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearWalletBackend() => clearField(2);
+
+  @$pb.TagNumber(3)
+  $core.String get walletId => $_getSZ(2);
+  @$pb.TagNumber(3)
+  set walletId($core.String v) { $_setString(2, v); }
+  @$pb.TagNumber(3)
+  $core.bool hasWalletId() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearWalletId() => clearField(3);
+}
+
+/// NetworkChangePlan is what the change would require. Prepare returns it for
+/// the frontend to resolve; apply re-runs it and refuses anything unresolved.
+class NetworkChangePlan extends $pb.GeneratedMessage {
+  factory NetworkChangePlan({
+    $core.String? network,
+    WalletBackend? walletBackend,
+    $core.bool? mustSelectDatadir,
+    $core.String? datadir,
+    $core.String? datadirGroup,
+    $core.bool? needsLocalBackends,
+    $core.bool? impliesChainDownload,
+    $core.Iterable<$core.String>? missingBinaries,
+    $core.bool? needsBinaryDownload,
+    $core.bool? noOp,
+  }) {
+    final $result = create();
+    if (network != null) {
+      $result.network = network;
+    }
+    if (walletBackend != null) {
+      $result.walletBackend = walletBackend;
+    }
+    if (mustSelectDatadir != null) {
+      $result.mustSelectDatadir = mustSelectDatadir;
+    }
+    if (datadir != null) {
+      $result.datadir = datadir;
+    }
+    if (datadirGroup != null) {
+      $result.datadirGroup = datadirGroup;
+    }
+    if (needsLocalBackends != null) {
+      $result.needsLocalBackends = needsLocalBackends;
+    }
+    if (impliesChainDownload != null) {
+      $result.impliesChainDownload = impliesChainDownload;
+    }
+    if (missingBinaries != null) {
+      $result.missingBinaries.addAll(missingBinaries);
+    }
+    if (needsBinaryDownload != null) {
+      $result.needsBinaryDownload = needsBinaryDownload;
+    }
+    if (noOp != null) {
+      $result.noOp = noOp;
+    }
+    return $result;
+  }
+  NetworkChangePlan._() : super();
+  factory NetworkChangePlan.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory NetworkChangePlan.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'NetworkChangePlan', package: const $pb.PackageName(_omitMessageNames ? '' : 'orchestrator.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'network')
+    ..e<WalletBackend>(2, _omitFieldNames ? '' : 'walletBackend', $pb.PbFieldType.OE, defaultOrMaker: WalletBackend.WALLET_BACKEND_UNSPECIFIED, valueOf: WalletBackend.valueOf, enumValues: WalletBackend.values)
+    ..aOB(3, _omitFieldNames ? '' : 'mustSelectDatadir')
+    ..aOS(4, _omitFieldNames ? '' : 'datadir')
+    ..aOS(5, _omitFieldNames ? '' : 'datadirGroup')
+    ..aOB(6, _omitFieldNames ? '' : 'needsLocalBackends')
+    ..aOB(7, _omitFieldNames ? '' : 'impliesChainDownload')
+    ..pPS(8, _omitFieldNames ? '' : 'missingBinaries')
+    ..aOB(9, _omitFieldNames ? '' : 'needsBinaryDownload')
+    ..aOB(10, _omitFieldNames ? '' : 'noOp')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  NetworkChangePlan clone() => NetworkChangePlan()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  NetworkChangePlan copyWith(void Function(NetworkChangePlan) updates) => super.copyWith((message) => updates(message as NetworkChangePlan)) as NetworkChangePlan;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static NetworkChangePlan create() => NetworkChangePlan._();
+  NetworkChangePlan createEmptyInstance() => create();
+  static $pb.PbList<NetworkChangePlan> createRepeated() => $pb.PbList<NetworkChangePlan>();
+  @$core.pragma('dart2js:noInline')
+  static NetworkChangePlan getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<NetworkChangePlan>(create);
+  static NetworkChangePlan? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get network => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set network($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasNetwork() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearNetwork() => clearField(1);
+
+  @$pb.TagNumber(2)
+  WalletBackend get walletBackend => $_getN(1);
+  @$pb.TagNumber(2)
+  set walletBackend(WalletBackend v) { setField(2, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasWalletBackend() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearWalletBackend() => clearField(2);
+
+  @$pb.TagNumber(3)
+  $core.bool get mustSelectDatadir => $_getBF(2);
+  @$pb.TagNumber(3)
+  set mustSelectDatadir($core.bool v) { $_setBool(2, v); }
+  @$pb.TagNumber(3)
+  $core.bool hasMustSelectDatadir() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearMustSelectDatadir() => clearField(3);
+
+  @$pb.TagNumber(4)
+  $core.String get datadir => $_getSZ(3);
+  @$pb.TagNumber(4)
+  set datadir($core.String v) { $_setString(3, v); }
+  @$pb.TagNumber(4)
+  $core.bool hasDatadir() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearDatadir() => clearField(4);
+
+  @$pb.TagNumber(5)
+  $core.String get datadirGroup => $_getSZ(4);
+  @$pb.TagNumber(5)
+  set datadirGroup($core.String v) { $_setString(4, v); }
+  @$pb.TagNumber(5)
+  $core.bool hasDatadirGroup() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearDatadirGroup() => clearField(5);
+
+  @$pb.TagNumber(6)
+  $core.bool get needsLocalBackends => $_getBF(5);
+  @$pb.TagNumber(6)
+  set needsLocalBackends($core.bool v) { $_setBool(5, v); }
+  @$pb.TagNumber(6)
+  $core.bool hasNeedsLocalBackends() => $_has(5);
+  @$pb.TagNumber(6)
+  void clearNeedsLocalBackends() => clearField(6);
+
+  @$pb.TagNumber(7)
+  $core.bool get impliesChainDownload => $_getBF(6);
+  @$pb.TagNumber(7)
+  set impliesChainDownload($core.bool v) { $_setBool(6, v); }
+  @$pb.TagNumber(7)
+  $core.bool hasImpliesChainDownload() => $_has(6);
+  @$pb.TagNumber(7)
+  void clearImpliesChainDownload() => clearField(7);
+
+  @$pb.TagNumber(8)
+  $core.List<$core.String> get missingBinaries => $_getList(7);
+
+  @$pb.TagNumber(9)
+  $core.bool get needsBinaryDownload => $_getBF(8);
+  @$pb.TagNumber(9)
+  set needsBinaryDownload($core.bool v) { $_setBool(8, v); }
+  @$pb.TagNumber(9)
+  $core.bool hasNeedsBinaryDownload() => $_has(8);
+  @$pb.TagNumber(9)
+  void clearNeedsBinaryDownload() => clearField(9);
+
+  @$pb.TagNumber(10)
+  $core.bool get noOp => $_getBF(9);
+  @$pb.TagNumber(10)
+  set noOp($core.bool v) { $_setBool(9, v); }
+  @$pb.TagNumber(10)
+  $core.bool hasNoOp() => $_has(9);
+  @$pb.TagNumber(10)
+  void clearNoOp() => clearField(10);
 }
 
 class SetBitcoinConfigNetworkRequest extends $pb.GeneratedMessage {
   factory SetBitcoinConfigNetworkRequest({
     $core.String? network,
+    $core.String? dataDir,
   }) {
     final $result = create();
     if (network != null) {
       $result.network = network;
+    }
+    if (dataDir != null) {
+      $result.dataDir = dataDir;
     }
     return $result;
   }
@@ -302,6 +576,7 @@ class SetBitcoinConfigNetworkRequest extends $pb.GeneratedMessage {
 
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'SetBitcoinConfigNetworkRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'orchestrator.v1'), createEmptyInstance: create)
     ..aOS(1, _omitFieldNames ? '' : 'network')
+    ..aOS(2, _omitFieldNames ? '' : 'dataDir')
     ..hasRequiredFields = false
   ;
 
@@ -334,15 +609,33 @@ class SetBitcoinConfigNetworkRequest extends $pb.GeneratedMessage {
   $core.bool hasNetwork() => $_has(0);
   @$pb.TagNumber(1)
   void clearNetwork() => clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.String get dataDir => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set dataDir($core.String v) { $_setString(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasDataDir() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearDataDir() => clearField(2);
 }
 
 class SetBitcoinConfigNetworkResponse extends $pb.GeneratedMessage {
-  factory SetBitcoinConfigNetworkResponse() => create();
+  factory SetBitcoinConfigNetworkResponse({
+    NetworkChangePlan? applied,
+  }) {
+    final $result = create();
+    if (applied != null) {
+      $result.applied = applied;
+    }
+    return $result;
+  }
   SetBitcoinConfigNetworkResponse._() : super();
   factory SetBitcoinConfigNetworkResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
   factory SetBitcoinConfigNetworkResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
 
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'SetBitcoinConfigNetworkResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'orchestrator.v1'), createEmptyInstance: create)
+    ..aOM<NetworkChangePlan>(1, _omitFieldNames ? '' : 'applied', subBuilder: NetworkChangePlan.create)
     ..hasRequiredFields = false
   ;
 
@@ -366,6 +659,17 @@ class SetBitcoinConfigNetworkResponse extends $pb.GeneratedMessage {
   @$core.pragma('dart2js:noInline')
   static SetBitcoinConfigNetworkResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<SetBitcoinConfigNetworkResponse>(create);
   static SetBitcoinConfigNetworkResponse? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  NetworkChangePlan get applied => $_getN(0);
+  @$pb.TagNumber(1)
+  set applied(NetworkChangePlan v) { setField(1, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasApplied() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearApplied() => clearField(1);
+  @$pb.TagNumber(1)
+  NetworkChangePlan ensureApplied() => $_ensure(0);
 }
 
 class SetBitcoinConfigDataDirRequest extends $pb.GeneratedMessage {
@@ -552,6 +856,9 @@ class BitcoinConfServiceApi {
 
   $async.Future<GetBitcoinConfigResponse> getBitcoinConfig($pb.ClientContext? ctx, GetBitcoinConfigRequest request) =>
     _client.invoke<GetBitcoinConfigResponse>(ctx, 'BitcoinConfService', 'GetBitcoinConfig', request, GetBitcoinConfigResponse())
+  ;
+  $async.Future<NetworkChangePlan> prepareNetworkChange($pb.ClientContext? ctx, PrepareNetworkChangeRequest request) =>
+    _client.invoke<NetworkChangePlan>(ctx, 'BitcoinConfService', 'PrepareNetworkChange', request, NetworkChangePlan())
   ;
   $async.Future<SetBitcoinConfigNetworkResponse> setBitcoinConfigNetwork($pb.ClientContext? ctx, SetBitcoinConfigNetworkRequest request) =>
     _client.invoke<SetBitcoinConfigNetworkResponse>(ctx, 'BitcoinConfService', 'SetBitcoinConfigNetwork', request, SetBitcoinConfigNetworkResponse())

@@ -1,3 +1,4 @@
+import 'package:sail_ui/providers/network_scoped.dart';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -6,7 +7,12 @@ import 'package:logger/logger.dart';
 import 'package:sail_ui/classes/rpc_connection.dart';
 import 'package:sail_ui/env.dart';
 
-class BalanceProvider extends ChangeNotifier {
+class BalanceProvider extends ChangeNotifier implements NetworkScoped {
+  @override
+  Future<void> onNetworkChanged() async {
+    clear();
+  }
+
   final log = GetIt.I.get<Logger>();
   final List<RPCConnection> connections;
 

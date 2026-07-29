@@ -217,3 +217,14 @@ func (s *InboundStore) SetScanCursor(walletID string, n int) error {
 	s.cursors[walletID] = n
 	return s.flushLocked()
 }
+
+// Rebind points the store at another network's directory, dropping state
+// loaded from the previous one.
+func (s *InboundStore) Rebind(dir string) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.path = filepath.Join(dir, inboundFileName)
+	s.rows = make(map[string]*InboundNotification)
+	s.cursors = make(map[string]int)
+	s.loaded = false
+}

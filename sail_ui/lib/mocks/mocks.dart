@@ -1646,6 +1646,9 @@ class MockSyncProvider implements SyncProvider {
   MockSyncProvider() : super();
 
   @override
+  Future<void> onNetworkChanged() async {}
+
+  @override
   void addListener(VoidCallback listener) {
     return;
   }

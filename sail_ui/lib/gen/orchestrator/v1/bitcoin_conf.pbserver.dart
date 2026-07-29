@@ -22,6 +22,7 @@ export 'bitcoin_conf.pb.dart';
 
 abstract class BitcoinConfServiceBase extends $pb.GeneratedService {
   $async.Future<$4.GetBitcoinConfigResponse> getBitcoinConfig($pb.ServerContext ctx, $4.GetBitcoinConfigRequest request);
+  $async.Future<$4.NetworkChangePlan> prepareNetworkChange($pb.ServerContext ctx, $4.PrepareNetworkChangeRequest request);
   $async.Future<$4.SetBitcoinConfigNetworkResponse> setBitcoinConfigNetwork($pb.ServerContext ctx, $4.SetBitcoinConfigNetworkRequest request);
   $async.Future<$4.SetBitcoinConfigDataDirResponse> setBitcoinConfigDataDir($pb.ServerContext ctx, $4.SetBitcoinConfigDataDirRequest request);
   $async.Future<$4.WriteBitcoinConfigResponse> writeBitcoinConfig($pb.ServerContext ctx, $4.WriteBitcoinConfigRequest request);
@@ -29,6 +30,7 @@ abstract class BitcoinConfServiceBase extends $pb.GeneratedService {
   $pb.GeneratedMessage createRequest($core.String methodName) {
     switch (methodName) {
       case 'GetBitcoinConfig': return $4.GetBitcoinConfigRequest();
+      case 'PrepareNetworkChange': return $4.PrepareNetworkChangeRequest();
       case 'SetBitcoinConfigNetwork': return $4.SetBitcoinConfigNetworkRequest();
       case 'SetBitcoinConfigDataDir': return $4.SetBitcoinConfigDataDirRequest();
       case 'WriteBitcoinConfig': return $4.WriteBitcoinConfigRequest();
@@ -39,6 +41,7 @@ abstract class BitcoinConfServiceBase extends $pb.GeneratedService {
   $async.Future<$pb.GeneratedMessage> handleCall($pb.ServerContext ctx, $core.String methodName, $pb.GeneratedMessage request) {
     switch (methodName) {
       case 'GetBitcoinConfig': return this.getBitcoinConfig(ctx, request as $4.GetBitcoinConfigRequest);
+      case 'PrepareNetworkChange': return this.prepareNetworkChange(ctx, request as $4.PrepareNetworkChangeRequest);
       case 'SetBitcoinConfigNetwork': return this.setBitcoinConfigNetwork(ctx, request as $4.SetBitcoinConfigNetworkRequest);
       case 'SetBitcoinConfigDataDir': return this.setBitcoinConfigDataDir(ctx, request as $4.SetBitcoinConfigDataDirRequest);
       case 'WriteBitcoinConfig': return this.writeBitcoinConfig(ctx, request as $4.WriteBitcoinConfigRequest);

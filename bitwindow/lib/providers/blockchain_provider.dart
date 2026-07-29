@@ -7,7 +7,12 @@ import 'package:sail_ui/env.dart';
 import 'package:sail_ui/gen/bitcoin/bitcoind/v1alpha/bitcoin.pb.dart';
 import 'package:sail_ui/sail_ui.dart';
 
-class BlockchainProvider extends ChangeNotifier {
+class BlockchainProvider extends ChangeNotifier implements NetworkScoped {
+  @override
+  Future<void> onNetworkChanged() async {
+    clear();
+  }
+
   Logger get log => GetIt.I.get<Logger>();
   BitwindowRPC get bitwindowd => GetIt.I.get<BitwindowRPC>();
   OrchestratorRPC get _orchestrator => GetIt.I.get<OrchestratorRPC>();

@@ -53,7 +53,12 @@ class SyncConnection {
 ///
 /// Cadence is 100 ms while any tracked connection is still syncing, then
 /// drops to 1 s once everything is fully caught up.
-class SyncProvider extends ChangeNotifier {
+class SyncProvider extends ChangeNotifier implements NetworkScoped {
+  @override
+  Future<void> onNetworkChanged() async {
+    reset();
+  }
+
   Logger get log => GetIt.I.get<Logger>();
 
   OrchestratorRPC get _orchestrator => GetIt.I.get<OrchestratorRPC>();

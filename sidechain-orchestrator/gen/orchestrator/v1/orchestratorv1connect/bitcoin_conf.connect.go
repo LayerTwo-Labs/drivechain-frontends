@@ -36,6 +36,9 @@ const (
 	// BitcoinConfServiceGetBitcoinConfigProcedure is the fully-qualified name of the
 	// BitcoinConfService's GetBitcoinConfig RPC.
 	BitcoinConfServiceGetBitcoinConfigProcedure = "/orchestrator.v1.BitcoinConfService/GetBitcoinConfig"
+	// BitcoinConfServicePrepareNetworkChangeProcedure is the fully-qualified name of the
+	// BitcoinConfService's PrepareNetworkChange RPC.
+	BitcoinConfServicePrepareNetworkChangeProcedure = "/orchestrator.v1.BitcoinConfService/PrepareNetworkChange"
 	// BitcoinConfServiceSetBitcoinConfigNetworkProcedure is the fully-qualified name of the
 	// BitcoinConfService's SetBitcoinConfigNetwork RPC.
 	BitcoinConfServiceSetBitcoinConfigNetworkProcedure = "/orchestrator.v1.BitcoinConfService/SetBitcoinConfigNetwork"
@@ -51,6 +54,9 @@ const (
 type BitcoinConfServiceClient interface {
 	// Get current Bitcoin Core configuration state.
 	GetBitcoinConfig(context.Context, *connect.Request[v1.GetBitcoinConfigRequest]) (*connect.Response[v1.GetBitcoinConfigResponse], error)
+	// Report what the user must resolve before a network and/or wallet-backend
+	// change can be applied. Side-effect free.
+	PrepareNetworkChange(context.Context, *connect.Request[v1.PrepareNetworkChangeRequest]) (*connect.Response[v1.NetworkChangePlan], error)
 	// Set the Bitcoin Core network (signet, mainnet, forknet, drynet, testnet, regtest).
 	SetBitcoinConfigNetwork(context.Context, *connect.Request[v1.SetBitcoinConfigNetworkRequest]) (*connect.Response[v1.SetBitcoinConfigNetworkResponse], error)
 	// Set the Bitcoin Core datadir for a specific network.
@@ -74,6 +80,12 @@ func NewBitcoinConfServiceClient(httpClient connect.HTTPClient, baseURL string, 
 			httpClient,
 			baseURL+BitcoinConfServiceGetBitcoinConfigProcedure,
 			connect.WithSchema(bitcoinConfServiceMethods.ByName("GetBitcoinConfig")),
+			connect.WithClientOptions(opts...),
+		),
+		prepareNetworkChange: connect.NewClient[v1.PrepareNetworkChangeRequest, v1.NetworkChangePlan](
+			httpClient,
+			baseURL+BitcoinConfServicePrepareNetworkChangeProcedure,
+			connect.WithSchema(bitcoinConfServiceMethods.ByName("PrepareNetworkChange")),
 			connect.WithClientOptions(opts...),
 		),
 		setBitcoinConfigNetwork: connect.NewClient[v1.SetBitcoinConfigNetworkRequest, v1.SetBitcoinConfigNetworkResponse](
@@ -100,6 +112,7 @@ func NewBitcoinConfServiceClient(httpClient connect.HTTPClient, baseURL string, 
 // bitcoinConfServiceClient implements BitcoinConfServiceClient.
 type bitcoinConfServiceClient struct {
 	getBitcoinConfig        *connect.Client[v1.GetBitcoinConfigRequest, v1.GetBitcoinConfigResponse]
+	prepareNetworkChange    *connect.Client[v1.PrepareNetworkChangeRequest, v1.NetworkChangePlan]
 	setBitcoinConfigNetwork *connect.Client[v1.SetBitcoinConfigNetworkRequest, v1.SetBitcoinConfigNetworkResponse]
 	setBitcoinConfigDataDir *connect.Client[v1.SetBitcoinConfigDataDirRequest, v1.SetBitcoinConfigDataDirResponse]
 	writeBitcoinConfig      *connect.Client[v1.WriteBitcoinConfigRequest, v1.WriteBitcoinConfigResponse]
@@ -108,6 +121,11 @@ type bitcoinConfServiceClient struct {
 // GetBitcoinConfig calls orchestrator.v1.BitcoinConfService.GetBitcoinConfig.
 func (c *bitcoinConfServiceClient) GetBitcoinConfig(ctx context.Context, req *connect.Request[v1.GetBitcoinConfigRequest]) (*connect.Response[v1.GetBitcoinConfigResponse], error) {
 	return c.getBitcoinConfig.CallUnary(ctx, req)
+}
+
+// PrepareNetworkChange calls orchestrator.v1.BitcoinConfService.PrepareNetworkChange.
+func (c *bitcoinConfServiceClient) PrepareNetworkChange(ctx context.Context, req *connect.Request[v1.PrepareNetworkChangeRequest]) (*connect.Response[v1.NetworkChangePlan], error) {
+	return c.prepareNetworkChange.CallUnary(ctx, req)
 }
 
 // SetBitcoinConfigNetwork calls orchestrator.v1.BitcoinConfService.SetBitcoinConfigNetwork.
@@ -129,6 +147,9 @@ func (c *bitcoinConfServiceClient) WriteBitcoinConfig(ctx context.Context, req *
 type BitcoinConfServiceHandler interface {
 	// Get current Bitcoin Core configuration state.
 	GetBitcoinConfig(context.Context, *connect.Request[v1.GetBitcoinConfigRequest]) (*connect.Response[v1.GetBitcoinConfigResponse], error)
+	// Report what the user must resolve before a network and/or wallet-backend
+	// change can be applied. Side-effect free.
+	PrepareNetworkChange(context.Context, *connect.Request[v1.PrepareNetworkChangeRequest]) (*connect.Response[v1.NetworkChangePlan], error)
 	// Set the Bitcoin Core network (signet, mainnet, forknet, drynet, testnet, regtest).
 	SetBitcoinConfigNetwork(context.Context, *connect.Request[v1.SetBitcoinConfigNetworkRequest]) (*connect.Response[v1.SetBitcoinConfigNetworkResponse], error)
 	// Set the Bitcoin Core datadir for a specific network.
@@ -148,6 +169,12 @@ func NewBitcoinConfServiceHandler(svc BitcoinConfServiceHandler, opts ...connect
 		BitcoinConfServiceGetBitcoinConfigProcedure,
 		svc.GetBitcoinConfig,
 		connect.WithSchema(bitcoinConfServiceMethods.ByName("GetBitcoinConfig")),
+		connect.WithHandlerOptions(opts...),
+	)
+	bitcoinConfServicePrepareNetworkChangeHandler := connect.NewUnaryHandler(
+		BitcoinConfServicePrepareNetworkChangeProcedure,
+		svc.PrepareNetworkChange,
+		connect.WithSchema(bitcoinConfServiceMethods.ByName("PrepareNetworkChange")),
 		connect.WithHandlerOptions(opts...),
 	)
 	bitcoinConfServiceSetBitcoinConfigNetworkHandler := connect.NewUnaryHandler(
@@ -172,6 +199,8 @@ func NewBitcoinConfServiceHandler(svc BitcoinConfServiceHandler, opts ...connect
 		switch r.URL.Path {
 		case BitcoinConfServiceGetBitcoinConfigProcedure:
 			bitcoinConfServiceGetBitcoinConfigHandler.ServeHTTP(w, r)
+		case BitcoinConfServicePrepareNetworkChangeProcedure:
+			bitcoinConfServicePrepareNetworkChangeHandler.ServeHTTP(w, r)
 		case BitcoinConfServiceSetBitcoinConfigNetworkProcedure:
 			bitcoinConfServiceSetBitcoinConfigNetworkHandler.ServeHTTP(w, r)
 		case BitcoinConfServiceSetBitcoinConfigDataDirProcedure:
@@ -189,6 +218,10 @@ type UnimplementedBitcoinConfServiceHandler struct{}
 
 func (UnimplementedBitcoinConfServiceHandler) GetBitcoinConfig(context.Context, *connect.Request[v1.GetBitcoinConfigRequest]) (*connect.Response[v1.GetBitcoinConfigResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("orchestrator.v1.BitcoinConfService.GetBitcoinConfig is not implemented"))
+}
+
+func (UnimplementedBitcoinConfServiceHandler) PrepareNetworkChange(context.Context, *connect.Request[v1.PrepareNetworkChangeRequest]) (*connect.Response[v1.NetworkChangePlan], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("orchestrator.v1.BitcoinConfService.PrepareNetworkChange is not implemented"))
 }
 
 func (UnimplementedBitcoinConfServiceHandler) SetBitcoinConfigNetwork(context.Context, *connect.Request[v1.SetBitcoinConfigNetworkRequest]) (*connect.Response[v1.SetBitcoinConfigNetworkResponse], error) {

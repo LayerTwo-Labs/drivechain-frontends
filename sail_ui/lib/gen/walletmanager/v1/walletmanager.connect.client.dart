@@ -337,6 +337,63 @@ extension type WalletManagerServiceClient (connect.Transport _transport) {
     );
   }
 
+  /// ValidateDescriptor reads an output descriptor — single-sig or sortedmulti —
+  /// into the script policy it encodes.
+  Future<walletmanagerv1walletmanager.ValidateDescriptorResponse> validateDescriptor(
+    walletmanagerv1walletmanager.ValidateDescriptorRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.WalletManagerService.validateDescriptor,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
+  /// ValidateDerivationPath canonicalises a BIP32 derivation path, or fails with
+  /// the reason it is unusable.
+  Future<walletmanagerv1walletmanager.ValidateDerivationPathResponse> validateDerivationPath(
+    walletmanagerv1walletmanager.ValidateDerivationPathRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.WalletManagerService.validateDerivationPath,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
+  /// ListDerivationPaths returns the standard account paths for a policy on the
+  /// network this backend runs.
+  Future<walletmanagerv1walletmanager.ListDerivationPathsResponse> listDerivationPaths(
+    walletmanagerv1walletmanager.ListDerivationPathsRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.WalletManagerService.listDerivationPaths,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
   /// Core wallet management
   Future<walletmanagerv1walletmanager.CreateBitcoinCoreWalletResponse> createBitcoinCoreWallet(
     walletmanagerv1walletmanager.CreateBitcoinCoreWalletRequest input, {
@@ -717,6 +774,42 @@ extension type WalletManagerServiceClient (connect.Transport _transport) {
   }) {
     return connect.Client(_transport).unary(
       specs.WalletManagerService.broadcastTransaction,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
+  /// Address reads that belong to no wallet — cheque addresses, whose funds are
+  /// not the user's to spend. Always electrum-backed, whatever wallet is active.
+  Future<walletmanagerv1walletmanager.GetAddressUnspentResponse> getAddressUnspent(
+    walletmanagerv1walletmanager.GetAddressUnspentRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.WalletManagerService.getAddressUnspent,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
+  Future<walletmanagerv1walletmanager.BroadcastElectrumTransactionResponse> broadcastElectrumTransaction(
+    walletmanagerv1walletmanager.BroadcastElectrumTransactionRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.WalletManagerService.broadcastElectrumTransaction,
       input,
       signal: signal,
       headers: headers,

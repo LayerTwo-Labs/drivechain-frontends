@@ -149,6 +149,33 @@ abstract final class WalletManagerService {
     walletmanagerv1walletmanager.ParseMultisigConfigResponse.new,
   );
 
+  /// ValidateDescriptor reads an output descriptor — single-sig or sortedmulti —
+  /// into the script policy it encodes.
+  static const validateDescriptor = connect.Spec(
+    '/$name/ValidateDescriptor',
+    connect.StreamType.unary,
+    walletmanagerv1walletmanager.ValidateDescriptorRequest.new,
+    walletmanagerv1walletmanager.ValidateDescriptorResponse.new,
+  );
+
+  /// ValidateDerivationPath canonicalises a BIP32 derivation path, or fails with
+  /// the reason it is unusable.
+  static const validateDerivationPath = connect.Spec(
+    '/$name/ValidateDerivationPath',
+    connect.StreamType.unary,
+    walletmanagerv1walletmanager.ValidateDerivationPathRequest.new,
+    walletmanagerv1walletmanager.ValidateDerivationPathResponse.new,
+  );
+
+  /// ListDerivationPaths returns the standard account paths for a policy on the
+  /// network this backend runs.
+  static const listDerivationPaths = connect.Spec(
+    '/$name/ListDerivationPaths',
+    connect.StreamType.unary,
+    walletmanagerv1walletmanager.ListDerivationPathsRequest.new,
+    walletmanagerv1walletmanager.ListDerivationPathsResponse.new,
+  );
+
   /// Core wallet management
   static const createBitcoinCoreWallet = connect.Spec(
     '/$name/CreateBitcoinCoreWallet',
@@ -315,6 +342,22 @@ abstract final class WalletManagerService {
     connect.StreamType.unary,
     walletmanagerv1walletmanager.BroadcastTransactionRequest.new,
     walletmanagerv1walletmanager.BroadcastTransactionResponse.new,
+  );
+
+  /// Address reads that belong to no wallet — cheque addresses, whose funds are
+  /// not the user's to spend. Always electrum-backed, whatever wallet is active.
+  static const getAddressUnspent = connect.Spec(
+    '/$name/GetAddressUnspent',
+    connect.StreamType.unary,
+    walletmanagerv1walletmanager.GetAddressUnspentRequest.new,
+    walletmanagerv1walletmanager.GetAddressUnspentResponse.new,
+  );
+
+  static const broadcastElectrumTransaction = connect.Spec(
+    '/$name/BroadcastElectrumTransaction',
+    connect.StreamType.unary,
+    walletmanagerv1walletmanager.BroadcastElectrumTransactionRequest.new,
+    walletmanagerv1walletmanager.BroadcastElectrumTransactionResponse.new,
   );
 
   /// USB hardware wallets.

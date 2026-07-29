@@ -405,7 +405,7 @@ abstract class BitwindowAPI {
 
   /// Swap bitcoind network. bitwindowd forwards to orchestratord and exits
   /// for a launcher restart so the DB rescopes to the new network folder.
-  Future<void> updateNetwork(String network);
+  Future<void> updateNetwork(String network, {String dataDir});
 }
 
 class _BitwindowAPILive implements BitwindowAPI {
@@ -597,9 +597,9 @@ class _BitwindowAPILive implements BitwindowAPI {
   }
 
   @override
-  Future<void> updateNetwork(String network) async {
+  Future<void> updateNetwork(String network, {String dataDir = ''}) async {
     try {
-      await _client.updateNetwork(UpdateNetworkRequest(network: network));
+      await _client.updateNetwork(UpdateNetworkRequest(network: network, dataDir: dataDir));
     } catch (e) {
       throw BitwindowException('could not update network: ${extractConnectException(e)}');
     }

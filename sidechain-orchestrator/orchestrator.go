@@ -144,6 +144,9 @@ type Orchestrator struct {
 	forkEngine         *fork.Engine
 	forkEnforcerWallet enforcerrpc.WalletServiceClient
 
+	// walletEngine is reset on a network swap; nil in tests that don't wire it.
+	walletEngine *wallet.WalletEngine
+
 	configs    map[string]BinaryConfig
 	download   *DownloadManager
 	process    *ProcessManager
@@ -1839,7 +1842,7 @@ func (o *Orchestrator) SwapNetwork(ctx context.Context, n config.Network) error 
 	if config.Network(o.Network) == n {
 		return nil
 	}
-	if !o.BitcoinConf.HasDatadirForNetwork(n) {
+	if o.PlanNetworkChange(NetworkChangeRequest{Network: string(n)}).MustSelectDatadir {
 		return fmt.Errorf("datadir not configured for %s", n)
 	}
 
@@ -1885,6 +1888,14 @@ func (o *Orchestrator) SwapNetwork(ctx context.Context, n config.Network) error 
 	}
 	o.setNetwork(string(n))
 	o.clearNetworkSwapCaches()
+
+	// Eager, before anything can read: wallet state derived from the outgoing
+	// network must not outlive the swap.
+	if o.walletEngine != nil {
+		if err := o.walletEngine.ResetForNetwork(string(n)); err != nil {
+			return fmt.Errorf("reset wallet state for %s: %w", n, err)
+		}
+	}
 
 	if !bitcoindWasRunning && !enforcerWasRunning {
 		return nil

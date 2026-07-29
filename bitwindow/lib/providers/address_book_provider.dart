@@ -1,10 +1,16 @@
+import 'package:sail_ui/providers/network_scoped.dart';
 import 'package:fixnum/fixnum.dart' show Int64;
 import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/gen/bitwindowd/v1/bitwindowd.pb.dart';
 import 'package:sail_ui/rpcs/bitwindow_api.dart';
 
-class AddressBookProvider extends ChangeNotifier {
+class AddressBookProvider extends ChangeNotifier implements NetworkScoped {
+  @override
+  Future<void> onNetworkChanged() async {
+    clear();
+  }
+
   BitwindowRPC get bitwindowd => GetIt.I.get<BitwindowRPC>();
 
   List<AddressBookEntry> _entries = [];

@@ -42,8 +42,6 @@ type NetworkChainSource struct {
 
 	proxyOn   bool
 	proxyAddr string
-
-	onNetworkSwitch func()
 }
 
 var (
@@ -63,14 +61,6 @@ func NewNetworkChainSource(resolve ChainTargetResolver, log zerolog.Logger) *Net
 	}
 }
 
-// SetOnNetworkSwitch registers a callback fired once per network change, so
-// callers can drop chain state cached against the previous network.
-func (s *NetworkChainSource) SetOnNetworkSwitch(fn func()) {
-	s.mu.Lock()
-	s.onNetworkSwitch = fn
-	s.mu.Unlock()
-}
-
 func electrumScheme(url string) bool {
 	return strings.HasPrefix(url, "ssl://") || strings.HasPrefix(url, "tcp://")
 }
@@ -81,13 +71,10 @@ func (s *NetworkChainSource) current() (ChainDataSource, error) {
 	target := s.resolve()
 
 	s.mu.Lock()
-	var switched func()
 	if target.Network != s.network {
-		// First resolve is initialisation, not a switch: nothing was cached
-		// against a previous network and any pin was set moments ago.
+		// A pin belongs to the network it was set on.
 		if s.network != "" {
 			s.pinned = nil
-			switched = s.onNetworkSwitch
 		}
 		s.network = target.Network
 	}
@@ -99,9 +86,6 @@ func (s *NetworkChainSource) current() (ChainDataSource, error) {
 	}
 	if len(urls) == 0 {
 		s.mu.Unlock()
-		if switched != nil {
-			switched()
-		}
 		return nil, fmt.Errorf("no wallet chain source for network %q", target.Network)
 	}
 
@@ -135,9 +119,6 @@ func (s *NetworkChainSource) current() (ChainDataSource, error) {
 	}
 	s.mu.Unlock()
 
-	if switched != nil {
-		switched()
-	}
 	return client, nil
 }
 

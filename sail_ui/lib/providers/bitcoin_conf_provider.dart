@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:auto_route/auto_route.dart';
-import 'package:connectrpc/connect.dart' as crpc;
 import 'package:connectrpc/protobuf.dart';
 import 'package:connectrpc/protocol/connect.dart' as connect;
 import 'package:flutter/material.dart';
@@ -10,15 +9,14 @@ import 'package:logger/logger.dart';
 import 'package:sail_ui/env.dart';
 import 'package:sail_ui/sail_ui.dart';
 
-/// Thrown when the user tries to switch to a network that requires a datadir
-/// (mainnet/forknet) but none is configured. Callers should prompt for a
-/// directory, persist it via [BitcoinConfProvider.updateDataDir], then retry.
-class MissingDatadirException implements Exception {
+/// Thrown when the user declines a requirement the backend reported, so the
+/// change is abandoned rather than applied half-way.
+class NetworkChangeDeclined implements Exception {
   final BitcoinNetwork network;
-  MissingDatadirException(this.network);
+  NetworkChangeDeclined(this.network);
 
   @override
-  String toString() => 'datadir not configured for $network';
+  String toString() => 'network change to $network declined';
 }
 
 /// Bitcoin Core configuration provider backed by orchestrator's BitcoinConfService.
@@ -73,6 +71,15 @@ class BitcoinConfProvider extends ChangeNotifier {
 
   int rpcPort = 38332;
 
+  /// True when the active network and wallet backend need a datadir the user
+  /// has not chosen. Computed by the backend, polled with the rest of the config.
+  bool mustSelectDatadir = false;
+
+  /// bitwindow applies swaps through bitwindowd, which recycles its per-network
+  /// database; sidechain apps leave this null and reach orchestratord directly.
+  /// Planning always goes straight to orchestratord — it holds the facts.
+  Future<void> Function(String network, String dataDir)? networkSwapper;
+
   BitcoinConfProvider._create(this.router);
 
   static Future<BitcoinConfProvider> create(RootStackRouter router) async {
@@ -118,6 +125,7 @@ class BitcoinConfProvider extends ChangeNotifier {
       drynetDatadir = resp.drynetDatadir.isEmpty ? null : resp.drynetDatadir;
       drynetGeneration = resp.drynetGeneration;
       rpcPort = resp.rpcPort;
+      mustSelectDatadir = resp.mustSelectDatadir;
 
       network = _parseNetwork(resp.network);
 
@@ -143,29 +151,32 @@ class BitcoinConfProvider extends ChangeNotifier {
   }
 
   void _onNetworkChanged() {
-    if (GetIt.I.isRegistered<BalanceProvider>()) {
-      GetIt.I.get<BalanceProvider>().clear();
-    }
-    if (GetIt.I.isRegistered<SyncProvider>()) {
-      GetIt.I.get<SyncProvider>().reset();
-    }
-    if (GetIt.I.isRegistered<WalletReaderProvider>()) {
-      GetIt.I.get<WalletReaderProvider>().reloadForNetworkChange();
-    }
+    unawaited(NetworkScopedRegistry.clearAll());
   }
 
-  Future<void> updateNetwork(BitcoinNetwork newNetwork) async {
+  /// Asks the backend what a change would require. It knows the wallet backend,
+  /// the datadirs and the binaries; the frontend knows none of that.
+  Future<NetworkChangePlan> prepareNetworkChange({
+    BitcoinNetwork? targetNetwork,
+    String walletId = '',
+  }) async {
+    final request = PrepareNetworkChangeRequest(
+      network: targetNetwork == null ? '' : _networkToString(targetNetwork),
+      walletId: walletId,
+    );
+    return _client.prepareNetworkChange(request);
+  }
+
+  Future<void> updateNetwork(BitcoinNetwork newNetwork, {String dataDir = ''}) async {
     try {
-      await _client.setBitcoinConfigNetwork(
-        SetBitcoinConfigNetworkRequest(network: _networkToString(newNetwork)),
-      );
-      await loadConfig(userInitiated: true);
-    } on crpc.ConnectException catch (e) {
-      if (e.code == crpc.Code.failedPrecondition && e.message.contains('datadir not configured')) {
-        throw MissingDatadirException(newNetwork);
+      if (networkSwapper != null) {
+        await networkSwapper!(_networkToString(newNetwork), dataDir);
+      } else {
+        await _client.setBitcoinConfigNetwork(
+          SetBitcoinConfigNetworkRequest(network: _networkToString(newNetwork), dataDir: dataDir),
+        );
       }
-      log.e('BitcoinConfProvider: failed to update network: $e');
-      rethrow;
+      await loadConfig(userInitiated: true);
     } catch (e) {
       log.e('BitcoinConfProvider: failed to update network: $e');
       rethrow;
@@ -176,49 +187,33 @@ class BitcoinConfProvider extends ChangeNotifier {
     if (hasPrivateBitcoinConf) return;
     if (network == newNetwork) return;
 
-    if (!await ensureDataDirForNetwork(context, newNetwork)) {
-      throw MissingDatadirException(newNetwork);
-    }
+    final plan = await prepareNetworkChange(targetNetwork: newNetwork);
+    if (plan.noOp) return;
 
-    try {
-      await updateNetwork(newNetwork);
-    } on MissingDatadirException {
-      await loadConfig();
-      if (!context.mounted) {
-        throw MissingDatadirException(newNetwork);
-      }
-      if (!await ensureDataDirForNetwork(context, newNetwork)) {
-        throw MissingDatadirException(newNetwork);
-      }
-      await updateNetwork(newNetwork);
-    }
+    if (!context.mounted) throw NetworkChangeDeclined(newNetwork);
+    final dataDir = await resolveNetworkChangePlan(context, plan, newNetwork);
+    if (dataDir == null) throw NetworkChangeDeclined(newNetwork);
+
+    await updateNetwork(newNetwork, dataDir: dataDir);
   }
 
-  Future<bool> ensureDataDirForNetwork(BuildContext context, BitcoinNetwork targetNetwork) async {
-    if (!networkRequiresDataDir(targetNetwork) || hasDataDirFor(targetNetwork)) {
-      return true;
-    }
-
-    if (!context.mounted) return false;
+  /// Walks the requirements the backend reported, returning the datadir to
+  /// apply with (empty when none was needed) or null if the user backed out.
+  Future<String?> resolveNetworkChangePlan(
+    BuildContext context,
+    NetworkChangePlan plan,
+    BitcoinNetwork targetNetwork,
+  ) async {
+    if (!plan.mustSelectDatadir) return '';
 
     final selected = await promptForBitcoinDataDir(context, targetNetwork);
-    if (selected == null || selected.isEmpty) return false;
-    if (!context.mounted) return false;
-
-    await updateDataDir(selected, forNetwork: targetNetwork);
-    await loadConfig();
-    return hasDataDirFor(targetNetwork);
+    if (selected == null || selected.isEmpty) return null;
+    return selected;
   }
 
   bool hasDataDirFor(BitcoinNetwork network) {
     final dataDir = dataDirFor(network);
     return dataDir != null && dataDir.isNotEmpty;
-  }
-
-  bool networkRequiresDataDir(BitcoinNetwork network) {
-    return network == BitcoinNetwork.BITCOIN_NETWORK_MAINNET ||
-        network == BitcoinNetwork.BITCOIN_NETWORK_FORKNET ||
-        network == BitcoinNetwork.BITCOIN_NETWORK_DRYNET;
   }
 
   Future<void> updateDataDir(String? dataDir, {required BitcoinNetwork forNetwork}) async {

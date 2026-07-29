@@ -76,9 +76,7 @@ func TestNetworkChainSource_FollowsNetworkSwap(t *testing.T) {
 		},
 	}
 
-	var switches atomic.Int64
 	src := NewNetworkChainSource(nv.resolve, zerolog.Nop())
-	src.SetOnNetworkSwitch(func() { switches.Add(1) })
 
 	ctx := context.Background()
 
@@ -95,8 +93,6 @@ func TestNetworkChainSource_FollowsNetworkSwap(t *testing.T) {
 	assert.EqualValues(t, 222, stats.ChainStats.FundedTxoSum, "read must follow the swap to mainnet")
 	assert.EqualValues(t, 1, drynet.hits.Load(), "drynet must not be queried after the swap")
 	assert.EqualValues(t, 1, mainnet.hits.Load())
-
-	assert.EqualValues(t, 1, switches.Load(), "switch fires on the swap, not on initialisation")
 }
 
 // TestNetworkChainSource_SwitchesProtocolClass covers drynet (https Esplora) to
@@ -188,7 +184,7 @@ func TestElectrumBackend_DropsCachesOnNetworkSwap(t *testing.T) {
 		params:  map[string]*chaincfg.Params{"drynet": &chaincfg.MainNetParams, "mainnet": &chaincfg.MainNetParams},
 	}
 	src := NewNetworkChainSource(nv.resolve, zerolog.Nop())
-	backend := NewElectrumBackend(nil, src, &chaincfg.MainNetParams, zerolog.Nop())
+	backend := NewElectrumBackend(nil, src, StaticParams(&chaincfg.MainNetParams), zerolog.Nop())
 
 	_, err := src.AddressStats(context.Background(), "bc1qtest")
 	require.NoError(t, err)
@@ -200,7 +196,7 @@ func TestElectrumBackend_DropsCachesOnNetworkSwap(t *testing.T) {
 	backend.mu.Unlock()
 
 	nv.set("mainnet")
-	require.True(t, src.Available())
+	backend.ResetNetworkState()
 
 	backend.mu.Lock()
 	defer backend.mu.Unlock()
@@ -222,9 +218,9 @@ func TestCachedScanRejectsScanCheckedOutBeforeSwitch(t *testing.T) {
 		{name: "networks report the same height", tip: 900000},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			backend := NewElectrumBackend(nil, nil, &chaincfg.MainNetParams, zerolog.Nop())
+			backend := NewElectrumBackend(nil, nil, StaticParams(&chaincfg.MainNetParams), zerolog.Nop())
 			client := &switchOnTipClient{tip: tc.tip, err: tc.err}
-			client.onTip = backend.dropChainCaches
+			client.onTip = backend.ResetNetworkState
 			backend.client = client
 
 			backend.mu.Lock()
@@ -280,7 +276,7 @@ func (c *switchOnTipClient) FeeRateForTarget(_ context.Context, _ int, fallback 
 // consumerOnce bound to the first client meant an Esplora-first process could
 // never consume Electrum pushes after switching.
 func TestNotificationConsumerRebindsAcrossProtocolSwitch(t *testing.T) {
-	backend := NewElectrumBackend(nil, nil, &chaincfg.MainNetParams, zerolog.Nop())
+	backend := NewElectrumBackend(nil, nil, StaticParams(&chaincfg.MainNetParams), zerolog.Nop())
 
 	backend.startNotificationConsumer(stubSubscriber{})
 	backend.subMu.Lock()
@@ -315,9 +311,9 @@ func TestScanRejectsResultWhenNetworkSwitchesMidWalk(t *testing.T) {
 	w, err := svc.GenerateWallet("Electrum", "", "", testSlots)
 	require.NoError(t, err)
 
-	backend := NewElectrumBackend(svc, nil, &chaincfg.MainNetParams, zerolog.Nop())
+	backend := NewElectrumBackend(svc, nil, StaticParams(&chaincfg.MainNetParams), zerolog.Nop())
 	// Switching from inside the walk is what the generation stamp has to catch.
-	backend.client = &switchOnTipClient{onStats: backend.dropChainCaches}
+	backend.client = &switchOnTipClient{onStats: backend.ResetNetworkState}
 
 	scan, err := backend.scan(context.Background(), w.ID, false)
 	require.Error(t, err, "a scan spanning a network switch must not be returned")

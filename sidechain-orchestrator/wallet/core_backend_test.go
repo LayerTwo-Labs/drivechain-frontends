@@ -102,7 +102,7 @@ func (f *fakeBitcoind) client(t *testing.T) *CoreRPCClient {
 	require.NoError(t, err)
 	port, err := strconv.Atoi(portStr)
 	require.NoError(t, err)
-	return NewCoreRPCClient(host, port, "user", "pass")
+	return NewCoreRPCClient(StaticCoreEndpoint(host, port, "user", "pass"))
 }
 
 // stubEnsureFlow installs the happy-path handlers for lazy wallet creation.
@@ -133,7 +133,7 @@ func newCoreBackendFixture(t *testing.T) (*CoreBackend, *fakeBitcoind, string) {
 
 	fake := newFakeBitcoind(t)
 	log := zerolog.New(zerolog.NewTestWriter(t))
-	backend := NewCoreBackend(svc, fake.client(t), &chaincfg.RegressionNetParams, log)
+	backend := NewCoreBackend(svc, fake.client(t), StaticParams(&chaincfg.RegressionNetParams), log)
 	return backend, fake, core.ID
 }
 
@@ -485,7 +485,7 @@ func TestCoreBackendCreateCpfpTaproot(t *testing.T) {
 
 	fake := newFakeBitcoind(t)
 	log := zerolog.New(zerolog.NewTestWriter(t))
-	backend := NewCoreBackend(svc, fake.client(t), &chaincfg.RegressionNetParams, log)
+	backend := NewCoreBackend(svc, fake.client(t), StaticParams(&chaincfg.RegressionNetParams), log)
 	coreID := core.ID
 
 	// The wallet resolves to taproot.
@@ -583,7 +583,7 @@ func TestCoreBackendCpfpBase58Kinds(t *testing.T) {
 			require.NoError(t, err)
 
 			fake := newFakeBitcoind(t)
-			backend := NewCoreBackend(svc, fake.client(t), net, zerolog.New(zerolog.NewTestWriter(t)))
+			backend := NewCoreBackend(svc, fake.client(t), StaticParams(net), zerolog.New(zerolog.NewTestWriter(t)))
 			coreID := core.ID
 			require.Equal(t, tc.kind, backend.walletScriptKind(coreID))
 

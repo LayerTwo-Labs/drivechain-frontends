@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"math"
 	"sort"
+	"strings"
 	"time"
 
 	"connectrpc.com/connect"
@@ -209,6 +210,20 @@ func (h *WalletHandler) ListWallets(ctx context.Context, req *connect.Request[pb
 }
 
 func (h *WalletHandler) SwitchWallet(ctx context.Context, req *connect.Request[pb.SwitchWalletRequest]) (*connect.Response[pb.SwitchWalletResponse], error) {
+	// Switching onto a Core/enforcer wallet is what makes the local chain
+	// necessary, so it goes through the same planner a network swap does.
+	if h.orch != nil {
+		if dataDir := strings.TrimSpace(req.Msg.DataDir); dataDir != "" {
+			if err := h.orch.SetDatadirForCurrentNetwork(dataDir); err != nil {
+				return nil, connect.NewError(connect.CodeInvalidArgument, err)
+			}
+		}
+		plan := h.orch.PlanNetworkChange(orchestrator.NetworkChangeRequest{WalletID: req.Msg.WalletId})
+		if plan.MustSelectDatadir {
+			return nil, requirementsUnmet(plan)
+		}
+	}
+
 	if err := h.svc.SwitchWallet(req.Msg.WalletId); err != nil {
 		return nil, connect.NewError(connect.CodeNotFound, err)
 	}
@@ -575,6 +590,13 @@ func rpcError(err error) error {
 func (h *WalletHandler) CreateBitcoinCoreWallet(ctx context.Context, req *connect.Request[pb.CreateBitcoinCoreWalletRequest]) (*connect.Response[pb.CreateBitcoinCoreWalletResponse], error) {
 	if err := h.requireEngine(); err != nil {
 		return nil, connect.NewError(connect.CodeFailedPrecondition, err)
+	}
+
+	if h.orch != nil {
+		plan := h.orch.PlanNetworkChange(orchestrator.NetworkChangeRequest{WalletBackend: wallet.WalletTypeBitcoinCore})
+		if plan.MustSelectDatadir {
+			return nil, requirementsUnmet(plan)
+		}
 	}
 
 	name, err := h.engine.Backend().Ensure(ctx, req.Msg.WalletId)

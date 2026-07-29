@@ -184,6 +184,7 @@ func (s *Server) UpdateNetwork(ctx context.Context, req *connect.Request[pb.Upda
 	)
 	if _, err := confClient.SetBitcoinConfigNetwork(ctx, connect.NewRequest(&orchpb.SetBitcoinConfigNetworkRequest{
 		Network: req.Msg.Network,
+		DataDir: req.Msg.DataDir,
 	})); err != nil {
 		return nil, connect.NewError(connect.CodeOf(err), fmt.Errorf("orchestrator.SetBitcoinConfigNetwork: %w", err))
 	}

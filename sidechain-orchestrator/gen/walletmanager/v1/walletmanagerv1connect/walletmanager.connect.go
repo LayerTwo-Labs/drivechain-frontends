@@ -91,6 +91,15 @@ const (
 	// WalletManagerServiceParseMultisigConfigProcedure is the fully-qualified name of the
 	// WalletManagerService's ParseMultisigConfig RPC.
 	WalletManagerServiceParseMultisigConfigProcedure = "/walletmanager.v1.WalletManagerService/ParseMultisigConfig"
+	// WalletManagerServiceValidateDescriptorProcedure is the fully-qualified name of the
+	// WalletManagerService's ValidateDescriptor RPC.
+	WalletManagerServiceValidateDescriptorProcedure = "/walletmanager.v1.WalletManagerService/ValidateDescriptor"
+	// WalletManagerServiceValidateDerivationPathProcedure is the fully-qualified name of the
+	// WalletManagerService's ValidateDerivationPath RPC.
+	WalletManagerServiceValidateDerivationPathProcedure = "/walletmanager.v1.WalletManagerService/ValidateDerivationPath"
+	// WalletManagerServiceListDerivationPathsProcedure is the fully-qualified name of the
+	// WalletManagerService's ListDerivationPaths RPC.
+	WalletManagerServiceListDerivationPathsProcedure = "/walletmanager.v1.WalletManagerService/ListDerivationPaths"
 	// WalletManagerServiceCreateBitcoinCoreWalletProcedure is the fully-qualified name of the
 	// WalletManagerService's CreateBitcoinCoreWallet RPC.
 	WalletManagerServiceCreateBitcoinCoreWalletProcedure = "/walletmanager.v1.WalletManagerService/CreateBitcoinCoreWallet"
@@ -157,6 +166,12 @@ const (
 	// WalletManagerServiceBroadcastTransactionProcedure is the fully-qualified name of the
 	// WalletManagerService's BroadcastTransaction RPC.
 	WalletManagerServiceBroadcastTransactionProcedure = "/walletmanager.v1.WalletManagerService/BroadcastTransaction"
+	// WalletManagerServiceGetAddressUnspentProcedure is the fully-qualified name of the
+	// WalletManagerService's GetAddressUnspent RPC.
+	WalletManagerServiceGetAddressUnspentProcedure = "/walletmanager.v1.WalletManagerService/GetAddressUnspent"
+	// WalletManagerServiceBroadcastElectrumTransactionProcedure is the fully-qualified name of the
+	// WalletManagerService's BroadcastElectrumTransaction RPC.
+	WalletManagerServiceBroadcastElectrumTransactionProcedure = "/walletmanager.v1.WalletManagerService/BroadcastElectrumTransaction"
 	// WalletManagerServiceEnumerateHardwareDevicesProcedure is the fully-qualified name of the
 	// WalletManagerService's EnumerateHardwareDevices RPC.
 	WalletManagerServiceEnumerateHardwareDevicesProcedure = "/walletmanager.v1.WalletManagerService/EnumerateHardwareDevices"
@@ -239,6 +254,15 @@ type WalletManagerServiceClient interface {
 	// ParseMultisigConfig parses a descriptor or a wallet-config file (Coldcard
 	// text / Sparrow / Specter / Caravan JSON) into an m-of-n policy + cosigners.
 	ParseMultisigConfig(context.Context, *connect.Request[v1.ParseMultisigConfigRequest]) (*connect.Response[v1.ParseMultisigConfigResponse], error)
+	// ValidateDescriptor reads an output descriptor — single-sig or sortedmulti —
+	// into the script policy it encodes.
+	ValidateDescriptor(context.Context, *connect.Request[v1.ValidateDescriptorRequest]) (*connect.Response[v1.ValidateDescriptorResponse], error)
+	// ValidateDerivationPath canonicalises a BIP32 derivation path, or fails with
+	// the reason it is unusable.
+	ValidateDerivationPath(context.Context, *connect.Request[v1.ValidateDerivationPathRequest]) (*connect.Response[v1.ValidateDerivationPathResponse], error)
+	// ListDerivationPaths returns the standard account paths for a policy on the
+	// network this backend runs.
+	ListDerivationPaths(context.Context, *connect.Request[v1.ListDerivationPathsRequest]) (*connect.Response[v1.ListDerivationPathsResponse], error)
 	// Core wallet management
 	CreateBitcoinCoreWallet(context.Context, *connect.Request[v1.CreateBitcoinCoreWalletRequest]) (*connect.Response[v1.CreateBitcoinCoreWalletResponse], error)
 	EnsureCoreWallets(context.Context, *connect.Request[v1.EnsureCoreWalletsRequest]) (*connect.Response[v1.EnsureCoreWalletsResponse], error)
@@ -275,6 +299,10 @@ type WalletManagerServiceClient interface {
 	// BroadcastTransaction broadcasts a finalized raw transaction over the
 	// wallet's chain source and returns its txid.
 	BroadcastTransaction(context.Context, *connect.Request[v1.BroadcastTransactionRequest]) (*connect.Response[v1.BroadcastTransactionResponse], error)
+	// Address reads that belong to no wallet — cheque addresses, whose funds are
+	// not the user's to spend. Always electrum-backed, whatever wallet is active.
+	GetAddressUnspent(context.Context, *connect.Request[v1.GetAddressUnspentRequest]) (*connect.Response[v1.GetAddressUnspentResponse], error)
+	BroadcastElectrumTransaction(context.Context, *connect.Request[v1.BroadcastElectrumTransactionRequest]) (*connect.Response[v1.BroadcastElectrumTransactionResponse], error)
 	// USB hardware wallets.
 	EnumerateHardwareDevices(context.Context, *connect.Request[v1.EnumerateHardwareDevicesRequest]) (*connect.Response[v1.EnumerateHardwareDevicesResponse], error)
 	GetHardwareXpub(context.Context, *connect.Request[v1.GetHardwareXpubRequest]) (*connect.Response[v1.GetHardwareXpubResponse], error)
@@ -432,6 +460,24 @@ func NewWalletManagerServiceClient(httpClient connect.HTTPClient, baseURL string
 			connect.WithSchema(walletManagerServiceMethods.ByName("ParseMultisigConfig")),
 			connect.WithClientOptions(opts...),
 		),
+		validateDescriptor: connect.NewClient[v1.ValidateDescriptorRequest, v1.ValidateDescriptorResponse](
+			httpClient,
+			baseURL+WalletManagerServiceValidateDescriptorProcedure,
+			connect.WithSchema(walletManagerServiceMethods.ByName("ValidateDescriptor")),
+			connect.WithClientOptions(opts...),
+		),
+		validateDerivationPath: connect.NewClient[v1.ValidateDerivationPathRequest, v1.ValidateDerivationPathResponse](
+			httpClient,
+			baseURL+WalletManagerServiceValidateDerivationPathProcedure,
+			connect.WithSchema(walletManagerServiceMethods.ByName("ValidateDerivationPath")),
+			connect.WithClientOptions(opts...),
+		),
+		listDerivationPaths: connect.NewClient[v1.ListDerivationPathsRequest, v1.ListDerivationPathsResponse](
+			httpClient,
+			baseURL+WalletManagerServiceListDerivationPathsProcedure,
+			connect.WithSchema(walletManagerServiceMethods.ByName("ListDerivationPaths")),
+			connect.WithClientOptions(opts...),
+		),
 		createBitcoinCoreWallet: connect.NewClient[v1.CreateBitcoinCoreWalletRequest, v1.CreateBitcoinCoreWalletResponse](
 			httpClient,
 			baseURL+WalletManagerServiceCreateBitcoinCoreWalletProcedure,
@@ -564,6 +610,18 @@ func NewWalletManagerServiceClient(httpClient connect.HTTPClient, baseURL string
 			connect.WithSchema(walletManagerServiceMethods.ByName("BroadcastTransaction")),
 			connect.WithClientOptions(opts...),
 		),
+		getAddressUnspent: connect.NewClient[v1.GetAddressUnspentRequest, v1.GetAddressUnspentResponse](
+			httpClient,
+			baseURL+WalletManagerServiceGetAddressUnspentProcedure,
+			connect.WithSchema(walletManagerServiceMethods.ByName("GetAddressUnspent")),
+			connect.WithClientOptions(opts...),
+		),
+		broadcastElectrumTransaction: connect.NewClient[v1.BroadcastElectrumTransactionRequest, v1.BroadcastElectrumTransactionResponse](
+			httpClient,
+			baseURL+WalletManagerServiceBroadcastElectrumTransactionProcedure,
+			connect.WithSchema(walletManagerServiceMethods.ByName("BroadcastElectrumTransaction")),
+			connect.WithClientOptions(opts...),
+		),
 		enumerateHardwareDevices: connect.NewClient[v1.EnumerateHardwareDevicesRequest, v1.EnumerateHardwareDevicesResponse](
 			httpClient,
 			baseURL+WalletManagerServiceEnumerateHardwareDevicesProcedure,
@@ -677,65 +735,70 @@ func NewWalletManagerServiceClient(httpClient connect.HTTPClient, baseURL string
 
 // walletManagerServiceClient implements WalletManagerServiceClient.
 type walletManagerServiceClient struct {
-	getWalletStatus           *connect.Client[v1.GetWalletStatusRequest, v1.GetWalletStatusResponse]
-	generateWallet            *connect.Client[v1.GenerateWalletRequest, v1.GenerateWalletResponse]
-	unlockWallet              *connect.Client[v1.UnlockWalletRequest, v1.UnlockWalletResponse]
-	lockWallet                *connect.Client[v1.LockWalletRequest, v1.LockWalletResponse]
-	encryptWallet             *connect.Client[v1.EncryptWalletRequest, v1.EncryptWalletResponse]
-	changePassword            *connect.Client[v1.ChangePasswordRequest, v1.ChangePasswordResponse]
-	removeEncryption          *connect.Client[v1.RemoveEncryptionRequest, v1.RemoveEncryptionResponse]
-	listWallets               *connect.Client[v1.ListWalletsRequest, v1.ListWalletsResponse]
-	switchWallet              *connect.Client[v1.SwitchWalletRequest, v1.SwitchWalletResponse]
-	updateWalletMetadata      *connect.Client[v1.UpdateWalletMetadataRequest, v1.UpdateWalletMetadataResponse]
-	deleteWallet              *connect.Client[v1.DeleteWalletRequest, v1.DeleteWalletResponse]
-	deleteAllWallets          *connect.Client[v1.DeleteAllWalletsRequest, v1.DeleteAllWalletsResponse]
-	listWalletBackups         *connect.Client[v1.ListWalletBackupsRequest, v1.ListWalletBackupsResponse]
-	restoreWalletBackup       *connect.Client[v1.RestoreWalletBackupRequest, v1.RestoreWalletBackupResponse]
-	restoreWalletBackupStream *connect.Client[v1.RestoreWalletBackupRequest, v1.RestoreWalletBackupProgressResponse]
-	createWatchOnlyWallet     *connect.Client[v1.CreateWatchOnlyWalletRequest, v1.CreateWatchOnlyWalletResponse]
-	createElectrumWallet      *connect.Client[v1.CreateElectrumWalletRequest, v1.CreateElectrumWalletResponse]
-	createMultisigWallet      *connect.Client[v1.CreateMultisigWalletRequest, v1.CreateMultisigWalletResponse]
-	parseMultisigConfig       *connect.Client[v1.ParseMultisigConfigRequest, v1.ParseMultisigConfigResponse]
-	createBitcoinCoreWallet   *connect.Client[v1.CreateBitcoinCoreWalletRequest, v1.CreateBitcoinCoreWalletResponse]
-	ensureCoreWallets         *connect.Client[v1.EnsureCoreWalletsRequest, v1.EnsureCoreWalletsResponse]
-	getBalance                *connect.Client[v1.GetBalanceRequest, v1.GetBalanceResponse]
-	rescanWallet              *connect.Client[v1.RescanWalletRequest, v1.RescanWalletResponse]
-	estimateFee               *connect.Client[v1.EstimateFeeRequest, v1.EstimateFeeResponse]
-	getNewAddress             *connect.Client[v1.GetNewAddressRequest, v1.GetNewAddressResponse]
-	sendTransaction           *connect.Client[v1.SendTransactionRequest, v1.SendTransactionResponse]
-	listTransactions          *connect.Client[v1.ListTransactionsRequest, v1.ListTransactionsResponse]
-	listUnspent               *connect.Client[v1.ListUnspentRequest, v1.ListUnspentResponse]
-	listReceiveAddresses      *connect.Client[v1.ListReceiveAddressesRequest, v1.ListReceiveAddressesResponse]
-	getTransactionDetails     *connect.Client[v1.GetTransactionDetailsRequest, v1.GetTransactionDetailsResponse]
-	decodeTransaction         *connect.Client[v1.DecodeTransactionRequest, v1.DecodeTransactionResponse]
-	bumpFee                   *connect.Client[v1.BumpFeeRequest, v1.BumpFeeResponse]
-	createCpfp                *connect.Client[v1.CreateCpfpRequest, v1.CreateCpfpResponse]
-	deriveAddresses           *connect.Client[v1.DeriveAddressesRequest, v1.DeriveAddressesResponse]
-	createPsbt                *connect.Client[v1.CreatePsbtRequest, v1.CreatePsbtResponse]
-	signPsbt                  *connect.Client[v1.SignPsbtRequest, v1.SignPsbtResponse]
-	signPsbtWithCosigner      *connect.Client[v1.SignPsbtWithCosignerRequest, v1.SignPsbtWithCosignerResponse]
-	combinePsbt               *connect.Client[v1.CombinePsbtRequest, v1.CombinePsbtResponse]
-	finalizePsbt              *connect.Client[v1.FinalizePsbtRequest, v1.FinalizePsbtResponse]
-	multisigPsbtStatus        *connect.Client[v1.MultisigPsbtStatusRequest, v1.MultisigPsbtStatusResponse]
-	broadcastTransaction      *connect.Client[v1.BroadcastTransactionRequest, v1.BroadcastTransactionResponse]
-	enumerateHardwareDevices  *connect.Client[v1.EnumerateHardwareDevicesRequest, v1.EnumerateHardwareDevicesResponse]
-	getHardwareXpub           *connect.Client[v1.GetHardwareXpubRequest, v1.GetHardwareXpubResponse]
-	signPsbtWithDevice        *connect.Client[v1.SignPsbtWithDeviceRequest, v1.SignPsbtWithDeviceResponse]
-	promptDevicePin           *connect.Client[v1.PromptDevicePinRequest, v1.PromptDevicePinResponse]
-	sendDevicePin             *connect.Client[v1.SendDevicePinRequest, v1.SendDevicePinResponse]
-	closeDevice               *connect.Client[v1.CloseDeviceRequest, v1.CloseDeviceResponse]
-	deriveKeystore            *connect.Client[v1.DeriveKeystoreRequest, v1.DeriveKeystoreResponse]
-	getWalletSeed             *connect.Client[v1.GetWalletSeedRequest, v1.GetWalletSeedResponse]
-	listCoreVariants          *connect.Client[v1.ListCoreVariantsRequest, v1.ListCoreVariantsResponse]
-	getCoreVariant            *connect.Client[v1.GetCoreVariantRequest, v1.GetCoreVariantResponse]
-	setCoreVariant            *connect.Client[v1.SetCoreVariantRequest, v1.SetCoreVariantResponse]
-	getTestSidechains         *connect.Client[v1.GetTestSidechainsRequest, v1.GetTestSidechainsResponse]
-	setTestSidechains         *connect.Client[v1.SetTestSidechainsRequest, v1.SetTestSidechainsResponse]
-	getElectrumServer         *connect.Client[v1.GetElectrumServerRequest, v1.GetElectrumServerResponse]
-	setElectrumServer         *connect.Client[v1.SetElectrumServerRequest, v1.SetElectrumServerResponse]
-	getTorConfig              *connect.Client[v1.GetTorConfigRequest, v1.GetTorConfigResponse]
-	setTorConfig              *connect.Client[v1.SetTorConfigRequest, v1.SetTorConfigResponse]
-	watchWalletData           *connect.Client[emptypb.Empty, v1.WatchWalletDataResponse]
+	getWalletStatus              *connect.Client[v1.GetWalletStatusRequest, v1.GetWalletStatusResponse]
+	generateWallet               *connect.Client[v1.GenerateWalletRequest, v1.GenerateWalletResponse]
+	unlockWallet                 *connect.Client[v1.UnlockWalletRequest, v1.UnlockWalletResponse]
+	lockWallet                   *connect.Client[v1.LockWalletRequest, v1.LockWalletResponse]
+	encryptWallet                *connect.Client[v1.EncryptWalletRequest, v1.EncryptWalletResponse]
+	changePassword               *connect.Client[v1.ChangePasswordRequest, v1.ChangePasswordResponse]
+	removeEncryption             *connect.Client[v1.RemoveEncryptionRequest, v1.RemoveEncryptionResponse]
+	listWallets                  *connect.Client[v1.ListWalletsRequest, v1.ListWalletsResponse]
+	switchWallet                 *connect.Client[v1.SwitchWalletRequest, v1.SwitchWalletResponse]
+	updateWalletMetadata         *connect.Client[v1.UpdateWalletMetadataRequest, v1.UpdateWalletMetadataResponse]
+	deleteWallet                 *connect.Client[v1.DeleteWalletRequest, v1.DeleteWalletResponse]
+	deleteAllWallets             *connect.Client[v1.DeleteAllWalletsRequest, v1.DeleteAllWalletsResponse]
+	listWalletBackups            *connect.Client[v1.ListWalletBackupsRequest, v1.ListWalletBackupsResponse]
+	restoreWalletBackup          *connect.Client[v1.RestoreWalletBackupRequest, v1.RestoreWalletBackupResponse]
+	restoreWalletBackupStream    *connect.Client[v1.RestoreWalletBackupRequest, v1.RestoreWalletBackupProgressResponse]
+	createWatchOnlyWallet        *connect.Client[v1.CreateWatchOnlyWalletRequest, v1.CreateWatchOnlyWalletResponse]
+	createElectrumWallet         *connect.Client[v1.CreateElectrumWalletRequest, v1.CreateElectrumWalletResponse]
+	createMultisigWallet         *connect.Client[v1.CreateMultisigWalletRequest, v1.CreateMultisigWalletResponse]
+	parseMultisigConfig          *connect.Client[v1.ParseMultisigConfigRequest, v1.ParseMultisigConfigResponse]
+	validateDescriptor           *connect.Client[v1.ValidateDescriptorRequest, v1.ValidateDescriptorResponse]
+	validateDerivationPath       *connect.Client[v1.ValidateDerivationPathRequest, v1.ValidateDerivationPathResponse]
+	listDerivationPaths          *connect.Client[v1.ListDerivationPathsRequest, v1.ListDerivationPathsResponse]
+	createBitcoinCoreWallet      *connect.Client[v1.CreateBitcoinCoreWalletRequest, v1.CreateBitcoinCoreWalletResponse]
+	ensureCoreWallets            *connect.Client[v1.EnsureCoreWalletsRequest, v1.EnsureCoreWalletsResponse]
+	getBalance                   *connect.Client[v1.GetBalanceRequest, v1.GetBalanceResponse]
+	rescanWallet                 *connect.Client[v1.RescanWalletRequest, v1.RescanWalletResponse]
+	estimateFee                  *connect.Client[v1.EstimateFeeRequest, v1.EstimateFeeResponse]
+	getNewAddress                *connect.Client[v1.GetNewAddressRequest, v1.GetNewAddressResponse]
+	sendTransaction              *connect.Client[v1.SendTransactionRequest, v1.SendTransactionResponse]
+	listTransactions             *connect.Client[v1.ListTransactionsRequest, v1.ListTransactionsResponse]
+	listUnspent                  *connect.Client[v1.ListUnspentRequest, v1.ListUnspentResponse]
+	listReceiveAddresses         *connect.Client[v1.ListReceiveAddressesRequest, v1.ListReceiveAddressesResponse]
+	getTransactionDetails        *connect.Client[v1.GetTransactionDetailsRequest, v1.GetTransactionDetailsResponse]
+	decodeTransaction            *connect.Client[v1.DecodeTransactionRequest, v1.DecodeTransactionResponse]
+	bumpFee                      *connect.Client[v1.BumpFeeRequest, v1.BumpFeeResponse]
+	createCpfp                   *connect.Client[v1.CreateCpfpRequest, v1.CreateCpfpResponse]
+	deriveAddresses              *connect.Client[v1.DeriveAddressesRequest, v1.DeriveAddressesResponse]
+	createPsbt                   *connect.Client[v1.CreatePsbtRequest, v1.CreatePsbtResponse]
+	signPsbt                     *connect.Client[v1.SignPsbtRequest, v1.SignPsbtResponse]
+	signPsbtWithCosigner         *connect.Client[v1.SignPsbtWithCosignerRequest, v1.SignPsbtWithCosignerResponse]
+	combinePsbt                  *connect.Client[v1.CombinePsbtRequest, v1.CombinePsbtResponse]
+	finalizePsbt                 *connect.Client[v1.FinalizePsbtRequest, v1.FinalizePsbtResponse]
+	multisigPsbtStatus           *connect.Client[v1.MultisigPsbtStatusRequest, v1.MultisigPsbtStatusResponse]
+	broadcastTransaction         *connect.Client[v1.BroadcastTransactionRequest, v1.BroadcastTransactionResponse]
+	getAddressUnspent            *connect.Client[v1.GetAddressUnspentRequest, v1.GetAddressUnspentResponse]
+	broadcastElectrumTransaction *connect.Client[v1.BroadcastElectrumTransactionRequest, v1.BroadcastElectrumTransactionResponse]
+	enumerateHardwareDevices     *connect.Client[v1.EnumerateHardwareDevicesRequest, v1.EnumerateHardwareDevicesResponse]
+	getHardwareXpub              *connect.Client[v1.GetHardwareXpubRequest, v1.GetHardwareXpubResponse]
+	signPsbtWithDevice           *connect.Client[v1.SignPsbtWithDeviceRequest, v1.SignPsbtWithDeviceResponse]
+	promptDevicePin              *connect.Client[v1.PromptDevicePinRequest, v1.PromptDevicePinResponse]
+	sendDevicePin                *connect.Client[v1.SendDevicePinRequest, v1.SendDevicePinResponse]
+	closeDevice                  *connect.Client[v1.CloseDeviceRequest, v1.CloseDeviceResponse]
+	deriveKeystore               *connect.Client[v1.DeriveKeystoreRequest, v1.DeriveKeystoreResponse]
+	getWalletSeed                *connect.Client[v1.GetWalletSeedRequest, v1.GetWalletSeedResponse]
+	listCoreVariants             *connect.Client[v1.ListCoreVariantsRequest, v1.ListCoreVariantsResponse]
+	getCoreVariant               *connect.Client[v1.GetCoreVariantRequest, v1.GetCoreVariantResponse]
+	setCoreVariant               *connect.Client[v1.SetCoreVariantRequest, v1.SetCoreVariantResponse]
+	getTestSidechains            *connect.Client[v1.GetTestSidechainsRequest, v1.GetTestSidechainsResponse]
+	setTestSidechains            *connect.Client[v1.SetTestSidechainsRequest, v1.SetTestSidechainsResponse]
+	getElectrumServer            *connect.Client[v1.GetElectrumServerRequest, v1.GetElectrumServerResponse]
+	setElectrumServer            *connect.Client[v1.SetElectrumServerRequest, v1.SetElectrumServerResponse]
+	getTorConfig                 *connect.Client[v1.GetTorConfigRequest, v1.GetTorConfigResponse]
+	setTorConfig                 *connect.Client[v1.SetTorConfigRequest, v1.SetTorConfigResponse]
+	watchWalletData              *connect.Client[emptypb.Empty, v1.WatchWalletDataResponse]
 }
 
 // GetWalletStatus calls walletmanager.v1.WalletManagerService.GetWalletStatus.
@@ -831,6 +894,21 @@ func (c *walletManagerServiceClient) CreateMultisigWallet(ctx context.Context, r
 // ParseMultisigConfig calls walletmanager.v1.WalletManagerService.ParseMultisigConfig.
 func (c *walletManagerServiceClient) ParseMultisigConfig(ctx context.Context, req *connect.Request[v1.ParseMultisigConfigRequest]) (*connect.Response[v1.ParseMultisigConfigResponse], error) {
 	return c.parseMultisigConfig.CallUnary(ctx, req)
+}
+
+// ValidateDescriptor calls walletmanager.v1.WalletManagerService.ValidateDescriptor.
+func (c *walletManagerServiceClient) ValidateDescriptor(ctx context.Context, req *connect.Request[v1.ValidateDescriptorRequest]) (*connect.Response[v1.ValidateDescriptorResponse], error) {
+	return c.validateDescriptor.CallUnary(ctx, req)
+}
+
+// ValidateDerivationPath calls walletmanager.v1.WalletManagerService.ValidateDerivationPath.
+func (c *walletManagerServiceClient) ValidateDerivationPath(ctx context.Context, req *connect.Request[v1.ValidateDerivationPathRequest]) (*connect.Response[v1.ValidateDerivationPathResponse], error) {
+	return c.validateDerivationPath.CallUnary(ctx, req)
+}
+
+// ListDerivationPaths calls walletmanager.v1.WalletManagerService.ListDerivationPaths.
+func (c *walletManagerServiceClient) ListDerivationPaths(ctx context.Context, req *connect.Request[v1.ListDerivationPathsRequest]) (*connect.Response[v1.ListDerivationPathsResponse], error) {
+	return c.listDerivationPaths.CallUnary(ctx, req)
 }
 
 // CreateBitcoinCoreWallet calls walletmanager.v1.WalletManagerService.CreateBitcoinCoreWallet.
@@ -941,6 +1019,17 @@ func (c *walletManagerServiceClient) MultisigPsbtStatus(ctx context.Context, req
 // BroadcastTransaction calls walletmanager.v1.WalletManagerService.BroadcastTransaction.
 func (c *walletManagerServiceClient) BroadcastTransaction(ctx context.Context, req *connect.Request[v1.BroadcastTransactionRequest]) (*connect.Response[v1.BroadcastTransactionResponse], error) {
 	return c.broadcastTransaction.CallUnary(ctx, req)
+}
+
+// GetAddressUnspent calls walletmanager.v1.WalletManagerService.GetAddressUnspent.
+func (c *walletManagerServiceClient) GetAddressUnspent(ctx context.Context, req *connect.Request[v1.GetAddressUnspentRequest]) (*connect.Response[v1.GetAddressUnspentResponse], error) {
+	return c.getAddressUnspent.CallUnary(ctx, req)
+}
+
+// BroadcastElectrumTransaction calls
+// walletmanager.v1.WalletManagerService.BroadcastElectrumTransaction.
+func (c *walletManagerServiceClient) BroadcastElectrumTransaction(ctx context.Context, req *connect.Request[v1.BroadcastElectrumTransactionRequest]) (*connect.Response[v1.BroadcastElectrumTransactionResponse], error) {
+	return c.broadcastElectrumTransaction.CallUnary(ctx, req)
 }
 
 // EnumerateHardwareDevices calls walletmanager.v1.WalletManagerService.EnumerateHardwareDevices.
@@ -1060,6 +1149,15 @@ type WalletManagerServiceHandler interface {
 	// ParseMultisigConfig parses a descriptor or a wallet-config file (Coldcard
 	// text / Sparrow / Specter / Caravan JSON) into an m-of-n policy + cosigners.
 	ParseMultisigConfig(context.Context, *connect.Request[v1.ParseMultisigConfigRequest]) (*connect.Response[v1.ParseMultisigConfigResponse], error)
+	// ValidateDescriptor reads an output descriptor — single-sig or sortedmulti —
+	// into the script policy it encodes.
+	ValidateDescriptor(context.Context, *connect.Request[v1.ValidateDescriptorRequest]) (*connect.Response[v1.ValidateDescriptorResponse], error)
+	// ValidateDerivationPath canonicalises a BIP32 derivation path, or fails with
+	// the reason it is unusable.
+	ValidateDerivationPath(context.Context, *connect.Request[v1.ValidateDerivationPathRequest]) (*connect.Response[v1.ValidateDerivationPathResponse], error)
+	// ListDerivationPaths returns the standard account paths for a policy on the
+	// network this backend runs.
+	ListDerivationPaths(context.Context, *connect.Request[v1.ListDerivationPathsRequest]) (*connect.Response[v1.ListDerivationPathsResponse], error)
 	// Core wallet management
 	CreateBitcoinCoreWallet(context.Context, *connect.Request[v1.CreateBitcoinCoreWalletRequest]) (*connect.Response[v1.CreateBitcoinCoreWalletResponse], error)
 	EnsureCoreWallets(context.Context, *connect.Request[v1.EnsureCoreWalletsRequest]) (*connect.Response[v1.EnsureCoreWalletsResponse], error)
@@ -1096,6 +1194,10 @@ type WalletManagerServiceHandler interface {
 	// BroadcastTransaction broadcasts a finalized raw transaction over the
 	// wallet's chain source and returns its txid.
 	BroadcastTransaction(context.Context, *connect.Request[v1.BroadcastTransactionRequest]) (*connect.Response[v1.BroadcastTransactionResponse], error)
+	// Address reads that belong to no wallet — cheque addresses, whose funds are
+	// not the user's to spend. Always electrum-backed, whatever wallet is active.
+	GetAddressUnspent(context.Context, *connect.Request[v1.GetAddressUnspentRequest]) (*connect.Response[v1.GetAddressUnspentResponse], error)
+	BroadcastElectrumTransaction(context.Context, *connect.Request[v1.BroadcastElectrumTransactionRequest]) (*connect.Response[v1.BroadcastElectrumTransactionResponse], error)
 	// USB hardware wallets.
 	EnumerateHardwareDevices(context.Context, *connect.Request[v1.EnumerateHardwareDevicesRequest]) (*connect.Response[v1.EnumerateHardwareDevicesResponse], error)
 	GetHardwareXpub(context.Context, *connect.Request[v1.GetHardwareXpubRequest]) (*connect.Response[v1.GetHardwareXpubResponse], error)
@@ -1249,6 +1351,24 @@ func NewWalletManagerServiceHandler(svc WalletManagerServiceHandler, opts ...con
 		connect.WithSchema(walletManagerServiceMethods.ByName("ParseMultisigConfig")),
 		connect.WithHandlerOptions(opts...),
 	)
+	walletManagerServiceValidateDescriptorHandler := connect.NewUnaryHandler(
+		WalletManagerServiceValidateDescriptorProcedure,
+		svc.ValidateDescriptor,
+		connect.WithSchema(walletManagerServiceMethods.ByName("ValidateDescriptor")),
+		connect.WithHandlerOptions(opts...),
+	)
+	walletManagerServiceValidateDerivationPathHandler := connect.NewUnaryHandler(
+		WalletManagerServiceValidateDerivationPathProcedure,
+		svc.ValidateDerivationPath,
+		connect.WithSchema(walletManagerServiceMethods.ByName("ValidateDerivationPath")),
+		connect.WithHandlerOptions(opts...),
+	)
+	walletManagerServiceListDerivationPathsHandler := connect.NewUnaryHandler(
+		WalletManagerServiceListDerivationPathsProcedure,
+		svc.ListDerivationPaths,
+		connect.WithSchema(walletManagerServiceMethods.ByName("ListDerivationPaths")),
+		connect.WithHandlerOptions(opts...),
+	)
 	walletManagerServiceCreateBitcoinCoreWalletHandler := connect.NewUnaryHandler(
 		WalletManagerServiceCreateBitcoinCoreWalletProcedure,
 		svc.CreateBitcoinCoreWallet,
@@ -1379,6 +1499,18 @@ func NewWalletManagerServiceHandler(svc WalletManagerServiceHandler, opts ...con
 		WalletManagerServiceBroadcastTransactionProcedure,
 		svc.BroadcastTransaction,
 		connect.WithSchema(walletManagerServiceMethods.ByName("BroadcastTransaction")),
+		connect.WithHandlerOptions(opts...),
+	)
+	walletManagerServiceGetAddressUnspentHandler := connect.NewUnaryHandler(
+		WalletManagerServiceGetAddressUnspentProcedure,
+		svc.GetAddressUnspent,
+		connect.WithSchema(walletManagerServiceMethods.ByName("GetAddressUnspent")),
+		connect.WithHandlerOptions(opts...),
+	)
+	walletManagerServiceBroadcastElectrumTransactionHandler := connect.NewUnaryHandler(
+		WalletManagerServiceBroadcastElectrumTransactionProcedure,
+		svc.BroadcastElectrumTransaction,
+		connect.WithSchema(walletManagerServiceMethods.ByName("BroadcastElectrumTransaction")),
 		connect.WithHandlerOptions(opts...),
 	)
 	walletManagerServiceEnumerateHardwareDevicesHandler := connect.NewUnaryHandler(
@@ -1529,6 +1661,12 @@ func NewWalletManagerServiceHandler(svc WalletManagerServiceHandler, opts ...con
 			walletManagerServiceCreateMultisigWalletHandler.ServeHTTP(w, r)
 		case WalletManagerServiceParseMultisigConfigProcedure:
 			walletManagerServiceParseMultisigConfigHandler.ServeHTTP(w, r)
+		case WalletManagerServiceValidateDescriptorProcedure:
+			walletManagerServiceValidateDescriptorHandler.ServeHTTP(w, r)
+		case WalletManagerServiceValidateDerivationPathProcedure:
+			walletManagerServiceValidateDerivationPathHandler.ServeHTTP(w, r)
+		case WalletManagerServiceListDerivationPathsProcedure:
+			walletManagerServiceListDerivationPathsHandler.ServeHTTP(w, r)
 		case WalletManagerServiceCreateBitcoinCoreWalletProcedure:
 			walletManagerServiceCreateBitcoinCoreWalletHandler.ServeHTTP(w, r)
 		case WalletManagerServiceEnsureCoreWalletsProcedure:
@@ -1573,6 +1711,10 @@ func NewWalletManagerServiceHandler(svc WalletManagerServiceHandler, opts ...con
 			walletManagerServiceMultisigPsbtStatusHandler.ServeHTTP(w, r)
 		case WalletManagerServiceBroadcastTransactionProcedure:
 			walletManagerServiceBroadcastTransactionHandler.ServeHTTP(w, r)
+		case WalletManagerServiceGetAddressUnspentProcedure:
+			walletManagerServiceGetAddressUnspentHandler.ServeHTTP(w, r)
+		case WalletManagerServiceBroadcastElectrumTransactionProcedure:
+			walletManagerServiceBroadcastElectrumTransactionHandler.ServeHTTP(w, r)
 		case WalletManagerServiceEnumerateHardwareDevicesProcedure:
 			walletManagerServiceEnumerateHardwareDevicesHandler.ServeHTTP(w, r)
 		case WalletManagerServiceGetHardwareXpubProcedure:
@@ -1694,6 +1836,18 @@ func (UnimplementedWalletManagerServiceHandler) ParseMultisigConfig(context.Cont
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("walletmanager.v1.WalletManagerService.ParseMultisigConfig is not implemented"))
 }
 
+func (UnimplementedWalletManagerServiceHandler) ValidateDescriptor(context.Context, *connect.Request[v1.ValidateDescriptorRequest]) (*connect.Response[v1.ValidateDescriptorResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("walletmanager.v1.WalletManagerService.ValidateDescriptor is not implemented"))
+}
+
+func (UnimplementedWalletManagerServiceHandler) ValidateDerivationPath(context.Context, *connect.Request[v1.ValidateDerivationPathRequest]) (*connect.Response[v1.ValidateDerivationPathResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("walletmanager.v1.WalletManagerService.ValidateDerivationPath is not implemented"))
+}
+
+func (UnimplementedWalletManagerServiceHandler) ListDerivationPaths(context.Context, *connect.Request[v1.ListDerivationPathsRequest]) (*connect.Response[v1.ListDerivationPathsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("walletmanager.v1.WalletManagerService.ListDerivationPaths is not implemented"))
+}
+
 func (UnimplementedWalletManagerServiceHandler) CreateBitcoinCoreWallet(context.Context, *connect.Request[v1.CreateBitcoinCoreWalletRequest]) (*connect.Response[v1.CreateBitcoinCoreWalletResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("walletmanager.v1.WalletManagerService.CreateBitcoinCoreWallet is not implemented"))
 }
@@ -1780,6 +1934,14 @@ func (UnimplementedWalletManagerServiceHandler) MultisigPsbtStatus(context.Conte
 
 func (UnimplementedWalletManagerServiceHandler) BroadcastTransaction(context.Context, *connect.Request[v1.BroadcastTransactionRequest]) (*connect.Response[v1.BroadcastTransactionResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("walletmanager.v1.WalletManagerService.BroadcastTransaction is not implemented"))
+}
+
+func (UnimplementedWalletManagerServiceHandler) GetAddressUnspent(context.Context, *connect.Request[v1.GetAddressUnspentRequest]) (*connect.Response[v1.GetAddressUnspentResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("walletmanager.v1.WalletManagerService.GetAddressUnspent is not implemented"))
+}
+
+func (UnimplementedWalletManagerServiceHandler) BroadcastElectrumTransaction(context.Context, *connect.Request[v1.BroadcastElectrumTransactionRequest]) (*connect.Response[v1.BroadcastElectrumTransactionResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("walletmanager.v1.WalletManagerService.BroadcastElectrumTransaction is not implemented"))
 }
 
 func (UnimplementedWalletManagerServiceHandler) EnumerateHardwareDevices(context.Context, *connect.Request[v1.EnumerateHardwareDevicesRequest]) (*connect.Response[v1.EnumerateHardwareDevicesResponse], error) {

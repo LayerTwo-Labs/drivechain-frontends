@@ -350,6 +350,8 @@ message ProcessBandwidth {
 message UpdateNetworkRequest {
   // Target network: signet, mainnet, forknet, drynet, testnet, regtest.
   string network = 1;
+  // The user's answer to must_select_datadir, when they were asked.
+  string data_dir = 2;
 }
 
 message UpdateNetworkResponse {}

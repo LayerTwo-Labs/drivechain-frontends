@@ -2646,10 +2646,14 @@ class ProcessBandwidth extends $pb.GeneratedMessage {
 class UpdateNetworkRequest extends $pb.GeneratedMessage {
   factory UpdateNetworkRequest({
     $core.String? network,
+    $core.String? dataDir,
   }) {
     final $result = create();
     if (network != null) {
       $result.network = network;
+    }
+    if (dataDir != null) {
+      $result.dataDir = dataDir;
     }
     return $result;
   }
@@ -2659,6 +2663,7 @@ class UpdateNetworkRequest extends $pb.GeneratedMessage {
 
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'UpdateNetworkRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'bitwindowd.v1'), createEmptyInstance: create)
     ..aOS(1, _omitFieldNames ? '' : 'network')
+    ..aOS(2, _omitFieldNames ? '' : 'dataDir')
     ..hasRequiredFields = false
   ;
 
@@ -2692,6 +2697,16 @@ class UpdateNetworkRequest extends $pb.GeneratedMessage {
   $core.bool hasNetwork() => $_has(0);
   @$pb.TagNumber(1)
   void clearNetwork() => clearField(1);
+
+  /// The user's answer to must_select_datadir, when they were asked.
+  @$pb.TagNumber(2)
+  $core.String get dataDir => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set dataDir($core.String v) { $_setString(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasDataDir() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearDataDir() => clearField(2);
 }
 
 class UpdateNetworkResponse extends $pb.GeneratedMessage {

@@ -1328,10 +1328,14 @@ class ListWalletsResponse extends $pb.GeneratedMessage {
 class SwitchWalletRequest extends $pb.GeneratedMessage {
   factory SwitchWalletRequest({
     $core.String? walletId,
+    $core.String? dataDir,
   }) {
     final $result = create();
     if (walletId != null) {
       $result.walletId = walletId;
+    }
+    if (dataDir != null) {
+      $result.dataDir = dataDir;
     }
     return $result;
   }
@@ -1341,6 +1345,7 @@ class SwitchWalletRequest extends $pb.GeneratedMessage {
 
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'SwitchWalletRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'walletmanager.v1'), createEmptyInstance: create)
     ..aOS(1, _omitFieldNames ? '' : 'walletId')
+    ..aOS(2, _omitFieldNames ? '' : 'dataDir')
     ..hasRequiredFields = false
   ;
 
@@ -1373,6 +1378,16 @@ class SwitchWalletRequest extends $pb.GeneratedMessage {
   $core.bool hasWalletId() => $_has(0);
   @$pb.TagNumber(1)
   void clearWalletId() => clearField(1);
+
+  /// The user's answer when a previous attempt reported must_select_datadir.
+  @$pb.TagNumber(2)
+  $core.String get dataDir => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set dataDir($core.String v) { $_setString(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasDataDir() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearDataDir() => clearField(2);
 }
 
 class SwitchWalletResponse extends $pb.GeneratedMessage {
@@ -3301,6 +3316,490 @@ class ParseMultisigConfigResponse extends $pb.GeneratedMessage {
   $core.List<ParsedCosigner> get cosigners => $_getList(3);
 }
 
+class ValidateDescriptorRequest extends $pb.GeneratedMessage {
+  factory ValidateDescriptorRequest({
+    $core.String? descriptor,
+  }) {
+    final $result = create();
+    if (descriptor != null) {
+      $result.descriptor = descriptor;
+    }
+    return $result;
+  }
+  ValidateDescriptorRequest._() : super();
+  factory ValidateDescriptorRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory ValidateDescriptorRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ValidateDescriptorRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'walletmanager.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'descriptor')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  ValidateDescriptorRequest clone() => ValidateDescriptorRequest()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  ValidateDescriptorRequest copyWith(void Function(ValidateDescriptorRequest) updates) => super.copyWith((message) => updates(message as ValidateDescriptorRequest)) as ValidateDescriptorRequest;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ValidateDescriptorRequest create() => ValidateDescriptorRequest._();
+  ValidateDescriptorRequest createEmptyInstance() => create();
+  static $pb.PbList<ValidateDescriptorRequest> createRepeated() => $pb.PbList<ValidateDescriptorRequest>();
+  @$core.pragma('dart2js:noInline')
+  static ValidateDescriptorRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<ValidateDescriptorRequest>(create);
+  static ValidateDescriptorRequest? _defaultInstance;
+
+  /// An output descriptor, single-sig or sortedmulti.
+  @$pb.TagNumber(1)
+  $core.String get descriptor => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set descriptor($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasDescriptor() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearDescriptor() => clearField(1);
+}
+
+class ValidateDerivationPathRequest extends $pb.GeneratedMessage {
+  factory ValidateDerivationPathRequest({
+    $core.String? path,
+    $core.bool? multisig,
+  }) {
+    final $result = create();
+    if (path != null) {
+      $result.path = path;
+    }
+    if (multisig != null) {
+      $result.multisig = multisig;
+    }
+    return $result;
+  }
+  ValidateDerivationPathRequest._() : super();
+  factory ValidateDerivationPathRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory ValidateDerivationPathRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ValidateDerivationPathRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'walletmanager.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'path')
+    ..aOB(2, _omitFieldNames ? '' : 'multisig')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  ValidateDerivationPathRequest clone() => ValidateDerivationPathRequest()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  ValidateDerivationPathRequest copyWith(void Function(ValidateDerivationPathRequest) updates) => super.copyWith((message) => updates(message as ValidateDerivationPathRequest)) as ValidateDerivationPathRequest;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ValidateDerivationPathRequest create() => ValidateDerivationPathRequest._();
+  ValidateDerivationPathRequest createEmptyInstance() => create();
+  static $pb.PbList<ValidateDerivationPathRequest> createRepeated() => $pb.PbList<ValidateDerivationPathRequest>();
+  @$core.pragma('dart2js:noInline')
+  static ValidateDerivationPathRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<ValidateDerivationPathRequest>(create);
+  static ValidateDerivationPathRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get path => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set path($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasPath() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearPath() => clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.bool get multisig => $_getBF(1);
+  @$pb.TagNumber(2)
+  set multisig($core.bool v) { $_setBool(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasMultisig() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearMultisig() => clearField(2);
+}
+
+class ValidateDerivationPathResponse extends $pb.GeneratedMessage {
+  factory ValidateDerivationPathResponse({
+    $core.String? normalized,
+    $core.String? scriptType,
+  }) {
+    final $result = create();
+    if (normalized != null) {
+      $result.normalized = normalized;
+    }
+    if (scriptType != null) {
+      $result.scriptType = scriptType;
+    }
+    return $result;
+  }
+  ValidateDerivationPathResponse._() : super();
+  factory ValidateDerivationPathResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory ValidateDerivationPathResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ValidateDerivationPathResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'walletmanager.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'normalized')
+    ..aOS(2, _omitFieldNames ? '' : 'scriptType')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  ValidateDerivationPathResponse clone() => ValidateDerivationPathResponse()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  ValidateDerivationPathResponse copyWith(void Function(ValidateDerivationPathResponse) updates) => super.copyWith((message) => updates(message as ValidateDerivationPathResponse)) as ValidateDerivationPathResponse;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ValidateDerivationPathResponse create() => ValidateDerivationPathResponse._();
+  ValidateDerivationPathResponse createEmptyInstance() => create();
+  static $pb.PbList<ValidateDerivationPathResponse> createRepeated() => $pb.PbList<ValidateDerivationPathResponse>();
+  @$core.pragma('dart2js:noInline')
+  static ValidateDerivationPathResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<ValidateDerivationPathResponse>(create);
+  static ValidateDerivationPathResponse? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get normalized => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set normalized($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasNormalized() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearNormalized() => clearField(1);
+
+  /// Script type this path is the standard account path for; empty for a custom
+  /// path, which is still valid.
+  @$pb.TagNumber(2)
+  $core.String get scriptType => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set scriptType($core.String v) { $_setString(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasScriptType() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearScriptType() => clearField(2);
+}
+
+class ListDerivationPathsRequest extends $pb.GeneratedMessage {
+  factory ListDerivationPathsRequest({
+    $core.String? scriptType,
+    $core.bool? multisig,
+    $core.int? account,
+  }) {
+    final $result = create();
+    if (scriptType != null) {
+      $result.scriptType = scriptType;
+    }
+    if (multisig != null) {
+      $result.multisig = multisig;
+    }
+    if (account != null) {
+      $result.account = account;
+    }
+    return $result;
+  }
+  ListDerivationPathsRequest._() : super();
+  factory ListDerivationPathsRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory ListDerivationPathsRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ListDerivationPathsRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'walletmanager.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'scriptType')
+    ..aOB(2, _omitFieldNames ? '' : 'multisig')
+    ..a<$core.int>(3, _omitFieldNames ? '' : 'account', $pb.PbFieldType.OU3)
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  ListDerivationPathsRequest clone() => ListDerivationPathsRequest()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  ListDerivationPathsRequest copyWith(void Function(ListDerivationPathsRequest) updates) => super.copyWith((message) => updates(message as ListDerivationPathsRequest)) as ListDerivationPathsRequest;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ListDerivationPathsRequest create() => ListDerivationPathsRequest._();
+  ListDerivationPathsRequest createEmptyInstance() => create();
+  static $pb.PbList<ListDerivationPathsRequest> createRepeated() => $pb.PbList<ListDerivationPathsRequest>();
+  @$core.pragma('dart2js:noInline')
+  static ListDerivationPathsRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<ListDerivationPathsRequest>(create);
+  static ListDerivationPathsRequest? _defaultInstance;
+
+  /// single-sig: "legacy" | "nested-segwit" | "native-segwit" | "taproot";
+  /// multisig: "sh" | "sh-wsh" | "wsh" | "tr".
+  @$pb.TagNumber(1)
+  $core.String get scriptType => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set scriptType($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasScriptType() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearScriptType() => clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.bool get multisig => $_getBF(1);
+  @$pb.TagNumber(2)
+  set multisig($core.bool v) { $_setBool(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasMultisig() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearMultisig() => clearField(2);
+
+  @$pb.TagNumber(3)
+  $core.int get account => $_getIZ(2);
+  @$pb.TagNumber(3)
+  set account($core.int v) { $_setUnsignedInt32(2, v); }
+  @$pb.TagNumber(3)
+  $core.bool hasAccount() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearAccount() => clearField(3);
+}
+
+class DerivationPathOption extends $pb.GeneratedMessage {
+  factory DerivationPathOption({
+    $core.String? label,
+    $core.String? path,
+  }) {
+    final $result = create();
+    if (label != null) {
+      $result.label = label;
+    }
+    if (path != null) {
+      $result.path = path;
+    }
+    return $result;
+  }
+  DerivationPathOption._() : super();
+  factory DerivationPathOption.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory DerivationPathOption.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'DerivationPathOption', package: const $pb.PackageName(_omitMessageNames ? '' : 'walletmanager.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'label')
+    ..aOS(2, _omitFieldNames ? '' : 'path')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  DerivationPathOption clone() => DerivationPathOption()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  DerivationPathOption copyWith(void Function(DerivationPathOption) updates) => super.copyWith((message) => updates(message as DerivationPathOption)) as DerivationPathOption;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static DerivationPathOption create() => DerivationPathOption._();
+  DerivationPathOption createEmptyInstance() => create();
+  static $pb.PbList<DerivationPathOption> createRepeated() => $pb.PbList<DerivationPathOption>();
+  @$core.pragma('dart2js:noInline')
+  static DerivationPathOption getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<DerivationPathOption>(create);
+  static DerivationPathOption? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get label => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set label($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasLabel() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearLabel() => clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.String get path => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set path($core.String v) { $_setString(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasPath() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearPath() => clearField(2);
+}
+
+class ListDerivationPathsResponse extends $pb.GeneratedMessage {
+  factory ListDerivationPathsResponse({
+    $core.Iterable<DerivationPathOption>? options,
+    $core.String? defaultPath,
+  }) {
+    final $result = create();
+    if (options != null) {
+      $result.options.addAll(options);
+    }
+    if (defaultPath != null) {
+      $result.defaultPath = defaultPath;
+    }
+    return $result;
+  }
+  ListDerivationPathsResponse._() : super();
+  factory ListDerivationPathsResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory ListDerivationPathsResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ListDerivationPathsResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'walletmanager.v1'), createEmptyInstance: create)
+    ..pc<DerivationPathOption>(1, _omitFieldNames ? '' : 'options', $pb.PbFieldType.PM, subBuilder: DerivationPathOption.create)
+    ..aOS(2, _omitFieldNames ? '' : 'defaultPath')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  ListDerivationPathsResponse clone() => ListDerivationPathsResponse()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  ListDerivationPathsResponse copyWith(void Function(ListDerivationPathsResponse) updates) => super.copyWith((message) => updates(message as ListDerivationPathsResponse)) as ListDerivationPathsResponse;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ListDerivationPathsResponse create() => ListDerivationPathsResponse._();
+  ListDerivationPathsResponse createEmptyInstance() => create();
+  static $pb.PbList<ListDerivationPathsResponse> createRepeated() => $pb.PbList<ListDerivationPathsResponse>();
+  @$core.pragma('dart2js:noInline')
+  static ListDerivationPathsResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<ListDerivationPathsResponse>(create);
+  static ListDerivationPathsResponse? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.List<DerivationPathOption> get options => $_getList(0);
+
+  @$pb.TagNumber(2)
+  $core.String get defaultPath => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set defaultPath($core.String v) { $_setString(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasDefaultPath() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearDefaultPath() => clearField(2);
+}
+
+class ValidateDescriptorResponse extends $pb.GeneratedMessage {
+  factory ValidateDescriptorResponse({
+    $core.bool? multisig,
+    $core.String? scriptType,
+    $core.int? m,
+    $core.int? n,
+    $core.Iterable<ParsedCosigner>? keys,
+  }) {
+    final $result = create();
+    if (multisig != null) {
+      $result.multisig = multisig;
+    }
+    if (scriptType != null) {
+      $result.scriptType = scriptType;
+    }
+    if (m != null) {
+      $result.m = m;
+    }
+    if (n != null) {
+      $result.n = n;
+    }
+    if (keys != null) {
+      $result.keys.addAll(keys);
+    }
+    return $result;
+  }
+  ValidateDescriptorResponse._() : super();
+  factory ValidateDescriptorResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory ValidateDescriptorResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ValidateDescriptorResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'walletmanager.v1'), createEmptyInstance: create)
+    ..aOB(1, _omitFieldNames ? '' : 'multisig')
+    ..aOS(2, _omitFieldNames ? '' : 'scriptType')
+    ..a<$core.int>(3, _omitFieldNames ? '' : 'm', $pb.PbFieldType.OU3)
+    ..a<$core.int>(4, _omitFieldNames ? '' : 'n', $pb.PbFieldType.OU3)
+    ..pc<ParsedCosigner>(5, _omitFieldNames ? '' : 'keys', $pb.PbFieldType.PM, subBuilder: ParsedCosigner.create)
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  ValidateDescriptorResponse clone() => ValidateDescriptorResponse()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  ValidateDescriptorResponse copyWith(void Function(ValidateDescriptorResponse) updates) => super.copyWith((message) => updates(message as ValidateDescriptorResponse)) as ValidateDescriptorResponse;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ValidateDescriptorResponse create() => ValidateDescriptorResponse._();
+  ValidateDescriptorResponse createEmptyInstance() => create();
+  static $pb.PbList<ValidateDescriptorResponse> createRepeated() => $pb.PbList<ValidateDescriptorResponse>();
+  @$core.pragma('dart2js:noInline')
+  static ValidateDescriptorResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<ValidateDescriptorResponse>(create);
+  static ValidateDescriptorResponse? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.bool get multisig => $_getBF(0);
+  @$pb.TagNumber(1)
+  set multisig($core.bool v) { $_setBool(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasMultisig() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearMultisig() => clearField(1);
+
+  /// wpkh | sh-wpkh | pkh | tr, or wsh | sh-wsh | sh | tr when multisig.
+  @$pb.TagNumber(2)
+  $core.String get scriptType => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set scriptType($core.String v) { $_setString(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasScriptType() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearScriptType() => clearField(2);
+
+  @$pb.TagNumber(3)
+  $core.int get m => $_getIZ(2);
+  @$pb.TagNumber(3)
+  set m($core.int v) { $_setUnsignedInt32(2, v); }
+  @$pb.TagNumber(3)
+  $core.bool hasM() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearM() => clearField(3);
+
+  @$pb.TagNumber(4)
+  $core.int get n => $_getIZ(3);
+  @$pb.TagNumber(4)
+  set n($core.int v) { $_setUnsignedInt32(3, v); }
+  @$pb.TagNumber(4)
+  $core.bool hasN() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearN() => clearField(4);
+
+  @$pb.TagNumber(5)
+  $core.List<ParsedCosigner> get keys => $_getList(4);
+}
+
 class CreateBitcoinCoreWalletRequest extends $pb.GeneratedMessage {
   factory CreateBitcoinCoreWalletRequest({
     $core.String? walletId,
@@ -3847,6 +4346,7 @@ class GetNewAddressResponse extends $pb.GeneratedMessage {
   factory GetNewAddressResponse({
     $core.String? address,
     $core.int? index,
+    $core.String? derivationPath,
   }) {
     final $result = create();
     if (address != null) {
@@ -3854,6 +4354,9 @@ class GetNewAddressResponse extends $pb.GeneratedMessage {
     }
     if (index != null) {
       $result.index = index;
+    }
+    if (derivationPath != null) {
+      $result.derivationPath = derivationPath;
     }
     return $result;
   }
@@ -3864,6 +4367,7 @@ class GetNewAddressResponse extends $pb.GeneratedMessage {
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'GetNewAddressResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'walletmanager.v1'), createEmptyInstance: create)
     ..aOS(1, _omitFieldNames ? '' : 'address')
     ..a<$core.int>(2, _omitFieldNames ? '' : 'index', $pb.PbFieldType.O3)
+    ..aOS(3, _omitFieldNames ? '' : 'derivationPath')
     ..hasRequiredFields = false
   ;
 
@@ -3905,6 +4409,15 @@ class GetNewAddressResponse extends $pb.GeneratedMessage {
   $core.bool hasIndex() => $_has(1);
   @$pb.TagNumber(2)
   void clearIndex() => clearField(2);
+
+  @$pb.TagNumber(3)
+  $core.String get derivationPath => $_getSZ(2);
+  @$pb.TagNumber(3)
+  set derivationPath($core.String v) { $_setString(2, v); }
+  @$pb.TagNumber(3)
+  $core.bool hasDerivationPath() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearDerivationPath() => clearField(3);
 }
 
 class SendTransactionRequest extends $pb.GeneratedMessage {
@@ -5169,6 +5682,320 @@ class BroadcastTransactionResponse extends $pb.GeneratedMessage {
   void clearTxid() => clearField(1);
 }
 
+class GetAddressUnspentRequest extends $pb.GeneratedMessage {
+  factory GetAddressUnspentRequest({
+    $core.String? address,
+  }) {
+    final $result = create();
+    if (address != null) {
+      $result.address = address;
+    }
+    return $result;
+  }
+  GetAddressUnspentRequest._() : super();
+  factory GetAddressUnspentRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory GetAddressUnspentRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'GetAddressUnspentRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'walletmanager.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'address')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  GetAddressUnspentRequest clone() => GetAddressUnspentRequest()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  GetAddressUnspentRequest copyWith(void Function(GetAddressUnspentRequest) updates) => super.copyWith((message) => updates(message as GetAddressUnspentRequest)) as GetAddressUnspentRequest;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static GetAddressUnspentRequest create() => GetAddressUnspentRequest._();
+  GetAddressUnspentRequest createEmptyInstance() => create();
+  static $pb.PbList<GetAddressUnspentRequest> createRepeated() => $pb.PbList<GetAddressUnspentRequest>();
+  @$core.pragma('dart2js:noInline')
+  static GetAddressUnspentRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<GetAddressUnspentRequest>(create);
+  static GetAddressUnspentRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get address => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set address($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasAddress() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearAddress() => clearField(1);
+}
+
+class AddressUnspentOutput extends $pb.GeneratedMessage {
+  factory AddressUnspentOutput({
+    $core.String? txid,
+    $core.int? vout,
+    $fixnum.Int64? valueSats,
+    $core.int? confirmations,
+    $fixnum.Int64? blockTime,
+  }) {
+    final $result = create();
+    if (txid != null) {
+      $result.txid = txid;
+    }
+    if (vout != null) {
+      $result.vout = vout;
+    }
+    if (valueSats != null) {
+      $result.valueSats = valueSats;
+    }
+    if (confirmations != null) {
+      $result.confirmations = confirmations;
+    }
+    if (blockTime != null) {
+      $result.blockTime = blockTime;
+    }
+    return $result;
+  }
+  AddressUnspentOutput._() : super();
+  factory AddressUnspentOutput.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory AddressUnspentOutput.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'AddressUnspentOutput', package: const $pb.PackageName(_omitMessageNames ? '' : 'walletmanager.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'txid')
+    ..a<$core.int>(2, _omitFieldNames ? '' : 'vout', $pb.PbFieldType.O3)
+    ..aInt64(3, _omitFieldNames ? '' : 'valueSats')
+    ..a<$core.int>(4, _omitFieldNames ? '' : 'confirmations', $pb.PbFieldType.O3)
+    ..aInt64(5, _omitFieldNames ? '' : 'blockTime')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  AddressUnspentOutput clone() => AddressUnspentOutput()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  AddressUnspentOutput copyWith(void Function(AddressUnspentOutput) updates) => super.copyWith((message) => updates(message as AddressUnspentOutput)) as AddressUnspentOutput;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static AddressUnspentOutput create() => AddressUnspentOutput._();
+  AddressUnspentOutput createEmptyInstance() => create();
+  static $pb.PbList<AddressUnspentOutput> createRepeated() => $pb.PbList<AddressUnspentOutput>();
+  @$core.pragma('dart2js:noInline')
+  static AddressUnspentOutput getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<AddressUnspentOutput>(create);
+  static AddressUnspentOutput? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get txid => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set txid($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasTxid() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearTxid() => clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.int get vout => $_getIZ(1);
+  @$pb.TagNumber(2)
+  set vout($core.int v) { $_setSignedInt32(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasVout() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearVout() => clearField(2);
+
+  @$pb.TagNumber(3)
+  $fixnum.Int64 get valueSats => $_getI64(2);
+  @$pb.TagNumber(3)
+  set valueSats($fixnum.Int64 v) { $_setInt64(2, v); }
+  @$pb.TagNumber(3)
+  $core.bool hasValueSats() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearValueSats() => clearField(3);
+
+  @$pb.TagNumber(4)
+  $core.int get confirmations => $_getIZ(3);
+  @$pb.TagNumber(4)
+  set confirmations($core.int v) { $_setSignedInt32(3, v); }
+  @$pb.TagNumber(4)
+  $core.bool hasConfirmations() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearConfirmations() => clearField(4);
+
+  @$pb.TagNumber(5)
+  $fixnum.Int64 get blockTime => $_getI64(4);
+  @$pb.TagNumber(5)
+  set blockTime($fixnum.Int64 v) { $_setInt64(4, v); }
+  @$pb.TagNumber(5)
+  $core.bool hasBlockTime() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearBlockTime() => clearField(5);
+}
+
+class GetAddressUnspentResponse extends $pb.GeneratedMessage {
+  factory GetAddressUnspentResponse({
+    $core.Iterable<AddressUnspentOutput>? utxos,
+    $core.int? tipHeight,
+  }) {
+    final $result = create();
+    if (utxos != null) {
+      $result.utxos.addAll(utxos);
+    }
+    if (tipHeight != null) {
+      $result.tipHeight = tipHeight;
+    }
+    return $result;
+  }
+  GetAddressUnspentResponse._() : super();
+  factory GetAddressUnspentResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory GetAddressUnspentResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'GetAddressUnspentResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'walletmanager.v1'), createEmptyInstance: create)
+    ..pc<AddressUnspentOutput>(1, _omitFieldNames ? '' : 'utxos', $pb.PbFieldType.PM, subBuilder: AddressUnspentOutput.create)
+    ..a<$core.int>(2, _omitFieldNames ? '' : 'tipHeight', $pb.PbFieldType.O3)
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  GetAddressUnspentResponse clone() => GetAddressUnspentResponse()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  GetAddressUnspentResponse copyWith(void Function(GetAddressUnspentResponse) updates) => super.copyWith((message) => updates(message as GetAddressUnspentResponse)) as GetAddressUnspentResponse;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static GetAddressUnspentResponse create() => GetAddressUnspentResponse._();
+  GetAddressUnspentResponse createEmptyInstance() => create();
+  static $pb.PbList<GetAddressUnspentResponse> createRepeated() => $pb.PbList<GetAddressUnspentResponse>();
+  @$core.pragma('dart2js:noInline')
+  static GetAddressUnspentResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<GetAddressUnspentResponse>(create);
+  static GetAddressUnspentResponse? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.List<AddressUnspentOutput> get utxos => $_getList(0);
+
+  @$pb.TagNumber(2)
+  $core.int get tipHeight => $_getIZ(1);
+  @$pb.TagNumber(2)
+  set tipHeight($core.int v) { $_setSignedInt32(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasTipHeight() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearTipHeight() => clearField(2);
+}
+
+class BroadcastElectrumTransactionRequest extends $pb.GeneratedMessage {
+  factory BroadcastElectrumTransactionRequest({
+    $core.String? txHex,
+  }) {
+    final $result = create();
+    if (txHex != null) {
+      $result.txHex = txHex;
+    }
+    return $result;
+  }
+  BroadcastElectrumTransactionRequest._() : super();
+  factory BroadcastElectrumTransactionRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory BroadcastElectrumTransactionRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'BroadcastElectrumTransactionRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'walletmanager.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'txHex')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  BroadcastElectrumTransactionRequest clone() => BroadcastElectrumTransactionRequest()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  BroadcastElectrumTransactionRequest copyWith(void Function(BroadcastElectrumTransactionRequest) updates) => super.copyWith((message) => updates(message as BroadcastElectrumTransactionRequest)) as BroadcastElectrumTransactionRequest;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static BroadcastElectrumTransactionRequest create() => BroadcastElectrumTransactionRequest._();
+  BroadcastElectrumTransactionRequest createEmptyInstance() => create();
+  static $pb.PbList<BroadcastElectrumTransactionRequest> createRepeated() => $pb.PbList<BroadcastElectrumTransactionRequest>();
+  @$core.pragma('dart2js:noInline')
+  static BroadcastElectrumTransactionRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<BroadcastElectrumTransactionRequest>(create);
+  static BroadcastElectrumTransactionRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get txHex => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set txHex($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasTxHex() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearTxHex() => clearField(1);
+}
+
+class BroadcastElectrumTransactionResponse extends $pb.GeneratedMessage {
+  factory BroadcastElectrumTransactionResponse({
+    $core.String? txid,
+  }) {
+    final $result = create();
+    if (txid != null) {
+      $result.txid = txid;
+    }
+    return $result;
+  }
+  BroadcastElectrumTransactionResponse._() : super();
+  factory BroadcastElectrumTransactionResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory BroadcastElectrumTransactionResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'BroadcastElectrumTransactionResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'walletmanager.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'txid')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  BroadcastElectrumTransactionResponse clone() => BroadcastElectrumTransactionResponse()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  BroadcastElectrumTransactionResponse copyWith(void Function(BroadcastElectrumTransactionResponse) updates) => super.copyWith((message) => updates(message as BroadcastElectrumTransactionResponse)) as BroadcastElectrumTransactionResponse;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static BroadcastElectrumTransactionResponse create() => BroadcastElectrumTransactionResponse._();
+  BroadcastElectrumTransactionResponse createEmptyInstance() => create();
+  static $pb.PbList<BroadcastElectrumTransactionResponse> createRepeated() => $pb.PbList<BroadcastElectrumTransactionResponse>();
+  @$core.pragma('dart2js:noInline')
+  static BroadcastElectrumTransactionResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<BroadcastElectrumTransactionResponse>(create);
+  static BroadcastElectrumTransactionResponse? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get txid => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set txid($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasTxid() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearTxid() => clearField(1);
+}
+
 /// HardwareDevice is one connected USB signer. error is set when the device was
 /// found but could not be opened.
 class HardwareDevice extends $pb.GeneratedMessage {
@@ -6029,6 +6856,7 @@ class DeriveKeystoreRequest extends $pb.GeneratedMessage {
     $core.String? scriptType,
     $core.bool? multisig,
     $core.int? account,
+    $core.String? derivationPath,
   }) {
     final $result = create();
     if (mnemonic != null) {
@@ -6052,6 +6880,9 @@ class DeriveKeystoreRequest extends $pb.GeneratedMessage {
     if (account != null) {
       $result.account = account;
     }
+    if (derivationPath != null) {
+      $result.derivationPath = derivationPath;
+    }
     return $result;
   }
   DeriveKeystoreRequest._() : super();
@@ -6066,6 +6897,7 @@ class DeriveKeystoreRequest extends $pb.GeneratedMessage {
     ..aOS(5, _omitFieldNames ? '' : 'scriptType')
     ..aOB(6, _omitFieldNames ? '' : 'multisig')
     ..a<$core.int>(7, _omitFieldNames ? '' : 'account', $pb.PbFieldType.OU3)
+    ..aOS(8, _omitFieldNames ? '' : 'derivationPath')
     ..hasRequiredFields = false
   ;
 
@@ -6156,6 +6988,17 @@ class DeriveKeystoreRequest extends $pb.GeneratedMessage {
   $core.bool hasAccount() => $_has(6);
   @$pb.TagNumber(7)
   void clearAccount() => clearField(7);
+
+  /// Full account path, e.g. "m/48'/1'/0'/2'". Empty uses the standard path for
+  /// the script type.
+  @$pb.TagNumber(8)
+  $core.String get derivationPath => $_getSZ(7);
+  @$pb.TagNumber(8)
+  set derivationPath($core.String v) { $_setString(7, v); }
+  @$pb.TagNumber(8)
+  $core.bool hasDerivationPath() => $_has(7);
+  @$pb.TagNumber(8)
+  void clearDerivationPath() => clearField(8);
 }
 
 class DeriveKeystoreResponse extends $pb.GeneratedMessage {
@@ -6640,6 +7483,7 @@ class UnspentOutput extends $pb.GeneratedMessage {
     $core.bool? solvable,
     $core.String? walletId,
     $13.Timestamp? receivedAt,
+    $core.String? derivationPath,
   }) {
     final $result = create();
     if (txid != null) {
@@ -6675,6 +7519,9 @@ class UnspentOutput extends $pb.GeneratedMessage {
     if (receivedAt != null) {
       $result.receivedAt = receivedAt;
     }
+    if (derivationPath != null) {
+      $result.derivationPath = derivationPath;
+    }
     return $result;
   }
   UnspentOutput._() : super();
@@ -6693,6 +7540,7 @@ class UnspentOutput extends $pb.GeneratedMessage {
     ..aOB(9, _omitFieldNames ? '' : 'solvable')
     ..aOS(10, _omitFieldNames ? '' : 'walletId')
     ..aOM<$13.Timestamp>(11, _omitFieldNames ? '' : 'receivedAt', subBuilder: $13.Timestamp.create)
+    ..aOS(12, _omitFieldNames ? '' : 'derivationPath')
     ..hasRequiredFields = false
   ;
 
@@ -6819,6 +7667,17 @@ class UnspentOutput extends $pb.GeneratedMessage {
   void clearReceivedAt() => clearField(11);
   @$pb.TagNumber(11)
   $13.Timestamp ensureReceivedAt() => $_ensure(10);
+
+  /// BIP32 path of the address that owns this output. Empty when the backend
+  /// cannot report one (Bitcoin Core bulk lists, the enforcer).
+  @$pb.TagNumber(12)
+  $core.String get derivationPath => $_getSZ(11);
+  @$pb.TagNumber(12)
+  set derivationPath($core.String v) { $_setString(11, v); }
+  @$pb.TagNumber(12)
+  $core.bool hasDerivationPath() => $_has(11);
+  @$pb.TagNumber(12)
+  void clearDerivationPath() => clearField(12);
 }
 
 class ListUnspentResponse extends $pb.GeneratedMessage {
@@ -6923,6 +7782,7 @@ class ReceiveAddress extends $pb.GeneratedMessage {
     $core.String? label,
     $core.int? txCount,
     $core.bool? isChange,
+    $core.String? derivationPath,
   }) {
     final $result = create();
     if (address != null) {
@@ -6943,6 +7803,9 @@ class ReceiveAddress extends $pb.GeneratedMessage {
     if (isChange != null) {
       $result.isChange = isChange;
     }
+    if (derivationPath != null) {
+      $result.derivationPath = derivationPath;
+    }
     return $result;
   }
   ReceiveAddress._() : super();
@@ -6956,6 +7819,7 @@ class ReceiveAddress extends $pb.GeneratedMessage {
     ..aOS(4, _omitFieldNames ? '' : 'label')
     ..a<$core.int>(5, _omitFieldNames ? '' : 'txCount', $pb.PbFieldType.O3)
     ..aOB(6, _omitFieldNames ? '' : 'isChange')
+    ..aOS(7, _omitFieldNames ? '' : 'derivationPath')
     ..hasRequiredFields = false
   ;
 
@@ -7033,6 +7897,17 @@ class ReceiveAddress extends $pb.GeneratedMessage {
   $core.bool hasIsChange() => $_has(5);
   @$pb.TagNumber(6)
   void clearIsChange() => clearField(6);
+
+  /// BIP32 path this address derives from. Empty when the backend cannot
+  /// report one (Bitcoin Core bulk lists, the enforcer).
+  @$pb.TagNumber(7)
+  $core.String get derivationPath => $_getSZ(6);
+  @$pb.TagNumber(7)
+  set derivationPath($core.String v) { $_setString(6, v); }
+  @$pb.TagNumber(7)
+  $core.bool hasDerivationPath() => $_has(6);
+  @$pb.TagNumber(7)
+  void clearDerivationPath() => clearField(7);
 }
 
 class ListReceiveAddressesResponse extends $pb.GeneratedMessage {
@@ -9750,6 +10625,15 @@ class WalletManagerServiceApi {
   $async.Future<ParseMultisigConfigResponse> parseMultisigConfig($pb.ClientContext? ctx, ParseMultisigConfigRequest request) =>
     _client.invoke<ParseMultisigConfigResponse>(ctx, 'WalletManagerService', 'ParseMultisigConfig', request, ParseMultisigConfigResponse())
   ;
+  $async.Future<ValidateDescriptorResponse> validateDescriptor($pb.ClientContext? ctx, ValidateDescriptorRequest request) =>
+    _client.invoke<ValidateDescriptorResponse>(ctx, 'WalletManagerService', 'ValidateDescriptor', request, ValidateDescriptorResponse())
+  ;
+  $async.Future<ValidateDerivationPathResponse> validateDerivationPath($pb.ClientContext? ctx, ValidateDerivationPathRequest request) =>
+    _client.invoke<ValidateDerivationPathResponse>(ctx, 'WalletManagerService', 'ValidateDerivationPath', request, ValidateDerivationPathResponse())
+  ;
+  $async.Future<ListDerivationPathsResponse> listDerivationPaths($pb.ClientContext? ctx, ListDerivationPathsRequest request) =>
+    _client.invoke<ListDerivationPathsResponse>(ctx, 'WalletManagerService', 'ListDerivationPaths', request, ListDerivationPathsResponse())
+  ;
   $async.Future<CreateBitcoinCoreWalletResponse> createBitcoinCoreWallet($pb.ClientContext? ctx, CreateBitcoinCoreWalletRequest request) =>
     _client.invoke<CreateBitcoinCoreWalletResponse>(ctx, 'WalletManagerService', 'CreateBitcoinCoreWallet', request, CreateBitcoinCoreWalletResponse())
   ;
@@ -9815,6 +10699,12 @@ class WalletManagerServiceApi {
   ;
   $async.Future<BroadcastTransactionResponse> broadcastTransaction($pb.ClientContext? ctx, BroadcastTransactionRequest request) =>
     _client.invoke<BroadcastTransactionResponse>(ctx, 'WalletManagerService', 'BroadcastTransaction', request, BroadcastTransactionResponse())
+  ;
+  $async.Future<GetAddressUnspentResponse> getAddressUnspent($pb.ClientContext? ctx, GetAddressUnspentRequest request) =>
+    _client.invoke<GetAddressUnspentResponse>(ctx, 'WalletManagerService', 'GetAddressUnspent', request, GetAddressUnspentResponse())
+  ;
+  $async.Future<BroadcastElectrumTransactionResponse> broadcastElectrumTransaction($pb.ClientContext? ctx, BroadcastElectrumTransactionRequest request) =>
+    _client.invoke<BroadcastElectrumTransactionResponse>(ctx, 'WalletManagerService', 'BroadcastElectrumTransaction', request, BroadcastElectrumTransactionResponse())
   ;
   $async.Future<EnumerateHardwareDevicesResponse> enumerateHardwareDevices($pb.ClientContext? ctx, EnumerateHardwareDevicesRequest request) =>
     _client.invoke<EnumerateHardwareDevicesResponse>(ctx, 'WalletManagerService', 'EnumerateHardwareDevices', request, EnumerateHardwareDevicesResponse())

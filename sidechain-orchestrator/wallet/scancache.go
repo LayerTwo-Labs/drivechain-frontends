@@ -36,7 +36,8 @@ type persistedScan struct {
 // sequentially — the db is MaxOpenConns(1), so a query must not be issued while
 // another's rows are still open.
 func (s *Service) loadElectrumScan(walletID string) (*persistedScan, bool) {
-	if s.electrumDB == nil {
+	db := s.db()
+	if db == nil {
 		return nil, false
 	}
 	ctx := context.Background()
@@ -60,7 +61,11 @@ func (s *Service) loadElectrumScan(walletID string) (*persistedScan, bool) {
 }
 
 func (s *Service) loadElectrumAddrs(ctx context.Context, walletID string) (map[string]*persistedAddr, []string, bool) {
-	rows, err := s.electrumDB.QueryContext(ctx, `
+	db := s.db()
+	if db == nil {
+		return nil, nil, false
+	}
+	rows, err := db.QueryContext(ctx, `
 		SELECT address, kind, change, idx,
 		       chain_funded_count, chain_funded_sum, chain_spent_count, chain_spent_sum, chain_tx_count,
 		       mempool_funded_count, mempool_funded_sum, mempool_spent_count, mempool_spent_sum, mempool_tx_count
@@ -92,7 +97,11 @@ func (s *Service) loadElectrumAddrs(ctx context.Context, walletID string) (map[s
 }
 
 func (s *Service) loadElectrumUTXOs(ctx context.Context, walletID string, byAddr map[string]*persistedAddr) bool {
-	rows, err := s.electrumDB.QueryContext(ctx, `
+	db := s.db()
+	if db == nil {
+		return false
+	}
+	rows, err := db.QueryContext(ctx, `
 		SELECT address, txid, vout, value, confirmed, block_height, block_hash, block_time
 		FROM electrum_utxos WHERE wallet_id = ?`, walletID)
 	if err != nil {
@@ -119,7 +128,11 @@ func (s *Service) loadElectrumUTXOs(ctx context.Context, walletID string, byAddr
 }
 
 func (s *Service) loadElectrumTxs(ctx context.Context, walletID string, byAddr map[string]*persistedAddr) bool {
-	rows, err := s.electrumDB.QueryContext(ctx, `
+	db := s.db()
+	if db == nil {
+		return false
+	}
+	rows, err := db.QueryContext(ctx, `
 		SELECT address, raw FROM electrum_txs WHERE wallet_id = ?`, walletID)
 	if err != nil {
 		s.log.Warn().Err(err).Msg("load electrum txs failed")
@@ -182,11 +195,12 @@ func (s *Service) maxAddressIndex(walletID string, kind ScriptKind, change bool)
 // saveElectrumScan replaces a wallet's stored scan with ps in a single
 // transaction.
 func (s *Service) saveElectrumScan(walletID string, ps *persistedScan) error {
-	if s.electrumDB == nil {
+	db := s.db()
+	if db == nil {
 		return nil
 	}
 	ctx := context.Background()
-	tx, err := s.electrumDB.BeginTx(ctx, nil)
+	tx, err := db.BeginTx(ctx, nil)
 	if err != nil {
 		return err
 	}
@@ -234,12 +248,13 @@ func (s *Service) saveElectrumScan(walletID string, ps *persistedScan) error {
 
 // deleteElectrumScan removes a single wallet's stored scan.
 func (s *Service) deleteElectrumScan(walletID string) {
-	if s.electrumDB == nil {
+	db := s.db()
+	if db == nil {
 		return
 	}
 	ctx := context.Background()
 	for _, table := range electrumScanTables {
-		if _, err := s.electrumDB.ExecContext(ctx, "DELETE FROM "+table+" WHERE wallet_id = ?", walletID); err != nil {
+		if _, err := db.ExecContext(ctx, "DELETE FROM "+table+" WHERE wallet_id = ?", walletID); err != nil {
 			s.log.Warn().Err(err).Str("table", table).Msg("delete electrum scan failed")
 		}
 	}
@@ -247,12 +262,13 @@ func (s *Service) deleteElectrumScan(walletID string) {
 
 // wipeElectrumScans clears every wallet's stored scan, used on a full reset.
 func (s *Service) wipeElectrumScans() {
-	if s.electrumDB == nil {
+	db := s.db()
+	if db == nil {
 		return
 	}
 	ctx := context.Background()
 	for _, table := range electrumScanTables {
-		if _, err := s.electrumDB.ExecContext(ctx, "DELETE FROM "+table); err != nil {
+		if _, err := db.ExecContext(ctx, "DELETE FROM "+table); err != nil {
 			s.log.Warn().Err(err).Str("table", table).Msg("wipe electrum scans failed")
 		}
 	}
@@ -263,26 +279,4 @@ func boolToInt(b bool) int {
 		return 1
 	}
 	return 0
-}
-
-// clearElectrumScans drops every wallet's persisted scan. Networks that share
-// address parameters derive identical addresses, so a scan kept across a switch
-// would serve the previous chain's balances and UTXOs.
-func (s *Service) clearElectrumScans() error {
-	if s.electrumDB == nil {
-		return nil
-	}
-	ctx := context.Background()
-	tx, err := s.electrumDB.BeginTx(ctx, nil)
-	if err != nil {
-		return err
-	}
-	defer tx.Rollback() //nolint:errcheck // rolled back unless Commit succeeds
-
-	for _, table := range electrumScanTables {
-		if _, err := tx.ExecContext(ctx, "DELETE FROM "+table); err != nil {
-			return err
-		}
-	}
-	return tx.Commit()
 }
