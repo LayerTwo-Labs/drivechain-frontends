@@ -707,9 +707,11 @@ type UnspentOutput struct {
 	// Timestamp of the utxo.
 	ReceivedAt *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=received_at,json=receivedAt,proto3" json:"received_at,omitempty"`
 	// If set, this utxo is part of a denial chain
-	DenialInfo    *v1.DenialInfo `protobuf:"bytes,7,opt,name=denial_info,json=denialInfo,proto3,oneof" json:"denial_info,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	DenialInfo *v1.DenialInfo `protobuf:"bytes,7,opt,name=denial_info,json=denialInfo,proto3,oneof" json:"denial_info,omitempty"`
+	// BIP32 path of the address that owns this output; empty when unknown.
+	DerivationPath string `protobuf:"bytes,8,opt,name=derivation_path,json=derivationPath,proto3" json:"derivation_path,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *UnspentOutput) Reset() {
@@ -789,6 +791,13 @@ func (x *UnspentOutput) GetDenialInfo() *v1.DenialInfo {
 		return x.DenialInfo
 	}
 	return nil
+}
+
+func (x *UnspentOutput) GetDerivationPath() string {
+	if x != nil {
+		return x.DerivationPath
+	}
+	return ""
 }
 
 type ListUnspentResponse struct {
@@ -886,8 +895,10 @@ type ReceiveAddress struct {
 	CurrentBalanceSat uint64                 `protobuf:"varint,3,opt,name=current_balance_sat,json=currentBalanceSat,proto3" json:"current_balance_sat,omitempty"`
 	IsChange          bool                   `protobuf:"varint,4,opt,name=is_change,json=isChange,proto3" json:"is_change,omitempty"`
 	LastUsedAt        *timestamppb.Timestamp `protobuf:"bytes,5,opt,name=last_used_at,json=lastUsedAt,proto3" json:"last_used_at,omitempty"`
-	unknownFields     protoimpl.UnknownFields
-	sizeCache         protoimpl.SizeCache
+	// BIP32 path this address derives from; empty when unknown.
+	DerivationPath string `protobuf:"bytes,6,opt,name=derivation_path,json=derivationPath,proto3" json:"derivation_path,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *ReceiveAddress) Reset() {
@@ -953,6 +964,13 @@ func (x *ReceiveAddress) GetLastUsedAt() *timestamppb.Timestamp {
 		return x.LastUsedAt
 	}
 	return nil
+}
+
+func (x *ReceiveAddress) GetDerivationPath() string {
+	if x != nil {
+		return x.DerivationPath
+	}
+	return ""
 }
 
 type Confirmation struct {
@@ -2412,11 +2430,14 @@ func (x *SweepChequeRequest) GetFeeSatPerVbyte() uint64 {
 }
 
 type SweepChequeResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Txid          string                 `protobuf:"bytes,1,opt,name=txid,proto3" json:"txid,omitempty"`
-	AmountSats    uint64                 `protobuf:"varint,2,opt,name=amount_sats,json=amountSats,proto3" json:"amount_sats,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state      protoimpl.MessageState `protogen:"open.v1"`
+	Txid       string                 `protobuf:"bytes,1,opt,name=txid,proto3" json:"txid,omitempty"`
+	AmountSats uint64                 `protobuf:"varint,2,opt,name=amount_sats,json=amountSats,proto3" json:"amount_sats,omitempty"`
+	// The fee rate the sweep used, so the UI can report an estimate it did not
+	// choose.
+	FeeSatPerVbyte uint64 `protobuf:"varint,3,opt,name=fee_sat_per_vbyte,json=feeSatPerVbyte,proto3" json:"fee_sat_per_vbyte,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *SweepChequeResponse) Reset() {
@@ -2459,6 +2480,13 @@ func (x *SweepChequeResponse) GetTxid() string {
 func (x *SweepChequeResponse) GetAmountSats() uint64 {
 	if x != nil {
 		return x.AmountSats
+	}
+	return 0
+}
+
+func (x *SweepChequeResponse) GetFeeSatPerVbyte() uint64 {
+	if x != nil {
+		return x.FeeSatPerVbyte
 	}
 	return 0
 }
@@ -4124,7 +4152,7 @@ const file_wallet_v1_wallet_proto_rawDesc = "" +
 	"\x11confirmed_satoshi\x18\x01 \x01(\x04R\x10confirmedSatoshi\x12'\n" +
 	"\x0fpending_satoshi\x18\x02 \x01(\x04R\x0ependingSatoshi\"\\\n" +
 	"\x18ListTransactionsResponse\x12@\n" +
-	"\ftransactions\x18\x01 \x03(\v2\x1c.wallet.v1.WalletTransactionR\ftransactions\"\xa1\x02\n" +
+	"\ftransactions\x18\x01 \x03(\v2\x1c.wallet.v1.WalletTransactionR\ftransactions\"\xca\x02\n" +
 	"\rUnspentOutput\x12\x16\n" +
 	"\x06output\x18\x01 \x01(\tR\x06output\x12\x18\n" +
 	"\aaddress\x18\x02 \x01(\tR\aaddress\x12\x14\n" +
@@ -4135,19 +4163,21 @@ const file_wallet_v1_wallet_proto_rawDesc = "" +
 	"\vreceived_at\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\n" +
 	"receivedAt\x12?\n" +
 	"\vdenial_info\x18\a \x01(\v2\x19.bitwindowd.v1.DenialInfoH\x00R\n" +
-	"denialInfo\x88\x01\x01B\x0e\n" +
+	"denialInfo\x88\x01\x01\x12'\n" +
+	"\x0fderivation_path\x18\b \x01(\tR\x0ederivationPathB\x0e\n" +
 	"\f_denial_info\"E\n" +
 	"\x13ListUnspentResponse\x12.\n" +
 	"\x05utxos\x18\x01 \x03(\v2\x18.wallet.v1.UnspentOutputR\x05utxos\"W\n" +
 	"\x1cListReceiveAddressesResponse\x127\n" +
-	"\taddresses\x18\x01 \x03(\v2\x19.wallet.v1.ReceiveAddressR\taddresses\"\xcb\x01\n" +
+	"\taddresses\x18\x01 \x03(\v2\x19.wallet.v1.ReceiveAddressR\taddresses\"\xf4\x01\n" +
 	"\x0eReceiveAddress\x12\x18\n" +
 	"\aaddress\x18\x01 \x01(\tR\aaddress\x12\x14\n" +
 	"\x05label\x18\x02 \x01(\tR\x05label\x12.\n" +
 	"\x13current_balance_sat\x18\x03 \x01(\x04R\x11currentBalanceSat\x12\x1b\n" +
 	"\tis_change\x18\x04 \x01(\bR\bisChange\x12<\n" +
 	"\flast_used_at\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampR\n" +
-	"lastUsedAt\"`\n" +
+	"lastUsedAt\x12'\n" +
+	"\x0fderivation_path\x18\x06 \x01(\tR\x0ederivationPath\"`\n" +
 	"\fConfirmation\x12\x16\n" +
 	"\x06height\x18\x01 \x01(\rR\x06height\x128\n" +
 	"\ttimestamp\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\ttimestamp\"\xa9\x02\n" +
@@ -4262,11 +4292,12 @@ const file_wallet_v1_wallet_proto_rawDesc = "" +
 	"\twallet_id\x18\x01 \x01(\tR\bwalletId\x12&\n" +
 	"\x0fprivate_key_wif\x18\x02 \x01(\tR\rprivateKeyWif\x12/\n" +
 	"\x13destination_address\x18\x03 \x01(\tR\x12destinationAddress\x12)\n" +
-	"\x11fee_sat_per_vbyte\x18\x04 \x01(\x04R\x0efeeSatPerVbyte\"J\n" +
+	"\x11fee_sat_per_vbyte\x18\x04 \x01(\x04R\x0efeeSatPerVbyte\"u\n" +
 	"\x13SweepChequeResponse\x12\x12\n" +
 	"\x04txid\x18\x01 \x01(\tR\x04txid\x12\x1f\n" +
 	"\vamount_sats\x18\x02 \x01(\x04R\n" +
-	"amountSats\"B\n" +
+	"amountSats\x12)\n" +
+	"\x11fee_sat_per_vbyte\x18\x03 \x01(\x04R\x0efeeSatPerVbyte\"B\n" +
 	"\x13DeleteChequeRequest\x12\x1b\n" +
 	"\twallet_id\x18\x01 \x01(\tR\bwalletId\x12\x0e\n" +
 	"\x02id\x18\x02 \x01(\x03R\x02id\"O\n" +

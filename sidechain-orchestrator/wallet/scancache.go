@@ -162,29 +162,32 @@ func (s *Service) loadElectrumTxs(ctx context.Context, walletID string, byAddr m
 // on-chain or mempool history — the next address to hand out for receiving.
 // ok is false when the wallet has no stored addresses for that chain yet, or
 // every one is used; the caller then derives the next index locally.
-func (s *Service) firstUnusedAddress(walletID string, kind ScriptKind, change bool) (string, bool) {
-	if s.electrumDB == nil {
-		return "", false
+func (s *Service) firstUnusedAddress(walletID string, kind ScriptKind, change bool) (string, uint32, bool) {
+	db := s.db()
+	if db == nil {
+		return "", 0, false
 	}
 	var addr string
-	err := s.electrumDB.QueryRowContext(context.Background(),
-		`SELECT address FROM electrum_addresses
+	var idx uint32
+	err := db.QueryRowContext(context.Background(),
+		`SELECT address, idx FROM electrum_addresses
 		 WHERE wallet_id = ? AND kind = ? AND change = ? AND chain_tx_count = 0 AND mempool_tx_count = 0
-		 ORDER BY idx LIMIT 1`, walletID, kind.String(), change).Scan(&addr)
+		 ORDER BY idx LIMIT 1`, walletID, kind.String(), change).Scan(&addr, &idx)
 	if err != nil {
-		return "", false
+		return "", 0, false
 	}
-	return addr, true
+	return addr, idx, true
 }
 
 // maxAddressIndex returns the highest stored address index on a kind's chain, or
 // -1 when none are stored. Used to derive the next address past what is known.
 func (s *Service) maxAddressIndex(walletID string, kind ScriptKind, change bool) int {
-	if s.electrumDB == nil {
+	db := s.db()
+	if db == nil {
 		return -1
 	}
 	var max sql.NullInt64
-	if err := s.electrumDB.QueryRowContext(context.Background(),
+	if err := db.QueryRowContext(context.Background(),
 		`SELECT MAX(idx) FROM electrum_addresses WHERE wallet_id = ? AND kind = ? AND change = ?`,
 		walletID, kind.String(), change).Scan(&max); err != nil || !max.Valid {
 		return -1

@@ -118,6 +118,12 @@ func (f *fakeBitcoind) stubEnsureFlow() {
 		}
 		return results, ""
 	})
+	// Serving one receive address costs one getaddressinfo, for its path.
+	f.handle("getaddressinfo", func(c bitcoindCall) (any, string) {
+		var address string
+		_ = json.Unmarshal(c.Params[0], &address)
+		return map[string]any{"address": address, "hdkeypath": "m/84'/1'/0'/0/0", "ismine": true}, ""
+	})
 }
 
 // newCoreBackendFixture wires a real Service (enforcer + bitcoinCore
@@ -624,7 +630,7 @@ func TestCoreBackendCpfpBase58Kinds(t *testing.T) {
 			fake.handle("sendrawtransaction", func(bitcoindCall) (any, string) { return "child-58", "" })
 
 			// The reused unused address path must be hit (filter matches base58).
-			addr, err := backend.NextReceiveAddress(context.Background(), coreID, tc.kind)
+			addr, err := nextAddr(backend, context.Background(), coreID, tc.kind)
 			require.NoError(t, err)
 			assert.Equal(t, childAddr, addr, "must reuse the matching base58 address")
 			assert.False(t, calledGetNewAddress, "an unused kind-matching address should be reused, not minted")
@@ -717,7 +723,7 @@ func TestCoreBackendNextReceiveAddress(t *testing.T) {
 			{"address": unusedSegwit, "amount": 0.0, "txids": []string{}},
 		}, ""
 	})
-	addr, err := backend.NextReceiveAddress(ctx, coreID, ScriptNativeSegwit)
+	addr, err := nextAddr(backend, ctx, coreID, ScriptNativeSegwit)
 	require.NoError(t, err)
 	assert.Equal(t, unusedSegwit, addr)
 	assert.Empty(t, fake.callsFor("getnewaddress"))
@@ -733,7 +739,7 @@ func TestCoreBackendNextReceiveAddress(t *testing.T) {
 		}
 		return unusedSegwit, ""
 	})
-	addr, err = backend.NextReceiveAddress(ctx, coreID, ScriptNativeSegwit)
+	addr, err = nextAddr(backend, ctx, coreID, ScriptNativeSegwit)
 	require.NoError(t, err)
 	assert.Equal(t, unusedSegwit, addr)
 	assert.Equal(t, "bech32", mintedType)
@@ -761,7 +767,7 @@ func TestCoreBackendNextReceiveAddressUnknownSentinel(t *testing.T) {
 		return minted, ""
 	})
 
-	addr, err := backend.NextReceiveAddress(ctx, coreID, ScriptUnknown)
+	addr, err := nextAddr(backend, ctx, coreID, ScriptUnknown)
 	require.NoError(t, err)
 	assert.Equal(t, minted, addr)
 	assert.Equal(t, "bech32", mintedType, "ScriptUnknown must resolve to native segwit for a default wallet")
@@ -784,7 +790,7 @@ func TestCoreBackendNextReceiveAddressTaproot(t *testing.T) {
 			{"address": unusedTaproot, "amount": 0.0, "txids": []string{}},
 		}, ""
 	})
-	addr, err := backend.NextReceiveAddress(ctx, coreID, ScriptTaproot)
+	addr, err := nextAddr(backend, ctx, coreID, ScriptTaproot)
 	require.NoError(t, err)
 	assert.Equal(t, unusedTaproot, addr)
 	assert.Empty(t, fake.callsFor("getnewaddress"))
@@ -800,7 +806,7 @@ func TestCoreBackendNextReceiveAddressTaproot(t *testing.T) {
 		}
 		return mintedTaproot, ""
 	})
-	addr, err = backend.NextReceiveAddress(ctx, coreID, ScriptTaproot)
+	addr, err = nextAddr(backend, ctx, coreID, ScriptTaproot)
 	require.NoError(t, err)
 	assert.Equal(t, mintedTaproot, addr)
 	assert.Equal(t, "bech32m", mintedType)

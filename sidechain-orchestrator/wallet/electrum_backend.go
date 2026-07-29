@@ -271,6 +271,7 @@ func (p *ElectrumBackend) ListUnspent(ctx context.Context, walletID string) ([]U
 				Spendable:  !scan.watchOnly,
 				Solvable:   true,
 				ReceivedAt: u.Status.BlockTime,
+				HDPath:     a.hdPath,
 			}
 		})
 	})
@@ -363,7 +364,7 @@ func (p *ElectrumBackend) ListReceivedByAddress(ctx context.Context, walletID st
 		// the mempool. The column shows the live balance, not gross received.
 		balance := (a.stats.ChainStats.FundedTxoSum - a.stats.ChainStats.SpentTxoSum) +
 			(a.stats.MempoolStats.FundedTxoSum - a.stats.MempoolStats.SpentTxoSum)
-		entry := ReceivedByAddress{Address: a.address, Amount: float64(balance) / 1e8, Change: a.change}
+		entry := ReceivedByAddress{Address: a.address, Amount: float64(balance) / 1e8, Change: a.change, HDPath: a.hdPath}
 		for _, tx := range a.txs {
 			entry.TxIDs = append(entry.TxIDs, tx.TxID)
 			if c := confsFor(tx.Status, tip); c > entry.Confirmations {
@@ -426,10 +427,10 @@ func (p *ElectrumBackend) AddressHDPath(ctx context.Context, walletID, address s
 	return a.hdPath, nil
 }
 
-func (p *ElectrumBackend) NextReceiveAddress(ctx context.Context, walletID string, kind ScriptKind) (string, error) {
+func (p *ElectrumBackend) NextReceiveAddress(ctx context.Context, walletID string, kind ScriptKind) (DerivedAddress, error) {
 	w := p.svc.GetWalletByID(walletID)
 	if w == nil {
-		return "", fmt.Errorf("wallet %s not found", walletID)
+		return DerivedAddress{}, fmt.Errorf("wallet %s not found", walletID)
 	}
 	// ScriptUnknown is the default sentinel ("the wallet's natural kind").
 	target := kind
@@ -445,7 +446,7 @@ func (p *ElectrumBackend) NextReceiveAddress(ctx context.Context, walletID strin
 	// Serving a kind the wallet doesn't derive would yield an address it can
 	// neither track nor spend, so reject it rather than silently downgrade.
 	if !lo.Contains(p.receiveKinds(w), target) {
-		return "", connect.NewError(
+		return DerivedAddress{}, connect.NewError(
 			connect.CodeUnimplemented,
 			fmt.Errorf("electrum wallet does not derive %s addresses", target),
 		)
@@ -458,7 +459,8 @@ func (p *ElectrumBackend) NextChangeAddress(ctx context.Context, walletID string
 	if w == nil {
 		return "", fmt.Errorf("wallet %s not found", walletID)
 	}
-	return p.nextUnused(walletID, w.scriptKind(), true)
+	derived, err := p.nextUnused(walletID, w.scriptKind(), true)
+	return derived.Address, err
 }
 
 // nextUnused picks the next unused address of a kind with no network call: a
@@ -466,23 +468,34 @@ func (p *ElectrumBackend) NextChangeAddress(ctx context.Context, walletID string
 // when none is on record (fresh wallet, or every stored address is used) it
 // derives the next index locally. Either way it is instant — address allocation
 // never blocks on a scan. The background scan keeps electrum_addresses current.
-func (p *ElectrumBackend) nextUnused(walletID string, kind ScriptKind, change bool) (string, error) {
-	if addr, ok := p.svc.firstUnusedAddress(walletID, kind, change); ok {
-		return addr, nil
-	}
+func (p *ElectrumBackend) nextUnused(walletID string, kind ScriptKind, change bool) (DerivedAddress, error) {
 	w := p.svc.GetWalletByID(walletID)
 	if w == nil {
-		return "", fmt.Errorf("wallet %s not found", walletID)
+		return DerivedAddress{}, fmt.Errorf("wallet %s not found", walletID)
+	}
+	if addr, idx, ok := p.svc.firstUnusedAddress(walletID, kind, change); ok {
+		return DerivedAddress{Address: addr, HDPath: p.hdPathFor(w, kind, change, idx), Index: int32(idx)}, nil
 	}
 	derivers, err := p.kindDerivers(w, kind)
 	if err != nil {
-		return "", err
+		return DerivedAddress{}, err
 	}
-	a, err := derivers[chainIndex(change)](uint32(p.svc.maxAddressIndex(walletID, kind, change) + 1))
+	index := uint32(p.svc.maxAddressIndex(walletID, kind, change) + 1)
+	a, err := derivers[chainIndex(change)](index)
 	if err != nil {
-		return "", err
+		return DerivedAddress{}, err
 	}
-	return a.address, nil
+	return DerivedAddress{Address: a.address, HDPath: a.hdPath, Index: int32(a.index)}, nil
+}
+
+// hdPathFor builds the path for a stored address, whose kind/change/index the
+// database records but whose path string it deliberately does not.
+func (p *ElectrumBackend) hdPathFor(w *WalletData, kind ScriptKind, change bool, index uint32) string {
+	d, err := p.walletDescriptorFor(w, kind)
+	if err != nil {
+		return ""
+	}
+	return descriptorHDPath(d, p.params(), change, index)
 }
 
 // nextUnusedAddrFromScan returns the next unused address on a chain from an

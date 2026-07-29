@@ -238,13 +238,13 @@ func (h *MultisigLoungeHandler) PublishGroup(
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("encode group op_return: %w", err))
 	}
 
-	address, err := h.engine.Backend().NextReceiveAddress(ctx, walletID, wallet.ScriptNativeSegwit)
+	derived, err := h.engine.Backend().NextReceiveAddress(ctx, walletID, wallet.ScriptNativeSegwit)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("get receive address: %w", err))
 	}
 
 	txid, err := h.engine.Backend().Send(ctx, walletID, wallet.SendRequest{
-		DestinationsSats: map[string]int64{address: multisigGroupFundingSats},
+		DestinationsSats: map[string]int64{derived.Address: multisigGroupFundingSats},
 		OpReturnHex:      hex.EncodeToString([]byte(message)),
 	})
 	if err != nil {

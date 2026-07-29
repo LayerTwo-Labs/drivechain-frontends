@@ -17,6 +17,9 @@ type UTXO struct {
 	Spendable     bool    `json:"spendable"`
 	Solvable      bool    `json:"solvable"`
 	ReceivedAt    int64   `json:"-"`
+	// HDPath is the BIP32 path of the owning address. Not unmarshalled: Core's
+	// listunspent doesn't supply it.
+	HDPath string `json:"-"`
 }
 
 // WalletTransaction is one listtransactions entry: one row per affected
@@ -46,6 +49,15 @@ type ReceivedByAddress struct {
 	Label         string   `json:"label"`
 	TxIDs         []string `json:"txids"`
 	Change        bool     `json:"change"`
+	HDPath        string   `json:"hdpath"`
+}
+
+// DerivedAddress is a served receive address plus the derivation it came from.
+// HDPath is empty and Index -1 when the backend cannot report them.
+type DerivedAddress struct {
+	Address string
+	HDPath  string
+	Index   int32
 }
 
 // WalletTx is the wallet's view of one of its own transactions

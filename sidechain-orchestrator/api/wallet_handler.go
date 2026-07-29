@@ -684,7 +684,9 @@ func (h *WalletHandler) GetNewAddress(ctx context.Context, req *connect.Request[
 	}
 
 	return connect.NewResponse(&pb.GetNewAddressResponse{
-		Address: addr,
+		Address:        addr.Address,
+		Index:          addr.Index,
+		DerivationPath: addr.HDPath,
 	}), nil
 }
 
@@ -845,17 +847,18 @@ func (h *WalletHandler) ListUnspent(ctx context.Context, req *connect.Request[pb
 
 	pbUTXOs := lo.Map(utxos, func(u wallet.UTXO, _ int) *pb.UnspentOutput {
 		return &pb.UnspentOutput{
-			Txid:          u.TxID,
-			Vout:          int32(u.Vout),
-			Address:       u.Address,
-			Amount:        u.Amount,
-			AmountSats:    int64(math.Round(u.Amount * 1e8)),
-			Confirmations: int32(u.Confirmations),
-			Label:         u.Label,
-			Spendable:     u.Spendable,
-			Solvable:      u.Solvable,
-			WalletId:      walletID,
-			ReceivedAt:    receivedAt(u, txTimes),
+			Txid:           u.TxID,
+			Vout:           int32(u.Vout),
+			Address:        u.Address,
+			Amount:         u.Amount,
+			AmountSats:     int64(math.Round(u.Amount * 1e8)),
+			Confirmations:  int32(u.Confirmations),
+			Label:          u.Label,
+			Spendable:      u.Spendable,
+			Solvable:       u.Solvable,
+			WalletId:       walletID,
+			ReceivedAt:     receivedAt(u, txTimes),
+			DerivationPath: u.HDPath,
 		}
 	})
 
@@ -921,12 +924,13 @@ func (h *WalletHandler) ListReceiveAddresses(ctx context.Context, req *connect.R
 
 	pbAddrs := lo.Map(addrs, func(a wallet.ReceivedByAddress, _ int) *pb.ReceiveAddress {
 		return &pb.ReceiveAddress{
-			Address:    a.Address,
-			Amount:     a.Amount,
-			AmountSats: int64(math.Round(a.Amount * 1e8)),
-			Label:      a.Label,
-			TxCount:    int32(len(a.TxIDs)),
-			IsChange:   a.Change,
+			Address:        a.Address,
+			Amount:         a.Amount,
+			AmountSats:     int64(math.Round(a.Amount * 1e8)),
+			Label:          a.Label,
+			TxCount:        int32(len(a.TxIDs)),
+			IsChange:       a.Change,
+			DerivationPath: a.HDPath,
 		}
 	})
 

@@ -36,7 +36,7 @@ type Backend interface {
 
 	// NextReceiveAddress returns an unused receive address of the given script
 	// kind, minting one only when every existing address has received funds.
-	NextReceiveAddress(ctx context.Context, walletID string, kind ScriptKind) (string, error)
+	NextReceiveAddress(ctx context.Context, walletID string, kind ScriptKind) (DerivedAddress, error)
 	NextChangeAddress(ctx context.Context, walletID string) (string, error)
 
 	// WatchKeys registers extra keys whose addresses the wallet must track
