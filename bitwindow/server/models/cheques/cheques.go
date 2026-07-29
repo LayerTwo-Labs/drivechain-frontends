@@ -251,6 +251,33 @@ func ClearSwept(ctx context.Context, db *sql.DB, walletID string, id int64) erro
 	return nil
 }
 
+// ClearFunding removes a cheque's recorded funding. Used when the address holds
+// no UTXOs at all — whatever funded it is gone (spent, reorged out, replaced or
+// evicted), so the row must stop claiming funds it no longer controls. A later
+// poll that sees UTXOs again re-records the funding through UpdateFunding.
+func ClearFunding(ctx context.Context, db *sql.DB, walletID string, id int64) error {
+	result, err := db.ExecContext(ctx, `
+		UPDATE cheques
+		SET funded_txid = NULL, actual_amount_sats = NULL, funded_at = NULL
+		WHERE wallet_id = ? AND id = ?
+	`, walletID, id)
+
+	if err != nil {
+		return fmt.Errorf("failed to clear funding: %w", err)
+	}
+
+	rows, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("failed to get rows affected: %w", err)
+	}
+
+	if rows == 0 {
+		return sql.ErrNoRows
+	}
+
+	return nil
+}
+
 // GetNextIndex returns the next available cheque index for a specific wallet
 func GetNextIndex(ctx context.Context, db *sql.DB, walletID string) (uint32, error) {
 	var maxIndex sql.NullInt64

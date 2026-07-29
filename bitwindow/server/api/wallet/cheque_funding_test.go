@@ -378,6 +378,58 @@ func TestCheckChequeFunding_ClearsStaleSweep(t *testing.T) {
 	require.Equal(t, connect.CodeFailedPrecondition, connect.CodeOf(err))
 }
 
+// TestCheckChequeFunding_ClearsFundingWhenUTXOsVanish covers the other half of
+// the sweep inference: a funded cheque whose UTXOs are all gone. The row is
+// marked swept, but it must also stop claiming to hold funds — otherwise
+// IsFunded() contradicts the Funded:false the RPC just returned, the cheque
+// keeps rendering as funded and keeps exporting its bearer private key for
+// money that no longer sits at the address.
+func TestCheckChequeFunding_ClearsFundingWhenUTXOsVanish(t *testing.T) {
+	t.Parallel()
+
+	ctrl := gomock.NewController(t)
+	db := database.Test(t)
+
+	chequeAddr := "tb1qvanishedfundingtestaddr000000000000000"
+	fundingTxid := "f00d0000f00d0000f00d0000f00d0000f00d0000f00d0000f00d0000f00d0000"
+
+	mockBitcoind := mocks.NewMockBitcoinServiceClient(ctrl)
+	mockBitcoind.EXPECT().
+		ListWallets(gomock.Any(), gomock.Any()).
+		Return(&connect.Response[bitcoindv1alpha.ListWalletsResponse]{
+			Msg: &bitcoindv1alpha.ListWalletsResponse{Wallets: []string{"cheque_watch"}},
+		}, nil).AnyTimes()
+
+	// Nothing left at the address.
+	expectChequeListUnspent(mockBitcoind, chequeAddr, nil)
+
+	cli := walletv1connect.NewWalletServiceClient(
+		apitests.API(t, db, apitests.WithBitcoind(mockBitcoind)),
+	)
+
+	chequeID, err := cheques.Create(context.Background(), db, testWalletID, 0, 100_000_000, chequeAddr)
+	require.NoError(t, err)
+	require.NoError(t, cheques.UpdateFunding(context.Background(), db, testWalletID, chequeID,
+		[]string{fundingTxid}, 100_000_000))
+
+	resp, err := cli.CheckChequeFunding(context.Background(), connect.NewRequest(&walletv1.CheckChequeFundingRequest{
+		WalletId: testWalletID,
+		Id:       chequeID,
+	}))
+	require.NoError(t, err)
+	require.False(t, resp.Msg.Funded)
+
+	// The sweep is inferred, and the stored funding matches the response.
+	persisted, err := cheques.Get(context.Background(), db, testWalletID, chequeID)
+	require.NoError(t, err)
+	require.NotNil(t, persisted.SweptTxid)
+	require.False(t, persisted.IsFunded(), "row must not keep claiming funds that are gone")
+	require.False(t, persisted.IsPartiallyFunded())
+	require.Nil(t, persisted.ActualAmountSats)
+	require.Nil(t, persisted.FundedAt)
+	require.Empty(t, persisted.FundedTxids)
+}
+
 // TestCheckChequeFunding_PollAfterSend mirrors the Flutter check_provider
 // polling loop: after the user taps "Fund Check", the wallet broadcasts a tx
 // and the UI polls CheckChequeFunding every few seconds. The first poll may

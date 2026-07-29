@@ -2379,16 +2379,29 @@ func (s *Server) CheckChequeFunding(ctx context.Context, c *connect.Request[pb.C
 	}
 
 	// No UTXOs found - if cheque was funded, it means it was swept
-	if cheque.IsFunded() && cheque.SweptTxid == nil {
-		log.Warn().
-			Str("address", cheque.Address).
-			Int64("id", c.Msg.Id).
-			Msg("funded cheque has no UTXOs - was swept externally")
+	if cheque.IsFunded() {
+		if cheque.SweptTxid == nil {
+			log.Warn().
+				Str("address", cheque.Address).
+				Int64("id", c.Msg.Id).
+				Msg("funded cheque has no UTXOs - was swept externally")
 
-		// Mark as swept - we know it was swept but don't know the exact txid
-		// Finding the spending tx from a watch-only wallet requires full blockchain scan
-		if err := cheques.UpdateSwept(ctx, s.database, walletId, c.Msg.Id, "swept_externally"); err != nil {
-			log.Error().Err(err).Msg("failed to mark cheque as externally swept")
+			// Mark as swept - we know it was swept but don't know the exact txid
+			// Finding the spending tx from a watch-only wallet requires full blockchain scan
+			if err := cheques.UpdateSwept(ctx, s.database, walletId, c.Msg.Id, "swept_externally"); err != nil {
+				log.Error().Err(err).Msg("failed to mark cheque as externally swept")
+			}
+		}
+
+		// The address holds nothing, so the recorded funding no longer describes
+		// reality: drop it. Left in place it contradicts the Funded:false we
+		// return right below — IsFunded() would keep the row rendering as funded
+		// and keep chequeToPb handing out the bearer key for money that isn't
+		// there, while the sweep marker above already allows deletion. If the
+		// funding merely dropped out (reorg, RBF, eviction), a later poll that
+		// sees the UTXO re-records the funding and clears the sweep markers.
+		if err := cheques.ClearFunding(ctx, s.database, walletId, c.Msg.Id); err != nil {
+			log.Error().Err(err).Msg("failed to clear cheque funding")
 		}
 	}
 
