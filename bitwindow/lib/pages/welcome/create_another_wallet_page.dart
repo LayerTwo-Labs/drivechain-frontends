@@ -40,6 +40,7 @@ class _CreateAnotherWalletPageState extends State<CreateAnotherWalletPage> {
   String _mnemonic = '';
   String _passphrase = '';
   String _singleScriptType = 'native-segwit';
+  String _singleDerivationPath = '';
   MultisigWalletSpec? _multisigSpec;
   bool _isCreating = false;
 
@@ -132,6 +133,7 @@ class _CreateAnotherWalletPageState extends State<CreateAnotherWalletPage> {
           customMnemonic: _mnemonic,
           passphrase: _passphrase,
           scriptType: _singleScriptType,
+          derivationPath: _singleDerivationPath,
         );
       }
 
@@ -164,6 +166,7 @@ class _CreateAnotherWalletPageState extends State<CreateAnotherWalletPage> {
             } else {
               final s = result.single!;
               _singleScriptType = s.scriptType;
+              _singleDerivationPath = s.derivationPath ?? '';
               if ((s.mnemonic ?? '').isNotEmpty) {
                 _method = WalletSetupMethod.importSeed;
                 _mnemonic = s.mnemonic!;

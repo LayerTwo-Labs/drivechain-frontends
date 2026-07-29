@@ -133,6 +133,7 @@ class SingleSigResult {
   final String? mnemonic;
   final String? passphrase;
   final String? xpubOrDescriptor;
+  final String? derivationPath; // account path the seed derives at
   final String? hardwareDeviceType;
   final String? hardwareFingerprint;
   const SingleSigResult({
@@ -140,6 +141,7 @@ class SingleSigResult {
     this.mnemonic,
     this.passphrase,
     this.xpubOrDescriptor,
+    this.derivationPath,
     this.hardwareDeviceType,
     this.hardwareFingerprint,
   });
@@ -396,7 +398,12 @@ class _MultisigConfigStepState extends State<MultisigConfigStep> {
       widget.onConfigured(
         WalletSetupResult.single(
           (k.mnemonic ?? '').isNotEmpty
-              ? SingleSigResult(scriptType: _singleHotScriptType(), mnemonic: k.mnemonic, passphrase: k.passphrase)
+              ? SingleSigResult(
+                  scriptType: _singleHotScriptType(),
+                  mnemonic: k.mnemonic,
+                  passphrase: k.passphrase,
+                  derivationPath: k.derivationPath,
+                )
               : SingleSigResult(
                   scriptType: _singleHotScriptType(),
                   xpubOrDescriptor: descriptor,
