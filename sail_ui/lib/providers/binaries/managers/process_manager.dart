@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:sail_ui/config/binaries.dart';
+import 'package:sail_ui/providers/binaries/managers/daemon_job.dart';
 import 'package:sail_ui/providers/binaries/managers/pid_file_manager.dart';
 import 'package:sail_ui/providers/log_provider.dart';
 
@@ -75,6 +76,10 @@ class ProcessManager extends ChangeNotifier {
       mode: ProcessStartMode.normal,
       environment: environment,
     );
+    // Before anything else it might spawn: job membership is inherited, so
+    // binding the child covers its whole tree.
+    await DaemonJob.bind(process.pid);
+
     runningProcesses[binary.name] = SailProcess(
       binary: binary,
       pid: process.pid,

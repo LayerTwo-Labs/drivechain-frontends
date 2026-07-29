@@ -15,7 +15,7 @@ if [ "$BITWINDOW_VARIANT" = "forknet" ]; then
     # Flutter compile-time defines (consumed via --dart-define-from-file).
     {
         echo "BITWINDOW_NETWORK=forknet"
-        echo "BITWINDOW_APPCAST=appcast-bitwindow-forknet.xml"
+        echo "BITWINDOW_APPCAST_URL=https://releases.drivechain.info/appcast-bitwindow-forknet.xml"
     } > build-vars.env
     # Picked up by download-binaries.sh to embed the default network into
     # orchestratord (-ldflags -X main.defaultNetwork). This is the authoritative
