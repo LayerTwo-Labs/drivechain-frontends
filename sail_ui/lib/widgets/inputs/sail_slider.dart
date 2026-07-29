@@ -49,6 +49,7 @@ class _SailSliderState extends State<SailSlider> {
     final t = (clampedValue - widget.min) / (widget.max - widget.min);
     final thumbRadius = terminal ? 6.0 : 8.0;
     const trackHeight = 4.0;
+    const tickRadius = 1.5;
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -94,6 +95,21 @@ class _SailSliderState extends State<SailSlider> {
                         ),
                       ),
                     ),
+                    // snap points
+                    if (widget.divisions != null && widget.divisions! > 0)
+                      for (int i = 0; i <= widget.divisions!; i++)
+                        Positioned(
+                          left: thumbRadius + (i / widget.divisions!) * trackWidth - tickRadius,
+                          child: Container(
+                            width: tickRadius * 2,
+                            height: tickRadius * 2,
+                            decoration: BoxDecoration(
+                              color: (i / widget.divisions!) <= t ? theme.colors.background : theme.colors.primary,
+                              borderRadius: terminal ? BorderRadius.circular(1) : null,
+                              shape: terminal ? BoxShape.rectangle : BoxShape.circle,
+                            ),
+                          ),
+                        ),
                     // thumb
                     Positioned(
                       left: thumbX - thumbRadius,

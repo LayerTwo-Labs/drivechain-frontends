@@ -73,6 +73,21 @@ void main() {
       expect(fired, false);
     });
 
+    testWidgets('divisions render one snap point per step', (tester) async {
+      await tester.pumpWidget(
+        _wrap(SailSlider(value: 0, min: 0, max: 4, divisions: 4, onChanged: (_) {})),
+      );
+      // 5 ticks + inactive track + active track + thumb.
+      expect(find.byType(Container), findsNWidgets(8));
+    });
+
+    testWidgets('no snap points without divisions', (tester) async {
+      await tester.pumpWidget(
+        _wrap(SailSlider(value: 0, min: 0, max: 4, onChanged: (_) {})),
+      );
+      expect(find.byType(Container), findsNWidgets(3));
+    });
+
     testWidgets('divisions snap value', (tester) async {
       double? captured;
       await tester.pumpWidget(
