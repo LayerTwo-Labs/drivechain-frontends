@@ -490,6 +490,54 @@ func TestSaveTransactionAtomic_CrossGroupCollisionRejected(t *testing.T) {
 	assert.Empty(t, bTxns)
 }
 
+func TestImportTransactionsFromJSON_ClearsStaleChildren(t *testing.T) {
+	ctx := context.Background()
+	store := multisig.NewStore(setupTestDB(t))
+
+	g := sampleGroup()
+	require.NoError(t, store.SaveGroup(ctx, g))
+
+	// Live state: the transaction has collected signer PSBTs and inputs.
+	require.NoError(t, store.SaveTransactionAtomic(ctx, multisig.SaveTransactionAtomicParams{
+		Transaction: multisig.Transaction{
+			ID: "tx-1", GroupID: g.ID, InitialPSBT: "psbt-live", Status: 3, Type: 1, Created: 1700000500,
+		},
+		KeyPSBTs: []multisig.TxKeyPSBT{
+			{TransactionID: "tx-1", KeyID: "key-1", PSBT: "signed-psbt-1", IsSigned: true},
+			{TransactionID: "tx-1", KeyID: "key-2", PSBT: "signed-psbt-2", IsSigned: true},
+		},
+		Inputs: []multisig.TxInput{{TransactionID: "tx-1", Txid: "input-live", Vout: 0, Amount: 1.0}},
+	}))
+
+	// Restore an earlier backup of the same transaction, taken before any PSBTs or
+	// inputs existed. The exporter marshals empty child lists as null; an empty
+	// array is equally valid.
+	backup := `[{
+		"id": "tx-1",
+		"groupId": "grp-1",
+		"initialPSBT": "psbt-backup",
+		"status": "needsSignatures",
+		"type": "deposit",
+		"keyPSBTs": null,
+		"inputs": []
+	}]`
+	require.NoError(t, store.ImportTransactionsFromJSON(ctx, []byte(backup)))
+
+	got, err := store.GetTransaction(ctx, "tx-1")
+	require.NoError(t, err)
+	require.NotNil(t, got)
+	assert.Equal(t, "psbt-backup", got.InitialPSBT)
+
+	// The overwritten state's children must not survive the restore.
+	dbPSBTs, err := store.ListTxKeyPSBTs(ctx, "tx-1")
+	require.NoError(t, err)
+	assert.Empty(t, dbPSBTs, "restored transaction kept stale signer PSBTs")
+
+	dbInputs, err := store.ListTxInputs(ctx, "tx-1")
+	require.NoError(t, err)
+	assert.Empty(t, dbInputs, "restored transaction kept stale inputs")
+}
+
 func TestSaveGroupAtomic_UpdateExisting(t *testing.T) {
 	ctx := context.Background()
 	store := multisig.NewStore(setupTestDB(t))

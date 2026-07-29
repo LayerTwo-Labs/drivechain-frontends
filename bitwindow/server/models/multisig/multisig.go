@@ -1053,9 +1053,11 @@ func (s *Store) ImportTransactionsFromJSON(ctx context.Context, data []byte) err
 			return fmt.Errorf("save tx %s: %w", t.ID, err)
 		}
 
-		// Import key PSBTs
+		// Import key PSBTs — always replace so a restored transaction never keeps
+		// the overwritten state's signer PSBTs when the backup omits/empties the
+		// field.
+		var psbts []TxKeyPSBT
 		if keyPSBTs, ok := tj["keyPSBTs"].([]interface{}); ok {
-			var psbts []TxKeyPSBT
 			for _, kp := range keyPSBTs {
 				kpMap, ok := kp.(map[string]interface{})
 				if !ok {
@@ -1076,16 +1078,14 @@ func (s *Store) ImportTransactionsFromJSON(ctx context.Context, data []byte) err
 					SignedAt:      signedAt,
 				})
 			}
-			if len(psbts) > 0 {
-				if err := s.ReplaceTxKeyPSBTs(ctx, t.ID, psbts); err != nil {
-					return fmt.Errorf("replace key psbts for tx %s: %w", t.ID, err)
-				}
-			}
+		}
+		if err := replaceTxKeyPSBTsOn(ctx, e, t.ID, psbts); err != nil {
+			return fmt.Errorf("replace key psbts for tx %s: %w", t.ID, err)
 		}
 
-		// Import inputs
+		// Import inputs — always replace so stale inputs don't survive.
+		var txInputs []TxInput
 		if inputs, ok := tj["inputs"].([]interface{}); ok {
-			var txInputs []TxInput
 			for _, inp := range inputs {
 				inpMap, ok := inp.(map[string]interface{})
 				if !ok {
@@ -1100,11 +1100,9 @@ func (s *Store) ImportTransactionsFromJSON(ctx context.Context, data []byte) err
 					Confirmations: getInt(inpMap, "confirmations"),
 				})
 			}
-			if len(txInputs) > 0 {
-				if err := s.ReplaceTxInputs(ctx, t.ID, txInputs); err != nil {
-					return fmt.Errorf("replace inputs for tx %s: %w", t.ID, err)
-				}
-			}
+		}
+		if err := replaceTxInputsOn(ctx, e, t.ID, txInputs); err != nil {
+			return fmt.Errorf("replace inputs for tx %s: %w", t.ID, err)
 		}
 	}
 
