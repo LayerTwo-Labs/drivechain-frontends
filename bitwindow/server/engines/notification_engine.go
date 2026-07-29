@@ -210,27 +210,32 @@ func (e *NotificationEngine) checkWalletTransactions(ctx context.Context) error 
 			continue
 		}
 
-		e.processWalletTransactions(ctx, resp.Msg.Transactions)
+		e.processWalletTransactions(ctx, walletName, resp.Msg.Transactions)
 	}
 
 	return nil
 }
 
-func (e *NotificationEngine) processWalletTransactions(ctx context.Context, transactions []*corepb.GetTransactionResponse) {
+func (e *NotificationEngine) processWalletTransactions(ctx context.Context, walletName string, transactions []*corepb.GetTransactionResponse) {
 	log := zerolog.Ctx(ctx)
 	for _, tx := range transactions {
 		txid := tx.Txid
 		confirmations := uint32(tx.Confirmations)
 
+		// The same txid can show up in several loaded wallets, so scope the
+		// dedup key by wallet. Otherwise the first wallet we process swallows
+		// the notification for all the others.
+		eventID := walletName + ":" + txid
+
 		// Check if we've already notified about this transaction
-		notified, err := notifications.HasBeenNotified(ctx, e.db, notifications.EventTypeTransaction, txid)
+		notified, err := notifications.HasBeenNotified(ctx, e.db, notifications.EventTypeTransaction, eventID)
 		if err != nil {
 			log.Warn().Err(err).Str("txid", txid).Msg("check transaction notification status")
 			continue
 		}
 
 		// For confirmation notifications, use a separate event type
-		confEventID := txid + ":confirmed"
+		confEventID := eventID + ":confirmed"
 		confNotified, err := notifications.HasBeenNotified(ctx, e.db, notifications.EventTypeTransactionConf, confEventID)
 		if err != nil {
 			log.Warn().Err(err).Str("txid", txid).Msg("check transaction confirmation notification status")
@@ -256,7 +261,7 @@ func (e *NotificationEngine) processWalletTransactions(ctx context.Context, tran
 				},
 			}
 			e.broadcast(ctx, event)
-			if err := notifications.MarkNotified(ctx, e.db, notifications.EventTypeTransaction, txid); err != nil {
+			if err := notifications.MarkNotified(ctx, e.db, notifications.EventTypeTransaction, eventID); err != nil {
 				log.Warn().Err(err).Str("txid", txid).Msg("mark transaction notified")
 			}
 			log.Info().
@@ -278,7 +283,7 @@ func (e *NotificationEngine) processWalletTransactions(ctx context.Context, tran
 				},
 			}
 			e.broadcast(ctx, event)
-			if err := notifications.MarkNotified(ctx, e.db, notifications.EventTypeTransaction, txid); err != nil {
+			if err := notifications.MarkNotified(ctx, e.db, notifications.EventTypeTransaction, eventID); err != nil {
 				log.Warn().Err(err).Str("txid", txid).Msg("mark transaction notified")
 			}
 			log.Info().
@@ -288,7 +293,7 @@ func (e *NotificationEngine) processWalletTransactions(ctx context.Context, tran
 
 		case !notified:
 			// New transaction with zero amount - just mark as seen
-			if err := notifications.MarkNotified(ctx, e.db, notifications.EventTypeTransaction, txid); err != nil {
+			if err := notifications.MarkNotified(ctx, e.db, notifications.EventTypeTransaction, eventID); err != nil {
 				log.Warn().Err(err).Str("txid", txid).Msg("mark transaction notified")
 			}
 

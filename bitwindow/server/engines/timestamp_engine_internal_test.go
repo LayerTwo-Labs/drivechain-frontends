@@ -28,8 +28,16 @@ func TestCheckConfirmations_UnknownTransaction(t *testing.T) {
 		name      string
 		createdAt time.Time
 		rpcErr    error
+		inIBD     bool
 		want      timestamps.Status
 	}{
+		{
+			name:      "unknown transaction during initial block download keeps confirming",
+			createdAt: time.Now().Add(-timestampFailureGrace - time.Hour),
+			rpcErr:    errors.New("internal: -5: No such mempool or blockchain transaction. Use gettransaction for wallet transactions."),
+			inIBD:     true,
+			want:      timestamps.StatusConfirming,
+		},
 		{
 			name:      "unknown transaction past grace period fails",
 			createdAt: time.Now().Add(-timestampFailureGrace - time.Hour),
@@ -77,6 +85,12 @@ func TestCheckConfirmations_UnknownTransaction(t *testing.T) {
 				CreatedAt: tc.createdAt,
 			})
 			require.NoError(t, err)
+
+			core.EXPECT().
+				GetBlockchainInfo(gomock.Any(), gomock.Any()).
+				Return(connect.NewResponse(&corepb.GetBlockchainInfoResponse{
+					InitialBlockDownload: tc.inIBD,
+				}), nil)
 
 			core.EXPECT().
 				GetRawTransaction(gomock.Any(), gomock.Any()).

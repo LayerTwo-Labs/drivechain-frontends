@@ -116,6 +116,12 @@ func (e *TimestampEngine) checkConfirmations(ctx context.Context) error {
 		return fmt.Errorf("get bitcoind client: %w", err)
 	}
 
+	chainInfo, err := bitcoind.GetBlockchainInfo(ctx, connect.NewRequest(&corepb.GetBlockchainInfoRequest{}))
+	if err != nil {
+		return fmt.Errorf("get blockchain info: %w", err)
+	}
+	inIBD := chainInfo.Msg.InitialBlockDownload
+
 	e.log.Debug().
 		Int("count", len(confirmingTimestamps)).
 		Msg("checking confirmations for timestamps")
@@ -130,12 +136,9 @@ func (e *TimestampEngine) checkConfirmations(ctx context.Context) error {
 			Verbosity: corepb.GetRawTransactionRequest_VERBOSITY_TX_PREVOUT_INFO,
 		}))
 		if err != nil {
-			// A transaction bitcoind has never heard of, long past the point
-			// where it could still be sitting in a mempool, is dead: the
-			// broadcast was dropped, replaced or reorged away. Anything else
-			// (bitcoind down, mid-startup, RPC hiccup) is transient and gets
-			// retried on the next tick.
-			if isTxNotFoundError(err.Error()) && time.Since(ts.CreatedAt) > timestampFailureGrace {
+			// A syncing node reports the same unknown-txid error for blocks it
+			// has not downloaded yet, so the terminal transition waits for IBD.
+			if isTxNotFoundError(err.Error()) && !inIBD && time.Since(ts.CreatedAt) > timestampFailureGrace {
 				if err := timestamps.Update(
 					ctx,
 					e.db,
