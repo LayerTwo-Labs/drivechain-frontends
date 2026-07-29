@@ -368,7 +368,9 @@ func TestBitwindowWalletIntegration(t *testing.T) {
 		walletEngineA.SetOrchestratorClient(nodeA.WalletClient)
 
 		// Create ChequeEngine.
-		chequeEngineA := engines.NewChequeEngine(walletEngineA, &chaincfg.RegressionNetParams, bitcoindSvcA)
+		// Regtest has no electrum endpoint, so Core answers directly.
+		chequeChainA := engines.NewCoreChequeChain(bitcoindSvcA)
+		chequeEngineA := engines.NewChequeEngine(walletEngineA, &chaincfg.RegressionNetParams, chequeChainA)
 
 		// Create SQLite DB for cheques.
 		dbA := database.Test(t)
@@ -378,7 +380,7 @@ func TestBitwindowWalletIntegration(t *testing.T) {
 			ctx, dbA, datasource.NewLocal(bitcoindSvcA.Get, nil, nil), bitcoindSvcA,
 			nil, // no enforcer wallet service
 			nil, // no crypto service
-			chequeEngineA, walletEngineA, walletDirA,
+			chequeEngineA, chequeChainA, walletEngineA, walletDirA,
 			nil, // no L1 restart in tests
 		)
 
@@ -542,13 +544,15 @@ func TestBitwindowWalletIntegration(t *testing.T) {
 		)
 		walletEngineB.SetOrchestratorClient(nodeB.WalletClient)
 
-		chequeEngineB := engines.NewChequeEngine(walletEngineB, &chaincfg.RegressionNetParams, bitcoindSvcB)
+		// Regtest has no electrum endpoint, so Core answers directly.
+		chequeChainB := engines.NewCoreChequeChain(bitcoindSvcB)
+		chequeEngineB := engines.NewChequeEngine(walletEngineB, &chaincfg.RegressionNetParams, chequeChainB)
 		dbB := database.Test(t)
 
 		serverB := api_wallet.New(
 			ctx, dbB, datasource.NewLocal(bitcoindSvcB.Get, nil, nil), bitcoindSvcB,
 			nil, nil,
-			chequeEngineB, walletEngineB, walletDirB,
+			chequeEngineB, chequeChainB, walletEngineB, walletDirB,
 			nil, // no L1 restart in tests
 		)
 
