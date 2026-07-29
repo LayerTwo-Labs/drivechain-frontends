@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strings"
 	"time"
 
 	"connectrpc.com/connect"
@@ -22,7 +23,38 @@ import (
 const (
 	// TimestampPrefix is prepended to SHA256 hash in OP_RETURN to identify timestamp transactions
 	TimestampPrefix = "STAMP"
+
+	// timestampFailureGrace is how long a confirming timestamp is given before
+	// bitcoind not knowing its txid is treated as terminal. Core's default
+	// mempool expiry is 336 hours, so a transaction it still has never heard
+	// of after that window is never going to confirm.
+	timestampFailureGrace = 14 * 24 * time.Hour
 )
+
+// txNotFoundPatterns are the shapes Core's -5 "unknown transaction" error
+// arrives in. Unlike an RPC outage this answer is deterministic: bitcoind has
+// neither a mempool entry nor an indexed transaction, so retrying the same
+// txid cannot change it.
+var txNotFoundPatterns = []string{
+	"-5:",
+	"-5 -",
+	"No such mempool",
+}
+
+// isTxNotFoundError reports whether bitcoind answered "I don't know this txid"
+// rather than failing for a transient reason (still starting up, connection
+// refused, timeout).
+func isTxNotFoundError(errMsg string) bool {
+	if IsBitcoinCoreStartupError(errMsg) {
+		return false
+	}
+	for _, p := range txNotFoundPatterns {
+		if strings.Contains(errMsg, p) {
+			return true
+		}
+	}
+	return false
+}
 
 type TimestampEngine struct {
 	db       *sql.DB
@@ -98,6 +130,36 @@ func (e *TimestampEngine) checkConfirmations(ctx context.Context) error {
 			Verbosity: corepb.GetRawTransactionRequest_VERBOSITY_TX_PREVOUT_INFO,
 		}))
 		if err != nil {
+			// A transaction bitcoind has never heard of, long past the point
+			// where it could still be sitting in a mempool, is dead: the
+			// broadcast was dropped, replaced or reorged away. Anything else
+			// (bitcoind down, mid-startup, RPC hiccup) is transient and gets
+			// retried on the next tick.
+			if isTxNotFoundError(err.Error()) && time.Since(ts.CreatedAt) > timestampFailureGrace {
+				if err := timestamps.Update(
+					ctx,
+					e.db,
+					ts.ID,
+					ts.TxID,
+					nil,
+					timestamps.StatusFailed,
+					nil,
+				); err != nil {
+					e.log.Warn().
+						Err(err).
+						Int64("id", ts.ID).
+						Msg("update timestamp")
+					continue
+				}
+
+				e.log.Info().
+					Int64("id", ts.ID).
+					Str("txid", *ts.TxID).
+					Time("created_at", ts.CreatedAt).
+					Msg("timestamp transaction unknown to bitcoind past grace period, marked failed")
+				continue
+			}
+
 			e.log.Warn().
 				Err(err).
 				Str("txid", *ts.TxID).
