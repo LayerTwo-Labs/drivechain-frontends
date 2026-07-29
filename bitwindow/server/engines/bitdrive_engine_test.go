@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"context"
 	"database/sql"
+	"encoding/base64"
+	"encoding/binary"
 	"os"
 	"path/filepath"
 	"testing"
@@ -96,15 +98,16 @@ func TestEncrypt_SameTimestampSameFileType_NoKeystreamReuse(t *testing.T) {
 
 	const timestamp = uint32(1800000000)
 	const fileType = "txt"
+	metadata := EncodeMetadataBytes(true, false, timestamp, fileType)
 
 	plainA := []byte("BitDrive keystream reuse probe payload block AAAA")
 	plainB := []byte("BitDrive keystream reuse probe payload block BBBB")
 
-	cipherA, err := engine.Encrypt(ctx, plainA, timestamp, fileType)
+	cipherA, err := engine.Encrypt(ctx, plainA, timestamp, fileType, metadata)
 	if err != nil {
 		t.Fatalf("encrypt A: %v", err)
 	}
-	cipherB, err := engine.Encrypt(ctx, plainB, timestamp, fileType)
+	cipherB, err := engine.Encrypt(ctx, plainB, timestamp, fileType, metadata)
 	if err != nil {
 		t.Fatalf("encrypt B: %v", err)
 	}
@@ -132,7 +135,7 @@ func TestEncrypt_SameTimestampSameFileType_NoKeystreamReuse(t *testing.T) {
 	// Encrypting the SAME plaintext twice must also yield distinct ciphertext
 	// bodies, proving the keystream is randomized per file rather than derived
 	// solely from (timestamp, fileType).
-	cipherA2, err := engine.Encrypt(ctx, plainA, timestamp, fileType)
+	cipherA2, err := engine.Encrypt(ctx, plainA, timestamp, fileType, metadata)
 	if err != nil {
 		t.Fatalf("encrypt A again: %v", err)
 	}
@@ -142,19 +145,73 @@ func TestEncrypt_SameTimestampSameFileType_NoKeystreamReuse(t *testing.T) {
 	}
 
 	// Both ciphertexts must still round-trip through Decrypt.
-	gotA, err := engine.Decrypt(ctx, cipherA, timestamp, fileType)
+	gotA, err := engine.Decrypt(ctx, cipherA, timestamp, fileType, metadata)
 	if err != nil {
 		t.Fatalf("decrypt A: %v", err)
 	}
 	if !bytes.Equal(gotA, plainA) {
 		t.Fatalf("decrypt A mismatch: got %q want %q", gotA, plainA)
 	}
-	gotB, err := engine.Decrypt(ctx, cipherB, timestamp, fileType)
+	gotB, err := engine.Decrypt(ctx, cipherB, timestamp, fileType, metadata)
 	if err != nil {
 		t.Fatalf("decrypt B: %v", err)
 	}
 	if !bytes.Equal(gotB, plainB) {
 		t.Fatalf("decrypt B mismatch: got %q want %q", gotB, plainB)
+	}
+}
+
+// TestDecodeOPReturnData_MetadataTamperRejected verifies that the auth tag covers
+// the 9-byte metadata prefix. The keystream seed mixes in the timestamp and file
+// type carried by that prefix, so a tag over nonce||ciphertext alone let an
+// attacker flip a metadata byte and have Decrypt return garbage with a nil error.
+func TestDecodeOPReturnData_MetadataTamperRejected(t *testing.T) {
+	ctx := context.Background()
+	engine := newEncryptTestEngine(t)
+
+	plain := []byte("BitDrive metadata binding probe payload")
+
+	metadataB64, contentStr, timestamp, err := engine.EncodeOPReturnData(ctx, plain, true)
+	if err != nil {
+		t.Fatalf("encode: %v", err)
+	}
+
+	// The untampered message must still round-trip.
+	decoded, _, err := engine.DecodeOPReturnData(ctx, FormatOPReturnData(metadataB64, contentStr))
+	if err != nil {
+		t.Fatalf("decode untampered: %v", err)
+	}
+	if !bytes.Equal(decoded, plain) {
+		t.Fatalf("round trip mismatch: got %q want %q", decoded, plain)
+	}
+
+	metadataBytes, err := base64.StdEncoding.DecodeString(metadataB64)
+	if err != nil {
+		t.Fatalf("decode metadata base64: %v", err)
+	}
+
+	tampers := []struct {
+		name   string
+		mutate func(metadata []byte)
+	}{
+		{"timestamp", func(m []byte) { binary.BigEndian.PutUint32(m[1:5], timestamp+1) }},
+		{"file type", func(m []byte) { copy(m[5:9], []byte("bin ")) }},
+		{"multisig flag", func(m []byte) { m[0] |= FlagMultisig }},
+	}
+
+	for _, tt := range tampers {
+		t.Run(tt.name, func(t *testing.T) {
+			tampered := append([]byte(nil), metadataBytes...)
+			tt.mutate(tampered)
+			if bytes.Equal(tampered, metadataBytes) {
+				t.Fatal("tamper did not change the metadata")
+			}
+
+			opReturnData := FormatOPReturnData(base64.StdEncoding.EncodeToString(tampered), contentStr)
+			if _, _, err := engine.DecodeOPReturnData(ctx, opReturnData); err == nil {
+				t.Fatal("tampered metadata decrypted without error")
+			}
+		})
 	}
 }
 

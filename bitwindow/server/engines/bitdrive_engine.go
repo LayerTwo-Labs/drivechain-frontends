@@ -88,6 +88,11 @@ type ParsedMetadata struct {
 	IsMultisig bool
 	Timestamp  uint32
 	FileType   string
+
+	// Raw is the exact 9-byte metadata this was parsed from. Encrypt/Decrypt
+	// authenticate these bytes, so tampering with the flags, timestamp or file
+	// type fails the auth tag instead of silently decrypting to garbage.
+	Raw []byte
 }
 
 // ParseMetadata parses the 9-byte metadata from base64
@@ -110,11 +115,17 @@ func ParseMetadata(metadataB64 string) (*ParsedMetadata, error) {
 		IsMultisig: (flags & FlagMultisig) != 0,
 		Timestamp:  timestamp,
 		FileType:   fileType,
+		Raw:        metadataBytes,
 	}, nil
 }
 
 // EncodeMetadata encodes metadata into 9 bytes and returns base64
 func EncodeMetadata(encrypted, isMultisig bool, timestamp uint32, fileType string) string {
+	return base64.StdEncoding.EncodeToString(EncodeMetadataBytes(encrypted, isMultisig, timestamp, fileType))
+}
+
+// EncodeMetadataBytes encodes metadata into its 9-byte on-chain representation
+func EncodeMetadataBytes(encrypted, isMultisig bool, timestamp uint32, fileType string) []byte {
 	metadata := make([]byte, MetadataSize)
 
 	// Flags byte
@@ -140,7 +151,7 @@ func EncodeMetadata(encrypted, isMultisig bool, timestamp uint32, fileType strin
 	}
 	copy(metadata[5:9], fileTypeBytes)
 
-	return base64.StdEncoding.EncodeToString(metadata)
+	return metadata
 }
 
 // DetectFileType detects file type from magic bytes
@@ -359,8 +370,10 @@ func (e *BitDriveEngine) getAuthKey(_ context.Context) ([]byte, error) {
 // Encrypt encrypts content using XOR with derived keystream and appends HMAC auth tag.
 // The output layout is: nonce (NonceSize) || ciphertext || tag (AuthTagSize). The
 // random per-file nonce is mixed into the keystream so repeated (timestamp, fileType)
-// tuples never reuse the keystream.
-func (e *BitDriveEngine) Encrypt(ctx context.Context, content []byte, timestamp uint32, fileType string) ([]byte, error) {
+// tuples never reuse the keystream. metadata is the 9-byte metadata prefix that
+// travels alongside the ciphertext; it is authenticated as associated data because
+// the keystream is derived from the timestamp and file type it carries.
+func (e *BitDriveEngine) Encrypt(ctx context.Context, content []byte, timestamp uint32, fileType string, metadata []byte) ([]byte, error) {
 	// Generate a random per-file nonce
 	nonce := make([]byte, NonceSize)
 	if _, err := rand.Read(nonce); err != nil {
@@ -379,14 +392,17 @@ func (e *BitDriveEngine) Encrypt(ctx context.Context, content []byte, timestamp 
 		encrypted[i] = content[i] ^ keyStream[i]
 	}
 
-	// Generate truncated authentication tag (first 8 bytes of HMAC-SHA256)
-	// over the nonce and ciphertext so nonce tampering is also detected.
+	// Generate truncated authentication tag (first 8 bytes of HMAC-SHA256) over
+	// the metadata, nonce and ciphertext so metadata and nonce tampering is also
+	// detected. All three inputs are fixed-length or trailing, so the
+	// concatenation is unambiguous.
 	authKey, err := e.getAuthKey(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("get auth key: %w", err)
 	}
 
 	mac := hmac.New(sha256.New, authKey)
+	mac.Write(metadata)
 	mac.Write(nonce)
 	mac.Write(encrypted)
 	fullTag := mac.Sum(nil)
@@ -401,8 +417,11 @@ func (e *BitDriveEngine) Encrypt(ctx context.Context, content []byte, timestamp 
 	return result, nil
 }
 
-// Decrypt verifies the HMAC auth tag and decrypts content
-func (e *BitDriveEngine) Decrypt(ctx context.Context, encryptedData []byte, timestamp uint32, fileType string) ([]byte, error) {
+// Decrypt verifies the HMAC auth tag and decrypts content. metadata must be the
+// 9-byte metadata prefix the ciphertext arrived with: it is authenticated as
+// associated data, so a tampered timestamp or file type is rejected rather than
+// feeding a wrong keystream seed into DeriveKeyStream.
+func (e *BitDriveEngine) Decrypt(ctx context.Context, encryptedData []byte, timestamp uint32, fileType string, metadata []byte) ([]byte, error) {
 	if len(encryptedData) <= NonceSize+AuthTagSize {
 		return nil, fmt.Errorf("encrypted data too short")
 	}
@@ -413,13 +432,14 @@ func (e *BitDriveEngine) Decrypt(ctx context.Context, encryptedData []byte, time
 	encryptedContent := encryptedData[NonceSize : NonceSize+contentLen]
 	receivedTag := encryptedData[NonceSize+contentLen:]
 
-	// Verify authentication tag over the nonce and ciphertext
+	// Verify authentication tag over the metadata, nonce and ciphertext
 	authKey, err := e.getAuthKey(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("get auth key: %w", err)
 	}
 
 	mac := hmac.New(sha256.New, authKey)
+	mac.Write(metadata)
 	mac.Write(nonce)
 	mac.Write(encryptedContent)
 	fullTag := mac.Sum(nil)
@@ -450,11 +470,14 @@ func (e *BitDriveEngine) EncodeOPReturnData(ctx context.Context, content []byte,
 	timestamp := uint32(time.Now().Unix())
 	fileType := DetectFileType(content)
 
+	// Encode metadata up front so it can be authenticated with the ciphertext
+	metadataBytes := EncodeMetadataBytes(encrypt, false, timestamp, fileType)
+
 	var processedContent []byte
 	var err error
 
 	if encrypt {
-		processedContent, err = e.Encrypt(ctx, content, timestamp, fileType)
+		processedContent, err = e.Encrypt(ctx, content, timestamp, fileType, metadataBytes)
 		if err != nil {
 			return "", "", 0, fmt.Errorf("encrypt content: %w", err)
 		}
@@ -462,8 +485,7 @@ func (e *BitDriveEngine) EncodeOPReturnData(ctx context.Context, content []byte,
 		processedContent = content
 	}
 
-	// Encode metadata
-	metadataB64 := EncodeMetadata(encrypt, false, timestamp, fileType)
+	metadataB64 := base64.StdEncoding.EncodeToString(metadataBytes)
 
 	// Encode content
 	var contentStr string
@@ -501,7 +523,7 @@ func (e *BitDriveEngine) DecodeOPReturnData(ctx context.Context, opReturnMessage
 	}
 
 	if metadata.Encrypted {
-		content, err = e.Decrypt(ctx, content, metadata.Timestamp, metadata.FileType)
+		content, err = e.Decrypt(ctx, content, metadata.Timestamp, metadata.FileType, metadata.Raw)
 		if err != nil {
 			return nil, nil, fmt.Errorf("decrypt content: %w", err)
 		}
@@ -666,28 +688,21 @@ func (e *BitDriveEngine) EncodeMultisigData(ctx context.Context, jsonData []byte
 	timestamp := uint32(time.Now().Unix())
 	fileType := "json"
 
+	// Encode metadata with multisig flag up front so it can be authenticated
+	// with the ciphertext
+	metadata := EncodeMetadataBytes(encrypt, true, timestamp, fileType)
+
 	var processedContent []byte
 	var err error
 
 	if encrypt {
-		processedContent, err = e.Encrypt(ctx, jsonData, timestamp, fileType)
+		processedContent, err = e.Encrypt(ctx, jsonData, timestamp, fileType, metadata)
 		if err != nil {
 			return "", fmt.Errorf("encrypt multisig data: %w", err)
 		}
 	} else {
 		processedContent = jsonData
 	}
-
-	// Encode metadata with multisig flag
-	metadata := make([]byte, MetadataSize)
-	var flags byte
-	if encrypt {
-		flags |= FlagEncrypted
-	}
-	flags |= FlagMultisig
-	metadata[0] = flags
-	binary.BigEndian.PutUint32(metadata[1:5], timestamp)
-	copy(metadata[5:9], []byte("json"))
 
 	metadataB64 := base64.StdEncoding.EncodeToString(metadata)
 	contentB64 := base64.StdEncoding.EncodeToString(processedContent)
