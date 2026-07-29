@@ -6,6 +6,7 @@ import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:sail_ui/classes/rpc_connection.dart';
 import 'package:sail_ui/env.dart';
+import 'package:sail_ui/providers/wallet_reader_provider.dart';
 
 class BalanceProvider extends ChangeNotifier implements NetworkScoped {
   @override
@@ -23,6 +24,11 @@ class BalanceProvider extends ChangeNotifier implements NetworkScoped {
   bool _isFetching = false;
   Timer? _fetchTimer;
 
+  final WalletReaderProvider? _walletReader = GetIt.I.isRegistered<WalletReaderProvider>()
+      ? GetIt.I.get<WalletReaderProvider>()
+      : null;
+  String? _lastWalletId;
+
   // Utility getters for total balances
   double get balance => _balances.values.fold(0.0, (sum, b) => sum + b.$1);
   double get pendingBalance => _balances.values.fold(0.0, (sum, b) => sum + b.$2);
@@ -36,12 +42,26 @@ class BalanceProvider extends ChangeNotifier implements NetworkScoped {
       rpc.addListener(_onConnectionChange);
       _balances[rpc] = (0.0, 0.0);
     }
+    _walletReader?.addListener(_onWalletChanged);
+    _lastWalletId = _walletReader?.activeWalletId;
     _startFetchTimer();
     fetch();
   }
 
   void _onConnectionChange() {
     fetch();
+  }
+
+  // A balance belongs to one wallet, so drop it the moment another becomes
+  // active instead of showing the previous wallet's coins until a poll lands.
+  void _onWalletChanged() {
+    final currentId = _walletReader?.activeWalletId;
+    if (currentId == _lastWalletId) {
+      return;
+    }
+    _lastWalletId = currentId;
+    clear();
+    unawaited(fetch());
   }
 
   // Write a balance fetched elsewhere in the same batch as utxos/transactions,
@@ -61,6 +81,7 @@ class BalanceProvider extends ChangeNotifier implements NetworkScoped {
       _balances[rpc] = (0.0, 0.0);
     }
     initialized = false;
+    _lastWalletId = _walletReader?.activeWalletId;
     error = null;
     notifyListeners();
   }
@@ -117,6 +138,7 @@ class BalanceProvider extends ChangeNotifier implements NetworkScoped {
   @override
   void dispose() {
     _fetchTimer?.cancel();
+    _walletReader?.removeListener(_onWalletChanged);
     for (final rpc in connections) {
       rpc.removeListener(_onConnectionChange);
     }
