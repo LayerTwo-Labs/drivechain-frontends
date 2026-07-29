@@ -338,6 +338,9 @@ message SweepChequeRequest {
 message SweepChequeResponse {
   string txid = 1;
   uint64 amount_sats = 2;
+  // The fee rate the sweep used, so the UI can report an estimate it did not
+  // choose.
+  uint64 fee_sat_per_vbyte = 3;
 }
 
 message DeleteChequeRequest {

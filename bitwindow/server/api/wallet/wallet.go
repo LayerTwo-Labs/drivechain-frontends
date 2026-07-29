@@ -61,12 +61,14 @@ func New(
 	wallet *service.Service[validatorrpc.WalletServiceClient],
 	crypto *service.Service[cryptorpc.CryptoServiceClient],
 	chequeEngine *engines.ChequeEngine,
+	chequeChain engines.ChequeChain,
 	walletEngine *engines.WalletEngine,
 	walletDir string,
 	restartL1 func(context.Context) error,
 ) *Server {
 	s := &Server{
 		database:     database,
+		chequeChain:  chequeChain,
 		data:         data,
 		bitcoind:     bitcoind,
 		wallet:       wallet,
@@ -77,41 +79,6 @@ func New(
 		walletDir:    walletDir,
 		restartL1:    restartL1,
 	}
-
-	// Initialize watch wallet in background. bitwindowd kicks off
-	// orchestratord in parallel, so bitcoind doesn't exist yet at
-	// NewServer time — we wait for it instead of bailing on the first
-	// connection-refused (cheque_watch otherwise never gets created).
-	go func() {
-		bgCtx := context.Background()
-
-		// Poll IsConnected — see Service.ConnectedChan for the broadcast
-		// rationale; here we just need a one-shot wait and polling avoids
-		// the cleanup cost of a subscription.
-		for !bitcoind.IsConnected() {
-			select {
-			case <-ctx.Done():
-				return
-			case <-time.After(100 * time.Millisecond):
-			}
-		}
-		for {
-			if c, err := bitcoind.Get(bgCtx); err == nil {
-				if _, err := c.ListWallets(bgCtx, connect.NewRequest(&emptypb.Empty{})); err == nil {
-					break
-				}
-			}
-			select {
-			case <-ctx.Done():
-				return
-			case <-time.After(time.Second):
-			}
-		}
-
-		if err := s.ensureWatchWallet(bgCtx); err != nil {
-			zerolog.Ctx(bgCtx).Warn().Err(err).Msg("failed to initialize watch wallet")
-		}
-	}()
 
 	// Start background sync of Bitcoin Core addresses to addressbook
 	go s.startAddressSyncLoop(ctx)
@@ -126,6 +93,7 @@ type Server struct {
 	wallet       *service.Service[validatorrpc.WalletServiceClient]
 	crypto       *service.Service[cryptorpc.CryptoServiceClient]
 	chequeEngine *engines.ChequeEngine
+	chequeChain  engines.ChequeChain
 	walletEngine *engines.WalletEngine
 	backupEngine *engines.BackupEngine
 	walletDir    string
@@ -2203,52 +2171,30 @@ func (s *Server) CheckChequeFunding(ctx context.Context, c *connect.Request[pb.C
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to get cheque: %w", err))
 	}
 
-	// Ensure the watch wallet exists before querying
-	if err := s.ensureWatchWallet(ctx); err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("ensure watch wallet: %w", err))
-	}
-
-	// Query bitcoind for UTXOs on address using the watch wallet
-	bitcoind, err := s.bitcoind.Get(ctx)
-	if err != nil {
-		return nil, connect.NewError(connect.CodeUnavailable, fmt.Errorf("bitcoind not available: %w", err))
-	}
-
-	log.Debug().
-		Str("address", cheque.Address).
-		Str("wallet", engines.ChequeWalletName).
-		Msg("CheckChequeFunding: querying UTXOs")
-
-	utxos, err := bitcoind.ListUnspent(ctx, connect.NewRequest(&corepb.ListUnspentRequest{
-		MinimumConfirmations: lo.ToPtr(uint32(0)), // Include unconfirmed
-		Addresses:            []string{cheque.Address},
-		Wallet:               engines.ChequeWalletName,
-	}))
+	// Electrum indexes every address, so a cheque needs no watch-only wallet,
+	// no descriptor import and no rescan.
+	utxos, err := s.chequeChain.AddressUnspent(ctx, cheque.Address, cheque.CreatedAt)
 	if err != nil {
 		log.Error().Err(err).Str("address", cheque.Address).Msg("failed to query UTXOs")
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to query UTXOs: %w", err))
+		return nil, connect.NewError(connect.CodeUnavailable, fmt.Errorf("failed to query UTXOs: %w", err))
 	}
 
 	log.Debug().
 		Str("address", cheque.Address).
-		Int("utxo_count", len(utxos.Msg.Unspent)).
+		Int("utxo_count", len(utxos)).
 		Msg("CheckChequeFunding: UTXOs found")
 
-	if len(utxos.Msg.Unspent) > 0 {
-		// Collect ALL txids and sum total amount
-		var totalAmount float64
+	if len(utxos) > 0 {
+		var amountSats uint64
 		var txids []string
 		var minConfirmations uint32 = math.MaxUint32
-		for _, utxo := range utxos.Msg.Unspent {
-			totalAmount += utxo.Amount
-			txids = append(txids, utxo.Txid)
-			if utxo.Confirmations < minConfirmations {
-				minConfirmations = utxo.Confirmations
+		for _, utxo := range utxos {
+			amountSats += uint64(utxo.ValueSats)
+			txids = append(txids, utxo.TxID)
+			if confs := uint32(utxo.Confirmations); confs < minConfirmations {
+				minConfirmations = confs
 			}
 		}
-
-		// Convert BTC to satoshis
-		amountSats := uint64(math.Round(totalAmount * 100000000))
 
 		// Always update — handles new fundings arriving after first one
 		if err := cheques.UpdateFunding(ctx, s.database, walletId, c.Msg.Id, txids, amountSats); err != nil {
@@ -2329,63 +2275,31 @@ func (s *Server) SweepCheque(ctx context.Context, c *connect.Request[pb.SweepChe
 
 	addressStr := address.EncodeAddress()
 
-	// Ensure the watch wallet exists before querying. bitcoind may have restarted
-	// since the cheque engine first created it, in which case it sits on disk
-	// unloaded and ListUnspent returns -18.
-	if err := s.ensureWatchWallet(ctx); err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("ensure watch wallet: %w", err))
-	}
+	log.Debug().Str("address", addressStr).Msg("SweepCheque: querying UTXOs")
 
-	// Get bitcoind client
-	bitcoind, err := s.bitcoind.Get(ctx)
+	utxos, err := s.chequeChain.AddressUnspent(ctx, addressStr, time.Unix(0, 0))
 	if err != nil {
-		return nil, connect.NewError(connect.CodeUnavailable, fmt.Errorf("bitcoind not available: %w", err))
+		return nil, connect.NewError(connect.CodeUnavailable, fmt.Errorf("failed to query UTXOs: %w", err))
 	}
-
-	// Import the cheque address into the watch wallet (rescanning for funds)
-	// before querying, so any funded WIF is claimable — even one this node never
-	// derived, or whose seed-derived descriptor import didn't cover it. Idempotent.
-	if err := s.importSweepAddress(ctx, bitcoind, addressStr); err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("import cheque address: %w", err))
-	}
-
-	// Query UTXOs for this address
-	log.Debug().
-		Str("address", addressStr).
-		Str("wallet", engines.ChequeWalletName).
-		Msg("SweepCheque: querying UTXOs")
-
-	utxos, err := bitcoind.ListUnspent(ctx, connect.NewRequest(&corepb.ListUnspentRequest{
-		MinimumConfirmations: lo.ToPtr(uint32(0)), // Include unconfirmed
-		Addresses:            []string{addressStr},
-		Wallet:               engines.ChequeWalletName,
-	}))
-	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to query UTXOs: %w", err))
-	}
-
-	if len(utxos.Msg.Unspent) == 0 {
+	if len(utxos) == 0 {
 		return nil, connect.NewError(connect.CodeNotFound, errors.New("no funds found at this address"))
 	}
 
-	// Calculate total amount in satoshis
-	totalAmountBTC := lo.SumBy(utxos.Msg.Unspent, func(utxo *corepb.UnspentOutput) float64 {
-		return utxo.Amount
-	})
-	totalAmount := uint64(math.Round(totalAmountBTC * 1e8))
+	totalAmount := uint64(lo.SumBy(utxos, func(utxo engines.ChequeUTXO) int64 {
+		return utxo.ValueSats
+	}))
 
-	// Set fee rate
-	feeSatPerVbyte := c.Msg.FeeSatPerVbyte
-	if feeSatPerVbyte == 0 {
-		feeSatPerVbyte = 2
+	feeSatPerVbyte, err := s.chequeSweepFeeRate(ctx, c.Msg.FeeSatPerVbyte)
+	if err != nil {
+		return nil, err
 	}
 
-	unsignedTx, err := s.buildSweepTx(c.Msg.DestinationAddress, utxos.Msg.Unspent, feeSatPerVbyte)
+	unsignedTx, err := s.buildSweepTx(c.Msg.DestinationAddress, utxos, feeSatPerVbyte)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("build transaction: %w", err))
 	}
 
-	signedTx, err := s.signSweepTx(unsignedTx, c.Msg.PrivateKeyWif, addressStr, utxos.Msg.Unspent)
+	signedTx, err := s.signSweepTx(unsignedTx, c.Msg.PrivateKeyWif, addressStr, utxos)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("sign transaction: %w", err))
 	}
@@ -2395,11 +2309,7 @@ func (s *Server) SweepCheque(ctx context.Context, c *connect.Request[pb.SweepChe
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("serialize transaction: %w", err))
 	}
 
-	res, err := bitcoind.SendRawTransaction(ctx, &connect.Request[corepb.SendRawTransactionRequest]{
-		Msg: &corepb.SendRawTransactionRequest{
-			HexString: txHex,
-		},
-	})
+	txid, err := s.chequeChain.Broadcast(ctx, txHex)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("broadcast transaction: %w", err))
 	}
@@ -2407,7 +2317,7 @@ func (s *Server) SweepCheque(ctx context.Context, c *connect.Request[pb.SweepChe
 	// Try to find and mark the cheque as swept in database if it exists
 	cheque, err := cheques.GetByAddress(ctx, s.database, walletId, addressStr)
 	if err == nil && cheque.SweptTxid == nil {
-		if err := cheques.UpdateSwept(ctx, s.database, walletId, cheque.ID, res.Msg.Txid); err != nil {
+		if err := cheques.UpdateSwept(ctx, s.database, walletId, cheque.ID, txid); err != nil {
 			log.Warn().Err(err).Msg("failed to mark cheque as swept in database")
 		}
 	}
@@ -2415,53 +2325,28 @@ func (s *Server) SweepCheque(ctx context.Context, c *connect.Request[pb.SweepChe
 	log.Info().
 		Str("from", addressStr).
 		Str("to", c.Msg.DestinationAddress).
-		Str("txid", res.Msg.Txid).
+		Str("txid", txid).
 		Uint64("amount_sats", totalAmount).
 		Msg("cheque swept successfully")
 
 	return connect.NewResponse(&pb.SweepChequeResponse{
-		Txid:       res.Msg.Txid,
-		AmountSats: totalAmount,
+		Txid:           txid,
+		AmountSats:     totalAmount,
+		FeeSatPerVbyte: feeSatPerVbyte,
 	}), nil
 }
 
-// importSweepAddress imports a watch-only addr() descriptor for the cheque
-// address into the cheque wallet, rescanning from genesis so coins funded before
-// the import are discovered. This makes SweepCheque self-contained: it can claim
-// any funded WIF without depending on the wallet's seed-derived descriptor import
-// (which only covers derived ranges and needs the wallet unlocked). Idempotent.
-func (s *Server) importSweepAddress(ctx context.Context, bitcoind corerpc.BitcoinServiceClient, address string) error {
-	descInfo, err := bitcoind.GetDescriptorInfo(ctx, connect.NewRequest(&corepb.GetDescriptorInfoRequest{
-		Descriptor_: fmt.Sprintf("addr(%s)", address),
-	}))
+// chequeSweepFeeRate resolves the sweep's fee rate: the caller's, or whichever
+// chain can estimate for a 6-block target when they pass zero.
+func (s *Server) chequeSweepFeeRate(ctx context.Context, requested uint64) (uint64, error) {
+	if requested > 0 {
+		return requested, nil
+	}
+	rate, err := s.chequeChain.FeeRateSatPerVByte(ctx, 6)
 	if err != nil {
-		return fmt.Errorf("get descriptor info: %w", err)
+		return 0, connect.NewError(connect.CodeUnavailable, fmt.Errorf("estimate fee: %w", err))
 	}
-
-	resp, err := bitcoind.ImportDescriptors(ctx, connect.NewRequest(&corepb.ImportDescriptorsRequest{
-		Wallet: engines.ChequeWalletName,
-		Requests: []*corepb.ImportDescriptorsRequest_Request{
-			{
-				Descriptor_: descInfo.Msg.Descriptor_,
-				// Rescan from genesis; btc-buf maps nil → "now" (no rescan), which
-				// would leave already-funded outputs invisible.
-				Timestamp: timestamppb.New(time.Unix(0, 0)),
-				Internal:  false,
-			},
-		},
-	}))
-	if err != nil {
-		return fmt.Errorf("import descriptors: %w", err)
-	}
-	if len(resp.Msg.Responses) > 0 && !resp.Msg.Responses[0].Success && resp.Msg.Responses[0].Error != nil {
-		// A descriptor already imported by a prior sweep attempt is benign: it's
-		// still watched, so ListUnspent sees the (now-funded) cheque. Only a
-		// genuine import failure should abort.
-		if msg := resp.Msg.Responses[0].Error.Message; !strings.Contains(msg, "already") {
-			return fmt.Errorf("import failed: %s", msg)
-		}
-	}
-	return nil
+	return uint64(math.Ceil(rate)), nil
 }
 
 // DeleteCheque implements walletv1connect.WalletServiceHandler.
@@ -2544,13 +2429,12 @@ func (s *Server) chequeToPb(c *cheques.Cheque) *pb.Cheque {
 // buildSweepTx builds an unsigned transaction to sweep cheque funds
 func (s *Server) buildSweepTx(
 	destAddress string,
-	utxos []*corepb.UnspentOutput,
+	utxos []engines.ChequeUTXO,
 	feeSatPerVbyte uint64,
 ) (*wire.MsgTx, error) {
-	// Calculate total amount in satoshis
 	var totalSats uint64
 	for _, utxo := range utxos {
-		totalSats += uint64(math.Round(utxo.Amount * 1e8))
+		totalSats += uint64(utxo.ValueSats)
 	}
 
 	// Estimate transaction size (P2WPKH input is ~68 vbytes, P2WPKH output is ~31 vbytes, overhead ~11 vbytes)
@@ -2573,12 +2457,12 @@ func (s *Server) buildSweepTx(
 
 	// Add inputs from UTXOs
 	for _, utxo := range utxos {
-		txHash, err := chainhash.NewHashFromStr(utxo.Txid)
+		txHash, err := chainhash.NewHashFromStr(utxo.TxID)
 		if err != nil {
 			return nil, fmt.Errorf("parse txid: %w", err)
 		}
 
-		outPoint := wire.NewOutPoint(txHash, utxo.Vout)
+		outPoint := wire.NewOutPoint(txHash, uint32(utxo.Vout))
 		txIn := wire.NewTxIn(outPoint, nil, nil)
 		tx.AddTxIn(txIn)
 	}
@@ -2601,7 +2485,7 @@ func (s *Server) signSweepTx(
 	tx *wire.MsgTx,
 	wifKey string,
 	sourceAddress string,
-	utxos []*corepb.UnspentOutput,
+	utxos []engines.ChequeUTXO,
 ) (*wire.MsgTx, error) {
 	// Decode WIF private key
 	wif, err := btcutil.DecodeWIF(wifKey)
@@ -2626,10 +2510,10 @@ func (s *Server) signSweepTx(
 		witnessScript, err := txscript.WitnessSignature(
 			tx, txscript.NewTxSigHashes(tx, txscript.NewCannedPrevOutputFetcher(
 				sourcePkScript,
-				int64(math.Round(utxo.Amount*1e8)),
+				utxo.ValueSats,
 			)),
 			i,
-			int64(math.Round(utxo.Amount*1e8)),
+			utxo.ValueSats,
 			sourcePkScript,
 			txscript.SigHashAll,
 			wif.PrivKey,
@@ -2652,69 +2536,6 @@ func (s *Server) serializeTx(tx *wire.MsgTx) (string, error) {
 		return "", fmt.Errorf("serialize transaction: %w", err)
 	}
 	return hex.EncodeToString(txBytes.Bytes()), nil
-}
-
-// ensureWatchWallet ensures the watch-only wallet exists
-func (s *Server) ensureWatchWallet(ctx context.Context) error {
-	log := zerolog.Ctx(ctx)
-
-	// Debug: Check if context is already canceled
-	if ctx.Err() != nil {
-		log.Error().Err(ctx.Err()).Msg("ensureWatchWallet called with canceled context!")
-		return fmt.Errorf("context already canceled: %w", ctx.Err())
-	}
-
-	bitcoind, err := s.bitcoind.Get(ctx)
-	if err != nil {
-		return fmt.Errorf("bitcoind not available: %w", err)
-	}
-
-	// Check if wallet already exists by listing wallets
-	wallets, err := s.data.ListWallets(ctx, &emptypb.Empty{})
-	if err != nil {
-		return fmt.Errorf("failed to list wallets: %w", err)
-	}
-
-	walletExists := lo.Contains(wallets.Wallets, engines.ChequeWalletName)
-
-	// Create or load wallet if it doesn't exist in memory
-	if !walletExists {
-		log.Info().Msg("creating cheque wallet (watch-only)")
-
-		// Debug: Check context again before CreateWallet
-		if ctx.Err() != nil {
-			log.Error().Err(ctx.Err()).Msg("context canceled before CreateWallet!")
-			return fmt.Errorf("context canceled before CreateWallet: %w", ctx.Err())
-		}
-
-		_, err = bitcoind.CreateWallet(ctx, connect.NewRequest(&corepb.CreateWalletRequest{
-			Name:               engines.ChequeWalletName,
-			DisablePrivateKeys: true, // Watch-only wallet
-			Blank:              true,
-		}))
-		if err != nil {
-			log.Warn().Err(err).Msg("CreateWallet returned error")
-			// If wallet exists on disk but not loaded, try loading it
-			if strings.Contains(err.Error(), "already exists") || strings.Contains(err.Error(), "Database already exists") {
-				log.Info().Msg("cheque wallet exists on disk, loading it")
-				_, loadErr := bitcoind.LoadWallet(ctx, connect.NewRequest(&corepb.LoadWalletRequest{
-					Filename: engines.ChequeWalletName,
-				}))
-				if loadErr != nil && !engines.IsWalletAlreadyLoadedErr(loadErr) {
-					log.Error().Err(loadErr).Msg("Failed to load existing cheque wallet")
-					return fmt.Errorf("load cheque wallet: %w", loadErr)
-				}
-				log.Info().Msg("cheque wallet loaded successfully")
-			} else {
-				log.Error().Err(err).Msg("Failed to create cheque wallet with unexpected error")
-				return fmt.Errorf("create cheque wallet: %w", err)
-			}
-		} else {
-			log.Info().Msg("cheque wallet created successfully")
-		}
-	}
-
-	return nil
 }
 
 // SetUTXOMetadata implements walletv1connect.WalletServiceHandler.

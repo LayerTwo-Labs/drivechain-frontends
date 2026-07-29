@@ -80,6 +80,11 @@ service WalletManagerService {
   // wallet's chain source and returns its txid.
   rpc BroadcastTransaction(BroadcastTransactionRequest) returns (BroadcastTransactionResponse);
 
+  // Address reads that belong to no wallet — cheque addresses, whose funds are
+  // not the user's to spend. Always electrum-backed, whatever wallet is active.
+  rpc GetAddressUnspent(GetAddressUnspentRequest) returns (GetAddressUnspentResponse);
+  rpc BroadcastElectrumTransaction(BroadcastElectrumTransactionRequest) returns (BroadcastElectrumTransactionResponse);
+
   // USB hardware wallets.
   rpc EnumerateHardwareDevices(EnumerateHardwareDevicesRequest) returns (EnumerateHardwareDevicesResponse);
   rpc GetHardwareXpub(GetHardwareXpubRequest) returns (GetHardwareXpubResponse);
@@ -673,6 +678,31 @@ message BroadcastTransactionRequest {
 }
 
 message BroadcastTransactionResponse {
+  string txid = 1;
+}
+
+message GetAddressUnspentRequest {
+  string address = 1;
+}
+
+message AddressUnspentOutput {
+  string txid = 1;
+  int32 vout = 2;
+  int64 value_sats = 3;
+  int32 confirmations = 4;
+  int64 block_time = 5;
+}
+
+message GetAddressUnspentResponse {
+  repeated AddressUnspentOutput utxos = 1;
+  int32 tip_height = 2;
+}
+
+message BroadcastElectrumTransactionRequest {
+  string tx_hex = 1;
+}
+
+message BroadcastElectrumTransactionResponse {
   string txid = 1;
 }
 

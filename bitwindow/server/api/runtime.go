@@ -109,6 +109,7 @@ type Runtime struct {
 
 	walletEngine       *engines.WalletEngine
 	chequeEngine       *engines.ChequeEngine
+	chequeChain        engines.ChequeChain
 	bitcoinEngine      *engines.Parser
 	deniabilityEngine  *engines.DeniabilityEngine
 	timestampEngine    *engines.TimestampEngine
@@ -173,17 +174,25 @@ func (s *Server) buildRuntime(ctx context.Context, conf config.Config) (*Runtime
 		rt.walletDir,
 		rt.chainParams,
 	)
-	if s.svcs.OrchestratorAddr != "" {
+	switch {
+	case s.svcs.OrchestratorClient != nil:
+		rt.walletEngine.SetOrchestratorClient(s.svcs.OrchestratorClient)
+	case s.svcs.OrchestratorAddr != "":
 		// Seed-bearing client (GetWalletSeed) — attach the local-auth cookie.
-		orchClient := orchrpc.NewWalletManagerServiceClient(
+		rt.walletEngine.SetOrchestratorClient(orchrpc.NewWalletManagerServiceClient(
 			http.DefaultClient,
 			s.svcs.OrchestratorAddr,
 			connect.WithInterceptors(localauth.Interceptor(s.svcs.BitwindowDir)),
-		)
-		rt.walletEngine.SetOrchestratorClient(orchClient)
+		))
 	}
 
-	rt.chequeEngine = engines.NewChequeEngine(rt.walletEngine, rt.chainParams, s.Bitcoind)
+	// Electrum answers for any address; Core needs a watch-only wallet, so it
+	// serves only where no electrum endpoint exists (regtest, dev setups).
+	rt.chequeChain = engines.NewChequeChainRouter(
+		engines.NewElectrumChequeChain(rt.walletEngine),
+		engines.NewCoreChequeChain(s.Bitcoind),
+	)
+	rt.chequeEngine = engines.NewChequeEngine(rt.walletEngine, rt.chainParams, rt.chequeChain)
 	walletAdapter := engines.NewWalletAdapter(rt.walletEngine)
 	timestampLogger := log.With().Str("component", "timestamp").Logger()
 	rt.timestampEngine = engines.NewTimestampEngine(rt.db, timestampLogger, walletAdapter, s.Bitcoind)
@@ -263,7 +272,7 @@ func (s *Server) buildRuntime(ctx context.Context, conf config.Config) (*Runtime
 				return err
 			}
 		}
-		walletSvcImpl := api_wallet.New(ctx, rt.db, dataSource, s.Bitcoind, s.Wallet, s.Crypto, rt.chequeEngine, rt.walletEngine, rt.walletDir, restartL1)
+		walletSvcImpl := api_wallet.New(ctx, rt.db, dataSource, s.Bitcoind, s.Wallet, s.Crypto, rt.chequeEngine, rt.chequeChain, rt.walletEngine, rt.walletDir, restartL1)
 		path, h := walletv1connect.NewWalletServiceHandler(walletSvcImpl, stdOpts...)
 		register(path, h)
 	}

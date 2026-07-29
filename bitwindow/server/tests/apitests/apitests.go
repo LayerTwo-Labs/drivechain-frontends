@@ -18,6 +18,7 @@ import (
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/tests/mocks"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/crypto/v1/cryptov1connect"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1/mainchainv1connect"
+	orchrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1/walletmanagerv1connect"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/bitassets"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/bitnames"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/coinshift"
@@ -33,10 +34,11 @@ import (
 )
 
 type configg struct {
-	wallet   mainchainv1connect.WalletServiceClient
-	enforcer mainchainv1connect.ValidatorServiceClient
-	crypto   cryptov1connect.CryptoServiceClient
-	bitcoind bitcoindv1alphaconnect.BitcoinServiceClient
+	wallet       mainchainv1connect.WalletServiceClient
+	enforcer     mainchainv1connect.ValidatorServiceClient
+	crypto       cryptov1connect.CryptoServiceClient
+	bitcoind     bitcoindv1alphaconnect.BitcoinServiceClient
+	orchestrator orchrpc.WalletManagerServiceClient
 }
 
 type ServerOpt func(opt *configg)
@@ -79,6 +81,11 @@ func WithValidator(validator mainchainv1connect.ValidatorServiceClient) ServerOp
 
 func WithCrypto(crypto cryptov1connect.CryptoServiceClient) ServerOpt {
 	return func(opt *configg) { opt.crypto = crypto }
+}
+
+// WithOrchestrator injects the wallet-manager client cheque reads go through.
+func WithOrchestrator(client orchrpc.WalletManagerServiceClient) ServerOpt {
+	return func(opt *configg) { opt.orchestrator = client }
 }
 
 func WithBitcoind(bitcoind bitcoindv1alphaconnect.BitcoinServiceClient) ServerOpt {
@@ -187,9 +194,10 @@ func API(t *testing.T, database *sql.DB, options ...ServerOpt) (connect.HTTPClie
 		CoinShiftConnector: func(ctx context.Context) (*coinshift.Client, error) {
 			return nil, fmt.Errorf("coinshift not available in tests")
 		},
-		ChainParams: &chaincfg.SigNetParams,
-		WalletDir:   walletDir,
-		DataDir:     walletDir,
+		ChainParams:        &chaincfg.SigNetParams,
+		WalletDir:          walletDir,
+		DataDir:            walletDir,
+		OrchestratorClient: conf.orchestrator,
 	}
 
 	srv, err := api.New(ctx, services, config.Config{
