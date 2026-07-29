@@ -38,6 +38,28 @@ class SailApp extends StatefulWidget {
   }
 }
 
+/// Applies the user's font scale on top of the platform's own text scaling
+/// rather than replacing it, so OS accessibility settings survive.
+class _ScaledTextScaler extends TextScaler {
+  const _ScaledTextScaler(this.platform, this.factor);
+
+  final TextScaler platform;
+  final double factor;
+
+  @override
+  double scale(double fontSize) => platform.scale(fontSize * factor);
+
+  @override
+  // ignore: deprecated_member_override, deprecated_member_use
+  double get textScaleFactor => platform.textScaleFactor * factor;
+
+  @override
+  bool operator ==(Object other) => other is _ScaledTextScaler && other.platform == platform && other.factor == factor;
+
+  @override
+  int get hashCode => Object.hash(platform, factor);
+}
+
 class SailAppState extends State<SailApp> with WidgetsBindingObserver {
   ClientSettings get settings => GetIt.I.get<ClientSettings>();
 
@@ -105,12 +127,14 @@ class SailAppState extends State<SailApp> with WidgetsBindingObserver {
     await settings.setValue(FontSetting(newValue: fontToLoad));
   }
 
+  /// Applies a font scale. Persistence belongs to
+  /// [SettingsProvider.updateFontScale], which serializes writes — a second
+  /// writer here would race it on every slider drag.
   Future<void> loadFontScale([double? scaleToLoad]) async {
     scaleToLoad ??= (await settings.getValue(FontScaleSetting())).value;
 
     _fontScale = nearestSailFontScale(scaleToLoad);
     setState(() {});
-    await settings.setValue(FontScaleSetting(newValue: _fontScale));
   }
 
   /// Apply a theme style. With no argument, resolves the global style from
@@ -156,10 +180,13 @@ class SailAppState extends State<SailApp> with WidgetsBindingObserver {
 
   @override
   Widget build(BuildContext context) {
+    final platformScaler = MediaQuery.textScalerOf(context);
     return SailTheme(
       data: theme,
       child: MediaQuery(
-        data: MediaQuery.of(context).copyWith(textScaler: TextScaler.linear(_fontScale)),
+        data: MediaQuery.of(context).copyWith(
+          textScaler: _fontScale == 1.0 ? platformScaler : _ScaledTextScaler(platformScaler, _fontScale),
+        ),
         child: widget.builder(context),
       ),
     );

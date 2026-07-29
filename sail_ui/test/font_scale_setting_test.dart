@@ -101,22 +101,45 @@ void main() {
       expect(scalerAtText(tester).scale(10), 10);
     });
 
-    testWidgets('loadFontScale persists the new scale', (tester) async {
+    testWidgets('loadFontScale applies without persisting', (tester) async {
       final appState = await pumpApp(tester);
 
       await appState.loadFontScale(1.25);
+      await tester.pump();
 
+      expect(scalerAtText(tester).scale(10), 12.5);
+      // Persistence is updateFontScale's job; a second writer here would race it.
       final stored = await GetIt.I.get<ClientSettings>().getValue(FontScaleSetting());
-      expect(stored.value, 1.25);
+      expect(stored.value, 1.0);
     });
 
-    testWidgets('an off-step scale is snapped before it is stored', (tester) async {
+    testWidgets('an off-step scale is snapped before it is applied', (tester) async {
       final appState = await pumpApp(tester);
 
       await appState.loadFontScale(1.13);
+      await tester.pump();
 
-      final stored = await GetIt.I.get<ClientSettings>().getValue(FontScaleSetting());
-      expect(stored.value, 1.1);
+      expect(scalerAtText(tester).scale(10), 11);
+    });
+
+    testWidgets('the platform text scale is preserved, not replaced', (tester) async {
+      await GetIt.I.get<ClientSettings>().setValue(FontScaleSetting(newValue: 1.5));
+      tester.platformDispatcher.textScaleFactorTestValue = 2.0;
+      addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+
+      await pumpApp(tester);
+
+      // 2.0 from the OS accessibility setting, 1.5 from the preference.
+      expect(scalerAtText(tester).scale(10), 30);
+    });
+
+    testWidgets('a default preference leaves the platform scale untouched', (tester) async {
+      tester.platformDispatcher.textScaleFactorTestValue = 1.75;
+      addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+
+      await pumpApp(tester);
+
+      expect(scalerAtText(tester).scale(10), 17.5);
     });
   });
 
@@ -136,7 +159,7 @@ void main() {
       await GetIt.I.reset();
     });
 
-    testWidgets('dragging to the far end persists the largest scale and rescales text', (tester) async {
+    testWidgets('dragging to the far end selects the largest scale and rescales text', (tester) async {
       final provider = GetIt.I.get<SettingsProvider>();
 
       await tester.pumpWidget(
@@ -167,9 +190,6 @@ void main() {
       expect(provider.fontScale, sailFontScales.last);
       expect(find.text('200%'), findsOneWidget);
       expect(MediaQuery.textScalerOf(tester.element(find.text('hello'))).scale(10), 20);
-
-      final stored = await GetIt.I.get<ClientSettings>().getValue(FontScaleSetting());
-      expect(stored.value, sailFontScales.last);
     });
   });
 
@@ -186,6 +206,27 @@ void main() {
 
     tearDown(() async {
       await GetIt.I.reset();
+    });
+
+    // Dragging the slider fires a change per snap point crossed. Writes must
+    // land in order, or a stale scale wins in settings.json.
+    test('rapid successive updates settle on the last value', () async {
+      final provider = await SettingsProvider.create();
+
+      final inFlight = <Future<void>>[
+        provider.updateFontScale(0.8),
+        provider.updateFontScale(1.25),
+        provider.updateFontScale(1.75),
+        provider.updateFontScale(2.0),
+      ];
+      await Future.wait(inFlight);
+
+      expect(provider.fontScale, 2.0);
+      final stored = await GetIt.I.get<ClientSettings>().getValue(FontScaleSetting());
+      expect(stored.value, 2.0);
+
+      final reloaded = await SettingsProvider.create();
+      expect(reloaded.fontScale, 2.0);
     });
 
     test('persists and notifies, and reloads on next create', () async {
