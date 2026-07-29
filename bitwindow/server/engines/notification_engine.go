@@ -216,11 +216,44 @@ func (e *NotificationEngine) checkWalletTransactions(ctx context.Context) error 
 	return nil
 }
 
+// walletTx is a single transaction, with the amounts of every wallet-relevant
+// output belonging to it summed together.
+type walletTx struct {
+	txid          string
+	amount        float64
+	confirmations uint32
+}
+
+// aggregateByTxid folds the per-output rows Bitcoin Core hands back into one
+// entry per txid. ListTransactions returns a row per wallet-relevant output, so
+// a transaction paying us several times shows up several times with the same
+// txid and differing amounts. Without folding them the dedup below lets only
+// the first row through, and the notification carries that single output's
+// amount instead of the transaction total.
+func aggregateByTxid(transactions []*corepb.GetTransactionResponse) []walletTx {
+	aggregated := make([]walletTx, 0, len(transactions))
+	seen := make(map[string]int, len(transactions))
+	for _, tx := range transactions {
+		if idx, ok := seen[tx.Txid]; ok {
+			aggregated[idx].amount += tx.Amount
+			continue
+		}
+
+		seen[tx.Txid] = len(aggregated)
+		aggregated = append(aggregated, walletTx{
+			txid:          tx.Txid,
+			amount:        tx.Amount,
+			confirmations: uint32(tx.Confirmations),
+		})
+	}
+	return aggregated
+}
+
 func (e *NotificationEngine) processWalletTransactions(ctx context.Context, walletName string, transactions []*corepb.GetTransactionResponse) {
 	log := zerolog.Ctx(ctx)
-	for _, tx := range transactions {
-		txid := tx.Txid
-		confirmations := uint32(tx.Confirmations)
+	for _, tx := range aggregateByTxid(transactions) {
+		txid := tx.txid
+		confirmations := tx.confirmations
 
 		// The same txid can show up in several loaded wallets, so scope the
 		// dedup key by wallet. Otherwise the first wallet we process swallows
@@ -247,7 +280,7 @@ func (e *NotificationEngine) processWalletTransactions(ctx context.Context, wall
 		}
 
 		switch {
-		case !notified && tx.Amount > 0:
+		case !notified && tx.amount > 0:
 			// Received transaction
 			event := &notificationv1.WatchResponse{
 				Timestamp: timestamppb.Now(),
@@ -255,7 +288,7 @@ func (e *NotificationEngine) processWalletTransactions(ctx context.Context, wall
 					Transaction: &notificationv1.TransactionEvent{
 						Type:          notificationv1.TransactionEvent_TYPE_RECEIVED,
 						Txid:          txid,
-						AmountSats:    uint64(math.Round(tx.Amount * 100000000)),
+						AmountSats:    uint64(math.Round(tx.amount * 100000000)),
 						Confirmations: confirmations,
 					},
 				},
@@ -266,10 +299,10 @@ func (e *NotificationEngine) processWalletTransactions(ctx context.Context, wall
 			}
 			log.Info().
 				Str("txid", txid).
-				Float64("amount", tx.Amount).
+				Float64("amount", tx.amount).
 				Msg("received transaction notification sent")
 
-		case !notified && tx.Amount < 0:
+		case !notified && tx.amount < 0:
 			// Sent transaction
 			event := &notificationv1.WatchResponse{
 				Timestamp: timestamppb.Now(),
@@ -277,7 +310,7 @@ func (e *NotificationEngine) processWalletTransactions(ctx context.Context, wall
 					Transaction: &notificationv1.TransactionEvent{
 						Type:          notificationv1.TransactionEvent_TYPE_SENT,
 						Txid:          txid,
-						AmountSats:    uint64(math.Round(-tx.Amount * 100000000)),
+						AmountSats:    uint64(math.Round(-tx.amount * 100000000)),
 						Confirmations: confirmations,
 					},
 				},
@@ -288,7 +321,7 @@ func (e *NotificationEngine) processWalletTransactions(ctx context.Context, wall
 			}
 			log.Info().
 				Str("txid", txid).
-				Float64("amount", -tx.Amount).
+				Float64("amount", -tx.amount).
 				Msg("sent transaction notification sent")
 
 		case !notified:
@@ -305,7 +338,7 @@ func (e *NotificationEngine) processWalletTransactions(ctx context.Context, wall
 					Transaction: &notificationv1.TransactionEvent{
 						Type:          notificationv1.TransactionEvent_TYPE_CONFIRMED,
 						Txid:          txid,
-						AmountSats:    uint64(math.Round(tx.Amount * 100000000)),
+						AmountSats:    uint64(math.Round(tx.amount * 100000000)),
 						Confirmations: confirmations,
 					},
 				},
