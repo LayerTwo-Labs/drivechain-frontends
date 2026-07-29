@@ -367,11 +367,11 @@ func TestBitwindowWalletIntegration(t *testing.T) {
 		)
 		walletEngineA.SetOrchestratorClient(nodeA.WalletClient)
 
-		// Create ChequeEngine.
-		chequeEngineA := engines.NewChequeEngine(walletEngineA, &chaincfg.RegressionNetParams, bitcoindSvcA)
-
 		// Create SQLite DB for cheques.
 		dbA := database.Test(t)
+
+		// Create ChequeEngine.
+		chequeEngineA := engines.NewChequeEngine(dbA, walletEngineA, &chaincfg.RegressionNetParams, bitcoindSvcA)
 
 		// Create bitwindow wallet Server.
 		serverA := api_wallet.New(
@@ -542,8 +542,8 @@ func TestBitwindowWalletIntegration(t *testing.T) {
 		)
 		walletEngineB.SetOrchestratorClient(nodeB.WalletClient)
 
-		chequeEngineB := engines.NewChequeEngine(walletEngineB, &chaincfg.RegressionNetParams, bitcoindSvcB)
 		dbB := database.Test(t)
+		chequeEngineB := engines.NewChequeEngine(dbB, walletEngineB, &chaincfg.RegressionNetParams, bitcoindSvcB)
 
 		serverB := api_wallet.New(
 			ctx, dbB, datasource.NewLocal(bitcoindSvcB.Get, nil, nil), bitcoindSvcB,

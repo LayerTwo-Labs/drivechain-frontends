@@ -2072,6 +2072,14 @@ func (s *Server) CreateCheque(ctx context.Context, c *connect.Request[pb.CreateC
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to get next index: %w", err))
 	}
 
+	// Widen the imported descriptor range if this index falls past it, so
+	// Bitcoin Core watches the address we're about to hand out. Non-fatal:
+	// deriving the address doesn't need bitcoind, and the next import (this
+	// call retried, or engine startup) rescans from epoch and catches up.
+	if err := s.chequeEngine.EnsureDescriptorRange(ctx, walletId, nextIndex); err != nil {
+		log.Warn().Err(err).Uint32("index", nextIndex).Msg("failed to extend cheque descriptor range")
+	}
+
 	// Derive address for this wallet
 	address, err := s.chequeEngine.DeriveChequeAddress(walletId, nextIndex)
 	if err != nil {

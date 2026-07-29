@@ -2,14 +2,17 @@ package engines
 
 import (
 	"context"
+	"database/sql"
 	"encoding/hex"
 	"fmt"
 	"math"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"time"
 
 	"connectrpc.com/connect"
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/cheques"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/service"
 	corepb "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha"
 	corerpc "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha/bitcoindv1alphaconnect"
@@ -28,7 +31,26 @@ const (
 
 	// ChequeWalletName is the name of the watch-only Bitcoin Core wallet for cheques
 	ChequeWalletName = "cheque_watch"
+
+	// chequeDescriptorRangeStep is how many indexes the imported descriptor
+	// range is rounded up to. Cheque indexes grow without bound, so the range
+	// has to grow with them — a fixed range means Core silently stops watching
+	// the addresses we hand out once the wallet passes the end.
+	chequeDescriptorRangeStep = 2000
+
+	// chequeDescriptorRangeMax is Bitcoin Core's hard cap on descriptor ranges.
+	chequeDescriptorRangeMax = 1000000
 )
+
+// chequeDescriptorRangeEnd returns the descriptor range end covering index,
+// rounded up to the next whole step and clamped to what Core accepts.
+func chequeDescriptorRangeEnd(index uint32) uint32 {
+	if index >= chequeDescriptorRangeMax-chequeDescriptorRangeStep {
+		return chequeDescriptorRangeMax
+	}
+
+	return (index/chequeDescriptorRangeStep + 1) * chequeDescriptorRangeStep
+}
 
 // IsWalletAlreadyLoadedErr reports whether err is bitcoind's "-35 wallet already
 // loaded" response. It's benign — the wallet IS loaded — so callers that loaded
@@ -48,21 +70,31 @@ type ChequeRecovery struct {
 // ChequeEngine manages cheque derivation (ONLY)
 // Gets seed from WalletEngine when needed
 type ChequeEngine struct {
+	db           *sql.DB
 	walletEngine *WalletEngine
 	chainParams  *chaincfg.Params
 	bitcoind     *service.Service[corerpc.BitcoinServiceClient]
+
+	// Maps walletId -> descriptor range end last imported into the cheque
+	// wallet, so EnsureDescriptorRange only re-imports (and rescans) when an
+	// index actually falls outside the watched range.
+	rangeMu        sync.Mutex
+	importedRanges map[string]uint32
 }
 
 // NewChequeEngine creates a new cheque engine
 func NewChequeEngine(
+	db *sql.DB,
 	walletEngine *WalletEngine,
 	chainParams *chaincfg.Params,
 	bitcoind *service.Service[corerpc.BitcoinServiceClient],
 ) *ChequeEngine {
 	return &ChequeEngine{
-		walletEngine: walletEngine,
-		chainParams:  chainParams,
-		bitcoind:     bitcoind,
+		db:             db,
+		walletEngine:   walletEngine,
+		chainParams:    chainParams,
+		bitcoind:       bitcoind,
+		importedRanges: make(map[string]uint32),
 	}
 }
 
@@ -417,6 +449,15 @@ func (e *ChequeEngine) importDescriptorForWallet(ctx context.Context, bitcoind c
 	// Use the descriptor with checksum from Bitcoin Core
 	descriptor := descInfo.Msg.Descriptor_
 
+	// Size the range off the indexes this wallet has actually issued, so
+	// cheques past the previous range end get watched too.
+	nextIndex, err := cheques.GetNextIndex(ctx, e.db, walletId)
+	if err != nil {
+		return fmt.Errorf("get next cheque index: %w", err)
+	}
+
+	rangeEnd := chequeDescriptorRangeEnd(nextIndex)
+
 	// Import the descriptor into Bitcoin Core cheque wallet.
 	// Timestamp=epoch triggers a full rescan so cheques funded before this
 	// import (e.g. the first run after the descriptor-deadlock fix landed)
@@ -429,7 +470,7 @@ func (e *ChequeEngine) importDescriptorForWallet(ctx context.Context, bitcoind c
 				Descriptor_: descriptor,
 				Active:      true,
 				RangeStart:  0,
-				RangeEnd:    2000,
+				RangeEnd:    rangeEnd,
 				Timestamp:   timestamppb.New(time.Unix(0, 0)),
 				Internal:    false,
 			},
@@ -442,7 +483,7 @@ func (e *ChequeEngine) importDescriptorForWallet(ctx context.Context, bitcoind c
 	// Check if import was successful
 	if len(resp.Msg.Responses) > 0 {
 		if resp.Msg.Responses[0].Success {
-			log.Debug().Str("wallet_id", walletId).Msg("cheque descriptor imported successfully")
+			log.Debug().Str("wallet_id", walletId).Uint32("range_end", rangeEnd).Msg("cheque descriptor imported successfully")
 		} else {
 			if len(resp.Msg.Responses[0].Warnings) > 0 {
 				log.Warn().Str("wallet_id", walletId).Strs("warnings", resp.Msg.Responses[0].Warnings).Msg("cheque descriptor import had warnings")
@@ -453,7 +494,39 @@ func (e *ChequeEngine) importDescriptorForWallet(ctx context.Context, bitcoind c
 		}
 	}
 
+	e.rangeMu.Lock()
+	e.importedRanges[walletId] = rangeEnd
+	e.rangeMu.Unlock()
+
 	return nil
+}
+
+// EnsureDescriptorRange makes sure Bitcoin Core's cheque wallet watches index,
+// re-importing the wallet's descriptor with a wider range when index falls
+// outside the range last imported for it. Cheque indexes are unbounded, so
+// without this a long-lived wallet hands out addresses Core never sees funded.
+func (e *ChequeEngine) EnsureDescriptorRange(ctx context.Context, walletId string, index uint32) error {
+	e.rangeMu.Lock()
+	imported, ok := e.importedRanges[walletId]
+	e.rangeMu.Unlock()
+
+	if !ok {
+		// The startup import hasn't reported back yet. It always covers at
+		// least the first step, so assume that much rather than forcing a
+		// rescan on every first cheque of a session.
+		imported = chequeDescriptorRangeStep
+	}
+
+	if index <= imported {
+		return nil
+	}
+
+	bitcoind, err := e.bitcoind.Get(ctx)
+	if err != nil {
+		return fmt.Errorf("get bitcoind: %w", err)
+	}
+
+	return e.importDescriptorForWallet(ctx, bitcoind, walletId)
 }
 
 // recoverChequesOnUnlock waits for wallet unlock and bitcoind, then recovers cheques for all wallets

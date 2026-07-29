@@ -183,7 +183,7 @@ func (s *Server) buildRuntime(ctx context.Context, conf config.Config) (*Runtime
 		rt.walletEngine.SetOrchestratorClient(orchClient)
 	}
 
-	rt.chequeEngine = engines.NewChequeEngine(rt.walletEngine, rt.chainParams, s.Bitcoind)
+	rt.chequeEngine = engines.NewChequeEngine(rt.db, rt.walletEngine, rt.chainParams, s.Bitcoind)
 	walletAdapter := engines.NewWalletAdapter(rt.walletEngine)
 	timestampLogger := log.With().Str("component", "timestamp").Logger()
 	rt.timestampEngine = engines.NewTimestampEngine(rt.db, timestampLogger, walletAdapter, s.Bitcoind)
