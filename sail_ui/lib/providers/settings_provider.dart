@@ -185,6 +185,10 @@ class SettingsProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Serializes font scale writes. Dragging the slider fires a change per snap
+  /// point, and unordered writes let a stale value win.
+  Future<void> _fontScaleWrites = Future<void>.value();
+
   /// Update font scale setting
   Future<void> updateFontScale(double value) async {
     final snapped = nearestSailFontScale(value);
@@ -193,17 +197,28 @@ class SettingsProvider extends ChangeNotifier {
     }
 
     final previous = fontScale;
-    try {
-      fontScale = snapped;
-      notifyListeners();
-      final setting = FontScaleSetting(newValue: snapped);
-      await clientSettings.setValue(setting);
-    } catch (e) {
-      fontScale = previous;
-      notifyListeners();
-      log.e('Failed to update font scale', error: e);
-      rethrow;
-    }
+    fontScale = snapped;
+    notifyListeners();
+
+    final write = _fontScaleWrites.then((_) async {
+      if (fontScale != snapped) {
+        return; // superseded mid-drag
+      }
+      try {
+        await clientSettings.setValue(FontScaleSetting(newValue: snapped));
+      } catch (e) {
+        if (fontScale == snapped) {
+          fontScale = previous;
+          notifyListeners();
+        }
+        log.e('Failed to update font scale', error: e);
+        rethrow;
+      }
+    });
+
+    // Keep the chain usable after a failed write, but still surface it here.
+    _fontScaleWrites = write.catchError((_) {});
+    return write;
   }
 
   /// Load bitcoin unit setting

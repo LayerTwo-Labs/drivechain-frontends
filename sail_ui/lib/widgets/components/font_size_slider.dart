@@ -27,10 +27,10 @@ class FontSizeSlider extends StatelessWidget {
               final scale = sailFontScales[newIndex.round()];
               if (scale == settingsProvider.fontScale) return;
 
+              // Apply before persisting: dragging queues a serialized write per
+              // snap point, and the text must not wait on disk to rescale.
+              await SailApp.of(context).loadFontScale(scale);
               await settingsProvider.updateFontScale(scale);
-              if (context.mounted) {
-                await SailApp.of(context).loadFontScale(scale);
-              }
             },
           ),
         ),
