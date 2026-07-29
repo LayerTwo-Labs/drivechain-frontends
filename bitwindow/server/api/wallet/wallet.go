@@ -2336,6 +2336,23 @@ func (s *Server) CheckChequeFunding(ctx context.Context, c *connect.Request[pb.C
 			return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to update funding: %w", err))
 		}
 
+		// Funds are visible at the address again, so any recorded sweep no longer
+		// holds: the spend was reorged out, replaced or evicted, or the address
+		// was funded anew. Drop the stale markers, otherwise the cheque keeps
+		// rendering as swept and DeleteCheque's guard lets real money go.
+		if cheque.SweptTxid != nil {
+			log.Warn().
+				Int64("id", c.Msg.Id).
+				Str("address", cheque.Address).
+				Str("swept_txid", *cheque.SweptTxid).
+				Msg("swept cheque has UTXOs again - clearing sweep markers")
+
+			if err := cheques.ClearSwept(ctx, s.database, walletId, c.Msg.Id); err != nil {
+				log.Error().Err(err).Msg("failed to clear cheque sweep markers")
+				return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to clear swept: %w", err))
+			}
+		}
+
 		log.Info().
 			Int64("id", c.Msg.Id).
 			Str("address", cheque.Address).

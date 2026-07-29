@@ -312,6 +312,72 @@ func TestCheckChequeFunding_PartialFunding(t *testing.T) {
 	require.Len(t, resp.Msg.FundedTxids, 1, "should still track the partial txid")
 }
 
+// TestCheckChequeFunding_ClearsStaleSweep covers the sweep that never stuck:
+// the cheque was marked swept, then the spending tx was reorged out (or
+// replaced, or evicted) and the funding UTXO is visible again. A poll that
+// sees live funds must drop the sweep markers, otherwise the UI keeps calling
+// the cheque swept and DeleteCheque's guard waves through a row that still
+// controls real money.
+func TestCheckChequeFunding_ClearsStaleSweep(t *testing.T) {
+	t.Parallel()
+
+	ctrl := gomock.NewController(t)
+	db := database.Test(t)
+
+	chequeAddr := "tb1qreorgedsweeptestaddr000000000000000000"
+	fundingTxid := "cafe0000cafe0000cafe0000cafe0000cafe0000cafe0000cafe0000cafe0000"
+
+	mockBitcoind := mocks.NewMockBitcoinServiceClient(ctrl)
+	mockBitcoind.EXPECT().
+		ListWallets(gomock.Any(), gomock.Any()).
+		Return(&connect.Response[bitcoindv1alpha.ListWalletsResponse]{
+			Msg: &bitcoindv1alpha.ListWalletsResponse{Wallets: []string{"cheque_watch"}},
+		}, nil).AnyTimes()
+
+	// The original funding UTXO is unspent again after the sweep dropped out.
+	expectChequeListUnspent(mockBitcoind, chequeAddr, []*bitcoindv1alpha.UnspentOutput{
+		{
+			Txid:          fundingTxid,
+			Vout:          0,
+			Address:       chequeAddr,
+			Amount:        1.0,
+			Confirmations: 2,
+		},
+	})
+
+	cli := walletv1connect.NewWalletServiceClient(
+		apitests.API(t, db, apitests.WithBitcoind(mockBitcoind)),
+	)
+
+	chequeID, err := cheques.Create(context.Background(), db, testWalletID, 0, 100_000_000, chequeAddr)
+	require.NoError(t, err)
+	require.NoError(t, cheques.UpdateFunding(context.Background(), db, testWalletID, chequeID,
+		[]string{fundingTxid}, 100_000_000))
+	require.NoError(t, cheques.UpdateSwept(context.Background(), db, testWalletID, chequeID,
+		"5weep00005weep00005weep00005weep00005weep00005weep00005weep0000"))
+
+	resp, err := cli.CheckChequeFunding(context.Background(), connect.NewRequest(&walletv1.CheckChequeFundingRequest{
+		WalletId: testWalletID,
+		Id:       chequeID,
+	}))
+	require.NoError(t, err)
+	require.True(t, resp.Msg.Funded)
+
+	// The sweep markers must be gone: the money is spendable again.
+	persisted, err := cheques.Get(context.Background(), db, testWalletID, chequeID)
+	require.NoError(t, err)
+	require.Nil(t, persisted.SweptTxid, "stale sweep txid must be cleared once funding reappears")
+	require.Nil(t, persisted.SweptAt)
+
+	// And with the sweep cleared, the deletion guard re-engages.
+	_, err = cli.DeleteCheque(context.Background(), connect.NewRequest(&walletv1.DeleteChequeRequest{
+		WalletId: testWalletID,
+		Id:       chequeID,
+	}))
+	require.Error(t, err)
+	require.Equal(t, connect.CodeFailedPrecondition, connect.CodeOf(err))
+}
+
 // TestCheckChequeFunding_PollAfterSend mirrors the Flutter check_provider
 // polling loop: after the user taps "Fund Check", the wallet broadcasts a tx
 // and the UI polls CheckChequeFunding every few seconds. The first poll may

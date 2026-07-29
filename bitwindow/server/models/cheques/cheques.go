@@ -224,6 +224,33 @@ func UpdateSwept(ctx context.Context, db *sql.DB, walletID string, id int64, txi
 	return nil
 }
 
+// ClearSwept removes a cheque's sweep markers. Used when funding is observed
+// at the address again — a sweep spend that has vanished (reorg, RBF, mempool
+// eviction) must not keep the cheque marked as swept, because that would let
+// still-spendable funds be deleted.
+func ClearSwept(ctx context.Context, db *sql.DB, walletID string, id int64) error {
+	result, err := db.ExecContext(ctx, `
+		UPDATE cheques
+		SET swept_txid = NULL, swept_at = NULL
+		WHERE wallet_id = ? AND id = ?
+	`, walletID, id)
+
+	if err != nil {
+		return fmt.Errorf("failed to clear swept: %w", err)
+	}
+
+	rows, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("failed to get rows affected: %w", err)
+	}
+
+	if rows == 0 {
+		return sql.ErrNoRows
+	}
+
+	return nil
+}
+
 // GetNextIndex returns the next available cheque index for a specific wallet
 func GetNextIndex(ctx context.Context, db *sql.DB, walletID string) (uint32, error) {
 	var maxIndex sql.NullInt64
