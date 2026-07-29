@@ -85,3 +85,60 @@ func TestProcessWalletTransactions_DedupIsPerWallet(t *testing.T) {
 
 	require.Equal(t, 2, received)
 }
+
+// Bitcoin Core hands back one row per wallet-relevant output, so a transaction
+// paying us twice arrives as two rows sharing a txid. The notification has to
+// carry the summed amount, not just whichever output came first.
+func TestProcessWalletTransactions_SumsOutputsWithSameTxid(t *testing.T) {
+	ctx := context.Background()
+	db := database.Test(t)
+
+	engine := NewNotificationEngine(db, nil)
+	events := engine.Subscribe(ctx)
+
+	const txid = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+	engine.processWalletTransactions(ctx, "wallet-a", []*corepb.GetTransactionResponse{
+		{Txid: txid, Amount: 1.5, Confirmations: 0},
+		{Txid: txid, Amount: 0.25, Confirmations: 0},
+	})
+
+	select {
+	case event := <-events:
+		require.Equal(t, notificationv1.TransactionEvent_TYPE_RECEIVED, event.GetTransaction().GetType())
+		require.Equal(t, txid, event.GetTransaction().GetTxid())
+		require.Equal(t, uint64(175_000_000), event.GetTransaction().GetAmountSats())
+	default:
+		t.Fatal("expected a received notification")
+	}
+
+	select {
+	case event := <-events:
+		t.Fatalf("expected a single notification, got another: %v", event)
+	default:
+	}
+}
+
+// A self-send inside one wallet produces both a send and a receive row for the
+// same txid. Summing across directions nets them to zero and notifies nothing.
+func TestProcessWalletTransactions_SelfSendIsNotNettedToZero(t *testing.T) {
+	ctx := context.Background()
+	db := database.Test(t)
+
+	engine := NewNotificationEngine(db, nil)
+	events := engine.Subscribe(ctx)
+
+	const txid = "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+	engine.processWalletTransactions(ctx, "wallet-a", []*corepb.GetTransactionResponse{
+		{Txid: txid, Amount: -1.0, Confirmations: 0},
+		{Txid: txid, Amount: 1.0, Confirmations: 0},
+	})
+
+	select {
+	case event := <-events:
+		require.Equal(t, notificationv1.TransactionEvent_TYPE_SENT, event.GetTransaction().GetType())
+		require.Equal(t, txid, event.GetTransaction().GetTxid())
+		require.Equal(t, uint64(100_000_000), event.GetTransaction().GetAmountSats())
+	default:
+		t.Fatal("expected a sent notification, got none")
+	}
+}
