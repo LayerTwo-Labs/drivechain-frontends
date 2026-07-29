@@ -423,7 +423,7 @@ func (m *BitcoinConfManager) UpdateDataDir(dataDir string, forNetwork Network) e
 	cleanDataDir := strings.ReplaceAll(strings.TrimSpace(dataDir), "\\ ", " ")
 
 	group := DatadirGroupForNetwork(forNetwork)
-	m.Config.SetGroupDatadir(group, cleanDataDir)
+	m.Config.SetGroupDatadir(group, GroupDatadirForPick(group, cleanDataDir))
 
 	// The picker validated the path the user chose; forknet's slot is stored a
 	// level deeper than that, and bitcoind refuses to boot on a missing datadir.

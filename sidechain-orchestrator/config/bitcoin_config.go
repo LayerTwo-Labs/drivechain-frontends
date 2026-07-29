@@ -84,7 +84,7 @@ func ParseBitcoinConfig(content string) *BitcoinConfig {
 				group := DatadirGroup(strings.TrimSpace(rest[:eq]))
 				path := strings.TrimSpace(rest[eq+1:])
 				if group == DatadirGroupDefault || group == DatadirGroupForknet || group == DatadirGroupDrynet {
-					config.DatadirSlots[group] = NormalizeGroupDatadir(group, path)
+					config.DatadirSlots[group] = path
 				}
 			}
 			continue
@@ -299,23 +299,20 @@ func (c *BitcoinConfig) SetGroupDatadir(g DatadirGroup, path string) {
 		delete(c.DatadirSlots, g)
 		return
 	}
-	c.DatadirSlots[g] = NormalizeGroupDatadir(g, path)
+	c.DatadirSlots[g] = path
 }
 
-// NormalizeGroupDatadir appends the group's own directory component to a
-// non-default group's datadir. Forknet and drynet run on chain=main, so Core
-// writes blocks/ and chainstate/ to the root of the datadir exactly like
-// mainnet — the suffix is the only thing keeping the three chains from loading
-// each other's data. Idempotent.
-func NormalizeGroupDatadir(g DatadirGroup, path string) string {
-	if g == DatadirGroupDefault || path == "" {
-		return path
+// GroupDatadirForPick maps a directory the user just chose to the datadir a
+// group should use. Forknet and drynet run on chain=main, so Core writes
+// blocks/ and chainstate/ to the root of the datadir exactly like mainnet;
+// the extra component is the only thing keeping the three chains off each
+// other. Apply this once, where the path enters the config — slots already on
+// disk are stored verbatim, so re-applying it would redirect a live datadir.
+func GroupDatadirForPick(g DatadirGroup, picked string) string {
+	if g == DatadirGroupDefault || picked == "" {
+		return picked
 	}
-	clean := filepath.Clean(path)
-	if filepath.Base(clean) == string(g) {
-		return clean
-	}
-	return filepath.Join(clean, string(g))
+	return filepath.Join(filepath.Clean(picked), string(g))
 }
 
 func removeFromOrder(order []string, key string) []string {

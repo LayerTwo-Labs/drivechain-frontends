@@ -35,15 +35,15 @@ func TestSwapNetwork_CrossGroupPreservesDatadirs(t *testing.T) {
 	// Mainnet → drynet (cross-group): live datadir flips to drynet's,
 	// default slot retains the mainnet datadir.
 	require.NoError(t, o.SwapNetwork(context.Background(), config.NetworkDrynet))
-	require.Equal(t, "/tmp/group-drynet/drynet", o.BitcoinConf.Config.GetSetting("datadir"))
+	require.Equal(t, "/tmp/group-drynet", o.BitcoinConf.Config.GetSetting("datadir"))
 	require.Equal(t, "/tmp/group-default", o.BitcoinConf.Config.GetGroupDatadir(config.DatadirGroupDefault))
-	require.Equal(t, "/tmp/group-drynet/drynet", o.BitcoinConf.Config.GetGroupDatadir(config.DatadirGroupDrynet))
+	require.Equal(t, "/tmp/group-drynet", o.BitcoinConf.Config.GetGroupDatadir(config.DatadirGroupDrynet))
 
 	// Drynet → mainnet (cross-group back): default slot restored, drynet
 	// slot retained for the next swap.
 	require.NoError(t, o.SwapNetwork(context.Background(), config.NetworkMainnet))
 	require.Equal(t, "/tmp/group-default", o.BitcoinConf.Config.GetSetting("datadir"))
-	require.Equal(t, "/tmp/group-drynet/drynet", o.BitcoinConf.Config.GetGroupDatadir(config.DatadirGroupDrynet))
+	require.Equal(t, "/tmp/group-drynet", o.BitcoinConf.Config.GetGroupDatadir(config.DatadirGroupDrynet))
 }
 
 // Regression: mainnet, forknet and drynet all run on chain=main, so Core
@@ -56,9 +56,9 @@ func TestSwapNetwork_SamePickedPathKeepsChainsApart(t *testing.T) {
 	require.NotNil(t, o.BitcoinConf)
 
 	const picked = "/tmp/one-and-only-datadir"
-	o.BitcoinConf.Config.SetGroupDatadir(config.DatadirGroupDefault, picked)
-	o.BitcoinConf.Config.SetGroupDatadir(config.DatadirGroupForknet, picked)
-	o.BitcoinConf.Config.SetGroupDatadir(config.DatadirGroupDrynet, picked)
+	for _, g := range []config.DatadirGroup{config.DatadirGroupDefault, config.DatadirGroupForknet, config.DatadirGroupDrynet} {
+		o.BitcoinConf.Config.SetGroupDatadir(g, config.GroupDatadirForPick(g, picked))
+	}
 	o.BitcoinConf.Config.SetSetting("datadir", picked)
 	require.NoError(t, o.BitcoinConf.SaveConfig())
 	require.NoError(t, o.BitcoinConf.LoadConfig(false))
