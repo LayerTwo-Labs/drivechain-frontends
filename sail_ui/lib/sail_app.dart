@@ -43,6 +43,7 @@ class SailAppState extends State<SailApp> with WidgetsBindingObserver {
 
   late SailThemeData theme;
   SailThemeStyle _style = SailThemeStyle.sail;
+  double _fontScale = 1.0;
 
   @override
   void initState() {
@@ -82,6 +83,8 @@ class SailAppState extends State<SailApp> with WidgetsBindingObserver {
     final fontSetting = await settings.getValue(FontSetting());
     final font = fontSetting.value;
 
+    _fontScale = (await settings.getValue(FontScaleSetting())).value;
+
     _style = await _resolveStyle();
     theme = _themeDataFromTheme(resolvedTheme, widget.dense, font, _style);
 
@@ -100,6 +103,14 @@ class SailAppState extends State<SailApp> with WidgetsBindingObserver {
 
     setState(() {});
     await settings.setValue(FontSetting(newValue: fontToLoad));
+  }
+
+  Future<void> loadFontScale([double? scaleToLoad]) async {
+    scaleToLoad ??= (await settings.getValue(FontScaleSetting())).value;
+
+    _fontScale = nearestSailFontScale(scaleToLoad);
+    setState(() {});
+    await settings.setValue(FontScaleSetting(newValue: _fontScale));
   }
 
   /// Apply a theme style. With no argument, resolves the global style from
@@ -145,7 +156,13 @@ class SailAppState extends State<SailApp> with WidgetsBindingObserver {
 
   @override
   Widget build(BuildContext context) {
-    return SailTheme(data: theme, child: widget.builder(context));
+    return SailTheme(
+      data: theme,
+      child: MediaQuery(
+        data: MediaQuery.of(context).copyWith(textScaler: TextScaler.linear(_fontScale)),
+        child: widget.builder(context),
+      ),
+    );
   }
 
   @override

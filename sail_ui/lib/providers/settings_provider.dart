@@ -17,6 +17,7 @@ class SettingsProvider extends ChangeNotifier {
   bool useTestSidechains = true;
   BitwindowSettings bitwindowSettings = BitwindowSettings();
   SailFontValues font = SailFontValues.inter;
+  double fontScale = 1.0;
   BitcoinUnit bitcoinUnit = BitcoinUnit.btc;
 
   // Convenience getters for individual bitwindow settings
@@ -38,6 +39,7 @@ class SettingsProvider extends ChangeNotifier {
     await _loadUseTestSidechains();
     await _loadBitwindowSettings();
     await _loadFont();
+    await _loadFontScale();
     await _loadBitcoinUnit();
   }
 
@@ -171,6 +173,35 @@ class SettingsProvider extends ChangeNotifier {
       font = font == SailFontValues.inter ? SailFontValues.ibmMono : SailFontValues.inter;
       notifyListeners();
       log.e('Failed to update font', error: e);
+      rethrow;
+    }
+  }
+
+  /// Load font scale setting
+  Future<void> _loadFontScale() async {
+    final setting = FontScaleSetting();
+    final loadedSetting = await clientSettings.getValue(setting);
+    fontScale = loadedSetting.value;
+    notifyListeners();
+  }
+
+  /// Update font scale setting
+  Future<void> updateFontScale(double value) async {
+    final snapped = nearestSailFontScale(value);
+    if (fontScale == snapped) {
+      return;
+    }
+
+    final previous = fontScale;
+    try {
+      fontScale = snapped;
+      notifyListeners();
+      final setting = FontScaleSetting(newValue: snapped);
+      await clientSettings.setValue(setting);
+    } catch (e) {
+      fontScale = previous;
+      notifyListeners();
+      log.e('Failed to update font scale', error: e);
       rethrow;
     }
   }

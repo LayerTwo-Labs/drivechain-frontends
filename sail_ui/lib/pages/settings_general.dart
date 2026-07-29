@@ -114,6 +114,16 @@ class _SettingsGeneralState extends State<SettingsGeneral> {
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            SailText.primary15('Font Size'),
+            const SailSpacing(SailStyleValues.padding08),
+            FontSizeSlider(settingsProvider: _settingsProvider),
+            const SailSpacing(4),
+            SailText.secondary12('Scale text across the whole app'),
+          ],
+        ),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
             SailText.primary15('Bitcoin Unit'),
             const SailSpacing(SailStyleValues.padding08),
             SailDropdownButton<BitcoinUnit>(
