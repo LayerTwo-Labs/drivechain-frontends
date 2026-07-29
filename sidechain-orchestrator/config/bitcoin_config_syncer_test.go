@@ -197,6 +197,37 @@ func TestWipeStaleChainDataUsesTargetNetworkSlot(t *testing.T) {
 	require.NoError(t, err, "mainnet chain data must be untouched")
 }
 
+// For the active group the live datadir= is what bitcoind is running on. A
+// hand-edited live path with a stale slot left behind must wipe the chain the
+// node actually booted, not the one the slot remembers.
+func TestWipeStaleChainDataPrefersLiveDatadirForActiveGroup(t *testing.T) {
+	tmpDir := t.TempDir()
+	staleDir := filepath.Join(tmpDir, "stale-slot")
+	liveDir := filepath.Join(tmpDir, "hand-edited")
+	seed := func(path string) {
+		require.NoError(t, os.MkdirAll(filepath.Dir(path), 0o755))
+		require.NoError(t, os.WriteFile(path, []byte("stub"), 0o644))
+	}
+	seed(filepath.Join(staleDir, "signet", "blocks", "blk00000.dat"))
+	seed(filepath.Join(liveDir, "signet", "blocks", "blk00000.dat"))
+
+	m := newTestManager(tmpDir)
+	m.Network = NetworkSignet
+	m.Config.SetSetting("chain", "signet")
+	m.Config.SetGroupDatadir(DatadirGroupDefault, staleDir)
+	m.Config.SetSetting("datadir", liveDir)
+
+	m.wipeStaleChainData(m.Config, []Network{NetworkSignet})
+
+	require.Eventually(t, func() bool {
+		_, err := os.Stat(filepath.Join(liveDir, "signet", "blocks"))
+		return os.IsNotExist(err)
+	}, 5*time.Second, 20*time.Millisecond, "the chain bitcoind actually booted must be wiped")
+
+	_, err := os.Stat(filepath.Join(staleDir, "signet", "blocks", "blk00000.dat"))
+	require.NoError(t, err, "the stale slot's directory must be left alone")
+}
+
 // The wipe runs entirely in the background and returns immediately so a large,
 // slow, or unresponsive datadir can't block orchestrator startup — that stall
 // is what kept the RPC listener down past the frontend's readiness timeout. The
@@ -673,7 +704,7 @@ func TestSwapAdoptsManuallyEditedDatadirIntoSlot(t *testing.T) {
 	require.NoError(t, m.UpdateNetwork(NetworkDrynet))
 
 	require.Equal(t, "/manually/edited", m.Config.GetGroupDatadir(DatadirGroupDefault))
-	require.Equal(t, "/drynet/path/drynet", m.Config.GetSetting("datadir"))
+	require.Equal(t, "/drynet/path", m.Config.GetSetting("datadir"))
 }
 
 // Within-group swap (mainnet ↔ signet) leaves datadir= alone and writes no
@@ -873,7 +904,7 @@ chain=signet
 
 	out := c.Serialize()
 	require.Contains(t, out, "# bitwindow-datadir-default=/Volumes/SSD/bitcoin\n")
-	require.Contains(t, out, "# bitwindow-datadir-drynet=/new/drynet/path/drynet\n")
+	require.Contains(t, out, "# bitwindow-datadir-drynet=/new/drynet/path\n")
 
 	// Stable order: default before drynet
 	defIdx := strings.Index(out, "# bitwindow-datadir-default=")
@@ -883,13 +914,13 @@ chain=signet
 	// Re-parse, values stable
 	c2 := ParseBitcoinConfig(out)
 	require.Equal(t, "/Volumes/SSD/bitcoin", c2.GetGroupDatadir(DatadirGroupDefault))
-	require.Equal(t, "/new/drynet/path/drynet", c2.GetGroupDatadir(DatadirGroupDrynet))
+	require.Equal(t, "/new/drynet/path", c2.GetGroupDatadir(DatadirGroupDrynet))
 }
 
 func TestDatadirSlotsClearedOnEmpty(t *testing.T) {
 	c := NewBitcoinConfig()
 	c.SetGroupDatadir(DatadirGroupDrynet, "/some/path")
-	require.Equal(t, "/some/path/drynet", c.GetGroupDatadir(DatadirGroupDrynet))
+	require.Equal(t, "/some/path", c.GetGroupDatadir(DatadirGroupDrynet))
 	c.SetGroupDatadir(DatadirGroupDrynet, "")
 	require.Equal(t, "", c.GetGroupDatadir(DatadirGroupDrynet))
 
@@ -905,31 +936,62 @@ func TestDatadirGroupForNetwork(t *testing.T) {
 	require.Equal(t, DatadirGroupDrynet, DatadirGroupForNetwork(NetworkDrynet))
 }
 
-func TestNormalizeGroupDatadir(t *testing.T) {
-	require.Equal(t, "/x/forknet", NormalizeGroupDatadir(DatadirGroupForknet, "/x"))
-	require.Equal(t, "/x/forknet", NormalizeGroupDatadir(DatadirGroupForknet, "/x/forknet"), "idempotent")
-	require.Equal(t, "/x/forknet", NormalizeGroupDatadir(DatadirGroupForknet, "/x/forknet/"), "trailing slash")
-	require.Equal(t, "/x", NormalizeGroupDatadir(DatadirGroupDefault, "/x"), "default group untouched")
-	require.Equal(t, "", NormalizeGroupDatadir(DatadirGroupForknet, ""))
+func TestGroupDatadirForPick(t *testing.T) {
+	require.Equal(t, "/x/forknet", GroupDatadirForPick(DatadirGroupForknet, "/x"))
+	require.Equal(t, "/x/drynet", GroupDatadirForPick(DatadirGroupDrynet, "/x"))
+	require.Equal(t, "/x/forknet", GroupDatadirForPick(DatadirGroupForknet, "/x/"), "trailing slash")
+	require.Equal(t, "/x", GroupDatadirForPick(DatadirGroupDefault, "/x"), "default group untouched")
+	require.Equal(t, "", GroupDatadirForPick(DatadirGroupForknet, ""))
+
+	// A directory that merely looks normalized still gets its own component,
+	// so picking /data/forknet for both mainnet and forknet cannot collide.
+	require.Equal(t, "/data/forknet/forknet", GroupDatadirForPick(DatadirGroupForknet, "/data/forknet"))
+	require.NotEqual(t,
+		GroupDatadirForPick(DatadirGroupDefault, "/data/forknet"),
+		GroupDatadirForPick(DatadirGroupForknet, "/data/forknet"),
+	)
+}
+
+// Slots already on disk record the real Core datadir. Rewriting them on parse
+// would point the next swap at a new empty directory and strand the chain and
+// wallets at the old path.
+func TestParsePreservesExistingSlotPaths(t *testing.T) {
+	c := ParseBitcoinConfig(`# bitwindow-datadir-default=/mnt/main
+# bitwindow-datadir-forknet=/mnt/fork-chain
+# bitwindow-datadir-drynet=/mnt/dry-chain
+
+chain=main
+`)
+	require.Equal(t, "/mnt/main", c.GetGroupDatadir(DatadirGroupDefault))
+	require.Equal(t, "/mnt/fork-chain", c.GetGroupDatadir(DatadirGroupForknet))
+	require.Equal(t, "/mnt/dry-chain", c.GetGroupDatadir(DatadirGroupDrynet))
+
+	require.Equal(t, c.Serialize(), ParseBitcoinConfig(c.Serialize()).Serialize(), "round-trip must be stable")
 }
 
 // The whole point of the suffix: even when the user points both groups at the
 // same folder, forknet and mainnet resolve to different bitcoind datadirs.
 func TestSameSlotPathStillSeparatesForknetFromMainnet(t *testing.T) {
+	const picked = "/Volumes/BTC"
 	c := NewBitcoinConfig()
-	c.SetGroupDatadir(DatadirGroupDefault, "/Volumes/BTC")
-	c.SetGroupDatadir(DatadirGroupForknet, "/Volumes/BTC")
+	for _, g := range []DatadirGroup{DatadirGroupDefault, DatadirGroupForknet, DatadirGroupDrynet} {
+		c.SetGroupDatadir(g, GroupDatadirForPick(g, picked))
+	}
 
 	mainnet := c.GetGroupDatadir(DatadirGroupDefault)
 	forknet := c.GetGroupDatadir(DatadirGroupForknet)
+	drynet := c.GetGroupDatadir(DatadirGroupDrynet)
 
-	require.NotEqual(t, mainnet, forknet)
+	require.Equal(t, picked, mainnet)
 	require.Equal(t, "/Volumes/BTC/forknet", forknet)
+	require.Equal(t, "/Volumes/BTC/drynet", drynet)
 
-	require.NotEqual(t,
-		BitcoinCoreDirs.DatadirNetwork(NetworkMainnet, mainnet),
-		BitcoinCoreDirs.DatadirNetwork(NetworkForknet, forknet),
-	)
+	resolved := map[string]bool{
+		BitcoinCoreDirs.DatadirNetwork(NetworkMainnet, mainnet): true,
+		BitcoinCoreDirs.DatadirNetwork(NetworkForknet, forknet): true,
+		BitcoinCoreDirs.DatadirNetwork(NetworkDrynet, drynet):   true,
+	}
+	require.Len(t, resolved, 3, "no two chain=main networks may share bitcoind's datadir")
 }
 
 // ---------------------------------------------------------------------------

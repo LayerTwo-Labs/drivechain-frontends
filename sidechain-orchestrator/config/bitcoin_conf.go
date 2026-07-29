@@ -409,11 +409,13 @@ func (m *BitcoinConfManager) wipeStaleChainData(config *BitcoinConfig, networks 
 // skips the wipe rather than guessing.
 func (m *BitcoinConfManager) wipeDatadirForNetwork(config *BitcoinConfig, n Network) (string, bool) {
 	group := DatadirGroupForNetwork(n)
+	if group == DatadirGroupForNetwork(m.Network) {
+		// The live line is what bitcoind is actually running on, so it wins
+		// over a slot that a manual edit may have left stale.
+		return config.GetEffectiveSetting("datadir", CoreSectionForNetwork(n)), true
+	}
 	if slot := config.GetGroupDatadir(group); slot != "" {
 		return slot, true
-	}
-	if group == DatadirGroupForNetwork(m.Network) {
-		return config.GetEffectiveSetting("datadir", CoreSectionForNetwork(n)), true
 	}
 	return "", false
 }
