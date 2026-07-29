@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	neturl "net/url"
 	"strings"
 
 	"connectrpc.com/connect"
@@ -897,6 +898,18 @@ type coreRPCResult struct {
 	} `json:"error"`
 }
 
+// validCoreWalletName rejects wallet names that can't safely be a single URL
+// path segment. Escaping alone already neutralises them, but a name carrying a
+// separator means the caller (an imported multisig group, a raw RPC request)
+// handed us something malformed — fail loudly rather than silently target a
+// wallet the user didn't ask for.
+func validCoreWalletName(wallet string) bool {
+	if wallet == "." || wallet == ".." {
+		return false
+	}
+	return !strings.ContainsAny(wallet, "/?#")
+}
+
 func (h *Handler) callCoreRPC(ctx context.Context, method, paramsJSON, wallet string) (json.RawMessage, error) {
 	if h.orch.BitcoinConf == nil {
 		return nil, connect.NewError(connect.CodeUnavailable, fmt.Errorf("bitcoin conf not loaded"))
@@ -915,12 +928,17 @@ func (h *Handler) callCoreRPC(ctx context.Context, method, paramsJSON, wallet st
 	}
 	body := []byte(fmt.Sprintf(`{"jsonrpc":"1.0","id":"orchestratord","method":%q,"params":%s}`, method, paramsJSON))
 
-	url := fmt.Sprintf("http://localhost:%d", port)
+	endpoint := fmt.Sprintf("http://localhost:%d", port)
 	if wallet != "" {
-		url = strings.TrimRight(url, "/") + "/wallet/" + wallet
+		if !validCoreWalletName(wallet) {
+			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid wallet name %q", wallet))
+		}
+		// PathEscape keeps the name a single path segment — an unescaped name
+		// containing '?', '#' or '/' would re-route the call to another wallet.
+		endpoint = strings.TrimRight(endpoint, "/") + "/wallet/" + neturl.PathEscape(wallet)
 	}
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(body))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, endpoint, bytes.NewReader(body))
 	if err != nil {
 		return nil, fmt.Errorf("build %s request: %w", method, err)
 	}
