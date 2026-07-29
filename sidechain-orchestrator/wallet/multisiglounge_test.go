@@ -812,3 +812,54 @@ func TestParseColdcardAndCaravanConfig(t *testing.T) {
 	require.Len(t, cos2, 3)
 	assert.Equal(t, "48'/1'/0'/4'", cos2[2].OriginPath)
 }
+
+// TestValidateDescriptor reads single-sig and multisig descriptors into their
+// policies, and rejects incomplete ones.
+func TestValidateDescriptor(t *testing.T) {
+	group, _ := loungeTestKeys(t)
+	k := group.Keys
+
+	single := fmt.Sprintf("wpkh([%s/%s]%s/0/*)", k[0].Fingerprint, k[0].OriginPath, k[0].Xpub)
+	p, err := ValidateDescriptor(single)
+	require.NoError(t, err)
+	assert.False(t, p.Multisig)
+	assert.Equal(t, "wpkh", p.ScriptType)
+	assert.Equal(t, 1, p.M)
+	assert.Equal(t, 1, p.N)
+	require.Len(t, p.Cosigners, 1)
+	assert.Equal(t, k[0].Xpub, p.Cosigners[0].Xpub)
+	assert.Equal(t, k[0].Fingerprint, p.Cosigners[0].Fingerprint)
+	assert.Equal(t, k[0].OriginPath, p.Cosigners[0].OriginPath)
+
+	for _, tc := range []struct{ descriptor, scriptType string }{
+		{fmt.Sprintf("pkh(%s)", k[0].Xpub), "pkh"},
+		{fmt.Sprintf("sh(wpkh(%s))", k[0].Xpub), "sh-wpkh"},
+		{fmt.Sprintf("tr(%s)", k[0].Xpub), "tr"},
+	} {
+		p, err := ValidateDescriptor(tc.descriptor)
+		require.NoError(t, err)
+		assert.False(t, p.Multisig)
+		assert.Equal(t, tc.scriptType, p.ScriptType)
+	}
+
+	receive, _, err := BuildMultisigLoungeDescriptorsTyped(group, "sh-wsh")
+	require.NoError(t, err)
+	p, err = ValidateDescriptor(receive)
+	require.NoError(t, err)
+	assert.True(t, p.Multisig)
+	assert.Equal(t, "sh-wsh", p.ScriptType)
+	assert.Equal(t, 2, p.M)
+	assert.Equal(t, 3, p.N)
+	require.Len(t, p.Cosigners, 3)
+
+	for _, bad := range []string{
+		"",
+		"wpkh(Keystore1)",
+		fmt.Sprintf("wsh(sortedmulti(4,%s,%s,%s))", k[0].Xpub, k[1].Xpub, k[2].Xpub),
+		fmt.Sprintf("combo(%s)", k[0].Xpub),
+		fmt.Sprintf("wpkh(%s)#aaaaaaaa", k[0].Xpub),
+	} {
+		_, err := ValidateDescriptor(bad)
+		assert.Error(t, err, "descriptor %q must be rejected", bad)
+	}
+}

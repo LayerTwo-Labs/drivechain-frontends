@@ -31,6 +31,15 @@ service WalletManagerService {
   // ParseMultisigConfig parses a descriptor or a wallet-config file (Coldcard
   // text / Sparrow / Specter / Caravan JSON) into an m-of-n policy + cosigners.
   rpc ParseMultisigConfig(ParseMultisigConfigRequest) returns (ParseMultisigConfigResponse);
+  // ValidateDescriptor reads an output descriptor — single-sig or sortedmulti —
+  // into the script policy it encodes.
+  rpc ValidateDescriptor(ValidateDescriptorRequest) returns (ValidateDescriptorResponse);
+  // ValidateDerivationPath canonicalises a BIP32 derivation path, or fails with
+  // the reason it is unusable.
+  rpc ValidateDerivationPath(ValidateDerivationPathRequest) returns (ValidateDerivationPathResponse);
+  // ListDerivationPaths returns the standard account paths for a policy on the
+  // network this backend runs.
+  rpc ListDerivationPaths(ListDerivationPathsRequest) returns (ListDerivationPathsResponse);
 
   // Core wallet management
   rpc CreateBitcoinCoreWallet(CreateBitcoinCoreWalletRequest) returns (CreateBitcoinCoreWalletResponse);
@@ -444,6 +453,50 @@ message ParseMultisigConfigResponse {
   repeated ParsedCosigner cosigners = 4;
 }
 
+message ValidateDescriptorRequest {
+  // An output descriptor, single-sig or sortedmulti.
+  string descriptor = 1;
+}
+
+message ValidateDerivationPathRequest {
+  string path = 1;
+  bool multisig = 2;
+}
+
+message ValidateDerivationPathResponse {
+  string normalized = 1; // canonical form, e.g. "m/48'/1'/0'/2'"
+  // Script type this path is the standard account path for; empty for a custom
+  // path, which is still valid.
+  string script_type = 2;
+}
+
+message ListDerivationPathsRequest {
+  // single-sig: "legacy" | "nested-segwit" | "native-segwit" | "taproot";
+  // multisig: "sh" | "sh-wsh" | "wsh" | "tr".
+  string script_type = 1;
+  bool multisig = 2;
+  uint32 account = 3;
+}
+
+message DerivationPathOption {
+  string label = 1;
+  string path = 2;
+}
+
+message ListDerivationPathsResponse {
+  repeated DerivationPathOption options = 1;
+  string default_path = 2; // the path used when a keystore sets none
+}
+
+message ValidateDescriptorResponse {
+  bool multisig = 1;
+  // wpkh | sh-wpkh | pkh | tr, or wsh | sh-wsh | sh | tr when multisig.
+  string script_type = 2;
+  uint32 m = 3; // signatures required
+  uint32 n = 4; // total keys
+  repeated ParsedCosigner keys = 5;
+}
+
 // ============================================================================
 // Core Wallet Management
 // ============================================================================
@@ -702,6 +755,9 @@ message DeriveKeystoreRequest {
   string script_type = 5;
   bool multisig = 6;
   uint32 account = 7;
+  // Full account path, e.g. "m/48'/1'/0'/2'". Empty uses the standard path for
+  // the script type.
+  string derivation_path = 8;
 }
 
 message DeriveKeystoreResponse {

@@ -31,19 +31,26 @@ type DerivedKeystore struct {
 }
 
 // DeriveKeystore turns a keystore's intent (source, script type, single/multi,
-// account) into its account key material.
+// account, optional path override) into its account key material.
 func DeriveKeystore(
 	ctx context.Context,
 	src KeystoreSource,
 	scriptType string,
 	multisig bool,
 	account uint32,
+	derivationPath string,
 	net *chaincfg.Params,
 ) (DerivedKeystore, error) {
 	// Path for mnemonic and device sources; a raw key carries its own origin.
 	path, singleKind, err := keystorePath(scriptType, multisig, account, net)
 	if err != nil {
 		return DerivedKeystore{}, err
+	}
+	if strings.TrimSpace(derivationPath) != "" {
+		path, err = ParseKeystorePath(derivationPath)
+		if err != nil {
+			return DerivedKeystore{}, err
+		}
 	}
 	originPath := strings.TrimPrefix(path, "m/")
 

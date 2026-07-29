@@ -137,7 +137,7 @@ func (h *WalletHandler) DeriveKeystore(
 		sel := hwiSelector(msg.Device)
 		src.Device = &sel
 	}
-	out, err := wallet.DeriveKeystore(ctx, src, msg.ScriptType, msg.Multisig, msg.Account, h.engine.Network())
+	out, err := wallet.DeriveKeystore(ctx, src, msg.ScriptType, msg.Multisig, msg.Account, msg.DerivationPath, h.engine.Network())
 	if err != nil {
 		return nil, rpcError(err)
 	}

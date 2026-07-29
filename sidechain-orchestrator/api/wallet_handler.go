@@ -488,6 +488,54 @@ func (h *WalletHandler) ParseMultisigConfig(ctx context.Context, req *connect.Re
 	}), nil
 }
 
+func (h *WalletHandler) ValidateDescriptor(ctx context.Context, req *connect.Request[pb.ValidateDescriptorRequest]) (*connect.Response[pb.ValidateDescriptorResponse], error) {
+	policy, err := wallet.ValidateDescriptor(req.Msg.Descriptor_)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+	}
+	keys := make([]*pb.ParsedCosigner, 0, len(policy.Cosigners))
+	for _, c := range policy.Cosigners {
+		keys = append(keys, &pb.ParsedCosigner{
+			Xpub:        c.Xpub,
+			Fingerprint: c.Fingerprint,
+			OriginPath:  c.OriginPath,
+		})
+	}
+	return connect.NewResponse(&pb.ValidateDescriptorResponse{
+		Multisig:   policy.Multisig,
+		ScriptType: policy.ScriptType,
+		M:          uint32(policy.M),
+		N:          uint32(policy.N),
+		Keys:       keys,
+	}), nil
+}
+
+func (h *WalletHandler) ValidateDerivationPath(ctx context.Context, req *connect.Request[pb.ValidateDerivationPathRequest]) (*connect.Response[pb.ValidateDerivationPathResponse], error) {
+	normalized, err := wallet.ParseKeystorePath(req.Msg.Path)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+	}
+	return connect.NewResponse(&pb.ValidateDerivationPathResponse{
+		Normalized: normalized,
+		ScriptType: wallet.KeystorePathScriptType(normalized, req.Msg.Multisig),
+	}), nil
+}
+
+func (h *WalletHandler) ListDerivationPaths(ctx context.Context, req *connect.Request[pb.ListDerivationPathsRequest]) (*connect.Response[pb.ListDerivationPathsResponse], error) {
+	if err := h.requireEngine(); err != nil {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, err)
+	}
+	options, defaultPath, err := wallet.StandardDerivationPaths(req.Msg.ScriptType, req.Msg.Multisig, req.Msg.Account, h.engine.Network())
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+	}
+	pbOptions := make([]*pb.DerivationPathOption, 0, len(options))
+	for _, o := range options {
+		pbOptions = append(pbOptions, &pb.DerivationPathOption{Label: o.Label, Path: o.Path})
+	}
+	return connect.NewResponse(&pb.ListDerivationPathsResponse{Options: pbOptions, DefaultPath: defaultPath}), nil
+}
+
 func (h *WalletHandler) SignPsbtWithCosigner(ctx context.Context, req *connect.Request[pb.SignPsbtWithCosignerRequest]) (*connect.Response[pb.SignPsbtWithCosignerResponse], error) {
 	if err := h.requireEngine(); err != nil {
 		return nil, connect.NewError(connect.CodeFailedPrecondition, err)
