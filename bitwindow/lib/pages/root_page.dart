@@ -32,6 +32,7 @@ import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:sail_ui/pages/router.gr.dart';
+import 'package:sail_ui/pages/router.gr.dart' as sail_routes;
 import 'package:sail_ui/sail_ui.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:window_manager/window_manager.dart';
@@ -152,30 +153,15 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
 
   List<CommandItem> _getMenuCommands() {
     return [
-      // Your Wallet
+      // Wallet
       CommandItem(
         label: 'Create New Wallet',
-        category: 'Your Wallet',
+        category: 'Wallet',
         onSelected: () => GetIt.I.get<AppRouter>().push(CreateAnotherWalletRoute()),
       ),
       CommandItem(
-        label: 'Address Book',
-        category: 'Your Wallet',
-        onSelected: () => GetIt.I.get<WindowProvider>().open(SubWindowTypes.addressbook),
-      ),
-      CommandItem(
-        label: 'HD Wallet Explorer',
-        category: 'Your Wallet',
-        onSelected: () => GetIt.I.get<WindowProvider>().open(SubWindowTypes.hdWallet),
-      ),
-      CommandItem(
-        label: 'Backup Wallet',
-        category: 'Your Wallet',
-        onSelected: () => GetIt.I.get<AppRouter>().push(BackupWalletRoute(appName: 'bitwindow')),
-      ),
-      CommandItem(
-        label: 'Restore Wallet',
-        category: 'Your Wallet',
+        label: 'Import Wallet Seed',
+        category: 'Wallet',
         onSelected: () => GetIt.I.get<AppRouter>().push(
           SailCreateWalletRoute(
             homeRoute: const RootRoute(),
@@ -183,6 +169,31 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
             onRestoreFromFile: restoreBitwindowWalletFromFile,
           ),
         ),
+      ),
+      CommandItem(
+        label: 'Backup',
+        category: 'Wallet',
+        onSelected: () => GetIt.I.get<AppRouter>().push(BackupWalletRoute(appName: 'bitwindow')),
+      ),
+      CommandItem(
+        label: 'Restore',
+        category: 'Wallet',
+        onSelected: () => GetIt.I.get<AppRouter>().push(
+          sail_routes.RestoreWalletRoute(
+            bootBinaries: (log) async => rebootBitwindowBackend(log),
+            binariesToStop: [BitcoinCore(), Enforcer(), BitWindow()],
+          ),
+        ),
+      ),
+      CommandItem(
+        label: 'Address Book',
+        category: 'Banking',
+        onSelected: () => GetIt.I.get<WindowProvider>().open(SubWindowTypes.addressbook),
+      ),
+      CommandItem(
+        label: 'HD Wallet Explorer',
+        category: 'Crypto Tools',
+        onSelected: () => GetIt.I.get<WindowProvider>().open(SubWindowTypes.hdWallet),
       ),
 
       // Banking
@@ -295,8 +306,8 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
         onSelected: () => GetIt.I.get<WindowProvider>().open(SubWindowTypes.converter),
       ),
       CommandItem(
-        label: 'CPU Mining',
-        category: 'Crypto Tools',
+        label: 'Solo Mine',
+        category: 'Work for Bitcoin',
         onSelected: () => showThemedDialog(context: context, builder: (context) => const CpuMiningDialog()),
       ),
 
@@ -461,7 +472,7 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
 
             // Now our actual menus start
             PlatformMenu(
-              label: 'Your Wallet',
+              label: 'Wallet',
               menus: [
                 PlatformMenuItemGroup(
                   members: [
@@ -473,24 +484,45 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
                         );
                       },
                     ),
+                    PlatformMenuItem(
+                      label: 'Import Wallet Seed',
+                      onSelected: () async {
+                        await GetIt.I.get<AppRouter>().push(
+                          SailCreateWalletRoute(
+                            homeRoute: const RootRoute(),
+                            initialScreen: WelcomeScreen.restore,
+                            onRestoreFromFile: restoreBitwindowWalletFromFile,
+                          ),
+                        );
+                      },
+                    ),
                   ],
                 ),
                 PlatformMenuItemGroup(
                   members: [
                     PlatformMenuItem(
-                      label: 'Address Book',
-                      onSelected: () {
-                        final windowProvider = GetIt.I.get<WindowProvider>();
-                        windowProvider.open(SubWindowTypes.addressbook);
+                      label: 'Backup',
+                      onSelected: () async {
+                        await GetIt.I.get<AppRouter>().push(
+                          BackupWalletRoute(appName: 'bitwindow'),
+                        );
                       },
                     ),
                     PlatformMenuItem(
-                      label: 'HD Wallet Explorer',
-                      onSelected: () {
-                        final windowProvider = GetIt.I.get<WindowProvider>();
-                        windowProvider.open(SubWindowTypes.hdWallet);
+                      label: 'Restore',
+                      onSelected: () async {
+                        await GetIt.I.get<AppRouter>().push(
+                          sail_routes.RestoreWalletRoute(
+                            bootBinaries: (log) async => rebootBitwindowBackend(log),
+                            binariesToStop: [BitcoinCore(), Enforcer(), BitWindow()],
+                          ),
+                        );
                       },
                     ),
+                  ],
+                ),
+                PlatformMenuItemGroup(
+                  members: [
                     if (!_isWalletEncrypted)
                       PlatformMenuItem(
                         label: 'Encrypt Wallet',
@@ -518,26 +550,6 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
                           GetIt.I.get<AppRouter>().push(RemoveEncryptionRoute());
                         },
                       ),
-                    PlatformMenuItem(
-                      label: 'Backup Wallet',
-                      onSelected: () async {
-                        await GetIt.I.get<AppRouter>().push(
-                          BackupWalletRoute(appName: 'bitwindow'),
-                        );
-                      },
-                    ),
-                    PlatformMenuItem(
-                      label: 'Restore Wallet',
-                      onSelected: () async {
-                        await GetIt.I.get<AppRouter>().push(
-                          SailCreateWalletRoute(
-                            homeRoute: const RootRoute(),
-                            initialScreen: WelcomeScreen.restore,
-                            onRestoreFromFile: restoreBitwindowWalletFromFile,
-                          ),
-                        );
-                      },
-                    ),
                   ],
                 ),
               ],
@@ -578,6 +590,13 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
                         if (WalletPage.tabKey.currentState != null) {
                           WalletPage.tabKey.currentState!.setIndex(0, null);
                         }
+                      },
+                    ),
+                    PlatformMenuItem(
+                      label: 'Address Book',
+                      onSelected: () {
+                        final windowProvider = GetIt.I.get<WindowProvider>();
+                        windowProvider.open(SubWindowTypes.addressbook);
                       },
                     ),
                     PlatformMenuItem(
@@ -836,9 +855,10 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
                       },
                     ),
                     PlatformMenuItem(
-                      label: 'CPU Mining',
-                      onSelected: () async {
-                        await showThemedDialog(context: context, builder: (context) => const CpuMiningDialog());
+                      label: 'HD Wallet Explorer',
+                      onSelected: () {
+                        final windowProvider = GetIt.I.get<WindowProvider>();
+                        windowProvider.open(SubWindowTypes.hdWallet);
                       },
                     ),
                   ],
@@ -963,12 +983,22 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
                                 final log = GetIt.I.get<Logger>();
                                 log.i('Switching to wallet: $walletId');
 
+                                // Resolve anything the backend needs from the
+                                // user before the spinner goes up.
+                                final String switchDataDir;
+                                try {
+                                  switchDataDir = await _walletReader.resolveSwitchRequirements(context, walletId);
+                                } on NetworkChangeDeclined {
+                                  return;
+                                }
+
                                 // Show loading immediately and schedule the actual switch
                                 setState(() => _isWalletSwitching = true);
 
                                 // Run the switch in a microtask to allow UI to update first
                                 await Future.microtask(() async {
                                   try {
+                                    if (!mounted) return;
                                     // Clear previous wallet data FIRST
                                     GetIt.I.get<TransactionProvider>().clear();
                                     GetIt.I.get<BalanceProvider>().clear();
@@ -976,9 +1006,9 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
                                     // Step 1: Switch the active wallet (updates UI immediately)
                                     log.i('Step 1: Switching active wallet');
                                     await _walletReader
-                                        .switchWallet(walletId)
+                                        .switchWallet(walletId, dataDir: switchDataDir)
                                         .timeout(
-                                          const Duration(seconds: 5),
+                                          const Duration(minutes: 5),
                                           onTimeout: () => throw TimeoutException('switchWallet timed out'),
                                         );
                                     log.i('Step 1: Complete');
