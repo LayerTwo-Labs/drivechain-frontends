@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:auto_route/auto_route.dart';
-import 'package:bitwindow/dialogs/base58_decoder_dialog.dart';
 import 'package:bitwindow/pages/settings/settings_network.dart';
 import 'package:bitwindow/pages/settings_page.dart';
 import 'package:bitwindow/pages/wallet/wallet_page.dart';
@@ -289,6 +288,11 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
         label: 'Hash Calculator',
         category: 'Crypto Tools',
         onSelected: () => GetIt.I.get<WindowProvider>().open(SubWindowTypes.hashCalculator),
+      ),
+      CommandItem(
+        label: 'Converter',
+        category: 'Crypto Tools',
+        onSelected: () => GetIt.I.get<WindowProvider>().open(SubWindowTypes.converter),
       ),
       CommandItem(
         label: 'CPU Mining',
@@ -825,12 +829,10 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
                       onSelected: null,
                     ),
                     PlatformMenuItem(
-                      label: 'Base58Check Decoder',
+                      label: 'Converter',
                       onSelected: () {
-                        showThemedDialog(
-                          context: context,
-                          builder: (context) => const Base58DecoderDialog(),
-                        );
+                        final windowProvider = GetIt.I.get<WindowProvider>();
+                        windowProvider.open(SubWindowTypes.converter);
                       },
                     ),
                     PlatformMenuItem(
@@ -961,22 +963,12 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
                                 final log = GetIt.I.get<Logger>();
                                 log.i('Switching to wallet: $walletId');
 
-                                // Resolve anything the backend needs from the
-                                // user before the spinner goes up.
-                                final String switchDataDir;
-                                try {
-                                  switchDataDir = await _walletReader.resolveSwitchRequirements(context, walletId);
-                                } on NetworkChangeDeclined {
-                                  return;
-                                }
-
                                 // Show loading immediately and schedule the actual switch
                                 setState(() => _isWalletSwitching = true);
 
                                 // Run the switch in a microtask to allow UI to update first
                                 await Future.microtask(() async {
                                   try {
-                                    if (!mounted) return;
                                     // Clear previous wallet data FIRST
                                     GetIt.I.get<TransactionProvider>().clear();
                                     GetIt.I.get<BalanceProvider>().clear();
@@ -984,9 +976,9 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
                                     // Step 1: Switch the active wallet (updates UI immediately)
                                     log.i('Step 1: Switching active wallet');
                                     await _walletReader
-                                        .switchWallet(walletId, dataDir: switchDataDir)
+                                        .switchWallet(walletId)
                                         .timeout(
-                                          const Duration(minutes: 5),
+                                          const Duration(seconds: 5),
                                           onTimeout: () => throw TimeoutException('switchWallet timed out'),
                                         );
                                     log.i('Step 1: Complete');

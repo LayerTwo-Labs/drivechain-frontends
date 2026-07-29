@@ -36,6 +36,7 @@ import 'package:bitwindow/providers/coin_selection_provider.dart';
 import 'package:bitwindow/routing/router.dart';
 import 'package:bitwindow/widgets/address_list.dart';
 import 'package:bitwindow/widgets/drynet_upgrade_banner.dart';
+import 'package:bitwindow/widgets/converter_window.dart';
 import 'package:bitwindow/widgets/hash_calculator_modal.dart';
 // App shell needs MaterialApp + ThemeData; Colors/Scaffold serve the
 // ancestor-independent error boundary. Everything below uses sail_ui.
@@ -422,6 +423,9 @@ void runMultiWindow(String argumentsStr, Logger log, Directory applicationDir, F
 
     case SubWindowTypes.hashCalculatorId:
       child = const HashCalculator();
+      break;
+    case SubWindowTypes.converterId:
+      child = const ConverterWindow();
       break;
     case SubWindowTypes.hdWalletId:
       child = const HDWalletTab();
@@ -1005,6 +1009,14 @@ class SubWindowTypes {
     // set width to half of screen size, full height
     defaultSize: Size(double.maxFinite / 2, double.maxFinite),
     defaultPosition: Offset(double.maxFinite / 2, 0),
+  );
+
+  static const String converterId = 'converter';
+  static var converter = SailWindow(
+    identifier: converterId,
+    name: 'Converter',
+    defaultSize: Size(1000, 800),
+    defaultPosition: Offset(120, 120),
   );
 
   static const String hdWalletId = 'hd_wallet';
