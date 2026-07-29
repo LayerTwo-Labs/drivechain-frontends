@@ -390,7 +390,9 @@ class _MultisigConfigStepState extends State<MultisigConfigStep> {
 
     if (_isSingle) {
       final k = _keystores.first;
-      final descriptor = (k.descriptor ?? '').isNotEmpty ? k.descriptor : k.xpub;
+      // A bare xpub carries no script type, so hand over the policy this screen
+      // shows rather than the key alone.
+      final descriptor = (k.descriptor ?? '').isNotEmpty ? k.descriptor : _descriptorPreview;
       widget.onConfigured(
         WalletSetupResult.single(
           (k.mnemonic ?? '').isNotEmpty
