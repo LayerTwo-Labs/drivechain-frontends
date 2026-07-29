@@ -140,6 +140,8 @@ func TestWipeChainDataPreservesWallets(t *testing.T) {
 // wipe mainnet's directory and deleted its blocks/ and chainstate/.
 func TestWipeStaleChainDataNeverTouchesAnotherNetworksDatadir(t *testing.T) {
 	tmpDir := t.TempDir()
+	t.Setenv("HOME", tmpDir)
+	t.Setenv("USERPROFILE", tmpDir)
 	mainnetDir := filepath.Join(tmpDir, "mainnet-chain")
 	seed := func(path string) {
 		require.NoError(t, os.MkdirAll(filepath.Dir(path), 0o755))
@@ -154,7 +156,7 @@ func TestWipeStaleChainDataNeverTouchesAnotherNetworksDatadir(t *testing.T) {
 	m.Config.SetSetting("datadir", mainnetDir)
 	m.Config.SetGroupDatadir(DatadirGroupDefault, mainnetDir)
 
-	m.wipeStaleChainData(m.Config, []Network{NetworkForknet})
+	require.NoError(t, m.wipeStaleChainData(m.Config, []Network{NetworkForknet}))
 
 	// The wipe is asynchronous; give a buggy one time to land.
 	require.Never(t, func() bool {
@@ -186,7 +188,7 @@ func TestWipeStaleChainDataUsesTargetNetworkSlot(t *testing.T) {
 	m.Config.SetGroupDatadir(DatadirGroupDefault, mainnetDir)
 	m.Config.SetGroupDatadir(DatadirGroupForknet, forknetDir)
 
-	m.wipeStaleChainData(m.Config, []Network{NetworkForknet})
+	require.NoError(t, m.wipeStaleChainData(m.Config, []Network{NetworkForknet}))
 
 	require.Eventually(t, func() bool {
 		_, err := os.Stat(filepath.Join(forknetDir, "blocks"))
@@ -195,6 +197,40 @@ func TestWipeStaleChainDataUsesTargetNetworkSlot(t *testing.T) {
 
 	_, err := os.Stat(filepath.Join(mainnetDir, "blocks", "blk00000.dat"))
 	require.NoError(t, err, "mainnet chain data must be untouched")
+}
+
+// On the boot that runs migrations m.Network is still the CLI/build seed, so
+// trusting it pointed a signet wipe at the live forknet datadir.
+func TestWipeStaleChainDataResolvesActiveGroupFromConfig(t *testing.T) {
+	tmpDir := t.TempDir()
+	t.Setenv("HOME", tmpDir)
+	t.Setenv("USERPROFILE", tmpDir)
+	forknetDir := filepath.Join(tmpDir, "forknet-chain")
+	signetDir := filepath.Join(tmpDir, "signet-slot")
+	seed := func(path string) {
+		require.NoError(t, os.MkdirAll(filepath.Dir(path), 0o755))
+		require.NoError(t, os.WriteFile(path, []byte("stub"), 0o644))
+	}
+	seed(filepath.Join(forknetDir, "blocks", "blk00000.dat"))
+	seed(filepath.Join(signetDir, "signet", "blocks", "blk00000.dat"))
+
+	m := newTestManager(tmpDir)
+	m.Network = NetworkSignet
+	m.Config.SetSetting("chain", "main")
+	m.Config.SetSetting("drivechain", "1", "main")
+	m.Config.SetSetting("datadir", forknetDir)
+	m.Config.SetGroupDatadir(DatadirGroupForknet, forknetDir)
+	m.Config.SetGroupDatadir(DatadirGroupDefault, signetDir)
+
+	require.NoError(t, m.wipeStaleChainData(m.Config, []Network{NetworkSignet}))
+
+	require.Eventually(t, func() bool {
+		_, err := os.Stat(filepath.Join(signetDir, "signet", "blocks"))
+		return os.IsNotExist(err)
+	}, 5*time.Second, 20*time.Millisecond, "signet's recorded slot should be wiped")
+
+	_, err := os.Stat(filepath.Join(forknetDir, "blocks", "blk00000.dat"))
+	require.NoError(t, err, "the live forknet datadir must be untouched")
 }
 
 // For the active group the live datadir= is what bitcoind is running on. A
@@ -217,7 +253,7 @@ func TestWipeStaleChainDataPrefersLiveDatadirForActiveGroup(t *testing.T) {
 	m.Config.SetGroupDatadir(DatadirGroupDefault, staleDir)
 	m.Config.SetSetting("datadir", liveDir)
 
-	m.wipeStaleChainData(m.Config, []Network{NetworkSignet})
+	require.NoError(t, m.wipeStaleChainData(m.Config, []Network{NetworkSignet}))
 
 	require.Eventually(t, func() bool {
 		_, err := os.Stat(filepath.Join(liveDir, "signet", "blocks"))

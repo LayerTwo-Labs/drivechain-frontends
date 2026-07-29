@@ -1,6 +1,7 @@
 package config
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -326,7 +327,9 @@ func (m *BitcoinConfManager) loadOrCreateConfigContent() (string, error) {
 		config := ParseBitcoinConfig(content)
 
 		if migrated, wipeNetworks := RunBitcoinConfMigrations(config); migrated {
-			m.wipeStaleChainData(config, wipeNetworks)
+			if err := m.wipeStaleChainData(config, wipeNetworks); err != nil {
+				m.log.Warn().Err(err).Msg("stale chain data left in place")
+			}
 			content = config.Serialize()
 			if err := os.WriteFile(confPath, []byte(content), 0644); err != nil {
 				m.log.Error().Err(err).Msg("failed to write migrated config")
@@ -378,46 +381,33 @@ func (m *BitcoinConfManager) loadOrCreateConfigContent() (string, error) {
 // wipeStaleChainData deletes chain state invalidated by a migration. Runs
 // before the bumped config version is persisted, so a crash mid-wipe retries
 // the migration (and wipe) on the next boot.
-func (m *BitcoinConfManager) wipeStaleChainData(config *BitcoinConfig, networks []Network) {
+func (m *BitcoinConfManager) wipeStaleChainData(config *BitcoinConfig, networks []Network) error {
 	if len(networks) == 0 {
-		return
+		return nil
 	}
 	if m.getConfigFileInfo().hasPrivateConf {
 		// That user's chain data follows their own bitcoin.conf, not ours.
-		m.log.Warn().Msg("skipping chain data wipe - user bitcoin.conf takes precedence")
-		return
+		return errors.New("wipe chain data: user bitcoin.conf takes precedence")
 	}
+	// m.Network is still the CLI/build seed here, so the live network comes from
+	// the config being migrated.
+	activeGroup := DatadirGroupForNetwork(NetworkFromConfig(config))
+
 	for _, n := range networks {
-		override, ok := m.wipeDatadirForNetwork(config, n)
-		if !ok {
-			m.log.Warn().Str("network", string(n)).
-				Msg("skipping chain data wipe - no datadir recorded for that network")
-			continue
+		group := DatadirGroupForNetwork(n)
+
+		// `datadir=` holds the active group's dir, so other groups read their slot.
+		// An empty slot leaves the wipe on the platform default datadir.
+		override := config.GetGroupDatadir(group)
+		if group == activeGroup {
+			override = config.GetEffectiveSetting("datadir", CoreSectionForNetwork(n))
 		}
+
 		m.log.Info().Str("network", string(n)).Str("datadir", override).
 			Msg("migration invalidated chain data, wiping")
 		WipeChainData(n, override, m.log)
 	}
-}
-
-// wipeDatadirForNetwork resolves the datadir holding n's chain data. The live
-// `datadir=` line belongs to whichever group is active right now, so reading it
-// for an inactive network points the wipe at the wrong chain — a forknet wipe
-// run while the user sits on mainnet resolved to mainnet's datadir and deleted
-// its blocks/ and chainstate/. Only the active group may fall back to the live
-// value; an inactive group with no recorded slot returns false so the caller
-// skips the wipe rather than guessing.
-func (m *BitcoinConfManager) wipeDatadirForNetwork(config *BitcoinConfig, n Network) (string, bool) {
-	group := DatadirGroupForNetwork(n)
-	if group == DatadirGroupForNetwork(m.Network) {
-		// The live line is what bitcoind is actually running on, so it wins
-		// over a slot that a manual edit may have left stale.
-		return config.GetEffectiveSetting("datadir", CoreSectionForNetwork(n)), true
-	}
-	if slot := config.GetGroupDatadir(group); slot != "" {
-		return slot, true
-	}
-	return "", false
+	return nil
 }
 
 type configFileInfo struct {
