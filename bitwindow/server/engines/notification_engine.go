@@ -220,11 +220,52 @@ func (e *NotificationEngine) checkWalletTransactions(ctx context.Context) error 
 	return nil
 }
 
+// walletTx is one transaction's wallet-relevant outputs in a single direction, summed.
+type walletTx struct {
+	txid          string
+	amount        float64
+	confirmations uint32
+	txTime        time.Time
+}
+
+// aggregateByTxid folds Core's per-output rows into one entry per txid and
+// direction; sends and receives stay apart so a self-send can't net to zero.
+func aggregateByTxid(transactions []*corepb.GetTransactionResponse) []walletTx {
+	type bucket struct {
+		txid     string
+		received bool
+	}
+
+	aggregated := make([]walletTx, 0, len(transactions))
+	seen := make(map[bucket]int, len(transactions))
+	for _, tx := range transactions {
+		key := bucket{txid: tx.Txid, received: tx.Amount >= 0}
+		if idx, ok := seen[key]; ok {
+			aggregated[idx].amount += tx.Amount
+			continue
+		}
+
+		var txTime time.Time
+		if t := tx.GetTime(); t != nil {
+			txTime = t.AsTime()
+		}
+
+		seen[key] = len(aggregated)
+		aggregated = append(aggregated, walletTx{
+			txid:          tx.Txid,
+			amount:        tx.Amount,
+			confirmations: uint32(tx.Confirmations),
+			txTime:        txTime,
+		})
+	}
+	return aggregated
+}
+
 func (e *NotificationEngine) processWalletTransactions(ctx context.Context, walletName string, transactions []*corepb.GetTransactionResponse) {
 	log := zerolog.Ctx(ctx)
-	for _, tx := range transactions {
-		txid := tx.Txid
-		confirmations := uint32(tx.Confirmations)
+	for _, tx := range aggregateByTxid(transactions) {
+		txid := tx.txid
+		confirmations := tx.confirmations
 
 		// The same txid can show up in several loaded wallets, so scope the
 		// dedup key by wallet. Otherwise the first wallet we process swallows
@@ -250,7 +291,7 @@ func (e *NotificationEngine) processWalletTransactions(ctx context.Context, wall
 			continue
 		}
 
-		if txTime := tx.GetTime(); txTime != nil && time.Since(txTime.AsTime()) > notificationBacklog {
+		if !tx.txTime.IsZero() && time.Since(tx.txTime) > notificationBacklog {
 			if !notified {
 				if err := notifications.MarkNotified(ctx, e.db, notifications.EventTypeTransaction, eventID); err != nil {
 					log.Warn().Err(err).Str("txid", txid).Msg("mark backlog transaction notified")
@@ -266,7 +307,7 @@ func (e *NotificationEngine) processWalletTransactions(ctx context.Context, wall
 		}
 
 		switch {
-		case !notified && tx.Amount > 0:
+		case !notified && tx.amount > 0:
 			// Received transaction
 			event := &notificationv1.WatchResponse{
 				Timestamp: timestamppb.Now(),
@@ -274,7 +315,7 @@ func (e *NotificationEngine) processWalletTransactions(ctx context.Context, wall
 					Transaction: &notificationv1.TransactionEvent{
 						Type:          notificationv1.TransactionEvent_TYPE_RECEIVED,
 						Txid:          txid,
-						AmountSats:    uint64(math.Round(tx.Amount * 100000000)),
+						AmountSats:    uint64(math.Round(tx.amount * 100000000)),
 						Confirmations: confirmations,
 					},
 				},
@@ -285,10 +326,10 @@ func (e *NotificationEngine) processWalletTransactions(ctx context.Context, wall
 			}
 			log.Info().
 				Str("txid", txid).
-				Float64("amount", tx.Amount).
+				Float64("amount", tx.amount).
 				Msg("received transaction notification sent")
 
-		case !notified && tx.Amount < 0:
+		case !notified && tx.amount < 0:
 			// Sent transaction
 			event := &notificationv1.WatchResponse{
 				Timestamp: timestamppb.Now(),
@@ -296,7 +337,7 @@ func (e *NotificationEngine) processWalletTransactions(ctx context.Context, wall
 					Transaction: &notificationv1.TransactionEvent{
 						Type:          notificationv1.TransactionEvent_TYPE_SENT,
 						Txid:          txid,
-						AmountSats:    uint64(math.Round(-tx.Amount * 100000000)),
+						AmountSats:    uint64(math.Round(-tx.amount * 100000000)),
 						Confirmations: confirmations,
 					},
 				},
@@ -307,7 +348,7 @@ func (e *NotificationEngine) processWalletTransactions(ctx context.Context, wall
 			}
 			log.Info().
 				Str("txid", txid).
-				Float64("amount", -tx.Amount).
+				Float64("amount", -tx.amount).
 				Msg("sent transaction notification sent")
 
 		case !notified:
@@ -324,7 +365,7 @@ func (e *NotificationEngine) processWalletTransactions(ctx context.Context, wall
 					Transaction: &notificationv1.TransactionEvent{
 						Type:          notificationv1.TransactionEvent_TYPE_CONFIRMED,
 						Txid:          txid,
-						AmountSats:    uint64(math.Round(tx.Amount * 100000000)),
+						AmountSats:    uint64(math.Round(tx.amount * 100000000)),
 						Confirmations: confirmations,
 					},
 				},
