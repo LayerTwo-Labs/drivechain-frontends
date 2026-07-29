@@ -1,11 +1,56 @@
 #include "flutter_window.h"
 
+#include <flutter/method_channel.h>
+#include <flutter/standard_method_codec.h>
+
+#include <memory>
 #include <optional>
 
+#include "daemon_job.h"
 #include "flutter/generated_plugin_registrant.h"
 #include "desktop_multi_window/desktop_multi_window_plugin.h"
 #include "url_launcher_windows/url_launcher_windows.h"
 #include "window_manager/window_manager_plugin.h"
+
+namespace {
+
+// Lets Dart hand each freshly spawned daemon to the job. Main window only —
+// sub-windows spawn nothing.
+void RegisterDaemonJobChannel(flutter::FlutterEngine* engine) {
+  auto channel =
+      std::make_shared<flutter::MethodChannel<flutter::EncodableValue>>(
+          engine->messenger(), "bitwindow/daemon_job",
+          &flutter::StandardMethodCodec::GetInstance());
+  channel->SetMethodCallHandler(
+      [channel](const flutter::MethodCall<flutter::EncodableValue>& call,
+                std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>>
+                    result) {
+        if (call.method_name() != "bind") {
+          result->NotImplemented();
+          return;
+        }
+        const auto* args =
+            std::get_if<flutter::EncodableMap>(call.arguments());
+        if (args == nullptr) {
+          result->Error("bad_args", "expected a map with a pid");
+          return;
+        }
+        const auto pid = args->find(flutter::EncodableValue("pid"));
+        if (pid == args->end()) {
+          result->Error("bad_args", "expected a map with a pid");
+          return;
+        }
+        const auto* value = std::get_if<int32_t>(&pid->second);
+        if (value == nullptr) {
+          result->Error("bad_args", "pid must be an int");
+          return;
+        }
+        result->Success(flutter::EncodableValue(
+            AssignPidToDaemonJob(static_cast<DWORD>(*value))));
+      });
+}
+
+}  // namespace
 
 FlutterWindow::FlutterWindow(const flutter::DartProject& project)
     : project_(project) {}
@@ -40,6 +85,7 @@ bool FlutterWindow::OnCreate() {
     return false;
   }
   RegisterPlugins(flutter_controller_->engine());
+  RegisterDaemonJobChannel(flutter_controller_->engine());
   DesktopMultiWindowSetWindowCreatedCallback([](void *controller) {
     auto *flutter_view_controller =
         reinterpret_cast<flutter::FlutterViewController *>(controller);

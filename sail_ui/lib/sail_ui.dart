@@ -169,6 +169,7 @@ export 'wallet/encryption_service.dart';
 export 'providers/parentchain/bmm_provider.dart';
 export 'providers/binaries/binary_provider.dart';
 export 'providers/binaries/managers/pid_file_manager.dart';
+export 'providers/binaries/managers/daemon_job.dart';
 export 'providers/binaries/managers/process_manager.dart';
 export 'providers/sidechain/address_provider.dart';
 export 'providers/sidechain/notification_provider.dart';
