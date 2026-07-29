@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
@@ -166,22 +167,168 @@ class _MultisigConfigStepState extends State<MultisigConfigStep> {
   bool _building = false;
   String? _error;
   late List<CosignerKeystore> _keystores;
+  final TextEditingController _descriptor = TextEditingController();
+  final FocusNode _descriptorFocus = FocusNode();
+  final TextEditingController _path = TextEditingController();
+  final FocusNode _pathFocus = FocusNode();
+  List<wmpb.DerivationPathOption> _pathOptions = [];
+  String? _pathError;
 
   @override
   void initState() {
     super.initState();
     _keystores = List.generate(_total, (i) => CosignerKeystore(owner: 'Keystore ${i + 1}'));
+    _descriptor.text = _descriptorPreview;
+    _descriptorFocus.addListener(() {
+      if (!_descriptorFocus.hasFocus) setState(() => _descriptor.text = _descriptorPreview);
+    });
+    unawaited(_loadPathOptions());
     // Warm up hardware-device enumeration so the picker opens without a spinner.
     prefetchHardwareDevices();
   }
 
-  void _onSliderChanged(RangeValues v) {
+  @override
+  void dispose() {
+    _descriptor.dispose();
+    _descriptorFocus.dispose();
+    _path.dispose();
+    _pathFocus.dispose();
+    super.dispose();
+  }
+
+  // The standard paths for the selected keystore's policy, prefilling the
+  // derivation of every slot still waiting for a key.
+  Future<void> _loadPathOptions() async {
+    final index = _selectedTab;
+    final wmpb.ListDerivationPathsResponse paths;
+    try {
+      paths = await GetIt.I.get<OrchestratorRPC>().wallet.listDerivationPaths(
+        scriptType: _isSingle ? _singleHotScriptType() : _scriptType,
+        multisig: !_isSingle,
+        account: index,
+      );
+    } catch (e) {
+      if (mounted) setState(() => _error = 'Failed to load derivation paths: ${extractConnectException(e)}');
+      return;
+    }
+    if (!mounted || _selectedTab != index) return;
     setState(() {
+      _pathOptions = paths.options;
+      final k = _keystores[index];
+      if (k.derivationPath.isEmpty) k.derivationPath = paths.defaultPath;
+      if (!_pathFocus.hasFocus) _path.text = k.derivationPath;
+      _pathError = null;
+    });
+  }
+
+  Future<void> _onPathChanged(int index, String raw) async {
+    final k = _keystores[index];
+    k.derivationPath = raw;
+    final wmpb.ValidateDerivationPathResponse path;
+    try {
+      path = await GetIt.I.get<OrchestratorRPC>().wallet.validateDerivationPath(raw, multisig: !_isSingle);
+    } catch (e) {
+      if (mounted) setState(() => _pathError = extractConnectException(e));
+      return;
+    }
+    if (!mounted) return;
+    // A single-sig wallet is its one keystore, so a standard path names its
+    // script type.
+    _update(() {
+      _pathError = null;
+      if (_isSingle && path.scriptType.isNotEmpty) _scriptType = path.scriptType;
+      // A watch-only key cannot be re-derived, so the path is simply the origin
+      // the user vouches for.
+      if (k.isFilled && !k.held && !k.isHardware) k.originPath = path.normalized.substring(2);
+    });
+    if (!k.isFilled || !k.held) return;
+
+    final derived = await _derive(index, mnemonic: k.mnemonic, passphrase: k.passphrase);
+    if (derived == null || !mounted || _keystores[index] != k) return;
+    _setKeystore(
+      index,
+      CosignerKeystore(owner: k.owner)
+        ..xpub = derived.xpub
+        ..mnemonic = k.mnemonic
+        ..passphrase = k.passphrase
+        ..derivationPath = 'm/${derived.originPath}'
+        ..originPath = derived.originPath
+        ..fingerprint = derived.fingerprint
+        ..descriptor = derived.descriptor.isEmpty ? null : derived.descriptor
+        ..isWallet = true
+        ..source = k.source,
+    );
+  }
+
+  // Drops the paths the new policy's standard one should replace. A key that
+  // came with its own origin keeps it.
+  void _resetPendingPaths() {
+    for (final k in _keystores) {
+      if (k.originPath == null) k.derivationPath = '';
+    }
+    _pathError = null;
+  }
+
+  void _selectTab(int index) {
+    setState(() {
+      _selectedTab = index;
+      _path.text = _keystores[index].derivationPath;
+      _pathError = null;
+    });
+    unawaited(_loadPathOptions());
+  }
+
+  // Mutates state and keeps the descriptor field showing the resulting policy,
+  // unless the user is typing in it.
+  void _update(VoidCallback mutate) {
+    setState(() {
+      mutate();
+      if (!_descriptorFocus.hasFocus) _descriptor.text = _descriptorPreview;
+    });
+  }
+
+  void _onSliderChanged(RangeValues v) {
+    _update(() {
       _threshold = v.start.round().clamp(1, _maxCosigners);
       _total = v.end.round().clamp(1, _maxCosigners);
       if (_threshold > _total) _threshold = _total;
       _resizeKeystores();
     });
+  }
+
+  // Adopts the typed descriptor's policy. A descriptor the backend cannot read
+  // leaves the settings untouched.
+  Future<void> _onDescriptorChanged(String raw) async {
+    if (raw.trim().isEmpty) return;
+    final wmpb.ValidateDescriptorResponse policy;
+    try {
+      policy = await GetIt.I.get<OrchestratorRPC>().wallet.validateDescriptor(raw);
+    } catch (_) {
+      return;
+    }
+    if (!mounted || _descriptor.text != raw) return;
+
+    _update(() {
+      _error = null;
+      _policy = policy.multisig ? 'multi' : 'single';
+      _scriptType = policy.scriptType;
+      _threshold = policy.m;
+      _total = policy.n;
+      final previous = List.of(_keystores);
+      _keystores = policy.keys.asMap().entries.map((e) {
+        final kept = previous.where((k) => k.xpub == e.value.xpub);
+        if (kept.isNotEmpty) return kept.first;
+        return CosignerKeystore(owner: 'Keystore ${e.key + 1}')
+          ..xpub = e.value.xpub
+          ..fingerprint = e.value.fingerprint.isEmpty ? null : e.value.fingerprint
+          ..originPath = e.value.originPath.isEmpty ? null : e.value.originPath
+          ..derivationPath = e.value.originPath.isEmpty ? '' : 'm/${e.value.originPath}'
+          ..source = CosignerSource.xpub;
+      }).toList();
+      if (_selectedTab >= _total) _selectedTab = _total - 1;
+      _resetPendingPaths();
+    });
+    await _loadPathOptions();
   }
 
   // Grow/shrink the keystore list to match n, preserving already-filled slots.
@@ -200,7 +347,8 @@ class _MultisigConfigStepState extends State<MultisigConfigStep> {
     final parts = List.generate(_total, (i) {
       final k = _keystores[i];
       if (!k.isFilled) return k.owner.replaceAll(' ', '');
-      return '${k.xpub.substring(0, 8)}…';
+      if (k.fingerprint != null && k.originPath != null) return '[${k.fingerprint}/${k.originPath}]${k.xpub}';
+      return k.xpub;
     });
     if (_isSingle) {
       final key = parts.first;
@@ -306,11 +454,15 @@ class _MultisigConfigStepState extends State<MultisigConfigStep> {
   };
 
   void _setKeystore(int index, CosignerKeystore k) {
-    setState(() => _keystores[index] = k);
+    _update(() {
+      _keystores[index] = k;
+      if (index == _selectedTab && !_pathFocus.hasFocus) _path.text = k.derivationPath;
+    });
   }
 
   void _clearKeystore(int index) {
-    setState(() => _keystores[index] = CosignerKeystore(owner: 'Keystore ${index + 1}'));
+    _update(() => _keystores[index] = CosignerKeystore(owner: 'Keystore ${index + 1}'));
+    unawaited(_loadPathOptions());
   }
 
   @override
@@ -428,7 +580,7 @@ class _MultisigConfigStepState extends State<MultisigConfigStep> {
       value: _policy,
       onChanged: (v) async {
         if (v == null || v == _policy) return;
-        setState(() {
+        _update(() {
           _policy = v;
           if (_isSingle) {
             _threshold = 1;
@@ -441,7 +593,9 @@ class _MultisigConfigStepState extends State<MultisigConfigStep> {
           }
           _selectedTab = 0;
           _resizeKeystores();
+          _resetPendingPaths();
         });
+        await _loadPathOptions();
       },
       items: const [
         SailDropdownItem<String>(value: 'single', label: 'Single Signature'),
@@ -467,7 +621,12 @@ class _MultisigConfigStepState extends State<MultisigConfigStep> {
     return SailDropdownButton<String>(
       value: _scriptType,
       onChanged: (v) async {
-        if (v != null) setState(() => _scriptType = v);
+        if (v == null) return;
+        _update(() {
+          _scriptType = v;
+          _resetPendingPaths();
+        });
+        await _loadPathOptions();
       },
       items: items,
     );
@@ -479,31 +638,33 @@ class _MultisigConfigStepState extends State<MultisigConfigStep> {
       child: Padding(
         padding: const EdgeInsets.only(top: SailStyleValues.padding08),
         child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            SizedBox(width: 110, child: SailText.secondary13('Descriptor')),
+            Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: SizedBox(width: 110, child: SailText.secondary13('Descriptor')),
+            ),
             Expanded(
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                decoration: BoxDecoration(
-                  color: SailTheme.of(context).colors.backgroundSecondary,
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: SailText.primary13(_descriptorPreview, monospace: true),
+              child: SailTextField(
+                controller: _descriptor,
+                focusNode: _descriptorFocus,
+                hintText: "wsh(sortedmulti(2,[fp/48'/1'/0'/2']tpub...,...))",
+                size: TextFieldSize.small,
+                monospace: true,
+                minLines: 2,
+                maxLines: 4,
+                onChanged: _onDescriptorChanged,
               ),
             ),
             const SizedBox(width: 8),
-            SailButton(
-              label: 'Import file',
-              variant: ButtonVariant.secondary,
-              small: true,
-              onPressed: () async => _importConfigFile(context),
-            ),
-            const SizedBox(width: 8),
-            SailButton(
-              label: 'Edit…',
-              variant: ButtonVariant.secondary,
-              small: true,
-              onPressed: () async => _editDescriptor(context),
+            Padding(
+              padding: const EdgeInsets.only(top: 4),
+              child: SailButton(
+                label: 'Import file',
+                variant: ButtonVariant.secondary,
+                small: true,
+                onPressed: () async => _importConfigFile(context),
+              ),
             ),
           ],
         ),
@@ -531,16 +692,6 @@ class _MultisigConfigStepState extends State<MultisigConfigStep> {
     } catch (e) {
       setState(() => _error = 'Failed to import config: $e');
     }
-  }
-
-  Future<void> _editDescriptor(BuildContext context) async {
-    final content = await showThemedDialog<String>(
-      context: context,
-      builder: (context) => const _EditDescriptorDialog(),
-    );
-    if (content == null || content.trim().isEmpty) return;
-    if (!context.mounted) return;
-    await _applyConfig(context, content.trim());
   }
 
   Future<void> _applyConfig(BuildContext context, String content) async {
@@ -580,7 +731,7 @@ class _MultisigConfigStepState extends State<MultisigConfigStep> {
     });
     try {
       final resp = await GetIt.I.get<OrchestratorRPC>().wallet.parseMultisigConfig(content);
-      setState(() {
+      _update(() {
         // An imported config is inherently multisig; switch mode so Next builds
         // the multisig wallet instead of a single-sig one from the first leg.
         _policy = 'multi';
@@ -629,7 +780,7 @@ class _MultisigConfigStepState extends State<MultisigConfigStep> {
     final filled = _keystores[i].isFilled;
     final theme = SailTheme.of(context);
     return SailTappable(
-      onTap: () async => setState(() => _selectedTab = i),
+      onTap: () async => _selectTab(i),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: BoxDecoration(
@@ -653,8 +804,69 @@ class _MultisigConfigStepState extends State<MultisigConfigStep> {
 
   Widget _keystoreBody(BuildContext context, int index) {
     final k = _keystores[index];
-    if (k.isFilled) return _filledKeystore(context, index, k);
-    return _sourcePicker(context, index);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _derivationRow(context, index),
+        const SizedBox(height: 16),
+        if (k.isFilled) _filledKeystore(context, index, k) else _sourcePicker(context, index),
+      ],
+    );
+  }
+
+  // Only a device key is pinned: its xpub was read at the old path, so the
+  // device would have to be read again.
+  Widget _derivationRow(BuildContext context, int index) {
+    final k = _keystores[index];
+    final editable = !k.isHardware;
+    final theme = SailTheme.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            SizedBox(width: 110, child: SailText.secondary13('Derivation:')),
+            Expanded(
+              child: SailTextField(
+                controller: _path,
+                focusNode: _pathFocus,
+                hintText: "m/84'/0'/0'",
+                size: TextFieldSize.small,
+                monospace: true,
+                readOnly: !editable,
+                onChanged: (v) => _onPathChanged(index, v),
+              ),
+            ),
+            const SizedBox(width: 8),
+            SailDropdownButton<String>(
+              value: _pathOptions.any((o) => o.path == _path.text) ? _path.text : null,
+              hint: 'Standard paths',
+              enabled: editable,
+              onChanged: (v) async {
+                if (v == null) return;
+                _path.text = v;
+                await _onPathChanged(index, v);
+              },
+              items: _pathOptions
+                  .map((o) => SailDropdownItem<String>(value: o.path, label: '${o.path}   ${o.label}'))
+                  .toList(),
+            ),
+            const SizedBox(width: 8),
+            Tooltip(
+              message: editable
+                  ? 'The account this key comes from. Pick a standard path or type your own.'
+                  : 'Remove this keystore to read the device at another path.',
+              child: Icon(Icons.help_outline, size: 16, color: theme.colors.textSecondary),
+            ),
+          ],
+        ),
+        if (_pathError != null)
+          Padding(
+            padding: const EdgeInsets.only(left: 110, top: 6),
+            child: SailText.secondary12(_pathError!, color: theme.colors.error),
+          ),
+      ],
+    );
   }
 
   String _badgeLabel(CosignerKeystore k) {
@@ -720,6 +932,7 @@ class _MultisigConfigStepState extends State<MultisigConfigStep> {
           icon: SailSVGAsset.iconWallet,
           title: 'Create New Software Wallet',
           subtitle: 'Generate or import a seed, held on disk to sign',
+          enabled: _pathError == null,
           onTap: () async => _addSoftwareKeystore(context, index),
         ),
         _sourceCard(
@@ -749,6 +962,7 @@ class _MultisigConfigStepState extends State<MultisigConfigStep> {
           icon: SailSVGAsset.iconWallet,
           title: 'Hardware Wallet',
           subtitle: 'Trezor, Ledger, Coldcard over USB',
+          enabled: _pathError == null,
           onTap: () async => _addFromDevice(context, index),
         ),
       ],
@@ -814,9 +1028,10 @@ class _MultisigConfigStepState extends State<MultisigConfigStep> {
         scriptType: _isSingle ? _singleHotScriptType() : _scriptType,
         multisig: !_isSingle,
         account: index,
+        derivationPath: _keystores[index].derivationPath,
       );
     } catch (e) {
-      setState(() => _error = 'Failed to derive key: $e');
+      setState(() => _error = 'Failed to derive key: ${extractConnectException(e)}');
       return null;
     }
   }
@@ -1326,83 +1541,6 @@ class _SoftwareKeystoreDialogState extends State<_SoftwareKeystoreDialog> {
                 ],
               ),
             ],
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _EditDescriptorDialog extends StatefulWidget {
-  const _EditDescriptorDialog();
-
-  @override
-  State<_EditDescriptorDialog> createState() => _EditDescriptorDialogState();
-}
-
-class _EditDescriptorDialogState extends State<_EditDescriptorDialog> {
-  final TextEditingController _controller = TextEditingController();
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return SailModal(
-      constraints: const BoxConstraints(maxWidth: 640),
-      child: SailCard(
-        title: 'Edit wallet output descriptor',
-        subtitle: 'The wallet configuration is specified in the output descriptor.',
-        child: SailColumn(
-          spacing: SailStyleValues.padding16,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            SailTextField(
-              controller: _controller,
-              hintText: "wsh(sortedmulti(2,[fp/48'/1'/0'/2']tpub.../0/*,...))",
-              size: TextFieldSize.small,
-              minLines: 4,
-              maxLines: 8,
-              suffixWidget: SailButton(
-                label: 'Paste',
-                variant: ButtonVariant.ghost,
-                small: true,
-                onPressed: () async {
-                  final data = await Clipboard.getData(Clipboard.kTextPlain);
-                  if (data?.text != null) _controller.text = data!.text!.trim();
-                },
-              ),
-            ),
-            Row(
-              children: [
-                SailButton(
-                  label: 'Scan QR',
-                  variant: ButtonVariant.secondary,
-                  small: true,
-                  onPressed: () async {
-                    final raw = await showThemedDialog<String>(
-                      context: context,
-                      builder: (context) => const _XpubQrScannerDialog(),
-                    );
-                    if (raw != null) _controller.text = raw;
-                  },
-                ),
-                const Spacer(),
-                SailButton(
-                  label: 'Cancel',
-                  variant: ButtonVariant.ghost,
-                  onPressed: () async => Navigator.of(context).pop(),
-                ),
-                const SizedBox(width: 8),
-                SailButton(
-                  label: 'OK',
-                  onPressed: () async => Navigator.of(context).pop(_controller.text.trim()),
-                ),
-              ],
-            ),
           ],
         ),
       ),

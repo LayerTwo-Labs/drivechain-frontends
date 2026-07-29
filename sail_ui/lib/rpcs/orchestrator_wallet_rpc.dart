@@ -171,6 +171,12 @@ class OrchestratorWalletRPC {
     return _unaryClient.parseMultisigConfig(wmpb.ParseMultisigConfigRequest(content: content));
   }
 
+  /// Reads an output descriptor into the script policy it encodes. Throws if
+  /// the descriptor is incomplete or unsupported.
+  Future<wmpb.ValidateDescriptorResponse> validateDescriptor(String descriptor) {
+    return _unaryClient.validateDescriptor(wmpb.ValidateDescriptorRequest(descriptor: descriptor));
+  }
+
   Future<wmpb.SwitchWalletResponse> switchWallet(String walletId, {String dataDir = ''}) {
     return _unaryClient.switchWallet(wmpb.SwitchWalletRequest(walletId: walletId, dataDir: dataDir));
   }
@@ -410,6 +416,7 @@ class OrchestratorWalletRPC {
     required String scriptType,
     required bool multisig,
     int account = 0,
+    String derivationPath = '',
   }) {
     return _unaryClient.deriveKeystore(
       wmpb.DeriveKeystoreRequest(
@@ -420,7 +427,27 @@ class OrchestratorWalletRPC {
         scriptType: scriptType,
         multisig: multisig,
         account: account,
+        derivationPath: derivationPath,
       ),
+    );
+  }
+
+  /// Canonicalises a derivation path and reports the script type it is the
+  /// standard path for. Throws with the reason it is unusable.
+  Future<wmpb.ValidateDerivationPathResponse> validateDerivationPath(String path, {bool multisig = false}) {
+    return _unaryClient.validateDerivationPath(
+      wmpb.ValidateDerivationPathRequest(path: path, multisig: multisig),
+    );
+  }
+
+  /// The standard derivation paths for a policy, plus the one used by default.
+  Future<wmpb.ListDerivationPathsResponse> listDerivationPaths({
+    required String scriptType,
+    required bool multisig,
+    int account = 0,
+  }) {
+    return _unaryClient.listDerivationPaths(
+      wmpb.ListDerivationPathsRequest(scriptType: scriptType, multisig: multisig, account: account),
     );
   }
 

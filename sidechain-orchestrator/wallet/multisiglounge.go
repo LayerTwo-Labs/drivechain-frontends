@@ -308,13 +308,72 @@ func ParseMultisigDescriptor(descriptor string) (m, n int, scriptType string, co
 	if !d.Kind.isMultisig() && !d.Kind.isTaprootMultisig() {
 		return 0, 0, "", nil, errors.New("not a multisig descriptor")
 	}
-	cosigners = make([]MultisigCosigner, 0, len(d.Keys))
+	cosigners, err = descriptorCosigners(d)
+	if err != nil {
+		return 0, 0, "", nil, err
+	}
+	return d.Threshold, len(d.Keys), multisigTypeString(d.Kind), cosigners, nil
+}
+
+// DescriptorPolicy is the wallet policy an output descriptor encodes.
+type DescriptorPolicy struct {
+	Multisig   bool
+	ScriptType string // wpkh|sh-wpkh|pkh|tr, or wsh|sh-wsh|sh|tr when multisig
+	M          int    // signatures required
+	N          int    // total keys
+	Cosigners  []MultisigCosigner
+}
+
+// ValidateDescriptor parses any supported output descriptor — single-sig or
+// sortedmulti — into the policy it encodes.
+func ValidateDescriptor(descriptor string) (*DescriptorPolicy, error) {
+	d, err := ParseDescriptor(strings.TrimSpace(descriptor))
+	if err != nil {
+		return nil, err
+	}
+	cosigners, err := descriptorCosigners(d)
+	if err != nil {
+		return nil, err
+	}
+	multisig := d.Kind.isMultisig() || d.Kind.isTaprootMultisig()
+	scriptType := singleSigTypeString(d.Kind)
+	if multisig {
+		scriptType = multisigTypeString(d.Kind)
+	}
+	return &DescriptorPolicy{
+		Multisig:   multisig,
+		ScriptType: scriptType,
+		M:          d.Threshold,
+		N:          len(d.Keys),
+		Cosigners:  cosigners,
+	}, nil
+}
+
+// singleSigTypeString maps a single-sig ScriptKind back to its descriptor
+// script-type string ("pkh", "sh-wpkh", "tr", or "wpkh").
+func singleSigTypeString(k ScriptKind) string {
+	switch k {
+	case ScriptLegacy:
+		return "pkh"
+	case ScriptNestedSegwit:
+		return "sh-wpkh"
+	case ScriptTaproot:
+		return "tr"
+	default:
+		return "wpkh"
+	}
+}
+
+// descriptorCosigners turns a descriptor's keys into watch-only cosigners,
+// neutering any private account key.
+func descriptorCosigners(d *Descriptor) ([]MultisigCosigner, error) {
+	cosigners := make([]MultisigCosigner, 0, len(d.Keys))
 	for _, k := range d.Keys {
 		acct := k.Account
 		if acct.IsPrivate() {
-			pub, nerr := acct.Neuter()
-			if nerr != nil {
-				return 0, 0, "", nil, fmt.Errorf("neuter key: %w", nerr)
+			pub, err := acct.Neuter()
+			if err != nil {
+				return nil, fmt.Errorf("neuter key: %w", err)
 			}
 			acct = pub
 		}
@@ -325,7 +384,7 @@ func ParseMultisigDescriptor(descriptor string) (m, n int, scriptType string, co
 			OriginPath:  origin,
 		})
 	}
-	return d.Threshold, len(d.Keys), multisigTypeString(d.Kind), cosigners, nil
+	return cosigners, nil
 }
 
 // splitOrigin splits a descriptor key origin "fingerprint/path" into its parts,
