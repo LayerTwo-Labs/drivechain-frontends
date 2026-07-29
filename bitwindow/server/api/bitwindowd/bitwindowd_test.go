@@ -503,6 +503,92 @@ func TestService_CreateDenial(t *testing.T) {
 		assert.EqualValues(t, int32(86400), denials[0].DelayDuration.Seconds())
 		assert.Equal(t, int32(10), denials[0].NumHops)
 	})
+
+	t.Run("re-creating overwrites num hops and does not resurrect a cancelled denial", func(t *testing.T) {
+		t.Parallel()
+
+		database := database.Test(t)
+
+		ctrl := gomock.NewController(t)
+		mockWallet := mocks.NewMockWalletServiceClient(ctrl)
+		mockWallet.EXPECT().
+			ListUnspentOutputs(gomock.Any(), gomock.Any()).
+			AnyTimes().
+			Return(&connect.Response[mainchainv1.ListUnspentOutputsResponse]{
+				Msg: &mainchainv1.ListUnspentOutputsResponse{
+					Outputs: []*mainchainv1.ListUnspentOutputsResponse_Output{
+						{
+							Txid: &commonv1.ReverseHex{
+								Hex: &wrapperspb.StringValue{
+									Value: "abc123",
+								},
+							},
+							Vout:        0,
+							ValueSats:   1000000,
+							IsInternal:  false,
+							IsConfirmed: true,
+						},
+					},
+				},
+			}, nil)
+
+		cli := v1connect.NewBitwindowdServiceClient(
+			apitests.API(
+				t,
+				database,
+				apitests.WithWallet(mockWallet),
+			))
+
+		create := func(numHops int32) error {
+			_, err := cli.CreateDenial(context.Background(), connect.NewRequest(&v1.CreateDenialRequest{
+				Txid:         "abc123",
+				Vout:         0,
+				DelaySeconds: 60,
+				NumHops:      numHops,
+			}))
+			return err
+		}
+
+		require.NoError(t, create(3))
+		// Re-issuing the same request overwrites num_hops instead of accumulating it.
+		require.NoError(t, create(3))
+
+		denials, err := deniability.List(context.Background(), database)
+		require.NoError(t, err)
+		require.Len(t, denials, 1)
+		assert.Equal(t, int32(3), denials[0].NumHops)
+		cancelledID := denials[0].ID
+
+		_, err = cli.CancelDenial(context.Background(), connect.NewRequest(&v1.CancelDenialRequest{
+			Id: cancelledID,
+		}))
+		require.NoError(t, err)
+
+		// A cancelled plan is terminal: creating again must start a fresh plan
+		// rather than un-cancelling the old one.
+		require.NoError(t, create(5))
+
+		denials, err = deniability.List(context.Background(), database)
+		require.NoError(t, err)
+		require.Len(t, denials, 2)
+
+		var cancelled, active []deniability.Denial
+		for _, d := range denials {
+			if d.CancelledAt != nil {
+				cancelled = append(cancelled, d)
+			} else {
+				active = append(active, d)
+			}
+		}
+
+		require.Len(t, cancelled, 1)
+		assert.Equal(t, cancelledID, cancelled[0].ID)
+		assert.Equal(t, int32(3), cancelled[0].NumHops)
+
+		require.Len(t, active, 1)
+		assert.NotEqual(t, cancelledID, active[0].ID)
+		assert.Equal(t, int32(5), active[0].NumHops)
+	})
 }
 
 func TestService_CancelDenial(t *testing.T) {

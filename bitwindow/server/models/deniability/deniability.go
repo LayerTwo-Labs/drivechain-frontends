@@ -371,11 +371,14 @@ func lastExecution(denial Denial, executions []ExecutedDenial) *time.Time {
 	return &latestExecution.CreatedAt
 }
 
-// GetByTip retrieves a deniability plan by its tip txid+vout
-func GetByTip(ctx context.Context, db *sql.DB, tipTxID string, tipVout *int32) (*Denial, error) {
+// GetByTip retrieves a deniability plan by its tip txid+vout. Only active
+// (non-cancelled) plans belonging to walletID are considered, so a terminally
+// cancelled plan is never handed back for reuse and one wallet cannot look up
+// another wallet's plan.
+func GetByTip(ctx context.Context, db *sql.DB, walletID string, tipTxID string, tipVout *int32) (*Denial, error) {
 	query := selectDenialQuery() + `
-		WHERE COALESCE(e.to_txid, d.initial_txid) = ? `
-	args := []any{tipTxID}
+		WHERE COALESCE(e.to_txid, d.initial_txid) = ? AND d.wallet_id = ? AND d.cancelled_at IS NULL `
+	args := []any{tipTxID, walletID}
 
 	if tipVout != nil {
 		query += ` AND (e.to_vout = ? OR d.initial_vout = ?) `
@@ -419,16 +422,25 @@ func GetByTip(ctx context.Context, db *sql.DB, tipTxID string, tipVout *int32) (
 	return &d, nil
 }
 
-// Update updates the number of hops and delay duration for a given deniability plan
-func Update(ctx context.Context, db *sql.DB, id int64, delay time.Duration, numHops int32, txid string, vout int32) error {
-	_, err := db.ExecContext(ctx, `
+// Update updates the number of hops and delay duration for a given deniability
+// plan. num_hops is overwritten rather than accumulated, so re-issuing the same
+// request does not keep growing the plan. The update is scoped to walletID and
+// to active plans, so one wallet cannot update another wallet's plan and a
+// cancelled plan stays cancelled instead of being resurrected.
+func Update(ctx context.Context, db *sql.DB, walletID string, id int64, delay time.Duration, numHops int32, txid string, vout int32) error {
+	rows, err := db.ExecContext(ctx, `
 		UPDATE denials
-		SET delay_duration = ?, num_hops = num_hops + ?, initial_txid = ?, initial_vout = ?, cancelled_at = NULL, cancelled_reason = NULL, updated_at = ?
-		WHERE id = ?
-	`, delay, numHops, txid, vout, time.Now(), id)
+		SET delay_duration = ?, num_hops = ?, initial_txid = ?, initial_vout = ?, updated_at = ?
+		WHERE id = ? AND wallet_id = ? AND cancelled_at IS NULL
+	`, delay, numHops, txid, vout, time.Now(), id, walletID)
 	if err != nil {
 		return fmt.Errorf("could not update deniability: %w", err)
 	}
+
+	if rows, _ := rows.RowsAffected(); rows == 0 {
+		return connect.NewError(connect.CodeNotFound, fmt.Errorf("denial not found or cancelled"))
+	}
+
 	return nil
 }
 

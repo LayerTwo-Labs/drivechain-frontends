@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"connectrpc.com/connect"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/database"
 	"github.com/brianvoe/gofakeit/v7"
 	"github.com/stretchr/testify/assert"
@@ -173,7 +174,7 @@ func TestDeniability(t *testing.T) {
 		require.NoError(t, err)
 
 		// Get the denial by tip
-		denial, err := GetByTip(ctx, db, "txid", ptr(int32(0)))
+		denial, err := GetByTip(ctx, db, "test-wallet", "txid", ptr(int32(0)))
 		require.NoError(t, err)
 		require.NotNil(t, denial)
 		require.Equal(t, "txid", denial.TipTXID)
@@ -182,7 +183,22 @@ func TestDeniability(t *testing.T) {
 		require.Equal(t, int32(3), denial.NumHops)
 
 		// Test non-existent tip
-		denial, err = GetByTip(ctx, db, "non-existent", ptr(int32(0)))
+		denial, err = GetByTip(ctx, db, "test-wallet", "non-existent", ptr(int32(0)))
+		require.NoError(t, err)
+		require.Nil(t, denial)
+
+		// Another wallet must not see the plan.
+		denial, err = GetByTip(ctx, db, "other-wallet", "txid", ptr(int32(0)))
+		require.NoError(t, err)
+		require.Nil(t, denial)
+
+		// A cancelled plan is terminal, and must not be handed back for reuse.
+		var denialID int64
+		err = db.QueryRow(`SELECT id FROM denials WHERE initial_txid = ?`, "txid").Scan(&denialID)
+		require.NoError(t, err)
+		require.NoError(t, Cancel(ctx, db, "test-wallet", denialID, "test"))
+
+		denial, err = GetByTip(ctx, db, "test-wallet", "txid", ptr(int32(0)))
 		require.NoError(t, err)
 		require.Nil(t, denial)
 	})
@@ -197,14 +213,61 @@ func TestDeniability(t *testing.T) {
 		require.NotNil(t, denial)
 
 		// Update the denial
-		err = Update(ctx, db, denial.ID, 2*time.Second, 1, "txid", 0)
+		err = Update(ctx, db, "test-wallet", denial.ID, 2*time.Second, 1, "txid", 0)
 		require.NoError(t, err)
 
-		// Verify the update
+		// Verify the update. num_hops is overwritten, not accumulated: re-issuing
+		// the same request must not keep growing the plan.
 		denial, err = Get(ctx, db, denial.ID)
 		require.NoError(t, err)
 		require.Equal(t, 2*time.Second, denial.DelayDuration)
-		require.Equal(t, int32(4), denial.NumHops) // 3 + 1
+		require.Equal(t, int32(1), denial.NumHops)
+
+		err = Update(ctx, db, "test-wallet", denial.ID, 2*time.Second, 1, "txid", 0)
+		require.NoError(t, err)
+
+		denial, err = Get(ctx, db, denial.ID)
+		require.NoError(t, err)
+		require.Equal(t, int32(1), denial.NumHops)
+	})
+
+	t.Run("Update does not resurrect a cancelled denial", func(t *testing.T) {
+		t.Parallel()
+		db := database.Test(t)
+
+		denial, err := Create(ctx, db, "test-wallet", gofakeit.UUID(), 0, 1*time.Hour, 3, nil)
+		require.NoError(t, err)
+
+		require.NoError(t, Cancel(ctx, db, "test-wallet", denial.ID, "cancelled by user"))
+
+		err = Update(ctx, db, "test-wallet", denial.ID, 2*time.Second, 5, denial.TipTXID, 0)
+		require.Error(t, err)
+		require.Equal(t, connect.CodeNotFound, connect.CodeOf(err))
+
+		// The plan stays cancelled, and keeps its original values.
+		denial, err = Get(ctx, db, denial.ID)
+		require.NoError(t, err)
+		require.NotNil(t, denial.CancelledAt)
+		require.NotNil(t, denial.CancelReason)
+		require.Equal(t, 1*time.Hour, denial.DelayDuration)
+		require.Equal(t, int32(3), denial.NumHops)
+	})
+
+	t.Run("Update is scoped to the owning wallet", func(t *testing.T) {
+		t.Parallel()
+		db := database.Test(t)
+
+		denial, err := Create(ctx, db, "test-wallet", gofakeit.UUID(), 0, 1*time.Hour, 3, nil)
+		require.NoError(t, err)
+
+		err = Update(ctx, db, "other-wallet", denial.ID, 2*time.Second, 5, denial.TipTXID, 0)
+		require.Error(t, err)
+		require.Equal(t, connect.CodeNotFound, connect.CodeOf(err))
+
+		denial, err = Get(ctx, db, denial.ID)
+		require.NoError(t, err)
+		require.Equal(t, 1*time.Hour, denial.DelayDuration)
+		require.Equal(t, int32(3), denial.NumHops)
 	})
 
 	t.Run("Get", func(t *testing.T) {
