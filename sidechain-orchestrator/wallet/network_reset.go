@@ -32,11 +32,13 @@ func (e *WalletEngine) OnNetworkReset(fn func(networkDir string)) {
 // ResetForNetwork repoints wallet state at another network and drops everything
 // derived from the previous one. Nothing else may reset wallet state piecemeal.
 func (e *WalletEngine) ResetForNetwork(network string) error {
-	if err := e.svc.RebindNetwork(network); err != nil {
-		return err
-	}
+	// Invalidate before the database moves: a read still in flight must fail its
+	// generation check rather than write the outgoing network's chain data.
 	if nr, ok := e.backend.(NetworkResettable); ok {
 		nr.ResetNetworkState()
+	}
+	if err := e.svc.RebindNetwork(network); err != nil {
+		return err
 	}
 
 	dir := e.svc.NetworkDir()

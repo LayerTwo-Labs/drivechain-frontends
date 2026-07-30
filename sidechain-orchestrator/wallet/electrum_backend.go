@@ -3,6 +3,7 @@ package wallet
 import (
 	"bytes"
 	"context"
+	"database/sql"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -714,7 +715,7 @@ func (p *ElectrumBackend) applySpend(walletID, txid string, effect *spendEffect,
 	p.mu.Lock()
 	p.warmScan[walletID] = scan
 	p.mu.Unlock()
-	p.persistScan(walletID, scan)
+	p.persistScan(p.svc.db(), walletID, scan)
 }
 
 // buildSentTx reconstructs the Esplora view of a just-broadcast send from the
@@ -1641,6 +1642,10 @@ func (p *ElectrumBackend) scan(ctx context.Context, walletID string, allowCache 
 	unlock := p.lockScan(walletID)
 	defer unlock()
 
+	// Captured with the generation below: both identify the chain this scan
+	// reads, so its result can only be written back to that chain.
+	scanDB := p.svc.db()
+
 	if allowCache {
 		if scan := p.cachedScan(ctx, walletID); scan != nil {
 			return scan, nil
@@ -1715,7 +1720,7 @@ func (p *ElectrumBackend) scan(ctx context.Context, walletID string, allowCache 
 	if gen != p.chainGeneration() {
 		return nil, fmt.Errorf("network changed during scan of wallet %s", walletID)
 	}
-	p.persistScan(walletID, scan)
+	p.persistScan(scanDB, walletID, scan)
 	p.mu.Lock()
 	p.warm[walletID] = true
 	p.mu.Unlock()
@@ -1963,7 +1968,7 @@ func finalizeScan(scan *electrumScan) {
 // persistScan writes the wallet's chain scan to disk, skipping the write when
 // nothing changed since the last persist. BIP47 watch keys (no hdPath) are not
 // part of the derivation chain and are excluded.
-func (p *ElectrumBackend) persistScan(walletID string, scan *electrumScan) {
+func (p *ElectrumBackend) persistScan(db *sql.DB, walletID string, scan *electrumScan) {
 	ps := persistedScan{WalletID: walletID}
 	ps.Addrs = lo.FilterMap(scan.addrs, func(a scannedAddr, _ int) (persistedAddr, bool) {
 		if a.hdPath == "" {
@@ -1984,7 +1989,7 @@ func (p *ElectrumBackend) persistScan(walletID string, scan *electrumScan) {
 	if unchanged {
 		return
 	}
-	if err := p.svc.saveElectrumScan(walletID, &ps); err != nil {
+	if err := p.svc.saveElectrumScanTo(db, walletID, &ps); err != nil {
 		p.log.Warn().Err(err).Str("wallet", walletID).Msg("persist electrum scan failed")
 		return // don't record the write as done — retry on the next scan
 	}
