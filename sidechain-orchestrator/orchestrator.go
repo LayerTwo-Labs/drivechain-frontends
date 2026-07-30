@@ -1852,6 +1852,9 @@ func (o *Orchestrator) SwapNetwork(ctx context.Context, n config.Network) error 
 	if plan.MustSelectDatadir {
 		return fmt.Errorf("datadir not configured for %s", n)
 	}
+	if plan.NoChainSource {
+		return fmt.Errorf("%s has no chain source for an electrum wallet: switch to a wallet with a local node first", n)
+	}
 
 	bitcoindWasRunning := o.process.IsRunning("bitcoind")
 	enforcerWasRunning := o.process.IsRunning("enforcer")

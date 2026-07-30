@@ -222,6 +222,10 @@ func (h *WalletHandler) SwitchWallet(ctx context.Context, req *connect.Request[p
 		if plan.MustSelectDatadir {
 			return nil, requirementsUnmet(plan)
 		}
+		if plan.NoChainSource {
+			return nil, connect.NewError(connect.CodeFailedPrecondition,
+				fmt.Errorf("%s has no chain source for an electrum wallet", plan.Network))
+		}
 	}
 
 	if err := h.svc.SwitchWallet(req.Msg.WalletId); err != nil {

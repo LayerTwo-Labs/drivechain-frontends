@@ -71,3 +71,27 @@ func TestPlanNetworkChangeNoOp(t *testing.T) {
 	plan = o.PlanNetworkChange(NetworkChangeRequest{Network: "mainnet"})
 	require.False(t, plan.NoOp)
 }
+
+// An electrum wallet reads the chain from a hosted endpoint, so a network with
+// none would leave every wallet read failing once the swap applied.
+func TestPlanNetworkChangeElectrumNeedsChainSource(t *testing.T) {
+	for _, tc := range []struct {
+		network       string
+		backend       wallet.WalletType
+		noChainSource bool
+	}{
+		{network: "mainnet", backend: wallet.WalletTypeElectrum},
+		{network: "signet", backend: wallet.WalletTypeElectrum},
+		{network: "forknet", backend: wallet.WalletTypeElectrum},
+		{network: "testnet", backend: wallet.WalletTypeElectrum, noChainSource: true},
+		{network: "regtest", backend: wallet.WalletTypeElectrum, noChainSource: true},
+		// A local node serves its own chain, so the endpoint is irrelevant.
+		{network: "regtest", backend: wallet.WalletTypeBitcoinCore},
+	} {
+		t.Run(tc.network+" "+string(tc.backend), func(t *testing.T) {
+			o := planFixture(t, "signet")
+			plan := o.PlanNetworkChange(NetworkChangeRequest{Network: tc.network, WalletBackend: tc.backend})
+			require.Equal(t, tc.noChainSource, plan.NoChainSource)
+		})
+	}
+}
