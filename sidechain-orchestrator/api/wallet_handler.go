@@ -214,6 +214,11 @@ func (h *WalletHandler) SwitchWallet(ctx context.Context, req *connect.Request[p
 	// necessary, so it goes through the same planner a network swap does.
 	if h.orch != nil {
 		if dataDir := strings.TrimSpace(req.Msg.DataDir); dataDir != "" {
+			// Persisting an unusable directory would satisfy the planner and
+			// then stop prompting, with no chain to run from.
+			if err := validateDirWritable(dataDir); err != nil {
+				return nil, connect.NewError(connect.CodeInvalidArgument, err)
+			}
 			if err := h.orch.SetDatadirForCurrentNetwork(dataDir); err != nil {
 				return nil, connect.NewError(connect.CodeInvalidArgument, err)
 			}
