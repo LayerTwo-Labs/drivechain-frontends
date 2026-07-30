@@ -180,9 +180,9 @@ jobs:
           path: |
             ~/.flutter
             ~/.pub-cache
-          key: flutter-build-3.44.0-${{ runner.os }}
+          key: flutter-build-3.44.8-${{ runner.os }}
           restore-keys: |
-            flutter-build-3.44.0-
+            flutter-build-3.44.8-
 
       - name: Cache Go modules
         uses: actions/cache@v5
@@ -197,7 +197,7 @@ jobs:
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
-          flutter-version: 3.44.0
+          flutter-version: 3.44.8
 
       - name: Install Fastforge - a tool for building and distributing apps
         run: dart pub global activate fastforge
@@ -839,9 +839,10 @@ jobs:
       - uses: actions/upload-artifact@v5
         with:
           name:
-            ${{ matrix.client }}-binaries-${{ runner.os }}${{ (matrix.variant != ''
-            && matrix.variant != 'standard') && format('-{0}', matrix.variant) || ''
-            }}${{ matrix.chain != '' && format('-{0}', matrix.chain) || '' }}
+            ${{ matrix.client }}-binaries-${{ runner.os }}${{ (matrix.variant !=
+            '' && matrix.variant != 'standard') && format('-{0}',
+            matrix.variant) || '' }}${{ matrix.chain != '' && format('-{0}',
+            matrix.chain) || '' }}
           if-no-files-found: error
           path: ${{ env.BUILD_DIR }}/${{ matrix.client }}/release/*
 

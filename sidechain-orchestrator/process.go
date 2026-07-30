@@ -423,18 +423,16 @@ func (pm *ProcessManager) StartWithOptions(_ context.Context, config BinaryConfi
 	go func() {
 		err := cmd.Wait()
 
-		// Wait for stdout/stderr to drain (like Dart's Future.wait with 2s timeout)
-		drainTimeout := time.After(2 * time.Second)
-		select {
-		case <-stdoutDone:
-		case <-drainTimeout:
-			pm.log.Warn().Str("binary", processName).Msg("timed out waiting for stdout to drain")
-		}
-		select {
-		case <-stderrDone:
-		case <-drainTimeout:
-			pm.log.Warn().Str("binary", processName).Msg("timed out waiting for stderr to drain")
-		}
+		// A descendant that inherited the pipes keeps the readers blocked past the
+		// child's exit, so closing them is what bounds the drain.
+		drain := time.AfterFunc(2*time.Second, func() {
+			stdout.Close()
+			stderr.Close()
+			pm.log.Warn().Str("binary", processName).Msg("timed out waiting for output to drain")
+		})
+		<-stdoutDone
+		<-stderrDone
+		drain.Stop()
 
 		proc.mu.Lock()
 		if err != nil {
