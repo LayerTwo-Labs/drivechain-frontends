@@ -259,20 +259,35 @@ class _MultisigConfigStepState extends State<MultisigConfigStep> {
 
     final derived = await _derive(index, mnemonic: k.mnemonic, passphrase: k.passphrase);
     if (derived == null || !mounted || _keystores[index] != k || !_isCurrentPath(index, raw)) return;
-    _setKeystore(
-      index,
-      CosignerKeystore(owner: k.owner)
-        ..xpub = derived.xpub
-        ..mnemonic = k.mnemonic
-        ..passphrase = k.passphrase
-        ..derivationPath = 'm/${derived.originPath}'
-        ..originPath = derived.originPath
-        ..fingerprint = derived.fingerprint
-        ..descriptor = derived.descriptor.isEmpty ? null : derived.descriptor
-        ..isWallet = true
-        ..source = k.source,
-    );
+    _setKeystore(index, _rederived(k, derived));
+  }
 
+  CosignerKeystore _rederived(CosignerKeystore k, wmpb.DeriveKeystoreResponse derived) {
+    return CosignerKeystore(owner: k.owner)
+      ..xpub = derived.xpub
+      ..mnemonic = k.mnemonic
+      ..passphrase = k.passphrase
+      ..derivationPath = 'm/${derived.originPath}'
+      ..originPath = derived.originPath
+      ..fingerprint = derived.fingerprint
+      ..descriptor = derived.descriptor.isEmpty ? null : derived.descriptor
+      ..isWallet = true
+      ..source = k.source;
+  }
+
+  // A seed on disk follows the wallet's script type. Left at the previous
+  // type's standard path it would be submitted as an override, which the
+  // backend rejects for the purpose mismatch.
+  Future<void> _rederiveHeldKeystores() async {
+    for (var i = 0; i < _keystores.length; i++) {
+      final k = _keystores[i];
+      if (!k.held) continue;
+      k.derivationPath = '';
+      final derived = await _derive(i, mnemonic: k.mnemonic, passphrase: k.passphrase);
+      if (!mounted) return;
+      if (derived == null || _keystores[i] != k) continue;
+      _setKeystore(i, _rederived(k, derived));
+    }
   }
 
   // Drops the paths the new policy's standard one should replace. A key that
@@ -620,6 +635,7 @@ class _MultisigConfigStepState extends State<MultisigConfigStep> {
           _resetPendingPaths();
         });
         await _loadPathOptions();
+        await _rederiveHeldKeystores();
       },
       items: const [
         SailDropdownItem<String>(value: 'single', label: 'Single Signature'),
@@ -651,6 +667,7 @@ class _MultisigConfigStepState extends State<MultisigConfigStep> {
           _resetPendingPaths();
         });
         await _loadPathOptions();
+        await _rederiveHeldKeystores();
       },
       items: items,
     );
