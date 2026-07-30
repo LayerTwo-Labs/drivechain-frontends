@@ -83,6 +83,24 @@ func TestProcessManager_LatestRunKeepsExitedLogs(t *testing.T) {
 	assert.True(t, sawReindex, "logs the process died with must survive its removal")
 }
 
+// A descendant inheriting stdout and stderr outlives the child, so the drain has
+// to be bounded or the exit is never recorded and the name can't be restarted.
+func TestProcessManager_ExitRecordedWhenDescendantHoldsPipes(t *testing.T) {
+	pm, dir := newTestProcessManager(t)
+	symlinkSystemBinary(t, dir, "sh")
+
+	_, _ = pm.Start(context.Background(), BinaryConfig{
+		Name: "sh-daemon", BinaryName: "sh",
+	}, []string{"-c", "sleep 20 & echo spawned; exit 0"}, nil)
+
+	require.Eventually(t, func() bool {
+		_, ok := pm.LastExit("sh-daemon")
+		return ok
+	}, 10*time.Second, 100*time.Millisecond, "the exit must be recorded even while a descendant holds the pipes")
+
+	assert.False(t, pm.IsRunning("sh-daemon"))
+}
+
 func TestProcessManager_StopNotRunning(t *testing.T) {
 	pm, _ := newTestProcessManager(t)
 	assert.Error(t, pm.Stop(context.Background(), "nonexistent", false))

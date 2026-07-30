@@ -16,7 +16,7 @@ on:
   workflow_dispatch:
 
 env:
-  FLUTTER_VERSION: "3.44.0"
+  FLUTTER_VERSION: "3.44.8"
   GO_VERSION: "1.25"
 
 jobs:
