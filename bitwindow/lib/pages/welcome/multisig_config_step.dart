@@ -223,6 +223,9 @@ class _MultisigConfigStepState extends State<MultisigConfigStep> {
     });
   }
 
+  bool _isCurrentPath(int index, String raw) =>
+      index < _keystores.length && _keystores[index].derivationPath == raw;
+
   Future<void> _onPathChanged(int index, String raw) async {
     final k = _keystores[index];
     k.derivationPath = raw;
@@ -230,10 +233,12 @@ class _MultisigConfigStepState extends State<MultisigConfigStep> {
     try {
       path = await GetIt.I.get<OrchestratorRPC>().wallet.validateDerivationPath(raw, multisig: !_isSingle);
     } catch (e) {
-      if (mounted) setState(() => _pathError = extractConnectException(e));
+      // A response for text the user has already moved past says nothing about
+      // what is in the field now.
+      if (mounted && _isCurrentPath(index, raw)) setState(() => _pathError = extractConnectException(e));
       return;
     }
-    if (!mounted) return;
+    if (!mounted || !_isCurrentPath(index, raw)) return;
     // A single-sig wallet is its one keystore, so a standard path names its
     // script type.
     _update(() {
@@ -246,7 +251,7 @@ class _MultisigConfigStepState extends State<MultisigConfigStep> {
     if (!k.isFilled || !k.held) return;
 
     final derived = await _derive(index, mnemonic: k.mnemonic, passphrase: k.passphrase);
-    if (derived == null || !mounted || _keystores[index] != k) return;
+    if (derived == null || !mounted || _keystores[index] != k || !_isCurrentPath(index, raw)) return;
     _setKeystore(
       index,
       CosignerKeystore(owner: k.owner)
