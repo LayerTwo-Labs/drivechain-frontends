@@ -352,7 +352,13 @@ func (s *Service) openElectrumDB() error {
 func (s *Service) RebindNetwork(network string) error {
 	s.dbMu.Lock()
 	if network == s.network {
+		reopen := s.electrumDB == nil
 		s.dbMu.Unlock()
+		// A rebind that failed to open the database left the network set and no
+		// handle, so a retry has to finish that open.
+		if reopen {
+			return s.openElectrumDB()
+		}
 		return nil
 	}
 	previous := s.electrumDB
