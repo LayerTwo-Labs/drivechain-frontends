@@ -1590,15 +1590,27 @@ func (p *ElectrumBackend) deriveAddr(d *Descriptor, change bool, index uint32) (
 // descriptor's resolved account origin so a custom account/path is reflected.
 func descriptorHDPath(d *Descriptor, net *chaincfg.Params, change bool, index uint32) string {
 	if len(d.Keys) == 1 {
-		if _, path, ok := parseOrigin(d.Keys[0].Origin); ok && len(path) == 3 {
-			const h = hdkeychain.HardenedKeyStart
-			return fmt.Sprintf("m/%d'/%d'/%d'/%d/%d", path[0]-h, path[1]-h, path[2]-h, chainIndex(change), index)
+		if _, path, ok := parseOrigin(d.Keys[0].Origin); ok && len(path) > 0 {
+			return fmt.Sprintf("m/%s/%d/%d", formatOriginPath(path), chainIndex(change), index)
 		}
 	}
 	if purpose, ok := d.Kind.Purpose(); ok && net != nil {
 		return fmt.Sprintf("m/%d'/%d'/0'/%d/%d", purpose, net.HDCoinType, chainIndex(change), index)
 	}
 	return fmt.Sprintf("m/%d/%d", chainIndex(change), index)
+}
+
+// formatOriginPath renders BIP32 child numbers, marking the hardened ones.
+func formatOriginPath(path []uint32) string {
+	parts := make([]string, len(path))
+	for i, v := range path {
+		if v >= hdkeychain.HardenedKeyStart {
+			parts[i] = strconv.FormatUint(uint64(v-hdkeychain.HardenedKeyStart), 10) + "'"
+			continue
+		}
+		parts[i] = strconv.FormatUint(uint64(v), 10)
+	}
+	return strings.Join(parts, "/")
 }
 
 func chainIndex(change bool) uint32 {
