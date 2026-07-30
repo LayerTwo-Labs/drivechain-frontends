@@ -174,6 +174,7 @@ class _MultisigConfigStepState extends State<MultisigConfigStep> {
   final TextEditingController _path = TextEditingController();
   final FocusNode _pathFocus = FocusNode();
   List<wmpb.DerivationPathOption> _pathOptions = [];
+  String _standardPath = '';
   String? _pathError;
 
   @override
@@ -216,6 +217,7 @@ class _MultisigConfigStepState extends State<MultisigConfigStep> {
     if (!mounted || _selectedTab != index) return;
     setState(() {
       _pathOptions = paths.options;
+      _standardPath = paths.defaultPath;
       final k = _keystores[index];
       if (k.derivationPath.isEmpty) k.derivationPath = paths.defaultPath;
       if (!_pathFocus.hasFocus) _path.text = k.derivationPath;
@@ -407,7 +409,9 @@ class _MultisigConfigStepState extends State<MultisigConfigStep> {
                   scriptType: _singleHotScriptType(),
                   mnemonic: k.mnemonic,
                   passphrase: k.passphrase,
-                  derivationPath: k.derivationPath,
+                  // Only a real override: pinning the standard path would limit
+                  // the wallet to one address kind.
+                  derivationPath: k.derivationPath == _standardPath ? null : k.derivationPath,
                 )
               : SingleSigResult(
                   scriptType: _singleHotScriptType(),
