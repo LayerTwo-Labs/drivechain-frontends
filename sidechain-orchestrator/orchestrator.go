@@ -171,6 +171,9 @@ type Orchestrator struct {
 	// swapNetworkMu serialises the stop -> persist -> restart sequence for
 	// SwapNetwork. Same reason as coreVariantMu.
 	swapNetworkMu sync.Mutex
+	// pendingSwap records a swap that committed the network but failed before
+	// the wallet was rebound, so calling SwapNetwork again resumes it.
+	pendingSwap *pendingNetworkSwap
 
 	cachedBTCPrice  float64
 	cachedPriceTime time.Time
@@ -1840,9 +1843,13 @@ func (o *Orchestrator) SwapNetwork(ctx context.Context, n config.Network) error 
 	defer o.swapNetworkMu.Unlock()
 
 	if config.Network(o.Network) == n {
-		return nil
+		if o.pendingSwap == nil || o.pendingSwap.network != n {
+			return nil
+		}
+		return o.finishNetworkSwap(n, o.pendingSwap.restartL1)
 	}
-	if o.PlanNetworkChange(NetworkChangeRequest{Network: string(n)}).MustSelectDatadir {
+	plan := o.PlanNetworkChange(NetworkChangeRequest{Network: string(n)})
+	if plan.MustSelectDatadir {
 		return fmt.Errorf("datadir not configured for %s", n)
 	}
 
@@ -1889,6 +1896,19 @@ func (o *Orchestrator) SwapNetwork(ctx context.Context, n config.Network) error 
 	o.setNetwork(string(n))
 	o.clearNetworkSwapCaches()
 
+	o.pendingSwap = &pendingNetworkSwap{network: n, restartL1: bitcoindWasRunning || enforcerWasRunning}
+	return o.finishNetworkSwap(n, o.pendingSwap.restartL1)
+}
+
+// pendingNetworkSwap is the tail of a swap whose network is already committed.
+type pendingNetworkSwap struct {
+	network   config.Network
+	restartL1 bool
+}
+
+// finishNetworkSwap rebinds wallet state and restarts L1. Everything here is
+// retryable: the caller keeps pendingSwap until it returns nil.
+func (o *Orchestrator) finishNetworkSwap(n config.Network, restartL1 bool) error {
 	// Eager, before anything can read: wallet state derived from the outgoing
 	// network must not outlive the swap.
 	if o.walletEngine != nil {
@@ -1897,7 +1917,8 @@ func (o *Orchestrator) SwapNetwork(ctx context.Context, n config.Network) error 
 		}
 	}
 
-	if !bitcoindWasRunning && !enforcerWasRunning {
+	if !restartL1 {
+		o.pendingSwap = nil
 		return nil
 	}
 
@@ -1917,6 +1938,7 @@ func (o *Orchestrator) SwapNetwork(ctx context.Context, n config.Network) error 
 			}
 		}
 	}()
+	o.pendingSwap = nil
 	return nil
 }
 
