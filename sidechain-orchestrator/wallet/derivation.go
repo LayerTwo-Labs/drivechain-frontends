@@ -5,70 +5,104 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/btcsuite/btcd/btcutil/hdkeychain"
 	"github.com/btcsuite/btcd/chaincfg"
 )
 
-// AccountPath is a resolved BIP32 account-level derivation path
-// (purpose'/coin'/account'). All three levels are hardened.
+// AccountPath is a resolved BIP32 account-level derivation path of any depth.
+// Purpose/Coin/Account are also set for a standard three-level hardened path.
 type AccountPath struct {
 	Purpose uint32
 	Coin    uint32
 	Account uint32
+	Steps   []DerivationStep
 }
 
-// String renders the path in m/p'/c'/a' form.
+// DerivationStep is one level of a derivation path.
+type DerivationStep struct {
+	Index    uint32
+	Hardened bool
+}
+
+// Standard reports whether the path is the three-level hardened
+// purpose'/coin'/account' form, whose purpose names a script type.
+func (a AccountPath) Standard() bool {
+	steps := a.steps()
+	if len(steps) != 3 {
+		return false
+	}
+	for _, s := range steps {
+		if !s.Hardened {
+			return false
+		}
+	}
+	return true
+}
+
+// steps falls back to the hardened triple for a path built from
+// purpose/coin/account directly.
+func (a AccountPath) steps() []DerivationStep {
+	if len(a.Steps) > 0 {
+		return a.Steps
+	}
+	return []DerivationStep{
+		{Index: a.Purpose, Hardened: true},
+		{Index: a.Coin, Hardened: true},
+		{Index: a.Account, Hardened: true},
+	}
+}
+
+// Indices returns the path's levels as BIP32 child numbers, hardened bit applied.
+func (a AccountPath) Indices() []uint32 {
+	steps := a.steps()
+	out := make([]uint32, len(steps))
+	for i, s := range steps {
+		out[i] = s.Index
+		if s.Hardened {
+			out[i] += hdkeychain.HardenedKeyStart
+		}
+	}
+	return out
+}
+
+// String renders the path in m/84'/0'/0' form.
 func (a AccountPath) String() string {
-	return fmt.Sprintf("m/%d'/%d'/%d'", a.Purpose, a.Coin, a.Account)
+	return "m/" + a.Origin("'")
 }
 
-// Origin renders the key-origin path "p'/c'/a'" without the leading "m/", using
-// the given separator for the hardened marker ("'" for descriptors, "h" for
-// PSBT origins).
+// Origin renders the key-origin path without the leading "m/", using the given
+// separator for the hardened marker ("'" for descriptors, "h" for PSBT origins).
 func (a AccountPath) Origin(hardened string) string {
-	return fmt.Sprintf("%d%s/%d%s/%d%s", a.Purpose, hardened, a.Coin, hardened, a.Account, hardened)
+	steps := a.steps()
+	parts := make([]string, len(steps))
+	for i, s := range steps {
+		parts[i] = strconv.FormatUint(uint64(s.Index), 10)
+		if s.Hardened {
+			parts[i] += hardened
+		}
+	}
+	return strings.Join(parts, "/")
 }
 
-// validSingleSigPurposes are the BIP-standard purposes accepted for single-sig
-// account paths. Anything else is rejected so a typo can't import descriptors
-// the wallet will never be able to recover from elsewhere.
-var validSingleSigPurposes = map[uint32]bool{44: true, 49: true, 84: true, 86: true}
-
-// ParseAccountPath validates and parses a full account-level derivation path of
-// the form "m/purpose'/coin'/account'". All three levels must be present and
-// hardened. Purpose must be a known single-sig BIP, coin must be 0 (mainnet) or
-// 1 (test), and account must fit in 31 bits.
+// ParseAccountPath validates and parses an account-level derivation path of any
+// depth, hardened or not.
 func ParseAccountPath(path string) (AccountPath, error) {
-	s := strings.TrimSpace(path)
-	s = strings.TrimPrefix(s, "m/")
-	s = strings.TrimPrefix(s, "M/")
-	parts := strings.Split(s, "/")
-	if len(parts) != 3 {
-		return AccountPath{}, fmt.Errorf("derivation path %q must have exactly 3 levels (purpose'/coin'/account')", path)
+	canonical, err := ParseKeystorePath(path)
+	if err != nil {
+		return AccountPath{}, err
 	}
 
-	levels := make([]uint32, 3)
-	for i, p := range parts {
-		p = strings.TrimSpace(p)
-		if !strings.HasSuffix(p, "'") && !strings.HasSuffix(p, "h") && !strings.HasSuffix(p, "H") {
-			return AccountPath{}, fmt.Errorf("derivation path level %q must be hardened (suffix ' or h)", p)
+	var ap AccountPath
+	for _, p := range strings.Split(strings.TrimPrefix(canonical, "m/"), "/") {
+		hardened := strings.HasSuffix(p, "'")
+		v, perr := strconv.ParseUint(strings.TrimSuffix(p, "'"), 10, 32)
+		if perr != nil {
+			return AccountPath{}, fmt.Errorf("derivation path level %q is not a valid index: %w", p, perr)
 		}
-		num := strings.TrimRight(p, "'hH")
-		v, err := strconv.ParseUint(num, 10, 32)
-		if err != nil {
-			return AccountPath{}, fmt.Errorf("derivation path level %q is not a valid index: %w", p, err)
-		}
-		if v >= 1<<31 {
-			return AccountPath{}, fmt.Errorf("derivation path level %d out of hardened range", v)
-		}
-		levels[i] = uint32(v)
+		ap.Steps = append(ap.Steps, DerivationStep{Index: uint32(v), Hardened: hardened})
 	}
-
-	ap := AccountPath{Purpose: levels[0], Coin: levels[1], Account: levels[2]}
-	if !validSingleSigPurposes[ap.Purpose] {
-		return AccountPath{}, fmt.Errorf("unsupported derivation purpose %d' (want one of 44'/49'/84'/86')", ap.Purpose)
-	}
-	if ap.Coin != 0 && ap.Coin != 1 {
-		return AccountPath{}, fmt.Errorf("unsupported coin type %d' (want 0' mainnet or 1' test)", ap.Coin)
+	if ap.Standard() {
+		ap.Purpose, ap.Coin, ap.Account = ap.Steps[0].Index, ap.Steps[1].Index, ap.Steps[2].Index
 	}
 	return ap, nil
 }

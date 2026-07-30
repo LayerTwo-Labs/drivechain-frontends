@@ -770,9 +770,11 @@ func (p *CoreBackend) createBitcoinCoreWallet(ctx context.Context, walletName st
 		if err != nil {
 			return fmt.Errorf("invalid derivation path: %w", err)
 		}
+		// A custom path names no BIP purpose, so the wallet's own script type
+		// decides what Core imports.
 		kind, ok := purposeToCoreKind(ap.Purpose)
 		if !ok {
-			return fmt.Errorf("unsupported core descriptor purpose %d'", ap.Purpose)
+			kind = w.scriptKind()
 		}
 		purposes = []ScriptKind{kind}
 	} else {
@@ -818,19 +820,15 @@ func (p *CoreBackend) createBitcoinCoreWallet(ctx context.Context, walletName st
 
 // deriveAccountKey derives the hardened account-level key for an AccountPath.
 func deriveAccountKey(masterKey *bip32.Key, ap AccountPath) (*bip32.Key, error) {
-	purpose, err := masterKey.NewChildKey(bip32.FirstHardenedChild + ap.Purpose)
-	if err != nil {
-		return nil, fmt.Errorf("derive purpose %d': %w", ap.Purpose, err)
+	cur := masterKey
+	for _, index := range ap.Indices() {
+		next, err := cur.NewChildKey(index)
+		if err != nil {
+			return nil, fmt.Errorf("derive %d: %w", index, err)
+		}
+		cur = next
 	}
-	coin, err := purpose.NewChildKey(bip32.FirstHardenedChild + ap.Coin)
-	if err != nil {
-		return nil, fmt.Errorf("derive coin %d': %w", ap.Coin, err)
-	}
-	account, err := coin.NewChildKey(bip32.FirstHardenedChild + ap.Account)
-	if err != nil {
-		return nil, fmt.Errorf("derive account %d': %w", ap.Account, err)
-	}
-	return account, nil
+	return cur, nil
 }
 
 // coreDescriptorWrapper returns the open/close fragments wrapping the key

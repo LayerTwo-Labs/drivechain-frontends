@@ -535,8 +535,7 @@ func accountKeyAndOrigin(seedHex string, ap AccountPath, net *chaincfg.Params) (
 	}
 	fingerprint := hex.EncodeToString(btcutil.Hash160(masterPub.SerializeCompressed())[:4])
 
-	const h = hdkeychain.HardenedKeyStart
-	acct, err := deriveHardened(master, h+ap.Purpose, h+ap.Coin, h+ap.Account)
+	acct, err := deriveHardened(master, ap.Indices()...)
 	if err != nil {
 		return nil, "", err
 	}
