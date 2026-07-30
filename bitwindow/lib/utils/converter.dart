@@ -118,10 +118,15 @@ Uint8List _toBytes(String input, ConverterFormat format) {
       final decoded = bu.Base58Decoder.decode(trimmed);
       return Uint8List.fromList(decoded);
     case ConverterFormat.base58check:
-    case ConverterFormat.wif:
       final decoded = Base58Check.decode(trimmed);
       if (decoded == null) throw const FormatException('not valid Base58Check');
       return Uint8List.fromList(decoded.payload);
+    case ConverterFormat.wif:
+      // A bad checksum here would present a mistyped key as spendable.
+      final wif = Base58Check.decode(trimmed);
+      if (wif == null) throw const FormatException('not valid Base58Check');
+      if (!wif.checksumValid) throw const FormatException('WIF checksum does not match');
+      return Uint8List.fromList(wif.payload);
     case ConverterFormat.bech32:
       // HRP-agnostic, so bcrt1 decodes as readily as bc1 and tb1, and the
       // witness version picks bech32 vs bech32m.
