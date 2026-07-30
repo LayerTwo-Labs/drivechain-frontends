@@ -94,6 +94,16 @@ void main() {
       expect(_row(fromWif, 'Private key (hex)'), secretHex);
     });
 
+    test('a mistyped WIF is rejected, not shown as key material', () {
+      final fromHex = convert(secretHex, ConverterFormat.hex, mainnet);
+      final wif = _row(fromHex, 'WIF (compressed)');
+      final mistyped = wif.substring(0, wif.length - 1) + (wif.endsWith('a') ? 'b' : 'a');
+
+      final result = convert(mistyped, ConverterFormat.wif, mainnet);
+      expect(result.error, isNotNull);
+      expect(result.keys, isEmpty);
+    });
+
     test('non-secret-length input reports no key material', () {
       expect(convert('deadbeef', ConverterFormat.hex, mainnet).keys, isEmpty);
     });
