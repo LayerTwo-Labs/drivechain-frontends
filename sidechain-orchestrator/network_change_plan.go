@@ -30,6 +30,9 @@ type NetworkChangePlan struct {
 	MissingBinaries      []string
 	NeedsBinaryDownload  bool
 	NoOp                 bool
+	// No chain source exists for an electrum wallet on this network, so every
+	// wallet read would fail once the swap applied.
+	NoChainSource bool
 }
 
 // PlanNetworkChange reports what a change needs before it can be applied.
@@ -65,6 +68,7 @@ func (o *Orchestrator) PlanNetworkChange(req NetworkChangeRequest) NetworkChange
 	// Electrum runs no local Bitcoin backends, so nothing is downloaded and no
 	// chain directory is needed — the same predicate StartWithL1 uses.
 	if !plan.NeedsLocalBackends {
+		plan.NoChainSource = len(config.WalletChainSourceURLsForNetwork(target)) == 0
 		return plan
 	}
 
