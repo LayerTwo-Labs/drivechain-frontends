@@ -22,7 +22,7 @@ export default async function InfoPage() {
   const snapshot = net.assumeutxo;
   const snapshotFile = snapshot?.url.split("/").pop();
   const binaries = l1Binaries(net);
-  const { blockbook, fast_withdrawal } = net.services;
+  const { blockbook, mining_pool, fast_withdrawal } = net.services;
   const isForknet = net.family === "ecash";
 
   return (
@@ -192,12 +192,35 @@ bitcoin-cli -datadir=./${net.id} -rpcclienttimeout=0 \\
           <CardHeader>
             <CardTitle>Mining</CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-4">
             <p className="text-sm text-muted-foreground">
               {net.display_name} restarted difficulty at 1 from the fork block, so blocks are
               CPU-mineable: point any <InlineCode>getblocktemplate</InlineCode> miner at your own
               node with a payout address of yours.
             </p>
+            {mining_pool.stratum && (
+              <div className="space-y-1 text-sm">
+                <InlineCode>{mining_pool.stratum}</InlineCode>
+                <p className="text-muted-foreground">
+                  Or point a stratum miner at the public pool
+                  {mining_pool.url && (
+                    <>
+                      {" ("}
+                      <a
+                        className="underline"
+                        href={mining_pool.url}
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        {mining_pool.url.replace("https://", "")}
+                      </a>
+                      {")"}
+                    </>
+                  )}
+                  .
+                </p>
+              </div>
+            )}
           </CardContent>
         </Card>
       )}
