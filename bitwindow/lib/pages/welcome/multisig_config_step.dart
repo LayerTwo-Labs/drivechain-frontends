@@ -225,8 +225,7 @@ class _MultisigConfigStepState extends State<MultisigConfigStep> {
     });
   }
 
-  bool _isCurrentPath(int index, String raw) =>
-      index < _keystores.length && _keystores[index].derivationPath == raw;
+  bool _isCurrentPath(int index, String raw) => index < _keystores.length && _keystores[index].derivationPath == raw;
 
   Future<void> _onPathChanged(int index, String raw) async {
     final k = _keystores[index];
