@@ -201,8 +201,13 @@ class _MultisigConfigStepState extends State<MultisigConfigStep> {
 
   // The standard paths for the selected keystore's policy, prefilling the
   // derivation of every slot still waiting for a key.
+  // Identifies the policy a path request was made for, so a slower earlier
+  // response cannot answer for a later one.
+  String get _policyKey => '${_isSingle ? _singleHotScriptType() : _scriptType}|$_policy';
+
   Future<void> _loadPathOptions() async {
     final index = _selectedTab;
+    final requested = _policyKey;
     final wmpb.ListDerivationPathsResponse paths;
     try {
       paths = await GetIt.I.get<OrchestratorRPC>().wallet.listDerivationPaths(
@@ -214,7 +219,7 @@ class _MultisigConfigStepState extends State<MultisigConfigStep> {
       if (mounted) setState(() => _error = 'Failed to load derivation paths: ${extractConnectException(e)}');
       return;
     }
-    if (!mounted || _selectedTab != index) return;
+    if (!mounted || _selectedTab != index || _policyKey != requested) return;
     setState(() {
       _pathOptions = paths.options;
       _standardPath = paths.defaultPath;
@@ -225,7 +230,8 @@ class _MultisigConfigStepState extends State<MultisigConfigStep> {
     });
   }
 
-  bool _isCurrentPath(int index, String raw) => index < _keystores.length && _keystores[index].derivationPath == raw;
+  bool _isCurrentPath(int index, String raw) =>
+      index == _selectedTab && index < _keystores.length && _keystores[index].derivationPath == raw;
 
   Future<void> _onPathChanged(int index, String raw) async {
     final k = _keystores[index];
@@ -266,6 +272,7 @@ class _MultisigConfigStepState extends State<MultisigConfigStep> {
         ..isWallet = true
         ..source = k.source,
     );
+
   }
 
   // Drops the paths the new policy's standard one should replace. A key that
