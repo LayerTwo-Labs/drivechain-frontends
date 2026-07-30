@@ -379,7 +379,8 @@ func (h *WalletHandler) CreateElectrumWallet(ctx context.Context, req *connect.R
 		if perr != nil {
 			return nil, connect.NewError(connect.CodeInvalidArgument, perr)
 		}
-		if want, ok := wallet.HotScriptKind(req.Msg.ScriptType).Purpose(); ok && ap.Purpose != want {
+		want, ok := wallet.HotScriptKind(req.Msg.ScriptType).Purpose()
+		if ap.Standard() && ok && ap.Purpose != want {
 			return nil, connect.NewError(connect.CodeInvalidArgument,
 				fmt.Errorf("derivation purpose %d' does not match script type %q (want %d')", ap.Purpose, req.Msg.ScriptType, want))
 		}
