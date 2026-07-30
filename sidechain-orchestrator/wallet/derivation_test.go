@@ -162,3 +162,27 @@ func TestCustomDerivationPathDerivesThatPath(t *testing.T) {
 		assert.Contains(t, origin, ap.Origin("h"), path)
 	}
 }
+
+// The displayed path must be the origin the address actually derived under, at
+// any depth, with each level's own hardened marker.
+func TestDescriptorHDPath(t *testing.T) {
+	const xpub = "tpubDFH9dgzveyD8zTbPUFuLrGmCydNvxehyNdUXKJAQN8x4aZ4j6UZqGfnqFrD4NqyaTVGKbvEW54tsvPTK2UoSbCC1PJY8iCNiwTL3RWZEheQ"
+	net := &chaincfg.SigNetParams
+
+	for _, tc := range []struct{ origin, want string }{
+		{"73c5da0a/84'/0'/0'", "m/84'/0'/0'/0/7"},
+		{"73c5da0a/48'/0'/0'/2'", "m/48'/0'/0'/2'/0/7"},
+		{"73c5da0a/9999'/7'/1'/0'/3'", "m/9999'/7'/1'/0'/3'/0/7"},
+		// An unhardened level stays unhardened instead of underflowing.
+		{"73c5da0a/84'/0'/0'/5", "m/84'/0'/0'/5/0/7"},
+	} {
+		d, err := ParseDescriptor("wpkh([" + tc.origin + "]" + xpub + "/0/*)")
+		require.NoError(t, err, tc.origin)
+		assert.Equal(t, tc.want, descriptorHDPath(d, net, false, 7), tc.origin)
+	}
+
+	// No origin at all falls back to the kind's standard account path.
+	d, err := ParseDescriptor("wpkh(" + xpub + "/0/*)")
+	require.NoError(t, err)
+	assert.Equal(t, "m/84'/1'/0'/0/7", descriptorHDPath(d, net, false, 7))
+}

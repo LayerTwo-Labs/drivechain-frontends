@@ -1,6 +1,7 @@
 package orchestrator
 
 import (
+	"context"
 	"os"
 	"testing"
 
@@ -94,4 +95,18 @@ func TestPlanNetworkChangeElectrumNeedsChainSource(t *testing.T) {
 			require.Equal(t, tc.noChainSource, plan.NoChainSource)
 		})
 	}
+}
+
+// A swap that failed after committing the network must finish on the next call,
+// not hit the same-network early return and report success.
+func TestSwapNetworkResumesPendingSwap(t *testing.T) {
+	o := planFixture(t, "signet")
+	o.pendingSwap = &pendingNetworkSwap{network: config.NetworkSignet}
+
+	require.NoError(t, o.SwapNetwork(context.Background(), config.NetworkSignet))
+	require.Nil(t, o.pendingSwap, "resumed swap must clear the pending marker")
+
+	// With nothing pending, staying put stays a no-op.
+	require.NoError(t, o.SwapNetwork(context.Background(), config.NetworkSignet))
+	require.Nil(t, o.pendingSwap)
 }
