@@ -35,10 +35,17 @@ export interface UrlService {
   url: string | null;
 }
 
+export interface MiningPoolService {
+  // null when this network has no public pool to point a miner at.
+  url: string | null;
+  stratum: string | null;
+}
+
 export interface Services {
   faucet: FaucetService;
   coinnews: UrlService;
   blockbook: UrlService;
+  mining_pool: MiningPoolService;
   fast_withdrawal: { url: string }[];
 }
 
