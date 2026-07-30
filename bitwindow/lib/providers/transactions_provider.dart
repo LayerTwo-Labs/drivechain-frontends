@@ -73,6 +73,7 @@ class TransactionProvider extends ChangeNotifier implements NetworkScoped {
     }
     addressType = type;
     address = '';
+    addressDerivationPath = '';
     notifyListeners();
     await fetch();
   }
@@ -82,6 +83,7 @@ class TransactionProvider extends ChangeNotifier implements NetworkScoped {
     utxos = [];
     receiveAddresses = [];
     address = '';
+    addressDerivationPath = '';
     initialized = false;
     error = null;
     notifyListeners();
@@ -151,14 +153,16 @@ class TransactionProvider extends ChangeNotifier implements NetworkScoped {
           (v) => walletTransactions = v,
           equals: const DeepCollectionEquality().equals,
         ),
-        update<String>(
-          address,
+        update<({String address, String path})>(
+          (address: address, path: addressDerivationPath),
           () async {
             final next = await orchestratorWallet.getNewAddress(walletId, addressType: addressType);
-            addressDerivationPath = next.derivationPath;
-            return next.address;
+            return (address: next.address, path: next.derivationPath);
           },
-          (v) => address = v,
+          (v) {
+            address = v.address;
+            addressDerivationPath = v.path;
+          },
           // Always update - backend handles finding unused address
           equals: (a, b) => false,
         ),
