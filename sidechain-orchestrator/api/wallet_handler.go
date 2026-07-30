@@ -245,8 +245,16 @@ func (h *WalletHandler) ensureL1ForWallet(walletID string) {
 		return
 	}
 	go func() {
-		if _, err := h.orch.StartWithL1(context.Background(), "enforcer", orchestrator.StartOpts{}); err != nil {
+		progress, err := h.orch.StartWithL1(context.Background(), "enforcer", orchestrator.StartOpts{})
+		if err != nil {
 			h.svc.Log().Warn().Err(err).Str("wallet_id", walletID).Msg("ensure L1 after wallet switch failed")
+			return
+		}
+		// Unread progress fills the channel and blocks the boot mid-download.
+		for p := range progress {
+			if p.Error != nil {
+				h.svc.Log().Warn().Err(p.Error).Str("wallet_id", walletID).Msg("L1 boot after wallet switch failed")
+			}
 		}
 	}()
 }
