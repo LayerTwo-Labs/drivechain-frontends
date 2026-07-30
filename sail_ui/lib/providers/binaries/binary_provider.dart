@@ -518,19 +518,22 @@ class BinaryProvider extends ChangeNotifier {
     if (_isDaemonBinary(binary)) {
       return _processManager.isRunning(binary);
     }
-    return _rpcFor(binary)?.connected ?? false;
+    return _rpcFor(binary)?.connected ?? _backendStatusFor(binary)?.connected ?? false;
   }
 
   bool isInitializing(Binary binary) {
-    return _rpcFor(binary)?.initializingBinary ?? false;
+    return _rpcFor(binary)?.initializingBinary ?? _backendStatusFor(binary)?.initializing ?? false;
   }
 
   bool isStopping(Binary binary) {
-    return _rpcFor(binary)?.stoppingBinary ?? false;
+    return _rpcFor(binary)?.stoppingBinary ?? _backendStatusFor(binary)?.stopping ?? false;
   }
 
   String? connectionError(Binary binary) {
-    return _rpcFor(binary)?.connectionError;
+    final rpcError = _rpcFor(binary)?.connectionError;
+    if (rpcError != null) return rpcError;
+    final backendError = _backendStatusFor(binary)?.connectionError;
+    return backendError == null || backendError.isEmpty ? null : backendError;
   }
 
   // =========================================================================
@@ -586,6 +589,14 @@ class BinaryProvider extends ChangeNotifier {
 
   T? _getRegistered<T extends Object>() {
     return GetIt.I.isRegistered<T>() ? GetIt.I.get<T>() : null;
+  }
+
+  BinaryStatusMsg? _backendStatusFor(Binary binary) {
+    final name = orchestratorName(binary);
+    if (name == null || !GetIt.I.isRegistered<BackendStateProvider>()) {
+      return null;
+    }
+    return GetIt.I.get<BackendStateProvider>().binaries[name];
   }
 
   String? orchestratorName(Binary binary) {
