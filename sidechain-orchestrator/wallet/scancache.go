@@ -198,7 +198,12 @@ func (s *Service) maxAddressIndex(walletID string, kind ScriptKind, change bool)
 // saveElectrumScan replaces a wallet's stored scan with ps in a single
 // transaction.
 func (s *Service) saveElectrumScan(walletID string, ps *persistedScan) error {
-	db := s.db()
+	return s.saveElectrumScanTo(s.db(), walletID, ps)
+}
+
+// saveElectrumScanTo writes to a caller-held handle. A scan that started before
+// a network switch must land in the database it read, never the incoming one.
+func (s *Service) saveElectrumScanTo(db *sql.DB, walletID string, ps *persistedScan) error {
 	if db == nil {
 		return nil
 	}
