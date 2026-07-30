@@ -1104,3 +1104,22 @@ func copyTestFile(t *testing.T, src, dst string) {
 	require.NoError(t, err)
 	require.NoError(t, os.WriteFile(dst, data, info.Mode().Perm()))
 }
+
+// A rebind that failed to open the database leaves the network set and no
+// handle, so retrying the same network must finish the open rather than
+// report success.
+func TestRebindNetworkRetriesFailedOpen(t *testing.T) {
+	svc := newTestService(t)
+	require.NoError(t, svc.RebindNetwork("signet"))
+	require.NotNil(t, svc.db())
+
+	// The state a failed openElectrumDB leaves behind.
+	svc.dbMu.Lock()
+	previous := svc.electrumDB
+	svc.electrumDB = nil
+	svc.dbMu.Unlock()
+	require.NoError(t, previous.Close())
+
+	require.NoError(t, svc.RebindNetwork("signet"))
+	require.NotNil(t, svc.db(), "same-network rebind must reopen a missing handle")
+}
