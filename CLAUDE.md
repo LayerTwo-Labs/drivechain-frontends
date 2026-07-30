@@ -42,3 +42,19 @@ This rule applies to:
 
 When tempted to write `if exists(legacyPath) { move(legacyPath, newPath) }`,
 stop and just write the new code. The user is fine wiping.
+
+## Leave unreachable edge cases alone
+
+Review bots report a lot of races and edge cases that no real sequence of
+events reaches. Those are fine as they are. Judge reachability first: how
+wide is the window, and does anything actually act inside it?
+
+If nothing does, skip it and say why. Do not buy a theoretical case with
+real complexity — a native rewrite, another lock, one more state flag —
+that machinery becomes the next bug.
+
+Worth fixing: a user action, ordinary timing, or an error path reaches it.
+Not worth fixing: "theoretically possible".
+
+Prefer widening a test to prove a case never happens over rewriting code
+to make it impossible.
