@@ -301,6 +301,8 @@ func TestDetectFileType_NonASCIIIsBinary(t *testing.T) {
 		{"continuation byte only", []byte("prefix\xBFsuffix"), "bin"},
 		{"delete char", []byte("prefix\x7Fsuffix"), "bin"},
 		{"nul byte", []byte("prefix\x00suffix"), "bin"},
+		{"high byte past the first 1024", append(bytes.Repeat([]byte("a"), 2048), "ø"...), "bin"},
+		{"long pure ascii", bytes.Repeat([]byte("a"), 2048), "txt"},
 	}
 
 	for _, tt := range tests {
