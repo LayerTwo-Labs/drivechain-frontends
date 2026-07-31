@@ -38,6 +38,8 @@ import (
 	orchwallet "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/wallet"
 	corepb "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha"
 	corerpc "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha/bitcoindv1alphaconnect"
+	"github.com/btcsuite/btcd/btcec/v2"
+	"github.com/btcsuite/btcd/btcec/v2/schnorr"
 	"github.com/btcsuite/btcd/btcutil"
 	"github.com/btcsuite/btcd/btcutil/hdkeychain"
 	"github.com/btcsuite/btcd/chaincfg"
@@ -571,7 +573,7 @@ func (s *Server) deriveAndCheckAddresses(ctx context.Context, walletId string) (
 
 	chainParams := s.walletEngine.GetChainParams()
 
-	external, err := deriveExternalChainKey(walletInfo, chainParams)
+	external, err := deriveExternalChainKey(walletInfo, chainParams, orchwallet.ScriptNativeSegwit)
 	if err != nil {
 		return "", nil, err
 	}
@@ -602,8 +604,7 @@ func (s *Server) deriveAndCheckAddresses(ctx context.Context, walletId string) (
 	firstUnusedAddress := ""
 
 	// Derive addresses and check usage
-	// BIP44 gap limit is 20, but we'll check more to be safe
-	for i := uint32(0); i < 100; i++ {
+	for i := uint32(0); i < addressScanDepth; i++ {
 		// Derive address at index i
 		addrKey, err := external.Derive(i)
 		if err != nil {
@@ -1281,13 +1282,33 @@ func (s *Server) createElectrumSidechainDeposit(
 	return connect.NewResponse(&pb.CreateSidechainDepositResponse{Txid: txid}), nil
 }
 
-// messageSigningGapLimit is the BIP44 gap limit: how far out the external chain
-// a signable address can sit.
-const messageSigningGapLimit = 20
+// addressScanDepth bounds how far along the external chain the wallet derives
+// receiving addresses, and so how far a signable address can sit.
+const addressScanDepth = 100
 
-// deriveExternalChainKey derives the external chain a wallet's P2WPKH addresses
-// and signing keys come from, at the account path its descriptors were imported with.
-func deriveExternalChainKey(wallet *engines.WalletInfo, chainParams *chaincfg.Params) (*hdkeychain.ExtendedKey, error) {
+// walletScriptKinds returns the script kinds a wallet's receive descriptors were
+// imported with, mirroring engines.coreDescriptors.
+func walletScriptKinds(wallet *engines.WalletInfo) ([]orchwallet.ScriptKind, error) {
+	if strings.TrimSpace(wallet.DerivationPath) == "" {
+		return []orchwallet.ScriptKind{orchwallet.ScriptNativeSegwit, orchwallet.ScriptTaproot}, nil
+	}
+
+	accountPath, err := orchwallet.ParseAccountPath(wallet.DerivationPath)
+	if err != nil {
+		return nil, fmt.Errorf("invalid derivation path: %w", err)
+	}
+
+	kind, ok := orchwallet.PurposeToCoreKind(accountPath.Purpose)
+	if !ok {
+		return nil, fmt.Errorf("unsupported derivation purpose %d'", accountPath.Purpose)
+	}
+
+	return []orchwallet.ScriptKind{kind}, nil
+}
+
+// deriveExternalChainKey derives the external chain a wallet's addresses of this
+// script kind come from, at the account path its descriptors were imported with.
+func deriveExternalChainKey(wallet *engines.WalletInfo, chainParams *chaincfg.Params, kind orchwallet.ScriptKind) (*hdkeychain.ExtendedKey, error) {
 	seed, err := hex.DecodeString(wallet.Master.SeedHex)
 	if err != nil {
 		return nil, fmt.Errorf("decode seed: %w", err)
@@ -1299,14 +1320,10 @@ func deriveExternalChainKey(wallet *engines.WalletInfo, chainParams *chaincfg.Pa
 	}
 
 	accountPath, err := orchwallet.ResolveAccountPath(
-		wallet.AccountIndex, wallet.DerivationPath, orchwallet.ScriptNativeSegwit, chainParams,
+		wallet.AccountIndex, wallet.DerivationPath, kind, chainParams,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("resolve account path: %w", err)
-	}
-
-	if accountPath.Purpose != 84 {
-		return nil, fmt.Errorf("wallet derives from m/%d', which has no P2WPKH addresses", accountPath.Purpose)
 	}
 
 	account, err := engines.DeriveHardenedPath(masterKey, accountPath)
@@ -1322,43 +1339,73 @@ func deriveExternalChainKey(wallet *engines.WalletInfo, chainParams *chaincfg.Pa
 	return external, nil
 }
 
+// receiveAddressForKind builds the receiving address a pubkey produces under kind.
+func receiveAddressForKind(kind orchwallet.ScriptKind, pubKey *btcec.PublicKey, chainParams *chaincfg.Params) (string, error) {
+	switch kind {
+	case orchwallet.ScriptNativeSegwit:
+		addr, err := btcutil.NewAddressWitnessPubKeyHash(btcutil.Hash160(pubKey.SerializeCompressed()), chainParams)
+		if err != nil {
+			return "", err
+		}
+		return addr.EncodeAddress(), nil
+
+	case orchwallet.ScriptTaproot:
+		tapKey := txscript.ComputeTaprootKeyNoScript(pubKey)
+		addr, err := btcutil.NewAddressTaproot(schnorr.SerializePubKey(tapKey), chainParams)
+		if err != nil {
+			return "", err
+		}
+		return addr.EncodeAddress(), nil
+
+	default:
+		return "", fmt.Errorf("unsupported script kind %s", kind)
+	}
+}
+
 // deriveMessageSigningPrivateKey returns the hex encoded key behind address, so
 // the signature proves ownership of that address rather than some other one.
 func deriveMessageSigningPrivateKey(wallet *engines.WalletInfo, chainParams *chaincfg.Params, address string) (string, error) {
-	external, err := deriveExternalChainKey(wallet, chainParams)
+	kinds, err := walletScriptKinds(wallet)
 	if err != nil {
 		return "", err
 	}
 
-	for i := uint32(0); i < messageSigningGapLimit; i++ {
-		addrKey, err := external.Derive(i)
+	for _, kind := range kinds {
+		external, err := deriveExternalChainKey(wallet, chainParams, kind)
 		if err != nil {
-			return "", fmt.Errorf("derive address %d: %w", i, err)
+			return "", err
 		}
 
-		pubKey, err := addrKey.ECPubKey()
-		if err != nil {
-			return "", fmt.Errorf("get public key %d: %w", i, err)
-		}
+		for i := uint32(0); i < addressScanDepth; i++ {
+			addrKey, err := external.Derive(i)
+			if err != nil {
+				return "", fmt.Errorf("derive address %d: %w", i, err)
+			}
 
-		witnessAddr, err := btcutil.NewAddressWitnessPubKeyHash(btcutil.Hash160(pubKey.SerializeCompressed()), chainParams)
-		if err != nil {
-			return "", fmt.Errorf("create address %d: %w", i, err)
-		}
+			pubKey, err := addrKey.ECPubKey()
+			if err != nil {
+				return "", fmt.Errorf("get public key %d: %w", i, err)
+			}
 
-		if witnessAddr.EncodeAddress() != address {
-			continue
-		}
+			derived, err := receiveAddressForKind(kind, pubKey, chainParams)
+			if err != nil {
+				return "", fmt.Errorf("create address %d: %w", i, err)
+			}
 
-		privKey, err := addrKey.ECPrivKey()
-		if err != nil {
-			return "", fmt.Errorf("get private key %d: %w", i, err)
-		}
+			if derived != address {
+				continue
+			}
 
-		return hex.EncodeToString(privKey.Serialize()), nil
+			privKey, err := addrKey.ECPrivKey()
+			if err != nil {
+				return "", fmt.Errorf("get private key %d: %w", i, err)
+			}
+
+			return hex.EncodeToString(privKey.Serialize()), nil
+		}
 	}
 
-	return "", fmt.Errorf("address %s is not one of the wallet's first %d receiving addresses", address, messageSigningGapLimit)
+	return "", fmt.Errorf("address %s is not one of the wallet's first %d receiving addresses", address, addressScanDepth)
 }
 
 // SignMessage implements walletv1connect.WalletServiceHandler.
