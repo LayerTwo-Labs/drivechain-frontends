@@ -103,6 +103,24 @@ type BlockResult struct {
 	Error  error
 }
 
+// resetProcessedChain drops processed blocks and everything derived from them;
+// the derived inserts ignore conflicts, so stale rows would survive the rescan.
+func (p *Parser) resetProcessedChain(ctx context.Context) error {
+	if err := blocks.WipeProcessedBlocks(ctx, p.db); err != nil {
+		return fmt.Errorf("wipe processed blocks: %w", err)
+	}
+
+	if err := p.purgeCoinNewsAtOrAbove(ctx, 0); err != nil {
+		return fmt.Errorf("purge coinnews: %w", err)
+	}
+
+	if err := p.purgeM4AtOrAbove(ctx, 0); err != nil {
+		return fmt.Errorf("purge m4: %w", err)
+	}
+
+	return nil
+}
+
 func (p *Parser) handleBlockTick(ctx context.Context) error {
 
 	switch err := p.ensureSyncIsHealthy(ctx); {
@@ -111,8 +129,8 @@ func (p *Parser) handleBlockTick(ctx context.Context) error {
 
 		// Core has no block 1: a fresh regtest, or a datadir that was wiped and
 		// is back to syncing. Everything we processed is above its tip.
-		if err := blocks.WipeProcessedBlocks(ctx, p.db); err != nil {
-			return fmt.Errorf("wipe processed blocks on empty chain: %w", err)
+		if err := p.resetProcessedChain(ctx); err != nil {
+			return fmt.Errorf("reset processed chain on empty chain: %w", err)
 		}
 
 		zerolog.Ctx(ctx).Debug().
@@ -169,8 +187,8 @@ func (p *Parser) handleBlockTick(ctx context.Context) error {
 			Uint32("processed_tip", lastProcessedHeight).
 			Uint32("node_tip", currentHeight).
 			Msg("bitcoind_engine/parser: node is behind our processed tip — chain wiped, resetting processed_blocks")
-		if err := blocks.WipeProcessedBlocks(ctx, p.db); err != nil {
-			return fmt.Errorf("wipe processed blocks on chain wipe: %w", err)
+		if err := p.resetProcessedChain(ctx); err != nil {
+			return fmt.Errorf("reset processed chain on chain wipe: %w", err)
 		}
 		return nil
 	}
@@ -838,7 +856,7 @@ func (p *Parser) ensureSyncIsHealthy(ctx context.Context) error {
 			Str("stored_hash", savedBlock1.Hash.String()).
 			Str("current_hash", block1.Header.BlockHash().String()).
 			Msgf("bitcoind_engine/parser: block 1 hash differs from stored — chain switch detected, reprocessing all blocks")
-		return blocks.WipeProcessedBlocks(ctx, p.db)
+		return p.resetProcessedChain(ctx)
 	}
 
 	return nil
