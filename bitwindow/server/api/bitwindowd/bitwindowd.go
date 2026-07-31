@@ -576,12 +576,17 @@ func (s *Server) GetSyncInfo(ctx context.Context, req *connect.Request[emptypb.E
 		}), nil
 	}
 
+	var syncProgress float64
+	if tip.Blocks > 0 {
+		syncProgress = float64(processedTip.Height) / float64(tip.Blocks)
+	}
+
 	return connect.NewResponse(&pb.GetSyncInfoResponse{
 		TipBlockHeight:      int64(processedTip.Height),
 		TipBlockTime:        processedTip.ProcessedAt.Unix(),
 		TipBlockHash:        processedTip.Hash.String(),
 		TipBlockProcessedAt: timestamppb.New(processedTip.ProcessedAt),
-		SyncProgress:        float64(processedTip.Height) / float64(tip.Blocks),
+		SyncProgress:        syncProgress,
 		HeaderHeight:        int64(tip.Headers),
 	}), nil
 }

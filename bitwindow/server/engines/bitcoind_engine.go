@@ -109,8 +109,12 @@ func (p *Parser) handleBlockTick(ctx context.Context) error {
 	case err != nil &&
 		strings.Contains(err.Error(), "Block height out of range"):
 
-		// Block 1 doesn't exist yet — normal on a fresh regtest (no blocks
-		// mined) or a header-syncing full chain. Debug, not info; don't spam.
+		// Core has no block 1: a fresh regtest, or a datadir that was wiped and
+		// is back to syncing. Everything we processed is above its tip.
+		if err := blocks.WipeProcessedBlocks(ctx, p.db); err != nil {
+			return fmt.Errorf("wipe processed blocks on empty chain: %w", err)
+		}
+
 		zerolog.Ctx(ctx).Debug().
 			Msgf("bitcoind_engine/parser: no block 1 yet, waiting for chain to advance..")
 		return nil
