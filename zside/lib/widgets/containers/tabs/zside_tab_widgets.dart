@@ -82,7 +82,7 @@ class ShieldUTXOActionViewModel extends BaseViewModel {
   final bitcoinAmountController = TextEditingController();
   String get totalBitcoinAmount {
     final formatter = GetIt.I<FormatterProvider>();
-    return '${formatter.formatBTC((double.tryParse(bitcoinAmountController.text) ?? 0) + shieldFee)} $ticker';
+    return formatter.formatBTC((double.tryParse(bitcoinAmountController.text) ?? 0) + shieldFee);
   }
 
   double get shieldFee => _zsideProvider.sideFee;
@@ -246,7 +246,7 @@ class DeshieldUTXOActionViewModel extends BaseViewModel {
   final bitcoinAmountController = TextEditingController();
   String get totalBitcoinAmount {
     final formatter = GetIt.I<FormatterProvider>();
-    return '${formatter.formatBTC((double.tryParse(bitcoinAmountController.text) ?? 0) + deshieldFee)} $ticker';
+    return formatter.formatBTC((double.tryParse(bitcoinAmountController.text) ?? 0) + deshieldFee);
   }
 
   double get deshieldFee => _zsideProvider.sideFee;
@@ -631,7 +631,7 @@ class MeltActionViewModel extends BaseViewModel {
         context: context,
         action: 'Initiated melt',
         title:
-            'You will shield ${meltableUTXOs.length} coins for a total of ${formatter.formatBTC(totalBitcoinAmount)} $ticker to your Z-address',
+            'You will shield ${meltableUTXOs.length} coins for a total of ${formatter.formatBTC(totalBitcoinAmount)} to your Z-address',
         subtitle: 'Will complete melt in ${willMeltAt.map((e) => e).join(', ')} seconds.',
       );
       // also pop the info modal
@@ -726,7 +726,7 @@ class MeltSingleUTXOActionViewModel extends BaseViewModel {
 
   String get totalBitcoinAmount {
     final formatter = GetIt.I<FormatterProvider>();
-    return '${formatter.formatBTC(castAmount + shieldFee)} $ticker';
+    return formatter.formatBTC(castAmount + shieldFee);
   }
 
   String get ticker => _rpc.chain.ticker;
@@ -926,7 +926,7 @@ class CastActionViewModel extends BaseViewModel {
         context: context,
         action: 'Cast UTXOs',
         title:
-            'You will cast ${_zsideProvider.shieldedUTXOs.length} coins for a total of ${formatter.formatBTC(totalBitcoinAmount)} $ticker to your Z-address',
+            'You will cast ${_zsideProvider.shieldedUTXOs.length} coins for a total of ${formatter.formatBTC(totalBitcoinAmount)} to your Z-address',
         subtitle:
             'Will cast to ${bundles.length} new unique UTXOs.\n\nDont close the application until you have no shielded coins left in your wallet.',
       );

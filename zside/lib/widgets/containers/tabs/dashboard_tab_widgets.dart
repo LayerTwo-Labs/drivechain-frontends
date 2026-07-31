@@ -82,7 +82,7 @@ class SendOnSidechainViewModel extends BaseViewModel {
   final bitcoinAmountController = TextEditingController();
   String get totalBitcoinAmount {
     final formatter = GetIt.I<FormatterProvider>();
-    return '${formatter.formatBTC((double.tryParse(bitcoinAmountController.text) ?? 0) + (sidechainExpectedFee ?? 0))} $ticker';
+    return formatter.formatBTC((double.tryParse(bitcoinAmountController.text) ?? 0) + (sidechainExpectedFee ?? 0));
   }
 
   String get ticker => _rpc.chain.ticker;

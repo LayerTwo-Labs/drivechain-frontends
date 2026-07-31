@@ -468,12 +468,14 @@ enum ParentChainType {
   regtest;
 
   String get value => switch (this) {
-    ParentChainType.btc => activeTicker.symbol,
+    ParentChainType.btc => 'BTC',
     ParentChainType.bch => 'BCH',
     ParentChainType.ltc => 'LTC',
     ParentChainType.signet => 'Signet',
     ParentChainType.regtest => 'Regtest',
   };
+
+  String get label => this == ParentChainType.btc ? activeTicker.symbol : value;
 
   static ParentChainType fromString(String value) {
     return ParentChainType.values.firstWhere(

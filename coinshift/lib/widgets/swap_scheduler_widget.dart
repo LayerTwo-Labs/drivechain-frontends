@@ -60,7 +60,7 @@ class _ChainSelector extends StatelessWidget {
               .map(
                 (chain) => SailDropdownItem<ParentChainType>(
                   value: chain,
-                  label: chain.value,
+                  label: chain.label,
                 ),
               )
               .toList(),

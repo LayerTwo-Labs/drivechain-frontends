@@ -9,7 +9,7 @@ class Ticker {
   /// Unit symbol shown next to whole amounts, e.g. "1.0000,0000 ECX".
   final String symbol;
 
-  /// Smallest-unit name shown next to integer amounts, e.g. "150 000 sztorcs".
+  /// Smallest-unit name shown next to integer amounts, e.g. "150 000 szats".
   final String subunit;
 
   /// Singular [subunit], used by rate units.
@@ -19,9 +19,9 @@ class Ticker {
   final String subunitLabel;
 
   static const bitcoin = Ticker._('BTC', 'sats', 'sat', 'Satoshis');
-  static const ecash = Ticker._('ECX', 'sztorcs', 'sztorc', 'Sztorcs');
+  static const ecash = Ticker._('ECX', 'szats', 'szat', 'Szats');
 
-  /// Fee rate unit, e.g. "sztorc/vB".
+  /// Fee rate unit, e.g. "szat/vB".
   String get feeRate => '$subunitSingular/vB';
 }
 

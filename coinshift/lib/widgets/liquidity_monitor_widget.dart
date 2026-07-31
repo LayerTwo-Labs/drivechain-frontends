@@ -142,7 +142,7 @@ class _ChainHealthCard extends StatelessWidget {
                   spacing: SailStyleValues.padding08,
                   children: [
                     _ChainIcon(chain: chain),
-                    SailText.primary15(chain.value, bold: true),
+                    SailText.primary15(chain.label, bold: true),
                   ],
                 ),
                 _HealthIndicator(isHealthy: health.isHealthy),

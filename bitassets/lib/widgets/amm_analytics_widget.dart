@@ -420,9 +420,9 @@ class _PoolRow extends StatelessWidget {
     if (sats >= 100000000) {
       return '${(sats / 100000000).toStringAsFixed(2)} ${activeTicker.symbol}';
     } else if (sats >= 1000000) {
-      return '${(sats / 1000000).toStringAsFixed(2)}M sats';
+      return '${(sats / 1000000).toStringAsFixed(2)}M ${activeTicker.subunit}';
     } else if (sats >= 1000) {
-      return '${(sats / 1000).toStringAsFixed(1)}k sats';
+      return '${(sats / 1000).toStringAsFixed(1)}k ${activeTicker.subunit}';
     }
     return '$sats ${activeTicker.subunit}';
   }
@@ -542,9 +542,9 @@ class AmmAnalyticsViewModel extends BaseViewModel {
     if (total >= 100000000) {
       return '${(total / 100000000).toStringAsFixed(2)} ${activeTicker.symbol}';
     } else if (total >= 1000000) {
-      return '${(total / 1000000).toStringAsFixed(2)}M sats';
+      return '${(total / 1000000).toStringAsFixed(2)}M ${activeTicker.subunit}';
     } else if (total >= 1000) {
-      return '${(total / 1000).toStringAsFixed(1)}k sats';
+      return '${(total / 1000).toStringAsFixed(1)}k ${activeTicker.subunit}';
     }
     return '$total ${activeTicker.subunit}';
   }

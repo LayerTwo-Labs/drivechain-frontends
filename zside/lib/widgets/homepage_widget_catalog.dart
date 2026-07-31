@@ -51,26 +51,22 @@ class ZSideWidgetCatalog {
                         label: 'Private (Shielded)',
                         available: model.balanceBreakdown!.availableShielded,
                         pending: model.balanceBreakdown!.pendingShielded,
-                        ticker: model.ticker,
                         color: theme.colors.success,
                       ),
                       PoolBalanceRow(
                         label: 'Transparent',
                         available: model.balanceBreakdown!.availableTransparent,
                         pending: model.balanceBreakdown!.pendingTransparent,
-                        ticker: model.ticker,
                         color: theme.colors.info,
                       ),
                     ] else ...[
                       BalanceRow(
                         label: 'Available',
                         amount: model.balance,
-                        ticker: model.ticker,
                       ),
                       BalanceRow(
                         label: 'Pending',
                         amount: model.pendingBalance,
-                        ticker: model.ticker,
                       ),
                     ],
                   ],
@@ -306,7 +302,7 @@ class OverviewTabViewModel extends BaseViewModel {
 
   String get totalBitcoinAmount {
     final formatter = GetIt.I<FormatterProvider>();
-    return '${formatter.formatBTC((double.tryParse(bitcoinAmountController.text) ?? 0) + (sidechainFee ?? 0))} $ticker';
+    return formatter.formatBTC((double.tryParse(bitcoinAmountController.text) ?? 0) + (sidechainFee ?? 0));
   }
 
   double get balance => _balanceProvider.balance;
@@ -845,13 +841,11 @@ class LatestWalletTransactionsViewModel extends BaseViewModel {
 class BalanceRow extends StatelessWidget {
   final String label;
   final double amount;
-  final String ticker;
 
   const BalanceRow({
     super.key,
     required this.label,
     required this.amount,
-    required this.ticker,
   });
 
   @override
@@ -866,7 +860,7 @@ class BalanceRow extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             SailText.secondary15(label),
-            SailText.secondary15('${formatter.formatBTC(amount)} $ticker'),
+            SailText.secondary15(formatter.formatBTC(amount)),
           ],
         ),
       ),
@@ -878,7 +872,6 @@ class PoolBalanceRow extends StatelessWidget {
   final String label;
   final double available;
   final double pending;
-  final String ticker;
   final Color color;
 
   const PoolBalanceRow({
@@ -886,7 +879,6 @@ class PoolBalanceRow extends StatelessWidget {
     required this.label,
     required this.available,
     required this.pending,
-    required this.ticker,
     required this.color,
   });
 
@@ -920,7 +912,7 @@ class PoolBalanceRow extends StatelessWidget {
                   ],
                 ),
                 SailText.secondary13(
-                  '${formatter.formatBTC(total)} $ticker',
+                  formatter.formatBTC(total),
                   bold: true,
                 ),
               ],

@@ -56,7 +56,7 @@ class SwapCard extends StatelessWidget {
 
                 // L1 Amount (receiving)
                 NumericField(
-                  label: 'Amount you want (${model.parentChain.value})',
+                  label: 'Amount you want ()',
                   controller: model.l1AmountController,
                   hintText: 'e.g. 100000 sats',
                   suffixWidget: SailText.secondary12(activeTicker.subunit),
