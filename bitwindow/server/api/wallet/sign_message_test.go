@@ -25,57 +25,114 @@ import (
 	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
-// The signing key must be the wallet's own key material - an empty/absent secret
-// key makes the enforcer's Secp256K1Sign call fail, so SignMessage never works.
-func TestDeriveMessageSigningPrivateKey(t *testing.T) {
-	t.Parallel()
+const testSeedHex = "0329e77e27d1e24336be53d25a897e92e67b5ec7e88eca7529b14e3ffd9168a247b6906469fb8a79ecb25ec077e033f6b567d5d9b0ae334f1e33457ae6bb1364"
 
-	const seedHex = "0329e77e27d1e24336be53d25a897e92e67b5ec7e88eca7529b14e3ffd9168a247b6906469fb8a79ecb25ec077e033f6b567d5d9b0ae334f1e33457ae6bb1364"
+// signingWallet is a seed-only wallet at the given account override.
+func signingWallet(accountIndex uint32, derivationPath string) *engines.WalletInfo {
+	wallet := &engines.WalletInfo{AccountIndex: accountIndex, DerivationPath: derivationPath}
+	wallet.Master.SeedHex = testSeedHex
+	return wallet
+}
 
-	chainParams := &chaincfg.SigNetParams
+// deriveAddressKey walks m/84'/coin'/account'/0/index for the test to compare against.
+func deriveAddressKey(t *testing.T, chainParams *chaincfg.Params, coin, account, index uint32) *hdkeychain.ExtendedKey {
+	t.Helper()
 
-	privKeyHex, err := deriveMessageSigningPrivateKey(seedHex, chainParams)
-	require.NoError(t, err)
-
-	privKeyBytes, err := hex.DecodeString(privKeyHex)
-	require.NoError(t, err)
-	require.Len(t, privKeyBytes, 32)
-
-	// Independently derive m/84'/1'/0'/0/0 and check the key matches, so the
-	// signature verifies against the wallet's first receiving address.
-	seed, err := hex.DecodeString(seedHex)
+	seed, err := hex.DecodeString(testSeedHex)
 	require.NoError(t, err)
 
 	key, err := hdkeychain.NewMaster(seed, chainParams)
 	require.NoError(t, err)
 
-	for _, child := range []uint32{
-		hdkeychain.HardenedKeyStart + 84,
-		hdkeychain.HardenedKeyStart + 1, // signet coin type
-		hdkeychain.HardenedKeyStart + 0,
-		0, // external chain
-		0, // address index
-	} {
+	const h = hdkeychain.HardenedKeyStart
+	for _, child := range []uint32{h + 84, h + coin, h + account, 0, index} {
 		key, err = key.Derive(child)
 		require.NoError(t, err)
 	}
+	return key
+}
 
-	expected, err := key.ECPrivKey()
-	require.NoError(t, err)
-	require.Equal(t, hex.EncodeToString(expected.Serialize()), privKeyHex)
+func addressOf(t *testing.T, key *hdkeychain.ExtendedKey, chainParams *chaincfg.Params) string {
+	t.Helper()
 
-	// Mainnet uses coin type 0, so it must derive a different key
-	mainnetPrivKeyHex, err := deriveMessageSigningPrivateKey(seedHex, &chaincfg.MainNetParams)
-	require.NoError(t, err)
-	require.NotEqual(t, privKeyHex, mainnetPrivKeyHex)
-
-	// Sanity check: the pubkey hashes to the first receiving address
 	pubKey, err := key.ECPubKey()
 	require.NoError(t, err)
 
 	addr, err := btcutil.NewAddressWitnessPubKeyHash(btcutil.Hash160(pubKey.SerializeCompressed()), chainParams)
 	require.NoError(t, err)
-	require.NotEmpty(t, addr.EncodeAddress())
+
+	return addr.EncodeAddress()
+}
+
+// A signature only proves ownership of the address it was made with, so signing
+// has to use the key behind the requested address - not the wallet's first one.
+func TestDeriveMessageSigningPrivateKey(t *testing.T) {
+	t.Parallel()
+
+	chainParams := &chaincfg.SigNetParams
+
+	for _, index := range []uint32{0, 3, messageSigningGapLimit - 1} {
+		expected := deriveAddressKey(t, chainParams, 1, 0, index)
+
+		privKeyHex, err := deriveMessageSigningPrivateKey(
+			signingWallet(0, ""), chainParams, addressOf(t, expected, chainParams),
+		)
+		require.NoError(t, err)
+
+		expectedKey, err := expected.ECPrivKey()
+		require.NoError(t, err)
+		require.Equal(t, hex.EncodeToString(expectedKey.Serialize()), privKeyHex)
+	}
+
+	// An address past the gap limit, or one from another wallet entirely, has no
+	// key here - signing it would be a lie.
+	beyondGap := deriveAddressKey(t, chainParams, 1, 0, messageSigningGapLimit)
+	_, err := deriveMessageSigningPrivateKey(
+		signingWallet(0, ""), chainParams, addressOf(t, beyondGap, chainParams),
+	)
+	require.ErrorContains(t, err, "not one of the wallet")
+
+	// Mainnet uses coin type 0, so the same index is a different address entirely
+	mainnetAddr := addressOf(t, deriveAddressKey(t, &chaincfg.MainNetParams, 0, 0, 0), &chaincfg.MainNetParams)
+	_, err = deriveMessageSigningPrivateKey(signingWallet(0, ""), chainParams, mainnetAddr)
+	require.ErrorContains(t, err, "not one of the wallet")
+}
+
+// Wallets imported at a non-standard account own addresses under that account,
+// so signing must derive from it too.
+func TestDeriveMessageSigningPrivateKeyHonorsAccount(t *testing.T) {
+	t.Parallel()
+
+	chainParams := &chaincfg.SigNetParams
+	account5 := deriveAddressKey(t, chainParams, 1, 5, 0)
+	address := addressOf(t, account5, chainParams)
+
+	for _, wallet := range []*engines.WalletInfo{
+		signingWallet(5, ""),
+		signingWallet(0, "m/84'/1'/5'"),
+	} {
+		privKeyHex, err := deriveMessageSigningPrivateKey(wallet, chainParams, address)
+		require.NoError(t, err)
+
+		expected, err := account5.ECPrivKey()
+		require.NoError(t, err)
+		require.Equal(t, hex.EncodeToString(expected.Serialize()), privKeyHex)
+	}
+
+	// The default-account wallet does not own that address
+	_, err := deriveMessageSigningPrivateKey(signingWallet(0, ""), chainParams, address)
+	require.ErrorContains(t, err, "not one of the wallet")
+}
+
+// Taproot-only wallets have no P2WPKH addresses, so this must say so instead of
+// handing back a key for an address the wallet never shows.
+func TestDeriveMessageSigningPrivateKeyRejectsNonBIP84(t *testing.T) {
+	t.Parallel()
+
+	_, err := deriveMessageSigningPrivateKey(
+		signingWallet(0, "m/86'/1'/0'"), &chaincfg.SigNetParams, "whatever",
+	)
+	require.ErrorContains(t, err, "P2WPKH")
 }
 
 // The enforcer's Secp256K1Sign takes a common.Hex message, so plaintext has to be
@@ -88,7 +145,7 @@ func TestSignMessageHexEncodesMessage(t *testing.T) {
 
 	const (
 		walletID = "80CEBA2163224572BDEADD2D2181C51B"
-		seedHex  = "0329e77e27d1e24336be53d25a897e92e67b5ec7e88eca7529b14e3ffd9168a247b6906469fb8a79ecb25ec077e033f6b567d5d9b0ae334f1e33457ae6bb1364"
+		seedHex  = testSeedHex
 	)
 
 	tempDir := t.TempDir()
@@ -138,9 +195,13 @@ func TestSignMessageHexEncodesMessage(t *testing.T) {
 	// multi-byte input also proves the encoding is over bytes, not runes.
 	const message = "signed by Bjørn"
 
+	wallet := signingWallet(0, "")
+	address := addressOf(t, deriveAddressKey(t, &chaincfg.SigNetParams, 1, 0, 0), &chaincfg.SigNetParams)
+
 	res, err := server.SignMessage(ctx, connect.NewRequest(&pb.SignMessageRequest{
 		WalletId: walletID,
 		Message:  message,
+		Address:  address,
 	}))
 	require.NoError(t, err)
 	require.Equal(t, "3045')", res.Msg.Signature)
@@ -150,7 +211,7 @@ func TestSignMessageHexEncodesMessage(t *testing.T) {
 	require.NoError(t, err, "message must be hex the enforcer can decode")
 	require.Equal(t, message, string(decoded))
 
-	expectedKey, err := deriveMessageSigningPrivateKey(seedHex, &chaincfg.SigNetParams)
+	expectedKey, err := deriveMessageSigningPrivateKey(wallet, &chaincfg.SigNetParams, address)
 	require.NoError(t, err)
 	require.Equal(t, expectedKey, signed.SecretKey.Hex.Value)
 }

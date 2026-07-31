@@ -234,7 +234,7 @@ class MockWalletAPI implements WalletAPI {
   }
 
   @override
-  Future<String> signMessage(String walletId, String message) async {
+  Future<String> signMessage(String walletId, String message, String address) async {
     return 'mock_signature';
   }
 

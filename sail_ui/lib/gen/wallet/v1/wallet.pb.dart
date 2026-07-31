@@ -1638,6 +1638,7 @@ class SignMessageRequest extends $pb.GeneratedMessage {
   factory SignMessageRequest({
     $core.String? walletId,
     $core.String? message,
+    $core.String? address,
   }) {
     final $result = create();
     if (walletId != null) {
@@ -1645,6 +1646,9 @@ class SignMessageRequest extends $pb.GeneratedMessage {
     }
     if (message != null) {
       $result.message = message;
+    }
+    if (address != null) {
+      $result.address = address;
     }
     return $result;
   }
@@ -1655,6 +1659,7 @@ class SignMessageRequest extends $pb.GeneratedMessage {
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'SignMessageRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'wallet.v1'), createEmptyInstance: create)
     ..aOS(1, _omitFieldNames ? '' : 'walletId')
     ..aOS(2, _omitFieldNames ? '' : 'message')
+    ..aOS(3, _omitFieldNames ? '' : 'address')
     ..hasRequiredFields = false
   ;
 
@@ -1696,6 +1701,16 @@ class SignMessageRequest extends $pb.GeneratedMessage {
   $core.bool hasMessage() => $_has(1);
   @$pb.TagNumber(2)
   void clearMessage() => clearField(2);
+
+  /// Receiving address to sign with. Must belong to the wallet.
+  @$pb.TagNumber(3)
+  $core.String get address => $_getSZ(2);
+  @$pb.TagNumber(3)
+  set address($core.String v) { $_setString(2, v); }
+  @$pb.TagNumber(3)
+  $core.bool hasAddress() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearAddress() => clearField(3);
 }
 
 class SignMessageResponse extends $pb.GeneratedMessage {

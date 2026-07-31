@@ -65,7 +65,7 @@ class _SignMessageTabState extends State<SignMessageTab> {
       final walletId = _walletReader.activeWalletId;
       if (walletId == null) throw Exception('No active wallet');
 
-      final signature = await _wallet.signMessage(walletId, _messageController.text);
+      final signature = await _wallet.signMessage(walletId, _messageController.text, _addressController.text);
       setState(() {
         _signatureController.text = signature;
       });
