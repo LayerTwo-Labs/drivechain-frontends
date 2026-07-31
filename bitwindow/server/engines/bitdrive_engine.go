@@ -182,29 +182,15 @@ func DetectFileType(content []byte) string {
 		return "pdf"
 	}
 
-	// Try to detect text files
-	sampleSize := min(1024, len(content))
-
-	// Check if content is printable ASCII text. Non-ASCII bytes must classify as
-	// "bin": the "txt" path stores content raw in the OP_RETURN, and retrieval
-	// runs it through opreturns.OPReturnToReadable, which hex-encodes anything
-	// containing a byte above 0x7E and so destroys the "metadataB64|content"
-	// framing that DecodeOPReturnData needs.
-	isText := true
-	for i := range sampleSize {
-		b := content[i]
-		// Allow printable ASCII, newlines, tabs
+	// Every byte must be checked, not a leading sample: "txt" is stored raw and
+	// retrieval hex-encodes anything above 0x7E, breaking the content framing.
+	for _, b := range content {
 		if b < 0x09 || (b > 0x0D && b < 0x20) || b >= 0x7F {
-			isText = false
-			break
+			return "bin"
 		}
 	}
 
-	if isText {
-		return "txt"
-	}
-
-	return "bin"
+	return "txt"
 }
 
 // DeriveKeyStream derives a keystream for XOR encryption
