@@ -1340,26 +1340,17 @@ func deriveExternalChainKey(wallet *engines.WalletInfo, chainParams *chaincfg.Pa
 }
 
 // receiveAddressForKind builds the receiving address a pubkey produces under kind.
-func receiveAddressForKind(kind orchwallet.ScriptKind, pubKey *btcec.PublicKey, chainParams *chaincfg.Params) (string, error) {
-	switch kind {
-	case orchwallet.ScriptNativeSegwit:
-		addr, err := btcutil.NewAddressWitnessPubKeyHash(btcutil.Hash160(pubKey.SerializeCompressed()), chainParams)
-		if err != nil {
-			return "", err
-		}
-		return addr.EncodeAddress(), nil
-
-	case orchwallet.ScriptTaproot:
-		tapKey := txscript.ComputeTaprootKeyNoScript(pubKey)
-		addr, err := btcutil.NewAddressTaproot(schnorr.SerializePubKey(tapKey), chainParams)
-		if err != nil {
-			return "", err
-		}
-		return addr.EncodeAddress(), nil
-
-	default:
-		return "", fmt.Errorf("unsupported script kind %s", kind)
+func receiveAddressForKind(kind orchwallet.ScriptKind, pubKey *btcec.PublicKey, chainParams *chaincfg.Params) (btcutil.Address, error) {
+	if kind == orchwallet.ScriptNativeSegwit {
+		return btcutil.NewAddressWitnessPubKeyHash(btcutil.Hash160(pubKey.SerializeCompressed()), chainParams)
 	}
+
+	if kind == orchwallet.ScriptTaproot {
+		tapKey := txscript.ComputeTaprootKeyNoScript(pubKey)
+		return btcutil.NewAddressTaproot(schnorr.SerializePubKey(tapKey), chainParams)
+	}
+
+	return nil, fmt.Errorf("unsupported script kind %s", kind)
 }
 
 // deriveMessageSigningPrivateKey returns the hex encoded key behind address, so
@@ -1392,7 +1383,7 @@ func deriveMessageSigningPrivateKey(wallet *engines.WalletInfo, chainParams *cha
 				return "", fmt.Errorf("create address %d: %w", i, err)
 			}
 
-			if derived != address {
+			if derived.EncodeAddress() != address {
 				continue
 			}
 
