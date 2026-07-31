@@ -17,9 +17,12 @@ import (
 	cryptov1 "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/crypto/v1"
 	cryptorpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/crypto/v1/cryptov1connect"
 	corerpc "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha/bitcoindv1alphaconnect"
+	"github.com/btcsuite/btcd/btcec/v2"
+	"github.com/btcsuite/btcd/btcec/v2/schnorr"
 	"github.com/btcsuite/btcd/btcutil"
 	"github.com/btcsuite/btcd/btcutil/hdkeychain"
 	"github.com/btcsuite/btcd/chaincfg"
+	"github.com/btcsuite/btcd/txscript"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
 	"google.golang.org/protobuf/types/known/wrapperspb"
@@ -71,7 +74,7 @@ func TestDeriveMessageSigningPrivateKey(t *testing.T) {
 
 	chainParams := &chaincfg.SigNetParams
 
-	for _, index := range []uint32{0, 3, messageSigningGapLimit - 1} {
+	for _, index := range []uint32{0, 3, addressScanDepth - 1} {
 		expected := deriveAddressKey(t, chainParams, 1, 0, index)
 
 		privKeyHex, err := deriveMessageSigningPrivateKey(
@@ -86,7 +89,7 @@ func TestDeriveMessageSigningPrivateKey(t *testing.T) {
 
 	// An address past the gap limit, or one from another wallet entirely, has no
 	// key here - signing it would be a lie.
-	beyondGap := deriveAddressKey(t, chainParams, 1, 0, messageSigningGapLimit)
+	beyondGap := deriveAddressKey(t, chainParams, 1, 0, addressScanDepth)
 	_, err := deriveMessageSigningPrivateKey(
 		signingWallet(0, ""), chainParams, addressOf(t, beyondGap, chainParams),
 	)
@@ -124,15 +127,30 @@ func TestDeriveMessageSigningPrivateKeyHonorsAccount(t *testing.T) {
 	require.ErrorContains(t, err, "not one of the wallet")
 }
 
-// Taproot-only wallets have no P2WPKH addresses, so this must say so instead of
-// handing back a key for an address the wallet never shows.
-func TestDeriveMessageSigningPrivateKeyRejectsNonBIP84(t *testing.T) {
+// Default wallets import BIP84 and BIP86 descriptors, and the receive UI hands
+// out both, so a taproot address must be signable too.
+func TestDeriveMessageSigningPrivateKeyHandlesTaproot(t *testing.T) {
 	t.Parallel()
 
-	_, err := deriveMessageSigningPrivateKey(
-		signingWallet(0, "m/86'/1'/0'"), &chaincfg.SigNetParams, "whatever",
-	)
-	require.ErrorContains(t, err, "P2WPKH")
+	chainParams := &chaincfg.SigNetParams
+
+	key := deriveKeyAtPurpose(t, chainParams, 86, 1, 0, 0)
+	tapKey := txscript.ComputeTaprootKeyNoScript(pubKeyOf(t, key))
+	taproot, err := btcutil.NewAddressTaproot(schnorr.SerializePubKey(tapKey), chainParams)
+	require.NoError(t, err)
+
+	expected, err := key.ECPrivKey()
+	require.NoError(t, err)
+
+	// Standard wallet: taproot comes alongside segwit off the same seed.
+	privKeyHex, err := deriveMessageSigningPrivateKey(signingWallet(0, ""), chainParams, taproot.EncodeAddress())
+	require.NoError(t, err)
+	require.Equal(t, hex.EncodeToString(expected.Serialize()), privKeyHex)
+
+	// Taproot-only wallet: the explicit m/86' path is its single kind.
+	privKeyHex, err = deriveMessageSigningPrivateKey(signingWallet(0, "m/86'/1'/0'"), chainParams, taproot.EncodeAddress())
+	require.NoError(t, err)
+	require.Equal(t, hex.EncodeToString(expected.Serialize()), privKeyHex)
 }
 
 // The enforcer's Secp256K1Sign takes a common.Hex message, so plaintext has to be
@@ -214,4 +232,30 @@ func TestSignMessageHexEncodesMessage(t *testing.T) {
 	expectedKey, err := deriveMessageSigningPrivateKey(wallet, &chaincfg.SigNetParams, address)
 	require.NoError(t, err)
 	require.Equal(t, expectedKey, signed.SecretKey.Hex.Value)
+}
+
+// deriveKeyAtPurpose walks m/purpose'/coin'/account'/0/index.
+func deriveKeyAtPurpose(t *testing.T, chainParams *chaincfg.Params, purpose, coin, account, index uint32) *hdkeychain.ExtendedKey {
+	t.Helper()
+
+	seed, err := hex.DecodeString(testSeedHex)
+	require.NoError(t, err)
+
+	key, err := hdkeychain.NewMaster(seed, chainParams)
+	require.NoError(t, err)
+
+	const h = hdkeychain.HardenedKeyStart
+	for _, child := range []uint32{h + purpose, h + coin, h + account, 0, index} {
+		key, err = key.Derive(child)
+		require.NoError(t, err)
+	}
+	return key
+}
+
+func pubKeyOf(t *testing.T, key *hdkeychain.ExtendedKey) *btcec.PublicKey {
+	t.Helper()
+
+	pubKey, err := key.ECPubKey()
+	require.NoError(t, err)
+	return pubKey
 }
