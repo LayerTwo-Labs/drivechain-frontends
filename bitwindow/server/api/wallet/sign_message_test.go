@@ -259,3 +259,44 @@ func pubKeyOf(t *testing.T, key *hdkeychain.ExtendedKey) *btcec.PublicKey {
 	require.NoError(t, err)
 	return pubKey
 }
+
+// Electrum wallets can sit at m/44' or m/49', and the stored wallet does not say
+// which, so those addresses must resolve too.
+func TestDeriveMessageSigningPrivateKeyHandlesLegacyAndNested(t *testing.T) {
+	t.Parallel()
+
+	chainParams := &chaincfg.SigNetParams
+
+	for _, tc := range []struct {
+		purpose uint32
+		path    string
+		address func(*testing.T, *btcec.PublicKey) string
+	}{
+		{44, "m/44'/1'/0'", func(t *testing.T, pub *btcec.PublicKey) string {
+			addr, err := btcutil.NewAddressPubKeyHash(btcutil.Hash160(pub.SerializeCompressed()), chainParams)
+			require.NoError(t, err)
+			return addr.EncodeAddress()
+		}},
+		{49, "m/49'/1'/0'", func(t *testing.T, pub *btcec.PublicKey) string {
+			witness, err := btcutil.NewAddressWitnessPubKeyHash(btcutil.Hash160(pub.SerializeCompressed()), chainParams)
+			require.NoError(t, err)
+			redeem, err := txscript.PayToAddrScript(witness)
+			require.NoError(t, err)
+			addr, err := btcutil.NewAddressScriptHash(redeem, chainParams)
+			require.NoError(t, err)
+			return addr.EncodeAddress()
+		}},
+	} {
+		key := deriveKeyAtPurpose(t, chainParams, tc.purpose, 1, 0, 0)
+		address := tc.address(t, pubKeyOf(t, key))
+
+		expected, err := key.ECPrivKey()
+		require.NoError(t, err)
+
+		for _, wallet := range []*engines.WalletInfo{signingWallet(0, ""), signingWallet(0, tc.path)} {
+			privKeyHex, err := deriveMessageSigningPrivateKey(wallet, chainParams, address)
+			require.NoError(t, err)
+			require.Equal(t, hex.EncodeToString(expected.Serialize()), privKeyHex)
+		}
+	}
+}

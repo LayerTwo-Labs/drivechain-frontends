@@ -1289,8 +1289,15 @@ const addressScanDepth = 100
 // walletScriptKinds returns the script kinds a wallet's receive descriptors were
 // imported with, mirroring engines.coreDescriptors.
 func walletScriptKinds(wallet *engines.WalletInfo) ([]orchwallet.ScriptKind, error) {
+	// Core wallets import BIP84+BIP86, Electrum ones can be at m/44' or m/49',
+	// and the stored wallet does not say which — so try every standard purpose.
 	if strings.TrimSpace(wallet.DerivationPath) == "" {
-		return []orchwallet.ScriptKind{orchwallet.ScriptNativeSegwit, orchwallet.ScriptTaproot}, nil
+		return []orchwallet.ScriptKind{
+			orchwallet.ScriptNativeSegwit,
+			orchwallet.ScriptTaproot,
+			orchwallet.ScriptNestedSegwit,
+			orchwallet.ScriptLegacy,
+		}, nil
 	}
 
 	accountPath, err := orchwallet.ParseAccountPath(wallet.DerivationPath)
@@ -1341,13 +1348,32 @@ func deriveExternalChainKey(wallet *engines.WalletInfo, chainParams *chaincfg.Pa
 
 // receiveAddressForKind builds the receiving address a pubkey produces under kind.
 func receiveAddressForKind(kind orchwallet.ScriptKind, pubKey *btcec.PublicKey, chainParams *chaincfg.Params) (btcutil.Address, error) {
+	pkHash := btcutil.Hash160(pubKey.SerializeCompressed())
+
 	if kind == orchwallet.ScriptNativeSegwit {
-		return btcutil.NewAddressWitnessPubKeyHash(btcutil.Hash160(pubKey.SerializeCompressed()), chainParams)
+		return btcutil.NewAddressWitnessPubKeyHash(pkHash, chainParams)
 	}
 
 	if kind == orchwallet.ScriptTaproot {
-		tapKey := txscript.ComputeTaprootKeyNoScript(pubKey)
-		return btcutil.NewAddressTaproot(schnorr.SerializePubKey(tapKey), chainParams)
+		return btcutil.NewAddressTaproot(schnorr.SerializePubKey(txscript.ComputeTaprootKeyNoScript(pubKey)), chainParams)
+	}
+
+	if kind == orchwallet.ScriptLegacy {
+		return btcutil.NewAddressPubKeyHash(pkHash, chainParams)
+	}
+
+	if kind == orchwallet.ScriptNestedSegwit {
+		witness, err := btcutil.NewAddressWitnessPubKeyHash(pkHash, chainParams)
+		if err != nil {
+			return nil, err
+		}
+
+		redeem, err := txscript.PayToAddrScript(witness)
+		if err != nil {
+			return nil, err
+		}
+
+		return btcutil.NewAddressScriptHash(redeem, chainParams)
 	}
 
 	return nil, fmt.Errorf("unsupported script kind %s", kind)
