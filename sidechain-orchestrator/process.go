@@ -297,19 +297,19 @@ func (pm *ProcessManager) StartWithOptions(_ context.Context, config BinaryConfi
 	}
 	stderr, stderrW, err := os.Pipe()
 	if err != nil {
-		stdout.Close()
-		stdoutW.Close()
+		stdout.Close()  //nolint:errcheck // cleanup
+		stdoutW.Close() //nolint:errcheck // cleanup
 		return 0, fmt.Errorf("stderr pipe: %w", err)
 	}
 	cmd.Stdout = stdoutW
 	cmd.Stderr = stderrW
 
 	startErr := cmd.Start()
-	stdoutW.Close()
-	stderrW.Close()
+	stdoutW.Close() //nolint:errcheck // cleanup
+	stderrW.Close() //nolint:errcheck // cleanup
 	if startErr != nil {
-		stdout.Close()
-		stderr.Close()
+		stdout.Close() //nolint:errcheck // cleanup
+		stderr.Close() //nolint:errcheck // cleanup
 		return 0, fmt.Errorf("start %s: %w", processName, startErr)
 	}
 
@@ -374,7 +374,7 @@ func (pm *ProcessManager) StartWithOptions(_ context.Context, config BinaryConfi
 	stdoutDone := make(chan struct{})
 	go func() {
 		defer close(stdoutDone)
-		defer stdout.Close()
+		defer stdout.Close() //nolint:errcheck // cleanup
 		scanner := bufio.NewScanner(stdout)
 		scanner.Buffer(make([]byte, 1024*1024), 1024*1024)
 		for scanner.Scan() {
@@ -395,7 +395,7 @@ func (pm *ProcessManager) StartWithOptions(_ context.Context, config BinaryConfi
 	stderrDone := make(chan struct{})
 	go func() {
 		defer close(stderrDone)
-		defer stderr.Close()
+		defer stderr.Close() //nolint:errcheck // cleanup
 		scanner := bufio.NewScanner(stderr)
 		scanner.Buffer(make([]byte, 1024*1024), 1024*1024)
 		for scanner.Scan() {
@@ -426,8 +426,8 @@ func (pm *ProcessManager) StartWithOptions(_ context.Context, config BinaryConfi
 		// A descendant that inherited the pipes keeps the readers blocked past the
 		// child's exit, so closing them is what bounds the drain.
 		drain := time.AfterFunc(2*time.Second, func() {
-			stdout.Close()
-			stderr.Close()
+			stdout.Close() //nolint:errcheck // cleanup
+			stderr.Close() //nolint:errcheck // cleanup
 			pm.log.Warn().Str("binary", processName).Msg("timed out waiting for output to drain")
 		})
 		<-stdoutDone
