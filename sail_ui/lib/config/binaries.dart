@@ -71,7 +71,7 @@ abstract class Binary {
   // Runtime properties
   BinaryType get type;
   Color get color;
-  String get ticker => '';
+  String get ticker => activeTicker.symbol;
   String get binary => metadata.downloadConfig.binary;
   String get binaryName => binary;
   bool get isDownloaded => metadata.binaryPath != null;

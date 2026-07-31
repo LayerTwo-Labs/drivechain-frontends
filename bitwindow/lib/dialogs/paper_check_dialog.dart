@@ -179,7 +179,7 @@ class _PaperCheckDialogState extends State<PaperCheckDialog> {
                 ),
                 pw.SizedBox(height: 10),
                 pw.Text(
-                  'Amount: $amount BTC',
+                  'Amount: $amount ${activeTicker.symbol}',
                   style: pw.TextStyle(fontSize: 24, fontWeight: pw.FontWeight.bold),
                 ),
                 pw.SizedBox(height: 30),
@@ -484,7 +484,10 @@ class _PaperCheckDialogState extends State<PaperCheckDialog> {
                                     children: [
                                       SailText.secondary12('Check Amount'),
                                       const SizedBox(height: 4),
-                                      SailText.primary20('${_amountController.text} BTC', bold: true),
+                                      SailText.primary20(
+                                        '${_amountController.text} ${activeTicker.symbol}',
+                                        bold: true,
+                                      ),
                                     ],
                                   ),
                                 ],

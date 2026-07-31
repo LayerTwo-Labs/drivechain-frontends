@@ -77,7 +77,9 @@ class FundGroupModal extends StatelessWidget {
                                 children: [
                                   SailText.primary13(group.name),
                                   SailText.secondary12('${group.m} of ${group.n} multisig'),
-                                  SailText.secondary12('Balance: ${group.balance.toStringAsFixed(8)} BTC'),
+                                  SailText.secondary12(
+                                    'Balance: ${group.balance.toStringAsFixed(8)} ${activeTicker.symbol}',
+                                  ),
                                 ],
                               ),
                             ),

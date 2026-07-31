@@ -19,7 +19,7 @@ class UnitDropdown extends StatelessWidget {
   Widget build(BuildContext context) {
     return SailDropdownButton(
       items: [
-        SailDropdownItem(value: Unit.BTC, label: 'BTC'),
+        SailDropdownItem(value: Unit.BTC, label: activeTicker.symbol),
         SailDropdownItem(value: Unit.sats, label: 'SAT'),
       ],
       onChanged: (value) {

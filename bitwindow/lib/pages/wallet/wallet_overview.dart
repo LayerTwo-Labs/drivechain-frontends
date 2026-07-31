@@ -643,10 +643,12 @@ class OverviewViewModel extends BaseViewModel with ChangeTrackingMixin {
           title: 'Accelerate (CPFP)',
           subtitle: 'Spend this unconfirmed output with a child tx so the package reaches your target fee rate.',
           fields: [
-            EditField(name: 'Target fee rate (sat/vB)', currentValue: ''),
+            EditField(name: 'Target fee rate (${activeTicker.feeRate})', currentValue: ''),
           ],
           onSave: (updatedFields) async {
-            final raw = updatedFields.firstWhere((f) => f.name == 'Target fee rate (sat/vB)').currentValue;
+            final raw = updatedFields
+                .firstWhere((f) => f.name == 'Target fee rate (${activeTicker.feeRate})')
+                .currentValue;
             await _createCpfp(context, tx, raw);
           },
         ),
@@ -660,7 +662,7 @@ class OverviewViewModel extends BaseViewModel with ChangeTrackingMixin {
     try {
       final targetRate = int.tryParse(rawRate.trim());
       if (targetRate == null || targetRate <= 0) {
-        throw Exception('Enter a positive fee rate in sat/vB');
+        throw Exception('Enter a positive fee rate in ${activeTicker.feeRate}');
       }
 
       final walletId = _walletReader.activeWalletId;

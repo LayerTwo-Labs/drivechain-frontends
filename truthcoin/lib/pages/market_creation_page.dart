@@ -411,7 +411,7 @@ class _ReviewStep extends StatelessWidget {
                 label: model.liquidityMethod == LiquidityMethod.beta ? 'Beta' : 'Liquidity',
                 value: model.liquidityMethod == LiquidityMethod.beta
                     ? model.betaController.text
-                    : '${model.liquidityController.text} sats',
+                    : '${model.liquidityController.text} ${activeTicker.subunit}',
               ),
               _ReviewRow(label: 'Trading Fee', value: '${model.tradingFeeController.text}%'),
             ],

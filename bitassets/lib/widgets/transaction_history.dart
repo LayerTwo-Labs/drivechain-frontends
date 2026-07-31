@@ -242,7 +242,7 @@ class _TransactionRow extends StatelessWidget {
 
   String _formatAmount(int amount) {
     if (amount >= 100000000) {
-      return '${(amount / 100000000).toStringAsFixed(4)} BTC';
+      return '${(amount / 100000000).toStringAsFixed(4)} ${activeTicker.symbol}';
     } else if (amount >= 1000000) {
       return '${(amount / 1000000).toStringAsFixed(2)}M';
     } else if (amount >= 1000) {

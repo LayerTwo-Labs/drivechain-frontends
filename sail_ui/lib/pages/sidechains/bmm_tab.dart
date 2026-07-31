@@ -258,7 +258,7 @@ class BMMTab extends StatelessWidget {
                   ),
                   _StatChip(
                     label: 'Total Profit',
-                    value: '${viewModel.totalProfit} sats',
+                    value: '${viewModel.totalProfit} ${activeTicker.subunit}',
                     color: viewModel.totalProfit >= 0 ? theme.colors.success : theme.colors.error,
                   ),
                   const Spacer(),

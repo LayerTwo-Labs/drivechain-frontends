@@ -440,8 +440,8 @@ class RecentActionsViewModel extends BaseViewModel {
 
   String _getValueForAction(dynamic action) {
     return switch (action.actionType) {
-      'deposit' => '+ ${_formatBTC(action.amountSatoshi)} BTC',
-      'withdrawal' => '- ${_formatBTC(action.amountSatoshi)} BTC',
+      'deposit' => '+ ${_formatBTC(action.amountSatoshi)} ${activeTicker.symbol}',
+      'withdrawal' => '- ${_formatBTC(action.amountSatoshi)} ${activeTicker.symbol}',
       'withdrawal_ack' => '${_formatNumber(action.ackCount)} / ${_formatNumber(action.ackTotal)} acks',
       'sidechain_proposal' => '${action.ackCount}/${action.ackTotal} acks',
       'sidechain_ack' => action.extraInfo,

@@ -447,11 +447,11 @@ class _HoldingRow extends StatelessWidget {
   String _formatBtc(int sats) {
     final btc = sats / 100000000;
     if (btc >= 1) {
-      return '${btc.toStringAsFixed(4)} BTC';
+      return '${btc.toStringAsFixed(4)} ${activeTicker.symbol}';
     } else if (sats >= 1000) {
       return '${(sats / 1000).toStringAsFixed(2)}k sats';
     } else {
-      return '$sats sats';
+      return '$sats ${activeTicker.subunit}';
     }
   }
 
@@ -484,12 +484,12 @@ class PortfolioDashboardViewModel extends BaseViewModel {
 
   String get formattedBtcBalance {
     final btc = totalBtcBalance / 100000000;
-    return '${btc.toStringAsFixed(8)} BTC';
+    return '${btc.toStringAsFixed(8)} ${activeTicker.symbol}';
   }
 
   String get formattedPendingBtc {
     final btc = pendingBtcBalance / 100000000;
-    return '${btc.toStringAsFixed(8)} BTC';
+    return '${btc.toStringAsFixed(8)} ${activeTicker.symbol}';
   }
 
   int get bitAssetTypesHeld {

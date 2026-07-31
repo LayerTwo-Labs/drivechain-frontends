@@ -56,7 +56,7 @@ class SendOnSidechainAction extends StatelessWidget {
               ),
               StaticActionField(
                 label: 'Fee',
-                value: ('${formatter.formatBTC(model.sidechainExpectedFee ?? 0)} ${model.ticker}'),
+                value: (formatter.formatBTC(model.sidechainExpectedFee ?? 0)),
               ),
               StaticActionField(
                 label: 'Total amount',

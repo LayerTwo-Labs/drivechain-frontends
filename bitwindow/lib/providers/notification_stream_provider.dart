@@ -69,11 +69,11 @@ class NotificationStreamProvider extends ChangeNotifier {
     switch (event.type) {
       case TransactionEvent_Type.TYPE_RECEIVED:
         title = 'Transaction Received';
-        content = 'Received ${_formatAmount(event.amountSats)} BTC';
+        content = 'Received ${_formatAmount(event.amountSats)} ${activeTicker.symbol}';
         break;
       case TransactionEvent_Type.TYPE_SENT:
         title = 'Transaction Sent';
-        content = 'Sent ${_formatAmount(event.amountSats)} BTC';
+        content = 'Sent ${_formatAmount(event.amountSats)} ${activeTicker.symbol}';
         break;
       case TransactionEvent_Type.TYPE_CONFIRMED:
         title = 'Transaction Confirmed';

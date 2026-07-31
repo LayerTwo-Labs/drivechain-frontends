@@ -623,7 +623,7 @@ class _OverviewTab extends StatelessWidget {
           SailText.primary13('Fee'),
           const SailSpacing(SailStyleValues.padding08),
           DetailRow(label: 'Fee', value: formatter.formatSats(details.feeSats.toInt())),
-          DetailRow(label: 'Fee Rate', value: '${details.feeRateSatVb.toStringAsFixed(2)} sat/vB'),
+          DetailRow(label: 'Fee Rate', value: '${details.feeRateSatVb.toStringAsFixed(2)} ${activeTicker.feeRate}'),
 
           const SailSpacing(SailStyleValues.padding16),
 

@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:connectrpc/protobuf.dart';
 import 'package:sail_ui/rpcs/keepalive_http_client.dart';
+import 'package:sail_ui/ticker.dart';
 import 'package:connectrpc/protocol/connect.dart' as connect;
 import 'package:sail_ui/auth/local_auth.dart';
 import 'package:fixnum/fixnum.dart';
@@ -467,7 +468,7 @@ enum ParentChainType {
   regtest;
 
   String get value => switch (this) {
-    ParentChainType.btc => 'BTC',
+    ParentChainType.btc => activeTicker.symbol,
     ParentChainType.bch => 'BCH',
     ParentChainType.ltc => 'LTC',
     ParentChainType.signet => 'Signet',

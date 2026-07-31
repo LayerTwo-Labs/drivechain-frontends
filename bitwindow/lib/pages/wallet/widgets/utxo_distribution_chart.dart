@@ -266,7 +266,7 @@ class _Legend extends StatelessWidget {
                   const SizedBox(width: 8),
                   Expanded(
                     child: SailText.primary12(
-                      bucket.label,
+                      '${bucket.label} ${activeTicker.symbol}',
                       monospace: true,
                     ),
                   ),

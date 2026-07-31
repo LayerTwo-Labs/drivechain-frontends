@@ -4,13 +4,14 @@ import 'package:crypto/crypto.dart';
 import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/providers/settings_provider.dart';
+import 'package:sail_ui/ticker.dart';
 
 enum BitcoinUnit {
   btc,
   sats;
 
-  String get symbol => this == BitcoinUnit.btc ? 'BTC' : 'sats';
-  String get label => this == BitcoinUnit.btc ? 'BTC' : 'Satoshis';
+  String get symbol => this == BitcoinUnit.btc ? activeTicker.symbol : activeTicker.subunit;
+  String get label => this == BitcoinUnit.btc ? activeTicker.symbol : activeTicker.subunitLabel;
 }
 
 /// Utility class for Bitcoin amount formatting based on user's unit preference
@@ -45,9 +46,12 @@ int btcToSatoshi(double btc) {
   return (btc * satoshiPerBitcoin).toInt();
 }
 
-String formatBitcoin(num? number, {String symbol = 'BTC'}) {
+/// Pass symbol: '' to omit the unit; omit it entirely for the active
+/// network's ticker.
+String formatBitcoin(num? number, {String? symbol}) {
+  final unit = symbol ?? activeTicker.symbol;
   if (number == null || number.isNaN || number.isInfinite) {
-    return '0.0000,0000${symbol.isEmpty ? '' : ' $symbol'}';
+    return '0.0000,0000${unit.isEmpty ? '' : ' $unit'}';
   }
 
   // Ensure positive number and handle negatives
@@ -66,7 +70,7 @@ String formatBitcoin(num? number, {String symbol = 'BTC'}) {
   // Group as: 4 digits, 4 digits with comma
   String groupedDecimal = '${decimalPart.substring(0, 4)},${decimalPart.substring(4, 8)}';
 
-  return '${isNegative ? '-' : ''}$integerPart.$groupedDecimal${symbol.isEmpty ? '' : ' $symbol'}';
+  return '${isNegative ? '-' : ''}$integerPart.$groupedDecimal${unit.isEmpty ? '' : ' $unit'}';
 }
 
 String formatDepositAddress(String address, int sidechainNum) {
@@ -107,7 +111,7 @@ String formatBitcoinWithUnit(double btc, BitcoinUnit unit) {
 
 String formatSatoshis(int sats) {
   if (sats == 0) {
-    return '0 sats';
+    return '0 ${activeTicker.subunit}';
   }
 
   bool isNegative = sats < 0;
@@ -125,7 +129,7 @@ String formatSatoshis(int sats) {
     count++;
   }
 
-  return '${isNegative ? '-' : ''}$formatted sats';
+  return '${isNegative ? '-' : ''}$formatted ${activeTicker.subunit}';
 }
 
 double parseAmountInUnit(String input, BitcoinUnit unit) {

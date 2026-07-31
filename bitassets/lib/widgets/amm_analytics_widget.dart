@@ -418,13 +418,13 @@ class _PoolRow extends StatelessWidget {
 
   String _formatSats(int sats) {
     if (sats >= 100000000) {
-      return '${(sats / 100000000).toStringAsFixed(2)} BTC';
+      return '${(sats / 100000000).toStringAsFixed(2)} ${activeTicker.symbol}';
     } else if (sats >= 1000000) {
       return '${(sats / 1000000).toStringAsFixed(2)}M sats';
     } else if (sats >= 1000) {
       return '${(sats / 1000).toStringAsFixed(1)}k sats';
     }
-    return '$sats sats';
+    return '$sats ${activeTicker.subunit}';
   }
 
   String _formatAmount(int amount) {
@@ -540,13 +540,13 @@ class AmmAnalyticsViewModel extends BaseViewModel {
   String get formattedTotalTvl {
     final total = pools.fold<int>(0, (sum, pool) => sum + pool.tvl);
     if (total >= 100000000) {
-      return '${(total / 100000000).toStringAsFixed(2)} BTC';
+      return '${(total / 100000000).toStringAsFixed(2)} ${activeTicker.symbol}';
     } else if (total >= 1000000) {
       return '${(total / 1000000).toStringAsFixed(2)}M sats';
     } else if (total >= 1000) {
       return '${(total / 1000).toStringAsFixed(1)}k sats';
     }
-    return '$total sats';
+    return '$total ${activeTicker.subunit}';
   }
 
   void setPriceChange(String value) {

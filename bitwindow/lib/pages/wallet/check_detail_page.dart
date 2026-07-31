@@ -236,7 +236,7 @@ class CheckDetailPage extends StatelessWidget {
 
         return SailScaffold(
           backgroundColor: SailTheme.of(context).colors.background,
-          appBar: SailAppBar.build(context, title: SailText.primary20('Check for $amountBTC BTC')),
+          appBar: SailAppBar.build(context, title: SailText.primary20('Check for $amountBTC ${activeTicker.symbol}')),
           body: Builder(
             builder: (context) {
               if (model.isLoading) {

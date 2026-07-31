@@ -59,7 +59,7 @@ class SwapCard extends StatelessWidget {
                   label: 'Amount you want (${model.parentChain.value})',
                   controller: model.l1AmountController,
                   hintText: 'e.g. 100000 sats',
-                  suffixWidget: SailText.secondary12('sats'),
+                  suffixWidget: SailText.secondary12(activeTicker.subunit),
                 ),
 
                 const SizedBox(height: SailStyleValues.padding08),
@@ -113,7 +113,7 @@ class SwapCard extends StatelessWidget {
                   label: 'L2 amount you offer',
                   controller: model.l2AmountController,
                   hintText: 'e.g. 100000 sats',
-                  suffixWidget: SailText.secondary12('sats'),
+                  suffixWidget: SailText.secondary12(activeTicker.subunit),
                 ),
 
                 const SizedBox(height: SailStyleValues.padding08),

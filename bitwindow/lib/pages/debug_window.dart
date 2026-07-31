@@ -147,8 +147,8 @@ class _InformationTabState extends State<InformationTab> {
               details: {
                 'Transaction Count': _mempoolInfo?.size.toString() ?? 'Loading...',
                 'Memory Usage': '${_mempoolInfo?.usage ?? 0} bytes',
-                'Total Fee': '${_mempoolInfo?.totalFee ?? 0} BTC',
-                'Min Relay Fee': '${_mempoolInfo?.minRelayTxFee ?? 0} BTC',
+                'Total Fee': '${_mempoolInfo?.totalFee ?? 0} ${activeTicker.symbol}',
+                'Min Relay Fee': '${_mempoolInfo?.minRelayTxFee ?? 0} ${activeTicker.symbol}',
               },
             ),
           ],

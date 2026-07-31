@@ -41,7 +41,7 @@ class ZSideWidgetCatalog {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     SailText.primary24(
-                      '${formatter.formatBTC(model.totalBalance)} ${model.ticker}',
+                      formatter.formatBTC(model.totalBalance),
                       bold: true,
                     ),
                     const SizedBox(height: 8),

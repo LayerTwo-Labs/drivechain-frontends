@@ -223,7 +223,7 @@ class _Overview extends StatelessWidget {
           ),
           DetailRow(
             label: 'Fee Rate',
-            value: decoded.hasFee ? '${details.feeRateSatVb.toStringAsFixed(2)} sat/vB' : 'Unknown',
+            value: decoded.hasFee ? '${details.feeRateSatVb.toStringAsFixed(2)} ${activeTicker.feeRate}' : 'Unknown',
           ),
           const SailSpacing(SailStyleValues.padding16),
           SailText.primary13('Totals'),

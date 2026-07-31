@@ -1264,11 +1264,11 @@ class MultisigLoungeViewModel extends BaseViewModel {
                 DetailRow(label: 'Group:', value: group.name),
                 DetailRow(
                   label: 'Amount:',
-                  value: '${transaction.amount.toStringAsFixed(8)} BTC',
+                  value: '${transaction.amount.toStringAsFixed(8)} ${activeTicker.symbol}',
                 ),
                 DetailRow(
                   label: 'Fee:',
-                  value: '${transaction.fee.toStringAsFixed(8)} BTC',
+                  value: '${transaction.fee.toStringAsFixed(8)} ${activeTicker.symbol}',
                 ),
                 DetailRow(label: 'Destination:', value: transaction.destination),
                 DetailRow(

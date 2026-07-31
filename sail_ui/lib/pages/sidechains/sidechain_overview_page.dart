@@ -46,7 +46,7 @@ class SidechainOverviewTabPage extends StatelessWidget {
                                       enabled: !model.balanceInitialized,
                                       description: 'Waiting for ${model.sidechainName} to boot...',
                                       child: SailText.primary24(
-                                        '${formatBitcoin(model.totalBalance)} ${model.ticker}',
+                                        formatBitcoin(model.totalBalance),
                                         bold: true,
                                       ),
                                     ),

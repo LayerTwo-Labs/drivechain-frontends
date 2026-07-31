@@ -3068,7 +3068,8 @@ func formatBucketRange(minSats, maxSats uint64) string {
 		}
 	}
 
-	return fmt.Sprintf("%s - %s BTC", formatVal(minBTC), formatVal(maxBTC))
+	// No unit: the ticker depends on the active network, which the client knows.
+	return fmt.Sprintf("%s - %s", formatVal(minBTC), formatVal(maxBTC))
 }
 
 // BumpFee implements RBF (Replace-By-Fee) for unconfirmed transactions.

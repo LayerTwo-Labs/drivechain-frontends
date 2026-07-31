@@ -131,11 +131,11 @@ class _SettingsAppearanceState extends State<SettingsAppearance> {
               items: [
                 SailDropdownItem<BitcoinUnit>(
                   value: BitcoinUnit.btc,
-                  label: 'BTC',
+                  label: activeTicker.symbol,
                 ),
                 SailDropdownItem<BitcoinUnit>(
                   value: BitcoinUnit.sats,
-                  label: 'Satoshis',
+                  label: activeTicker.subunitLabel,
                 ),
               ],
               onChanged: (BitcoinUnit? newValue) async {

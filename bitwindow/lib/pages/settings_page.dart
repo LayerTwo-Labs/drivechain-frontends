@@ -717,11 +717,11 @@ class _AppearanceSettingsContentState extends State<_AppearanceSettingsContent> 
               items: [
                 SailDropdownItem<BitcoinUnit>(
                   value: BitcoinUnit.btc,
-                  label: 'BTC',
+                  label: activeTicker.symbol,
                 ),
                 SailDropdownItem<BitcoinUnit>(
                   value: BitcoinUnit.sats,
-                  label: 'Satoshis',
+                  label: activeTicker.subunitLabel,
                 ),
               ],
               onChanged: (BitcoinUnit? newValue) async {
