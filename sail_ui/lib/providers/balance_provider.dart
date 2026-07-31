@@ -24,6 +24,10 @@ class BalanceProvider extends ChangeNotifier implements NetworkScoped {
   bool _isFetching = false;
   Timer? _fetchTimer;
 
+  // A recreated transport abandons in-flight requests without ever completing
+  // their futures, which would latch _isFetching for the rest of the session.
+  static const _fetchTimeout = Duration(seconds: 30);
+
   final WalletReaderProvider? _walletReader = GetIt.I.isRegistered<WalletReaderProvider>()
       ? GetIt.I.get<WalletReaderProvider>()
       : null;
@@ -102,7 +106,18 @@ class BalanceProvider extends ChangeNotifier implements NetworkScoped {
           // dont bother fetching balance if connection is down
           continue;
         }
-        final (confirmed, pending) = await rpc.balance();
+        final (double confirmed, double pending) balances;
+        try {
+          balances = await rpc.balance().timeout(_fetchTimeout);
+        } catch (err) {
+          // One unreachable chain must not stop the others from reporting.
+          if (!isExpectedBootError(err)) {
+            log.w('BalanceProvider: ${rpc.binaryType.name} balance failed: $err');
+          }
+          error = err.toString();
+          continue;
+        }
+        final (confirmed, pending) = balances;
         if (!initialized) {
           // wen't from not initialized to initialized, make sure to notify
           changed = true;
@@ -120,6 +135,7 @@ class BalanceProvider extends ChangeNotifier implements NetworkScoped {
         notifyListeners();
       }
     } catch (err) {
+      log.w('BalanceProvider: fetch failed: $err');
       error = err.toString();
     } finally {
       _isFetching = false;

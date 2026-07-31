@@ -46,6 +46,10 @@ class TransactionProvider extends ChangeNotifier implements NetworkScoped {
   bool _isFetching = false;
   Timer? _fetchTimer; // Timer to periodically fetch transactions
 
+  // A recreated transport abandons in-flight requests without ever completing
+  // their futures, which would latch _isFetching for the rest of the session.
+  static const _fetchTimeout = Duration(seconds: 30);
+
   TransactionProvider() {
     balanceProvider.addListener(fetch);
     blockchainProvider.addListener(fetch);
@@ -229,7 +233,7 @@ class TransactionProvider extends ChangeNotifier implements NetworkScoped {
           );
           return false;
         }(),
-      ]);
+      ]).timeout(_fetchTimeout);
 
       // If any update returned true, notify listeners
       if (results.any((changed) => changed) || error != null) {
