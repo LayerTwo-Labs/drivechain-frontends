@@ -239,7 +239,7 @@ func (e *TimestampEngine) TimestampFile(ctx context.Context, filename string, fi
 	if err != nil {
 		return nil, fmt.Errorf("check existing timestamp: %w", err)
 	}
-	if existing != nil {
+	if existing != nil && existing.Status != timestamps.StatusFailed {
 		e.log.Info().
 			Str("filename", filename).
 			Str("hash", fileHash).
@@ -266,13 +266,35 @@ func (e *TimestampEngine) TimestampFile(ctx context.Context, filename string, fi
 		Str("hash", fileHash).
 		Msg("created timestamp transaction on blockchain")
 
+	createdAt := time.Now()
+
+	if existing != nil {
+		if err := timestamps.Retry(ctx, e.db, existing.ID, txid, createdAt); err != nil {
+			return nil, fmt.Errorf("retry timestamp record: %w", err)
+		}
+
+		existing.TxID = &txid
+		existing.Status = timestamps.StatusConfirming
+		existing.CreatedAt = createdAt
+		existing.BlockHeight = nil
+		existing.ConfirmedAt = nil
+
+		e.log.Info().
+			Int64("id", existing.ID).
+			Str("filename", existing.Filename).
+			Str("txid", txid).
+			Msg("failed file timestamp retried")
+
+		return existing, nil
+	}
+
 	// Store timestamp metadata in database
 	timestamp := timestamps.FileTimestamp{
 		Filename:  filename,
 		FileHash:  fileHash,
 		TxID:      &txid,
 		Status:    timestamps.StatusConfirming,
-		CreatedAt: time.Now(),
+		CreatedAt: createdAt,
 	}
 
 	id, err := timestamps.Create(ctx, e.db, timestamp)

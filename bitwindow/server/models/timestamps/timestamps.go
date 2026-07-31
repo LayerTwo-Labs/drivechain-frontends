@@ -209,6 +209,25 @@ func GetByHash(ctx context.Context, db *sql.DB, fileHash string) (*FileTimestamp
 	return &timestamp, nil
 }
 
+// Retry points a failed timestamp at a fresh broadcast, restarting it as confirming.
+func Retry(ctx context.Context, db *sql.DB, id int64, txid string, createdAt time.Time) error {
+	_, err := db.ExecContext(ctx, `
+		UPDATE file_timestamps
+		SET txid = ?, status = ?, created_at = ?, block_height = NULL, confirmed_at = NULL
+		WHERE id = ?
+	`, txid, StatusConfirming, createdAt, id)
+	if err != nil {
+		return fmt.Errorf("retry file timestamp: %w", err)
+	}
+
+	zerolog.Ctx(ctx).Info().
+		Int64("id", id).
+		Str("txid", txid).
+		Msg("retried file timestamp")
+
+	return nil
+}
+
 func UpdateFilename(ctx context.Context, db *sql.DB, id int64, filename string) error {
 	_, err := db.ExecContext(ctx, `
 		UPDATE file_timestamps
